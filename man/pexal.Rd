@@ -17,27 +17,26 @@ pexal(
 \arguments{
 \item{q}{Numeric vector of quantiles.}
 
-\item{p0}{Probability level associated with the quantile parameterization. Must be in (0,1). Default is 0.5.}
+\item{p0}{Probability level used in the quantile parametrization. Scalar in (0, 1). Default \code{0.5}.}
 
-\item{mu}{Location parameter. Default is 0.}
+\item{mu}{Location parameter (scalar). Default \code{0}.}
 
-\item{sigma}{Scale parameter. Must be strictly positive. Default is 1.}
+\item{sigma}{Scale parameter (scalar, strictly positive). Default \code{1}.}
 
-\item{gamma}{Skewness parameter controlling asymmetry. Default is 0.}
+\item{gamma}{Skewness parameter controlling asymmetry (scalar). Must be within valid bounds implied by \code{p0}. Default \code{0}.}
 
-\item{lower.tail}{Logical; if TRUE (default), returns P(X ≤ q), otherwise P(X > q).}
+\item{lower.tail}{Logical scalar; if \code{TRUE} (default) return \eqn{P(X \le q)}, otherwise \eqn{P(X > q)}.}
 
-\item{log.p}{Logical; if TRUE, returns log-probabilities. Default is FALSE.}
+\item{log.p}{Logical scalar; if \code{TRUE}, return log-probabilities.}
 }
 \value{
-A numeric vector of cumulative probabilities.
+Numeric vector of CDF values (same length as \code{q}).
 }
 \description{
-Computes the cumulative probability for the Extended Asymmetric Laplace (exAL) distribution.
+Vectorized over \code{q}.
 }
 \examples{
 pexal(0)
-pexal(1, p0 = 0.75, mu = 0, sigma = 2, gamma = 1)
-pexal(seq(-3, 3, by = 0.1), p0 = 0.3, mu = 0, sigma = 1, gamma = -0.5)
+pexal(c(-1, 0, 1), p0 = 0.5, mu = 0, sigma = 1, gamma = 0.1)
 
 }
