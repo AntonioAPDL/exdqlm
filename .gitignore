@@ -1,4 +1,25 @@
+# R/RStudio user files
+.Rproj.user/
 .Rhistory
 .RData
-.Rproj.user/
+.Ruserdata
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Package build artefacts
 doc/
+inst/doc/
+Meta/
+
+# Vignettes are intentionally omitted on this branch
+vignettes/
+
+# Compiled objects created locally
+src/*.o
+src/*.so
+src/*.dll
+
+# Devtools CRAN handoff file (created on release)
+CRAN-SUBMISSION

@@ -6,3 +6,5 @@
 ^vignettes$
 ^CRAN-SUBMISSION$
 ^MD5$
+^vignettes/*\.html$
+^vignettes/*\.pdf$
