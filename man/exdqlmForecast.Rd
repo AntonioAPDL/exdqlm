@@ -24,28 +24,28 @@ exdqlmForecast(
 
 \item{k}{Number of k-steps-ahead to forecast.}
 
-\item{m1}{An object of class "\code{exdqlm}".}
+\item{m1}{An object of class "`exdqlm`".}
 
-\item{fFF}{State vector for the forecast steps. \code{fFF} must have either 1 (non-time-varying) or k (time-varying) columns. The dimension of \code{fFF} must match the estimated exdqlm in \code{m1}.}
+\item{fFF}{State vector for the forecast steps. `fFF` must have either 1 (non-time-varying) or k (time-varying) columns. The dimension of `fFF` must match the estimated exdqlm in `m1`.}
 
-\item{fGG}{Evolution matrix for the forecast steps. \code{fGG} must be either a matrix (non-time-varying) or an array of depth k (time-varying). The dimensions of \code{fGG} must match the estimated exdqlm in \code{m1}.}
+\item{fGG}{Evolution matrix for the forecast steps. `fGG` must be either a matrix (non-time-varying) or an array of depth k (time-varying). The dimensions of `fGG` must match the estimated exdqlm in `m1`.}
 
-\item{plot}{If \code{TRUE} the forecasted quantile estimates and 95\% credible intervals are plotted, along with the filtered quantile estimates and 95\% credible intervals for reference. Default is \code{TRUE}.}
+\item{plot}{If `TRUE` the forecasted quantile estimates and 95% credible intervals are plotted, along with the filtered quantile estimates and 95% credible intervals for reference. Default is `TRUE`.}
 
-\item{add}{If \code{TRUE}, the forecasted quantile will be added to the existing plot. Default is \code{FALSE}.}
+\item{add}{If `TRUE`, the forecasted quantile will be added to the existing plot. Default is `FALSE`.}
 
-\item{cols}{Two colors used to plot filtered and forecasted quantile estimates respectively. Default is \code{c("purple","magenta")}.}
+\item{cols}{Two colors used to plot filtered and forecasted quantile estimates respectively. Default is `c("purple","magenta")`.}
 
 \item{cr.percent}{Percentage used in the calculation of the credible intervals.}
 }
 \value{
 A list containing the following is returned:
-\itemize{
-\item \code{fa} - The forecasted state mean vectors.
-\item \code{fR} - The forecasted state covariance matrices.
-\item \code{ff} - The forecasted quantile mean estimates.
-\item \code{fQ} - The forecasted quantile variances.
-}
+ \itemize{
+ \item `fa` - The forecasted state mean vectors.
+ \item `fR` - The forecasted state covariance matrices.
+ \item `ff` - The forecasted quantile mean estimates.
+ \item `fQ` - The forecasted quantile variances.
+ }
 }
 \description{
 The function estimates and plots the k-step-ahead forecasted quantile distribution from the filtered quantile estimates.
