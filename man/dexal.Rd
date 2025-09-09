@@ -9,29 +9,26 @@ dexal(x, p0 = 0.5, mu = 0, sigma = 1, gamma = 0, log = FALSE)
 \arguments{
 \item{x}{Numeric vector of quantiles.}
 
-\item{p0}{Probability level associated with the quantile parameterization. Must be in (0,1). Default is 0.5.}
+\item{p0}{Probability level used in the quantile parametrization. Scalar in (0, 1). Default \code{0.5}.}
 
-\item{mu}{Location parameter. Default is 0.}
+\item{mu}{Location parameter (scalar). Default \code{0}.}
 
-\item{sigma}{Scale parameter. Must be strictly positive. Default is 1.}
+\item{sigma}{Scale parameter (scalar, strictly positive). Default \code{1}.}
 
-\item{gamma}{Skewness parameter controlling asymmetry. Default is 0.}
+\item{gamma}{Skewness parameter controlling asymmetry (scalar). Must be within valid bounds implied by \code{p0}. Default \code{0}.}
 
-\item{log}{Logical; if TRUE, returns the log-density. Default is FALSE.}
+\item{log}{Logical scalar; if \code{TRUE} return log-density. Default \code{FALSE}.}
 }
 \value{
-A numeric vector of probability densities.
+Numeric vector of densities (same length as \code{x}).
 }
 \description{
-Computes the probability density function (PDF) for the Extended Asymmetric Laplace (exAL) distribution.
-}
-\details{
-The exAL distribution extends the Asymmetric Laplace (AL) distribution by incorporating an additional skewness parameter \code{gamma}.
-This distribution is useful for modeling heavy-tailed asymmetric data.
+Computes the PDF of the Extended Asymmetric Laplace (exAL) distribution.
+Vectorized over \code{x}.
 }
 \examples{
 dexal(0)
-dexal(1, p0 = 0.75, mu = 0, sigma = 2, gamma = 1)
-dexal(seq(-3, 3, by = 0.1), p0 = 0.3, mu = 0, sigma = 1, gamma = -0.5)
+dexal(1, p0 = 0.75, mu = 0, sigma = 2, gamma = 0.25)
+dexal(seq(-3, 3, by = 0.1), p0 = 0.3, mu = 0, sigma = 1, gamma = -0.45)
 
 }

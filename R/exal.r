@@ -1,96 +1,82 @@
 #' Density Function for the Extended Asymmetric Laplace (exAL) Distribution
 #'
-#' Computes the probability density function (PDF) for the Extended Asymmetric Laplace (exAL) distribution.
+#' Computes the PDF of the Extended Asymmetric Laplace (exAL) distribution.
+#' Vectorized over `x`.
 #'
 #' @param x Numeric vector of quantiles.
-#' @param p0 Probability level associated with the quantile parameterization. Must be in (0,1). Default is 0.5.
-#' @param mu Location parameter. Default is 0.
-#' @param sigma Scale parameter. Must be strictly positive. Default is 1.
-#' @param gamma Skewness parameter controlling asymmetry. Default is 0.
-#' @param log Logical; if TRUE, returns the log-density. Default is FALSE.
+#' @param p0 Probability level used in the quantile parametrization. Scalar in (0, 1). Default `0.5`.
+#' @param mu Location parameter (scalar). Default `0`.
+#' @param sigma Scale parameter (scalar, strictly positive). Default `1`.
+#' @param gamma Skewness parameter controlling asymmetry (scalar). Must be within valid bounds implied by `p0`. Default `0`.
+#' @param log Logical scalar; if `TRUE` return log-density. Default `FALSE`.
 #'
-#' @return A numeric vector of probability densities.
-#' 
-#' @details The exAL distribution extends the Asymmetric Laplace (AL) distribution by incorporating an additional skewness parameter `gamma`. 
-#'          This distribution is useful for modeling heavy-tailed asymmetric data.
+#' @return Numeric vector of densities (same length as `x`).
 #'
 #' @examples
 #' dexal(0)
 #' dexal(1, p0 = 0.75, mu = 0, sigma = 2, gamma = 0.25)
-#' dexal(seq(-3, 3, by = 0.1), p0 = 0.3, mu = 0, sigma = 1, gamma = -0.5)
+#' dexal(seq(-3, 3, by = 0.1), p0 = 0.3, mu = 0, sigma = 1, gamma = -0.45)
 #'
 #' @export
 dexal <- function(x, p0 = 0.5, mu = 0, sigma = 1, gamma = 0, log = FALSE) {
-  dexal_cpp(x, p0, mu, sigma, gamma, log)
+  x <- as.numeric(x)
+  vapply(x, function(xx) dexal_cpp(xx, p0, mu, sigma, gamma, log), numeric(1))
 }
 
 #' Cumulative Distribution Function (CDF) for the exAL Distribution
 #'
-#' Computes the cumulative probability for the Extended Asymmetric Laplace (exAL) distribution.
+#' Vectorized over `q`.
 #'
 #' @param q Numeric vector of quantiles.
-#' @param p0 Probability level associated with the quantile parameterization. Must be in (0,1). Default is 0.5.
-#' @param mu Location parameter. Default is 0.
-#' @param sigma Scale parameter. Must be strictly positive. Default is 1.
-#' @param gamma Skewness parameter controlling asymmetry. Default is 0.
-#' @param lower.tail Logical; if TRUE (default), returns P(X ≤ q), otherwise P(X > q).
-#' @param log.p Logical; if TRUE, returns log-probabilities. Default is FALSE.
+#' @inheritParams dexal
+#' @param lower.tail Logical scalar; if `TRUE` (default) return \eqn{P(X \le q)}, otherwise \eqn{P(X > q)}.
+#' @param log.p Logical scalar; if `TRUE`, return log-probabilities.
 #'
-#' @return A numeric vector of cumulative probabilities.
+#' @return Numeric vector of CDF values (same length as `q`).
 #'
 #' @examples
 #' pexal(0)
-#' pexal(1, p0 = 0.75, mu = 0, sigma = 2, gamma = 0.25)
-#' pexal(seq(-3, 3, by = 0.1), p0 = 0.3, mu = 0, sigma = 1, gamma = -0.5)
+#' pexal(c(-1, 0, 1), p0 = 0.5, mu = 0, sigma = 1, gamma = 0.1)
 #'
 #' @export
 pexal <- function(q, p0 = 0.5, mu = 0, sigma = 1, gamma = 0, lower.tail = TRUE, log.p = FALSE) {
-  pexal_cpp(q, p0, mu, sigma, gamma, lower.tail, log.p)
+  q <- as.numeric(q)
+  vapply(q, function(qq) pexal_cpp(qq, p0, mu, sigma, gamma, lower.tail, log.p), numeric(1))
 }
 
 #' Quantile Function for the exAL Distribution
 #'
-#' Computes the quantile function (inverse CDF) for the Extended Asymmetric Laplace (exAL) distribution.
+#' Vectorized over `p`.
 #'
-#' @param p Numeric vector of probabilities. Must be in (0,1).
-#' @param p0 Probability level associated with the quantile parameterization. Must be in (0,1). Default is 0.5.
-#' @param mu Location parameter. Default is 0.
-#' @param sigma Scale parameter. Must be strictly positive. Default is 1.
-#' @param gamma Skewness parameter controlling asymmetry. Default is 0.
-#' @param lower.tail Logical; if TRUE (default), returns the lower-tail quantile. If FALSE, returns the upper-tail quantile.
-#' @param log.p Logical; if TRUE, probabilities are given in log-scale. Default is FALSE.
+#' @param p Numeric vector of probabilities in (0, 1).
+#' @inheritParams pexal
 #'
-#' @return A numeric vector of quantiles.
+#' @return Numeric vector of quantiles (same length as `p`).
 #'
 #' @examples
-#' qexal(0.5)
-#' qexal(0.95, p0 = 0.75, mu = 0, sigma = 2, gamma = 0.25)
-#' qexal(seq(0.1, 0.9, by = 0.1), p0 = 0.3, mu = 0, sigma = 1, gamma = -0.5)
+#' p <- seq(0.1, 0.9, by = 0.2)
+#' q <- qexal(p, p0 = 0.5, mu = 0, sigma = 1, gamma = 0)
+#' all.equal(p, pexal(q, p0 = 0.5, mu = 0, sigma = 1, gamma = 0), tol = 1e-4)
 #'
 #' @export
 qexal <- function(p, p0 = 0.5, mu = 0, sigma = 1, gamma = 0, lower.tail = TRUE, log.p = FALSE) {
-  qexal_cpp(p, p0, mu, sigma, gamma, lower.tail, log.p)
+  p <- as.numeric(p)
+  vapply(p, function(pp) qexal_cpp(pp, p0, mu, sigma, gamma, lower.tail, log.p), numeric(1))
 }
 
 #' Random Sample Generation for the exAL Distribution
 #'
-#' Generates random numbers from the Extended Asymmetric Laplace (exAL) distribution.
+#' @param n Positive integer number of samples to draw (scalar).
+#' @inheritParams dexal
 #'
-#' @param n Number of random values to generate. Must be a positive integer.
-#' @param p0 Probability level associated with the quantile parameterization. Must be in (0,1). Default is 0.5.
-#' @param mu Location parameter. Default is 0.
-#' @param sigma Scale parameter. Must be strictly positive. Default is 1.
-#' @param gamma Skewness parameter controlling asymmetry. Default is 0.
-#'
-#' @return A numeric vector of `n` random values drawn from the exAL distribution.
+#' @return Numeric vector of length `n`.
 #'
 #' @examples
-#' rexal(10)
-#' rexal(5, p0 = 0.75, mu = 0, sigma = 2, gamma = 0.25)
-#' rexal(1000, p0 = 0.3, mu = 0, sigma = 1, gamma = -0.5)
+#' set.seed(1); length(rexal(10))
 #'
 #' @export
 rexal <- function(n, p0 = 0.5, mu = 0, sigma = 1, gamma = 0) {
+  n <- as.integer(n)
+  if (length(n) != 1L || is.na(n) || n < 1L) stop("n must be a positive integer")
   rexal_cpp(n, p0, mu, sigma, gamma)
 }
-

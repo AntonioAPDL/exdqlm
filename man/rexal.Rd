@@ -7,25 +7,23 @@
 rexal(n, p0 = 0.5, mu = 0, sigma = 1, gamma = 0)
 }
 \arguments{
-\item{n}{Number of random values to generate. Must be a positive integer.}
+\item{n}{Positive integer number of samples to draw (scalar).}
 
-\item{p0}{Probability level associated with the quantile parameterization. Must be in (0,1). Default is 0.5.}
+\item{p0}{Probability level used in the quantile parametrization. Scalar in (0, 1). Default \code{0.5}.}
 
-\item{mu}{Location parameter. Default is 0.}
+\item{mu}{Location parameter (scalar). Default \code{0}.}
 
-\item{sigma}{Scale parameter. Must be strictly positive. Default is 1.}
+\item{sigma}{Scale parameter (scalar, strictly positive). Default \code{1}.}
 
-\item{gamma}{Skewness parameter controlling asymmetry. Default is 0.}
+\item{gamma}{Skewness parameter controlling asymmetry (scalar). Must be within valid bounds implied by \code{p0}. Default \code{0}.}
 }
 \value{
-A numeric vector of \code{n} random values drawn from the exAL distribution.
+Numeric vector of length \code{n}.
 }
 \description{
-Generates random numbers from the Extended Asymmetric Laplace (exAL) distribution.
+Random Sample Generation for the exAL Distribution
 }
 \examples{
-rexal(10)
-rexal(5, p0 = 0.75, mu = 0, sigma = 2, gamma = 1)
-rexal(1000, p0 = 0.3, mu = 0, sigma = 1, gamma = -0.5)
+set.seed(1); length(rexal(10))
 
 }
