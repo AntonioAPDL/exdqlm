@@ -7,3 +7,7 @@
 ^doc$
 ^Meta$
 ^vignettes/preview$
+^doc$
+^Meta$
+^vignettes$
+^CRAN-SUBMISSION$

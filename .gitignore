@@ -1,9 +1,19 @@
+# R session/user junk
 .Rhistory
 .RData
 .Rproj.user/
-inst/doc
-/doc/
-/Meta/
+
+# Editor
+.vscode/
+
+# Build artefacts
+doc/
+inst/doc/
+Meta/
+.Rcheck/
+CRAN-SUBMISSION
+
+# Vignette build outputs
 vignettes/preview/
 vignettes/*.html
-vignettes/*.R
+vignettes/*.pdf
