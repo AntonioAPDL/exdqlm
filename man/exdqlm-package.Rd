@@ -11,6 +11,11 @@ Routines for Bayesian estimation and analysis of dynamic quantile linear models 
 \author{
 \strong{Maintainer}: Raquel Barata \email{raquel.a.barata@gmail.com}
 
+Authors:
+\itemize{
+  \item Antonio Aguirre
+}
+
 Other contributors:
 \itemize{
   \item Raquel Prado [thesis advisor]
