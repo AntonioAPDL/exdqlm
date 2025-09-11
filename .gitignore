@@ -2,3 +2,8 @@
 .RData
 .Rproj.user/
 inst/doc
+/doc/
+/Meta/
+vignettes/preview/
+vignettes/*.html
+vignettes/*.R
