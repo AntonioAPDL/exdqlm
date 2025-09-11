@@ -8,3 +8,6 @@
 ^MD5$
 ^vignettes/*\.html$
 ^vignettes/*\.pdf$
+^doc$
+^Meta$
+^vignettes/preview$
