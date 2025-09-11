@@ -2,12 +2,8 @@
 ^README\.Rmd$
 ^cran-comments\.md$
 ^doc$
+^inst/doc$
 ^Meta$
 ^vignettes$
 ^CRAN-SUBMISSION$
 ^MD5$
-^vignettes/*\.html$
-^vignettes/*\.pdf$
-^doc$
-^Meta$
-^vignettes/preview$
