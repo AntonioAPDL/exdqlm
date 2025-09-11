@@ -42,14 +42,16 @@ Imports:
 Packaged: 2023-02-16 03:28:19 UTC; raquel
 Repository: CRAN
 Date/Publication: 2023-02-16 12:30:05 UTC
-Suggests: 
+Suggests:
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    ggplot2,
+    pkgload
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 LinkingTo: 
     BH,
     Rcpp,
     RcppArmadillo
-VignetteBuilder: knitr
