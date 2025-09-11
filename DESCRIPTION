@@ -2,19 +2,16 @@ Package: exdqlm
 Title: Extended Dynamic Quantile Linear Models
 Version: 0.1.4
 Authors@R: 
-    c(person(given = "Raquel",
-           family = "Barata",
-           role = c("aut", "cre"),
-           email = "raquel.a.barata@gmail.com"),
-    person(given = "Raquel",
-           family = "Prado",
-           role = "ths"),
-    person(given = "Bruno",
-           family = "Sanso",
-           role = "ths"))
+    c(person(given = "Raquel", family = "Barata",
+             role = c("aut", "cre"),
+             email = "raquel.a.barata@gmail.com"),
+      person(given = "Raquel", family = "Prado", role = "ths"),
+      person(given = "Bruno",  family = "Sanso", role = "ths"),
+      person(given = "Antonio", family = "Aguirre", role = "aut"))
 Author: Raquel Barata [aut, cre],
   Raquel Prado [ths],
-  Bruno Sanso [ths]
+  Bruno Sanso [ths],
+  Antonio Aguirre [aut]
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
 Description: Routines for Bayesian estimation and analysis of dynamic quantile linear models utilizing the extended asymmetric Laplace error distribution, also known as extended dynamic quantile linear models (exDQLM) described in Barata et al (2020) <doi:10.1214/21-AOAS1497>. 
 License: MIT + file LICENSE
