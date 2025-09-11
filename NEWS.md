@@ -1,5 +1,3 @@
-# exdqlm (development version)
-
 # exdqlm 0.1.4
 
 - CRAN hygiene & maintenance
