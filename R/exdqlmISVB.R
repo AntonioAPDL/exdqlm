@@ -64,8 +64,19 @@
 #'                  gam.init=-3.5,sig.init=15,tol=0.05)
 #' }
 #'
-exdqlmISVB<-function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=TRUE,sig.init=NA,dqlm.ind=FALSE,
-                     exps0,tol=0.1,n.IS=500,n.samp=200,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE){
+exdqlmISVB <- function(y, p0, model, df, dim.df,
+                       fix.gamma = FALSE, gam.init = NA,
+                       fix.sigma = TRUE, sig.init = NA,
+                       dqlm.ind = FALSE,
+                       exps0,
+                       tol = 0.1,
+                       n.IS = 500,
+                       n.samp = 200,
+                       PriorSigma = NULL,
+                       PriorGamma = NULL,
+                       verbose = TRUE,
+                       debug_shapes = FALSE,    
+                       debug_every = 5) {       
 
   # check inputs
   y = check_ts(y)
@@ -326,14 +337,38 @@ exdqlmISVB<-function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=
                 E.log.inv.sigma=E.log.inv.sigma))
   }
 
+  # one-line header 
+  if (verbose) {
+    message(" Starting ISVB: TT=", TT, " p=", p,
+            " use_cpp=", isTRUE(getOption("exdqlm.use_cpp_kf", FALSE)))
+    utils::flush.console()
+  }
+
+  kf_step <- function(ex.f, ex.q) {
+    use_cpp <- isTRUE(getOption("exdqlm.use_cpp_kf", FALSE))
+    if (use_cpp) {
+      tryCatch(
+        update_theta_bridge(ex.f, ex.q, GG, FF, as.numeric(y), m0, C0, df.mat),
+        error = function(e) {
+          warning("C++ KF failed, falling back to R: ", conditionMessage(e))
+          update_theta(ex.f, ex.q)
+        }
+      )
+    } else {
+      update_theta(ex.f, ex.q)
+    }
+  }
+
   tictoc::tic("run time")
   ### estimate posterior
-  while( new.max > tol || conv.count < 5 || iter < 15){
+  while( (new.max > tol && conv.count < 5) && iter < 200 ){
 
     # counter
-    iter = iter + 1
-    if(verbose & iter%%5==0){
-      cat(sprintf("ISVB iteration %s: %s", iter, Sys.time() ),"\n")
+    iter <- iter + 1L
+    if (verbose && iter %% 5 == 0) {
+      message(sprintf("ISVB iteration %d: new.max=%.4f, conv.count=%d",
+                      iter, new.max, conv.count))
+      utils::flush.console()
     }
 
     # update distributions
@@ -352,10 +387,20 @@ exdqlmISVB<-function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=
                               cur.gamsig.out$E.inv.sigma,cur.gamsig.out$E.a2.invb.inv.sigma,cur.gamsig.out$E.invb.inv.sigma,
                               cur.gamsig.out$E.c.invb.absgam,cur.gamsig.out$E.c2.invb.absgam2.sigma)
 
+    # compute ex.f / ex.q 
+    ex.f <- cur.gamsig.out$E.c.invb.absgam*new.sts.out$E.sts/cur.gamsig.out$E.invb.inv.sigma +
+            cur.gamsig.out$E.a.invb.inv.sigma/(new.uts.out$E.inv.uts*cur.gamsig.out$E.invb.inv.sigma)
+    ex.q <- (cur.gamsig.out$E.invb.inv.sigma*new.uts.out$E.inv.uts)^(-1)
+
+    # tiny optional debug probe
+    if (debug_shapes && (iter == 1 || iter %% debug_every == 0))
+      .pre(iter, ex.f, ex.q, GG, FF, y, m0, C0, df.mat, p, TT)
+
     # update q(theta)
-    new.theta.out <- update_theta(cur.gamsig.out$E.c.invb.absgam*new.sts.out$E.sts/cur.gamsig.out$E.invb.inv.sigma +
-                                    cur.gamsig.out$E.a.invb.inv.sigma/(new.uts.out$E.inv.uts*cur.gamsig.out$E.invb.inv.sigma),
-                                  (cur.gamsig.out$E.invb.inv.sigma*new.uts.out$E.inv.uts)^(-1) )
+    new.theta.out <- kf_step(ex.f, ex.q)
+
+    if (debug_shapes && (iter == 1 || iter %% debug_every == 0))
+      .post(new.theta.out)
 
     # update q(gamma,sigma)
     new.gamsig.out<-update_gamma_sigma(cur.gamsig.out$E.gam,cur.gamsig.out$V.gam,
@@ -369,13 +414,14 @@ exdqlmISVB<-function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=
     seq.sigma = c(seq.sigma,new.gamsig.out$E.sigma)
 
     # evaluate convergence
-    new.max = max(abs(c(cur.theta.out$exps-new.theta.out$exps)))
-    conv.count = ifelse(new.max < tol, conv.count + 1, 0)
+    new.max    <- max(abs(c(cur.theta.out$exps - new.theta.out$exps)))
+    conv.count <- ifelse(new.max < tol, conv.count + 1L, 0L)
 
   }
-  run.time = tictoc::toc(quiet = TRUE)
-  if(verbose){
-    cat(sprintf("ISVB converged: %s iterations, %s seconds",iter,round(run.time$toc-run.time$tic,3)),"\n")
+  run.time <- tictoc::toc(quiet = TRUE)
+  if (verbose) {
+    cat(sprintf("ISVB converged: %s iterations, %s seconds",
+                iter, round(run.time$toc - run.time$tic, 3)), "\n")
   }
 
   ### posterior samples

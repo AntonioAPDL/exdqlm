@@ -7,3 +7,8 @@
 ^vignettes$
 ^CRAN-SUBMISSION$
 ^MD5$
+^notebooks$
+^README\.Rmd$
+^\.Rproj\.user$
+^\.Rhistory$
+^\.DS_Store$

@@ -21,7 +21,9 @@ exdqlmISVB(
   n.samp = 200,
   PriorSigma = NULL,
   PriorGamma = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  debug_shapes = FALSE,
+  debug_every = 5
 )
 }
 \arguments{

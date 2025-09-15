@@ -2,6 +2,7 @@
 // Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #include <RcppArmadillo.h>
+#include <RcppEigen.h>
 #include <Rcpp.h>
 
 using namespace Rcpp;
@@ -87,6 +88,69 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// logDetCholesky
+double logDetCholesky(const Eigen::MatrixXd& matrix);
+RcppExport SEXP _exdqlm_logDetCholesky(SEXP matrixSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type matrix(matrixSEXP);
+    rcpp_result_gen = Rcpp::wrap(logDetCholesky(matrix));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compute_cholesky
+Rcpp::List compute_cholesky(const arma::mat& q, bool compute_sqrt_inverse);
+RcppExport SEXP _exdqlm_compute_cholesky(SEXP qSEXP, SEXP compute_sqrt_inverseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type q(qSEXP);
+    Rcpp::traits::input_parameter< bool >::type compute_sqrt_inverse(compute_sqrt_inverseSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_cholesky(q, compute_sqrt_inverse));
+    return rcpp_result_gen;
+END_RCPP
+}
+// H_t_k_r
+arma::mat H_t_k_r(const arma::cube& GG, int t, int k, int r);
+RcppExport SEXP _exdqlm_H_t_k_r(SEXP GGSEXP, SEXP tSEXP, SEXP kSEXP, SEXP rSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< int >::type t(tSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type r(rSEXP);
+    rcpp_result_gen = Rcpp::wrap(H_t_k_r(GG, t, k, r));
+    return rcpp_result_gen;
+END_RCPP
+}
+// update_theta_cpp
+List update_theta_cpp(const arma::cube& GG, const arma::vec& m0, const arma::mat& C0, const arma::mat& ex_f, const arma::cube& ex_q, const arma::cube& FF, const arma::mat& y, const arma::mat& ex_df_mat, const arma::mat& ex_df_mat_k, const arma::mat& Ones, int p, int J, int ppx, int TT, int k, int dM);
+RcppExport SEXP _exdqlm_update_theta_cpp(SEXP GGSEXP, SEXP m0SEXP, SEXP C0SEXP, SEXP ex_fSEXP, SEXP ex_qSEXP, SEXP FFSEXP, SEXP ySEXP, SEXP ex_df_matSEXP, SEXP ex_df_mat_kSEXP, SEXP OnesSEXP, SEXP pSEXP, SEXP JSEXP, SEXP ppxSEXP, SEXP TTSEXP, SEXP kSEXP, SEXP dMSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type m0(m0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type C0(C0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type ex_f(ex_fSEXP);
+    Rcpp::traits::input_parameter< const arma::cube& >::type ex_q(ex_qSEXP);
+    Rcpp::traits::input_parameter< const arma::cube& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type ex_df_mat(ex_df_matSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type ex_df_mat_k(ex_df_mat_kSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Ones(OnesSEXP);
+    Rcpp::traits::input_parameter< int >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type J(JSEXP);
+    Rcpp::traits::input_parameter< int >::type ppx(ppxSEXP);
+    Rcpp::traits::input_parameter< int >::type TT(TTSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type dM(dMSEXP);
+    rcpp_result_gen = Rcpp::wrap(update_theta_cpp(GG, m0, C0, ex_f, ex_q, FF, y, ex_df_mat, ex_df_mat_k, Ones, p, J, ppx, TT, k, dM));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_get_gamma_bounds", (DL_FUNC) &_exdqlm_get_gamma_bounds, 1},
@@ -94,6 +158,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_pexal", (DL_FUNC) &_exdqlm_pexal, 7},
     {"_exdqlm_qexal", (DL_FUNC) &_exdqlm_qexal, 7},
     {"_exdqlm_rexal", (DL_FUNC) &_exdqlm_rexal, 5},
+    {"_exdqlm_logDetCholesky", (DL_FUNC) &_exdqlm_logDetCholesky, 1},
+    {"_exdqlm_compute_cholesky", (DL_FUNC) &_exdqlm_compute_cholesky, 2},
+    {"_exdqlm_H_t_k_r", (DL_FUNC) &_exdqlm_H_t_k_r, 4},
+    {"_exdqlm_update_theta_cpp", (DL_FUNC) &_exdqlm_update_theta_cpp, 16},
     {NULL, NULL, 0}
 };
 
