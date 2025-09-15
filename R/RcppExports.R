@@ -21,3 +21,19 @@ rexal_cpp <- function(n, p0 = 0.5, mu = 0.0, sigma = 1.0, gamma = 0.0) {
     .Call(`_exdqlm_rexal`, n, p0, mu, sigma, gamma)
 }
 
+logDetCholesky <- function(matrix) {
+    .Call(`_exdqlm_logDetCholesky`, matrix)
+}
+
+compute_cholesky <- function(q, compute_sqrt_inverse = FALSE) {
+    .Call(`_exdqlm_compute_cholesky`, q, compute_sqrt_inverse)
+}
+
+H_t_k_r <- function(GG, t, k, r) {
+    .Call(`_exdqlm_H_t_k_r`, GG, t, k, r)
+}
+
+update_theta_cpp <- function(GG, m0, C0, ex_f, ex_q, FF, y, ex_df_mat, ex_df_mat_k, Ones, p, J, ppx, TT, k, dM) {
+    .Call(`_exdqlm_update_theta_cpp`, GG, m0, C0, ex_f, ex_q, FF, y, ex_df_mat, ex_df_mat_k, Ones, p, J, ppx, TT, k, dM)
+}
+

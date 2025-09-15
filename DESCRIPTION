@@ -48,4 +48,5 @@ Roxygen: list(markdown = TRUE)
 LinkingTo: 
     BH,
     Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    RcppEigen

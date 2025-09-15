@@ -31,3 +31,6 @@ tools/*.out
 tools/*.txt
 tools/addr2line_*.sh
 tools/locate_*.sh
+
+# notebooks
+notebooks/
