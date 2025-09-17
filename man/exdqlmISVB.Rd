@@ -102,6 +102,17 @@ Or if \code{dqlm.ind=TRUE}, the list also contains:
 \description{
 The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM.
 }
+\details{
+Advanced options (set via \code{options()}):
+\itemize{
+\item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
+\item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
+\item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+\item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
+When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
+\item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+}
+}
 \examples{
 \donttest{
 y = scIVTmag[1:1095]

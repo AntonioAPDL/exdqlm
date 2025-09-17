@@ -58,6 +58,17 @@
 #'
 #' @importFrom stats median
 #'
+#' @details
+#' Advanced options (set via \code{options()}):
+#' \itemize{
+#'   \item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
+#'   \item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
+#'   \item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+#'   \item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
+#'         When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
+#'   \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+#' }
+#'
 #' @examples
 #' \donttest{
 #' y = scIVTmag[1:1095]
@@ -589,23 +600,123 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
                 iter, round(run.time$toc - run.time$tic, 3)), "\n")
   }
 
-  ### posterior samples
-  # gamma and sigma
-  samp.index = sample(1:n.IS,n.samp,replace=TRUE,prob=new.gamsig.out$weights)
-  samp.gamma = new.gamsig.out$gamma.samples[samp.index]
-  samp.sigma = new.gamsig.out$sigma.samples[samp.index]
-  # uts, sts, thetas, and predicive distribution samples
-  samp.uts = t(sapply(1:TT,function(t){GeneralizedHyperbolic::rgig(n.samp,chi=new.uts.out$uts.chi[t],psi=new.uts.out$uts.psi,lambda=new.uts.out$uts.lambda)}))
-  samp.sts = t(sapply(1:TT,function(t){truncnorm::rtruncnorm(n.samp,a=rep(0,n.samp),b=rep(Inf,n.samp),mean=new.sts.out$sts.mu[t],sd=sqrt(new.sts.out$sts.sig2[t]))}))
-  samp_theta_t = function(t){
-    svd.sC = svd(new.theta.out$sC[,,t]); LL = svd.sC$u%*%diag(sqrt(svd.sC$d),p)
-    new.theta.out$sm[,t] + LL%*%matrix(stats::rnorm(n.samp*p,0,1),p,n.samp)}
-  samp_post_pred_t = function(t){
-    brms::rasym_laplace(1,colSums(matrix(FF[,t],p,n.samp)*samp.theta[,t,])+
-                    samp.sigma*C.fn(p0,samp.gamma)*abs(samp.gamma)*samp.sts[t,],samp.sigma,p.fn(p0,samp.gamma))}
-  samp.theta = array(NA,c(p,TT,n.samp))
-  samp.post.pred = matrix(NA,TT,n.samp)
-  for(t in 1:TT){samp.theta[,t,] = samp_theta_t(t); samp.post.pred[t,] = samp_post_pred_t(t)}
+  ### posterior samples -------------------------------------------------
+  # helper: coerce a 3D array/cube to (p, TT, ns) if it’s a permutation
+  .normalize_cube <- function(x, p, TT, ns, name = "cube") {
+    d <- dim(x); want <- c(p, TT, ns)
+    if (length(d) != 3L) stop(sprintf("%s must be 3D, got length(dim)=%d", name, length(d)))
+    if (identical(d, want)) return(x)
+    perms <- list(
+      c(2, 1, 3),  # TT, p, ns -> p, TT, ns
+      c(1, 3, 2),  # p, ns, TT -> p, TT, ns
+      c(3, 1, 2),  # ns, p, TT -> p, TT, ns
+      c(2, 3, 1),  # TT, ns, p -> p, TT, ns
+      c(3, 2, 1)   # ns, TT, p -> p, TT, ns
+    )
+    for (P in perms) if (identical(d[P], want)) return(aperm(x, P))
+    stop(sprintf("%s has unexpected dims %s; expected %s",
+                 name, paste(d, collapse = "x"), paste(want, collapse = "x")))
+  }
+
+  # IS selection indices for (gamma, sigma)
+  samp.index <- sample.int(n.IS, n.samp, replace = TRUE, prob = new.gamsig.out$weights)
+  samp.gamma <- new.gamsig.out$gamma.samples[samp.index]
+  samp.sigma <- new.gamsig.out$sigma.samples[samp.index]
+
+  # toggles
+  use_cpp_samplers <- isTRUE(getOption("exdqlm.use_cpp_samplers", FALSE))
+  use_cpp_postpred <- isTRUE(getOption("exdqlm.use_cpp_postpred", FALSE))  # keep FALSE by default
+
+  # base dims
+  J  <- 0L
+  p  <- nrow(new.theta.out$sm)
+  TT <- ncol(new.theta.out$sm)
+  ns <- n.samp
+
+  ## --- s_t (half-line truncated normal) ---
+  if (use_cpp_samplers && exists("sample_truncnorm", mode = "function")) {
+    # C++ returns n_samp x TT -> transpose to TT x n_samp
+    samp.sts <- t(sample_truncnorm(ns, TT, new.sts.out$sts.mu, new.sts.out$sts.sig2))
+  } else {
+    # R fallback
+    samp.sts <- t(vapply(seq_len(TT), function(t) {
+      truncnorm::rtruncnorm(ns, a = 0, b = Inf,
+                            mean = new.sts.out$sts.mu[t],
+                            sd   = sqrt(new.sts.out$sts.sig2[t]))
+    }, numeric(ns)))
+  }
+
+  ## --- u_t (GIG with lambda = 1/2) ---
+  psi_vec  <- new.uts.out$uts.psi
+  chi_vec  <- new.uts.out$uts.chi
+  same_psi <- isTRUE(length(psi_vec) == 1L || length(unique(round(psi_vec, 12))) == 1L)
+
+  if (use_cpp_samplers && exists("sample_gig_devroye_vector", mode = "function") && same_psi) {
+    a_scalar <- as.numeric(psi_vec[1])
+    # C++ returns n_samp x TT -> transpose to TT x n_samp
+    samp.uts <- t(sample_gig_devroye_vector(ns, new.uts.out$uts.lambda, a_scalar, chi_vec))
+  } else {
+    # R fallback
+    samp.uts <- t(vapply(seq_len(TT), function(t) {
+      GeneralizedHyperbolic::rgig(ns,
+                                  chi    = chi_vec[t],
+                                  psi    = psi_vec[t],
+                                  lambda = new.uts.out$uts.lambda)
+    }, numeric(ns)))
+  }
+
+  ## --- theta (multivariate normal) ---
+  if (use_cpp_samplers && exists("sample_multivariate_normal", mode = "function")) {
+    # C++: (p, TT, ns) in arma::cube terms; normalize just in case
+    samp.theta <- sample_multivariate_normal(ns, TT,
+                                             new.theta.out$sC, new.theta.out$sm,
+                                             p, J)
+    samp.theta <- .normalize_cube(samp.theta, p, TT, ns, name = "samp.theta")
+  } else {
+    # R fallback via SVD per time
+    samp.theta <- array(NA_real_, dim = c(p, TT, ns))
+    for (t in seq_len(TT)) {
+      svd.sC <- svd(new.theta.out$sC[, , t])
+      # robust p x p factor
+      LL <- svd.sC$u %*% diag(sqrt(pmax(svd.sC$d, 0)), p, p)
+      Z  <- matrix(stats::rnorm(ns * p), nrow = p, ncol = ns)
+      samp.theta[, t, ] <- new.theta.out$sm[, t, drop = FALSE] + LL %*% Z
+    }
+  }
+
+  ## --- posterior predictive ---
+  samp.post.pred <- matrix(NA_real_, nrow = TT, ncol = ns)
+  if (!use_cpp_postpred) {
+    # Pure R path (stable and vectorized)
+    for (t in seq_len(TT)) {
+      # extract a p x ns view of theta at time t
+      theta_t <- matrix(samp.theta[, t, ], nrow = p, ncol = ns)
+      # xb_i = FF[,t]^T * theta_t[,i]  -> 1 x ns
+      xb <- as.numeric(crossprod(FF[, t], theta_t))
+      # location shift
+      loc <- xb + samp.sigma * C.fn(p0, samp.gamma) * abs(samp.gamma) * samp.sts[t, ]
+      # vectorized AL draw: length ns
+      samp.post.pred[t, ] <- brms::rasym_laplace(1, mu = loc,
+                                                 sigma = samp.sigma,
+                                                 p = p.fn(p0, samp.gamma))
+    }
+  } else {
+    # Optional C++ post-pred path (shape: 1 x TT x ns for J=0)
+    if (exists("samp_post_pred", mode = "function")) {
+      FF_cube  <- array(FF, dim = c(p, 1L, TT))
+      sts_cube <- array(samp.sts, dim = c(1L, TT, ns))
+      cpp_pred <- samp_post_pred(ns, TT, p, J,
+                                 samp.theta, FF_cube,
+                                 matrix(samp.sigma, nrow = 1L), p0,
+                                 matrix(samp.gamma, nrow = 1L),
+                                 sts_cube)
+      # 1 x TT x ns -> TT x ns
+      samp.post.pred <- aperm(cpp_pred[1, , , drop = FALSE], c(2, 3, 1))[, , 1]
+    } else {
+      stop("use_cpp_postpred=TRUE but C++ post-pred sampler not found.")
+    }
+  }
+
 
   ### list results
   if(!dqlm.ind){
