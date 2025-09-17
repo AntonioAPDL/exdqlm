@@ -439,24 +439,38 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   }
 
   .elbo_snapshot <- function(y, th, st, ut, gs) {
-    # \\theta-entropy from the bridge (fallback if missing)
-    H_theta <- if (!is.null(th$elbo_theta)) th$elbo_theta else
-      sum(vapply(seq_len(dim(th$sC)[3]), function(t) {
-        0.5 * ( nrow(th$sC[,,t]) * (1 + log(2*pi)) +
-                determinant(th$sC[,,t, drop = FALSE], logarithm = TRUE)$modulus[1])
-      }, numeric(1)))
+    # helper: robust log|·| for 1x1 or array→matrix slices
+    .safe_logdet <- function(A) {
+      d <- dim(A)
+      if (length(d) >= 2L) {
+        M <- matrix(A, nrow = d[1L], ncol = d[2L])
+      } else { # scalar (p == 1)
+        M <- matrix(A, nrow = 1L, ncol = 1L)
+      }
+      determinant(M, logarithm = TRUE)$modulus[1]
+    }
 
-    # s,u entropies from your updated updaters
+    # θ-entropy from bridge if present; otherwise recompute robustly
+    H_theta <- if (!is.null(th$elbo_theta)) {
+      th$elbo_theta
+    } else {
+      TTloc <- dim(th$sC)[3]
+      0.5 * sum(vapply(seq_len(TTloc), function(t) {
+        SCt <- th$sC[, , t, drop = FALSE]
+        M   <- matrix(SCt, nrow = dim(SCt)[1L], ncol = dim(SCt)[2L])
+        p_t <- nrow(M)
+        p_t * (1 + log(2*pi)) + .safe_logdet(M)
+      }, numeric(1)))
+    }
+
     H_sts <- st$entropy
     H_uts <- ut$entropy
 
-    # NEW: sigma-gamma block via IS log-normalizer (log Z)
-    # Fallback to the old "lik" if elbo_logZ is not present
     if (!is.null(gs$elbo_logZ)) {
       total <- as.numeric(H_theta + H_sts + H_uts + gs$elbo_logZ)
       breakdown <- c(H_theta = H_theta, H_sts = H_sts, H_uts = H_uts, gs_logZ = gs$elbo_logZ)
     } else {
-      # ---- fallback (old calculation) ----
+      # (fallback lik) ... unchanged ...
       resid2 <- (y^2 - 2*y*th$exps + th$exps2)
       L1 <-  + 1.5 * length(y) * gs$E.log.inv.sigma
       L2 <-  - gs$E.inv.sigma * sum(ut$E.uts)
@@ -474,6 +488,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
     list(total = total, breakdown = breakdown)
   }
+
 
   tictoc::tic("run time")
   ### estimate posterior
