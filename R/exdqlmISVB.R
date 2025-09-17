@@ -19,6 +19,8 @@
 #' @param PriorSigma List of parameters for inverse gamma prior on sigma; shape `a_sig` and scale `b_sig`. Default is an inverse gamma with mean 1 (or `sig.init` if provided) and variance 10.
 #' @param PriorGamma List of parameters for truncated student-t prior on gamma; center `m_gam`, scale `s_gam` and degrees of freedom `df_gam`. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.
 #' @param verbose Logical value indicating whether progress should be displayed.
+#' @param debug_shapes Logical; if TRUE, print KF input/output shapes every `debug_every` iterations.
+#' @param debug_every  Integer; frequency (in iterations) for shape prints when `debug_shapes=TRUE`.
 #'
 #' @return A object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
@@ -56,6 +58,8 @@
 #'  \item `sig.out` - List containing the IS estimate of the variational distribution of sigma.
 #'  }
 #' @export
+#'
+#' @importFrom stats median
 #'
 #' @examples
 #' \donttest{
@@ -176,7 +180,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   seq.gamma = new.gamsig.out$E.gam
   seq.sigma = new.gamsig.out$E.sigma
 
-  # function update q(st)  (trunc-normal on (0, ∞))
+  # function update q(st)  (trunc-normal on (0, \\infty))
   update_sts <- function(exps, inv.uts, c2.invb.absgam2.sigma, c.invb.absgam, c.a.invb.absgam) {
     s.sig2 <- 1 / (1 + c2.invb.absgam2.sigma * inv.uts)
     s.sig  <- sqrt(s.sig2)
@@ -189,13 +193,13 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       exp(stats::dnorm(-s.mu / s.sig, log = TRUE) - stats::pnorm(s.mu / s.sig, log.p = TRUE))
 
     # entropy of half-line truncated normal:
-    # H = log σ + log Φ(μ/σ) + 0.5*(1 + α ζ) + 0.5*log(2π),
-    # where α = -μ/σ, ζ = φ(α) / (1-Φ(α)) = φ(-μ/σ)/Φ(μ/σ)
+    # H = log \sigma + log \Phi(\mu/\sigma) + 0.5*(1 + \alpha \zeta) + 0.5*log(2\pi),
+    # where \alpha = -\mu/\sigma, \zeta = \Phi(\alpha) / (1-\Phi(\alpha)) = \Phi(-\mu/\sigma)/\Phi(\mu/\sigma)
     alpha    <- -s.mu / s.sig
-    logtail  <- stats::pnorm(alpha, lower.tail = FALSE, log.p = TRUE)   # log(1 - Φ(α)) = log Φ(μ/σ)
+    logtail  <- stats::pnorm(alpha, lower.tail = FALSE, log.p = TRUE)   # log(1 - \Phi(\alpha)) = log \Phi(\mu/\sigma)
     logphi   <- stats::dnorm(alpha, log = TRUE)
-    zeta     <- exp(logphi - logtail)                                   # φ(α)/(1-Φ(α))
-    # H = log σ + log Φ(μ/σ) + 0.5*log(2π) + 0.5 + 0.5*(α ζ - ζ^2)
+    zeta     <- exp(logphi - logtail)                                   # \Phi(\alpha)/(1-\Phi(\alpha))
+    # H = log \sigma + log \Phi(\mu/\sigma) + 0.5*log(2\pi) + 0.5 + 0.5*(\alpha \zeta - \zeta^2)
     H_sts_t <- log(s.sig) + logtail + 0.5*log(2*pi) + 0.5 + 0.5 * (alpha * zeta - zeta^2)
     H_sts    <- sum(H_sts_t)
 
@@ -204,7 +208,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
         entropy = H_sts)
   }
 
-  # function update q(ut)  (GIG with λ = 1/2)
+  # function update q(ut)  (GIG with \lambda = 1/2)
   update_uts <- function(exps, exps2, sts, sts2, inv.sigma, a2.invb.inv.sigma,
                         invb.inv.sigma, c.invb.absgam, c2.invb.absgam2.sigma) {
     u.lambda <- 0.5
@@ -219,7 +223,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
     z <- sqrt(u.chi * u.psi)
 
-    # CLOSED-FORM moments for λ = 1/2  (robust, no besselRatio):
+    # CLOSED-FORM moments for \lambda = 1/2  (robust, no besselRatio):
     E.uts     <- sqrt(u.chi / u.psi) + 1 / u.psi
     E.inv.uts <- sqrt(u.psi / u.chi)
 
@@ -236,7 +240,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     Elogu   <- (log(Eu_eps) - log(Eu_meps)) / (2e-4)
 
     # Entropy of GIG
-    # H = - E[ log q(U) ] with q(U) ∝ u^{λ-1} exp(-(ψ u + χ/u)/2)
+    # H = - E[ log q(U) ] with q(U) \propto u^{\lambda-1} exp(-(\psi u + \chi/u)/2)
     # using E[U], E[1/U], E[log U] above
     H_t <- - (u.lambda/2) * log(u.psi / u.chi) +
             log(2 * Klam) - (u.lambda - 1) * Elogu +
@@ -322,7 +326,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       crch::dtt(sig, location = m_sig, scale = sqrt(v_sig),
                 df = 1, left = 0, right = Inf, log = log.ind)
 
-    # unnormalized target \tilde q(γ,σ) = prior(γ,σ) * "variational likelihood"
+    # unnormalized target \tilde q(\gamma,\sigma) = prior(\gamma,\sigma) * "variational likelihood"
     dq <- function(sig, gam, log.ind = FALSE) {
       a <- A.fn(p0, gam); b <- B.fn(p0, gam); c <- C.fn(p0, gam)
       if (!log.ind) {
@@ -366,8 +370,8 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     logsumw <- m + log(sum(exp(log_w - m)))
     weights <- exp(log_w - logsumw)
 
-    # === ELBO for (γ,σ) block ===
-    # log Z ≈ log E_r[ \tilde q / r ] = logsumexp(log_w) - log N
+    # === ELBO for (\gamma,\sigma) block ===
+    # log Z \\approx log E_r[ \tilde q / r ] = logsumexp(log_w) - log N
     elbo_logZ <- as.numeric(logsumw - log(n.IS))
     # Entropy H[q] = -E_q[log q] = -E_q[log \tilde q] + log Z  (for reference / diagnostics)
     E_log_qtilde <- sum(weights * log_qtilde)
@@ -406,8 +410,8 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       E.a.invb.inv.sigma = E.a.invb.inv.sigma,
       E.log.inv.sigma = E.log.inv.sigma,
       # new ELBO diagnostics
-      elbo_logZ = elbo_logZ,                # ELBO contribution for (γ,σ)
-      elbo_entropy_gs = elbo_entropy,       # optional: entropy of q(γ,σ)
+      elbo_logZ = elbo_logZ,                # ELBO contribution for (\gamma,\sigma)
+      elbo_entropy_gs = elbo_entropy,       # optional: entropy of q(\gamma,\sigma)
       elbo_E_log_qtilde = E_log_qtilde      # optional: E_q[log \tilde q]
     )
   }
@@ -435,18 +439,18 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   }
 
   .elbo_snapshot <- function(y, th, st, ut, gs) {
-    # θ-entropy from the bridge (fallback if missing)
+    # \\theta-entropy from the bridge (fallback if missing)
     H_theta <- if (!is.null(th$elbo_theta)) th$elbo_theta else
       sum(vapply(seq_len(dim(th$sC)[3]), function(t) {
         0.5 * ( nrow(th$sC[,,t]) * (1 + log(2*pi)) +
-                determinant(th$sC[,,t], logarithm = TRUE)$modulus[1] )
+                determinant(th$sC[,,t, drop = FALSE], logarithm = TRUE)$modulus[1])
       }, numeric(1)))
 
     # s,u entropies from your updated updaters
     H_sts <- st$entropy
     H_uts <- ut$entropy
 
-    # NEW: sigma–gamma block via IS log-normalizer (log Z)
+    # NEW: sigma-gamma block via IS log-normalizer (log Z)
     # Fallback to the old "lik" if elbo_logZ is not present
     if (!is.null(gs$elbo_logZ)) {
       total <- as.numeric(H_theta + H_sts + H_uts + gs$elbo_logZ)
@@ -541,10 +545,10 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
         dELBO <- if (length(elbo.seq) >= 2) elbo.seq[length(elbo.seq)] - elbo.seq[length(elbo.seq)-1] else NA_real_
         # Optional: show gs_logZ when available
         if (!is.null(new.gamsig.out$elbo_logZ)) {
-          message(sprintf("    ELBO: %.6f  Δ=%.3e  (gs_logZ=%.6f)",
+          message(sprintf("    ELBO: %.6f  \\Delta=%.3e  (gs_logZ=%.6f)",
                           elbo.obj$total, dELBO, new.gamsig.out$elbo_logZ))
         } else {
-          message(sprintf("    ELBO: %.6f  Δ=%.3e", elbo.obj$total, dELBO))
+          message(sprintf("    ELBO: %.6f  \\Delta=%.3e", elbo.obj$total, dELBO))
         }
         utils::flush.console()
       }
