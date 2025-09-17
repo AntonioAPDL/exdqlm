@@ -604,11 +604,14 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   }
 
   ### posterior samples -------------------------------------------------
-  # helper: coerce a 3D array/cube to (p, TT, ns) if it is a permutation
+  # helper: coerce a 3D array/cube to (p, TT, ns) if it's a permutation
   .normalize_cube <- function(x, p, TT, ns, name = "cube") {
-    d <- dim(x); want <- c(p, TT, ns)
-    if (length(d) != 3L) stop(sprintf("%s must be 3D, got length(dim)=%d", name, length(d)))
-    if (identical(d, want)) return(x)
+    d    <- dim(x)
+    want <- as.integer(c(p, TT, ns))
+    if (length(d) != 3L) {
+      stop(sprintf("%s must be 3D, got length(dim)=%d", name, length(d)))
+    }
+    if (all(d == want)) return(x)
     perms <- list(
       c(2, 1, 3),  # TT, p, ns -> p, TT, ns
       c(1, 3, 2),  # p, ns, TT -> p, TT, ns
@@ -616,7 +619,9 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       c(2, 3, 1),  # TT, ns, p -> p, TT, ns
       c(3, 2, 1)   # ns, TT, p -> p, TT, ns
     )
-    for (P in perms) if (identical(d[P], want)) return(aperm(x, P))
+    for (P in perms) {
+      if (all(d[P] == want)) return(aperm(x, P))
+    }
     stop(sprintf("%s has unexpected dims %s; expected %s",
                  name, paste(d, collapse = "x"), paste(want, collapse = "x")))
   }
@@ -634,69 +639,79 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   J  <- 0L
   p  <- nrow(new.theta.out$sm)
   TT <- ncol(new.theta.out$sm)
-  ns <- n.samp
+  ns <- as.integer(n.samp)
 
-  ## --- s_t (half-line truncated normal) ---
+  # ---- s_t (half-line truncated normal) ------------------------------------
   if (use_cpp_samplers && exists("sample_truncnorm", mode = "function")) {
     # C++ returns n_samp x TT -> transpose to TT x n_samp
     samp.sts <- t(sample_truncnorm(ns, TT, new.sts.out$sts.mu, new.sts.out$sts.sig2))
   } else {
     # R fallback
     samp.sts <- t(vapply(seq_len(TT), function(t) {
+      sd_t <- sqrt(pmax(new.sts.out$sts.sig2[t], 0))
       truncnorm::rtruncnorm(ns, a = 0, b = Inf,
                             mean = new.sts.out$sts.mu[t],
-                            sd   = sqrt(new.sts.out$sts.sig2[t]))
+                            sd   = sd_t)
     }, numeric(ns)))
   }
 
-  ## --- u_t (GIG with lambda = 1/2) ---
-  psi_vec  <- new.uts.out$uts.psi
-  chi_vec  <- new.uts.out$uts.chi
-  same_psi <- isTRUE(length(psi_vec) == 1L || length(unique(round(psi_vec, 12))) == 1L)
+  # ---- u_t (GIG with lambda = 1/2) -----------------------------------------
+  # coerce to length TT and clamp NA/nonpositive to a tiny epsilon
+  psi_vec <- rep_len(as.numeric(new.uts.out$uts.psi), TT)
+  chi_vec <- rep_len(as.numeric(new.uts.out$uts.chi), TT)
+  lam_gig <- as.numeric(new.uts.out$uts.lambda)
+  eps_gig <- sqrt(.Machine$double.eps)
+
+  fix_pos <- function(x) { x[!is.finite(x) | x <= 0] <- eps_gig; x }
+  psi_vec <- fix_pos(psi_vec)
+  chi_vec <- fix_pos(chi_vec)
+
+  # Safe wrapper for R fallback
+  rgig_one <- function(n, chi, psi, lambda) {
+    if (!is.finite(psi) || psi <= 0) psi <- eps_gig
+    if (!is.finite(chi) || chi <= 0) chi <- eps_gig
+    GeneralizedHyperbolic::rgig(n, chi = chi, psi = psi, lambda = lambda)
+  }
+
+  # Devroye C++ fast path only if psi is effectively constant across t
+  same_psi <- (length(unique(round(psi_vec, 12))) == 1L)
 
   if (use_cpp_samplers && exists("sample_gig_devroye_vector", mode = "function") && same_psi) {
-    a_scalar <- as.numeric(psi_vec[1])
+    a_scalar <- psi_vec[1]
     # C++ returns n_samp x TT -> transpose to TT x n_samp
-    samp.uts <- t(sample_gig_devroye_vector(ns, new.uts.out$uts.lambda, a_scalar, chi_vec))
+    
+    samp.uts <- t(sample_gig_devroye_vector(ns, lam_gig, a_scalar, chi_vec))
   } else {
-    # R fallback
-    samp.uts <- t(vapply(seq_len(TT), function(t) {
-      GeneralizedHyperbolic::rgig(ns,
-                                  chi    = chi_vec[t],
-                                  psi    = psi_vec[t],
-                                  lambda = new.uts.out$uts.lambda)
-    }, numeric(ns)))
+    # R fallback (guarded)
+    samp.uts <- t(vapply(seq_len(TT), function(t) rgig_one(ns, chi_vec[t], psi_vec[t], lam_gig),
+                         numeric(ns)))
   }
 
-  ## --- theta (multivariate normal) ---
-  if (use_cpp_samplers && exists("sample_multivariate_normal", mode = "function")) {
-    # C++: (p, TT, ns) in arma::cube terms; normalize just in case
-    samp.theta <- sample_multivariate_normal(ns, TT,
-                                             new.theta.out$sC, new.theta.out$sm,
-                                             p, J)
-    samp.theta <- .normalize_cube(samp.theta, p, TT, ns, name = "samp.theta")
-  } else {
-    # R fallback via SVD per time
-    samp.theta <- array(NA_real_, dim = c(p, TT, ns))
-    for (t in seq_len(TT)) {
-      svd.sC <- svd(new.theta.out$sC[, , t])
-      # robust p x p factor
-      LL <- svd.sC$u %*% diag(sqrt(pmax(svd.sC$d, 0)), p, p)
-      Z  <- matrix(stats::rnorm(ns * p), nrow = p, ncol = ns)
-      samp.theta[, t, ] <- new.theta.out$sm[, t, drop = FALSE] + LL %*% Z
-    }
-  }
+  # ---- theta (multivariate normal) : R fallback via SVD per time ----
+  samp.theta <- array(NA_real_, dim = c(p, TT, ns))
+  for (t in seq_len(TT)) {
+    svd.sC <- svd(new.theta.out$sC[, , t])
+    LL     <- svd.sC$u %*% diag(sqrt(pmax(svd.sC$d, 0)), p, p)   # p x p
+    Z      <- matrix(stats::rnorm(ns * p), nrow = p, ncol = ns)  # p x ns
 
-  ## --- posterior predictive ---
+    # turn mean into p x ns by column-replication
+    mu_t   <- matrix(new.theta.out$sm[, t], nrow = p, ncol = ns)
+    samp.theta[, t, ] <- mu_t + LL %*% Z
+  }
+  
+  ## posterior predictive
   samp.post.pred <- matrix(NA_real_, nrow = TT, ncol = ns)
+
   if (!use_cpp_postpred) {
     # Pure R path (stable and vectorized)
     for (t in seq_len(TT)) {
-      # extract a p x ns view of theta at time t
+      # theta_t: p x ns
       theta_t <- matrix(samp.theta[, t, ], nrow = p, ncol = ns)
-      # xb_i = FF[,t]^T * theta_t[,i]  -> 1 x ns
+
+      # xb_i = FF[,t]^T * theta_t[,i] -> length ns
       xb <- as.numeric(crossprod(FF[, t], theta_t))
-      # location shift
+
+      # location shift: length ns
       loc <- xb + samp.sigma * C.fn(p0, samp.gamma) * abs(samp.gamma) * samp.sts[t, ]
       # vectorized exAL draw: length ns
       samp.post.pred[t, ] <- rexal(ns, p.fn(p0, samp.gamma), loc, samp.sigma, 0)
@@ -706,11 +721,13 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     if (exists("samp_post_pred", mode = "function")) {
       FF_cube  <- array(FF, dim = c(p, 1L, TT))
       sts_cube <- array(samp.sts, dim = c(1L, TT, ns))
-      cpp_pred <- samp_post_pred(ns, TT, p, J,
-                                 samp.theta, FF_cube,
-                                 matrix(samp.sigma, nrow = 1L), p0,
-                                 matrix(samp.gamma, nrow = 1L),
-                                 sts_cube)
+      cpp_pred <- samp_post_pred(
+        ns, TT, p, J,
+        samp.theta, FF_cube,
+        matrix(samp.sigma, nrow = 1L), p0,
+        matrix(samp.gamma, nrow = 1L),
+        sts_cube
+      )
       # 1 x TT x ns -> TT x ns
       samp.post.pred <- aperm(cpp_pred[1, , , drop = FALSE], c(2, 3, 1))[, , 1]
     } else {
