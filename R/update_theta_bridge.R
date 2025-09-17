@@ -11,7 +11,6 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
   stopifnot(dim(GG)[2] == p)
 
   # Coerce R shapes → C++ shapes
-  # GG: ensure (p x p x TT)
   GG_arr <- array(GG, dim = c(p, p, TT))
 
   # FF: p x TT  →  p x 1 x TT
@@ -71,8 +70,7 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
       " ex_q:", paste(dim(ex_q), collapse = "x"),
       " y:",   paste(dim(y_mat), collapse = "x")
     )
-    message(msg)
-    utils::flush.console()
+    message(msg); utils::flush.console()
   }
 
   # Call C++
@@ -105,11 +103,18 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
   }, numeric(1))
   exps2 <- exps^2 + vars
 
+  # θ-entropy: 0.5 * sum_t [ p*(1 + log 2π) + log|sC_t| ]
+  logdet_sC <- vapply(seq_len(TT), function(t) {
+    determinant(sC[, , t], logarithm = TRUE)$modulus[1]
+  }, numeric(1))
+  theta_entropy <- 0.5 * sum(p * (1 + log(2*pi)) + logdet_sC)
+
   list(
     exps = exps,
     vars = vars,
     exps2 = exps2,
     standard.forecast.errors = sfe,
-    sm = sm, sC = sC, fm = fm, fC = fC
+    sm = sm, sC = sC, fm = fm, fC = fC,
+    elbo_theta = theta_entropy
   )
 }
