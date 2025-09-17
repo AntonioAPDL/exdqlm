@@ -107,8 +107,10 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
 
   # \\theta-entropy: 0.5 * sum_t [ p*(1 + log 2\\pi) + log|sC_t| ]
   logdet_sC <- vapply(seq_len(TT), function(t) {
-    determinant(sC[, , t, drop = FALSE], logarithm = TRUE)$modulus[1]
+    M <- matrix(sC[, , t, drop = FALSE], nrow = p, ncol = p)
+    determinant(M, logarithm = TRUE)$modulus[1]
   }, numeric(1))
+
   theta_entropy <- 0.5 * sum(p * (1 + log(2*pi)) + logdet_sC)
 
   list(
