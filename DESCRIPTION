@@ -29,7 +29,6 @@ Imports:
     magic,
     crch,
     truncnorm,
-    HyperbolicDist,
     GeneralizedHyperbolic,
     brms,
     FNN,

@@ -1,6 +1,8 @@
 # R/update_theta_bridge.R
 # Bridge for univariate (J = 0) only. Keeps the R-visible contract identical to update_theta().
-#' @export
+#' Internal bridge for univariate KF used by exdqlmISVB.
+#' @keywords internal
+#' @noRd
 update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
                                 use_kstep = FALSE, k = 0L,
                                 debug_shapes = FALSE) {
@@ -10,10 +12,10 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
   TT <- dim(GG)[3]
   stopifnot(dim(GG)[2] == p)
 
-  # Coerce R shapes → C++ shapes
+  # Coerce R shapes -> C++ shapes
   GG_arr <- array(GG, dim = c(p, p, TT))
 
-  # FF: p x TT  →  p x 1 x TT
+  # FF: p x TT  ->  p x 1 x TT
   if (is.matrix(FF) && nrow(FF) == p && ncol(FF) == TT) {
     FF_arr <- array(FF, dim = c(p, 1L, TT))
     FF_mat <- FF
@@ -24,7 +26,7 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
     stop("FF has unexpected shape; expected p x TT or p x 1 x TT.")
   }
 
-  # ex.f: length TT → 1 x TT
+  # ex.f: length TT -> 1 x TT
   if (is.null(dim(ex.f))) {
     stopifnot(length(ex.f) == TT)
     ex_f <- matrix(as.numeric(ex.f), nrow = 1L)
@@ -32,7 +34,7 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
     ex_f <- ex.f
   } else stop("ex.f has unexpected shape; expected length TT or 1 x TT.")
 
-  # ex.q: length TT → 1 x 1 x TT
+  # ex.q: length TT -> 1 x 1 x TT
   if (is.null(dim(ex.q))) {
     stopifnot(length(ex.q) == TT)
     ex_q <- array(as.numeric(ex.q), dim = c(1L, 1L, TT))
@@ -40,7 +42,7 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
     ex_q <- ex.q
   } else stop("ex.q has unexpected shape; expected length TT or 1 x 1 x TT.")
 
-  # y: vector length TT OR matrix TT x 1 → 1 x TT
+  # y: vector length TT OR matrix TT x 1 -> 1 x TT
   if (is.null(dim(y))) {
     stopifnot(length(y) == TT)
     y_mat <- matrix(as.numeric(y), nrow = 1L)
@@ -64,7 +66,7 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
 
   if (debug_shapes) {
     msg <- paste0(
-      "BRIDGE shapes — GG:", paste(dim(GG_arr), collapse = "x"),
+      "BRIDGE shapes - GG:", paste(dim(GG_arr), collapse = "x"),
       " FF:", paste(dim(FF_arr), collapse = "x"),
       " ex_f:", paste(dim(ex_f), collapse = "x"),
       " ex_q:", paste(dim(ex_q), collapse = "x"),
@@ -94,7 +96,7 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
   sC  <- res$sC               # p x p x TT
   fm  <- res$fm               # p x TT
   fC  <- res$fC               # p x p x TT
-  sfe <- as.numeric(res$standard_forecast_errors)  # 1 x TT → length TT
+  sfe <- as.numeric(res$standard_forecast_errors)  # 1 x TT -> length TT
 
   # exps, vars, exps2 in univariate case
   exps <- colSums(FF_mat * sm)
@@ -103,9 +105,9 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
   }, numeric(1))
   exps2 <- exps^2 + vars
 
-  # θ-entropy: 0.5 * sum_t [ p*(1 + log 2π) + log|sC_t| ]
+  # \\theta-entropy: 0.5 * sum_t [ p*(1 + log 2\\pi) + log|sC_t| ]
   logdet_sC <- vapply(seq_len(TT), function(t) {
-    determinant(sC[, , t], logarithm = TRUE)$modulus[1]
+    determinant(sC[, , t, drop = FALSE], logarithm = TRUE)$modulus[1]
   }, numeric(1))
   theta_entropy <- 0.5 * sum(p * (1 + log(2*pi)) + logdet_sC)
 

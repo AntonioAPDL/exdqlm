@@ -60,6 +60,10 @@ exdqlmISVB(
 \item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
+
+\item{debug_shapes}{Logical; if TRUE, print KF input/output shapes every \code{debug_every} iterations.}
+
+\item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
 A list of the following is returned:
