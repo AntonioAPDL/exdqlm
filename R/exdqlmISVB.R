@@ -176,29 +176,78 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   seq.gamma = new.gamsig.out$E.gam
   seq.sigma = new.gamsig.out$E.sigma
 
-  # function update q(st)
-  update_sts<-function(exps,inv.uts,c2.invb.absgam2.sigma,c.invb.absgam,c.a.invb.absgam){
-    s.sig2<-1/(1+c2.invb.absgam2.sigma*inv.uts); s.sig = sqrt(s.sig2)
-    s.mu<-s.sig2*(c.invb.absgam*(y-exps)*inv.uts-c.a.invb.absgam)
-    #
-    E.sts = truncnorm::etruncnorm(a=rep(0,TT),b=rep(Inf,TT),mean=s.mu,sd=s.sig)
-    V.sts = truncnorm::vtruncnorm(a=rep(0,TT),b=rep(Inf,TT),mean=s.mu,sd=s.sig)
-    E.sts2 = s.mu^2 + s.sig2 + s.mu*s.sig*exp(stats::dnorm(-s.mu/s.sig,log = TRUE)-stats::pnorm(s.mu/s.sig,log.p = TRUE))
-    return(list(sts.sig2=s.sig2,sts.mu=s.mu,
-                E.sts=E.sts,E.sts2=E.sts2))
+  # function update q(st)  (trunc-normal on (0, ∞))
+  update_sts <- function(exps, inv.uts, c2.invb.absgam2.sigma, c.invb.absgam, c.a.invb.absgam) {
+    s.sig2 <- 1 / (1 + c2.invb.absgam2.sigma * inv.uts)
+    s.sig  <- sqrt(s.sig2)
+    s.mu   <- s.sig2 * (c.invb.absgam * (y - exps) * inv.uts - c.a.invb.absgam)
+
+    # moments
+    E.sts  <- truncnorm::etruncnorm(a = rep(0, TT), b = rep(Inf, TT), mean = s.mu, sd = s.sig)
+    V.sts  <- truncnorm::vtruncnorm(a = rep(0, TT), b = rep(Inf, TT), mean = s.mu, sd = s.sig)
+    E.sts2 <- s.mu^2 + s.sig2 + s.mu * s.sig *
+      exp(stats::dnorm(-s.mu / s.sig, log = TRUE) - stats::pnorm(s.mu / s.sig, log.p = TRUE))
+
+    # entropy of half-line truncated normal:
+    # H = log σ + log Φ(μ/σ) + 0.5*(1 + α ζ) + 0.5*log(2π),
+    # where α = -μ/σ, ζ = φ(α) / (1-Φ(α)) = φ(-μ/σ)/Φ(μ/σ)
+    alpha    <- -s.mu / s.sig
+    logtail  <- stats::pnorm(alpha, lower.tail = FALSE, log.p = TRUE)   # log(1 - Φ(α)) = log Φ(μ/σ)
+    logphi   <- stats::dnorm(alpha, log = TRUE)
+    zeta     <- exp(logphi - logtail)                                   # φ(α)/(1-Φ(α))
+    # H = log σ + log Φ(μ/σ) + 0.5*log(2π) + 0.5 + 0.5*(α ζ - ζ^2)
+    H_sts_t <- log(s.sig) + logtail + 0.5*log(2*pi) + 0.5 + 0.5 * (alpha * zeta - zeta^2)
+    H_sts    <- sum(H_sts_t)
+
+    list(sts.sig2 = s.sig2, sts.mu = s.mu,
+        E.sts = E.sts, E.sts2 = E.sts2,
+        entropy = H_sts)
   }
 
-  # function update q(ut)
-  update_uts<-function(exps,exps2,sts,sts2,inv.sigma,a2.invb.inv.sigma,invb.inv.sigma,c.invb.absgam,c2.invb.absgam2.sigma){
-    u.lambda = 0.5
-    u.psi = (a2.invb.inv.sigma + 2*inv.sigma)
-    u.chi = invb.inv.sigma*(y^2-2*y*exps+exps2) - 2*c.invb.absgam*sts*(y-exps) + c2.invb.absgam2.sigma*sts2
-    u.chi[u.chi<=0] = 1e-3
-    #
-    E.uts = sapply(u.chi,function(x){sqrt(x/u.psi)*HyperbolicDist::besselRatio(sqrt(x*u.psi),u.lambda,1,Inf)})
-    E.inv.uts = sapply(u.chi,function(x){sqrt(u.psi/x)*HyperbolicDist::besselRatio(sqrt(x*u.psi),u.lambda,1,Inf)-2*u.lambda/x})
-    return(list(uts.lambda=u.lambda,uts.psi=u.psi,uts.chi=u.chi,E.uts=E.uts,E.inv.uts=E.inv.uts))
+  # function update q(ut)  (GIG with λ = 1/2)
+  update_uts <- function(exps, exps2, sts, sts2, inv.sigma, a2.invb.inv.sigma,
+                        invb.inv.sigma, c.invb.absgam, c2.invb.absgam2.sigma) {
+    u.lambda <- 0.5
+    u.psi    <- (a2.invb.inv.sigma + 2 * inv.sigma)
+    u.chi    <- invb.inv.sigma*(y^2 - 2*y*exps + exps2) - 2*c.invb.absgam*sts*(y - exps) +
+                c2.invb.absgam2.sigma*sts2
+
+    # numeric floors
+    eps  <- getOption("exdqlm.safe_eps", 1e-8)
+    u.psi[u.psi <= eps | !is.finite(u.psi)] <- eps
+    u.chi[u.chi <= eps | !is.finite(u.chi)] <- eps
+
+    z <- sqrt(u.chi * u.psi)
+
+    # CLOSED-FORM moments for λ = 1/2  (robust, no besselRatio):
+    E.uts     <- sqrt(u.chi / u.psi) + 1 / u.psi
+    E.inv.uts <- sqrt(u.psi / u.chi)
+
+    # E[log U] and entropy (keep your ELBO bits; guard Bessel calls)
+    Klam   <- besselK(z, u.lambda)
+    Klam_p <- besselK(z, u.lambda + 1e-4)
+    Klam_m <- besselK(z, u.lambda - 1e-4)
+    Klam[!is.finite(Klam)]     <- besselK(pmax(z, 1e-6), u.lambda)
+    Klam_p[!is.finite(Klam_p)] <- besselK(pmax(z, 1e-6), u.lambda + 1e-4)
+    Klam_m[!is.finite(Klam_m)] <- besselK(pmax(z, 1e-6), u.lambda - 1e-4)
+
+    Eu_eps  <- (Klam_p / Klam) * (sqrt(u.chi / u.psi))^(1e-4)
+    Eu_meps <- (Klam_m / Klam) * (sqrt(u.chi / u.psi))^(-1e-4)
+    Elogu   <- (log(Eu_eps) - log(Eu_meps)) / (2e-4)
+
+    # Entropy of GIG
+    # H = - E[ log q(U) ] with q(U) ∝ u^{λ-1} exp(-(ψ u + χ/u)/2)
+    # using E[U], E[1/U], E[log U] above
+    H_t <- - (u.lambda/2) * log(u.psi / u.chi) +
+            log(2 * Klam) - (u.lambda - 1) * Elogu +
+            0.5 * (u.psi * E.uts + u.chi * E.inv.uts)
+    H_u <- sum(H_t)
+
+    list(uts.lambda = u.lambda, uts.psi = u.psi, uts.chi = u.chi,
+        E.uts = E.uts, E.inv.uts = E.inv.uts,
+        E.log.uts = sum(Elogu), entropy = H_u)
   }
+
 
   # function update q(theta) ffbsm
   update_theta<-function(ex.f,ex.q){
@@ -252,92 +301,115 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     return(list(exps=exps,vars=vars,exps2=exps2,standard.forecast.errors=standard.forecast.errors,sm=sm,sC=sC,fm=m,fC=C))
   }
 
-  # function approximate q(sigma,gamma) with importance sampling
-  update_gamma_sigma<-function(gamma,var.gam,sigma,var.sig,exps,exps2,sts,sts2,uts,inv.uts){
-    gam.sig2 = max(var.gam,0.001)
-    gam.mu = gamma
-    v_sig = max(var.sig,0.001)
-    m_sig = sigma
-    # sampling distribution functions
-    rr_gamma = function(n){
-      return(crch::rtt(n, location = gam.mu, scale = sqrt(gam.sig2), df = 1, left = L+1e-3, right = U-1e-3))
-    }
-    dr_gamma = function(gam,log.ind=FALSE){
-      return(crch::dtt(gam, location = gam.mu, scale = sqrt(gam.sig2), df = 1, left = L+1e-3, right = U-1e-3,log = log.ind))
-    }
-    rr_sigma = function(n){
-      return(crch::rtt(n, location = m_sig, scale = sqrt(v_sig), df = 1, left = 0, right = Inf))
-    }
-    dr_sigma = function(sig,log.ind=FALSE){
-      return(crch::dtt(sig, location = m_sig, scale = sqrt(v_sig), df = 1, left = 0, right = Inf, log = log.ind))
-    }
-    # variational function q(gamma,sigma) up to proportionality constant
-    dq = function(sig,gam,log.ind=FALSE){
-      a = A.fn(p0,gam); b = B.fn(p0,gam); c = C.fn(p0,gam);
-      if(log.ind==FALSE){
-        q.prior <- PriorGammaDens(gam)*(sig^(-PriorSigma$a_sig-1))*exp(-PriorSigma$b_sig/sig)
-        q.lik = (sig^(-1.5*TT))*exp(-sum(uts)/sig)*
-          exp( -0.5*sum( inv.uts*(y^2-2*y*exps+exps2)/sig
-                         + (exps-y)*2*(inv.uts*c*abs(gam)*sts + a/sig)
-                         + sig*inv.uts*(c^2)*(abs(gam)^2)*sts2
-                         + 2*c*abs(gam)*sts*a
-                         + (uts*a^2)/sig )/b )
-        return(q.prior*q.lik)
-      }else{
-        log.q.prior <- log(PriorGammaDens(gam)) -(PriorSigma$a_sig+1)*log(sig)-PriorSigma$b_sig/sig
-        log.q.lik = - (1.5*TT)*log(sig)-sum(uts)/sig -
-          0.5*sum( inv.uts*(y^2-2*y*exps+exps2)/sig
-                   + (exps-y)*2*(inv.uts*c*abs(gam)*sts + a/sig)
-                   + sig*inv.uts*(c^2)*(abs(gam)^2)*sts2
-                   + 2*c*abs(gam)*sts*a
-                   + (uts*a^2)/sig )/b
-        return(log.q.prior+log.q.lik)
+  # function approximate q(sigma,gamma) with importance sampling + ELBO via log-normalizer
+  update_gamma_sigma <- function(gamma, var.gam, sigma, var.sig,
+                                exps, exps2, sts, sts2, uts, inv.uts) {
+    gam.sig2 <- max(var.gam, 0.001)
+    gam.mu   <- gamma
+    v_sig    <- max(var.sig, 0.001)
+    m_sig    <- sigma
+
+    # proposal r(gamma), r(sigma)
+    rr_gamma <- function(n) crch::rtt(n, location = gam.mu, scale = sqrt(gam.sig2),
+                                      df = 1, left = L + 1e-3, right = U - 1e-3)
+    dr_gamma <- function(gam, log.ind = FALSE)
+      crch::dtt(gam, location = gam.mu, scale = sqrt(gam.sig2),
+                df = 1, left = L + 1e-3, right = U - 1e-3, log = log.ind)
+
+    rr_sigma <- function(n) crch::rtt(n, location = m_sig, scale = sqrt(v_sig),
+                                      df = 1, left = 0, right = Inf)
+    dr_sigma <- function(sig, log.ind = FALSE)
+      crch::dtt(sig, location = m_sig, scale = sqrt(v_sig),
+                df = 1, left = 0, right = Inf, log = log.ind)
+
+    # unnormalized target \tilde q(γ,σ) = prior(γ,σ) * "variational likelihood"
+    dq <- function(sig, gam, log.ind = FALSE) {
+      a <- A.fn(p0, gam); b <- B.fn(p0, gam); c <- C.fn(p0, gam)
+      if (!log.ind) {
+        q.prior <- PriorGammaDens(gam) * (sig^(-PriorSigma$a_sig - 1)) * exp(-PriorSigma$b_sig / sig)
+        q.lik   <- (sig^(-1.5 * TT)) * exp(-sum(uts) / sig) *
+          exp(-0.5 * sum(inv.uts * (y^2 - 2*y*exps + exps2) / sig
+                        + (exps - y) * 2 * (inv.uts * c * abs(gam) * sts + a / sig)
+                        + sig * inv.uts * (c^2) * (abs(gam)^2) * sts2
+                        + 2 * c * abs(gam) * sts * a
+                        + (uts * a^2) / sig) / b)
+        return(q.prior * q.lik)
+      } else {
+        log.q.prior <- log(PriorGammaDens(gam)) - (PriorSigma$a_sig + 1) * log(sig) - PriorSigma$b_sig / sig
+        log.q.lik   <- -(1.5 * TT) * log(sig) - sum(uts) / sig -
+          0.5 * sum(inv.uts * (y^2 - 2*y*exps + exps2) / sig
+                    + (exps - y) * 2 * (inv.uts * c * abs(gam) * sts + a / sig)
+                    + sig * inv.uts * (c^2) * (abs(gam)^2) * sts2
+                    + 2 * c * abs(gam) * sts * a
+                    + (uts * a^2) / sig) / b
+        return(log.q.prior + log.q.lik)
       }
     }
-    # importance sampling
-    # sample sigma
-    if(!fix.sigma){
-      sigma.samples = rr_sigma(n.IS)
-    }else{
-      sigma.samples = rep(sig.init,n.IS)
-    }
-    # sample gamma
-    if(!fix.gamma){
-      gamma.samples = rr_gamma(n.IS)
-    }else{
-      gamma.samples = rep(gam.init,n.IS)
-    }
-    # compute weights
-    if(fix.gamma && fix.sigma){
-      weights = rep(1/n.IS,n.IS)
-    }else{
-      log.weights = apply(cbind(sigma.samples,gamma.samples),1,function(x){dq(x[1],x[2],log.ind=TRUE)}) -
-        as.numeric(!fix.gamma)*dr_gamma(gamma.samples,log.ind=TRUE) - as.numeric(!fix.sigma)*dr_sigma(sigma.samples,log.ind = TRUE)
-      max.log.weight = max(log.weights)
-      log.sum.weights = max(log.weights) + log(sum(exp(log.weights-max.log.weight)))
-      log.rescaled.weights = log.weights - log.sum.weights
-      weights = exp(log.rescaled.weights)
-    }
-    # compute expectations
-    E.gam = sum(gamma.samples*weights)
-    V.gam = sum((gamma.samples^2)*weights) - E.gam^2
-    E.sigma = sum(sigma.samples*weights)
-    V.sigma = sum((sigma.samples^2)*weights) - E.sigma^2
-    E.inv.sigma = sum((1/sigma.samples)*weights)
-    E.c2.invb.absgam2.sigma = sum(((sigma.samples*(C.fn(p0,gamma.samples)^2)*(abs(gamma.samples)^2))/B.fn(p0,gamma.samples))*weights)
-    E.c.invb.absgam = sum(((C.fn(p0,gamma.samples)*abs(gamma.samples))/B.fn(p0,gamma.samples))*weights)
-    E.c.a.invb.absgam = sum(((C.fn(p0,gamma.samples)*A.fn(p0,gamma.samples)*abs(gamma.samples))/B.fn(p0,gamma.samples))*weights)
-    E.a2.invb.inv.sigma = sum(((A.fn(p0,gamma.samples)^2)/(B.fn(p0,gamma.samples)*sigma.samples))*weights)
-    E.invb.inv.sigma = sum((1/(B.fn(p0,gamma.samples)*sigma.samples))*weights)
-    E.a.invb.inv.sigma = sum((A.fn(p0,gamma.samples)/(B.fn(p0,gamma.samples)*sigma.samples))*weights)
-    E.log.inv.sigma = sum(log(1/sigma.samples)*weights)
 
-    return(list(E.sigma=E.sigma,V.sigma=V.sigma,E.inv.sigma=E.inv.sigma,E.gam=E.gam,V.gam=V.gam,
-                sigma.samples=sigma.samples,gamma.samples=gamma.samples,weights=weights,
-                E.c2.invb.absgam2.sigma = E.c2.invb.absgam2.sigma, E.c.invb.absgam = E.c.invb.absgam,
-                E.c.a.invb.absgam = E.c.a.invb.absgam, E.a2.invb.inv.sigma = E.a2.invb.inv.sigma,
-                E.invb.inv.sigma = E.invb.inv.sigma, E.a.invb.inv.sigma = E.a.invb.inv.sigma,
-                E.log.inv.sigma=E.log.inv.sigma))
+    # draw proposals (unchanged)
+    sigma.samples <- if (!fix.sigma) rr_sigma(n.IS) else rep(sig.init, n.IS)
+    gamma.samples <- if (!fix.gamma) rr_gamma(n.IS) else rep(gam.init, n.IS)
+
+    # log \tilde q evaluated PER SAMPLE (scalar calls)
+    log_qtilde <- vapply(seq_len(n.IS), function(i) {
+      dq(sigma.samples[i], gamma.samples[i], log.ind = TRUE)
+    }, numeric(1))
+
+    # proposal log-densities (still vectorized)
+    log_r <- rep(0, n.IS)
+    if (!fix.gamma)  log_r <- log_r + dr_gamma(gamma.samples, log.ind = TRUE)
+    if (!fix.sigma)  log_r <- log_r + dr_sigma(sigma.samples, log.ind = TRUE)
+
+    # importance weights
+    log_w   <- log_qtilde - log_r
+    m       <- max(log_w)
+    logsumw <- m + log(sum(exp(log_w - m)))
+    weights <- exp(log_w - logsumw)
+
+    # === ELBO for (γ,σ) block ===
+    # log Z ≈ log E_r[ \tilde q / r ] = logsumexp(log_w) - log N
+    elbo_logZ <- as.numeric(logsumw - log(n.IS))
+    # Entropy H[q] = -E_q[log q] = -E_q[log \tilde q] + log Z  (for reference / diagnostics)
+    E_log_qtilde <- sum(weights * log_qtilde)
+    elbo_entropy <- -E_log_qtilde + elbo_logZ
+
+    # moments you already return
+    E.gam   <- sum(gamma.samples * weights)
+    V.gam   <- sum((gamma.samples^2) * weights) - E.gam^2
+    E.sigma <- sum(sigma.samples * weights)
+    V.sigma <- sum((sigma.samples^2) * weights) - E.sigma^2
+    E.inv.sigma <- sum((1 / sigma.samples) * weights)
+
+    E.c2.invb.absgam2.sigma <- sum(((sigma.samples * (C.fn(p0, gamma.samples)^2) * (abs(gamma.samples)^2)) /
+                                      B.fn(p0, gamma.samples)) * weights)
+    E.c.invb.absgam <- sum(((C.fn(p0, gamma.samples) * abs(gamma.samples)) /
+                              B.fn(p0, gamma.samples)) * weights)
+    E.c.a.invb.absgam <- sum(((C.fn(p0, gamma.samples) * A.fn(p0, gamma.samples) * abs(gamma.samples)) /
+                                B.fn(p0, gamma.samples)) * weights)
+    E.a2.invb.inv.sigma <- sum(((A.fn(p0, gamma.samples)^2) /
+                                  (B.fn(p0, gamma.samples) * sigma.samples)) * weights)
+    E.invb.inv.sigma <- sum((1 / (B.fn(p0, gamma.samples) * sigma.samples)) * weights)
+    E.a.invb.inv.sigma <- sum((A.fn(p0, gamma.samples) /
+                                (B.fn(p0, gamma.samples) * sigma.samples)) * weights)
+    E.log.inv.sigma <- sum(log(1 / sigma.samples) * weights)
+
+    list(
+      # existing
+      E.sigma = E.sigma, V.sigma = V.sigma, E.inv.sigma = E.inv.sigma,
+      E.gam = E.gam, V.gam = V.gam,
+      sigma.samples = sigma.samples, gamma.samples = gamma.samples, weights = weights,
+      E.c2.invb.absgam2.sigma = E.c2.invb.absgam2.sigma,
+      E.c.invb.absgam = E.c.invb.absgam,
+      E.c.a.invb.absgam = E.c.a.invb.absgam,
+      E.a2.invb.inv.sigma = E.a2.invb.inv.sigma,
+      E.invb.inv.sigma = E.invb.inv.sigma,
+      E.a.invb.inv.sigma = E.a.invb.inv.sigma,
+      E.log.inv.sigma = E.log.inv.sigma,
+      # new ELBO diagnostics
+      elbo_logZ = elbo_logZ,                # ELBO contribution for (γ,σ)
+      elbo_entropy_gs = elbo_entropy,       # optional: entropy of q(γ,σ)
+      elbo_E_log_qtilde = E_log_qtilde      # optional: E_q[log \tilde q]
+    )
   }
 
   # one-line header 
@@ -360,6 +432,43 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     } else {
       update_theta(ex.f, ex.q)
     }
+  }
+
+  .elbo_snapshot <- function(y, th, st, ut, gs) {
+    # θ-entropy from the bridge (fallback if missing)
+    H_theta <- if (!is.null(th$elbo_theta)) th$elbo_theta else
+      sum(vapply(seq_len(dim(th$sC)[3]), function(t) {
+        0.5 * ( nrow(th$sC[,,t]) * (1 + log(2*pi)) +
+                determinant(th$sC[,,t], logarithm = TRUE)$modulus[1] )
+      }, numeric(1)))
+
+    # s,u entropies from your updated updaters
+    H_sts <- st$entropy
+    H_uts <- ut$entropy
+
+    # NEW: sigma–gamma block via IS log-normalizer (log Z)
+    # Fallback to the old "lik" if elbo_logZ is not present
+    if (!is.null(gs$elbo_logZ)) {
+      total <- as.numeric(H_theta + H_sts + H_uts + gs$elbo_logZ)
+      breakdown <- c(H_theta = H_theta, H_sts = H_sts, H_uts = H_uts, gs_logZ = gs$elbo_logZ)
+    } else {
+      # ---- fallback (old calculation) ----
+      resid2 <- (y^2 - 2*y*th$exps + th$exps2)
+      L1 <-  + 1.5 * length(y) * gs$E.log.inv.sigma
+      L2 <-  - gs$E.inv.sigma * sum(ut$E.uts)
+      L3 <-  - 0.5 * gs$E.invb.inv.sigma * sum(ut$E.inv.uts * resid2)
+      L4 <-  - 0.5 * 2 * sum( (th$exps - y) * (ut$E.inv.uts * gs$E.c.invb.absgam * st$E.sts) )
+      L5 <-  - 0.5 * 2 * sum( (th$exps - y) * gs$E.a.invb.inv.sigma )
+      L6 <-  - 0.5 * sum( gs$E.c2.invb.absgam2.sigma * ut$E.inv.uts * st$E.sts2 )
+      L7 <-  - 0.5 * 2 * sum( gs$E.c.a.invb.absgam * st$E.sts )
+      L8 <-  - 0.5 * sum( ut$E.uts * gs$E.a2.invb.inv.sigma )
+      lik <- L1 + L2 + L3 + L4 + L5 + L6 + L7 + L8
+
+      total <- as.numeric(lik + H_theta + H_sts + H_uts)
+      breakdown <- c(lik = lik, H_theta = H_theta, H_sts = H_sts, H_uts = H_uts)
+    }
+
+    list(total = total, breakdown = breakdown)
   }
 
   tictoc::tic("run time")
@@ -399,6 +508,16 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     if (debug_shapes && (iter == 1 || iter %% debug_every == 0))
       .pre(iter, ex.f, ex.q, GG, FF, y, m0, C0, df.mat, p, TT)
 
+    # numeric guard for KF
+    eps_q <- getOption("exdqlm.q_floor", 1e-10)
+    ex.q[!is.finite(ex.q) | ex.q <= eps_q] <- pmax(eps_q, median(ex.q[is.finite(ex.q) & ex.q > 0], na.rm = TRUE))
+
+    # numeric guard for KF (keep your ex.q floor as-is)
+    ex.f <- as.numeric(ex.f)                     # ensure plain numeric vector
+    stopifnot(length(ex.f) == TT)                # sanity
+    ex.q <- as.numeric(ex.q)                     # ensure plain numeric vector
+    stopifnot(length(ex.q) == TT)                # sanity
+
     # update q(theta)
     new.theta.out <- kf_step(ex.f, ex.q)
 
@@ -411,6 +530,33 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
                                        new.theta.out$exps,new.theta.out$exps2,
                                        new.sts.out$E.sts,new.sts.out$E.sts2,
                                        new.uts.out$E.uts,new.uts.out$E.inv.uts)
+
+    # ELBO (now uses gs$elbo_logZ if available)
+    if (isTRUE(getOption("exdqlm.compute_elbo", TRUE))) {
+      elbo.obj <- .elbo_snapshot(y, new.theta.out, new.sts.out, new.uts.out, new.gamsig.out)
+      if (!exists("elbo.seq", inherits = FALSE)) elbo.seq <- numeric(0)
+      elbo.seq <- c(elbo.seq, elbo.obj$total)
+
+      if (verbose && iter %% 5 == 0) {
+        dELBO <- if (length(elbo.seq) >= 2) elbo.seq[length(elbo.seq)] - elbo.seq[length(elbo.seq)-1] else NA_real_
+        # Optional: show gs_logZ when available
+        if (!is.null(new.gamsig.out$elbo_logZ)) {
+          message(sprintf("    ELBO: %.6f  Δ=%.3e  (gs_logZ=%.6f)",
+                          elbo.obj$total, dELBO, new.gamsig.out$elbo_logZ))
+        } else {
+          message(sprintf("    ELBO: %.6f  Δ=%.3e", elbo.obj$total, dELBO))
+        }
+        utils::flush.console()
+      }
+
+      # ELBO-based stopping (paired with your param-diff)
+      tol_elbo <- getOption("exdqlm.tol_elbo", 1e-4)
+      if (length(elbo.seq) >= 2) {
+        if (abs(elbo.seq[length(elbo.seq)] - elbo.seq[length(elbo.seq)-1]) < tol_elbo && new.max < tol) {
+          break
+        }
+      }
+    }
 
     # save ISVB gamma and sigma estimates
     seq.gamma = c(seq.gamma,new.gamsig.out$E.gam)
@@ -466,6 +612,11 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
                    theta.out=new.theta.out,sig.out=new.gamsig.out,vts.out=new.uts.out,
                    fix.sigma=fix.sigma)
   }
+
+  retlist$diagnostics <- list(
+  elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL
+  )
+
   # return results
   class(retlist) <- "exdqlmISVB"
   return(retlist)
