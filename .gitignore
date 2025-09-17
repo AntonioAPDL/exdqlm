@@ -21,3 +21,4 @@ src/*.dll
 .RData
 .DS_Store
 notebooks/
+.vscode
