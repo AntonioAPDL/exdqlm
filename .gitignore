@@ -34,3 +34,4 @@ tools/locate_*.sh
 
 # notebooks
 notebooks/
+.vscode
