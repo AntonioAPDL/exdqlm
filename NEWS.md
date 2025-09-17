@@ -1,3 +1,24 @@
+# exdqlm 0.3.0 (unreleased)
+
+- **ELBO diagnostics**
+  - New `diagnostics$elbo`: ELBO tracked each ISVB iteration.
+  - θ-entropy contributed by the KF bridge; s/u entropies from their variational updates.
+  - σ–γ block contributes via **IS log-normalizer** (self-normalized IS): `gammasig.out$elbo_logZ`.
+
+- **ELBO-based stopping**
+  - Controlled by `options(exdqlm.compute_elbo = TRUE|FALSE)` and `options(exdqlm.tol_elbo = 1e-4)`.
+  - Pairs with the existing parameter-difference tolerance.
+
+- **C++ KF bridge**
+  - `update_theta_bridge()` (exported) mirrors the R path and exposes θ-entropy.
+  - Toggle backend with `options(exdqlm.use_cpp_kf = TRUE|FALSE)`.
+
+- **Numerical robustness**
+  - Floors and guards in `q(ut)` and pre-KF `ex.q` (`options(exdqlm.safe_eps = 1e-8, exdqlm.q_floor = 1e-10)`).
+  - Stable closed-form for truncated-normal entropy in `q(st)`.
+
+- **API notes**
+  - No breaking changes; returns gain `diagnostics$elbo` and (optionally) `gammasig.out$elbo_logZ`.
 
 # exdqlm 0.2.0
 
@@ -15,6 +36,7 @@
   - function exdqlmISVB() and (inherently) transfn_exdqlmISVB() now return objects of class 'exdqlmISVB'
   - function exdqlmMCMC() now returns objects of class 'exdqlmMCMC'
   - function exdqlmDiagnostics() now returns objects of class 'exdqlmDiagnostic'
+  - function exdqlmForecast() now returns objects of class 'exdqlmForecast'
   - returns from exdqlmMCMC(), exdqlmISVB(), and transfn_exdqlmISVB() now include data (y)
 - Input changes
   - y removed from the inputs of exdqlmDiagnostics(), exdqlmForecast(), compPlot(), and exdqlmPlot()
