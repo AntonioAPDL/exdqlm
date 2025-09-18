@@ -1,24 +1,23 @@
-# exdqlm 0.3.0 (unreleased)
+# exdqlm 0.3.0
 
-- **ELBO diagnostics**
-  - New `diagnostics$elbo`: ELBO tracked each ISVB iteration.
-  - θ-entropy contributed by the KF bridge; s/u entropies from their variational updates.
-  - σ–γ block contributes via **IS log-normalizer** (self-normalized IS): `gammasig.out$elbo_logZ`.
+Major internal upgrade with C++ Kalman bridge and ELBO diagnostics.
 
-- **ELBO-based stopping**
-  - Controlled by `options(exdqlm.compute_elbo = TRUE|FALSE)` and `options(exdqlm.tol_elbo = 1e-4)`.
-  - Pairs with the existing parameter-difference tolerance.
-
-- **C++ KF bridge**
-  - `update_theta_bridge()` (exported) mirrors the R path and exposes θ-entropy.
-  - Toggle backend with `options(exdqlm.use_cpp_kf = TRUE|FALSE)`.
-
-- **Numerical robustness**
-  - Floors and guards in `q(ut)` and pre-KF `ex.q` (`options(exdqlm.safe_eps = 1e-8, exdqlm.q_floor = 1e-10)`).
-  - Stable closed-form for truncated-normal entropy in `q(st)`.
-
-- **API notes**
-  - No breaking changes; returns gain `diagnostics$elbo` and (optionally) `gammasig.out$elbo_logZ`.
+- **C++ Kalman filter bridge** (parity with R path). New runtime option
+  `options(exdqlm.use_cpp_kf = TRUE)` (default via `.onLoad`) switches to the C++ path.
+- **ELBO monitoring** for ISVB:
+  - Adds θ-entropy from smoothed covariance and IS-based log-normalizer for the (σ, γ) block.
+  - `fit$diagnostics$elbo` recorded each iteration; weakly monotone up to tiny IS noise.
+- **Posterior sampling pipeline**:
+  - Optional C++ samplers for θ (MVN), s_t (truncated normal), and u_t (GIG, λ=1/2).
+    Toggle via `options(exdqlm.use_cpp_samplers = TRUE)` (default FALSE).
+  - Predictive draws keep the R/`brms::rasym_laplace()` path by default for parity.
+- **Stability & hygiene**
+  - Robust `log|Σ_t|` computation for p=1 and array→matrix coercion.
+  - ASCII-only comments (Greek symbols written as LaTeX names).
+  - Internal bridges remain unexported.
+- **Docs & tests**
+  - Added smoke tests for ELBO monotonicity and KF parity (R vs C++).
+  - Documented runtime options in `?exdqlmISVB`.
 
 # exdqlm 0.1.5
 
