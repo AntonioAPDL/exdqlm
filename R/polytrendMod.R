@@ -6,7 +6,7 @@
 #' @param m0 Prior mean of the state vector. Default is `m0 = rep(0,order)`.
 #' @param C0 Prior covariance of the state vector. Default is `C0 = 1e3*diag(order)`.
 #'
-#' @return A list of the following:
+#' @return A object of class "`exdqlm`" containing the following:
 #' \itemize{
 #'   \item FF - Observational vector.
 #'   \item GG - Evolution matrix.
@@ -38,5 +38,8 @@ polytrendMod = function(order,m0,C0){
   }else{
     C0 = 1e3*diag(nrow(GG))
   }
-  return(list(FF = FF, GG = GG, m0 = m0, C0 = C0))
+  mod = list(FF = FF, GG = GG, m0 = m0, C0 = C0)
+  
+  class(mod) <- "exdqlm"
+  return(mod)
 }
