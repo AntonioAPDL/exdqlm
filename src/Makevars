@@ -1,0 +1,6 @@
+## Use R's OpenMP flags when available (no-ops if unsupported)
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_CFLAGS   = $(SHLIB_OPENMP_CFLAGS)
+
+## Link to R's LAPACK/BLAS and Fortran runtime
+PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CXXFLAGS)
