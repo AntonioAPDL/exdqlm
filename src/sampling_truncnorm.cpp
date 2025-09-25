@@ -4,7 +4,7 @@
 #include <boost/math/special_functions/erf.hpp>
 #include <Rcpp.h>
 #include <chrono>
-#include <omp.h>
+#include "omp_compat.h"
 
 // Standard normal CDF
 double normal_cdf(double x) {
