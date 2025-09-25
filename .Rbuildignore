@@ -19,3 +19,5 @@
 ^cran-submission.*
 ^README\.Rmd$
 ^NEWS\.md$
+^\.Rproj\.user$
+^cran-comments-0\.3\.0-draft\.md$
