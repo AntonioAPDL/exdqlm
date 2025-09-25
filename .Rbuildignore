@@ -32,3 +32,4 @@
 ^dump_exdqlm_files_to_txt\.sh$
 ^check-logs$
 ^tools$
+^cran-comments-0\.3\.0-draft\.md$
