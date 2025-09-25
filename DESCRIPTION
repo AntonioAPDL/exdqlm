@@ -1,24 +1,24 @@
 Package: exdqlm
 Title: Extended Dynamic Quantile Linear Models
 Version: 0.3.0
-Authors@R: 
+Authors@R:
     c(person(given = "Raquel", family = "Barata",
              role = c("aut", "cre"),
              email = "raquel.a.barata@gmail.com"),
       person(given = "Raquel", family = "Prado", role = "ths"),
       person(given = "Bruno",  family = "Sanso", role = "ths"),
       person(given = "Antonio", family = "Aguirre", role = "aut"))
-Author: Raquel Barata [aut, cre],
-  Raquel Prado [ths],
-  Bruno Sanso [ths],
-  Antonio Aguirre [aut]
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
-Description: Routines for Bayesian estimation and analysis of dynamic quantile linear models utilizing the extended asymmetric Laplace error distribution, also known as extended dynamic quantile linear models (exDQLM) described in Barata et al (2020) <doi:10.1214/21-AOAS1497>. 
+Description: Routines for Bayesian estimation and analysis of dynamic quantile
+    linear models utilizing the extended asymmetric Laplace error distribution
+    (exDQLM). Methods described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Depends: R (>= 2.10)
+Depends:
+    R (>= 3.6)
 Imports:
     stats,
     methods,
@@ -35,20 +35,17 @@ Imports:
     LaplacesDemon,
     grDevices,
     Rcpp
-Packaged: 2023-02-16 03:28:19 UTC; raquel
-Repository: CRAN
-Date/Publication: 2023-02-16 12:30:05 UTC
 Suggests:
-    knitr,
-    rmarkdown,
     testthat (>= 3.0.0),
     ggplot2,
     pkgload
 VignetteBuilder: knitr
-Config/testthat/edition: 3
-Roxygen: list(markdown = TRUE)
-LinkingTo: 
+LinkingTo:
     BH,
     Rcpp,
     RcppArmadillo,
     RcppEigen
+SystemRequirements: C++17; OpenMP (optional)
+URL: https://github.com/AntonioAPDL/exdqlm
+BugReports: https://github.com/AntonioAPDL/exdqlm/issues
+Config/testthat/edition: 3

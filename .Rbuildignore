@@ -14,3 +14,8 @@
 ^\.DS_Store$
 ^\.vscode$
 ^cran-comments-.*\.md$
+^\.github$
+^cran-comments.*
+^cran-submission.*
+^README\.Rmd$
+^NEWS\.md$
