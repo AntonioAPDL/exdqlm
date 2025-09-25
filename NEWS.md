@@ -1,23 +1,24 @@
 # exdqlm 0.3.0
 
-Major internal upgrade with C++ Kalman bridge and ELBO diagnostics.
+- **C++ bridge and optional samplers**
+  - Optional C++ Kalman filter/smoother bridge and sampling kernels (theta, s_t, u_t).
+  - Runtime toggles via `options(exdqlm.use_cpp_kf = TRUE)` and `options(exdqlm.use_cpp_samplers = TRUE)`.
+  - Defaults preserve the R implementation for backward compatibility.
 
-- **C++ Kalman filter bridge** (parity with R path). New runtime option
-  `options(exdqlm.use_cpp_kf = TRUE)` (default via `.onLoad`) switches to the C++ path.
-- **ELBO monitoring** for ISVB:
-  - Adds θ-entropy from smoothed covariance and IS-based log-normalizer for the (σ, γ) block.
-  - `fit$diagnostics$elbo` recorded each iteration; weakly monotone up to tiny IS noise.
-- **Posterior sampling pipeline**:
-  - Optional C++ samplers for θ (MVN), s_t (truncated normal), and u_t (GIG, λ=1/2).
-    Toggle via `options(exdqlm.use_cpp_samplers = TRUE)` (default FALSE).
-  - Predictive draws keep the R/`brms::rasym_laplace()` path by default for parity.
-- **Stability & hygiene**
-  - Robust `log|Σ_t|` computation for p=1 and array→matrix coercion.
-  - ASCII-only comments (Greek symbols written as LaTeX names).
-  - Internal bridges remain unexported.
+- **ELBO diagnostics and stopping**
+  - New `diagnostics$elbo` recorded per ISVB iteration.
+  - Optional ELBO-based stopping via `options(exdqlm.compute_elbo = TRUE)` and `options(exdqlm.tol_elbo = 1e-4)`.
+
+- **Numerical robustness**
+  - Stabilized log-determinant computations and truncated-normal entropy updates.
+  - Guard rails for edge cases in intermediate calculations.
+
+- **Build & hygiene**
+  - OpenMP usage is optional and gated by compiler support.
+  - Makevars link against R BLAS/LAPACK; internal headers centralized.
+
 - **Docs & tests**
-  - Added smoke tests for ELBO monotonicity and KF parity (R vs C++).
-  - Documented runtime options in `?exdqlmISVB`.
+  - Runtime options documented; parity checks added for R vs C++ paths.
 
 # exdqlm 0.2.0
 

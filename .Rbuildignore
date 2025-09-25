@@ -2,6 +2,8 @@
 ^README\.Rmd$
 ^cran-comments\.md$
 ^cran-comments-.*\.md$
+^cran-comments.*
+^cran-submission.*
 ^doc$
 ^inst/doc$
 ^Meta$
@@ -12,7 +14,6 @@
 ^\.Rproj\.user$
 ^\.Rhistory$
 ^\.DS_Store$
-<<<<<<< HEAD
 ^results$
 ^outputs$
 ^session_logs$
@@ -31,7 +32,3 @@
 ^dump_exdqlm_files_to_txt\.sh$
 ^check-logs$
 ^tools$
-=======
-^\.vscode$
-^cran-comments-.*\.md$
->>>>>>> c66ff36 (ISVB: add ELBO via IS log-normalizer (gs_logZ); stabilize p=1 determinant; make C++ KF bridge internal; ASCII-only comments; debug hooks; import stats::median; regenerate docs)
