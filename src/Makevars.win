@@ -1,6 +1,5 @@
 ## Use R's OpenMP flags on Windows (ucrt toolchain)
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -U_GLIBCXX_ASSERTIONS
-PKG_CFLAGS   = $(SHLIB_OPENMP_CFLAGS)
 
 PKG_CPPFLAGS = -I. -I../inst/include -include zzz_preinclude.h
 
