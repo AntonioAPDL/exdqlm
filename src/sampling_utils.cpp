@@ -4,9 +4,10 @@
 #include <boost/math/distributions/normal.hpp>
 #include <boost/math/special_functions/bessel.hpp>
 #include <boost/random/uniform_01.hpp>
-#include <omp.h>
+#include "omp_compat.h"
 #include <cmath>
 #include <chrono>
+#include <algorithm>  
 
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::depends(BH)]]
@@ -95,16 +96,25 @@ double sample_gig_devroye(double p, double a, double b) {
 }
 
 // [[Rcpp::export]]
-Rcpp::NumericMatrix sample_gig_devroye_vector(int n_samples, double p, double a, Rcpp::NumericVector b_vec) {
+Rcpp::NumericMatrix sample_gig_devroye_vector(int n_samples, double p, double a,
+                                              Rcpp::NumericVector b_vec) {
     int TT = b_vec.size();
     Rcpp::NumericMatrix samples(n_samples, TT);
 
+#ifdef _OPENMP
     #pragma omp parallel for collapse(2)
     for (int t = 0; t < TT; ++t) {
         for (int i = 0; i < n_samples; ++i) {
             samples(i, t) = sample_gig_devroye(p, a, b_vec[t]);
         }
     }
+#else
+    for (int t = 0; t < TT; ++t) {
+        for (int i = 0; i < n_samples; ++i) {
+            samples(i, t) = sample_gig_devroye(p, a, b_vec[t]);
+        }
+    }
+#endif
 
     return samples;
 }
@@ -146,61 +156,97 @@ double C_fn(double p0, double gam) {
 }
 
 // [[Rcpp::export]]
-arma::cube sample_multivariate_normal(int n_samp, int TT, arma::cube sC, arma::mat sm, int p, int J) {
+arma::cube sample_multivariate_normal(int n_samp, int TT, arma::cube sC,
+                                      arma::mat sm, int p, int J) {
     arma::cube samp_theta(p + J, TT, n_samp, arma::fill::zeros);
-    
+
+#ifdef _OPENMP
     #pragma omp parallel
     {
         boost::random::mt19937 gen(omp_get_thread_num());
         boost::random::normal_distribution<> normal_dist(0.0, 1.0);
-        
+
         #pragma omp for
         for (int t = 0; t < TT; ++t) {
             arma::mat LL = arma::trans(chol(sC.slice(t)));
             for (int i = 0; i < n_samp; ++i) {
                 arma::vec z(p + J, arma::fill::zeros);
-                for (int j = 0; j < p + J; ++j) {
-                    z[j] = normal_dist(gen);
-                }
+                for (int j = 0; j < p + J; ++j) z[j] = normal_dist(gen);
                 samp_theta.slice(i).col(t) = sm.col(t) + LL * z;
             }
         }
     }
-    
+#else
+    {
+        boost::random::mt19937 gen(0);
+        boost::random::normal_distribution<> normal_dist(0.0, 1.0);
+
+        for (int t = 0; t < TT; ++t) {
+            arma::mat LL = arma::trans(chol(sC.slice(t)));
+            for (int i = 0; i < n_samp; ++i) {
+                arma::vec z(p + J, arma::fill::zeros);
+                for (int j = 0; j < p + J; ++j) z[j] = normal_dist(gen);
+                samp_theta.slice(i).col(t) = sm.col(t) + LL * z;
+            }
+        }
+    }
+#endif
+
     return samp_theta;
 }
 
 // Parallelized samp_post_pred function
 // [[Rcpp::export]]
-arma::cube samp_post_pred(int n_samp, int TT, int p, int J, arma::cube samp_theta, arma::cube FF, 
-                          arma::mat samp_sigma, double p0, arma::mat samp_gamma, arma::cube samp_sts) {
+arma::cube samp_post_pred(int n_samp, int TT, int p, int J, arma::cube samp_theta,
+                          arma::cube FF, arma::mat samp_sigma, double p0,
+                          arma::mat samp_gamma, arma::cube samp_sts) {
 
-    arma::cube samp_post_pred(J + 1, TT, n_samp, arma::fill::zeros);
-    
+    arma::cube out(J + 1, TT, n_samp, arma::fill::zeros);
+
+#ifdef _OPENMP
     #pragma omp parallel
     {
         boost::random::mt19937 gen(omp_get_thread_num());
-        
+
         #pragma omp for collapse(2)
         for (int j = 0; j <= J; ++j) {
             for (int t = 0; t < TT; ++t) {
                 arma::vec FF_jt = FF.slice(t).col(j);
-
                 for (int i = 0; i < n_samp; ++i) {
                     arma::vec theta_jt = samp_theta.slice(i).col(t);
-                    
-                    double xb = arma::dot(FF_jt, theta_jt);
-                    double p_fn_value = p_fn(p0, samp_gamma(j, i));
-                    double C_fn_value = C_fn(p0, samp_gamma(j, i));
-                    double loc_param = xb + C_fn_value * std::abs(samp_gamma(j, i)) * samp_sts(j, t, i) * samp_sigma(j, i)+samp_sigma(j, i)*rasym_laplace(gen,0, 1, p_fn_value);
-                    double result_value = loc_param;
-                    samp_post_pred(j, t, i) = result_value;
+                    double xb  = arma::dot(FF_jt, theta_jt);
+                    double pf  = p_fn(p0, samp_gamma(j, i));
+                    double Cf  = C_fn(p0, samp_gamma(j, i));
+                    double val = xb + Cf * std::abs(samp_gamma(j, i)) *
+                                 samp_sts(j, t, i) * samp_sigma(j, i)
+                               + samp_sigma(j, i) * rasym_laplace(gen, 0, 1, pf);
+                    out(j, t, i) = val;
                 }
             }
         }
     }
-    
-    return samp_post_pred;
+#else
+    {
+        boost::random::mt19937 gen(0);
+        for (int j = 0; j <= J; ++j) {
+            for (int t = 0; t < TT; ++t) {
+                arma::vec FF_jt = FF.slice(t).col(j);
+                for (int i = 0; i < n_samp; ++i) {
+                    arma::vec theta_jt = samp_theta.slice(i).col(t);
+                    double xb  = arma::dot(FF_jt, theta_jt);
+                    double pf  = p_fn(p0, samp_gamma(j, i));
+                    double Cf  = C_fn(p0, samp_gamma(j, i));
+                    double val = xb + Cf * std::abs(samp_gamma(j, i)) *
+                                 samp_sts(j, t, i) * samp_sigma(j, i)
+                               + samp_sigma(j, i) * rasym_laplace(gen, 0, 1, pf);
+                    out(j, t, i) = val;
+                }
+            }
+        }
+    }
+#endif
+
+    return out;
 }
 
 // Parallelized generate_samples function
@@ -217,41 +263,68 @@ Rcpp::List generate_samples(int n_samp, int TT, int p, int J, arma::cube FF, arm
 
 // New samp_post_pred_synth function
 // [[Rcpp::export]]
-Rcpp::List samp_post_pred_synth(int n_samp, int k_forecast, int p_ens, int J, arma::cube samp_theta_ens, arma::cube FF_ens, 
-                                arma::mat samp_sigma, double p0, arma::mat samp_gamma, Rcpp::List samp_sts_ens) {
+Rcpp::List samp_post_pred_synth(int n_samp, int k_forecast, int p_ens, int J,
+                                arma::cube samp_theta_ens, arma::cube FF_ens,
+                                arma::mat samp_sigma, double p0,
+                                arma::mat samp_gamma, Rcpp::List samp_sts_ens) {
+    Rcpp::List out(J);
 
-    Rcpp::List samp_post_pred_result_ens(J);
-
+#ifdef _OPENMP
     #pragma omp parallel
     {
         boost::random::mt19937 gen(omp_get_thread_num());
-        
+
         #pragma omp for
         for (int j = 0; j < J; ++j) {
-            arma::cube curr_samp_sts_ens = Rcpp::as<arma::cube>(samp_sts_ens[j]);
-            int n_columns = curr_samp_sts_ens.n_cols;
-            arma::cube samp_post_pred_j(k_forecast, n_columns, n_samp, arma::fill::zeros);
+            arma::cube sts = Rcpp::as<arma::cube>(samp_sts_ens[j]);
+            int K = sts.n_cols;
+            arma::cube res(k_forecast, K, n_samp, arma::fill::zeros);
 
-            for (int k = 0; k < n_columns; ++k) {
+            for (int k = 0; k < K; ++k) {
                 for (int t = 0; t < k_forecast; ++t) {
                     arma::vec FF_jt = FF_ens.slice(t).col(j);
-
                     for (int i = 0; i < n_samp; ++i) {
                         arma::vec theta_jt = samp_theta_ens.slice(i).col(t);
-                        double xb = arma::dot(FF_jt, theta_jt);
-                        double p_fn_value = p_fn(p0, samp_gamma(j, i));
-                        double C_fn_value = C_fn(p0, samp_gamma(j, i));
-                        double loc_param = xb + C_fn_value * std::abs(samp_gamma(j, i)) * curr_samp_sts_ens(k, t, i) * samp_sigma(j, i) 
-                                           + samp_sigma(j, i) * rasym_laplace(gen, 0, 1, p_fn_value);
-                        samp_post_pred_j(t, k, i) = loc_param;
+                        double xb  = arma::dot(FF_jt, theta_jt);
+                        double pf  = p_fn(p0, samp_gamma(j, i));
+                        double Cf  = C_fn(p0, samp_gamma(j, i));
+                        res(t, k, i) = xb + Cf * std::abs(samp_gamma(j, i)) *
+                                       sts(k, t, i) * samp_sigma(j, i)
+                                     + samp_sigma(j, i) * rasym_laplace(gen, 0, 1, pf);
                     }
                 }
             }
-            samp_post_pred_result_ens[j] = samp_post_pred_j;
+            out[j] = res;
         }
     }
-    
-    return samp_post_pred_result_ens;
+#else
+    {
+        boost::random::mt19937 gen(0);
+        for (int j = 0; j < J; ++j) {
+            arma::cube sts = Rcpp::as<arma::cube>(samp_sts_ens[j]);
+            int K = sts.n_cols;
+            arma::cube res(k_forecast, K, n_samp, arma::fill::zeros);
+
+            for (int k = 0; k < K; ++k) {
+                for (int t = 0; t < k_forecast; ++t) {
+                    arma::vec FF_jt = FF_ens.slice(t).col(j);
+                    for (int i = 0; i < n_samp; ++i) {
+                        arma::vec theta_jt = samp_theta_ens.slice(i).col(t);
+                        double xb  = arma::dot(FF_jt, theta_jt);
+                        double pf  = p_fn(p0, samp_gamma(j, i));
+                        double Cf  = C_fn(p0, samp_gamma(j, i));
+                        res(t, k, i) = xb + Cf * std::abs(samp_gamma(j, i)) *
+                                       sts(k, t, i) * samp_sigma(j, i)
+                                     + samp_sigma(j, i) * rasym_laplace(gen, 0, 1, pf);
+                    }
+                }
+            }
+            out[j] = res;
+        }
+    }
+#endif
+
+    return out;
 }
 
 // Modify the generate_synth_samples function to use samp_post_pred_synth
@@ -290,43 +363,70 @@ Rcpp::List generate_synth_samples_forecast_part(int n_samp, int J, int k_forecas
 
 // Remove or comment out unused variable in samp_post_pred_extended function
 // [[Rcpp::export]]
-arma::cube samp_post_pred_extended(int n_samp, int TT, int p, int J, 
-                                   arma::cube samp_theta, arma::cube FF, 
-                                   arma::mat samp_sigma, double p0, 
-                                   arma::mat samp_gamma, arma::cube samp_sts, 
+arma::cube samp_post_pred_extended(int n_samp, int TT, int p, int J,
+                                   arma::cube samp_theta, arma::cube FF,
+                                   arma::mat samp_sigma, double p0,
+                                   arma::mat samp_gamma, arma::cube samp_sts,
                                    arma::cube samp_uts) {
-    
-    arma::cube samp_post_pred(J + 1, TT, n_samp, arma::fill::zeros);
-    
+    arma::cube out(J + 1, TT, n_samp, arma::fill::zeros);
+
+#ifdef _OPENMP
     #pragma omp parallel
     {
         boost::random::mt19937 gen(omp_get_thread_num());
         boost::random::normal_distribution<> normal_dist(0.0, 1.0);
-        
+
         #pragma omp for collapse(2)
         for (int j = 0; j <= J; ++j) {
             for (int t = 0; t < TT; ++t) {
                 arma::vec FF_jt = FF.slice(t).col(j);
-                
                 for (int i = 0; i < n_samp; ++i) {
                     arma::vec theta_jt = samp_theta.slice(i).col(t);
-                    
+
                     double xb = arma::dot(FF_jt, theta_jt);
-                    // Commented out the unused variable
-                    // double p_fn_value = p_fn(p0, samp_gamma(j, i));
-                    double A_fn_value = A_fn(p0, samp_gamma(j, i));
-                    double B_fn_value = B_fn(p0, samp_gamma(j, i));
-                    double C_fn_value = C_fn(p0, samp_gamma(j, i));
-                    double loc_param = xb + C_fn_value * std::abs(samp_gamma(j, i)) * samp_sts(j, t, i) * samp_sigma(j, i) + A_fn_value * samp_uts(j, t, i);
-                    double sd_param = std::sqrt(samp_sigma(j, i) * B_fn_value * samp_uts(j, t, i));
-                    double sample = loc_param + sd_param * normal_dist(gen);
-                    
-                    samp_post_pred(j, t, i) = sample;
+                    double Af = A_fn(p0, samp_gamma(j, i));
+                    double Bf = B_fn(p0, samp_gamma(j, i));
+                    double Cf = C_fn(p0, samp_gamma(j, i));
+
+                    double loc = xb + Cf * std::abs(samp_gamma(j, i))
+                                      * samp_sts(j, t, i) * samp_sigma(j, i)
+                                + Af * samp_uts(j, t, i);
+
+                    double sd  = std::sqrt(samp_sigma(j, i) * Bf * samp_uts(j, t, i));
+                    out(j, t, i) = loc + sd * normal_dist(gen);
                 }
             }
         }
-    }   
-    return samp_post_pred;
+    }
+#else
+    {
+        boost::random::mt19937 gen(0);
+        boost::random::normal_distribution<> normal_dist(0.0, 1.0);
+
+        for (int j = 0; j <= J; ++j) {
+            for (int t = 0; t < TT; ++t) {
+                arma::vec FF_jt = FF.slice(t).col(j);
+                for (int i = 0; i < n_samp; ++i) {
+                    arma::vec theta_jt = samp_theta.slice(i).col(t);
+
+                    double xb = arma::dot(FF_jt, theta_jt);
+                    double Af = A_fn(p0, samp_gamma(j, i));
+                    double Bf = B_fn(p0, samp_gamma(j, i));
+                    double Cf = C_fn(p0, samp_gamma(j, i));
+
+                    double loc = xb + Cf * std::abs(samp_gamma(j, i))
+                                      * samp_sts(j, t, i) * samp_sigma(j, i)
+                                + Af * samp_uts(j, t, i);
+
+                    double sd  = std::sqrt(samp_sigma(j, i) * Bf * samp_uts(j, t, i));
+                    out(j, t, i) = loc + sd * normal_dist(gen);
+                }
+            }
+        }
+    }
+#endif
+
+    return out;
 }
 
 // Parallelized generate_samples function
@@ -340,31 +440,46 @@ Rcpp::List generate_samples_ext(int n_samp, int TT, int p, int J, arma::cube FF,
     return Rcpp::List::create(Rcpp::Named("samp_theta") = samp_theta, Rcpp::Named("samp_post_pred") = samp_post_pred_result);
 }
 
-
 // [[Rcpp::export]]
-arma::cube DISC_sample_multivariate_normal(int n_samp, int TT, arma::cube sC, arma::mat sm, int n) {
-    arma::cube samp_theta(n, TT, n_samp, arma::fill::zeros);
-    
+arma::cube DISC_sample_multivariate_normal(int n_samp, int TT,
+                                           arma::cube sC, arma::mat sm, int n) {
+    arma::cube out(n, TT, n_samp, arma::fill::zeros);
+
+#ifdef _OPENMP
     #pragma omp parallel
     {
         boost::random::mt19937 gen(omp_get_thread_num());
         boost::random::normal_distribution<> normal_dist(0.0, 1.0);
-        
+
         #pragma omp for
         for (int t = 0; t < TT; ++t) {
             arma::mat LL = arma::trans(chol(sC.slice(t)));
             for (int i = 0; i < n_samp; ++i) {
                 arma::vec z(n, arma::fill::zeros);
-                for (int j = 0; j < n; ++j) {
-                    z[j] = normal_dist(gen);
-                }
-                samp_theta.slice(i).col(t) = sm.col(t) + LL * z;
+                for (int j = 0; j < n; ++j) z[j] = normal_dist(gen);
+                out.slice(i).col(t) = sm.col(t) + LL * z;
             }
         }
     }
-    
-    return samp_theta;
+#else
+    {
+        boost::random::mt19937 gen(0);
+        boost::random::normal_distribution<> normal_dist(0.0, 1.0);
+
+        for (int t = 0; t < TT; ++t) {
+            arma::mat LL = arma::trans(chol(sC.slice(t)));
+            for (int i = 0; i < n_samp; ++i) {
+                arma::vec z(n, arma::fill::zeros);
+                for (int j = 0; j < n; ++j) z[j] = normal_dist(gen);
+                out.slice(i).col(t) = sm.col(t) + LL * z;
+            }
+        }
+    }
+#endif
+
+    return out;
 }
+
 
 // [[Rcpp::export]]
 Rcpp::List DISC_generate_synth_samples_retro_part(int n_samp, int TT, int n, arma::cube sC, arma::mat sm) {

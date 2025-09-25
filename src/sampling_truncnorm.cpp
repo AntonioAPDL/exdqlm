@@ -30,32 +30,48 @@ double rtruncnorm(boost::random::mt19937& gen, double mean, double sd) {
 }
 
 // [[Rcpp::export]]
-Rcpp::NumericMatrix sample_truncnorm(int n_samp, int TT, Rcpp::NumericVector sts_mu, Rcpp::NumericVector sts_sig2) {
+Rcpp::NumericMatrix sample_truncnorm(int n_samp, int TT,
+                                     Rcpp::NumericVector sts_mu,
+                                     Rcpp::NumericVector sts_sig2) {
     if (sts_mu.size() != TT || sts_sig2.size() != TT) {
         Rcpp::stop("Length of sts_mu and sts_sig2 must be equal to TT");
     }
     Rcpp::NumericMatrix samples(n_samp, TT);
 
+    // Precompute std devs once (outside any parallel region)
+    std::vector<double> std_devs(TT);
+    for (int t = 0; t < TT; ++t) {
+        std_devs[t] = std::sqrt(sts_sig2[t]);
+    }
+
+#ifdef _OPENMP
     #pragma omp parallel
     {
-        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count() + omp_get_thread_num();
+        unsigned seed = static_cast<unsigned>(
+            std::chrono::system_clock::now().time_since_epoch().count()
+        ) + static_cast<unsigned>(omp_get_thread_num());
         boost::random::mt19937 gen(seed);
-
-        // Pre-calculate the standard deviations
-        std::vector<double> std_devs(TT);
-        for (int t = 0; t < TT; ++t) {
-            std_devs[t] = std::sqrt(sts_sig2[t]);
-        }
 
         #pragma omp for collapse(2)
         for (int t = 0; t < TT; ++t) {
             for (int i = 0; i < n_samp; ++i) {
-                double mean = sts_mu[t];
-                double sd = std_devs[t];
+                const double mean = sts_mu[t];
+                const double sd   = std_devs[t];
                 samples(i, t) = rtruncnorm(gen, mean, sd);
             }
         }
     }
+#else
+    // No OpenMP: single-threaded
+    boost::random::mt19937 gen(0);
+    for (int t = 0; t < TT; ++t) {
+        const double mean = sts_mu[t];
+        const double sd   = std_devs[t];
+        for (int i = 0; i < n_samp; ++i) {
+            samples(i, t) = rtruncnorm(gen, mean, sd);
+        }
+    }
+#endif
 
     return samples;
 }
