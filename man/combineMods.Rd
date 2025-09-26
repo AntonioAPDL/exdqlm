@@ -12,7 +12,7 @@ combineMods(m1, m2)
 \item{m2}{List containing the second model to be combined.}
 }
 \value{
-List containing the new combined state space model components.
+A object of class "\code{exdqlm}" containing the new combined state space model components.
 }
 \description{
 The function combines two models into a single state space model for an exDQLM.
