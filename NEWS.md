@@ -2,7 +2,7 @@
 
 # exdqlm 0.1.5
 
-- New AL/GAL helper functions with C++ backends:
+- New AL/exAL helper functions with C++ backends:
   - `dexal()`, `pexal()`, `qexal()`, `rexal()` for density, cdf, quantile and random generation.
   - `get_gamma_bounds()` to compute valid `(L, U)` bounds for `gamma` given `p0`.
 - Implementation details:
