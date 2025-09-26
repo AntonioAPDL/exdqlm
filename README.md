@@ -55,3 +55,10 @@ You can also embed plots, for example:
 
 In that case, don’t forget to commit and push the resulting figure
 files, so they display on GitHub and CRAN.
+
+### Terminology (exAL vs Kotz-GAL)
+
+- **exAL** = *extended Asymmetric Laplace* (standardized) used
+  throughout this package.
+- **Kotz-GAL** = *generalized Asymmetric Laplace* as in Kotz et al. We
+  refer to it explicitly as “Kotz-GAL” to avoid confusion.
