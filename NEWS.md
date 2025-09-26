@@ -20,8 +20,21 @@ Major internal upgrade introducing optional C++ bridges and ELBO diagnostics.
   - Documented runtime options in `?exdqlmISVB`.
 
 # exdqlm 0.1.5
-- New AL/GAL helper functions with C++ backends:
+<<<<<<< HEAD
+- New AL/exAL helper functions with C++ backends:
   - `dexal()`, `pexal()`, `qexal()`, `rexal()`; `get_gamma_bounds()`.
+=======
+
+- New AL/exAL helper functions with C++ backends:
+  - `dexal()`, `pexal()`, `qexal()`, `rexal()` for density, cdf, quantile and random generation.
+  - `get_gamma_bounds()` to compute valid `(L, U)` bounds for `gamma` given `p0`.
+- Implementation details:
+  - Core numerics in C++ via Rcpp/RcppArmadillo and BH (Boost) for root-finding and Φ.
+  - Parameter validation to keep `gamma` within bounds; clearer errors.
+- Testing & docs:
+  - Unit tests for pdf/cdf/quantile inverses and sampling sanity checks.
+  - Package-level docs updated; **vignettes intentionally deferred** for a later release.
+>>>>>>> origin/chore/exal-notation-0.2.0
 
 # exdqlm 0.1.4
 - CRAN hygiene & maintenance; examples/tests timing polish.
