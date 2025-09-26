@@ -4,7 +4,7 @@
 #'
 #' @param m An object of class "`dlm`" representing the DLM version of the desired exDQLM state space model. Only time-invariant `dlm` objects are currently considered.
 #'
-#' @return List containing only the components of `m` needed for the exDQLM state space model.
+#' @return A object of class "`exdqlm`" containing only the components of `m` needed for the exDQLM state space model.
 #' @export
 #'
 #' @examples
@@ -20,7 +20,9 @@ dlmMod = function(m){
      !is.null(m$JV) | !is.null(m$JW)){
     stop("input must be a time-invariant 'dlm' object")
   }
-  model = as.list(m[c(1,2,3,5)])
-  model$FF = t(model$FF)
-  return(model = model)
+  mod = as.list(m[c(1,2,3,5)])
+  mod$FF = t(mod$FF)
+  
+  class(mod) <- "exdqlm"
+  return(mod)
 }

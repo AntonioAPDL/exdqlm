@@ -10,7 +10,7 @@ dlmMod(m)
 \item{m}{An object of class "\code{dlm}" representing the DLM version of the desired exDQLM state space model. Only time-invariant \code{dlm} objects are currently considered.}
 }
 \value{
-List containing only the components of \code{m} needed for the exDQLM state space model.
+A object of class "\code{exdqlm}" containing only the components of \code{m} needed for the exDQLM state space model.
 }
 \description{
 The function creates a state space model of an exDQLM from "\code{dlm}" object.

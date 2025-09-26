@@ -5,7 +5,7 @@
 #' @param m1 List containing the first model to be combined.
 #' @param m2 List containing the second model to be combined.
 #'
-#' @return List containing the new combined state space model components.
+#' @return A object of class "`exdqlm`" containing the new combined state space model components.
 #' @export
 #'
 #' @examples
@@ -51,5 +51,7 @@ combineMods = function(m1,m2){
   }
   model$m0 = c(m1$m0,m2$m0)
   model$C0 = magic::adiag(m1$C0,m2$C0)
+  
+  class(model) <- "exdqlm"
   return(model)
 }
