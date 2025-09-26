@@ -16,3 +16,7 @@ vignettes/
 src/*.o
 src/*.so
 src/*.dll
+
+# local artifacts
+check-logs/
+notebooks/
