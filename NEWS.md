@@ -1,3 +1,7 @@
+# exdqlm 0.4.0 (development)
+
+- Start LD (Laplace–Delta) VB workstream for (gamma, sigma).
+
 # exdqlm 0.3.0
 
 Major internal upgrade introducing optional C++ bridges and ELBO diagnostics.
