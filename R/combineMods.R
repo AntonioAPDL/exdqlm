@@ -17,11 +17,11 @@
 #' model = combineMods(dlmModPoly(order=2,C0=10*diag(2)),dlmModTrig(365,2,C0=10*diag(4)))
 #'
 combineMods = function(m1,m2){
-  if(dlm::is.dlm(m1)){
+  if(methods::is(m1,"dlm")){
     m1 = dlmMod(m1)
     message("m1 converted from a dlm object using 'dlmMod(m1)'")
   }
-  if(dlm::is.dlm(m2)){
+  if(methods::is(m2,"dlm")){
     m2 = dlmMod(m2)
     message("m2 converted from a dlm object using 'dlmMod(m2)'")
   }

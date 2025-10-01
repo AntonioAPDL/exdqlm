@@ -1,10 +1,10 @@
 #' Create state space model of exDQLM from DLM
 #'
-#' The function creates a state space model of an exDQLM from "`dlm`" object.
+#' The function creates a state space model of an exDQLM from "\code{dlm}" object.
 #'
-#' @param m An object of class "`dlm`" representing the DLM version of the desired exDQLM state space model. Only time-invariant `dlm` objects are currently considered.
+#' @param m An object of class "\code{dlm}" representing the DLM version of the desired exDQLM state space model. Only time-invariant \code{dlm} objects are currently considered.
 #'
-#' @return A object of class "`exdqlm`" containing only the components of `m` needed for the exDQLM state space model.
+#' @return A object of class "\code{exdqlm}" containing only the components of `m` needed for the exDQLM state space model.
 #' @export
 #'
 #' @examples
@@ -13,7 +13,7 @@
 #' model = dlmMod(m)
 #'
 dlmMod = function(m){
-  if(!dlm::is.dlm(m)){
+  if(!methods::is(m,"dlm")){
     stop("input must be a 'dlm' object")
   }
   if(!is.null(m$JFF) | !is.null(m$JGG) |

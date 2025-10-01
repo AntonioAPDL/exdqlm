@@ -145,7 +145,7 @@ make_df_mat = function(df,dim.df,n){
 }
 #
 check_mod = function(model){
-  if(dlm::is.dlm(model)){
+  if(methods::is(model,"dlm")){
     model = dlmMod(model)
   }
   if(!is.vector(model$m0)){
@@ -218,7 +218,7 @@ check_ts = function(dat){
   return(invisible(dat))
 }
 #
-is.exdqlm = function(m){ return(inherits(m,"exdqlm")) }
+is.exdqlm = function(m){ return(methods::is(m,"exdqlm")) }
 
 
 

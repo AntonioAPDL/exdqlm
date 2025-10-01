@@ -1,13 +1,15 @@
 # exdqlm 0.1.5
 
-# exdqlm 0.1.5
+# exdqlm 0.2.0
 
 - New AL/GAL helper functions with C++ backends:
   - `dexal()`, `pexal()`, `qexal()`, `rexal()` for density, cdf, quantile and random generation.
   - `get_gamma_bounds()` to compute valid `(L, U)` bounds for `gamma` given `p0`.
-- Implementation details:
-  - Core numerics in C++ via Rcpp/RcppArmadillo and BH (Boost) for root-finding and Φ.
-  - Parameter validation to keep `gamma` within bounds; clearer errors.
+  - Implementation details:
+    - Core numerics in C++ via Rcpp/RcppArmadillo and BH (Boost) for root-finding and Φ.
+    - Parameter validation to keep `gamma` within bounds; clearer errors.
+- Return changes
+  - functions polytrendMod, seasMod, dlmMod, and combindMods now return objects of class 'exdqlm'
 - Testing & docs:
   - Unit tests for pdf/cdf/quantile inverses and sampling sanity checks.
   - Package-level docs updated; **vignettes intentionally deferred** for a later release.
