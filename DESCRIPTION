@@ -11,7 +11,11 @@ Authors@R:
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
 Description: Routines for Bayesian estimation and analysis of dynamic quantile
     linear models utilizing the extended asymmetric Laplace error distribution
-    (exDQLM). Methods described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
+    (exDQLM). Includes iterative and variational Bayes inference, optional C++
+    bridges for Kalman filtering and sampling, evidence lower bound (ELBO)
+    diagnostics, and a Laplace–Delta variational Bayes routine
+    ('exdqlmLDVB') for fast quantile state-space fitting.
+    Methods described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -34,11 +38,13 @@ Imports:
     FNN,
     LaplacesDemon,
     grDevices,
-    Rcpp
+    Rcpp,
+    nimble
 Suggests:
     testthat (>= 3.0.0),
     ggplot2,
-    pkgload
+    pkgload,
+    matrixStats
 LinkingTo:
     BH,
     Rcpp,
