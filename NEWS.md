@@ -8,11 +8,12 @@
   - Implementation details:
     - Core numerics in C++ via Rcpp/RcppArmadillo and BH (Boost) for root-finding and Φ.
     - Parameter validation to keep `gamma` within bounds; clearer errors.
-- Return changes
-  - functions polytrendMod, seasMod, dlmMod, and combindMods now return objects of class 'exdqlm'
 - Testing & docs:
   - Unit tests for pdf/cdf/quantile inverses and sampling sanity checks.
   - Package-level docs updated; **vignettes intentionally deferred** for a later release.
+- Return changes
+  - functions polytrendMod, seasMod, dlmMod, and combindMods now return objects of class 'exdqlm'
+- Added generics_etc.R which includes generics & other functions for the objects of class 'exdqlm'
 
 # exdqlm 0.1.4
 
@@ -21,11 +22,9 @@
   - Dropped stray placeholder files (e.g., `.gitkeep`) from package sources.
   - Tidied DESCRIPTION (`Imports`/`LinkingTo` clarified; encoding/notes consistent).
   - Ensured no hidden or invalid files end up in the tarball.
-
 - Examples & tests
   - Updated examples to keep `gamma` within valid bounds for the chosen `p0`.
   - Converted tests to use exported package functions (no ad-hoc `sourceCpp()`).
-
 - Documentation
   - Minor clarifications and consistency fixes in Rd pages.
 

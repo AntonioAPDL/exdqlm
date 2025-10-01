@@ -6,6 +6,13 @@ p.fn<-function(p0,gam){ (p0-as.numeric(gam<0))/exp(log_g(gam))+as.numeric(gam<0)
 A.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((1-2*temp.p)/(temp.p*(1-temp.p))) }
 B.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((2)/(temp.p*(1-temp.p))) }
 C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)^(-1)) }
+get_gamma_bounds <- function(p0) {
+  stopifnot(is.numeric(p0), length(p0) == 1L, is.finite(p0), p0 > 0, p0 < 1)
+  out <- get_gamma_bounds_cpp(p0)
+  # ensure names for clarity
+  if (length(out) == 2L && is.null(names(out))) names(out) <- c("L","U")
+  out
+}
 #
 CheckLossFn = function(p0,diff){diff*p0 - diff*as.numeric(diff<0)}
 #
@@ -217,8 +224,8 @@ check_ts = function(dat){
   }
   return(invisible(dat))
 }
-#
-is.exdqlm = function(m){ return(methods::is(m,"exdqlm")) }
+
+
 
 
 
