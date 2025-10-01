@@ -1,6 +1,15 @@
-# exdqlm 0.4.0 (development)
+# exdqlm 0.4.0.9000 (development)
 
-- Start LD (Laplace–Delta) VB workstream for (gamma, sigma).
+## New
+- `exdqlmLDVB`: Laplace–Delta variational Bayes routine for fast quantile
+  state-space fitting under the extended asymmetric Laplace error distribution.
+- ELBO diagnostics available during LDVB fitting (mirrors existing ISVB diagnostics).
+- Optional C++ bridges remain available for Kalman filtering and sampling via
+  runtime options; pure R paths preserved.
+
+## Changes
+- Documentation expanded for the new LDVB workflow and runtime options.
+- Minor internal robustness tweaks around covariance handling and coercions.
 
 # exdqlm 0.3.0
 
@@ -50,7 +59,6 @@
 - Testing & docs:
   - Unit tests for pdf/cdf/quantile inverses and sampling sanity checks.
   - Package-level docs updated; **vignettes intentionally deferred** for a later release.
-
 
 # exdqlm 0.1.4
 
