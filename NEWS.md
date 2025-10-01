@@ -1,4 +1,4 @@
-# exdqlm 0.4.0.9000 (development)
+# exdqlm 0.4.0
 
 ## New
 - `exdqlmLDVB`: Laplace–Delta variational Bayes routine for fast quantile
