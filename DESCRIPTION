@@ -23,23 +23,24 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends:
     R (>= 3.6)
-Imports:
-    stats,
-    methods,
-    graphics,
-    dlm,
-    coda,
-    tictoc,
-    magic,
-    crch,
-    truncnorm,
-    GeneralizedHyperbolic,
-    brms,
-    FNN,
-    LaplacesDemon,
-    grDevices,
-    Rcpp,
-    nimble
+ Imports:
+     stats,
+     methods,
+     graphics,
+     dlm,
+     coda,
+     tictoc,
+     magic,
+     crch,
+     truncnorm,
+     GeneralizedHyperbolic,
+     brms,
+     FNN,
+     LaplacesDemon,
+     grDevices,
+     Rcpp,
+    nimble,
+    numDeriv
 Suggests:
     testthat (>= 3.0.0),
     ggplot2,

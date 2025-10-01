@@ -58,6 +58,7 @@
 #'
 #' @importFrom stats median
 #' @importFrom nimble dinvgamma
+#' @importFrom stats optim
 #'
 #' @details
 #' Advanced options (set via \code{options()}):
