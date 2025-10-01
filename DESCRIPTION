@@ -40,7 +40,8 @@ Imports:
     grDevices,
     Rcpp,
     matrixStats,
-    nimble
+    nimble,
+    numDeriv
 Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
