@@ -6,6 +6,7 @@
 - ELBO diagnostics available during LDVB fitting (mirrors existing ISVB diagnostics).
 - Optional C++ bridges remain available for Kalman filtering and sampling via
   runtime options; pure R paths preserved.
+- Docs refreshed; tests and CRAN checks green across platforms.
 
 ## Changes
 - Documentation expanded for the new LDVB workflow and runtime options.
