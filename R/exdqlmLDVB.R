@@ -1,6 +1,8 @@
-#' exDQLM - LDVB algorithm (Laplace–Delta)
+#' exDQLM - LDVB algorithm (Laplace-Delta)
 #'
-#' The function applies an Importance Sampling Variational Bayes (LDVB) algorithm to estimate the posterior of an exDQLM.
+#' Fit an Extended Dynamic Quantile Linear Model (exDQLM) using a
+#' Laplace-Delta Variational Bayes (LDVB) approximation. The joint
+#' posterior of \eqn{(\sigma,\gamma)} is approximated via a Laplace expansion.
 #'
 #' @param y A univariate time-series.
 #' @param p0 The quantile of interest, a value between 0 and 1.
@@ -14,7 +16,6 @@
 #' @param dqlm.ind Logical value indicating whether to fix gamma at `0`, reducing the exDQLM to the special case of the DQLM. Default is `FALSE`.
 #' @param exps0 Initial value for dynamic quantile. If `exps0` is not specified, it is set to the DLM estimate of the `p0` quantile.
 #' @param tol Tolerance for convergence of dynamic quantile estimates. Default is `tol=0.1`.
-#' @param n.IS Number of particles for the importance sampling of joint variational distribution of sigma and gamma. Default is `n.IS=500`.
 #' @param n.samp Number of samples to draw from the approximated posterior distribution. Default is `n.samp=200`.
 #' @param PriorSigma List of parameters for inverse gamma prior on sigma; shape `a_sig` and scale `b_sig`. Default is an inverse gamma with mean 1 (or `sig.init` if provided) and variance 10.
 #' @param PriorGamma List of parameters for truncated student-t prior on gamma; center `m_gam`, scale `s_gam` and degrees of freedom `df_gam`. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.
@@ -47,12 +48,14 @@
 #'   \item `seq.gamma` - Sequence of gamma estimated by the algorithm until convergence.
 #'   \item `samp.gamma` - Posterior sample of skewness parameter gamma variational distribution.
 #'   \item `samp.sts` - Posterior sample of latent parameters, s_t, variational distributions.
-#'   \item `gammasig.out` - List containing the IS estimate of the variational distribution of sigma and gamma.
+#'   \item `gammasig.out` - List containing the LD (Laplace-Delta) approximation
+#'                          for the variational distribution of `sigma` and `gamma` (means, transformed
+#'                           Hessian, and ELBO components).
 #'   \item `sts.out` - List containing the variational distributions of latent parameters s_t.
 #' }
 #' Or if `dqlm.ind=TRUE`, the list also contains:
 #'  \itemize{
-#'  \item `sig.out` - List containing the IS estimate of the variational distribution of sigma.
+#'    \item `sig.out` - As above but for the DQLM case (`gamma = 0`), the LD approximation for `sigma`.
 #'  }
 #' @export
 #'
@@ -87,7 +90,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
                        dqlm.ind = FALSE,
                        exps0,
                        tol = 0.1,
-                       n.IS = 500,
                        n.samp = 200,
                        PriorSigma = NULL,
                        PriorGamma = NULL,
@@ -332,7 +334,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     dq_transf <- function(theta_s,theta_g){
         sig <- exp(theta_s)
         gam <- LL+(-LL+UU)*exp(-exp(theta_g))
-            a = A.fn(p0,gam); b = B.fn(p0,gam); c = C.fn(p0,gam); p.fn(p0,gam)
+            a = A.fn(p0,gam); b = B.fn(p0,gam); c = C.fn(p0,gam);
 
         # Prior
         yy <- log(PriorGammaDens(gam, prior_g)) - (prior_s[1] + 1) * log(sig) - prior_s[2]/sig
@@ -368,7 +370,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     inverse_hessian <- solve(hessian_at_optimal)
 
     LD_mu <- optim_results$par
-    LD_S <- -inverse_hessian 
+    LD_S <- inverse_hessian 
 
     Expected_f <- function(f, theta_s, theta_g){
       x <- numDeriv::hessian(func = f, x = LD_mu) %*% LD_S
@@ -485,7 +487,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     E.prior.sig.gam = Expected_f(f.prior.sig.gam, LD_mu[1], LD_mu[2])
     E.exp.theta_g =  Expected_f(f.exp.theta_g, LD_mu[1], LD_mu[2])
 
-    # H(q_{θ}) + E_q[log|J(θ)|], J = diag(exp(theta_s), (U-L)exp(theta_g - exp(theta_g)))
+    # H(q_{\theta}) + E_q[log|J(\theta)|], J = diag(exp(theta_s), (U-L)exp(theta_g - exp(theta_g)))
     entrop <- log(2*pi*exp(1)) +
               0.5 * determinant(as.matrix(LD_S), logarithm = TRUE)$modulus[1] +
               (log(U - L) + sum(LD_mu) - E.exp.theta_g)
@@ -544,8 +546,10 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   # one-line header 
   if (verbose) {
-    message(" Starting LDVB: TT=", TT, " p=", p,
-            " use_cpp=", isTRUE(getOption("exdqlm.use_cpp_kf", FALSE)))
+    message(sprintf("LDVB start | T=%d, p=%d, tol=%.3g | KF:%s | ELBO:%s",
+                    TT, p, tol,
+                    if (isTRUE(getOption('exdqlm.use_cpp_kf', FALSE))) 'C++' else 'R',
+                    if (isTRUE(getOption('exdqlm.compute_elbo', TRUE))) 'on' else 'off'))
     utils::flush.console()
   }
 
@@ -565,7 +569,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   }
 
   .elbo_snapshot <- function(y, th, st, ut, gs) {
-    # helper: robust log|·| for 1x1 or array→matrix slices
+    # helper: robust log|.| for 1x1 or array->matrix slices
     .safe_logdet <- function(A) {
       d <- dim(A)
       if (length(d) >= 2L) {
@@ -576,7 +580,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       determinant(M, logarithm = TRUE)$modulus[1]
     }
 
-    # θ-entropy from bridge if present; otherwise recompute robustly
+    # \theta-entropy from bridge if present; otherwise recompute robustly
     H_theta <- if (!is.null(th$elbo_theta)) {
       th$elbo_theta
     } else {
@@ -610,7 +614,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       L0 <- -0.5 * length(y) * (gs$E.log.sig.b - gs$E.log.sig)
       lik <- L0 + L1 + L2 + L3 + L4 + L5 + L6 + L7 + L8
 
-      # add σ,γ prior + entropy (Laplace–Delta block)
+      # add sigma,gamma prior + entropy (Laplace-Delta block)
       elbo_gs <- gs$E.prior.sig.gam + gs$entrop
 
       total <- as.numeric(lik + H_theta + H_sts + H_uts + elbo_gs)
@@ -629,12 +633,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
     # counter
     iter <- iter + 1L
-    if (verbose && iter %% 5 == 0) {
-      message(sprintf("LDVB iteration %d: new.max=%.4f, conv.count=%d",
-                      iter, new.max, conv.count))
-      utils::flush.console()
-    }
-
     # update distributions
     cur.uts.out = new.uts.out
     cur.sts.out = new.sts.out
@@ -692,15 +690,12 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       elbo.seq <- c(elbo.seq, elbo.obj$total)
 
       if (verbose && iter %% 5 == 0) {
-        dELBO <- if (length(elbo.seq) >= 2) elbo.seq[length(elbo.seq)] - elbo.seq[length(elbo.seq)-1] else NA_real_
-        # Optional: show gs_logZ when available
-        if (!is.null(new.gamsig.out$elbo_logZ)) {
-          message(sprintf("    ELBO: %.6f  \\Delta=%.3e  (gs_logZ=%.6f)",
-                          elbo.obj$total, dELBO, new.gamsig.out$elbo_logZ))
-        } else {
-          message(sprintf("    ELBO: %.6f  \\Delta=%.3e", elbo.obj$total, dELBO))
-        }
-        utils::flush.console()
+        dELBO <- if (length(elbo.seq) >= 2) utils::tail(elbo.seq, 1) - utils::tail(elbo.seq, 2)[1] else NA_real_
+        msg <- sprintf("iter %3d | maxDelta=%.3g | sigma=%.3g | gamma=%.3g | ELBO=%.6f (Delta=%.2e)",
+                      iter, new.max, new.gamsig.out$E.sigma, new.gamsig.out$E.gam,
+                      elbo.obj$total, dELBO)
+        if (!is.null(new.gamsig.out$elbo_logZ)) msg <- sprintf("%s | gs_logZ=%.6f", msg, new.gamsig.out$elbo_logZ)
+        message(msg); utils::flush.console()
       }
 
       # ELBO-based stopping (paired with your param-diff)
@@ -729,32 +724,22 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   ### posterior samples ------------------------------------------------------
 
-  # helper: coerce a 3D array/cube to (p, TT, ns) if it’s a permutation
-  .normalize_cube <- function(x, p, TT, ns, name = "cube") {
-    d    <- dim(x)
-    want <- as.integer(c(p, TT, ns))
-    if (length(d) != 3L) {
-      stop(sprintf("%s must be 3D, got length(dim)=%d", name, length(d)))
-    }
-    if (all(d == want)) return(x)
-    perms <- list(
-      c(2, 1, 3),  # TT, p, ns -> p, TT, ns
-      c(1, 3, 2),  # p, ns, TT -> p, TT, ns
-      c(3, 1, 2),  # ns, p, TT -> p, TT, ns
-      c(2, 3, 1),  # TT, ns, p -> p, TT, ns
-      c(3, 2, 1)   # ns, TT, p -> p, TT, ns
-    )
-    for (P in perms) {
-      if (all(d[P] == want)) return(aperm(x, P))
-    }
-    stop(sprintf("%s has unexpected dims %s; expected %s",
-                 name, paste(d, collapse = "x"), paste(want, collapse = "x")))
+  # Draw (sigma, gamma) from the LD Gaussian on (theta_s, theta_g), then transform
+  LD_mu <- as.numeric(new.gamsig.out$E.theta)      # length 2
+  LD_S  <- as.matrix(new.gamsig.out$Hess.LD)       # 2x2 covariance in (theta_s, theta_g)
+  # robust factorization for sampling
+  Lfac <- try(chol(LD_S), silent = TRUE)
+  if (inherits(Lfac, "try-error")) {
+    eig <- eigen((LD_S + t(LD_S))/2, symmetric = TRUE)
+    vals <- pmax(eig$values, .Machine$double.eps)
+    Lfac <- eig$vectors %*% diag(sqrt(vals), 2) %*% t(eig$vectors)
   }
-
-  # IS selection indices for (gamma, sigma)
-  samp.index <- sample.int(n.IS, n.samp, replace = TRUE, prob = new.gamsig.out$weights)
-  samp.gamma <- new.gamsig.out$gamma.samples[samp.index]
-  samp.sigma <- new.gamsig.out$sigma.samples[samp.index]
+  Z  <- matrix(stats::rnorm(2L * n.samp), nrow = 2L)
+  TH <- LD_mu + Lfac %*% Z
+  theta_s <- TH[1L, ]
+  theta_g <- TH[2L, ]
+  samp.sigma <- exp(theta_s)
+  samp.gamma <- LL + (-LL + UU) * exp(-exp(theta_g))
 
   # toggles
   use_cpp_samplers <- isTRUE(getOption("exdqlm.use_cpp_samplers", FALSE))
@@ -815,13 +800,11 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   # ---- theta (multivariate normal) : R fallback via SVD per time ----
   samp.theta <- array(NA_real_, dim = c(p, TT, ns))
   for (t in seq_len(TT)) {
-    svd.sC <- svd(new.theta.out$sC[, , t])
-    LL     <- svd.sC$u %*% diag(sqrt(pmax(svd.sC$d, 0)), p, p)   # p x p
-    Z      <- matrix(stats::rnorm(ns * p), nrow = p, ncol = ns)  # p x ns
-
-    # turn mean into p x ns by column-replication
+    svd.sC <- svd(new.theta.out$sC[, , t])                       # <-- restore this
+    Lmat   <- svd.sC$u %*% diag(sqrt(pmax(svd.sC$d, 0)), p, p)
+    Z      <- matrix(stats::rnorm(ns * p), nrow = p, ncol = ns)
     mu_t   <- matrix(new.theta.out$sm[, t], nrow = p, ncol = ns)
-    samp.theta[, t, ] <- mu_t + LL %*% Z
+    samp.theta[, t, ] <- mu_t + Lmat %*% Z                       # <-- index [ , t, ]
   }
   
   ## posterior predictive

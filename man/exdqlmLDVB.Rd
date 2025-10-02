@@ -2,7 +2,7 @@
 % Please edit documentation in R/exdqlmLDVB.R
 \name{exdqlmLDVB}
 \alias{exdqlmLDVB}
-\title{exDQLM - LDVB algorithm (Laplace–Delta)}
+\title{exDQLM - LDVB algorithm (Laplace-Delta)}
 \usage{
 exdqlmLDVB(
   y,
@@ -17,7 +17,6 @@ exdqlmLDVB(
   dqlm.ind = FALSE,
   exps0,
   tol = 0.1,
-  n.IS = 500,
   n.samp = 200,
   PriorSigma = NULL,
   PriorGamma = NULL,
@@ -50,8 +49,6 @@ exdqlmLDVB(
 \item{exps0}{Initial value for dynamic quantile. If \code{exps0} is not specified, it is set to the DLM estimate of the \code{p0} quantile.}
 
 \item{tol}{Tolerance for convergence of dynamic quantile estimates. Default is \code{tol=0.1}.}
-
-\item{n.IS}{Number of particles for the importance sampling of joint variational distribution of sigma and gamma. Default is \code{n.IS=500}.}
 
 \item{n.samp}{Number of samples to draw from the approximated posterior distribution. Default is \code{n.samp=200}.}
 
@@ -91,16 +88,20 @@ If \code{dqlm.ind=FALSE}, the list also contains:
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the IS estimate of the variational distribution of sigma and gamma.
+\item \code{gammasig.out} - List containing the LD (Laplace-Delta) approximation
+for the variational distribution of \code{sigma} and \code{gamma} (means, transformed
+Hessian, and ELBO components).
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 }
 Or if \code{dqlm.ind=TRUE}, the list also contains:
 \itemize{
-\item \code{sig.out} - List containing the IS estimate of the variational distribution of sigma.
+\item \code{sig.out} - As above but for the DQLM case (\code{gamma = 0}), the LD approximation for \code{sigma}.
 }
 }
 \description{
-The function applies an Importance Sampling Variational Bayes (LDVB) algorithm to estimate the posterior of an exDQLM.
+Fit an Extended Dynamic Quantile Linear Model (exDQLM) using a
+Laplace-Delta Variational Bayes (LDVB) approximation. The joint
+posterior of \eqn{(\sigma,\gamma)} is approximated via a Laplace expansion.
 }
 \details{
 Advanced options (set via \code{options()}):
