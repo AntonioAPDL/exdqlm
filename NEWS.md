@@ -51,3 +51,7 @@ Major internal upgrade introducing optional C++ bridges and ELBO diagnostics.
 
 # exdqlm 0.1.0
 - First release.
+
+# exdqlm 0.5.0 (dev)
+ - Parallel multi-quantile fits
+ - Synthesized posterior predictive (cdf-spline / ald-mixture)
