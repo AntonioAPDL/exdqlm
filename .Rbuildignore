@@ -23,3 +23,5 @@
 ^cran-comments-0\.3\.0-draft\.md$
 ^scripts$
 ^check-logs$
+
+^README\.html$
