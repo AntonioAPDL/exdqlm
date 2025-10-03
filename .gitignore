@@ -21,3 +21,5 @@ src/*.dll
 notebooks/
 .vscode
 check-logs/
+
+README.html
