@@ -220,7 +220,12 @@ pp_plot_zoom <- function(y, samples, p0 = 0.5, last_n = 40L) {
   invisible(NULL)
 }
 
+# Ensures samples shape is T x ns
+if (nrow(syn$draws) != length(y)) syn$draws <- t(syn$draws)
+
+# Minimal zoom plot (base graphics)
 pp_plot_zoom(y = y, samples = syn$draws, p0 = 0.5, last_n = 40L)
+
 ```
 
 > **CRAN-safety.** All examples set a seed, use tiny data, finish in a few seconds, and keep the pure-R path by default. For speed and stability we fix **scale** and **skewness**.

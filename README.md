@@ -63,7 +63,7 @@ fit_ld <- exdqlmLDVB(
   fix.sigma = TRUE, sig.init = 1.0,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> LDVB converged: 2 iterations, 0.353 seconds
+#> LDVB converged: 2 iterations, 0.36 seconds
 
 tail(fit_ld$diagnostics$elbo, 3)
 #> [1] -228.7133 -207.7410
@@ -137,7 +137,7 @@ fit_ld <- exdqlmLDVB(
   fix.sigma = TRUE, sig.init = 0.2,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> LDVB converged: 2 iterations, 0.324 seconds
+#> LDVB converged: 2 iterations, 0.406 seconds
 
 # quick checks
 tail(fit_ld$diagnostics$elbo, 2)
@@ -234,6 +234,10 @@ pp_plot_zoom <- function(y, samples, p0 = 0.5, last_n = 40L) {
   invisible(NULL)
 }
 
+# Ensures samples shape is T x ns
+if (nrow(syn$draws) != length(y)) syn$draws <- t(syn$draws)
+
+# Minimal zoom plot (base graphics)
 pp_plot_zoom(y = y, samples = syn$draws, p0 = 0.5, last_n = 40L)
 ```
 
