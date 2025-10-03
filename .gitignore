@@ -21,3 +21,6 @@ src/*.dll
 notebooks/
 .vscode
 check-logs/
+
+# Knit artifacts
+README.html
