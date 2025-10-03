@@ -6,7 +6,9 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
+
+**NOTE (local only):** A single incoming/spell check NOTE (domain terms like “exALD”, “ELBO”, “Laplace–Delta”). These are correct technical terms and used intentionally.
 
 ## Notes for CRAN
 
