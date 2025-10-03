@@ -17,7 +17,7 @@ exdqlmLDVB(
   dqlm.ind = FALSE,
   exps0,
   tol = 0.1,
-  n.samp = 200,
+  n.samp = 300,
   PriorSigma = NULL,
   PriorGamma = NULL,
   verbose = TRUE,

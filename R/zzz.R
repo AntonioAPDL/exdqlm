@@ -6,7 +6,11 @@
     exdqlm.compute_elbo      = TRUE,
     exdqlm.tol_elbo          = 1e-6,
     exdqlm.use_cpp_samplers  = FALSE,  # keep OFF by default (OpenMP/RNG)
-    exdqlm.use_cpp_postpred  = FALSE   # keep OFF by default
+    exdqlm.use_cpp_postpred  = FALSE,  # keep OFF by default
+    # new (v0.5 line):
+    exdqlm.parallel          = FALSE,  # CRAN-friendly default
+    exdqlm.workers           = NULL,
+    exdqlm.progress          = TRUE
   )
   toset <- !(names(op.exdqlm) %in% names(op))
   if (any(toset)) options(op.exdqlm[toset])

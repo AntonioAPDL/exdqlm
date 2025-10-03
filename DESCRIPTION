@@ -1,6 +1,6 @@
 Package: exdqlm
 Title: Extended Dynamic Quantile Linear Models
-Version: 0.5.0.9000
+Version: 0.5.0
 Authors@R:
     c(person(given = "Raquel", family = "Barata",
              role = c("aut", "cre"),
@@ -13,8 +13,11 @@ Description: Routines for Bayesian estimation and analysis of dynamic quantile
     linear models utilizing the extended asymmetric Laplace error distribution
     (exDQLM). Includes iterative and variational Bayes inference, optional C++
     bridges for Kalman filtering and sampling, evidence lower bound (ELBO)
-    diagnostics, and a Laplace–Delta variational Bayes routine
-    ('exdqlmLDVB') for fast quantile state-space fitting.
+    diagnostics, and a Laplace–Delta variational Bayes routine ('exdqlmLDVB')
+    for fast quantile state-space fitting. Version 0.5.0 adds posterior
+    predictive synthesis across multiple quantile-specific models via isotonic
+    adjustment, distributional alignment, piecewise-linear blending, and
+    optional monotone rearrangement ('exdqlm_synthesize_from_draws').
     Methods described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8

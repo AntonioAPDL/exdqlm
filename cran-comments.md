@@ -1,25 +1,26 @@
 ## Test environments
 
 * Local: Ubuntu 24.04, R 4.5.1 — `R CMD check --as-cran`
-* Win-builder: R-devel, R-release — OK
-* R-hub (GitHub Actions): linux, windows, macos-arm64 (R-devel) — OK
+* Win-builder: R-devel, R-release
+* R-hub: linux, windows, macos-arm64 (R-devel)
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes (all environments above)
+0 errors | 0 warnings | 0 notes
 
 ## Notes for CRAN
 
-* **Feature** release introducing `exdqlmLDVB`, a Laplace–Delta variational Bayes
-  routine for fast quantile state-space fitting with exALD errors.
-* **Backwards-compatible**:
+* Feature release adding posterior predictive synthesis across multiple quantile
+  models via `exdqlm_synthesize_from_draws()`. The method performs isotonic
+  adjustment, distributional alignment, piecewise-linear blending, and optional
+  monotone rearrangement to ensure valid, monotone quantile functions.
+* Backwards-compatible:
   * Existing functions keep previous behavior and interfaces.
   * Optional C++ bridges (Kalman filter / samplers) remain opt-in via runtime
     options; pure-R paths remain available.
-* **Diagnostics & docs**:
-  * ELBO monitoring available; examples kept brief to meet CRAN time limits.
-* **Build hygiene**:
-  * OpenMP is **optional** and properly guarded; builds serially on platforms
-    lacking `omp.h`.
+* Diagnostics & docs:
+  * Examples are short and CRAN-safe; unit tests avoid long runs.
+* Build hygiene:
+  * OpenMP is optional and properly guarded.
   * `useDynLib(exdqlm, .registration = TRUE)` with registered routines.
 * Reverse dependencies: none.

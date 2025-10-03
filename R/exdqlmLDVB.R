@@ -90,7 +90,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
                        dqlm.ind = FALSE,
                        exps0,
                        tol = 0.1,
-                       n.samp = 200,
+                       n.samp = 300,
                        PriorSigma = NULL,
                        PriorGamma = NULL,
                        verbose = TRUE,
@@ -629,7 +629,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   tictoc::tic("run time")
   ### estimate posterior
-  while( (new.max > tol && conv.count < 5) && iter < 200 ){
+  while( (new.max > tol && conv.count < 10) && iter < 1000 ){
 
     # counter
     iter <- iter + 1L
