@@ -1,64 +1,207 @@
+exdqlm — Extended Dynamic Quantile Linear Models
+================
+
+``` r
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
 
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/AntonioAPDL/exdqlm/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/AntonioAPDL/exdqlm/actions/workflows/R-CMD-check.yaml)
+
 <!-- badges: end -->
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+`exdqlm` provides Bayesian **dynamic quantile** state-space models built
+on the **extended Asymmetric Laplace** error family. It targets applied
+time-series problems where you need conditional quantiles across time,
+not only conditional means. Models are expressed in standard state-space
+form (design and evolution matrices with a state vector), and estimation
+uses routines tailored to quantiles. **v0.3.0** adds **optional C++
+bridges** for speed (Kalman filter and samplers) and **ELBO monitoring**
+for the variational path—defaults remain the pure-R implementations for
+portability.
 
-# exdqlm
+> **Terminology (exAL)** We use **exAL** for the extended Asymmetric
+> Laplace family throughout this package. It generalizes the standard AL
+> by adding a skewness parameter, allowing for asymmetric tails. The
+> standard AL is a special case with zero skewness.
 
-<!-- badges: start -->
-<!-- badges: end -->
-
-The goal of exdqlm is to …
+------------------------------------------------------------------------
 
 ## Installation
 
-You can install the development version of exdqlm from
-[GitHub](https://github.com/) with:
+CRAN (when available):
+
+``` r
+install.packages("exdqlm")
+```
+
+Development (GitHub):
 
 ``` r
 # install.packages("pak")
 pak::pak("AntonioAPDL/exdqlm")
 ```
 
-## Example
+------------------------------------------------------------------------
 
-This is a basic example which shows you how to solve a common problem:
+## What’s new in v0.3.0
+
+**Major internal upgrade introducing optional C++ bridges and ELBO
+diagnostics.**
+
+- **C++ Kalman filter bridge** (parity with the pure-R path). Toggle
+  with `options(exdqlm.use_cpp_kf = TRUE)` (default **FALSE**).
+- **ELBO monitoring** for the IS-VB routine: per-iteration values
+  recorded at `fit$diagnostics$elbo` (weakly monotone up to IS noise).
+- **Optional C++ samplers** for posterior draws: multivariate-normal for
+  the state vector, truncated-normal for latent scales, and GIG with
+  index 1/2 for augmentation. Toggle with
+  `options(exdqlm.use_cpp_samplers = TRUE)` (default **FALSE**).
+- **Portability**: OpenMP is **optional and gated**; builds cleanly
+  without it (e.g., macOS CRAN machines).
+
+------------------------------------------------------------------------
+
+## Runtime options (default off)
+
+- `options(exdqlm.use_cpp_kf = TRUE)` — use the C++ Kalman filter
+  bridge.
+- `options(exdqlm.use_cpp_samplers = TRUE)` — use the C++ samplers for
+  posterior draws.
+
+> Keep both **FALSE** in examples and CI. They are drop-in accelerators
+> when your toolchain supports them.
+
+------------------------------------------------------------------------
+
+## Minimal examples (CRAN-safe)
+
+All examples set a seed, use small series, and stick to pure-R code
+paths.
+
+### 1) Quick single-quantile IS-VB fit (tiny built-in series)
+
+We use a simple trend + seasonal + one regressor model on a short slice
+of built-in data. Note: we **fix** the scale and skewness to keep this
+fast and stable.
 
 ``` r
+set.seed(1)
 library(exdqlm)
-## basic example code
+
+# tiny slice for speed
+T <- 150
+y <- log(BTflow[seq_len(T)])
+x <- nino34[seq_len(T)]
+
+# components
+trend.comp <- polytrendMod(order = 1, m0 = 0, C0 = 1)
+seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))
+reg.comp   <- list(m0 = 0, C0 = 1, FF = matrix(x, nrow = 1), GG = 1)
+
+model <- combineMods(trend.comp, seas.comp, reg.comp)
+
+# one discount per block: (trend, seasonal(2-dim), reg)
+df     <- c(1.00, 0.98, 1.00)
+dim.df <- c(1,       2,   1)
+
+# IMPORTANT: keep C++ bridges OFF in examples
+options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
+
+fit <- exdqlmISVB(
+  y        = y,
+  p0       = 0.5,      # median
+  model    = model,
+  df       = df,
+  dim.df   = dim.df,
+  fix.sigma = TRUE,  sig.init = 0.2,  # fixed scale
+  fix.gamma = TRUE,  gam.init = 0.0,  # fixed skewness (symmetric)
+  verbose   = FALSE
+)
+
+# quick diagnostics
+tail(fit$diagnostics$elbo, 3)
+dim(fit$theta.out$sm)  # state-dimension x time
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
+### 2) exAL helpers sanity check (density ↔ quantile)
+
+These helpers are convenient for quick unit checks.
 
 ``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
+set.seed(2)
+
+x  <- seq(-2, 2, length.out = 5)
+p0 <- 0.25
+loc <- 0; sc <- 1; sk <- 0.0
+
+# CDF then invert with QF — should approximately return x
+cdf_vals <- pexal(x,  p0 = p0, location = loc, scale = sc, skewness = sk)
+x_back   <- qexal(cdf_vals, p0 = p0, location = loc, scale = sc, skewness = sk)
+
+round(cbind(x, x_back), 4)
+rexal(5, p0 = p0, location = loc, scale = sc, skewness = sk)
 ```
 
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date. `devtools::build_readme()` is handy for this.
+> **Tip:** To experiment with the C++ bridges locally (not for CRAN):
+>
+> ``` r
+> options(exdqlm.use_cpp_kf = TRUE)
+> options(exdqlm.use_cpp_samplers = TRUE)
+> ```
+>
+> If compiled code or OpenMP are unavailable, the package falls back to
+> the pure-R path.
 
-You can also embed plots, for example:
+------------------------------------------------------------------------
 
-<img src="man/figures/README-pressure-1.png" width="100%" />
+## FAQ / Troubleshooting
 
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
+- **Runs are slow on my laptop. What can I do?** Start with short series
+  (≤ 200), keep the scale and skewness fixed, and reduce iteration caps
+  where available. When your toolchain supports it, enable the C++
+  bridges via the runtime options above.
 
-### Terminology (exAL vs Kotz-GAL)
+- **OpenMP is not available on my platform.** That’s fine. OpenMP is
+  optional. The package compiles and runs serially; the examples here
+  use the pure-R path.
 
-- **exAL** = *extended Asymmetric Laplace* (standardized) used
-  throughout this package.
-- **Kotz-GAL** = *generalized Asymmetric Laplace* as in Kotz et al. We
-  refer to it explicitly as “Kotz-GAL” to avoid confusion.
+- **ELBO is not perfectly increasing. Is that a bug?** Minor dips can
+  occur from importance-sampling noise in the ELBO estimate. Look for
+  overall upward trend; if not, reduce noise or simplify the model.
+
+- **Numerical stability tips** Use reasonable priors (e.g., not too
+  small initial state variance), set discount factors near but below one
+  (e.g., 0.96–0.99), and consider fixing the scale and skewness on first
+  passes.
+
+------------------------------------------------------------------------
+
+## How to cite
+
+Barata, R., Prado, R., & Sansó, B. (2022). *Fast inference for
+time-varying quantiles via flexible dynamic models with application to
+the characterization of atmospheric rivers*. **Annals of Applied
+Statistics**, 16(1), 247–271. <https://doi.org/10.1214/21-AOAS1497>
+
+------------------------------------------------------------------------
+
+## License
+
+MIT © The authors. See `LICENSE`.
+
+------------------------------------------------------------------------
+
+## Acknowledgments
+
+Optional C++ components use Rcpp/RcppArmadillo/BH backends. Thanks to
+contributors and testers who helped validate parity between the R and
+C++ paths.
+
+------------------------------------------------------------------------
