@@ -57,7 +57,7 @@ fit <- exdqlmISVB(
   fix.sigma = TRUE, sig.init = 1.0,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> ISVB converged: 2 iterations, 0.466 seconds
+#> ISVB converged: 2 iterations, 0.514 seconds
 
 tail(fit$diagnostics$elbo, 3)
 #> [1] -113.62048  -67.45699
@@ -139,7 +139,7 @@ fit <- exdqlmISVB(
   fix.sigma = TRUE, sig.init = 0.2,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> ISVB converged: 2 iterations, 0.559 seconds
+#> ISVB converged: 2 iterations, 0.547 seconds
 
 # quick checks
 tail(fit$diagnostics$elbo, 2)
@@ -210,5 +210,3 @@ MIT © The authors. See `LICENSE`.
 ## Getting help
 
 Open an issue: <https://github.com/AntonioAPDL/exdqlm/issues>
-
-\`\`\`
