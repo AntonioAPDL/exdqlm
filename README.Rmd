@@ -186,5 +186,3 @@ MIT © The authors. See `LICENSE`.
 ## Getting help
 
 Open an issue: [https://github.com/AntonioAPDL/exdqlm/issues](https://github.com/AntonioAPDL/exdqlm/issues)
-
-```
