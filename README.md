@@ -61,7 +61,7 @@ fit <- exdqlmISVB(
   fix.sigma = TRUE, sig.init = 1.0,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> ISVB converged: 2 iterations, 0.35 seconds
+#> ISVB converged: 2 iterations, 0.367 seconds
 
 tail(fit$diagnostics$elbo, 3)
 #> [1] -113.62048  -67.45699
@@ -135,7 +135,7 @@ fit <- exdqlmISVB(
   fix.sigma = TRUE, sig.init = 0.2,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> ISVB converged: 2 iterations, 0.359 seconds
+#> ISVB converged: 2 iterations, 0.326 seconds
 
 # quick checks
 tail(fit$diagnostics$elbo, 2)
@@ -228,13 +228,3 @@ Please open an issue: <https://github.com/AntonioAPDL/exdqlm/issues>
 few seconds, and default to the pure-R path.
 
 ------------------------------------------------------------------------
-
-### Why this is more newcomer-friendly
-
-- **Quick start first** (10 lines) before deep dives.
-- **Core concepts map** clarifies what each argument controls.
-- **Defaults explained** (pure-R path, fixed scale/skewness, small
-  series).
-- **Actionable FAQ** with concrete thresholds and tips.
-- **No Greek letters**—only parameter names (state vector, scale,
-  skewness).

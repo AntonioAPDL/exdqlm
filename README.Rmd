@@ -206,11 +206,3 @@ Please open an issue: [https://github.com/AntonioAPDL/exdqlm/issues](https://git
 **Reproducibility**: all examples set a seed, use tiny data, finish in a few seconds, and default to the pure-R path.
 
 ---
-
-### Why this is more newcomer-friendly
-
-* **Quick start first** (10 lines) before deep dives.
-* **Core concepts map** clarifies what each argument controls.
-* **Defaults explained** (pure-R path, fixed scale/skewness, small series).
-* **Actionable FAQ** with concrete thresholds and tips.
-* **No Greek letters**—only parameter names (state vector, scale, skewness).
