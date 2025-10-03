@@ -1,64 +1,278 @@
+exdqlm — Extended Dynamic Quantile Linear Models
+================
 
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/AntonioAPDL/exdqlm/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/AntonioAPDL/exdqlm/actions/workflows/R-CMD-check.yaml)
+
 <!-- badges: end -->
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+`exdqlm` fits **dynamic quantile** state-space models using the
+**extended Asymmetric Laplace** (exAL) error family. It targets
+time-series applications where the goal is to model **conditional
+quantiles** across time with a standard state-space specification
+(design/evolution matrices and a state vector).
 
-# exdqlm
+**What’s new in v0.5.0.** We add **posterior predictive synthesis**
+across multiple quantile-specific models via
+`exdqlm_synthesize_from_draws()`. The method performs **isotonic
+adjustment** on anchors, **distributional alignment**,
+**piecewise-linear blending**, and optional **monotone rearrangement**
+to produce a single coherent predictive distribution per time point.
+LDVB (`exdqlmLDVB`) and IS-VB remain available; examples below keep the
+**pure-R** path for portability.
 
-<!-- badges: start -->
-<!-- badges: end -->
-
-The goal of exdqlm is to …
+> **Terminology.** We use **exAL** for the extended Asymmetric Laplace
+> family used here. It extends the standard AL by adding a **skewness**
+> parameter; the standard AL is the special case with zero skewness.
 
 ## Installation
 
-You can install the development version of exdqlm from
-[GitHub](https://github.com/) with:
+CRAN (when available):
+
+``` r
+install.packages("exdqlm")
+```
+
+Development (GitHub):
 
 ``` r
 # install.packages("pak")
 pak::pak("AntonioAPDL/exdqlm")
 ```
 
-## Example
+## Quick start (≤ 10 lines, LDVB)
 
-This is a basic example which shows you how to solve a common problem:
+Local-level model at a **single quantile** (the median). We fix
+**scale** and **skewness** to keep it fast and stable for CRAN; we keep
+the **pure-R** path.
 
 ``` r
+set.seed(1)
 library(exdqlm)
-## basic example code
+
+T      <- 120
+state  <- cumsum(rnorm(T, sd = 0.2))
+y      <- state + rnorm(T, sd = 1.0)
+
+model  <- list(FF = matrix(1), GG = matrix(1), m0 = 0, C0 = 100)
+options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
+
+fit_ld <- exdqlmLDVB(
+  y = y, p0 = 0.5, model = model, df = 0.98, dim.df = 1,
+  fix.sigma = TRUE, sig.init = 1.0,
+  fix.gamma = TRUE, gam.init = 0.0
+)
+#> LDVB converged: 2 iterations, 0.353 seconds
+
+tail(fit_ld$diagnostics$elbo, 3)
+#> [1] -228.7133 -207.7410
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
+## Synthesis workflow (at a glance)
+
+- **Fit** models at a small set of anchor quantiles (e.g., 0.25, 0.5,
+  0.75).
+- **Isotonic adjustment** at the anchors to reduce crossings.
+- **Distributional alignment** to co-locate supports.
+- **Piecewise-linear blend** in the probability scale to fill gaps.
+- **Optional monotone rearrangement** to enforce global monotonicity.
+
+## What’s new in v0.5.0
+
+- **Posterior predictive synthesis**: `exdqlm_synthesize_from_draws()`
+  combines multiple quantile-model draws into one coherent predictive
+  distribution per time point.
+- **Diagnostics**: examples outline crossing share, RMSE at anchors, and
+  monotonicity checks.
+- **No breaking changes**: LDVB/IS-VB interfaces unchanged; C++ bridges
+  remain opt-in.
+
+### Runtime options (summary)
+
+| Option                    | Default | Effect                           | Use when…                                |
+|---------------------------|:-------:|----------------------------------|------------------------------------------|
+| `exdqlm.use_cpp_kf`       |  FALSE  | C++ Kalman filter bridge         | you have compilers/OpenMP and want speed |
+| `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
+
+Set with:
 
 ``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
+options(exdqlm.use_cpp_kf = TRUE)
+options(exdqlm.use_cpp_samplers = TRUE)
 ```
 
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date. `devtools::build_readme()` is handy for this.
+## Minimal examples (CRAN-safe)
 
-You can also embed plots, for example:
+### 1) LDVB on built-in data (tiny slice)
 
-<img src="man/figures/README-pressure-1.png" width="100%" />
+Trend + seasonality + one regressor (`nino34`). **Note**: `FF` for the
+regressor is `1 × T`. Combine components **pairwise**.
 
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
+``` r
+set.seed(2)
+T <- 150
+y <- log(BTflow[seq_len(T)])
+x <- nino34[seq_len(T)]
 
-### Terminology (exAL vs Kotz-GAL)
+trend.comp <- polytrendMod(order = 1, m0 = 0, C0 = 1)
+seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))
 
-- **exAL** = *extended Asymmetric Laplace* (standardized) used
-  throughout this package.
-- **Kotz-GAL** = *generalized Asymmetric Laplace* as in Kotz et al. We
-  refer to it explicitly as “Kotz-GAL” to avoid confusion.
+# 1-d regressor block (explicit 1 x T design)
+reg.comp <- list(m0 = 0, C0 = 1, FF = matrix(x, nrow = 1), GG = matrix(1))
+
+# combine pairwise
+base.mod <- combineMods(trend.comp, seas.comp)
+model    <- combineMods(base.mod, reg.comp)
+
+# one discount per block: (trend, seasonal[2-d], reg)
+df     <- c(1.00, 0.98, 1.00)
+dim.df <- c(1,       2,   1)
+
+options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
+
+fit_ld <- exdqlmLDVB(
+  y = y, p0 = 0.5, model = model,
+  df = df, dim.df = dim.df,
+  fix.sigma = TRUE, sig.init = 0.2,
+  fix.gamma = TRUE, gam.init = 0.0
+)
+#> LDVB converged: 2 iterations, 0.324 seconds
+
+# quick checks
+tail(fit_ld$diagnostics$elbo, 2)
+#> [1] -1227.3245  -998.2651
+dim(fit_ld$theta.out$sm)  # state-dimension x time
+#> [1]   4 150
+```
+
+### 2) Multi-quantile LDVB + synthesis (three anchors)
+
+We fit **three** anchor quantiles, collect their posterior predictive
+draws, then call `exdqlm_synthesize_from_draws()`. We also compute
+simple diagnostics and show a tiny zoom plot.
+
+``` r
+set.seed(3)
+options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
+
+p_grid <- c(0.25, 0.5, 0.75)
+
+fit_one <- function(p0) {
+  exdqlmLDVB(
+    y = y, p0 = p0, model = model,
+    df = df, dim.df = dim.df,
+    fix.sigma = TRUE, sig.init = 0.2,
+    fix.gamma = TRUE, gam.init = 0.0,
+    verbose = FALSE
+  )
+}
+
+fits <- lapply(p_grid, fit_one)
+draws_list <- lapply(fits, function(f) f$samp.post.pred)  # list of T×ns (or ns×T)
+
+# --- Synthesize (uses isotonic adj. -> alignment -> blending -> optional rearrangement)
+syn <- exdqlm_synthesize_from_draws(
+  draws_list = draws_list,
+  p          = p_grid
+  # defaults perform the full workflow; see ?exdqlm_synthesize_from_draws
+)
+
+# Small helper for row-quantiles
+rowQ <- function(M, prob) {
+  if (is.null(M)) return(NULL)
+  if (nrow(M) != T) M <- t(M)
+  if (requireNamespace("matrixStats", quietly = TRUE)) {
+    as.numeric(matrixStats::rowQuantiles(M, probs = prob, na.rm = TRUE))
+  } else {
+    apply(M, 1L, quantile, probs = prob, na.rm = TRUE)
+  }
+}
+
+# --- Diagnostics: pre-synthesis crossing share + RMSE @ anchors (syn vs anchors)
+# anchor quantiles from each model
+Q_anchor <- lapply(seq_along(p_grid), function(i) rowQ(draws_list[[i]], p_grid[i]))
+Q_anchor <- do.call(cbind, Q_anchor)  # T x length(p_grid)
+
+# crossing share BEFORE synthesis (any violation at a time index)
+viol <- apply(Q_anchor, 1L, function(v) any(diff(v) < 0))
+crossing_share <- mean(viol)  # in [0,1]
+
+# synthesized anchor quantiles (from syn draws)
+if (nrow(syn$draws) != T) syn$draws <- t(syn$draws)  # ensure T x ns
+Q_syn_at_p <- sapply(p_grid, function(p0) rowQ(syn$draws, p0))
+rmse_anchor <- sqrt(colMeans((Q_syn_at_p - Q_anchor)^2))
+
+c(
+  crossing_share_pre  = rounding <- round(crossing_share, 3),
+  rmse_at_anchors_25  = round(rmse_anchor[1], 4),
+  rmse_at_anchors_50  = round(rmse_anchor[2], 4),
+  rmse_at_anchors_75  = round(rmse_anchor[3], 4)
+)
+#> crossing_share_pre rmse_at_anchors_25 rmse_at_anchors_50 rmse_at_anchors_75 
+#>             0.0000             0.0228             0.0344             0.0255
+
+# --- Minimal zoom plot for the synthesized predictive (last 40 points)
+pp_plot_zoom <- function(y, samples, p0 = 0.5, last_n = 40L) {
+  if (nrow(samples) != length(y)) samples <- t(samples)
+  idx <- (length(y) - last_n + 1L):length(y)
+  S   <- samples[idx, , drop = FALSE]
+  if (requireNamespace("matrixStats", quietly = TRUE)) {
+    qs <- matrixStats::rowQuantiles(S, probs = c(0.025, p0, 0.975), na.rm = TRUE)
+  } else {
+    qs <- t(apply(S, 1L, quantile, probs = c(0.025, p0, 0.975), na.rm = TRUE))
+  }
+  x <- idx; yv <- y[idx]; lo <- qs[,1]; q <- qs[,2]; hi <- qs[,3]
+  ylim <- range(c(yv, lo, hi), finite = TRUE)
+  op <- par(mar = c(3.5, 4.2, 3, 1) + 0.1); on.exit(par(op), add = TRUE)
+  plot(x, yv, type = "n", xlab = "index", ylab = "y",
+       main = "Synthesized posterior predictive (last 40)", ylim = ylim)
+  polygon(c(x, rev(x)), c(lo, rev(hi)), border = NA,
+          col = adjustcolor("steelblue", alpha.f = 0.30))
+  lines(x, q, lwd = 3, col = "orange3")
+  points(x, yv, pch = 16, cex = 0.5)
+  invisible(NULL)
+}
+
+pp_plot_zoom(y = y, samples = syn$draws, p0 = 0.5, last_n = 40L)
+```
+
+<img src="man/figures/README-synthesis-1.png" width="100%" />
+
+> **CRAN-safety.** All examples set a seed, use tiny data, finish in a
+> few seconds, and keep the pure-R path by default. For speed and
+> stability we fix **scale** and **skewness**.
+
+## FAQ / Troubleshooting
+
+- **It runs slowly.** Use short series (≤ 200), fix
+  **scale**/**skewness**, and keep discount factors near but below one
+  (≈ 0.96–0.99). Enable C++ bridges only if your toolchain supports
+  them.
+
+- **ELBO dips slightly—bug?** Small downward blips are expected from
+  approximation/IS noise. Look for an overall upward trend; if not,
+  simplify the model or adjust variance/discounts.
+
+- **Synthesis seems unchanged.** Ensure your anchors are well-separated
+  (e.g., 0.25–0.5–0.75), and verify that each anchor model converged
+  (check ELBO tail). If anchors already respect monotonicity, isotonic
+  adjustment may be minimal.
+
+- **OpenMP not available.** That’s fine. It is optional. Everything runs
+  serially; examples here use the pure-R path.
+
+## How to cite
+
+Barata, R., Prado, R., & Sansó, B. (2022). *Fast inference for
+time-varying quantiles via flexible dynamic models with application to
+the characterization of atmospheric rivers*. **Annals of Applied
+Statistics**, 16(1), 247–271. <https://doi.org/10.1214/21-AOAS1497>
+
+## License
+
+MIT © The authors. See `LICENSE`.
+
+## Getting help
+
+Open an issue: <https://github.com/AntonioAPDL/exdqlm/issues>
