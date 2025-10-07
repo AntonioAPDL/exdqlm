@@ -1,3 +1,7 @@
+## 0.6.0 (dev)
+- Add support for multiple regressors (design matrix)
+- Add static quantile linear regression mode
+
 # exdqlm 0.5.0
 
 ## New
