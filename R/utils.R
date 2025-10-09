@@ -220,5 +220,22 @@ check_ts = function(dat){
 #
 is.exdqlm = function(m){ return(inherits(m,"exdqlm")) }
 
+#' @keywords internal
+#' @noRd
+check_X <- function(X, Tlen = NULL, name = "X") {
+  # Accept numeric vector/matrix, ts/mts; coerce to numeric matrix (T x n)
+  if (inherits(X, "ts")) {
+    X <- as.matrix(X)              # handles ts/mts
+  } else {
+    X <- as.matrix(X)
+  }
+  if (!is.numeric(X)) stop(name, " must be numeric.")
+  if (any(!is.finite(X))) stop(name, " contains non-finite values.")
+  if (nrow(X) < 1L || ncol(X) < 1L)
+    stop(name, " must be T x n with T>=1 and n>=1.")
+  if (!is.null(Tlen) && nrow(X) != Tlen)
+    stop(name, " must have nrow == length(y) == ", Tlen, ".")
+  X
+}
 
 
