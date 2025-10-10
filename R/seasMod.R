@@ -36,7 +36,7 @@ seasMod = function(p, h, m0, C0){
       else{GG = magic::adiag(GG,G[i,,])}
     }
     GG = magic::adiag(GG,-1)
-    FF = numeric(2*nh - 1)
+    FF = as.matrix(numeric(2*nh - 1))
     FF[1:(2*nh-1) %% 2 == 1] = 1
   }else{
     G = array(0,c(nh,2,2))
@@ -50,13 +50,13 @@ seasMod = function(p, h, m0, C0){
       if(i == 1){ GG = G[1,,]}
       else{GG = magic::adiag(GG,G[i,,])}
     }
-    FF = numeric(2*nh)
-    FF[1:(2*nh) %% 2 == 1] = 1
+    FF = as.matrix(numeric(2*nh))
+    FF[1:(2*nh) %% 2 == 1,] = 1
   }
   if(methods::hasArg(m0)){
     if(length(m0) != nrow(GG)){stop("length of m0 does not match specified seasonal component(s)")}
   }else{
-    m0 = numeric(nrow(GG))
+    m0 = as.matrix(numeric(nrow(GG)))
   }
   if(methods::hasArg(C0)){
     C0 = as.matrix(C0)

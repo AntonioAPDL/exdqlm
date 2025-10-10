@@ -51,7 +51,7 @@
 #' X = ELIanoms[1:1095]
 #' trend.comp = polytrendMod(1,mean(y),10)
 #' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-#' model = combineMods(trend.comp,seas.comp)
+#' model = trend.comp + seas.comp
 #' M1 = transfn_exdqlmISVB(y,p0=0.85,model=model,
 #'                           X,df=c(1,1),dim.df = c(1,6),
 #'                           gam.init=-3.5,sig.init=15,
@@ -116,6 +116,7 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
   tf.model$FF = FF
   tf.model$m0 = c(model$m0,tf.m0)
   tf.model$C0 = magic::adiag(model$C0,tf.C0)
+  tf.model = as.exdqlm(tf.model)
   tf.model.df = c(df,matrix(tf.df,1,2))
   tf.model.dim.df = c(dim.df,rep(1,2))
 

@@ -39,7 +39,7 @@
 #' y = scIVTmag[1:100]
 #' trend.comp = polytrendMod(1,mean(y),10)
 #' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-#' model = combineMods(trend.comp,seas.comp)
+#' model = trend.comp + seas.comp
 #' M2 = exdqlmMCMC(y,p0=0.85,model,df=c(1,1),dim.df = c(1,6),
 #'                 gam.init=-3.5,sig.init=15,
 #'                 n.burn=100,n.mcmc=150)

@@ -18,15 +18,16 @@
 #' @examples
 #' # create a second order polynomial component
 #' trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
+#' 
 polytrendMod = function(order,m0,C0){
   GG = diag(order)
-  FF = numeric(order)
+  FF = as.matrix(numeric(order))
   if(order > 1){GG[(2:order-1)*order + (2:order-1)] = 1}
   FF[1] = 1
   if(methods::hasArg(m0)){
     if(length(m0) != order){stop("length of m0 does not match specified polynomial component")}
   }else{
-    m0 = numeric(order)
+    m0 = as.matrix(numeric(order))
   }
   if(methods::hasArg(C0)){
     C0 = as.matrix(C0)

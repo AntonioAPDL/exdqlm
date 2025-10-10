@@ -1,20 +1,96 @@
-### "exdqlm" objects
+######## "exdqlm" objects
 
+#' \code{exdqlm} objects
+#'
+#' \code{is.exdqlm} tests if its argument is a \code{exdqlm} object. 
+#' 
+#' @usage is.exdqlm(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
 is.exdqlm = function(m){ return(methods::is(m,"exdqlm")) }
 
-# addition for "exdqlm" objects
+
+
+#' \code{exdqlm} objects
+#'
+#' \code{as.exdqlm} attempts to turn a list into an \code{exdqlm} object. Works for time-invariant \code{dlm} objects created using the \pkg{dlm} package. 
+#' 
+#' @usage as.exdqlm(m)
+#'
+#' @param m a list containing named elements m0, C0, FF and GG.
+#'
+#' @return A object of class "\code{exdqlm}" containing the state space model components:
+#' \itemize{
+#'   \item FF - Observational vector.
+#'   \item GG - Evolution matrix.
+#'   \item m0 - Prior mean of the state vector.
+#'   \item C0 - Prior covariance of the state vector.
+#' }
+#' @export
+as.exdqlm <- function(m){
+  if(is.exdqlm(m)){
+    return(m)
+  }
+  if(!is.list(m)){
+    stop("Input must be a list with named elements m0, C0, FF and GG.")
+  }
+  if(methods::is(m,"dlm")){
+    if(!is.null(m$JFF) | !is.null(m$JGG) |
+       !is.null(m$JV) | !is.null(m$JW)){
+      stop("'dlm' object input must be a time-invariant")
+    }
+    l$FF = t(m$FF)
+  }
+  
+  # check for required components & remove extras
+  refnn <- c("m0","C0","FF","GG")
+  nn <- names(m)
+  check <- !sapply(m, is.null)
+  ind <- match(refnn,nn)
+  if(anyNA(ind)){
+    stop(paste("Component(s)",paste(refnn[is.na(ind)], collapse = ", "), "is (are) missing."))
+  }
+  final.ind = match(nn[ind][check[ind]],nn)
+  model = m[final.ind]
+  
+  class(model) <- "exdqlm"
+  model = check_mod(model)
+  
+  return(model)
+}
+
+
+
+#' Addition for \code{exdqlm} objects
+#'
+#' Combines two state space blocks into a single state space model for an exDQLM.
+#' 
+#' @method + exdqlm
+#' @rdname plus-exdqlm
+#'
+#' @param m1 object of class "\code{exdqlm}" containing the first model to be combined.
+#' @param m2 object of class "\code{exdqlm}" containing the second model to be combined.
+#'
+#' @return A object of class "\code{exdqlm}" containing the new combined state space model components:
+#' \itemize{
+#'   \item FF - Observational vector.
+#'   \item GG - Evolution matrix.
+#'   \item m0 - Prior mean of the state vector.
+#'   \item C0 - Prior covariance of the state vector.
+#' }
+#'
+#' @examples
+#' trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
+#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+#' model = trend.comp + seas.comp
+#'
+#' @export
 "+.exdqlm" <- function(m1, m2){
-  if(methods::is(m1,"dlm")){
-    m1 = dlmMod(m1)
-    message("m1 converted from a dlm object using 'dlmMod(m1)'")
-  }
-  if(methods::is(m2,"dlm")){
-    m2 = dlmMod(m2)
-    message("m2 converted from a dlm object using 'dlmMod(m2)'")
-  }
   m1 = check_mod(m1)
   m2 = check_mod(m2)
-  n = length(c(m1$m0,m2$m0))
+  n = length(m1$m0) + length(m2$m0)
   model<- NULL
   if(ncol(m1$FF)>1 | ncol(m2$FF)>1){
     if(ncol(m1$FF)>1 & ncol(m2$FF)>1 & ncol(m1$FF) != ncol(m2$FF)){
@@ -36,15 +112,23 @@ is.exdqlm = function(m){ return(methods::is(m,"exdqlm")) }
   }else{
     model$GG = magic::adiag(m1$GG,m2$GG)
   }
-  model$m0 = c(m1$m0,m2$m0)
+  model$m0 = matrix(c(m1$m0,m2$m0),n,1)
   model$C0 = magic::adiag(m1$C0,m2$C0)
   
   class(model) <- "exdqlm"
   return(model)
 }
 
-# print method for "exdqlm" objects
-print.exdqlm <- function(x, ...) {
+
+
+#' Print exDQLM model details
+#'
+#' Print the details of the exDQLM model.
+#' @param x a \code{exdqlm} object.
+#' @param ... further arguments passed to or from other methods.
+#' 
+#' @export
+print.exdqlm <- function(x,...){
   refnn <- c("m0","C0","FF","GG")
   descrip = c("Prior mean of the state vector:", 
               "Prior covariance of the state vector:",
@@ -61,6 +145,7 @@ print.exdqlm <- function(x, ...) {
     print(x[final.ind[i]])
     cat("\n")
   }
+  invisible(x)
 }
 
 

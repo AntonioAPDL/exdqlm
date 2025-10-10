@@ -12,8 +12,10 @@
   - Unit tests for pdf/cdf/quantile inverses and sampling sanity checks.
   - Package-level docs updated; **vignettes intentionally deferred** for a later release.
 - Return changes
-  - functions polytrendMod, seasMod, dlmMod, and combindMods now return objects of class 'exdqlm'
+  - functions polytrendMod, and seasMod now return objects of class 'exdqlm'
 - Added generics_etc.R which includes generics & other functions for the objects of class 'exdqlm'
+- Removed dlmMod.R and replaced with the more robust function as.exdqlm (in generics_etc.R), which creates 'exdqlm' objects
+- Removed combineMods.R and replaced with addition for 'exdqlm' objects (in generics_etc.R)
 
 # exdqlm 0.1.4
 

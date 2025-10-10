@@ -45,7 +45,7 @@ The function plots the dynamic MAP estimates and 95\% credible intervals (CrIs) 
 y = scIVTmag[1:365]
 trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
 seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-model = combineMods(trend.comp,seas.comp)
+model = trend.comp + seas.comp
 M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98,1),dim.df = c(2,6),
                    gam.init=-3.5,sig.init=15,tol=0.05)
 # plot first harmonic component

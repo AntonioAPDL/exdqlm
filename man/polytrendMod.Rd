@@ -14,7 +14,7 @@ polytrendMod(order, m0, C0)
 \item{C0}{Prior covariance of the state vector. Default is \code{C0 = 1e3*diag(order)}.}
 }
 \value{
-A list of the following:
+A object of class "\code{exdqlm}" containing the following:
 \itemize{
 \item FF - Observational vector.
 \item GG - Evolution matrix.
@@ -28,4 +28,5 @@ The function creates an n-th order polynomial exDQLM component.
 \examples{
 # create a second order polynomial component
 trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
+
 }
