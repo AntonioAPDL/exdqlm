@@ -23,3 +23,6 @@ notebooks/
 check-logs/
 
 README.html
+
+# local outputs
+results/
