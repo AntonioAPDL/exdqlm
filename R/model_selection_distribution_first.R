@@ -30,8 +30,11 @@ if (requireNamespace("RhpcBLASctl", quietly = TRUE)) {
   RhpcBLASctl::blas_set_num_threads(1L)
 }
 
-# Load local package with qdesn + exAL
-devtools::load_all("/home/antonio/code/exdqlm")
+# Load local package with qdesn + exAL (from this repo)
+suppressMessages({
+  devtools::load_all(".")
+})
+
 
 ## ================================================================
 ## 1) Config — change here to explore
@@ -39,15 +42,29 @@ devtools::load_all("/home/antonio/code/exdqlm")
 # Selection stage: "coarse" (fast) or "final" (thorough)
 stage <- "coarse"  # set to "final" for the winner re-run
 
-# Data path resolution
+# Data path resolution (ENV override → server path → local fallbacks)
+csv_env <- Sys.getenv("EXDQLM_DATA", unset = NA)
+
 csv_candidates <- c(
-  "C:/Users/anton/Downloads/data_USGS_ppt_soil.csv",
-  "/mnt/c/Users/anton/Downloads/data_USGS_ppt_soil.csv",
-  path.expand("~/Downloads/data_USGS_ppt_soil.csv"),
-  file.path(getwd(), "data_USGS_ppt_soil.csv")
+  if (!is.na(csv_env)) csv_env,
+  "/data/muscat_data/jaguir26/data/data_USGS_ppt_soil.csv",   # server path
+  "C:/Users/anton/Downloads/data_USGS_ppt_soil.csv",          # Windows
+  "/mnt/c/Users/anton/Downloads/data_USGS_ppt_soil.csv",      # WSL
+  path.expand("~/Downloads/data_USGS_ppt_soil.csv"),          # macOS/Linux
+  file.path(getwd(), "data_USGS_ppt_soil.csv")                # project copy
 )
-csv_path <- NULL; for (p in csv_candidates) if (file.exists(p)) { csv_path <- p; break }
-if (is.null(csv_path)) stop("Could not locate 'data_USGS_ppt_soil.csv'.")
+
+csv_path <- NULL
+for (p in csv_candidates) {
+  if (file.exists(p)) { csv_path <- p; break }
+}
+if (is.null(csv_path)) {
+  cat("Working directory:", getwd(), "\n")
+  cat("Tried:\n", paste(" -", csv_candidates), sep = "\n")
+  stop("Could not locate 'data_USGS_ppt_soil.csv'. Set EXDQLM_DATA or place the file accordingly.")
+} else {
+  message("Using data file: ", csv_path)
+}
 
 # Quantiles we fit jointly (shared spec)
 p_vec <- c(0.05, 0.50, 0.95)

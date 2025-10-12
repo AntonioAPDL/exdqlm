@@ -26,3 +26,5 @@ README.html
 
 # local outputs
 results/
+model_selection_outputs/
+*.Rhistory
