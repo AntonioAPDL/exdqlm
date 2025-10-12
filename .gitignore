@@ -28,3 +28,4 @@ README.html
 results/
 model_selection_outputs/
 *.Rhistory
+logs/
