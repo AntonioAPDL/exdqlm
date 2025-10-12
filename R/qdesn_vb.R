@@ -17,7 +17,7 @@
 #' @param n Integer vector of length D with reservoir sizes \eqn{n_d}.
 #' @param n_tilde Integer vector of length D-1 with reducers \eqn{\tilde n_d} (ignored if D=1).
 #' @param m Integer number of lags in \eqn{u_t=(1, y_{t-1},..., y_{t-m})}.
-#' @param alpha Leak in [0,1].
+#' @param alpha Leak in \eqn{(0,1)}.
 #' @param rho Numeric vector length D, spectral scales \eqn{\rho_d \in (0,1)}.
 #' @param act_f Activation for reservoir pre-activations (string or function): "tanh","relu","identity" or function.
 #' @param act_k Activation applied elementwise to reduced lower-layer states in the stack (same choices).
