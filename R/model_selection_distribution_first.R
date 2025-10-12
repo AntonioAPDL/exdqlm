@@ -19,6 +19,11 @@
 ## ================================================================
 ## 0) Setup
 ## ================================================================
+options(
+  repos = c(CRAN = "https://cloud.r-project.org"),
+  width = 120,
+  future.rng.onMisuse = "ignore"
+)
 req_pkgs <- c("devtools","ggplot2","dplyr","tidyr","tibble","scales",
               "purrr","future","furrr","progressr")
 need <- setdiff(req_pkgs, rownames(installed.packages()))
@@ -42,8 +47,12 @@ suppressMessages({
 # Selection stage: "coarse" (fast) or "final" (thorough)
 stage <- "coarse"  # set to "final" for the winner re-run
 
-# Data path resolution (ENV override → server path → local fallbacks)
-csv_env <- Sys.getenv("EXDQLM_DATA", unset = NA)
+# Accept either EXDQLM_DATA (preferred) or QDESN_DATA; allow file OR directory
+csv_env <- Sys.getenv("EXDQLM_DATA", Sys.getenv("QDESN_DATA", NA))
+if (!is.na(csv_env) && dir.exists(csv_env)) {
+  csv_env <- file.path(csv_env, "data_USGS_ppt_soil.csv")
+}
+
 
 csv_candidates <- c(
   if (!is.na(csv_env)) csv_env,
@@ -93,7 +102,10 @@ score_last_N   <- if (stage=="coarse") 800L else 1500L
 seed_vec <- c(42, 101)  # add more (e.g., 202) if you can afford it
 
 # Parallel plan (deterministic)
-future::plan(future::multisession, workers = max(1, parallel::detectCores() - 1))
+workers_env <- suppressWarnings(as.integer(Sys.getenv("QDESN_WORKERS", "")))
+workers <- if (!is.na(workers_env) && workers_env > 0) workers_env else max(1, parallel::detectCores() - 1)
+future::plan(future::multisession, workers = workers)
+message(sprintf("Future plan: multisession with %d workers", workers))
 
 # Output control
 save_artifacts <- FALSE
