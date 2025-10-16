@@ -81,7 +81,7 @@
 #' out <- simulate_ts_mc_quantiles(
 #'   T = 300, R_mc = 500, burnin = 200,
 #'   scenario = "dlm_constV_smallW",
-#'   params = list(V = 0.25, alpha = 1e-4)
+#'   params = list(V = 0.25, alpha = 1e-4, no_trend = TRUE)
 #' )
 #' str(out$q)
 #'
@@ -160,14 +160,14 @@ simulate_ts_mc_quantiles <- function(
     "regime_exal"= list(p0 = 0.5, a1 = 0.6, b = 0.8, period = 20, sigma = 1.0, gamma = 0.0),
     "ar1_t"      = list(phi1 = 0.6, tau = 1.0, nu = 5),
 
-    "dlm_constV_smallW" = modifyList(dlm_defaults, list(alpha = dlm_defaults$alpha_small)),
-    "dlm_constV_bigW"   = modifyList(dlm_defaults, list(alpha = dlm_defaults$alpha_big)),
+    "dlm_constV_smallW" = modifyList(dlm_defaults, list(alpha = dlm_defaults$alpha_small, no_trend = TRUE)),
+    "dlm_constV_bigW"   = modifyList(dlm_defaults, list(alpha = dlm_defaults$alpha_big,   no_trend = TRUE)),
     "dlm_ar1V"          = modifyList(dlm_defaults, list(
-      # AR(1) for log-variance: log V_t = mu_v + phi (log V_{t-1} - mu_v) + s_v * eta_t
       alpha = dlm_defaults$alpha_small,
+      no_trend = TRUE,
       mu_v  = log(dlm_defaults$V),
       phi_v = 0.95,
-      s_v   = 0.1
+      s_v   = 0.25
     ))
   )
 
@@ -232,7 +232,7 @@ simulate_ts_mc_quantiles <- function(
 
     if (scn %in% c("dlm_constV_smallW","dlm_constV_bigW","dlm_ar1V")) {
       # Build F,G,Sigma (known), and set W = alpha * Sigma
-      built <- build_dlm_trend2harm(pr$period)
+      built <- build_dlm_trend2harm(pr$period, no_trend = isTRUE(pr$no_trend))
       Fvec  <- built$F
       Gmat  <- built$G
       Sigma <- built$Sigma
@@ -435,17 +435,29 @@ rmvnorm_chol <- function(n, mean, Sigma) {
 #' @noRd
 #' @keywords internal
 # State order: [level, slope, (cos1, sin1), (cos2, sin2)]
-build_dlm_trend2harm <- function(period) {
+# ---- DLM builder: level (+ 2 harmonics), optional linear trend -------------
+# State order: [level, slope, (cos1, sin1), (cos2, sin2)]
+build_dlm_trend2harm <- function(period, no_trend = FALSE) {
   stopifnot(period > 2)
   lam1 <- 2 * pi / period
   lam2 <- 2 * lam1
 
-  # F is constant; select the 1st element in each harmonic pair
-  F <- c(1, 0, 1, 0, 1, 0)         # length 6
+  # F selects level and the cos-components from each harmonic pair
+  F <- c(1, 0, 1, 0, 1, 0)  # length 6
 
-  # G is block-diagonal: local linear trend + two rotation blocks
-  G_trend <- matrix(c(1, 1,
-                      0, 1), 2, 2, byrow = TRUE)
+  if (isTRUE(no_trend)) {
+    # No linear trend: remove coupling level <- level + slope
+    # and keep the trend block noise ~ 0 (but not exactly 0 to avoid singular chol)
+    G_trend <- diag(2)   # level_t = level_{t-1}; slope_t = slope_{t-1}
+    eps <- 1e-12         # tiny variance => effectively constant
+    Sigma <- diag(c(eps, eps, 1, 1, 1, 1))
+  } else {
+    # Local-linear trend as before
+    G_trend <- matrix(c(1, 1,
+                        0, 1), 2, 2, byrow = TRUE)
+    Sigma <- diag(6)
+  }
+
   R1 <- matrix(c(cos(lam1),  sin(lam1),
                 -sin(lam1),  cos(lam1)), 2, 2, byrow = TRUE)
   R2 <- matrix(c(cos(lam2),  sin(lam2),
@@ -454,11 +466,9 @@ build_dlm_trend2harm <- function(period) {
   G <- as.matrix(Matrix::bdiag(G_trend, R1, R2))
   d <- length(F)
 
-  # Default Sigma (known, scaled by alpha in W = alpha * Sigma)
-  Sigma <- diag(d)
-
   list(F = F, G = G, Sigma = Sigma, d = d)
 }
+
 
 
 #' @noRd
