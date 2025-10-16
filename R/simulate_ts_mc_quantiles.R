@@ -25,9 +25,9 @@
 #' Gaussian mean–variance mixture with \(s\sim \mathcal N^+(0,1)\) and \(v\sim \mathrm{Exp}(1/\sigma)\),
 #' yielding draws from \(\mathcal N\bigl(\mu_t + \lambda(\gamma)\sigma s + A(\gamma)v,\; B(\gamma)\sigma v\bigr)\).
 #'
-#' \strong{DLM specification.} The state \(\theta_t\in\mathbb R^6\) is
-#' \([\text{level},\text{slope},\cos_1,\sin_1,\cos_2,\sin_2]^\top\),
-#' with \(F=(1,0,1,0,1,0)^\top\) and \(G=\mathrm{bdiag}\!\bigl(\begin{smallmatrix}1&1\\0&1\end{smallmatrix},
+#' \strong{DLM specification.} The state is a 6-vector
+#' \code{(level, slope, cos1, sin1, cos2, sin2)} with
+#' \(F=(1,0,1,0,1,0)^\top\) and \(G=\mathrm{bdiag}\big((1,1;0,1), R(\lambda_1), R(\lambda_2)\big)\).
 #' R(\lambda_1),R(\lambda_2)\bigr)\), \(R(\lambda)=\begin{smallmatrix}(\cos\lambda,\sin\lambda;-\sin\lambda,\cos\lambda)\end{smallmatrix}\).
 #' \(\theta_t \mid \theta_{t-1}\sim\mathcal N(G\theta_{t-1},W)\), \(y_t\mid\theta_t,V_t\sim\mathcal N(F^\top\theta_t,V_t)\).
 #' For \code{dlm_constV_*}, \(V_t\equiv V\) and quantiles are analytic; for \code{dlm_ar1V},
