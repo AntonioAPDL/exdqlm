@@ -147,7 +147,7 @@ simulate_ts_mc_quantiles <- function(
     period = 50L,
     m0 = rep(0, 6),
     C0 = diag(25, 6),
-    V  = 50^2,         # obs variance baseline
+    V  = 3^2,         # obs variance baseline
     alpha_small = 1e-4, # W = alpha * Sigma
     alpha_big   = 1
   )
