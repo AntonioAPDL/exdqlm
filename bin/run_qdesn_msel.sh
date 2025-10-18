@@ -11,7 +11,9 @@ export BLAS_NUM_THREADS="${BLAS_NUM_THREADS:-1}"
 STAGE="${STAGE:-coarse}"
 PARALLEL="${PARALLEL:-TRUE}"
 
-DEFAULT_WORKERS="$(( $(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN || echo 2) - 1 ))"
+RESERVE_CORES="${RESERVE_CORES:-2}"  # change to 1 if you really want to squeeze the node
+TOTAL_CORES="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN || echo 2)"
+DEFAULT_WORKERS="$(( TOTAL_CORES - RESERVE_CORES ))"
 [[ $DEFAULT_WORKERS -lt 1 ]] && DEFAULT_WORKERS=1
 WORKERS="${WORKERS:-$DEFAULT_WORKERS}"
 [[ $WORKERS -lt 1 ]] && WORKERS=1
@@ -36,13 +38,16 @@ LOG="logs/run_${STAGE}_$(date +%F_%H%M).log"
 echo "Launching selector (stage=${STAGE}, workers=${WORKERS}) — logging to ${LOG}"
 
 cleanup() {
-  echo ">> Cleanup: terminating R workers..."
-  # Try graceful first
-  pkill -u "$USER" -TERM -f 'parallel:::.workRSOCK|slaveRSOCK' || true
+  echo ">> Cleanup: terminating R workers and driver..."
+  # Graceful first
+  pkill -u "$USER" -TERM -f 'parallel:::.workRSOCK|slaveRSOCK|MASTER=localhost .* XDR=TRUE|parallel.*child' || true
+  pkill -u "$USER" -TERM -f 'Rscript .*driver_model_selection\.R' || true
   sleep 1
-  # Then force anything left
-  pkill -u "$USER" -KILL -f 'parallel:::.workRSOCK|slaveRSOCK' || true
+  # Then force
+  pkill -u "$USER" -KILL -f 'parallel:::.workRSOCK|slaveRSOCK|MASTER=localhost .* XDR=TRUE|parallel.*child' || true
+  pkill -u "$USER" -KILL -f 'Rscript .*driver_model_selection\.R' || true
 }
+
 trap cleanup INT TERM
 
 # Do NOT 'exec'—we want the trap to still run

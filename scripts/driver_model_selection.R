@@ -27,6 +27,15 @@ suppressWarnings(suppressMessages({
   }
 }))
 
+## Pin threads in the launcher session too (workers are pinned inside the selector)
+Sys.setenv(
+  OMP_NUM_THREADS = "1",
+  MKL_NUM_THREADS = "1",
+  OPENBLAS_NUM_THREADS = "1",
+  VECLIB_MAXIMUM_THREADS = "1",
+  BLAS_NUM_THREADS = "1"
+)
+
 args <- commandArgs(trailingOnly = TRUE)
 arg_get <- function(name, default = NULL) {
   hit <- grep(paste0("^--", name, "="), args, value = TRUE)

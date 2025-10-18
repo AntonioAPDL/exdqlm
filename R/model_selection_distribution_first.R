@@ -159,82 +159,123 @@ model_selection_distribution_first <- function(
   make_n_tilde <- function(n, ratio = 0.2) {
     if (length(n) <= 1) integer(0) else pmax(1L, as.integer(round(head(n, -1) * ratio)))
   }
+  # target fan-out ≈ 10; cap sparsity to [0.02, 0.2] to avoid extremes on tiny/huge n
+  pi_w_from_fanout <- function(n_vec, target = 10) {
+    p <- target / median(as.numeric(n_vec))
+    p <- max(min(p, 0.20), 0.02)
+    as.numeric(p)
+  }
+  # input matrix denser than W
+  default_pi_in <- function() 0.60
+
   spec_key <- function(row) {
     paste0(
       "D", row$D,
       "_n", paste0(row$n, collapse = "-"),
       "_r", row$rho_kind,
+      "_rs", sprintf("%.2f", if (!is.null(row$rho_scale)) row$rho_scale else 1),
       "_a", sprintf("%.2f", row$alpha),
       "_m", row$m,
       "_w", row$washout,
       "_f", row$act_f,
       "_b", as.integer(row$add_bias),
       "_lp", row$lags_ppt,
-      "_ls", row$lags_soil
+      "_ls", row$lags_soil,
+      "_std", as.integer(isTRUE(row$standardize_inputs)),
+      "_ib", substr(row$input_bound, 1, 1),
+      "_sg", sprintf("%.2f", row$win_scale_global),
+      "_sb", sprintf("%.2f", row$win_scale_bias)
     )
   }
 
+
   ## ---- Candidate grid (shared spec across quantiles) ----
-  # Defaults (your original full grid = 2880 specs)
-  D_vals     <- c(2L, 3L)
-  n_packs    <- list(c(200L,100L),
-                     c(300L,150L),
-                     c(300L,150L,80L),
-                     c(400L,200L,100L))
-  red_ratios <- c(0.20, 0.30)
-  alpha_vals <- c(0.20, 0.25, 0.30)
-  rho_kinds  <- c("flat","decay")
+  # Emphasis: D = 1 primary, D = 2 optional; D <= 3 overall
+  # Reservoir sizes per layer target 100..500 (per your guidance).
+  # Ranges follow the ESN guidelines: sparse W (~10 fan-out), ρ <~ 1 with leaky safety,
+  # co-tune input scaling and spectral radius, small α for memory.
+
+  # Default baseline (rich but sensible; presets below can shrink further)
+  D_vals <- c(1L, 2L)  # D=1 first; maybe D=2
+  n_packs <- list(
+    # D=1 (primary exploration)
+    c(100L), c(200L), c(300L), c(400L), c(500L),
+    # D=2 (optional deeper cases; keep totals reasonable)
+    c(200L,100L), c(300L,150L), c(400L,200L), c(500L,250L)
+  )
+  red_ratios <- c(0.20, 0.30)       # only used when D>1
+  alpha_vals <- c(0.15, 0.20, 0.25, 0.35)  # memory sweep; ReLU auto-skips α<0.20
+  rho_kinds  <- c("flat","decay")   # flat=(0.90,...), decay=(0.95,0.90,0.85)
+  rho_scale_vals <- c(0.8, 1.0, 1.1) # co-tune memory vs amplitude; leaky safety keeps stable
   act_f_vals <- c("tanh","relu")
-  m_vals     <- c(12L, 24L, 36L)
+  m_vals     <- c(12L, 24L, 36L)    # y-lag memory sweep
   wash_vals  <- c(200L)
   bias_vals  <- c(FALSE, TRUE)
-  lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L), c(14L,7L), c(14L,14L))
+  lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L))  # exog lags (lean sets)
 
-  # Presets to shrink the grid fast without editing code:
+  # Input preprocessing (per the guide: z-score + bound; bias weaker than active inputs)
+  standardize_vals   <- c(TRUE)                 # z-score y-lags
+  input_bound_vals   <- c("tanh")               # bound inputs to avoid saturation
+  win_scale_global_v <- c(0.5, 1.0, 1.5, 2.0)   # co-tune with ρ
+  win_scale_bias_v   <- c(0.2, 0.4)
+
+  # Presets
   if (grid_preset == "small") {
-    # ~24 specs (1 pack per D, fewer lags/alphas, tanh only, no bias, m in {12,24})
-    n_packs    <- list(c(300L,150L), c(300L,150L,80L))
+    # Tight, still representative; mostly D=1, a couple of D=2 anchors
+    D_vals <- c(1L, 2L)
+    n_packs <- list(
+      c(200L), c(300L), c(400L),         # D=1
+      c(300L,150L), c(400L,200L)         # D=2
+    )
     red_ratios <- c(0.30)
     alpha_vals <- c(0.20, 0.30)
     rho_kinds  <- c("flat","decay")
+    rho_scale_vals <- c(0.8, 1.0)
     act_f_vals <- c("tanh")
     m_vals     <- c(12L, 24L)
     bias_vals  <- c(FALSE)
-    lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L))
+    lags_pairs <- list(c(0L,0L), c(3L,3L))
+    standardize_vals   <- c(TRUE)
+    input_bound_vals   <- c("tanh")
+    win_scale_global_v <- c(0.5, 1.0)
+    win_scale_bias_v   <- c(0.2)
   } else if (grid_preset == "tiny") {
-    # ~6 specs (very small smoke-test grid)
-    n_packs    <- list(c(300L,150L), c(300L,150L,80L))
-    red_ratios <- c(0.30)
+    # Smoke test; D=1 only
+    D_vals <- c(1L)
+    n_packs <- list(c(200L), c(300L))
+    red_ratios <- c(0.30)            # irrelevant for D=1
     alpha_vals <- c(0.25)
     rho_kinds  <- c("flat")
+    rho_scale_vals <- c(1.0)
     act_f_vals <- c("tanh")
     m_vals     <- c(24L)
     bias_vals  <- c(FALSE)
     lags_pairs <- list(c(0L,0L), c(3L,3L))
+    standardize_vals   <- c(TRUE)
+    input_bound_vals   <- c("tanh")
+    win_scale_global_v <- c(1.0)
+    win_scale_bias_v   <- c(0.2)
   } else if (grid_preset == "micro") {
-    # micro v2: focus around the winners (D1 ~30 states), keep a few compact D2/D3 baselines,
-    # explore m=36 and intermediate alpha=0.22. Keep bias=TRUE, same rho patterns, best lag pairs.
-    D_vals     <- c(1L, 2L, 3L)
-    n_packs    <- list(
-      # D=1 (best cluster near n≈30; probe 24 and 36 too)
-      c(24L), c(30L), c(36L),
-      # D=2 (retain top coarse baselines)
-      c(12L, 8L), c(15L, 15L), c(20L, 10L), c(30L, 10L),
-      # D=3 (compact)
-      c(12L, 8L, 4L), c(18L, 8L, 4L)
+    # Very compact; a few strong D=1 configs + 2 D=2 baselines
+    D_vals <- c(1L, 2L)
+    n_packs <- list(
+      c(100L), c(200L), c(300L),     # D=1 focus
+      c(200L,100L), c(300L,150L)     # slim D=2 anchors
     )
-    red_ratios <- c(0.30)                      # affects only D>1
-    alpha_vals <- c(0.20, 0.22, 0.25)          # add 0.22 to span the sweet spot
+    red_ratios <- c(0.30)
+    alpha_vals <- c(0.20, 0.25)
     rho_kinds  <- c("flat","decay")
+    rho_scale_vals <- c(0.8, 1.0)
     act_f_vals <- c("tanh","relu")
-    m_vals     <- c(24L, 36L)                  # add 36; 24 performed best, keep both
+    m_vals     <- c(24L, 36L)
     wash_vals  <- c(200L)
     bias_vals  <- c(TRUE)
-    lags_pairs <- list(c(2L,2L), c(3L,3L))     # winning lag sets from coarse run
+    lags_pairs <- list(c(2L,2L), c(3L,3L))
+    standardize_vals   <- c(TRUE)
+    input_bound_vals   <- c("tanh")
+    win_scale_global_v <- c(0.5, 1.0, 2.0)
+    win_scale_bias_v   <- c(0.2, 0.4)
   }
-
-
-
 
   specs_list <- vector("list", 0L)
   for (D in D_vals) {
@@ -244,18 +285,31 @@ model_selection_distribution_first <- function(
         n_tilde <- make_n_tilde(n, rr)
         for (alpha in alpha_vals) {
           for (rk in rho_kinds) {
-            rho <- rho_pattern(D, rk)
-            for (af in act_f_vals) {
-              for (m in m_vals) for (wo in wash_vals) for (ab in bias_vals) {
-                for (lp in lags_pairs) {
-                  if (af == "relu" && alpha < 0.20) next
-                  specs_list[[length(specs_list)+1L]] <- list(
-                    D = D, n = as.integer(n), n_tilde = as.integer(n_tilde),
-                    alpha = alpha, rho = as.numeric(rho), act_f = af, act_k = "identity",
-                    m = as.integer(m), washout = as.integer(wo), add_bias = isTRUE(ab),
-                    lags_ppt = as.integer(lp[1]), lags_soil = as.integer(lp[2]),
-                    red_ratio = rr, rho_kind = rk
-                  )
+            for (rs in rho_scale_vals) {
+              rho <- rs * rho_pattern(D, rk)
+              for (af in act_f_vals) {
+                for (m in m_vals) for (wo in wash_vals) for (ab in bias_vals) {
+                  for (lp in lags_pairs) {
+                    if (af == "relu" && alpha < 0.20) next
+                    for (std_in in standardize_vals)
+                      for (ib in input_bound_vals)
+                        for (sg in win_scale_global_v)
+                          for (sb in win_scale_bias_v) {
+                            specs_list[[length(specs_list)+1L]] <- list(
+                              D = D, n = as.integer(n), n_tilde = as.integer(n_tilde),
+                              alpha = alpha, rho = as.numeric(rho),
+                              act_f = af, act_k = "identity",
+                              m = as.integer(m), washout = as.integer(wo),
+                              add_bias = isTRUE(ab),
+                              lags_ppt = as.integer(lp[1]), lags_soil = as.integer(lp[2]),
+                              red_ratio = rr, rho_kind = rk, rho_scale = rs,
+                              standardize_inputs = isTRUE(std_in),
+                              input_bound = ib,
+                              win_scale_global = as.numeric(sg),
+                              win_scale_bias   = as.numeric(sb)
+                            )
+                          }
+                  }
                 }
               }
             }
@@ -277,7 +331,6 @@ model_selection_distribution_first <- function(
       specs_list
     )
   }
-
 
 
   # Compute *after* any filtering
@@ -306,15 +359,24 @@ model_selection_distribution_first <- function(
     add_bias <- isTRUE(spec$add_bias)
     lags_ppt <- spec$lags_ppt; lags_soil <- spec$lags_soil
 
-    pi_w <- 0.05; pi_in <- 0.20
+    # Sparsity: target fan-out ≈ 10, with caps; make W_in denser
+    pi_w <- pi_w_from_fanout(n)
+    pi_in <- default_pi_in()
+
     desn_args <- list(
       D=D, n=n, n_tilde=n_tilde,
       m=m, alpha=alpha, rho=rho,
       act_f=act_f, act_k=act_k,
       pi_w=pi_w, pi_in=pi_in,
       washout=washout, add_bias=add_bias,
+      # NEW: input preprocessing knobs (from spec)
+      standardize_inputs = isTRUE(spec$standardize_inputs),
+      input_bound        = spec$input_bound,
+      win_scale_global   = spec$win_scale_global,
+      win_scale_bias     = spec$win_scale_bias,
       seed=seed
     )
+
 
     X_ppt  <- lag_mat(ppt,  lags_ppt)
     X_soil <- lag_mat(soil, lags_soil)
@@ -363,7 +425,18 @@ model_selection_distribution_first <- function(
           keep_idx=keep_idx,
           drop=max(m, washout, maxlag_cov),
           T=T_full, p0=p0, D=D, n=n, n_tilde=n_tilde,
-          m=m, alpha=alpha, rho=rho, add_bias=add_bias
+          m=m, alpha=alpha, rho=rho, add_bias=add_bias,
+          # new: make downstream debugging reproducible/easy
+          pi_w = pi_w, pi_in = pi_in,
+          preproc = list(
+            standardize_inputs = isTRUE(spec$standardize_inputs),
+            input_bound        = spec$input_bound,
+            win_scale_global   = spec$win_scale_global,
+            win_scale_bias     = spec$win_scale_bias,
+            rho_kind           = spec$rho_kind,
+            rho_scale          = spec$rho_scale
+          ),
+          diagnostics = fit0$meta$diagnostics
         )
       )
       class(fit_exog) <- "qdesn_fit"
