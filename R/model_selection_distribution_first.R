@@ -11,12 +11,17 @@
 #' @param soil Numeric vector, soil covariate (same length as \code{y}).
 #' @param stage Character, either \code{"coarse"} (fast) or \code{"final"} (thorough).
 #' @param p_vec Numeric vector of quantiles to fit jointly. Default: \code{c(0.05, 0.50, 0.95)}.
-#' @param seed_vec Integer vector of reservoir seeds to average across (reduces variance).
-#'   Default: \code{c(42L, 101L)}.
+#' @param seed_vec Integer vector of reservoir seeds to average across (reduces variance). Default: \code{c(42L, 101L)}.
 #' @param parallel Logical, use base parallel (PSOCK) across candidate specs. Default: \code{FALSE}.
 #' @param n_workers Integer, number of workers if \code{parallel=TRUE}. Default: \code{max(1, parallel::detectCores()-1)}.
 #' @param keep_artifacts Logical, keep exemplar fit objects/draws for the winner. Default: \code{TRUE}.
 #' @param plot Logical, make quick ggplot diagnostics for winner (requires \pkg{ggplot2}). Default: \code{FALSE}.
+#' @param progress_console Logical, print progress to console. Default: \code{FALSE}.
+#' @param progress_log Optional path to a logfile to append progress lines. Default: \code{NULL}.
+#' @param progress_every Integer, how often to log in non-parallel mode (by spec index). Default: \code{1L}.
+#' @param grid_preset Character, one of \code{"default"}, \code{"small"}, \code{"tiny"}, \code{"micro"} for built-in grids. Default: \code{"default"}.
+#' @param max_specs Integer, optional cap to randomly sample at most this many specs from the grid. Default: \code{Inf}.
+#' @param grid_seed Integer RNG seed used when subsampling the grid. Default: \code{123L}.
 #'
 #' @return A list with elements:
 #' \itemize{
@@ -41,9 +46,16 @@ model_selection_distribution_first <- function(
   parallel = FALSE,
   n_workers = max(1L, parallel::detectCores() - 1L),
   keep_artifacts = TRUE,
-  plot = FALSE
+  plot = FALSE,
+  progress_console = FALSE,
+  progress_log = NULL,
+  progress_every = 1L,
+  grid_preset = c("default","small","tiny","micro"),
+  max_specs = Inf,
+  grid_seed = 123L
 ) {
   stage <- match.arg(stage)
+  grid_preset <- match.arg(grid_preset)
 
   stopifnot(is.numeric(y), is.numeric(ppt), is.numeric(soil))
   if (!all(length(y) == c(length(ppt), length(soil))))
@@ -53,19 +65,49 @@ model_selection_distribution_first <- function(
 
   ## ---- Config derived from stage ----
   vb_args <- list(
-    max_iter   = if (stage == "coarse")  800 else 1800,
+    max_iter   = if (stage == "coarse")  900 else 2000,
     tol        = 1e-4,
-    n_samp_xi  = if (stage == "coarse")  300 else 1000,
+    n_samp_xi  = if (stage == "coarse")  400 else 1200,
     verbose    = FALSE
   )
-  nd_draws       <- if (stage == "coarse")  600L else 2000L
-  chunk_sz       <- 200L
-  synth_grid_M   <- if (stage == "coarse")  401L else 1001L
-  synth_nsamp    <- if (stage == "coarse")  800L else 2000L
+  # Increase posterior/synthesis sampling and grid resolution
+  nd_draws       <- if (stage == "coarse") 1000L else 4000L
+  chunk_sz       <- 256L
+  synth_grid_M   <- if (stage == "coarse")  801L else 2001L
+  synth_nsamp    <- if (stage == "coarse") 2500L else 8000L
   synth_isotonic <- TRUE
   synth_rearrange<- if (stage == "coarse") FALSE else TRUE
   synth_seed     <- 999L
   score_last_N   <- if (stage == "coarse") 800L else 1500L
+
+
+  ## ---- Progress helper ----
+  progress_every <- as.integer(progress_every)
+  log_line <- function(txt) {
+    stamp <- format(Sys.time(), "%F %T")
+    line <- paste0("[", stamp, "] ", txt, "\n")
+    if (isTRUE(progress_console)) cat(line)
+    if (!is.null(progress_log)) {
+      cat(line, file = progress_log, append = TRUE)
+    }
+    invisible(NULL)
+  }
+
+  ## ---- Fail-safe result builder (so errors don't kill the run) ----
+  fail_result <- function(i, row, reason = "") {
+    key <- try(spec_key(row), silent = TRUE)
+    if (inherits(key, "try-error")) key <- paste0("idx", i)
+    list(
+      spec_idx = i, spec_key = key, spec_row = row,
+      mean_crps = Inf, se_crps = NA_real_,
+      cov_tbl = data.frame(p0 = p_vec, cov = NA_real_, avg_bw = NA_real_),
+      pit = list(mean = NA_real_, var = NA_real_, dev_mean = NA_real_, dev_var = NA_real_),
+      exemplar = NULL, elapsed_sec = NA_real_,
+      complexity = list(sum_n = sum(row$n), D = row$D,
+                        lags_tot = row$lags_ppt + row$lags_soil),
+      error_reason = reason
+    )
+  }
 
   ## ---- Helpers (local, no deps) ----
   lag_mat <- function(x, L) {
@@ -77,10 +119,14 @@ model_selection_distribution_first <- function(
     M
   }
   mu_band <- function(X, qbeta, level = 0.95) {
-    m <- as.numeric(qbeta$m); V <- as.matrix(qbeta$V)
+    m <- as.numeric(qbeta$m)
+    V <- as.matrix(qbeta$V)
+    V <- 0.5 * (V + t(V))           # symmetrize
+    diag(V) <- pmax(diag(V), 1e-10) # jitter
     mu <- as.numeric(X %*% m)
     XV <- X %*% V
-    var <- rowSums(XV * X); se <- sqrt(pmax(var, 0))
+    var <- rowSums(XV * X)
+    se  <- sqrt(pmax(var, 1e-12))   # avoid 0
     z <- stats::qnorm(0.5 + level/2)
     list(mu = mu, lo = mu - z*se, hi = mu + z*se)
   }
@@ -129,6 +175,7 @@ model_selection_distribution_first <- function(
   }
 
   ## ---- Candidate grid (shared spec across quantiles) ----
+  # Defaults (your original full grid = 2880 specs)
   D_vals     <- c(2L, 3L)
   n_packs    <- list(c(200L,100L),
                      c(300L,150L),
@@ -142,6 +189,52 @@ model_selection_distribution_first <- function(
   wash_vals  <- c(200L)
   bias_vals  <- c(FALSE, TRUE)
   lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L), c(14L,7L), c(14L,14L))
+
+  # Presets to shrink the grid fast without editing code:
+  if (grid_preset == "small") {
+    # ~24 specs (1 pack per D, fewer lags/alphas, tanh only, no bias, m in {12,24})
+    n_packs    <- list(c(300L,150L), c(300L,150L,80L))
+    red_ratios <- c(0.30)
+    alpha_vals <- c(0.20, 0.30)
+    rho_kinds  <- c("flat","decay")
+    act_f_vals <- c("tanh")
+    m_vals     <- c(12L, 24L)
+    bias_vals  <- c(FALSE)
+    lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L))
+  } else if (grid_preset == "tiny") {
+    # ~6 specs (very small smoke-test grid)
+    n_packs    <- list(c(300L,150L), c(300L,150L,80L))
+    red_ratios <- c(0.30)
+    alpha_vals <- c(0.25)
+    rho_kinds  <- c("flat")
+    act_f_vals <- c("tanh")
+    m_vals     <- c(24L)
+    bias_vals  <- c(FALSE)
+    lags_pairs <- list(c(0L,0L), c(3L,3L))
+  } else if (grid_preset == "micro") {
+    # micro v2: focus around the winners (D1 ~30 states), keep a few compact D2/D3 baselines,
+    # explore m=36 and intermediate alpha=0.22. Keep bias=TRUE, same rho patterns, best lag pairs.
+    D_vals     <- c(1L, 2L, 3L)
+    n_packs    <- list(
+      # D=1 (best cluster near n≈30; probe 24 and 36 too)
+      c(24L), c(30L), c(36L),
+      # D=2 (retain top coarse baselines)
+      c(12L, 8L), c(15L, 15L), c(20L, 10L), c(30L, 10L),
+      # D=3 (compact)
+      c(12L, 8L, 4L), c(18L, 8L, 4L)
+    )
+    red_ratios <- c(0.30)                      # affects only D>1
+    alpha_vals <- c(0.20, 0.22, 0.25)          # add 0.22 to span the sweet spot
+    rho_kinds  <- c("flat","decay")
+    act_f_vals <- c("tanh","relu")
+    m_vals     <- c(24L, 36L)                  # add 36; 24 performed best, keep both
+    wash_vals  <- c(200L)
+    bias_vals  <- c(TRUE)
+    lags_pairs <- list(c(2L,2L), c(3L,3L))     # winning lag sets from coarse run
+  }
+
+
+
 
   specs_list <- vector("list", 0L)
   for (D in D_vals) {
@@ -175,13 +268,37 @@ model_selection_distribution_first <- function(
   key_vec <- vapply(specs_list, function(s) paste(unlist(s), collapse="|"), "")
   keep    <- !duplicated(key_vec)
   specs_list <- specs_list[keep]
-  n_specs    <- length(specs_list)
+
+  # Enforce micro constraints (if selected)
+  if (grid_preset == "micro") {
+    specs_list <- Filter(function(s)
+      (length(s$n) <= 3L) && all(s$n <= 36L) &&
+      (s$lags_ppt %in% c(2L,3L)) && (s$lags_soil %in% c(2L,3L)),
+      specs_list
+    )
+  }
+
+
+
+  # Compute *after* any filtering
+  n_specs_full <- length(specs_list)
+
+  # Optional uniform subsample…
+  if (is.finite(max_specs) && max_specs > 0L && max_specs < n_specs_full) {
+    set.seed(as.integer(grid_seed))
+    keep_idx <- sort(sample.int(n_specs_full, max_specs))
+    specs_list <- specs_list[keep_idx]
+  }
+  n_specs <- length(specs_list)
+
+
+  # Header
+  log_line(sprintf("Stage=%s | grid=%s | candidates=%d (of %d) | seeds=%s",
+                   stage, grid_preset, n_specs, n_specs_full, paste(seed_vec, collapse=",")))
 
   ## ---- Core worker: fit one spec for one seed ----
   fit_spec_once <- function(spec, seed) {
     t0 <- proc.time()[3]
-
-    # unpack
     D <- spec$D; n <- spec$n; n_tilde <- spec$n_tilde
     alpha <- spec$alpha; rho <- spec$rho
     act_f <- spec$act_f; act_k <- spec$act_k
@@ -189,9 +306,7 @@ model_selection_distribution_first <- function(
     add_bias <- isTRUE(spec$add_bias)
     lags_ppt <- spec$lags_ppt; lags_soil <- spec$lags_soil
 
-    # fixed sparsity
     pi_w <- 0.05; pi_in <- 0.20
-
     desn_args <- list(
       D=D, n=n, n_tilde=n_tilde,
       m=m, alpha=alpha, rho=rho,
@@ -201,20 +316,17 @@ model_selection_distribution_first <- function(
       seed=seed
     )
 
-    # exogenous lags (full length)
     X_ppt  <- lag_mat(ppt,  lags_ppt)
     X_soil <- lag_mat(soil, lags_soil)
     X_cov_full <- cbind(X_ppt, X_soil)
     maxlag_cov <- max(lags_ppt, lags_soil)
 
-    # fit a single quantile (append exogenous lags in readout)
     fit_q <- function(p0) {
       fit0 <- do.call(qdesn_fit_vb, c(list(y=y, p0=p0, vb_args=vb_args), desn_args))
       keep_idx <- fit0$meta$keep_idx
       y_fit    <- fit0$y_fit
       X_res    <- fit0$X
 
-      # ensure covariate lags exist
       trim_n <- sum(keep_idx <= maxlag_cov)
       if (trim_n > 0) {
         keep_idx <- keep_idx[-seq_len(trim_n)]
@@ -258,33 +370,27 @@ model_selection_distribution_first <- function(
       list(fit=fit_exog, df_mu=df_mu)
     }
 
-    # fit all quantiles sequentially
     fits <- lapply(p_vec, fit_q); names(fits) <- paste0("p=", p_vec)
 
-    # common trailing alignment length
     T_common <- min(vapply(fits, function(o) nrow(o$df_mu), 1L))
     fits <- lapply(fits, function(o) { o$df_mu <- utils::tail(o$df_mu, T_common); o })
     y_aligned <- fits[[1]]$df_mu$y
 
-    # guard: identical trailing keep_idx across p
     ki_mat <- do.call(cbind, lapply(fits, function(o) utils::tail(o$fit$meta$keep_idx, T_common)))
     if (!all(apply(ki_mat, 1, function(r) length(unique(r))==1)))
       stop("keep_idx alignment mismatch across p.")
 
-    # posterior predictive draws per model
     pp_draws <- lapply(fits, function(x)
       posterior_predict.qdesn_fit(x$fit, nd=nd_draws, chunk=chunk_sz)$yrep
     )
     pp_draws <- lapply(pp_draws, function(M) utils::tail(M, T_common))
 
-    # slice BEFORE synthesis to last score_last_N points
     lastN <- min(T_common, score_last_N)
     idx_tail <- (T_common - lastN + 1L):T_common
     pp_draws <- lapply(pp_draws, function(M) M[idx_tail, , drop=FALSE])
     y_aligned <- y_aligned[idx_tail]
     T_common  <- nrow(pp_draws[[1]])
 
-    # synthesis on sliced window
     synth <- exdqlm_synthesize_from_draws(
       draws_list = pp_draws,
       p          = p_vec,
@@ -325,28 +431,51 @@ model_selection_distribution_first <- function(
       pit = list(mean = pit_mean, var = pit_var,
                  dev_mean = pit_dev_mean, dev_var = pit_dev_var),
       elapsed_sec = elapsed_sec,
-      complexity = list(sum_n = sum(n), D = D, lags_tot = lags_ppt + lags_soil)
+      complexity = list(sum_n = sum(n), D = D,
+                        lags_tot = lags_ppt + lags_soil)
     )
   }
-
+  
   ## ---- Map over candidate specs (seeds averaged inside) ----
   run_one_spec <- function(i) {
     row <- specs_list[[i]]
     key <- spec_key(row)
-    seed_runs <- lapply(seed_vec, function(sd) fit_spec_once(row, seed = sd))
+
+    # Run each seed safely; keep the ones that succeed
+    seed_runs <- lapply(seed_vec, function(sd) {
+      tryCatch(
+        fit_spec_once(row, seed = sd),
+        error = function(e) {
+          if (!is.null(progress_log)) {
+            stamp <- format(Sys.time(), "%F %T")
+            line <- sprintf("[%s] FAIL (seed=%s) %d/%d: %s | %s\n",
+                            stamp, as.character(sd), i, length(specs_list), key, conditionMessage(e))
+            cat(line, file = progress_log, append = TRUE)
+          }
+          NULL
+        }
+      )
+    })
+    ok <- vapply(seed_runs, function(x) !is.null(x), FALSE)
+
+    if (!any(ok)) {
+      # All seeds failed for this spec
+      return(fail_result(i, row, reason = "all seeds failed"))
+    }
+
+    seed_runs <- seed_runs[ok]
 
     crps_means <- vapply(seed_runs, function(x) x$mean_crps, 1.0)
     mean_crps  <- mean(crps_means, na.rm = TRUE)
-    se_crps    <- stats::sd(crps_means, na.rm = TRUE) / sqrt(length(seed_runs))
+    se_crps    <- if (length(seed_runs) > 1L)
+      stats::sd(crps_means, na.rm = TRUE) / sqrt(length(seed_runs)) else NA_real_
 
     cov_tbl <- do.call(rbind, lapply(seed_runs, function(z) z$coverage))
-    # average by p0
     cov_out <- do.call(rbind, lapply(split(cov_tbl, cov_tbl$p0), function(df) {
       data.frame(p0 = df$p0[1],
-                 cov = mean(df$cov, na.rm=TRUE),
-                 avg_bw = stats::median(df$avg_bw, na.rm=TRUE))
+                 cov = mean(df$cov, na.rm = TRUE),
+                 avg_bw = stats::median(df$avg_bw, na.rm = TRUE))
     }))
-    # ensure order p0 ascending
     cov_out <- cov_out[order(cov_out$p0), , drop = FALSE]
 
     pit_tbl <- do.call(rbind, lapply(seed_runs, function(z)
@@ -364,25 +493,86 @@ model_selection_distribution_first <- function(
       exemplar = if (keep_artifacts) seed_runs[[1]] else NULL,
       elapsed_sec = elapsed_sec,
       complexity = list(sum_n = sum(row$n), D = row$D,
-                        lags_tot = row$lags_tot <- row$lags_ppt + row$lags_soil)
+                        lags_tot = row$lags_ppt + row$lags_soil)
     )
   }
 
+
   if (!parallel) {
-    results <- lapply(seq_len(n_specs), run_one_spec)
+    results <- vector("list", n_specs)
+    for (i in seq_len(n_specs)) {
+      key_i <- spec_key(specs_list[[i]])
+      if ((i == 1L) || (i %% progress_every == 0L) || (i == n_specs)) {
+        log_line(sprintf("start %d/%d: %s", i, n_specs, key_i))
+      }
+
+      results[[i]] <- tryCatch(
+        run_one_spec(i),
+        error = function(e) {
+          log_line(sprintf("FAIL  %d/%d: %s | %s", i, n_specs, key_i, conditionMessage(e)))
+          fail_result(i, specs_list[[i]], reason = conditionMessage(e))
+        }
+      )
+
+      if ((i == 1L) || (i %% progress_every == 0L) || (i == n_specs)) {
+        log_line(sprintf("done  %d/%d: %s | meanCRPS=%.6f",
+                         i, n_specs, results[[i]]$spec_key, results[[i]]$mean_crps))
+      }
+    }
   } else {
     cl <- parallel::makePSOCKcluster(n_workers)
     on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
-    results <- parallel::parLapply(cl, seq_len(n_specs), function(i) {
-      # re-create needed objects in worker
-      environment() # no-op; closures capture needed vars
-      run_one_spec(i)
+
+    parallel::clusterEvalQ(cl, {
+      library(exdqlm)
+      Sys.setenv(
+        OMP_NUM_THREADS = "1",
+        MKL_NUM_THREADS = "1",
+        OPENBLAS_NUM_THREADS = "1",
+        VECLIB_MAXIMUM_THREADS = "1",
+        BLAS_NUM_THREADS = "1"
+      )
+      NULL
     })
+    try(parallel::clusterSetRNGStream(cl, 12345), silent = TRUE)
+
+    worker_fun <- function(i, specs_list, seed_vec, keep_artifacts, p_vec,
+                           vb_args, nd_draws, chunk_sz, synth_grid_M, synth_nsamp,
+                           synth_isotonic, synth_rearrange, synth_seed, score_last_N,
+                           y, ppt, soil, T_full, progress_log) {
+      stamp <- format(Sys.time(), "%F %T")
+      tryCatch({
+        res <- run_one_spec(i)
+        if (!is.null(progress_log)) {
+          line <- sprintf("[%s] done  %d/%d: %s | meanCRPS=%.6f\n",
+                          stamp, i, length(specs_list), res$spec_key, res$mean_crps)
+          cat(line, file = progress_log, append = TRUE)
+        }
+        res
+      }, error = function(e) {
+        fr <- fail_result(i, specs_list[[i]], reason = conditionMessage(e))
+        if (!is.null(progress_log)) {
+          line <- sprintf("[%s] FAIL  %d/%d: %s | %s\n",
+                          stamp, i, length(specs_list), fr$spec_key, conditionMessage(e))
+          cat(line, file = progress_log, append = TRUE)
+        }
+        fr
+      })
+    }
+
+    results <- parallel::parLapply(
+      cl, seq_len(n_specs), worker_fun,
+      specs_list=specs_list, seed_vec=seed_vec, keep_artifacts=keep_artifacts, p_vec=p_vec,
+      vb_args=vb_args, nd_draws=nd_draws, chunk_sz=chunk_sz, synth_grid_M=synth_grid_M,
+      synth_nsamp=synth_nsamp, synth_isotonic=synth_isotonic,
+      synth_rearrange=synth_rearrange, synth_seed=synth_seed, score_last_N=score_last_N,
+      y=y, ppt=ppt, soil=soil, T_full=T_full,
+      progress_log=progress_log
+    )
   }
 
   ## ---- Leaderboard & winner ----
   leaderboard <- do.call(rbind, lapply(results, function(r) {
-    # extract coverage by p
     cov05 <- r$cov_tbl$cov[r$cov_tbl$p0 == 0.05]
     cov50 <- r$cov_tbl$cov[r$cov_tbl$p0 == 0.50]
     cov95 <- r$cov_tbl$cov[r$cov_tbl$p0 == 0.95]
@@ -405,15 +595,17 @@ model_selection_distribution_first <- function(
       stringsAsFactors = FALSE
     )
   }))
-  # keep finite CRPS, then order
   leaderboard <- leaderboard[is.finite(leaderboard$mean_CRPS), , drop = FALSE]
+  if (nrow(leaderboard) == 0L) {
+    stop("All candidate specs failed. See FAIL lines in the progress log for details.")
+  }
   o <- order(leaderboard$mean_CRPS, leaderboard$sum_n, leaderboard$D, leaderboard$lags_tot)
   leaderboard <- leaderboard[o, , drop = FALSE]
 
   best_row <- leaderboard[1, , drop = FALSE]
+
   best     <- results[[ best_row$spec_idx ]]
 
-  # Optional quick plots for winner (if requested & ggplot2 present)
   if (isTRUE(plot) && isTRUE(keep_artifacts)) {
     if (requireNamespace("ggplot2", quietly = TRUE)) {
       T_win <- best$exemplar$T_common
