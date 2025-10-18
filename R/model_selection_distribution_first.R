@@ -188,95 +188,120 @@ model_selection_distribution_first <- function(
     )
   }
 
-
   ## ---- Candidate grid (shared spec across quantiles) ----
-  # Emphasis: D = 1 primary, D = 2 optional; D <= 3 overall
-  # Reservoir sizes per layer target 100..500 (per your guidance).
-  # Ranges follow the ESN guidelines: sparse W (~10 fan-out), ρ <~ 1 with leaky safety,
-  # co-tune input scaling and spectral radius, small α for memory.
-
-  # Default baseline (rich but sensible; presets below can shrink further)
-  D_vals <- c(1L, 2L)  # D=1 first; maybe D=2
-  n_packs <- list(
-    # D=1 (primary exploration)
+  # Goal: D <= 3, but *default* exploration focuses on D=1 and a few D=2.
+  # Reservoir sizes in 100..500 as requested; reducers only used for D>1.
+  D_vals     <- c(1L, 2L)  # default: mostly D=1, with a bit of D=2
+  n_packs    <- list(
+    # D=1 (main focus)
     c(100L), c(200L), c(300L), c(400L), c(500L),
-    # D=2 (optional deeper cases; keep totals reasonable)
-    c(200L,100L), c(300L,150L), c(400L,200L), c(500L,250L)
+    # D=2 (light exploration)
+    c(200L,100L), c(300L,150L), c(400L,200L)
+    # (You can always add c(500L,250L) later if needed)
   )
-  red_ratios <- c(0.20, 0.30)       # only used when D>1
-  alpha_vals <- c(0.15, 0.20, 0.25, 0.35)  # memory sweep; ReLU auto-skips α<0.20
-  rho_kinds  <- c("flat","decay")   # flat=(0.90,...), decay=(0.95,0.90,0.85)
-  rho_scale_vals <- c(0.8, 1.0, 1.1) # co-tune memory vs amplitude; leaky safety keeps stable
+  red_ratios <- c(0.20, 0.30)  # reducer ratios for D>1
+  # Leaking rates — cover fast & slower memory; keep scalar for now
+  alpha_vals <- c(0.20, 0.30, 0.50)
+  rho_kinds  <- c("flat","decay")
   act_f_vals <- c("tanh","relu")
-  m_vals     <- c(12L, 24L, 36L)    # y-lag memory sweep
+  m_vals     <- c(12L, 24L, 36L)
   wash_vals  <- c(200L)
   bias_vals  <- c(FALSE, TRUE)
-  lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L))  # exog lags (lean sets)
+  lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L), c(14L,7L), c(14L,14L))
 
-  # Input preprocessing (per the guide: z-score + bound; bias weaker than active inputs)
-  standardize_vals   <- c(TRUE)                 # z-score y-lags
-  input_bound_vals   <- c("tanh")               # bound inputs to avoid saturation
-  win_scale_global_v <- c(0.5, 1.0, 1.5, 2.0)   # co-tune with ρ
-  win_scale_bias_v   <- c(0.2, 0.4)
+  # Input preprocessing knobs (guided by the doc)
+  standardize_vals   <- c(TRUE)
+  input_bound_vals   <- c("tanh")
+  win_scale_global_v <- c(0.5, 1.0, 2.0)  # co-tune with rho scale
+  win_scale_bias_v   <- c(0.2, 0.5)
 
-  # Presets
+  # Spectral co-tuning — modest range keeps ESP & avoids saturation
+  rho_scale_vals     <- c(0.8, 1.0)
+
+  # Presets to shrink/shape exploration quickly
   if (grid_preset == "small") {
-    # Tight, still representative; mostly D=1, a couple of D=2 anchors
-    D_vals <- c(1L, 2L)
-    n_packs <- list(
-      c(200L), c(300L), c(400L),         # D=1
-      c(300L,150L), c(400L,200L)         # D=2
+    D_vals   <- c(1L, 2L)
+    n_packs  <- list(
+      c(200L), c(300L), c(400L),           # D=1
+      c(300L,150L)                          # D=2 (one popular baseline)
     )
     red_ratios <- c(0.30)
     alpha_vals <- c(0.20, 0.30)
     rho_kinds  <- c("flat","decay")
-    rho_scale_vals <- c(0.8, 1.0)
     act_f_vals <- c("tanh")
     m_vals     <- c(12L, 24L)
-    bias_vals  <- c(FALSE)
-    lags_pairs <- list(c(0L,0L), c(3L,3L))
+    bias_vals  <- c(TRUE)
+    lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L))
     standardize_vals   <- c(TRUE)
     input_bound_vals   <- c("tanh")
     win_scale_global_v <- c(0.5, 1.0)
     win_scale_bias_v   <- c(0.2)
+    rho_scale_vals     <- c(0.8, 1.0)
   } else if (grid_preset == "tiny") {
-    # Smoke test; D=1 only
-    D_vals <- c(1L)
-    n_packs <- list(c(200L), c(300L))
-    red_ratios <- c(0.30)            # irrelevant for D=1
-    alpha_vals <- c(0.25)
+    # Minimal smoke test: D=1 only
+    D_vals   <- c(1L)
+    n_packs  <- list(c(200L), c(300L), c(400L))
+    red_ratios <- c(0.30)
+    alpha_vals <- c(0.30)
     rho_kinds  <- c("flat")
-    rho_scale_vals <- c(1.0)
     act_f_vals <- c("tanh")
     m_vals     <- c(24L)
-    bias_vals  <- c(FALSE)
+    bias_vals  <- c(TRUE)
     lags_pairs <- list(c(0L,0L), c(3L,3L))
     standardize_vals   <- c(TRUE)
     input_bound_vals   <- c("tanh")
     win_scale_global_v <- c(1.0)
     win_scale_bias_v   <- c(0.2)
+    rho_scale_vals     <- c(1.0)
   } else if (grid_preset == "micro") {
-    # Very compact; a few strong D=1 configs + 2 D=2 baselines
-    D_vals <- c(1L, 2L)
-    n_packs <- list(
-      c(100L), c(200L), c(300L),     # D=1 focus
-      c(200L,100L), c(300L,150L)     # slim D=2 anchors
+    # Micro sanity run: primarily D=1; include a *couple* D=2 baselines.
+    D_vals   <- c(1L, 2L)
+    n_packs  <- list(
+      # D=1
+      c(200L), c(300L), c(400L), c(500L),
+      # D=2 (very light)
+      c(300L,150L), c(400L,200L)
     )
     red_ratios <- c(0.30)
-    alpha_vals <- c(0.20, 0.25)
+    alpha_vals <- c(0.20, 0.30)   # two sensible leaky rates
     rho_kinds  <- c("flat","decay")
-    rho_scale_vals <- c(0.8, 1.0)
     act_f_vals <- c("tanh","relu")
     m_vals     <- c(24L, 36L)
     wash_vals  <- c(200L)
     bias_vals  <- c(TRUE)
-    lags_pairs <- list(c(2L,2L), c(3L,3L))
+    lags_pairs <- list(c(3L,3L), c(7L,7L))
     standardize_vals   <- c(TRUE)
     input_bound_vals   <- c("tanh")
     win_scale_global_v <- c(0.5, 1.0, 2.0)
-    win_scale_bias_v   <- c(0.2, 0.4)
+    win_scale_bias_v   <- c(0.2, 0.5)
+    rho_scale_vals     <- c(0.8, 1.0)
+  } else if (grid_preset == "default") {
+    # Allow D up to 3, but still bias toward smaller D’s
+    D_vals   <- c(1L, 2L, 3L)
+    n_packs  <- list(
+      # D=1
+      c(200L), c(300L), c(400L), c(500L),
+      # D=2
+      c(200L,100L), c(300L,150L), c(400L,200L),
+      # D=3 (a couple of sensible stacks)
+      c(300L,200L,150L), c(400L,300L,200L)
+    )
+    red_ratios <- c(0.20, 0.30)
+    alpha_vals <- c(0.20, 0.30, 0.50)
+    rho_kinds  <- c("flat","decay")
+    act_f_vals <- c("tanh","relu")
+    m_vals     <- c(12L, 24L, 36L)
+    wash_vals  <- c(200L)
+    bias_vals  <- c(FALSE, TRUE)
+    lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L), c(14L,7L), c(14L,14L))
+    standardize_vals   <- c(TRUE)
+    input_bound_vals   <- c("tanh")
+    win_scale_global_v <- c(0.5, 1.0, 2.0)
+    win_scale_bias_v   <- c(0.2, 0.5)
+    rho_scale_vals     <- c(0.8, 1.0)
   }
 
+  # Build the full spec list
   specs_list <- vector("list", 0L)
   for (D in D_vals) {
     for (n in n_packs) {
@@ -318,20 +343,12 @@ model_selection_distribution_first <- function(
       }
     }
   }
+
+
   # de-duplicate
   key_vec <- vapply(specs_list, function(s) paste(unlist(s), collapse="|"), "")
   keep    <- !duplicated(key_vec)
   specs_list <- specs_list[keep]
-
-  # Enforce micro constraints (if selected)
-  if (grid_preset == "micro") {
-    specs_list <- Filter(function(s)
-      (length(s$n) <= 3L) && all(s$n <= 36L) &&
-      (s$lags_ppt %in% c(2L,3L)) && (s$lags_soil %in% c(2L,3L)),
-      specs_list
-    )
-  }
-
 
   # Compute *after* any filtering
   n_specs_full <- length(specs_list)
@@ -343,7 +360,9 @@ model_selection_distribution_first <- function(
     specs_list <- specs_list[keep_idx]
   }
   n_specs <- length(specs_list)
-
+  if (n_specs == 0L) {
+    stop(sprintf("Grid '%s' produced zero candidate specs. Check D_vals/n_packs or preset filters.", grid_preset))
+  }
 
   # Header
   log_line(sprintf("Stage=%s | grid=%s | candidates=%d (of %d) | seeds=%s",
@@ -609,10 +628,28 @@ model_selection_distribution_first <- function(
     })
     try(parallel::clusterSetRNGStream(cl, 12345), silent = TRUE)
 
-    worker_fun <- function(i, specs_list, seed_vec, keep_artifacts, p_vec,
-                           vb_args, nd_draws, chunk_sz, synth_grid_M, synth_nsamp,
-                           synth_isotonic, synth_rearrange, synth_seed, score_last_N,
-                           y, ppt, soil, T_full, progress_log) {
+    # NEW: PSOCK needs all free vars/closures explicitly exported.
+    parallel::clusterExport(
+      cl,
+      c(
+        # closures
+        "run_one_spec", "fit_spec_once",
+        # config/objects they capture
+        "specs_list", "seed_vec", "keep_artifacts", "p_vec",
+        "vb_args", "nd_draws", "chunk_sz",
+        "synth_grid_M", "synth_nsamp", "synth_isotonic",
+        "synth_rearrange", "synth_seed", "score_last_N",
+        "y", "ppt", "soil", "T_full",
+        "progress_log",
+        # helper utilities used in fail paths/CRPS
+        "fail_result", "spec_key",
+        "slice_last", "slice_last_rows",
+        "crps_from_draws_1", "crps_from_draws_window"
+      ),
+      envir = environment()
+    )
+
+    worker_fun <- function(i) {
       stamp <- format(Sys.time(), "%F %T")
       tryCatch({
         res <- run_one_spec(i)
@@ -633,16 +670,9 @@ model_selection_distribution_first <- function(
       })
     }
 
-    results <- parallel::parLapply(
-      cl, seq_len(n_specs), worker_fun,
-      specs_list=specs_list, seed_vec=seed_vec, keep_artifacts=keep_artifacts, p_vec=p_vec,
-      vb_args=vb_args, nd_draws=nd_draws, chunk_sz=chunk_sz, synth_grid_M=synth_grid_M,
-      synth_nsamp=synth_nsamp, synth_isotonic=synth_isotonic,
-      synth_rearrange=synth_rearrange, synth_seed=synth_seed, score_last_N=score_last_N,
-      y=y, ppt=ppt, soil=soil, T_full=T_full,
-      progress_log=progress_log
-    )
+    results <- parallel::parLapply(cl, seq_len(n_specs), worker_fun)
   }
+
 
   ## ---- Leaderboard & winner ----
   leaderboard <- do.call(rbind, lapply(results, function(r) {
