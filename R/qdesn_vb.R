@@ -45,7 +45,17 @@ qdesn_fit_vb <- function(
   n = c(200L, 100L, 50L),
   n_tilde = c(50L, 25L),
   m = 12L,
-  alpha = 0.3,
+
+  # --- NEW: input preprocessing & scaling ---
+  standardize_inputs = FALSE,        # z-score the lag inputs (not y target)
+  input_bound = c("none","tanh"),    # optional bounding of inputs
+  win_scale_global = 1.0,            # global scale for inputs
+  win_scale_bias   = 1.0,            # separate scale for the bias column (u_0)
+  win_scale_lags   = NULL,           # optional length-m vector for per-lag scales
+
+  # --- leak can be scalar or length-D vector now ---
+  alpha = 0.3,                       
+
   rho = rep(0.9, length.out = D),
   act_f = "tanh",
   act_k = "identity",
@@ -54,11 +64,19 @@ qdesn_fit_vb <- function(
   in_dist = function(n) rnorm(n, 0, 1),
   washout = 100L,
   add_bias = FALSE,
+
+  # --- NEW: weights & robustness ---
+  weights = NULL,                    # optional time weights s_t (pre-VB)
+  state_noise_sd = 0.0,              # N(0, sd^2) noise on features X
+  segments = NULL,                   # list of integer vectors (start:end) for short sequences
+
   seed = NULL,
   vb_args = list()
 ){
+
   ## ---- checks ----
   y <- as.numeric(y); T <- length(y)
+
   stopifnot(length(p0) == 1, p0 > 0, p0 < 1)
   D <- as.integer(D); stopifnot(D >= 1, length(n) == D)
   if (D == 1L) { n_tilde <- integer(0) } else {
@@ -68,6 +86,39 @@ qdesn_fit_vb <- function(
   washout <- as.integer(washout); stopifnot(washout >= 0)
   rho <- as.numeric(rho); stopifnot(length(rho) == D, all(rho > 0), all(rho < 1))
   if (!is.null(seed)) set.seed(seed)
+
+  input_bound <- match.arg(input_bound)
+
+  # alpha: scalar or length-D vector
+  alpha_vec <- if (length(alpha) == 1L) rep(as.numeric(alpha), D) else as.numeric(alpha)
+  stopifnot(length(alpha_vec) == D, all(alpha_vec > 0), all(alpha_vec < 1))
+
+  # per-lag scaling
+  if (!is.null(win_scale_lags)) {
+    stopifnot(length(win_scale_lags) == m)
+  }
+
+  # segments: either NULL or list of integer vectors
+  if (!is.null(segments)) {
+    stopifnot(is.list(segments), length(segments) > 0)
+    stopifnot(all(vapply(segments, function(r) all(r >= 1 & r <= T), TRUE)))
+  }
+
+  # --- optional standardization stats for lag inputs (not target y) ---
+  lag_center <- 0; lag_scale <- 1
+  if (isTRUE(standardize_inputs) && m > 0L) {
+    lag_center <- mean(y, na.rm = TRUE)
+    lag_scale  <- stats::sd(y, na.rm = TRUE); if (!is.finite(lag_scale) || lag_scale <= 1e-12) lag_scale <- 1
+  }
+
+  # helper to post-process inputs (excluding bias)
+  process_inputs <- function(v_no_bias) {
+    z <- v_no_bias
+    if (isTRUE(standardize_inputs)) z <- (z - lag_center) / lag_scale
+    if (!is.null(win_scale_lags)) z <- z * as.numeric(win_scale_lags)
+    if (input_bound == "tanh") z <- base::tanh(z)
+    z
+  }
 
   ## ---- activations ----
   get_act <- function(a) {
@@ -115,14 +166,29 @@ qdesn_fit_vb <- function(
     Q / rs
   }
 
+  enforce_leaky_radius <- function(Wd, alpha) {
+    # Largest eigenvalue magnitude of J = (1-alpha)I + alpha*Wd
+    # For large matrices, use RSpectra if available.
+    nr <- nrow(Wd)
+    if (nr >= 256 && requireNamespace("RSpectra", quietly = TRUE)) {
+      ev <- RSpectra::eigs((1-alpha)*diag(nr) + alpha*Wd, k = 1, which = "LM")$values
+      rJ <- max(Mod(ev))
+    } else {
+      rJ <- max(Mod(eigen((1-alpha)*diag(nr) + alpha*Wd, only.values=TRUE)$values))
+    }
+    if (rJ < 1 - 1e-6) return(Wd)
+    # Rescale Wd so that rho(J) = 0.99
+    s <- 0.99 / rJ
+    (1/alpha) * ( s*((1-alpha)*diag(nr) + alpha*Wd) - (1-alpha)*diag(nr) )
+  }
+
   ## ---- build reservoir ----
   Win <- vector("list", D)
   W   <- vector("list", D)
   Qred<- vector("list", max(0, D - 1))
 
   # Layer 1: input size m+1 (includes constant)
-  in1 <- m + 1L
-  Win[[1]] <- make_sparse_weights(n[1], in1, pi_in, in_dist)
+  Win[[1]] <- make_sparse_weights(n[1], m + 1L, pi_in, in_dist)
   W[[1]]   <- make_sparse_weights(n[1], n[1], pi_w,  w_dist)
 
   if (D >= 2L) {
@@ -138,52 +204,72 @@ qdesn_fit_vb <- function(
     sr <- suppressWarnings(try(spectral_radius(W[[d]]), silent = TRUE))
     if (inherits(sr, "try-error") || !is.finite(sr) || sr <= 0) sr <- 1
     W[[d]] <- (rho[d] / sr) * W[[d]]
+    # extra safety for the leaky map (use layerwise alpha)
+    W[[d]] <- enforce_leaky_radius(W[[d]], alpha_vec[d])
   }
 
   reservoir <- list(
-    D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha, rho = rho,
+    D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
     W = W, Win = Win, Q = Qred, act_f = act_f, act_k = act_k,
     pi_w = pi_w, pi_in = pi_in, w_dist = substitute(w_dist), in_dist = substitute(in_dist),
     seed = seed
   )
 
   ## ---- roll states and stack features ----
-  # inputs u_t = (1, y_{t-1}, ..., y_{t-m})
+  # inputs u_t = (bias, y_{t-1}, ..., y_{t-m}), then apply scaling
   make_u <- function(y, t, m) {
-    if (m == 0L) return(c(1))
-    # pad with zeros if not enough lags (we drop early times later anyway)
-    lags <- y[pmax(1, t - (1:m))]
-    c(1, lags)
+    if (m == 0L) {
+      u <- c(1)
+    } else if (t <= m) {
+      u <- c(1, rep(0, m))
+    } else {
+      lags <- y[seq.int(t-1, t-m, by = -1)]
+      lags <- process_inputs(lags)   # standardize/bound/per-lag scale
+      u <- c(1, lags)
+    }
+    # separate bias & global scales last (bias is index 1)
+    u[1] <- u[1] * win_scale_bias
+    if (length(u) > 1L) u[-1] <- u[-1] * win_scale_global
+    u
   }
 
-  H <- lapply(seq_len(D), function(d) matrix(0, nrow = T, ncol = n[d])) # store states per layer
+  # helper to reset states to zero (or could be a learned x_init later)
+  reset_states <- function() lapply(seq_len(D), function(d) rep(0, n[d]))
+
+  H <- lapply(seq_len(D), function(d) matrix(0, nrow = T, ncol = n[d]))
   H_tilde <- if (D >= 2L) lapply(seq_len(D - 1L), function(d) matrix(0, nrow = T, ncol = n_tilde[d])) else list()
 
-  # initial states = 0
-  h_prev <- lapply(seq_len(D), function(d) rep(0, n[d]))
+  if (is.null(segments)) {
+    segs <- list(1:T)
+  } else {
+    segs <- segments
+  }
 
-  for (t in 1:T) {
-    u_t <- make_u(y, t, m)
-    # layer 1
-    pre1 <- reservoir$W[[1]] %*% h_prev[[1]] + reservoir$Win[[1]] %*% u_t
-    omega1 <- f_act(pre1)
-    h1 <- (1 - alpha) * h_prev[[1]] + alpha * omega1
-    H[[1]][t, ] <- h1
-    h_prev[[1]] <- h1
-
-    if (D >= 2L) {
-      for (d in 2:D) {
-        htilde <- reservoir$Q[[d - 1]] %*% h_prev[[d - 1]]
-        H_tilde[[d - 1]][t, ] <- htilde
-        pred <- reservoir$W[[d]] %*% h_prev[[d]] + reservoir$Win[[d]] %*% htilde
-        omegad <- f_act(pred)
-        hd <- (1 - alpha) * h_prev[[d]] + alpha * omegad
-        H[[d]][t, ] <- hd
-        h_prev[[d]] <- hd
+  for (seg in segs) {
+    h_prev <- reset_states()
+    for (t in seg) {
+      u_t <- make_u(y, t, m)
+      # layer 1
+      pre1 <- reservoir$W[[1]] %*% h_prev[[1]] + reservoir$Win[[1]] %*% u_t
+      omega1 <- f_act(pre1)
+      h1 <- (1 - alpha_vec[1]) * h_prev[[1]] + alpha_vec[1] * omega1
+      H[[1]][t, ] <- h1
+      h_prev[[1]] <- h1
+      if (D >= 2L) {
+        for (d in 2:D) {
+          htilde <- reservoir$Q[[d - 1]] %*% h_prev[[d - 1]]
+          H_tilde[[d - 1]][t, ] <- htilde
+          pred <- reservoir$W[[d]] %*% h_prev[[d]] + reservoir$Win[[d]] %*% htilde
+          omegad <- f_act(pred)
+          hd <- (1 - alpha_vec[d]) * h_prev[[d]] + alpha_vec[d] * omegad
+          H[[d]][t, ] <- hd
+          h_prev[[d]] <- hd
+        }
       }
     }
   }
 
+  
   # build feature vector x_t = [ h_{t,D} ; k(tilde h_{t,1}); ... ; k(tilde h_{t,D-1}) ]
   build_xrow <- function(t) {
     if (D == 1L) {
@@ -202,6 +288,21 @@ qdesn_fit_vb <- function(
   X <- X_all[keep_idx, , drop = FALSE]
   y_fit <- y[keep_idx]
 
+  # --- optional row weights s_t (pre-multiply by sqrt(s_t)) ---
+  if (!is.null(weights)) {
+    stopifnot(length(weights) == T)
+    w_keep <- weights[keep_idx]
+    stopifnot(all(w_keep >= 0))
+    s <- sqrt(w_keep)
+    X <- X * s
+    y_fit <- y_fit * s
+  }
+
+  # --- optional state-noise immunization on features (ridge-like robustness) ---
+  if (state_noise_sd > 0) {
+    X <- X + matrix(rnorm(length(X), 0, state_noise_sd), nrow(X), ncol(X))
+  }
+
   ## ---- fit exAL static VB ----
   # Defaults that play nicely with large X
   p <- ncol(X)
@@ -213,11 +314,13 @@ qdesn_fit_vb <- function(
     tol = 1e-4,
     n_samp_xi = 250,
     verbose = TRUE,
-    p0 = p0 # ignored by exal_static_LDVB signature; we pass separately below
+    stream = FALSE,        
+    p0 = p0
   )
   vb_call <- utils::modifyList(defaults, vb_args, keep.null = TRUE)
 
-  fit <- exal_static_LDVB(
+  # Prepare argument list once
+  .exal_args <- list(
     y = y_fit,
     X = X,
     p0 = p0,
@@ -234,9 +337,69 @@ qdesn_fit_vb <- function(
     verbose      = isTRUE(vb_call$verbose)
   )
 
+  if (!isTRUE(vb_call$stream)) {
+    # regular in-process call (may buffer prints in Jupyter)
+    fit <- do.call(exal_static_LDVB, .exal_args)
+  } else {
+    # live streaming via a background R process
+    if (!requireNamespace("callr", quietly = TRUE)) {
+      stop("To stream progress, install.packages('callr') or set vb_args$stream = FALSE.")
+    }
+    # run in a clean R session that has the package available
+    p_bg <- callr::r_bg(
+      function(args) {
+        # make sure the package namespace is loaded in the child
+        if (!"exdqlm" %in% loadedNamespaces()) library(exdqlm)
+        do.call(exal_static_LDVB, args)
+      },
+      args = list(.exal_args),
+      stdout = "|", stderr = "|"
+    )
+
+    # tail the child’s output until it finishes
+    repeat {
+      # stream any new lines
+      out <- p_bg$read_output_lines()
+      err <- p_bg$read_error_lines()
+      if (length(out)) { cat(paste0(out, collapse = "\n"), "\n"); utils::flush.console() }
+      if (length(err)) { cat(paste0(err, collapse = "\n"), "\n"); utils::flush.console() }
+      if (!p_bg$is_alive()) break
+      Sys.sleep(0.2)
+    }
+    # flush remaining
+    out <- p_bg$read_output_lines(); if (length(out)) cat(paste0(out, collapse="\n"), "\n")
+    err <- p_bg$read_error_lines(); if (length(err)) cat(paste0(err, collapse="\n"), "\n")
+
+    # retrieve result (errors propagate)
+    fit <- p_bg$get_result()
+  }
+
+  # --- simple activation diagnostics at the last kept time step ---
+  t_last <- NULL
+  if (length(keep_idx) > 0L) t_last <- keep_idx[length(keep_idx)]
+  diag_list <- list()
+  if (!is.null(t_last)) {
+    for (d in 1:D) {
+      post <- as.numeric(H[[d]][t_last, ])
+      diag_list[[paste0("layer", d)]] <- list(
+        post_mean = mean(post), post_sd = stats::sd(post),
+        post_q = stats::quantile(post, c(.01,.05,.5,.95,.99), na.rm=TRUE)
+      )
+    }
+  }
+  diagnostics <- list(
+    alpha = alpha_vec,
+    win_scale_global = win_scale_global,
+    win_scale_bias = win_scale_bias,
+    win_scale_lags = win_scale_lags,
+    state_noise_sd = state_noise_sd,
+    act_summary = diag_list
+  )
+
+
   mu_hat <- as.numeric(X %*% fit$qbeta$m)
 
-  ret <- list(
+ret <- list(
     fit = fit,
     X = X,
     y_fit = y_fit,
@@ -245,8 +408,16 @@ qdesn_fit_vb <- function(
     states = list(H_last = H[[D]], H_all = H, H_tilde = H_tilde),
     meta = list(
       keep_idx = keep_idx, drop = drop, T = T, p0 = p0,
-      D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha, rho = rho,
-      add_bias = add_bias
+      D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
+      add_bias = add_bias,
+      standardize_inputs = standardize_inputs,
+      input_bound = input_bound,
+      win_scale_global = win_scale_global,
+      win_scale_bias = win_scale_bias,
+      win_scale_lags = win_scale_lags,
+      weights = if (!is.null(weights)) weights[keep_idx] else NULL,
+      segments = segments,
+      diagnostics = diagnostics
     )
   )
   class(ret) <- "qdesn_fit"
@@ -333,14 +504,14 @@ exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L)
 
   ids_list <- split(seq_len(nd), ceiling(seq_len(nd) / as.integer(chunk)))
   for (ids in ids_list) {
-    m  <- length(ids)
-    Bc <- t(Bdraw[ids, , drop = FALSE])            # p x m
-    mu <- X_new %*% Bc                              # n x m
+    mm <- length(ids)
+    Bc <- t(Bdraw[ids, , drop = FALSE])        # p x mm
+    mu <- X_new %*% Bc                          # n x mm
     mu_draws[, ids] <- mu
 
-    s_mat <- matrix(abs(rnorm(n * m)), n, m)                              # N^+(0,1)
-    v_mat <- matrix(rexp(n * m, rate = rep(1 / sdraw[ids], each = n)), n, m)
-    z_mat <- matrix(rnorm(n * m), n, m)
+    s_mat <- matrix(abs(rnorm(n * mm)), n, mm)
+    v_mat <- matrix(rexp(n * mm, rate = rep(1 / sdraw[ids], each = n)), n, mm)
+    z_mat <- matrix(rnorm(n * mm), n, mm)
 
     term_s <- sweep(s_mat, 2L, lam_d[ids] * sdraw[ids], `*`)
     term_v <- sweep(v_mat, 2L, A_d[ids],                   `*`)
