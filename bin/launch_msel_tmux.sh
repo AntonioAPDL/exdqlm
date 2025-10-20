@@ -1,74 +1,54 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/.."
 
-# --- sanity: tmux available ---
-if ! command -v tmux >/dev/null 2>&1; then
-  echo "ERROR: tmux not found in PATH. Install tmux and retry." >&2
-  exit 1
-fi
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# --- single-thread defaults for any BLAS on the launcher side too ---
-export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
-export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
-export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
-export VECLIB_MAXIMUM_THREADS="${VECLIB_MAXIMUM_THREADS:-1}"
-export BLAS_NUM_THREADS="${BLAS_NUM_THREADS:-1}"
-
-# --- knobs (env overridable) ---
-SESSION="${SESSION:-qdesn-msel}"
-WIN_NAME_PREFIX="msel"
-STAMP="$(date +%Y%m%d_%H%M%S)"
-WIN_NAME="${WIN_NAME_PREFIX}-${STAMP}"
-
-# These flow into bin/run_qdesn_msel.sh via env
+SESSION="${SESSION:-exdqlm-msel}"
 STAGE="${STAGE:-coarse}"
-PARALLEL="${PARALLEL:-TRUE}"
-# If WORKERS is unset, run_qdesn_msel.sh computes a good default from nproc - RESERVE_CORES
-WORKERS="${WORKERS:-}"
-RESERVE_CORES="${RESERVE_CORES:-2}"
-DATA="${DATA:-}"
-PLOT="${PLOT:-FALSE}"
-KEEP="${KEEP:-TRUE}"
-PROGRESS_EVERY="${PROGRESS_EVERY:-1}"
-GRID="${GRID:-default}"
+GRID="${GRID:-micro}"
 LIMIT_SPECS="${LIMIT_SPECS:-}"
-GRID_SEED="${GRID_SEED:-42}"
 SEEDS="${SEEDS:-42,101}"
+DATA="${DATA:-}"
+WORKERS="${WORKERS:-}"          # NEW: forward if provided
+PARALLEL="${PARALLEL:-TRUE}"     # allow override
+GRID_SEED="${GRID_SEED:-}"       # optional
+PLOT="${PLOT:-}"                 # optional
+KEEP="${KEEP:-}"                 # optional
+PROGRESS_EVERY="${PROGRESS_EVERY:-}"  # optional
+WEIGHT_LEADS="${WEIGHT_LEADS:-inverse_h}"   # optional override
+SPLIT="${SPLIT:-0.80,0.15,0.05}"            # optional override
 
-# Build the command we’ll run inside tmux
-# (quote values so spaces in DATA path, etc. are safe)
-RUN_CMD=$'bash -lc '\''
-STAGE='"'"'"${STAGE}"'"'"' \
-PARALLEL='"'"'"${PARALLEL}"'"'"' \
-'"$( [[ -n "${WORKERS}" ]] && printf "WORKERS='%s' " "${WORKERS}" )$"' \
-RESERVE_CORES='"'"'"${RESERVE_CORES}"'"'"' \
-DATA='"'"'"${DATA}"'"'"' \
-PLOT='"'"'"${PLOT}"'"'"' \
-KEEP='"'"'"${KEEP}"'"'"' \
-PROGRESS_EVERY='"'"'"${PROGRESS_EVERY}"'"'"' \
-GRID='"'"'"${GRID}"'"'"' \
-LIMIT_SPECS='"'"'"${LIMIT_SPECS}"'"'"' \
-GRID_SEED='"'"'"${GRID_SEED}"'"'"' \
-SEEDS='"'"'"${SEEDS}"'"'"' \
-./bin/run_qdesn_msel.sh
-'\'''
+# Build the actual run command (all envs we want to pass into run_qdesn_msel.sh)
+RUN_CMD="cd \"$ROOT\" && STAGE='$STAGE' GRID='$GRID' SEEDS='$SEEDS' PARALLEL='$PARALLEL'"
+[[ -n "$WORKERS" ]]        && RUN_CMD+=" WORKERS='$WORKERS'"
+[[ -n "$LIMIT_SPECS" ]]    && RUN_CMD+=" LIMIT_SPECS='$LIMIT_SPECS'"
+[[ -n "$DATA" ]]           && RUN_CMD+=" DATA='$DATA'"
+[[ -n "$GRID_SEED" ]]      && RUN_CMD+=" GRID_SEED='$GRID_SEED'"
+[[ -n "$PLOT" ]]           && RUN_CMD+=" PLOT='$PLOT'"
+[[ -n "$KEEP" ]]           && RUN_CMD+=" KEEP='$KEEP'"
+[[ -n "$PROGRESS_EVERY" ]] && RUN_CMD+=" PROGRESS_EVERY='$PROGRESS_EVERY'"
+[[ -n "$WEIGHT_LEADS" ]] && RUN_CMD+=" WEIGHT_LEADS='$WEIGHT_LEADS'"
+[[ -n "$SPLIT" ]]        && RUN_CMD+=" SPLIT='$SPLIT'"
 
-# Create or reuse session
-if tmux has-session -t "${SESSION}" 2>/dev/null; then
-  # session exists: create a new window
-  tmux new-window -t "${SESSION}" -n "${WIN_NAME}"
-else
-  # create a new detached session with first window
-  tmux new-session -d -s "${SESSION}" -n "${WIN_NAME}"
-  # keep windows open on exit so you can inspect after finish
-  tmux set-option -t "${SESSION}" remain-on-exit on >/dev/null
+RUN_CMD+=" bin/run_qdesn_msel.sh"
+
+# If tmux is not available, run in foreground
+if ! command -v tmux >/dev/null 2>&1; then
+  echo "tmux not found; running directly in this shell:"
+  echo "$RUN_CMD"
+  bash -lc "$RUN_CMD"
+  exit $?
 fi
 
-# Send the command to the new window
-tmux send-keys -t "${SESSION}:${WIN_NAME}" "${RUN_CMD}" C-m
+# Create or reuse session and run in a window
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  tmux new-window -t "$SESSION" -n "msel_${STAGE}" "bash -lc \"$RUN_CMD\""
+else
+  tmux new-session -d -s "$SESSION" -n "msel_${STAGE}" "bash -lc \"$RUN_CMD\""
+fi
 
-echo "Launched in tmux session: ${SESSION}, window: ${WIN_NAME}"
-echo "Attach:   tmux attach -t ${SESSION}"
-echo "Detach:   Ctrl-b then d"
-echo "Logs:     tail -f logs/run_${STAGE}_\$(ls -t logs/run_${STAGE}_*.log | head -n1)"
+echo "Launched in tmux session: $SESSION (window: msel_${STAGE})"
+echo "Cmd: $RUN_CMD"
+echo "Attach: tmux attach -t $SESSION"
+echo "Latest log (once created):"
+echo "  tail -f \"\$(ls -t \"$ROOT\"/logs/run_${STAGE}_*.log 2>/dev/null | head -n1)\""

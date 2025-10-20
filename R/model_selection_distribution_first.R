@@ -418,6 +418,8 @@ model_selection_distribution_first <- function(
         matrix(numeric(0), nrow=length(keep_idx), ncol=0)
       X_aug <- cbind(X_res, X_cov)
 
+      p_res_cols <- ncol(X_res)  
+
       fit_readout <- exal_static_LDVB(
         y=y_fit, X=X_aug, p0=p0,
         max_iter=vb_args$max_iter, tol=vb_args$tol,
@@ -441,12 +443,14 @@ model_selection_distribution_first <- function(
         X = X_aug, y_fit = y_fit, mu_hat = mb$mu,
         reservoir = fit0$reservoir, states = fit0$states,
         meta = list(
-          keep_idx=keep_idx,
-          drop=max(m, washout, maxlag_cov),
-          T=T_full, p0=p0, D=D, n=n, n_tilde=n_tilde,
-          m=m, alpha=alpha, rho=rho, add_bias=add_bias,
-          # new: make downstream debugging reproducible/easy
+          keep_idx = keep_idx,
+          drop = max(m, washout, maxlag_cov),
+          T = T_full, p0 = p0, D = D, n = n, n_tilde = n_tilde,
+          m = m, alpha = alpha, rho = rho, add_bias = add_bias,
+          # reproducibility
           pi_w = pi_w, pi_in = pi_in,
+
+          # keep the original preproc flags (unchanged)
           preproc = list(
             standardize_inputs = isTRUE(spec$standardize_inputs),
             input_bound        = spec$input_bound,
@@ -455,9 +459,27 @@ model_selection_distribution_first <- function(
             rho_kind           = spec$rho_kind,
             rho_scale          = spec$rho_scale
           ),
+
+          # NEW (used by forecast_paths):
+          p_res       = p_res_cols,
+          lags_ppt    = lags_ppt,
+          lags_soil   = lags_soil,
+          covar_order = c("ppt","soil"),
+
+          # carry over lag standardization stats from base DESN fit
+          standardize_inputs = isTRUE(spec$standardize_inputs),
+          input_bound        = spec$input_bound,
+          win_scale_global   = spec$win_scale_global,
+          win_scale_bias     = spec$win_scale_bias,
+          win_scale_lags     = fit0$meta$win_scale_lags,  # <-- from fit0
+          lag_center = fit0$meta$lag_center,
+          lag_scale  = fit0$meta$lag_scale,
+
+          # keep diagnostics as its own field (like the base fit)
           diagnostics = fit0$meta$diagnostics
         )
       )
+
       class(fit_exog) <- "qdesn_fit"
       list(fit=fit_exog, df_mu=df_mu)
     }
@@ -780,5 +802,548 @@ model_selection_distribution_first <- function(
     leaderboard   = leaderboard,
     winner        = best$spec_key,
     winner_bundle = winner_bundle
+  )
+}
+
+#' Option A: Split-once, path-forecast validation selection, then refit & test
+#'
+#' Implements the end-to-end workflow:
+#'   Train (~80%) | Validate (~15%) | Test (~5%).
+#'   Fit once per quantile on Train; recursive multi-horizon forecasts on Val;
+#'   synthesize (p = {0.05,0.50,0.95}); score CRPS by lead and aggregate;
+#'   select best spec; refit on Train∪Val; forecast Test; report Test CRPS.
+#'
+#' @param y,ppt,soil Numeric vectors (same length).
+#' @param p_vec Quantiles to fit/synthesize. Default: c(0.05,0.50,0.95).
+#' @param split Proportions c(train, val, test). Default: c(.80,.15,.05).
+#' @param weight_leads "uniform" or "inverse_h" aggregation across horizons.
+#' @param stage "coarse" or "final" affects VB and sampling budgets.
+#' @param grid_preset As in your other selector ("default","small","tiny","micro").
+#' @param seed_vec Vector of reservoir seeds to average per spec (variance reduction).
+#' @param parallel,n_workers Same semantics as before.
+#' @param keep_artifacts Keep winner's fits, forecasts, and draws (TRUE/FALSE).
+#' @param progress_console,progress_log,progress_every Logging controls.
+#' @return list with leaderboard (validation), winner (key), selection_bundle with
+#'         validation details, and test_bundle (refit Train∪Val, score on Test).
+#' @export
+model_selection_optionA <- function(
+  y, ppt = NULL, soil = NULL,
+  p_vec = c(0.05, 0.50, 0.95),
+  split = c(0.80, 0.15, 0.05),
+  weight_leads = c("uniform","inverse_h"),
+  stage = c("coarse","final"),
+  grid_preset = c("default","small","tiny","micro"),
+  seed_vec = c(42L, 101L),
+  parallel = FALSE,
+  n_workers = max(1L, parallel::detectCores() - 1L),
+  keep_artifacts = TRUE,
+  progress_console = FALSE,
+  progress_log = NULL,
+  progress_every = 1L
+) {
+  stage <- match.arg(stage)
+  grid_preset <- match.arg(grid_preset)
+  weight_leads <- match.arg(weight_leads)
+
+  stopifnot(is.numeric(y))
+  T_full <- length(y)
+  if (!is.null(ppt) && length(ppt) != T_full) stop("ppt length must match y.")
+  if (!is.null(soil) && length(soil) != T_full) stop("soil length must match y.")
+  if (is.null(ppt))  ppt  <- rep(0, T_full)
+  if (is.null(soil)) soil <- rep(0, T_full)
+
+  # ---------- split once ----------
+  split <- as.numeric(split); split <- split / sum(split)
+  n_tr  <- max(1L, floor(split[1] * T_full))
+  n_va  <- max(1L, floor(split[2] * T_full))
+  n_te  <- max(1L, T_full - n_tr - n_va)
+  idx_tr <- 1:n_tr
+  idx_va <- (n_tr + 1):(n_tr + n_va)
+  idx_te <- (n_tr + n_va + 1):T_full
+
+  y_tr <- y[idx_tr]; ppt_tr <- ppt[idx_tr]; soil_tr <- soil[idx_tr]
+  y_va <- y[idx_va]; ppt_va <- ppt[idx_va]; soil_va <- soil[idx_va]
+  y_te <- y[idx_te]; ppt_te <- ppt[idx_te]; soil_te <- soil[idx_te]
+
+  H_val  <- length(y_va)
+  H_test <- length(y_te)
+
+  # ---------- budgets by stage ----------
+  vb_args <- list(
+    max_iter   = if (stage == "coarse")  900 else 2000,
+    tol        = 1e-4,
+    n_samp_xi  = if (stage == "coarse")  400 else 1200,
+    verbose    = FALSE
+  )
+  nd_draws       <- if (stage == "coarse") 1000L else 4000L
+  chunk_sz       <- 256L
+  synth_grid_M   <- if (stage == "coarse")  801L else 2001L
+  synth_nsamp    <- if (stage == "coarse") 2500L else 8000L
+  synth_isotonic <- TRUE
+  synth_rearrange<- if (stage == "coarse") FALSE else TRUE
+  synth_seed     <- 999L
+
+  # ---------- helpers ----------
+  lag_mat <- function(x, L) {
+    T <- length(x); L <- as.integer(L)
+    if (L <= 0) return(matrix(numeric(0), nrow = T, ncol = 0))
+    M <- matrix(0, nrow = T, ncol = L)
+    for (j in 1:L) M[(j+1):T, j] <- x[1:(T - j)]
+    M
+  }
+  agg_weights <- function(H, kind) {
+    if (kind == "inverse_h") {
+      w <- 1/seq_len(H); w / sum(w)
+    } else {
+      rep(1/H, H)
+    }
+  }
+  crps_1 <- function(y_true, draws_vec) {
+    x <- sort(as.numeric(draws_vec)); N <- length(x); if (N < 5) return(NA_real_)
+    tau <- (seq_len(N)) / (N + 1)
+    res <- y_true - x
+    rho <- (tau - as.numeric(res < 0)) * res
+    (2 / N) * sum(rho)
+  }
+
+  # ---------- candidate grid (copied/adapted from your function) ----------
+  rho_pattern <- function(D, kind = c("flat","decay")) {
+    kind <- match.arg(kind)
+    if (kind == "flat")  rep(0.90, D) else head(c(0.95, 0.90, 0.85), D)
+  }
+  make_n_tilde <- function(n, ratio = 0.2) {
+    if (length(n) <= 1) integer(0) else pmax(1L, as.integer(round(head(n, -1) * ratio)))
+  }
+  pi_w_from_fanout <- function(n_vec, target = 10) {
+    p <- target / median(as.numeric(n_vec)); max(min(p, 0.20), 0.02)
+  }
+  default_pi_in <- function() 0.60
+
+  D_vals     <- c(1L, 2L, 3L)
+  n_packs    <- list(
+    c(200L), c(300L), c(400L), c(500L),
+    c(200L,100L), c(300L,150L), c(400L,200L),
+    c(300L,200L,150L), c(400L,300L,200L)
+  )
+  red_ratios <- c(0.20, 0.30)
+  alpha_vals <- c(0.20, 0.30, 0.50)
+  rho_kinds  <- c("flat","decay")
+  act_f_vals <- c("tanh","relu")
+  m_vals     <- c(12L, 24L, 36L)
+  wash_vals  <- c(200L)
+  bias_vals  <- c(FALSE, TRUE)
+  lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L), c(14L,7L), c(14L,14L))
+  standardize_vals   <- c(TRUE)
+  input_bound_vals   <- c("tanh")
+  win_scale_global_v <- c(0.5, 1.0, 2.0)
+  win_scale_bias_v   <- c(0.2, 0.5)
+  rho_scale_vals     <- c(0.8, 1.0)
+
+  if (grid_preset == "small") {
+    D_vals   <- c(1L, 2L)
+    n_packs  <- list(c(200L), c(300L), c(400L), c(300L,150L))
+    red_ratios <- c(0.30)
+    alpha_vals <- c(0.20, 0.30)
+    rho_kinds  <- c("flat","decay")
+    act_f_vals <- c("tanh")
+    m_vals     <- c(12L, 24L)
+    bias_vals  <- c(TRUE)
+    lags_pairs <- list(c(0L,0L), c(3L,3L), c(7L,7L))
+    win_scale_global_v <- c(0.5, 1.0)
+    win_scale_bias_v   <- c(0.2)
+    rho_scale_vals     <- c(0.8, 1.0)
+  } else if (grid_preset == "tiny") {
+    D_vals   <- c(1L)
+    n_packs  <- list(c(200L), c(300L), c(400L))
+    red_ratios <- c(0.30)
+    alpha_vals <- c(0.30)
+    rho_kinds  <- c("flat")
+    act_f_vals <- c("tanh")
+    m_vals     <- c(24L)
+    bias_vals  <- c(TRUE)
+    lags_pairs <- list(c(0L,0L), c(3L,3L))
+    win_scale_global_v <- c(1.0)
+    win_scale_bias_v   <- c(0.2)
+    rho_scale_vals     <- c(1.0)
+  } else if (grid_preset == "micro") {
+    D_vals   <- c(1L, 2L)
+    n_packs  <- list(c(200L), c(300L), c(400L), c(500L),
+                     c(300L,150L), c(400L,200L))
+    red_ratios <- c(0.30)
+    alpha_vals <- c(0.20, 0.30)
+    rho_kinds  <- c("flat","decay")
+    act_f_vals <- c("tanh","relu")
+    m_vals     <- c(24L, 36L)
+    wash_vals  <- c(200L)
+    bias_vals  <- c(TRUE)
+    lags_pairs <- list(c(3L,3L), c(7L,7L))
+    win_scale_global_v <- c(0.5, 1.0, 2.0)
+    win_scale_bias_v   <- c(0.2, 0.5)
+    rho_scale_vals     <- c(0.8, 1.0)
+  }
+
+  specs_list <- vector("list", 0L)
+  for (D in D_vals) for (n in n_packs) if (length(n) == D) {
+    for (rr in red_ratios) {
+      n_tilde <- make_n_tilde(n, rr)
+      for (alpha in alpha_vals) for (rk in rho_kinds) for (rs in rho_scale_vals) {
+        rho <- rs * rho_pattern(D, rk)
+        for (af in act_f_vals) for (m in m_vals) for (wo in wash_vals) for (ab in bias_vals)
+          for (lp in lags_pairs) for (std_in in standardize_vals)
+            for (ib in input_bound_vals) for (sg in win_scale_global_v)
+              for (sb in win_scale_bias_v) {
+                if (af == "relu" && alpha < 0.20) next
+                specs_list[[length(specs_list)+1L]] <- list(
+                  D=D, n=as.integer(n), n_tilde=as.integer(n_tilde),
+                  alpha=alpha, rho=as.numeric(rho),
+                  act_f=af, act_k="identity",
+                  m=as.integer(m), washout=as.integer(wo),
+                  add_bias=isTRUE(ab),
+                  lags_ppt=as.integer(lp[1]), lags_soil=as.integer(lp[2]),
+                  red_ratio=rr, rho_kind=rk, rho_scale=rs,
+                  standardize_inputs=isTRUE(std_in),
+                  input_bound=ib, win_scale_global=as.numeric(sg), win_scale_bias=as.numeric(sb)
+                )
+              }
+      }
+    }
+  }
+  # de-dup
+  key_vec <- vapply(specs_list, function(s) paste(unlist(s), collapse="|"), "")
+  specs_list <- specs_list[!duplicated(key_vec)]
+  n_specs <- length(specs_list)
+  if (n_specs == 0L) stop("Spec grid empty.")
+
+  # ---------- logging helper ----------
+  progress_every <- as.integer(progress_every)
+  log_line <- function(txt) {
+    stamp <- format(Sys.time(), "%F %T"); line <- paste0("[", stamp, "] ", txt, "\n")
+    if (isTRUE(progress_console)) cat(line)
+    if (!is.null(progress_log)) cat(line, file = progress_log, append = TRUE)
+    invisible(NULL)
+  }
+  log_line(sprintf("OptionA stage=%s | grid=%s | candidates=%d | seeds=%s | Hval=%d | Htest=%d",
+                   stage, grid_preset, n_specs, paste(seed_vec, collapse=","), H_val, H_test))
+
+  # ---------- core: fit one spec for one seed (on Train), forecast Val recursively ----------
+  fit_one_seed <- function(spec, seed, y_tr, ppt_tr, soil_tr) {
+    D <- spec$D; n <- spec$n; n_tilde <- spec$n_tilde
+    pi_w <- pi_w_from_fanout(n)
+    pi_in <- default_pi_in()
+
+    # Build base DESN on Train only
+    base_args <- list(
+      y = y_tr, p0 = NA_real_ # placeholder; we call separately by quantile
+    )
+
+    # prepare covariate lags matrices (Train)
+    X_ppt_tr  <- lag_mat(ppt_tr,  spec$lags_ppt)
+    X_soil_tr <- lag_mat(soil_tr, spec$lags_soil)
+    maxlag_cov_tr <- max(spec$lags_ppt, spec$lags_soil)
+
+    # helper: fit a single quantile readout on Train with augmented design
+    fit_q <- function(p0) {
+      fit0 <- qdesn_fit_vb(
+        y = y_tr, p0 = p0,
+        D = D, n = n, n_tilde = n_tilde,
+        m = spec$m, alpha = spec$alpha, rho = spec$rho,
+        act_f = spec$act_f, act_k = spec$act_k,
+        pi_w = pi_w, pi_in = pi_in,
+        washout = spec$washout, add_bias = isTRUE(spec$add_bias),
+        # preprocessing knobs (must be carried into meta for forecasting)
+        standardize_inputs = isTRUE(spec$standardize_inputs),
+        input_bound        = spec$input_bound,
+        win_scale_global   = spec$win_scale_global,
+        win_scale_bias     = spec$win_scale_bias,
+        seed = seed,
+        vb_args = vb_args
+      )
+
+      keep_idx <- fit0$meta$keep_idx
+      y_fit    <- fit0$y_fit
+      X_res    <- fit0$X
+
+      # trim earliest rows to align with exog lags
+      trim_n <- sum(keep_idx <= maxlag_cov_tr)
+      if (trim_n > 0) {
+        keep_idx <- keep_idx[-seq_len(trim_n)]
+        y_fit    <- y_fit[-seq_len(trim_n)]
+        X_res    <- X_res[-seq_len(trim_n), , drop = FALSE]
+      }
+      X_cov <- cbind(
+        if (ncol(X_ppt_tr))  X_ppt_tr [keep_idx, , drop=FALSE] else NULL,
+        if (ncol(X_soil_tr)) X_soil_tr[keep_idx, , drop=FALSE] else NULL
+      )
+      X_aug <- cbind(X_res, X_cov)
+
+      fit_readout <- exal_static_LDVB(
+        y = y_fit, X = X_aug, p0 = p0,
+        max_iter = vb_args$max_iter, tol = vb_args$tol,
+        b0 = rep(0, ncol(X_aug)), V0 = diag(1e4, ncol(X_aug)),
+        a_sigma = 1, b_sigma = 1,
+        n_samp_xi = vb_args$n_samp_xi,
+        verbose = FALSE
+      )
+
+      # wrap as qdesn_fit with augmented meta required for forecasting
+      fit_exog <- list(
+        fit  = fit_readout,
+        X    = X_aug, y_fit = y_fit,
+        mu_hat = as.numeric(X_aug %*% fit_readout$qbeta$m),
+        reservoir = fit0$reservoir,
+        states    = fit0$states,
+        meta = list(
+          keep_idx = keep_idx,
+          drop = max(spec$m, spec$washout, maxlag_cov_tr),
+          T = length(y_tr), p0 = p0,
+          D = D, n = n, n_tilde = n_tilde,
+          m = spec$m, alpha = spec$alpha, rho = spec$rho, add_bias = isTRUE(spec$add_bias),
+          # reproducibility of sparsities
+          pi_w = pi_w, pi_in = pi_in,
+
+          # readout column bookkeeping for forecaster
+          p_res       = ncol(X_res),
+          lags_ppt    = spec$lags_ppt,
+          lags_soil   = spec$lags_soil,
+          covar_order = c("ppt","soil"),
+
+          # carry preprocessing flags + z-score stats
+          standardize_inputs = isTRUE(spec$standardize_inputs),
+          input_bound        = spec$input_bound,
+          win_scale_global   = spec$win_scale_global,
+          win_scale_bias     = spec$win_scale_bias,
+          win_scale_lags     = fit0$meta$win_scale_lags,
+          lag_center = fit0$meta$lag_center,
+          lag_scale  = fit0$meta$lag_scale,
+
+          diagnostics = fit0$meta$diagnostics
+        )
+      )
+      class(fit_exog) <- "qdesn_fit"
+      fit_exog
+    }
+
+    fits <- lapply(p_vec, fit_q); names(fits) <- paste0("p=", p_vec)
+
+    # recursive path forecasts on VALIDATION window
+    m_lag <- spec$m
+    yhist <- if (m_lag > 0) tail(y_tr, m_lag) else numeric(0)
+    xhist <- list(
+      ppt  = if (spec$lags_ppt  > 0) tail(ppt_tr,  spec$lags_ppt)  else NULL,
+      soil = if (spec$lags_soil > 0) tail(soil_tr, spec$lags_soil) else NULL
+    )
+    xhist <- Filter(Negate(is.null), xhist)
+
+    xfuture_val <- list(
+      ppt  = if (spec$lags_ppt  > 0) ppt_va  else NULL,
+      soil = if (spec$lags_soil > 0) soil_va else NULL
+    )
+    xfuture_val <- Filter(Negate(is.null), xfuture_val)
+
+    yrep_list <- lapply(fits, function(ft)
+      forecast_paths.qdesn_fit(
+        ft, H = H_val, nd = nd_draws,
+        method = "recursive",
+        y_hist = yhist,
+        xreg_hist = xhist,
+        xreg_future = xfuture_val,
+        chunk = chunk_sz
+      )$yrep
+    )
+
+    # synthesize per horizon and score CRPS by lead
+    synth <- exdqlm_synthesize_from_draws(
+      draws_list = yrep_list,
+      p = p_vec,
+      enforce_isotonic = synth_isotonic,
+      rearrange        = synth_rearrange,
+      grid_M           = synth_grid_M,
+      n_samp           = synth_nsamp,
+      seed             = synth_seed,
+      T_expected       = H_val
+    )
+
+    crps_h <- vapply(seq_len(H_val), function(h) crps_1(y_va[h], synth$draws[h, ]), 1.0)
+    w <- agg_weights(H_val, weight_leads)
+    score <- sum(w * crps_h)
+
+    list(
+      score = score,
+      crps_by_h = crps_h,
+      fits = if (keep_artifacts) fits else NULL,
+      yrep_list = if (keep_artifacts) yrep_list else NULL,
+      synth = if (keep_artifacts) synth else NULL
+    )
+  }
+
+  # ---------- run all specs ----------
+  run_one_spec <- function(i) {
+    spec <- specs_list[[i]]
+    key  <- paste0(
+      "D", spec$D, "_n", paste(spec$n, collapse="-"),
+      "_r", spec$rho_kind, "_rs", sprintf("%.2f", spec$rho_scale),
+      "_a", sprintf("%.2f", spec$alpha), "_m", spec$m, "_w", spec$washout,
+      "_f", spec$act_f, "_b", as.integer(spec$add_bias),
+      "_lp", spec$lags_ppt, "_ls", spec$lags_soil,
+      "_std", as.integer(isTRUE(spec$standardize_inputs)),
+      "_ib", substr(spec$input_bound,1,1),
+      "_sg", sprintf("%.2f", spec$win_scale_global),
+      "_sb", sprintf("%.2f", spec$win_scale_bias)
+    )
+
+    if ((i == 1L) || (i %% progress_every == 0L) || (i == n_specs)) {
+      log_line(sprintf("start %d/%d: %s", i, n_specs, key))
+    }
+
+    seed_runs <- lapply(seed_vec, function(sd) {
+      tryCatch(
+        fit_one_seed(spec, sd, y_tr, ppt_tr, soil_tr),
+        error = function(e) {
+          if (!is.null(progress_log)) {
+            stamp <- format(Sys.time(), "%F %T")
+            cat(sprintf("[%s] FAIL (seed=%s) %d/%d: %s | %s\n",
+                        stamp, as.character(sd), i, n_specs, key, conditionMessage(e)),
+                file = progress_log, append = TRUE)
+          }
+          NULL
+        }
+      )
+    })
+    ok <- vapply(seed_runs, function(x) !is.null(x), FALSE)
+    if (!any(ok)) {
+      list(
+        spec_idx = i, spec_key = key,
+        mean_score = Inf, se_score = NA_real_,
+        exemplar = NULL
+      )
+    } else {
+      seed_runs <- seed_runs[ok]
+      scr <- vapply(seed_runs, `[[`, 1.0, "score")
+      list(
+        spec_idx = i, spec_key = key,
+        mean_score = mean(scr), se_score = if (length(scr) > 1) stats::sd(scr)/sqrt(length(scr)) else NA_real_,
+        exemplar = if (keep_artifacts) seed_runs[[1]] else NULL,
+        spec_row = spec
+      )
+    }
+  }
+
+  results <- if (!parallel) {
+    out <- vector("list", n_specs)
+    for (i in seq_len(n_specs)) {
+      out[[i]] <- run_one_spec(i)
+      if ((i == 1L) || (i %% progress_every == 0L) || (i == n_specs)) {
+        log_line(sprintf("done  %d/%d: %s | valScore=%.6f",
+                         i, n_specs, out[[i]]$spec_key, out[[i]]$mean_score))
+      }
+    }
+    out
+  } else {
+    cl <- parallel::makePSOCKcluster(n_workers)
+    on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
+    parallel::clusterEvalQ(cl, { library(exdqlm); NULL })
+    parallel::clusterExport(cl, c("specs_list","seed_vec","fit_one_seed","y_tr","ppt_tr","soil_tr",
+                                  "H_val","keep_artifacts","progress_log","n_specs"), envir = environment())
+    parallel::parLapply(cl, seq_len(n_specs), run_one_spec)
+  }
+
+  # ---------- leaderboard & winner (validation) ----------
+  leaderboard <- do.call(rbind, lapply(results, function(r)
+    data.frame(
+      spec_idx = r$spec_idx,
+      spec_key = r$spec_key,
+      mean_CRPS_val = r$mean_score,
+      se_CRPS_val   = r$se_score,
+      stringsAsFactors = FALSE
+    )))
+  leaderboard <- leaderboard[is.finite(leaderboard$mean_CRPS_val), , drop = FALSE]
+  if (!nrow(leaderboard)) stop("All specs failed on validation.")
+  o <- order(leaderboard$mean_CRPS_val)
+  leaderboard <- leaderboard[o, , drop = FALSE]
+  best_row <- leaderboard[1, , drop = FALSE]
+  best     <- results[[ best_row$spec_idx ]]
+
+  selection_bundle <- list(
+    winner_key = best$spec_key,
+    winner_spec = best$spec_row,
+    leaderboard = leaderboard,
+    validation = if (keep_artifacts) best$exemplar else NULL,
+    config = list(
+      p_vec = p_vec,
+      split = c(train = n_tr, val = n_va, test = n_te),
+      weight_leads = weight_leads,
+      vb_args = vb_args,
+      nd_draws = nd_draws,
+      synth = list(grid_M = synth_grid_M, nsamp = synth_nsamp,
+                   isotonic = synth_isotonic, rearrange = synth_rearrange, seed = synth_seed)
+    )
+  )
+
+  # ---------- REFIT winner on Train∪Val, forecast Test, report Test CRPS ----------
+  spec <- best$spec_row
+  refit_score <- NA_real_
+  test_detail <- NULL
+  if (H_test > 0L) {
+    # reuse the single-seed path with the first seed (or average over seeds if you want)
+    single <- fit_one_seed(spec, seed_vec[1], y_tr = c(y_tr, y_va), ppt_tr = c(ppt_tr, ppt_va), soil_tr = c(soil_tr, soil_va))
+
+    # now simulate over TEST horizon using Train∪Val as origin
+    m_lag <- spec$m
+    yhist <- if (m_lag > 0) tail(c(y_tr, y_va), m_lag) else numeric(0)
+    xhist <- list(
+      ppt  = if (spec$lags_ppt  > 0) tail(c(ppt_tr, ppt_va),  spec$lags_ppt)  else NULL,
+      soil = if (spec$lags_soil > 0) tail(c(soil_tr, soil_va), spec$lags_soil) else NULL
+    )
+    xhist <- Filter(Negate(is.null), xhist)
+
+    xfuture_test <- list(
+      ppt  = if (spec$lags_ppt  > 0) ppt_te  else NULL,
+      soil = if (spec$lags_soil > 0) soil_te else NULL
+    )
+    xfuture_test <- Filter(Negate(is.null), xfuture_test)
+
+    yrep_list_test <- lapply(single$fits, function(ft)
+      forecast_paths.qdesn_fit(
+        ft, H = H_test, nd = nd_draws,
+        method = "recursive",
+        y_hist = yhist,
+        xreg_hist = xhist,
+        xreg_future = xfuture_test,
+        chunk = chunk_sz
+      )$yrep
+    )
+
+    synth_test <- exdqlm_synthesize_from_draws(
+      draws_list = yrep_list_test,
+      p = p_vec,
+      enforce_isotonic = synth_isotonic,
+      rearrange        = synth_rearrange,
+      grid_M           = synth_grid_M,
+      n_samp           = synth_nsamp,
+      seed             = synth_seed,
+      T_expected       = H_test
+    )
+
+    crps_h_test <- vapply(seq_len(H_test), function(h) crps_1(y_te[h], synth_test$draws[h, ]), 1.0)
+    wtest <- agg_weights(H_test, weight_leads)
+    refit_score <- sum(wtest * crps_h_test)
+
+    test_detail <- if (keep_artifacts) list(
+      yrep_list = yrep_list_test,
+      synth = synth_test,
+      crps_by_h = crps_h_test,
+      agg = refit_score
+    ) else NULL
+  }
+
+  list(
+    leaderboard = leaderboard,
+    winner = best$spec_key,
+    selection_bundle = selection_bundle,
+    test_bundle = list(
+      H_test = H_test,
+      agg_CRPS_test = refit_score,
+      detail = test_detail
+    )
   )
 }

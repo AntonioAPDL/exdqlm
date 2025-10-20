@@ -1,30 +1,25 @@
 #!/usr/bin/env Rscript
 
+## --- Force-load package from source; also install for workers ---
 suppressWarnings(suppressMessages({
-  # Prefer loading from source (current repo) so you get your latest edits.
-  load_ok <- FALSE
-  pkg_root <- normalizePath(Sys.getenv("EXDQLM_PKG_ROOT", "."), mustWork = FALSE)
-
-  if (file.exists(file.path(pkg_root, "DESCRIPTION"))) {
-    if (requireNamespace("pkgload", quietly = TRUE)) {
-      pkgload::load_all(pkg_root, quiet = TRUE)
-      message("Loaded exdqlm via pkgload::load_all(\"", pkg_root, "\")")
-      load_ok <- TRUE
-    } else if (requireNamespace("devtools", quietly = TRUE)) {
-      devtools::load_all(pkg_root, quiet = TRUE)
-      message("Loaded exdqlm via devtools::load_all(\"", pkg_root, "\")")
-      load_ok <- TRUE
-    }
+  pkg_root <- normalizePath(Sys.getenv("EXDQLM_PKG_ROOT", getwd()), mustWork = FALSE)
+  if (!file.exists(file.path(pkg_root, "DESCRIPTION"))) {
+    stop("No DESCRIPTION at: ", pkg_root, "\nRun from repo root or set EXDQLM_PKG_ROOT=/path/to/repo")
   }
+  # Ensure workers can find the same source path
+  Sys.setenv(EXDQLM_PKG_ROOT = pkg_root)
 
-  if (!load_ok) {
-    if (suppressWarnings(require("exdqlm", quietly = TRUE, character.only = TRUE))) {
-      message("Loaded installed exdqlm via library(exdqlm)")
-      load_ok <- TRUE
-    } else {
-      stop("Could not load exdqlm. Install {pkgload} or {devtools}, or install the package.")
-    }
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    install.packages("pkgload", repos = "https://cloud.r-project.org")
   }
+  pkgload::load_all(pkg_root, quiet = TRUE)
+
+  # Also install into the user library so PSOCK workers that do library(exdqlm) get THIS version
+  # (quietly; ignore output)
+  try(system(sprintf("R CMD INSTALL %s", shQuote(pkg_root)), ignore.stdout = TRUE, ignore.stderr = TRUE), silent = TRUE)
+
+  message("Loaded exdqlm from source: ", pkg_root)
+  message("qdesn_fit_vb formals: ", paste(names(formals(exdqlm::qdesn_fit_vb)), collapse = ", "))
 }))
 
 ## Pin threads in the launcher session too (workers are pinned inside the selector)
@@ -83,13 +78,21 @@ keep_art         <- arg_flag("keep_artifacts", "TRUE")
 do_plot          <- arg_flag("plot", "FALSE")
 progress_every   <- as.integer(arg_get("progress_every", "1"))
 
-# New: grid & sampling controls (with env fallbacks)
+# Grid & sampling controls
 grid_preset_in   <- arg_get("grid", Sys.getenv("GRID", "default"))
 limit_specs_in   <- arg_get("limit_specs", Sys.getenv("LIMIT_SPECS", NA))
 grid_seed_in     <- arg_get("grid_seed", Sys.getenv("GRID_SEED", "123"))
-# New: seeds control
+# Seeds
 seeds_csv        <- arg_get("seeds", Sys.getenv("SEEDS", "42,101"))
 seed_vec         <- as.integer(strsplit(gsub("\\s+", "", seeds_csv), ",")[[1]])
+
+# NEW: lead weighting + split proportions
+weight_leads_in <- arg_get("weight_leads", Sys.getenv("WEIGHT_LEADS", "inverse_h"))  # "inverse_h" or "uniform"
+split_in        <- arg_get("split",        Sys.getenv("SPLIT",        "0.80,0.15,0.05"))
+split_vec <- as.numeric(strsplit(gsub("\\s+", "", split_in), ",")[[1]])
+if (length(split_vec) != 3 || any(!is.finite(split_vec)) || any(split_vec <= 0)) {
+  stop("--split must be three positive numbers, e.g. 0.80,0.15,0.05")
+}
 
 ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
 dir.create("logs", showWarnings = FALSE)
@@ -107,34 +110,60 @@ if (is.na(workers_in)) {
 message(sprintf("Stage=%s | parallel=%s | workers=%d | keep_artifacts=%s | plot=%s",
                 stage, parallel_run, n_workers, keep_art, do_plot))
 message("Progress log: ", progress_log)
-message(sprintf("Grid=%s | Limit=%s | GridSeed=%s | Seeds=%s",
+message(sprintf("Grid=%s | Limit=%s | GridSeed=%s | Seeds=%s | WeightLeads=%s | Split=%s",
                 tolower(grid_preset_in),
-                ifelse(is.na(limit_specs_in), "Inf", limit_specs_in),
-                grid_seed_in, paste(seed_vec, collapse=",")))
+                ifelse(is.na(limit_specs_in), "Inf (ignored by OptionA)", limit_specs_in),
+                grid_seed_in,
+                paste(seed_vec, collapse=","),
+                tolower(weight_leads_in),
+                split_in))
+if (!is.na(limit_specs_in) || nzchar(grid_seed_in)) {
+  message("NOTE: Option A currently ignores limit/grid_seed; driver will parse but not forward them.")
+}
+
 
 ## ---- Call the selector (explicit namespace) ----
-res <- exdqlm::model_selection_distribution_first(
-  y=y, ppt=ppt, soil=soil,
-  stage=stage,
-  p_vec=c(0.05, 0.50, 0.95),
-  seed_vec=seed_vec,
-  parallel=parallel_run,
-  n_workers=n_workers,
-  keep_artifacts=keep_art,
-  plot=do_plot,
-  progress_console=TRUE,
-  progress_log=progress_log,
-  progress_every=progress_every,
-  grid_preset=tolower(grid_preset_in),
-  max_specs=if (is.na(limit_specs_in)) Inf else as.integer(limit_specs_in),
-  grid_seed=as.integer(grid_seed_in)
+res <- exdqlm::model_selection_optionA(
+  y = y, ppt = ppt, soil = soil,
+  p_vec = c(0.05, 0.50, 0.95),
+  split = split_vec,
+  weight_leads = tolower(weight_leads_in),   # "inverse_h" (default) or "uniform"
+  stage = stage,
+  grid_preset = tolower(grid_preset_in),
+  seed_vec = seed_vec,
+  parallel = parallel_run,
+  n_workers = n_workers,
+  keep_artifacts = keep_art,
+  progress_console = TRUE,
+  progress_log = progress_log,
+  progress_every = progress_every
 )
 
 ## ---- Save artifacts ----
-lb_path <- file.path("outputs", paste0("leaderboard_", stage, "_", ts, ".csv"))
-wb_path <- file.path("outputs", paste0("winner_bundle_", stage, "_", ts, ".rds"))
-write.csv(res$leaderboard, lb_path, row.names = FALSE)
-saveRDS(res$winner_bundle, wb_path)
+## ---- Save artifacts ----
+lb_val_path   <- file.path("outputs", paste0("leaderboard_val_", stage, "_", ts, ".csv"))
+sel_bundle_path <- file.path("outputs", paste0("selection_bundle_", stage, "_", ts, ".rds"))
+test_bundle_path<- file.path("outputs", paste0("test_bundle_", stage, "_", ts, ".rds"))
+
+# Validation leaderboard
+write.csv(res$leaderboard, lb_val_path, row.names = FALSE)
+# Bundles
+saveRDS(res$selection_bundle, sel_bundle_path)
+saveRDS(res$test_bundle,      test_bundle_path)
+
+# Optional: write per-lead Test CRPS if present
+if (!is.null(res$test_bundle$detail) && !is.null(res$test_bundle$detail$crps_by_h)) {
+  test_crps_path <- file.path("outputs", paste0("test_crps_by_h_", stage, "_", ts, ".csv"))
+  write.csv(
+    data.frame(h = seq_along(res$test_bundle$detail$crps_by_h),
+               crps = as.numeric(res$test_bundle$detail$crps_by_h)),
+    test_crps_path, row.names = FALSE
+  )
+}
+
 print(utils::head(res$leaderboard, 10))
-message("Winner: ", res$winner)
-message("Saved:\n  ", lb_path, "\n  ", wb_path, "\n  ", progress_log)
+message("Winner (validation): ", res$winner)
+if (!is.null(res$test_bundle$agg_CRPS_test) && is.finite(res$test_bundle$agg_CRPS_test)) {
+  message(sprintf("Test aggregated CRPS: %.6f", res$test_bundle$agg_CRPS_test))
+}
+message("Saved:\n  ", lb_val_path, "\n  ", sel_bundle_path, "\n  ", test_bundle_path, "\n  ", progress_log)

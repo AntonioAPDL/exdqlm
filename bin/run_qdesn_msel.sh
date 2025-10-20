@@ -26,10 +26,13 @@ GRID="${GRID:-default}"
 LIMIT_SPECS="${LIMIT_SPECS:-}"
 GRID_SEED="${GRID_SEED:-42}"
 SEEDS="${SEEDS:-42,101}"
+WEIGHT_LEADS="${WEIGHT_LEADS:-inverse_h}"   # or "uniform"
+SPLIT="${SPLIT:-0.80,0.15,0.05}"           # train,val,test
 
 ARGS=( "--stage=${STAGE}" "--parallel=${PARALLEL}" "--workers=${WORKERS}"
        "--plot=${PLOT}" "--keep_artifacts=${KEEP}" "--progress_every=${PROGRESS_EVERY}"
        "--grid=${GRID}" "--grid_seed=${GRID_SEED}" "--seeds=${SEEDS}" )
+
 [[ -n "${LIMIT_SPECS}" ]] && ARGS+=( "--limit_specs=${LIMIT_SPECS}" )
 [[ -n "${DATA}" ]] && ARGS+=( "--data=${DATA}" )
 
