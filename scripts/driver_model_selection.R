@@ -124,19 +124,20 @@ if (!is.na(limit_specs_in) || nzchar(grid_seed_in)) {
 
 ## ---- Call the selector (explicit namespace) ----
 res <- exdqlm::model_selection_optionA(
-  y = y, ppt = ppt, soil = soil,
-  p_vec = c(0.05, 0.50, 0.95),
-  split = split_vec,
-  weight_leads = tolower(weight_leads_in),   # "inverse_h" (default) or "uniform"
-  stage = stage,
-  grid_preset = tolower(grid_preset_in),
-  seed_vec = seed_vec,
-  parallel = parallel_run,
-  n_workers = n_workers,
-  keep_artifacts = keep_art,
-  progress_console = TRUE,
-  progress_log = progress_log,
-  progress_every = progress_every
+  y=y, ppt=ppt, soil=soil,
+  stage=stage,
+  p_vec=c(0.05, 0.50, 0.95),
+  seed_vec=seed_vec,
+  parallel=parallel_run,
+  n_workers=n_workers,
+  keep_artifacts=keep_art,
+  plot=do_plot,
+  progress_console=TRUE,
+  progress_log=progress_log,
+  progress_every=progress_every,
+  grid_preset=tolower(grid_preset_in),
+  max_specs=if (is.na(limit_specs_in)) Inf else as.integer(limit_specs_in),
+  grid_seed=as.integer(grid_seed_in)
 )
 
 ## ---- Save artifacts ----
