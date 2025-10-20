@@ -11,6 +11,11 @@ qdesn_fit_vb(
   n = c(200L, 100L, 50L),
   n_tilde = c(50L, 25L),
   m = 12L,
+  standardize_inputs = FALSE,
+  input_bound = c("none", "tanh"),
+  win_scale_global = 1,
+  win_scale_bias = 1,
+  win_scale_lags = NULL,
   alpha = 0.3,
   rho = rep(0.9, length.out = D),
   act_f = "tanh",
@@ -21,6 +26,9 @@ qdesn_fit_vb(
   in_dist = function(n) rnorm(n, 0, 1),
   washout = 100L,
   add_bias = FALSE,
+  weights = NULL,
+  state_noise_sd = 0,
+  segments = NULL,
   seed = NULL,
   vb_args = list()
 )

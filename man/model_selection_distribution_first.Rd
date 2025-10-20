@@ -34,8 +34,7 @@ model_selection_distribution_first(
 
 \item{p_vec}{Numeric vector of quantiles to fit jointly. Default: \code{c(0.05, 0.50, 0.95)}.}
 
-\item{seed_vec}{Integer vector of reservoir seeds to average across (reduces variance).
-Default: \code{c(42L, 101L)}.}
+\item{seed_vec}{Integer vector of reservoir seeds to average across (reduces variance). Default: \code{c(42L, 101L)}.}
 
 \item{parallel}{Logical, use base parallel (PSOCK) across candidate specs. Default: \code{FALSE}.}
 
