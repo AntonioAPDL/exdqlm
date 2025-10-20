@@ -407,17 +407,20 @@ ret <- list(
     reservoir = reservoir,
     states = list(H_last = H[[D]], H_all = H, H_tilde = H_tilde),
     meta = list(
-      keep_idx = keep_idx, drop = drop, T = T, p0 = p0,
-      D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
-      add_bias = add_bias,
-      standardize_inputs = standardize_inputs,
-      input_bound = input_bound,
-      win_scale_global = win_scale_global,
-      win_scale_bias = win_scale_bias,
-      win_scale_lags = win_scale_lags,
-      weights = if (!is.null(weights)) weights[keep_idx] else NULL,
-      segments = segments,
-      diagnostics = diagnostics
+        keep_idx = keep_idx, drop = drop, T = T, p0 = p0,
+        D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
+        add_bias = add_bias,
+        standardize_inputs = standardize_inputs,
+        input_bound = input_bound,
+        win_scale_global = win_scale_global,
+        win_scale_bias = win_scale_bias,
+        win_scale_lags = win_scale_lags,
+        # NEW: store the z-score stats for lag inputs
+        lag_center = if (isTRUE(standardize_inputs)) lag_center else 0,
+        lag_scale  = if (isTRUE(standardize_inputs)) lag_scale  else 1,
+        weights = if (!is.null(weights)) weights[keep_idx] else NULL,
+        segments = segments,
+        diagnostics = diagnostics
     )
   )
   class(ret) <- "qdesn_fit"
@@ -535,3 +538,312 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
   exal_vb_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk)
 }
 
+#' Multi-horizon posterior predictive for a Q-DESN fit
+#'
+#' Two modes:
+#' - method="recursive" (default): per-draw, per-quantile **recursive** simulation.
+#'   Each draw has its own path; future lags use the already simulated y for that draw.
+#'   This is the statistically correct multi-step forecaster for selection & testing.
+#' - method="shared": cheap plug-in (your previous implementation) that rolls a
+#'   single deterministic design path (anchor) and samples only the readout noise.
+#'
+#' @param object   qdesn_fit (from qdesn_fit_vb or your exog-augmented wrapper)
+#' @param H        integer forecast horizon (>0)
+#' @param nd       number of posterior-predictive draws
+#' @param method   c("recursive","shared")
+#' @param anchor   ("vb-mean"|"user") only used when method="shared"
+#' @param y_hist   optional last m observed y's (chronological, oldest->newest);
+#'                 if NULL and m>0 uses last m of object$y_fit
+#' @param anchor_path optional length>=H numeric, when method="shared" & anchor="user"
+#' @param xreg_hist, xreg_future  optional named lists of exog lag histories and
+#'                 known futures (e.g. list(ppt=.., soil=..)). See details below.
+#' @param chunk    process draws in chunks to cap memory
+#' @param seed     RNG seed for predictive noise (optional)
+#' @param return_design logical; for method="shared" returns X_future (H x p).
+#'                 For method="recursive" the design is draw-specific and thus
+#'                 not returned (ignored).
+#' @return list with yrep (H x nd), mu_draws (H x nd),
+#'         plus anchor_path and/or X_future in shared mode.
+#' @export
+forecast_paths.qdesn_fit <- function(
+  object, H,
+  nd = 1000L,
+  method = c("recursive","shared"),
+  anchor = c("vb-mean", "user"),
+  y_hist = NULL,
+  anchor_path = NULL,
+  xreg_hist = NULL,
+  xreg_future = NULL,
+  chunk = 256L,
+  seed = NULL,
+  return_design = FALSE
+) {
+  stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
+  method <- match.arg(method)
+  anchor <- match.arg(anchor)
+
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+
+  # ---------- pull metadata & reservoir ----------
+  meta <- object$meta
+  res  <- object$reservoir
+  D    <- as.integer(meta$D)
+  n    <- res$n
+  m    <- as.integer(meta$m)
+  add_bias <- isTRUE(meta$add_bias)
+
+  # activations
+  get_act <- function(a) {
+    if (is.function(a)) return(a)
+    switch(tolower(a),
+      "tanh"     = base::tanh,
+      "relu"     = function(x) pmax(0, x),
+      "identity" = function(x) x,
+      stop("Unknown activation: ", a))
+  }
+  f_act <- get_act(res$act_f)
+  k_act <- get_act(res$act_k)
+
+  # training-time input preprocessing
+  lag_center <- meta$lag_center %||% 0
+  lag_scale  <- meta$lag_scale  %||% 1
+  standardize_inputs <- isTRUE(meta$standardize_inputs)
+  input_bound        <- meta$input_bound %||% "none"
+  win_scale_global   <- meta$win_scale_global %||% 1
+  win_scale_bias     <- meta$win_scale_bias   %||% 1
+  win_scale_lags     <- meta$win_scale_lags
+  process_inputs <- function(v_no_bias) {
+    z <- v_no_bias
+    if (isTRUE(standardize_inputs)) z <- (z - lag_center) / lag_scale
+    if (!is.null(win_scale_lags))   z <- z * as.numeric(win_scale_lags)
+    if (identical(input_bound, "tanh")) z <- base::tanh(z)
+    z
+  }
+
+  # readout column counts: reservoir-derived + exog lags (if any)
+  p_res <- meta$p_res %||% {
+    pr <- res$n[D] + if (D == 1L) 0L else sum(res$n_tilde)
+    if (add_bias) pr <- pr + 1L
+    pr
+  }
+  l_ppt  <- as.integer(meta$lags_ppt  %||% 0L)
+  l_soil <- as.integer(meta$lags_soil %||% 0L)
+  covar_order <- meta$covar_order %||% c("ppt","soil")
+
+  # histories
+  if (m > 0L) {
+    if (is.null(y_hist)) {
+      stopifnot(length(object$y_fit) >= m)
+      y_hist <- tail(object$y_fit, m)
+    } else {
+      stopifnot(length(y_hist) >= m)
+      y_hist <- tail(y_hist, m)
+    }
+  } else {
+    y_hist <- numeric(0)
+  }
+
+  need <- list()
+  if (l_ppt  > 0) need[["ppt"]]  <- l_ppt
+  if (l_soil > 0) need[["soil"]] <- l_soil
+  if (length(need)) {
+    stopifnot(is.list(xreg_hist), is.list(xreg_future))
+    for (nm in names(need)) {
+      stopifnot(is.numeric(xreg_hist[[nm]]),  length(xreg_hist[[nm]])  >= need[[nm]])
+      stopifnot(is.numeric(xreg_future[[nm]]), length(xreg_future[[nm]]) >= H)
+      xreg_hist[[nm]] <- tail(xreg_hist[[nm]], need[[nm]])
+    }
+  } else {
+    xreg_hist   <- list()
+    xreg_future <- list()
+  }
+
+  # states at forecast origin = last training states
+  H_all  <- object$states$H_all
+  Qred   <- res$Q
+  h_last <- lapply(seq_len(D), function(d) {
+    Hd <- H_all[[d]]; Hd[nrow(Hd), ]
+  })
+
+  # ----- helpers -----
+  make_u <- function(y_hist_vec) {
+    if (m == 0L) {
+      u <- c(1)
+    } else {
+      lags <- rev(tail(y_hist_vec, m))
+      lags <- process_inputs(lags)
+      u <- c(1, lags)
+    }
+    u[1] <- u[1] * win_scale_bias
+    if (length(u) > 1L) u[-1] <- u[-1] * win_scale_global
+    u
+  }
+
+  # forward-one-step: returns new states and the readout feature row
+  # NOTE: to match training exactly, the lower block uses k_act(Q_d * h_{t,d})
+  forward_one <- function(h_prev, u_vec) {
+    h_new <- vector("list", D)
+    htil  <- vector("list", max(0, D - 1L))
+
+    # layer 1
+    pre1   <- res$W[[1]]  %*% h_prev[[1]] + res$Win[[1]] %*% u_vec
+    omega1 <- f_act(pre1)
+    h1     <- (1 - res$alpha[1]) * h_prev[[1]] + res$alpha[1] * omega1
+    h_new[[1]] <- h1
+    if (D >= 2L) htil[[1]] <- Qred[[1]] %*% h1
+
+    # layers 2..D
+    if (D >= 2L) {
+      for (d in 2:D) {
+        pre   <- res$W[[d]]  %*% h_prev[[d]] + res$Win[[d]] %*% htil[[d - 1]]
+        omega <- f_act(pre)
+        hd    <- (1 - res$alpha[d]) * h_prev[[d]] + res$alpha[d] * omega
+        h_new[[d]] <- hd
+        if (d < D) htil[[d]] <- Qred[[d]] %*% hd
+      }
+    }
+
+    # readout feature row: [ h_{t,D} ; k(Q_1 h_{t,1}); ... ; k(Q_{D-1} h_{t,D-1}) ]
+    if (D == 1L) {
+      x_res <- as.numeric(h_new[[1]])
+    } else {
+      lower <- do.call(c, lapply(seq_len(D - 1L), function(d) k_act(as.numeric(htil[[d]]))))
+      x_res <- c(as.numeric(h_new[[D]]), lower)
+    }
+    if (add_bias) x_res <- c(1, x_res)
+
+    list(h = h_new, x_res = x_res)
+  }
+
+  build_xcov_row <- function(h) {
+    out <- numeric(0)
+    for (nm in covar_order) {
+      L <- switch(nm, ppt = l_ppt, soil = l_soil, 0L)
+      if (L <= 0L) next
+      hist <- xreg_hist[[nm]]
+      fut  <- xreg_future[[nm]]
+      vec  <- c(hist, fut[seq_len(h - 1L)])  # extend with known futures up to h-1
+      out  <- c(out, rev(tail(vec, L)))     # most-recent-first
+    }
+    out
+  }
+
+  # ============ SHARED mode (backwards-compatible fast path) ============
+  if (identical(method, "shared")) {
+    # build once: X_future on a deterministic anchor path
+    X_future <- matrix(NA_real_, nrow = H, ncol = p_res + l_ppt + l_soil)
+    y_anchor <- numeric(H)
+    y_hist_work <- y_hist
+    h_now <- h_last
+    beta_mean <- as.numeric(object$fit$qbeta$m)
+
+    for (h in seq_len(H)) {
+      u_h   <- make_u(y_hist_work)
+      step  <- forward_one(h_now, u_h)
+      h_now <- step$h
+      x_res_row <- step$x_res
+      x_cov_row <- build_xcov_row(h)
+      x_row     <- c(x_res_row, x_cov_row)
+      X_future[h, ] <- x_row
+
+      if (anchor == "vb-mean") {
+        y_hat <- sum(x_row * beta_mean)
+      } else {
+        stopifnot(!is.null(anchor_path), length(anchor_path) >= H)
+        y_hat <- anchor_path[h]
+      }
+      y_anchor[h] <- y_hat
+      if (m > 0L) y_hist_work <- c(y_hist_work, y_hat)
+    }
+
+    if (!is.null(seed)) set.seed(as.integer(seed))
+    draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+    Bdraw <- draws$beta
+    sdraw <- draws$sigma
+    gdraw <- draws$gamma
+    p0    <- object$fit$misc$p0
+    A_d   <- vapply(gdraw, function(g) A.fn(p0, g), 1.0)
+    B_d   <- vapply(gdraw, function(g) B.fn(p0, g), 1.0)
+    lam_d <- vapply(gdraw, function(g) C.fn(p0, g) * abs(g), 1.0)
+
+    Hh <- nrow(X_future)
+    yrep     <- matrix(NA_real_, Hh, nd)
+    mu_draws <- matrix(NA_real_, Hh, nd)
+
+    ids_list <- split(seq_len(nd), ceiling(seq_len(nd) / as.integer(chunk)))
+    for (ids in ids_list) {
+      mm  <- length(ids)
+      Bc  <- t(Bdraw[ids, , drop = FALSE])  # p x mm
+      mu  <- X_future %*% Bc                # H x mm
+      mu_draws[, ids] <- mu
+
+      s_mat <- matrix(abs(rnorm(Hh * mm)), Hh, mm)
+      v_mat <- matrix(rexp(Hh * mm, rate = rep(1 / sdraw[ids], each = Hh)), Hh, mm)
+      z_mat <- matrix(rnorm(Hh * mm), Hh, mm)
+
+      term_s <- sweep(s_mat, 2L, lam_d[ids] * sdraw[ids], `*`)
+      term_v <- sweep(v_mat, 2L, A_d[ids],                   `*`)
+      sd_mat <- sqrt(sweep(v_mat, 2L, B_d[ids] * sdraw[ids], `*`))
+      yrep[, ids] <- mu + term_s + term_v + sd_mat * z_mat
+    }
+
+    out <- list(yrep = yrep, mu_draws = mu_draws, anchor_path = y_anchor)
+    if (isTRUE(return_design)) out$X_future <- X_future
+    return(out)
+  }
+
+  # ============ RECURSIVE mode (default; per-draw paths) ============
+  if (!is.null(seed)) set.seed(as.integer(seed))
+  draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+  Bdraw <- draws$beta  # nd x p
+  sdraw <- draws$sigma
+  gdraw <- draws$gamma
+  p0    <- object$fit$misc$p0
+
+  # precompute A,B,lambda per draw
+  A_d   <- vapply(gdraw, function(g) A.fn(p0, g), 1.0)
+  B_d   <- vapply(gdraw, function(g) B.fn(p0, g), 1.0)
+  lam_d <- vapply(gdraw, function(g) C.fn(p0, g) * abs(g), 1.0)
+
+  yrep     <- matrix(NA_real_, H, nd)
+  mu_draws <- matrix(NA_real_, H, nd)
+
+  ids_list <- split(seq_len(nd), ceiling(seq_len(nd) / as.integer(chunk)))
+  for (ids in ids_list) {
+    for (j in ids) {
+      # per-draw state & history
+      h_now        <- h_last
+      y_hist_work  <- y_hist
+
+      for (h in seq_len(H)) {
+        # 1) forward reservoir with CURRENT lag history
+        u_h   <- make_u(y_hist_work)
+        step  <- forward_one(h_now, u_h)
+        h_now <- step$h
+        x_res_row <- step$x_res
+
+        # 2) exog for this horizon
+        x_cov_row <- build_xcov_row(h)
+
+        # 3) readout design row & linear predictor for this draw
+        x_row <- c(x_res_row, x_cov_row)
+        mu    <- sum(x_row * Bdraw[j, ])
+        mu_draws[h, j] <- mu
+
+        # 4) draw exAL noise with (sigma_j, gamma_j)
+        s  <- abs(rnorm(1))
+        v  <- rexp(1, rate = 1 / sdraw[j])
+        z  <- rnorm(1)
+        y_h <- mu + (lam_d[j] * sdraw[j]) * s + A_d[j] * v + sqrt(B_d[j] * sdraw[j] * v) * z
+
+        yrep[h, j] <- y_h
+
+        # 5) append to history for next step
+        if (m > 0L) y_hist_work <- c(y_hist_work, y_h)
+      }
+    }
+  }
+
+  # In recursive mode, there is no single anchor path and the design is draw-specific.
+  list(yrep = yrep, mu_draws = mu_draws)
+}
