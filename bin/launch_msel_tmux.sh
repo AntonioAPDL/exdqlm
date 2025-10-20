@@ -27,9 +27,6 @@ RUN_CMD="cd \"$ROOT\" && STAGE='$STAGE' GRID='$GRID' SEEDS='$SEEDS' PARALLEL='$P
 [[ -n "$PLOT" ]]           && RUN_CMD+=" PLOT='$PLOT'"
 [[ -n "$KEEP" ]]           && RUN_CMD+=" KEEP='$KEEP'"
 [[ -n "$PROGRESS_EVERY" ]] && RUN_CMD+=" PROGRESS_EVERY='$PROGRESS_EVERY'"
-[[ -n "$WEIGHT_LEADS" ]] && RUN_CMD+=" WEIGHT_LEADS='$WEIGHT_LEADS'"
-[[ -n "$SPLIT" ]]        && RUN_CMD+=" SPLIT='$SPLIT'"
-
 RUN_CMD+=" bin/run_qdesn_msel.sh"
 
 # If tmux is not available, run in foreground
