@@ -35,8 +35,9 @@ if NULL and m>0 uses last m of object$y_fit}
 
 \item{anchor_path}{optional length>=H numeric, when method="shared" & anchor="user"}
 
-\item{xreg_hist, }{xreg_future  optional named lists of exog lag histories and
-known futures (e.g. list(ppt=.., soil=..)). See details below.}
+\item{xreg_hist, xreg_future}{optional \strong{named lists} of exogenous lag histories
+and known futures keyed by variable name (e.g. list(temp=..., flow=...)).
+Required if the fit metadata declares nonzero exogenous lags.}
 
 \item{chunk}{process draws in chunks to cap memory}
 

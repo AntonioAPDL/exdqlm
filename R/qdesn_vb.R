@@ -537,7 +537,6 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
   X_use <- if (is.null(X_new)) object$X else as.matrix(X_new)
   exal_vb_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk)
 }
-
 #' Multi-horizon posterior predictive for a Q-DESN fit
 #'
 #' Two modes:
@@ -555,8 +554,9 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
 #' @param y_hist   optional last m observed y's (chronological, oldest->newest);
 #'                 if NULL and m>0 uses last m of object$y_fit
 #' @param anchor_path optional length>=H numeric, when method="shared" & anchor="user"
-#' @param xreg_hist, xreg_future  optional named lists of exog lag histories and
-#'                 known futures (e.g. list(ppt=.., soil=..)). See details below.
+#' @param xreg_hist,xreg_future optional **named lists** of exogenous lag histories
+#'                 and known futures keyed by variable name (e.g. list(temp=..., flow=...)).
+#'                 Required if the fit metadata declares nonzero exogenous lags.
 #' @param chunk    process draws in chunks to cap memory
 #' @param seed     RNG seed for predictive noise (optional)
 #' @param return_design logical; for method="shared" returns X_future (H x p).
@@ -620,17 +620,39 @@ forecast_paths.qdesn_fit <- function(
     z
   }
 
-  # readout column counts: reservoir-derived + exog lags (if any)
+  # readout column counts: reservoir-derived only (exog handled separately)
   p_res <- meta$p_res %||% {
     pr <- res$n[D] + if (D == 1L) 0L else sum(res$n_tilde)
     if (add_bias) pr <- pr + 1L
     pr
   }
-  l_ppt  <- as.integer(meta$lags_ppt  %||% 0L)
-  l_soil <- as.integer(meta$lags_soil %||% 0L)
-  covar_order <- meta$covar_order %||% c("ppt","soil")
 
-  # histories
+  # ---------- Exogenous specification (generic) ----------
+  # Preferred: meta$exog = list(names=<char>, lags=<int>)
+  exog <- meta$exog
+  if (is.null(exog)) {
+    # Legacy fallback: use covar_order + lags_* if present
+    legacy_names <- meta$covar_order %||% character(0)
+    legacy_lags  <- if (length(legacy_names)) {
+      vapply(legacy_names, function(nm) as.integer(meta[[paste0("lags_", nm)]] %||% 0L), 1L)
+    } else {
+      # As a final fallback, try common legacy fields (ppt/soil) if they exist
+      candidates <- c("ppt","soil")
+      present <- candidates[vapply(candidates, function(nm) !is.null(meta[[paste0("lags_", nm)]]), FALSE)]
+      if (length(present)) {
+        vapply(present, function(nm) as.integer(meta[[paste0("lags_", nm)]] %||% 0L), 1L) -> LL
+        legacy_names <- present
+        LL
+      } else integer(0)
+    }
+    exog <- list(names = legacy_names, lags = legacy_lags)
+  }
+  stopifnot(is.list(exog), is.character(exog$names), is.numeric(exog$lags))
+  exog$lags <- as.integer(exog$lags)
+  stopifnot(length(exog$names) == length(exog$lags))
+  total_exog_lags <- sum(pmax(0L, exog$lags))
+
+  # ---------- Histories ----------
   if (m > 0L) {
     if (is.null(y_hist)) {
       stopifnot(length(object$y_fit) >= m)
@@ -643,15 +665,15 @@ forecast_paths.qdesn_fit <- function(
     y_hist <- numeric(0)
   }
 
-  need <- list()
-  if (l_ppt  > 0) need[["ppt"]]  <- l_ppt
-  if (l_soil > 0) need[["soil"]] <- l_soil
-  if (length(need)) {
+  if (length(exog$names)) {
     stopifnot(is.list(xreg_hist), is.list(xreg_future))
-    for (nm in names(need)) {
-      stopifnot(is.numeric(xreg_hist[[nm]]),  length(xreg_hist[[nm]])  >= need[[nm]])
+    for (k in seq_along(exog$names)) {
+      nm <- exog$names[k]; L <- exog$lags[k]
+      if (L <= 0L) next
+      stopifnot(nm %in% names(xreg_hist), nm %in% names(xreg_future))
+      stopifnot(is.numeric(xreg_hist[[nm]]),  length(xreg_hist[[nm]])  >= L)
       stopifnot(is.numeric(xreg_future[[nm]]), length(xreg_future[[nm]]) >= H)
-      xreg_hist[[nm]] <- tail(xreg_hist[[nm]], need[[nm]])
+      xreg_hist[[nm]] <- tail(xreg_hist[[nm]], L)
     }
   } else {
     xreg_hist   <- list()
@@ -715,15 +737,17 @@ forecast_paths.qdesn_fit <- function(
     list(h = h_new, x_res = x_res)
   }
 
+  # Build one exogenous row at horizon h using declared names/lags
   build_xcov_row <- function(h) {
     out <- numeric(0)
-    for (nm in covar_order) {
-      L <- switch(nm, ppt = l_ppt, soil = l_soil, 0L)
+    if (!length(exog$names)) return(out)
+    for (k in seq_along(exog$names)) {
+      nm <- exog$names[k]; L <- exog$lags[k]
       if (L <= 0L) next
       hist <- xreg_hist[[nm]]
       fut  <- xreg_future[[nm]]
-      vec  <- c(hist, fut[seq_len(h - 1L)])  # extend with known futures up to h-1
-      out  <- c(out, rev(tail(vec, L)))     # most-recent-first
+      vec  <- c(hist, fut[seq_len(h - 1L)])   # extend with known futures up to h-1
+      out  <- c(out, rev(tail(vec, L)))       # most-recent-first
     }
     out
   }
@@ -731,7 +755,7 @@ forecast_paths.qdesn_fit <- function(
   # ============ SHARED mode (backwards-compatible fast path) ============
   if (identical(method, "shared")) {
     # build once: X_future on a deterministic anchor path
-    X_future <- matrix(NA_real_, nrow = H, ncol = p_res + l_ppt + l_soil)
+    X_future <- matrix(NA_real_, nrow = H, ncol = p_res + total_exog_lags)
     y_anchor <- numeric(H)
     y_hist_work <- y_hist
     h_now <- h_last
