@@ -537,6 +537,7 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
   X_use <- if (is.null(X_new)) object$X else as.matrix(X_new)
   exal_vb_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk)
 }
+
 #' Multi-horizon posterior predictive for a Q-DESN fit
 #'
 #' Two modes:
@@ -554,14 +555,19 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
 #' @param y_hist   optional last m observed y's (chronological, oldest->newest);
 #'                 if NULL and m>0 uses last m of object$y_fit
 #' @param anchor_path optional length>=H numeric, when method="shared" & anchor="user"
-#' @param xreg_hist,xreg_future optional **named lists** of exogenous lag histories
-#'                 and known futures keyed by variable name (e.g. list(temp=..., flow=...)).
+#' @param xreg_hist,xreg_future optional **named lists** of exogenous histories/futures 
+#'                 that feed the input vector ( \tilde{\vect u}_t=(1,y\text{-lags},\vect z_t^\top) )
+#'                 keyed by variable name (e.g. list(temp=..., flow=...)).
 #'                 Required if the fit metadata declares nonzero exogenous lags.
 #' @param chunk    process draws in chunks to cap memory
 #' @param seed     RNG seed for predictive noise (optional)
 #' @param return_design logical; for method="shared" returns X_future (H x p).
 #'                 For method="recursive" the design is draw-specific and thus
 #'                 not returned (ignored).
+#' @param y_future_obs Optional numeric vector of length H with realized values
+#'   at horizons T+1:T+H. Use NA for unknown horizons. When provided, those
+#'   observations are teacher-forced: they replace simulated draws at their
+#'   horizon and are fed back into the lag buffer for subsequent steps.
 #' @return list with yrep (H x nd), mu_draws (H x nd),
 #'         plus anchor_path and/or X_future in shared mode.
 #' @export
@@ -574,13 +580,23 @@ forecast_paths.qdesn_fit <- function(
   anchor_path = NULL,
   xreg_hist = NULL,
   xreg_future = NULL,
+  y_future_obs = NULL,             
   chunk = 256L,
   seed = NULL,
   return_design = FALSE
 ) {
+
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   method <- match.arg(method)
   anchor <- match.arg(anchor)
+
+  # --- observed future y (teacher-forcing mask) ---
+  if (is.null(y_future_obs)) {
+    y_obs_vec <- rep(NA_real_, H)
+  } else {
+    stopifnot(is.numeric(y_future_obs), length(y_future_obs) == H)
+    y_obs_vec <- as.numeric(y_future_obs)
+  }
 
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
@@ -591,6 +607,10 @@ forecast_paths.qdesn_fit <- function(
   n    <- res$n
   m    <- as.integer(meta$m)
   add_bias <- isTRUE(meta$add_bias)
+
+  # --- expected input width for layer-1: 1 + m + sum(exog lags) ---
+  # NOTE: we compute total_exog_lags later; define a local helper
+  .ncol_Win1 <- ncol(res$Win[[1]])
 
   # activations
   get_act <- function(a) {
@@ -652,6 +672,14 @@ forecast_paths.qdesn_fit <- function(
   stopifnot(length(exog$names) == length(exog$lags))
   total_exog_lags <- sum(pmax(0L, exog$lags))
 
+  # Validate layer-1 input width matches 1 + m + total exog lags
+  expected_u_cols <- 1L + m + total_exog_lags
+  if (.ncol_Win1 != expected_u_cols) {
+    stop("Dimension mismatch: Win[[1]] has ", .ncol_Win1, " input columns, ",
+         "but forecast expects 1 + m + sum(exog lags) = ", expected_u_cols,
+         ". Make sure training included exogenous inputs in u_t with the same lag spec.")
+  }
+
   # ---------- Histories ----------
   if (m > 0L) {
     if (is.null(y_hist)) {
@@ -688,18 +716,31 @@ forecast_paths.qdesn_fit <- function(
   })
 
   # ----- helpers -----
-  make_u <- function(y_hist_vec) {
-    if (m == 0L) {
-      u <- c(1)
-    } else {
-      lags <- rev(tail(y_hist_vec, m))
-      lags <- process_inputs(lags)
-      u <- c(1, lags)
+  # Build u_t = (1, y-lags, exog-block) with training-time preprocessing:
+  #   - Only y-lags get standardized by (lag_center, lag_scale) and per-lag scaling
+  #   - Optional tanh bound applies to ALL non-bias inputs after concatenation
+  make_u <- function(y_hist_vec, u_exog_block) {
+    # y-lag part (most-recent-first: y_{t-1},...,y_{t-m})
+    lags <- if (m == 0L) numeric(0) else rev(tail(y_hist_vec, m))
+    if (isTRUE(standardize_inputs) && length(lags)) {
+      lags <- (lags - lag_center) / lag_scale
     }
+    if (!is.null(win_scale_lags) && length(lags)) {
+      lags <- lags * as.numeric(win_scale_lags)
+    }
+
+    # combine lag part + exogenous block
+    nb <- c(lags, u_exog_block)  # "no-bias" entries
+    if (identical(input_bound, "tanh") && length(nb)) {
+      nb <- base::tanh(nb)
+    }
+
+    u <- c(1, nb)
     u[1] <- u[1] * win_scale_bias
     if (length(u) > 1L) u[-1] <- u[-1] * win_scale_global
     u
   }
+
 
   # forward-one-step: returns new states and the readout feature row
   # NOTE: to match training exactly, the lower block uses k_act(Q_d * h_{t,d})
@@ -737,8 +778,10 @@ forecast_paths.qdesn_fit <- function(
     list(h = h_new, x_res = x_res)
   }
 
-  # Build one exogenous row at horizon h using declared names/lags
-  build_xcov_row <- function(h) {
+  # Build exogenous block for the INPUT vector u_t at horizon h (time t = T + h)
+  # For each var with L lags, we include the L most recent values INCLUDING the current known z_{T+h}.
+  # Concatenation order: variables in exog$names, each as most-recent-first within its lag block.
+  build_u_exog_block <- function(h) {
     out <- numeric(0)
     if (!length(exog$names)) return(out)
     for (k in seq_along(exog$names)) {
@@ -746,8 +789,10 @@ forecast_paths.qdesn_fit <- function(
       if (L <= 0L) next
       hist <- xreg_hist[[nm]]
       fut  <- xreg_future[[nm]]
-      vec  <- c(hist, fut[seq_len(h - 1L)])   # extend with known futures up to h-1
-      out  <- c(out, rev(tail(vec, L)))       # most-recent-first
+      # include current future value at horizon h
+      vec  <- c(hist, fut[seq_len(h)])
+      blk  <- rev(tail(vec, L))  # most-recent-first
+      out  <- c(out, blk)
     }
     out
   }
@@ -755,29 +800,37 @@ forecast_paths.qdesn_fit <- function(
   # ============ SHARED mode (backwards-compatible fast path) ============
   if (identical(method, "shared")) {
     # build once: X_future on a deterministic anchor path
-    X_future <- matrix(NA_real_, nrow = H, ncol = p_res + total_exog_lags)
+    X_future <- matrix(NA_real_, nrow = H, ncol = p_res)
     y_anchor <- numeric(H)
     y_hist_work <- y_hist
     h_now <- h_last
     beta_mean <- as.numeric(object$fit$qbeta$m)
 
     for (h in seq_len(H)) {
-      u_h   <- make_u(y_hist_work)
+      u_ex  <- build_u_exog_block(h)
+      u_h   <- make_u(y_hist_work, u_ex)
       step  <- forward_one(h_now, u_h)
       h_now <- step$h
-      x_res_row <- step$x_res
-      x_cov_row <- build_xcov_row(h)
-      x_row     <- c(x_res_row, x_cov_row)
+      x_row <- step$x_res
       X_future[h, ] <- x_row
 
-      if (anchor == "vb-mean") {
+      if (h == 1L && ncol(object$X) != length(x_row)) {
+        stop("Readout feature length mismatch: got ", length(x_row),
+             " but training X has ", ncol(object$X),
+             ". Check reservoir sizes/reducers/bias.")
+      }
+
+      # deterministic anchor for this horizon (overridden by observed if provided)
+      if (!is.na(y_obs_vec[h])) {
+        y_hat <- y_obs_vec[h]                      # TEACHER-FORCE: use observed y_{T+h}
+      } else if (anchor == "vb-mean") {
         y_hat <- sum(x_row * beta_mean)
       } else {
         stopifnot(!is.null(anchor_path), length(anchor_path) >= H)
         y_hat <- anchor_path[h]
       }
       y_anchor[h] <- y_hat
-      if (m > 0L) y_hist_work <- c(y_hist_work, y_hat)
+      if (m > 0L) y_hist_work <- c(y_hist_work, y_hat)  # feed back anchor/observed
     }
 
     if (!is.null(seed)) set.seed(as.integer(seed))
@@ -790,7 +843,11 @@ forecast_paths.qdesn_fit <- function(
     B_d   <- vapply(gdraw, function(g) B.fn(p0, g), 1.0)
     lam_d <- vapply(gdraw, function(g) C.fn(p0, g) * abs(g), 1.0)
 
-    Hh <- nrow(X_future)
+    Hh <- nrow(X_future)  # (we'll reuse this below)
+    S_mat <- matrix(abs(rnorm(Hh * nd)), Hh, nd)                             # |N(0,1)|
+    V_mat <- matrix(rexp(Hh * nd, rate = rep(1 / sdraw, each = Hh)), Hh, nd) # Exp(1/sigma_j)
+    Z_mat <- matrix(rnorm(Hh * nd), Hh, nd)     
+    
     yrep     <- matrix(NA_real_, Hh, nd)
     mu_draws <- matrix(NA_real_, Hh, nd)
 
@@ -801,14 +858,23 @@ forecast_paths.qdesn_fit <- function(
       mu  <- X_future %*% Bc                # H x mm
       mu_draws[, ids] <- mu
 
-      s_mat <- matrix(abs(rnorm(Hh * mm)), Hh, mm)
-      v_mat <- matrix(rexp(Hh * mm, rate = rep(1 / sdraw[ids], each = Hh)), Hh, mm)
-      z_mat <- matrix(rnorm(Hh * mm), Hh, mm)
+      s_mat <- S_mat[, ids, drop = FALSE]
+      v_mat <- V_mat[, ids, drop = FALSE]
+      z_mat <- Z_mat[, ids, drop = FALSE]
 
       term_s <- sweep(s_mat, 2L, lam_d[ids] * sdraw[ids], `*`)
       term_v <- sweep(v_mat, 2L, A_d[ids],                   `*`)
       sd_mat <- sqrt(sweep(v_mat, 2L, B_d[ids] * sdraw[ids], `*`))
       yrep[, ids] <- mu + term_s + term_v + sd_mat * z_mat
+      
+      # teacher-force: overwrite any observed horizons with realized values
+      if (any(!is.na(y_obs_vec))) {
+        obs_rows <- which(!is.na(y_obs_vec))
+        if (length(obs_rows)) {
+          yrep[obs_rows, ids] <- matrix(y_obs_vec[obs_rows], nrow = length(obs_rows), ncol = mm)
+        }
+      }
+
     }
 
     out <- list(yrep = yrep, mu_draws = mu_draws, anchor_path = y_anchor)
@@ -829,6 +895,10 @@ forecast_paths.qdesn_fit <- function(
   B_d   <- vapply(gdraw, function(g) B.fn(p0, g), 1.0)
   lam_d <- vapply(gdraw, function(g) C.fn(p0, g) * abs(g), 1.0)
 
+  S_mat <- matrix(abs(rnorm(H * nd)), H, nd)                            # |N(0,1)|
+  V_mat <- matrix(rexp(H * nd, rate = rep(1 / sdraw, each = H)), H, nd) # Exp(1/sigma_j)
+  Z_mat <- matrix(rnorm(H * nd), H, nd)   
+
   yrep     <- matrix(NA_real_, H, nd)
   mu_draws <- matrix(NA_real_, H, nd)
 
@@ -840,25 +910,31 @@ forecast_paths.qdesn_fit <- function(
       y_hist_work  <- y_hist
 
       for (h in seq_len(H)) {
-        # 1) forward reservoir with CURRENT lag history
-        u_h   <- make_u(y_hist_work)
+        u_ex  <- build_u_exog_block(h)
+        u_h   <- make_u(y_hist_work, u_ex)
         step  <- forward_one(h_now, u_h)
         h_now <- step$h
-        x_res_row <- step$x_res
+        x_row <- step$x_res
 
-        # 2) exog for this horizon
-        x_cov_row <- build_xcov_row(h)
+        # one-time safety (first horizon, first draw)
+        if (h == 1L && j == ids[1L] && ncol(object$X) != length(x_row)) {
+          stop("Readout feature length mismatch: got ", length(x_row),
+               " but training X has ", ncol(object$X),
+               ". Check reservoir sizes/reducers/bias.")
+        }
 
-        # 3) readout design row & linear predictor for this draw
-        x_row <- c(x_res_row, x_cov_row)
-        mu    <- sum(x_row * Bdraw[j, ])
+        mu <- sum(x_row * Bdraw[j, ])
         mu_draws[h, j] <- mu
 
-        # 4) draw exAL noise with (sigma_j, gamma_j)
-        s  <- abs(rnorm(1))
-        v  <- rexp(1, rate = 1 / sdraw[j])
-        z  <- rnorm(1)
-        y_h <- mu + (lam_d[j] * sdraw[j]) * s + A_d[j] * v + sqrt(B_d[j] * sdraw[j] * v) * z
+        if (!is.na(y_obs_vec[h])) {
+          # TEACHER-FORCE: if y_{T+h} observed, use it and do not sample noise
+          y_h <- y_obs_vec[h]
+        } else {
+          s <- S_mat[h, j]
+          v <- V_mat[h, j]
+          z <- Z_mat[h, j]
+          y_h <- mu + (lam_d[j] * sdraw[j]) * s + A_d[j] * v + sqrt(B_d[j] * sdraw[j] * v) * z
+        }
 
         yrep[h, j] <- y_h
 
