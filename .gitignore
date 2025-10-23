@@ -30,3 +30,5 @@ model_selection_outputs/
 *.Rhistory
 logs/
 outputs/
+analysis-data/
+
