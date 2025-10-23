@@ -44,5 +44,7 @@ synthesize (p = {0.05,0.50,0.95}); score CRPS by lead and aggregate;
 select best spec; refit on Train∪Val; forecast Test; report Test CRPS.
 
 Thin wrapper so scripts can call \code{exdqlm::model_selection_optionA()}.
-It forwards all arguments to \code{model_selection_distribution_first()}.
+It forwards all arguments to \code{model_selection_distribution_first()},
+while swallowing Option-A-only knobs that the underlying selector
+may not use yet (e.g., split, weight_leads).
 }

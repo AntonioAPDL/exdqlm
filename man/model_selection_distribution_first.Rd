@@ -14,7 +14,13 @@ model_selection_distribution_first(
   parallel = FALSE,
   n_workers = max(1L, parallel::detectCores() - 1L),
   keep_artifacts = TRUE,
-  plot = FALSE
+  plot = FALSE,
+  progress_console = FALSE,
+  progress_log = NULL,
+  progress_every = 1L,
+  grid_preset = c("default", "small", "tiny", "micro"),
+  max_specs = Inf,
+  grid_seed = 123L
 )
 }
 \arguments{
@@ -28,8 +34,7 @@ model_selection_distribution_first(
 
 \item{p_vec}{Numeric vector of quantiles to fit jointly. Default: \code{c(0.05, 0.50, 0.95)}.}
 
-\item{seed_vec}{Integer vector of reservoir seeds to average across (reduces variance).
-Default: \code{c(42L, 101L)}.}
+\item{seed_vec}{Integer vector of reservoir seeds to average across (reduces variance). Default: \code{c(42L, 101L)}.}
 
 \item{parallel}{Logical, use base parallel (PSOCK) across candidate specs. Default: \code{FALSE}.}
 
@@ -38,6 +43,18 @@ Default: \code{c(42L, 101L)}.}
 \item{keep_artifacts}{Logical, keep exemplar fit objects/draws for the winner. Default: \code{TRUE}.}
 
 \item{plot}{Logical, make quick ggplot diagnostics for winner (requires \pkg{ggplot2}). Default: \code{FALSE}.}
+
+\item{progress_console}{Logical, print progress to console. Default: \code{FALSE}.}
+
+\item{progress_log}{Optional path to a logfile to append progress lines. Default: \code{NULL}.}
+
+\item{progress_every}{Integer, how often to log in non-parallel mode (by spec index). Default: \code{1L}.}
+
+\item{grid_preset}{Character, one of \code{"default"}, \code{"small"}, \code{"tiny"}, \code{"micro"} for built-in grids. Default: \code{"default"}.}
+
+\item{max_specs}{Integer, optional cap to randomly sample at most this many specs from the grid. Default: \code{Inf}.}
+
+\item{grid_seed}{Integer RNG seed used when subsampling the grid. Default: \code{123L}.}
 }
 \value{
 A list with elements:

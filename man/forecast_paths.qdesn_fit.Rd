@@ -14,6 +14,7 @@ forecast_paths.qdesn_fit(
   anchor_path = NULL,
   xreg_hist = NULL,
   xreg_future = NULL,
+  y_future_obs = NULL,
   chunk = 256L,
   seed = NULL,
   return_design = FALSE
@@ -35,9 +36,15 @@ if NULL and m>0 uses last m of object$y_fit}
 
 \item{anchor_path}{optional length>=H numeric, when method="shared" & anchor="user"}
 
-\item{xreg_hist, xreg_future}{optional \strong{named lists} of exogenous lag histories
-and known futures keyed by variable name (e.g. list(temp=..., flow=...)).
+\item{xreg_hist, xreg_future}{optional \strong{named lists} of exogenous histories/futures
+that feed the input vector ( \tilde{\vect u}_t=(1,y\text{-lags},\vect z_t^\top) )
+keyed by variable name (e.g. list(temp=..., flow=...)).
 Required if the fit metadata declares nonzero exogenous lags.}
+
+\item{y_future_obs}{Optional numeric vector of length H with realized values
+at horizons T+1:T+H. Use NA for unknown horizons. When provided, those
+observations are teacher-forced: they replace simulated draws at their
+horizon and are fed back into the lag buffer for subsequent steps.}
 
 \item{chunk}{process draws in chunks to cap memory}
 
