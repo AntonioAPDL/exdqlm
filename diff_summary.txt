@@ -1,0 +1,17 @@
+M	.gitignore
+M	NAMESPACE
+M	R/model_selection_distribution_first.R
+A	R/optionA_alias.R
+M	R/qdesn_vb.R
+A	bin/launch_msel_tmux.sh
+A	bin/run_qdesn_msel.sh
+A	man/exal_vb_posterior_draws.Rd
+A	man/exal_vb_posterior_predict.Rd
+A	man/forecast_paths.qdesn_fit.Rd
+A	man/model_selection_distribution_first.Rd
+A	man/model_selection_optionA.Rd
+A	man/posterior_predict.qdesn_fit.Rd
+A	man/predict_mu.qdesn_fit.Rd
+A	man/qdesn_fit_vb.Rd
+A	man/simulate_ts_mc_quantiles.Rd
+A	scripts/driver_model_selection.R
