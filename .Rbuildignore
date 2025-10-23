@@ -25,3 +25,10 @@
 ^check-logs$
 
 ^README\.html$
+^notebooks$
+^scripts$
+^bin$
+^build$
+^cran-comments\.md$
+^README\.Rmd$
+^\.github$
