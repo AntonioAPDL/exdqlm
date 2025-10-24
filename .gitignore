@@ -28,3 +28,7 @@ README.html
 
 # heavy run artifacts
 results/**/forecast_objects.rds
+logs/
+outputs/
+results/**/fig_esn_quantile_notebook/pit_hist_*.png
+results/**/fig_esn_quantile_notebook/pit_qq_*.png
