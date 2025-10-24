@@ -25,3 +25,6 @@ README.html
 
 # local outputs
 *.Rhistory
+
+# heavy run artifacts
+results/**/forecast_objects.rds

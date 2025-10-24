@@ -1,0 +1,12 @@
+Simulation metadata
+--------------------
+scenario: ar1_t
+seed:     123
+R_mc:     5000
+burnin:   2000
+p grid:   10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95
+params:
+List of 3
+ $ phi1: num 0.6
+ $ tau : num 1
+ $ nu  : num 5

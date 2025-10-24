@@ -1,0 +1,15 @@
+Simulation metadata
+--------------------
+scenario: regime_exal
+seed:     123
+R_mc:     5000
+burnin:   2000
+p grid:   10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95
+params:
+List of 6
+ $ p0    : num 0.5
+ $ a1    : num 0.6
+ $ b     : num 0.8
+ $ period: num 20
+ $ sigma : num 1
+ $ gamma : num 0

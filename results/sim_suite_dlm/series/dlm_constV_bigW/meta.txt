@@ -1,0 +1,17 @@
+Simulation metadata
+--------------------
+scenario: dlm_constV_bigW
+seed:     123
+R_mc:     5000
+burnin:   2000
+p grid:   10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95
+params:
+List of 8
+ $ period     : int 50
+ $ m0         : num [1:6] 0 0 0 0 0 0
+ $ C0         : num [1:6, 1:6] 25 0 0 0 0 0 0 25 0 0 ...
+ $ V          : num 9
+ $ alpha_small: num 1e-04
+ $ alpha_big  : num 1
+ $ alpha      : num 1
+ $ no_trend   : logi TRUE
