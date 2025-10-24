@@ -18,17 +18,10 @@ src/*.so
 src/*.dll
 
 # Ignore local stuff
-notebooks/
 .vscode
 check-logs/
 
 README.html
 
 # local outputs
-results/
-model_selection_outputs/
 *.Rhistory
-logs/
-outputs/
-analysis-data/
-
