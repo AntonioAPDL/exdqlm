@@ -1,0 +1,14 @@
+name: baseline
+# close to notebook behavior
+vb:
+  max_iter: 150
+  n_samp_xi: 500
+sampling:
+  nd_draws: 3000
+  chunk: 250
+forecast:
+  last_window: 200
+synthesis:
+  n_samp: 4000
+outputs:
+  keep_draws: false

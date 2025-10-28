@@ -32,3 +32,15 @@ logs/
 outputs/
 results/**/fig_esn_quantile_notebook/pit_hist_*.png
 results/**/fig_esn_quantile_notebook/pit_qq_*.png
+
+# Batch suite
+config/local.yaml
+results/**/runs/*/logs/
+results/**/models/*draws*/
+results/**/runs/*/logs/*
+results/**/runs/*/last.log
+# Never commit artifacts if you change the root
+/data/**/esn_core_*/
+
+results/**/latest
+results/**/runs/*/manifest/*

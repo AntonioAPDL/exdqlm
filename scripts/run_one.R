@@ -1,0 +1,137 @@
+#!/usr/bin/env Rscript
+suppressPackageStartupMessages({
+  req <- c("yaml","jsonlite","digest","fs","tools","withr")
+  need <- setdiff(req, rownames(installed.packages()))
+  if (length(need)) install.packages(need, repos="https://cloud.r-project.org")
+  invisible(lapply(req, require, character.only=TRUE))
+})
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+args <- commandArgs(trailingOnly = TRUE)
+get_arg  <- function(flag, default=NULL) { i <- which(args == flag); if (length(i) && i < length(args)) args[i+1] else default }
+has_flag <- function(flag) any(args == flag)
+slug      <- get_arg("--slug")
+spec_name <- get_arg("--spec")
+dry_run   <- has_flag("--dry-run")
+stopifnot(nzchar(slug), nzchar(spec_name))
+
+# --- Load YAMLs
+defaults <- yaml::read_yaml("config/defaults.yaml")
+suite    <- if (file.exists("config/suite.yaml")) yaml::read_yaml("config/suite.yaml") else list()
+datasets <- yaml::read_yaml("config/datasets.yaml")
+local    <- if (file.exists("config/local.yaml")) yaml::read_yaml("config/local.yaml") else list()
+
+# find dataset entry
+ds <- NULL
+for (d in datasets$datasets) if (identical(d$slug, slug)) { ds <- d; break }
+if (is.null(ds)) stop("Dataset slug not found: ", slug)
+
+input_path <- ds$input_path
+if (!file.exists(input_path)) stop("Input file not found: ", input_path)
+
+# Merge (defaults <- suite <- spec <- dataset.overrides <- local)
+spec_path <- file.path("config","specs", paste0("spec_", spec_name, ".yaml"))
+if (!file.exists(spec_path)) stop("Spec not found: ", spec_path)
+spec <- yaml::read_yaml(spec_path)
+
+deep_merge <- function(a,b){
+  if (is.null(b)) return(a)
+  if (is.null(a)) return(b)
+  if (is.list(a) && is.list(b)) {
+    keys <- unique(c(names(a), names(b)))
+    out  <- lapply(keys, function(k) deep_merge(a[[k]], b[[k]]))
+    names(out) <- keys
+    out
+  } else b
+}
+
+cfg <- defaults
+cfg <- deep_merge(cfg, suite)
+cfg <- deep_merge(cfg, spec)
+cfg <- deep_merge(cfg, ds$overrides)
+cfg <- deep_merge(cfg, local)
+
+# Effective suite & roots
+suite_name   <- cfg$suite_name %||% "sim_suite_dlm"
+results_root <- cfg$results_root %||% "results"
+
+# Git/host info
+git_sha    <- try(system("git rev-parse --short HEAD", intern = TRUE), silent=TRUE); git_sha    <- if (inherits(git_sha,"try-error")) NA else git_sha
+git_branch <- try(system("git rev-parse --abbrev-ref HEAD", intern = TRUE), silent=TRUE); git_branch <- if (inherits(git_branch,"try-error")) NA else git_branch
+git_dirty  <- try(system("git diff --quiet || echo DIRTY", intern = TRUE), silent=TRUE); git_dirty  <- if (length(git_dirty) && git_dirty=="DIRTY") TRUE else FALSE
+
+# Input SHA256 + cfg hash
+inp_sha <- digest::digest(file = input_path, algo = "sha256")
+cfg_for_hash <- cfg; cfg_for_hash$orchestrate <- NULL; cfg_for_hash$naming <- NULL
+cfg_hash <- substr(digest::digest(cfg_for_hash, algo="sha256"), 1, 8)
+
+# Timestamped run dir
+stamp  <- format(Sys.time(), "%Y%m%d-%H%M%S")
+run_id <- sprintf("%s__git-%s__spec-%s__cfg-%s", stamp, git_sha, spec_name, cfg_hash)
+run_dir <- fs::path(results_root, suite_name, slug, "runs", run_id)
+fs::dir_create(fs::path(run_dir, "figs"))
+fs::dir_create(fs::path(run_dir, "tables"))
+fs::dir_create(fs::path(run_dir, "models"))
+fs::dir_create(fs::path(run_dir, "manifest"))
+fs::dir_create(fs::path(run_dir, "thesis"))
+fs::dir_create(fs::path(run_dir, "logs"))
+
+# Pre-flight schema check
+hdr <- try(read.csv(input_path, nrows=1))
+need_cols <- c("t","p","q","y","mu")
+if (inherits(hdr,"try-error") || !all(need_cols %in% names(hdr))) {
+  cat("Schema failure; missing columns among:", paste(need_cols, collapse=", "), "\n")
+  writeLines("FAIL", fs::path(run_dir,"manifest","status.txt"))
+  quit(save="no", status=1)
+}
+
+# Manifest (pre-run)
+manifest <- list(
+  started_at = as.character(Sys.time()),
+  dataset    = list(slug = slug, input_path = input_path, input_sha256 = inp_sha),
+  git        = list(sha = git_sha, branch = git_branch, dirty = git_dirty),
+  suite      = suite_name, spec = spec_name, cfg_hash = cfg_hash,
+  host       = as.list(Sys.info()[c("nodename","sysname","release")]),
+  orchestrate= cfg$orchestrate
+)
+jsonlite::write_json(manifest, fs::path(run_dir,"manifest","run_manifest.json"), pretty=TRUE, auto_unbox=TRUE)
+writeLines(if (dry_run) "DRY-RUN" else "RUNNING", fs::path(run_dir,"manifest","status.txt"))
+
+if (isTRUE(dry_run)) {
+  cat("Dry run: would invoke esn_quantile_main.R with input=", input_path, "\n")
+  quit(save="no", status=0)
+}
+
+# Environment (threads + handoff to main)
+env <- cfg$env %||% list()
+env$OMP_NUM_THREADS      <- as.character(cfg$orchestrate$threads_per_proc %||% 1)
+env$OPENBLAS_NUM_THREADS <- env$OMP_NUM_THREADS
+env$MKL_NUM_THREADS      <- env$OMP_NUM_THREADS
+env$EXDQLM_FILE_LONG     <- normalizePath(input_path)
+env$EXDQLM_OUT_DIR       <- normalizePath(run_dir)
+env$EXDQLM_SAVE_OUTPUTS  <- if (isTRUE(cfg$outputs$save)) "1" else "0"
+env$EXDQLM_CFG_JSON      <- jsonlite::toJSON(cfg, auto_unbox = TRUE)
+
+status <- 0L
+tryCatch({
+  withr::with_envvar(env, {
+    source("scripts/esn_quantile_main.R", local = new.env(parent = globalenv()))
+  })
+}, error = function(e) {
+  cat("ERROR in esn_quantile_main.R:\n", conditionMessage(e), "\n")
+  status <<- 1L
+})
+
+# Sort artifacts
+if (status == 0L) {
+  all_files <- fs::dir_ls(run_dir, recurse = FALSE, type = "file", glob = "*")
+  to_figs   <- all_files[grepl("\\.(png|pdf|jpg)$", all_files, ignore.case = TRUE)]
+  to_tbls   <- all_files[grepl("\\.(csv|tsv)$",    all_files, ignore.case = TRUE)]
+  to_models <- all_files[grepl("\\.(rds|rda)$",    all_files, ignore.case = TRUE)]
+  if (length(to_figs))   fs::file_move(to_figs,   fs::path(run_dir, "figs",   fs::path_file(to_figs)))
+  if (length(to_tbls))   fs::file_move(to_tbls,   fs::path(run_dir, "tables", fs::path_file(to_tbls)))
+  if (length(to_models)) fs::file_move(to_models, fs::path(run_dir, "models", fs::path_file(to_models)))
+}
+
+writeLines(if (status==0L) "SUCCESS" else "FAIL", fs::path(run_dir,"manifest","status.txt"))
+quit(save="no", status = status)

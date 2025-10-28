@@ -1,0 +1,7 @@
+# Machine-specific knobs (NOT committed)
+env:
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+# Optional: override results_root to an absolute path if you want to write elsewhere
+# results_root: /data/muscat_data/jaguir26/exdqlm/batch_results
