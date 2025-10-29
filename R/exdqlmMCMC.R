@@ -11,6 +11,7 @@
 #'
 #' @return A object of class "\code{exdqlmMCMC}" containing the following:
 #'  \itemize{
+#'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `model` - List of the state-space model including `GG`, `FF`, prior parameters `m0` and `C0`.
 #'   \item `p0` - The quantile which was estimated.
@@ -22,6 +23,8 @@
 #'   \item `samp.sigma` - Posterior sample of scale parameter sigma.
 #'   \item `samp.vts` - Posterior sample of latent parameters, v_t.
 #'   \item `theta.out` - List containing the distributions of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
+#'   \item `n.burn` Number of MCMC iterations that were burned.
+#'   \item `n.mcmc` Number of MCMC iterations that were sampled.
 #' }
 #' If `dqlm.ind=FALSE`, the object also contains the following:
 #' \itemize{
@@ -404,13 +407,14 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     map.standard.forecast.errors = theta.out$standard.forecast.errors
 
     # exdqlm results
-    retlist = list(run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma), samp.gamma = coda::as.mcmc(save.gamma),
                 init.log.sigma = coda::as.mcmc(init.log.sigma), init.logit.gamma = coda::as.mcmc(init.logit.gamma),
                 samp.vts = coda::as.mcmc(save.Ut), samp.sts = coda::as.mcmc(save.st),
-                accept.rate = n.accept/I, Sig.mh=Sig.mh)
+                accept.rate = n.accept/I, Sig.mh=Sig.mh,
+                n.burn=n.burn,n.mcmc=n.mcmc)
 
   }else{
     ######## DQLM
@@ -527,11 +531,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     map.standard.forecast.errors = theta.out$standard.forecast.errors
 
     # dqlm results
-    retlist = list(run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma),
-                samp.vts = coda::as.mcmc(save.Ut))
+                samp.vts = coda::as.mcmc(save.Ut),
+                n.burn=n.burn,n.mcmc=n.mcmc)
   }
 
   # return results

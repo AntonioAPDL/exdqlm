@@ -121,7 +121,7 @@ as.exdqlm <- function(m){
 #'
 #' Print the details of the exDQLM model.
 #' @param x a \code{exdqlm} object.
-#' @param ... further arguments passed to or from other methods.
+#' @param ... further arguments (unused).
 #' 
 #' @export
 print.exdqlm <- function(x,...){
@@ -162,6 +162,24 @@ print.exdqlm <- function(x,...){
 is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
 
 
+#' Print Method for \code{exdqlmMCMC} Objects
+#'
+#' @param x An `exdqlmMCMC` object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+print.exdqlmMCMC<- function(x, ...) {
+  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  cat("Number of Observations:", length(x$y), "\n")
+  cat("State Dimension:", length(x$model$m0), "\n")  
+  cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
+  #
+  cat("exDQLM fitted using MCMC\n")
+  cat("Burn-in:", x$n.burn, ", MCMC samples:", x$n.mcmc , "\n")
+  cat("Run-time:", x$run.time, "seconds\n")
+}
+
+
 
 ##################################
 ###### "exdqlmISVB" objects ######
@@ -176,4 +194,24 @@ is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
 #' @param m an \strong{R} object
 #'
 #' @export
+#' 
+#' 
 is.exdqlmISVB = function(m){ return(methods::is(m,"exdqlmISVB")) }
+
+#' Print Method for \code{exdqlmISVB} Objects
+#'
+#' @param x An `exdqlmISVB` object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+print.exdqlmISVB<- function(x, ...) {
+  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  cat("Number of Observations:", length(x$y), "\n")
+  cat("State Dimension:", length(x$model$m0), "\n")  
+  cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
+  #
+  cat("exDQLM fitted using ISVB\n")
+  cat("Variational Parameters:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
+  cat("Iterations until convergence:", x$iter, "\n")
+  cat("Run-time:", x$run.time, "seconds\n")
+}
