@@ -62,6 +62,7 @@ exdqlmISVB(
 \value{
 A object of class "\code{exdqlmISVB}" containing the following:
 \itemize{
+\item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{iter} - Number of iterations until convergence was reached.
 \item \code{dqlm.ind} - Logical value indicating whether gamma was fixed at \code{0}, reducing the exDQLM to the special case of the DQLM.
@@ -78,6 +79,7 @@ A object of class "\code{exdqlmISVB}" containing the following:
 \item \code{samp.vts} - Posterior sample of latent parameters, v_t, variational distributions.
 \item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
+\item \code{fix.sigma} Logical value indicating whether sigma was fixed at \code{sig.init}.
 }
 If \code{dqlm.ind=FALSE}, the object also contains:
 \itemize{
@@ -87,6 +89,7 @@ If \code{dqlm.ind=FALSE}, the object also contains:
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
 \item \code{gammasig.out} - List containing the IS estimate of the variational distribution of sigma and gamma.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
+\item \code{fix.gamma} Logical value indicating whether gamma was fixed at \code{gam.init}.
 }
 Or if \code{dqlm.ind=TRUE}, the object also contains:
 \itemize{

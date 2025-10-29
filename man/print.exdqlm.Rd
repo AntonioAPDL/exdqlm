@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{a \code{exdqlm} object.}
 
-\item{...}{further arguments passed to or from other methods.}
+\item{...}{further arguments (unused).}
 }
 \description{
 Print the details of the exDQLM model.

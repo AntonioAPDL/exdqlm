@@ -65,6 +65,7 @@ exdqlmMCMC(
 \value{
 A object of class "\code{exdqlmMCMC}" containing the following:
 \itemize{
+\item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{model} - List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.
 \item \code{p0} - The quantile which was estimated.
@@ -76,6 +77,8 @@ A object of class "\code{exdqlmMCMC}" containing the following:
 \item \code{samp.sigma} - Posterior sample of scale parameter sigma.
 \item \code{samp.vts} - Posterior sample of latent parameters, v_t.
 \item \code{theta.out} - List containing the distributions of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
+\item \code{n.burn} Number of MCMC iterations that were burned.
+\item \code{n.mcmc} Number of MCMC iterations that were sampled.
 }
 If \code{dqlm.ind=FALSE}, the object also contains the following:
 \itemize{

@@ -2,6 +2,8 @@
 
 S3method("+",exdqlm)
 S3method(print,exdqlm)
+S3method(print,exdqlmISVB)
+S3method(print,exdqlmMCMC)
 export(as.exdqlm)
 export(compPlot)
 export(dexal)
