@@ -75,7 +75,7 @@ transfn_exdqlmISVB(
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 }
 \value{
-A list of the following is returned:
+A object of class "\code{exdqlmISVB}" containing the following:
 \itemize{
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{iter} - Number of iterations until convergence was reached.
@@ -96,7 +96,7 @@ A list of the following is returned:
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
 \item \code{median.kt} - Median number of time steps until the effect of X_t is less than or equal to 1e-3.
 }
-If \code{dqlm.ind=FALSE}, the list also contains:
+If \code{dqlm.ind=FALSE}, the object also contains:
 \itemize{
 \item \code{gam.init} - Initial value for gamma, or value at which gamma was fixed if \code{fix.gamma=TRUE}.
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
@@ -105,7 +105,7 @@ If \code{dqlm.ind=FALSE}, the list also contains:
 \item \code{gammasig.out} - List containing the IS estimate of the variational distribution of sigma and gamma.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 }
-Or if \code{dqlm.ind=TRUE}, the list also contains:
+Or if \code{dqlm.ind=TRUE}, the object also contains:
 \itemize{
 \item \code{sig.out} - List containing the IS estimate of the variational distribution of sigma.
 }

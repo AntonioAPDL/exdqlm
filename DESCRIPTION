@@ -30,7 +30,6 @@ Imports:
     truncnorm,
     HyperbolicDist,
     GeneralizedHyperbolic,
-    brms,
     FNN,
     LaplacesDemon,
     grDevices,

@@ -17,7 +17,7 @@ compPlot(
 \arguments{
 \item{y}{A univariate time-series.}
 
-\item{m1}{An object of class "\code{exdqlm}".}
+\item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
 
 \item{index}{Index of the component or element of the state vector to be plotted.}
 

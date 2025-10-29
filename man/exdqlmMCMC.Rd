@@ -63,7 +63,7 @@ exdqlmMCMC(
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 }
 \value{
-A list of the following is returned:
+A object of class "\code{exdqlmMCMC}" containing the following:
 \itemize{
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{model} - List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.
@@ -77,7 +77,7 @@ A list of the following is returned:
 \item \code{samp.vts} - Posterior sample of latent parameters, v_t.
 \item \code{theta.out} - List containing the distributions of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 }
-If \code{dqlm.ind=FALSE}, the list also contains the following:
+If \code{dqlm.ind=FALSE}, the object also contains the following:
 \itemize{
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t.

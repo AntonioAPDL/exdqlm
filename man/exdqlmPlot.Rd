@@ -9,7 +9,7 @@ exdqlmPlot(y, m1, add = FALSE, col = "purple", cr.percent = 0.95)
 \arguments{
 \item{y}{A univariate time-series.}
 
-\item{m1}{An object of class "\code{exdqlm}".}
+\item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
 
 \item{add}{If \code{TRUE}, the dynamic quantile will be added to existing plot.}
 

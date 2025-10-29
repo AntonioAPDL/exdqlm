@@ -9,7 +9,7 @@
 #' @param n.mcmc Number of MCMC iterations to sample. Default is `n.mcmc = 1500`.
 #' @param init.from.isvb Logical value indicating whether or not to initialize the MCMC using the ISVB algorithm. Default is `TRUE`.
 #'
-#' @return A list of the following is returned:
+#' @return A object of class "\code{exdqlmMCMC}" containing the following:
 #'  \itemize{
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `model` - List of the state-space model including `GG`, `FF`, prior parameters `m0` and `C0`.
@@ -23,7 +23,7 @@
 #'   \item `samp.vts` - Posterior sample of latent parameters, v_t.
 #'   \item `theta.out` - List containing the distributions of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #' }
-#' If `dqlm.ind=FALSE`, the list also contains the following:
+#' If `dqlm.ind=FALSE`, the object also contains the following:
 #' \itemize{
 #'   \item `samp.gamma` - Posterior sample of skewness parameter gamma.
 #'   \item `samp.sts` - Posterior sample of latent parameters, s_t.
@@ -274,7 +274,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## backwards sample
       svd.sC = svd(C[,,TT])
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-      post.pred[TT] = brms::rasym_laplace(1,t(FF[,TT])%*%sam.theta[,TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,tau)
+      post.pred[TT] = rexal(1,tau,t(FF[,TT])%*%sam.theta[,TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,0)
       for(t in (TT-1):1){
         P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
         R = P + df.mat*P
@@ -286,7 +286,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         sC = C[,,t] - sB%*%GG[,,t]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        post.pred[t] = brms::rasym_laplace(1,t(FF[,t])%*%sam.theta[,t]+c_tau*sigma*abs(gamma)*sts[t],sigma,tau)
+        post.pred[t] = rexal(1,tau,t(FF[,t])%*%sam.theta[,t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
     }
@@ -454,7 +454,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## backwards sample
       svd.sC = svd(C[,,TT])
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-      post.pred[TT] = brms::rasym_laplace(1,t(FF[,TT])%*%sam.theta[,TT],sigma,p0)
+      post.pred[TT] = rexal(1,p0,t(FF[,TT])%*%sam.theta[,TT],sigma,0)
       for(t in (TT-1):1){
         P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
         R = P + df.mat*P
@@ -466,7 +466,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         sC = C[,,t] - sB%*%GG[,,t]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        post.pred[t] = brms::rasym_laplace(1,t(FF[,t])%*%sam.theta[,t],sigma,p0)
+        post.pred[t] = rexal(1,p0,t(FF[,t])%*%sam.theta[,t],sigma,0)
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
     }
@@ -535,6 +535,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   }
 
   # return results
-  class(retlist) <- "exdqlm"
+  class(retlist) <- "exdqlmMCMC"
   return(retlist)
 }

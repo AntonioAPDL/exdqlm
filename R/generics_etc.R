@@ -1,4 +1,6 @@
-######## "exdqlm" objects
+##################################
+######## "exdqlm" objects ########
+##################################
 
 #' \code{exdqlm} objects
 #'
@@ -10,8 +12,6 @@
 #'
 #' @export
 is.exdqlm = function(m){ return(methods::is(m,"exdqlm")) }
-
-
 
 #' \code{exdqlm} objects
 #'
@@ -60,8 +60,6 @@ as.exdqlm <- function(m){
   
   return(model)
 }
-
-
 
 #' Addition for \code{exdqlm} objects
 #'
@@ -119,8 +117,6 @@ as.exdqlm <- function(m){
   return(model)
 }
 
-
-
 #' Print exDQLM model details
 #'
 #' Print the details of the exDQLM model.
@@ -149,3 +145,35 @@ print.exdqlm <- function(x,...){
 }
 
 
+
+##################################
+###### "exdqlmMCMC" objects ######
+##################################
+
+#' \code{exdqlmMCMC} objects
+#'
+#' \code{is.exdqlmMCMC} tests if its argument is a \code{exdqlmMCMC} object. 
+#' 
+#' @usage is.exdqlmMCMC(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
+
+
+
+##################################
+###### "exdqlmISVB" objects ######
+##################################
+
+#' \code{exdqlmISVB} objects
+#'
+#' \code{is.exdqlmISVB} tests if its argument is a \code{exdqlmISVB} object. 
+#' 
+#' @usage is.exdqlmISVB(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exdqlmISVB = function(m){ return(methods::is(m,"exdqlmISVB")) }

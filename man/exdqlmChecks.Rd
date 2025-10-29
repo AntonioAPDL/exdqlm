@@ -16,9 +16,9 @@ exdqlmChecks(
 \arguments{
 \item{y}{A univariate time-series.}
 
-\item{m1}{An object of class "\code{exdqlm}".}
+\item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
 
-\item{m2}{An optional additional object of class "\code{exdqlm}" to compare with \code{m1}.}
+\item{m2}{An optional additional object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}" to compare with \code{m1}.}
 
 \item{plot}{If \code{TRUE}, the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.}
 

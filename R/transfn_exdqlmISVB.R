@@ -9,7 +9,7 @@
 #' @param tf.m0 Prior mean of the transfer function component.
 #' @param tf.C0 Prior covariance of the transfer function component.
 #'
-#' @return A list of the following is returned:
+#' @return A object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `iter` - Number of iterations until convergence was reached.
@@ -30,7 +30,7 @@
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
 #'   \item `median.kt` - Median number of time steps until the effect of X_t is less than or equal to 1e-3.
 #' }
-#' If `dqlm.ind=FALSE`, the list also contains:
+#' If `dqlm.ind=FALSE`, the object also contains:
 #' \itemize{
 #'   \item `gam.init` - Initial value for gamma, or value at which gamma was fixed if `fix.gamma=TRUE`.
 #'   \item `seq.gamma` - Sequence of gamma estimated by the algorithm until convergence.
@@ -39,7 +39,7 @@
 #'   \item `gammasig.out` - List containing the IS estimate of the variational distribution of sigma and gamma.
 #'   \item `sts.out` - List containing the variational distributions of latent parameters s_t.
 #' }
-#' Or if `dqlm.ind=TRUE`, the list also contains:
+#' Or if `dqlm.ind=TRUE`, the object also contains:
 #' \itemize{
 #'   \item `sig.out` - List containing the IS estimate of the variational distribution of sigma.
 #'  }

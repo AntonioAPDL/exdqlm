@@ -3,7 +3,7 @@
 #' The function computes the following for the model(s) provided: the posterior predictive loss criterion based off the check loss, the one-step-ahead distribution sequence and its KL divergence from normality. The function also plots the following: the qq-plot and ACF plot corresponding to the one-step-ahead distribution sequence, and a time series plot of the MAP standard forecast errors.
 #'
 #' @inheritParams exdqlmPlot
-#' @param m2 An optional additional object of class "`exdqlm`" to compare with `m1`.
+#' @param m2 An optional additional object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}" to compare with `m1`.
 #' @param plot If `TRUE`, the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.
 #' @param cols Color(s) used to plot diagnostics.
 #' @param ref Reference sample of size `length(y)` from a standard normal distribution used to compute the KL divergence.
@@ -35,7 +35,7 @@ exdqlmChecks <- function(y,m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
   # check inputs
   check_ts(y)
   TT = length(y)
-  if(!is.exdqlm(m1)){
+  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
     stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
   }
   if(dim(m1$samp.theta)[2] != TT){

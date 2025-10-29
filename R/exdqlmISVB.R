@@ -20,7 +20,7 @@
 #' @param PriorGamma List of parameters for truncated student-t prior on gamma; center `m_gam`, scale `s_gam` and degrees of freedom `df_gam`. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.
 #' @param verbose Logical value indicating whether progress should be displayed.
 #'
-#' @return A list of the following is returned:
+#' @return A object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `iter` - Number of iterations until convergence was reached.
@@ -39,7 +39,7 @@
 #'   \item `theta.out` - List containing the variational distribution of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
 #' }
-#' If `dqlm.ind=FALSE`, the list also contains:
+#' If `dqlm.ind=FALSE`, the object also contains:
 #' \itemize{
 #'   \item `gam.init` - Initial value for gamma, or value at which gamma was fixed if `fix.gamma=TRUE`.
 #'   \item `seq.gamma` - Sequence of gamma estimated by the algorithm until convergence.
@@ -48,7 +48,7 @@
 #'   \item `gammasig.out` - List containing the IS estimate of the variational distribution of sigma and gamma.
 #'   \item `sts.out` - List containing the variational distributions of latent parameters s_t.
 #' }
-#' Or if `dqlm.ind=TRUE`, the list also contains:
+#' Or if `dqlm.ind=TRUE`, the object also contains:
 #'  \itemize{
 #'  \item `sig.out` - List containing the IS estimate of the variational distribution of sigma.
 #'  }
@@ -390,8 +390,9 @@ exdqlmISVB<-function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=
     svd.sC = svd(new.theta.out$sC[,,t]); LL = svd.sC$u%*%diag(sqrt(svd.sC$d),p)
     new.theta.out$sm[,t] + LL%*%matrix(stats::rnorm(n.samp*p,0,1),p,n.samp)}
   samp_post_pred_t = function(t){
-    brms::rasym_laplace(1,colSums(matrix(FF[,t],p,n.samp)*samp.theta[,t,])+
-                    samp.sigma*C.fn(p0,samp.gamma)*abs(samp.gamma)*samp.sts[t,],samp.sigma,p.fn(p0,samp.gamma))}
+        rexal(n.samp,p.fn(p0,samp.gamma),colSums(matrix(FF[,t],p,n.samp)*samp.theta[,t,]) +
+           samp.sigma*C.fn(p0,samp.gamma)*abs(samp.gamma)*samp.sts[t,],samp.sigma,0)
+   }
   samp.theta = array(NA,c(p,TT,n.samp))
   samp.post.pred = matrix(NA,TT,n.samp)
   for(t in 1:TT){samp.theta[,t,] = samp_theta_t(t); samp.post.pred[t,] = samp_post_pred_t(t)}
@@ -415,6 +416,6 @@ exdqlmISVB<-function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=
                    theta.out=new.theta.out,sig.out=new.gamsig.out,vts.out=new.uts.out)
   }
   # return results
-  class(retlist) <- "exdqlm"
+  class(retlist) <- "exdqlmISVB"
   return(retlist)
 }

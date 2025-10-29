@@ -3,7 +3,7 @@
 #' The function plots the MAP estimates and 95% credible intervals (CrIs) of the dynamic quantile of an exDQLM.
 #'
 #' @inheritParams exdqlmISVB
-#' @param m1 An object of class "`exdqlm`".
+#' @param m1 An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".
 #' @param add If `TRUE`, the dynamic quantile will be added to existing plot.
 #' @param col Color of dynamic quantile to be plotted. Default is `purple`.
 #' @param cr.percent Percentage used in the calculation of the credible intervals.
@@ -29,7 +29,7 @@ exdqlmPlot <- function(y,m1,add=FALSE,col="purple",cr.percent=0.95){
 
   # check inputs
   check_ts(y)
-  if(!is.exdqlm(m1)){
+  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
     stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
     }
   TT = length(y)

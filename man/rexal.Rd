@@ -25,5 +25,6 @@ Random Sample Generation for the exAL Distribution
 }
 \examples{
 set.seed(1); length(rexal(10))
+rexal(3, p0 = 0.5, mu = c(-1, 0, 1))
 
 }

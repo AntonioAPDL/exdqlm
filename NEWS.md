@@ -8,14 +8,18 @@
   - Implementation details:
     - Core numerics in C++ via Rcpp/RcppArmadillo and BH (Boost) for root-finding and Φ.
     - Parameter validation to keep `gamma` within bounds; clearer errors.
-- Testing & docs:
-  - Unit tests for pdf/cdf/quantile inverses and sampling sanity checks.
-  - Package-level docs updated; **vignettes intentionally deferred** for a later release.
+- Updated exdqlmISVB() and exdqlmMCMC() to use rexal()
 - Return changes
-  - functions polytrendMod, and seasMod now return objects of class 'exdqlm'
+  - functions polytrendMod(), and seasMod() now return objects of class 'exdqlm'
+  - function exdqlmISVB() and (inherently) transfn_exdqlmISVB() now return objects of class 'exdqlmISVB'
+  - function exdqlmMCMC() now returns objects of class 'exdqlmMCMC'
 - Added generics_etc.R which includes generics & other functions for the objects of class 'exdqlm'
 - Removed dlmMod.R and replaced with the more robust function as.exdqlm (in generics_etc.R), which creates 'exdqlm' objects
 - Removed combineMods.R and replaced with addition for 'exdqlm' objects (in generics_etc.R)
+- Testing & docs:
+  - Unit tests for pdf/cdf/quantile inverses and sampling sanity checks.
+  - Package-level docs updated; **vignettes intentionally deferred** for a later release.
+
 
 # exdqlm 0.1.4
 
