@@ -44,3 +44,8 @@ results/**/runs/*/last.log
 
 results/**/latest
 results/**/runs/*/manifest/*
+
+# runtime outputs
+results/
+tmux_logs/
+Rplots.pdf

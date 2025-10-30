@@ -7,11 +7,11 @@ p_vec: [0.05, 0.50, 0.95]
 # ESN / DESN spec (shared across quantiles unless overridden)
 desn:
   D: 1
-  n: [800]
+  "n": [300]
   n_tilde: []
-  m: 50
-  alpha: 0.2            # leak
-  rho: [0.95]           # spectral scaling per layer
+  m: 20
+  alpha: 0.4            # leak
+  rho: [0.98]           # spectral scaling per layer
   act_f: tanh
   act_k: identity
   pi_w: 0.05
@@ -22,7 +22,7 @@ desn:
 
 # Variational Bayes options (base)
 vb:
-  max_iter: 150
+  max_iter: 130
   tol_50: 1.0e-4        # p=0.50
   tol_extreme: 1.0e-5   # p!=0.50
   n_samp_xi: 500
@@ -30,7 +30,7 @@ vb:
 
 # Posterior predictive sampling
 sampling:
-  nd_draws: 3000
+  nd_draws: 2000
   chunk: 250
 
 # Rolling-origin / forecasting
@@ -43,8 +43,8 @@ forecast:
 synthesis:
   isotonic: true
   rearrange: true
-  grid_M: 2001
-  n_samp: 4000
+  grid_M: 1001
+  n_samp: 2000
   seed: 123
 
 # Outputs
@@ -56,7 +56,7 @@ outputs:
 # Orchestration
 orchestrate:
   concurrency: 2         # upper bound of simultaneous tmux sessions
-  threads_per_proc: 1    # set BLAS/OMP per R process
+  threads_per_proc: 10    # set BLAS/OMP per R process
   skip_if_success: true  # idempotency
   resume_failed: false
 

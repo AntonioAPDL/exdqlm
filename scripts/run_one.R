@@ -5,11 +5,21 @@ suppressPackageStartupMessages({
   if (length(need)) install.packages(need, repos="https://cloud.r-project.org")
   invisible(lapply(req, require, character.only=TRUE))
 })
+
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
+# -- Resolve repo root (so relative config/scripts paths work even if invoked elsewhere)
+args_all <- commandArgs(trailingOnly = FALSE)
+script_file <- sub("^--file=", "", args_all[grep("^--file=", args_all)])
+repo_root <- tryCatch(normalizePath(system("git rev-parse --show-toplevel", intern = TRUE)),
+                      error = function(...) normalizePath(if (nzchar(script_file)) dirname(script_file) else ".", mustWork = TRUE))
+setwd(repo_root)
+
+# --- CLI flags
 args <- commandArgs(trailingOnly = TRUE)
 get_arg  <- function(flag, default=NULL) { i <- which(args == flag); if (length(i) && i < length(args)) args[i+1] else default }
 has_flag <- function(flag) any(args == flag)
+
 slug      <- get_arg("--slug")
 spec_name <- get_arg("--spec")
 dry_run   <- has_flag("--dry-run")
@@ -17,9 +27,9 @@ stopifnot(nzchar(slug), nzchar(spec_name))
 
 # --- Load YAMLs
 defaults <- yaml::read_yaml("config/defaults.yaml")
-suite    <- if (file.exists("config/suite.yaml")) yaml::read_yaml("config/suite.yaml") else list()
+suite    <- if (file.exists("config/suite.yaml"))   yaml::read_yaml("config/suite.yaml")   else list()
 datasets <- yaml::read_yaml("config/datasets.yaml")
-local    <- if (file.exists("config/local.yaml")) yaml::read_yaml("config/local.yaml") else list()
+local    <- if (file.exists("config/local.yaml"))   yaml::read_yaml("config/local.yaml")   else list()
 
 # find dataset entry
 ds <- NULL
@@ -50,6 +60,31 @@ cfg <- deep_merge(cfg, suite)
 cfg <- deep_merge(cfg, spec)
 cfg <- deep_merge(cfg, ds$overrides)
 cfg <- deep_merge(cfg, local)
+
+# ---- YAML 1.1 boolean-key compatibility (protect 'n') ----
+if (!is.null(cfg$desn)) {
+  if ("FALSE" %in% names(cfg$desn) && is.null(cfg$desn$n)) {
+    cfg$desn$n <- cfg$desn$`FALSE`
+    cfg$desn$`FALSE` <- NULL
+  }
+}
+
+# ---- Normalize DESN numeric fields (avoid named-list artifacts) ----
+norm_num <- function(x) {
+  if (is.null(x)) return(NULL)
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  as.numeric(x)
+}
+if (!is.null(cfg$desn)) {
+  cfg$desn$n   <- norm_num(cfg$desn$n)
+  cfg$desn$rho <- norm_num(cfg$desn$rho)
+  Dcfg <- as.integer(cfg$desn$D %||% 1L)
+  if (!is.null(cfg$desn$n)   && length(cfg$desn$n)   == 1L && Dcfg > 1L) cfg$desn$n   <- rep(cfg$desn$n,   Dcfg)
+  if (!is.null(cfg$desn$rho) && length(cfg$desn$rho) == 1L && Dcfg > 1L) cfg$desn$rho <- rep(cfg$desn$rho, Dcfg)
+  # Preflight coherence (fail fast with a clear message)
+  if (!is.null(cfg$desn$n)   && length(cfg$desn$n)   != Dcfg) stop(sprintf("Config error: length(desn$n)=%d but desn$D=%d",   length(cfg$desn$n),   Dcfg))
+  if (!is.null(cfg$desn$rho) && length(cfg$desn$rho) != Dcfg) stop(sprintf("Config error: length(desn$rho)=%d but desn$D=%d", length(cfg$desn$rho), Dcfg))
+}
 
 # Effective suite & roots
 suite_name   <- cfg$suite_name %||% "sim_suite_dlm"
@@ -85,10 +120,14 @@ if (inherits(hdr,"try-error") || !all(need_cols %in% names(hdr))) {
   quit(save="no", status=1)
 }
 
+# Save effective cfg alongside manifest (useful for post-hoc repro)
+jsonlite::write_json(cfg, fs::path(run_dir,"manifest","cfg_effective.json"), pretty=TRUE, auto_unbox=TRUE)
+yaml::write_yaml(cfg, fs::path(run_dir,"manifest","cfg_effective.yaml"))
+
 # Manifest (pre-run)
 manifest <- list(
   started_at = as.character(Sys.time()),
-  dataset    = list(slug = slug, input_path = input_path, input_sha256 = inp_sha),
+  dataset    = list(slug = slug, input_path = normalizePath(input_path), input_sha256 = inp_sha),
   git        = list(sha = git_sha, branch = git_branch, dirty = git_dirty),
   suite      = suite_name, spec = spec_name, cfg_hash = cfg_hash,
   host       = as.list(Sys.info()[c("nodename","sysname","release")]),
@@ -112,26 +151,106 @@ env$EXDQLM_OUT_DIR       <- normalizePath(run_dir)
 env$EXDQLM_SAVE_OUTPUTS  <- if (isTRUE(cfg$outputs$save)) "1" else "0"
 env$EXDQLM_CFG_JSON      <- jsonlite::toJSON(cfg, auto_unbox = TRUE)
 
+# Logging to file (stdout + stderr)
+log_file <- fs::path(run_dir, "logs", "main.log")
+open_out <- sink.number()
+open_msg <- sink.number(type = "message")
+sink(log_file, split = TRUE)
+
+msg_con <- file(log_file, open = "at")
+
+sink(msg_con, type = "message")
+on.exit({
+  try(sink(type = "message"), silent = TRUE)
+  try(close(msg_con), silent = TRUE)
+}, add = TRUE)
+
+sink_stop <- function() {
+  while (sink.number() > open_out) sink(NULL)
+  while (sink.number(type="message") > open_msg) sink(NULL, type="message")
+}
+
 status <- 0L
+err_msg <- NULL
+
+cat(sprintf("== ESN Quantile run started at %s ==\n", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+cat("Repo root: ", repo_root, "\n")
+cat("Run dir:   ", run_dir, "\n")
+cat("Spec:      ", spec_name, "\n")
+cat("Dataset:   ", slug, " (", input_path, ")\n", sep = "")
+cat("Threads:   ", env$OMP_NUM_THREADS, "\n\n", sep = "")
+cat("Out dir:   ", env$EXDQLM_OUT_DIR, "\n", sep = "")
+cat("Saving:    ", if (!is.null(env$EXDQLM_SAVE_OUTPUTS) && nzchar(env$EXDQLM_SAVE_OUTPUTS) && env$EXDQLM_SAVE_OUTPUTS=="1") "TRUE" else "FALSE", "\n\n", sep = "")
+
+start_time <- Sys.time()
 tryCatch({
   withr::with_envvar(env, {
     source("scripts/esn_quantile_main.R", local = new.env(parent = globalenv()))
   })
 }, error = function(e) {
-  cat("ERROR in esn_quantile_main.R:\n", conditionMessage(e), "\n")
+  err_msg <<- conditionMessage(e)
+  cat("ERROR in esn_quantile_main.R:\n", err_msg, "\n")
   status <<- 1L
 })
+end_time <- Sys.time()
+cat(sprintf("\n== ESN Quantile run finished at %s (elapsed: %0.2f mins) ==\n",
+            format(end_time, "%Y-%m-%d %H:%M:%S"),
+            as.numeric(difftime(end_time, start_time, units="mins"))))
 
-# Sort artifacts
+# Close sinks before file moves
+sink_stop()
+
+# Sort artifacts (move top-level files into buckets; keep manifest/logs in place)
+safe_move <- function(files, dest_dir) {
+  if (!length(files)) return(invisible())
+  fs::dir_create(dest_dir)
+  for (f in files) {
+    tgt <- fs::path(dest_dir, fs::path_file(f))
+    if (fs::file_exists(tgt)) {
+      # avoid collisions by appending a counter
+      base <- tools::file_path_sans_ext(fs::path_file(f))
+      ext  <- tools::file_ext(f)
+      k <- 1L
+      repeat {
+        cand <- fs::path(dest_dir, sprintf("%s__%02d.%s", base, k, ext))
+        if (!fs::file_exists(cand)) { tgt <- cand; break }
+        k <- k + 1L
+      }
+    }
+    fs::file_move(f, tgt)
+  }
+}
+
 if (status == 0L) {
-  all_files <- fs::dir_ls(run_dir, recurse = FALSE, type = "file", glob = "*")
+  all_files <- fs::dir_ls(run_dir, recurse = FALSE, type = "file")
   to_figs   <- all_files[grepl("\\.(png|pdf|jpg)$", all_files, ignore.case = TRUE)]
   to_tbls   <- all_files[grepl("\\.(csv|tsv)$",    all_files, ignore.case = TRUE)]
   to_models <- all_files[grepl("\\.(rds|rda)$",    all_files, ignore.case = TRUE)]
-  if (length(to_figs))   fs::file_move(to_figs,   fs::path(run_dir, "figs",   fs::path_file(to_figs)))
-  if (length(to_tbls))   fs::file_move(to_tbls,   fs::path(run_dir, "tables", fs::path_file(to_tbls)))
-  if (length(to_models)) fs::file_move(to_models, fs::path(run_dir, "models", fs::path_file(to_models)))
+  safe_move(to_figs,   fs::path(run_dir, "figs"))
+  safe_move(to_tbls,   fs::path(run_dir, "tables"))
+  safe_move(to_models, fs::path(run_dir, "models"))
 }
 
+# Update manifest & symlink "latest" -> this run
 writeLines(if (status==0L) "SUCCESS" else "FAIL", fs::path(run_dir,"manifest","status.txt"))
+
+latest_link <- fs::path(results_root, suite_name, slug, "latest")
+if (fs::file_exists(latest_link) || fs::link_exists(latest_link)) {
+  try(fs::file_delete(latest_link), silent = TRUE)
+}
+# best-effort symlink (may fail on some filesystems; ignore errors)
+try(fs::link_create(run_dir, latest_link), silent = TRUE)
+
+# Save session info snapshot (useful for reproducibility)
+sess <- utils::capture.output(sessionInfo())
+writeLines(sess, fs::path(run_dir, "manifest", "session_info.txt"))
+
+# Write error details if any
+if (status != 0L && !is.null(err_msg)) {
+  writeLines(err_msg, fs::path(run_dir, "logs", "error.txt"))
+}
+
+# Final console note
+cat("Run dir: ", run_dir, "\n")
 quit(save="no", status = status)
+

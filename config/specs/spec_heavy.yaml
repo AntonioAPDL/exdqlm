@@ -1,13 +1,13 @@
 name: heavy
 vb:
-  max_iter: 300
-  n_samp_xi: 800
+  max_iter: 130
+  n_samp_xi: 300
 sampling:
-  nd_draws: 6000
+  nd_draws: 2000
   chunk: 300
 forecast:
-  last_window: 365
+  last_window: 100
 synthesis:
-  n_samp: 8000
+  n_samp: 2000
 outputs:
-  keep_draws: true
+  keep_draws: false

@@ -1,0 +1,8 @@
+name: probe
+sampling:
+  nd_draws: 500
+  chunk: 100
+synthesis:
+  n_samp: 1000
+outputs:
+  keep_draws: false
