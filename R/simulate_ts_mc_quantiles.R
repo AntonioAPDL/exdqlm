@@ -90,12 +90,12 @@
 #' @export
 simulate_ts_mc_quantiles <- function(
   T,
-  p_grid = sort(unique(c(seq(0.10, 0.95, by = 0.05), 0.50))),
-  R_mc = 2000L,
+  p_grid = sort(unique(c(seq(0.5, 0.95, by = 0.05), 0.50))),
+  R_mc = 5000L,
   scenario = c("ar1_exal","sin_exal","hetero_exal","regime_exal","ar1_t",
              "dlm_constV_smallW","dlm_constV_bigW","dlm_ar1V"),
   params = NULL,
-  burnin = 500L,
+  burnin = 2000L,
   seed = 123L,
   keep_latents = FALSE,
   keep_draws = FALSE

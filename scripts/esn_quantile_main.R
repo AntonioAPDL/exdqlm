@@ -241,8 +241,7 @@ plot_synth_predictive_band <- function(synth_draws, y_vec, scope="Forecast", win
     ggplot2::geom_line(ggplot2::aes(y=y, colour="data"), linewidth=0.75) +
     ggplot2::scale_color_manual(name="", breaks=c("data","median"), values=c(data="#6b7280", median=fill_col))
 }
-
-# --- 1) Load data + split
+# --- 1) Load data + split (INSTRUMENTED) --------------------------------------
 dat_long <- read.csv(file_long) |>
   tibble::as_tibble() |>
   dplyr::mutate(t=as.integer(t), p=as.numeric(p), q=as.numeric(q), y=as.numeric(y), mu=as.numeric(mu)) |>
@@ -250,22 +249,129 @@ dat_long <- read.csv(file_long) |>
 
 y_full_all <- dat_long |> dplyr::distinct(t, y) |> dplyr::arrange(t)
 T_full <- nrow(y_full_all)
-T_use  <- T_full
-y_full <- y_full_all
 
-n_train    <- max(1L, floor(0.9 * T_use))
-H_forecast <- T_use - n_train
+# ---- Configurable data limiting + split (YAML-aware, verbose) ----
+# cfg$split fields (optional):
+#   T_use, use_prop, use_last, train_n, train_prop
+cat("SPLIT_RAW | cfg$split=",
+    jsonlite::toJSON(cfg$split, auto_unbox = TRUE, null = "null"), "\n", sep="")
+
+use_last   <- TRUE
+T_use      <- T_full
+train_n    <- NULL
+train_prop <- NULL
+
+if (!is.null(cfg$split)) {
+  # Presence + null/NA audit
+  has_train_n    <- "train_n"    %in% names(cfg$split)
+  has_train_prop <- "train_prop" %in% names(cfg$split)
+  cat("SPLIT_KEYS | has(train_n)=", has_train_n,
+      " is.null(train_n)=", is.null(cfg$split$train_n),
+      " has(train_prop)=", has_train_prop,
+      " is.null(train_prop)=", is.null(cfg$split$train_prop), "\n", sep="")
+
+  # Parse primitives
+  if (!is.null(cfg$split$use_last))   use_last   <- isTRUE(cfg$split$use_last)
+  if (!is.null(cfg$split$use_prop))   T_use      <- max(1L, floor(as.numeric(cfg$split$use_prop) * T_full))
+  if (!is.null(cfg$split$T_use))      T_use      <- as.integer(cfg$split$T_use)
+  if (has_train_n)                    train_n    <- suppressWarnings(as.integer(cfg$split$train_n))
+  if (has_train_prop)                 train_prop <- suppressWarnings(as.numeric(cfg$split$train_prop))
+
+  # Canonicalize pseudo-nulls: treat length-0 / NA as absent
+  norm_opt <- function(x) {
+    if (is.null(x)) return(NULL)
+    if (length(x) == 0L) return(NULL)
+    if (all(is.na(x))) return(NULL)
+    x
+  }
+  train_n    <- norm_opt(train_n)
+  train_prop <- norm_opt(train_prop)
+}
+
+T_use <- min(T_full, as.integer(T_use))
+idx_use <- if (use_last) seq.int(T_full - T_use + 1L, T_full) else seq_len(T_use)
+y_full  <- y_full_all[idx_use, , drop = FALSE]
+
+# Keep a matching long frame for "true q_p" computation restricted to used t's
+dat_long_use <- dat_long |>
+  dplyr::semi_join(y_full, by = c("t")) |>
+  dplyr::arrange(t, p)
+
+# ---- Split validation (fail fast; no silent patches) ----
+# 1) Mutually exclusive options
+if (!is.null(train_n) && !is.null(train_prop)) {
+  stop(sprintf("Split config conflict: both train_n (%s) and train_prop (%s) are set. Specify only one.",
+               as.character(train_n), as.character(train_prop)))
+}
+# 2) Range checks
+if (!is.null(train_prop) && !(is.finite(train_prop) && train_prop > 0 && train_prop < 1)) {
+  stop(sprintf("Invalid train_prop=%s. Must be in (0,1).", as.character(train_prop)))
+}
+if (!is.null(train_n) && !(is.finite(train_n) && train_n >= 1L && train_n <= (T_use - 1L))) {
+  stop(sprintf("Invalid train_n=%s for T_use=%d. Must be in [1, %d].",
+               as.character(train_n), T_use, T_use - 1L))
+}
+
+# 3) Resolve n_train with clear source tag
+split_src <- "default"
+n_train <- if (!is.null(train_n)) {
+  split_src <- "train_n"
+  as.integer(train_n)
+} else if (!is.null(train_prop)) {
+  split_src <- "train_prop"
+  max(1L, min(T_use - 1L, floor(train_prop * T_use)))
+} else {
+  split_src <- "fallback_0.9"
+  max(1L, min(T_use - 1L, floor(0.9 * T_use)))
+}
+
+H_forecast <- as.integer(T_use - n_train)
+
+# Audit lines BEFORE any modeling
+cat(sprintf(
+  paste0("SPLIT_RESOLVE | source=%s | T_full=%d | T_use=%d | use_last=%s | ",
+         "train_n=%s | train_prop=%s | n_train=%d | H_forecast=%d | washout=%d\n"),
+  split_src, T_full, T_use, as.character(use_last),
+  ifelse(is.null(train_n), "NULL", as.character(train_n)),
+  ifelse(is.null(train_prop), "NULL", format(train_prop, digits=6, trim=TRUE)),
+  n_train, H_forecast, as.integer(desn_args$washout))
+)
+
+# Hard stops for impossible/pointless configs
+if (H_forecast < 1L) {
+  stop(sprintf("Invalid split: H_forecast=%d (n_train=%d, T_use=%d). Adjust train_n/train_prop/T_use.", 
+               H_forecast, n_train, T_use))
+}
+
+# Index diagnostics
 idx_tr <- 1:n_train
-idx_fc <- (n_train + 1):T_use
+idx_fc <- (n_train + 1L):T_use
+cat(sprintf("IDX | use_range=[%d..%d] | train=[%d..%d] | forecast=[%d..%d] | lens train=%d, fore=%d\n",
+            min(idx_use), max(idx_use),
+            ifelse(length(idx_tr), min(idx_tr), NA_integer_),
+            ifelse(length(idx_tr), max(idx_tr), NA_integer_),
+            ifelse(length(idx_fc), min(idx_fc), NA_integer_),
+            ifelse(length(idx_fc), max(idx_fc), NA_integer_),
+            length(idx_tr), length(idx_fc)))
+
 y_train    <- y_full$y[idx_tr]
 y_forecast <- y_full$y[idx_fc]
 
+cat(sprintf("[lens] y_train=%d | y_forecast=%d\n", length(y_train), length(y_forecast)))
+
+# Teacher forcing vector (auditable)
 y_future_obs_fc <- {
   if (!isTRUE(tf_enable)) rep(NA_real_, H_forecast)
   else if (!is.null(y_future_obs_explicit)) as.numeric(y_future_obs_explicit)
   else if (is.null(tf_first_k)) as.numeric(y_forecast)
   else { k <- max(0L, min(as.integer(tf_first_k), H_forecast)); vec <- rep(NA_real_, H_forecast); if (k > 0L) vec[seq_len(k)] <- y_forecast[seq_len(k)]; vec }
 }
+cat(sprintf("TF | enable=%s | first_k=%s | len(y_future_obs_fc)=%d\n",
+            as.character(tf_enable),
+            ifelse(is.null(tf_first_k), "NULL", as.character(tf_first_k)),
+            length(y_future_obs_fc)))
+flush.console()
+# ---------------------------------------------------------------------------
 
 # --- 2) Fit & Forecast per p
 fit_and_forecast_p <- function(p0) {
@@ -300,7 +406,7 @@ fit_and_forecast_p <- function(p0) {
 
   q_pred_fc <- apply(yrep_fc, 1, stats::quantile, probs = p0, names = FALSE)
   mu_qs_fc  <- band_from_draws(mu_draws_fc, level = 0.95)
-  q_true_fc <- true_q_at_tau(dat_long, tau = p0)[idx_fc]
+  q_true_fc <- true_q_at_tau(dat_long_use, tau = p0)[idx_fc]
 
   df_mu_fc <- tibble::tibble(
     h = seq_len(H_forecast), p0 = p0,
@@ -317,8 +423,8 @@ fit_and_forecast_p <- function(p0) {
   yrep_tr     <- pp_tr$yrep
   mu_draws_tr <- pp_tr$mu_draws
   keep        <- fit_tr$meta$keep_idx
-  q_true_tr   <- true_q_at_tau(dat_long, tau = p0)[keep]
-  mu_qs_tr    <- band_from_draws(mu_draws_tr, level = 0.95)
+  q_true_tr <- true_q_at_tau(dat_long_use, tau = p0)[keep]
+  mu_qs_tr    <- band_from_draws(mu_draws_tr, level = 0.95)          
   df_mu_tr <- tibble::tibble(h = seq_along(keep), p0 = p0,
                              mu=mu_qs_tr[,"med"], lo=mu_qs_tr[,"lo"], hi=mu_qs_tr[,"hi"],
                              q_true=q_true_tr, y=y_train[keep])
@@ -349,6 +455,18 @@ for (k in seq_along(p_vec)) {
     ggsave(file.path(FIGS, sprintf("forecast_emp_q_vs_true_p=%s.png", as.character(p0))), g2, width=9, height=4.8, dpi=150)
   }
 }
+
+# --- 3b) Per-p TRAIN plots for mû band (new)
+for (k in seq_along(p_vec)) {
+  p0 <- p_vec[k]
+  g1_tr <- plot_mu_band(fits_fc[[k]]$df_mu_tr, p0, scope = "Train", window = 200L)
+  print(g1_tr)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(file.path(FIGS, sprintf("train_mu_band_p=%s.png", as.character(p0))),
+                    g1_tr, width = 9, height = 4.8, dpi = 150)
+  }
+}
+
 
 # --- 4) ELBO traces
 k_burn <- 20
@@ -381,7 +499,7 @@ names(synth_cols_fc) <- paste0("synth_q_", fmt_p(p_comp))
 synth_q_fc <- tibble::as_tibble(synth_cols_fc)
 
 true_cols_fc <- setNames(vector("list", length(p_comp)), paste0("true_q_", fmt_p(p_comp)))
-for (i in seq_along(p_comp)) true_cols_fc[[i]] <- true_q_at_tau(dat_long, tau = p_comp[i])[idx_fc]
+for (i in seq_along(p_comp)) true_cols_fc[[i]] <- true_q_at_tau(dat_long_use, tau = p_comp[i])[idx_fc]
 true_q_fc <- tibble::as_tibble(true_cols_fc)
 
 compare_fc <- tibble::tibble(h = seq_len(H_forecast), y = y_forecast) |>
@@ -415,7 +533,7 @@ names(synth_cols_tr) <- paste0("synth_q_", fmt_p(p_comp))
 synth_q_tr <- tibble::as_tibble(synth_cols_tr)
 
 true_cols_tr <- setNames(vector("list", length(p_comp)), paste0("true_q_", fmt_p(p_comp)))
-for (i in seq_along(p_comp)) true_cols_tr[[i]] <- true_q_at_tau(dat_long, tau = p_comp[i])[keep_train]
+for (i in seq_along(p_comp)) true_cols_tr[[i]] <- true_q_at_tau(dat_long_use, tau = p_comp[i])[keep_train]
 true_q_tr <- tibble::as_tibble(true_cols_tr)
 
 compare_tr <- tibble::tibble(h = seq_len(T_train_keep), y = y_train[keep_train]) |>
@@ -565,93 +683,121 @@ if (isTRUE(do_calibration)) {
   # Rolling-coverage plots (μ, q̂ₚ, q_synth)
   cov_window <- 365L
   show_last  <- 300L
-  plot_rolling_cov <- function(df_long, qcol, window = NULL, show_last = NULL,
-                              title_left = "Rolling empirical coverage") {
-    if (is.null(window))    window    <- get0("cov_window", ifnotfound = 365L, inherits = TRUE)
-    if (is.null(show_last)) show_last <- get0("show_last",  ifnotfound = 300L, inherits = TRUE)
 
-    # Normalize the target column to a plain numeric vector (defensive)
-    cvec <- df_long[[qcol]]
-    if (is.matrix(cvec)) cvec <- drop(cvec[, 1, drop = TRUE])
-    if (is.list(cvec))   cvec <- vapply(cvec, function(z) as.numeric(z)[1], numeric(1))
-    df_long[[qcol]] <- as.numeric(cvec)
+plot_rolling_cov <- function(df_long, qcol,
+                             window = NULL, show_last = NULL,
+                             title_left = "Rolling empirical coverage",
+                             show_rcov_band = FALSE,
+                             show_target_band = FALSE) {
 
-    stopifnot(all(c("t_aligned","y","p_chr") %in% names(df_long)))
-    d <- df_long |>
-      dplyr::mutate(ind = as.integer(.data$y <= .data[[qcol]])) |>
-      dplyr::arrange(scope, p_chr, t_aligned) |>
-      dplyr::group_by(scope, p_chr) |>
-      dplyr::mutate(rcov = roll_mean(ind, window),
-                    t_max = max(t_aligned, na.rm = TRUE)) |>
-      dplyr::ungroup() |>
-      dplyr::filter(t_aligned > (t_max - show_last))
+  if (is.null(window))    window    <- get0("cov_window", ifnotfound = 365L, inherits = TRUE)
+  if (is.null(show_last)) show_last <- get0("show_last",  ifnotfound = 300L, inherits = TRUE)
 
-    d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = sprintf("%.2f", p_vec)))
-    bands <- d |>
-      dplyr::distinct(scope, p_chr) |>
-      dplyr::rowwise() |>
-      dplyr::mutate(
-        p0 = as.numeric(as.character(p_chr)),
-        se = sqrt(p0 * (1 - p0) / window),
-        lo = p0 - stats::qnorm(0.975) * se,
-        hi = p0 + stats::qnorm(0.975) * se
-      ) |>
-      dplyr::ungroup()
+  # Coerce target column to numeric (handles list/matrix edge cases)
+  if (is.matrix(df_long[[qcol]])) df_long[[qcol]] <- drop(df_long[[qcol]][, 1, drop = TRUE])
+  if (is.list(df_long[[qcol]]))   df_long[[qcol]] <- vapply(df_long[[qcol]], function(z) as.numeric(z)[1], numeric(1))
+  df_long[[qcol]] <- as.numeric(df_long[[qcol]])
 
-    x_rng <- range(d$t_aligned, na.rm = TRUE)
-    bands <- bands |> dplyr::mutate(xmin = x_rng[1], xmax = x_rng[2])
+  # SAFE helpers (auto-shrink W to series length)
+  roll_sum  <- function(x, W) { W_eff <- min(W, length(x)); if (W_eff < 1) return(rep(NA_real_, length(x)))
+                                as.numeric(stats::filter(x, rep(1,        W_eff), sides = 1)) }
+  roll_mean <- function(x, W) { W_eff <- min(W, length(x)); if (W_eff < 1) return(rep(NA_real_, length(x)))
+                                as.numeric(stats::filter(x, rep(1/W_eff,  W_eff), sides = 1)) }
 
-    last_pts <- d %>%
-      dplyr::group_by(scope, p_chr) %>%
-      dplyr::slice_tail(n = 1) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(
-        x_lab = t_aligned - 0.03 * diff(x_rng),
-        y_lab = pmin(pmax(rcov + 0.02, 0), 1)
-      )
+  d <- df_long |>
+    dplyr::mutate(ind = as.integer(.data$y <= .data[[qcol]])) |>
+    dplyr::arrange(scope, p_chr, t_aligned) |>
+    dplyr::group_by(scope, p_chr) |>
+    dplyr::mutate(
+      W_use = pmax(1L, pmin(window, dplyr::n())),
+      k_win = roll_sum(ind,  W_use[1]),
+      rcov  = roll_mean(ind, W_use[1]),
+      t_max = max(t_aligned, na.rm = TRUE)
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::filter(t_aligned > (t_max - show_last))
 
-    ggplot2::ggplot(d, ggplot2::aes(x = t_aligned, y = rcov, colour = p_chr)) +
-      theme_exdqlm() +
-      ggplot2::labs(
-        x = "time index (aligned)",
-        y = sprintf("rolling Pr(y ≤ %s)  (W = %d)", if (qcol=="mu_hat") "μ" else "q", window),
-        title    = paste0(title_left, if (qcol=="mu_hat") " of μ" else " of q"),
-        subtitle = paste(sprintf("Last %d points; shaded: ±1.96√(p(1-p)/W)", show_last))
-      ) +
-      ggplot2::geom_hline(data = bands, ggplot2::aes(yintercept = p0, colour = p_chr),
-                          linetype = "dashed", linewidth = 0.7, show.legend = FALSE) +
-      ggplot2::geom_rect(data = bands,
-                         ggplot2::aes(xmin = xmin, xmax = xmax, ymin = lo, ymax = hi, fill = p_chr),
-                         inherit.aes = FALSE, alpha = 0.12) +
-      ggplot2::geom_line(linewidth = 0.9, na.rm = TRUE) +
-      ggplot2::geom_point(data = last_pts, size = 2.4) +
-      ggplot2::geom_text(data = last_pts,
-                         ggplot2::aes(x = x_lab, y = y_lab, label = sprintf("%.2f", rcov)),
-                         size = 3, hjust = 1) +
-      ggplot2::scale_color_manual(name = "quantile p",
-                                  values = setNames(col_map, sprintf("%.2f", p_vec)),
-                                  labels = function(x) scales::percent(as.numeric(x))) +
-      ggplot2::scale_fill_manual(name = "quantile p",
-                                 values = setNames(sapply(col_map, scales::alpha, alpha = 0.12), sprintf("%.2f", p_vec)),
-                                 labels = function(x) scales::percent(as.numeric(x))) +
-      ggplot2::scale_y_continuous(breaks = seq(0, 1, by = 0.1),
-                                  labels = scales::percent_format(accuracy = 1)) +
-      ggplot2::scale_x_continuous(limits = x_rng, expand = c(0, 0)) +
-      ggplot2::coord_cartesian(ylim = c(0, 1), expand = FALSE)
+  wilson_ci_vec <- function(k, n, conf = 0.95) {
+    z <- stats::qnorm(0.5 + conf/2); p <- k / n
+    den <- 1 + z^2 / n; cen <- (p + z^2/(2*n)) / den
+    rad <- z * sqrt(p*(1-p)/n + z^2/(4*n^2)) / den
+    list(lo = pmax(0, cen - rad), hi = pmin(1, cen + rad))
   }
+  ci <- wilson_ci_vec(d$k_win, d$W_use)
+  d$lo_cov <- ci$lo; d$hi_cov <- ci$hi
+
+  W_lab <- if (any(d$W_use < window, na.rm = TRUE)) paste0("≤", window) else as.character(window)
+
+  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = sprintf("%.2f", p_vec)))
+  ref <- d |> dplyr::distinct(scope, p_chr) |> dplyr::mutate(p0 = as.numeric(as.character(p_chr)))
+
+  x_rng <- range(d$t_aligned, na.rm = TRUE)
+  last_pts <- d %>%
+    dplyr::group_by(scope, p_chr) %>% dplyr::slice_tail(n = 1) %>% dplyr::ungroup() %>%
+    dplyr::mutate(x_lab = t_aligned - 0.03 * diff(x_rng), y_lab = pmin(pmax(rcov + 0.02, 0), 1))
+
+  ggplot2::ggplot(d, ggplot2::aes(x = t_aligned, y = rcov, colour = p_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x = "time index (aligned)",
+      y = sprintf("rolling Pr(y ≤ %s)  (W %s)", if (qcol=="mu_hat") "μ" else "q", W_lab),
+      title    = paste0(title_left, if (qcol=="mu_hat") " of μ" else " of q"),
+      subtitle = sprintf("Last %d points; ribbon: Wilson CI of rolling coverage", show_last)
+    ) +
+    ggplot2::geom_hline(data = ref, ggplot2::aes(yintercept = p0, colour = p_chr),
+                        linetype = "dashed", linewidth = 0.7, show.legend = FALSE) +
+    { if (isTRUE(show_rcov_band))
+        ggplot2::geom_ribbon(ggplot2::aes(x = t_aligned, ymin = lo_cov, ymax = hi_cov,
+                                           fill = p_chr, group = p_chr),
+                              inherit.aes = FALSE, alpha = 0.18)
+      else ggplot2::geom_blank() } +
+    ggplot2::geom_line(linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::geom_point(data = last_pts, size = 2.4) +
+    ggplot2::geom_text(data = last_pts,
+                       ggplot2::aes(x = x_lab, y = y_lab, label = sprintf("%.2f", rcov)),
+                       size = 3, hjust = 1) +
+    ggplot2::scale_color_manual(name = "quantile p",
+      values = setNames(col_map, sprintf("%.2f", p_vec)),
+      labels = function(x) scales::percent(as.numeric(x))) +
+    ggplot2::scale_fill_manual(name = "quantile p",
+      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), sprintf("%.2f", p_vec)),
+      labels = function(x) scales::percent(as.numeric(x))) +
+    ggplot2::scale_y_continuous(breaks = seq(0,1,0.1), labels = scales::percent_format(accuracy = 1)) +
+    ggplot2::scale_x_continuous(limits = x_rng, expand = c(0, 0)) +
+    ggplot2::coord_cartesian(ylim = c(0, 1), expand = FALSE)
+}
+
 
 g_cov_mu_train <- plot_rolling_cov(mu_long |> dplyr::filter(scope=="train"),
-                                   qcol = "mu_hat", window = cov_window, show_last = show_last)
+                                   qcol = "mu_hat",
+                                   window = cov_window, show_last = show_last,
+                                   show_rcov_band = TRUE,  show_target_band = FALSE)
+
 g_cov_mu_fore  <- plot_rolling_cov(mu_long |> dplyr::filter(scope=="forecast"),
-                                   qcol = "mu_hat", window = cov_window, show_last = show_last)
+                                   qcol = "mu_hat",
+                                   window = cov_window, show_last = show_last,
+                                   show_rcov_band = TRUE,  show_target_band = FALSE)
+
+# Keep q̂ and q_synth as purely empirical rolling curves (no ribbons)
 g_cov_q_train  <- plot_rolling_cov(q_long  |> dplyr::filter(scope=="train"),
-                                   qcol = "qhat",   window = cov_window, show_last = show_last)
+                                   qcol = "qhat",
+                                   window = cov_window, show_last = show_last,
+                                   show_rcov_band = FALSE, show_target_band = FALSE)
+
 g_cov_q_fore   <- plot_rolling_cov(q_long  |> dplyr::filter(scope=="forecast"),
-                                   qcol = "qhat",   window = cov_window, show_last = show_last)
+                                   qcol = "qhat",
+                                   window = cov_window, show_last = show_last,
+                                   show_rcov_band = FALSE, show_target_band = FALSE)
+
 g_cov_qsynth_train <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="train") |> dplyr::rename(q = q_synth),
-                                       qcol = "q", window = cov_window, show_last = show_last)
+                                       qcol = "q",
+                                       window = cov_window, show_last = show_last,
+                                       show_rcov_band = FALSE, show_target_band = FALSE)
+
 g_cov_qsynth_fore  <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="forecast") |> dplyr::rename(q = q_synth),
-                                       qcol = "q", window = cov_window, show_last = show_last)
+                                       qcol = "q",
+                                       window = cov_window, show_last = show_last,
+                                       show_rcov_band = FALSE, show_target_band = FALSE)
 
   print(g_cov_mu_train); print(g_cov_mu_fore)
   print(g_cov_q_train);  print(g_cov_q_fore)

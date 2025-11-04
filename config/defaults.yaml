@@ -2,27 +2,35 @@
 suite_name: sim_suite_dlm
 results_root: results
 
+split:
+  # choose how much data to use
+  T_use: 3300        # integer takes precedence if set, e.g., 500
+  use_prop: null     # e.g., 0.5 to use 50% of the series
+  use_last: true     # take the last T_use points (true) or the first (false)
+  train_n: null      # explicit train length (overrides train_prop if set)
+  train_prop: 0.90909   # e.g., 0.8 for 80/20 split
+
 p_vec: [0.05, 0.50, 0.95]
 
 # ESN / DESN spec (shared across quantiles unless overridden)
 desn:
   D: 1
-  "n": [300]
+  "n": [2000] # 3000
   n_tilde: []
-  m: 20
-  alpha: 0.4            # leak
-  rho: [0.98]           # spectral scaling per layer
+  m: 30        # 100
+  alpha: 0.1   # 0.4         # leak
+  rho: [0.9]   # 0.95        # spectral scaling per layer
   act_f: tanh
   act_k: identity
   pi_w: 0.05
   pi_in: 1.00
-  washout: 500
+  washout: 200
   add_bias: true
   seed: 42
 
 # Variational Bayes options (base)
 vb:
-  max_iter: 130
+  max_iter: 170
   tol_50: 1.0e-4        # p=0.50
   tol_extreme: 1.0e-5   # p!=0.50
   n_samp_xi: 500
@@ -30,7 +38,7 @@ vb:
 
 # Posterior predictive sampling
 sampling:
-  nd_draws: 2000
+  nd_draws: 1000
   chunk: 250
 
 # Rolling-origin / forecasting
@@ -44,7 +52,7 @@ synthesis:
   isotonic: true
   rearrange: true
   grid_M: 1001
-  n_samp: 2000
+  n_samp: 1000
   seed: 123
 
 # Outputs
