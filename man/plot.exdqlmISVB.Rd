@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{exdqlmISVB} object.}
 
-\item{...}{Additional arguments (unused).}
+\item{...}{Additional arguments.}
 }
 \description{
 Plot Method for \code{exdqlmISVB} Objects

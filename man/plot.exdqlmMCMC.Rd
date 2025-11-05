@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{exdqlmMCMC} object.}
 
-\item{...}{Additional arguments (unused).}
+\item{...}{Additional arguments.}
 }
 \description{
 Plot Method for \code{exdqlmMCMC} Objects

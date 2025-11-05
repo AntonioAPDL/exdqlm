@@ -246,7 +246,7 @@ summary.exdqlmMCMC <- function(object, ...) {
 #' Plot Method for \code{exdqlmMCMC} Objects
 #'
 #' @param x An \code{exdqlmMCMC} object.
-#' @param ... Additional arguments (unused).
+#' @param ... Additional arguments.
 #' 
 #' @export
 #'
@@ -261,7 +261,7 @@ summary.exdqlmMCMC <- function(object, ...) {
 #' }
 #'
 plot.exdqlmMCMC<- function(x, ...) {
-  exdqlmPlot(x$y,x)
+  exdqlmPlot(x$y,x,...)
 }
 
 
@@ -342,7 +342,7 @@ summary.exdqlmISVB <- function(object, ...) {
 #' Plot Method for \code{exdqlmISVB} Objects
 #'
 #' @param x An \code{exdqlmISVB} object.
-#' @param ... Additional arguments (unused).
+#' @param ... Additional arguments. 
 #' 
 #' @export
 #' 
@@ -356,5 +356,5 @@ summary.exdqlmISVB <- function(object, ...) {
 #' }
 #'
 plot.exdqlmISVB <- function(x, ...) {
-  exdqlmPlot(x$y,x)
+  exdqlmPlot(x$y,x,...)
 }
