@@ -39,9 +39,16 @@ if (is.null(ds)) stop("Dataset slug not found: ", slug)
 input_path <- ds$input_path
 if (!file.exists(input_path)) stop("Input file not found: ", input_path)
 
-# Merge (defaults <- suite <- spec <- dataset.overrides <- local)
-spec_path <- file.path("config","specs", paste0("spec_", spec_name, ".yaml"))
-if (!file.exists(spec_path)) stop("Spec not found: ", spec_path)
+# Flexible spec resolver: <name>.yaml | spec_<name>.yaml | sim_<name>.yaml
+cand <- c(
+  file.path("config","specs", paste0(spec_name, ".yaml")),
+  file.path("config","specs", paste0("spec_", spec_name, ".yaml")),
+  file.path("config","specs", paste0("sim_",  spec_name, ".yaml"))
+)
+spec_path <- cand[file.exists(cand)][1]
+if (is.na(spec_path) || !length(spec_path)) {
+  stop("Spec not found. Tried: ", paste(cand, collapse=" | "))
+}
 spec <- yaml::read_yaml(spec_path)
 
 deep_merge <- function(a,b){
@@ -137,7 +144,7 @@ jsonlite::write_json(manifest, fs::path(run_dir,"manifest","run_manifest.json"),
 writeLines(if (dry_run) "DRY-RUN" else "RUNNING", fs::path(run_dir,"manifest","status.txt"))
 
 if (isTRUE(dry_run)) {
-  cat("Dry run: would invoke esn_quantile_main.R with input=", input_path, "\n")
+  cat("Dry run: would invoke pipeline_main.R with input=", input_path, "\n")
   quit(save="no", status=0)
 }
 
@@ -185,11 +192,11 @@ cat("Saving:    ", if (!is.null(env$EXDQLM_SAVE_OUTPUTS) && nzchar(env$EXDQLM_SA
 start_time <- Sys.time()
 tryCatch({
   withr::with_envvar(env, {
-    source("scripts/esn_quantile_main.R", local = new.env(parent = globalenv()))
+    source("scripts/pipeline_main.R", local = new.env(parent = globalenv()))
   })
 }, error = function(e) {
   err_msg <<- conditionMessage(e)
-  cat("ERROR in esn_quantile_main.R:\n", err_msg, "\n")
+  cat("ERROR in pipeline_main.R:\n", err_msg, "\n")
   status <<- 1L
 })
 end_time <- Sys.time()

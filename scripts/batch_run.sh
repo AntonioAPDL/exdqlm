@@ -23,10 +23,10 @@ for slug in "${SLUGS[@]}"; do
 
   # Start detached tmux session that runs the job and tees output to a log
   tmux new-session -d -s "$sess" \
-    "echo \"[\$(date)] Starting run_one for slug=${slug} spec=${SPEC}\"; \
-     Rscript scripts/run_one.R --slug ${slug} --spec ${SPEC} 2>&1 | tee \"$log\"; \
-     echo \"[\$(date)] Finished slug=${slug} spec=${SPEC}\"; \
-     echo 'Press Enter to close pane...'; read _"
+    "echo \"[\$(date)] Starting pipeline_run for slug=${slug} spec=${SPEC}\"; \
+    Rscript scripts/pipeline_run.R --slug ${slug} --spec ${SPEC} 2>&1 | tee \"$log\"; \
+    echo \"[\$(date)] Finished slug=${slug} spec=${SPEC}\"; \
+    echo 'Press Enter to close pane...'; read _"
 
   echo "Started tmux session: $sess"
   echo "  Attach: tmux attach -t $sess"

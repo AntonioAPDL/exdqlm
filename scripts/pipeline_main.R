@@ -1,6 +1,6 @@
-# scripts/esn_quantile_main.R
+# scripts/pipeline_main.R
 # Standalone main for ESN quantile pipeline (fit → forecast → synthesis → diagnostics)
-# Reads configuration from EXDQLM_* environment variables set by scripts/run_one.R
+# Reads configuration from EXDQLM_* environment variables set by scripts/pipeline_run.R
 
 as_num_vec <- function(x) {
   if (is.null(x)) return(NULL)
@@ -85,8 +85,14 @@ message(sprintf("[esn_main] out_dir=%s | save_outputs=%s", out_dir, save_outputs
 cfg_json <- Sys.getenv("EXDQLM_CFG_JSON", unset = NA)
 cfg <- if (!is.na(cfg_json) && nzchar(cfg_json)) jsonlite::fromJSON(cfg_json, simplifyVector = TRUE) else list()
 
-`%nz%` <- function(x, alt) if (!is.null(x)) x else alt
+# --- Pipeline mode (future-ready; sim-only today)
 `%||%` <- function(x, alt) if (!is.null(x)) x else alt
+mode <- tolower((cfg$pipeline$mode %||% "sim"))
+if (!mode %in% c("sim", "simulation")) {
+  message(sprintf("[pipeline_main] WARNING: pipeline.mode=%s not yet supported; proceeding with sim flow.", mode))
+}
+
+`%nz%` <- function(x, alt) if (!is.null(x)) x else alt
 
 near_equal <- function(x, y, tol = 1e-8) abs(x - y) <= tol
 
@@ -385,18 +391,14 @@ y_forecast <- y_full$y[idx_fc]
 
 cat(sprintf("[lens] y_train=%d | y_forecast=%d\n", length(y_train), length(y_forecast)))
 
-# Teacher forcing vector (auditable)
-y_future_obs_fc <- {
-  if (!isTRUE(tf_enable)) rep(NA_real_, H_forecast)
-  else if (!is.null(y_future_obs_explicit)) as.numeric(y_future_obs_explicit)
-  else if (is.null(tf_first_k)) as.numeric(y_forecast)
-  else { k <- max(0L, min(as.integer(tf_first_k), H_forecast)); vec <- rep(NA_real_, H_forecast); if (k > 0L) vec[seq_len(k)] <- y_forecast[seq_len(k)]; vec }
-}
-cat(sprintf("TF | enable=%s | first_k=%s | len(y_future_obs_fc)=%d\n",
-            as.character(tf_enable),
-            ifelse(is.null(tf_first_k), "NULL", as.character(tf_first_k)),
-            length(y_future_obs_fc)))
+# Teacher forcing (metadata only): using FULL TF because X_fc1 came from the full roll over y_full
+tf_enable      <- TRUE
+tf_first_k     <- NULL   # NULL = full TF (all H_forecast steps)
+y_future_obs_fc <- y_forecast
+
+cat(sprintf("TF | mode=full | len(y_future_obs_fc)=%d\n", length(y_future_obs_fc)))
 flush.console()
+
 # ---------------------------------------------------------------------------
 
 # === [NEW] Shared reservoir pass → precompute design for train + 1-step forecast ===
@@ -483,13 +485,14 @@ fit_and_forecast_p <- function(p0) {
     h = seq_along(keep_rel), p0 = p0,
     mu = mu_qs_tr[, "med"], lo = mu_qs_tr[, "lo"], hi = mu_qs_tr[, "hi"],
     q_true = q_true_tr,
-    y = y_train[keep_rel]
+    y = y_train_keep
+
   )
   df_pred_tr <- tibble::tibble(
     h = seq_along(keep_rel), p0 = p0,
     q_pred = apply(yrep_tr, 1, stats::quantile, probs = p0, names = FALSE),
     q_true = q_true_tr,
-    y = y_train[keep_rel]
+    y = y_train_keep
   )
 
   # ---- Posterior predictive: FORECAST (1-step teacher-forced design) ----
