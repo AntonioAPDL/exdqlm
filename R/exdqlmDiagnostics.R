@@ -25,12 +25,12 @@
 #' model = polytrendMod(1,mean(y),10)
 #' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
 #'                   gam.init=-3.5,sig.init=15)
-#' check.out = exdqlmChecks(M0,plot=FALSE)
+#' check.out = exdqlmDiagnostics(M0,plot=FALSE)
 #' check.out$m1.KL
 #' check.out$m1
 #' }
 #'
-exdqlmChecks <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
+exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
 
   # check inputs
   y = m1$y

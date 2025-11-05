@@ -9,13 +9,14 @@
     - Core numerics in C++ via Rcpp/RcppArmadillo and BH (Boost) for root-finding and Φ.
     - Parameter validation to keep `gamma` within bounds; clearer errors.
 - Updated exdqlmISVB() and exdqlmMCMC() to use rexal()
+- exdqlmChecks() renamed exdqlmDiagnostics()
 - Return changes
   - functions polytrendMod(), and seasMod() now return objects of class 'exdqlm'
   - function exdqlmISVB() and (inherently) transfn_exdqlmISVB() now return objects of class 'exdqlmISVB'
   - function exdqlmMCMC() now returns objects of class 'exdqlmMCMC'
   - returns from exdqlmMCMC(), exdqlmISVB(), and transfn_exdqlmISVB() now include data (y)
 - Input changes
-  - y removed from the inputs of exdqlmChecks(), exdqlmForecast(), compPlot(), and exdqlmPlot()
+  - y removed from the inputs of exdqlmDiagnostics(), exdqlmForecast(), compPlot(), and exdqlmPlot()
 - Added generics_etc.R which includes generics & other functions for the objects of class 'exdqlm', 'exdqlmISVB' and 'exdqlmMCMC'
 - Removed dlmMod.R and replaced with the more robust function as.exdqlm (in generics_etc.R), which creates 'exdqlm' objects
 - Removed combineMods.R and replaced with addition for 'exdqlm' objects (in generics_etc.R)
