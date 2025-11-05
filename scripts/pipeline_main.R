@@ -189,7 +189,9 @@ if (length(cfg)) {
 
 # --- Plot helpers (same as notebook, locked to 3 decimals for tau labels)
 fmt_p <- function(x) sprintf("%.3f", as.numeric(x))
+# keep band colors tied to p via col_map
 col_map <- setNames(c("#ef4444", "#10b981", "#0ea5e9"), as.character(p_vec))
+ACCENT_ORANGE <- "#c2410c"  # dark orange for predicted / mean / synthesized lines
 theme_exdqlm <- function(base_size = 11) {
   ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(panel.grid.minor = ggplot2::element_blank(), legend.position="right",
@@ -215,47 +217,57 @@ true_q_at_tau <- function(dat_long, tau) {
 }
 
 plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
-  i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L); d <- dplyr::filter(df, dplyr::between(h, i1, i2))
+  i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L)
+  d <- dplyr::filter(df, dplyr::between(h, i1, i2))
   coverage <- mean(d$q_true >= d$lo & d$q_true <= d$hi, na.rm = TRUE)
   ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
-    ggplot2::labs(title=sprintf("%s: μ̂ ±95%% vs true qₚ (p=%s)", scope, scales::percent(p0,1)),
-                  subtitle=sprintf("q_true-in-band = %s", scales::percent(coverage,0.1)),
-                  caption=caption_exdqlm(window), x="time", y="value") +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin=lo, ymax=hi),
-                         fill=scales::alpha(col_map[as.character(p0)],0.22), colour=NA) +
-    ggplot2::geom_line(ggplot2::aes(y = mu,     colour = "mu"),   linewidth=0.95) +
-    ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth=0.9, linetype=2) +
-    ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth=0.6, alpha=0.9) +
-    ggplot2::scale_color_manual(name="", values=c(mu=col_map[as.character(p0)], true="#7c3aed", data="#6b7280"))
+    ggplot2::labs(title = sprintf("%s: μ̂ ±95%% vs true qₚ (p=%s)", scope, scales::percent(p0, 1)),
+                  subtitle = sprintf("q_true-in-band = %s", scales::percent(coverage, 0.1)),
+                  caption = caption_exdqlm(window), x = "time", y = "value") +
+    ggplot2::geom_ribbon(ggplot2::aes(ymin = lo, ymax = hi),
+                         fill = scales::alpha(col_map[as.character(p0)], 0.22), colour = NA) +
+    ggplot2::geom_line(ggplot2::aes(y = mu,     colour = "mu"),   linewidth = 0.95) +
+    ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth = 0.9, linetype = 2) +
+    ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth = 0.6, alpha = 0.9) +
+    ggplot2::scale_color_manual(name = "",
+      values = c(mu = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280"))
 }
 
+
 plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
-  i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L); d <- dplyr::filter(df, dplyr::between(h, i1, i2))
+  i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L)
+  d <- dplyr::filter(df, dplyr::between(h, i1, i2))
   mae <- mean(abs(d$q_pred - d$q_true), na.rm = TRUE)
   ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
-    ggplot2::labs(title=sprintf("%s: q̂ₚ vs true qₚ (p=%s)", scope, scales::percent(p0,1)),
-                  subtitle=sprintf("MAE = %.3f", mae), caption=caption_exdqlm(window),
-                  x="time", y="value") +
-    ggplot2::geom_line(ggplot2::aes(y = q_pred, colour = "pred"), linewidth=0.95) +
-    ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth=0.9, linetype=2) +
-    ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth=0.6, alpha=0.85) +
-    ggplot2::scale_color_manual(name="", values=c(pred=col_map[as.character(p0)], true="#7c3aed", data="#6b7280"))
+    ggplot2::labs(title = sprintf("%s: q̂ₚ vs true qₚ (p=%s)", scope, scales::percent(p0, 1)),
+                  subtitle = sprintf("MAE = %.3f", mae),
+                  caption = caption_exdqlm(window), x = "time", y = "value") +
+    ggplot2::geom_line(ggplot2::aes(y = q_pred, colour = "pred"), linewidth = 0.95) +
+    ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth = 0.9, linetype = 2) +
+    ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth = 0.6, alpha = 0.85) +
+    ggplot2::scale_color_manual(name = "",
+      values = c(pred = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280"))
 }
+
 
 plot_synth_q_vs_true <- function(df_s, tau, scope = "Forecast", window = 200L) {
   tau_lab <- fmt_p(tau); c_true <- paste0("true_q_", tau_lab); c_synth <- paste0("synth_q_", tau_lab)
-  i2 <- max(df_s$h); i1 <- max(1L, i2 - window + 1L); d <- dplyr::filter(df_s, dplyr::between(h, i1, i2))
+  i2 <- max(df_s$h); i1 <- max(1L, i2 - window + 1L)
+  d <- dplyr::filter(df_s, dplyr::between(h, i1, i2))
   mae <- mean(abs(d[[c_synth]] - d[[c_true]]), na.rm = TRUE)
   ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
-    ggplot2::labs(title=sprintf("%s: synthesized qₚ vs true qₚ (p=%s)", scope, scales::percent(as.numeric(tau),1)),
-                  subtitle=sprintf("MAE = %.3f", mae), caption=caption_exdqlm(window), x="time", y="value") +
-    ggplot2::geom_line(ggplot2::aes(y = .data[[c_synth]], colour = "synth"), linewidth=0.95) +
-    ggplot2::geom_line(ggplot2::aes(y = .data[[c_true]],  colour = "true"),  linewidth=0.9, linetype=2) +
-    ggplot2::geom_line(ggplot2::aes(y = y,                 colour = "data"),  linewidth=0.6, alpha=0.85) +
-    ggplot2::scale_color_manual(name="", values=c(synth="#0ea5e9", true="#7c3aed", data="#6b7280"))
+    ggplot2::labs(title = sprintf("%s: synthesized qₚ vs true qₚ (p=%s)", scope, scales::percent(as.numeric(tau), 1)),
+                  subtitle = sprintf("MAE = %.3f", mae),
+                  caption = caption_exdqlm(window), x = "time", y = "value") +
+    ggplot2::geom_line(ggplot2::aes(y = .data[[c_synth]], colour = "synth"), linewidth = 0.95) +
+    ggplot2::geom_line(ggplot2::aes(y = .data[[c_true]],  colour = "true"),  linewidth = 0.9, linetype = 2) +
+    ggplot2::geom_line(ggplot2::aes(y = y,                 colour = "data"),  linewidth = 0.6, alpha = 0.85) +
+    ggplot2::scale_color_manual(name = "",
+      values = c(synth = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280"))
 }
 
-plot_synth_predictive_band <- function(synth_draws, y_vec, scope="Forecast", window=50L, fill_col="#0ea5e9", show_median=TRUE) {
+plot_synth_predictive_band <- function(synth_draws, y_vec, scope="Forecast", window=50L,
+                                       fill_col = ACCENT_ORANGE, show_median=TRUE) {
   stopifnot(is.matrix(synth_draws), length(y_vec) == nrow(synth_draws))
   T_h <- nrow(synth_draws); i2 <- T_h; i1 <- max(1L, i2 - as.integer(window) + 1L)
   q_mat <- t(apply(synth_draws, 1L, stats::quantile, probs = c(0.025, 0.50, 0.975), names = FALSE))
@@ -266,13 +278,18 @@ plot_synth_predictive_band <- function(synth_draws, y_vec, scope="Forecast", win
   mean_w   <- mean(df$q95 - df$q05, na.rm = TRUE)
   ggplot2::ggplot(df, ggplot2::aes(x = h)) + theme_exdqlm() +
     ggplot2::labs(title=sprintf("%s: synthesized 95%% predictive band", scope),
-                  subtitle=paste(sprintf("coverage=%s", scales::percent(coverage,0.1)), sprintf("mean width=%.3f", mean_w), sep=" • "),
+                  subtitle=paste(sprintf("coverage=%s", scales::percent(coverage,0.1)),
+                                 sprintf("mean width=%.3f", mean_w), sep=" • "),
                   caption=caption_exdqlm(window), x="time", y="value") +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin = q05, ymax = q95), fill=scales::alpha(fill_col,0.22), colour=NA) +
-    { if (isTRUE(show_median)) ggplot2::geom_line(ggplot2::aes(y=q50, colour="median"), linewidth=0.8) else ggplot2::geom_blank() } +
+    ggplot2::geom_ribbon(ggplot2::aes(ymin = q05, ymax = q95),
+                         fill = scales::alpha(fill_col, 0.22), colour = NA) +
+    { if (isTRUE(show_median)) ggplot2::geom_line(ggplot2::aes(y=q50, colour="median"), linewidth=0.8)
+      else ggplot2::geom_blank() } +
     ggplot2::geom_line(ggplot2::aes(y=y, colour="data"), linewidth=0.75) +
-    ggplot2::scale_color_manual(name="", breaks=c("data","median"), values=c(data="#6b7280", median=fill_col))
+    ggplot2::scale_color_manual(name="", breaks=c("data","median"),
+                                values=c(data="#6b7280", median=fill_col))
 }
+
 # --- 1) Load data + split (INSTRUMENTED) --------------------------------------
 dat_long <- read.csv(file_long) |>
   tibble::as_tibble() |>
@@ -619,7 +636,8 @@ timed("plot+save synth_forecast trio", {
     }
   }
   g_band_fc <- plot_synth_predictive_band(synth_draws = synth_fc$draws, y_vec = y_forecast,
-                                          scope="Forecast", window=last_window, fill_col="#3B82F6", show_median=TRUE)
+                                          scope="Forecast", window=last_window, fill_col=ACCENT_ORANGE, show_median=TRUE)
+
   print(g_band_fc)
   if (isTRUE(save_outputs)) {
     ggsave(file.path(FIGS, "forecast_obs_with_95_band.png"), g_band_fc, width=9, height=4.8, dpi=150)
@@ -664,7 +682,8 @@ timed("plot+save synth_train trio", {
     }
   }
   g_band_tr <- plot_synth_predictive_band(synth_draws = synth_tr$draws, y_vec = y_train[keep_train],
-                                          scope="Train", window=200L, fill_col="#0ea5e9", show_median=TRUE)
+                                          scope="Train", window=200L, fill_col=ACCENT_ORANGE, show_median=TRUE)
+
   print(g_band_tr)
   if (isTRUE(save_outputs)) {
     ggsave(file.path(FIGS, "train_obs_with_95_band.png"), g_band_tr, width=9, height=4.8, dpi=150)
