@@ -141,7 +141,32 @@ print.exdqlm <- function(x,...){
     print(x[final.ind[i]])
     cat("\n")
   }
-  invisible(x)
+}
+
+#' Summary exDQLM model details
+#'
+#' Print the details of the exDQLM model.
+#' @param object a \code{exdqlm} object.
+#' @param ... further arguments (unused).
+#' 
+#' @export
+summary.exdqlm <- function(object,...){
+  refnn <- c("m0","C0","FF","GG")
+  descrip = c("Prior mean of the state vector:", 
+              "Prior covariance of the state vector:",
+              "Observational vector:",
+              "Evolution matrix:")
+  nn <- names(object)
+  check <- !sapply(object, is.null)
+  ind <- match(refnn,nn)
+  ind <- ind[!is.na(ind)]
+  final.ind = match(nn[ind][check[ind]],nn)
+  # print
+  for (i in 1:4){
+    cat(descrip[i],"\n")
+    print(object[final.ind[i]])
+    cat("\n")
+  }
 }
 
 
@@ -188,6 +213,34 @@ print.exdqlmMCMC <- function(x, ...) {
   cat("exDQLM fitted using MCMC\n")
   cat("Burn-in:", x$n.burn, ", MCMC samples:", x$n.mcmc , "\n")
   cat("Run-time:", x$run.time, "seconds\n")
+}
+
+#' Summary Method for \code{exdqlmMCMC} Objects
+#'
+#' @param object An \code{exdqlmMCMC} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,quantile(y,0.85),10)
+#' M2 = exdqlmMCMC(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
+#'                 gam.init=-3.5,sig.init=15,
+#'                 n.burn=100,n.mcmc=150)
+#' summary(M2)                
+#' }
+#'
+summary.exdqlmMCMC <- function(object, ...) {
+  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  cat("Number of Observations:", length(object$y), "\n")
+  cat("State Dimension:", length(object$model$m0), "\n")  
+  cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
+  #
+  cat("exDQLM fitted using MCMC\n")
+  cat("Burn-in:", object$n.burn, ", MCMC samples:", object$n.mcmc , "\n")
+  cat("Run-time:", object$run.time, "seconds\n")
 }
 
 #' Plot Method for \code{exdqlmMCMC} Objects
@@ -256,6 +309,34 @@ print.exdqlmISVB <- function(x, ...) {
   cat("Variational Parameters:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
   cat("Iterations until convergence:", x$iter, "\n")
   cat("Run-time:", x$run.time, "seconds\n")
+}
+
+#' Summary Method for \code{exdqlmISVB} Objects
+#'
+#' @param object An \code{exdqlmISVB} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,quantile(y,0.85),10)
+#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
+#'                    gam.init=-3.5,sig.init=15)
+#' summary(M0)
+#' }
+#'
+summary.exdqlmISVB <- function(object, ...) {
+  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  cat("Number of Observations:", length(object$y), "\n")
+  cat("State Dimension:", length(object$model$m0), "\n")  
+  cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
+  #
+  cat("exDQLM fitted using ISVB\n")
+  cat("Variational Parameters:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
+  cat("Iterations until convergence:", object$iter, "\n")
+  cat("Run-time:", object$run.time, "seconds\n")
 }
 
 #' Plot Method for \code{exdqlmISVB} Objects
