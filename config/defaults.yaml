@@ -17,8 +17,8 @@ desn:
   D: 1
   "n": [500] # 3000
   n_tilde: []
-  m: 60        # 100
-  alpha: 0.4   # 0.4         # leak
+  m: 100       # 100
+  alpha: 0.05   # 0.4         # leak
   rho: [0.95]   # 0.95        # spectral scaling per layer
   act_f: tanh
   act_k: identity
@@ -38,7 +38,7 @@ vb:
 
 # Posterior predictive sampling
 sampling:
-  nd_draws: 1000
+  nd_draws: 2000
   chunk: 250
 
 # Rolling-origin / forecasting
@@ -51,8 +51,8 @@ forecast:
 synthesis:
   isotonic: true
   rearrange: true
-  grid_M: 1001
-  n_samp: 1000
+  grid_M: 2001
+  n_samp: 2000
   seed: 123
 
 # Outputs
@@ -63,8 +63,8 @@ outputs:
 
 # Orchestration
 orchestrate:
-  concurrency: 2         # upper bound of simultaneous tmux sessions
-  threads_per_proc: 10    # set BLAS/OMP per R process
+  concurrency: 3         # upper bound of simultaneous tmux sessions
+  threads_per_proc: 3    # set BLAS/OMP per R process
   skip_if_success: true  # idempotency
   resume_failed: false
 

@@ -4,7 +4,7 @@ results_root: results
 
 orchestrate:
   concurrency: 3       # jerez has headroom; tune if needed
-  threads_per_proc: 5
+  threads_per_proc: 3
   skip_if_success: true
   resume_failed: false
 
