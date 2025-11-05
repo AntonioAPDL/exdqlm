@@ -4,11 +4,9 @@
 \alias{exdqlmPlot}
 \title{Plot exDQLM}
 \usage{
-exdqlmPlot(y, m1, add = FALSE, col = "purple", cr.percent = 0.95)
+exdqlmPlot(m1, add = FALSE, col = "purple", cr.percent = 0.95)
 }
 \arguments{
-\item{y}{A univariate time-series.}
-
 \item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
 
 \item{add}{If \code{TRUE}, the dynamic quantile will be added to existing plot.}
@@ -34,7 +32,7 @@ y = scIVTmag[1:100]
 model = polytrendMod(1,quantile(y,0.85),10)
 M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
                    gam.init=-3.5,sig.init=15)
-exdqlmPlot(y,M0,col="blue")
+exdqlmPlot(M0,col="blue")
 }
 
 }

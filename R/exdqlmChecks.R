@@ -25,21 +25,18 @@
 #' model = polytrendMod(1,mean(y),10)
 #' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
 #'                   gam.init=-3.5,sig.init=15)
-#' check.out = exdqlmChecks(y,M0,plot=FALSE)
+#' check.out = exdqlmChecks(M0,plot=FALSE)
 #' check.out$m1.KL
 #' check.out$m1
 #' }
 #'
-exdqlmChecks <- function(y,m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
+exdqlmChecks <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
 
   # check inputs
-  check_ts(y)
+  y = m1$y
   TT = length(y)
   if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
     stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
-  }
-  if(dim(m1$samp.theta)[2] != TT){
-    stop("length of dynamic quantile in m1 does not match data")
   }
   cols = c(matrix(cols,2,1))
 

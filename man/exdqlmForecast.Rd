@@ -5,7 +5,6 @@
 \title{k-step-ahead quantile forecasts}
 \usage{
 exdqlmForecast(
-  y,
   start.t,
   k,
   m1,
@@ -18,8 +17,6 @@ exdqlmForecast(
 )
 }
 \arguments{
-\item{y}{A univariate numeric time series (vector or \code{ts}) of the observed response.}
-
 \item{start.t}{Integer index at which forecasts start (must be within the span of the fitted model in \code{m1}).}
 
 \item{k}{Integer; number of steps ahead to forecast.}
@@ -66,7 +63,7 @@ dynamic quantile model and optionally adds them to an existing plot.
  model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
  M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15)
- exdqlmForecast(y, start.t = 90, k = 10, m1 = M0)
+ exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 }
 
 }

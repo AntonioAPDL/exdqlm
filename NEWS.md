@@ -13,6 +13,9 @@
   - functions polytrendMod(), and seasMod() now return objects of class 'exdqlm'
   - function exdqlmISVB() and (inherently) transfn_exdqlmISVB() now return objects of class 'exdqlmISVB'
   - function exdqlmMCMC() now returns objects of class 'exdqlmMCMC'
+  - returns from exdqlmMCMC(), exdqlmISVB(), and transfn_exdqlmISVB() now include data (y)
+- Input changes
+  - y removed from the inputs of exdqlmChecks(), exdqlmForecast(), compPlot(), and exdqlmPlot()
 - Added generics_etc.R which includes generics & other functions for the objects of class 'exdqlm', 'exdqlmISVB' and 'exdqlmMCMC'
 - Removed dlmMod.R and replaced with the more robust function as.exdqlm (in generics_etc.R), which creates 'exdqlm' objects
 - Removed combineMods.R and replaced with addition for 'exdqlm' objects (in generics_etc.R)

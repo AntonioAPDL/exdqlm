@@ -5,7 +5,6 @@
 \title{Plot a component of an exDQLM}
 \usage{
 compPlot(
-  y,
   m1,
   index,
   add = FALSE,
@@ -15,8 +14,6 @@ compPlot(
 )
 }
 \arguments{
-\item{y}{A univariate time-series.}
-
 \item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
 
 \item{index}{Index of the component or element of the state vector to be plotted.}
@@ -49,7 +46,7 @@ model = trend.comp + seas.comp
 M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98,1),dim.df = c(2,6),
                    gam.init=-3.5,sig.init=15,tol=0.05)
 # plot first harmonic component
-compPlot(y,M0,index=c(3,4),col="blue")
+compPlot(M0,index=c(3,4),col="blue")
 }
 
 }

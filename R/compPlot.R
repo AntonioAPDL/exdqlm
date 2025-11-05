@@ -26,20 +26,17 @@
 #' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98,1),dim.df = c(2,6),
 #'                    gam.init=-3.5,sig.init=15,tol=0.05)
 #' # plot first harmonic component
-#' compPlot(y,M0,index=c(3,4),col="blue")
+#' compPlot(M0,index=c(3,4),col="blue")
 #' }
 #'
-compPlot <- function(y, m1, index, add = FALSE, col="purple", just.theta = FALSE, cr.percent = 0.95){
+compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, cr.percent = 0.95){
 
-  # check inputs
-  check_ts(y)
+  # check input
   if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
     stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
   }
+  y = m1$y
   TT = length(y)
-  if(dim(m1$samp.theta)[2] != TT){
-    stop("length of dynamic quantile does not match data")
-  }
   p = length(index)
   n.samp = dim(m1$samp.theta)[3]
   if(just.theta & p != 1){

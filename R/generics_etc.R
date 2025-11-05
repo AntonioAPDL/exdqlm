@@ -261,7 +261,7 @@ summary.exdqlmMCMC <- function(object, ...) {
 #' }
 #'
 plot.exdqlmMCMC<- function(x, ...) {
-  exdqlmPlot(x$y,x,...)
+  exdqlmPlot(x,...)
 }
 
 
@@ -356,5 +356,5 @@ summary.exdqlmISVB <- function(object, ...) {
 #' }
 #'
 plot.exdqlmISVB <- function(x, ...) {
-  exdqlmPlot(x$y,x,...)
+  exdqlmPlot(x,...)
 }

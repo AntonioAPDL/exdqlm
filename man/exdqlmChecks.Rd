@@ -4,18 +4,9 @@
 \alias{exdqlmChecks}
 \title{exDQLM Diagnostics}
 \usage{
-exdqlmChecks(
-  y,
-  m1,
-  m2 = NULL,
-  plot = TRUE,
-  cols = c("grey", "grey"),
-  ref = NULL
-)
+exdqlmChecks(m1, m2 = NULL, plot = TRUE, cols = c("grey", "grey"), ref = NULL)
 }
 \arguments{
-\item{y}{A univariate time-series.}
-
 \item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
 
 \item{m2}{An optional additional object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}" to compare with \code{m1}.}
@@ -46,7 +37,7 @@ y = scIVTmag[1:100]
 model = polytrendMod(1,mean(y),10)
 M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
                   gam.init=-3.5,sig.init=15)
-check.out = exdqlmChecks(y,M0,plot=FALSE)
+check.out = exdqlmChecks(M0,plot=FALSE)
 check.out$m1.KL
 check.out$m1
 }
