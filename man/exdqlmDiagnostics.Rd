@@ -24,13 +24,16 @@ exdqlmDiagnostics(
 \item{ref}{Reference sample of size \code{length(y)} from a standard normal distribution used to compute the KL divergence.}
 }
 \value{
-A list containing the following is returned:
+A object of class "\code{exdqlmDiagnostics}" containing the following:
 \itemize{
 \item \code{m1.uts} - The one-step-ahead distribution sequence of \code{m1}.
 \item \code{m1.KL} - The KL divergence of \code{m1.uts} and a standard normal.
 \item \code{m1.pplc} - The posterior predictive loss criterion of \code{m1} based off the check loss function.
 \item \code{m1.qq} - The ordered pairs of the qq-plot comparing \code{m1.uts} with a standard normal distribution.
 \item \code{m1.acf} - The autocorrelations of \code{m1.uts} by lag.
+\item \code{m1.rt} - Run-time of the original model \code{m1} in seconds.
+\item \code{m1.msfe} - MAP standardized one-step-ahead forecast errors from the original model \code{m1}.
+\item \code{y} - The original time-series used to fit \code{m1}.
 }
 If \code{m2} is provided, analogous results for \code{m2} are also included in the list.
 }
@@ -43,9 +46,8 @@ y = scIVTmag[1:100]
 model = polytrendMod(1,mean(y),10)
 M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
                   gam.init=-3.5,sig.init=15)
-check.out = exdqlmDiagnostics(M0,plot=FALSE)
-check.out$m1.KL
-check.out$m1
+M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+M0.diags$m1.KL
 }
 
 }

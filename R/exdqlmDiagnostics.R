@@ -8,13 +8,16 @@
 #' @param cols Color(s) used to plot diagnostics.
 #' @param ref Reference sample of size `length(y)` from a standard normal distribution used to compute the KL divergence.
 #'
-#' @return A list containing the following is returned:
+#' @return A object of class "\code{exdqlmDiagnostics}" containing the following:
 #'  \itemize{
 #'  \item `m1.uts` - The one-step-ahead distribution sequence of `m1`.
 #'  \item `m1.KL` - The KL divergence of `m1.uts` and a standard normal.
 #'  \item `m1.pplc` - The posterior predictive loss criterion of `m1` based off the check loss function.
 #'  \item `m1.qq` - The ordered pairs of the qq-plot comparing `m1.uts` with a standard normal distribution.
 #'  \item `m1.acf` - The autocorrelations of `m1.uts` by lag.
+#'  \item `m1.rt` - Run-time of the original model `m1` in seconds.
+#'  \item `m1.msfe` - MAP standardized one-step-ahead forecast errors from the original model `m1`.
+#'  \item `y` - The original time-series used to fit `m1`.
 #'  }
 #'  If `m2` is provided, analogous results for `m2` are also included in the list.
 #' @export
@@ -25,9 +28,8 @@
 #' model = polytrendMod(1,mean(y),10)
 #' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
 #'                   gam.init=-3.5,sig.init=15)
-#' check.out = exdqlmDiagnostics(M0,plot=FALSE)
-#' check.out$m1.KL
-#' check.out$m1
+#' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+#' M0.diags$m1.KL
 #' }
 #'
 exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
@@ -63,12 +65,13 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NUL
   # m1 acf
   m1.acf = stats::acf(m1.uts,plot=FALSE)
   #
-  retlist = list(m1.uts=m1.uts,m1.KL=m1.KL,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf)
+  retlist = list(m1.uts=m1.uts,m1.KL=m1.KL,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf,
+                 m1.rt=m1$run.time,m1.msfe=m1$map.standard.forecast.errors,y=y)
 
   ### m2
   if(!is.null(m2)){
     # check inputs
-    if(!is.exdqlm(m2)){
+    if(!is.exdqlmMCMC(m2) && !is.exdqlmISVB(m2)){
       stop("m2 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
     }
     if(dim(m1$samp.theta)[2] != TT){
@@ -82,6 +85,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NUL
     }
     # m2 seq.uts
     m2.uts = stats::pnorm(m2$map.standard.forecast.errors)
+    retlist[["m2.msfe"]] = m2$map.standard.forecast.errors
     retlist[["m2.uts"]] = m2.uts
     # m2 KL divergence
     retlist[["m2.KL"]] = mean(FNN::KL.divergence(ref,m2$map.standard.forecast.errors))
@@ -93,6 +97,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NUL
     retlist[["m2.qq"]] = stats::qqnorm(m2$map.standard.forecast.errors,plot=FALSE)
     # m2 acf
     retlist[["m2.acf"]] = stats::acf(m2.uts,plot=FALSE)
+    # m2 run-time
+    retlist[["m2.rt"]] = m2$run.time
   }
 
   if(plot){
@@ -128,6 +134,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NUL
       graphics::abline(h=0,lty=2)
     }
   }
+  class(retlist) <- "exdqlmDiagnostic"
 
   # return model checks
   return(invisible(retlist))

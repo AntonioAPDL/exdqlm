@@ -358,3 +358,137 @@ summary.exdqlmISVB <- function(object, ...) {
 plot.exdqlmISVB <- function(x, ...) {
   exdqlmPlot(x,...)
 }
+
+
+
+
+##################################
+### "exdqlmDiagnostic" objects ###
+##################################
+
+#' \code{exdqlmDiagnostic} objects
+#'
+#' \code{is.exdqlmDiagnostic} tests if its argument is a \code{exdqlmDiagnostic} object. 
+#' 
+#' @usage is.exdqlmDiagnostic(x)
+#'
+#' @param x an \strong{R} object
+#'
+#' @export
+#' 
+#' 
+is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
+
+#' Print Method for \code{exdqlmDiagnostic} Objects
+#'
+#' @param x An \code{exdqlmDiagnostic} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,mean(y),10)
+#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
+#'                   gam.init=-3.5,sig.init=15)
+#' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+#' print(M0.diags)
+#' }
+#'
+print.exdqlmDiagnostic <- function(x, ...) {
+  #
+  Diagnostic <- c("KL","pplc","run-time (s)")
+  M1 <- c(x$m1.KL,x$m1.pplc,as.numeric(x$m1.rt))
+  #
+  if(is.null(x$m2.KL)){
+    print(data.frame(Diagnostic=Diagnostic,M1=M1), row.names = FALSE, digits = 3)
+  }else{
+    M2 <- c(x$m2.KL,x$m2.pplc,as.numeric(x$m2.rt))
+    print(data.frame(Diagnostic=Diagnostic,M1=M1,M2=M2), row.names = FALSE, digits = 3)
+  }
+}
+
+#' Summary Method for \code{exdqlmDiagnostic} Objects
+#'
+#' @param object An \code{exdqlmDiagnostic} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,mean(y),10)
+#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
+#'                   gam.init=-3.5,sig.init=15)
+#' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+#' summary(M0.diags)
+#' }
+#'
+summary.exdqlmDiagnostic <- function(object, ...) {
+  #
+  Diagnostic <- c("KL","pplc","run-time (s)")
+  M1 <- c(object$m1.KL,object$m1.pplc,as.numeric(object$m1.rt))
+  #
+  if(is.null(object$m2.KL)){
+    print(data.frame(Diagnostic=Diagnostic,M1=M1), row.names = FALSE, digits = 3)
+  }else{
+    M2 <- c(object$m2.KL,object$m2.pplc,as.numeric(object$m2.rt))
+    print(data.frame(Diagnostic=Diagnostic,M1=M1,M2=M2), row.names = FALSE, digits = 3)
+  }
+}
+
+#' Plot Method for \code{exdqlmDiagnostic} Objects
+#'
+#' @param x An \code{exdqlmDiagnostic} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,mean(y),10)
+#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
+#'                   gam.init=-3.5,sig.init=15)
+#' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+#' plot(M0.diags)
+#' }
+#'
+plot.exdqlmDiagnostic <- function(x, ...) {
+  # get ranges
+  if(is.null(x$m2.KL)){
+    qq.x.range = range(x$m1.qq$x)
+    qq.y.range = range(x$m1.qq$y)
+    acf.y.range = range(x$m1.acf$acf)
+    fe.y.range = range(x$m1.msfe)
+    graphics::par(mfrow = c(1, 3))
+  }else{
+    qq.x.range = range(c(x$m1.qq$x,x$m2.qq$x))
+    qq.y.range = range(c(x$m1.qq$y,x$m2.qq$y))
+    acf.y.range = range(c(x$m1.acf$acf,x$m2.acf$acf))
+    fe.y.range = range(c(x$m1.msfe,x$m2.msfe))
+    graphics::par(mfrow = c(2, 3))
+  }
+  # m1 qqplot
+  plot(x$m1.qq,main="",col="red",pch=20,xlab="Theoretical Quantiles",ylab="M1 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
+  graphics::abline(a=0,b=1)
+  # m1 acf
+  plot(x$m1.acf,ylab="M1 ACF",col="red",main="",ylim=acf.y.range)
+  # m1 forecast errors
+  ts.xy = grDevices::xy.coords(x$y)
+  graphics::plot(ts.xy$x,x$m1.msfe,ylab="M1 standard forecast errors",xlab="time",col="red",pch=20,type="l",ylim=fe.y.range)
+  graphics::abline(h=0,lty=2)
+  ### m2
+  if(!is.null(x$m2.KL)){
+    # m2 qqplot
+    plot(x$m2.qq,main="",col="blue",pch=20,xlab="Theoretical Quantiles",ylab="M2 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
+    graphics::abline(a=0,b=1)
+    # m2 acf
+    plot(x$m2.acf,ylab="M2 ACF",col="blue",main="",ylim=acf.y.range)
+    # m2 forecast errors
+    graphics::plot(ts.xy$x,x$m2.msfe,ylab="M2 standard forecast errors", xlab="time",col="blue",pch=20,type="l",ylim=fe.y.range)
+    graphics::abline(h=0,lty=2)
+  }
+}
