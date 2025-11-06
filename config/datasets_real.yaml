@@ -1,0 +1,16 @@
+datasets:
+  - slug: san_lorenzo_daily
+    mode: real
+    input_path: /data/muscat_data/jaguir26/data/real/san_lorenzo_daily.csv
+    overrides:
+      pipeline:
+        mode: real
+      split:
+        T_use: 3000
+        train_prop: 0.9
+        use_last: true
+      forecast:
+        mode: recursive-stochastic
+        H_step: 30
+        tf_first_k: 0
+        paths: 500
