@@ -1,16 +1,22 @@
 datasets:
   - slug: san_lorenzo_daily
     mode: real
-    input_path: /data/muscat_data/jaguir26/data/real/san_lorenzo_daily.csv
+    input_path: /data/muscat_data/jaguir26/data/data_USGS_ppt_soil.csv
     overrides:
       pipeline:
         mode: real
+      columns:
+        y: USGS
+        x: [ppt, soil]
+      lags:
+        m_y: 3    # use y_{t-1}, y_{t-2}, y_{t-3}
+        m_x: 7    # use x_t, x_{t-1}, ..., x_{t-7}
       split:
         T_use: 3000
         train_prop: 0.9
         use_last: true
       forecast:
         mode: recursive-stochastic
-        H_step: 30
+        H_step: 1
         tf_first_k: 0
         paths: 500

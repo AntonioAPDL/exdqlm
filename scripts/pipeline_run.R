@@ -9,10 +9,20 @@ suppressPackageStartupMessages({
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
 # -- Resolve repo root
-args_all <- commandArgs(trailingOnly = FALSE)
-script_file <- sub("^--file=", "", args_all[grep("^--file=", args_all)])
-repo_root <- tryCatch(normalizePath(system("git rev-parse --show-toplevel", intern = TRUE)),
-                      error = function(...) normalizePath(if (nzchar(script_file)) dirname(script_file) else ".", mustWork = TRUE))
+# -- Resolve repo root
+args_all   <- commandArgs(trailingOnly = FALSE)
+script_idx <- grep("^--file=", args_all)
+script_file <- if (length(script_idx)) sub("^--file=", "", args_all[script_idx]) else ""
+repo_root <- tryCatch(
+  normalizePath(system("git rev-parse --show-toplevel", intern = TRUE)),
+  error = function(...) {
+    if (length(script_file) && nzchar(script_file)) {
+      normalizePath(dirname(script_file), mustWork = FALSE)
+    } else {
+      normalizePath(".", mustWork = FALSE)
+    }
+  }
+)
 setwd(repo_root)
 
 # --- CLI
@@ -136,9 +146,20 @@ if (mode_eff %in% c("sim","simulation")) {
     writeLines("FAIL", fs::path(run_dir,"manifest","status.txt")); quit(save="no", status=1)
   }
 } else if (mode_eff %in% c("real","observed","data")) {
-  if (!all(need_real %in% names(hdr))) {
-    cat("Schema failure (real); missing among:", paste(need_real, collapse=", "), "\n")
-    writeLines("FAIL", fs::path(run_dir,"manifest","status.txt")); quit(save="no", status=1)
+  # Mapping-aware check: allow (t,y), (date,y), or just y — with optional column remap
+  y_map    <- ds$overrides$columns$y %||% "y"
+  date_map <- ds$overrides$columns$date %||% NULL
+
+  hdr_nms <- names(hdr)
+  ok_real <- (all(c("t", y_map) %in% hdr_nms)) ||
+             (!is.null(date_map) && all(c(date_map, y_map) %in% hdr_nms)) ||
+             (y_map %in% hdr_nms)
+
+  if (!ok_real) {
+    cat("Schema failure (real): could not find mapped y column '", y_map,
+        "' (or t/date) in header: ", paste(hdr_nms, collapse=", "), "\n", sep = "")
+    writeLines("FAIL", fs::path(run_dir,"manifest","status.txt"))
+    quit(save="no", status=1)
   }
 } else {
   cat("Unknown dataset mode: ", mode_eff, " (expected sim|real)\n")
