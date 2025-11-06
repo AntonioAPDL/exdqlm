@@ -1,4 +1,5 @@
 name: real_heavy
+suite_name: real_suite
 
 vb:
   max_iter: 150
@@ -22,3 +23,6 @@ synthesis:
 
 outputs:
   keep_draws: false
+
+pipeline:
+  mode: real

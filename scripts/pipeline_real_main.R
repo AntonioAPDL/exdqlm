@@ -56,9 +56,10 @@ if (!is.na(file_obs) && file.exists(file_obs)) {
     y_df <- tibble::tibble(t = as.integer(y_raw$t), y = as.numeric(y_raw$y)) |>
       dplyr::arrange(t)
   } else if (all(c("date","y") %in% nm)) {
-    y_df <- tibble::tibble(
-      t = as.integer(order(as.Date(y_raw$date))), y = as.numeric(y_raw$y)
-    ) |> dplyr::arrange(t)
+    y_df <- y_raw |>
+    dplyr::mutate(date = as.Date(date)) |>
+    dplyr::arrange(date) |>
+    dplyr::transmute(t = dplyr::row_number(), y = as.numeric(y))
   } else if ("y" %in% nm) {
     y_df <- tibble::tibble(t = seq_len(nrow(y_raw)), y = as.numeric(y_raw$y))
   } else {
@@ -97,8 +98,8 @@ manifest <- list(
   data = list(T = T_full, y_min = rng[1], y_max = rng[2]),
   cfg  = cfg
 )
-readr::write_file(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE),
-                  file.path(out_dir, "manifest_real.json"))
 
-# ---- Placeholder end: next steps will fit/readout, forecast, synth, diagnostics.
-logf("Skeleton OK. Wrote manifest to %s", file.path(out_dir, "manifest_real.json"))
+MANI <- file.path(out_dir, "manifest"); dir.create(MANI, showWarnings = FALSE, recursive = TRUE)
+readr::write_file(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE),
+                   file.path(MANI, "manifest_real.json"))
+logf("Skeleton OK. Wrote manifest to %s", file.path(MANI, "manifest_real.json"))

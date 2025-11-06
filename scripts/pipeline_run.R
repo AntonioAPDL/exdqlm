@@ -30,6 +30,7 @@ suite    <- if (file.exists("config/suite.yaml"))   yaml::read_yaml("config/suit
 datasets_sim  <- if (file.exists("config/datasets.yaml"))       yaml::read_yaml("config/datasets.yaml")       else list(datasets=list())
 datasets_real <- if (file.exists("config/datasets_real.yaml"))  yaml::read_yaml("config/datasets_real.yaml")  else list(datasets=list())
 datasets <- c(datasets_sim$datasets, datasets_real$datasets)
+local <- if (file.exists("config/local.yaml")) yaml::read_yaml("config/local.yaml") else list()
 
 # find dataset entry
 ds <- NULL
@@ -73,6 +74,7 @@ cfg <- defaults
 cfg <- deep_merge(cfg, suite)
 cfg <- deep_merge(cfg, spec)
 cfg <- deep_merge(cfg, ds$overrides)
+cfg <- deep_merge(cfg, local)
 
 # ---- YAML 1.1 boolean-key compatibility (protect 'n') ----
 if (!is.null(cfg$desn)) {
