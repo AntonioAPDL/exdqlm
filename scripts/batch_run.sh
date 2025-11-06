@@ -5,7 +5,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-# --- Spec to use (default: heavy). You can pass another, e.g. ./scripts/run_many_heavy.sh tuned ---
+# --- Spec to use (default: heavy). Example: ./scripts/batch_run.sh tuned ---
 SPEC="${1:-heavy}"
 
 # --- Slugs to run (your three heavy ones) ---
