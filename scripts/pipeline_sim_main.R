@@ -61,10 +61,12 @@ timed <- function(tag, expr) {
 
 # --- Batch-run overrides from runner (file paths, outputs, full YAML cfg)
 file_long <- Sys.getenv("EXDQLM_FILE_LONG", unset = NA)
+file_obs  <- Sys.getenv("EXDQLM_FILE_OBS",  unset = NA)
 out_dir   <- Sys.getenv("EXDQLM_OUT_DIR",   unset = NA)
 
 val <- Sys.getenv("EXDQLM_SAVE_OUTPUTS", unset = NA)
 save_outputs <- if (!is.na(val) && nzchar(val)) (as.integer(val) == 1L) else TRUE
+
 
 if (is.na(file_long) || !file.exists(file_long)) {
   stop("EXDQLM_FILE_LONG not set or file missing: ", file_long)
@@ -92,6 +94,16 @@ if (!mode %in% c("sim", "simulation")) {
   message(sprintf("[pipeline_main] WARNING: pipeline.mode=%s not yet supported; proceeding with sim flow.", mode))
 }
 
+# If runner gave us EXDQLM_FILE_OBS (real), fall back to it when FILE_LONG is missing
+if (mode %in% c("real","observed","data") && (is.na(file_long) || !nzchar(file_long))) {
+  file_long <- file_obs
+}
+
+if (is.na(file_long) || !file.exists(file_long)) {
+  stop("EXDQLM_FILE_LONG/OBS not set or file missing: ", file_long)
+}
+
+
 `%nz%` <- function(x, alt) if (!is.null(x)) x else alt
 
 near_equal <- function(x, y, tol = 1e-8) abs(x - y) <= tol
@@ -104,6 +116,20 @@ desn_args <- list(
   alpha = 0.2, rho = c(0.95), act_f = "tanh", act_k = "identity",
   pi_w = 0.05, pi_in = 1.00, washout = 500L, add_bias = TRUE, seed = 42
 )
+
+  # --- NEW: preflight summary for visibility ---
+  pretty_vec <- function(x) paste0("[", paste(x, collapse=", "), "]")
+  log_msg("DESN spec → D=%d | n=%s | rho=%s | alpha=%s | act_f=%s | act_k=%s | pi_w=%s | pi_in=%s | m=%d | washout=%d | add_bias=%s",
+          as.integer(desn_args$D),
+          pretty_vec(as.integer(desn_args$n)),
+          pretty_vec(as.numeric(desn_args$rho)),
+          pretty_vec(if (length(desn_args$alpha)) as.numeric(desn_args$alpha) else NA_real_),
+          pretty_vec(if (length(desn_args$act_f))  as.character(desn_args$act_f) else NA_character_),
+          pretty_vec(if (length(desn_args$act_k))  as.character(desn_args$act_k) else NA_character_),
+          pretty_vec(if (length(desn_args$pi_w))   as.numeric(desn_args$pi_w) else NA_real_),
+          pretty_vec(if (length(desn_args$pi_in))  as.numeric(desn_args$pi_in) else NA_real_),
+          as.integer(desn_args$m), as.integer(desn_args$washout), as.character(isTRUE(desn_args$add_bias)))
+
 
 vb_args_base <- list(max_iter = 150, tol = 1e-4, n_samp_xi = 500, verbose = TRUE)
 vb_tol_for <- function(p0) if (near_equal(p0, 0.50)) 1e-4 else 1e-5
@@ -132,7 +158,6 @@ do_scores      <- TRUE  # CRPS + S
 # --- Apply cfg overrides (if present)
 if (length(cfg)) {
   if (!is.null(cfg$p_vec))             p_vec <- as.numeric(cfg$p_vec)
-
   if (!is.null(cfg$desn)) {
     D_in   <- as.integer(cfg$desn$D %||% desn_args$D)
     n_in   <- as_num_vec(cfg$desn$n)
@@ -142,16 +167,53 @@ if (length(cfg)) {
     desn_args$n   <- fix_len(n_in   %||% desn_args$n,   D_in, "desn$n")
     desn_args$rho <- fix_len(rho_in %||% desn_args$rho, D_in, "desn$rho")
 
+    # --- NEW: broadcast/validate other per-layer specs ---
+    as_chr_vec <- function(x) { if (is.null(x)) return(NULL); as.character(x) }
+    as_num     <- function(x) { if (is.null(x)) return(NULL); as.numeric(x) }
+
+    # Allow scalar or length-D; recycle length-1
+    if (!is.null(cfg$desn$alpha)) {
+      a <- as_num(cfg$desn$alpha);  desn_args$alpha <- fix_len(a, D_in, "desn$alpha")
+    }
+    if (!is.null(cfg$desn$act_f)) {
+      af <- as_chr_vec(cfg$desn$act_f); desn_args$act_f <- fix_len(af, D_in, "desn$act_f")
+    }
+    if (!is.null(cfg$desn$act_k)) {
+      ak <- as_chr_vec(cfg$desn$act_k); desn_args$act_k <- fix_len(ak, D_in, "desn$act_k")
+    }
+    if (!is.null(cfg$desn$pi_w)) {
+      pw <- as_num(cfg$desn$pi_w);     desn_args$pi_w  <- fix_len(pw, D_in, "desn$pi_w")
+    }
+    if (!is.null(cfg$desn$pi_in)) {
+      pin <- as_num(cfg$desn$pi_in);   desn_args$pi_in <- fix_len(pin, D_in, "desn$pi_in")
+    }
+    if (!is.null(cfg$desn$seed)) {
+      sd <- as_num(cfg$desn$seed)
+      # seed may be scalar or length-D; if vector, keep_len=D
+      desn_args$seed <- if (length(sd) == 1L) sd else fix_len(sd, D_in, "desn$seed")
+    }
+
+    # n_tilde rules: allow length 0 (none), 1 (broadcast), D-1 (between layers), or D (per layer)
+    if (!is.null(cfg$desn$n_tilde)) {
+      nt <- as_num(cfg$desn$n_tilde)
+      if (length(nt) == 0L) {
+        desn_args$n_tilde <- integer(0)
+      } else if (length(nt) == 1L) {
+        desn_args$n_tilde <- rep(as.integer(nt), D_in)
+      } else if (length(nt) %in% c(D_in - 1L, D_in)) {
+        desn_args$n_tilde <- as.integer(nt)
+      } else {
+        stop(sprintf("Config error: length(desn$n_tilde)=%d not in {0,1,%d,%d}",
+                     length(nt), D_in - 1L, D_in))
+      }
+    }
+
+    # scalar-only fields (keep your current lines)
     desn_args$m        <- cfg$desn$m        %nz% desn_args$m
-    desn_args$alpha    <- cfg$desn$alpha    %nz% desn_args$alpha
-    desn_args$act_f    <- cfg$desn$act_f    %nz% desn_args$act_f
-    desn_args$act_k    <- cfg$desn$act_k    %nz% desn_args$act_k
-    desn_args$pi_w     <- cfg$desn$pi_w     %nz% desn_args$pi_w
-    desn_args$pi_in    <- cfg$desn$pi_in    %nz% desn_args$pi_in
     desn_args$washout  <- cfg$desn$washout  %nz% desn_args$washout
     desn_args$add_bias <- cfg$desn$add_bias %nz% desn_args$add_bias
-    desn_args$seed     <- cfg$desn$seed     %nz% desn_args$seed
   }
+
 
   if (!is.null(cfg$vb)) {
     vb_args_base$max_iter  <- cfg$vb$max_iter  %nz% vb_args_base$max_iter
@@ -188,10 +250,10 @@ if (length(cfg)) {
 }
 
 # --- Plot helpers (same as notebook, locked to 3 decimals for tau labels)
-fmt_p <- function(x) sprintf("%.3f", as.numeric(x))
-# keep band colors tied to p via col_map
-col_map <- setNames(c("#ef4444", "#10b981", "#0ea5e9"), as.character(p_vec))
-ACCENT_ORANGE <- "#c2410c"  # dark orange for predicted / mean / synthesized lines
+fmt_p <- function(x) sprintf("%.2f", as.numeric(x))
+pal <- scales::hue_pal()(length(p_vec))
+col_map <- setNames(pal, fmt_p(p_vec))
+ACCENT_ORANGE <- "#ff9c11fc"  # dark orange for predicted / mean / synthesized lines
 theme_exdqlm <- function(base_size = 11) {
   ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(panel.grid.minor = ggplot2::element_blank(), legend.position="right",
@@ -225,7 +287,7 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
                   subtitle = sprintf("q_true-in-band = %s", scales::percent(coverage, 0.1)),
                   caption = caption_exdqlm(window), x = "time", y = "value") +
     ggplot2::geom_ribbon(ggplot2::aes(ymin = lo, ymax = hi),
-                         fill = scales::alpha(col_map[as.character(p0)], 0.22), colour = NA) +
+                         fill = scales::alpha(col_map[fmt_p(p0)], 0.22), colour = NA) +
     ggplot2::geom_line(ggplot2::aes(y = mu,     colour = "mu"),   linewidth = 0.95) +
     ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth = 0.9, linetype = 2) +
     ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth = 0.6, alpha = 0.9) +
@@ -265,30 +327,49 @@ plot_synth_q_vs_true <- function(df_s, tau, scope = "Forecast", window = 200L) {
     ggplot2::scale_color_manual(name = "",
       values = c(synth = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280"))
 }
-
-plot_synth_predictive_band <- function(synth_draws, y_vec, scope="Forecast", window=50L,
-                                       fill_col = ACCENT_ORANGE, show_median=TRUE) {
+plot_synth_predictive_band <- function(synth_draws, y_vec, scope = "Forecast", window = 50L,
+                                       fill_col = ACCENT_ORANGE, show_median = TRUE) {
   stopifnot(is.matrix(synth_draws), length(y_vec) == nrow(synth_draws))
-  T_h <- nrow(synth_draws); i2 <- T_h; i1 <- max(1L, i2 - as.integer(window) + 1L)
-  q_mat <- t(apply(synth_draws, 1L, stats::quantile, probs = c(0.025, 0.50, 0.975), names = FALSE))
-  colnames(q_mat) <- c("q05","q50","q95")
-  df <- tibble::tibble(h=seq_len(T_h), y=y_vec, q05=q_mat[,"q05"], q50=q_mat[,"q50"], q95=q_mat[,"q95"]) |>
+  T_h <- nrow(synth_draws)
+  i2  <- T_h
+  i1  <- max(1L, i2 - as.integer(window) + 1L)
+
+  q_mat <- t(apply(synth_draws, 1L, stats::quantile,
+                   probs = c(0.025, 0.50, 0.975), names = FALSE))
+  colnames(q_mat) <- c("q025", "q50", "q975")
+
+  df <- tibble::tibble(
+    h = seq_len(T_h), y = y_vec,
+    q025 = q_mat[, "q025"], q50 = q_mat[, "q50"], q975 = q_mat[, "q975"]
+  ) |>
     dplyr::filter(dplyr::between(h, i1, i2))
-  coverage <- mean(df$y >= df$q05 & df$y <= df$q95, na.rm = TRUE)
-  mean_w   <- mean(df$q95 - df$q05, na.rm = TRUE)
+
+  coverage <- mean(df$y >= df$q025 & df$y <= df$q975, na.rm = TRUE)
+  mean_w   <- mean(df$q975 - df$q025, na.rm = TRUE)
+
   ggplot2::ggplot(df, ggplot2::aes(x = h)) + theme_exdqlm() +
-    ggplot2::labs(title=sprintf("%s: synthesized 95%% predictive band", scope),
-                  subtitle=paste(sprintf("coverage=%s", scales::percent(coverage,0.1)),
-                                 sprintf("mean width=%.3f", mean_w), sep=" • "),
-                  caption=caption_exdqlm(window), x="time", y="value") +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin = q05, ymax = q95),
-                         fill = scales::alpha(fill_col, 0.22), colour = NA) +
-    { if (isTRUE(show_median)) ggplot2::geom_line(ggplot2::aes(y=q50, colour="median"), linewidth=0.8)
+    ggplot2::labs(
+      title   = sprintf("%s: synthesized 95%% predictive band", scope),
+      subtitle = paste(
+        sprintf("coverage=%s", scales::percent(coverage, 0.1)),
+        sprintf("mean width=%.3f", mean_w), sep = " • "
+      ),
+      caption = caption_exdqlm(window), x = "time", y = "value"
+    ) +
+    ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = q025, ymax = q975),
+      fill = scales::alpha(fill_col, 0.22), colour = NA
+    ) +
+    { if (isTRUE(show_median))
+        ggplot2::geom_line(ggplot2::aes(y = q50, colour = "median"), linewidth = 0.8)
       else ggplot2::geom_blank() } +
-    ggplot2::geom_line(ggplot2::aes(y=y, colour="data"), linewidth=0.75) +
-    ggplot2::scale_color_manual(name="", breaks=c("data","median"),
-                                values=c(data="#6b7280", median=fill_col))
+    ggplot2::geom_line(ggplot2::aes(y = y, colour = "data"), linewidth = 0.75) +
+    ggplot2::scale_color_manual(
+      name   = "", breaks = c("data", "median"),
+      values = c(data = "#6b7280", median = fill_col)
+    )
 }
+
 
 # --- 1) Load data + split (INSTRUMENTED) --------------------------------------
 dat_long <- read.csv(file_long) |>
@@ -416,6 +497,14 @@ y_future_obs_fc <- y_forecast
 cat(sprintf("TF | mode=full | len(y_future_obs_fc)=%d\n", length(y_future_obs_fc)))
 flush.console()
 
+# --- Teacher forcing guard (scalar) ---
+use_tf <- is.numeric(y_future_obs_fc) &&
+          length(y_future_obs_fc) > 0L &&
+          any(!is.na(y_future_obs_fc))
+
+# (optional sanity)
+stopifnot(!use_tf || length(y_future_obs_fc) == H_forecast)
+
 # ---------------------------------------------------------------------------
 
 # === [NEW] Shared reservoir pass → precompute design for train + 1-step forecast ===
@@ -426,7 +515,44 @@ if (n_train < (drop + 1L)) {
 }
 
 # Roll the DESN ONCE over the full used series to get all post-drop feature rows.
-# We piggyback on qdesn_fit_vb but make VB basically a no-op (iter=1) just to get X and indices.
+# We piggyback on qdesn_fit_vb but make VB basically a no-op (iter=1) jus to get X and indices.
+
+# === [NEW] Shared reservoir pass → precompute design for train + 1-step forecast ===
+drop <- max(as.integer(desn_args$m), as.integer(desn_args$washout))
+# --- Sanitize DESN per-layer fields so qdesn_fit_vb gets valid scalars/vectors ---
+D_eff <- as.integer(desn_args$D)
+
+as_num <- function(x) if (is.null(x)) NULL else as.numeric(x)
+as_chr <- function(x) if (is.null(x)) NULL else as.character(x)
+sanitize_vec <- function(x, D) {
+  if (is.null(x)) return(x)
+  if (length(x) == 1L) return(x)
+  if (length(x) >= D) return(x[seq_len(D)])
+  rep(x[1L], D)
+}
+
+# Coerce types first (character vs numeric), then cap/recycle to length D
+desn_args$alpha <- sanitize_vec(as_num(desn_args$alpha), D_eff)
+desn_args$act_f <- sanitize_vec(as_chr(desn_args$act_f), D_eff)
+desn_args$act_k <- sanitize_vec(as_chr(desn_args$act_k), D_eff)
+desn_args$pi_w  <- sanitize_vec(as_num(desn_args$pi_w),  D_eff)
+desn_args$pi_in <- sanitize_vec(as_num(desn_args$pi_in), D_eff)
+desn_args$seed  <- sanitize_vec(as_num(desn_args$seed),  D_eff)
+
+# Defensive: if D=1, force true scalars (prevents switch(EXPR=vector) errors internally)
+if (D_eff == 1L) {
+  if (length(desn_args$alpha)) desn_args$alpha <- as.numeric(desn_args$alpha[1L])
+  if (length(desn_args$act_f)) desn_args$act_f <- as.character(desn_args$act_f[1L])
+  if (length(desn_args$act_k)) desn_args$act_k <- as.character(desn_args$act_k[1L])
+  if (length(desn_args$pi_w))  desn_args$pi_w  <- as.numeric(desn_args$pi_w[1L])
+  if (length(desn_args$pi_in)) desn_args$pi_in <- as.numeric(desn_args$pi_in[1L])
+  if (length(desn_args$seed))  desn_args$seed  <- as.numeric(desn_args$seed[1L])
+}
+
+# ---- Ensure switch() gets scalars for activations (qdesn_fit_vb expects length-1) ----
+desn_args$act_f <- as.character(desn_args$act_f)[1L]
+desn_args$act_k <- as.character(desn_args$act_k)[1L]
+
 shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
   do.call(qdesn_fit_vb, c(
     list(
@@ -463,7 +589,8 @@ cat(sprintf("[shared] drop=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
 # --- 2) Fit & Forecast per p
 fit_and_forecast_p <- function(p0) {
   # VB controls per p
-  vb_args_p <- vb_args_base; vb_args_p$tol <- vb_tol_for(p0)
+  vb_args_p <- vb_args_base
+  vb_args_p$tol <- vb_tol_for(p0)
 
   # ---- Fit exAL readout directly on the precomputed training design ----
   p <- ncol(X_train)
@@ -476,7 +603,7 @@ fit_and_forecast_p <- function(p0) {
     n_samp_xi = vb_args_p$n_samp_xi,
     verbose = TRUE,
     p0 = p0,
-    gamma_bounds = c(L.fn(p0), U.fn(p0)),   # your bound helpers
+    gamma_bounds = c(L.fn(p0), U.fn(p0)),
     log_prior_gamma = function(g) 0
   )
 
@@ -490,21 +617,21 @@ fit_and_forecast_p <- function(p0) {
   )
   yrep_tr     <- pp_tr$yrep
   mu_draws_tr <- pp_tr$mu_draws
+  mu_qs_tr    <- band_from_draws(mu_draws_tr, level = 0.95)
 
-  # Train indices aligned like before: keep = (drop+1):n_train (relative to y_train)
-  keep_rel <- seq.int(drop + 1L, n_train)
+  # Use absolute indices from the shared pass restricted to the train window
+  keep_rel <- keep_train_abs
   stopifnot(length(keep_rel) == nrow(X_train))
 
   q_true_tr <- true_q_at_tau(dat_long_use, tau = p0)[keep_rel]
-  mu_qs_tr  <- band_from_draws(mu_draws_tr, level = 0.95)
 
   df_mu_tr <- tibble::tibble(
     h = seq_along(keep_rel), p0 = p0,
     mu = mu_qs_tr[, "med"], lo = mu_qs_tr[, "lo"], hi = mu_qs_tr[, "hi"],
     q_true = q_true_tr,
     y = y_train_keep
-
   )
+
   df_pred_tr <- tibble::tibble(
     h = seq_along(keep_rel), p0 = p0,
     q_pred = apply(yrep_tr, 1, stats::quantile, probs = p0, names = FALSE),
@@ -521,13 +648,19 @@ fit_and_forecast_p <- function(p0) {
 
   q_pred_fc <- apply(yrep_fc, 1, stats::quantile, probs = p0, names = FALSE)
   mu_qs_fc  <- band_from_draws(mu_draws_fc, level = 0.95)
-  q_true_fc <- true_q_at_tau(dat_long_use, tau = p0)[idx_fc]  # as before
+  q_true_fc <- true_q_at_tau(dat_long_use, tau = p0)[idx_fc]
+
+  # Sanity checks right where they matter
+  stopifnot(length(q_true_fc) == H_forecast,
+            nrow(X_fc1)      == H_forecast,
+            length(y_forecast) == H_forecast)
 
   df_mu_fc <- tibble::tibble(
     h = seq_len(H_forecast), p0 = p0,
     mu = mu_qs_fc[, "med"], lo = mu_qs_fc[, "lo"], hi = mu_qs_fc[, "hi"],
     q_true = q_true_fc, y = y_forecast
   )
+
   df_pred_fc <- tibble::tibble(
     h = seq_len(H_forecast), p0 = p0,
     q_pred = q_pred_fc, q_true = q_true_fc, y = y_forecast
@@ -537,7 +670,8 @@ fit_and_forecast_p <- function(p0) {
   list(
     fit_train = list(
       fit  = fit_exal,
-      meta = list(keep_idx = keep_rel)  # IMPORTANT: relative to y_train (as before)
+      # NOTE: absolute indices in 1..T_use (from shared pass)
+      meta = list(keep_idx = keep_train_abs)
     ),
     yrep_fc = yrep_fc,   mu_draws_fc = mu_draws_fc,
     df_mu_fc = df_mu_fc, df_pred_fc  = df_pred_fc,
@@ -596,7 +730,7 @@ if (nrow(elbo_df)) {
   g_elbo <- ggplot2::ggplot(elbo_df, ggplot2::aes(x = iter, y = elbo, colour = p0_chr)) +
     theme_exdqlm() + ggplot2::labs(x="VB iteration", y="ELBO", colour="p0",
     title="ELBO traces across quantile models", subtitle=sprintf("First k=%d iterations omitted", k_burn)) +
-    ggplot2::geom_line(linewidth=0.8, alpha=0.95) + ggplot2::scale_color_manual(values = setNames(col_map, sprintf("%.2f", p_vec)))
+    ggplot2::geom_line(linewidth=0.8, alpha=0.95) + ggplot2::scale_color_manual(values = col_map)
   print(g_elbo)
   if (isTRUE(save_outputs)) ggsave(file.path(FIGS, sprintf("elbo_traces_skip_k=%d.png", k_burn)), g_elbo, width=9, height=4.8, dpi=150)
 }
@@ -667,7 +801,7 @@ true_cols_tr <- setNames(vector("list", length(p_comp)), paste0("true_q_", fmt_p
 for (i in seq_along(p_comp)) true_cols_tr[[i]] <- true_q_at_tau(dat_long_use, tau = p_comp[i])[keep_train]
 true_q_tr <- tibble::as_tibble(true_cols_tr)
 
-compare_tr <- tibble::tibble(h = seq_len(T_train_keep), y = y_train[keep_train]) |>
+compare_tr <- tibble::tibble(h = seq_len(T_train_keep), y = y_train_keep) |>
   dplyr::bind_cols(true_q_tr) |>
   dplyr::bind_cols(synth_q_tr)
 
@@ -681,7 +815,7 @@ timed("plot+save synth_train trio", {
              plots_synth_tr[[j]], width=9, height=4.8, dpi=150)
     }
   }
-  g_band_tr <- plot_synth_predictive_band(synth_draws = synth_tr$draws, y_vec = y_train[keep_train],
+  g_band_tr <- plot_synth_predictive_band(synth_draws = synth_tr$draws, y_vec = y_train_keep,
                                           scope="Train", window=200L, fill_col=ACCENT_ORANGE, show_median=TRUE)
 
   print(g_band_tr)
@@ -760,7 +894,7 @@ if (isTRUE(do_calibration)) {
       scope     = "train", p0 = tau, p_chr = sprintf("%.2f", tau),
       t_aligned = keep_train,
       q_synth   = synth_q_tr[[paste0("synth_q_", fmt_p(tau))]],
-      y         = y_train[keep_train]
+      y         = y_train_keep
     )
   }))
   qsynth_fc_long <- dplyr::bind_rows(lapply(p_comp, function(tau) {
@@ -1053,16 +1187,16 @@ if (isTRUE(do_scores)) {
   )
 
   # Train-window scores (optional but often handy)
-  crps_tr <- crps_vec(y_train[keep_train], synth_tr$draws)
+  crps_tr <- crps_vec(y_train_keep, synth_tr$draws)
   synth_q_tr_mat <- do.call(cbind, lapply(p_comp, function(tau) synth_q_tr[[paste0("synth_q_", fmt_p(tau))]]))
   colnames(synth_q_tr_mat) <- sprintf("p=%s", fmt_p(p_comp))
   pinball_tr_mean <- rowMeans(vapply(seq_along(p_comp), function(j)
-    pinball_loss(y_train[keep_train], synth_q_tr_mat[, j], p_comp[j]), numeric(length(keep_train))))
+    pinball_loss(y_train_keep, synth_q_tr_mat[, j], p_comp[j]), numeric(length(keep_train))))
   S_tr <- crps_tr + pinball_tr_mean
 
   scores_tr_df <- tibble::tibble(
     h = seq_len(T_train_keep),
-    y = y_train[keep_train],
+    y = y_train_keep,
     CRPS = crps_tr,
     pinball_mean = pinball_tr_mean,
     S = S_tr

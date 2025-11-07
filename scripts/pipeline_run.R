@@ -88,21 +88,35 @@ cfg <- deep_merge(cfg, local)
 
 # ---- YAML 1.1 boolean-key compatibility (protect 'n') ----
 if (!is.null(cfg$desn)) {
-  if ("FALSE" %in% names(cfg$desn) && is.null(cfg$desn$n)) {
+  # libyaml (YAML 1.1) can coerce key 'n' to boolean FALSE
+  if (is.null(cfg$desn$n) && "FALSE" %in% names(cfg$desn)) {
     cfg$desn$n <- cfg$desn$`FALSE`; cfg$desn$`FALSE` <- NULL
   }
 }
 
-# ---- Normalize DESN numeric fields ----
-norm_num <- function(x) { if (is.null(x)) return(NULL); if (is.list(x)) x <- unlist(x, use.names = FALSE); as.numeric(x) }
+# ---- Normalize DESN numeric fields (treat length-0 as NULL; broadcast scalars) ----
+norm_num <- function(x) {
+  if (is.null(x)) return(NULL)
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  x <- as.numeric(x)
+  if (length(x) == 0L || all(is.na(x))) return(NULL)
+  x
+}
+
 if (!is.null(cfg$desn)) {
+  Dcfg <- as.integer((cfg$desn$D %||% 1L))
+
   cfg$desn$n   <- norm_num(cfg$desn$n)
   cfg$desn$rho <- norm_num(cfg$desn$rho)
-  Dcfg <- as.integer(cfg$desn$D %||% 1L)
+
   if (!is.null(cfg$desn$n)   && length(cfg$desn$n)   == 1L && Dcfg > 1L) cfg$desn$n   <- rep(cfg$desn$n,   Dcfg)
   if (!is.null(cfg$desn$rho) && length(cfg$desn$rho) == 1L && Dcfg > 1L) cfg$desn$rho <- rep(cfg$desn$rho, Dcfg)
-  if (!is.null(cfg$desn$n)   && length(cfg$desn$n)   != Dcfg) stop(sprintf("Config error: length(desn$n)=%d but desn$D=%d",   length(cfg$desn$n),   Dcfg))
-  if (!is.null(cfg$desn$rho) && length(cfg$desn$rho) != Dcfg) stop(sprintf("Config error: length(desn$rho)=%d but desn$D=%d", length(cfg$desn$rho), Dcfg))
+
+  # Only enforce lengths when the field is actually present
+  if (!is.null(cfg$desn$n)   && length(cfg$desn$n)   != Dcfg)
+    stop(sprintf("Config error: length(desn$n)=%d but desn$D=%d",   length(cfg$desn$n),   Dcfg))
+  if (!is.null(cfg$desn$rho) && length(cfg$desn$rho) != Dcfg)
+    stop(sprintf("Config error: length(desn$rho)=%d but desn$D=%d", length(cfg$desn$rho), Dcfg))
 }
 
 # Effective suite & roots
@@ -194,7 +208,9 @@ env$OPENBLAS_NUM_THREADS <- env$OMP_NUM_THREADS
 env$MKL_NUM_THREADS      <- env$OMP_NUM_THREADS
 env$EXDQLM_OUT_DIR       <- normalizePath(run_dir)
 env$EXDQLM_SAVE_OUTPUTS  <- if (isTRUE(cfg$outputs$save)) "1" else "0"
-env$EXDQLM_CFG_JSON      <- jsonlite::toJSON(cfg, auto_unbox = TRUE)
+env$EXDQLM_CFG_JSON <- jsonlite::toJSON(
+  cfg, auto_unbox = TRUE, null = "null", na = "null", digits = NA
+)
 env$EXDQLM_PIPELINE_MODE <- mode_eff
 if (mode_eff %in% c("sim","simulation")) {
   env$EXDQLM_FILE_LONG <- normalizePath(input_path)
