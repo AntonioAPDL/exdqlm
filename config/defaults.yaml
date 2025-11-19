@@ -3,51 +3,47 @@ suite_name: sim_suite_dlm
 results_root: results
 
 split:
-  # choose how much data to use
-  T_use: 3300        # integer takes precedence if set, e.g., 500
-  use_prop: null     # e.g., 0.5 to use 50% of the series
-  use_last: true     # take the last T_use points (true) or the first (false)
-  train_n: null      # explicit train length (overrides train_prop if set)
-  train_prop: 0.90909   # e.g., 0.8 for 80/20 split
+  T_use: 3300
+  use_prop: null
+  use_last: true
+  train_n: null
+  train_prop: 0.90909
 
 p_vec: [0.05, 0.50, 0.95]
 
-# desn:
-D: 3
-"n": [100, 80, 50]          # quote the key to be extra safe
-n_tilde: [80, 50]            # length D-1; use [0, 0] if you want no inter-layer signal
-m: 60
-alpha:   [0.05, 0.1, 0.2]
-rho:     [0.95, 0.95, 0.95]
-act_f:   [tanh, tanh, tanh]
-act_k:   [identity, identity, identity]
-pi_w:    [0.05, 0.05, 0.05]
-pi_in:   [1.0, 1.0, 1.0]
-washout: 300
-add_bias: true
-seed:    [42, 41, 40]         # optional: per-layer seeds for reproducibility
+desn:                     # <-- add this header (it was commented out)
+  D: 3
+  "n": [10, 10, 10]       # keep "n" quoted
+  n_tilde: [10, 10]       # length D-1
+  m: 30
+  alpha:   [0.15, 0.15, 0.15]
+  rho:     [0.95, 0.95, 0.95]
+  act_f:   [tanh, tanh, tanh]
+  act_k:   [identity, identity, identity]
+  pi_w:    [0.05, 0.05, 0.05]
+  pi_in:   [1.0, 1.0, 1.0]
+  washout: 300
+  add_bias: true
+  seed:    [42, 41, 40]
 
-
-# Variational Bayes options (base)
 vb:
-  max_iter: 170
-  tol_50: 1.0e-4        # p=0.50
-  tol_extreme: 1.0e-5   # p!=0.50
-  n_samp_xi: 500
+  max_iter: 5000
+  tol_50:        1.0e-4
+  tol_extreme:   1.0e-5
+  tol_par_50:    1.0e-4    # or something a bit looser, e.g. 1e-3
+  tol_par_extreme: 1.0e-5
+  n_samp_xi: 5000
   verbose: true
 
-# Posterior predictive sampling
 sampling:
   nd_draws: 2000
   chunk: 250
 
-# Rolling-origin / forecasting
 forecast:
   rolling_origin: true
   H_step: 1
-  last_window: 200
+  last_window: 300
 
-# Synthesis
 synthesis:
   isotonic: true
   rearrange: true
@@ -55,20 +51,17 @@ synthesis:
   n_samp: 2000
   seed: 123
 
-# Outputs
 outputs:
   save: true
-  keep_draws: false      # heavy; enable per-dataset or spec
+  keep_draws: false
   thesis_subset: true
 
-# Orchestration
 orchestrate:
-  concurrency: 3         # upper bound of simultaneous tmux sessions
-  threads_per_proc: 3    # set BLAS/OMP per R process
-  skip_if_success: true  # idempotency
+  concurrency: 10
+  threads_per_proc: 10
+  skip_if_success: true
   resume_failed: false
 
-# File/dir names (contract)
 naming:
   bands_prefix: forecast_mu_band_p=
   empq_prefix: forecast_emp_q_vs_true_p=

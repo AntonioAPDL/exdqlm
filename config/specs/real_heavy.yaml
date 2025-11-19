@@ -2,7 +2,7 @@ name: real_heavy
 suite_name: real_suite
 
 vb:
-  max_iter: 150
+  max_iter: 2000
   n_samp_xi: 300
 
 sampling:
@@ -10,8 +10,8 @@ sampling:
   chunk: 300
 
 forecast:
-  last_window: 300
-  H_step: 30
+  last_window: 1000
+  H_step: 1
   mode: recursive-stochastic    # tf1 | recursive-plugin | recursive-stochastic
   tf_first_k: 0
   paths: 500

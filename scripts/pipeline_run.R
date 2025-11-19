@@ -9,7 +9,6 @@ suppressPackageStartupMessages({
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
 # -- Resolve repo root
-# -- Resolve repo root
 args_all   <- commandArgs(trailingOnly = FALSE)
 script_idx <- grep("^--file=", args_all)
 script_file <- if (length(script_idx)) sub("^--file=", "", args_all[script_idx]) else ""
@@ -86,12 +85,32 @@ cfg <- deep_merge(cfg, spec)
 cfg <- deep_merge(cfg, ds$overrides)
 cfg <- deep_merge(cfg, local)
 
-# ---- YAML 1.1 boolean-key compatibility (protect 'n') ----
+# ---- YAML 1.1 boolean-key compatibility (protect 'n' and columns$y) ----
 if (!is.null(cfg$desn)) {
   # libyaml (YAML 1.1) can coerce key 'n' to boolean FALSE
   if (is.null(cfg$desn$n) && "FALSE" %in% names(cfg$desn)) {
     cfg$desn$n <- cfg$desn$`FALSE`; cfg$desn$`FALSE` <- NULL
   }
+}
+
+# Helper to undo YAML 1.1 booleanized keys in a list (e.g., y -> TRUE)
+fix_yaml_bool_keys <- function(x) {
+  if (is.null(x) || !is.list(x)) return(x)
+  nm <- names(x)
+  if ("TRUE"  %in% nm && is.null(x$y)) { x$y <- x$`TRUE`;  x$`TRUE`  <- NULL }
+  if ("FALSE" %in% nm && is.null(x$n)) { x$n <- x$`FALSE`; x$`FALSE` <- NULL }
+  x
+}
+
+cfg$columns <- fix_yaml_bool_keys(cfg$columns)
+if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) {
+  ds$overrides$columns <- fix_yaml_bool_keys(ds$overrides$columns)
+}
+
+
+# ---- Force dataset column overrides into cfg (defensive) ----
+if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) {
+  cfg$columns <- deep_merge(cfg$columns, ds$overrides$columns)
 }
 
 # ---- Normalize DESN numeric fields (treat length-0 as NULL; broadcast scalars) ----
@@ -144,36 +163,55 @@ fs::dir_create(fs::path(run_dir, "manifest"))
 fs::dir_create(fs::path(run_dir, "thesis"))
 fs::dir_create(fs::path(run_dir, "logs"))
 
-# Mode-aware schema check
-hdr <- try(read.csv(input_path, nrows=1))
-if (inherits(hdr,"try-error")) {
+# Mode-aware schema check (prefer merged cfg$columns; fall back to ds$overrides)
+hdr <- try(read.csv(input_path, nrows = 1))
+if (inherits(hdr, "try-error")) {
   cat("Could not read the first row of input file: ", input_path, "\n")
-  writeLines("FAIL", fs::path(run_dir,"manifest","status.txt"))
-  quit(save="no", status=1)
+  writeLines("FAIL", fs::path(run_dir, "manifest", "status.txt"))
+  quit(save = "no", status = 1)
 }
 need_sim  <- c("t","p","q","y","mu")
 need_real <- c("t","y")
+
 mode_eff <- if (nzchar(mode_ds)) mode_ds else tolower(cfg$pipeline$mode %||% "sim")
+
 if (mode_eff %in% c("sim","simulation")) {
   if (!all(need_sim %in% names(hdr))) {
     cat("Schema failure (sim); missing among:", paste(need_sim, collapse=", "), "\n")
     writeLines("FAIL", fs::path(run_dir,"manifest","status.txt")); quit(save="no", status=1)
+  } else {
+    cat("Schema OK (sim) | header: ", paste(names(hdr), collapse=", "), "\n", sep = "")
   }
 } else if (mode_eff %in% c("real","observed","data")) {
-  # Mapping-aware check: allow (t,y), (date,y), or just y — with optional column remap
-  y_map    <- ds$overrides$columns$y %||% "y"
-  date_map <- ds$overrides$columns$date %||% NULL
+  # Prefer merged cfg (defaults → suite → spec → overrides → local), then ds$overrides, then default
+  # Resolve column mapping (dataset override MUST win)
+  cols_cfg <- cfg$columns %||% list()
+  y_map_ds <- if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) ds$overrides$columns$y else NULL
+  date_ds  <- if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) ds$overrides$columns$date else NULL
 
   hdr_nms <- names(hdr)
-  ok_real <- (all(c("t", y_map) %in% hdr_nms)) ||
-             (!is.null(date_map) && all(c(date_map, y_map) %in% hdr_nms)) ||
-             (y_map %in% hdr_nms)
+  y_map    <- y_map_ds %||% cols_cfg$y %||% (if ("y" %in% hdr_nms) "y" else hdr_nms[1])
+  date_map <- date_ds  %||% cols_cfg$date %||% NULL
+
+cat(sprintf("Column mapping (real): y_map='%s'%s\n",
+            y_map, if (!is.null(date_map)) sprintf(", date_map='%s'", date_map) else ""))
+
+  hdr_nms <- names(hdr)
+
+  # Accept any of: (y only) OR (t & y) OR (date & y)
+  ok_real <- (y_map %in% hdr_nms) ||
+             (all(c("t", y_map) %in% hdr_nms)) ||
+             (!is.null(date_map) && all(c(date_map, y_map) %in% hdr_nms))
 
   if (!ok_real) {
     cat("Schema failure (real): could not find mapped y column '", y_map,
         "' (or t/date) in header: ", paste(hdr_nms, collapse=", "), "\n", sep = "")
     writeLines("FAIL", fs::path(run_dir,"manifest","status.txt"))
     quit(save="no", status=1)
+  } else {
+    cat("Schema OK (real): y_map='", y_map, "'",
+        if (!is.null(date_map)) paste0(", date_map='", date_map, "'") else "",
+        " | header: ", paste(hdr_nms, collapse=", "), "\n", sep = "")
   }
 } else {
   cat("Unknown dataset mode: ", mode_eff, " (expected sim|real)\n")
@@ -197,7 +235,10 @@ jsonlite::write_json(manifest, fs::path(run_dir,"manifest","run_manifest.json"),
 writeLines(if (dry_run) "DRY-RUN" else "RUNNING", fs::path(run_dir,"manifest","status.txt"))
 
 if (isTRUE(dry_run)) {
-  cat("Dry run: would invoke pipeline_main.R with input=", input_path, " mode=", mode_eff, "\n")
+  cat("Dry run: would invoke ",
+    if (mode_eff %in% c("real","observed","data")) "pipeline_real_main.R" else "pipeline_main.R",
+    " with input=", input_path, " mode=", mode_eff, "\n", sep = "")
+
   quit(save="no", status=0)
 }
 
@@ -244,7 +285,11 @@ cat("Saving:    ", if (!is.null(env$EXDQLM_SAVE_OUTPUTS) && nzchar(env$EXDQLM_SA
 start_time <- Sys.time()
 tryCatch({
   withr::with_envvar(env, {
-    source("scripts/pipeline_main.R", local = new.env(parent = globalenv()))
+    if (mode_eff %in% c("real","observed","data")) {
+      source("scripts/pipeline_real_main.R", local = new.env(parent = globalenv()))
+    } else {
+      source("scripts/pipeline_main.R",     local = new.env(parent = globalenv()))
+    }
   })
 }, error = function(e) {
   err_msg <<- conditionMessage(e)

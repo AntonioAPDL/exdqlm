@@ -312,6 +312,7 @@ qdesn_fit_vb <- function(
     a_sigma = 1, b_sigma = 1,
     max_iter = 1500,
     tol = 1e-4,
+    tol_par = NULL,   # if NULL, we fall back to tol below
     n_samp_xi = 250,
     verbose = TRUE,
     stream = FALSE,        
@@ -326,6 +327,7 @@ qdesn_fit_vb <- function(
     p0 = p0,
     max_iter     = vb_call$max_iter,
     tol          = vb_call$tol,
+    tol_par      = if (!is.null(vb_call$tol_par)) vb_call$tol_par else vb_call$tol,
     b0           = vb_call$b0,
     V0           = vb_call$V0,
     a_sigma      = vb_call$a_sigma,
@@ -336,6 +338,7 @@ qdesn_fit_vb <- function(
     n_samp_xi    = vb_call$n_samp_xi,
     verbose      = isTRUE(vb_call$verbose)
   )
+
 
   if (!isTRUE(vb_call$stream)) {
     # regular in-process call (may buffer prints in Jupyter)

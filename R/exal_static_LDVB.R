@@ -14,13 +14,18 @@
 #' * \eqn{q(s_i)=\mathcal{N}(\mu_{s_i},\tau_{s_i}^2)} truncated to \((0,\infty)\)
 #' * \eqn{q(\sigma,\gamma)} via LD; the expectations
 #'   \eqn{\{\xi_1,\xi_\lambda,\xi_{\lambda^2},\xi_A,\xi_{A^2},\xi_{\sigma^{-1}},\zeta_\lambda\}}
-#'   are computed from a small Gaussian MC sample in \((\eta,\ell)\).
+#'   are computed via a second-order Delta-method approximation under the
+#'   Gaussian LD approximation for \((\eta,\ell)\).
 #'
 #' @param y Numeric vector (length n).
 #' @param X Numeric matrix (n x p).
 #' @param p0 Target quantile in (0,1).
 #' @param max_iter Maximum CAVI iterations (default 1000).
-#' @param tol Convergence tolerance on relative changes (default 1e-4).
+#' @param tol Convergence tolerance on relative ELBO changes (default 1e-4).
+#' @param tol_par Additional tolerance for parameter convergence safeguard
+#'   based on \eqn{|\mathbb{E}[\gamma]_{\text{old}}-\mathbb{E}[\gamma]_{\text{new}}|
+#'   + |\mathbb{E}[\sigma]_{\text{old}}-\mathbb{E}[\sigma]_{\text{new}}|}
+#'   (default: same as \code{tol}).
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
 #' @param a_sigma,b_sigma Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 #'   density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
@@ -29,8 +34,9 @@
 #' @param log_prior_gamma Function \code{g -> log pi(gamma=g)} (default flat).
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}; if missing, reasonable defaults are used.
-#' @param n_samp_xi MC draws used to compute the \(\xi\) expectations for
-#'   \eqn{q(\sigma,\gamma)} (default 200).
+#' @param n_samp_xi (Currently ignored; kept for backward compatibility.)
+#'   VB--LD uses deterministic Delta-method approximations for the
+#'   \eqn{\xi} expectations under the Gaussian LD approximation.
 #' @param verbose Logical; print progress.
 #'
 #' @return A list with
@@ -49,7 +55,7 @@
 #' @export
 exal_static_LDVB <- function(
   y, X, p0,
-  max_iter = 1000, tol = 1e-4,
+  max_iter = 1000, tol = 1e-4, tol_par = tol,
   b0 = NULL, V0 = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
@@ -88,7 +94,7 @@ exal_static_LDVB <- function(
   V_beta  <- V0
   sigma0  <- if (is.null(init$sigma)) 1 else as.numeric(init$sigma)[1]
   gamma0  <- if (is.null(init$gamma)) 0 else as.numeric(init$gamma)[1]
-  gamma0  <- min(max(gamma0, L + 1e-6), U - 1e-6)
+  gamma0  <- min(max(gamma0, L + 1e-10), U - 1e-10)
 
   # q(v): initialize moments (use 1 for both)
   E_inv_v <- rep(1, n)
@@ -110,9 +116,9 @@ exal_static_LDVB <- function(
 
     # E[log V] for V ~ GIG(k, chi, psi)
     gig_E_log <- function(k, chi, psi) {
-    chi <- pmax(chi, 1e-14); psi <- pmax(psi, 1e-14)
+    chi <- pmax(chi, 1e-24); psi <- pmax(psi, 1e-24)
     z   <- sqrt(chi * psi)
-    eps <- 1e-6
+    eps <- 1e-24
     logK <- function(nu) {
         val <- besselK(z, nu = nu, expon.scaled = TRUE)
         log(pmax(val, 1e-300)) - z   # undo expon.scaled
@@ -123,20 +129,20 @@ exal_static_LDVB <- function(
 
   gig_moment <- function(k, chi, psi, r) {
     # E[v^r] = (sqrt(chi/psi))^r * K_{k+r}(sqrt(chi*psi))/K_k(sqrt(chi*psi))
-    z <- sqrt(pmax(chi, 1e-14) * pmax(psi, 1e-14))
+    z <- sqrt(pmax(chi, 1e-24) * pmax(psi, 1e-24))
     num <- besselK(z, nu = k + r, expon.scaled = TRUE)
     den <- besselK(z, nu = k,     expon.scaled = TRUE)
     ratio <- num / den
     ratio[!is.finite(ratio)] <- 1
-    pow   <- (sqrt(pmax(chi, 1e-14) / pmax(psi, 1e-14)))^r
+    pow   <- (sqrt(pmax(chi, 1e-24) / pmax(psi, 1e-24)))^r
     pmax(pow, 0) * pmax(ratio, 1e-300)
   }
 
   tn_moments <- function(mu, tau2) {
-    tau <- sqrt(pmax(tau2, 1e-14))
+    tau <- sqrt(pmax(tau2, 1e-24))
     alpha <- mu / tau
     Phi <- pnorm(alpha)
-    Phi <- pmax(Phi, 1e-12)
+    Phi <- pmax(Phi, 1e-24)
     phi <- dnorm(alpha)
     Lambda <- phi / Phi
     Es  <- mu + tau * Lambda
@@ -144,51 +150,96 @@ exal_static_LDVB <- function(
     list(Es = Es, Es2 = Es2)
   }
 
-  # compute xi's from Gaussian approx in (eta,ell)
-    compute_xi <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi) {
-    ns <- max(1L, as.integer(ns))
+  # compute xi's from Gaussian approx in (eta,ell) via Delta method
+  compute_xi <- function(eta_hat, ell_hat, Sigma) {
+    z0 <- c(eta_hat, ell_hat)
 
-    # draw (eta, ell) ~ N([eta_hat, ell_hat], Sigma)
-    U <- tryCatch(chol(Sigma), error = function(e) NULL)
-    if (is.null(U)) U <- chol(Sigma + 1e-8 * diag(2))
+    # helper: map (eta, ell) -> (gamma, sigma, A, B, lam)
+    trans_par <- function(z) {
+      eta  <- z[1]
+      ell  <- z[2]
+      gamma <- g_from_eta(eta)
+      sigma <- sig_from_ell(ell)
+      A  <- A_of(gamma)
+      B  <- B_of(gamma)
+      B  <- pmax(B, 1e-24)   # guard against numerical issues
+      lam <- lam_of(gamma)
+      list(
+        eta   = eta,
+        ell   = ell,
+        gamma = gamma,
+        sigma = sigma,
+        A     = A,
+        B     = B,
+        lam   = lam
+      )
+    }
 
-    Z    <- matrix(rnorm(2 * ns), nrow = 2, ncol = ns)   # 2 x ns
-    pars <- sweep(U %*% Z, 1, c(eta_hat, ell_hat), "+")  # 2 x ns
-    eta  <- pars[1, ]
-    ell  <- pars[2, ]
+    # generic second-order Delta approximation for scalar g(z)
+    delta_E <- function(g_fun) {
+      g0 <- g_fun(z0)
+      H  <- numDeriv::hessian(g_fun, z0)
+      # Tr(H %*% Sigma) = sum(H * Sigma) for 2x2 matrices
+      corr <- 0.5 * sum(H * Sigma)
+      g0 + corr
+    }
 
-    gamma <- g_from_eta(eta)
-    sigma <- sig_from_ell(ell)
-
-    A   <- A_of(gamma)
-    B   <- B_of(gamma)
-    lam <- lam_of(gamma)
-
-    xi1        <- mean(1 / (B * sigma))
-    xi_lambda  <- mean(lam / B)
-    xi_lambda2 <- mean((lam * lam) * sigma / B)
-    xi_A       <- mean(A / (B * sigma))
-    xi_A2      <- mean((A * A) / (B * sigma))
-    xi_siginv  <- mean(exp(-ell))               # E[1/sigma]
-    zeta_lam   <- mean((lam * A) / B)
-    zeta_logsigma <- mean(ell)
-    zeta_logB     <- mean(log(pmax(B, 1e-300)))
-    zeta_logpi    <- mean(vapply(gamma, log_prior_gamma, numeric(1)))
+    # g-functions for each xi / zeta
+    g_xi1 <- function(z) {
+      p <- trans_par(z)
+      1 / (p$B * p$sigma)
+    }
+    g_xi_lambda <- function(z) {
+      p <- trans_par(z)
+      p$lam / p$B
+    }
+    g_xi_lambda2 <- function(z) {
+      p <- trans_par(z)
+      (p$lam^2) * p$sigma / p$B
+    }
+    g_xi_A <- function(z) {
+      p <- trans_par(z)
+      p$A / (p$B * p$sigma)
+    }
+    g_xi_A2 <- function(z) {
+      p <- trans_par(z)
+      (p$A^2) / (p$B * p$sigma)
+    }
+    g_xi_siginv <- function(z) {
+      p <- trans_par(z)
+      1 / p$sigma
+    }
+    g_zeta_lam <- function(z) {
+      p <- trans_par(z)
+      (p$lam * p$A) / p$B
+    }
+    g_zeta_logsigma <- function(z) {
+      # log sigma = ell; linear, so Hessian = 0 (Delta exact here)
+      z[2]
+    }
+    g_zeta_logB <- function(z) {
+      p <- trans_par(z)
+      log(pmax(p$B, 1e-300))
+    }
+    g_zeta_logpi <- function(z) {
+      p <- trans_par(z)
+      log_prior_gamma(p$gamma)
+    }
 
     list(
-    xi1 = xi1,
-    xi_lambda = xi_lambda,
-    xi_lambda2 = xi_lambda2,
-    xi_A = xi_A,
-    xi_A2 = xi_A2,
-    xi_siginv = xi_siginv,
-    zeta_lam = zeta_lam,
-    zeta_logsigma = zeta_logsigma,
-    zeta_logB = zeta_logB,
-    zeta_logpi = zeta_logpi
+      xi1           = delta_E(g_xi1),
+      xi_lambda     = delta_E(g_xi_lambda),
+      xi_lambda2    = delta_E(g_xi_lambda2),
+      xi_A          = delta_E(g_xi_A),
+      xi_A2         = delta_E(g_xi_A2),
+      xi_siginv     = delta_E(g_xi_siginv),
+      zeta_lam      = delta_E(g_zeta_lam),
+      zeta_logsigma = delta_E(g_zeta_logsigma),
+      zeta_logB     = delta_E(g_zeta_logB),
+      zeta_logpi    = delta_E(g_zeta_logpi)
     )
+  }
 
-    }
 
   # log-kernel for q(sigma,gamma) as a function of (eta, ell)
   log_qsiggam <- function(par) {
@@ -225,9 +276,9 @@ exal_static_LDVB <- function(
   # find LD mode & covariance for (eta, ell)
   find_mode_ld <- function(eta0, ell0) {
     par0 <- c(eta0, ell0)
-    fn_neg <- function(z) { val <- log_qsiggam(z); if (is.finite(val)) -val else 1e50 }
+    fn_neg <- function(z) { val <- log_qsiggam(z); if (is.finite(val)) -val else 1e100 }
     opt <- try(optim(par = par0, fn = fn_neg, method = "BFGS",
-                     control = list(maxit = 200), hessian = TRUE), silent = TRUE)
+                     control = list(maxit = 10000), hessian = TRUE), silent = TRUE)
     if (inherits(opt, "try-error") || !is.finite(opt$value)) {
       # small grid around start
       cand <- rbind(
@@ -238,44 +289,66 @@ exal_static_LDVB <- function(
       vals <- apply(cand, 1, function(z) log_qsiggam(z))
       idx  <- which.max(vals)
       opt  <- optim(par = cand[idx,], fn = fn_neg, method = "BFGS",
-                    control = list(maxit = 200), hessian = TRUE)
+                    control = list(maxit = 10000), hessian = TRUE)
     }
     H <- opt$hessian
     if (!all(is.finite(H)) || any(is.nan(H))) {
       # numeric Hessian as fallback
       H <- try(numDeriv::hessian(function(z) -log_qsiggam(z), x = opt$par), silent = TRUE)
       if (inherits(H, "try-error") || any(!is.finite(H))) {
-        H <- diag(2) * 1e-2
+        H <- diag(1) * 1e-24
       }
     }
-    # covariance = inverse observed information
-    Sigma <- tryCatch(solve(H), error = function(e) MASS::ginv(H))
-    # symmetrize & guard
-    Sigma <- (Sigma + t(Sigma))/2
-    list(eta_hat = opt$par[1], ell_hat = opt$par[2], Sigma = Sigma)
+
+    # covariance = inverse observed information (for fn_neg = -log q)
+    Sigma_raw <- tryCatch(solve(H), error = function(e) MASS::ginv(H))
+    Sigma_raw <- (Sigma_raw + t(Sigma_raw)) / 2  # symmetrize
+
+    # Enforce positive definiteness via eigenvalue floor
+    eig <- eigen(Sigma_raw, symmetric = TRUE)
+    vals <- pmax(eig$values, 1e-24)  # floor tiny/negative eigenvalues
+    Sigma_pd <- eig$vectors %*% (diag(vals, nrow = 2, ncol = 2) %*% t(eig$vectors))
+    Sigma_pd <- (Sigma_pd + t(Sigma_pd)) / 2  # re-symmetrize
+
+    list(eta_hat = opt$par[1], ell_hat = opt$par[2], Sigma = Sigma_pd)
   }
 
   # --- main loop -------------------------------------------------------------
   t0 <- proc.time()[3]
   converged <- FALSE
   if (verbose) {
-    cat(sprintf("Static exAL LDVB | n=%d, p=%d | max_iter=%d, tol=%.1e\n",
-                n, p, max_iter, tol))
+    cat(sprintf(
+      "Static exAL LDVB | n=%d, p=%d | max_iter=%d, tol=%.1e, tol_par=%.1e\n",
+      n, p, max_iter, tol, tol_par
+    ))
   }
 
   # initial xi from a tiny covariance (deterministic at first iter)
-  xis <- compute_xi(eta_hat, ell_hat, Sig_eta_ell, ns = max(50, floor(n_samp_xi/2)))
-  elbo_trace <- numeric(0)
-  elbo_old   <- -Inf
-  for (iter in 1:max_iter) {
+  xis <- compute_xi(eta_hat, ell_hat, Sig_eta_ell)
 
+  # --- NEW: traces for diagnostics ---
+  elbo_trace    <- numeric(0)
+  elbo_old      <- -Inf
+  gamma_trace   <- numeric(0)
+  sigma_trace   <- numeric(0)
+  eta_trace     <- numeric(0)
+  ell_trace     <- numeric(0)
+  rel_mb_trace  <- numeric(0)
+  rel_xi_trace  <- numeric(0)
+
+  # NEW: trace and state for parameter-convergence safeguard
+  new_term_trace <- numeric(0)
+  gamma_old      <- NA_real_
+  sigma_old      <- NA_real_
+
+  for (iter in 1:max_iter) {
     # ---- (1) q(beta) = N(m,V)
     # V = (V0^{-1} + xi1 * X^T diag(E[1/v]) X)^{-1}
     W <- xis$xi1 * E_inv_v
     Xw <- X * sqrt(W)
     V_inv <- crossprod(Xw) + V0_inv
     Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
-    if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
+    if (is.null(Uc)) Uc <- chol(V_inv + 1e-24 * diag(p))
     V_beta_new <- chol2inv(Uc)
 
     # m = V ( V0^{-1} b0 + X^T [ xi1 diag(E[1/v]) y - xi_lambda (E[1/v] ⊙ E[s]) - xi_A 1 ] )
@@ -297,8 +370,8 @@ exal_static_LDVB <- function(
             xis$xi_lambda2 * E_s2 +
             2 * xis$xi_lambda * (xb * E_s)
 
-    chi <- pmax(chi, 1e-12)
-    psi <- max(psi, 1e-12)
+    chi <- pmax(chi, 1e-24)
+    psi <- max(psi, 1e-24)
 
     # moments
     E_v_new    <- gig_moment(k = 0.5, chi = chi, psi = psi, r = 1)
@@ -315,16 +388,27 @@ exal_static_LDVB <- function(
     ell_hat <- ld$ell_hat
     Sig_eta_ell <- ld$Sigma
 
-    # update xi via MC under Gaussian (eta,ell)
-    xis_new <- compute_xi(eta_hat, ell_hat, Sig_eta_ell, ns = n_samp_xi)
+    # update xi via Delta-method under Gaussian (eta,ell)
+    xis_new <- compute_xi(eta_hat, ell_hat, Sig_eta_ell)
 
     # ---- check convergence
-    rel_mb <- sqrt(sum((m_beta_new - m_beta)^2)) / (1e-8 + sqrt(sum(m_beta^2)))
-    rel_xi <- max(abs(unlist(xis_new)) - abs(unlist(xis)))
-    rel_xi <- abs(rel_xi) / (1e-8 + max(1, max(abs(unlist(xis)))))
+    rel_mb <- sqrt(sum((m_beta_new - m_beta)^2)) / (1e-24 + sqrt(sum(m_beta^2)))
+    delta_xi <- unlist(xis_new) - unlist(xis)
+    rel_xi   <- max(abs(delta_xi)) / (1e-24 + max(1, max(abs(unlist(xis)))))
+
+
+    # --- NEW: record traces for this iteration ---
+    ghat <- g_from_eta(eta_hat)
+    shat <- exp(ell_hat)
+
+    gamma_trace   <- c(gamma_trace, ghat)
+    sigma_trace   <- c(sigma_trace, shat)
+    eta_trace     <- c(eta_trace, eta_hat)
+    ell_trace     <- c(ell_trace, ell_hat)
+    rel_mb_trace  <- c(rel_mb_trace, rel_mb)
+    rel_xi_trace  <- c(rel_xi_trace, rel_xi)
 
     if (verbose && (iter %% 50 == 0)) {
-      ghat <- g_from_eta(eta_hat); shat <- exp(ell_hat)
       cat(sprintf("iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma≈%.3f sigma≈%.3f\n",
                   iter, rel_mb, rel_xi, ghat, shat))
     }
@@ -390,15 +474,15 @@ exal_static_LDVB <- function(
     H_qb <- 0.5 * ( p * (1 + log(2*pi)) + logdetVb )
 
     # (10) Entropy H(q(v))
-    z      <- sqrt(pmax(chi, 1e-14) * pmax(psi, 1e-14))
+    z      <- sqrt(pmax(chi, 1e-16) * pmax(psi, 1e-16))
     logKk  <- log(pmax(besselK(z, nu = k_gig, expon.scaled = TRUE), 1e-300)) - z
-    logC   <- (k_gig/2) * (log(pmax(psi,1e-14)) - log(pmax(chi,1e-14))) - log(2) - logKk
+    logC   <- (k_gig/2) * (log(pmax(psi,1e-16)) - log(pmax(chi,1e-16))) - log(2) - logKk
     H_qv   <- sum( -logC - (k_gig - 1) * mlogv + 0.5 * (chi * E_inv_v + psi * E_v) )
 
     # (11) Entropy H(q(s)) for TN(μ, τ^2) on (0,∞)
-    tau    <- sqrt(pmax(qs_tau2, 1e-14))
+    tau    <- sqrt(pmax(qs_tau2, 1e-16))
     alpha  <- qs_mu / tau
-    Phi    <- pmax(pnorm(alpha), 1e-12)
+    Phi    <- pmax(pnorm(alpha), 1e-16)
     Lambda <- dnorm(alpha) / Phi
     H_qs   <- sum( 0.5 * log(2*pi * qs_tau2) + log(Phi) + 0.5 * (1 + alpha * Lambda) )
 
@@ -410,30 +494,55 @@ exal_static_LDVB <- function(
     elbo_new <- lik_norm + lik_quad1 + lik_cross +
                 E_log_pv + E_log_ps + E_log_pb + E_log_psig + E_log_pgam +
                 H_qb + H_qv + H_qs + H_qsg
+    elbo_new <- elbo_new/n
     elbo_trace <- c(elbo_trace, elbo_new)
 
-    # -------- Stopping rule (ELBO-based) ----------
+    # -------- Stopping rule (ELBO + (gamma,sigma) stability) ----------
     if (iter == 1) {
-    inc <- Inf; rel_elbo <- Inf
+      inc      <- Inf
+      rel_elbo <- Inf
+      new_term <- Inf
     } else {
-    inc <- elbo_new - elbo_old
-    rel_elbo <- inc / (1e-8 + abs(elbo_old))
+      inc      <- elbo_new - elbo_old
+      rel_elbo <- inc / (1e-16 + abs(elbo_old))
+      # NEW: safeguard term based on LD means of (gamma, sigma)
+      # new_term = |old E[gamma] - new E[gamma]| + |old E[sigma] - new E[sigma]|
+      new_term <- abs(ghat - gamma_old) + abs(shat - sigma_old)
     }
 
-    # Optional: print both absolute and relative changes
+    # Record the safeguard term trace (first entry is Inf by construction)
+    new_term_trace <- c(new_term_trace, new_term)
+
+    # Optional: print both absolute and relative changes + parameter term
     if (verbose && (iter %% 50 == 0)) {
-    cat(sprintf("    ELBO=%.6f | Δ=%.3e | Δrel=%.2e\n", elbo_new, inc, rel_elbo))
+      cat(sprintf(
+        "    ELBO=%.6f | Δ=%.3e | Δrel=%.2e | new_term=%.3e\n",
+        elbo_new, inc, rel_elbo, new_term
+      ))
     }
 
-    # Require ELBO to have *stabilized* (small absolute relative change), and
-    # NEVER stop on a negative jump. Also wait a few iterations before checking.
+    # Require:
+    #  * ELBO has stabilized (small relative change)
+    #  * ELBO not decreasing (inc >= 0)
+    #  * LD means for (gamma, sigma) are no longer moving much (new_term < tol_par)
+    # Also wait a few iterations before checking.
     min_iter_elbo <- 10L
-    if (iter >= min_iter_elbo && abs(rel_elbo) < tol && inc >= 0) {
-    converged <- TRUE
-    break
+    if (iter >= min_iter_elbo &&
+        abs(rel_elbo) < tol &&
+        inc >= 0 &&
+        new_term < tol_par) {
+      converged <- TRUE
+      # update "old" holders for completeness (not strictly needed if we break)
+      gamma_old <- ghat
+      sigma_old <- shat
+      elbo_old  <- elbo_new
+      break
     }
 
-    elbo_old <- elbo_new
+    # If not converged, update "old" state for next iteration
+    elbo_old  <- elbo_new
+    gamma_old <- ghat
+    sigma_old <- shat
 
   }
 
@@ -455,7 +564,22 @@ exal_static_LDVB <- function(
     converged = converged,
     iter = iter,
     run.time = as.numeric(t1 - t0),
-    misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace)
+    misc = list(
+      p0    = p0,
+      bounds = c(L = L, U = U),
+      n     = n,
+      p     = p,
+      elbo          = elbo_trace,
+      gamma_trace   = gamma_trace,
+      sigma_trace   = sigma_trace,
+      eta_trace     = eta_trace,
+      ell_trace     = ell_trace,
+      rel_mb_trace  = rel_mb_trace,
+      rel_xi_trace  = rel_xi_trace,
+      new_term_trace = new_term_trace,
+      tol_elbo      = tol,
+      tol_par       = tol_par
+    )
   )
   class(ret) <- "exal_vb"
   if (verbose) {
