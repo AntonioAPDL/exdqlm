@@ -21,6 +21,10 @@ rexal_cpp <- function(n, p0 = 0.5, mu = 0.0, sigma = 1.0, gamma = 0.0) {
     .Call(`_exdqlm_rexal`, n, p0, mu, sigma, gamma)
 }
 
+exal_loglik_from_mu_cpp <- function(y, mu_mat, sigma_draws, gamma_draws, p0) {
+    .Call(`_exdqlm_exal_loglik_from_mu_cpp`, y, mu_mat, sigma_draws, gamma_draws, p0)
+}
+
 logDetCholesky <- function(matrix) {
     .Call(`_exdqlm_logDetCholesky`, matrix)
 }

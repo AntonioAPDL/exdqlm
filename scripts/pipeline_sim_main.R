@@ -126,9 +126,22 @@ vb_tol_for <- function(p0) if (near_equal(p0, 0.50)) 1e-4 else 1e-5
 # NEW: safeguard tolerance for (E[γ], E[σ]) increments; default same scale as ELBO tol
 vb_tol_par_for <- vb_tol_for
 
+# --- IJ correction toggles (global) -------------------------------------------
+ij_nd_draws       <- 2000L   # number of parameter draws used for IJ + μ-bands
+use_ij_correction <- TRUE    # set FALSE to revert to pure posterior μ-bands
+# ------------------------------------------------------------------------------
+
 nd_draws  <- 3000L
 chunk_sz  <- 250L
+
+# Base window (for backward compatibility)
 last_window <- 200L
+
+# Separate train / forecast windows (default both = last_window)
+train_last_window <- last_window
+fore_last_window  <- last_window
+
+
 
 synth_isotonic  <- TRUE
 synth_rearrange <- TRUE
@@ -227,11 +240,15 @@ if (length(cfg)) {
     chunk_sz <- cfg$sampling$chunk    %nz% chunk_sz
   }
 
-  if (!is.null(cfg$forecast)) {
-    last_window    <- cfg$forecast$last_window    %nz% last_window
-    rolling_origin <- cfg$forecast$rolling_origin %nz% rolling_origin
-    H_step         <- cfg$forecast$H_step         %nz% H_step
-  }
+if (!is.null(cfg$forecast)) {
+  # Base: keep a single last_window for backward compatibility
+  last_window    <- cfg$forecast$last_window    %nz% last_window
+  rolling_origin <- cfg$forecast$rolling_origin %nz% rolling_origin
+  H_step         <- cfg$forecast$H_step         %nz% H_step
+  train_last_window <- cfg$forecast$train_last_window %nz% last_window
+  fore_last_window  <- cfg$forecast$fore_last_window  %nz% last_window
+}
+
 
   if (!is.null(cfg$synthesis)) {
     synth_isotonic  <- cfg$synthesis$isotonic  %nz% synth_isotonic
@@ -297,19 +314,33 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
   i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L)
   d <- dplyr::filter(df, dplyr::between(h, i1, i2))
   coverage <- mean(d$q_true >= d$lo & d$q_true <= d$hi, na.rm = TRUE)
-  ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
-    ggplot2::labs(title = sprintf("%s: μ̂ ±95%% vs true qₚ (p=%s)", scope, scales::percent(p0, 1)),
-                  subtitle = sprintf("q_true-in-band = %s", scales::percent(coverage, 0.1)),
-                  caption = caption_exdqlm(window), x = "time", y = "value") +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin = lo, ymax = hi),
-                         fill = scales::alpha(col_map[fmt_p(p0)], 0.22), colour = NA) +
-    ggplot2::geom_line(ggplot2::aes(y = mu,     colour = "mu"),   linewidth = 0.95) +
-    ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth = 0.9, linetype = 2) +
-    ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth = 0.6, alpha = 0.9) +
-    ggplot2::scale_color_manual(name = "",
-      values = c(mu = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280"))
-}
 
+  band_label <- if (isTRUE(get0("use_ij_correction", ifnotfound = FALSE))) {
+    "IJ-corrected 95% band for μ̂"
+  } else {
+    "μ̂ ±95% posterior band"
+  }
+
+  ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
+    ggplot2::labs(
+      title    = sprintf("%s: %s vs true qₚ (p=%s)", scope, band_label, scales::percent(p0, 1)),
+      subtitle = sprintf("q_true-in-band = %s", scales::percent(coverage, 0.1)),
+      caption  = caption_exdqlm(window),
+      x = "time", y = "value"
+    ) +
+    ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = lo, ymax = hi),
+      fill = scales::alpha(col_map[fmt_p(p0)], 0.22),
+      colour = NA
+    ) +
+    ggplot2::geom_line(ggplot2::aes(y = mu,     colour = "mu"),   linewidth = 0.5) +
+    ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth = 0.9, linetype = 2) +
+    ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth = 0.6, alpha = 0.85) +
+    ggplot2::scale_color_manual(
+      name   = "",
+      values = c(mu = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280")
+    )
+}
 
 plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
   i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L)
@@ -319,7 +350,7 @@ plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
     ggplot2::labs(title = sprintf("%s: q̂ₚ vs true qₚ (p=%s)", scope, scales::percent(p0, 1)),
                   subtitle = sprintf("MAE = %.3f", mae),
                   caption = caption_exdqlm(window), x = "time", y = "value") +
-    ggplot2::geom_line(ggplot2::aes(y = q_pred, colour = "pred"), linewidth = 0.95) +
+    ggplot2::geom_line(ggplot2::aes(y = q_pred, colour = "pred"), linewidth = 0.5) +
     ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth = 0.9, linetype = 2) +
     ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth = 0.6, alpha = 0.85) +
     ggplot2::scale_color_manual(name = "",
@@ -336,7 +367,7 @@ plot_synth_q_vs_true <- function(df_s, tau, scope = "Forecast", window = 200L) {
     ggplot2::labs(title = sprintf("%s: synthesized qₚ vs true qₚ (p=%s)", scope, scales::percent(as.numeric(tau), 1)),
                   subtitle = sprintf("MAE = %.3f", mae),
                   caption = caption_exdqlm(window), x = "time", y = "value") +
-    ggplot2::geom_line(ggplot2::aes(y = .data[[c_synth]], colour = "synth"), linewidth = 0.95) +
+    ggplot2::geom_line(ggplot2::aes(y = .data[[c_synth]], colour = "synth"), linewidth = 0.5) +
     ggplot2::geom_line(ggplot2::aes(y = .data[[c_true]],  colour = "true"),  linewidth = 0.9, linetype = 2) +
     ggplot2::geom_line(ggplot2::aes(y = y,                 colour = "data"),  linewidth = 0.6, alpha = 0.85) +
     ggplot2::scale_color_manual(name = "",
@@ -475,6 +506,158 @@ get_exal_param_draws <- function(fit, p, nd = 2000, gamma_bounds = NULL, seed = 
     sigma = dr$sigma,
     beta  = dr$beta,          # nd × p
     gamma_bounds = gamma_bounds
+  )
+}
+
+compute_mu_bands_with_ij <- function(
+  X_train,
+  y_train_keep,
+  X_fc1,
+  p0,
+  param_draws,
+  use_ij = use_ij_correction
+) {
+  stopifnot(is.matrix(X_train), is.matrix(X_fc1))
+
+  beta_draws  <- param_draws$beta
+  sigma_draws <- param_draws$sigma
+  gamma_draws <- param_draws$gamma
+
+  if (is.null(beta_draws) || !is.matrix(beta_draws)) {
+    stop("compute_mu_bands_with_ij(): beta_draws is missing or not a matrix.")
+  }
+
+  M <- nrow(beta_draws)
+  p <- ncol(beta_draws)
+  n <- nrow(X_train)
+  H <- nrow(X_fc1)
+
+  if (length(sigma_draws) != M || length(gamma_draws) != M) {
+    stop(sprintf(
+      "compute_mu_bands_with_ij(): length(sigma_draws)=%d, length(gamma_draws)=%d, but nrow(beta_draws)=%d.",
+      length(sigma_draws), length(gamma_draws), M
+    ))
+  }
+
+  # --- μ draws: train + forecast (time-major: rows = t, cols = draws) ----
+  mu_mat_tr <- X_train %*% t(beta_draws)   # n x M
+  mu_mat_fc <- X_fc1   %*% t(beta_draws)   # H x M
+
+  mu_draws_tr_TxM <- mu_mat_tr
+  mu_draws_fc_TxM <- mu_mat_fc
+
+  # Posterior-only summaries
+  mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95)
+  mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95)
+
+  mu_hat_tr <- mu_qs_tr[, "med"]
+  mu_hat_fc <- mu_qs_fc[, "med"]
+
+  mu_sd_tr  <- matrixStats::rowSds(mu_draws_tr_TxM)
+  mu_sd_fc  <- matrixStats::rowSds(mu_draws_fc_TxM)
+
+  lo_post_tr <- mu_qs_tr[, "lo"]
+  hi_post_tr <- mu_qs_tr[, "hi"]
+  lo_post_fc <- mu_qs_fc[, "lo"]
+  hi_post_fc <- mu_qs_fc[, "hi"]
+
+  # Defaults if IJ is disabled
+  sd_ij_tr <- rep(0, n)
+  sd_ij_fc <- rep(0, H)
+  lo_tr    <- lo_post_tr
+  hi_tr    <- hi_post_tr
+  lo_fc    <- lo_post_fc
+  hi_fc    <- hi_post_fc
+
+  if (isTRUE(use_ij)) {
+    # --- Log-likelihood contributions per draw & obs (train only) ----------
+    loglik_mat <- exal_loglik_from_mu_cpp(
+      y           = y_train_keep,
+      mu_mat      = mu_mat_tr,
+      sigma_draws = sigma_draws,
+      gamma_draws = gamma_draws,
+      p0          = p0
+    )
+    # loglik_mat: M x n
+
+    # Drop draws with any non-finite loglik
+    finite_draw <- apply(is.finite(loglik_mat), 1L, all)
+    if (!all(finite_draw)) {
+      loglik_mat        <- loglik_mat[finite_draw, , drop = FALSE]
+      mu_draws_tr_TxM   <- mu_draws_tr_TxM[, finite_draw, drop = FALSE]
+      mu_draws_fc_TxM   <- mu_draws_fc_TxM[, finite_draw, drop = FALSE]
+
+      # Recompute posterior summaries for filtered draws
+      mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95)
+      mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95)
+
+      mu_hat_tr <- mu_qs_tr[, "med"]
+      mu_hat_fc <- mu_qs_fc[, "med"]
+
+      mu_sd_tr  <- matrixStats::rowSds(mu_draws_tr_TxM)
+      mu_sd_fc  <- matrixStats::rowSds(mu_draws_fc_TxM)
+
+      lo_post_tr <- mu_qs_tr[, "lo"]
+      hi_post_tr <- mu_qs_tr[, "hi"]
+      lo_post_fc <- mu_qs_fc[, "lo"]
+      hi_post_fc <- mu_qs_fc[, "hi"]
+    }
+
+    M_eff <- nrow(loglik_mat)
+    n_obs <- length(y_train_keep)
+
+    # --- IJ variance for all times (train + forecast) via matrix algebra ----
+    F_tr   <- t(mu_draws_tr_TxM)          # M_eff x n
+    F_fc   <- t(mu_draws_fc_TxM)          # M_eff x H
+    F_all  <- cbind(F_tr, F_fc)           # M_eff x (n + H)
+
+    F_centered <- sweep(F_all,    2L, colMeans(F_all),    "-")
+    L_centered <- sweep(loglik_mat, 2L, colMeans(loglik_mat), "-")
+
+    # Covariances: cov(f_t, ell_i) for all t,i
+    Cmat <- crossprod(F_centered, L_centered) / (M_eff - 1)  # (n+H) x n
+
+    # Influence matrix I_{t,i} = n * cov(f_t, ell_i)
+    I_mat      <- n_obs * Cmat                   # (n+H) x n
+    I_bar      <- rowMeans(I_mat)               # length n+H
+    I_centered <- sweep(I_mat, 1L, I_bar, "-")  # (n+H) x n
+
+    var_ij_all <- rowSums(I_centered^2) / (n_obs * (n_obs - 1))
+    var_ij_all <- pmax(var_ij_all, 0)
+    sd_ij_all  <- sqrt(var_ij_all)
+
+    sd_ij_tr <- sd_ij_all[seq_len(n)]
+    sd_ij_fc <- sd_ij_all[n + seq_len(H)]
+
+    # Combine posterior variance and IJ variance
+    sd_total_tr <- sqrt(mu_sd_tr^2 + sd_ij_tr^2)
+    sd_total_fc <- sqrt(mu_sd_fc^2 + sd_ij_fc^2)
+
+    alpha  <- 0.05
+    z_975  <- stats::qnorm(1 - alpha / 2)
+
+    lo_tr <- mu_hat_tr - z_975 * sd_total_tr
+    hi_tr <- mu_hat_tr + z_975 * sd_total_tr
+
+    lo_fc <- mu_hat_fc - z_975 * sd_total_fc
+    hi_fc <- mu_hat_fc + z_975 * sd_total_fc
+  }
+
+  list(
+    mu_draws_tr = mu_draws_tr_TxM,  # n x M_eff
+    mu_draws_fc = mu_draws_fc_TxM,  # H x M_eff
+    mu_hat_tr   = mu_hat_tr,
+    mu_hat_fc   = mu_hat_fc,
+    lo_tr       = lo_tr,
+    hi_tr       = hi_tr,
+    lo_fc       = lo_fc,
+    hi_fc       = hi_fc,
+    sd_ij_tr    = sd_ij_tr,
+    sd_ij_fc    = sd_ij_fc,
+    lo_post_tr  = lo_post_tr,
+    hi_post_tr  = hi_post_tr,
+    lo_post_fc  = lo_post_fc,
+    hi_post_fc  = hi_post_fc
   )
 }
 
@@ -712,35 +895,44 @@ fit_and_forecast_p <- function(p0) {
     b0 = rep(0, p),
     V0 = diag(1e4, p),
     a_sigma = 1, b_sigma = 1,
-    max_iter = vb_args_p$max_iter,
-    tol      = vb_args_p$tol,
-    tol_par  = vb_args_p$tol_par,
+    max_iter  = vb_args_p$max_iter,
+    tol       = vb_args_p$tol,
+    tol_par   = vb_args_p$tol_par,
     n_samp_xi = vb_args_p$n_samp_xi,
     verbose   = TRUE,
     p0        = p0,
-    gamma_bounds = c(L.fn(p0), U.fn(p0)),
+    gamma_bounds    = c(L.fn(p0), U.fn(p0)),
     log_prior_gamma = function(g) 0
   )
-
 
   fit_exal <- timed(sprintf("fit_exAL_on_X_train(p=%s)", fmt_p(p0)),
     do.call(exal_static_LDVB, c(list(y = y_train_keep, X = X_train), exal_defaults))
   )
 
-  # ---- Parameter posterior draws (γ, σ, β) for diagnostics ----
+  # ---- Parameter posterior draws (γ, σ, β) for diagnostics + IJ ----------
   param_draws <- get_exal_param_draws(
-    fit_exal, p = ncol(X_train), nd = 2000,
+    fit_exal,
+    p            = ncol(X_train),
+    nd           = ij_nd_draws,
     gamma_bounds = exal_defaults$gamma_bounds,
-    seed = synth_seed + round(1000 * p0)
+    seed         = synth_seed + round(1000 * p0)
   )
 
-  # ---- Posterior predictive: TRAIN (for μ-band & q̂ diagnostics) ----
+  # ---- μ draws and (optionally) IJ-corrected bands -----------------------
+  mu_ij <- compute_mu_bands_with_ij(
+    X_train      = X_train,
+    y_train_keep = y_train_keep,
+    X_fc1        = X_fc1,
+    p0           = p0,
+    param_draws  = param_draws,
+    use_ij       = use_ij_correction
+  )
+
+  # ---- Posterior predictive: TRAIN (for q̂ diagnostics) -------------------
   pp_tr <- timed(sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nd_draws),
     exal_vb_posterior_predict(fit_exal, X_new = X_train, nd = nd_draws, chunk = chunk_sz)
   )
-  yrep_tr     <- pp_tr$yrep
-  mu_draws_tr <- pp_tr$mu_draws
-  mu_qs_tr    <- band_from_draws(mu_draws_tr, level = 0.95)
+  yrep_tr <- pp_tr$yrep
 
   # Use absolute indices from the shared pass restricted to the train window
   keep_rel <- keep_train_abs
@@ -749,28 +941,30 @@ fit_and_forecast_p <- function(p0) {
   q_true_tr <- true_q_at_tau(dat_long_use, tau = p0)[keep_rel]
 
   df_mu_tr <- tibble::tibble(
-    h = seq_along(keep_rel), p0 = p0,
-    mu = mu_qs_tr[, "med"], lo = mu_qs_tr[, "lo"], hi = mu_qs_tr[, "hi"],
+    h      = seq_along(keep_rel),
+    p0     = p0,
+    mu     = mu_ij$mu_hat_tr,
+    lo     = mu_ij$lo_tr,
+    hi     = mu_ij$hi_tr,
     q_true = q_true_tr,
-    y = y_train_keep
+    y      = y_train_keep
   )
 
   df_pred_tr <- tibble::tibble(
-    h = seq_along(keep_rel), p0 = p0,
+    h      = seq_along(keep_rel),
+    p0     = p0,
     q_pred = apply(yrep_tr, 1, stats::quantile, probs = p0, names = FALSE),
     q_true = q_true_tr,
-    y = y_train_keep
+    y      = y_train_keep
   )
 
-  # ---- Posterior predictive: FORECAST (1-step teacher-forced design) ----
+  # ---- Posterior predictive: FORECAST (1-step teacher-forced design) -----
   pp_fc <- timed(sprintf("posterior_predict FORECAST (p=%s, nd=%d)", fmt_p(p0), nd_draws),
     exal_vb_posterior_predict(fit_exal, X_new = X_fc1, nd = nd_draws, chunk = chunk_sz)
   )
-  yrep_fc     <- pp_fc$yrep
-  mu_draws_fc <- pp_fc$mu_draws
+  yrep_fc <- pp_fc$yrep
 
   q_pred_fc <- apply(yrep_fc, 1, stats::quantile, probs = p0, names = FALSE)
-  mu_qs_fc  <- band_from_draws(mu_draws_fc, level = 0.95)
   q_true_fc <- true_q_at_tau(dat_long_use, tau = p0)[idx_fc]
 
   # Sanity checks right where they matter
@@ -779,28 +973,37 @@ fit_and_forecast_p <- function(p0) {
             length(y_forecast) == H_forecast)
 
   df_mu_fc <- tibble::tibble(
-    h = seq_len(H_forecast), p0 = p0,
-    mu = mu_qs_fc[, "med"], lo = mu_qs_fc[, "lo"], hi = mu_qs_fc[, "hi"],
-    q_true = q_true_fc, y = y_forecast
+    h      = seq_len(H_forecast),
+    p0     = p0,
+    mu     = mu_ij$mu_hat_fc,
+    lo     = mu_ij$lo_fc,
+    hi     = mu_ij$hi_fc,
+    q_true = q_true_fc,
+    y      = y_forecast
   )
 
   df_pred_fc <- tibble::tibble(
-    h = seq_len(H_forecast), p0 = p0,
-    q_pred = q_pred_fc, q_true = q_true_fc, y = y_forecast
+    h      = seq_len(H_forecast),
+    p0     = p0,
+    q_pred = q_pred_fc,
+    q_true = q_true_fc,
+    y      = y_forecast
   )
 
-  # ---- Return in the same structure your downstream code expects ----
+  # ---- Return in the same structure your downstream code expects ---------
   list(
-    fit_train = list(fit  = fit_exal, meta = list(keep_idx = keep_train_abs)),
-    yrep_fc = yrep_fc,   mu_draws_fc = mu_draws_fc,
-    df_mu_fc = df_mu_fc, df_pred_fc  = df_pred_fc,
-    yrep_tr = yrep_tr,   mu_draws_tr = mu_draws_tr,
-    df_mu_tr = df_mu_tr, df_pred_tr  = df_pred_tr,
+    fit_train = list(fit = fit_exal, meta = list(keep_idx = keep_train_abs)),
+    yrep_fc   = yrep_fc,
+    mu_draws_fc = mu_ij$mu_draws_fc,
+    df_mu_fc  = df_mu_fc,
+    df_pred_fc = df_pred_fc,
+    yrep_tr   = yrep_tr,
+    mu_draws_tr = mu_ij$mu_draws_tr,
+    df_mu_tr  = df_mu_tr,
+    df_pred_tr = df_pred_tr,
     param_draws = param_draws
   )
-
 }
-
 
 fits_fc <- lapply(p_vec, fit_and_forecast_p)
 names(fits_fc) <- paste0("p=", p_vec)
@@ -808,36 +1011,57 @@ names(fits_fc) <- paste0("p=", p_vec)
 # --- 3) Per-p forecast plots
 for (k in seq_along(p_vec)) {
   p0 <- p_vec[k]
-  g1 <- plot_mu_band(fits_fc[[k]]$df_mu_fc, p0, scope="Forecast", window=last_window)
-  g2 <- plot_empirical_quantile(fits_fc[[k]]$df_pred_fc, p0, scope="Forecast", window=last_window)
+  g1 <- plot_mu_band(
+    fits_fc[[k]]$df_mu_fc, p0,
+    scope  = "Forecast",
+    window = fore_last_window
+  )
+  g2 <- plot_empirical_quantile(
+    fits_fc[[k]]$df_pred_fc, p0,
+    scope  = "Forecast",
+    window = fore_last_window
+  )
+  band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
 
   timed(sprintf("plot+save forecast_mu_band(p=%s)", fmt_p(p0)), {
     print(g1)
     if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, sprintf("forecast_mu_band_p=%s.png", as.character(p0))), g1, width=9, height=4.8, dpi=150)
+      ggplot2::ggsave(
+        file.path(FIGS, sprintf("forecast_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+        g1, width = 9, height = 4.8, dpi = 150
+      )
     }
   })
 
   timed(sprintf("plot+save forecast_emp_q_vs_true(p=%s)", fmt_p(p0)), {
     print(g2)
     if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, sprintf("forecast_emp_q_vs_true_p=%s.png", as.character(p0))), g2, width=9, height=4.8, dpi=150)
+      ggplot2::ggsave(
+        file.path(FIGS, sprintf("forecast_emp_q_vs_true_p=%s.png", as.character(p0))),
+        g2, width = 9, height = 4.8, dpi = 150
+      )
     }
   })
 }
 
-
 # --- 3b) Per-p TRAIN plots for mû band (new)
 for (k in seq_along(p_vec)) {
   p0 <- p_vec[k]
-  g1_tr <- plot_mu_band(fits_fc[[k]]$df_mu_tr, p0, scope = "Train", window = 200L)
+  g1_tr <- plot_mu_band(
+    fits_fc[[k]]$df_mu_tr, p0,
+    scope  = "Train",
+    window = train_last_window
+  )
+  band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
+
   print(g1_tr)
   if (isTRUE(save_outputs)) {
-    ggplot2::ggsave(file.path(FIGS, sprintf("train_mu_band_p=%s.png", as.character(p0))),
-                    g1_tr, width = 9, height = 4.8, dpi = 150)
+    ggplot2::ggsave(
+      file.path(FIGS, sprintf("train_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+      g1_tr, width = 9, height = 4.8, dpi = 150
+    )
   }
 }
-
 
 # ================================================================
 # 3c) Posterior parameter plots: γ, σ histograms + β forest
@@ -943,17 +1167,6 @@ for (k in seq_along(p_vec)) {
         y        = "count"
       ) +
       ggplot2::coord_cartesian(xlim = x_lim_s)
-  }
-
-
-  if (!is.null(pars$sigma) && length(pars$sigma)) {
-    # σ plot (also force bins = 100)
-    plots_left$sigma <- plot_param_hist_ci(
-      pars$sigma,
-      param_name = "σ",
-      add_bounds = NULL,
-      bins = 100
-    )
   }
 
   if (length(plots_left)) {
@@ -1163,7 +1376,25 @@ compare_fc <- tibble::tibble(h = seq_len(H_forecast), y = y_forecast) |>
   dplyr::bind_cols(synth_q_fc)
 
 timed("plot+save synth_forecast trio", {
-  plots_synth_fc <- lapply(p_comp, function(tau) plot_synth_q_vs_true(compare_fc, tau, scope="Forecast", window=last_window))
+   plots_synth_fc <- lapply(
+  p_comp,
+  function(tau)
+    plot_synth_q_vs_true(
+      compare_fc, tau,
+      scope  = "Forecast",
+      window = fore_last_window
+    )
+)
+
+g_band_fc <- plot_synth_predictive_band(
+  synth_draws = synth_fc$draws,
+  y_vec       = y_forecast,
+  scope       = "Forecast",
+  window      = fore_last_window,
+  fill_col    = ACCENT_ORANGE,
+  show_median = TRUE
+)
+
   for (j in seq_along(plots_synth_fc)) {
     print(plots_synth_fc[[j]])
     if (isTRUE(save_outputs)) {
@@ -1171,8 +1402,6 @@ timed("plot+save synth_forecast trio", {
              plots_synth_fc[[j]], width=9, height=4.8, dpi=150)
     }
   }
-  g_band_fc <- plot_synth_predictive_band(synth_draws = synth_fc$draws, y_vec = y_forecast,
-                                          scope="Forecast", window=last_window, fill_col=ACCENT_ORANGE, show_median=TRUE)
 
   print(g_band_fc)
   if (isTRUE(save_outputs)) {
@@ -1208,8 +1437,15 @@ compare_tr <- tibble::tibble(h = seq_len(T_train_keep), y = y_train_keep) |>
   dplyr::bind_cols(synth_q_tr)
 
 timed("plot+save synth_train trio", {
-  plots_synth_tr <- lapply(p_comp, function(tau)
-    plot_synth_q_vs_true(compare_tr, tau, scope="Train", window=200L))
+  plots_synth_tr <- lapply(
+    p_comp,
+    function(tau)
+      plot_synth_q_vs_true(
+        compare_tr, tau,
+        scope  = "Train",
+        window = train_last_window
+      )
+  )
   for (j in seq_along(plots_synth_tr)) {
     print(plots_synth_tr[[j]])
     if (isTRUE(save_outputs)) {
@@ -1217,9 +1453,14 @@ timed("plot+save synth_train trio", {
              plots_synth_tr[[j]], width=9, height=4.8, dpi=150)
     }
   }
-  g_band_tr <- plot_synth_predictive_band(synth_draws = synth_tr$draws, y_vec = y_train_keep,
-                                          scope="Train", window=200L, fill_col=ACCENT_ORANGE, show_median=TRUE)
-
+  g_band_tr <- plot_synth_predictive_band(
+    synth_draws = synth_tr$draws,
+    y_vec       = y_train_keep,
+    scope       = "Train",
+    window      = train_last_window,
+    fill_col    = ACCENT_ORANGE,
+    show_median = TRUE
+  )
   print(g_band_tr)
   if (isTRUE(save_outputs)) {
     ggsave(file.path(FIGS, "train_obs_with_95_band.png"), g_band_tr, width=9, height=4.8, dpi=150)
@@ -1233,7 +1474,10 @@ if (isTRUE(save_outputs)) {
       fits_fc = fits_fc, synth_fc = synth_fc, compare_fc = compare_fc,
       cfg = list(
         p_vec = p_vec, desn_args = desn_args, vb_args_base = vb_args_base,
-        nd_draws = nd_draws, chunk_sz = chunk_sz, last_window = last_window,
+        nd_draws = nd_draws, chunk_sz = chunk_sz,
+        last_window         = fore_last_window,
+        last_window_train   = train_last_window,
+        last_window_forecast = fore_last_window,
         teacher_forcing = list(enable = tf_enable, first_k = tf_first_k,
                                explicit = y_future_obs_explicit, y_future_obs_fc = y_future_obs_fc),
         synth = list(isotonic = synth_isotonic, rearrange = synth_rearrange,

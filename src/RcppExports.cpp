@@ -88,6 +88,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// exal_loglik_from_mu_cpp
+NumericMatrix exal_loglik_from_mu_cpp(const NumericVector& y, const NumericMatrix& mu_mat, const NumericVector& sigma_draws, const NumericVector& gamma_draws, const double p0);
+RcppExport SEXP _exdqlm_exal_loglik_from_mu_cpp(SEXP ySEXP, SEXP mu_matSEXP, SEXP sigma_drawsSEXP, SEXP gamma_drawsSEXP, SEXP p0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type mu_mat(mu_matSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type sigma_draws(sigma_drawsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type gamma_draws(gamma_drawsSEXP);
+    Rcpp::traits::input_parameter< const double >::type p0(p0SEXP);
+    rcpp_result_gen = Rcpp::wrap(exal_loglik_from_mu_cpp(y, mu_mat, sigma_draws, gamma_draws, p0));
+    return rcpp_result_gen;
+END_RCPP
+}
 // logDetCholesky
 double logDetCholesky(const Eigen::MatrixXd& matrix);
 RcppExport SEXP _exdqlm_logDetCholesky(SEXP matrixSEXP) {
@@ -365,6 +380,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_pexal", (DL_FUNC) &_exdqlm_pexal, 7},
     {"_exdqlm_qexal", (DL_FUNC) &_exdqlm_qexal, 7},
     {"_exdqlm_rexal", (DL_FUNC) &_exdqlm_rexal, 5},
+    {"_exdqlm_exal_loglik_from_mu_cpp", (DL_FUNC) &_exdqlm_exal_loglik_from_mu_cpp, 5},
     {"_exdqlm_logDetCholesky", (DL_FUNC) &_exdqlm_logDetCholesky, 1},
     {"_exdqlm_compute_cholesky", (DL_FUNC) &_exdqlm_compute_cholesky, 2},
     {"_exdqlm_H_t_k_r", (DL_FUNC) &_exdqlm_H_t_k_r, 4},

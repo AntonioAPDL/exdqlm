@@ -13,10 +13,10 @@ p_vec: [0.05, 0.50, 0.95]
 
 desn:                     # <-- add this header (it was commented out)
   D: 3
-  "n": [10, 10, 10]       # keep "n" quoted
-  n_tilde: [10, 10]       # length D-1
-  m: 30
-  alpha:   [0.15, 0.15, 0.15]
+  "n": [15,10,5]       # keep "n" quoted
+  n_tilde: [10,5]       # length D-1
+  m: 60
+  alpha:   [0.25, 0.25, 0.25]
   rho:     [0.95, 0.95, 0.95]
   act_f:   [tanh, tanh, tanh]
   act_k:   [identity, identity, identity]
@@ -27,11 +27,11 @@ desn:                     # <-- add this header (it was commented out)
   seed:    [42, 41, 40]
 
 vb:
-  max_iter: 5000
-  tol_50:        1.0e-4
-  tol_extreme:   1.0e-5
-  tol_par_50:    1.0e-4    # or something a bit looser, e.g. 1e-3
-  tol_par_extreme: 1.0e-5
+  max_iter: 1000
+  tol_50:        1.0e-3
+  tol_extreme:   1.0e-3
+  tol_par_50:    1.0e-3    
+  tol_par_extreme: 1.0e-3
   n_samp_xi: 5000
   verbose: true
 
@@ -42,7 +42,9 @@ sampling:
 forecast:
   rolling_origin: true
   H_step: 1
-  last_window: 300
+  last_window: 200           # base/default
+  train_last_window: 500
+  fore_last_window: 500
 
 synthesis:
   isotonic: true

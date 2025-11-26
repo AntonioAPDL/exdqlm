@@ -286,3 +286,36 @@ NumericVector rexal(int n, double p0 = 0.5, double mu = 0.0, double sigma = 1.0,
 
     return samples;
 }
+
+// [[Rcpp::export(name = "exal_loglik_from_mu_cpp")]]
+NumericMatrix exal_loglik_from_mu_cpp(const NumericVector& y,
+                                      const NumericMatrix& mu_mat,
+                                      const NumericVector& sigma_draws,
+                                      const NumericVector& gamma_draws,
+                                      const double p0) {
+    int n = y.size();
+    int n_mu = mu_mat.nrow();
+    int M = mu_mat.ncol();
+
+    if (n_mu != n) {
+        stop("exal_loglik_from_mu_cpp: nrow(mu_mat) must equal length(y).");
+    }
+    if (sigma_draws.size() != M || gamma_draws.size() != M) {
+        stop("exal_loglik_from_mu_cpp: length(sigma_draws) and length(gamma_draws) must equal ncol(mu_mat).");
+    }
+
+    NumericMatrix out(M, n); // rows: draws (m), cols: observations (i)
+
+    for (int m = 0; m < M; ++m) {
+        double sigma = sigma_draws[m];
+        double gamma = gamma_draws[m];
+
+        for (int i = 0; i < n; ++i) {
+            double mu = mu_mat(i, m);
+            // dexal() is defined above; log_ = true to return log-density
+            out(m, i) = dexal(y[i], p0, mu, sigma, gamma, true);
+        }
+    }
+
+    return out;
+}

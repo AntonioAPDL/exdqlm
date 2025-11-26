@@ -1,12 +1,10 @@
 name: heavy
 vb:
-  max_iter: 2000
+  max_iter: 1000
   n_samp_xi: 5000
 sampling:
   nd_draws: 2000
   chunk: 300
-forecast:
-  last_window: 300
 synthesis:
   n_samp: 2000
 outputs:
