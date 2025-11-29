@@ -68,6 +68,9 @@ out_dir   <- Sys.getenv("EXDQLM_OUT_DIR",   unset = NA)
 val <- Sys.getenv("EXDQLM_SAVE_OUTPUTS", unset = NA)
 save_outputs <- if (!is.na(val) && nzchar(val)) (as.integer(val) == 1L) else TRUE
 
+# Output control flags (can be overridden by YAML cfg$outputs)
+keep_draws    <- FALSE
+thesis_subset <- FALSE
 
 if (is.na(file_long) || !file.exists(file_long)) {
   stop("EXDQLM_FILE_LONG not set or file missing: ", file_long)
@@ -81,9 +84,6 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 FIGS   <- file.path(out_dir, "figs");   dir.create(FIGS,   recursive = TRUE, showWarnings = FALSE)
 TABLES <- file.path(out_dir, "tables"); dir.create(TABLES, recursive = TRUE, showWarnings = FALSE)
 MODELS <- file.path(out_dir, "models"); dir.create(MODELS, recursive = TRUE, showWarnings = FALSE)
-
-message(sprintf("[esn_main] out_dir=%s | save_outputs=%s", out_dir, save_outputs))
-
 
 cfg_json <- Sys.getenv("EXDQLM_CFG_JSON", unset = NA)
 cfg <- if (!is.na(cfg_json) && nzchar(cfg_json)) jsonlite::fromJSON(cfg_json, simplifyVector = TRUE) else list()
@@ -125,6 +125,22 @@ vb_tol_for <- function(p0) if (near_equal(p0, 0.50)) 1e-4 else 1e-5
 
 # NEW: safeguard tolerance for (E[γ], E[σ]) increments; default same scale as ELBO tol
 vb_tol_par_for <- vb_tol_for
+
+# --- VB init / prior hyperparameters (per-quantile, from cfg$vb) ----------
+# These are always on the natural scale (gamma, sigma); no log-scale priors.
+vb_init_gamma <- NULL  # length = length(p_vec), if provided
+vb_init_sigma <- NULL
+
+# Normal prior for gamma:  gamma_p ~ N(mu0_p, s20_p)
+vb_prior_gamma_mu0 <- NULL
+vb_prior_gamma_s20 <- NULL
+
+# Inverse-Gamma prior for sigma:  sigma_p ~ IG(a_p, b_p)
+vb_prior_sigma_a <- NULL
+vb_prior_sigma_b <- NULL
+
+# Ridge prior variance for beta (shared across p if scalar)
+vb_prior_beta_tau2 <- NULL
 
 # --- IJ correction toggles (global) -------------------------------------------
 ij_nd_draws       <- 2000L   # number of parameter draws used for IJ + μ-bands
@@ -228,10 +244,53 @@ if (length(cfg)) {
     tolext <- cfg$vb$tol_extreme %nz% 1e-5
     vb_tol_for <- function(p0) if (abs(p0 - 0.50) < 1e-12) tol50 else tolext
 
-    # NEW: parameter safeguard tolerance on (γ,σ); default back to ELBO tol if not set
+    # Additional safeguard on (E[gamma], E[sigma]); defaults back to ELBO tolerances.
     tol_par_50  <- cfg$vb$tol_par_50      %nz% tol50
     tol_par_ext <- cfg$vb$tol_par_extreme %nz% tolext
     vb_tol_par_for <- function(p0) if (abs(p0 - 0.50) < 1e-12) tol_par_50 else tol_par_ext
+
+    # --- Per-quantile VB init and prior hyperparameters ----------------------
+    len_p <- length(p_vec)
+
+    recycle_p <- function(x, nm) {
+      if (is.null(x)) return(NULL)
+      x <- as.numeric(x)
+      if (length(x) == 1L && len_p > 1L) {
+        message(sprintf(
+          "Note: recycling vb.%s=%s to length(p_vec)=%d",
+          nm, paste(x, collapse = ","), len_p
+        ))
+        return(rep(x, len_p))
+      }
+      if (length(x) != len_p) {
+        stop(sprintf(
+          "Config error: length(vb.%s)=%d but length(p_vec)=%d",
+          nm, length(x), len_p
+        ))
+      }
+      x
+    }
+
+    # vb$init: initial means for gamma and sigma (natural scale), per quantile.
+    if (!is.null(cfg$vb$init)) {
+      vb_init_gamma <- recycle_p(cfg$vb$init$gamma, "init$gamma")
+      vb_init_sigma <- recycle_p(cfg$vb$init$sigma, "init$sigma")
+    }
+
+    # vb$priors: Normal prior for gamma, IG prior for sigma, ridge prior for beta.
+    if (!is.null(cfg$vb$priors)) {
+      if (!is.null(cfg$vb$priors$gamma)) {
+        vb_prior_gamma_mu0 <- recycle_p(cfg$vb$priors$gamma$mu0, "priors$gamma$mu0")
+        vb_prior_gamma_s20 <- recycle_p(cfg$vb$priors$gamma$s20, "priors$gamma$s20")
+      }
+      if (!is.null(cfg$vb$priors$sigma)) {
+        vb_prior_sigma_a <- recycle_p(cfg$vb$priors$sigma$a, "priors$sigma$a")
+        vb_prior_sigma_b <- recycle_p(cfg$vb$priors$sigma$b, "priors$sigma$b")
+      }
+      if (!is.null(cfg$vb$priors$beta) && !is.null(cfg$vb$priors$beta$tau2)) {
+        vb_prior_beta_tau2 <- as.numeric(cfg$vb$priors$beta$tau2)[1L]
+      }
+    }
   }
 
 
@@ -239,6 +298,16 @@ if (length(cfg)) {
     nd_draws <- cfg$sampling$nd_draws %nz% nd_draws
     chunk_sz <- cfg$sampling$chunk    %nz% chunk_sz
   }
+
+# --- IJ correction config from YAML ----------------------------------------
+if (!is.null(cfg$ij)) {
+  if (!is.null(cfg$ij$use_ij_correction)) {
+    use_ij_correction <- isTRUE(cfg$ij$use_ij_correction)
+  }
+  if (!is.null(cfg$ij$nd_draws)) {
+    ij_nd_draws <- as.integer(cfg$ij$nd_draws)
+  }
+}
 
 if (!is.null(cfg$forecast)) {
   # Base: keep a single last_window for backward compatibility
@@ -263,7 +332,27 @@ if (!is.null(cfg$forecast)) {
     do_pit         <- cfg$diagnostics$pit         %nz% do_pit
     do_scores      <- cfg$diagnostics$scores      %nz% do_scores
   }
+
+  # --- Outputs: saving/keep_draws/thesis_subset from YAML -------------------
+  if (!is.null(cfg$outputs)) {
+    # YAML has highest precedence over the env var
+    if (!is.null(cfg$outputs$save)) {
+      save_outputs <- isTRUE(cfg$outputs$save)
+    }
+    if (!is.null(cfg$outputs$keep_draws)) {
+      keep_draws <- isTRUE(cfg$outputs$keep_draws)
+    }
+    if (!is.null(cfg$outputs$thesis_subset)) {
+      thesis_subset <- isTRUE(cfg$outputs$thesis_subset)
+    }
+  }
 }
+
+message(sprintf(
+  "[esn_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s",
+  out_dir, save_outputs, keep_draws, thesis_subset
+))
+
 
 # --- Echo effective settings after cfg overrides ---
 pretty_vec <- function(x) paste0("[", paste(x, collapse=", "), "]")
@@ -280,6 +369,12 @@ log_msg(
 
 
 log_msg("Effective sampling → nd_draws=%d | chunk=%d", nd_draws, chunk_sz)
+
+log_msg(
+  "Effective IJ → use_ij_correction=%s | ij_nd_draws=%d",
+  as.character(use_ij_correction),
+  as.integer(ij_nd_draws)
+)
 
 # --- Plot helpers (same as notebook, locked to 3 decimals for tau labels)
 fmt_p <- function(x) sprintf("%.2f", as.numeric(x))
@@ -340,6 +435,66 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
       name   = "",
       values = c(mu = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280")
     )
+}
+
+
+# NEW: μ - true q_p error band, using μ draws
+plot_mu_error_band <- function(mu_draws,
+                               q_true,
+                               h_index = NULL,
+                               p0,
+                               scope = "Forecast",
+                               window = 200L) {
+  stopifnot(is.matrix(mu_draws), length(q_true) == nrow(mu_draws))
+
+  T_h <- nrow(mu_draws)
+  i2  <- T_h
+  i1  <- max(1L, i2 - as.integer(window) + 1L)
+  idx <- i1:i2
+
+  # Error draws: μ - true q_p  (positive = μ above true quantile)
+  err_draws <- mu_draws[idx, , drop = FALSE] -
+    matrix(q_true[idx], nrow = length(idx), ncol = ncol(mu_draws))
+
+  qs_err <- band_from_draws(err_draws, level = 0.95)
+
+  if (is.null(h_index) || length(h_index) != T_h) {
+    h_vals <- seq_len(T_h)
+  } else {
+    h_vals <- h_index
+  }
+
+  df <- tibble::tibble(
+    h   = h_vals[idx],
+    lo  = qs_err[, "lo"],
+    med = qs_err[, "med"],
+    hi  = qs_err[, "hi"]
+  )
+
+  # Symmetric y-range around 0 for easy visual comparison
+  rng   <- range(c(df$lo, df$hi), na.rm = TRUE)
+  r_max <- max(abs(rng), na.rm = TRUE)
+  if (!is.finite(r_max) || r_max <= 0) r_max <- 1
+  y_lim <- c(-r_max, r_max) * 1.05
+
+  ggplot2::ggplot(df, ggplot2::aes(x = h)) + theme_exdqlm() +
+    ggplot2::labs(
+      title    = sprintf("%s: μ - true qₚ error band (p=%s)", scope, scales::percent(p0, 1)),
+      subtitle = "95% posterior band for μ - q_true",
+      caption  = caption_exdqlm(window),
+      x = "time",
+      y = "μ - true qₚ"
+    ) +
+    ggplot2::geom_hline(yintercept = 0, linetype = "dashed", colour = "#4b5563") +
+    ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = lo, ymax = hi),
+      fill = scales::alpha(col_map[fmt_p(p0)], 0.22),
+      colour = NA
+    ) +
+    ggplot2::geom_line(ggplot2::aes(y = med),
+                       colour   = ACCENT_ORANGE,
+                       linewidth = 0.7) +
+    ggplot2::coord_cartesian(ylim = y_lim)
 }
 
 plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
@@ -889,21 +1044,67 @@ fit_and_forecast_p <- function(p0) {
   vb_args_p$tol     <- vb_tol_for(p0)
   vb_args_p$tol_par <- vb_tol_par_for(p0)
 
+    idx_p <- which.min(abs(p_vec - p0))
+
+  # Per-quantile inits (natural scale). Fallbacks are conservative.
+  gamma_init_p <- if (!is.null(vb_init_gamma)) vb_init_gamma[idx_p] else 0
+  sigma_init_p <- if (!is.null(vb_init_sigma)) vb_init_sigma[idx_p] else 1
+
+  # Per-quantile priors for gamma (Normal) and sigma (IG).
+  gamma_mu0_p <- if (!is.null(vb_prior_gamma_mu0)) vb_prior_gamma_mu0[idx_p] else 0
+  gamma_s20_p <- if (!is.null(vb_prior_gamma_s20)) vb_prior_gamma_s20[idx_p] else 10
+
+  sigma_a_p <- if (!is.null(vb_prior_sigma_a)) vb_prior_sigma_a[idx_p] else 1
+  sigma_b_p <- if (!is.null(vb_prior_sigma_b)) vb_prior_sigma_b[idx_p] else 1
+
+  tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
+
   # ---- Fit exAL readout directly on the precomputed training design ----
   p <- ncol(X_train)
+
+  # Ridge prior variance for beta: V0 = tau2 * I_p (fallback to 1e4 if not set)
+  V0_mat <- diag(tau2_beta_p, p)
+
   exal_defaults <- list(
     b0 = rep(0, p),
-    V0 = diag(1e4, p),
-    a_sigma = 1, b_sigma = 1,
+    V0 = V0_mat,
+    a_sigma = sigma_a_p,
+    b_sigma = sigma_b_p,
     max_iter  = vb_args_p$max_iter,
     tol       = vb_args_p$tol,
     tol_par   = vb_args_p$tol_par,
     n_samp_xi = vb_args_p$n_samp_xi,
     verbose   = TRUE,
     p0        = p0,
-    gamma_bounds    = c(L.fn(p0), U.fn(p0)),
+    gamma_bounds = c(L.fn(p0), U.fn(p0)),
+    # Start sigma on its natural scale; gamma handled via init_gamma below.
+    init = list(sigma = sigma_init_p),
+    # default, overwritten below if gamma priors are provided
     log_prior_gamma = function(g) 0
   )
+
+  # --- Attach init / prior info to exal_defaults (only if provided) -------
+  if (!is.null(vb_init_gamma)) {
+    exal_defaults$init_gamma <- gamma_init_p
+  }
+
+  if (!is.null(vb_prior_gamma_mu0)) {
+    exal_defaults$prior_gamma_mu0 <- gamma_mu0_p
+    exal_defaults$prior_gamma_s20 <- gamma_s20_p
+    # Normal prior on gamma with (mu0, s20)
+    exal_defaults$log_prior_gamma <- function(g) {
+      sum(stats::dnorm(
+        g,
+        mean = gamma_mu0_p,
+        sd   = sqrt(gamma_s20_p),
+        log  = TRUE
+      ))
+    }
+  }
+
+  # NOTE: by design we **do not** pass any log-sigma priors here;
+  # sigma is controlled only via the IG(a_sigma, b_sigma) prior.
+
 
   fit_exal <- timed(sprintf("fit_exAL_on_X_train(p=%s)", fmt_p(p0)),
     do.call(exal_static_LDVB, c(list(y = y_train_keep, X = X_train), exal_defaults))
@@ -1063,9 +1264,68 @@ for (k in seq_along(p_vec)) {
   }
 }
 
+# --- 3c) Per-p μ error band plots (Train & Forecast)
+for (k in seq_along(p_vec)) {
+  p0 <- p_vec[k]
+
+  mu_draws_tr_k <- fits_fc[[k]]$mu_draws_tr
+  mu_draws_fc_k <- fits_fc[[k]]$mu_draws_fc
+
+  # Safety: skip if draws are missing for some reason
+  if (is.null(mu_draws_tr_k) || is.null(mu_draws_fc_k)) {
+    next
+  }
+
+  df_mu_tr_k <- fits_fc[[k]]$df_mu_tr
+  df_mu_fc_k <- fits_fc[[k]]$df_mu_fc
+
+  g_err_tr <- plot_mu_error_band(
+    mu_draws = mu_draws_tr_k,
+    q_true   = df_mu_tr_k$q_true,
+    h_index  = df_mu_tr_k$h,
+    p0       = p0,
+    scope    = "Train",
+    window   = train_last_window
+  )
+
+  g_err_fc <- plot_mu_error_band(
+    mu_draws = mu_draws_fc_k,
+    q_true   = df_mu_fc_k$q_true,
+    h_index  = df_mu_fc_k$h,
+    p0       = p0,
+    scope    = "Forecast",
+    window   = fore_last_window
+  )
+
+  band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
+
+  timed(sprintf("plot+save train_mu_error_band(p=%s)", fmt_p(p0)), {
+    print(g_err_tr)
+    if (isTRUE(save_outputs)) {
+      ggplot2::ggsave(
+        file.path(FIGS, sprintf("train_mu_error_band%s_p=%s.png",
+                                band_suffix, as.character(p0))),
+        g_err_tr, width = 9, height = 4.8, dpi = 150
+      )
+    }
+  })
+
+  timed(sprintf("plot+save forecast_mu_error_band(p=%s)", fmt_p(p0)), {
+    print(g_err_fc)
+    if (isTRUE(save_outputs)) {
+      ggplot2::ggsave(
+        file.path(FIGS, sprintf("forecast_mu_error_band%s_p=%s.png",
+                                band_suffix, as.character(p0))),
+        g_err_fc, width = 9, height = 4.8, dpi = 150
+      )
+    }
+  })
+}
+
 # ================================================================
-# 3c) Posterior parameter plots: γ, σ histograms + β forest
+# 3d) Posterior parameter plots: γ, σ histograms + β forest
 # ================================================================
+
 if (!exists("plot_param_hist_ci", mode = "function")) {
   plot_param_hist_ci <- function(draws, param_name = "θ", add_bounds = NULL, bins = 100) {
     stopifnot(is.numeric(draws))
@@ -1472,17 +1732,39 @@ if (isTRUE(save_outputs)) {
   saveRDS(
     list(
       fits_fc = fits_fc, synth_fc = synth_fc, compare_fc = compare_fc,
-      cfg = list(
+            cfg = list(
         p_vec = p_vec, desn_args = desn_args, vb_args_base = vb_args_base,
         nd_draws = nd_draws, chunk_sz = chunk_sz,
-        last_window         = fore_last_window,
-        last_window_train   = train_last_window,
+        last_window          = fore_last_window,
+        last_window_train    = train_last_window,
         last_window_forecast = fore_last_window,
-        teacher_forcing = list(enable = tf_enable, first_k = tf_first_k,
-                               explicit = y_future_obs_explicit, y_future_obs_fc = y_future_obs_fc),
-        synth = list(isotonic = synth_isotonic, rearrange = synth_rearrange,
-                     grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed),
-        split = list(T_use = T_use, n_train = n_train, H_forecast = H_forecast)
+        teacher_forcing = list(
+          enable  = tf_enable,
+          first_k = tf_first_k,
+          explicit = y_future_obs_explicit,
+          y_future_obs_fc = y_future_obs_fc
+        ),
+        synth = list(
+          isotonic  = synth_isotonic,
+          rearrange = synth_rearrange,
+          grid_M    = synth_grid_M,
+          n_samp    = synth_nsamp,
+          seed      = synth_seed
+        ),
+        split = list(
+          T_use      = T_use,
+          n_train    = n_train,
+          H_forecast = H_forecast
+        ),
+        ij = list(
+          use_ij_correction = use_ij_correction,
+          nd_draws          = ij_nd_draws
+        ),
+        outputs = list(
+          save          = save_outputs,
+          keep_draws    = keep_draws,
+          thesis_subset = thesis_subset
+        )
       )
     ),
     file.path(MODELS, "forecast_objects.rds")

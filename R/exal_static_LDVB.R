@@ -13,45 +13,53 @@
 #' * \eqn{q(v_i)=\mathrm{GIG}(1/2,\chi_i,\psi)}
 #' * \eqn{q(s_i)=\mathcal{N}(\mu_{s_i},\tau_{s_i}^2)} truncated to \((0,\infty)\)
 #' * \eqn{q(\sigma,\gamma)} via LD; the expectations
-#'   \eqn{\{\xi_1,\xi_\lambda,\xi_{\lambda^2},\xi_A,\xi_{A^2},\xi_{\sigma^{-1}},\zeta_\lambda\}}
+#'   \eqn{\{\xi_1,\xi_\lambda,\xi_{\lambda^2},\xi_A,\xi_{A^2},
+#'         \xi_{\sigma^{-1}},\zeta_\lambda\}}
 #'   are computed via a second-order Delta-method approximation under the
 #'   Gaussian LD approximation for \((\eta,\ell)\).
+#'
+#' Priors are placed on the **natural scale** of the parameters:
+#' \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} and either a user-supplied
+#' \code{log_prior_gamma()} or a Normal prior
+#' \eqn{\gamma \sim N(\mu_{\gamma,0}, s^2_{\gamma,0})}.  Any log-scale priors
+#' for \eqn{\log\sigma} are ignored and are kept only for backward
+#' compatibility in the function signature.
 #'
 #' @param y Numeric vector (length n).
 #' @param X Numeric matrix (n x p).
 #' @param p0 Target quantile in (0,1).
 #' @param max_iter Maximum CAVI iterations (default 1000).
 #' @param tol Convergence tolerance on relative ELBO changes (default 1e-4).
-#' @param tol_par Additional tolerance for parameter convergence safeguard
-#'   based on \eqn{|\mathbb{E}[\gamma]_{\text{old}}-\mathbb{E}[\gamma]_{\text{new}}|
+#' @param tol_par Additional tolerance for the LD safeguard based on
+#'   \eqn{|\mathbb{E}[\gamma]_{\text{old}}-\mathbb{E}[\gamma]_{\text{new}}|
 #'   + |\mathbb{E}[\sigma]_{\text{old}}-\mathbb{E}[\sigma]_{\text{new}}|}
 #'   (default: same as \code{tol}).
-#' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
-#' @param a_sigma,b_sigma Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
-#'   density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
+#' @param b0,V0 Prior mean and covariance for
+#'   \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
+#' @param a_sigma,b_sigma Shape and scale of the Inverse-Gamma prior
+#'   \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with density
+#'   \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
 #' @param gamma_bounds Two-vector \((L,U)\) support for \(\gamma\).
 #'   Defaults to \code{c(L.fn(p0), U.fn(p0))}.
-#' @param log_prior_gamma Function \code{g -> log pi(gamma=g)} (default flat).
+#' @param log_prior_gamma Optional function \code{g -> log pi(gamma=g)}.
+#'   If \code{prior_gamma_mu0} and \code{prior_gamma_s20} are supplied, they
+#'   override \code{log_prior_gamma} with a Normal prior.
+#' @param prior_gamma_mu0,prior_gamma_s20 Optional hyperparameters for the
+#'   Normal prior on \eqn{\gamma}.
+#' @param prior_log_sigma_mu0,prior_log_sigma_s20 Deprecated log-scale
+#'   hyperparameters; they are accepted for compatibility but ignored.
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
-#'   \code{gamma}; if missing, reasonable defaults are used.
+#'   \code{gamma}. If missing, reasonable defaults are used.
+#' @param init_gamma Optional scalar overwrite for the initial \eqn{\gamma}.
+#' @param init_log_sigma Optional scalar overwrite for the initial
+#'   \eqn{\log\sigma}; internally converted to \eqn{\sigma=\exp(\ell)}.
 #' @param n_samp_xi (Currently ignored; kept for backward compatibility.)
-#'   VB--LD uses deterministic Delta-method approximations for the
-#'   \eqn{\xi} expectations under the Gaussian LD approximation.
+#'   VB–LD uses deterministic Delta-method approximations for the
+#'   \eqn{\xi} expectations.
 #' @param verbose Logical; print progress.
 #'
-#' @return A list with
-#' \itemize{
-#'   \item \code{qbeta}: list with \code{m}, \code{V}.
-#'   \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),
-#'         \code{E_v} and \code{E_inv_v} (moments).
-#'   \item \code{qs}: list with \code{mu} (length n), \code{tau2} (length n),
-#'         \code{E_s}, \code{E_s2}.
-#'   \item \code{qsiggam}: list with \code{eta_hat}, \code{ell_hat},
-#'         \code{Sigma} (2x2), approximate means
-#'         \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
-#'   \item \code{converged}, \code{iter}, \code{run.time}, and
-#'         \code{misc} (including \code{p0}, bounds \code{L,U}).
-#' }
+#' @return A list with variational factors, LD approximation for
+#'   \eqn{(\sigma,\gamma)}, convergence diagnostics, and \code{misc}.
 #' @export
 exal_static_LDVB <- function(
   y, X, p0,
@@ -59,11 +67,18 @@ exal_static_LDVB <- function(
   b0 = NULL, V0 = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  log_prior_gamma = function(g) 0,
-  init = NULL,
+  log_prior_gamma      = NULL,
+  prior_gamma_mu0      = NULL,
+  prior_gamma_s20      = NULL,
+  prior_log_sigma_mu0  = NULL,
+  prior_log_sigma_s20  = NULL,
+  init                 = NULL,
+  init_gamma           = NULL,
+  init_log_sigma       = NULL,
   n_samp_xi = 200,
-  verbose = TRUE
+  verbose   = TRUE
 ){
+
   # --- checks ---------------------------------------------------------------
   y <- as.numeric(y)
   X <- as.matrix(X); storage.mode(X) <- "double"
@@ -79,6 +94,29 @@ exal_static_LDVB <- function(
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
   if (!(L < U)) stop("gamma_bounds must satisfy L < U.")
 
+  # --- priors for gamma and log(sigma) --------------------------------------
+  # Gamma prior: hyperparameters override explicit log_prior_gamma()
+  if (!is.null(prior_gamma_mu0) && !is.null(prior_gamma_s20)) {
+    mu_g <- as.numeric(prior_gamma_mu0)[1L]
+    s2_g <- max(as.numeric(prior_gamma_s20)[1L], 1e-12)
+    log_prior_gamma_fun <- function(g) {
+      sum(dnorm(g, mean = mu_g, sd = sqrt(s2_g), log = TRUE))
+    }
+  } else if (!is.null(log_prior_gamma)) {
+    # user-supplied log prior
+    log_prior_gamma_fun <- log_prior_gamma
+  } else {
+    # flat prior
+    log_prior_gamma_fun <- function(g) 0
+  }
+
+  # log(sigma) prior DISABLED:
+  # we keep only the IG(a_sigma, b_sigma) prior on sigma.
+  # prior_log_sigma_* arguments are accepted but ignored.
+  use_lsig_prior <- FALSE
+  mu_lsig <- NA_real_
+  s2_lsig <- NA_real_
+
   # --- A,B,C,lambda helpers -------------------------------------------------
   A_of   <- function(g) A.fn(p0, g)
   B_of   <- function(g) B.fn(p0, g)
@@ -90,6 +128,11 @@ exal_static_LDVB <- function(
   sig_from_ell <- function(ell) exp(ell)
 
   # --- initialize variational parameters ------------------------------------
+  # merge scalar inits into `init` list (no breakage for old callers)
+  if (is.null(init)) init <- list()
+  if (!is.null(init_gamma))      init$gamma <- init_gamma
+  if (!is.null(init_log_sigma))  init$sigma <- exp(init_log_sigma)
+
   m_beta  <- if (is.null(init$beta)) rep(0, p) else as.numeric(init$beta)
   V_beta  <- V0
   sigma0  <- if (is.null(init$sigma)) 1 else as.numeric(init$sigma)[1]
@@ -223,8 +266,9 @@ exal_static_LDVB <- function(
     }
     g_zeta_logpi <- function(z) {
       p <- trans_par(z)
-      log_prior_gamma(p$gamma)
+      log_prior_gamma_fun(p$gamma)
     }
+
 
     list(
       xi1           = delta_E(g_xi1),
@@ -267,10 +311,20 @@ exal_static_LDVB <- function(
     term3 <- + (lam / B) * sum( ms * mv_inv * t_i - ms * A )
     term4 <- - ( (lam * lam) / (2 * B) ) * sigma * sum( ms2 * mv_inv )
 
-    log_prior <- log_prior_gamma(gamma)
-    log_det   <- - (n / 2) * log(B) - ( (3 * n) / 2 + a_sigma + 1 ) * ell
+    # prior on gamma
+    log_prior_g <- log_prior_gamma_fun(gamma)
 
-    log_prior + log_det + term1 + term2 + term3 + term4
+    # optional Normal prior on ell = log(sigma)
+    log_prior_lsig <- if (use_lsig_prior) {
+      -0.5 * ((ell - mu_lsig)^2 / s2_lsig)   # we drop the normalizing constant
+    } else {
+      0
+    }
+
+    log_det <- - (n / 2) * log(B) - ( (3 * n) / 2 + a_sigma + 1 ) * ell
+
+    log_prior_g + log_prior_lsig + log_det + term1 + term2 + term3 + term4
+
   }
 
   # find LD mode & covariance for (eta, ell)
@@ -465,6 +519,14 @@ exal_static_LDVB <- function(
     # (7) E[log p(sigma)] : IG(a_sigma, b_sigma)
     E_log_psig <- a_sigma * log(b_sigma) - lgamma(a_sigma) -
                 (a_sigma + 1) * xis$zeta_logsigma - b_sigma * xis$xi_siginv
+    # (7b) Optional E[log p_logsigma] for ell ~ N(mu_lsig, s2_lsig)
+    E_log_plsig <- 0
+    if (use_lsig_prior) {
+      v_ell   <- Sig_eta_ell[2, 2]                    # Var(log sigma)
+      mean_sq <- (ell_hat - mu_lsig)^2 + v_ell        # E[(ell - mu)^2]
+      # again drop the normalizing constant; only quadratic term matters
+      E_log_plsig <- -0.5 * mean_sq / s2_lsig
+    }
 
     # (8) E[log p(gamma)]
     E_log_pgam <- xis$zeta_logpi
@@ -492,7 +554,8 @@ exal_static_LDVB <- function(
 
     # Put it together
     elbo_new <- lik_norm + lik_quad1 + lik_cross +
-                E_log_pv + E_log_ps + E_log_pb + E_log_psig + E_log_pgam +
+                E_log_pv + E_log_ps + E_log_pb +
+                E_log_psig + E_log_plsig + E_log_pgam +
                 H_qb + H_qv + H_qs + H_qsg
     elbo_new <- elbo_new/n
     elbo_trace <- c(elbo_trace, elbo_new)
@@ -578,7 +641,13 @@ exal_static_LDVB <- function(
       rel_xi_trace  = rel_xi_trace,
       new_term_trace = new_term_trace,
       tol_elbo      = tol,
-      tol_par       = tol_par
+      tol_par       = tol_par,
+      init_gamma           = init_gamma,
+      init_log_sigma       = init_log_sigma,
+      prior_gamma_mu0      = prior_gamma_mu0,
+      prior_gamma_s20      = prior_gamma_s20,
+      prior_log_sigma_mu0  = prior_log_sigma_mu0,
+      prior_log_sigma_s20  = prior_log_sigma_s20
     )
   )
   class(ret) <- "exal_vb"
