@@ -316,6 +316,12 @@ if (!is.null(cfg$forecast)) {
   H_step         <- cfg$forecast$H_step         %nz% H_step
   train_last_window <- cfg$forecast$train_last_window %nz% last_window
   fore_last_window  <- cfg$forecast$fore_last_window  %nz% last_window
+  # --- NEW: how to report coverage in plot subtitles
+  coverage_report <- "global"  # default behavior
+  if (!is.null(cfg$forecast$coverage_report)) {
+    cv <- tolower(as.character(cfg$forecast$coverage_report))
+    if (cv %in% c("global", "window", "both")) coverage_report <- cv
+  }
 }
 
 
@@ -406,9 +412,24 @@ true_q_at_tau <- function(dat_long, tau) {
 }
 
 plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
-  i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L)
-  d <- dplyr::filter(df, dplyr::between(h, i1, i2))
-  coverage <- mean(d$q_true >= d$lo & d$q_true <= d$hi, na.rm = TRUE)
+  # Compute GLOBAL coverage on the full df (train or forecast span)
+  coverage_global <- mean(df$q_true >= df$lo & df$q_true <= df$hi, na.rm = TRUE)
+
+  # Window subset only for visualization
+  i2 <- max(df$h); i1 <- max(1L, i2 - as.integer(window) + 1L)
+  d  <- dplyr::filter(df, dplyr::between(h, i1, i2))
+  coverage_window <- mean(d$q_true >= d$lo & d$q_true <= d$hi, na.rm = TRUE)
+
+  # What to print on the subtitle?
+  cov_mode <- get0("coverage_report", ifnotfound = "global", inherits = TRUE)
+  cov_text <- switch(
+    cov_mode,
+    "window" = sprintf("q_true-in-band (window) = %s", scales::percent(coverage_window, 0.1)),
+    "both"   = sprintf("q_true-in-band: global=%s • window=%s",
+                       scales::percent(coverage_global, 0.1),
+                       scales::percent(coverage_window, 0.1)),
+    sprintf("q_true-in-band (global) = %s", scales::percent(coverage_global, 0.1))
+  )
 
   band_label <- if (isTRUE(get0("use_ij_correction", ifnotfound = FALSE))) {
     "IJ-corrected 95% band for μ̂"
@@ -419,7 +440,7 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
   ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
     ggplot2::labs(
       title    = sprintf("%s: %s vs true qₚ (p=%s)", scope, band_label, scales::percent(p0, 1)),
-      subtitle = sprintf("q_true-in-band = %s", scales::percent(coverage, 0.1)),
+      subtitle = cov_text,
       caption  = caption_exdqlm(window),
       x = "time", y = "value"
     ) +
@@ -436,7 +457,6 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
       values = c(mu = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280")
     )
 }
-
 
 # NEW: μ - true q_p error band, using μ draws
 plot_mu_error_band <- function(mu_draws,
@@ -528,33 +548,62 @@ plot_synth_q_vs_true <- function(df_s, tau, scope = "Forecast", window = 200L) {
     ggplot2::scale_color_manual(name = "",
       values = c(synth = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280"))
 }
+
 plot_synth_predictive_band <- function(synth_draws, y_vec, scope = "Forecast", window = 50L,
                                        fill_col = ACCENT_ORANGE, show_median = TRUE) {
   stopifnot(is.matrix(synth_draws), length(y_vec) == nrow(synth_draws))
+
   T_h <- nrow(synth_draws)
   i2  <- T_h
   i1  <- max(1L, i2 - as.integer(window) + 1L)
 
-  q_mat <- t(apply(synth_draws, 1L, stats::quantile,
-                   probs = c(0.025, 0.50, 0.975), names = FALSE))
-  colnames(q_mat) <- c("q025", "q50", "q975")
+  # Quantiles for ALL times (for GLOBAL metrics)
+  q_mat_all <- t(apply(synth_draws, 1L, stats::quantile,
+                       probs = c(0.025, 0.50, 0.975), names = FALSE))
+  colnames(q_mat_all) <- c("q025", "q50", "q975")
 
+  # GLOBAL coverage/width (full train/forecast span)
+  coverage_global <- mean(y_vec >= q_mat_all[, "q025"] & y_vec <= q_mat_all[, "q975"], na.rm = TRUE)
+  mean_w_global   <- mean(q_mat_all[, "q975"] - q_mat_all[, "q025"], na.rm = TRUE)
+
+  # Windowed df only for plotting
   df <- tibble::tibble(
     h = seq_len(T_h), y = y_vec,
-    q025 = q_mat[, "q025"], q50 = q_mat[, "q50"], q975 = q_mat[, "q975"]
+    q025 = q_mat_all[, "q025"], q50 = q_mat_all[, "q50"], q975 = q_mat_all[, "q975"]
   ) |>
     dplyr::filter(dplyr::between(h, i1, i2))
 
-  coverage <- mean(df$y >= df$q025 & df$y <= df$q975, na.rm = TRUE)
-  mean_w   <- mean(df$q975 - df$q025, na.rm = TRUE)
+  # WINDOW metrics (optional, for display if requested)
+  coverage_window <- mean(df$y >= df$q025 & df$y <= df$q975, na.rm = TRUE)
+  mean_w_window   <- mean(df$q975 - df$q025, na.rm = TRUE)
+
+  cov_mode <- get0("coverage_report", ifnotfound = "global", inherits = TRUE)
+  sub_txt <- switch(
+    cov_mode,
+    "window" = paste(
+      sprintf("coverage(window)=%s", scales::percent(coverage_window, 0.1)),
+      sprintf("mean width(window)=%.3f", mean_w_window),
+      sep = " • "
+    ),
+    "both" = paste(
+      sprintf("coverage(global)=%s", scales::percent(coverage_global, 0.1)),
+      sprintf("mean width(global)=%.3f", mean_w_global),
+      sprintf(" | coverage(window)=%s", scales::percent(coverage_window, 0.1)),
+      sprintf("mean width(window)=%.3f", mean_w_window),
+      sep = " • "
+    ),
+    # default: global
+    paste(
+      sprintf("coverage(global)=%s", scales::percent(coverage_global, 0.1)),
+      sprintf("mean width(global)=%.3f", mean_w_global),
+      sep = " • "
+    )
+  )
 
   ggplot2::ggplot(df, ggplot2::aes(x = h)) + theme_exdqlm() +
     ggplot2::labs(
       title   = sprintf("%s: synthesized 95%% predictive band", scope),
-      subtitle = paste(
-        sprintf("coverage=%s", scales::percent(coverage, 0.1)),
-        sprintf("mean width=%.3f", mean_w), sep = " • "
-      ),
+      subtitle = sub_txt,
       caption = caption_exdqlm(window), x = "time", y = "value"
     ) +
     ggplot2::geom_ribbon(
@@ -951,7 +1000,8 @@ use_tf <- is.numeric(y_future_obs_fc) &&
 stopifnot(!use_tf || length(y_future_obs_fc) == H_forecast)
 
 # === Shared reservoir pass → precompute design for train + 1-step forecast ===
-drop <- max(as.integer(desn_args$m), as.integer(desn_args$washout))
+n_drop <- max(as.integer(desn_args$m), as.integer(desn_args$washout))
+
 # --- Sanitize DESN per-layer fields so qdesn_fit_vb gets valid scalars/vectors ---
 D_eff <- as.integer(desn_args$D)
 
@@ -1035,7 +1085,7 @@ stopifnot(nrow(X_train) == length(y_train_keep))
 stopifnot(nrow(X_fc1)   == length(y_forecast))
 
 cat(sprintf("[shared] drop=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
-            drop, nrow(X_train), nrow(X_fc1), ncol(X_train)))
+            n_drop, nrow(X_train), nrow(X_fc1), ncol(X_train)))
 
 # --- 2) Fit & Forecast per p
 fit_and_forecast_p <- function(p0) {

@@ -48,19 +48,19 @@ vb:
 
   priors:
     gamma:
-      # Normal prior for γ | p ~ N(mu0_p, s20_p).
+      # Normal prior for γ | p ~ TN(mu0_p, s20_p).
       mu0: [0.0, 0.0, 0.0]
-      s20: [10.0, 10.0, 10.0]   # fairly vague
+      s20: [100.0, 100.0, 100.0]   # fairly vague
 
     sigma:
       # Inverse-Gamma prior σ | p ~ IG(a_p, b_p).
       # Scalars are recycled across p_vec; vectors must match length(p_vec).
-      a: [1.0, 1.0, 1.0]
-      b: [1.0, 1.0, 1.0]
+      a: [100.0, 100.0, 100.0]
+      b: [100.0, 100.0, 100.0]
 
     beta:
       # Ridge prior variance for readout β: V0 = tau2 * I.
-      tau2: 10.0
+      tau2: 100.0
 
 sampling:
   # Posterior predictive draws used for diagnostics / synthesis.
@@ -68,6 +68,7 @@ sampling:
   chunk: 250
 
 forecast:
+  coverage_report: global     # options: global, window, both
   # Rolling-origin forecast configuration.
   rolling_origin: true
   H_step: 1
