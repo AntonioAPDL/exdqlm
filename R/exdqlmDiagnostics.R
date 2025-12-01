@@ -29,7 +29,6 @@
 #' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
 #'                   gam.init=-3.5,sig.init=15)
 #' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
-#' M0.diags$m1.KL
 #' }
 #'
 exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
@@ -100,41 +99,11 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NUL
     # m2 run-time
     retlist[["m2.rt"]] = m2$run.time
   }
-
-  if(plot){
-    if(is.null(m2)){
-      qq.x.range = range(m1.qq$x)
-      qq.y.range = range(m1.qq$y)
-      acf.y.range = range(m1.acf$acf)
-      fe.y.range = range(m1$map.standard.forecast.errors)
-    }else{
-      qq.x.range = range(c(m1.qq$x,retlist$m2.qq$x))
-      qq.y.range = range(c(m1.qq$y,retlist$m2.qq$y))
-      acf.y.range = range(c(m1.acf$acf,retlist$m2.acf$acf))
-      fe.y.range = range(c(m1$map.standard.forecast.errors,m2$map.standard.forecast.errors))
-    }
-    # m1 qqplot
-    plot(m1.qq,main="",col=cols[1],pch=20,xlab="Theoretical Quantiles",ylab="M1 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
-    graphics::abline(a=0,b=1)
-    # m1 acf
-    plot(m1.acf,ylab="M1 ACF",col=cols[1],main="",ylim=acf.y.range)
-    # m1 forecast errors
-    ts.xy = grDevices::xy.coords(y)
-    graphics::plot(ts.xy$x,m1$map.standard.forecast.errors,ylab="M1 standard forecast errors",xlab="time",col=cols[1],pch=20,type="l",ylim=fe.y.range)
-    graphics::abline(h=0,lty=2)
-    ### m2
-    if(!is.null(m2)){
-      # m2 qqplot
-      plot(retlist[["m2.qq"]],main="",col=cols[2],pch=20,xlab="Theoretical Quantiles",ylab="M2 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
-      graphics::abline(a=0,b=1)
-      # m2 acf
-      plot(retlist[["m2.acf"]],ylab="M2 ACF",col=cols[2],main="",ylim=acf.y.range)
-      # m2 forecast errors
-      graphics::plot(ts.xy$x,m2$map.standard.forecast.errors,ylab="M2 standard forecast errors", xlab="time",col=cols[2],pch=20,type="l",ylim=fe.y.range)
-      graphics::abline(h=0,lty=2)
-    }
-  }
   class(retlist) <- "exdqlmDiagnostic"
+  
+  if(plot){
+    plot(retlist, cols = cols)
+  }
 
   # return model checks
   return(invisible(retlist))

@@ -44,8 +44,13 @@ quantiles respectively. Default \code{c("purple","magenta")}.}
 intervals (e.g., \code{0.95}). Default \code{0.95}.}
 }
 \value{
-A list with components:
+A object of class "\code{exdqlmForecast}" containing the following:
 \itemize{
+\item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{m1}).
+\item \code{k} Integer; number of steps ahead forecasted.
+\item \code{m1} A fitted exDQLM model object, typically returned by \code{\link[=exdqlmISVB]{exdqlmISVB()}} or \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}.
+\item \code{cr.percent} Numeric in \code{(0, 1)}; the probability mass for the credible
+intervals (e.g., \code{0.95}).
 \item \code{fa} Forecast state mean vectors (\eqn{p \times k} matrix).
 \item \code{fR} Forecast state covariance matrices (\eqn{p \times p \times k} array).
 \item \code{ff} Forecast quantile means (length-\code{k} numeric).

@@ -375,8 +375,6 @@ plot.exdqlmISVB <- function(x, ...) {
 #' @param x an \strong{R} object
 #'
 #' @export
-#' 
-#' 
 is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 
 #' Print Method for \code{exdqlmDiagnostic} Objects
@@ -457,38 +455,160 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 #' }
 #'
 plot.exdqlmDiagnostic <- function(x, ...) {
+  aa = list(...)
+  if(is.null(aa$cols)){cols=c("red","blue")}else{cols = aa$cols}
+  
   # get ranges
   if(is.null(x$m2.KL)){
     qq.x.range = range(x$m1.qq$x)
     qq.y.range = range(x$m1.qq$y)
     acf.y.range = range(x$m1.acf$acf)
     fe.y.range = range(x$m1.msfe)
-    graphics::par(mfrow = c(1, 3))
   }else{
     qq.x.range = range(c(x$m1.qq$x,x$m2.qq$x))
     qq.y.range = range(c(x$m1.qq$y,x$m2.qq$y))
     acf.y.range = range(c(x$m1.acf$acf,x$m2.acf$acf))
     fe.y.range = range(c(x$m1.msfe,x$m2.msfe))
-    graphics::par(mfrow = c(2, 3))
   }
   # m1 qqplot
-  plot(x$m1.qq,main="",col="red",pch=20,xlab="Theoretical Quantiles",ylab="M1 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
+  plot(x$m1.qq,main="",col=cols[1],pch=20,xlab="Theoretical Quantiles",ylab="M1 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
   graphics::abline(a=0,b=1)
   # m1 acf
-  plot(x$m1.acf,ylab="M1 ACF",col="red",main="",ylim=acf.y.range)
+  plot(x$m1.acf,ylab="M1 ACF",col=cols[1],main="",ylim=acf.y.range)
   # m1 forecast errors
   ts.xy = grDevices::xy.coords(x$y)
-  graphics::plot(ts.xy$x,x$m1.msfe,ylab="M1 standard forecast errors",xlab="time",col="red",pch=20,type="l",ylim=fe.y.range)
+  graphics::plot(ts.xy$x,x$m1.msfe,ylab="M1 standard forecast errors",xlab="time",col=cols[1],pch=20,type="l",ylim=fe.y.range)
   graphics::abline(h=0,lty=2)
   ### m2
   if(!is.null(x$m2.KL)){
     # m2 qqplot
-    plot(x$m2.qq,main="",col="blue",pch=20,xlab="Theoretical Quantiles",ylab="M2 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
+    plot(x$m2.qq,main="",col=cols[2],pch=20,xlab="Theoretical Quantiles",ylab="M2 Sample Quantiles",xlim=qq.x.range,ylim=qq.y.range)
     graphics::abline(a=0,b=1)
     # m2 acf
-    plot(x$m2.acf,ylab="M2 ACF",col="blue",main="",ylim=acf.y.range)
+    plot(x$m2.acf,ylab="M2 ACF",col=cols[2],main="",ylim=acf.y.range)
     # m2 forecast errors
-    graphics::plot(ts.xy$x,x$m2.msfe,ylab="M2 standard forecast errors", xlab="time",col="blue",pch=20,type="l",ylim=fe.y.range)
+    graphics::plot(ts.xy$x,x$m2.msfe,ylab="M2 standard forecast errors", xlab="time",col=cols[2],pch=20,type="l",ylim=fe.y.range)
     graphics::abline(h=0,lty=2)
   }
 }
+
+
+
+
+##################################
+#### "exdqlmForecast" objects ####
+##################################
+
+#' \code{exdqlmForecast} objects
+#'
+#' \code{is.exdqlmForecast} tests if its argument is a \code{exdqlmForecast} object. 
+#' 
+#' @usage is.exdqlmForecast(x)
+#'
+#' @param x an \strong{R} object
+#'
+#' @export
+is.exdqlmForecast = function(x){ return(methods::is(x,"exdqlmForecast")) }
+
+#' Print Method for \code{exdqlmForecast} Objects
+#'
+#' @param x An \code{exdqlmForecast} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#'  y <- scIVTmag[1:100]
+#'  model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
+#'  M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                   gam.init = -3.5, sig.init = 15)
+#'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
+#'  print(M0.forecast)
+#' }
+#'
+print.exdqlmForecast <- function(x, ...) {
+  #
+  cat("k-step-ahead Quantile Forecasts of an exDQLM\n")
+  cat("Number of Observations:", length(x$m1$y), "\n")
+  cat("State Dimension:", length(x$m1$model$m0), "\n")  
+  cat("Forecasts start at time index", x$start.t, "and forecast k =", x$k, "steps ahead\n")
+  #
+}
+
+#' Summary Method for \code{exdqlmForecast} Objects
+#'
+#' @param object An \code{exdqlmForecast} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#'  y <- scIVTmag[1:100]
+#'  model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
+#'  M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                   gam.init = -3.5, sig.init = 15)
+#'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
+#'  summary(M0.forecast)
+#' }
+#'
+summary.exdqlmForecast <- function(object, ...) {
+  #
+  cat("k-step-ahead Quantile Forecasts of an exDQLM\n")
+  cat("Number of Observations:", length(object$m1$y), "\n")
+  cat("State Dimension:", length(object$m1$model$m0), "\n")  
+  cat("Forecasts start at time index", object$start.t, "and forecast k =", object$k, "steps ahead\n")
+  #
+}
+
+#' Plot Method for \code{exdqlmForecast} Objects
+#'
+#' @param x An \code{exdqlmForecast} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#'  y <- scIVTmag[1:100]
+#'  model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
+#'  M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                   gam.init = -3.5, sig.init = 15)
+#'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
+#'  plot(M0.forecast)
+#' }
+#'
+plot.exdqlmForecast <- function(x, ...) {
+  aa = list(...)
+  if(is.null(aa$cols)){cols=c("purple","magenta")}else{cols = aa$cols}
+  if(is.null(aa$add)){add=FALSE}else{add=aa$add}
+  
+  y = x$m1$y
+  p = dim(x$m1$model$GG)[1]
+  TT = dim(x$m1$model$GG)[3]
+  half.alpha = (1 - x$cr.percent)/2
+  
+  # filtered estimate for reference
+  qmap = apply(matrix(x$m1$model$FF[,1:x$start.t]*x$m1$theta.out$fm[,1:x$start.t],p,x$start.t),2,sum)
+  qlb = qmap + sapply(1:x$start.t,function(t){stats::qnorm(half.alpha,0,sqrt(t(x$m1$model$FF[,t])%*%x$m1$theta.out$fC[,,t]%*%x$m1$model$FF[,t]))})
+  qub = qmap + sapply(1:x$start.t,function(t){stats::qnorm(x$cr.percent + half.alpha,0,sqrt(t(x$m1$model$FF[,t])%*%x$m1$theta.out$fC[,,t]%*%x$m1$model$FF[,t]))})
+  # forecast estimates
+  fqlb = x$ff+stats::qnorm(half.alpha,0,sqrt(x$fQ))
+  fqub = x$ff+stats::qnorm(x$cr.percent + half.alpha,0,sqrt(x$fQ))
+  # filtered and forecasted quantiles & CrIs
+  ts.xy = grDevices::xy.coords(y)
+  if(!add){
+    stats::plot.ts(y,xlim=c(ts.xy$x[x$start.t]-2*x$k*diff(ts.xy$x)[1],ts.xy$x[x$start.t]+x$k*diff(ts.xy$x)[1]),ylim=range(c(y,qlb,qub,fqlb,fqub)),type="l",ylab="quantile forecast",col="dark grey",xlab="time")
+  }
+  graphics::lines(ts.xy$x[1:x$start.t],qlb,col=cols[1],lty=3)
+  graphics::lines(ts.xy$x[1:x$start.t],qub,col=cols[1],lty=3)
+  graphics::lines(ts.xy$x[1:x$start.t],qmap,col=cols[1],lwd=1.5)
+  graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qmap[x$start.t],x$ff),col=cols[2])
+  graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qub[x$start.t],fqub),col=cols[2],lty=3)
+  graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qlb[x$start.t],fqlb),col=cols[2],lty=3)
+  
+}
+
+
+

@@ -47,7 +47,6 @@ model = polytrendMod(1,mean(y),10)
 M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
                   gam.init=-3.5,sig.init=15)
 M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
-M0.diags$m1.KL
 }
 
 }
