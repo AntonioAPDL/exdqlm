@@ -18,10 +18,10 @@ p_vec: [0.05, 0.50, 0.95]
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                        # number of reservoir layers
-  "n": [20, 20, 20]           # units per layer (length D)
-  n_tilde: [20, 20]           # skip connections; length D-1 or D
-  m: 45                       # readout dimension
-  alpha: [0.3, 0.3, 0.3]      # leaking rate per layer
+  "n": [10, 20, 30]           # units per layer (length D)
+  n_tilde: [20, 30]           # skip connections; length D-1 or D
+  m: 90                       # readout dimension
+  alpha: [0.2, 0.2, 0.2]      # leaking rate per layer
   rho: [0.95, 0.95, 0.95]     # target spectral radius per layer
   act_f: [tanh, tanh, tanh]   # state non-linearity
   act_k: [identity, identity, identity]  # output activation

@@ -177,6 +177,8 @@ do_pit         <- TRUE
 do_scores      <- TRUE  # CRPS + S
 
 # --- Apply cfg overrides (if present)
+coverage_report <- "global"
+
 if (length(cfg)) {
   if (!is.null(cfg$p_vec))             p_vec <- as.numeric(cfg$p_vec)
   if (!is.null(cfg$desn)) {
@@ -446,7 +448,7 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
     ) +
     ggplot2::geom_ribbon(
       ggplot2::aes(ymin = lo, ymax = hi),
-      fill = scales::alpha(col_map[fmt_p(p0)], 0.22),
+      fill = scales::alpha(col_map[fmt_p(p0)], 0.5),
       colour = NA
     ) +
     ggplot2::geom_line(ggplot2::aes(y = mu,     colour = "mu"),   linewidth = 0.5) +
@@ -508,30 +510,53 @@ plot_mu_error_band <- function(mu_draws,
     ggplot2::geom_hline(yintercept = 0, linetype = "dashed", colour = "#4b5563") +
     ggplot2::geom_ribbon(
       ggplot2::aes(ymin = lo, ymax = hi),
-      fill = scales::alpha(col_map[fmt_p(p0)], 0.22),
+      fill = scales::alpha(col_map[fmt_p(p0)], 0.5),
       colour = NA
     ) +
     ggplot2::geom_line(ggplot2::aes(y = med),
                        colour   = ACCENT_ORANGE,
-                       linewidth = 0.7) +
+                       linewidth = 0.4) +
     ggplot2::coord_cartesian(ylim = y_lim)
 }
 
 plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
-  i2 <- max(df$h); i1 <- max(1L, i2 - window + 1L)
-  d <- dplyr::filter(df, dplyr::between(h, i1, i2))
+  i2 <- max(df$h)
+  i1 <- max(1L, i2 - window + 1L)
+  d  <- dplyr::filter(df, dplyr::between(h, i1, i2))
+
   mae <- mean(abs(d$q_pred - d$q_true), na.rm = TRUE)
-  ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
-    ggplot2::labs(title = sprintf("%s: q̂ₚ vs true qₚ (p=%s)", scope, scales::percent(p0, 1)),
-                  subtitle = sprintf("MAE = %.3f", mae),
-                  caption = caption_exdqlm(window), x = "time", y = "value") +
+
+  has_ij_band <- all(c("lo_q_ij", "hi_q_ij") %in% names(d)) &&
+                 any(is.finite(d$lo_q_ij) | is.finite(d$hi_q_ij))
+
+  g <- ggplot2::ggplot(d, ggplot2::aes(x = h)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      title    = sprintf("%s: q̂ₚ vs true qₚ (p=%s)", scope, scales::percent(p0, 1)),
+      subtitle = sprintf("MAE (q_pred vs q_true) = %.3f", mae),
+      caption  = caption_exdqlm(window),
+      x = "time",
+      y = "value"
+    )
+
+  if (has_ij_band) {
+    g <- g +
+      ggplot2::geom_ribbon(
+        ggplot2::aes(ymin = lo_q_ij, ymax = hi_q_ij),
+        fill   = scales::alpha(col_map[fmt_p(p0)], 0.35),
+        colour = NA
+      )
+  }
+
+  g +
     ggplot2::geom_line(ggplot2::aes(y = q_pred, colour = "pred"), linewidth = 0.5) +
     ggplot2::geom_line(ggplot2::aes(y = q_true, colour = "true"), linewidth = 0.9, linetype = 2) +
     ggplot2::geom_line(ggplot2::aes(y = y,      colour = "data"), linewidth = 0.6, alpha = 0.85) +
-    ggplot2::scale_color_manual(name = "",
-      values = c(pred = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280"))
+    ggplot2::scale_color_manual(
+      name   = "",
+      values = c(pred = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280")
+    )
 }
-
 
 plot_synth_q_vs_true <- function(df_s, tau, scope = "Forecast", window = 200L) {
   tau_lab <- fmt_p(tau); c_true <- paste0("true_q_", tau_lab); c_synth <- paste0("synth_q_", tau_lab)
@@ -686,6 +711,63 @@ plot_beta_forest <- function(beta_draws,
     )
 }
 
+plot_beta_forest_summary <- function(beta_hat,
+                                     lo,
+                                     hi,
+                                     term_names = NULL,
+                                     top_k = NULL,
+                                     zero_line = TRUE,
+                                     title = "Readout coefficients: IJ-corrected 95% band") {
+  stopifnot(length(beta_hat) == length(lo), length(beta_hat) == length(hi))
+  p <- length(beta_hat)
+  if (is.null(term_names) || length(term_names) != p) {
+    term_names <- paste0("β", seq_len(p))
+  }
+
+  df <- tibble::tibble(
+    term   = term_names,
+    lo     = as.numeric(lo),
+    med    = as.numeric(beta_hat),
+    hi     = as.numeric(hi),
+    width  = hi - lo,
+    absmed = abs(med)
+  )
+
+  if (!is.null(top_k)) {
+    df <- df %>%
+      dplyr::arrange(dplyr::desc(absmed)) %>%
+      dplyr::slice_head(n = top_k)
+  }
+
+  ggplot2::ggplot(df, ggplot2::aes(y = reorder(term, absmed), x = med)) +
+    theme_exdqlm() +
+    ggplot2::geom_errorbarh(
+      ggplot2::aes(xmin = lo, xmax = hi),
+      height = 0,
+      alpha  = 0.9
+    ) +
+    ggplot2::geom_point(size = 1.4) +
+    {
+      if (zero_line) {
+        ggplot2::geom_vline(
+          xintercept = 0,
+          colour     = "red",
+          linetype   = "dashed"
+        )
+      } else ggplot2::geom_blank()
+    } +
+    ggplot2::labs(
+      title    = title,
+      subtitle = if (!is.null(top_k)) {
+        sprintf("Top %d by |median| • red line at 0", top_k)
+      } else {
+        "All coefficients • red line at 0"
+      },
+      x = "value",
+      y = NULL
+    )
+}
+
 get_exal_param_draws <- function(fit, p, nd = 2000, gamma_bounds = NULL, seed = NULL) {
   # Minimal, exAL-only version:
   #  - assumes `fit` is an `exal_vb` object from `exal_static_LDVB`
@@ -711,6 +793,40 @@ get_exal_param_draws <- function(fit, p, nd = 2000, gamma_bounds = NULL, seed = 
     beta  = dr$beta,          # nd × p
     gamma_bounds = gamma_bounds
   )
+}
+
+ij_sd_for_functional <- function(F_all, loglik_mat, n_obs) {
+  # Generic IJ SD engine:
+  #  - F_all:    M_eff x K matrix (rows = draws, cols = functionals: times or coeffs)
+  #  - loglik_mat: M_eff x n_obs matrix (rows = draws, cols = observations)
+  #  - n_obs:    number of training observations used in loglik_mat
+  #
+  # Returns:
+  #  - sd_ij: length-K vector of IJ standard deviations
+  stopifnot(is.matrix(F_all), is.matrix(loglik_mat))
+  M_eff <- nrow(F_all)
+  K     <- ncol(F_all)
+
+  if (M_eff < 2L || n_obs < 2L || K < 1L) {
+    return(rep(0, K))
+  }
+
+  # Center functionals and log-likelihood contributions by column
+  F_centered <- sweep(F_all,     2L, colMeans(F_all),     "-")  # M_eff x K
+  L_centered <- sweep(loglik_mat, 2L, colMeans(loglik_mat), "-") # M_eff x n_obs
+
+  # Covariances: cov(f_k, ℓ_i) for all k, i
+  # crossprod(F_centered, L_centered) = t(F_centered) %*% L_centered → K x n_obs
+  Cmat <- crossprod(F_centered, L_centered) / (M_eff - 1)
+
+  # Influence matrix I_{k,i} = n * cov(f_k, ℓ_i)
+  I_mat      <- n_obs * Cmat                # K x n_obs
+  I_bar      <- rowMeans(I_mat)            # length K
+  I_centered <- sweep(I_mat, 1L, I_bar, "-") # K x n_obs
+
+  var_ij <- rowSums(I_centered^2) / (n_obs * (n_obs - 1))
+  var_ij <- pmax(var_ij, 0)
+  sqrt(var_ij)
 }
 
 compute_mu_bands_with_ij <- function(
@@ -743,6 +859,10 @@ compute_mu_bands_with_ij <- function(
     ))
   }
 
+  # Default: all draws are "kept" unless IJ filtering says otherwise
+  finite_draw <- rep(TRUE, M)
+  loglik_mat  <- NULL
+
   # --- μ draws: train + forecast (time-major: rows = t, cols = draws) ----
   mu_mat_tr <- X_train %*% t(beta_draws)   # n x M
   mu_mat_fc <- X_fc1   %*% t(beta_draws)   # H x M
@@ -750,7 +870,7 @@ compute_mu_bands_with_ij <- function(
   mu_draws_tr_TxM <- mu_mat_tr
   mu_draws_fc_TxM <- mu_mat_fc
 
-  # Posterior-only summaries
+  # Posterior-only summaries (before any IJ filtering)
   mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95)
   mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95)
 
@@ -765,7 +885,7 @@ compute_mu_bands_with_ij <- function(
   lo_post_fc <- mu_qs_fc[, "lo"]
   hi_post_fc <- mu_qs_fc[, "hi"]
 
-  # Defaults if IJ is disabled
+  # Defaults if IJ is disabled or fails
   sd_ij_tr <- rep(0, n)
   sd_ij_fc <- rep(0, H)
   lo_tr    <- lo_post_tr
@@ -775,21 +895,27 @@ compute_mu_bands_with_ij <- function(
 
   if (isTRUE(use_ij)) {
     # --- Log-likelihood contributions per draw & obs (train only) ----------
-    loglik_mat <- exal_loglik_from_mu_cpp(
+    loglik_full <- exal_loglik_from_mu_cpp(
       y           = y_train_keep,
       mu_mat      = mu_mat_tr,
       sigma_draws = sigma_draws,
       gamma_draws = gamma_draws,
       p0          = p0
-    )
-    # loglik_mat: M x n
+    ) # M x n
 
-    # Drop draws with any non-finite loglik
-    finite_draw <- apply(is.finite(loglik_mat), 1L, all)
-    if (!all(finite_draw)) {
-      loglik_mat        <- loglik_mat[finite_draw, , drop = FALSE]
-      mu_draws_tr_TxM   <- mu_draws_tr_TxM[, finite_draw, drop = FALSE]
-      mu_draws_fc_TxM   <- mu_draws_fc_TxM[, finite_draw, drop = FALSE]
+    finite_draw <- apply(is.finite(loglik_full), 1L, all)
+    M_eff       <- sum(finite_draw)
+    n_obs       <- length(y_train_keep)
+
+    if (M_eff < 2L || n_obs < 2L) {
+      warning("compute_mu_bands_with_ij(): IJ skipped (too few finite draws or obs); using posterior-only μ bands.")
+      loglik_mat  <- NULL
+      finite_draw <- rep(TRUE, M)  # revert to 'no filtering' for downstream
+    } else {
+      # Keep only finite draws for loglik and μ draws
+      loglik_mat        <- loglik_full[finite_draw, , drop = FALSE]  # M_eff x n
+      mu_draws_tr_TxM   <- mu_draws_tr_TxM[, finite_draw, drop = FALSE] # n x M_eff
+      mu_draws_fc_TxM   <- mu_draws_fc_TxM[, finite_draw, drop = FALSE] # H x M_eff
 
       # Recompute posterior summaries for filtered draws
       mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95)
@@ -805,63 +931,56 @@ compute_mu_bands_with_ij <- function(
       hi_post_tr <- mu_qs_tr[, "hi"]
       lo_post_fc <- mu_qs_fc[, "lo"]
       hi_post_fc <- mu_qs_fc[, "hi"]
+
+      # --- IJ variance for all times (train + forecast) via generic engine ----
+      F_tr  <- t(mu_draws_tr_TxM)          # M_eff x n
+      F_fc  <- t(mu_draws_fc_TxM)          # M_eff x H
+      F_all <- cbind(F_tr, F_fc)           # M_eff x (n + H)
+
+      sd_ij_all <- ij_sd_for_functional(
+        F_all      = F_all,
+        loglik_mat = loglik_mat,
+        n_obs      = n_obs
+      )
+
+      sd_ij_tr <- sd_ij_all[seq_len(n)]
+      sd_ij_fc <- sd_ij_all[n + seq_len(H)]
+
+      # Combine posterior variance and IJ variance (current choice: IJ only)
+      sd_total_tr <- sd_ij_tr
+      sd_total_fc <- sd_ij_fc
+
+      alpha <- 0.05
+      z_975 <- stats::qnorm(1 - alpha / 2)
+
+      lo_tr <- mu_hat_tr - z_975 * sd_total_tr
+      hi_tr <- mu_hat_tr + z_975 * sd_total_tr
+
+      lo_fc <- mu_hat_fc - z_975 * sd_total_fc
+      hi_fc <- mu_hat_fc + z_975 * sd_total_fc
     }
-
-    M_eff <- nrow(loglik_mat)
-    n_obs <- length(y_train_keep)
-
-    # --- IJ variance for all times (train + forecast) via matrix algebra ----
-    F_tr   <- t(mu_draws_tr_TxM)          # M_eff x n
-    F_fc   <- t(mu_draws_fc_TxM)          # M_eff x H
-    F_all  <- cbind(F_tr, F_fc)           # M_eff x (n + H)
-
-    F_centered <- sweep(F_all,    2L, colMeans(F_all),    "-")
-    L_centered <- sweep(loglik_mat, 2L, colMeans(loglik_mat), "-")
-
-    # Covariances: cov(f_t, ell_i) for all t,i
-    Cmat <- crossprod(F_centered, L_centered) / (M_eff - 1)  # (n+H) x n
-
-    # Influence matrix I_{t,i} = n * cov(f_t, ell_i)
-    I_mat      <- n_obs * Cmat                   # (n+H) x n
-    I_bar      <- rowMeans(I_mat)               # length n+H
-    I_centered <- sweep(I_mat, 1L, I_bar, "-")  # (n+H) x n
-
-    var_ij_all <- rowSums(I_centered^2) / (n_obs * (n_obs - 1))
-    var_ij_all <- pmax(var_ij_all, 0)
-    sd_ij_all  <- sqrt(var_ij_all)
-
-    sd_ij_tr <- sd_ij_all[seq_len(n)]
-    sd_ij_fc <- sd_ij_all[n + seq_len(H)]
-
-    # Combine posterior variance and IJ variance
-    sd_total_tr <- sqrt(mu_sd_tr^2 + sd_ij_tr^2)
-    sd_total_fc <- sqrt(mu_sd_fc^2 + sd_ij_fc^2)
-
-    alpha  <- 0.05
-    z_975  <- stats::qnorm(1 - alpha / 2)
-
-    lo_tr <- mu_hat_tr - z_975 * sd_total_tr
-    hi_tr <- mu_hat_tr + z_975 * sd_total_tr
-
-    lo_fc <- mu_hat_fc - z_975 * sd_total_fc
-    hi_fc <- mu_hat_fc + z_975 * sd_total_fc
   }
 
+  draw_idx_keep <- if (!is.null(loglik_mat)) which(finite_draw) else NULL
+
   list(
-    mu_draws_tr = mu_draws_tr_TxM,  # n x M_eff
-    mu_draws_fc = mu_draws_fc_TxM,  # H x M_eff
-    mu_hat_tr   = mu_hat_tr,
-    mu_hat_fc   = mu_hat_fc,
-    lo_tr       = lo_tr,
-    hi_tr       = hi_tr,
-    lo_fc       = lo_fc,
-    hi_fc       = hi_fc,
-    sd_ij_tr    = sd_ij_tr,
-    sd_ij_fc    = sd_ij_fc,
-    lo_post_tr  = lo_post_tr,
-    hi_post_tr  = hi_post_tr,
-    lo_post_fc  = lo_post_fc,
-    hi_post_fc  = hi_post_fc
+    mu_draws_tr   = mu_draws_tr_TxM,  # n x M_eff (or n x M if IJ off)
+    mu_draws_fc   = mu_draws_fc_TxM,  # H x M_eff
+    mu_hat_tr     = mu_hat_tr,
+    mu_hat_fc     = mu_hat_fc,
+    lo_tr         = lo_tr,
+    hi_tr         = hi_tr,
+    lo_fc         = lo_fc,
+    hi_fc         = hi_fc,
+    sd_ij_tr      = sd_ij_tr,
+    sd_ij_fc      = sd_ij_fc,
+    lo_post_tr    = lo_post_tr,
+    hi_post_tr    = hi_post_tr,
+    lo_post_fc    = lo_post_fc,
+    hi_post_fc    = hi_post_fc,
+    # NEW: expose IJ core for β / q
+    loglik_mat    = loglik_mat,       # M_eff x n, or NULL if IJ off/fails
+    draw_idx_keep = draw_idx_keep     # integer indices of kept draws in param_draws
   )
 }
 
@@ -1087,14 +1206,16 @@ stopifnot(nrow(X_fc1)   == length(y_forecast))
 cat(sprintf("[shared] drop=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
             n_drop, nrow(X_train), nrow(X_fc1), ncol(X_train)))
 
-# --- 2) Fit & Forecast per p
+# --- 2) Fit & Forecast per p ----------------------------------------------
 fit_and_forecast_p <- function(p0) {
+
+  # Index of this quantile in p_vec
+  idx_p <- which.min(abs(p_vec - p0))
+
   # VB controls per p
   vb_args_p <- vb_args_base
   vb_args_p$tol     <- vb_tol_for(p0)
   vb_args_p$tol_par <- vb_tol_par_for(p0)
-
-    idx_p <- which.min(abs(p_vec - p0))
 
   # Per-quantile inits (natural scale). Fallbacks are conservative.
   gamma_init_p <- if (!is.null(vb_init_gamma)) vb_init_gamma[idx_p] else 0
@@ -1107,42 +1228,45 @@ fit_and_forecast_p <- function(p0) {
   sigma_a_p <- if (!is.null(vb_prior_sigma_a)) vb_prior_sigma_a[idx_p] else 1
   sigma_b_p <- if (!is.null(vb_prior_sigma_b)) vb_prior_sigma_b[idx_p] else 1
 
+  # Ridge prior variance for beta (scalar tau2, common across p)
   tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
 
   # ---- Fit exAL readout directly on the precomputed training design ----
-  p <- ncol(X_train)
+  p_dim <- ncol(X_train)
+  V0_mat <- diag(tau2_beta_p, p_dim)
 
-  # Ridge prior variance for beta: V0 = tau2 * I_p (fallback to 1e4 if not set)
-  V0_mat <- diag(tau2_beta_p, p)
-
-  exal_defaults <- list(
-    b0 = rep(0, p),
-    V0 = V0_mat,
-    a_sigma = sigma_a_p,
-    b_sigma = sigma_b_p,
-    max_iter  = vb_args_p$max_iter,
-    tol       = vb_args_p$tol,
-    tol_par   = vb_args_p$tol_par,
-    n_samp_xi = vb_args_p$n_samp_xi,
-    verbose   = TRUE,
-    p0        = p0,
-    gamma_bounds = c(L.fn(p0), U.fn(p0)),
-    # Start sigma on its natural scale; gamma handled via init_gamma below.
-    init = list(sigma = sigma_init_p),
-    # default, overwritten below if gamma priors are provided
-    log_prior_gamma = function(g) 0
+  exal_args <- c(
+    list(
+      y = y_train_keep,
+      X = X_train
+    ),
+    list(
+      b0        = rep(0, p_dim),
+      V0        = V0_mat,
+      a_sigma   = sigma_a_p,
+      b_sigma   = sigma_b_p,
+      max_iter  = vb_args_p$max_iter,
+      tol       = vb_args_p$tol,
+      tol_par   = vb_args_p$tol_par,
+      n_samp_xi = vb_args_p$n_samp_xi,
+      verbose   = TRUE,
+      p0        = p0,
+      gamma_bounds = c(L.fn(p0), U.fn(p0)),
+      # Start sigma on its natural scale; gamma handled via init_gamma below.
+      init = list(sigma = sigma_init_p)
+    )
   )
 
-  # --- Attach init / prior info to exal_defaults (only if provided) -------
+  # Init for gamma if provided
   if (!is.null(vb_init_gamma)) {
-    exal_defaults$init_gamma <- gamma_init_p
+    exal_args$init_gamma <- gamma_init_p
   }
 
+  # Prior for gamma if provided
   if (!is.null(vb_prior_gamma_mu0)) {
-    exal_defaults$prior_gamma_mu0 <- gamma_mu0_p
-    exal_defaults$prior_gamma_s20 <- gamma_s20_p
-    # Normal prior on gamma with (mu0, s20)
-    exal_defaults$log_prior_gamma <- function(g) {
+    exal_args$prior_gamma_mu0 <- gamma_mu0_p
+    exal_args$prior_gamma_s20 <- gamma_s20_p
+    exal_args$log_prior_gamma <- function(g) {
       sum(stats::dnorm(
         g,
         mean = gamma_mu0_p,
@@ -1150,22 +1274,22 @@ fit_and_forecast_p <- function(p0) {
         log  = TRUE
       ))
     }
+  } else {
+    # Flat prior on gamma (within bounds)
+    exal_args$log_prior_gamma <- function(g) 0
   }
 
-  # NOTE: by design we **do not** pass any log-sigma priors here;
-  # sigma is controlled only via the IG(a_sigma, b_sigma) prior.
-
-
-  fit_exal <- timed(sprintf("fit_exAL_on_X_train(p=%s)", fmt_p(p0)),
-    do.call(exal_static_LDVB, c(list(y = y_train_keep, X = X_train), exal_defaults))
+  fit_exal <- timed(
+    sprintf("fit_exAL_on_X_train(p=%s)", fmt_p(p0)),
+    do.call(exal_static_LDVB, exal_args)
   )
 
   # ---- Parameter posterior draws (γ, σ, β) for diagnostics + IJ ----------
   param_draws <- get_exal_param_draws(
     fit_exal,
-    p            = ncol(X_train),
+    p            = p_dim,
     nd           = ij_nd_draws,
-    gamma_bounds = exal_defaults$gamma_bounds,
+    gamma_bounds = exal_args$gamma_bounds,
     seed         = synth_seed + round(1000 * p0)
   )
 
@@ -1179,8 +1303,56 @@ fit_and_forecast_p <- function(p0) {
     use_ij       = use_ij_correction
   )
 
+  # ---- IJ correction for β (readout coefficients) ------------------------
+  beta_ij <- NULL
+  if (isTRUE(use_ij_correction) &&
+      !is.null(mu_ij$loglik_mat) &&
+      !is.null(mu_ij$draw_idx_keep)) {
+
+    beta_draws_full <- param_draws$beta
+    if (!is.null(beta_draws_full) && is.matrix(beta_draws_full)) {
+      draw_idx_keep <- mu_ij$draw_idx_keep
+      if (length(draw_idx_keep) >= 2L) {
+        beta_draws_eff <- beta_draws_full[draw_idx_keep, , drop = FALSE]
+        M_eff_beta     <- nrow(beta_draws_eff)
+
+        if (M_eff_beta >= 2L) {
+          # Functional matrix for β: rows = draws, cols = coefficients
+          F_beta <- beta_draws_eff
+
+          sd_ij_beta <- ij_sd_for_functional(
+            F_all      = F_beta,
+            loglik_mat = mu_ij$loglik_mat,
+            n_obs      = length(y_train_keep)
+          )
+
+          # Posterior summaries (median + posterior SD) on same filtered draws
+          beta_hat     <- apply(beta_draws_eff, 2L, stats::median)
+          sd_post_beta <- matrixStats::colSds(beta_draws_eff)
+
+          alpha      <- 0.05
+          z_975      <- stats::qnorm(1 - alpha / 2)
+          lo_beta_ij <- beta_hat - z_975 * sd_ij_beta
+          hi_beta_ij <- beta_hat + z_975 * sd_ij_beta
+
+          beta_ij <- list(
+            beta_hat = beta_hat,
+            sd_post  = sd_post_beta,
+            sd_ij    = sd_ij_beta,
+            lo_ij    = lo_beta_ij,
+            hi_ij    = hi_beta_ij
+          )
+        }
+      }
+    }
+  }
+
+  # Attach (possibly NULL) β IJ summary to param_draws for downstream plots
+  param_draws$beta_ij <- beta_ij
+
   # ---- Posterior predictive: TRAIN (for q̂ diagnostics) -------------------
-  pp_tr <- timed(sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nd_draws),
+  pp_tr <- timed(
+    sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nd_draws),
     exal_vb_posterior_predict(fit_exal, X_new = X_train, nd = nd_draws, chunk = chunk_sz)
   )
   yrep_tr <- pp_tr$yrep
@@ -1190,6 +1362,7 @@ fit_and_forecast_p <- function(p0) {
   stopifnot(length(keep_rel) == nrow(X_train))
 
   q_true_tr <- true_q_at_tau(dat_long_use, tau = p0)[keep_rel]
+  q_pred_tr <- apply(yrep_tr, 1L, stats::quantile, probs = p0, names = FALSE)
 
   df_mu_tr <- tibble::tibble(
     h      = seq_along(keep_rel),
@@ -1204,24 +1377,38 @@ fit_and_forecast_p <- function(p0) {
   df_pred_tr <- tibble::tibble(
     h      = seq_along(keep_rel),
     p0     = p0,
-    q_pred = apply(yrep_tr, 1, stats::quantile, probs = p0, names = FALSE),
+    q_pred = q_pred_tr,
     q_true = q_true_tr,
     y      = y_train_keep
   )
 
+  if (isTRUE(use_ij_correction)) {
+    df_pred_tr <- df_pred_tr %>%
+      dplyr::mutate(
+        q_hat_ij  = mu_ij$mu_hat_tr,
+        lo_q_ij   = mu_ij$lo_tr,
+        hi_q_ij   = mu_ij$hi_tr,
+        lo_q_post = mu_ij$lo_post_tr,
+        hi_q_post = mu_ij$hi_post_tr
+      )
+  }
+
   # ---- Posterior predictive: FORECAST (1-step teacher-forced design) -----
-  pp_fc <- timed(sprintf("posterior_predict FORECAST (p=%s, nd=%d)", fmt_p(p0), nd_draws),
+  pp_fc <- timed(
+    sprintf("posterior_predict FORECAST (p=%s, nd=%d)", fmt_p(p0), nd_draws),
     exal_vb_posterior_predict(fit_exal, X_new = X_fc1, nd = nd_draws, chunk = chunk_sz)
   )
   yrep_fc <- pp_fc$yrep
 
-  q_pred_fc <- apply(yrep_fc, 1, stats::quantile, probs = p0, names = FALSE)
+  q_pred_fc <- apply(yrep_fc, 1L, stats::quantile, probs = p0, names = FALSE)
   q_true_fc <- true_q_at_tau(dat_long_use, tau = p0)[idx_fc]
 
   # Sanity checks right where they matter
-  stopifnot(length(q_true_fc) == H_forecast,
-            nrow(X_fc1)      == H_forecast,
-            length(y_forecast) == H_forecast)
+  stopifnot(
+    length(q_true_fc)  == H_forecast,
+    nrow(X_fc1)        == H_forecast,
+    length(y_forecast) == H_forecast
+  )
 
   df_mu_fc <- tibble::tibble(
     h      = seq_len(H_forecast),
@@ -1241,18 +1428,29 @@ fit_and_forecast_p <- function(p0) {
     y      = y_forecast
   )
 
+  if (isTRUE(use_ij_correction)) {
+    df_pred_fc <- df_pred_fc %>%
+      dplyr::mutate(
+        q_hat_ij  = mu_ij$mu_hat_fc,
+        lo_q_ij   = mu_ij$lo_fc,
+        hi_q_ij   = mu_ij$hi_fc,
+        lo_q_post = mu_ij$lo_post_fc,
+        hi_q_post = mu_ij$hi_post_fc
+      )
+  }
+
   # ---- Return in the same structure your downstream code expects ---------
   list(
-    fit_train = list(fit = fit_exal, meta = list(keep_idx = keep_train_abs)),
-    yrep_fc   = yrep_fc,
-    mu_draws_fc = mu_ij$mu_draws_fc,
-    df_mu_fc  = df_mu_fc,
-    df_pred_fc = df_pred_fc,
-    yrep_tr   = yrep_tr,
-    mu_draws_tr = mu_ij$mu_draws_tr,
-    df_mu_tr  = df_mu_tr,
-    df_pred_tr = df_pred_tr,
-    param_draws = param_draws
+    fit_train    = list(fit = fit_exal, meta = list(keep_idx = keep_train_abs)),
+    yrep_fc      = yrep_fc,
+    mu_draws_fc  = mu_ij$mu_draws_fc,
+    df_mu_fc     = df_mu_fc,
+    df_pred_fc   = df_pred_fc,
+    yrep_tr      = yrep_tr,
+    mu_draws_tr  = mu_ij$mu_draws_tr,
+    df_mu_tr     = df_mu_tr,
+    df_pred_tr   = df_pred_tr,
+    param_draws  = param_draws
   )
 }
 
@@ -1523,6 +1721,44 @@ for (k in seq_along(p_vec)) {
         file.path(FIGS, sprintf("posterior_beta_forest_TOP50_p=%s.png", as.character(p0))),
         g_beta_top, width = 9.5, height = 10, dpi = 150
       )
+    }
+
+    # Optional: IJ-corrected β forest (top-K) if IJ info is available
+    if (isTRUE(use_ij_correction) &&
+        !is.null(pars$beta_ij) &&
+        !is.null(pars$beta_ij$beta_hat) &&
+        !is.null(pars$beta_ij$lo_ij) &&
+        !is.null(pars$beta_ij$hi_ij)) {
+
+      beta_hat_ij <- pars$beta_ij$beta_hat
+      lo_ij_beta  <- pars$beta_ij$lo_ij
+      hi_ij_beta  <- pars$beta_ij$hi_ij
+
+      len_beta <- length(beta_hat_ij)
+      if (len_beta != p_all) {
+        warning(sprintf(
+          "[warn] beta_ij length (%d) != p_all (%d) for p=%s; skipping IJ β forest.",
+          len_beta, p_all, fmt_p(p0)
+        ))
+      } else {
+        g_beta_ij_top <- plot_beta_forest_summary(
+          beta_hat   = beta_hat_ij,
+          lo         = lo_ij_beta,
+          hi         = hi_ij_beta,
+          term_names = term_names,
+          top_k      = min(50L, p_all),
+          title      = "Readout coefficients: IJ-corrected 95% band"
+        )
+
+        print(g_beta_ij_top)
+
+        if (isTRUE(save_outputs)) {
+          ggplot2::ggsave(
+            file.path(FIGS, sprintf("posterior_beta_forest_IJ_TOP50_p=%s.png", as.character(p0))),
+            g_beta_ij_top, width = 9.5, height = 10, dpi = 150
+          )
+        }
+      }
     }
   }
 }
