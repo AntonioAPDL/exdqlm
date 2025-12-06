@@ -6,11 +6,11 @@ results_root: results
 
 split:
   # How much of the full series to use and how to split train / forecast.
-  T_use: 3300          # number of time points used (from end if use_last = true)
+  T_use: 5000          # number of time points used (from end if use_last = true)
   use_prop: null       # optional fraction of T_full to use instead of T_use
   use_last: true       # if true, take last T_use points; else first T_use
   train_n: null        # fixed training length (overrides train_prop if non-null)
-  train_prop: 0.90909  # fallback train fraction if train_n is null
+  train_prop: 0.94  # fallback train fraction if train_n is null
 
 # Quantile levels fitted independently by VB.
 p_vec: [0.05, 0.50, 0.95]
@@ -18,9 +18,9 @@ p_vec: [0.05, 0.50, 0.95]
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                        # number of reservoir layers
-  "n": [10, 20, 30]           # units per layer (length D)
-  n_tilde: [20, 30]           # skip connections; length D-1 or D
-  m: 90                       # readout dimension
+  "n": [20, 20, 20]           # units per layer (length D)
+  n_tilde: [20, 20]           # skip connections; length D-1 or D
+  m: 30                       # readout dimension
   alpha: [0.2, 0.2, 0.2]      # leaking rate per layer
   rho: [0.95, 0.95, 0.95]     # target spectral radius per layer
   act_f: [tanh, tanh, tanh]   # state non-linearity
@@ -34,10 +34,10 @@ desn:
 vb:
   # Variational Bayes controls shared across quantiles.
   max_iter: 1000
-  tol_50: 1.0e-3              # ELBO tol at the median quantile
-  tol_extreme: 1.0e-3         # ELBO tol at tail quantiles
-  tol_par_50: 1.0e-3          # safeguard on E[gamma], E[sigma] at p = 0.5
-  tol_par_extreme: 1.0e-3     # safeguard at tail quantiles
+  tol_50: 5.0e-3              # ELBO tol at the median quantile
+  tol_extreme: 5.0e-3         # ELBO tol at tail quantiles
+  tol_par_50: 5.0e-3          # safeguard on E[gamma], E[sigma] at p = 0.5
+  tol_par_extreme: 5.0e-3     # safeguard at tail quantiles
   n_samp_xi: 5000             # kept for backward compatibility (unused in LD)
   verbose: true
 
@@ -50,17 +50,17 @@ vb:
     gamma:
       # Normal prior for γ | p ~ TN(mu0_p, s20_p).
       mu0: [0.0, 0.0, 0.0]
-      s20: [100.0, 100.0, 100.0]   # fairly vague
+      s20: [1000.0, 1000.0, 1000.0]   # fairly vague
 
     sigma:
       # Inverse-Gamma prior σ | p ~ IG(a_p, b_p).
       # Scalars are recycled across p_vec; vectors must match length(p_vec).
-      a: [100.0, 100.0, 100.0]
-      b: [100.0, 100.0, 100.0]
+      a: [0.001, 0.001, 0.001]
+      b: [0.001, 0.001, 0.001]
 
     beta:
       # Ridge prior variance for readout β: V0 = tau2 * I.
-      tau2: 100.0
+      tau2: 1000.0
 
 sampling:
   # Posterior predictive draws used for diagnostics / synthesis.
@@ -88,6 +88,12 @@ synthesis:
   grid_M: 2001                # grid size for synthesis
   n_samp: 2000                # synthesized predictive draws
   seed: 123
+
+diagnostics:
+  calibration: true
+  pit: true
+  scores: true
+  plots: true
 
 outputs:
   # What to persist to disk.
@@ -123,4 +129,6 @@ naming:
   objects_rds: forecast_objects.rds
 
 pipeline:
-  mode: sim                  # "sim" or "real" (overridden by specs / env)
+  mode: sim
+  profile: full
+  verbose: true  

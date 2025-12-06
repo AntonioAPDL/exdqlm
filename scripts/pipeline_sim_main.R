@@ -2,6 +2,9 @@
 # Standalone main for ESN quantile pipeline (fit → forecast → synthesis → diagnostics)
 # Reads configuration from EXDQLM_* environment variables set by scripts/pipeline_run.R
 
+# Global verbosity flag (overridden from YAML via cfg$pipeline$verbose or cfg$verbose)
+VERBOSE <- TRUE
+
 as_num_vec <- function(x) {
   if (is.null(x)) return(NULL)
   if (is.list(x)) x <- unlist(x, use.names = FALSE)
@@ -11,7 +14,9 @@ fix_len <- function(x, D, nm) {
   if (is.null(x)) return(NULL)
   if (length(x) == D) return(x)
   if (length(x) == 1L && D > 1L) {
-    message(sprintf("Note: recycling %s=%s to length D=%d", nm, paste(x, collapse=","), D))
+    if (isTRUE(VERBOSE)) {
+      message(sprintf("Note: recycling %s=%s to length D=%d", nm, paste(x, collapse=","), D))
+    }
     return(rep(x, D))
   }
   stop(sprintf("Config error: length(%s)=%d but D=%d", nm, length(x), D))
@@ -44,7 +49,11 @@ if (is.null(.timing_env$rows)) .timing_env$rows <- data.frame(
 )
 
 .now <- function() format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-log_msg <- function(fmt, ...) { cat(sprintf("[%s] %s\n", .now(), sprintf(fmt, ...))); flush.console() }
+log_msg <- function(fmt, ...) {
+  if (!isTRUE(VERBOSE)) return(invisible(NULL))
+  cat(sprintf("[%s] %s\n", .now(), sprintf(fmt, ...)))
+  flush.console()
+}
 
 timed <- function(tag, expr) {
   if (!isTRUE(getOption("exdqlm.timing", TRUE))) return(eval.parent(substitute(expr)))
@@ -91,19 +100,13 @@ cfg <- if (!is.na(cfg_json) && nzchar(cfg_json)) jsonlite::fromJSON(cfg_json, si
 # --- Pipeline mode (future-ready; sim-only today)
 `%||%` <- function(x, alt) if (!is.null(x)) x else alt
 mode <- tolower((cfg$pipeline$mode %||% "sim"))
+# Optional "profile" within a given mode, e.g. full vs model_selection
+run_profile <- tolower((cfg$pipeline$profile %||% "full"))
+is_model_selection <- run_profile %in% c("ms", "model_selection", "tuning", "light")
+
 if (!mode %in% c("sim","simulation","real","observed","data")) {
   message(sprintf("[pipeline_main] WARNING: pipeline.mode=%s not recognized; proceeding with default flow.", mode))
 }
-
-# If runner gave us EXDQLM_FILE_OBS (real), fall back to it when FILE_LONG is missing
-if (mode %in% c("real","observed","data") && (is.na(file_long) || !nzchar(file_long))) {
-  file_long <- file_obs
-}
-
-if (is.na(file_long) || !file.exists(file_long)) {
-  stop("EXDQLM_FILE_LONG/OBS not set or file missing: ", file_long)
-}
-
 
 `%nz%` <- function(x, alt) if (!is.null(x)) x else alt
 
@@ -171,16 +174,27 @@ tf_enable      <- TRUE
 tf_first_k     <- desn_args$m
 y_future_obs_explicit <- NULL
 
-# Diagnostics toggles (can be overridden via cfg$diagnostics)
+# Diagnostics / plotting toggles (can be overridden via cfg$diagnostics)
 do_calibration <- TRUE
 do_pit         <- TRUE
 do_scores      <- TRUE  # CRPS + S
+do_plots       <- TRUE  # master gate for all ggplot/ggsave work
+
 
 # --- Apply cfg overrides (if present)
 coverage_report <- "global"
 
 if (length(cfg)) {
+  # Global pipeline verbosity from YAML
+  # Prefer cfg$pipeline$verbose, fall back to top-level cfg$verbose if present
+  if (!is.null(cfg$pipeline) && !is.null(cfg$pipeline$verbose)) {
+    VERBOSE <- isTRUE(cfg$pipeline$verbose)
+  } else if (!is.null(cfg$verbose)) {
+    VERBOSE <- isTRUE(cfg$verbose)
+  }
+
   if (!is.null(cfg$p_vec))             p_vec <- as.numeric(cfg$p_vec)
+
   if (!is.null(cfg$desn)) {
     D_in   <- as.integer(cfg$desn$D %||% desn_args$D)
     n_in   <- as_num_vec(cfg$desn$n)
@@ -240,7 +254,9 @@ if (length(cfg)) {
   if (!is.null(cfg$vb)) {
     vb_args_base$max_iter  <- cfg$vb$max_iter  %nz% vb_args_base$max_iter
     vb_args_base$n_samp_xi <- cfg$vb$n_samp_xi %nz% vb_args_base$n_samp_xi
-
+    if (!is.null(cfg$vb$verbose)) {
+      vb_args_base$verbose <- isTRUE(cfg$vb$verbose)
+    }
     # ELBO tolerance (mid vs tails)
     tol50  <- cfg$vb$tol_50      %nz% 1e-4
     tolext <- cfg$vb$tol_extreme %nz% 1e-5
@@ -258,10 +274,12 @@ if (length(cfg)) {
       if (is.null(x)) return(NULL)
       x <- as.numeric(x)
       if (length(x) == 1L && len_p > 1L) {
-        message(sprintf(
-          "Note: recycling vb.%s=%s to length(p_vec)=%d",
-          nm, paste(x, collapse = ","), len_p
-        ))
+        if (isTRUE(VERBOSE)) {
+          message(sprintf(
+            "Note: recycling vb.%s=%s to length(p_vec)=%d",
+            nm, paste(x, collapse = ","), len_p
+          ))
+        }
         return(rep(x, len_p))
       }
       if (length(x) != len_p) {
@@ -339,6 +357,9 @@ if (!is.null(cfg$forecast)) {
     do_calibration <- cfg$diagnostics$calibration %nz% do_calibration
     do_pit         <- cfg$diagnostics$pit         %nz% do_pit
     do_scores      <- cfg$diagnostics$scores      %nz% do_scores
+    if (!is.null(cfg$diagnostics$plots)) {
+      do_plots <- isTRUE(cfg$diagnostics$plots)
+    }
   }
 
   # --- Outputs: saving/keep_draws/thesis_subset from YAML -------------------
@@ -356,11 +377,27 @@ if (!is.null(cfg$forecast)) {
   }
 }
 
-message(sprintf(
-  "[esn_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s",
-  out_dir, save_outputs, keep_draws, thesis_subset
-))
+# --- Optional lightweight profile overrides (e.g. model selection runs) -----
+if (isTRUE(is_model_selection)) {
+  # Plots + expensive diagnostics off; keep scores for selection metrics.
+  do_plots       <- FALSE
+  do_calibration <- FALSE
+  do_pit         <- FALSE
+  # Scores (CRPS/S) usually needed for model selection:
+  do_scores      <- TRUE
 
+  # Avoid writing heavy artifacts during grid search.
+  save_outputs   <- FALSE
+  keep_draws     <- FALSE
+  thesis_subset  <- FALSE
+}
+
+if (isTRUE(VERBOSE)) {
+  message(sprintf(
+    "[esn_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s",
+    out_dir, save_outputs, keep_draws, thesis_subset
+  ))
+}
 
 # --- Echo effective settings after cfg overrides ---
 pretty_vec <- function(x) paste0("[", paste(x, collapse=", "), "]")
@@ -996,8 +1033,10 @@ T_full <- nrow(y_full_all)
 # ---- Configurable data limiting + split (YAML-aware, verbose) ----
 # cfg$split fields (optional):
 #   T_use, use_prop, use_last, train_n, train_prop
-cat("SPLIT_RAW | cfg$split=",
-    jsonlite::toJSON(cfg$split, auto_unbox = TRUE, null = "null"), "\n", sep="")
+if (isTRUE(VERBOSE)) {
+  cat("SPLIT_RAW | cfg$split=",
+      jsonlite::toJSON(cfg$split, auto_unbox = TRUE, null = "null"), "\n", sep = "")
+}
 
 use_last   <- TRUE
 T_use      <- T_full
@@ -1008,10 +1047,12 @@ if (!is.null(cfg$split)) {
   # Presence + null/NA audit
   has_train_n    <- "train_n"    %in% names(cfg$split)
   has_train_prop <- "train_prop" %in% names(cfg$split)
-  cat("SPLIT_KEYS | has(train_n)=", has_train_n,
-      " is.null(train_n)=", is.null(cfg$split$train_n),
-      " has(train_prop)=", has_train_prop,
-      " is.null(train_prop)=", is.null(cfg$split$train_prop), "\n", sep="")
+  if (isTRUE(VERBOSE)) {
+    cat("SPLIT_KEYS | has(train_n)=", has_train_n,
+        " is.null(train_n)=", is.null(cfg$split$train_n),
+        " has(train_prop)=", has_train_prop,
+        " is.null(train_prop)=", is.null(cfg$split$train_prop), "\n", sep = "")
+  }
 
   # Parse primitives
   if (!is.null(cfg$split$use_last))   use_last   <- isTRUE(cfg$split$use_last)
@@ -1071,15 +1112,16 @@ n_train <- if (!is.null(train_n)) {
 H_forecast <- as.integer(T_use - n_train)
 
 # Audit lines BEFORE any modeling
-cat(sprintf(
-  paste0("SPLIT_RESOLVE | source=%s | T_full=%d | T_use=%d | use_last=%s | ",
-         "train_n=%s | train_prop=%s | n_train=%d | H_forecast=%d | washout=%d\n"),
-  split_src, T_full, T_use, as.character(use_last),
-  ifelse(is.null(train_n), "NULL", as.character(train_n)),
-  ifelse(is.null(train_prop), "NULL", format(train_prop, digits=6, trim=TRUE)),
-  n_train, H_forecast, as.integer(desn_args$washout))
-)
-
+if (isTRUE(VERBOSE)) {
+  cat(sprintf(
+    paste0("SPLIT_RESOLVE | source=%s | T_full=%d | T_use=%d | use_last=%s | ",
+          "train_n=%s | train_prop=%s | n_train=%d | H_forecast=%d | washout=%d\n"),
+    split_src, T_full, T_use, as.character(use_last),
+    ifelse(is.null(train_n), "NULL", as.character(train_n)),
+    ifelse(is.null(train_prop), "NULL", format(train_prop, digits=6, trim=TRUE)),
+    n_train, H_forecast, as.integer(desn_args$washout))
+  )
+}
 # Hard stops for impossible/pointless configs
 if (H_forecast < 1L) {
   stop(sprintf("Invalid split: H_forecast=%d (n_train=%d, T_use=%d). Adjust train_n/train_prop/T_use.", 
@@ -1089,26 +1131,30 @@ if (H_forecast < 1L) {
 # Index diagnostics
 idx_tr <- 1:n_train
 idx_fc <- (n_train + 1L):T_use
-cat(sprintf("IDX | use_range=[%d..%d] | train=[%d..%d] | forecast=[%d..%d] | lens train=%d, fore=%d\n",
-            min(idx_use), max(idx_use),
-            ifelse(length(idx_tr), min(idx_tr), NA_integer_),
-            ifelse(length(idx_tr), max(idx_tr), NA_integer_),
-            ifelse(length(idx_fc), min(idx_fc), NA_integer_),
-            ifelse(length(idx_fc), max(idx_fc), NA_integer_),
-            length(idx_tr), length(idx_fc)))
-
+if (isTRUE(VERBOSE)) {
+  cat(sprintf("IDX | use_range=[%d..%d] | train=[%d..%d] | forecast=[%d..%d] | lens train=%d, fore=%d\n",
+              min(idx_use), max(idx_use),
+              ifelse(length(idx_tr), min(idx_tr), NA_integer_),
+              ifelse(length(idx_tr), max(idx_tr), NA_integer_),
+              ifelse(length(idx_fc), min(idx_fc), NA_integer_),
+              ifelse(length(idx_fc), max(idx_fc), NA_integer_),
+              length(idx_tr), length(idx_fc)))
+}
 y_train    <- y_full$y[idx_tr]
 y_forecast <- y_full$y[idx_fc]
 
-cat(sprintf("[lens] y_train=%d | y_forecast=%d\n", length(y_train), length(y_forecast)))
-
+if (isTRUE(VERBOSE)) {
+  cat(sprintf("[lens] y_train=%d | y_forecast=%d\n", length(y_train), length(y_forecast)))
+}
 # Teacher forcing (metadata only): using FULL TF because X_fc1 came from the full roll over y_full
 tf_enable      <- TRUE
 tf_first_k     <- NULL   # NULL = full TF (all H_forecast steps)
 y_future_obs_fc <- y_forecast
 
-cat(sprintf("TF | mode=full | len(y_future_obs_fc)=%d\n", length(y_future_obs_fc)))
-flush.console()
+if (isTRUE(VERBOSE)) {
+  cat(sprintf("TF | mode=full | len(y_future_obs_fc)=%d\n", length(y_future_obs_fc)))
+  flush.console()
+}
 
 # --- Teacher forcing guard (scalar) ---
 use_tf <- is.numeric(y_future_obs_fc) &&
@@ -1203,8 +1249,10 @@ X_fc1        <- X_all_kept[row_sel_fc, , drop = FALSE]
 stopifnot(nrow(X_train) == length(y_train_keep))
 stopifnot(nrow(X_fc1)   == length(y_forecast))
 
-cat(sprintf("[shared] drop=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
-            n_drop, nrow(X_train), nrow(X_fc1), ncol(X_train)))
+if (isTRUE(VERBOSE)) {
+  cat(sprintf("[shared] drop=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
+              n_drop, nrow(X_train), nrow(X_fc1), ncol(X_train)))
+}
 
 # --- 2) Fit & Forecast per p ----------------------------------------------
 fit_and_forecast_p <- function(p0) {
@@ -1249,7 +1297,7 @@ fit_and_forecast_p <- function(p0) {
       tol       = vb_args_p$tol,
       tol_par   = vb_args_p$tol_par,
       n_samp_xi = vb_args_p$n_samp_xi,
-      verbose   = TRUE,
+      verbose   = vb_args_p$verbose,
       p0        = p0,
       gamma_bounds = c(L.fn(p0), U.fn(p0)),
       # Start sigma on its natural scale; gamma handled via init_gamma below.
@@ -1458,116 +1506,122 @@ fits_fc <- lapply(p_vec, fit_and_forecast_p)
 names(fits_fc) <- paste0("p=", p_vec)
 
 # --- 3) Per-p forecast plots
-for (k in seq_along(p_vec)) {
-  p0 <- p_vec[k]
-  g1 <- plot_mu_band(
-    fits_fc[[k]]$df_mu_fc, p0,
-    scope  = "Forecast",
-    window = fore_last_window
-  )
-  g2 <- plot_empirical_quantile(
-    fits_fc[[k]]$df_pred_fc, p0,
-    scope  = "Forecast",
-    window = fore_last_window
-  )
-  band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
+if (isTRUE(do_plots)) {
+  for (k in seq_along(p_vec)) {
+    p0 <- p_vec[k]
+    g1 <- plot_mu_band(
+      fits_fc[[k]]$df_mu_fc, p0,
+      scope  = "Forecast",
+      window = fore_last_window
+    )
+    g2 <- plot_empirical_quantile(
+      fits_fc[[k]]$df_pred_fc, p0,
+      scope  = "Forecast",
+      window = fore_last_window
+    )
+    band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
 
-  timed(sprintf("plot+save forecast_mu_band(p=%s)", fmt_p(p0)), {
-    print(g1)
-    if (isTRUE(save_outputs)) {
-      ggplot2::ggsave(
-        file.path(FIGS, sprintf("forecast_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
-        g1, width = 9, height = 4.8, dpi = 150
-      )
-    }
-  })
+    timed(sprintf("plot+save forecast_mu_band(p=%s)", fmt_p(p0)), {
+      print(g1)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("forecast_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+          g1, width = 9, height = 4.8, dpi = 150
+        )
+      }
+    })
 
-  timed(sprintf("plot+save forecast_emp_q_vs_true(p=%s)", fmt_p(p0)), {
-    print(g2)
-    if (isTRUE(save_outputs)) {
-      ggplot2::ggsave(
-        file.path(FIGS, sprintf("forecast_emp_q_vs_true_p=%s.png", as.character(p0))),
-        g2, width = 9, height = 4.8, dpi = 150
-      )
-    }
-  })
+    timed(sprintf("plot+save forecast_emp_q_vs_true(p=%s)", fmt_p(p0)), {
+      print(g2)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("forecast_emp_q_vs_true_p=%s.png", as.character(p0))),
+          g2, width = 9, height = 4.8, dpi = 150
+        )
+      }
+    })
+  }
 }
 
 # --- 3b) Per-p TRAIN plots for mû band (new)
-for (k in seq_along(p_vec)) {
-  p0 <- p_vec[k]
-  g1_tr <- plot_mu_band(
-    fits_fc[[k]]$df_mu_tr, p0,
-    scope  = "Train",
-    window = train_last_window
-  )
-  band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
-
-  print(g1_tr)
-  if (isTRUE(save_outputs)) {
-    ggplot2::ggsave(
-      file.path(FIGS, sprintf("train_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
-      g1_tr, width = 9, height = 4.8, dpi = 150
+if (isTRUE(do_plots)) {
+  for (k in seq_along(p_vec)) {
+    p0 <- p_vec[k]
+    g1_tr <- plot_mu_band(
+      fits_fc[[k]]$df_mu_tr, p0,
+      scope  = "Train",
+      window = train_last_window
     )
+    band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
+
+    print(g1_tr)
+    if (isTRUE(save_outputs)) {
+      ggplot2::ggsave(
+        file.path(FIGS, sprintf("train_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+        g1_tr, width = 9, height = 4.8, dpi = 150
+      )
+    }
   }
 }
 
 # --- 3c) Per-p μ error band plots (Train & Forecast)
-for (k in seq_along(p_vec)) {
-  p0 <- p_vec[k]
+if (isTRUE(do_plots)) {
+  for (k in seq_along(p_vec)) {
+    p0 <- p_vec[k]
 
-  mu_draws_tr_k <- fits_fc[[k]]$mu_draws_tr
-  mu_draws_fc_k <- fits_fc[[k]]$mu_draws_fc
+    mu_draws_tr_k <- fits_fc[[k]]$mu_draws_tr
+    mu_draws_fc_k <- fits_fc[[k]]$mu_draws_fc
 
-  # Safety: skip if draws are missing for some reason
-  if (is.null(mu_draws_tr_k) || is.null(mu_draws_fc_k)) {
-    next
+    # Safety: skip if draws are missing for some reason
+    if (is.null(mu_draws_tr_k) || is.null(mu_draws_fc_k)) {
+      next
+    }
+
+    df_mu_tr_k <- fits_fc[[k]]$df_mu_tr
+    df_mu_fc_k <- fits_fc[[k]]$df_mu_fc
+
+    g_err_tr <- plot_mu_error_band(
+      mu_draws = mu_draws_tr_k,
+      q_true   = df_mu_tr_k$q_true,
+      h_index  = df_mu_tr_k$h,
+      p0       = p0,
+      scope    = "Train",
+      window   = train_last_window
+    )
+
+    g_err_fc <- plot_mu_error_band(
+      mu_draws = mu_draws_fc_k,
+      q_true   = df_mu_fc_k$q_true,
+      h_index  = df_mu_fc_k$h,
+      p0       = p0,
+      scope    = "Forecast",
+      window   = fore_last_window
+    )
+
+    band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
+
+    timed(sprintf("plot+save train_mu_error_band(p=%s)", fmt_p(p0)), {
+      print(g_err_tr)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("train_mu_error_band%s_p=%s.png",
+                                  band_suffix, as.character(p0))),
+          g_err_tr, width = 9, height = 4.8, dpi = 150
+        )
+      }
+    })
+
+    timed(sprintf("plot+save forecast_mu_error_band(p=%s)", fmt_p(p0)), {
+      print(g_err_fc)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("forecast_mu_error_band%s_p=%s.png",
+                                  band_suffix, as.character(p0))),
+          g_err_fc, width = 9, height = 4.8, dpi = 150
+        )
+      }
+    })
   }
-
-  df_mu_tr_k <- fits_fc[[k]]$df_mu_tr
-  df_mu_fc_k <- fits_fc[[k]]$df_mu_fc
-
-  g_err_tr <- plot_mu_error_band(
-    mu_draws = mu_draws_tr_k,
-    q_true   = df_mu_tr_k$q_true,
-    h_index  = df_mu_tr_k$h,
-    p0       = p0,
-    scope    = "Train",
-    window   = train_last_window
-  )
-
-  g_err_fc <- plot_mu_error_band(
-    mu_draws = mu_draws_fc_k,
-    q_true   = df_mu_fc_k$q_true,
-    h_index  = df_mu_fc_k$h,
-    p0       = p0,
-    scope    = "Forecast",
-    window   = fore_last_window
-  )
-
-  band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
-
-  timed(sprintf("plot+save train_mu_error_band(p=%s)", fmt_p(p0)), {
-    print(g_err_tr)
-    if (isTRUE(save_outputs)) {
-      ggplot2::ggsave(
-        file.path(FIGS, sprintf("train_mu_error_band%s_p=%s.png",
-                                band_suffix, as.character(p0))),
-        g_err_tr, width = 9, height = 4.8, dpi = 150
-      )
-    }
-  })
-
-  timed(sprintf("plot+save forecast_mu_error_band(p=%s)", fmt_p(p0)), {
-    print(g_err_fc)
-    if (isTRUE(save_outputs)) {
-      ggplot2::ggsave(
-        file.path(FIGS, sprintf("forecast_mu_error_band%s_p=%s.png",
-                                band_suffix, as.character(p0))),
-        g_err_fc, width = 9, height = 4.8, dpi = 150
-      )
-    }
-  })
 }
 
 # ================================================================
@@ -1597,188 +1651,218 @@ if (!exists("plot_param_hist_ci", mode = "function")) {
   }
 }
 
-for (k in seq_along(p_vec)) {
-  p0 <- p_vec[k]
-  pars <- fits_fc[[k]]$param_draws
-  if (is.null(pars) || (!length(pars$gamma) && !length(pars$sigma) && is.null(pars$beta))) {
-    message(sprintf("[warn] No parameter draws available for p=%s; skipping posterior param plots.", fmt_p(p0)))
-    next
-  }
-
-  # γ & σ histograms (side-by-side), using 0.01–0.99 sample range for x-axis
-  plots_left <- list()
-
-  # --- γ ---
-  if (!is.null(pars$gamma) && length(pars$gamma)) {
-    qs_gam <- qs_ci(pars$gamma, 0.95)
-
-    # 1%–99% sample range for the x-axis (sample only; ignore support)
-    x_lim_g <- stats::quantile(pars$gamma, c(0.01, 0.99), names = FALSE)
-    if (!all(is.finite(x_lim_g)) || x_lim_g[1] >= x_lim_g[2]) {
-      x_lim_g <- range(pars$gamma[is.finite(pars$gamma)])
+if (isTRUE(do_plots)) {
+  for (k in seq_along(p_vec)) {
+    p0 <- p_vec[k]
+    pars <- fits_fc[[k]]$param_draws
+    if (is.null(pars) || (!length(pars$gamma) && !length(pars$sigma) && is.null(pars$beta))) {
+      message(sprintf("[warn] No parameter draws available for p=%s; skipping posterior param plots.", fmt_p(p0)))
+      next
     }
 
-    # Subtitle: first line = CI, second line = support bounds
-    sub_txt_g <- sprintf(
-      "median=%.3f, 95%% CI=[%.3f, %.3f]\nSupport bounds=[%.3f, %.3f]",
-      qs_gam["med"], qs_gam["lo"], qs_gam["hi"],
-      pars$gamma_bounds[1], pars$gamma_bounds[2]
-    )
+    # γ & σ histograms (side-by-side), using 0.01–0.99 sample range for x-axis
+    plots_left <- list()
 
-    df_gam <- tibble::tibble(x = pars$gamma)
+    # --- γ ---
+    if (!is.null(pars$gamma) && length(pars$gamma)) {
+      qs_gam <- qs_ci(pars$gamma, 0.95)
 
-    plots_left$gamma <-
-      ggplot2::ggplot(df_gam, ggplot2::aes(x = x)) +
-      theme_exdqlm() +
-      ggplot2::geom_histogram(bins = 100, colour = "white") +
-      ggplot2::geom_vline(xintercept = qs_gam["med"], linetype = "solid") +
-      ggplot2::geom_vline(
-        xintercept = c(qs_gam["lo"], qs_gam["hi"]),
-        linetype   = "dashed", alpha = 0.8
-      ) +
-      ggplot2::labs(
-        title    = "Posterior of γ",
-        subtitle = sub_txt_g,
-        x        = "γ",
-        y        = "count"
-      ) +
-      ggplot2::coord_cartesian(xlim = x_lim_g)
-  }
-
-  # --- σ ---
-  if (!is.null(pars$sigma) && length(pars$sigma)) {
-    qs_sig <- qs_ci(pars$sigma, 0.95)
-
-    x_lim_s <- stats::quantile(pars$sigma, c(0.01, 0.99), names = FALSE)
-    if (!all(is.finite(x_lim_s)) || x_lim_s[1] >= x_lim_s[2]) {
-      x_lim_s <- range(pars$sigma[is.finite(pars$sigma)])
-    }
-
-    df_sig <- tibble::tibble(x = pars$sigma)
-
-    plots_left$sigma <-
-      ggplot2::ggplot(df_sig, ggplot2::aes(x = x)) +
-      theme_exdqlm() +
-      ggplot2::geom_histogram(bins = 100, colour = "white") +
-      ggplot2::geom_vline(xintercept = qs_sig["med"], linetype = "solid") +
-      ggplot2::geom_vline(
-        xintercept = c(qs_sig["lo"], qs_sig["hi"]),
-        linetype   = "dashed", alpha = 0.8
-      ) +
-      ggplot2::labs(
-        title    = "Posterior of σ",
-        subtitle = sprintf(
-          "median=%.3f, 95%% CI=[%.3f, %.3f]",
-          qs_sig["med"], qs_sig["lo"], qs_sig["hi"]
-        ),
-        x        = "σ",
-        y        = "count"
-      ) +
-      ggplot2::coord_cartesian(xlim = x_lim_s)
-  }
-
-  if (length(plots_left)) {
-    g_params <- Reduce(`|`, plots_left) # patchwork: side-by-side
-    print(g_params)
-    if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, sprintf("posterior_gamma_sigma_p=%s.png", as.character(p0))),
-             g_params, width = 10.5, height = 4.8, dpi = 150)
-    }
-  }
-
-  # β forest (all + top-K)
-  if (!is.null(pars$beta) && is.matrix(pars$beta)) {
-    term_names <- colnames(X_train)
-    if (is.null(term_names)) term_names <- paste0("β", seq_len(ncol(pars$beta)))
-
-    p_all <- ncol(pars$beta)
-
-    g_beta_all <- plot_beta_forest(
-      pars$beta, term_names = term_names, top_k = NULL
-    )
-    g_beta_top <- plot_beta_forest(
-      pars$beta, term_names = term_names, top_k = min(50L, p_all)
-    )
-
-    print(g_beta_all); print(g_beta_top)
-
-    if (isTRUE(save_outputs)) {
-      # Only save the "ALL" forest if p is modest; otherwise it becomes unreadable and >50"
-      if (p_all <= 250L) {
-        height_all <- max(5, 0.18 * p_all)
-        ggplot2::ggsave(
-          file.path(FIGS, sprintf("posterior_beta_forest_ALL_p=%s.png", as.character(p0))),
-          g_beta_all, width = 9.5, height = height_all, dpi = 150
-        )
-      } else {
-        message(sprintf(
-          "[info] Skipping posterior_beta_forest_ALL_p=%s (p=%d is too large for a legible full forest).",
-          fmt_p(p0), p_all
-        ))
+      # 1%–99% sample range for the x-axis (sample only; ignore support)
+      x_lim_g <- stats::quantile(pars$gamma, c(0.01, 0.99), names = FALSE)
+      if (!all(is.finite(x_lim_g)) || x_lim_g[1] >= x_lim_g[2]) {
+        x_lim_g <- range(pars$gamma[is.finite(pars$gamma)])
       }
 
-      ggplot2::ggsave(
-        file.path(FIGS, sprintf("posterior_beta_forest_TOP50_p=%s.png", as.character(p0))),
-        g_beta_top, width = 9.5, height = 10, dpi = 150
+      # Subtitle: first line = CI, second line = support bounds
+      sub_txt_g <- sprintf(
+        "median=%.3f, 95%% CI=[%.3f, %.3f]\nSupport bounds=[%.3f, %.3f]",
+        qs_gam["med"], qs_gam["lo"], qs_gam["hi"],
+        pars$gamma_bounds[1], pars$gamma_bounds[2]
       )
+
+      df_gam <- tibble::tibble(x = pars$gamma)
+
+      plots_left$gamma <-
+        ggplot2::ggplot(df_gam, ggplot2::aes(x = x)) +
+        theme_exdqlm() +
+        ggplot2::geom_histogram(bins = 100, colour = "white") +
+        ggplot2::geom_vline(xintercept = qs_gam["med"], linetype = "solid") +
+        ggplot2::geom_vline(
+          xintercept = c(qs_gam["lo"], qs_gam["hi"]),
+          linetype   = "dashed", alpha = 0.8
+        ) +
+        ggplot2::labs(
+          title    = "Posterior of γ",
+          subtitle = sub_txt_g,
+          x        = "γ",
+          y        = "count"
+        ) +
+        ggplot2::coord_cartesian(xlim = x_lim_g)
     }
 
-    # Optional: IJ-corrected β forest (top-K) if IJ info is available
-    if (isTRUE(use_ij_correction) &&
-        !is.null(pars$beta_ij) &&
-        !is.null(pars$beta_ij$beta_hat) &&
-        !is.null(pars$beta_ij$lo_ij) &&
-        !is.null(pars$beta_ij$hi_ij)) {
+    # --- σ ---
+    if (!is.null(pars$sigma) && length(pars$sigma)) {
+      qs_sig <- qs_ci(pars$sigma, 0.95)
 
-      beta_hat_ij <- pars$beta_ij$beta_hat
-      lo_ij_beta  <- pars$beta_ij$lo_ij
-      hi_ij_beta  <- pars$beta_ij$hi_ij
+      x_lim_s <- stats::quantile(pars$sigma, c(0.01, 0.99), names = FALSE)
+      if (!all(is.finite(x_lim_s)) || x_lim_s[1] >= x_lim_s[2]) {
+        x_lim_s <- range(pars$sigma[is.finite(pars$sigma)])
+      }
 
-      len_beta <- length(beta_hat_ij)
-      if (len_beta != p_all) {
-        warning(sprintf(
-          "[warn] beta_ij length (%d) != p_all (%d) for p=%s; skipping IJ β forest.",
-          len_beta, p_all, fmt_p(p0)
-        ))
-      } else {
-        g_beta_ij_top <- plot_beta_forest_summary(
-          beta_hat   = beta_hat_ij,
-          lo         = lo_ij_beta,
-          hi         = hi_ij_beta,
-          term_names = term_names,
-          top_k      = min(50L, p_all),
-          title      = "Readout coefficients: IJ-corrected 95% band"
-        )
+      df_sig <- tibble::tibble(x = pars$sigma)
 
-        print(g_beta_ij_top)
+      plots_left$sigma <-
+        ggplot2::ggplot(df_sig, ggplot2::aes(x = x)) +
+        theme_exdqlm() +
+        ggplot2::geom_histogram(bins = 100, colour = "white") +
+        ggplot2::geom_vline(xintercept = qs_sig["med"], linetype = "solid") +
+        ggplot2::geom_vline(
+          xintercept = c(qs_sig["lo"], qs_sig["hi"]),
+          linetype   = "dashed", alpha = 0.8
+        ) +
+        ggplot2::labs(
+          title    = "Posterior of σ",
+          subtitle = sprintf(
+            "median=%.3f, 95%% CI=[%.3f, %.3f]",
+            qs_sig["med"], qs_sig["lo"], qs_sig["hi"]
+          ),
+          x        = "σ",
+          y        = "count"
+        ) +
+        ggplot2::coord_cartesian(xlim = x_lim_s)
+    }
 
-        if (isTRUE(save_outputs)) {
+    if (length(plots_left)) {
+      g_params <- Reduce(`|`, plots_left) # patchwork: side-by-side
+      print(g_params)
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, sprintf("posterior_gamma_sigma_p=%s.png", as.character(p0))),
+              g_params, width = 10.5, height = 4.8, dpi = 150)
+      }
+    }
+
+    # β forest (all + top-K)
+    if (!is.null(pars$beta) && is.matrix(pars$beta)) {
+      term_names <- colnames(X_train)
+      if (is.null(term_names)) term_names <- paste0("β", seq_len(ncol(pars$beta)))
+
+      p_all <- ncol(pars$beta)
+
+      g_beta_all <- plot_beta_forest(
+        pars$beta, term_names = term_names, top_k = NULL
+      )
+      g_beta_top <- plot_beta_forest(
+        pars$beta, term_names = term_names, top_k = min(50L, p_all)
+      )
+
+      print(g_beta_all); print(g_beta_top)
+
+      if (isTRUE(save_outputs)) {
+        # Only save the "ALL" forest if p is modest; otherwise it becomes unreadable and >50"
+        if (p_all <= 250L) {
+          height_all <- max(5, 0.18 * p_all)
           ggplot2::ggsave(
-            file.path(FIGS, sprintf("posterior_beta_forest_IJ_TOP50_p=%s.png", as.character(p0))),
-            g_beta_ij_top, width = 9.5, height = 10, dpi = 150
+            file.path(FIGS, sprintf("posterior_beta_forest_ALL_p=%s.png", as.character(p0))),
+            g_beta_all, width = 9.5, height = height_all, dpi = 150
           )
+        } else {
+          message(sprintf(
+            "[info] Skipping posterior_beta_forest_ALL_p=%s (p=%d is too large for a legible full forest).",
+            fmt_p(p0), p_all
+          ))
+        }
+
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("posterior_beta_forest_TOP50_p=%s.png", as.character(p0))),
+          g_beta_top, width = 9.5, height = 10, dpi = 150
+        )
+      }
+
+      # Optional: IJ-corrected β forest (top-K) if IJ info is available
+      if (isTRUE(use_ij_correction) &&
+          !is.null(pars$beta_ij) &&
+          !is.null(pars$beta_ij$beta_hat) &&
+          !is.null(pars$beta_ij$lo_ij) &&
+          !is.null(pars$beta_ij$hi_ij)) {
+
+        beta_hat_ij <- pars$beta_ij$beta_hat
+        lo_ij_beta  <- pars$beta_ij$lo_ij
+        hi_ij_beta  <- pars$beta_ij$hi_ij
+
+        len_beta <- length(beta_hat_ij)
+        if (len_beta != p_all) {
+          warning(sprintf(
+            "[warn] beta_ij length (%d) != p_all (%d) for p=%s; skipping IJ β forest.",
+            len_beta, p_all, fmt_p(p0)
+          ))
+        } else {
+          g_beta_ij_top <- plot_beta_forest_summary(
+            beta_hat   = beta_hat_ij,
+            lo         = lo_ij_beta,
+            hi         = hi_ij_beta,
+            term_names = term_names,
+            top_k      = min(50L, p_all),
+            title      = "Readout coefficients: IJ-corrected 95% band"
+          )
+
+          print(g_beta_ij_top)
+
+          if (isTRUE(save_outputs)) {
+            ggplot2::ggsave(
+              file.path(FIGS, sprintf("posterior_beta_forest_IJ_TOP50_p=%s.png", as.character(p0))),
+              g_beta_ij_top, width = 9.5, height = 10, dpi = 150
+            )
+          }
         }
       }
     }
   }
 }
 
-
 # --- 4) ELBO traces
-k_burn <- 20
+# --- 4) ELBO traces -----------------------------------------------------------
+k_burn <- 20L
+
 elbo_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
   tr <- fits_fc[[i]]$fit_train$fit$misc$elbo
   if (is.null(tr) || !length(tr)) return(tibble::tibble())
-  tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), elbo = as.numeric(tr))
+  tibble::tibble(
+    p0   = p_vec[i],
+    iter = seq_along(tr),
+    elbo = as.numeric(tr)
+  )
 }))
-if (nrow(elbo_df)) {
-  elbo_df <- elbo_df |> dplyr::filter(iter > k_burn) |> dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0)))
-  g_elbo <- ggplot2::ggplot(elbo_df, ggplot2::aes(x = iter, y = elbo, colour = p0_chr)) +
-    theme_exdqlm() + ggplot2::labs(x="VB iteration", y="ELBO", colour="p0",
-    title="ELBO traces across quantile models", subtitle=sprintf("First k=%d iterations omitted", k_burn)) +
-    ggplot2::geom_line(linewidth=0.8, alpha=0.95) + ggplot2::scale_color_manual(values = col_map)
+
+if (isTRUE(do_plots) && nrow(elbo_df)) {
+  elbo_df <- elbo_df |>
+    dplyr::filter(iter > k_burn) |>
+    dplyr::mutate(
+      p0_chr = factor(sprintf("%.2f", p0),
+                      levels = sprintf("%.2f", p_vec))
+    )
+
+  g_elbo <- ggplot2::ggplot(
+      elbo_df,
+      ggplot2::aes(x = iter, y = elbo, colour = p0_chr)
+    ) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x        = "VB iteration",
+      y        = "ELBO",
+      colour   = "p0",
+      title    = "ELBO traces across quantile models",
+      subtitle = sprintf("First k=%d iterations omitted", k_burn)
+    ) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
   print(g_elbo)
-  if (isTRUE(save_outputs)) ggsave(file.path(FIGS, sprintf("elbo_traces_skip_k=%d.png", k_burn)), g_elbo, width=9, height=4.8, dpi=150)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(
+      file.path(FIGS, sprintf("elbo_traces_skip_k=%d.png", k_burn)),
+      g_elbo, width = 9, height = 4.8, dpi = 150
+    )
+  }
 }
 
 # --- 4b) γ and σ traces (skip same burn-in as ELBO) --------------------------
@@ -1802,7 +1886,7 @@ sigma_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
   )
 }))
 
-if (nrow(gamma_df) && nrow(sigma_df)) {
+if (isTRUE(do_plots) && nrow(gamma_df) && nrow(sigma_df)) {
   gamma_df <- gamma_df |>
     dplyr::filter(iter > k_burn) |>
     dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0),
@@ -1862,7 +1946,7 @@ newterm_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
   )
 }))
 
-if (nrow(newterm_df)) {
+if (isTRUE(do_plots) && nrow(newterm_df)) {
   newterm_df <- newterm_df |>
     dplyr::filter(iter > k_burn, is.finite(new_term)) |>
     dplyr::mutate(
@@ -1921,39 +2005,41 @@ compare_fc <- tibble::tibble(h = seq_len(H_forecast), y = y_forecast) |>
   dplyr::bind_cols(true_q_fc) |>
   dplyr::bind_cols(synth_q_fc)
 
-timed("plot+save synth_forecast trio", {
-   plots_synth_fc <- lapply(
-  p_comp,
-  function(tau)
-    plot_synth_q_vs_true(
-      compare_fc, tau,
-      scope  = "Forecast",
-      window = fore_last_window
-    )
-)
+if (isTRUE(do_plots)) {
+  timed("plot+save synth_forecast trio", {
+    plots_synth_fc <- lapply(
+    p_comp,
+    function(tau)
+      plot_synth_q_vs_true(
+        compare_fc, tau,
+        scope  = "Forecast",
+        window = fore_last_window
+      )
+  )
 
-g_band_fc <- plot_synth_predictive_band(
-  synth_draws = synth_fc$draws,
-  y_vec       = y_forecast,
-  scope       = "Forecast",
-  window      = fore_last_window,
-  fill_col    = ACCENT_ORANGE,
-  show_median = TRUE
-)
+  g_band_fc <- plot_synth_predictive_band(
+    synth_draws = synth_fc$draws,
+    y_vec       = y_forecast,
+    scope       = "Forecast",
+    window      = fore_last_window,
+    fill_col    = ACCENT_ORANGE,
+    show_median = TRUE
+  )
 
-  for (j in seq_along(plots_synth_fc)) {
-    print(plots_synth_fc[[j]])
-    if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, sprintf("forecast_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
-             plots_synth_fc[[j]], width=9, height=4.8, dpi=150)
+    for (j in seq_along(plots_synth_fc)) {
+      print(plots_synth_fc[[j]])
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, sprintf("forecast_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
+              plots_synth_fc[[j]], width=9, height=4.8, dpi=150)
+      }
     }
-  }
 
-  print(g_band_fc)
-  if (isTRUE(save_outputs)) {
-    ggsave(file.path(FIGS, "forecast_obs_with_95_band.png"), g_band_fc, width=9, height=4.8, dpi=150)
-  }
-})
+    print(g_band_fc)
+    if (isTRUE(save_outputs)) {
+      ggsave(file.path(FIGS, "forecast_obs_with_95_band.png"), g_band_fc, width=9, height=4.8, dpi=150)
+    }
+  })
+}
 
 # Train synthesis (for completeness)
 draws_list_tr <- lapply(fits_fc, function(obj) obj$yrep_tr)
@@ -1982,36 +2068,38 @@ compare_tr <- tibble::tibble(h = seq_len(T_train_keep), y = y_train_keep) |>
   dplyr::bind_cols(true_q_tr) |>
   dplyr::bind_cols(synth_q_tr)
 
-timed("plot+save synth_train trio", {
-  plots_synth_tr <- lapply(
-    p_comp,
-    function(tau)
-      plot_synth_q_vs_true(
-        compare_tr, tau,
-        scope  = "Train",
-        window = train_last_window
-      )
-  )
-  for (j in seq_along(plots_synth_tr)) {
-    print(plots_synth_tr[[j]])
-    if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, sprintf("train_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
-             plots_synth_tr[[j]], width=9, height=4.8, dpi=150)
+if (isTRUE(do_plots)) {
+  timed("plot+save synth_train trio", {
+    plots_synth_tr <- lapply(
+      p_comp,
+      function(tau)
+        plot_synth_q_vs_true(
+          compare_tr, tau,
+          scope  = "Train",
+          window = train_last_window
+        )
+    )
+    for (j in seq_along(plots_synth_tr)) {
+      print(plots_synth_tr[[j]])
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, sprintf("train_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
+              plots_synth_tr[[j]], width=9, height=4.8, dpi=150)
+      }
     }
-  }
-  g_band_tr <- plot_synth_predictive_band(
-    synth_draws = synth_tr$draws,
-    y_vec       = y_train_keep,
-    scope       = "Train",
-    window      = train_last_window,
-    fill_col    = ACCENT_ORANGE,
-    show_median = TRUE
-  )
-  print(g_band_tr)
-  if (isTRUE(save_outputs)) {
-    ggsave(file.path(FIGS, "train_obs_with_95_band.png"), g_band_tr, width=9, height=4.8, dpi=150)
-  }
-})
+    g_band_tr <- plot_synth_predictive_band(
+      synth_draws = synth_tr$draws,
+      y_vec       = y_train_keep,
+      scope       = "Train",
+      window      = train_last_window,
+      fill_col    = ACCENT_ORANGE,
+      show_median = TRUE
+    )
+    print(g_band_tr)
+    if (isTRUE(save_outputs)) {
+      ggsave(file.path(FIGS, "train_obs_with_95_band.png"), g_band_tr, width=9, height=4.8, dpi=150)
+    }
+  })
+}
 
 # --- 6) Save core objects
 if (isTRUE(save_outputs)) {
