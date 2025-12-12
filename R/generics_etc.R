@@ -590,12 +590,21 @@ plot.exdqlmForecast <- function(x, ...) {
   half.alpha = (1 - x$cr.percent)/2
   
   # filtered estimate for reference
-  qmap = apply(matrix(x$m1$model$FF[,1:x$start.t]*x$m1$theta.out$fm[,1:x$start.t],p,x$start.t),2,sum)
-  qlb = qmap + sapply(1:x$start.t,function(t){stats::qnorm(half.alpha,0,sqrt(t(x$m1$model$FF[,t])%*%x$m1$theta.out$fC[,,t]%*%x$m1$model$FF[,t]))})
-  qub = qmap + sapply(1:x$start.t,function(t){stats::qnorm(x$cr.percent + half.alpha,0,sqrt(t(x$m1$model$FF[,t])%*%x$m1$theta.out$fC[,,t]%*%x$m1$model$FF[,t]))})
+  FF.start.t = matrix(x$m1$model$FF[,1:x$start.t], p, x$start.t)
+  fm.start.t = matrix(x$m1$theta.out$fm[,1:x$start.t], p, x$start.t)
+  qmap = colSums(matrix(FF.start.t*fm.start.t,p,x$start.t))
+  fC.start.t = array(x$m1$theta.out$fC[,,1:x$start.t], c(p,p,x$start.t))
+  temp.var = matrix(NA,p,x$start.t)
+  for(t in 1:x$start.t){ temp.var[,t] = fC.start.t[,,t] %*% FF.start.t[,t] }
+  qvar = colSums(FF.start.t * temp.var)
+  qsd = sqrt(qvar)
+  zlb = stats::qnorm(half.alpha)
+  zub = stats::qnorm(x$cr.percent + half.alpha)
+  qlb = qmap + zlb * qsd
+  qub = qmap + zub * qsd
   # forecast estimates
-  fqlb = x$ff+stats::qnorm(half.alpha,0,sqrt(x$fQ))
-  fqub = x$ff+stats::qnorm(x$cr.percent + half.alpha,0,sqrt(x$fQ))
+  fqlb = x$ff + zlb * sqrt(x$fQ)
+  fqub = x$ff + zub * sqrt(x$fQ)
   # filtered and forecasted quantiles & CrIs
   ts.xy = grDevices::xy.coords(y)
   if(!add){

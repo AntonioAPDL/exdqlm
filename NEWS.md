@@ -10,6 +10,7 @@
     - Parameter validation to keep `gamma` within bounds; clearer errors.
 - Updated exdqlmISVB() and exdqlmMCMC() to use rexal()
 - exdqlmChecks() renamed exdqlmDiagnostics()
+- Improved the performance of plotting functions exdqlmPlot() and compPlot()
 - Return changes
   - functions polytrendMod(), and seasMod() now return objects of class 'exdqlm'
   - function exdqlmISVB() and (inherently) transfn_exdqlmISVB() now return objects of class 'exdqlmISVB'

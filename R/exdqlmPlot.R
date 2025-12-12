@@ -40,10 +40,11 @@ exdqlmPlot <- function(m1,add=FALSE,col="purple",cr.percent=0.95){
   half.alpha = (1 - cr.percent)/2
 
   # 95% CrIs
-  quant.samps = apply(array(m1$model$FF,c(p,TT,n.samp))*m1$samp.theta,c(2,3),sum)
+  big_FF = array(m1$model$FF,c(p,TT,n.samp))
+  quant.samps = colSums(big_FF*m1$samp.theta)
   map.quant = rowMeans(quant.samps)
-  lb.quant = apply(quant.samps,1,stats::quantile,probs=half.alpha)
-  ub.quant = apply(quant.samps,1,stats::quantile,probs=cr.percent + half.alpha)
+  lb.quant = matrixStats::rowQuantiles(quant.samps, probs = half.alpha)
+  ub.quant = matrixStats::rowQuantiles(quant.samps, probs = cr.percent + half.alpha)
 
   # plot
   if(!add){

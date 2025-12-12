@@ -8,7 +8,7 @@ exdqlmDiagnostics(
   m1,
   m2 = NULL,
   plot = TRUE,
-  cols = c("grey", "grey"),
+  cols = c("red", "blue"),
   ref = NULL
 )
 }

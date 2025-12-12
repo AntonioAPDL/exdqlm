@@ -49,13 +49,14 @@ compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, c
 
   # 95% CrIs
   if(!just.theta){
-      quant.samps = apply(array(m1$model$FF[index,],c(p,TT,n.samp))*array(m1$samp.theta[index,,],c(p,TT,n.samp)),c(2,3),sum)
+      big_FF = array(m1$model$FF[index,],c(p,TT,n.samp))
+      quant.samps = colSums(big_FF*array(m1$samp.theta[index,,],c(p,TT,n.samp)))
   }else{
       quant.samps = matrix(m1$samp.theta[index,,],TT,n.samp)
   }
   map.quant = rowMeans(quant.samps)
-  lb.quant = apply(quant.samps,1,stats::quantile,probs=half.alpha)
-  ub.quant = apply(quant.samps,1,stats::quantile,probs=cr.percent + half.alpha)
+  lb.quant = matrixStats::rowQuantiles(quant.samps, probs = half.alpha)
+  ub.quant = matrixStats::rowQuantiles(quant.samps, probs = cr.percent + half.alpha)
 
   # plot
   if(!add){

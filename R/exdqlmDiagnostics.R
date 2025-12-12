@@ -31,7 +31,7 @@
 #' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
 #' }
 #'
-exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("grey","grey"),ref=NULL){
+exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL){
 
   # check inputs
   y = m1$y
