@@ -1,134 +1,161 @@
 # Global, conservative defaults for Q-DESN + exAL VB pipelines.
-# These have lowest precedence and can be overridden by any spec YAML.
+# Lowest precedence: any spec YAML can override these.
 
 suite_name: sim_suite_dlm
 results_root: results
 
+# --------------------------------------------------------------------
+# Data split: how much of the series to use and how to split train/forecast
+# --------------------------------------------------------------------
 split:
-  # How much of the full series to use and how to split train / forecast.
-  T_use: 5000          # number of time points used (from end if use_last = true)
-  use_prop: null       # optional fraction of T_full to use instead of T_use
-  use_last: true       # if true, take last T_use points; else first T_use
-  train_n: null        # fixed training length (overrides train_prop if non-null)
-  train_prop: 0.94  # fallback train fraction if train_n is null
+  T_use: 5000        # number of time points used (from end if use_last = true)
+  use_prop: null     # optional fraction of T_full to use instead of T_use
+  use_last: true     # if true, take last T_use points; else first T_use
+  train_n: null      # fixed training length (overrides train_prop if non-null)
+  train_prop: 0.94   # fallback train fraction if train_n is null
 
-# Quantile levels fitted independently by VB.
+# --------------------------------------------------------------------
+# Quantile levels fitted independently by VB
+# --------------------------------------------------------------------
 p_vec: [0.05, 0.50, 0.95]
 
+# --------------------------------------------------------------------
+# Pipeline-level defaults
+# --------------------------------------------------------------------
+pipeline:
+  mode: sim          # "sim" or "real"
+  profile: full      # "full" or "ms" (model_selection)
+  verbose: true      # global verbosity flag
+
+# --------------------------------------------------------------------
+# DESN (reservoir) defaults
+# --------------------------------------------------------------------
 desn:
-  # Deep Echo State Network (reservoir) defaults.
-  D: 3                        # number of reservoir layers
-  "n": [20, 20, 20]           # units per layer (length D)
-  n_tilde: [20, 20]           # skip connections; length D-1 or D
-  m: 30                       # readout dimension
-  alpha: [0.2, 0.2, 0.2]      # leaking rate per layer
-  rho: [0.95, 0.95, 0.95]     # target spectral radius per layer
-  act_f: [tanh, tanh, tanh]   # state non-linearity
-  act_k: [identity, identity, identity]  # output activation
-  pi_w: [0.05, 0.05, 0.05]    # sparsity of recurrent weights
-  pi_in: [1.0, 1.0, 1.0]      # sparsity of input weights
-  washout: 300                # initial time steps discarded from reservoir
-  add_bias: true              # include bias terms in readout
-  seed: [42, 41, 40]          # per-layer RNG seeds (or scalar)
+  D: 1                       # number of reservoir layers
+  n: [800]                   # per-layer sizes
+  n_tilde: []                # reducers; [], or scalar (broadcast to D-1), or length D-1
+  m: 50                      # number of lags in u_t
+  alpha: 0.2                 # leak, scalar or length-D
+  rho: [0.95]                # spectral scales per layer
+  act_f: tanh                # reservoir activation
+  act_k: identity            # activation on reduced states
+  pi_w: 0.05                 # sparsity for internal weights
+  pi_in: 1.0                 # sparsity for input weights
+  washout: 500               # extra initial points dropped
+  add_bias: true             # constant column in readout design
+  seed: 42                   # seed for reservoir construction
 
+# --------------------------------------------------------------------
+# Variational Bayes (exAL LDVB) defaults
+# These match what pipeline_sim_main.R expects in cfg$vb
+# --------------------------------------------------------------------
 vb:
-  # Variational Bayes controls shared across quantiles.
-  max_iter: 1000
-  tol_50: 5.0e-3              # ELBO tol at the median quantile
-  tol_extreme: 5.0e-3         # ELBO tol at tail quantiles
-  tol_par_50: 5.0e-3          # safeguard on E[gamma], E[sigma] at p = 0.5
-  tol_par_extreme: 5.0e-3     # safeguard at tail quantiles
-  n_samp_xi: 5000             # kept for backward compatibility (unused in LD)
-  verbose: true
+  max_iter: 150              # max CAVI iterations per (p0)
+  n_samp_xi: 500             # (kept for compatibility; LDVB uses delta)
+  verbose: true              # per-quantile VB printing
 
+  # ELBO tolerance (mid vs tails)
+  tol_50: 0.0001             # target for p0 ≈ 0.50
+  tol_extreme: 0.00001       # target for tails (e.g. 0.05, 0.95)
+
+  # Additional safeguard tolerance on (E[gamma], E[sigma]) increments
+  # Defaults are same magnitude as ELBO tolerances above
+  tol_par_50: 0.0001
+  tol_par_extreme: 0.00001
+
+  # Optional per-quantile initialization on the natural scale
   init:
-    # Initial means for LD parameters (natural scale), one per p in p_vec.
-    gamma: [0.0, 0.0, 0.0]    # start γ near 0
-    sigma: [1.0, 1.0, 1.0]    # start σ near 1 (positive scale)
+    gamma: null              # can be scalar or length(p_vec)
+    sigma: null              # can be scalar or length(p_vec)
 
+  # Optional per-quantile priors
   priors:
     gamma:
-      # Normal prior for γ | p ~ TN(mu0_p, s20_p).
-      mu0: [0.0, 0.0, 0.0]
-      s20: [1000.0, 1000.0, 1000.0]   # fairly vague
+      # Normal prior for γ_p:  γ_p ~ N(mu0_p, s20_p)
+      # If you leave these as null, the pipeline falls back to (0, 10) in code.
+      mu0: 0.0               # default mean for all p
+      s20: 10.0              # default variance for all p
 
     sigma:
-      # Inverse-Gamma prior σ | p ~ IG(a_p, b_p).
-      # Scalars are recycled across p_vec; vectors must match length(p_vec).
-      a: [0.001, 0.001, 0.001]
-      b: [0.001, 0.001, 0.001]
+      # Inverse-Gamma prior for σ_p:  σ_p ~ IG(a_p, b_p)
+      # If you leave these as null, the pipeline falls back to (1, 1) in code.
+      a: 1.0                 # shape
+      b: 1.0                 # scale
 
     beta:
-      # Ridge prior variance for readout β: V0 = tau2 * I.
-      tau2: 1000.0
+      # Prior on β: choose between "ridge" and "rhs".
+      # - "ridge": β ~ N(0, τ² I)
+      # - "rhs":   Regularized Horseshoe (hierarchical prior)
+      type: ridge            # default; override to "rhs" in spec YAMLs
 
+      ridge:
+        tau2: 10000          # ridge variance τ² (scalar; shared across p)
+
+      rhs:
+        # RHS hyperparameters. These mirror the fields parsed into vb_prior_beta_rhs.
+        tau0: 1.0            # global shrinkage scale
+        nu: 4.0              # degrees of freedom in the slab
+        s2: 1.0              # slab variance (or scale²)
+        # Optional initial values for log-latents in VB (used to initialize q).
+        init_log_lambda: 0.0 # local scales λ_j
+        init_log_tau: 0.0    # global τ
+        init_log_c2: 0.0     # c² in the regularized horseshoe
+
+# --------------------------------------------------------------------
+# Sampling defaults (posterior / predictive)
+# --------------------------------------------------------------------
 sampling:
-  # Posterior predictive draws used for diagnostics / synthesis.
-  nd_draws: 2000
-  chunk: 250
+  nd_draws: 3000             # parameter + predictive draws
+  chunk: 250                 # chunk size for memory-friendly sampling
 
-forecast:
-  coverage_report: global     # options: global, window, both
-  # Rolling-origin forecast configuration.
-  rolling_origin: true
-  H_step: 1
-  last_window: 200            # base window for plots
-  train_last_window: 500      # window for train plots
-  fore_last_window: 500       # window for forecast plots
-
+# --------------------------------------------------------------------
+# IJ correction defaults
+# --------------------------------------------------------------------
 ij:
-  # Inference-jackknife (IJ) correction for μ-bands.
-  use_ij_correction: true
-  nd_draws: 2000              # parameter draws used in IJ variance
+  use_ij_correction: true    # TRUE = IJ-corrected μ bands; FALSE = posterior-only bands
+  nd_draws: 2000             # draws used in IJ computation
 
+# --------------------------------------------------------------------
+# Forecasting defaults
+# --------------------------------------------------------------------
+forecast:
+  last_window: 200           # legacy base window
+  rolling_origin: true       # whether to use rolling origin in selection (when available)
+  H_step: 1                  # step size for rolling origin
+
+  # Optional separate windows (if null, fallback to last_window)
+  train_last_window: null
+  fore_last_window: null
+
+  # How to report coverage in plot subtitles:
+  # "global" = coverage over full span
+  # "window" = coverage on last N window points
+  # "both" = both metrics
+  coverage_report: global
+
+# --------------------------------------------------------------------
+# Quantile synthesis defaults (across p_vec)
+# --------------------------------------------------------------------
 synthesis:
-  # Quantile synthesis (isotonic regression + rearrangement).
-  isotonic: true
-  rearrange: true
-  grid_M: 2001                # grid size for synthesis
-  n_samp: 2000                # synthesized predictive draws
-  seed: 123
+  isotonic: true             # isotonic regression for monotonicity
+  rearrange: true            # rearrangement for monotone quantile curves
+  grid_M: 2001               # grid size for synthesis
+  n_samp: 4000               # draws for synthesized predictive bands
+  seed: 123                  # seed for synthesis
 
+# --------------------------------------------------------------------
+# Diagnostics and plotting defaults
+# --------------------------------------------------------------------
 diagnostics:
-  calibration: true
-  pit: true
-  scores: true
-  plots: true
+  calibration: true          # probability integral transform / calibration
+  pit: true                  # PIT diagnostics
+  scores: true               # CRPS / interval scores, etc.
+  plots: true                # master gate for ggplot-based outputs
 
+# --------------------------------------------------------------------
+# Outputs (saving heavy artifacts)
+# --------------------------------------------------------------------
 outputs:
-  # What to persist to disk.
-  save: true
-  keep_draws: false           # keep full draws objects (large)
-  thesis_subset: false        # additional reduced exports for thesis
-
-orchestrate:
-  # High-level orchestration defaults (used by runners).
-  concurrency: 10
-  threads_per_proc: 10
-  skip_if_success: true
-  resume_failed: false
-
-naming:
-  # File-name prefixes / conventions for figures and tables.
-  bands_prefix: forecast_mu_band_p=
-  empq_prefix: forecast_emp_q_vs_true_p=
-  synth_prefix: forecast_synth_vs_true_p=
-  pit_train: pit_train.png
-  pit_forecast: pit_forecast.png
-  elbo_prefix: elbo_traces_skip_k=
-  cov_mu_train_prefix: rolling_cov_mu_train_W=
-  cov_mu_fore_prefix: rolling_cov_mu_forecast_W=
-  cov_qhat_train_prefix: rolling_cov_qhat_train_W=
-  cov_qhat_fore_prefix: rolling_cov_qhat_forecast_W=
-  cov_qsynth_train_prefix: rolling_cov_qsynth_train_W=
-  cov_qsynth_fore_prefix: rolling_cov_qsynth_forecast_W=
-  calib_mu: calibration_mu_table.csv
-  calib_qhat: calibration_qhat_table.csv
-  calib_qsynth: calibration_qsynth_table.csv
-  metrics_summary: metrics_summary.csv
-  objects_rds: forecast_objects.rds
-
-pipeline:
-  mode: sim
-  profile: full
-  verbose: true  
+  save: true                 # save outputs to disk
+  keep_draws: false          # whether to save posterior draws
+  thesis_subset: false       # subset of plots/tables for thesis use

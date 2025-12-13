@@ -145,6 +145,18 @@ vb_prior_sigma_b <- NULL
 # Ridge prior variance for beta (shared across p if scalar)
 vb_prior_beta_tau2 <- NULL
 
+# Beta prior type + RHS hyperparameters (new; default ridge)
+vb_prior_beta_type <- "ridge"
+
+vb_prior_beta_rhs <- list(
+  tau0 = 1.0,
+  nu   = 4.0,
+  s2   = 1.0,
+  init_log_lambda = 0.0,
+  init_log_tau    = 0.0,
+  init_log_c2     = 0.0
+)
+
 # --- IJ correction toggles (global) -------------------------------------------
 ij_nd_draws       <- 2000L   # number of parameter draws used for IJ + μ-bands
 use_ij_correction <- TRUE    # set FALSE to revert to pure posterior μ-bands
@@ -212,38 +224,53 @@ if (length(cfg)) {
     if (!is.null(cfg$desn$alpha)) {
       a <- as_num(cfg$desn$alpha);  desn_args$alpha <- fix_len(a, D_in, "desn$alpha")
     }
-    if (!is.null(cfg$desn$act_f)) {
-      af <- as_chr_vec(cfg$desn$act_f); desn_args$act_f <- fix_len(af, D_in, "desn$act_f")
+        if (!is.null(cfg$desn$act_f)) {
+      af <- as.character(cfg$desn$act_f)
+      if (length(af) != 1L) stop("Config error: desn$act_f must be a single value (per-layer act_f not supported yet).")
+      desn_args$act_f <- af
     }
     if (!is.null(cfg$desn$act_k)) {
-      ak <- as_chr_vec(cfg$desn$act_k); desn_args$act_k <- fix_len(ak, D_in, "desn$act_k")
+      ak <- as.character(cfg$desn$act_k)
+      if (length(ak) != 1L) stop("Config error: desn$act_k must be a single value (per-layer act_k not supported yet).")
+      desn_args$act_k <- ak
     }
     if (!is.null(cfg$desn$pi_w)) {
-      pw <- as_num(cfg$desn$pi_w);     desn_args$pi_w  <- fix_len(pw, D_in, "desn$pi_w")
+      pw <- as.numeric(cfg$desn$pi_w)
+      if (length(pw) != 1L) stop("Config error: desn$pi_w must be a single scalar.")
+      desn_args$pi_w <- pw
     }
     if (!is.null(cfg$desn$pi_in)) {
-      pin <- as_num(cfg$desn$pi_in);   desn_args$pi_in <- fix_len(pin, D_in, "desn$pi_in")
+      pin <- as.numeric(cfg$desn$pi_in)
+      if (length(pin) != 1L) stop("Config error: desn$pi_in must be a single scalar.")
+      desn_args$pi_in <- pin
     }
     if (!is.null(cfg$desn$seed)) {
-      sd <- as_num(cfg$desn$seed)
-      # seed may be scalar or length-D; if vector, keep_len=D
-      desn_args$seed <- if (length(sd) == 1L) sd else fix_len(sd, D_in, "desn$seed")
+      sd <- as.integer(cfg$desn$seed)
+      if (length(sd) != 1L) stop("Config error: desn$seed must be a single integer.")
+      desn_args$seed <- sd
     }
 
-    # n_tilde rules: allow length 0 (none), 1 (broadcast), D-1 (between layers), or D (per layer)
+    # n_tilde rules (must match qdesn_fit_vb):
+    # - D=1: ignored; force integer(0)
+    # - D>1: allow length 1 (broadcast to D-1) or length D-1
     if (!is.null(cfg$desn$n_tilde)) {
-      nt <- as_num(cfg$desn$n_tilde)
-      if (length(nt) == 0L) {
+      nt <- as_num_vec(cfg$desn$n_tilde)
+      nt <- as.integer(nt)
+
+      if (length(nt) == 0L || all(is.na(nt))) {
+        desn_args$n_tilde <- integer(0)
+      } else if (D_in <= 1L) {
         desn_args$n_tilde <- integer(0)
       } else if (length(nt) == 1L) {
-        desn_args$n_tilde <- rep(as.integer(nt), D_in)
-      } else if (length(nt) %in% c(D_in - 1L, D_in)) {
-        desn_args$n_tilde <- as.integer(nt)
+        desn_args$n_tilde <- rep(nt, D_in - 1L)
+      } else if (length(nt) == (D_in - 1L)) {
+        desn_args$n_tilde <- nt
       } else {
-        stop(sprintf("Config error: length(desn$n_tilde)=%d not in {0,1,%d,%d}",
-                     length(nt), D_in - 1L, D_in))
+        stop(sprintf("Config error: length(desn$n_tilde)=%d but D=%d; expected 0, 1, or D-1=%d.",
+                    length(nt), D_in, D_in - 1L))
       }
     }
+
 
     # scalar-only fields (keep your current lines)
     desn_args$m        <- cfg$desn$m        %nz% desn_args$m
@@ -307,8 +334,33 @@ if (length(cfg)) {
         vb_prior_sigma_a <- recycle_p(cfg$vb$priors$sigma$a, "priors$sigma$a")
         vb_prior_sigma_b <- recycle_p(cfg$vb$priors$sigma$b, "priors$sigma$b")
       }
-      if (!is.null(cfg$vb$priors$beta) && !is.null(cfg$vb$priors$beta$tau2)) {
-        vb_prior_beta_tau2 <- as.numeric(cfg$vb$priors$beta$tau2)[1L]
+      if (!is.null(cfg$vb$priors$beta)) {
+        beta_cfg <- cfg$vb$priors$beta
+
+        # New: beta$type (ridge vs rhs), default ridge
+        vb_prior_beta_type <- tolower(beta_cfg$type %||% "ridge")
+
+        # Ridge τ²: support both new nested structure and old flat tau2 for backward compatibility
+        tau2_val <- NULL
+        if (!is.null(beta_cfg$ridge) && !is.null(beta_cfg$ridge$tau2)) {
+          tau2_val <- as.numeric(beta_cfg$ridge$tau2)[1L]
+        } else if (!is.null(beta_cfg$tau2)) {
+          tau2_val <- as.numeric(beta_cfg$tau2)[1L]
+        }
+        vb_prior_beta_tau2 <- tau2_val
+
+        # RHS hyperparameters (used later by RHS VB; here we just store them)
+        if (!is.null(beta_cfg$rhs)) {
+          rhs_cfg <- beta_cfg$rhs
+          vb_prior_beta_rhs <- list(
+            tau0 = rhs_cfg$tau0 %nz% 1.0,
+            nu   = rhs_cfg$nu   %nz% 4.0,
+            s2   = rhs_cfg$s2   %nz% 1.0,
+            init_log_lambda = rhs_cfg$init_log_lambda %nz% 0.0,
+            init_log_tau    = rhs_cfg$init_log_tau    %nz% 0.0,
+            init_log_c2     = rhs_cfg$init_log_c2     %nz% 0.0
+          )
+        }
       }
     }
   }
@@ -412,6 +464,13 @@ log_msg(
   vb_args_base$n_samp_xi
 )
 
+log_msg(
+  "Effective beta prior → type=%s | ridge_tau2=%s | rhs(tau0=%.3f, nu=%.3f, s2=%.3f)",
+  vb_prior_beta_type,
+  if (is.null(vb_prior_beta_tau2)) "NULL"
+  else format(vb_prior_beta_tau2, digits = 4, trim = TRUE),
+  vb_prior_beta_rhs$tau0, vb_prior_beta_rhs$nu, vb_prior_beta_rhs$s2
+)
 
 log_msg("Effective sampling → nd_draws=%d | chunk=%d", nd_draws, chunk_sz)
 
@@ -1166,26 +1225,15 @@ stopifnot(!use_tf || length(y_future_obs_fc) == H_forecast)
 
 # === Shared reservoir pass → precompute design for train + 1-step forecast ===
 n_drop <- max(as.integer(desn_args$m), as.integer(desn_args$washout))
-
-# --- Sanitize DESN per-layer fields so qdesn_fit_vb gets valid scalars/vectors ---
-D_eff <- as.integer(desn_args$D)
-
-as_num <- function(x) if (is.null(x)) NULL else as.numeric(x)
-as_chr <- function(x) if (is.null(x)) NULL else as.character(x)
-sanitize_vec <- function(x, D) {
-  if (is.null(x)) return(x)
-  if (length(x) == 1L) return(x)
-  if (length(x) >= D) return(x[seq_len(D)])
-  rep(x[1L], D)
+if (n_train <= n_drop) {
+  stop(sprintf(
+    "Invalid split after feature drop: n_train=%d <= drop=max(m,washout)=%d. ",
+    n_train, n_drop
+  ), "Increase train_n/train_prop (or reduce m/washout).")
 }
 
-# Coerce types first (character vs numeric), then cap/recycle to length D
-desn_args$alpha <- sanitize_vec(as_num(desn_args$alpha), D_eff)
-desn_args$act_f <- sanitize_vec(as_chr(desn_args$act_f), D_eff)
-desn_args$act_k <- sanitize_vec(as_chr(desn_args$act_k), D_eff)
-desn_args$pi_w  <- sanitize_vec(as_num(desn_args$pi_w),  D_eff)
-desn_args$pi_in <- sanitize_vec(as_num(desn_args$pi_in), D_eff)
-desn_args$seed  <- sanitize_vec(as_num(desn_args$seed),  D_eff)
+desn_args$act_f <- as.character(desn_args$act_f)[1L]
+desn_args$act_k <- as.character(desn_args$act_k)[1L]
 
 # --- Log the exact DESN settings that WILL be used (after final sanitize) ---
 log_msg(
@@ -1205,28 +1253,14 @@ log_msg(
   pretty_vec(as.numeric(desn_args$seed))
 )
 
-# Defensive: if D=1, force true scalars (prevents switch(EXPR=vector) errors internally)
-if (D_eff == 1L) {
-  if (length(desn_args$alpha)) desn_args$alpha <- as.numeric(desn_args$alpha[1L])
-  if (length(desn_args$act_f)) desn_args$act_f <- as.character(desn_args$act_f[1L])
-  if (length(desn_args$act_k)) desn_args$act_k <- as.character(desn_args$act_k[1L])
-  if (length(desn_args$pi_w))  desn_args$pi_w  <- as.numeric(desn_args$pi_w[1L])
-  if (length(desn_args$pi_in)) desn_args$pi_in <- as.numeric(desn_args$pi_in[1L])
-  if (length(desn_args$seed))  desn_args$seed  <- as.numeric(desn_args$seed[1L])
-}
-
-# ---- Ensure switch() gets scalars for activations (qdesn_fit_vb expects length-1) ----
-desn_args$act_f <- as.character(desn_args$act_f)[1L]
-desn_args$act_k <- as.character(desn_args$act_k)[1L]
-
 shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
   do.call(qdesn_fit_vb, c(
     list(
-      y = y_full$y,            # length T_use
-      p0 = 0.50,               # dummy (irrelevant; we won't use this fit)
-      vb_args = list(max_iter = 1, tol = 1e9, n_samp_xi = 1, verbose = FALSE)
+      y = y_full$y,
+      p0 = 0.50,            # unused in design-only mode
+      fit_readout = FALSE   # IMPORTANT: no VB fit here
     ),
-    desn_args                  # same DESN spec you use for all p
+    desn_args
   ))
 )
 
@@ -1260,6 +1294,16 @@ fit_and_forecast_p <- function(p0) {
   # Index of this quantile in p_vec
   idx_p <- which.min(abs(p_vec - p0))
 
+  # Normalise beta prior type (default ridge if somehow NULL)
+  beta_type <- tolower(vb_prior_beta_type %||% "ridge")
+
+  if (!beta_type %in% c("ridge", "rhs")) {
+    stop(sprintf(
+      "fit_and_forecast_p(): unknown beta prior type '%s'. Supported types are 'ridge' and 'rhs'.",
+      vb_prior_beta_type
+    ))
+  }
+
   # VB controls per p
   vb_args_p <- vb_args_base
   vb_args_p$tol     <- vb_tol_for(p0)
@@ -1280,7 +1324,7 @@ fit_and_forecast_p <- function(p0) {
   tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
 
   # ---- Fit exAL readout directly on the precomputed training design ----
-  p_dim <- ncol(X_train)
+  p_dim  <- ncol(X_train)
   V0_mat <- diag(tau2_beta_p, p_dim)
 
   exal_args <- c(
@@ -1290,7 +1334,7 @@ fit_and_forecast_p <- function(p0) {
     ),
     list(
       b0        = rep(0, p_dim),
-      V0        = V0_mat,
+      V0        = V0_mat,                 # for RHS we will override its role slightly
       a_sigma   = sigma_a_p,
       b_sigma   = sigma_b_p,
       max_iter  = vb_args_p$max_iter,
@@ -1307,7 +1351,7 @@ fit_and_forecast_p <- function(p0) {
 
   # Init for gamma if provided
   if (!is.null(vb_init_gamma)) {
-    exal_args$init_gamma <- gamma_init_p
+    exal_args$init <- list(gamma = gamma_init_p, sigma = sigma_init_p)
   }
 
   # Prior for gamma if provided
@@ -1327,9 +1371,19 @@ fit_and_forecast_p <- function(p0) {
     exal_args$log_prior_gamma <- function(g) 0
   }
 
+    # ---- β prior type: ridge vs RHS -----------------------------------------
+  # For RHS: V0 is just a base scale; RHS controls shrinkage internally.
+  if (beta_type == "rhs") {
+    exal_args$V0 <- diag(1.0, p_dim)
+  }
+
   fit_exal <- timed(
-    sprintf("fit_exAL_on_X_train(p=%s)", fmt_p(p0)),
-    do.call(exal_static_LDVB, exal_args)
+    sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
+    if (beta_type == "ridge") {
+      do.call(exal_static_LDVB, exal_args)
+    } else {
+      do.call(exal_static_LDVB_rhs, c(exal_args, list(rhs_hypers = vb_prior_beta_rhs)))
+    }
   )
 
   # ---- Parameter posterior draws (γ, σ, β) for diagnostics + IJ ----------
@@ -2138,6 +2192,11 @@ if (isTRUE(save_outputs)) {
           save          = save_outputs,
           keep_draws    = keep_draws,
           thesis_subset = thesis_subset
+        ),
+        vb_priors = list(
+          beta_type = vb_prior_beta_type,
+          beta_ridge_tau2 = vb_prior_beta_tau2,
+          beta_rhs = vb_prior_beta_rhs
         )
       )
     ),

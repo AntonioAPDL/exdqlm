@@ -30,7 +30,8 @@ qdesn_fit_vb(
   state_noise_sd = 0,
   segments = NULL,
   seed = NULL,
-  vb_args = list()
+  vb_args = list(),
+  fit_readout = TRUE
 )
 }
 \arguments{

@@ -71,7 +71,8 @@ qdesn_fit_vb <- function(
   segments = NULL,                   # list of integer vectors (start:end) for short sequences
 
   seed = NULL,
-  vb_args = list()
+  vb_args = list(),
+  fit_readout = TRUE
 ){
 
   ## ---- checks ----
@@ -217,17 +218,14 @@ qdesn_fit_vb <- function(
 
   ## ---- roll states and stack features ----
   # inputs u_t = (bias, y_{t-1}, ..., y_{t-m}), then apply scaling
-  make_u <- function(y, t, m) {
+  # Segment-safe lag buffer: stores [y_{t-1}, y_{t-2}, ..., y_{t-m}] (most-recent-first)
+  make_u_from_lagbuf <- function(lag_buf) {
     if (m == 0L) {
       u <- c(1)
-    } else if (t <= m) {
-      u <- c(1, rep(0, m))
     } else {
-      lags <- y[seq.int(t-1, t-m, by = -1)]
-      lags <- process_inputs(lags)   # standardize/bound/per-lag scale
+      lags <- process_inputs(lag_buf)  # standardize/bound/per-lag scale
       u <- c(1, lags)
     }
-    # separate bias & global scales last (bias is index 1)
     u[1] <- u[1] * win_scale_bias
     if (length(u) > 1L) u[-1] <- u[-1] * win_scale_global
     u
@@ -247,29 +245,40 @@ qdesn_fit_vb <- function(
 
   for (seg in segs) {
     h_prev <- reset_states()
+
+    # reset lag buffer at each segment boundary
+    lag_buf <- if (m > 0L) rep(0, m) else numeric(0)
+
     for (t in seg) {
-      u_t <- make_u(y, t, m)
+      u_t <- make_u_from_lagbuf(lag_buf)
+
       # layer 1
-      pre1 <- reservoir$W[[1]] %*% h_prev[[1]] + reservoir$Win[[1]] %*% u_t
-      omega1 <- f_act(pre1)
-      h1 <- (1 - alpha_vec[1]) * h_prev[[1]] + alpha_vec[1] * omega1
+      pre1   <- reservoir$W[[1]] %*% h_prev[[1]] + reservoir$Win[[1]] %*% u_t
+      omega1 <- as.numeric(f_act(pre1))
+      h1     <- (1 - alpha_vec[1]) * h_prev[[1]] + alpha_vec[1] * omega1
+
       H[[1]][t, ] <- h1
       h_prev[[1]] <- h1
+
       if (D >= 2L) {
         for (d in 2:D) {
-          htilde <- reservoir$Q[[d - 1]] %*% h_prev[[d - 1]]
+          htilde <- as.numeric(reservoir$Q[[d - 1]] %*% h_prev[[d - 1]])
           H_tilde[[d - 1]][t, ] <- htilde
-          pred <- reservoir$W[[d]] %*% h_prev[[d]] + reservoir$Win[[d]] %*% htilde
-          omegad <- f_act(pred)
-          hd <- (1 - alpha_vec[d]) * h_prev[[d]] + alpha_vec[d] * omegad
+
+          pred   <- reservoir$W[[d]] %*% h_prev[[d]] + reservoir$Win[[d]] %*% htilde
+          omegad <- as.numeric(f_act(pred))
+          hd     <- (1 - alpha_vec[d]) * h_prev[[d]] + alpha_vec[d] * omegad
+
           H[[d]][t, ] <- hd
           h_prev[[d]] <- hd
         }
       }
+
+      # update lag buffer AFTER using it (so it remains y_{t-1},...,y_{t-m})
+      if (m > 0L) lag_buf <- c(y[t], lag_buf[seq_len(m - 1L)])
     }
   }
 
-  
   # build feature vector x_t = [ h_{t,D} ; k(tilde h_{t,1}); ... ; k(tilde h_{t,D-1}) ]
   build_xrow <- function(t) {
     if (D == 1L) {
@@ -304,103 +313,64 @@ qdesn_fit_vb <- function(
   }
 
   ## ---- fit exAL static VB ----
-  # Defaults that play nicely with large X
-  p <- ncol(X)
-  defaults <- list(
-    b0 = rep(0, p),
-    V0 = diag(1e4, p),
-    a_sigma = 1, b_sigma = 1,
-    max_iter = 1500,
-    tol = 1e-4,
-    tol_par = NULL,   # if NULL, we fall back to tol below
-    n_samp_xi = 250,
-    verbose = TRUE,
-    stream = FALSE,        
-    p0 = p0
-  )
-  vb_call <- utils::modifyList(defaults, vb_args, keep.null = TRUE)
+    fit <- NULL
+  if (isTRUE(fit_readout)) {
 
-  # Prepare argument list once
-  .exal_args <- list(
-    y = y_fit,
-    X = X,
-    p0 = p0,
-    max_iter     = vb_call$max_iter,
-    tol          = vb_call$tol,
-    tol_par      = if (!is.null(vb_call$tol_par)) vb_call$tol_par else vb_call$tol,
-    b0           = vb_call$b0,
-    V0           = vb_call$V0,
-    a_sigma      = vb_call$a_sigma,
-    b_sigma      = vb_call$b_sigma,
-    gamma_bounds = if (!is.null(vb_call$gamma_bounds)) vb_call$gamma_bounds else c(L.fn(p0), U.fn(p0)),
-    log_prior_gamma = if (!is.null(vb_call$log_prior_gamma)) vb_call$log_prior_gamma else function(g) 0,
-    init         = vb_call$init,
-    n_samp_xi    = vb_call$n_samp_xi,
-    verbose      = isTRUE(vb_call$verbose)
-  )
+    `%||%` <- function(a, b) if (!is.null(a)) a else b
 
-
-  if (!isTRUE(vb_call$stream)) {
-    # regular in-process call (may buffer prints in Jupyter)
-    fit <- do.call(exal_static_LDVB, .exal_args)
-  } else {
-    # live streaming via a background R process
-    if (!requireNamespace("callr", quietly = TRUE)) {
-      stop("To stream progress, install.packages('callr') or set vb_args$stream = FALSE.")
-    }
-    # run in a clean R session that has the package available
-    p_bg <- callr::r_bg(
-      function(args) {
-        # make sure the package namespace is loaded in the child
-        if (!"exdqlm" %in% loadedNamespaces()) library(exdqlm)
-        do.call(exal_static_LDVB, args)
-      },
-      args = list(.exal_args),
-      stdout = "|", stderr = "|"
+    # --- VB controls expected by exal_ldvb_fit/exal_ldvb_engine ---
+    vb_control <- list(
+      max_iter = as.integer(vb_args$max_iter %||% 150L),
+      tol      = as.numeric(vb_args$tol %||% 1e-4),
+      tol_par  = as.numeric(vb_args$tol_par %||% (vb_args$tol %||% 1e-4)),
+      verbose  = isTRUE(vb_args$verbose %||% TRUE)
     )
 
-    # tail the child’s output until it finishes
-    repeat {
-      # stream any new lines
-      out <- p_bg$read_output_lines()
-      err <- p_bg$read_error_lines()
-      if (length(out)) { cat(paste0(out, collapse = "\n"), "\n"); utils::flush.console() }
-      if (length(err)) { cat(paste0(err, collapse = "\n"), "\n"); utils::flush.console() }
-      if (!p_bg$is_alive()) break
-      Sys.sleep(0.2)
-    }
-    # flush remaining
-    out <- p_bg$read_output_lines(); if (length(out)) cat(paste0(out, collapse="\n"), "\n")
-    err <- p_bg$read_error_lines(); if (length(err)) cat(paste0(err, collapse="\n"), "\n")
+    # --- gamma bounds ---
+    gamma_bounds <- vb_args$gamma_bounds %||% c(L.fn(p0), U.fn(p0))
 
-    # retrieve result (errors propagate)
-    fit <- p_bg$get_result()
+    # --- priors on gamma, sigma (natural scale) ---
+    prior_gamma <- vb_args$prior_gamma %||% list(
+      mu0 = vb_args$prior_gamma_mu0 %||% 0,
+      s20 = vb_args$prior_gamma_s20 %||% 10
+    )
+    prior_sigma <- vb_args$prior_sigma %||% list(
+      a = vb_args$a_sigma %||% 1,
+      b = vb_args$b_sigma %||% 1
+    )
+
+    # --- init (natural scale) ---
+    init <- vb_args$init %||% list()
+
+    # --- beta prior: ridge or rhs (NEW MODEL HOOK) ---
+    if (!is.null(vb_args$beta_prior_obj)) {
+      beta_prior_obj <- vb_args$beta_prior_obj
+    } else {
+      beta_type <- tolower(vb_args$beta_prior_type %||% "ridge")
+
+      if (beta_type == "rhs") {
+        rhs_list <- vb_args$beta_rhs %||% list()
+        beta_prior_obj <- beta_prior("rhs", rhs = rhs_list)
+      } else {
+        tau2 <- vb_args$beta_ridge_tau2 %||% vb_args$tau2 %||% 1e4
+        beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = tau2))
+      }
+    }
+
+    fit <- exal_ldvb_fit(
+      y = y_fit,
+      X = X,
+      p0 = p0,
+      gamma_bounds = gamma_bounds,
+      vb_control = vb_control,
+      init = init,
+      prior_gamma = prior_gamma,
+      prior_sigma = prior_sigma,
+      beta_prior_obj = beta_prior_obj
+    )
   }
 
-  # --- simple activation diagnostics at the last kept time step ---
-  t_last <- NULL
-  if (length(keep_idx) > 0L) t_last <- keep_idx[length(keep_idx)]
-  diag_list <- list()
-  if (!is.null(t_last)) {
-    for (d in 1:D) {
-      post <- as.numeric(H[[d]][t_last, ])
-      diag_list[[paste0("layer", d)]] <- list(
-        post_mean = mean(post), post_sd = stats::sd(post),
-        post_q = stats::quantile(post, c(.01,.05,.5,.95,.99), na.rm=TRUE)
-      )
-    }
-  }
-  diagnostics <- list(
-    alpha = alpha_vec,
-    win_scale_global = win_scale_global,
-    win_scale_bias = win_scale_bias,
-    win_scale_lags = win_scale_lags,
-    state_noise_sd = state_noise_sd,
-    act_summary = diag_list
-  )
-
-
-  mu_hat <- as.numeric(X %*% fit$qbeta$m)
+  mu_hat <- if (!is.null(fit)) as.numeric(X %*% fit$qbeta$m) else rep(NA_real_, nrow(X))
 
 ret <- list(
     fit = fit,
@@ -429,8 +399,7 @@ ret <- list(
 
         # Optional fit-time extras (kept for completeness)
         weights = if (!is.null(weights)) weights[keep_idx] else NULL,
-        segments = segments,
-        diagnostics = diagnostics
+        segments = segments
     )
   )
   class(ret) <- "qdesn_fit"
@@ -442,6 +411,7 @@ ret <- list(
 #' @return A numeric vector \eqn{\hat\mu_t} aligned with \code{object$y_fit}.
 #' @export
 predict_mu.qdesn_fit <- function(object) {
+  if (is.null(object$fit)) stop("predict_mu(): object has no fitted readout (fit_readout=FALSE).", call. = FALSE)
   as.numeric(object$X %*% object$fit$qbeta$m)
 }
 
@@ -475,13 +445,15 @@ exal_vb_posterior_draws <- function(fit_exal, nd = 1000L) {
   Zb <- matrix(rnorm(nd * p), nd, p)
   B  <- sweep(Zb %*% Uc, 2, m, `+`)  # nd x p
 
-  # (eta, ell) ~ N([eta_hat, ell_hat], Sigma) -> (gamma, sigma)
+  # (eta, ell) ~ N(mu2, Sig2) in ROW form so right-multiply works with chol()
   mu2  <- c(fit_exal$qsiggam$eta_hat, fit_exal$qsiggam$ell_hat)
   Sig2 <- as.matrix(fit_exal$qsiggam$Sigma)
   U2   <- .chol_psd(Sig2)
-  Z2   <- matrix(rnorm(nd * 2), 2, nd)
-  pars <- sweep(U2 %*% Z2, 1, mu2, `+`)  # 2 x nd
-  eta  <- pars[1, ]; ell <- pars[2, ]
+
+  Z2   <- matrix(rnorm(nd * 2), nd, 2)
+  pars <- sweep(Z2 %*% U2, 2, mu2, `+`)  # nd x 2
+  eta  <- pars[, 1L]
+  ell  <- pars[, 2L]
 
   L <- as.numeric(fit_exal$misc$bounds["L"])
   U <- as.numeric(fit_exal$misc$bounds["U"])

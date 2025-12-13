@@ -60,8 +60,9 @@
 #'
 #' @return A list with variational factors, LD approximation for
 #'   \eqn{(\sigma,\gamma)}, convergence diagnostics, and \code{misc}.
-#' @export
-exal_static_LDVB <- function(
+#' (You can optionally change @export to @keywords internal if you want
+#'  the core to be non-user-facing once wrappers are in place.)
+exal_static_LDVB_core <- function(
   y, X, p0,
   max_iter = 1000, tol = 1e-4, tol_par = tol,
   b0 = NULL, V0 = NULL,
@@ -76,7 +77,10 @@ exal_static_LDVB <- function(
   init_gamma           = NULL,
   init_log_sigma       = NULL,
   n_samp_xi = 200,
-  verbose   = TRUE
+  verbose   = TRUE,
+  beta_prior_module = NULL,
+  rhs_hypers = NULL,
+  beta_prior_obj = NULL
 ){
 
   # --- checks ---------------------------------------------------------------
@@ -157,6 +161,26 @@ exal_static_LDVB <- function(
   # --- numerics helpers ------------------------------------------------------
   V0_inv <- tryCatch(solve(V0), error = function(e) MASS::ginv(V0))
 
+  # --- beta prior object (new) ---------------------------------------------
+  if (is.null(beta_prior_obj)) {
+    # Backward compatibility: infer from old module args if present
+    if (!is.null(beta_prior_module) && is.list(beta_prior_module) && !is.null(beta_prior_module$type)) {
+      tp <- tolower(beta_prior_module$type)
+      if (tp == "rhs") {
+        beta_prior_obj <- beta_prior("rhs", rhs = rhs_hypers %||% beta_prior_module$hypers %||% list())
+      } else {
+        tau2 <- if (is_diag_matrix(V0)) mean(diag(V0)) else 1e6
+        beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = tau2))
+      }
+    } else if (!is.null(rhs_hypers)) {
+      beta_prior_obj <- beta_prior("rhs", rhs = rhs_hypers)
+    } else {
+      tau2 <- if (is_diag_matrix(V0)) mean(diag(V0)) else 1e6
+      beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = tau2))
+    }
+  }
+  beta_state <- beta_prior_obj$init(p)
+
     # E[log V] for V ~ GIG(k, chi, psi)
     gig_E_log <- function(k, chi, psi) {
     chi <- pmax(chi, 1e-24); psi <- pmax(psi, 1e-24)
@@ -193,82 +217,60 @@ exal_static_LDVB <- function(
     list(Es = Es, Es2 = Es2)
   }
 
+  # Stable log(sigmoid(x)) and log(1 - sigmoid(x))
+  log_sigmoid <- function(x) {
+    ifelse(x >= 0,
+          -log1p(exp(-x)),
+          x - log1p(exp(x)))
+  }
+  log1m_sigmoid <- function(x) log_sigmoid(-x)
+
+  # log h'(eta) for gamma = L + (U-L) sigmoid(eta):
+  # h'(eta) = (U-L) s(1-s).  We DROP log(U-L) since it's a constant in eta.
+  log_hprime_noconst <- function(eta) log_sigmoid(eta) + log1m_sigmoid(eta)
+
   # compute xi's from Gaussian approx in (eta,ell) via Delta method
   compute_xi <- function(eta_hat, ell_hat, Sigma) {
     z0 <- c(eta_hat, ell_hat)
 
-    # helper: map (eta, ell) -> (gamma, sigma, A, B, lam)
     trans_par <- function(z) {
-      eta  <- z[1]
-      ell  <- z[2]
-      gamma <- g_from_eta(eta)
-      sigma <- sig_from_ell(ell)
+      eta <- z[1]
+      ell <- z[2]
+      s   <- plogis(eta)
+
+      gamma <- L + (U - L) * s
+      sigma <- exp(ell)
+
       A  <- A_of(gamma)
-      B  <- B_of(gamma)
-      B  <- pmax(B, 1e-24)   # guard against numerical issues
+      B  <- pmax(B_of(gamma), 1e-24)
       lam <- lam_of(gamma)
+
       list(
-        eta   = eta,
-        ell   = ell,
-        gamma = gamma,
-        sigma = sigma,
-        A     = A,
-        B     = B,
-        lam   = lam
+        eta = eta, ell = ell,
+        gamma = gamma, sigma = sigma,
+        A = A, B = B, lam = lam,
+        log_hprime = log_hprime_noconst(eta) # no constant log(U-L)
       )
     }
 
-    # generic second-order Delta approximation for scalar g(z)
     delta_E <- function(g_fun) {
       g0 <- g_fun(z0)
       H  <- numDeriv::hessian(g_fun, z0)
-      # Tr(H %*% Sigma) = sum(H * Sigma) for 2x2 matrices
-      corr <- 0.5 * sum(H * Sigma)
-      g0 + corr
+      g0 + 0.5 * sum(H * Sigma)
     }
 
-    # g-functions for each xi / zeta
-    g_xi1 <- function(z) {
-      p <- trans_par(z)
-      1 / (p$B * p$sigma)
-    }
-    g_xi_lambda <- function(z) {
-      p <- trans_par(z)
-      p$lam / p$B
-    }
-    g_xi_lambda2 <- function(z) {
-      p <- trans_par(z)
-      (p$lam^2) * p$sigma / p$B
-    }
-    g_xi_A <- function(z) {
-      p <- trans_par(z)
-      p$A / (p$B * p$sigma)
-    }
-    g_xi_A2 <- function(z) {
-      p <- trans_par(z)
-      (p$A^2) / (p$B * p$sigma)
-    }
-    g_xi_siginv <- function(z) {
-      p <- trans_par(z)
-      1 / p$sigma
-    }
-    g_zeta_lam <- function(z) {
-      p <- trans_par(z)
-      (p$lam * p$A) / p$B
-    }
-    g_zeta_logsigma <- function(z) {
-      # log sigma = ell; linear, so Hessian = 0 (Delta exact here)
-      z[2]
-    }
-    g_zeta_logB <- function(z) {
-      p <- trans_par(z)
-      log(pmax(p$B, 1e-300))
-    }
-    g_zeta_logpi <- function(z) {
-      p <- trans_par(z)
-      log_prior_gamma_fun(p$gamma)
-    }
+    g_xi1 <- function(z) { p <- trans_par(z); 1 / (p$B * p$sigma) }
+    g_xi_lambda <- function(z) { p <- trans_par(z); p$lam / p$B }
+    g_xi_lambda2 <- function(z) { p <- trans_par(z); (p$lam^2) * p$sigma / p$B }
+    g_xi_A <- function(z) { p <- trans_par(z); p$A / (p$B * p$sigma) }
+    g_xi_A2 <- function(z) { p <- trans_par(z); (p$A^2) / (p$B * p$sigma) }
+    g_xi_siginv <- function(z) { p <- trans_par(z); 1 / p$sigma }
+    g_zeta_lam <- function(z) { p <- trans_par(z); (p$lam * p$A) / p$B }
 
+    g_zeta_logsigma <- function(z) z[2]  # exact: log sigma = ell
+    g_zeta_logB <- function(z) { p <- trans_par(z); log(pmax(p$B, 1e-300)) }
+    g_zeta_logpi <- function(z) { p <- trans_par(z); log_prior_gamma_fun(p$gamma) }
+    g_zeta_loghprime <- function(z) { p <- trans_par(z); p$log_hprime }
 
     list(
       xi1           = delta_E(g_xi1),
@@ -280,7 +282,8 @@ exal_static_LDVB <- function(
       zeta_lam      = delta_E(g_zeta_lam),
       zeta_logsigma = delta_E(g_zeta_logsigma),
       zeta_logB     = delta_E(g_zeta_logB),
-      zeta_logpi    = delta_E(g_zeta_logpi)
+      zeta_logpi    = delta_E(g_zeta_logpi),
+      zeta_loghprime = delta_E(g_zeta_loghprime)
     )
   }
 
@@ -294,38 +297,35 @@ exal_static_LDVB <- function(
     A <- A_of(gamma); B <- B_of(gamma); lam <- lam_of(gamma)
     if (!is.finite(B) || B <= 0 || !is.finite(sigma) || sigma <= 0) return(-Inf)
 
-    # precompute residual stats from q(beta)
     xb  <- drop(X %*% m_beta)
     t_i <- y - xb
-    q_i <- rowSums((X %*% V_beta) * X)  # diag(X V X^T)
+    q_i <- rowSums((X %*% V_beta) * X)
 
-    # expectations from q(v), q(s)
     mv_inv <- E_inv_v
     mv     <- E_v
     ms     <- E_s
     ms2    <- E_s2
 
-    # pieces (see derivations)
     term1 <- - (1 / (2 * B * sigma)) * sum( mv_inv * (t_i^2 + q_i) - 2 * A * t_i + (A * A) * mv )
     term2 <- - (sum(mv) + b_sigma) / sigma
     term3 <- + (lam / B) * sum( ms * mv_inv * t_i - ms * A )
     term4 <- - ( (lam * lam) / (2 * B) ) * sigma * sum( ms2 * mv_inv )
 
-    # prior on gamma
     log_prior_g <- log_prior_gamma_fun(gamma)
 
-    # optional Normal prior on ell = log(sigma)
     log_prior_lsig <- if (use_lsig_prior) {
-      -0.5 * ((ell - mu_lsig)^2 / s2_lsig)   # we drop the normalizing constant
-    } else {
-      0
-    }
+      -0.5 * ((ell - mu_lsig)^2 / s2_lsig)
+    } else 0
 
-    log_det <- - (n / 2) * log(B) - ( (3 * n) / 2 + a_sigma + 1 ) * ell
+    # Jacobian: + ell + log h'(eta)  (drop constant log(U-L))
+    log_hprime <- log_hprime_noconst(eta)
+
+    # This is: -(n/2)log B - (a_sigma + 3n/2)*ell  (since +ell Jacobian cancels the "+1")
+    log_det <- - (n / 2) * log(B) - (a_sigma + (3 * n) / 2) * ell + log_hprime
 
     log_prior_g + log_prior_lsig + log_det + term1 + term2 + term3 + term4
-
   }
+
 
   # find LD mode & covariance for (eta, ell)
   find_mode_ld <- function(eta0, ell0) {
@@ -392,25 +392,47 @@ exal_static_LDVB <- function(
 
   # NEW: trace and state for parameter-convergence safeguard
   new_term_trace <- numeric(0)
-  gamma_old      <- NA_real_
-  sigma_old      <- NA_real_
+
+  # initialize safeguard state at the current LD location
+  gamma_old <- g_from_eta(eta_hat)
+  sigma_old <- exp(ell_hat)
+
 
   for (iter in 1:max_iter) {
     # ---- (1) q(beta) = N(m,V)
     # V = (V0^{-1} + xi1 * X^T diag(E[1/v]) X)^{-1}
     W <- xis$xi1 * E_inv_v
     Xw <- X * sqrt(W)
-    V_inv <- crossprod(Xw) + V0_inv
-    Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
-    if (is.null(Uc)) Uc <- chol(V_inv + 1e-24 * diag(p))
-    V_beta_new <- chol2inv(Uc)
+    if (beta_prior_obj$type == "ridge" && !is_diag_matrix(V0)) {
+      # keep original full-matrix ridge behavior
+      V_inv <- crossprod(Xw) + V0_inv
+      Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
+      if (is.null(Uc)) Uc <- chol(V_inv + 1e-24 * diag(p))
+      V_beta_new <- chol2inv(Uc)
 
-    # m = V ( V0^{-1} b0 + X^T [ xi1 diag(E[1/v]) y - xi_lambda (E[1/v] ⊙ E[s]) - xi_A 1 ] )
-    rhs <- crossprod(X, W * y) -
-           crossprod(X, (xis$xi_lambda * (E_inv_v * E_s))) 
+      rhs <- crossprod(X, W * y) -
+        crossprod(X, (xis$xi_lambda * (E_inv_v * E_s)))
+      rhs <- rhs + (V0_inv %*% b0) - (xis$xi_A) * colSums(X)
 
-    # Careful: The xi_A * 1_n term multiplies X^T * 1_n
-    rhs <- rhs + (V0_inv %*% b0) - (xis$xi_A) * colSums(X)
+      m_beta_new <- V_beta_new %*% rhs
+    } else {
+      # diagonal prior precision from the module (ridge diag or RHS)
+      prec_diag <- beta_prior_obj$expected_prec(beta_state, p)
+
+      V_inv <- crossprod(Xw) + diag(prec_diag, p)
+      Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
+      if (is.null(Uc)) Uc <- chol(V_inv + 1e-24 * diag(p))
+      V_beta_new <- chol2inv(Uc)
+
+      rhs <- crossprod(X, W * y) -
+        crossprod(X, (xis$xi_lambda * (E_inv_v * E_s)))
+      rhs <- rhs - (xis$xi_A) * colSums(X)
+
+      # prior mean term: diag(prec)*b0
+      rhs <- rhs + prec_diag * b0
+
+      m_beta_new <- V_beta_new %*% rhs
+    }
 
     m_beta_new <- V_beta_new %*% rhs
 
@@ -436,31 +458,36 @@ exal_static_LDVB <- function(
     mu_s  <- tau2 * ( xis$xi_lambda * (E_inv_v_new * (y - xb)) - xis$zeta_lam )
     s_mom <- tn_moments(mu_s, tau2)
 
-    # ---- (4) q(sigma,gamma) via LD
+    m_beta_old <- m_beta
+    xis_old    <- xis
+
+    # diagnostics that need old vs new:
+    rel_mb <- sqrt(sum((m_beta_new - m_beta_old)^2)) / (1e-24 + sqrt(sum(m_beta_old^2)))
+
+    # ---- (4) q(sigma,gamma) via LD (now sees current state)
     ld <- find_mode_ld(eta_hat, ell_hat)
     eta_hat <- ld$eta_hat
     ell_hat <- ld$ell_hat
     Sig_eta_ell <- ld$Sigma
 
-    # update xi via Delta-method under Gaussian (eta,ell)
-    xis_new <- compute_xi(eta_hat, ell_hat, Sig_eta_ell)
-
-    # ---- check convergence
-    rel_mb <- sqrt(sum((m_beta_new - m_beta)^2)) / (1e-24 + sqrt(sum(m_beta^2)))
-    delta_xi <- unlist(xis_new) - unlist(xis)
-    rel_xi   <- max(abs(delta_xi)) / (1e-24 + max(1, max(abs(unlist(xis)))))
-
-
-    # --- NEW: record traces for this iteration ---
+    # current LD point (mode) on natural scale (used for printing + safeguard)
     ghat <- g_from_eta(eta_hat)
     shat <- exp(ell_hat)
 
-    gamma_trace   <- c(gamma_trace, ghat)
-    sigma_trace   <- c(sigma_trace, shat)
-    eta_trace     <- c(eta_trace, eta_hat)
-    ell_trace     <- c(ell_trace, ell_hat)
-    rel_mb_trace  <- c(rel_mb_trace, rel_mb)
-    rel_xi_trace  <- c(rel_xi_trace, rel_xi)
+    xis_new <- compute_xi(eta_hat, ell_hat, Sig_eta_ell)
+
+    # commit new values (single commit)
+    m_beta  <- as.numeric(m_beta_new);  V_beta  <- V_beta_new
+    E_v     <- as.numeric(E_v_new);     E_inv_v <- as.numeric(E_inv_v_new)
+    qs_mu   <- as.numeric(mu_s);        qs_tau2 <- as.numeric(tau2)
+    E_s     <- as.numeric(s_mom$Es);    E_s2    <- as.numeric(s_mom$Es2)
+    xis     <- xis_new
+
+    delta_xi <- unlist(xis_new) - unlist(xis_old)
+    rel_xi   <- max(abs(delta_xi)) / (1e-24 + max(1, max(abs(unlist(xis_old)))))
+
+    # commit xi
+    xis <- xis_new
 
     if (verbose && (iter %% 50 == 0)) {
       cat(sprintf("iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma≈%.3f sigma≈%.3f\n",
@@ -473,6 +500,9 @@ exal_static_LDVB <- function(
     qs_mu  <- as.numeric(mu_s);       qs_tau2 <- as.numeric(tau2)
     E_s    <- as.numeric(s_mom$Es);   E_s2    <- as.numeric(s_mom$Es2)
     xis    <- xis_new
+
+    beta_state <- beta_prior_obj$update(beta_state, list(m = m_beta, V = V_beta))
+
 
     ## ---------- ELBO (term-by-term) ------------------------------------------
     # Precompute residual pieces
@@ -512,9 +542,17 @@ exal_static_LDVB <- function(
 
     # (6) E[log p(beta)] : Normal(b0, V0)
     logdetV0 <- as.numeric(determinant(V0, logarithm = TRUE)$modulus)
-    E_log_pb <- - (p/2) * log(2*pi) - 0.5 * logdetV0 -
-                0.5 * ( sum(V0_inv * V_beta) +
-                        drop(crossprod(m_beta - b0, V0_inv %*% (m_beta - b0))) )
+    E_log_pb <- 0
+    E_log_beta_latents <- 0
+
+    if (beta_prior_obj$type == "ridge") {
+      logdetV0 <- as.numeric(determinant(V0, logarithm = TRUE)$modulus)
+      E_log_pb <- - (p/2) * log(2*pi) - 0.5 * logdetV0 -
+        0.5 * ( sum(V0_inv * V_beta) +
+                drop(crossprod(m_beta - b0, V0_inv %*% (m_beta - b0))) )
+    } else if (beta_prior_obj$type == "rhs") {
+      E_log_beta_latents <- beta_prior_obj$elbo(beta_state, list(m = m_beta, V = V_beta))$elbo
+    }
 
     # (7) E[log p(sigma)] : IG(a_sigma, b_sigma)
     E_log_psig <- a_sigma * log(b_sigma) - lgamma(a_sigma) -
@@ -542,23 +580,45 @@ exal_static_LDVB <- function(
     H_qv   <- sum( -logC - (k_gig - 1) * mlogv + 0.5 * (chi * E_inv_v + psi * E_v) )
 
     # (11) Entropy H(q(s)) for TN(μ, τ^2) on (0,∞)
-    tau    <- sqrt(pmax(qs_tau2, 1e-16))
-    alpha  <- qs_mu / tau
-    Phi    <- pmax(pnorm(alpha), 1e-16)
-    Lambda <- dnorm(alpha) / Phi
-    H_qs   <- sum( 0.5 * log(2*pi * qs_tau2) + log(Phi) + 0.5 * (1 + alpha * Lambda) )
+    # q(s) = [1/Z] N(μ,τ^2) 1{s>0}, with Z = Φ(μ/τ)
+    tau   <- sqrt(pmax(qs_tau2, 1e-16))
+    alpha <- qs_mu / tau
+    Z     <- pmax(pnorm(alpha), 1e-16)   # Z = Φ(alpha)
 
-    # (12) Entropy H(q(sigma, gamma)) via LD Gaussian in (eta, ell)
+    # E[(s-μ)^2] = E[s^2] - 2μE[s] + μ^2
+    E_center2 <- E_s2 - 2 * qs_mu * E_s + qs_mu^2
+
+    # H = -E log q = 0.5 log(2π) + log τ + (1/(2τ^2))E[(s-μ)^2] + log Z
+    H_qs <- sum(
+      0.5 * log(2*pi) +
+      0.5 * log(pmax(qs_tau2, 1e-16)) +
+      0.5 * E_center2 / pmax(qs_tau2, 1e-16) +
+      log(Z)
+    )
+
+    # logdet for LD Gaussian
     logdetSig <- as.numeric(determinant(Sig_eta_ell, logarithm = TRUE)$modulus)
-    H_qsg     <- 0.5 * ( 2 * (1 + log(2*pi)) + logdetSig )
 
+    # H(q_{sigma,gamma}) = H(N(eta,ell)) + E[ ell + log h'(eta) ]
+    H_qsg <- 0.5 * ( 2 * (1 + log(2*pi)) + logdetSig ) +
+            xis$zeta_logsigma + xis$zeta_loghprime
     # Put it together
     elbo_new <- lik_norm + lik_quad1 + lik_cross +
-                E_log_pv + E_log_ps + E_log_pb +
-                E_log_psig + E_log_plsig + E_log_pgam +
-                H_qb + H_qv + H_qs + H_qsg
+      E_log_pv + E_log_ps + E_log_pb +
+      E_log_beta_latents +
+      E_log_psig + E_log_plsig + E_log_pgam +
+      H_qb + H_qv + H_qs + H_qsg
+
     elbo_new <- elbo_new/n
-    elbo_trace <- c(elbo_trace, elbo_new)
+
+    # traces
+    elbo_trace    <- c(elbo_trace, elbo_new)
+    gamma_trace   <- c(gamma_trace, ghat)
+    sigma_trace   <- c(sigma_trace, shat)
+    eta_trace     <- c(eta_trace, eta_hat)
+    ell_trace     <- c(ell_trace, ell_hat)
+    rel_mb_trace  <- c(rel_mb_trace, rel_mb)
+    rel_xi_trace  <- c(rel_xi_trace, rel_xi)
 
     # -------- Stopping rule (ELBO + (gamma,sigma) stability) ----------
     if (iter == 1) {
@@ -658,3 +718,119 @@ exal_static_LDVB <- function(
   }
   ret
 }
+
+#' Static exAL regression with ridge prior on beta (user-facing wrapper).
+#'
+#' This is a thin wrapper around `exal_static_LDVB_core()` that constructs a
+#' simple ridge prior module and forwards all arguments. All computations are
+#' still implemented inside the core; the `beta_prior` object is provided so
+#' you can later move the beta-block updates behind a generic interface.
+#'
+#' @export
+exal_static_LDVB <- function(
+  y, X, p0,
+  max_iter = 1000, tol = 1e-4, tol_par = tol,
+  b0 = NULL, V0 = NULL,
+  a_sigma = 1, b_sigma = 1,
+  gamma_bounds = c(L.fn(p0), U.fn(p0)),
+  log_prior_gamma      = NULL,
+  prior_gamma_mu0      = NULL,
+  prior_gamma_s20      = NULL,
+  prior_log_sigma_mu0  = NULL,
+  prior_log_sigma_s20  = NULL,
+  init                 = NULL,
+  init_gamma           = NULL,
+  init_log_sigma       = NULL,
+  n_samp_xi = 200,
+  verbose   = TRUE
+){
+  beta_prior <- ridge_prior_module(b0 = b0, V0 = V0)
+
+  exal_static_LDVB_core(
+    y = y, X = X, p0 = p0,
+    max_iter = max_iter, tol = tol, tol_par = tol_par,
+    b0 = b0, V0 = V0,
+    a_sigma = a_sigma, b_sigma = b_sigma,
+    gamma_bounds = gamma_bounds,
+    log_prior_gamma     = log_prior_gamma,
+    prior_gamma_mu0     = prior_gamma_mu0,
+    prior_gamma_s20     = prior_gamma_s20,
+    prior_log_sigma_mu0 = prior_log_sigma_mu0,
+    prior_log_sigma_s20 = prior_log_sigma_s20,
+    init           = init,
+    init_gamma     = init_gamma,
+    init_log_sigma = init_log_sigma,
+    n_samp_xi = n_samp_xi,
+    verbose   = verbose,
+    beta_prior = beta_prior,
+    rhs_hypers = NULL
+  )
+}
+
+#' Static exAL regression with regularized horseshoe (RHS) prior on beta.
+#'
+#' Skeleton implementation: this wrapper passes `rhs_hypers` and builds an
+#' RHS prior module, but `exal_static_LDVB_core()` still runs the same internal
+#' ridge-style beta updates. Once you move the beta-block behind a generic
+#' interface, you can use the `beta_prior` object here to trigger the RHS
+#' updates and RHS ELBO contribution.
+#'
+#' This function is meant to have the same interface as `exal_static_LDVB`,
+#' plus a `rhs_hypers` list.
+#'
+#' @export
+exal_static_LDVB_rhs <- function(
+  y, X, p0,
+  max_iter = 1000, tol = 1e-4, tol_par = tol,
+  b0 = NULL, V0 = NULL,
+  a_sigma = 1, b_sigma = 1,
+  gamma_bounds = c(L.fn(p0), U.fn(p0)),
+  log_prior_gamma      = NULL,
+  prior_gamma_mu0      = NULL,
+  prior_gamma_s20      = NULL,
+  prior_log_sigma_mu0  = NULL,
+  prior_log_sigma_s20  = NULL,
+  init                 = NULL,
+  init_gamma           = NULL,
+  init_log_sigma       = NULL,
+  n_samp_xi = 200,
+  verbose   = TRUE,
+  beta_prior_module = NULL,
+  rhs_hypers = rhs_hypers,
+  beta_prior_obj = beta_prior("rhs", rhs = rhs_hypers %||% list())
+){
+  beta_prior <- qdesn_rhs_prior_module(V0 = V0, rhs_hypers = rhs_hypers)
+
+  exal_static_LDVB_core(
+    y = y, X = X, p0 = p0,
+    max_iter = max_iter, tol = tol, tol_par = tol_par,
+    b0 = b0, V0 = V0,
+    a_sigma = a_sigma, b_sigma = b_sigma,
+    gamma_bounds = gamma_bounds,
+    log_prior_gamma     = log_prior_gamma,
+    prior_gamma_mu0     = prior_gamma_mu0,
+    prior_gamma_s20     = prior_gamma_s20,
+    prior_log_sigma_mu0 = prior_log_sigma_mu0,
+    prior_log_sigma_s20 = prior_log_sigma_s20,
+    init           = init,
+    init_gamma     = init_gamma,
+    init_log_sigma = init_log_sigma,
+    n_samp_xi = n_samp_xi,
+    verbose   = verbose,
+    beta_prior = list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers, state = beta_state),
+    rhs_hypers = rhs_hypers
+  )
+}
+
+# Simple prior "module" for a ridge prior on beta.
+# For now this is just a container; the VB core still implements all
+# ridge updates internally. Later you can move the beta-block updates
+# behind a generic interface that uses this object.
+ridge_prior_module <- function(b0, V0) {
+  list(
+    type = "ridge",
+    b0   = b0,
+    V0   = V0
+  )
+}
+

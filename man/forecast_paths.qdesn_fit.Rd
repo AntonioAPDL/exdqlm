@@ -2,7 +2,7 @@
 % Please edit documentation in R/qdesn_vb.R
 \name{forecast_paths.qdesn_fit}
 \alias{forecast_paths.qdesn_fit}
-\title{Multi-horizon posterior predictive for a Q-DESN fit}
+\title{Multi-horizon posterior predictive for a Q-DESN fit (fast & memory-light)}
 \usage{
 forecast_paths.qdesn_fit(
   object,
@@ -21,7 +21,7 @@ forecast_paths.qdesn_fit(
 )
 }
 \arguments{
-\item{object}{qdesn_fit (from qdesn_fit_vb or your exog-augmented wrapper)}
+\item{object}{qdesn_fit (from qdesn_fit_vb)}
 
 \item{H}{integer forecast horizon (>0)}
 
@@ -29,42 +29,39 @@ forecast_paths.qdesn_fit(
 
 \item{method}{c("recursive","shared")}
 
-\item{anchor}{("vb-mean"|"user") only used when method="shared"}
+\item{anchor}{("vb-mean"|"user") for method="shared" only}
 
 \item{y_hist}{optional last m observed y's (chronological, oldest->newest);
 if NULL and m>0 uses last m of object$y_fit}
 
-\item{anchor_path}{optional length>=H numeric, when method="shared" & anchor="user"}
+\item{anchor_path}{optional length>=H numeric when method="shared" & anchor="user"}
 
-\item{xreg_hist, xreg_future}{optional \strong{named lists} of exogenous histories/futures
-that feed the input vector ( \tilde{\vect u}_t=(1,y\text{-lags},\vect z_t^\top) )
-keyed by variable name (e.g. list(temp=..., flow=...)).
-Required if the fit metadata declares nonzero exogenous lags.}
+\item{xreg_hist, xreg_future}{optional named lists of exogenous histories/futures}
 
-\item{y_future_obs}{Optional numeric vector of length H with realized values
-at horizons T+1:T+H. Use NA for unknown horizons. When provided, those
-observations are teacher-forced: they replace simulated draws at their
-horizon and are fed back into the lag buffer for subsequent steps.}
+\item{y_future_obs}{optional numeric length H with realized values (teacher-forcing; NA for unknown)}
 
-\item{chunk}{process draws in chunks to cap memory}
+\item{chunk}{process draws in chunks to cap memory (defaults 256)}
 
 \item{seed}{RNG seed for predictive noise (optional)}
 
-\item{return_design}{logical; for method="shared" returns X_future (H x p).
-For method="recursive" the design is draw-specific and thus
-not returned (ignored).}
+\item{return_design}{logical; for method="shared" returns X_future (H x p_res).}
 }
 \value{
-list with yrep (H x nd), mu_draws (H x nd),
-plus anchor_path and/or X_future in shared mode.
+list with yrep (H x nd), mu_draws (H x nd), and anchor_path/X_future when applicable
 }
 \description{
 Two modes:
 \itemize{
-\item method="recursive" (default): per-draw, per-quantile \strong{recursive} simulation.
-Each draw has its own path; future lags use the already simulated y for that draw.
-This is the statistically correct multi-step forecaster for selection & testing.
-\item method="shared": cheap plug-in (your previous implementation) that rolls a
-single deterministic design path (anchor) and samples only the readout noise.
+\item method="recursive" (default): per-draw, per-quantile recursive simulation.
+Each posterior draw has its own path; future lags use the already simulated y for that draw.
+\item method="shared": cheap plug-in that rolls a single deterministic anchor path and
+samples only the readout noise (useful for speed-diagnostics; not for selection).
 }
+}
+\details{
+This version reduces allocations by:
+• precomputing the exogenous input blocks for all horizons once;
+• chunking \emph{noise} generation (no giant H×nd matrices);
+• avoiding repeated length checks / conversions in inner loops;
+• reusing small scratch objects where safe.
 }
