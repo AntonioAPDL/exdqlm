@@ -1,6 +1,8 @@
 #' Build Q-DESN design matrix (reservoir -> readout features) without fitting readout
 #' @export
 qdesn_build_design <- function(y, desn_args, drop = NULL) {
+  if (is.null(desn_args)) desn_args <- list()
+  if (!is.list(desn_args)) stop("desn_args must be a list.", call. = FALSE)
 
   # If user supplied a custom drop, implement it by setting washout so that
   # drop_effective = max(m, washout) equals that value (up to the constraint drop>=m).
@@ -10,6 +12,9 @@ qdesn_build_design <- function(y, desn_args, drop = NULL) {
     # enforce drop >= m_in, since qdesn_fit_vb will do max(m, washout)
     desn_args$washout <- max(drop, m_in)
   }
+
+  # Prevent user args from overriding "design-only" guarantees
+  desn_args[c("y", "p0", "fit_readout")] <- NULL
 
   fit <- do.call(qdesn_fit_vb, c(
     list(

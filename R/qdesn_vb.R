@@ -357,17 +357,24 @@ qdesn_fit_vb <- function(
       }
     }
 
-    fit <- exal_ldvb_fit(
-      y = y_fit,
-      X = X,
-      p0 = p0,
-      gamma_bounds = gamma_bounds,
-      vb_control = vb_control,
-      init = init,
-      prior_gamma = prior_gamma,
-      prior_sigma = prior_sigma,
-      beta_prior_obj = beta_prior_obj
+    vb_control <- vb_args$vb_control %||% list(
+      max_iter = vb_args$max_iter %||% 1000L,
+      tol      = vb_args$tol      %||% 1e-4,
+      tol_par  = vb_args$tol_par  %||% (vb_args$tol %||% 1e-4),
+      verbose  = isTRUE(vb_args$verbose %||% FALSE)
     )
+
+    fit <- exal_ldvb_fit(
+      y = y_fit, X = X,
+      p0 = p0,
+      gamma_bounds = vb_args$gamma_bounds %||% c(L.fn(p0), U.fn(p0)),
+      vb_control = vb_control,
+      init = vb_args$init %||% list(),
+      prior_gamma = vb_args$prior_gamma %||% list(mu0 = 0, s20 = 10),
+      prior_sigma = vb_args$prior_sigma %||% list(a = 1, b = 1),
+      beta_prior_obj = vb_args$beta_prior_obj %||% beta_prior("ridge", ridge = list(tau2 = 1e4))
+    )
+
   }
 
   mu_hat <- if (!is.null(fit)) as.numeric(X %*% fit$qbeta$m) else rep(NA_real_, nrow(X))
@@ -480,9 +487,12 @@ exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L)
   gdraw <- draws$gamma     # length nd
 
   p0 <- fit_exal$misc$p0
-  A_d   <- vapply(gdraw, function(g) A.fn(p0, g), numeric(1))
-  B_d   <- vapply(gdraw, function(g) B.fn(p0, g), numeric(1))
-  lam_d <- vapply(gdraw, function(g) C.fn(p0, g) * abs(g), numeric(1))
+  A_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$A, numeric(1))
+  B_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$B, numeric(1))
+  lam_d <- vapply(gdraw, function(g) {
+    abc <- exal_get_ABC(p0 = p0, gamma = g)
+    abc$C * abs(g)
+  }, numeric(1))
 
   yrep     <- matrix(NA_real_, n, nd)
   mu_draws <- matrix(NA_real_, n, nd)
@@ -774,9 +784,12 @@ forecast_paths.qdesn_fit <- function(
     sdraw <- draws$sigma
     gdraw <- draws$gamma
     p0    <- object$fit$misc$p0
-    A_d   <- vapply(gdraw, function(g) A.fn(p0, g), 1.0)
-    B_d   <- vapply(gdraw, function(g) B.fn(p0, g), 1.0)
-    lam_d <- vapply(gdraw, function(g) C.fn(p0, g) * abs(g), 1.0)
+    A_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$A, numeric(1))
+    B_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$B, numeric(1))
+    lam_d <- vapply(gdraw, function(g) {
+      abc <- exal_get_ABC(p0 = p0, gamma = g)
+      abc$C * abs(g)
+    }, numeric(1))
 
     yrep     <- matrix(NA_real_, H, nd)
     mu_draws <- matrix(NA_real_, H, nd)
@@ -820,9 +833,12 @@ forecast_paths.qdesn_fit <- function(
   gdraw <- draws$gamma
   p0    <- object$fit$misc$p0
 
-  A_d   <- vapply(gdraw, function(g) A.fn(p0, g), 1.0)
-  B_d   <- vapply(gdraw, function(g) B.fn(p0, g), 1.0)
-  lam_d <- vapply(gdraw, function(g) C.fn(p0, g) * abs(g), 1.0)
+  A_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$A, numeric(1))
+  B_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$B, numeric(1))
+  lam_d <- vapply(gdraw, function(g) {
+    abc <- exal_get_ABC(p0 = p0, gamma = g)
+    abc$C * abs(g)
+  }, numeric(1))
 
   yrep     <- matrix(NA_real_, H, nd)
   mu_draws <- matrix(NA_real_, H, nd)

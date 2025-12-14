@@ -49,3 +49,6 @@ results/**/runs/*/manifest/*
 results/
 tmux_logs/
 Rplots.pdf
+
+# Temporary ChatGPT dumps
+exdqlm_chatgpt_dump_*.txt

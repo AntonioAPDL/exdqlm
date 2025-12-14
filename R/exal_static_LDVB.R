@@ -62,6 +62,9 @@
 #'   \eqn{(\sigma,\gamma)}, convergence diagnostics, and \code{misc}.
 #' (You can optionally change @export to @keywords internal if you want
 #'  the core to be non-user-facing once wrappers are in place.)
+if (!exists("%||%", mode = "function")) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+}
 exal_static_LDVB_core <- function(
   y, X, p0,
   max_iter = 1000, tol = 1e-4, tol_par = tol,
@@ -122,9 +125,10 @@ exal_static_LDVB_core <- function(
   s2_lsig <- NA_real_
 
   # --- A,B,C,lambda helpers -------------------------------------------------
-  A_of   <- function(g) A.fn(p0, g)
-  B_of   <- function(g) B.fn(p0, g)
-  C_of   <- function(g) C.fn(p0, g)
+  ABC_of <- function(g) exal_get_ABC(p0 = p0, gamma = g)
+  A_of   <- function(g) ABC_of(g)$A
+  B_of   <- function(g) ABC_of(g)$B
+  C_of   <- function(g) ABC_of(g)$C
   lam_of <- function(g) C_of(g) * abs(g)
 
   # transform (eta,ell) <-> (gamma,sigma)
@@ -762,7 +766,7 @@ exal_static_LDVB <- function(
     init_log_sigma = init_log_sigma,
     n_samp_xi = n_samp_xi,
     verbose   = verbose,
-    beta_prior = beta_prior,
+    beta_prior_module  = beta_prior,
     rhs_hypers = NULL
   )
 }
@@ -795,11 +799,11 @@ exal_static_LDVB_rhs <- function(
   init_log_sigma       = NULL,
   n_samp_xi = 200,
   verbose   = TRUE,
-  beta_prior_module = NULL,
-  rhs_hypers = rhs_hypers,
-  beta_prior_obj = beta_prior("rhs", rhs = rhs_hypers %||% list())
+  rhs_hypers = NULL,
+  beta_prior_obj = NULL
 ){
-  beta_prior <- qdesn_rhs_prior_module(V0 = V0, rhs_hypers = rhs_hypers)
+  if (is.null(rhs_hypers)) rhs_hypers <- list()
+  if (is.null(beta_prior_obj)) beta_prior_obj <- beta_prior("rhs", rhs = rhs_hypers)
 
   exal_static_LDVB_core(
     y = y, X = X, p0 = p0,
@@ -817,10 +821,12 @@ exal_static_LDVB_rhs <- function(
     init_log_sigma = init_log_sigma,
     n_samp_xi = n_samp_xi,
     verbose   = verbose,
-    beta_prior = list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers, state = beta_state),
-    rhs_hypers = rhs_hypers
+    beta_prior_module = list(type = "rhs", hypers = beta_prior_obj$hypers),
+    rhs_hypers = rhs_hypers,
+    beta_prior_obj = beta_prior_obj
   )
 }
+
 
 # Simple prior "module" for a ridge prior on beta.
 # For now this is just a container; the VB core still implements all
