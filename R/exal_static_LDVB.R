@@ -187,15 +187,13 @@ exal_static_LDVB_core <- function(
 
     # E[log V] for V ~ GIG(k, chi, psi)
     gig_E_log <- function(k, chi, psi) {
-    chi <- pmax(chi, 1e-24); psi <- pmax(psi, 1e-24)
-    z   <- sqrt(chi * psi)
-    eps <- 1e-24
-    logK <- function(nu) {
-        val <- besselK(z, nu = nu, expon.scaled = TRUE)
-        log(pmax(val, 1e-300)) - z   # undo expon.scaled
-    }
-    dlogK <- (logK(k + eps) - logK(k - eps)) / (2 * eps)
-    0.5 * (log(chi) - log(psi)) + dlogK
+      chi <- pmax(as.numeric(chi), 1e-24)
+      psi <- pmax(as.numeric(psi), 1e-24)
+      z   <- sqrt(chi * psi)
+
+      dlogK <- .dlog_besselK_dnu(z, nu = k)
+
+      0.5 * (log(chi) - log(psi)) + dlogK
     }
 
   gig_moment <- function(k, chi, psi, r) {
@@ -401,27 +399,37 @@ exal_static_LDVB_core <- function(
   gamma_old <- g_from_eta(eta_hat)
   sigma_old <- exp(ell_hat)
 
-
   for (iter in 1:max_iter) {
+    m_beta_old <- m_beta
+    xis_old    <- xis
+    
     # ---- (1) q(beta) = N(m,V)
-    # V = (V0^{-1} + xi1 * X^T diag(E[1/v]) X)^{-1}
-    W <- xis$xi1 * E_inv_v
+    W  <- as.numeric(xis$xi1 * E_inv_v)
     Xw <- X * sqrt(W)
+
     if (beta_prior_obj$type == "ridge" && !is_diag_matrix(V0)) {
-      # keep original full-matrix ridge behavior
+      # Full-matrix ridge: beta ~ N(b0, V0)
       V_inv <- crossprod(Xw) + V0_inv
       Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
       if (is.null(Uc)) Uc <- chol(V_inv + 1e-24 * diag(p))
       V_beta_new <- chol2inv(Uc)
 
       rhs <- crossprod(X, W * y) -
-        crossprod(X, (xis$xi_lambda * (E_inv_v * E_s)))
-      rhs <- rhs + (V0_inv %*% b0) - (xis$xi_A) * colSums(X)
+        crossprod(X, (xis$xi_lambda * (E_inv_v * E_s))) -
+        (xis$xi_A) * colSums(X) +
+        as.numeric(V0_inv %*% b0)
 
-      m_beta_new <- V_beta_new %*% rhs
     } else {
-      # diagonal prior precision from the module (ridge diag or RHS)
-      prec_diag <- beta_prior_obj$expected_prec(beta_state, p)
+      # Diagonal precision path:
+      #   - ridge + diagonal V0: use exact diag(V0)
+      #   - RHS: use beta_prior_obj expected precision
+      if (beta_prior_obj$type == "ridge" && is_diag_matrix(V0)) {
+        v0_diag  <- pmax(as.numeric(diag(V0)), 1e-24)
+        prec_diag <- pmax(1 / v0_diag, 1e-24)
+      } else {
+        prec_diag <- as.numeric(beta_prior_obj$expected_prec(beta_state, p))
+        prec_diag <- pmax(prec_diag, 1e-24)
+      }
 
       V_inv <- crossprod(Xw) + diag(prec_diag, p)
       Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
@@ -429,16 +437,13 @@ exal_static_LDVB_core <- function(
       V_beta_new <- chol2inv(Uc)
 
       rhs <- crossprod(X, W * y) -
-        crossprod(X, (xis$xi_lambda * (E_inv_v * E_s)))
-      rhs <- rhs - (xis$xi_A) * colSums(X)
-
-      # prior mean term: diag(prec)*b0
-      rhs <- rhs + prec_diag * b0
-
-      m_beta_new <- V_beta_new %*% rhs
+        crossprod(X, (xis$xi_lambda * (E_inv_v * E_s))) -
+        (xis$xi_A) * colSums(X) +
+        prec_diag * b0
     }
 
-    m_beta_new <- V_beta_new %*% rhs
+    m_beta_new <- as.numeric(V_beta_new %*% rhs)
+ 
 
     # ---- (2) q(v_i) = GIG(1/2, chi_i, psi)
     xb   <- drop(X %*% m_beta_new)
@@ -462,8 +467,12 @@ exal_static_LDVB_core <- function(
     mu_s  <- tau2 * ( xis$xi_lambda * (E_inv_v_new * (y - xb)) - xis$zeta_lam )
     s_mom <- tn_moments(mu_s, tau2)
 
-    m_beta_old <- m_beta
-    xis_old    <- xis
+    # commit beta/v/s so LD sees current factors
+    m_beta  <- as.numeric(m_beta_new);  V_beta  <- V_beta_new
+    E_v     <- as.numeric(E_v_new);     E_inv_v <- as.numeric(E_inv_v_new)
+    qs_mu   <- as.numeric(mu_s);        qs_tau2 <- as.numeric(tau2)
+    E_s     <- as.numeric(s_mom$Es);    E_s2    <- as.numeric(s_mom$Es2)
+    beta_state <- beta_prior_obj$update(beta_state, list(m = m_beta, V = V_beta))
 
     # diagnostics that need old vs new:
     rel_mb <- sqrt(sum((m_beta_new - m_beta_old)^2)) / (1e-24 + sqrt(sum(m_beta_old^2)))
@@ -480,33 +489,13 @@ exal_static_LDVB_core <- function(
 
     xis_new <- compute_xi(eta_hat, ell_hat, Sig_eta_ell)
 
-    # commit new values (single commit)
-    m_beta  <- as.numeric(m_beta_new);  V_beta  <- V_beta_new
-    E_v     <- as.numeric(E_v_new);     E_inv_v <- as.numeric(E_inv_v_new)
-    qs_mu   <- as.numeric(mu_s);        qs_tau2 <- as.numeric(tau2)
-    E_s     <- as.numeric(s_mom$Es);    E_s2    <- as.numeric(s_mom$Es2)
-    xis     <- xis_new
-
     delta_xi <- unlist(xis_new) - unlist(xis_old)
     rel_xi   <- max(abs(delta_xi)) / (1e-24 + max(1, max(abs(unlist(xis_old)))))
-
-    # commit xi
     xis <- xis_new
-
     if (verbose && (iter %% 50 == 0)) {
       cat(sprintf("iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma≈%.3f sigma≈%.3f\n",
                   iter, rel_mb, rel_xi, ghat, shat))
     }
-
-    # commit new values
-    m_beta <- as.numeric(m_beta_new); V_beta <- V_beta_new
-    E_v    <- as.numeric(E_v_new);    E_inv_v <- as.numeric(E_inv_v_new)
-    qs_mu  <- as.numeric(mu_s);       qs_tau2 <- as.numeric(tau2)
-    E_s    <- as.numeric(s_mom$Es);   E_s2    <- as.numeric(s_mom$Es2)
-    xis    <- xis_new
-
-    beta_state <- beta_prior_obj$update(beta_state, list(m = m_beta, V = V_beta))
-
 
     ## ---------- ELBO (term-by-term) ------------------------------------------
     # Precompute residual pieces
@@ -623,7 +612,6 @@ exal_static_LDVB_core <- function(
     ell_trace     <- c(ell_trace, ell_hat)
     rel_mb_trace  <- c(rel_mb_trace, rel_mb)
     rel_xi_trace  <- c(rel_xi_trace, rel_xi)
-
     # -------- Stopping rule (ELBO + (gamma,sigma) stability) ----------
     if (iter == 1) {
       inc      <- Inf

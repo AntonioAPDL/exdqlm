@@ -46,7 +46,12 @@ if (!exists("%||%", mode = "function")) {
   mode <- pmin(pmax(mode, lo), hi)
 
   h <- as.numeric(h_curv)
-  if (!is.finite(h) || h <= 0) h <- 1e-16
+  if (!is.finite(h) || h <= 0) h <- 1e-4
+
+  # scale-aware lower bound to avoid cancellation around the current mode
+  h <- max(h, sqrt(.Machine$double.eps) * (1 + abs(mode)))
+
+  # never let h be too big relative to the interval
   h <- min(h, 0.1 * (hi - lo))
 
   f0  <- f(mode)

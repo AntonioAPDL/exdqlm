@@ -176,3 +176,53 @@ exal_get_ABC <- function(p0, gamma) {
 
   list(m = m1, m2 = m2, var = var_tr)
 }
+
+# ------------------------------------------------------------------------------
+# Stable derivative d/dnu log K_nu(z)
+# Central difference + Richardson extrapolation.
+# Default step is "conventionally small" for special functions (1e-4 scale),
+# not machine-epsilon-small.
+# ------------------------------------------------------------------------------
+
+.log_besselK <- function(z, nu, z_floor = 1e-300) {
+  z <- pmax(as.numeric(z), z_floor)
+  val <- besselK(z, nu = nu, expon.scaled = TRUE)
+  log(pmax(val, 1e-300)) - z  # log K_nu(z)
+}
+
+.dlog_besselK_dnu <- function(z, nu, h = NULL) {
+  z  <- pmax(as.numeric(z), 1e-300)
+  nu <- as.numeric(nu)[1L]
+  if (!is.finite(nu)) .stopf(".dlog_besselK_dnu: nu must be finite.")
+
+  if (is.null(h)) {
+    # Good default for order-differentiation. Avoid cancellation.
+    h <- 1e-4 * (1 + abs(nu))
+    h <- max(h, 1e-6)
+  }
+  h <- as.numeric(h)[1L]
+  if (!is.finite(h) || h <= 0) h <- 1e-4
+
+  # central diff at h
+  lp1 <- .log_besselK(z, nu + h)
+  lm1 <- .log_besselK(z, nu - h)
+  d1  <- (lp1 - lm1) / (2 * h)
+
+  # central diff at h/2
+  h2  <- 0.5 * h
+  lp2 <- .log_besselK(z, nu + h2)
+  lm2 <- .log_besselK(z, nu - h2)
+  d2  <- (lp2 - lm2) / (2 * h2)
+
+  # Richardson extrapolation (cancels O(h^2) term)
+  d <- d2 + (d2 - d1) / 3
+
+  # fallbacks if something goes non-finite
+  bad <- !is.finite(d)
+  if (any(bad)) d[bad] <- d2[bad]
+  bad <- !is.finite(d)
+  if (any(bad)) d[bad] <- d1[bad]
+
+  d
+}
+
