@@ -52,3 +52,6 @@ Rplots.pdf
 
 # Temporary ChatGPT dumps
 exdqlm_chatgpt_dump_*.txt
+
+# Local helper scripts
+/dump_exdqlm_files_to_txt.sh
