@@ -219,25 +219,6 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   as.list(out)
   }
 
-  # second-order delta-method expectation under z ~ N(z0, Sigma)
-  delta_E <- function(g_fun, z0, Sigma) {
-    g0 <- g_fun(z0)
-    H  <- numDeriv::hessian(g_fun, z0)
-    g0 + 0.5 * sum(H * Sigma)
-  }
-
-  # GIG moments for v ~ GIG(k, chi, psi): E[v^r]
-  gig_moment <- function(k, chi, psi, r) {
-    chi <- pmax(chi, 1e-24); psi <- pmax(psi, 1e-24)
-    z <- sqrt(chi * psi)
-    num <- besselK(z, nu = k + r, expon.scaled = TRUE)
-    den <- besselK(z, nu = k,     expon.scaled = TRUE)
-    ratio <- num / den
-    ratio[!is.finite(ratio)] <- 1
-    pow <- (sqrt(chi / psi))^r
-    pmax(pow, 0) * pmax(ratio, 1e-300)
-  }
-
   # Truncated normal moments for s ~ N(mu, tau2) truncated to (0, inf)
   tn_moments <- function(mu, tau2) {
     tau <- sqrt(pmax(tau2, 1e-24))

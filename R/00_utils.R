@@ -7,11 +7,6 @@ assert_scalar_numeric <- function(x, nm) {
   invisible(TRUE)
 }
 
-assert_in <- function(x, set, nm) {
-  if (!x %in% set) .stopf("%s must be one of: %s. Got: %s", nm, paste(set, collapse=", "), x)
-  invisible(TRUE)
-}
-
 assert_matrix <- function(X, nm) {
   if (!is.matrix(X) || !is.numeric(X)) .stopf("%s must be a numeric matrix.", nm)
   invisible(TRUE)
@@ -120,14 +115,6 @@ exal_get_ABC <- function(p0, gamma) {
 }
 
 # ------------------------------------------------------------------------------
-# diag(X %*% S %*% t(X)) for dense S without forming n x n
-# ------------------------------------------------------------------------------
-.diag_XSX <- function(X, S) {
-  XS <- X %*% S
-  rowSums(XS * X)
-}
-
-# ------------------------------------------------------------------------------
 # GIG moments for lambda = 1/2 (closed form; no Bessel calls)
 # If V ~ GIG(1/2, chi, psi), then
 #   E[1/V] = sqrt(psi/chi)
@@ -144,37 +131,6 @@ exal_get_ABC <- function(p0, gamma) {
   m     <- sqrt(chi / psi) * (1 + 1 / z)
 
   list(m = m, m_inv = m_inv, z = z)
-}
-
-# ------------------------------------------------------------------------------
-# Moments of N(mu, var) truncated to (0, Inf)
-# Returns E[S], E[S^2], Var[S]
-# ------------------------------------------------------------------------------
-.truncnorm_pos_moments <- function(mu, var, eps = 1e-12) {
-  mu  <- as.numeric(mu)
-  var <- pmax(as.numeric(var), eps)
-  sd  <- sqrt(var)
-
-  # Z = P(N(mu,sd^2) > 0) = Phi(mu/sd)
-  t0   <- mu / sd
-  logZ <- pnorm(t0, log.p = TRUE)
-
-  # lambda = phi(a_std)/Z with a_std = (0-mu)/sd = -t0
-  log_phi    <- dnorm(-t0, log = TRUE)
-  log_lambda <- log_phi - logZ
-
-  # guard exp overflow
-  lambda <- exp(pmin(log_lambda, 700))
-
-  m1 <- mu + sd * lambda
-
-  a_std  <- -t0
-  var_tr <- var * (1 + a_std * lambda - lambda^2)
-  var_tr <- pmax(var_tr, 0)
-
-  m2 <- var_tr + m1^2
-
-  list(m = m1, m2 = m2, var = var_tr)
 }
 
 # ------------------------------------------------------------------------------
