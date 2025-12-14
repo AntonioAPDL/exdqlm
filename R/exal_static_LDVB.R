@@ -160,7 +160,7 @@ exal_static_LDVB_core <- function(
   # q(sigma,gamma): start at point mass to get xi's
   eta_hat <- qlogis((gamma0 - L) / (U - L))
   ell_hat <- log(sigma0)
-  Sig_eta_ell <- diag(c(1e-4, 1e-4))  # tiny to start; inflated after first LD update
+  Sig_eta_ell <- diag(c(1e-16, 1e-16))  # tiny to start; inflated after first LD update
 
   # --- numerics helpers ------------------------------------------------------
   V0_inv <- tryCatch(solve(V0), error = function(e) MASS::ginv(V0))

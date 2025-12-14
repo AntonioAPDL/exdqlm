@@ -73,7 +73,7 @@ beta_prior_rhs <- function(rhs) {
     nu   = nu,
     s    = s,
     shrink_intercept = isTRUE(rhs$shrink_intercept %||% TRUE),
-    intercept_prec   = as.numeric(rhs$intercept_prec %||% 1e-12)[1L]
+    intercept_prec   = as.numeric(rhs$intercept_prec %||% 1e-16)[1L]
   )
 
   # init supports log- or natural-scale keys
@@ -99,8 +99,8 @@ beta_prior_rhs <- function(rhs) {
       tau    = c(-12, 12),
       c2     = c(-12, 12)
     ),
-    h_curv     = as.numeric(rhs$h_curv %||% 1e-4)[1L],
-    var_floor  = as.numeric(rhs$var_floor %||% 1e-8)[1L],
+    h_curv     = as.numeric(rhs$h_curv %||% 1e-16)[1L],
+    var_floor  = as.numeric(rhs$var_floor %||% 1e-16)[1L],
     verbose    = isTRUE(rhs$verbose %||% FALSE)
   )
 

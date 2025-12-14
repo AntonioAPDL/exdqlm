@@ -22,7 +22,7 @@ if (!exists("%||%", mode = "function")) {
 # coordinate-wise 1D maximize for a smooth objective f(eta)
 # returns list(mode=..., var=...)
 .opt_1d_laplace <- function(f, lo, hi, eta0 = NULL,
-                           h_curv = 1e-4, var_floor = 1e-8) {
+                           h_curv = 1e-16, var_floor = 1e-16) {
   if (!is.finite(lo) || !is.finite(hi) || !(lo < hi)) .stopf(".opt_1d_laplace: invalid bounds.")
   if (is.null(eta0) || !is.finite(eta0)) eta0 <- 0
 
@@ -46,7 +46,7 @@ if (!exists("%||%", mode = "function")) {
   mode <- pmin(pmax(mode, lo), hi)
 
   h <- as.numeric(h_curv)
-  if (!is.finite(h) || h <= 0) h <- 1e-4
+  if (!is.finite(h) || h <= 0) h <- 1e-16
   h <- min(h, 0.1 * (hi - lo))
 
   f0  <- f(mode)
@@ -69,8 +69,8 @@ qdesn_rhs_prior_obj <- function(
                  eta_bounds = list(lambda = c(-12, 12),
                                    tau    = c(-12, 12),
                                    c2     = c(-12, 12)),
-                 h_curv = 1e-4,
-                 var_floor = 1e-8,
+                 h_curv = 1e-16,
+                 var_floor = 1e-16,
                  verbose = FALSE)
 ) {
   tau0 <- as.numeric(hypers$tau0 %||% 1)[1]
@@ -87,8 +87,8 @@ qdesn_rhs_prior_obj <- function(
 
   n_inner   <- as.integer(control$n_inner %||% 1L)
   verbose   <- isTRUE(control$verbose %||% FALSE)
-  var_floor <- as.numeric(control$var_floor %||% 1e-8)[1]
-  h_curv    <- as.numeric(control$h_curv %||% 1e-4)[1]
+  var_floor <- as.numeric(control$var_floor %||% 1e-16)[1]
+  h_curv    <- as.numeric(control$h_curv %||% 1e-16)[1]
 
   bnds  <- control$eta_bounds %||% list()
   b_lam <- as.numeric(bnds$lambda %||% c(-12, 12))

@@ -38,7 +38,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   U <- as.numeric(gamma_bounds[2])
   if (!is.finite(L) || !is.finite(U) || !(L < U)) .stopf("gamma_bounds must be finite with L < U.")
 
-  clamp01 <- function(u, eps = 1e-10) pmin(pmax(u, eps), 1 - eps)
+  clamp01 <- function(u, eps = 1e-16) pmin(pmax(u, eps), 1 - eps)
 
   # --- initialize q(beta) ---
   qbeta <- list(
@@ -452,7 +452,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # z_gig from .gig_half_moments (reuse)
 
     # E[log v] under GIG(k=1/2, chi, psi) via derivative of log K_nu
-    gig_E_log_half <- function(chi, psi, eps = 1e-6) {
+    gig_E_log_half <- function(chi, psi, eps = 1e-16) {
       chi <- pmax(as.numeric(chi), 1e-24)
       psi <- pmax(as.numeric(psi), 1e-24)
       z   <- sqrt(chi * psi)
