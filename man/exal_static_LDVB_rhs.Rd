@@ -26,9 +26,8 @@ exal_static_LDVB_rhs(
   init_log_sigma = NULL,
   n_samp_xi = 200,
   verbose = TRUE,
-  beta_prior_module = NULL,
-  rhs_hypers = rhs_hypers,
-  beta_prior_obj = beta_prior("rhs", rhs = rhs_hypers \%||\% list())
+  rhs_hypers = NULL,
+  beta_prior_obj = NULL
 )
 }
 \description{

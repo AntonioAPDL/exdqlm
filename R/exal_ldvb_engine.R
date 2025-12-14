@@ -38,6 +38,20 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   U <- as.numeric(gamma_bounds[2])
   if (!is.finite(L) || !is.finite(U) || !(L < U)) .stopf("gamma_bounds must be finite with L < U.")
 
+  # scale-based sigma bounds (wide but finite)
+  y_scale  <- stats::mad(y, constant = 1.4826)
+  y_scale  <- if (is.finite(y_scale) && y_scale > 0) y_scale else stats::sd(y)
+  y_scale  <- if (is.finite(y_scale) && y_scale > 0) y_scale else 1
+
+  sigma_min <- max(1e-6, y_scale * 1e-3)
+  sigma_max <- max(sigma_min * 10, y_scale * 1e3)
+  ell_lo <- log(sigma_min)
+  ell_hi <- log(sigma_max)
+
+  # keep eta bounded so gamma never gets *too* close to L/U
+  eta_lo <- -12
+  eta_hi <-  12
+
   clamp01 <- function(u, eps = 1e-8) pmin(pmax(u, eps), 1 - eps)
 
   # --- initialize q(beta) ---
@@ -51,6 +65,14 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   # --- initialize q(sig, gam) in unconstrained space (eta, ell) ---
   gamma0 <- init$gamma %||% prior_gamma$mu0 %||% 0
   sigma0 <- init$sigma %||% 1
+
+  # keep gamma0 away from bounds
+  pad <- 0.05 * (U - L)
+  gamma0 <- min(max(as.numeric(gamma0), L + pad), U - pad)
+
+  # initialize sigma using data scale
+  sigma0 <- init$sigma %||% y_scale
+  sigma0 <- min(max(as.numeric(sigma0), sigma_min), sigma_max)
 
   u0 <- clamp01((gamma0 - L) / (U - L))
   eta_hat <- qlogis(u0)
@@ -149,7 +171,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
     abc <- exal_get_ABC(p0 = p0, gamma = gamma)
     A <- abc$A
-    B <- pmax(abc$B, 1e-24)
+    B <- pmax(abc$B, 1e-12)
     lam <- abc$C * abs(gamma)  # lambda(gamma) = C(gamma)*|gamma|
 
     list(eta = eta, ell = ell, gamma = gamma, sigma = sigma, A = A, B = B, lam = lam,
@@ -189,10 +211,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   }
 
   # steps: scale to local uncertainty
-  h1 <- 1e-3 * sqrt(pmax(Sigma[1,1], 1e-8))
-  h2 <- 1e-3 * sqrt(pmax(Sigma[2,2], 1e-8))
-  h1 <- if (is.finite(h1) && h1 > 0) h1 else 1e-3
-  h2 <- if (is.finite(h2) && h2 > 0) h2 else 1e-3
+  h1s <- 1e-3 * sqrt(pmax(Sigma[1,1], 1e-8))
+  h2s <- 1e-3 * sqrt(pmax(Sigma[2,2], 1e-8))
+  h1  <- max(1e-4 * (1 + abs(eta_hat)), h1s)
+  h2  <- max(1e-4 * (1 + abs(ell_hat)), h2s)
+  h1  <- min(max(h1, 1e-6), 1e-2)
+  h2  <- min(max(h2, 1e-6), 1e-2)
 
   f00   <- g_vec(z0)
   f10   <- g_vec(z0 + c( h1,  0))
@@ -221,15 +245,36 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   # Truncated normal moments for s ~ N(mu, tau2) truncated to (0, inf)
   tn_moments <- function(mu, tau2) {
-    tau <- sqrt(pmax(tau2, 1e-24))
-    alpha <- mu / tau
-    Phi <- pnorm(alpha); Phi <- pmax(Phi, 1e-24)
-    phi <- dnorm(alpha)
-    Lambda <- phi / Phi
-    Es  <- mu + tau * Lambda
-    Es2 <- tau2 + mu^2 + tau * mu * Lambda
+    tau2 <- pmax(as.numeric(tau2), 1e-12)
+    tau  <- sqrt(tau2)
+    mu   <- as.numeric(mu)
+
+    alpha  <- mu / tau
+    logPhi <- pnorm(alpha, log.p = TRUE)
+    logphi <- dnorm(alpha, log = TRUE)
+
+    # Mills ratio: lambda = phi/Phi
+    # Use asymptotic approximation when alpha is very negative to avoid overflow/0-division.
+    lambda <- exp(pmin(logphi - logPhi, 700))   # cap exponent to avoid Inf
+
+    idx <- (alpha < -8)
+    if (any(idx)) {
+      a <- -alpha[idx]
+      # lambda ≈ a + 1/a + 2/a^3 (good enough)
+      lambda[idx] <- a + 1/a + 2/(a^3)
+    }
+
+    Es  <- mu + tau * lambda
+    # Truncation implies Es > 0; enforce numerical floor
+    Es  <- pmax(Es, 1e-12)
+
+    Es2 <- tau2 + mu^2 + tau * mu * lambda
+    # enforce Es2 >= Es^2
+    Es2 <- pmax(Es2, Es^2 + 1e-12)
+
     list(Es = Es, Es2 = Es2)
   }
+
 
   # log-kernel for q(eta, ell) up to additive constants (same structure as static core)
   log_qsiggam <- function(par) {
@@ -240,7 +285,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
     abc <- exal_get_ABC(p0 = p0, gamma = gamma)
     A <- abc$A
-    B <- pmax(abc$B, 1e-24)
+    B <- pmax(abc$B, 1e-12)
     lam <- abc$C * abs(gamma)
 
     if (!is.finite(B) || B <= 0 || !is.finite(sigma) || sigma <= 0) return(-Inf)
@@ -259,43 +304,35 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   
   # LD mode/cov finder for (eta, ell)
-  find_mode_ld <- function(eta0, ell0) {
+ find_mode_ld <- function(eta0, ell0) {
     par0 <- c(eta0, ell0)
+    par0[1] <- min(max(par0[1], eta_lo), eta_hi)
+    par0[2] <- min(max(par0[2], ell_lo), ell_hi)
+
     fn_neg <- function(z) { val <- log_qsiggam(z); if (is.finite(val)) -val else 1e100 }
 
-    opt <- try(optim(par = par0, fn = fn_neg, method = "BFGS",
-                     control = list(maxit = 10000), hessian = TRUE), silent = TRUE)
+    opt <- optim(
+      par = par0, fn = fn_neg, method = "L-BFGS-B",
+      lower = c(eta_lo, ell_lo), upper = c(eta_hi, ell_hi),
+      control = list(maxit = 2000)
+    )
 
-    if (inherits(opt, "try-error") || !is.finite(opt$value)) {
-      cand <- rbind(
-        par0,
-        par0 + c(-1,0), par0 + c(1,0), par0 + c(0,-1), par0 + c(0,1),
-        par0 + c(-2,0), par0 + c(2,0), par0 + c(0,-2), par0 + c(0,2)
-      )
-      vals <- apply(cand, 1, function(z) log_qsiggam(z))
-      idx  <- which.max(vals)
-      opt  <- optim(par = cand[idx,], fn = fn_neg, method = "BFGS",
-                    control = list(maxit = 10000), hessian = TRUE)
-    }
-
-    H <- opt$hessian
-    if (!all(is.finite(H)) || any(is.nan(H))) {
-      H <- try(numDeriv::hessian(function(z) -log_qsiggam(z), x = opt$par), silent = TRUE)
-      if (inherits(H, "try-error") || any(!is.finite(H))) H <- diag(1e-24, 2)
-    }
+    # Hessian: compute numerically at optimum
+    H <- try(numDeriv::hessian(function(z) fn_neg(z), x = opt$par), silent = TRUE)
+    if (inherits(H, "try-error") || any(!is.finite(H))) H <- diag(1e-6, 2)
     H <- 0.5 * (H + t(H))
 
-    # Sigma = solve(H) with PSD enforcement
     Sigma_raw <- tryCatch(solve(H), error = function(e) MASS::ginv(H))
     Sigma_raw <- 0.5 * (Sigma_raw + t(Sigma_raw))
+
     eg <- eigen(Sigma_raw, symmetric = TRUE)
-    vals <- pmax(eg$values, 1e-24)
+    vals <- pmax(eg$values, 1e-12)
     Sigma_pd <- eg$vectors %*% (diag(vals, 2) %*% t(eg$vectors))
     Sigma_pd <- 0.5 * (Sigma_pd + t(Sigma_pd))
 
     list(eta_hat = opt$par[1], ell_hat = opt$par[2], Sigma = Sigma_pd)
   }
-
+ 
   # --------------------------------------------------------------------------
   # Initialize moments required by (2.1)-(2.3)
   # --------------------------------------------------------------------------
@@ -306,9 +343,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   # initial xis from current LD approximation
   xis <- compute_xi_fast(qsiggam$eta_hat, qsiggam$ell_hat, qsiggam$Sigma)
-  xis$xi1        <- pmax(xis$xi1, 1e-24)
-  xis$xi_A2      <- pmax(xis$xi_A2, 1e-24)
-  xis$xi_lambda2 <- pmax(xis$xi_lambda2, 1e-24)
+  xis$xi1        <- pmax(xis$xi1, 1e-12)
+  xis$xi_A2      <- pmax(xis$xi_A2, 1e-12)
+  xis$xi_lambda2 <- pmax(xis$xi_lambda2, 1e-12)
 
   iter_run <- 0L
   gamma_old <- cur_gamma_hat()
@@ -353,7 +390,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     q_i <- rowSums((X %*% qbeta$V) * X)
 
     psi <- as.numeric(xis$xi_A2 + 2 * xis$xi_siginv)
-    psi <- pmax(psi, 1e-24)
+    psi <- pmax(psi, 1e-12)
 
     chi <- as.numeric(
       xis$xi1 * (t_i^2 + q_i) -
@@ -361,7 +398,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         xis$xi_lambda2 * qs$m2 +
         2 * xis$xi_lambda * (xb * qs$m)
     )
-    chi <- pmax(chi, 1e-24)
+    chi <- pmax(chi, 1e-12)
 
     m_gig <- .gig_half_moments(chi = chi, psi = psi)
     qv$m     <- as.numeric(m_gig$m)
@@ -374,15 +411,45 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # (2.2) UPDATE q(s): TN(mu_s, tau2) on (0, inf)
     # ------------------------------------------------------------------------
     tau2 <- 1 / (1 + xis$xi_lambda2 * qv$m_inv)
-    tau2 <- pmax(tau2, 1e-24)
+    tau2 <- pmax(tau2, 1e-12)
 
     mu_s <- tau2 * (xis$xi_lambda * (qv$m_inv * (y - xb)) - xis$zeta_lam)
     moms <- tn_moments(mu_s, tau2)
 
+    # qs$m  <- as.numeric(moms$Es)
+    # qs$m2 <- as.numeric(moms$Es2)
+    # if (any(!is.finite(qs$m))  || any(qs$m <= 0))  .stopf("E[s] invalid in q(s) update.")
+    # if (any(!is.finite(qs$m2)) || any(qs$m2 <= 0)) .stopf("E[s^2] invalid in q(s) update.")
     qs$m  <- as.numeric(moms$Es)
     qs$m2 <- as.numeric(moms$Es2)
-    if (any(!is.finite(qs$m))  || any(qs$m <= 0))  .stopf("E[s] invalid in q(s) update.")
-    if (any(!is.finite(qs$m2)) || any(qs$m2 <= 0)) .stopf("E[s^2] invalid in q(s) update.")
+
+    bad_s <- which(!is.finite(qs$m) | qs$m <= 0)
+    bad_s2 <- which(!is.finite(qs$m2) | qs$m2 <= 0)
+
+    if (length(bad_s) || length(bad_s2)) {
+      j <- if (length(bad_s)) bad_s[1] else bad_s2[1]
+
+      dbg <- list(
+        iter = iter,
+        j = j,
+        mu_s_j = mu_s[j],
+        tau2_j = tau2[j],
+        # recompute alpha for visibility
+        alpha_j = mu_s[j] / sqrt(tau2[j]),
+        qs_m_j  = qs$m[j],
+        qs_m2_j = qs$m2[j],
+        # current state that can cause extreme mu_s
+        xis = xis,
+        gamma_hat = cur_gamma_hat(),
+        sigma_hat = cur_sigma_hat(),
+        qv_m_inv_summary = summary(qv$m_inv),
+        mu_s_summary = summary(mu_s),
+        tau2_summary = summary(tau2)
+      )
+
+      saveRDS(dbg, file = sprintf("debug_qs_fail_iter_%04d.rds", iter))
+      .stopf("E[s] invalid in q(s) update. Saved debug_qs_fail_iter_%04d.rds", iter)
+    }
 
     # ------------------------------------------------------------------------
     # (2.3) UPDATE q(sigma, gamma) jointly via Laplace–Delta on (eta, ell)
@@ -411,10 +478,32 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
     # refresh xis after LD update
     xis <- compute_xi_fast(qsiggam$eta_hat, qsiggam$ell_hat, qsiggam$Sigma)
-    xis$xi1        <- pmax(as.numeric(xis$xi1),        1e-24)
-    xis$xi_A2      <- pmax(as.numeric(xis$xi_A2),      1e-24)
-    xis$xi_lambda2 <- pmax(as.numeric(xis$xi_lambda2), 1e-24)
-    xis$xi_siginv  <- pmax(as.numeric(xis$xi_siginv),  1e-24)
+    if (vb_control$verbose && (iter %% 25L == 0L)) {
+      cat("sigma_hat=", cur_sigma_hat(), " gamma_hat=", cur_gamma_hat(), "\n")
+      cat("xi1=", xis$xi1, " xi_A2=", xis$xi_A2, " xi_siginv=", xis$xi_siginv, "\n")
+      cat("W summary:\n"); print(summary(as.numeric(xis$xi1 * qv$m_inv)))
+      cat("E[v]n summary:\n"); print(summary(qv$m))
+      cat("E[1/v] summary:\n"); print(summary(qv$m_inv))
+    }
+
+    xi_vec <- unlist(xis)
+    if (any(!is.finite(xi_vec))) {
+      saveRDS(list(iter=iter, xis=xis, qsiggam=qsiggam),
+              file = sprintf("debug_xis_nan_iter_%04d.rds", iter))
+      .stopf("xis contains non-finite values (saved debug_xis_nan_iter_%04d.rds).", iter)
+    }
+
+    # These must be >0 in your algebra
+    if (xis$xi1 <= 0 || xis$xi_lambda2 <= 0 || xis$xi_A2 <= 0 || xis$xi_siginv <= 0) {
+      saveRDS(list(iter=iter, xis=xis, qsiggam=qsiggam),
+              file = sprintf("debug_xis_bad_iter_%04d.rds", iter))
+      .stopf("xis has invalid sign/scale (saved debug_xis_bad_iter_%04d.rds).", iter)
+    }
+
+    xis$xi1        <- pmax(as.numeric(xis$xi1),        1e-12)
+    xis$xi_A2      <- pmax(as.numeric(xis$xi_A2),      1e-12)
+    xis$xi_lambda2 <- pmax(as.numeric(xis$xi_lambda2), 1e-12)
+    xis$xi_siginv  <- pmax(as.numeric(xis$xi_siginv),  1e-12)
 
     # ------------------------------------------------------------------------
     # beta-prior latent update (RHS etc) using NEW q(beta)
@@ -434,8 +523,8 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
     # E[log v] under GIG(k=1/2, chi, psi) via derivative of log K_nu
     gig_E_log_half <- function(chi, psi) {
-      chi <- pmax(as.numeric(chi), 1e-24)
-      psi <- pmax(as.numeric(psi), 1e-24)
+      chi <- pmax(as.numeric(chi), 1e-12)
+      psi <- pmax(as.numeric(psi), 1e-12)
       z   <- sqrt(chi * psi)
 
       k <- 0.5
@@ -536,7 +625,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # (12) Entropy H(q_{sigma,gamma}) from LD Gaussian + Jacobian term
     Sig <- qsiggam$Sigma
     detSig <- Sig[1,1] * Sig[2,2] - Sig[1,2] * Sig[2,1]
-    logdetSig <- log(pmax(detSig, 1e-24))
+    logdetSig <- log(pmax(detSig, 1e-12))
 
     H_qsg <- 0.5 * (2 * (1 + log(2*pi)) + logdetSig) +
       as.numeric(xis$zeta_logsigma) +

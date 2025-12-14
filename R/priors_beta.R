@@ -1,26 +1,14 @@
-#' Construct beta prior object used by LDVB engine
-#' @param type "ridge" or "rhs"
-#' @param ridge list(tau2=...)
-#' @param rhs list(tau0, nu, s or s2,
-#'   shrink_intercept, intercept_prec,
-#'   init_lambda or init_log_lambda,
-#'   init_tau or init_log_tau,
-#'   init_c2 or init_log_c2,
-#'   n_inner, eta_bounds, h_curv, var_floor, verbose)
-#' @export
-
 if (!exists("%||%", mode = "function")) {
   `%||%` <- function(x, alt) if (!is.null(x)) x else alt
 }
 
-#' @keywords internal
+#' @noRd
 .call_with_supported_args <- function(fn, ...) {
   dots <- list(...)
   if (!length(dots)) return(do.call(fn, list()))
 
   nm <- names(dots)
   if (is.null(nm) || any(nm == "")) {
-    # positional args -> don't filter
     return(do.call(fn, dots))
   }
 
@@ -31,6 +19,16 @@ if (!exists("%||%", mode = "function")) {
   do.call(fn, dots[keep])
 }
 
+#' Construct beta prior object used by LDVB engine
+#' @param type "ridge" or "rhs"
+#' @param ridge list(tau2=...)
+#' @param rhs list(tau0, nu, s or s2,
+#'   shrink_intercept, intercept_prec,
+#'   init_lambda or init_log_lambda,
+#'   init_tau or init_log_tau,
+#'   init_c2 or init_log_c2,
+#'   n_inner, eta_bounds, h_curv, var_floor, verbose)
+#' @export
 beta_prior <- function(type = c("ridge", "rhs"), ridge = list(), rhs = list()) {
   type <- tolower(match.arg(type))
   if (type == "ridge") beta_prior_ridge(ridge$tau2 %||% 1e4)

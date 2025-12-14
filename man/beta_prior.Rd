@@ -11,8 +11,12 @@ beta_prior(type = c("ridge", "rhs"), ridge = list(), rhs = list())
 
 \item{ridge}{list(tau2=...)}
 
-\item{rhs}{list(tau0, nu, s2, init_log_lambda, init_log_tau, init_log_c2,
-rhs_maxit, rhs_reltol)}
+\item{rhs}{list(tau0, nu, s or s2,
+shrink_intercept, intercept_prec,
+init_lambda or init_log_lambda,
+init_tau or init_log_tau,
+init_c2 or init_log_c2,
+n_inner, eta_bounds, h_curv, var_floor, verbose)}
 }
 \description{
 Construct beta prior object used by LDVB engine
