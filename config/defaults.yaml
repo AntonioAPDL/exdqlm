@@ -31,75 +31,49 @@ pipeline:
 # DESN (reservoir) defaults
 # --------------------------------------------------------------------
 desn:
-  D: 1                       # number of reservoir layers
-  n: [800]                   # per-layer sizes
-  n_tilde: []                # reducers; [], or scalar (broadcast to D-1), or length D-1
-  m: 50                      # number of lags in u_t
-  alpha: 0.2                 # leak, scalar or length-D
-  rho: [0.95]                # spectral scales per layer
+  D: 3                       # number of reservoir layers
+  n: [500, 500, 500]         # per-layer sizes (length D)
+  n_tilde: [500, 500]        # reducers (length D-1 when D>1)
+  m: 120                     # number of lags in u_t
+  alpha: 0.15                # leak, scalar or length-D
+  rho: [0.95, 0.95, 0.95]    # spectral scales per layer (length D)
   act_f: tanh                # reservoir activation
   act_k: identity            # activation on reduced states
-  pi_w: 0.05                 # sparsity for internal weights
-  pi_in: 1.0                 # sparsity for input weights
+  pi_w: 0.1                  # sparsity for internal weights
+  pi_in: 0.1                 # sparsity for input weights
   washout: 500               # extra initial points dropped
   add_bias: true             # constant column in readout design
-  seed: 42                   # seed for reservoir construction
+  seed: 12345                # seed for reservoir construction
+  fit_readout: false         # match your notebook (if your code reads this)
 
 # --------------------------------------------------------------------
 # Variational Bayes (exAL LDVB) defaults
 # These match what pipeline_sim_main.R expects in cfg$vb
 # --------------------------------------------------------------------
 vb:
-  max_iter: 150              # max CAVI iterations per (p0)
-  n_samp_xi: 500             # (kept for compatibility; LDVB uses delta)
-  verbose: true              # per-quantile VB printing
-
-  # ELBO tolerance (mid vs tails)
-  tol_50: 0.0001             # target for p0 ≈ 0.50
-  tol_extreme: 0.00001       # target for tails (e.g. 0.05, 0.95)
-
-  # Additional safeguard tolerance on (E[gamma], E[sigma]) increments
-  # Defaults are same magnitude as ELBO tolerances above
-  tol_par_50: 0.0001
-  tol_par_extreme: 0.00001
-
-  # Optional per-quantile initialization on the natural scale
-  init:
-    gamma: null              # can be scalar or length(p_vec)
-    sigma: null              # can be scalar or length(p_vec)
-
-  # Optional per-quantile priors
   priors:
-    gamma:
-      # Normal prior for γ_p:  γ_p ~ N(mu0_p, s20_p)
-      # If you leave these as null, the pipeline falls back to (0, 10) in code.
-      mu0: 0.0               # default mean for all p
-      s20: 10.0              # default variance for all p
-
-    sigma:
-      # Inverse-Gamma prior for σ_p:  σ_p ~ IG(a_p, b_p)
-      # If you leave these as null, the pipeline falls back to (1, 1) in code.
-      a: 1.0                 # shape
-      b: 1.0                 # scale
-
     beta:
-      # Prior on β: choose between "ridge" and "rhs".
-      # - "ridge": β ~ N(0, τ² I)
-      # - "rhs":   Regularized Horseshoe (hierarchical prior)
-      type: ridge            # default; override to "rhs" in spec YAMLs
-
+      type: ridge
       ridge:
-        tau2: 10000          # ridge variance τ² (scalar; shared across p)
-
+        tau2: 10000
       rhs:
-        # RHS hyperparameters. These mirror the fields parsed into vb_prior_beta_rhs.
-        tau0: 1.0            # global shrinkage scale
-        nu: 4.0              # degrees of freedom in the slab
-        s2: 1.0              # slab variance (or scale²)
-        # Optional initial values for log-latents in VB (used to initialize q).
-        init_log_lambda: 0.0 # local scales λ_j
-        init_log_tau: 0.0    # global τ
-        init_log_c2: 0.0     # c² in the regularized horseshoe
+        tau0: 1.0
+        nu: 4.0
+        s: 1.0
+        s2: 1.0
+        shrink_intercept: false
+        intercept_prec: 1.0e-8
+        n_inner: 1
+        eta_bounds:
+          lambda: [-22, 22]
+          tau:    [-22, 22]
+          c2:     [-22, 22]
+        h_curv: 1.0e-8
+        var_floor: 1.0e-8
+        verbose: false
+        init_log_lambda: 0.0
+        init_log_tau: 0.0
+        init_log_c2: 0.0
 
 # --------------------------------------------------------------------
 # Sampling defaults (posterior / predictive)

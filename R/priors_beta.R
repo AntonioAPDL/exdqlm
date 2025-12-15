@@ -4,13 +4,18 @@ if (!exists("%||%", mode = "function")) {
 
 #' @noRd
 .call_with_supported_args <- function(fn, ...) {
+  if (is.character(fn) && length(fn) == 1L) {
+    fn <- get(fn, mode = "function", inherits = TRUE)
+  }
+  if (!is.function(fn)) {
+    .stopf(".call_with_supported_args: 'fn' must be a function (got %s).", typeof(fn))
+  }
+
   dots <- list(...)
   if (!length(dots)) return(do.call(fn, list()))
 
   nm <- names(dots)
-  if (is.null(nm) || any(nm == "")) {
-    return(do.call(fn, dots))
-  }
+  if (is.null(nm) || any(nm == "")) return(do.call(fn, dots))
 
   fmls <- names(formals(fn))
   if (is.null(fmls) || "..." %in% fmls) return(do.call(fn, dots))

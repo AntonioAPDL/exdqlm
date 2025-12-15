@@ -19,12 +19,22 @@ is_diag_matrix <- function(M, tol = 0) {
   all(abs(off) <= tol)
 }
 
-.require_fun <- function(name) {
-  if (exists(name, mode = "function", inherits = TRUE)) {
-    return(get(name, mode = "function", inherits = TRUE))
+.require_fun <- function(fname, pkg = NULL) {
+  stopifnot(is.character(fname), length(fname) == 1L, nzchar(fname))
+
+  fn <- get0(fname, mode = "function", inherits = TRUE)
+  if (is.function(fn)) return(fn)
+
+  if (is.null(pkg)) pkg <- utils::packageName()
+  if (!is.null(pkg)) {
+    ns <- tryCatch(asNamespace(pkg), error = function(e) NULL)
+    fn <- if (!is.null(ns)) get0(fname, envir = ns, mode = "function", inherits = FALSE) else NULL
+    if (is.function(fn)) return(fn)
   }
-  .stopf("Required function '%s' not found. Is the file that defines it loaded/sourced?", name)
+
+  stop(sprintf("Required internal function '%s()' not found.", fname), call. = FALSE)
 }
+
 
 # ------------------------------------------------------------------------------
 # Linear algebra helpers (SPD solve with jitter)
@@ -56,7 +66,7 @@ is_diag_matrix <- function(M, tol = 0) {
   # eigen fallback (clips eigenvalues)
   eg <- eigen(A, symmetric = TRUE)
   vals <- pmax(eg$values, 1e-10)
-  Ainv <- eg$vectors %*% (t(eg$vectors) * (1 / vals))
+  Ainv <- eg$vectors %*% diag(1 / vals, p) %*% t(eg$vectors)
   if (is.null(b)) return(list(inv = Ainv, chol = NULL))
   x <- as.numeric(Ainv %*% b)
   list(inv = Ainv, chol = NULL, x = x, warning = last_err$message %||% "chol failed")

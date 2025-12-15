@@ -152,10 +152,26 @@ vb_prior_beta_rhs <- list(
   tau0 = 1.0,
   nu   = 4.0,
   s2   = 1.0,
+
+  shrink_intercept = FALSE,
+  intercept_prec   = 1e-24,
+
+  n_inner    = 1L,
+  eta_bounds = list(
+    lambda = c(-12, 12),
+    tau    = c(-12, 12),
+    c2     = c(-12, 12)
+  ),
+
+  h_curv    = 1e-24,
+  var_floor = 1e-24,
+  verbose   = FALSE,
+
   init_log_lambda = 0.0,
   init_log_tau    = 0.0,
   init_log_c2     = 0.0
 )
+
 
 # --- IJ correction toggles (global) -------------------------------------------
 ij_nd_draws       <- 2000L   # number of parameter draws used for IJ + μ-bands
@@ -352,13 +368,26 @@ if (length(cfg)) {
         # RHS hyperparameters (used later by RHS VB; here we just store them)
         if (!is.null(beta_cfg$rhs)) {
           rhs_cfg <- beta_cfg$rhs
-          vb_prior_beta_rhs <- list(
-            tau0 = rhs_cfg$tau0 %nz% 1.0,
-            nu   = rhs_cfg$nu   %nz% 4.0,
-            s2   = rhs_cfg$s2   %nz% 1.0,
-            init_log_lambda = rhs_cfg$init_log_lambda %nz% 0.0,
-            init_log_tau    = rhs_cfg$init_log_tau    %nz% 0.0,
-            init_log_c2     = rhs_cfg$init_log_c2     %nz% 0.0
+
+          vb_prior_beta_rhs <- modifyList(
+            vb_prior_beta_rhs,  # starts with defaults
+            list(
+              tau0 = rhs_cfg$tau0 %nz% vb_prior_beta_rhs$tau0,
+              nu   = rhs_cfg$nu   %nz% vb_prior_beta_rhs$nu,
+              s2   = rhs_cfg$s2   %nz% vb_prior_beta_rhs$s2,
+
+              shrink_intercept = rhs_cfg$shrink_intercept %nz% FALSE,
+              intercept_prec   = rhs_cfg$intercept_prec   %nz% 1e-24,
+              n_inner          = rhs_cfg$n_inner          %nz% 1L,
+              eta_bounds       = rhs_cfg$eta_bounds       %nz% vb_prior_beta_rhs$eta_bounds,
+              h_curv           = rhs_cfg$h_curv           %nz% 1e-24,
+              var_floor        = rhs_cfg$var_floor        %nz% 1e-24,
+              verbose          = rhs_cfg$verbose          %nz% FALSE,
+
+              init_log_lambda = rhs_cfg$init_log_lambda %nz% vb_prior_beta_rhs$init_log_lambda,
+              init_log_tau    = rhs_cfg$init_log_tau    %nz% vb_prior_beta_rhs$init_log_tau,
+              init_log_c2     = rhs_cfg$init_log_c2     %nz% vb_prior_beta_rhs$init_log_c2
+            )
           )
         }
       }
@@ -1289,6 +1318,45 @@ if (isTRUE(VERBOSE)) {
 }
 
 # --- 2) Fit & Forecast per p ----------------------------------------------
+build_beta_prior_obj <- function(beta_type, p_dim, tau2, rhs_cfg) {
+  beta_type <- tolower(beta_type %||% "ridge")
+
+  if (!is.numeric(p_dim) || length(p_dim) != 1L || p_dim < 1L) {
+    stop(sprintf("build_beta_prior_obj(): invalid p_dim=%s", as.character(p_dim)))
+  }
+
+  if (beta_type == "ridge") {
+    tau2 <- as.numeric(tau2)[1L]
+    if (!is.finite(tau2) || tau2 <= 0) {
+      stop(sprintf("build_beta_prior_obj(): ridge tau2 must be finite and > 0. Got %s", as.character(tau2)))
+    }
+    return(list(
+      type = "ridge",
+      b0   = rep(0, p_dim),
+      V0   = diag(tau2, p_dim)
+    ))
+  }
+
+  if (beta_type == "rhs") {
+    if (is.null(rhs_cfg) || !is.list(rhs_cfg)) {
+      stop("build_beta_prior_obj(): rhs_cfg must be a list for RHS prior.")
+    }
+    # minimal checks
+    for (nm in c("tau0","nu","s2")) {
+      v <- as.numeric(rhs_cfg[[nm]])[1L]
+      if (!is.finite(v) || v <= 0) stop(sprintf("build_beta_prior_obj(): rhs_cfg$%s must be finite and > 0.", nm))
+    }
+    return(list(
+      type = "rhs",
+      b0   = rep(0, p_dim),     # kept for a unified interface
+      V0   = diag(1.0, p_dim),  # base scale only; RHS does the shrinkage
+      rhs_hypers = rhs_cfg
+    ))
+  }
+
+  stop(sprintf("build_beta_prior_obj(): unknown beta_type='%s'", beta_type))
+}
+
 fit_and_forecast_p <- function(p0) {
 
   # Index of this quantile in p_vec
@@ -1323,75 +1391,127 @@ fit_and_forecast_p <- function(p0) {
   # Ridge prior variance for beta (scalar tau2, common across p)
   tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
 
-  # ---- Fit exAL readout directly on the precomputed training design ----
-  p_dim  <- ncol(X_train)
-  V0_mat <- diag(tau2_beta_p, p_dim)
+  # # ---- Fit exAL readout directly on the precomputed training design ----
+  # p_dim  <- ncol(X_train)
+  # V0_mat <- diag(tau2_beta_p, p_dim)
 
-  exal_args <- c(
-    list(
-      y = y_train_keep,
-      X = X_train
-    ),
-    list(
-      b0        = rep(0, p_dim),
-      V0        = V0_mat,                 # for RHS we will override its role slightly
-      a_sigma   = sigma_a_p,
-      b_sigma   = sigma_b_p,
+  # exal_args <- c(
+  #   list(
+  #     y = y_train_keep,
+  #     X = X_train
+  #   ),
+  #   list(
+  #     b0        = rep(0, p_dim),
+  #     V0        = V0_mat,                 # for RHS we will override its role slightly
+  #     a_sigma   = sigma_a_p,
+  #     b_sigma   = sigma_b_p,
+  #     max_iter  = vb_args_p$max_iter,
+  #     tol       = vb_args_p$tol,
+  #     tol_par   = vb_args_p$tol_par,
+  #     n_samp_xi = vb_args_p$n_samp_xi,
+  #     verbose   = vb_args_p$verbose,
+  #     p0        = p0,
+  #     gamma_bounds = c(L.fn(p0), U.fn(p0)),
+  #     # Start sigma on its natural scale; gamma handled via init_gamma below.
+  #     init = list(sigma = sigma_init_p)
+  #   )
+  # )
+
+  # # Init for gamma if provided
+  # if (!is.null(vb_init_gamma)) {
+  #   exal_args$init <- list(gamma = gamma_init_p, sigma = sigma_init_p)
+  # }
+
+  # # Prior for gamma if provided
+  # if (!is.null(vb_prior_gamma_mu0)) {
+  #   exal_args$prior_gamma_mu0 <- gamma_mu0_p
+  #   exal_args$prior_gamma_s20 <- gamma_s20_p
+  #   exal_args$log_prior_gamma <- function(g) {
+  #     sum(stats::dnorm(
+  #       g,
+  #       mean = gamma_mu0_p,
+  #       sd   = sqrt(gamma_s20_p),
+  #       log  = TRUE
+  #     ))
+  #   }
+  # } else {
+  #   # Flat prior on gamma (within bounds)
+  #   exal_args$log_prior_gamma <- function(g) 0
+  # }
+
+  #   # ---- β prior type: ridge vs RHS -----------------------------------------
+  # # For RHS: V0 is just a base scale; RHS controls shrinkage internally.
+  # if (beta_type == "rhs") {
+  #   exal_args$V0 <- diag(1.0, p_dim)
+  # }
+
+  # fit_exal <- timed(
+  #   sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
+  #   if (beta_type == "ridge") {
+  #     do.call(exal_static_LDVB, exal_args)
+  #   } else {
+  #     do.call(exal_static_LDVB_rhs, c(exal_args, list(rhs_hypers = vb_prior_beta_rhs)))
+  #   }
+  # )
+
+    # ---- Fit exAL readout directly on the precomputed training design ----
+    p_dim <- ncol(X_train)
+
+    beta_prior_obj <- build_beta_prior_obj(
+      beta_type = beta_type,
+      p_dim     = p_dim,
+      tau2      = tau2_beta_p,
+      rhs_cfg   = vb_prior_beta_rhs
+    )
+
+    fit_args <- list(
+      y            = y_train_keep,
+      X            = X_train,
+      p0           = p0,
+      gamma_bounds = c(L.fn(p0), U.fn(p0)),
+
+      # sigma prior (IG)
+      a_sigma = sigma_a_p,
+      b_sigma = sigma_b_p,
+
+      # VB controls
       max_iter  = vb_args_p$max_iter,
       tol       = vb_args_p$tol,
       tol_par   = vb_args_p$tol_par,
       n_samp_xi = vb_args_p$n_samp_xi,
       verbose   = vb_args_p$verbose,
-      p0        = p0,
-      gamma_bounds = c(L.fn(p0), U.fn(p0)),
-      # Start sigma on its natural scale; gamma handled via init_gamma below.
-      init = list(sigma = sigma_init_p)
+
+      # init on natural scale
+      init = list(gamma = gamma_init_p, sigma = sigma_init_p),
+
+      # new: beta prior object (ridge or RHS)
+      beta_prior_obj = beta_prior_obj
     )
-  )
 
-  # Init for gamma if provided
-  if (!is.null(vb_init_gamma)) {
-    exal_args$init <- list(gamma = gamma_init_p, sigma = sigma_init_p)
-  }
-
-  # Prior for gamma if provided
-  if (!is.null(vb_prior_gamma_mu0)) {
-    exal_args$prior_gamma_mu0 <- gamma_mu0_p
-    exal_args$prior_gamma_s20 <- gamma_s20_p
-    exal_args$log_prior_gamma <- function(g) {
-      sum(stats::dnorm(
-        g,
-        mean = gamma_mu0_p,
-        sd   = sqrt(gamma_s20_p),
-        log  = TRUE
-      ))
-    }
-  } else {
-    # Flat prior on gamma (within bounds)
-    exal_args$log_prior_gamma <- function(g) 0
-  }
-
-    # ---- β prior type: ridge vs RHS -----------------------------------------
-  # For RHS: V0 is just a base scale; RHS controls shrinkage internally.
-  if (beta_type == "rhs") {
-    exal_args$V0 <- diag(1.0, p_dim)
-  }
-
-  fit_exal <- timed(
-    sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
-    if (beta_type == "ridge") {
-      do.call(exal_static_LDVB, exal_args)
+    # γ prior: Normal if provided; else flat (within bounds)
+    if (!is.null(vb_prior_gamma_mu0)) {
+      fit_args$prior_gamma_mu0 <- gamma_mu0_p
+      fit_args$prior_gamma_s20 <- gamma_s20_p
+      fit_args$log_prior_gamma <- function(g) {
+        sum(stats::dnorm(g, mean = gamma_mu0_p, sd = sqrt(gamma_s20_p), log = TRUE))
+      }
     } else {
-      do.call(exal_static_LDVB_rhs, c(exal_args, list(rhs_hypers = vb_prior_beta_rhs)))
+      fit_args$log_prior_gamma <- function(g) 0
     }
-  )
+
+    fit_exal <- timed(
+      sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
+      do.call(exal_ldvb_fit, fit_args)
+    )
 
   # ---- Parameter posterior draws (γ, σ, β) for diagnostics + IJ ----------
+  gamma_bounds_here <- c(L.fn(p0), U.fn(p0))  # or fit_args$gamma_bounds
+
   param_draws <- get_exal_param_draws(
     fit_exal,
     p            = p_dim,
     nd           = ij_nd_draws,
-    gamma_bounds = exal_args$gamma_bounds,
+    gamma_bounds = gamma_bounds_here,
     seed         = synth_seed + round(1000 * p0)
   )
 
