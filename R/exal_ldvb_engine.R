@@ -478,14 +478,6 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
     # refresh xis after LD update
     xis <- compute_xi_fast(qsiggam$eta_hat, qsiggam$ell_hat, qsiggam$Sigma)
-    if (vb_control$verbose && (iter %% 25L == 0L)) {
-      cat("sigma_hat=", cur_sigma_hat(), " gamma_hat=", cur_gamma_hat(), "\n")
-      cat("xi1=", xis$xi1, " xi_A2=", xis$xi_A2, " xi_siginv=", xis$xi_siginv, "\n")
-      cat("W summary:\n"); print(summary(as.numeric(xis$xi1 * qv$m_inv)))
-      cat("E[v]n summary:\n"); print(summary(qv$m))
-      cat("E[1/v] summary:\n"); print(summary(qv$m_inv))
-    }
-
     xi_vec <- unlist(xis)
     if (any(!is.finite(xi_vec))) {
       saveRDS(list(iter=iter, xis=xis, qsiggam=qsiggam),

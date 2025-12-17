@@ -7,9 +7,18 @@ VERBOSE <- TRUE
 
 as_num_vec <- function(x) {
   if (is.null(x)) return(NULL)
+  if (is.data.frame(x)) x <- unlist(x, use.names = FALSE)
+  if (is.matrix(x) || is.array(x)) x <- as.vector(x)
   if (is.list(x)) x <- unlist(x, use.names = FALSE)
   as.numeric(x)
 }
+
+as_int_vec <- function(x) {
+  x <- as_num_vec(x)
+  if (is.null(x)) return(NULL)
+  as.integer(x)
+}
+
 fix_len <- function(x, D, nm) {
   if (is.null(x)) return(NULL)
   if (length(x) == D) return(x)
@@ -19,8 +28,35 @@ fix_len <- function(x, D, nm) {
     }
     return(rep(x, D))
   }
-  stop(sprintf("Config error: length(%s)=%d but D=%d", nm, length(x), D))
+  stop(sprintf(
+    "Config error: length(%s)=%d but D=%d | class=%s | value(head)=%s",
+    nm, length(x), D, paste(class(x), collapse=","),
+    paste(utils::head(x, 10), collapse=",")
+  ), call. = FALSE)
 }
+
+act_scalar <- function(x, nm) {
+  if (is.null(x)) return(NULL)
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(x)]
+
+  if (length(x) == 0L) {
+    stop(sprintf("%s must be a non-empty character scalar.", nm), call. = FALSE)
+  }
+
+  u <- unique(tolower(x))
+  if (length(u) != 1L) {
+    stop(sprintf(
+      "%s must be a scalar (or a repeated vector with identical values). Got: %s",
+      nm, paste(x, collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  x[1L]
+}
+
 
 suppressPackageStartupMessages({
   req <- c("devtools","ggplot2","dplyr","tidyr","tibble","scales",
@@ -96,6 +132,19 @@ MODELS <- file.path(out_dir, "models"); dir.create(MODELS, recursive = TRUE, sho
 
 cfg_json <- Sys.getenv("EXDQLM_CFG_JSON", unset = NA)
 cfg <- if (!is.na(cfg_json) && nzchar(cfg_json)) jsonlite::fromJSON(cfg_json, simplifyVector = TRUE) else list()
+if (isTRUE(VERBOSE)) {
+  # Dump EXDQLM_* env vars (this usually reveals which spec YAML was used)
+  envs <- Sys.getenv()
+  ex <- envs[grep("^EXDQLM_", names(envs))]
+  cat("EXDQLM_ENV_VARS\n")
+  cat(paste(sprintf("%s=%s", names(ex), ex), collapse = "\n"), "\n")
+
+  # Save the exact JSON that arrived (so you can inspect it)
+  if (!is.na(cfg_json) && nzchar(cfg_json)) {
+    cat(sprintf("CFG_JSON_NCHAR=%d\n", nchar(cfg_json)))
+    writeLines(cfg_json, file.path(out_dir, "cfg_received.json"))
+  }
+}
 
 # --- Pipeline mode (future-ready; sim-only today)
 `%||%` <- function(x, alt) if (!is.null(x)) x else alt
@@ -188,8 +237,6 @@ last_window <- 200L
 train_last_window <- last_window
 fore_last_window  <- last_window
 
-
-
 synth_isotonic  <- TRUE
 synth_rearrange <- TRUE
 synth_grid_M    <- 2001L
@@ -224,55 +271,28 @@ if (length(cfg)) {
   if (!is.null(cfg$p_vec))             p_vec <- as.numeric(cfg$p_vec)
 
   if (!is.null(cfg$desn)) {
-    D_in   <- as.integer(cfg$desn$D %||% desn_args$D)
-    n_in   <- as_num_vec(cfg$desn$n)
-    rho_in <- as_num_vec(cfg$desn$rho)
+    D_in <- as.integer(cfg$desn$D %||% desn_args$D)
 
-    desn_args$D   <- D_in
-    desn_args$n   <- fix_len(n_in   %||% desn_args$n,   D_in, "desn$n")
-    desn_args$rho <- fix_len(rho_in %||% desn_args$rho, D_in, "desn$rho")
+    desn_args$D <- D_in
 
-    # --- NEW: broadcast/validate other per-layer specs ---
-    as_chr_vec <- function(x) { if (is.null(x)) return(NULL); as.character(x) }
-    as_num     <- function(x) { if (is.null(x)) return(NULL); as.numeric(x) }
+    # per-layer numeric vectors
+    desn_args$n     <- fix_len(as_int_vec(cfg$desn$n)     %||% as_int_vec(desn_args$n),     D_in, "desn$n")
+    desn_args$rho   <- fix_len(as_num_vec(cfg$desn$rho)   %||% as_num_vec(desn_args$rho),   D_in, "desn$rho")
+    if (!is.null(cfg$desn$alpha)) desn_args$alpha <- fix_len(as_num_vec(cfg$desn$alpha), D_in, "desn$alpha")
+    if (!is.null(cfg$desn$pi_w))  desn_args$pi_w  <- fix_len(as_num_vec(cfg$desn$pi_w),  D_in, "desn$pi_w")
+    if (!is.null(cfg$desn$pi_in)) desn_args$pi_in <- fix_len(as_num_vec(cfg$desn$pi_in), D_in, "desn$pi_in")
+    if (!is.null(cfg$desn$seed))  desn_args$seed  <- fix_len(as_int_vec(cfg$desn$seed),  D_in, "desn$seed")
 
-    # Allow scalar or length-D; recycle length-1
-    if (!is.null(cfg$desn$alpha)) {
-      a <- as_num(cfg$desn$alpha);  desn_args$alpha <- fix_len(a, D_in, "desn$alpha")
-    }
-        if (!is.null(cfg$desn$act_f)) {
-      af <- as.character(cfg$desn$act_f)
-      if (length(af) != 1L) stop("Config error: desn$act_f must be a single value (per-layer act_f not supported yet).")
-      desn_args$act_f <- af
-    }
-    if (!is.null(cfg$desn$act_k)) {
-      ak <- as.character(cfg$desn$act_k)
-      if (length(ak) != 1L) stop("Config error: desn$act_k must be a single value (per-layer act_k not supported yet).")
-      desn_args$act_k <- ak
-    }
-    if (!is.null(cfg$desn$pi_w)) {
-      pw <- as.numeric(cfg$desn$pi_w)
-      if (length(pw) != 1L) stop("Config error: desn$pi_w must be a single scalar.")
-      desn_args$pi_w <- pw
-    }
-    if (!is.null(cfg$desn$pi_in)) {
-      pin <- as.numeric(cfg$desn$pi_in)
-      if (length(pin) != 1L) stop("Config error: desn$pi_in must be a single scalar.")
-      desn_args$pi_in <- pin
-    }
-    if (!is.null(cfg$desn$seed)) {
-      sd <- as.integer(cfg$desn$seed)
-      if (length(sd) != 1L) stop("Config error: desn$seed must be a single integer.")
-      desn_args$seed <- sd
-    }
+    # per-layer character vectors
+    if (!is.null(cfg$desn$act_f)) desn_args$act_f <- fix_len(as.character(cfg$desn$act_f), D_in, "desn$act_f")
+    if (!is.null(cfg$desn$act_k)) desn_args$act_k <- fix_len(as.character(cfg$desn$act_k), D_in, "desn$act_k")
 
-    # n_tilde rules (must match qdesn_fit_vb):
-    # - D=1: ignored; force integer(0)
-    # - D>1: allow length 1 (broadcast to D-1) or length D-1
+    desn_args$act_f <- act_scalar(desn_args$act_f, "desn$act_f")
+    desn_args$act_k <- act_scalar(desn_args$act_k, "desn$act_k")
+
+    # n_tilde rules stay as you wrote them (length 0, 1, or D-1)
     if (!is.null(cfg$desn$n_tilde)) {
-      nt <- as_num_vec(cfg$desn$n_tilde)
-      nt <- as.integer(nt)
-
+      nt <- as_int_vec(cfg$desn$n_tilde)
       if (length(nt) == 0L || all(is.na(nt))) {
         desn_args$n_tilde <- integer(0)
       } else if (D_in <= 1L) {
@@ -287,13 +307,11 @@ if (length(cfg)) {
       }
     }
 
-
-    # scalar-only fields (keep your current lines)
+    # scalar fields
     desn_args$m        <- cfg$desn$m        %nz% desn_args$m
     desn_args$washout  <- cfg$desn$washout  %nz% desn_args$washout
     desn_args$add_bias <- cfg$desn$add_bias %nz% desn_args$add_bias
-  }
-
+    }
   if (!is.null(cfg$vb)) {
     vb_args_base$max_iter  <- cfg$vb$max_iter  %nz% vb_args_base$max_iter
     vb_args_base$n_samp_xi <- cfg$vb$n_samp_xi %nz% vb_args_base$n_samp_xi
@@ -1261,8 +1279,8 @@ if (n_train <= n_drop) {
   ), "Increase train_n/train_prop (or reduce m/washout).")
 }
 
-desn_args$act_f <- as.character(desn_args$act_f)[1L]
-desn_args$act_k <- as.character(desn_args$act_k)[1L]
+# desn_args$act_f <- as.character(desn_args$act_f)[1L]
+# desn_args$act_k <- as.character(desn_args$act_k)[1L]
 
 # --- Log the exact DESN settings that WILL be used (after final sanitize) ---
 log_msg(
@@ -1318,45 +1336,6 @@ if (isTRUE(VERBOSE)) {
 }
 
 # --- 2) Fit & Forecast per p ----------------------------------------------
-build_beta_prior_obj <- function(beta_type, p_dim, tau2, rhs_cfg) {
-  beta_type <- tolower(beta_type %||% "ridge")
-
-  if (!is.numeric(p_dim) || length(p_dim) != 1L || p_dim < 1L) {
-    stop(sprintf("build_beta_prior_obj(): invalid p_dim=%s", as.character(p_dim)))
-  }
-
-  if (beta_type == "ridge") {
-    tau2 <- as.numeric(tau2)[1L]
-    if (!is.finite(tau2) || tau2 <= 0) {
-      stop(sprintf("build_beta_prior_obj(): ridge tau2 must be finite and > 0. Got %s", as.character(tau2)))
-    }
-    return(list(
-      type = "ridge",
-      b0   = rep(0, p_dim),
-      V0   = diag(tau2, p_dim)
-    ))
-  }
-
-  if (beta_type == "rhs") {
-    if (is.null(rhs_cfg) || !is.list(rhs_cfg)) {
-      stop("build_beta_prior_obj(): rhs_cfg must be a list for RHS prior.")
-    }
-    # minimal checks
-    for (nm in c("tau0","nu","s2")) {
-      v <- as.numeric(rhs_cfg[[nm]])[1L]
-      if (!is.finite(v) || v <= 0) stop(sprintf("build_beta_prior_obj(): rhs_cfg$%s must be finite and > 0.", nm))
-    }
-    return(list(
-      type = "rhs",
-      b0   = rep(0, p_dim),     # kept for a unified interface
-      V0   = diag(1.0, p_dim),  # base scale only; RHS does the shrinkage
-      rhs_hypers = rhs_cfg
-    ))
-  }
-
-  stop(sprintf("build_beta_prior_obj(): unknown beta_type='%s'", beta_type))
-}
-
 fit_and_forecast_p <- function(p0) {
 
   # Index of this quantile in p_vec
@@ -1391,78 +1370,28 @@ fit_and_forecast_p <- function(p0) {
   # Ridge prior variance for beta (scalar tau2, common across p)
   tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
 
-  # # ---- Fit exAL readout directly on the precomputed training design ----
-  # p_dim  <- ncol(X_train)
-  # V0_mat <- diag(tau2_beta_p, p_dim)
-
-  # exal_args <- c(
-  #   list(
-  #     y = y_train_keep,
-  #     X = X_train
-  #   ),
-  #   list(
-  #     b0        = rep(0, p_dim),
-  #     V0        = V0_mat,                 # for RHS we will override its role slightly
-  #     a_sigma   = sigma_a_p,
-  #     b_sigma   = sigma_b_p,
-  #     max_iter  = vb_args_p$max_iter,
-  #     tol       = vb_args_p$tol,
-  #     tol_par   = vb_args_p$tol_par,
-  #     n_samp_xi = vb_args_p$n_samp_xi,
-  #     verbose   = vb_args_p$verbose,
-  #     p0        = p0,
-  #     gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  #     # Start sigma on its natural scale; gamma handled via init_gamma below.
-  #     init = list(sigma = sigma_init_p)
-  #   )
-  # )
-
-  # # Init for gamma if provided
-  # if (!is.null(vb_init_gamma)) {
-  #   exal_args$init <- list(gamma = gamma_init_p, sigma = sigma_init_p)
-  # }
-
-  # # Prior for gamma if provided
-  # if (!is.null(vb_prior_gamma_mu0)) {
-  #   exal_args$prior_gamma_mu0 <- gamma_mu0_p
-  #   exal_args$prior_gamma_s20 <- gamma_s20_p
-  #   exal_args$log_prior_gamma <- function(g) {
-  #     sum(stats::dnorm(
-  #       g,
-  #       mean = gamma_mu0_p,
-  #       sd   = sqrt(gamma_s20_p),
-  #       log  = TRUE
-  #     ))
-  #   }
-  # } else {
-  #   # Flat prior on gamma (within bounds)
-  #   exal_args$log_prior_gamma <- function(g) 0
-  # }
-
-  #   # ---- β prior type: ridge vs RHS -----------------------------------------
-  # # For RHS: V0 is just a base scale; RHS controls shrinkage internally.
-  # if (beta_type == "rhs") {
-  #   exal_args$V0 <- diag(1.0, p_dim)
-  # }
-
-  # fit_exal <- timed(
-  #   sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
-  #   if (beta_type == "ridge") {
-  #     do.call(exal_static_LDVB, exal_args)
-  #   } else {
-  #     do.call(exal_static_LDVB_rhs, c(exal_args, list(rhs_hypers = vb_prior_beta_rhs)))
-  #   }
-  # )
-
     # ---- Fit exAL readout directly on the precomputed training design ----
     p_dim <- ncol(X_train)
 
-    beta_prior_obj <- build_beta_prior_obj(
-      beta_type = beta_type,
-      p_dim     = p_dim,
-      tau2      = tau2_beta_p,
-      rhs_cfg   = vb_prior_beta_rhs
-    )
+    beta_type <- tolower((vb_prior_beta_type %||% "ridge")[1L])
+    if (!beta_type %in% c("ridge", "rhs")) {
+      stop(sprintf("Unknown beta prior type '%s' (expected 'ridge' or 'rhs')", beta_type))
+    }
+
+    tau2_beta_p <- as.numeric(tau2_beta_p)[1L]
+    rhs_cfg <- vb_prior_beta_rhs %||% list()
+    if (!is.list(rhs_cfg)) stop("vb_prior_beta_rhs must be a list.", call. = FALSE)
+
+    beta_prior_obj <- if (beta_type == "rhs") {
+      beta_prior("rhs", rhs = rhs_cfg)
+    } else {
+      beta_prior("ridge", ridge = list(tau2 = tau2_beta_p))
+    }
+
+    need <- c("type","hypers","init","expected_prec","update","elbo")
+    if (!all(need %in% names(beta_prior_obj))) {
+      stop(sprintf("beta_prior_obj invalid. Names: %s", paste(names(beta_prior_obj), collapse = ", ")), call. = FALSE)
+    }
 
     fit_args <- list(
       y            = y_train_keep,

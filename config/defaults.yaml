@@ -31,20 +31,21 @@ pipeline:
 # DESN (reservoir) defaults
 # --------------------------------------------------------------------
 desn:
+  # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [500, 500, 500]         # per-layer sizes (length D)
-  n_tilde: [500, 500]        # reducers (length D-1 when D>1)
+  n: [100, 100, 100]         # units per layer (length D)
+  n_tilde: [50, 50]        # skip/reducer sizes (length D-1 when D>1)
   m: 120                     # number of lags in u_t
-  alpha: 0.15                # leak, scalar or length-D
-  rho: [0.95, 0.95, 0.95]    # spectral scales per layer (length D)
-  act_f: tanh                # reservoir activation
-  act_k: identity            # activation on reduced states
-  pi_w: 0.1                  # sparsity for internal weights
-  pi_in: 0.1                 # sparsity for input weights
-  washout: 500               # extra initial points dropped
-  add_bias: true             # constant column in readout design
-  seed: 12345                # seed for reservoir construction
-  fit_readout: false         # match your notebook (if your code reads this)
+  alpha: [0.15, 0.15, 0.15]  # leak per layer (length D)
+  rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
+  act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
+  act_k: ["identity", "identity", "identity"]     # output activation per layer
+  pi_w:  [0.10, 0.10, 0.10]  # sparsity of recurrent weights per layer
+  pi_in: [0.10, 0.10, 0.10]  # sparsity of input weights per layer
+  washout: 500               # initial time steps discarded
+  add_bias: true             # include bias column in readout
+  seed: [12345, 12344, 12343]  # per-layer seeds (or use a scalar if your code expands it)
+  fit_readout: false
 
 # --------------------------------------------------------------------
 # Variational Bayes (exAL LDVB) defaults

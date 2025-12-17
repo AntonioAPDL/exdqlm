@@ -85,6 +85,85 @@ cfg <- deep_merge(cfg, spec)
 cfg <- deep_merge(cfg, ds$overrides)
 cfg <- deep_merge(cfg, local)
 
+fix_bool_keys <- function(x) {
+  if (is.null(x) || !is.list(x)) return(x)
+  nm <- names(x)
+  if (!is.null(nm) && "TRUE" %in% nm)  { x[["y"]] <- x[["TRUE"]];  x[["TRUE"]]  <- NULL }
+  if (!is.null(nm) && "FALSE" %in% nm) { x[["n"]] <- x[["FALSE"]]; x[["FALSE"]] <- NULL }
+  x
+}
+
+fix_desn_keys <- function(d) {
+  if (is.null(d) || !is.list(d)) return(d)
+  nm <- names(d)
+  if (!is.null(nm) && "FALSE" %in% nm) { d[["n"]] <- d[["FALSE"]]; d[["FALSE"]] <- NULL }
+  d
+}
+
+fix_cfg_keys <- function(x) {
+  if (is.null(x) || !is.list(x)) return(x)
+  if (!is.null(x[["desn"]]))    x[["desn"]]    <- fix_desn_keys(x[["desn"]])
+  if (!is.null(x[["columns"]])) x[["columns"]] <- fix_bool_keys(x[["columns"]])
+  x
+}
+
+cfg <- fix_cfg_keys(cfg)
+
+if (!is.null(ds$overrides) && !is.null(ds$overrides[["columns"]])) {
+  ds$overrides[["columns"]] <- fix_bool_keys(ds$overrides[["columns"]])
+  cfg[["columns"]] <- deep_merge(cfg[["columns"]], ds$overrides[["columns"]])
+}
+
+norm_num <- function(x) {
+  if (is.null(x)) return(NULL)
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  x <- as.numeric(x)
+  if (length(x) == 0L || all(is.na(x))) return(NULL)
+  x
+}
+
+norm_int <- function(x) {
+  x <- norm_num(x)
+  if (is.null(x)) return(NULL)
+  as.integer(x)
+}
+
+if (!is.null(cfg[["desn"]])) {
+  d <- cfg[["desn"]]
+  Dcfg <- as.integer((d[["D"]] %||% 1L))
+
+  n_vec       <- norm_int(d[["n"]])
+  n_tilde_vec <- norm_int(d[["n_tilde"]])
+  rho_vec     <- norm_num(d[["rho"]])
+
+  if (is.null(n_vec)) stop("Config error: desn$n is missing.")
+
+  if (Dcfg > 1L && length(n_vec) == 1L) n_vec <- rep(n_vec, Dcfg)
+  if (!is.null(rho_vec) && Dcfg > 1L && length(rho_vec) == 1L) rho_vec <- rep(rho_vec, Dcfg)
+
+  if (length(n_vec) != Dcfg) {
+    stop(sprintf("Config error: length(desn$n)=%d but desn$D=%d", length(n_vec), Dcfg))
+  }
+
+  if (Dcfg <= 1L) {
+    n_tilde_vec <- integer(0)
+  } else {
+    if (is.null(n_tilde_vec)) {
+      stop(sprintf("Config error: desn$n_tilde is required when desn$D=%d", Dcfg))
+    }
+    if (length(n_tilde_vec) == 1L) n_tilde_vec <- rep(n_tilde_vec, Dcfg - 1L)
+    if (length(n_tilde_vec) != (Dcfg - 1L)) {
+      stop(sprintf("Config error: length(desn$n_tilde)=%d but expected D-1=%d",
+                   length(n_tilde_vec), Dcfg - 1L))
+    }
+  }
+
+  cfg[["desn"]][["D"]]       <- Dcfg
+  cfg[["desn"]][["n"]]       <- n_vec
+  cfg[["desn"]][["n_tilde"]] <- n_tilde_vec
+  if (!is.null(rho_vec)) cfg[["desn"]][["rho"]] <- rho_vec
+}
+
 # ---- YAML 1.1 boolean-key compatibility (protect 'n' and columns$y) ----
 if (!is.null(cfg$desn)) {
   # libyaml (YAML 1.1) can coerce key 'n' to boolean FALSE
@@ -114,6 +193,20 @@ if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) {
 }
 
 # ---- Normalize DESN numeric fields (treat length-0 as NULL; broadcast scalars) ----
+norm_act <- function(x, nm) {
+  if (is.null(x)) return(NULL)
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(x)]
+  if (length(x) == 0L) .stopf("%s must be a non-empty character scalar.", nm)
+  u <- unique(tolower(x))
+  if (length(u) != 1L) .stopf("%s must be scalar (or repeated identical). Got: %s", nm, paste(x, collapse = ", "))
+  x[1L]
+}
+
+cfg$desn$act_f <- norm_act(cfg$desn$act_f, "desn$act_f")
+cfg$desn$act_k <- norm_act(cfg$desn$act_k, "desn$act_k")
+
 norm_num <- function(x) {
   if (is.null(x)) return(NULL)
   if (is.list(x)) x <- unlist(x, use.names = FALSE)
