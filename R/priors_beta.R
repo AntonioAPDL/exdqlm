@@ -2,7 +2,6 @@ if (!exists("%||%", mode = "function")) {
   `%||%` <- function(x, alt) if (!is.null(x)) x else alt
 }
 
-#' @noRd
 .call_with_supported_args <- function(fn, ...) {
   if (is.character(fn) && length(fn) == 1L) {
     fn <- get(fn, mode = "function", inherits = TRUE)
@@ -23,6 +22,7 @@ if (!exists("%||%", mode = "function")) {
   keep <- intersect(nm, fmls)
   do.call(fn, dots[keep])
 }
+
 
 #' Construct beta prior object used by LDVB engine
 #' @param type "ridge" or "rhs"
@@ -58,7 +58,6 @@ beta_prior_ridge <- function(tau2) {
 }
 
 beta_prior_rhs <- function(rhs) {
-  qdesn_rhs_prior_obj <- .require_fun("qdesn_rhs_prior_obj")
 
   tau0 <- as.numeric(rhs$tau0 %||% 1.0)[1L]
   nu   <- as.numeric(rhs$nu   %||% 4.0)[1L]

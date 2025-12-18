@@ -1343,13 +1343,22 @@ fit_and_forecast_p <- function(p0) {
 
   # Normalise beta prior type (default ridge if somehow NULL)
   beta_type <- tolower(vb_prior_beta_type %||% "ridge")
-
   if (!beta_type %in% c("ridge", "rhs")) {
-    stop(sprintf(
-      "fit_and_forecast_p(): unknown beta prior type '%s'. Supported types are 'ridge' and 'rhs'.",
-      vb_prior_beta_type
-    ))
+    stop(sprintf("Unknown beta prior type '%s' (expected 'ridge' or 'rhs')", beta_type))
   }
+
+  # Ridge prior variance for beta (scalar tau2, common across p)
+  tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
+
+  beta_prior_obj <- if (beta_type == "rhs") {
+    if (is.null(vb_prior_beta_rhs) || !is.list(vb_prior_beta_rhs)) {
+      stop("vb$priors$beta$rhs must be a YAML mapping (list).")
+    }
+    beta_prior("rhs", rhs = vb_prior_beta_rhs)
+  } else {
+    beta_prior("ridge", ridge = list(tau2 = tau2_beta_p))
+  }
+
 
   # VB controls per p
   vb_args_p <- vb_args_base
@@ -1367,26 +1376,12 @@ fit_and_forecast_p <- function(p0) {
   sigma_a_p <- if (!is.null(vb_prior_sigma_a)) vb_prior_sigma_a[idx_p] else 1
   sigma_b_p <- if (!is.null(vb_prior_sigma_b)) vb_prior_sigma_b[idx_p] else 1
 
-  # Ridge prior variance for beta (scalar tau2, common across p)
-  tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
-
     # ---- Fit exAL readout directly on the precomputed training design ----
     p_dim <- ncol(X_train)
-
-    beta_type <- tolower((vb_prior_beta_type %||% "ridge")[1L])
-    if (!beta_type %in% c("ridge", "rhs")) {
-      stop(sprintf("Unknown beta prior type '%s' (expected 'ridge' or 'rhs')", beta_type))
-    }
 
     tau2_beta_p <- as.numeric(tau2_beta_p)[1L]
     rhs_cfg <- vb_prior_beta_rhs %||% list()
     if (!is.list(rhs_cfg)) stop("vb_prior_beta_rhs must be a list.", call. = FALSE)
-
-    beta_prior_obj <- if (beta_type == "rhs") {
-      beta_prior("rhs", rhs = rhs_cfg)
-    } else {
-      beta_prior("ridge", ridge = list(tau2 = tau2_beta_p))
-    }
 
     need <- c("type","hypers","init","expected_prec","update","elbo")
     if (!all(need %in% names(beta_prior_obj))) {

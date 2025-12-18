@@ -1,6 +1,6 @@
 name: heavy
 vb:
-  max_iter: 1000
+  max_iter: 300
   n_samp_xi: 5000
 sampling:
   nd_draws: 2000
