@@ -54,21 +54,21 @@ desn:
 vb:
   priors:
     beta:
-      type: ridge
+      type: rhs
       ridge:
         tau2: 10000
       rhs:
-        tau0: 1.0
+        tau0: 100.0
         nu: 4.0
-        s: 1.0
-        s2: 1.0
+        s: 2.0
+        s2: 4.0
         shrink_intercept: false
-        intercept_prec: 1.0e-8
+        intercept_prec: 1.0e-16
         n_inner: 1
         eta_bounds:
-          lambda: [-22, 22]
-          tau:    [-22, 22]
-          c2:     [-22, 22]
+          lambda: [-40, 40]
+          tau:    [-40, 40]
+          c2:     [-40, 40]
         h_curv: 1.0e-8
         var_floor: 1.0e-8
         verbose: false

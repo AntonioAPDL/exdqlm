@@ -136,12 +136,12 @@ if (isTRUE(VERBOSE)) {
   # Dump EXDQLM_* env vars (this usually reveals which spec YAML was used)
   envs <- Sys.getenv()
   ex <- envs[grep("^EXDQLM_", names(envs))]
-  cat("EXDQLM_ENV_VARS\n")
-  cat(paste(sprintf("%s=%s", names(ex), ex), collapse = "\n"), "\n")
+  # cat("EXDQLM_ENV_VARS\n")
+  # cat(paste(sprintf("%s=%s", names(ex), ex), collapse = "\n"), "\n")
 
   # Save the exact JSON that arrived (so you can inspect it)
   if (!is.na(cfg_json) && nzchar(cfg_json)) {
-    cat(sprintf("CFG_JSON_NCHAR=%d\n", nchar(cfg_json)))
+    # cat(sprintf("CFG_JSON_NCHAR=%d\n", nchar(cfg_json)))
     writeLines(cfg_json, file.path(out_dir, "cfg_received.json"))
   }
 }
@@ -198,9 +198,9 @@ vb_prior_beta_tau2 <- NULL
 vb_prior_beta_type <- "ridge"
 
 vb_prior_beta_rhs <- list(
-  tau0 = 1.0,
+  tau0 = 10000,
   nu   = 4.0,
-  s2   = 1.0,
+  s2   = 10000,
 
   shrink_intercept = FALSE,
   intercept_prec   = 1e-24,
@@ -1140,8 +1140,8 @@ T_full <- nrow(y_full_all)
 # cfg$split fields (optional):
 #   T_use, use_prop, use_last, train_n, train_prop
 if (isTRUE(VERBOSE)) {
-  cat("SPLIT_RAW | cfg$split=",
-      jsonlite::toJSON(cfg$split, auto_unbox = TRUE, null = "null"), "\n", sep = "")
+  # cat("SPLIT_RAW | cfg$split=",
+  #     jsonlite::toJSON(cfg$split, auto_unbox = TRUE, null = "null"), "\n", sep = "")
 }
 
 use_last   <- TRUE
@@ -1154,10 +1154,10 @@ if (!is.null(cfg$split)) {
   has_train_n    <- "train_n"    %in% names(cfg$split)
   has_train_prop <- "train_prop" %in% names(cfg$split)
   if (isTRUE(VERBOSE)) {
-    cat("SPLIT_KEYS | has(train_n)=", has_train_n,
-        " is.null(train_n)=", is.null(cfg$split$train_n),
-        " has(train_prop)=", has_train_prop,
-        " is.null(train_prop)=", is.null(cfg$split$train_prop), "\n", sep = "")
+    # cat("SPLIT_KEYS | has(train_n)=", has_train_n,
+    #     " is.null(train_n)=", is.null(cfg$split$train_n),
+    #     " has(train_prop)=", has_train_prop,
+    #     " is.null(train_prop)=", is.null(cfg$split$train_prop), "\n", sep = "")
   }
 
   # Parse primitives
