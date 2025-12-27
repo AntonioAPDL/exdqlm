@@ -1,5 +1,6 @@
-#include <RcppArmadillo.h>
-// [[Rcpp::depends(RcppArmadillo, BH)]]
+#include <Rcpp.h>
+// [[Rcpp::depends(BH)]]
+#include <sstream>
 #include <cmath>
 #include <limits>
 #include <boost/math/tools/roots.hpp>  // Boost root-finding
@@ -42,8 +43,6 @@ struct GGammaRootFinder {
 // Function to find L and U using Boost's bisection method
 double find_gamma_root_boost(double target, double lower, double upper) {
     using namespace boost::math::tools;
-    
-    const int digits = std::numeric_limits<double>::digits; // Max precision
     eps_tolerance<double> tol(1000); // Relative tolerance of 10 bits
 
     uintmax_t max_iter = 100000;  // Maximum iterations allowed
@@ -58,13 +57,15 @@ void compute_gamma_bounds(double p0, double &L, double &U) {
         L = find_gamma_root_boost(1 - p0, lower_bound, 0);
         U = find_gamma_root_boost(p0, 0, upper_bound);
     } catch (...) {
-        Rcpp::Rcout << "Failed to find valid gamma bounds for p0 = " << p0 << "\n";
-        stop("Error: Unable to determine valid gamma bounds.");
+        std::ostringstream oss;
+        oss << "Unable to determine valid gamma bounds for p0 = " << p0 << ".";
+        Rcpp::stop(oss.str());
     }
 
     if (L >= U) {
-        Rcpp::Rcout << "Gamma bounds issue: L = " << L << ", U = " << U << ", p0 = " << p0 << "\n";
-        stop("Error: Unable to determine valid gamma bounds.");
+        std::ostringstream oss;
+        oss << "Invalid gamma bounds: L=" << L << ", U=" << U << ", p0=" << p0 << ".";
+        Rcpp::stop(oss.str());
     }
 }
 
@@ -99,8 +100,9 @@ void validate_and_compute_parameters(double gamma, double p0, double &p, double 
 
     // Ensure gamma is in valid range
     if (gamma < L || gamma > U) {
-        Rcpp::Rcout << "Invalid gamma: " << gamma << ", Allowed range: (" << L << ", " << U << ")\n";
-        stop("Error: gamma is out of bounds.");
+        std::ostringstream oss;
+        oss << "gamma out of bounds: gamma=" << gamma << ", allowed=(" << L << ", " << U << ").";
+        Rcpp::stop(oss.str());
     }
 
     // Compute p and alpha

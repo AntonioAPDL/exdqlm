@@ -16,3 +16,12 @@ vignettes/
 src/*.o
 src/*.so
 src/*.dll
+
+# Build/check artifacts
+exdqlm.Rcheck/
+exdqlm_*.tar.gz
+check-logs/
+logs/
+outputs/
+results/
+dump_exdqlm_files_to_txt.sh
