@@ -221,6 +221,8 @@ vb_prior_beta_rhs <- list(
   init_log_c2     = 0.0
 )
 
+readout_scale <- FALSE
+
 
 # --- IJ correction toggles (global) -------------------------------------------
 ij_nd_draws       <- 2000L   # number of parameter draws used for IJ + μ-bands
@@ -312,7 +314,10 @@ if (length(cfg)) {
     desn_args$washout  <- cfg$desn$washout  %nz% desn_args$washout
     desn_args$add_bias <- cfg$desn$add_bias %nz% desn_args$add_bias
     }
-  if (!is.null(cfg$vb)) {
+if (!is.null(cfg$vb)) {
+    if (!is.null(cfg$vb$readout_scale)) {
+      readout_scale <- isTRUE(cfg$vb$readout_scale)
+    }
     vb_args_base$max_iter  <- cfg$vb$max_iter  %nz% vb_args_base$max_iter
     vb_args_base$n_samp_xi <- cfg$vb$n_samp_xi %nz% vb_args_base$n_samp_xi
     if (!is.null(cfg$vb$verbose)) {
@@ -1335,6 +1340,18 @@ if (isTRUE(VERBOSE)) {
               n_drop, nrow(X_train), nrow(X_fc1), ncol(X_train)))
 }
 
+readout_scale_info <- NULL
+if (isTRUE(readout_scale)) {
+  scale_fit <- readout_scale_fit(X_train, has_intercept = isTRUE(desn_args$add_bias))
+  X_train <- scale_fit$X
+  X_fc1   <- readout_scale_apply(X_fc1, scale_fit$scale_info)
+  readout_scale_info <- scale_fit$scale_info
+  if (isTRUE(VERBOSE)) {
+    log_msg("Readout scaling → enabled (center+scale; intercept_excluded=%s)",
+            as.character(isTRUE(desn_args$add_bias)))
+  }
+}
+
 # --- 2) Fit & Forecast per p ----------------------------------------------
 fit_and_forecast_p <- function(p0) {
 
@@ -1427,6 +1444,10 @@ fit_and_forecast_p <- function(p0) {
       sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
       do.call(exal_ldvb_fit, fit_args)
     )
+    if (isTRUE(readout_scale) && !is.null(readout_scale_info)) {
+      if (is.null(fit_exal$misc)) fit_exal$misc <- list()
+      fit_exal$misc$readout_scale <- readout_scale_info
+    }
 
   # ---- Parameter posterior draws (γ, σ, β) for diagnostics + IJ ----------
   gamma_bounds_here <- c(L.fn(p0), U.fn(p0))  # or fit_args$gamma_bounds
@@ -1456,6 +1477,10 @@ fit_and_forecast_p <- function(p0) {
       !is.null(mu_ij$draw_idx_keep)) {
 
     beta_draws_full <- param_draws$beta
+    if (!is.null(beta_draws_full) && is.matrix(beta_draws_full) &&
+        isTRUE(readout_scale) && !is.null(readout_scale_info)) {
+      beta_draws_full <- readout_unscale_beta(beta_draws_full, readout_scale_info)
+    }
     if (!is.null(beta_draws_full) && is.matrix(beta_draws_full)) {
       draw_idx_keep <- mu_ij$draw_idx_keep
       if (length(draw_idx_keep) >= 2L) {
@@ -1841,16 +1866,22 @@ if (isTRUE(do_plots)) {
 
     # β forest (all + top-K)
     if (!is.null(pars$beta) && is.matrix(pars$beta)) {
-      term_names <- colnames(X_train)
-      if (is.null(term_names)) term_names <- paste0("β", seq_len(ncol(pars$beta)))
+      beta_draws_plot <- pars$beta
+      scale_info <- fits_fc[[k]]$fit_train$fit$misc$readout_scale %||% NULL
+      if (!is.null(scale_info) && isTRUE(scale_info$scaled)) {
+        beta_draws_plot <- readout_unscale_beta(beta_draws_plot, scale_info)
+      }
 
-      p_all <- ncol(pars$beta)
+      term_names <- colnames(X_train)
+      if (is.null(term_names)) term_names <- paste0("β", seq_len(ncol(beta_draws_plot)))
+
+      p_all <- ncol(beta_draws_plot)
 
       g_beta_all <- plot_beta_forest(
-        pars$beta, term_names = term_names, top_k = NULL
+        beta_draws_plot, term_names = term_names, top_k = NULL
       )
       g_beta_top <- plot_beta_forest(
-        pars$beta, term_names = term_names, top_k = min(50L, p_all)
+        beta_draws_plot, term_names = term_names, top_k = min(50L, p_all)
       )
 
       print(g_beta_all); print(g_beta_top)

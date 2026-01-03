@@ -79,6 +79,7 @@ save_outputs <- if (!is.na(val_save) && nzchar(val_save)) (as.integer(val_save) 
 
 cfg_json <- Sys.getenv("EXDQLM_CFG_JSON", unset = NA)
 cfg <- if (!is.na(cfg_json) && nzchar(cfg_json)) jsonlite::fromJSON(cfg_json, simplifyVector = TRUE) else list()
+readout_scale <- isTRUE(cfg$vb$readout_scale %||% FALSE)
 
 # Naming config (align filenames with config/defaults.yaml → naming: ...)
 nms <- cfg$naming %||% list()
@@ -459,6 +460,16 @@ stopifnot(nrow(X_train) == length(y_tr_keep), nrow(X_fc1) == length(y_fc))
 cat(sprintf("[shared] drop_res=%d | drop_lag=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
             drop_res, lag_max, nrow(X_train), nrow(X_fc1), ncol(X_train)))
 
+readout_scale_info <- NULL
+if (isTRUE(readout_scale)) {
+  scale_fit <- readout_scale_fit(X_train, has_intercept = isTRUE(desn_args$add_bias))
+  X_train <- scale_fit$X
+  X_fc1   <- readout_scale_apply(X_fc1, scale_fit$scale_info)
+  readout_scale_info <- scale_fit$scale_info
+  log_msg("Readout scaling → enabled (center+scale; intercept_excluded=%s)",
+          as.character(isTRUE(desn_args$add_bias)))
+}
+
 # Index diagnostics (parity with sim)
 cat(sprintf("IDX | use_range=[%d..%d] | train=[%d..%d] | forecast=[%d..%d] | lens train=%d, fore=%d\n",
             min(idx_use), max(idx_use),
@@ -529,6 +540,10 @@ fit_and_forecast_p <- function(p0) {
   fit_exal <- timed(sprintf("fit_exAL_on_X_train(p=%s)", fmt_p(p0)),
     do.call(exal_static_LDVB, c(list(y = y_tr_keep, X = X_train), exal_defaults))
   )
+  if (isTRUE(readout_scale) && !is.null(readout_scale_info)) {
+    if (is.null(fit_exal$misc)) fit_exal$misc <- list()
+    fit_exal$misc$readout_scale <- readout_scale_info
+  }
 
   pp_tr <- timed(sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nd_draws),
     exal_vb_posterior_predict(fit_exal, X_new = X_train, nd = nd_draws, chunk = chunk_sz)

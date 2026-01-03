@@ -33,8 +33,8 @@ pipeline:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [50, 50, 50]         # units per layer (length D)
-  n_tilde: [50, 50]        # skip/reducer sizes (length D-1 when D>1)
+  n: [300, 300, 300]         # units per layer (length D)
+  n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
   m: 30                     # number of lags in u_t
   alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
@@ -52,15 +52,16 @@ desn:
 # These match what pipeline_sim_main.R expects in cfg$vb
 # --------------------------------------------------------------------
 vb:
+  readout_scale: true       # z-score readout design matrix (excluding intercept)
   priors:
     beta:
       type: rhs
       ridge:
         tau2: 10000
       rhs:
-        tau0: 10000
+        tau0: 500
         nu: 4.0
-        s2: 10000
+        s2: 2
         shrink_intercept: false
         intercept_prec: 1.0e-16
         n_inner: 1
