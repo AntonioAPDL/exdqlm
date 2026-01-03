@@ -2076,6 +2076,143 @@ if (isTRUE(do_plots) && nrow(newterm_df)) {
   }
 }
 
+# --- 4d) RHS latent traces (tau, c2, lambda summaries) ----------------------
+rhs_tau_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  fit <- fits_fc[[i]]$fit_train$fit
+  if (is.null(fit) || is.null(fit$beta_prior) || fit$beta_prior$type != "rhs") {
+    return(tibble::tibble())
+  }
+  tr <- fit$misc$rhs_tau_trace
+  if (is.null(tr) || !length(tr)) return(tibble::tibble())
+  tibble::tibble(
+    p0   = p_vec[i],
+    iter = seq_along(tr),
+    tau  = as.numeric(tr)
+  )
+}))
+
+rhs_c2_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  fit <- fits_fc[[i]]$fit_train$fit
+  if (is.null(fit) || is.null(fit$beta_prior) || fit$beta_prior$type != "rhs") {
+    return(tibble::tibble())
+  }
+  tr <- fit$misc$rhs_c2_trace
+  if (is.null(tr) || !length(tr)) return(tibble::tibble())
+  tibble::tibble(
+    p0   = p_vec[i],
+    iter = seq_along(tr),
+    c2   = as.numeric(tr)
+  )
+}))
+
+if (isTRUE(do_plots) && nrow(rhs_tau_df) && nrow(rhs_c2_df)) {
+  rhs_tau_df <- rhs_tau_df |>
+    dplyr::filter(iter > k_burn, is.finite(tau)) |>
+    dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0),
+                                  levels = sprintf("%.2f", p_vec)))
+
+  rhs_c2_df <- rhs_c2_df |>
+    dplyr::filter(iter > k_burn, is.finite(c2)) |>
+    dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0),
+                                  levels = sprintf("%.2f", p_vec)))
+
+  g_tau <- ggplot2::ggplot(rhs_tau_df,
+                           ggplot2::aes(x = iter, y = tau, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x = "VB iteration",
+      y = "tau",
+      colour = "p0",
+      title = "RHS tau traces across quantile models",
+      subtitle = sprintf("First k=%d iterations omitted", k_burn)
+    ) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
+  g_c2 <- ggplot2::ggplot(rhs_c2_df,
+                          ggplot2::aes(x = iter, y = c2, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x = "VB iteration",
+      y = "c2",
+      colour = "p0",
+      title = "RHS c2 traces across quantile models",
+      subtitle = sprintf("First k=%d iterations omitted", k_burn)
+    ) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
+  g_tau_c2 <- g_tau | g_c2
+
+  print(g_tau_c2)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(
+      file.path(FIGS, sprintf("rhs_tau_c2_traces_skip_k=%d.png", k_burn)),
+      g_tau_c2, width = 11, height = 4.8, dpi = 150
+    )
+  }
+}
+
+rhs_lambda_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  fit <- fits_fc[[i]]$fit_train$fit
+  if (is.null(fit) || is.null(fit$beta_prior) || fit$beta_prior$type != "rhs") {
+    return(tibble::tibble())
+  }
+  tr_mean <- fit$misc$rhs_lambda_mean_trace
+  tr_min  <- fit$misc$rhs_lambda_min_trace
+  tr_max  <- fit$misc$rhs_lambda_max_trace
+  if (is.null(tr_mean) || is.null(tr_min) || is.null(tr_max)) return(tibble::tibble())
+  n_iter <- min(length(tr_mean), length(tr_min), length(tr_max))
+  if (n_iter <= 0L) return(tibble::tibble())
+  tibble::tibble(
+    p0   = p_vec[i],
+    iter = seq_len(n_iter),
+    lambda_mean = as.numeric(tr_mean[seq_len(n_iter)]),
+    lambda_min  = as.numeric(tr_min[seq_len(n_iter)]),
+    lambda_max  = as.numeric(tr_max[seq_len(n_iter)])
+  )
+}))
+
+if (isTRUE(do_plots) && nrow(rhs_lambda_df)) {
+  rhs_lambda_long <- rhs_lambda_df |>
+    tidyr::pivot_longer(
+      cols = dplyr::starts_with("lambda_"),
+      names_to = "stat",
+      values_to = "lambda"
+    ) |>
+    dplyr::mutate(
+      stat = dplyr::recode(stat,
+                           lambda_min = "min",
+                           lambda_mean = "mean",
+                           lambda_max = "max"),
+      p0_chr = factor(sprintf("%.2f", p0),
+                      levels = sprintf("%.2f", p_vec))
+    ) |>
+    dplyr::filter(iter > k_burn, is.finite(lambda))
+
+  g_lambda <- ggplot2::ggplot(rhs_lambda_long,
+                              ggplot2::aes(x = iter, y = lambda, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x = "VB iteration",
+      y = "lambda summary",
+      colour = "p0",
+      title = "RHS lambda summaries across quantile models",
+      subtitle = sprintf("First k=%d iterations omitted", k_burn)
+    ) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map) +
+    ggplot2::facet_wrap(~ stat, nrow = 1, scales = "free_y")
+
+  print(g_lambda)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(
+      file.path(FIGS, sprintf("rhs_lambda_summary_traces_skip_k=%d.png", k_burn)),
+      g_lambda, width = 12, height = 4.2, dpi = 150
+    )
+  }
+}
+
 
 # ================================================================
 # --- 5) Synthesis (forecast + train)

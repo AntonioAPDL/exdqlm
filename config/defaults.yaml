@@ -33,15 +33,15 @@ pipeline:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [300, 300, 300]         # units per layer (length D)
-  n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
+  n: [50, 50, 50]         # units per layer (length D)
+  n_tilde: [50, 50]        # skip/reducer sizes (length D-1 when D>1)
   m: 30                     # number of lags in u_t
   alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"]     # output activation per layer
-  pi_w:  [0.10, 0.10, 0.10]  # sparsity of recurrent weights per layer
-  pi_in: [0.10, 0.10, 0.10]  # sparsity of input weights per layer
+  pi_w:  [0.1, 0.1, 0.1]  # sparsity of recurrent weights per layer
+  pi_in: [1.0, 1.0, 1.0]  # sparsity of input weights per layer
   washout: 500               # initial time steps discarded
   add_bias: true             # include bias column in readout
   seed: [12345, 12344, 12343]  # per-layer seeds (or use a scalar if your code expands it)
@@ -58,23 +58,22 @@ vb:
       ridge:
         tau2: 10000
       rhs:
-        tau0: 100.0
+        tau0: 10000
         nu: 4.0
-        s: 2.0
-        s2: 4.0
+        s2: 10000
         shrink_intercept: false
         intercept_prec: 1.0e-16
         n_inner: 1
         eta_bounds:
-          lambda: [-40, 40]
-          tau:    [-40, 40]
-          c2:     [-40, 40]
+          lambda: [-20, 20]
+          tau:    [-20, 20]
+          c2:     [-20, 20]
         h_curv: 1.0e-8
         var_floor: 1.0e-8
         verbose: false
         init_log_lambda: 0.0
-        init_log_tau: 0.0
-        init_log_c2: 0.0
+        init_log_tau: 0.69
+        init_log_c2: 2.71
 
 # --------------------------------------------------------------------
 # Sampling defaults (posterior / predictive)

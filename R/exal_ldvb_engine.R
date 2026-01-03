@@ -127,11 +127,17 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   gamma_trace    <- numeric(0)
   sigma_trace    <- numeric(0)
   new_term_trace <- numeric(0)
+  rhs_tau_trace        <- numeric(0)
+  rhs_c2_trace         <- numeric(0)
+  rhs_lambda_mean_trace <- numeric(0)
+  rhs_lambda_min_trace  <- numeric(0)
+  rhs_lambda_max_trace  <- numeric(0)
   converged <- FALSE
 
   # helpers: current point estimates
   cur_gamma_hat <- function() L + (U - L) * plogis(qsiggam$eta_hat)
   cur_sigma_hat <- function() exp(qsiggam$ell_hat)
+  exp_safe <- function(x) exp(pmin(pmax(as.numeric(x), -745), 709))
 
   # --------------------------------------------------------------------------
   # Helpers for LD on (eta, ell) and delta-method xis (matches exal_static_LDVB)
@@ -501,6 +507,34 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # beta-prior latent update (RHS etc) using NEW q(beta)
     # ------------------------------------------------------------------------
     beta_state <- beta_prior_obj$update(beta_state, qbeta)
+    if (identical(beta_prior_obj$type, "rhs")) {
+      eta_lam <- as.numeric(beta_state$eta_lambda_hat)
+      eta_tau <- as.numeric(beta_state$eta_tau_hat)
+      eta_c2  <- as.numeric(beta_state$eta_c_hat)
+
+      tau_hat <- exp_safe(eta_tau)
+      c2_hat  <- exp_safe(eta_c2)
+
+      if (!isTRUE(beta_state$shrink_intercept)) {
+        eta_lam_use <- if (length(eta_lam) >= 2L) eta_lam[-1L] else numeric(0)
+      } else {
+        eta_lam_use <- eta_lam
+      }
+      lam_hat <- exp_safe(eta_lam_use)
+
+      rhs_tau_trace <- c(rhs_tau_trace, tau_hat)
+      rhs_c2_trace  <- c(rhs_c2_trace, c2_hat)
+
+      if (length(lam_hat)) {
+        rhs_lambda_mean_trace <- c(rhs_lambda_mean_trace, mean(lam_hat))
+        rhs_lambda_min_trace  <- c(rhs_lambda_min_trace, min(lam_hat))
+        rhs_lambda_max_trace  <- c(rhs_lambda_max_trace, max(lam_hat))
+      } else {
+        rhs_lambda_mean_trace <- c(rhs_lambda_mean_trace, NA_real_)
+        rhs_lambda_min_trace  <- c(rhs_lambda_min_trace, NA_real_)
+        rhs_lambda_max_trace  <- c(rhs_lambda_max_trace, NA_real_)
+      }
+    }
 
     # ------------------------------------------------------------------------
     # ELBO (per-observation), computed using CURRENT q factors and CURRENT xis
@@ -710,7 +744,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     misc = list(
       p0 = p0, bounds = c(L = L, U = U), n = n, p = p,
       gamma_trace = gamma_trace, sigma_trace = sigma_trace, new_term_trace = new_term_trace,
-      elbo = elbo_trace, elbo_trace = elbo_trace
+      elbo = elbo_trace, elbo_trace = elbo_trace,
+      rhs_tau_trace = rhs_tau_trace,
+      rhs_c2_trace = rhs_c2_trace,
+      rhs_lambda_mean_trace = rhs_lambda_mean_trace,
+      rhs_lambda_min_trace = rhs_lambda_min_trace,
+      rhs_lambda_max_trace = rhs_lambda_max_trace
     )
   ), class = "exal_vb")
 
