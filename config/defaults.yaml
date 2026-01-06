@@ -33,10 +33,10 @@ pipeline:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [1000, 1000, 1000]         # units per layer (length D)
-  n_tilde: [1000, 1000]        # skip/reducer sizes (length D-1 when D>1)
-  m: 180                     # number of lags in u_t
-  alpha: [0.4, 0.4, 0.4]  # leak per layer (length D)
+  n: [500, 500, 500]         # units per layer (length D)
+  n_tilde: [500, 500]        # skip/reducer sizes (length D-1 when D>1)
+  m: 90                     # number of lags in u_t
+  alpha: [0.6, 0.6, 0.6]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"]     # output activation per layer

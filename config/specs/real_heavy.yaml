@@ -2,7 +2,7 @@ name: real_heavy
 suite_name: real_suite
 
 vb:
-  max_iter: 2000
+  max_iter: 300
   n_samp_xi: 300
 
 sampling:

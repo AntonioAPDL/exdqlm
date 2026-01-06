@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Kill all tmux sessions whose name starts with "esn_dlm_"
+# Kill all tmux sessions whose name starts with "esn_dlm_" or "real_"
 
 # Get matching session names
-sessions=$(tmux ls -F '#S' 2>/dev/null | grep '^esn_dlm_' || true)
+sessions=$(tmux ls -F '#S' 2>/dev/null | grep -E '^(esn_dlm_|real_)' || true)
 
 if [ -z "$sessions" ]; then
-  echo "No tmux sessions found starting with 'esn_dlm_'."
+  echo "No tmux sessions found starting with 'esn_dlm_' or 'real_'."
   exit 0
 fi
 
@@ -18,5 +18,4 @@ for s in $sessions; do
 done
 
 echo "Done."
-
 

@@ -12,8 +12,8 @@ datasets:
         scale_y: true
         scale_x: true
       lags:
-        m_y: 60
-        m_x: 60
+        m_y: 90
+        m_x: 90
       split:
         T_use: 10000
         train_prop: 0.95

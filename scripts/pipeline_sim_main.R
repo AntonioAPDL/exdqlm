@@ -532,8 +532,20 @@ log_msg(
   as.integer(ij_nd_draws)
 )
 
-# --- Plot helpers (same as notebook, locked to 3 decimals for tau labels)
-fmt_p <- function(x) sprintf("%.2f", as.numeric(x))
+# --- Plot helpers (quantile labels follow p_vec precision) -------------------
+infer_p_digits <- function(p, min_digits = 2L, max_digits = 8L) {
+  for (d in min_digits:max_digits) {
+    labs <- formatC(p, format = "f", digits = d)
+    if (length(unique(labs)) == length(p)) return(d)
+  }
+  max_digits
+}
+options(exdqlm.p_digits = infer_p_digits(p_vec))
+
+fmt_p <- function(x) {
+  digits <- getOption("exdqlm.p_digits", 2L)
+  formatC(as.numeric(x), format = "f", digits = digits)
+}
 pal <- scales::hue_pal()(length(p_vec))
 col_map <- setNames(pal, fmt_p(p_vec))
 ACCENT_ORANGE <- "#ff9c11fc"  # dark orange for predicted / mean / synthesized lines
@@ -543,10 +555,37 @@ theme_exdqlm <- function(base_size = 11) {
                    plot.title=ggplot2::element_text(face="bold"))
 }
 caption_exdqlm <- function(window) sprintf("window: last %d steps • ndraws: %d", as.integer(window), as.integer(nd_draws))
-band_from_draws <- function(mat, level = 0.95) {
+band_from_draws <- function(mat, level = 0.95, target_len = NULL) {
+  mat <- as.matrix(mat)
   probs <- c((1 - level)/2, 0.5, (1 + level)/2)
-  qs <- t(apply(mat, 1, stats::quantile, probs = probs, names = FALSE))
-  colnames(qs) <- c("lo","med","hi"); qs
+  if (!is.null(target_len)) {
+    if (nrow(mat) == target_len) {
+      qs <- cbind(
+        lo  = matrixStats::rowQuantiles(mat, probs = probs[1], na.rm = TRUE),
+        med = matrixStats::rowQuantiles(mat, probs = probs[2], na.rm = TRUE),
+        hi  = matrixStats::rowQuantiles(mat, probs = probs[3], na.rm = TRUE)
+      )
+    } else if (ncol(mat) == target_len) {
+      qs <- cbind(
+        lo  = matrixStats::colQuantiles(mat, probs = probs[1], na.rm = TRUE),
+        med = matrixStats::colQuantiles(mat, probs = probs[2], na.rm = TRUE),
+        hi  = matrixStats::colQuantiles(mat, probs = probs[3], na.rm = TRUE)
+      )
+    } else {
+      stop(sprintf(
+        "band_from_draws(): target_len=%d but mat dim is %dx%d.",
+        target_len, nrow(mat), ncol(mat)
+      ))
+    }
+  } else {
+    qs <- cbind(
+      lo  = matrixStats::rowQuantiles(mat, probs = probs[1], na.rm = TRUE),
+      med = matrixStats::rowQuantiles(mat, probs = probs[2], na.rm = TRUE),
+      hi  = matrixStats::rowQuantiles(mat, probs = probs[3], na.rm = TRUE)
+    )
+  }
+  colnames(qs) <- c("lo","med","hi")
+  qs
 }
 true_q_at_tau <- function(dat_long, tau) {
   dat_long %>%
@@ -1019,8 +1058,8 @@ compute_mu_bands_with_ij <- function(
   mu_draws_fc_TxM <- mu_mat_fc
 
   # Posterior-only summaries (before any IJ filtering)
-  mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95)
-  mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95)
+  mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95, target_len = n)
+  mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95, target_len = H)
 
   mu_hat_tr <- mu_qs_tr[, "med"]
   mu_hat_fc <- mu_qs_fc[, "med"]
@@ -1066,8 +1105,8 @@ compute_mu_bands_with_ij <- function(
       mu_draws_fc_TxM   <- mu_draws_fc_TxM[, finite_draw, drop = FALSE] # H x M_eff
 
       # Recompute posterior summaries for filtered draws
-      mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95)
-      mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95)
+      mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95, target_len = n)
+      mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95, target_len = H)
 
       mu_hat_tr <- mu_qs_tr[, "med"]
       mu_hat_fc <- mu_qs_fc[, "med"]
@@ -1966,8 +2005,8 @@ if (isTRUE(do_plots) && nrow(elbo_df)) {
   elbo_df <- elbo_df |>
     dplyr::filter(iter > k_burn) |>
     dplyr::mutate(
-      p0_chr = factor(sprintf("%.2f", p0),
-                      levels = sprintf("%.2f", p_vec))
+      p0_chr = factor(fmt_p(p0),
+                      levels = fmt_p(p_vec))
     )
 
   g_elbo <- ggplot2::ggplot(
@@ -2018,13 +2057,13 @@ sigma_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
 if (isTRUE(do_plots) && nrow(gamma_df) && nrow(sigma_df)) {
   gamma_df <- gamma_df |>
     dplyr::filter(iter > k_burn) |>
-    dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0),
-                                  levels = sprintf("%.2f", p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0),
+                                  levels = fmt_p(p_vec)))
 
   sigma_df <- sigma_df |>
     dplyr::filter(iter > k_burn) |>
-    dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0),
-                                  levels = sprintf("%.2f", p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0),
+                                  levels = fmt_p(p_vec)))
 
   g_gamma <- ggplot2::ggplot(gamma_df,
                              ggplot2::aes(x = iter, y = gamma, colour = p0_chr)) +
@@ -2079,8 +2118,8 @@ if (isTRUE(do_plots) && nrow(newterm_df)) {
   newterm_df <- newterm_df |>
     dplyr::filter(iter > k_burn, is.finite(new_term)) |>
     dplyr::mutate(
-      p0_chr = factor(sprintf("%.2f", p0),
-                      levels = sprintf("%.2f", p_vec))
+      p0_chr = factor(fmt_p(p0),
+                      levels = fmt_p(p_vec))
     )
 
   g_newterm <- ggplot2::ggplot(
@@ -2139,13 +2178,13 @@ rhs_c2_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
 if (isTRUE(do_plots) && nrow(rhs_tau_df) && nrow(rhs_c2_df)) {
   rhs_tau_df <- rhs_tau_df |>
     dplyr::filter(iter > k_burn, is.finite(tau)) |>
-    dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0),
-                                  levels = sprintf("%.2f", p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0),
+                                  levels = fmt_p(p_vec)))
 
   rhs_c2_df <- rhs_c2_df |>
     dplyr::filter(iter > k_burn, is.finite(c2)) |>
-    dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0),
-                                  levels = sprintf("%.2f", p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0),
+                                  levels = fmt_p(p_vec)))
 
   g_tau <- ggplot2::ggplot(rhs_tau_df,
                            ggplot2::aes(x = iter, y = tau, colour = p0_chr)) +
@@ -2216,8 +2255,8 @@ if (isTRUE(do_plots) && nrow(rhs_lambda_df)) {
                            lambda_min = "min",
                            lambda_mean = "mean",
                            lambda_max = "max"),
-      p0_chr = factor(sprintf("%.2f", p0),
-                      levels = sprintf("%.2f", p_vec))
+      p0_chr = factor(fmt_p(p0),
+                      levels = fmt_p(p_vec))
     ) |>
     dplyr::filter(iter > k_burn, is.finite(lambda))
 
@@ -2258,7 +2297,8 @@ synth_fc <- timed(sprintf("synthesize_forecast_draws(T=%d,nd=%d,grid_M=%d,n_samp
 )
 
 
-p_comp <- c(0.05, 0.50, 0.95)
+# Use the same quantile grid for synthesis/metrics as the fitted models
+p_comp <- p_vec
 synth_cols_fc <- lapply(p_comp, function(tau) apply(synth_fc$draws, 1L, stats::quantile, probs = tau, names = FALSE))
 names(synth_cols_fc) <- paste0("synth_q_", fmt_p(p_comp))
 synth_q_fc <- tibble::as_tibble(synth_cols_fc)
@@ -2438,12 +2478,12 @@ if (isTRUE(do_calibration)) {
   mu_tr_long <- dplyr::bind_rows(purrr::compact(lapply(seq_along(p_vec), function(i) {
     d <- fits_fc[[i]]$df_mu_tr; if (is.null(d) || !nrow(d)) return(NULL)
     keep <- fits_fc[[i]]$fit_train$meta$keep_idx
-    d %>% dplyr::mutate(scope="train", p_chr=sprintf("%.2f", p_vec[i]),
+    d %>% dplyr::mutate(scope="train", p_chr=fmt_p(p_vec[i]),
                         t_aligned=keep, mu_hat=mu)
   })))
   mu_fc_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
     d <- fits_fc[[i]]$df_mu_fc
-    d |> dplyr::mutate(scope = "forecast", p_chr = sprintf("%.2f", p_vec[i]),
+    d |> dplyr::mutate(scope = "forecast", p_chr = fmt_p(p_vec[i]),
                        t_aligned = n_train + h, mu_hat = mu)
   }))
   mu_long <- dplyr::bind_rows(mu_tr_long, mu_fc_long)
@@ -2451,12 +2491,12 @@ if (isTRUE(do_calibration)) {
   # q̂_p
   q_tr_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
     d <- fits_fc[[i]]$df_pred_tr; keep <- fits_fc[[i]]$fit_train$meta$keep_idx
-    d |> dplyr::mutate(scope="train", p_chr=sprintf("%.2f", p_vec[i]),
+    d |> dplyr::mutate(scope="train", p_chr=fmt_p(p_vec[i]),
                        t_aligned=keep, qhat=q_pred)
   }))
   q_fc_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
     d <- fits_fc[[i]]$df_pred_fc
-    d |> dplyr::mutate(scope="forecast", p_chr=sprintf("%.2f", p_vec[i]),
+    d |> dplyr::mutate(scope="forecast", p_chr=fmt_p(p_vec[i]),
                        t_aligned = n_train + h, qhat=q_pred)
   }))
   q_long <- dplyr::bind_rows(q_tr_long, q_fc_long)
@@ -2464,7 +2504,7 @@ if (isTRUE(do_calibration)) {
   # Synthesized q_p (train + forecast) at p_comp
   qsynth_tr_long <- dplyr::bind_rows(lapply(p_comp, function(tau) {
     tibble::tibble(
-      scope     = "train", p0 = tau, p_chr = sprintf("%.2f", tau),
+      scope     = "train", p0 = tau, p_chr = fmt_p(tau),
       t_aligned = keep_train,
       q_synth   = synth_q_tr[[paste0("synth_q_", fmt_p(tau))]],
       y         = y_train_keep
@@ -2472,7 +2512,7 @@ if (isTRUE(do_calibration)) {
   }))
   qsynth_fc_long <- dplyr::bind_rows(lapply(p_comp, function(tau) {
     tibble::tibble(
-      scope     = "forecast", p0 = tau, p_chr = sprintf("%.2f", tau),
+      scope     = "forecast", p0 = tau, p_chr = fmt_p(tau),
       t_aligned = n_train + seq_len(H_forecast),
       q_synth   = synth_q_fc[[paste0("synth_q_", fmt_p(tau))]],
       y         = y_forecast
@@ -2574,7 +2614,7 @@ plot_rolling_cov <- function(df_long, qcol,
 
   W_lab <- if (any(d$W_use < window, na.rm = TRUE)) paste0("≤", window) else as.character(window)
 
-  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = sprintf("%.2f", p_vec)))
+  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = fmt_p(p_vec)))
   ref <- d |> dplyr::distinct(scope, p_chr) |> dplyr::mutate(p0 = as.numeric(as.character(p_chr)))
 
   x_rng <- range(d$t_aligned, na.rm = TRUE)
@@ -2603,10 +2643,10 @@ plot_rolling_cov <- function(df_long, qcol,
                        ggplot2::aes(x = x_lab, y = y_lab, label = sprintf("%.2f", rcov)),
                        size = 3, hjust = 1) +
     ggplot2::scale_color_manual(name = "quantile p",
-      values = setNames(col_map, sprintf("%.2f", p_vec)),
+      values = setNames(col_map, fmt_p(p_vec)),
       labels = function(x) scales::percent(as.numeric(x))) +
     ggplot2::scale_fill_manual(name = "quantile p",
-      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), sprintf("%.2f", p_vec)),
+      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), fmt_p(p_vec)),
       labels = function(x) scales::percent(as.numeric(x))) +
     ggplot2::scale_y_continuous(breaks = seq(0,1,0.1), labels = scales::percent_format(accuracy = 1)) +
     ggplot2::scale_x_continuous(limits = x_rng, expand = c(0, 0)) +
@@ -2662,7 +2702,7 @@ g_cov_qsynth_fore  <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="fore
 }
 
 # ================================================================
-# 8) PIT diagnostics (train & forecast) using a chosen p model (0.50)
+# 8) PIT diagnostics (train & forecast) using the p closest to 0.50
 # ================================================================
 if (isTRUE(do_pit)) {
   emp_pit_vec <- function(y, yrep_mat) {

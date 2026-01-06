@@ -9,6 +9,9 @@
 #   - Plots that require true quantiles are omitted or adapted
 # ================================================================
 
+# Global verbosity (overridden by cfg$pipeline$verbose or cfg$verbose)
+VERBOSE <- TRUE
+
 suppressPackageStartupMessages({
   req <- c(
     "devtools","ggplot2","dplyr","tidyr","tibble","scales","MASS","numDeriv",
@@ -39,11 +42,25 @@ fix_len <- function(x, D, nm) {
 }
 near_equal <- function(x, y, tol = 1e-8) abs(x - y) <= tol
 pretty_vec <- function(x) paste0("[", paste(x, collapse = ", "), "]")
-fmt_p <- function(x) sprintf("%.2f", as.numeric(x))
+infer_p_digits <- function(p, min_digits = 2L, max_digits = 8L) {
+  for (d in min_digits:max_digits) {
+    labs <- formatC(p, format = "f", digits = d)
+    if (length(unique(labs)) == length(p)) return(d)
+  }
+  max_digits
+}
+fmt_p <- function(x) {
+  digits <- getOption("exdqlm.p_digits", 2L)
+  formatC(as.numeric(x), format = "f", digits = digits)
+}
 
 # --- Logging & timing (parity with sim) ---------------------------------------
 .now <- function() format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-log_msg <- function(fmt, ...) { cat(sprintf("[%s] %s\n", .now(), sprintf(fmt, ...))); flush.console() }
+log_msg <- function(fmt, ...) {
+  if (!isTRUE(VERBOSE)) return(invisible(NULL))
+  cat(sprintf("[%s] %s\n", .now(), sprintf(fmt, ...)))
+  flush.console()
+}
 
 options(exdqlm.timing = TRUE)
 .timing_env <- if (exists(".timing_env", inherits = FALSE)) get(".timing_env") else new.env(parent = emptyenv())
@@ -80,6 +97,39 @@ save_outputs <- if (!is.na(val_save) && nzchar(val_save)) (as.integer(val_save) 
 cfg_json <- Sys.getenv("EXDQLM_CFG_JSON", unset = NA)
 cfg <- if (!is.na(cfg_json) && nzchar(cfg_json)) jsonlite::fromJSON(cfg_json, simplifyVector = TRUE) else list()
 readout_scale <- isTRUE(cfg$vb$readout_scale %||% FALSE)
+
+if (!is.null(cfg$pipeline) && !is.null(cfg$pipeline$verbose)) {
+  VERBOSE <- isTRUE(cfg$pipeline$verbose)
+} else if (!is.null(cfg$verbose)) {
+  VERBOSE <- isTRUE(cfg$verbose)
+}
+
+keep_draws    <- FALSE
+thesis_subset <- FALSE
+if (!is.null(cfg$outputs)) {
+  if (!is.null(cfg$outputs$save)) {
+    save_outputs <- isTRUE(cfg$outputs$save)
+  }
+  if (!is.null(cfg$outputs$keep_draws)) {
+    keep_draws <- isTRUE(cfg$outputs$keep_draws)
+  }
+  if (!is.null(cfg$outputs$thesis_subset)) {
+    thesis_subset <- isTRUE(cfg$outputs$thesis_subset)
+  }
+}
+
+do_calibration <- TRUE
+do_pit         <- TRUE
+do_scores      <- TRUE
+do_plots       <- TRUE
+if (!is.null(cfg$diagnostics)) {
+  do_calibration <- cfg$diagnostics$calibration %nz% do_calibration
+  do_pit         <- cfg$diagnostics$pit         %nz% do_pit
+  do_scores      <- cfg$diagnostics$scores      %nz% do_scores
+  if (!is.null(cfg$diagnostics$plots)) {
+    do_plots <- isTRUE(cfg$diagnostics$plots)
+  }
+}
 
 # Naming config (align filenames with config/defaults.yaml → naming: ...)
 nms <- cfg$naming %||% list()
@@ -125,20 +175,33 @@ caption_exdqlm <- function(window, nd = NULL) {
   else sprintf("window: last %d steps • ndraws: %d", as.integer(window), nd_val)
 }
 
-band_from_draws <- function(mat, level = 0.95) {
+band_from_draws <- function(mat, level = 0.95, target_len = NULL) {
   mat <- as.matrix(mat)
   probs <- c((1 - level)/2, 0.5, (1 + level)/2)
-  if (nrow(mat) >= ncol(mat)) {
+  if (!is.null(target_len)) {
+    if (nrow(mat) == target_len) {
+      qs <- cbind(
+        lo  = matrixStats::rowQuantiles(mat, probs = probs[1], na.rm = TRUE),
+        med = matrixStats::rowQuantiles(mat, probs = probs[2], na.rm = TRUE),
+        hi  = matrixStats::rowQuantiles(mat, probs = probs[3], na.rm = TRUE)
+      )
+    } else if (ncol(mat) == target_len) {
+      qs <- cbind(
+        lo  = matrixStats::colQuantiles(mat, probs = probs[1], na.rm = TRUE),
+        med = matrixStats::colQuantiles(mat, probs = probs[2], na.rm = TRUE),
+        hi  = matrixStats::colQuantiles(mat, probs = probs[3], na.rm = TRUE)
+      )
+    } else {
+      stop(sprintf(
+        "band_from_draws(): target_len=%d but mat dim is %dx%d.",
+        target_len, nrow(mat), ncol(mat)
+      ))
+    }
+  } else {
     qs <- cbind(
       lo  = matrixStats::rowQuantiles(mat, probs = probs[1], na.rm = TRUE),
       med = matrixStats::rowQuantiles(mat, probs = probs[2], na.rm = TRUE),
       hi  = matrixStats::rowQuantiles(mat, probs = probs[3], na.rm = TRUE)
-    )
-  } else {
-    qs <- cbind(
-      lo  = matrixStats::colQuantiles(mat, probs = probs[1], na.rm = TRUE),
-      med = matrixStats::colQuantiles(mat, probs = probs[2], na.rm = TRUE),
-      hi  = matrixStats::colQuantiles(mat, probs = probs[3], na.rm = TRUE)
     )
   }
   colnames(qs) <- c("lo","med","hi")
@@ -415,7 +478,7 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
   do.call(qdesn_fit_vb, c(
     list(
       y = y_full, p0 = 0.50,
-      vb_args = list(max_iter = 1, tol = 1e9, n_samp_xi = 1, verbose = FALSE)
+      fit_readout = FALSE
     ),
     desn_args
   ))
@@ -493,110 +556,638 @@ cat(sprintf("TF | mode=full | len(y_future_obs_fc)=%d\n", length(y_future_obs_fc
 
 # --- VB / sampling / synthesis config (parity with sim) -----------------------
 p_vec <- as.numeric(cfg$p_vec %||% c(0.05, 0.50, 0.95))
+options(exdqlm.p_digits = infer_p_digits(p_vec))
 
 vb_args_base <- list(max_iter = 150, tol = 1e-4, n_samp_xi = 500, verbose = TRUE)
+
+# Per-quantile VB init / priors (natural scale)
+vb_init_gamma <- NULL
+vb_init_sigma <- NULL
+vb_prior_gamma_mu0 <- NULL
+vb_prior_gamma_s20 <- NULL
+vb_prior_sigma_a <- NULL
+vb_prior_sigma_b <- NULL
+vb_prior_beta_tau2 <- NULL
+vb_prior_beta_type <- "ridge"
+vb_prior_beta_rhs <- list(
+  tau0 = 10000,
+  nu   = 4.0,
+  s2   = 10000,
+  shrink_intercept = FALSE,
+  intercept_prec   = 1e-24,
+  n_inner    = 1L,
+  eta_bounds = list(lambda = c(-12, 12), tau = c(-12, 12), c2 = c(-12, 12)),
+  h_curv    = 1e-24,
+  var_floor = 1e-24,
+  verbose   = FALSE,
+  init_log_lambda = 0.0,
+  init_log_tau    = 0.0,
+  init_log_c2     = 0.0
+)
+
+tol50  <- 1e-4
+tolext <- 1e-5
+vb_tol_for <- function(p0) if (near_equal(p0, 0.50)) tol50 else tolext
+vb_tol_par_for <- vb_tol_for
+
 if (!is.null(cfg$vb)) {
+  if (!is.null(cfg$vb$readout_scale)) {
+    readout_scale <- isTRUE(cfg$vb$readout_scale)
+  }
   vb_args_base$max_iter  <- cfg$vb$max_iter  %nz% vb_args_base$max_iter
   vb_args_base$n_samp_xi <- cfg$vb$n_samp_xi %nz% vb_args_base$n_samp_xi
-}
-tol50  <- cfg$vb$tol_50      %||% 1e-4
-tolext <- cfg$vb$tol_extreme %||% 1e-5
-vb_tol_for <- function(p0) if (near_equal(p0, 0.50)) tol50 else tolext
-log_msg("Effective VB → max_iter=%d | tol_50=%.1e | tol_extreme=%.1e | n_samp_xi=%d",
-        vb_args_base$max_iter, tol50, tolext, vb_args_base$n_samp_xi)
+  if (!is.null(cfg$vb$verbose)) vb_args_base$verbose <- isTRUE(cfg$vb$verbose)
 
-vb_iter_for <- function(p0) {
-  base_it <- as.integer(vb_args_base$max_iter %||% 150)
-  if (near_equal(p0, 0.50)) base_it else max(60L, base_it)
+  tol50  <- cfg$vb$tol_50      %nz% tol50
+  tolext <- cfg$vb$tol_extreme %nz% tolext
+  vb_tol_for <- function(p0) if (abs(p0 - 0.50) < 1e-12) tol50 else tolext
+
+  tol_par_50  <- cfg$vb$tol_par_50      %nz% tol50
+  tol_par_ext <- cfg$vb$tol_par_extreme %nz% tolext
+  vb_tol_par_for <- function(p0) if (abs(p0 - 0.50) < 1e-12) tol_par_50 else tol_par_ext
+
+  len_p <- length(p_vec)
+  recycle_p <- function(x, nm) {
+    if (is.null(x)) return(NULL)
+    x <- as.numeric(x)
+    if (length(x) == 1L && len_p > 1L) {
+      if (isTRUE(VERBOSE)) {
+        message(sprintf("Note: recycling vb.%s=%s to length(p_vec)=%d", nm, paste(x, collapse=","), len_p))
+      }
+      return(rep(x, len_p))
+    }
+    if (length(x) != len_p) {
+      stop(sprintf("Config error: length(vb.%s)=%d but length(p_vec)=%d", nm, length(x), len_p))
+    }
+    x
+  }
+
+  if (!is.null(cfg$vb$init)) {
+    vb_init_gamma <- recycle_p(cfg$vb$init$gamma, "init$gamma")
+    vb_init_sigma <- recycle_p(cfg$vb$init$sigma, "init$sigma")
+  }
+
+  if (!is.null(cfg$vb$priors)) {
+    if (!is.null(cfg$vb$priors$gamma)) {
+      vb_prior_gamma_mu0 <- recycle_p(cfg$vb$priors$gamma$mu0, "priors$gamma$mu0")
+      vb_prior_gamma_s20 <- recycle_p(cfg$vb$priors$gamma$s20, "priors$gamma$s20")
+    }
+    if (!is.null(cfg$vb$priors$sigma)) {
+      vb_prior_sigma_a <- recycle_p(cfg$vb$priors$sigma$a, "priors$sigma$a")
+      vb_prior_sigma_b <- recycle_p(cfg$vb$priors$sigma$b, "priors$sigma$b")
+    }
+    if (!is.null(cfg$vb$priors$beta)) {
+      beta_cfg <- cfg$vb$priors$beta
+      vb_prior_beta_type <- tolower(beta_cfg$type %||% "ridge")
+
+      tau2_val <- NULL
+      if (!is.null(beta_cfg$ridge) && !is.null(beta_cfg$ridge$tau2)) {
+        tau2_val <- as.numeric(beta_cfg$ridge$tau2)[1L]
+      } else if (!is.null(beta_cfg$tau2)) {
+        tau2_val <- as.numeric(beta_cfg$tau2)[1L]
+      }
+      vb_prior_beta_tau2 <- tau2_val
+
+      if (!is.null(beta_cfg$rhs)) {
+        rhs_cfg <- beta_cfg$rhs
+        vb_prior_beta_rhs <- modifyList(
+          vb_prior_beta_rhs,
+          list(
+            tau0 = rhs_cfg$tau0 %nz% vb_prior_beta_rhs$tau0,
+            nu   = rhs_cfg$nu   %nz% vb_prior_beta_rhs$nu,
+            s2   = rhs_cfg$s2   %nz% vb_prior_beta_rhs$s2,
+            shrink_intercept = rhs_cfg$shrink_intercept %nz% FALSE,
+            intercept_prec   = rhs_cfg$intercept_prec   %nz% 1e-24,
+            n_inner    = rhs_cfg$n_inner    %nz% vb_prior_beta_rhs$n_inner,
+            eta_bounds = rhs_cfg$eta_bounds %nz% vb_prior_beta_rhs$eta_bounds,
+            h_curv     = rhs_cfg$h_curv     %nz% vb_prior_beta_rhs$h_curv,
+            var_floor  = rhs_cfg$var_floor  %nz% vb_prior_beta_rhs$var_floor,
+            verbose    = rhs_cfg$verbose    %nz% vb_prior_beta_rhs$verbose,
+            init_log_lambda = rhs_cfg$init_log_lambda %nz% vb_prior_beta_rhs$init_log_lambda,
+            init_log_tau    = rhs_cfg$init_log_tau    %nz% vb_prior_beta_rhs$init_log_tau,
+            init_log_c2     = rhs_cfg$init_log_c2     %nz% vb_prior_beta_rhs$init_log_c2
+          )
+        )
+      }
+    }
+  }
 }
 
 nd_draws <- as.integer((cfg$sampling$nd_draws %||% 3000L))
 chunk_sz <- as.integer((cfg$sampling$chunk    %||% 250L))
-log_msg("Effective sampling → nd_draws=%d | chunk=%d", nd_draws, chunk_sz)
 
+# IJ correction
+use_ij_correction <- TRUE
+ij_nd_draws <- 2000L
+if (!is.null(cfg$ij)) {
+  if (!is.null(cfg$ij$use_ij_correction)) use_ij_correction <- isTRUE(cfg$ij$use_ij_correction)
+  if (!is.null(cfg$ij$nd_draws)) ij_nd_draws <- as.integer(cfg$ij$nd_draws)
+}
+
+# Forecast windows
 last_window <- as.integer((cfg$forecast$last_window %||% 200L))
+train_last_window <- as.integer(cfg$forecast$train_last_window %||% last_window)
+fore_last_window  <- as.integer(cfg$forecast$fore_last_window  %||% last_window)
+
+# Synthesis
+synth_isotonic  <- cfg$synthesis$isotonic  %nz% TRUE
+synth_rearrange <- cfg$synthesis$rearrange %nz% TRUE
+synth_grid_M    <- as.integer((cfg$synthesis$grid_M %||% 2001L))
+synth_nsamp     <- as.integer((cfg$synthesis$n_samp %||% 4000L))
+synth_seed      <- as.integer((cfg$synthesis$seed   %||% 123L))
+
+log_msg(
+  "Effective VB → max_iter=%d | tol_50=%.1e | tol_extreme=%.1e | n_samp_xi=%d",
+  vb_args_base$max_iter, tol50, tolext, vb_args_base$n_samp_xi
+)
+log_msg(
+  "Effective beta prior → type=%s | ridge_tau2=%s | rhs(tau0=%.3f, nu=%.3f, s2=%.3f)",
+  vb_prior_beta_type,
+  if (is.null(vb_prior_beta_tau2)) "NULL" else format(vb_prior_beta_tau2, digits = 4, trim = TRUE),
+  vb_prior_beta_rhs$tau0, vb_prior_beta_rhs$nu, vb_prior_beta_rhs$s2
+)
+log_msg("Effective sampling → nd_draws=%d | chunk=%d", nd_draws, chunk_sz)
+log_msg("Effective IJ → use_ij_correction=%s | ij_nd_draws=%d",
+        as.character(use_ij_correction), as.integer(ij_nd_draws))
 
 # Color map per p (for multi-p plots)
 pal <- scales::hue_pal()(length(p_vec))
 col_map <- setNames(pal, fmt_p(p_vec))
 
+# ----- Posterior helpers + IJ (copied from sim for parity) -------------------
+qs_ci <- function(x, level = 0.95) {
+  p <- (1 - level) / 2
+  c(
+    lo  = unname(stats::quantile(x, p)),
+    med = unname(stats::quantile(x, 0.5)),
+    hi  = unname(stats::quantile(x, 1 - p))
+  )
+}
+
+plot_beta_forest <- function(beta_draws,
+                             term_names = NULL,
+                             top_k = NULL,
+                             zero_line = TRUE) {
+  stopifnot(is.matrix(beta_draws))
+  p <- ncol(beta_draws)
+  if (is.null(term_names) || length(term_names) != p) {
+    term_names <- paste0("β", seq_len(p))
+  }
+
+  qs <- apply(beta_draws, 2L, qs_ci, level = 0.95)
+  df <- tibble::tibble(
+    term   = term_names,
+    lo     = qs["lo", ],
+    med    = qs["med", ],
+    hi     = qs["hi", ],
+    width  = qs["hi", ] - qs["lo", ],
+    absmed = abs(qs["med", ])
+  )
+
+  if (!is.null(top_k)) {
+    df <- df %>% dplyr::arrange(dplyr::desc(absmed)) %>% dplyr::slice_head(n = top_k)
+  }
+
+  ggplot2::ggplot(df, ggplot2::aes(y = reorder(term, absmed), x = med)) +
+    theme_exdqlm() +
+    ggplot2::geom_errorbarh(ggplot2::aes(xmin = lo, xmax = hi), height = 0, alpha = 0.9) +
+    ggplot2::geom_point(size = 1.4) +
+    {
+      if (zero_line) ggplot2::geom_vline(xintercept = 0, colour = "red", linetype = "dashed")
+      else ggplot2::geom_blank()
+    } +
+    ggplot2::labs(
+      title = "Readout coefficients: 95% credible intervals",
+      subtitle = if (!is.null(top_k)) sprintf("Top %d by |median| • red line at 0", top_k) else "All coefficients • red line at 0",
+      x = "value",
+      y = NULL
+    )
+}
+
+plot_beta_forest_summary <- function(beta_hat,
+                                     lo,
+                                     hi,
+                                     term_names = NULL,
+                                     top_k = NULL,
+                                     zero_line = TRUE,
+                                     title = "Readout coefficients: IJ-corrected 95% band") {
+  stopifnot(length(beta_hat) == length(lo), length(beta_hat) == length(hi))
+  p <- length(beta_hat)
+  if (is.null(term_names) || length(term_names) != p) {
+    term_names <- paste0("β", seq_len(p))
+  }
+
+  df <- tibble::tibble(
+    term   = term_names,
+    lo     = as.numeric(lo),
+    med    = as.numeric(beta_hat),
+    hi     = as.numeric(hi),
+    width  = hi - lo,
+    absmed = abs(med)
+  )
+
+  if (!is.null(top_k)) {
+    df <- df %>% dplyr::arrange(dplyr::desc(absmed)) %>% dplyr::slice_head(n = top_k)
+  }
+
+  ggplot2::ggplot(df, ggplot2::aes(y = reorder(term, absmed), x = med)) +
+    theme_exdqlm() +
+    ggplot2::geom_errorbarh(ggplot2::aes(xmin = lo, xmax = hi), height = 0, alpha = 0.9) +
+    ggplot2::geom_point(size = 1.4) +
+    {
+      if (zero_line) ggplot2::geom_vline(xintercept = 0, colour = "red", linetype = "dashed")
+      else ggplot2::geom_blank()
+    } +
+    ggplot2::labs(
+      title    = title,
+      subtitle = if (!is.null(top_k)) sprintf("Top %d by |median| • red line at 0", top_k) else "All coefficients • red line at 0",
+      x = "value",
+      y = NULL
+    )
+}
+
+get_exal_param_draws <- function(fit, p, nd = 2000, gamma_bounds = NULL, seed = NULL) {
+  stopifnot(inherits(fit, "exal_vb"))
+  if (!is.null(seed)) set.seed(seed)
+  if (!exists("exal_vb_posterior_draws", mode = "function")) {
+    stop("exal_vb_posterior_draws() not found; cannot get parameter draws.")
+  }
+  dr <- exal_vb_posterior_draws(fit, nd = nd)
+  if (!is.null(dr$beta) && is.matrix(dr$beta) && ncol(dr$beta) != p) {
+    stop(sprintf("exal_vb_posterior_draws(): expected %d columns in beta, got %d", p, ncol(dr$beta)))
+  }
+  list(gamma = dr$gamma, sigma = dr$sigma, beta = dr$beta, gamma_bounds = gamma_bounds)
+}
+
+ij_sd_for_functional <- function(F_all, loglik_mat, n_obs) {
+  stopifnot(is.matrix(F_all), is.matrix(loglik_mat))
+  M_eff <- nrow(F_all)
+  K     <- ncol(F_all)
+  if (M_eff < 2L || n_obs < 2L || K < 1L) return(rep(0, K))
+
+  F_centered <- sweep(F_all,     2L, colMeans(F_all),     "-")
+  L_centered <- sweep(loglik_mat, 2L, colMeans(loglik_mat), "-")
+
+  Cmat <- crossprod(F_centered, L_centered) / (M_eff - 1)
+  I_mat      <- n_obs * Cmat
+  I_bar      <- rowMeans(I_mat)
+  I_centered <- sweep(I_mat, 1L, I_bar, "-")
+
+  var_ij <- rowSums(I_centered^2) / (n_obs * (n_obs - 1))
+  var_ij <- pmax(var_ij, 0)
+  sqrt(var_ij)
+}
+
+compute_mu_bands_with_ij <- function(
+  X_train,
+  y_train_keep,
+  X_fc1,
+  p0,
+  param_draws,
+  use_ij = use_ij_correction
+) {
+  stopifnot(is.matrix(X_train), is.matrix(X_fc1))
+
+  beta_draws  <- param_draws$beta
+  sigma_draws <- param_draws$sigma
+  gamma_draws <- param_draws$gamma
+
+  if (is.null(beta_draws) || !is.matrix(beta_draws)) {
+    stop("compute_mu_bands_with_ij(): beta_draws is missing or not a matrix.")
+  }
+
+  M <- nrow(beta_draws)
+  n <- nrow(X_train)
+  H <- nrow(X_fc1)
+
+  if (length(sigma_draws) != M || length(gamma_draws) != M) {
+    stop(sprintf(
+      "compute_mu_bands_with_ij(): length(sigma_draws)=%d, length(gamma_draws)=%d, but nrow(beta_draws)=%d.",
+      length(sigma_draws), length(gamma_draws), M
+    ))
+  }
+
+  finite_draw <- rep(TRUE, M)
+  loglik_mat  <- NULL
+
+  mu_mat_tr <- X_train %*% t(beta_draws)
+  mu_mat_fc <- X_fc1   %*% t(beta_draws)
+
+  mu_draws_tr_TxM <- mu_mat_tr
+  mu_draws_fc_TxM <- mu_mat_fc
+
+  mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95, target_len = n)
+  mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95, target_len = H)
+
+  mu_hat_tr <- mu_qs_tr[, "med"]
+  mu_hat_fc <- mu_qs_fc[, "med"]
+
+  lo_post_tr <- mu_qs_tr[, "lo"]
+  hi_post_tr <- mu_qs_tr[, "hi"]
+  lo_post_fc <- mu_qs_fc[, "lo"]
+  hi_post_fc <- mu_qs_fc[, "hi"]
+
+  sd_ij_tr <- rep(0, n)
+  sd_ij_fc <- rep(0, H)
+  lo_tr    <- lo_post_tr
+  hi_tr    <- hi_post_tr
+  lo_fc    <- lo_post_fc
+  hi_fc    <- hi_post_fc
+
+  if (isTRUE(use_ij)) {
+    loglik_full <- exal_loglik_from_mu_cpp(
+      y           = y_train_keep,
+      mu_mat      = mu_mat_tr,
+      sigma_draws = sigma_draws,
+      gamma_draws = gamma_draws,
+      p0          = p0
+    )
+
+    finite_draw <- apply(is.finite(loglik_full), 1L, all)
+    M_eff       <- sum(finite_draw)
+    n_obs       <- length(y_train_keep)
+
+    if (M_eff < 2L || n_obs < 2L) {
+      warning("compute_mu_bands_with_ij(): IJ skipped (too few finite draws or obs); using posterior-only μ bands.")
+      loglik_mat  <- NULL
+      finite_draw <- rep(TRUE, M)
+    } else {
+      loglik_mat      <- loglik_full[finite_draw, , drop = FALSE]
+      mu_draws_tr_TxM <- mu_draws_tr_TxM[, finite_draw, drop = FALSE]
+      mu_draws_fc_TxM <- mu_draws_fc_TxM[, finite_draw, drop = FALSE]
+
+      mu_qs_tr <- band_from_draws(mu_draws_tr_TxM, level = 0.95, target_len = n)
+      mu_qs_fc <- band_from_draws(mu_draws_fc_TxM, level = 0.95, target_len = H)
+
+      mu_hat_tr <- mu_qs_tr[, "med"]
+      mu_hat_fc <- mu_qs_fc[, "med"]
+
+      lo_post_tr <- mu_qs_tr[, "lo"]
+      hi_post_tr <- mu_qs_tr[, "hi"]
+      lo_post_fc <- mu_qs_fc[, "lo"]
+      hi_post_fc <- mu_qs_fc[, "hi"]
+
+      F_tr  <- t(mu_draws_tr_TxM)
+      F_fc  <- t(mu_draws_fc_TxM)
+      F_all <- cbind(F_tr, F_fc)
+
+      sd_ij_all <- ij_sd_for_functional(F_all = F_all, loglik_mat = loglik_mat, n_obs = n_obs)
+      sd_ij_tr <- sd_ij_all[seq_len(n)]
+      sd_ij_fc <- sd_ij_all[n + seq_len(H)]
+
+      sd_total_tr <- sd_ij_tr
+      sd_total_fc <- sd_ij_fc
+
+      alpha <- 0.05
+      z_975 <- stats::qnorm(1 - alpha / 2)
+      lo_tr <- mu_hat_tr - z_975 * sd_total_tr
+      hi_tr <- mu_hat_tr + z_975 * sd_total_tr
+      lo_fc <- mu_hat_fc - z_975 * sd_total_fc
+      hi_fc <- mu_hat_fc + z_975 * sd_total_fc
+    }
+  }
+
+  draw_idx_keep <- if (!is.null(loglik_mat)) which(finite_draw) else NULL
+
+  list(
+    mu_draws_tr   = mu_draws_tr_TxM,
+    mu_draws_fc   = mu_draws_fc_TxM,
+    mu_hat_tr     = mu_hat_tr,
+    mu_hat_fc     = mu_hat_fc,
+    lo_tr         = lo_tr,
+    hi_tr         = hi_tr,
+    lo_fc         = lo_fc,
+    hi_fc         = hi_fc,
+    lo_post_tr    = lo_post_tr,
+    hi_post_tr    = hi_post_tr,
+    lo_post_fc    = lo_post_fc,
+    hi_post_fc    = hi_post_fc,
+    loglik_mat    = loglik_mat,
+    draw_idx_keep = draw_idx_keep
+  )
+}
+
 # --- Per-p fit + posterior predictive + frames (parity object structure) ------
 fit_and_forecast_p <- function(p0) {
+  # Index of this quantile in p_vec
+  idx_p <- which.min(abs(p_vec - p0))
+
+  # Beta prior (ridge or RHS)
+  beta_type <- tolower(vb_prior_beta_type %||% "ridge")
+  if (!beta_type %in% c("ridge", "rhs")) {
+    stop(sprintf("Unknown beta prior type '%s' (expected 'ridge' or 'rhs')", beta_type))
+  }
+  tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
+  beta_prior_obj <- if (beta_type == "rhs") {
+    if (is.null(vb_prior_beta_rhs) || !is.list(vb_prior_beta_rhs)) {
+      stop("vb$priors$beta$rhs must be a YAML mapping (list).")
+    }
+    beta_prior("rhs", rhs = vb_prior_beta_rhs)
+  } else {
+    beta_prior("ridge", ridge = list(tau2 = tau2_beta_p))
+  }
+
   vb_args_p <- vb_args_base
-  vb_args_p$tol <- vb_tol_for(p0)
-  vb_args_p$max_iter <- vb_iter_for(p0)
+  vb_args_p$tol     <- vb_tol_for(p0)
+  vb_args_p$tol_par <- vb_tol_par_for(p0)
 
-  tau <- as.numeric(p0)  # avoid name masking by tibble columns
+  gamma_init_p <- if (!is.null(vb_init_gamma)) vb_init_gamma[idx_p] else 0
+  sigma_init_p <- if (!is.null(vb_init_sigma)) vb_init_sigma[idx_p] else 1
 
-  p <- ncol(X_train)
-  exal_defaults <- list(
-    b0 = rep(0, p), V0 = diag(1e4, p),
-    a_sigma = 1, b_sigma = 1,
-    max_iter = vb_args_p$max_iter, tol = vb_args_p$tol,
-    n_samp_xi = vb_args_p$n_samp_xi, verbose = TRUE,
-    p0 = p0, gamma_bounds = c(L.fn(p0), U.fn(p0)), log_prior_gamma = function(g) 0
+  gamma_mu0_p <- if (!is.null(vb_prior_gamma_mu0)) vb_prior_gamma_mu0[idx_p] else 0
+  gamma_s20_p <- if (!is.null(vb_prior_gamma_s20)) vb_prior_gamma_s20[idx_p] else 10
+
+  sigma_a_p <- if (!is.null(vb_prior_sigma_a)) vb_prior_sigma_a[idx_p] else 1
+  sigma_b_p <- if (!is.null(vb_prior_sigma_b)) vb_prior_sigma_b[idx_p] else 1
+
+  fit_args <- list(
+    y            = y_tr_keep,
+    X            = X_train,
+    p0           = p0,
+    gamma_bounds = c(L.fn(p0), U.fn(p0)),
+    a_sigma      = sigma_a_p,
+    b_sigma      = sigma_b_p,
+    max_iter     = vb_args_p$max_iter,
+    tol          = vb_args_p$tol,
+    tol_par      = vb_args_p$tol_par,
+    n_samp_xi    = vb_args_p$n_samp_xi,
+    verbose      = vb_args_p$verbose,
+    init         = list(gamma = gamma_init_p, sigma = sigma_init_p),
+    beta_prior_obj = beta_prior_obj
   )
 
-  fit_exal <- timed(sprintf("fit_exAL_on_X_train(p=%s)", fmt_p(p0)),
-    do.call(exal_static_LDVB, c(list(y = y_tr_keep, X = X_train), exal_defaults))
+  if (!is.null(vb_prior_gamma_mu0)) {
+    fit_args$prior_gamma_mu0 <- gamma_mu0_p
+    fit_args$prior_gamma_s20 <- gamma_s20_p
+    fit_args$log_prior_gamma <- function(g) {
+      sum(stats::dnorm(g, mean = gamma_mu0_p, sd = sqrt(gamma_s20_p), log = TRUE))
+    }
+  } else {
+    fit_args$log_prior_gamma <- function(g) 0
+  }
+
+  fit_exal <- timed(
+    sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
+    do.call(exal_ldvb_fit, fit_args)
   )
+
   if (isTRUE(readout_scale) && !is.null(readout_scale_info)) {
     if (is.null(fit_exal$misc)) fit_exal$misc <- list()
     fit_exal$misc$readout_scale <- readout_scale_info
   }
 
-  pp_tr <- timed(sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nd_draws),
+  # ---- Parameter draws for IJ + diagnostics -------------------------------
+  gamma_bounds_here <- c(L.fn(p0), U.fn(p0))
+  param_draws <- get_exal_param_draws(
+    fit_exal,
+    p            = ncol(X_train),
+    nd           = ij_nd_draws,
+    gamma_bounds = gamma_bounds_here,
+    seed         = synth_seed + round(1000 * p0)
+  )
+
+  # ---- μ bands + IJ correction --------------------------------------------
+  mu_ij <- compute_mu_bands_with_ij(
+    X_train      = X_train,
+    y_train_keep = y_tr_keep,
+    X_fc1        = X_fc1,
+    p0           = p0,
+    param_draws  = param_draws,
+    use_ij       = use_ij_correction
+  )
+
+  # IJ correction for beta coefficients
+  beta_ij <- NULL
+  if (isTRUE(use_ij_correction) &&
+      !is.null(mu_ij$loglik_mat) &&
+      !is.null(mu_ij$draw_idx_keep)) {
+
+    beta_draws_full <- param_draws$beta
+    if (!is.null(beta_draws_full) && is.matrix(beta_draws_full) &&
+        isTRUE(readout_scale) && !is.null(readout_scale_info)) {
+      beta_draws_full <- readout_unscale_beta(beta_draws_full, readout_scale_info)
+    }
+    if (!is.null(beta_draws_full) && is.matrix(beta_draws_full)) {
+      draw_idx_keep <- mu_ij$draw_idx_keep
+      if (length(draw_idx_keep) >= 2L) {
+        beta_draws_eff <- beta_draws_full[draw_idx_keep, , drop = FALSE]
+        M_eff_beta     <- nrow(beta_draws_eff)
+        if (M_eff_beta >= 2L) {
+          F_beta <- beta_draws_eff
+          sd_ij_beta <- ij_sd_for_functional(
+            F_all      = F_beta,
+            loglik_mat = mu_ij$loglik_mat,
+            n_obs      = length(y_tr_keep)
+          )
+          beta_hat     <- apply(beta_draws_eff, 2L, stats::median)
+          sd_post_beta <- matrixStats::colSds(beta_draws_eff)
+          alpha      <- 0.05
+          z_975      <- stats::qnorm(1 - alpha / 2)
+          lo_beta_ij <- beta_hat - z_975 * sd_ij_beta
+          hi_beta_ij <- beta_hat + z_975 * sd_ij_beta
+          beta_ij <- list(
+            beta_hat = beta_hat,
+            sd_post  = sd_post_beta,
+            sd_ij    = sd_ij_beta,
+            lo_ij    = lo_beta_ij,
+            hi_ij    = hi_beta_ij
+          )
+        }
+      }
+    }
+  }
+  param_draws$beta_ij <- beta_ij
+
+  # Back-transform μ bands & draws to original units
+  mu_ij$mu_draws_tr <- bt_y(mu_ij$mu_draws_tr)
+  mu_ij$mu_draws_fc <- bt_y(mu_ij$mu_draws_fc)
+  mu_ij$mu_hat_tr   <- bt_y(mu_ij$mu_hat_tr)
+  mu_ij$mu_hat_fc   <- bt_y(mu_ij$mu_hat_fc)
+  mu_ij$lo_tr       <- bt_y(mu_ij$lo_tr)
+  mu_ij$hi_tr       <- bt_y(mu_ij$hi_tr)
+  mu_ij$lo_fc       <- bt_y(mu_ij$lo_fc)
+  mu_ij$hi_fc       <- bt_y(mu_ij$hi_fc)
+  mu_ij$lo_post_tr  <- bt_y(mu_ij$lo_post_tr)
+  mu_ij$hi_post_tr  <- bt_y(mu_ij$hi_post_tr)
+  mu_ij$lo_post_fc  <- bt_y(mu_ij$lo_post_fc)
+  mu_ij$hi_post_fc  <- bt_y(mu_ij$hi_post_fc)
+
+  # ---- Posterior predictive (train + forecast) ----------------------------
+  pp_tr <- timed(
+    sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nd_draws),
     exal_vb_posterior_predict(fit_exal, X_new = X_train, nd = nd_draws, chunk = chunk_sz)
   )
-  yrep_tr     <- pp_tr$yrep
-  mu_draws_tr <- pp_tr$mu_draws
-  # Back-transform TRAIN draws to original units
-  yrep_tr     <- bt_y(yrep_tr)
-  mu_draws_tr <- bt_y(mu_draws_tr)
+  yrep_tr <- bt_y(pp_tr$yrep)
   y_tr_keep_bt <- bt_y(y_tr_keep)
 
-mu_qs_tr <- band_from_draws(mu_draws_tr, level = 0.95)
-
   df_mu_tr <- tibble::tibble(
-    h = seq_along(keep_train_abs), p0 = p0,
-    mu = mu_qs_tr[, "med"], lo = mu_qs_tr[, "lo"], hi = mu_qs_tr[, "hi"],
-    y = y_tr_keep_bt
+    h  = seq_along(keep_train_abs),
+    p0 = p0,
+    mu = mu_ij$mu_hat_tr,
+    lo = mu_ij$lo_tr,
+    hi = mu_ij$hi_tr,
+    y  = y_tr_keep_bt
   )
   df_pred_tr <- tibble::tibble(
-    h = seq_along(keep_train_abs), p0 = tau,
-    q_pred = quantile_by_time(yrep_tr, tau, length(y_tr_keep)),
-    y = y_tr_keep_bt
+    h      = seq_along(keep_train_abs),
+    p0     = p0,
+    q_pred = quantile_by_time(yrep_tr, p0, length(y_tr_keep)),
+    y      = y_tr_keep_bt
   )
+  if (isTRUE(use_ij_correction)) {
+    df_pred_tr <- df_pred_tr %>%
+      dplyr::mutate(
+        q_hat_ij  = mu_ij$mu_hat_tr,
+        lo_q_ij   = mu_ij$lo_tr,
+        hi_q_ij   = mu_ij$hi_tr,
+        lo_q_post = mu_ij$lo_post_tr,
+        hi_q_post = mu_ij$hi_post_tr
+      )
+  }
 
-  pp_fc <- timed(sprintf("posterior_predict FORECAST (p=%s, nd=%d)", fmt_p(p0), nd_draws),
+  pp_fc <- timed(
+    sprintf("posterior_predict FORECAST (p=%s, nd=%d)", fmt_p(p0), nd_draws),
     exal_vb_posterior_predict(fit_exal, X_new = X_fc1, nd = nd_draws, chunk = chunk_sz)
   )
-  yrep_fc     <- pp_fc$yrep
-  mu_draws_fc <- pp_fc$mu_draws
-  # Back-transform FORECAST draws to original units
-  yrep_fc     <- bt_y(yrep_fc)
-  mu_draws_fc <- bt_y(mu_draws_fc)
-  y_fc_bt     <- bt_y(y_fc)
-
-  mu_qs_fc    <- band_from_draws(mu_draws_fc, level = 0.95)
+  yrep_fc <- bt_y(pp_fc$yrep)
+  y_fc_bt <- bt_y(y_fc)
 
   df_mu_fc <- tibble::tibble(
-    h = seq_len(H_forecast), p0 = p0,
-    mu = mu_qs_fc[, "med"], lo = mu_qs_fc[, "lo"], hi = mu_qs_fc[, "hi"],
-    y = y_fc_bt
+    h  = seq_len(H_forecast),
+    p0 = p0,
+    mu = mu_ij$mu_hat_fc,
+    lo = mu_ij$lo_fc,
+    hi = mu_ij$hi_fc,
+    y  = y_fc_bt
   )
   df_pred_fc <- tibble::tibble(
-    h = seq_len(H_forecast), p0 = tau,
-    q_pred = quantile_by_time(yrep_fc, tau, H_forecast),
-    y = y_fc_bt
+    h      = seq_len(H_forecast),
+    p0     = p0,
+    q_pred = quantile_by_time(yrep_fc, p0, H_forecast),
+    y      = y_fc_bt
   )
+  if (isTRUE(use_ij_correction)) {
+    df_pred_fc <- df_pred_fc %>%
+      dplyr::mutate(
+        q_hat_ij  = mu_ij$mu_hat_fc,
+        lo_q_ij   = mu_ij$lo_fc,
+        hi_q_ij   = mu_ij$hi_fc,
+        lo_q_post = mu_ij$lo_post_fc,
+        hi_q_post = mu_ij$hi_post_fc
+      )
+  }
 
   list(
-    fit_train = list(fit = fit_exal, meta = list(keep_idx = keep_train_abs)),
-    yrep_fc = yrep_fc,   mu_draws_fc = mu_draws_fc,
-    df_mu_fc = df_mu_fc, df_pred_fc  = df_pred_fc,
-    yrep_tr = yrep_tr,   mu_draws_tr = mu_draws_tr,
-    df_mu_tr = df_mu_tr, df_pred_tr  = df_pred_tr
+    fit_train   = list(fit = fit_exal, meta = list(keep_idx = keep_train_abs)),
+    yrep_fc     = yrep_fc,
+    mu_draws_fc = mu_ij$mu_draws_fc,
+    df_mu_fc    = df_mu_fc,
+    df_pred_fc  = df_pred_fc,
+    yrep_tr     = yrep_tr,
+    mu_draws_tr = mu_ij$mu_draws_tr,
+    df_mu_tr    = df_mu_tr,
+    df_pred_tr  = df_pred_tr,
+    param_draws = param_draws
   )
 }
 
@@ -609,9 +1200,10 @@ plot_mu_band_real <- function(df, p0, scope = "Forecast", window = 200L) {
   d  <- dplyr::filter(df, dplyr::between(h, i1, i2))
   p_emp <- mean(d$y <= d$mu, na.rm = TRUE)            # descriptive; not a target
   w_med <- stats::median(d$hi - d$lo, na.rm = TRUE)   # median posterior width for μ̂
+  band_label <- if (isTRUE(use_ij_correction)) "IJ-corrected 95% band for μ̂" else "μ̂ ±95% posterior band"
   ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
     ggplot2::labs(
-      title = sprintf("%s: μ̂ ±95%% (model at p=%s)", scope, scales::percent(p0, 1)),
+      title = sprintf("%s: %s (model at p=%s)", scope, band_label, scales::percent(p0, 1)),
       subtitle = paste(
         sprintf("Pr(y ≤ μ̂)=%s", scales::percent(p_emp, 0.1)),
         sprintf("median band width=%.3f", w_med),
@@ -628,39 +1220,188 @@ plot_mu_band_real <- function(df, p0, scope = "Forecast", window = 200L) {
     ggplot2::scale_color_manual(name = "", values = c(mu = ACCENT_ORANGE, data = "#6b7280"))
 }
 
-for (k in seq_along(p_vec)) {
-  p0 <- p_vec[k]
-  g1 <- plot_mu_band_real(fits_fc[[k]]$df_mu_fc, p0, scope = "Forecast", window = last_window)
-  g1tr <- plot_mu_band_real(fits_fc[[k]]$df_mu_tr, p0, scope = "Train", window = 200L)
+if (isTRUE(do_plots)) {
+  for (k in seq_along(p_vec)) {
+    p0 <- p_vec[k]
+    g1 <- plot_mu_band_real(fits_fc[[k]]$df_mu_fc, p0, scope = "Forecast", window = fore_last_window)
+    g1tr <- plot_mu_band_real(fits_fc[[k]]$df_mu_tr, p0, scope = "Train", window = train_last_window)
+    band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
 
-  timed(sprintf("plot+save forecast_mu_band(p=%s)", fmt_p(p0)), {
-    print(g1)
-    if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, sprintf("forecast_mu_band_p=%s.png", as.character(p0))), g1, width=9, height=4.8, dpi=150)
-    }
-  })
-  timed(sprintf("plot+save train_mu_band(p=%s)", fmt_p(p0)), {
-    print(g1tr)
-    if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, sprintf("train_mu_band_p=%s.png", as.character(p0))), g1tr, width=9, height=4.8, dpi=150)
-    }
-  })
+    timed(sprintf("plot+save forecast_mu_band(p=%s)", fmt_p(p0)), {
+      print(g1)
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, sprintf("forecast_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+               g1, width=9, height=4.8, dpi=150)
+      }
+    })
+    timed(sprintf("plot+save train_mu_band(p=%s)", fmt_p(p0)), {
+      print(g1tr)
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, sprintf("train_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+               g1tr, width=9, height=4.8, dpi=150)
+      }
+    })
+  }
 }
 
 # --- Minimal canonical single-plot exports (median p=0.50) ------
 i_med <- which.min(abs(p_vec - 0.50))
 p_med <- p_vec[i_med]
 
-g_mu_fc_med <- plot_mu_band_real(fits_fc[[i_med]]$df_mu_fc, p_med, scope = "Forecast", window = last_window)
-g_mu_tr_med <- plot_mu_band_real(fits_fc[[i_med]]$df_mu_tr, p_med, scope = "Train",    window = 200L)
+g_mu_fc_med <- plot_mu_band_real(fits_fc[[i_med]]$df_mu_fc, p_med, scope = "Forecast", window = fore_last_window)
+g_mu_tr_med <- plot_mu_band_real(fits_fc[[i_med]]$df_mu_tr, p_med, scope = "Train",    window = train_last_window)
 
-print(g_mu_fc_med); print(g_mu_tr_med)
+if (isTRUE(do_plots)) {
+  print(g_mu_fc_med); print(g_mu_tr_med)
+  if (isTRUE(save_outputs)) {
+    if (!file.exists(file.path(FIGS, "forecast_mu_band.png")))
+      ggplot2::ggsave(file.path(FIGS, "forecast_mu_band.png"), g_mu_fc_med, width=9, height=4.8, dpi=150)
+    if (!file.exists(file.path(FIGS, "train_mu_band.png")))
+      ggplot2::ggsave(file.path(FIGS, "train_mu_band.png"), g_mu_tr_med, width=9, height=4.8, dpi=150)
+  }
+}
 
-if (isTRUE(save_outputs)) {
-  if (!file.exists(file.path(FIGS, "forecast_mu_band.png")))
-    ggplot2::ggsave(file.path(FIGS, "forecast_mu_band.png"), g_mu_fc_med, width=9, height=4.8, dpi=150)
-  if (!file.exists(file.path(FIGS, "train_mu_band.png")))
-    ggplot2::ggsave(file.path(FIGS, "train_mu_band.png"), g_mu_tr_med, width=9, height=4.8, dpi=150)
+# --- Posterior parameter plots (γ, σ, β) ------------------------------------
+if (isTRUE(do_plots)) {
+  for (k in seq_along(p_vec)) {
+    p0 <- p_vec[k]
+    pars <- fits_fc[[k]]$param_draws
+    if (is.null(pars) || (!length(pars$gamma) && !length(pars$sigma) && is.null(pars$beta))) {
+      message(sprintf("[warn] No parameter draws available for p=%s; skipping posterior param plots.", fmt_p(p0)))
+      next
+    }
+
+    plots_left <- list()
+
+    # γ
+    if (!is.null(pars$gamma) && length(pars$gamma)) {
+      qs_gam <- qs_ci(pars$gamma, 0.95)
+      x_lim_g <- stats::quantile(pars$gamma, c(0.01, 0.99), names = FALSE)
+      if (!all(is.finite(x_lim_g)) || x_lim_g[1] >= x_lim_g[2]) {
+        x_lim_g <- range(pars$gamma[is.finite(pars$gamma)])
+      }
+      sub_txt_g <- sprintf(
+        "median=%.3f, 95%% CI=[%.3f, %.3f]\nSupport bounds=[%.3f, %.3f]",
+        qs_gam["med"], qs_gam["lo"], qs_gam["hi"],
+        pars$gamma_bounds[1], pars$gamma_bounds[2]
+      )
+      df_gam <- tibble::tibble(x = pars$gamma)
+      plots_left$gamma <-
+        ggplot2::ggplot(df_gam, ggplot2::aes(x = x)) +
+        theme_exdqlm() +
+        ggplot2::geom_histogram(bins = 100, colour = "white") +
+        ggplot2::geom_vline(xintercept = qs_gam["med"], linetype = "solid") +
+        ggplot2::geom_vline(xintercept = c(qs_gam["lo"], qs_gam["hi"]),
+                            linetype = "dashed", alpha = 0.8) +
+        ggplot2::labs(
+          title    = "Posterior of γ",
+          subtitle = sub_txt_g,
+          x        = "γ",
+          y        = "count"
+        ) +
+        ggplot2::coord_cartesian(xlim = x_lim_g)
+    }
+
+    # σ (optionally back-transform to original units)
+    if (!is.null(pars$sigma) && length(pars$sigma)) {
+      sig_draws <- pars$sigma
+      if (isTRUE(scale_y)) sig_draws <- sig_draws * y_sd
+      qs_sig <- qs_ci(sig_draws, 0.95)
+      x_lim_s <- stats::quantile(sig_draws, c(0.01, 0.99), names = FALSE)
+      if (!all(is.finite(x_lim_s)) || x_lim_s[1] >= x_lim_s[2]) {
+        x_lim_s <- range(sig_draws[is.finite(sig_draws)])
+      }
+      df_sig <- tibble::tibble(x = sig_draws)
+      plots_left$sigma <-
+        ggplot2::ggplot(df_sig, ggplot2::aes(x = x)) +
+        theme_exdqlm() +
+        ggplot2::geom_histogram(bins = 100, colour = "white") +
+        ggplot2::geom_vline(xintercept = qs_sig["med"], linetype = "solid") +
+        ggplot2::geom_vline(xintercept = c(qs_sig["lo"], qs_sig["hi"]),
+                            linetype = "dashed", alpha = 0.8) +
+        ggplot2::labs(
+          title    = "Posterior of σ",
+          subtitle = sprintf("median=%.3f, 95%% CI=[%.3f, %.3f]", qs_sig["med"], qs_sig["lo"], qs_sig["hi"]),
+          x        = "σ",
+          y        = "count"
+        ) +
+        ggplot2::coord_cartesian(xlim = x_lim_s)
+    }
+
+    if (length(plots_left)) {
+      g_params <- Reduce(`|`, plots_left)
+      print(g_params)
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, sprintf("posterior_gamma_sigma_p=%s.png", as.character(p0))),
+               g_params, width = 10.5, height = 4.8, dpi = 150)
+      }
+    }
+
+    # β forest (all + top-K)
+    if (!is.null(pars$beta) && is.matrix(pars$beta)) {
+      beta_draws_plot <- pars$beta
+      scale_info <- fits_fc[[k]]$fit_train$fit$misc$readout_scale %||% NULL
+      if (!is.null(scale_info) && isTRUE(scale_info$scaled)) {
+        beta_draws_plot <- readout_unscale_beta(beta_draws_plot, scale_info)
+      }
+      term_names <- colnames(X_train)
+      if (is.null(term_names)) term_names <- paste0("β", seq_len(ncol(beta_draws_plot)))
+      p_all <- ncol(beta_draws_plot)
+
+      g_beta_all <- plot_beta_forest(beta_draws_plot, term_names = term_names, top_k = NULL)
+      g_beta_top <- plot_beta_forest(beta_draws_plot, term_names = term_names, top_k = min(50L, p_all))
+
+      print(g_beta_all); print(g_beta_top)
+      if (isTRUE(save_outputs)) {
+        if (p_all <= 250L) {
+          height_all <- max(5, 0.18 * p_all)
+          ggplot2::ggsave(
+            file.path(FIGS, sprintf("posterior_beta_forest_ALL_p=%s.png", as.character(p0))),
+            g_beta_all, width = 9.5, height = height_all, dpi = 150
+          )
+        } else {
+          message(sprintf("[info] Skipping posterior_beta_forest_ALL_p=%s (p=%d too large).", fmt_p(p0), p_all))
+        }
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("posterior_beta_forest_TOP50_p=%s.png", as.character(p0))),
+          g_beta_top, width = 9.5, height = 10, dpi = 150
+        )
+      }
+
+      # IJ β forest (top-K) if available
+      if (isTRUE(use_ij_correction) &&
+          !is.null(pars$beta_ij) &&
+          !is.null(pars$beta_ij$beta_hat) &&
+          !is.null(pars$beta_ij$lo_ij) &&
+          !is.null(pars$beta_ij$hi_ij)) {
+
+        beta_hat_ij <- pars$beta_ij$beta_hat
+        lo_ij_beta  <- pars$beta_ij$lo_ij
+        hi_ij_beta  <- pars$beta_ij$hi_ij
+        len_beta <- length(beta_hat_ij)
+        if (len_beta != p_all) {
+          warning(sprintf("[warn] beta_ij length (%d) != p_all (%d) for p=%s; skipping IJ β forest.",
+                          len_beta, p_all, fmt_p(p0)))
+        } else {
+          g_beta_ij_top <- plot_beta_forest_summary(
+            beta_hat   = beta_hat_ij,
+            lo         = lo_ij_beta,
+            hi         = hi_ij_beta,
+            term_names = term_names,
+            top_k      = min(50L, p_all),
+            title      = "Readout coefficients: IJ-corrected 95% band"
+          )
+          print(g_beta_ij_top)
+          if (isTRUE(save_outputs)) {
+            ggplot2::ggsave(
+              file.path(FIGS, sprintf("posterior_beta_forest_IJ_TOP50_p=%s.png", as.character(p0))),
+              g_beta_ij_top, width = 9.5, height = 10, dpi = 150
+            )
+          }
+        }
+      }
+    }
+  }
 }
 
 # --- ELBO traces (same as sim) -----------------------------------------------
@@ -670,8 +1411,8 @@ elbo_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
   if (is.null(tr) || !length(tr)) return(tibble::tibble())
   tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), elbo = as.numeric(tr))
 }))
-if (nrow(elbo_df)) {
-  elbo_df <- elbo_df |> dplyr::filter(iter > k_burn) |> dplyr::mutate(p0_chr = factor(sprintf("%.2f", p0)))
+if (isTRUE(do_plots) && nrow(elbo_df)) {
+  elbo_df <- elbo_df |> dplyr::filter(iter > k_burn) |> dplyr::mutate(p0_chr = factor(fmt_p(p0)))
   g_elbo <- ggplot2::ggplot(elbo_df, ggplot2::aes(x = iter, y = elbo, colour = p0_chr)) +
     theme_exdqlm() + ggplot2::labs(x="VB iteration", y="ELBO", colour="p0",
     title="ELBO traces across quantile models", subtitle=sprintf("First k=%d iterations omitted", k_burn)) +
@@ -680,15 +1421,181 @@ if (nrow(elbo_df)) {
   if (isTRUE(save_outputs)) ggsave(file.path(FIGS, sprintf("%s%d.png", nm("elbo_prefix","elbo_traces_skip_k="), k_burn)), g_elbo, width=9, height=4.8, dpi=150)
 }
 
+# --- γ and σ traces -----------------------------------------------------------
+gamma_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  tr <- fits_fc[[i]]$fit_train$fit$misc$gamma_trace
+  if (is.null(tr) || !length(tr)) return(tibble::tibble())
+  tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), gamma = as.numeric(tr))
+}))
+
+sigma_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  tr <- fits_fc[[i]]$fit_train$fit$misc$sigma_trace
+  if (is.null(tr) || !length(tr)) return(tibble::tibble())
+  sigma_vals <- as.numeric(tr)
+  if (isTRUE(scale_y)) sigma_vals <- sigma_vals * y_sd
+  tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), sigma = sigma_vals)
+}))
+
+if (isTRUE(do_plots) && nrow(gamma_df) && nrow(sigma_df)) {
+  gamma_df <- gamma_df |> dplyr::filter(iter > k_burn) |>
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = fmt_p(p_vec)))
+  sigma_df <- sigma_df |> dplyr::filter(iter > k_burn) |>
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = fmt_p(p_vec)))
+
+  g_gamma <- ggplot2::ggplot(gamma_df, ggplot2::aes(x = iter, y = gamma, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(x = "VB iteration", y = "γ", colour = "p0",
+                  title = "γ traces across quantile models",
+                  subtitle = sprintf("First k=%d iterations omitted", k_burn)) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
+  g_sigma <- ggplot2::ggplot(sigma_df, ggplot2::aes(x = iter, y = sigma, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(x = "VB iteration", y = "σ", colour = "p0",
+                  title = "σ traces across quantile models",
+                  subtitle = sprintf("First k=%d iterations omitted", k_burn)) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
+  g_gamma_sigma <- g_gamma | g_sigma
+  print(g_gamma_sigma)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(
+      file.path(FIGS, sprintf("gamma_sigma_traces_skip_k=%d.png", k_burn)),
+      g_gamma_sigma, width = 11, height = 4.8, dpi = 150
+    )
+  }
+}
+
+# --- LD safeguard new_term traces -------------------------------------------
+newterm_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  tr <- fits_fc[[i]]$fit_train$fit$misc$new_term_trace
+  if (is.null(tr) || !length(tr)) return(tibble::tibble())
+  tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), new_term = as.numeric(tr))
+}))
+
+if (isTRUE(do_plots) && nrow(newterm_df)) {
+  newterm_df <- newterm_df |>
+    dplyr::filter(iter > k_burn, is.finite(new_term)) |>
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = fmt_p(p_vec)))
+
+  g_newterm <- ggplot2::ggplot(newterm_df, ggplot2::aes(x = iter, y = new_term, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x = "VB iteration", y = "|ΔE[γ]| + |ΔE[σ]|", colour = "p0",
+      title = "LD safeguard term traces across quantile models",
+      subtitle = sprintf("First k=%d iterations omitted", k_burn)
+    ) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
+  print(g_newterm)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(
+      file.path(FIGS, sprintf("new_term_traces_skip_k=%d.png", k_burn)),
+      g_newterm, width = 9, height = 4.8, dpi = 150
+    )
+  }
+}
+
+# --- RHS latent traces (if RHS prior used) -----------------------------------
+rhs_tau_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  fit <- fits_fc[[i]]$fit_train$fit
+  if (is.null(fit) || is.null(fit$beta_prior) || fit$beta_prior$type != "rhs") return(tibble::tibble())
+  tr <- fit$misc$rhs_tau_trace
+  if (is.null(tr) || !length(tr)) return(tibble::tibble())
+  tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), tau = as.numeric(tr))
+}))
+
+rhs_c2_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  fit <- fits_fc[[i]]$fit_train$fit
+  if (is.null(fit) || is.null(fit$beta_prior) || fit$beta_prior$type != "rhs") return(tibble::tibble())
+  tr <- fit$misc$rhs_c2_trace
+  if (is.null(tr) || !length(tr)) return(tibble::tibble())
+  tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), c2 = as.numeric(tr))
+}))
+
+if (isTRUE(do_plots) && nrow(rhs_tau_df) && nrow(rhs_c2_df)) {
+  rhs_tau_df <- rhs_tau_df |> dplyr::filter(iter > k_burn, is.finite(tau)) |>
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = fmt_p(p_vec)))
+  rhs_c2_df <- rhs_c2_df |> dplyr::filter(iter > k_burn, is.finite(c2)) |>
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = fmt_p(p_vec)))
+
+  g_tau <- ggplot2::ggplot(rhs_tau_df, ggplot2::aes(x = iter, y = tau, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(x = "VB iteration", y = "tau", colour = "p0",
+                  title = "RHS tau traces across quantile models",
+                  subtitle = sprintf("First k=%d iterations omitted", k_burn)) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
+  g_c2 <- ggplot2::ggplot(rhs_c2_df, ggplot2::aes(x = iter, y = c2, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(x = "VB iteration", y = "c2", colour = "p0",
+                  title = "RHS c2 traces across quantile models",
+                  subtitle = sprintf("First k=%d iterations omitted", k_burn)) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map)
+
+  print(g_tau); print(g_c2)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(file.path(FIGS, sprintf("rhs_tau_traces_skip_k=%d.png", k_burn)), g_tau, width = 9, height = 4.8, dpi = 150)
+    ggplot2::ggsave(file.path(FIGS, sprintf("rhs_c2_traces_skip_k=%d.png", k_burn)), g_c2, width = 9, height = 4.8, dpi = 150)
+  }
+}
+
+rhs_lambda_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
+  fit <- fits_fc[[i]]$fit_train$fit
+  if (is.null(fit) || is.null(fit$beta_prior) || fit$beta_prior$type != "rhs") return(tibble::tibble())
+  tr_mean <- fit$misc$rhs_lambda_mean_trace
+  tr_min  <- fit$misc$rhs_lambda_min_trace
+  tr_max  <- fit$misc$rhs_lambda_max_trace
+  if (is.null(tr_mean) || !length(tr_mean)) return(tibble::tibble())
+  n_iter <- length(tr_mean)
+  tibble::tibble(
+    p0   = p_vec[i],
+    iter = seq_len(n_iter),
+    lambda_mean = as.numeric(tr_mean[seq_len(n_iter)]),
+    lambda_min  = as.numeric(tr_min[seq_len(n_iter)]),
+    lambda_max  = as.numeric(tr_max[seq_len(n_iter)])
+  )
+}))
+
+if (isTRUE(do_plots) && nrow(rhs_lambda_df)) {
+  rhs_lambda_long <- rhs_lambda_df |>
+    tidyr::pivot_longer(cols = dplyr::starts_with("lambda_"),
+                        names_to = "stat", values_to = "lambda") |>
+    dplyr::mutate(
+      stat = dplyr::recode(stat, lambda_min = "min", lambda_mean = "mean", lambda_max = "max"),
+      p0_chr = factor(fmt_p(p0), levels = fmt_p(p_vec))
+    ) |>
+    dplyr::filter(iter > k_burn, is.finite(lambda))
+
+  g_lambda <- ggplot2::ggplot(rhs_lambda_long,
+                              ggplot2::aes(x = iter, y = lambda, colour = p0_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x = "VB iteration", y = "lambda summary", colour = "p0",
+      title = "RHS lambda summaries across quantile models",
+      subtitle = sprintf("First k=%d iterations omitted", k_burn)
+    ) +
+    ggplot2::geom_line(linewidth = 0.8, alpha = 0.95) +
+    ggplot2::scale_color_manual(values = col_map) +
+    ggplot2::facet_wrap(~ stat, nrow = 1, scales = "free_y")
+
+  print(g_lambda)
+  if (isTRUE(save_outputs)) {
+    ggplot2::ggsave(
+      file.path(FIGS, sprintf("rhs_lambda_summary_traces_skip_k=%d.png", k_burn)),
+      g_lambda, width = 12, height = 4.2, dpi = 150
+    )
+  }
+}
+
 # --- Synthesis (forecast + train) --------------------------------------------
 draws_list_fc <- lapply(fits_fc, function(obj) obj$yrep_fc)
 draws_list_tr <- lapply(fits_fc, function(obj) obj$yrep_tr)
-
-synth_isotonic  <- cfg$synthesis$isotonic  %nz% TRUE
-synth_rearrange <- cfg$synthesis$rearrange %nz% TRUE
-synth_grid_M    <- as.integer((cfg$synthesis$grid_M %||% 2001L))
-synth_nsamp     <- as.integer((cfg$synthesis$n_samp %||% 4000L))
-synth_seed      <- as.integer((cfg$synthesis$seed   %||% 123L))
 
 synth_fc <- timed(sprintf("synthesize_forecast_draws(T=%d,nd=%d,grid_M=%d,n_samp=%d)",
                           H_forecast, nd_draws, synth_grid_M, synth_nsamp),
@@ -708,6 +1615,9 @@ synth_tr <- timed(sprintf("synthesize_train_draws(T=%d,grid_M=%d,n_samp=%d)",
     grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed + 1L, T_expected = T_train_keep
   )
 )
+
+# Canonical comparison grid for synthesis/metrics (same as fitted models)
+p_comp <- p_vec
 
 # Predictive band plots (same names as sim)
 plot_synth_predictive_band <- function(synth_draws, y_vec, scope = "Forecast", window = 50L,
@@ -729,7 +1639,7 @@ plot_synth_predictive_band <- function(synth_draws, y_vec, scope = "Forecast", w
         sprintf("coverage=%s", scales::percent(coverage, 0.1)),
         sprintf("mean width=%.3f", mean_w), sep = " • "
       ),
-      caption = caption_exdqlm(if (scope=="Forecast") last_window else 200L, nd_draws),
+      caption = caption_exdqlm(if (scope=="Forecast") fore_last_window else train_last_window, nd_draws),
       x = "time", y = "value"
     ) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin = q025, ymax = q975),
@@ -742,20 +1652,26 @@ plot_synth_predictive_band <- function(synth_draws, y_vec, scope = "Forecast", w
                                 values = c(data = "#6b7280", median = fill_col))
 }
 
-timed("plot+save synth bands (train+forecast)", {
-  g_band_fc <- plot_synth_predictive_band(synth_draws = synth_fc$draws, y_vec = bt_y(y_fc), 
-                                          scope="Forecast", window = last_window, fill_col = ACCENT_ORANGE, show_median = TRUE)
-  g_band_tr <- plot_synth_predictive_band(synth_draws = synth_tr$draws, y_vec = bt_y(y_tr_keep),
-                                          scope="Train", window = 200L, fill_col = ACCENT_ORANGE, show_median = TRUE)
-  print(g_band_fc); print(g_band_tr)
-  if (isTRUE(save_outputs)) {
-    ggsave(file.path(FIGS, "forecast_obs_with_95_band.png"), g_band_fc, width=9, height=4.8, dpi=150)
-    ggsave(file.path(FIGS, "train_obs_with_95_band.png"),    g_band_tr, width=9, height=4.8, dpi=150)
-  }
-})
+if (isTRUE(do_plots)) {
+  timed("plot+save synth bands (train+forecast)", {
+    g_band_fc <- plot_synth_predictive_band(
+      synth_draws = synth_fc$draws, y_vec = bt_y(y_fc),
+      scope = "Forecast", window = fore_last_window, fill_col = ACCENT_ORANGE, show_median = TRUE
+    )
+    g_band_tr <- plot_synth_predictive_band(
+      synth_draws = synth_tr$draws, y_vec = bt_y(y_tr_keep),
+      scope = "Train", window = train_last_window, fill_col = ACCENT_ORANGE, show_median = TRUE
+    )
+    print(g_band_fc); print(g_band_tr)
+    if (isTRUE(save_outputs)) {
+      ggsave(file.path(FIGS, "forecast_obs_with_95_band.png"), g_band_fc, width=9, height=4.8, dpi=150)
+      ggsave(file.path(FIGS, "train_obs_with_95_band.png"),    g_band_tr, width=9, height=4.8, dpi=150)
+    }
+  })
+}
 
 # --- NEW (minimal): overlay of synthesized vs TRUE quantiles (p in taus) ----
-plot_quantiles_overlay_from_compare <- function(compare_df, taus = c(0.05, 0.50, 0.95),
+plot_quantiles_overlay_from_compare <- function(compare_df, taus = p_comp,
                                                scope = "Forecast", window = 200L) {
   i2 <- max(compare_df$h); i1 <- max(1L, i2 - as.integer(window) + 1L)
   d <- dplyr::filter(compare_df, dplyr::between(h, i1, i2))
@@ -797,6 +1713,7 @@ plot_quantiles_overlay_from_compare <- function(compare_df, taus = c(0.05, 0.50,
 
 
 # --- Calibration (μ, q̂, q_synth): tables + rolling plots (no true) -----------
+if (isTRUE(do_calibration)) {
 wilson_ci <- function(k, n, conf = 0.95) {
   if (n <= 0) return(c(NA_real_, NA_real_))
   z <- stats::qnorm(0.5 + conf/2); p <- k / n
@@ -810,12 +1727,12 @@ pinball_loss <- function(y, qhat, p) { e <- y - qhat; (p - (e < 0)) * e }
 mu_tr_long <- dplyr::bind_rows(purrr::compact(lapply(seq_along(p_vec), function(i) {
   d <- fits_fc[[i]]$df_mu_tr; if (is.null(d) || !nrow(d)) return(NULL)
   keep <- fits_fc[[i]]$fit_train$meta$keep_idx
-  d %>% dplyr::mutate(scope="train", p_chr=sprintf("%.2f", p_vec[i]),
+  d %>% dplyr::mutate(scope="train", p_chr=fmt_p(p_vec[i]),
                       t_aligned=keep, mu_hat=mu)
 })))
 mu_fc_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
   d <- fits_fc[[i]]$df_mu_fc
-  d |> dplyr::mutate(scope = "forecast", p_chr = sprintf("%.2f", p_vec[i]),
+  d |> dplyr::mutate(scope = "forecast", p_chr = fmt_p(p_vec[i]),
                      t_aligned = n_train + h, mu_hat = mu)
 }))
 mu_long <- dplyr::bind_rows(mu_tr_long, mu_fc_long)
@@ -826,7 +1743,7 @@ q_tr_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
   keep <- fits_fc[[i]]$fit_train$meta$keep_idx
   tibble::tibble(
     scope     = "train",
-    p_chr     = sprintf("%.2f", p_vec[i]),
+    p_chr     = fmt_p(p_vec[i]),
     p0        = as.numeric(p_vec[i]),
     t_aligned = keep,
     qhat      = as.numeric(d$q_pred),
@@ -838,7 +1755,7 @@ q_fc_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
   d <- fits_fc[[i]]$df_pred_fc
   tibble::tibble(
     scope     = "forecast",
-    p_chr     = sprintf("%.2f", p_vec[i]),
+    p_chr     = fmt_p(p_vec[i]),
     p0        = as.numeric(p_vec[i]),
     t_aligned = n_train + d$h,
     qhat      = as.numeric(d$q_pred),
@@ -848,8 +1765,6 @@ q_fc_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
 
 q_long <- dplyr::bind_rows(q_tr_long, q_fc_long)
 
-
-p_comp <- c(0.05, 0.50, 0.95)
 synth_cols_fc <- lapply(p_comp, function(tau) apply(synth_fc$draws, 1L, stats::quantile, probs = tau, names = FALSE))
 names(synth_cols_fc) <- paste0("synth_q_", fmt_p(p_comp))
 synth_q_fc <- tibble::as_tibble(synth_cols_fc)
@@ -859,13 +1774,13 @@ names(synth_cols_tr) <- paste0("synth_q_", fmt_p(p_comp))
 synth_q_tr <- tibble::as_tibble(synth_cols_tr)
 
 # Build long frames for synthesized quantiles (train + forecast)
-# We use p_comp = c(0.05, 0.50, 0.95) already defined above.
+# We use p_comp = p_vec already defined above.
 qsynth_tr_long <- dplyr::bind_rows(lapply(seq_along(p_comp), function(j) {
   tau <- p_comp[j]
   col <- paste0("synth_q_", fmt_p(tau))
   tibble::tibble(
     scope     = "train",
-    p_chr     = sprintf("%.2f", tau),
+    p_chr     = fmt_p(tau),
     p0        = as.numeric(tau),
     t_aligned = fits_fc[[1]]$fit_train$meta$keep_idx,
     q_synth   = as.numeric(synth_q_tr[[col]]),
@@ -878,7 +1793,7 @@ qsynth_fc_long <- dplyr::bind_rows(lapply(seq_along(p_comp), function(j) {
   col <- paste0("synth_q_", fmt_p(tau))
   tibble::tibble(
     scope     = "forecast",
-    p_chr     = sprintf("%.2f", tau),
+    p_chr     = fmt_p(tau),
     p0        = as.numeric(tau),
     t_aligned = n_train + seq_len(H_forecast),
     q_synth   = as.numeric(synth_q_fc[[col]]),
@@ -966,7 +1881,7 @@ plot_rolling_cov <- function(df_long, qcol,
   d$lo_cov <- ci$lo; d$hi_cov <- ci$hi
 
   W_lab <- if (any(d$W_use < window, na.rm = TRUE)) paste0("≤", window) else as.character(window)
-  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = sprintf("%.2f", p_vec)))
+  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = fmt_p(p_vec)))
   ref <- d |> dplyr::distinct(scope, p_chr) |> dplyr::mutate(p0 = as.numeric(as.character(p_chr)))
 
   x_rng <- range(d$t_aligned, na.rm = TRUE)
@@ -998,10 +1913,10 @@ plot_rolling_cov <- function(df_long, qcol,
                        ggplot2::aes(x = x_lab, y = y_lab, label = sprintf("%.2f", rcov)),
                        size = 3, hjust = 1) +
     ggplot2::scale_color_manual(name = "quantile p",
-      values = setNames(col_map, sprintf("%.2f", p_vec)),
+      values = setNames(col_map, fmt_p(p_vec)),
       labels = function(x) scales::percent(as.numeric(x))) +
     ggplot2::scale_fill_manual(name = "quantile p",
-      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), sprintf("%.2f", p_vec)),
+      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), fmt_p(p_vec)),
       labels = function(x) scales::percent(as.numeric(x))) +
     ggplot2::scale_y_continuous(breaks = seq(0,1,0.1), labels = scales::percent_format(accuracy = 1)) +
     ggplot2::scale_x_continuous(limits = x_rng, expand = c(0, 0)) +
@@ -1048,8 +1963,10 @@ timed("calibration: rolling coverage plots", {
     ggplot2::ggsave(file.path(FIGS, sprintf("%s%d.png", nm("cov_qsynth_fore_prefix","rolling_cov_qsynth_forecast_W="), cov_window)), g_cov_qsynth_fore, width=9, height=4.8, dpi=150)
   }
 })
+}
 
 # --- PIT diagnostics (median model) -------------------------------------------
+if (isTRUE(do_pit)) {
 emp_pit_vec <- function(y, yrep_mat) { stopifnot(length(y) == nrow(yrep_mat)); rowMeans(sweep(yrep_mat, 1, y, FUN = "<="), na.rm = TRUE) }
 i_med <- which.min(abs(p_vec - 0.50))
 pit_tr <- emp_pit_vec(bt_y(y_tr_keep), fits_fc[[i_med]]$yrep_tr)
@@ -1084,52 +2001,54 @@ timed("PIT: compute + plots + save", {
    ggplot2::ggsave(file.path(FIGS, nm("pit_forecast","pit_forecast.png")), g_pit_forecast, width = 12, height = 4.5, dpi = 150)
   }
 })
-
-# --- Scores: CRPS + mean pinball over p_comp (parity with sim) ----------------
-crps_row <- function(y, z) { z <- sort(z); M <- length(z); mean(abs(z - y)) - sum((2*seq_len(M) - M - 1) * z)/(M^2) }
-crps_vec <- function(y_vec, draws_mat) {
-  stopifnot(length(y_vec) == nrow(draws_mat))
-  vapply(seq_len(nrow(draws_mat)), function(i) crps_row(y_vec[i], draws_mat[i, ]), numeric(1))
 }
 
-crps_fc <- crps_vec(bt_y(y_fc), synth_fc$draws)
-crps_tr <- crps_vec(bt_y(y_tr_keep), synth_tr$draws)
-
-pinball_mean_fc <- rowMeans(vapply(seq_along(p_comp), function(j) {
-  tau <- p_comp[j]; qhat <- apply(synth_fc$draws, 1, stats::quantile, probs = tau, names = FALSE)
-  pinball_loss(bt_y(y_fc), qhat, tau)
-}, numeric(length(y_fc))))
-pinball_mean_tr <- rowMeans(vapply(seq_along(p_comp), function(j) {
-  tau <- p_comp[j]; qhat <- apply(synth_tr$draws, 1, stats::quantile, probs = tau, names = FALSE)
-  pinball_loss(bt_y(y_tr_keep), qhat, tau)
-}, numeric(length(y_tr_keep))))
-
-S_fc <- crps_fc + pinball_mean_fc
-S_tr <- crps_tr + pinball_mean_tr
-
-scores_fc_df <- tibble::tibble(h = seq_len(H_forecast), y = bt_y(y_fc), CRPS = crps_fc, pinball_mean = pinball_mean_fc, S = S_fc)
-scores_tr_df <- tibble::tibble(h = seq_len(T_train_keep), y = bt_y(y_tr_keep), CRPS = crps_tr, pinball_mean = pinball_mean_tr, S = S_tr)
-scores_summary <- tibble::tibble(
-  split = c("train","forecast"),
-  CRPS_mean = c(mean(crps_tr), mean(crps_fc)),
-  PinballMean_mean = c(mean(pinball_mean_tr), mean(pinball_mean_fc)),
-  S_mean = c(mean(S_tr), mean(S_fc))
-)
-
-timed("Scores: write tables", {
-  if (isTRUE(save_outputs)) {
-    readr::write_csv(scores_fc_df,   file.path(TABLES, "scores_forecast_series.csv"))
-    readr::write_csv(scores_tr_df,   file.path(TABLES, "scores_train_series.csv"))
-    readr::write_csv(scores_summary, file.path(TABLES, nm("metrics_summary","metrics_summary.csv")))
+# --- Scores: CRPS + mean pinball over p_comp (parity with sim) ----------------
+if (isTRUE(do_scores)) {
+  crps_row <- function(y, z) { z <- sort(z); M <- length(z); mean(abs(z - y)) - sum((2*seq_len(M) - M - 1) * z)/(M^2) }
+  crps_vec <- function(y_vec, draws_mat) {
+    stopifnot(length(y_vec) == nrow(draws_mat))
+    vapply(seq_len(nrow(draws_mat)), function(i) crps_row(y_vec[i], draws_mat[i, ]), numeric(1))
   }
-})
+
+  crps_fc <- crps_vec(bt_y(y_fc), synth_fc$draws)
+  crps_tr <- crps_vec(bt_y(y_tr_keep), synth_tr$draws)
+
+  pinball_mean_fc <- rowMeans(vapply(seq_along(p_comp), function(j) {
+    tau <- p_comp[j]; qhat <- apply(synth_fc$draws, 1, stats::quantile, probs = tau, names = FALSE)
+    pinball_loss(bt_y(y_fc), qhat, tau)
+  }, numeric(length(y_fc))))
+  pinball_mean_tr <- rowMeans(vapply(seq_along(p_comp), function(j) {
+    tau <- p_comp[j]; qhat <- apply(synth_tr$draws, 1, stats::quantile, probs = tau, names = FALSE)
+    pinball_loss(bt_y(y_tr_keep), qhat, tau)
+  }, numeric(length(y_tr_keep))))
+
+  S_fc <- crps_fc + pinball_mean_fc
+  S_tr <- crps_tr + pinball_mean_tr
+
+  scores_fc_df <- tibble::tibble(h = seq_len(H_forecast), y = bt_y(y_fc), CRPS = crps_fc, pinball_mean = pinball_mean_fc, S = S_fc)
+  scores_tr_df <- tibble::tibble(h = seq_len(T_train_keep), y = bt_y(y_tr_keep), CRPS = crps_tr, pinball_mean = pinball_mean_tr, S = S_tr)
+  scores_summary <- tibble::tibble(
+    split = c("train","forecast"),
+    CRPS_mean = c(mean(crps_tr), mean(crps_fc)),
+    PinballMean_mean = c(mean(pinball_mean_tr), mean(pinball_mean_fc)),
+    S_mean = c(mean(S_tr), mean(S_fc))
+  )
+
+  timed("Scores: write tables", {
+    if (isTRUE(save_outputs)) {
+      readr::write_csv(scores_fc_df,   file.path(TABLES, "scores_forecast_series.csv"))
+      readr::write_csv(scores_tr_df,   file.path(TABLES, "scores_train_series.csv"))
+      readr::write_csv(scores_summary, file.path(TABLES, nm("metrics_summary","metrics_summary.csv")))
+    }
+  })
+}
 
 # --- Save core objects (parity with sim names/keys) ---------------------------
 if (isTRUE(save_outputs)) {
   # For compatibility with sim, build compare_* frames with synth quantiles;
   # include NA placeholders for true_q_* columns so downstream code can reuse keys.
-  make_compare_df <- function(y_vec, synth_q_tbl, H, label="Forecast") {
-    p_comp <- c(0.05, 0.50, 0.95)
+  make_compare_df <- function(y_vec, synth_q_tbl, H, p_comp, label="Forecast") {
     synth_cols <- lapply(p_comp, function(tau) synth_q_tbl[[paste0("synth_q_", fmt_p(tau))]])
     names(synth_cols) <- paste0("synth_q_", fmt_p(p_comp))
     true_cols <- setNames(replicate(length(p_comp), rep(NA_real_, H), simplify = FALSE),
@@ -1138,27 +2057,31 @@ if (isTRUE(save_outputs)) {
       dplyr::bind_cols(as_tibble(true_cols)) |>
       dplyr::bind_cols(as_tibble(synth_cols))
   }
-  compare_fc <- make_compare_df(bt_y(y_fc),      synth_q_fc, H_forecast,    "Forecast")
-  compare_tr <- make_compare_df(bt_y(y_tr_keep), synth_q_tr, T_train_keep,  "Train")
+  compare_fc <- make_compare_df(bt_y(y_fc),      synth_q_fc, H_forecast,   p_comp, "Forecast")
+  compare_tr <- make_compare_df(bt_y(y_tr_keep), synth_q_tr, T_train_keep, p_comp, "Train")
 
   # --- Minimal canonical overlay (TRAIN) --------------------------
   g_q_overlay_tr <- plot_quantiles_overlay_from_compare(
-    compare_df = compare_tr, taus = p_comp, scope = "Train", window = 200L
+    compare_df = compare_tr, taus = p_comp, scope = "Train", window = train_last_window
   )
-  print(g_q_overlay_tr)
-  if (isTRUE(save_outputs)) {
-    fn <- file.path(FIGS, "train_quantiles_overlay.png")
-    if (!file.exists(fn)) ggplot2::ggsave(fn, g_q_overlay_tr, width=9, height=4.8, dpi=150)
+  if (isTRUE(do_plots)) {
+    print(g_q_overlay_tr)
+    if (isTRUE(save_outputs)) {
+      fn <- file.path(FIGS, "train_quantiles_overlay.png")
+      if (!file.exists(fn)) ggplot2::ggsave(fn, g_q_overlay_tr, width=9, height=4.8, dpi=150)
+    }
   }
 
   # --- Minimal canonical overlay (FORECAST) -----------------------
   g_q_overlay_fc <- plot_quantiles_overlay_from_compare(
-    compare_df = compare_fc, taus = p_comp, scope = "Forecast", window = last_window
+    compare_df = compare_fc, taus = p_comp, scope = "Forecast", window = fore_last_window
   )
-  print(g_q_overlay_fc)
-  if (isTRUE(save_outputs)) {
-    fn <- file.path(FIGS, "forecast_quantiles_overlay.png")
-    if (!file.exists(fn)) ggplot2::ggsave(fn, g_q_overlay_fc, width=9, height=4.8, dpi=150)
+  if (isTRUE(do_plots)) {
+    print(g_q_overlay_fc)
+    if (isTRUE(save_outputs)) {
+      fn <- file.path(FIGS, "forecast_quantiles_overlay.png")
+      if (!file.exists(fn)) ggplot2::ggsave(fn, g_q_overlay_fc, width=9, height=4.8, dpi=150)
+    }
   }
 
   saveRDS(
@@ -1169,12 +2092,22 @@ if (isTRUE(save_outputs)) {
       compare_tr = compare_tr,
       cfg = list(
         p_vec = p_vec, desn_args = desn_args, vb_args_base = vb_args_base,
-        nd_draws = nd_draws, chunk_sz = chunk_sz, last_window = last_window,
+        nd_draws = nd_draws, chunk_sz = chunk_sz,
+        last_window          = fore_last_window,
+        last_window_train    = train_last_window,
+        last_window_forecast = fore_last_window,
         teacher_forcing = list(enable = tf_enable, first_k = tf_first_k,
                                explicit = NULL, y_future_obs_fc = y_future_obs_fc),
         synth = list(isotonic = synth_isotonic, rearrange = synth_rearrange,
                      grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed),
-        split = list(T_use = T_use, n_train = n_train, H_forecast = H_forecast)
+        split = list(T_use = T_use, n_train = n_train, H_forecast = H_forecast),
+        ij = list(use_ij_correction = use_ij_correction, nd_draws = ij_nd_draws),
+        outputs = list(save = save_outputs, keep_draws = keep_draws, thesis_subset = thesis_subset),
+        vb_priors = list(
+          beta_type = vb_prior_beta_type,
+          beta_ridge_tau2 = vb_prior_beta_tau2,
+          beta_rhs = vb_prior_beta_rhs
+        )
       )
     ),
     file.path(MODELS, nm("objects_rds","forecast_objects.rds"))
