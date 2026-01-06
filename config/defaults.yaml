@@ -33,10 +33,10 @@ pipeline:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [300, 300, 300]         # units per layer (length D)
-  n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
-  m: 30                     # number of lags in u_t
-  alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
+  n: [1000, 1000, 1000]         # units per layer (length D)
+  n_tilde: [1000, 1000]        # skip/reducer sizes (length D-1 when D>1)
+  m: 180                     # number of lags in u_t
+  alpha: [0.4, 0.4, 0.4]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"]     # output activation per layer
@@ -59,9 +59,9 @@ vb:
       ridge:
         tau2: 10000
       rhs:
-        tau0: 500
+        tau0: 1000
         nu: 4.0
-        s2: 2
+        s2: 1
         shrink_intercept: false
         intercept_prec: 1.0e-16
         n_inner: 1
@@ -73,8 +73,8 @@ vb:
         var_floor: 1.0e-8
         verbose: false
         init_log_lambda: 0.0
-        init_log_tau: 0.69
-        init_log_c2: 2.71
+        init_log_tau: 0.0
+        init_log_c2: 0.0
 
 # --------------------------------------------------------------------
 # Sampling defaults (posterior / predictive)
