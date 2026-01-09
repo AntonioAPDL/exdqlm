@@ -47,8 +47,6 @@ sampling:
 
 forecast:
   last_window: 200
-  rolling_origin: true
-  H_step: 1
   train_last_window: 200
   fore_last_window: 200
   coverage_report: "global"

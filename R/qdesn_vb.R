@@ -94,6 +94,21 @@ qdesn_fit_vb <- function(
   alpha_vec <- if (length(alpha) == 1L) rep(as.numeric(alpha), D) else as.numeric(alpha)
   stopifnot(length(alpha_vec) == D, all(alpha_vec > 0), all(alpha_vec < 1))
 
+  # sparsity: scalar or length-D vector
+  pi_w  <- as.numeric(pi_w)
+  pi_in <- as.numeric(pi_in)
+  if (length(pi_w) == 1L)  pi_w  <- rep(pi_w,  D)
+  if (length(pi_in) == 1L) pi_in <- rep(pi_in, D)
+  if (length(pi_w) != D || length(pi_in) != D) {
+    stop("pi_w and pi_in must be length 1 or length D.", call. = FALSE)
+  }
+  if (any(!is.finite(pi_w))  || any(pi_w  <= 0 | pi_w  > 1)) {
+    stop("pi_w must be in (0,1].", call. = FALSE)
+  }
+  if (any(!is.finite(pi_in)) || any(pi_in <= 0 | pi_in > 1)) {
+    stop("pi_in must be in (0,1].", call. = FALSE)
+  }
+
   # per-lag scaling
   if (!is.null(win_scale_lags)) {
     stopifnot(length(win_scale_lags) == m)
@@ -189,13 +204,13 @@ qdesn_fit_vb <- function(
   Qred<- vector("list", max(0, D - 1))
 
   # Layer 1: input size m+1 (includes constant)
-  Win[[1]] <- make_sparse_weights(n[1], m + 1L, pi_in, in_dist)
-  W[[1]]   <- make_sparse_weights(n[1], n[1], pi_w,  w_dist)
+  Win[[1]] <- make_sparse_weights(n[1], m + 1L, pi_in[1], in_dist)
+  W[[1]]   <- make_sparse_weights(n[1], n[1], pi_w[1],  w_dist)
 
   if (D >= 2L) {
     for (d in 2:D) {
-      Win[[d]] <- make_sparse_weights(n[d], n_tilde[d - 1], pi_in, in_dist)
-      W[[d]]   <- make_sparse_weights(n[d], n[d], pi_w,  w_dist)
+      Win[[d]] <- make_sparse_weights(n[d], n_tilde[d - 1], pi_in[d], in_dist)
+      W[[d]]   <- make_sparse_weights(n[d], n[d], pi_w[d],  w_dist)
       Qred[[d - 1]] <- make_reducer(n[d - 1], n_tilde[d - 1])
     }
   }
@@ -530,34 +545,33 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
   X_use <- if (is.null(X_new)) object$X else as.matrix(X_new)
   exal_vb_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk)
 }
-#' Multi-horizon posterior predictive for a Q-DESN fit (fast & memory-light)
+#' Multi-horizon posterior predictive paths for a Q-DESN fit
 #'
-#' Two modes:
-#' - method="recursive" (default): per-draw, per-quantile recursive simulation.
-#'   Each posterior draw has its own path; future lags use the already simulated y for that draw.
-#' - method="shared": cheap plug-in that rolls a single deterministic anchor path and
-#'   samples only the readout noise (useful for speed-diagnostics; not for selection).
+#' Generates per-draw recursive paths using exAL posterior predictive sampling.
+#' The readout design can include reservoir features, y-lags, and exogenous lags
+#' described by `readout_spec`. This is the core primitive used by the lattice
+#' forecaster.
 #'
-#' This version reduces allocations by:
-#'   • precomputing the exogenous input blocks for all horizons once;
-#'   • chunking *noise* generation (no giant H×nd matrices);
-#'   • avoiding repeated length checks / conversions in inner loops;
-#'   • reusing small scratch objects where safe.
+#' Note: `method`, `anchor`, `anchor_path`, and `return_design` are retained for
+#' backward compatibility but are ignored; only recursive sampling is used.
 #'
 #' @param object   qdesn_fit (from qdesn_fit_vb)
 #' @param H        integer forecast horizon (>0)
-#' @param nd       number of posterior-predictive draws
-#' @param method   c("recursive","shared")
-#' @param anchor   ("vb-mean"|"user") for method="shared" only
+#' @param nd       number of posterior-predictive draws (ignored if `draws` is supplied)
+#' @param method   deprecated; ignored (kept for compatibility)
+#' @param anchor   deprecated; ignored
 #' @param y_hist   optional last m observed y's (chronological, oldest->newest);
 #'                 if NULL and m>0 uses last m of object$y_fit
-#' @param anchor_path optional length>=H numeric when method="shared" & anchor="user"
+#' @param anchor_path deprecated; ignored
 #' @param xreg_hist,xreg_future optional named lists of exogenous histories/futures
-#' @param y_future_obs optional numeric length H with realized values (teacher-forcing; NA for unknown)
+#' @param y_future_obs optional numeric length H with realized values (non-NA values are treated as observed)
 #' @param chunk    process draws in chunks to cap memory (defaults 256)
 #' @param seed     RNG seed for predictive noise (optional)
-#' @param return_design logical; for method="shared" returns X_future (H x p_res).
-#' @return list with yrep (H x nd), mu_draws (H x nd), and anchor_path/X_future when applicable
+#' @param return_design deprecated; ignored
+#' @param origin_state optional list of reservoir states at the forecast origin
+#' @param readout_spec list with y_lags, x_names, x_lags, p_res, scale_info
+#' @param draws optional posterior draws list from exal_vb_posterior_draws()
+#' @return list with yrep (H x nd) and mu_draws (H x nd)
 #' @export
 forecast_paths.qdesn_fit <- function(
   object, H,
@@ -571,11 +585,21 @@ forecast_paths.qdesn_fit <- function(
   y_future_obs = NULL,
   chunk = 256L,
   seed = NULL,
-  return_design = FALSE
+  return_design = FALSE,
+  origin_state = NULL,
+  readout_spec = NULL,
+  draws = NULL
 ) {
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   method <- match.arg(method)
   anchor <- match.arg(anchor)
+  if (!identical(method, "recursive")) {
+    warning("forecast_paths.qdesn_fit: 'method' is deprecated; using recursive sampling.")
+  }
+
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+
+  if (!is.null(seed)) set.seed(as.integer(seed))
 
   # --- observed future y (teacher-forcing mask) ---
   if (is.null(y_future_obs)) {
@@ -585,19 +609,86 @@ forecast_paths.qdesn_fit <- function(
     y_obs_vec <- as.numeric(y_future_obs)
   }
 
-  `%||%` <- function(a, b) if (is.null(a)) b else a
-
   # ---------- pull metadata & reservoir ----------
-  meta <- object$meta
+  meta <- object$meta %||% list()
   res  <- object$reservoir
   D    <- as.integer(meta$D)
-  n    <- res$n
-  m    <- as.integer(meta$m)
+  m_res <- as.integer(meta$m %||% 0L)
   add_bias <- isTRUE(meta$add_bias)
-  p_res    <- as.integer(meta$p_res %||% ncol(object$X))  # safety fallback
 
-  # Layer-1 input width check: Win[[1]] must match 1 + m + total_exog_lags
-  .ncol_Win1 <- ncol(res$Win[[1]])
+  # ---------- readout spec ----------
+  spec <- readout_spec %||% meta$readout_spec %||% list()
+  y_lags <- as.integer(spec$y_lags %||% integer(0))
+  x_names <- as.character(spec$x_names %||% character(0))
+  x_lags  <- spec$x_lags %||% list()
+  p_res <- as.integer(spec$p_res %||% meta$p_res %||% ncol(object$X))
+  scale_info <- spec$scale_info %||% meta$readout_scale %||% object$fit$misc$readout_scale
+
+  if (!length(x_names)) {
+    x_lags <- list()
+  } else if (!is.list(x_lags)) {
+    x_lags <- rep(list(as.integer(x_lags)), length(x_names))
+    names(x_lags) <- x_names
+  } else {
+    if (is.null(names(x_lags)) && length(x_lags) == length(x_names)) {
+      names(x_lags) <- x_names
+    }
+    for (nm in x_names) {
+      if (is.null(x_lags[[nm]])) x_lags[[nm]] <- integer(0)
+      x_lags[[nm]] <- as.integer(x_lags[[nm]])
+    }
+  }
+
+  max_y_lag <- max(c(0L, m_res, y_lags))
+
+  if (is.null(y_hist)) y_hist <- object$y_fit
+  y_hist <- as.numeric(y_hist)
+  if (length(y_hist) < max_y_lag) {
+    stop(sprintf("forecast_paths: need at least %d y values before origin, got %d.",
+                 max_y_lag, length(y_hist)))
+  }
+  y_hist0 <- if (max_y_lag > 0L) tail(y_hist, max_y_lag) else numeric(0)
+
+  lag_vals <- function(hist, lags) {
+    if (!length(lags)) return(numeric(0))
+    n <- length(hist)
+    if (max(lags) > n) stop("lag_vals: history too short for requested lags.")
+    vapply(lags, function(L) hist[n - L + 1L], numeric(1))
+  }
+
+  # ---------- exogenous history/future (readout only) ----------
+  if (length(x_names)) {
+    stopifnot(is.list(xreg_hist), is.list(xreg_future))
+    x_hist <- list()
+    x_future <- list()
+    for (nm in x_names) {
+      lags_nm <- x_lags[[nm]]
+      max_lag <- if (length(lags_nm)) max(lags_nm) else 0L
+      xh <- xreg_hist[[nm]]
+      xf <- xreg_future[[nm]]
+      if (is.null(xh) || is.null(xf)) stop("forecast_paths: missing xreg_hist/future for ", nm)
+      if (max_lag > 0L && length(xh) < max_lag) stop("forecast_paths: not enough xreg_hist for ", nm)
+      if (length(xf) < H) stop("forecast_paths: xreg_future for ", nm, " must have length >= H.")
+      x_hist[[nm]] <- if (max_lag > 0L) tail(as.numeric(xh), max_lag) else numeric(0)
+      x_future[[nm]] <- as.numeric(xf)
+    }
+
+    x_blocks <- vector("list", H)
+    for (h in seq_len(H)) {
+      block <- numeric(0)
+      for (nm in x_names) {
+        lags_nm <- x_lags[[nm]]
+        if (!length(lags_nm)) next
+        vec <- c(x_hist[[nm]], x_future[[nm]][seq_len(h)])
+        n <- length(vec)
+        vals <- vapply(lags_nm, function(L) vec[n - L], numeric(1))
+        block <- c(block, vals)
+      }
+      x_blocks[[h]] <- block
+    }
+  } else {
+    x_blocks <- rep(list(numeric(0)), H)
+  }
 
   # activations
   get_act <- function(a) {
@@ -611,7 +702,7 @@ forecast_paths.qdesn_fit <- function(
   f_act <- get_act(res$act_f)
   k_act <- get_act(res$act_k)
 
-  # training-time input preprocessing
+  # training-time input preprocessing (reservoir only)
   lag_center <- meta$lag_center %||% 0
   lag_scale  <- meta$lag_scale  %||% 1
   standardize_inputs <- isTRUE(meta$standardize_inputs)
@@ -627,84 +718,12 @@ forecast_paths.qdesn_fit <- function(
     z
   }
 
-  # ---------- Exogenous specification (generic) ----------
-  exog <- meta$exog
-  if (is.null(exog)) {
-    # Legacy fallback: treat as no-exogenous if not stored at fit-time.
-    exog <- list(names = character(0), lags = integer(0))
-  }
-  stopifnot(is.list(exog), is.character(exog$names), is.numeric(exog$lags))
-  exog$lags <- as.integer(exog$lags)
-  stopifnot(length(exog$names) == length(exog$lags))
-  total_exog_lags <- sum(pmax(0L, exog$lags))
-
-  expected_u_cols <- 1L + m + total_exog_lags
-  if (.ncol_Win1 != expected_u_cols) {
-    stop("Dimension mismatch: Win[[1]] has ", .ncol_Win1, " input columns, ",
-         "but forecast expects 1 + m + sum(exog lags) = ", expected_u_cols,
-         ". Ensure training & forecasting agree on exogenous lag spec.")
-  }
-
-  # ---------- Histories ----------
-  if (m > 0L) {
-    if (is.null(y_hist)) {
-      stopifnot(length(object$y_fit) >= m)
-      y_hist <- tail(object$y_fit, m)
+  make_u <- function(y_hist_vec) {
+    if (m_res > 0L) {
+      lags <- process_lags(rev(tail(y_hist_vec, m_res)))
+      nb   <- lags
     } else {
-      stopifnot(length(y_hist) >= m)
-      y_hist <- tail(y_hist, m)
-    }
-  } else {
-    y_hist <- numeric(0)
-  }
-
-  if (length(exog$names)) {
-    stopifnot(is.list(xreg_hist), is.list(xreg_future))
-    for (k in seq_along(exog$names)) {
-      nm <- exog$names[k]; L <- exog$lags[k]
-      if (L <= 0L) next
-      stopifnot(nm %in% names(xreg_hist), nm %in% names(xreg_future))
-      stopifnot(is.numeric(xreg_hist[[nm]]),  length(xreg_hist[[nm]])  >= L)
-      stopifnot(is.numeric(xreg_future[[nm]]), length(xreg_future[[nm]]) >= H)
-      xreg_hist[[nm]] <- tail(xreg_hist[[nm]], L)
-    }
-  } else {
-    xreg_hist   <- list()
-    xreg_future <- list()
-  }
-
-  # ---------- Precompute exogenous blocks u_ex(h) ONCE (avoids per-draw rebuilds) ----------
-  if (length(exog$names)) {
-    u_ex_list <- vector("list", H)
-    for (h in seq_len(H)) {
-      out <- numeric(0)
-      for (k in seq_along(exog$names)) {
-        nm <- exog$names[k]; L <- exog$lags[k]
-        if (L <= 0L) next
-        vec  <- c(xreg_hist[[nm]], xreg_future[[nm]][seq_len(h)])
-        out  <- c(out, rev(tail(vec, L)))  # most-recent-first
-      }
-      # apply post-concatenation bound (matches training) only to non-bias entries later
-      u_ex_list[[h]] <- out
-    }
-  } else {
-    # keep an empty placeholder; branchless below
-    empty <- numeric(0); u_ex_list <- rep(list(empty), H)
-  }
-
-  # states at forecast origin = last training states
-  H_all  <- object$states$H_all
-  Qred   <- res$Q
-  h_last <- lapply(seq_len(D), function(d) { Hd <- H_all[[d]]; Hd[nrow(Hd), ] })
-
-  # ----- helpers -----
-  make_u <- function(y_hist_vec, u_ex_block) {
-    # Build u_t = (1, y-lags, exog-block) and apply training-time transforms.
-    if (m) {
-      lags <- process_lags(rev(tail(y_hist_vec, m)))
-      nb   <- if (length(u_ex_block)) c(lags, u_ex_block) else lags
-    } else {
-      nb   <- u_ex_block
+      nb   <- numeric(0)
     }
     if (identical(input_bound, "tanh") && length(nb)) nb <- base::tanh(nb)
     u <- c(1, nb)
@@ -722,7 +741,7 @@ forecast_paths.qdesn_fit <- function(
     omega1 <- f_act(pre1)
     h1     <- (1 - res$alpha[1]) * h_prev[[1]] + res$alpha[1] * omega1
     h_new[[1]] <- h1
-    if (D >= 2L) htil[[1]] <- Qred[[1]] %*% h1
+    if (D >= 2L) htil[[1]] <- res$Q[[1]] %*% h1
 
     # layers 2..D
     if (D >= 2L) {
@@ -731,7 +750,7 @@ forecast_paths.qdesn_fit <- function(
         omega <- f_act(pre)
         hd    <- (1 - res$alpha[d]) * h_prev[[d]] + res$alpha[d] * omega
         h_new[[d]] <- hd
-        if (d < D) htil[[d]] <- Qred[[d]] %*% hd
+        if (d < D) htil[[d]] <- res$Q[[d]] %*% hd
       }
     }
 
@@ -747,93 +766,30 @@ forecast_paths.qdesn_fit <- function(
     list(h = h_new, x_res = x_res)
   }
 
-  # ======== SHARED mode (deterministic design path + chunked noise) ========
-  if (identical(method, "shared")) {
-    X_future <- matrix(NA_real_, nrow = H, ncol = p_res)
-    y_anchor <- numeric(H)
-    y_hist_work <- y_hist
-    h_now <- h_last
-    beta_mean <- as.numeric(object$fit$qbeta$m)
-
-    for (h in seq_len(H)) {
-      u_h <- make_u(y_hist_work, u_ex_list[[h]])
-      step  <- forward_one(h_now, u_h)
-      h_now <- step$h
-      x_row <- step$x_res
-      if (h == 1L && length(x_row) != p_res) {
-        stop("Readout feature length mismatch: got ", length(x_row),
-             " but training X has ", p_res, ". Check reservoir sizes/reducers/bias.")
-      }
-      X_future[h, ] <- x_row
-
-      # anchor (teacher-forced if provided)
-      y_hat <- if (!is.na(y_obs_vec[h])) {
-        y_obs_vec[h]
-      } else if (identical(anchor, "vb-mean")) {
-        sum(x_row * beta_mean)
-      } else {
-        stopifnot(!is.null(anchor_path), length(anchor_path) >= H)
-        anchor_path[h]
-      }
-      y_anchor[h] <- y_hat
-      if (m) y_hist_work <- c(y_hist_work, y_hat)
+  if (is.null(origin_state)) {
+    if (!is.null(object$states$H_all)) {
+      origin_state <- lapply(seq_len(D), function(d) { Hd <- object$states$H_all[[d]]; Hd[nrow(Hd), ] })
+    } else if (!is.null(object$states$H_last)) {
+      origin_state <- object$states$H_last
+    } else {
+      stop("forecast_paths: origin_state missing and no states in object.")
     }
-
-    if (!is.null(seed)) set.seed(as.integer(seed))
-    draws <- exal_vb_posterior_draws(object$fit, nd = nd)
-    Bdraw <- draws$beta
-    sdraw <- draws$sigma
-    gdraw <- draws$gamma
-    p0    <- object$fit$misc$p0
-    A_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$A, numeric(1))
-    B_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$B, numeric(1))
-    lam_d <- vapply(gdraw, function(g) {
-      abc <- exal_get_ABC(p0 = p0, gamma = g)
-      abc$C * abs(g)
-    }, numeric(1))
-
-    yrep     <- matrix(NA_real_, H, nd)
-    mu_draws <- matrix(NA_real_, H, nd)
-
-    ids_list <- split(seq_len(nd), ceiling(seq_len(nd) / as.integer(chunk)))
-    for (ids in ids_list) {
-      mm  <- length(ids)
-      Bc  <- t(Bdraw[ids, , drop = FALSE])  # p x mm
-      mu  <- X_future %*% Bc                # H x mm
-      mu_draws[, ids] <- mu
-
-      # Generate noise ONCE per chunk (no H*nd giant matrices)
-      s_mat <- matrix(abs(rnorm(H * mm)), H, mm)
-      v_mat <- matrix(rexp(H * mm, rate = rep(1 / sdraw[ids], each = H)), H, mm)
-      z_mat <- matrix(rnorm(H * mm), H, mm)
-
-      term_s <- sweep(s_mat, 2L, lam_d[ids] * sdraw[ids], `*`)
-      term_v <- sweep(v_mat, 2L, A_d[ids],                   `*`)
-      sd_mat <- sqrt(sweep(v_mat, 2L, B_d[ids] * sdraw[ids], `*`))
-      yrep[, ids] <- mu + term_s + term_v + sd_mat * z_mat
-
-      # teacher-forcing overwrite (vectorized for the chunk)
-      if (any(!is.na(y_obs_vec))) {
-        obs_rows <- which(!is.na(y_obs_vec))
-        if (length(obs_rows)) {
-          yrep[obs_rows, ids] <- matrix(y_obs_vec[obs_rows], nrow = length(obs_rows), ncol = mm)
-        }
-      }
-    }
-
-    out <- list(yrep = yrep, mu_draws = mu_draws, anchor_path = y_anchor)
-    if (isTRUE(return_design)) out$X_future <- X_future
-    return(out)
   }
 
-  # ======== RECURSIVE mode (default; per-draw paths; chunked noise) ========
-  if (!is.null(seed)) set.seed(as.integer(seed))
-  draws <- exal_vb_posterior_draws(object$fit, nd = nd)
-  Bdraw <- draws$beta  # nd x p
+  if (is.null(draws)) {
+    draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+  }
+  Bdraw <- draws$beta
   sdraw <- draws$sigma
   gdraw <- draws$gamma
-  p0    <- object$fit$misc$p0
+  if (is.null(Bdraw) || !is.matrix(Bdraw)) stop("forecast_paths: missing beta draws.")
 
+  nd_eff <- nrow(Bdraw)
+  if (length(sdraw) != nd_eff || length(gdraw) != nd_eff) {
+    stop("forecast_paths: draw lengths do not match beta draws.")
+  }
+
+  p0    <- object$fit$misc$p0
   A_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$A, numeric(1))
   B_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$B, numeric(1))
   lam_d <- vapply(gdraw, function(g) {
@@ -841,46 +797,251 @@ forecast_paths.qdesn_fit <- function(
     abc$C * abs(g)
   }, numeric(1))
 
-  yrep     <- matrix(NA_real_, H, nd)
-  mu_draws <- matrix(NA_real_, H, nd)
+  yrep     <- matrix(NA_real_, H, nd_eff)
+  mu_draws <- matrix(NA_real_, H, nd_eff)
 
-  ids_list <- split(seq_len(nd), ceiling(seq_len(nd) / as.integer(chunk)))
+  ids_list <- split(seq_len(nd_eff), ceiling(seq_len(nd_eff) / as.integer(chunk)))
   for (ids in ids_list) {
     for (j in ids) {
-      # per-draw state & history
-      h_now        <- h_last
-      y_hist_work  <- y_hist
+      h_now        <- origin_state
+      y_hist_work  <- y_hist0
 
-      # generate this draw's H-length noises once
       s_vec <- abs(rnorm(H))
       v_vec <- rexp(H, rate = 1 / sdraw[j])
       z_vec <- rnorm(H)
 
       for (h in seq_len(H)) {
-        u_h   <- make_u(y_hist_work, u_ex_list[[h]])
+        u_h   <- make_u(y_hist_work)
         step  <- forward_one(h_now, u_h)
         h_now <- step$h
-        x_row <- step$x_res
+        x_res <- step$x_res
 
-        if (h == 1L && length(x_row) != p_res) {
-          stop("Readout feature length mismatch: got ", length(x_row),
-               " but training X has ", p_res, ". Check reservoir sizes/reducers/bias.")
+        if (h == 1L && length(x_res) != p_res) {
+          stop("Readout feature length mismatch: got ", length(x_res),
+               " but expected p_res=", p_res, ".")
+        }
+
+        y_lag_vec <- lag_vals(y_hist_work, y_lags)
+        x_row <- c(x_res, y_lag_vec, x_blocks[[h]])
+        if (!is.null(scale_info)) {
+          x_row <- readout_scale_apply(matrix(x_row, nrow = 1), scale_info)[1, ]
+        }
+
+        if (h == 1L && length(x_row) != ncol(Bdraw)) {
+          stop("Readout length mismatch: got ", length(x_row),
+               " but beta has ", ncol(Bdraw), " columns.")
         }
 
         mu_h <- sum(x_row * Bdraw[j, ])
         mu_draws[h, j] <- mu_h
 
         y_h <- if (!is.na(y_obs_vec[h])) {
-          y_obs_vec[h]  # teacher-forced value
+          y_obs_vec[h]
         } else {
-          mu_h + (lam_d[j] * sdraw[j]) * s_vec[h] + A_d[j] * v_vec[h] + sqrt(B_d[j] * sdraw[j] * v_vec[h]) * z_vec[h]
+          mu_h + (lam_d[j] * sdraw[j]) * s_vec[h] +
+            A_d[j] * v_vec[h] + sqrt(B_d[j] * sdraw[j] * v_vec[h]) * z_vec[h]
         }
 
         yrep[h, j] <- y_h
-        if (m) y_hist_work <- c(y_hist_work, y_h)
+        if (max_y_lag > 0L) {
+          y_hist_work <- c(y_hist_work, y_h)
+          if (length(y_hist_work) > max_y_lag) y_hist_work <- tail(y_hist_work, max_y_lag)
+        }
       }
     }
   }
 
   list(yrep = yrep, mu_draws = mu_draws)
+}
+
+#' Lattice multi-step forecasts for a Q-DESN fit using posterior predictive draws
+#' @param object qdesn_fit (from qdesn_fit_vb or compatible structure)
+#' @param y_all numeric vector of observed y values (length >= max(origins))
+#' @param origins integer vector of forecast origins (absolute indices into y_all)
+#' @param H forecast horizon (steps ahead)
+#' @param nd number of posterior draws per origin
+#' @param xreg_all optional named list of exogenous series (length >= max(origins)+H)
+#' @param y_obs_last last observed y index (defaults to length(y_all))
+#' @param lead_weights optional numeric vector length H (base weights by lead)
+#' @param mix_nd number of mixture draws per target (defaults to nd)
+#' @param keep_origin_draws if FALSE, drop per-origin draws after mixture
+#' @return list with per-origin draws (optional) and mixture draws per target
+#' @export
+forecast_lattice.qdesn_fit <- function(
+  object, y_all, origins, H,
+  nd = 1000L,
+  xreg_all = NULL,
+  y_obs_last = NULL,
+  lead_weights = NULL,
+  mix_nd = NULL,
+  chunk = 256L,
+  seed = NULL,
+  keep_origin_draws = TRUE
+) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+
+  stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
+  origins <- as.integer(origins)
+  y_all <- as.numeric(y_all)
+
+  if (is.null(y_obs_last)) y_obs_last <- length(y_all)
+  y_obs_last <- as.integer(y_obs_last)
+  if (max(origins) > y_obs_last) {
+    stop("forecast_lattice: origins exceed last observed y index.")
+  }
+
+  meta <- object$meta %||% list()
+  D <- as.integer(meta$D)
+
+  spec <- meta$readout_spec %||% list()
+  y_lags <- as.integer(spec$y_lags %||% integer(0))
+  x_names <- as.character(spec$x_names %||% character(0))
+  x_lags  <- spec$x_lags %||% list()
+
+  if (!length(x_names)) {
+    x_lags <- list()
+  } else if (!is.list(x_lags)) {
+    x_lags <- rep(list(as.integer(x_lags)), length(x_names))
+    names(x_lags) <- x_names
+  } else {
+    if (is.null(names(x_lags)) && length(x_lags) == length(x_names)) {
+      names(x_lags) <- x_names
+    }
+    for (nm in x_names) {
+      if (is.null(x_lags[[nm]])) x_lags[[nm]] <- integer(0)
+      x_lags[[nm]] <- as.integer(x_lags[[nm]])
+    }
+  }
+
+  max_y_lag <- max(c(0L, as.integer(meta$m %||% 0L), y_lags))
+
+  if (!length(x_names)) {
+    xreg_all <- NULL
+  } else {
+    if (is.null(xreg_all) || !is.list(xreg_all)) {
+      stop("forecast_lattice: xreg_all is required when exogenous variables are present.")
+    }
+    for (nm in x_names) {
+      if (is.null(xreg_all[[nm]])) stop("forecast_lattice: missing xreg_all for ", nm)
+      if (length(xreg_all[[nm]]) < max(origins) + H) {
+        stop("forecast_lattice: xreg_all for ", nm, " must have length >= max(origin)+H.")
+      }
+    }
+  }
+
+  base_w <- if (!is.null(lead_weights)) as.numeric(lead_weights) else rep(1, H)
+  if (length(base_w) == 1L && H > 1L) base_w <- rep(base_w, H)
+  if (length(base_w) != H) stop("forecast_lattice: lead_weights must have length H.")
+  if (any(!is.finite(base_w)) || any(base_w < 0)) stop("forecast_lattice: lead_weights must be nonnegative.")
+
+  if (is.null(mix_nd)) mix_nd <- nd
+  mix_nd <- as.integer(mix_nd)
+  if (mix_nd < 1L) stop("forecast_lattice: mix_nd must be >= 1.")
+
+  if (!is.null(seed)) set.seed(as.integer(seed))
+  draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+  nd_eff <- nrow(draws$beta)
+
+  yrep_list <- vector("list", length(origins))
+  mu_list   <- vector("list", length(origins))
+
+  for (i in seq_along(origins)) {
+    tau <- origins[i]
+
+    if (length(y_all) < tau) stop("forecast_lattice: y_all too short for origin.")
+    if (max_y_lag > 0L && tau < max_y_lag) stop("forecast_lattice: origin too early for lag requirements.")
+
+    y_hist <- if (max_y_lag > 0L) tail(y_all[seq_len(tau)], max_y_lag) else numeric(0)
+
+    xreg_hist <- NULL
+    xreg_future <- NULL
+    if (length(x_names)) {
+      xreg_hist <- list()
+      xreg_future <- list()
+      for (nm in x_names) {
+        lags_nm <- x_lags[[nm]]
+        max_lag <- if (length(lags_nm)) max(lags_nm) else 0L
+        xvec <- as.numeric(xreg_all[[nm]])
+        xreg_hist[[nm]] <- if (max_lag > 0L) tail(xvec[seq_len(tau)], max_lag) else numeric(0)
+        xreg_future[[nm]] <- xvec[(tau + 1L):(tau + H)]
+      }
+    }
+
+    origin_state <- if (!is.null(object$states$H_all)) {
+      lapply(seq_len(D), function(d) { Hd <- object$states$H_all[[d]]; Hd[tau, ] })
+    } else {
+      stop("forecast_lattice: object$states$H_all is required for origin states.")
+    }
+
+    out <- forecast_paths.qdesn_fit(
+      object, H = H, nd = nd_eff,
+      y_hist = y_hist,
+      xreg_hist = xreg_hist,
+      xreg_future = xreg_future,
+      y_future_obs = rep(NA_real_, H),
+      chunk = chunk,
+      origin_state = origin_state,
+      readout_spec = spec,
+      draws = draws
+    )
+
+    yrep_list[[i]] <- out$yrep
+    mu_list[[i]]   <- out$mu_draws
+  }
+
+  targets <- seq.int(min(origins) + 1L, max(origins) + H)
+  mix_y  <- matrix(NA_real_, nrow = length(targets), ncol = mix_nd)
+  mix_mu <- matrix(NA_real_, nrow = length(targets), ncol = mix_nd)
+
+  for (ti in seq_along(targets)) {
+    t <- targets[ti]
+    lead_vals <- t - origins
+    ok <- which(lead_vals >= 1L & lead_vals <= H)
+    if (!length(ok)) next
+
+    leads <- as.integer(lead_vals[ok])
+    leads <- leads[is.finite(leads) & leads >= 1L & leads <= H]
+    if (!length(leads)) next
+    w <- base_w[leads]
+    if (length(w) != length(leads)) {
+      message(sprintf(
+        "[forecast_lattice] lead weight length mismatch (leads=%d, weights=%d); using uniform weights.",
+        length(leads), length(w)
+      ))
+      w <- rep(1, length(leads))
+    }
+    if (sum(w) <= 0 || any(!is.finite(w))) {
+      stop("forecast_lattice: lead_weights must be positive for available leads.")
+    }
+    w <- w / sum(w)
+
+    lead_draw <- sample(leads, size = mix_nd, replace = TRUE, prob = w)
+    draw_idx  <- sample(seq_len(nd_eff), size = mix_nd, replace = TRUE)
+
+    for (ell in unique(lead_draw)) {
+      idx <- which(lead_draw == ell)
+      tau <- t - ell
+      origin_idx <- match(tau, origins)
+      if (is.na(origin_idx)) next
+      mix_y[ti, idx]  <- yrep_list[[origin_idx]][ell, draw_idx[idx]]
+      mix_mu[ti, idx] <- mu_list[[origin_idx]][ell, draw_idx[idx]]
+    }
+  }
+
+  if (!isTRUE(keep_origin_draws)) {
+    yrep_list <- NULL
+    mu_list <- NULL
+  }
+
+  list(
+    origins = origins,
+    targets = targets,
+    horizon = H,
+    nd_draws = nd_eff,
+    mix_nd = mix_nd,
+    yrep_by_origin = yrep_list,
+    mu_by_origin = mu_list,
+    mix = list(y = mix_y, mu = mix_mu),
+    lead_weights = base_w
+  )
 }

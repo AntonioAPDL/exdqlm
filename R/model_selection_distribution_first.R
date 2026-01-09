@@ -476,7 +476,21 @@ model_selection_distribution_first <- function(
           lag_scale  = fit0$meta$lag_scale,
 
           # keep diagnostics as its own field (like the base fit)
-          diagnostics = fit0$meta$diagnostics
+          diagnostics = fit0$meta$diagnostics,
+
+          # Readout spec for forecasting (reservoir + exogenous lags)
+          readout_spec = {
+            xn <- character(0); xl <- list()
+            if (length(lags_ppt))  { xn <- c(xn, "ppt");  xl[["ppt"]]  <- as.integer(lags_ppt) }
+            if (length(lags_soil)) { xn <- c(xn, "soil"); xl[["soil"]] <- as.integer(lags_soil) }
+            list(
+              y_lags     = integer(0),
+              x_names    = xn,
+              x_lags     = xl,
+              p_res      = p_res_cols,
+              scale_info = NULL
+            )
+          }
         )
       )
 
@@ -1116,7 +1130,21 @@ model_selection_optionA <- function(
           lag_center = fit0$meta$lag_center,
           lag_scale  = fit0$meta$lag_scale,
 
-          diagnostics = fit0$meta$diagnostics
+          diagnostics = fit0$meta$diagnostics,
+
+          # Readout spec for forecasting (reservoir + exogenous lags)
+          readout_spec = {
+            xn <- character(0); xl <- list()
+            if (length(spec$lags_ppt))  { xn <- c(xn, "ppt");  xl[["ppt"]]  <- as.integer(spec$lags_ppt) }
+            if (length(spec$lags_soil)) { xn <- c(xn, "soil"); xl[["soil"]] <- as.integer(spec$lags_soil) }
+            list(
+              y_lags     = integer(0),
+              x_names    = xn,
+              x_lags     = xl,
+              p_res      = ncol(X_res),
+              scale_info = NULL
+            )
+          }
         )
       )
       class(fit_exog) <- "qdesn_fit"

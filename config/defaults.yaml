@@ -33,10 +33,10 @@ pipeline:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [500, 500, 500]         # units per layer (length D)
-  n_tilde: [500, 500]        # skip/reducer sizes (length D-1 when D>1)
-  m: 90                     # number of lags in u_t
-  alpha: [0.6, 0.6, 0.6]  # leak per layer (length D)
+  n: [20, 20, 20]         # units per layer (length D)
+  n_tilde: [20, 20]        # skip/reducer sizes (length D-1 when D>1)
+  m: 30                     # number of lags in u_t
+  alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"]     # output activation per layer
@@ -45,7 +45,6 @@ desn:
   washout: 500               # initial time steps discarded
   add_bias: true             # include bias column in readout
   seed: [12345, 12344, 12343]  # per-layer seeds (or use a scalar if your code expands it)
-  fit_readout: false
 
 # --------------------------------------------------------------------
 # Variational Bayes (exAL LDVB) defaults
@@ -80,7 +79,7 @@ vb:
 # Sampling defaults (posterior / predictive)
 # --------------------------------------------------------------------
 sampling:
-  nd_draws: 3000             # parameter + predictive draws
+  nd_draws: 3000             # parameter + predictive draws (also mixture draws)
   chunk: 250                 # chunk size for memory-friendly sampling
 
 # --------------------------------------------------------------------
@@ -95,8 +94,10 @@ ij:
 # --------------------------------------------------------------------
 forecast:
   last_window: 200           # legacy base window
-  rolling_origin: true       # whether to use rolling origin in selection (when available)
-  H_step: 1                  # step size for rolling origin
+  horizon: 30                # multi-step horizon for lattice forecasts
+  mode: mixture              # mixture | lattice | origin
+  lead_weight_power: 1       # base weights w_r ∝ 1 / r^power (power=0 => uniform)
+  # mixture draws per target time = sampling.nd_draws
 
   # Optional separate windows (if null, fallback to last_window)
   train_last_window: null

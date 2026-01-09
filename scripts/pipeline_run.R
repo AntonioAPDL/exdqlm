@@ -8,6 +8,42 @@ suppressPackageStartupMessages({
 
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
+# Fallback helper to avoid missing-function errors in downstream scripts.
+if (!exists("quantile_by_time", envir = globalenv(), inherits = FALSE)) {
+  assign(
+    "quantile_by_time",
+    function(yrep, tau, target_len) {
+      yrep <- as.matrix(yrep)
+      if (nrow(yrep) == target_len) {
+        return(drop(matrixStats::rowQuantiles(yrep, probs = tau, na.rm = TRUE)))
+      } else if (ncol(yrep) == target_len) {
+        return(drop(matrixStats::colQuantiles(yrep, probs = tau, na.rm = TRUE)))
+      } else {
+        stop(sprintf("yrep dim %dx%d doesn't match target_len=%d",
+                     nrow(yrep), ncol(yrep), target_len))
+      }
+    },
+    envir = globalenv()
+  )
+}
+
+if (!exists("lead_weights_from_power", envir = globalenv(), inherits = FALSE)) {
+  assign(
+    "lead_weights_from_power",
+    function(H, power) {
+      power <- as.numeric(power)[1L]
+      if (!is.finite(power) || power < 0) {
+        stop("forecast.lead_weight_power must be a finite number >= 0.")
+      }
+      r <- seq_len(as.integer(H))
+      log_w <- -power * log(r)
+      log_w <- log_w - max(log_w)
+      exp(log_w)
+    },
+    envir = globalenv()
+  )
+}
+
 # -- Resolve repo root
 args_all   <- commandArgs(trailingOnly = FALSE)
 script_idx <- grep("^--file=", args_all)

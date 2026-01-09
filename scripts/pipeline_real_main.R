@@ -175,6 +175,17 @@ caption_exdqlm <- function(window, nd = NULL) {
   else sprintf("window: last %d steps • ndraws: %d", as.integer(window), nd_val)
 }
 
+lead_weights_from_power <- function(H, power) {
+  power <- as.numeric(power)[1L]
+  if (!is.finite(power) || power < 0) {
+    stop("forecast.lead_weight_power must be a finite number >= 0.")
+  }
+  r <- seq_len(as.integer(H))
+  log_w <- -power * log(r)
+  log_w <- log_w - max(log_w)
+  exp(log_w)
+}
+
 band_from_draws <- function(mat, level = 0.95, target_len = NULL) {
   mat <- as.matrix(mat)
   probs <- c((1 - level)/2, 0.5, (1 + level)/2)
@@ -533,6 +544,67 @@ if (isTRUE(readout_scale)) {
           as.character(isTRUE(desn_args$add_bias)))
 }
 
+# Forecast mode + horizon (lattice/mixture default)
+forecast_mode       <- tolower(cfg$forecast$mode %||% "mixture")
+forecast_horizon    <- as.integer(cfg$forecast$horizon %||% 1L)
+lead_weight_power   <- cfg$forecast$lead_weight_power %||% 1
+lead_weights        <- NULL
+mix_nd              <- NULL
+
+if (!is.null(cfg$forecast$lead_weights)) {
+  message("[forecast] 'lead_weights' is deprecated; use 'lead_weight_power'.")
+}
+if (!is.null(cfg$forecast$paths)) {
+  message("[forecast] 'paths' is deprecated; mixture draws now follow sampling.nd_draws.")
+}
+if (!forecast_mode %in% c("mixture", "lattice", "origin")) {
+  message(sprintf("[forecast] Unknown mode '%s'; defaulting to 'mixture'.", forecast_mode))
+  forecast_mode <- "mixture"
+}
+
+# Readout spec for recursive forecasts (reservoir + explicit lags)
+x_names <- if (!is.null(X_use)) colnames(X_use) else character(0)
+x_lags_list <- list()
+if (length(x_names)) {
+  x_lags_list <- rep(list(as.integer(lags_x)), length(x_names))
+  names(x_lags_list) <- x_names
+}
+readout_spec <- list(
+  y_lags     = as.integer(lags_y),
+  x_names    = x_names,
+  x_lags     = x_lags_list,
+  p_res      = ncol(X_res2),
+  scale_info = readout_scale_info
+)
+
+# Exogenous series for forecasting (must cover [T_use+1 .. T_use+H])
+origins_max <- T_use
+xreg_all <- NULL
+if (length(x_names)) {
+  start_idx  <- idx_use[1L]
+  end_avail <- nrow(X_all)
+  xreg_len <- end_avail - start_idx + 1L
+  max_origin_by_x <- xreg_len - forecast_horizon
+  origins_max <- min(T_use, max_origin_by_x)
+  if (origins_max < n_train) {
+    stop(sprintf(
+      "Not enough exogenous rows for forecast_horizon=%d. Need at least %d rows from start_idx=%d, have %d.",
+      forecast_horizon, start_idx + n_train + forecast_horizon - 1L, start_idx, end_avail
+    ))
+  }
+  if (origins_max < T_use) {
+    message(sprintf(
+      "[forecast] trimming origins to %d to match available exogenous rows (H=%d).",
+      origins_max, forecast_horizon
+    ))
+  }
+  end_needed <- start_idx + origins_max + forecast_horizon - 1L
+  X_future_all <- X_all[start_idx:end_needed, , drop = FALSE]
+  xreg_all <- lapply(seq_len(ncol(X_future_all)), function(j) X_future_all[, j])
+  names(xreg_all) <- colnames(X_future_all)
+}
+origins <- seq.int(n_train, origins_max)
+
 # Index diagnostics (parity with sim)
 cat(sprintf("IDX | use_range=[%d..%d] | train=[%d..%d] | forecast=[%d..%d] | lens train=%d, fore=%d\n",
             min(idx_use), max(idx_use),
@@ -543,16 +615,6 @@ cat(sprintf("IDX | use_range=[%d..%d] | train=[%d..%d] | forecast=[%d..%d] | len
             length(idx_tr_abs), length(idx_fc_abs)))
 
 cat(sprintf("[lens] y_train_keep=%d | y_forecast=%d\n", length(y_tr_keep), length(y_fc)))
-
-# Teacher forcing meta (same semantics as sim: forecasting window is held-out obs)
-tf_enable       <- TRUE
-tf_first_k      <- as.integer(cfg$forecast$tf_first_k %||% 0L)
-y_future_obs_fc <- y_fc
-req_mode <- tolower(cfg$forecast$mode %||% "tf")
-if (!identical(req_mode, "tf") && !identical(req_mode, "tf1")) {
-  message(sprintf("[forecast] WARNING: requested forecast.mode='%s' but this pipeline currently runs with full teacher forcing; recursive modes are ignored for now.", req_mode))
-}
-cat(sprintf("TF | mode=full | len(y_future_obs_fc)=%d\n", length(y_future_obs_fc))); flush.console()
 
 # --- VB / sampling / synthesis config (parity with sim) -----------------------
 p_vec <- as.numeric(cfg$p_vec %||% c(0.05, 0.50, 0.95))
@@ -675,6 +737,11 @@ if (!is.null(cfg$vb)) {
 
 nd_draws <- as.integer((cfg$sampling$nd_draws %||% 3000L))
 chunk_sz <- as.integer((cfg$sampling$chunk    %||% 250L))
+# Mixture draws per target time are tied to posterior draws.
+mix_nd <- as.integer(nd_draws)
+forecast_horizon <- as.integer(forecast_horizon)
+if (forecast_horizon < 1L) stop("forecast.horizon must be >= 1.")
+lead_weights <- lead_weights_from_power(forecast_horizon, lead_weight_power)
 
 # IJ correction
 use_ij_correction <- TRUE
@@ -1126,6 +1193,7 @@ fit_and_forecast_p <- function(p0) {
     mu = mu_ij$mu_hat_tr,
     lo = mu_ij$lo_tr,
     hi = mu_ij$hi_tr,
+    band_type = if (isTRUE(use_ij_correction)) "IJ" else "posterior",
     y  = y_tr_keep_bt
   )
   df_pred_tr <- tibble::tibble(
@@ -1145,19 +1213,65 @@ fit_and_forecast_p <- function(p0) {
       )
   }
 
-  pp_fc <- timed(
-    sprintf("posterior_predict FORECAST (p=%s, nd=%d)", fmt_p(p0), nd_draws),
-    exal_vb_posterior_predict(fit_exal, X_new = X_fc1, nd = nd_draws, chunk = chunk_sz)
+  # ---- Forecast via lattice (multi-step posterior predictive) -------------
+  fit_meta <- shared_fit$meta
+  fit_meta$readout_spec <- readout_spec
+  fit_q <- list(
+    fit       = fit_exal,
+    X         = X_train,
+    y_fit     = y_tr_keep,
+    reservoir = shared_fit$reservoir,
+    states    = shared_fit$states,
+    meta      = fit_meta
   )
-  yrep_fc <- bt_y(pp_fc$yrep)
-  y_fc_bt <- bt_y(y_fc)
+  class(fit_q) <- "qdesn_fit"
+
+  fore <- timed(
+    sprintf("forecast_lattice(p=%s, H=%d, nd=%d, mix=%d)", fmt_p(p0), forecast_horizon, nd_draws, mix_nd),
+    forecast_lattice.qdesn_fit(
+      fit_q,
+      y_all       = y_full,
+      origins     = origins,
+      H           = forecast_horizon,
+      nd          = nd_draws,
+      xreg_all    = xreg_all,
+      y_obs_last  = T_use,
+      lead_weights = lead_weights,
+      mix_nd      = mix_nd,
+      chunk       = chunk_sz,
+      seed        = synth_seed + round(1000 * p0),
+      keep_origin_draws = keep_draws
+    )
+  )
+
+  targets_all <- fore$targets
+  idx_obs <- which(targets_all <= T_use)
+  if (length(idx_obs) != H_forecast) {
+    stop(sprintf(
+      "Forecast lattice mismatch: expected %d observed targets, got %d.",
+      H_forecast, length(idx_obs)
+    ))
+  }
+
+  yrep_fc_full     <- bt_y(fore$mix$y)
+  mu_draws_fc_full <- bt_y(fore$mix$mu)
+
+  yrep_fc     <- yrep_fc_full[idx_obs, , drop = FALSE]
+  mu_draws_fc <- mu_draws_fc_full[idx_obs, , drop = FALSE]
+  y_fc_bt     <- bt_y(y_fc)
+
+  mu_qs_fc  <- band_from_draws(mu_draws_fc, level = 0.95, target_len = length(idx_obs))
+  mu_hat_fc <- mu_qs_fc[, "med"]
+  lo_fc     <- mu_qs_fc[, "lo"]
+  hi_fc     <- mu_qs_fc[, "hi"]
 
   df_mu_fc <- tibble::tibble(
     h  = seq_len(H_forecast),
     p0 = p0,
-    mu = mu_ij$mu_hat_fc,
-    lo = mu_ij$lo_fc,
-    hi = mu_ij$hi_fc,
+    mu = mu_hat_fc,
+    lo = lo_fc,
+    hi = hi_fc,
+    band_type = "posterior",
     y  = y_fc_bt
   )
   df_pred_fc <- tibble::tibble(
@@ -1166,28 +1280,29 @@ fit_and_forecast_p <- function(p0) {
     q_pred = quantile_by_time(yrep_fc, p0, H_forecast),
     y      = y_fc_bt
   )
-  if (isTRUE(use_ij_correction)) {
-    df_pred_fc <- df_pred_fc %>%
-      dplyr::mutate(
-        q_hat_ij  = mu_ij$mu_hat_fc,
-        lo_q_ij   = mu_ij$lo_fc,
-        hi_q_ij   = mu_ij$hi_fc,
-        lo_q_post = mu_ij$lo_post_fc,
-        hi_q_post = mu_ij$hi_post_fc
-      )
+
+  forecast_full <- list(
+    targets      = targets_all,
+    yrep_mix     = yrep_fc_full,
+    mu_draws_mix = mu_draws_fc_full
+  )
+  if (isTRUE(keep_draws)) {
+    forecast_full$yrep_by_origin <- fore$yrep_by_origin
+    forecast_full$mu_by_origin   <- fore$mu_by_origin
   }
 
   list(
     fit_train   = list(fit = fit_exal, meta = list(keep_idx = keep_train_abs)),
     yrep_fc     = yrep_fc,
-    mu_draws_fc = mu_ij$mu_draws_fc,
+    mu_draws_fc = mu_draws_fc,
     df_mu_fc    = df_mu_fc,
     df_pred_fc  = df_pred_fc,
     yrep_tr     = yrep_tr,
     mu_draws_tr = mu_ij$mu_draws_tr,
     df_mu_tr    = df_mu_tr,
     df_pred_tr  = df_pred_tr,
-    param_draws = param_draws
+    param_draws = param_draws,
+    forecast_full = forecast_full
   )
 }
 
@@ -1200,7 +1315,8 @@ plot_mu_band_real <- function(df, p0, scope = "Forecast", window = 200L) {
   d  <- dplyr::filter(df, dplyr::between(h, i1, i2))
   p_emp <- mean(d$y <= d$mu, na.rm = TRUE)            # descriptive; not a target
   w_med <- stats::median(d$hi - d$lo, na.rm = TRUE)   # median posterior width for μ̂
-  band_label <- if (isTRUE(use_ij_correction)) "IJ-corrected 95% band for μ̂" else "μ̂ ±95% posterior band"
+  band_type <- if ("band_type" %in% names(df)) unique(df$band_type)[1] else if (isTRUE(use_ij_correction)) "IJ" else "posterior"
+  band_label <- if (identical(band_type, "IJ")) "IJ-corrected 95% band for μ̂" else "μ̂ ±95% posterior band"
   ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
     ggplot2::labs(
       title = sprintf("%s: %s (model at p=%s)", scope, band_label, scales::percent(p0, 1)),
@@ -1225,19 +1341,20 @@ if (isTRUE(do_plots)) {
     p0 <- p_vec[k]
     g1 <- plot_mu_band_real(fits_fc[[k]]$df_mu_fc, p0, scope = "Forecast", window = fore_last_window)
     g1tr <- plot_mu_band_real(fits_fc[[k]]$df_mu_tr, p0, scope = "Train", window = train_last_window)
-    band_suffix <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
+    band_suffix_fc <- if (isTRUE(use_ij_correction)) "_post" else ""
+    band_suffix_tr <- if (isTRUE(use_ij_correction)) "_IJcorr" else ""
 
     timed(sprintf("plot+save forecast_mu_band(p=%s)", fmt_p(p0)), {
       print(g1)
       if (isTRUE(save_outputs)) {
-        ggsave(file.path(FIGS, sprintf("forecast_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+        ggsave(file.path(FIGS, sprintf("forecast_mu_band%s_p=%s.png", band_suffix_fc, as.character(p0))),
                g1, width=9, height=4.8, dpi=150)
       }
     })
     timed(sprintf("plot+save train_mu_band(p=%s)", fmt_p(p0)), {
       print(g1tr)
       if (isTRUE(save_outputs)) {
-        ggsave(file.path(FIGS, sprintf("train_mu_band%s_p=%s.png", band_suffix, as.character(p0))),
+        ggsave(file.path(FIGS, sprintf("train_mu_band%s_p=%s.png", band_suffix_tr, as.character(p0))),
                g1tr, width=9, height=4.8, dpi=150)
       }
     })
@@ -1673,7 +1790,13 @@ if (isTRUE(do_plots)) {
 # --- NEW (minimal): overlay of synthesized vs TRUE quantiles (p in taus) ----
 plot_quantiles_overlay_from_compare <- function(compare_df, taus = p_comp,
                                                scope = "Forecast", window = 200L) {
-  i2 <- max(compare_df$h); i1 <- max(1L, i2 - as.integer(window) + 1L)
+  i2 <- max(compare_df$h, na.rm = TRUE)
+  if (!is.finite(i2)) {
+    return(ggplot2::ggplot() + theme_exdqlm() +
+             ggplot2::labs(title = sprintf("%s: synthesized quantiles", scope),
+                           subtitle = "No finite time index available"))
+  }
+  i1 <- max(1L, i2 - as.integer(window) + 1L)
   d <- dplyr::filter(compare_df, dplyr::between(h, i1, i2))
 
   true_cols  <- paste0("true_q_",  fmt_p(taus))
@@ -1695,7 +1818,7 @@ plot_quantiles_overlay_from_compare <- function(compare_df, taus = p_comp,
   title_txt <- if (nrow(d_true)) sprintf("%s: synthesized vs true quantiles", scope)
                else sprintf("%s: synthesized quantiles", scope)
 
-  ggplot2::ggplot(dl, ggplot2::aes(x = h, y = val, colour = p_chr, linetype = kind)) +
+  ggplot2::ggplot() +
     theme_exdqlm() +
     ggplot2::labs(
       title   = title_txt,
@@ -1703,8 +1826,10 @@ plot_quantiles_overlay_from_compare <- function(compare_df, taus = p_comp,
       caption = caption_exdqlm(window, nd_draws),
       x = "time", y = "value", colour = "p", linetype = ""
     ) +
-    ggplot2::geom_line(linewidth = 0.9, na.rm = TRUE) +
-    ggplot2::geom_line(data = d, ggplot2::aes(y = y), inherit.aes = FALSE,
+    ggplot2::geom_line(data = dl,
+                       ggplot2::aes(x = h, y = val, colour = p_chr, linetype = kind),
+                       linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::geom_line(data = d, ggplot2::aes(x = h, y = y), inherit.aes = FALSE,
                        linewidth = 0.6, alpha = 0.6, colour = "#6b7280") +
     ggplot2::scale_color_manual(values = col_map[levels(dl$p_chr)],
                                 labels = function(x) scales::percent(as.numeric(x))) +
@@ -1722,6 +1847,24 @@ wilson_ci <- function(k, n, conf = 0.95) {
   c(max(0, cen - rad), min(1, cen + rad))
 }
 pinball_loss <- function(y, qhat, p) { e <- y - qhat; (p - (e < 0)) * e }
+qhat_from_fit <- function(fit_obj, d_pred, p0, target_len, scope) {
+  qhat <- as.numeric(d_pred$q_pred)
+  if (length(qhat) != target_len) {
+    message(sprintf(
+      "[calibration] qhat length mismatch (%s): got %d, expected %d; recomputing from yrep.",
+      scope, length(qhat), target_len
+    ))
+    yrep <- if (identical(scope, "train")) fit_obj$yrep_tr else fit_obj$yrep_fc
+    qhat <- quantile_by_time(yrep, p0, target_len)
+  }
+  if (length(qhat) != target_len) {
+    stop(sprintf(
+      "qhat length mismatch (%s): got %d, expected %d.",
+      scope, length(qhat), target_len
+    ))
+  }
+  qhat
+}
 
 # Long frames (train + forecast)
 mu_tr_long <- dplyr::bind_rows(purrr::compact(lapply(seq_along(p_vec), function(i) {
@@ -1746,7 +1889,7 @@ q_tr_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
     p_chr     = fmt_p(p_vec[i]),
     p0        = as.numeric(p_vec[i]),
     t_aligned = keep,
-    qhat      = as.numeric(d$q_pred),
+    qhat      = qhat_from_fit(fits_fc[[i]], d, p_vec[i], length(keep), "train"),
     y         = as.numeric(d$y)
   )
 }))
@@ -1758,7 +1901,7 @@ q_fc_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
     p_chr     = fmt_p(p_vec[i]),
     p0        = as.numeric(p_vec[i]),
     t_aligned = n_train + d$h,
-    qhat      = as.numeric(d$q_pred),
+    qhat      = qhat_from_fit(fits_fc[[i]], d, p_vec[i], H_forecast, "forecast"),
     y         = as.numeric(d$y)
   )
 }))
@@ -2096,8 +2239,15 @@ if (isTRUE(save_outputs)) {
         last_window          = fore_last_window,
         last_window_train    = train_last_window,
         last_window_forecast = fore_last_window,
-        teacher_forcing = list(enable = tf_enable, first_k = tf_first_k,
-                               explicit = NULL, y_future_obs_fc = y_future_obs_fc),
+        forecast = list(
+          mode         = forecast_mode,
+          horizon      = forecast_horizon,
+          lead_weight_power = lead_weight_power,
+          lead_weights = lead_weights,
+          mix_nd       = mix_nd
+        ),
+        teacher_forcing = list(enable = FALSE, first_k = 0L,
+                               explicit = NULL, y_future_obs_fc = NULL),
         synth = list(isotonic = synth_isotonic, rearrange = synth_rearrange,
                      grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed),
         split = list(T_use = T_use, n_train = n_train, H_forecast = H_forecast),

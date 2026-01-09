@@ -19,7 +19,5 @@ datasets:
         train_prop: 0.95
         use_last: true
       forecast:
-        mode: recursive-stochastic   # (will log a warning; pipeline still runs TF)
-        H_step: 1
-        tf_first_k: 0
-        paths: 500
+        mode: mixture
+        horizon: 1

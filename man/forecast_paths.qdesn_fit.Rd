@@ -2,7 +2,7 @@
 % Please edit documentation in R/qdesn_vb.R
 \name{forecast_paths.qdesn_fit}
 \alias{forecast_paths.qdesn_fit}
-\title{Multi-horizon posterior predictive for a Q-DESN fit (fast & memory-light)}
+\title{Multi-horizon posterior predictive paths for a Q-DESN fit}
 \usage{
 forecast_paths.qdesn_fit(
   object,
@@ -17,7 +17,10 @@ forecast_paths.qdesn_fit(
   y_future_obs = NULL,
   chunk = 256L,
   seed = NULL,
-  return_design = FALSE
+  return_design = FALSE,
+  origin_state = NULL,
+  readout_spec = NULL,
+  draws = NULL
 )
 }
 \arguments{
@@ -25,43 +28,43 @@ forecast_paths.qdesn_fit(
 
 \item{H}{integer forecast horizon (>0)}
 
-\item{nd}{number of posterior-predictive draws}
+\item{nd}{number of posterior-predictive draws (ignored if \code{draws} is supplied)}
 
-\item{method}{c("recursive","shared")}
+\item{method}{deprecated; ignored (kept for compatibility)}
 
-\item{anchor}{("vb-mean"|"user") for method="shared" only}
+\item{anchor}{deprecated; ignored}
 
 \item{y_hist}{optional last m observed y's (chronological, oldest->newest);
 if NULL and m>0 uses last m of object$y_fit}
 
-\item{anchor_path}{optional length>=H numeric when method="shared" & anchor="user"}
+\item{anchor_path}{deprecated; ignored}
 
 \item{xreg_hist, xreg_future}{optional named lists of exogenous histories/futures}
 
-\item{y_future_obs}{optional numeric length H with realized values (teacher-forcing; NA for unknown)}
+\item{y_future_obs}{optional numeric length H with realized values (non-NA values are treated as observed)}
 
 \item{chunk}{process draws in chunks to cap memory (defaults 256)}
 
 \item{seed}{RNG seed for predictive noise (optional)}
 
-\item{return_design}{logical; for method="shared" returns X_future (H x p_res).}
+\item{return_design}{deprecated; ignored}
+
+\item{origin_state}{optional list of reservoir states at the forecast origin}
+
+\item{readout_spec}{list with y_lags, x_names, x_lags, p_res, scale_info}
+
+\item{draws}{optional posterior draws list from exal_vb_posterior_draws()}
 }
 \value{
-list with yrep (H x nd), mu_draws (H x nd), and anchor_path/X_future when applicable
+list with yrep (H x nd) and mu_draws (H x nd)
 }
 \description{
-Two modes:
-\itemize{
-\item method="recursive" (default): per-draw, per-quantile recursive simulation.
-Each posterior draw has its own path; future lags use the already simulated y for that draw.
-\item method="shared": cheap plug-in that rolls a single deterministic anchor path and
-samples only the readout noise (useful for speed-diagnostics; not for selection).
-}
+Generates per-draw recursive paths using exAL posterior predictive sampling.
+The readout design can include reservoir features, y-lags, and exogenous lags
+described by \code{readout_spec}. This is the core primitive used by the lattice
+forecaster.
 }
 \details{
-This version reduces allocations by:
-• precomputing the exogenous input blocks for all horizons once;
-• chunking \emph{noise} generation (no giant H×nd matrices);
-• avoiding repeated length checks / conversions in inner loops;
-• reusing small scratch objects where safe.
+Note: \code{method}, \code{anchor}, \code{anchor_path}, and \code{return_design} are
+retained for backward compatibility but are ignored; only recursive sampling is used.
 }
