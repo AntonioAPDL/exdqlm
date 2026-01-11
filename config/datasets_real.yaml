@@ -20,4 +20,4 @@ datasets:
         use_last: true
       forecast:
         mode: mixture
-        horizon: 1
+        horizon: 30

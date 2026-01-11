@@ -1015,7 +1015,13 @@ forecast_lattice.qdesn_fit <- function(
     }
     w <- w / sum(w)
 
-    lead_draw <- sample(leads, size = mix_nd, replace = TRUE, prob = w)
+    # sample.int avoids sample(x) special-case when length(leads)==1L and lead>1
+    lead_idx <- if (length(leads) == 1L) {
+      rep(1L, mix_nd)
+    } else {
+      sample.int(length(leads), size = mix_nd, replace = TRUE, prob = w)
+    }
+    lead_draw <- leads[lead_idx]
     draw_idx  <- sample(seq_len(nd_eff), size = mix_nd, replace = TRUE)
 
     for (ell in unique(lead_draw)) {

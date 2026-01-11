@@ -96,8 +96,9 @@ forecast:
   last_window: 200           # legacy base window
   horizon: 30                # multi-step horizon for lattice forecasts
   mode: mixture              # mixture | lattice | origin
-  lead_weight_power: 1       # base weights w_r ∝ 1 / r^power (power=0 => uniform)
+  lead_weight_power: 5       # base weights w_r ∝ 1 / r^power (power=0 => uniform)
   # mixture draws per target time = sampling.nd_draws
+  eval_leads: null           # null | "all" | list of leads to evaluate
 
   # Optional separate windows (if null, fallback to last_window)
   train_last_window: null
@@ -115,8 +116,8 @@ forecast:
 synthesis:
   isotonic: true             # isotonic regression for monotonicity
   rearrange: true            # rearrangement for monotone quantile curves
-  grid_M: 2001               # grid size for synthesis
-  n_samp: 4000               # draws for synthesized predictive bands
+  grid_M: 1001               # grid size for synthesis
+  n_samp: 1000               # draws for synthesized predictive bands
   seed: 123                  # seed for synthesis
 
 # --------------------------------------------------------------------
@@ -125,7 +126,11 @@ synthesis:
 diagnostics:
   calibration: true          # probability integral transform / calibration
   pit: true                  # PIT diagnostics
+  pit_scope: all+synth       # median | all | synth | all+synth
   scores: true               # CRPS / interval scores, etc.
+  lead_eval: true           # synthesized lead-specific CRPS diagnostics
+  fan_charts: true          # overlapping forecast fan charts
+  fan_stride: 1              # plot every k-th origin (1 = all)
   plots: true                # master gate for ggplot-based outputs
 
 # --------------------------------------------------------------------

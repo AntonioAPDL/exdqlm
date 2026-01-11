@@ -15,8 +15,8 @@ forecast:
   mode: mixture
 
 synthesis:
-  grid_M: 2001
-  n_samp: 2000
+  grid_M: 1001
+  n_samp: 1000
   seed: 123
 
 outputs:

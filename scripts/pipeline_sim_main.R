@@ -172,6 +172,45 @@ lead_weights_from_power <- function(H, power) {
   exp(log_w)
 }
 
+sanitize_eval_leads <- function(eval_leads, H, default_all = FALSE) {
+  if (is.null(eval_leads)) {
+    if (isTRUE(default_all)) return(seq_len(H))
+    return(integer(0))
+  }
+  if (is.character(eval_leads) && length(eval_leads) == 1L &&
+      tolower(eval_leads) %in% c("all", "any")) {
+    return(seq_len(H))
+  }
+  v <- unique(as.integer(eval_leads))
+  v <- v[is.finite(v)]
+  dropped <- v[v < 1L | v > H]
+  if (length(dropped)) {
+    message(sprintf(
+      "[lead_eval] dropping out-of-range leads: %s (valid range: 1..%d).",
+      paste(dropped, collapse = ", "), H
+    ))
+  }
+  v <- v[v >= 1L & v <= H]
+  if (!length(v)) {
+    message("[lead_eval] no valid leads remain after filtering; lead evaluation disabled.")
+    return(integer(0))
+  }
+  sort(v)
+}
+
+# CRPS from samples (used by scores + lead evaluation)
+crps_row <- function(y, z) {
+  z <- sort(z); M <- length(z)
+  term1 <- mean(abs(z - y))
+  k <- seq_len(M)
+  term2 <- sum((2*k - M - 1) * z) / (M^2)
+  term1 - term2
+}
+crps_vec <- function(y_vec, draws_mat) {
+  stopifnot(length(y_vec) == nrow(draws_mat))
+  vapply(seq_len(nrow(draws_mat)), function(i) crps_row(y_vec[i], draws_mat[i, ]), numeric(1))
+}
+
 # --- Defaults (overridden by cfg when present)
 p_vec <- c(0.05, 0.50, 0.95)
 
@@ -260,12 +299,17 @@ forecast_horizon <- 1L
 forecast_mode    <- "mixture"
 lead_weight_power <- 1
 lead_weights     <- NULL
+eval_leads_raw   <- NULL
 
 # Diagnostics / plotting toggles (can be overridden via cfg$diagnostics)
 do_calibration <- TRUE
 do_pit         <- TRUE
 do_scores      <- TRUE  # CRPS + S
+do_lead_eval   <- FALSE
 do_plots       <- TRUE  # master gate for all ggplot/ggsave work
+pit_scope      <- "all+synth"
+do_fan_charts  <- FALSE
+fan_stride     <- 1L
 
 
 # --- Apply cfg overrides (if present)
@@ -459,6 +503,9 @@ if (!is.null(cfg$forecast)) {
   if (!is.null(cfg$forecast$paths)) {
     message("[forecast] 'paths' is deprecated; mixture draws now follow sampling.nd_draws.")
   }
+  if (!is.null(cfg$forecast$eval_leads)) {
+    eval_leads_raw <- cfg$forecast$eval_leads
+  }
   train_last_window <- cfg$forecast$train_last_window %nz% last_window
   fore_last_window  <- cfg$forecast$fore_last_window  %nz% last_window
   # --- NEW: how to report coverage in plot subtitles
@@ -482,6 +529,14 @@ if (!is.null(cfg$forecast)) {
     do_calibration <- cfg$diagnostics$calibration %nz% do_calibration
     do_pit         <- cfg$diagnostics$pit         %nz% do_pit
     do_scores      <- cfg$diagnostics$scores      %nz% do_scores
+    do_lead_eval   <- cfg$diagnostics$lead_eval   %nz% do_lead_eval
+    do_fan_charts  <- cfg$diagnostics$fan_charts  %nz% do_fan_charts
+    if (!is.null(cfg$diagnostics$fan_stride)) {
+      fan_stride <- as.integer(cfg$diagnostics$fan_stride)
+    }
+    if (!is.null(cfg$diagnostics$pit_scope)) {
+      pit_scope <- tolower(as.character(cfg$diagnostics$pit_scope))
+    }
     if (!is.null(cfg$diagnostics$plots)) {
       do_plots <- isTRUE(cfg$diagnostics$plots)
     }
@@ -502,6 +557,16 @@ if (!is.null(cfg$forecast)) {
   }
 }
 
+# --- Fan chart config normalization ---
+fan_stride <- as.integer(fan_stride)
+if (!is.finite(fan_stride) || fan_stride < 1L) {
+  message(sprintf("[fan_charts] invalid fan_stride=%s; using 1.", as.character(fan_stride)))
+  fan_stride <- 1L
+}
+if (!isTRUE(do_plots)) {
+  do_fan_charts <- FALSE
+}
+
 # --- Forecast config normalization ---
 if (!forecast_mode %in% c("mixture", "lattice", "origin")) {
   message(sprintf("[forecast] Unknown mode '%s'; defaulting to 'mixture'.", forecast_mode))
@@ -512,6 +577,12 @@ if (forecast_horizon < 1L) stop("forecast.horizon must be >= 1.")
 # Mixture draws per target time are tied to posterior draws.
 mix_nd <- as.integer(nd_draws)
 lead_weights <- lead_weights_from_power(forecast_horizon, lead_weight_power)
+eval_leads <- sanitize_eval_leads(eval_leads_raw, forecast_horizon, default_all = do_lead_eval)
+if (isTRUE(do_lead_eval) && length(p_vec) < 2L) {
+  message("[lead_eval] need at least two quantile models to synthesize; lead evaluation disabled.")
+  eval_leads <- integer(0)
+}
+lead_eval_enabled <- isTRUE(do_lead_eval) && length(eval_leads) > 0L
 
 # --- Optional lightweight profile overrides (e.g. model selection runs) -----
 if (isTRUE(is_model_selection)) {
@@ -581,6 +652,7 @@ fmt_p <- function(x) {
 pal <- scales::hue_pal()(length(p_vec))
 col_map <- setNames(pal, fmt_p(p_vec))
 ACCENT_ORANGE <- "#ff9c11fc"  # dark orange for predicted / mean / synthesized lines
+FAN_FILL <- "#0ea5a4"         # teal for overlapping fan bands
 theme_exdqlm <- function(base_size = 11) {
   ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(panel.grid.minor = ggplot2::element_blank(), legend.position="right",
@@ -687,6 +759,90 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
     ggplot2::scale_color_manual(
       name   = "",
       values = c(mu = ACCENT_ORANGE, true = "#7c3aed", data = "#6b7280")
+    )
+}
+
+synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizon, t_vec,
+                                     stride = 1L, level = 0.95,
+                                     synth_isotonic = TRUE, synth_rearrange = TRUE,
+                                     synth_grid_M = 2001L, synth_nsamp = 4000L,
+                                     synth_seed = 123L, bt_fn = NULL) {
+  if (is.null(yrep_by_origin_list) || !length(yrep_by_origin_list)) {
+    return(tibble::tibble())
+  }
+  if (length(yrep_by_origin_list) != length(p_vec)) {
+    message("[fan_charts] yrep_by_origin_list length mismatch; skipping fan charts.")
+    return(tibble::tibble())
+  }
+  stride <- max(1L, as.integer(stride))
+  keep_idx <- seq_along(origins)
+  if (stride > 1L) keep_idx <- keep_idx[seq(1L, length(keep_idx), by = stride)]
+  t_max <- length(t_vec)
+  out <- dplyr::bind_rows(lapply(keep_idx, function(i) {
+    draws_list <- lapply(seq_along(yrep_by_origin_list), function(k) {
+      yrep_by_origin_list[[k]][[i]]
+    })
+    if (any(vapply(draws_list, is.null, logical(1)))) return(NULL)
+    if (any(vapply(draws_list, nrow, integer(1)) != horizon)) return(NULL)
+
+    synth_i <- exdqlm_synthesize_from_draws(
+      draws_list = draws_list,
+      p = p_vec,
+      enforce_isotonic = synth_isotonic,
+      rearrange = synth_rearrange,
+      grid_M = synth_grid_M,
+      n_samp = synth_nsamp,
+      seed = synth_seed + as.integer(origins[i]),
+      T_expected = horizon
+    )
+    qs <- band_from_draws(synth_i$draws, level = level, target_len = horizon)
+    if (!is.null(bt_fn)) {
+      qs <- bt_fn(qs)
+    }
+
+    leads <- seq_len(horizon)
+    target_idx <- origins[i] + leads
+    ok <- which(target_idx <= t_max)
+    if (!length(ok)) return(NULL)
+    tibble::tibble(
+      origin     = origins[i],
+      lead       = leads[ok],
+      target_idx = target_idx[ok],
+      t          = t_vec[target_idx[ok]],
+      lo         = qs[ok, "lo"],
+      hi         = qs[ok, "hi"],
+      med        = qs[ok, "med"]
+    )
+  }))
+  dplyr::arrange(out, origin, t)
+}
+
+plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
+                             fill_col = FAN_FILL) {
+  if (is.null(fan_df) || !nrow(fan_df)) return(NULL)
+  t_rng <- range(fan_df$t, na.rm = TRUE)
+  y_obs_df <- dplyr::filter(y_obs_df, dplyr::between(t, t_rng[1], t_rng[2]))
+  col_fill <- scales::alpha(fill_col, 0.05)
+  ggplot2::ggplot(fan_df, ggplot2::aes(x = t, group = origin)) +
+    theme_exdqlm() +
+    ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = lo, ymax = hi),
+      fill = col_fill,
+      colour = NA
+    ) +
+    ggplot2::geom_line(
+      data = y_obs_df,
+      ggplot2::aes(x = t, y = y),
+      inherit.aes = FALSE,
+      color = "#111827",
+      linewidth = 0.4,
+      alpha = 0.7
+    ) +
+    ggplot2::labs(
+      title = title,
+      subtitle = sprintf("stride=%d, horizon=%d", stride, horizon),
+      x = "time",
+      y = "value"
     )
 }
 
@@ -1425,6 +1581,7 @@ readout_spec <- list(
   scale_info = readout_scale_info
 )
 origins <- seq.int(n_train, T_use)
+lead_eval_store <- if (isTRUE(lead_eval_enabled)) vector("list", length(p_vec)) else NULL
 
 # --- 2) Fit & Forecast per p ----------------------------------------------
 fit_and_forecast_p <- function(p0) {
@@ -1666,9 +1823,20 @@ fit_and_forecast_p <- function(p0) {
       mix_nd      = mix_nd,
       chunk       = chunk_sz,
       seed        = synth_seed + round(1000 * p0),
-      keep_origin_draws = keep_draws
+      keep_origin_draws = isTRUE(keep_draws) || isTRUE(lead_eval_enabled) || isTRUE(do_fan_charts)
     )
   )
+
+  if (isTRUE(lead_eval_enabled)) {
+    if (is.null(fore$yrep_by_origin)) {
+      message("[lead_eval] missing per-origin draws; lead evaluation will be skipped.")
+    } else {
+      lead_eval_store[[idx_p]] <<- lapply(
+        fore$yrep_by_origin,
+        function(mat) mat[eval_leads, , drop = FALSE]
+      )
+    }
+  }
 
   targets_all <- fore$targets
   idx_obs <- which(targets_all <= T_use)
@@ -1724,9 +1892,12 @@ fit_and_forecast_p <- function(p0) {
     yrep_mix     = yrep_fc_full,
     mu_draws_mix = mu_draws_fc_full
   )
+  forecast_full$origins <- fore$origins
   if (isTRUE(keep_draws)) {
     forecast_full$yrep_by_origin <- fore$yrep_by_origin
     forecast_full$mu_by_origin   <- fore$mu_by_origin
+  } else if (isTRUE(do_fan_charts)) {
+    forecast_full$yrep_by_origin <- fore$yrep_by_origin
   }
 
   # ---- Return in the same structure your downstream code expects ---------
@@ -1868,7 +2039,55 @@ if (isTRUE(do_plots)) {
 }
 
 # ================================================================
-# 3d) Posterior parameter plots: γ, σ histograms + β forest
+# 3d) Overlapping forecast fan charts (95% bands)
+# ================================================================
+if (isTRUE(do_plots) && isTRUE(do_fan_charts)) {
+  y_obs_df <- y_full |>
+    dplyr::select(t, y)
+
+  yrep_by_origin_list <- lapply(fits_fc, function(obj) obj$forecast_full$yrep_by_origin)
+  if (any(vapply(yrep_by_origin_list, is.null, logical(1)))) {
+    message("[fan_charts] missing per-origin draws; skipping synthesized fan chart.")
+  } else {
+    timed("fan_chart: synth", {
+      fan_df <- synthesize_fan_by_origin(
+        yrep_by_origin_list = yrep_by_origin_list,
+        p_vec = p_vec,
+        origins = fits_fc[[1]]$forecast_full$origins,
+        horizon = forecast_horizon,
+        t_vec   = y_full$t,
+        stride  = fan_stride,
+        level   = 0.95,
+        synth_isotonic = synth_isotonic,
+        synth_rearrange = synth_rearrange,
+        synth_grid_M = synth_grid_M,
+        synth_nsamp = synth_nsamp,
+        synth_seed  = synth_seed
+      )
+
+      g_fan <- plot_fan_overlap(
+        fan_df = fan_df,
+        y_obs_df = y_obs_df,
+        title = "Overlapping forecast fans (95% band, synthesized)",
+        horizon = forecast_horizon,
+        stride = fan_stride,
+        fill_col = FAN_FILL
+      )
+      if (!is.null(g_fan)) {
+        print(g_fan)
+        if (isTRUE(save_outputs)) {
+          ggplot2::ggsave(
+            file.path(FIGS, "forecast_fan_overlap_synth.png"),
+            g_fan, width = 9, height = 4.8, dpi = 150
+          )
+        }
+      }
+    })
+  }
+}
+
+# ================================================================
+# 3e) Posterior parameter plots: γ, σ histograms + β forest
 # ================================================================
 
 if (!exists("plot_param_hist_ci", mode = "function")) {
@@ -2488,7 +2707,92 @@ if (isTRUE(do_plots)) {
   })
 }
 
-# --- 6) Save core objects
+# ================================================================
+# 6) Lead-specific synthesized CRPS evaluation (optional)
+# ================================================================
+if (isTRUE(lead_eval_enabled)) {
+  timed("lead_eval: synthesized CRPS by lead", {
+    if (any(vapply(lead_eval_store, function(x) is.null(x) || !length(x), logical(1)))) {
+      message("[lead_eval] missing per-origin draws; skipping lead evaluation.")
+    } else {
+      lead_row_map <- setNames(seq_along(eval_leads), eval_leads)
+      rows <- vector("list", 0L)
+      row_id <- 1L
+
+      for (lead in eval_leads) {
+        lead_row <- lead_row_map[[as.character(lead)]]
+        valid_idx <- which((origins + lead) <= T_use)
+        if (!length(valid_idx)) next
+
+        for (oi in valid_idx) {
+          draws_list <- lapply(seq_along(p_vec), function(k) {
+            mat <- lead_eval_store[[k]][[oi]]
+            if (is.null(mat) || !is.matrix(mat) || nrow(mat) < lead_row) return(NULL)
+            matrix(mat[lead_row, ], nrow = 1L)
+          })
+          if (any(vapply(draws_list, is.null, logical(1)))) next
+
+          synth <- exdqlm_synthesize_from_draws(
+            draws_list = draws_list, p = p_vec,
+            enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
+            grid_M = synth_grid_M, n_samp = synth_nsamp,
+            seed = synth_seed + lead * 1000L + oi, T_expected = 1L
+          )
+          y_obs <- y_full$y[origins[oi] + lead]
+          rows[[row_id]] <- tibble::tibble(
+            origin = origins[oi],
+            lead = lead,
+            target_idx = origins[oi] + lead,
+            y_obs = y_obs,
+            crps = crps_row(y_obs, as.numeric(synth$draws)),
+            n_samp = ncol(synth$draws)
+          )
+          row_id <- row_id + 1L
+        }
+      }
+
+      lead_eval_rows <- dplyr::bind_rows(rows)
+      if (nrow(lead_eval_rows)) {
+        lead_eval_summary <- lead_eval_rows |>
+          dplyr::group_by(lead) |>
+          dplyr::summarise(
+            n = dplyr::n(),
+            CRPS_mean = mean(crps),
+            CRPS_median = stats::median(crps),
+            .groups = "drop"
+          )
+
+        if (isTRUE(save_outputs)) {
+          readr::write_csv(lead_eval_rows, file.path(TABLES, "lead_eval_rows.csv"))
+          readr::write_csv(lead_eval_summary, file.path(TABLES, "lead_eval_summary.csv"))
+        }
+
+        if (isTRUE(do_plots)) {
+          g_lead_crps <- ggplot2::ggplot(lead_eval_summary, ggplot2::aes(x = lead, y = CRPS_mean)) +
+            theme_exdqlm() +
+            ggplot2::geom_line(linewidth = 0.9) +
+            ggplot2::geom_point(size = 2.2) +
+            ggplot2::labs(
+              title = "Synthesized CRPS by lead",
+              subtitle = sprintf("Leads: %s", paste(eval_leads, collapse = ", ")),
+              x = "lead (steps ahead)",
+              y = "mean CRPS"
+            )
+          print(g_lead_crps)
+          if (isTRUE(save_outputs)) {
+            ggplot2::ggsave(file.path(FIGS, "lead_eval_crps_by_lead.png"),
+                            g_lead_crps, width = 9, height = 4.8, dpi = 150)
+          }
+        }
+      } else {
+        message("[lead_eval] no valid lead rows were produced; skipping outputs.")
+      }
+    }
+  })
+  lead_eval_store <- NULL
+}
+
+# --- 7) Save core objects
 if (isTRUE(save_outputs)) {
   saveRDS(
     list(
@@ -2504,7 +2808,8 @@ if (isTRUE(save_outputs)) {
           horizon      = forecast_horizon,
           lead_weight_power = lead_weight_power,
           lead_weights = lead_weights,
-          mix_nd       = mix_nd
+          mix_nd       = mix_nd,
+          eval_leads   = eval_leads
         ),
         teacher_forcing = list(
           enable  = FALSE,
@@ -2533,6 +2838,11 @@ if (isTRUE(save_outputs)) {
           keep_draws    = keep_draws,
           thesis_subset = thesis_subset
         ),
+        diagnostics = list(
+          lead_eval  = do_lead_eval,
+          fan_charts = do_fan_charts,
+          fan_stride = fan_stride
+        ),
         vb_priors = list(
           beta_type = vb_prior_beta_type,
           beta_ridge_tau2 = vb_prior_beta_tau2,
@@ -2545,7 +2855,7 @@ if (isTRUE(save_outputs)) {
 }
 
 # ================================================================
-# 7) Calibration diagnostics (μ, q̂ₚ, synthesized q): tables + rolling plots
+# 8) Calibration diagnostics (μ, q̂ₚ, synthesized q): tables + rolling plots
 # ================================================================
 if (isTRUE(do_calibration)) {
   # helpers
@@ -2790,16 +3100,23 @@ g_cov_qsynth_fore  <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="fore
 }
 
 # ================================================================
-# 8) PIT diagnostics (train & forecast) using the p closest to 0.50
+# 8) PIT diagnostics (train & forecast)
 # ================================================================
 if (isTRUE(do_pit)) {
   emp_pit_vec <- function(y, yrep_mat) {
     stopifnot(length(y) == nrow(yrep_mat))
     rowMeans(sweep(yrep_mat, 1, y, FUN = "<="), na.rm = TRUE)
   }
-  i_med <- which.min(abs(p_vec - 0.50))
-  pit_tr <- emp_pit_vec(y_train[fits_fc[[i_med]]$fit_train$meta$keep_idx], fits_fc[[i_med]]$yrep_tr)
-  pit_fc <- emp_pit_vec(y_forecast, fits_fc[[i_med]]$yrep_fc)
+
+  pit_scope_norm <- tolower(gsub("[ _+]", "", pit_scope))
+  pit_use_all   <- pit_scope_norm %in% c("all", "allsynth", "synthall")
+  pit_use_synth <- pit_scope_norm %in% c("synth", "allsynth", "synthall")
+  pit_use_median <- pit_scope_norm %in% c("median", "mid", "medianonly")
+  if (!pit_use_all && !pit_use_synth && !pit_use_median) {
+    message(sprintf("[PIT] unknown pit_scope='%s'; defaulting to all+synth.", pit_scope))
+    pit_use_all <- TRUE
+    pit_use_synth <- TRUE
+  }
 
   plot_pit_hist <- function(pit, title) {
     pit <- pit[is.finite(pit)]
@@ -2825,44 +3142,116 @@ if (isTRUE(do_pit)) {
       ggplot2::coord_cartesian(xlim = c(0,1), ylim = c(0,1))
   }
 
-  g_pit_tr_hist <- plot_pit_hist(pit_tr, "PIT histogram (train)")
-  g_pit_fc_hist <- plot_pit_hist(pit_fc, "PIT histogram (forecast)")
-  g_pit_tr_qq   <- plot_pit_qq(pit_tr,   "PIT QQ (train)")
-  g_pit_fc_qq   <- plot_pit_qq(pit_fc,   "PIT QQ (forecast)")
-  g_pit_train    <- g_pit_tr_hist | g_pit_tr_qq
-  g_pit_forecast <- g_pit_fc_hist | g_pit_fc_qq
-
-  if (isTRUE(do_pit)) {
-    timed("PIT: compute + plots + save", {
-      # your PIT code unchanged, just wrapped
+  timed("PIT: compute + plots + save", {
+    if (isTRUE(pit_use_median)) {
+      i_med <- which.min(abs(p_vec - 0.50))
+      pit_tr <- emp_pit_vec(y_train_keep, fits_fc[[i_med]]$yrep_tr)
+      pit_fc <- emp_pit_vec(y_forecast, fits_fc[[i_med]]$yrep_fc)
+      g_pit_tr_hist <- plot_pit_hist(pit_tr, "PIT histogram (train, median model)")
+      g_pit_fc_hist <- plot_pit_hist(pit_fc, "PIT histogram (forecast, median model)")
+      g_pit_tr_qq   <- plot_pit_qq(pit_tr,   "PIT QQ (train, median model)")
+      g_pit_fc_qq   <- plot_pit_qq(pit_fc,   "PIT QQ (forecast, median model)")
+      g_pit_train    <- g_pit_tr_hist | g_pit_tr_qq
+      g_pit_forecast <- g_pit_fc_hist | g_pit_fc_qq
       print(g_pit_train); print(g_pit_forecast)
       if (isTRUE(save_outputs)) {
         ggplot2::ggsave(file.path(FIGS, "pit_train.png"),    g_pit_train,    width = 12, height = 4.5, dpi = 150)
         ggplot2::ggsave(file.path(FIGS, "pit_forecast.png"), g_pit_forecast, width = 12, height = 4.5, dpi = 150)
       }
-    })
-  }
+    }
+
+    if (isTRUE(pit_use_all)) {
+      pit_tr_list <- lapply(seq_along(p_vec), function(i) emp_pit_vec(y_train_keep, fits_fc[[i]]$yrep_tr))
+      pit_fc_list <- lapply(seq_along(p_vec), function(i) emp_pit_vec(y_forecast, fits_fc[[i]]$yrep_fc))
+      names(pit_tr_list) <- fmt_p(p_vec)
+      names(pit_fc_list) <- fmt_p(p_vec)
+
+      pit_long <- function(pit_list) {
+        dplyr::bind_rows(lapply(names(pit_list), function(p_chr) {
+          tibble::tibble(p_chr = p_chr, pit = pit_list[[p_chr]])
+        })) |> dplyr::filter(is.finite(pit))
+      }
+      pit_qq_long <- function(pit_list) {
+        dplyr::bind_rows(lapply(names(pit_list), function(p_chr) {
+          pit <- pit_list[[p_chr]]
+          pit <- pit[is.finite(pit)]
+          if (!length(pit)) return(tibble::tibble())
+          pit_s <- sort(pit); u <- stats::ppoints(length(pit_s))
+          tibble::tibble(p_chr = p_chr, u = u, pit = pit_s)
+        }))
+      }
+
+      d_tr <- pit_long(pit_tr_list)
+      d_fc <- pit_long(pit_fc_list)
+      qq_tr <- pit_qq_long(pit_tr_list)
+      qq_fc <- pit_qq_long(pit_fc_list)
+      ncol_fac <- min(3L, length(p_vec))
+
+      g_tr_hist <- ggplot2::ggplot(d_tr, ggplot2::aes(x = pit)) +
+        theme_exdqlm() +
+        ggplot2::geom_histogram(ggplot2::aes(y = after_stat(density)),
+                                boundary = 0, bins = 20, color = "white") +
+        ggplot2::geom_hline(yintercept = 1, linetype = 2) +
+        ggplot2::facet_wrap(~ p_chr, ncol = ncol_fac) +
+        ggplot2::labs(title = "PIT histograms (train, per-quantile models)",
+                      x = "PIT", y = "density")
+      g_fc_hist <- ggplot2::ggplot(d_fc, ggplot2::aes(x = pit)) +
+        theme_exdqlm() +
+        ggplot2::geom_histogram(ggplot2::aes(y = after_stat(density)),
+                                boundary = 0, bins = 20, color = "white") +
+        ggplot2::geom_hline(yintercept = 1, linetype = 2) +
+        ggplot2::facet_wrap(~ p_chr, ncol = ncol_fac) +
+        ggplot2::labs(title = "PIT histograms (forecast, per-quantile models)",
+                      x = "PIT", y = "density")
+
+      g_tr_qq <- ggplot2::ggplot(qq_tr, ggplot2::aes(x = u, y = pit)) +
+        theme_exdqlm() +
+        ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2) +
+        ggplot2::geom_point(alpha = 0.7, size = 1.2) +
+        ggplot2::facet_wrap(~ p_chr, ncol = ncol_fac) +
+        ggplot2::labs(title = "PIT QQ (train, per-quantile models)",
+                      x = "Uniform(0,1) quantiles", y = "PIT quantiles") +
+        ggplot2::coord_cartesian(xlim = c(0,1), ylim = c(0,1))
+      g_fc_qq <- ggplot2::ggplot(qq_fc, ggplot2::aes(x = u, y = pit)) +
+        theme_exdqlm() +
+        ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2) +
+        ggplot2::geom_point(alpha = 0.7, size = 1.2) +
+        ggplot2::facet_wrap(~ p_chr, ncol = ncol_fac) +
+        ggplot2::labs(title = "PIT QQ (forecast, per-quantile models)",
+                      x = "Uniform(0,1) quantiles", y = "PIT quantiles") +
+        ggplot2::coord_cartesian(xlim = c(0,1), ylim = c(0,1))
+
+      g_pit_train_all <- g_tr_hist | g_tr_qq
+      g_pit_fore_all  <- g_fc_hist | g_fc_qq
+      print(g_pit_train_all); print(g_pit_fore_all)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(file.path(FIGS, "pit_train_models.png"),    g_pit_train_all, width = 12, height = 6.5, dpi = 150)
+        ggplot2::ggsave(file.path(FIGS, "pit_forecast_models.png"), g_pit_fore_all,  width = 12, height = 6.5, dpi = 150)
+      }
+    }
+
+    if (isTRUE(pit_use_synth)) {
+      pit_tr_syn <- emp_pit_vec(y_train_keep, synth_tr$draws)
+      pit_fc_syn <- emp_pit_vec(y_forecast, synth_fc$draws)
+      g_tr_hist <- plot_pit_hist(pit_tr_syn, "PIT histogram (train, synthesized)")
+      g_fc_hist <- plot_pit_hist(pit_fc_syn, "PIT histogram (forecast, synthesized)")
+      g_tr_qq   <- plot_pit_qq(pit_tr_syn,   "PIT QQ (train, synthesized)")
+      g_fc_qq   <- plot_pit_qq(pit_fc_syn,   "PIT QQ (forecast, synthesized)")
+      g_pit_train <- g_tr_hist | g_tr_qq
+      g_pit_fore  <- g_fc_hist | g_fc_qq
+      print(g_pit_train); print(g_pit_fore)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(file.path(FIGS, "pit_train_synth.png"),    g_pit_train, width = 12, height = 4.5, dpi = 150)
+        ggplot2::ggsave(file.path(FIGS, "pit_forecast_synth.png"), g_pit_fore,  width = 12, height = 4.5, dpi = 150)
+      }
+    }
+  })
 }
 
 # ================================================================
-# 9) CRPS and S score (CRPS + averaged marginal pinball over K)
+# 10) CRPS and S score (CRPS + averaged marginal pinball over K)
 # ================================================================
 if (isTRUE(do_scores)) {
-  # Efficient CRPS from samples:
-  # CRPS(F, y) ≈ (1/M)∑|z_m - y| - (1/M^2)∑_{k=1..M} (2k - M - 1) z_(k), where z_(k) is sorted draws
-  crps_row <- function(y, z) {
-    z <- sort(z); M <- length(z)
-    term1 <- mean(abs(z - y))
-    # ∑_{k}(2k - M - 1) z_(k)
-    k <- seq_len(M)
-    term2 <- sum((2*k - M - 1) * z) / (M^2)
-    term1 - term2
-  }
-  crps_vec <- function(y_vec, draws_mat) {
-    stopifnot(length(y_vec) == nrow(draws_mat))
-    vapply(seq_len(nrow(draws_mat)), function(i) crps_row(y_vec[i], draws_mat[i, ]), numeric(1))
-  }
-
   # Forecast-window CRPS from synthesized draws
   crps_fc <- crps_vec(y_forecast, synth_fc$draws)
 
