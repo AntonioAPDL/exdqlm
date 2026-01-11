@@ -130,7 +130,7 @@ diagnostics:
   scores: true               # CRPS / interval scores, etc.
   lead_eval: true           # synthesized lead-specific CRPS diagnostics
   fan_charts: true          # overlapping forecast fan charts
-  fan_stride: 1              # plot every k-th origin (1 = all)
+  fan_stride: 7              # plot every k-th origin (1 = all)
   plots: true                # master gate for ggplot-based outputs
 
 # --------------------------------------------------------------------
