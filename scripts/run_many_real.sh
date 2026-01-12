@@ -3,24 +3,41 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$REPO_DIR"
 
 SPEC="${1:-real_heavy}"
-DATASETS_FILE="config/datasets_real.yaml"
+DATASETS_FILE="config/datasets.yaml"
 
 if [[ ! -f "$DATASETS_FILE" ]]; then
   echo "Missing datasets file: $DATASETS_FILE"
   exit 1
 fi
 
-# Auto-read all real slugs from config/datasets_real.yaml
-if command -v rg >/dev/null 2>&1; then
-  mapfile -t SLUGS < <(
-    rg -o "^\\s*-\\s*slug:\\s*.*" "$DATASETS_FILE" | \
-      sed -E "s/^\\s*-\\s*slug:\\s*//; s/\\s+#.*$//; s/^['\\\"]//; s/['\\\"]$//"
-  )
-else
-  mapfile -t SLUGS < <(
-    grep -E "^\\s*-\\s*slug:\\s*" "$DATASETS_FILE" | \
-      sed -E "s/^\\s*-\\s*slug:\\s*//; s/\\s+#.*$//; s/^['\\\"]//; s/['\\\"]$//"
-  )
+trim_val() {
+  local v="$1"
+  v="${v%%#*}"
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  v="${v#\"}"; v="${v%\"}"
+  v="${v#\'}"; v="${v%\'}"
+  echo "$v"
+}
+
+# Auto-read all real slugs from config/datasets.yaml
+SLUGS=()
+current_slug=""
+current_mode=""
+while IFS= read -r line; do
+  if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*slug:[[:space:]]*(.*)$ ]]; then
+    if [[ -n "$current_slug" && "$current_mode" == "real" ]]; then
+      SLUGS+=("$current_slug")
+    fi
+    current_slug="$(trim_val "${BASH_REMATCH[1]}")"
+    current_mode=""
+  elif [[ "$line" =~ ^[[:space:]]{4}mode:[[:space:]]*(.*)$ ]]; then
+    current_mode="$(trim_val "${BASH_REMATCH[1]}")"
+  fi
+done < "$DATASETS_FILE"
+
+if [[ -n "$current_slug" && "$current_mode" == "real" ]]; then
+  SLUGS+=("$current_slug")
 fi
 
 if [[ ${#SLUGS[@]} -eq 0 ]]; then

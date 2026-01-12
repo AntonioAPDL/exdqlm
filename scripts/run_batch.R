@@ -8,18 +8,25 @@ suppressPackageStartupMessages({
   lapply(req, require, character.only=TRUE)
 })
 
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
 args <- commandArgs(trailingOnly = TRUE)
 spec_name <- if (length(args)) args[1] else "baseline"
 serial <- any(args %in% c("--serial","-s"))
 
-suite <- yaml::read_yaml("config/suite.yaml")
-ds <- yaml::read_yaml("config/datasets.yaml")$datasets
-prefix <- suite$tmux$session_prefix %||% "esn-"
-conc <- suite$orchestrate$concurrency %||% 2
+cfg <- yaml::read_yaml("config/defaults.yaml")
+
+ds_all <- yaml::read_yaml("config/datasets.yaml")$datasets
+ds <- Filter(function(d) tolower(d$mode %||% "sim") != "real", ds_all)
+
+prefix <- cfg$tmux$session_prefix %||% "esn-"
+conc <- cfg$orchestrate$concurrency %||% 2
+suite_name <- cfg$suite_name %||% "sim_suite_dlm"
+results_root <- cfg$results_root %||% "results"
 
 launch <- function(slug) {
-  cmd <- sprintf('Rscript scripts/run_one.R --slug %s --spec %s > results/%s/%s/runs/last.log 2>&1',
-                 slug, spec_name, suite$suite_name, slug)
+  cmd <- sprintf('Rscript scripts/run_one.R --slug %s --spec %s > %s/%s/%s/runs/last.log 2>&1',
+                 slug, spec_name, results_root, suite_name, slug)
   if (serial) {
     message("Running serial: ", slug)
     system(cmd)

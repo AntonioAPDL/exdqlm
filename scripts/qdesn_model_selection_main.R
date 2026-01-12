@@ -129,9 +129,8 @@ if (!is.null(opt$dataset_slug)) {
   file_long  <- entry$input_path
   dataset_id <- opt$dataset_slug
 
-  # Apply dataset-specific overrides onto base_cfg, if provided
   if (!is.null(entry$overrides) && length(entry$overrides)) {
-    base_cfg <- utils::modifyList(base_cfg, entry$overrides)
+    message("[qdesn_model_selection_main] dataset 'overrides' is deprecated and will be ignored.")
   }
 
   message("[qdesn_model_selection_main] Using dataset slug: ", opt$dataset_slug)

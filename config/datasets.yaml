@@ -1,15 +1,17 @@
-# Registry: one source of truth for dataset paths + optional overrides
+# Registry: one source of truth for dataset paths only
 datasets:
   - slug: dlm_ar1V
+    mode: sim
     input_path: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/series/dlm_ar1V/series_long.csv
-    overrides: {}
 
   - slug: dlm_constV_bigW
+    mode: sim
     input_path: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/series/dlm_constV_bigW/series_long.csv
-    overrides:
-      outputs:
-        keep_draws: true      # e.g., keep draws for CRPS audits
 
   - slug: dlm_constV_smallW
+    mode: sim
     input_path: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/series/dlm_constV_smallW/series_long.csv
-    overrides: {}
+
+  - slug: san_lorenzo_daily
+    mode: real
+    input_path: /data/muscat_data/jaguir26/data/data_USGS_ppt_soil.csv

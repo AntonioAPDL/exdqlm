@@ -70,12 +70,9 @@ dry_run   <- has_flag("--dry-run")
 stopifnot(nzchar(slug), nzchar(spec_name))
 
 # --- Load YAMLs
-defaults <- yaml::read_yaml("config/defaults.yaml")
-suite    <- if (file.exists("config/suite.yaml"))   yaml::read_yaml("config/suite.yaml")   else list()
-datasets_sim  <- if (file.exists("config/datasets.yaml"))       yaml::read_yaml("config/datasets.yaml")       else list(datasets=list())
-datasets_real <- if (file.exists("config/datasets_real.yaml"))  yaml::read_yaml("config/datasets_real.yaml")  else list(datasets=list())
-datasets <- c(datasets_sim$datasets, datasets_real$datasets)
-local <- if (file.exists("config/local.yaml")) yaml::read_yaml("config/local.yaml") else list()
+defaults   <- yaml::read_yaml("config/defaults.yaml")
+datasets_y <- if (file.exists("config/datasets.yaml")) yaml::read_yaml("config/datasets.yaml") else list(datasets=list())
+datasets   <- datasets_y$datasets
 
 # find dataset entry
 ds <- NULL
@@ -83,26 +80,9 @@ for (d in datasets) if (identical(d$slug, slug)) { ds <- d; break }
 if (is.null(ds)) stop("Dataset slug not found: ", slug)
 
 mode_ds <- tolower(ds$mode %||% "")
-if (!nzchar(mode_ds)) {
-  # fall back to overrides.pipeline.mode if present
-  mode_ds <- tolower(ds$overrides$pipeline$mode %||% "")
-}
 
 input_path <- ds$input_path
 if (!file.exists(input_path)) stop("Input file not found: ", input_path)
-
-# Flexible spec resolver: <name>.yaml | spec_<name>.yaml | sim_<name>.yaml | real_<name>.yaml
-cand <- c(
-  file.path("config","specs", paste0(spec_name, ".yaml")),
-  file.path("config","specs", paste0("spec_", spec_name, ".yaml")),
-  file.path("config","specs", paste0("sim_",  spec_name, ".yaml")),
-  file.path("config","specs", paste0("real_", spec_name, ".yaml"))
-)
-spec_path <- cand[file.exists(cand)][1]
-if (is.na(spec_path) || !length(spec_path)) {
-  stop("Spec not found. Tried: ", paste(cand, collapse=" | "))
-}
-spec <- yaml::read_yaml(spec_path)
 
 deep_merge <- function(a,b){
   if (is.null(b)) return(a)
@@ -116,10 +96,16 @@ deep_merge <- function(a,b){
 }
 
 cfg <- defaults
-cfg <- deep_merge(cfg, suite)
-cfg <- deep_merge(cfg, spec)
-cfg <- deep_merge(cfg, ds$overrides)
-cfg <- deep_merge(cfg, local)
+mode_key <- tolower(mode_ds %||% cfg$pipeline$mode %||% "")
+if (nzchar(mode_key) && !is.null(cfg$mode_overrides) && !is.null(cfg$mode_overrides[[mode_key]])) {
+  cfg <- deep_merge(cfg, cfg$mode_overrides[[mode_key]])
+}
+
+ds_cfg <- ds
+ds_cfg$slug <- NULL
+ds_cfg$input_path <- NULL
+ds_cfg$mode <- NULL
+cfg <- deep_merge(cfg, ds_cfg)
 
 fix_bool_keys <- function(x) {
   if (is.null(x) || !is.list(x)) return(x)
@@ -145,9 +131,9 @@ fix_cfg_keys <- function(x) {
 
 cfg <- fix_cfg_keys(cfg)
 
-if (!is.null(ds$overrides) && !is.null(ds$overrides[["columns"]])) {
-  ds$overrides[["columns"]] <- fix_bool_keys(ds$overrides[["columns"]])
-  cfg[["columns"]] <- deep_merge(cfg[["columns"]], ds$overrides[["columns"]])
+if (!is.null(ds_cfg[["columns"]])) {
+  ds_cfg[["columns"]] <- fix_bool_keys(ds_cfg[["columns"]])
+  cfg[["columns"]] <- deep_merge(cfg[["columns"]], ds_cfg[["columns"]])
 }
 
 norm_num <- function(x) {
@@ -218,15 +204,6 @@ fix_yaml_bool_keys <- function(x) {
 }
 
 cfg$columns <- fix_yaml_bool_keys(cfg$columns)
-if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) {
-  ds$overrides$columns <- fix_yaml_bool_keys(ds$overrides$columns)
-}
-
-
-# ---- Force dataset column overrides into cfg (defensive) ----
-if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) {
-  cfg$columns <- deep_merge(cfg$columns, ds$overrides$columns)
-}
 
 # ---- Normalize DESN numeric fields (treat length-0 as NULL; broadcast scalars) ----
 norm_act <- function(x, nm) {
@@ -292,7 +269,7 @@ fs::dir_create(fs::path(run_dir, "manifest"))
 fs::dir_create(fs::path(run_dir, "thesis"))
 fs::dir_create(fs::path(run_dir, "logs"))
 
-# Mode-aware schema check (prefer merged cfg$columns; fall back to ds$overrides)
+# Mode-aware schema check (prefer merged cfg$columns)
 hdr <- try(read.csv(input_path, nrows = 1))
 if (inherits(hdr, "try-error")) {
   cat("Could not read the first row of input file: ", input_path, "\n")
@@ -312,15 +289,12 @@ if (mode_eff %in% c("sim","simulation")) {
     cat("Schema OK (sim) | header: ", paste(names(hdr), collapse=", "), "\n", sep = "")
   }
 } else if (mode_eff %in% c("real","observed","data")) {
-  # Prefer merged cfg (defaults → suite → spec → overrides → local), then ds$overrides, then default
-  # Resolve column mapping (dataset override MUST win)
+  # Prefer merged cfg (defaults → mode_overrides → dataset), then default
   cols_cfg <- cfg$columns %||% list()
-  y_map_ds <- if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) ds$overrides$columns$y else NULL
-  date_ds  <- if (!is.null(ds$overrides) && !is.null(ds$overrides$columns)) ds$overrides$columns$date else NULL
 
   hdr_nms <- names(hdr)
-  y_map    <- y_map_ds %||% cols_cfg$y %||% (if ("y" %in% hdr_nms) "y" else hdr_nms[1])
-  date_map <- date_ds  %||% cols_cfg$date %||% NULL
+  y_map    <- cols_cfg$y %||% (if ("y" %in% hdr_nms) "y" else hdr_nms[1])
+  date_map <- cols_cfg$date %||% NULL
 
 cat(sprintf("Column mapping (real): y_map='%s'%s\n",
             y_map, if (!is.null(date_map)) sprintf(", date_map='%s'", date_map) else ""))

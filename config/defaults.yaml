@@ -5,14 +5,26 @@ suite_name: sim_suite_dlm
 results_root: results
 
 # --------------------------------------------------------------------
+# Orchestration (tmux batch runner defaults)
+# --------------------------------------------------------------------
+orchestrate:
+  concurrency: 3       # max concurrent tmux sessions
+  threads_per_proc: 4  # used by batch runners for OMP caps
+  skip_if_success: true
+  resume_failed: false
+
+tmux:
+  session_prefix: esn-
+
+# --------------------------------------------------------------------
 # Data split: how much of the series to use and how to split train/forecast
+# (Mode-specific defaults live under mode_overrides below.)
 # --------------------------------------------------------------------
 split:
-  T_use: 5000        # number of time points used (from end if use_last = true)
   use_prop: null     # optional fraction of T_full to use instead of T_use
   use_last: true     # if true, take last T_use points; else first T_use
   train_n: null      # fixed training length (overrides train_prop if non-null)
-  train_prop: 0.94   # fallback train fraction if train_n is null
+  # T_use and train_prop are set per mode in mode_overrides.
 
 # --------------------------------------------------------------------
 # Quantile levels fitted independently by VB
@@ -28,21 +40,45 @@ pipeline:
   verbose: true      # global verbosity flag
 
 # --------------------------------------------------------------------
+# Mode-specific defaults (merged on top of the base config by pipeline_run.R)
+# These are the only parameters duplicated across modes:
+# split.T_use, split.train_prop, columns, preproc, lags.
+# --------------------------------------------------------------------
+mode_overrides:
+  sim:
+    split:
+      T_use: 5000
+      train_prop: 0.94
+  real:
+    split:
+      T_use: 10000
+      train_prop: 0.95
+    columns:
+      y: USGS
+      x: [ppt, soil]
+    preproc:
+      scale_y: true
+      scale_x: true
+    lags:
+      m_y: 180
+      m_x: 180
+
+# --------------------------------------------------------------------
 # DESN (reservoir) defaults
 # --------------------------------------------------------------------
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [20, 20, 20]         # units per layer (length D)
-  n_tilde: [20, 20]        # skip/reducer sizes (length D-1 when D>1)
-  m: 30                     # number of lags in u_t
-  alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
+  n: [1000, 1000, 1000]         # units per layer (length D)
+  n_tilde: [1000, 1000]        # skip/reducer sizes (length D-1 when D>1)
+  m: 180                     # number of lags in u_t
+  alpha: [0.4, 0.4, 0.4]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"]     # output activation per layer
   pi_w:  [0.1, 0.1, 0.1]  # sparsity of recurrent weights per layer
   pi_in: [1.0, 1.0, 1.0]  # sparsity of input weights per layer
-  washout: 500               # initial time steps discarded
+  washout: 500               # initial time steps discardedmode_overrides
   add_bias: true             # include bias column in readout
   seed: [12345, 12344, 12343]  # per-layer seeds (or use a scalar if your code expands it)
 
@@ -59,7 +95,7 @@ vb:
       ridge:
         tau2: 10000
       rhs:
-        tau0: 1000
+        tau0: 500
         nu: 4.0
         s2: 1
         shrink_intercept: false
@@ -97,9 +133,9 @@ forecast:
   last_window: 200           # legacy base window
   horizon: 30                # multi-step horizon for lattice forecasts
   mode: mixture              # mixture | lattice | origin
-  lead_weight_power: 5       # base weights w_r ∝ 1 / r^power (power=0 => uniform)
+  lead_weight_power: 1       # base weights w_r ∝ 1 / r^power (power=0 => uniform)
   # mixture draws per target time = sampling.nd_draws
-  eval_leads: null           # null | "all" | list of leads to evaluate
+  eval_leads: all           # null | "all" | list of leads to evaluate
 
   # Optional separate windows (if null, fallback to last_window)
   train_last_window: null
@@ -138,10 +174,15 @@ diagnostics:
   pit: true                  # PIT diagnostics
   pit_scope: all+synth       # median | all | synth | all+synth
   scores: true               # CRPS / interval scores, etc.
-  lead_eval: true           # synthesized lead-specific CRPS diagnostics
-  fan_charts: true          # overlapping forecast fan charts
-  fan_stride: 7              # plot every k-th origin (1 = all)
+  lead_eval: true            # synthesized lead-specific CRPS diagnostics
+  fan_charts: true           # overlapping forecast fan charts
+  fan_stride: 30             # plot every k-th origin (1 = all)
   plots: true                # master gate for ggplot-based outputs
+
+# --------------------------------------------------------------------
+# Naming overrides (optional)
+# --------------------------------------------------------------------
+naming: {}
 
 # --------------------------------------------------------------------
 # Outputs (saving heavy artifacts)
