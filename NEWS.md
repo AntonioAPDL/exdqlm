@@ -1,4 +1,3 @@
-# exdqlm 0.1.5
 
 # exdqlm 0.2.0
 

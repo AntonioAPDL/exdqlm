@@ -8,10 +8,3 @@
 
 0 errors | 0 warnings | 0 notes (all platforms above)
 
-## Notes for CRAN
-
-* **Maintenance (hygiene) release**: small housekeeping only; **no API changes**.
-* Updated examples/tests to avoid long runtimes and remove edge-case NOTE.
-* Cleaned package sources (removed stray build artefacts; ensured no `doc/` in tarball).
-* **Authors\@R**: added **Antonio Aguirre** as contributor (`ctb`). **Maintainer unchanged** (Raquel Barata).
-* No reverse dependencies.
