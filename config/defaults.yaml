@@ -51,6 +51,7 @@ desn:
 # These match what pipeline_sim_main.R expects in cfg$vb
 # --------------------------------------------------------------------
 vb:
+  max_iter: 400
   readout_scale: true       # z-score readout design matrix (excluding intercept)
   priors:
     beta:
@@ -109,6 +110,15 @@ forecast:
   # "window" = coverage on last N window points
   # "both" = both metrics
   coverage_report: global
+
+# --------------------------------------------------------------------
+# C++ backend toggles (optional)
+# --------------------------------------------------------------------
+cpp:
+  use_postpred: true        # C++ posterior predictive sampler (FALSE = R path)
+  postpred_omp: true        # optional OpenMP in post-pred
+  postpred_precompute: true # precompute noise draws (for A/B)
+  postpred_threads: 4       # cap OpenMP threads to avoid oversubscription
 
 # --------------------------------------------------------------------
 # Quantile synthesis defaults (across p_vec)

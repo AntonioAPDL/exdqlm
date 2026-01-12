@@ -699,6 +699,14 @@ forecast_paths.qdesn_fit <- function(
       "identity" = function(x) x,
       stop("Unknown activation: ", a))
   }
+  act_code <- function(a) {
+    if (is.function(a)) return(NA_integer_)
+    switch(tolower(a),
+      "identity" = 0L,
+      "tanh"     = 1L,
+      "relu"     = 2L,
+      NA_integer_)
+  }
   f_act <- get_act(res$act_f)
   k_act <- get_act(res$act_k)
 
@@ -796,6 +804,83 @@ forecast_paths.qdesn_fit <- function(
     abc <- exal_get_ABC(p0 = p0, gamma = g)
     abc$C * abs(g)
   }, numeric(1))
+
+  use_cpp <- isTRUE(getOption("exdqlm.use_cpp_postpred", FALSE))
+  use_cpp_omp <- isTRUE(getOption("exdqlm.use_cpp_postpred_omp", FALSE))
+  precompute_noise <- isTRUE(getOption("exdqlm.use_cpp_postpred_precompute", FALSE)) || isTRUE(use_cpp_omp)
+
+  if (isTRUE(use_cpp)) {
+    if (!exists("forecast_paths_cpp", mode = "function", inherits = TRUE)) {
+      stop("exdqlm.use_cpp_postpred=TRUE but forecast_paths_cpp not found.")
+    }
+
+    act_f_code <- act_code(res$act_f)
+    act_k_code <- act_code(res$act_k)
+    if (!is.finite(act_f_code) || !is.finite(act_k_code)) {
+      message("[forecast_paths] C++ disabled: custom activation functions not supported.")
+      use_cpp <- FALSE
+    }
+    if (!input_bound %in% c("none", "tanh")) {
+      message("[forecast_paths] C++ disabled: input_bound must be 'none' or 'tanh'.")
+      use_cpp <- FALSE
+    }
+
+    if (isTRUE(use_cpp)) {
+      scale_info_cpp <- scale_info
+      if (is.null(scale_info_cpp) || !isTRUE(scale_info_cpp$scaled)) {
+        scale_info_cpp <- list(scaled = FALSE)
+      }
+      win_scale_lags_cpp <- if (is.null(win_scale_lags)) numeric(0) else as.numeric(win_scale_lags)
+
+      s_draws <- v_draws <- z_draws <- NULL
+      if (isTRUE(precompute_noise)) {
+        s_draws <- matrix(abs(rnorm(H * nd_eff)), nrow = H, ncol = nd_eff)
+        z_draws <- matrix(rnorm(H * nd_eff), nrow = H, ncol = nd_eff)
+        v_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+        for (j in seq_len(nd_eff)) {
+          v_draws[, j] <- rexp(H, rate = 1 / sdraw[j])
+        }
+      }
+
+      Q_list_cpp <- if (is.null(res$Q)) list() else res$Q
+      out <- forecast_paths_cpp(
+        W_list = res$W,
+        Win_list = res$Win,
+        Q_list = Q_list_cpp,
+        alpha = res$alpha,
+        D = D,
+        add_bias = add_bias,
+        y_hist0 = y_hist0,
+        y_lags = y_lags,
+        x_blocks = x_blocks,
+        beta = Bdraw,
+        sigma = sdraw,
+        A_d = A_d,
+        B_d = B_d,
+        lam_d = lam_d,
+        y_obs_vec = y_obs_vec,
+        H = H,
+        m_res = m_res,
+        p_res = p_res,
+        standardize_inputs = standardize_inputs,
+        lag_center = lag_center,
+        lag_scale = lag_scale,
+        win_scale_lags = win_scale_lags_cpp,
+        input_bound = input_bound,
+        win_scale_global = win_scale_global,
+        win_scale_bias = win_scale_bias,
+        scale_info = scale_info_cpp,
+        act_f_code = act_f_code,
+        act_k_code = act_k_code,
+        origin_state = origin_state,
+        s_draws = s_draws,
+        v_draws = v_draws,
+        z_draws = z_draws,
+        use_omp = isTRUE(use_cpp_omp)
+      )
+      return(out)
+    }
+  }
 
   yrep     <- matrix(NA_real_, H, nd_eff)
   mu_draws <- matrix(NA_real_, H, nd_eff)

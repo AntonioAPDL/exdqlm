@@ -143,6 +143,37 @@ if (!is.null(cfg$diagnostics)) {
   }
 }
 
+if (!is.null(cfg$cpp)) {
+  use_postpred <- cfg$cpp$use_postpred %nz% cfg$cpp$postpred
+  if (!is.null(use_postpred)) {
+    options(exdqlm.use_cpp_postpred = isTRUE(use_postpred))
+  }
+  if (!is.null(cfg$cpp$postpred_omp)) {
+    options(exdqlm.use_cpp_postpred_omp = isTRUE(cfg$cpp$postpred_omp))
+  }
+  if (!is.null(cfg$cpp$postpred_precompute)) {
+    options(exdqlm.use_cpp_postpred_precompute = isTRUE(cfg$cpp$postpred_precompute))
+  }
+  threads_cfg <- cfg$cpp$postpred_threads %nz% cfg$cpp$threads
+  if (isTRUE(getOption("exdqlm.use_cpp_postpred", FALSE)) &&
+      isTRUE(getOption("exdqlm.use_cpp_postpred_omp", FALSE)) &&
+      !is.null(threads_cfg)) {
+    threads_cfg <- as.integer(threads_cfg)[1L]
+    if (is.finite(threads_cfg) && threads_cfg > 0L) {
+      Sys.setenv(OMP_NUM_THREADS = as.character(threads_cfg))
+      Sys.setenv(OMP_THREAD_LIMIT = as.character(threads_cfg))
+    }
+  }
+}
+
+log_msg(
+  "C++ postpred → use=%s | omp=%s | precompute=%s | OMP_NUM_THREADS=%s",
+  as.character(isTRUE(getOption("exdqlm.use_cpp_postpred", FALSE))),
+  as.character(isTRUE(getOption("exdqlm.use_cpp_postpred_omp", FALSE))),
+  as.character(isTRUE(getOption("exdqlm.use_cpp_postpred_precompute", FALSE))),
+  Sys.getenv("OMP_NUM_THREADS", unset = "unset")
+)
+
 # --- Fan chart config normalization ---
 fan_stride <- as.integer(fan_stride)
 if (!is.finite(fan_stride) || fan_stride < 1L) {
@@ -1477,7 +1508,7 @@ plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
   if (is.null(fan_df) || !nrow(fan_df)) return(NULL)
   t_rng <- range(fan_df$t, na.rm = TRUE)
   y_obs_df <- dplyr::filter(y_obs_df, dplyr::between(t, t_rng[1], t_rng[2]))
-  col_fill <- scales::alpha(fill_col, 0.05)
+  col_fill <- scales::alpha(fill_col, 0.15)
   ggplot2::ggplot(fan_df, ggplot2::aes(x = t, group = origin)) +
     theme_exdqlm() +
     ggplot2::geom_ribbon(

@@ -1,11 +1,1 @@
 name: heavy
-vb:
-  max_iter: 150
-  n_samp_xi: 5000
-sampling:
-  nd_draws: 2000
-  chunk: 300
-synthesis:
-  n_samp: 1000
-outputs:
-  keep_draws: false
