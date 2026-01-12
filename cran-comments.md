@@ -8,3 +8,6 @@
 
 0 errors | 0 warnings | 0 notes (all platforms above)
 
+## Notes for CRAN
+
+* This is an update to improve performance and add generics. Details of all changes can be found in NEWS.md.
