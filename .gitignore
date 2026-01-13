@@ -55,3 +55,24 @@ exdqlm_chatgpt_dump_*.txt
 
 # Local helper scripts
 /dump_exdqlm_files_to_txt.sh
+# LaTeX build artifacts
+slides/build/
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.fls
+*.fdb_latexmk
+# LaTeX build artifacts
+slides/build/
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.fls
+*.fdb_latexmk
+/scripts/build_slides_local.sh
