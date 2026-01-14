@@ -3,6 +3,7 @@
 .Rapp.history
 .RData
 .Ruserdata
+.Rlib/
 .Rproj.user/
 .DS_Store
 .vscode/

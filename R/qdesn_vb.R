@@ -834,11 +834,13 @@ forecast_paths.qdesn_fit <- function(
 
       s_draws <- v_draws <- z_draws <- NULL
       if (isTRUE(precompute_noise)) {
-        s_draws <- matrix(abs(rnorm(H * nd_eff)), nrow = H, ncol = nd_eff)
-        z_draws <- matrix(rnorm(H * nd_eff), nrow = H, ncol = nd_eff)
+        s_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
         v_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+        z_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
         for (j in seq_len(nd_eff)) {
+          s_draws[, j] <- abs(rnorm(H))
           v_draws[, j] <- rexp(H, rate = 1 / sdraw[j])
+          z_draws[, j] <- rnorm(H)
         }
       }
 

@@ -272,6 +272,8 @@ Rcpp::List forecast_paths_cpp(
           x_res.insert(x_res.begin(), 1.0);
         }
 
+        h_now = h_new;
+
         if (h == 0 && (int)x_res.size() != p_res) {
           stop("forecast_paths_cpp: readout feature length mismatch (p_res).");
         }
@@ -347,7 +349,11 @@ Rcpp::List forecast_paths_cpp(
       if (!has_pre) {
         for (int h = 0; h < H; ++h) {
           s_vec[h] = std::fabs(R::rnorm(0.0, 1.0));
-          v_vec[h] = R::rexp(1.0 / sigma[j]);
+        }
+        for (int h = 0; h < H; ++h) {
+          v_vec[h] = R::rexp(sigma[j]);
+        }
+        for (int h = 0; h < H; ++h) {
           z_vec[h] = R::rnorm(0.0, 1.0);
         }
       }
@@ -410,6 +416,8 @@ Rcpp::List forecast_paths_cpp(
         if (add_bias) {
           x_res.insert(x_res.begin(), 1.0);
         }
+
+        h_now = h_new;
 
         if (h == 0 && (int)x_res.size() != p_res) {
           stop("forecast_paths_cpp: readout feature length mismatch (p_res).");

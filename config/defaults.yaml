@@ -60,8 +60,8 @@ mode_overrides:
       scale_y: true
       scale_x: true
     lags:
-      m_y: 180
-      m_x: 180
+      m_y: 30
+      m_x: 30
 
 # --------------------------------------------------------------------
 # DESN (reservoir) defaults
@@ -69,10 +69,10 @@ mode_overrides:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [50, 50, 50]         # units per layer (length D)
-  n_tilde: [50, 50]        # skip/reducer sizes (length D-1 when D>1)
-  m: 180                     # number of lags in u_t
-  alpha: [0.3, 0.3, 0.3]  # leak per layer (length D)
+  n: [20, 20, 20]         # units per layer (length D)
+  n_tilde: [20, 20]        # skip/reducer sizes (length D-1 when D>1)
+  m: 30                     # number of lags in u_t
+  alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"]     # output activation per layer
@@ -95,7 +95,7 @@ vb:
       ridge:
         tau2: 10000
       rhs:
-        tau0: 10000
+        tau0: 1000
         nu: 4.0
         s2: 1
         shrink_intercept: false
