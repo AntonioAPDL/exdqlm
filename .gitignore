@@ -77,3 +77,4 @@ slides/build/
 *.fls
 *.fdb_latexmk
 /scripts/build_slides_local.sh
+/scripts/rebuild_cpp.sh

@@ -97,6 +97,33 @@ save_outputs <- if (!is.na(val_save) && nzchar(val_save)) (as.integer(val_save) 
 cfg_json <- Sys.getenv("EXDQLM_CFG_JSON", unset = NA)
 cfg <- if (!is.na(cfg_json) && nzchar(cfg_json)) jsonlite::fromJSON(cfg_json, simplifyVector = TRUE) else list()
 readout_scale <- isTRUE(cfg$vb$readout_scale %||% FALSE)
+readout_include_input <- FALSE
+readout_reservoir_lags <- 0L
+readout_input_position <- "after_reservoir"
+
+if (!is.null(cfg$readout)) {
+  if (!is.null(cfg$readout$include_input)) {
+    readout_include_input <- isTRUE(cfg$readout$include_input)
+  }
+  if (!is.null(cfg$readout$reservoir_lags)) {
+    readout_reservoir_lags <- as.integer(cfg$readout$reservoir_lags)
+  }
+  if (!is.null(cfg$readout$input_position)) {
+    readout_input_position <- tolower(as.character(cfg$readout$input_position))
+  }
+}
+
+readout_include_input <- isTRUE(readout_include_input)
+readout_reservoir_lags <- as.integer(readout_reservoir_lags)
+if (!is.finite(readout_reservoir_lags) || readout_reservoir_lags < 0L) {
+  message(sprintf("[readout] invalid reservoir_lags=%s; using 0.", as.character(readout_reservoir_lags)))
+  readout_reservoir_lags <- 0L
+}
+if (is.null(readout_input_position) || !readout_input_position %in% c("after_reservoir")) {
+  message(sprintf("[readout] input_position '%s' not recognized; using 'after_reservoir'.",
+                  as.character(readout_input_position)))
+  readout_input_position <- "after_reservoir"
+}
 
 if (!is.null(cfg$pipeline) && !is.null(cfg$pipeline$verbose)) {
   VERBOSE <- isTRUE(cfg$pipeline$verbose)
@@ -456,6 +483,27 @@ build_lag_mat_multi <- function(M, lags, base_names) {
   })
   do.call(cbind, out_list)
 }
+build_mat_lags <- function(M, lags, prefix = "res_lag_") {
+  if (is.null(M) || !length(lags)) return(NULL)
+  n <- nrow(M)
+  p <- ncol(M)
+  base <- colnames(M)
+  if (is.null(base)) base <- paste0("z", seq_len(p))
+  out_list <- lapply(lags, function(L) {
+    rbind(
+      matrix(NA_real_, nrow = L, ncol = p),
+      M[seq_len(n - L), , drop = FALSE]
+    )
+  })
+  out <- do.call(cbind, out_list)
+  colnames(out) <- unlist(lapply(lags, function(L) paste0(base, "_", prefix, L)), use.names = FALSE)
+  out
+}
+cbind_safe <- function(...) {
+  parts <- Filter(Negate(is.null), list(...))
+  if (!length(parts)) return(NULL)
+  do.call(cbind, parts)
+}
 
 Ylags_all <- build_lag_mat(y_full, lags_y)
 Xlags_all <- build_lag_mat_multi(X_use, lags_x, base_names = if (!is.null(X_use)) colnames(X_use) else character(0))
@@ -592,7 +640,32 @@ row_sel   <- which(keep_all_abs %in% keep_abs2)
 X_res2 <- X_all_kept[row_sel, , drop = FALSE]
 Ylags2 <- if (!is.null(Ylags_all)) Ylags_all[keep_abs2, , drop = FALSE] else NULL
 Xlags2 <- if (!is.null(Xlags_all)) Xlags_all[keep_abs2, , drop = FALSE] else NULL
-X_aug2 <- cbind(X_res2, Ylags2, Xlags2)
+
+input_block2 <- if (isTRUE(readout_include_input)) cbind_safe(Ylags2, Xlags2) else NULL
+res_lags_vec <- if (readout_reservoir_lags > 0L) seq_len(readout_reservoir_lags) else integer(0)
+
+Zlags2 <- NULL
+if (length(res_lags_vec)) {
+  X_res_no_bias <- if (isTRUE(desn_args$add_bias)) X_all_kept[, -1, drop = FALSE] else X_all_kept
+  Zlags_all <- build_mat_lags(X_res_no_bias, res_lags_vec, prefix = "res_lag_")
+  Zlags2 <- Zlags_all[row_sel, , drop = FALSE]
+}
+
+if (length(res_lags_vec)) {
+  if (length(keep_abs2) <= readout_reservoir_lags) {
+    stop("Not enough rows to apply reservoir_lags at readout.")
+  }
+  keep_idx <- seq.int(readout_reservoir_lags + 1L, length(keep_abs2))
+  keep_abs2 <- keep_abs2[keep_idx]
+  X_res2 <- X_res2[keep_idx, , drop = FALSE]
+  if (!is.null(Ylags2)) Ylags2 <- Ylags2[keep_idx, , drop = FALSE]
+  if (!is.null(Xlags2)) Xlags2 <- Xlags2[keep_idx, , drop = FALSE]
+  if (!is.null(input_block2)) input_block2 <- input_block2[keep_idx, , drop = FALSE]
+  if (!is.null(Zlags2)) Zlags2 <- Zlags2[keep_idx, , drop = FALSE]
+}
+
+readout_block2 <- if (isTRUE(readout_include_input)) input_block2 else cbind_safe(Ylags2, Xlags2)
+X_aug2 <- cbind_safe(X_res2, readout_block2, Zlags2)
 
 # Split into train/forecast by absolute time
 seq_if <- function(a,b) if (a <= b) seq.int(a,b) else integer(0)
@@ -618,8 +691,8 @@ y_fc        <- y_full[idx_fc_abs]
 
 stopifnot(nrow(X_train) == length(y_tr_keep), nrow(X_fc1) == length(y_fc))
 
-cat(sprintf("[shared] drop_res=%d | drop_lag=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
-            drop_res, lag_max, nrow(X_train), nrow(X_fc1), ncol(X_train)))
+cat(sprintf("[shared] drop_res=%d | drop_lag=%d | drop_res_lag=%d | rows: X_train=%d, X_fc1=%d | cols=%d\n",
+            drop_res, lag_max, readout_reservoir_lags, nrow(X_train), nrow(X_fc1), ncol(X_train)))
 
 readout_scale_info <- NULL
 if (isTRUE(readout_scale)) {
@@ -660,12 +733,19 @@ if (length(x_names)) {
   x_lags_list <- rep(list(as.integer(lags_x)), length(x_names))
   names(x_lags_list) <- x_names
 }
+input_lags_y <- if (isTRUE(readout_include_input)) as.integer(lags_y) else integer(0)
+input_lags_x <- if (isTRUE(readout_include_input)) x_lags_list else list()
 readout_spec <- list(
-  y_lags     = as.integer(lags_y),
-  x_names    = x_names,
-  x_lags     = x_lags_list,
-  p_res      = ncol(X_res2),
-  scale_info = readout_scale_info
+  include_input  = isTRUE(readout_include_input),
+  input_position = readout_input_position,
+  input_lags_y   = input_lags_y,
+  input_lags_x   = input_lags_x,
+  reservoir_lags = as.integer(readout_reservoir_lags),
+  y_lags         = if (isTRUE(readout_include_input)) integer(0) else as.integer(lags_y),
+  x_names        = x_names,
+  x_lags         = if (isTRUE(readout_include_input)) list() else x_lags_list,
+  p_res          = ncol(X_res2),
+  scale_info     = readout_scale_info
 )
 
 # Exogenous series for forecasting (must cover [T_use+1 .. T_use+H])
@@ -711,7 +791,13 @@ cat(sprintf("[lens] y_train_keep=%d | y_forecast=%d\n", length(y_tr_keep), lengt
 p_vec <- as.numeric(cfg$p_vec %||% c(0.05, 0.50, 0.95))
 options(exdqlm.p_digits = infer_p_digits(p_vec))
 
-vb_args_base <- list(max_iter = 150, tol = 1e-4, n_samp_xi = 500, verbose = TRUE)
+vb_args_base <- list(
+  max_iter = 150,
+  min_iter_elbo = 10L,
+  tol = 1e-4,
+  n_samp_xi = 500,
+  verbose = TRUE
+)
 
 # Per-quantile VB init / priors (natural scale)
 vb_init_gamma <- NULL
@@ -747,8 +833,9 @@ if (!is.null(cfg$vb)) {
   if (!is.null(cfg$vb$readout_scale)) {
     readout_scale <- isTRUE(cfg$vb$readout_scale)
   }
-  vb_args_base$max_iter  <- cfg$vb$max_iter  %nz% vb_args_base$max_iter
-  vb_args_base$n_samp_xi <- cfg$vb$n_samp_xi %nz% vb_args_base$n_samp_xi
+  vb_args_base$max_iter      <- cfg$vb$max_iter      %nz% vb_args_base$max_iter
+  vb_args_base$min_iter_elbo <- cfg$vb$min_iter_elbo %nz% vb_args_base$min_iter_elbo
+  vb_args_base$n_samp_xi     <- cfg$vb$n_samp_xi     %nz% vb_args_base$n_samp_xi
   if (!is.null(cfg$vb$verbose)) vb_args_base$verbose <- isTRUE(cfg$vb$verbose)
 
   tol50  <- cfg$vb$tol_50      %nz% tol50
@@ -862,8 +949,8 @@ synth_nsamp     <- as.integer((cfg$synthesis$n_samp %||% 4000L))
 synth_seed      <- as.integer((cfg$synthesis$seed   %||% 123L))
 
 log_msg(
-  "Effective VB → max_iter=%d | tol_50=%.1e | tol_extreme=%.1e | n_samp_xi=%d",
-  vb_args_base$max_iter, tol50, tolext, vb_args_base$n_samp_xi
+  "Effective VB → max_iter=%d | min_iter_elbo=%d | tol_50=%.1e | tol_extreme=%.1e | n_samp_xi=%d",
+  vb_args_base$max_iter, vb_args_base$min_iter_elbo, tol50, tolext, vb_args_base$n_samp_xi
 )
 log_msg(
   "Effective beta prior → type=%s | ridge_tau2=%s | rhs(tau0=%.3f, nu=%.3f, s2=%.3f)",
@@ -918,7 +1005,12 @@ plot_beta_forest <- function(beta_draws,
     ggplot2::geom_errorbarh(ggplot2::aes(xmin = lo, xmax = hi), height = 0, alpha = 0.9) +
     ggplot2::geom_point(size = 1.4) +
     {
-      if (zero_line) ggplot2::geom_vline(xintercept = 0, colour = "red", linetype = "dashed")
+      if (zero_line) ggplot2::geom_vline(
+        xintercept = 0,
+        colour = "red",
+        linetype = "dashed",
+        linewidth = 1.1
+      )
       else ggplot2::geom_blank()
     } +
     ggplot2::labs(
@@ -960,7 +1052,12 @@ plot_beta_forest_summary <- function(beta_hat,
     ggplot2::geom_errorbarh(ggplot2::aes(xmin = lo, xmax = hi), height = 0, alpha = 0.9) +
     ggplot2::geom_point(size = 1.4) +
     {
-      if (zero_line) ggplot2::geom_vline(xintercept = 0, colour = "red", linetype = "dashed")
+      if (zero_line) ggplot2::geom_vline(
+        xintercept = 0,
+        colour = "red",
+        linetype = "dashed",
+        linewidth = 1.1
+      )
       else ggplot2::geom_blank()
     } +
     ggplot2::labs(
@@ -1173,6 +1270,7 @@ fit_and_forecast_p <- function(p0) {
     a_sigma      = sigma_a_p,
     b_sigma      = sigma_b_p,
     max_iter     = vb_args_p$max_iter,
+    vb_control   = list(min_iter_elbo = vb_args_p$min_iter_elbo),
     tol          = vb_args_p$tol,
     tol_par      = vb_args_p$tol_par,
     n_samp_xi    = vb_args_p$n_samp_xi,
@@ -1492,6 +1590,7 @@ synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizo
     if (!length(ok)) return(NULL)
     tibble::tibble(
       origin     = origins[i],
+      t_origin   = t_vec[origins[i]],
       lead       = leads[ok],
       target_idx = target_idx[ok],
       t          = t_vec[target_idx[ok]],
@@ -1508,13 +1607,74 @@ plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
   if (is.null(fan_df) || !nrow(fan_df)) return(NULL)
   t_rng <- range(fan_df$t, na.rm = TRUE)
   y_obs_df <- dplyr::filter(y_obs_df, dplyr::between(t, t_rng[1], t_rng[2]))
-  col_fill <- scales::alpha(fill_col, 0.15)
-  ggplot2::ggplot(fan_df, ggplot2::aes(x = t, group = origin)) +
+
+  mix_col <- function(col, mix_with, amount) {
+    amount <- max(0, min(1, amount))
+    c1 <- grDevices::col2rgb(col) / 255
+    c2 <- grDevices::col2rgb(mix_with) / 255
+    rgb <- (1 - amount) * c1 + amount * c2
+    grDevices::rgb(rgb[1], rgb[2], rgb[3])
+  }
+  col_dark  <- mix_col(fill_col, "black", 0.35)
+  col_light <- mix_col(fill_col, "white", 0.70)
+
+  t_is_date  <- inherits(fan_df$t, "Date")
+  t_is_posix <- inherits(fan_df$t, "POSIXct") || inherits(fan_df$t, "POSIXt")
+  t_num <- as.numeric(fan_df$t)
+  fan_rect <- fan_df
+  fan_rect$t_num <- t_num
+  origin_df <- if ("t_origin" %in% names(fan_rect)) {
+    dplyr::distinct(fan_rect, origin, t_origin)
+  } else {
+    tibble::tibble(t_origin = fan_rect$t[0])
+  }
+  fan_rect <- fan_rect %>%
+    dplyr::arrange(origin, t_num) %>%
+    dplyr::group_by(origin) %>%
+    dplyr::mutate(
+      t_prev = dplyr::lag(t_num),
+      t_next = dplyr::lead(t_num),
+      dt_prev = t_num - t_prev,
+      dt_next = t_next - t_num,
+      dt = dplyr::case_when(
+        is.finite(dt_prev) & is.finite(dt_next) ~ pmin(dt_prev, dt_next),
+        is.finite(dt_prev) ~ dt_prev,
+        is.finite(dt_next) ~ dt_next,
+        TRUE ~ 1
+      ),
+      dt = ifelse(!is.finite(dt) | dt <= 0, 1, dt),
+      t_left_num  = ifelse(is.finite(dt_prev) & dt_prev > 0, t_num - dt_prev / 2, t_num - dt / 2),
+      t_right_num = ifelse(is.finite(dt_next) & dt_next > 0, t_num + dt_next / 2, t_num + dt / 2)
+    ) %>%
+    dplyr::ungroup()
+
+  if (t_is_date) {
+    fan_rect$t_left  <- as.Date(fan_rect$t_left_num, origin = "1970-01-01")
+    fan_rect$t_right <- as.Date(fan_rect$t_right_num, origin = "1970-01-01")
+  } else if (t_is_posix) {
+    tz_use <- attr(fan_df$t, "tzone") %||% "UTC"
+    fan_rect$t_left  <- as.POSIXct(fan_rect$t_left_num, origin = "1970-01-01", tz = tz_use)
+    fan_rect$t_right <- as.POSIXct(fan_rect$t_right_num, origin = "1970-01-01", tz = tz_use)
+  } else {
+    fan_rect$t_left  <- fan_rect$t_left_num
+    fan_rect$t_right <- fan_rect$t_right_num
+  }
+
+  h_lim <- if (is.finite(horizon) && horizon >= 1) horizon else max(fan_rect$lead, na.rm = TRUE)
+  brks <- unique(c(1L, as.integer(round(h_lim / 2)), as.integer(h_lim)))
+  brks <- brks[brks >= 1L & brks <= h_lim]
+
+  ggplot2::ggplot(fan_rect, ggplot2::aes(xmin = t_left, xmax = t_right, ymin = lo, ymax = hi, fill = lead)) +
     theme_exdqlm() +
-    ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lo, ymax = hi),
-      fill = col_fill,
-      colour = NA
+    ggplot2::geom_rect(alpha = 0.25, colour = NA) +
+    ggplot2::geom_vline(
+      data = origin_df,
+      ggplot2::aes(xintercept = t_origin),
+      inherit.aes = FALSE,
+      color = "#ef4444",
+      linetype = "dashed",
+      linewidth = 1.5,
+      alpha = 0.35
     ) +
     ggplot2::geom_line(
       data = y_obs_df,
@@ -1524,11 +1684,19 @@ plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
       linewidth = 0.4,
       alpha = 0.7
     ) +
+    ggplot2::scale_fill_gradient(
+      low = col_light,
+      high = col_dark,
+      limits = c(1, h_lim),
+      breaks = brks,
+      oob = scales::squish
+    ) +
     ggplot2::labs(
       title = title,
       subtitle = sprintf("stride=%d, horizon=%d", stride, horizon),
       x = "time index",
-      y = "value"
+      y = "value",
+      fill = "Lead"
     )
 }
 

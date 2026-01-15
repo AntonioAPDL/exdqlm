@@ -202,6 +202,7 @@ qdesn_fit_vb <- function(
   Win <- vector("list", D)
   W   <- vector("list", D)
   Qred<- vector("list", max(0, D - 1))
+  Q_is_identity <- logical(max(0, D - 1))
 
   # Layer 1: input size m+1 (includes constant)
   Win[[1]] <- make_sparse_weights(n[1], m + 1L, pi_in[1], in_dist)
@@ -211,7 +212,13 @@ qdesn_fit_vb <- function(
     for (d in 2:D) {
       Win[[d]] <- make_sparse_weights(n[d], n_tilde[d - 1], pi_in[d], in_dist)
       W[[d]]   <- make_sparse_weights(n[d], n[d], pi_w[d],  w_dist)
-      Qred[[d - 1]] <- make_reducer(n[d - 1], n_tilde[d - 1])
+      if (n_tilde[d - 1] == n[d - 1]) {
+        Qred[[d - 1]] <- diag(1, n[d - 1])
+        Q_is_identity[d - 1] <- TRUE
+      } else {
+        Qred[[d - 1]] <- make_reducer(n[d - 1], n_tilde[d - 1])
+        Q_is_identity[d - 1] <- FALSE
+      }
     }
   }
 
@@ -226,7 +233,8 @@ qdesn_fit_vb <- function(
 
   reservoir <- list(
     D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
-    W = W, Win = Win, Q = Qred, act_f = act_f, act_k = act_k,
+    W = W, Win = Win, Q = Qred, Q_is_identity = Q_is_identity,
+    act_f = act_f, act_k = act_k,
     pi_w = pi_w, pi_in = pi_in, w_dist = substitute(w_dist), in_dist = substitute(in_dist),
     seed = seed
   )
@@ -277,7 +285,11 @@ qdesn_fit_vb <- function(
 
       if (D >= 2L) {
         for (d in 2:D) {
-          htilde <- as.numeric(reservoir$Q[[d - 1]] %*% h_prev[[d - 1]])
+          if (isTRUE(reservoir$Q_is_identity[d - 1])) {
+            htilde <- as.numeric(h_prev[[d - 1]])
+          } else {
+            htilde <- as.numeric(reservoir$Q[[d - 1]] %*% h_prev[[d - 1]])
+          }
           H_tilde[[d - 1]][t, ] <- htilde
 
           pred   <- reservoir$W[[d]] %*% h_prev[[d]] + reservoir$Win[[d]] %*% htilde
@@ -336,6 +348,7 @@ qdesn_fit_vb <- function(
     # --- VB controls expected by exal_ldvb_fit/exal_ldvb_engine ---
     vb_control <- list(
       max_iter = as.integer(vb_args$max_iter %||% 150L),
+      min_iter_elbo = as.integer(vb_args$min_iter_elbo %||% 10L),
       tol      = as.numeric(vb_args$tol %||% 1e-4),
       tol_par  = as.numeric(vb_args$tol_par %||% (vb_args$tol %||% 1e-4)),
       verbose  = isTRUE(vb_args$verbose %||% TRUE)
@@ -569,7 +582,10 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
 #' @param seed     RNG seed for predictive noise (optional)
 #' @param return_design deprecated; ignored
 #' @param origin_state optional list of reservoir states at the forecast origin
-#' @param readout_spec list with y_lags, x_names, x_lags, p_res, scale_info
+#' @param readout_spec list with y_lags, x_names, x_lags, p_res, scale_info; may also
+#'   include include_input, input_lags_y, input_lags_x, reservoir_lags, input_position.
+#' @param res_lag_init optional matrix of reservoir-lag features at the origin
+#'   (rows = lags 1..L, cols = reservoir feature dimension without bias).
 #' @param draws optional posterior draws list from exal_vb_posterior_draws()
 #' @return list with yrep (H x nd) and mu_draws (H x nd)
 #' @export
@@ -588,7 +604,8 @@ forecast_paths.qdesn_fit <- function(
   return_design = FALSE,
   origin_state = NULL,
   readout_spec = NULL,
-  draws = NULL
+  draws = NULL,
+  res_lag_init = NULL
 ) {
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   method <- match.arg(method)
@@ -615,31 +632,65 @@ forecast_paths.qdesn_fit <- function(
   D    <- as.integer(meta$D)
   m_res <- as.integer(meta$m %||% 0L)
   add_bias <- isTRUE(meta$add_bias)
+  Q_is_identity <- res$Q_is_identity
+  if (is.null(Q_is_identity)) Q_is_identity <- rep(FALSE, max(0, D - 1L))
+  if (length(Q_is_identity) != max(0, D - 1L)) {
+    stop("forecast_paths: Q_is_identity length mismatch.")
+  }
 
   # ---------- readout spec ----------
   spec <- readout_spec %||% meta$readout_spec %||% list()
+  include_input <- isTRUE(spec$include_input %||% FALSE)
+  input_position <- spec$input_position %||% "after_reservoir"
+  input_lags_y <- as.integer(spec$input_lags_y %||% integer(0))
+  input_lags_x <- spec$input_lags_x %||% list()
+  reservoir_lags <- as.integer(spec$reservoir_lags %||% 0L)
+
   y_lags <- as.integer(spec$y_lags %||% integer(0))
   x_names <- as.character(spec$x_names %||% character(0))
   x_lags  <- spec$x_lags %||% list()
   p_res <- as.integer(spec$p_res %||% meta$p_res %||% ncol(object$X))
   scale_info <- spec$scale_info %||% meta$readout_scale %||% object$fit$misc$readout_scale
 
-  if (!length(x_names)) {
-    x_lags <- list()
-  } else if (!is.list(x_lags)) {
-    x_lags <- rep(list(as.integer(x_lags)), length(x_names))
-    names(x_lags) <- x_names
-  } else {
-    if (is.null(names(x_lags)) && length(x_lags) == length(x_names)) {
-      names(x_lags) <- x_names
+  normalize_x_lags <- function(x_lags_in, x_names) {
+    if (!length(x_names)) return(list())
+    if (!is.list(x_lags_in)) {
+      x_lags_out <- rep(list(as.integer(x_lags_in)), length(x_names))
+      names(x_lags_out) <- x_names
+      return(x_lags_out)
+    }
+    x_lags_out <- x_lags_in
+    if (is.null(names(x_lags_out)) && length(x_lags_out) == length(x_names)) {
+      names(x_lags_out) <- x_names
     }
     for (nm in x_names) {
-      if (is.null(x_lags[[nm]])) x_lags[[nm]] <- integer(0)
-      x_lags[[nm]] <- as.integer(x_lags[[nm]])
+      if (is.null(x_lags_out[[nm]])) x_lags_out[[nm]] <- integer(0)
+      x_lags_out[[nm]] <- as.integer(x_lags_out[[nm]])
     }
+    x_lags_out
   }
 
-  max_y_lag <- max(c(0L, m_res, y_lags))
+  x_lags_readout <- normalize_x_lags(x_lags, x_names)
+  x_lags_input <- normalize_x_lags(input_lags_x, x_names)
+
+  if (!isTRUE(include_input)) {
+    input_lags_y <- integer(0)
+    x_lags_use <- x_lags_readout
+    y_lags_readout <- y_lags
+  } else {
+    y_lags_readout <- integer(0)
+    x_lags_use <- x_lags_input
+  }
+
+  if (!is.finite(reservoir_lags) || reservoir_lags < 0L) {
+    stop("forecast_paths: reservoir_lags must be a nonnegative integer.")
+  }
+  if (!is.null(input_position) && !input_position %in% c("after_reservoir")) {
+    message("[forecast_paths] input_position not supported; using 'after_reservoir'.")
+    input_position <- "after_reservoir"
+  }
+
+  max_y_lag <- max(c(0L, m_res, y_lags_readout, input_lags_y))
 
   if (is.null(y_hist)) y_hist <- object$y_fit
   y_hist <- as.numeric(y_hist)
@@ -656,13 +707,14 @@ forecast_paths.qdesn_fit <- function(
     vapply(lags, function(L) hist[n - L + 1L], numeric(1))
   }
 
-  # ---------- exogenous history/future (readout only) ----------
-  if (length(x_names)) {
+  # ---------- exogenous history/future (readout/input block) ----------
+  has_x_lags <- length(x_names) && any(vapply(x_lags_use, length, 1L) > 0L)
+  if (has_x_lags) {
     stopifnot(is.list(xreg_hist), is.list(xreg_future))
     x_hist <- list()
     x_future <- list()
     for (nm in x_names) {
-      lags_nm <- x_lags[[nm]]
+      lags_nm <- x_lags_use[[nm]]
       max_lag <- if (length(lags_nm)) max(lags_nm) else 0L
       xh <- xreg_hist[[nm]]
       xf <- xreg_future[[nm]]
@@ -677,7 +729,7 @@ forecast_paths.qdesn_fit <- function(
     for (h in seq_len(H)) {
       block <- numeric(0)
       for (nm in x_names) {
-        lags_nm <- x_lags[[nm]]
+        lags_nm <- x_lags_use[[nm]]
         if (!length(lags_nm)) next
         vec <- c(x_hist[[nm]], x_future[[nm]][seq_len(h)])
         n <- length(vec)
@@ -749,7 +801,13 @@ forecast_paths.qdesn_fit <- function(
     omega1 <- f_act(pre1)
     h1     <- (1 - res$alpha[1]) * h_prev[[1]] + res$alpha[1] * omega1
     h_new[[1]] <- h1
-    if (D >= 2L) htil[[1]] <- res$Q[[1]] %*% h1
+    if (D >= 2L) {
+      if (isTRUE(Q_is_identity[1L])) {
+        htil[[1]] <- h1
+      } else {
+        htil[[1]] <- res$Q[[1]] %*% h1
+      }
+    }
 
     # layers 2..D
     if (D >= 2L) {
@@ -758,7 +816,13 @@ forecast_paths.qdesn_fit <- function(
         omega <- f_act(pre)
         hd    <- (1 - res$alpha[d]) * h_prev[[d]] + res$alpha[d] * omega
         h_new[[d]] <- hd
-        if (d < D) htil[[d]] <- res$Q[[d]] %*% hd
+        if (d < D) {
+          if (isTRUE(Q_is_identity[d])) {
+            htil[[d]] <- hd
+          } else {
+            htil[[d]] <- res$Q[[d]] %*% hd
+          }
+        }
       }
     }
 
@@ -774,6 +838,22 @@ forecast_paths.qdesn_fit <- function(
     list(h = h_new, x_res = x_res)
   }
 
+  get_z_from_states <- function(t_idx) {
+    if (is.null(object$states$H_all)) {
+      stop("forecast_paths: states$H_all required for reservoir lag initialization.")
+    }
+    if (D == 1L) {
+      return(as.numeric(object$states$H_all[[1]][t_idx, ]))
+    }
+    if (is.null(object$states$H_tilde)) {
+      stop("forecast_paths: states$H_tilde required for reservoir lag initialization.")
+    }
+    lower <- do.call(c, lapply(seq_len(D - 1L), function(d) {
+      k_act(as.numeric(object$states$H_tilde[[d]][t_idx, ]))
+    }))
+    c(as.numeric(object$states$H_all[[D]][t_idx, ]), lower)
+  }
+
   if (is.null(origin_state)) {
     if (!is.null(object$states$H_all)) {
       origin_state <- lapply(seq_len(D), function(d) { Hd <- object$states$H_all[[d]]; Hd[nrow(Hd), ] })
@@ -781,6 +861,31 @@ forecast_paths.qdesn_fit <- function(
       origin_state <- object$states$H_last
     } else {
       stop("forecast_paths: origin_state missing and no states in object.")
+    }
+  }
+
+  res_lag_buf0 <- NULL
+  if (reservoir_lags > 0L) {
+    z_dim <- p_res - if (isTRUE(add_bias)) 1L else 0L
+    if (z_dim <= 0L) stop("forecast_paths: invalid reservoir feature dimension for lagging.")
+    if (!is.null(res_lag_init)) {
+      res_lag_init <- as.matrix(res_lag_init)
+      if (nrow(res_lag_init) != reservoir_lags || ncol(res_lag_init) != z_dim) {
+        stop("forecast_paths: res_lag_init must be L x p_res(no-bias).")
+      }
+      res_lag_buf0 <- res_lag_init
+    } else {
+      if (is.null(object$states$H_all)) {
+        stop("forecast_paths: states$H_all required for reservoir lag initialization.")
+      }
+      tau_idx <- nrow(object$states$H_all[[D]])
+      if (tau_idx < reservoir_lags) {
+        stop("forecast_paths: origin too early for reservoir lag initialization.")
+      }
+      res_lag_buf0 <- matrix(NA_real_, nrow = reservoir_lags, ncol = z_dim)
+      for (L in seq_len(reservoir_lags)) {
+        res_lag_buf0[L, ] <- get_z_from_states(tau_idx - L + 1L)
+      }
     }
   }
 
@@ -831,6 +936,7 @@ forecast_paths.qdesn_fit <- function(
         scale_info_cpp <- list(scaled = FALSE)
       }
       win_scale_lags_cpp <- if (is.null(win_scale_lags)) numeric(0) else as.numeric(win_scale_lags)
+      res_lag_init_cpp <- if (reservoir_lags > 0L) res_lag_buf0 else NULL
 
       s_draws <- v_draws <- z_draws <- NULL
       if (isTRUE(precompute_noise)) {
@@ -845,15 +951,17 @@ forecast_paths.qdesn_fit <- function(
       }
 
       Q_list_cpp <- if (is.null(res$Q)) list() else res$Q
+      y_lags_cpp <- if (isTRUE(include_input)) input_lags_y else y_lags_readout
       out <- forecast_paths_cpp(
         W_list = res$W,
         Win_list = res$Win,
         Q_list = Q_list_cpp,
+        Q_is_identity = Q_is_identity,
         alpha = res$alpha,
         D = D,
         add_bias = add_bias,
         y_hist0 = y_hist0,
-        y_lags = y_lags,
+        y_lags = y_lags_cpp,
         x_blocks = x_blocks,
         beta = Bdraw,
         sigma = sdraw,
@@ -875,6 +983,8 @@ forecast_paths.qdesn_fit <- function(
         act_f_code = act_f_code,
         act_k_code = act_k_code,
         origin_state = origin_state,
+        res_lags = as.integer(reservoir_lags),
+        res_lag_init = res_lag_init_cpp,
         s_draws = s_draws,
         v_draws = v_draws,
         z_draws = z_draws,
@@ -892,6 +1002,7 @@ forecast_paths.qdesn_fit <- function(
     for (j in ids) {
       h_now        <- origin_state
       y_hist_work  <- y_hist0
+      res_lag_buf  <- res_lag_buf0
 
       s_vec <- abs(rnorm(H))
       v_vec <- rexp(H, rate = 1 / sdraw[j])
@@ -908,8 +1019,11 @@ forecast_paths.qdesn_fit <- function(
                " but expected p_res=", p_res, ".")
         }
 
-        y_lag_vec <- lag_vals(y_hist_work, y_lags)
-        x_row <- c(x_res, y_lag_vec, x_blocks[[h]])
+        y_lag_vec <- lag_vals(y_hist_work, y_lags_readout)
+        input_y_vec <- lag_vals(y_hist_work, input_lags_y)
+        readout_block <- c(if (isTRUE(include_input)) input_y_vec else y_lag_vec, x_blocks[[h]])
+        res_lag_block <- if (reservoir_lags > 0L) as.numeric(t(res_lag_buf)) else numeric(0)
+        x_row <- c(x_res, readout_block, res_lag_block)
         if (!is.null(scale_info)) {
           x_row <- readout_scale_apply(matrix(x_row, nrow = 1), scale_info)[1, ]
         }
@@ -933,6 +1047,14 @@ forecast_paths.qdesn_fit <- function(
         if (max_y_lag > 0L) {
           y_hist_work <- c(y_hist_work, y_h)
           if (length(y_hist_work) > max_y_lag) y_hist_work <- tail(y_hist_work, max_y_lag)
+        }
+        if (reservoir_lags > 0L) {
+          z_curr <- if (isTRUE(add_bias)) x_res[-1] else x_res
+          if (reservoir_lags == 1L) {
+            res_lag_buf <- matrix(z_curr, nrow = 1L)
+          } else {
+            res_lag_buf <- rbind(z_curr, res_lag_buf[seq_len(reservoir_lags - 1L), , drop = FALSE])
+          }
         }
       }
     }
@@ -979,30 +1101,67 @@ forecast_lattice.qdesn_fit <- function(
 
   meta <- object$meta %||% list()
   D <- as.integer(meta$D)
+  res <- object$reservoir
+  add_bias <- isTRUE(meta$add_bias)
 
   spec <- meta$readout_spec %||% list()
+  include_input <- isTRUE(spec$include_input %||% FALSE)
+  input_lags_y <- as.integer(spec$input_lags_y %||% integer(0))
+  input_lags_x <- spec$input_lags_x %||% list()
+  reservoir_lags <- as.integer(spec$reservoir_lags %||% 0L)
+
   y_lags <- as.integer(spec$y_lags %||% integer(0))
   x_names <- as.character(spec$x_names %||% character(0))
   x_lags  <- spec$x_lags %||% list()
 
-  if (!length(x_names)) {
-    x_lags <- list()
-  } else if (!is.list(x_lags)) {
-    x_lags <- rep(list(as.integer(x_lags)), length(x_names))
-    names(x_lags) <- x_names
-  } else {
-    if (is.null(names(x_lags)) && length(x_lags) == length(x_names)) {
-      names(x_lags) <- x_names
+  normalize_x_lags <- function(x_lags_in, x_names) {
+    if (!length(x_names)) return(list())
+    if (!is.list(x_lags_in)) {
+      x_lags_out <- rep(list(as.integer(x_lags_in)), length(x_names))
+      names(x_lags_out) <- x_names
+      return(x_lags_out)
+    }
+    x_lags_out <- x_lags_in
+    if (is.null(names(x_lags_out)) && length(x_lags_out) == length(x_names)) {
+      names(x_lags_out) <- x_names
     }
     for (nm in x_names) {
-      if (is.null(x_lags[[nm]])) x_lags[[nm]] <- integer(0)
-      x_lags[[nm]] <- as.integer(x_lags[[nm]])
+      if (is.null(x_lags_out[[nm]])) x_lags_out[[nm]] <- integer(0)
+      x_lags_out[[nm]] <- as.integer(x_lags_out[[nm]])
     }
+    x_lags_out
   }
 
-  max_y_lag <- max(c(0L, as.integer(meta$m %||% 0L), y_lags))
+  x_lags_readout <- normalize_x_lags(x_lags, x_names)
+  x_lags_input <- normalize_x_lags(input_lags_x, x_names)
 
-  if (!length(x_names)) {
+  if (!isTRUE(include_input)) {
+    input_lags_y <- integer(0)
+    x_lags_use <- x_lags_readout
+    y_lags_readout <- y_lags
+  } else {
+    y_lags_readout <- integer(0)
+    x_lags_use <- x_lags_input
+  }
+
+  if (!is.finite(reservoir_lags) || reservoir_lags < 0L) {
+    stop("forecast_lattice: reservoir_lags must be a nonnegative integer.")
+  }
+
+  max_y_lag <- max(c(0L, as.integer(meta$m %||% 0L), y_lags_readout, input_lags_y))
+
+  get_act <- function(a) {
+    if (is.function(a)) return(a)
+    switch(tolower(a),
+      "tanh"     = base::tanh,
+      "relu"     = function(x) pmax(0, x),
+      "identity" = function(x) x,
+      stop("Unknown activation: ", a))
+  }
+  k_act <- get_act(res$act_k)
+
+  has_x_lags <- length(x_names) && any(vapply(x_lags_use, length, 1L) > 0L)
+  if (!has_x_lags) {
     xreg_all <- NULL
   } else {
     if (is.null(xreg_all) || !is.list(xreg_all)) {
@@ -1042,11 +1201,11 @@ forecast_lattice.qdesn_fit <- function(
 
     xreg_hist <- NULL
     xreg_future <- NULL
-    if (length(x_names)) {
+    if (has_x_lags) {
       xreg_hist <- list()
       xreg_future <- list()
       for (nm in x_names) {
-        lags_nm <- x_lags[[nm]]
+        lags_nm <- x_lags_use[[nm]]
         max_lag <- if (length(lags_nm)) max(lags_nm) else 0L
         xvec <- as.numeric(xreg_all[[nm]])
         xreg_hist[[nm]] <- if (max_lag > 0L) tail(xvec[seq_len(tau)], max_lag) else numeric(0)
@@ -1060,6 +1219,33 @@ forecast_lattice.qdesn_fit <- function(
       stop("forecast_lattice: object$states$H_all is required for origin states.")
     }
 
+    res_lag_init <- NULL
+    if (reservoir_lags > 0L) {
+      if (is.null(object$states$H_all)) {
+        stop("forecast_lattice: states$H_all required for reservoir lag initialization.")
+      }
+      if (tau < reservoir_lags) {
+        stop("forecast_lattice: origin too early for reservoir lag initialization.")
+      }
+      z_dim <- as.integer(spec$p_res %||% meta$p_res) - if (isTRUE(add_bias)) 1L else 0L
+      if (z_dim <= 0L) stop("forecast_lattice: invalid reservoir feature dimension for lagging.")
+      res_lag_init <- matrix(NA_real_, nrow = reservoir_lags, ncol = z_dim)
+      for (L in seq_len(reservoir_lags)) {
+        t_idx <- tau - L + 1L
+        if (D == 1L) {
+          res_lag_init[L, ] <- as.numeric(object$states$H_all[[1]][t_idx, ])
+        } else {
+          if (is.null(object$states$H_tilde)) {
+            stop("forecast_lattice: states$H_tilde required for reservoir lag initialization.")
+          }
+          lower <- do.call(c, lapply(seq_len(D - 1L), function(d) {
+            k_act(as.numeric(object$states$H_tilde[[d]][t_idx, ]))
+          }))
+          res_lag_init[L, ] <- c(as.numeric(object$states$H_all[[D]][t_idx, ]), lower)
+        }
+      }
+    }
+
     out <- forecast_paths.qdesn_fit(
       object, H = H, nd = nd_eff,
       y_hist = y_hist,
@@ -1068,6 +1254,7 @@ forecast_lattice.qdesn_fit <- function(
       y_future_obs = rep(NA_real_, H),
       chunk = chunk,
       origin_state = origin_state,
+      res_lag_init = res_lag_init,
       readout_spec = spec,
       draws = draws
     )

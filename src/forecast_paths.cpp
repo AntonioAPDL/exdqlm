@@ -59,10 +59,13 @@ Rcpp::List forecast_paths_cpp(
   int act_f_code,
   int act_k_code,
   Rcpp::List origin_state,
+  int res_lags,
+  Rcpp::Nullable<Rcpp::NumericMatrix> res_lag_init = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericMatrix> s_draws = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericMatrix> v_draws = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericMatrix> z_draws = R_NilValue,
-  bool use_omp = false
+  bool use_omp = false,
+  Rcpp::Nullable<Rcpp::LogicalVector> Q_is_identity = R_NilValue
 ) {
   int nd = beta.nrow();
   int p = beta.ncol();
@@ -91,6 +94,20 @@ Rcpp::List forecast_paths_cpp(
     }
   }
 
+  std::vector<int> Q_is_id(std::max(0, D - 1), 0);
+  if (!Q_is_identity.isNull()) {
+    LogicalVector qid = as<LogicalVector>(Q_is_identity);
+    if (qid.size() != std::max(0, D - 1)) {
+      stop("forecast_paths_cpp: Q_is_identity length must equal D-1.");
+    }
+    for (int d = 0; d < D - 1; ++d) {
+      if (LogicalVector::is_na(qid[d])) {
+        stop("forecast_paths_cpp: Q_is_identity contains NA.");
+      }
+      Q_is_id[d] = qid[d] ? 1 : 0;
+    }
+  }
+
   std::vector<arma::vec> h0(D);
   for (int d = 0; d < D; ++d) {
     h0[d] = as<arma::vec>(origin_state[d]);
@@ -105,6 +122,25 @@ Rcpp::List forecast_paths_cpp(
   for (int i = 0; i < y_lags.size(); ++i) ylags[i] = y_lags[i];
 
   int max_y_lag = y_hist0.size();
+
+  if (res_lags < 0) stop("forecast_paths_cpp: res_lags must be >= 0.");
+  int z_dim = add_bias ? (p_res - 1) : p_res;
+  int res_lag_len = res_lags * z_dim;
+  std::vector<double> res_init;
+  if (res_lags > 0) {
+    if (z_dim <= 0) stop("forecast_paths_cpp: invalid reservoir feature dimension for lags.");
+    if (res_lag_init.isNull()) stop("forecast_paths_cpp: res_lag_init required when res_lags > 0.");
+    NumericMatrix res_mat = as<NumericMatrix>(res_lag_init);
+    if (res_mat.nrow() != res_lags || res_mat.ncol() != z_dim) {
+      stop("forecast_paths_cpp: res_lag_init must be L x p_res(no-bias).");
+    }
+    res_init.assign(res_lag_len, 0.0);
+    for (int r = 0; r < res_lags; ++r) {
+      for (int c = 0; c < z_dim; ++c) {
+        res_init[r * z_dim + c] = res_mat(r, c);
+      }
+    }
+  }
 
   bool scaled = false;
   bool center_applied = false;
@@ -212,6 +248,7 @@ Rcpp::List forecast_paths_cpp(
       std::vector<double> y_hist(max_y_lag);
       for (int i = 0; i < max_y_lag; ++i) y_hist[i] = y_hist0[i];
       std::vector<arma::vec> h_now = h0;
+      std::vector<double> res_buf = res_init;
 
       for (int h = 0; h < H; ++h) {
         std::vector<double> nb(m_res);
@@ -243,7 +280,13 @@ Rcpp::List forecast_paths_cpp(
         apply_act_inplace(pre1, act_f_code);
         arma::vec h1 = (1.0 - alpha[0]) * h_now[0] + alpha[0] * pre1;
         h_new[0] = h1;
-        if (D >= 2) htil[0] = Q[0] * h1;
+        if (D >= 2) {
+          if (Q_is_id[0]) {
+            htil[0] = h1;
+          } else {
+            htil[0] = Q[0] * h1;
+          }
+        }
 
         if (D >= 2) {
           for (int d = 1; d < D; ++d) {
@@ -251,7 +294,13 @@ Rcpp::List forecast_paths_cpp(
             apply_act_inplace(pre, act_f_code);
             arma::vec hd = (1.0 - alpha[d]) * h_now[d] + alpha[d] * pre;
             h_new[d] = hd;
-            if (d < D - 1) htil[d] = Q[d] * hd;
+            if (d < D - 1) {
+              if (Q_is_id[d]) {
+                htil[d] = hd;
+              } else {
+                htil[d] = Q[d] * hd;
+              }
+            }
           }
         }
 
@@ -290,12 +339,13 @@ Rcpp::List forecast_paths_cpp(
 
         const std::vector<double> &xb = xblk_cpp[h];
         int x_block_len = static_cast<int>(xb.size());
-        int total_len = x_res.size() + y_lag_vec.size() + x_block_len;
+        int total_len = x_res.size() + y_lag_vec.size() + x_block_len + res_lag_len;
         std::vector<double> x_row(total_len);
         int pos = 0;
         for (size_t ii = 0; ii < x_res.size(); ++ii) x_row[pos++] = x_res[ii];
         for (size_t ii = 0; ii < y_lag_vec.size(); ++ii) x_row[pos++] = y_lag_vec[ii];
         for (int ii = 0; ii < x_block_len; ++ii) x_row[pos++] = xb[ii];
+        for (int ii = 0; ii < res_lag_len; ++ii) x_row[pos++] = res_buf[ii];
 
         if (h == 0 && (int)x_row.size() != p) {
           stop("forecast_paths_cpp: readout length mismatch (beta columns).");
@@ -334,6 +384,17 @@ Rcpp::List forecast_paths_cpp(
           }
           y_hist[max_y_lag - 1] = y_h;
         }
+        if (res_lags > 0) {
+          int offset = add_bias ? 1 : 0;
+          for (int i = res_lags - 1; i >= 1; --i) {
+            for (int c = 0; c < z_dim; ++c) {
+              res_buf[i * z_dim + c] = res_buf[(i - 1) * z_dim + c];
+            }
+          }
+          for (int c = 0; c < z_dim; ++c) {
+            res_buf[c] = x_res[c + offset];
+          }
+        }
       }
     }
   } else {
@@ -344,6 +405,7 @@ Rcpp::List forecast_paths_cpp(
       std::vector<double> y_hist(max_y_lag);
       for (int i = 0; i < max_y_lag; ++i) y_hist[i] = y_hist0[i];
       std::vector<arma::vec> h_now = h0;
+      std::vector<double> res_buf = res_init;
 
       std::vector<double> s_vec(H), v_vec(H), z_vec(H);
       if (!has_pre) {
@@ -388,7 +450,13 @@ Rcpp::List forecast_paths_cpp(
         apply_act_inplace(pre1, act_f_code);
         arma::vec h1 = (1.0 - alpha[0]) * h_now[0] + alpha[0] * pre1;
         h_new[0] = h1;
-        if (D >= 2) htil[0] = Q[0] * h1;
+        if (D >= 2) {
+          if (Q_is_id[0]) {
+            htil[0] = h1;
+          } else {
+            htil[0] = Q[0] * h1;
+          }
+        }
 
         if (D >= 2) {
           for (int d = 1; d < D; ++d) {
@@ -396,7 +464,13 @@ Rcpp::List forecast_paths_cpp(
             apply_act_inplace(pre, act_f_code);
             arma::vec hd = (1.0 - alpha[d]) * h_now[d] + alpha[d] * pre;
             h_new[d] = hd;
-            if (d < D - 1) htil[d] = Q[d] * hd;
+            if (d < D - 1) {
+              if (Q_is_id[d]) {
+                htil[d] = hd;
+              } else {
+                htil[d] = Q[d] * hd;
+              }
+            }
           }
         }
 
@@ -435,12 +509,13 @@ Rcpp::List forecast_paths_cpp(
 
         NumericVector xb = xblk[h];
         int x_block_len = xb.size();
-        int total_len = x_res.size() + y_lag_vec.size() + x_block_len;
+        int total_len = x_res.size() + y_lag_vec.size() + x_block_len + res_lag_len;
         std::vector<double> x_row(total_len);
         int pos = 0;
         for (size_t ii = 0; ii < x_res.size(); ++ii) x_row[pos++] = x_res[ii];
         for (size_t ii = 0; ii < y_lag_vec.size(); ++ii) x_row[pos++] = y_lag_vec[ii];
         for (int ii = 0; ii < x_block_len; ++ii) x_row[pos++] = xb[ii];
+        for (int ii = 0; ii < res_lag_len; ++ii) x_row[pos++] = res_buf[ii];
 
         if (h == 0 && (int)x_row.size() != p) {
           stop("forecast_paths_cpp: readout length mismatch (beta columns).");
@@ -478,6 +553,17 @@ Rcpp::List forecast_paths_cpp(
             y_hist[k] = y_hist[k + 1];
           }
           y_hist[max_y_lag - 1] = y_h;
+        }
+        if (res_lags > 0) {
+          int offset = add_bias ? 1 : 0;
+          for (int i = res_lags - 1; i >= 1; --i) {
+            for (int c = 0; c < z_dim; ++c) {
+              res_buf[i * z_dim + c] = res_buf[(i - 1) * z_dim + c];
+            }
+          }
+          for (int c = 0; c < z_dim; ++c) {
+            res_buf[c] = x_res[c + offset];
+          }
         }
       }
     }

@@ -69,8 +69,8 @@ mode_overrides:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [20, 20, 20]         # units per layer (length D)
-  n_tilde: [20, 20]        # skip/reducer sizes (length D-1 when D>1)
+  n: [100, 100, 100]         # units per layer (length D)
+  n_tilde: [100, 100]        # skip/reducer sizes (length D-1 when D>1)
   m: 30                     # number of lags in u_t
   alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
@@ -87,7 +87,8 @@ desn:
 # These match what pipeline_sim_main.R expects in cfg$vb
 # --------------------------------------------------------------------
 vb:
-  max_iter: 400
+  max_iter: 500
+  min_iter_elbo: 50        # mssinimum VB iterations before ELBO/tol stopping
   readout_scale: true       # z-score readout design matrix (excluding intercept)
   priors:
     beta:
@@ -113,6 +114,14 @@ vb:
         init_log_c2: 0.0
 
 # --------------------------------------------------------------------
+# Readout feature composition
+# --------------------------------------------------------------------
+readout:
+  include_input: true       # append raw input-lag block to readout
+  reservoir_lags: 1         # number of reservoir-feature lags to append
+  input_position: after_reservoir  # ordering for input block (reserved)
+
+# --------------------------------------------------------------------
 # Sampling defaults (posterior / predictive)
 # --------------------------------------------------------------------
 sampling:
@@ -133,7 +142,7 @@ forecast:
   last_window: 200           # legacy base window
   horizon: 30                # multi-step horizon for lattice forecasts
   mode: mixture              # mixture | lattice | origin
-  lead_weight_power: 1       # base weights w_r ∝ 1 / r^power (power=0 => uniform)
+  lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (power=0 => uniform)
   # mixture draws per target time = sampling.nd_draws
   eval_leads: all           # null | "all" | list of leads to evaluate
 

@@ -484,11 +484,16 @@ model_selection_distribution_first <- function(
             if (length(lags_ppt))  { xn <- c(xn, "ppt");  xl[["ppt"]]  <- as.integer(lags_ppt) }
             if (length(lags_soil)) { xn <- c(xn, "soil"); xl[["soil"]] <- as.integer(lags_soil) }
             list(
-              y_lags     = integer(0),
-              x_names    = xn,
-              x_lags     = xl,
-              p_res      = p_res_cols,
-              scale_info = NULL
+              include_input  = FALSE,
+              input_position = "after_reservoir",
+              input_lags_y   = integer(0),
+              input_lags_x   = list(),
+              reservoir_lags = 0L,
+              y_lags         = integer(0),
+              x_names        = xn,
+              x_lags         = xl,
+              p_res          = p_res_cols,
+              scale_info     = NULL
             )
           }
         )
@@ -1138,11 +1143,16 @@ model_selection_optionA <- function(
             if (length(spec$lags_ppt))  { xn <- c(xn, "ppt");  xl[["ppt"]]  <- as.integer(spec$lags_ppt) }
             if (length(spec$lags_soil)) { xn <- c(xn, "soil"); xl[["soil"]] <- as.integer(spec$lags_soil) }
             list(
-              y_lags     = integer(0),
-              x_names    = xn,
-              x_lags     = xl,
-              p_res      = ncol(X_res),
-              scale_info = NULL
+              include_input  = FALSE,
+              input_position = "after_reservoir",
+              input_lags_y   = integer(0),
+              input_lags_x   = list(),
+              reservoir_lags = 0L,
+              y_lags         = integer(0),
+              x_names        = xn,
+              x_lags         = xl,
+              p_res          = ncol(X_res),
+              scale_info     = NULL
             )
           }
         )

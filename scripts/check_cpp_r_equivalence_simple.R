@@ -186,6 +186,52 @@ for (nd_use in nd_grid) {
   ))
 }
 
+cat("\n== identity reducers (D=3) ==\n")
+fit_id <- qdesn_fit_vb(
+  y = y,
+  p0 = 0.5,
+  D = 3L,
+  n = c(8L, 6L, 5L),
+  n_tilde = c(8L, 3L),
+  m = 2L,
+  washout = 5L,
+  add_bias = TRUE,
+  alpha = 0.4,
+  standardize_inputs = TRUE,
+  seed = 7L,
+  vb_args = list(max_iter = 40L, tol = 1e-3, verbose = FALSE)
+)
+cat(sprintf("Q_is_identity=%s\n", paste(fit_id$reservoir$Q_is_identity, collapse = ",")))
+
+H_id <- 3L
+nd_id <- 30L
+compare_paths_id <- function(precompute = FALSE) {
+  options(
+    exdqlm.use_cpp_postpred = FALSE,
+    exdqlm.use_cpp_postpred_precompute = precompute,
+    exdqlm.use_cpp_postpred_omp = FALSE
+  )
+  set.seed(444)
+  out_r <- forecast_paths.qdesn_fit(fit_id, H = H_id, nd = nd_id)
+
+  options(
+    exdqlm.use_cpp_postpred = TRUE,
+    exdqlm.use_cpp_postpred_precompute = precompute,
+    exdqlm.use_cpp_postpred_omp = FALSE
+  )
+  set.seed(444)
+  out_cpp <- forecast_paths.qdesn_fit(fit_id, H = H_id, nd = nd_id)
+
+  list(
+    max_y = max(abs(out_r$yrep - out_cpp$yrep)),
+    max_mu = max(abs(out_r$mu_draws - out_cpp$mu_draws))
+  )
+}
+res_id_np <- compare_paths_id(precompute = FALSE)
+cat(sprintf("precompute=FALSE: max|yrep diff|=%g, max|mu diff|=%g\n", res_id_np$max_y, res_id_np$max_mu))
+res_id_pc <- compare_paths_id(precompute = TRUE)
+cat(sprintf("precompute=TRUE : max|yrep diff|=%g, max|mu diff|=%g\n", res_id_pc$max_y, res_id_pc$max_mu))
+
 origins <- c(30L, 40L, 50L)
 set.seed(202)
 options(

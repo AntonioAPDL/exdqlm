@@ -25,8 +25,8 @@ exal_loglik_from_mu_cpp <- function(y, mu_mat, sigma_draws, gamma_draws, p0) {
     .Call(`_exdqlm_exal_loglik_from_mu_cpp`, y, mu_mat, sigma_draws, gamma_draws, p0)
 }
 
-forecast_paths_cpp <- function(W_list, Win_list, Q_list, alpha, D, add_bias, y_hist0, y_lags, x_blocks, beta, sigma, A_d, B_d, lam_d, y_obs_vec, H, m_res, p_res, standardize_inputs, lag_center, lag_scale, win_scale_lags, input_bound, win_scale_global, win_scale_bias, scale_info, act_f_code, act_k_code, origin_state, s_draws = NULL, v_draws = NULL, z_draws = NULL, use_omp = FALSE) {
-    .Call(`_exdqlm_forecast_paths_cpp`, W_list, Win_list, Q_list, alpha, D, add_bias, y_hist0, y_lags, x_blocks, beta, sigma, A_d, B_d, lam_d, y_obs_vec, H, m_res, p_res, standardize_inputs, lag_center, lag_scale, win_scale_lags, input_bound, win_scale_global, win_scale_bias, scale_info, act_f_code, act_k_code, origin_state, s_draws, v_draws, z_draws, use_omp)
+forecast_paths_cpp <- function(W_list, Win_list, Q_list, alpha, D, add_bias, y_hist0, y_lags, x_blocks, beta, sigma, A_d, B_d, lam_d, y_obs_vec, H, m_res, p_res, standardize_inputs, lag_center, lag_scale, win_scale_lags, input_bound, win_scale_global, win_scale_bias, scale_info, act_f_code, act_k_code, origin_state, res_lags, res_lag_init = NULL, s_draws = NULL, v_draws = NULL, z_draws = NULL, use_omp = FALSE, Q_is_identity = NULL) {
+    .Call(`_exdqlm_forecast_paths_cpp`, W_list, Win_list, Q_list, alpha, D, add_bias, y_hist0, y_lags, x_blocks, beta, sigma, A_d, B_d, lam_d, y_obs_vec, H, m_res, p_res, standardize_inputs, lag_center, lag_scale, win_scale_lags, input_bound, win_scale_global, win_scale_bias, scale_info, act_f_code, act_k_code, origin_state, res_lags, res_lag_init, s_draws, v_draws, z_draws, use_omp, Q_is_identity)
 }
 
 logDetCholesky <- function(matrix) {

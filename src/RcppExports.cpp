@@ -104,8 +104,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // forecast_paths_cpp
-Rcpp::List forecast_paths_cpp(Rcpp::List W_list, Rcpp::List Win_list, Rcpp::List Q_list, Rcpp::NumericVector alpha, int D, bool add_bias, Rcpp::NumericVector y_hist0, Rcpp::IntegerVector y_lags, Rcpp::List x_blocks, Rcpp::NumericMatrix beta, Rcpp::NumericVector sigma, Rcpp::NumericVector A_d, Rcpp::NumericVector B_d, Rcpp::NumericVector lam_d, Rcpp::NumericVector y_obs_vec, int H, int m_res, int p_res, bool standardize_inputs, double lag_center, double lag_scale, Rcpp::NumericVector win_scale_lags, std::string input_bound, double win_scale_global, double win_scale_bias, Rcpp::List scale_info, int act_f_code, int act_k_code, Rcpp::List origin_state, Rcpp::Nullable<Rcpp::NumericMatrix> s_draws, Rcpp::Nullable<Rcpp::NumericMatrix> v_draws, Rcpp::Nullable<Rcpp::NumericMatrix> z_draws, bool use_omp);
-RcppExport SEXP _exdqlm_forecast_paths_cpp(SEXP W_listSEXP, SEXP Win_listSEXP, SEXP Q_listSEXP, SEXP alphaSEXP, SEXP DSEXP, SEXP add_biasSEXP, SEXP y_hist0SEXP, SEXP y_lagsSEXP, SEXP x_blocksSEXP, SEXP betaSEXP, SEXP sigmaSEXP, SEXP A_dSEXP, SEXP B_dSEXP, SEXP lam_dSEXP, SEXP y_obs_vecSEXP, SEXP HSEXP, SEXP m_resSEXP, SEXP p_resSEXP, SEXP standardize_inputsSEXP, SEXP lag_centerSEXP, SEXP lag_scaleSEXP, SEXP win_scale_lagsSEXP, SEXP input_boundSEXP, SEXP win_scale_globalSEXP, SEXP win_scale_biasSEXP, SEXP scale_infoSEXP, SEXP act_f_codeSEXP, SEXP act_k_codeSEXP, SEXP origin_stateSEXP, SEXP s_drawsSEXP, SEXP v_drawsSEXP, SEXP z_drawsSEXP, SEXP use_ompSEXP) {
+Rcpp::List forecast_paths_cpp(Rcpp::List W_list, Rcpp::List Win_list, Rcpp::List Q_list, Rcpp::NumericVector alpha, int D, bool add_bias, Rcpp::NumericVector y_hist0, Rcpp::IntegerVector y_lags, Rcpp::List x_blocks, Rcpp::NumericMatrix beta, Rcpp::NumericVector sigma, Rcpp::NumericVector A_d, Rcpp::NumericVector B_d, Rcpp::NumericVector lam_d, Rcpp::NumericVector y_obs_vec, int H, int m_res, int p_res, bool standardize_inputs, double lag_center, double lag_scale, Rcpp::NumericVector win_scale_lags, std::string input_bound, double win_scale_global, double win_scale_bias, Rcpp::List scale_info, int act_f_code, int act_k_code, Rcpp::List origin_state, int res_lags, Rcpp::Nullable<Rcpp::NumericMatrix> res_lag_init, Rcpp::Nullable<Rcpp::NumericMatrix> s_draws, Rcpp::Nullable<Rcpp::NumericMatrix> v_draws, Rcpp::Nullable<Rcpp::NumericMatrix> z_draws, bool use_omp, Rcpp::Nullable<Rcpp::LogicalVector> Q_is_identity);
+RcppExport SEXP _exdqlm_forecast_paths_cpp(SEXP W_listSEXP, SEXP Win_listSEXP, SEXP Q_listSEXP, SEXP alphaSEXP, SEXP DSEXP, SEXP add_biasSEXP, SEXP y_hist0SEXP, SEXP y_lagsSEXP, SEXP x_blocksSEXP, SEXP betaSEXP, SEXP sigmaSEXP, SEXP A_dSEXP, SEXP B_dSEXP, SEXP lam_dSEXP, SEXP y_obs_vecSEXP, SEXP HSEXP, SEXP m_resSEXP, SEXP p_resSEXP, SEXP standardize_inputsSEXP, SEXP lag_centerSEXP, SEXP lag_scaleSEXP, SEXP win_scale_lagsSEXP, SEXP input_boundSEXP, SEXP win_scale_globalSEXP, SEXP win_scale_biasSEXP, SEXP scale_infoSEXP, SEXP act_f_codeSEXP, SEXP act_k_codeSEXP, SEXP origin_stateSEXP, SEXP res_lagsSEXP, SEXP res_lag_initSEXP, SEXP s_drawsSEXP, SEXP v_drawsSEXP, SEXP z_drawsSEXP, SEXP use_ompSEXP, SEXP Q_is_identitySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -138,11 +138,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type act_f_code(act_f_codeSEXP);
     Rcpp::traits::input_parameter< int >::type act_k_code(act_k_codeSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type origin_state(origin_stateSEXP);
+    Rcpp::traits::input_parameter< int >::type res_lags(res_lagsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type res_lag_init(res_lag_initSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type s_draws(s_drawsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type v_draws(v_drawsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type z_draws(z_drawsSEXP);
     Rcpp::traits::input_parameter< bool >::type use_omp(use_ompSEXP);
-    rcpp_result_gen = Rcpp::wrap(forecast_paths_cpp(W_list, Win_list, Q_list, alpha, D, add_bias, y_hist0, y_lags, x_blocks, beta, sigma, A_d, B_d, lam_d, y_obs_vec, H, m_res, p_res, standardize_inputs, lag_center, lag_scale, win_scale_lags, input_bound, win_scale_global, win_scale_bias, scale_info, act_f_code, act_k_code, origin_state, s_draws, v_draws, z_draws, use_omp));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::LogicalVector> >::type Q_is_identity(Q_is_identitySEXP);
+    rcpp_result_gen = Rcpp::wrap(forecast_paths_cpp(W_list, Win_list, Q_list, alpha, D, add_bias, y_hist0, y_lags, x_blocks, beta, sigma, A_d, B_d, lam_d, y_obs_vec, H, m_res, p_res, standardize_inputs, lag_center, lag_scale, win_scale_lags, input_bound, win_scale_global, win_scale_bias, scale_info, act_f_code, act_k_code, origin_state, res_lags, res_lag_init, s_draws, v_draws, z_draws, use_omp, Q_is_identity));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -424,7 +427,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_qexal", (DL_FUNC) &_exdqlm_qexal, 7},
     {"_exdqlm_rexal", (DL_FUNC) &_exdqlm_rexal, 5},
     {"_exdqlm_exal_loglik_from_mu_cpp", (DL_FUNC) &_exdqlm_exal_loglik_from_mu_cpp, 5},
-    {"_exdqlm_forecast_paths_cpp", (DL_FUNC) &_exdqlm_forecast_paths_cpp, 33},
+    {"_exdqlm_forecast_paths_cpp", (DL_FUNC) &_exdqlm_forecast_paths_cpp, 36},
     {"_exdqlm_logDetCholesky", (DL_FUNC) &_exdqlm_logDetCholesky, 1},
     {"_exdqlm_compute_cholesky", (DL_FUNC) &_exdqlm_compute_cholesky, 2},
     {"_exdqlm_H_t_k_r", (DL_FUNC) &_exdqlm_H_t_k_r, 4},
