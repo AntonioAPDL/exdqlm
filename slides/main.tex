@@ -17,7 +17,10 @@
 \setbeamercolor{palette quaternary}{bg=AccentColor, fg=TextIcons}
 
 \setbeamercolor{titlelike}{parent=palette primary}
+\setbeamercolor{block title example}{fg=TextIcons, bg=AccentColor}
 \setbeamercolor{footline}{fg=TextIcons, bg=DarkPrimary}
+\setbeamercolor{block body}{bg=LightPrimary}
+\setbeamercolor{block title}{bg=TextIcons}
 
 % White blocks (clean look)
 \setbeamercolor{block title}{bg=white, fg=DarkPrimary}
@@ -31,23 +34,24 @@
 \setbeamercolor{background canvas}{bg=white}
 \setbeamercolor{normal text}{fg=black}
 
+\setbeamerfont{structure}{family=\rmfamily, series=\bfseries}
+\usefonttheme[stillsansseriftext]{structurebold}
+\setbeamerfont{section in head/foot}{size=\tiny}
+\setbeamerfont{itemize/enumerate body}{series=\mdseries,shape=\upshape}
+\setbeamerfont{itemize/enumerate subbody}{series=\mdseries,shape=\upshape}
+\setbeamerfont{itemize/enumerate subsubbody}{series=\mdseries,shape=\upshape}
+\DeclareFontShape{OT1}{cmss}{b}{it}{<->ssub*cmss/b/n}{}
+\DeclareFontShape{OT1}{cmss}{bx}{it}{<->ssub*cmss/bx/n}{}
+
+%========================
+% Structure
+%========================
 \useoutertheme[footline=authorinstitute,subsection=false]{miniframes}
 \useinnertheme{rounded}
 
-% Bullets color
-\setbeamertemplate{itemize items}[circle]
-\setbeamercolor{itemize item}{fg=LightPrimary}
-\setbeamertemplate{itemize subitem}[circle]
-\setbeamercolor{itemize subitem}{fg=LightPrimary}
-\setbeamertemplate{enumerate items}[default]
-\setbeamercolor{enumerate item}{fg=LightPrimary}
-
-% Footline
-\setbeamertemplate{footline}{%
-  \begin{beamercolorbox}[wd=\paperwidth,ht=2.25ex,dp=1ex,center]{footline}
-    \insertshorttitle\hfill\textcolor{TextIcons}{\insertshortauthor}\hfill\textcolor{TextIcons}{\insertframenumber}
-  \end{beamercolorbox}%
-}
+% Blocks justification
+\usepackage{ragged2e}
+\addtobeamertemplate{block begin}{}{\justifying}
 
 %========================
 % Packages
@@ -59,14 +63,46 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{xcolor}
-\usepackage{ragged2e}
-\addtobeamertemplate{block begin}{}{\justifying}
+
+%========================
+% Theorem stubs
+%========================
+\newtheorem{mytheorem}{Theorem}
+\renewcommand{\themytheorem}{1}
+\newtheorem{remark}[mytheorem]{Remark}
+\newtheorem{assumption}[mytheorem]{Assumption}
+\setbeamertemplate{theorems}[numbered]
+\setbeamertemplate{caption}[numbered]
+
+%========================
+% Bullets color
+%========================
+\setbeamertemplate{itemize items}[circle]
+\setbeamercolor{itemize item}{fg=LightPrimary}
+\setbeamertemplate{itemize subitem}[circle]
+\setbeamercolor{itemize subitem}{fg=LightPrimary}
+\setbeamertemplate{itemize subsubitem}[circle]
+\setbeamercolor{itemize subsubitem}{fg=LightPrimary}
+\setbeamertemplate{enumerate items}[default]
+\setbeamercolor{enumerate item}{fg=LightPrimary}
+\setbeamercolor{enumerate subitem}{fg=LightPrimary}
+\setbeamercolor{enumerate subsubitem}{fg=LightPrimary}
+
+%========================
+% Footline
+%========================
+\setbeamertemplate{footline}{%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=2.25ex,dp=1ex,center]{footline}
+    \usebeamerfont{title in head/foot}%
+    \insertshorttitle\hfill\textcolor{TextIcons}{\insertshortauthor}\hfill\textcolor{TextIcons}{\insertframenumber}
+  \end{beamercolorbox}%
+}
 
 %========================
 % Handy placeholders
 %========================
 \newcommand{\ph}[1]{\textcolor{gray}{\footnotesize[\,#1\,]}}
-\newcommand{\phplot}[2][0.28\textheight]{%
+\newcommand{\phplot}[2][0.26\textheight]{%
   \fbox{\begin{minipage}[c][#1][c]{0.95\linewidth}\centering
   \footnotesize\textit{#2}
   \end{minipage}}}
@@ -75,7 +111,24 @@
   \footnotesize\textit{#1}
   \end{minipage}}}
 
+% Safe include for figures
+\newcommand{\safeinclude}[2][\linewidth]{%
+  \begingroup
+  \edef\safeincludePath{\detokenize{\expanded{#2}}}%
+  \IfFileExists{\safeincludePath}{%
+    \includegraphics[width=#1]{\safeincludePath}%
+  }{%
+    \fbox{\begin{minipage}[c][0.26\textheight][c]{0.95\linewidth}\centering
+      \footnotesize\textit{Missing: \texttt{\safeincludePath}}
+    \end{minipage}}%
+  }%
+  \endgroup
+}
+
+% White blocks helper
 \newenvironment{whiteblock}[1]{%
+  \setbeamercolor{block title}{bg=white, fg=DarkPrimary}%
+  \setbeamercolor{block body}{bg=white,  fg=black}%
   \begin{block}{#1}%
 }{\end{block}}
 
@@ -91,10 +144,53 @@
   \end{frame}
 }
 
+% Quantile panel for p in {0.05, 0.50, 0.95}
+\newcommand{\qpanel}[3]{%
+\begin{frame}{#1: \\ quantile fit for $p\in\{0.05,0.50,0.95\}$}
+  \centering
+  \safeinclude[0.5\linewidth]{#2/#3_p=0.5.png}
+  \vspace{0.7em}
+  \begin{columns}[T,onlytextwidth]
+    \column{.5\textwidth}\centering
+      \safeinclude[.95\linewidth]{#2/#3_p=0.05.png}
+    \column{.5\textwidth}\centering
+      \safeinclude[.95\linewidth]{#2/#3_p=0.95.png}
+  \end{columns}
+\end{frame}
+}
+
+% Tight, auto-scaling boxed math
+\newcommand{\tightmathbox}[1]{%
+  \begingroup
+  \setlength{\arraycolsep}{2pt}
+  \setlength{\jot}{3pt}
+  \fboxsep=2pt
+  \fboxrule=0.6pt
+  \resizebox{0.98\linewidth}{!}{$\boxed{%
+    \begin{aligned}
+    #1
+    \end{aligned}
+  }$}%
+  \endgroup
+}
+
+% Learned-parameter highlight
+\definecolor{Learned}{HTML}{0EA5E9}
+\newcommand{\Lparam}[1]{\textcolor{Learned}{#1}}
+
+% Vector/matrix notation
+\newcommand{\vct}[1]{\boldsymbol{#1}}
+\newcommand{\mtr}[1]{\mathbf{#1}}
+\newcommand{\vect}{\vct}
+\newcommand{\mat}{\mtr}
+
+% Distribution shorthand
+\newcommand{\Normal}{\mathcal{N}}
+
 %========================
 % Meta
 %========================
-\title[Weekly Research Update]{Weekly Research Update}
+\title[Q-DESN --- Sim Results]{Q-DESN --- Simulation Results}
 \author[Antonio Aguirre]{\textbf{Antonio Aguirre}}
 \institute[UCSC]{Department of Statistics \\ University of California, Santa Cruz}
 \date[\today]{\footnotesize\textbf{\today}}
@@ -106,204 +202,158 @@
 %========================
 \begin{frame}
   \titlepage
-  \vspace{0.4em}
-  \begin{whiteblock}{Quick context}
-    \begin{itemize}
-      \item Goal of this meeting: \ph{1 sentence}
-      \item What I need from you: \ph{decisions / feedback / sanity check}
-      \item Time budget: \ph{e.g., 15 min results, 10 min discussion, 5 min next steps}
-    \end{itemize}
-  \end{whiteblock}
+  \vspace{0.5em}
 \end{frame}
 
-%========================
-% Agenda
-%========================
-\begin{frame}{Agenda}
-  \begin{whiteblock}{Today}
-    \begin{enumerate}
-      \item Status since last week \ph{2--3 bullets}
-      \item Key results / figures \ph{what matters}
-      \item Open questions / decisions
-      \item Takeaways
-      \item Next week plan (TODOs)
-    \end{enumerate}
-  \end{whiteblock}
-\end{frame}
+\section{Intro}
 
 %========================
-% Status
+% Takeaways
 %========================
-\sectionframe{Status}
-
-\begin{frame}{Since last week}
-  \begin{whiteblock}{Progress}
-    \begin{itemize}
-      \item \ph{Done:}
-      \item \ph{Done:}
-      \item \ph{In progress:}
-    \end{itemize}
-  \end{whiteblock}
-
-  \begin{whiteblock}{Blockers / risks}
-    \begin{itemize}
-      \item \ph{Blocker:}
-      \item \ph{Risk:}
-    \end{itemize}
-  \end{whiteblock}
-\end{frame}
-
-\begin{frame}{Progress tracker (compact)}
-  \small
-  \begin{whiteblock}{Checklist}
-    \begin{tabular}{@{}p{0.08\linewidth}p{0.85\linewidth}@{}}
-      $\square$ & \ph{Task A (1 line)} \\
-      $\square$ & \ph{Task B (1 line)} \\
-      $\square$ & \ph{Task C (1 line)} \\
-      $\square$ & \ph{Task D (1 line)} \\
-    \end{tabular}
-  \end{whiteblock}
-
-  \begin{whiteblock}{Notes}
-    \ph{Optional 1--2 lines.}
-  \end{whiteblock}
-\end{frame}
-
-%========================
-% Results
-%========================
-\sectionframe{Key Results}
-
-\begin{frame}{Result 1: headline}
-  \begin{whiteblock}{Claim}
-    \begin{itemize}
-      \item \ph{One-sentence result}
-      \item \ph{Why it matters}
-    \end{itemize}
-  \end{whiteblock}
-
-  \phplot{Figure placeholder: \texttt{path/to/figure.pdf} or summary plot}
-\end{frame}
-
-\begin{frame}{Result 2: comparison}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.49\textwidth}
-      \begin{whiteblock}{Baseline}
-        \phplot[0.30\textheight]{Baseline plot}
-        \begin{itemize}
-          \item \ph{Metric 1}
-          \item \ph{Metric 2}
-        \end{itemize}
-      \end{whiteblock}
-    \column{0.49\textwidth}
-      \begin{whiteblock}{Proposed}
-        \phplot[0.30\textheight]{Proposed plot}
-        \begin{itemize}
-          \item \ph{Metric 1}
-          \item \ph{Metric 2}
-        \end{itemize}
-      \end{whiteblock}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Result 3: table}
-  \begin{whiteblock}{Main numbers}
-    \small
-    \begin{tabular}{@{}lccc@{}}
-      \toprule
-      \textbf{Method} & \textbf{Metric A} & \textbf{Metric B} & \textbf{Runtime} \\
-      \midrule
-      \ph{Baseline} & \ph{--} & \ph{--} & \ph{--} \\
-      \ph{Variant 1} & \ph{--} & \ph{--} & \ph{--} \\
-      \ph{Variant 2} & \ph{--} & \ph{--} & \ph{--} \\
-      \bottomrule
-    \end{tabular}
-  \end{whiteblock}
-
-  \begin{whiteblock}{Interpretation}
-    \begin{itemize}
-      \item \ph{One line: what changed}
-      \item \ph{One line: what you believe now}
-    \end{itemize}
-  \end{whiteblock}
-\end{frame}
-
-%========================
-% Discussion
-%========================
-\sectionframe{Open Questions}
-
-\begin{frame}{Open questions / decisions}
-  \begin{whiteblock}{Questions for discussion}
-    \begin{enumerate}
-      \item \ph{Question 1}
-      \item \ph{Question 2}
-      \item \ph{Question 3}
-    \end{enumerate}
-  \end{whiteblock}
-
-  \begin{whiteblock}{Candidate options}
-    \begin{itemize}
-      \item \ph{Option A: pros/cons}
-      \item \ph{Option B: pros/cons}
-    \end{itemize}
-  \end{whiteblock}
-\end{frame}
-
-%========================
-% Takeaways + TODOs
-%========================
-\sectionframe{Wrap-up}
-
 \begin{frame}{Takeaways}
-  \begin{whiteblock}{What we learned today}
-    \begin{enumerate}
-      \item \ph{Takeaway 1}
-      \item \ph{Takeaway 2}
-      \item \ph{Takeaway 3}
-    \end{enumerate}
-  \end{whiteblock}
-
-  \begin{whiteblock}{Last comments}
-    \begin{itemize}
-      \item \ph{Comment / caution / reminder}
-      \item \ph{Comment}
-    \end{itemize}
-  \end{whiteblock}
-\end{frame}
-
-\begin{frame}{Next week plan (TODOs)}
-  \begin{whiteblock}{Top priorities}
-    \begin{enumerate}
-      \item \ph{TODO 1 (deliverable + success criterion)}
-      \item \ph{TODO 2}
-      \item \ph{TODO 3}
-    \end{enumerate}
-  \end{whiteblock}
-
-  \begin{whiteblock}{If time permits}
-    \begin{itemize}
-      \item \ph{Stretch goal 1}
-      \item \ph{Stretch goal 2}
-    \end{itemize}
-  \end{whiteblock}
-
-  \begin{whiteblock}{Owner + deadline}
-    \begin{itemize}
-      \item \ph{Me: X by date}
-      \item \ph{Advisor: Y by date}
-    \end{itemize}
-  \end{whiteblock}
+  \begin{itemize}
+    \item \textcolor{DarkPrimary}{Forecasting bug fixed:} previously the reservoir state $\vct{h}_t$ was \textcolor{LightPrimary}{not} advanced within the forecast window; it is now rolled forward step--by--step during forecasting.
+    \item Ran the full pipeline on \textcolor{LightPrimary}{all three} simulation scenarios \textcolor{LightPrimary}{and} on the San Lorenzo River daily data.
+    \item Computed metrics \& diagnostics for each run \textcolor{LightPrimary}{(CRPS, PinballMean, ELBO, PIT, rolling coverages, synthesized 95\% bands)}.
+    \item \textcolor{DarkPrimary}{Models are not calibrated/optimized yet} (same architecture/hyperparameters across datasets).
+  \end{itemize}
 \end{frame}
 
 %========================
-% Backup
+% Q-DESN
 %========================
-\appendix
-\sectionframe{Backup}
+\begin{frame}{Q-DESN}
+\scriptsize
+\tightmathbox{
+&\textbf{Obs.:}&&
+ y_t\mid(\cdot)\sim \Normal\!\Big(\mu_t+\lambda(\Lparam{\gamma})\,\Lparam{\sigma}\, \textcolor{purple}{s}_t
+                                   +A(\Lparam{\gamma})\,\textcolor{purple}{v}_t,\ 
+                                   B(\Lparam{\gamma})\,\Lparam{\sigma}\, \textcolor{purple}{v}_t\Big),\quad
+ Q_{p_0}(y_t\mid\cdot)=\mu_t \\
+&\textbf{Latents:}&&
+\textcolor{purple}{s}_t\sim N^+(0,1),\quad \textcolor{purple}{v}_t\mid\Lparam{\sigma}\sim\mathrm{Exp}\!\big(1/\Lparam{\sigma}\big)\\[0.25em]
+&\textbf{Features:}&&
+\vct{x}_t=\big[\vct{h}_{t,D}^\top,\ k(\tilde{\vct{h}}_{t,1})^\top,\dots,k(\tilde{\vct{h}}_{t,D-1})^\top\big]^\top,\quad
+\mu_t=\vct{x}_t^\top\,\Lparam{\vct{\beta}}\\[0.25em]
+&\textbf{Reservoir:}&&
+\vct{h}_{t,d}=(1-\alpha)\,\vct{h}_{t-1,d}+\alpha\,\vct{\omega}_{t,d},\quad
+\vct{\omega}_{t,1}=f\!\Big(\tfrac{\rho_1}{|\lambda_{\max}(\mtr{W}_1)|}\,\mtr{W}_1\,\vct{h}_{t-1,1}
+                  +\mtr{W}_1^{\mathrm{in}}\,\textcolor{ForestGreen}{\vct{u}_t}\Big),\\
+&&&\tilde{\vct{h}}_{t,d-1}=\mtr{Q}_{d-1}\,\vct{h}_{t,d-1},\ \ 
+\vct{\omega}_{t,d}=f\!\Big(\tfrac{\rho_d}{|\lambda_{\max}(\mtr{W}_d)|}\,\mtr{W}_d\,\vct{h}_{t-1,d}
+                  +\mtr{W}_d^{\mathrm{in}}\,\tilde{\vct{h}}_{t,d-1}\Big)\ (d\ge2)\\[0.25em]
+}
+\vspace{0.35em}
 
-\begin{frame}{Backup slide}
-  \phwide{Extra derivation / extra plot / extra detail.}
+{\tiny
+\textit{Input design: }\(\textcolor{ForestGreen}{\vct{u}_t}
+= \big[\,y_{t-1},\dots,y_{t-m},\ \vct{z}_t^{\!\top}\big]^{\!\top}\in\mathbb{R}^{p}\), with \(p=m+r\) and \(\vct{z}_t\in\mathbb{R}^{r}\).
+\par
+\textit{Dims: } \(\vct{h}_{t,d}\in\mathbb{R}^{n_d}\);
+\(\mtr{W}_d\in\mathbb{R}^{n_d\times n_d}\);
+\(\mtr{W}_1^{\mathrm{in}}\in\mathbb{R}^{n_1\times p}\);
+\(\mtr{W}_d^{\mathrm{in}}\in\mathbb{R}^{n_d\times n_{d-1}}\) for \(d\ge2\).
+}
+\end{frame}
+
+%========================
+% Global configuration
+%========================
+\begin{frame}{Q-DESN: Global configuration (fixed across datasets)}
+\begin{columns}[T,onlytextwidth]
+  \column{.52\textwidth}
+  \begin{whiteblock}{\small Architecture}
+  \scriptsize
+  \IfFileExists{build/tables/global_arch.tex}{
+    \input{build/tables/global_arch.tex}
+  }{\ph{Run the slides build script to generate this.}}
+  \end{whiteblock}
+
+  \column{.48\textwidth}
+  \begin{whiteblock}{\small Training, sampling, synthesis}
+  \scriptsize
+  \IfFileExists{build/tables/global_train.tex}{
+    \input{build/tables/global_train.tex}
+  }{\ph{Run the slides build script to generate this.}}
+  \end{whiteblock}
+\end{columns}
+\vspace{0.3em}
+{\tiny \textit{Same configuration is used for every dataset and for each quantile model.}}
+\end{frame}
+
+%========================
+% Q-DESN 3-Layer view
+%========================
+\begin{frame}{Q-DESN (3-Layer)}
+\scriptsize
+\textit{$p_0\in\{0.05,0.50,0.95\}$}\par\vspace{0.4em}
+\tightmathbox{
+&\textbf{Obs.:}&&
+ y_t\mid(\cdot)\sim \Normal\!\Big(\mu_t+\lambda(\Lparam{\gamma})\,\Lparam{\sigma}\,\textcolor{purple}{s_t}
+                                   +A(\Lparam{\gamma})\,\textcolor{purple}{v_t},\ 
+                                   B(\Lparam{\gamma})\,\Lparam{\sigma}\,\textcolor{purple}{v_t}\Big),\quad
+ Q_{p_0}(y_t\mid\cdot)=\mu_t;\\[0.25em]
+&\textbf{Latents:}&&
+\textcolor{purple}{s_t}\sim N^+(0,1),\quad 
+\textcolor{purple}{v_t}\mid\Lparam{\sigma}\sim\mathrm{Exp}\!\big(1/\Lparam{\sigma}\big);\\[0.4em]
+&\textbf{Features:}&&
+\vct{x}_t=\big[\vct{h}_{t,3}^\top,\ \tilde{\vct{h}}_{t,1}^\top,\ \tilde{\vct{h}}_{t,2}^\top\big]^\top,\quad
+\mu_t=\vct{x}_t^\top\,\Lparam{\vct{\beta}};\\[0.4em]
+&\textbf{Reservoir:}&&
+\vct{h}_{t,d}=0.85\,\vct{h}_{t-1,d}+0.15\,\vct{\omega}_{t,d},\\
+&&&\vct{\omega}_{t,1}=\tanh\!\Big(\tfrac{0.95}{|\lambda_{\max}(\mtr{W}_1)|}\,\mtr{W}_1\,\vct{h}_{t-1,1}
+                               +\mtr{W}_1^{\mathrm{in}}\,\textcolor{ForestGreen}{\vct{u}_t}\Big),\\
+&&&\tilde{\vct{h}}_{t,d-1}=\vct{h}_{t,d-1},\quad
+\vct{\omega}_{t,d}=\tanh\!\Big(\tfrac{0.95}{|\lambda_{\max}(\mtr{W}_d)|}\,\mtr{W}_d\,\vct{h}_{t-1,d}
+                               +\mtr{W}_d^{\mathrm{in}}\,\tilde{\vct{h}}_{t,d-1}\Big)\ \ (d\ge2).
+}
+\vspace{0.35em}
+
+{\tiny
+\textit{Input design (with $m{=}60$ lags): }\(\textcolor{ForestGreen}{\vct{u}_t}
+= \big[\,y_{t-1},\dots,y_{t-60},\ \vct{z}_t^{\!\top}\big]^{\!\top}\in\mathbb{R}^{p}\), with \(p=60+r\) and \(\vct{z}_t\in\mathbb{R}^{r}\).
+\par
+\textit{Dims (with \(n_1{=}n_2{=}n_3{=}20\)): }\(\vct{h}_{t,d}\in\mathbb{R}^{20}\);
+\(\mtr{W}_d\in\mathbb{R}^{20\times 20}\);
+\(\mtr{W}_1^{\mathrm{in}}\in\mathbb{R}^{20\times(60+r)}\);
+\(\mtr{W}_d^{\mathrm{in}}\in\mathbb{R}^{20\times 20}\) for \(d\ge2\).
+}
+\end{frame}
+
+%========================
+% Auto-generated case slides
+%========================
+\IfFileExists{build/sections/auto_runs.tex}{
+  \input{build/sections/auto_runs.tex}
+}{
+  \begin{frame}{Auto slides missing}
+    \ph{Run: Rscript scripts/build_slides_from_runs.R}
+  \end{frame}
+}
+
+%========================
+% Cross-scenario
+%========================
+\sectionframe{Cross-scenario}
+\begin{frame}{Cross-scenario: forecast performance}
+  \IfFileExists{build/tables/cross_scenario.tex}{
+    \input{build/tables/cross_scenario.tex}
+  }{\ph{Run the slides build script to generate this.}}
+
+  \vspace{0.35em}
+  \tiny Target calibration: \(\{\textcolor{BrickRed}{0.05},\,\textcolor{ForestGreen}{0.50},\,\textcolor{NavyBlue}{0.95}\}\). Lower is better for CRPS/Pinball.
+\end{frame}
+
+%========================
+% Next steps
+%========================
+\sectionframe{Next steps}
+\begin{frame}{Next steps}
+  \begin{enumerate}
+    \item \textbf{Automatic ESN spec selection.} Hyperparameter search over $(D, n, m, \alpha, \rho, \pi_w, \pi_{\text{in}})$ with rolling-origin validation; minimize \textbf{CRPS} (primary) and \textbf{PinballMean} (secondary).
+    \item \textbf{$k$-step--ahead forecasting.} Extend beyond $H{=}1$ to direct $k$-ahead and/or recursive strategies; compare error and calibration vs.\ one-step.
+    \item \textbf{Climate-products Q-DESN.} Build ESN variants for \textit{retrospective} \& \textit{ensemble} climate inputs (multi-source $\vct{z}_t$, member-wise features, and synthesis across members).
+  \end{enumerate}
 \end{frame}
 
 \end{document}

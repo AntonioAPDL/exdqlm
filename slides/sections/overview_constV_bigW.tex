@@ -1,0 +1,28 @@
+\begin{frame}{\casetitleprefix: overview}
+\begin{columns}[T,onlytextwidth]
+  \column{.46\textwidth}
+\begin{whiteblock}{\small Model}
+  \scriptsize
+  \[
+  \begin{aligned}
+  & y_t \mid \theta_t \sim \mathcal{N}\!\big(F\theta_t,\ V\big),\\
+  & \theta_t \mid \theta_{t-1} \sim \mathcal{N}\!\big(G\theta_{t-1},\ W_{\text{big}}\big),\\
+  & \theta_0 \sim \mathcal{N}(m_0,\ C_0).
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+  & F=\begin{bmatrix}1&0&1&0&1&0\end{bmatrix},\\
+  & G=\mathrm{blockdiag}\!\big(R(\tfrac{2\pi}{50}),R(\tfrac{4\pi}{50}),R(\tfrac{6\pi}{50})\big),\\
+  & R(\lambda)=\begin{bmatrix}\cos\lambda&\sin\lambda\\ -\sin\lambda&\cos\lambda\end{bmatrix},\\
+  & V=9,\ W_{\text{big}}=I_6,\\
+  & m_0=\mathbf{0}_6,\ C_0=25I_6.
+  \end{aligned}
+  \]
+ \end{whiteblock}
+  \column{.54\textwidth}
+  \centering
+  \vspace{1cm}
+  \safeinclude[.98\linewidth]{\casefigdir/\caseoverviewplot}\\[-0.25em]
+\end{columns}
+\end{frame}

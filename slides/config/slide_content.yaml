@@ -1,0 +1,20 @@
+defaults:
+  frames:
+    - overview
+    - train_diagnosis
+    - train_qpanel
+    - train_synthesis
+    - forecast_diagnosis
+    - forecast_qpanel
+    - forecast_synthesis
+
+cases:
+  real_san_lorenzo:
+    frames:
+      - overview
+      - train_diagnosis
+      - train_qpanel
+      - train_synthesis
+      - forecast_diagnosis
+      - forecast_qpanel
+      - forecast_synthesis

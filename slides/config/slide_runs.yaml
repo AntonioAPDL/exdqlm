@@ -1,0 +1,36 @@
+cases:
+  - id: sim_constV_smallW
+    label: "constV_smallW"
+    kind: sim
+    section_label: "Scenario: I"
+    title_prefix: "I. DLM/small-discount"
+    overview_tex: "sections/overview_constV_smallW.tex"
+    overview_plot: "train_obs_with_95_band.png"
+    run: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/dlm_constV_smallW/runs/20260114-231841__git-954944a__spec-heavy__cfg-d4ca0826
+
+  - id: sim_constV_bigW
+    label: "constV_bigW"
+    kind: sim
+    section_label: "Scenario: II"
+    title_prefix: "II. DLM/big-discount"
+    overview_tex: "sections/overview_constV_bigW.tex"
+    overview_plot: "train_obs_with_95_band.png"
+    run: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/dlm_constV_bigW/runs/20260114-231841__git-954944a__spec-heavy__cfg-d4ca0826
+
+  - id: sim_ar1V
+    label: "dlm_ar1V"
+    kind: sim
+    section_label: "Scenario: III"
+    title_prefix: "III. DLM/AR(1)-var"
+    overview_tex: "sections/overview_ar1V.tex"
+    overview_plot: "train_obs_with_95_band.png"
+    run: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/dlm_ar1V/runs/20260114-231840__git-954944a__spec-heavy__cfg-d4ca0826
+
+  - id: real_san_lorenzo
+    label: "real_data"
+    kind: real
+    section_label: "Scenario: IV (data)"
+    title_prefix: "Real data (daily)"
+    overview_tex: "sections/overview_real_san_lorenzo.tex"
+    overview_plot: "train_obs_with_95_band.png"
+    run: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/san_lorenzo_daily/runs/20260114-231838__git-954944a__spec-real_heavy__cfg-6a412703
