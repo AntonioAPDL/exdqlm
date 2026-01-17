@@ -503,17 +503,25 @@ exal_vb_posterior_draws <- function(fit_exal, nd = 1000L) {
 #' @param fit_exal exal_vb object
 #' @param X_new n x p design (defaults to the design you pass via the Q-DESN wrapper)
 #' @param nd number of draws; @param chunk split draws to cap memory
+#' @param draws optional posterior draws list from exal_vb_posterior_draws()
 #' @return list(yrep=n x nd, mu_draws=n x nd, beta, sigma, gamma)
 #' @export
-exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L) {
+exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L, draws = NULL) {
   stopifnot(inherits(fit_exal, "exal_vb"))
   X_new <- as.matrix(X_new)
   n <- nrow(X_new); p <- ncol(X_new)
 
-  draws <- exal_vb_posterior_draws(fit_exal, nd = nd)
+  if (is.null(draws)) {
+    draws <- exal_vb_posterior_draws(fit_exal, nd = nd)
+  }
   Bdraw <- draws$beta      # nd x p
   sdraw <- draws$sigma     # length nd
   gdraw <- draws$gamma     # length nd
+  if (is.null(Bdraw) || !is.matrix(Bdraw)) stop("exal_vb_posterior_predict: missing beta draws.")
+  if (length(sdraw) != nrow(Bdraw) || length(gdraw) != nrow(Bdraw)) {
+    stop("exal_vb_posterior_predict: draw lengths do not match beta draws.")
+  }
+  nd_eff <- nrow(Bdraw)
 
   p0 <- fit_exal$misc$p0
   A_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$A, numeric(1))
@@ -523,10 +531,10 @@ exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L)
     abc$C * abs(g)
   }, numeric(1))
 
-  yrep     <- matrix(NA_real_, n, nd)
-  mu_draws <- matrix(NA_real_, n, nd)
+  yrep     <- matrix(NA_real_, n, nd_eff)
+  mu_draws <- matrix(NA_real_, n, nd_eff)
 
-  ids_list <- split(seq_len(nd), ceiling(seq_len(nd) / as.integer(chunk)))
+  ids_list <- split(seq_len(nd_eff), ceiling(seq_len(nd_eff) / as.integer(chunk)))
   for (ids in ids_list) {
     mm <- length(ids)
     Bc <- t(Bdraw[ids, , drop = FALSE])        # p x mm
@@ -551,12 +559,13 @@ exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L)
 #' Posterior predictive for a Q-DESN fit (uses its in-sample design by default)
 #' @param object qdesn_fit object from qdesn_fit_vb()
 #' @param nd draws; @param X_new optional n x p design; @param chunk memory chunk
+#' @param draws optional posterior draws list from exal_vb_posterior_draws()
 #' @return same structure as exal_vb_posterior_predict()
 #' @export
-posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk = 200L) {
+posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk = 200L, draws = NULL) {
   stopifnot(is.list(object), !is.null(object$fit), !is.null(object$X))
   X_use <- if (is.null(X_new)) object$X else as.matrix(X_new)
-  exal_vb_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk)
+  exal_vb_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk, draws = draws)
 }
 #' Multi-horizon posterior predictive paths for a Q-DESN fit
 #'
@@ -1074,6 +1083,7 @@ forecast_paths.qdesn_fit <- function(
 #' @param lead_weights optional numeric vector length H (base weights by lead)
 #' @param mix_nd number of mixture draws per target (defaults to nd)
 #' @param keep_origin_draws if FALSE, drop per-origin draws after mixture
+#' @param draws optional posterior draws list from exal_vb_posterior_draws()
 #' @return list with per-origin draws (optional) and mixture draws per target
 #' @export
 forecast_lattice.qdesn_fit <- function(
@@ -1085,7 +1095,8 @@ forecast_lattice.qdesn_fit <- function(
   mix_nd = NULL,
   chunk = 256L,
   seed = NULL,
-  keep_origin_draws = TRUE
+  keep_origin_draws = TRUE,
+  draws = NULL
 ) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
@@ -1185,7 +1196,9 @@ forecast_lattice.qdesn_fit <- function(
   if (mix_nd < 1L) stop("forecast_lattice: mix_nd must be >= 1.")
 
   if (!is.null(seed)) set.seed(as.integer(seed))
-  draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+  if (is.null(draws)) {
+    draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+  }
   nd_eff <- nrow(draws$beta)
 
   yrep_list <- vector("list", length(origins))
