@@ -48,7 +48,7 @@ if (is.null(runs_cfg$cases) || !length(runs_cfg$cases)) {
 plot_canon <- list(
   elbo_traces = list(
     dest = "elbo_traces.png",
-    patterns = c("^elbo_traces.*\\.png$")
+    patterns = c("^elbo_traces_skip_k=20\\.png$", "^elbo_traces.*\\.png$")
   ),
   pit_train = list(
     dest = "pit_train.png",
@@ -90,25 +90,98 @@ plot_canon <- list(
     dest = "forecast_obs_with_95_band.png",
     patterns = c("^forecast_obs_with_95_band\\.png$")
   ),
-  rolling_cov_train = list(
-    dest = "rolling_cov_qsynth_train.png",
-    patterns = c("^rolling_cov_qsynth_train_.*\\.png$",
-                 "^rolling_cov_qhat_train_.*\\.png$",
-                 "^rolling_cov_mu_train_.*\\.png$")
+  rolling_cov_mu_train = list(
+    dest = "rolling_cov_mu_train.png",
+    patterns = c("^rolling_cov_mu_train_.*\\.png$")
   ),
-  rolling_cov_forecast = list(
-    dest = "rolling_cov_qsynth_forecast.png",
-    patterns = c("^rolling_cov_qsynth_forecast_.*\\.png$",
-                 "^rolling_cov_qhat_forecast_.*\\.png$",
-                 "^rolling_cov_mu_forecast_.*\\.png$")
+  rolling_cov_mu_forecast = list(
+    dest = "rolling_cov_mu_forecast.png",
+    patterns = c("^rolling_cov_mu_forecast_.*\\.png$")
   ),
-  forecast_quantiles_overlay = list(
-    dest = "forecast_quantiles_overlay.png",
-    patterns = c("^forecast_quantiles_overlay\\.png$")
+  forecast_fan = list(
+    dest = "forecast_fan_overlap_synth.png",
+    patterns = c("^forecast_fan_overlap_synth\\.png$")
   ),
-  train_quantiles_overlay = list(
-    dest = "train_quantiles_overlay.png",
-    patterns = c("^train_quantiles_overlay\\.png$")
+  forecast_mu_error_p05 = list(
+    dest = "forecast_mu_error_band_p=0.05.png",
+    patterns = c("^forecast_mu_error_band_.*p=0.05\\.png$")
+  ),
+  forecast_mu_error_p50 = list(
+    dest = "forecast_mu_error_band_p=0.5.png",
+    patterns = c("^forecast_mu_error_band_.*p=0.5\\.png$")
+  ),
+  forecast_mu_error_p95 = list(
+    dest = "forecast_mu_error_band_p=0.95.png",
+    patterns = c("^forecast_mu_error_band_.*p=0.95\\.png$")
+  ),
+  gamma_sigma_traces = list(
+    dest = "gamma_sigma_traces.png",
+    patterns = c("^gamma_sigma_traces_skip_k=20\\.png$", "^gamma_sigma_traces.*\\.png$")
+  ),
+  posterior_beta_forest_p05 = list(
+    dest = "posterior_beta_forest_p=0.05.png",
+    patterns = c("^posterior_beta_forest_IJ_TOP50_p=0.05\\.png$",
+                 "^posterior_beta_forest_TOP50_p=0.05\\.png$")
+  ),
+  posterior_beta_forest_p50 = list(
+    dest = "posterior_beta_forest_p=0.5.png",
+    patterns = c("^posterior_beta_forest_IJ_TOP50_p=0.5\\.png$",
+                 "^posterior_beta_forest_TOP50_p=0.5\\.png$")
+  ),
+  posterior_beta_forest_p95 = list(
+    dest = "posterior_beta_forest_p=0.95.png",
+    patterns = c("^posterior_beta_forest_IJ_TOP50_p=0.95\\.png$",
+                 "^posterior_beta_forest_TOP50_p=0.95\\.png$")
+  ),
+  posterior_beta_forest_top_mean_p05 = list(
+    dest = "posterior_beta_forest_top50_mean_p=0.05.png",
+    patterns = c("^posterior_beta_forest_IJ_TOP50_MEAN_p=0.05\\.png$",
+                 "^posterior_beta_forest_TOP50_MEAN_p=0.05\\.png$")
+  ),
+  posterior_beta_forest_top_mean_p50 = list(
+    dest = "posterior_beta_forest_top50_mean_p=0.5.png",
+    patterns = c("^posterior_beta_forest_IJ_TOP50_MEAN_p=0.5\\.png$",
+                 "^posterior_beta_forest_TOP50_MEAN_p=0.5\\.png$")
+  ),
+  posterior_beta_forest_top_mean_p95 = list(
+    dest = "posterior_beta_forest_top50_mean_p=0.95.png",
+    patterns = c("^posterior_beta_forest_IJ_TOP50_MEAN_p=0.95\\.png$",
+                 "^posterior_beta_forest_TOP50_MEAN_p=0.95\\.png$")
+  ),
+  posterior_beta_forest_bottom_mean_p05 = list(
+    dest = "posterior_beta_forest_bottom50_mean_p=0.05.png",
+    patterns = c("^posterior_beta_forest_IJ_BOTTOM50_MEAN_p=0.05\\.png$",
+                 "^posterior_beta_forest_BOTTOM50_MEAN_p=0.05\\.png$")
+  ),
+  posterior_beta_forest_bottom_mean_p50 = list(
+    dest = "posterior_beta_forest_bottom50_mean_p=0.5.png",
+    patterns = c("^posterior_beta_forest_IJ_BOTTOM50_MEAN_p=0.5\\.png$",
+                 "^posterior_beta_forest_BOTTOM50_MEAN_p=0.5\\.png$")
+  ),
+  posterior_beta_forest_bottom_mean_p95 = list(
+    dest = "posterior_beta_forest_bottom50_mean_p=0.95.png",
+    patterns = c("^posterior_beta_forest_IJ_BOTTOM50_MEAN_p=0.95\\.png$",
+                 "^posterior_beta_forest_BOTTOM50_MEAN_p=0.95\\.png$")
+  ),
+  posterior_gamma_sigma_p05 = list(
+    dest = "posterior_gamma_sigma_p=0.05.png",
+    patterns = c("^posterior_gamma_sigma_p=0.05\\.png$")
+  ),
+  posterior_gamma_sigma_p50 = list(
+    dest = "posterior_gamma_sigma_p=0.5.png",
+    patterns = c("^posterior_gamma_sigma_p=0.5\\.png$")
+  ),
+  posterior_gamma_sigma_p95 = list(
+    dest = "posterior_gamma_sigma_p=0.95.png",
+    patterns = c("^posterior_gamma_sigma_p=0.95\\.png$")
+  ),
+  rhs_lambda_traces = list(
+    dest = "rhs_lambda_summary_traces.png",
+    patterns = c("^rhs_lambda_summary_traces_skip_k=20\\.png$", "^rhs_lambda_summary_traces.*\\.png$")
+  ),
+  rhs_tau_c2_traces = list(
+    dest = "rhs_tau_c2_traces.png",
+    patterns = c("^rhs_tau_c2_traces_skip_k=20\\.png$", "^rhs_tau_c2_traces.*\\.png$")
   )
 )
 
@@ -164,19 +237,28 @@ read_first_csv <- function(paths) {
   NULL
 }
 
-write_kv_table <- function(path, kv) {
+write_kv_table <- function(path, kv,
+                           colspec = "@{}>{\\raggedright\\arraybackslash}p{0.30\\linewidth}>{\\raggedright\\arraybackslash}p{0.62\\linewidth}@{}",
+                           tabcolsep = "3pt",
+                           escape_keys = TRUE,
+                           escape_values = TRUE) {
   kv <- kv[is.finite(match(names(kv), names(kv)))]
+  fmt_key <- function(x) if (escape_keys) tex_escape(x) else x
+  fmt_val <- function(x) {
+    val <- value_str(x)
+    if (escape_values) tex_escape(val) else val
+  }
   lines <- c(
     "\\begingroup",
-    "\\setlength{\\tabcolsep}{4pt}",
-    "\\begin{tabular}{@{}p{0.34\\linewidth}p{0.60\\linewidth}@{}}",
+    sprintf("\\setlength{\\tabcolsep}{%s}", tabcolsep),
+    sprintf("\\begin{tabular}{%s}", colspec),
     "\\toprule",
     "\\textbf{Key} & \\textbf{Value} \\\\",
     "\\midrule"
   )
   for (nm in names(kv)) {
     lines <- c(lines, sprintf("%s & %s \\\\",
-                              tex_escape(nm), tex_escape(value_str(kv[[nm]]))))
+                              fmt_key(nm), fmt_val(kv[[nm]])))
   }
   lines <- c(lines, "\\bottomrule", "\\end{tabular}", "\\endgroup")
   writeLines(lines, path)
@@ -238,6 +320,7 @@ for (case in runs_cfg$cases) {
   case_label <- case$label %||% case$id
   run_dir <- case$run
   case_kind <- case$kind %||% "unknown"
+  is_real <- identical(case_kind, "real")
 
   if (is.null(case_id) || is.null(run_dir)) {
     stop("Case entries must include id and run.")
@@ -274,24 +357,37 @@ for (case in runs_cfg$cases) {
     "Spec" = run_manifest$spec %||% "NA",
     "Git sha" = run_manifest$git$sha %||% "NA"
   )
+  desn <- cfg$desn %||% list()
+  lags <- cfg$lags %||% list()
+  cols <- cfg$columns %||% list()
+
   spec_kv <- list(
-    "D" = cfg$desn$D %||% "NA",
-    "n" = value_str(cfg$desn$n %||% "NA"),
-    "n_tilde" = value_str(cfg$desn$n_tilde %||% "NA"),
-    "m" = cfg$desn$m %||% "NA",
-    "alpha" = value_str(cfg$desn$alpha %||% "NA"),
-    "rho" = value_str(cfg$desn$rho %||% "NA"),
-    "washout" = cfg$desn$washout %||% "NA",
-    "vb max_iter" = cfg$vb$max_iter %||% "NA",
-    "vb min_iter_elbo" = cfg$vb$min_iter_elbo %||% "NA",
-    "horizon" = cfg$forecast$horizon %||% "NA",
-    "nd_draws" = cfg$sampling$nd_draws %||% "NA"
+    "$D$ (layers)" = desn$D %||% "NA",
+    "$n_d$ (state dims)" = value_str(desn$n %||% "NA"),
+    "$\\tilde{n}_d$ (proj dims)" = value_str(desn$n_tilde %||% "NA")
   )
+  if (is_real && (length(lags) || length(cols))) {
+    spec_kv["$m_y$ (output lags)"] <- lags$m_y %||% "NA"
+    spec_kv["$m_x$ (covariate lags)"] <- lags$m_x %||% "NA"
+    if (!is.null(cols$x)) spec_kv["$\\vct{z}_t$ (covariates)"] <- value_str(cols$x)
+    if (!is.null(cols$y)) spec_kv["$y_t$ (series)"] <- value_str(cols$y)
+  } else {
+    spec_kv["$m$ (output lags)"] <- desn$m %||% "NA"
+  }
+  spec_kv["$\\alpha$ (leak rate)"] <- value_str(desn$alpha %||% "NA")
+  spec_kv["$\\rho_d$ (spectral radius)"] <- value_str(desn$rho %||% "NA")
+  spec_kv["$\\pi_w$ (sparsity)"] <- value_str(desn$pi_w %||% "NA")
+  spec_kv["$\\pi_{\\mathrm{in}}$ (input sparsity)"] <- value_str(desn$pi_in %||% "NA")
+  spec_kv["washout (steps)"] <- desn$washout %||% "NA"
+  spec_kv["VB max iter"] <- cfg$vb$max_iter %||% "NA"
+  spec_kv["VB min iter"] <- cfg$vb$min_iter_elbo %||% "NA"
+  spec_kv["$H$ (forecast horizon)"] <- cfg$forecast$horizon %||% "NA"
+  spec_kv["$N_{\\text{draw}}$ (posterior draws)"] <- cfg$sampling$nd_draws %||% "NA"
 
   meta_tex <- file.path(case_out_tab, "run_metadata.tex")
   spec_tex <- file.path(case_out_tab, "spec_summary.tex")
   write_kv_table(meta_tex, meta_kv)
-  write_kv_table(spec_tex, spec_kv)
+  write_kv_table(spec_tex, spec_kv, escape_keys = FALSE)
 
   content <- case_content(case_id)
   frames <- content$frames %||% character(0)
@@ -300,6 +396,12 @@ for (case in runs_cfg$cases) {
   for (nm in names(plot_canon)) {
     info <- plot_canon[[nm]]
     plot_paths[[nm]] <- copy_plot(fig_src, case_out_fig, info$dest, info$patterns)
+  }
+  plot_exists <- function(name) {
+    file.exists(file.path(case_out_fig, name))
+  }
+  has_all_plots <- function(names) {
+    all(vapply(names, plot_exists, logical(1)))
   }
 
   score_df <- read_first_csv(c(
@@ -372,6 +474,15 @@ for (case in runs_cfg$cases) {
     "\\end{frame}",
     ""
   )
+  spec_frame <- c(
+    sprintf("\\begin{frame}{%s: specification}", tex_escape(title_prefix)),
+    "  \\begin{whiteblock}{\\small Specification}",
+    "  \\scriptsize",
+    sprintf("  \\input{%s}", file.path("build", "tables", case_id, "spec_summary.tex")),
+    "  \\end{whiteblock}",
+    "\\end{frame}",
+    ""
+  )
 
   if ("overview" %in% frames) {
     if (!is.null(overview_tex)) {
@@ -385,62 +496,281 @@ for (case in runs_cfg$cases) {
     lines <- c(lines, metadata_frame)
   }
 
+  if ("case_spec" %in% frames) {
+    lines <- c(lines, spec_frame)
+  }
+
   if ("train_diagnosis" %in% frames) {
-    lines <- c(lines,
-      sprintf("\\begin{frame}{%s (train): diagnosis}", tex_escape(title_prefix)),
-      "  \\centering",
-      "  \\safeinclude[0.8\\textheight]{\\casefigdir/elbo_traces.png}\\\\[0.5em]",
-      "  \\safeinclude[0.8\\textheight]{\\casefigdir/pit_train.png}",
-      "\\end{frame}",
-      ""
-    )
+    has_elbo <- plot_exists("elbo_traces.png")
+    has_pit_train <- plot_exists("pit_train.png")
+    if (has_elbo) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (train): ELBO traces}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/elbo_traces.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (has_pit_train) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (train): PIT}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/pit_train.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("train_rolling_cov" %in% frames) {
+    if (plot_exists("rolling_cov_mu_train.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (train): rolling coverage}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/rolling_cov_mu_train.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
   }
 
   if ("train_qpanel" %in% frames) {
-    lines <- c(lines,
-      sprintf("\\qpanel{%s (train)}{\\casefigdir}{train_mu_band}", tex_escape(title_prefix)),
-      ""
-    )
+    if (has_all_plots(c("train_mu_band_p=0.05.png",
+                        "train_mu_band_p=0.5.png",
+                        "train_mu_band_p=0.95.png"))) {
+      lines <- c(lines,
+        sprintf("\\qpanel{%s (train)}{\\casefigdir}{train_mu_band}", tex_escape(title_prefix)),
+        ""
+      )
+    }
   }
 
   if ("train_synthesis" %in% frames) {
-    lines <- c(lines,
-      sprintf("\\begin{frame}{%s (train): synthesis}", tex_escape(title_prefix)),
-      "  \\begin{columns}[T,onlytextwidth]",
-      "    \\column{.55\\textwidth}\\safeinclude[.98\\linewidth]{\\casefigdir/train_obs_with_95_band.png}",
-      "    \\column{.45\\textwidth}\\safeinclude[.98\\linewidth]{\\casefigdir/rolling_cov_qsynth_train.png}",
-      "  \\end{columns}",
-      "\\end{frame}",
-      ""
-    )
+    if (plot_exists("train_obs_with_95_band.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (train): synthesis}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/train_obs_with_95_band.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
   }
 
   if ("forecast_diagnosis" %in% frames) {
-    lines <- c(lines,
-      sprintf("\\begin{frame}{%s (forecast): diagnosis}", tex_escape(title_prefix)),
-      "  \\centering",
-      "  \\safeinclude[1.0\\textheight]{\\casefigdir/pit_forecast.png}",
-      "\\end{frame}",
-      ""
-    )
+    if (plot_exists("pit_forecast.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (forecast): diagnosis}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/pit_forecast.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("forecast_rolling_cov" %in% frames) {
+    if (plot_exists("rolling_cov_mu_forecast.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (forecast): rolling coverage}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/rolling_cov_mu_forecast.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
   }
 
   if ("forecast_qpanel" %in% frames) {
-    lines <- c(lines,
-      sprintf("\\qpanel{%s (forecast)}{\\casefigdir}{forecast_mu_band}", tex_escape(title_prefix)),
-      ""
-    )
+    if (has_all_plots(c("forecast_mu_band_p=0.05.png",
+                        "forecast_mu_band_p=0.5.png",
+                        "forecast_mu_band_p=0.95.png"))) {
+      lines <- c(lines,
+        sprintf("\\qpanel{%s (forecast)}{\\casefigdir}{forecast_mu_band}", tex_escape(title_prefix)),
+        ""
+      )
+    }
   }
 
   if ("forecast_synthesis" %in% frames) {
-    lines <- c(lines,
-      sprintf("\\begin{frame}{%s (forecast): synthesis}", tex_escape(title_prefix)),
-      "  \\centering",
-      "  \\vspace{-0.25em}",
-      "  \\safeinclude[0.98\\linewidth]{\\casefigdir/forecast_obs_with_95_band.png}",
-      "\\end{frame}",
-      ""
-    )
+    if (plot_exists("forecast_obs_with_95_band.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (forecast): synthesis}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\vspace{-0.25em}",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/forecast_obs_with_95_band.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("forecast_fan" %in% frames) {
+    if (plot_exists("forecast_fan_overlap_synth.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (forecast): multi-step fan}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/forecast_fan_overlap_synth.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("appendix_error_bands" %in% frames) {
+    if (has_all_plots(c("forecast_mu_error_band_p=0.05.png",
+                        "forecast_mu_error_band_p=0.5.png",
+                        "forecast_mu_error_band_p=0.95.png"))) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): forecast error bands}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.9\\linewidth,height=0.26\\textheight]{\\casefigdir/forecast_mu_error_band_p=0.5.png}",
+        "  \\vspace{0.2em}",
+        "  \\begin{columns}[T,onlytextwidth]",
+        "    \\column{.5\\textwidth}\\centering",
+        "      \\safeinclude[width=0.95\\linewidth,height=0.26\\textheight]{\\casefigdir/forecast_mu_error_band_p=0.05.png}",
+        "    \\column{.5\\textwidth}\\centering",
+        "      \\safeinclude[width=0.95\\linewidth,height=0.26\\textheight]{\\casefigdir/forecast_mu_error_band_p=0.95.png}",
+        "  \\end{columns}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("appendix_gamma_sigma_traces" %in% frames) {
+    if (plot_exists("gamma_sigma_traces.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): gamma/sigma traces}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/gamma_sigma_traces.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("appendix_posterior_beta_forest" %in% frames) {
+    if (plot_exists("posterior_beta_forest_p=0.05.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (p=0.05)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_p=0.05.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_p=0.5.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (p=0.5)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_p=0.5.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_p=0.95.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (p=0.95)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_p=0.95.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_top50_mean_p=0.05.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (top 50 by mean, p=0.05)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_top50_mean_p=0.05.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_top50_mean_p=0.5.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (top 50 by mean, p=0.5)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_top50_mean_p=0.5.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_top50_mean_p=0.95.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (top 50 by mean, p=0.95)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_top50_mean_p=0.95.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_bottom50_mean_p=0.05.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (bottom 50 by mean, p=0.05)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_bottom50_mean_p=0.05.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_bottom50_mean_p=0.5.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (bottom 50 by mean, p=0.5)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_bottom50_mean_p=0.5.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_bottom50_mean_p=0.95.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (bottom 50 by mean, p=0.95)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_bottom50_mean_p=0.95.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("appendix_posterior_gamma_sigma" %in% frames) {
+    if (has_all_plots(c("posterior_gamma_sigma_p=0.05.png",
+                        "posterior_gamma_sigma_p=0.5.png",
+                        "posterior_gamma_sigma_p=0.95.png"))) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior gamma/sigma}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.9\\linewidth,height=0.26\\textheight]{\\casefigdir/posterior_gamma_sigma_p=0.5.png}",
+        "  \\vspace{0.2em}",
+        "  \\begin{columns}[T,onlytextwidth]",
+        "    \\column{.5\\textwidth}\\centering",
+        "      \\safeinclude[width=0.95\\linewidth,height=0.26\\textheight]{\\casefigdir/posterior_gamma_sigma_p=0.05.png}",
+        "    \\column{.5\\textwidth}\\centering",
+        "      \\safeinclude[width=0.95\\linewidth,height=0.26\\textheight]{\\casefigdir/posterior_gamma_sigma_p=0.95.png}",
+        "  \\end{columns}",
+        "\\end{frame}",
+        ""
+      )
+    }
+  }
+
+  if ("appendix_rhs_traces" %in% frames) {
+    if (has_all_plots(c("rhs_lambda_summary_traces.png",
+                        "rhs_tau_c2_traces.png"))) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): RHS trace summary}", tex_escape(title_prefix)),
+        "  \\begin{columns}[T,onlytextwidth]",
+        "    \\column{.5\\textwidth}\\centering",
+        "      \\safeinclude[width=0.98\\linewidth,height=0.55\\textheight]{\\casefigdir/rhs_lambda_summary_traces.png}",
+        "    \\column{.5\\textwidth}\\centering",
+        "      \\safeinclude[width=0.98\\linewidth,height=0.55\\textheight]{\\casefigdir/rhs_tau_c2_traces.png}",
+        "  \\end{columns}",
+        "\\end{frame}",
+        ""
+      )
+    }
   }
 
   case_sections <- c(case_sections, lines)

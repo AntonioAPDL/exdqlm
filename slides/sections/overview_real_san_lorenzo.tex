@@ -1,13 +1,18 @@
 \begin{frame}{\casetitleprefix: overview}
-\begin{columns}[T,onlytextwidth]
-  \column{.42\textwidth}
-  \begin{whiteblock}{\small Dataset \& setup}
-  \scriptsize
-  \input{\casespecpath}
-  \end{whiteblock}
-
-  \column{.58\textwidth}
-  \centering
-  \safeinclude[.98\linewidth]{\casefigdir/\caseoverviewplot}
-\end{columns}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.40\textwidth}
+      \begin{whiteblock}{\small Dataset}
+      \scriptsize
+      \begin{tabular}{@{}l l@{}}
+        Series & San Lorenzo River (daily) \\
+        DGP & unknown (real data) \\
+      \end{tabular}
+      \end{whiteblock}
+    \column{0.60\textwidth}
+      \begin{whiteblock}{\small DESN specification}
+      \tiny
+      \vspace{-0.2em}
+      \input{\casespecpath}
+      \end{whiteblock}
+  \end{columns}
 \end{frame}

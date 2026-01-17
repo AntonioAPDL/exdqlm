@@ -1,20 +1,34 @@
 defaults:
   frames:
     - overview
+    - case_spec
     - train_diagnosis
+    - train_rolling_cov
     - train_qpanel
     - train_synthesis
     - forecast_diagnosis
     - forecast_qpanel
     - forecast_synthesis
-
+    - forecast_fan
+    - appendix_error_bands
+    - appendix_gamma_sigma_traces
+    - appendix_posterior_beta_forest
+    - appendix_posterior_gamma_sigma
+    - appendix_rhs_traces
 cases:
   real_san_lorenzo:
     frames:
       - overview
       - train_diagnosis
+      - train_rolling_cov
       - train_qpanel
       - train_synthesis
       - forecast_diagnosis
       - forecast_qpanel
       - forecast_synthesis
+      - forecast_fan
+      - appendix_error_bands
+      - appendix_gamma_sigma_traces
+      - appendix_posterior_beta_forest
+      - appendix_posterior_gamma_sigma
+      - appendix_rhs_traces

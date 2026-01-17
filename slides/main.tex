@@ -40,13 +40,11 @@
 \setbeamerfont{itemize/enumerate body}{series=\mdseries,shape=\upshape}
 \setbeamerfont{itemize/enumerate subbody}{series=\mdseries,shape=\upshape}
 \setbeamerfont{itemize/enumerate subsubbody}{series=\mdseries,shape=\upshape}
-\DeclareFontShape{OT1}{cmss}{b}{it}{<->ssub*cmss/b/n}{}
-\DeclareFontShape{OT1}{cmss}{bx}{it}{<->ssub*cmss/bx/n}{}
 
 %========================
 % Structure
 %========================
-\useoutertheme[footline=authorinstitute,subsection=false]{miniframes}
+\useoutertheme{default}
 \useinnertheme{rounded}
 
 % Blocks justification
@@ -56,6 +54,8 @@
 %========================
 % Packages
 %========================
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
 \usepackage{amsmath,amsfonts,amssymb,amsthm}
 \usepackage{bm}
 \usepackage{array}
@@ -63,6 +63,17 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{xcolor}
+\DeclareFontShape{OT1}{cmss}{b}{n}{<->ssub*cmss/bx/n}{}
+\DeclareFontShape{OT1}{cmss}{b}{it}{<->ssub*cmss/bx/n}{}
+\DeclareFontShape{OT1}{cmss}{bx}{it}{<->ssub*cmss/bx/n}{}
+\AtBeginDocument{%
+  \DeclareFontShape{T1}{lmss}{m}{it}{<->ssub*lmss/m/sl}{}
+  \DeclareFontShape{T1}{lmss}{b}{n}{<->ssub*lmss/bx/n}{}
+  \DeclareFontShape{T1}{lmss}{b}{it}{<->ssub*lmss/bx/sl}{}
+  \DeclareFontShape{T1}{lmss}{bx}{it}{<->ssub*lmss/bx/sl}{}
+  \hfuzz=20pt
+  \vfuzz=20pt
+}
 
 %========================
 % Theorem stubs
@@ -92,7 +103,7 @@
 % Footline
 %========================
 \setbeamertemplate{footline}{%
-  \begin{beamercolorbox}[wd=\paperwidth,ht=2.25ex,dp=1ex,center]{footline}
+  \begin{beamercolorbox}[wd=\textwidth,ht=2.25ex,dp=1ex,center]{footline}
     \usebeamerfont{title in head/foot}%
     \insertshorttitle\hfill\textcolor{TextIcons}{\insertshortauthor}\hfill\textcolor{TextIcons}{\insertframenumber}
   \end{beamercolorbox}%
@@ -112,14 +123,15 @@
   \end{minipage}}}
 
 % Safe include for figures
-\newcommand{\safeinclude}[2][\linewidth]{%
+\newcommand{\safeinclude}[2][width=\linewidth]{%
   \begingroup
-  \edef\safeincludePath{\detokenize{\expanded{#2}}}%
-  \IfFileExists{\safeincludePath}{%
-    \includegraphics[width=#1]{\safeincludePath}%
+  \edef\safeincludePath{#2}%
+  \edef\safeincludePathDetok{\expandafter\detokenize\expandafter{\safeincludePath}}%
+  \IfFileExists{\safeincludePathDetok}{%
+    \includegraphics[#1,keepaspectratio]{\safeincludePathDetok}%
   }{%
     \fbox{\begin{minipage}[c][0.26\textheight][c]{0.95\linewidth}\centering
-      \footnotesize\textit{Missing: \texttt{\safeincludePath}}
+      \footnotesize\textit{Missing: \nolinkurl{\safeincludePathDetok}}
     \end{minipage}}%
   }%
   \endgroup
@@ -148,13 +160,13 @@
 \newcommand{\qpanel}[3]{%
 \begin{frame}{#1: \\ quantile fit for $p\in\{0.05,0.50,0.95\}$}
   \centering
-  \safeinclude[0.5\linewidth]{#2/#3_p=0.5.png}
+  \safeinclude[width=0.5\linewidth]{#2/#3_p=0.5.png}
   \vspace{0.7em}
   \begin{columns}[T,onlytextwidth]
     \column{.5\textwidth}\centering
-      \safeinclude[.95\linewidth]{#2/#3_p=0.05.png}
+      \safeinclude[width=0.95\linewidth]{#2/#3_p=0.05.png}
     \column{.5\textwidth}\centering
-      \safeinclude[.95\linewidth]{#2/#3_p=0.95.png}
+      \safeinclude[width=0.95\linewidth]{#2/#3_p=0.95.png}
   \end{columns}
 \end{frame}
 }
@@ -190,7 +202,7 @@
 %========================
 % Meta
 %========================
-\title[Q-DESN --- Sim Results]{Q-DESN --- Simulation Results}
+\title[Q-DESN]{Q-DESN}
 \author[Antonio Aguirre]{\textbf{Antonio Aguirre}}
 \institute[UCSC]{Department of Statistics \\ University of California, Santa Cruz}
 \date[\today]{\footnotesize\textbf{\today}}
@@ -233,7 +245,7 @@
 &\textbf{Latents:}&&
 \textcolor{purple}{s}_t\sim N^+(0,1),\quad \textcolor{purple}{v}_t\mid\Lparam{\sigma}\sim\mathrm{Exp}\!\big(1/\Lparam{\sigma}\big)\\[0.25em]
 &\textbf{Features:}&&
-\vct{x}_t=\big[\vct{h}_{t,D}^\top,\ k(\tilde{\vct{h}}_{t,1})^\top,\dots,k(\tilde{\vct{h}}_{t,D-1})^\top\big]^\top,\quad
+\vct{x}_t=\big[\vct{h}_{t,D}^\top,\ k(\tilde{\vct{h}}_{t,1})^\top,\dots,k(\tilde{\vct{h}}_{t,D-1})^\top,\ \textcolor{ForestGreen}{\vct{u}_t}^{\!\top}\big]^\top,\quad
 \mu_t=\vct{x}_t^\top\,\Lparam{\vct{\beta}}\\[0.25em]
 &\textbf{Reservoir:}&&
 \vct{h}_{t,d}=(1-\alpha)\,\vct{h}_{t-1,d}+\alpha\,\vct{\omega}_{t,d},\quad
@@ -257,67 +269,46 @@
 \end{frame}
 
 %========================
-% Global configuration
+% Priors
 %========================
-\begin{frame}{Q-DESN: Global configuration (fixed across datasets)}
-\begin{columns}[T,onlytextwidth]
-  \column{.52\textwidth}
-  \begin{whiteblock}{\small Architecture}
-  \scriptsize
-  \IfFileExists{build/tables/global_arch.tex}{
-    \input{build/tables/global_arch.tex}
-  }{\ph{Run the slides build script to generate this.}}
-  \end{whiteblock}
-
-  \column{.48\textwidth}
-  \begin{whiteblock}{\small Training, sampling, synthesis}
-  \scriptsize
-  \IfFileExists{build/tables/global_train.tex}{
-    \input{build/tables/global_train.tex}
-  }{\ph{Run the slides build script to generate this.}}
-  \end{whiteblock}
-\end{columns}
-\vspace{0.3em}
-{\tiny \textit{Same configuration is used for every dataset and for each quantile model.}}
-\end{frame}
-
-%========================
-% Q-DESN 3-Layer view
-%========================
-\begin{frame}{Q-DESN (3-Layer)}
+\begin{frame}{Q-DESN: Priors}
 \scriptsize
-\textit{$p_0\in\{0.05,0.50,0.95\}$}\par\vspace{0.4em}
-\tightmathbox{
-&\textbf{Obs.:}&&
- y_t\mid(\cdot)\sim \Normal\!\Big(\mu_t+\lambda(\Lparam{\gamma})\,\Lparam{\sigma}\,\textcolor{purple}{s_t}
-                                   +A(\Lparam{\gamma})\,\textcolor{purple}{v_t},\ 
-                                   B(\Lparam{\gamma})\,\Lparam{\sigma}\,\textcolor{purple}{v_t}\Big),\quad
- Q_{p_0}(y_t\mid\cdot)=\mu_t;\\[0.25em]
-&\textbf{Latents:}&&
-\textcolor{purple}{s_t}\sim N^+(0,1),\quad 
-\textcolor{purple}{v_t}\mid\Lparam{\sigma}\sim\mathrm{Exp}\!\big(1/\Lparam{\sigma}\big);\\[0.4em]
-&\textbf{Features:}&&
-\vct{x}_t=\big[\vct{h}_{t,3}^\top,\ \tilde{\vct{h}}_{t,1}^\top,\ \tilde{\vct{h}}_{t,2}^\top\big]^\top,\quad
-\mu_t=\vct{x}_t^\top\,\Lparam{\vct{\beta}};\\[0.4em]
-&\textbf{Reservoir:}&&
-\vct{h}_{t,d}=0.85\,\vct{h}_{t-1,d}+0.15\,\vct{\omega}_{t,d},\\
-&&&\vct{\omega}_{t,1}=\tanh\!\Big(\tfrac{0.95}{|\lambda_{\max}(\mtr{W}_1)|}\,\mtr{W}_1\,\vct{h}_{t-1,1}
-                               +\mtr{W}_1^{\mathrm{in}}\,\textcolor{ForestGreen}{\vct{u}_t}\Big),\\
-&&&\tilde{\vct{h}}_{t,d-1}=\vct{h}_{t,d-1},\quad
-\vct{\omega}_{t,d}=\tanh\!\Big(\tfrac{0.95}{|\lambda_{\max}(\mtr{W}_d)|}\,\mtr{W}_d\,\vct{h}_{t-1,d}
-                               +\mtr{W}_d^{\mathrm{in}}\,\tilde{\vct{h}}_{t,d-1}\Big)\ \ (d\ge2).
-}
-\vspace{0.35em}
+\begin{columns}[T,onlytextwidth]
+  \column{0.54\textwidth}
+    \begin{whiteblock}{\small Scale + skew}
+    \[
+    \begin{aligned}
+      \sigma &\sim IG(a_\sigma,b_\sigma), && a_\sigma>0,\ b_\sigma>0,\\
+      \gamma &\sim \pi_\gamma(\gamma)\,\mathbf{1}(L<\gamma<U),
+      && \pi_\gamma \text{ on } (L,U).
+    \end{aligned}
+    \]
+    \vspace{-0.3em}
+    {\tiny $(L,U)$ is the $p$-dependent support from the quantile-fixing construction.}
+    \end{whiteblock}
 
-{\tiny
-\textit{Input design (with $m{=}60$ lags): }\(\textcolor{ForestGreen}{\vct{u}_t}
-= \big[\,y_{t-1},\dots,y_{t-60},\ \vct{z}_t^{\!\top}\big]^{\!\top}\in\mathbb{R}^{p}\), with \(p=60+r\) and \(\vct{z}_t\in\mathbb{R}^{r}\).
-\par
-\textit{Dims (with \(n_1{=}n_2{=}n_3{=}20\)): }\(\vct{h}_{t,d}\in\mathbb{R}^{20}\);
-\(\mtr{W}_d\in\mathbb{R}^{20\times 20}\);
-\(\mtr{W}_1^{\mathrm{in}}\in\mathbb{R}^{20\times(60+r)}\);
-\(\mtr{W}_d^{\mathrm{in}}\in\mathbb{R}^{20\times 20}\) for \(d\ge2\).
-}
+    \begin{whiteblock}{\small RHS for $\vct{\beta}$}
+    \[
+    \begin{aligned}
+      V_j(\lambda_j,\tau,c^2) &= \tau^2 \frac{c^2 \lambda_j^2}{c^2+\tau^2 \lambda_j^2},\\
+      \beta_j \mid \lambda_j,\tau,c^2 &\sim N(0,V_j),\quad j=1,\dots,k.
+    \end{aligned}
+    \]
+    \end{whiteblock}
+
+  \column{0.46\textwidth}
+    \begin{whiteblock}{\small Hierarchical scales}
+    \[
+    \begin{aligned}
+      \lambda_j &\sim C^+(0,1),\quad j=1,\dots,k,\\
+      \tau &\sim C^+(0,\tau_0),\quad
+      c^2 \sim IG(\nu/2,\nu s^2/2).
+    \end{aligned}
+    \]
+    \vspace{-0.2em}
+    {\tiny $\lambda_j$ local, $\tau$ global, $c^2$ slab; $\tau_0,\nu,s$ tune sparsity and slab width.}
+    \end{whiteblock}
+\end{columns}
 \end{frame}
 
 %========================

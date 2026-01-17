@@ -66,6 +66,10 @@ slides/build/
 *.snm
 *.fls
 *.fdb_latexmk
+# Slide build outputs (keep sources tracked)
+slides/*.pdf
+slides/*.synctex.gz
+slides/*.synctex.gz(busy)
 # LaTeX build artifacts
 slides/build/
 *.aux
@@ -78,3 +82,6 @@ slides/build/
 *.fdb_latexmk
 /scripts/build_slides_local.sh
 /scripts/rebuild_cpp.sh
+scripts/*.Rout
+scripts/*.Rout.*
+scripts/*.log
