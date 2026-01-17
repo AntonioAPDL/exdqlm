@@ -6,7 +6,7 @@ results_root: results
 
 # --------------------------------------------------------------------
 # Orchestration (tmux batch runner defaults)
-# --------------------------------------------------------------------
+# -------------- ------------------------------------------------------
 orchestrate:
   concurrency: 3       # max concurrent tmux sessions
   threads_per_proc: 4  # used by batch runners for OMP caps
@@ -60,8 +60,8 @@ mode_overrides:
       scale_y: true
       scale_x: true
     lags:
-      m_y: 30
-      m_x: 30
+      m_y: 1
+      m_x: 1
 
 # --------------------------------------------------------------------
 # DESN (reservoir) defaults
@@ -69,9 +69,9 @@ mode_overrides:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  n: [100, 100, 100]         # units per layer (length D)
-  n_tilde: [100, 100]        # skip/reducer sizes (length D-1 when D>1)
-  m: 30                     # number of lags in u_t
+  n: [1, 1, 1]         # units per layer (length D)
+  n_tilde: [1, 1]        # skip/reducer sizes (length D-1 when D>1)
+  m: 1                     # number of lags in u_t
   alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
@@ -96,7 +96,7 @@ vb:
       ridge:
         tau2: 10000
       rhs:
-        tau0: 1000
+        tau0: 300
         nu: 4.0
         s2: 1
         shrink_intercept: false
@@ -134,6 +134,7 @@ sampling:
 ij:
   use_ij_correction: true    # TRUE = IJ-corrected μ bands; FALSE = posterior-only bands
   nd_draws: 2000             # draws used in IJ computation
+  beta_mode: additive        # additive | replace (how IJ inflates beta draws)
 
 # --------------------------------------------------------------------
 # Forecasting defaults
@@ -141,14 +142,14 @@ ij:
 forecast:
   last_window: 200           # legacy base window
   horizon: 30                # multi-step horizon for lattice forecasts
-  mode: mixture              # mixture | lattice | origin
-  lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (power=0 => uniform)
+  mode: origin               # origin (lead-1) | mixture | lattice
+  lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (mixture only; power=0 => uniform)
   # mixture draws per target time = sampling.nd_draws
   eval_leads: all           # null | "all" | list of leads to evaluate
 
   # Optional separate windows (if null, fallback to last_window)
   train_last_window: null
-  fore_last_window: null
+  fore_last_window: 300
 
   # How to report coverage in plot subtitles:
   # "global" = coverage over full span
@@ -186,6 +187,8 @@ diagnostics:
   lead_eval: true            # synthesized lead-specific CRPS diagnostics
   fan_charts: true           # overlapping forecast fan charts
   fan_stride: 30             # plot every k-th origin (1 = all)
+  cov_window: 365            # rolling-coverage window length
+  cov_show_last: 300         # rolling-coverage plot tail length
   plots: true                # master gate for ggplot-based outputs
 
 # --------------------------------------------------------------------

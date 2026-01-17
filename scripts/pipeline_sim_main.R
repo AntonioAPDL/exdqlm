@@ -286,6 +286,7 @@ readout_input_position <- "after_reservoir"
 # --- IJ correction toggles (global) -------------------------------------------
 ij_nd_draws       <- 2000L   # number of parameter draws used for IJ + μ-bands
 use_ij_correction <- TRUE    # set FALSE to revert to pure posterior μ-bands
+ij_beta_mode      <- "additive"  # IJ correction mode for beta draws: additive | replace
 # ------------------------------------------------------------------------------
 
 nd_draws  <- 3000L
@@ -495,6 +496,12 @@ if (!is.null(cfg$ij)) {
   if (!is.null(cfg$ij$nd_draws)) {
     ij_nd_draws <- as.integer(cfg$ij$nd_draws)
   }
+  if (!is.null(cfg$ij$beta_mode)) {
+    ij_beta_mode <- tolower(as.character(cfg$ij$beta_mode))
+  }
+}
+if (!ij_beta_mode %in% c("additive", "replace")) {
+  stop("Config error: ij.beta_mode must be 'additive' or 'replace'.")
 }
 
 if (!is.null(cfg$forecast)) {
@@ -525,6 +532,16 @@ if (!is.null(cfg$forecast)) {
     if (cv %in% c("global", "window", "both")) coverage_report <- cv
   }
 }
+
+cov_window <- as.integer(cfg$diagnostics$cov_window %||% 365L)
+show_last  <- as.integer(cfg$diagnostics$cov_show_last %||% 300L)
+if (!is.finite(cov_window) || cov_window < 1L) cov_window <- 365L
+if (!is.finite(show_last)  || show_last < 1L) show_last <- 300L
+
+train_last_window <- as.integer(train_last_window)
+fore_last_window  <- as.integer(fore_last_window)
+if (!is.finite(train_last_window) || train_last_window < 1L) train_last_window <- as.integer(last_window)
+if (!is.finite(fore_last_window)  || fore_last_window  < 1L) fore_last_window  <- as.integer(last_window)
 
 if (!is.null(cfg$readout)) {
   if (!is.null(cfg$readout$include_input)) {
@@ -636,6 +653,10 @@ if (isTRUE(do_lead_eval) && length(p_vec) < 2L) {
   eval_leads <- integer(0)
 }
 lead_eval_enabled <- isTRUE(do_lead_eval) && length(eval_leads) > 0L
+use_lead1 <- forecast_mode %in% c("origin", "lattice")
+if (isTRUE(use_lead1)) {
+  message(sprintf("[forecast] mode=%s -> using lead-1 only for forecast-window outputs.", forecast_mode))
+}
 
 # --- Readout config normalization ---
 readout_include_input <- isTRUE(readout_include_input)
@@ -697,9 +718,10 @@ log_msg(
 log_msg("Effective sampling → nd_draws=%d | chunk=%d", nd_draws, chunk_sz)
 
 log_msg(
-  "Effective IJ → use_ij_correction=%s | ij_nd_draws=%d",
+  "Effective IJ → use_ij_correction=%s | ij_nd_draws=%d | beta_mode=%s",
   as.character(use_ij_correction),
-  as.integer(ij_nd_draws)
+  as.integer(ij_nd_draws),
+  ij_beta_mode
 )
 
 # --- Plot helpers (quantile labels follow p_vec precision) -------------------
@@ -716,8 +738,9 @@ fmt_p <- function(x) {
   digits <- getOption("exdqlm.p_digits", 2L)
   formatC(as.numeric(x), format = "f", digits = digits)
 }
-pal <- scales::hue_pal()(length(p_vec))
-col_map <- setNames(pal, fmt_p(p_vec))
+p_levels <- fmt_p(sort(unique(p_vec)))
+pal <- scales::hue_pal()(length(p_levels))
+col_map <- setNames(pal, p_levels)
 ACCENT_ORANGE <- "#ff9c11fc"  # dark orange for predicted / mean / synthesized lines
 FAN_FILL <- "#0ea5a4"         # teal for overlapping fan bands
 theme_exdqlm <- function(base_size = 11) {
@@ -790,7 +813,9 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
   coverage_global <- mean(df$q_true >= df$lo & df$q_true <= df$hi, na.rm = TRUE)
 
   # Window subset only for visualization
-  i2 <- max(df$h); i1 <- max(1L, i2 - as.integer(window) + 1L)
+  i2 <- max(df$h)
+  window_eff <- min(as.integer(window), i2)
+  i1 <- max(1L, i2 - window_eff + 1L)
   d  <- dplyr::filter(df, dplyr::between(h, i1, i2))
   coverage_window <- mean(d$q_true >= d$lo & d$q_true <= d$hi, na.rm = TRUE)
 
@@ -812,7 +837,7 @@ plot_mu_band <- function(df, p0, scope = "Forecast", window = 200L) {
     ggplot2::labs(
       title    = sprintf("%s: %s vs true qₚ (p=%s)", scope, band_label, scales::percent(p0, 1)),
       subtitle = cov_text,
-      caption  = caption_exdqlm(window),
+      caption  = caption_exdqlm(window_eff),
       x = "time", y = "value"
     ) +
     ggplot2::geom_ribbon(
@@ -886,7 +911,16 @@ synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizo
 }
 
 plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
-                             fill_col = FAN_FILL) {
+                             fill_col = FAN_FILL, window = NULL) {
+  if (is.null(fan_df) || !nrow(fan_df)) return(NULL)
+  if (!is.null(window) && "target_idx" %in% names(fan_df)) {
+    window <- as.integer(window)
+    if (is.finite(window) && window >= 1L) {
+      t_end <- max(fan_df$target_idx, na.rm = TRUE)
+      t_start <- max(1L, t_end - window + 1L)
+      fan_df <- dplyr::filter(fan_df, dplyr::between(target_idx, t_start, t_end))
+    }
+  }
   if (is.null(fan_df) || !nrow(fan_df)) return(NULL)
   t_rng <- range(fan_df$t, na.rm = TRUE)
   y_obs_df <- dplyr::filter(y_obs_df, dplyr::between(t, t_rng[1], t_rng[2]))
@@ -907,9 +941,10 @@ plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
   fan_rect <- fan_df
   fan_rect$t_num <- t_num
   origin_df <- if ("t_origin" %in% names(fan_rect)) {
-    dplyr::distinct(fan_rect, origin, t_origin)
+    dplyr::distinct(fan_rect, origin, t_origin) %>%
+      dplyr::mutate(origin_label = "Forecast origin")
   } else {
-    tibble::tibble(t_origin = fan_rect$t[0])
+    tibble::tibble(t_origin = fan_rect$t[0], origin_label = "Forecast origin")
   }
   fan_rect <- fan_rect %>%
     dplyr::arrange(origin, t_num) %>%
@@ -947,17 +982,23 @@ plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
   brks <- unique(c(1L, as.integer(round(h_lim / 2)), as.integer(h_lim)))
   brks <- brks[brks >= 1L & brks <= h_lim]
 
+  window_txt <- if (!is.null(window) && is.finite(window) && window >= 1L) {
+    sprintf(", window=%d", as.integer(window))
+  } else {
+    ""
+  }
+
   ggplot2::ggplot(fan_rect, ggplot2::aes(xmin = t_left, xmax = t_right, ymin = lo, ymax = hi, fill = lead)) +
     theme_exdqlm() +
     ggplot2::geom_rect(alpha = 0.25, colour = NA) +
     ggplot2::geom_vline(
       data = origin_df,
-      ggplot2::aes(xintercept = t_origin),
+      ggplot2::aes(xintercept = t_origin, linetype = origin_label),
       inherit.aes = FALSE,
-      color = "#ef4444",
-      linetype = "dashed",
-      linewidth = 1.5,
-      alpha = 0.35
+      color = "#7f1d1d",
+      linewidth = 0.6,
+      alpha = 0.85,
+      show.legend = TRUE
     ) +
     ggplot2::geom_line(
       data = y_obs_df,
@@ -974,12 +1015,15 @@ plot_fan_overlap <- function(fan_df, y_obs_df, title, horizon, stride,
       breaks = brks,
       oob = scales::squish
     ) +
+    ggplot2::scale_linetype_manual(values = c("Forecast origin" = "dashed")) +
+    ggplot2::guides(linetype = ggplot2::guide_legend(order = 2)) +
     ggplot2::labs(
       title = title,
-      subtitle = sprintf("stride=%d, horizon=%d", stride, horizon),
+      subtitle = sprintf("stride=%d, horizon=%d%s", stride, horizon, window_txt),
       x = "time",
       y = "value",
-      fill = "Lead"
+      fill = "Lead",
+      linetype = ""
     )
 }
 
@@ -994,7 +1038,8 @@ plot_mu_error_band <- function(mu_draws,
 
   T_h <- nrow(mu_draws)
   i2  <- T_h
-  i1  <- max(1L, i2 - as.integer(window) + 1L)
+  window_eff <- min(as.integer(window), T_h)
+  i1  <- max(1L, i2 - window_eff + 1L)
   idx <- i1:i2
 
   # Error draws: μ - true q_p  (positive = μ above true quantile)
@@ -1026,7 +1071,7 @@ plot_mu_error_band <- function(mu_draws,
     ggplot2::labs(
       title    = sprintf("%s: μ - true qₚ error band (p=%s)", scope, scales::percent(p0, 1)),
       subtitle = "95% posterior band for μ - q_true",
-      caption  = caption_exdqlm(window),
+      caption  = caption_exdqlm(window_eff),
       x = "time",
       y = "μ - true qₚ"
     ) +
@@ -1044,7 +1089,8 @@ plot_mu_error_band <- function(mu_draws,
 
 plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
   i2 <- max(df$h)
-  i1 <- max(1L, i2 - window + 1L)
+  window_eff <- min(as.integer(window), i2)
+  i1 <- max(1L, i2 - window_eff + 1L)
   d  <- dplyr::filter(df, dplyr::between(h, i1, i2))
 
   mae <- mean(abs(d$q_pred - d$q_true), na.rm = TRUE)
@@ -1057,7 +1103,7 @@ plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
     ggplot2::labs(
       title    = sprintf("%s: q̂ₚ vs true qₚ (p=%s)", scope, scales::percent(p0, 1)),
       subtitle = sprintf("MAE (q_pred vs q_true) = %.3f", mae),
-      caption  = caption_exdqlm(window),
+      caption  = caption_exdqlm(window_eff),
       x = "time",
       y = "value"
     )
@@ -1083,13 +1129,15 @@ plot_empirical_quantile <- function(df, p0, scope = "Forecast", window = 200L) {
 
 plot_synth_q_vs_true <- function(df_s, tau, scope = "Forecast", window = 200L) {
   tau_lab <- fmt_p(tau); c_true <- paste0("true_q_", tau_lab); c_synth <- paste0("synth_q_", tau_lab)
-  i2 <- max(df_s$h); i1 <- max(1L, i2 - window + 1L)
+  i2 <- max(df_s$h)
+  window_eff <- min(as.integer(window), i2)
+  i1 <- max(1L, i2 - window_eff + 1L)
   d <- dplyr::filter(df_s, dplyr::between(h, i1, i2))
   mae <- mean(abs(d[[c_synth]] - d[[c_true]]), na.rm = TRUE)
   ggplot2::ggplot(d, ggplot2::aes(x = h)) + theme_exdqlm() +
     ggplot2::labs(title = sprintf("%s: synthesized qₚ vs true qₚ (p=%s)", scope, scales::percent(as.numeric(tau), 1)),
                   subtitle = sprintf("MAE = %.3f", mae),
-                  caption = caption_exdqlm(window), x = "time", y = "value") +
+                  caption = caption_exdqlm(window_eff), x = "time", y = "value") +
     ggplot2::geom_line(ggplot2::aes(y = .data[[c_synth]], colour = "synth"), linewidth = 0.5) +
     ggplot2::geom_line(ggplot2::aes(y = .data[[c_true]],  colour = "true"),  linewidth = 0.9, linetype = 2) +
     ggplot2::geom_line(ggplot2::aes(y = y,                 colour = "data"),  linewidth = 0.6, alpha = 0.85) +
@@ -1103,7 +1151,8 @@ plot_synth_predictive_band <- function(synth_draws, y_vec, scope = "Forecast", w
 
   T_h <- nrow(synth_draws)
   i2  <- T_h
-  i1  <- max(1L, i2 - as.integer(window) + 1L)
+  window_eff <- min(as.integer(window), T_h)
+  i1  <- max(1L, i2 - window_eff + 1L)
 
   # Quantiles for ALL times (for GLOBAL metrics)
   q_mat_all <- t(apply(synth_draws, 1L, stats::quantile,
@@ -1152,7 +1201,7 @@ plot_synth_predictive_band <- function(synth_draws, y_vec, scope = "Forecast", w
     ggplot2::labs(
       title   = sprintf("%s: synthesized 95%% predictive band", scope),
       subtitle = sub_txt,
-      caption = caption_exdqlm(window), x = "time", y = "value"
+      caption = caption_exdqlm(window_eff), x = "time", y = "value"
     ) +
     ggplot2::geom_ribbon(
       ggplot2::aes(ymin = q025, ymax = q975),
@@ -1182,57 +1231,101 @@ plot_beta_forest <- function(beta_draws,
                              term_names = NULL,
                              level = 0.95,
                              top_k = NULL,
-                             zero_line = TRUE) {
+                             zero_line = TRUE,
+                             select_by = c("abs_mean", "abs_extent", "absmed", "mean", "median"),
+                             select_dir = c("top", "bottom")) {
   stopifnot(is.matrix(beta_draws))
+  select_by <- match.arg(select_by)
+  select_dir <- match.arg(select_dir)
   p <- ncol(beta_draws)
   if (is.null(term_names) || length(term_names) != p) {
     term_names <- paste0("β", seq_len(p))
   }
+  term_id <- make.unique(term_names)
 
   qs <- apply(beta_draws, 2, qs_ci, level = level)
   df <- tibble::tibble(
     term   = term_names,
+    term_id = term_id,
     lo     = qs["lo", ],
     med    = qs["med", ],
     hi     = qs["hi", ],
+    mean   = colMeans(beta_draws),
     width  = hi - lo,
     absmed = abs(med)
   )
 
+  df$abs_mean   <- abs(df$mean)
+  df$abs_extent <- pmax(abs(df$lo), abs(df$hi))
+
+  select_metric <- switch(
+    select_by,
+    abs_mean   = df$abs_mean,
+    abs_extent = df$abs_extent,
+    absmed     = df$absmed,
+    mean       = df$abs_mean,
+    median     = df$abs_mean
+  )
+  df$metric <- select_metric
+  df$order_metric <- df$abs_extent
+
   if (!is.null(top_k)) {
     df <- df %>%
-      dplyr::arrange(dplyr::desc(absmed)) %>%
+      { if (select_dir == "top") dplyr::arrange(., dplyr::desc(metric)) else dplyr::arrange(., metric) } %>%
       dplyr::slice_head(n = top_k)
   }
+  df <- df %>%
+    { if (select_dir == "top") dplyr::arrange(., dplyr::desc(order_metric)) else dplyr::arrange(., order_metric) }
+  df$term_id <- factor(df$term_id, levels = rev(df$term_id))
+  label_map <- setNames(df$term, df$term_id)
+  df$in_zero <- ifelse(df$lo <= 0 & df$hi >= 0, "includes 0", "excludes 0")
 
-  ggplot2::ggplot(df, ggplot2::aes(y = reorder(term, absmed), x = med)) +
+  sel_label <- switch(
+    select_by,
+    abs_mean   = "|mean|",
+    abs_extent = "max(|CI|)",
+    absmed     = "|median|",
+    mean       = "|mean|",
+    median     = "|mean|"
+  )
+  subtitle_txt <- if (!is.null(top_k)) {
+    sprintf("%s %d by %s • ordered by max(|CI|) • line at 0",
+            if (select_dir == "top") "Top" else "Bottom",
+            top_k, sel_label)
+  } else {
+    "All coefficients • ordered by max(|CI|) • line at 0"
+  }
+
+  ggplot2::ggplot(df, ggplot2::aes(y = term_id, x = med)) +
     theme_exdqlm() +
     ggplot2::geom_errorbarh(
-      ggplot2::aes(xmin = lo, xmax = hi),
+      ggplot2::aes(xmin = lo, xmax = hi, colour = in_zero),
       height = 0,
       alpha  = 0.9
     ) +
-    ggplot2::geom_point(size = 1.4) +
+    ggplot2::geom_point(ggplot2::aes(colour = in_zero), size = 1.4) +
     {
       if (zero_line) {
         ggplot2::geom_vline(
           xintercept = 0,
-          colour     = "red",
-          linetype   = "dashed",
-          linewidth  = 1.1
+          colour     = "#7f1d1d",
+          linetype   = "solid",
+          linewidth  = 0.6,
+          alpha      = 0.95
         )
       } else ggplot2::geom_blank()
     } +
     ggplot2::labs(
       title = "Readout coefficients: 95% credible intervals",
-      subtitle = if (!is.null(top_k)) {
-        sprintf("Top %d by |median| • red line at 0", top_k)
-      } else {
-        "All coefficients • red line at 0"
-      },
+      subtitle = subtitle_txt,
       x = "value",
       y = NULL
-    )
+    ) +
+    ggplot2::scale_color_manual(
+      name   = "",
+      values = c("includes 0" = "#7c3aed", "excludes 0" = "#111827")
+    ) +
+    ggplot2::scale_y_discrete(labels = label_map)
 }
 
 plot_beta_forest_summary <- function(beta_hat,
@@ -1241,56 +1334,100 @@ plot_beta_forest_summary <- function(beta_hat,
                                      term_names = NULL,
                                      top_k = NULL,
                                      zero_line = TRUE,
-                                     title = "Readout coefficients: IJ-corrected 95% band") {
+                                     title = "Readout coefficients: IJ-corrected 95% band",
+                                     select_by = c("abs_mean", "abs_extent", "absmed", "mean", "median"),
+                                     select_dir = c("top", "bottom")) {
   stopifnot(length(beta_hat) == length(lo), length(beta_hat) == length(hi))
+  select_by <- match.arg(select_by)
+  select_dir <- match.arg(select_dir)
   p <- length(beta_hat)
   if (is.null(term_names) || length(term_names) != p) {
     term_names <- paste0("β", seq_len(p))
   }
+  term_id <- make.unique(term_names)
 
   df <- tibble::tibble(
     term   = term_names,
+    term_id = term_id,
     lo     = as.numeric(lo),
     med    = as.numeric(beta_hat),
     hi     = as.numeric(hi),
     width  = hi - lo,
+    mean   = as.numeric(beta_hat),
     absmed = abs(med)
   )
 
+  df$abs_mean   <- abs(df$mean)
+  df$abs_extent <- pmax(abs(df$lo), abs(df$hi))
+
+  select_metric <- switch(
+    select_by,
+    abs_mean   = df$abs_mean,
+    abs_extent = df$abs_extent,
+    absmed     = df$absmed,
+    mean       = df$abs_mean,
+    median     = df$abs_mean
+  )
+  df$metric <- select_metric
+  df$order_metric <- df$abs_extent
+
   if (!is.null(top_k)) {
     df <- df %>%
-      dplyr::arrange(dplyr::desc(absmed)) %>%
+      { if (select_dir == "top") dplyr::arrange(., dplyr::desc(metric)) else dplyr::arrange(., metric) } %>%
       dplyr::slice_head(n = top_k)
   }
+  df <- df %>%
+    { if (select_dir == "top") dplyr::arrange(., dplyr::desc(order_metric)) else dplyr::arrange(., order_metric) }
+  df$term_id <- factor(df$term_id, levels = rev(df$term_id))
+  label_map <- setNames(df$term, df$term_id)
+  df$in_zero <- ifelse(df$lo <= 0 & df$hi >= 0, "includes 0", "excludes 0")
 
-  ggplot2::ggplot(df, ggplot2::aes(y = reorder(term, absmed), x = med)) +
+  sel_label <- switch(
+    select_by,
+    abs_mean   = "|mean|",
+    abs_extent = "max(|CI|)",
+    absmed     = "|median|",
+    mean       = "|mean|",
+    median     = "|mean|"
+  )
+  subtitle_txt <- if (!is.null(top_k)) {
+    sprintf("%s %d by %s • ordered by max(|CI|) • line at 0",
+            if (select_dir == "top") "Top" else "Bottom",
+            top_k, sel_label)
+  } else {
+    "All coefficients • ordered by max(|CI|) • line at 0"
+  }
+
+  ggplot2::ggplot(df, ggplot2::aes(y = term_id, x = med)) +
     theme_exdqlm() +
     ggplot2::geom_errorbarh(
-      ggplot2::aes(xmin = lo, xmax = hi),
+      ggplot2::aes(xmin = lo, xmax = hi, colour = in_zero),
       height = 0,
       alpha  = 0.9
     ) +
-    ggplot2::geom_point(size = 1.4) +
+    ggplot2::geom_point(ggplot2::aes(colour = in_zero), size = 1.4) +
     {
       if (zero_line) {
         ggplot2::geom_vline(
           xintercept = 0,
-          colour     = "red",
-          linetype   = "dashed",
-          linewidth  = 1.1
+          colour     = "#7f1d1d",
+          linetype   = "solid",
+          linewidth  = 0.6,
+          alpha      = 0.95
         )
       } else ggplot2::geom_blank()
     } +
     ggplot2::labs(
       title    = title,
-      subtitle = if (!is.null(top_k)) {
-        sprintf("Top %d by |median| • red line at 0", top_k)
-      } else {
-        "All coefficients • red line at 0"
-      },
+      subtitle = subtitle_txt,
       x = "value",
       y = NULL
-    )
+    ) +
+    ggplot2::scale_color_manual(
+      name   = "",
+      values = c("includes 0" = "#7c3aed", "excludes 0" = "#111827")
+    ) +
+    ggplot2::scale_y_discrete(labels = label_map)
 }
 
 get_exal_param_draws <- function(fit, p, nd = 2000, gamma_bounds = NULL, seed = NULL) {
@@ -1352,6 +1489,37 @@ ij_sd_for_functional <- function(F_all, loglik_mat, n_obs) {
   var_ij <- rowSums(I_centered^2) / (n_obs * (n_obs - 1))
   var_ij <- pmax(var_ij, 0)
   sqrt(var_ij)
+}
+
+ij_correct_beta_draws <- function(beta_draws, sd_ij, mode = c("additive", "replace"), eps = 1e-12) {
+  stopifnot(is.matrix(beta_draws))
+  mode <- match.arg(mode)
+  sd_ij <- as.numeric(sd_ij)
+  sd_ij[!is.finite(sd_ij) | sd_ij < 0] <- 0
+  p <- ncol(beta_draws)
+  if (length(sd_ij) != p) {
+    stop(sprintf("ij_correct_beta_draws: sd_ij length %d != ncol(beta_draws) %d", length(sd_ij), p))
+  }
+
+  sd_post <- matrixStats::colSds(beta_draws)
+  target_sd <- if (identical(mode, "replace")) sd_ij else sqrt(sd_post^2 + sd_ij^2)
+  beta_hat <- colMeans(beta_draws)
+
+  scale <- ifelse(sd_post > eps, target_sd / sd_post, 0)
+  beta_centered <- sweep(beta_draws, 2L, beta_hat, "-")
+  beta_scaled <- sweep(beta_centered, 2L, scale, "*")
+
+  zero_sd <- which(sd_post <= eps & target_sd > 0)
+  if (length(zero_sd)) {
+    beta_scaled[, zero_sd] <- matrix(
+      rnorm(nrow(beta_draws) * length(zero_sd)),
+      nrow = nrow(beta_draws),
+      ncol = length(zero_sd)
+    ) * rep(target_sd[zero_sd], each = nrow(beta_draws))
+  }
+
+  beta_corr <- sweep(beta_scaled, 2L, beta_hat, "+")
+  list(beta = beta_corr, sd_post = sd_post, sd_target = target_sd, scale = scale)
 }
 
 compute_mu_bands_with_ij <- function(
@@ -1615,6 +1783,11 @@ if (H_forecast < 1L) {
   stop(sprintf("Invalid split: H_forecast=%d (n_train=%d, T_use=%d). Adjust train_n/train_prop/T_use.", 
                H_forecast, n_train, T_use))
 }
+if (isTRUE(do_plots)) {
+  fore_window_eff <- min(fore_last_window, H_forecast)
+  message(sprintf("[sanity] forecast plot window: requested=%d, H=%d, effective=%d",
+                  fore_last_window, H_forecast, fore_window_eff))
+}
 
 # Index diagnostics
 idx_tr <- 1:n_train
@@ -1679,6 +1852,45 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
 keep_all_abs <- as.integer(shared_fit$meta$keep_idx)  # absolute w.r.t. y_full (1..T_use)
 X_all_kept   <- as.matrix(shared_fit$X)               # nrow = length(keep_all_abs)
 
+sanitize_colnames <- function(nm, n, prefix = "x") {
+  if (is.null(nm) || length(nm) != n) nm <- rep("", n)
+  nm <- as.character(nm)
+  nm[is.na(nm)] <- ""
+  empty_idx <- which(!nzchar(nm))
+  if (length(empty_idx)) {
+    nm[empty_idx] <- sprintf("%s_%03d", prefix, empty_idx)
+  }
+  nm <- make.unique(nm, sep = "_")
+  nm
+}
+
+make_reservoir_colnames <- function(D, n_vec, n_tilde, add_bias) {
+  D <- as.integer(D)
+  n_vec <- as.integer(n_vec)
+  n_tilde <- as.integer(n_tilde)
+  if (D <= 1L) {
+    base <- paste0("h1_", seq_len(n_vec[1L]))
+  } else {
+    base <- paste0("h", D, "_", seq_len(n_vec[D]))
+    for (d in seq_len(D - 1L)) {
+      nt <- if (length(n_tilde) >= d && is.finite(n_tilde[d]) && n_tilde[d] > 0L) {
+        n_tilde[d]
+      } else {
+        n_vec[d]
+      }
+      base <- c(base, paste0("htilde", d, "_", seq_len(nt)))
+    }
+  }
+  if (isTRUE(add_bias)) c("bias", base) else base
+}
+
+res_names <- make_reservoir_colnames(desn_args$D, desn_args$n, desn_args$n_tilde, desn_args$add_bias)
+if (length(res_names) == ncol(X_all_kept)) {
+  colnames(X_all_kept) <- sanitize_colnames(res_names, ncol(X_all_kept), prefix = "res")
+} else {
+  colnames(X_all_kept) <- sanitize_colnames(colnames(X_all_kept), ncol(X_all_kept), prefix = "res")
+}
+
 build_lag_mat_vec <- function(vec, lags, prefix = "lag_") {
   if (!length(lags)) return(NULL)
   cols <- lapply(lags, function(L) c(rep(NA_real_, L), vec[seq_len(length(vec) - L)]))
@@ -1742,6 +1954,7 @@ if (length(res_lags_vec)) {
 
 X_aug_all <- cbind_safe(X_res_all, input_block_all, z_lag_all)
 if (is.null(X_aug_all)) stop("Failed to build readout design matrix.")
+colnames(X_aug_all) <- sanitize_colnames(colnames(X_aug_all), ncol(X_aug_all), prefix = "x")
 
 keep_train_abs <- keep_aug_abs[keep_aug_abs <= n_train]
 row_sel_train  <- which(keep_aug_abs %in% keep_train_abs)
@@ -1910,15 +2123,12 @@ fit_and_forecast_p <- function(p0) {
 
   # ---- IJ correction for β (readout coefficients) ------------------------
   beta_ij <- NULL
+  sd_ij_beta <- NULL
   if (isTRUE(use_ij_correction) &&
       !is.null(mu_ij$loglik_mat) &&
       !is.null(mu_ij$draw_idx_keep)) {
 
     beta_draws_full <- param_draws$beta
-    if (!is.null(beta_draws_full) && is.matrix(beta_draws_full) &&
-        isTRUE(readout_scale) && !is.null(readout_scale_info)) {
-      beta_draws_full <- readout_unscale_beta(beta_draws_full, readout_scale_info)
-    }
     if (!is.null(beta_draws_full) && is.matrix(beta_draws_full)) {
       draw_idx_keep <- mu_ij$draw_idx_keep
       if (length(draw_idx_keep) >= 2L) {
@@ -1935,19 +2145,30 @@ fit_and_forecast_p <- function(p0) {
             n_obs      = length(y_train_keep)
           )
 
+          beta_draws_plot <- beta_draws_eff
+          sd_ij_beta_plot <- sd_ij_beta
+          if (isTRUE(readout_scale) && !is.null(readout_scale_info)) {
+            beta_draws_plot <- readout_unscale_beta(beta_draws_plot, readout_scale_info)
+            sd_ij_beta_plot <- ij_sd_for_functional(
+              F_all      = beta_draws_plot,
+              loglik_mat = mu_ij$loglik_mat,
+              n_obs      = length(y_train_keep)
+            )
+          }
+
           # Posterior summaries (median + posterior SD) on same filtered draws
-          beta_hat     <- apply(beta_draws_eff, 2L, stats::median)
-          sd_post_beta <- matrixStats::colSds(beta_draws_eff)
+          beta_hat     <- apply(beta_draws_plot, 2L, stats::median)
+          sd_post_beta <- matrixStats::colSds(beta_draws_plot)
 
           alpha      <- 0.05
           z_975      <- stats::qnorm(1 - alpha / 2)
-          lo_beta_ij <- beta_hat - z_975 * sd_ij_beta
-          hi_beta_ij <- beta_hat + z_975 * sd_ij_beta
+          lo_beta_ij <- beta_hat - z_975 * sd_ij_beta_plot
+          hi_beta_ij <- beta_hat + z_975 * sd_ij_beta_plot
 
           beta_ij <- list(
             beta_hat = beta_hat,
             sd_post  = sd_post_beta,
-            sd_ij    = sd_ij_beta,
+            sd_ij    = sd_ij_beta_plot,
             lo_ij    = lo_beta_ij,
             hi_ij    = hi_beta_ij
           )
@@ -1959,12 +2180,41 @@ fit_and_forecast_p <- function(p0) {
   # Attach (possibly NULL) β IJ summary to param_draws for downstream plots
   param_draws$beta_ij <- beta_ij
 
+  if (isTRUE(use_ij_correction) && !is.null(sd_ij_beta) &&
+      is.matrix(param_draws$beta) && length(sd_ij_beta) == ncol(param_draws$beta)) {
+    param_draws$beta <- ij_correct_beta_draws(
+      param_draws$beta,
+      sd_ij = sd_ij_beta,
+      mode = ij_beta_mode
+    )$beta
+  }
+
+  pred_draws <- exal_vb_posterior_draws(fit_exal, nd = nd_draws)
+  if (isTRUE(use_ij_correction) && !is.null(sd_ij_beta) &&
+      is.matrix(pred_draws$beta) && length(sd_ij_beta) == ncol(pred_draws$beta)) {
+    pred_draws$beta <- ij_correct_beta_draws(
+      pred_draws$beta,
+      sd_ij = sd_ij_beta,
+      mode = ij_beta_mode
+    )$beta
+  }
+
   # ---- Posterior predictive: TRAIN (for q̂ diagnostics) -------------------
   pp_tr <- timed(
-    sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nd_draws),
-    exal_vb_posterior_predict(fit_exal, X_new = X_train, nd = nd_draws, chunk = chunk_sz)
+    sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nrow(pred_draws$beta)),
+    exal_vb_posterior_predict(
+      fit_exal,
+      X_new = X_train,
+      nd = nrow(pred_draws$beta),
+      chunk = chunk_sz,
+      draws = pred_draws
+    )
   )
   yrep_tr <- pp_tr$yrep
+  mu_qs_tr <- band_from_draws(pp_tr$mu_draws, level = 0.95, target_len = nrow(pp_tr$mu_draws))
+  mu_hat_tr <- mu_qs_tr[, "med"]
+  lo_tr <- mu_qs_tr[, "lo"]
+  hi_tr <- mu_qs_tr[, "hi"]
 
   # Use absolute indices from the shared pass restricted to the train window
   keep_rel <- keep_train_abs
@@ -1976,10 +2226,10 @@ fit_and_forecast_p <- function(p0) {
   df_mu_tr <- tibble::tibble(
     h      = seq_along(keep_rel),
     p0     = p0,
-    mu     = mu_ij$mu_hat_tr,
-    lo     = mu_ij$lo_tr,
-    hi     = mu_ij$hi_tr,
-    band_type = if (isTRUE(use_ij_correction)) "IJ" else "posterior",
+    mu     = mu_hat_tr,
+    lo     = lo_tr,
+    hi     = hi_tr,
+    band_type = if (isTRUE(use_ij_correction) && !is.null(sd_ij_beta)) "IJ" else "posterior",
     q_true = q_true_tr,
     y      = y_train_keep
   )
@@ -1992,14 +2242,14 @@ fit_and_forecast_p <- function(p0) {
     y      = y_train_keep
   )
 
-  if (isTRUE(use_ij_correction)) {
+  if (isTRUE(use_ij_correction) && !is.null(sd_ij_beta)) {
     df_pred_tr <- df_pred_tr %>%
       dplyr::mutate(
-        q_hat_ij  = mu_ij$mu_hat_tr,
-        lo_q_ij   = mu_ij$lo_tr,
-        hi_q_ij   = mu_ij$hi_tr,
-        lo_q_post = mu_ij$lo_post_tr,
-        hi_q_post = mu_ij$hi_post_tr
+        q_hat_ij  = mu_hat_tr,
+        lo_q_ij   = lo_tr,
+        hi_q_ij   = hi_tr,
+        lo_q_post = lo_tr,
+        hi_q_post = hi_tr
       )
   }
 
@@ -2016,21 +2266,24 @@ fit_and_forecast_p <- function(p0) {
   )
   class(fit_q) <- "qdesn_fit"
 
+  need_origin_draws <- isTRUE(keep_draws) || isTRUE(lead_eval_enabled) ||
+    isTRUE(do_fan_charts) || isTRUE(use_lead1)
   fore <- timed(
-    sprintf("forecast_lattice(p=%s, H=%d, nd=%d, mix=%d)", fmt_p(p0), forecast_horizon, nd_draws, mix_nd),
+    sprintf("forecast_lattice(p=%s, H=%d, nd=%d, mix=%d)", fmt_p(p0), forecast_horizon, nrow(pred_draws$beta), mix_nd),
     forecast_lattice.qdesn_fit(
       fit_q,
       y_all       = y_full$y,
       origins     = origins,
       H           = forecast_horizon,
-      nd          = nd_draws,
+      nd          = nrow(pred_draws$beta),
       xreg_all    = NULL,
       y_obs_last  = T_use,
       lead_weights = lead_weights,
       mix_nd      = mix_nd,
       chunk       = chunk_sz,
       seed        = synth_seed + round(1000 * p0),
-      keep_origin_draws = isTRUE(keep_draws) || isTRUE(lead_eval_enabled) || isTRUE(do_fan_charts)
+      keep_origin_draws = need_origin_draws,
+      draws       = pred_draws
     )
   )
 
@@ -2054,8 +2307,37 @@ fit_and_forecast_p <- function(p0) {
     ))
   }
 
-  yrep_fc_full     <- fore$mix$y
-  mu_draws_fc_full <- fore$mix$mu
+  select_lead1_draws <- function(fore_obj) {
+    if (is.null(fore_obj$yrep_by_origin) || is.null(fore_obj$mu_by_origin)) return(NULL)
+    origins <- fore_obj$origins
+    targets <- fore_obj$targets
+    nd <- ncol(fore_obj$yrep_by_origin[[1]])
+    y_out <- matrix(NA_real_, nrow = length(targets), ncol = nd)
+    mu_out <- matrix(NA_real_, nrow = length(targets), ncol = nd)
+    origin_idx <- match(targets - 1L, origins)
+    ok <- which(!is.na(origin_idx))
+    for (i in ok) {
+      oi <- origin_idx[i]
+      y_out[i, ] <- fore_obj$yrep_by_origin[[oi]][1, ]
+      mu_out[i, ] <- fore_obj$mu_by_origin[[oi]][1, ]
+    }
+    list(y = y_out, mu = mu_out)
+  }
+
+  if (forecast_mode == "mixture") {
+    yrep_fc_full     <- fore$mix$y
+    mu_draws_fc_full <- fore$mix$mu
+  } else {
+    lead1 <- select_lead1_draws(fore)
+    if (is.null(lead1)) {
+      message("[forecast] lead-1 requested but per-origin draws missing; falling back to mixture.")
+      yrep_fc_full     <- fore$mix$y
+      mu_draws_fc_full <- fore$mix$mu
+    } else {
+      yrep_fc_full     <- lead1$y
+      mu_draws_fc_full <- lead1$mu
+    }
+  }
 
   yrep_fc     <- yrep_fc_full[idx_obs, , drop = FALSE]
   mu_draws_fc <- mu_draws_fc_full[idx_obs, , drop = FALSE]
@@ -2081,7 +2363,7 @@ fit_and_forecast_p <- function(p0) {
     mu     = mu_hat_fc,
     lo     = lo_fc,
     hi     = hi_fc,
-    band_type = "posterior",
+    band_type = if (isTRUE(use_ij_correction) && !is.null(sd_ij_beta)) "IJ" else "posterior",
     q_true = q_true_fc,
     y      = y_forecast
   )
@@ -2097,7 +2379,9 @@ fit_and_forecast_p <- function(p0) {
   forecast_full <- list(
     targets      = targets_all,
     yrep_mix     = yrep_fc_full,
-    mu_draws_mix = mu_draws_fc_full
+    mu_draws_mix = mu_draws_fc_full,
+    mode         = forecast_mode,
+    mix_source   = if (forecast_mode == "mixture") "mixture" else "lead1"
   )
   forecast_full$origins <- fore$origins
   if (isTRUE(keep_draws)) {
@@ -2115,7 +2399,7 @@ fit_and_forecast_p <- function(p0) {
     df_mu_fc     = df_mu_fc,
     df_pred_fc   = df_pred_fc,
     yrep_tr      = yrep_tr,
-    mu_draws_tr  = mu_ij$mu_draws_tr,
+    mu_draws_tr  = pp_tr$mu_draws,
     df_mu_tr     = df_mu_tr,
     df_pred_tr   = df_pred_tr,
     param_draws  = param_draws,
@@ -2272,13 +2556,30 @@ if (isTRUE(do_plots) && isTRUE(do_fan_charts)) {
         synth_seed  = synth_seed
       )
 
+      fan_window <- fore_last_window
+      if (!is.null(fan_window)) {
+        fan_window <- as.integer(fan_window)
+        if (!is.finite(fan_window) || fan_window < 1L) {
+          fan_window <- NULL
+        } else {
+          fan_window <- min(fan_window, H_forecast)
+        }
+      }
+      if (isTRUE(do_plots)) {
+        fore_window_eff <- min(fore_last_window, H_forecast)
+        message(sprintf("[sanity] fan vs synth window: fan=%s, synth=%d",
+                        if (is.null(fan_window)) "ALL" else as.character(fan_window),
+                        fore_window_eff))
+      }
+
       g_fan <- plot_fan_overlap(
         fan_df = fan_df,
         y_obs_df = y_obs_df,
         title = "Overlapping forecast fans (95% band, synthesized)",
         horizon = forecast_horizon,
         stride = fan_stride,
-        fill_col = FAN_FILL
+        fill_col = FAN_FILL,
+        window = fan_window
       )
       if (!is.null(g_fan)) {
         print(g_fan)
@@ -2420,6 +2721,9 @@ if (isTRUE(do_plots)) {
 
       term_names <- colnames(X_train)
       if (is.null(term_names)) term_names <- paste0("β", seq_len(ncol(beta_draws_plot)))
+      if (anyDuplicated(term_names)) {
+        message(sprintf("[sanity] duplicated readout names detected for p=%s; using unique labels.", fmt_p(p0)))
+      }
 
       p_all <- ncol(beta_draws_plot)
 
@@ -2429,8 +2733,17 @@ if (isTRUE(do_plots)) {
       g_beta_top <- plot_beta_forest(
         beta_draws_plot, term_names = term_names, top_k = min(50L, p_all)
       )
+      g_beta_top_mean <- plot_beta_forest(
+        beta_draws_plot, term_names = term_names,
+        top_k = min(50L, p_all), select_by = "abs_mean", select_dir = "top"
+      )
+      g_beta_bottom_mean <- plot_beta_forest(
+        beta_draws_plot, term_names = term_names,
+        top_k = min(50L, p_all), select_by = "abs_mean", select_dir = "bottom"
+      )
 
       print(g_beta_all); print(g_beta_top)
+      print(g_beta_top_mean); print(g_beta_bottom_mean)
 
       if (isTRUE(save_outputs)) {
         # Only save the "ALL" forest if p is modest; otherwise it becomes unreadable and >50"
@@ -2450,6 +2763,14 @@ if (isTRUE(do_plots)) {
         ggplot2::ggsave(
           file.path(FIGS, sprintf("posterior_beta_forest_TOP50_p=%s.png", as.character(p0))),
           g_beta_top, width = 9.5, height = 10, dpi = 150
+        )
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("posterior_beta_forest_TOP50_MEAN_p=%s.png", as.character(p0))),
+          g_beta_top_mean, width = 9.5, height = 10, dpi = 150
+        )
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("posterior_beta_forest_BOTTOM50_MEAN_p=%s.png", as.character(p0))),
+          g_beta_bottom_mean, width = 9.5, height = 10, dpi = 150
         )
       }
 
@@ -2479,13 +2800,43 @@ if (isTRUE(do_plots)) {
             top_k      = min(50L, p_all),
             title      = "Readout coefficients: IJ-corrected 95% band"
           )
+          g_beta_ij_top_mean <- plot_beta_forest_summary(
+            beta_hat   = beta_hat_ij,
+            lo         = lo_ij_beta,
+            hi         = hi_ij_beta,
+            term_names = term_names,
+            top_k      = min(50L, p_all),
+            select_by  = "abs_mean",
+            select_dir = "top",
+            title      = "Readout coefficients: IJ-corrected 95% band"
+          )
+          g_beta_ij_bottom_mean <- plot_beta_forest_summary(
+            beta_hat   = beta_hat_ij,
+            lo         = lo_ij_beta,
+            hi         = hi_ij_beta,
+            term_names = term_names,
+            top_k      = min(50L, p_all),
+            select_by  = "abs_mean",
+            select_dir = "bottom",
+            title      = "Readout coefficients: IJ-corrected 95% band"
+          )
 
           print(g_beta_ij_top)
+          print(g_beta_ij_top_mean)
+          print(g_beta_ij_bottom_mean)
 
           if (isTRUE(save_outputs)) {
             ggplot2::ggsave(
               file.path(FIGS, sprintf("posterior_beta_forest_IJ_TOP50_p=%s.png", as.character(p0))),
               g_beta_ij_top, width = 9.5, height = 10, dpi = 150
+            )
+            ggplot2::ggsave(
+              file.path(FIGS, sprintf("posterior_beta_forest_IJ_TOP50_MEAN_p=%s.png", as.character(p0))),
+              g_beta_ij_top_mean, width = 9.5, height = 10, dpi = 150
+            )
+            ggplot2::ggsave(
+              file.path(FIGS, sprintf("posterior_beta_forest_IJ_BOTTOM50_MEAN_p=%s.png", as.character(p0))),
+              g_beta_ij_bottom_mean, width = 9.5, height = 10, dpi = 150
             )
           }
         }
@@ -2513,7 +2864,7 @@ if (isTRUE(do_plots) && nrow(elbo_df)) {
     dplyr::filter(iter > k_burn) |>
     dplyr::mutate(
       p0_chr = factor(fmt_p(p0),
-                      levels = fmt_p(p_vec))
+                      levels = p_levels)
     )
 
   g_elbo <- ggplot2::ggplot(
@@ -2564,13 +2915,11 @@ sigma_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
 if (isTRUE(do_plots) && nrow(gamma_df) && nrow(sigma_df)) {
   gamma_df <- gamma_df |>
     dplyr::filter(iter > k_burn) |>
-    dplyr::mutate(p0_chr = factor(fmt_p(p0),
-                                  levels = fmt_p(p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = p_levels))
 
   sigma_df <- sigma_df |>
     dplyr::filter(iter > k_burn) |>
-    dplyr::mutate(p0_chr = factor(fmt_p(p0),
-                                  levels = fmt_p(p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = p_levels))
 
   g_gamma <- ggplot2::ggplot(gamma_df,
                              ggplot2::aes(x = iter, y = gamma, colour = p0_chr)) +
@@ -2626,7 +2975,7 @@ if (isTRUE(do_plots) && nrow(newterm_df)) {
     dplyr::filter(iter > k_burn, is.finite(new_term)) |>
     dplyr::mutate(
       p0_chr = factor(fmt_p(p0),
-                      levels = fmt_p(p_vec))
+                      levels = p_levels)
     )
 
   g_newterm <- ggplot2::ggplot(
@@ -2685,13 +3034,11 @@ rhs_c2_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
 if (isTRUE(do_plots) && nrow(rhs_tau_df) && nrow(rhs_c2_df)) {
   rhs_tau_df <- rhs_tau_df |>
     dplyr::filter(iter > k_burn, is.finite(tau)) |>
-    dplyr::mutate(p0_chr = factor(fmt_p(p0),
-                                  levels = fmt_p(p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = p_levels))
 
   rhs_c2_df <- rhs_c2_df |>
     dplyr::filter(iter > k_burn, is.finite(c2)) |>
-    dplyr::mutate(p0_chr = factor(fmt_p(p0),
-                                  levels = fmt_p(p_vec)))
+    dplyr::mutate(p0_chr = factor(fmt_p(p0), levels = p_levels))
 
   g_tau <- ggplot2::ggplot(rhs_tau_df,
                            ggplot2::aes(x = iter, y = tau, colour = p0_chr)) +
@@ -2763,7 +3110,7 @@ if (isTRUE(do_plots) && nrow(rhs_lambda_df)) {
                            lambda_mean = "mean",
                            lambda_max = "max"),
       p0_chr = factor(fmt_p(p0),
-                      levels = fmt_p(p_vec))
+                      levels = p_levels)
     ) |>
     dplyr::filter(iter > k_burn, is.finite(lambda))
 
@@ -3048,7 +3395,9 @@ if (isTRUE(save_outputs)) {
         diagnostics = list(
           lead_eval  = do_lead_eval,
           fan_charts = do_fan_charts,
-          fan_stride = fan_stride
+          fan_stride = fan_stride,
+          cov_window = cov_window,
+          cov_show_last = show_last
         ),
         vb_priors = list(
           beta_type = vb_prior_beta_type,
@@ -3092,6 +3441,61 @@ if (isTRUE(do_calibration)) {
                        t_aligned = n_train + h, mu_hat = mu)
   }))
   mu_long <- dplyr::bind_rows(mu_tr_long, mu_fc_long)
+  if (nrow(mu_fc_long)) {
+    min_n_fc <- min(dplyr::count(mu_fc_long, p_chr)$n)
+  } else {
+    min_n_fc <- 0L
+  }
+  if (min_n_fc < 2L) {
+    message(sprintf("[sanity] forecast rolling coverage has <2 points (min=%d).", min_n_fc))
+  }
+
+  counts_from_draws <- function(yrep_mat, mu_hat) {
+    yrep_mat <- as.matrix(yrep_mat)
+    mu_hat <- as.numeric(mu_hat)
+    if (nrow(yrep_mat) != length(mu_hat)) {
+      if (ncol(yrep_mat) == length(mu_hat)) {
+        yrep_mat <- t(yrep_mat)
+      } else {
+        stop(sprintf("counts_from_draws: yrep dim %dx%d but mu_hat length=%d",
+                     nrow(yrep_mat), ncol(yrep_mat), length(mu_hat)))
+      }
+    }
+    mu_mat <- matrix(mu_hat, nrow = nrow(yrep_mat), ncol = ncol(yrep_mat))
+    finite_mat <- is.finite(yrep_mat) & is.finite(mu_mat)
+    k <- rowSums(yrep_mat <= mu_mat & finite_mat)
+    n <- rowSums(finite_mat)
+    list(k = k, n = n)
+  }
+
+  mu_cov_tr_long <- dplyr::bind_rows(purrr::compact(lapply(seq_along(p_vec), function(i) {
+    d <- fits_fc[[i]]$df_mu_tr; if (is.null(d) || !nrow(d)) return(NULL)
+    yrep <- fits_fc[[i]]$yrep_tr
+    if (is.null(yrep)) return(NULL)
+    keep <- fits_fc[[i]]$fit_train$meta$keep_idx
+    cnt <- counts_from_draws(yrep, d$mu)
+    tibble::tibble(
+      scope     = "train",
+      p_chr     = fmt_p(p_vec[i]),
+      t_aligned = keep,
+      k         = cnt$k,
+      n         = cnt$n
+    )
+  })))
+  mu_cov_fc_long <- dplyr::bind_rows(purrr::compact(lapply(seq_along(p_vec), function(i) {
+    d <- fits_fc[[i]]$df_mu_fc; if (is.null(d) || !nrow(d)) return(NULL)
+    yrep <- fits_fc[[i]]$yrep_fc
+    if (is.null(yrep)) return(NULL)
+    cnt <- counts_from_draws(yrep, d$mu)
+    tibble::tibble(
+      scope     = "forecast",
+      p_chr     = fmt_p(p_vec[i]),
+      t_aligned = n_train + d$h,
+      k         = cnt$k,
+      n         = cnt$n
+    )
+  })))
+  mu_cov_long <- dplyr::bind_rows(mu_cov_tr_long, mu_cov_fc_long)
 
   # q̂_p
   q_tr_long <- dplyr::bind_rows(lapply(seq_along(p_vec), function(i) {
@@ -3172,41 +3576,59 @@ if (isTRUE(do_calibration)) {
   })
 
   # Rolling-coverage plots (μ, q̂ₚ, q_synth)
-  cov_window <- 365L
-  show_last  <- 300L
+  cov_window <- as.integer(cfg$diagnostics$cov_window %||% 365L)
+  show_last  <- as.integer(cfg$diagnostics$cov_show_last %||% 300L)
+  if (!is.finite(cov_window) || cov_window < 1L) cov_window <- 365L
+  if (!is.finite(show_last) || show_last < 1L) show_last <- 300L
 
-plot_rolling_cov <- function(df_long, qcol,
-                             window = NULL, show_last = NULL,
-                             title_left = "Rolling empirical coverage",
-                             show_rcov_band = FALSE,
-                             show_target_band = FALSE) {
-
+plot_rolling_cov_counts <- function(df_long, window = NULL, show_last = NULL,
+                                    title_left = "Rolling empirical coverage",
+                                    show_rcov_band = TRUE) {
   if (is.null(window))    window    <- get0("cov_window", ifnotfound = 365L, inherits = TRUE)
   if (is.null(show_last)) show_last <- get0("show_last",  ifnotfound = 300L, inherits = TRUE)
+  window <- as.integer(window)
+  show_last <- as.integer(show_last)
+  if (!is.finite(window) || window < 1L) window <- 365L
+  if (!is.finite(show_last) || show_last < 1L) show_last <- 300L
 
-  # Coerce target column to numeric (handles list/matrix edge cases)
-  if (is.matrix(df_long[[qcol]])) df_long[[qcol]] <- drop(df_long[[qcol]][, 1, drop = TRUE])
-  if (is.list(df_long[[qcol]]))   df_long[[qcol]] <- vapply(df_long[[qcol]], function(z) as.numeric(z)[1], numeric(1))
-  df_long[[qcol]] <- as.numeric(df_long[[qcol]])
+  if (!nrow(df_long)) {
+    return(ggplot2::ggplot() + theme_exdqlm() +
+             ggplot2::labs(title = paste0(title_left, " of μ"),
+                           subtitle = "No data available"))
+  }
 
-  # SAFE helpers (auto-shrink W to series length)
-  roll_sum  <- function(x, W) { W_eff <- min(W, length(x)); if (W_eff < 1) return(rep(NA_real_, length(x)))
-                                as.numeric(stats::filter(x, rep(1,        W_eff), sides = 1)) }
-  roll_mean <- function(x, W) { W_eff <- min(W, length(x)); if (W_eff < 1) return(rep(NA_real_, length(x)))
-                                as.numeric(stats::filter(x, rep(1/W_eff,  W_eff), sides = 1)) }
+  df_long$k <- as.numeric(df_long$k)
+  df_long$n <- as.numeric(df_long$n)
+  df_long$n[!is.finite(df_long$n) | df_long$n < 0] <- 0
+  df_long$k[!is.finite(df_long$k) | df_long$k < 0] <- 0
+
+  roll_partial <- function(x, W) {
+    n <- length(x)
+    if (n < 1L) return(list(sum = numeric(0), W_use = integer(0)))
+    W <- max(1L, as.integer(W))
+    idx_start <- pmax(1L, seq_len(n) - W + 1L)
+    csum <- c(0, cumsum(x))
+    sums <- csum[seq_len(n) + 1L] - csum[idx_start]
+    W_use <- seq_len(n) - idx_start + 1L
+    list(sum = sums, W_use = W_use)
+  }
 
   d <- df_long |>
-    dplyr::mutate(ind = as.integer(.data$y <= .data[[qcol]])) |>
     dplyr::arrange(scope, p_chr, t_aligned) |>
     dplyr::group_by(scope, p_chr) |>
-    dplyr::mutate(
-      W_use = pmax(1L, pmin(window, dplyr::n())),
-      k_win = roll_sum(ind,  W_use[1]),
-      rcov  = roll_mean(ind, W_use[1]),
-      t_max = max(t_aligned, na.rm = TRUE)
-    ) |>
-    dplyr::ungroup() |>
-    dplyr::filter(t_aligned > (t_max - show_last))
+    dplyr::group_modify(function(.x, .g) {
+      if (!nrow(.x)) return(.x)
+      roll_k <- roll_partial(.x$k, window)
+      roll_n <- roll_partial(.x$n, window)
+      .x$k_win <- roll_k$sum
+      .x$n_win <- roll_n$sum
+      .x$W_use <- roll_k$W_use
+      .x$rcov  <- ifelse(.x$n_win > 0, .x$k_win / .x$n_win, NA_real_)
+      n <- nrow(.x)
+      show_last_use <- min(show_last, n)
+      .x[(n - show_last_use + 1L):n, , drop = FALSE]
+    }) |>
+    dplyr::ungroup()
 
   wilson_ci_vec <- function(k, n, conf = 0.95) {
     z <- stats::qnorm(0.5 + conf/2); p <- k / n
@@ -3214,12 +3636,13 @@ plot_rolling_cov <- function(df_long, qcol,
     rad <- z * sqrt(p*(1-p)/n + z^2/(4*n^2)) / den
     list(lo = pmax(0, cen - rad), hi = pmin(1, cen + rad))
   }
-  ci <- wilson_ci_vec(d$k_win, d$W_use)
+  ci <- wilson_ci_vec(d$k_win, d$n_win)
   d$lo_cov <- ci$lo; d$hi_cov <- ci$hi
 
+  show_last_eff <- min(show_last, min(dplyr::count(d, scope, p_chr)$n))
   W_lab <- if (any(d$W_use < window, na.rm = TRUE)) paste0("≤", window) else as.character(window)
 
-  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = fmt_p(p_vec)))
+  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = p_levels))
   ref <- d |> dplyr::distinct(scope, p_chr) |> dplyr::mutate(p0 = as.numeric(as.character(p_chr)))
 
   x_rng <- range(d$t_aligned, na.rm = TRUE)
@@ -3231,9 +3654,9 @@ plot_rolling_cov <- function(df_long, qcol,
     theme_exdqlm() +
     ggplot2::labs(
       x = "time index (aligned)",
-      y = sprintf("rolling Pr(y ≤ %s)  (W %s)", if (qcol=="mu_hat") "μ" else "q", W_lab),
-      title    = paste0(title_left, if (qcol=="mu_hat") " of μ" else " of q"),
-      subtitle = sprintf("Last %d points; ribbon: Wilson CI of rolling coverage", show_last)
+      y = sprintf("rolling Pr(yrep ≤ μ̂)  (W %s)", W_lab),
+      title    = paste0(title_left, " of μ"),
+      subtitle = sprintf("Last %d points; ribbon: Wilson CI of rolling coverage", show_last_eff)
     ) +
     ggplot2::geom_hline(data = ref, ggplot2::aes(yintercept = p0, colour = p_chr),
                         linetype = "dashed", linewidth = 0.7, show.legend = FALSE) +
@@ -3248,10 +3671,114 @@ plot_rolling_cov <- function(df_long, qcol,
                        ggplot2::aes(x = x_lab, y = y_lab, label = sprintf("%.2f", rcov)),
                        size = 3, hjust = 1) +
     ggplot2::scale_color_manual(name = "quantile p",
-      values = setNames(col_map, fmt_p(p_vec)),
+      values = col_map, limits = p_levels,
       labels = function(x) scales::percent(as.numeric(x))) +
     ggplot2::scale_fill_manual(name = "quantile p",
-      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), fmt_p(p_vec)),
+      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), p_levels),
+      limits = p_levels,
+      labels = function(x) scales::percent(as.numeric(x))) +
+    ggplot2::scale_y_continuous(breaks = seq(0,1,0.1), labels = scales::percent_format(accuracy = 1)) +
+    ggplot2::scale_x_continuous(limits = x_rng, expand = c(0, 0)) +
+    ggplot2::coord_cartesian(ylim = c(0, 1), expand = FALSE)
+}
+
+plot_rolling_cov <- function(df_long, qcol,
+                             window = NULL, show_last = NULL,
+                             title_left = "Rolling empirical coverage",
+                             show_rcov_band = FALSE,
+                             show_target_band = FALSE) {
+
+  if (is.null(window))    window    <- get0("cov_window", ifnotfound = 365L, inherits = TRUE)
+  if (is.null(show_last)) show_last <- get0("show_last",  ifnotfound = 300L, inherits = TRUE)
+  window <- as.integer(window)
+  show_last <- as.integer(show_last)
+  if (!is.finite(window) || window < 1L) window <- 365L
+  if (!is.finite(show_last) || show_last < 1L) show_last <- 300L
+
+  # Coerce target column to numeric (handles list/matrix edge cases)
+  if (is.matrix(df_long[[qcol]])) df_long[[qcol]] <- drop(df_long[[qcol]][, 1, drop = TRUE])
+  if (is.list(df_long[[qcol]]))   df_long[[qcol]] <- vapply(df_long[[qcol]], function(z) as.numeric(z)[1], numeric(1))
+  df_long[[qcol]] <- as.numeric(df_long[[qcol]])
+
+  roll_partial <- function(x, W) {
+    n <- length(x)
+    if (n < 1L) return(list(sum = numeric(0), mean = numeric(0), W_use = integer(0)))
+    W <- max(1L, as.integer(W))
+    idx_start <- pmax(1L, seq_len(n) - W + 1L)
+    csum <- c(0, cumsum(x))
+    sums <- csum[seq_len(n) + 1L] - csum[idx_start]
+    W_use <- seq_len(n) - idx_start + 1L
+    list(sum = sums, mean = sums / W_use, W_use = W_use)
+  }
+
+  if (!nrow(df_long)) {
+    return(ggplot2::ggplot() + theme_exdqlm() +
+             ggplot2::labs(title = paste0(title_left, if (qcol=="mu_hat") " of μ" else " of q"),
+                           subtitle = "No data available"))
+  }
+
+  d <- df_long |>
+    dplyr::mutate(ind = as.integer(.data$y <= .data[[qcol]])) |>
+    dplyr::arrange(scope, p_chr, t_aligned) |>
+    dplyr::group_by(scope, p_chr) |>
+    dplyr::group_modify(function(.x, .g) {
+      if (!nrow(.x)) return(.x)
+      roll <- roll_partial(.x$ind, window)
+      .x$k_win <- roll$sum
+      .x$rcov  <- roll$mean
+      .x$W_use <- roll$W_use
+      n <- nrow(.x)
+      show_last_use <- min(show_last, n)
+      .x[(n - show_last_use + 1L):n, , drop = FALSE]
+    }) |>
+    dplyr::ungroup()
+
+  wilson_ci_vec <- function(k, n, conf = 0.95) {
+    z <- stats::qnorm(0.5 + conf/2); p <- k / n
+    den <- 1 + z^2 / n; cen <- (p + z^2/(2*n)) / den
+    rad <- z * sqrt(p*(1-p)/n + z^2/(4*n^2)) / den
+    list(lo = pmax(0, cen - rad), hi = pmin(1, cen + rad))
+  }
+  ci <- wilson_ci_vec(d$k_win, d$W_use)
+  d$lo_cov <- ci$lo; d$hi_cov <- ci$hi
+
+  show_last_eff <- min(show_last, min(dplyr::count(d, scope, p_chr)$n))
+  W_lab <- if (any(d$W_use < window, na.rm = TRUE)) paste0("≤", window) else as.character(window)
+
+  d <- d |> dplyr::mutate(p_chr = factor(p_chr, levels = p_levels))
+  ref <- d |> dplyr::distinct(scope, p_chr) |> dplyr::mutate(p0 = as.numeric(as.character(p_chr)))
+
+  x_rng <- range(d$t_aligned, na.rm = TRUE)
+  last_pts <- d %>%
+    dplyr::group_by(scope, p_chr) %>% dplyr::slice_tail(n = 1) %>% dplyr::ungroup() %>%
+    dplyr::mutate(x_lab = t_aligned - 0.03 * diff(x_rng), y_lab = pmin(pmax(rcov + 0.02, 0), 1))
+
+  ggplot2::ggplot(d, ggplot2::aes(x = t_aligned, y = rcov, colour = p_chr)) +
+    theme_exdqlm() +
+    ggplot2::labs(
+      x = "time index (aligned)",
+      y = sprintf("rolling Pr(y ≤ %s)  (W %s)", if (qcol=="mu_hat") "μ" else "q", W_lab),
+      title    = paste0(title_left, if (qcol=="mu_hat") " of μ" else " of q"),
+      subtitle = sprintf("Last %d points; ribbon: Wilson CI of rolling coverage", show_last_eff)
+    ) +
+    ggplot2::geom_hline(data = ref, ggplot2::aes(yintercept = p0, colour = p_chr),
+                        linetype = "dashed", linewidth = 0.7, show.legend = FALSE) +
+    { if (isTRUE(show_rcov_band))
+        ggplot2::geom_ribbon(ggplot2::aes(x = t_aligned, ymin = lo_cov, ymax = hi_cov,
+                                           fill = p_chr, group = p_chr),
+                              inherit.aes = FALSE, alpha = 0.18)
+      else ggplot2::geom_blank() } +
+    ggplot2::geom_line(linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::geom_point(data = last_pts, size = 2.4) +
+    ggplot2::geom_text(data = last_pts,
+                       ggplot2::aes(x = x_lab, y = y_lab, label = sprintf("%.2f", rcov)),
+                       size = 3, hjust = 1) +
+    ggplot2::scale_color_manual(name = "quantile p",
+      values = col_map, limits = p_levels,
+      labels = function(x) scales::percent(as.numeric(x))) +
+    ggplot2::scale_fill_manual(name = "quantile p",
+      values = setNames(sapply(col_map, scales::alpha, alpha = 0.18), p_levels),
+      limits = p_levels,
       labels = function(x) scales::percent(as.numeric(x))) +
     ggplot2::scale_y_continuous(breaks = seq(0,1,0.1), labels = scales::percent_format(accuracy = 1)) +
     ggplot2::scale_x_continuous(limits = x_rng, expand = c(0, 0)) +
@@ -3259,15 +3786,13 @@ plot_rolling_cov <- function(df_long, qcol,
 }
 
 
-g_cov_mu_train <- plot_rolling_cov(mu_long |> dplyr::filter(scope=="train"),
-                                   qcol = "mu_hat",
-                                   window = cov_window, show_last = show_last,
-                                   show_rcov_band = TRUE,  show_target_band = FALSE)
+g_cov_mu_train <- plot_rolling_cov_counts(mu_cov_long |> dplyr::filter(scope=="train"),
+                                          window = cov_window, show_last = show_last,
+                                          show_rcov_band = TRUE)
 
-g_cov_mu_fore  <- plot_rolling_cov(mu_long |> dplyr::filter(scope=="forecast"),
-                                   qcol = "mu_hat",
-                                   window = cov_window, show_last = show_last,
-                                   show_rcov_band = TRUE,  show_target_band = FALSE)
+g_cov_mu_fore  <- plot_rolling_cov_counts(mu_cov_long |> dplyr::filter(scope=="forecast"),
+                                          window = cov_window, show_last = show_last,
+                                          show_rcov_band = TRUE)
 
 # Keep q̂ and q_synth as purely empirical rolling curves (no ribbons)
 g_cov_q_train  <- plot_rolling_cov(q_long  |> dplyr::filter(scope=="train"),
