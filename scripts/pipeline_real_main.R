@@ -758,7 +758,14 @@ if (isTRUE(readout_scale)) {
 
 # Forecast mode + horizon (lattice/mixture default)
 forecast_mode       <- tolower(cfg$forecast$mode %||% "mixture")
-forecast_horizon    <- as.integer(cfg$forecast$horizon %||% 1L)
+forecast_horizon    <- 1L
+if (!is.null(cfg$forecast$horizon)) {
+  forecast_horizon <- cfg$forecast$horizon %||% forecast_horizon
+} else if (!is.null(cfg$forecast$forecast)) {
+  message("[forecast] 'forecast' is deprecated; use 'horizon'.")
+  forecast_horizon <- cfg$forecast$forecast %||% forecast_horizon
+}
+forecast_horizon <- as.integer(forecast_horizon)
 lead_weight_power   <- cfg$forecast$lead_weight_power %||% 1
 lead_weights        <- NULL
 mix_nd              <- NULL

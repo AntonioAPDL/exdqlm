@@ -507,7 +507,12 @@ if (!ij_beta_mode %in% c("additive", "replace")) {
 if (!is.null(cfg$forecast)) {
   # Base: keep a single last_window for backward compatibility
   last_window    <- cfg$forecast$last_window    %nz% last_window
-  forecast_horizon <- cfg$forecast$horizon %nz% forecast_horizon
+  if (!is.null(cfg$forecast$horizon)) {
+    forecast_horizon <- cfg$forecast$horizon %nz% forecast_horizon
+  } else if (!is.null(cfg$forecast$forecast)) {
+    message("[forecast] 'forecast' is deprecated; use 'horizon'.")
+    forecast_horizon <- cfg$forecast$forecast %nz% forecast_horizon
+  }
   if (!is.null(cfg$forecast$mode)) {
     forecast_mode <- tolower(as.character(cfg$forecast$mode))
   }

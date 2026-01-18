@@ -141,7 +141,7 @@ ij:
 # --------------------------------------------------------------------
 forecast:
   last_window: 200           # legacy base window
-  horizon: 30                # multi-step horizon for lattice forecasts
+  horizon: 30                 # multi-step horizon for lattice forecasts
   mode: origin               # origin (lead-1) | mixture | lattice
   lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (mixture only; power=0 => uniform)
   # mixture draws per target time = sampling.nd_draws
