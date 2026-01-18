@@ -800,33 +800,65 @@ readout_spec <- list(
   scale_info     = readout_scale_info
 )
 
-# Exogenous series for forecasting (must cover [T_use+1 .. T_use+H])
-origins_max <- T_use
-xreg_all <- NULL
+# Exogenous series for forecasting (full horizon vs lead-1 horizon)
+origins_full_max  <- T_use
+origins_lead1_max <- T_use - 1L
+xreg_all_full  <- NULL
+xreg_all_lead1 <- NULL
+xreg_all_tail  <- NULL
 if (length(x_names)) {
   start_idx  <- idx_use[1L]
   end_avail <- nrow(X_all)
   xreg_len <- end_avail - start_idx + 1L
-  max_origin_by_x <- xreg_len - forecast_horizon
-  origins_max <- min(T_use, max_origin_by_x)
-  if (origins_max < n_train) {
+  max_origin_by_x_full <- xreg_len - forecast_horizon
+  origins_full_max <- min(T_use, max_origin_by_x_full)
+  if (origins_full_max < n_train) {
     stop(sprintf(
       "Not enough exogenous rows for forecast_horizon=%d. Need at least %d rows from start_idx=%d, have %d.",
       forecast_horizon, start_idx + n_train + forecast_horizon - 1L, start_idx, end_avail
     ))
   }
-  if (origins_max < T_use) {
+  if (origins_full_max < T_use) {
     message(sprintf(
-      "[forecast] trimming origins to %d to match available exogenous rows (H=%d).",
-      origins_max, forecast_horizon
+      "[forecast] trimming full-horizon origins to %d to match available exogenous rows (H=%d).",
+      origins_full_max, forecast_horizon
     ))
   }
-  end_needed <- start_idx + origins_max + forecast_horizon - 1L
-  X_future_all <- X_all[start_idx:end_needed, , drop = FALSE]
-  xreg_all <- lapply(seq_len(ncol(X_future_all)), function(j) X_future_all[, j])
-  names(xreg_all) <- colnames(X_future_all)
+  end_needed_full <- start_idx + origins_full_max + forecast_horizon - 1L
+  X_future_full <- X_all[start_idx:end_needed_full, , drop = FALSE]
+  xreg_all_full <- lapply(seq_len(ncol(X_future_full)), function(j) X_future_full[, j])
+  names(xreg_all_full) <- colnames(X_future_full)
+  xreg_all_tail <- xreg_all_full
+
+  max_origin_by_x1 <- xreg_len - 1L
+  origins_lead1_max <- min(T_use - 1L, max_origin_by_x1)
+  end_needed_1 <- start_idx + origins_lead1_max
+  X_future_1 <- X_all[start_idx:end_needed_1, , drop = FALSE]
+  xreg_all_lead1 <- lapply(seq_len(ncol(X_future_1)), function(j) X_future_1[, j])
+  names(xreg_all_lead1) <- colnames(X_future_1)
+
 }
-origins <- seq.int(n_train, origins_max)
+origins_full <- seq.int(n_train, origins_full_max)
+origins_tail <- integer(0)
+if (origins_lead1_max > origins_full_max) {
+  origins_tail <- seq.int(origins_full_max + 1L, origins_lead1_max)
+}
+origins_fan <- c(origins_full, origins_tail)
+origins <- origins_full
+origins_lead1 <- seq.int(n_train, origins_lead1_max)
+if (length(x_names) && origins_lead1_max < (T_use - 1L)) {
+  message(sprintf(
+    "[forecast] covariates only available through t=%d; lead-1 forecasts stop early.",
+    origins_lead1_max + 1L
+  ))
+}
+if (length(x_names) && length(origins_tail)) {
+  len_tail <- max(origins_tail) + forecast_horizon
+  xreg_all_tail <- lapply(xreg_all_tail, function(v) {
+    if (length(v) >= len_tail) return(v)
+    c(v, rep(NA_real_, len_tail - length(v)))
+  })
+}
 
 # Index diagnostics (parity with sim)
 cat(sprintf("IDX | use_range=[%d..%d] | train=[%d..%d] | forecast=[%d..%d] | lens train=%d, fore=%d\n",
@@ -1655,9 +1687,22 @@ fit_and_forecast_p <- function(p0) {
   )
   class(fit_q) <- "qdesn_fit"
 
-  need_origin_draws <- isTRUE(keep_draws) || isTRUE(lead_eval_enabled) ||
-    isTRUE(do_fan_charts) || isTRUE(use_lead1)
-  fore <- timed(
+  need_origin_draws_full <- isTRUE(keep_draws) || isTRUE(lead_eval_enabled) ||
+    isTRUE(do_fan_charts)
+  need_var_horizon <- isTRUE(lead_eval_enabled) || isTRUE(do_fan_charts)
+  truncate_origin_draws <- function(draws_list, origins_vec, max_t, H) {
+    if (is.null(draws_list)) return(NULL)
+    stopifnot(length(draws_list) == length(origins_vec))
+    lapply(seq_along(draws_list), function(i) {
+      mat <- draws_list[[i]]
+      if (is.null(mat)) return(NULL)
+      h_i <- min(nrow(mat), max_t - origins_vec[i])
+      if (!is.finite(h_i) || h_i < 1L) return(NULL)
+      if (is.finite(H) && H >= 1L) h_i <- min(h_i, as.integer(H))
+      mat[seq_len(h_i), , drop = FALSE]
+    })
+  }
+  fore_full <- timed(
     sprintf("forecast_lattice(p=%s, H=%d, nd=%d, mix=%d)", fmt_p(p0), forecast_horizon, nrow(pred_draws$beta), mix_nd),
     forecast_lattice.qdesn_fit(
       fit_q,
@@ -1665,124 +1710,116 @@ fit_and_forecast_p <- function(p0) {
       origins     = origins,
       H           = forecast_horizon,
       nd          = nrow(pred_draws$beta),
-      xreg_all    = xreg_all,
+      xreg_all    = xreg_all_full,
       y_obs_last  = T_use,
       lead_weights = lead_weights,
       mix_nd      = mix_nd,
       chunk       = chunk_sz,
       seed        = synth_seed + round(1000 * p0),
-      keep_origin_draws = need_origin_draws,
+      keep_origin_draws = need_origin_draws_full,
       draws       = pred_draws
     )
   )
 
+  fore_tail <- NULL
+  yrep_by_origin_var <- NULL
+  mu_by_origin_var <- NULL
+  origins_var <- NULL
+
+  if (isTRUE(need_var_horizon)) {
+    if (is.null(fore_full$yrep_by_origin)) {
+      message("[fan/lead] missing per-origin draws; skipping variable-horizon forecasts.")
+    } else {
+      yrep_by_origin_var <- fore_full$yrep_by_origin
+      mu_by_origin_var <- fore_full$mu_by_origin
+      origins_var <- origins_full
+      if (length(origins_tail)) {
+        fore_tail <- timed(
+          sprintf("forecast_lattice_tail(p=%s, H=%d, nd=%d)", fmt_p(p0), forecast_horizon, nrow(pred_draws$beta)),
+          forecast_lattice.qdesn_fit(
+            fit_q,
+            y_all       = y_full,
+            origins     = origins_tail,
+            H           = forecast_horizon,
+            nd          = nrow(pred_draws$beta),
+            xreg_all    = xreg_all_tail,
+            y_obs_last  = T_use,
+            lead_weights = lead_weights,
+            mix_nd      = mix_nd,
+            chunk       = chunk_sz,
+            seed        = synth_seed + round(1000 * p0) + 31L,
+            keep_origin_draws = TRUE,
+            draws       = pred_draws
+          )
+        )
+        if (!is.null(fore_tail$yrep_by_origin)) {
+          yrep_by_origin_var <- c(yrep_by_origin_var, fore_tail$yrep_by_origin)
+          mu_by_origin_var <- c(mu_by_origin_var, fore_tail$mu_by_origin)
+          origins_var <- c(origins_full, origins_tail)
+        }
+      }
+      yrep_by_origin_var <- truncate_origin_draws(yrep_by_origin_var, origins_var, T_use, forecast_horizon)
+      mu_by_origin_var <- truncate_origin_draws(mu_by_origin_var, origins_var, T_use, forecast_horizon)
+    }
+  } else if (isTRUE(keep_draws)) {
+    yrep_by_origin_var <- fore_full$yrep_by_origin
+    mu_by_origin_var <- fore_full$mu_by_origin
+    origins_var <- fore_full$origins
+  }
+
   if (isTRUE(lead_eval_enabled)) {
-    if (is.null(fore$yrep_by_origin)) {
+    if (is.null(yrep_by_origin_var)) {
       message("[lead_eval] missing per-origin draws; lead evaluation will be skipped.")
     } else {
-      lead_eval_store[[idx_p]] <<- lapply(
-        fore$yrep_by_origin,
-        function(mat) mat[eval_leads, , drop = FALSE]
-      )
+      lead_eval_store[[idx_p]] <<- yrep_by_origin_var
     }
   }
 
-  targets_all <- fore$targets
-  idx_obs <- which(targets_all <= T_use)
+  targets_full <- fore_full$targets
+
+  if (forecast_mode == "mixture") {
+    fore_main <- fore_full
+  } else {
+    if (length(origins_lead1) < 1L) {
+      stop("[forecast] origin mode requires lead-1 origins; not enough covariate coverage.")
+    }
+    fore_main <- timed(
+      sprintf("forecast_lattice_lead1(p=%s, H=1, nd=%d)", fmt_p(p0), nrow(pred_draws$beta)),
+      forecast_lattice.qdesn_fit(
+        fit_q,
+        y_all       = y_full,
+        origins     = origins_lead1,
+        H           = 1L,
+        nd          = nrow(pred_draws$beta),
+        xreg_all    = xreg_all_lead1,
+        y_obs_last  = T_use,
+        lead_weights = 1,
+        mix_nd      = nrow(pred_draws$beta),
+        chunk       = chunk_sz,
+        seed        = synth_seed + round(1000 * p0) + 17L,
+        keep_origin_draws = FALSE,
+        draws       = pred_draws
+      )
+    )
+  }
+
+  targets_main <- fore_main$targets
+  idx_obs <- which(targets_main <= T_use)
   if (length(idx_obs) != H_forecast) {
     stop(sprintf(
-      "Forecast lattice mismatch: expected %d observed targets, got %d.",
-      H_forecast, length(idx_obs)
+      "Lead-1 forecasts cover %d targets (expected %d). Check covariate coverage for t in [train+1, T_use].",
+      length(idx_obs), H_forecast
     ))
   }
 
-  select_lead1_draws <- function(fore_obj, targets) {
-    if (is.null(fore_obj$yrep_by_origin) || is.null(fore_obj$mu_by_origin)) return(NULL)
-    origins <- fore_obj$origins
-    nd <- ncol(fore_obj$yrep_by_origin[[1]])
-    y_out <- matrix(NA_real_, nrow = length(targets), ncol = nd)
-    mu_out <- matrix(NA_real_, nrow = length(targets), ncol = nd)
-    origin_idx <- match(targets - 1L, origins)
-    ok <- which(!is.na(origin_idx))
-    for (i in ok) {
-      oi <- origin_idx[i]
-      y_out[i, ] <- fore_obj$yrep_by_origin[[oi]][1, ]
-      mu_out[i, ] <- fore_obj$mu_by_origin[[oi]][1, ]
-    }
-    list(y = y_out, mu = mu_out)
-  }
-
-  if (forecast_mode == "mixture") {
-    yrep_fc_full     <- bt_y(fore$mix$y)
-    mu_draws_fc_full <- bt_y(fore$mix$mu)
-  } else {
-    lead1 <- select_lead1_draws(fore, targets_all)
-    if (is.null(lead1)) {
-      message("[forecast] lead-1 requested but per-origin draws missing; falling back to mixture.")
-      yrep_fc_full     <- bt_y(fore$mix$y)
-      mu_draws_fc_full <- bt_y(fore$mix$mu)
-    } else {
-      yrep_fc_full     <- bt_y(lead1$y)
-      mu_draws_fc_full <- bt_y(lead1$mu)
-      miss_rows <- which(!is.finite(yrep_fc_full[, 1]))
-      if (length(miss_rows)) {
-        message(sprintf(
-          "[forecast] lead-1 missing for %d targets; computing H=1 lattice to fill.",
-          length(miss_rows)
-        ))
-        origins_lead1_max <- T_use - 1L
-        if (length(x_names)) {
-          xreg_len <- length(xreg_all[[1]])
-          origins_lead1_max <- min(origins_lead1_max, xreg_len - 1L)
-        }
-        if (origins_lead1_max >= n_train) {
-          origins_lead1 <- seq.int(n_train, origins_lead1_max)
-          fore_lead1 <- timed(
-            sprintf("forecast_lattice_lead1(p=%s, H=1, nd=%d)", fmt_p(p0), nrow(pred_draws$beta)),
-            forecast_lattice.qdesn_fit(
-              fit_q,
-              y_all       = y_full,
-              origins     = origins_lead1,
-              H           = 1L,
-              nd          = nrow(pred_draws$beta),
-              xreg_all    = xreg_all,
-              y_obs_last  = T_use,
-              lead_weights = 1,
-              mix_nd      = nrow(pred_draws$beta),
-              chunk       = chunk_sz,
-              seed        = synth_seed + round(1000 * p0) + 17L,
-              keep_origin_draws = TRUE,
-              draws       = pred_draws
-            )
-          )
-          lead1_fill <- select_lead1_draws(fore_lead1, targets_all)
-          if (!is.null(lead1_fill)) {
-            y_fill  <- bt_y(lead1_fill$y)
-            mu_fill <- bt_y(lead1_fill$mu)
-            ok_fill <- miss_rows[is.finite(y_fill[miss_rows, 1])]
-            if (length(ok_fill)) {
-              yrep_fc_full[ok_fill, ] <- y_fill[ok_fill, , drop = FALSE]
-              mu_draws_fc_full[ok_fill, ] <- mu_fill[ok_fill, , drop = FALSE]
-            }
-          }
-        }
-        miss_obs <- idx_obs[!is.finite(yrep_fc_full[idx_obs, 1])]
-        if (length(miss_obs)) {
-          message("[forecast] lead-1 still missing for some targets; falling back to mixture for those rows.")
-          mix_y  <- bt_y(fore$mix$y)
-          mix_mu <- bt_y(fore$mix$mu)
-          yrep_fc_full[miss_obs, ] <- mix_y[miss_obs, , drop = FALSE]
-          mu_draws_fc_full[miss_obs, ] <- mix_mu[miss_obs, , drop = FALSE]
-        }
-      }
-    }
-  }
+  yrep_fc_full     <- bt_y(fore_main$mix$y)
+  mu_draws_fc_full <- bt_y(fore_main$mix$mu)
 
   yrep_fc     <- yrep_fc_full[idx_obs, , drop = FALSE]
   mu_draws_fc <- mu_draws_fc_full[idx_obs, , drop = FALSE]
   y_fc_bt     <- bt_y(y_fc)
   if (any(!is.finite(yrep_fc)) || any(!is.finite(mu_draws_fc))) {
-    stop("[forecast] non-finite values in forecast draws after lead-1 selection; check origin coverage.")
+    stop("[forecast] non-finite values in forecast draws; check covariate coverage for lead-1.")
   }
 
   mu_qs_fc  <- band_from_draws(mu_draws_fc, level = 0.95, target_len = length(idx_obs))
@@ -1807,18 +1844,19 @@ fit_and_forecast_p <- function(p0) {
   )
 
   forecast_full <- list(
-    targets      = targets_all,
+    targets      = targets_main,
     yrep_mix     = yrep_fc_full,
     mu_draws_mix = mu_draws_fc_full,
     mode         = forecast_mode,
-    mix_source   = if (forecast_mode == "mixture") "mixture" else "lead1"
+    mix_source   = if (forecast_mode == "mixture") "mixture" else "lead1",
+    targets_full = targets_full
   )
-  forecast_full$origins <- fore$origins
-  if (isTRUE(keep_draws)) {
-    forecast_full$yrep_by_origin <- fore$yrep_by_origin
-    forecast_full$mu_by_origin   <- fore$mu_by_origin
-  } else if (isTRUE(do_fan_charts)) {
-    forecast_full$yrep_by_origin <- fore$yrep_by_origin
+  forecast_full$origins <- if (!is.null(origins_var)) origins_var else fore_full$origins
+  if (!is.null(yrep_by_origin_var)) {
+    forecast_full$yrep_by_origin <- yrep_by_origin_var
+  }
+  if (isTRUE(keep_draws) && !is.null(mu_by_origin_var)) {
+    forecast_full$mu_by_origin <- mu_by_origin_var
   }
 
   list(
@@ -1889,7 +1927,10 @@ synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizo
       yrep_by_origin_list[[k]][[i]]
     })
     if (any(vapply(draws_list, is.null, logical(1)))) return(NULL)
-    if (any(vapply(draws_list, nrow, integer(1)) != horizon)) return(NULL)
+    h_i <- min(vapply(draws_list, nrow, integer(1)))
+    if (!is.finite(h_i) || h_i < 1L) return(NULL)
+    if (is.finite(horizon) && horizon >= 1L) h_i <- min(h_i, as.integer(horizon))
+    draws_list <- lapply(draws_list, function(mat) mat[seq_len(h_i), , drop = FALSE])
 
     synth_i <- exdqlm_synthesize_from_draws(
       draws_list = draws_list,
@@ -1899,14 +1940,14 @@ synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizo
       grid_M = synth_grid_M,
       n_samp = synth_nsamp,
       seed = synth_seed + as.integer(origins[i]),
-      T_expected = horizon
+      T_expected = h_i
     )
-    qs <- band_from_draws(synth_i$draws, level = level, target_len = horizon)
+    qs <- band_from_draws(synth_i$draws, level = level, target_len = h_i)
     if (!is.null(bt_fn)) {
       qs <- bt_fn(qs)
     }
 
-    leads <- seq_len(horizon)
+    leads <- seq_len(h_i)
     target_idx <- origins[i] + leads
     ok <- which(target_idx <= t_max)
     if (!length(ok)) return(NULL)
@@ -2614,20 +2655,19 @@ if (isTRUE(lead_eval_enabled)) {
     if (any(vapply(lead_eval_store, function(x) is.null(x) || !length(x), logical(1)))) {
       message("[lead_eval] missing per-origin draws; skipping lead evaluation.")
     } else {
-      lead_row_map <- setNames(seq_along(eval_leads), eval_leads)
+      origins_le <- fits_fc[[1]]$forecast_full$origins
       rows <- vector("list", 0L)
       row_id <- 1L
 
       for (lead in eval_leads) {
-        lead_row <- lead_row_map[[as.character(lead)]]
-        valid_idx <- which((origins + lead) <= T_use)
+        valid_idx <- which((origins_le + lead) <= T_use)
         if (!length(valid_idx)) next
 
         for (oi in valid_idx) {
           draws_list <- lapply(seq_along(p_vec), function(k) {
             mat <- lead_eval_store[[k]][[oi]]
-            if (is.null(mat) || !is.matrix(mat) || nrow(mat) < lead_row) return(NULL)
-            matrix(bt_y(mat[lead_row, ]), nrow = 1L)
+            if (is.null(mat) || !is.matrix(mat) || nrow(mat) < lead) return(NULL)
+            matrix(bt_y(mat[lead, ]), nrow = 1L)
           })
           if (any(vapply(draws_list, is.null, logical(1)))) next
 
@@ -2637,11 +2677,11 @@ if (isTRUE(lead_eval_enabled)) {
             grid_M = synth_grid_M, n_samp = synth_nsamp,
             seed = synth_seed + lead * 1000L + oi, T_expected = 1L
           )
-          y_obs <- bt_y(y_full[origins[oi] + lead])
+          y_obs <- bt_y(y_full[origins_le[oi] + lead])
           rows[[row_id]] <- tibble::tibble(
-            origin = origins[oi],
+            origin = origins_le[oi],
             lead = lead,
-            target_idx = origins[oi] + lead,
+            target_idx = origins_le[oi] + lead,
             y_obs = y_obs,
             crps = crps_row(y_obs, as.numeric(synth$draws)),
             n_samp = ncol(synth$draws)

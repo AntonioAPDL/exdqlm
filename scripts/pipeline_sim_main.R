@@ -875,7 +875,10 @@ synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizo
       yrep_by_origin_list[[k]][[i]]
     })
     if (any(vapply(draws_list, is.null, logical(1)))) return(NULL)
-    if (any(vapply(draws_list, nrow, integer(1)) != horizon)) return(NULL)
+    h_i <- min(vapply(draws_list, nrow, integer(1)))
+    if (!is.finite(h_i) || h_i < 1L) return(NULL)
+    if (is.finite(horizon) && horizon >= 1L) h_i <- min(h_i, as.integer(horizon))
+    draws_list <- lapply(draws_list, function(mat) mat[seq_len(h_i), , drop = FALSE])
 
     synth_i <- exdqlm_synthesize_from_draws(
       draws_list = draws_list,
@@ -885,14 +888,14 @@ synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizo
       grid_M = synth_grid_M,
       n_samp = synth_nsamp,
       seed = synth_seed + as.integer(origins[i]),
-      T_expected = horizon
+      T_expected = h_i
     )
-    qs <- band_from_draws(synth_i$draws, level = level, target_len = horizon)
+    qs <- band_from_draws(synth_i$draws, level = level, target_len = h_i)
     if (!is.null(bt_fn)) {
       qs <- bt_fn(qs)
     }
 
-    leads <- seq_len(horizon)
+    leads <- seq_len(h_i)
     target_idx <- origins[i] + leads
     ok <- which(target_idx <= t_max)
     if (!length(ok)) return(NULL)
@@ -2291,10 +2294,7 @@ fit_and_forecast_p <- function(p0) {
     if (is.null(fore$yrep_by_origin)) {
       message("[lead_eval] missing per-origin draws; lead evaluation will be skipped.")
     } else {
-      lead_eval_store[[idx_p]] <<- lapply(
-        fore$yrep_by_origin,
-        function(mat) mat[eval_leads, , drop = FALSE]
-      )
+      lead_eval_store[[idx_p]] <<- fore$yrep_by_origin
     }
   }
 
@@ -2330,13 +2330,10 @@ fit_and_forecast_p <- function(p0) {
   } else {
     lead1 <- select_lead1_draws(fore)
     if (is.null(lead1)) {
-      message("[forecast] lead-1 requested but per-origin draws missing; falling back to mixture.")
-      yrep_fc_full     <- fore$mix$y
-      mu_draws_fc_full <- fore$mix$mu
-    } else {
-      yrep_fc_full     <- lead1$y
-      mu_draws_fc_full <- lead1$mu
+      stop("[forecast] lead-1 requested but per-origin draws missing.")
     }
+    yrep_fc_full     <- lead1$y
+    mu_draws_fc_full <- lead1$mu
   }
 
   yrep_fc     <- yrep_fc_full[idx_obs, , drop = FALSE]
@@ -3269,20 +3266,19 @@ if (isTRUE(lead_eval_enabled)) {
     if (any(vapply(lead_eval_store, function(x) is.null(x) || !length(x), logical(1)))) {
       message("[lead_eval] missing per-origin draws; skipping lead evaluation.")
     } else {
-      lead_row_map <- setNames(seq_along(eval_leads), eval_leads)
+      origins_le <- fits_fc[[1]]$forecast_full$origins
       rows <- vector("list", 0L)
       row_id <- 1L
 
       for (lead in eval_leads) {
-        lead_row <- lead_row_map[[as.character(lead)]]
-        valid_idx <- which((origins + lead) <= T_use)
+        valid_idx <- which((origins_le + lead) <= T_use)
         if (!length(valid_idx)) next
 
         for (oi in valid_idx) {
           draws_list <- lapply(seq_along(p_vec), function(k) {
             mat <- lead_eval_store[[k]][[oi]]
-            if (is.null(mat) || !is.matrix(mat) || nrow(mat) < lead_row) return(NULL)
-            matrix(mat[lead_row, ], nrow = 1L)
+            if (is.null(mat) || !is.matrix(mat) || nrow(mat) < lead) return(NULL)
+            matrix(mat[lead, ], nrow = 1L)
           })
           if (any(vapply(draws_list, is.null, logical(1)))) next
 
@@ -3292,11 +3288,11 @@ if (isTRUE(lead_eval_enabled)) {
             grid_M = synth_grid_M, n_samp = synth_nsamp,
             seed = synth_seed + lead * 1000L + oi, T_expected = 1L
           )
-          y_obs <- y_full$y[origins[oi] + lead]
+          y_obs <- y_full$y[origins_le[oi] + lead]
           rows[[row_id]] <- tibble::tibble(
-            origin = origins[oi],
+            origin = origins_le[oi],
             lead = lead,
-            target_idx = origins[oi] + lead,
+            target_idx = origins_le[oi] + lead,
             y_obs = y_obs,
             crps = crps_row(y_obs, as.numeric(synth$draws)),
             n_samp = ncol(synth$draws)
