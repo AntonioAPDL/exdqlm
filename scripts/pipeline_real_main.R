@@ -1696,10 +1696,9 @@ fit_and_forecast_p <- function(p0) {
     ))
   }
 
-  select_lead1_draws <- function(fore_obj) {
+  select_lead1_draws <- function(fore_obj, targets) {
     if (is.null(fore_obj$yrep_by_origin) || is.null(fore_obj$mu_by_origin)) return(NULL)
     origins <- fore_obj$origins
-    targets <- fore_obj$targets
     nd <- ncol(fore_obj$yrep_by_origin[[1]])
     y_out <- matrix(NA_real_, nrow = length(targets), ncol = nd)
     mu_out <- matrix(NA_real_, nrow = length(targets), ncol = nd)
@@ -1717,7 +1716,7 @@ fit_and_forecast_p <- function(p0) {
     yrep_fc_full     <- bt_y(fore$mix$y)
     mu_draws_fc_full <- bt_y(fore$mix$mu)
   } else {
-    lead1 <- select_lead1_draws(fore)
+    lead1 <- select_lead1_draws(fore, targets_all)
     if (is.null(lead1)) {
       message("[forecast] lead-1 requested but per-origin draws missing; falling back to mixture.")
       yrep_fc_full     <- bt_y(fore$mix$y)
@@ -1725,12 +1724,66 @@ fit_and_forecast_p <- function(p0) {
     } else {
       yrep_fc_full     <- bt_y(lead1$y)
       mu_draws_fc_full <- bt_y(lead1$mu)
+      miss_rows <- which(!is.finite(yrep_fc_full[, 1]))
+      if (length(miss_rows)) {
+        message(sprintf(
+          "[forecast] lead-1 missing for %d targets; computing H=1 lattice to fill.",
+          length(miss_rows)
+        ))
+        origins_lead1_max <- T_use - 1L
+        if (length(x_names)) {
+          xreg_len <- length(xreg_all[[1]])
+          origins_lead1_max <- min(origins_lead1_max, xreg_len - 1L)
+        }
+        if (origins_lead1_max >= n_train) {
+          origins_lead1 <- seq.int(n_train, origins_lead1_max)
+          fore_lead1 <- timed(
+            sprintf("forecast_lattice_lead1(p=%s, H=1, nd=%d)", fmt_p(p0), nrow(pred_draws$beta)),
+            forecast_lattice.qdesn_fit(
+              fit_q,
+              y_all       = y_full,
+              origins     = origins_lead1,
+              H           = 1L,
+              nd          = nrow(pred_draws$beta),
+              xreg_all    = xreg_all,
+              y_obs_last  = T_use,
+              lead_weights = 1,
+              mix_nd      = nrow(pred_draws$beta),
+              chunk       = chunk_sz,
+              seed        = synth_seed + round(1000 * p0) + 17L,
+              keep_origin_draws = TRUE,
+              draws       = pred_draws
+            )
+          )
+          lead1_fill <- select_lead1_draws(fore_lead1, targets_all)
+          if (!is.null(lead1_fill)) {
+            y_fill  <- bt_y(lead1_fill$y)
+            mu_fill <- bt_y(lead1_fill$mu)
+            ok_fill <- miss_rows[is.finite(y_fill[miss_rows, 1])]
+            if (length(ok_fill)) {
+              yrep_fc_full[ok_fill, ] <- y_fill[ok_fill, , drop = FALSE]
+              mu_draws_fc_full[ok_fill, ] <- mu_fill[ok_fill, , drop = FALSE]
+            }
+          }
+        }
+        miss_obs <- idx_obs[!is.finite(yrep_fc_full[idx_obs, 1])]
+        if (length(miss_obs)) {
+          message("[forecast] lead-1 still missing for some targets; falling back to mixture for those rows.")
+          mix_y  <- bt_y(fore$mix$y)
+          mix_mu <- bt_y(fore$mix$mu)
+          yrep_fc_full[miss_obs, ] <- mix_y[miss_obs, , drop = FALSE]
+          mu_draws_fc_full[miss_obs, ] <- mix_mu[miss_obs, , drop = FALSE]
+        }
+      }
     }
   }
 
   yrep_fc     <- yrep_fc_full[idx_obs, , drop = FALSE]
   mu_draws_fc <- mu_draws_fc_full[idx_obs, , drop = FALSE]
   y_fc_bt     <- bt_y(y_fc)
+  if (any(!is.finite(yrep_fc)) || any(!is.finite(mu_draws_fc))) {
+    stop("[forecast] non-finite values in forecast draws after lead-1 selection; check origin coverage.")
+  }
 
   mu_qs_fc  <- band_from_draws(mu_draws_fc, level = 0.95, target_len = length(idx_obs))
   mu_hat_fc <- mu_qs_fc[, "med"]
