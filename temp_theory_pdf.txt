@@ -1,0 +1,1825 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{mathtools}
+\usepackage{bbm}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\N}{\mathcal{N}}
+
+\title{Quantile Deep Echo State Networks with Regularized Horseshoe Priors:\\
+Model Specification and Hierarchical Representation}
+
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Global Notation and Hierarchical Q--DESN Model}
+\label{sec:global-setup}
+
+We fix a quantile level $p \in (0,1)$ and build one model per $p$.
+Throughout this section we work for a single, fixed $p$ and suppress its
+explicit dependence from the notation.
+
+\subsection{Indices, Data, and ESN Features}
+
+\begin{itemize}
+  \item \textbf{Time index.} 
+  $t = 1,\dots,T$.
+
+  \item \textbf{Response.}
+  At each time $t$ we observe a univariate response
+  \[
+    y_t \in \R,
+    \qquad
+    \vect{y} = (y_1,\dots,y_T)^\top \in \R^T.
+  \]
+
+  \item \textbf{Reservoir / feature state.}
+  A deep echo state network (DESN) with $D$ layers and fixed weights
+  (chosen by an external hyperparameter-selection stage)
+  produces a deterministic reservoir state
+  \[
+    \vect{r}_t \in \R^{d_r}, 
+    \qquad t = 1,\dots,T,
+  \]
+  as a function of past observations and exogenous inputs.
+  Conditional on the ESN weights and inputs, the entire sequence
+  $\{\vect{r}_t\}_{t=1}^T$ is treated as \emph{known}.
+
+  \item \textbf{Design vectors and matrix.}
+  The regression design vector at time $t$ is
+  \[
+    \vect{x}_t 
+    = \begin{bmatrix} 1 \\ \vect{r}_t \end{bmatrix}
+    \in \R^{k},
+    \qquad
+    k = d_r + 1,
+  \]
+  where the first entry is an intercept. Stacking rows,
+  \[
+    \mat{X}
+    =
+    \begin{bmatrix}
+      \vect{x}_1^\top \\
+      \vdots \\
+      \vect{x}_T^\top
+    \end{bmatrix}
+    \in \R^{T \times k}.
+  \]
+\end{itemize}
+
+\subsection{Parameters, Latent Variables, and Quantile Function}
+
+We distinguish carefully between \emph{parameters} (objects equipped with
+priors) and \emph{latent variables} (unobserved random variables whose
+distributions are specified conditionally on the parameters as part of the
+likelihood / hierarchical data model).
+
+\paragraph{Regression coefficients.}
+The readout layer of the Q--DESN is a linear predictor
+\[
+  Q_p(y_t \mid \vect{x}_t)
+  = \vect{x}_t^\top \vect{\beta},
+  \qquad
+  \vect{\beta} = (\beta_1,\dots,\beta_k)^\top \in \R^k,
+\]
+so that $\vect{x}_t^\top \vect{\beta}$ is the conditional $p$--quantile of
+$y_t$ given $\vect{x}_t$.
+
+\paragraph{exAL error parameters.}
+The quantile-fixed generalized asymmetric Laplace (exAL) error is governed by
+\begin{itemize}
+  \item a scale parameter $\sigma > 0$;
+  \item a shape parameter $\gamma \in (L,U)$, where $(L,U)$ depends on $p$
+        (and is chosen such that $\vect{x}_t^\top\vect{\beta}$ is the
+        $p$--quantile of $y_t$).
+\end{itemize}
+Given $p$ and $\gamma \in (L,U)$, we define the exAL constants
+\[
+  A(\gamma),\quad B(\gamma) > 0,\quad C(\gamma),
+\]
+as in the quantile-fixed GAL/exAL construction (see the dedicated section
+on the exAL parameterization). These functions are deterministic and depend
+only on $\gamma$ and $p$.
+
+\paragraph{Auxiliary latent variables for the exAL mixture.}
+For each $t=1,\dots,T$ we introduce a pair of \emph{per-observation latent
+variables}
+\[
+  v_t > 0, \qquad s_t > 0,
+\]
+which are not parameters and therefore do \emph{not} carry priors.
+Instead, they have distributions that are specified \emph{conditionally on
+the parameters} $(\sigma,\gamma)$ as part of the exAL mixture
+representation:
+\begin{align*}
+  s_t &\sim \N^+(0,1),
+  &&\text{(standard normal truncated to $(0,\infty)$)},\\
+  v_t \mid \sigma &\sim \Exp(\text{mean} = \sigma),
+  &&\text{density } f_V(v_t\mid\sigma)
+     = \frac{1}{\sigma} e^{-v_t/\sigma} \mathbf{1}(v_t>0).
+\end{align*}
+Collect
+\[
+  \vect{s} = (s_1,\dots,s_T)^\top,\qquad
+  \vect{v} = (v_1,\dots,v_T)^\top.
+\]
+
+\paragraph{Observation model (exAL via Gaussian mixture).}
+Conditionally on $(\vect{\beta},\sigma,\gamma,\vect{x}_t, v_t,s_t)$, the
+response $y_t$ is Gaussian:
+\begin{align}
+  y_t \mid \vect{x}_t,\vect{\beta},\sigma,\gamma,v_t,s_t
+  &\sim N\big( m_t(\vect{\beta},\sigma,\gamma,v_t,s_t),
+                     \ \tau_t^2(\sigma,\gamma,v_t)\big),
+  \label{eq:ydist-step0}
+\end{align}
+with
+\begin{align}
+  m_t(\vect{\beta},\sigma,\gamma,v_t,s_t)
+  &= \vect{x}_t^\top\vect{\beta}
+     + \sigma C(\gamma)\,|\gamma|\, s_t
+     + A(\gamma)\,v_t,
+  \label{eq:mean-step0}\\[4pt]
+  \tau_t^2(\sigma,\gamma,v_t)
+  &= \sigma\,B(\gamma)\,v_t.
+  \label{eq:var-step0}
+\end{align}
+Marginalizing the latent pair $(v_t,s_t)$ yields
+\[
+  y_t \mid \vect{x}_t,\vect{\beta},\sigma,\gamma
+  \sim \exAL_p\big(\vect{x}_t^\top\vect{\beta},\sigma,\gamma\big),
+\]
+a quantile-fixed generalized asymmetric Laplace law whose $p$--quantile is
+exactly $\vect{x}_t^\top\vect{\beta}$ by construction. The random variables
+$(v_t,s_t)$ are thus purely auxiliary and enter only through the
+hierarchical representation~\eqref{eq:ydist-step0}--\eqref{eq:var-step0}.
+
+\subsection{Regularized Horseshoe Prior on the Readout Coefficients}
+
+We now specify priors on the \emph{parameters} of the model.
+
+\paragraph{Local, global, and slab scales.}
+For $j=1,\dots,k$:
+\begin{itemize}
+  \item local scale $\lambda_j > 0$,
+  \item global scale $\tau > 0$,
+  \item slab scale $c^2 > 0$.
+\end{itemize}
+Define the variance of $\beta_j$ (conditional on these scales) as
+\begin{equation}
+  V_j(\lambda_j,\tau,c^2)
+  =
+  \tau^2 \,\frac{c^2 \lambda_j^2}{c^2 + \tau^2 \lambda_j^2},
+  \qquad j = 1,\dots,k.
+  \label{eq:Vj-step0}
+\end{equation}
+Then the regularized horseshoe prior for the readout coefficients is
+\begin{equation}
+  \beta_j \mid \lambda_j,\tau,c^2
+  \sim N\big(0,\, V_j(\lambda_j,\tau,c^2)\big),
+  \qquad j=1,\dots,k,
+  \label{eq:beta-prior-step0}
+\end{equation}
+independently across $j$.
+
+\paragraph{Hyperpriors for the scales.}
+We assign standard choices for the global--local scales:
+\begin{align}
+  \lambda_j &\sim C^+(0,1),
+  & j &= 1,\dots,k,
+  \label{eq:lambda-prior-step0}\\
+  \tau &\sim C^+(0,\tau_0),
+  \label{eq:tau-prior-step0}\\
+  c^2 &\sim \IG\!\left(\frac{\nu}{2},\,\frac{\nu s^2}{2}\right),
+  \label{eq:c2-prior-step0}
+\end{align}
+where $C^+(0,a)$ denotes a half-Cauchy distribution with scale $a>0$, and
+$\IG(a,b)$ is the inverse-gamma distribution with density proportional to
+$z^{-a-1}\exp(-b/z)$ for $z>0$. The hyperparameters
+$\tau_0>0$, $\nu>0$, and $s>0$ control global sparsity and the slab scale.
+
+\paragraph{Priors on exAL parameters.}
+The exAL scale and shape parameters carry their own priors:
+\begin{align}
+  \sigma &\sim IG(a_\sigma,b_\sigma),
+  && a_\sigma>0,\; b_\sigma>0,
+  \label{eq:sigma-prior-step0}\\
+  \gamma &\sim \pi_\gamma(\gamma)\,\mathbf{1}(L<\gamma<U),
+  && \text{with density $\pi_\gamma$ on $(L,U)$,}
+  \label{eq:gamma-prior-step0}
+\end{align}
+where $(L,U)$ is the $p$--dependent support of $\gamma$ induced by the
+quantile-fixing construction. A simple choice is a truncated uniform or
+truncated rescaled Beta on $(L,U)$.
+
+All parameters are taken a priori independent:
+\[
+  p(\vect{\beta},\sigma,\gamma,\vect{\lambda},\tau,c^2)
+  =
+  p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)\,
+  p(\vect{\lambda})\,p(\tau)\,p(c^2)\,p(\sigma)\,p(\gamma),
+\]
+with $p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)$ given by
+\eqref{eq:beta-prior-step0}, $p(\vect{\lambda}),p(\tau),p(c^2)$ by
+\eqref{eq:lambda-prior-step0}--\eqref{eq:c2-prior-step0}, and
+$p(\sigma),p(\gamma)$ by \eqref{eq:sigma-prior-step0}--\eqref{eq:gamma-prior-step0}.
+
+\subsection{Summary: Parameter vs Latent Variable Split}
+
+For a fixed quantile level $p$, the full collection of unknowns splits as:
+\begin{itemize}
+  \item \textbf{Parameters (with priors):}
+  \[
+    \Theta
+    =
+    \big(
+      \vect{\beta},\ \sigma,\ \gamma,\ 
+      \vect{\lambda},\ \tau,\ c^2
+    \big),
+  \]
+  where $\vect{\beta}\in\R^k$,
+  $\sigma>0$, $\gamma\in(L,U)$,
+  $\vect{\lambda}=(\lambda_1,\dots,\lambda_k)^\top \in (0,\infty)^k$,
+  $\tau>0$, and $c^2>0$.
+
+  \item \textbf{Latent variables (no priors, only conditional laws):}
+  \[
+    \vect{z}
+    =
+    \big(
+      \vect{v},\ \vect{s}
+    \big)
+    =
+    \big(
+      v_1,\dots,v_T,\ s_1,\dots,s_T
+    \big),
+  \]
+  with
+  $v_t \mid \sigma \sim \Exp(\text{mean}=\sigma)$ and
+  $s_t \sim \N^+(0,1)$, entering only through the hierarchical
+  representation~\eqref{eq:ydist-step0}--\eqref{eq:var-step0}.
+\end{itemize}
+
+Given the deterministic ESN features $\{\vect{r}_t\}_{t=1}^T$ and hence
+$\mat{X}$, the hierarchical Q--DESN model for a fixed quantile level $p$ is
+fully specified by:
+\begin{align*}
+  y_t \mid \vect{x}_t,\Theta,\vect{z}
+  &\sim N\big(m_t(\vect{\beta},\sigma,\gamma,v_t,s_t),
+                    \tau_t^2(\sigma,\gamma,v_t)\big),
+  && t=1,\dots,T,\\
+  (v_t,s_t) \mid \Theta
+  &\sim \Exp(\text{mean}=\sigma)\times \N^+(0,1),
+  && t=1,\dots,T,\\
+  \Theta &\sim p(\Theta),
+\end{align*}
+where $p(\Theta)$ is the product of the regularized horseshoe prior on
+$\vect{\beta}$ and the hyperpriors on $(\vect{\lambda},\tau,c^2,\sigma,\gamma)$.
+This is the starting point for the variational Bayes and Laplace--Delta
+approximation developed in the subsequent sections.
+
+\section{Full Joint Density and Gibbs Blocks (Hypothetical Sampler)}
+\label{sec:full-conditionals}
+
+In this section we describe how a hypothetical Gibbs sampler would operate
+for the hierarchical Q--DESN model in Section~\ref{sec:global-setup}.  This
+is purely a conceptual device: it makes explicit the full joint density,
+provides a natural blocking structure, and identifies which pieces are
+conjugate and which are not.  These same blocks will later guide our
+variational factorization and the use of Laplace--Delta approximations.
+
+Throughout we condition on the fixed ESN features
+$\{\vect{r}_t\}_{t=1}^T$ and design matrix $\mat{X}$, and we suppress the
+dependence on the fixed quantile level $p$.
+
+\subsection{Full joint density}
+\label{subsec:joint-density}
+
+Recall the parameter and latent collections
+\[
+  \Theta
+  =
+  \big(
+    \vect{\beta},\ \sigma,\ \gamma,\ 
+    \vect{\lambda},\ \tau,\ c^2
+  \big),
+  \qquad
+  \vect{z}
+  =
+  \big(\vect{v},\vect{s}\big)
+  =
+  \big(v_1,\dots,v_T,\ s_1,\dots,s_T\big).
+\]
+Given $\mat{X}$, the joint density of all unknowns and data factorizes as
+\begin{align}
+  &p(\vect{y},\vect{v},\vect{s},
+      \vect{\beta},\vect{\lambda},\tau,c^2,\sigma,\gamma)
+  \nonumber\\[2pt]
+  &\quad=
+  \underbrace{\prod_{t=1}^T
+    p\!\big(y_t \mid \vect{x}_t,\vect{\beta},\sigma,\gamma,v_t,s_t\big)}_{
+    \text{likelihood}}
+  \underbrace{\prod_{t=1}^T
+    p(v_t\mid\sigma)\,p(s_t)}_{\text{latent exAL mixture}}
+  \nonumber\\[-2pt]
+  &\qquad\qquad\times
+  \underbrace{p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)}_{
+    \text{regularized HS prior}}
+  \underbrace{p(\vect{\lambda})\,p(\tau)\,p(c^2)}_{
+    \text{scale hyperpriors}}
+  \underbrace{p(\sigma)\,p(\gamma)}_{
+    \text{exAL hyperpriors}}.
+  \label{eq:joint-factorization}
+\end{align}
+Each factor is given explicitly by the hierarchical specification:
+\begin{align*}
+  p\!\big(y_t \mid \vect{x}_t,\vect{\beta},\sigma,\gamma,v_t,s_t\big)
+  &= \frac{1}{\sqrt{2\pi \tau_t^2(\sigma,\gamma,v_t)}}
+     \exp\!\left\{
+       -\frac{\big(y_t - m_t(\vect{\beta},\sigma,\gamma,v_t,s_t)\big)^2}
+             {2\,\tau_t^2(\sigma,\gamma,v_t)}
+     \right\},\\
+  \tau_t^2(\sigma,\gamma,v_t)
+  &= \sigma\,B(\gamma)\,v_t,\\
+  m_t(\vect{\beta},\sigma,\gamma,v_t,s_t)
+  &= \vect{x}_t^\top\vect{\beta}
+     + \sigma C(\gamma)\,|\gamma|\,s_t
+     + A(\gamma)\,v_t;
+\end{align*}
+\begin{align*}
+  p(v_t\mid\sigma)
+  &\propto
+  \frac{1}{\sigma}\,
+  \exp\!\big(-v_t/\sigma\big)\,\mathbbm{1}(v_t>0),
+  &
+  p(s_t)
+  &\propto
+  \exp\!\big(-s_t^2/2\big)\,\mathbbm{1}(s_t>0);
+\end{align*}
+\begin{align*}
+  p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)
+  &= \prod_{j=1}^k
+     \frac{1}{\sqrt{2\pi V_j(\lambda_j,\tau,c^2)}}
+     \exp\!\left\{
+       -\frac{\beta_j^2}{2\,V_j(\lambda_j,\tau,c^2)}
+     \right\},\\
+  V_j(\lambda_j,\tau,c^2)
+  &= \tau^2 \,\frac{c^2 \lambda_j^2}{c^2 + \tau^2 \lambda_j^2};
+\end{align*}
+\begin{align*}
+  p(\lambda_j)
+  &\propto \frac{1}{1+\lambda_j^2}\,\mathbbm{1}(\lambda_j>0),
+  &
+  p(\tau)
+  &\propto
+  \frac{1}{1+(\tau/\tau_0)^2}\,\mathbbm{1}(\tau>0),\\
+  p(c^2)
+  &\propto
+  (c^2)^{-\nu/2-1}
+  \exp\!\left(-\frac{\nu s^2}{2c^2}\right)\mathbbm{1}(c^2>0);
+\end{align*}
+\begin{align*}
+  p(\sigma)
+  &\propto
+  \sigma^{-a_\sigma-1}
+  \exp\!\left(-\frac{b_\sigma}{\sigma}\right)\mathbbm{1}(\sigma>0),\\
+  p(\gamma)
+  &\propto
+  \pi_\gamma(\gamma)\,\mathbbm{1}(L<\gamma<U).
+\end{align*}
+
+Apart from constants that do not depend on the unknowns, the log-joint
+density can thus be written as
+\begin{align}
+  \log p(\vect{y},\vect{z},\Theta)
+  &= \sum_{t=1}^T
+       \log p\!\big(y_t \mid \vect{x}_t,\vect{\beta},\sigma,\gamma,v_t,s_t\big)
+     + \sum_{t=1}^T \big[\log p(v_t\mid\sigma)+\log p(s_t)\big]
+  \nonumber\\
+  &\quad
+     + \log p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)
+     + \log p(\vect{\lambda}) + \log p(\tau) + \log p(c^2)
+  \nonumber\\
+  &\quad
+     + \log p(\sigma) + \log p(\gamma)
+     + \text{const}.
+  \label{eq:log-joint}
+\end{align}
+
+\subsection{Gibbs-style blocking structure}
+\label{subsec:blocks}
+
+A natural blocking for a hypothetical Gibbs sampler---and later for a
+mean-field approximation---is:
+\begin{itemize}
+  \item \textbf{Block 1:} $\vect{\beta} \in \R^k$ (all coefficients).
+  \item \textbf{Block 2:} $(\sigma,\gamma) \in (0,\infty)\times(L,U)$ jointly.
+  \item \textbf{Block 3:} $(\vect{\lambda},\tau,c^2)
+                          \in (0,\infty)^k\times(0,\infty)\times(0,\infty)$.
+  \item \textbf{Block 4:} the latent $v_t$'s, one block per time point.
+  \item \textbf{Block 5:} the latent $s_t$'s, one block per time point.
+\end{itemize}
+If one introduces additional auxiliary variables for the half-Cauchy
+priors (e.g.\ inverse-gamma scales), each such variable would come with a
+simple one-dimensional full conditional; for now we work directly with the
+half-Cauchy marginals.
+
+\subsection{Full conditionals up to proportionality}
+\label{subsec:full-conditionals}
+
+We now collect, for each block, all terms in the log-joint
+\eqref{eq:log-joint} that depend on that block.  For each block
+$\theta_i$ we write
+\[
+  p(\theta_i \mid \text{rest})
+  \propto \exp\big(\ell_i(\theta_i)\big),
+\]
+where $\ell_i(\theta_i)$ is the corresponding log-kernel.
+
+\subsubsection*{Block 1: $\vect{\beta}\mid\cdot$}
+
+Define the ``offset-corrected'' responses
+\[
+  y_t^\star
+  =
+  y_t - \sigma C(\gamma)\,|\gamma|\,s_t - A(\gamma)\,v_t,
+  \qquad
+  \vect{y}^\star = (y_1^\star,\dots,y_T^\star)^\top,
+\]
+and the heteroskedastic variances and weights
+\[
+  \tau_t^2
+  = \tau_t^2(\sigma,\gamma,v_t)
+  = \sigma B(\gamma)v_t,
+  \qquad
+  w_t = \frac{1}{\tau_t^2},
+  \qquad
+  \mat{W} = \mathrm{diag}(w_1,\dots,w_T).
+\]
+Let $\mat{D} = \mathrm{diag}\big(V_1(\lambda_1,\tau,c^2),\dots,
+V_k(\lambda_k,\tau,c^2)\big)$ be the prior covariance matrix for
+$\vect{\beta}$.  From \eqref{eq:log-joint},
+\begin{align*}
+  \ell_\beta(\vect{\beta})
+  &= -\frac{1}{2}
+     \sum_{t=1}^T
+       \frac{\big(y_t^\star - \vect{x}_t^\top\vect{\beta}\big)^2}{\tau_t^2}
+     -\frac{1}{2}\vect{\beta}^\top\mat{D}^{-1}\vect{\beta}
+     + \text{const}\\[2pt]
+  &= -\frac{1}{2}
+     \big(\vect{y}^\star - \mat{X}\vect{\beta}\big)^\top
+     \mat{W}\big(\vect{y}^\star - \mat{X}\vect{\beta}\big)
+     -\frac{1}{2}\vect{\beta}^\top\mat{D}^{-1}\vect{\beta}
+     + \text{const}.
+\end{align*}
+Completing the square yields a multivariate normal full conditional:
+\begin{align}
+  p(\vect{\beta}\mid\text{rest})
+  &= N_k\big(\vect{\mu}_\beta,\mat{\Sigma}_\beta\big),\label{eq:beta-fc}\\
+  \mat{\Sigma}_\beta
+  &= \Big(\mat{X}^\top\mat{W}\mat{X} + \mat{D}^{-1}\Big)^{-1},\nonumber\\
+  \vect{\mu}_\beta
+  &= \mat{\Sigma}_\beta\,\mat{X}^\top\mat{W}\,\vect{y}^\star.\nonumber
+\end{align}
+
+\subsubsection*{Block 2: $(\sigma,\gamma)\mid\cdot$}
+
+The block $(\sigma,\gamma)$ enters through
+$\tau_t^2(\sigma,\gamma,v_t)$ and $m_t(\vect{\beta},\sigma,\gamma,v_t,s_t)$
+in the likelihood, through the exponential prior on $v_t$, and through the
+hyperpriors $p(\sigma)$ and $p(\gamma)$.  Collecting the terms that depend
+on $(\sigma,\gamma)$,
+\begin{align}
+  \ell_{\sigma,\gamma}(\sigma,\gamma)
+  &= -\frac{1}{2}\sum_{t=1}^T
+       \log\big(\sigma B(\gamma)v_t\big)
+     - \frac{1}{2}\sum_{t=1}^T
+       \frac{\big(y_t - m_t(\vect{\beta},\sigma,\gamma,v_t,s_t)\big)^2}
+            {\sigma B(\gamma)v_t}
+  \nonumber\\
+  &\quad
+     - \sum_{t=1}^T \log\sigma
+     - \sum_{t=1}^T \frac{v_t}{\sigma}
+     - (a_\sigma+1)\log\sigma
+     - \frac{b_\sigma}{\sigma}
+  \nonumber\\
+  &\quad
+     + \log\pi_\gamma(\gamma)
+     + \log\mathbbm{1}(L<\gamma<U)
+     + \text{const},
+  \label{eq:sigmagamma-kernel}
+\end{align}
+so that
+\[
+  p(\sigma,\gamma\mid\text{rest})
+  \propto
+  \exp\big(\ell_{\sigma,\gamma}(\sigma,\gamma)\big).
+\]
+This kernel is smooth but non-conjugate; in a Gibbs context one would
+update $(\sigma,\gamma)$ with a 2-d Metropolis--Hastings move or similar.
+In our VB development it will be handled with a joint Laplace--Delta
+approximation.
+
+\subsubsection*{Block 3: $(\vect{\lambda},\tau,c^2)\mid\cdot$}
+
+The block $(\vect{\lambda},\tau,c^2)$ influences the prior
+$p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)$ through the variances
+$V_j(\lambda_j,\tau,c^2)$, and appears in their own hyperpriors.  Using
+\eqref{eq:Vj-step0} and the priors in
+\eqref{eq:lambda-prior-step0}--\eqref{eq:c2-prior-step0}, we obtain
+(up to an additive constant)
+\begin{align}
+  \ell_{\lambda,\tau,c^2}(\vect{\lambda},\tau,c^2)
+  &= -\frac{1}{2}
+     \sum_{j=1}^k
+       \left[
+         \log V_j(\lambda_j,\tau,c^2)
+         + \frac{\beta_j^2}{V_j(\lambda_j,\tau,c^2)}
+       \right]
+  \nonumber\\
+  &\quad
+     - \sum_{j=1}^k \log\big(1+\lambda_j^2\big)
+     - \log\Big(1 + (\tau/\tau_0)^2\Big)
+  \nonumber\\
+  &\quad
+     -\Big(\frac{\nu}{2}+1\Big)\log c^2
+     -\frac{\nu s^2}{2c^2}
+     + \text{const},
+  \label{eq:lambda-tau-c2-kernel}
+\end{align}
+and hence
+\[
+  p(\vect{\lambda},\tau,c^2\mid\text{rest})
+  \propto \exp\big(\ell_{\lambda,\tau,c^2}(\vect{\lambda},\tau,c^2)\big).
+\]
+This joint kernel is non-conjugate but smooth in all arguments.  In a
+Gibbs sampler one might update $(\vect{\lambda},\tau,c^2)$ with a block
+Metropolis step or, more realistically, update each $\lambda_j$ in turn
+given $(\tau,c^2)$, followed by scalar updates for $\tau$ and $c^2$.
+
+\subsubsection*{Block 4: $v_t\mid\cdot$}
+
+Each $v_t$ appears only in the $t$-th likelihood factor and in its own
+exponential prior.  Define
+\[
+  \delta_t
+  =
+  y_t - \vect{x}_t^\top\vect{\beta} - \sigma C(\gamma)\,|\gamma|\,s_t.
+\]
+Using $m_t$ and $\tau_t^2$ from
+\eqref{eq:mean-step0}--\eqref{eq:var-step0}, a short algebraic
+manipulation shows that (up to a constant)
+\begin{align*}
+  \ell_{v_t}(v_t)
+  &= -\frac{1}{2}\log v_t
+     - \frac{A(\gamma)^2}{2\sigma B(\gamma)}\,v_t
+     - \frac{\delta_t^2}{2\sigma B(\gamma)}\,\frac{1}{v_t}
+     - \frac{v_t}{\sigma}
+     + \text{const}\\[2pt]
+  &= -\frac{1}{2}\log v_t
+     -\frac{1}{2}\Big(\psi_t v_t + \chi_t/v_t\Big)
+     + \text{const},
+\end{align*}
+with
+\[
+  \psi_t
+  =
+  \frac{A(\gamma)^2}{\sigma B(\gamma)} + \frac{2}{\sigma},
+  \qquad
+  \chi_t
+  =
+  \frac{\delta_t^2}{\sigma B(\gamma)}.
+\]
+Therefore
+\[
+  p(v_t\mid\text{rest})
+  \propto
+  v_t^{-1/2}
+  \exp\!\left\{
+    -\tfrac12\big(\psi_t v_t + \chi_t/v_t\big)
+  \right\}\mathbbm{1}(v_t>0),
+\]
+which is a generalized inverse Gaussian (GIG) kernel with index
+$\lambda = 1/2$:
+\[
+  v_t\mid\text{rest}
+  \sim \GIG\!\left(\frac{1}{2},\,\chi_t,\,\psi_t\right).
+\]
+Thus each $v_t$ can be updated in closed form from a standard univariate
+distribution.
+
+\subsubsection*{Block 5: $s_t\mid\cdot$}
+
+Each $s_t$ enters only through the mean $m_t$ and its truncated normal
+prior.  Define
+\[
+  \mu_{0t}
+  =
+  y_t - \vect{x}_t^\top\vect{\beta} - A(\gamma)\,v_t,
+  \qquad
+  C_\gamma = C(\gamma)\,|\gamma|.
+\]
+Using once again \eqref{eq:mean-step0}--\eqref{eq:var-step0}, the
+log-kernel for $s_t$ is
+\begin{align*}
+  \ell_{s_t}(s_t)
+  &= -\frac{\big(\mu_{0t} - \sigma C_\gamma s_t\big)^2}
+           {2\sigma B(\gamma)v_t}
+     -\frac{s_t^2}{2}
+     + \text{const}\\[2pt]
+  &= -\frac{1}{2}a_t s_t^2 + b_t s_t + \text{const},
+\end{align*}
+where
+\[
+  a_t
+  =
+  1 + \frac{\sigma C_\gamma^2}{B(\gamma)v_t},
+  \qquad
+  b_t
+  =
+  \frac{\mu_{0t} C_\gamma}{B(\gamma)v_t}.
+\]
+Completing the square,
+\[
+  \ell_{s_t}(s_t)
+  = -\frac{1}{2}a_t\big(s_t - m_t^{(s)}\big)^2 + \text{const},
+  \qquad
+  m_t^{(s)} = \frac{b_t}{a_t}.
+\]
+Thus
+\[
+  s_t\mid\text{rest}
+  \sim N\!\Big(m_t^{(s)},\,a_t^{-1}\Big)
+      \ \text{truncated to } (0,\infty).
+\]
+Equivalently,
+\begin{align*}
+  m_t^{(s)}
+  &= \frac{\mu_{0t} C_\gamma}{B(\gamma)v_t + \sigma C_\gamma^2},\\
+  \Var(s_t\mid\text{rest})
+  &= \frac{B(\gamma)v_t}{B(\gamma)v_t + \sigma C_\gamma^2},
+\end{align*}
+with the truncation $s_t>0$ inherited from the prior.
+
+\subsection{Conjugacy classification}
+\label{subsec:conjugacy-summary}
+
+Table~\ref{tab:blocks-conjugacy} summarizes the blocks, their dimension,
+kernel, and conjugacy status.  The key point for our later VB
+approximation is that:
+(i) the regression coefficients $\vect{\beta}$ and the exAL mixture
+variables $(v_t,s_t)$ admit closed-form conditionals in standard families;
+(ii) the blocks $(\sigma,\gamma)$ and $(\vect{\lambda},\tau,c^2)$ are
+low-dimensional but non-conjugate and will be handled via Laplace--Delta
+approximations.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{llll}
+\toprule
+Block & Dimension & Kernel / family & Conjugacy status \\
+\midrule
+$\vect{\beta}$             & $k$          & multivariate normal
+                           & conjugate Gaussian \\
+$(\sigma,\gamma)$          & $2$          & smooth but non-conjugate
+                           & non-conjugate (MH/Laplace/IS) \\
+$(\vect{\lambda},\tau,c^2)$& $k+2$        & heavy-tailed scale mixture
+                           & non-conjugate (MH/Laplace/IS) \\
+$v_t$                      & $1$ each     & $\GIG(\lambda=1/2,\chi_t,\psi_t)$
+                           & closed-form univariate \\
+$s_t$                      & $1$ each     & truncated normal
+                           & closed-form univariate \\
+\bottomrule
+\end{tabular}
+\caption{Gibbs blocks, dimensions, and conjugacy classification for the
+Q--DESN exAL model at a fixed quantile level $p$.}
+\label{tab:blocks-conjugacy}
+\end{table}
+
+\section{Mean-field Variational Bayes and CAVI Updates}
+\label{sec:cavi}
+
+We now construct a mean-field variational approximation and derive
+coordinate ascent variational inference (CAVI) updates for each block.
+Throughout this section expectations with respect to the current
+variational distribution $q$ are denoted by $\E_q[\cdot]$, and
+$\E_{q_{-i}}[\cdot]$ abbreviates the expectation with respect to all
+blocks except the $i$th one.
+
+\subsection{Mean-field factorization and ELBO}
+\label{subsec:mf-elbo}
+
+We adopt the following mean-field family:
+\begin{equation}
+  q(\Theta,\vect{z})
+  =
+  q_\beta(\vect{\beta})\,
+  q_{\sigma,\gamma}(\sigma,\gamma)\,
+  q_{\lambda,\tau,c^2}(\vect{\lambda},\tau,c^2)\,
+  \prod_{t=1}^T
+    q_{v_t}(v_t)\,q_{s_t}(s_t),
+  \label{eq:mf-factorization}
+\end{equation}
+with all factors mutually independent.  The variational objective is the
+evidence lower bound (ELBO)
+\[
+  \mathcal{L}(q)
+  = \E_q\!\big[\log p(\vect{y},\vect{z},\Theta)\big]
+    - \E_q\!\big[\log q(\Theta,\vect{z})\big],
+\]
+where $\log p(\vect{y},\vect{z},\Theta)$ is given by the log-joint
+expression~\eqref{eq:log-joint}.  Under mean-field, the optimal factor
+for block $\theta_i$ satisfies
+\[
+  \log q_i^\star(\theta_i)
+  =
+  \E_{q_{-i}}\!\big[\log p(\vect{y},\vect{z},\Theta)\big]
+  + \text{const in $\theta_i$},
+\]
+so each CAVI update amounts to computing
+$\E_{q_{-i}}[\log p(\vect{y},\vect{z},\Theta)]$ restricted to the terms
+involving that block and recognizing the resulting kernel.
+
+For the non-conjugate scale blocks we actually parameterize the
+variational factors on unconstrained coordinates.  Specifically,
+$q_{\sigma,\gamma}$ is implemented as a Gaussian law on
+$\boldsymbol{\eta}_{\sigma,\gamma}=(\rho,\xi)^\top$, with
+$\rho=\log\sigma$ and $\xi$ the logit transform of $\gamma$ in
+\eqref{eq:vb-trans-sigmagamma}, and
+$q_{\lambda,\tau,c^2}$ is implemented as a Gaussian law on the
+log-scales
+$\boldsymbol{\eta}_{\lambda,\tau,c^2}$ introduced below.  For
+notational simplicity we keep the symbols $q_{\sigma,\gamma}$ and
+$q_{\lambda,\tau,c^2}$, and all entropies and Laplace--Delta
+expectations involving these factors are to be understood on the
+corresponding unconstrained coordinates.
+
+\subsection{Conjugate blocks: closed-form CAVI updates}
+\label{subsec:cavi-conjugate}
+
+The blocks $\vect{\beta}$, $v_t$ and $s_t$ are conditionally conjugate
+given the other blocks.  The corresponding variational factors remain in
+the same families as the Gibbs full conditionals, with parameters
+replaced by expectations under $q$.
+
+\subsubsection*{Update for $q_\beta(\vect{\beta})$}
+
+Recall the conditional Gaussian representation
+\[
+  y_t
+  \mid \vect{x}_t,\vect{\beta},\sigma,\gamma,v_t,s_t
+  \sim
+  N\big(m_t,\tau_t^2\big),
+  \quad
+  m_t
+  = \vect{x}_t^\top\vect{\beta}
+    + \sigma C(\gamma)|\gamma|s_t + A(\gamma)v_t,
+  \quad
+  \tau_t^2
+  = \sigma B(\gamma)v_t.
+\]
+Introduce the random weights and ``offset-corrected'' responses
+\begin{align*}
+  w_t
+  &= \frac{1}{\tau_t^2}
+   = \frac{1}{\sigma B(\gamma)v_t},
+  &
+  y_t^\star
+  &= y_t - \sigma C(\gamma)|\gamma|s_t - A(\gamma)v_t.
+\end{align*}
+Let $\mat{W} = \mathrm{diag}(w_1,\dots,w_T)$ and
+$\vect{y}^\star=(y_1^\star,\dots,y_T^\star)^\top$.  The pieces of the
+log-joint that depend on $\vect{\beta}$ (cf.~\eqref{eq:log-joint}) are
+\[
+  \log p(\vect{y}\mid\cdot) + \log p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)
+  = -\frac{1}{2}
+    \big(\vect{y}^\star - \mat{X}\vect{\beta}\big)^\top
+    \mat{W}\big(\vect{y}^\star - \mat{X}\vect{\beta}\big)
+    -\frac{1}{2}\vect{\beta}^\top\mat{D}^{-1}\vect{\beta}
+    + \text{const},
+\]
+where $\mat{D}=\mathrm{diag}(V_1,\dots,V_k)$ and
+$V_j=V_j(\lambda_j,\tau,c^2)$ is given by~\eqref{eq:Vj-step0}.
+
+Taking $\E_{q_{-\beta}}[\cdot]$ and using the fact that $\mat{X}$ is
+deterministic, we obtain
+\begin{align*}
+  \E_{q_{-\beta}}\!\big[\log p(\vect{y},\vect{z},\Theta)\big]
+  &= -\frac{1}{2}\vect{\beta}^\top
+       \Big(\mat{X}^\top\bar{\mat{W}}\mat{X}
+           + \bar{\mat{D}}^{-1}\Big)\vect{\beta}
+     + \vect{\beta}^\top \mat{X}^\top\bar{\vect{m}}
+     + \text{const},
+\end{align*}
+where we have defined the \emph{effective weights}, \emph{effective
+design precision}, and \emph{weighted response}
+\begin{align}
+  \bar{w}_t
+  &= \E_q[w_t]
+   = \E_q\!\left[\frac{1}{\sigma B(\gamma)v_t}\right],
+  &
+  \bar{\mat{W}}
+  &= \mathrm{diag}(\bar{w}_1,\dots,\bar{w}_T),
+  \label{eq:vb-wbar}
+  \\[3pt]
+  \bar{\mat{D}}^{-1}
+  &= \E_q[\mat{D}^{-1}]
+   = \mathrm{diag}\Big(\E_q[1/V_1],\dots,\E_q[1/V_k]\Big),
+  \label{eq:vb-Dbar}
+  \\[3pt]
+  \bar{m}_t
+  &= \E_q[w_t y_t^\star]
+   = \E_q\!\left[
+        \frac{y_t - \sigma C(\gamma)|\gamma|s_t - A(\gamma)v_t}
+             {\sigma B(\gamma)v_t}
+      \right],
+  &
+  \bar{\vect{m}}
+  &= (\bar{m}_1,\dots,\bar{m}_T)^\top.
+  \label{eq:vb-mbar}
+\end{align}
+All expectations involve only low-order moments of the other blocks and
+smooth functions of $(\sigma,\gamma,\vect{\lambda},\tau,c^2)$; in
+practice we compute them via combinations of closed-form moments for
+$q_{v_t}$ and $q_{s_t}$ and Laplace--Delta approximations for the global
+scale blocks (see Section~\ref{subsec:cavi-laplace}).
+
+Recognizing the kernel as quadratic in $\vect{\beta}$, the optimal
+variational factor is multivariate normal,
+\begin{align}
+  q_\beta(\vect{\beta})
+  &= N_k\big(\vect{\mu}_\beta,\mat{\Sigma}_\beta\big),
+  \label{eq:vb-qbeta}\\
+  \mat{\Sigma}_\beta
+  &= \Big(\mat{X}^\top\bar{\mat{W}}\mat{X}
+          + \bar{\mat{D}}^{-1}\Big)^{-1},
+  \label{eq:vb-Sigmabeta}\\
+  \vect{\mu}_\beta
+  &= \mat{\Sigma}_\beta\,\mat{X}^\top\bar{\vect{m}}.
+  \label{eq:vb-mubeta}
+\end{align}
+The moments needed elsewhere are
+$\E_q[\vect{\beta}]=\vect{\mu}_\beta$ and
+$\E_q[\beta_j^2]=\mu_{\beta,j}^2 + (\mat{\Sigma}_\beta)_{jj}$.
+
+\subsubsection*{Update for $q_{v_t}(v_t)$}
+
+From the Gibbs block analysis we found that, conditionally on the other
+blocks, the full conditional for $v_t$ is a GIG kernel with index
+$\lambda=1/2$:
+\[
+  p(v_t\mid\text{rest})
+  \propto
+  v_t^{-1/2}
+  \exp\!\left\{
+    -\tfrac12\big(\psi_t v_t + \chi_t/v_t\big)
+  \right\}\mathbbm{1}(v_t>0),
+\]
+with
+\begin{align*}
+  \delta_t
+  &= y_t - \vect{x}_t^\top\vect{\beta}
+         - \sigma C(\gamma)|\gamma|s_t,\\
+  \psi_t
+  &= \frac{A(\gamma)^2}{\sigma B(\gamma)} + \frac{2}{\sigma},\\
+  \chi_t
+  &= \frac{\delta_t^2}{\sigma B(\gamma)}.
+\end{align*}
+These expressions are affine or quadratic in $(\vect{\beta},s_t)$ and
+smooth in $(\sigma,\gamma)$.
+
+Taking $\E_{q_{-v_t}}[\cdot]$,
+\begin{align*}
+  \E_{q_{-v_t}}\!\big[\log p(\vect{y},\vect{z},\Theta)\big]
+  &= -\frac{1}{2}\log v_t
+     -\frac{1}{2}\big(\bar{\psi}_t v_t + \bar{\chi}_t/v_t\big)
+     + \text{const},
+\end{align*}
+where
+\begin{align}
+  \bar{\psi}_t
+  &= \E_q[\psi_t]
+   = \E_q\!\left[\frac{A(\gamma)^2}{\sigma B(\gamma)}
+                 + \frac{2}{\sigma}\right],
+  \label{eq:vb-psibar}\\
+  \bar{\chi}_t
+  &= \E_q[\chi_t]
+   = \E_q\!\left[\frac{\delta_t^2}{\sigma B(\gamma)}\right].
+  \label{eq:vb-chibar}
+\end{align}
+Hence the optimal variational factor is again GIG,
+\begin{equation}
+  q_{v_t}(v_t)
+  = \GIG\!\left(\frac{1}{2},\,\bar{\chi}_t,\,\bar{\psi}_t\right),
+  \qquad t=1,\dots,T.
+  \label{eq:vb-qvt}
+\end{equation}
+The required moments for other updates are $\E_q[v_t]$ and
+$\E_q[1/v_t]$, which are available in closed form for the
+$\GIG(\lambda,\chi,\psi)$ family via standard special-function
+expressions.  We denote
+\[
+  m_{1,t}^{(v)} = \E_q[v_t],
+  \qquad
+  m_{-1,t}^{(v)} = \E_q[1/v_t].
+\]
+
+\subsubsection*{Update for $q_{s_t}(s_t)$}
+
+Recall that conditionally on the other blocks the log-kernel for $s_t$
+is quadratic,
+\[
+  \ell_{s_t}(s_t)
+  = -\frac{1}{2}a_t s_t^2 + b_t s_t + \text{const},
+  \quad s_t>0,
+\]
+with
+\begin{align*}
+  \mu_{0t}
+  &= y_t - \vect{x}_t^\top\vect{\beta} - A(\gamma)v_t,\\
+  C_\gamma
+  &= C(\gamma)|\gamma|,\\
+  a_t
+  &= 1 + \frac{\sigma C_\gamma^2}{B(\gamma)v_t},\\
+  b_t
+  &= \frac{\mu_{0t} C_\gamma}{B(\gamma)v_t}.
+\end{align*}
+Taking $\E_{q_{-s_t}}[\cdot]$ we obtain
+\[
+  \E_{q_{-s_t}}\!\big[\log p(\vect{y},\vect{z},\Theta)\big]
+  = -\frac{1}{2}\bar{a}_t s_t^2 + \bar{b}_t s_t + \text{const},
+  \quad s_t>0,
+\]
+where
+\begin{align}
+  \bar{a}_t
+  &= \E_q[a_t]
+   = 1 + \E_q\!\left[
+         \frac{\sigma C_\gamma^2}{B(\gamma)v_t}
+       \right],
+  \label{eq:vb-abar}\\
+  \bar{b}_t
+  &= \E_q[b_t]
+   = \E_q\!\left[
+         \frac{\mu_{0t} C_\gamma}{B(\gamma)v_t}
+       \right].
+  \label{eq:vb-bbar}
+\end{align}
+Ignoring the truncation, the natural parameters correspond to a normal
+distribution with mean and variance
+\begin{equation}
+  m_t^{(0)} = \frac{\bar{b}_t}{\bar{a}_t},
+  \qquad
+  v_t^{(0)} = \frac{1}{\bar{a}_t}.
+  \label{eq:vb-st-unt}
+\end{equation}
+The prior $s_t\sim\N^+(0,1)$ imposes the truncation $s_t>0$, so the
+optimal factor is a one-sided truncated normal:
+\begin{equation}
+  q_{s_t}(s_t)
+  = N\!\big(m_t^{(0)},v_t^{(0)}\big)\ \text{truncated to }(0,\infty),
+  \qquad t=1,\dots,T.
+  \label{eq:vb-qst}
+\end{equation}
+The corresponding first and second moments,
+\[
+  m_t^{(s)} = \E_q[s_t],
+  \qquad
+  v_t^{(s)} = \E_q[s_t^2],
+\]
+are obtained from the usual truncated-normal formulas in terms of
+$m_t^{(0)}$ and $v_t^{(0)}$ and are reused in the updates of the other
+blocks.
+
+\subsection{Non-conjugate blocks and Laplace--Delta approximation}
+\label{subsec:cavi-laplace}
+
+The blocks $(\sigma,\gamma)$ and $(\vect{\lambda},\tau,c^2)$ have
+non-conjugate kernels, but they are of moderate dimension and smooth.
+We approximate their variational factors via a Laplace--Delta strategy
+on suitable transformed parameters.
+
+\subsubsection*{Block $(\sigma,\gamma)$}
+
+We work on unconstrained coordinates
+\[
+  \rho = \log\sigma,
+  \qquad
+  \xi = \log\frac{\gamma - L}{U - \gamma},
+\]
+so that
+\begin{align}
+  \sigma(\rho) &= \exp(\rho),
+  &
+  \gamma(\xi)
+  &= L + (U-L)\,\frac{\exp(\xi)}{1+\exp(\xi)},
+  \label{eq:vb-trans-sigmagamma}
+\end{align}
+and we collect them as
+$\boldsymbol{\eta}_{\sigma,\gamma} = (\rho,\xi)^\top \in \R^2$.
+Let $g_{\sigma,\gamma}^{-1} : \R^2 \to (0,\infty)\times(L,U)$ denote the
+map $\boldsymbol{\eta}_{\sigma,\gamma} \mapsto (\sigma(\rho),\gamma(\xi))$,
+and
+\[
+  J_{\sigma,\gamma}(\boldsymbol{\eta}_{\sigma,\gamma})
+  =
+  \frac{\partial(\sigma,\gamma)}{\partial(\rho,\xi)}
+\]
+its Jacobian matrix. A short calculation yields
+\[
+  \log\big|J_{\sigma,\gamma}(\boldsymbol{\eta}_{\sigma,\gamma})\big|
+  = \rho
+    + \log(U-L)
+    + \xi
+    - 2\log\big(1+\exp(\xi)\big).
+\]
+
+Recall the $(\sigma,\gamma)$ log-kernel
+$\ell_{\sigma,\gamma}(\sigma,\gamma)$ given in~\eqref{eq:sigmagamma-kernel}.
+The expected log-kernel on the transformed scale is
+\[
+  f(\rho,\xi)
+  =
+  \E_{q_{-(\sigma,\gamma)}}\!\big[
+    \ell_{\sigma,\gamma}\big(\sigma(\rho),\gamma(\xi)\big)
+  \big]
+  + \log\big|J_{\sigma,\gamma}(\boldsymbol{\eta}_{\sigma,\gamma})\big|.
+\]
+The optimal variational factor on the transformed coordinates satisfies
+\[
+  \log q_{\sigma,\gamma}^\star(\rho,\xi)
+  = f(\rho,\xi) + \text{const}.
+\]
+
+We approximate $q_{\sigma,\gamma}^\star$ via a second-order Taylor
+expansion of $f$ around its maximizer
+\[
+  \hat{\boldsymbol{\eta}}_{\sigma,\gamma}
+  = (\hat{\rho},\hat{\xi})^\top
+  = \arg\max_{\boldsymbol{\eta}_{\sigma,\gamma}} f(\rho,\xi).
+\]
+Define the observed-information matrix (precision) at the mode and its
+inverse covariance as
+\[
+  \mat{H}_{\sigma,\gamma}
+  =
+  -\nabla^2 f(\boldsymbol{\eta}_{\sigma,\gamma})
+     \big|_{\boldsymbol{\eta}_{\sigma,\gamma}
+             =\hat{\boldsymbol{\eta}}_{\sigma,\gamma}},
+  \qquad
+  \mat{K}_{\sigma,\gamma}
+  = \mat{H}_{\sigma,\gamma}^{-1}.
+\]
+Since $\nabla f(\hat{\boldsymbol{\eta}}_{\sigma,\gamma})=\mathbf{0}$,
+we have the quadratic approximation
+\[
+  f(\boldsymbol{\eta}_{\sigma,\gamma})
+  \approx
+  f(\hat{\boldsymbol{\eta}}_{\sigma,\gamma})
+  - \frac{1}{2}
+    (\boldsymbol{\eta}_{\sigma,\gamma}
+     - \hat{\boldsymbol{\eta}}_{\sigma,\gamma})^\top
+    \mat{H}_{\sigma,\gamma}
+    (\boldsymbol{\eta}_{\sigma,\gamma}
+     - \hat{\boldsymbol{\eta}}_{\sigma,\gamma}).
+\]
+
+Writing $\boldsymbol{\eta}_{\sigma,\gamma}=(\rho,\xi)^\top$, the
+variational density on the transformed scale can be expressed in the
+canonical quadratic form
+\begin{equation}
+  \log q_{\sigma,\gamma}(\rho,\xi)
+  =
+  c_{\sigma,\gamma}
+  + \vect{d}_{\sigma,\gamma}^\top \boldsymbol{\eta}_{\sigma,\gamma}
+  - \frac{1}{2}
+      \boldsymbol{\eta}_{\sigma,\gamma}^\top
+      \mat{H}_{\sigma,\gamma}
+      \boldsymbol{\eta}_{\sigma,\gamma},
+  \label{eq:vb-sigmagamma-cd}
+\end{equation}
+with natural parameters
+\begin{align}
+  \vect{d}_{\sigma,\gamma}
+  &= \mat{H}_{\sigma,\gamma}\,\hat{\boldsymbol{\eta}}_{\sigma,\gamma},
+  \label{eq:vb-sigmagamma-d}\\
+  c_{\sigma,\gamma}
+  &= -\frac{1}{2}\log\big((2\pi)^2\det\mat{K}_{\sigma,\gamma}\big)
+     -\frac{1}{2}\,
+       \hat{\boldsymbol{\eta}}_{\sigma,\gamma}^\top
+       \mat{H}_{\sigma,\gamma}
+       \hat{\boldsymbol{\eta}}_{\sigma,\gamma}.
+  \label{eq:vb-sigmagamma-c}
+\end{align}
+In particular, the mean and covariance of this Gaussian factor are
+\[
+  \E_q[\boldsymbol{\eta}_{\sigma,\gamma}]
+  = \hat{\boldsymbol{\eta}}_{\sigma,\gamma},
+  \qquad
+  \Var_q(\boldsymbol{\eta}_{\sigma,\gamma})
+  = \mat{K}_{\sigma,\gamma},
+\]
+so we can equivalently write
+\begin{equation}
+  q_{\sigma,\gamma}(\boldsymbol{\eta}_{\sigma,\gamma})
+  \approx
+  N_2\!\big(
+    \hat{\boldsymbol{\eta}}_{\sigma,\gamma},
+    \mat{K}_{\sigma,\gamma}
+  \big).
+  \label{eq:vb-q-sigmagamma}
+\end{equation}
+
+The corresponding density on the original $(\sigma,\gamma)$ scale is
+obtained by the usual change-of-variables,
+\[
+  q_{\sigma,\gamma}(\sigma,\gamma)
+  =
+  q_{\sigma,\gamma}\big(\boldsymbol{\eta}_{\sigma,\gamma}(\sigma,\gamma)\big)\,
+  \big|J_{\sigma,\gamma}(\boldsymbol{\eta}_{\sigma,\gamma}(\sigma,\gamma))\big|^{-1},
+\]
+but in our implementation we always work with the Gaussian
+representation~\eqref{eq:vb-sigmagamma-cd}--\eqref{eq:vb-q-sigmagamma}
+on the unconstrained $(\rho,\xi)$ coordinates.  Moments of smooth
+functions of $(\sigma,\gamma)$ needed elsewhere (e.g.
+$\E_q[\sigma],\E_q[1/\sigma],\E_q[1/(\sigma B(\gamma))]$) are then
+computed via the delta method under the Gaussian
+approximation~\eqref{eq:vb-q-sigmagamma}.
+
+\subsubsection*{Block $(\vect{\lambda},\tau,c^2)$}
+
+All scale parameters are positive, so we similarly work on the log-scale:
+\begin{align}
+  \eta_{\lambda,j} &= \log\lambda_j,\quad j=1,\dots,k,\\
+  \eta_\tau        &= \log\tau,\\
+  \eta_c           &= \log c^2,
+\end{align}
+collecting them into
+$\boldsymbol{\eta}_{\lambda,\tau,c^2}
+ \in\R^{k+2}$.  Let $g_{\lambda,\tau,c^2}^{-1}$ be the map from
+$\boldsymbol{\eta}_{\lambda,\tau,c^2}$ to
+$(\vect{\lambda},\tau,c^2)$ and
+$J_{\lambda,\tau,c^2}(\boldsymbol{\eta}_{\lambda,\tau,c^2})$ its
+Jacobian.  Because the transform is diagonal,
+\begin{equation}
+  \log\big|J_{\lambda,\tau,c^2}(\boldsymbol{\eta}_{\lambda,\tau,c^2})\big|
+  = \sum_{j=1}^k \eta_{\lambda,j} + \eta_\tau + \eta_c.
+  \label{eq:jac-lambda-tau-c2}
+\end{equation}
+The transformed log-kernel is then
+\[
+  \tilde{\ell}_{\lambda,\tau,c^2}(\boldsymbol{\eta}_{\lambda,\tau,c^2})
+  =
+  \E_{q_{-(\vect{\lambda},\tau,c^2)}}\!\big[
+    \log p(\vect{y},\vect{z},\Theta)
+  \big]
+  + \log\big|J_{\lambda,\tau,c^2}(\boldsymbol{\eta}_{\lambda,\tau,c^2})\big|.
+\]
+
+The first term collects contributions from
+$p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)$ and the hyperpriors
+$p(\vect{\lambda})p(\tau)p(c^2)$, see
+\eqref{eq:lambda-tau-c2-kernel}, with $\vect{\beta}$ integrated out
+under $q_\beta$ via the moments
+$\E_q[\beta_j^2]=\mu_{\beta,j}^2+(\mat{\Sigma}_\beta)_{jj}$.
+
+As in the $(\sigma,\gamma)$ block, we locate the mode and Hessian,
+\begin{align*}
+  \hat{\boldsymbol{\eta}}_{\lambda,\tau,c^2}
+  &= \arg\max_{\boldsymbol{\eta}_{\lambda,\tau,c^2}}
+      \tilde{\ell}_{\lambda,\tau,c^2}(
+        \boldsymbol{\eta}_{\lambda,\tau,c^2}
+      ),\\
+  \mat{H}_{\lambda,\tau,c^2}
+  &= -\nabla^2 \tilde{\ell}_{\lambda,\tau,c^2}(
+       \boldsymbol{\eta}_{\lambda,\tau,c^2}
+     )\big|_{\boldsymbol{\eta}
+             =\hat{\boldsymbol{\eta}}_{\lambda,\tau,c^2}}.
+\end{align*}
+The variational factor is then approximated as
+\begin{equation}
+  q_{\lambda,\tau,c^2}(\boldsymbol{\eta}_{\lambda,\tau,c^2})
+  \approx
+  N_{k+2}\!\big(
+    \hat{\boldsymbol{\eta}}_{\lambda,\tau,c^2},
+    \mat{H}_{\lambda,\tau,c^2}^{-1}
+  \big).
+  \label{eq:vb-q-lambda}
+\end{equation}
+Moments of $V_j(\lambda_j,\tau,c^2)$ and $1/V_j$ appearing in
+\eqref{eq:vb-Dbar} are again computed via delta approximations based on
+the Gaussian law~\eqref{eq:vb-q-lambda}.
+
+\subsection{CAVI algorithm summary}
+\label{subsec:cavi-summary}
+
+At a fixed quantile level $p$, one CAVI iteration proceeds as follows.
+
+\begin{enumerate}
+  \item \textbf{Update $q_\beta(\vect{\beta})$.}  
+  Compute the effective weights $\bar{w}_t$ and weighted responses
+  $\bar{m}_t$ from the current variational moments of
+  $(\sigma,\gamma)$, $v_t$, and $s_t$ via
+  \eqref{eq:vb-wbar}--\eqref{eq:vb-mbar}, and the effective prior
+  precision $\bar{\mat{D}}^{-1}$ via~\eqref{eq:vb-Dbar}.  Then update
+  $(\vect{\mu}_\beta,\mat{\Sigma}_\beta)$ using
+  \eqref{eq:vb-Sigmabeta}--\eqref{eq:vb-mubeta}.
+
+  \item \textbf{Update all $q_{v_t}(v_t)$, $t=1,\dots,T$.}  
+  Using the current moments of $(\vect{\beta},\sigma,\gamma,s_t)$,
+  compute $\bar{\psi}_t$ and $\bar{\chi}_t$ via
+  \eqref{eq:vb-psibar}--\eqref{eq:vb-chibar}.  Set
+  $q_{v_t}$ to the GIG factor~\eqref{eq:vb-qvt} and update the moments
+  $m_{1,t}^{(v)}=\E_q[v_t]$ and $m_{-1,t}^{(v)}=\E_q[1/v_t]$.
+
+  \item \textbf{Update all $q_{s_t}(s_t)$, $t=1,\dots,T$.}  
+  Using the current moments of $(\vect{\beta},\sigma,\gamma,v_t)$,
+  compute $\bar{a}_t$ and $\bar{b}_t$ via
+  \eqref{eq:vb-abar}--\eqref{eq:vb-bbar}.  Form
+  $(m_t^{(0)},v_t^{(0)})$ in~\eqref{eq:vb-st-unt} and update
+  $q_{s_t}$ as the truncated normal in~\eqref{eq:vb-qst}.  Record the
+  truncated-normal moments $m_t^{(s)}=\E_q[s_t]$ and
+  $v_t^{(s)}=\E_q[s_t^2]$.
+
+  \item \textbf{Update $q_{\sigma,\gamma}(\sigma,\gamma)$ via Laplace--Delta.}  
+  On the transformed scale $\boldsymbol{\eta}_{\sigma,\gamma}$,
+  construct $\tilde{\ell}_{\sigma,\gamma}$ by combining the expected
+  likelihood, the exponential prior for $v_t$, and the hyperpriors for
+  $(\sigma,\gamma)$ plus the Jacobian term, as in
+  Section~\ref{subsec:cavi-laplace}.  Maximize
+  $\tilde{\ell}_{\sigma,\gamma}$ and compute the Hessian at the mode to
+  obtain the Gaussian approximation~\eqref{eq:vb-q-sigmagamma}.  Use
+  this Gaussian and the delta method to update all moments of
+  functions of $(\sigma,\gamma)$ needed in the previous steps.
+
+  \item \textbf{Update $q_{\lambda,\tau,c^2}(\vect{\lambda},\tau,c^2)$ via Laplace--Delta.}  
+  On the log-scale $\boldsymbol{\eta}_{\lambda,\tau,c^2}$, assemble
+  $\tilde{\ell}_{\lambda,\tau,c^2}$ from the expected
+  $p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)$ and the hyperpriors
+  $p(\vect{\lambda})p(\tau)p(c^2)$ plus the Jacobian, using the current
+  moments of $q_\beta$.  Maximize and compute the Hessian to obtain the
+  Gaussian approximation~\eqref{eq:vb-q-lambda}, then apply the delta
+  method to update the needed moments of $V_j$ and $1/V_j$.
+\end{enumerate}
+
+These five steps are iterated until convergence, for example when the
+increment in the ELBO $\mathcal{L}(q)$ or the relative change in key
+variational moments falls below a prescribed tolerance.  The conjugate
+blocks $(\vect{\beta},\vect{v},\vect{s})$ admit exact closed-form
+updates, while the low-dimensional non-conjugate blocks
+$(\sigma,\gamma)$ and $(\vect{\lambda},\tau,c^2)$ are handled by
+Gaussian Laplace approximations on transformed coordinates, with
+delta-method corrections supplying the moments that couple the blocks
+through the exAL hierarchy and the regularized horseshoe prior.
+
+\section{Evidence Lower Bound (ELBO)}
+\label{sec:elbo}
+
+Given the mean-field factorization~\eqref{eq:mf-factorization}, the
+evidence lower bound (ELBO) is
+\begin{equation}
+  \mathcal{L}(q)
+  =
+  \E_q\!\big[\log p(\vect{y},\vect{z},\Theta)\big]
+  - \E_q\!\big[\log q(\vect{z},\Theta)\big],
+  \label{eq:elbo-def}
+\end{equation}
+where $\log p(\vect{y},\vect{z},\Theta)$ is the log-joint density derived
+in Section~\ref{sec:full-conditionals}.  We organize
+$\mathcal{L}(q)$ in block form, matching the hierarchical structure of
+the model.
+
+When working with the transformed coordinates
+$\boldsymbol{\eta}_{\sigma,\gamma}=(\rho,\xi)^\top$ and
+$\boldsymbol{\eta}_{\lambda,\tau,c^2}$ introduced in
+Section~\ref{subsec:cavi-laplace}, it is convenient to regard the target
+density as a joint law on $(\boldsymbol{\eta}_{\sigma,\gamma},
+\boldsymbol{\eta}_{\lambda,\tau,c^2})$.  Concretely, we define the
+reparameterized log-joint
+\[
+  \log p_\eta(\vect{y},\vect{z},\boldsymbol{\eta})
+  =
+  \log p\big(\vect{y},\vect{z},\Theta(\boldsymbol{\eta})\big)
+  + \log\big|J_{\sigma,\gamma}(
+      \boldsymbol{\eta}_{\sigma,\gamma}
+    )\big|
+  + \log\big|J_{\lambda,\tau,c^2}(
+      \boldsymbol{\eta}_{\lambda,\tau,c^2}
+    )\big|,
+\]
+where $\Theta(\boldsymbol{\eta})$ is the inverse transform from
+unconstrained to constrained parameters and the Jacobians
+$J_{\sigma,\gamma}$ and $J_{\lambda,\tau,c^2}$ are given in
+\eqref{eq:vb-trans-sigmagamma} and \eqref{eq:jac-lambda-tau-c2}.  The
+ELBO we work with is then
+\[
+  \mathcal{L}(q)
+  =
+  \E_q\!\big[\log p_\eta(\vect{y},\vect{z},\boldsymbol{\eta})\big]
+  - \E_q\!\big[\log q(\vect{z},\boldsymbol{\eta})\big],
+\]
+which is equal to \eqref{eq:elbo-def} after the change of variables.  For
+notational simplicity we continue to write $p(\sigma,\gamma)$ and
+$p(\vect{\lambda},\tau,c^2)$ in the block decomposition below, with the
+understanding that their Jacobian contributions are always included via
+$p_\eta$.
+
+\subsection{Block decomposition}
+\label{subsec:elbo-block}
+
+Using the factorization
+\[
+  p(\vect{y},\vect{z},\Theta)
+  =
+  p(\vect{y}\mid\vect{\beta},\sigma,\gamma,\vect{v},\vect{s})\,
+  p(\vect{v}\mid\sigma)\,p(\vect{s})\,
+  p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)\,
+  p(\vect{\lambda},\tau,c^2)\,
+  p(\sigma,\gamma),
+\]
+and the variational family~\eqref{eq:mf-factorization}, we write:
+\begin{equation}
+\begin{aligned}
+  \mathcal{L}(q)
+  &=
+    \underbrace{
+      \E_q\!\big[\log p(\vect{y}\mid\vect{\beta},\sigma,\gamma,\vect{v},\vect{s})\big]
+    }_{\mathcal{L}_y}
+  + \underbrace{
+      \E_q\!\big[\log p(\vect{v}\mid\sigma)\big]
+      + \E_q\!\big[\log p(\vect{s})\big]
+    }_{\mathcal{L}_{v,s}}
+  \\[3pt]
+  &\quad
+  + \underbrace{
+      \E_q\!\big[\log p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)\big]
+    }_{\mathcal{L}_\beta}
+  + \underbrace{
+      \E_q\!\big[\log p(\vect{\lambda},\tau,c^2)\big]
+    }_{\mathcal{L}_{\lambda,\tau,c^2}}
+  + \underbrace{
+      \E_q\!\big[\log p(\sigma,\gamma)\big]
+    }_{\mathcal{L}_{\sigma,\gamma}}
+  \\[3pt]
+    &\quad
+  - \underbrace{
+      \E_q\!\big[\log q_\beta(\vect{\beta})\big]
+      + \sum_{t=1}^T \E_q\!\big[\log q_{v_t}(v_t)\big]
+      + \sum_{t=1}^T \E_q\!\big[\log q_{s_t}(s_t)\big]
+    }_{\mathcal{H}_{\beta,v,s}}
+  \\[2pt]
+  &\quad
+  - \underbrace{
+      \E_q\!\big[\log q_{\sigma,\gamma}(\sigma,\gamma)\big]
+      + \E_q\!\big[\log q_{\lambda,\tau,c^2}(\vect{\lambda},\tau,c^2)\big]
+    }_{\mathcal{H}_{\sigma,\gamma,\lambda,\tau,c^2}}.
+
+\end{aligned}
+\label{eq:elbo-block}
+\end{equation}
+We now detail each contribution and indicate which pieces are closed-form
+and which require Laplace--Delta approximations.
+
+\subsection{Closed-form contributions}
+\label{subsec:elbo-closed}
+
+\paragraph{(i) Entropies of Gaussian factors.}
+The variational factors
+$q_\beta(\vect{\beta}) = N_k(\vect{\mu}_\beta,\mat{\Sigma}_\beta)$,
+$q_{\sigma,\gamma}$ and $q_{\lambda,\tau,c^2}$ are Gaussian on their
+unconstrained coordinates
+$\boldsymbol{\eta}_{\sigma,\gamma}$ and
+$\boldsymbol{\eta}_{\lambda,\tau,c^2}$, respectively.  If a Gaussian
+factor has dimension $d$ and covariance matrix $\mat{\Sigma}$ on its
+working coordinates, then
+\[
+  \E_q[\log q(\cdot)]
+  = -\frac{1}{2}\Big(
+      d(1+\log 2\pi) + \log|\mat{\Sigma}|
+    \Big).
+\]
+
+Thus
+\begin{align}
+  \E_q\!\big[\log q_\beta(\vect{\beta})\big]
+  &= -\frac{1}{2}\Big(
+        k(1+\log 2\pi) + \log|\mat{\Sigma}_\beta|
+      \Big),
+  \label{eq:elbo-qbeta-entropy}
+\end{align}
+and analogously for $q_{\sigma,\gamma}$ and $q_{\lambda,\tau,c^2}$, with
+$d=2$ and $d=k+2$ and covariance matrices
+$\mat{\Sigma}_{\sigma,\gamma} = \mat{K}_{\sigma,\gamma}$ and
+$\mat{\Sigma}_{\lambda,\tau,c^2}=\mat{H}_{\lambda,\tau,c^2}^{-1}$,
+respectively.
+
+\paragraph{(ii) Entropy of $q_{v_t}(v_t)$ (GIG).}
+For $v_t\sim\GIG(\lambda,\chi,\psi)$ we have
+\[
+  q_{v_t}(v_t)
+  = \frac{(\psi/\chi)^{\lambda/2}}{2K_\lambda(\sqrt{\chi\psi})}\,
+    v_t^{\lambda-1}\exp\!\Big\{-\tfrac{1}{2}(\psi v_t + \chi/v_t)\Big\},
+\]
+where $K_\lambda$ is the modified Bessel function of the second kind.  In
+our case $\lambda=1/2$ and the GIG parameters are
+$(\chi,\psi)=(\bar{\chi}_t,\bar{\psi}_t)$
+from~\eqref{eq:vb-qvt}.  A standard calculation yields
+\begin{equation}
+  \E_q\!\big[\log q_{v_t}(v_t)\big]
+  =
+  h_{\mathrm{GIG}}\big(\tfrac12,\bar{\chi}_t,\bar{\psi}_t\big),
+  \label{eq:elbo-qv-entropy}
+\end{equation}
+where $h_{\mathrm{GIG}}$ is a known closed-form function involving
+$K_{1/2}$ and its derivatives.  In practice we evaluate
+$h_{\mathrm{GIG}}$ via stable special-function routines.
+
+\paragraph{(iii) Entropy of $q_{s_t}(s_t)$ (truncated normal).}
+Let $Z\simN(m_t^{(0)},v_t^{(0)})$ truncated to $(0,\infty)$, as in
+\eqref{eq:vb-qst}, and denote its pdf by $f_{TN}$.  Then
+\[
+  q_{s_t}(s_t) = f_{TN}(s_t\mid m_t^{(0)},v_t^{(0)}),
+  \qquad s_t>0,
+\]
+and the entropy is given by
+\begin{equation}
+  \E_q\!\big[\log q_{s_t}(s_t)\big]
+  = h_{\mathrm{TN}}\big(m_t^{(0)},v_t^{(0)}\big),
+  \label{eq:elbo-qs-entropy}
+\end{equation}
+where $h_{\mathrm{TN}}$ has a known expression in terms of the standard
+normal pdf/cdf at the standardized truncation point; explicit formulas
+are routine and omitted for brevity.  Again, this is a deterministic
+function of $(m_t^{(0)},v_t^{(0)})$ and can be evaluated numerically.
+
+\paragraph{(iv) Prior for $\vect{s}$.}
+The prior $s_t\sim \N^+(0,1)$ has density
+\[
+  p(s_t) = 2\,\phi(s_t)\,\mathbbm{1}(s_t>0),
+\]
+where $\phi$ is the standard normal pdf.  For $s_t>0$ this gives
+\[
+  \log p(s_t)
+  = \log 2 - \frac{1}{2}s_t^2 - \frac{1}{2}\log(2\pi).
+\]
+Hence
+\begin{equation}
+  \E_q\!\big[\log p(\vect{s})\big]
+  = \sum_{t=1}^T
+    \left(
+      \log 2 - \frac{1}{2}\log(2\pi)
+      - \frac{1}{2}\,v_t^{(s)}
+    \right),
+  \label{eq:elbo-ps}
+\end{equation}
+where $v_t^{(s)}=\E_q[s_t^2]$ is the second moment of the truncated-normal
+variational factor $q_{s_t}$.
+
+\paragraph{(v) Prior for $\vect{\beta}$ given $(\vect{\lambda},\tau,c^2)$.}
+From~\eqref{eq:beta-prior-step0},
+\[
+  \log p(\vect{\beta}\mid\vect{\lambda},\tau,c^2)
+  = -\frac{1}{2}
+      \sum_{j=1}^k
+      \left\{
+        \log\big(2\pi V_j(\lambda_j,\tau,c^2)\big)
+        + \frac{\beta_j^2}{V_j(\lambda_j,\tau,c^2)}
+      \right\}.
+\]
+Taking expectations under the mean-field $q$:
+\begin{equation}
+\begin{aligned}
+  \mathcal{L}_\beta
+  &=
+  -\frac{1}{2}
+  \sum_{j=1}^k
+  \left\{
+    \E_q\!\big[\log V_j(\lambda_j,\tau,c^2)\big]
+    + \E_q\!\Big[
+        \frac{\beta_j^2}{V_j(\lambda_j,\tau,c^2)}
+      \Big]
+    + \log(2\pi)
+  \right\}.
+\end{aligned}
+\label{eq:elbo-beta-prior}
+\end{equation}
+The inner expectation in the second term factorizes under the
+mean-field approximation as a product of
+$\E_q[\beta_j^2]=\mu_{\beta,j}^2+(\Sigma_\beta)_{jj}$ and the
+Laplace--Delta approximation of $\E_q[1/V_j]$; see
+Section~\ref{subsec:elbo-laplace}.
+
+\subsection{Likelihood and hierarchical prior terms}
+\label{subsec:elbo-likelihood-priors}
+
+We now write the remaining contributions in a form suitable for
+Laplace--Delta evaluation.
+
+\paragraph{(i) Likelihood term $\mathcal{L}_y$.}
+From the Gaussian exAL representation,
+\[
+  y_t\mid\vect{\beta},\sigma,\gamma,v_t,s_t
+  \sim
+  N\big(m_t,\tau_t^2\big),
+\]
+with $m_t$ and $\tau_t^2$ given by
+\eqref{eq:mean-step0}--\eqref{eq:var-step0}.  Hence
+\begin{align}
+  \log p(\vect{y}\mid\vect{\beta},\sigma,\gamma,\vect{v},\vect{s})
+  &=
+  -\frac{T}{2}\log(2\pi)
+  -\frac{1}{2}\sum_{t=1}^T
+    \left\{
+      \log\big(\sigma B(\gamma)v_t\big)
+      + \frac{\big(y_t - m_t\big)^2}
+             {\sigma B(\gamma)v_t}
+    \right\}.
+  \label{eq:elbo-lik-raw}
+\end{align}
+Thus
+\begin{equation}
+  \mathcal{L}_y
+  =
+  -\frac{T}{2}\log(2\pi)
+  -\frac{1}{2}
+   \sum_{t=1}^T
+   \Big(
+     \E_q[\log\sigma]
+     + \E_q[\log B(\gamma)]
+     + \E_q[\log v_t]
+     + \E_q[g_t(\Theta,\vect{z})]
+   \Big),
+  \label{eq:elbo-lik}
+\end{equation}
+where
+\[
+  g_t(\Theta,\vect{z})
+  :=
+  \frac{\big(y_t - m_t(\vect{\beta},\sigma,\gamma,v_t,s_t)\big)^2}
+       {\sigma B(\gamma)v_t}.
+\]
+The expectations involving $(\sigma,\gamma)$ and the joint nonlinear
+term $\E_q[g_t(\Theta,\vect{z})]$ are evaluated via Laplace--Delta
+approximations (see Section~\ref{subsec:elbo-laplace}).
+
+\paragraph{(ii) Prior for $\vect{v}$ given $\sigma$.}
+From $v_t\mid\sigma \sim \Exp(\text{mean}=\sigma)$,
+\[
+  \log p(\vect{v}\mid\sigma)
+  = \sum_{t=1}^T
+      \big(
+        -\log\sigma - v_t/\sigma
+      \big),
+\]
+so
+\begin{equation}
+  \E_q\!\big[\log p(\vect{v}\mid\sigma)\big]
+  =
+  -T\,\E_q[\log\sigma]
+  - \E_q\!\Big[\frac{1}{\sigma}\Big]\,
+    \sum_{t=1}^T \E_q[v_t].
+  \label{eq:elbo-pv}
+\end{equation}
+Here $\E_q[v_t]=m_{1,t}^{(v)}$ is available in closed form, while
+$\E_q[\log\sigma]$ and $\E_q[1/\sigma]$ are computed from the Gaussian
+$q_{\sigma,\gamma}$ via the delta method.
+
+\paragraph{(iii) Horseshoe hyperpriors.}
+Using the half-Cauchy and inverse-gamma specifications
+\eqref{eq:lambda-prior-step0}--\eqref{eq:c2-prior-step0}:
+\begin{align}
+  \log p(\vect{\lambda})
+  &= \sum_{j=1}^k
+      \log\frac{2}{\pi(1+\lambda_j^2)},
+  &
+  \log p(\tau)
+  &= \log\frac{2}{\pi\tau_0}
+     - \log\Big(1+\frac{\tau^2}{\tau_0^2}\Big),
+  \\
+  \log p(c^2)
+  &= -\Big(\frac{\nu}{2}+1\Big)\log c^2
+     - \frac{\nu s^2}{2c^2}
+     + \text{const},
+\end{align}
+so that
+
+\begin{equation}
+\begin{aligned}
+  \mathcal{L}_{\lambda,\tau,c^2}
+  &=
+    \sum_{j=1}^k
+      \E_q\!\Big[
+        \log\frac{2}{\pi(1+\lambda_j^2)}
+      \Big]
+    + \E_q\!\Big[
+        \log\frac{2}{\pi\tau_0}
+        - \log\Big(1+\frac{\tau^2}{\tau_0^2}\Big)
+      \Big]
+  \\
+  &\quad
+    + \E_q\!\left[
+        -\Big(\frac{\nu}{2}+1\Big)\log c^2
+        - \frac{\nu s^2}{2c^2}
+      \right]
+    + \E_q\!\big[
+        \log\big|J_{\lambda,\tau,c^2}(
+          \boldsymbol{\eta}_{\lambda,\tau,c^2}
+        )\big|
+      \big]
+    + \text{const},
+\end{aligned}
+\label{eq:elbo-hs-hyper}
+\end{equation}
+
+All expectations are functions of $(\vect{\lambda},\tau,c^2)$ and are
+evaluated under the Gaussian approximation
+$q_{\lambda,\tau,c^2}$ via delta-method expansions.
+
+\paragraph{(iv) exAL hyperpriors for $(\sigma,\gamma)$.}
+From~\eqref{eq:sigma-prior-step0}--\eqref{eq:gamma-prior-step0},
+\[
+  \log p(\sigma,\gamma)
+  =
+  \log p(\sigma) + \log p(\gamma),
+\]
+with
+\[
+  \log p(\sigma)
+  =
+  - (a_\sigma+1)\log\sigma
+  - \frac{b_\sigma}{\sigma}
+  + \text{const},
+\]
+and $\log p(\gamma)$ determined by the chosen truncated base density
+$\pi_\gamma$ on $(L,U)$.  Thus
+
+\begin{equation}
+  \mathcal{L}_{\sigma,\gamma}
+  =
+  - (a_\sigma+1)\E_q[\log\sigma]
+  - b_\sigma\,\E_q\!\Big[\frac{1}{\sigma}\Big]
+  + \E_q[\log p(\gamma)]
+  + \E_q\!\big[
+      \log\big|J_{\sigma,\gamma}(
+        \boldsymbol{\eta}_{\sigma,\gamma}
+      )\big|
+    \big]
+  + \text{const}.
+  \label{eq:elbo-sigmagamma-hyper}
+\end{equation}
+
+Again, $\E_q[\log\sigma]$ and $\E_q[1/\sigma]$ are obtained via the
+Gaussian $q_{\sigma,\gamma}$ on the transformed coordinates.
+
+\subsection{Laplace--Delta expectations inside the ELBO}
+\label{subsec:elbo-laplace}
+
+All terms in~\eqref{eq:elbo-lik} and
+\eqref{eq:elbo-beta-prior}--\eqref{eq:elbo-sigmagamma-hyper} that depend
+nonlinearly on $(\sigma,\gamma)$ or $(\vect{\lambda},\tau,c^2)$ are
+evaluated using the same Laplace--Delta machinery used for the CAVI
+updates.
+
+\paragraph{Generic notation.}
+For a given block $\theta_i$ and its unconstrained transform
+$\boldsymbol{\eta}_i=g(\theta_i)$ with Gaussian variational
+approximation
+\[
+  q_i(\boldsymbol{\eta}_i)
+  \approx N(\hat{\boldsymbol{\eta}}_i,\mat{\Sigma}_i),
+\]
+and for any smooth scalar function $h(\theta_i)$, we define the
+Laplace--Delta expectation operator
+\begin{equation}
+  \mathcal{M}_i[h]
+  :=
+  h\big(\hat{\theta}_i\big)
+  + \frac{1}{2}
+    \mathrm{tr}\!\big(
+      \nabla^2 h(\hat{\theta}_i)\,
+      \mat{V}_i
+    \big),
+  \label{eq:elbo-M-operator}
+\end{equation}
+where $\hat{\theta}_i=g^{-1}(\hat{\boldsymbol{\eta}}_i)$ and
+$\mat{V}_i$ is the delta-method covariance of $\theta_i$ implied by
+$\mat{\Sigma}_i$ and the Jacobian of $g^{-1}$ at $\hat{\boldsymbol{\eta}}_i$.
+In practice, if $h$ depends on $\theta_i$ and other blocks, we treat the
+other blocks as fixed at their current variational means when computing
+$\nabla^2 h(\hat{\theta}_i)$.
+
+\paragraph{Applications.}
+With this notation:
+
+\begin{itemize}
+  \item The likelihood contribution~\eqref{eq:elbo-lik} is evaluated as
+  \[
+    \mathcal{L}_y
+    =
+    -\frac{T}{2}\log(2\pi)
+    -\frac{1}{2}
+     \sum_{t=1}^T
+     \Big(
+       \mathcal{M}_{\sigma,\gamma}[\log\sigma]
+       + \mathcal{M}_{\sigma,\gamma}[\log B(\gamma)]
+       + \E_q[\log v_t]
+       + \mathcal{M}_{\sigma,\gamma}[g_t]
+     \Big),
+  \]
+  where $g_t$ is viewed as a function of $(\sigma,\gamma)$ with
+  $(\vect{\beta},v_t,s_t)$ fixed at their current means.
+
+  \item The horseshoe prior term~\eqref{eq:elbo-beta-prior} uses
+  \[
+    \E_q[\log V_j(\lambda_j,\tau,c^2)]
+    \approx \mathcal{M}_{\lambda,\tau,c^2}\big[\log V_j\big],
+    \qquad
+    \E_q\!\Big[\frac{1}{V_j(\lambda_j,\tau,c^2)}\Big]
+    \approx \mathcal{M}_{\lambda,\tau,c^2}\big[V_j^{-1}\big],
+  \]
+  while $\E_q[\beta_j^2]$ is exact under $q_\beta$.
+
+  \item The hyperprior contributions
+  $\mathcal{L}_{\lambda,\tau,c^2}$ and $\mathcal{L}_{\sigma,\gamma}$ in
+  \eqref{eq:elbo-hs-hyper}--\eqref{eq:elbo-sigmagamma-hyper} are
+  computed by applying $\mathcal{M}_{\lambda,\tau,c^2}$ and
+  $\mathcal{M}_{\sigma,\gamma}$ to the corresponding log-density
+  terms ($\log(1+\lambda_j^2)$, $\log(1+\tau^2/\tau_0^2)$,
+  $\log c^2$, $1/c^2$, $\log\sigma$, $1/\sigma$, $\log p(\gamma)$).
+
+    \item The Jacobian contributions for the transformed blocks are obtained by
+  \[
+    \E_q\!\big[\log|J_{\sigma,\gamma}|\big]
+    \approx \mathcal{M}_{\sigma,\gamma}\big[
+      \log|J_{\sigma,\gamma}|
+    \big],
+    \qquad
+    \E_q\!\big[\log|J_{\lambda,\tau,c^2}|\big]
+    \approx \mathcal{M}_{\lambda,\tau,c^2}\big[
+      \log|J_{\lambda,\tau,c^2}|
+    \big],
+  \]
+  where the Laplace--Delta operator $\mathcal{M}_i[\cdot]$ is defined in
+  \eqref{eq:elbo-M-operator} and the Jacobians are given in
+  \eqref{eq:vb-trans-sigmagamma} and \eqref{eq:jac-lambda-tau-c2}.  These
+  expectations enter the ELBO through
+  $\mathcal{L}_{\sigma,\gamma}$ and $\mathcal{L}_{\lambda,\tau,c^2}$.
+
+\end{itemize}
+
+This yields an explicit, fully evaluable approximation
+$\widehat{\mathcal{L}}(q)$ in terms of:
+\begin{itemize}
+  \item the variational means and covariances
+        $(\vect{\mu}_\beta,\mat{\Sigma}_\beta)$,
+        $(\hat{\boldsymbol{\eta}}_{\sigma,\gamma},
+          \mat{\Sigma}_{\sigma,\gamma})$,
+        $(\hat{\boldsymbol{\eta}}_{\lambda,\tau,c^2},
+          \mat{\Sigma}_{\lambda,\tau,c^2})$;
+  \item the GIG parameters $(\bar{\chi}_t,\bar{\psi}_t)$ and their
+        moments $m^{(v)}_{1,t}, m^{(v)}_{-1,t}$;
+  \item the truncated-normal parameters $(m_t^{(0)},v_t^{(0)})$ and
+        moments $m_t^{(s)},v_t^{(s)}$.
+\end{itemize}
+
+\subsection{Using the ELBO for monitoring and stopping}
+\label{subsec:elbo-stopping}
+
+At iteration $r$, denote the current variational parameters by
+$q^{(r)}$ and the corresponding ELBO estimate by
+$\widehat{\mathcal{L}}^{(r)} = \widehat{\mathcal{L}}(q^{(r)})$.
+A natural stopping rule is based on the relative ELBO increment:
+\begin{equation}
+  \Delta^{(r)}
+  =
+  \frac{
+    \widehat{\mathcal{L}}^{(r)} - \widehat{\mathcal{L}}^{(r-1)}
+  }{
+    1 + \big|\widehat{\mathcal{L}}^{(r-1)}\big|
+  }.
+  \label{eq:elbo-relinc}
+\end{equation}
+We declare convergence when
+\[
+  |\Delta^{(r)}| < \varepsilon_{\mathrm{ELBO}},
+\]
+for a small tolerance $\varepsilon_{\mathrm{ELBO}}>0$ (e.g.
+$10^{-4}$), possibly combined with a parameter-drift criterion such as
+\[
+  \max_j
+  \frac{\big|\mu_{\beta,j}^{(r)} - \mu_{\beta,j}^{(r-1)}\big|}
+       {1+|\mu_{\beta,j}^{(r-1)}|}
+  < \varepsilon_{\mathrm{par}}.
+\]
+In this way the ELBO provides a global, principled diagnostic of
+variational fit, while the additional moment-based condition ensures
+that key parameters (e.g., the Q--DESN readout coefficients) have
+stabilized.
+\end{document}

@@ -275,7 +275,7 @@
 \scriptsize
 \begin{columns}[T,onlytextwidth]
   \column{0.58\textwidth}
-    \begin{whiteblock}{\small Likelihood + readout}
+    \begin{whiteblock}{\small Scale, Skewness, and Location}
     \[
     \begin{aligned}
       \sigma &\sim IG(a_\sigma,b_\sigma), \\
@@ -298,9 +298,11 @@
   \column{0.42\textwidth}
     \begin{whiteblock}{\small Hierarchical scales}
     \[
-    \lambda_j \sim C^+(0,1),\quad
-    \tau \sim C^+(0,\tau_0),\quad
-    c^2 \sim IG(\nu/2,\nu s^2/2).
+    \begin{aligned}
+      \lambda_j &\sim C^+(0,1), \\
+      \tau &\sim C^+(0,\tau_0), \\
+      c^2 &\sim IG(\nu/2,\nu s^2/2).
+    \end{aligned}
     \]
     \end{whiteblock}
     {\tiny
@@ -344,6 +346,7 @@
     \item \textbf{Automatic ESN spec selection.} Hyperparameter search over $(D, n, m, \alpha, \rho, \pi_w, \pi_{\text{in}})$ with rolling-origin validation; minimize \textbf{CRPS} (primary) and \textbf{PinballMean} (secondary).
     \item \textbf{Climate-products Q-DESN.} Build ESN variants for \textit{retrospective} \& \textit{ensemble} climate inputs (multi-source $\vct{z}_t$, member-wise features, and synthesis across members).
     \item \textbf{Resolve quantile correction.} Ensure the DESN-induced quantile function is flexible enough to achieve correct coverage even when linear readouts are misspecified.
+    \item \textbf{RHS Prior.} Better understand behavior of RHS prior.
   \end{enumerate}
 \end{frame}
 
