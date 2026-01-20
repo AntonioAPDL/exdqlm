@@ -39,16 +39,20 @@ for scen in "${SCENARIOS[@]}"; do
   for run in "${run_paths[@]}"; do
     [[ -d "$run" ]] || continue
 
-    csv="$run/tables/scores_summary.csv"
-    if [[ ! -f "$csv" ]]; then
+    summary_csv=""
+    if [[ -f "$run/tables/scores_summary.csv" ]]; then
+      summary_csv="$run/tables/scores_summary.csv"
+    elif [[ -f "$run/tables/metrics_summary.csv" ]]; then
+      summary_csv="$run/tables/metrics_summary.csv"
+    else
       # Uncomment if you want verbose warnings:
-      # echo "  (no scores_summary.csv in $(basename "$run"), skipping)"
+      # echo "  (no summary CSV in $(basename "$run"), skipping)"
       continue
     fi
 
     # Extract CRPS_mean for train and forecast
-    train_crps=$(awk -F, 'NR>1 && $1=="train"{print $2; exit}' "$csv" || true)
-    forecast_crps=$(awk -F, 'NR>1 && $1=="forecast"{print $2; exit}' "$csv" || true)
+    train_crps=$(awk -F, 'NR>1 && $1=="train"{print $2; exit}' "$summary_csv" || true)
+    forecast_crps=$(awk -F, 'NR>1 && $1=="forecast"{print $2; exit}' "$summary_csv" || true)
 
     # Update best train CRPS
     if [[ -n "${train_crps:-}" ]]; then
