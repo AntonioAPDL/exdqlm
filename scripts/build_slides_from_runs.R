@@ -133,6 +133,18 @@ plot_canon <- list(
     patterns = c("^posterior_beta_forest_IJ_TOP50_p=0.95\\.png$",
                  "^posterior_beta_forest_TOP50_p=0.95\\.png$")
   ),
+  posterior_beta_forest_all_p05 = list(
+    dest = "posterior_beta_forest_all_p=0.05.png",
+    patterns = c("^posterior_beta_forest_ALL_p=0.05\\.png$")
+  ),
+  posterior_beta_forest_all_p50 = list(
+    dest = "posterior_beta_forest_all_p=0.5.png",
+    patterns = c("^posterior_beta_forest_ALL_p=0.5\\.png$")
+  ),
+  posterior_beta_forest_all_p95 = list(
+    dest = "posterior_beta_forest_all_p=0.95.png",
+    patterns = c("^posterior_beta_forest_ALL_p=0.95\\.png$")
+  ),
   posterior_beta_forest_top_mean_p05 = list(
     dest = "posterior_beta_forest_top50_mean_p=0.05.png",
     patterns = c("^posterior_beta_forest_IJ_TOP50_MEAN_p=0.05\\.png$",
@@ -443,12 +455,19 @@ for (case in runs_cfg$cases) {
   )
 
   section_label <- case$section_label %||% case_label
+  section_subtitle <- case$section_subtitle %||% NULL
   title_prefix <- case$title_prefix %||% case_label
   overview_tex <- case$overview_tex %||% NULL
   overview_plot <- case$overview_plot %||% "train_obs_with_95_band.png"
 
+  section_frame <- if (!is.null(section_subtitle) && nzchar(section_subtitle)) {
+    sprintf("\\sectionframe[%s]{%s}", tex_escape(section_subtitle), tex_escape(section_label))
+  } else {
+    sprintf("\\sectionframe{%s}", tex_escape(section_label))
+  }
+
   lines <- c(
-    sprintf("\\sectionframe{%s}", tex_escape(section_label)),
+    section_frame,
     sprintf("\\def\\casefigdir{%s}", file.path("build", "figs", case_id)),
     sprintf("\\def\\casetitleprefix{%s}", tex_escape(title_prefix)),
     sprintf("\\def\\caseoverviewplot{%s}", overview_plot),
@@ -652,6 +671,15 @@ for (case in runs_cfg$cases) {
   }
 
   if ("appendix_posterior_beta_forest" %in% frames) {
+    if (plot_exists("posterior_beta_forest_all_p=0.05.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (all, p=0.05)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_all_p=0.05.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
     if (plot_exists("posterior_beta_forest_p=0.05.png")) {
       lines <- c(lines,
         sprintf("\\begin{frame}{%s (appendix): posterior beta (p=0.05)}", tex_escape(title_prefix)),
@@ -661,11 +689,29 @@ for (case in runs_cfg$cases) {
         ""
       )
     }
+    if (plot_exists("posterior_beta_forest_all_p=0.5.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (all, p=0.5)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_all_p=0.5.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
     if (plot_exists("posterior_beta_forest_p=0.5.png")) {
       lines <- c(lines,
         sprintf("\\begin{frame}{%s (appendix): posterior beta (p=0.5)}", tex_escape(title_prefix)),
         "  \\centering",
         "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_p=0.5.png}",
+        "\\end{frame}",
+        ""
+      )
+    }
+    if (plot_exists("posterior_beta_forest_all_p=0.95.png")) {
+      lines <- c(lines,
+        sprintf("\\begin{frame}{%s (appendix): posterior beta (all, p=0.95)}", tex_escape(title_prefix)),
+        "  \\centering",
+        "  \\safeinclude[width=0.98\\linewidth,height=0.72\\textheight]{\\casefigdir/posterior_beta_forest_all_p=0.95.png}",
         "\\end{frame}",
         ""
       )

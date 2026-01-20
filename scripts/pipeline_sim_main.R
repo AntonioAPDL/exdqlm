@@ -1241,7 +1241,9 @@ plot_beta_forest <- function(beta_draws,
                              top_k = NULL,
                              zero_line = TRUE,
                              select_by = c("abs_mean", "abs_extent", "absmed", "mean", "median"),
-                             select_dir = c("top", "bottom")) {
+                             select_dir = c("top", "bottom"),
+                             label_max = 60L,
+                             show_labels = NULL) {
   stopifnot(is.matrix(beta_draws))
   select_by <- match.arg(select_by)
   select_dir <- match.arg(select_dir)
@@ -1285,7 +1287,13 @@ plot_beta_forest <- function(beta_draws,
   df <- df %>%
     { if (select_dir == "top") dplyr::arrange(., dplyr::desc(order_metric)) else dplyr::arrange(., order_metric) }
   df$term_id <- factor(df$term_id, levels = rev(df$term_id))
+  if (is.null(show_labels)) {
+    show_labels <- if (is.null(top_k)) p <= as.integer(label_max) else TRUE
+  }
   label_map <- setNames(df$term, df$term_id)
+  if (!isTRUE(show_labels)) {
+    label_map <- setNames(rep("", nrow(df)), df$term_id)
+  }
   df$in_zero <- ifelse(df$lo <= 0 & df$hi >= 0, "includes 0", "excludes 0")
 
   sel_label <- switch(
@@ -1302,6 +1310,9 @@ plot_beta_forest <- function(beta_draws,
             top_k, sel_label)
   } else {
     "All coefficients • ordered by max(|CI|) • line at 0"
+  }
+  if (!isTRUE(show_labels)) {
+    subtitle_txt <- paste0(subtitle_txt, " • labels omitted")
   }
 
   ggplot2::ggplot(df, ggplot2::aes(y = term_id, x = med)) +
@@ -2748,19 +2759,11 @@ if (isTRUE(do_plots)) {
       print(g_beta_top_mean); print(g_beta_bottom_mean)
 
       if (isTRUE(save_outputs)) {
-        # Only save the "ALL" forest if p is modest; otherwise it becomes unreadable and >50"
-        if (p_all <= 250L) {
-          height_all <- max(5, 0.18 * p_all)
-          ggplot2::ggsave(
-            file.path(FIGS, sprintf("posterior_beta_forest_ALL_p=%s.png", as.character(p0))),
-            g_beta_all, width = 9.5, height = height_all, dpi = 150
-          )
-        } else {
-          message(sprintf(
-            "[info] Skipping posterior_beta_forest_ALL_p=%s (p=%d is too large for a legible full forest).",
-            fmt_p(p0), p_all
-          ))
-        }
+        height_all <- max(5, min(18, 0.08 * p_all))
+        ggplot2::ggsave(
+          file.path(FIGS, sprintf("posterior_beta_forest_ALL_p=%s.png", as.character(p0))),
+          g_beta_all, width = 9.5, height = height_all, dpi = 150
+        )
 
         ggplot2::ggsave(
           file.path(FIGS, sprintf("posterior_beta_forest_TOP50_p=%s.png", as.character(p0))),
@@ -3799,22 +3802,22 @@ g_cov_mu_fore  <- plot_rolling_cov_counts(mu_cov_long |> dplyr::filter(scope=="f
 g_cov_q_train  <- plot_rolling_cov(q_long  |> dplyr::filter(scope=="train"),
                                    qcol = "qhat",
                                    window = cov_window, show_last = show_last,
-                                   show_rcov_band = FALSE, show_target_band = FALSE)
+                                   show_rcov_band = TRUE, show_target_band = FALSE)
 
 g_cov_q_fore   <- plot_rolling_cov(q_long  |> dplyr::filter(scope=="forecast"),
                                    qcol = "qhat",
                                    window = cov_window, show_last = show_last,
-                                   show_rcov_band = FALSE, show_target_band = FALSE)
+                                   show_rcov_band = TRUE, show_target_band = FALSE)
 
 g_cov_qsynth_train <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="train") |> dplyr::rename(q = q_synth),
                                        qcol = "q",
                                        window = cov_window, show_last = show_last,
-                                       show_rcov_band = FALSE, show_target_band = FALSE)
+                                       show_rcov_band = TRUE, show_target_band = FALSE)
 
 g_cov_qsynth_fore  <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="forecast") |> dplyr::rename(q = q_synth),
                                        qcol = "q",
                                        window = cov_window, show_last = show_last,
-                                       show_rcov_band = FALSE, show_target_band = FALSE)
+                                       show_rcov_band = TRUE, show_target_band = FALSE)
 
   timed("calibration: rolling coverage plots", {
     # build all 6 plots & save (your existing code)

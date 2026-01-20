@@ -145,13 +145,15 @@
 }{\end{block}}
 
 % Section divider frame
-\newcommand{\sectionframe}[1]{%
-  \section{#1}
+\newcommand{\sectionframe}[2][]{%
+  \section{#2}
   \begin{frame}[plain]
     \vfill
-    {\Huge\bfseries\color{DarkPrimary} #1\par}
-    \vspace{0.6em}
-    {\large\color{gray} \ph{insert 1-line purpose for this section}}
+    {\Huge\bfseries\color{DarkPrimary} #2\par}
+    \ifx&#1&\else
+      \vspace{0.6em}
+      {\large\color{gray} #1}
+    \fi
     \vfill
   \end{frame}
 }
@@ -224,10 +226,8 @@
 %========================
 \begin{frame}{Takeaways}
   \begin{itemize}
-    \item \textcolor{DarkPrimary}{Forecasting bug fixed:} previously the reservoir state $\vct{h}_t$ was \textcolor{LightPrimary}{not} advanced within the forecast window; it is now rolled forward step--by--step during forecasting.
-    \item Ran the full pipeline on \textcolor{LightPrimary}{all three} simulation scenarios \textcolor{LightPrimary}{and} on the San Lorenzo River daily data.
-    \item Computed metrics \& diagnostics for each run \textcolor{LightPrimary}{(CRPS, PinballMean, ELBO, PIT, rolling coverages, synthesized 95\% bands)}.
-    \item \textcolor{DarkPrimary}{Models are not calibrated/optimized yet} (same architecture/hyperparameters across datasets).
+    \item Article draft updated with current model: \textbf{Q--DESN + RHS} prior.
+    \item IJ correction for quantile uncertainty is temporarily off; it needs verification.
   \end{itemize}
 \end{frame}
 
@@ -274,40 +274,40 @@
 \begin{frame}{Q-DESN: Priors}
 \scriptsize
 \begin{columns}[T,onlytextwidth]
-  \column{0.54\textwidth}
-    \begin{whiteblock}{\small Scale + skew}
+  \column{0.58\textwidth}
+    \begin{whiteblock}{\small Likelihood + readout}
     \[
     \begin{aligned}
-      \sigma &\sim IG(a_\sigma,b_\sigma), && a_\sigma>0,\ b_\sigma>0,\\
-      \gamma &\sim \pi_\gamma(\gamma)\,\mathbf{1}(L<\gamma<U),
-      && \pi_\gamma \text{ on } (L,U).
+      \sigma &\sim IG(a_\sigma,b_\sigma), \\
+      \gamma &\sim \pi_\gamma(\gamma)\,\mathbf{1}(L<\gamma<U), \\
+      \beta_0 &\sim N(b_0,v_0), \quad
+      \beta_j \mid \lambda_j,\tau,c^2 \sim N(0,V_j).
     \end{aligned}
     \]
-    \vspace{-0.3em}
-    {\tiny $(L,U)$ is the $p$-dependent support from the quantile-fixing construction.}
+    \vspace{-0.4em}
+    {\tiny $(L,U)$ is the $p$-dependent support from quantile-fixing.}
     \end{whiteblock}
 
-    \begin{whiteblock}{\small RHS for $\vct{\beta}$}
+    \begin{whiteblock}{\small Regularized horseshoe}
     \[
-    \begin{aligned}
-      V_j(\lambda_j,\tau,c^2) &= \tau^2 \frac{c^2 \lambda_j^2}{c^2+\tau^2 \lambda_j^2},\\
-      \beta_j \mid \lambda_j,\tau,c^2 &\sim N(0,V_j),\quad j=1,\dots,k.
-    \end{aligned}
+    V_j(\lambda_j,\tau,c^2)
+    = \tau^2 \frac{c^2 \lambda_j^2}{c^2+\tau^2 \lambda_j^2},\quad j=1,\dots,k.
     \]
     \end{whiteblock}
 
-  \column{0.46\textwidth}
+  \column{0.42\textwidth}
     \begin{whiteblock}{\small Hierarchical scales}
     \[
-    \begin{aligned}
-      \lambda_j &\sim C^+(0,1),\quad j=1,\dots,k,\\
-      \tau &\sim C^+(0,\tau_0),\quad
-      c^2 \sim IG(\nu/2,\nu s^2/2).
-    \end{aligned}
+    \lambda_j \sim C^+(0,1),\quad
+    \tau \sim C^+(0,\tau_0),\quad
+    c^2 \sim IG(\nu/2,\nu s^2/2).
     \]
-    \vspace{-0.2em}
-    {\tiny $\lambda_j$ local, $\tau$ global, $c^2$ slab; $\tau_0,\nu,s$ tune sparsity and slab width.}
     \end{whiteblock}
+    {\tiny
+    \textbf{$\tau_0$:} controls global shrinkage (effective nonzero count rises with $\tau_0$).\\
+    \textbf{$s$:} sets slab scale ($c^2\lesssim s^2$; $\sqrt{c^2}\sim O(s)$).\\
+    \textbf{$\nu$:} tail heaviness and concentration of $c^2$ (via $E[c^2]$, $\mathrm{Var}(c^2)$).
+    }
 \end{columns}
 \end{frame}
 
@@ -342,8 +342,8 @@
 \begin{frame}{Next steps}
   \begin{enumerate}
     \item \textbf{Automatic ESN spec selection.} Hyperparameter search over $(D, n, m, \alpha, \rho, \pi_w, \pi_{\text{in}})$ with rolling-origin validation; minimize \textbf{CRPS} (primary) and \textbf{PinballMean} (secondary).
-    \item \textbf{$k$-step--ahead forecasting.} Extend beyond $H{=}1$ to direct $k$-ahead and/or recursive strategies; compare error and calibration vs.\ one-step.
     \item \textbf{Climate-products Q-DESN.} Build ESN variants for \textit{retrospective} \& \textit{ensemble} climate inputs (multi-source $\vct{z}_t$, member-wise features, and synthesis across members).
+    \item \textbf{Resolve quantile correction.} Ensure the DESN-induced quantile function is flexible enough to achieve correct coverage even when linear readouts are misspecified.
   \end{enumerate}
 \end{frame}
 
