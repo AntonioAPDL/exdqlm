@@ -4,7 +4,7 @@ set -Eeuo pipefail
 BASE="/data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm"
 
 # Scenarios to inspect
-SCENARIOS=(dlm_ar1V dlm_constV_bigW dlm_constV_smallW)
+SCENARIOS=(dlm_ar1V dlm_constV_bigW dlm_constV_smallW san_lorenzo_daily)
 
 for scen in "${SCENARIOS[@]}"; do
   runs_dir="$BASE/$scen/runs"
