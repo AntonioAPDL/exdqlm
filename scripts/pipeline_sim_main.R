@@ -228,6 +228,12 @@ vb_args_base <- list(
   verbose = TRUE
 )
 
+rhs_trace_on <- FALSE
+rhs_deep_on <- FALSE
+rhs_trace_thresholds <- c(1e3, 1e6, 1e9)
+rhs_trace_top_k <- 20L
+rhs_trace_eps <- c(1e-6, 1e-4, 1e-2)
+
 # ELBO tolerance per p0 (mid vs tails)
 vb_tol_for <- function(p0) if (near_equal(p0, 0.50)) 1e-4 else 1e-5
 
@@ -388,6 +394,30 @@ if (!is.null(cfg$vb)) {
     if (!is.null(cfg$vb$verbose)) {
       vb_args_base$verbose <- isTRUE(cfg$vb$verbose)
     }
+
+    if (!is.null(cfg$vb$diagnostics)) {
+      diag_cfg <- cfg$vb$diagnostics
+      if (!is.null(diag_cfg$rhs_trace)) {
+        rhs_trace_on <- isTRUE(diag_cfg$rhs_trace)
+      }
+      if (!is.null(diag_cfg$rhs_deep)) {
+        rhs_deep_on <- isTRUE(diag_cfg$rhs_deep)
+      }
+      if (!is.null(diag_cfg$rhs_trace_thresholds)) {
+        rhs_trace_thresholds <- as.numeric(diag_cfg$rhs_trace_thresholds)
+      }
+      if (!is.null(diag_cfg$rhs_trace_top_k)) {
+        rhs_trace_top_k <- as.integer(diag_cfg$rhs_trace_top_k)
+      }
+      if (!is.null(diag_cfg$rhs_trace_eps)) {
+        rhs_trace_eps <- as.numeric(diag_cfg$rhs_trace_eps)
+      }
+    }
+    if (!is.null(cfg$vb$rhs)) {
+      if (!is.null(cfg$vb$rhs$verbose_trace)) rhs_trace_on <- isTRUE(cfg$vb$rhs$verbose_trace)
+      if (!is.null(cfg$vb$rhs$trace)) rhs_trace_on <- isTRUE(cfg$vb$rhs$trace)
+    }
+    if (rhs_deep_on && !rhs_trace_on) rhs_trace_on <- TRUE
     # ELBO tolerance (mid vs tails)
     tol50  <- cfg$vb$tol_50      %nz% 1e-4
     tolext <- cfg$vb$tol_extreme %nz% 1e-5
@@ -481,6 +511,12 @@ if (!is.null(cfg$vb)) {
       }
     }
   }
+
+  vb_args_base$rhs_trace <- isTRUE(rhs_trace_on)
+  vb_args_base$rhs_deep <- isTRUE(rhs_deep_on)
+  vb_args_base$rhs_trace_thresholds <- rhs_trace_thresholds
+  vb_args_base$rhs_trace_top_k <- rhs_trace_top_k
+  vb_args_base$rhs_trace_eps <- rhs_trace_eps
 
 
   if (!is.null(cfg$sampling)) {
@@ -1994,6 +2030,44 @@ if (isTRUE(VERBOSE)) {
 }
 
 readout_scale_info <- NULL
+readout_scale_diag <- NULL
+if (isTRUE(rhs_trace_on)) {
+  idx_sd <- if (isTRUE(desn_args$add_bias) && ncol(X_train) >= 2L) 2L:ncol(X_train) else seq_len(ncol(X_train))
+  pre_sd <- if (length(idx_sd)) apply(X_train[, idx_sd, drop = FALSE], 2L, stats::sd, na.rm = TRUE) else numeric(0)
+  pre_sd <- as.numeric(pre_sd)
+  pre_sd[!is.finite(pre_sd)] <- NA_real_
+  pre_stats <- if (length(pre_sd)) {
+    c(min = min(pre_sd, na.rm = TRUE), median = stats::median(pre_sd, na.rm = TRUE), max = max(pre_sd, na.rm = TRUE))
+  } else {
+    c(min = NA_real_, median = NA_real_, max = NA_real_)
+  }
+  n_sd_lt_1e3 <- sum(pre_sd < 1e-3, na.rm = TRUE)
+  n_sd_lt_1e4 <- sum(pre_sd < 1e-4, na.rm = TRUE)
+  low_sd_idx <- which(pre_sd < 1e-4)
+  low_sd_names <- if (length(low_sd_idx) && !is.null(colnames(X_train))) {
+    colnames(X_train)[idx_sd][low_sd_idx]
+  } else {
+    character(0)
+  }
+  if (n_sd_lt_1e4 > 0) {
+    warning(sprintf("Readout predictors with sd < 1e-4 detected (%d). Keeping columns; see diagnostics.", n_sd_lt_1e4),
+            call. = FALSE)
+  }
+  readout_scale_diag <- list(
+    scaled = isTRUE(readout_scale),
+    has_intercept = isTRUE(desn_args$add_bias),
+    n = nrow(X_train),
+    p = ncol(X_train),
+    pre = list(
+      sd_stats = pre_stats,
+      n_sd_lt_1e3 = n_sd_lt_1e3,
+      n_sd_lt_1e4 = n_sd_lt_1e4,
+      low_sd_idx = idx_sd[low_sd_idx],
+      low_sd_names = low_sd_names,
+      low_sd_kept = TRUE
+    )
+  )
+}
 if (isTRUE(readout_scale)) {
   scale_fit <- readout_scale_fit(X_train, has_intercept = isTRUE(desn_args$add_bias))
   X_train <- scale_fit$X
@@ -2003,6 +2077,18 @@ if (isTRUE(readout_scale)) {
     log_msg("Readout scaling → enabled (center+scale; intercept_excluded=%s)",
             as.character(isTRUE(desn_args$add_bias)))
   }
+}
+if (isTRUE(rhs_trace_on) && !is.null(readout_scale_diag)) {
+  idx_sd <- if (isTRUE(desn_args$add_bias) && ncol(X_train) >= 2L) 2L:ncol(X_train) else seq_len(ncol(X_train))
+  post_sd <- if (length(idx_sd)) apply(X_train[, idx_sd, drop = FALSE], 2L, stats::sd, na.rm = TRUE) else numeric(0)
+  post_sd <- as.numeric(post_sd)
+  post_sd[!is.finite(post_sd)] <- NA_real_
+  post_stats <- if (length(post_sd)) {
+    c(min = min(post_sd, na.rm = TRUE), median = stats::median(post_sd, na.rm = TRUE), max = max(post_sd, na.rm = TRUE))
+  } else {
+    c(min = NA_real_, median = NA_real_, max = NA_real_)
+  }
+  readout_scale_diag$post <- list(sd_stats = post_stats)
 }
 
 # Readout spec for recursive forecasts
@@ -2085,7 +2171,14 @@ fit_and_forecast_p <- function(p0) {
       b_sigma = sigma_b_p,
 
       # VB controls
-      vb_control = list(min_iter_elbo = vb_args_p$min_iter_elbo),
+      vb_control = list(
+        min_iter_elbo = vb_args_p$min_iter_elbo,
+        rhs_trace = vb_args_p$rhs_trace,
+        rhs_deep = vb_args_p$rhs_deep,
+        rhs_trace_thresholds = vb_args_p$rhs_trace_thresholds,
+        rhs_trace_top_k = vb_args_p$rhs_trace_top_k,
+        rhs_trace_eps = vb_args_p$rhs_trace_eps
+      ),
       max_iter  = vb_args_p$max_iter,
       tol       = vb_args_p$tol,
       tol_par   = vb_args_p$tol_par,
@@ -2117,6 +2210,10 @@ fit_and_forecast_p <- function(p0) {
     if (isTRUE(readout_scale) && !is.null(readout_scale_info)) {
       if (is.null(fit_exal$misc)) fit_exal$misc <- list()
       fit_exal$misc$readout_scale <- readout_scale_info
+    }
+    if (isTRUE(rhs_trace_on) && !is.null(readout_scale_diag)) {
+      if (is.null(fit_exal$misc)) fit_exal$misc <- list()
+      fit_exal$misc$readout_scale_diag <- readout_scale_diag
     }
 
   # ---- Parameter posterior draws (γ, σ, β) for diagnostics + IJ ----------
@@ -3412,6 +3509,189 @@ if (isTRUE(save_outputs)) {
     ),
     file.path(MODELS, "forecast_objects.rds")
   )
+}
+
+if (isTRUE(save_outputs) && isTRUE(rhs_trace_on)) {
+  rhs_traces <- lapply(seq_along(p_vec), function(i) {
+    fit <- fits_fc[[i]]$fit_train$fit %||% NULL
+    if (is.null(fit) || is.null(fit$misc)) return(NULL)
+    list(
+      trace = fit$misc$rhs_trace %||% NULL,
+      detail = fit$misc$rhs_trace_detail %||% NULL,
+      settings = fit$misc$rhs_trace_settings %||% NULL,
+      logtau_profiles = fit$misc$rhs_logtau_profiles %||% NULL,
+      logtau_grid = fit$misc$rhs_logtau_grid %||% NULL,
+      collapse_iter = fit$misc$rhs_collapse_iter %||% NULL
+    )
+  })
+  names(rhs_traces) <- sprintf("p=%s", fmt_p(p_vec))
+  rhs_trace_out <- list(
+    p_vec = p_vec,
+    traces = rhs_traces,
+    readout_scale_diag = readout_scale_diag %||% NULL
+  )
+  saveRDS(rhs_trace_out, file.path(MODELS, "rhs_trace.rds"))
+
+  summary_lines <- c(
+    "rhs_trace_enabled=TRUE",
+    sprintf("p_vec=%s", paste(p_vec, collapse = ",")),
+    sprintf("readout_scale=%s", as.character(isTRUE(readout_scale)))
+  )
+  if (!is.null(readout_scale_diag)) {
+    pre <- readout_scale_diag$pre$sd_stats
+    post <- readout_scale_diag$post$sd_stats
+    summary_lines <- c(summary_lines,
+                       sprintf("n=%d p=%d", readout_scale_diag$n, readout_scale_diag$p),
+                       sprintf("pre_sd_min/med/max=%.6g,%.6g,%.6g", pre["min"], pre["median"], pre["max"]),
+                       sprintf("post_sd_min/med/max=%.6g,%.6g,%.6g", post["min"], post["median"], post["max"]),
+                       sprintf("n_sd_lt_1e3=%d", readout_scale_diag$pre$n_sd_lt_1e3),
+                       sprintf("n_sd_lt_1e4=%d", readout_scale_diag$pre$n_sd_lt_1e4)
+    )
+  }
+  for (i in seq_along(p_vec)) {
+    tr <- rhs_traces[[i]]$trace
+    if (is.null(tr) || !nrow(tr)) next
+    last <- tr[nrow(tr), , drop = FALSE]
+    summary_lines <- c(summary_lines, sprintf(
+      "p=%s | tau=%.6g c2=%.6g lambda_med=%.6g E_invV_med=%.6g beta_l2=%.6g",
+      fmt_p(p_vec[i]), last$tau, last$c2, last$lambda_med, last$E_invV_med, last$beta_l2
+    ))
+  }
+  writeLines(summary_lines, file.path(MODELS, "rhs_diag_summary.txt"))
+}
+
+if (isTRUE(save_outputs) && isTRUE(rhs_deep_on)) {
+  for (i in seq_along(p_vec)) {
+    fit <- fits_fc[[i]]$fit_train$fit %||% NULL
+    if (is.null(fit) || is.null(fit$misc)) next
+    profs <- fit$misc$rhs_logtau_profiles %||% NULL
+    if (!is.null(profs) && length(profs)) {
+      p_tag <- fmt_p(p_vec[i])
+      for (nm in names(profs)) {
+        df <- profs[[nm]]
+        if (is.null(df) || !nrow(df)) next
+        iter_tag <- sprintf("%04d", as.integer(df$iter[1L]))
+        out_path <- file.path(MODELS, sprintf("rhs_logtau_profile_p%s_iter%s.csv", p_tag, iter_tag))
+        utils::write.csv(df, out_path, row.names = FALSE)
+      }
+    }
+
+    tr <- fit$misc$rhs_trace %||% NULL
+    if (!is.null(tr) && nrow(tr)) {
+      keep_cols <- intersect(
+        c("iter","tau_eta_start","tau_eta_end","tau_obj_start","tau_obj_end","tau_obj_improved",
+          "tau_opt_method","tau_opt_used_fallback","tau_opt_hit_bounds","tau_opt_clipped",
+          "grad_tau_start","grad_tau_end","log_tau_clipped","delta_log_tau"),
+        names(tr)
+      )
+      if (length(keep_cols)) {
+        out_path <- file.path(MODELS, sprintf("rhs_mode_update_log_p%s.txt", fmt_p(p_vec[i])))
+        utils::write.table(tr[, keep_cols, drop = FALSE], out_path,
+                           row.names = FALSE, sep = "\t", quote = FALSE)
+      }
+    }
+  }
+}
+
+write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
+                                  readout_scale, readout_scale_diag,
+                                  vb_prior_beta_rhs) {
+  `%||%` <- function(x, alt) if (!is.null(x)) x else alt
+  run_id <- basename(out_dir)
+  git_sha <- tryCatch(system("git rev-parse --short HEAD", intern = TRUE), error = function(e) NA_character_)
+  spec_name <- cfg$spec %||% cfg$spec_name %||% cfg$pipeline$spec %||%
+    cfg$dataset$name %||% cfg$dataset$label %||% cfg$data$name %||% cfg$data$label %||% NA_character_
+  if (is.na(spec_name) || !nzchar(spec_name)) {
+    # try to infer dataset label from out_dir: .../<suite>/<dataset>/runs/<run_id>
+    parent2 <- dirname(dirname(out_dir))
+    spec_name <- basename(parent2)
+  }
+  seed_val <- cfg$seed %||% cfg$desn$seed %||% NA
+  seed_str <- if (is.null(seed_val)) NA_character_ else paste(seed_val, collapse = ",")
+
+  eta_bounds <- vb_prior_beta_rhs$eta_bounds$tau %||% c(-40, 40)
+  eta_tau_lo <- as.numeric(eta_bounds[1])
+  eta_tau_hi <- as.numeric(eta_bounds[2])
+
+  init_log_tau <- vb_prior_beta_rhs$init_log_tau %||% NA_real_
+  if (is.na(init_log_tau) && !is.null(vb_prior_beta_rhs$init_tau)) {
+    init_log_tau <- log(as.numeric(vb_prior_beta_rhs$init_tau)[1])
+  }
+
+  rows <- lapply(seq_along(p_vec), function(i) {
+    fit <- fits_fc[[i]]$fit_train$fit %||% NULL
+    if (is.null(fit) || is.null(fit$misc)) return(NULL)
+    tr <- fit$misc$rhs_trace %||% NULL
+    if (is.null(tr) || !nrow(tr)) return(NULL)
+    last <- tr[nrow(tr), , drop = FALSE]
+
+    R_over_D <- tr$R_over_D
+    min_R_over_D <- if (any(is.finite(R_over_D))) min(R_over_D, na.rm = TRUE) else NA_real_
+    first_lt <- function(th) {
+      idx <- which(is.finite(R_over_D) & R_over_D < th)
+      if (length(idx)) idx[1] else NA_integer_
+    }
+
+    elbo <- fit$misc$elbo %||% NULL
+    final_elbo <- if (!is.null(elbo) && length(elbo)) tail(elbo, 1) else NA_real_
+    best_elbo <- if (!is.null(elbo) && length(elbo)) max(elbo, na.rm = TRUE) else NA_real_
+    delta_last10 <- NA_real_
+    if (!is.null(elbo) && length(elbo) >= 10) {
+      delta_last10 <- tail(elbo, 1) - mean(tail(elbo, 10))
+    }
+
+    near_bound_flag <- isTRUE(abs(as.numeric(last$log_tau) - eta_tau_lo) < 1e-3)
+    collapse_flag <- isTRUE(near_bound_flag) &&
+      isTRUE(as.numeric(last$E_invV_med) > 1e12) &&
+      isTRUE(as.numeric(last$beta_l2) < 1e-6)
+
+    post_sd <- readout_scale_diag$post$sd_stats %||% c(min = NA_real_, median = NA_real_, max = NA_real_)
+
+    data.frame(
+      run_id = run_id,
+      git_sha = git_sha,
+      spec_name = spec_name,
+      quantile_p = p_vec[i],
+      seed = seed_str,
+      tau0 = as.numeric(last$tau0),
+      nu = as.numeric(last$nu),
+      s_used = as.numeric(last$s),
+      s2_used = as.numeric(last$s2),
+      init_log_tau = as.numeric(init_log_tau),
+      eta_tau_lower_bound = eta_tau_lo,
+      eta_tau_upper_bound = eta_tau_hi,
+      shrink_intercept = as.logical(fit$beta_prior$state$shrink_intercept %||% NA),
+      tau_last = as.numeric(last$tau),
+      log_tau_last = as.numeric(last$log_tau),
+      near_bound_flag = near_bound_flag,
+      E_invV_med_last = as.numeric(last$E_invV_med),
+      beta_l2_last = as.numeric(last$beta_l2),
+      R_over_D_last = as.numeric(last$R_over_D),
+      min_R_over_D = min_R_over_D,
+      iter_first_R_over_D_lt_0_5 = first_lt(0.5),
+      iter_first_R_over_D_lt_0_2 = first_lt(0.2),
+      iter_first_R_over_D_lt_0_1 = first_lt(0.1),
+      collapse_flag = collapse_flag,
+      final_ELBO = as.numeric(final_elbo),
+      best_ELBO = as.numeric(best_elbo),
+      delta_ELBO_last10 = as.numeric(delta_last10),
+      scaled_X_flag = as.logical(readout_scale),
+      post_scale_sd_min = as.numeric(post_sd["min"]),
+      post_scale_sd_med = as.numeric(post_sd["median"]),
+      post_scale_sd_max = as.numeric(post_sd["max"]),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  rows <- rows[!vapply(rows, is.null, TRUE)]
+  if (!length(rows)) return(invisible(NULL))
+  summary_df <- do.call(rbind, rows)
+  utils::write.csv(summary_df, file.path(models_dir, "rhs_run_summary.csv"), row.names = FALSE)
+}
+
+if (isTRUE(save_outputs) && isTRUE(rhs_trace_on)) {
+  write_rhs_run_summary(MODELS, out_dir, cfg, p_vec, fits_fc,
+                        readout_scale, readout_scale_diag, vb_prior_beta_rhs)
 }
 
 # ================================================================

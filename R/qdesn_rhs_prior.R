@@ -42,12 +42,27 @@ if (!exists(".stopf", mode = "function")) {
 
 # ---- 1D maximize (mode only) ----
 # (keeps the same "optimize then fallback optim" behavior as before, but no curvature FD)
-.opt_1d_mode <- function(f, lo, hi, eta0 = NULL) {
+.opt_1d_mode <- function(f, lo, hi, eta0 = NULL, diag_env = NULL, tag = NULL) {
   if (!is.finite(lo) || !is.finite(hi) || !(lo < hi)) .stopf(".opt_1d_mode: invalid bounds.")
   if (is.null(eta0) || !is.finite(eta0)) eta0 <- 0
 
+  if (!is.null(diag_env)) {
+    diag_env$n_calls <- (diag_env$n_calls %||% 0L) + 1L
+  }
+
+  obj0 <- try(f(eta0), silent = TRUE)
+  if (inherits(obj0, "try-error") || !is.finite(obj0)) obj0 <- NA_real_
+
+  used_fallback <- FALSE
+  opt_method <- "optimize"
   opt <- try(optimize(f, interval = c(lo, hi), maximum = TRUE), silent = TRUE)
   if (inherits(opt, "try-error") || !is.finite(opt$objective)) {
+    used_fallback <- TRUE
+    opt_method <- "optim_bfgs"
+    if (!is.null(diag_env)) {
+      diag_env$n_fallback <- (diag_env$n_fallback %||% 0L) + 1L
+      diag_env$n_grid <- (diag_env$n_grid %||% 0L) + 1L
+    }
     grid <- seq(lo, hi, length.out = 31)
     vals <- vapply(grid, f, numeric(1))
     j0 <- which.max(vals)
@@ -59,12 +74,48 @@ if (!exists(".stopf", mode = "function")) {
     }
     opt2 <- try(optim(par = par0, fn = fn_neg, method = "BFGS",
                       control = list(maxit = 2000)), silent = TRUE)
-    mode <- if (inherits(opt2, "try-error") || !is.finite(opt2$value)) par0 else opt2$par
+    mode_raw <- if (inherits(opt2, "try-error") || !is.finite(opt2$value)) par0 else opt2$par
   } else {
-    mode <- opt$maximum
+    mode_raw <- opt$maximum
   }
 
-  pmin(pmax(mode, lo), hi)
+  mode <- pmin(pmax(mode_raw, lo), hi)
+  tol <- 1e-8
+  hit_bounds <- abs(mode - lo) <= tol || abs(mode - hi) <= tol
+  clipped <- is.finite(mode_raw) && is.finite(mode) && (mode_raw != mode)
+
+  obj_mode <- try(f(mode), silent = TRUE)
+  if (inherits(obj_mode, "try-error") || !is.finite(obj_mode)) obj_mode <- NA_real_
+
+  if (!is.null(diag_env)) {
+    if (hit_bounds) {
+      diag_env$n_hit_bounds <- (diag_env$n_hit_bounds %||% 0L) + 1L
+    }
+    if (!is.null(tag)) {
+      entry <- list(
+        tag = tag,
+        eta0 = eta0,
+        lo = lo,
+        hi = hi,
+        obj0 = obj0,
+        mode_raw = mode_raw,
+        mode = mode,
+        obj_mode = obj_mode,
+        obj_improved = if (is.finite(obj_mode) && is.finite(obj0)) (obj_mode > obj0) else NA,
+        method = opt_method,
+        used_fallback = used_fallback,
+        hit_bounds = hit_bounds,
+        clipped = clipped,
+        clip_before_eval = clipped,
+        n_iter = NA_integer_,
+        n_backtrack = NA_integer_,
+        n_step_halving = NA_integer_
+      )
+      diag_env$last_by_tag <- diag_env$last_by_tag %||% list()
+      diag_env$last_by_tag[[tag]] <- entry
+    }
+  }
+  mode
 }
 
 # ---- RHS objective in eta-space ----
@@ -177,6 +228,17 @@ rhs_d2_c2 <- function(eta_lambda, eta_tau, eta_c2, beta2, nu, s) {
   d2_prior <- -(nu * s^2) / 2 * r
 
   d2_like + d2_prior
+}
+
+# ---- First derivative wrt eta_tau (for diagnostics) ----
+rhs_grad_tau <- function(eta_lambda, eta_tau, eta_c2, beta2, tau0) {
+  u  <- 2 * eta_tau + 2 * eta_lambda
+  a  <- eta_c2
+  w  <- .safe_exp(u - .logsumexp2(a, u))
+  t  <- .safe_exp(-u)
+  logtau0 <- log(tau0)
+  s <- plogis(2 * (eta_tau - logtau0))
+  -sum(1 - w) + sum(beta2 * t) + (1 - 2 * s)
 }
 
 # ---- Full Hessian (closed form) for f(eta) in (u_j, u_tau, u_kappa) space ----
@@ -303,8 +365,10 @@ rhs_d2_c2 <- function(eta_lambda, eta_tau, eta_c2, beta2, nu, s) {
     R <- try(chol(KK), silent = TRUE)
     if (!inherits(R, "try-error")) {
       inv <- chol2inv(R)
-      logdet <- 2 * sum(log(diag(R)))
-      return(list(inv = inv, logdet = logdet, jitter = jitter))
+      dR <- diag(R)
+      logdet <- 2 * sum(log(dR))
+      return(list(inv = inv, logdet = logdet, jitter = jitter,
+                  chol_diag_min = min(dR), chol_diag_max = max(dR)))
     }
 
     # escalate jitter
@@ -318,7 +382,8 @@ rhs_d2_c2 <- function(eta_lambda, eta_tau, eta_c2, beta2, nu, s) {
   ev <- eigen(KK, symmetric = TRUE, only.values = TRUE)$values
   ev <- pmax(ev, 1e-300)
   logdet <- sum(log(ev))
-  list(inv = inv, logdet = logdet, jitter = NA_real_)
+  list(inv = inv, logdet = logdet, jitter = NA_real_,
+       chol_diag_min = NA_real_, chol_diag_max = NA_real_)
 }
 
 .embed_sigma_full <- function(Sigma_active, idx, p, var_floor) {
@@ -427,6 +492,8 @@ qdesn_rhs_prior_obj <- function(
         eta_c_hat      = log(c2_init),
         Sigma_diag     = rep(var_floor, p + 2L),
         Sigma_full     = diag(var_floor, p + 2L),
+        diag_on        = FALSE,
+        rhs_diag       = NULL,
         shrink_intercept = shrink_intercept,
         intercept_prec   = intercept_prec
       )
@@ -501,6 +568,17 @@ qdesn_rhs_prior_obj <- function(
       eta_tau <- as.numeric(state$eta_tau_hat)
       eta_c2  <- as.numeric(state$eta_c_hat)
 
+      diag_env <- NULL
+      if (isTRUE(state$diag_on)) {
+        diag_env <- new.env(parent = emptyenv())
+        diag_env$n_calls <- 0L
+        diag_env$n_fallback <- 0L
+        diag_env$n_grid <- 0L
+        diag_env$n_hit_bounds <- 0L
+        diag_env$last_by_tag <- list()
+        diag_env$log_detail <- isTRUE(state$diag_deep)
+      }
+
       v_old <- as.numeric(state$Sigma_diag %||% rep(var_floor, p + 2L))
       if (length(v_old) != p + 2L) v_old <- rep(var_floor, p + 2L)
 
@@ -522,7 +600,8 @@ qdesn_rhs_prior_obj <- function(
                         shrink_intercept = state$shrink_intercept)
           }
 
-          mode_j <- .opt_1d_mode(f_j, lo = b_lam[1], hi = b_lam[2], eta0 = eta_lam[j])
+          mode_j <- .opt_1d_mode(f_j, lo = b_lam[1], hi = b_lam[2], eta0 = eta_lam[j],
+                                 diag_env = diag_env, tag = NULL)
           eta_lam[j] <- mode_j
 
           d2 <- rhs_d2_lambda_j(mode_j, eta_tau, eta_c2, beta2[j])
@@ -533,7 +612,19 @@ qdesn_rhs_prior_obj <- function(
         f_tau <- function(etau) rhs_obj_eta(eta_lam, etau, eta_c2, beta2,
                                             tau0 = tau0, nu = nu, s = s,
                                             shrink_intercept = state$shrink_intercept)
-        eta_tau <- .opt_1d_mode(f_tau, lo = b_tau[1], hi = b_tau[2], eta0 = eta_tau)
+        eta_tau_start <- eta_tau
+        grad_tau_start <- if (!isTRUE(state$shrink_intercept)) {
+          if (p >= 2L) rhs_grad_tau(eta_lam[-1L], eta_tau_start, eta_c2, beta2[-1L], tau0 = tau0) else NA_real_
+        } else {
+          rhs_grad_tau(eta_lam, eta_tau_start, eta_c2, beta2, tau0 = tau0)
+        }
+        eta_tau <- .opt_1d_mode(f_tau, lo = b_tau[1], hi = b_tau[2], eta0 = eta_tau,
+                                diag_env = diag_env, tag = "tau")
+        grad_tau_end <- if (!isTRUE(state$shrink_intercept)) {
+          if (p >= 2L) rhs_grad_tau(eta_lam[-1L], eta_tau, eta_c2, beta2[-1L], tau0 = tau0) else NA_real_
+        } else {
+          rhs_grad_tau(eta_lam, eta_tau, eta_c2, beta2, tau0 = tau0)
+        }
 
         if (!isTRUE(state$shrink_intercept)) {
           d2_tau <- rhs_d2_tau(eta_lam[-1L], eta_tau, eta_c2, beta2[-1L], tau0 = tau0)
@@ -546,7 +637,8 @@ qdesn_rhs_prior_obj <- function(
         f_c2 <- function(ec) rhs_obj_eta(eta_lam, eta_tau, ec, beta2,
                                          tau0 = tau0, nu = nu, s = s,
                                          shrink_intercept = state$shrink_intercept)
-        eta_c2 <- .opt_1d_mode(f_c2, lo = b_c2[1], hi = b_c2[2], eta0 = eta_c2)
+        eta_c2 <- .opt_1d_mode(f_c2, lo = b_c2[1], hi = b_c2[2], eta0 = eta_c2,
+                               diag_env = diag_env, tag = "c2")
 
         if (!isTRUE(state$shrink_intercept)) {
           d2_c2 <- rhs_d2_c2(eta_lam[-1L], eta_tau, eta_c2, beta2[-1L], nu = nu, s = s)
@@ -586,6 +678,22 @@ qdesn_rhs_prior_obj <- function(
       state$Sigma_full <- Sigma_full
       state$Sigma_diag <- diag(Sigma_full)
       state$Sigma_diag <- pmax(state$Sigma_diag, var_floor)
+
+      if (isTRUE(state$diag_on)) {
+        state$rhs_diag <- list(
+          opt_calls      = diag_env$n_calls %||% 0L,
+          opt_fallback   = diag_env$n_fallback %||% 0L,
+          opt_grid       = diag_env$n_grid %||% 0L,
+          opt_hit_bounds = diag_env$n_hit_bounds %||% 0L,
+          hess_jitter    = invK$jitter,
+          chol_diag_min  = invK$chol_diag_min,
+          chol_diag_max  = invK$chol_diag_max,
+          tau_update     = diag_env$last_by_tag[["tau"]] %||% NULL,
+          c2_update      = diag_env$last_by_tag[["c2"]] %||% NULL,
+          grad_tau_start = as.numeric(grad_tau_start %||% NA_real_),
+          grad_tau_end   = as.numeric(grad_tau_end %||% NA_real_)
+        )
+      }
 
 
       if (isTRUE(verbose)) {

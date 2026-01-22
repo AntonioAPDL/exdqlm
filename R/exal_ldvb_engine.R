@@ -30,6 +30,11 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   vb_control$tol      <- as.numeric(vb_control$tol      %||% 1e-4)
   vb_control$tol_par  <- as.numeric(vb_control$tol_par  %||% vb_control$tol)
   vb_control$verbose  <- isTRUE(vb_control$verbose %||% FALSE)
+  vb_control$rhs_trace <- isTRUE(vb_control$rhs_trace %||% FALSE)
+  vb_control$rhs_deep <- isTRUE(vb_control$rhs_deep %||% FALSE)
+  vb_control$rhs_trace_top_k <- as.integer(vb_control$rhs_trace_top_k %||% 20L)
+  vb_control$rhs_trace_thresholds <- as.numeric(vb_control$rhs_trace_thresholds %||% c(1e3, 1e6, 1e9))
+  vb_control$rhs_trace_eps <- as.numeric(vb_control$rhs_trace_eps %||% c(1e-6, 1e-4, 1e-2))
 
   n <- length(y)
   p <- ncol(X)
@@ -123,6 +128,21 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   # --- beta prior latent state (ridge or rhs) ---
   beta_state <- beta_prior_obj$init(p)
 
+  rhs_trace_on <- isTRUE(vb_control$rhs_trace) && identical(beta_prior_obj$type, "rhs")
+  rhs_deep_on  <- isTRUE(vb_control$rhs_deep) && identical(beta_prior_obj$type, "rhs")
+  if (rhs_deep_on && !rhs_trace_on) rhs_trace_on <- TRUE
+  rhs_trace_top_k <- as.integer(vb_control$rhs_trace_top_k %||% 20L)
+  if (!is.finite(rhs_trace_top_k) || rhs_trace_top_k < 0L) rhs_trace_top_k <- 0L
+  rhs_trace_thresholds <- as.numeric(vb_control$rhs_trace_thresholds %||% c(1e3, 1e6, 1e9))
+  rhs_trace_thresholds <- rhs_trace_thresholds[is.finite(rhs_trace_thresholds) & rhs_trace_thresholds > 0]
+  rhs_trace_thresholds <- sort(unique(rhs_trace_thresholds))
+  rhs_trace_eps <- as.numeric(vb_control$rhs_trace_eps %||% c(1e-6, 1e-4, 1e-2))
+  rhs_trace_eps <- rhs_trace_eps[is.finite(rhs_trace_eps) & rhs_trace_eps > 0]
+  rhs_trace_eps <- sort(unique(rhs_trace_eps))
+
+  if (rhs_trace_on) beta_state$diag_on <- TRUE
+  if (rhs_deep_on) beta_state$diag_deep <- TRUE
+
   elbo_trace     <- numeric(0)
   gamma_trace    <- numeric(0)
   sigma_trace    <- numeric(0)
@@ -138,6 +158,296 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   cur_gamma_hat <- function() L + (U - L) * plogis(qsiggam$eta_hat)
   cur_sigma_hat <- function() exp(qsiggam$ell_hat)
   exp_safe <- function(x) exp(pmin(pmax(as.numeric(x), -745), 709))
+
+  log1p_exp <- function(x) {
+    x <- as.numeric(x)
+    out <- numeric(length(x))
+    pos <- x > 0
+    out[pos]  <- x[pos] + log1p(exp_safe(-x[pos]))
+    out[!pos] <- log1p(exp_safe(x[!pos]))
+    out
+  }
+  logsumexp2 <- function(a, b) {
+    m <- pmax(a, b)
+    m + log(exp_safe(a - m) + exp_safe(b - m))
+  }
+  summ_stats <- function(x) {
+    x <- as.numeric(x)
+    x <- x[is.finite(x)]
+    if (!length(x)) return(c(min = NA_real_, median = NA_real_, max = NA_real_))
+    c(min = min(x), median = stats::median(x), max = max(x))
+  }
+  top_k_idx <- function(x, k) {
+    k <- as.integer(k)
+    if (!length(x) || k <= 0L) return(integer(0))
+    x <- as.numeric(x)
+    x[!is.finite(x)] <- -Inf
+    k <- min(k, length(x))
+    order(x, decreasing = TRUE)[seq_len(k)]
+  }
+
+  rhs_make_snapshot <- function(beta_state, qbeta, beta_prior_obj) {
+    list(
+      iter = NA_integer_,
+      eta_lambda = as.numeric(beta_state$eta_lambda_hat),
+      eta_tau = as.numeric(beta_state$eta_tau_hat),
+      eta_c2 = as.numeric(beta_state$eta_c_hat),
+      beta2 = as.numeric(qbeta$m^2 + diag(qbeta$V)),
+      shrink_intercept = isTRUE(beta_state$shrink_intercept),
+      tau0 = as.numeric(beta_prior_obj$hypers$tau0 %||% 1),
+      nu = as.numeric(beta_prior_obj$hypers$nu %||% 4),
+      s = as.numeric(beta_prior_obj$hypers$s %||% 1)
+    )
+  }
+
+  rhs_profile_logtau_snapshot <- function(snap, eta_grid) {
+    eta_lam <- as.numeric(snap$eta_lambda)
+    eta_tau0 <- as.numeric(snap$eta_tau)
+    eta_c2  <- as.numeric(snap$eta_c2)
+    beta2 <- as.numeric(snap$beta2)
+    shrink_intercept <- isTRUE(snap$shrink_intercept)
+
+    if (!shrink_intercept) {
+      if (length(beta2) >= 2L) {
+        eta_lam <- eta_lam[-1L]
+        beta2 <- beta2[-1L]
+      } else {
+        eta_lam <- numeric(0)
+        beta2 <- numeric(0)
+      }
+    }
+
+    loglam <- eta_lam
+    a <- eta_c2
+    logtau0 <- log(as.numeric(snap$tau0 %||% 1))
+    nu <- as.numeric(snap$nu %||% 4)
+    s_used <- as.numeric(snap$s %||% 1)
+
+    term_lambda_const <- sum(loglam - log1p_exp(2 * loglam))
+    term_c2_const <- -(nu / 2) * a - (nu * s_used^2) / (2 * exp_safe(a))
+
+    out <- lapply(eta_grid, function(eta_tau) {
+      u <- 2 * eta_tau + 2 * loglam
+      ld <- logsumexp2(a, u)
+      logV <- a + u - ld
+      log_invV <- logsumexp2(-a, -u)
+      invV <- exp_safe(log_invV)
+      term_logV <- -0.5 * sum(logV)
+      term_quad <- -0.5 * sum(beta2 * invV)
+      term_tau <- eta_tau - log1p_exp(2 * (eta_tau - logtau0))
+      obj_total <- term_logV + term_quad + term_lambda_const + term_tau + term_c2_const
+
+      w <- exp_safe(u - logsumexp2(a, u))
+      t <- exp_safe(-u)
+      s_tau <- plogis(2 * (eta_tau - logtau0))
+      grad_tau <- -sum(1 - w) + sum(beta2 * t) + (1 - 2 * s_tau)
+
+      data.frame(
+        eta_tau = eta_tau,
+        tau = exp_safe(eta_tau),
+        obj_total = obj_total,
+        term_logV = term_logV,
+        term_quad = term_quad,
+        term_tau = term_tau,
+        term_lambda = term_lambda_const,
+        term_c2 = term_c2_const,
+        grad_eta_tau = grad_tau
+      )
+    })
+
+    prof <- do.call(rbind, out)
+    prof$eta_tau_center <- eta_tau0
+    prof
+  }
+
+  rhs_diag_collect <- function(iter, beta_state, qbeta, prec_diag, term_names = NULL,
+                               prev_log_tau = NA_real_, log_tau_bounds = NULL) {
+    eta_lam <- as.numeric(beta_state$eta_lambda_hat)
+    eta_tau <- as.numeric(beta_state$eta_tau_hat)
+    eta_c2  <- as.numeric(beta_state$eta_c_hat)
+    shrink_intercept <- isTRUE(beta_state$shrink_intercept)
+
+    idx <- if (shrink_intercept) seq_along(eta_lam) else if (length(eta_lam) >= 2L) 2L:length(eta_lam) else integer(0)
+    if (!length(idx)) {
+      return(list(row = data.frame(iter = iter), detail = list()))
+    }
+
+    beta_mean <- as.numeric(qbeta$m)
+    beta_var  <- as.numeric(diag(qbeta$V))
+    beta_mean_use <- beta_mean[idx]
+    beta_var_use  <- beta_var[idx]
+    beta2_use <- beta_mean_use^2 + beta_var_use
+
+    loglam <- eta_lam[idx]
+    lam <- exp_safe(loglam)
+
+    u <- 2 * eta_tau + 2 * loglam
+    a <- eta_c2
+    logV <- a + u - logsumexp2(a, u)
+    V <- exp_safe(logV)
+    log_invV <- logsumexp2(-a, -u)
+    invV <- exp_safe(log_invV)
+
+    prec_use <- as.numeric(prec_diag[idx])
+
+    n_prec_gt <- vapply(rhs_trace_thresholds, function(th) sum(prec_use > th, na.rm = TRUE), integer(1))
+    names(n_prec_gt) <- paste0("n_prec_gt_", format(rhs_trace_thresholds, scientific = TRUE))
+
+    n_beta_small <- vapply(rhs_trace_eps, function(eps) sum(abs(beta_mean_use) < eps, na.rm = TRUE), integer(1))
+    names(n_beta_small) <- paste0("n_beta_abs_lt_", format(rhs_trace_eps, scientific = TRUE))
+
+    term_logV <- -0.5 * sum(logV)
+    term_quad <- -0.5 * sum(beta2_use * invV)
+    term_lambda <- sum(loglam - log1p_exp(2 * loglam))
+    logtau0 <- log(as.numeric(beta_prior_obj$hypers$tau0 %||% 1))
+    term_tau <- eta_tau - log1p_exp(2 * (eta_tau - logtau0))
+    nu <- as.numeric(beta_prior_obj$hypers$nu %||% 4)
+    s_used <- as.numeric(beta_prior_obj$hypers$s %||% 1)
+    term_c2 <- -(nu / 2) * eta_c2 - (nu * s_used^2) / (2 * exp_safe(eta_c2))
+    obj_total <- term_logV + term_quad + term_lambda + term_tau + term_c2
+
+    w <- exp_safe(u - logsumexp2(a, u))
+    t <- exp_safe(-u)
+    r <- exp_safe(-a)
+    s_lam <- plogis(2 * loglam)
+    grad_lam <- -(1 - w) + beta2_use * t + (1 - 2 * s_lam)
+    s_tau <- plogis(2 * (eta_tau - logtau0))
+    grad_tau <- -sum(1 - w) + sum(beta2_use * t) + (1 - 2 * s_tau)
+    grad_c2 <- -0.5 * sum(w) + 0.5 * sum(beta2_use) * r +
+      (-(nu / 2) + (nu * s_used^2) / 2 * r)
+    grad_inf <- max(abs(c(grad_lam, grad_tau, grad_c2)))
+
+    beta_l2 <- sqrt(sum(beta_mean_use^2))
+    beta_absmax <- if (length(beta_mean_use)) max(abs(beta_mean_use)) else NA_real_
+
+    rhs_diag <- beta_state$rhs_diag %||% list()
+    tau_up <- rhs_diag$tau_update %||% list()
+
+    D_rhs <- length(beta2_use)
+    V_safe <- pmax(V, 1e-16)
+    R_val <- sum(beta2_use / V_safe)
+    R_over_D <- if (D_rhs > 0) R_val / D_rhs else NA_real_
+
+    log_tau_clipped <- NA
+    log_tau_clip_side <- NA_character_
+    if (!is.null(log_tau_bounds) && length(log_tau_bounds) == 2L &&
+        all(is.finite(log_tau_bounds))) {
+      tol <- 1e-3
+      if (eta_tau <= log_tau_bounds[1] + tol) {
+        log_tau_clipped <- TRUE
+        log_tau_clip_side <- "lo"
+      } else if (eta_tau >= log_tau_bounds[2] - tol) {
+        log_tau_clipped <- TRUE
+        log_tau_clip_side <- "hi"
+      } else {
+        log_tau_clipped <- FALSE
+      }
+    }
+
+    row <- data.frame(
+      iter = iter,
+      tau = exp_safe(eta_tau),
+      log_tau = eta_tau,
+      delta_log_tau = if (is.finite(prev_log_tau)) (eta_tau - prev_log_tau) else NA_real_,
+      log_tau_clipped = log_tau_clipped,
+      log_tau_clip_side = log_tau_clip_side,
+      tau0 = as.numeric(beta_prior_obj$hypers$tau0 %||% NA_real_),
+      c2 = exp_safe(eta_c2),
+      log_c2 = eta_c2,
+      s = s_used,
+      s2 = as.numeric(beta_prior_obj$hypers$s2 %||% NA_real_),
+      s_source = as.character(beta_prior_obj$hypers$s_source %||% NA_character_),
+      s_provided = as.numeric(beta_prior_obj$hypers$s_provided %||% NA_real_),
+      s2_provided = as.numeric(beta_prior_obj$hypers$s2_provided %||% NA_real_),
+      nu = nu,
+      lambda_min = summ_stats(lam)[1],
+      lambda_med = summ_stats(lam)[2],
+      lambda_max = summ_stats(lam)[3],
+      log_lambda_min = summ_stats(loglam)[1],
+      log_lambda_med = summ_stats(loglam)[2],
+      log_lambda_max = summ_stats(loglam)[3],
+      V_min = summ_stats(V)[1],
+      V_med = summ_stats(V)[2],
+      V_max = summ_stats(V)[3],
+      invV_min = summ_stats(invV)[1],
+      invV_med = summ_stats(invV)[2],
+      invV_max = summ_stats(invV)[3],
+      E_invV_min = summ_stats(prec_use)[1],
+      E_invV_med = summ_stats(prec_use)[2],
+      E_invV_max = summ_stats(prec_use)[3],
+      R = R_val,
+      R_over_D = R_over_D,
+      D_rhs = D_rhs,
+      beta_l2 = beta_l2,
+      beta_var_sum = sum(beta_var_use),
+      beta_var_mean = mean(beta_var_use),
+      beta2_sum = sum(beta2_use),
+      beta2_mean = mean(beta2_use),
+      beta_absmax = beta_absmax,
+      term_logV = term_logV,
+      term_quad = term_quad,
+      term_lambda = term_lambda,
+      term_tau = term_tau,
+      term_c2 = term_c2,
+      obj_total = obj_total,
+      grad_tau = grad_tau,
+      grad_inf = grad_inf,
+      hess_jitter = as.numeric(rhs_diag$hess_jitter %||% NA_real_),
+      chol_diag_min = as.numeric(rhs_diag$chol_diag_min %||% NA_real_),
+      chol_diag_max = as.numeric(rhs_diag$chol_diag_max %||% NA_real_),
+      opt_calls = as.integer(rhs_diag$opt_calls %||% NA_integer_),
+      opt_fallback = as.integer(rhs_diag$opt_fallback %||% NA_integer_),
+      opt_grid = as.integer(rhs_diag$opt_grid %||% NA_integer_),
+      opt_hit_bounds = as.integer(rhs_diag$opt_hit_bounds %||% NA_integer_),
+      tau_eta_start = as.numeric(tau_up$eta0 %||% NA_real_),
+      tau_eta_end = as.numeric(tau_up$mode %||% NA_real_),
+      tau_obj_start = as.numeric(tau_up$obj0 %||% NA_real_),
+      tau_obj_end = as.numeric(tau_up$obj_mode %||% NA_real_),
+      tau_obj_improved = as.logical(tau_up$obj_improved %||% NA),
+      tau_opt_method = as.character(tau_up$method %||% NA_character_),
+      tau_opt_used_fallback = as.logical(tau_up$used_fallback %||% NA),
+      tau_opt_hit_bounds = as.logical(tau_up$hit_bounds %||% NA),
+      tau_opt_lo = as.numeric(tau_up$lo %||% NA_real_),
+      tau_opt_hi = as.numeric(tau_up$hi %||% NA_real_),
+      tau_opt_clipped = as.logical(tau_up$clipped %||% NA),
+      tau_opt_n_iter = as.integer(tau_up$n_iter %||% NA_integer_),
+      tau_opt_n_backtrack = as.integer(tau_up$n_backtrack %||% NA_integer_),
+      tau_opt_n_step_halving = as.integer(tau_up$n_step_halving %||% NA_integer_),
+      grad_tau_start = as.numeric(rhs_diag$grad_tau_start %||% NA_real_),
+      grad_tau_end = as.numeric(rhs_diag$grad_tau_end %||% NA_real_)
+    )
+    for (nm in names(n_prec_gt)) row[[nm]] <- n_prec_gt[[nm]]
+    for (nm in names(n_beta_small)) row[[nm]] <- n_beta_small[[nm]]
+
+    names_use <- if (!is.null(term_names) && length(term_names) >= max(idx)) term_names[idx] else NULL
+    top_prec_idx <- top_k_idx(prec_use, rhs_trace_top_k)
+    top_beta_idx <- top_k_idx(abs(beta_mean_use), rhs_trace_top_k)
+    detail <- list(
+      top_prec = list(
+        idx = idx[top_prec_idx],
+        name = if (!is.null(names_use)) names_use[top_prec_idx] else NULL,
+        value = prec_use[top_prec_idx]
+      ),
+      top_abs_beta = list(
+        idx = idx[top_beta_idx],
+        name = if (!is.null(names_use)) names_use[top_beta_idx] else NULL,
+        value = beta_mean_use[top_beta_idx]
+      )
+    )
+
+    list(row = row, detail = detail)
+  }
+
+  rhs_trace_rows <- if (rhs_trace_on) vector("list", vb_control$max_iter) else NULL
+  rhs_trace_detail <- if (rhs_trace_on) vector("list", vb_control$max_iter) else NULL
+  rhs_profiles <- if (rhs_deep_on) list() else NULL
+  rhs_profile_grid <- seq(-20, 8, by = 0.5)
+  rhs_profile_targets <- c(1L, 5L)
+  rhs_profile_pending <- integer(0)
+  rhs_collapse_iter <- NA_integer_
+  prev_log_tau <- NA_real_
+  prev_snapshot <- NULL
+  term_names <- colnames(X)
 
   # --------------------------------------------------------------------------
   # Helpers for LD on (eta, ell) and delta-method xis (matches exal_static_LDVB)
@@ -534,6 +844,60 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         rhs_lambda_min_trace  <- c(rhs_lambda_min_trace, NA_real_)
         rhs_lambda_max_trace  <- c(rhs_lambda_max_trace, NA_real_)
       }
+
+      if (rhs_trace_on) {
+        prec_diag_now <- as.numeric(beta_prior_obj$expected_prec(beta_state, p))
+        tau_bounds <- beta_prior_obj$control$eta_bounds$tau %||% NULL
+        diag_out <- rhs_diag_collect(iter, beta_state, qbeta, prec_diag_now,
+                                     term_names = term_names,
+                                     prev_log_tau = prev_log_tau,
+                                     log_tau_bounds = tau_bounds)
+        rhs_trace_rows[[iter]] <- diag_out$row
+        rhs_trace_detail[[iter]] <- diag_out$detail
+        prev_log_tau <- as.numeric(beta_state$eta_tau_hat)
+      }
+
+      if (rhs_deep_on) {
+        tau_bounds <- beta_prior_obj$control$eta_bounds$tau %||% NULL
+        eta_tau_now <- as.numeric(beta_state$eta_tau_hat)
+        clipped_now <- FALSE
+        if (!is.null(tau_bounds) && length(tau_bounds) == 2L &&
+            all(is.finite(tau_bounds))) {
+          tol <- 1e-3
+          clipped_now <- (eta_tau_now <= tau_bounds[1] + tol) || (eta_tau_now >= tau_bounds[2] - tol)
+        }
+
+        snap_now <- rhs_make_snapshot(beta_state, qbeta, beta_prior_obj)
+        snap_now$iter <- iter
+
+        if (iter %in% rhs_profile_targets || iter %in% rhs_profile_pending) {
+          if (is.null(rhs_profiles[[as.character(iter)]])) {
+            prof <- rhs_profile_logtau_snapshot(snap_now, rhs_profile_grid)
+            prof$iter <- iter
+            rhs_profiles[[as.character(iter)]] <- prof
+          }
+          rhs_profile_pending <- setdiff(rhs_profile_pending, iter)
+        }
+
+        if (is.na(rhs_collapse_iter) && isTRUE(clipped_now)) {
+          rhs_collapse_iter <- iter
+          if (!is.null(prev_snapshot) && identical(prev_snapshot$iter, iter - 1L)) {
+            if (is.null(rhs_profiles[[as.character(iter - 1L)]])) {
+              prof <- rhs_profile_logtau_snapshot(prev_snapshot, rhs_profile_grid)
+              prof$iter <- iter - 1L
+              rhs_profiles[[as.character(iter - 1L)]] <- prof
+            }
+          }
+          if (is.null(rhs_profiles[[as.character(iter)]])) {
+            prof <- rhs_profile_logtau_snapshot(snap_now, rhs_profile_grid)
+            prof$iter <- iter
+            rhs_profiles[[as.character(iter)]] <- prof
+          }
+          rhs_profile_pending <- unique(c(rhs_profile_pending, iter + 1L))
+        }
+
+        prev_snapshot <- snap_now
+      }
     }
 
     # ------------------------------------------------------------------------
@@ -724,6 +1088,27 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   
   misc_elbo <- elbo_trace
 
+  rhs_trace_df <- NULL
+  rhs_trace_detail_out <- NULL
+  rhs_trace_settings <- NULL
+  rhs_profiles_out <- NULL
+  if (rhs_trace_on && length(rhs_trace_rows)) {
+    rhs_trace_rows <- rhs_trace_rows[seq_len(iter_run)]
+    rhs_trace_df <- do.call(rbind, rhs_trace_rows)
+    rhs_trace_detail_out <- rhs_trace_detail[seq_len(iter_run)]
+    rhs_trace_settings <- list(
+      thresholds = rhs_trace_thresholds,
+      eps = rhs_trace_eps,
+      top_k = rhs_trace_top_k,
+      s_source = beta_prior_obj$hypers$s_source %||% NA_character_,
+      s_provided = beta_prior_obj$hypers$s_provided %||% NA_real_,
+      s2_provided = beta_prior_obj$hypers$s2_provided %||% NA_real_
+    )
+  }
+  if (rhs_deep_on && length(rhs_profiles)) {
+    rhs_profiles_out <- rhs_profiles
+  }
+
   t_end <- proc.time()[3]
 
   structure(list(
@@ -749,7 +1134,13 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       rhs_c2_trace = rhs_c2_trace,
       rhs_lambda_mean_trace = rhs_lambda_mean_trace,
       rhs_lambda_min_trace = rhs_lambda_min_trace,
-      rhs_lambda_max_trace = rhs_lambda_max_trace
+      rhs_lambda_max_trace = rhs_lambda_max_trace,
+      rhs_trace = rhs_trace_df,
+      rhs_trace_detail = rhs_trace_detail_out,
+      rhs_trace_settings = rhs_trace_settings,
+      rhs_logtau_profiles = rhs_profiles_out,
+      rhs_logtau_grid = rhs_profile_grid,
+      rhs_collapse_iter = rhs_collapse_iter
     )
   ), class = "exal_vb")
 

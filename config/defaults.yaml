@@ -60,8 +60,8 @@ mode_overrides:
       scale_y: true
       scale_x: true
     lags:
-      m_y: 365
-      m_x: 365
+      m_y: 30
+      m_x: 30
 
 # --------------------------------------------------------------------
 # DESN (reservoir) defaults
@@ -71,7 +71,7 @@ desn:
   D: 3                       # number of reservoir layers
   n: [100, 100, 100]         # units per layer (length D)
   n_tilde: [100, 100]        # skip/reducer sizes (length D-1 when D>1)
-  m: 365                      # number of lags in u_t
+  m: 30                    # number of lags in u_t
   alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
@@ -90,15 +90,21 @@ vb:
   max_iter: 500
   min_iter_elbo: 50        # mssinimum VB iterations before ELBO/tol stopping
   readout_scale: true       # z-score readout design matrix (excluding intercept)
+  diagnostics:
+    rhs_trace: true
+    rhs_deep: true
+    rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
+    rhs_trace_top_k: 20
+    rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
   priors:
     beta:
       type: rhs
       ridge:
         tau2: 10000
       rhs:
-        tau0: 500
+        tau0: 200
         nu: 4.0
-        s2: 0.5
+        s2: 1
         shrink_intercept: false
         intercept_prec: 1.0e-16
         n_inner: 1
@@ -110,7 +116,7 @@ vb:
         var_floor: 1.0e-8
         verbose: false
         init_log_lambda: 0.0
-        init_log_tau: 0.0
+        init_log_tau: 5.3
         init_log_c2: 0.0
 
 # --------------------------------------------------------------------

@@ -62,18 +62,48 @@ beta_prior_rhs <- function(rhs) {
   tau0 <- as.numeric(rhs$tau0 %||% 1.0)[1L]
   nu   <- as.numeric(rhs$nu   %||% 4.0)[1L]
 
-  # support rhs$s (preferred) or rhs$s2 (legacy)
-  if (!is.null(rhs$s)) {
-    s <- as.numeric(rhs$s)[1L]
+  # support rhs$s (sd scale) or rhs$s2 (variance scale); prefer s2 if both provided
+  s_provided  <- if (!is.null(rhs$s))  as.numeric(rhs$s)[1L]  else NA_real_
+  s2_provided <- if (!is.null(rhs$s2)) as.numeric(rhs$s2)[1L] else NA_real_
+  has_s  <- !is.null(rhs$s)
+  has_s2 <- !is.null(rhs$s2)
+
+  if (has_s2) {
+    s2_used <- s2_provided
+    s_used  <- sqrt(s2_used)
+    s_source <- "s2"
+  } else if (has_s) {
+    s_used  <- s_provided
+    s2_used <- s_used^2
+    s_source <- "s"
   } else {
-    s2 <- as.numeric(rhs$s2 %||% 1.0)[1L]
-    s  <- sqrt(s2)
+    s2_used <- 1.0
+    s_used  <- sqrt(s2_used)
+    s_source <- "default"
   }
+
+  if (has_s && has_s2) {
+    s_from_s2 <- sqrt(s2_provided)
+    if (is.finite(s_provided) && is.finite(s_from_s2)) {
+      rel <- abs(s_provided - s_from_s2) / max(1, abs(s_provided), abs(s_from_s2))
+      if (rel > 1e-8 && !isTRUE(getOption("exdqlm.warned_rhs_s_s2"))) {
+        warning("RHS: both s and s2 were provided and are inconsistent; using s2 and setting s=sqrt(s2).",
+                call. = FALSE)
+        options(exdqlm.warned_rhs_s_s2 = TRUE)
+      }
+    }
+  }
+
+  s <- s_used
 
   hypers <- list(
     tau0 = tau0,
     nu   = nu,
-    s    = s,
+    s    = s_used,
+    s2   = s2_used,
+    s_source = s_source,
+    s_provided = s_provided,
+    s2_provided = s2_provided,
     shrink_intercept = isTRUE(rhs$shrink_intercept %||% TRUE),
     intercept_prec   = as.numeric(rhs$intercept_prec %||% 1e-16)[1L]
   )
