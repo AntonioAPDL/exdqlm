@@ -1,12 +1,12 @@
 ## Test environments
 
-* Local: Ubuntu 24.04, R 4.5.1 — `R CMD check --as-cran`
-* Win-builder: r-devel, r-release, r-oldrel — OK
-* R-hub (GitHub Actions): `linux`, `windows`, `macos-arm64` on R-devel — OK
+* Local: AlmaLinux 8.10 (x86_64), R 4.4.0 — `R CMD check --as-cran`
+* Win-builder: r-release and r-devel **submitted** on 2026-01-23 (results pending)
+* R-hub: **not run** (no PAT available in this environment)
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes (all platforms above)
+0 errors | 0 warnings | 3 notes (local)
 
 ## Notes for CRAN
 
@@ -21,3 +21,9 @@
 * Documentation & tests:
   * Runtime options documented in help; examples kept short.
 * Reverse dependencies: none.
+
+## Notes from local check
+
+* Installed size NOTE (libs ~24.7 MB) due to compiled C++ backends.
+* “unable to verify current time” NOTE is an environment issue on the build host.
+* Non-portable compiler flags NOTE reflects the system toolchain defaults, not package Makevars.

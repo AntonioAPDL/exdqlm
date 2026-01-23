@@ -1,8 +1,11 @@
 ^\.github$
+^\.git$
 ^README\.Rmd$
+^README\.html$
 ^cran-comments\.md$
 ^cran-comments-.*\.md$
 ^cran-comments.*
+^cran-comments-0\.3\.0-draft\.md$
 ^cran-submission.*
 ^doc$
 ^inst/doc$
@@ -32,8 +35,3 @@
 ^dump_exdqlm_files_to_txt\.sh$
 ^check-logs$
 ^tools$
-^cran-comments-0\.3\.0-draft\.md$
-^scripts$
-^check-logs$
-
-^README\.html$
