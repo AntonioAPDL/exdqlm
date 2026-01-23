@@ -494,6 +494,8 @@ qdesn_rhs_prior_obj <- function(
         Sigma_full     = diag(var_floor, p + 2L),
         diag_on        = FALSE,
         rhs_diag       = NULL,
+        freeze_tau     = FALSE,
+        update_tau_only = FALSE,
         shrink_intercept = shrink_intercept,
         intercept_prec   = intercept_prec
       )
@@ -579,6 +581,8 @@ qdesn_rhs_prior_obj <- function(
         diag_env$log_detail <- isTRUE(state$diag_deep)
       }
 
+      update_tau_only <- isTRUE(state$update_tau_only)
+
       v_old <- as.numeric(state$Sigma_diag %||% rep(var_floor, p + 2L))
       if (length(v_old) != p + 2L) v_old <- rep(var_floor, p + 2L)
 
@@ -589,23 +593,25 @@ qdesn_rhs_prior_obj <- function(
       for (inner in seq_len(n_inner)) {
 
         # ---- lambda_j ----
-        for (j in seq_len(p)) {
-          if (!isTRUE(state$shrink_intercept) && j == 1L) next
+        if (!isTRUE(update_tau_only)) {
+          for (j in seq_len(p)) {
+            if (!isTRUE(state$shrink_intercept) && j == 1L) next
 
-          f_j <- function(eta_j) {
-            et <- eta_lam
-            et[j] <- eta_j
-            rhs_obj_eta(et, eta_tau, eta_c2, beta2,
-                        tau0 = tau0, nu = nu, s = s,
-                        shrink_intercept = state$shrink_intercept)
+            f_j <- function(eta_j) {
+              et <- eta_lam
+              et[j] <- eta_j
+              rhs_obj_eta(et, eta_tau, eta_c2, beta2,
+                          tau0 = tau0, nu = nu, s = s,
+                          shrink_intercept = state$shrink_intercept)
+            }
+
+            mode_j <- .opt_1d_mode(f_j, lo = b_lam[1], hi = b_lam[2], eta0 = eta_lam[j],
+                                   diag_env = diag_env, tag = NULL)
+            eta_lam[j] <- mode_j
+
+            d2 <- rhs_d2_lambda_j(mode_j, eta_tau, eta_c2, beta2[j])
+            var_lam[j] <- if (is.finite(d2) && d2 < 0) max(1 / (-d2), var_floor) else var_floor
           }
-
-          mode_j <- .opt_1d_mode(f_j, lo = b_lam[1], hi = b_lam[2], eta0 = eta_lam[j],
-                                 diag_env = diag_env, tag = NULL)
-          eta_lam[j] <- mode_j
-
-          d2 <- rhs_d2_lambda_j(mode_j, eta_tau, eta_c2, beta2[j])
-          var_lam[j] <- if (is.finite(d2) && d2 < 0) max(1 / (-d2), var_floor) else var_floor
         }
 
         # ---- tau ----
@@ -618,8 +624,34 @@ qdesn_rhs_prior_obj <- function(
         } else {
           rhs_grad_tau(eta_lam, eta_tau_start, eta_c2, beta2, tau0 = tau0)
         }
-        eta_tau <- .opt_1d_mode(f_tau, lo = b_tau[1], hi = b_tau[2], eta0 = eta_tau,
-                                diag_env = diag_env, tag = "tau")
+        if (!isTRUE(state$freeze_tau)) {
+          eta_tau <- .opt_1d_mode(f_tau, lo = b_tau[1], hi = b_tau[2], eta0 = eta_tau,
+                                  diag_env = diag_env, tag = "tau")
+        } else if (!is.null(diag_env)) {
+          obj0 <- try(f_tau(eta_tau_start), silent = TRUE)
+          if (inherits(obj0, "try-error") || !is.finite(obj0)) obj0 <- NA_real_
+          entry <- list(
+            tag = "tau",
+            eta0 = eta_tau_start,
+            lo = b_tau[1],
+            hi = b_tau[2],
+            obj0 = obj0,
+            mode_raw = eta_tau_start,
+            mode = eta_tau_start,
+            obj_mode = obj0,
+            obj_improved = NA,
+            method = "frozen",
+            used_fallback = FALSE,
+            hit_bounds = (abs(eta_tau_start - b_tau[1]) <= 1e-8 || abs(eta_tau_start - b_tau[2]) <= 1e-8),
+            clipped = FALSE,
+            clip_before_eval = FALSE,
+            n_iter = 0L,
+            n_backtrack = 0L,
+            n_step_halving = 0L
+          )
+          diag_env$last_by_tag <- diag_env$last_by_tag %||% list()
+          diag_env$last_by_tag[["tau"]] <- entry
+        }
         grad_tau_end <- if (!isTRUE(state$shrink_intercept)) {
           if (p >= 2L) rhs_grad_tau(eta_lam[-1L], eta_tau, eta_c2, beta2[-1L], tau0 = tau0) else NA_real_
         } else {
@@ -634,18 +666,20 @@ qdesn_rhs_prior_obj <- function(
         var_tau <- if (is.finite(d2_tau) && d2_tau < 0) max(1 / (-d2_tau), var_floor) else var_floor
 
         # ---- c^2 ----
-        f_c2 <- function(ec) rhs_obj_eta(eta_lam, eta_tau, ec, beta2,
-                                         tau0 = tau0, nu = nu, s = s,
-                                         shrink_intercept = state$shrink_intercept)
-        eta_c2 <- .opt_1d_mode(f_c2, lo = b_c2[1], hi = b_c2[2], eta0 = eta_c2,
-                               diag_env = diag_env, tag = "c2")
+        if (!isTRUE(update_tau_only)) {
+          f_c2 <- function(ec) rhs_obj_eta(eta_lam, eta_tau, ec, beta2,
+                                           tau0 = tau0, nu = nu, s = s,
+                                           shrink_intercept = state$shrink_intercept)
+          eta_c2 <- .opt_1d_mode(f_c2, lo = b_c2[1], hi = b_c2[2], eta0 = eta_c2,
+                                 diag_env = diag_env, tag = "c2")
 
-        if (!isTRUE(state$shrink_intercept)) {
-          d2_c2 <- rhs_d2_c2(eta_lam[-1L], eta_tau, eta_c2, beta2[-1L], nu = nu, s = s)
-        } else {
-          d2_c2 <- rhs_d2_c2(eta_lam, eta_tau, eta_c2, beta2, nu = nu, s = s)
+          if (!isTRUE(state$shrink_intercept)) {
+            d2_c2 <- rhs_d2_c2(eta_lam[-1L], eta_tau, eta_c2, beta2[-1L], nu = nu, s = s)
+          } else {
+            d2_c2 <- rhs_d2_c2(eta_lam, eta_tau, eta_c2, beta2, nu = nu, s = s)
+          }
+          var_c2 <- if (is.finite(d2_c2) && d2_c2 < 0) max(1 / (-d2_c2), var_floor) else var_floor
         }
-        var_c2 <- if (is.finite(d2_c2) && d2_c2 < 0) max(1 / (-d2_c2), var_floor) else var_floor
       }
 
       # --- Full Laplace covariance: Sigma_eta = -[H_f(eta_hat)]^{-1} ---
@@ -678,6 +712,7 @@ qdesn_rhs_prior_obj <- function(
       state$Sigma_full <- Sigma_full
       state$Sigma_diag <- diag(Sigma_full)
       state$Sigma_diag <- pmax(state$Sigma_diag, var_floor)
+      state$update_tau_only <- FALSE
 
       if (isTRUE(state$diag_on)) {
         state$rhs_diag <- list(

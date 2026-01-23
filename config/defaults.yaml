@@ -92,17 +92,33 @@ vb:
   readout_scale: true       # z-score readout design matrix (excluding intercept)
   diagnostics:
     rhs_trace: true
-    rhs_deep: true
+    rhs_deep: false
     rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
     rhs_trace_top_k: 20
     rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
+  rhs:
+    freeze_tau_iters: 20
+    freeze_tau_warmup_iters: 20
+    update_every: 1
+    update_every_warmup: 1
+    update_every_warmup_iters: 0
+    beta_presteps: 1
+    beta_presteps_iters: 0
+    gradcheck: false
+    gradcheck_iters: [1, 5]
+    gradcheck_h: 1.0e-5
+    tau_local_tol: 1.0e-3          # local ELBO tol for tau updates; null disables gating
+    min_tau_updates: 1
+    max_tau_updates: null
+    force_tau_after_warmup: true
+    recompute_elbo_after_tau_update: true
   priors:
     beta:
       type: rhs
       ridge:
         tau2: 10000
       rhs:
-        tau0: 200
+        tau0: 1
         nu: 4.0
         s2: 1
         shrink_intercept: false
@@ -116,7 +132,7 @@ vb:
         var_floor: 1.0e-8
         verbose: false
         init_log_lambda: 0.0
-        init_log_tau: 5.3
+        init_log_tau: null
         init_log_c2: 0.0
 
 # --------------------------------------------------------------------

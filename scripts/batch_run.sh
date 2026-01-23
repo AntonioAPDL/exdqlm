@@ -9,7 +9,8 @@ cd "$REPO_DIR"
 SPEC="${1:-heavy}"
 
 # --- Slugs to run (your three heavy ones) ---
-SLUGS=(dlm_ar1V dlm_constV_bigW dlm_constV_smallW)
+# SLUGS=(dlm_ar1V dlm_constV_bigW dlm_constV_smallW)
+SLUGS=(dlm_constV_smallW)
 
 # --- Tmux + logging prep ---
 command -v tmux >/dev/null 2>&1 || { echo "tmux not found in PATH"; exit 1; }

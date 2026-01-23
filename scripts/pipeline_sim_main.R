@@ -233,6 +233,20 @@ rhs_deep_on <- FALSE
 rhs_trace_thresholds <- c(1e3, 1e6, 1e9)
 rhs_trace_top_k <- 20L
 rhs_trace_eps <- c(1e-6, 1e-4, 1e-2)
+rhs_freeze_tau_iters <- 0L
+rhs_update_every <- 1L
+rhs_update_every_warmup <- 1L
+rhs_update_every_warmup_iters <- 0L
+rhs_beta_presteps <- 1L
+rhs_beta_presteps_iters <- 0L
+rhs_gradcheck_on <- FALSE
+rhs_gradcheck_iters <- c(1L, 5L)
+rhs_gradcheck_h <- 1e-5
+rhs_tau_local_tol <- NA_real_
+rhs_min_tau_updates <- 1L
+rhs_max_tau_updates <- NA_integer_
+rhs_force_tau_after_warmup <- TRUE
+rhs_recompute_elbo_after_tau_update <- TRUE
 
 # ELBO tolerance per p0 (mid vs tails)
 vb_tol_for <- function(p0) if (near_equal(p0, 0.50)) 1e-4 else 1e-5
@@ -416,6 +430,24 @@ if (!is.null(cfg$vb)) {
     if (!is.null(cfg$vb$rhs)) {
       if (!is.null(cfg$vb$rhs$verbose_trace)) rhs_trace_on <- isTRUE(cfg$vb$rhs$verbose_trace)
       if (!is.null(cfg$vb$rhs$trace)) rhs_trace_on <- isTRUE(cfg$vb$rhs$trace)
+      if (!is.null(cfg$vb$rhs$freeze_tau_warmup_iters)) {
+        rhs_freeze_tau_iters <- as.integer(cfg$vb$rhs$freeze_tau_warmup_iters)
+      } else if (!is.null(cfg$vb$rhs$freeze_tau_iters)) {
+        rhs_freeze_tau_iters <- as.integer(cfg$vb$rhs$freeze_tau_iters)
+      }
+      if (!is.null(cfg$vb$rhs$update_every)) rhs_update_every <- as.integer(cfg$vb$rhs$update_every)
+      if (!is.null(cfg$vb$rhs$update_every_warmup)) rhs_update_every_warmup <- as.integer(cfg$vb$rhs$update_every_warmup)
+      if (!is.null(cfg$vb$rhs$update_every_warmup_iters)) rhs_update_every_warmup_iters <- as.integer(cfg$vb$rhs$update_every_warmup_iters)
+      if (!is.null(cfg$vb$rhs$beta_presteps)) rhs_beta_presteps <- as.integer(cfg$vb$rhs$beta_presteps)
+      if (!is.null(cfg$vb$rhs$beta_presteps_iters)) rhs_beta_presteps_iters <- as.integer(cfg$vb$rhs$beta_presteps_iters)
+      if (!is.null(cfg$vb$rhs$gradcheck)) rhs_gradcheck_on <- isTRUE(cfg$vb$rhs$gradcheck)
+      if (!is.null(cfg$vb$rhs$gradcheck_iters)) rhs_gradcheck_iters <- as.integer(cfg$vb$rhs$gradcheck_iters)
+      if (!is.null(cfg$vb$rhs$gradcheck_h)) rhs_gradcheck_h <- as.numeric(cfg$vb$rhs$gradcheck_h)
+      if (!is.null(cfg$vb$rhs$tau_local_tol)) rhs_tau_local_tol <- as.numeric(cfg$vb$rhs$tau_local_tol)
+      if (!is.null(cfg$vb$rhs$min_tau_updates)) rhs_min_tau_updates <- as.integer(cfg$vb$rhs$min_tau_updates)
+      if (!is.null(cfg$vb$rhs$max_tau_updates)) rhs_max_tau_updates <- as.integer(cfg$vb$rhs$max_tau_updates)
+      if (!is.null(cfg$vb$rhs$force_tau_after_warmup)) rhs_force_tau_after_warmup <- isTRUE(cfg$vb$rhs$force_tau_after_warmup)
+      if (!is.null(cfg$vb$rhs$recompute_elbo_after_tau_update)) rhs_recompute_elbo_after_tau_update <- isTRUE(cfg$vb$rhs$recompute_elbo_after_tau_update)
     }
     if (rhs_deep_on && !rhs_trace_on) rhs_trace_on <- TRUE
     # ELBO tolerance (mid vs tails)
@@ -517,6 +549,20 @@ if (!is.null(cfg$vb)) {
   vb_args_base$rhs_trace_thresholds <- rhs_trace_thresholds
   vb_args_base$rhs_trace_top_k <- rhs_trace_top_k
   vb_args_base$rhs_trace_eps <- rhs_trace_eps
+  vb_args_base$rhs_freeze_tau_iters <- rhs_freeze_tau_iters
+  vb_args_base$rhs_update_every <- rhs_update_every
+  vb_args_base$rhs_update_every_warmup <- rhs_update_every_warmup
+  vb_args_base$rhs_update_every_warmup_iters <- rhs_update_every_warmup_iters
+  vb_args_base$rhs_beta_presteps <- rhs_beta_presteps
+  vb_args_base$rhs_beta_presteps_iters <- rhs_beta_presteps_iters
+  vb_args_base$rhs_gradcheck <- rhs_gradcheck_on
+  vb_args_base$rhs_gradcheck_iters <- rhs_gradcheck_iters
+  vb_args_base$rhs_gradcheck_h <- rhs_gradcheck_h
+  vb_args_base$rhs_tau_local_tol <- rhs_tau_local_tol
+  vb_args_base$rhs_min_tau_updates <- rhs_min_tau_updates
+  vb_args_base$rhs_max_tau_updates <- rhs_max_tau_updates
+  vb_args_base$rhs_force_tau_after_warmup <- rhs_force_tau_after_warmup
+  vb_args_base$rhs_recompute_elbo_after_tau_update <- rhs_recompute_elbo_after_tau_update
 
 
   if (!is.null(cfg$sampling)) {
@@ -694,6 +740,10 @@ if (isTRUE(do_lead_eval) && length(p_vec) < 2L) {
   eval_leads <- integer(0)
 }
 lead_eval_enabled <- isTRUE(do_lead_eval) && length(eval_leads) > 0L
+synth_enabled <- length(p_vec) >= 2L
+if (!synth_enabled) {
+  message("[synth] p_vec has <2 quantiles; synthesis disabled.")
+}
 use_lead1 <- forecast_mode %in% c("origin", "lattice")
 if (isTRUE(use_lead1)) {
   message(sprintf("[forecast] mode=%s -> using lead-1 only for forecast-window outputs.", forecast_mode))
@@ -2177,7 +2227,21 @@ fit_and_forecast_p <- function(p0) {
         rhs_deep = vb_args_p$rhs_deep,
         rhs_trace_thresholds = vb_args_p$rhs_trace_thresholds,
         rhs_trace_top_k = vb_args_p$rhs_trace_top_k,
-        rhs_trace_eps = vb_args_p$rhs_trace_eps
+        rhs_trace_eps = vb_args_p$rhs_trace_eps,
+        rhs_freeze_tau_iters = vb_args_p$rhs_freeze_tau_iters,
+        rhs_update_every = vb_args_p$rhs_update_every,
+        rhs_update_every_warmup = vb_args_p$rhs_update_every_warmup,
+        rhs_update_every_warmup_iters = vb_args_p$rhs_update_every_warmup_iters,
+        rhs_beta_presteps = vb_args_p$rhs_beta_presteps,
+        rhs_beta_presteps_iters = vb_args_p$rhs_beta_presteps_iters,
+        rhs_gradcheck = vb_args_p$rhs_gradcheck,
+        rhs_gradcheck_iters = vb_args_p$rhs_gradcheck_iters,
+        rhs_gradcheck_h = vb_args_p$rhs_gradcheck_h,
+        rhs_tau_local_tol = vb_args_p$rhs_tau_local_tol,
+        rhs_min_tau_updates = vb_args_p$rhs_min_tau_updates,
+        rhs_max_tau_updates = vb_args_p$rhs_max_tau_updates,
+        rhs_force_tau_after_warmup = vb_args_p$rhs_force_tau_after_warmup,
+        rhs_recompute_elbo_after_tau_update = vb_args_p$rhs_recompute_elbo_after_tau_update
       ),
       max_iter  = vb_args_p$max_iter,
       tol       = vb_args_p$tol,
@@ -2647,7 +2711,9 @@ if (isTRUE(do_plots) && isTRUE(do_fan_charts)) {
     dplyr::select(t, y)
 
   yrep_by_origin_list <- lapply(fits_fc, function(obj) obj$forecast_full$yrep_by_origin)
-  if (any(vapply(yrep_by_origin_list, is.null, logical(1)))) {
+  if (!synth_enabled) {
+    message("[fan_charts] synthesis disabled (need >=2 quantiles).")
+  } else if (any(vapply(yrep_by_origin_list, is.null, logical(1)))) {
     message("[fan_charts] missing per-origin draws; skipping synthesized fan chart.")
   } else {
     timed("fan_chart: synth", {
@@ -3242,125 +3308,133 @@ if (isTRUE(do_plots) && nrow(rhs_lambda_df)) {
 
 # ================================================================
 # --- 5) Synthesis (forecast + train)
-draws_list_fc <- lapply(fits_fc, function(obj) obj$yrep_fc)
-synth_fc <- timed(sprintf("synthesize_forecast_draws(T=%d,nd=%d,grid_M=%d,n_samp=%d)",
-                          H_forecast, nd_draws, synth_grid_M, synth_nsamp),
-  exdqlm_synthesize_from_draws(
-    draws_list = draws_list_fc, p = p_vec,
-    enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
-    grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed, T_expected = H_forecast
-  )
-)
-
-
-# Use the same quantile grid for synthesis/metrics as the fitted models
-p_comp <- p_vec
-synth_cols_fc <- lapply(p_comp, function(tau) apply(synth_fc$draws, 1L, stats::quantile, probs = tau, names = FALSE))
-names(synth_cols_fc) <- paste0("synth_q_", fmt_p(p_comp))
-synth_q_fc <- tibble::as_tibble(synth_cols_fc)
-
-true_cols_fc <- setNames(vector("list", length(p_comp)), paste0("true_q_", fmt_p(p_comp)))
-for (i in seq_along(p_comp)) true_cols_fc[[i]] <- true_q_at_tau(dat_long_use, tau = p_comp[i])[idx_fc]
-true_q_fc <- tibble::as_tibble(true_cols_fc)
-
-compare_fc <- tibble::tibble(h = seq_len(H_forecast), y = y_forecast) |>
-  dplyr::bind_cols(true_q_fc) |>
-  dplyr::bind_cols(synth_q_fc)
-
-if (isTRUE(do_plots)) {
-  timed("plot+save synth_forecast trio", {
-    plots_synth_fc <- lapply(
-    p_comp,
-    function(tau)
-      plot_synth_q_vs_true(
-        compare_fc, tau,
-        scope  = "Forecast",
-        window = fore_last_window
-      )
+if (!synth_enabled) {
+  synth_fc <- NULL
+  synth_tr <- NULL
+  compare_fc <- NULL
+  compare_tr <- NULL
+  p_comp <- p_vec
+} else {
+  draws_list_fc <- lapply(fits_fc, function(obj) obj$yrep_fc)
+  synth_fc <- timed(sprintf("synthesize_forecast_draws(T=%d,nd=%d,grid_M=%d,n_samp=%d)",
+                            H_forecast, nd_draws, synth_grid_M, synth_nsamp),
+    exdqlm_synthesize_from_draws(
+      draws_list = draws_list_fc, p = p_vec,
+      enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
+      grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed, T_expected = H_forecast
+    )
   )
 
-  g_band_fc <- plot_synth_predictive_band(
-    synth_draws = synth_fc$draws,
-    y_vec       = y_forecast,
-    scope       = "Forecast",
-    window      = fore_last_window,
-    fill_col    = ACCENT_ORANGE,
-    show_median = TRUE
-  )
 
-    for (j in seq_along(plots_synth_fc)) {
-      print(plots_synth_fc[[j]])
-      if (isTRUE(save_outputs)) {
-        ggsave(file.path(FIGS, sprintf("forecast_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
-              plots_synth_fc[[j]], width=9, height=4.8, dpi=150)
-      }
-    }
+  # Use the same quantile grid for synthesis/metrics as the fitted models
+  p_comp <- p_vec
+  synth_cols_fc <- lapply(p_comp, function(tau) apply(synth_fc$draws, 1L, stats::quantile, probs = tau, names = FALSE))
+  names(synth_cols_fc) <- paste0("synth_q_", fmt_p(p_comp))
+  synth_q_fc <- tibble::as_tibble(synth_cols_fc)
 
-    print(g_band_fc)
-    if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, "forecast_obs_with_95_band.png"), g_band_fc, width=9, height=4.8, dpi=150)
-    }
-  })
-}
+  true_cols_fc <- setNames(vector("list", length(p_comp)), paste0("true_q_", fmt_p(p_comp)))
+  for (i in seq_along(p_comp)) true_cols_fc[[i]] <- true_q_at_tau(dat_long_use, tau = p_comp[i])[idx_fc]
+  true_q_fc <- tibble::as_tibble(true_cols_fc)
 
-# Train synthesis (for completeness)
-draws_list_tr <- lapply(fits_fc, function(obj) obj$yrep_tr)
-T_train_keep  <- nrow(draws_list_tr[[1]])
-keep_train    <- fits_fc[[1]]$fit_train$meta$keep_idx
-synth_tr <- timed(sprintf("synthesize_train_draws(T=%d,grid_M=%d,n_samp=%d)",
-                          T_train_keep, synth_grid_M, synth_nsamp),
-  exdqlm_synthesize_from_draws(
-    draws_list = draws_list_tr, p = p_vec,
-    enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
-    grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed, T_expected = T_train_keep
-  )
-)
+  compare_fc <- tibble::tibble(h = seq_len(H_forecast), y = y_forecast) |>
+    dplyr::bind_cols(true_q_fc) |>
+    dplyr::bind_cols(synth_q_fc)
 
-# Build train comparison frame for synthesis (before plotting)
-synth_cols_tr <- lapply(p_comp, function(tau)
-  apply(synth_tr$draws, 1L, stats::quantile, probs = tau, names = FALSE))
-names(synth_cols_tr) <- paste0("synth_q_", fmt_p(p_comp))
-synth_q_tr <- tibble::as_tibble(synth_cols_tr)
-
-true_cols_tr <- setNames(vector("list", length(p_comp)), paste0("true_q_", fmt_p(p_comp)))
-for (i in seq_along(p_comp)) true_cols_tr[[i]] <- true_q_at_tau(dat_long_use, tau = p_comp[i])[keep_train]
-true_q_tr <- tibble::as_tibble(true_cols_tr)
-
-compare_tr <- tibble::tibble(h = seq_len(T_train_keep), y = y_train_keep) |>
-  dplyr::bind_cols(true_q_tr) |>
-  dplyr::bind_cols(synth_q_tr)
-
-if (isTRUE(do_plots)) {
-  timed("plot+save synth_train trio", {
-    plots_synth_tr <- lapply(
+  if (isTRUE(do_plots)) {
+    timed("plot+save synth_forecast trio", {
+      plots_synth_fc <- lapply(
       p_comp,
       function(tau)
         plot_synth_q_vs_true(
-          compare_tr, tau,
-          scope  = "Train",
-          window = train_last_window
+          compare_fc, tau,
+          scope  = "Forecast",
+          window = fore_last_window
         )
     )
-    for (j in seq_along(plots_synth_tr)) {
-      print(plots_synth_tr[[j]])
-      if (isTRUE(save_outputs)) {
-        ggsave(file.path(FIGS, sprintf("train_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
-              plots_synth_tr[[j]], width=9, height=4.8, dpi=150)
-      }
-    }
-    g_band_tr <- plot_synth_predictive_band(
-      synth_draws = synth_tr$draws,
-      y_vec       = y_train_keep,
-      scope       = "Train",
-      window      = train_last_window,
+
+    g_band_fc <- plot_synth_predictive_band(
+      synth_draws = synth_fc$draws,
+      y_vec       = y_forecast,
+      scope       = "Forecast",
+      window      = fore_last_window,
       fill_col    = ACCENT_ORANGE,
       show_median = TRUE
     )
-    print(g_band_tr)
-    if (isTRUE(save_outputs)) {
-      ggsave(file.path(FIGS, "train_obs_with_95_band.png"), g_band_tr, width=9, height=4.8, dpi=150)
-    }
-  })
+
+      for (j in seq_along(plots_synth_fc)) {
+        print(plots_synth_fc[[j]])
+        if (isTRUE(save_outputs)) {
+          ggsave(file.path(FIGS, sprintf("forecast_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
+                plots_synth_fc[[j]], width=9, height=4.8, dpi=150)
+        }
+      }
+
+      print(g_band_fc)
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, "forecast_obs_with_95_band.png"), g_band_fc, width=9, height=4.8, dpi=150)
+      }
+    })
+  }
+
+  # Train synthesis (for completeness)
+  draws_list_tr <- lapply(fits_fc, function(obj) obj$yrep_tr)
+  T_train_keep  <- nrow(draws_list_tr[[1]])
+  keep_train    <- fits_fc[[1]]$fit_train$meta$keep_idx
+  synth_tr <- timed(sprintf("synthesize_train_draws(T=%d,grid_M=%d,n_samp=%d)",
+                            T_train_keep, synth_grid_M, synth_nsamp),
+    exdqlm_synthesize_from_draws(
+      draws_list = draws_list_tr, p = p_vec,
+      enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
+      grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed, T_expected = T_train_keep
+    )
+  )
+
+  # Build train comparison frame for synthesis (before plotting)
+  synth_cols_tr <- lapply(p_comp, function(tau)
+    apply(synth_tr$draws, 1L, stats::quantile, probs = tau, names = FALSE))
+  names(synth_cols_tr) <- paste0("synth_q_", fmt_p(p_comp))
+  synth_q_tr <- tibble::as_tibble(synth_cols_tr)
+
+  true_cols_tr <- setNames(vector("list", length(p_comp)), paste0("true_q_", fmt_p(p_comp)))
+  for (i in seq_along(p_comp)) true_cols_tr[[i]] <- true_q_at_tau(dat_long_use, tau = p_comp[i])[keep_train]
+  true_q_tr <- tibble::as_tibble(true_cols_tr)
+
+  compare_tr <- tibble::tibble(h = seq_len(T_train_keep), y = y_train_keep) |>
+    dplyr::bind_cols(true_q_tr) |>
+    dplyr::bind_cols(synth_q_tr)
+
+  if (isTRUE(do_plots)) {
+    timed("plot+save synth_train trio", {
+      plots_synth_tr <- lapply(
+        p_comp,
+        function(tau)
+          plot_synth_q_vs_true(
+            compare_tr, tau,
+            scope  = "Train",
+            window = train_last_window
+          )
+      )
+      for (j in seq_along(plots_synth_tr)) {
+        print(plots_synth_tr[[j]])
+        if (isTRUE(save_outputs)) {
+          ggsave(file.path(FIGS, sprintf("train_synth_vs_true_p=%s.png", fmt_p(p_comp[j]))),
+                plots_synth_tr[[j]], width=9, height=4.8, dpi=150)
+        }
+      }
+      g_band_tr <- plot_synth_predictive_band(
+        synth_draws = synth_tr$draws,
+        y_vec       = y_train_keep,
+        scope       = "Train",
+        window      = train_last_window,
+        fill_col    = ACCENT_ORANGE,
+        show_median = TRUE
+      )
+      print(g_band_tr)
+      if (isTRUE(save_outputs)) {
+        ggsave(file.path(FIGS, "train_obs_with_95_band.png"), g_band_tr, width=9, height=4.8, dpi=150)
+      }
+    })
+  }
 }
 
 # ================================================================
@@ -3794,24 +3868,27 @@ if (isTRUE(do_calibration)) {
   }))
   q_long <- dplyr::bind_rows(q_tr_long, q_fc_long)
 
-  # Synthesized q_p (train + forecast) at p_comp
-  qsynth_tr_long <- dplyr::bind_rows(lapply(p_comp, function(tau) {
-    tibble::tibble(
-      scope     = "train", p0 = tau, p_chr = fmt_p(tau),
-      t_aligned = keep_train,
-      q_synth   = synth_q_tr[[paste0("synth_q_", fmt_p(tau))]],
-      y         = y_train_keep
-    )
-  }))
-  qsynth_fc_long <- dplyr::bind_rows(lapply(p_comp, function(tau) {
-    tibble::tibble(
-      scope     = "forecast", p0 = tau, p_chr = fmt_p(tau),
-      t_aligned = n_train + seq_len(H_forecast),
-      q_synth   = synth_q_fc[[paste0("synth_q_", fmt_p(tau))]],
-      y         = y_forecast
-    )
-  }))
-  qsynth_long <- dplyr::bind_rows(qsynth_tr_long, qsynth_fc_long)
+  qsynth_long <- NULL
+  if (synth_enabled) {
+    # Synthesized q_p (train + forecast) at p_comp
+    qsynth_tr_long <- dplyr::bind_rows(lapply(p_comp, function(tau) {
+      tibble::tibble(
+        scope     = "train", p0 = tau, p_chr = fmt_p(tau),
+        t_aligned = keep_train,
+        q_synth   = synth_q_tr[[paste0("synth_q_", fmt_p(tau))]],
+        y         = y_train_keep
+      )
+    }))
+    qsynth_fc_long <- dplyr::bind_rows(lapply(p_comp, function(tau) {
+      tibble::tibble(
+        scope     = "forecast", p0 = tau, p_chr = fmt_p(tau),
+        t_aligned = n_train + seq_len(H_forecast),
+        q_synth   = synth_q_fc[[paste0("synth_q_", fmt_p(tau))]],
+        y         = y_forecast
+      )
+    }))
+    qsynth_long <- dplyr::bind_rows(qsynth_tr_long, qsynth_fc_long)
+  }
 
   # ---- SAFE COERCION for calibration summaries ----
   force_numeric_column <- function(df, qcol) {
@@ -3847,15 +3924,21 @@ if (isTRUE(do_calibration)) {
       dplyr::arrange(.data$scope, .data$p0)
   }
 
-    timed("calibration: summarize tables (mu, qhat, qsynth)", {
+  timed("calibration: summarize tables (mu, qhat, qsynth)", {
     cov_mu_tbl     <- summarize_cov_tbl_safe(dplyr::rename(mu_long,  qcol = mu_hat) |> dplyr::mutate(p0 = as.numeric(p_chr)), "qcol")
     cov_qhat_tbl   <- summarize_cov_tbl_safe(dplyr::rename(q_long,   qcol = qhat)   |> dplyr::mutate(p0 = as.numeric(p_chr)), "qcol")
-    cov_qsynth_tbl <- summarize_cov_tbl_safe(dplyr::rename(qsynth_long, qcol = q_synth), "qcol")
-    print(cov_mu_tbl); print(cov_qhat_tbl); print(cov_qsynth_tbl)
+    cov_qsynth_tbl <- NULL
+    if (synth_enabled && !is.null(qsynth_long)) {
+      cov_qsynth_tbl <- summarize_cov_tbl_safe(dplyr::rename(qsynth_long, qcol = q_synth), "qcol")
+    }
+    print(cov_mu_tbl); print(cov_qhat_tbl)
+    if (!is.null(cov_qsynth_tbl)) print(cov_qsynth_tbl)
     if (isTRUE(save_outputs)) {
       readr::write_csv(cov_mu_tbl,     file.path(TABLES, "calibration_mu_table.csv"))
       readr::write_csv(cov_qhat_tbl,   file.path(TABLES, "calibration_qhat_table.csv"))
-      readr::write_csv(cov_qsynth_tbl, file.path(TABLES, "calibration_qsynth_table.csv"))
+      if (!is.null(cov_qsynth_tbl)) {
+        readr::write_csv(cov_qsynth_tbl, file.path(TABLES, "calibration_qsynth_table.csv"))
+      }
     }
   })
 
@@ -4089,28 +4172,37 @@ g_cov_q_fore   <- plot_rolling_cov(q_long  |> dplyr::filter(scope=="forecast"),
                                    window = cov_window, show_last = show_last,
                                    show_rcov_band = TRUE, show_target_band = FALSE)
 
-g_cov_qsynth_train <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="train") |> dplyr::rename(q = q_synth),
-                                       qcol = "q",
-                                       window = cov_window, show_last = show_last,
-                                       show_rcov_band = TRUE, show_target_band = FALSE)
+g_cov_qsynth_train <- NULL
+g_cov_qsynth_fore <- NULL
+if (synth_enabled && !is.null(qsynth_long)) {
+  g_cov_qsynth_train <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="train") |> dplyr::rename(q = q_synth),
+                                         qcol = "q",
+                                         window = cov_window, show_last = show_last,
+                                         show_rcov_band = TRUE, show_target_band = FALSE)
 
-g_cov_qsynth_fore  <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="forecast") |> dplyr::rename(q = q_synth),
-                                       qcol = "q",
-                                       window = cov_window, show_last = show_last,
-                                       show_rcov_band = TRUE, show_target_band = FALSE)
+  g_cov_qsynth_fore  <- plot_rolling_cov(qsynth_long |> dplyr::filter(scope=="forecast") |> dplyr::rename(q = q_synth),
+                                         qcol = "q",
+                                         window = cov_window, show_last = show_last,
+                                         show_rcov_band = TRUE, show_target_band = FALSE)
+}
 
   timed("calibration: rolling coverage plots", {
     # build all 6 plots & save (your existing code)
     print(g_cov_mu_train); print(g_cov_mu_fore)
     print(g_cov_q_train);  print(g_cov_q_fore)
-    print(g_cov_qsynth_train); print(g_cov_qsynth_fore)
+    if (!is.null(g_cov_qsynth_train)) print(g_cov_qsynth_train)
+    if (!is.null(g_cov_qsynth_fore))  print(g_cov_qsynth_fore)
     if (isTRUE(save_outputs)) {
       ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_mu_train_W=%d.png", cov_window)),      g_cov_mu_train, width=9, height=4.8, dpi=150)
       ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_mu_forecast_W=%d.png", cov_window)),   g_cov_mu_fore,  width=9, height=4.8, dpi=150)
       ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_qhat_train_W=%d.png", cov_window)),    g_cov_q_train,  width=9, height=4.8, dpi=150)
       ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_qhat_forecast_W=%d.png", cov_window)), g_cov_q_fore,   width=9, height=4.8, dpi=150)
-      ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_qsynth_train_W=%d.png", cov_window)),  g_cov_qsynth_train, width=9, height=4.8, dpi=150)
-      ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_qsynth_forecast_W=%d.png", cov_window)), g_cov_qsynth_fore, width=9, height=4.8, dpi=150)
+      if (!is.null(g_cov_qsynth_train)) {
+        ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_qsynth_train_W=%d.png", cov_window)),  g_cov_qsynth_train, width=9, height=4.8, dpi=150)
+      }
+      if (!is.null(g_cov_qsynth_fore)) {
+        ggplot2::ggsave(file.path(FIGS, sprintf("rolling_cov_qsynth_forecast_W=%d.png", cov_window)), g_cov_qsynth_fore, width=9, height=4.8, dpi=150)
+      }
     }
   })
 }
@@ -4127,6 +4219,7 @@ if (isTRUE(do_pit)) {
   pit_scope_norm <- tolower(gsub("[ _+]", "", pit_scope))
   pit_use_all   <- pit_scope_norm %in% c("all", "allsynth", "synthall")
   pit_use_synth <- pit_scope_norm %in% c("synth", "allsynth", "synthall")
+  if (!synth_enabled) pit_use_synth <- FALSE
   pit_use_median <- pit_scope_norm %in% c("median", "mid", "medianonly")
   if (!pit_use_all && !pit_use_synth && !pit_use_median) {
     message(sprintf("[PIT] unknown pit_scope='%s'; defaulting to all+synth.", pit_scope))
@@ -4246,7 +4339,7 @@ if (isTRUE(do_pit)) {
       }
     }
 
-    if (isTRUE(pit_use_synth)) {
+    if (isTRUE(pit_use_synth) && synth_enabled) {
       pit_tr_syn <- emp_pit_vec(y_train_keep, synth_tr$draws)
       pit_fc_syn <- emp_pit_vec(y_forecast, synth_fc$draws)
       g_tr_hist <- plot_pit_hist(pit_tr_syn, "PIT histogram (train, synthesized)")
@@ -4268,6 +4361,9 @@ if (isTRUE(do_pit)) {
 # 10) CRPS and S score (CRPS + averaged marginal pinball over K)
 # ================================================================
 if (isTRUE(do_scores)) {
+  if (!synth_enabled) {
+    message("[scores] synthesis disabled; skipping CRPS/S scores.")
+  } else {
   # Forecast-window CRPS from synthesized draws
   crps_fc <- crps_vec(y_forecast, synth_fc$draws)
 
@@ -4325,4 +4421,5 @@ if (isTRUE(do_scores)) {
       readr::write_csv(scores_summary,  file.path(TABLES, "scores_summary.csv"))
     }
   })
+}
 }
