@@ -6,7 +6,7 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 3 notes (local)
+0 errors | 0 warnings | 2 notes (local)
 
 ## Notes for CRAN
 
@@ -25,5 +25,4 @@
 ## Notes from local check
 
 * Installed size NOTE (libs ~24.7 MB) due to compiled C++ backends.
-* “unable to verify current time” NOTE is an environment issue on the build host.
 * Non-portable compiler flags NOTE reflects the system toolchain defaults, not package Makevars.
