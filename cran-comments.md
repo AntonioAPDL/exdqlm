@@ -2,8 +2,7 @@
 
 * Local: AlmaLinux 8.10 (x86_64), R 4.4.0 — `R CMD check --as-cran`
 * Win-builder: r-release and r-devel **submitted** on 2026-01-23 (results pending)
-* R-hub (GitHub Actions):
-  - Re-run **in progress** after macOS fix.
+* R-hub (GitHub Actions): **OK** on linux/windows/macos-arm64 (R-devel)
   - Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21306693837
 
 ## R CMD check results
@@ -37,4 +36,4 @@ macos-arm64 failed to compile with:
 fatal error: 'R_ext/Callbacks.h' file not found
 ```
 This appears to be a recent R-devel header change. To address it, we added a small compatibility header
-`inst/include/R_ext/Callbacks.h` and updated `SystemRequirements` to `C++17`. A fresh R-hub run is in progress.
+`inst/include/R_ext/Callbacks.h` and updated `SystemRequirements` to `C++17`. R-hub re-run now passes on macOS.
