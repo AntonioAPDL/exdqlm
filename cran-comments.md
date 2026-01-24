@@ -3,10 +3,8 @@
 * Local: AlmaLinux 8.10 (x86_64), R 4.4.0 — `R CMD check --as-cran`
 * Win-builder: r-release and r-devel **submitted** on 2026-01-23 (results pending)
 * R-hub (GitHub Actions):
-  - linux (R-devel): **OK**
-  - windows (R-devel): **OK**
-  - macos-arm64 (R-devel): **ERROR** (see Notes below)
-  - Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21305901121
+  - Re-run **in progress** after macOS fix.
+  - Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21306693837
 
 ## R CMD check results
 
@@ -32,11 +30,11 @@
 * “unable to verify current time” NOTE is an environment issue on the build host.
 * Non-portable compiler flags NOTE reflects the system toolchain defaults, not package Makevars.
 
-## R-hub macOS failure (R-devel)
+## R-hub macOS failure (R-devel) from prior run
 
 macos-arm64 failed to compile with:
 ```
 fatal error: 'R_ext/Callbacks.h' file not found
 ```
 This appears to be a recent R-devel header change. To address it, we added a small compatibility header
-`inst/include/R_ext/Callbacks.h` and updated `SystemRequirements` to `C++17`. A fresh R-hub run is pending.
+`inst/include/R_ext/Callbacks.h` and updated `SystemRequirements` to `C++17`. A fresh R-hub run is in progress.
