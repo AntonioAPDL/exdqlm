@@ -49,6 +49,6 @@ LinkingTo:
     Rcpp,
     RcppArmadillo,
     RcppEigen
-SystemRequirements: C++11; OpenMP (optional)
+SystemRequirements: C++17; OpenMP (optional)
 URL: https://github.com/AntonioAPDL/exdqlm
 BugReports: https://github.com/AntonioAPDL/exdqlm/issues
