@@ -2,7 +2,8 @@
 
 * Local: AlmaLinux 8.10 (x86_64), R 4.4.0 — `R CMD check --as-cran`
 * Win-builder: r-release and r-devel **submitted** on 2026-01-23 (results pending)
-* R-hub: **not run** (no PAT available in this environment)
+* R-hub: **submitted** via GitHub Actions on 2026-01-24
+  - Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21305901121 (queued at time of writing)
 
 ## R CMD check results
 
