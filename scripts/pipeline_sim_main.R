@@ -3015,7 +3015,7 @@ if (isTRUE(do_plots)) {
 
 # --- 4) ELBO traces
 # --- 4) ELBO traces -----------------------------------------------------------
-k_burn <- 20L
+k_burn <- 5L
 
 elbo_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
   tr <- fits_fc[[i]]$fit_train$fit$misc$elbo

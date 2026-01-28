@@ -52,7 +52,7 @@ mode_overrides:
   real:
     split:
       T_use: 10000
-      train_prop: 0.98
+      train_prop: 0.96
     columns:
       y: USGS
       x: [ppt, soil]
@@ -71,8 +71,8 @@ desn:
   D: 3                       # number of reservoir layers
   n: [300, 300, 300]         # units per layer (length D)
   n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
-  m: 30                   # number of lags in u_t
-  alpha: [0.2, 0.2, 0.2]  # leak per layer (length D)
+  m: 180                   # number of lags in u_t
+  alpha: [0.3, 0.3, 0.3]  # leak per layer (length D)
   rho:   [0.95, 0.95, 0.95]  # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]                 # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"]     # output activation per layer
@@ -87,8 +87,8 @@ desn:
 # These match what pipeline_sim_main.R expects in cfg$vb
 # --------------------------------------------------------------------
 vb:
-  max_iter: 500
-  min_iter_elbo: 50        # mssinimum VB iterations before ELBO/tol stopping
+  max_iter: 100
+  min_iter_elbo: 20        # mssinimum VB iterations before ELBO/tol stopping
   readout_scale: true       # z-score readout design matrix (excluding intercept)
   diagnostics:
     rhs_trace: true
@@ -118,9 +118,9 @@ vb:
       ridge:
         tau2: 10000
       rhs:
-        tau0: 0.1
+        tau0: 0.001
         nu: 4.0
-        s2: 1.0
+        s2: 0.1
         shrink_intercept: false
         intercept_prec: 1.0e-16
         n_inner: 1
@@ -163,7 +163,7 @@ ij:
 # --------------------------------------------------------------------
 forecast:
   last_window: 250           # legacy base window
-  horizon: 30                 # multi-step horizon for lattice forecasts
+  horizon: 60                 # multi-step horizon for lattice forecasts
   mode: origin               # origin (lead-1) | mixture | lattice
   lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (mixture only; power=0 => uniform)
   # mixture draws per target time = sampling.nd_draws
@@ -208,7 +208,7 @@ diagnostics:
   scores: true               # CRPS / interval scores, etc.
   lead_eval: true            # synthesized lead-specific CRPS diagnostics
   fan_charts: true           # overlapping forecast fan charts
-  fan_stride: 30             # plot every k-th origin (1 = all)
+  fan_stride: 60             # plot every k-th origin (1 = all)
   cov_window: 365            # rolling-coverage window length
   cov_show_last: 300         # rolling-coverage plot tail length
   plots: true                # master gate for ggplot-based outputs

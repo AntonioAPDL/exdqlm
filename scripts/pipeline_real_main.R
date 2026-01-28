@@ -2558,7 +2558,7 @@ if (isTRUE(do_plots)) {
 }
 
 # --- ELBO traces (same as sim) -----------------------------------------------
-k_burn <- 20
+k_burn <- 5L
 elbo_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
   tr <- fits_fc[[i]]$fit_train$fit$misc$elbo
   if (is.null(tr) || !length(tr)) return(tibble::tibble())
