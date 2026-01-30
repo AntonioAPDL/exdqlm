@@ -7,11 +7,12 @@
 ## Key updates applied
 - **CalCRPS-only redesign:** Calibration now defined exclusively via CalCRPS from coverage draws.
 - **Clarified draw semantics:** $r$ denotes a joint draw across the evaluation lattice; per-time independence is an approximation.
-- **Empirical CalCRPS formula:** Added a minimal formula for CRPS of coverage draws + note to use $O(R\\log R)$ computation.
+- **Empirical CalCRPS formula:** Added a minimal formula for CRPS of coverage draws + note to use $O(R\\log R)$ computation, with a brief pointer to sorted-sample cumulative-sum implementations.
 - **Coarse search defaults updated:** Ranges aligned to current repo regimes (larger $n$ and $m$).
 - **Planned output schemas:** Added `tables/calibration_by_tau.csv` and `tables/calibration_summary.csv` with minimal identifiers.
 - **Schema identifiers defined:** Added explicit definitions for p_vec_id, verify_window_id, weight_spec_id, origins_spec_id.
 - **Operational stage defaults:** Coarse/final stages now specify seeds, quantile grids, leads, origins policy, and draw counts.
+- **Optional lead-stratified CalCRPS:** Added a short note for lead-group diagnostics.
 - **Deterministic origin subsampling:** Added requirement to share subsampled origins across candidates.
 - **Legacy scripts deprecated:** v2 will ignore legacy model-selection scripts; new file locations are specified.
 - **Reuse conventions:** v2 should reuse existing pipeline/manifest/output conventions.

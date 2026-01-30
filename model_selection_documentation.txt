@@ -129,7 +129,7 @@ This yields draws $\{c_{\tau}^{(r)}\}_{r=1}^R$ in $[0,1]$. Let $\widehat F_{c_\t
 \[
 \CRPS(\widehat F, x) = \frac{1}{R}\sum_{r=1}^R |c^{(r)}-x| - \frac{1}{2R^2}\sum_{r=1}^R\sum_{r'=1}^R |c^{(r)}-c^{(r')}|.
 \]
-Implementation note: compute this in \(O(R\log R)\) using sorting-based formulas; avoid \(O(R^2)\) double sums for large \(R\).
+Implementation note: compute this in \(O(R\log R)\) using sorting-based formulas; avoid \(O(R^2)\) double sums for large \(R\). A standard approach uses sorted samples and cumulative sums.
 
 Aggregate across $\tau$:
 \[
@@ -137,6 +137,7 @@ Aggregate across $\tau$:
 \quad
 \text{CalCRPS}_{\text{max}} = \max_{\tau\in\mathcal{Q}} \text{CalCRPS}_\tau.
 \]
+Optional extension: compute CalCRPS per lead group (e.g., short/medium/long or per $h$) and aggregate; this can diagnose lead-specific miscalibration without changing the primary objective.
 
 \section{Selection objective (CalCRPS only)}
 \paragraph{Primary:} $\CRPS_{\text{synth}}$ of the synthesized predictive distribution (verification window).
@@ -188,7 +189,7 @@ Aggregated across $\tau$:
 \item \texttt{p\_vec\_id}: hash of the $\tau$ vector or a named preset id.
 \item \texttt{verify\_window\_id}: hash of \((t_{\text{verify start}}, t_{\text{verify end}}, \text{lead\_set\_id}, \text{origins\_spec\_id}, \text{weight\_spec\_id})\) or store explicit start/end and use a hash as id.
 \item \texttt{weight\_spec\_id}: name/key for weighting rule (e.g., uniform, lead\_power(p)).
-\item \texttt{origins\_spec\_id}: name/key for origin policy (e.g., all, subsample\_frac + seed, stride\_k).
+\item \texttt{origins\_spec\_id}: name/key for origin policy (e.g., all, subsample\_frac + subsample\_seed, stride\_k).
 \end{itemize}
 
 \section{Multi-fidelity stages (planned defaults)}
