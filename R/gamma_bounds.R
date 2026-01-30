@@ -13,9 +13,5 @@
 #' get_gamma_bounds(0.9)
 #' @export
 get_gamma_bounds <- function(p0) {
-  stopifnot(is.numeric(p0), length(p0) == 1L, is.finite(p0), p0 > 0, p0 < 1)
-  out <- get_gamma_bounds_cpp(p0)
-  # ensure names for clarity
-  if (length(out) == 2L && is.null(names(out))) names(out) <- c("L","U")
-  out
+  .gamma_bounds(p0)
 }
