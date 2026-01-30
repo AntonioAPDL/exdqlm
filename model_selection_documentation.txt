@@ -14,13 +14,11 @@
 % Macros
 % ---------------------------
 \newcommand{\CRPS}{\mathrm{CRPS}}
-\newcommand{\CalErr}{\mathrm{CalErr}}
-\newcommand{\CalRMSE}{\mathrm{CalRMSE}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\Prb}{\mathbb{P}}
 \newcommand{\Ind}{\mathbf{1}}
 
-\title{QDESN Model Selection: Evaluation Protocol, Objectives, and Repo-Native Design}
+\title{QDESN Model Selection: Evaluation Protocol, Objectives, and Repo-Native Design (v2 Prep)}
 \author{Internal Design Document (implementation-facing)}
 \date{\today}
 
@@ -28,23 +26,23 @@
 \maketitle
 
 \section{Purpose and scope}
-This document specifies a rigorous, time-series-safe model selection workflow for Q-DESN, where multiple quantile models (indexed by quantile level $\tau$) share a common DESN specification and are synthesized into a single predictive distribution. The goal is to select DESN hyperparameters efficiently and reproducibly using out-of-sample predictive performance of the \emph{synthesized} distribution (primary) plus calibration of the \emph{individual} quantile models (secondary/constraint or penalty).
+This document specifies a rigorous, time-series-safe model selection workflow for QDESN. Multiple quantile models (indexed by $\tau$) share a common DESN specification and are synthesized into a single predictive distribution. The goal is to select DESN hyperparameters efficiently and reproducibly using out-of-sample predictive performance of the \emph{synthesized} distribution (primary) plus calibration of the \emph{individual} quantile models (secondary/constraint or penalty).
 
 \paragraph{Selection target.}
-We select the shared DESN specification while holding secondary parameters fixed. In repo terms, the selection target is the \texttt{cfg$desn} block (e.g., \texttt{D, n, n\_tilde, m, alpha, rho, pi\_w, pi\_in, washout}) with readout and VB settings held fixed unless explicitly varied.
+We select the shared DESN specification while holding secondary parameters fixed. In repo terms, the selection target is the \texttt{cfg$desn} block (\texttt{D, n, n\_tilde, m, alpha, rho, pi\_w, pi\_in, washout, add\_bias, seed}) with readout and VB settings fixed unless explicitly varied.
 
 \paragraph{Key design principles.}
 \begin{enumerate}[label=(\arabic*), itemsep=2pt, topsep=4pt]
 \item Strict time-series evaluation (no leakage): train/verification/test split and rolling-origin evaluation on the verification block.
 \item Proper scoring rules for distributional forecasts: CRPS for the synthesized predictive distribution.
-\item Explicit quantile calibration assessment: coverage/PIT or calibration error per $\tau$.
+\item Calibration defined by \textbf{CalCRPS only} (uncertainty-aware; see \S\ref{sec:calcrps}).
 \item Explicit handling of ESN stochasticity: common random numbers across candidates; average objectives across seeds.
 \item Multi-stage, multi-fidelity search: broad screening, then racing/successive halving, then final robust evaluation.
 \item Caching and parallelization: reuse reservoir states per (candidate, seed) across quantiles; parallelize across candidates/seeds/quantiles.
 \end{enumerate}
 
 \section{Repository mapping (current code locations)}
-This section lists where the current QDESN/DESN plumbing lives. Use these as authoritative references when aligning or implementing model selection.
+\textbf{Note:} Existing model-selection scripts are \textbf{LEGACY/DEPRECATED} for the new v2 approach and must be ignored when implementing v2. They remain listed here only for repo context.
 
 \begin{itemize}[itemsep=2pt, topsep=4pt]
 \item \textbf{Config + orchestration:} \texttt{config/defaults.yaml}, \texttt{config/datasets.yaml}, \texttt{scripts/pipeline\_run.R}
@@ -54,12 +52,20 @@ This section lists where the current QDESN/DESN plumbing lives. Use these as aut
 \item \textbf{VB engine:} \texttt{R/exal\_ldvb\_engine.R}, \texttt{R/exal\_static\_LDVB.R}
 \item \textbf{RHS prior:} \texttt{R/priors\_beta.R}, \texttt{R/qdesn\_rhs\_prior.R}
 \item \textbf{Synthesis:} \texttt{R/exdqlm\_synthesize\_from\_draws.R}
-\item \textbf{Model selection (existing):}
+\item \textbf{Model selection (LEGACY/DEPRECATED):}
   \begin{itemize}[itemsep=1pt, topsep=2pt]
-  \item \texttt{R/qdesn\_model\_selection.R} (full train/verify/test selection driver)
-  \item \texttt{scripts/qdesn\_model\_selection\_main.R} (CLI entry point)
-  \item \texttt{R/model\_selection\_distribution\_first.R} (distribution-first CRPS selection)
+  \item \texttt{R/qdesn\_model\_selection.R}
+  \item \texttt{scripts/qdesn\_model\_selection\_main.R}
+  \item \texttt{R/model\_selection\_distribution\_first.R}
   \end{itemize}
+\end{itemize}
+
+\paragraph{New implementation plan (doc-only).}
+The v2 model-selection code should live separately and must ignore legacy scripts:
+\begin{itemize}[itemsep=2pt, topsep=4pt]
+\item \texttt{R/qdesn\_model\_selection\_v2.R}
+\item \texttt{scripts/qdesn\_model\_selection\_v2\_main.R}
+\item \texttt{R/model\_selection\_utils\_v2.R}
 \end{itemize}
 
 \section{Model components and notation}
@@ -76,90 +82,106 @@ Let $y_{1:T}$ denote the observed time series. We use a time-ordered split:
 \item \textbf{Test/forecast block} $\mathcal{T}_{\text{test}}$: used once for final reporting after selection.
 \end{itemize}
 
-\paragraph{Repo-native split controls.}
-The pipelines use \texttt{cfg$split} (e.g., \texttt{train\_prop}, \texttt{train\_n}, \texttt{T\_use}, \texttt{use\_last}) and then compute train/forecast splits internally. Model selection uses \texttt{model\_selection$split} (see \texttt{R/qdesn\_model\_selection.R}).
-
 \subsection{Rolling-origin evaluation}
-Let $\mathcal{O}$ be the set of forecast origins within $\mathcal{T}_{\text{verify}}$ and $\mathcal{H}$ the horizon set. The repo uses \texttt{forecast\_lattice.qdesn\_fit()} to handle multi-origin forecasting. Weights over $(t_0, h)$ are configured in \texttt{cfg$forecast} (e.g., \texttt{lead\_weight\_power}, \texttt{eval\_leads}).
+Let $\mathcal{O}$ be the set of forecast origins within $\mathcal{T}_{\text{verify}}$ and $\mathcal{H}$ the horizon set. We evaluate candidates at pairs $(t_0,h)$ such that $y_{t_0+h}$ exists within the verification window. Weights $w_{t_0,h}\ge 0$ are deterministic and sum to 1.
 
 \subsection{Quantile grid and synthesis}
 Let $\mathcal{Q}=\{\tau_1,\dots,\tau_M\}$ be the quantile set (\texttt{p\_vec} in config). Synthesis is handled by
 \texttt{exdqlm\_synthesize\_from\_draws()} with isotonic and rearrangement options controlled by \texttt{cfg$synthesis}.
 
-\section{Candidate DESN search space}
+\section{Candidate DESN search space (reproducible defaults)}
 
-\subsection{Primary tuned parameters (repo-native)}
+\subsection{Hard constraints}
 \begin{itemize}[itemsep=2pt, topsep=4pt]
-\item $D$ (\texttt{cfg$desn$D}): number of reservoir layers
-\item $n$ (\texttt{cfg$desn$n}): units per layer (length $D$)
-\item $n\_\tilde{}$ (\texttt{cfg$desn$n\_tilde}): inter-layer projection dims (length $D-1$)
-\item $m$ (\texttt{cfg$desn$m}): number of output lags in reservoir input
-\item $\alpha$ (\texttt{cfg$desn$alpha}): leakage parameter(s)
-\item $\rho$ (\texttt{cfg$desn$rho}): spectral scale(s)
+\item \texttt{length(n) == D}
+\item \texttt{length(alpha) == D} or scalar-expand across layers
+\item \texttt{length(rho) == D} or scalar-expand across layers
+\item \texttt{length(n\_tilde) == D-1} when $D>1$ (empty when $D=1$)
+\item \texttt{pi\_w, pi\_in, washout, add\_bias} fixed unless explicitly varied
 \end{itemize}
 
-\subsection{Fixed DESN parameters (default)}
-Hold the following constant during selection unless a study explicitly varies them:
+\subsection{Default coarse ranges (override by config)}
 \begin{itemize}[itemsep=2pt, topsep=4pt]
-\item activations (\texttt{act\_f}, \texttt{act\_k})
-\item sparsity (\texttt{pi\_w}, \texttt{pi\_in})
-\item washout (\texttt{washout})
-\item readout bias (\texttt{add\_bias})
-\item seeds (\texttt{desn$seed}): scalar or per-layer vector; scalar is expanded per layer in \texttt{pipeline\_run.R}
+\item $D \in \{1,2,3\}$
+\item $n_1 \in \{100,200,300,400,500\}$ and layer ratios $r_2,r_3 \in (0,1]$ (if using ratios)
+\item $m \in \{10,20,30,50\}$
+\item $\alpha \in [0.05, 0.5]$
+\item $\rho \in [0.7, 0.99]$
 \end{itemize}
 
-\section{Scoring metrics (repo-native)}
+\section{Calibration metric redesign (CalCRPS only)}
+\label{sec:calcrps}
+Calibration is defined \textbf{only} via a CalCRPS metric computed from posterior/variational \emph{coverage draws}.
 
-\subsection{Primary metric: CRPS for synthesized distribution}
-In pipelines and model-selection utilities, CRPS is computed from synthesized draws and summarized in \texttt{metrics\_summary.csv} with \texttt{component = "synth"} and \texttt{score = "crps"} or \texttt{"crps\_synth"}. The selection objective typically uses the forecast/verification window.
-
-\subsection{Calibration diagnostics}
-Pipelines compute PIT and coverage-based calibration diagnostics for each $\tau$ and (optionally) synthesized distributions. These are stored in tables/plots and can be used as constraints or penalties. The doc's $\CalRMSE$ can be mapped to coverage error summaries already produced in the diagnostics tables, or added as a planned extension (see \S\ref{sec:planned}).
-
-\section{Selection objective}
-
-\subsection{Option A: constrained optimization (recommended default)}
+Let $E$ be the evaluation lattice of $(t_0,h)$ in the verification window, with deterministic weights $w_{t_0,h} \ge 0$ that sum to 1. For each $\tau \in \mathcal{Q}$ and each posterior/variational draw $r=1..R$, define weighted empirical coverage:
 \[
-\min_\theta \; S_{\mathrm{CRPS}}(\theta)
+ c_{\tau}^{(r)} = \sum_{(t_0,h)\in E} w_{t_0,h} \cdot \Ind\{ y_{t_0+h} \le q_{t_0,h,\tau}^{(r)} \}.
+\]
+This yields draws $\{c_{\tau}^{(r)}\}_{r=1}^R$ in $[0,1]$. Let $\widehat F_{c_\tau}$ be the empirical CDF of these draws. Define:
+\[
+\text{CalCRPS}_\tau = \CRPS\big(\widehat F_{c_\tau},\, \text{target}=\tau\big).
+\]
+Aggregate across $\tau$:
+\[
+\text{CalCRPS}_{\text{mean}} = \frac{1}{|\mathcal{Q}|}\sum_{\tau\in\mathcal{Q}} \text{CalCRPS}_\tau,
+\quad
+\text{CalCRPS}_{\text{max}} = \max_{\tau\in\mathcal{Q}} \text{CalCRPS}_\tau.
+\]
+
+\section{Selection objective (CalCRPS only)}
+\paragraph{Primary:} $\CRPS_{\text{synth}}$ of the synthesized predictive distribution (verification window).
+\paragraph{Secondary:} CalCRPS (defined above).
+
+\subsection*{Option A: constrained}
+\[
+\min_\theta\; \CRPS_{\text{synth}}(\theta)
 \quad \text{subject to}\quad
-\overline{\CalRMSE}(\theta)\le \varepsilon.
+\text{CalCRPS}_{\text{mean}}(\theta) \le \varepsilon
 \]
+(Optionally constrain \text{CalCRPS}_{\text{max}} instead of mean.)
 
-\subsection{Option B: weighted sum}
+\subsection*{Option B: weighted sum}
 \[
-J_\lambda(\theta) = S_{\mathrm{CRPS}}(\theta) + \lambda\,\overline{\CalRMSE}(\theta).
+J_\lambda(\theta) = \CRPS_{\text{synth}}(\theta) + \lambda\,\text{CalCRPS}_{\text{mean}}(\theta)
 \]
-\textbf{Note:} current repo code primarily implements CRPS(synth) selection; explicit calibration penalties are planned.
+(Optionally replace mean with max.)
 
-\section{Handling ESN stochasticity (seeds)}
-Reservoir weights are random given seeds. In repo terms, use \texttt{cfg$desn$seed} as a candidate-level seed (scalar or vector). For robustness, evaluate each candidate across a fixed seed list and average the objective. Existing model-selection utilities accept explicit \texttt{seed\_vec} (see \texttt{R/model\_selection\_distribution\_first.R}).
+\paragraph{Repo note.} Current repo code primarily selects by \texttt{CRPS\_synth}; CalCRPS is a planned v2 extension.
 
-\section{Search procedure: multi-stage, multi-fidelity}
-The repo already contains two paths:
+\section{Planned calibration tables (to be implemented later)}
+\subsection*{A) \texttt{tables/calibration\_by\_tau.csv}}
+Per run/seed/$\tau$:
 \begin{itemize}[itemsep=2pt, topsep=4pt]
-\item \textbf{Distribution-first selection:} \texttt{model\_selection\_distribution\_first()} with \texttt{stage = c("coarse","final")} controlling fidelity.
-\item \textbf{Config-driven selection:} \texttt{qdesn\_model\_selection()} using a \texttt{model\_selection} block in a spec YAML.
-\end{itemize}
-This document's multi-fidelity stages map naturally to these functions.
-
-\section{Implementation blueprint (aligned to repo)}
-\label{sec:planned}
-
-\subsection{Existing components}
-\begin{itemize}[itemsep=2pt, topsep=4pt]
-\item \texttt{R/qdesn\_model\_selection.R}: end-to-end selection driver (train/verify/test)
-\item \texttt{R/model\_selection\_distribution\_first.R}: distribution-first CRPS-based screening
-\item \texttt{exdqlm\_synthesize\_from\_draws()}: synthesis (isotonic + rearrangement)
-\item \texttt{metrics\_summary.csv}: used by \texttt{.qdesn\_ms\_read\_metrics()} to score candidates
+\item suite, dataset, run\_id, seed
+\item tau
+\item cal\_crps
+\item R\_draws
+\item eval\_leads or lead\_set\_id
+\item weight\_spec\_id
+\item origins\_spec\_id
 \end{itemize}
 
-\subsection{Planned components (doc-only; no implementation yet)}
-The following are not yet formalized as public APIs and should be treated as planned additions:
+\subsection*{B) \texttt{tables/calibration\_summary.csv}}
+Aggregated across $\tau$:
 \begin{itemize}[itemsep=2pt, topsep=4pt]
-\item \texttt{evaluate\_candidate()} \emph{(planned)}: should live in \texttt{R/qdesn\_model\_selection.R} next to \texttt{.qdesn\_ms\_*} helpers.
-\item Calibration penalty/constraint \emph{(planned)}: best added to \texttt{.qdesn\_ms\_read\_metrics()} or a new helper in \texttt{R/qdesn\_model\_selection.R}.
-\item Candidate caching \emph{(planned)}: likely in \texttt{run\_esn\_pipeline\_from\_cfg()} (if added) or a new helper in \texttt{R/qdesn\_model\_selection.R}.
+\item suite, dataset, run\_id, seed
+\item cal\_crps\_mean, cal\_crps\_max
+\item R\_draws, lead\_set\_id, weight\_spec\_id, origins\_spec\_id
 \end{itemize}
+
+\section{Multi-fidelity stages (planned defaults)}
+Define stages in terms of seeds, quantile grid size, horizons, origins, and draws $R$.
+
+\begin{center}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Stage & Seeds $S$ & $|\mathcal{Q}|$ & $|\mathcal{H}|$ / leads & Origins policy & Draws $R$ \\
+\midrule
+Coarse & 1 & 3 & small set & subsample & small \\
+Final  & 5--10 & full & full set & all & large \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \section{Output conventions (repo-native)}
 Pipeline outputs are written under:
@@ -169,18 +191,18 @@ Pipeline outputs are written under:
 Key artifacts include:
 \begin{itemize}[itemsep=2pt, topsep=4pt]
 \item \texttt{manifest/cfg\_effective.yaml} and \texttt{run\_manifest.json}
-\item \texttt{tables/metrics\_summary.csv} (used for CRPS selection)
-\item \texttt{figs/} and \texttt{models/} directories
+\item \texttt{tables/metrics\_summary.csv} (CRPS selection source)
+\item \texttt{figs/} and \texttt{models/}
 \item \texttt{logs/main.log}
 \end{itemize}
 
 \section{Implementation checklist (doc-only alignment)}
 \begin{enumerate}[label=\textbf{C\arabic*:}, itemsep=2pt, topsep=4pt]
-\item Ensure any selection doc references \texttt{cfg$desn} keys (\texttt{D,n,n\_tilde,m,alpha,rho,pi\_w,pi\_in,washout,add\_bias,seed}).
-\item Reference synthesis by the real function name: \texttt{exdqlm\_synthesize\_from\_draws()}.
-\item Use \texttt{metrics\_summary.csv} (scope/component/score/value) as the CRPS source.
-\item Put planned helpers in \texttt{R/qdesn\_model\_selection.R} alongside \texttt{.qdesn\_ms\_*}.
-\item Keep seed handling consistent with \texttt{desn$seed} (scalar or vector).
+\item Reference \texttt{cfg$desn} keys and hard constraints exactly as in repo.
+\item Use \texttt{exdqlm\_synthesize\_from\_draws()} as the synthesis primitive.
+\item Use \texttt{metrics\_summary.csv} (scope/component/score/value) for CRPS\_synth.
+\item Implement v2 in \texttt{R/qdesn\_model\_selection\_v2.R} and helpers in \texttt{R/model\_selection\_utils\_v2.R}.
+\item Ignore legacy model-selection scripts in new implementation.
 \end{enumerate}
 
 \end{document}
