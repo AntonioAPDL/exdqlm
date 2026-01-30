@@ -16,6 +16,9 @@
 - **Deterministic origin subsampling:** Added requirement to share subsampled origins across candidates.
 - **Legacy scripts deprecated:** v2 will ignore legacy model-selection scripts; new file locations are specified.
 - **Reuse conventions:** v2 should reuse existing pipeline/manifest/output conventions.
+- **Origin-mode alignment:** Documented that v2 assumes forecast.mode=\"origin\" (lead-1 only) and uniform target-time averaging.
+- **Draw semantics aligned:** Noted that draws are joint within an origin but independent across origins in current pipelines.
+- **Scoring filenames:** Documented sim vs real score summary file names.
 
 ## Assumptions / open items
 - CalCRPS is planned only; no repo code currently computes it.

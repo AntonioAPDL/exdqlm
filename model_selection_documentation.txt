@@ -82,8 +82,12 @@ Let $y_{1:T}$ denote the observed time series. We use a time-ordered split:
 \item \textbf{Test/forecast block} $\mathcal{T}_{\text{test}}$: used once for final reporting after selection.
 \end{itemize}
 
-\subsection{Rolling-origin evaluation}
-Let $\mathcal{O}$ be the set of forecast origins within $\mathcal{T}_{\text{verify}}$ and $\mathcal{H}$ the horizon set. We evaluate candidates at pairs $(t_0,h)$ such that $y_{t_0+h}$ exists within the verification window. Weights $w_{t_0,h}\ge 0$ are deterministic and sum to 1.
+\subsection{Rolling-origin evaluation (origin mode only)}
+This v2 design assumes \texttt{cfg\$forecast\$mode == \"origin\"}. In the current pipelines, this means \emph{lead-1 only} forecasts are used for scoring. The effective evaluation set is therefore one-step-ahead targets:
+\[
+E = \{t \in \mathcal{T}_{\text{verify}} : t-1 \in \mathcal{O}\},
+\]
+with prediction at target time $t$ coming from origin $t-1$. Scores are computed as a uniform mean over targets in $E$ (no explicit $(t_0,h)$ weighting). If an origin is too close to the end of the available data, its higher leads are simply not used in origin mode.
 
 \subsection{Quantile grid and synthesis}
 Let $\mathcal{Q}=\{\tau_1,\dots,\tau_M\}$ be the quantile set (\texttt{p\_vec} in config). Synthesis is handled by
@@ -124,6 +128,7 @@ This yields draws $\{c_{\tau}^{(r)}\}_{r=1}^R$ in $[0,1]$. Let $\widehat F_{c_\t
 \]
 
 \paragraph{Semantics of draw $r$.} Ideally, each $r$ is a \emph{joint draw} that induces \(q_{t_0,h,\tau}^{(r)}\) for all $(t_0,h)\in E$ under shared parameters/latents. If only per-time draws are available, approximate by treating each draw as conditionally independent across $(t_0,h)$ and note this as an approximation.
+In the current pipelines, draw indices are generated per origin (via \texttt{forecast\_lattice} calling \texttt{forecast\_paths}) and thus are joint across leads within each origin but independent across different origins.
 
 \paragraph{Empirical CRPS for coverage draws (optional).} For draws \(\{c^{(r)}\}_{r=1}^R\) and target \(x\),
 \[
@@ -140,7 +145,7 @@ Aggregate across $\tau$:
 Optional extension: compute CalCRPS per lead group (e.g., short/medium/long or per $h$) and aggregate; this can diagnose lead-specific miscalibration without changing the primary objective.
 
 \section{Selection objective (CalCRPS only)}
-\paragraph{Primary:} $\CRPS_{\text{synth}}$ of the synthesized predictive distribution (verification window).
+\paragraph{Primary:} $\CRPS_{\text{synth}}$ of the synthesized predictive distribution (verification window), computed as a uniform mean over target times in $E$ (origin mode, lead-1 only).
 \paragraph{Secondary:} CalCRPS (defined above).
 
 \subsection*{Option A: constrained}
@@ -192,6 +197,9 @@ Aggregated across $\tau$:
 \item \texttt{origins\_spec\_id}: name/key for origin policy (e.g., all, subsample\_frac + subsample\_seed, stride\_k).
 \end{itemize}
 
+\paragraph{R draws (current default).}
+Under current defaults, the number of posterior predictive draws is \texttt{sampling.nd\_draws} (default 3000) and synthesis uses \texttt{synthesis.n\_samp} (default 1000). CalCRPS should define its draw count in terms of these existing sources (origin-mode lead-1 draws per $\tau$).
+
 \section{Multi-fidelity stages (planned defaults)}
 Define stages in terms of seeds, quantile grid size, horizons, origins, and draws $R$.
 
@@ -206,6 +214,9 @@ Final  & 5--10 & full (cfg $p\_vec$) & full set (cfg eval\_leads) & all origins 
 \end{tabular}
 \end{center}
 \noindent\textbf{Origin subsampling rule (required):} subsampling must be deterministic given a fixed seed (or a stride rule), and the same subsampled origin set must be used for all candidates within a stage.
+
+\section{Scoring sources and filenames (current behavior)}
+The scoring source is the synthesized forecast draws (\texttt{synth\_fc\$draws}) and CRPS is computed by \texttt{crps\_vec} and averaged over target times. Under current pipelines, sim writes \texttt{tables/scores\_summary.csv} and real writes \texttt{tables/metrics\_summary.csv}. v2 should document both unless standardized later.
 
 \section{Output conventions (repo-native)}
 Pipeline outputs are written under:
