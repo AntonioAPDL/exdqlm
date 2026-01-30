@@ -108,6 +108,7 @@ Let $\mathcal{Q}=\{\tau_1,\dots,\tau_M\}$ be the quantile set (\texttt{p\_vec} i
 \item $\alpha \in [0.05, 0.4]$
 \item $\rho \in [0.85, 0.99]$
 \end{itemize}
+Default candidate generation uses $n_1$ plus ratios $(r_2,r_3)$, then expands to the full $n$ vector. Direct specification of the full $n$ vector is also allowed.
 
 \section{Calibration metric redesign (CalCRPS only)}
 \label{sec:calcrps}
@@ -128,6 +129,7 @@ This yields draws $\{c_{\tau}^{(r)}\}_{r=1}^R$ in $[0,1]$. Let $\widehat F_{c_\t
 \[
 \CRPS(\widehat F, x) = \frac{1}{R}\sum_{r=1}^R |c^{(r)}-x| - \frac{1}{2R^2}\sum_{r=1}^R\sum_{r'=1}^R |c^{(r)}-c^{(r')}|.
 \]
+Implementation note: compute this in \(O(R\log R)\) using sorting-based formulas; avoid \(O(R^2)\) double sums for large \(R\).
 
 Aggregate across $\tau$:
 \[
@@ -181,6 +183,14 @@ Aggregated across $\tau$:
 \item R\_draws, lead\_set\_id, weight\_spec\_id, origins\_spec\_id
 \end{itemize}
 
+\paragraph{Identifier definitions (planned).}
+\begin{itemize}[itemsep=2pt, topsep=4pt]
+\item \texttt{p\_vec\_id}: hash of the $\tau$ vector or a named preset id.
+\item \texttt{verify\_window\_id}: hash of \((t_{\text{verify start}}, t_{\text{verify end}}, \text{lead\_set\_id}, \text{origins\_spec\_id}, \text{weight\_spec\_id})\) or store explicit start/end and use a hash as id.
+\item \texttt{weight\_spec\_id}: name/key for weighting rule (e.g., uniform, lead\_power(p)).
+\item \texttt{origins\_spec\_id}: name/key for origin policy (e.g., all, subsample\_frac + seed, stride\_k).
+\end{itemize}
+
 \section{Multi-fidelity stages (planned defaults)}
 Define stages in terms of seeds, quantile grid size, horizons, origins, and draws $R$.
 
@@ -194,6 +204,7 @@ Final  & 5--10 & full (cfg $p\_vec$) & full set (cfg eval\_leads) & all origins 
 \bottomrule
 \end{tabular}
 \end{center}
+\noindent\textbf{Origin subsampling rule (required):} subsampling must be deterministic given a fixed seed (or a stride rule), and the same subsampled origin set must be used for all candidates within a stage.
 
 \section{Output conventions (repo-native)}
 Pipeline outputs are written under:
