@@ -6,11 +6,13 @@
 
 ## Key updates applied
 - **CalCRPS-only redesign:** Calibration now defined exclusively via CalCRPS from coverage draws.
-- **Objective updated:** Constrained and weighted objectives now use CalCRPS (mean or max), no CalRMSE.
-- **Planned output schemas:** Added `tables/calibration_by_tau.csv` and `tables/calibration_summary.csv` definitions.
-- **Stage definitions:** Added explicit coarse/final multi-fidelity defaults.
-- **Deprecation decision:** Legacy model-selection scripts are explicitly marked as deprecated for v2.
-- **v2 plan:** New file locations specified (`R/qdesn_model_selection_v2.R`, `scripts/qdesn_model_selection_v2_main.R`, `R/model_selection_utils_v2.R`).
+- **Clarified draw semantics:** $r$ denotes a joint draw across the evaluation lattice; per-time independence is an approximation.
+- **Empirical CalCRPS formula:** Added a minimal formula for CRPS of coverage draws.
+- **Coarse search defaults updated:** Ranges aligned to current repo regimes (larger $n$ and $m$).
+- **Planned output schemas:** Added `tables/calibration_by_tau.csv` and `tables/calibration_summary.csv` with minimal identifiers.
+- **Operational stage defaults:** Coarse/final stages now specify seeds, quantile grids, leads, origins policy, and draw counts.
+- **Legacy scripts deprecated:** v2 will ignore legacy model-selection scripts; new file locations are specified.
+- **Reuse conventions:** v2 should reuse existing pipeline/manifest/output conventions.
 
 ## Assumptions / open items
 - CalCRPS is planned only; no repo code currently computes it.

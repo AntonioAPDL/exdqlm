@@ -103,10 +103,10 @@ Let $\mathcal{Q}=\{\tau_1,\dots,\tau_M\}$ be the quantile set (\texttt{p\_vec} i
 \subsection{Default coarse ranges (override by config)}
 \begin{itemize}[itemsep=2pt, topsep=4pt]
 \item $D \in \{1,2,3\}$
-\item $n_1 \in \{100,200,300,400,500\}$ and layer ratios $r_2,r_3 \in (0,1]$ (if using ratios)
-\item $m \in \{10,20,30,50\}$
-\item $\alpha \in [0.05, 0.5]$
-\item $\rho \in [0.7, 0.99]$
+\item $n_1 \in \{300,500,800,1000,1500\}$ and layer ratios $r_2,r_3 \in (0,1]$ (if using ratios)
+\item $m \in \{30,60,90,120,180\}$
+\item $\alpha \in [0.05, 0.4]$
+\item $\rho \in [0.85, 0.99]$
 \end{itemize}
 
 \section{Calibration metric redesign (CalCRPS only)}
@@ -121,6 +121,14 @@ This yields draws $\{c_{\tau}^{(r)}\}_{r=1}^R$ in $[0,1]$. Let $\widehat F_{c_\t
 \[
 \text{CalCRPS}_\tau = \CRPS\big(\widehat F_{c_\tau},\, \text{target}=\tau\big).
 \]
+
+\paragraph{Semantics of draw $r$.} Ideally, each $r$ is a \emph{joint draw} that induces \(q_{t_0,h,\tau}^{(r)}\) for all $(t_0,h)\in E$ under shared parameters/latents. If only per-time draws are available, approximate by treating each draw as conditionally independent across $(t_0,h)$ and note this as an approximation.
+
+\paragraph{Empirical CRPS for coverage draws (optional).} For draws \(\{c^{(r)}\}_{r=1}^R\) and target \(x\),
+\[
+\CRPS(\widehat F, x) = \frac{1}{R}\sum_{r=1}^R |c^{(r)}-x| - \frac{1}{2R^2}\sum_{r=1}^R\sum_{r'=1}^R |c^{(r)}-c^{(r')}|.
+\]
+
 Aggregate across $\tau$:
 \[
 \text{CalCRPS}_{\text{mean}} = \frac{1}{|\mathcal{Q}|}\sum_{\tau\in\mathcal{Q}} \text{CalCRPS}_\tau,
@@ -153,6 +161,8 @@ J_\lambda(\theta) = \CRPS_{\text{synth}}(\theta) + \lambda\,\text{CalCRPS}_{\tex
 Per run/seed/$\tau$:
 \begin{itemize}[itemsep=2pt, topsep=4pt]
 \item suite, dataset, run\_id, seed
+\item p\_vec\_id, n\_tau
+\item verify\_window\_id or t\_verify\_start, t\_verify\_end
 \item tau
 \item cal\_crps
 \item R\_draws
@@ -165,6 +175,8 @@ Per run/seed/$\tau$:
 Aggregated across $\tau$:
 \begin{itemize}[itemsep=2pt, topsep=4pt]
 \item suite, dataset, run\_id, seed
+\item p\_vec\_id, n\_tau
+\item verify\_window\_id or t\_verify\_start, t\_verify\_end
 \item cal\_crps\_mean, cal\_crps\_max
 \item R\_draws, lead\_set\_id, weight\_spec\_id, origins\_spec\_id
 \end{itemize}
@@ -177,8 +189,8 @@ Define stages in terms of seeds, quantile grid size, horizons, origins, and draw
 \toprule
 Stage & Seeds $S$ & $|\mathcal{Q}|$ & $|\mathcal{H}|$ / leads & Origins policy & Draws $R$ \\
 \midrule
-Coarse & 1 & 3 & small set & subsample & small \\
-Final  & 5--10 & full & full set & all & large \\
+Coarse & 1 & 3 (e.g., 0.1/0.5/0.9) & small set (e.g., 1,7,14) & subsample (e.g., 25\%) & 500--1000 \\
+Final  & 5--10 & full (cfg $p\_vec$) & full set (cfg eval\_leads) & all origins & 2000--5000 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -203,6 +215,7 @@ Key artifacts include:
 \item Use \texttt{metrics\_summary.csv} (scope/component/score/value) for CRPS\_synth.
 \item Implement v2 in \texttt{R/qdesn\_model\_selection\_v2.R} and helpers in \texttt{R/model\_selection\_utils\_v2.R}.
 \item Ignore legacy model-selection scripts in new implementation.
+\item Reuse existing pipeline/manifest/output conventions (do not change output layout; only replace selection logic).
 \end{enumerate}
 
 \end{document}
