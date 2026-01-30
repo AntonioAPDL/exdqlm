@@ -1,0 +1,4 @@
+# Model selection dataset registry.
+# By default, reuse the main datasets registry to avoid duplication.
+
+datasets_source: ../datasets.yaml

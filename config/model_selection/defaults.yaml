@@ -1,0 +1,70 @@
+# Model selection v2 defaults (YAML-driven workflow)
+# This file is intentionally scoped to model selection and can override base pipeline defaults.
+
+results_root: results
+results_subdir: model_selection
+
+# Dataset registry (can point to the main datasets.yaml for reuse)
+datasets_file: config/model_selection/datasets.yaml
+
+# Base pipeline defaults to inherit, then override via base_cfg_overrides
+base_cfg_source: config/defaults.yaml
+base_cfg_overrides:
+  pipeline:
+    profile: ms
+    verbose: true
+  forecast:
+    mode: origin
+    horizon: 60
+  sampling:
+    nd_draws: 1000
+  synthesis:
+    n_samp: 500
+    seed: 123
+  vb:
+    max_iter: 100
+    min_iter_elbo: 20
+    tol: 1.0e-4
+    n_samp_xi: 500
+    verbose: false
+
+model_selection:
+  objective:
+    primary: crps_synth
+    secondary: calcrps_mean
+    lambda: 0.0
+  forecast_mode: origin
+  calcrps:
+    enabled: false
+  stages:
+    - name: coarse
+      seeds: [1]
+      p_vec: [0.05, 0.50, 0.95]
+      nd_draws: 1000
+      synth_n_samp: 500
+      origins:
+        policy: subsample
+        frac: 0.25
+        seed: 123
+      horizon: 30
+      candidate_grid:
+        D: [1, 2, 3]
+        n1: [300, 500, 800, 1000, 1500]
+        r2: [0.5, 0.8, 1.0]
+        r3: [0.5, 0.8, 1.0]
+        m: [30, 60, 90, 120, 180]
+        alpha: [0.05, 0.1, 0.2, 0.3]
+        rho: [0.90, 0.95, 0.98]
+      budget:
+        max_candidates: 100
+        strategy: random_subset
+    - name: final
+      seeds: [1, 2, 3, 4, 5]
+      p_vec: use_default
+      nd_draws: 3000
+      synth_n_samp: 1000
+      origins:
+        policy: all
+      horizon: 60
+      candidate_refine:
+        top_k_from_previous: 10
