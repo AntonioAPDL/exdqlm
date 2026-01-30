@@ -6,7 +6,11 @@ ms_deep_merge <- function(a, b) {
   if (is.null(b)) return(a)
   if (is.null(a)) return(b)
   if (is.list(a) && is.list(b)) {
-    keys <- unique(c(names(a), names(b)))
+    na <- names(a)
+    nb <- names(b)
+    if (is.null(na) || is.null(nb)) return(b)
+    if (!length(na) || !length(nb)) return(b)
+    keys <- unique(c(na, nb))
     out <- lapply(keys, function(k) ms_deep_merge(a[[k]], b[[k]]))
     names(out) <- keys
     out
@@ -172,7 +176,7 @@ ms_build_origin_set_sim <- function(split_info) {
   T_use <- split_info$T_use
   origins_full <- seq.int(n_train, T_use)
   origins_lead1 <- if (T_use > n_train) seq.int(n_train, T_use - 1L) else integer(0)
-  targets <- seq.int(n_train + 1L, T_use)
+  targets <- origins_lead1 + 1L
   list(origins_full = origins_full, origins_lead1 = origins_lead1, targets = targets)
 }
 
@@ -212,7 +216,7 @@ ms_build_origin_set_real <- function(split_info, X_all, forecast_horizon) {
 
   origins_full <- seq.int(n_train, origins_full_max)
   origins_lead1 <- seq.int(n_train, origins_lead1_max)
-  targets <- seq.int(n_train + 1L, min(T_use, origins_lead1_max + 1L))
+  targets <- origins_lead1 + 1L
 
   list(
     origins_full = origins_full,

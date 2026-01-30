@@ -285,7 +285,8 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     origins_lead1 <- origin_info$origins_lead1
     targets <- origin_info$targets
 
-    y_true <- y_forecast
+    target_vec <- origin_info$origins_lead1 + 1L
+    y_true <- y_full[target_vec]
     bt_y <- function(z) z
     xreg_all_lead1 <- NULL
     shared_fit <- readout_design$shared_fit
@@ -343,15 +344,14 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     targets <- origin_info$targets
     xreg_all_lead1 <- origin_info$xreg_all_lead1
 
-    y_true <- data_bundle$bt_y(y_fc)
+    target_vec <- origin_info$origins_lead1 + 1L
+    y_true <- data_bundle$bt_y(y_full[target_vec])
     bt_y <- data_bundle$bt_y
     shared_fit <- readout_design$shared_fit
     y_train_keep <- y_tr_keep
   }
 
-  if (length(targets) != H_forecast) {
-    stop("Origin-mode targets length does not match H_forecast.")
-  }
+  # origin-mode evaluation set uses targets implied by origins_lead1
 
   vb_control <- ms_build_vb_control(cfg, p_vec[1L])
 
@@ -395,7 +395,8 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     )
 
     yrep_fc_full <- bt_y(fore$mix$y)
-    idx_obs <- which(fore$targets <= T_use)
+    idx_obs <- match(target_vec, fore$targets)
+    idx_obs <- idx_obs[!is.na(idx_obs)]
     yrep_fc <- yrep_fc_full[idx_obs, , drop = FALSE]
 
     fits_fc[[i]] <- list(yrep_fc = yrep_fc)
@@ -437,7 +438,7 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     calcrps_mean = calcrps_mean,
     calcrps_max = calcrps_max,
     calcrps_by_tau = calcrps_by_tau,
-    targets = targets,
+    targets = target_vec,
     p_vec = p_vec,
     nd_draws = nd_draws,
     synth_n_samp = synth_n_samp,
@@ -466,7 +467,7 @@ ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx,
                                                                    frac = origins_frac, seed = origins_seed, stride_k = origins_stride_k)
     origin_base$origins_full <- origin_base$origins_lead1
     if (length(origin_base$origins_lead1)) {
-      origin_base$targets <- seq.int(min(origin_base$origins_lead1) + 1L, max(origin_base$origins_lead1) + 1L)
+      origin_base$targets <- origin_base$origins_lead1 + 1L
     } else {
       origin_base$targets <- integer(0)
     }
@@ -533,17 +534,18 @@ ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx,
   candidates_tbl <- if (length(rows)) do.call(rbind, rows) else data.frame()
   cal_by_tau_tbl <- if (length(cal_by_tau_rows)) do.call(rbind, cal_by_tau_rows) else NULL
 
-  summary_tbl <- candidates_tbl %>
-    dplyr::group_by(candidate_id) %>
-    dplyr::summarise(
+  safe_mean <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm = TRUE)
+  safe_max <- function(x) if (all(is.na(x))) NA_real_ else max(x, na.rm = TRUE)
+
+  summary_tbl <- candidates_tbl %>%
+    dplyr::group_by(candidate_id) %>%    dplyr::summarise(
       candidate_idx = dplyr::first(candidate_idx),
       stage = dplyr::first(stage),
-      crps_synth_mean = mean(crps_synth_mean, na.rm = TRUE),
-      calcrps_mean = mean(calcrps_mean, na.rm = TRUE),
-      calcrps_max = max(calcrps_max, na.rm = TRUE),
+      crps_synth_mean = safe_mean(crps_synth_mean),
+      calcrps_mean = safe_mean(calcrps_mean),
+      calcrps_max = safe_max(calcrps_max),
       .groups = "drop"
-    ) %>
-    dplyr::arrange(crps_synth_mean)
+    ) %>%    dplyr::arrange(crps_synth_mean)
 
   list(candidates = candidates_tbl, summary = summary_tbl, cal_by_tau = cal_by_tau_tbl)
 }
@@ -574,16 +576,16 @@ ms_run_search_v2 <- function(cfg, data_bundle) {
   candidates_tbl <- do.call(rbind, all_candidates_rows)
   cal_by_tau_tbl <- if (length(all_cal_rows)) do.call(rbind, all_cal_rows) else NULL
 
-  summary_tbl <- candidates_tbl %>
-    dplyr::group_by(candidate_id) %>
-    dplyr::summarise(
-      crps_synth_mean = mean(crps_synth_mean, na.rm = TRUE),
-      calcrps_mean = mean(calcrps_mean, na.rm = TRUE),
-      calcrps_max = max(calcrps_max, na.rm = TRUE),
+  safe_mean <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm = TRUE)
+  safe_max <- function(x) if (all(is.na(x))) NA_real_ else max(x, na.rm = TRUE)
+
+  summary_tbl <- candidates_tbl %>%
+    dplyr::group_by(candidate_id) %>%    dplyr::summarise(
+      crps_synth_mean = safe_mean(crps_synth_mean),
+      calcrps_mean = safe_mean(calcrps_mean),
+      calcrps_max = safe_max(calcrps_max),
       .groups = "drop"
-    ) %>
-    dplyr::arrange(crps_synth_mean) %>
-    dplyr::mutate(rank = dplyr::row_number())
+    ) %>%    dplyr::arrange(crps_synth_mean) %>%    dplyr::mutate(rank = dplyr::row_number())
 
   list(candidates = candidates_tbl, summary = summary_tbl, cal_by_tau = cal_by_tau_tbl)
 }
@@ -597,9 +599,7 @@ ms_write_results_v2 <- function(res, run_dir, cfg) {
 
   if (!is.null(res$cal_by_tau)) {
     readr::write_csv(res$cal_by_tau, file.path(tables_dir, "calibration_by_tau.csv"))
-    cal_summary <- res$cal_by_tau %>
-      dplyr::group_by(candidate_id, stage) %>
-      dplyr::summarise(
+    cal_summary <- res$cal_by_tau %>%      dplyr::group_by(candidate_id, stage) %>%      dplyr::summarise(
         cal_crps_mean = mean(cal_crps, na.rm = TRUE),
         cal_crps_max = max(cal_crps, na.rm = TRUE),
         .groups = "drop"
