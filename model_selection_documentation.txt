@@ -83,11 +83,11 @@ Let $y_{1:T}$ denote the observed time series. We use a time-ordered split:
 \end{itemize}
 
 \subsection{Rolling-origin evaluation (origin mode only)}
-This v2 design assumes \texttt{cfg\$forecast\$mode == \"origin\"}. In the current pipelines, this means \emph{lead-1 only} forecasts are used for scoring. The effective evaluation set is therefore one-step-ahead targets:
+This v2 design assumes \texttt{cfg\$forecast\$mode == \"origin\"}. In the current pipelines, this means \emph{lead-1 only} forecasts are used for scoring. Define the target-time evaluation set:
 \[
-E = \{t \in \mathcal{T}_{\text{verify}} : t-1 \in \mathcal{O}\},
+E_t = \{t \in \mathcal{T}_{\text{verify}} : t-1 \in \mathcal{O}\},
 \]
-with prediction at target time $t$ coming from origin $t-1$. Scores are computed as a uniform mean over targets in $E$ (no explicit $(t_0,h)$ weighting). If an origin is too close to the end of the available data, its higher leads are simply not used in origin mode.
+with prediction at target time $t$ coming from origin $t-1$. Scores are computed as a uniform mean over targets in $E_t$ (no explicit $(t_0,h)$ weighting). If an origin is too close to the end of the available data, its higher leads are simply not used in origin mode.
 
 \subsection{Quantile grid and synthesis}
 Let $\mathcal{Q}=\{\tau_1,\dots,\tau_M\}$ be the quantile set (\texttt{p\_vec} in config). Synthesis is handled by
@@ -118,17 +118,23 @@ Default candidate generation uses $n_1$ plus ratios $(r_2,r_3)$, then expands to
 \label{sec:calcrps}
 Calibration is defined \textbf{only} via a CalCRPS metric computed from posterior/variational \emph{coverage draws}.
 
-Let $E$ be the evaluation lattice of $(t_0,h)$ in the verification window, with deterministic weights $w_{t_0,h} \ge 0$ that sum to 1. For each $\tau \in \mathcal{Q}$ and each posterior/variational draw $r=1..R$, define weighted empirical coverage:
+Let $E_t$ be the target-time evaluation set defined above (origin mode). For each $\tau \in \mathcal{Q}$ and each posterior/variational draw $r=1..R$, define empirical coverage:
 \[
- c_{\tau}^{(r)} = \sum_{(t_0,h)\in E} w_{t_0,h} \cdot \Ind\{ y_{t_0+h} \le q_{t_0,h,\tau}^{(r)} \}.
+ c_{\tau}^{(r)} = \frac{1}{|E_t|}\sum_{t\in E_t} \Ind\{ y_{t} \le q_{t,\tau}^{(r)} \}.
 \]
 This yields draws $\{c_{\tau}^{(r)}\}_{r=1}^R$ in $[0,1]$. Let $\widehat F_{c_\tau}$ be the empirical CDF of these draws. Define:
 \[
 \text{CalCRPS}_\tau = \CRPS\big(\widehat F_{c_\tau},\, \text{target}=\tau\big).
 \]
 
-\paragraph{Semantics of draw $r$.} Ideally, each $r$ is a \emph{joint draw} that induces \(q_{t_0,h,\tau}^{(r)}\) for all $(t_0,h)\in E$ under shared parameters/latents. If only per-time draws are available, approximate by treating each draw as conditionally independent across $(t_0,h)$ and note this as an approximation.
-In the current pipelines, draw indices are generated per origin (via \texttt{forecast\_lattice} calling \texttt{forecast\_paths}) and thus are joint across leads within each origin but independent across different origins.
+\paragraph{Semantics of draw $r$.} In the current pipelines, draws are generated per origin via \texttt{forecast\_lattice} calling \texttt{forecast\_paths}. Each draw index $r$ is joint across leads within a single origin but independent across different origins. In origin mode (lead-1 only), $r$ indexes the predictive draw column for the lead-1 target time.
+
+\paragraph{Operational definition of $q_{t,\tau}^{(r)}$ (current objects).}
+The pipelines store posterior predictive draws \(y^{(r)}_{t,\tau}\) for each $\tau$ model (columns of \texttt{yrep\_fc}). There is no explicit per-draw quantile object. Therefore, define
+\[
+q_{t,\tau}^{(r)} \equiv y^{(r)}_{t,\tau},
+\]
+where \(y^{(r)}_{t,\tau}\) is the $r$-th predictive draw for the $\tau$-model at target time $t$ (lead-1 in origin mode). This matches the existing PIT/coverage diagnostics based on \texttt{emp\_pit\_vec(y, yrep)}.
 
 \paragraph{Empirical CRPS for coverage draws (optional).} For draws \(\{c^{(r)}\}_{r=1}^R\) and target \(x\),
 \[
@@ -145,7 +151,7 @@ Aggregate across $\tau$:
 Optional extension: compute CalCRPS per lead group (e.g., short/medium/long or per $h$) and aggregate; this can diagnose lead-specific miscalibration without changing the primary objective.
 
 \section{Selection objective (CalCRPS only)}
-\paragraph{Primary:} $\CRPS_{\text{synth}}$ of the synthesized predictive distribution (verification window), computed as a uniform mean over target times in $E$ (origin mode, lead-1 only).
+\paragraph{Primary:} $\CRPS_{\text{synth}}$ of the synthesized predictive distribution (verification window), computed as a uniform mean over target times in $E_t$ (origin mode, lead-1 only).
 \paragraph{Secondary:} CalCRPS (defined above).
 
 \subsection*{Option A: constrained}
@@ -192,7 +198,7 @@ Aggregated across $\tau$:
 \paragraph{Identifier definitions (planned).}
 \begin{itemize}[itemsep=2pt, topsep=4pt]
 \item \texttt{p\_vec\_id}: hash of the $\tau$ vector or a named preset id.
-\item \texttt{verify\_window\_id}: hash of \((t_{\text{verify start}}, t_{\text{verify end}}, \text{lead\_set\_id}, \text{origins\_spec\_id}, \text{weight\_spec\_id})\) or store explicit start/end and use a hash as id.
+\item \texttt{verify\_window\_id}: hash of \((t_{\text{verify start}}, t_{\text{verify end}}, \text{origins\_spec\_id})\) or store explicit start/end and use a hash as id (origin mode, lead-1).
 \item \texttt{weight\_spec\_id}: name/key for weighting rule (e.g., uniform, lead\_power(p)).
 \item \texttt{origins\_spec\_id}: name/key for origin policy (e.g., all, subsample\_frac + subsample\_seed, stride\_k).
 \end{itemize}
