@@ -53,6 +53,7 @@ Rplots.pdf
 
 # Temporary ChatGPT dumps
 exdqlm_chatgpt_dump_*.txt
+docs/QDESN_MODEL_OVERVIEW.md
 
 # Local helper scripts
 /dump_exdqlm_files_to_txt.sh
