@@ -1,0 +1,21 @@
+# Big model-selection run (SIM) — Final stage
+# Re-evaluates top-K from the previous stage with higher fidelity.
+
+base_cfg_overrides:
+  pipeline:
+    mode: sim
+
+model_selection:
+  calcrps:
+    enabled: true
+  stages:
+    - name: final
+      seeds: [1, 2, 3, 4, 5]
+      p_vec: use_default
+      nd_draws: 3000
+      synth_n_samp: 1500
+      origins:
+        policy: all
+      horizon: 60
+      candidate_refine:
+        top_k_from_previous: 10
