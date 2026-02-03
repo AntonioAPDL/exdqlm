@@ -351,10 +351,13 @@ ms_expand_candidate_grid <- function(grid, budget = NULL, seed = NULL) {
         max(1L, as.integer(round(n1 * r2))),
         max(1L, as.integer(round(n1 * r3))))
     }
+    # Default repo-native n_tilde if not explicitly provided:
+    # for D>1, use the subsequent layer sizes (length D-1), i.e. n_tilde = n[2:D].
+    n_tilde_default <- if (D > 1L) as.integer(n_vec[2:D]) else integer(0)
     list(
       D = D,
       n = as.integer(n_vec),
-      n_tilde = if (!is.null(n_tilde_vals)) as.integer(n_tilde_vals) else NULL,
+      n_tilde = if (!is.null(n_tilde_vals)) as.integer(n_tilde_vals) else n_tilde_default,
       m = as.integer(row$m),
       alpha = as.numeric(row$alpha),
       rho = as.numeric(row$rho),
