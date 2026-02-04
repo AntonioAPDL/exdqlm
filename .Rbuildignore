@@ -20,3 +20,5 @@
 ^dump_exdqlm_files_to_txt\.sh$
 ^check-logs$
 ^tools$
+^.*\.Rproj$
+^\.Rproj\.user$
