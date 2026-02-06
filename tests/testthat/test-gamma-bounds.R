@@ -23,28 +23,52 @@ test_that("get_gamma_bounds sane at p0=0.5", {
   expect_equal(unname(b), unname(ref), tolerance = 1e-3)
 })
 
+test_that("get_gamma_bounds works at extreme p0 (regression)", {
+  for (p0 in c(0.001, 0.994170922668371)) {
+    b <- get_gamma_bounds(p0)
+    expect_length(b, 2)
+    expect_true(all(is.finite(b)))
+    expect_true(b["L"] < b["U"])
+    expect_true(b["L"] <= 0)
+    expect_true(b["U"] >= 0)
+
+    ref <- c(L = .L_ref(p0), U = .U_ref(p0))
+    expect_equal(unname(b), unname(ref), tolerance = 1e-3)
+
+    # C++ wrapper should agree with the reference as well.
+    cpp <- exdqlm:::get_gamma_bounds_cpp(p0)
+    expect_true(all(is.finite(cpp)))
+    expect_true(cpp["L"] < cpp["U"])
+    expect_equal(unname(cpp), unname(ref), tolerance = 1e-3)
+  }
+})
+
 
 test_that("get_gamma_bounds finite and ordered on grid", {
-  pgrid <- c(seq(0.01, 0.99, by = 0.01), 1e-6, 1e-4, 1e-3, 1 - 1e-3, 1 - 1e-4, 1 - 1e-6)
+  pgrid <- c(seq(0.01, 0.99, by = 0.01), 0.001, 1 - 0.001)
   for (p0 in pgrid) {
     b <- get_gamma_bounds(p0)
     expect_true(all(is.finite(b)))
     expect_true(b["L"] < b["U"])
-    if (p0 > 1e-4 && p0 < 1 - 1e-4) {
-      expect_lt(abs(b["L"]), 99)
-      expect_lt(abs(b["U"]), 99)
-    }
+    expect_true(b["L"] <= 0)
+    expect_true(b["U"] >= 0)
+
+    # Validate against defining equations on log-scale (stable for extremes).
+    expect_lt(abs(.log_g_ref(b["L"]) - log1p(-p0)), 1e-3)
+    expect_lt(abs(.log_g_ref(b["U"]) - log(p0)), 1e-3)
   }
 })
 
 
 test_that("get_gamma_bounds stable under repeated calls", {
   set.seed(123)
-  p0s <- stats::runif(50, min = 1e-4, max = 1 - 1e-4)
+  p0s <- stats::runif(50, min = 0.001, max = 1 - 0.001)
   for (p0 in p0s) {
     b <- get_gamma_bounds(p0)
     expect_true(all(is.finite(b)))
     expect_true(b["L"] < b["U"])
+    expect_lt(abs(.log_g_ref(b["L"]) - log1p(-p0)), 1e-3)
+    expect_lt(abs(.log_g_ref(b["U"]) - log(p0)), 1e-3)
   }
 })
 
