@@ -4,6 +4,6 @@
 #'
 #' @format A time series of length 936.
 #' @source \url{https://waterdata.usgs.gov/}
-#' @references U.S. Geological Survey (2016). National Water Information System data available on the World Wide Web (USGS Water Data for the Nation). \url{https://waterdata.usgs.gov/nwis/}.
+#' @references U.S. Geological Survey (2016). National Water Information System data available on the World Wide Web (USGS Water Data for the Nation). \url{https://waterdata.usgs.gov/}.
 "BTflow"
 
