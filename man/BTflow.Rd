@@ -8,7 +8,7 @@
 A time series of length 936.
 }
 \source{
-\url{https://waterdata.usgs.gov/nwis/}
+\url{https://waterdata.usgs.gov/}
 }
 \usage{
 BTflow
