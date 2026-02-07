@@ -1,7 +1,7 @@
 ## Test environments
 
 * Local: AlmaLinux 8.10 (x86_64), R 4.4.0 — `R CMD check --as-cran`
-* Win-builder: r-release and r-devel **submitted** on 2026-01-23 (results pending)
+* Win-builder: r-devel, r-release, r-oldrel — OK
 * R-hub (GitHub Actions): **OK** on linux/windows/macos-arm64 (R-devel)
   - Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21765385185
 
