@@ -81,3 +81,11 @@ generate_samples_ext <- function(n_samp, TT, p, J, FF, sC, sm, samp_sigma, p0, s
     .Call(`_exdqlm_generate_samples_ext`, n_samp, TT, p, J, FF, sC, sm, samp_sigma, p0, samp_gamma, samp_sts, samp_uts)
 }
 
+DISC_sample_multivariate_normal <- function(n_samp, TT, sC, sm, n) {
+    .Call(`_exdqlm_DISC_sample_multivariate_normal`, n_samp, TT, sC, sm, n)
+}
+
+DISC_generate_synth_samples_retro_part <- function(n_samp, TT, n, sC, sm) {
+    .Call(`_exdqlm_DISC_generate_synth_samples_retro_part`, n_samp, TT, n, sC, sm)
+}
+

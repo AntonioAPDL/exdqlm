@@ -439,3 +439,50 @@ Rcpp::List generate_samples_ext(int n_samp, int TT, int p, int J, arma::cube FF,
     
     return Rcpp::List::create(Rcpp::Named("samp_theta") = samp_theta, Rcpp::Named("samp_post_pred") = samp_post_pred_result);
 }
+
+// [[Rcpp::export]]
+arma::cube DISC_sample_multivariate_normal(int n_samp, int TT,
+                                           arma::cube sC, arma::mat sm, int n) {
+    arma::cube out(n, TT, n_samp, arma::fill::zeros);
+
+#ifdef _OPENMP
+    #pragma omp parallel
+    {
+        boost::random::mt19937 gen(omp_get_thread_num());
+        boost::random::normal_distribution<> normal_dist(0.0, 1.0);
+
+        #pragma omp for
+        for (int t = 0; t < TT; ++t) {
+            arma::mat LL = arma::trans(chol(sC.slice(t)));
+            for (int i = 0; i < n_samp; ++i) {
+                arma::vec z(n, arma::fill::zeros);
+                for (int j = 0; j < n; ++j) z[j] = normal_dist(gen);
+                out.slice(i).col(t) = sm.col(t) + LL * z;
+            }
+        }
+    }
+#else
+    {
+        boost::random::mt19937 gen(0);
+        boost::random::normal_distribution<> normal_dist(0.0, 1.0);
+
+        for (int t = 0; t < TT; ++t) {
+            arma::mat LL = arma::trans(chol(sC.slice(t)));
+            for (int i = 0; i < n_samp; ++i) {
+                arma::vec z(n, arma::fill::zeros);
+                for (int j = 0; j < n; ++j) z[j] = normal_dist(gen);
+                out.slice(i).col(t) = sm.col(t) + LL * z;
+            }
+        }
+    }
+#endif
+
+    return out;
+}
+
+
+// [[Rcpp::export]]
+Rcpp::List DISC_generate_synth_samples_retro_part(int n_samp, int TT, int n, arma::cube sC, arma::mat sm) {
+    arma::cube samp_theta = DISC_sample_multivariate_normal(n_samp, TT, sC, sm, n);
+    return Rcpp::List::create(Rcpp::Named("samp_theta") = samp_theta); 
+}
