@@ -119,7 +119,7 @@ When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
 y = scIVTmag[1:1095]
 trend.comp = polytrendMod(1,mean(y),10)
 seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-model = combineMods(trend.comp,seas.comp)
+model = trend.comp + seas.comp
 M0 = exdqlmLDVB(y,p0=0.85,model,df=c(1,1),dim.df = c(1,6),
                  gam.init=-3.5,sig.init=15,tol=0.05)
 }

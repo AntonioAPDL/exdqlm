@@ -79,7 +79,7 @@
 #' y = scIVTmag[1:1095]
 #' trend.comp = polytrendMod(1,mean(y),10)
 #' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-#' model = combineMods(trend.comp,seas.comp)
+#' model = trend.comp + seas.comp
 #' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(1,1),dim.df = c(1,6),
 #'                  gam.init=-3.5,sig.init=15,tol=0.05)
 #' }
@@ -826,12 +826,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       tau <- pmin(pmax(p.fn(p0, samp.gamma), 1e-16), 1 - 1e-16)
 
       # Draw ns samples (vectorized)
-      samp.post.pred[t, ] <- brms::rasym_laplace(
-        ns,
-        mu       = loc,
-        sigma    = samp.sigma,
-        quantile = tau
-      )
+      samp.post.pred[t, ] <- rexal(ns, tau, loc, samp.sigma, 0)
     }
   } else {
     # Optional C++ post-pred path (shape: 1 x TT x ns for J=0)
