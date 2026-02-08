@@ -10,6 +10,8 @@
 ## Changes
 - Documentation expanded for the new LDVB workflow and runtime options.
 - Minor internal robustness tweaks around covariance handling and coercions.
+- CRAN release-prep hygiene: normalized `R/exal.R` filename case for source
+  parity across platforms; no changes to method outputs.
 
 # exdqlm 0.3.0
 

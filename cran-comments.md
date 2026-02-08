@@ -1,39 +1,35 @@
-## Test environments
+## exdqlm 0.4.0
 
-* Local: AlmaLinux 8.10 (x86_64), R 4.4.0 — `R CMD check --as-cran`
-* Win-builder: r-devel, r-release, r-oldrel — OK
-* R-hub (GitHub Actions): **OK** on linux/windows/macos-arm64 (R-devel)
-  - Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21765385185
+### Test environments
 
-## R CMD check results
+* Local: AlmaLinux 8.10 (x86_64), R 4.4.0 (2024-04-24), `devtools::check(args = "--as-cran", cran = TRUE)`.
+* R-hub (GitHub Actions): success on linux/windows/macos-arm64 (R-devel).
+  * Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21786968497
+* Win-builder: submission workflow is set; results are pending in maintainer email (Raquel).
+  * Submission script: `scripts/precran_all.R` (submits r-release and r-devel).
+  * Most recent submission logs in-repo: `check-logs/20260207-130034/winbuilder-release.log`,
+    `check-logs/20260207-130034/winbuilder-devel.log` (from pre-release run).
 
-0 errors | 0 warnings | 3 notes (local)
+### R CMD check results
 
-## Notes for CRAN
+`devtools::check(args = "--as-cran", cran = TRUE)`: 0 errors | 0 warnings | 3 notes (local).
 
-* **Maintenance + internal performance** release; **no user-visible API changes**.
-* Internal updates:
-  * Optional **C++ Kalman filter bridge** and **optional** C++ sampling helpers.
-  * Defaults preserve previous behavior (R implementations).
-  * ELBO diagnostics added for ISVB.
-* Build hygiene:
-  * OpenMP is **optional** and properly guarded for platforms lacking `omp.h`.
-  * `Makevars{,.win}` link to R’s BLAS/LAPACK and Fortran runtime via macros.
-* Documentation & tests:
-  * Runtime options documented in help; examples kept short.
-* Reverse dependencies: none.
+### Notes for CRAN
 
-## Notes from local check
+* This release adds `exdqlmLDVB`, a Laplace-Delta variational Bayes routine for dynamic quantile state-space fitting.
+* Existing 0.3.0 behavior is preserved; release prep changes are metadata/docs/hygiene only.
+* Build hygiene remains unchanged: OpenMP optional and guarded; `Makevars{,.win}` uses R macros.
+* CRAN parity hygiene includes filename case normalization (`R/exal.R`) without method-output changes.
+
+### Notes from local check
 
 * Installed size NOTE (libs ~24.7 MB) due to compiled C++ backends.
-* “unable to verify current time” NOTE is an environment issue on the build host.
-* Non-portable compiler flags NOTE reflects the system toolchain defaults, not package Makevars.
+* "unable to verify current time" NOTE is an environment check-host issue.
+* Non-portable compiler flags NOTE reflects system toolchain defaults (`-Werror=format-security`,
+  `-Wp,-D_FORTIFY_SOURCE=2`, `-Wp,-D_GLIBCXX_ASSERTIONS`) rather than package-specific flags.
 
-## R-hub macOS failure (R-devel) from prior run
+### Win-builder results (to be filled by Raquel upon email receipt)
 
-macos-arm64 failed to compile with:
-```
-fatal error: 'R_ext/Callbacks.h' file not found
-```
-This appears to be a recent R-devel header change. To address it, we added a small compatibility header
-`inst/include/R_ext/Callbacks.h` and updated `SystemRequirements` to `C++17`. R-hub re-run now passes on macOS.
+* win-builder r-release: [PENDING / PASS / FAIL]
+* win-builder r-devel: [PENDING / PASS / FAIL]
+* Notes if any: [paste any NOTE/WARNING and resolution, or "none"].
