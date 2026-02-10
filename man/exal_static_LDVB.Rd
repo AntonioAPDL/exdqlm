@@ -2,7 +2,7 @@
 % Please edit documentation in R/exal_static_LDVB.R
 \name{exal_static_LDVB}
 \alias{exal_static_LDVB}
-\title{Static exAL Regression — CAVI with Laplace–Delta for (sigma, gamma)}
+\title{Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)}
 \usage{
 exal_static_LDVB(
   y,
@@ -37,7 +37,7 @@ exal_static_LDVB(
 \item{a_sigma, b_sigma}{Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.}
 
-\item{gamma_bounds}{Two-vector \((L,U)\) support for \(\gamma\).
+\item{gamma_bounds}{Two-vector (L, U) support for \code{gamma}.
 Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 
 \item{log_prior_gamma}{Function \code{g -> log pi(gamma=g)} (default flat).}
@@ -45,7 +45,7 @@ Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}; if missing, reasonable defaults are used.}
 
-\item{n_samp_xi}{MC draws used to compute the \(\xi\) expectations for
+\item{n_samp_xi}{MC draws used to compute the xi expectations for
 \eqn{q(\sigma,\gamma)} (default 200).}
 
 \item{verbose}{Logical; print progress.}
@@ -70,7 +70,7 @@ Fits the static Extended Asymmetric Laplace (exAL) regression via a
 coordinate-ascent variational inference (CAVI) scheme with a mean-field
 factorization
 \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma),}
-where \eqn{q(\sigma,\gamma)} is handled jointly using a Laplace–Delta (LD)
+where \eqn{q(\sigma,\gamma)} is handled jointly using a Laplace-Delta (LD)
 approximation on the transformed parameters
 \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
 }
@@ -79,9 +79,9 @@ The updates implement the closed-form factors you derived:
 \itemize{
 \item \eqn{q(\beta)=\mathcal{N}(m_\beta,V_\beta)}
 \item \eqn{q(v_i)=\mathrm{GIG}(1/2,\chi_i,\psi)}
-\item \eqn{q(s_i)=\mathcal{N}(\mu_{s_i},\tau_{s_i}^2)} truncated to \((0,\infty)\)
+\item \eqn{q(s_i)=\mathcal{N}(\mu_{s_i},\tau_{s_i}^2)} truncated to (0, Inf)
 \item \eqn{q(\sigma,\gamma)} via LD; the expectations
 \eqn{\{\xi_1,\xi_\lambda,\xi_{\lambda^2},\xi_A,\xi_{A^2},\xi_{\sigma^{-1}},\zeta_\lambda\}}
-are computed from a small Gaussian MC sample in \((\eta,\ell)\).
+are computed from a small Gaussian MC sample in (eta, ell).
 }
 }

@@ -1,10 +1,10 @@
-#' Static exAL Regression — CAVI with Laplace–Delta for (sigma, gamma)
+#' Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)
 #'
 #' Fits the static Extended Asymmetric Laplace (exAL) regression via a
 #' coordinate-ascent variational inference (CAVI) scheme with a mean-field
 #' factorization
 #' \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma),}
-#' where \eqn{q(\sigma,\gamma)} is handled jointly using a Laplace–Delta (LD)
+#' where \eqn{q(\sigma,\gamma)} is handled jointly using a Laplace-Delta (LD)
 #' approximation on the transformed parameters
 #' \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
 #'
@@ -80,7 +80,7 @@ exal_static_LDVB <- function(
   lam_of <- function(g) C_of(g) * abs(g)
 
   # transform (eta,ell) <-> (gamma,sigma)
-  g_from_eta <- function(eta) { s <- plogis(eta); L + (U - L) * s }
+  g_from_eta <- function(eta) { s <- stats::plogis(eta); L + (U - L) * s }
   sig_from_ell <- function(ell) exp(ell)
 
   # --- initialize variational parameters ------------------------------------
@@ -101,12 +101,15 @@ exal_static_LDVB <- function(
   E_s2    <- rep(1, n)               # Var + mean^2 = 1 + 2/pi (but ok to start at 1)
 
   # q(sigma,gamma): start at point mass to get xi's
-  eta_hat <- qlogis((gamma0 - L) / (U - L))
+  eta_hat <- stats::qlogis((gamma0 - L) / (U - L))
   ell_hat <- log(sigma0)
   Sig_eta_ell <- diag(c(1e-4, 1e-4))  # tiny to start; inflated after first LD update
 
   # --- numerics helpers ------------------------------------------------------
-  V0_inv <- tryCatch(solve(V0), error = function(e) MASS::ginv(V0))
+  V0_inv <- tryCatch(
+    solve(V0),
+    error = function(e) solve(V0 + 1e-8 * diag(p))
+  )
 
     # E[log V] for V ~ GIG(k, chi, psi)
     gig_E_log <- function(k, chi, psi) {
@@ -135,9 +138,9 @@ exal_static_LDVB <- function(
   tn_moments <- function(mu, tau2) {
     tau <- sqrt(pmax(tau2, 1e-14))
     alpha <- mu / tau
-    Phi <- pnorm(alpha)
+    Phi <- stats::pnorm(alpha)
     Phi <- pmax(Phi, 1e-12)
-    phi <- dnorm(alpha)
+    phi <- stats::dnorm(alpha)
     Lambda <- phi / Phi
     Es  <- mu + tau * Lambda
     Es2 <- tau2 + mu^2 + tau * mu * Lambda
@@ -152,7 +155,7 @@ exal_static_LDVB <- function(
     U <- tryCatch(chol(Sigma), error = function(e) NULL)
     if (is.null(U)) U <- chol(Sigma + 1e-8 * diag(2))
 
-    Z    <- matrix(rnorm(2 * ns), nrow = 2, ncol = ns)   # 2 x ns
+    Z    <- matrix(stats::rnorm(2 * ns), nrow = 2, ncol = ns)   # 2 x ns
     pars <- sweep(U %*% Z, 1, c(eta_hat, ell_hat), "+")  # 2 x ns
     eta  <- pars[1, ]
     ell  <- pars[2, ]
@@ -249,7 +252,10 @@ exal_static_LDVB <- function(
       }
     }
     # covariance = inverse observed information
-    Sigma <- tryCatch(solve(H), error = function(e) MASS::ginv(H))
+    Sigma <- tryCatch(
+      solve(H),
+      error = function(e) solve(H + 1e-8 * diag(nrow(H)))
+    )
     # symmetrize & guard
     Sigma <- (Sigma + t(Sigma))/2
     list(eta_hat = opt$par[1], ell_hat = opt$par[2], Sigma = Sigma)
@@ -278,7 +284,7 @@ exal_static_LDVB <- function(
     if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
     V_beta_new <- chol2inv(Uc)
 
-    # m = V ( V0^{-1} b0 + X^T [ xi1 diag(E[1/v]) y - xi_lambda (E[1/v] ⊙ E[s]) - xi_A 1 ] )
+    # m = V ( V0^{-1} b0 + X^T [ xi1 diag(E[1/v]) y - xi_lambda (E[1/v] * E[s]) - xi_A 1 ] )
     rhs <- crossprod(X, W * y) -
            crossprod(X, (xis$xi_lambda * (E_inv_v * E_s))) 
 
@@ -304,7 +310,7 @@ exal_static_LDVB <- function(
     E_v_new    <- gig_moment(k = 0.5, chi = chi, psi = psi, r = 1)
     E_inv_v_new<- gig_moment(k = 0.5, chi = chi, psi = psi, r = -1)
 
-    # ---- (3) q(s_i) = TN(μ, τ^2) on (0,∞)
+    # ---- (3) q(s_i) = TN(mu, tau^2) on (0, Inf)
     tau2  <- 1 / (1 + xis$xi_lambda2 * E_inv_v_new)
     mu_s  <- tau2 * ( xis$xi_lambda * (E_inv_v_new * (y - xb)) - xis$zeta_lam )
     s_mom <- tn_moments(mu_s, tau2)
@@ -325,7 +331,7 @@ exal_static_LDVB <- function(
 
     if (verbose && (iter %% 50 == 0)) {
       ghat <- g_from_eta(eta_hat); shat <- exp(ell_hat)
-      cat(sprintf("iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma≈%.3f sigma≈%.3f\n",
+      cat(sprintf("iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f\n",
                   iter, rel_mb, rel_xi, ghat, shat))
     }
 
@@ -395,11 +401,11 @@ exal_static_LDVB <- function(
     logC   <- (k_gig/2) * (log(pmax(psi,1e-14)) - log(pmax(chi,1e-14))) - log(2) - logKk
     H_qv   <- sum( -logC - (k_gig - 1) * mlogv + 0.5 * (chi * E_inv_v + psi * E_v) )
 
-    # (11) Entropy H(q(s)) for TN(μ, τ^2) on (0,∞)
+    # (11) Entropy H(q(s)) for TN(mu, tau^2) on (0, Inf)
     tau    <- sqrt(pmax(qs_tau2, 1e-14))
     alpha  <- qs_mu / tau
-    Phi    <- pmax(pnorm(alpha), 1e-12)
-    Lambda <- dnorm(alpha) / Phi
+    Phi    <- pmax(stats::pnorm(alpha), 1e-12)
+    Lambda <- stats::dnorm(alpha) / Phi
     H_qs   <- sum( 0.5 * log(2*pi * qs_tau2) + log(Phi) + 0.5 * (1 + alpha * Lambda) )
 
     # (12) Entropy H(q(sigma, gamma)) via LD Gaussian in (eta, ell)
@@ -422,7 +428,7 @@ exal_static_LDVB <- function(
 
     # Optional: print both absolute and relative changes
     if (verbose && (iter %% 50 == 0)) {
-    cat(sprintf("    ELBO=%.6f | Δ=%.3e | Δrel=%.2e\n", elbo_new, inc, rel_elbo))
+    cat(sprintf("    ELBO=%.6f | delta=%.3e | delta_rel=%.2e\n", elbo_new, inc, rel_elbo))
     }
 
     # Require ELBO to have *stabilized* (small absolute relative change), and
@@ -459,7 +465,7 @@ exal_static_LDVB <- function(
   )
   class(ret) <- "exal_vb"
   if (verbose) {
-    cat(sprintf("LDVB %s in %d iters (%.2fs): gamma≈%.3f, sigma≈%.3f\n",
+    cat(sprintf("LDVB %s in %d iters (%.2fs): gamma~%.3f, sigma~%.3f\n",
                 ifelse(converged, "converged", "stopped"),
                 iter, ret$run.time, ret$qsiggam$gamma_mean, ret$qsiggam$sigma_mean))
   }

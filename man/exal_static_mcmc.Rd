@@ -2,7 +2,7 @@
 % Please edit documentation in R/exal_static_mcmc.R
 \name{exal_static_mcmc}
 \alias{exal_static_mcmc}
-\title{exAL (static) — MCMC algorithm}
+\title{exAL (static) - MCMC algorithm}
 \usage{
 exal_static_mcmc(
   y,
@@ -31,13 +31,13 @@ exal_static_mcmc(
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.}
 
-\item{a_sigma, b_sigma}{Hyperparameters for \(\sigma \sim \mathrm{IG}(a_\sigma,b_\sigma)\)
-with density \(p(\sigma)\propto \sigma^{-(a_\sigma+1)}\exp(-b_\sigma/\sigma)\).}
+\item{a_sigma, b_sigma}{Hyperparameters for an inverse-gamma prior on \code{sigma}
+with density proportional to \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.}
 
-\item{gamma_bounds}{Numeric length-2 vector \((L,U)\) for \(\gamma\).
+\item{gamma_bounds}{Numeric length-2 vector (L, U) for \code{gamma}.
 Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 
-\item{log_prior_gamma}{Function \code{function(g) log pi(g)} for \(\gamma\) on \((L,U)\).
+\item{log_prior_gamma}{Function \code{function(g) log pi(g)} for \code{gamma} on (L, U).
 Default is flat (returns 0).}
 
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
@@ -55,20 +55,20 @@ Default is flat (returns 0).}
 \value{
 A list with:
 \itemize{
-\item \code{run.time} – total wall time in seconds.
-\item \code{X}, \code{p0}, \code{bounds} – design, quantile, and \((L,U)\).
-\item \code{samp.beta} – posterior sample of \(\beta\) as \code{coda::mcmc} (n.mcmc × p).
-\item \code{samp.sigma} – posterior sample of \(\sigma\) as \code{coda::mcmc}.
-\item \code{samp.gamma} – posterior sample of \(\gamma\) as \code{coda::mcmc}.
-\item \code{samp.v} – latent \(v\) draws (n × n.mcmc) as \code{coda::mcmc}.
-\item \code{samp.s} – latent \(s\) draws (n × n.mcmc) as \code{coda::mcmc}.
-\item \code{last} – last state of the chain (useful for restarts).
+\item \code{run.time} - total wall time in seconds.
+\item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).
+\item \code{samp.beta} - posterior sample of \code{beta} as \code{coda::mcmc} (n.mcmc x p).
+\item \code{samp.sigma} - posterior sample of \code{sigma} as \code{coda::mcmc}.
+\item \code{samp.gamma} - posterior sample of \code{gamma} as \code{coda::mcmc}.
+\item \code{samp.v} - latent \code{v} draws (n x n.mcmc) as \code{coda::mcmc}.
+\item \code{samp.s} - latent \code{s} draws (n x n.mcmc) as \code{coda::mcmc}.
+\item \code{last} - last state of the chain (useful for restarts).
 }
 }
 \description{
 Applies a Gibbs sampler for the static Extended Asymmetric Laplace regression
 (exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
-draw \eqn{\gamma} via a Laplace–Delta step on a logit transform of \((L,U)\).
+draw \eqn{\gamma} via a Laplace-Delta step on a logit transform of (L, U).
 }
 \examples{
 \donttest{

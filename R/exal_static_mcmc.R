@@ -1,15 +1,15 @@
 # R/exal_static_mcmc.R
 #
 # GIG parameterization used here:
-#   Math:  GIG(k, chi, psi) ∝ z^{k-1} exp( - (chi/z + psi z)/2 )
-#   C++ :  sample_gig_devroye(p, a, b) has density ∝ x^{p-1} exp( - (a x + b/x)/2 )
+#   Math:  GIG(k, chi, psi) proportional to z^{k-1} exp( - (chi/z + psi z)/2 )
+#   C++ :  sample_gig_devroye(p, a, b) has density proportional to x^{p-1} exp( - (a x + b/x)/2 )
 #   Map :  p = k, a = psi, b = chi
 #
-#' exAL (static) — MCMC algorithm
+#' exAL (static) - MCMC algorithm
 #'
 #' Applies a Gibbs sampler for the static Extended Asymmetric Laplace regression
 #' (exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
-#' draw \eqn{\gamma} via a Laplace–Delta step on a logit transform of \((L,U)\).
+#' draw \eqn{\gamma} via a Laplace-Delta step on a logit transform of (L, U).
 #'
 #' @param y Numeric vector of length \eqn{n}.
 #' @param X Numeric matrix \eqn{n \times p} (design).
@@ -32,14 +32,14 @@
 #'
 #' @return A list with:
 #' \itemize{
-#'   \item \code{run.time} – total wall time in seconds.
-#'   \item \code{X}, \code{p0}, \code{bounds} – design, quantile, and \((L,U)\).
-#'   \item \code{samp.beta} – posterior sample of \(\beta\) as \code{coda::mcmc} (n.mcmc × p).
-#'   \item \code{samp.sigma} – posterior sample of \(\sigma\) as \code{coda::mcmc}.
-#'   \item \code{samp.gamma} – posterior sample of \(\gamma\) as \code{coda::mcmc}.
-#'   \item \code{samp.v} – latent \(v\) draws (n × n.mcmc) as \code{coda::mcmc}.
-#'   \item \code{samp.s} – latent \(s\) draws (n × n.mcmc) as \code{coda::mcmc}.
-#'   \item \code{last} – last state of the chain (useful for restarts).
+#'   \item \code{run.time} - total wall time in seconds.
+#'   \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).
+#'   \item \code{samp.beta} - posterior sample of \code{beta} as \code{coda::mcmc} (n.mcmc x p).
+#'   \item \code{samp.sigma} - posterior sample of \code{sigma} as \code{coda::mcmc}.
+#'   \item \code{samp.gamma} - posterior sample of \code{gamma} as \code{coda::mcmc}.
+#'   \item \code{samp.v} - latent \code{v} draws (n x n.mcmc) as \code{coda::mcmc}.
+#'   \item \code{samp.s} - latent \code{s} draws (n x n.mcmc) as \code{coda::mcmc}.
+#'   \item \code{last} - last state of the chain (useful for restarts).
 #' }
 #' @export
 #'
@@ -81,7 +81,7 @@ exal_static_mcmc <- function(
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
   if (!(L < U)) stop("gamma_bounds must satisfy L < U.")
 
-  ## --- shorthands for A,B,C,λ ----------------------------------------------
+  ## --- shorthands for A,B,C,lambda -----------------------------------------
   A_of   <- function(g) A.fn(p0, g)
   B_of   <- function(g) B.fn(p0, g)
   C_of   <- function(g) C.fn(p0, g)
@@ -107,23 +107,26 @@ exal_static_mcmc <- function(
   if (length(v) != n) v <- rep(v[1], n)
   s <- if (is.null(init$s)) abs(stats::rnorm(n)) else pmax(0, as.numeric(init$s))
 
-  V0_inv <- tryCatch(solve(V0), error = function(e) MASS::ginv(V0))
+  V0_inv <- tryCatch(
+    solve(V0),
+    error = function(e) solve(V0 + 1e-8 * diag(p))
+  )
 
   ## --- helpers (keep names tidy like exdqlmMCMC) ---------------------------
   rnorm_mv <- function(mu, Sigma) {
     mu <- as.numeric(mu)
     U  <- tryCatch(chol(Sigma), error = function(e) NULL)
     if (is.null(U)) U <- chol(Sigma + 1e-10 * diag(nrow(Sigma)))
-    as.numeric(mu + t(U) %*% rnorm(length(mu)))
+    as.numeric(mu + t(U) %*% stats::rnorm(length(mu)))
   }
 
   # eta <-> gamma transform on (L,U)
   g_from_eta <- function(eta) {
-    s <- plogis(eta); s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
+    s <- stats::plogis(eta); s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
     L + (U - L) * s
   }
   logJ <- function(eta) {
-    s <- plogis(eta); s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
+    s <- stats::plogis(eta); s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
     log(U - L) + log(s) + log1p(-s)
   }
 
@@ -187,7 +190,7 @@ exal_static_mcmc <- function(
   }
 
   # initialize eta from current gamma
-  eta <- qlogis((gamma - L) / (U - L))
+  eta <- stats::qlogis((gamma - L) / (U - L))
 
   ## --- main loop (burn + mcmc, prints like exdqlmMCMC) ---------------------
   I <- n.burn + n.mcmc * thin
@@ -209,14 +212,14 @@ exal_static_mcmc <- function(
              )[1, ])
     v <- pmax(v, 1e-12)
 
-    ## (2) s | rest ~ N^+(μ, τ^2), truncated to (0, ∞)
+    ## (2) s | rest ~ N^+(mu, tau^2), truncated to (0, Inf)
     r     <- y - drop(X %*% beta) - A * v
     tau2  <- 1 / (1 + (lambda * lambda) * sigma / (B * v))    # correct form
     tau2  <- pmax(tau2, 1e-12)
     mu_s  <- tau2 * (lambda * r) / (B * v)
     s     <- as.numeric(sample_truncnorm(1L, n, sts_mu = mu_s, sts_sig2 = tau2)[1, ])
 
-    ## (3) beta | rest ~ N(m, V) with W = diag(1/(B σ v))
+    ## (3) beta | rest ~ N(m, V) with W = diag(1/(B sigma v))
     W_diag <- 1 / (B * sigma * v)
     Xw     <- X * sqrt(W_diag)
     V_inv  <- crossprod(Xw) + V0_inv
@@ -226,9 +229,9 @@ exal_static_mcmc <- function(
     Uc    <- tryCatch(chol(V_inv), error = function(e) NULL)
     if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
     m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
-    beta   <- as.numeric(m_beta + backsolve(Uc, rnorm(p)))
+    beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
 
-    ## (4) sigma | rest ~ GIG(kσ, χσ, ψσ)
+    ## (4) sigma | rest ~ GIG(k_sigma, chi_sigma, psi_sigma)
     r          <- y - drop(X %*% beta) - A * v
     chi_sigma  <- sum((r * r) / (B * v)) + 2 * sum(v) + 2 * b_sigma
     psi_sigma  <- (lambda * lambda / B) * sum((s * s) / v)
@@ -238,9 +241,9 @@ exal_static_mcmc <- function(
                    )[1, 1])
     if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
 
-    ## (5) gamma | rest via Laplace–Delta in η
+    ## (5) gamma | rest via Laplace-Delta in eta
     mode_out <- find_mode_eta(eta, beta, sigma, v, s)
-    eta      <- rnorm(1, mean = mode_out$eta_hat, sd = sqrt(1 / mode_out$info))
+    eta      <- stats::rnorm(1, mean = mode_out$eta_hat, sd = sqrt(1 / mode_out$info))
     gamma    <- g_from_eta(eta)
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
 
