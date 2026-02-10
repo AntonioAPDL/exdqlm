@@ -88,22 +88,28 @@ tail(fit$diagnostics$elbo, 3)
 - **Portability**: OpenMP is **optional and gated**; package runs
   serially when unavailable.
 
-> Keep both options **FALSE** in examples/CI. Enable them locally if
-> your toolchain supports compiled code.
+> For CI/CRAN-style runs, keep optional C++ builders/samplers **FALSE** and
+> set `exdqlm.use_cpp_kf = FALSE` for strict R-path reproducibility.
 
 ### Runtime options (summary)
 
 | Option                    | Default | Effect                           | Use when…                                |
 |---------------------------|:-------:|----------------------------------|------------------------------------------|
 | `exdqlm.use_cpp_kf`       |  TRUE   | C++ Kalman filter bridge         | you have compilers/OpenMP and want speed |
+| `exdqlm.use_cpp_builders` |  FALSE  | C++ matrix builders (`polytrendMod`, `seasMod`) | opt-in parity-tested builder speedups |
 | `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
 
 Set with:
 
 ``` r
 options(exdqlm.use_cpp_kf = TRUE)
+options(exdqlm.use_cpp_builders = FALSE)
 options(exdqlm.use_cpp_samplers = TRUE)
 ```
+
+Backend control (minimal):
+- Force pure-R backend: set `options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_builders = FALSE)`.
+- Keep builder calls explicit with `backend = "R"` or `backend = "cpp"` in `polytrendMod()` and `seasMod()`.
 
 ## Minimal examples (CRAN-safe)
 
@@ -124,9 +130,9 @@ seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))
 # 1-d regressor block (explicit 1 x T design)
 reg.comp <- list(m0 = 0, C0 = 1, FF = matrix(x, nrow = 1), GG = matrix(1))
 
-# combine pairwise
-base.mod <- combineMods(trend.comp, seas.comp)
-model    <- combineMods(base.mod, reg.comp)
+# combine via +.exdqlm
+reg.comp <- as.exdqlm(reg.comp)
+model    <- trend.comp + seas.comp + reg.comp
 
 # one discount per block: (trend, seasonal[2-d], reg)
 df     <- c(1.00, 0.98, 1.00)
