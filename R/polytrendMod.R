@@ -23,10 +23,50 @@
 #' 
 polytrendMod = function(order,m0,C0, backend = c("auto", "R", "cpp")){
   backend <- match.arg(backend)
-  GG = diag(order)
-  FF = as.matrix(numeric(order))
-  if(order > 1){GG[(2:order-1)*order + (2:order-1)] = 1}
-  FF[1] = 1
+
+  build_r <- function(order) {
+    GG = diag(order)
+    FF = as.matrix(numeric(order))
+    if(order > 1){GG[(2:order-1)*order + (2:order-1)] = 1}
+    FF[1] = 1
+    list(FF = FF, GG = GG)
+  }
+
+  build_cpp <- function(order) {
+    if (!exists("cpp_build_polytrend_FF_GG", mode = "function")) {
+      stop("C++ builder function cpp_build_polytrend_FF_GG() is not available.")
+    }
+    out <- cpp_build_polytrend_FF_GG(as.integer(order))
+    list(FF = as.matrix(out$FF), GG = as.matrix(out$GG))
+  }
+
+  use_cpp <- switch(
+    backend,
+    "R" = FALSE,
+    "cpp" = TRUE,
+    "auto" = isTRUE(getOption("exdqlm.use_cpp_builders", FALSE))
+  )
+
+  built <- NULL
+  if (use_cpp) {
+    if (backend == "cpp") {
+      built <- build_cpp(order)
+    } else {
+      built <- tryCatch(
+        build_cpp(order),
+        error = function(e) {
+          warning("C++ polytrend builder failed, falling back to R: ", conditionMessage(e))
+          NULL
+        }
+      )
+    }
+  }
+  if (is.null(built)) {
+    built <- build_r(order)
+  }
+
+  FF <- built$FF
+  GG <- built$GG
   if(methods::hasArg(m0)){
     if(length(m0) != order){stop("length of m0 does not match specified polynomial component")}
   }else{
