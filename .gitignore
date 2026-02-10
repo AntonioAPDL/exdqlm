@@ -35,3 +35,6 @@ tools/locate_*.sh
 
 # notebooks
 notebooks/
+
+# local execution tracker (do not commit)
+Plan.txt
