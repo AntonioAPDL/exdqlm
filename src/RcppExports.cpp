@@ -12,6 +12,29 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// cpp_build_polytrend_FF_GG
+Rcpp::List cpp_build_polytrend_FF_GG(int order);
+RcppExport SEXP _exdqlm_cpp_build_polytrend_FF_GG(SEXP orderSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_build_polytrend_FF_GG(order));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_build_seas_FF_GG
+Rcpp::List cpp_build_seas_FF_GG(double period, Rcpp::NumericVector harmonics);
+RcppExport SEXP _exdqlm_cpp_build_seas_FF_GG(SEXP periodSEXP, SEXP harmonicsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type period(periodSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type harmonics(harmonicsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_build_seas_FF_GG(period, harmonics));
+    return rcpp_result_gen;
+END_RCPP
+}
 // get_gamma_bounds
 NumericVector get_gamma_bounds(double p0);
 RcppExport SEXP _exdqlm_get_gamma_bounds(SEXP p0SEXP) {
@@ -390,6 +413,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_exdqlm_cpp_build_polytrend_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_polytrend_FF_GG, 1},
+    {"_exdqlm_cpp_build_seas_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_seas_FF_GG, 2},
     {"_exdqlm_get_gamma_bounds", (DL_FUNC) &_exdqlm_get_gamma_bounds, 1},
     {"_exdqlm_dexal", (DL_FUNC) &_exdqlm_dexal, 6},
     {"_exdqlm_pexal", (DL_FUNC) &_exdqlm_pexal, 7},
