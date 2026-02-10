@@ -43,4 +43,6 @@ test_that("ISVB R fallback matches C++ KF on time-varying GG", {
   diag_r <- vapply(seq_len(TT), function(t) fit_r$theta.out$sC[1, 1, t], numeric(1))
   diag_cpp <- vapply(seq_len(TT), function(t) fit_cpp$theta.out$sC[1, 1, t], numeric(1))
   expect_true(isTRUE(all.equal(diag_r, diag_cpp, tolerance = 1e-6)))
+  expect_true(is.finite(fit_cpp$theta.out$elbo_theta))
+  expect_false("elbo.part" %in% names(fit_cpp$theta.out))
 })
