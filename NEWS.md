@@ -1,34 +1,24 @@
-# exdqlm 0.6.0
-
-## New
-- Consolidated release containing the 0.4.0/0.5.0/0.6.0 feature line.
-- Added synthesis helper `exdqlm_synthesize_from_draws()` for combining
-  posterior quantile-draw objects.
-- Added static regression support with `regMod()` plus static exAL
-  inference routines for VB/LDVB and MCMC workflows.
-
-## Fixes and clarifications
-- Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for
-  parity with the C++ bridge and theory derivations.
-- Aligned static LDVB `(sigma, gamma)` transformed objective/entropy
-  handling with the Jacobian contract used in the static theory reference.
-- Clarified that C++ `elbo.part` in `kalman.cpp` is an internal diagnostic;
-  package-level ELBO reporting remains R-level contract output.
-
 # exdqlm 0.4.0
 
 ## New
-- `exdqlmLDVB`: Laplace–Delta variational Bayes routine for fast quantile
+- Consolidated CRAN release (updating CRAN 0.3.0) that bundles the internal
+  0.4.0/0.5.0/0.6.0 feature line in one submission.
+- `exdqlmLDVB`: Laplace-Delta variational Bayes routine for dynamic quantile
   state-space fitting under the extended asymmetric Laplace error distribution.
-- ELBO diagnostics available during LDVB fitting (mirrors existing ISVB diagnostics).
-- Optional C++ bridges remain available for Kalman filtering and sampling via
-  runtime options; pure R paths preserved.
+- Added synthesis helper `exdqlm_synthesize_from_draws()` for combining
+  posterior quantile-draw objects.
+- Added static regression support with `regMod()` plus static exAL inference
+  routines for VB/LDVB and MCMC workflows.
 
-## Changes
-- Documentation expanded for the new LDVB workflow and runtime options.
-- Minor internal robustness tweaks around covariance handling and coercions.
-- CRAN release-prep hygiene: normalized `R/exal.R` filename case for source
-  parity across platforms; no changes to method outputs.
+## Fixes and clarifications
+- Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for parity
+  with the C++ bridge and theory derivations.
+- Aligned static LDVB `(sigma, gamma)` transformed objective/entropy handling
+  with the Jacobian contract used in the static theory reference.
+- Clarified that C++ `elbo.part` in `kalman.cpp` is an internal diagnostic;
+  package-level ELBO reporting remains R-level contract output.
+- Optional C++ builder acceleration remains opt-in (`exdqlm.use_cpp_builders`
+  default `FALSE`); no backend default flip in this release.
 
 # exdqlm 0.3.0
 

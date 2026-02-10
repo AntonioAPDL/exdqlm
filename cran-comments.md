@@ -1,14 +1,14 @@
-## exdqlm 0.6.0
+## exdqlm 0.4.0
 
 ### Release context
 
-This submission consolidates previously staged internal work into one CRAN update on top of CRAN 0.3.0:
+This submission updates CRAN 0.3.0 to exdqlm 0.4.0 and consolidates previously staged internal work into one CRAN submission:
 
 - 0.4.0 line: LDVB integration and stability/diagnostic cleanup.
 - 0.5.0 line: synthesis API (`exdqlm_synthesize_from_draws`).
-- 0.6.0 line: static regression/regMod integration, plus targeted correctness fixes validated during consolidation.
+- 0.6.0 internal line: static regression/regMod integration, plus targeted correctness fixes validated during consolidation.
 
-No default backend flip was introduced in this consolidation:
+No default backend flip was introduced in this consolidated 0.4.0 release:
 
 - `exdqlm.use_cpp_builders` remains opt-in (`FALSE` by default).
 - Existing R fallbacks remain available.
