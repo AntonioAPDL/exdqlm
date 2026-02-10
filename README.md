@@ -14,7 +14,8 @@ quantiles** (not only means) while keeping a familiar state-space
 specification (design/evolution matrices and a state vector). In
 **v0.3.0**, we add **optional C++ bridges** for speed (Kalman filter and
 samplers) and **ELBO monitoring** for the variational routine. Defaults
-remain **pure-R** for easy installation.
+enable the C++ Kalman bridge, while samplers remain **pure-R** by
+default.
 
 > **Terminology.** We say **exAL** for the extended Asymmetric Laplace
 > family used here. It extends the standard AL by adding a **skewness**
@@ -78,7 +79,7 @@ tail(fit$diagnostics$elbo, 3)
 ## What’s new in v0.3.0
 
 - **C++ Kalman filter bridge** (drop-in): set
-  `options(exdqlm.use_cpp_kf = TRUE)` (default **FALSE**; examples keep
+  `options(exdqlm.use_cpp_kf = TRUE)` (default **TRUE**; examples keep
   it OFF).
 - **ELBO monitoring** for IS-VB: per-iteration values in
   `fit$diagnostics$elbo`.
@@ -94,7 +95,7 @@ tail(fit$diagnostics$elbo, 3)
 
 | Option                    | Default | Effect                           | Use when…                                |
 |---------------------------|:-------:|----------------------------------|------------------------------------------|
-| `exdqlm.use_cpp_kf`       |  FALSE  | C++ Kalman filter bridge         | you have compilers/OpenMP and want speed |
+| `exdqlm.use_cpp_kf`       |  TRUE   | C++ Kalman filter bridge         | you have compilers/OpenMP and want speed |
 | `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
 
 Set with:
@@ -176,7 +177,7 @@ rexal(5, p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
 ```
 
 > **CRAN-safety.** All examples set a seed, use tiny data, finish in a
-> few seconds, and keep the pure-R path by default.
+> few seconds, and explicitly keep the pure-R path.
 
 ## FAQ / Troubleshooting
 
