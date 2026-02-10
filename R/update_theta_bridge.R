@@ -91,7 +91,9 @@ update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,
     k = k, dM = dM
   )
 
-  # Map back to R contract identical to update_theta()
+  # Map back to R contract identical to update_theta().
+  # Note: C++ returns an internal "elbo.part" diagnostic, but package-level
+  # ELBO diagnostics use the bridge-computed theta entropy below.
   sm  <- res$sm               # p x TT
   sC  <- res$sC               # p x p x TT
   fm  <- res$fm               # p x TT

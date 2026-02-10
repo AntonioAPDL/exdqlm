@@ -267,10 +267,9 @@ List update_theta_cpp(const arma::cube& GG,
     sC.slice(TT-1) = C.slice(TT-1);
     sm.col(TT-1) = m.col(TT-1);
 
-    // Initialize ELBO
-    elbo = 0; // Reset ELBO to include calculations from all steps
+    // Internal smoother diagnostic accumulator (not the package-level ELBO).
+    elbo = 0;
 
-// CHANGE THIS
     elbo -= 0.5 * log_det ;
 
     A = Eigen::Map<Eigen::MatrixXd>(sC.slice(TT-1).memptr(), sC.slice(TT-1).n_rows, sC.slice(TT-1).n_cols);
@@ -305,7 +304,6 @@ List update_theta_cpp(const arma::cube& GG,
         elbo += 0.5 * log_det; 
 
         arma::vec ee = sm.col(t+1) - GG.slice(t+1) * sm.col(t);
-        // CORRECT EVERYWHERE ELSE!
         arma::mat XX = sC.slice(t+1) + GG.slice(t+1)*sC.slice(t)*GG.slice(t+1).t();
         XX = XX - 2*( P*R_inv*sC.slice(t+1) ) + ee * ee.t();
         
@@ -360,13 +358,12 @@ List update_theta_cpp(const arma::cube& GG,
     arma::vec xx = sm_0 - m0 - sB * (sm.col(0) - a);
     arma::mat xxxx = CBRB_inv * (xx * xx.t());
     elbo += 0.5 * arma::accu(xxxx.diag());
-// CHANGE THIS
     A = Eigen::Map<Eigen::MatrixXd>(CBRB.memptr(), CBRB.n_rows, CBRB.n_cols); 
     log_det = logDetCholesky(A);
     elbo += 0.5 * log_det; 
 
 
-    // Return the full result list
+    // Return the full result list. "elbo.part" is an internal C++ diagnostic.
     return List::create(Named("standard_forecast_errors") = standard_forecast_errors,
                         Named("standard_forecast_errors_k") = standard_forecast_errors_k,
                         Named("sm") = sm,
