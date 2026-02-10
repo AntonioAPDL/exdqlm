@@ -1,3 +1,20 @@
+# exdqlm 0.6.0
+
+## New
+- Consolidated release containing the 0.4.0/0.5.0/0.6.0 feature line.
+- Added synthesis helper `exdqlm_synthesize_from_draws()` for combining
+  posterior quantile-draw objects.
+- Added static regression support with `regMod()` plus static exAL
+  inference routines for VB/LDVB and MCMC workflows.
+
+## Fixes and clarifications
+- Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for
+  parity with the C++ bridge and theory derivations.
+- Aligned static LDVB `(sigma, gamma)` transformed objective/entropy
+  handling with the Jacobian contract used in the static theory reference.
+- Clarified that C++ `elbo.part` in `kalman.cpp` is an internal diagnostic;
+  package-level ELBO reporting remains R-level contract output.
+
 # exdqlm 0.4.0
 
 ## New
