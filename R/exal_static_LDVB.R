@@ -1,3 +1,45 @@
+# Internal helpers for static LDVB transformed (sigma, gamma) block.
+.exal_static_ld_log_jacobian <- function(eta, ell, L, U) {
+  s <- stats::plogis(eta)
+  s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
+  log(pmax(U - L, 1e-12)) + log(s) + log1p(-s) + ell
+}
+
+.exal_static_ld_log_qsiggam <- function(par, state, include_jacobian = TRUE) {
+  eta <- as.numeric(par[1])
+  ell <- as.numeric(par[2])
+  gamma <- state$g_from_eta(eta)
+  sigma <- state$sig_from_ell(ell)
+
+  A <- state$A_of(gamma)
+  B <- state$B_of(gamma)
+  lam <- state$lam_of(gamma)
+  if (!is.finite(B) || B <= 0 || !is.finite(sigma) || sigma <= 0) {
+    return(-Inf)
+  }
+
+  xb <- drop(state$X %*% state$m_beta)
+  t_i <- state$y - xb
+  q_i <- rowSums((state$X %*% state$V_beta) * state$X)
+
+  term1 <- - (1 / (2 * B * sigma)) * sum(
+    state$E_inv_v * (t_i^2 + q_i) - 2 * A * t_i + (A * A) * state$E_v
+  )
+  term2 <- - (sum(state$E_v) + state$b_sigma) / sigma
+  term3 <- + (lam / B) * sum(state$E_s * state$E_inv_v * t_i - state$E_s * A)
+  term4 <- - ((lam * lam) / (2 * B)) * sigma * sum(state$E_s2 * state$E_inv_v)
+
+  log_prior <- state$log_prior_gamma(gamma)
+  log_det <- - (state$n / 2) * log(B) - (((3 * state$n) / 2) + state$a_sigma + 1) * ell
+  val <- log_prior + log_det + term1 + term2 + term3 + term4
+
+  if (isTRUE(include_jacobian)) {
+    val <- val + .exal_static_ld_log_jacobian(eta, ell, state$L, state$U)
+  }
+
+  val
+}
+
 #' Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)
 #'
 #' Fits the static Extended Asymmetric Laplace (exAL) regression via a
@@ -152,11 +194,11 @@ exal_static_LDVB <- function(
     ns <- max(1L, as.integer(ns))
 
     # draw (eta, ell) ~ N([eta_hat, ell_hat], Sigma)
-    U <- tryCatch(chol(Sigma), error = function(e) NULL)
-    if (is.null(U)) U <- chol(Sigma + 1e-8 * diag(2))
+    chol_U <- tryCatch(chol(Sigma), error = function(e) NULL)
+    if (is.null(chol_U)) chol_U <- chol(Sigma + 1e-8 * diag(2))
 
     Z    <- matrix(stats::rnorm(2 * ns), nrow = 2, ncol = ns)   # 2 x ns
-    pars <- sweep(U %*% Z, 1, c(eta_hat, ell_hat), "+")  # 2 x ns
+    pars <- sweep(chol_U %*% Z, 1, c(eta_hat, ell_hat), "+")  # 2 x ns
     eta  <- pars[1, ]
     ell  <- pars[2, ]
 
@@ -174,6 +216,7 @@ exal_static_LDVB <- function(
     xi_A2      <- mean((A * A) / (B * sigma))
     xi_siginv  <- mean(exp(-ell))               # E[1/sigma]
     zeta_lam   <- mean((lam * A) / B)
+    zeta_logJ     <- mean(.exal_static_ld_log_jacobian(eta, ell, L, U))
     zeta_logsigma <- mean(ell)
     zeta_logB     <- mean(log(pmax(B, 1e-300)))
     zeta_logpi    <- mean(vapply(gamma, log_prior_gamma, numeric(1)))
@@ -186,6 +229,7 @@ exal_static_LDVB <- function(
     xi_A2 = xi_A2,
     xi_siginv = xi_siginv,
     zeta_lam = zeta_lam,
+    zeta_logJ = zeta_logJ,
     zeta_logsigma = zeta_logsigma,
     zeta_logB = zeta_logB,
     zeta_logpi = zeta_logpi
@@ -195,34 +239,31 @@ exal_static_LDVB <- function(
 
   # log-kernel for q(sigma,gamma) as a function of (eta, ell)
   log_qsiggam <- function(par) {
-    eta <- as.numeric(par[1]); ell <- as.numeric(par[2])
-    gamma <- g_from_eta(eta)
-    sigma <- sig_from_ell(ell)
-
-    A <- A_of(gamma); B <- B_of(gamma); lam <- lam_of(gamma)
-    if (!is.finite(B) || B <= 0 || !is.finite(sigma) || sigma <= 0) return(-Inf)
-
-    # precompute residual stats from q(beta)
-    xb  <- drop(X %*% m_beta)
-    t_i <- y - xb
-    q_i <- rowSums((X %*% V_beta) * X)  # diag(X V X^T)
-
-    # expectations from q(v), q(s)
-    mv_inv <- E_inv_v
-    mv     <- E_v
-    ms     <- E_s
-    ms2    <- E_s2
-
-    # pieces (see derivations)
-    term1 <- - (1 / (2 * B * sigma)) * sum( mv_inv * (t_i^2 + q_i) - 2 * A * t_i + (A * A) * mv )
-    term2 <- - (sum(mv) + b_sigma) / sigma
-    term3 <- + (lam / B) * sum( ms * mv_inv * t_i - ms * A )
-    term4 <- - ( (lam * lam) / (2 * B) ) * sigma * sum( ms2 * mv_inv )
-
-    log_prior <- log_prior_gamma(gamma)
-    log_det   <- - (n / 2) * log(B) - ( (3 * n) / 2 + a_sigma + 1 ) * ell
-
-    log_prior + log_det + term1 + term2 + term3 + term4
+    .exal_static_ld_log_qsiggam(
+      par = par,
+      state = list(
+        y = y,
+        X = X,
+        n = n,
+        m_beta = m_beta,
+        V_beta = V_beta,
+        E_inv_v = E_inv_v,
+        E_v = E_v,
+        E_s = E_s,
+        E_s2 = E_s2,
+        a_sigma = a_sigma,
+        b_sigma = b_sigma,
+        L = L,
+        U = U,
+        A_of = A_of,
+        B_of = B_of,
+        lam_of = lam_of,
+        g_from_eta = g_from_eta,
+        sig_from_ell = sig_from_ell,
+        log_prior_gamma = log_prior_gamma
+      ),
+      include_jacobian = TRUE
+    )
   }
 
   # find LD mode & covariance for (eta, ell)
@@ -408,9 +449,10 @@ exal_static_LDVB <- function(
     Lambda <- stats::dnorm(alpha) / Phi
     H_qs   <- sum( 0.5 * log(2*pi * qs_tau2) + log(Phi) + 0.5 * (1 + alpha * Lambda) )
 
-    # (12) Entropy H(q(sigma, gamma)) via LD Gaussian in (eta, ell)
+    # (12) H(q(sigma,gamma)) = H(q(eta,ell)) + E_q[log|J(eta,ell)|]
+    # for sigma=exp(ell), gamma=L+(U-L)logit^{-1}(eta).
     logdetSig <- as.numeric(determinant(Sig_eta_ell, logarithm = TRUE)$modulus)
-    H_qsg     <- 0.5 * ( 2 * (1 + log(2*pi)) + logdetSig )
+    H_qsg     <- 0.5 * ( 2 * (1 + log(2*pi)) + logdetSig ) + xis$zeta_logJ
 
     # Put it together
     elbo_new <- lik_norm + lik_quad1 + lik_cross +
