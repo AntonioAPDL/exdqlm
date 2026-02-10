@@ -3,7 +3,7 @@
 ## Branch snapshot
 - Branch: `integrate/v0.4.0-on-v0.3.0`
 - HEAD: `bcab2c2`
-- Scope: discovery only (no FFBS code edits; no gate rerun in this chunk)
+- Scope: discovery only (no FFBS code edits and no phase-gate rerun in this chunk)
 
 ## Theory anchor from `main.tex`
 - Source: `/data/muscat_data/jaguir26/univ-exDQLM---Ensemble/main.tex`
@@ -49,7 +49,7 @@
   - C++ target: `GG.slice(t+1)`
 - Likely issue: mixed indexing in R backward recursion (off-by-one in transition usage).
 
-## Phase 2 implementation sketch (not executed in this chunk)
+## Implementation sketch (for next chunk; not executed here)
 1. Minimal code edits (surgical):
    - In R fallback FFBS blocks, replace smoothing gain transition term:
      - from: `t(GG[,,t])`
