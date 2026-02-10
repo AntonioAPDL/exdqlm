@@ -13,14 +13,16 @@
 #'
 #' @param y Numeric vector of length \eqn{n}.
 #' @param X Numeric matrix \eqn{n \times p} (design).
-#' @param p0 Quantile level in \((0,1)\).
+#' @param p0 Quantile level in (0,1).
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 #'   \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.
-#' @param a_sigma,b_sigma Hyperparameters for \(\sigma \sim \mathrm{IG}(a_\sigma,b_\sigma)\)
-#'   with density \(p(\sigma)\propto \sigma^{-(a_\sigma+1)}\exp(-b_\sigma/\sigma)\).
-#' @param gamma_bounds Numeric length-2 vector \((L,U)\) for \(\gamma\).
+#' @param a_sigma,b_sigma Hyperparameters for an inverse-gamma prior on
+#'   \code{sigma}, with density proportional to
+#'   \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.
+#' @param gamma_bounds Numeric length-2 vector (L, U) for \code{gamma}.
 #'   Defaults to \code{c(L.fn(p0), U.fn(p0))}.
-#' @param log_prior_gamma Function \code{function(g) log pi(g)} for \(\gamma\) on \((L,U)\).
+#' @param log_prior_gamma Function \code{function(g) log pi(g)} for \code{gamma}
+#'   on (L, U).
 #'   Default is flat (returns 0).
 #' @param init Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
 #'   \code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.

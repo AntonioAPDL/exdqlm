@@ -26,18 +26,20 @@ exal_static_mcmc(
 
 \item{X}{Numeric matrix \eqn{n \times p} (design).}
 
-\item{p0}{Quantile level in \((0,1)\).}
+\item{p0}{Quantile level in (0,1).}
 
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.}
 
-\item{a_sigma, b_sigma}{Hyperparameters for an inverse-gamma prior on \code{sigma}
-with density proportional to \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.}
+\item{a_sigma, b_sigma}{Hyperparameters for an inverse-gamma prior on
+\code{sigma}, with density proportional to
+\code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.}
 
 \item{gamma_bounds}{Numeric length-2 vector (L, U) for \code{gamma}.
 Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 
-\item{log_prior_gamma}{Function \code{function(g) log pi(g)} for \code{gamma} on (L, U).
+\item{log_prior_gamma}{Function \code{function(g) log pi(g)} for \code{gamma}
+on (L, U).
 Default is flat (returns 0).}
 
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},

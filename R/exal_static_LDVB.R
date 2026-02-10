@@ -11,10 +11,10 @@
 #' The updates implement the closed-form factors you derived:
 #' * \eqn{q(\beta)=\mathcal{N}(m_\beta,V_\beta)}
 #' * \eqn{q(v_i)=\mathrm{GIG}(1/2,\chi_i,\psi)}
-#' * \eqn{q(s_i)=\mathcal{N}(\mu_{s_i},\tau_{s_i}^2)} truncated to \((0,\infty)\)
+#' * \eqn{q(s_i)=\mathcal{N}(\mu_{s_i},\tau_{s_i}^2)} truncated to (0, Inf)
 #' * \eqn{q(\sigma,\gamma)} via LD; the expectations
 #'   \eqn{\{\xi_1,\xi_\lambda,\xi_{\lambda^2},\xi_A,\xi_{A^2},\xi_{\sigma^{-1}},\zeta_\lambda\}}
-#'   are computed from a small Gaussian MC sample in \((\eta,\ell)\).
+#'   are computed from a small Gaussian MC sample in (eta, ell).
 #'
 #' @param y Numeric vector (length n).
 #' @param X Numeric matrix (n x p).
@@ -24,12 +24,12 @@
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
 #' @param a_sigma,b_sigma Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 #'   density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
-#' @param gamma_bounds Two-vector \((L,U)\) support for \(\gamma\).
+#' @param gamma_bounds Two-vector (L, U) support for \code{gamma}.
 #'   Defaults to \code{c(L.fn(p0), U.fn(p0))}.
 #' @param log_prior_gamma Function \code{g -> log pi(gamma=g)} (default flat).
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}; if missing, reasonable defaults are used.
-#' @param n_samp_xi MC draws used to compute the \(\xi\) expectations for
+#' @param n_samp_xi MC draws used to compute the xi expectations for
 #'   \eqn{q(\sigma,\gamma)} (default 200).
 #' @param verbose Logical; print progress.
 #'
