@@ -307,7 +307,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       R = (R + t(R))/2
       svd.R = svd(R)
       inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,t])%*%inv.R
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
       sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
       sC[,,t] = (sC[,,t]+t(sC[,,t]))/2

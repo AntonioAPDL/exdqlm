@@ -168,7 +168,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       R = (R + t(R))/2
       svd.R = svd(R)
       inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,t])%*%inv.R
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
       sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
       sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
@@ -285,9 +285,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         R = (R + t(R))/2
         svd.R = svd(R)
         inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,t])%*%inv.R
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,t]%*%C[,,t]
+        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
         post.pred[t] = rexal(1,tau,t(FF[,t])%*%sam.theta[,t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
@@ -466,9 +466,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         R = (R + t(R))/2
         svd.R = svd(R)
         inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,t])%*%inv.R
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,t]%*%C[,,t]
+        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
         post.pred[t] = rexal(1,p0,t(FF[,t])%*%sam.theta[,t],sigma,0)
