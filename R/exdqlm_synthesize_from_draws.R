@@ -129,9 +129,9 @@ exdqlm_synthesize_from_draws <- function(draws_list, p,
     # Left region u <= tau_1 : use model 1
     idx_left  <- which(grid_u <= taus[1L])
     if (length(idx_left)) {
-      q_init[idx_left] <- approx(pp_list[[1L]], adj_list[[1L]][t, ],
-                                 xout = grid_u[idx_left],
-                                 rule = 2, ties = "ordered")$y
+      q_init[idx_left] <- stats::approx(pp_list[[1L]], adj_list[[1L]][t, ],
+                                        xout = grid_u[idx_left],
+                                        rule = 2, ties = "ordered")$y
     }
 
     # Interior regions: linear blend between model i and i+1
@@ -140,17 +140,17 @@ exdqlm_synthesize_from_draws <- function(draws_list, p,
       if (!length(ids)) next
       u  <- grid_u[ids]
       w  <- (u - taus[i]) / (taus[i + 1L] - taus[i])
-      qi  <- approx(pp_list[[i]],   adj_list[[i]][t,   ], xout = u, rule = 2, ties = "ordered")$y
-      qi1 <- approx(pp_list[[i+1]], adj_list[[i+1]][t, ], xout = u, rule = 2, ties = "ordered")$y
+      qi  <- stats::approx(pp_list[[i]],   adj_list[[i]][t,   ], xout = u, rule = 2, ties = "ordered")$y
+      qi1 <- stats::approx(pp_list[[i+1]], adj_list[[i+1]][t, ], xout = u, rule = 2, ties = "ordered")$y
       q_init[ids] <- (1 - w) * qi + w * qi1
     }
 
     # Right region u >= tau_L : use model L
     idx_right <- which(grid_u >= taus[L])
     if (length(idx_right)) {
-      q_init[idx_right] <- approx(pp_list[[L]], adj_list[[L]][t, ],
-                                  xout = grid_u[idx_right],
-                                  rule = 2, ties = "ordered")$y
+      q_init[idx_right] <- stats::approx(pp_list[[L]], adj_list[[L]][t, ],
+                                         xout = grid_u[idx_right],
+                                         rule = 2, ties = "ordered")$y
     }
 
     q_init
@@ -165,9 +165,9 @@ exdqlm_synthesize_from_draws <- function(draws_list, p,
     q_init <- eval_Qinit_at_t(t)
     if (isTRUE(rearrange)) {
       q_sorted <- sort(q_init)                               # enforce global monotonicity
-      draws[t, ] <- approx(x = grid_u, y = q_sorted, xout = U[t, ], rule = 2)$y
+      draws[t, ] <- stats::approx(x = grid_u, y = q_sorted, xout = U[t, ], rule = 2)$y
     } else {
-      draws[t, ] <- approx(x = grid_u, y = q_init,   xout = U[t, ], rule = 2)$y
+      draws[t, ] <- stats::approx(x = grid_u, y = q_init,   xout = U[t, ], rule = 2)$y
     }
   }
 
