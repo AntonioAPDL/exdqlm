@@ -20,6 +20,7 @@
 * Existing 0.3.0 behavior is preserved; release prep changes are metadata/docs/hygiene only.
 * Build hygiene remains unchanged: OpenMP optional and guarded; `Makevars{,.win}` uses R macros.
 * CRAN parity hygiene includes filename case normalization (`R/exal.R`) without method-output changes.
+* Consolidation note: this branch is the stabilized 0.4.0 base that will be folded into the planned 0.5.0 consolidated submission branch.
 
 ### Notes from local check
 
@@ -32,7 +33,6 @@
 
 * win-builder r-release: PASS
 * win-builder r-devel: PASS
-* NOTE: Possibly misspelled words in DESCRIPTION: ELBO, Kalman, variational. Confirmed correct spelling.
-
+* Prior Win-builder spelling note on DESCRIPTION terms was addressed with wording cleanup in this branch.
 
 
