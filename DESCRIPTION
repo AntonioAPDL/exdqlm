@@ -14,8 +14,9 @@ Author: Raquel Barata [aut, cre],
   Antonio Aguirre [aut]
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
 Description: Routines for Bayesian estimation and analysis of dynamic quantile
-    linear models utilizing the extended asymmetric Laplace error distribution
-    (exDQLM). Includes iterative and variational Bayes inference, optional C++
+    linear models utilizing the extended asymmetric Laplace error distribution,
+    also known as extended dynamic quantile linear models (exDQLM).
+    Includes iterative and variational Bayes inference, optional C++
     bridges for Kalman filtering and sampling, evidence lower bound (ELBO)
     diagnostics, and a Laplace-Delta variational Bayes routine
     ('exdqlmLDVB') for fast quantile state-space fitting.

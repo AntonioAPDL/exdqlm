@@ -5,7 +5,7 @@
 * Local: AlmaLinux 8.10 (x86_64), R 4.4.0 (2024-04-24), `devtools::check(args = "--as-cran", cran = TRUE)`.
 * R-hub (GitHub Actions): success on linux/windows/macos-arm64 (R-devel).
   * Run: https://github.com/AntonioAPDL/exdqlm/actions/runs/21786968497
-* Win-builder: submission workflow is set; results are pending in maintainer email (Raquel).
+* Win-builder: success r-release and r-devel.
   * Submission script: `scripts/precran_all.R` (submits r-release and r-devel).
   * Most recent submission logs in-repo: `check-logs/20260207-130034/winbuilder-release.log`,
     `check-logs/20260207-130034/winbuilder-devel.log` (from pre-release run).
@@ -28,8 +28,11 @@
 * Non-portable compiler flags NOTE reflects system toolchain defaults (`-Werror=format-security`,
   `-Wp,-D_FORTIFY_SOURCE=2`, `-Wp,-D_GLIBCXX_ASSERTIONS`) rather than package-specific flags.
 
-### Win-builder results (to be filled by Raquel upon email receipt)
+### Win-builder results 
 
-* win-builder r-release: [PENDING / PASS / FAIL]
-* win-builder r-devel: [PENDING / PASS / FAIL]
-* Notes if any: [paste any NOTE/WARNING and resolution, or "none"].
+* win-builder r-release: PASS
+* win-builder r-devel: PASS
+* NOTE: Possibly misspelled words in DESCRIPTION: ELBO, Kalman, variational. Confirmed correct spelling.
+
+
+
