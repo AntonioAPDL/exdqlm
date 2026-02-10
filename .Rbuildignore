@@ -34,6 +34,7 @@
 ^scripts$
 ^dump_exdqlm_files_to_txt\.sh$
 ^check-logs$
+^Plan\.txt$
 ^tools$
 ^.*\.Rproj$
 ^exdqlm\.Rproj$
