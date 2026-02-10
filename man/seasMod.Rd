@@ -4,7 +4,7 @@
 \alias{seasMod}
 \title{Create Fourier representation of a periodic exDQLM component}
 \usage{
-seasMod(p, h, m0, C0)
+seasMod(p, h, m0, C0, backend = c("auto", "R", "cpp"))
 }
 \arguments{
 \item{p}{The period.}
@@ -14,6 +14,9 @@ seasMod(p, h, m0, C0)
 \item{m0}{Prior mean of the state vector.}
 
 \item{C0}{Prior covariance of the state vector.}
+
+\item{backend}{Backend selection for matrix construction:
+\code{"auto"} (default), \code{"R"}, or \code{"cpp"}.}
 }
 \value{
 A object of class "\code{exdqlm}" containing the following:

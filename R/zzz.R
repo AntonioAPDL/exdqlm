@@ -5,6 +5,7 @@
     exdqlm.use_cpp_kf        = TRUE,   # KF bridge is proven & fast
     exdqlm.compute_elbo      = TRUE,
     exdqlm.tol_elbo          = 1e-6,
+    exdqlm.use_cpp_builders  = FALSE,  # keep OFF until parity is verified
     exdqlm.use_cpp_samplers  = FALSE,  # keep OFF by default (OpenMP/RNG)
     exdqlm.use_cpp_postpred  = FALSE   # keep OFF by default
   )

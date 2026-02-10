@@ -5,6 +5,8 @@
 #' @param order The order of the polynomial model.
 #' @param m0 Prior mean of the state vector. Default is `m0 = rep(0,order)`.
 #' @param C0 Prior covariance of the state vector. Default is `C0 = 1e3*diag(order)`.
+#' @param backend Backend selection for matrix construction:
+#'   `"auto"` (default), `"R"`, or `"cpp"`.
 #'
 #' @return A object of class "\code{exdqlm}" containing the following:
 #' \itemize{
@@ -19,7 +21,8 @@
 #' # create a second order polynomial component
 #' trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
 #' 
-polytrendMod = function(order,m0,C0){
+polytrendMod = function(order,m0,C0, backend = c("auto", "R", "cpp")){
+  backend <- match.arg(backend)
   GG = diag(order)
   FF = as.matrix(numeric(order))
   if(order > 1){GG[(2:order-1)*order + (2:order-1)] = 1}

@@ -6,6 +6,8 @@
 #' @param h Vector of harmonics to be included.
 #' @param m0 Prior mean of the state vector.
 #' @param C0 Prior covariance of the state vector.
+#' @param backend Backend selection for matrix construction:
+#'   `"auto"` (default), `"R"`, or `"cpp"`.
 #'
 #' @return A object of class "\code{exdqlm}" containing the following:
 #' \itemize{
@@ -20,7 +22,8 @@
 #' # create a seasonal component with first, second and fourth harmonics of a period of 365
 #' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
 #'
-seasMod = function(p, h, m0, C0){
+seasMod = function(p, h, m0, C0, backend = c("auto", "R", "cpp")){
+  backend <- match.arg(backend)
   nh = length(h)
   w = h * 2 * pi / p
   if( max(w) == pi){

@@ -4,7 +4,7 @@
 \alias{polytrendMod}
 \title{Create an n-th order polynomial exDQLM component}
 \usage{
-polytrendMod(order, m0, C0)
+polytrendMod(order, m0, C0, backend = c("auto", "R", "cpp"))
 }
 \arguments{
 \item{order}{The order of the polynomial model.}
@@ -12,6 +12,9 @@ polytrendMod(order, m0, C0)
 \item{m0}{Prior mean of the state vector. Default is \code{m0 = rep(0,order)}.}
 
 \item{C0}{Prior covariance of the state vector. Default is \code{C0 = 1e3*diag(order)}.}
+
+\item{backend}{Backend selection for matrix construction:
+\code{"auto"} (default), \code{"R"}, or \code{"cpp"}.}
 }
 \value{
 A object of class "\code{exdqlm}" containing the following:
