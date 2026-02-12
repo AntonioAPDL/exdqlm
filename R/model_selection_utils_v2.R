@@ -299,6 +299,315 @@ ms_weight_spec_id <- function() {
   "uniform"
 }
 
+ms_tracking_enabled <- function(cfg) {
+  trk <- (cfg$model_selection %||% list())$tracking %||% list()
+  if (is.null(trk$enabled)) return(TRUE)
+  isTRUE(trk$enabled)
+}
+
+ms_tracker_init <- function(run_dir, cfg) {
+  trk <- new.env(parent = emptyenv())
+  trk$enabled <- !is.null(run_dir) && nzchar(run_dir) && ms_tracking_enabled(cfg)
+  trk$run_started <- Sys.time()
+  trk$global_completed <- 0L
+  trk$global_total_known <- 0L
+  trk$current_stage <- NA_character_
+  trk$current_stage_idx <- NA_integer_
+  trk$current_stage_total <- 0L
+  trk$current_stage_completed <- 0L
+  trk$current_stage_elapsed <- 0
+  trk$current_stage_candidate_total <- 0L
+  trk$current_stage_candidate_seen <- character(0)
+  trk$current_eval_started <- NULL
+  trk$best_crps <- Inf
+  trk$best_candidate_id <- NA_character_
+  trk$best_stage <- NA_character_
+  trk$best_seed <- NA_integer_
+  trk$last_result <- NULL
+
+  trk_cfg <- (cfg$model_selection %||% list())$tracking %||% list()
+  trk$progress_csv_path <- file.path(run_dir, trk_cfg$progress_csv %||% "tables/model_selection_progress.csv")
+  trk$status_json_path <- file.path(run_dir, trk_cfg$status_json %||% "tables/model_selection_status.json")
+  trk$best_csv_path <- file.path(run_dir, trk_cfg$best_so_far_csv %||% "tables/model_selection_best_so_far.csv")
+  trk$log_path <- file.path(run_dir, trk_cfg$log_file %||% "logs/model_selection_progress.log")
+
+  if (!isTRUE(trk$enabled)) return(trk)
+
+  dir.create(dirname(trk$progress_csv_path), recursive = TRUE, showWarnings = FALSE)
+  dir.create(dirname(trk$status_json_path), recursive = TRUE, showWarnings = FALSE)
+  dir.create(dirname(trk$best_csv_path), recursive = TRUE, showWarnings = FALSE)
+  dir.create(dirname(trk$log_path), recursive = TRUE, showWarnings = FALSE)
+
+  if (file.exists(trk$progress_csv_path)) file.remove(trk$progress_csv_path)
+  if (file.exists(trk$status_json_path)) file.remove(trk$status_json_path)
+  if (file.exists(trk$best_csv_path)) file.remove(trk$best_csv_path)
+  if (file.exists(trk$log_path)) file.remove(trk$log_path)
+
+  ms_tracker_log(trk, "tracker initialized")
+  ms_tracker_write_status(trk, state = "initialized")
+  trk
+}
+
+ms_tracker_eta <- function(elapsed_sec, completed, remaining) {
+  if (!is.finite(elapsed_sec) || completed <= 0L || remaining <= 0L) return(NA_real_)
+  as.numeric(elapsed_sec / completed) * remaining
+}
+
+ms_tracker_log <- function(trk, message) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+  ts <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  line <- sprintf("[%s] %s", ts, message)
+  cat(line, "\n")
+  cat(line, "\n", file = trk$log_path, append = TRUE)
+  invisible(NULL)
+}
+
+ms_tracker_write_status <- function(trk, state = "running", error = NULL) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+
+  now <- Sys.time()
+  elapsed_sec <- as.numeric(difftime(now, trk$run_started, units = "secs"))
+
+  stage_remaining <- max(0L, trk$current_stage_total - trk$current_stage_completed)
+  run_remaining_known <- max(0L, trk$global_total_known - trk$global_completed)
+
+  stage_pct <- if (trk$current_stage_total > 0L) trk$current_stage_completed / trk$current_stage_total else NA_real_
+  run_pct_known <- if (trk$global_total_known > 0L) trk$global_completed / trk$global_total_known else NA_real_
+
+  stage_eta_sec <- ms_tracker_eta(trk$current_stage_elapsed, trk$current_stage_completed, stage_remaining)
+  run_eta_known_sec <- ms_tracker_eta(elapsed_sec, trk$global_completed, run_remaining_known)
+
+  cand_done_stage <- length(unique(trk$current_stage_candidate_seen))
+  cand_remaining_stage <- max(0L, trk$current_stage_candidate_total - cand_done_stage)
+
+  status_obj <- list(
+    state = state,
+    timestamp = format(now, "%Y-%m-%d %H:%M:%S"),
+    run_started = format(trk$run_started, "%Y-%m-%d %H:%M:%S"),
+    elapsed_sec = elapsed_sec,
+    stage = list(
+      name = trk$current_stage,
+      index = trk$current_stage_idx,
+      completed = trk$current_stage_completed,
+      total = trk$current_stage_total,
+      remaining = stage_remaining,
+      progress = stage_pct,
+      eta_sec = stage_eta_sec,
+      candidate_completed = cand_done_stage,
+      candidate_total = trk$current_stage_candidate_total,
+      candidate_remaining = cand_remaining_stage
+    ),
+    run_known = list(
+      completed = trk$global_completed,
+      total = trk$global_total_known,
+      remaining = run_remaining_known,
+      progress = run_pct_known,
+      eta_sec = run_eta_known_sec
+    ),
+    best_so_far = list(
+      crps_synth_mean = if (is.finite(trk$best_crps)) trk$best_crps else NA_real_,
+      candidate_id = trk$best_candidate_id,
+      stage = trk$best_stage,
+      seed = trk$best_seed
+    ),
+    last_result = trk$last_result,
+    files = list(
+      progress_csv = trk$progress_csv_path,
+      best_so_far_csv = trk$best_csv_path,
+      log_file = trk$log_path
+    ),
+    error = error
+  )
+
+  jsonlite::write_json(
+    status_obj,
+    path = trk$status_json_path,
+    auto_unbox = TRUE,
+    pretty = TRUE,
+    null = "null",
+    na = "null"
+  )
+  invisible(NULL)
+}
+
+ms_tracker_stage_start <- function(trk, stage_name, stage_idx, stage_total, n_candidates, n_seeds, origins_policy) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+  trk$current_stage <- stage_name
+  trk$current_stage_idx <- as.integer(stage_idx)
+  trk$current_stage_total <- as.integer(stage_total)
+  trk$current_stage_completed <- 0L
+  trk$current_stage_elapsed <- 0
+  trk$current_stage_candidate_total <- as.integer(n_candidates)
+  trk$current_stage_candidate_seen <- character(0)
+  trk$global_total_known <- trk$global_total_known + as.integer(stage_total)
+
+  ms_tracker_log(
+    trk,
+    sprintf(
+      "stage_start stage=%s idx=%d candidates=%d seeds=%d evals=%d origins_policy=%s",
+      stage_name, as.integer(stage_idx), as.integer(n_candidates), as.integer(n_seeds), as.integer(stage_total), origins_policy
+    )
+  )
+  ms_tracker_write_status(trk, state = "running")
+  invisible(NULL)
+}
+
+ms_tracker_eval_start <- function(trk, stage_name, candidate_idx, candidate_id, seed) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+  trk$current_eval_started <- Sys.time()
+  ms_tracker_log(
+    trk,
+    sprintf(
+      "eval_start stage=%s eval=%d/%d candidate=%d id=%s seed=%s",
+      stage_name,
+      trk$current_stage_completed + 1L,
+      trk$current_stage_total,
+      as.integer(candidate_idx),
+      candidate_id,
+      as.character(seed)
+    )
+  )
+  invisible(NULL)
+}
+
+ms_tracker_eval_end <- function(trk, stage_name, stage_idx, candidate_idx, candidate_id, seed,
+                                crps_synth_mean, calcrps_mean, calcrps_max) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+
+  now <- Sys.time()
+  duration_sec <- if (!is.null(trk$current_eval_started)) {
+    as.numeric(difftime(now, trk$current_eval_started, units = "secs"))
+  } else {
+    NA_real_
+  }
+
+  trk$current_stage_completed <- trk$current_stage_completed + 1L
+  trk$global_completed <- trk$global_completed + 1L
+  trk$current_stage_elapsed <- trk$current_stage_elapsed + ifelse(is.finite(duration_sec), duration_sec, 0)
+  trk$current_stage_candidate_seen <- unique(c(trk$current_stage_candidate_seen, candidate_id))
+
+  best_updated <- FALSE
+  if (is.finite(crps_synth_mean) && crps_synth_mean < trk$best_crps) {
+    trk$best_crps <- crps_synth_mean
+    trk$best_candidate_id <- candidate_id
+    trk$best_stage <- stage_name
+    trk$best_seed <- as.integer(seed)
+    best_updated <- TRUE
+  }
+
+  stage_remaining <- max(0L, trk$current_stage_total - trk$current_stage_completed)
+  run_remaining_known <- max(0L, trk$global_total_known - trk$global_completed)
+  cand_done_stage <- length(trk$current_stage_candidate_seen)
+  cand_remaining_stage <- max(0L, trk$current_stage_candidate_total - cand_done_stage)
+  stage_eta_sec <- ms_tracker_eta(trk$current_stage_elapsed, trk$current_stage_completed, stage_remaining)
+  run_elapsed_sec <- as.numeric(difftime(now, trk$run_started, units = "secs"))
+  run_eta_known_sec <- ms_tracker_eta(run_elapsed_sec, trk$global_completed, run_remaining_known)
+
+  row <- data.frame(
+    timestamp = format(now, "%Y-%m-%d %H:%M:%S"),
+    stage = stage_name,
+    stage_idx = as.integer(stage_idx),
+    candidate_idx = as.integer(candidate_idx),
+    candidate_id = candidate_id,
+    seed = as.integer(seed),
+    crps_synth_mean = as.numeric(crps_synth_mean),
+    calcrps_mean = as.numeric(calcrps_mean),
+    calcrps_max = as.numeric(calcrps_max),
+    duration_sec = as.numeric(duration_sec),
+    eval_completed_stage = as.integer(trk$current_stage_completed),
+    eval_total_stage = as.integer(trk$current_stage_total),
+    eval_remaining_stage = as.integer(stage_remaining),
+    eval_completed_run_known = as.integer(trk$global_completed),
+    eval_total_run_known = as.integer(trk$global_total_known),
+    eval_remaining_run_known = as.integer(run_remaining_known),
+    candidate_completed_stage = as.integer(cand_done_stage),
+    candidate_total_stage = as.integer(trk$current_stage_candidate_total),
+    candidate_remaining_stage = as.integer(cand_remaining_stage),
+    best_crps_so_far = if (is.finite(trk$best_crps)) as.numeric(trk$best_crps) else NA_real_,
+    best_candidate_id_so_far = trk$best_candidate_id,
+    eta_stage_sec = as.numeric(stage_eta_sec),
+    eta_run_known_sec = as.numeric(run_eta_known_sec),
+    stringsAsFactors = FALSE
+  )
+
+  readr::write_csv(row, trk$progress_csv_path, append = file.exists(trk$progress_csv_path))
+
+  if (isTRUE(best_updated)) {
+    best_row <- row
+    readr::write_csv(best_row, trk$best_csv_path, append = file.exists(trk$best_csv_path))
+  }
+
+  trk$last_result <- list(
+    stage = stage_name,
+    stage_idx = as.integer(stage_idx),
+    candidate_idx = as.integer(candidate_idx),
+    candidate_id = candidate_id,
+    seed = as.integer(seed),
+    crps_synth_mean = as.numeric(crps_synth_mean),
+    calcrps_mean = as.numeric(calcrps_mean),
+    calcrps_max = as.numeric(calcrps_max),
+    duration_sec = as.numeric(duration_sec)
+  )
+
+  ms_tracker_log(
+    trk,
+    sprintf(
+      "eval_done stage=%s eval=%d/%d candidate=%d seed=%s crps=%.6f remaining_stage=%d remaining_known=%d",
+      stage_name,
+      trk$current_stage_completed,
+      trk$current_stage_total,
+      as.integer(candidate_idx),
+      as.character(seed),
+      as.numeric(crps_synth_mean),
+      stage_remaining,
+      run_remaining_known
+    )
+  )
+  ms_tracker_write_status(trk, state = "running")
+  invisible(NULL)
+}
+
+ms_tracker_eval_error <- function(trk, stage_name, stage_idx, candidate_idx, candidate_id, seed, err_msg) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+  ms_tracker_log(
+    trk,
+    sprintf(
+      "eval_error stage=%s candidate=%d id=%s seed=%s msg=%s",
+      stage_name, as.integer(candidate_idx), candidate_id, as.character(seed), err_msg
+    )
+  )
+  trk$last_result <- list(
+    stage = stage_name,
+    stage_idx = as.integer(stage_idx),
+    candidate_idx = as.integer(candidate_idx),
+    candidate_id = candidate_id,
+    seed = as.integer(seed),
+    error = err_msg
+  )
+  ms_tracker_write_status(trk, state = "error", error = err_msg)
+  invisible(NULL)
+}
+
+ms_tracker_stage_end <- function(trk, stage_name, stage_idx) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+  ms_tracker_log(
+    trk,
+    sprintf(
+      "stage_end stage=%s idx=%d completed=%d/%d",
+      stage_name, as.integer(stage_idx), trk$current_stage_completed, trk$current_stage_total
+    )
+  )
+  ms_tracker_write_status(trk, state = "running")
+  invisible(NULL)
+}
+
+ms_tracker_run_end <- function(trk) {
+  if (is.null(trk) || !isTRUE(trk$enabled)) return(invisible(NULL))
+  ms_tracker_log(trk, "run_complete")
+  ms_tracker_write_status(trk, state = "completed")
+  invisible(NULL)
+}
+
 ms_candidate_id <- function(candidate) {
   digest::digest(candidate)
 }

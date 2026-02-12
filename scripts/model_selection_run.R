@@ -111,6 +111,11 @@ dir.create(file.path(out_dir, "manifest"), recursive = TRUE, showWarnings = FALS
 
 dir.create(file.path(out_dir, "tables"), recursive = TRUE, showWarnings = FALSE)
 
+trk_cfg <- (cfg$model_selection %||% list())$tracking %||% list()
+progress_csv <- file.path(out_dir, trk_cfg$progress_csv %||% "tables/model_selection_progress.csv")
+status_json <- file.path(out_dir, trk_cfg$status_json %||% "tables/model_selection_status.json")
+progress_log <- file.path(out_dir, trk_cfg$log_file %||% "logs/model_selection_progress.log")
+
 cfg_effective_path <- file.path(out_dir, "manifest", "cfg_effective.yaml")
 ms_write_yaml(cfg, cfg_effective_path)
 
@@ -124,6 +129,11 @@ manifest <- list(
 )
 writeLines(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE),
            file.path(out_dir, "manifest", "run_manifest.json"))
+
+cat("Model selection output dir:", out_dir, "\n")
+cat("Tracking status:", status_json, "\n")
+cat("Tracking progress CSV:", progress_csv, "\n")
+cat("Tracking log:", progress_log, "\n")
 
 if (isTRUE(dry_run)) {
   cat("DRY RUN: config written to", cfg_effective_path, "\n")

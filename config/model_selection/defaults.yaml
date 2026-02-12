@@ -36,6 +36,12 @@ model_selection:
   forecast_mode: origin
   calcrps:
     enabled: false
+  tracking:
+    enabled: true
+    progress_csv: tables/model_selection_progress.csv
+    status_json: tables/model_selection_status.json
+    best_so_far_csv: tables/model_selection_best_so_far.csv
+    log_file: logs/model_selection_progress.log
   stages:
     - name: coarse
       seeds: [1]

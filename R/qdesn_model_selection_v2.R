@@ -447,7 +447,7 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
   )
 }
 
-ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx, prev_summary = NULL) {
+ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx, prev_summary = NULL, tracker = NULL) {
   stage_name <- stage_spec$name %||% paste0("stage", stage_idx)
   seeds <- stage_spec$seeds %||% c(1)
 
@@ -480,6 +480,17 @@ ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx,
   p_vec_id <- ms_p_vec_id(p_vec_stage)
   verify_window_id <- ms_verify_window_id(min(origin_base$targets), max(origin_base$targets), "lead1", origins_spec_id, weight_spec_id)
 
+  stage_total <- as.integer(length(candidates) * length(seeds))
+  ms_tracker_stage_start(
+    tracker,
+    stage_name = stage_name,
+    stage_idx = stage_idx,
+    stage_total = stage_total,
+    n_candidates = length(candidates),
+    n_seeds = length(seeds),
+    origins_policy = origins_policy
+  )
+
   rows <- list()
   cal_by_tau_rows <- list()
 
@@ -488,8 +499,29 @@ ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx,
     candidate_id <- ms_candidate_id(candidate)
 
     for (seed in seeds) {
+      ms_tracker_eval_start(
+        tracker,
+        stage_name = stage_name,
+        candidate_idx = cand_idx,
+        candidate_id = candidate_id,
+        seed = seed
+      )
       set.seed(as.integer(seed))
-      res <- ms_evaluate_candidate_v2(cfg, data_bundle, stage_spec, candidate, candidate_id, stage_name, origins_override = origin_base)
+      res <- tryCatch(
+        ms_evaluate_candidate_v2(cfg, data_bundle, stage_spec, candidate, candidate_id, stage_name, origins_override = origin_base),
+        error = function(e) {
+          ms_tracker_eval_error(
+            tracker,
+            stage_name = stage_name,
+            stage_idx = stage_idx,
+            candidate_idx = cand_idx,
+            candidate_id = candidate_id,
+            seed = seed,
+            err_msg = conditionMessage(e)
+          )
+          stop(e)
+        }
+      )
 
       rows[[length(rows) + 1L]] <- data.frame(
         stage = stage_name,
@@ -528,6 +560,18 @@ ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx,
         cal_by_tau$synth_n_samp <- res$synth_n_samp
         cal_by_tau_rows[[length(cal_by_tau_rows) + 1L]] <- cal_by_tau
       }
+
+      ms_tracker_eval_end(
+        tracker,
+        stage_name = stage_name,
+        stage_idx = stage_idx,
+        candidate_idx = cand_idx,
+        candidate_id = candidate_id,
+        seed = seed,
+        crps_synth_mean = res$crps_synth_mean,
+        calcrps_mean = res$calcrps_mean,
+        calcrps_max = res$calcrps_max
+      )
     }
   }
 
@@ -547,13 +591,15 @@ ms_run_stage_v2 <- function(cfg, data_bundle, stage_spec, candidates, stage_idx,
       .groups = "drop"
     ) %>%    dplyr::arrange(crps_synth_mean)
 
+  ms_tracker_stage_end(tracker, stage_name = stage_name, stage_idx = stage_idx)
   list(candidates = candidates_tbl, summary = summary_tbl, cal_by_tau = cal_by_tau_tbl)
 }
 
-ms_run_search_v2 <- function(cfg, data_bundle) {
+ms_run_search_v2 <- function(cfg, data_bundle, run_dir = NULL) {
   stages <- cfg$model_selection$stages %||% list()
   if (!length(stages)) stop("No stages specified for model selection.")
 
+  tracker <- ms_tracker_init(run_dir, cfg)
   all_candidates_rows <- list()
   all_cal_rows <- list()
   prev_candidates <- NULL
@@ -564,7 +610,7 @@ ms_run_search_v2 <- function(cfg, data_bundle) {
     candidates <- ms_build_stage_candidates(stage, prev_candidates, prev_summary)
     if (!length(candidates)) stop("No candidates available for stage: ", stage$name %||% i)
 
-    stage_res <- ms_run_stage_v2(cfg, data_bundle, stage, candidates, i, prev_summary)
+    stage_res <- ms_run_stage_v2(cfg, data_bundle, stage, candidates, i, prev_summary, tracker = tracker)
 
     all_candidates_rows[[length(all_candidates_rows) + 1L]] <- stage_res$candidates
     if (!is.null(stage_res$cal_by_tau)) all_cal_rows[[length(all_cal_rows) + 1L]] <- stage_res$cal_by_tau
@@ -587,7 +633,19 @@ ms_run_search_v2 <- function(cfg, data_bundle) {
       .groups = "drop"
     ) %>%    dplyr::arrange(crps_synth_mean) %>%    dplyr::mutate(rank = dplyr::row_number())
 
-  list(candidates = candidates_tbl, summary = summary_tbl, cal_by_tau = cal_by_tau_tbl)
+  ms_tracker_run_end(tracker)
+  tracker_files <- if (isTRUE(tracker$enabled)) {
+    list(
+      progress_csv = tracker$progress_csv_path,
+      status_json = tracker$status_json_path,
+      best_so_far_csv = tracker$best_csv_path,
+      progress_log = tracker$log_path
+    )
+  } else {
+    NULL
+  }
+
+  list(candidates = candidates_tbl, summary = summary_tbl, cal_by_tau = cal_by_tau_tbl, tracker_files = tracker_files)
 }
 
 ms_write_results_v2 <- function(res, run_dir, cfg) {
@@ -630,7 +688,7 @@ run_model_selection_v2 <- function(cfg, ds, run_dir) {
     ms_prepare_sim_bundle(cfg, ds)
   }
 
-  res <- ms_run_search_v2(cfg, data_bundle)
+  res <- ms_run_search_v2(cfg, data_bundle, run_dir = run_dir)
   out <- ms_write_results_v2(res, run_dir, cfg)
 
   best_row <- res$candidates %>% dplyr::filter(candidate_id == out$best_id) %>% dplyr::slice(1L)
