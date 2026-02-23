@@ -57,6 +57,8 @@ docs/QDESN_MODEL_OVERVIEW.md
 
 # Local helper scripts
 /dump_exdqlm_files_to_txt.sh
+# External companion repository clone (tracked separately)
+/theory/
 # LaTeX build artifacts
 slides/build/
 *.aux
