@@ -512,9 +512,6 @@ qdesn_rhs_prior_obj <- function(
 
       v <- as.numeric(state$Sigma_diag)
       if (length(v) != p0 + 2L) .stopf("rhs_prior$expected_prec: Sigma_diag wrong length.")
-      v_lam <- v[seq_len(p0)]
-      v_tau <- v[p0 + 1L]
-      v_c   <- v[p0 + 2L]
 
       # Prefer full covariance if available (Laplace: Sigma_eta = -H^{-1})
       Sigma_full <- state$Sigma_full
@@ -523,10 +520,12 @@ qdesn_rhs_prior_obj <- function(
         Sigma_full <- diag(v, p0 + 2L)
       }
 
-      # Delta-method for D_j = E[g_j] with g_j = .safe_exp(-2u_j-2u_tau) + .safe_exp(-u_kappa)
-      # Using your document: D_j ≈ g(mu) + 0.5 tr( Hess(g)(mu) * Sigma_sub )
-      var_kap <- max(Sigma_full[p0 + 2L, p0 + 2L], 0)
-      r_hat <- .safe_exp(-mu_c)
+      # Exact Gaussian moments under q(eta):
+      # 1/V_j = exp(-eta_c) + exp(-2*eta_tau - 2*eta_lambda_j)
+      # with eta ~ N(mu, Sigma). For any linear form a'eta:
+      # E[exp(a'eta)] = exp(a'mu + 0.5 * a'Sigma a).
+      var_c <- max(Sigma_full[p0 + 2L, p0 + 2L], 0)
+      e_inv_c2 <- .safe_exp(-mu_c + 0.5 * var_c)
 
       prec <- numeric(p0)
       for (j in seq_len(p0)) {
@@ -535,18 +534,14 @@ qdesn_rhs_prior_obj <- function(
           next
         }
 
-        t_hat <- .safe_exp(-2 * (mu_lam[j] + mu_tau))
-
-        # Var(u_j + u_tau) uses covariance
+        # Var(eta_lambda_j + eta_tau) from full covariance
         v_sum <- Sigma_full[j, j] + Sigma_full[p0 + 1L, p0 + 1L] + 2 * Sigma_full[j, p0 + 1L]
         v_sum <- max(v_sum, 0)
 
-        # 0.5 tr(H_g Sigma) where H_g block = [[4t,4t,0],[4t,4t,0],[0,0,r]]
-        # => 0.5*(4t*(Var(u_j+u_tau)) + r*Var(u_kappa)) *2? expanded:
-        # trace = 4t*(Sigma_jj + 2Sigma_jtau + Sigma_tautau) + r*Sigma_kk = 4t*v_sum + r*var_kap
-        delta <- 0.5 * (4 * t_hat * v_sum + r_hat * var_kap)
+        # E[exp(-2*eta_tau - 2*eta_lambda_j)] with Gaussian eta
+        e_inv_t2_l2 <- .safe_exp(-2 * (mu_lam[j] + mu_tau) + 2 * v_sum)
 
-        Dj <- (t_hat + r_hat) + delta
+        Dj <- e_inv_c2 + e_inv_t2_l2
         prec[j] <- Dj
       }
 
