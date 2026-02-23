@@ -19,13 +19,17 @@ Status: Core online implementation + tests added (offline path preserved)
   - `exal_online_init()`
   - `exal_online_step()`
   - `exal_online_predict_quantile()`
+  - `exal_online_run()`
+  - `exal_online_health_check()`
 - Added exports in `NAMESPACE`.
 - Added tests: `tests/testthat/test-online-vbld.R`.
 - Verified:
   - online test file passes,
   - full `tests/testthat` suite passes,
   - strict streaming stability checks pass,
-  - windowed online (`M=K=1`, large `W`) tracks batch very closely in deterministic test.
+  - windowed online (`M=K=1`, large `W`) tracks batch very closely in deterministic test,
+  - runner path is equivalent to manual stepping,
+  - health-check utility returns finite/SPD diagnostics.
 
 ## 1) Repo map (current batch VB-LD wiring)
 

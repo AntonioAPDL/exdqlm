@@ -725,3 +725,111 @@ exal_online_predict_quantile <- function(state, x_t) {
   if (length(x_t) != state$k) .stopf("online predict: x_t length mismatch (expected %d).", state$k)
   as.numeric(sum(x_t * state$qbeta$m))
 }
+
+#' Run online VB-LD updates over a block of new observations
+#'
+#' Applies `exal_online_step()` sequentially for each row in `X_new` and the
+#' matching element in `y_new`.
+#'
+#' @param state Online state from `exal_online_init()`.
+#' @param y_new Numeric vector of new responses.
+#' @param X_new Numeric matrix of new design rows.
+#' @param update_rhs Logical; forwarded to `exal_online_step()`.
+#' @param update_sigmagam Logical; forwarded to `exal_online_step()`.
+#' @param keep_trace Logical; if `TRUE`, return per-step diagnostics trace.
+#' @return If `keep_trace = FALSE`, updated state; otherwise a list with
+#'   `state` and `trace`.
+#' @export
+exal_online_run <- function(state, y_new, X_new,
+                            update_rhs = TRUE,
+                            update_sigmagam = TRUE,
+                            keep_trace = FALSE) {
+  .online_assert_state(state)
+  assert_matrix(X_new, "X_new")
+  if (!is.numeric(y_new) || length(y_new) != nrow(X_new)) {
+    .stopf("y_new length must match nrow(X_new).")
+  }
+  if (ncol(X_new) != state$k) {
+    .stopf("X_new must have %d columns to match state dimension.", state$k)
+  }
+
+  tr <- NULL
+  if (isTRUE(keep_trace)) {
+    tr <- data.frame(
+      t = integer(0),
+      barw = numeric(0),
+      barm = numeric(0),
+      rhs_refreshed = integer(0),
+      sigmagam_refreshed = integer(0),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  for (ii in seq_len(nrow(X_new))) {
+    rhs0 <- as.integer(state$refresh_counts$rhs %||% 0L)
+    sg0 <- as.integer(state$refresh_counts$sigmagam %||% 0L)
+
+    state <- exal_online_step(
+      state = state,
+      y_t = y_new[ii],
+      x_t = X_new[ii, , drop = TRUE],
+      update_rhs = update_rhs,
+      update_sigmagam = update_sigmagam
+    )
+
+    if (isTRUE(keep_trace)) {
+      rhs1 <- as.integer(state$refresh_counts$rhs %||% 0L)
+      sg1 <- as.integer(state$refresh_counts$sigmagam %||% 0L)
+      tr <- rbind(
+        tr,
+        data.frame(
+          t = as.integer(state$t_current),
+          barw = as.numeric(state$diagnostics$last_barw),
+          barm = as.numeric(state$diagnostics$last_barm),
+          rhs_refreshed = as.integer(rhs1 > rhs0),
+          sigmagam_refreshed = as.integer(sg1 > sg0),
+          stringsAsFactors = FALSE
+        )
+      )
+    }
+  }
+
+  if (isTRUE(keep_trace)) return(list(state = state, trace = tr))
+  state
+}
+
+#' Online VB-LD health check summary
+#'
+#' Returns a compact diagnostics summary for the current online state.
+#'
+#' @param state Online state from `exal_online_init()`.
+#' @return Named list with finite checks, SPD check, dimensions, and refresh counters.
+#' @export
+exal_online_health_check <- function(state) {
+  .online_assert_state(state)
+
+  P <- 0.5 * (state$P + t(state$P))
+  min_eig <- tryCatch(
+    min(eigen(P, symmetric = TRUE, only.values = TRUE)$values),
+    error = function(e) NA_real_
+  )
+
+  is_finite_beta <- all(is.finite(state$qbeta$m)) && all(is.finite(state$qbeta$V))
+  is_finite_sigmagam <- all(is.finite(c(state$qsiggam$eta_hat, state$qsiggam$ell_hat)))
+  barw_positive <- all(is.finite(state$history$barw)) && all(state$history$barw > 0)
+  p_spd <- is.finite(min_eig) && (min_eig > 0)
+
+  list(
+    t_current = as.integer(state$t_current),
+    n_history = as.integer(length(state$history$y)),
+    k = as.integer(state$k),
+    min_eig_P = as.numeric(min_eig),
+    P_spd = isTRUE(p_spd),
+    is_finite_beta = isTRUE(is_finite_beta),
+    is_finite_sigmagam = isTRUE(is_finite_sigmagam),
+    barw_positive = isTRUE(barw_positive),
+    rhs_refreshes = as.integer(state$refresh_counts$rhs %||% 0L),
+    sigmagam_refreshes = as.integer(state$refresh_counts$sigmagam %||% 0L),
+    window_backfits = as.integer(state$refresh_counts$window_backfit %||% 0L)
+  )
+}

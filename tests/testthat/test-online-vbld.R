@@ -149,3 +149,65 @@ test_that("windowed online refresh tracks full-batch solution closely", {
   l2_beta <- sqrt(sum((st$qbeta$m - fit_full$qbeta$m)^2))
   expect_lt(l2_beta, 0.1)
 })
+
+test_that("online runner matches manual stepping and returns trace", {
+  dat <- make_online_fixture(seed = 123L)
+  T0 <- 20L
+  st0 <- make_online_init(
+    dat$y, dat$X, T0 = T0,
+    control = list(M = 3L, K = 4L, W = 0L, L_loc = 2L)
+  )
+
+  st_manual <- st0
+  for (tt in seq.int(T0 + 1L, nrow(dat$X))) {
+    st_manual <- exal_online_step(
+      state = st_manual,
+      y_t = dat$y[tt],
+      x_t = dat$X[tt, ],
+      update_rhs = TRUE,
+      update_sigmagam = TRUE
+    )
+  }
+
+  out <- exal_online_run(
+    state = st0,
+    y_new = dat$y[seq.int(T0 + 1L, nrow(dat$X))],
+    X_new = dat$X[seq.int(T0 + 1L, nrow(dat$X)), , drop = FALSE],
+    update_rhs = TRUE,
+    update_sigmagam = TRUE,
+    keep_trace = TRUE
+  )
+
+  expect_true(is.list(out))
+  expect_true(all(c("state", "trace") %in% names(out)))
+  expect_equal(nrow(out$trace), nrow(dat$X) - T0)
+  expect_equal(out$state$t_current, st_manual$t_current)
+  expect_equal(out$state$qbeta$m, st_manual$qbeta$m, tolerance = 1e-10)
+  expect_equal(out$state$P, st_manual$P, tolerance = 1e-10)
+})
+
+test_that("online health check reports valid diagnostics", {
+  dat <- make_online_fixture(seed = 101L)
+  T0 <- 21L
+  st <- make_online_init(
+    dat$y, dat$X, T0 = T0,
+    control = list(M = 2L, K = 3L, W = 4L, L_loc = 2L)
+  )
+
+  st <- exal_online_run(
+    state = st,
+    y_new = dat$y[seq.int(T0 + 1L, nrow(dat$X))],
+    X_new = dat$X[seq.int(T0 + 1L, nrow(dat$X)), , drop = FALSE],
+    keep_trace = FALSE
+  )
+
+  hc <- exal_online_health_check(st)
+  expect_true(is.list(hc))
+  expect_true(isTRUE(hc$is_finite_beta))
+  expect_true(isTRUE(hc$is_finite_sigmagam))
+  expect_true(isTRUE(hc$barw_positive))
+  expect_true(isTRUE(hc$P_spd))
+  expect_true(is.finite(hc$min_eig_P))
+  expect_equal(hc$t_current, st$t_current)
+  expect_equal(hc$n_history, length(st$history$y))
+})
