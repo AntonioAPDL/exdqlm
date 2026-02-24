@@ -297,6 +297,23 @@ vb_prior_beta_rhs <- list(
   init_log_c2     = 0.0
 )
 
+vb_online_cfg <- list(
+  enabled = FALSE,
+  strict = FALSE,
+  M = 10L,
+  K = 40L,
+  W = 100L,
+  L_loc = 2L,
+  window_passes = 1L,
+  maxit_sigmagam = 500L,
+  jitter = 1e-10,
+  warm_start_n = NULL,
+  warm_start_frac = 0.7,
+  keep_trace = FALSE,
+  update_rhs = TRUE,
+  update_sigmagam = TRUE
+)
+
 readout_scale <- FALSE
 readout_include_input <- FALSE
 readout_reservoir_lags <- 0L
@@ -542,6 +559,10 @@ if (!is.null(cfg$vb)) {
         }
       }
     }
+
+    if (!is.null(cfg$vb$online) && is.list(cfg$vb$online)) {
+      vb_online_cfg <- modifyList(vb_online_cfg, cfg$vb$online)
+    }
   }
 
   vb_args_base$rhs_trace <- isTRUE(rhs_trace_on)
@@ -563,6 +584,25 @@ if (!is.null(cfg$vb)) {
   vb_args_base$rhs_max_tau_updates <- rhs_max_tau_updates
   vb_args_base$rhs_force_tau_after_warmup <- rhs_force_tau_after_warmup
   vb_args_base$rhs_recompute_elbo_after_tau_update <- rhs_recompute_elbo_after_tau_update
+
+  vb_online_cfg$enabled <- isTRUE(vb_online_cfg$enabled)
+  vb_online_cfg$strict <- isTRUE(vb_online_cfg$strict)
+  vb_online_cfg$M <- max(0L, as.integer(vb_online_cfg$M %||% 10L))
+  vb_online_cfg$K <- max(0L, as.integer(vb_online_cfg$K %||% 40L))
+  vb_online_cfg$W <- max(0L, as.integer(vb_online_cfg$W %||% 100L))
+  vb_online_cfg$L_loc <- max(1L, as.integer(vb_online_cfg$L_loc %||% 2L))
+  vb_online_cfg$window_passes <- max(0L, as.integer(vb_online_cfg$window_passes %||% 1L))
+  vb_online_cfg$maxit_sigmagam <- max(50L, as.integer(vb_online_cfg$maxit_sigmagam %||% 500L))
+  vb_online_cfg$jitter <- as.numeric(vb_online_cfg$jitter %||% 1e-10)
+  if (!is.finite(vb_online_cfg$jitter) || vb_online_cfg$jitter <= 0) vb_online_cfg$jitter <- 1e-10
+  vb_online_cfg$warm_start_n <- if (is.null(vb_online_cfg$warm_start_n)) NULL else as.integer(vb_online_cfg$warm_start_n)
+  vb_online_cfg$warm_start_frac <- as.numeric(vb_online_cfg$warm_start_frac %||% 0.7)
+  if (!is.finite(vb_online_cfg$warm_start_frac)) vb_online_cfg$warm_start_frac <- 0.7
+  vb_online_cfg$keep_trace <- isTRUE(vb_online_cfg$keep_trace)
+  vb_online_cfg$update_rhs <- if (is.null(vb_online_cfg$update_rhs)) TRUE else isTRUE(vb_online_cfg$update_rhs)
+  vb_online_cfg$update_sigmagam <- if (is.null(vb_online_cfg$update_sigmagam)) TRUE else isTRUE(vb_online_cfg$update_sigmagam)
+  if (vb_online_cfg$K < vb_online_cfg$M) vb_online_cfg$K <- vb_online_cfg$M
+  if (isTRUE(vb_online_cfg$strict)) vb_online_cfg$W <- 0L
 
 
   if (!is.null(cfg$sampling)) {
@@ -804,6 +844,17 @@ log_msg(
   if (is.null(vb_prior_beta_tau2)) "NULL"
   else format(vb_prior_beta_tau2, digits = 4, trim = TRUE),
   vb_prior_beta_rhs$tau0, vb_prior_beta_rhs$nu, vb_prior_beta_rhs$s2
+)
+log_msg(
+  "Effective online VB → enabled=%s | strict=%s | M=%d | K=%d | W=%d | L_loc=%d | warm_start_n=%s | warm_start_frac=%.3f",
+  as.character(isTRUE(vb_online_cfg$enabled)),
+  as.character(isTRUE(vb_online_cfg$strict)),
+  as.integer(vb_online_cfg$M),
+  as.integer(vb_online_cfg$K),
+  as.integer(vb_online_cfg$W),
+  as.integer(vb_online_cfg$L_loc),
+  if (is.null(vb_online_cfg$warm_start_n)) "NULL" else as.character(as.integer(vb_online_cfg$warm_start_n)[1L]),
+  as.numeric(vb_online_cfg$warm_start_frac)
 )
 
 log_msg("Effective sampling → nd_draws=%d | chunk=%d", nd_draws, chunk_sz)
@@ -2267,10 +2318,17 @@ fit_and_forecast_p <- function(p0) {
       fit_args$log_prior_gamma <- function(g) 0
     }
 
-    fit_exal <- timed(
-      sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
-      do.call(exal_ldvb_fit, fit_args)
-    )
+    fit_exal <- if (isTRUE(vb_online_cfg$enabled)) {
+      timed(
+        sprintf("fit_exAL_online_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
+        do.call(exal_online_fit, c(fit_args, list(control = vb_online_cfg)))
+      )
+    } else {
+      timed(
+        sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
+        do.call(exal_ldvb_fit, fit_args)
+      )
+    }
     if (isTRUE(readout_scale) && !is.null(readout_scale_info)) {
       if (is.null(fit_exal$misc)) fit_exal$misc <- list()
       fit_exal$misc$readout_scale <- readout_scale_info

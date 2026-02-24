@@ -134,6 +134,28 @@ vb:
         init_log_lambda: 0.0
         init_log_tau: null
         init_log_c2: 0.0
+  online:
+    enabled: false              # keep offline behavior by default
+    strict: false               # windowed fallback if online is enabled
+    M: 10                       # RHS refresh period (post-iteration2 online fallback)
+    K: 40                       # (sigma,gamma) refresh period (kept >= M)
+    W: 100                      # rolling window size (0 => strict streaming)
+    L_loc: 2                    # local CAVI alternations per new datum
+    window_passes: 1            # local backfit passes during window refresh
+    jitter: 1.0e-10             # SPD solve jitter
+    baseline:
+      out_dir: results/online_vbld/stage0_baseline
+      seed: 20260223
+      n: 72
+      k: 5
+      t0: 48
+      p0: 0.5
+      ridge_tau2: 5
+      max_iter: 35
+      tol: 1.0e-4
+      tol_par: 1.0e-4
+      check_repro: true
+      write_trace: true
 
 # --------------------------------------------------------------------
 # Readout feature composition
