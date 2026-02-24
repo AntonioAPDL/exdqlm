@@ -181,9 +181,19 @@ test_that("online runner matches manual stepping and returns trace", {
   expect_true(is.list(out))
   expect_true(all(c("state", "trace") %in% names(out)))
   expect_equal(nrow(out$trace), nrow(dat$X) - T0)
+  expect_true(all(c(
+    "y_t", "yhat_pre", "check_loss_pre", "covered_pre",
+    "solver_method", "solver_fallback", "jitter_eps"
+  ) %in% names(out$trace)))
   expect_equal(out$state$t_current, st_manual$t_current)
   expect_equal(out$state$qbeta$m, st_manual$qbeta$m, tolerance = 1e-10)
   expect_equal(out$state$P, st_manual$P, tolerance = 1e-10)
+
+  td <- exal_online_trace_diagnostics(out$trace, p0 = 0.5, rolling_window = 5L)
+  expect_true(is.list(td))
+  expect_equal(td$n, nrow(out$trace))
+  expect_true(is.finite(td$coverage_mean))
+  expect_true(is.finite(td$check_loss_mean))
 })
 
 test_that("online health check reports valid diagnostics", {
@@ -194,20 +204,136 @@ test_that("online health check reports valid diagnostics", {
     control = list(M = 2L, K = 3L, W = 4L, L_loc = 2L)
   )
 
-  st <- exal_online_run(
+  out <- exal_online_run(
     state = st,
     y_new = dat$y[seq.int(T0 + 1L, nrow(dat$X))],
     X_new = dat$X[seq.int(T0 + 1L, nrow(dat$X)), , drop = FALSE],
-    keep_trace = FALSE
+    keep_trace = TRUE
   )
 
-  hc <- exal_online_health_check(st)
+  st <- out$state
+  hc <- exal_online_health_check(st, trace = out$trace, p0 = 0.5, rolling_window = 5L)
   expect_true(is.list(hc))
   expect_true(isTRUE(hc$is_finite_beta))
   expect_true(isTRUE(hc$is_finite_sigmagam))
   expect_true(isTRUE(hc$barw_positive))
   expect_true(isTRUE(hc$P_spd))
   expect_true(is.finite(hc$min_eig_P))
+  expect_true(is.finite(hc$solve_calls))
+  expect_true(is.finite(hc$solve_fallbacks))
+  expect_true(hc$solve_calls >= hc$solve_fallbacks)
+  expect_true(is.list(hc$trace_diag))
+  expect_true(is.finite(hc$trace_diag$coverage_mean))
+  expect_true(is.finite(hc$trace_diag$check_loss_mean))
   expect_equal(hc$t_current, st$t_current)
   expect_equal(hc$n_history, length(st$history$y))
+})
+
+test_that("exal_online_fit preserves exal_vb interface in batch mode", {
+  dat <- make_online_fixture(n = 30L, k = 4L, seed = 211L)
+  p0 <- 0.5
+  bounds <- get_gamma_bounds(p0)
+  beta_obj <- beta_prior("ridge", ridge = list(tau2 = 5))
+
+  fit <- exal_online_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = p0,
+    gamma_bounds = bounds,
+    control = list(enabled = FALSE),
+    vb_control = list(max_iter = 25L, tol = 1e-4, tol_par = 1e-4, verbose = FALSE),
+    beta_prior_obj = beta_obj
+  )
+
+  expect_s3_class(fit, "exal_vb")
+  expect_equal(length(fit$qbeta$m), ncol(dat$X))
+  expect_true(is.list(fit$misc$online))
+  expect_false(isTRUE(fit$misc$online$enabled))
+})
+
+test_that("exal_online_fit returns exal_vb-compatible object in online mode", {
+  dat <- make_online_fixture(n = 34L, k = 4L, seed = 212L)
+  p0 <- 0.5
+  bounds <- get_gamma_bounds(p0)
+  beta_obj <- beta_prior("ridge", ridge = list(tau2 = 5))
+
+  fit <- exal_online_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = p0,
+    gamma_bounds = bounds,
+    control = list(
+      enabled = TRUE,
+      strict = FALSE,
+      M = 2L,
+      K = 3L,
+      W = 8L,
+      L_loc = 2L,
+      window_passes = 1L,
+      warm_start_n = 20L,
+      keep_trace = TRUE
+    ),
+    vb_control = list(max_iter = 30L, tol = 1e-4, tol_par = 1e-4, verbose = FALSE),
+    log_prior_gamma = function(g) 0,
+    beta_prior_obj = beta_obj
+  )
+
+  expect_s3_class(fit, "exal_vb")
+  expect_true(isTRUE(fit$misc$online$enabled))
+  expect_true(is.list(fit$misc$online$health))
+  expect_true(is.data.frame(fit$misc$online$trace))
+  expect_equal(nrow(fit$misc$online$trace), nrow(dat$X) - fit$misc$online$t0)
+
+  dr <- exal_vb_posterior_draws(fit, nd = 50L)
+  expect_equal(dim(dr$beta), c(50L, ncol(dat$X)))
+  expect_length(dr$sigma, 50L)
+  expect_length(dr$gamma, 50L)
+})
+
+test_that("exal_online_fit normalizes control defaults and enforces K >= M", {
+  dat <- make_online_fixture(n = 32L, k = 4L, seed = 333L)
+  p0 <- 0.5
+  bounds <- get_gamma_bounds(p0)
+  beta_obj <- beta_prior("ridge", ridge = list(tau2 = 5))
+
+  fit_default <- exal_online_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = p0,
+    gamma_bounds = bounds,
+    control = list(enabled = FALSE),
+    vb_control = list(max_iter = 20L, tol = 1e-4, tol_par = 1e-4, verbose = FALSE),
+    beta_prior_obj = beta_obj
+  )
+
+  ctrl_default <- fit_default$misc$online$control
+  expect_false(isTRUE(ctrl_default$enabled))
+  expect_false(isTRUE(ctrl_default$strict))
+  expect_equal(as.integer(ctrl_default$M), 10L)
+  expect_equal(as.integer(ctrl_default$K), 40L)
+  expect_equal(as.integer(ctrl_default$W), 100L)
+  expect_equal(as.integer(ctrl_default$L_loc), 2L)
+
+  fit_online <- exal_online_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = p0,
+    gamma_bounds = bounds,
+    control = list(
+      enabled = TRUE,
+      strict = FALSE,
+      M = 6L,
+      K = 2L,
+      W = 12L,
+      L_loc = 2L,
+      warm_start_n = 20L
+    ),
+    vb_control = list(max_iter = 20L, tol = 1e-4, tol_par = 1e-4, verbose = FALSE),
+    beta_prior_obj = beta_obj
+  )
+
+  ctrl_online <- fit_online$misc$online$control
+  expect_true(isTRUE(ctrl_online$enabled))
+  expect_equal(as.integer(ctrl_online$M), 6L)
+  expect_equal(as.integer(ctrl_online$K), 6L)
 })

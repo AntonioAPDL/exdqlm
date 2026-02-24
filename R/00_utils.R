@@ -56,9 +56,9 @@ is_diag_matrix <- function(M, tol = 0) {
     L <- tryCatch(chol(Ai), error = function(e) e)
     if (!inherits(L, "error")) {
       Ainv <- chol2inv(L)
-      if (is.null(b)) return(list(inv = Ainv, chol = L))
+      if (is.null(b)) return(list(inv = Ainv, chol = L, method = "chol", jitter_eps = eps))
       x <- as.numeric(Ainv %*% b)
-      return(list(inv = Ainv, chol = L, x = x))
+      return(list(inv = Ainv, chol = L, x = x, method = "chol", jitter_eps = eps))
     }
     last_err <- L
   }
@@ -67,9 +67,16 @@ is_diag_matrix <- function(M, tol = 0) {
   eg <- eigen(A, symmetric = TRUE)
   vals <- pmax(eg$values, 1e-10)
   Ainv <- eg$vectors %*% diag(1 / vals, p) %*% t(eg$vectors)
-  if (is.null(b)) return(list(inv = Ainv, chol = NULL))
+  if (is.null(b)) return(list(inv = Ainv, chol = NULL, method = "eigen_fallback", jitter_eps = NA_real_))
   x <- as.numeric(Ainv %*% b)
-  list(inv = Ainv, chol = NULL, x = x, warning = last_err$message %||% "chol failed")
+  list(
+    inv = Ainv,
+    chol = NULL,
+    x = x,
+    warning = last_err$message %||% "chol failed",
+    method = "eigen_fallback",
+    jitter_eps = NA_real_
+  )
 }
 
 # ------------------------------------------------------------------------------
@@ -191,4 +198,3 @@ exal_get_ABC <- function(p0, gamma) {
 
   d
 }
-

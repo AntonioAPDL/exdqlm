@@ -13,6 +13,30 @@
   as.numeric(x)[1L]
 }
 
+.online_nonneg_scalar <- function(x, default = NA_real_, cap = Inf) {
+  v <- suppressWarnings(as.numeric(x)[1L])
+  if (!is.finite(v) || v < 0) return(as.numeric(default))
+  cap <- suppressWarnings(as.numeric(cap)[1L])
+  if (is.finite(cap) && cap > 0 && v > cap) return(as.numeric(default))
+  as.numeric(v)
+}
+
+.online_pinball_scalar <- function(y, mu, p0) {
+  u <- as.numeric(y) - as.numeric(mu)
+  as.numeric(u * (p0 - as.numeric(u < 0)))
+}
+
+.online_rolling_mean <- function(x, window) {
+  x <- as.numeric(x)
+  n <- length(x)
+  if (!n) return(numeric(0))
+  w <- max(1L, as.integer(window)[1L])
+  cs <- c(0, cumsum(x))
+  i <- seq_len(n)
+  l <- pmax(1L, i - w + 1L)
+  (cs[i + 1L] - cs[l]) / as.numeric(i - l + 1L)
+}
+
 .online_log_sigmoid <- function(x) {
   ifelse(x >= 0, -log1p(exp(-x)), x - log1p(exp(x)))
 }
@@ -127,31 +151,6 @@
   as.list(out)
 }
 
-.online_tn_moments <- function(mu, tau2) {
-  tau2 <- pmax(as.numeric(tau2), 1e-12)
-  tau <- sqrt(tau2)
-  mu <- as.numeric(mu)
-
-  alpha <- mu / tau
-  logPhi <- pnorm(alpha, log.p = TRUE)
-  logphi <- dnorm(alpha, log = TRUE)
-
-  lambda <- exp(pmin(logphi - logPhi, 700))
-  idx <- (alpha < -8)
-  if (any(idx)) {
-    a <- -alpha[idx]
-    lambda[idx] <- a + 1 / a + 2 / (a^3)
-  }
-
-  Es <- mu + tau * lambda
-  Es <- pmax(Es, 1e-12)
-
-  Es2 <- tau2 + mu^2 + tau * mu * lambda
-  Es2 <- pmax(Es2, Es^2 + 1e-12)
-
-  list(Es = Es, Es2 = Es2)
-}
-
 .online_local_update_one <- function(y_t, x_t, qbeta, xis,
                                      n_alt = 2L,
                                      s_init = sqrt(2 / pi),
@@ -162,9 +161,6 @@
   xb <- as.numeric(sum(x_t * qbeta$m))
   qx <- as.numeric(t(x_t) %*% (qbeta$V %*% x_t))
 
-  psi <- as.numeric(xis$xi_A2 + 2 * xis$xi_siginv)
-  psi <- pmax(psi, 1e-12)
-
   s_m <- pmax(as.numeric(s_init)[1L], 1e-12)
   s_m2 <- pmax(as.numeric(s2_init)[1L], s_m^2 + 1e-12)
 
@@ -173,30 +169,35 @@
   v_m <- 1
   v_inv <- 1
   for (ii in seq_len(n_alt)) {
-    chi <- as.numeric(
-      xis$xi1 * ((y_t - xb)^2 + qx) -
-        2 * xis$xi_lambda * (y_t * s_m) +
-        xis$xi_lambda2 * s_m2 +
-        2 * xis$xi_lambda * (xb * s_m)
+    qv_up <- .exal_local_qv_update(
+      y = y_t,
+      xb = xb,
+      q_i = qx,
+      qs_m = s_m,
+      qs_m2 = s_m2,
+      xis = xis
     )
-    chi <- pmax(chi, 1e-12)
+    v_m <- as.numeric(qv_up$m)
+    v_inv <- as.numeric(qv_up$m_inv)
 
-    m_gig <- .gig_half_moments(chi = chi, psi = psi)
-    v_m <- as.numeric(m_gig$m)
-    v_inv <- as.numeric(m_gig$m_inv)
-
-    tau2 <- 1 / (1 + as.numeric(xis$xi_lambda2) * v_inv)
-    tau2 <- pmax(tau2, 1e-12)
-
-    mu_s <- tau2 * (as.numeric(xis$xi_lambda) * (v_inv * (y_t - xb)) - as.numeric(xis$zeta_lam))
-    moms <- .online_tn_moments(mu_s, tau2)
-
-    s_m <- as.numeric(moms$Es)
-    s_m2 <- as.numeric(moms$Es2)
+    qs_up <- .exal_local_qs_update(
+      y = y_t,
+      xb = xb,
+      qv_m_inv = v_inv,
+      xis = xis
+    )
+    s_m <- as.numeric(qs_up$m)
+    s_m2 <- as.numeric(qs_up$m2)
   }
 
-  barw <- as.numeric(xis$xi1) * v_inv
-  barm <- as.numeric(y_t * xis$xi1 * v_inv - xis$xi_lambda * s_m * v_inv - xis$xi_A)
+  eff <- .exal_effective_barw_barm(
+    y = y_t,
+    xis = xis,
+    qv_m_inv = v_inv,
+    qs_m = s_m
+  )
+  barw <- as.numeric(eff$barw)
+  barm <- as.numeric(eff$barm)
 
   if (!is.finite(barw) || barw <= 0) .stopf("online local update produced invalid barw.")
   if (!is.finite(barm)) .stopf("online local update produced invalid barm.")
@@ -225,6 +226,32 @@
   state$qbeta$m <- as.numeric(sol$x)
   state$qbeta$V <- as.matrix(sol$inv)
   state$chol_P <- sol$chol %||% NULL
+
+  diag <- state$diagnostics %||% list()
+  diag$solve_calls <- as.integer(diag$solve_calls %||% 0L) + 1L
+  diag$solve_fallbacks <- as.integer(diag$solve_fallbacks %||% 0L)
+  if (identical(sol$method %||% NA_character_, "eigen_fallback")) {
+    diag$solve_fallbacks <- as.integer(diag$solve_fallbacks) + 1L
+  }
+  eps_cap <- 1e50
+  eps_raw <- suppressWarnings(as.numeric(sol$jitter_eps %||% NA_real_))
+  eps <- .online_nonneg_scalar(eps_raw, default = NA_real_, cap = eps_cap)
+
+  diag$n_jitter <- as.integer(diag$n_jitter %||% 0L)
+  if (is.finite(eps) && eps > 0) {
+    diag$n_jitter <- as.integer(diag$n_jitter) + 1L
+  }
+
+  diag$jitter_out_of_range <- as.integer(diag$jitter_out_of_range %||% 0L)
+  if (is.finite(eps_raw) && (eps_raw < 0 || eps_raw > eps_cap)) {
+    diag$jitter_out_of_range <- as.integer(diag$jitter_out_of_range) + 1L
+  }
+
+  diag$max_jitter_eps <- .online_nonneg_scalar(diag$max_jitter_eps %||% 0, default = 0, cap = eps_cap)
+  if (is.finite(eps)) diag$max_jitter_eps <- max(diag$max_jitter_eps, eps)
+  diag$last_solver_method <- as.character(sol$method %||% NA_character_)
+  diag$last_jitter_eps <- eps
+  state$diagnostics <- diag
 
   state
 }
@@ -534,16 +561,20 @@ exal_online_init <- function(y, X, p0, gamma_bounds,
   s_m <- pmax(s_m, 1e-12)
   s_m2 <- pmax(s_m2, s_m^2 + 1e-12)
 
-  barw <- as.numeric(xis$xi1) * v_inv
-  barm <- as.numeric(y * xis$xi1 * v_inv - xis$xi_lambda * s_m * v_inv - xis$xi_A)
-  barw <- pmax(barw, 1e-16)
-
-  Xw <- X * sqrt(barw)
-  S <- crossprod(Xw)
-  g <- as.numeric(crossprod(X, barm))
-
-  P <- 0.5 * (S + t(S)) + diag(prec_diag, k)
-  h <- as.numeric(g)
+  nat <- .exal_beta_natural_stats(
+    X = X,
+    y = y,
+    xis = xis,
+    qv_m_inv = v_inv,
+    qs_m = s_m,
+    prec_diag = prec_diag
+  )
+  barw <- as.numeric(nat$barw)
+  barm <- as.numeric(nat$barm)
+  S <- as.matrix(nat$S)
+  g <- as.numeric(nat$g)
+  P <- as.matrix(nat$P)
+  h <- as.numeric(nat$h)
 
   y_scale <- stats::mad(y, constant = 1.4826)
   y_scale <- if (is.finite(y_scale) && y_scale > 0) y_scale else stats::sd(y)
@@ -602,7 +633,14 @@ exal_online_init <- function(y, X, p0, gamma_bounds,
       last_sigmagam_refresh_ok = NA,
       last_sigmagam_n = NA_integer_,
       last_barw = tail(barw, 1L),
-      last_barm = tail(barm, 1L)
+      last_barm = tail(barm, 1L),
+      solve_calls = 0L,
+      solve_fallbacks = 0L,
+      n_jitter = 0L,
+      max_jitter_eps = 0,
+      jitter_out_of_range = 0L,
+      last_solver_method = NA_character_,
+      last_jitter_eps = NA_real_
     )
   )
 
@@ -736,7 +774,8 @@ exal_online_predict_quantile <- function(state, x_t) {
 #' @param X_new Numeric matrix of new design rows.
 #' @param update_rhs Logical; forwarded to `exal_online_step()`.
 #' @param update_sigmagam Logical; forwarded to `exal_online_step()`.
-#' @param keep_trace Logical; if `TRUE`, return per-step diagnostics trace.
+#' @param keep_trace Logical; if `TRUE`, return per-step diagnostics trace
+#'   including pre-update predictive diagnostics.
 #' @return If `keep_trace = FALSE`, updated state; otherwise a list with
 #'   `state` and `trace`.
 #' @export
@@ -757,8 +796,15 @@ exal_online_run <- function(state, y_new, X_new,
   if (isTRUE(keep_trace)) {
     tr <- data.frame(
       t = integer(0),
+      y_t = numeric(0),
+      yhat_pre = numeric(0),
+      check_loss_pre = numeric(0),
+      covered_pre = integer(0),
       barw = numeric(0),
       barm = numeric(0),
+      solver_method = character(0),
+      solver_fallback = integer(0),
+      jitter_eps = numeric(0),
       rhs_refreshed = integer(0),
       sigmagam_refreshed = integer(0),
       stringsAsFactors = FALSE
@@ -766,13 +812,19 @@ exal_online_run <- function(state, y_new, X_new,
   }
 
   for (ii in seq_len(nrow(X_new))) {
+    x_i <- X_new[ii, , drop = TRUE]
+    y_i <- as.numeric(y_new[ii])
+    yhat_pre <- exal_online_predict_quantile(state, x_i)
+    check_loss_pre <- .online_pinball_scalar(y = y_i, mu = yhat_pre, p0 = state$p0)
+    covered_pre <- as.integer(y_i <= yhat_pre)
+
     rhs0 <- as.integer(state$refresh_counts$rhs %||% 0L)
     sg0 <- as.integer(state$refresh_counts$sigmagam %||% 0L)
 
     state <- exal_online_step(
       state = state,
-      y_t = y_new[ii],
-      x_t = X_new[ii, , drop = TRUE],
+      y_t = y_i,
+      x_t = x_i,
       update_rhs = update_rhs,
       update_sigmagam = update_sigmagam
     )
@@ -784,8 +836,17 @@ exal_online_run <- function(state, y_new, X_new,
         tr,
         data.frame(
           t = as.integer(state$t_current),
+          y_t = as.numeric(y_i),
+          yhat_pre = as.numeric(yhat_pre),
+          check_loss_pre = as.numeric(check_loss_pre),
+          covered_pre = as.integer(covered_pre),
           barw = as.numeric(state$diagnostics$last_barw),
           barm = as.numeric(state$diagnostics$last_barm),
+          solver_method = as.character(state$diagnostics$last_solver_method %||% NA_character_),
+          solver_fallback = as.integer(
+            identical(state$diagnostics$last_solver_method %||% NA_character_, "eigen_fallback")
+          ),
+          jitter_eps = as.numeric(state$diagnostics$last_jitter_eps %||% NA_real_),
           rhs_refreshed = as.integer(rhs1 > rhs0),
           sigmagam_refreshed = as.integer(sg1 > sg0),
           stringsAsFactors = FALSE
@@ -798,14 +859,81 @@ exal_online_run <- function(state, y_new, X_new,
   state
 }
 
+#' Summarize online predictive diagnostics from a trace
+#'
+#' Computes empirical coverage and check-loss summaries, including rolling-window
+#' diagnostics, from a trace produced by `exal_online_run(keep_trace = TRUE)`.
+#'
+#' @param trace Data frame trace from `exal_online_run()`.
+#' @param p0 Target quantile level in (0,1).
+#' @param rolling_window Rolling window size for diagnostic summaries.
+#' @param target_coverage Optional target coverage. If `NULL`, uses `p0`.
+#' @return Named list with aggregate and rolling diagnostic summaries.
+#' @export
+exal_online_trace_diagnostics <- function(trace, p0, rolling_window = 50L, target_coverage = NULL) {
+  if (!is.data.frame(trace)) .stopf("trace must be a data.frame from exal_online_run().")
+  req <- c("check_loss_pre", "covered_pre")
+  miss <- setdiff(req, names(trace))
+  if (length(miss)) {
+    .stopf("trace is missing required columns: %s", paste(miss, collapse = ", "))
+  }
+  assert_scalar_numeric(p0, "p0")
+  if (!(p0 > 0 && p0 < 1)) .stopf("p0 must be in (0,1).")
+
+  cl <- as.numeric(trace$check_loss_pre)
+  cv <- as.numeric(trace$covered_pre)
+  ok <- is.finite(cl) & is.finite(cv)
+  cl <- cl[ok]
+  cv <- cv[ok]
+  n <- length(cl)
+  if (!n) {
+    return(list(
+      n = 0L,
+      coverage_mean = NA_real_,
+      coverage_target = as.numeric(target_coverage %||% p0),
+      coverage_gap = NA_real_,
+      check_loss_mean = NA_real_,
+      rolling_window = as.integer(max(1L, as.integer(rolling_window)[1L])),
+      rolling_coverage_current = NA_real_,
+      rolling_check_loss_current = NA_real_,
+      rolling_coverage_last = numeric(0),
+      rolling_check_loss_last = numeric(0)
+    ))
+  }
+
+  cv <- pmax(pmin(cv, 1), 0)
+  target <- as.numeric(target_coverage %||% p0)[1L]
+  rw <- max(1L, as.integer(rolling_window)[1L])
+
+  roll_cov <- .online_rolling_mean(cv, rw)
+  roll_cl <- .online_rolling_mean(cl, rw)
+  tail_n <- min(5L, n)
+
+  list(
+    n = as.integer(n),
+    coverage_mean = as.numeric(mean(cv)),
+    coverage_target = target,
+    coverage_gap = as.numeric(mean(cv) - target),
+    check_loss_mean = as.numeric(mean(cl)),
+    rolling_window = as.integer(rw),
+    rolling_coverage_current = as.numeric(tail(roll_cov, 1L)),
+    rolling_check_loss_current = as.numeric(tail(roll_cl, 1L)),
+    rolling_coverage_last = as.numeric(tail(roll_cov, tail_n)),
+    rolling_check_loss_last = as.numeric(tail(roll_cl, tail_n))
+  )
+}
+
 #' Online VB-LD health check summary
 #'
 #' Returns a compact diagnostics summary for the current online state.
 #'
 #' @param state Online state from `exal_online_init()`.
+#' @param trace Optional trace from `exal_online_run(keep_trace=TRUE)`.
+#' @param p0 Optional quantile level for trace diagnostics (defaults to `state$p0`).
+#' @param rolling_window Rolling window for trace diagnostics.
 #' @return Named list with finite checks, SPD check, dimensions, and refresh counters.
 #' @export
-exal_online_health_check <- function(state) {
+exal_online_health_check <- function(state, trace = NULL, p0 = state$p0, rolling_window = 50L) {
   .online_assert_state(state)
 
   P <- 0.5 * (state$P + t(state$P))
@@ -818,8 +946,16 @@ exal_online_health_check <- function(state) {
   is_finite_sigmagam <- all(is.finite(c(state$qsiggam$eta_hat, state$qsiggam$ell_hat)))
   barw_positive <- all(is.finite(state$history$barw)) && all(state$history$barw > 0)
   p_spd <- is.finite(min_eig) && (min_eig > 0)
+  eps_cap <- 1e50
 
-  list(
+  solve_calls <- as.integer(state$diagnostics$solve_calls %||% 0L)
+  solve_fallbacks <- as.integer(state$diagnostics$solve_fallbacks %||% 0L)
+  n_jitter <- as.integer(state$diagnostics$n_jitter %||% 0L)
+  jitter_out_of_range <- as.integer(state$diagnostics$jitter_out_of_range %||% 0L)
+  max_jitter_eps <- .online_nonneg_scalar(state$diagnostics$max_jitter_eps %||% NA_real_, default = NA_real_, cap = eps_cap)
+  last_jitter_eps <- .online_nonneg_scalar(state$diagnostics$last_jitter_eps %||% NA_real_, default = NA_real_, cap = eps_cap)
+
+  out <- list(
     t_current = as.integer(state$t_current),
     n_history = as.integer(length(state$history$y)),
     k = as.integer(state$k),
@@ -830,6 +966,332 @@ exal_online_health_check <- function(state) {
     barw_positive = isTRUE(barw_positive),
     rhs_refreshes = as.integer(state$refresh_counts$rhs %||% 0L),
     sigmagam_refreshes = as.integer(state$refresh_counts$sigmagam %||% 0L),
-    window_backfits = as.integer(state$refresh_counts$window_backfit %||% 0L)
+    window_backfits = as.integer(state$refresh_counts$window_backfit %||% 0L),
+    solve_calls = solve_calls,
+    solve_fallbacks = solve_fallbacks,
+    solve_fallback_rate = as.numeric(
+      solve_fallbacks / pmax(1, solve_calls)
+    ),
+    n_jitter = n_jitter,
+    jitter_out_of_range = jitter_out_of_range,
+    max_jitter_eps = max_jitter_eps,
+    last_solver_method = as.character(state$diagnostics$last_solver_method %||% NA_character_),
+    last_jitter_eps = last_jitter_eps
   )
+
+  if (!is.null(trace)) {
+    out$trace_diag <- exal_online_trace_diagnostics(
+      trace = trace,
+      p0 = p0,
+      rolling_window = rolling_window
+    )
+  }
+
+  out
+}
+
+.online_pick_warm_start_n <- function(n, k, warm_start_n = NULL, warm_start_frac = 0.7) {
+  n <- as.integer(n)[1L]
+  k <- as.integer(k)[1L]
+  if (!is.finite(n) || n < 2L) return(NA_integer_)
+
+  min_t0 <- max(8L, k + 2L)
+  if (n <= (min_t0 + 1L)) return(NA_integer_)
+
+  t0 <- NA_integer_
+  if (!is.null(warm_start_n) && length(warm_start_n)) {
+    t0_raw <- suppressWarnings(as.integer(warm_start_n)[1L])
+    if (is.finite(t0_raw)) t0 <- t0_raw
+  }
+  if (!is.finite(t0)) {
+    frac <- suppressWarnings(as.numeric(warm_start_frac)[1L])
+    if (!is.finite(frac) || frac <= 0 || frac >= 1) frac <- 0.7
+    t0 <- as.integer(floor(frac * n))
+  }
+
+  t0 <- max(min_t0, min(t0, n - 1L))
+  as.integer(t0)
+}
+
+.online_state_to_exal_vb <- function(state, p0, gamma_bounds, fit_init = NULL,
+                                     trace = NULL, run_time = NA_real_,
+                                     t0 = NA_integer_, control = list(),
+                                     health = NULL) {
+  .online_assert_state(state)
+  n <- as.integer(length(state$history$y))
+  k <- as.integer(state$k)
+
+  qv <- list(
+    chi = rep(NA_real_, n),
+    psi = rep(NA_real_, n),
+    E_v = as.numeric(state$history$v_m),
+    E_inv_v = as.numeric(state$history$v_inv),
+    m = as.numeric(state$history$v_m),
+    m_inv = as.numeric(state$history$v_inv)
+  )
+  qs <- list(
+    mu = rep(NA_real_, n),
+    tau2 = rep(NA_real_, n),
+    E_s = as.numeric(state$history$s_m),
+    E_s2 = as.numeric(state$history$s_m2),
+    m = as.numeric(state$history$s_m),
+    m2 = as.numeric(state$history$s_m2)
+  )
+  qsiggam <- list(
+    eta_hat = as.numeric(state$qsiggam$eta_hat),
+    ell_hat = as.numeric(state$qsiggam$ell_hat),
+    Sigma = as.matrix(state$qsiggam$Sigma),
+    gamma_mean = as.numeric(state$qsiggam$gamma_mean),
+    sigma_mean = as.numeric(state$qsiggam$sigma_mean),
+    xi = state$xis
+  )
+
+  misc <- fit_init$misc %||% list()
+  misc$p0 <- as.numeric(p0)[1L]
+  misc$bounds <- c(L = as.numeric(gamma_bounds[1L]), U = as.numeric(gamma_bounds[2L]))
+  misc$n <- n
+  misc$p <- k
+
+  online_mode <- if ((as.integer(control$W %||% 0L) > 0L) && !isTRUE(control$strict %||% FALSE)) {
+    "windowed"
+  } else {
+    "strict"
+  }
+  online_misc <- list(
+    enabled = TRUE,
+    mode = online_mode,
+    t0 = as.integer(t0),
+    t_stream = as.integer(max(0L, n - as.integer(t0))),
+    control = control,
+    refresh_counts = state$refresh_counts,
+    diagnostics = state$diagnostics
+  )
+  if (!is.null(health)) online_misc$health <- health
+  if (!is.null(trace)) online_misc$trace <- trace
+  misc$online <- online_misc
+
+  structure(list(
+    qbeta = list(m = as.numeric(state$qbeta$m), V = as.matrix(state$qbeta$V)),
+    qv = qv,
+    qs = qs,
+    qsiggam = qsiggam,
+    converged = TRUE,
+    iter = n,
+    run.time = as.numeric(run_time),
+    beta_prior = list(
+      type = state$beta_prior_obj$type,
+      hypers = state$beta_prior_obj$hypers,
+      state = state$beta_state
+    ),
+    misc = misc
+  ), class = "exal_vb")
+}
+
+#' Fit exAL with optional online VB-LD updates (single quantile)
+#'
+#' This wrapper preserves the batch interface from `exal_ldvb_fit()` and adds an
+#' optional online path controlled by `control$enabled`. When online mode is
+#' enabled, the function:
+#' 1) runs batch LDVB on an initialization prefix,
+#' 2) streams the remaining observations through `exal_online_run()`,
+#' 3) returns an `exal_vb`-compatible object so downstream offline code remains unchanged.
+#'
+#' @param y Numeric response vector.
+#' @param X Numeric design matrix.
+#' @param p0 Quantile level in (0,1).
+#' @param gamma_bounds Numeric length-2 bounds for gamma.
+#' @param control Online controls list:
+#'   `enabled`, `strict`, `M`, `K`, `W`, `L_loc`, `window_passes`,
+#'   `maxit_sigmagam`, `jitter`, `warm_start_n`, `warm_start_frac`,
+#'   `keep_trace`, `update_rhs`, `update_sigmagam`.
+#' @param vb_control,max_iter,tol,tol_par,n_samp_xi,verbose,init,prior_gamma,
+#'   prior_gamma_mu0,prior_gamma_s20,log_prior_gamma,prior_sigma,a_sigma,b_sigma,
+#'   beta_prior_obj,... Same as `exal_ldvb_fit()`.
+#' @return `exal_vb` object. If online mode is enabled, diagnostics are stored
+#'   in `fit$misc$online`.
+#' @export
+exal_online_fit <- function(y, X, p0, gamma_bounds,
+                            control = list(),
+                            vb_control = NULL,
+                            max_iter = NULL, tol = NULL, tol_par = NULL,
+                            n_samp_xi = NULL, verbose = NULL,
+                            init = list(),
+                            prior_gamma = NULL,
+                            prior_gamma_mu0 = NULL,
+                            prior_gamma_s20 = NULL,
+                            log_prior_gamma = NULL,
+                            prior_sigma = NULL,
+                            a_sigma = NULL,
+                            b_sigma = NULL,
+                            beta_prior_obj = NULL,
+                            ...) {
+  assert_matrix(X, "X")
+  if (!is.numeric(y) || length(y) != nrow(X)) .stopf("y length must match nrow(X).")
+  assert_scalar_numeric(p0, "p0")
+  gamma_bounds <- as.numeric(gamma_bounds)
+  if (length(gamma_bounds) != 2L || !all(is.finite(gamma_bounds)) || !(gamma_bounds[1L] < gamma_bounds[2L])) {
+    .stopf("gamma_bounds must be finite length-2 with lower < upper.")
+  }
+  if (!is.list(control)) .stopf("control must be a list.")
+
+  dots <- list(...)
+  fit_args <- list(
+    y = y,
+    X = X,
+    p0 = p0,
+    gamma_bounds = gamma_bounds,
+    vb_control = vb_control,
+    max_iter = max_iter,
+    tol = tol,
+    tol_par = tol_par,
+    n_samp_xi = n_samp_xi,
+    verbose = verbose,
+    init = init,
+    prior_gamma = prior_gamma,
+    prior_gamma_mu0 = prior_gamma_mu0,
+    prior_gamma_s20 = prior_gamma_s20,
+    log_prior_gamma = log_prior_gamma,
+    prior_sigma = prior_sigma,
+    a_sigma = a_sigma,
+    b_sigma = b_sigma,
+    beta_prior_obj = beta_prior_obj
+  )
+  if (length(dots)) {
+    for (nm in names(dots)) fit_args[[nm]] <- dots[[nm]]
+  }
+
+  ctrl <- list(
+    enabled = isTRUE(control$enabled),
+    strict = if (is.null(control$strict)) FALSE else isTRUE(control$strict),
+    M = .online_as_int(control$M, 10L),
+    K = .online_as_int(control$K, 40L),
+    W = .online_as_int(control$W, 100L),
+    L_loc = .online_as_int(control$L_loc, 2L),
+    window_passes = .online_as_int(control$window_passes, 1L),
+    maxit_sigmagam = .online_as_int(control$maxit_sigmagam, 500L),
+    jitter = .online_as_num(control$jitter, 1e-10),
+    warm_start_n = control$warm_start_n %||% NULL,
+    warm_start_frac = .online_as_num(control$warm_start_frac, 0.7),
+    keep_trace = isTRUE(control$keep_trace),
+    update_rhs = if (is.null(control$update_rhs)) TRUE else isTRUE(control$update_rhs),
+    update_sigmagam = if (is.null(control$update_sigmagam)) TRUE else isTRUE(control$update_sigmagam)
+  )
+  if (ctrl$strict) ctrl$W <- 0L
+  if (!is.finite(ctrl$jitter) || ctrl$jitter <= 0) ctrl$jitter <- 1e-10
+  ctrl$M <- max(0L, as.integer(ctrl$M))
+  ctrl$K <- max(0L, as.integer(ctrl$K))
+  ctrl$W <- max(0L, as.integer(ctrl$W))
+  ctrl$L_loc <- max(1L, as.integer(ctrl$L_loc))
+  ctrl$window_passes <- max(0L, as.integer(ctrl$window_passes))
+  if (ctrl$K < ctrl$M) ctrl$K <- ctrl$M
+
+  if (!isTRUE(ctrl$enabled)) {
+    fit <- do.call(exal_ldvb_fit, fit_args)
+    if (is.null(fit$misc)) fit$misc <- list()
+    fit$misc$online <- list(
+      enabled = FALSE,
+      reason = "disabled",
+      control = ctrl
+    )
+    return(fit)
+  }
+
+  n <- as.integer(nrow(X))
+  k <- as.integer(ncol(X))
+  t0 <- .online_pick_warm_start_n(
+    n = n,
+    k = k,
+    warm_start_n = ctrl$warm_start_n,
+    warm_start_frac = ctrl$warm_start_frac
+  )
+  if (!is.finite(t0)) {
+    fit <- do.call(exal_ldvb_fit, fit_args)
+    if (is.null(fit$misc)) fit$misc <- list()
+    fit$misc$online <- list(
+      enabled = FALSE,
+      reason = "insufficient_n_for_streaming",
+      control = ctrl
+    )
+    return(fit)
+  }
+
+  fit_init_args <- fit_args
+  fit_init_args$y <- y[seq_len(t0)]
+  fit_init_args$X <- X[seq_len(t0), , drop = FALSE]
+
+  prior_gamma_use <- prior_gamma %||% list()
+  if (!is.list(prior_gamma_use)) prior_gamma_use <- list()
+  if (!is.null(prior_gamma_mu0)) prior_gamma_use$mu0 <- as.numeric(prior_gamma_mu0)[1L]
+  if (!is.null(prior_gamma_s20)) prior_gamma_use$s20 <- as.numeric(prior_gamma_s20)[1L]
+  if (!is.null(log_prior_gamma) && is.function(log_prior_gamma)) {
+    prior_gamma_use$log_prior <- log_prior_gamma
+  }
+
+  prior_sigma_use <- prior_sigma %||% list()
+  if (!is.list(prior_sigma_use)) prior_sigma_use <- list()
+  if (!is.null(a_sigma)) prior_sigma_use$a <- as.numeric(a_sigma)[1L]
+  if (!is.null(b_sigma)) prior_sigma_use$b <- as.numeric(b_sigma)[1L]
+  if (is.null(prior_sigma_use$a)) prior_sigma_use$a <- 1
+  if (is.null(prior_sigma_use$b)) prior_sigma_use$b <- 1
+
+  t_start <- proc.time()[3]
+  fit_init <- do.call(exal_ldvb_fit, fit_init_args)
+  st <- exal_online_init(
+    y = y[seq_len(t0)],
+    X = X[seq_len(t0), , drop = FALSE],
+    p0 = p0,
+    gamma_bounds = gamma_bounds,
+    control = list(
+      M = ctrl$M,
+      K = ctrl$K,
+      W = ctrl$W,
+      L_loc = ctrl$L_loc,
+      window_passes = ctrl$window_passes,
+      maxit_sigmagam = ctrl$maxit_sigmagam,
+      jitter = ctrl$jitter
+    ),
+    batch_fit = fit_init,
+    prior_gamma = prior_gamma_use,
+    prior_sigma = prior_sigma_use,
+    beta_prior_obj = beta_prior_obj
+  )
+
+  idx_new <- if (t0 < n) seq.int(t0 + 1L, n) else integer(0)
+  trace <- NULL
+  if (length(idx_new)) {
+    run_out <- exal_online_run(
+      state = st,
+      y_new = y[idx_new],
+      X_new = X[idx_new, , drop = FALSE],
+      update_rhs = ctrl$update_rhs,
+      update_sigmagam = ctrl$update_sigmagam,
+      keep_trace = ctrl$keep_trace
+    )
+    if (isTRUE(ctrl$keep_trace)) {
+      st <- run_out$state
+      trace <- run_out$trace
+    } else {
+      st <- run_out
+    }
+  }
+  run_time <- as.numeric(proc.time()[3] - t_start)
+
+  health <- exal_online_health_check(
+    state = st,
+    trace = trace,
+    p0 = p0,
+    rolling_window = max(10L, min(100L, n - t0))
+  )
+  fit <- .online_state_to_exal_vb(
+    state = st,
+    p0 = p0,
+    gamma_bounds = gamma_bounds,
+    fit_init = fit_init,
+    trace = trace,
+    run_time = run_time,
+    t0 = t0,
+    control = ctrl,
+    health = health
+  )
+  fit
 }

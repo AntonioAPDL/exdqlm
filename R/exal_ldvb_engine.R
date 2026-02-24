@@ -541,21 +541,22 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   sol_chol <- NULL
   update_qbeta <- function() {
-    W <<- as.numeric(xis$xi1 * qv$m_inv)
-    if (any(!is.finite(W)) || any(W <= 0)) .stopf("W (xi1*E[1/v]) invalid.")
-
     prec_diag <<- beta_prior_obj$expected_prec(beta_state, p)
     prec_diag <<- as.numeric(prec_diag)
     if (length(prec_diag) != p) .stopf("beta prior expected_prec must return length p=%d.", p)
     if (any(!is.finite(prec_diag)) || any(prec_diag <= 0)) .stopf("beta prior expected_prec must be finite and > 0.")
 
-    Xw <- X * sqrt(W)
-    Prec <- crossprod(Xw) + diag(prec_diag, p)
-    Prec <- 0.5 * (Prec + t(Prec))
-
-    rhs <- as.numeric(crossprod(X, W * y) -
-                        crossprod(X, (xis$xi_lambda * (qv$m_inv * qs$m))) -
-                        xis$xi_A * colSums(X))
+    nat <- .exal_beta_natural_stats(
+      X = X,
+      y = y,
+      xis = xis,
+      qv_m_inv = qv$m_inv,
+      qs_m = qs$m,
+      prec_diag = prec_diag
+    )
+    W <<- as.numeric(nat$barw)
+    Prec <- as.matrix(nat$P)
+    rhs <- as.numeric(nat$h)
 
     sol <- .solve_sympd(Prec, rhs)
     qbeta$V <<- sol$inv
@@ -673,39 +674,6 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   as.list(out)
   }
 
-  # Truncated normal moments for s ~ N(mu, tau2) truncated to (0, inf)
-  tn_moments <- function(mu, tau2) {
-    tau2 <- pmax(as.numeric(tau2), 1e-12)
-    tau  <- sqrt(tau2)
-    mu   <- as.numeric(mu)
-
-    alpha  <- mu / tau
-    logPhi <- pnorm(alpha, log.p = TRUE)
-    logphi <- dnorm(alpha, log = TRUE)
-
-    # Mills ratio: lambda = phi/Phi
-    # Use asymptotic approximation when alpha is very negative to avoid overflow/0-division.
-    lambda <- exp(pmin(logphi - logPhi, 700))   # cap exponent to avoid Inf
-
-    idx <- (alpha < -8)
-    if (any(idx)) {
-      a <- -alpha[idx]
-      # lambda ≈ a + 1/a + 2/a^3 (good enough)
-      lambda[idx] <- a + 1/a + 2/(a^3)
-    }
-
-    Es  <- mu + tau * lambda
-    # Truncation implies Es > 0; enforce numerical floor
-    Es  <- pmax(Es, 1e-12)
-
-    Es2 <- tau2 + mu^2 + tau * mu * lambda
-    # enforce Es2 >= Es^2
-    Es2 <- pmax(Es2, Es^2 + 1e-12)
-
-    list(Es = Es, Es2 = Es2)
-  }
-
-
   # log-kernel for q(eta, ell) up to additive constants (same structure as static core)
   log_qsiggam <- function(par) {
     eta <- as.numeric(par[1]); ell <- as.numeric(par[2])
@@ -804,39 +772,33 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     t_i <- y - xb
     q_i <- rowSums((X %*% qbeta$V) * X)
 
-    psi <- as.numeric(xis$xi_A2 + 2 * xis$xi_siginv)
-    psi <- pmax(psi, 1e-12)
-
-    chi <- as.numeric(
-      xis$xi1 * (t_i^2 + q_i) -
-        2 * xis$xi_lambda * (y * qs$m) +
-        xis$xi_lambda2 * qs$m2 +
-        2 * xis$xi_lambda * (xb * qs$m)
+    qv_up <- .exal_local_qv_update(
+      y = y,
+      xb = xb,
+      q_i = q_i,
+      qs_m = qs$m,
+      qs_m2 = qs$m2,
+      xis = xis
     )
-    chi <- pmax(chi, 1e-12)
-
-    m_gig <- .gig_half_moments(chi = chi, psi = psi)
-    qv$m     <- as.numeric(m_gig$m)
-    qv$m_inv <- as.numeric(m_gig$m_inv)
-    z_gig    <- as.numeric(m_gig$z)   # cache for ELBO (entropy normalizer)
-    if (any(!is.finite(qv$m)) || any(qv$m <= 0)) .stopf("E[v] invalid in q(v) update.")
-    if (any(!is.finite(qv$m_inv)) || any(qv$m_inv <= 0)) .stopf("E[1/v] invalid in q(v) update.")
+    chi <- as.numeric(qv_up$chi)
+    psi <- as.numeric(qv_up$psi)
+    qv$m <- as.numeric(qv_up$m)
+    qv$m_inv <- as.numeric(qv_up$m_inv)
+    z_gig <- as.numeric(qv_up$z)   # cache for ELBO (entropy normalizer)
 
     # ------------------------------------------------------------------------
     # (2.2) UPDATE q(s): TN(mu_s, tau2) on (0, inf)
     # ------------------------------------------------------------------------
-    tau2 <- 1 / (1 + xis$xi_lambda2 * qv$m_inv)
-    tau2 <- pmax(tau2, 1e-12)
-
-    mu_s <- tau2 * (xis$xi_lambda * (qv$m_inv * (y - xb)) - xis$zeta_lam)
-    moms <- tn_moments(mu_s, tau2)
-
-    # qs$m  <- as.numeric(moms$Es)
-    # qs$m2 <- as.numeric(moms$Es2)
-    # if (any(!is.finite(qs$m))  || any(qs$m <= 0))  .stopf("E[s] invalid in q(s) update.")
-    # if (any(!is.finite(qs$m2)) || any(qs$m2 <= 0)) .stopf("E[s^2] invalid in q(s) update.")
-    qs$m  <- as.numeric(moms$Es)
-    qs$m2 <- as.numeric(moms$Es2)
+    qs_up <- .exal_local_qs_update(
+      y = y,
+      xb = xb,
+      qv_m_inv = qv$m_inv,
+      xis = xis
+    )
+    tau2 <- as.numeric(qs_up$tau2)
+    mu_s <- as.numeric(qs_up$mu)
+    qs$m <- as.numeric(qs_up$m)
+    qs$m2 <- as.numeric(qs_up$m2)
 
     bad_s <- which(!is.finite(qs$m) | qs$m <= 0)
     bad_s2 <- which(!is.finite(qs$m2) | qs$m2 <= 0)
