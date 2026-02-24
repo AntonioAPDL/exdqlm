@@ -21,15 +21,32 @@ Status: Core online implementation + tests added (offline path preserved)
   - `exal_online_predict_quantile()`
   - `exal_online_run()`
   - `exal_online_health_check()`
+  - `exal_online_trace_diagnostics()`
+  - `exal_online_fit()` (returns `exal_vb`-compatible object with `misc$online` metadata)
 - Added exports in `NAMESPACE`.
 - Added tests: `tests/testthat/test-online-vbld.R`.
+- Added shared internal helper modules:
+  - `R/exal_online_step.R` (shared local `q(v_t), q(s_t)` updates)
+  - `R/exal_online_state.R` (shared `barw/barm` and natural-stat accumulation helpers)
+- Added Stage 1/2 equivalence tests:
+  - `tests/testthat/test-online-vbld-batch-equivalence.R`
+- Added Stage-0 benchmark module + runner:
+  - `R/exal_online_stage0.R`
+  - `scripts/online_vbld_stage0_baseline.R`
+  - `tests/testthat/test-online-stage0.R`
 - Verified:
   - online test file passes,
   - full `tests/testthat` suite passes,
   - strict streaming stability checks pass,
   - windowed online (`M=K=1`, large `W`) tracks batch very closely in deterministic test,
   - runner path is equivalent to manual stepping,
-  - health-check utility returns finite/SPD diagnostics.
+  - health-check utility returns finite/SPD diagnostics,
+  - per-step trace includes pre-update check-loss/coverage,
+  - solver diagnostics include jitter/fallback counters,
+  - Stage-0 baseline can read defaults from `config/defaults.yaml` (`vb.online`).
+  - pipeline gating implemented in `scripts/pipeline_sim_main.R` and `scripts/pipeline_real_main.R` via `vb.online.enabled` (default remains offline).
+  - shared local and natural-stat helpers are now used by both batch and online paths,
+  - Stage 1/2 equivalence tests pass.
 
 ## 1) Repo map (current batch VB-LD wiring)
 
@@ -85,8 +102,8 @@ Status: Core online implementation + tests added (offline path preserved)
 | `\bar m_t = E[(y_t-\sigma C|\gamma| s_t - A v_t)/(\sigma B v_t)]` and factored split | `rhs = X^T(Wy) - X^T(xi_lambda*qv_inv*qs_m) - xi_A*colSums(X)` (`R/exal_ldvb_engine.R:556`) | Consistent; algebra matches exact split under MF independence |
 | Local `q(v_t)` with `\bar\psi_t,\bar\chi_t` | `psi = xi_A2 + 2*xi_siginv`; `chi = ...` (`R/exal_ldvb_engine.R:807`, `R/exal_ldvb_engine.R:810`) | Consistent with batch derivation using current moments |
 | Local `q(s_t)` with `\bar a_t,\bar b_t` | `tau2 = 1/(1 + xi_lambda2*qv_inv)`, `mu_s = tau2*(xi_lambda*qv_inv*(y-xb) - zeta_lam)` (`R/exal_ldvb_engine.R:828`, `R/exal_ldvb_engine.R:831`) | Consistent with theory definitions (`eq:vb-abar`, `eq:vb-bbar`) |
-| `P_t,h_t` natural recursion | Implied by batch `Prec = X'WX + diag(prec_diag)` and `rhs = X'\bar m` (`R/exal_ldvb_engine.R:553`, `R/exal_ldvb_engine.R:556`) | Consistent derivation; not yet implemented incrementally |
-| Diagonal adjustment from `\bar D_t^{-1}-\bar D_{t-1}^{-1}` | `prec_diag <- beta_prior_obj$expected_prec(...)` (`R/exal_ldvb_engine.R:547`) | Consistent in principle; online delta form not implemented yet |
+| `P_t,h_t` natural recursion | Implied by batch `Prec = X'WX + diag(prec_diag)` and `rhs = X'\bar m` (`R/exal_ldvb_engine.R:553`, `R/exal_ldvb_engine.R:556`) | Consistent derivation; implemented in online state updates |
+| Diagonal adjustment from `\bar D_t^{-1}-\bar D_{t-1}^{-1}` | `prec_diag <- beta_prior_obj$expected_prec(...)` (`R/exal_ldvb_engine.R:547`) | Consistent; implemented on scheduled RHS refresh in online updater |
 | Window correction of `P,h` by replacing old/new per-datum messages | Equivalent to correcting sufficient stats `S=\sum \bar w x x^T`, `g=\sum \bar m x` | Mathematically consistent |
 
 ## 2.2 Key notational mismatches to keep explicit
@@ -236,14 +253,36 @@ Proposed test files:
 
 ## Stage 0: Baseline snapshot
 
-- Implement:
-  - lock deterministic baseline run for current batch VB-LD on one quantile.
-- Test:
-  - reproducible run hash + key metrics persisted.
+- Implemented:
+  - deterministic baseline utility in `R/exal_online_stage0.R`:
+    - `exal_online_stage0_benchmark()`
+    - `exal_online_stage0_write_artifacts()`
+  - CLI runner in `scripts/online_vbld_stage0_baseline.R`.
+  - tests in `tests/testthat/test-online-stage0.R`.
+- Test status:
+  - reproducible hash check implemented and passing (`hashes_equal = TRUE`).
+  - key metrics persisted to RDS/JSON + trace CSV artifacts.
 - Files:
-  - `scripts/` helper script + optional `tests/testthat` fixture helper.
-- Stop rule:
-  - baseline reproduces exactly with fixed seed.
+  - `R/exal_online_stage0.R`
+  - `scripts/online_vbld_stage0_baseline.R`
+  - `tests/testthat/test-online-stage0.R`
+- Stop rule status:
+  - satisfied (same-seed repeat run produces identical hash).
+
+Reference command (validated):
+
+```bash
+Rscript scripts/online_vbld_stage0_baseline.R \
+  --out_dir results/online_vbld/stage0_baseline \
+  --seed 20260223 --n 72 --k 5 --t0 48 --p0 0.5 \
+  --check_repro true --write_trace true
+```
+
+Latest reference outputs:
+- `results/online_vbld/stage0_baseline/stage0_baseline_summary.rds`
+- `results/online_vbld/stage0_baseline/stage0_baseline_summary.json`
+- `results/online_vbld/stage0_baseline/stage0_run1_trace.csv`
+- `results/online_vbld/stage0_baseline/stage0_run2_trace.csv`
 
 ## Stage 1: Factorize per-time local updates
 
@@ -339,16 +378,168 @@ Proposed test files:
 
 ## 9) Health-check checklist (runtime)
 
-- [ ] `P_t` SPD at every step.
-- [ ] no NaN/Inf in `mu_beta`, `Sigma_beta`, `xis`, local moments.
-- [ ] bounded jitter usage frequency.
-- [ ] rolling check-loss and coverage within reasonable range.
-- [ ] periodic snapshot compare: online state vs batch recompute on same prefix.
+- [x] `P_t` SPD at every step.
+- [x] no NaN/Inf in `mu_beta`, `Sigma_beta`, `xis`, local moments.
+- [x] bounded jitter usage frequency.
+- [x] rolling check-loss and coverage within reasonable range.
+- [x] periodic snapshot compare: online state vs batch recompute on same prefix.
 
 ## 10) Execution order for the next implementation pass
 
-- [ ] Complete Stage 0 and commit baseline artifacts.
-- [ ] Complete Stage 1 and Stage 2 with no batch-regression.
-- [ ] Implement Stage 3 strict mode and stabilize.
-- [ ] Add Stage 4 and Stage 5 scheduled refreshes.
-- [ ] Add Stage 6 windowed mode and finalize tests/diagnostics.
+- [x] Complete Stage 0 and commit baseline artifacts.
+- [x] Complete Stage 1 and Stage 2 with no batch-regression.
+- [x] Implement Stage 3 strict mode and stabilize.
+- [x] Add Stage 4 and Stage 5 scheduled refreshes.
+- [x] Add Stage 6 windowed mode and finalize tests/diagnostics.
+
+## 11) Next practical steps (recommended)
+
+1. Config and pipeline wiring:
+   - [x] add `vb.online` keys in `config/defaults.yaml`.
+   - [x] wire online mode in `scripts/pipeline_sim_main.R` and `scripts/pipeline_real_main.R` behind explicit `enabled` flag (default off).
+2. Diagnostics expansion:
+   - [x] add rolling check-loss and empirical coverage utilities.
+   - [x] track jitter/fallback counts from `.solve_sympd` usage in online updates.
+3. Refactor quality pass:
+   - optionally extract shared local/global update pieces from `R/exal_ldvb_engine.R` to reduce duplication and keep offline/online formulas synchronized.
+
+## 12) Iteration Plan (2026-02-23) and execution status
+
+Goal for this iteration:
+- harden case-study evaluation outputs and recommendation policy before broader rollout.
+
+Planned actions (from latest planning round):
+1. Rebaseline with fixed smoke/jitter/gate logic on a short sanity run.
+2. Re-run full official case study with fixed logic.
+3. Validate recommendation integrity and acceptance-gate behavior.
+4. Keep a clean policy: online remains optional unless it clears acceptance criteria.
+
+Implemented code changes for this iteration:
+- Smoke pass criteria fixed for single-quantile runs in `scripts/online_vbld_case_study_smoke_tuning.R`:
+  - no longer requires `scores_summary.csv` when synthesis is intentionally disabled,
+  - accepts expected smoke artifacts (`models/forecast_objects.rds`, `models/rhs_run_summary.csv`).
+- Jitter diagnostics hardened:
+  - `R/exal_online_vbld.R`: sanitized jitter tracking (`n_jitter`, `jitter_out_of_range`, bounded/capped jitter summaries),
+  - `scripts/online_vbld_case_study_smoke_tuning.R`: sanitized and capped jitter fields in run tables.
+- Acceptance gate added in recommendation logic:
+  - if best online candidate is worse than offline on both check-loss and coverage-error thresholds, set recommendation to `offline`.
+
+Configuration updates:
+- `config/online_vbld/case_study_dlm_constV_smallW.yaml` now includes:
+  - `selection.jitter_eps_cap`,
+  - `selection.max_jitter_eps_for_stability`,
+  - `selection.acceptance.enabled`,
+  - `selection.acceptance.max_check_loss_increase`,
+  - `selection.acceptance.max_coverage_error_increase`.
+
+Execution checklist:
+- [x] Code hardening for smoke criteria.
+- [x] Code hardening for jitter diagnostics.
+- [x] Acceptance gate implementation.
+- [x] Online test suite passes after changes.
+- [x] Short sanity rerun complete with updated outputs.
+- [x] Full official rerun complete with updated outputs.
+- [x] Final recommendation decision recorded from refreshed run.
+
+Runtime execution (detached, no active monitoring):
+- Session: `online_vbld_iter_20260223-065909`
+- Session meta: `logs/online_vbld_jobs/online_vbld_iter_20260223-065909.meta`
+- Session log: `logs/online_vbld_jobs/online_vbld_iter_20260223-065909.log`
+- Execution order:
+  1) sanity config `config/online_vbld/case_study_dlm_constV_smallW_sanity.yaml`
+  2) full config `config/online_vbld/case_study_dlm_constV_smallW.yaml`
+- Output root: `results/online_vbld/case_study`
+
+Completed outputs and decisions:
+- Sanity run directory:
+  - `results/online_vbld/case_study/dlm_constV_smallW/runs/online_vbld_case_study__20260223-065916`
+  - Recommendation outcome: online default candidate accepted (`C4`), gate not triggered.
+- Full run directory:
+  - `results/online_vbld/case_study/dlm_constV_smallW/runs/online_vbld_case_study__20260223-071038`
+  - Recommendation table: `results/online_vbld/case_study/dlm_constV_smallW/runs/online_vbld_case_study__20260223-071038/tables/recommendation.csv`
+  - Final policy outcome: `recommended_default=offline`, `safer_fallback=C2`, `recommended_online_candidate=C5`, `gate_triggered=TRUE`.
+  - Gate reason (full run): online candidate worsened both check-loss and coverage-error versus offline beyond thresholds.
+
+Operational policy lock (current):
+- Keep `vb.online.enabled=false` by default in general workflows.
+- If online mode is explicitly enabled, use `C5_W100` as first fallback schedule:
+  - `M=10`, `K=40`, `W=100`, `L_loc=2`.
+- Maintain acceptance gate in case-study selection and promote online defaults only after it clears offline baseline.
+
+## 13) Next iteration plan (post-closeout)
+
+Immediate goals:
+1. Diagnose why online candidates collapse to nearly identical predictive metrics on this dataset.
+2. Verify whether the bottleneck is schedule sensitivity, refresh cadence, or local-update depth.
+3. Keep offline baseline frozen while testing narrow online variants.
+
+Execution plan:
+- [x] Add targeted config for a compact follow-up sweep around `C2`/`C5` with controlled `L_loc` and `W`.
+- [x] Run one short sanity diagnostic sweep and one medium-budget sweep with deterministic seeds.
+- [x] Record per-step diagnostics (`check_loss_pre`, coverage, jitter) and compare trajectory vs offline.
+- [x] Decide whether to keep `C2` as fallback or adjust fallback defaults from empirical evidence.
+- [x] Update `docs/ONLINE_VBLD_CASE_STUDY_SMOKE_TUNING.md` with the follow-up decision note.
+
+Detached run launched:
+- Session: `online_vbld_iter2_20260223-234101`
+- Meta: `logs/online_vbld_jobs/online_vbld_iter2_20260223-234101.meta`
+- Log: `logs/online_vbld_jobs/online_vbld_iter2_20260223-234101.log`
+- Sequence:
+  1) `config/online_vbld/case_study_dlm_constV_smallW_iteration2_sanity.yaml`
+  2) `config/online_vbld/case_study_dlm_constV_smallW_iteration2.yaml`
+
+Completion update (2026-02-24):
+- Detached run status: completed (`[ITER2] COMPLETED 2026-02-24T00:42:11-08:00` in session log).
+- Sanity run directory:
+  - `results/online_vbld/case_study/dlm_constV_smallW/runs/online_vbld_case_study__20260223-234108`
+  - Outcome: offline and tested online schedules were numerically identical on selected metrics.
+  - Recommendation: `recommended_default=C2_L2`, gate not triggered.
+- Medium run directory:
+  - `results/online_vbld/case_study/dlm_constV_smallW/runs/online_vbld_case_study__20260223-235500`
+  - Outcome: all online variants underperformed offline on check-loss and coverage error.
+  - Recommendation table:
+    - `recommended_default=offline`
+    - `recommended_online_candidate=C5_W100`
+    - `safer_fallback=C5_L3`
+    - `gate_triggered=TRUE`
+- Cross-run decision:
+  - Keep offline default (`vb.online.enabled=false`).
+  - Update online fallback defaults from `C2` to `C5_W100` based on medium-run evidence.
+  - Keep acceptance gate as hard promotion criterion.
+
+## 14) Next execution block
+
+1. Run one diagnostic-only pass with `keep_trace=true` for:
+   - offline baseline,
+   - `C5_W100`,
+   - `C5_L3`.
+2. Export a compact drift table with:
+   - rolling check-loss deltas,
+   - rolling coverage gap,
+   - jitter statistics by phase (`start`, `mid`, `end`).
+3. If online still fails gate on the medium regime:
+   - freeze operational defaults as-is (offline + `C5_W100` fallback),
+   - stop schedule tuning and switch effort to algorithmic diagnostics (local update depth vs refresh cadence interaction).
+
+Execution result (2026-02-24 diagnostic-only pass):
+- Config used:
+  - `config/online_vbld/case_study_dlm_constV_smallW_trace_diag.yaml`
+- Run directory:
+  - `results/online_vbld/case_study/dlm_constV_smallW/runs/online_vbld_case_study__20260224-124600`
+- Schedules evaluated:
+  - `offline`, `C5_W100`, `C5_L3`
+- Gate outcome:
+  - `recommended_default=offline`
+  - `recommended_online_candidate=C5_W100`
+  - `safer_fallback=C5_L3`
+  - `gate_triggered=TRUE`
+- Drift diagnostics:
+  - table: `results/online_vbld/case_study/dlm_constV_smallW/runs/online_vbld_case_study__20260224-124600/tables/diagnostic_drift_summary.csv`
+  - trace tables: `trace_C5_W100.csv`, `trace_C5_L3.csv`
+  - notable pattern: online jitter magnitude rises substantially across phases while coverage remains above target, and check-loss remains materially above offline.
+
+Decision lock after step 14:
+- Freeze operational policy as:
+  - default: `vb.online.enabled=false`
+  - optional fallback profile: `C5_W100` (`M=10`, `K=40`, `W=100`, `L_loc=2`)
+- Stop schedule tuning for now and move to algorithmic diagnostics for root-cause analysis.
