@@ -1,0 +1,5 @@
+"check","value"
+"draws_finite",TRUE
+"anchors_finite",TRUE
+"anchors_monotone",TRUE
+"draw_rows_match_T",TRUE

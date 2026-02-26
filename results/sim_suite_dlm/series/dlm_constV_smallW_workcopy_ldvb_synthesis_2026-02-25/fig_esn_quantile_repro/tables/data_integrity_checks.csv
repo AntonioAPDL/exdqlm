@@ -1,0 +1,7 @@
+"check","value"
+"files_exist",TRUE
+"series_long_required_cols",TRUE
+"series_long_duplicate_t_p",TRUE
+"series_long_p_in_01",TRUE
+"series_long_monotone_q_by_t",TRUE
+"series_long_quantile_levels",TRUE

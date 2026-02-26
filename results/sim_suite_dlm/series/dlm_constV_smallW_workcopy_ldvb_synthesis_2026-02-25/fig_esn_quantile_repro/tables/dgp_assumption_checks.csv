@@ -1,0 +1,11 @@
+"field","observed","expected","matches_expected"
+"scenario","dlm_constV_smallW","dlm_constV_smallW",TRUE
+"seed","123","123",TRUE
+"R_mc","5000","5000",TRUE
+"burnin","2000","2000",TRUE
+"period","50","50",TRUE
+"V","9","9",TRUE
+"alpha","1e-04","1e-04",TRUE
+"no_trend","TRUE","TRUE",TRUE
+"state_dim","6","6",TRUE
+"n_quantiles","21","21",TRUE

@@ -1,0 +1,17 @@
+{
+  "run_start": "2026-02-25 16:44:08 PST",
+  "run_end": "2026-02-25 16:46:52 PST",
+  "git_sha": "882c46577578260b16294bd8af7a1139f207fd45",
+  "repo_root": "/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp",
+  "dataset_dir": "/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/sim_suite_dlm/series/dlm_constV_smallW_workcopy_20260225",
+  "output_root": "/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/sim_suite_dlm/series/dlm_constV_smallW_workcopy_20260225/fig_esn_quantile_repro",
+  "dgp_code_files_present": false,
+  "n_time": 5000,
+  "p_fit": [0.05, 0.5, 0.95],
+  "p_eval_count": 21,
+  "train_size": 4000,
+  "forecast_size": 1000,
+  "model_files": ["fit_ldvb_p005.rds", "fit_ldvb_p050.rds", "fit_ldvb_p095.rds", "synthesis_full.rds"],
+  "table_files": ["comparison_model_anchor_metrics.csv", "comparison_series_selected_quantiles.csv", "comparison_synthesis_metrics_by_p.csv", "data_integrity_checks.csv", "dgp_assumption_checks.csv", "dgp_code_file_presence.csv", "diagnostics_crps_summary.csv", "diagnostics_rolling_coverage_anchor.csv", "draw_dimensions_models.csv", "fit_summary_ldvb.csv", "synthesis_checks.csv"],
+  "fig_files": ["calibration_synthesis_coverage_by_p.png", "diagnostics_crps_mean_summary.png", "diagnostics_rolling_coverage_error_synthesis_anchor.png", "diagnostics_synthesis_pinball_by_p.png", "forecast_window_syn_vs_true.png", "train_last_window_syn_vs_true.png"]
+}

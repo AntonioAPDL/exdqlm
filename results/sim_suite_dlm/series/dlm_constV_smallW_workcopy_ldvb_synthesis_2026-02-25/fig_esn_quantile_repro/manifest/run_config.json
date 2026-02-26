@@ -1,0 +1,45 @@
+{
+  "scenario": "dlm_constV_smallW",
+  "p_vec": [0.05, 0.5, 0.95],
+  "split": {
+    "train_end": 4000,
+    "forecast_start": 4001
+  },
+  "model": {
+    "state_dim": 6,
+    "period": 50,
+    "FF": [1, 0, 1, 0, 1, 0],
+    "m0": [0, 0, 0, 0, 0, 0],
+    "C0_diag": [25, 25, 25, 25, 25, 25],
+    "no_trend": true
+  },
+  "fit": {
+    "method": "exdqlmLDVB",
+    "df": [1, 1, 1],
+    "dim_df": [2, 2, 2],
+    "fix_sigma": true,
+    "sig_init": 3,
+    "fix_gamma": true,
+    "gam_init": 0,
+    "dqlm_ind": true,
+    "tol": 0.2,
+    "n_samp": 200,
+    "seed_base": 20260226
+  },
+  "synthesis": {
+    "enforce_isotonic": true,
+    "rearrange": true,
+    "grid_M": 1001,
+    "n_samp": 1000,
+    "seed": 20260227
+  },
+  "diagnostics": {
+    "rolling_window": 200,
+    "plot_last_train": 500
+  },
+  "paths": {
+    "repo_root": "/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp",
+    "dataset_dir": "/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/sim_suite_dlm/series/dlm_constV_smallW_workcopy_20260225",
+    "output_root": "/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/sim_suite_dlm/series/dlm_constV_smallW_workcopy_20260225/fig_esn_quantile_repro"
+  }
+}
