@@ -455,6 +455,94 @@ extract_offline_health <- function(fit) {
   )
 }
 
+pad_numeric <- function(x, n) {
+  out <- rep(NA_real_, n)
+  x <- as.numeric(x %||% numeric(0))
+  if (length(x)) {
+    m <- min(length(x), n)
+    out[seq_len(m)] <- x[seq_len(m)]
+  }
+  out
+}
+
+extract_param_trace <- function(run_label, fit, mode_label = NULL) {
+  if (is.null(fit) || !is.list(fit)) return(NULL)
+
+  mode_i <- if (!is.null(mode_label) && nzchar(mode_label)) {
+    as.character(mode_label)[1L]
+  } else if (isTRUE(fit$misc$online$enabled %||% FALSE)) {
+    "online"
+  } else {
+    "offline"
+  }
+
+  misc <- fit$misc %||% list()
+  out_parts <- list()
+
+  elbo <- as.numeric(misc$elbo_trace %||% misc$elbo %||% numeric(0))
+  gamma <- as.numeric(misc$gamma_trace %||% numeric(0))
+  sigma <- as.numeric(misc$sigma_trace %||% numeric(0))
+  new_term <- as.numeric(misc$new_term_trace %||% numeric(0))
+
+  n_iter <- max(length(elbo), length(gamma), length(sigma), length(new_term))
+  if (n_iter > 0L) {
+    out_parts[[length(out_parts) + 1L]] <- tibble(
+      run_label = run_label,
+      mode = mode_i,
+      trace_phase = "batch_iter",
+      trace_segment = ifelse(mode_i == "online", "warm_start_batch", "offline_batch"),
+      iter = as.integer(seq_len(n_iter)),
+      t = NA_integer_,
+      step = as.integer(seq_len(n_iter)),
+      elbo = pad_numeric(elbo, n_iter),
+      gamma = pad_numeric(gamma, n_iter),
+      sigma = pad_numeric(sigma, n_iter),
+      eta = NA_real_,
+      ell = NA_real_,
+      new_term = pad_numeric(new_term, n_iter),
+      check_loss_pre = NA_real_,
+      covered_pre = NA_real_,
+      barw = NA_real_,
+      barm = NA_real_,
+      jitter_eps = NA_real_,
+      rhs_refreshed = NA_integer_,
+      sigmagam_refreshed = NA_integer_,
+      sigmagam_logpost = NA_real_
+    )
+  }
+
+  tr_on <- misc$online$trace %||% NULL
+  if (is.data.frame(tr_on) && nrow(tr_on)) {
+    n_on <- nrow(tr_on)
+    out_parts[[length(out_parts) + 1L]] <- tibble(
+      run_label = run_label,
+      mode = mode_i,
+      trace_phase = "online_step",
+      trace_segment = "streaming",
+      iter = NA_integer_,
+      t = as.integer(tr_on$t %||% seq_len(n_on)),
+      step = as.integer(seq_len(n_on)),
+      elbo = NA_real_,
+      gamma = pad_numeric(tr_on$gamma_post, n_on),
+      sigma = pad_numeric(tr_on$sigma_post, n_on),
+      eta = pad_numeric(tr_on$eta_post, n_on),
+      ell = pad_numeric(tr_on$ell_post, n_on),
+      new_term = NA_real_,
+      check_loss_pre = pad_numeric(tr_on$check_loss_pre, n_on),
+      covered_pre = pad_numeric(tr_on$covered_pre, n_on),
+      barw = pad_numeric(tr_on$barw, n_on),
+      barm = pad_numeric(tr_on$barm, n_on),
+      jitter_eps = pad_numeric(tr_on$jitter_eps, n_on),
+      rhs_refreshed = as.integer(tr_on$rhs_refreshed %||% rep(NA_integer_, n_on)),
+      sigmagam_refreshed = as.integer(tr_on$sigmagam_refreshed %||% rep(NA_integer_, n_on)),
+      sigmagam_logpost = pad_numeric(tr_on$sigmagam_logpost_post, n_on)
+    )
+  }
+
+  if (!length(out_parts)) return(NULL)
+  bind_rows(out_parts)
+}
+
 run_one_fit <- function(label, schedule = NULL, online = FALSE) {
   log_msg("Run start: %s", label)
   keep_trace <- isTRUE(diag_cfg$keep_trace) && isTRUE(online)
@@ -861,6 +949,23 @@ for (nm in names(trace_map)) {
   if (!is.null(tr) && nrow(tr)) {
     readr::write_csv(tr, file.path(tab_dir, sprintf("trace_%s.csv", nm)))
   }
+}
+
+# Save parameter traces (offline ELBO/gamma/sigma + online gamma/sigma streaming)
+param_trace_map <- list()
+for (nm in names(fit_map)) {
+  ft <- fit_map[[nm]]
+  mode_nm <- summary_df %>% filter(run_label == nm) %>% slice(1) %>% pull(mode)
+  mode_nm <- if (length(mode_nm)) as.character(mode_nm[[1L]]) else ifelse(nm == "offline", "offline", "online")
+  pt <- extract_param_trace(run_label = nm, fit = ft, mode_label = mode_nm)
+  param_trace_map[[nm]] <- pt
+  if (!is.null(pt) && nrow(pt)) {
+    readr::write_csv(pt, file.path(tab_dir, sprintf("param_trace_%s.csv", nm)))
+  }
+}
+param_trace_all <- bind_rows(param_trace_map)
+if (nrow(param_trace_all)) {
+  readr::write_csv(param_trace_all, file.path(tab_dir, "param_trace_all.csv"))
 }
 
 # Drift diagnostics across phases (offline from series; online from trace when available)
@@ -1283,6 +1388,8 @@ md_lines <- c(md_lines,
   sprintf("- Heatmap: `%s`", file.path(run_dir, "figs", "schedule_grid_heatmap.png")),
   sprintf("- Drift summary table: `%s`", file.path(run_dir, "tables", "diagnostic_drift_summary.csv")),
   sprintf("- Online trace tables (if enabled): `%s`", file.path(run_dir, "tables", "trace_<run>.csv")),
+  sprintf("- Parameter trace tables: `%s`", file.path(run_dir, "tables", "param_trace_<run>.csv")),
+  sprintf("- Combined parameter traces: `%s`", file.path(run_dir, "tables", "param_trace_all.csv")),
   "",
   "## Assumptions",
   "- Single quantile (`p0=0.50`) was used for schedule tuning.",

@@ -391,6 +391,7 @@
 
   if (inherits(opt, "try-error") || any(!is.finite(opt$par))) {
     state$diagnostics$last_sigmagam_refresh_ok <- FALSE
+    state$diagnostics$last_sigmagam_logpost <- NA_real_
     return(state)
   }
 
@@ -430,6 +431,7 @@
 
   state$diagnostics$last_sigmagam_refresh_ok <- TRUE
   state$diagnostics$last_sigmagam_n <- as.integer(n_eff)
+  state$diagnostics$last_sigmagam_logpost <- as.numeric(log_qsiggam(opt$par))
   state
 }
 
@@ -629,12 +631,13 @@ exal_online_init <- function(y, X, p0, gamma_bounds,
     ),
 
     refresh_counts = list(rhs = 0L, sigmagam = 0L, window_backfit = 0L),
-    diagnostics = list(
-      last_sigmagam_refresh_ok = NA,
-      last_sigmagam_n = NA_integer_,
-      last_barw = tail(barw, 1L),
-      last_barm = tail(barm, 1L),
-      solve_calls = 0L,
+      diagnostics = list(
+        last_sigmagam_refresh_ok = NA,
+        last_sigmagam_n = NA_integer_,
+        last_sigmagam_logpost = NA_real_,
+        last_barw = tail(barw, 1L),
+        last_barm = tail(barm, 1L),
+        solve_calls = 0L,
       solve_fallbacks = 0L,
       n_jitter = 0L,
       max_jitter_eps = 0,
@@ -794,19 +797,24 @@ exal_online_run <- function(state, y_new, X_new,
 
   tr <- NULL
   if (isTRUE(keep_trace)) {
-    tr <- data.frame(
-      t = integer(0),
-      y_t = numeric(0),
-      yhat_pre = numeric(0),
-      check_loss_pre = numeric(0),
-      covered_pre = integer(0),
-      barw = numeric(0),
-      barm = numeric(0),
-      solver_method = character(0),
-      solver_fallback = integer(0),
-      jitter_eps = numeric(0),
-      rhs_refreshed = integer(0),
-      sigmagam_refreshed = integer(0),
+      tr <- data.frame(
+        t = integer(0),
+        y_t = numeric(0),
+        yhat_pre = numeric(0),
+        check_loss_pre = numeric(0),
+        covered_pre = integer(0),
+        barw = numeric(0),
+        barm = numeric(0),
+        eta_post = numeric(0),
+        ell_post = numeric(0),
+        gamma_post = numeric(0),
+        sigma_post = numeric(0),
+        sigmagam_logpost_post = numeric(0),
+        solver_method = character(0),
+        solver_fallback = integer(0),
+        jitter_eps = numeric(0),
+        rhs_refreshed = integer(0),
+        sigmagam_refreshed = integer(0),
       stringsAsFactors = FALSE
     )
   }
@@ -842,6 +850,11 @@ exal_online_run <- function(state, y_new, X_new,
           covered_pre = as.integer(covered_pre),
           barw = as.numeric(state$diagnostics$last_barw),
           barm = as.numeric(state$diagnostics$last_barm),
+          eta_post = as.numeric(state$qsiggam$eta_hat),
+          ell_post = as.numeric(state$qsiggam$ell_hat),
+          gamma_post = as.numeric(state$qsiggam$gamma_mean),
+          sigma_post = as.numeric(state$qsiggam$sigma_mean),
+          sigmagam_logpost_post = as.numeric(state$diagnostics$last_sigmagam_logpost %||% NA_real_),
           solver_method = as.character(state$diagnostics$last_solver_method %||% NA_character_),
           solver_fallback = as.integer(
             identical(state$diagnostics$last_solver_method %||% NA_character_, "eigen_fallback")
