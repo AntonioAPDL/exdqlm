@@ -115,6 +115,40 @@ Interpretation: strongest inflection is the RHS precision behavior around/after 
 3. Repeat one run with **RHS exact moments disabled (legacy approximation) in a sandbox branch/worktree** only for diagnosis to isolate `2a90a43` effect definitively.
 4. Keep `online.enabled=FALSE` throughout diagnostic runs.
 
+## Follow-up Remediation Applied (Same Day)
+This audit was followed by a conservative rollback for immediate recovery testing:
+
+1. **RHS expected precision switched back to pre-exact (delta-method) form**
+   - File: `R/qdesn_rhs_prior.R`
+   - Change: reverted `expected_prec` from exact Gaussian-moment form to the prior delta-method approximation used before commit `2a90a43`.
+   - Rationale: strongest empirical candidate for collapse onset.
+
+2. **`defaults.yaml` restored to pre-online/pre-model-selection-style runtime profile**
+   - File: `config/defaults.yaml`
+   - Key values restored:
+     - `desn.n = [1000, 300, 300]`
+     - `desn.n_tilde = [300, 300]`
+     - `desn.m = 180`
+     - `forecast.horizon = 60`
+     - `diagnostics.fan_stride = 60`
+   - Kept online config block in place (`vb.online.*`) with `enabled: false` by default.
+
+3. **YAML safety fix for `n` keys**
+   - File: `config/defaults.yaml`
+   - `n` keys are quoted (`'n'`) to avoid YAML 1.1 boolean-key parsing (`n -> FALSE`) in R YAML readers.
+   - Applied both in `desn` and `vb.online.baseline` blocks.
+
+4. **Functional regression checks**
+   - Ran full `testthat` suite (`tests/testthat`) after changes: PASS.
+   - Confirmed symbols still present:
+     - `run_model_selection_v2`: available
+     - `exal_online_fit`: available
+
+### Slides Snapshot Context
+- `slides/main.tex` last modified: `2026-01-20` (commit around that time: `f55e914`).
+- Around this period, defaults differed from later settings (notably much larger RHS scales in that snapshot).
+- The post-slides collapse evidence still points most strongly to RHS precision behavior changes after `2a90a43`, rather than horizon/fan settings alone.
+
 ## Audit Integrity Notes
 - This audit intentionally avoided algorithmic edits.
 - One running job was manually stopped on user request; completed runs remain preserved under `results/sim_suite_dlm/...`.
