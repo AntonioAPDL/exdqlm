@@ -57,3 +57,29 @@ then builds a single predictive quantile function per time by
 piecewise-linear blending across adjacent quantile models with optional
 global monotone rearrangement.
 }
+\examples{
+\donttest{
+# short example
+TT = 100
+y = scIVTmag[1:TT]
+
+# create trend & seasonal model
+trend.comp = polytrendMod(1,mean(y),10)
+seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+model = trend.comp + seas.comp
+
+# fit five quantiles using LDVB algorithm & save individual posterior predictive samples
+fits <- draws <- NULL
+p0s = c(0.05, 0.25, 0.50, 0.75, 0.95)
+for(i in 1:length(p0s)){
+  fits[[i]] = exdqlmLDVB(y, p0=p0s[i], model, df=c(1,1), dim.df = c(1,6), sig.init=15, tol=0.05)
+  draws[[i]] = fits[[i]]$samp.post.pred
+}
+
+# synthesize posterior predictive from all quantiles
+syn = exdqlm_synthesize_from_draws(
+  draws_list = draws,
+  p = p0s,
+  T_expected = TT )
+}
+}
