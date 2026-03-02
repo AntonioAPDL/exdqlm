@@ -13,8 +13,8 @@ case_study:
 
   desn:
     D: 3
-    'n': [300, 300, 300]
-    n_tilde: [300, 300]
+    'n': [50, 50, 50]
+    n_tilde: [50, 50]
     m: 30
     alpha: [0.2, 0.2, 0.2]
     rho: [0.95, 0.95, 0.95]
@@ -24,7 +24,7 @@ case_study:
     pi_in: [1.0, 1.0, 1.0]
     washout: 500
     add_bias: true
-    seed: [12345, 12345, 12345]
+    seed: [12345, 12344, 12343]
 
   vb:
     max_iter: 60
