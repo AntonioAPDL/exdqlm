@@ -1,3 +1,5 @@
+# Tests for synthesis helper orientation robustness and monotonicity smoke checks.
+
 test_that("synthesis handles draw orientation consistently", {
   draws_low <- matrix(
     c(0.10, 0.12, 0.14, 0.16, 0.18,

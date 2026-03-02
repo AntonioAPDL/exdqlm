@@ -28,9 +28,9 @@ exal_static_LDVB(
 
 \item{p0}{Target quantile in (0,1).}
 
-\item{max_iter}{Maximum CAVI iterations (default 1000).}
+\item{max_iter}{Integer; maximum CAVI iterations (default 1000).}
 
-\item{tol}{Convergence tolerance on relative changes (default 1e-4).}
+\item{tol}{Numeric; convergence tolerance based on relative ELBO changes (default 1e-4).}
 
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.}
 
@@ -45,13 +45,13 @@ Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}; if missing, reasonable defaults are used.}
 
-\item{n_samp_xi}{MC draws used to compute the xi expectations for
+\item{n_samp_xi}{Integer; number of MC draws used to compute the xi expectations for
 \eqn{q(\sigma,\gamma)} (default 200).}
 
 \item{verbose}{Logical; print progress.}
 }
 \value{
-A list with
+A object of class "\code{exal_vb}" containing:
 \itemize{
 \item \code{qbeta}: list with \code{m}, \code{V}.
 \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),
@@ -62,26 +62,29 @@ A list with
 \code{Sigma} (2x2), approximate means
 \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
 \item \code{converged}, \code{iter}, \code{run.time}, and
-\code{misc} (including \code{p0}, bounds \code{L,U}).
+\code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
 }
 }
 \description{
-Fits the static Extended Asymmetric Laplace (exAL) regression via a
-coordinate-ascent variational inference (CAVI) scheme with a mean-field
-factorization
-\deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma),}
-where \eqn{q(\sigma,\gamma)} is handled jointly using a Laplace-Delta (LD)
-approximation on the transformed parameters
-\eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
+The function applies a coordinate-ascent variational inference (CAVI)
+algorithm to static Extended Asymmetric Laplace (exAL) regression, using a
+Laplace-Delta approximation for the joint \eqn{(\sigma,\gamma)} block.
 }
 \details{
-The updates implement the closed-form factors you derived:
-\itemize{
-\item \eqn{q(\beta)=\mathcal{N}(m_\beta,V_\beta)}
-\item \eqn{q(v_i)=\mathrm{GIG}(1/2,\chi_i,\psi)}
-\item \eqn{q(s_i)=\mathcal{N}(\mu_{s_i},\tau_{s_i}^2)} truncated to (0, Inf)
-\item \eqn{q(\sigma,\gamma)} via LD; the expectations
-\eqn{\{\xi_1,\xi_\lambda,\xi_{\lambda^2},\xi_A,\xi_{A^2},\xi_{\sigma^{-1}},\zeta_\lambda\}}
-are computed from a small Gaussian MC sample in (eta, ell).
+Mean-field factorization:
+\deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
+The LD block is parameterized in transformed coordinates
+\eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
+The \code{xi} expectations used in CAVI updates are approximated from a small
+Gaussian Monte Carlo sample in \eqn{(\eta,\ell)}.
+}
+\examples{
+\donttest{
+set.seed(123)
+n <- 60
+X <- cbind(1, seq(-1, 1, length.out = n))
+y <- as.numeric(X \%*\% c(0.2, -0.1) + rnorm(n, sd = 0.15))
+fit <- exal_static_LDVB(y = y, X = X, p0 = 0.5, max_iter = 100, tol = 1e-3, verbose = FALSE)
+fit$converged
 }
 }

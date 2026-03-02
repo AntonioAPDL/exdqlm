@@ -1,3 +1,5 @@
+# Backend parity tests for R and C++ matrix builders.
+
 test_that("polytrend builder parity (R vs C++)", {
   model_r <- polytrendMod(order = 2, backend = "R")
   model_cpp <- polytrendMod(order = 2, backend = "cpp")

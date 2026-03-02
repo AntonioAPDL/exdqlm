@@ -1,3 +1,5 @@
+# Regression test for FFBS indexing parity between R fallback and C++ bridge.
+
 test_that("ISVB R fallback matches C++ KF on time-varying GG", {
   if (!exists("update_theta_bridge", mode = "function")) {
     skip("C++ KF bridge not available in this build")

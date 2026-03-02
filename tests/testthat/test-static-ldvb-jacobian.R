@@ -1,3 +1,5 @@
+# Static LDVB checks for transformed objective/Jacobian consistency.
+
 test_that("static LDVB transformed objective includes Jacobian term", {
   eta <- 0.35
   ell <- -0.2

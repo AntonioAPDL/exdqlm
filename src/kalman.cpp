@@ -1,3 +1,16 @@
+/*
+ * C++ state update bridge utilities for exdqlm.
+ *
+ * Key exports:
+ * - logDetCholesky(), compute_cholesky(), H_t_k_r()
+ * - update_theta_cpp() (Kalman filter + smoother bridge used by VB paths)
+ *
+ * Notes:
+ * - Numerical guards (regularization/SVD inversion) prioritize stability.
+ * - "elbo.part" returned by update_theta_cpp() is an internal bridge diagnostic;
+ *   package-level ELBO reporting remains defined by the R-side contract.
+ */
+
 // Enable C++11 via this plugin (Rcpp 0.10.3 or later)
 // [[Rcpp::plugins(cpp11)]]
 

@@ -1,36 +1,39 @@
 #' Synthesize posterior predictive from multiple quantile-model draws
 #'
-#' Implements the two-step correction and synthesis:
+#' The function synthesizes posterior predictive draws from multiple fitted
+#' quantile models using a two-step correction:
 #' (i) isotonic regression at the grid of target quantiles to enforce non-crossing,
 #' (ii) distributional alignment (shift each model's draws so its tau-quantile matches the isotone anchor),
 #' then builds a single predictive quantile function per time by
 #' piecewise-linear blending across adjacent quantile models with optional
 #' global monotone rearrangement.
 #'
-#' @param draws_list list of length L; each element is a matrix of posterior
+#' @param draws_list List of length \code{L}; each element is a numeric matrix of posterior
 #'   predictive draws from a fitted quantile model at level \code{p[i]}. Each matrix
 #'   may be \code{T × ns} or \code{ns × T}; rows will be coerced to time.
-#' @param p numeric vector of target quantile levels in (0,1) of length L
-#'   (same order as \code{draws_list}, not necessarily sorted).
-#' @param enforce_isotonic logical; apply isotonic regression (PAVA) over the grid \code{p}
+#' @param p Numeric vector of target quantile levels in \code{(0,1)} of length \code{L}
+#'   (same order as \code{draws_list}, not necessarily sorted). Duplicate levels are not allowed.
+#' @param enforce_isotonic Logical; apply isotonic regression (PAVA) over the grid \code{p}
 #'   at each time t to remove crossing. Default \code{TRUE}.
-#' @param rearrange logical; apply monotone rearrangement (evaluate → sort → reinterpolate)
+#' @param rearrange Logical; apply monotone rearrangement (evaluate -> sort -> reinterpolate)
 #'   on a dense grid over \code{u in (0,1)}. Default \code{TRUE}.
-#' @param grid_M integer; size of dense grid \code{M} for rearrangement (\code{u_k = k/(M+1)}).
+#' @param grid_M Integer; size of dense grid \code{M} for rearrangement (\code{u_k = k/(M+1)}).
 #'   Default \code{1001L}.
-#' @param n_samp integer; number of synthesized draws per time. Default \code{1000L}.
+#' @param n_samp Integer; number of synthesized draws per time. Default \code{1000L}.
 #' @param seed NULL or integer for reproducible synthesized draws. Default \code{NULL}.
-#' @param T_expected optional integer; if provided, forces the time dimension to \code{T_expected}
+#' @param T_expected Optional integer; if provided, forces the time dimension to \code{T_expected}
 #'   when orienting each matrix to \code{T × ns}. This avoids accidental transposes.
 #'
-#' @return A list with:
-#'   \itemize{
-#'     \item \code{draws}: \code{T × n_samp} synthesized draws
-#'     \item \code{levels}: sorted copy of \code{p}
-#'     \item \code{quantiles}: \code{T × L} matrix of isotone anchors \code{m^*_{i,t}}
-#'     \item \code{summary}: row summaries of \code{draws}
-#'     \item \code{method}: list of options used
-#'   }
+#' @return A list containing:
+#' \itemize{
+#'   \item \code{draws} - Numeric matrix \code{T × n_samp} of synthesized draws.
+#'   \item \code{levels} - Sorted copy of \code{p} (length \code{L}).
+#'   \item \code{quantiles} - Numeric matrix \code{T × L} of isotone anchors \code{m^*_{i,t}}.
+#'   \item \code{summary} - List with row-wise summaries of \code{draws}
+#'   (\code{mean}, \code{q025}, \code{q250}, \code{q500}, \code{q750}, \code{q975}).
+#'   \item \code{method} - List of synthesis settings used
+#'   (\code{name}, \code{isotonic}, \code{rearrange}, \code{grid_M}, \code{T_inferred}).
+#' }
 #' @export
 #' 
 #' @examples

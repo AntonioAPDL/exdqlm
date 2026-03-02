@@ -7,13 +7,13 @@
 #
 #' exAL (static) - MCMC algorithm
 #'
-#' Applies a Gibbs sampler for the static Extended Asymmetric Laplace regression
+#' The function applies a Gibbs sampler for static Extended Asymmetric Laplace regression
 #' (exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
 #' draw \eqn{\gamma} via a Laplace-Delta step on a logit transform of (L, U).
 #'
 #' @param y Numeric vector of length \eqn{n}.
 #' @param X Numeric matrix \eqn{n \times p} (design).
-#' @param p0 Quantile level in (0,1).
+#' @param p0 Quantile level in \eqn{(0,1)}.
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 #'   \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.
 #' @param a_sigma,b_sigma Hyperparameters for an inverse-gamma prior on
@@ -28,19 +28,19 @@
 #'   \code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.
 #' @param n.burn Number of burn-in iterations. Default \code{2000}.
 #' @param n.mcmc Number of kept MCMC iterations (after burn). Default \code{1500}.
-#' @param thin Save every \code{thin}-th iteration after burn. We internally run
+#' @param thin Integer; save every \code{thin}-th iteration after burn. We internally run
 #'   \code{n.burn + n.mcmc * thin} iterations to return exactly \code{n.mcmc} saved draws.
 #' @param verbose Print progress every 500 iters.
 #'
-#' @return A list with:
+#' @return A object of class "\code{exal_static_mcmc}" containing:
 #' \itemize{
 #'   \item \code{run.time} - total wall time in seconds.
 #'   \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).
 #'   \item \code{samp.beta} - posterior sample of \code{beta} as \code{coda::mcmc} (n.mcmc x p).
 #'   \item \code{samp.sigma} - posterior sample of \code{sigma} as \code{coda::mcmc}.
 #'   \item \code{samp.gamma} - posterior sample of \code{gamma} as \code{coda::mcmc}.
-#'   \item \code{samp.v} - latent \code{v} draws (n x n.mcmc) as \code{coda::mcmc}.
-#'   \item \code{samp.s} - latent \code{s} draws (n x n.mcmc) as \code{coda::mcmc}.
+#'   \item \code{samp.v} - latent \code{v} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
+#'   \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 #'   \item \code{last} - last state of the chain (useful for restarts).
 #' }
 #' @export
@@ -48,12 +48,12 @@
 #' @examples
 #' \donttest{
 #' set.seed(123)
-#' n <- 200; p <- 3
+#' n <- 80; p <- 3
 #' X <- cbind(1, rnorm(n), rnorm(n))
 #' beta0 <- c(0.5, -1, 0.8); sigma0 <- 1.2
 #' y <- as.numeric(X %*% beta0 + rnorm(n, 0, sigma0))
 #' fit <- exal_static_mcmc(
-#'   y, X, p0 = 0.5, n.burn = 1000, n.mcmc = 1000, thin = 1, verbose = TRUE
+#'   y, X, p0 = 0.5, n.burn = 200, n.mcmc = 200, thin = 1, verbose = FALSE
 #' )
 #' summary(fit$samp.beta)
 #' }

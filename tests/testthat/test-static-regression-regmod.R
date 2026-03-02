@@ -1,3 +1,5 @@
+# Smoke tests for static regression API (regMod + static exAL inference routines).
+
 test_that("regMod returns exdqlm-compatible structure", {
   X <- cbind(1, seq(-1, 1, length.out = 6))
 

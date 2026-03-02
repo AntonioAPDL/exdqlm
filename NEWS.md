@@ -9,6 +9,8 @@
   posterior quantile-draw objects.
 - Added static regression support with `regMod()` plus static exAL inference
   routines for VB/LDVB and MCMC workflows.
+- Documentation updates for new APIs: explicit argument contracts (types/dims),
+  return-value structure, and CRAN-safe examples aligned with existing package style.
 
 ## Fixes and clarifications
 - Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for parity
@@ -19,6 +21,8 @@
   package-level ELBO reporting remains R-level contract output.
 - Optional C++ builder acceleration remains opt-in (`exdqlm.use_cpp_builders`
   default `FALSE`); no backend default flip in this release.
+- Optional C++ post-predictive sampler remains opt-in
+  (`exdqlm.use_cpp_postpred` default `FALSE`).
 
 # exdqlm 0.3.0
 

@@ -12,10 +12,11 @@ exdqlm — Extended Dynamic Quantile Linear Models
 time-series applications where the goal is to model **conditional
 quantiles** (not only means) while keeping a familiar state-space
 specification (design/evolution matrices and a state vector). In
-**v0.3.0**, we add **optional C++ bridges** for speed (Kalman filter and
-samplers) and **ELBO monitoring** for the variational routine. Defaults
-enable the C++ Kalman bridge, while samplers remain **pure-R** by
-default.
+**v0.4.0**, this CRAN update consolidates the internal 0.4/0.5/0.6
+feature line: dynamic **LDVB** (`exdqlmLDVB()`), synthesis
+(`exdqlm_synthesize_from_draws()`), and static regression/exAL routines
+(`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), while keeping
+backend defaults conservative for CRAN stability.
 
 > **Terminology.** We say **exAL** for the extended Asymmetric Laplace
 > family used here. It extends the standard AL by adding a **skewness**
@@ -76,20 +77,21 @@ tail(fit$diagnostics$elbo, 3)
 - **ELBO**: recorded at `fit$diagnostics$elbo` (weakly monotone up to
   importance-sampling noise).
 
-## What’s new in v0.3.0
+## What’s new in v0.4.0
 
-- **C++ Kalman filter bridge** (drop-in): set
-  `options(exdqlm.use_cpp_kf = TRUE)` (default **TRUE**; examples keep
-  it OFF).
-- **ELBO monitoring** for IS-VB: per-iteration values in
-  `fit$diagnostics$elbo`.
-- **Optional C++ samplers** for posterior draws: set
-  `options(exdqlm.use_cpp_samplers = TRUE)` (default **FALSE**).
-- **Portability**: OpenMP is **optional and gated**; package runs
-  serially when unavailable.
+- **Dynamic LDVB algorithm** via `exdqlmLDVB()` for exDQLM fitting.
+- **Synthesis helper** `exdqlm_synthesize_from_draws()` to combine
+  posterior quantile-draw objects.
+- **Static regression support** via `regMod()`, `exal_static_LDVB()`,
+  and `exal_static_mcmc()`.
+- **C++ backend controls** retained as optional: Kalman bridge default
+  **TRUE**; builders, samplers, and post-predictive C++ paths default
+  **FALSE**.
+- **ELBO diagnostics** retained for iterative monitoring.
 
-> For CI/CRAN-style runs, keep optional C++ builders/samplers **FALSE** and
-> set `exdqlm.use_cpp_kf = FALSE` for strict R-path reproducibility.
+> For CI/CRAN-style runs, keep optional C++ builders/samplers/post-pred
+> **FALSE** and set `exdqlm.use_cpp_kf = FALSE` for strict R-path
+> reproducibility.
 
 ### Runtime options (summary)
 
@@ -98,6 +100,7 @@ tail(fit$diagnostics$elbo, 3)
 | `exdqlm.use_cpp_kf`       |  TRUE   | C++ Kalman filter bridge         | you have compilers/OpenMP and want speed |
 | `exdqlm.use_cpp_builders` |  FALSE  | C++ matrix builders (`polytrendMod`, `seasMod`) | opt-in parity-tested builder speedups |
 | `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
+| `exdqlm.use_cpp_postpred` |  FALSE  | C++ posterior predictive sampler | optional speed path after parity checks  |
 
 Set with:
 
@@ -105,6 +108,7 @@ Set with:
 options(exdqlm.use_cpp_kf = TRUE)
 options(exdqlm.use_cpp_builders = FALSE)
 options(exdqlm.use_cpp_samplers = TRUE)
+options(exdqlm.use_cpp_postpred = FALSE)
 ```
 
 Backend control (minimal):

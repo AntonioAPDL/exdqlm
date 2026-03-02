@@ -63,7 +63,7 @@ exdqlmLDVB(
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
-A list of the following is returned:
+A object of class "\code{exdqlm}" containing the following:
 \itemize{
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{iter} - Number of iterations until convergence was reached.
@@ -81,6 +81,7 @@ A list of the following is returned:
 \item \code{samp.vts} - Posterior sample of latent parameters, v_t, variational distributions.
 \item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
+\item \code{diagnostics} - List containing algorithm diagnostics (currently ELBO trace when enabled).
 }
 If \code{dqlm.ind=FALSE}, the list also contains:
 \itemize{
@@ -88,9 +89,8 @@ If \code{dqlm.ind=FALSE}, the list also contains:
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the LD (Laplace-Delta) approximation
-for the variational distribution of \code{sigma} and \code{gamma} (means, transformed
-Hessian, and ELBO components).
+\item \code{gammasig.out} - List containing the LD (Laplace-Delta) approximation for the
+variational distribution of \code{sigma} and \code{gamma} (means, transformed Hessian, and ELBO components).
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 }
 Or if \code{dqlm.ind=TRUE}, the list also contains:
@@ -99,9 +99,8 @@ Or if \code{dqlm.ind=TRUE}, the list also contains:
 }
 }
 \description{
-Fit an Extended Dynamic Quantile Linear Model (exDQLM) using a
-Laplace-Delta Variational Bayes (LDVB) approximation. The joint
-posterior of \eqn{(\sigma,\gamma)} is approximated via a Laplace expansion.
+The function applies a Laplace-Delta Variational Bayes (LDVB) algorithm to
+estimate the posterior of an exDQLM.
 }
 \details{
 Advanced options (set via \code{options()}):
@@ -116,11 +115,11 @@ When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
 }
 \examples{
 \donttest{
-y = scIVTmag[1:1095]
+y = scIVTmag[1:100]
 trend.comp = polytrendMod(1,mean(y),10)
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+seas.comp = seasMod(52,c(1,2),C0=10*diag(4))
 model = trend.comp + seas.comp
-M0 = exdqlmLDVB(y,p0=0.85,model,df=c(1,1),dim.df = c(1,6),
+M0 = exdqlmLDVB(y,p0=0.85,model,df=c(1,1),dim.df = c(1,4),
                  gam.init=-3.5,sig.init=15,tol=0.05)
 }
 

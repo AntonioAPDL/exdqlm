@@ -1,3 +1,15 @@
+/*
+ * C++ matrix builders for exdqlm component constructors.
+ *
+ * Exports:
+ * - cpp_build_polytrend_FF_GG(order): polynomial trend block matrices.
+ * - cpp_build_seas_FF_GG(period, harmonics): Fourier seasonal block matrices.
+ *
+ * Contract:
+ * Returned FF/GG must match the existing R builders (polytrendMod/seasMod)
+ * so parity tests can assert backend equivalence.
+ */
+
 #include <RcppArmadillo.h>
 
 using namespace Rcpp;

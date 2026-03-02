@@ -1,5 +1,15 @@
 #!/usr/bin/env Rscript
 
+# Pre-CRAN orchestration script for local and optional remote checks.
+# Usage:
+#   Rscript scripts/precran_all.R [--rhub] [--skip-rhub] [--pat <token>] [--pat-file <path>]
+# Behavior:
+# - Runs local devtools::check(cran = TRUE) and writes logs under check-logs/<timestamp>/.
+# - Optionally submits R-hub checks when --rhub is supplied and auth/repo checks pass.
+# - Submits Win-builder release/devel checks with retry on transient upload failures.
+# Exit status:
+# - Non-zero if local CRAN-like check fails.
+
 cat("=== Pre-CRAN all-checks starting ===\n")
 
 # ----- small helpers ---------------------------------------------------------
