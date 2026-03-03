@@ -127,6 +127,62 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   }
   df.mat = make_df_mat(df,dim.df,p)
 
+  ### backend controls (MCMC-specific)
+  use_cpp_mcmc_opt <- isTRUE(getOption("exdqlm.use_cpp_mcmc", FALSE))
+  cpp_mcmc_mode <- tolower(as.character(getOption("exdqlm.cpp_mcmc_mode", "strict")))
+  if (!(cpp_mcmc_mode %in% c("strict", "fast"))) {
+    warning("Invalid exdqlm.cpp_mcmc_mode; using 'strict'.")
+    cpp_mcmc_mode <- "strict"
+  }
+  has_cpp_mcmc <- exists("mcmc_ffbs_smooth_cpp", mode = "function") &&
+                  exists("mcmc_ffbs_sample_cpp", mode = "function")
+  if (use_cpp_mcmc_opt && !has_cpp_mcmc) {
+    warning("exdqlm.use_cpp_mcmc=TRUE but C++ MCMC FFBS kernels not available; using R backend.")
+  }
+  # strict mode keeps R kernels to preserve exact legacy path; fast enables C++ FFBS.
+  use_cpp_mcmc <- isTRUE(use_cpp_mcmc_opt && has_cpp_mcmc && identical(cpp_mcmc_mode, "fast"))
+  mcmc_backend <- if (use_cpp_mcmc) "C++" else "R"
+  if (verbose) {
+    cat(sprintf("MCMC backend: %s (mode=%s)\n", mcmc_backend, cpp_mcmc_mode))
+  }
+
+  cpp_ffbs_smooth <- function(ex.f, ex.q) {
+    out <- mcmc_ffbs_smooth_cpp(
+      GG = GG,
+      m0 = as.numeric(m0),
+      C0 = C0,
+      FF = FF,
+      y = as.numeric(y),
+      ex_f = as.numeric(ex.f),
+      ex_q = as.numeric(ex.q),
+      df_mat = df.mat
+    )
+    out$standard.forecast.errors <- as.numeric(out$standard.forecast.errors)
+    out$sm <- as.matrix(out$sm)
+    out$fm <- as.matrix(out$fm)
+    out$sC <- array(out$sC, dim = c(p, p, TT))
+    out$fC <- array(out$fC, dim = c(p, p, TT))
+    out
+  }
+
+  cpp_ffbs_sample <- function(ex.f, ex.q) {
+    out <- mcmc_ffbs_sample_cpp(
+      GG = GG,
+      m0 = as.numeric(m0),
+      C0 = C0,
+      FF = FF,
+      y = as.numeric(y),
+      ex_f = as.numeric(ex.f),
+      ex_q = as.numeric(ex.q),
+      df_mat = df.mat
+    )
+    out$standard.forecast.errors <- as.numeric(out$standard.forecast.errors)
+    out$sam.theta <- as.matrix(out$sam.theta)
+    out$fm <- as.matrix(out$fm)
+    out$fC <- array(out$fC, dim = c(p, p, TT))
+    out
+  }
+
   # function to produce smoothed estimates for return value
   smoothed_theta<-function(ex.f,ex.q){
     # initialize ffbs
@@ -174,6 +230,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
     }
     return(list(standard.forecast.errors=standard.forecast.errors,sm=sm,sC=sC,fm=m,fC=C))
+  }
+  if (use_cpp_mcmc) {
+    smoothed_theta <- function(ex.f, ex.q) cpp_ffbs_smooth(ex.f, ex.q)
   }
 
   ### Initialize MCMC
@@ -293,6 +352,24 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         post.pred[t] = rexal(1,tau,t(FF[,t])%*%sam.theta[,t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
+    }
+    if (use_cpp_mcmc) {
+      ex_samp_theta <- function(ex.f, ex.q, gamma, sigma, sts, tau, c_tau) {
+        out <- cpp_ffbs_sample(ex.f, ex.q)
+        sam.theta <- out$sam.theta
+        post.pred <- vapply(seq_len(TT), function(t) {
+          rexal(1, tau,
+                t(FF[, t]) %*% sam.theta[, t] + c_tau * sigma * abs(gamma) * sts[t],
+                sigma, 0)
+        }, numeric(1))
+        list(
+          standard.forecast.errors = out$standard.forecast.errors,
+          post.pred = post.pred,
+          sam.theta = sam.theta,
+          fm = out$fm,
+          fC = out$fC
+        )
+      }
     }
 
     # exdqlm function sample uts
@@ -475,6 +552,22 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
     }
+    if (use_cpp_mcmc) {
+      samp_theta <- function(ex.f, ex.q, sigma) {
+        out <- cpp_ffbs_sample(ex.f, ex.q)
+        sam.theta <- out$sam.theta
+        post.pred <- vapply(seq_len(TT), function(t) {
+          rexal(1, p0, t(FF[, t]) %*% sam.theta[, t], sigma, 0)
+        }, numeric(1))
+        list(
+          standard.forecast.errors = out$standard.forecast.errors,
+          post.pred = post.pred,
+          sam.theta = sam.theta,
+          fm = out$fm,
+          fC = out$fC
+        )
+      }
+    }
 
     # dqlm function sample uts
     samp_uts<-function(reg1,sigma){
@@ -539,6 +632,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 samp.vts = coda::as.mcmc(save.Ut),
                 n.burn=n.burn,n.mcmc=n.mcmc)
   }
+
+  retlist$backend <- list(mcmc = mcmc_backend, mode = cpp_mcmc_mode)
 
   # return results
   class(retlist) <- "exdqlmMCMC"

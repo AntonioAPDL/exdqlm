@@ -45,6 +45,14 @@ update_theta_cpp <- function(GG, m0, C0, ex_f, ex_q, FF, y, ex_df_mat, ex_df_mat
     .Call(`_exdqlm_update_theta_cpp`, GG, m0, C0, ex_f, ex_q, FF, y, ex_df_mat, ex_df_mat_k, Ones, p, J, ppx, TT, k, dM)
 }
 
+mcmc_ffbs_smooth_cpp <- function(GG, m0, C0, FF, y, ex_f, ex_q, df_mat) {
+    .Call(`_exdqlm_mcmc_ffbs_smooth_cpp`, GG, m0, C0, FF, y, ex_f, ex_q, df_mat)
+}
+
+mcmc_ffbs_sample_cpp <- function(GG, m0, C0, FF, y, ex_f, ex_q, df_mat) {
+    .Call(`_exdqlm_mcmc_ffbs_sample_cpp`, GG, m0, C0, FF, y, ex_f, ex_q, df_mat)
+}
+
 sample_truncnorm <- function(n_samp, TT, sts_mu, sts_sig2) {
     .Call(`_exdqlm_sample_truncnorm`, n_samp, TT, sts_mu, sts_sig2)
 }
