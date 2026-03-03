@@ -174,6 +174,42 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mcmc_ffbs_smooth_cpp
+Rcpp::List mcmc_ffbs_smooth_cpp(const arma::cube& GG, const arma::vec& m0, const arma::mat& C0, const arma::mat& FF, const arma::vec& y, const arma::vec& ex_f, const arma::vec& ex_q, const arma::mat& df_mat);
+RcppExport SEXP _exdqlm_mcmc_ffbs_smooth_cpp(SEXP GGSEXP, SEXP m0SEXP, SEXP C0SEXP, SEXP FFSEXP, SEXP ySEXP, SEXP ex_fSEXP, SEXP ex_qSEXP, SEXP df_matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type m0(m0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type C0(C0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_f(ex_fSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_q(ex_qSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type df_mat(df_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcmc_ffbs_smooth_cpp(GG, m0, C0, FF, y, ex_f, ex_q, df_mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mcmc_ffbs_sample_cpp
+Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG, const arma::vec& m0, const arma::mat& C0, const arma::mat& FF, const arma::vec& y, const arma::vec& ex_f, const arma::vec& ex_q, const arma::mat& df_mat);
+RcppExport SEXP _exdqlm_mcmc_ffbs_sample_cpp(SEXP GGSEXP, SEXP m0SEXP, SEXP C0SEXP, SEXP FFSEXP, SEXP ySEXP, SEXP ex_fSEXP, SEXP ex_qSEXP, SEXP df_matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type m0(m0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type C0(C0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_f(ex_fSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_q(ex_qSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type df_mat(df_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcmc_ffbs_sample_cpp(GG, m0, C0, FF, y, ex_f, ex_q, df_mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sample_truncnorm
 Rcpp::NumericMatrix sample_truncnorm(int n_samp, int TT, Rcpp::NumericVector sts_mu, Rcpp::NumericVector sts_sig2);
 RcppExport SEXP _exdqlm_sample_truncnorm(SEXP n_sampSEXP, SEXP TTSEXP, SEXP sts_muSEXP, SEXP sts_sig2SEXP) {
@@ -424,6 +460,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_compute_cholesky", (DL_FUNC) &_exdqlm_compute_cholesky, 2},
     {"_exdqlm_H_t_k_r", (DL_FUNC) &_exdqlm_H_t_k_r, 4},
     {"_exdqlm_update_theta_cpp", (DL_FUNC) &_exdqlm_update_theta_cpp, 16},
+    {"_exdqlm_mcmc_ffbs_smooth_cpp", (DL_FUNC) &_exdqlm_mcmc_ffbs_smooth_cpp, 8},
+    {"_exdqlm_mcmc_ffbs_sample_cpp", (DL_FUNC) &_exdqlm_mcmc_ffbs_sample_cpp, 8},
     {"_exdqlm_sample_truncnorm", (DL_FUNC) &_exdqlm_sample_truncnorm, 4},
     {"_exdqlm_sample_gig_devroye_vector", (DL_FUNC) &_exdqlm_sample_gig_devroye_vector, 4},
     {"_exdqlm_sample_multivariate_normal", (DL_FUNC) &_exdqlm_sample_multivariate_normal, 6},
