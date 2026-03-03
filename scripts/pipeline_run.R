@@ -95,6 +95,20 @@ deep_merge <- function(a,b){
   } else b
 }
 
+resolve_spec_path <- function(spec_name) {
+  if (is.null(spec_name) || !nzchar(spec_name)) return(NULL)
+  s <- trimws(as.character(spec_name))
+  if (!nzchar(s)) return(NULL)
+  cand <- unique(c(
+    s,
+    file.path("config", "specs", s),
+    file.path("config", "specs", paste0(s, ".yaml")),
+    file.path("config", "specs", paste0(s, ".yml"))
+  ))
+  for (p in cand) if (file.exists(p)) return(p)
+  NULL
+}
+
 cfg <- defaults
 mode_key <- tolower(mode_ds %||% cfg$pipeline$mode %||% "")
 if (nzchar(mode_key) && !is.null(cfg$mode_overrides) && !is.null(cfg$mode_overrides[[mode_key]])) {
@@ -106,6 +120,20 @@ ds_cfg$slug <- NULL
 ds_cfg$input_path <- NULL
 ds_cfg$mode <- NULL
 cfg <- deep_merge(cfg, ds_cfg)
+
+spec_path <- resolve_spec_path(spec_name)
+if (!is.null(spec_path)) {
+  spec_cfg <- yaml::read_yaml(spec_path)
+  if (is.null(spec_cfg)) spec_cfg <- list()
+  if (!is.list(spec_cfg)) stop("Spec YAML must be a mapping/list: ", spec_path)
+  cfg <- deep_merge(cfg, spec_cfg)
+  message("[pipeline_run] loaded spec overrides: ", spec_path)
+} else {
+  message(
+    "[pipeline_run] spec '", spec_name,
+    "' has no YAML in config/specs; using defaults + dataset overrides only."
+  )
+}
 
 fix_bool_keys <- function(x) {
   if (is.null(x) || !is.list(x)) return(x)
@@ -330,7 +358,7 @@ manifest <- list(
   started_at = as.character(Sys.time()),
   dataset    = list(slug = slug, input_path = normalizePath(input_path), input_sha256 = inp_sha, mode = mode_eff),
   git        = list(sha = git_sha, branch = git_branch, dirty = git_dirty),
-  suite      = suite_name, spec = spec_name, cfg_hash = cfg_hash,
+  suite      = suite_name, spec = spec_name, spec_file = spec_path %||% NA_character_, cfg_hash = cfg_hash,
   host       = as.list(Sys.info()[c("nodename","sysname","release")]),
   orchestrate= cfg$orchestrate
 )
@@ -380,6 +408,7 @@ cat(sprintf("== EXDQLM run started at %s ==\n", format(Sys.time(), "%Y-%m-%d %H:
 cat("Repo root: ", repo_root, "\n")
 cat("Run dir:   ", run_dir, "\n")
 cat("Spec:      ", spec_name, "\n")
+cat("Spec file: ", spec_path %||% "none", "\n")
 cat("Dataset:   ", slug, " (", input_path, ")  mode=", mode_eff, "\n", sep = "")
 cat("Threads:   ", env$OMP_NUM_THREADS, "\n\n", sep = "")
 cat("Out dir:   ", env$EXDQLM_OUT_DIR, "\n", sep = "")
