@@ -1,13 +1,32 @@
+/*
+ * C++ FFBS kernels for dynamic MCMC state updates in exdqlm.
+ *
+ * Exports:
+ * - mcmc_ffbs_smooth_cpp(...): forward filter + backward smoother moments.
+ * - mcmc_ffbs_sample_cpp(...): forward filter + backward simulation draw.
+ *
+ * Contract:
+ * - Implements the same FFBS algebra used by the legacy R MCMC helpers.
+ * - Output field names intentionally match R-side consumers.
+ *
+ * Numerical policy:
+ * - Covariance matrices are symmetrized after each update.
+ * - SVD-based inversion is used for forecast covariance stabilization.
+ * - Invalid/non-positive scalar forecast variances are floored at 1e-12.
+ */
+
 #include <RcppArmadillo.h>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
 namespace {
 
+// Enforce exact symmetry after floating-point matrix algebra.
 arma::mat symmetrize(const arma::mat& M) {
   return 0.5 * (M + M.t());
 }
 
+// Robust inverse via SVD with a singular-value floor.
 arma::mat svd_inv(const arma::mat& M, double tol = 1e-12) {
   arma::mat U, V;
   arma::vec s;
@@ -22,6 +41,7 @@ arma::mat svd_inv(const arma::mat& M, double tol = 1e-12) {
   return U * arma::diagmat(s_inv) * U.t();
 }
 
+// Draw N(mean, cov) using SVD on the symmetrized covariance.
 arma::vec mvn_svd_draw(const arma::vec& mean, const arma::mat& cov, double tol = 0.0) {
   arma::mat S = symmetrize(cov);
   arma::mat U, V;
@@ -41,6 +61,7 @@ arma::vec mvn_svd_draw(const arma::vec& mean, const arma::mat& cov, double tol =
 
 } // namespace
 
+// Deterministic FFBS pass: returns filtered and smoothed state moments.
 // [[Rcpp::export]]
 Rcpp::List mcmc_ffbs_smooth_cpp(const arma::cube& GG,
                                 const arma::vec& m0,
@@ -63,6 +84,7 @@ Rcpp::List mcmc_ffbs_smooth_cpp(const arma::cube& GG,
   arma::cube sC(p, p, TT, arma::fill::zeros);
   arma::vec sfe(TT, arma::fill::zeros);
 
+  // Forward filtering recursion.
   for (int t = 0; t < TT; ++t) {
     arma::vec a;
     arma::mat P;
@@ -86,6 +108,7 @@ Rcpp::List mcmc_ffbs_smooth_cpp(const arma::cube& GG,
     sfe(t) = (y(t) - f) / std::sqrt(q);
   }
 
+  // Backward smoothing recursion (Rauch-Tung-Striebel form).
   sm.col(TT - 1) = m.col(TT - 1);
   sC.slice(TT - 1) = C.slice(TT - 1);
   for (int t = TT - 2; t >= 0; --t) {
@@ -106,6 +129,7 @@ Rcpp::List mcmc_ffbs_smooth_cpp(const arma::cube& GG,
   );
 }
 
+// Stochastic FFBS pass: returns one backward-sampled state trajectory.
 // [[Rcpp::export]]
 Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG,
                                 const arma::vec& m0,
@@ -127,6 +151,7 @@ Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG,
   arma::mat sam_theta(p, TT, arma::fill::zeros);
   arma::vec sfe(TT, arma::fill::zeros);
 
+  // Forward filtering recursion.
   for (int t = 0; t < TT; ++t) {
     arma::vec a;
     arma::mat P;
@@ -150,6 +175,7 @@ Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG,
     sfe(t) = (y(t) - f) / std::sqrt(q);
   }
 
+  // Backward simulation recursion.
   sam_theta.col(TT - 1) = mvn_svd_draw(m.col(TT - 1), C.slice(TT - 1), 0.0);
   for (int t = TT - 2; t >= 0; --t) {
     arma::mat P = GG.slice(t + 1) * C.slice(t) * GG.slice(t + 1).t();
@@ -168,4 +194,3 @@ Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG,
     Rcpp::Named("fC") = C
   );
 }
-
