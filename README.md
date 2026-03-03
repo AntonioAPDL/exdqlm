@@ -101,8 +101,8 @@ tail(fit$diagnostics$elbo, 3)
 | `exdqlm.use_cpp_builders` |  FALSE  | C++ matrix builders (`polytrendMod`, `seasMod`) | opt-in parity-tested builder speedups |
 | `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
 | `exdqlm.use_cpp_postpred` |  FALSE  | C++ posterior predictive sampler | optional speed path after parity checks  |
-| `exdqlm.use_cpp_mcmc`     |  FALSE  | MCMC backend routing             | opt-in MCMC acceleration path            |
-| `exdqlm.cpp_mcmc_mode`    | `strict`| MCMC mode (`strict`/`fast`)      | strict parity checks or fast C++ FFBS    |
+| `exdqlm.use_cpp_mcmc`     |  TRUE   | MCMC backend routing             | C++ FFBS by default for MCMC             |
+| `exdqlm.cpp_mcmc_mode`    | `fast`  | MCMC mode (`strict`/`fast`)      | strict parity checks or fast C++ FFBS    |
 
 Set with:
 
@@ -111,8 +111,8 @@ options(exdqlm.use_cpp_kf = TRUE)
 options(exdqlm.use_cpp_builders = FALSE)
 options(exdqlm.use_cpp_samplers = TRUE)
 options(exdqlm.use_cpp_postpred = FALSE)
-options(exdqlm.use_cpp_mcmc = FALSE)
-options(exdqlm.cpp_mcmc_mode = "strict")
+options(exdqlm.use_cpp_mcmc = TRUE)
+options(exdqlm.cpp_mcmc_mode = "fast")
 ```
 
 Backend control (minimal):
