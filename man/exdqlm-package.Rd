@@ -14,6 +14,8 @@ using the extended asymmetric Laplace error distribution (exDQLM).
 \itemize{
 \item \code{options(exdqlm.use_cpp_kf = TRUE|FALSE)} – C++ Kalman bridge (optional; default TRUE).
 \item \code{options(exdqlm.use_cpp_samplers = TRUE|FALSE)} – C++ samplers (optional; default FALSE).
+\item \code{options(exdqlm.use_cpp_mcmc = TRUE|FALSE)} – MCMC backend routing (optional; default TRUE).
+\item \code{options(exdqlm.cpp_mcmc_mode = "strict"|"fast")} – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
 }
 }
 
