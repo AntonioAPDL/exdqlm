@@ -708,7 +708,46 @@ Initial status snapshot from full run (`2026-03-04 19:42:06 PST`):
 
 ### Phase S4: Static Comparison and Signoff Gates
 
-- [ ] generate static comparison tables/plots (VB vs MCMC, AL vs exAL).
-- [ ] add convergence/mixing diagnostics summary and explicit acceptance gates.
-- [ ] add/extend tests for static reduced/full parity paths and diagnostics integrity.
+- [x] generate static comparison tables/plots (VB vs MCMC, AL vs exAL).
+- [x] add convergence/mixing diagnostics summary and explicit acceptance gates.
+- [x] add/extend tests for static reduced/full parity paths and diagnostics integrity.
 - [ ] update tracker with final static campaign settings and closure status.
+
+S4 implementation artifacts:
+
+- report script: `tools/merge_reports/20260305_static_vb_mcmc_report.R`
+- integration smoke test: `tests/testthat/test-static-vb-mcmc-pipeline-report-smoke.R`
+
+S4 smoke reporting run (completed on finished S3 smoke pipeline):
+
+- source run: `results/sim_suite_static/static_vb_then_mcmc_tt200_vbns80_burn30_n40_20260304_194114/`
+- generated tables:
+  - `tables/fit_metrics_by_task.csv`
+  - `tables/runtime_diagnostics_summary.csv`
+  - `tables/pairwise_exal_vs_al.csv`
+  - `tables/acceptance_gate_summary.csv`
+  - `tables/report_summary.md`
+- generated plots:
+  - `plots/fit_compare_tau_0p05.png`
+  - `plots/fit_compare_tau_0p50.png`
+  - `plots/fit_compare_tau_0p95.png`
+  - `plots/runtime_vb_mcmc_by_task.png`
+
+Static acceptance gates used in S4 smoke:
+
+- `VB converged` gate: `vb_converged == TRUE`
+- `MCMC ESS sigma` gate: `ESS_sigma >= 30`
+- `MCMC ESS gamma` gate (exAL only): `ESS_gamma >= 20`
+- `accuracy` gate: `RMSE(MCMC) <= 1.25 * RMSE(VB)`
+
+S4 smoke gate outcome:
+
+- pass count: `1 / 6` tasks
+- fail count: `5 / 6` tasks
+- dominant failures: low ESS in short-chain smoke budget and exAL VB `max_iter` stops at this smoke setting.
+
+Current S4 open closure item:
+
+- rerun S4 report and gate summary on the active full static run
+  (`results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_194203/`)
+  once all six static MCMC tasks finish.
