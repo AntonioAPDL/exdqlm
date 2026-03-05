@@ -1,362 +1,635 @@
-# DQLM Conjugacy Tracker (gamma = 0)
+# DQLM/AL Implementation Tracker (Static + Dynamic, MCMC + VB-CAVI)
 
 ## Document Control
 
-- Status: Pre-implementation tracker (theory + checklist), updated with branch/revert protocol.
-- Branch: `cransub/0.4.0`
-- Date: 2026-03-03
-- Objective: ensure DQLM mode (no gamma) is implemented with exact conjugate updates in MCMC and VB, for both dynamic and static setups, with correct ELBO and robust tests.
+- Status: Reduced-model + convergence-hardening implementation completed; full refit/figure regeneration executed, with final exDQLM convergence-gate signoff still pending. A new long-budget dynamic rerun is currently in progress (VB->MCMC, 6 tasks), and a static exAL/AL parity workstream is now queued for planning.
+- Active implementation branch: `jaguir26/dqlm-conjugacy-cavi-gibbs`
+- Baseline source branch for parity: `cransub/0.4.0` at `e18710a`
+- Date: 2026-03-04
 - Package repo: `/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp`
 
-## Mandatory Git Hygiene (Before Any Implementation)
+## Primary Goal
 
-This section operationalizes your instruction to start from a clean `cransub/0.4.0`, then branch out.
+Extend current package algorithms to support non-extended AL quantile regression (DQLM/BQR) in both static and dynamic settings, with mathematically correct Gibbs and VB-CAVI updates and robust tests.
 
-Current verified baseline on package repo:
+Critical model restriction for this tracker:
 
-- `cransub/0.4.0` HEAD and `origin/cransub/0.4.0` at commit `e18710a`.
-- There are local uncommitted DQLM-related edits in the working tree.
-- Revert target on `cransub/0.4.0` right now: none (no committed DQLM-conjugacy commit exists yet on this branch).
+- AL model is exAL with `gamma = 0`.
+- Reduced latent structure is `state or beta`, `sigma`, and `v_t` only.
+- There is no gamma inference block and no `s_t` block.
 
-Required workflow:
+## Project Constraints (As Requested)
 
-1. Preserve current local work on a safety branch.
-   - `git switch -c wip/dqlm-preconjugacy-20260303`
-   - `git add -A && git commit -m "wip(dqlm): pre-conjugacy local state snapshot"`
-2. Return baseline branch and hard-sync it to remote baseline.
-   - `git switch cransub/0.4.0`
-   - `git fetch origin`
-   - `git reset --hard origin/cransub/0.4.0`
-   - verify HEAD is `e18710a`
-3. Create implementation branch from clean baseline.
-   - `git switch -c jaguir26/dqlm-conjugacy-cavi-gibbs`
+1. Do not create a parallel new algorithm stack by default.
+2. Prefer extending current package files and code paths.
+3. Add helper utilities only where necessary (prefer existing `R/utils.R` patterns).
+4. Add C++ only if existing R/C++ wiring cannot be reused cleanly.
+5. No superficial solutions (for example, just setting `gamma=0` inside exDQLM formulas while still keeping full exDQLM latent blocks).
 
-Revert protocol if contamination happens:
+## Theory Source of Truth (New)
 
-- If any DQLM implementation commits are accidentally made directly on `cransub/0.4.0`, revert those exact hashes (newest first), then continue on the feature branch.
-- Do not revert unrelated historical commits (for example `f2dcdd0`, `0a8187f`) unless explicitly requested.
+Cloned repository:
 
-## Why This Tracker Exists
+- `/data/muscat_data/jaguir26/DQLM-and-BQR---Theory`
 
-When `dqlm.ind = TRUE` (or equivalently fixed `gamma = 0`), the model structure changes:
+Primary document:
 
-- There is no gamma parameter to infer.
-- There is no `s_t` latent block in the reduced DQLM model.
-- The sigma block is conjugate (GIG special case with `psi = 0`, i.e., inverse-gamma).
-- LD/Laplace-Delta approximations over `(sigma, gamma)` should not be used.
-- ELBO terms must be re-derived for the reduced factorization (no gamma block, no `s_t` block).
+- `/data/muscat_data/jaguir26/DQLM-and-BQR---Theory/main.tex`
 
-This tracker is the pre-implementation source of truth for:
+Key covered theory blocks in that document:
 
-- exact formulas to use,
-- what is already wired vs missing,
-- file-level checklist,
-- tests and acceptance gates.
+- Static BQR (AL) full posterior, Gibbs, CAVI, ELBO.
+- Dynamic DQLM (AL) full posterior, FFBS Gibbs, CAVI with variational Kalman smoother, ELBO.
 
-## External Theory Sources Reviewed
-
-All requested references are local and were checked:
+Additional consistency references:
 
 - `/data/muscat_data/jaguir26/univ-exDQLM---Ensemble/main.tex`
-- `/data/muscat_data/jaguir26/Static-exAL-Regression---VB/main.tex`
 - `/data/muscat_data/jaguir26/Static-exAL-Regression---MCMC/main.tex`
+- `/data/muscat_data/jaguir26/Static-exAL-Regression---VB/main.tex`
 
-## Notation for DQLM Branch
+## Canonical Reduced-AL Formulas to Implement
 
-Set `gamma = 0`. Define fixed constants:
+Let
 
-- `A0 = A(p0, 0)`
-- `B0 = B(p0, 0)`
-- `lambda0 = C(p0, 0) * |0| = 0`
+- `A = (1 - 2 p0) / (p0 (1 - p0))`
+- `B = 2 / (p0 (1 - p0))`
 
-Important: all gamma-dependent expectations collapse to constants at `gamma = 0`.
+### Static BQR Gibbs
 
-Reduced latent structure in DQLM:
+Model:
 
-- Parameters/states: location states or regression coefficients, `sigma`.
-- Augmentation variable: `v_t` only.
-- Removed from reduced model: `gamma`, `s_t`.
+- `y_t | beta, sigma, v_t ~ N(x_t^T beta + A v_t, sigma B v_t)`
+- `v_t | sigma ~ Exp(rate = 1/sigma)`
+- `sigma ~ IG(a0, b0)`
 
-## Canonical Conjugate Results to Enforce
+Full conditionals:
 
-### 1) Dynamic MCMC (DQLM, reduced model)
+- `beta | sigma, v, y` is Normal.
+- `sigma | beta, v, y ~ IG(a0 + 3n/2, b0 + sum(v_t) + sum((y_t - x_t^T beta - A v_t)^2 / (2 B v_t)))`.
+- `v_t | beta, sigma, y_t ~ GIG(1/2, chi_t, psi)` where
+  - `chi_t = (y_t - x_t^T beta)^2 / (sigma B)`
+  - `psi = A^2/(sigma B) + 2/sigma`.
 
-Reduced observation representation:
+### Dynamic DQLM Gibbs
 
-`y_t | eta_t, sigma, v_t ~ N(eta_t + A0 v_t, B0 sigma v_t)`
+Model:
 
-`v_t | rest ~ GIG(1/2, chi_t, psi_t)` with:
+- `y_t | alpha_t, sigma, v_t ~ N(F_t^T alpha_t + A v_t, sigma B v_t)`
+- state evolution `alpha_t | alpha_{t-1}` Gaussian.
 
-- `chi_t = (y_t - eta_t)^2 / (B0 sigma)`
-- `psi_t = A0^2 / (B0 sigma) + 2 / sigma`
+Full conditionals:
 
-From dynamic exDQLM sigma conditional (GIG form), with `gamma = 0`:
+- `alpha_{0:T} | sigma, v, y` by FFBS using pseudo-data
+  - `y_t_tilde = y_t - A v_t`
+  - `R_t = sigma B v_t`.
+- `sigma | alpha_{0:T}, v, y` same IG form with `eta_t = F_t^T alpha_t`.
+- `v_t | alpha_t, sigma, y_t` same GIG form with `r_t = y_t - F_t^T alpha_t`.
 
-- `u_t = C(p0, 0) * |0| * s_t = 0`, so `psi_sigma = 0`.
-- Sigma conditional becomes inverse-gamma:
+### Static VB-CAVI
 
-`q*(sigma | rest) = IG(alpha_dyn, beta_dyn)`
+Factorization:
 
-with
+- `q(beta) q(sigma) prod_t q(v_t)`.
 
-- `alpha_dyn = a_sigma + 3T/2`
-- `beta_dyn = b_sigma + sum_t v_t + (1/(2B0)) * sum_t ((y_t - eta_t - A0 v_t)^2 / v_t)`
+Closed-form updates:
 
-Equivalent GIG view: `GIG(k = -(a_sigma + 3T/2), chi = 2*beta_dyn, psi = 0)`.
+- `q(beta)` Normal with weighted least squares structure.
+- `q(v_t) = GIG(1/2, chi_t, psi)` using
+  - `chi_t = (kappa/B) E[(y_t - x_t^T beta)^2]`
+  - `psi = kappa (2 + A^2/B)`
+  - `kappa = E[1/sigma] = a_sigma / b_sigma`.
+- `q(sigma) = IG(a_sigma, b_sigma)` with
+  - `a_sigma = a0 + 3n/2`
+  - `b_sigma = b0 + sum(nu_t) + (1/(2B)) sum( ell_t E[r_t^2] - 2A E[r_t] + A^2 nu_t )`.
 
-Consequences in DQLM dynamic Gibbs:
+### Dynamic VB-CAVI
 
-- no MH step for gamma,
-- no `s_t` sampling/storage block,
-- full Gibbs chain over `{location states, v_t, sigma}`.
+Factorization:
 
-### 2) Static MCMC (DQLM, reduced model)
+- `q(alpha_{0:T}) q(sigma) prod_t q(v_t)`.
 
-From static exAL sigma conditional:
+Closed-form updates:
 
-- general: `sigma | . ~ GIG(k_sigma, chi_sigma, psi_sigma)`
-- at `gamma = 0`: `psi_sigma = 0`, so inverse-gamma.
+- `q(alpha_{0:T})` via variational Kalman smoothing with
+  - pseudo-observation `y_t_star = y_t - A / ell_t`
+  - observation variance `R_t_star = B / (kappa ell_t)`.
+- `q(v_t)` and `q(sigma)` have the same structural forms as static, replacing residual moments with dynamic smoothed moments.
 
-`q*(sigma | rest) = IG(alpha_stat, beta_stat)`
+## Equation-to-Code Map (Locked)
 
-with
-
-- `alpha_stat = a_sigma + 3n/2`
-- `beta_stat = b_sigma + sum_i v_i + (1/(2B0)) * sum_i ((y_i - x_i^T beta - A0 v_i)^2 / v_i)`
-
-### 3) Dynamic VB (CAVI, DQLM)
-
-Factorization must reduce to:
-
-`q(alpha_{0:T}) * prod_t q(v_t) * q(sigma)`
-
-There is no `q(gamma)` and no `q(s_t)` block.
-
-Parameter block reduces to univariate conjugate `q(sigma)`:
-
-`q*(sigma) = IG(alpha_vb_dyn, beta_vb_dyn)`
-
-where
-
-- `alpha_vb_dyn = a_sigma + 3T/2`
-- `beta_vb_dyn = b_sigma + D3 + (D1 - 2 A0 D2 + A0^2 D3)/(2 B0)`
-
-and dynamic summary terms are those in `univ-exDQLM---Ensemble/main.tex`:
-
-- `D1 = sum_t S_{Delta,t} * E[1/v_t]`
-- `D2 = sum_t m_{Delta,t}`
-- `D3 = sum_t E[v_t]`
-
-Moment formulas for CAVI coupling:
-
-- `E[1/sigma] = alpha_vb_dyn / beta_vb_dyn`
-- `E[sigma] = beta_vb_dyn / (alpha_vb_dyn - 1)` (requires `alpha_vb_dyn > 1`)
-- `E[log sigma] = log(beta_vb_dyn) - digamma(alpha_vb_dyn)`
-
-Kappa simplifications in DQLM:
-
-- `kappa4 = kappa5 = kappa6 = 0`
-- `kappa1 = E[1/sigma] / B0`
-- `kappa2 = A0 * E[1/sigma] / B0`
-- `kappa3 = A0^2 * E[1/sigma] / B0`
-
-Implication: DQLM CAVI updates for `q(alpha)` and `q(v_t)` must be written directly from the reduced model, not by carrying an `s_t` block and setting gamma terms to zero.
-
-### 4) Static VB (CAVI, DQLM)
-
-Factorization must reduce to:
-
-`q(beta) * prod_i q(v_i) * q(sigma)`
-
-There is no `q(gamma)` and no `q(s_i)` block.
-
-From static joint kernel, setting `gamma = 0` and removing `s_i` terms:
-
-`q*(sigma) = IG(alpha_vb_stat, beta_vb_stat)`
-
-with
-
-- `alpha_vb_stat = a_sigma + 3n/2`
-- `beta_vb_stat = b_sigma + sum_i E[v_i] + (1/(2B0)) * sum_i Ri`
-
-and
-
-- `Ri = E[(y_i - x_i^T beta - A0 v_i)^2 / v_i]`
-- using current VB moments:
-  - `Ri = (y_i - x_i^T m_beta)^2 + x_i^T V_beta x_i - 2 (y_i - x_i^T m_beta) A0 + A0^2`
-
-Same sigma moments as above apply.
-
-## ELBO Changes Required in DQLM Branch
-
-For both dynamic and static VB:
-
-1. Remove/disable Laplace-Delta entropy and Jacobian terms for gamma.
-2. Remove `s_t`/`s_i` prior and entropy ELBO blocks entirely.
-3. Replace parameter block by:
-   - `E[log p(sigma)] + log p(gamma = 0)` (gamma term is constant if treated degenerate).
-4. Use IG entropy for `q(sigma)`:
-   - `H[q(sigma)] = alpha + log(beta) + lgamma(alpha) - (1 + alpha) * digamma(alpha)`
-5. All gamma-dependent expectation terms should be deterministic constants at `gamma = 0`.
-6. ELBO diagnostics should not report gamma variational uncertainty in DQLM mode.
-
-ELBO emphasis and guardrails:
-
-- DQLM ELBO must be treated as a different objective from exDQLM ELBO because the latent/parameter factorization changes.
-- Any inherited exDQLM ELBO term involving `s_t`, `gamma`, Jacobian, or LD covariance is a red flag in DQLM mode.
-- Add ELBO component-level unit checks (not only total ELBO trend) to avoid silent algebra mistakes.
-
-## Current Package Status (Audit Snapshot)
-
-Status legend:
-
-- `Implemented`: present in code path.
-- `Partial`: behavior exists but not yet fully conjugate/clean by this spec.
-- `Missing`: not implemented by this spec.
-
-| Area | Status | Audit notes |
+| Theory block | Implemented in code | Notes |
 |---|---|---|
-| Dynamic MCMC DQLM (`R/exdqlmMCMC.R`) | Implemented | Uses reduced DQLM Gibbs path with no gamma/no `s_t`, conjugate IG sigma. |
-| Dynamic VB-IS DQLM (`R/exdqlmISVB.R`) | Missing (for reduced DQLM spec) | Still keeps exDQLM-style factors (`s_t`, IS over sigma/gamma-style block logic). Needs reduced CAVI derivation and coding. |
-| Dynamic VB-LD DQLM (`R/exdqlmLDVB.R`) | Partial (working tree) | Conjugate sigma branch exists, but DQLM still needs strict reduced-factorization treatment (no `s_t` block in CAVI/ELBO). |
-| Static MCMC DQLM (`R/exal_static_mcmc.R`) | Partial (working tree) | Conjugate sigma branch exists; still needs confirmation of reduced no-`s_i` implementation path. |
-| Static VB-LD DQLM (`R/exal_static_LDVB.R`) | Partial (working tree) | Conjugate sigma and entropy branch exist; still needs reduced no-`s_i` CAVI/ELBO path. |
-| DQLM logic coercion (`R/utils.R::check_logics`) | Implemented | Correctly coerces `fix.gamma = TRUE`, `gam.init = 0` when `dqlm.ind = TRUE`. |
+| Dynamic reduced CAVI core (`q(alpha) q(sigma) prod q(v)`) | `R/utils.R` in `.run_dynamic_dqlm_cavi()` | Shared by `exdqlmISVB()` and `exdqlmLDVB()` when `dqlm.ind=TRUE`. |
+| Dynamic pseudo-observation update (`y_t^*`, `R_t^*`) | `R/utils.R` in `.run_dynamic_dqlm_cavi()` | Uses `ex.f = A / E[v^{-1}]` and `ex.q = B / (kappa E[v^{-1}])`. |
+| Dynamic `q(v_t)` GIG (`lambda=1/2`) | `R/utils.R` in `.run_dynamic_dqlm_cavi()` | Closed-form moments with stable `E[log v_t]`. |
+| Dynamic `q(sigma)` IG update | `R/utils.R` in `.run_dynamic_dqlm_cavi()` | Matches reduced AL derivation (`a0 + 3T/2`, expected-rate term). |
+| Static reduced Gibbs (`beta`, `sigma`, `v`) | `R/exal_static_mcmc.R` in `if (dqlm.ind)` branch | No gamma or `s` latent block in reduced branch. |
+| Static reduced CAVI (`q(beta) q(sigma) prod q(v)`) | `R/utils.R` in `.run_static_dqlm_cavi()` and `R/exal_static_LDVB.R` dispatch | No Laplace-Delta block in reduced branch. |
+| `dqlm.int`/`dqlm.ind` propagation fix | `R/exdqlmISVB.R`, `R/exdqlmLDVB.R`, `R/exdqlmMCMC.R` | Coercion now flows into active branching logic. |
+| Dynamic wrapper dispatch | `R/exdqlmISVB.R`, `R/exdqlmLDVB.R` | Both wrappers route reduced mode to shared conjugate core. |
 
-## Implementation Checklist (What Must Be True Before Merge)
+## ELBO Requirements (High Priority)
 
-### A) Dynamic MCMC DQLM
+This is the highest-risk part and must be validated term-by-term.
 
-- [ ] Confirm sigma full conditional exactly matches `IG(alpha_dyn, beta_dyn)` derivation.
-- [ ] Confirm no gamma MH step executes in DQLM mode.
-- [ ] Confirm no `s_t` object is sampled/stored/used in DQLM branch.
-- [ ] Confirm `v_t` update uses reduced DQLM conditional (no `s_t` terms).
-- [ ] Add/strengthen test asserting all `samp.gamma == 0` when applicable output exists.
+For both static and dynamic reduced-AL VB:
 
-### B) Dynamic VB-LD DQLM
+1. ELBO decomposition must match reduced factorization:
+   - static: beta + sigma + v blocks.
+   - dynamic: alpha + sigma + v blocks.
+2. No gamma/Jacobian/Laplace terms.
+3. No `s_t` prior/likelihood/entropy terms.
+4. IG entropy and prior terms must match package parameterization
+   - `p(sigma) propto sigma^{-(a+1)} exp(-b/sigma)`.
+5. GIG entropy uses exact expression for `lambda=1/2` and stable handling of `E[log v_t]`.
+6. Add ELBO component diagnostics (not only total ELBO) in tests.
 
-- [ ] Ensure DQLM branch never calls LD mode optimization for `(sigma, gamma)`.
-- [ ] Confirm `q(sigma)` update uses exact conjugate IG parameters from DQLM kernel.
-- [ ] Confirm all gamma-dependent moments are constants at `gamma = 0`.
-- [ ] Confirm no `q(s_t)` update exists in DQLM mode.
-- [ ] Confirm ELBO branch excludes LD Jacobian/2D entropy and all `s_t` blocks in DQLM mode.
-- [ ] Confirm returned objects clearly indicate degenerate gamma (`E.gam = 0`, var = 0 or omitted).
+## Current Package Baseline Audit (Before Implementation)
 
-### C) Dynamic VB-IS DQLM
+### What is already aligned
 
-- [ ] Replace exDQLM-style IS gamma/sigma block by reduced DQLM conjugate `q(sigma)`.
-- [ ] Remove `q(s_t)` in DQLM mode and re-derive `q(alpha), q(v_t)` from reduced model.
-- [ ] Align ELBO computation with reduced DQLM blocks (`alpha`, `v`, `sigma` only).
-- [ ] Keep output schema backward-compatible.
+- Dynamic MCMC has a dedicated DQLM path in `R/exdqlmMCMC.R` with no `s_t` update and IG sigma update (conceptually aligned).
+- FFBS infrastructure already exists and is reusable.
 
-### D) Static MCMC DQLM
+### Critical incongruencies found
 
-- [ ] Confirm static sigma IG formula uses correct `A0, B0` and latent terms.
-- [ ] Confirm gamma fixed exactly at zero in all samples/returns.
-- [ ] Confirm no `s_i` object is sampled/stored/used in DQLM branch.
+1. `check_logics` coercion is not fully propagated in core functions.
+   - In `R/exdqlmMCMC.R`, `R/exdqlmISVB.R`, `R/exdqlmLDVB.R`, code assigns `dqlm.int = rv$dqlm.ind` but later logic uses `dqlm.ind`.
+   - This can bypass intended coercion behavior from `check_logics`.
+2. Static algorithms currently remain exAL-oriented.
+   - `R/exal_static_mcmc.R` and `R/exal_static_LDVB.R` do not currently expose a reduced-model DQLM branch in this clean baseline.
+3. Dynamic VB implementations remain exDQLM-oriented.
+   - `R/exdqlmISVB.R` and `R/exdqlmLDVB.R` still keep gamma/s_t-centered structures and ELBO terms.
+4. Return-object semantics are mixed between exDQLM and DQLM modes and need formal reduced-model contract.
 
-### E) Static VB-LD DQLM
+These are not implementation blockers; they are expected targets for phased fixes.
 
-- [ ] Confirm no Laplace-Delta optimization in DQLM branch.
-- [ ] Confirm sigma moments and entropy match IG formulas.
-- [ ] Confirm no `q(s_i)` update exists in DQLM mode.
-- [ ] Confirm ELBO decomposition uses reduced DQLM blocks only.
+## Phase-by-Phase Implementation Plan
 
-### F) Documentation and User-Facing Behavior
+### Phase 0: Theory Lock + Equation Mapping
 
-- [ ] Update `man/*.Rd` for DQLM branch behavior (conjugate sigma, gamma fixed).
-- [ ] Clarify in docs that GIG with `psi = 0` is inverse-gamma in this parameterization.
-- [ ] Add a short algorithm note in package docs for DQLM dynamic/static MCMC and VB.
+Deliverables:
 
-## Test Plan (Must Exist Before Sign-Off)
+- map each formula in `DQLM-and-BQR---Theory/main.tex` to concrete package code blocks.
+- freeze parameterization conventions (`IG`, `GIG`, residual definitions).
 
-### Unit tests
+Checklist:
 
-- [ ] Dynamic MCMC DQLM: gamma fixed at 0, finite sigma draws, stable posterior predictive draws.
-- [ ] Dynamic LDVB DQLM: gamma fixed at 0, sigma moments finite, ELBO finite and stable.
-- [ ] Static MCMC DQLM: gamma fixed at 0 and sigma finite.
-- [ ] Static LDVB DQLM: gamma fixed at 0, sigma shape/scale valid.
-- [ ] Dynamic/static DQLM: explicit test that no `s_t`/`s_i` latent block is present in DQLM code path.
+- [x] equation map table added in this tracker.
+- [x] all symbols mapped to current variable names (`a_tau`, `b_tau`, `Ut`, etc.).
+- [x] ELBO term dictionary locked.
 
-### Formula-consistency tests
+### Phase 1: Baseline Hygiene and Control Path Fixes
 
-- [ ] Given frozen latent states, compare computed sigma posterior params against hand-calculated formulas.
-- [ ] Given frozen state moments, compare reduced DQLM CAVI updates (`q(v)`, `q(sigma)`) against hand derivation.
-- [ ] Check IG moment identities numerically:
-  - `E[1/sigma] = alpha/beta`
-  - `E[log sigma] = log(beta) - digamma(alpha)`
-
-### Integration tests
-
-- [ ] DQLM runs end-to-end for both dynamic and static paths without gamma-related errors.
-- [ ] DQLM output schemas are valid for downstream plotting/forecasting/summary utilities.
-- [ ] DQLM runs end-to-end without any `s_t`/`s_i` dependencies.
-
-### Regression tests
-
-- [ ] Existing exDQLM (gamma free) tests remain green.
-- [ ] No behavior drift in non-DQLM branches.
-
-## Acceptance Gates
-
-### Gate G1: Theory lock
-
-- [ ] Dynamic and static DQLM sigma formulas approved.
-- [ ] Reduced-model (no gamma/no `s_t`) CAVI/Gibbs formulas approved.
-- [ ] ELBO DQLM modifications approved with component checks.
-
-### Gate G2: Implementation lock
-
-- [ ] All target files updated and documented.
-- [ ] No remaining code paths using LD block in DQLM mode.
-- [ ] No remaining code paths using `s_t`/`s_i` blocks in DQLM mode.
-
-### Gate G3: Validation lock
-
-- [ ] New DQLM tests pass.
-- [ ] Full `devtools::test()` passes.
-
-### Gate G4: Parity lock
-
-- [ ] DQLM results are numerically consistent with intended R reference behavior.
-- [ ] Dynamic and static DQLM are both fully wired for package workflows.
-
-## File-Level Work Map
-
-Primary package files expected to be touched during implementation:
+Target files:
 
 - `R/exdqlmMCMC.R`
+- `R/exdqlmISVB.R`
+- `R/exdqlmLDVB.R`
+- `R/utils.R`
+
+Checklist:
+
+- [x] fix `dqlm.int` vs `dqlm.ind` propagation.
+- [x] enforce deterministic DQLM mode contract at entry points.
+- [x] add unit tests for logic coercion.
+
+### Phase 2: Static MCMC Reduced-AL Branch
+
+Target file:
+
+- `R/exal_static_mcmc.R`
+
+Checklist:
+
+- [x] add explicit DQLM branch (`no gamma`, `no s`).
+- [x] implement static Gibbs updates exactly as theory.
+- [x] preserve existing exAL path unchanged.
+
+### Phase 3: Static VB-CAVI Reduced-AL Branch
+
+Target file:
+
+- `R/exal_static_LDVB.R` (or refactor naming while keeping file continuity)
+
+Checklist:
+
+- [x] add reduced factorization `q(beta) q(sigma) prod q(v)`.
+- [x] implement static closed-form CAVI updates from theory.
+- [x] implement static ELBO decomposition for reduced model.
+- [x] keep exAL branch intact.
+
+### Phase 4: Dynamic MCMC Validation + Consolidation
+
+Target file:
+
+- `R/exdqlmMCMC.R`
+
+Checklist:
+
+- [x] verify exact formula parity against new theory for DQLM path.
+- [x] add targeted tests on sigma IG parameters and v GIG parameters.
+- [x] verify FFBS interfaces remain unchanged for downstream callers.
+
+### Phase 5: Dynamic VB-CAVI Reduced-AL Branch
+
+Target files:
+
+- `R/exdqlmISVB.R`
+- `R/exdqlmLDVB.R`
+
+Checklist:
+
+- [x] implement reduced DQLM CAVI (no gamma, no s) aligned with theory.
+- [x] decide whether to keep both ISVB/LDVB wrappers or centralize reduced CAVI core and reuse from both.
+- [x] implement variational pseudo-observation Kalman smoother update (`y_star`, `R_star`).
+
+### Phase 6: ELBO Hardening and Diagnostics
+
+Target files:
+
+- VB files above + tests
+
+Checklist:
+
+- [ ] ELBO term-by-term tests (static and dynamic).
+- [x] numerical stability checks for GIG moments and `E[log v]`.
+- [x] convergence checks based on ELBO + parameter deltas.
+
+### Phase 7: Wiring, Documentation, and Final Gates
+
+Target files:
+
+- `man/*.Rd` for modified functions
+- `tests/testthat/*`
+- this tracker
+
+Checklist:
+
+- [x] update function docs for reduced DQLM behavior.
+- [x] ensure outputs are consistent and backward-compatible.
+- [x] full `devtools::test()` pass.
+
+### Phase 8: exDQLM Convergence and Mixing Triage (New)
+
+Problem observed in current validation outputs:
+
+- exDQLM MCMC gamma traces show poor mixing / apparent non-convergence.
+- exDQLM VB gamma and sigma can plateau with ELBO still acceptable but parameter traces not stabilized enough.
+- Current stopping and tuning are not yet enforcing convergence quality needed for fair VB vs MCMC runtime comparison.
+
+Target files:
+
 - `R/exdqlmLDVB.R`
 - `R/exdqlmISVB.R`
-- `R/exal_static_mcmc.R`
-- `R/exal_static_LDVB.R`
+- `R/exdqlmMCMC.R`
 - `R/utils.R`
-- `man/exdqlmMCMC.Rd`
-- `man/exdqlmLDVB.Rd`
-- `man/exdqlmISVB.Rd`
-- `man/exal_static_mcmc.Rd`
-- `man/exal_static_LDVB.Rd`
-- `tests/testthat/test-ldvb-dqlm-gamma-fixed.R`
-- `tests/testthat/test-static-regression-regmod.R`
-- (plus any new DQLM-specific dynamic test files)
+- `tests/testthat/*`
 
-## Open Decisions
+Checklist:
 
-1. In return objects for DQLM mode, should gamma variance be explicit `0` or omitted/`NA` for cleaner semantics?
-2. Should DQLM-specific outputs explicitly expose reduced-factorization diagnostics (`alpha`, `v`, `sigma`) for clarity?
+- [x] create explicit convergence diagnostic summary object for dynamic and static exDQLM fits (ELBO, gamma, sigma, stop reason).
+- [x] add quantitative MCMC diagnostics in outputs (acceptance for MH blocks, ESS, optional R-hat-ready chain summaries).
+- [ ] define and lock acceptance criteria for "converged enough to compare speeds".
 
-## Hold Point
+### Phase 9: VB Stop-Rule Upgrade (Dynamic + Static exDQLM)
 
-Per your instruction, implementation is paused until your derivation document is provided.
+Goal: stop only when ELBO and key parameters are jointly stable.
 
-## Immediate Next Step (After Your Derivation Doc Arrives)
+Checklist:
 
-Execute implementation in this order:
+- [x] replace ELBO-only stopping with joint criteria:
+  - ELBO increment tolerance met.
+  - gamma delta tolerance met (exDQLM only).
+  - sigma delta tolerance met.
+- [x] add `min_iter` + consecutive-iterations guard (`patience`) to avoid premature stopping.
+- [x] ensure DQLM branch automatically disables gamma criterion (no gamma parameter).
+- [x] expose tolerances/options with backward-compatible defaults and document them.
+- [x] add tests where ELBO converges but gamma does not, ensuring algorithm continues.
 
-1. lock formulas from your derivation doc and map each to code blocks,
-2. clean/sync `cransub/0.4.0` and branch out using the protocol above,
-3. implement reduced DQLM Gibbs/CAVI (no gamma/no `s_t`) for dynamic and static,
-4. implement ELBO with component-level checks,
-5. add formula-consistency and integration tests,
-6. run full package tests,
-7. update tracker with final status and evidence.
+### Phase 10: MCMC exDQLM Mixing Hardening
+
+Goal: improve gamma/sigma mixing while preserving target posterior and backward compatibility.
+
+Checklist:
+
+- [x] implement robust MH tuning controls for gamma/sigma block (burn-in adaptation window, target acceptance band, bounds on proposal scale).
+- [x] store adaptation history and final tuned proposal covariance in fit output.
+- [x] add multi-chain validation helper for diagnostics-only runs (no API break for single-chain production path).
+- [x] add tests confirming proposal tuning behaves as expected and does not break existing interfaces.
+
+### Phase 11: VB Warm-Start for MCMC + Optional Laplace Proposal
+
+Goal: improve initial state for MCMC and evaluate whether Laplace proposal is needed.
+
+Checklist:
+
+- [x] add optional pre-initialization mode: run VB first and seed MCMC (`theta`, `sigma`, `gamma`) from converged VB moments/MAP.
+- [x] add explicit user controls: `init.from.vb`, `vb_init_controls`, and clear fallback behavior if VB init fails.
+- [ ] evaluate two MH proposal strategies on the same synthetic cases:
+  - tuned random-walk MH (baseline).
+  - Laplace-based independence proposal (optional experimental path).
+- [x] keep default path conservative: Laplace proposal only promoted to default if diagnostics clearly improve without regressions.
+
+### Phase 12: Refit Protocol and Final Comparison Gates
+
+Refits to run after phases 8-11 implementation and tests:
+
+- exDQLM VB: `tau in {0.05, 0.50, 0.95}`.
+- exDQLM MCMC: `tau in {0.05, 0.50, 0.95}` with increased iterations and tuned/warm-started initialization.
+- regenerate all comparison figures and metrics tables.
+
+Readiness checklist (must pass before accepting refits):
+
+- [x] VB convergence summary indicates joint ELBO/gamma/sigma stability for all taus.
+- [ ] MCMC diagnostics show acceptable mixing for gamma and sigma (no persistent pathological traces).
+- [x] updated figures clearly show uncertainty bands and overlap behavior.
+- [x] tests pass (`devtools::test()`), including new convergence and tuning tests.
+- [x] tracker updated with final settings used for reproducible refits.
+
+## Branching and Clean-Base Protocol for This New Scope
+
+Checklist:
+
+- [ ] ensure `cransub/0.4.0` is clean and fully synced before starting this convergence-hardening scope.
+- [ ] create dedicated feature branch from clean base (suggested: `jaguir26/exdqlm-convergence-hardening`).
+- [ ] if any temporary/patchy commits must be dropped, record exact commit hash and revert command in this tracker before coding.
+- [ ] implement phase-by-phase commits so each phase can be reviewed and bisected independently.
+
+## File Strategy (No Unnecessary New Files)
+
+Default strategy:
+
+- extend current algorithm files in place.
+- shared helper math can go into existing utility modules if repetition grows.
+
+Optional only-if-needed strategy:
+
+- add new C++ FFBS/VB kernels only if existing R/C++ cannot provide correct or maintainable behavior.
+- no speculative C++ expansion before correctness is established in tests.
+
+## Test Matrix (Planned)
+
+1. Logic tests
+- [x] `dqlm.ind` coercion works identically in MCMC/ISVB/LDVB.
+
+2. Static Gibbs tests
+- [x] conditional parameter checks for `sigma` IG and `v` GIG.
+- [x] gamma/s blocks absent in DQLM branch.
+
+3. Dynamic Gibbs tests
+- [x] FFBS + IG + GIG updates produce finite stable chains.
+
+4. Static CAVI tests
+- [x] closed-form update identities hold.
+- [x] ELBO terms finite and consistent.
+
+5. Dynamic CAVI tests
+- [x] `y_star` and `R_star` pseudo-model produces valid Kalman updates.
+- [ ] ELBO component checks pass.
+
+6. Regression tests
+- [x] exDQLM legacy paths unaffected.
+
+## Open Issues to Track Explicitly
+
+- [x] Decide reduced-DQLM output schema naming across `ISVB` and `LDVB` wrappers.
+- [x] Decide whether dynamic reduced CAVI should live in one shared internal core called by both public functions.
+- [ ] Validate whether any existing C++ helper can be safely reused for reduced CAVI state-update path without weakening ELBO diagnostics.
+- [ ] Define final default MH strategy for exDQLM gamma/sigma (`tuned RW` vs `Laplace proposal`) after benchmark diagnostics.
+- [ ] Lock final VB joint-stop default tolerances that work in both static and dynamic exDQLM.
+- [x] Finalize VB warm-start contract for MCMC without breaking backward compatibility.
+
+## Incongruency Log (to update during implementation)
+
+- I1: `dqlm.int` assignment typo not propagated to `dqlm.ind` logic branches. Resolved.
+- I2: Static routines currently exAL-first; reduced DQLM static path missing in clean baseline. Resolved.
+- I3: Dynamic VB paths still include exDQLM-specific latent structures in DQLM mode. Resolved.
+- I4: ELBO structures still include non-reduced terms in current VB implementations. Resolved for reduced branches; component-by-component ELBO diagnostics test coverage still pending.
+- I5: Reduced dynamic CAVI currently uses R Kalman smoother for full ELBO-state accounting; C++ state update reuse for this reduced branch is pending explicit diagnostic-safe validation.
+
+## Algebra Congruence Notes (exAL/exDQLM vs AL/DQLM)
+
+- Reduced model removes both gamma and `s_t` blocks entirely (not a superficial `gamma=0` patch inside exAL formulas).
+- For both static and dynamic reduced branches, the implemented updates match the reduced-AL derivations used in `DQLM-and-BQR---Theory/main.tex`.
+- In the package parameterization `p(sigma) propto sigma^{-(a+1)} exp(-b/sigma)`, the full conditional for `sigma` is inverse-gamma in both Gibbs and CAVI reduced branches.
+  - A GIG form for scale-related updates can arise under alternative parameterizations/transforms, but for this package parameterization the implemented IG form is the correct conjugate target.
+- ELBO reductions remove all gamma/Jacobian/Laplace terms and all `s_t` terms in reduced branches.
+
+## Execution Status for This Step
+
+Completed now:
+
+- [x] cloned theory repo locally.
+- [x] reviewed static and dynamic Gibbs/CAVI/ELBO derivations.
+- [x] implemented reduced-model dynamic CAVI core and wired ISVB/LDVB DQLM paths.
+- [x] implemented reduced-model static Gibbs and static CAVI DQLM paths.
+- [x] fixed `dqlm.ind` propagation typo in dynamic entry points.
+- [x] added reduced-path tests (`test-dqlm-reduced-paths.R`, `test-dqlm-vb-sim-smoke.R`).
+- [x] regenerated documentation (`devtools::document()`).
+- [x] full test suite pass (`devtools::test()`: PASS 1008, FAIL 0, WARN 0, SKIP 0).
+- [x] added simulation smoke plotting script:
+  - `tools/merge_reports/20260304_vb_quantile_smoke_plot.R`
+  - outputs in `results/sim_suite_dlm/dqlm_vb_smoke_20260304/`.
+
+Pending:
+
+- [ ] add explicit ELBO component-by-component assertions (not only finite/trace/consistency checks).
+- [ ] define hard acceptance gates for exDQLM MCMC ESS/acceptance before speed-comparison signoff.
+
+## Smoke Validation Evidence (2026-03-04)
+
+Automated (testthat):
+
+- `tests/testthat/test-dqlm-reduced-paths.R`
+- `tests/testthat/test-dqlm-vb-sim-smoke.R`
+- Full suite status: PASS 1008, FAIL 0, WARN 0, SKIP 0.
+
+Synthetic dynamic quantile fit comparison (LDVB):
+
+- Script: `tools/merge_reports/20260304_vb_quantile_smoke_plot.R`
+- Output directory: `results/sim_suite_dlm/dqlm_vb_smoke_20260304/`
+- Produced figures:
+  - `tau_0p05_fit_compare.png`
+  - `tau_0p50_fit_compare.png`
+  - `tau_0p95_fit_compare.png`
+- Summary metrics file:
+  - `results/sim_suite_dlm/dqlm_vb_smoke_20260304/metrics_summary.csv`
+
+Manual real-data smoke run (not a testthat gate):
+
+- Data: `scIVTmag[1:90]`
+- Model: `polytrendMod(1, quantile(y, 0.5), 10)`
+- Fitted `exdqlmLDVB` and reduced `dqlm.ind=TRUE` at `tau in {0.05, 0.5, 0.95}`.
+- All fits completed with finite outputs and iterations:
+  - `tau=0.05`: iter ex/dq = 12/25
+  - `tau=0.50`: iter ex/dq = 15/8
+  - `tau=0.95`: iter ex/dq = 19/11
+
+## Full Refit + Figure Regeneration (2026-03-04)
+
+Script:
+
+- `tools/merge_reports/20260305_full_vb_mcmc_validation.R`
+
+Locked rerun attempt (fit generation):
+
+- run config file: `results/function_testing_20260304_vb_quantiles/run_config.txt`
+- start: `2026-03-04 08:45:11`
+- fit completion timestamps (from saved fit files):
+  - VB all 6 done by `08:50:07`
+  - MCMC DQLM done by `10:31:05`
+  - MCMC exDQLM done by `11:14:31`
+- note: `tools/merge_reports/20260305_full_vb_mcmc_validation.log` stops after DQLM completion; parent logging process ended early while worker fits finished.
+
+Exact locked-rerun settings used (from `run_config.txt`):
+
+- `EXDQLM_CORES_VB=6`
+- `EXDQLM_CORES_MCMC=6`
+- `TT=5000` (full series)
+- VB: `tol=0.03`, `n_samp=300`, `max_iter=300`
+- VB joint-stop options:
+  - `exdqlm.tol_sigma=0.02`
+  - `exdqlm.tol_gamma=0.01`
+  - `exdqlm.tol_elbo=5`
+  - `exdqlm.vb.min_iter=30`
+  - `exdqlm.vb.patience=5`
+  - `exdqlm.vb.allow_elbo_drop=5`
+- MCMC: `n.burn=500`, `n.mcmc=1500`
+- MH tuning options:
+  - `mh.adapt.interval=25`
+  - `mh.target.accept=[0.25, 0.55]`
+  - `mh.scale.bounds=[0.02, 2.50]`
+  - `mh.max_scale.step=0.50`
+  - `mh.min_burn_adapt=25`
+
+Recovery pass (post-processing from existing fits):
+
+- script: `tools/merge_reports/20260305_postprocess_from_existing_fits.R`
+- log: `tools/merge_reports/20260305_postprocess_from_existing_fits.log`
+- start/end: `2026-03-04 14:55:22` to `2026-03-04 15:12:07`
+- recovered artifacts under `results/function_testing_20260304_vb_quantiles/`:
+  - `derived/`: 12 files
+  - `tables/`: `fit_summary.csv`, `metrics_summary.csv`, `vb_convergence_summary.csv`, `mcmc_diagnostics_summary.csv`
+  - `plots/`: 39 PNG files
+
+Post-recovery diagnostic note (locked rerun fit objects):
+
+- VB gate improved: all 6 VB fits have `stop_reason=joint_converged`.
+- exDQLM MCMC gamma mixing remains weak:
+  - `tau=0.05`: ESS gamma `2.08`
+  - `tau=0.50`: ESS gamma `9.84`
+  - `tau=0.95`: ESS gamma `1.79`
+- MH adaptation is active for exDQLM (non-zero adaptation history in fit objects; prior “not recording” concern was a diagnostics-field mismatch).
+
+exDQLM-only MCMC gate pass (focused rerun):
+
+- script: `tools/merge_reports/20260305_exdqlm_mcmc_gate_pass.R`
+- output root: `results/function_testing_20260304_vb_quantiles/gate_exdqlm_mcmc_20260305/`
+- log: `results/function_testing_20260304_vb_quantiles/gate_exdqlm_mcmc_20260305/logs/gate_run.log`
+- start/end: `2026-03-04 16:06:31` to `2026-03-04 16:52:01`
+- settings: `TT=5000`, `burn=150`, `n=450`, `cores=3`, `mh.proposal=laplace_rw`, `joint_sample=TRUE`
+- diagnostics table:
+  - `results/function_testing_20260304_vb_quantiles/gate_exdqlm_mcmc_20260305/tables/mcmc_exdqlm_gate_summary.csv`
+
+Focused gate-pass outcome:
+
+- adaptation recorded for all taus (`mh_adapt_steps=5`, non-NA `mh_scale_final`)
+- gamma ESS still below acceptance gate in all taus:
+  - `tau=0.05`: ESS gamma `1.23`
+  - `tau=0.50`: ESS gamma `6.35`
+  - `tau=0.95`: ESS gamma `2.09`
+
+## In-Flight Dynamic Rerun (Background, No Live Monitoring)
+
+Rerun requested and launched to re-evaluate DQLM/exDQLM under a longer burn-in and VB-first initialization:
+
+- script: `tools/merge_reports/20260305_vb_then_mcmc_pipeline.R`
+- tmux session: `vb_mcmc_rerun_bg`
+- run root: `results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_183508/`
+- fixed settings:
+  - `TT=5000`
+  - VB: `n.samp=1000` (run first for each model/tau)
+  - MCMC: `n.burn=2000`, `n.mcmc=1000`
+  - parallel layout: 6 cores (one pipeline per model/tau task)
+  - MCMC initialization: `init.from.vb=TRUE` with per-task `vb_init_fit`
+
+Status snapshot (`2026-03-04 19:13:58 PST`):
+
+| Model | Tau | Last stage | Stage timestamp | Notes |
+|---|---:|---|---|---|
+| DQLM | 0.05 | `MCMC_START` | `2026-03-04 18:40:42` | VB done (`runtime_sec=205.5`, `df=0.9950`) |
+| DQLM | 0.50 | `MCMC_START` | `2026-03-04 18:40:27` | VB done (`runtime_sec=191.0`, `df=0.9950`) |
+| DQLM | 0.95 | `MCMC_START` | `2026-03-04 18:40:36` | VB done (`runtime_sec=196.7`, `df=0.9950`) |
+| exDQLM | 0.05 | `MCMC_START` | `2026-03-04 18:43:27` | VB done (`runtime_sec=354.8`, `df=0.9950`) |
+| exDQLM | 0.50 | `MCMC_START` | `2026-03-04 18:41:29` | VB done (`runtime_sec=236.5`, `df=0.9950`) |
+| exDQLM | 0.95 | `MCMC_START` | `2026-03-04 18:43:33` | VB done (`runtime_sec=361.6`, `df=0.9950`) |
+
+Aggregate snapshot (`2026-03-04 19:13:58 PST`):
+
+- VB done: `6/6`
+- MCMC started: `6/6`
+- MCMC done: `0/6`
+- failed: `0/6`
+- process health: parent + 6 worker R processes active
+
+## Remaining Work (Dynamic Scope)
+
+Checklist to close current DQLM/exDQLM dynamic signoff once the in-flight run finishes:
+
+- [ ] wait for background rerun completion (`MCMC_DONE` for all 6 tasks, no failures).
+- [ ] run post-processing on the new rerun outputs:
+  - regenerate unified tables (`fit_summary`, `metrics_summary`, `vb_convergence_summary`, `mcmc_diagnostics_summary`).
+  - regenerate figures (within/between inference + traces) from this rerun only.
+- [ ] evaluate final exDQLM gamma/sigma mixing gate on this long-burn run (ESS + acceptance + trace quality).
+- [ ] lock final dynamic defaults:
+  - final MH strategy (`rw` vs `laplace_rw`) for exDQLM.
+  - final VB stop defaults (joint ELBO/sigma/gamma tolerances).
+- [ ] close remaining dynamic tracker gates and record exact final reproducible configuration.
+
+## New Requested Scope (Planned): Static exAL vs AL Parity Campaign
+
+User-requested extension (planning/documentation now; implementation deferred):
+
+- replicate the same analysis pattern used for dynamic DQLM/exDQLM, but in the static setting:
+  - exAL and AL regression
+  - VB and MCMC
+  - taus `{0.05, 0.50, 0.95}`
+  - VB-first initialization for MCMC
+  - full VB-vs-MCMC and exAL-vs-AL comparisons (fit, uncertainty, diagnostics, runtime).
+- normalize static algorithm outputs/diagnostics to match dynamic formatting/style where feasible.
+- produce a static simulation dataset generator aligned with the dynamic simulation format currently used:
+  - inspect and document how the current dynamic simulation data was produced.
+  - create static analog with known/approximate true quantile functions.
+  - preserve similar object layout so report tooling can be reused.
+- dataset specification details are explicitly pending and must be discussed/locked before coding.
+
+Proposed phase checklist for this new static campaign:
+
+### Phase S1: Static Simulation Spec + Data Generator Plan
+
+- [ ] locate and document dynamic simulation generator source used for current `sim_output.rds`.
+- [ ] draft static simulation schema mirroring dynamic data object structure.
+- [ ] define target true quantile functions and noise configuration for AL/exAL stress testing.
+- [ ] lock spec with explicit seed, TT/grid, covariates, and saved artifacts.
+
+### Phase S2: Static VB/MCMC Interface Normalization
+
+- [ ] align static fit return objects with dynamic-style diagnostics fields where possible.
+- [ ] align status logging and run metadata for static pipelines.
+- [ ] ensure backward-compatible function interfaces.
+
+### Phase S3: Static exAL/AL VB->MCMC Pipeline (3 Quantiles)
+
+- [ ] implement/prepare orchestrated run script for 6 static tasks:
+  - `{AL, exAL} x {0.05, 0.50, 0.95}`
+  - VB first, then MCMC seeded from VB fit.
+- [ ] support parallel execution with one task per core.
+- [ ] persist per-task status files and unified summary table.
+
+### Phase S4: Static Comparison and Signoff Gates
+
+- [ ] generate static comparison tables/plots (VB vs MCMC, AL vs exAL).
+- [ ] add convergence/mixing diagnostics summary and explicit acceptance gates.
+- [ ] add/extend tests for static reduced/full parity paths and diagnostics integrity.
+- [ ] update tracker with final static campaign settings and closure status.
