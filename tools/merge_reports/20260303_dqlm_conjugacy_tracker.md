@@ -706,6 +706,12 @@ Initial status snapshot from full run (`2026-03-04 19:42:06 PST`):
 - AL taus (`0.05`, `0.50`, `0.95`): `VB_DONE` then `MCMC_START`
 - exAL taus (`0.05`, `0.50`, `0.95`): `VB_START` recorded (MCMC pending at snapshot)
 
+Latest status snapshot (`2026-03-04 19:46:56 PST`):
+
+- AL taus (`0.05`, `0.50`, `0.95`): `MCMC_DONE` (ESS sigma ~`498-578` in this run).
+- exAL taus (`0.05`, `0.50`, `0.95`): still in VB phase (`VB_START` latest status lines).
+- aggregate: `MCMC_DONE=3/6`, `FAILED=0/6`, full-run still active in tmux session `static_vb_mcmc_rerun_bg`.
+
 ### Phase S4: Static Comparison and Signoff Gates
 
 - [x] generate static comparison tables/plots (VB vs MCMC, AL vs exAL).
@@ -745,6 +751,12 @@ S4 smoke gate outcome:
 - pass count: `1 / 6` tasks
 - fail count: `5 / 6` tasks
 - dominant failures: low ESS in short-chain smoke budget and exAL VB `max_iter` stops at this smoke setting.
+
+S4-related test bundle (`2026-03-04`):
+
+- `devtools::test(filter='dqlm-reduced-paths|static-regression-regmod|static-fit-normalization|static-vb-mcmc-pipeline-report-smoke')`
+  - `PASS 83, FAIL 0, WARN 0, SKIP 1`
+  - skip reason: pipeline/report script path unavailable in the test sandbox for one integration smoke test.
 
 Current S4 open closure item:
 
