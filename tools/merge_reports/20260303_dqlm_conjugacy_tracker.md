@@ -587,9 +587,9 @@ Checklist to close current DQLM/exDQLM dynamic signoff once the in-flight run fi
   - final VB stop defaults (joint ELBO/sigma/gamma tolerances).
 - [ ] close remaining dynamic tracker gates and record exact final reproducible configuration.
 
-## New Requested Scope (Planned): Static exAL vs AL Parity Campaign
+## New Requested Scope: Static exAL vs AL Parity Campaign
 
-User-requested extension (planning/documentation now; implementation deferred):
+User-requested extension:
 
 - replicate the same analysis pattern used for dynamic DQLM/exDQLM, but in the static setting:
   - exAL and AL regression
@@ -602,16 +602,47 @@ User-requested extension (planning/documentation now; implementation deferred):
   - inspect and document how the current dynamic simulation data was produced.
   - create static analog with known/approximate true quantile functions.
   - preserve similar object layout so report tooling can be reused.
-- dataset specification details are explicitly pending and must be discussed/locked before coding.
+- dataset specification ambiguity was resolved in S1 with two documented options; conservative default selected and locked.
 
 Proposed phase checklist for this new static campaign:
 
 ### Phase S1: Static Simulation Spec + Data Generator Plan
 
-- [ ] locate and document dynamic simulation generator source used for current `sim_output.rds`.
-- [ ] draft static simulation schema mirroring dynamic data object structure.
-- [ ] define target true quantile functions and noise configuration for AL/exAL stress testing.
-- [ ] lock spec with explicit seed, TT/grid, covariates, and saved artifacts.
+- [x] locate and document dynamic simulation generator source used for current `sim_output.rds`.
+- [x] draft static simulation schema mirroring dynamic data object structure.
+- [x] define target true quantile functions and noise configuration for AL/exAL stress testing.
+- [x] lock spec with explicit seed, TT/grid, covariates, and saved artifacts.
+
+S1 implementation artifacts (`2026-03-04`):
+
+- spec: `tools/merge_reports/20260305_static_exal_al_sim_spec.md`
+- generator: `tools/merge_reports/20260305_generate_static_exal_al_sim.R`
+- generator log: `tools/merge_reports/20260305_generate_static_exal_al_sim.log`
+- validator: `tools/merge_reports/20260305_validate_static_sim_schema.R`
+- validator log: `tools/merge_reports/20260305_validate_static_sim_schema.log`
+- generated dataset root:
+  - `results/sim_suite_static/series/static_exal_mildskew/`
+  - files: `sim_output.rds`, `series_wide.csv`, `series_long.csv`, `meta.txt`, `run_config.rds`
+  - validation outputs: `validation/schema_validation.txt`, `validation/schema_validation_summary.csv`
+
+Locked S1 defaults:
+
+- scenario: `static_exal_mildskew`
+- seed: `20260305`
+- `TT=5000`
+- `p_grid={0.01,0.05,0.10,...,0.95,0.99}` (21 levels)
+- static design:
+  - `X=[1, sin(2*pi*t/50), cos(2*pi*t/50), scaled_time]`
+  - `beta=(0.0, 2.0, -1.4, 0.6)`
+- DGP error: exAL with `p0_gen=0.50`, `sigma_true=3.0`, `gamma_true=0.35`
+- true quantiles:
+  - exAL truth in `sim_output$q`
+  - AL counterfactual quantiles in `sim_output$extras$q_al`
+
+Dynamic-lineage trace used in S1 (not present in this repo checkout, but available locally):
+
+- `/data/muscat_data/jaguir26/exdqlm/scripts/sim_suite_dlm.R`
+- `/data/muscat_data/jaguir26/exdqlm/R/simulate_ts_mc_quantiles.R`
 
 ### Phase S2: Static VB/MCMC Interface Normalization
 
