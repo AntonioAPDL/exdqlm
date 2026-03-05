@@ -671,11 +671,40 @@ S2 test evidence:
 
 ### Phase S3: Static exAL/AL VB->MCMC Pipeline (3 Quantiles)
 
-- [ ] implement/prepare orchestrated run script for 6 static tasks:
+- [x] implement/prepare orchestrated run script for 6 static tasks:
   - `{AL, exAL} x {0.05, 0.50, 0.95}`
   - VB first, then MCMC seeded from VB fit.
-- [ ] support parallel execution with one task per core.
-- [ ] persist per-task status files and unified summary table.
+- [x] support parallel execution with one task per core.
+- [x] persist per-task status files and unified summary table.
+
+S3 implementation artifacts:
+
+- pipeline script: `tools/merge_reports/20260305_static_vb_then_mcmc_pipeline.R`
+- background launcher log: `tools/merge_reports/20260305_static_vb_then_mcmc_pipeline_background.log`
+
+S3 smoke validation run (completed):
+
+- run root: `results/sim_suite_static/static_vb_then_mcmc_tt200_vbns80_burn30_n40_20260304_194114/`
+- completed outputs include:
+  - per-task status files under `logs/*.status.tsv`
+  - per-task logs under `logs/*.log`
+  - fit artifacts under `fits/vb/` and `fits/mcmc/`
+  - summary table: `tables/pipeline_task_summary.csv`
+
+S3 full background run (active, no live monitoring):
+
+- tmux session: `static_vb_mcmc_rerun_bg`
+- run root: `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_194203/`
+- launch command (effective settings):
+  - `TT=5000`
+  - VB: `max_iter=300`, `tol=0.03`, `n_samp_xi=1000`
+  - MCMC: `n.burn=2000`, `n.mcmc=1000`, `thin=1`
+  - `cores=6`
+
+Initial status snapshot from full run (`2026-03-04 19:42:06 PST`):
+
+- AL taus (`0.05`, `0.50`, `0.95`): `VB_DONE` then `MCMC_START`
+- exAL taus (`0.05`, `0.50`, `0.95`): `VB_START` recorded (MCMC pending at snapshot)
 
 ### Phase S4: Static Comparison and Signoff Gates
 
