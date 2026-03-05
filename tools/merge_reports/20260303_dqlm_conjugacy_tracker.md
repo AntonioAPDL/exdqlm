@@ -646,9 +646,28 @@ Dynamic-lineage trace used in S1 (not present in this repo checkout, but availab
 
 ### Phase S2: Static VB/MCMC Interface Normalization
 
-- [ ] align static fit return objects with dynamic-style diagnostics fields where possible.
-- [ ] align status logging and run metadata for static pipelines.
-- [ ] ensure backward-compatible function interfaces.
+- [x] align static fit return objects with dynamic-style diagnostics fields where possible.
+- [x] align status logging and run metadata for static pipelines.
+- [x] ensure backward-compatible function interfaces.
+
+S2 implementation decision (ambiguity resolved):
+
+- Option A: modify existing `exal_static_*` public return objects directly.
+- Option B (chosen, conservative): add non-breaking adapter/normalization helpers and keep existing static APIs untouched.
+
+Chosen S2 implementation artifacts:
+
+- adapter helpers: `R/static_fit_normalization.R`
+  - `.static_vb_to_mcmc_init()`
+  - `.static_normalize_vb_fit()`
+  - `.static_normalize_mcmc_fit()`
+  - `.static_quantile_path_from_fit()`
+- tests: `tests/testthat/test-static-fit-normalization.R`
+
+S2 test evidence:
+
+- `devtools::test(filter='static-fit-normalization')` -> `PASS 33, FAIL 0, WARN 0, SKIP 0`
+- `devtools::test(filter='static-regression-regmod|dqlm-reduced-paths|static-fit-normalization')` -> `PASS 83, FAIL 0, WARN 0, SKIP 0`
 
 ### Phase S3: Static exAL/AL VB->MCMC Pipeline (3 Quantiles)
 
