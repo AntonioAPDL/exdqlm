@@ -47,6 +47,11 @@
   } else {
     if (!is.null(fit$qsiggam$gamma_mean)) as.numeric(fit$qsiggam$gamma_mean)[1] else NA_real_
   }
+  ld_diag <- if (!is.null(fit$diagnostics$ld_block)) fit$diagnostics$ld_block else list()
+  ld_trace <- if (!is.null(ld_diag$trace)) ld_diag$trace else data.frame()
+  ld_last <- if (is.data.frame(ld_trace) && nrow(ld_trace)) ld_trace[nrow(ld_trace), , drop = FALSE] else NULL
+  ld_mode_quality <- if (!is.null(ld_diag$mode_quality)) ld_diag$mode_quality else list()
+  ld_xi_meta <- if (!is.null(ld_diag$xi)) ld_diag$xi else list()
 
   elbo_trace <- if (!is.null(fit$diagnostics$elbo)) {
     as.numeric(fit$diagnostics$elbo)
@@ -76,6 +81,13 @@
         trace = elbo_trace,
         final = if (length(elbo_trace)) utils::tail(elbo_trace, 1L) else NA_real_
       ),
+      ld_block = list(
+        controls = if (!is.null(ld_diag$controls)) ld_diag$controls else list(),
+        trace = ld_trace,
+        final = if (!is.null(ld_last)) as.list(ld_last) else list(),
+        xi = ld_xi_meta,
+        mode_quality = ld_mode_quality
+      ),
       ess = list(sigma = NA_real_, gamma = if (isTRUE(dqlm.ind)) NA_real_ else NA_real_),
       acceptance = list(total = NA_real_, burn = NA_real_, keep = NA_real_)
     ),
@@ -104,6 +116,25 @@
   accept_total <- if (!is.null(fit$accept.rate)) as.numeric(fit$accept.rate)[1] else NA_real_
   accept_burn <- if (!is.null(fit$accept.rate.burn)) as.numeric(fit$accept.rate.burn)[1] else NA_real_
   accept_keep <- if (!is.null(fit$accept.rate.keep)) as.numeric(fit$accept.rate.keep)[1] else NA_real_
+  mh_diag <- if (!is.null(fit$mh.diagnostics)) fit$mh.diagnostics else list()
+  proposal <- if (!is.null(mh_diag$proposal)) as.character(mh_diag$proposal)[1] else NA_character_
+  kernel_exact <- if (!is.null(mh_diag$kernel_exact)) {
+    isTRUE(mh_diag$kernel_exact)
+  } else {
+    isTRUE(dqlm.ind) || proposal %in% c("rw", "laplace_rw")
+  }
+  signoff_ready <- if (!is.null(mh_diag$signoff_ready)) {
+    isTRUE(mh_diag$signoff_ready)
+  } else {
+    kernel_exact
+  }
+  approximation_note <- if (!is.null(mh_diag$approximation_note)) {
+    as.character(mh_diag$approximation_note)[1]
+  } else if (!kernel_exact && !isTRUE(dqlm.ind) && identical(proposal, "laplace_local")) {
+    "laplace_local draws gamma from a local Gaussian approximation without MH correction"
+  } else {
+    NA_character_
+  }
 
   list(
     model_family = "static",
@@ -121,6 +152,17 @@
     diagnostics = list(
       ess = list(sigma = ess_sigma, gamma = if (isTRUE(dqlm.ind)) NA_real_ else ess_gamma),
       acceptance = list(total = accept_total, burn = accept_burn, keep = accept_keep),
+      mh = list(
+        proposal = proposal,
+        adapt = if (!is.null(mh_diag$adapt)) isTRUE(mh_diag$adapt) else FALSE,
+        scale_initial = if (!is.null(mh_diag$scale_initial)) as.numeric(mh_diag$scale_initial)[1] else NA_real_,
+        scale_final = if (!is.null(mh_diag$scale_final)) as.numeric(mh_diag$scale_final)[1] else NA_real_,
+        kernel_exact = kernel_exact,
+        signoff_ready = signoff_ready,
+        approximation_note = approximation_note,
+        adapt_trace = if (!is.null(mh_diag$adaptation)) mh_diag$adaptation else data.frame(),
+        trace = if (!is.null(mh_diag$trace)) mh_diag$trace else data.frame()
+      ),
       rhat_ready = list(sigma = sigma_draws, gamma = gamma_draws)
     ),
     metadata = list(settings = run_settings)

@@ -58,6 +58,8 @@ test_that("static VB normalization and init extraction work for exAL", {
   expect_true(is.finite(norm$sigma_est))
   expect_true(is.finite(norm$gamma_est))
   expect_true(length(norm$diagnostics$elbo$trace) >= 1)
+  expect_true(is.data.frame(norm$diagnostics$ld_block$trace))
+  expect_true(nrow(norm$diagnostics$ld_block$trace) >= 1)
 })
 
 test_that("static MCMC normalization reports ESS and acceptance fields", {
@@ -85,9 +87,12 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
     X = dat$X,
     p0 = 0.5,
     dqlm.ind = FALSE,
-    n.burn = 8,
+    n.burn = 12,
     n.mcmc = 12,
     thin = 1,
+    mh.proposal = "laplace_rw",
+    mh.adapt = TRUE,
+    mh.adapt.interval = 6,
     verbose = FALSE
   )
   norm_exal <- exdqlm:::.static_normalize_mcmc_fit(fit_exal, model_name = "exal", tau = 0.5)
@@ -97,6 +102,28 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
   expect_true(is.finite(norm_exal$gamma_est))
   expect_true(length(norm_exal$diagnostics$rhat_ready$sigma) == 12)
   expect_true(length(norm_exal$diagnostics$rhat_ready$gamma) == 12)
+  expect_identical(norm_exal$diagnostics$mh$proposal, "laplace_rw")
+  expect_true(isTRUE(norm_exal$diagnostics$mh$kernel_exact))
+  expect_true(isTRUE(norm_exal$diagnostics$mh$signoff_ready))
+  expect_true(is.finite(norm_exal$diagnostics$acceptance$total))
+  expect_true(is.data.frame(norm_exal$diagnostics$mh$trace))
+
+  fit_exal_local <- exal_static_mcmc(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    dqlm.ind = FALSE,
+    n.burn = 8,
+    n.mcmc = 10,
+    thin = 1,
+    mh.proposal = "laplace_local",
+    verbose = FALSE
+  )
+  norm_exal_local <- exdqlm:::.static_normalize_mcmc_fit(fit_exal_local, model_name = "exal", tau = 0.5)
+  expect_identical(norm_exal_local$diagnostics$mh$proposal, "laplace_local")
+  expect_false(norm_exal_local$diagnostics$mh$kernel_exact)
+  expect_false(norm_exal_local$diagnostics$mh$signoff_ready)
+  expect_match(norm_exal_local$diagnostics$mh$approximation_note, "without MH correction")
 })
 
 test_that("static quantile path extractor returns aligned vectors", {

@@ -828,6 +828,25 @@ exal_static_LDVB <- function(
     return(ret)
   }
 
+  # Reduced AL / DQLM branch: no gamma, no s, no LD block.
+  if (isTRUE(dqlm.ind)) {
+    ret <- .run_static_dqlm_cavi(
+      y = y,
+      X = X,
+      p0 = p0,
+      max_iter = max_iter,
+      tol = tol,
+      b0 = b0,
+      V0 = V0,
+      a_sigma = a_sigma,
+      b_sigma = b_sigma,
+      init = init,
+      verbose = verbose
+    )
+    class(ret) <- "exal_vb"
+    return(ret)
+  }
+
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
   if (!(L < U)) stop("gamma_bounds must satisfy L < U.")
   if (is.null(log_prior_gamma)) {
@@ -972,6 +991,7 @@ exal_static_LDVB <- function(
       xi_siginv = exp(-ell_hat + 0.5 * Sigma[2, 2]),
       zeta_logsigma = ell_hat
     )
+  }
 
     out_named <- as.list(out)
     out_named$zeta_logJ <- log(pmax(U - L, 1e-12)) + as.numeric(out_named$zeta_loghprime) + ell_hat

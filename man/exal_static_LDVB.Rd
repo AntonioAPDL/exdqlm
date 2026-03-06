@@ -93,6 +93,13 @@ Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 \code{stabilize_xi_damping}, \code{stabilize_step_cap_eta},
 \code{stabilize_step_cap_ell}, and \code{store_trace}.}
 
+\item{ld_controls}{Optional list of controls for the Laplace-Delta block.
+Supported keys include \code{damping}, \code{xi_damping}, \code{xi_mode},
+\code{xi_replicates}, \code{reuse_draws}, \code{antithetic},
+\code{optimizer_maxit}, \code{eig_floor}, \code{eig_cap},
+\code{step_cap_eta}, \code{step_cap_ell}, \code{reuse_seed},
+\code{mode_grad_tol}, \code{mode_min_eig}, and \code{store_trace}.}
+
 \item{verbose}{Logical; print progress.}
 }
 \value{

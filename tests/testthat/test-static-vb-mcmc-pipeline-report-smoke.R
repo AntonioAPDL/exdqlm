@@ -43,6 +43,9 @@ test_that("static VB->MCMC pipeline and report scripts produce core artifacts", 
     "EXDQLM_STATIC_VB_MAX_ITER=30",
     "EXDQLM_STATIC_VB_TOL=0.05",
     "EXDQLM_STATIC_VB_NSAMP=40",
+    "EXDQLM_STATIC_LD_XI_MODE=replicated",
+    "EXDQLM_STATIC_LD_XI_REPLICATES=2",
+    "EXDQLM_STATIC_LD_REUSE_SEED=20260305",
     "EXDQLM_STATIC_MCMC_BURN=8",
     "EXDQLM_STATIC_MCMC_N=10",
     "EXDQLM_STATIC_MCMC_THIN=1",
@@ -98,4 +101,7 @@ test_that("static VB->MCMC pipeline and report scripts produce core artifacts", 
 
   gate_df <- utils::read.csv(gate_path, check.names = FALSE)
   expect_true(all(c("model", "tau", "overall_pass") %in% names(gate_df)))
+  expect_true("gate_vb_ld_stable" %in% names(gate_df))
+  expect_true("gate_vb_ld_local_mode" %in% names(gate_df))
+  expect_true("gate_mcmc_kernel_exact" %in% names(gate_df))
 })

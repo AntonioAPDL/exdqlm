@@ -4,6 +4,14 @@ suppressPackageStartupMessages({
   library(devtools)
 })
 
+Sys.setenv(
+  OMP_NUM_THREADS = "1",
+  OPENBLAS_NUM_THREADS = "1",
+  MKL_NUM_THREADS = "1",
+  VECLIB_MAXIMUM_THREADS = "1",
+  NUMEXPR_NUM_THREADS = "1"
+)
+
 devtools::load_all(".", quiet = TRUE)
 
 safe_num <- function(x, default = NA_real_) {
@@ -24,6 +32,44 @@ resolve_run_root <- function() {
   cands[which.max(file.info(cands)$mtime)]
 }
 
+resolve_summary_path <- function(run_root) {
+  sp <- Sys.getenv("EXDQLM_STATIC_SUMMARY_PATH", "")
+  if (nzchar(sp) && file.exists(sp)) return(sp)
+
+  default_path <- file.path(run_root, "tables", "pipeline_task_summary.csv")
+  if (file.exists(default_path)) return(default_path)
+
+  resume_paths <- Sys.glob(file.path(run_root, "tables", "pipeline_task_summary_resume_static_*.csv"))
+  if (length(resume_paths)) {
+    return(resume_paths[which.max(file.info(resume_paths)$mtime)])
+  }
+  stop("Missing pipeline summary in run root: ", run_root)
+}
+
+ensure_col <- function(df, col, value) {
+  if (!col %in% names(df)) df[[col]] <- value
+  df
+}
+
+resolve_file_path <- function(path_like, run_root) {
+  p <- as.character(path_like)[1]
+  if (!nzchar(p) || is.na(p)) return(NA_character_)
+  if (file.exists(p)) return(p)
+  p_repo <- file.path(getwd(), p)
+  if (file.exists(p_repo)) return(p_repo)
+  p_run <- file.path(run_root, p)
+  if (file.exists(p_run)) return(p_run)
+  NA_character_
+}
+
+infer_vb_file <- function(run_root, model, tau) {
+  file.path(run_root, "fits", "vb", sprintf("vb_%s_tau_%s_fit.rds", model, tau_lab(tau)))
+}
+
+infer_mcmc_file <- function(run_root, model, tau) {
+  file.path(run_root, "fits", "mcmc", sprintf("mcmc_%s_tau_%s_fit.rds", model, tau_lab(tau)))
+}
+
 run_root <- resolve_run_root()
 if (!dir.exists(run_root)) stop("Run root does not exist: ", run_root)
 
@@ -37,39 +83,94 @@ if (is.null(sim_path) || !file.exists(sim_path)) {
 }
 sim <- readRDS(sim_path)
 
-summary_path <- file.path(run_root, "tables", "pipeline_task_summary.csv")
-if (!file.exists(summary_path)) stop("Missing pipeline summary: ", summary_path)
+summary_path <- resolve_summary_path(run_root)
 summary_df <- utils::read.csv(summary_path, check.names = FALSE)
+summary_df <- ensure_col(summary_df, "status", "unknown")
+summary_df <- ensure_col(summary_df, "vb_runtime_sec", NA_real_)
+summary_df <- ensure_col(summary_df, "mcmc_runtime_sec", NA_real_)
+summary_df <- ensure_col(summary_df, "vb_converged", NA)
+summary_df <- ensure_col(summary_df, "vb_stop_reason", NA_character_)
+summary_df <- ensure_col(summary_df, "ess_sigma", NA_real_)
+summary_df <- ensure_col(summary_df, "ess_gamma", NA_real_)
+summary_df <- ensure_col(summary_df, "accept_rate", NA_real_)
+summary_df <- ensure_col(summary_df, "mcmc_gamma_kernel_exact", NA)
+summary_df <- ensure_col(summary_df, "mcmc_signoff_ready", NA)
+summary_df <- ensure_col(summary_df, "vb_file", NA_character_)
+summary_df <- ensure_col(summary_df, "mcmc_file", NA_character_)
+if ("runtime_sec" %in% names(summary_df)) {
+  rt <- suppressWarnings(as.numeric(summary_df$runtime_sec))
+  idx <- is.na(summary_df$mcmc_runtime_sec) & is.finite(rt)
+  summary_df$mcmc_runtime_sec[idx] <- rt[idx]
+}
 
 out_tables <- file.path(run_root, "tables")
 out_plots <- file.path(run_root, "plots")
+out_plots_comp <- file.path(out_plots, "comparison")
+out_plots_diag <- file.path(out_plots, "diagnostics")
+out_plots_cloud <- file.path(out_plots, "cloud")
 dir.create(out_tables, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_plots, recursive = TRUE, showWarnings = FALSE)
+dir.create(out_plots_comp, recursive = TRUE, showWarnings = FALSE)
+dir.create(out_plots_diag, recursive = TRUE, showWarnings = FALSE)
+dir.create(out_plots_cloud, recursive = TRUE, showWarnings = FALSE)
 
 TT <- if (!is.null(cfg$TT)) as.integer(cfg$TT) else nrow(sim$extras$X)
 X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
 q_true <- as.matrix(sim$q[seq_len(TT), , drop = FALSE])
 p_grid <- as.numeric(sim$p)
+y_obs <- as.numeric(sim$y[seq_len(TT)])
+
+default_cov <- {
+  cn <- colnames(X)
+  nn <- setdiff(cn, c("intercept", "(Intercept)"))
+  if (length(nn)) nn[1] else cn[1]
+}
+covar_name <- Sys.getenv("EXDQLM_STATIC_PLOT_COVAR", default_cov)
+if (!(covar_name %in% colnames(X))) covar_name <- default_cov
+x_primary <- as.numeric(X[, covar_name])
 
 closest_p_index <- function(tau) which.min(abs(p_grid - tau))
 
 collect_rows <- list()
 plot_payload <- list()
+fit_file_payload <- list()
 
 for (i in seq_len(nrow(summary_df))) {
   row <- summary_df[i, , drop = FALSE]
-  if (!identical(as.character(row$status), "done")) next
+  row_status <- as.character(row$status)
+  if (!(row_status %in% c("done", "skipped_existing"))) next
 
   model <- as.character(row$model)
   tau <- as.numeric(row$tau)
-  vb_file <- as.character(row$vb_file)
-  mcmc_file <- as.character(row$mcmc_file)
-  if (!file.exists(vb_file) || !file.exists(mcmc_file)) next
+  vb_file <- resolve_file_path(row$vb_file, run_root)
+  mcmc_file <- resolve_file_path(row$mcmc_file, run_root)
+  if (is.na(vb_file)) {
+    vb_guess <- infer_vb_file(run_root, model, tau)
+    if (file.exists(vb_guess)) vb_file <- vb_guess
+  }
+  if (is.na(mcmc_file)) {
+    mc_guess <- infer_mcmc_file(run_root, model, tau)
+    if (file.exists(mc_guess)) mcmc_file <- mc_guess
+  }
+  if (is.na(vb_file) || is.na(mcmc_file)) next
+  summary_df$vb_file[i] <- vb_file
+  summary_df$mcmc_file[i] <- mcmc_file
 
   vb_obj <- readRDS(vb_file)
   m_obj <- readRDS(mcmc_file)
   vb_fit <- vb_obj$fit
   m_fit <- m_obj$fit
+  vb_norm <- .static_normalize_vb_fit(vb_fit)
+  m_norm <- .static_normalize_mcmc_fit(m_fit)
+  if (is.na(summary_df$vb_converged[i])) summary_df$vb_converged[i] <- isTRUE(vb_norm$converged)
+  if (is.na(summary_df$vb_stop_reason[i]) || !nzchar(summary_df$vb_stop_reason[i])) {
+    summary_df$vb_stop_reason[i] <- vb_norm$stop_reason
+  }
+  if (is.na(summary_df$ess_sigma[i])) summary_df$ess_sigma[i] <- as.numeric(m_norm$diagnostics$ess$sigma)[1]
+  if (is.na(summary_df$ess_gamma[i])) summary_df$ess_gamma[i] <- as.numeric(m_norm$diagnostics$ess$gamma)[1]
+  if (is.na(summary_df$accept_rate[i])) summary_df$accept_rate[i] <- as.numeric(m_norm$diagnostics$acceptance$total)[1]
+  summary_df$mcmc_gamma_kernel_exact[i] <- isTRUE(m_norm$diagnostics$mh$kernel_exact)
+  summary_df$mcmc_signoff_ready[i] <- isTRUE(m_norm$diagnostics$mh$signoff_ready)
 
   true_idx <- closest_p_index(tau)
   q_ref <- q_true[, true_idx]
@@ -97,6 +198,7 @@ for (i in seq_len(nrow(summary_df))) {
 
   key <- sprintf("%s_tau_%s", model, tau_lab(tau))
   plot_payload[[key]] <- list(model = model, tau = tau, q_ref = q_ref, vb = vb_path, mcmc = m_path)
+  fit_file_payload[[key]] <- list(vb_file = vb_file, mcmc_file = mcmc_file)
 }
 
 metrics_df <- if (length(collect_rows)) do.call(rbind, collect_rows) else data.frame()
@@ -109,6 +211,13 @@ runtime_diag$mcmc_runtime_sec <- suppressWarnings(as.numeric(runtime_diag$mcmc_r
 runtime_diag$ess_sigma <- suppressWarnings(as.numeric(runtime_diag$ess_sigma))
 runtime_diag$ess_gamma <- suppressWarnings(as.numeric(runtime_diag$ess_gamma))
 utils::write.csv(runtime_diag, file.path(out_tables, "runtime_diagnostics_summary.csv"), row.names = FALSE)
+
+ld_diag_path <- file.path(out_tables, "vb_ld_diagnostics_summary.csv")
+ld_diag <- if (file.exists(ld_diag_path)) {
+  utils::read.csv(ld_diag_path, check.names = FALSE)
+} else {
+  data.frame()
+}
 
 # Pairwise comparisons (exAL vs AL within method/tau)
 pair_rows <- list()
@@ -141,6 +250,9 @@ utils::write.csv(pair_df, file.path(out_tables, "pairwise_exal_vs_al.csv"), row.
 # Acceptance gates
 ess_sigma_min <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_ESS_SIGMA_MIN", "30"), 30)
 ess_gamma_min <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_ESS_GAMMA_MIN", "20"), 20)
+ld_xi_median_abs_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_XI_MEDIAN_ABS_MAX", "0.10"), 0.10)
+ld_flip_rate_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_FLIP_RATE_MAX", "0.55"), 0.55)
+ld_fallback_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_FALLBACK_MAX", "0.10"), 0.10)
 
 vb_rows <- runtime_diag[, c("model", "tau", "vb_converged", "vb_stop_reason", "ess_sigma", "ess_gamma", "status"), drop = FALSE]
 vb_rows$gate_vb_converged <- isTRUE(vb_rows$vb_converged) # placeholder scalar
@@ -149,6 +261,35 @@ vb_rows$gate_mcmc_ess_sigma <- !is.na(vb_rows$ess_sigma) & vb_rows$ess_sigma >= 
 vb_rows$gate_mcmc_ess_gamma <- ifelse(
   vb_rows$model == "exal",
   !is.na(vb_rows$ess_gamma) & vb_rows$ess_gamma >= ess_gamma_min,
+  TRUE
+)
+if (nrow(ld_diag) > 0) {
+  vb_rows <- merge(vb_rows, ld_diag, by = c("model", "tau"), all.x = TRUE)
+} else {
+  vb_rows$ld_xi_median_abs_tail <- NA_real_
+  vb_rows$ld_sigma_flip_rate_tail <- NA_real_
+  vb_rows$ld_gamma_flip_rate_tail <- NA_real_
+  vb_rows$ld_mode_fallback_rate <- NA_real_
+  vb_rows$ld_local_mode_pass <- NA
+}
+vb_rows$gate_vb_ld_stable <- ifelse(
+  vb_rows$model == "exal",
+  !is.na(vb_rows$ld_xi_median_abs_tail) &
+    vb_rows$ld_xi_median_abs_tail <= ld_xi_median_abs_max &
+    (is.na(vb_rows$ld_sigma_flip_rate_tail) | vb_rows$ld_sigma_flip_rate_tail <= ld_flip_rate_max) &
+    (is.na(vb_rows$ld_gamma_flip_rate_tail) | vb_rows$ld_gamma_flip_rate_tail <= ld_flip_rate_max) &
+    (is.na(vb_rows$ld_mode_fallback_rate) | vb_rows$ld_mode_fallback_rate <= ld_fallback_max),
+  TRUE
+)
+vb_rows$gate_vb_ld_local_mode <- ifelse(
+  vb_rows$model == "exal",
+  !is.na(vb_rows$ld_local_mode_pass) & as.logical(vb_rows$ld_local_mode_pass),
+  TRUE
+)
+vb_rows$gate_mcmc_kernel_exact <- ifelse(
+  vb_rows$model == "exal",
+  !is.na(summary_df$mcmc_gamma_kernel_exact[match(paste(vb_rows$model, vb_rows$tau), paste(summary_df$model, summary_df$tau))]) &
+    as.logical(summary_df$mcmc_gamma_kernel_exact[match(paste(vb_rows$model, vb_rows$tau), paste(summary_df$model, summary_df$tau))]),
   TRUE
 )
 
@@ -172,7 +313,11 @@ if (nrow(metrics_df) > 0) {
 
 gate_df <- merge(vb_rows, acc_df, by = c("model", "tau"), all.x = TRUE)
 gate_df$gate_accuracy[is.na(gate_df$gate_accuracy)] <- FALSE
-gate_df$overall_pass <- with(gate_df, gate_vb_converged & gate_mcmc_ess_sigma & gate_mcmc_ess_gamma & gate_accuracy)
+gate_df$overall_pass <- with(
+  gate_df,
+  gate_vb_converged & gate_vb_ld_stable & gate_vb_ld_local_mode &
+    gate_mcmc_kernel_exact & gate_mcmc_ess_sigma & gate_mcmc_ess_gamma & gate_accuracy
+)
 utils::write.csv(gate_df, file.path(out_tables, "acceptance_gate_summary.csv"), row.names = FALSE)
 
 # Plots: per tau compare truth vs four model-method combos when all available.
@@ -212,22 +357,161 @@ if (nrow(metrics_df) > 0) {
            legend = c("AL-MCMC", "exAL-MCMC"))
 
     dev.off()
+
+    # Higher-detail comparison panel in dedicated folder.
+    png(file.path(out_plots_comp, sprintf("fit_compare_tau_%s_detailed.png", tau_lab(tau))), width = 1800, height = 900)
+    par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
+
+    # Truth + all estimates over observation index.
+    plot(idx, y_obs, type = "l", col = "grey70", lwd = 1.0,
+         main = sprintf("Observed y with Quantile Fits (tau=%.2f)", tau), xlab = "t", ylab = "value")
+    lines(idx, al$q_ref, col = "black", lwd = 2.0, lty = 2)
+    lines(idx, al$vb$mean, col = "#1f77b4", lwd = 1.4)
+    lines(idx, al$mcmc$mean, col = "#17becf", lwd = 1.4)
+    lines(idx, ex$vb$mean, col = "#d62728", lwd = 1.4)
+    lines(idx, ex$mcmc$mean, col = "#ff7f0e", lwd = 1.4)
+    legend("topright", bty = "n", lwd = c(1.0, 2.0, 1.4, 1.4, 1.4, 1.4),
+           col = c("grey70", "black", "#1f77b4", "#17becf", "#d62728", "#ff7f0e"),
+           lty = c(1, 2, 1, 1, 1, 1),
+           legend = c("y", "truth", "AL-VB", "AL-MCMC", "exAL-VB", "exAL-MCMC"))
+
+    # Error series by method.
+    plot(idx, y_obs - al$vb$mean, type = "l", col = "#1f77b4", lwd = 1.2,
+         main = "Residual Series", xlab = "t", ylab = "y - qhat")
+    lines(idx, y_obs - al$mcmc$mean, col = "#17becf", lwd = 1.2)
+    lines(idx, y_obs - ex$vb$mean, col = "#d62728", lwd = 1.2)
+    lines(idx, y_obs - ex$mcmc$mean, col = "#ff7f0e", lwd = 1.2)
+    abline(h = 0, lty = 2, col = "grey35")
+    legend("topright", bty = "n", lwd = 1.2,
+           col = c("#1f77b4", "#17becf", "#d62728", "#ff7f0e"),
+           legend = c("AL-VB", "AL-MCMC", "exAL-VB", "exAL-MCMC"))
+
+    # Absolute error comparison.
+    plot(idx, abs(y_obs - al$q_ref), type = "l", col = "black", lwd = 1.4,
+         main = "Absolute Error vs Truth", xlab = "t", ylab = "|qhat - q_true|")
+    lines(idx, abs(al$vb$mean - al$q_ref), col = "#1f77b4", lwd = 1.2)
+    lines(idx, abs(al$mcmc$mean - al$q_ref), col = "#17becf", lwd = 1.2)
+    lines(idx, abs(ex$vb$mean - ex$q_ref), col = "#d62728", lwd = 1.2)
+    lines(idx, abs(ex$mcmc$mean - ex$q_ref), col = "#ff7f0e", lwd = 1.2)
+    legend("topright", bty = "n", lwd = 1.2,
+           col = c("#1f77b4", "#17becf", "#d62728", "#ff7f0e"),
+           legend = c("AL-VB", "AL-MCMC", "exAL-VB", "exAL-MCMC"))
+
+    # Coverage indicator over t.
+    cov_al <- as.integer(y_obs <= al$mcmc$mean)
+    cov_ex <- as.integer(y_obs <= ex$mcmc$mean)
+    plot(idx, cov_al, type = "h", col = "#17becf", lwd = 1,
+         main = "Indicator(y <= qhat_MCMC)", xlab = "t", ylab = "indicator", ylim = c(0, 1))
+    lines(idx, cov_ex, type = "h", col = grDevices::adjustcolor("#ff7f0e", 0.6), lwd = 1)
+    abline(h = tau, lty = 2, col = "grey35")
+    legend("topright", bty = "n", lwd = 2, lty = 1,
+           col = c("#17becf", "#ff7f0e", "grey35"),
+           legend = c("AL-MCMC", "exAL-MCMC", sprintf("target tau=%.2f", tau)))
+    dev.off()
+
+    # Cloud plot: data cloud around truth/estimate quantile curves vs selected covariate.
+    draw_curve <- function(x, yy, col, lwd = 2, lty = 1) {
+      ok <- is.finite(x) & is.finite(yy)
+      if (sum(ok) < 5) return(invisible(NULL))
+      ord <- order(x[ok], yy[ok])
+      graphics::lines(x[ok][ord], yy[ok][ord], col = col, lwd = lwd, lty = lty)
+    }
+    png(file.path(out_plots_cloud, sprintf("cloud_quantile_fit_tau_%s.png", tau_lab(tau))), width = 1400, height = 900)
+    graphics::plot(
+      x_primary, y_obs,
+      pch = 16, cex = 0.35, col = grDevices::adjustcolor("grey35", alpha.f = 0.24),
+      xlab = sprintf("covariate: %s", covar_name), ylab = "y",
+      main = sprintf("Data Cloud with True/Estimated Quantiles (tau=%.2f)", tau)
+    )
+    draw_curve(x_primary, al$q_ref, col = "black", lwd = 2.4, lty = 2)
+    draw_curve(x_primary, al$vb$mean, col = "#1f77b4", lwd = 2.0)
+    draw_curve(x_primary, al$mcmc$mean, col = "#17becf", lwd = 2.0)
+    draw_curve(x_primary, ex$vb$mean, col = "#d62728", lwd = 2.0)
+    draw_curve(x_primary, ex$mcmc$mean, col = "#ff7f0e", lwd = 2.0)
+    graphics::legend("topleft", bty = "n", lwd = c(2.4, 2, 2, 2, 2),
+                     lty = c(2, 1, 1, 1, 1),
+                     col = c("black", "#1f77b4", "#17becf", "#d62728", "#ff7f0e"),
+                     legend = c("truth", "AL-VB", "AL-MCMC", "exAL-VB", "exAL-MCMC"))
+    grDevices::dev.off()
+
+    # Residual density diagnostics.
+    res_list <- list(
+      `AL-VB` = y_obs - al$vb$mean,
+      `AL-MCMC` = y_obs - al$mcmc$mean,
+      `exAL-VB` = y_obs - ex$vb$mean,
+      `exAL-MCMC` = y_obs - ex$mcmc$mean
+    )
+    dens_cols <- c("#1f77b4", "#17becf", "#d62728", "#ff7f0e")
+    dens_vals <- lapply(res_list, function(z) stats::density(z[is.finite(z)], n = 512))
+    xlim_den <- range(unlist(lapply(dens_vals, `[[`, "x")), finite = TRUE)
+    ylim_den <- range(unlist(lapply(dens_vals, `[[`, "y")), finite = TRUE)
+    png(file.path(out_plots_diag, sprintf("residual_density_tau_%s.png", tau_lab(tau))), width = 1400, height = 900)
+    plot(dens_vals[[1]], col = dens_cols[1], lwd = 2, main = sprintf("Residual Density (tau=%.2f)", tau),
+         xlab = "residual (y - qhat)", ylab = "density", xlim = xlim_den, ylim = ylim_den)
+    for (k in 2:length(dens_vals)) lines(dens_vals[[k]], col = dens_cols[k], lwd = 2)
+    abline(v = 0, lty = 2, col = "grey35")
+    legend("topright", bty = "n", lwd = 2, col = dens_cols, legend = names(res_list))
+    dev.off()
+
+    # MCMC/VB trace diagnostics by tau using AL vs exAL.
+    ex_files <- fit_file_payload[[target_keys[2]]]
+    al_files <- fit_file_payload[[target_keys[1]]]
+    ex_m_fit <- readRDS(ex_files$mcmc_file)$fit
+    al_m_fit <- readRDS(al_files$mcmc_file)$fit
+    ex_v_fit <- readRDS(ex_files$vb_file)$fit
+    al_v_fit <- readRDS(al_files$vb_file)$fit
+
+    ex_sig <- as.numeric(ex_m_fit$samp.sigma)
+    al_sig <- as.numeric(al_m_fit$samp.sigma)
+    if (length(ex_sig) > 1 && length(al_sig) > 1) {
+      png(file.path(out_plots_diag, sprintf("mcmc_sigma_trace_tau_%s.png", tau_lab(tau))), width = 1400, height = 900)
+      plot(seq_along(al_sig), al_sig, type = "l", col = "#17becf", lwd = 1.4,
+           xlab = "iteration", ylab = "sigma", main = sprintf("MCMC Sigma Trace (tau=%.2f)", tau))
+      lines(seq_along(ex_sig), ex_sig, col = "#ff7f0e", lwd = 1.4)
+      legend("topright", bty = "n", lwd = 2, col = c("#17becf", "#ff7f0e"), legend = c("AL", "exAL"))
+      dev.off()
+    }
+
+    ex_gam <- as.numeric(ex_m_fit$samp.gamma)
+    if (length(ex_gam) > 1) {
+      png(file.path(out_plots_diag, sprintf("mcmc_gamma_trace_exal_tau_%s.png", tau_lab(tau))), width = 1400, height = 900)
+      plot(seq_along(ex_gam), ex_gam, type = "l", col = "#d62728", lwd = 1.4,
+           xlab = "iteration", ylab = "gamma", main = sprintf("MCMC Gamma Trace exAL (tau=%.2f)", tau))
+      dev.off()
+    }
+
+    al_elbo <- as.numeric(al_v_fit$diagnostics$elbo)
+    ex_elbo <- as.numeric(ex_v_fit$diagnostics$elbo)
+    if (length(al_elbo) > 1 || length(ex_elbo) > 1) {
+      y_lim <- range(c(al_elbo, ex_elbo), finite = TRUE)
+      png(file.path(out_plots_diag, sprintf("vb_elbo_trace_tau_%s.png", tau_lab(tau))), width = 1400, height = 900)
+      plot(seq_along(al_elbo), al_elbo, type = "l", col = "#1f77b4", lwd = 1.4,
+           xlab = "iteration", ylab = "ELBO", main = sprintf("VB ELBO Trace (tau=%.2f)", tau), ylim = y_lim)
+      lines(seq_along(ex_elbo), ex_elbo, col = "#d62728", lwd = 1.4)
+      legend("bottomright", bty = "n", lwd = 2, col = c("#1f77b4", "#d62728"), legend = c("AL", "exAL"))
+      dev.off()
+    }
   }
 
   # Runtime bar plot
-  done_df <- runtime_diag[runtime_diag$status == "done", , drop = FALSE]
+  done_df <- runtime_diag[runtime_diag$status %in% c("done", "skipped_existing"), , drop = FALSE]
   if (nrow(done_df) > 0) {
     ord <- order(done_df$model, done_df$tau)
     done_df <- done_df[ord, ]
     labels <- sprintf("%s@%.2f", done_df$model, done_df$tau)
-    mat <- rbind(done_df$vb_runtime_sec, done_df$mcmc_runtime_sec)
+    vb_rt <- suppressWarnings(as.numeric(done_df$vb_runtime_sec))
+    mc_rt <- suppressWarnings(as.numeric(done_df$mcmc_runtime_sec))
+    if (any(is.finite(vb_rt)) || any(is.finite(mc_rt))) {
+      mat <- rbind(ifelse(is.finite(vb_rt), vb_rt, 0), ifelse(is.finite(mc_rt), mc_rt, 0))
 
-    png(file.path(out_plots, "runtime_vb_mcmc_by_task.png"), width = 1200, height = 700)
-    barplot(mat, beside = TRUE, names.arg = labels, las = 2,
-            col = c("#4e79a7", "#f28e2b"), ylab = "seconds",
-            main = "Runtime by Task (Static VB vs MCMC)")
-    legend("topright", bty = "n", fill = c("#4e79a7", "#f28e2b"), legend = c("VB", "MCMC"))
-    dev.off()
+      png(file.path(out_plots, "runtime_vb_mcmc_by_task.png"), width = 1200, height = 700)
+      barplot(mat, beside = TRUE, names.arg = labels, las = 2,
+              col = c("#4e79a7", "#f28e2b"), ylab = "seconds",
+              main = "Runtime by Task (Static VB vs MCMC)")
+      legend("topright", bty = "n", fill = c("#4e79a7", "#f28e2b"), legend = c("VB", "MCMC"))
+      mtext("Zero-height bars indicate runtime unavailable in source summary.", side = 1, line = 6, cex = 0.8)
+      dev.off()
+    }
   }
 }
 
@@ -240,16 +524,28 @@ writeLines(c(
   "# Static VB/MCMC Report",
   "",
   sprintf("- run_root: `%s`", run_root),
+  sprintf("- summary_source: `%s`", summary_path),
   sprintf("- sim_path: `%s`", sim_path),
   sprintf("- generated_at: `%s`", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+  sprintf("- primary_cloud_covariate: `%s`", covar_name),
   "",
   sprintf("- tasks_total: %d", nrow(summary_df)),
-  sprintf("- tasks_done: %d", sum(summary_df$status == "done", na.rm = TRUE)),
+  sprintf("- tasks_done_or_reused: %d", sum(summary_df$status %in% c("done", "skipped_existing"), na.rm = TRUE)),
+  sprintf("- tasks_reused_existing: %d", sum(summary_df$status == "skipped_existing", na.rm = TRUE)),
   sprintf("- tasks_failed: %d", sum(summary_df$status == "failed", na.rm = TRUE)),
+  "",
+  "## Plot Outputs",
+  sprintf("- root_plot_png_count: %d", length(list.files(out_plots, pattern = "\\.png$", full.names = TRUE))),
+  sprintf("- comparison_plot_png_count: %d", length(list.files(out_plots_comp, pattern = "\\.png$", full.names = TRUE))),
+  sprintf("- cloud_plot_png_count: %d", length(list.files(out_plots_cloud, pattern = "\\.png$", full.names = TRUE))),
+  sprintf("- diagnostics_plot_png_count: %d", length(list.files(out_plots_diag, pattern = "\\.png$", full.names = TRUE))),
   "",
   "## Gate thresholds",
   sprintf("- ESS sigma min: %.1f", ess_sigma_min),
   sprintf("- ESS gamma min (exAL): %.1f", ess_gamma_min),
+  sprintf("- LD xi median abs tail max (exAL): %.3f", ld_xi_median_abs_max),
+  sprintf("- LD flip rate tail max (exAL): %.3f", ld_flip_rate_max),
+  sprintf("- LD fallback rate max (exAL): %.3f", ld_fallback_max),
   "- accuracy gate: RMSE(MCMC) <= 1.25 * RMSE(VB)",
   "",
   sprintf("- gate_pass_count: %d", sum(gate_df$overall_pass, na.rm = TRUE)),

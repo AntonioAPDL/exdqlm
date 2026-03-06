@@ -566,6 +566,114 @@ exal_static_mcmc <- function(
     return(ret)
   }
 
+  # --- reduced AL / DQLM Gibbs path (no gamma, no s) ------------------------
+  if (isTRUE(dqlm.ind)) {
+    A <- (1 - 2 * p0) / (p0 * (1 - p0))
+    B <- 2 / (p0 * (1 - p0))
+
+    n_save <- n.mcmc
+    save.beta  <- matrix(NA_real_, n_save, p)
+    save.sigma <- numeric(n_save)
+    save.v     <- matrix(NA_real_, n, n_save)
+
+    beta  <- if (is.null(init$beta))  rep(0, p) else as.numeric(init$beta)
+    sigma <- if (is.null(init$sigma)) 1        else as.numeric(init$sigma)[1]
+    if (!is.finite(sigma) || sigma <= 0) sigma <- 1
+
+    v <- if (is.null(init$v)) rep(1, n) else as.numeric(init$v)
+    if (length(v) != n) v <- rep(v[1], n)
+    v <- pmax(v, 1e-12)
+
+    I <- n.burn + n.mcmc * thin
+    if (verbose) {
+      cat(sprintf("Static DQLM MCMC | n=%d, p=%d | burn=%d, keep=%d, thin=%d\n",
+                  n, p, n.burn, n.mcmc, thin))
+    }
+
+    tictoc::tic()
+    ksave <- 0L
+    for (i in 1:I) {
+      # (1) beta | sigma, v, y
+      W_diag <- 1 / (B * sigma * v)
+      Xw     <- X * sqrt(W_diag)
+      V_inv  <- crossprod(Xw) + V0_inv
+      rhs    <- crossprod(X, W_diag * (y - A * v)) + V0_inv %*% b0
+
+      Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
+      if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
+      m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
+      beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
+
+      # (2) sigma | beta, v, y (inverse-gamma)
+      r <- y - drop(X %*% beta) - A * v
+      shape_sigma <- a_sigma + 1.5 * n
+      rate_sigma  <- b_sigma + sum(v) + sum((r * r) / (2 * B * v))
+      sigma <- 1 / stats::rgamma(1, shape = shape_sigma, rate = pmax(rate_sigma, 1e-12))
+
+      # (3) v_i | beta, sigma, y_i (GIG with lambda = 1/2)
+      r0 <- y - drop(X %*% beta)
+      chi_i <- (r0 * r0) / (B * sigma)
+      psi_i <- (A * A / B + 2) / sigma
+      v <- as.numeric(sample_gig_devroye_vector(
+        1L, p = 0.5, a = psi_i, b_vec = chi_i
+      )[1, ])
+      v <- pmax(v, 1e-12)
+
+      if (i > n.burn && ((i - n.burn) %% thin == 0)) {
+        ksave <- ksave + 1L
+        save.beta[ksave, ] <- beta
+        save.sigma[ksave]  <- sigma
+        save.v[, ksave]    <- v
+      }
+
+      if (verbose && (i %% 500 == 0)) {
+        cat(sprintf("%s iteration %d | sigma=%.3f\n",
+                    ifelse(i <= n.burn, "burn-in", "MCMC"), i, sigma))
+      }
+    }
+    run.time <- tictoc::toc(quiet = TRUE)
+    if (verbose) {
+      cat(sprintf("MCMC complete: %d iterations, %.3f seconds\n",
+                  I, run.time$toc - run.time$tic))
+    }
+
+    ret <- list(
+      run.time   = (run.time$toc - run.time$tic),
+      X          = X,
+      p0         = p0,
+      dqlm.ind   = TRUE,
+      bounds     = c(L = NA_real_, U = NA_real_),
+      samp.beta  = coda::as.mcmc(save.beta),
+      samp.sigma = coda::as.mcmc(save.sigma),
+      samp.v     = coda::as.mcmc(t(save.v)),
+      init.from.vb = isTRUE(init.from.vb),
+      n.burn = n.burn,
+      n.mcmc = n.mcmc,
+      accept.rate = NA_real_,
+      accept.rate.burn = NA_real_,
+      accept.rate.keep = NA_real_,
+      mh.diagnostics = list(
+        proposal = NA_character_,
+        adapt = FALSE,
+        kernel_exact = TRUE,
+        signoff_ready = TRUE,
+        approximation_note = NA_character_,
+        accept = list(total = NA_real_, burn = NA_real_, keep = NA_real_),
+        adaptation = data.frame()
+      ),
+      diagnostics = list(
+        ess = list(
+          sigma = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_),
+          gamma = NA_real_
+        ),
+        acceptance = list(total = NA_real_, burn = NA_real_, keep = NA_real_)
+      ),
+      last = list(beta = beta, sigma = sigma, v = v)
+    )
+    class(ret) <- "exal_static_mcmc"
+    return(ret)
+  }
+
   ## --- helpers (keep names tidy like exdqlmMCMC) ---------------------------
   clamp_scale <- function(x) {
     x <- as.numeric(x)[1]
@@ -921,6 +1029,23 @@ exal_static_mcmc <- function(
       )
     }
 
+    trace_rows[[i]] <- data.frame(
+      iter = i,
+      phase = if (i <= n.burn) "burn" else "keep",
+      eta = eta,
+      gamma = gamma,
+      sigma = sigma,
+      mode_eta = mode_out$eta_hat,
+      mode_info = mode_out$info,
+      mode_objective = mode_out$objective,
+      mode_optim_convergence = mode_out$optim_convergence,
+      mode_used_fallback = isTRUE(mode_out$used_fallback),
+      proposal_sd = proposal_sd_used,
+      accepted = if (identical(mh.proposal, "laplace_local")) NA else isTRUE(accepted),
+      kernel = mh.proposal,
+      stringsAsFactors = FALSE
+    )
+
     ## save after burn every 'thin' iterations
     if (i > n.burn && ((i - n.burn) %% thin == 0)) {
       ksave <- ksave + 1L
@@ -1023,6 +1148,32 @@ exal_static_mcmc <- function(
     } else {
       data.frame()
     }
+  )
+
+  accept_total <- if (identical(mh.proposal, "laplace_local")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+  accept_burn <- if (identical(mh.proposal, "laplace_local")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
+  accept_keep <- if (identical(mh.proposal, "laplace_local")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+  ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
+  ess_gamma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.gamma))), error = function(e) NA_real_)
+  kernel_exact <- mh.proposal %in% c("rw", "laplace_rw")
+  mh_diag <- list(
+    proposal = mh.proposal,
+    adapt = if (identical(mh.proposal, "laplace_local")) FALSE else mh.adapt,
+    adapt_interval = if (identical(mh.proposal, "laplace_local")) NA_integer_ else mh.adapt.interval,
+    target_accept = if (identical(mh.proposal, "laplace_local")) c(NA_real_, NA_real_) else mh.target.accept,
+    scale_bounds = if (identical(mh.proposal, "laplace_local")) c(NA_real_, NA_real_) else mh.scale.bounds,
+    scale_initial = if (identical(mh.proposal, "laplace_local")) NA_real_ else proposal_sd_init,
+    scale_final = if (identical(mh.proposal, "laplace_local")) NA_real_ else proposal_sd,
+    kernel_exact = kernel_exact,
+    signoff_ready = kernel_exact,
+    approximation_note = if (kernel_exact) {
+      NA_character_
+    } else {
+      "laplace_local draws gamma from a local Gaussian approximation without MH correction"
+    },
+    accept = list(total = accept_total, burn = accept_burn, keep = accept_keep),
+    adaptation = adapt.history,
+    trace = do.call(rbind, trace_rows)
   )
 
   ## --- return (match exdqlmMCMC style) -------------------------------------

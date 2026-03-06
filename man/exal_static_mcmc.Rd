@@ -82,6 +82,9 @@ for \code{beta_prior = "rhs"} optionally \code{lambda}, \code{tau}, and
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
 
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
+with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
+
 \item{n.burn}{Number of burn-in iterations. Default \code{2000}.}
 
 \item{n.mcmc}{Number of kept MCMC iterations (after burn). Default \code{1500}.}

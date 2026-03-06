@@ -2,10 +2,10 @@
 
 ## Document Control
 
-- Status: Reduced-model + convergence-hardening implementation completed; full refit/figure regeneration executed, with final exDQLM convergence-gate signoff still pending. A new long-budget dynamic rerun is currently in progress (VB->MCMC, 6 tasks), and a static exAL/AL parity workstream is now queued for planning.
+- Status: Reduced-model + convergence-hardening implementation completed; latest full dynamic and static TT=5000 reruns plus figure/postprocess stages are completed. Final signoff is still open because the extended models (`exDQLM`, `exAL`) remain the dominant source of residual VB and MCMC issues, especially at `tau=0.05` and `tau=0.95`.
 - Active implementation branch: `jaguir26/dqlm-conjugacy-cavi-gibbs`
 - Baseline source branch for parity: `cransub/0.4.0` at `e18710a`
-- Date: 2026-03-04
+- Date: 2026-03-05
 - Package repo: `/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp`
 
 ## Primary Goal
@@ -540,12 +540,11 @@ Focused gate-pass outcome:
   - `tau=0.50`: ESS gamma `6.35`
   - `tau=0.95`: ESS gamma `2.09`
 
-## In-Flight Dynamic Rerun (Background, No Live Monitoring)
+## Completed Dynamic Long-Burn Rerun (VB->MCMC)
 
-Rerun requested and launched to re-evaluate DQLM/exDQLM under a longer burn-in and VB-first initialization:
+Long-budget rerun used to re-evaluate DQLM/exDQLM under a longer burn-in and VB-first initialization:
 
 - script: `tools/merge_reports/20260305_vb_then_mcmc_pipeline.R`
-- tmux session: `vb_mcmc_rerun_bg`
 - run root: `results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_183508/`
 - fixed settings:
   - `TT=5000`
@@ -554,31 +553,24 @@ Rerun requested and launched to re-evaluate DQLM/exDQLM under a longer burn-in a
   - parallel layout: 6 cores (one pipeline per model/tau task)
   - MCMC initialization: `init.from.vb=TRUE` with per-task `vb_init_fit`
 
-Status snapshot (`2026-03-04 19:13:58 PST`):
+Completion summary:
 
-| Model | Tau | Last stage | Stage timestamp | Notes |
-|---|---:|---|---|---|
-| DQLM | 0.05 | `MCMC_START` | `2026-03-04 18:40:42` | VB done (`runtime_sec=205.5`, `df=0.9950`) |
-| DQLM | 0.50 | `MCMC_START` | `2026-03-04 18:40:27` | VB done (`runtime_sec=191.0`, `df=0.9950`) |
-| DQLM | 0.95 | `MCMC_START` | `2026-03-04 18:40:36` | VB done (`runtime_sec=196.7`, `df=0.9950`) |
-| exDQLM | 0.05 | `MCMC_START` | `2026-03-04 18:43:27` | VB done (`runtime_sec=354.8`, `df=0.9950`) |
-| exDQLM | 0.50 | `MCMC_START` | `2026-03-04 18:41:29` | VB done (`runtime_sec=236.5`, `df=0.9950`) |
-| exDQLM | 0.95 | `MCMC_START` | `2026-03-04 18:43:33` | VB done (`runtime_sec=361.6`, `df=0.9950`) |
-
-Aggregate snapshot (`2026-03-04 19:13:58 PST`):
-
-- VB done: `6/6`
-- MCMC started: `6/6`
-- MCMC done: `0/6`
-- failed: `0/6`
-- process health: parent + 6 worker R processes active
+- VB completed for all 6 tasks.
+- DQLM MCMC completed by `2026-03-04 23:04:04 PST`.
+- exDQLM MCMC completed by `2026-03-05 00:03:48 PST`.
+- postprocess script: `tools/merge_reports/20260305_postprocess_from_existing_fits.R`
+- postprocess log: `tools/merge_reports/20260305_postprocess_from_existing_fits.log`
+- postprocess completed at `2026-03-05 00:50:05 PST`
+- regenerated artifacts under rerun root:
+  - `tables/`: `fit_summary.csv`, `metrics_summary.csv`, `vb_convergence_summary.csv`, `mcmc_diagnostics_summary.csv`
+  - `plots/`: 39 PNG files (`fit_within_inference`, `fit_between_inference`, `traces`)
 
 ## Remaining Work (Dynamic Scope)
 
-Checklist to close current DQLM/exDQLM dynamic signoff once the in-flight run finishes:
+Checklist to close current DQLM/exDQLM dynamic signoff:
 
-- [ ] wait for background rerun completion (`MCMC_DONE` for all 6 tasks, no failures).
-- [ ] run post-processing on the new rerun outputs:
+- [x] wait for background rerun completion (`MCMC_DONE` for all 6 tasks, no failures).
+- [x] run post-processing on the new rerun outputs:
   - regenerate unified tables (`fit_summary`, `metrics_summary`, `vb_convergence_summary`, `mcmc_diagnostics_summary`).
   - regenerate figures (within/between inference + traces) from this rerun only.
 - [ ] evaluate final exDQLM gamma/sigma mixing gate on this long-burn run (ESS + acceptance + trace quality).
@@ -639,6 +631,15 @@ Locked S1 defaults:
   - exAL truth in `sim_output$q`
   - AL counterfactual quantiles in `sim_output$extras$q_al`
 
+S1 follow-on refinement (`2026-03-05`):
+
+- second static scenario added for clearer figure-level diagnostics and richer tail stress:
+  - scenario: `static_exal_rich1d_mcq`
+  - root: `results/sim_suite_static/series/static_exal_rich1d_mcq/`
+  - generator still uses dynamic-style object structure, but the primary covariate is a single interpretable `x_main` with expanded basis terms
+  - true quantiles are approximated by Monte Carlo and stored in `sim_output$q`
+  - this is now the primary static review dataset for tail-behavior triage
+
 Dynamic-lineage trace used in S1 (not present in this repo checkout, but available locally):
 
 - `/data/muscat_data/jaguir26/exdqlm/scripts/sim_suite_dlm.R`
@@ -691,26 +692,26 @@ S3 smoke validation run (completed):
   - fit artifacts under `fits/vb/` and `fits/mcmc/`
   - summary table: `tables/pipeline_task_summary.csv`
 
-S3 full background run (active, no live monitoring):
+S3 full TT=5000 runs (completed):
 
-- tmux session: `static_vb_mcmc_rerun_bg`
-- run root: `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_194203/`
-- launch command (effective settings):
-  - `TT=5000`
-  - VB: `max_iter=300`, `tol=0.03`, `n_samp_xi=1000`
-  - MCMC: `n.burn=2000`, `n.mcmc=1000`, `thin=1`
-  - `cores=6`
-
-Initial status snapshot from full run (`2026-03-04 19:42:06 PST`):
-
-- AL taus (`0.05`, `0.50`, `0.95`): `VB_DONE` then `MCMC_START`
-- exAL taus (`0.05`, `0.50`, `0.95`): `VB_START` recorded (MCMC pending at snapshot)
-
-Latest status snapshot (`2026-03-04 19:46:56 PST`):
-
-- AL taus (`0.05`, `0.50`, `0.95`): `MCMC_DONE` (ESS sigma ~`498-578` in this run).
-- exAL taus (`0.05`, `0.50`, `0.95`): still in VB phase (`VB_START` latest status lines).
-- aggregate: `MCMC_DONE=3/6`, `FAILED=0/6`, full-run still active in tmux session `static_vb_mcmc_rerun_bg`.
+- mild-skew baseline run root:
+  - `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_194203/`
+  - settings:
+    - `TT=5000`
+    - VB: `max_iter=300`, `tol=0.03`, `n_samp_xi=1000`
+    - MCMC: `n.burn=2000`, `n.mcmc=1000`, `thin=1`
+    - `cores=6`
+  - all 6 fits completed:
+    - AL MCMC done by `2026-03-04 19:46:31 PST`
+    - exAL MCMC done by `2026-03-04 20:57:59 PST`
+- richer MC-truth run root:
+  - `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_012506/`
+  - same TT/VB/MCMC/core settings as above
+  - source simulation:
+    - `results/sim_suite_static/series/static_exal_rich1d_mcq/sim_output.rds`
+  - all 6 fits completed:
+    - AL MCMC done by `2026-03-05 01:29:38 PST`
+    - exAL MCMC done by `2026-03-05 02:15:15 PST`
 
 ### Phase S4: Static Comparison and Signoff Gates
 
@@ -758,8 +759,548 @@ S4-related test bundle (`2026-03-04`):
   - `PASS 83, FAIL 0, WARN 0, SKIP 1`
   - skip reason: pipeline/report script path unavailable in the test sandbox for one integration smoke test.
 
-Current S4 open closure item:
+Current S4 closure status:
 
-- rerun S4 report and gate summary on the active full static run
+- [x] rerun S4 report and gate summary on the full mild-skew run
   (`results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_194203/`)
-  once all six static MCMC tasks finish.
+- [x] generate dynamic-style postprocess outputs on the rich MC-truth run via
+  `tools/merge_reports/20260305_static_postprocess_from_existing_fits.R`
+  (completed `2026-03-05 14:05:37 PST`, `42` PNG files)
+- [x] complete the static recalibration follow-through on the rich MC-truth run:
+  - tuning screen root:
+    - `results/sim_suite_static/screen_exal_tuning_tt5000_20260305_153200/`
+    - selected settings:
+      - LDVB profile: `base`
+      - static `exAL` VB `max_iter=500`
+      - static `exAL` MCMC kernel: `rw`
+  - calibrated full run root:
+    - `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_160734/`
+    - completed `2026-03-05 16:56:35 PST`
+    - postprocess completed `2026-03-05 16:58:37 PST`
+    - report outputs present after rerun of `tools/merge_reports/20260305_static_vb_mcmc_report.R`
+- [x] complete the dynamic exDQLM retune follow-through on the latest TT=5000 review run:
+  - retune root:
+    - `results/function_testing_20260304_vb_quantiles/retune_exdqlm_from_vb_tt5000_burn2000_n1000_20260305_152639/`
+  - scope:
+    - reused the already-completed `DQLM` control-arm MCMC fits from the prior dynamic rerun
+    - reran only the `exDQLM` MCMC arm from the existing VB fits under the calibrated proposal setting
+  - exact retune settings:
+    - `mh_proposal = laplace_rw`
+    - `mh_joint_sample = FALSE`
+    - `n.burn = 2000`
+    - `n.mcmc = 1000`
+    - `mh.adapt.interval = 25`
+    - `mh.target.accept = c(0.25, 0.55)`
+  - completion:
+    - dynamic resume completed `2026-03-05 19:33:14 PST`
+    - postprocess completed `2026-03-05 19:56:59 PST`
+    - regenerated outputs:
+      - `tables/fit_summary.csv`
+      - `tables/vb_convergence_summary.csv`
+      - `tables/mcmc_diagnostics_summary.csv`
+      - `tables/metrics_summary.csv`
+      - `plots/` (`39` PNG files)
+- [ ] resolve the remaining extended-model diagnostics issues identified in the latest figure review below
+
+### Static Calibration Outcomes After C1-C4 (`2026-03-05`)
+
+Calibrated static rerun basis:
+
+- run root:
+  - `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_160734/`
+- tuning root:
+  - `results/sim_suite_static/screen_exal_tuning_tt5000_20260305_153200/`
+- static figures/tables regenerated from the calibrated run:
+  - `tables/vb_convergence_summary.csv`
+  - `tables/vb_ld_diagnostics_summary.csv`
+  - `tables/mcmc_diagnostics_summary.csv`
+  - `tables/acceptance_gate_summary.csv`
+  - `plots/` (`73` PNG files across postprocess + S4 report outputs)
+
+Static calibration outcome summary:
+
+- VB side:
+  - `exAL` VB now converges jointly at all taus under `max_iter=500`
+  - iteration counts:
+    - `tau=0.05 -> 453`
+    - `tau=0.50 -> 153`
+    - `tau=0.95 -> 498`
+  - final LD diagnostics are stable:
+    - `ld_mode_fallback_rate = 0` for all `exAL` taus
+    - `ld_xi_rel_drift_last` is near zero for all `exAL` taus
+- MCMC side:
+  - calibrated static `rw` kernel is now fully instrumented and acceptance is observable
+  - acceptance/ESS remain weak for `exAL`, especially `gamma`:
+    - `tau=0.05`: `accept_keep=0.028`, `ESS_sigma=15.36`, `ESS_gamma=2.05`
+    - `tau=0.50`: `accept_keep=0.084`, `ESS_sigma=27.22`, `ESS_gamma=3.85`
+    - `tau=0.95`: `accept_keep=0.041`, `ESS_sigma=54.22`, `ESS_gamma=3.69`
+- static gate status:
+  - `AL`: `3 / 3` tasks pass
+  - `exAL`: `0 / 3` tasks pass
+  - failure mode after the static recalibration is now isolated to MCMC mixing/ESS, not VB convergence
+
+### Dynamic Calibration Outcomes After C5-C6 (`2026-03-05`)
+
+Calibrated dynamic rerun basis:
+
+- previous dynamic review root:
+  - `results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_183508/`
+- retuned dynamic root:
+  - `results/function_testing_20260304_vb_quantiles/retune_exdqlm_from_vb_tt5000_burn2000_n1000_20260305_152639/`
+- regenerated dynamic tables/plots from the retuned root:
+  - `tables/fit_summary.csv`
+  - `tables/vb_convergence_summary.csv`
+  - `tables/mcmc_diagnostics_summary.csv`
+  - `tables/metrics_summary.csv`
+  - `plots/` (`39` PNG files)
+
+Dynamic calibration outcome summary:
+
+- VB side:
+  - no dynamic VB change was required after the static diagnosis
+  - `exDQLM` VB remains jointly converged at all taus on the retuned review root:
+    - `tau=0.05 -> iter=97`
+    - `tau=0.50 -> iter=34`
+    - `tau=0.95 -> iter=99`
+- MCMC side:
+  - the retune kept `laplace_rw` but disabled joint sampling (`mh_joint_sample = FALSE`)
+  - this materially improved kept-draw acceptance at all `exDQLM` taus:
+    - `tau=0.05`: `0.044 -> 0.293`
+    - `tau=0.50`: `0.174 -> 0.289`
+    - `tau=0.95`: `0.056 -> 0.280`
+  - ESS changes were mixed:
+    - `tau=0.05`: `ESS_sigma 2.85 -> 4.03`, `ESS_gamma 1.87 -> 9.65`
+    - `tau=0.50`: `ESS_sigma 34.35 -> 51.57`, `ESS_gamma 12.51 -> 12.23`
+    - `tau=0.95`: `ESS_sigma 1.74 -> 2.23`, `ESS_gamma 7.51 -> 4.40`
+  - fit accuracy moved slightly in the right direction, but only marginally:
+    - `tau=0.05`: `RMSE 0.6191 -> 0.6150`
+    - `tau=0.50`: `RMSE 0.2833 -> 0.2801`
+    - `tau=0.95`: `RMSE 0.6324 -> 0.6270`
+- dynamic gate interpretation:
+  - the dynamic retune improved chain usability and tail kept-draw acceptance
+  - the dynamic extended-model mixing gate is still open because tail `sigma/gamma` ESS remains weak, especially at `tau=0.05` and `tau=0.95`
+  - this confirms the shared extended-model issue is not a reduced-model parity problem anymore; it is now a residual tail-geometry / proposal-efficiency problem in the extended path
+
+## Latest Figure Review and Triage Checklist (2026-03-05)
+
+Review basis for the notes below:
+
+- dynamic review run:
+  - run root: `results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_183508/`
+  - figures reviewed from latest postprocess completed `2026-03-05 00:50:05 PST`
+  - VB traces correspond to completed fit lengths:
+    - `exDQLM` iters = `97`, `34`, `99` for `tau=0.05`, `0.50`, `0.95`
+    - `DQLM` iters = `37`, `34`, `37`
+  - MCMC traces correspond to `1000` kept draws after `2000` burn-in
+- static review run:
+  - run root: `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_012506/`
+  - figures reviewed from latest postprocess completed `2026-03-05 14:05:37 PST`
+  - VB traces are plotted from iteration `20` through iteration `300`
+  - MCMC traces correspond to `1000` kept draws after `2000` burn-in
+
+Structured review summary:
+
+| ID | Observation from latest plots/tables | Evidence from latest completed runs | Working interpretation | Planned response |
+|---|---|---|---|---|
+| R1 | Extended models remain the dominant source of residual problems in both static and dynamic campaigns. | Static rich run: `exAL` tail RMSE is much worse than `AL` (`VB/MCMC` at `tau=0.05`: `4.52/4.83` vs `1.03/1.05`; `tau=0.95`: `1.03/1.17` vs `0.38/0.42`). Dynamic rerun: `exDQLM` gamma ESS stays weak (`1.87`, `12.51`, `7.51`) while `DQLM` sigma ESS stays high (`449-538`). | Reduced-model paths are no longer the bottleneck. Remaining signoff risk is concentrated in the extended `gamma`/`sigma` geometry, especially in the tails. | Keep `AL/DQLM` as control arms. Focus all next diagnostic and tuning work on `exAL/exDQLM`, especially `tau=0.05` and `tau=0.95`. |
+| R2 | Static `exAL` VB instability is concentrated in the LD block (`sigma`, `gamma`, ELBO), not in the coefficient block. | Static rich run `vb_convergence_summary.csv`: `exAL` stops at `max_iter=300` for all taus. Final deltas are large at the tails (`tau=0.05`: `delta_sigma=1.07`, `delta_gamma=3.16`; `tau=0.95`: `delta_sigma=0.784`, `delta_gamma=2.35`) but tiny at the median (`tau=0.50`: `delta_sigma=6.46e-4`, `delta_gamma=5.88e-4`). Plot review shows coefficient traces look stable while ELBO and `sigma/gamma` continue to oscillate. | The likely failure mode is inside the Laplace-Delta block rather than `q(beta)`. Current `exAL` VB uses a BFGS mode finder plus Monte Carlo `xi` refresh with no damping/trust-region control, so the iterates can hover or mode-hop without settling deeper into the LD basin. | Add a forensic LD-block diagnostic pass first, then stabilize the block conservatively with damping/regularization before changing stopping tolerances. |
+| R3 | Static `exAL` MCMC appears to reach the right region but mixes slowly for `gamma` and, at some taus, `sigma`. | Static rich run `mcmc_diagnostics_summary.csv`: `ESS_gamma = 8.43`, `7.32`, `6.20`; `ESS_sigma = 24.48`, `12.33`, `37.14` for `tau=0.05`, `0.50`, `0.95`. Current static report shows no acceptance rates. Code inspection: `R/exal_static_mcmc.R` does not use adaptive RW-MH for `gamma`; it redraws transformed `eta` from a local Gaussian around the per-iteration Laplace mode. | This is a different issue from dynamic exDQLM MCMC. Static `exAL` currently has no explicit MH step-size control or acceptance diagnostic for `gamma`, so mixing can be poor even when trace location looks reasonable. | Expose and instrument the current LD proposal scale, then compare it against a corrected/adaptive RW-MH alternative if the LD-only kernel remains sticky. |
+| R4 | Dynamic extended-model issues are similar in spirit, but not identical in mechanism. | Dynamic rerun `vb_convergence_summary.csv`: `exDQLM` does converge jointly, but tails need many more iterations (`97`, `99`) than the median (`34`). Dynamic rerun `mcmc_diagnostics_summary.csv`: `mh_proposal=laplace_rw`, `mh_adapt=TRUE`, burn acceptance near `0.40`, but keep acceptance is very low at the tails (`0.044`, `0.056`) and tail gamma ESS remains weak. No analogous sigma/gamma VB oscillation is visible in the latest dynamic plots. | The shared problem is hard extended-model tail geometry. The static VB oscillation seems specific to the static LDVB implementation, but static MCMC and dynamic MCMC may still benefit from a shared proposal-scale strategy. | Diagnose static VB and static MCMC first, then port only the mechanism-supported fixes to dynamic exDQLM rather than copying all static changes blindly. |
+
+Checklist for the next implementation round:
+
+- [x] C1. Static `exAL` LDVB forensic diagnostic pass.
+  - Completed implementation:
+    - added per-iteration LD diagnostics and normalized summaries for:
+      - `xi` drift
+      - covariance / Hessian condition numbers
+      - fallback usage
+      - transformed-block trace metadata
+    - exposed these in:
+      - `R/exal_static_LDVB.R`
+      - `R/static_fit_normalization.R`
+      - `tools/merge_reports/20260305_static_postprocess_from_existing_fits.R`
+  - Outcome:
+    - forensic diagnostics showed the static failure was localized to the LD block, not the coefficient block
+- [x] C2. Static `exAL` LDVB stabilization.
+  - Completed implementation:
+    - added LD-block damping, covariance regularization, step caps, and common-random-number style `xi` stabilization controls
+    - screened LD profiles on the rich TT=5000 static dataset
+  - Outcome:
+    - static `exAL` VB convergence issue is resolved with `max_iter=500`
+    - calibrated rerun reached `joint_converged` at all `exAL` taus
+- [x] C3. Static `exAL` MCMC kernel instrumentation and control.
+  - Completed implementation:
+    - instrumented static MCMC kernel metadata, acceptance, scale history, and per-iteration MH traces
+    - added explicit kernel options: `laplace_local`, `laplace_rw`, `rw`
+    - screened kernels on the rich TT=5000 static dataset
+  - Outcome:
+    - `rw` was the best of the screened static kernels, but calibrated full-run ESS is still below gate for `exAL`
+- [x] C4. Shared extended-model comparison protocol.
+  - Completed implementation:
+    - ran the static screen on the rich MC-truth dataset and then reran the full `{AL, exAL} x {0.05,0.50,0.95}` campaign under the calibrated settings
+    - regenerated dynamic-style postprocess outputs plus S4 comparison/gate tables
+  - Outcome:
+    - the static rerun closed the VB question and isolated the remaining issue to extended-model MCMC mixing
+- [x] C5. Dynamic exDQLM follow-through after static diagnosis.
+  - Completed implementation:
+    - kept the dynamic VB controls unchanged because the latest evidence still supports the existing joint-stop settings
+    - retuned the dynamic `exDQLM` MCMC retry ordering so the primary calibrated path is:
+      - `mh_proposal = laplace_rw`
+      - `mh_joint_sample = FALSE`
+    - reran the `exDQLM` MCMC arm from the already-completed dynamic VB fits under the calibrated setting
+  - Outcome:
+    - dynamic kept-draw acceptance improved substantially at all taus
+    - lower-tail `gamma` ESS improved materially
+    - upper-tail `gamma` ESS remains weak and did not improve
+- [x] C6. Final rerun once fixes land.
+  - Completed execution:
+    - reran the full static rich MC-truth campaign under the calibrated static settings
+    - reran the dynamic extended-model arm on the latest dynamic TT=5000 review root under the calibrated dynamic proposal setting
+    - regenerated all current tables and figures for both latest review roots
+    - validated targeted tests after implementation changes:
+      - `PASS 76, FAIL 0, WARN 0, SKIP 1`
+  - Outcome:
+    - implementation and rerun workflow are complete for `C1-C6`
+    - final signoff remains open because `exAL` and `exDQLM` tail-MCMC mixing gates are still not satisfied
+
+Open signoff gates after C1-C6:
+
+- [ ] Static `exAL` MCMC tail mixing:
+  - `ESS_gamma` remains below acceptable levels for all taus on the calibrated static rerun
+- [ ] Dynamic `exDQLM` MCMC tail mixing:
+  - `ESS_sigma` and `ESS_gamma` remain weak at `tau=0.05` and `tau=0.95` on the retuned dynamic rerun
+- [ ] Final extended-model default lock:
+  - current evidence supports:
+    - static `exAL` VB: keep the calibrated LD controls and `max_iter=500`
+    - dynamic `exDQLM` MCMC: prefer `laplace_rw` with `mh_joint_sample = FALSE` over the prior joint-sampling path
+  - a final default lock should wait until the residual tail-mixing issue is improved or explicitly accepted as an unresolved limitation
+
+## New Audit Track: Static exAL Theory-to-Code Review for Residual Tail Bias (2026-03-05)
+
+Motivation for this audit:
+
+- after the static convergence hardening work, the `exAL` VB traces and LD-block diagnostics look materially healthier than before
+- however, on the richer static review run, the `exAL` fits at `tau=0.05` and `tau=0.95` can still look shifted / biased relative to:
+  - the true quantile curves
+  - the `AL` control-arm fits
+- the concerning part is that this bias can persist even when the VB convergence diagnostics look healthy enough that the issue is no longer obviously a pure optimizer failure
+- therefore the next debugging layer is not more tuning first; it is a derivation-to-implementation audit
+
+Theory repo of record for this audit:
+
+- repo:
+  - `/data/muscat_data/jaguir26/DQLM-and-BQR---Theory`
+- remote:
+  - `https://github.com/AntonioAPDL/DQLM-and-BQR---Theory.git`
+- pulled latest on `2026-03-05`
+- current commit used for audit planning:
+  - `f31ce5df757ad78647c1015a3ed6a875a0402bc5`
+- primary theory artifacts to cross-check:
+  - `main.tex`
+  - `exAL_Original.pdf`
+
+Scope boundary for this audit:
+
+- primary target:
+  - static `exAL` VB at `tau=0.05` and `tau=0.95`
+- secondary cross-check:
+  - static `exAL` Gibbs/MCMC expressions for the same model, to verify the joint density and augmentation are coded consistently across VB and MCMC
+- control arms to preserve during audit:
+  - static `AL` VB/MCMC
+  - dynamic `DQLM/exDQLM` should not be changed until the static audit identifies a real shared issue
+
+Audit operating rules for `T1-T6`:
+
+- lock the empirical review basis before touching theory or code:
+  - use the rich static review run `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_160734/`
+  - treat the later heteroskedastic run as a secondary validation dataset, not the primary debugging basis for the first pass
+- do not change dynamic `exDQLM` during `T1-T4`
+- do not retune VB damping, `max_iter`, or MCMC proposal settings during `T1-T5` unless the audit proves the target density and updates are already consistent
+- every discrepancy found must be labeled immediately as one of:
+  - theory-document issue
+  - implementation issue
+  - intentional approximation
+  - unresolved
+- each audit step must produce a concrete artifact:
+  - markdown note, concordance table, or regression test
+
+Revised checklist for the derivation-to-code audit:
+
+- [x] T1. Freeze the exact empirical symptom and review basis.
+  - Record the exact run root, commit hash, and figure/table paths that motivated the concern:
+    - `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_160734/`
+    - focus on static `exAL` at `tau=0.05` and `tau=0.95`
+  - Pin the specific evidence to review:
+    - within-inference plots showing the apparent shift/bias relative to truth
+    - between-inference plots showing `exAL` vs `AL`
+    - VB ELBO and parameter traces that look numerically healthy despite the fit issue
+    - summary rows from `fit_summary.csv`, `vb_convergence_summary.csv`, and `metrics_summary.csv`
+  - Write a short symptom note that separates:
+    - fit bias
+    - convergence behavior
+    - mixing behavior
+  - Deliverable:
+    - one frozen audit note that defines the empirical problem before any new derivation or code edits
+  - Completed on `2026-03-05`.
+  - Artifacts:
+    - note: `tools/merge_reports/20260305_static_exal_tail_bias_t1_t3_audit.md`
+    - metrics extract: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t1_focus_metrics_summary.csv`
+    - pairwise extract: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t1_focus_pairwise_exal_vs_al.csv`
+    - VB convergence extract: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t1_focus_vb_convergence_summary.csv`
+    - LD diagnostics extract: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t1_focus_vb_ld_diagnostics_summary.csv`
+    - MCMC diagnostics extract: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t1_focus_mcmc_diagnostics_summary.csv`
+  - Outcome:
+    - frozen evidence confirms the tail-bias symptom is real for `exAL` at `tau=0.05` and `tau=0.95`
+    - both `VB` and `MCMC` are materially worse than `AL` in the tails on this run
+    - `VB` convergence diagnostics look healthy enough that this is not obviously a simple non-convergence story
+
+- [x] T2. Re-derive the static `exAL` joint density and augmentation from source material.
+  - Use `exAL_Original.pdf` as the primary source of record for:
+    - model parameterization
+    - latent-variable augmentation
+    - support restrictions and transforms
+    - full joint up to proportionality
+  - Compare this directly against `main.tex` and identify:
+    - notation mismatches
+    - dropped or altered terms
+    - support-transform inconsistencies
+    - any ambiguity in the static specialization
+  - Require a written side-by-side comparison:
+    - original paper symbol/expression
+    - current `main.tex` symbol/expression
+    - verdict
+  - Deliverable:
+    - a discrepancy log for the joint density and augmentation alone
+  - Completed on `2026-03-05`.
+  - Artifacts:
+    - note: `tools/merge_reports/20260305_static_exal_tail_bias_t1_t3_audit.md`
+    - discrepancy log: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t2_joint_discrepancy_log.csv`
+  - Outcome:
+    - `main.tex` currently documents only `AL / exAL with gamma = 0`
+    - the static `exAL` hierarchy, gamma support map, and quantile-fixed GAL augmentation are present in `exAL_Original.pdf` and in code, but not yet in `main.tex`
+    - primary `T2` finding is a theory-document gap, not an immediate code mismatch
+
+- [x] T3. Re-derive the static `exAL` VB/CAVI updates line by line from the audited joint.
+  - Re-derive the mean-field factorization and update targets for:
+    - `q(beta)`
+    - `q(v_t)`
+    - `q(s_t)`
+    - `q(sigma, gamma)` under the Laplace-Delta block
+  - For the LD block, explicitly verify:
+    - transform definition `eta -> gamma`
+    - objective being optimized
+    - gradient and Hessian terms
+    - Jacobian contribution
+    - expectations entering the objective from other factors
+  - Perform a numeric sanity pass:
+    - finite-difference check of the implemented gradient/Hessian at one frozen parameter point
+    - sign and scale check for tail-sensitive terms at `tau=0.05` and `tau=0.95`
+  - Deliverables:
+    - equation-by-equation concordance table
+    - one numeric derivative check artifact for the LD objective
+  - Completed on `2026-03-05`.
+  - Artifacts:
+    - note: `tools/merge_reports/20260305_static_exal_tail_bias_t1_t3_audit.md`
+    - concordance table: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t3_vb_concordance.csv`
+    - derivative check: `results/sim_suite_static/audits/static_exal_tail_bias_t1_t3_20260305/t3_ld_derivative_check.csv`
+  - Outcome:
+    - no obvious algebraic sign/scaling bug was found in the audited `VB` update blocks
+    - the frozen LD objective is numerically close to stationary at the saved tail fits and the local curvature check is consistent with a proper local mode
+    - the remaining concrete implementation risks are the intentional approximation layers:
+      - Laplace-Delta approximation for `q(sigma, gamma)`
+      - Monte Carlo + damping approximation for the `xi` expectations
+
+- [x] T4. Cross-check the static Gibbs/MCMC implementation against the same audited joint.
+  - Verify that the static MCMC updates target the same joint used in `T2`:
+    - `beta | rest`
+    - latent block conditionals
+    - `sigma | rest`
+    - transformed/proposal treatment for `gamma`
+  - Identify whether the MCMC kernel is:
+    - an exact Gibbs step
+    - a Metropolis-within-Gibbs step
+    - a Laplace-based proposal approximation
+  - Explicitly compare VB and MCMC on shared quantities:
+    - likelihood terms
+    - prior terms
+    - latent augmentation definitions
+    - transform/Jacobian handling
+  - Deliverable:
+    - one consistency table stating whether VB and MCMC are targeting the same posterior object
+  - Completed on `2026-03-05`.
+  - Artifacts:
+    - note: `tools/merge_reports/20260305_static_exal_tail_bias_t4_audit.md`
+    - consistency table: `results/sim_suite_static/audits/static_exal_tail_bias_t4_20260305/t4_mcmc_vb_consistency.csv`
+    - numeric kernel checks: `results/sim_suite_static/audits/static_exal_tail_bias_t4_20260305/t4_kernel_equivalence_checks.csv`
+  - Outcome:
+    - for the frozen rich static run, static `MCMC` and static `VB` are targeting the same posterior object on the shared quantile-fixed GAL / `exAL` ingredients
+    - the frozen run uses `mh.proposal = rw`, which is an exact Metropolis-within-Gibbs `gamma` kernel
+    - no algebraic mismatch was found in the audited `MCMC` full conditional structure for `beta`, `v`, `s`, `sigma`, or `gamma | rest`
+    - important caveat:
+      - the `laplace_local` branch in `R/exal_static_mcmc.R` is an approximate local-Gaussian draw without MH correction and is therefore not an exact posterior kernel
+
+- [x] T5. Build a theory-to-code concordance map and patch list.
+  - Map the audited formulas to implementation points in:
+    - `R/exal_static_LDVB.R`
+    - `R/exal_static_mcmc.R`
+    - `R/utils.R`
+    - any helper used for normalization, transforms, or diagnostics
+  - For each nontrivial expression, record:
+    - theory equation reference
+    - exact code location
+    - whether constants are intentionally omitted
+    - whether the implementation is exact, approximated, or potentially inconsistent
+  - If a discrepancy is found, open a concrete patch item with:
+    - expected effect on inference
+    - files to update
+    - required regression tests
+  - Deliverable:
+    - a patch-ready concordance checklist that can drive implementation without re-reading the whole derivation
+  - Completed on `2026-03-05`.
+  - Artifacts:
+    - note: `tools/merge_reports/20260305_static_exal_tail_bias_t5_audit.md`
+    - concordance map: `results/sim_suite_static/audits/static_exal_tail_bias_t5_20260305/t5_theory_code_concordance.csv`
+    - patch list: `results/sim_suite_static/audits/static_exal_tail_bias_t5_20260305/t5_patch_list.csv`
+  - Outcome:
+    - the theory-to-code concordance now covers:
+      - `R/utils.R`
+      - `R/exal_static_LDVB.R`
+      - `R/exal_static_mcmc.R`
+      - `R/static_fit_normalization.R`
+      - static reporting/pipeline helpers that consume normalized outputs
+    - no new algebraic mismatch was found in the already-audited exact kernels
+    - the patch-ready items that emerged are:
+      - `P1`: add static `exAL` derivation to the theory repo `main.tex`
+      - `P2`: add an exact-kernel signoff guard so `laplace_local` cannot be treated as signoff-ready
+      - `P3`: add deterministic/replicated `xi` evaluation mode for static `LDVB`
+      - `P4`: add LD mode-quality diagnostics to normalized outputs and reports
+
+- [x] `P1-P4` implementation pass completed on `2026-03-05`.
+  - `P1` theory-doc bridge:
+    - updated `/data/muscat_data/jaguir26/DQLM-and-BQR---Theory/main.tex`
+    - added a dedicated static quantile-fixed `exAL / GAL` section with:
+      - `g(gamma)`, support bounds `(L,U)`,
+      - `p(gamma, p0)`, `A_gamma`, `B_gamma`, `C_gamma`, `lambda_gamma`,
+      - the static joint posterior,
+      - exact Gibbs kernels for `beta`, `v`, `s`, `sigma`,
+      - the transformed `eta`-scale exact gamma kernel,
+      - the relation between that joint and the static `LDVB` approximation.
+    - theory build check now succeeds and produces:
+      - `/data/muscat_data/jaguir26/DQLM-and-BQR---Theory/main.pdf`
+  - `P2` exact-kernel signoff guard:
+    - `R/exal_static_mcmc.R` now records:
+      - `mh.diagnostics$kernel_exact`
+      - `mh.diagnostics$signoff_ready`
+      - `mh.diagnostics$approximation_note`
+    - `R/static_fit_normalization.R` propagates exact-vs-approximate gamma-kernel status.
+    - static reporting/gates now include:
+      - `gate_mcmc_kernel_exact`
+      - `mh_kernel_exact`
+      - `mh_signoff_ready`
+    - refreshed rich static gate table:
+      - `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_160734/tables/acceptance_gate_summary.csv`
+  - `P3` deterministic / replicated `xi` evaluation:
+    - `R/exal_static_LDVB.R` now supports:
+      - `ld_controls$xi_mode`
+      - `ld_controls$xi_replicates`
+      - `ld_controls$reuse_seed`
+    - replicated-`xi` evaluations now record Monte Carlo dispersion (`xi_mcse_mean`, `xi_mcse_max`) in the LD trace.
+    - static pipeline env controls now expose the same knobs for reproducible focused reruns.
+  - `P4` LD mode-quality diagnostics:
+    - `R/exal_static_LDVB.R` now stores final finite-difference mode checks:
+      - `grad_inf_norm`
+      - `neg_hess_min_eig`
+      - `neg_hess_condition`
+      - `local_mode_pass`
+    - `tools/merge_reports/20260305_static_postprocess_from_existing_fits.R` now writes these through to:
+      - `vb_ld_diagnostics_summary.csv`
+    - `tools/merge_reports/20260305_static_vb_mcmc_report.R` now gates on:
+      - `gate_vb_ld_local_mode`
+      - `gate_mcmc_kernel_exact`
+  - supporting regression coverage added:
+    - deterministic replicated-`xi` regression test
+    - exact-kernel / approximate-kernel normalization test
+    - static report smoke test now asserts the new gate columns.
+  - heteroskedastic static model-equivalence audit completed:
+    - artifact root:
+      - `results/function_testing_20260306_static_heteroskedastic_skewnormal/audits/heteroskedastic_model_equivalence_20260305`
+    - outcome:
+      - the supplied design matrix `X = [intercept, x_main, cos_term]` spans the targeted DGP mean exactly
+      - `AL` and `exAL` use the same regression function and the same stored Monte Carlo truth on this dataset
+      - the observed performance gap is therefore not a design-matrix mismatch.
+
+- [x] T6. Run a focused verification and only then decide on broader reruns.
+  - Use a minimal verification suite first:
+    - static `exAL`
+    - `tau in {0.05, 0.95}`
+    - the frozen rich static dataset from `T1`
+  - Compare four views:
+    - truth vs `AL`
+    - truth vs current `exAL`
+    - current `exAL` vs corrected `exAL`
+    - diagnostics before/after any derivation-consistency fix
+  - Add regression tests whenever the audit produces a code correction:
+    - numeric derivative test if the LD block changes
+    - smoke/integration test if the posterior target changes
+  - Only after the focused verification passes should we:
+    - propagate the fix to dynamic `exDQLM`
+    - rerun the heteroskedastic static dataset
+    - retune proposals or convergence defaults
+  - Deliverable:
+    - a clear go/no-go decision for broader reruns based on a narrow corrected verification case
+  - Completed on `2026-03-05`.
+  - Artifacts:
+    - script:
+      - `tools/merge_reports/20260305_static_exal_tail_bias_t6_verify.R`
+    - output root:
+      - `results/sim_suite_static/audits/static_exal_tail_bias_t6_20260305`
+    - key files:
+      - `t6_metrics_comparison.csv`
+      - `t6_diagnostics_before_after.csv`
+      - `t6_delta_summary.csv`
+      - `t6_verification_note.md`
+      - `plots/t6_tail_compare_tau_0p05.png`
+      - `plots/t6_tail_compare_tau_0p95.png`
+  - Outcome:
+    - corrected static `exAL` VB with deterministic replicated `xi` reached numerically credible local modes at both tails:
+      - `tau=0.05`: `grad_inf_norm = 2.83e-03`, `local_mode_pass = TRUE`
+      - `tau=0.95`: `grad_inf_norm = 8.14e-04`, `local_mode_pass = TRUE`
+    - however, the tail bias did not materially improve:
+      - `tau=0.05`: `RMSE 5.777553 -> 5.777139`
+      - `tau=0.95`: `RMSE 1.972789 -> 1.972654`
+    - decision:
+      - `NO-GO` for broader reruns at this stage.
+    - implication:
+      - `P2-P4` improved auditability and ruled out a simple `xi` Monte Carlo instability explanation for the static tail bias,
+      - but they did not resolve the core static `exAL` performance gap,
+      - so the next round should stay focused on model/approximation quality rather than launching broader static or dynamic reruns.
+
+Decision rule for this audit:
+
+- do not assume the remaining bias is an optimizer issue just because prior LD stabilization improved convergence
+- if the derivation audit finds an inconsistency:
+  - patch `main.tex` first or in parallel with the code
+  - patch the implementation to match the corrected derivation
+  - rerun the minimal static verification before touching dynamic code
+- if the derivation audit finds no inconsistency:
+  - only then return to model-performance debugging via proposal/approximation quality, initialization, or richer diagnostics
+
+Definition of done for this audit track:
+
+- a written concordance exists between:
+  - `exAL_Original.pdf`
+  - `main.tex`
+  - static `exAL` VB/MCMC code
+- the frozen empirical symptom from `T1` is still reproducible from the recorded artifacts
+- every suspected discrepancy is labeled as one of:
+  - theory typo / omission
+  - implementation bug
+  - acceptable approximation
+  - unresolved but documented
+- any true discrepancy has:
+  - a committed theory correction and/or code fix
+  - a targeted regression test when feasible
+  - a rerun on the focused static verification case
+  - updated tracker notes on whether the observed tail bias improved
+- no proposal retuning or dynamic propagation is done until the focused verification case is reviewed after the derivation/code audit
