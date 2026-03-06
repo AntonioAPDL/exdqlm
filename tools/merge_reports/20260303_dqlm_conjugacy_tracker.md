@@ -1304,3 +1304,269 @@ Definition of done for this audit track:
   - a rerun on the focused static verification case
   - updated tracker notes on whether the observed tail bias improved
 - no proposal retuning or dynamic propagation is done until the focused verification case is reviewed after the derivation/code audit
+
+Follow-on shared-target audit after `T6`:
+
+- [x] U1. Verify that the implemented static `exAL` family reduces cleanly to `AL` at `gamma = 0`.
+  - Completed on `2026-03-06`.
+  - Script:
+    - `tools/merge_reports/20260306_static_exal_shared_issue_u1_u4_audit.R`
+  - Output root:
+    - `results/sim_suite_static/audits/static_exal_shared_issue_u1_u4_20260306`
+  - Key artifacts:
+    - `u1_reduction_identity_checks.csv`
+    - `u1_quantile_fixed_checks.csv`
+  - Result:
+    - exact reduction identities passed on `tau in {0.05, 0.50, 0.95}`:
+      - `p(gamma = 0) = p0`
+      - `A(gamma = 0) = A_AL`
+      - `B(gamma = 0) = B_AL`
+      - `lambda(gamma = 0) = 0`
+    - the implemented observational family is also quantile-fixed:
+      - `Q_tau(Y | mu, sigma, gamma) = mu`
+      - `P(Y <= mu | mu, sigma, gamma) = tau`
+    - implication:
+      - the static `exAL` observational layer itself does reduce correctly to `AL`;
+      - the current tail gap is not explained by a broken `gamma = 0` reduction in the implemented density map.
+
+- [x] U2. Verify that the static reporting layer is extracting the fitted quantile correctly for `exAL`.
+  - Completed on `2026-03-06`.
+  - Key artifact:
+    - `u2_quantile_path_mapping_checks.csv`
+  - Result:
+    - the current static plotting / metric path in `R/static_fit_normalization.R` is correct for the implemented quantile-fixed `exAL` family;
+    - on the frozen rich and heteroskedastic runs, the direct exAL quantile
+      `qexal(tau, p0=tau, mu=X beta, sigma, gamma)` matched the reported path to numerical precision:
+      - max absolute difference across all checked cases: `7.11e-15`
+    - implication:
+      - the observed exAL tail shift is not a plotting or summary-metric artifact caused by using the wrong fitted quantile map.
+
+- [x] U3. Profile the shared exact `gamma` target on the frozen problematic runs.
+  - Completed on `2026-03-06`.
+  - Key artifacts:
+    - `u3_gamma_geometry_profile_summary.csv`
+    - `plots/u3_gamma_profile_rich_005_tau_0p05.png`
+    - `plots/u3_gamma_profile_rich_095_tau_0p95.png`
+    - `plots/u3_gamma_profile_het_005_tau_0p05.png`
+    - `plots/u3_gamma_profile_het_095_tau_0p95.png`
+  - Result:
+    - on both frozen datasets, the exact static `exAL` conditional gamma target strongly prefers nonzero `gamma` over the `AL` submodel (`gamma = 0`):
+      - rich static:
+        - `tau=0.05`: conditional mode `gamma ~= 5.00`, log-kernel gap vs `gamma=0` `= 12674.58`
+        - `tau=0.95`: conditional mode `gamma ~= -4.28`, log-kernel gap vs `gamma=0` `= 12058.14`
+      - heteroskedastic static:
+        - `tau=0.05`: conditional mode `gamma ~= 2.36`, log-kernel gap vs `gamma=0` `= 10056.82`
+        - `tau=0.95`: conditional mode `gamma ~= -5.00`, log-kernel gap vs `gamma=0` `= 12462.74`
+    - implication:
+      - the problematic saved runs are not merely failing to find the `AL` submodel;
+      - the exact exAL target itself is pulling hard toward a nonzero-skew solution on these datasets.
+
+- [x] U4. Run a focused recovery experiment on data generated from the implemented static family.
+  - Completed on `2026-03-06`.
+  - Key artifacts:
+    - `u4_recovery_experiment_summary.csv`
+    - `u4_recovery_pairwise_exal_vs_al.csv`
+    - `u1_u4_audit_note.md`
+  - Settings:
+    - `n = 160`
+    - `X = [1, x, x^2]`
+    - `sigma_true = 0.8`
+    - tails:
+      - `tau=0.05`, `gamma_true in {0, 0.6}`
+      - `tau=0.95`, `gamma_true in {0, -0.6}`
+    - focused audit budgets only:
+      - `VB max_iter = 180`, `n_samp_xi = 100`
+      - `MCMC burn = 120`, `n = 120`
+  - Result:
+    - `AL`-generated data (`gamma_true = 0`):
+      - `exAL` did not collapse relative to `AL`
+      - `VB`: essentially tied with `AL`
+      - `MCMC`: `exAL` was slightly better than `AL`
+    - `exAL`-generated data (`gamma_true != 0`):
+      - exact `exAL` `MCMC` recovered better than `AL` at both tails
+      - `VB` was mixed:
+        - `tau=0.95`: `exAL` slightly better than `AL`
+        - `tau=0.05`: `exAL` worse than `AL`
+    - implication:
+      - the shared static `exAL` implementation is capable of recovering when the DGP actually comes from the implemented family;
+      - this substantially weakens the hypothesis of a gross shared implementation bug in the static `exAL` posterior target;
+      - remaining concern is more plausibly:
+        - mismatch between the current skew-normal / rich static DGPs and the exAL family, and/or
+        - additional left-tail approximation / finite-sample fragility in static `exAL` VB.
+
+Current interpretation after `U1-U4`:
+
+- ruled out:
+  - broken `gamma=0` reduction
+  - wrong static fitted-quantile extraction in plots/tables
+  - a gross shared exAL implementation failure that prevents recovery on exAL-generated data
+- now most plausible:
+  - the poor static exAL performance on the current rich / heteroskedastic datasets is primarily a model-target issue on those DGPs rather than a simple shared coding bug,
+  - with a secondary VB-specific weakness still visible in the `tau=0.05` exAL-generated recovery case.
+- operational consequence:
+  - do not launch more broad static/dynamic reruns yet;
+  - next work should focus on:
+    - understanding why the exact exAL target prefers strongly nonzero `gamma` on the current non-exAL DGPs,
+    - and whether that reflects genuine model mismatch, identifiability, or prior-induced tail geometry.
+
+### Gamma=0 Reduction Audit on the Current Static Review Runs
+
+- [x] G1. Re-check the current observed performance pattern using the latest completed static review runs.
+  - Completed on `2026-03-06`.
+  - Audit root:
+    - `results/sim_suite_static/audits/static_exal_gamma0_reduction_20260306_020757`
+  - Key artifacts:
+    - `baseline_pattern_by_tau_method.csv`
+    - `baseline_pairwise_exal_vs_al.csv`
+    - `gamma0_reduction_note.md`
+  - Latest scenario basis:
+    - rich static:
+      - `results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260305_160734`
+    - paired heteroskedastic:
+      - `results/function_testing_20260306_static_scale_pair_skewnormal/heteroskedastic/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260306_011944_heteroskedastic_sub5000`
+    - paired homoskedastic:
+      - `results/function_testing_20260306_static_scale_pair_skewnormal/homoskedastic/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260306_011944_homoskedastic_sub5000`
+  - Pattern summary from the completed runs:
+    - `tau=0.05`:
+      - `VB`: `exAL` worse than `AL` in `1/3` scenarios
+      - `MCMC`: `exAL` worse than `AL` in `2/3` scenarios
+    - `tau=0.50`:
+      - `VB`: `exAL` worse than `AL` in `2/3` scenarios
+      - `MCMC`: `exAL` worse than `AL` in `3/3` scenarios
+    - `tau=0.95`:
+      - `VB`: `exAL` worse than `AL` in `3/3` scenarios
+      - `MCMC`: `exAL` worse than `AL` in `3/3` scenarios
+  - Interpretation:
+    - the poor `exAL` pattern absolutely persists on the current review runs;
+    - it is strongest and most stable at the upper tail, and clearly present at the median;
+    - the lower tail is mixed, not uniformly worse.
+
+- [x] G2. Constrain `exAL` back to the `gamma=0` submodel and compare against `AL`.
+  - Completed on `2026-03-06`.
+  - Key artifacts:
+    - `gamma0_vb_vs_baseline_comparison.csv`
+    - `gamma0_vb_metrics_summary.csv`
+    - `gamma_band_reduction_constants.csv`
+  - Settings:
+    - constrained `VB` audit only
+    - `gamma band = [-1e-6, 1e-6]`
+    - same `TT`, same design matrix, same truth, same `VB` budgets as each source run
+  - Result:
+    - in all `9/9` scenario/tau cells, constrained `exAL(gamma≈0)` collapsed back onto the `AL` fit:
+      - `gamma_g0` was effectively zero (`|gamma| ~ 1e-10`)
+      - `gap_closure_fraction` was `0.998` to `1.000`
+      - path gaps versus `AL` were numerically negligible
+    - examples:
+      - rich static, `tau=0.05`:
+        - free `exAL RMSE = 5.7776`
+        - `AL RMSE = 1.0284`
+        - constrained `exAL(gamma≈0) RMSE = 1.0277`
+      - heteroskedastic, `tau=0.95`:
+        - free `exAL RMSE = 0.7968`
+        - `AL RMSE = 0.3690`
+        - constrained `exAL(gamma≈0) RMSE = 0.3690`
+      - homoskedastic, `tau=0.95`:
+        - free `exAL RMSE = 0.6194`
+        - `AL RMSE = 0.0880`
+        - constrained `exAL(gamma≈0) RMSE = 0.0880`
+  - Interpretation:
+    - once `gamma` is forced back to zero, the practical fit gap disappears;
+    - this is strong evidence that the observed exAL underperformance is introduced by the nonzero-`gamma` part of the exAL target, not by the reduced `AL` submodel machinery.
+
+- [x] G3. Verify exact shared-update reduction at `gamma=0` for both static `VB` and static `MCMC`.
+  - Completed on `2026-03-06`.
+  - Key artifacts:
+    - `vb_exact_reduction_checks.csv`
+    - `mcmc_exact_reduction_checks.csv`
+  - Result:
+    - `VB` shared-update max diffs:
+      - `V_inv <= 1.49e-08`
+      - `rhs <= 2.61e-08`
+      - `chi <= 3.55e-15`
+      - `psi <= 1.42e-14`
+      - `q(s)` collapses exactly:
+        - `mu = 0`
+        - `tau2 = 1`
+    - `MCMC` shared-update max diffs:
+      - `v-chi = 0`
+      - `v-psi <= 1.42e-14`
+      - `beta-rhs = 0`
+      - `beta-W = 0`
+      - `sigma-rate = 0`
+      - `q(s)` / `s | rest` collapses exactly:
+        - `mu = 0`
+        - `tau2 = 1`
+  - Interpretation:
+    - the shared static `exAL` update equations reduce cleanly to the static `AL` equations at `gamma=0`;
+    - the extra `s_i` latent block becomes independent nuisance structure and does not alter the fitted quantile path.
+
+Current interpretation after `G1-G3`:
+
+- ruled out more strongly:
+  - a broken `gamma=0` reduction in the shared static `exAL` implementation
+  - the hypothesis that `AL`-like performance is lost because of the retained `s_i` latent block alone
+- now most plausible:
+  - the poor static `exAL` performance comes from how the free-`gamma` exAL posterior behaves on these DGPs,
+  - not from a failure of the shared `AL` reduction path
+  - practical implication:
+  - if `exAL` is forced back to `gamma=0`, it behaves like `AL`;
+  - therefore the next debugging stage should focus on:
+    - why the exact exAL target prefers large nonzero `gamma` on these non-exAL DGPs,
+    - whether the `gamma` prior/support geometry is too permissive,
+    - and whether a shrinkage-to-zero `gamma` strategy or stronger model-selection logic is needed.
+
+## 2026-03-06: Static exAL VB sigma/gamma parity update toward qdesn path
+
+- [x] Implement qdesn-style static `VB` sigma/gamma controls in [R/exal_static_LDVB.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exal_static_LDVB.R).
+  - Added deterministic `xi_method = "delta"` path as the default local-moment engine for the static exAL `(\sigma,\gamma)` block.
+  - Added bounded `optimizer_method = "lbfgsb"` support on transformed `(\eta,\ell)` with finite `eta` and `sigma` region control.
+  - Added data-scale sigma initialization / finite sigma bounds / interior gamma initialization via the LD setup helper.
+  - Added direct-commit mode for the bounded optimizer path rather than relying on post-hoc damping.
+  - Tightened the default covariance cap for the `delta + lbfgsb + direct_commit` path (`eig_cap = 1`) so the Delta approximation remains local and `E[1/\sigma]` does not explode on flat toy geometries.
+
+- [x] Wire the same sigma/gamma controls through the static stack.
+  - [R/exal_static_mcmc.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exal_static_mcmc.R):
+    - static `VB` warm-start path now accepts `vb_init_controls$ld_controls`
+    - returned fit now records `vb.init.controls` when warm start is used
+  - [R/static_fit_normalization.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/static_fit_normalization.R):
+    - normalized static `VB` diagnostics now preserve `ld_block$setup`
+  - [tools/merge_reports/20260305_static_vb_then_mcmc_pipeline.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260305_static_vb_then_mcmc_pipeline.R):
+    - pipeline now exposes env-driven LD controls for `xi_method`, optimizer, direct-commit mode, sigma bounds/initialization, eta bounds, covariance initialization, and local covariance cap
+  - [tools/merge_reports/20260306_run_static_scale_scenario.sh](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260306_run_static_scale_scenario.sh):
+    - paired static scale experiments now launch with the qdesn-style LDVB defaults
+
+- [x] Regression coverage for the new LDVB sigma/gamma path.
+  - Updated / extended:
+    - [tests/testthat/test-static-regression-regmod.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tests/testthat/test-static-regression-regmod.R)
+    - [tests/testthat/test-static-fit-normalization.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tests/testthat/test-static-fit-normalization.R)
+    - [tests/testthat/test-vb-mcmc-convergence-controls.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tests/testthat/test-vb-mcmc-convergence-controls.R)
+    - [tests/testthat/test-static-vb-mcmc-pipeline-report-smoke.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tests/testthat/test-static-vb-mcmc-pipeline-report-smoke.R)
+  - New coverage now checks:
+    - deterministic Delta `xi` behavior,
+    - preserved legacy replicated-MC `xi` behavior,
+    - bounded-optimizer setup metadata,
+    - warm-start LD-control propagation into static `MCMC`,
+    - and pipeline/report compatibility under the new sigma/gamma defaults.
+
+- [x] Validation status for the parity implementation.
+  - `devtools::document()` completed and regenerated:
+    - `man/exal_static_LDVB.Rd`
+    - `man/exal_static_mcmc.Rd`
+  - Targeted tests:
+    - `PASS 104, FAIL 0, WARN 0, SKIP 1`
+    - skipped item: sandbox-unavailable pipeline script path in the smoke test harness
+
+- [x] Relaunch paired heteroskedastic / homoskedastic static campaigns with the new LDVB sigma/gamma path.
+  - Heteroskedastic run:
+    - tmux session: `static_pair_het_qdesn_20260306_111006`
+    - log: [20260306_static_pair_heteroskedastic_qdesn_20260306_111006.log](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260306_static_pair_heteroskedastic_qdesn_20260306_111006.log)
+    - run root: [heteroskedastic qdesn-parity run](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260306_static_scale_pair_skewnormal/heteroskedastic/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260306_111006_heteroskedastic_qdesnvb_sub5000)
+  - Homoskedastic run:
+    - tmux session: `static_pair_homo_qdesn_20260306_111006`
+    - log: [20260306_static_pair_homoskedastic_qdesn_20260306_111006.log](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260306_static_pair_homoskedastic_qdesn_20260306_111006.log)
+    - run root: [homoskedastic qdesn-parity run](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260306_static_scale_pair_skewnormal/homoskedastic/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260306_111006_homoskedastic_qdesnvb_sub5000)
+  - One-time launch health check:
+    - both sessions are active
+    - all `AL` tasks entered `VB` and immediately moved into `MCMC`
+    - `exAL` tasks entered `VB`
+    - no immediate startup failures were observed

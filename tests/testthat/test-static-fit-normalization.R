@@ -60,6 +60,8 @@ test_that("static VB normalization and init extraction work for exAL", {
   expect_true(length(norm$diagnostics$elbo$trace) >= 1)
   expect_true(is.data.frame(norm$diagnostics$ld_block$trace))
   expect_true(nrow(norm$diagnostics$ld_block$trace) >= 1)
+  expect_true(is.list(norm$diagnostics$ld_block$setup))
+  expect_true(norm$diagnostics$ld_block$setup$sigma_min < norm$diagnostics$ld_block$setup$sigma_max)
 })
 
 test_that("static MCMC normalization reports ESS and acceptance fields", {

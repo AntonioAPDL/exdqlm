@@ -25,6 +25,23 @@ safe_num <- function(x, default) {
   if (!is.finite(v) || is.na(v)) default else v
 }
 
+safe_bool <- function(x, default = FALSE) {
+  x <- tolower(trimws(as.character(x)[1]))
+  if (!nzchar(x) || is.na(x)) return(default)
+  if (x %in% c("1", "true", "t", "yes", "y")) return(TRUE)
+  if (x %in% c("0", "false", "f", "no", "n")) return(FALSE)
+  default
+}
+
+safe_num_vec <- function(x, default = NULL, length_out = NA_integer_) {
+  if (!nzchar(x)) return(default)
+  parts <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+  vals <- suppressWarnings(as.numeric(parts))
+  if (any(!is.finite(vals))) return(default)
+  if (is.finite(length_out) && length(vals) != length_out) return(default)
+  vals
+}
+
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
 sim_path <- Sys.getenv(
@@ -46,18 +63,63 @@ p_vec <- c(0.05, 0.50, 0.95)
 vb_max_iter <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_MAX_ITER", "300"), 300L)
 vb_tol <- safe_num(Sys.getenv("EXDQLM_STATIC_VB_TOL", "0.03"), 0.03)
 vb_n_samp_xi <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_NSAMP", "1000"), 1000L)
-vb_ld_damping <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_DAMPING", "0.45"), 0.45)
-vb_ld_xi_damping <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_XI_DAMPING", "0.65"), 0.65)
+vb_ld_xi_method <- tolower(Sys.getenv("EXDQLM_STATIC_LD_XI_METHOD", "delta"))
+if (!(vb_ld_xi_method %in% c("delta", "mc"))) vb_ld_xi_method <- "delta"
+vb_ld_optimizer_method <- tolower(Sys.getenv("EXDQLM_STATIC_LD_OPTIMIZER_METHOD", "lbfgsb"))
+if (!(vb_ld_optimizer_method %in% c("lbfgsb", "bfgs"))) vb_ld_optimizer_method <- "lbfgsb"
+vb_ld_direct_commit <- safe_bool(Sys.getenv("EXDQLM_STATIC_LD_DIRECT_COMMIT", "true"), TRUE)
+vb_ld_damping <- safe_num(
+  Sys.getenv("EXDQLM_STATIC_LD_DAMPING", if (vb_ld_direct_commit) "1" else "0.45"),
+  if (vb_ld_direct_commit) 1 else 0.45
+)
+vb_ld_xi_damping <- safe_num(
+  Sys.getenv("EXDQLM_STATIC_LD_XI_DAMPING", if (vb_ld_xi_method == "delta") "1" else "0.65"),
+  if (vb_ld_xi_method == "delta") 1 else 0.65
+)
 vb_ld_xi_mode <- tolower(Sys.getenv("EXDQLM_STATIC_LD_XI_MODE", "single"))
 if (!(vb_ld_xi_mode %in% c("single", "replicated"))) vb_ld_xi_mode <- "single"
 vb_ld_xi_replicates <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_XI_REPLICATES", "1"), 1L)
 if (vb_ld_xi_mode == "single") vb_ld_xi_replicates <- 1L
+if (vb_ld_xi_method == "delta") vb_ld_xi_replicates <- 0L
+vb_ld_reuse_draws <- safe_bool(Sys.getenv("EXDQLM_STATIC_LD_REUSE_DRAWS", "true"), TRUE)
+vb_ld_antithetic <- safe_bool(Sys.getenv("EXDQLM_STATIC_LD_ANTITHETIC", "true"), TRUE)
 vb_ld_reuse_seed <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_REUSE_SEED", "20260305"), 20260305L)
-vb_ld_step_cap_eta <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_STEP_CAP_ETA", "2.0"), 2.0)
-vb_ld_step_cap_ell <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_STEP_CAP_ELL", "0.75"), 0.75)
+vb_ld_step_cap_eta <- safe_num(
+  Sys.getenv("EXDQLM_STATIC_LD_STEP_CAP_ETA", if (vb_ld_direct_commit) "Inf" else "2.0"),
+  if (vb_ld_direct_commit) Inf else 2.0
+)
+vb_ld_step_cap_ell <- safe_num(
+  Sys.getenv("EXDQLM_STATIC_LD_STEP_CAP_ELL", if (vb_ld_direct_commit) "Inf" else "0.75"),
+  if (vb_ld_direct_commit) Inf else 0.75
+)
 vb_ld_eig_floor <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_EIG_FLOOR", "1e-6"), 1e-6)
-vb_ld_eig_cap <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_EIG_CAP", "25"), 25)
-vb_ld_optimizer_maxit <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_OPTIMIZER_MAXIT", "200"), 200L)
+vb_ld_eig_cap <- safe_num(
+  Sys.getenv(
+    "EXDQLM_STATIC_LD_EIG_CAP",
+    if (vb_ld_direct_commit && vb_ld_xi_method == "delta") "1" else "25"
+  ),
+  if (vb_ld_direct_commit && vb_ld_xi_method == "delta") 1 else 25
+)
+vb_ld_optimizer_maxit <- safe_int(
+  Sys.getenv("EXDQLM_STATIC_LD_OPTIMIZER_MAXIT", if (vb_ld_optimizer_method == "lbfgsb") "2000" else "200"),
+  if (vb_ld_optimizer_method == "lbfgsb") 2000L else 200L
+)
+vb_ld_eta_lo <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_ETA_LO", "-12"), -12)
+vb_ld_eta_hi <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_ETA_HI", "12"), 12)
+vb_ld_sigma_bounds <- safe_num_vec(Sys.getenv("EXDQLM_STATIC_LD_SIGMA_BOUNDS", ""), default = NULL, length_out = 2L)
+vb_ld_sigma_init_mode <- tolower(Sys.getenv("EXDQLM_STATIC_LD_SIGMA_INIT_MODE", "data_scale"))
+if (!(vb_ld_sigma_init_mode %in% c("data_scale", "fixed1"))) vb_ld_sigma_init_mode <- "data_scale"
+vb_ld_sigma_floor_abs <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_SIGMA_FLOOR_ABS", "1e-6"), 1e-6)
+vb_ld_sigma_min_mult <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_SIGMA_MIN_MULT", "1e-3"), 1e-3)
+vb_ld_sigma_max_mult <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_SIGMA_MAX_MULT", "1e3"), 1e3)
+vb_ld_sigma_bound_ratio_min <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_SIGMA_BOUND_RATIO_MIN", "10"), 10)
+vb_ld_gamma_init_pad_frac <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_GAMMA_INIT_PAD_FRAC", "0.05"), 0.05)
+vb_ld_logit_eps <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_LOGIT_EPS", "1e-8"), 1e-8)
+vb_ld_init_cov_diag <- safe_num_vec(
+  Sys.getenv("EXDQLM_STATIC_LD_INIT_COV_DIAG", "1e-2,1e-2"),
+  default = c(1e-2, 1e-2),
+  length_out = 2L
+)
 vb_ld_profile_name <- Sys.getenv("EXDQLM_STATIC_LD_PROFILE_NAME", "manual")
 
 mcmc_burn <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_BURN", "2000"), 2000L)
@@ -137,15 +199,31 @@ cfg <- list(
     tol = vb_tol,
     n_samp_xi = vb_n_samp_xi,
     ld = list(
+      xi_method = vb_ld_xi_method,
+      optimizer_method = vb_ld_optimizer_method,
+      direct_commit = vb_ld_direct_commit,
       damping = vb_ld_damping,
       xi_damping = vb_ld_xi_damping,
       xi_mode = vb_ld_xi_mode,
       xi_replicates = vb_ld_xi_replicates,
+      reuse_draws = vb_ld_reuse_draws,
+      antithetic = vb_ld_antithetic,
       reuse_seed = vb_ld_reuse_seed,
       step_cap_eta = vb_ld_step_cap_eta,
       step_cap_ell = vb_ld_step_cap_ell,
       eig_floor = vb_ld_eig_floor,
       eig_cap = vb_ld_eig_cap,
+      eta_lo = vb_ld_eta_lo,
+      eta_hi = vb_ld_eta_hi,
+      sigma_bounds = vb_ld_sigma_bounds,
+      sigma_init_mode = vb_ld_sigma_init_mode,
+      sigma_floor_abs = vb_ld_sigma_floor_abs,
+      sigma_min_mult = vb_ld_sigma_min_mult,
+      sigma_max_mult = vb_ld_sigma_max_mult,
+      sigma_bound_ratio_min = vb_ld_sigma_bound_ratio_min,
+      gamma_init_pad_frac = vb_ld_gamma_init_pad_frac,
+      logit_eps = vb_ld_logit_eps,
+      init_cov_diag = vb_ld_init_cov_diag,
       optimizer_maxit = vb_ld_optimizer_maxit,
       profile_name = vb_ld_profile_name
     )
@@ -276,12 +354,31 @@ run_one_pipeline <- function(task_row) {
   row <- empty_summary_row(model_name, tau)
   ld_ctrl <- if (!dqlm.ind) {
     list(
+      xi_method = vb_ld_xi_method,
+      optimizer_method = vb_ld_optimizer_method,
+      direct_commit = vb_ld_direct_commit,
       damping = vb_ld_damping,
       xi_damping = vb_ld_xi_damping,
+      xi_mode = vb_ld_xi_mode,
+      xi_replicates = vb_ld_xi_replicates,
+      reuse_draws = vb_ld_reuse_draws,
+      antithetic = vb_ld_antithetic,
+      reuse_seed = vb_ld_reuse_seed,
       step_cap_eta = vb_ld_step_cap_eta,
       step_cap_ell = vb_ld_step_cap_ell,
       eig_floor = vb_ld_eig_floor,
       eig_cap = vb_ld_eig_cap,
+      eta_lo = vb_ld_eta_lo,
+      eta_hi = vb_ld_eta_hi,
+      sigma_bounds = vb_ld_sigma_bounds,
+      sigma_init_mode = vb_ld_sigma_init_mode,
+      sigma_floor_abs = vb_ld_sigma_floor_abs,
+      sigma_min_mult = vb_ld_sigma_min_mult,
+      sigma_max_mult = vb_ld_sigma_max_mult,
+      sigma_bound_ratio_min = vb_ld_sigma_bound_ratio_min,
+      gamma_init_pad_frac = vb_ld_gamma_init_pad_frac,
+      logit_eps = vb_ld_logit_eps,
+      init_cov_diag = vb_ld_init_cov_diag,
       optimizer_maxit = vb_ld_optimizer_maxit,
       profile_name = vb_ld_profile_name
     )
@@ -453,8 +550,13 @@ tasks$seed <- 202603050L + seq_len(nrow(tasks)) * 1000L
 
 log_master(sprintf("starting static VB->MCMC pipeline run in %s", out_root))
 log_master(sprintf(
-  "TT=%d VB(max_iter=%d,tol=%.4f,n_samp_xi=%d,ld_damp=%.2f,ld_xi_damp=%.2f) MCMC(burn=%d,n=%d,thin=%d,mh=%s) cores=%d overwrite=%s",
-  TT, vb_max_iter, vb_tol, vb_n_samp_xi, vb_ld_damping, vb_ld_xi_damping,
+  paste0(
+    "TT=%d VB(max_iter=%d,tol=%.4f,n_samp_xi=%d,xi=%s,opt=%s,direct=%s,",
+    "ld_damp=%s,ld_xi_damp=%s,sigma_init=%s,eta=[%.1f,%.1f]) ",
+    "MCMC(burn=%d,n=%d,thin=%d,mh=%s) cores=%d overwrite=%s"
+  ),
+  TT, vb_max_iter, vb_tol, vb_n_samp_xi, vb_ld_xi_method, vb_ld_optimizer_method, vb_ld_direct_commit,
+  format(vb_ld_damping, trim = TRUE), format(vb_ld_xi_damping, trim = TRUE), vb_ld_sigma_init_mode, vb_ld_eta_lo, vb_ld_eta_hi,
   mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, cores_pipeline, overwrite_existing
 ))
 log_master(sprintf("models=%s taus=%s", paste(unique(tasks$model), collapse = ","), paste(sprintf("%.2f", p_vec), collapse = ",")))

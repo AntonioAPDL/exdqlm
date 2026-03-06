@@ -647,6 +647,7 @@ exal_static_mcmc <- function(
       samp.sigma = coda::as.mcmc(save.sigma),
       samp.v     = coda::as.mcmc(t(save.v)),
       init.from.vb = isTRUE(init.from.vb),
+      vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,
       n.burn = n.burn,
       n.mcmc = n.mcmc,
       accept.rate = NA_real_,
