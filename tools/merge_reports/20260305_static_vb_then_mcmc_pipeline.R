@@ -7,6 +7,14 @@ suppressPackageStartupMessages({
 
 devtools::load_all(".", quiet = TRUE)
 
+Sys.setenv(
+  OMP_NUM_THREADS = "1",
+  OPENBLAS_NUM_THREADS = "1",
+  MKL_NUM_THREADS = "1",
+  VECLIB_MAXIMUM_THREADS = "1",
+  NUMEXPR_NUM_THREADS = "1"
+)
+
 safe_int <- function(x, default) {
   v <- suppressWarnings(as.integer(x)[1])
   if (!is.finite(v) || is.na(v)) default else v
@@ -21,7 +29,7 @@ tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
 sim_path <- Sys.getenv(
   "EXDQLM_STATIC_SIM_PATH",
-  "results/sim_suite_static/series/static_exal_mildskew/sim_output.rds"
+  "results/sim_suite_static/series/static_exal_rich1d_mcq/sim_output.rds"
 )
 if (!file.exists(sim_path)) stop("Static simulation file not found: ", sim_path)
 
@@ -38,23 +46,53 @@ p_vec <- c(0.05, 0.50, 0.95)
 vb_max_iter <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_MAX_ITER", "300"), 300L)
 vb_tol <- safe_num(Sys.getenv("EXDQLM_STATIC_VB_TOL", "0.03"), 0.03)
 vb_n_samp_xi <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_NSAMP", "1000"), 1000L)
+vb_ld_damping <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_DAMPING", "0.45"), 0.45)
+vb_ld_xi_damping <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_XI_DAMPING", "0.65"), 0.65)
+vb_ld_xi_mode <- tolower(Sys.getenv("EXDQLM_STATIC_LD_XI_MODE", "single"))
+if (!(vb_ld_xi_mode %in% c("single", "replicated"))) vb_ld_xi_mode <- "single"
+vb_ld_xi_replicates <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_XI_REPLICATES", "1"), 1L)
+if (vb_ld_xi_mode == "single") vb_ld_xi_replicates <- 1L
+vb_ld_reuse_seed <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_REUSE_SEED", "20260305"), 20260305L)
+vb_ld_step_cap_eta <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_STEP_CAP_ETA", "2.0"), 2.0)
+vb_ld_step_cap_ell <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_STEP_CAP_ELL", "0.75"), 0.75)
+vb_ld_eig_floor <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_EIG_FLOOR", "1e-6"), 1e-6)
+vb_ld_eig_cap <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_EIG_CAP", "25"), 25)
+vb_ld_optimizer_maxit <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_OPTIMIZER_MAXIT", "200"), 200L)
+vb_ld_profile_name <- Sys.getenv("EXDQLM_STATIC_LD_PROFILE_NAME", "manual")
 
 mcmc_burn <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_BURN", "2000"), 2000L)
 mcmc_n <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_N", "1000"), 1000L)
 mcmc_thin <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_THIN", "1"), 1L)
+mcmc_mh_proposal <- tolower(Sys.getenv("EXDQLM_STATIC_MCMC_MH_PROPOSAL", "laplace_rw"))
+if (!(mcmc_mh_proposal %in% c("laplace_local", "laplace_rw", "rw"))) mcmc_mh_proposal <- "laplace_rw"
+mcmc_mh_adapt <- identical(tolower(Sys.getenv("EXDQLM_STATIC_MCMC_MH_ADAPT", "true")), "true")
+mcmc_mh_adapt_interval <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_MH_ADAPT_INTERVAL", "50"), 50L)
+mcmc_mh_target_lo <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_TARGET_LO", "0.20"), 0.20)
+mcmc_mh_target_hi <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_TARGET_HI", "0.45"), 0.45)
+mcmc_mh_scale_min <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_SCALE_MIN", "0.1"), 0.1)
+mcmc_mh_scale_max <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_SCALE_MAX", "10"), 10)
+mcmc_mh_max_scale_step <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_MAX_SCALE_STEP", "0.35"), 0.35)
+mcmc_mh_min_burn_adapt <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_MH_MIN_BURN_ADAPT", "50"), 50L)
 
 n_core_phys <- tryCatch(parallel::detectCores(logical = FALSE), error = function(e) 2L)
 if (!is.finite(n_core_phys) || is.na(n_core_phys) || n_core_phys < 1L) n_core_phys <- 2L
 cores_pipeline <- safe_int(Sys.getenv("EXDQLM_STATIC_PIPELINE_CORES", "6"), 6L)
 cores_pipeline <- max(1L, min(cores_pipeline, n_core_phys))
+overwrite_existing <- identical(tolower(Sys.getenv("EXDQLM_STATIC_PIPELINE_OVERWRITE", "false")), "true")
 
 stamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
-out_root <- file.path(
-  "results/sim_suite_static",
-  sprintf(
-    "static_vb_then_mcmc_tt%d_vbns%d_burn%d_n%d_%s",
-    TT, vb_n_samp_xi, mcmc_burn, mcmc_n, stamp
-  )
+default_run_name <- sprintf(
+  "static_vb_then_mcmc_tt%d_vbns%d_burn%d_n%d_%s",
+  TT, vb_n_samp_xi, mcmc_burn, mcmc_n, stamp
+)
+run_label <- Sys.getenv("EXDQLM_STATIC_PIPELINE_LABEL", "")
+if (nzchar(run_label)) {
+  run_label <- gsub("[^A-Za-z0-9._-]+", "_", run_label)
+  default_run_name <- paste(default_run_name, run_label, sep = "_")
+}
+out_root <- Sys.getenv(
+  "EXDQLM_STATIC_OUT_ROOT",
+  file.path("results/sim_suite_static", default_run_name)
 )
 
 for (d in c("fits/vb", "fits/mcmc", "logs", "tables", "plots")) {
@@ -94,60 +132,236 @@ cfg <- list(
   X_dim = dim(X),
   y_summary = list(mean = mean(y), sd = stats::sd(y)),
   cores_pipeline = cores_pipeline,
-  vb = list(max_iter = vb_max_iter, tol = vb_tol, n_samp_xi = vb_n_samp_xi),
-  mcmc = list(burn = mcmc_burn, n = mcmc_n, thin = mcmc_thin)
+  vb = list(
+    max_iter = vb_max_iter,
+    tol = vb_tol,
+    n_samp_xi = vb_n_samp_xi,
+    ld = list(
+      damping = vb_ld_damping,
+      xi_damping = vb_ld_xi_damping,
+      xi_mode = vb_ld_xi_mode,
+      xi_replicates = vb_ld_xi_replicates,
+      reuse_seed = vb_ld_reuse_seed,
+      step_cap_eta = vb_ld_step_cap_eta,
+      step_cap_ell = vb_ld_step_cap_ell,
+      eig_floor = vb_ld_eig_floor,
+      eig_cap = vb_ld_eig_cap,
+      optimizer_maxit = vb_ld_optimizer_maxit,
+      profile_name = vb_ld_profile_name
+    )
+  ),
+  mcmc = list(
+    burn = mcmc_burn,
+    n = mcmc_n,
+    thin = mcmc_thin,
+    mh = list(
+      proposal = mcmc_mh_proposal,
+      adapt = mcmc_mh_adapt,
+      adapt_interval = mcmc_mh_adapt_interval,
+      target_accept = c(mcmc_mh_target_lo, mcmc_mh_target_hi),
+      scale_bounds = c(mcmc_mh_scale_min, mcmc_mh_scale_max),
+      max_scale_step = mcmc_mh_max_scale_step,
+      min_burn_adapt = mcmc_mh_min_burn_adapt
+    )
+  )
 )
 saveRDS(cfg, file.path(out_root, "tables", "run_config.rds"))
+
+empty_summary_row <- function(model_name, tau, status = "pending", error = NA_character_) {
+  data.frame(
+    model = as.character(model_name),
+    tau = as.numeric(tau),
+    status = as.character(status),
+    vb_runtime_sec = NA_real_,
+    vb_iter = NA_integer_,
+    vb_converged = NA,
+    vb_stop_reason = NA_character_,
+    vb_sigma = NA_real_,
+    vb_gamma = NA_real_,
+    mcmc_runtime_sec = NA_real_,
+    mcmc_sigma_mean = NA_real_,
+    mcmc_gamma_mean = NA_real_,
+    ess_sigma = NA_real_,
+    ess_gamma = NA_real_,
+    accept_rate = NA_real_,
+    accept_rate_burn = NA_real_,
+    accept_rate_keep = NA_real_,
+    mcmc_mh_proposal = NA_character_,
+    mcmc_gamma_kernel_exact = NA,
+    mcmc_signoff_ready = NA,
+    mcmc_mh_adapt = NA,
+    mcmc_mh_scale_initial = NA_real_,
+    mcmc_mh_scale_final = NA_real_,
+    vb_file = NA_character_,
+    mcmc_file = NA_character_,
+    error = as.character(error)[1],
+    stringsAsFactors = FALSE
+  )
+}
+
+normalize_vb_wrap <- function(vb_obj, model_name, tau) {
+  vb_fit <- vb_obj$fit
+  vb_norm <- vb_obj$normalized
+  if (is.null(vb_norm) || is.null(vb_norm$diagnostics$ld_block$mode_quality)) {
+    vb_norm <- .static_normalize_vb_fit(vb_fit, model_name = model_name, tau = tau)
+  }
+  list(
+    fit = vb_fit,
+    normalized = vb_norm,
+    runtime_sec = if (!is.null(vb_obj$meta$runtime_sec)) as.numeric(vb_obj$meta$runtime_sec)[1] else NA_real_
+  )
+}
+
+normalize_mcmc_wrap <- function(m_obj, model_name, tau) {
+  m_fit <- m_obj$fit
+  m_norm <- m_obj$normalized
+  if (is.null(m_norm) || is.null(m_norm$diagnostics$mh$kernel_exact)) {
+    m_norm <- .static_normalize_mcmc_fit(m_fit, model_name = model_name, tau = tau)
+  }
+  list(
+    fit = m_fit,
+    normalized = m_norm,
+    runtime_sec = if (!is.null(m_obj$meta$runtime_sec)) as.numeric(m_obj$meta$runtime_sec)[1] else NA_real_
+  )
+}
+
+populate_vb_summary <- function(row, vb_norm, vb_runtime, vb_file) {
+  row$vb_runtime_sec <- as.numeric(vb_runtime)[1]
+  row$vb_iter <- if (!is.null(vb_norm$iter)) as.integer(vb_norm$iter)[1] else NA_integer_
+  row$vb_converged <- if (!is.null(vb_norm$converged)) isTRUE(vb_norm$converged) else NA
+  row$vb_stop_reason <- if (!is.null(vb_norm$stop_reason)) as.character(vb_norm$stop_reason)[1] else NA_character_
+  row$vb_sigma <- as.numeric(vb_norm$sigma_est)[1]
+  row$vb_gamma <- as.numeric(vb_norm$gamma_est)[1]
+  row$vb_file <- as.character(vb_file)[1]
+  row
+}
+
+populate_mcmc_summary <- function(row, m_norm, m_runtime, m_file) {
+  row$mcmc_runtime_sec <- as.numeric(m_runtime)[1]
+  row$mcmc_sigma_mean <- as.numeric(m_norm$sigma_est)[1]
+  row$mcmc_gamma_mean <- as.numeric(m_norm$gamma_est)[1]
+  row$ess_sigma <- as.numeric(m_norm$diagnostics$ess$sigma)[1]
+  row$ess_gamma <- as.numeric(m_norm$diagnostics$ess$gamma)[1]
+  row$accept_rate <- as.numeric(m_norm$diagnostics$acceptance$total)[1]
+  row$accept_rate_burn <- as.numeric(m_norm$diagnostics$acceptance$burn)[1]
+  row$accept_rate_keep <- as.numeric(m_norm$diagnostics$acceptance$keep)[1]
+  row$mcmc_mh_proposal <- as.character(m_norm$diagnostics$mh$proposal)[1]
+  row$mcmc_gamma_kernel_exact <- isTRUE(m_norm$diagnostics$mh$kernel_exact)
+  row$mcmc_signoff_ready <- isTRUE(m_norm$diagnostics$mh$signoff_ready)
+  row$mcmc_mh_adapt <- if (!is.null(m_norm$diagnostics$mh$adapt)) isTRUE(m_norm$diagnostics$mh$adapt) else NA
+  row$mcmc_mh_scale_initial <- as.numeric(m_norm$diagnostics$mh$scale_initial)[1]
+  row$mcmc_mh_scale_final <- as.numeric(m_norm$diagnostics$mh$scale_final)[1]
+  row$mcmc_file <- as.character(m_file)[1]
+  row
+}
+
+summary_from_existing_fits <- function(model_name, tau, vb_file, m_file, status = "skipped_existing") {
+  row <- empty_summary_row(model_name, tau, status = status)
+  if (file.exists(vb_file)) {
+    vb_dat <- normalize_vb_wrap(readRDS(vb_file), model_name, tau)
+    row <- populate_vb_summary(row, vb_dat$normalized, vb_dat$runtime_sec, vb_file)
+  }
+  if (file.exists(m_file)) {
+    m_dat <- normalize_mcmc_wrap(readRDS(m_file), model_name, tau)
+    row <- populate_mcmc_summary(row, m_dat$normalized, m_dat$runtime_sec, m_file)
+  }
+  row
+}
 
 run_one_pipeline <- function(task_row) {
   model_name <- as.character(task_row$model)
   tau <- as.numeric(task_row$tau)
   seed <- as.integer(task_row$seed)
   dqlm.ind <- identical(model_name, "al")
+  row <- empty_summary_row(model_name, tau)
+  ld_ctrl <- if (!dqlm.ind) {
+    list(
+      damping = vb_ld_damping,
+      xi_damping = vb_ld_xi_damping,
+      step_cap_eta = vb_ld_step_cap_eta,
+      step_cap_ell = vb_ld_step_cap_ell,
+      eig_floor = vb_ld_eig_floor,
+      eig_cap = vb_ld_eig_cap,
+      optimizer_maxit = vb_ld_optimizer_maxit,
+      profile_name = vb_ld_profile_name
+    )
+  } else {
+    NULL
+  }
 
   write_status(model_name, tau, "START", sprintf("seed=%d", seed))
   log_task(model_name, tau, sprintf("start pipeline model=%s tau=%.2f", model_name, tau))
 
-  set.seed(seed)
-  vb_t0 <- Sys.time()
-  write_status(model_name, tau, "VB_START")
-
-  vb_fit <- exal_static_LDVB(
-    y = y,
-    X = X,
-    p0 = tau,
-    max_iter = vb_max_iter,
-    tol = vb_tol,
-    dqlm.ind = dqlm.ind,
-    n_samp_xi = vb_n_samp_xi,
-    verbose = FALSE
-  )
-  vb_runtime <- as.numeric(difftime(Sys.time(), vb_t0, units = "secs"))
-  vb_norm <- .static_normalize_vb_fit(
-    vb_fit,
-    model_name = model_name,
-    tau = tau,
-    run_settings = list(max_iter = vb_max_iter, tol = vb_tol, n_samp_xi = vb_n_samp_xi)
-  )
-
   vb_file <- file.path(out_root, "fits", "vb", sprintf("vb_%s_tau_%s_fit.rds", model_name, tau_lab(tau)))
-  saveRDS(
-    list(
-      fit = vb_fit,
-      normalized = vb_norm,
-      meta = list(model = model_name, tau = tau, seed = seed, runtime_sec = vb_runtime)
-    ),
-    vb_file,
-    compress = "xz"
-  )
+  m_file <- file.path(out_root, "fits", "mcmc", sprintf("mcmc_%s_tau_%s_fit.rds", model_name, tau_lab(tau)))
 
-  write_status(
-    model_name,
-    tau,
-    "VB_DONE",
-    sprintf("runtime_sec=%.1f iter=%s stop=%s", vb_runtime, vb_norm$iter, vb_norm$stop_reason)
-  )
-  log_task(model_name, tau, sprintf("vb done runtime=%.1fs", vb_runtime))
+  if (!overwrite_existing && file.exists(m_file)) {
+    write_status(model_name, tau, "SKIP_EXISTING", "mcmc fit already exists")
+    log_task(model_name, tau, "skip existing: mcmc fit already exists")
+    return(summary_from_existing_fits(model_name, tau, vb_file, m_file, status = "skipped_existing"))
+  }
+
+  set.seed(seed)
+  if (!overwrite_existing && file.exists(vb_file)) {
+    vb_dat <- normalize_vb_wrap(readRDS(vb_file), model_name, tau)
+    vb_fit <- vb_dat$fit
+    vb_norm <- vb_dat$normalized
+    vb_runtime <- vb_dat$runtime_sec
+    row <- populate_vb_summary(row, vb_norm, vb_runtime, vb_file)
+    write_status(model_name, tau, "VB_EXISTING", sprintf("iter=%s stop=%s", row$vb_iter, row$vb_stop_reason))
+    log_task(model_name, tau, "reuse existing vb fit")
+  } else {
+    vb_t0 <- Sys.time()
+    write_status(model_name, tau, "VB_START")
+
+    vb_fit <- tryCatch(
+      exal_static_LDVB(
+        y = y,
+        X = X,
+        p0 = tau,
+        max_iter = vb_max_iter,
+        tol = vb_tol,
+        dqlm.ind = dqlm.ind,
+        n_samp_xi = vb_n_samp_xi,
+        ld_controls = ld_ctrl,
+        verbose = FALSE
+      ),
+      error = function(e) e
+    )
+    if (inherits(vb_fit, "error")) {
+      row$status <- "failed"
+      row$error <- conditionMessage(vb_fit)
+      write_status(model_name, tau, "FAILED", row$error)
+      log_task(model_name, tau, paste("vb failed:", row$error))
+      return(row)
+    }
+    vb_runtime <- as.numeric(difftime(Sys.time(), vb_t0, units = "secs"))
+    vb_norm <- .static_normalize_vb_fit(
+      vb_fit,
+      model_name = model_name,
+      tau = tau,
+      run_settings = list(max_iter = vb_max_iter, tol = vb_tol, n_samp_xi = vb_n_samp_xi, ld = ld_ctrl)
+    )
+    row <- populate_vb_summary(row, vb_norm, vb_runtime, vb_file)
+
+    saveRDS(
+      list(
+        fit = vb_fit,
+        normalized = vb_norm,
+        meta = list(model = model_name, tau = tau, seed = seed, runtime_sec = vb_runtime)
+      ),
+      vb_file,
+      compress = "xz"
+    )
+
+    write_status(
+      model_name,
+      tau,
+      "VB_DONE",
+      sprintf("runtime_sec=%.1f iter=%s stop=%s", vb_runtime, vb_norm$iter, vb_norm$stop_reason)
+    )
+    log_task(model_name, tau, sprintf("vb done runtime=%.1fs", vb_runtime))
+  }
 
   init_list <- .static_vb_to_mcmc_init(vb_fit, dqlm.ind = dqlm.ind)
 
@@ -155,28 +369,55 @@ run_one_pipeline <- function(task_row) {
   write_status(model_name, tau, "MCMC_START")
   set.seed(seed + 1234L)
 
-  m_fit <- exal_static_mcmc(
-    y = y,
-    X = X,
-    p0 = tau,
-    dqlm.ind = dqlm.ind,
-    init = init_list,
-    init.from.vb = FALSE,
-    n.burn = mcmc_burn,
-    n.mcmc = mcmc_n,
-    thin = mcmc_thin,
-    verbose = FALSE
+  m_fit <- tryCatch(
+    exal_static_mcmc(
+      y = y,
+      X = X,
+      p0 = tau,
+      dqlm.ind = dqlm.ind,
+      init = init_list,
+      init.from.vb = FALSE,
+      n.burn = mcmc_burn,
+      n.mcmc = mcmc_n,
+      thin = mcmc_thin,
+      mh.proposal = mcmc_mh_proposal,
+      mh.adapt = mcmc_mh_adapt,
+      mh.adapt.interval = mcmc_mh_adapt_interval,
+      mh.target.accept = c(mcmc_mh_target_lo, mcmc_mh_target_hi),
+      mh.scale.bounds = c(mcmc_mh_scale_min, mcmc_mh_scale_max),
+      mh.max_scale.step = mcmc_mh_max_scale_step,
+      mh.min_burn_adapt = mcmc_mh_min_burn_adapt,
+      verbose = FALSE
+    ),
+    error = function(e) e
   )
+  if (inherits(m_fit, "error")) {
+    row$status <- "failed"
+    row$error <- conditionMessage(m_fit)
+    write_status(model_name, tau, "FAILED", row$error)
+    log_task(model_name, tau, paste("mcmc failed:", row$error))
+    return(row)
+  }
 
   m_runtime <- as.numeric(difftime(Sys.time(), m_t0, units = "secs"))
   m_norm <- .static_normalize_mcmc_fit(
     m_fit,
     model_name = model_name,
     tau = tau,
-    run_settings = list(n_burn = mcmc_burn, n_mcmc = mcmc_n, thin = mcmc_thin)
+    run_settings = list(
+      n_burn = mcmc_burn,
+      n_mcmc = mcmc_n,
+      thin = mcmc_thin,
+      mh = list(
+        proposal = mcmc_mh_proposal,
+        adapt = mcmc_mh_adapt,
+        adapt_interval = mcmc_mh_adapt_interval,
+        target_accept = c(mcmc_mh_target_lo, mcmc_mh_target_hi),
+        scale_bounds = c(mcmc_mh_scale_min, mcmc_mh_scale_max)
+      )
+    )
   )
 
-  m_file <- file.path(out_root, "fits", "mcmc", sprintf("mcmc_%s_tau_%s_fit.rds", model_name, tau_lab(tau)))
   saveRDS(
     list(
       fit = m_fit,
@@ -191,30 +432,16 @@ run_one_pipeline <- function(task_row) {
     model_name,
     tau,
     "MCMC_DONE",
-    sprintf("runtime_sec=%.1f ess_sigma=%.2f ess_gamma=%.2f", m_runtime, m_norm$diagnostics$ess$sigma, m_norm$diagnostics$ess$gamma)
+    sprintf(
+      "runtime_sec=%.1f ess_sigma=%.2f ess_gamma=%.2f kernel=%s",
+      m_runtime, m_norm$diagnostics$ess$sigma, m_norm$diagnostics$ess$gamma, m_norm$diagnostics$mh$proposal
+    )
   )
   log_task(model_name, tau, sprintf("mcmc done runtime=%.1fs", m_runtime))
 
-  data.frame(
-    model = model_name,
-    tau = tau,
-    status = "done",
-    vb_runtime_sec = vb_runtime,
-    vb_iter = vb_norm$iter,
-    vb_converged = vb_norm$converged,
-    vb_stop_reason = vb_norm$stop_reason,
-    vb_sigma = vb_norm$sigma_est,
-    vb_gamma = vb_norm$gamma_est,
-    mcmc_runtime_sec = m_runtime,
-    mcmc_sigma_mean = m_norm$sigma_est,
-    mcmc_gamma_mean = m_norm$gamma_est,
-    ess_sigma = m_norm$diagnostics$ess$sigma,
-    ess_gamma = m_norm$diagnostics$ess$gamma,
-    accept_rate = m_norm$diagnostics$acceptance$total,
-    vb_file = vb_file,
-    mcmc_file = m_file,
-    stringsAsFactors = FALSE
-  )
+  row <- populate_mcmc_summary(row, m_norm, m_runtime, m_file)
+  row$status <- "done"
+  row
 }
 
 tasks <- expand.grid(
@@ -225,8 +452,11 @@ tasks <- expand.grid(
 tasks$seed <- 202603050L + seq_len(nrow(tasks)) * 1000L
 
 log_master(sprintf("starting static VB->MCMC pipeline run in %s", out_root))
-log_master(sprintf("TT=%d VB(max_iter=%d,tol=%.4f,n_samp_xi=%d) MCMC(burn=%d,n=%d,thin=%d) cores=%d",
-                   TT, vb_max_iter, vb_tol, vb_n_samp_xi, mcmc_burn, mcmc_n, mcmc_thin, cores_pipeline))
+log_master(sprintf(
+  "TT=%d VB(max_iter=%d,tol=%.4f,n_samp_xi=%d,ld_damp=%.2f,ld_xi_damp=%.2f) MCMC(burn=%d,n=%d,thin=%d,mh=%s) cores=%d overwrite=%s",
+  TT, vb_max_iter, vb_tol, vb_n_samp_xi, vb_ld_damping, vb_ld_xi_damping,
+  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, cores_pipeline, overwrite_existing
+))
 log_master(sprintf("models=%s taus=%s", paste(unique(tasks$model), collapse = ","), paste(sprintf("%.2f", p_vec), collapse = ",")))
 
 safe_task <- function(task_row) {
@@ -235,29 +465,10 @@ safe_task <- function(task_row) {
     error = function(e) {
       model_name <- as.character(task_row$model)
       tau <- as.numeric(task_row$tau)
+      row <- empty_summary_row(model_name, tau, status = "failed", error = conditionMessage(e))
       write_status(model_name, tau, "FAILED", conditionMessage(e))
       log_task(model_name, tau, paste("failed:", conditionMessage(e)))
-      data.frame(
-        model = model_name,
-        tau = tau,
-        status = "failed",
-        vb_runtime_sec = NA_real_,
-        vb_iter = NA_integer_,
-        vb_converged = NA,
-        vb_stop_reason = NA_character_,
-        vb_sigma = NA_real_,
-        vb_gamma = NA_real_,
-        mcmc_runtime_sec = NA_real_,
-        mcmc_sigma_mean = NA_real_,
-        mcmc_gamma_mean = NA_real_,
-        ess_sigma = NA_real_,
-        ess_gamma = NA_real_,
-        accept_rate = NA_real_,
-        vb_file = NA_character_,
-        mcmc_file = NA_character_,
-        error = conditionMessage(e),
-        stringsAsFactors = FALSE
-      )
+      row
     }
   )
 }

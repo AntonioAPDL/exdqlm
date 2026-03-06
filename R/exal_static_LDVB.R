@@ -40,6 +40,230 @@
   val
 }
 
+.exal_static_ld_controls <- function(ld_controls = NULL) {
+  defaults <- list(
+    damping = getOption("exdqlm.static.ldvb.damping", 0.45),
+    xi_damping = getOption("exdqlm.static.ldvb.xi_damping", 0.65),
+    xi_mode = getOption("exdqlm.static.ldvb.xi_mode", "single"),
+    xi_replicates = getOption("exdqlm.static.ldvb.xi_replicates", 1L),
+    reuse_draws = getOption("exdqlm.static.ldvb.reuse_draws", TRUE),
+    antithetic = getOption("exdqlm.static.ldvb.antithetic", TRUE),
+    optimizer_maxit = getOption("exdqlm.static.ldvb.optimizer_maxit", 200L),
+    eig_floor = getOption("exdqlm.static.ldvb.eig_floor", 1e-6),
+    eig_cap = getOption("exdqlm.static.ldvb.eig_cap", 25),
+    step_cap_eta = getOption("exdqlm.static.ldvb.step_cap_eta", 2.0),
+    step_cap_ell = getOption("exdqlm.static.ldvb.step_cap_ell", 0.75),
+    reuse_seed = getOption("exdqlm.static.ldvb.reuse_seed", NA_integer_),
+    mode_grad_tol = getOption("exdqlm.static.ldvb.mode_grad_tol", 5e-3),
+    mode_min_eig = getOption("exdqlm.static.ldvb.mode_min_eig", 1e-8),
+    store_trace = getOption("exdqlm.static.ldvb.store_trace", TRUE)
+  )
+  if (!is.null(ld_controls)) {
+    defaults <- utils::modifyList(defaults, ld_controls)
+  }
+
+  defaults$damping <- as.numeric(defaults$damping)[1]
+  if (!is.finite(defaults$damping) || defaults$damping <= 0 || defaults$damping > 1) {
+    defaults$damping <- 0.45
+  }
+  defaults$xi_damping <- as.numeric(defaults$xi_damping)[1]
+  if (!is.finite(defaults$xi_damping) || defaults$xi_damping <= 0 || defaults$xi_damping > 1) {
+    defaults$xi_damping <- defaults$damping
+  }
+  defaults$xi_mode <- match.arg(as.character(defaults$xi_mode)[1], c("single", "replicated"))
+  defaults$xi_replicates <- suppressWarnings(as.integer(defaults$xi_replicates)[1])
+  if (!is.finite(defaults$xi_replicates) || defaults$xi_replicates < 1L) defaults$xi_replicates <- 1L
+  if (identical(defaults$xi_mode, "single")) defaults$xi_replicates <- 1L
+  defaults$reuse_draws <- isTRUE(defaults$reuse_draws)
+  defaults$antithetic <- isTRUE(defaults$antithetic)
+  defaults$optimizer_maxit <- suppressWarnings(as.integer(defaults$optimizer_maxit)[1])
+  if (!is.finite(defaults$optimizer_maxit) || defaults$optimizer_maxit < 20L) {
+    defaults$optimizer_maxit <- 200L
+  }
+  defaults$eig_floor <- as.numeric(defaults$eig_floor)[1]
+  if (!is.finite(defaults$eig_floor) || defaults$eig_floor <= 0) defaults$eig_floor <- 1e-6
+  defaults$eig_cap <- as.numeric(defaults$eig_cap)[1]
+  if (!is.finite(defaults$eig_cap) || defaults$eig_cap <= defaults$eig_floor) defaults$eig_cap <- 25
+  defaults$step_cap_eta <- as.numeric(defaults$step_cap_eta)[1]
+  if (!is.finite(defaults$step_cap_eta) || defaults$step_cap_eta <= 0) defaults$step_cap_eta <- 2.0
+  defaults$step_cap_ell <- as.numeric(defaults$step_cap_ell)[1]
+  if (!is.finite(defaults$step_cap_ell) || defaults$step_cap_ell <= 0) defaults$step_cap_ell <- 0.75
+  defaults$reuse_seed <- suppressWarnings(as.integer(defaults$reuse_seed)[1])
+  if (!is.finite(defaults$reuse_seed)) defaults$reuse_seed <- NA_integer_
+  defaults$mode_grad_tol <- as.numeric(defaults$mode_grad_tol)[1]
+  if (!is.finite(defaults$mode_grad_tol) || defaults$mode_grad_tol <= 0) defaults$mode_grad_tol <- 5e-3
+  defaults$mode_min_eig <- as.numeric(defaults$mode_min_eig)[1]
+  if (!is.finite(defaults$mode_min_eig) || defaults$mode_min_eig <= 0) defaults$mode_min_eig <- 1e-8
+  defaults$store_trace <- isTRUE(defaults$store_trace)
+  defaults
+}
+
+.exal_static_ld_make_base_draws <- function(ns, antithetic = TRUE, seed = NA_integer_) {
+  ns <- max(1L, suppressWarnings(as.integer(ns)[1]))
+  old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  } else {
+    NULL
+  }
+  if (is.finite(seed)) set.seed(seed)
+  on.exit({
+    if (!is.null(old_seed)) {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+
+  if (isTRUE(antithetic) && ns > 1L) {
+    half <- ceiling(ns / 2)
+    z_half <- matrix(stats::rnorm(2L * half), nrow = 2L, ncol = half)
+    z <- cbind(z_half, -z_half)[, seq_len(ns), drop = FALSE]
+  } else {
+    z <- matrix(stats::rnorm(2L * ns), nrow = 2L, ncol = ns)
+  }
+  z
+}
+
+.exal_static_ld_named_numeric <- function(x) {
+  xx <- unlist(x, use.names = TRUE)
+  out <- as.numeric(xx)
+  names(out) <- names(xx)
+  out
+}
+
+.exal_static_ld_make_base_draws_list <- function(ns, replicates = 1L, antithetic = TRUE, seed = NA_integer_) {
+  replicates <- max(1L, suppressWarnings(as.integer(replicates)[1]))
+  lapply(seq_len(replicates), function(i) {
+    seed_i <- if (is.finite(seed)) seed + (i - 1L) else NA_integer_
+    .exal_static_ld_make_base_draws(ns = ns, antithetic = antithetic, seed = seed_i)
+  })
+}
+
+.exal_static_ld_regularize_cov <- function(Sigma, eig_floor = 1e-6, eig_cap = 25) {
+  S <- suppressWarnings(as.matrix(Sigma))
+  if (!all(dim(S) == c(2L, 2L))) S <- diag(c(1e-4, 1e-4))
+  S[!is.finite(S)] <- 0
+  S <- (S + t(S)) / 2
+  eig <- eigen(S, symmetric = TRUE)
+  vals_raw <- eig$values
+  vals <- pmin(pmax(vals_raw, eig_floor), eig_cap)
+  S_reg <- eig$vectors %*% diag(vals, 2L, 2L) %*% t(eig$vectors)
+  S_reg <- (S_reg + t(S_reg)) / 2
+  list(
+    Sigma = S_reg,
+    eig_raw = vals_raw,
+    eig_reg = vals,
+    condition_raw = if (all(is.finite(vals_raw)) && min(abs(vals_raw)) > 0) {
+      max(abs(vals_raw)) / min(abs(vals_raw))
+    } else {
+      NA_real_
+    },
+    condition_reg = max(vals) / min(vals)
+  )
+}
+
+.exal_static_ld_cov_from_precision <- function(H, eig_floor = 1e-6, eig_cap = 25) {
+  precision_floor <- 1 / max(eig_cap, eig_floor)
+  precision_cap <- 1 / min(eig_floor, eig_cap)
+
+  P <- suppressWarnings(as.matrix(H))
+  if (!all(dim(P) == c(2L, 2L))) P <- diag(precision_floor, 2L)
+  P[!is.finite(P)] <- 0
+  P <- (P + t(P)) / 2
+
+  eig <- eigen(P, symmetric = TRUE)
+  vals_raw <- eig$values
+  vals_reg <- pmin(pmax(vals_raw, precision_floor), precision_cap)
+  cov_vals <- 1 / vals_reg
+  Sigma <- eig$vectors %*% diag(cov_vals, 2L, 2L) %*% t(eig$vectors)
+  Sigma <- (Sigma + t(Sigma)) / 2
+
+  cov_raw <- ifelse(is.finite(vals_raw) & vals_raw > 0, 1 / vals_raw, NA_real_)
+  list(
+    Sigma = Sigma,
+    precision_eig_raw = vals_raw,
+    precision_eig_reg = vals_reg,
+    cov_eig_raw = cov_raw,
+    cov_eig_reg = cov_vals,
+    condition_raw = if (all(is.finite(vals_raw)) && min(vals_raw) > 0) {
+      max(vals_raw) / min(vals_raw)
+    } else {
+      NA_real_
+    },
+    condition_reg = max(cov_vals) / min(cov_vals),
+    used_floor = any(!is.finite(vals_raw)) || any(abs(vals_reg - vals_raw) > 0)
+  )
+}
+
+.exal_static_ld_rel_change <- function(new, old) {
+  new <- as.numeric(new)
+  old <- as.numeric(old)
+  keep <- is.finite(new) & is.finite(old)
+  if (!any(keep)) return(NA_real_)
+  max(abs(new[keep] - old[keep]) / pmax(1e-8, abs(new[keep]), abs(old[keep]), 1))
+}
+
+.exal_static_ld_mix_step <- function(old, new, damping, step_cap) {
+  old <- as.numeric(old)[1]
+  new <- as.numeric(new)[1]
+  delta <- new - old
+  if (is.finite(step_cap)) {
+    delta <- min(max(delta, -step_cap), step_cap)
+  }
+  old + damping * delta
+}
+
+.exal_static_ld_mix_numeric_lists <- function(old, new, damping) {
+  out <- old
+  nm <- union(names(old), names(new))
+  for (k in nm) {
+    x_old <- old[[k]]
+    x_new <- new[[k]]
+    if (is.numeric(x_old) && is.numeric(x_new) && length(x_old) == length(x_new)) {
+      out[[k]] <- x_old + damping * (x_new - x_old)
+    } else if (!is.null(x_new)) {
+      out[[k]] <- x_new
+    }
+  }
+  out
+}
+
+.exal_static_ld_mode_quality <- function(log_q_fn, par, grad_tol = 5e-3, min_eig = 1e-8) {
+  grad <- try(numDeriv::grad(log_q_fn, x = as.numeric(par)), silent = TRUE)
+  grad <- if (inherits(grad, "try-error")) rep(NA_real_, length(par)) else as.numeric(grad)
+
+  neg_hess <- try(-numDeriv::hessian(log_q_fn, x = as.numeric(par)), silent = TRUE)
+  neg_hess <- if (inherits(neg_hess, "try-error")) {
+    matrix(NA_real_, nrow = length(par), ncol = length(par))
+  } else {
+    hh <- as.matrix(neg_hess)
+    (hh + t(hh)) / 2
+  }
+
+  eig <- try(eigen(neg_hess, symmetric = TRUE, only.values = TRUE)$values, silent = TRUE)
+  eig <- if (inherits(eig, "try-error")) rep(NA_real_, length(par)) else as.numeric(eig)
+
+  grad_inf_norm <- if (all(is.finite(grad))) max(abs(grad)) else NA_real_
+  neg_hess_min_eig <- if (any(is.finite(eig))) min(eig, na.rm = TRUE) else NA_real_
+  neg_hess_max_eig <- if (any(is.finite(eig))) max(eig, na.rm = TRUE) else NA_real_
+  neg_hess_condition <- if (is.finite(neg_hess_min_eig) && is.finite(neg_hess_max_eig) && neg_hess_min_eig > 0) {
+    neg_hess_max_eig / neg_hess_min_eig
+  } else {
+    NA_real_
+  }
+
+  list(
+    gradient = grad,
+    grad_inf_norm = grad_inf_norm,
+    neg_hess = neg_hess,
+    neg_hess_min_eig = neg_hess_min_eig,
+    neg_hess_max_eig = neg_hess_max_eig,
+    neg_hess_condition = neg_hess_condition,
+    local_mode_pass = is.finite(grad_inf_norm) &&
+      grad_inf_norm <= grad_tol &&
+      is.finite(neg_hess_min_eig) &&
+      neg_hess_min_eig > min_eig
+  )
+}
+
 #' Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)
 #'
 #' The function applies a coordinate-ascent variational inference (CAVI)
@@ -59,8 +283,16 @@
 #' @param log_prior_gamma Function \code{g -> log pi(gamma=g)} (default flat).
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}; if missing, reasonable defaults are used.
+#' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
+#'   using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.
 #' @param n_samp_xi Integer; number of MC draws used to compute the xi expectations for
 #'   \eqn{q(\sigma,\gamma)} (default 200).
+#' @param ld_controls Optional list of controls for the Laplace-Delta block.
+#'   Supported keys include \code{damping}, \code{xi_damping}, \code{xi_mode},
+#'   \code{xi_replicates}, \code{reuse_draws}, \code{antithetic},
+#'   \code{optimizer_maxit}, \code{eig_floor}, \code{eig_cap},
+#'   \code{step_cap_eta}, \code{step_cap_ell}, \code{reuse_seed},
+#'   \code{mode_grad_tol}, \code{mode_min_eig}, and \code{store_trace}.
 #' @param verbose Logical; print progress.
 #'
 #' @return A object of class "\code{exal_ldvb}" containing:
@@ -75,6 +307,10 @@
 #'         \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
 #'   \item \code{converged}, \code{iter}, \code{run.time}, and
 #'         \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
+#'   \item \code{diagnostics}: ELBO and joint-convergence diagnostics
+#'         (state/sigma/gamma/ELBO deltas, stopping reason, and
+#'         Laplace-Delta block trace diagnostics, including replicated-\code{xi}
+#'         controls and final local-mode quality checks).
 #' }
 #'
 #' @details
@@ -83,7 +319,9 @@
 #' The LD block is parameterized in transformed coordinates
 #' \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
 #' The \code{xi} expectations used in CAVI updates are approximated from a small
-#' Gaussian Monte Carlo sample in \eqn{(\eta,\ell)}.
+#' Gaussian Monte Carlo sample in \eqn{(\eta,\ell)}. The Laplace-Delta controls
+#' can optionally use deterministic reused draws and replicated batches to reduce
+#' Monte Carlo noise when auditing tail behavior.
 #'
 #' @examples
 #' \donttest{
@@ -103,7 +341,9 @@ exal_static_LDVB <- function(
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
   log_prior_gamma = function(g) 0,
   init = NULL,
+  dqlm.ind = FALSE,
   n_samp_xi = 200,
+  ld_controls = NULL,
   verbose = TRUE
 ){
   # --- checks ---------------------------------------------------------------
@@ -117,6 +357,25 @@ exal_static_LDVB <- function(
   if (is.null(V0)) V0 <- diag(1e6, p)
   V0 <- as.matrix(V0)
   if (!all(dim(V0) == c(p, p))) stop("V0 must be p x p.")
+
+  # Reduced AL / DQLM branch: no gamma, no s, no LD block.
+  if (isTRUE(dqlm.ind)) {
+    ret <- .run_static_dqlm_cavi(
+      y = y,
+      X = X,
+      p0 = p0,
+      max_iter = max_iter,
+      tol = tol,
+      b0 = b0,
+      V0 = V0,
+      a_sigma = a_sigma,
+      b_sigma = b_sigma,
+      init = init,
+      verbose = verbose
+    )
+    class(ret) <- "exal_vb"
+    return(ret)
+  }
 
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
   if (!(L < U)) stop("gamma_bounds must satisfy L < U.")
@@ -152,6 +411,17 @@ exal_static_LDVB <- function(
   eta_hat <- stats::qlogis((gamma0 - L) / (U - L))
   ell_hat <- log(sigma0)
   Sig_eta_ell <- diag(c(1e-4, 1e-4))  # tiny to start; inflated after first LD update
+  ld_ctrl <- .exal_static_ld_controls(ld_controls)
+  ld_base_draws <- if (ld_ctrl$reuse_draws) {
+    .exal_static_ld_make_base_draws_list(
+      ns = max(50L, as.integer(n_samp_xi)),
+      replicates = ld_ctrl$xi_replicates,
+      antithetic = ld_ctrl$antithetic,
+      seed = ld_ctrl$reuse_seed
+    )
+  } else {
+    NULL
+  }
 
   # --- numerics helpers ------------------------------------------------------
   V0_inv <- tryCatch(
@@ -196,14 +466,20 @@ exal_static_LDVB <- function(
   }
 
   # compute xi's from Gaussian approx in (eta,ell)
-    compute_xi <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi) {
+  compute_xi_single <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi, base_Z = NULL) {
     ns <- max(1L, as.integer(ns))
 
     # draw (eta, ell) ~ N([eta_hat, ell_hat], Sigma)
     chol_U <- tryCatch(chol(Sigma), error = function(e) NULL)
     if (is.null(chol_U)) chol_U <- chol(Sigma + 1e-8 * diag(2))
 
-    Z    <- matrix(stats::rnorm(2 * ns), nrow = 2, ncol = ns)   # 2 x ns
+    if (!is.null(base_Z)) {
+      if (nrow(base_Z) != 2L) stop("base_Z must be a 2 x ns matrix.")
+      if (ncol(base_Z) < ns) stop("base_Z does not contain enough draws.")
+      Z <- base_Z[, seq_len(ns), drop = FALSE]
+    } else {
+      Z <- matrix(stats::rnorm(2 * ns), nrow = 2, ncol = ns)   # 2 x ns
+    }
     pars <- sweep(chol_U %*% Z, 1, c(eta_hat, ell_hat), "+")  # 2 x ns
     eta  <- pars[1, ]
     ell  <- pars[2, ]
@@ -228,20 +504,58 @@ exal_static_LDVB <- function(
     zeta_logpi    <- mean(vapply(gamma, log_prior_gamma, numeric(1)))
 
     list(
-    xi1 = xi1,
-    xi_lambda = xi_lambda,
-    xi_lambda2 = xi_lambda2,
-    xi_A = xi_A,
-    xi_A2 = xi_A2,
-    xi_siginv = xi_siginv,
-    zeta_lam = zeta_lam,
-    zeta_logJ = zeta_logJ,
-    zeta_logsigma = zeta_logsigma,
-    zeta_logB = zeta_logB,
-    zeta_logpi = zeta_logpi
+      xi1 = xi1,
+      xi_lambda = xi_lambda,
+      xi_lambda2 = xi_lambda2,
+      xi_A = xi_A,
+      xi_A2 = xi_A2,
+      xi_siginv = xi_siginv,
+      zeta_lam = zeta_lam,
+      zeta_logJ = zeta_logJ,
+      zeta_logsigma = zeta_logsigma,
+      zeta_logB = zeta_logB,
+      zeta_logpi = zeta_logpi
     )
+  }
 
+  compute_xi <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi, base_Z = NULL) {
+    rep_count <- if (identical(ld_ctrl$xi_mode, "replicated")) {
+      ld_ctrl$xi_replicates
+    } else {
+      1L
     }
+    if (is.null(base_Z)) {
+      base_list <- vector("list", rep_count)
+    } else if (is.list(base_Z)) {
+      base_list <- base_Z
+    } else {
+      base_list <- replicate(rep_count, base_Z, simplify = FALSE)
+    }
+    vals <- lapply(seq_len(rep_count), function(i) {
+      compute_xi_single(
+        eta_hat = eta_hat,
+        ell_hat = ell_hat,
+        Sigma = Sigma,
+        ns = ns,
+        base_Z = if (length(base_list) >= i) base_list[[i]] else NULL
+      )
+    })
+    val_mat <- do.call(rbind, lapply(vals, .exal_static_ld_named_numeric))
+    center <- colMeans(val_mat)
+    mcse <- if (nrow(val_mat) >= 2L) {
+      matrixStats::colSds(val_mat) / sqrt(nrow(val_mat))
+    } else {
+      rep(NA_real_, ncol(val_mat))
+    }
+    names(mcse) <- colnames(val_mat)
+    list(
+      value = as.list(center),
+      mcse = as.list(mcse),
+      replicate_count = nrow(val_mat),
+      mcse_mean = if (all(is.na(mcse))) NA_real_ else mean(mcse, na.rm = TRUE),
+      mcse_max = if (all(is.na(mcse))) NA_real_ else max(mcse, na.rm = TRUE)
+    )
+  }
 
   # log-kernel for q(sigma,gamma) as a function of (eta, ell)
   log_qsiggam <- function(par) {
@@ -276,51 +590,92 @@ exal_static_LDVB <- function(
   find_mode_ld <- function(eta0, ell0) {
     par0 <- c(eta0, ell0)
     fn_neg <- function(z) { val <- log_qsiggam(z); if (is.finite(val)) -val else 1e50 }
-    opt <- try(optim(par = par0, fn = fn_neg, method = "BFGS",
-                     control = list(maxit = 200), hessian = TRUE), silent = TRUE)
+    cand <- rbind(
+      par0,
+      par0 + c(-1, 0), par0 + c(1, 0), par0 + c(0, -1), par0 + c(0, 1),
+      par0 + c(-2, 0), par0 + c(2, 0), par0 + c(0, -2), par0 + c(0, 2)
+    )
+    vals <- apply(cand, 1, function(z) log_qsiggam(z))
+    idx <- which(is.finite(vals))
+    par_start <- if (length(idx)) cand[idx[which.max(vals[idx])], ] else par0
+    used_fallback <- FALSE
+
+    opt <- try(
+      optim(
+        par = par_start,
+        fn = fn_neg,
+        method = "BFGS",
+        control = list(maxit = ld_ctrl$optimizer_maxit),
+        hessian = TRUE
+      ),
+      silent = TRUE
+    )
     if (inherits(opt, "try-error") || !is.finite(opt$value)) {
-      # small grid around start
-      cand <- rbind(
-        par0,
-        par0 + c(-1,0), par0 + c(1,0), par0 + c(0,-1), par0 + c(0,1),
-        par0 + c(-2,0), par0 + c(2,0), par0 + c(0,-2), par0 + c(0,2)
-      )
-      vals <- apply(cand, 1, function(z) log_qsiggam(z))
-      idx  <- which.max(vals)
-      opt  <- optim(par = cand[idx,], fn = fn_neg, method = "BFGS",
-                    control = list(maxit = 200), hessian = TRUE)
+      used_fallback <- TRUE
+      opt <- list(par = as.numeric(par_start), value = fn_neg(par_start), hessian = diag(2) * 1e-2, convergence = 1L)
     }
     H <- opt$hessian
     if (!all(is.finite(H)) || any(is.nan(H))) {
       # numeric Hessian as fallback
       H <- try(numDeriv::hessian(function(z) -log_qsiggam(z), x = opt$par), silent = TRUE)
       if (inherits(H, "try-error") || any(!is.finite(H))) {
+        used_fallback <- TRUE
         H <- diag(2) * 1e-2
       }
     }
-    # covariance = inverse observed information
-    Sigma <- tryCatch(
-      solve(H),
-      error = function(e) solve(H + 1e-8 * diag(nrow(H)))
+    H <- (H + t(H)) / 2
+    reg <- .exal_static_ld_cov_from_precision(
+      H,
+      eig_floor = ld_ctrl$eig_floor,
+      eig_cap = ld_ctrl$eig_cap
     )
-    # symmetrize & guard
-    Sigma <- (Sigma + t(Sigma))/2
-    list(eta_hat = opt$par[1], ell_hat = opt$par[2], Sigma = Sigma)
+    list(
+      eta_hat = as.numeric(opt$par[1]),
+      ell_hat = as.numeric(opt$par[2]),
+      Sigma = reg$Sigma,
+      objective = as.numeric(log_qsiggam(opt$par)),
+      optim_convergence = if (!is.null(opt$convergence)) as.integer(opt$convergence)[1] else NA_integer_,
+      used_fallback = used_fallback || isTRUE(reg$used_floor),
+      hess_condition = reg$condition_raw,
+      cov_condition = reg$condition_reg,
+      cov_eig_min = min(reg$cov_eig_reg),
+      cov_eig_max = max(reg$cov_eig_reg),
+      cov_eig_raw_min = if (length(reg$cov_eig_raw)) min(reg$cov_eig_raw, na.rm = TRUE) else NA_real_,
+      cov_eig_raw_max = if (length(reg$cov_eig_raw)) max(reg$cov_eig_raw, na.rm = TRUE) else NA_real_
+    )
   }
 
   # --- main loop -------------------------------------------------------------
   t0 <- proc.time()[3]
-  converged <- FALSE
   if (verbose) {
     cat(sprintf("Static exAL LDVB | n=%d, p=%d | max_iter=%d, tol=%.1e\n",
                 n, p, max_iter, tol))
   }
 
-  # initial xi from a tiny covariance (deterministic at first iter)
-  xis <- compute_xi(eta_hat, ell_hat, Sig_eta_ell, ns = max(50, floor(n_samp_xi/2)))
+  # initial xi from a tiny covariance (deterministic when base draws are reused)
+  xis_eval <- compute_xi(
+    eta_hat,
+    ell_hat,
+    Sig_eta_ell,
+    ns = max(50L, floor(n_samp_xi / 2)),
+    base_Z = ld_base_draws
+  )
+  xis <- xis_eval$value
   elbo_trace <- numeric(0)
   elbo_old   <- -Inf
+  delta_beta <- numeric(0)
+  delta_sigma <- numeric(0)
+  delta_gamma <- numeric(0)
+  delta_elbo <- numeric(0)
+  ld_trace_rows <- vector("list", max_iter)
+  stable_count <- 0L
+  conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
+  stop_reason <- "max_iter"
+  converged <- FALSE
   for (iter in 1:max_iter) {
+    prev_m_beta <- m_beta
+    gamma_prev <- g_from_eta(eta_hat)
+    sigma_prev <- exp(ell_hat)
 
     # ---- (1) q(beta) = N(m,V)
     # V = (V0^{-1} + xi1 * X^T diag(E[1/v]) X)^{-1}
@@ -363,23 +718,57 @@ exal_static_LDVB <- function(
     s_mom <- tn_moments(mu_s, tau2)
 
     # ---- (4) q(sigma,gamma) via LD
+    eta_prev <- eta_hat
+    ell_prev <- ell_hat
+    Sigma_prev <- Sig_eta_ell
     ld <- find_mode_ld(eta_hat, ell_hat)
-    eta_hat <- ld$eta_hat
-    ell_hat <- ld$ell_hat
-    Sig_eta_ell <- ld$Sigma
+    eta_hat <- .exal_static_ld_mix_step(
+      old = eta_prev,
+      new = ld$eta_hat,
+      damping = ld_ctrl$damping,
+      step_cap = ld_ctrl$step_cap_eta
+    )
+    ell_hat <- .exal_static_ld_mix_step(
+      old = ell_prev,
+      new = ld$ell_hat,
+      damping = ld_ctrl$damping,
+      step_cap = ld_ctrl$step_cap_ell
+    )
+    Sigma_mix <- (1 - ld_ctrl$damping) * Sigma_prev + ld_ctrl$damping * ld$Sigma
+    Sig_eta_ell <- .exal_static_ld_regularize_cov(
+      Sigma_mix,
+      eig_floor = ld_ctrl$eig_floor,
+      eig_cap = ld_ctrl$eig_cap
+    )$Sigma
 
     # update xi via MC under Gaussian (eta,ell)
-    xis_new <- compute_xi(eta_hat, ell_hat, Sig_eta_ell, ns = n_samp_xi)
+    xis_eval_raw <- compute_xi(
+      eta_hat,
+      ell_hat,
+      Sig_eta_ell,
+      ns = n_samp_xi,
+      base_Z = ld_base_draws
+    )
+    xis_raw <- xis_eval_raw$value
+    xis_new <- .exal_static_ld_mix_numeric_lists(xis, xis_raw, damping = ld_ctrl$xi_damping)
 
     # ---- check convergence
     rel_mb <- sqrt(sum((m_beta_new - m_beta)^2)) / (1e-8 + sqrt(sum(m_beta^2)))
-    rel_xi <- max(abs(unlist(xis_new)) - abs(unlist(xis)))
-    rel_xi <- abs(rel_xi) / (1e-8 + max(1, max(abs(unlist(xis)))))
+    rel_xi <- .exal_static_ld_rel_change(
+      .exal_static_ld_named_numeric(xis_raw),
+      .exal_static_ld_named_numeric(xis)
+    )
+    eta_step_raw <- as.numeric(ld$eta_hat - eta_prev)
+    ell_step_raw <- as.numeric(ld$ell_hat - ell_prev)
+    eta_step_used <- as.numeric(eta_hat - eta_prev)
+    ell_step_used <- as.numeric(ell_hat - ell_prev)
 
     if (verbose && (iter %% 50 == 0)) {
       ghat <- g_from_eta(eta_hat); shat <- exp(ell_hat)
-      cat(sprintf("iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f\n",
-                  iter, rel_mb, rel_xi, ghat, shat))
+      cat(sprintf(
+        "iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f | ld(raw)=%.2e/%.2e used=%.2e/%.2e\n",
+        iter, rel_mb, rel_xi, ghat, shat, eta_step_raw, ell_step_raw, eta_step_used, ell_step_used
+      ))
     }
 
     # commit new values
@@ -466,25 +855,70 @@ exal_static_LDVB <- function(
                 H_qb + H_qv + H_qs + H_qsg
     elbo_trace <- c(elbo_trace, elbo_new)
 
-    # -------- Stopping rule (ELBO-based) ----------
-    if (iter == 1) {
-    inc <- Inf; rel_elbo <- Inf
-    } else {
-    inc <- elbo_new - elbo_old
-    rel_elbo <- inc / (1e-8 + abs(elbo_old))
+    gamma_cur <- g_from_eta(eta_hat)
+    sigma_cur <- exp(ell_hat)
+    d_beta <- max(abs(m_beta_new - prev_m_beta))
+    d_sigma <- abs(sigma_cur - sigma_prev)
+    d_gamma <- abs(gamma_cur - gamma_prev)
+    d_elbo <- if (iter >= 2L) elbo_new - elbo_old else NA_real_
+    step <- .vb_joint_step(
+      iter = iter,
+      d_state = d_beta,
+      d_sigma = d_sigma,
+      d_gamma = d_gamma,
+      d_elbo = d_elbo,
+      controls = conv_ctrl,
+      compute_elbo = TRUE,
+      stable_count = stable_count
+    )
+    stable_count <- step$stable_count
+    delta_beta <- c(delta_beta, d_beta)
+    delta_sigma <- c(delta_sigma, d_sigma)
+    delta_gamma <- c(delta_gamma, d_gamma)
+    delta_elbo <- c(delta_elbo, d_elbo)
+    if (isTRUE(ld_ctrl$store_trace)) {
+      ld_trace_rows[[iter]] <- data.frame(
+        iter = iter,
+        eta = eta_hat,
+        ell = ell_hat,
+        gamma = gamma_cur,
+        sigma = sigma_cur,
+        eta_raw = ld$eta_hat,
+        ell_raw = ld$ell_hat,
+        eta_step_raw = eta_step_raw,
+        ell_step_raw = ell_step_raw,
+        eta_step_used = eta_step_used,
+        ell_step_used = ell_step_used,
+        xi_rel_drift = rel_xi,
+        xi_mcse_mean = as.numeric(xis_eval_raw$mcse_mean)[1],
+        xi_mcse_max = as.numeric(xis_eval_raw$mcse_max)[1],
+        xi_replicates = as.integer(xis_eval_raw$replicate_count)[1],
+        ld_objective = ld$objective,
+        ld_optim_convergence = ld$optim_convergence,
+        ld_used_fallback = isTRUE(ld$used_fallback),
+        ld_hess_condition = ld$hess_condition,
+        ld_cov_condition = ld$cov_condition,
+        ld_cov_eig_min = ld$cov_eig_min,
+        ld_cov_eig_max = ld$cov_eig_max,
+        delta_state = d_beta,
+        delta_sigma = d_sigma,
+        delta_gamma = d_gamma,
+        delta_elbo = d_elbo,
+        stringsAsFactors = FALSE
+      )
     }
 
-    # Optional: print both absolute and relative changes
     if (verbose && (iter %% 50 == 0)) {
-    cat(sprintf("    ELBO=%.6f | delta=%.3e | delta_rel=%.2e\n", elbo_new, inc, rel_elbo))
+      cat(sprintf(
+        "    ELBO=%.6f | d_beta=%.3e d_sigma=%.3e d_gamma=%.3e d_elbo=%.3e | cond=%.3e stable=%d/%d\n",
+        elbo_new, d_beta, d_sigma, d_gamma, d_elbo, ld$cov_condition, stable_count, conv_ctrl$patience
+      ))
     }
 
-    # Require ELBO to have *stabilized* (small absolute relative change), and
-    # NEVER stop on a negative jump. Also wait a few iterations before checking.
-    min_iter_elbo <- 10L
-    if (iter >= min_iter_elbo && abs(rel_elbo) < tol && inc >= 0) {
-    converged <- TRUE
-    break
+    if (step$stop_now) {
+      converged <- TRUE
+      stop_reason <- "joint_converged"
+      break
     }
 
     elbo_old <- elbo_new
@@ -496,6 +930,18 @@ exal_static_LDVB <- function(
   # approximate means for gamma, sigma from LD mode
   gamma_mean <- g_from_eta(eta_hat)
   sigma_mean <- exp(ell_hat)
+  mode_quality <- .exal_static_ld_mode_quality(
+    log_q_fn = log_qsiggam,
+    par = c(eta_hat, ell_hat),
+    grad_tol = ld_ctrl$mode_grad_tol,
+    min_eig = ld_ctrl$mode_min_eig
+  )
+  ld_trace_df <- if (isTRUE(ld_ctrl$store_trace)) {
+    keep <- Filter(Negate(is.null), ld_trace_rows[seq_len(iter)])
+    if (length(keep)) do.call(rbind, keep) else data.frame()
+  } else {
+    data.frame()
+  }
 
   ret <- list(
     qbeta = list(m = m_beta, V = V_beta),
@@ -509,7 +955,40 @@ exal_static_LDVB <- function(
     converged = converged,
     iter = iter,
     run.time = as.numeric(t1 - t0),
-    misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace)
+    misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace),
+    diagnostics = list(
+      elbo = elbo_trace,
+      convergence = list(
+        converged = converged,
+        stop_reason = stop_reason,
+        iter = iter,
+        stable_count = stable_count,
+        criteria = conv_ctrl,
+        final = list(
+          delta_state = if (length(delta_beta)) utils::tail(delta_beta, 1L) else NA_real_,
+          delta_sigma = if (length(delta_sigma)) utils::tail(delta_sigma, 1L) else NA_real_,
+          delta_gamma = if (length(delta_gamma)) utils::tail(delta_gamma, 1L) else NA_real_,
+          delta_elbo = if (length(delta_elbo)) utils::tail(delta_elbo, 1L) else NA_real_
+        )
+      ),
+      deltas = list(
+        state = delta_beta,
+        sigma = delta_sigma,
+        gamma = delta_gamma,
+        elbo = delta_elbo
+      ),
+      ld_block = list(
+        controls = ld_ctrl,
+        trace = ld_trace_df,
+        xi = list(
+          mode = ld_ctrl$xi_mode,
+          replicates = ld_ctrl$xi_replicates,
+          reuse_draws = ld_ctrl$reuse_draws,
+          reuse_seed = ld_ctrl$reuse_seed
+        ),
+        mode_quality = mode_quality
+      )
+    )
   )
   class(ret) <- "exal_ldvb"
   if (verbose) {

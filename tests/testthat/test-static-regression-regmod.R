@@ -37,6 +37,62 @@ test_that("exal_static_LDVB runs on tiny deterministic input", {
   expect_true(all(is.finite(fit$qbeta$m)))
   expect_true(is.finite(fit$qsiggam$sigma_mean))
   expect_true(is.finite(fit$qsiggam$gamma_mean))
+  expect_true(is.list(fit$diagnostics$ld_block))
+  expect_true(is.data.frame(fit$diagnostics$ld_block$trace))
+  expect_true(is.list(fit$diagnostics$ld_block$mode_quality))
+  expect_true(is.finite(fit$diagnostics$ld_block$mode_quality$grad_inf_norm) || is.na(fit$diagnostics$ld_block$mode_quality$grad_inf_norm))
+})
+
+test_that("static LDVB replicated xi mode is deterministic with reused draws", {
+  set.seed(124)
+  n <- 16
+  X <- cbind(1, seq(-1, 1, length.out = n))
+  beta <- c(0.25, -0.15)
+  y <- as.numeric(X %*% beta + rnorm(n, sd = 0.08))
+  ctrl <- list(
+    xi_mode = "replicated",
+    xi_replicates = 3L,
+    reuse_draws = TRUE,
+    reuse_seed = 20260305L,
+    store_trace = TRUE
+  )
+
+  fit1 <- exal_static_LDVB(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    max_iter = 30,
+    tol = 5e-3,
+    n_samp_xi = 40,
+    ld_controls = ctrl,
+    verbose = FALSE
+  )
+  fit2 <- exal_static_LDVB(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    max_iter = 30,
+    tol = 5e-3,
+    n_samp_xi = 40,
+    ld_controls = ctrl,
+    verbose = FALSE
+  )
+
+  expect_equal(unlist(fit1$qsiggam$xi), unlist(fit2$qsiggam$xi), tolerance = 1e-12)
+  expect_equal(fit1$diagnostics$ld_block$xi$replicates, 3L)
+  expect_identical(fit1$diagnostics$ld_block$xi$mode, "replicated")
+})
+
+test_that("static LD precision regularization handles singular Hessians", {
+  reg_fun <- getFromNamespace(".exal_static_ld_cov_from_precision", "exdqlm")
+  H <- matrix(c(1, 1, 1, 1 + 1e-18), nrow = 2, byrow = TRUE)
+
+  reg <- reg_fun(H, eig_floor = 1e-6, eig_cap = 25)
+  eig_cov <- eigen(reg$Sigma, symmetric = TRUE, only.values = TRUE)$values
+
+  expect_true(all(is.finite(reg$Sigma)))
+  expect_true(all(eig_cov > 0))
+  expect_true(isTRUE(reg$used_floor))
 })
 
 test_that("exal_static_mcmc runs on tiny deterministic input", {

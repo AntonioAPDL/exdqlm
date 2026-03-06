@@ -15,9 +15,19 @@ exal_static_mcmc(
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
   log_prior_gamma = function(g) 0,
   init = NULL,
+  dqlm.ind = FALSE,
   n.burn = 2000,
   n.mcmc = 1500,
   thin = 1,
+  init.from.vb = FALSE,
+  vb_init_controls = NULL,
+  mh.proposal = c("laplace_local", "laplace_rw", "rw"),
+  mh.adapt = TRUE,
+  mh.adapt.interval = 50L,
+  mh.target.accept = c(0.2, 0.45),
+  mh.scale.bounds = c(0.1, 10),
+  mh.max_scale.step = 0.35,
+  mh.min_burn_adapt = 50L,
   verbose = TRUE
 )
 }
@@ -45,12 +55,42 @@ Default is flat (returns 0).}
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
 \code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.}
 
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
+with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
+
 \item{n.burn}{Number of burn-in iterations. Default \code{2000}.}
 
 \item{n.mcmc}{Number of kept MCMC iterations (after burn). Default \code{1500}.}
 
 \item{thin}{Integer; save every \code{thin}-th iteration after burn. We internally run
 \code{n.burn + n.mcmc * thin} iterations to return exactly \code{n.mcmc} saved draws.}
+
+\item{init.from.vb}{Logical; if \code{TRUE}, run static VB first and use its
+posterior moments as MCMC initialization.}
+
+\item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
+\code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}.}
+
+\item{mh.proposal}{Character string controlling the exAL gamma update kernel.
+\code{"laplace_local"} reproduces the previous Laplace-local draw.
+\code{"laplace_rw"} initializes a random-walk MH scale from local curvature
+and adapts it during burn-in. \code{"rw"} uses adaptive random-walk MH
+without Laplace scaling. Only \code{"rw"} and \code{"laplace_rw"} are
+exact posterior kernels for the \code{gamma} update; \code{"laplace_local"}
+is approximate and should not be treated as signoff-ready.}
+
+\item{mh.adapt}{Logical; adapt the random-walk proposal scale during burn-in.
+Ignored for \code{"laplace_local"}.}
+
+\item{mh.adapt.interval}{Integer adaptation window for RW-based kernels.}
+
+\item{mh.target.accept}{Numeric length-2 target acceptance band.}
+
+\item{mh.scale.bounds}{Numeric length-2 lower/upper bounds for RW proposal scale.}
+
+\item{mh.max_scale.step}{Numeric multiplicative adaptation cap in \code{(0,1)}.}
+
+\item{mh.min_burn_adapt}{Integer minimum burn-in before adaptation starts.}
 
 \item{verbose}{Print progress every 500 iters.}
 }
@@ -64,13 +104,16 @@ A object of class "\code{exal_mcmc}" containing:
 \item \code{samp.gamma} - posterior sample of \code{gamma} as \code{coda::mcmc}.
 \item \code{samp.v} - latent \code{v} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
+\item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
+including whether the saved kernel is exact/signoff-ready.
 \item \code{last} - last state of the chain (useful for restarts).
 }
 }
 \description{
 The function applies a Gibbs sampler for static Extended Asymmetric Laplace regression
 (exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
-draw \eqn{\gamma} via a Laplace-Delta step on a logit transform of (L, U).
+update \eqn{\gamma} on the transformed logit scale using either the legacy
+Laplace-local draw or an adaptive random-walk MH kernel.
 }
 \examples{
 \donttest{

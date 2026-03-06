@@ -17,7 +17,9 @@ exal_static_LDVB(
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
   log_prior_gamma = function(g) 0,
   init = NULL,
+  dqlm.ind = FALSE,
   n_samp_xi = 200,
+  ld_controls = NULL,
   verbose = TRUE
 )
 }
@@ -45,8 +47,18 @@ Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}; if missing, reasonable defaults are used.}
 
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
+using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.}
+
 \item{n_samp_xi}{Integer; number of MC draws used to compute the xi expectations for
 \eqn{q(\sigma,\gamma)} (default 200).}
+
+\item{ld_controls}{Optional list of controls for the Laplace-Delta block.
+Supported keys include \code{damping}, \code{xi_damping}, \code{xi_mode},
+\code{xi_replicates}, \code{reuse_draws}, \code{antithetic},
+\code{optimizer_maxit}, \code{eig_floor}, \code{eig_cap},
+\code{step_cap_eta}, \code{step_cap_ell}, \code{reuse_seed},
+\code{mode_grad_tol}, \code{mode_min_eig}, and \code{store_trace}.}
 
 \item{verbose}{Logical; print progress.}
 }
@@ -63,6 +75,10 @@ A object of class "\code{exal_ldvb}" containing:
 \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
 \item \code{converged}, \code{iter}, \code{run.time}, and
 \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
+\item \code{diagnostics}: ELBO and joint-convergence diagnostics
+(state/sigma/gamma/ELBO deltas, stopping reason, and
+Laplace-Delta block trace diagnostics, including replicated-\code{xi}
+controls and final local-mode quality checks).
 }
 }
 \description{
@@ -76,7 +92,9 @@ Mean-field factorization:
 The LD block is parameterized in transformed coordinates
 \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
 The \code{xi} expectations used in CAVI updates are approximated from a small
-Gaussian Monte Carlo sample in \eqn{(\eta,\ell)}.
+Gaussian Monte Carlo sample in \eqn{(\eta,\ell)}. The Laplace-Delta controls
+can optionally use deterministic reused draws and replicated batches to reduce
+Monte Carlo noise when auditing tail behavior.
 }
 \examples{
 \donttest{
