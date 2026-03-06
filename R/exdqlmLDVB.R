@@ -22,8 +22,9 @@
 #' @param debug_shapes Logical; if TRUE, print KF input/output shapes every `debug_every` iterations.
 #' @param debug_every  Integer; frequency (in iterations) for shape prints when `debug_shapes=TRUE`.
 #'
-#' @return A object of class "\code{exdqlm}" containing the following:
+#' @return A object of class "\code{exdqlmLDVB}" containing the following:
 #' \itemize{
+#'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `iter` - Number of iterations until convergence was reached.
 #'   \item `dqlm.ind` - Logical value indicating whether gamma was fixed at `0`, reducing the exDQLM to the special case of the DQLM.
@@ -40,6 +41,7 @@
 #'   \item `samp.vts` - Posterior sample of latent parameters, v_t, variational distributions.
 #'   \item `theta.out` - List containing the variational distribution of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
+#'   \item `fix.sigma` Logical value indicating whether sigma was fixed at `sig.init`.
 #'   \item `diagnostics` - List containing algorithm diagnostics (currently ELBO trace when enabled).
 #' }
 #' If `dqlm.ind=FALSE`, the list also contains:
@@ -51,6 +53,8 @@
 #'   \item `gammasig.out` - List containing the LD (Laplace-Delta) approximation for the
 #'   variational distribution of `sigma` and `gamma` (means, transformed Hessian, and ELBO components).
 #'   \item `sts.out` - List containing the variational distributions of latent parameters s_t.
+#'   \item `fix.gamma` Logical value indicating whether gamma was fixed at `gam.init`.
+
 #' }
 #' Or if `dqlm.ind=TRUE`, the list also contains:
 #' \itemize{
@@ -849,21 +853,23 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   ### list results
   if(!dqlm.ind){
-    retlist = list(run.time=(run.time$toc-run.time$tic),iter=iter,dqlm.ind=dqlm.ind,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),iter=iter,dqlm.ind=dqlm.ind,
                    model=model,p0=p0,df=df,dim.df=dim.df,
                    sig.init=sig.init,seq.sigma=seq.sigma,gam.init=gam.init,seq.gamma=seq.gamma,
                    samp.theta=samp.theta,samp.post.pred=samp.post.pred,
                    map.standard.forecast.errors=new.theta.out$standard.forecast.errors,
                    samp.sigma=samp.sigma,samp.gamma=samp.gamma,samp.sts=samp.sts,samp.vts=samp.uts,
-                   theta.out=new.theta.out,gammasig.out=new.gamsig.out,sts.out=new.sts.out,vts.out=new.uts.out)
+                   theta.out=new.theta.out,gammasig.out=new.gamsig.out,sts.out=new.sts.out,vts.out=new.uts.out,
+                   fix.sigma=fix.sigma,fix.gamma=fix.gamma)
   }else{
-    retlist = list(run.time=(run.time$toc-run.time$tic),iter=iter,dqlm.ind=dqlm.ind,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),iter=iter,dqlm.ind=dqlm.ind,
                    model=model,p0=p0,df=df,dim.df=dim.df,
                    sig.init=sig.init,seq.sigma=seq.sigma,
                    samp.theta=samp.theta,samp.post.pred=samp.post.pred,
                    map.standard.forecast.errors=new.theta.out$standard.forecast.errors,
                    samp.sigma=samp.sigma,samp.vts=samp.uts,
-                   theta.out=new.theta.out,sig.out=new.gamsig.out,vts.out=new.uts.out)
+                   theta.out=new.theta.out,sig.out=new.gamsig.out,vts.out=new.uts.out,
+                   fix.sigma=fix.sigma)
   }
 
   retlist$diagnostics <- list(
@@ -871,6 +877,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   )
 
   # return results
-  class(retlist) <- "exdqlm"
+  class(retlist) <- "exdqlmLDVB"
   return(retlist)
 }

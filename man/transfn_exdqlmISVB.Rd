@@ -102,16 +102,27 @@ If \code{dqlm.ind=FALSE}, the object also contains:
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the IS estimate of the variational distribution of sigma and gamma.
+\item \code{gammasig.out} - List containing the IS estimate of the variational distribution of \code{sigma} and \code{gamma}.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 }
 Or if \code{dqlm.ind=TRUE}, the object also contains:
 \itemize{
-\item \code{sig.out} - List containing the IS estimate of the variational distribution of sigma.
+\item \code{sig.out} - As above but for the DQLM case (\code{gamma = 0}); list containing the IS estimate of the variational distribution of sigma.
 }
 }
 \description{
 The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM with exponential decay transfer function component.
+}
+\details{
+Advanced options (set via \code{options()}):
+\itemize{
+\item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
+\item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
+\item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+\item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
+When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
+\item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+}
 }
 \examples{
 \donttest{

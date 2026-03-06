@@ -3,11 +3,10 @@
 #' The function plots the dynamic MAP estimates and 95% credible intervals (CrIs) of a specified component of an exDQLM. Alternatively, if `just.theta=TRUE` the MAP estimates and 95% credible intervals (CrIs) of a single element of the dynamic state vector are plotted.
 #'
 #' @inheritParams exdqlmPlot
-#' @param index Index of the component or element of the state vector to be plotted.
-#' @param add If `TRUE`, the dynamic component will be added to existing plot.
-#' @param col Color of dynamic component to be plotted. Default is `purple`.
+#' @param index Vector of consecutive integers in \eqn{\{1,\dots,q\}} indicating the component or element of the state vector to be plotted.
+#' @param add Logical value indicating whether the dynamic component will be added to existing plot. Default is \code{FALSE}.
+#' @param col Character vector of length 1 giving color of the dynamic component to be plotted. Default is `purple`.
 #' @param just.theta If `TRUE`, the function plots the dynamic distribution of the `index` element of the state vector. If `just.theta=TRUE`, `index` must have length 1.
-#' @param cr.percent Percentage used in the calculation of the credible intervals.
 #'
 #' @return A list of the following is returned:
 #'  \itemize{
@@ -32,8 +31,8 @@
 compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, cr.percent = 0.95){
 
   # check input
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
-    stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
+  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
+    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
   }
   y = m1$y
   TT = length(y)

@@ -24,7 +24,7 @@
 #'
 #' @return A object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
-#'    \item `y` - Time-series data used to fit the model.
+#'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `iter` - Number of iterations until convergence was reached.
 #'   \item `dqlm.ind` - Logical value indicating whether gamma was fixed at `0`, reducing the exDQLM to the special case of the DQLM.
@@ -49,13 +49,13 @@
 #'   \item `seq.gamma` - Sequence of gamma estimated by the algorithm until convergence.
 #'   \item `samp.gamma` - Posterior sample of skewness parameter gamma variational distribution.
 #'   \item `samp.sts` - Posterior sample of latent parameters, s_t, variational distributions.
-#'   \item `gammasig.out` - List containing the IS estimate of the variational distribution of sigma and gamma.
+#'   \item `gammasig.out` - List containing the IS estimate of the variational distribution of `sigma` and `gamma`.
 #'   \item `sts.out` - List containing the variational distributions of latent parameters s_t.
 #'   \item `fix.gamma` Logical value indicating whether gamma was fixed at `gam.init`.
 #' }
 #' Or if `dqlm.ind=TRUE`, the object also contains:
-#'  \itemize{
-#'  \item `sig.out` - List containing the IS estimate of the variational distribution of sigma.
+#' \itemize{
+#'   \item `sig.out` - As above but for the DQLM case (`gamma = 0`); list containing the IS estimate of the variational distribution of sigma.
 #'  }
 #' @export
 #'

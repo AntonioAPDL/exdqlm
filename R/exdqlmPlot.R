@@ -2,10 +2,11 @@
 #'
 #' The function plots the MAP estimates and 95% credible intervals (CrIs) of the dynamic quantile of an exDQLM.
 #'
-#' @param m1 An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".
-#' @param add If `TRUE`, the dynamic quantile will be added to existing plot.
-#' @param col Color of dynamic quantile to be plotted. Default is `purple`.
-#' @param cr.percent Percentage used in the calculation of the credible intervals.
+#' @param m1 An object of class "\code{exdqlmMCMC}", "\code{exdqlmLDVB}",  or "\code{exdqlmISVB}".
+#' @param add Logical value indicating whether the dynamic quantile will be added to existing plot. Default is \code{FALSE}.
+#' @param col Character vector of length 1 giving color of the dynamic quantile to be plotted. Default is `purple`.
+#' @param cr.percent Numeric in \code{(0, 1)} indicating the probability mass for the credible
+#'   intervals (e.g., \code{0.95}). Default \code{0.95}.
 #'
 #' @return A list of the following is returned:
 #'  \itemize{
@@ -27,8 +28,8 @@
 exdqlmPlot <- function(m1,add=FALSE,col="purple",cr.percent=0.95){
 
   # check inputs
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
-    stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
+  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
+    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
   }
   y = m1$y
   TT = length(y)

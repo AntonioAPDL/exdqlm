@@ -3,10 +3,10 @@
 #' The function computes the following for the model(s) provided: the posterior predictive loss criterion based off the check loss, the one-step-ahead distribution sequence and its KL divergence from normality. The function also plots the following: the qq-plot and ACF plot corresponding to the one-step-ahead distribution sequence, and a time series plot of the MAP standard forecast errors.
 #'
 #' @inheritParams exdqlmPlot
-#' @param m2 An optional additional object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}" to compare with `m1`.
-#' @param plot If `TRUE`, the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.
-#' @param cols Color(s) used to plot diagnostics.
-#' @param ref Reference sample of size `length(y)` from a standard normal distribution used to compute the KL divergence.
+#' @param m2 An optional additional object of class "\code{exdqlmMCMC}", "\code{exdqlmISVB}", "\code{exdqlmLDVB}" to compare with `m1`.
+#' @param plot Logical value indicating whether the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.Default is `TRUE`.
+#' @param cols Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.
+#' @param ref Optional reference sample of size `length(y)` from a standard normal distribution used to compute the KL divergence.
 #'
 #' @return A object of class "\code{exdqlmDiagnostics}" containing the following:
 #'  \itemize{
@@ -36,8 +36,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   # check inputs
   y = m1$y
   TT = length(y)
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
-    stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
+  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
+    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
   }
   cols = c(matrix(cols,2,1))
 
@@ -70,8 +70,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   ### m2
   if(!is.null(m2)){
     # check inputs
-    if(!is.exdqlmMCMC(m2) && !is.exdqlmISVB(m2)){
-      stop("m2 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
+    if(!is.exdqlmMCMC(m2) && !is.exdqlmISVB(m2) && !is.exdqlmLDVB(m2)){
+      stop("m2 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
     }
     if(dim(m1$samp.theta)[2] != TT){
       stop("length of dynamic quantile in m2 does not match data")

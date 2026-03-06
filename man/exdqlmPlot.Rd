@@ -7,13 +7,14 @@
 exdqlmPlot(m1, add = FALSE, col = "purple", cr.percent = 0.95)
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
+\item{m1}{An object of class "\code{exdqlmMCMC}", "\code{exdqlmLDVB}",  or "\code{exdqlmISVB}".}
 
-\item{add}{If \code{TRUE}, the dynamic quantile will be added to existing plot.}
+\item{add}{Logical value indicating whether the dynamic quantile will be added to existing plot. Default is \code{FALSE}.}
 
-\item{col}{Color of dynamic quantile to be plotted. Default is \code{purple}.}
+\item{col}{Character vector of length 1 giving color of the dynamic quantile to be plotted. Default is \code{purple}.}
 
-\item{cr.percent}{Percentage used in the calculation of the credible intervals.}
+\item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
+intervals (e.g., \code{0.95}). Default \code{0.95}.}
 }
 \value{
 A list of the following is returned:

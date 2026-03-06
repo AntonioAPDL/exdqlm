@@ -361,6 +361,100 @@ plot.exdqlmISVB <- function(x, ...) {
 
 
 
+##################################
+###### "exdqlmLDVB" objects ######
+##################################
+
+#' \code{exdqlmLDVB} objects
+#'
+#' \code{is.exdqlmLDVB} tests if its argument is a \code{exdqlmLDVB} object. 
+#' 
+#' @usage is.exdqlmLDVB(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+#' 
+#' 
+is.exdqlmLDVB = function(m){ return(methods::is(m,"exdqlmLDVB")) }
+
+#' Print Method for \code{exdqlmLDVB} Objects
+#'
+#' @param x An \code{exdqlmLDVB} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,quantile(y,0.85),10)
+#' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
+#'                    gam.init=-3.5,sig.init=15)
+#' print(M0)
+#' }
+#'
+print.exdqlmLDVB <- function(x, ...) {
+  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  cat("Number of Observations:", length(x$y), "\n")
+  cat("State Dimension:", length(x$model$m0), "\n")  
+  cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
+  #
+  cat("exDQLM fitted using LDVB\n")
+  cat("Variational Parameters:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
+  cat("Iterations until convergence:", x$iter, "\n")
+  cat("Run-time:", x$run.time, "seconds\n")
+}
+
+#' Summary Method for \code{exdqlmLDVB} Objects
+#'
+#' @param object An \code{exdqlmLDVB} object.
+#' @param ... Additional arguments (unused).
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,quantile(y,0.85),10)
+#' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
+#'                    gam.init=-3.5,sig.init=15)
+#' summary(M0)
+#' }
+#'
+summary.exdqlmLDVB <- function(object, ...) {
+  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  cat("Number of Observations:", length(object$y), "\n")
+  cat("State Dimension:", length(object$model$m0), "\n")  
+  cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
+  #
+  cat("exDQLM fitted using LDVB\n")
+  cat("Variational Parameters:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
+  cat("Iterations until convergence:", object$iter, "\n")
+  cat("Run-time:", object$run.time, "seconds\n")
+}
+
+#' Plot Method for \code{exdqlmLDVB} Objects
+#'
+#' @param x An \code{exdqlmLDVB} object.
+#' @param ... Additional arguments. 
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' y = scIVTmag[1:100]
+#' model = polytrendMod(1,quantile(y,0.85),10)
+#' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
+#'                    gam.init=-3.5,sig.init=15)
+#' plot(M0)
+#' }
+#'
+plot.exdqlmLDVB <- function(x, ...) {
+  exdqlmPlot(x,...)
+}
+
+
 
 ##################################
 ### "exdqlmDiagnostic" objects ###

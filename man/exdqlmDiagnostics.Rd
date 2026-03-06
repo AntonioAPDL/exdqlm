@@ -13,15 +13,15 @@ exdqlmDiagnostics(
 )
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}".}
+\item{m1}{An object of class "\code{exdqlmMCMC}", "\code{exdqlmLDVB}",  or "\code{exdqlmISVB}".}
 
-\item{m2}{An optional additional object of class "\code{exdqlmMCMC}" or "\code{exdqlmISVB}" to compare with \code{m1}.}
+\item{m2}{An optional additional object of class "\code{exdqlmMCMC}", "\code{exdqlmISVB}", "\code{exdqlmLDVB}" to compare with \code{m1}.}
 
-\item{plot}{If \code{TRUE}, the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.}
+\item{plot}{Logical value indicating whether the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.Default is \code{TRUE}.}
 
-\item{cols}{Color(s) used to plot diagnostics.}
+\item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
 
-\item{ref}{Reference sample of size \code{length(y)} from a standard normal distribution used to compute the KL divergence.}
+\item{ref}{Optional reference sample of size \code{length(y)} from a standard normal distribution used to compute the KL divergence.}
 }
 \value{
 A object of class "\code{exdqlmDiagnostics}" containing the following:
