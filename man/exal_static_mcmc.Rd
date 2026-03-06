@@ -69,7 +69,8 @@ with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
 posterior moments as MCMC initialization.}
 
 \item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
-\code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}.}
+\code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
+\code{ld_controls} (passed through to \code{exal_static_LDVB()}).}
 
 \item{mh.proposal}{Character string controlling the exAL gamma update kernel.
 \code{"laplace_local"} reproduces the previous Laplace-local draw.

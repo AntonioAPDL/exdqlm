@@ -36,7 +36,8 @@
 #' @param init.from.vb Logical; if \code{TRUE}, run static VB first and use its
 #'   posterior moments as MCMC initialization.
 #' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
-#'   \code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}.
+#'   \code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
+#'   \code{ld_controls} (passed through to \code{exal_static_LDVB()}).
 #' @param mh.proposal Character string controlling the exAL gamma update kernel.
 #'   \code{"laplace_local"} reproduces the previous Laplace-local draw.
 #'   \code{"laplace_rw"} initializes a random-walk MH scale from local curvature
@@ -146,7 +147,8 @@ exal_static_mcmc <- function(
       max_iter = 500L,
       tol = 1e-4,
       n_samp_xi = 200L,
-      verbose = FALSE
+      verbose = FALSE,
+      ld_controls = NULL
     )
     if (is.null(vb_init_controls)) vb_init_controls <- list()
     vb.ctrl <- utils::modifyList(vb.ctrl.default, vb_init_controls)
@@ -157,6 +159,9 @@ exal_static_mcmc <- function(
     vb.ctrl$n_samp_xi <- suppressWarnings(as.integer(vb.ctrl$n_samp_xi)[1])
     if (!is.finite(vb.ctrl$n_samp_xi) || vb.ctrl$n_samp_xi < 50L) vb.ctrl$n_samp_xi <- 200L
     vb.ctrl$verbose <- isTRUE(vb.ctrl$verbose)
+    if (!is.null(vb.ctrl$ld_controls) && !is.list(vb.ctrl$ld_controls)) {
+      stop("vb_init_controls$ld_controls must be a list or NULL")
+    }
 
     vb.fit <- exal_static_LDVB(
       y = y, X = X, p0 = p0,
@@ -169,6 +174,7 @@ exal_static_mcmc <- function(
       init = init,
       dqlm.ind = dqlm.ind,
       n_samp_xi = vb.ctrl$n_samp_xi,
+      ld_controls = vb.ctrl$ld_controls,
       verbose = vb.ctrl$verbose
     )
 
@@ -291,6 +297,7 @@ exal_static_mcmc <- function(
       samp.sigma = coda::as.mcmc(save.sigma),
       samp.v     = coda::as.mcmc(t(save.v)),
       init.from.vb = isTRUE(init.from.vb),
+      vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,
       n.burn = n.burn,
       n.mcmc = n.mcmc,
       accept.rate = NA_real_,
@@ -654,6 +661,7 @@ exal_static_mcmc <- function(
       rhat_ready = list(sigma = as.numeric(save.sigma), gamma = as.numeric(save.gamma))
     ),
     init.from.vb = isTRUE(init.from.vb),
+    vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,
     n.burn = n.burn,
     n.mcmc = n.mcmc,
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)

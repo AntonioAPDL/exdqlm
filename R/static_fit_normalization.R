@@ -83,6 +83,7 @@
       ),
       ld_block = list(
         controls = if (!is.null(ld_diag$controls)) ld_diag$controls else list(),
+        setup = if (!is.null(ld_diag$setup)) ld_diag$setup else list(),
         trace = ld_trace,
         final = if (!is.null(ld_last)) as.list(ld_last) else list(),
         xi = ld_xi_meta,

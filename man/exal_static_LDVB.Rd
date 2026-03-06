@@ -50,15 +50,23 @@ Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.}
 
-\item{n_samp_xi}{Integer; number of MC draws used to compute the xi expectations for
+\item{n_samp_xi}{Integer; number of Gaussian draws used only when
+\code{ld_controls$xi_method = "mc"} for the \eqn{\xi} expectations in
 \eqn{q(\sigma,\gamma)} (default 200).}
 
 \item{ld_controls}{Optional list of controls for the Laplace-Delta block.
-Supported keys include \code{damping}, \code{xi_damping}, \code{xi_mode},
-\code{xi_replicates}, \code{reuse_draws}, \code{antithetic},
-\code{optimizer_maxit}, \code{eig_floor}, \code{eig_cap},
-\code{step_cap_eta}, \code{step_cap_ell}, \code{reuse_seed},
-\code{mode_grad_tol}, \code{mode_min_eig}, and \code{store_trace}.}
+Supported keys include \code{xi_method} (\code{"delta"} or \code{"mc"}),
+\code{optimizer_method} (\code{"lbfgsb"} or \code{"bfgs"}),
+\code{direct_commit}, \code{damping}, \code{xi_damping},
+\code{xi_mode}, \code{xi_replicates}, \code{reuse_draws},
+\code{antithetic}, \code{optimizer_maxit}, \code{eig_floor},
+\code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
+\code{eta_lo}, \code{eta_hi}, \code{sigma_bounds},
+\code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
+\code{sigma_max_mult}, \code{sigma_bound_ratio_min},
+\code{gamma_init_pad_frac}, \code{logit_eps}, \code{init_cov_diag},
+\code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig}, and
+\code{store_trace}.}
 
 \item{verbose}{Logical; print progress.}
 }
@@ -91,10 +99,11 @@ Mean-field factorization:
 \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
 The LD block is parameterized in transformed coordinates
 \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
-The \code{xi} expectations used in CAVI updates are approximated from a small
-Gaussian Monte Carlo sample in \eqn{(\eta,\ell)}. The Laplace-Delta controls
-can optionally use deterministic reused draws and replicated batches to reduce
-Monte Carlo noise when auditing tail behavior.
+The \code{xi} expectations used in CAVI updates can be computed either from a
+deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
+Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
+optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
+stabilized qdesn readout implementation.
 }
 \examples{
 \donttest{
