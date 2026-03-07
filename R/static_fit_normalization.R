@@ -52,6 +52,9 @@
   ld_last <- if (is.data.frame(ld_trace) && nrow(ld_trace)) ld_trace[nrow(ld_trace), , drop = FALSE] else NULL
   ld_mode_quality <- if (!is.null(ld_diag$mode_quality)) ld_diag$mode_quality else list()
   ld_xi_meta <- if (!is.null(ld_diag$xi)) ld_diag$xi else list()
+  s_diag <- if (!is.null(fit$diagnostics$s_block)) fit$diagnostics$s_block else list()
+  s_trace <- if (!is.null(s_diag$trace)) s_diag$trace else data.frame()
+  s_last <- if (is.data.frame(s_trace) && nrow(s_trace)) s_trace[nrow(s_trace), , drop = FALSE] else NULL
 
   elbo_trace <- if (!is.null(fit$diagnostics$elbo)) {
     as.numeric(fit$diagnostics$elbo)
@@ -89,6 +92,10 @@
         xi = ld_xi_meta,
         mode_quality = ld_mode_quality
       ),
+      s_block = list(
+        trace = s_trace,
+        final = if (!is.null(s_last)) as.list(s_last) else list()
+      ),
       ess = list(sigma = NA_real_, gamma = if (isTRUE(dqlm.ind)) NA_real_ else NA_real_),
       acceptance = list(total = NA_real_, burn = NA_real_, keep = NA_real_)
     ),
@@ -118,6 +125,8 @@
   accept_burn <- if (!is.null(fit$accept.rate.burn)) as.numeric(fit$accept.rate.burn)[1] else NA_real_
   accept_keep <- if (!is.null(fit$accept.rate.keep)) as.numeric(fit$accept.rate.keep)[1] else NA_real_
   mh_diag <- if (!is.null(fit$mh.diagnostics)) fit$mh.diagnostics else list()
+  mh_trace <- if (!is.null(mh_diag$trace)) mh_diag$trace else data.frame()
+  s_last <- if (is.data.frame(mh_trace) && nrow(mh_trace)) mh_trace[nrow(mh_trace), , drop = FALSE] else NULL
   proposal <- if (!is.null(mh_diag$proposal)) as.character(mh_diag$proposal)[1] else NA_character_
   kernel_exact <- if (!is.null(mh_diag$kernel_exact)) {
     isTRUE(mh_diag$kernel_exact)
@@ -162,7 +171,11 @@
         signoff_ready = signoff_ready,
         approximation_note = approximation_note,
         adapt_trace = if (!is.null(mh_diag$adaptation)) mh_diag$adaptation else data.frame(),
-        trace = if (!is.null(mh_diag$trace)) mh_diag$trace else data.frame()
+        trace = mh_trace
+      ),
+      s_block = list(
+        trace = mh_trace,
+        final = if (!is.null(s_last)) as.list(s_last) else list()
       ),
       rhat_ready = list(sigma = sigma_draws, gamma = gamma_draws)
     ),

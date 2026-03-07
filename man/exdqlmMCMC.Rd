@@ -22,7 +22,17 @@ exdqlmMCMC(
   init.from.isvb = TRUE,
   PriorSigma = NULL,
   PriorGamma = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  init.from.vb = NULL,
+  vb_init_controls = NULL,
+  vb_init_fit = NULL,
+  mh.proposal = c("rw", "laplace_rw"),
+  mh.adapt = TRUE,
+  mh.adapt.interval = 50L,
+  mh.target.accept = c(0.2, 0.45),
+  mh.scale.bounds = c(0.1, 10),
+  mh.max_scale.step = 0.35,
+  mh.min_burn_adapt = 50L
 )
 }
 \arguments{
@@ -61,6 +71,31 @@ exdqlmMCMC(
 \item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
+
+\item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization step
+(\code{ISVB} or \code{LDVB}) and initialize MCMC from converged VB moments.
+If \code{NULL}, falls back to \code{init.from.isvb} behavior.}
+
+\item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
+\code{method} (\code{"isvb"} or \code{"ldvb"}), \code{tol}, \code{n.IS}, \code{n.samp}, \code{max_iter}, \code{verbose}.}
+
+\item{vb_init_fit}{Optional precomputed VB fit object. If supplied, warm start
+uses this object directly and does not rerun VB internally.}
+
+\item{mh.proposal}{Character; MH proposal for \verb{(log sigma, logit gamma)}.
+\code{"rw"} uses random-walk; \code{"laplace_rw"} uses a Laplace-informed covariance then RW.}
+
+\item{mh.adapt}{Logical; adapt MH proposal scale during burn-in.}
+
+\item{mh.adapt.interval}{Integer; adaptation interval (iterations).}
+
+\item{mh.target.accept}{Numeric length-2 vector with lower/upper target acceptance rates.}
+
+\item{mh.scale.bounds}{Numeric length-2 vector with min/max global scaling for MH covariance.}
+
+\item{mh.max_scale.step}{Numeric in (0,1); maximum fractional scale change per adaptation step.}
+
+\item{mh.min_burn_adapt}{Minimum burn-in iterations required to enable adaptation.}
 }
 \value{
 A object of class "\code{exdqlmMCMC}" containing the following:
@@ -87,7 +122,11 @@ If \code{dqlm.ind=FALSE}, the object also contains the following:
 \item \code{init.log.sigma} - Burned samples of log sigma from the random walk MH joint sampling of sigma and gamma.
 \item \code{init.logit.gamma} - Burned samples of logit gamma from the random walk MH joint sampling of sigma and gamma.
 \item \code{accept.rate} - Acceptance rate of the MH step.
+\item \code{accept.rate.burn} - MH acceptance rate during burn-in.
+\item \code{accept.rate.keep} - MH acceptance rate in kept MCMC samples.
 \item \code{Sig.mh} - Covariance matrix used in MH step to jointly sample sigma and gamma.
+\item \code{mh.diagnostics} - MH tuning diagnostics (proposal mode, scaling path, adaptation summary).
+\item \code{diagnostics} - ESS and chain-ready summaries for sigma/gamma.
 }
 }
 \description{

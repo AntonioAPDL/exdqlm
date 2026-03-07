@@ -575,15 +575,8 @@ exal_static_LDVB <- function(
   }
 
   tn_moments <- function(mu, tau2) {
-    tau <- sqrt(pmax(tau2, 1e-14))
-    alpha <- mu / tau
-    Phi <- stats::pnorm(alpha)
-    Phi <- pmax(Phi, 1e-12)
-    phi <- stats::dnorm(alpha)
-    Lambda <- phi / Phi
-    Es  <- mu + tau * Lambda
-    Es2 <- tau2 + mu^2 + tau * mu * Lambda
-    list(Es = Es, Es2 = Es2)
+    moms <- .exdqlm_pos_truncnorm_moments(mu, tau2)
+    list(Es = moms$mean, Es2 = moms$second, sd = moms$sd)
   }
 
   trans_par <- function(z) {
@@ -905,8 +898,10 @@ exal_static_LDVB <- function(
   delta_beta <- numeric(0)
   delta_sigma <- numeric(0)
   delta_gamma <- numeric(0)
+  delta_s <- numeric(0)
   delta_elbo <- numeric(0)
   ld_trace_rows <- vector("list", max_iter)
+  s_trace_rows <- vector("list", max_iter)
   stable_count <- 0L
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   stop_reason <- "max_iter"
@@ -1109,6 +1104,7 @@ exal_static_LDVB <- function(
     d_beta <- max(abs(m_beta_new - prev_m_beta))
     d_sigma <- abs(sigma_cur - sigma_prev)
     d_gamma <- abs(gamma_cur - gamma_prev)
+    d_s <- .exal_static_ld_rel_change(s_mom$Es, E_s)
     d_elbo <- if (iter >= 2L) elbo_new - elbo_old else NA_real_
     step <- .vb_joint_step(
       iter = iter,
@@ -1124,8 +1120,11 @@ exal_static_LDVB <- function(
     delta_beta <- c(delta_beta, d_beta)
     delta_sigma <- c(delta_sigma, d_sigma)
     delta_gamma <- c(delta_gamma, d_gamma)
+    delta_s <- c(delta_s, d_s)
     delta_elbo <- c(delta_elbo, d_elbo)
     if (isTRUE(ld_ctrl$store_trace)) {
+      s_stats <- .exdqlm_trace_summary(s_mom$Es)
+      tau2_stats <- .exdqlm_trace_summary(tau2)
       ld_trace_rows[[iter]] <- data.frame(
         iter = iter,
         eta = eta_hat,
@@ -1154,7 +1153,35 @@ exal_static_LDVB <- function(
         delta_state = d_beta,
         delta_sigma = d_sigma,
         delta_gamma = d_gamma,
+        delta_s = d_s,
         delta_elbo = d_elbo,
+        s_mean = s_stats[["mean"]],
+        s_sd = s_stats[["sd"]],
+        s_q05 = s_stats[["q05"]],
+        s_q50 = s_stats[["median"]],
+        s_q95 = s_stats[["q95"]],
+        s_min = s_stats[["min"]],
+        s_max = s_stats[["max"]],
+        stringsAsFactors = FALSE
+      )
+      s_trace_rows[[iter]] <- data.frame(
+        iter = iter,
+        phase = "vb",
+        s_mean = s_stats[["mean"]],
+        s_sd = s_stats[["sd"]],
+        s_q05 = s_stats[["q05"]],
+        s_q50 = s_stats[["median"]],
+        s_q95 = s_stats[["q95"]],
+        s_min = s_stats[["min"]],
+        s_max = s_stats[["max"]],
+        tau2_mean = tau2_stats[["mean"]],
+        tau2_sd = tau2_stats[["sd"]],
+        tau2_q05 = tau2_stats[["q05"]],
+        tau2_q50 = tau2_stats[["median"]],
+        tau2_q95 = tau2_stats[["q95"]],
+        tau2_min = tau2_stats[["min"]],
+        tau2_max = tau2_stats[["max"]],
+        delta_s = d_s,
         stringsAsFactors = FALSE
       )
     }
@@ -1193,6 +1220,12 @@ exal_static_LDVB <- function(
   } else {
     data.frame()
   }
+  s_trace_df <- if (isTRUE(ld_ctrl$store_trace)) {
+    keep <- Filter(Negate(is.null), s_trace_rows[seq_len(iter)])
+    if (length(keep)) do.call(rbind, keep) else data.frame()
+  } else {
+    data.frame()
+  }
 
   ret <- list(
     qbeta = list(m = m_beta, V = V_beta),
@@ -1219,6 +1252,7 @@ exal_static_LDVB <- function(
           delta_state = if (length(delta_beta)) utils::tail(delta_beta, 1L) else NA_real_,
           delta_sigma = if (length(delta_sigma)) utils::tail(delta_sigma, 1L) else NA_real_,
           delta_gamma = if (length(delta_gamma)) utils::tail(delta_gamma, 1L) else NA_real_,
+          delta_s = if (length(delta_s)) utils::tail(delta_s, 1L) else NA_real_,
           delta_elbo = if (length(delta_elbo)) utils::tail(delta_elbo, 1L) else NA_real_
         )
       ),
@@ -1226,7 +1260,16 @@ exal_static_LDVB <- function(
         state = delta_beta,
         sigma = delta_sigma,
         gamma = delta_gamma,
+        s = delta_s,
         elbo = delta_elbo
+      ),
+      s_block = list(
+        trace = s_trace_df,
+        final = if (nrow(s_trace_df)) {
+          as.list(s_trace_df[nrow(s_trace_df), , drop = FALSE])
+        } else {
+          list()
+        }
       ),
       ld_block = list(
         controls = ld_ctrl,

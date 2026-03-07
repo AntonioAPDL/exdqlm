@@ -83,7 +83,8 @@ A object of class "\code{exdqlmLDVB}" containing the following:
 \item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
 \item \code{fix.sigma} Logical value indicating whether sigma was fixed at \code{sig.init}.
-\item \code{diagnostics} - List containing algorithm diagnostics (currently ELBO trace when enabled).
+\item \code{diagnostics} - List containing ELBO trace and convergence diagnostics
+(joint stopping status, deltas for state/sigma/gamma/ELBO, and criteria used).
 }
 If \code{dqlm.ind=FALSE}, the list also contains:
 \itemize{
@@ -111,6 +112,10 @@ Advanced options (set via \code{options()}):
 \item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
 \item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
 \item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+\item \code{exdqlm.tol_sigma}: sigma-delta convergence tolerance (default: \code{tol}).
+\item \code{exdqlm.tol_gamma}: gamma-delta convergence tolerance (default: \code{tol}).
+\item \code{exdqlm.vb.min_iter}: minimum iterations before convergence can trigger (default 10).
+\item \code{exdqlm.vb.patience}: number of consecutive joint-converged iterations required (default 3).
 \item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
 When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
 \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).

@@ -33,6 +33,11 @@ test_that("dynamic LDVB exposes joint convergence diagnostics", {
   expect_true(length(fit$diagnostics$deltas$state) >= 1)
   expect_true(length(fit$diagnostics$deltas$sigma) >= 1)
   expect_true(length(fit$diagnostics$deltas$gamma) >= 1)
+  expect_true(length(fit$diagnostics$deltas$s) >= 1)
+  expect_true(is.list(fit$diagnostics$ld_block))
+  expect_true(is.data.frame(fit$diagnostics$ld_block$trace))
+  expect_true(is.list(fit$diagnostics$s_block))
+  expect_true(is.data.frame(fit$diagnostics$s_block$trace))
 })
 
 test_that("dynamic ISVB honors strict gamma criterion in joint stopping", {
@@ -93,6 +98,10 @@ test_that("dynamic MCMC supports VB warm start and MH diagnostics", {
   expect_true(is.finite(fit$accept.rate.burn))
   expect_true(is.finite(fit$accept.rate.keep))
   expect_true(is.finite(fit$diagnostics$ess$sigma))
+  expect_true(is.data.frame(fit$mh.diagnostics$trace))
+  expect_true(all(c("s_mean", "s_sd") %in% names(fit$mh.diagnostics$trace)))
+  expect_true(is.list(fit$diagnostics$s_block))
+  expect_true(is.data.frame(fit$diagnostics$s_block$trace))
 })
 
 test_that("static MCMC supports VB warm start", {

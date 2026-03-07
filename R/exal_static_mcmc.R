@@ -566,6 +566,8 @@ exal_static_mcmc <- function(
 
     gamma <- g_from_eta(eta)
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
+    s_stats <- .exdqlm_trace_summary(s)
+    tau2_stats <- .exdqlm_trace_summary(tau2)
 
     trace_rows[[i]] <- data.frame(
       iter = i,
@@ -581,6 +583,20 @@ exal_static_mcmc <- function(
       proposal_sd = proposal_sd_used,
       accepted = if (identical(mh.proposal, "laplace_local")) NA else isTRUE(accepted),
       kernel = mh.proposal,
+      s_mean = s_stats[["mean"]],
+      s_sd = s_stats[["sd"]],
+      s_q05 = s_stats[["q05"]],
+      s_q50 = s_stats[["median"]],
+      s_q95 = s_stats[["q95"]],
+      s_min = s_stats[["min"]],
+      s_max = s_stats[["max"]],
+      s_tau2_mean = tau2_stats[["mean"]],
+      s_tau2_sd = tau2_stats[["sd"]],
+      s_tau2_q05 = tau2_stats[["q05"]],
+      s_tau2_q50 = tau2_stats[["median"]],
+      s_tau2_q95 = tau2_stats[["q95"]],
+      s_tau2_min = tau2_stats[["min"]],
+      s_tau2_max = tau2_stats[["max"]],
       stringsAsFactors = FALSE
     )
 
