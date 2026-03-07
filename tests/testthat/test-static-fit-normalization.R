@@ -62,6 +62,8 @@ test_that("static VB normalization and init extraction work for exAL", {
   expect_true(nrow(norm$diagnostics$ld_block$trace) >= 1)
   expect_true(is.list(norm$diagnostics$ld_block$setup))
   expect_true(norm$diagnostics$ld_block$setup$sigma_min < norm$diagnostics$ld_block$setup$sigma_max)
+  expect_true(is.data.frame(norm$diagnostics$s_block$trace))
+  expect_true(nrow(norm$diagnostics$s_block$trace) >= 1)
 })
 
 test_that("static MCMC normalization reports ESS and acceptance fields", {
@@ -109,6 +111,8 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
   expect_true(isTRUE(norm_exal$diagnostics$mh$signoff_ready))
   expect_true(is.finite(norm_exal$diagnostics$acceptance$total))
   expect_true(is.data.frame(norm_exal$diagnostics$mh$trace))
+  expect_true(all(c("s_mean", "s_sd") %in% names(norm_exal$diagnostics$mh$trace)))
+  expect_true(is.data.frame(norm_exal$diagnostics$s_block$trace))
 
   fit_exal_local <- exal_static_mcmc(
     y = dat$y,

@@ -278,6 +278,7 @@ for (inf in c("vb", "mcmc")) {
           delta_state_last = if (!is.null(dlt$state)) utils::tail(as.numeric(dlt$state), 1) else NA_real_,
           delta_sigma_last = if (!is.null(dlt$sigma)) utils::tail(as.numeric(dlt$sigma), 1) else NA_real_,
           delta_gamma_last = if (!is.null(dlt$gamma)) utils::tail(as.numeric(dlt$gamma), 1) else NA_real_,
+          delta_s_last = if (!is.null(dlt$s)) utils::tail(as.numeric(dlt$s), 1) else NA_real_,
           stringsAsFactors = FALSE
         )
         ld_rows[[length(ld_rows) + 1L]] <- data.frame(
@@ -313,6 +314,7 @@ for (inf in c("vb", "mcmc")) {
         ess <- norm$diagnostics$ess
         acc <- norm$diagnostics$acceptance
         mh <- norm$diagnostics$mh
+        mh_trace <- if (!is.null(mh$trace)) mh$trace else data.frame()
         mc_rows[[length(mc_rows) + 1L]] <- data.frame(
           model = mdl,
           tau = tau,
@@ -329,6 +331,8 @@ for (inf in c("vb", "mcmc")) {
           mh_scale_initial = if (!is.null(mh$scale_initial)) as.numeric(mh$scale_initial)[1] else NA_real_,
           mh_scale_final = if (!is.null(mh$scale_final)) as.numeric(mh$scale_final)[1] else NA_real_,
           mh_adapt_steps = if (!is.null(mh$adapt_trace) && is.data.frame(mh$adapt_trace)) nrow(mh$adapt_trace) else NA_integer_,
+          s_mean_avg = if (is.data.frame(mh_trace) && "s_mean" %in% names(mh_trace)) mean(mh_trace$s_mean, na.rm = TRUE) else NA_real_,
+          s_sd_avg = if (is.data.frame(mh_trace) && "s_sd" %in% names(mh_trace)) mean(mh_trace$s_sd, na.rm = TRUE) else NA_real_,
           stringsAsFactors = FALSE
         )
       }
@@ -495,6 +499,27 @@ for (tau in taus) {
       ylab_txt = "gamma proxy (or delta gamma)"
     )
   }
+  vb_s_trace <- if (!is.null(vb_ex$diagnostics$s_block$trace)) vb_ex$diagnostics$s_block$trace else data.frame()
+  if (is.data.frame(vb_s_trace) && nrow(vb_s_trace) > 1L && "s_mean" %in% names(vb_s_trace)) {
+    tr_s_mean <- trim_trace(vb_s_trace$s_mean, trace_start)
+    plot_trace_single(
+      file_path = file.path(run_root, "plots", "traces", sprintf("vb_tau_%s_s_mean_trace_exal.png", tlabel)),
+      x = tr_s_mean$x, y = tr_s_mean$y,
+      col = "#D35400",
+      title_txt = sprintf("VB s_i mean trace exAL (tau=%.2f; iter >= %d)", tau, trace_start),
+      ylab_txt = "mean E[s_i]"
+    )
+    if ("tau2_mean" %in% names(vb_s_trace)) {
+      tr_s_tau2 <- trim_trace(vb_s_trace$tau2_mean, trace_start)
+      plot_trace_single(
+        file_path = file.path(run_root, "plots", "traces", sprintf("vb_tau_%s_s_tau2_trace_exal.png", tlabel)),
+        x = tr_s_tau2$x, y = tr_s_tau2$y,
+        col = "#884EA0",
+        title_txt = sprintf("VB s_i variance proxy exAL (tau=%.2f; iter >= %d)", tau, trace_start),
+        ylab_txt = "mean tau2(s_i)"
+      )
+    }
+  }
 
   ld_trace_ex <- if (!is.null(vb_ex$diagnostics$ld_block$trace)) vb_ex$diagnostics$ld_block$trace else data.frame()
   if (is.data.frame(ld_trace_ex) && nrow(ld_trace_ex) > 1L) {
@@ -543,6 +568,17 @@ for (tau in taus) {
       col = "#C73E1D",
       title_txt = sprintf("MCMC gamma trace exAL (tau=%.2f; iter >= %d)", tau, trace_start),
       ylab_txt = "gamma sample"
+    )
+  }
+  mc_s_trace <- if (!is.null(mc_ex$mh.diagnostics$trace)) mc_ex$mh.diagnostics$trace else data.frame()
+  if (is.data.frame(mc_s_trace) && nrow(mc_s_trace) > 1L && "s_mean" %in% names(mc_s_trace)) {
+    tr_mc_s <- trim_trace(mc_s_trace$s_mean, trace_start)
+    plot_trace_single(
+      file_path = file.path(run_root, "plots", "traces", sprintf("mcmc_tau_%s_s_mean_trace_exal.png", tlabel)),
+      x = tr_mc_s$x, y = tr_mc_s$y,
+      col = "#D35400",
+      title_txt = sprintf("MCMC s_i mean trace exAL (tau=%.2f; iter >= %d)", tau, trace_start),
+      ylab_txt = "mean sampled s_i"
     )
   }
 

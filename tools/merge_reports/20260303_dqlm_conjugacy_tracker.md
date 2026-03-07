@@ -1570,3 +1570,74 @@ Current interpretation after `G1-G3`:
     - all `AL` tasks entered `VB` and immediately moved into `MCMC`
     - `exAL` tasks entered `VB`
     - no immediate startup failures were observed
+
+## 2026-03-06: Dynamic/static sigma-gamma standardization + latent-s diagnostics
+
+- [x] Move dynamic `exDQLM` LDVB sigma/gamma handling toward the stabilized static path.
+  - Updated [R/exdqlmLDVB.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exdqlmLDVB.R) to replace the older transformed gamma block with:
+    - logistic `eta -> gamma` support handling aligned with static `exAL`,
+    - bounded `(\eta,\ell)` mode search with `L-BFGS-B`,
+    - data-scale sigma initialization / finite sigma-region setup,
+    - robust Hessian-to-covariance regularization via the static LD helpers,
+    - direct-commit support for the bounded optimizer,
+    - dynamic `ld_block` diagnostics mirroring the static structure.
+  - Dynamic LD expectations remain Delta-based, but the optimizer geometry and transformed support now follow the same stabilized design as the static implementation.
+
+- [x] Add latent-`s` trace summaries across the static and dynamic paths.
+  - [R/utils.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/utils.R):
+    - added shared positive truncated-normal moment helper `.exdqlm_pos_truncnorm_moments(...)`
+    - added shared trace-summary helper `.exdqlm_trace_summary(...)`
+  - [R/exal_static_LDVB.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exal_static_LDVB.R):
+    - static `VB` now records `delta_s`
+    - added `diagnostics$s_block$trace` with per-iteration summaries of `E[s_i]` and `tau2(s_i)`
+  - [R/exal_static_mcmc.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exal_static_mcmc.R):
+    - static `MCMC` trace rows now include `s_mean/s_sd/s_q05/s_q50/s_q95` and `s_tau2_*`
+  - [R/exdqlmLDVB.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exdqlmLDVB.R):
+    - dynamic `VB` now records `delta_s`
+    - added `diagnostics$s_block$trace` and `diagnostics$ld_block`
+  - [R/exdqlmMCMC.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exdqlmMCMC.R):
+    - added a small floor for `s_t` conditional variance
+    - added per-iteration latent-`s_t` summary trace rows under `mh.diagnostics$trace`
+    - surfaced `diagnostics$s_block` for the dynamic `MCMC` fit
+  - [R/static_fit_normalization.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/static_fit_normalization.R):
+    - normalized static fits now preserve `s_block` in both `VB` and `MCMC`
+
+- [x] Update postprocess scripts so the new latent-`s` diagnostics are visible in outputs.
+  - [tools/merge_reports/20260305_postprocess_from_existing_fits.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260305_postprocess_from_existing_fits.R):
+    - dynamic `vb_convergence_summary.csv` now includes `delta_s_last`
+    - dynamic `mcmc_diagnostics_summary.csv` now includes average `s_mean` / `s_sd`
+    - added `VB` and `MCMC` latent-`s_t` trace plots for `exDQLM`
+  - [tools/merge_reports/20260305_static_postprocess_from_existing_fits.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260305_static_postprocess_from_existing_fits.R):
+    - static `vb_convergence_summary.csv` now includes `delta_s_last`
+    - static `mcmc_diagnostics_summary.csv` now includes average `s_mean` / `s_sd`
+    - added trimmed `VB` and `MCMC` latent-`s_i` trace plots for `exAL`
+
+- [x] Update dynamic pipeline wiring to expose the new dynamic LD controls.
+  - [tools/merge_reports/20260305_vb_then_mcmc_pipeline.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260305_vb_then_mcmc_pipeline.R):
+    - added env-driven dynamic LD control parsing
+    - added explicit dynamic output-root override support (`EXDQLM_DYNAMIC_OUT_ROOT`)
+    - current reruns use the standardized dynamic LD settings by default
+
+- [x] Regression coverage for the new standardized diagnostics path.
+  - Updated:
+    - [tests/testthat/test-vb-mcmc-convergence-controls.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tests/testthat/test-vb-mcmc-convergence-controls.R)
+    - [tests/testthat/test-static-fit-normalization.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tests/testthat/test-static-fit-normalization.R)
+  - Targeted validation:
+    - `testthat` targeted slice status: `PASS 9, FAIL 0, WARN 0, SKIP 1`
+    - skipped item: static pipeline/report smoke test path unavailable in sandbox harness
+  - `devtools::document()` completed after the code changes.
+
+- [x] Relaunch standardized background campaigns for current working datasets.
+  - Dynamic standardized rerun:
+    - tmux session: `dynamic_std_20260306_155302`
+    - log: [20260306_dynamic_std_background_20260306_155302.log](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260306_dynamic_std_background_20260306_155302.log)
+    - run root: [dynamic standardized rerun](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260306_155302_stdsiggam_sdiag)
+    - chained stages: dynamic pipeline -> dynamic postprocess
+  - Static standardized heteroskedastic rerun:
+    - tmux session: `static_het_std_20260306_155302`
+    - log: [20260306_static_heteroskedastic_std_background_20260306_155302.log](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260306_static_heteroskedastic_std_background_20260306_155302.log)
+    - run root: [static heteroskedastic standardized rerun](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260306_static_heteroskedastic_skewnormal/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260306_155302_stdsiggam_sdiag)
+    - chained stages: static pipeline -> static postprocess -> static report
+  - One-time launch health check:
+    - both `tmux` sessions are active
+    - both logs show pipeline startup banners and no immediate crash
