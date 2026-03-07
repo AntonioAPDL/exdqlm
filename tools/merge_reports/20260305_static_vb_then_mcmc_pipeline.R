@@ -62,6 +62,21 @@ p_vec <- c(0.05, 0.50, 0.95)
 
 vb_max_iter <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_MAX_ITER", "300"), 300L)
 vb_tol <- safe_num(Sys.getenv("EXDQLM_STATIC_VB_TOL", "0.03"), 0.03)
+vb_tol_sigma <- safe_num(Sys.getenv("EXDQLM_STATIC_VB_TOL_SIGMA", format(vb_tol, scientific = FALSE)), vb_tol)
+vb_tol_gamma <- safe_num(Sys.getenv("EXDQLM_STATIC_VB_TOL_GAMMA", format(vb_tol, scientific = FALSE)), vb_tol)
+vb_tol_elbo_default <- max(1e-5, vb_tol / 10)
+vb_tol_elbo <- safe_num(
+  Sys.getenv("EXDQLM_STATIC_VB_TOL_ELBO", format(vb_tol_elbo_default, scientific = FALSE)),
+  vb_tol_elbo_default
+)
+vb_min_iter <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_MIN_ITER", "10"), 10L)
+if (vb_min_iter < 1L) vb_min_iter <- 10L
+vb_patience <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_PATIENCE", "3"), 3L)
+if (vb_patience < 1L) vb_patience <- 3L
+vb_allow_elbo_drop <- safe_num(
+  Sys.getenv("EXDQLM_STATIC_VB_ALLOW_ELBO_DROP", format(vb_tol_elbo, scientific = FALSE)),
+  vb_tol_elbo
+)
 vb_n_samp_xi <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_NSAMP", "1000"), 1000L)
 vb_ld_xi_method <- tolower(Sys.getenv("EXDQLM_STATIC_LD_XI_METHOD", "delta"))
 if (!(vb_ld_xi_method %in% c("delta", "mc"))) vb_ld_xi_method <- "delta"
@@ -197,6 +212,14 @@ cfg <- list(
   vb = list(
     max_iter = vb_max_iter,
     tol = vb_tol,
+    conv = list(
+      tol_sigma = vb_tol_sigma,
+      tol_gamma = vb_tol_gamma,
+      tol_elbo = vb_tol_elbo,
+      min_iter = vb_min_iter,
+      patience = vb_patience,
+      allow_elbo_drop = vb_allow_elbo_drop
+    ),
     n_samp_xi = vb_n_samp_xi,
     ld = list(
       xi_method = vb_ld_xi_method,
@@ -244,6 +267,16 @@ cfg <- list(
   )
 )
 saveRDS(cfg, file.path(out_root, "tables", "run_config.rds"))
+
+old_vb_opts <- options(
+  exdqlm.tol_sigma = vb_tol_sigma,
+  exdqlm.tol_gamma = vb_tol_gamma,
+  exdqlm.tol_elbo = vb_tol_elbo,
+  exdqlm.vb.min_iter = vb_min_iter,
+  exdqlm.vb.patience = vb_patience,
+  exdqlm.vb.allow_elbo_drop = vb_allow_elbo_drop
+)
+on.exit(options(old_vb_opts), add = TRUE)
 
 empty_summary_row <- function(model_name, tau, status = "pending", error = NA_character_) {
   data.frame(
@@ -551,11 +584,13 @@ tasks$seed <- 202603050L + seq_len(nrow(tasks)) * 1000L
 log_master(sprintf("starting static VB->MCMC pipeline run in %s", out_root))
 log_master(sprintf(
   paste0(
-    "TT=%d VB(max_iter=%d,tol=%.4f,n_samp_xi=%d,xi=%s,opt=%s,direct=%s,",
+    "TT=%d VB(max_iter=%d,tol=%.4f,tol_sigma=%.4g,tol_gamma=%.4g,tol_elbo=%.4g,min_iter=%d,patience=%d,",
+    "allow_elbo_drop=%.4g,n_samp_xi=%d,xi=%s,opt=%s,direct=%s,",
     "ld_damp=%s,ld_xi_damp=%s,sigma_init=%s,eta=[%.1f,%.1f]) ",
     "MCMC(burn=%d,n=%d,thin=%d,mh=%s) cores=%d overwrite=%s"
   ),
-  TT, vb_max_iter, vb_tol, vb_n_samp_xi, vb_ld_xi_method, vb_ld_optimizer_method, vb_ld_direct_commit,
+  TT, vb_max_iter, vb_tol, vb_tol_sigma, vb_tol_gamma, vb_tol_elbo, vb_min_iter, vb_patience, vb_allow_elbo_drop,
+  vb_n_samp_xi, vb_ld_xi_method, vb_ld_optimizer_method, vb_ld_direct_commit,
   format(vb_ld_damping, trim = TRUE), format(vb_ld_xi_damping, trim = TRUE), vb_ld_sigma_init_mode, vb_ld_eta_lo, vb_ld_eta_hi,
   mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, cores_pipeline, overwrite_existing
 ))
