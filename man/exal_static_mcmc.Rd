@@ -13,7 +13,7 @@ exal_static_mcmc(
   a_sigma = 1,
   b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  log_prior_gamma = function(g) 0,
+  log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
   n.burn = 2000,
@@ -21,13 +21,17 @@ exal_static_mcmc(
   thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
-  mh.proposal = c("laplace_local", "laplace_rw", "rw"),
+  mh.proposal = c("laplace_local", "laplace_rw", "rw", "slice"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
   mh.scale.bounds = c(0.1, 10),
   mh.max_scale.step = 0.35,
   mh.min_burn_adapt = 50L,
+  slice.width = 0.1,
+  slice.max.steps = Inf,
+  trace.diagnostics = TRUE,
+  trace.every = 1L,
   verbose = TRUE
 )
 }
@@ -49,8 +53,8 @@ exal_static_mcmc(
 Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 
 \item{log_prior_gamma}{Function \code{function(g) log pi(g)} for \code{gamma}
-on (L, U).
-Default is flat (returns 0).}
+on (L, U). Default is a truncated Student-t prior centered at 0 on the
+admissible support.}
 
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
 \code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.}
@@ -76,12 +80,14 @@ posterior moments as MCMC initialization.}
 \code{"laplace_local"} reproduces the previous Laplace-local draw.
 \code{"laplace_rw"} initializes a random-walk MH scale from local curvature
 and adapts it during burn-in. \code{"rw"} uses adaptive random-walk MH
-without Laplace scaling. Only \code{"rw"} and \code{"laplace_rw"} are
-exact posterior kernels for the \code{gamma} update; \code{"laplace_local"}
-is approximate and should not be treated as signoff-ready.}
+without Laplace scaling. \code{"slice"} uses an exact bounded univariate
+slice sampler directly on \code{gamma}. Only \code{"rw"},
+\code{"laplace_rw"}, and \code{"slice"} are exact posterior kernels for
+the \code{gamma} update; \code{"laplace_local"} is approximate and should
+not be treated as signoff-ready.}
 
 \item{mh.adapt}{Logical; adapt the random-walk proposal scale during burn-in.
-Ignored for \code{"laplace_local"}.}
+Ignored for \code{"laplace_local"} and \code{"slice"}.}
 
 \item{mh.adapt.interval}{Integer adaptation window for RW-based kernels.}
 
@@ -92,6 +98,20 @@ Ignored for \code{"laplace_local"}.}
 \item{mh.max_scale.step}{Numeric multiplicative adaptation cap in \code{(0,1)}.}
 
 \item{mh.min_burn_adapt}{Integer minimum burn-in before adaptation starts.}
+
+\item{slice.width}{Positive numeric width for the bounded slice sampler when
+\code{mh.proposal = "slice"}. Default \code{0.1} for parity with
+\code{bqrgal}.}
+
+\item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
+expansions for the slice sampler.}
+
+\item{trace.diagnostics}{Logical; if \code{TRUE}, retain per-iteration
+gamma/s diagnostics under \code{mh.diagnostics$trace}. Set \code{FALSE}
+for lighter-weight runs.}
+
+\item{trace.every}{Positive integer; when \code{trace.diagnostics=TRUE},
+record one diagnostics row every \code{trace.every} iterations.}
 
 \item{verbose}{Print progress every 500 iters.}
 }

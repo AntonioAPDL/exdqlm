@@ -130,6 +130,47 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
   expect_false(norm_exal_local$diagnostics$mh$kernel_exact)
   expect_false(norm_exal_local$diagnostics$mh$signoff_ready)
   expect_match(norm_exal_local$diagnostics$mh$approximation_note, "without MH correction")
+
+  fit_exal_slice <- exal_static_mcmc(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    dqlm.ind = FALSE,
+    n.burn = 8,
+    n.mcmc = 10,
+    thin = 1,
+    mh.proposal = "slice",
+    verbose = FALSE
+  )
+  norm_exal_slice <- exdqlm:::.static_normalize_mcmc_fit(fit_exal_slice, model_name = "exal", tau = 0.5)
+  expect_identical(norm_exal_slice$diagnostics$mh$proposal, "slice")
+  expect_true(norm_exal_slice$diagnostics$mh$kernel_exact)
+  expect_true(norm_exal_slice$diagnostics$mh$signoff_ready)
+  expect_true(is.na(norm_exal_slice$diagnostics$acceptance$total))
+  expect_true(all(c("slice_evals", "s_mean", "s_sd") %in% names(norm_exal_slice$diagnostics$mh$trace)))
+})
+
+test_that("static MCMC can disable per-iteration diagnostics trace", {
+  set.seed(5031)
+  dat <- tiny_static_xy(16)
+
+  fit <- exal_static_mcmc(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    dqlm.ind = FALSE,
+    n.burn = 8,
+    n.mcmc = 10,
+    thin = 1,
+    mh.proposal = "slice",
+    trace.diagnostics = FALSE,
+    verbose = FALSE
+  )
+
+  expect_true(is.data.frame(fit$mh.diagnostics$trace))
+  expect_identical(nrow(fit$mh.diagnostics$trace), 0L)
+  expect_false(isTRUE(fit$mh.diagnostics$trace_enabled))
+  expect_true(is.na(fit$mh.diagnostics$trace_every))
 })
 
 test_that("static quantile path extractor returns aligned vectors", {

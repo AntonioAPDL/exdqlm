@@ -26,13 +26,17 @@ exdqlmMCMC(
   init.from.vb = NULL,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
-  mh.proposal = c("rw", "laplace_rw"),
+  mh.proposal = c("rw", "laplace_rw", "slice"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
   mh.scale.bounds = c(0.1, 10),
   mh.max_scale.step = 0.35,
-  mh.min_burn_adapt = 50L
+  mh.min_burn_adapt = 50L,
+  slice.width = 0.1,
+  slice.max.steps = Inf,
+  trace.diagnostics = TRUE,
+  trace.every = 1L
 )
 }
 \arguments{
@@ -82,8 +86,11 @@ If \code{NULL}, falls back to \code{init.from.isvb} behavior.}
 \item{vb_init_fit}{Optional precomputed VB fit object. If supplied, warm start
 uses this object directly and does not rerun VB internally.}
 
-\item{mh.proposal}{Character; MH proposal for \verb{(log sigma, logit gamma)}.
-\code{"rw"} uses random-walk; \code{"laplace_rw"} uses a Laplace-informed covariance then RW.}
+\item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew block.
+\code{"rw"} uses joint random-walk MH on \verb{(log sigma, logit gamma)};
+\code{"laplace_rw"} uses a Laplace-informed covariance then RW; \code{"slice"} uses
+an exact sigma GIG update plus a bounded univariate slice sampler directly
+on \code{gamma}.}
 
 \item{mh.adapt}{Logical; adapt MH proposal scale during burn-in.}
 
@@ -96,6 +103,19 @@ uses this object directly and does not rerun VB internally.}
 \item{mh.max_scale.step}{Numeric in (0,1); maximum fractional scale change per adaptation step.}
 
 \item{mh.min_burn_adapt}{Minimum burn-in iterations required to enable adaptation.}
+
+\item{slice.width}{Positive numeric width for the bounded slice sampler when
+\code{mh.proposal = "slice"}. Default \code{0.1} for parity with \code{bqrgal}.}
+
+\item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
+expansions for the slice sampler.}
+
+\item{trace.diagnostics}{Logical; if \code{TRUE}, retain per-iteration
+sigma/gamma/s/u diagnostics under \code{mh.diagnostics$trace}. Set \code{FALSE} for
+lighter-weight runs.}
+
+\item{trace.every}{Positive integer; when \code{trace.diagnostics = TRUE}, record
+one diagnostics row every \code{trace.every} iterations.}
 }
 \value{
 A object of class "\code{exdqlmMCMC}" containing the following:

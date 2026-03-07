@@ -104,6 +104,71 @@ test_that("dynamic MCMC supports VB warm start and MH diagnostics", {
   expect_true(is.data.frame(fit$diagnostics$s_block$trace))
 })
 
+test_that("dynamic MCMC supports exact slice gamma kernel", {
+  set.seed(1031)
+  TT <- 20
+  y <- stats::rnorm(TT, sd = 0.3)
+  model <- tiny_dyn_model(TT)
+
+  old_opts <- options(
+    exdqlm.use_cpp_mcmc = FALSE,
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.compute_elbo = TRUE,
+    exdqlm.max_iter = 20L
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  fit <- exdqlmMCMC(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    fix.sigma = FALSE,
+    n.burn = 10, n.mcmc = 10,
+    init.from.vb = TRUE,
+    vb_init_controls = list(method = "ldvb", tol = 0.2, n.samp = 20, max_iter = 12, verbose = FALSE),
+    mh.proposal = "slice",
+    verbose = FALSE
+  )
+
+  expect_identical(fit$mh.diagnostics$proposal, "slice")
+  expect_true(isTRUE(fit$mh.diagnostics$kernel_exact))
+  expect_true(isTRUE(fit$mh.diagnostics$signoff_ready))
+  expect_true(is.na(fit$accept.rate))
+  expect_true(is.data.frame(fit$mh.diagnostics$trace))
+  expect_true(all(c("slice_evals", "s_mean", "s_sd") %in% names(fit$mh.diagnostics$trace)))
+  expect_true(all(is.finite(as.numeric(fit$samp.gamma))))
+  expect_true(all(is.finite(as.numeric(fit$samp.sigma))))
+})
+
+test_that("dynamic MCMC can disable per-iteration diagnostics trace", {
+  set.seed(1032)
+  TT <- 20
+  y <- stats::rnorm(TT, sd = 0.3)
+  model <- tiny_dyn_model(TT)
+
+  old_opts <- options(
+    exdqlm.use_cpp_mcmc = FALSE,
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.compute_elbo = TRUE,
+    exdqlm.max_iter = 20L
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  fit <- exdqlmMCMC(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    fix.sigma = FALSE,
+    n.burn = 10, n.mcmc = 10,
+    init.from.vb = TRUE,
+    vb_init_controls = list(method = "ldvb", tol = 0.2, n.samp = 20, max_iter = 12, verbose = FALSE),
+    mh.proposal = "slice",
+    trace.diagnostics = FALSE,
+    verbose = FALSE
+  )
+
+  expect_true(is.data.frame(fit$mh.diagnostics$trace))
+  expect_identical(nrow(fit$mh.diagnostics$trace), 0L)
+  expect_false(isTRUE(fit$mh.diagnostics$trace_enabled))
+  expect_true(is.na(fit$mh.diagnostics$trace_every))
+})
+
 test_that("static MCMC supports VB warm start", {
   set.seed(104)
   n <- 40

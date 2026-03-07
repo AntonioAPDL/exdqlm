@@ -23,8 +23,8 @@
 #' @param gamma_bounds Numeric length-2 vector (L, U) for \code{gamma}.
 #'   Defaults to \code{c(L.fn(p0), U.fn(p0))}.
 #' @param log_prior_gamma Function \code{function(g) log pi(g)} for \code{gamma}
-#'   on (L, U).
-#'   Default is flat (returns 0).
+#'   on (L, U). Default is a truncated Student-t prior centered at 0 on the
+#'   admissible support.
 #' @param init Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
 #'   \code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
@@ -42,16 +42,28 @@
 #'   \code{"laplace_local"} reproduces the previous Laplace-local draw.
 #'   \code{"laplace_rw"} initializes a random-walk MH scale from local curvature
 #'   and adapts it during burn-in. \code{"rw"} uses adaptive random-walk MH
-#'   without Laplace scaling. Only \code{"rw"} and \code{"laplace_rw"} are
-#'   exact posterior kernels for the \code{gamma} update; \code{"laplace_local"}
-#'   is approximate and should not be treated as signoff-ready.
+#'   without Laplace scaling. \code{"slice"} uses an exact bounded univariate
+#'   slice sampler directly on \code{gamma}. Only \code{"rw"},
+#'   \code{"laplace_rw"}, and \code{"slice"} are exact posterior kernels for
+#'   the \code{gamma} update; \code{"laplace_local"} is approximate and should
+#'   not be treated as signoff-ready.
 #' @param mh.adapt Logical; adapt the random-walk proposal scale during burn-in.
-#'   Ignored for \code{"laplace_local"}.
+#'   Ignored for \code{"laplace_local"} and \code{"slice"}.
 #' @param mh.adapt.interval Integer adaptation window for RW-based kernels.
 #' @param mh.target.accept Numeric length-2 target acceptance band.
 #' @param mh.scale.bounds Numeric length-2 lower/upper bounds for RW proposal scale.
 #' @param mh.max_scale.step Numeric multiplicative adaptation cap in \code{(0,1)}.
 #' @param mh.min_burn_adapt Integer minimum burn-in before adaptation starts.
+#' @param slice.width Positive numeric width for the bounded slice sampler when
+#'   \code{mh.proposal = "slice"}. Default \code{0.1} for parity with
+#'   \code{bqrgal}.
+#' @param slice.max.steps Positive integer or \code{Inf}; maximum stepping-out
+#'   expansions for the slice sampler.
+#' @param trace.diagnostics Logical; if \code{TRUE}, retain per-iteration
+#'   gamma/s diagnostics under \code{mh.diagnostics$trace}. Set \code{FALSE}
+#'   for lighter-weight runs.
+#' @param trace.every Positive integer; when \code{trace.diagnostics=TRUE},
+#'   record one diagnostics row every \code{trace.every} iterations.
 #' @param verbose Print progress every 500 iters.
 #'
 #' @return A object of class "\code{exal_mcmc}" containing:
@@ -86,19 +98,23 @@ exal_static_mcmc <- function(
   b0 = NULL, V0 = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  log_prior_gamma = function(g) 0,
+  log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
   n.burn = 2000, n.mcmc = 1500, thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
-  mh.proposal = c("laplace_local", "laplace_rw", "rw"),
+  mh.proposal = c("laplace_local", "laplace_rw", "rw", "slice"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.20, 0.45),
   mh.scale.bounds = c(0.1, 10),
   mh.max_scale.step = 0.35,
   mh.min_burn_adapt = 50L,
+  slice.width = 0.1,
+  slice.max.steps = Inf,
+  trace.diagnostics = TRUE,
+  trace.every = 1L,
   verbose = TRUE
 ){
   ## --- checks (mirror exdqlmMCMC style) ------------------------------------
@@ -116,6 +132,9 @@ exal_static_mcmc <- function(
 
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
   if (!(L < U)) stop("gamma_bounds must satisfy L < U.")
+  if (is.null(log_prior_gamma)) {
+    log_prior_gamma <- function(g) .gamma_log_prior_trunc_t(g, bounds = c(L, U))
+  }
 
   ## --- shorthands for A,B,C,lambda -----------------------------------------
   A_of   <- function(g) A.fn(p0, g)
@@ -139,6 +158,15 @@ exal_static_mcmc <- function(
   if (!is.finite(mh_max_scale_step) || mh_max_scale_step <= 0 || mh_max_scale_step >= 1) {
     mh_max_scale_step <- 0.35
   }
+  slice.width <- as.numeric(slice.width)[1]
+  if (!is.finite(slice.width) || slice.width <= 0) slice.width <- 0.1
+  slice.max.steps <- as.numeric(slice.max.steps)[1]
+  if (!(is.infinite(slice.max.steps) || (is.finite(slice.max.steps) && slice.max.steps >= 1 && floor(slice.max.steps) == slice.max.steps))) {
+    slice.max.steps <- Inf
+  }
+  trace.diagnostics <- isTRUE(trace.diagnostics)
+  trace.every <- suppressWarnings(as.integer(trace.every)[1])
+  if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
   if (n.burn < mh.min_burn_adapt) mh.adapt <- FALSE
 
   if (is.null(init)) init <- list()
@@ -204,6 +232,7 @@ exal_static_mcmc <- function(
   sigma <- if (is.null(init$sigma)) 1        else as.numeric(init$sigma)[1]
   gamma <- if (is.null(init$gamma)) 0        else as.numeric(init$gamma)[1]
   gamma <- min(max(gamma, L + 1e-6), U - 1e-6)
+  xb <- drop(X %*% beta)
 
   A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
 
@@ -253,15 +282,16 @@ exal_static_mcmc <- function(
       if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
       m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
       beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
+      xb     <- drop(X %*% beta)
 
       # (2) sigma | beta, v, y (inverse-gamma)
-      r <- y - drop(X %*% beta) - A * v
+      r <- y - xb - A * v
       shape_sigma <- a_sigma + 1.5 * n
       rate_sigma  <- b_sigma + sum(v) + sum((r * r) / (2 * B * v))
       sigma <- 1 / stats::rgamma(1, shape = shape_sigma, rate = pmax(rate_sigma, 1e-12))
 
       # (3) v_i | beta, sigma, y_i (GIG with lambda = 1/2)
-      r0 <- y - drop(X %*% beta)
+      r0 <- y - xb
       chi_i <- (r0 * r0) / (B * sigma)
       psi_i <- (A * A / B + 2) / sigma
       v <- as.numeric(sample_gig_devroye_vector(
@@ -343,13 +373,11 @@ exal_static_mcmc <- function(
   }
 
   # log posterior in eta (gamma) kernel
-  logpost_eta <- function(eta, beta, sigma, v, s_vec) {
+  logpost_eta <- function(eta, xb, sigma, v, s_vec) {
     eta   <- as.numeric(eta)[1L]
-    beta  <- as.numeric(beta); v <- as.numeric(v); s_vec <- as.numeric(s_vec)
-    if (!all(is.finite(c(beta, sigma, v, s_vec)))) return(-Inf)
+    xb    <- as.numeric(xb); v <- as.numeric(v); s_vec <- as.numeric(s_vec)
+    if (!all(is.finite(c(xb, sigma, v, s_vec)))) return(-Inf)
     if (sigma <= 0 || any(v <= 0)) return(-Inf)
-
-    xb <- drop(X %*% beta); if (!all(is.finite(xb))) return(-Inf)
     g   <- g_from_eta(eta)
     A   <- as.numeric(A_of(g))[1L]
     B   <- as.numeric(B_of(g))[1L]
@@ -364,9 +392,31 @@ exal_static_mcmc <- function(
     -(n / 2) * log(B) - 0.5 * quad + log_prior_gamma(g) + logJ(eta)
   }
 
-  find_mode_eta <- function(eta0, beta, sigma, v, s_vec) {
+  logpost_gamma <- function(g, xb, sigma, v, s_vec) {
+    g <- as.numeric(g)[1L]
+    xb <- as.numeric(xb)
+    v <- as.numeric(v)
+    s_vec <- as.numeric(s_vec)
+    if (!is.finite(g) || g <= L || g >= U) return(-Inf)
+    if (!all(is.finite(c(xb, sigma, v, s_vec)))) return(-Inf)
+    if (sigma <= 0 || any(v <= 0)) return(-Inf)
+    A <- as.numeric(A_of(g))[1L]
+    B <- as.numeric(B_of(g))[1L]
+    lam <- as.numeric(lam_of(g))[1L]
+    if (!is.finite(B) || B <= 0 || !is.finite(A) || !is.finite(lam)) return(-Inf)
+
+    mu <- xb + lam * sigma * s_vec + A * v
+    res <- y - mu
+    quad <- sum((res * res) / (B * sigma * v))
+    lp <- log_prior_gamma(g)
+    if (!is.finite(quad) || !is.finite(lp)) return(-Inf)
+
+    -(n / 2) * log(B) - 0.5 * quad + lp
+  }
+
+  find_mode_eta <- function(eta0, xb, sigma, v, s_vec) {
     fn_log <- function(e) {
-      val <- logpost_eta(e, beta, sigma, v, s_vec)
+      val <- logpost_eta(e, xb, sigma, v, s_vec)
       if (!is.finite(val)) -Inf else val
     }
     fn_neg <- function(e) {
@@ -450,10 +500,11 @@ exal_static_mcmc <- function(
     mode_info = numeric(0),
     stringsAsFactors = FALSE
   )
-  trace_rows <- vector("list", I)
+  trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
+  trace_idx <- 0L
 
   if (mh.proposal %in% c("rw", "laplace_rw")) {
-    mode0 <- find_mode_eta(eta, beta, sigma, v, s)
+    mode0 <- find_mode_eta(eta, xb, sigma, v, s)
     proposal_sd <- if (identical(mh.proposal, "laplace_rw")) {
       clamp_scale(sqrt(1 / pmax(mode0$info, 1e-8)))
     } else {
@@ -473,7 +524,7 @@ exal_static_mcmc <- function(
   for (i in 1:I) {
 
     ## (1) v | rest ~ GIG(1/2, chi_i, psi)
-    z     <- y - drop(X %*% beta) - lambda * sigma * s
+    z     <- y - xb - lambda * sigma * s
     chi_i <- (z * z) / (B * sigma)
     psi_i <- (A * A) / (B * sigma) + (2 / sigma)
     v     <- as.numeric(sample_gig_devroye_vector(
@@ -482,7 +533,7 @@ exal_static_mcmc <- function(
     v <- pmax(v, 1e-12)
 
     ## (2) s | rest ~ N^+(mu, tau^2), truncated to (0, Inf)
-    r     <- y - drop(X %*% beta) - A * v
+    r     <- y - xb - A * v
     tau2  <- 1 / (1 + (lambda * lambda) * sigma / (B * v))
     tau2  <- pmax(tau2, 1e-12)
     mu_s  <- tau2 * (lambda * r) / (B * v)
@@ -499,9 +550,10 @@ exal_static_mcmc <- function(
     if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
     m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
     beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
+    xb     <- drop(X %*% beta)
 
     ## (4) sigma | rest ~ GIG(k_sigma, chi_sigma, psi_sigma)
-    r          <- y - drop(X %*% beta) - A * v
+    r          <- y - xb - A * v
     chi_sigma  <- sum((r * r) / (B * v)) + 2 * sum(v) + 2 * b_sigma
     psi_sigma  <- (lambda * lambda / B) * sum((s * s) / v)
     k_sigma    <- -(a_sigma + 1.5 * n)
@@ -509,25 +561,57 @@ exal_static_mcmc <- function(
     if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
 
     ## (5) gamma | rest on eta scale
-    mode_out <- find_mode_eta(eta, beta, sigma, v, s)
-    current_lp <- logpost_eta(eta, beta, sigma, v, s)
-    if (!is.finite(current_lp)) {
-      eta <- mode_out$eta_hat
-      current_lp <- logpost_eta(eta, beta, sigma, v, s)
-    }
-
+    mode_out <- list(
+      eta_hat = NA_real_,
+      info = NA_real_,
+      objective = NA_real_,
+      optim_convergence = NA_integer_,
+      used_fallback = NA
+    )
     accepted <- NA
-    proposal_sd_used <- if (identical(mh.proposal, "laplace_local")) {
-      clamp_scale(sqrt(1 / pmax(mode_out$info, 1e-8)))
-    } else {
-      proposal_sd
-    }
+    proposal_sd_used <- NA_real_
+    slice_evals <- NA_integer_
 
-    if (identical(mh.proposal, "laplace_local")) {
-      eta <- stats::rnorm(1, mean = mode_out$eta_hat, sd = proposal_sd_used)
+    if (identical(mh.proposal, "slice")) {
+      current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+      if (!is.finite(current_gamma_lp)) {
+        gamma <- min(max(gamma, L + 1e-8), U - 1e-8)
+        current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+      }
+      if (!is.finite(current_gamma_lp)) {
+        gamma <- min(max(0, L + 1e-8), U - 1e-8)
+        current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+      }
+      slice_out <- .exdqlm_uni_slice_bounded(
+        x0 = gamma,
+        log_density = function(g) logpost_gamma(g, xb, sigma, v, s),
+        w = slice.width,
+        m = slice.max.steps,
+        lower = L + 1e-10,
+        upper = U - 1e-10
+      )
+      gamma <- as.numeric(slice_out$value)[1]
+      eta <- stats::qlogis((gamma - L) / (U - L))
+      slice_evals <- as.integer(slice_out$evals)
     } else {
+      mode_out <- find_mode_eta(eta, xb, sigma, v, s)
+      current_lp <- logpost_eta(eta, xb, sigma, v, s)
+      if (!is.finite(current_lp)) {
+        eta <- mode_out$eta_hat
+        current_lp <- logpost_eta(eta, xb, sigma, v, s)
+      }
+
+      proposal_sd_used <- if (identical(mh.proposal, "laplace_local")) {
+        clamp_scale(sqrt(1 / pmax(mode_out$info, 1e-8)))
+      } else {
+        proposal_sd
+      }
+
+      if (identical(mh.proposal, "laplace_local")) {
+        eta <- stats::rnorm(1, mean = mode_out$eta_hat, sd = proposal_sd_used)
+      } else {
       eta_prop <- eta + proposal_sd_used * stats::rnorm(1)
-      prop_lp <- logpost_eta(eta_prop, beta, sigma, v, s)
+      prop_lp <- logpost_eta(eta_prop, xb, sigma, v, s)
       accepted <- is.finite(prop_lp) && (log(stats::runif(1)) < (prop_lp - current_lp))
       if (isTRUE(accepted)) eta <- eta_prop
 
@@ -562,43 +646,46 @@ exal_static_mcmc <- function(
         n.accept.keep <- n.accept.keep + as.integer(isTRUE(accepted))
       }
       n.accept <- n.accept + as.integer(isTRUE(accepted))
+      }
+      gamma <- g_from_eta(eta)
     }
-
-    gamma <- g_from_eta(eta)
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
-    s_stats <- .exdqlm_trace_summary(s)
-    tau2_stats <- .exdqlm_trace_summary(tau2)
-
-    trace_rows[[i]] <- data.frame(
-      iter = i,
-      phase = if (i <= n.burn) "burn" else "keep",
-      eta = eta,
-      gamma = gamma,
-      sigma = sigma,
-      mode_eta = mode_out$eta_hat,
-      mode_info = mode_out$info,
-      mode_objective = mode_out$objective,
-      mode_optim_convergence = mode_out$optim_convergence,
-      mode_used_fallback = isTRUE(mode_out$used_fallback),
-      proposal_sd = proposal_sd_used,
-      accepted = if (identical(mh.proposal, "laplace_local")) NA else isTRUE(accepted),
-      kernel = mh.proposal,
-      s_mean = s_stats[["mean"]],
-      s_sd = s_stats[["sd"]],
-      s_q05 = s_stats[["q05"]],
-      s_q50 = s_stats[["median"]],
-      s_q95 = s_stats[["q95"]],
-      s_min = s_stats[["min"]],
-      s_max = s_stats[["max"]],
-      s_tau2_mean = tau2_stats[["mean"]],
-      s_tau2_sd = tau2_stats[["sd"]],
-      s_tau2_q05 = tau2_stats[["q05"]],
-      s_tau2_q50 = tau2_stats[["median"]],
-      s_tau2_q95 = tau2_stats[["q95"]],
-      s_tau2_min = tau2_stats[["min"]],
-      s_tau2_max = tau2_stats[["max"]],
-      stringsAsFactors = FALSE
-    )
+    if (trace.diagnostics && (i %% trace.every == 0L)) {
+      s_stats <- .exdqlm_trace_summary(s)
+      tau2_stats <- .exdqlm_trace_summary(tau2)
+      trace_idx <- trace_idx + 1L
+      trace_rows[[trace_idx]] <- data.frame(
+        iter = i,
+        phase = if (i <= n.burn) "burn" else "keep",
+        eta = eta,
+        gamma = gamma,
+        sigma = sigma,
+        mode_eta = mode_out$eta_hat,
+        mode_info = mode_out$info,
+        mode_objective = mode_out$objective,
+        mode_optim_convergence = mode_out$optim_convergence,
+        mode_used_fallback = isTRUE(mode_out$used_fallback),
+        proposal_sd = proposal_sd_used,
+        accepted = if (mh.proposal %in% c("laplace_local", "slice")) NA else isTRUE(accepted),
+        kernel = mh.proposal,
+        slice_evals = slice_evals,
+        s_mean = s_stats[["mean"]],
+        s_sd = s_stats[["sd"]],
+        s_q05 = s_stats[["q05"]],
+        s_q50 = s_stats[["median"]],
+        s_q95 = s_stats[["q95"]],
+        s_min = s_stats[["min"]],
+        s_max = s_stats[["max"]],
+        s_tau2_mean = tau2_stats[["mean"]],
+        s_tau2_sd = tau2_stats[["sd"]],
+        s_tau2_q05 = tau2_stats[["q05"]],
+        s_tau2_q50 = tau2_stats[["median"]],
+        s_tau2_q95 = tau2_stats[["q95"]],
+        s_tau2_min = tau2_stats[["min"]],
+        s_tau2_max = tau2_stats[["max"]],
+        stringsAsFactors = FALSE
+      )
+    }
 
     ## save after burn every 'thin' iterations
     if (i > n.burn && ((i - n.burn) %% thin == 0)) {
@@ -611,7 +698,7 @@ exal_static_mcmc <- function(
     }
 
     if (verbose && (i %% 500 == 0)) {
-      acc_msg <- if (identical(mh.proposal, "laplace_local")) {
+      acc_msg <- if (mh.proposal %in% c("laplace_local", "slice")) {
         "NA"
       } else {
         format(round(n.accept / pmax(n.trial.burn + n.trial.keep, 1L), 4), nsmall = 4)
@@ -628,20 +715,22 @@ exal_static_mcmc <- function(
                 I, run.time$toc - run.time$tic))
   }
 
-  accept_total <- if (identical(mh.proposal, "laplace_local")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
-  accept_burn <- if (identical(mh.proposal, "laplace_local")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
-  accept_keep <- if (identical(mh.proposal, "laplace_local")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+  accept_total <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+  accept_burn <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
+  accept_keep <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
   ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
   ess_gamma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.gamma))), error = function(e) NA_real_)
-  kernel_exact <- mh.proposal %in% c("rw", "laplace_rw")
+  kernel_exact <- mh.proposal %in% c("rw", "laplace_rw", "slice")
   mh_diag <- list(
     proposal = mh.proposal,
-    adapt = if (identical(mh.proposal, "laplace_local")) FALSE else mh.adapt,
-    adapt_interval = if (identical(mh.proposal, "laplace_local")) NA_integer_ else mh.adapt.interval,
-    target_accept = if (identical(mh.proposal, "laplace_local")) c(NA_real_, NA_real_) else mh.target.accept,
-    scale_bounds = if (identical(mh.proposal, "laplace_local")) c(NA_real_, NA_real_) else mh.scale.bounds,
-    scale_initial = if (identical(mh.proposal, "laplace_local")) NA_real_ else proposal_sd_init,
-    scale_final = if (identical(mh.proposal, "laplace_local")) NA_real_ else proposal_sd,
+    adapt = if (mh.proposal %in% c("laplace_local", "slice")) FALSE else mh.adapt,
+    adapt_interval = if (mh.proposal %in% c("laplace_local", "slice")) NA_integer_ else mh.adapt.interval,
+    target_accept = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.target.accept,
+    scale_bounds = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.scale.bounds,
+    scale_initial = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd_init,
+    scale_final = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd,
+    slice_width = if (identical(mh.proposal, "slice")) slice.width else NA_real_,
+    slice_max_steps = if (identical(mh.proposal, "slice")) slice.max.steps else NA_real_,
     kernel_exact = kernel_exact,
     signoff_ready = kernel_exact,
     approximation_note = if (kernel_exact) {
@@ -651,7 +740,13 @@ exal_static_mcmc <- function(
     },
     accept = list(total = accept_total, burn = accept_burn, keep = accept_keep),
     adaptation = adapt.history,
-    trace = do.call(rbind, trace_rows)
+    trace_enabled = trace.diagnostics,
+    trace_every = if (trace.diagnostics) trace.every else NA_integer_,
+    trace = if (trace.diagnostics && trace_idx > 0L) {
+      do.call(rbind, trace_rows[seq_len(trace_idx)])
+    } else {
+      data.frame()
+    }
   )
 
   ## --- return (match exdqlmMCMC style) -------------------------------------
