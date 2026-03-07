@@ -603,15 +603,16 @@ exal_static_mcmc <- function(
       if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
       m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
       beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
+      xb     <- drop(X %*% beta)
 
       # (2) sigma | beta, v, y (inverse-gamma)
-      r <- y - drop(X %*% beta) - A * v
+      r <- y - xb - A * v
       shape_sigma <- a_sigma + 1.5 * n
       rate_sigma  <- b_sigma + sum(v) + sum((r * r) / (2 * B * v))
       sigma <- 1 / stats::rgamma(1, shape = shape_sigma, rate = pmax(rate_sigma, 1e-12))
 
       # (3) v_i | beta, sigma, y_i (GIG with lambda = 1/2)
-      r0 <- y - drop(X %*% beta)
+      r0 <- y - xb
       chi_i <- (r0 * r0) / (B * sigma)
       psi_i <- (A * A / B + 2) / sigma
       v <- as.numeric(sample_gig_devroye_vector(
@@ -1165,20 +1166,22 @@ exal_static_mcmc <- function(
     }
   )
 
-  accept_total <- if (identical(mh.proposal, "laplace_local")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
-  accept_burn <- if (identical(mh.proposal, "laplace_local")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
-  accept_keep <- if (identical(mh.proposal, "laplace_local")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+  accept_total <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+  accept_burn <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
+  accept_keep <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
   ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
   ess_gamma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.gamma))), error = function(e) NA_real_)
-  kernel_exact <- mh.proposal %in% c("rw", "laplace_rw")
+  kernel_exact <- mh.proposal %in% c("rw", "laplace_rw", "slice")
   mh_diag <- list(
     proposal = mh.proposal,
-    adapt = if (identical(mh.proposal, "laplace_local")) FALSE else mh.adapt,
-    adapt_interval = if (identical(mh.proposal, "laplace_local")) NA_integer_ else mh.adapt.interval,
-    target_accept = if (identical(mh.proposal, "laplace_local")) c(NA_real_, NA_real_) else mh.target.accept,
-    scale_bounds = if (identical(mh.proposal, "laplace_local")) c(NA_real_, NA_real_) else mh.scale.bounds,
-    scale_initial = if (identical(mh.proposal, "laplace_local")) NA_real_ else proposal_sd_init,
-    scale_final = if (identical(mh.proposal, "laplace_local")) NA_real_ else proposal_sd,
+    adapt = if (mh.proposal %in% c("laplace_local", "slice")) FALSE else mh.adapt,
+    adapt_interval = if (mh.proposal %in% c("laplace_local", "slice")) NA_integer_ else mh.adapt.interval,
+    target_accept = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.target.accept,
+    scale_bounds = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.scale.bounds,
+    scale_initial = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd_init,
+    scale_final = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd,
+    slice_width = if (identical(mh.proposal, "slice")) slice.width else NA_real_,
+    slice_max_steps = if (identical(mh.proposal, "slice")) slice.max.steps else NA_real_,
     kernel_exact = kernel_exact,
     signoff_ready = kernel_exact,
     approximation_note = if (kernel_exact) {
@@ -1188,7 +1191,13 @@ exal_static_mcmc <- function(
     },
     accept = list(total = accept_total, burn = accept_burn, keep = accept_keep),
     adaptation = adapt.history,
-    trace = do.call(rbind, trace_rows)
+    trace_enabled = trace.diagnostics,
+    trace_every = if (trace.diagnostics) trace.every else NA_integer_,
+    trace = if (trace.diagnostics && trace_idx > 0L) {
+      do.call(rbind, trace_rows[seq_len(trace_idx)])
+    } else {
+      data.frame()
+    }
   )
 
   ## --- return (match exdqlmMCMC style) -------------------------------------
