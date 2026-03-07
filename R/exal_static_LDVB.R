@@ -387,7 +387,9 @@
 #'   density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
 #' @param gamma_bounds Two-vector (L, U) support for \code{gamma}.
 #'   Defaults to \code{c(L.fn(p0), U.fn(p0))}.
-#' @param log_prior_gamma Function \code{g -> log pi(gamma=g)} (default flat).
+#' @param log_prior_gamma Function \code{g -> log pi(gamma=g)}. Default is a
+#'   truncated Student-t prior centered at 0 on the admissible \code{gamma}
+#'   support.
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}; if missing, reasonable defaults are used.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
@@ -455,7 +457,7 @@ exal_static_LDVB <- function(
   b0 = NULL, V0 = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  log_prior_gamma = function(g) 0,
+  log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
   n_samp_xi = 200,
@@ -495,6 +497,9 @@ exal_static_LDVB <- function(
 
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
   if (!(L < U)) stop("gamma_bounds must satisfy L < U.")
+  if (is.null(log_prior_gamma)) {
+    log_prior_gamma <- function(g) .gamma_log_prior_trunc_t(g, bounds = c(L, U))
+  }
 
   # --- A,B,C,lambda helpers -------------------------------------------------
   A_of   <- function(g) A.fn(p0, g)

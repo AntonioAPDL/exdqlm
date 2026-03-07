@@ -15,7 +15,7 @@ exal_static_LDVB(
   a_sigma = 1,
   b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  log_prior_gamma = function(g) 0,
+  log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
   n_samp_xi = 200,
@@ -42,7 +42,9 @@ density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.}
 \item{gamma_bounds}{Two-vector (L, U) support for \code{gamma}.
 Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 
-\item{log_prior_gamma}{Function \code{g -> log pi(gamma=g)} (default flat).}
+\item{log_prior_gamma}{Function \code{g -> log pi(gamma=g)}. Default is a
+truncated Student-t prior centered at 0 on the admissible \code{gamma}
+support.}
 
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}; if missing, reasonable defaults are used.}

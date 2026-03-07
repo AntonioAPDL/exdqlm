@@ -164,6 +164,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   trace.diagnostics <- isTRUE(trace.diagnostics)
   trace.every <- suppressWarnings(as.integer(trace.every)[1])
   if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
+
+  state_signal <- function(FF_local, theta_mat) {
+    drop(colSums(FF_local * theta_mat))
+  }
   if (n.burn < mh.min_burn_adapt) mh.adapt <- FALSE
 
   ### Define L and U
@@ -523,7 +527,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## backwards sample
       svd.sC = svd(C[,,TT])
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-      post.pred[TT] = rexal(1,tau,t(FF[,TT])%*%sam.theta[,TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,0)
+      reg_theta <- numeric(TT)
+      reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
+      post.pred[TT] = rexal(1,tau,reg_theta[TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,0)
       for(t in (TT-1):1){
         P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
         R = P + df.mat*P
@@ -535,7 +541,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        post.pred[t] = rexal(1,tau,t(FF[,t])%*%sam.theta[,t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
+        reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
+        post.pred[t] = rexal(1,tau,reg_theta[t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
     }
@@ -543,9 +550,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ex_samp_theta <- function(ex.f, ex.q, gamma, sigma, sts, tau, c_tau) {
         out <- cpp_ffbs_sample(ex.f, ex.q)
         sam.theta <- out$sam.theta
+        reg_theta <- state_signal(FF, sam.theta)
         post.pred <- vapply(seq_len(TT), function(t) {
           rexal(1, tau,
-                t(FF[, t]) %*% sam.theta[, t] + c_tau * sigma * abs(gamma) * sts[t],
+                reg_theta[t] + c_tau * sigma * abs(gamma) * sts[t],
                 sigma, 0)
         }, numeric(1))
         list(
@@ -586,28 +594,43 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         sum(stats::dexp(uts,rate = 1/sigma,log=TRUE)) +
         log(PriorSigma) + log(PriorGamma) + logJ
     }
-    logpost_gamma <- function(reg1, sigma, gamma, sts, uts) {
-      gamma <- as.numeric(gamma)[1]
+    make_logpost_gamma <- function(reg1, sigma, sts, uts) {
       sigma <- as.numeric(sigma)[1]
-      if (!is.finite(gamma) || gamma <= L || gamma >= U) return(-Inf)
-      if (!is.finite(sigma) || sigma <= 0) return(-Inf)
-      if (!all(is.finite(c(reg1, sts, uts))) || any(uts <= 0)) return(-Inf)
+      reg1 <- as.numeric(reg1)
+      sts <- as.numeric(sts)
+      uts <- as.numeric(uts)
+      valid_inputs <- is.finite(sigma) && sigma > 0 &&
+        all(is.finite(reg1)) && all(is.finite(sts)) && all(is.finite(uts)) &&
+        all(uts > 0)
+      if (!valid_inputs) {
+        return(function(gamma) -Inf)
+      }
 
-      temp.p <- p.fn(p0, gamma)
-      a <- (1 - 2 * temp.p) / (temp.p * (1 - temp.p))
-      b <- 2 / (temp.p * (1 - temp.p))
-      c <- (as.numeric(gamma > 0) - temp.p)^(-1)
-      if (!all(is.finite(c(a, b, c))) || b <= 0) return(-Inf)
+      y_center <- y - reg1
+      sigma_sts <- sigma * sts
+      sqrt_sigma_uts <- sqrt(sigma * uts)
 
-      ll <- sum(stats::dnorm(
-        y,
-        reg1 + sigma * c * abs(gamma) * sts + a * uts,
-        sqrt(sigma * b * uts),
-        log = TRUE
-      ))
-      lp <- log_prior_gamma(gamma)
-      if (!is.finite(ll) || !is.finite(lp)) return(-Inf)
-      ll + lp
+      function(gamma) {
+        gamma <- as.numeric(gamma)[1]
+        if (!is.finite(gamma) || gamma <= L || gamma >= U) return(-Inf)
+
+        temp.p <- p.fn(p0, gamma)
+        a <- (1 - 2 * temp.p) / (temp.p * (1 - temp.p))
+        b <- 2 / (temp.p * (1 - temp.p))
+        c <- (as.numeric(gamma > 0) - temp.p)^(-1)
+        if (!all(is.finite(c(a, b, c))) || b <= 0) return(-Inf)
+
+        mu_shift <- c * abs(gamma) * sigma_sts + a * uts
+        ll <- sum(stats::dnorm(
+          y_center,
+          mean = mu_shift,
+          sd = sqrt(b) * sqrt_sigma_uts,
+          log = TRUE
+        ))
+        lp <- log_prior_gamma(gamma)
+        if (!is.finite(ll) || !is.finite(lp)) return(-Inf)
+        ll + lp
+      }
     }
     samp_sigma_exact <- function(reg1, sigma, gamma, sts, uts) {
       temp.p <- p.fn(p0, gamma)
@@ -646,7 +669,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       cov
     }
     if (identical(mh.proposal, "laplace_rw") && !fix.gamma && !fix.sigma) {
-      reg1.init <- apply(FF * cursam.theta, 2, sum)
+      reg1.init <- state_signal(FF, cursam.theta)
       cov.lap <- laplace_cov_init(reg1.init, cursam.log.sigma, cursam.logit.gamma, cursam.st, cursam.Ut)
       if (!is.null(cov.lap)) {
         Sig.mh <- prep_Sig_mh(cov.lap)
@@ -689,7 +712,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       cursam.theta = theta.out$sam.theta
 
       # sample uts, sts
-      reg1 = apply(FF*cursam.theta,2,sum)
+      reg1 = state_signal(FF, cursam.theta)
       cursam.Ut<-ex_samp_uts(reg1,cursam.gamma,cursam.sigma,cursam.st,a_tau,b_tau,c_tau)
       cursam.st<-ex_samp_sts(reg1,cursam.gamma,cursam.sigma,cursam.Ut,a_tau,b_tau,c_tau)
 
@@ -699,19 +722,20 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           cursam.sigma <- samp_sigma_exact(reg1, cursam.sigma, cursam.gamma, cursam.st, cursam.Ut)
           cursam.log.sigma <- log(cursam.sigma)
         }
+        gamma_log_density <- make_logpost_gamma(reg1, cursam.sigma, cursam.st, cursam.Ut)
         slice_evals <- NA_integer_
         if (!fix.gamma) {
-          current_lp <- logpost_gamma(reg1, cursam.sigma, cursam.gamma, cursam.st, cursam.Ut)
+          current_lp <- gamma_log_density(cursam.gamma)
           if (!is.finite(current_lp)) {
             cursam.gamma <- min(max(cursam.gamma, L + 1e-8), U - 1e-8)
-            current_lp <- logpost_gamma(reg1, cursam.sigma, cursam.gamma, cursam.st, cursam.Ut)
+            current_lp <- gamma_log_density(cursam.gamma)
           }
           if (!is.finite(current_lp)) {
             cursam.gamma <- min(max(0, L + 1e-8), U - 1e-8)
           }
           slice_out <- .exdqlm_uni_slice_bounded(
             x0 = cursam.gamma,
-            log_density = function(gamma) logpost_gamma(reg1, cursam.sigma, gamma, cursam.st, cursam.Ut),
+            log_density = gamma_log_density,
             w = slice.width,
             m = slice.max.steps,
             lower = L + 1e-10,
@@ -951,8 +975,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## backwards sample
       svd.sC = svd(C[,,TT])
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-      post.pred[TT] = rexal(1,p0,t(FF[,TT])%*%sam.theta[,TT],sigma,0)
-      for(t in (TT-1):1){
+        reg_theta <- numeric(TT)
+        reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
+        post.pred[TT] = rexal(1,p0,reg_theta[TT],sigma,0)
+        for(t in (TT-1):1){
         P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
         R = P + df.mat*P
         R = (R + t(R))/2
@@ -963,7 +989,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        post.pred[t] = rexal(1,p0,t(FF[,t])%*%sam.theta[,t],sigma,0)
+        reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
+        post.pred[t] = rexal(1,p0,reg_theta[t],sigma,0)
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
     }
@@ -971,8 +998,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       samp_theta <- function(ex.f, ex.q, sigma) {
         out <- cpp_ffbs_sample(ex.f, ex.q)
         sam.theta <- out$sam.theta
+        reg_theta <- state_signal(FF, sam.theta)
         post.pred <- vapply(seq_len(TT), function(t) {
-          rexal(1, p0, t(FF[, t]) %*% sam.theta[, t], sigma, 0)
+          rexal(1, p0, reg_theta[t], sigma, 0)
         }, numeric(1))
         list(
           standard.forecast.errors = out$standard.forecast.errors,
@@ -1011,7 +1039,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       cursam.theta = theta.out$sam.theta
 
       # sample uts
-      reg1 = apply(FF*cursam.theta,2,sum)
+      reg1 = state_signal(FF, cursam.theta)
       cursam.Ut<-samp_uts(reg1,cursam.sigma)
 
       # sample sigma

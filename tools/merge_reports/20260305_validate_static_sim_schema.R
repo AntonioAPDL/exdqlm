@@ -7,7 +7,7 @@ safe_num <- function(x, default = NA_real_) {
 
 out_root <- Sys.getenv(
   "EXDQLM_STATIC_SIM_OUT",
-  "results/sim_suite_static/series/static_exal_mildskew"
+  "results/sim_suite_static/series/static_exal_rich1d_mcq"
 )
 
 required <- c("sim_output.rds", "series_wide.csv", "series_long.csv", "meta.txt", "run_config.rds")

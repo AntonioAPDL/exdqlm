@@ -48,6 +48,144 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   }
   stop("Unable to compute valid gamma bounds for p0 = ", p0)
 }
+
+.normalize_gamma_prior_trunc_t <- function(PriorGamma = NULL) {
+  if (is.null(PriorGamma)) {
+    PriorGamma <- list(m_gam = 0, s_gam = 1, df_gam = 1)
+  } else {
+    need <- c("m_gam", "s_gam", "df_gam")
+    if (!is.list(PriorGamma) || any(is.na(match(need, names(PriorGamma))))) {
+      stop("`PriorGamma` must be a list containing `m_gam`, `s_gam`, and `df_gam`")
+    }
+  }
+
+  PriorGamma$m_gam <- as.numeric(PriorGamma$m_gam)[1]
+  PriorGamma$s_gam <- as.numeric(PriorGamma$s_gam)[1]
+  PriorGamma$df_gam <- as.numeric(PriorGamma$df_gam)[1]
+
+  if (!is.finite(PriorGamma$m_gam)) stop("`PriorGamma$m_gam` must be finite")
+  if (!is.finite(PriorGamma$s_gam) || PriorGamma$s_gam <= 0) stop("`PriorGamma$s_gam` must be > 0")
+  if (!is.finite(PriorGamma$df_gam) || PriorGamma$df_gam <= 0) stop("`PriorGamma$df_gam` must be > 0")
+
+  PriorGamma
+}
+
+.gamma_log_prior_trunc_t <- function(gamma, bounds, PriorGamma = NULL) {
+  bounds <- as.numeric(bounds)
+  if (length(bounds) != 2L || !all(is.finite(bounds)) || bounds[1] >= bounds[2]) {
+    stop("`bounds` must be a finite length-2 vector with bounds[1] < bounds[2]")
+  }
+  prior <- .normalize_gamma_prior_trunc_t(PriorGamma)
+  crch::dtt(
+    gamma,
+    location = prior$m_gam,
+    scale = prior$s_gam,
+    df = prior$df_gam,
+    left = bounds[1],
+    right = bounds[2],
+    log = TRUE
+  )
+}
+
+.gamma_prior_density_trunc_t <- function(gamma, bounds, PriorGamma = NULL, log = FALSE) {
+  lp <- .gamma_log_prior_trunc_t(gamma, bounds = bounds, PriorGamma = PriorGamma)
+  if (isTRUE(log)) lp else exp(lp)
+}
+
+.exdqlm_uni_slice_bounded <- function(
+  x0,
+  log_density,
+  w = 0.1,
+  m = Inf,
+  lower = -Inf,
+  upper = Inf,
+  ...
+) {
+  if (!is.numeric(x0) || length(x0) != 1L || !is.finite(x0)) {
+    stop("x0 must be a single finite numeric value.")
+  }
+  if (!is.function(log_density)) stop("log_density must be a function.")
+  if (!is.numeric(w) || length(w) != 1L || !is.finite(w) || w <= 0) {
+    stop("w must be a single positive finite numeric value.")
+  }
+  if (!is.numeric(m) || length(m) != 1L ||
+      (!is.infinite(m) && (!is.finite(m) || m <= 0 || floor(m) != m))) {
+    stop("m must be Inf or a single positive integer.")
+  }
+  if (!is.numeric(lower) || length(lower) != 1L || !is.finite(lower)) {
+    stop("lower must be a single finite numeric value.")
+  }
+  if (!is.numeric(upper) || length(upper) != 1L || !is.finite(upper)) {
+    stop("upper must be a single finite numeric value.")
+  }
+  if (lower >= upper) stop("lower must be strictly less than upper.")
+  if (x0 < lower || x0 > upper) stop("x0 must lie within [lower, upper].")
+
+  n_eval <- 0L
+  logf <- function(x) {
+    n_eval <<- n_eval + 1L
+    as.numeric(log_density(x, ...))[1]
+  }
+
+  gx0 <- logf(x0)
+  if (!is.finite(gx0)) {
+    stop("log_density(x0) must be finite for slice sampling.")
+  }
+
+  logy <- gx0 - stats::rexp(1)
+  u <- stats::runif(1, 0, w)
+  L <- x0 - u
+  R <- x0 + (w - u)
+
+  if (is.infinite(m)) {
+    repeat {
+      if (L <= lower) break
+      if (logf(L) <= logy) break
+      L <- L - w
+    }
+    repeat {
+      if (R >= upper) break
+      if (logf(R) <= logy) break
+      R <- R + w
+    }
+  } else if (m > 1) {
+    J <- floor(stats::runif(1, 0, m))
+    K <- (m - 1) - J
+    while (J > 0) {
+      if (L <= lower) break
+      if (logf(L) <= logy) break
+      L <- L - w
+      J <- J - 1L
+    }
+    while (K > 0) {
+      if (R >= upper) break
+      if (logf(R) <= logy) break
+      R <- R + w
+      K <- K - 1L
+    }
+  }
+
+  L <- max(L, lower)
+  R <- min(R, upper)
+
+  repeat {
+    x1 <- stats::runif(1, L, R)
+    gx1 <- logf(x1)
+    if (gx1 >= logy) {
+      return(list(
+        value = x1,
+        log_density = gx1,
+        evals = n_eval,
+        interval = c(lower = L, upper = R)
+      ))
+    }
+    if (x1 > x0) {
+      R <- x1
+    } else {
+      L <- x1
+    }
+  }
+}
 #
 CheckLossFn = function(p0,diff){diff*p0 - diff*as.numeric(diff<0)}
 #
@@ -777,10 +915,10 @@ check_ts = function(dat){
         stable_count = stable_count,
         criteria = controls,
         final = list(
-          delta_state = if (length(delta_state)) tail(delta_state, 1L) else NA_real_,
-          delta_sigma = if (length(delta_sigma)) tail(delta_sigma, 1L) else NA_real_,
+          delta_state = if (length(delta_state)) utils::tail(delta_state, 1L) else NA_real_,
+          delta_sigma = if (length(delta_sigma)) utils::tail(delta_sigma, 1L) else NA_real_,
           delta_gamma = NA_real_,
-          delta_elbo = if (length(delta_elbo)) tail(delta_elbo, 1L) else NA_real_
+          delta_elbo = if (length(delta_elbo)) utils::tail(delta_elbo, 1L) else NA_real_
         )
       ),
       deltas = list(
@@ -1002,10 +1140,10 @@ check_ts = function(dat){
         stable_count = stable_count,
         criteria = controls,
         final = list(
-          delta_state = if (length(delta_beta)) tail(delta_beta, 1L) else NA_real_,
-          delta_sigma = if (length(delta_sigma)) tail(delta_sigma, 1L) else NA_real_,
+          delta_state = if (length(delta_beta)) utils::tail(delta_beta, 1L) else NA_real_,
+          delta_sigma = if (length(delta_sigma)) utils::tail(delta_sigma, 1L) else NA_real_,
           delta_gamma = NA_real_,
-          delta_elbo = if (length(delta_elbo)) tail(delta_elbo, 1L) else NA_real_
+          delta_elbo = if (length(delta_elbo)) utils::tail(delta_elbo, 1L) else NA_real_
         )
       ),
       deltas = list(

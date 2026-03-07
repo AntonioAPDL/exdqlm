@@ -136,15 +136,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       }
   }
   # gamma ~ truncated student t on L,U
-  if(is.null(PriorGamma)){
-    PriorGamma$m_gam = 0
-    PriorGamma$s_gam = 1
-    PriorGamma$df_gam = 1
-   }else{
-     if(!is.list(PriorGamma) | any( is.na( match(c("m_gam", "s_gam", "df_gam"),names(PriorGamma)) ) )){
-       stop("`PriorGamma` must be a list containing `m_gam`,`s_gam`, and `df_gam`")
-     }
-   }
+  PriorGamma <- .normalize_gamma_prior_trunc_t(PriorGamma)
 
   ### state-space model
   ## prior, theta ~ N(m0,C0)
@@ -400,15 +392,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   # function approximate q(sigma,gamma) with Laplace-Delta + ELBO via log-normalizer
   log_prior_gamma <- function(gamma) {
-    crch::dtt(
-      gamma,
-      location = PriorGamma$m_gam,
-      scale = PriorGamma$s_gam,
-      df = PriorGamma$df_gam,
-      left = L,
-      right = U,
-      log = TRUE
-    )
+    .gamma_log_prior_trunc_t(gamma, bounds = c(L, U), PriorGamma = PriorGamma)
   }
   A_of <- function(gamma) A.fn(p0, gamma)
   B_of <- function(gamma) B.fn(p0, gamma)
