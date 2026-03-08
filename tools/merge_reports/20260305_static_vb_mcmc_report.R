@@ -19,6 +19,16 @@ safe_num <- function(x, default = NA_real_) {
   if (!is.finite(v) || is.na(v)) default else v
 }
 
+read_csv_maybe_empty <- function(path) {
+  if (!file.exists(path)) return(data.frame())
+  if (!isTRUE(file.info(path)$size > 0)) return(data.frame())
+  out <- tryCatch(
+    utils::read.csv(path, check.names = FALSE),
+    error = function(e) data.frame()
+  )
+  out
+}
+
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
 resolve_run_root <- function() {
@@ -258,17 +268,9 @@ runtime_diag$ess_gamma <- suppressWarnings(as.numeric(runtime_diag$ess_gamma))
 utils::write.csv(runtime_diag, file.path(out_tables, "runtime_diagnostics_summary.csv"), row.names = FALSE)
 
 ld_diag_path <- file.path(out_tables, "vb_ld_diagnostics_summary.csv")
-ld_diag <- if (file.exists(ld_diag_path)) {
-  utils::read.csv(ld_diag_path, check.names = FALSE)
-} else {
-  data.frame()
-}
+ld_diag <- read_csv_maybe_empty(ld_diag_path)
 rhs_diag_path <- file.path(out_tables, "rhs_diagnostics_summary.csv")
-rhs_diag <- if (file.exists(rhs_diag_path)) {
-  utils::read.csv(rhs_diag_path, check.names = FALSE)
-} else {
-  data.frame()
-}
+rhs_diag <- read_csv_maybe_empty(rhs_diag_path)
 
 # Pairwise comparisons (exAL vs AL within method/tau)
 pair_rows <- list()

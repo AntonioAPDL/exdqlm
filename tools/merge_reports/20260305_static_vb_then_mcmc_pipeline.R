@@ -157,7 +157,7 @@ mcmc_burn <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_BURN", "2000"), 2000L)
 mcmc_n <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_N", "1000"), 1000L)
 mcmc_thin <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_THIN", "1"), 1L)
 mcmc_mh_proposal <- tolower(Sys.getenv("EXDQLM_STATIC_MCMC_MH_PROPOSAL", "laplace_rw"))
-if (!(mcmc_mh_proposal %in% c("laplace_local", "laplace_rw", "rw"))) mcmc_mh_proposal <- "laplace_rw"
+if (!(mcmc_mh_proposal %in% c("laplace_local", "laplace_rw", "rw", "slice"))) mcmc_mh_proposal <- "laplace_rw"
 mcmc_mh_adapt <- identical(tolower(Sys.getenv("EXDQLM_STATIC_MCMC_MH_ADAPT", "true")), "true")
 mcmc_mh_adapt_interval <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_MH_ADAPT_INTERVAL", "50"), 50L)
 mcmc_mh_target_lo <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_TARGET_LO", "0.20"), 0.20)
@@ -166,6 +166,9 @@ mcmc_mh_scale_min <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_SCALE_MIN", "0.1
 mcmc_mh_scale_max <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_SCALE_MAX", "10"), 10)
 mcmc_mh_max_scale_step <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_MAX_SCALE_STEP", "0.35"), 0.35)
 mcmc_mh_min_burn_adapt <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_MH_MIN_BURN_ADAPT", "50"), 50L)
+mcmc_trace_diagnostics <- safe_bool(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_DIAGNOSTICS", "true"), TRUE)
+mcmc_trace_every <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_EVERY", "1"), 1L)
+if (mcmc_trace_every < 1L) mcmc_trace_every <- 1L
 
 n_core_phys <- tryCatch(parallel::detectCores(logical = FALSE), error = function(e) 2L)
 if (!is.finite(n_core_phys) || is.na(n_core_phys) || n_core_phys < 1L) n_core_phys <- 2L
@@ -551,6 +554,8 @@ run_one_pipeline <- function(task_row) {
       mh.scale.bounds = c(mcmc_mh_scale_min, mcmc_mh_scale_max),
       mh.max_scale.step = mcmc_mh_max_scale_step,
       mh.min_burn_adapt = mcmc_mh_min_burn_adapt,
+      trace.diagnostics = mcmc_trace_diagnostics,
+      trace.every = mcmc_trace_every,
       verbose = FALSE
     ),
     error = function(e) e
@@ -579,7 +584,9 @@ run_one_pipeline <- function(task_row) {
         adapt = mcmc_mh_adapt,
         adapt_interval = mcmc_mh_adapt_interval,
         target_accept = c(mcmc_mh_target_lo, mcmc_mh_target_hi),
-        scale_bounds = c(mcmc_mh_scale_min, mcmc_mh_scale_max)
+        scale_bounds = c(mcmc_mh_scale_min, mcmc_mh_scale_max),
+        trace_diagnostics = mcmc_trace_diagnostics,
+        trace_every = mcmc_trace_every
       )
     )
   )
