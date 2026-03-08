@@ -60,6 +60,22 @@ X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
 
 p_vec <- c(0.05, 0.50, 0.95)
 
+beta_prior <- tolower(Sys.getenv("EXDQLM_STATIC_BETA_PRIOR", "ridge"))
+if (identical(beta_prior, "gaussian")) beta_prior <- "ridge"
+if (!(beta_prior %in% c("ridge", "rhs"))) beta_prior <- "ridge"
+rhs_tau0 <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_TAU0", "1"), 1)
+rhs_nu <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_NU", "4"), 4)
+rhs_s2 <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_S2", "1"), 1)
+rhs_shrink_intercept <- safe_bool(Sys.getenv("EXDQLM_STATIC_RHS_SHRINK_INTERCEPT", "false"), FALSE)
+rhs_intercept_prec <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_INTERCEPT_PREC", "1e-16"), 1e-16)
+beta_prior_controls <- list(
+  tau0 = rhs_tau0,
+  nu = rhs_nu,
+  s2 = rhs_s2,
+  shrink_intercept = rhs_shrink_intercept,
+  intercept_prec = rhs_intercept_prec
+)
+
 vb_max_iter <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_MAX_ITER", "300"), 300L)
 vb_tol <- safe_num(Sys.getenv("EXDQLM_STATIC_VB_TOL", "0.03"), 0.03)
 vb_tol_sigma <- safe_num(Sys.getenv("EXDQLM_STATIC_VB_TOL_SIGMA", format(vb_tol, scientific = FALSE)), vb_tol)
@@ -210,6 +226,8 @@ cfg <- list(
   y_summary = list(mean = mean(y), sd = stats::sd(y)),
   cores_pipeline = cores_pipeline,
   vb = list(
+    beta_prior = beta_prior,
+    beta_prior_controls = beta_prior_controls,
     max_iter = vb_max_iter,
     tol = vb_tol,
     conv = list(
@@ -252,6 +270,8 @@ cfg <- list(
     )
   ),
   mcmc = list(
+    beta_prior = beta_prior,
+    beta_prior_controls = beta_prior_controls,
     burn = mcmc_burn,
     n = mcmc_n,
     thin = mcmc_thin,
@@ -282,6 +302,7 @@ empty_summary_row <- function(model_name, tau, status = "pending", error = NA_ch
   data.frame(
     model = as.character(model_name),
     tau = as.numeric(tau),
+    beta_prior = beta_prior,
     status = as.character(status),
     vb_runtime_sec = NA_real_,
     vb_iter = NA_integer_,
@@ -343,6 +364,7 @@ populate_vb_summary <- function(row, vb_norm, vb_runtime, vb_file) {
   row$vb_stop_reason <- if (!is.null(vb_norm$stop_reason)) as.character(vb_norm$stop_reason)[1] else NA_character_
   row$vb_sigma <- as.numeric(vb_norm$sigma_est)[1]
   row$vb_gamma <- as.numeric(vb_norm$gamma_est)[1]
+  row$beta_prior <- if (!is.null(vb_norm$diagnostics$beta_prior$type)) as.character(vb_norm$diagnostics$beta_prior$type)[1] else row$beta_prior
   row$vb_file <- as.character(vb_file)[1]
   row
 }
@@ -362,6 +384,7 @@ populate_mcmc_summary <- function(row, m_norm, m_runtime, m_file) {
   row$mcmc_mh_adapt <- if (!is.null(m_norm$diagnostics$mh$adapt)) isTRUE(m_norm$diagnostics$mh$adapt) else NA
   row$mcmc_mh_scale_initial <- as.numeric(m_norm$diagnostics$mh$scale_initial)[1]
   row$mcmc_mh_scale_final <- as.numeric(m_norm$diagnostics$mh$scale_final)[1]
+  row$beta_prior <- if (!is.null(m_norm$diagnostics$beta_prior$type)) as.character(m_norm$diagnostics$beta_prior$type)[1] else row$beta_prior
   row$mcmc_file <- as.character(m_file)[1]
   row
 }
@@ -449,6 +472,8 @@ run_one_pipeline <- function(task_row) {
         y = y,
         X = X,
         p0 = tau,
+        beta_prior = beta_prior,
+        beta_prior_controls = beta_prior_controls,
         max_iter = vb_max_iter,
         tol = vb_tol,
         dqlm.ind = dqlm.ind,
@@ -470,7 +495,14 @@ run_one_pipeline <- function(task_row) {
       vb_fit,
       model_name = model_name,
       tau = tau,
-      run_settings = list(max_iter = vb_max_iter, tol = vb_tol, n_samp_xi = vb_n_samp_xi, ld = ld_ctrl)
+      run_settings = list(
+        beta_prior = beta_prior,
+        beta_prior_controls = beta_prior_controls,
+        max_iter = vb_max_iter,
+        tol = vb_tol,
+        n_samp_xi = vb_n_samp_xi,
+        ld = ld_ctrl
+      )
     )
     row <- populate_vb_summary(row, vb_norm, vb_runtime, vb_file)
 
@@ -504,6 +536,8 @@ run_one_pipeline <- function(task_row) {
       y = y,
       X = X,
       p0 = tau,
+      beta_prior = beta_prior,
+      beta_prior_controls = beta_prior_controls,
       dqlm.ind = dqlm.ind,
       init = init_list,
       init.from.vb = FALSE,
@@ -535,6 +569,8 @@ run_one_pipeline <- function(task_row) {
     model_name = model_name,
     tau = tau,
     run_settings = list(
+      beta_prior = beta_prior,
+      beta_prior_controls = beta_prior_controls,
       n_burn = mcmc_burn,
       n_mcmc = mcmc_n,
       thin = mcmc_thin,

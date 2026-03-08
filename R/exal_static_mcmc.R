@@ -596,14 +596,16 @@ exal_static_mcmc <- function(
       # (1) beta | sigma, v, y
       W_diag <- 1 / (B * sigma * v)
       Xw     <- X * sqrt(W_diag)
-      V_inv  <- crossprod(Xw) + V0_inv
-      rhs    <- crossprod(X, W_diag * (y - A * v)) + V0_inv %*% b0
+      prior_sys <- beta_prior_obj$beta_system_mcmc(beta_state)
+      V_inv  <- crossprod(Xw) + prior_sys$Prec
+      rhs    <- crossprod(X, W_diag * (y - A * v)) + prior_sys$h
 
       Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
       if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
       m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
       beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
       xb     <- drop(X %*% beta)
+      beta_state <- beta_prior_obj$update_mcmc(beta_state, beta)
 
       # (2) sigma | beta, v, y (inverse-gamma)
       r <- y - xb - A * v
@@ -625,6 +627,13 @@ exal_static_mcmc <- function(
         save.beta[ksave, ] <- beta
         save.sigma[ksave]  <- sigma
         save.v[, ksave]    <- v
+        if (identical(beta_prior_obj$type, "rhs")) {
+          lam_draw <- rep(NA_real_, p)
+          lam_draw[rhs_active_idx] <- beta_state$lambda[rhs_active_idx]
+          save.lambda[ksave, ] <- lam_draw
+          save.tau[ksave] <- beta_state$tau
+          save.c2[ksave] <- beta_state$c2
+        }
       }
 
       if (verbose && (i %% 500 == 0)) {
@@ -646,6 +655,9 @@ exal_static_mcmc <- function(
       bounds     = c(L = NA_real_, U = NA_real_),
       samp.beta  = coda::as.mcmc(save.beta),
       samp.sigma = coda::as.mcmc(save.sigma),
+      samp.lambda = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.lambda) else NULL,
+      samp.tau = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.tau) else NULL,
+      samp.c2 = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.c2) else NULL,
       samp.v     = coda::as.mcmc(t(save.v)),
       init.from.vb = isTRUE(init.from.vb),
       vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,
@@ -670,6 +682,21 @@ exal_static_mcmc <- function(
         ),
         acceptance = list(total = NA_real_, burn = NA_real_, keep = NA_real_)
       ),
+      beta_prior = list(
+        type = beta_prior_obj$type,
+        controls = beta_prior_obj$controls,
+        summary = beta_prior_obj$summary_mcmc(beta_state),
+        state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+      ),
+      rhs.diagnostics = if (identical(beta_prior_obj$type, "rhs")) {
+        list(
+          summary = beta_prior_obj$summary_mcmc(beta_state),
+          ess = list(
+            tau = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.tau))), error = function(e) NA_real_),
+            c2 = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.c2))), error = function(e) NA_real_)
+          )
+        )
+      } else NULL,
       last = list(beta = beta, sigma = sigma, v = v)
     )
     class(ret) <- "exal_static_mcmc"

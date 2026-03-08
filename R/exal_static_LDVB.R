@@ -838,6 +838,7 @@ exal_static_LDVB <- function(
       tol = tol,
       b0 = b0,
       V0 = V0,
+      beta_prior_obj = beta_prior_obj,
       a_sigma = a_sigma,
       b_sigma = b_sigma,
       init = init,

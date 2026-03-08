@@ -192,6 +192,7 @@ vb_rows <- list()
 ld_rows <- list()
 mc_rows <- list()
 metrics_rows <- list()
+rhs_rows <- list()
 derived <- list()
 
 for (inf in c("vb", "mcmc")) {
@@ -237,6 +238,7 @@ for (inf in c("vb", "mcmc")) {
         inference = inf,
         model = mdl,
         tau = tau,
+        beta_prior = if (!is.null(norm$diagnostics$beta_prior$type)) as.character(norm$diagnostics$beta_prior$type)[1] else "ridge",
         runtime_sec = as.numeric(norm$runtime_sec)[1],
         iter_like = if (!is.null(norm$iter)) as.integer(norm$iter)[1] else NA_integer_,
         converged = if (!is.null(norm$converged)) isTRUE(norm$converged) else NA,
@@ -271,6 +273,7 @@ for (inf in c("vb", "mcmc")) {
         vb_rows[[length(vb_rows) + 1L]] <- data.frame(
           model = mdl,
           tau = tau,
+          beta_prior = if (!is.null(norm$diagnostics$beta_prior$type)) as.character(norm$diagnostics$beta_prior$type)[1] else "ridge",
           iter = if (!is.null(norm$iter)) as.integer(norm$iter)[1] else NA_integer_,
           converged = if (!is.null(norm$converged)) isTRUE(norm$converged) else NA,
           stop_reason = if (!is.null(norm$stop_reason)) as.character(norm$stop_reason)[1] else NA_character_,
@@ -318,6 +321,7 @@ for (inf in c("vb", "mcmc")) {
         mc_rows[[length(mc_rows) + 1L]] <- data.frame(
           model = mdl,
           tau = tau,
+          beta_prior = if (!is.null(norm$diagnostics$beta_prior$type)) as.character(norm$diagnostics$beta_prior$type)[1] else "ridge",
           accept_rate = as.numeric(acc$total)[1],
           accept_rate_burn = as.numeric(acc$burn)[1],
           accept_rate_keep = as.numeric(acc$keep)[1],
@@ -336,6 +340,30 @@ for (inf in c("vb", "mcmc")) {
           stringsAsFactors = FALSE
         )
       }
+
+      rhs_diag <- norm$diagnostics$rhs
+      rhs_summary <- if (!is.null(rhs_diag$summary)) rhs_diag$summary else list()
+      if (!is.null(rhs_diag)) {
+        rhs_rows[[length(rhs_rows) + 1L]] <- data.frame(
+          inference = inf,
+          model = mdl,
+          tau = tau,
+          beta_prior = if (!is.null(norm$diagnostics$beta_prior$type)) as.character(norm$diagnostics$beta_prior$type)[1] else "ridge",
+          rhs_tau = if (!is.null(rhs_summary$tau)) as.numeric(rhs_summary$tau)[1] else NA_real_,
+          rhs_c2 = if (!is.null(rhs_summary$c2)) as.numeric(rhs_summary$c2)[1] else NA_real_,
+          rhs_lambda_mean = if (!is.null(rhs_summary$lambda_mean)) as.numeric(rhs_summary$lambda_mean)[1] else NA_real_,
+          rhs_lambda_min = if (!is.null(rhs_summary$lambda_min)) as.numeric(rhs_summary$lambda_min)[1] else NA_real_,
+          rhs_lambda_max = if (!is.null(rhs_summary$lambda_max)) as.numeric(rhs_summary$lambda_max)[1] else NA_real_,
+          rhs_tau0 = if (!is.null(rhs_summary$tau0)) as.numeric(rhs_summary$tau0)[1] else NA_real_,
+          rhs_nu = if (!is.null(rhs_summary$nu)) as.numeric(rhs_summary$nu)[1] else NA_real_,
+          rhs_s = if (!is.null(rhs_summary$s)) as.numeric(rhs_summary$s)[1] else NA_real_,
+          rhs_s2 = if (!is.null(rhs_summary$s2)) as.numeric(rhs_summary$s2)[1] else NA_real_,
+          rhs_shrink_intercept = if (!is.null(rhs_summary$shrink_intercept)) isTRUE(rhs_summary$shrink_intercept) else NA,
+          rhs_ess_tau = if (!is.null(rhs_diag$ess$tau)) as.numeric(rhs_diag$ess$tau)[1] else NA_real_,
+          rhs_ess_c2 = if (!is.null(rhs_diag$ess$c2)) as.numeric(rhs_diag$ess$c2)[1] else NA_real_,
+          stringsAsFactors = FALSE
+        )
+      }
     }
   }
 }
@@ -345,14 +373,16 @@ vb_conv <- do.call(rbind, vb_rows)
 ld_diag <- do.call(rbind, ld_rows)
 mc_diag <- do.call(rbind, mc_rows)
 metrics_df <- do.call(rbind, metrics_rows)
+rhs_diag_df <- if (length(rhs_rows)) do.call(rbind, rhs_rows) else data.frame()
 
 utils::write.csv(fit_summary, file.path(run_root, "tables", "fit_summary.csv"), row.names = FALSE)
 utils::write.csv(vb_conv, file.path(run_root, "tables", "vb_convergence_summary.csv"), row.names = FALSE)
 utils::write.csv(ld_diag, file.path(run_root, "tables", "vb_ld_diagnostics_summary.csv"), row.names = FALSE)
 utils::write.csv(mc_diag, file.path(run_root, "tables", "mcmc_diagnostics_summary.csv"), row.names = FALSE)
 utils::write.csv(metrics_df, file.path(run_root, "tables", "metrics_summary.csv"), row.names = FALSE)
+utils::write.csv(rhs_diag_df, file.path(run_root, "tables", "rhs_diagnostics_summary.csv"), row.names = FALSE)
 
-log_msg("wrote tables: fit_summary, vb_convergence_summary, vb_ld_diagnostics_summary, mcmc_diagnostics_summary, metrics_summary")
+log_msg("wrote tables: fit_summary, vb_convergence_summary, vb_ld_diagnostics_summary, mcmc_diagnostics_summary, metrics_summary, rhs_diagnostics_summary")
 
 last_n <- min(200L, TT)
 idx_full <- seq_len(TT)
@@ -502,22 +532,26 @@ for (tau in taus) {
   vb_s_trace <- if (!is.null(vb_ex$diagnostics$s_block$trace)) vb_ex$diagnostics$s_block$trace else data.frame()
   if (is.data.frame(vb_s_trace) && nrow(vb_s_trace) > 1L && "s_mean" %in% names(vb_s_trace)) {
     tr_s_mean <- trim_trace(vb_s_trace$s_mean, trace_start)
-    plot_trace_single(
-      file_path = file.path(run_root, "plots", "traces", sprintf("vb_tau_%s_s_mean_trace_exal.png", tlabel)),
-      x = tr_s_mean$x, y = tr_s_mean$y,
-      col = "#D35400",
-      title_txt = sprintf("VB s_i mean trace exAL (tau=%.2f; iter >= %d)", tau, trace_start),
-      ylab_txt = "mean E[s_i]"
-    )
+    if (length(tr_s_mean$y) > 1L) {
+      plot_trace_single(
+        file_path = file.path(run_root, "plots", "traces", sprintf("vb_tau_%s_s_mean_trace_exal.png", tlabel)),
+        x = tr_s_mean$x, y = tr_s_mean$y,
+        col = "#D35400",
+        title_txt = sprintf("VB s_i mean trace exAL (tau=%.2f; iter >= %d)", tau, trace_start),
+        ylab_txt = "mean E[s_i]"
+      )
+    }
     if ("tau2_mean" %in% names(vb_s_trace)) {
       tr_s_tau2 <- trim_trace(vb_s_trace$tau2_mean, trace_start)
-      plot_trace_single(
-        file_path = file.path(run_root, "plots", "traces", sprintf("vb_tau_%s_s_tau2_trace_exal.png", tlabel)),
-        x = tr_s_tau2$x, y = tr_s_tau2$y,
-        col = "#884EA0",
-        title_txt = sprintf("VB s_i variance proxy exAL (tau=%.2f; iter >= %d)", tau, trace_start),
-        ylab_txt = "mean tau2(s_i)"
-      )
+      if (length(tr_s_tau2$y) > 1L) {
+        plot_trace_single(
+          file_path = file.path(run_root, "plots", "traces", sprintf("vb_tau_%s_s_tau2_trace_exal.png", tlabel)),
+          x = tr_s_tau2$x, y = tr_s_tau2$y,
+          col = "#884EA0",
+          title_txt = sprintf("VB s_i variance proxy exAL (tau=%.2f; iter >= %d)", tau, trace_start),
+          ylab_txt = "mean tau2(s_i)"
+        )
+      }
     }
   }
 
@@ -573,13 +607,15 @@ for (tau in taus) {
   mc_s_trace <- if (!is.null(mc_ex$mh.diagnostics$trace)) mc_ex$mh.diagnostics$trace else data.frame()
   if (is.data.frame(mc_s_trace) && nrow(mc_s_trace) > 1L && "s_mean" %in% names(mc_s_trace)) {
     tr_mc_s <- trim_trace(mc_s_trace$s_mean, trace_start)
-    plot_trace_single(
-      file_path = file.path(run_root, "plots", "traces", sprintf("mcmc_tau_%s_s_mean_trace_exal.png", tlabel)),
-      x = tr_mc_s$x, y = tr_mc_s$y,
-      col = "#D35400",
-      title_txt = sprintf("MCMC s_i mean trace exAL (tau=%.2f; iter >= %d)", tau, trace_start),
-      ylab_txt = "mean sampled s_i"
-    )
+    if (length(tr_mc_s$y) > 1L) {
+      plot_trace_single(
+        file_path = file.path(run_root, "plots", "traces", sprintf("mcmc_tau_%s_s_mean_trace_exal.png", tlabel)),
+        x = tr_mc_s$x, y = tr_mc_s$y,
+        col = "#D35400",
+        title_txt = sprintf("MCMC s_i mean trace exAL (tau=%.2f; iter >= %d)", tau, trace_start),
+        ylab_txt = "mean sampled s_i"
+      )
+    }
   }
 
   mc_trace_ex <- if (!is.null(mc_ex$mh.diagnostics$trace)) mc_ex$mh.diagnostics$trace else data.frame()
@@ -615,6 +651,7 @@ writeLines(c(
   "- `tables/vb_ld_diagnostics_summary.csv`",
   "- `tables/mcmc_diagnostics_summary.csv`",
   "- `tables/metrics_summary.csv`",
+  "- `tables/rhs_diagnostics_summary.csv`",
   "",
   "## Plot directories",
   "- `plots/fit_within_inference`",

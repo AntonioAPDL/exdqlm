@@ -3,15 +3,24 @@
 .static_vb_to_mcmc_init <- function(vb_fit, dqlm.ind = isTRUE(vb_fit$dqlm.ind)) {
   if (!is.list(vb_fit)) stop("vb_fit must be a list")
 
+  beta_prior <- if (!is.null(vb_fit$beta_prior)) vb_fit$beta_prior else list(type = "ridge")
+
   if (isTRUE(dqlm.ind)) {
     if (is.null(vb_fit$qbeta$m) || is.null(vb_fit$qsig$E_sigma) || is.null(vb_fit$qv$E_v)) {
       stop("DQLM VB fit missing required fields qbeta$m, qsig$E_sigma, or qv$E_v")
     }
-    return(list(
+    out <- list(
       beta = as.numeric(vb_fit$qbeta$m),
       sigma = as.numeric(vb_fit$qsig$E_sigma)[1],
       v = as.numeric(vb_fit$qv$E_v)
-    ))
+    )
+    if (identical(beta_prior$type, "rhs") && !is.null(beta_prior$state)) {
+      st <- beta_prior$state
+      if (!is.null(st$eta_lambda_hat)) out$lambda <- exp(as.numeric(st$eta_lambda_hat))
+      if (!is.null(st$eta_tau_hat)) out$tau <- exp(as.numeric(st$eta_tau_hat)[1])
+      if (!is.null(st$eta_c_hat)) out$c2 <- exp(as.numeric(st$eta_c_hat)[1])
+    }
+    return(out)
   }
 
   if (is.null(vb_fit$qbeta$m) || is.null(vb_fit$qsiggam$sigma_mean) ||
@@ -19,13 +28,20 @@
     stop("exAL VB fit missing required fields for MCMC initialization")
   }
 
-  list(
+  out <- list(
     beta = as.numeric(vb_fit$qbeta$m),
     sigma = as.numeric(vb_fit$qsiggam$sigma_mean)[1],
     gamma = as.numeric(vb_fit$qsiggam$gamma_mean)[1],
     v = as.numeric(vb_fit$qv$E_v),
     s = as.numeric(vb_fit$qs$E_s)
   )
+  if (identical(beta_prior$type, "rhs") && !is.null(beta_prior$state)) {
+    st <- beta_prior$state
+    if (!is.null(st$eta_lambda_hat)) out$lambda <- exp(as.numeric(st$eta_lambda_hat))
+    if (!is.null(st$eta_tau_hat)) out$tau <- exp(as.numeric(st$eta_tau_hat)[1])
+    if (!is.null(st$eta_c_hat)) out$c2 <- exp(as.numeric(st$eta_c_hat)[1])
+  }
+  out
 }
 
 .static_normalize_vb_fit <- function(fit, model_name = c("al", "exal"), tau = NA_real_, run_settings = list()) {
@@ -55,6 +71,8 @@
   s_diag <- if (!is.null(fit$diagnostics$s_block)) fit$diagnostics$s_block else list()
   s_trace <- if (!is.null(s_diag$trace)) s_diag$trace else data.frame()
   s_last <- if (is.data.frame(s_trace) && nrow(s_trace)) s_trace[nrow(s_trace), , drop = FALSE] else NULL
+  beta_prior <- if (!is.null(fit$beta_prior)) fit$beta_prior else list(type = "ridge")
+  rhs_summary <- if (!is.null(beta_prior$summary)) beta_prior$summary else NULL
 
   elbo_trace <- if (!is.null(fit$diagnostics$elbo)) {
     as.numeric(fit$diagnostics$elbo)
@@ -79,6 +97,12 @@
     sigma_est = sigma_est,
     gamma_est = gamma_est,
     diagnostics = list(
+      beta_prior = list(
+        type = if (!is.null(beta_prior$type)) as.character(beta_prior$type)[1] else "ridge",
+        controls = if (!is.null(beta_prior$controls)) beta_prior$controls else list(),
+        summary = rhs_summary,
+        state = if (!is.null(beta_prior$state)) beta_prior$state else NULL
+      ),
       convergence = conv,
       elbo = list(
         trace = elbo_trace,
@@ -96,6 +120,11 @@
         trace = s_trace,
         final = if (!is.null(s_last)) as.list(s_last) else list()
       ),
+      rhs = if (identical(beta_prior$type, "rhs")) {
+        list(summary = rhs_summary)
+      } else {
+        NULL
+      },
       ess = list(sigma = NA_real_, gamma = if (isTRUE(dqlm.ind)) NA_real_ else NA_real_),
       acceptance = list(total = NA_real_, burn = NA_real_, keep = NA_real_)
     ),
@@ -127,6 +156,9 @@
   mh_diag <- if (!is.null(fit$mh.diagnostics)) fit$mh.diagnostics else list()
   mh_trace <- if (!is.null(mh_diag$trace)) mh_diag$trace else data.frame()
   s_last <- if (is.data.frame(mh_trace) && nrow(mh_trace)) mh_trace[nrow(mh_trace), , drop = FALSE] else NULL
+  beta_prior <- if (!is.null(fit$beta_prior)) fit$beta_prior else list(type = "ridge")
+  rhs_diag <- if (!is.null(fit$rhs.diagnostics)) fit$rhs.diagnostics else NULL
+  rhs_draws <- if (!is.null(fit$diagnostics$rhs)) fit$diagnostics$rhs else NULL
   proposal <- if (!is.null(mh_diag$proposal)) as.character(mh_diag$proposal)[1] else NA_character_
   kernel_exact <- if (!is.null(mh_diag$kernel_exact)) {
     isTRUE(mh_diag$kernel_exact)
@@ -160,6 +192,12 @@
     sigma_est = if (length(sigma_draws)) mean(sigma_draws) else NA_real_,
     gamma_est = if (length(gamma_draws)) mean(gamma_draws) else NA_real_,
     diagnostics = list(
+      beta_prior = list(
+        type = if (!is.null(beta_prior$type)) as.character(beta_prior$type)[1] else "ridge",
+        controls = if (!is.null(beta_prior$controls)) beta_prior$controls else list(),
+        summary = if (!is.null(beta_prior$summary)) beta_prior$summary else NULL,
+        state = if (!is.null(beta_prior$state)) beta_prior$state else NULL
+      ),
       ess = list(sigma = ess_sigma, gamma = if (isTRUE(dqlm.ind)) NA_real_ else ess_gamma),
       acceptance = list(total = accept_total, burn = accept_burn, keep = accept_keep),
       mh = list(
@@ -177,6 +215,15 @@
         trace = mh_trace,
         final = if (!is.null(s_last)) as.list(s_last) else list()
       ),
+      rhs = if (identical(beta_prior$type, "rhs")) {
+        list(
+          summary = if (!is.null(rhs_diag$summary)) rhs_diag$summary else if (!is.null(beta_prior$summary)) beta_prior$summary else NULL,
+          ess = if (!is.null(rhs_diag$ess)) rhs_diag$ess else list(),
+          draws = rhs_draws
+        )
+      } else {
+        NULL
+      },
       rhat_ready = list(sigma = sigma_draws, gamma = gamma_draws)
     ),
     metadata = list(settings = run_settings)

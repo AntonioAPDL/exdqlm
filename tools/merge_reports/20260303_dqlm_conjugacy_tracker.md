@@ -1641,3 +1641,224 @@ Current interpretation after `G1-G3`:
   - One-time launch health check:
     - both `tmux` sessions are active
     - both logs show pipeline startup banners and no immediate crash
+
+## 2026-03-08: Static AL/exAL RHS prior implementation planning contract
+
+### Objective
+
+Add a coefficient-prior option for static `AL` and static `exAL` regression so that both `VB` and `MCMC` support:
+
+- `beta_prior = "ridge"`
+- `beta_prior = "rhs"`
+
+The intent is to preserve the current likelihood-side `AL` / `exAL` machinery and extend only the coefficient-prior side in a way that is:
+
+- aligned with the recent qdesn `beta_prior` design,
+- backward compatible,
+- well documented,
+- testable under the current static reporting / diagnostics stack.
+
+### Theory / code sources of record
+
+- Static `exAL` likelihood-side VB theory:
+  - `/data/muscat_data/jaguir26/Static-exAL-Regression---VB/main.tex`
+- Static `exAL` likelihood-side MCMC theory:
+  - `/data/muscat_data/jaguir26/Static-exAL-Regression---MCMC/main.tex`
+- Standalone static `exAL` theory:
+  - `/data/muscat_data/jaguir26/exAL---Regression/main.tex`
+- Static / dynamic `AL` theory:
+  - `/data/muscat_data/jaguir26/DQLM-and-BQR---Theory/main.tex`
+- VB regularized horseshoe theory:
+  - `/data/muscat_data/jaguir26/VB-for-Horseshoe-Regression/main.tex`
+- qdesn branch implementation reference for VB RHS:
+  - `/data/muscat_data/jaguir26/exdqlm` on branch `feature/model-selection-v2-impl`
+  - especially:
+    - `R/priors_beta.R`
+    - `R/qdesn_rhs_prior.R`
+    - `R/exal_ldvb_fit.R`
+    - `R/exal_ldvb_engine.R`
+
+### Locked design decisions from user review
+
+- [x] Public API should expose a unified coefficient-prior selector for both static `AL` and static `exAL`.
+  - target shape: `beta_prior = c("ridge", "rhs")`
+
+- [x] `RHS` should be implemented as a robust, integrated feature rather than a superficial reduced-path patch.
+  - preferred implementation strategy:
+    - keep current static public interfaces,
+    - support `AL` through the existing reduced `gamma = 0` path,
+    - but refactor the internal coefficient-prior handling so the reduced path is first-class and not a fragile special case.
+
+- [x] `RHS` should be zero-centered, matching qdesn / standard shrinkage usage.
+  - implication:
+    - `b0` applies to `ridge`
+    - `b0` does not apply to `rhs`
+
+- [x] Intercept should be excluded from shrinkage by default.
+  - default:
+    - `shrink_intercept = FALSE`
+  - when excluded from shrinkage:
+    - use Gaussian prior handling consistent with qdesn-style implementation
+
+- [x] Expose qdesn-style RHS hyperparameters publicly.
+  - public controls to support:
+    - `tau0`
+    - `nu`
+    - `s` / `s2`
+    - `shrink_intercept`
+  - defaults should match qdesn unless a current-package compatibility reason forces a documented deviation
+
+- [x] VB implementation should port the qdesn `beta_prior` object pattern, adapted to current package style.
+
+- [x] VB RHS block should be separate from the current sigma/gamma LD block.
+  - do not merge RHS hyperparameters into the current `(sigma, gamma)` LD optimization
+
+- [x] MCMC RHS hyperparameters should be handled with practical log-scale slice updates where appropriate.
+  - this matches the current MCMC philosophy better than forcing an unavailable closed-form Gibbs route
+
+- [x] Implementation order should be:
+  - `VB` first
+  - `MCMC` second
+
+- [x] Validation target after implementation will include:
+  - tests
+  - smoke runs
+  - full static simulation comparisons
+  - same reporting / plot style as current static campaigns
+  - plus new summaries for RHS latent variables and coefficient tree plots
+
+- [x] Theory / tracker documentation should be updated as part of the implementation pass.
+
+### What is already clear enough to implement
+
+- [x] VB-side RHS theory source is sufficient.
+  - `VB-for-Horseshoe-Regression/main.tex` gives the missing clean VB-RHS equations:
+    - `D_j = E_q[1 / V_j]`
+    - Gaussian `q(beta)` update under `diag(D_j)`
+    - LD block on log-scales for RHS hyperparameters
+    - practical ELBO structure
+
+- [x] The clean VB architecture is established.
+  - keep current static `AL` / `exAL` likelihood-side blocks:
+    - `q(v)`
+    - `q(s)`
+    - sigma/gamma LD block
+  - replace only the coefficient-prior side through a qdesn-style `beta_prior` abstraction
+
+- [x] `slice` not appearing in theory docs is not a blocker.
+  - it is a kernel choice for nonconjugate univariate conditionals, not a target mismatch
+
+### Main unresolved item before coding
+
+- [x] Finalize the MCMC theory input for RHS hyperparameters in static `AL` / `exAL`.
+  - Updated remote theory source:
+    - `AntonioAPDL/VB-for-Horseshoe-Regression`
+    - local clone: `/data/muscat_data/jaguir26/VB-for-Horseshoe-Regression`
+    - current commit reviewed: `2524920`
+  - New material now present in [main.tex](/data/muscat_data/jaguir26/VB-for-Horseshoe-Regression/main.tex):
+    - full exAL joint log-kernel under RHS
+    - exact RHS conditional kernel under exAL
+    - transformed log-target on log-scales for the RHS block
+    - full AL joint log-kernel under RHS
+    - explicit statement that the exact RHS conditional kernel is identical under `AL` and `exAL` once conditioned on `beta`
+  - This closes the main missing theory dependency for the MCMC-side RHS implementation.
+
+### Exact input still needed from user for MCMC RHS implementation
+
+The cleanest input needed from the user is a derivation note that gives the RHS hyperparameter target up to proportionality under the static regression posterior.
+
+Minimum acceptable input:
+
+- [x] A clear statement of the static RHS parameterization to use:
+  - prior variance form for `beta_j`
+  - definitions of `lambda_j`, `tau`, `c^2`
+  - any intercept exception rule
+
+- [x] The full conditional / log-kernel up to proportionality for the RHS hyperparameter block given current `beta`.
+  - now available in:
+    - [main.tex](/data/muscat_data/jaguir26/VB-for-Horseshoe-Regression/main.tex)
+  - includes:
+    - original-scale conditional kernel
+    - original-scale log-kernel
+    - transformed log-target on log-scales with Jacobian included
+
+- [x] Confirmation of whether the same RHS hyperparameter block is intended for both static `AL` and static `exAL`.
+  - confirmed by the updated theory note:
+    - the exact RHS conditional kernel is identical under `AL` and `exAL` once conditioned on `beta`
+
+- [x] Clarification of whether the user wants one-at-a-time scalar slice updates or grouped updates for the RHS hyperparameters.
+  - current locked direction:
+    - scalar slice for each `log lambda_j`
+    - scalar slice for `log tau`
+    - scalar slice for `log c^2`
+
+### Practical note on what the user can provide
+
+If the user can provide the RHS latent-variable posterior kernel up to proportionality for the static regression case, that is sufficient to implement the slice sampler.
+
+The most useful concrete deliverable would be:
+
+- a short note with the log-targets for:
+  - `\log p(\lambda_j \mid \beta_j, \tau, c^2, \cdots) + const`
+  - `\log p(\tau \mid \beta, \lambda, c^2, \cdots) + const`
+  - `\log p(c^2 \mid \beta, \lambda, \tau, \cdots) + const`
+- or the same targets transformed to log-scales with Jacobians included
+
+That is enough to build slice updates robustly.
+
+### Additional user-side design clarifications now locked
+
+- [x] If `b0` / `V0` are passed together with `beta_prior = "rhs"`, issue a warning that they are ignored for the shrunk coefficients.
+
+- [x] Coefficient-tree plots are required for `rhs` runs only.
+  - no need to generate them for ordinary `ridge` runs by default
+
+### Implementation checklist and current status
+
+- [x] `R1` API / object design for coefficient priors
+  - added shared internal prior abstraction in:
+    - [R/static_beta_prior.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/static_beta_prior.R)
+  - supports:
+    - `beta_prior = "ridge"`
+    - `beta_prior = "rhs"`
+  - preserves current ridge behavior
+  - adds warning when `b0` / `V0` are passed with `beta_prior = "rhs"`
+
+- [x] `R2` Static `VB` support for `rhs`
+  - implemented for:
+    - static `exAL` in [R/exal_static_LDVB.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exal_static_LDVB.R)
+    - reduced static `AL` path in [R/utils.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/utils.R)
+  - design kept as planned:
+    - separate RHS LD block
+    - current sigma/gamma LD block unchanged
+
+- [x] `R3` Static `VB` / reporting plumbing for RHS
+  - normalized RHS metadata added in:
+    - [R/static_fit_normalization.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/static_fit_normalization.R)
+  - static postprocess / report now emit RHS-aware tables and plots in:
+    - [tools/merge_reports/20260305_static_postprocess_from_existing_fits.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260305_static_postprocess_from_existing_fits.R)
+    - [tools/merge_reports/20260305_static_vb_mcmc_report.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260305_static_vb_mcmc_report.R)
+  - RHS-only coefficient tree plots added for report generation
+
+- [x] `R4` Static `MCMC` support for `rhs`
+  - implemented in [R/exal_static_mcmc.R](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/R/exal_static_mcmc.R)
+  - shared RHS slice block now updates:
+    - `log lambda_j`
+    - `log tau`
+    - `log c^2`
+  - same prior-side sampler works for:
+    - static `AL`
+    - static `exAL`
+
+- [x] `R5` Documentation / theory update
+  - roxygen updated for public static VB/MCMC interfaces
+  - `devtools::document()` regenerated:
+    - [man/exal_static_LDVB.Rd](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/man/exal_static_LDVB.Rd)
+    - [man/exal_static_mcmc.Rd](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/man/exal_static_mcmc.Rd)
+  - tracker section updated to reflect implemented design
+
+- [x] `R6` Validation ladder
+  - unit / targeted tests passed
+  - full package test suite passed
+  - manual RHS pipeline -> postprocess -> report smoke passed on a tiny static run
+  - remaining work after this feature pass is scientific validation, not feature wiring
