@@ -118,5 +118,5 @@ test_that("static VB->MCMC pipeline and report scripts produce core artifacts", 
   expect_true("gate_vb_ld_stable" %in% names(gate_df))
   expect_true("gate_vb_ld_local_mode" %in% names(gate_df))
   expect_true("gate_mcmc_kernel_exact" %in% names(gate_df))
-  expect_true(all(c("beta_prior", "rhs_tau", "rhs_c2") %in% names(rhs_df)))
+  expect_true(all(c("beta_prior", "rhs_tau", "rhs_c2", "rhs_collapse_flag", "rhs_collapse_warning") %in% names(rhs_df)))
 })

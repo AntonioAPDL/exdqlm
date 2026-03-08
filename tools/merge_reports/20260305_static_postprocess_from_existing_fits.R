@@ -219,6 +219,8 @@ for (inf in c("vb", "mcmc")) {
       rmse <- sqrt(mean((q_path$mean - true_q)^2))
       coverage <- mean(true_q >= q_path$lo & true_q <= q_path$hi)
       mean_ci_width <- mean(q_path$hi - q_path$lo)
+      rhs_diag <- norm$diagnostics$rhs
+      rhs_summary <- if (!is.null(rhs_diag$summary)) rhs_diag$summary else list()
 
       d_key <- sprintf("%s_%s_tau_%s", inf, mdl, tau_lab(tau))
       derived[[d_key]] <- list(map = q_path$mean, lb = q_path$lo, ub = q_path$hi, true_q = true_q)
@@ -245,6 +247,8 @@ for (inf in c("vb", "mcmc")) {
         stop_reason = if (!is.null(norm$stop_reason)) as.character(norm$stop_reason)[1] else NA_character_,
         sigma_mean = as.numeric(norm$sigma_est)[1],
         gamma_mean = as.numeric(norm$gamma_est)[1],
+        rhs_collapse_flag = if (!is.null(rhs_summary$collapse_flag)) isTRUE(rhs_summary$collapse_flag) else NA,
+        rhs_collapse_warning = if (!is.null(rhs_summary$collapse_warning)) as.character(rhs_summary$collapse_warning)[1] else NA_character_,
         fit_file = ff,
         stringsAsFactors = FALSE
       )
@@ -341,8 +345,6 @@ for (inf in c("vb", "mcmc")) {
         )
       }
 
-      rhs_diag <- norm$diagnostics$rhs
-      rhs_summary <- if (!is.null(rhs_diag$summary)) rhs_diag$summary else list()
       if (!is.null(rhs_diag)) {
         rhs_rows[[length(rhs_rows) + 1L]] <- data.frame(
           inference = inf,
@@ -359,6 +361,18 @@ for (inf in c("vb", "mcmc")) {
           rhs_s = if (!is.null(rhs_summary$s)) as.numeric(rhs_summary$s)[1] else NA_real_,
           rhs_s2 = if (!is.null(rhs_summary$s2)) as.numeric(rhs_summary$s2)[1] else NA_real_,
           rhs_shrink_intercept = if (!is.null(rhs_summary$shrink_intercept)) isTRUE(rhs_summary$shrink_intercept) else NA,
+          rhs_iter = if (!is.null(rhs_summary$rhs_iter)) as.integer(rhs_summary$rhs_iter)[1] else NA_integer_,
+          rhs_tau_update_count = if (!is.null(rhs_summary$rhs_tau_update_count)) as.integer(rhs_summary$rhs_tau_update_count)[1] else NA_integer_,
+          rhs_tau_warmup_last = if (!is.null(rhs_summary$rhs_tau_warmup_last)) isTRUE(rhs_summary$rhs_tau_warmup_last) else NA,
+          rhs_update_reason_last = if (!is.null(rhs_summary$rhs_update_reason_last)) as.character(rhs_summary$rhs_update_reason_last)[1] else NA_character_,
+          rhs_update_every_last = if (!is.null(rhs_summary$rhs_update_every_last)) as.integer(rhs_summary$rhs_update_every_last)[1] else NA_integer_,
+          rhs_collapse_flag = if (!is.null(rhs_summary$collapse_flag)) isTRUE(rhs_summary$collapse_flag) else NA,
+          rhs_tau_near_zero = if (!is.null(rhs_summary$collapse_tau_near_zero)) isTRUE(rhs_summary$collapse_tau_near_zero) else NA,
+          rhs_beta_collapse = if (!is.null(rhs_summary$collapse_beta)) isTRUE(rhs_summary$collapse_beta) else NA,
+          rhs_tau_ratio = if (!is.null(rhs_summary$collapse_tau_ratio)) as.numeric(rhs_summary$collapse_tau_ratio)[1] else NA_real_,
+          rhs_slope_l2 = if (!is.null(rhs_summary$collapse_slope_l2)) as.numeric(rhs_summary$collapse_slope_l2)[1] else NA_real_,
+          rhs_slope_max_abs = if (!is.null(rhs_summary$collapse_slope_max_abs)) as.numeric(rhs_summary$collapse_slope_max_abs)[1] else NA_real_,
+          rhs_collapse_warning = if (!is.null(rhs_summary$collapse_warning)) as.character(rhs_summary$collapse_warning)[1] else NA_character_,
           rhs_ess_tau = if (!is.null(rhs_diag$ess$tau)) as.numeric(rhs_diag$ess$tau)[1] else NA_real_,
           rhs_ess_c2 = if (!is.null(rhs_diag$ess$c2)) as.numeric(rhs_diag$ess$c2)[1] else NA_real_,
           stringsAsFactors = FALSE
@@ -391,6 +405,18 @@ rhs_diag_df <- if (length(rhs_rows)) {
     rhs_s = numeric(0),
     rhs_s2 = numeric(0),
     rhs_shrink_intercept = logical(0),
+    rhs_iter = integer(0),
+    rhs_tau_update_count = integer(0),
+    rhs_tau_warmup_last = logical(0),
+    rhs_update_reason_last = character(0),
+    rhs_update_every_last = integer(0),
+    rhs_collapse_flag = logical(0),
+    rhs_tau_near_zero = logical(0),
+    rhs_beta_collapse = logical(0),
+    rhs_tau_ratio = numeric(0),
+    rhs_slope_l2 = numeric(0),
+    rhs_slope_max_abs = numeric(0),
+    rhs_collapse_warning = character(0),
     rhs_ess_tau = numeric(0),
     rhs_ess_c2 = numeric(0),
     stringsAsFactors = FALSE

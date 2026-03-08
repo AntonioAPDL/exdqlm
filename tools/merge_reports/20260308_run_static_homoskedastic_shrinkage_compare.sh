@@ -39,6 +39,20 @@ common_static_env() {
   export EXDQLM_STATIC_LD_SIGMA_INIT_MODE=data_scale
   export EXDQLM_STATIC_LD_ETA_LO=-12
   export EXDQLM_STATIC_LD_ETA_HI=12
+  export EXDQLM_STATIC_RHS_TAU0=1
+  export EXDQLM_STATIC_RHS_NU=4
+  export EXDQLM_STATIC_RHS_S2=1
+  export EXDQLM_STATIC_RHS_SHRINK_INTERCEPT=false
+  export EXDQLM_STATIC_RHS_INTERCEPT_PREC=1e-16
+  export EXDQLM_STATIC_RHS_FREEZE_TAU_ITERS=50
+  export EXDQLM_STATIC_RHS_FREEZE_TAU_WARMUP_ITERS=50
+  export EXDQLM_STATIC_RHS_UPDATE_EVERY=1
+  export EXDQLM_STATIC_RHS_UPDATE_EVERY_WARMUP=1
+  export EXDQLM_STATIC_RHS_UPDATE_EVERY_WARMUP_ITERS=0
+  export EXDQLM_STATIC_RHS_FORCE_TAU_AFTER_WARMUP=true
+  export EXDQLM_STATIC_RHS_COLLAPSE_TAU_RATIO_TOL=1e-6
+  export EXDQLM_STATIC_RHS_COLLAPSE_BETA_MAX_ABS_TOL=1e-6
+  export EXDQLM_STATIC_RHS_WARN_ON_COLLAPSE=true
   export EXDQLM_STATIC_MCMC_BURN=2000
   export EXDQLM_STATIC_MCMC_N=1000
   export EXDQLM_STATIC_MCMC_THIN=1
@@ -65,7 +79,7 @@ run_one_prior() {
   export EXDQLM_STATIC_OUT_ROOT="$run_root"
 
   printf '%s | pipeline start | prior=%s | run_root=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$prior" "$run_root" >&2
-  Rscript tools/merge_reports/20260305_static_vb_then_mcmc_pipeline.R
+  Rscript tools/merge_reports/20260305_static_vb_then_mcmc_pipeline.R >&2
 
   export EXDQLM_STATIC_RUN_ROOT="$run_root"
   export EXDQLM_STATIC_SUMMARY_PATH="${run_root}/tables/pipeline_task_summary.csv"
@@ -73,10 +87,10 @@ run_one_prior() {
   export EXDQLM_STATIC_PLOT_COVAR=x_main
 
   printf '%s | postprocess start | prior=%s | run_root=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$prior" "$run_root" >&2
-  Rscript tools/merge_reports/20260305_static_postprocess_from_existing_fits.R
+  Rscript tools/merge_reports/20260305_static_postprocess_from_existing_fits.R >&2
 
   printf '%s | report start | prior=%s | run_root=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$prior" "$run_root" >&2
-  Rscript tools/merge_reports/20260305_static_vb_mcmc_report.R
+  Rscript tools/merge_reports/20260305_static_vb_mcmc_report.R >&2
 
   printf '%s | complete | prior=%s | run_root=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$prior" "$run_root" >&2
   echo "$run_root"

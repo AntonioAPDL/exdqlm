@@ -631,7 +631,8 @@ writeLines(c(
   "",
   sprintf("- gate_pass_count: %d", sum(gate_df$overall_pass, na.rm = TRUE)),
   sprintf("- gate_fail_count: %d", sum(!gate_df$overall_pass, na.rm = TRUE)),
-  sprintf("- rhs_rows: %d", if (nrow(rhs_diag)) nrow(rhs_diag) else 0L)
+  sprintf("- rhs_rows: %d", if (nrow(rhs_diag)) nrow(rhs_diag) else 0L),
+  sprintf("- rhs_collapse_flag_count: %d", if (nrow(rhs_diag) && "rhs_collapse_flag" %in% names(rhs_diag)) sum(rhs_diag$rhs_collapse_flag, na.rm = TRUE) else 0L)
 ), con)
 
 cat(sprintf("S4 report generated under: %s\n", run_root))
