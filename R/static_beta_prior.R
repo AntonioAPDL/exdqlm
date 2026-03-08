@@ -18,6 +18,15 @@
     shrink_intercept = FALSE,
     intercept_prec = 1e-16,
     n_inner = 1L,
+    freeze_tau_iters = 50L,
+    freeze_tau_warmup_iters = NULL,
+    update_every = 1L,
+    update_every_warmup = 1L,
+    update_every_warmup_iters = 0L,
+    force_tau_after_warmup = TRUE,
+    collapse_tau_ratio_tol = 1e-6,
+    collapse_beta_max_abs_tol = 1e-6,
+    warn_on_collapse = TRUE,
     eta_bounds = list(
       lambda = c(-40, 40),
       tau = c(-40, 40),
@@ -98,6 +107,38 @@
   ctrl$h_curv <- as.numeric(ctrl$h_curv)[1]
   if (!is.finite(ctrl$h_curv) || ctrl$h_curv <= 0) ctrl$h_curv <- 1e-16
   ctrl$verbose <- isTRUE(ctrl$verbose)
+  freeze_tau_iters <- suppressWarnings(as.integer(.static_prior_or(ctrl$freeze_tau_iters, ctrl$rhs_freeze_tau_iters))[1])
+  if (!is.finite(freeze_tau_iters) || freeze_tau_iters < 0L) freeze_tau_iters <- 50L
+  freeze_tau_warmup_iters <- suppressWarnings(as.integer(
+    .static_prior_or(
+      ctrl$freeze_tau_warmup_iters,
+      .static_prior_or(ctrl$rhs_freeze_tau_warmup_iters, freeze_tau_iters)
+    )[1]
+  ))
+  if (!is.finite(freeze_tau_warmup_iters) || freeze_tau_warmup_iters < 0L) {
+    freeze_tau_warmup_iters <- freeze_tau_iters
+  }
+  update_every <- suppressWarnings(as.integer(.static_prior_or(ctrl$update_every, ctrl$rhs_update_every))[1])
+  if (!is.finite(update_every) || update_every < 1L) update_every <- 1L
+  update_every_warmup <- suppressWarnings(as.integer(
+    .static_prior_or(ctrl$update_every_warmup, .static_prior_or(ctrl$rhs_update_every_warmup, update_every))[1]
+  ))
+  if (!is.finite(update_every_warmup) || update_every_warmup < 1L) update_every_warmup <- update_every
+  update_every_warmup_iters <- suppressWarnings(as.integer(
+    .static_prior_or(ctrl$update_every_warmup_iters, ctrl$rhs_update_every_warmup_iters)[1]
+  ))
+  if (!is.finite(update_every_warmup_iters) || update_every_warmup_iters < 0L) update_every_warmup_iters <- 0L
+  ctrl$freeze_tau_iters <- freeze_tau_iters
+  ctrl$freeze_tau_warmup_iters <- freeze_tau_warmup_iters
+  ctrl$update_every <- update_every
+  ctrl$update_every_warmup <- update_every_warmup
+  ctrl$update_every_warmup_iters <- update_every_warmup_iters
+  ctrl$force_tau_after_warmup <- isTRUE(.static_prior_or(ctrl$force_tau_after_warmup, ctrl$rhs_force_tau_after_warmup))
+  ctrl$collapse_tau_ratio_tol <- as.numeric(ctrl$collapse_tau_ratio_tol)[1]
+  if (!is.finite(ctrl$collapse_tau_ratio_tol) || ctrl$collapse_tau_ratio_tol <= 0) ctrl$collapse_tau_ratio_tol <- 1e-6
+  ctrl$collapse_beta_max_abs_tol <- as.numeric(ctrl$collapse_beta_max_abs_tol)[1]
+  if (!is.finite(ctrl$collapse_beta_max_abs_tol) || ctrl$collapse_beta_max_abs_tol <= 0) ctrl$collapse_beta_max_abs_tol <- 1e-6
+  ctrl$warn_on_collapse <- isTRUE(ctrl$warn_on_collapse)
   init_lambda <- if (!is.null(ctrl$init_log_lambda)) .static_rhs_safe_exp(ctrl$init_log_lambda) else ctrl$init_lambda
   init_tau <- if (!is.null(ctrl$init_log_tau)) .static_rhs_safe_exp(ctrl$init_log_tau) else ctrl$init_tau
   init_c2 <- if (!is.null(ctrl$init_log_c2)) .static_rhs_safe_exp(ctrl$init_log_c2) else ctrl$init_c2
@@ -330,7 +371,14 @@
     eta_tau_hat = log(pmax(tau0, 1e-16)),
     eta_c_hat = log(pmax(c20, 1e-16)),
     Sigma_full = diag(ctrl$var_floor, p + 2L),
-    Sigma_diag = rep(ctrl$var_floor, p + 2L)
+    Sigma_diag = rep(ctrl$var_floor, p + 2L),
+    iter = 0L,
+    freeze_tau = FALSE,
+    update_tau_only = FALSE,
+    tau_update_count = 0L,
+    has_post_warmup_tau_update = FALSE,
+    last_schedule = list(),
+    collapse_diag = NULL
   )
 }
 
@@ -377,6 +425,83 @@
   pmax(prec, 1e-16)
 }
 
+.static_rhs_vb_schedule <- function(state, ctrl, iter_now) {
+  tau_warmup <- isTRUE(ctrl$freeze_tau_warmup_iters > 0L && iter_now <= ctrl$freeze_tau_warmup_iters)
+  update_every_eff <- ctrl$update_every
+  if (ctrl$update_every_warmup_iters > 0L && iter_now <= ctrl$update_every_warmup_iters) {
+    update_every_eff <- ctrl$update_every_warmup
+  }
+  scheduled_rhs_update <- (update_every_eff <= 1L) || ((iter_now %% update_every_eff) == 0L)
+  force_tau_now <- !tau_warmup &&
+    isTRUE(ctrl$force_tau_after_warmup) &&
+    isTRUE(ctrl$freeze_tau_warmup_iters > 0L) &&
+    !isTRUE(state$has_post_warmup_tau_update)
+  do_update <- isTRUE(scheduled_rhs_update || force_tau_now)
+  update_tau_only <- isTRUE(force_tau_now && !scheduled_rhs_update)
+  reason <- if (tau_warmup) {
+    "warmup"
+  } else if (update_tau_only) {
+    "force_after_warmup"
+  } else if (scheduled_rhs_update) {
+    "scheduled"
+  } else {
+    "rhs_update_skipped"
+  }
+  list(
+    iter = iter_now,
+    tau_warmup = tau_warmup,
+    update_every_eff = update_every_eff,
+    scheduled_rhs_update = scheduled_rhs_update,
+    force_tau_now = force_tau_now,
+    do_update = do_update,
+    update_tau_only = update_tau_only,
+    reason = reason
+  )
+}
+
+.static_rhs_collapse_diag <- function(state, qbeta, ctrl) {
+  idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
+  beta_use <- if (length(idx)) as.numeric(qbeta$m)[idx] else numeric(0)
+  tau <- .static_rhs_safe_exp(state$eta_tau_hat)
+  tau0 <- max(as.numeric(ctrl$tau0)[1], 1e-16)
+  tau_ratio <- tau / tau0
+  slope_l2 <- if (length(beta_use)) sqrt(sum(beta_use^2)) else NA_real_
+  slope_max_abs <- if (length(beta_use)) max(abs(beta_use)) else NA_real_
+  tau_near_zero <- isTRUE(is.finite(tau_ratio) && tau_ratio <= ctrl$collapse_tau_ratio_tol) ||
+    isTRUE(abs(as.numeric(state$eta_tau_hat) - ctrl$eta_bounds$tau[1]) <= 1e-6)
+  slope_collapse <- isTRUE(is.finite(slope_max_abs) && slope_max_abs <= ctrl$collapse_beta_max_abs_tol)
+  collapse_flag <- isTRUE(tau_near_zero && slope_collapse)
+  warning_msg <- if (collapse_flag) {
+    paste(
+      "RHS global scale collapsed near zero and active coefficients collapsed toward zero.",
+      "Consider a larger tau0 and/or RHS tau warmup/freeze tuning."
+    )
+  } else {
+    NA_character_
+  }
+  list(
+    collapse_flag = collapse_flag,
+    tau_near_zero = tau_near_zero,
+    slope_collapse = slope_collapse,
+    tau = tau,
+    tau0 = tau0,
+    tau_ratio = tau_ratio,
+    slope_l2 = slope_l2,
+    slope_max_abs = slope_max_abs,
+    active_count = length(idx),
+    eta_tau = as.numeric(state$eta_tau_hat)[1],
+    eta_tau_lower = ctrl$eta_bounds$tau[1],
+    at_tau_lower_bound = isTRUE(abs(as.numeric(state$eta_tau_hat)[1] - ctrl$eta_bounds$tau[1]) <= 1e-6),
+    warning = warning_msg
+  )
+}
+
+.static_rhs_maybe_warn_collapse <- function(rhs_summary, ctrl) {
+  if (!isTRUE(ctrl$warn_on_collapse) || is.null(rhs_summary) || !isTRUE(rhs_summary$collapse_flag)) return(invisible(FALSE))
+  warning(rhs_summary$warning, call. = FALSE)
+  invisible(TRUE)
+}
+
 .static_rhs_update_vb <- function(state, qbeta, ctrl) {
   p <- state$p
   beta2 <- as.numeric(qbeta$m^2 + diag(qbeta$V))
@@ -384,48 +509,74 @@
   eta_tau <- as.numeric(state$eta_tau_hat)
   eta_c2 <- as.numeric(state$eta_c_hat)
   active_idx <- .static_rhs_active_idx(p, ctrl$shrink_intercept)
+  iter_now <- as.integer(.static_prior_or(state$iter, 0L)) + 1L
+  sched <- .static_rhs_vb_schedule(state, ctrl, iter_now)
+  tau_updated <- FALSE
 
-  for (inner in seq_len(ctrl$n_inner)) {
-    for (j in active_idx) {
-      f_j <- function(eta_j) {
-        et <- eta_lam
-        et[j] <- eta_j
-        .static_rhs_obj_eta(et, eta_tau, eta_c2, beta2, ctrl)
+  if (isTRUE(sched$do_update)) {
+    update_tau_only <- isTRUE(sched$update_tau_only)
+    for (inner in seq_len(ctrl$n_inner)) {
+      if (!isTRUE(update_tau_only)) {
+        for (j in active_idx) {
+          f_j <- function(eta_j) {
+            et <- eta_lam
+            et[j] <- eta_j
+            .static_rhs_obj_eta(et, eta_tau, eta_c2, beta2, ctrl)
+          }
+          eta_lam[j] <- .static_rhs_opt_1d_mode(
+            f_j,
+            lo = ctrl$eta_bounds$lambda[1],
+            hi = ctrl$eta_bounds$lambda[2],
+            eta0 = eta_lam[j]
+          )
+        }
       }
-      eta_lam[j] <- .static_rhs_opt_1d_mode(
-        f_j,
-        lo = ctrl$eta_bounds$lambda[1],
-        hi = ctrl$eta_bounds$lambda[2],
-        eta0 = eta_lam[j]
-      )
+
+      if (!isTRUE(sched$tau_warmup)) {
+        f_tau <- function(etau) .static_rhs_obj_eta(eta_lam, etau, eta_c2, beta2, ctrl)
+        eta_tau <- .static_rhs_opt_1d_mode(
+          f_tau,
+          lo = ctrl$eta_bounds$tau[1],
+          hi = ctrl$eta_bounds$tau[2],
+          eta0 = eta_tau
+        )
+        tau_updated <- TRUE
+      }
+
+      if (!isTRUE(update_tau_only)) {
+        f_c2 <- function(ec) .static_rhs_obj_eta(eta_lam, eta_tau, ec, beta2, ctrl)
+        eta_c2 <- .static_rhs_opt_1d_mode(
+          f_c2,
+          lo = ctrl$eta_bounds$c2[1],
+          hi = ctrl$eta_bounds$c2[2],
+          eta0 = eta_c2
+        )
+      }
     }
 
-    f_tau <- function(etau) .static_rhs_obj_eta(eta_lam, etau, eta_c2, beta2, ctrl)
-    eta_tau <- .static_rhs_opt_1d_mode(
-      f_tau,
-      lo = ctrl$eta_bounds$tau[1],
-      hi = ctrl$eta_bounds$tau[2],
-      eta0 = eta_tau
-    )
-
-    f_c2 <- function(ec) .static_rhs_obj_eta(eta_lam, eta_tau, ec, beta2, ctrl)
-    eta_c2 <- .static_rhs_opt_1d_mode(
-      f_c2,
-      lo = ctrl$eta_bounds$c2[1],
-      hi = ctrl$eta_bounds$c2[2],
-      eta0 = eta_c2
-    )
+    hess <- .static_rhs_hess_active(eta_lam, eta_tau, eta_c2, beta2, ctrl)
+    invK <- .static_rhs_inv_spd_with_jitter(-hess$H, ctrl$var_floor)
+    Sigma_full <- .static_rhs_embed_sigma_full(invK$inv, idx = hess$idx, p = p, var_floor = ctrl$var_floor)
+    state$Sigma_full <- Sigma_full
+    state$Sigma_diag <- diag(Sigma_full)
   }
-
-  hess <- .static_rhs_hess_active(eta_lam, eta_tau, eta_c2, beta2, ctrl)
-  invK <- .static_rhs_inv_spd_with_jitter(-hess$H, ctrl$var_floor)
-  Sigma_full <- .static_rhs_embed_sigma_full(invK$inv, idx = hess$idx, p = p, var_floor = ctrl$var_floor)
 
   state$eta_lambda_hat <- eta_lam
   state$eta_tau_hat <- eta_tau
   state$eta_c_hat <- eta_c2
-  state$Sigma_full <- Sigma_full
-  state$Sigma_diag <- diag(Sigma_full)
+  state$iter <- iter_now
+  state$freeze_tau <- isTRUE(sched$tau_warmup)
+  state$update_tau_only <- isTRUE(sched$update_tau_only)
+  state$tau_update_count <- as.integer(.static_prior_or(state$tau_update_count, 0L)) + if (tau_updated) 1L else 0L
+  state$has_post_warmup_tau_update <- isTRUE(.static_prior_or(state$has_post_warmup_tau_update, FALSE) || tau_updated)
+  state$last_schedule <- c(
+    sched,
+    list(
+      tau_updated = tau_updated,
+      tau_update_count = state$tau_update_count
+    )
+  )
+  state$collapse_diag <- .static_rhs_collapse_diag(state, qbeta, ctrl)
   state
 }
 
@@ -564,6 +715,7 @@
     summary_vb = function(state) {
       idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
       lam <- .static_rhs_safe_exp(state$eta_lambda_hat[idx])
+      collapse_diag <- .static_prior_or(state$collapse_diag, list())
       list(
         tau = .static_rhs_safe_exp(state$eta_tau_hat),
         c2 = .static_rhs_safe_exp(state$eta_c_hat),
@@ -575,7 +727,19 @@
         tau0 = ctrl$tau0,
         nu = ctrl$nu,
         s = ctrl$s,
-        s2 = ctrl$s2
+        s2 = ctrl$s2,
+        rhs_iter = as.integer(.static_prior_or(state$iter, NA_integer_)),
+        rhs_tau_update_count = as.integer(.static_prior_or(state$tau_update_count, NA_integer_)),
+        rhs_tau_warmup_last = isTRUE(.static_prior_or(state$last_schedule$tau_warmup, FALSE)),
+        rhs_update_reason_last = as.character(.static_prior_or(state$last_schedule$reason, NA_character_))[1],
+        rhs_update_every_last = as.integer(.static_prior_or(state$last_schedule$update_every_eff, NA_integer_)),
+        collapse_flag = isTRUE(collapse_diag$collapse_flag),
+        collapse_tau_near_zero = isTRUE(collapse_diag$tau_near_zero),
+        collapse_beta = isTRUE(collapse_diag$slope_collapse),
+        collapse_tau_ratio = as.numeric(collapse_diag$tau_ratio)[1],
+        collapse_slope_l2 = as.numeric(collapse_diag$slope_l2)[1],
+        collapse_slope_max_abs = as.numeric(collapse_diag$slope_max_abs)[1],
+        collapse_warning = as.character(.static_prior_or(collapse_diag$warning, NA_character_))[1]
       )
     },
     summary_mcmc = function(state) {

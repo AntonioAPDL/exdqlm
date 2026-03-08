@@ -1116,7 +1116,7 @@ check_ts = function(dat){
 
   t1 <- proc.time()[3]
 
-  list(
+  ret <- list(
     dqlm.ind = TRUE,
     qbeta = list(m = m_beta, V = V_beta),
     qv = list(
@@ -1173,4 +1173,8 @@ check_ts = function(dat){
       )
     )
   )
+  if (identical(beta_prior_obj$type, "rhs")) {
+    .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
+  }
+  ret
 }

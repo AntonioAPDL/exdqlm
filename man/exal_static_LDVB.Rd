@@ -45,9 +45,14 @@ exal_static_LDVB(
 \code{beta_prior = "rhs"}, supported keys follow the qdesn implementation:
 \code{tau0}, \code{nu}, \code{s} or \code{s2}, \code{shrink_intercept},
 \code{intercept_prec}, \code{n_inner}, \code{eta_bounds},
-\code{var_floor}, \code{h_curv}, \code{verbose}, \code{init_lambda},
-\code{init_log_lambda}, \code{init_tau}, \code{init_log_tau},
-\code{init_c2}, and \code{init_log_c2}. When \code{beta_prior = "rhs"},
+\code{freeze_tau_iters}, \code{freeze_tau_warmup_iters},
+\code{update_every}, \code{update_every_warmup},
+\code{update_every_warmup_iters}, \code{force_tau_after_warmup},
+\code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
+\code{warn_on_collapse}, \code{var_floor}, \code{h_curv},
+\code{verbose}, \code{init_lambda}, \code{init_log_lambda},
+\code{init_tau}, \code{init_log_tau}, \code{init_c2},
+and \code{init_log_c2}. When \code{beta_prior = "rhs"},
 \code{b0} and \code{V0} are retained only for backward-compatible ridge
 behavior and are ignored for the shrunk coefficients.}
 

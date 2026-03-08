@@ -1862,3 +1862,129 @@ That is enough to build slice updates robustly.
   - full package test suite passed
   - manual RHS pipeline -> postprocess -> report smoke passed on a tiny static run
   - remaining work after this feature pass is scientific validation, not feature wiring
+
+### 2026-03-08 static exAL VB + RHS tail collapse audit
+
+Frozen baseline roots:
+- ridge arm:
+  - [static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260308_141742_shrink_ridge](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260308_static_homoskedastic_shrinkage_gaussian/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260308_141742_shrink_ridge)
+- rhs arm:
+  - [static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260308_141742_shrink_rhs](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260308_static_homoskedastic_shrinkage_gaussian/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260308_141742_shrink_rhs)
+- compare root:
+  - [shrinkage_compare_20260308_141742](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260308_static_homoskedastic_shrinkage_gaussian/shrinkage_compare_20260308_141742)
+- targeted audit:
+  - [static_exal_rhs_tail_collapse_20260308](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/sim_suite_static/audits/static_exal_rhs_tail_collapse_20260308)
+
+Audit conclusion:
+- The static `exAL` `VB + RHS` failure at `tau = 0.05` and `tau = 0.95` is a genuine collapse regime, not merely weak tail fit.
+- The RHS global scale collapses to essentially zero while the slope coefficients are numerically shrunk to zero.
+- The intercept remains active and absorbs the tail shift, producing a degenerate fitted surface.
+
+Concrete evidence from the frozen baseline:
+- `rhs_diagnostics_summary.csv` shows for static `exAL` `VB + RHS`:
+  - `tau = 0.05`: `rhs_tau = 4.24864984155777e-18`
+  - `tau = 0.95`: `rhs_tau = 4.24864984155777e-18`
+- The targeted audit summary confirms:
+  - `tau = 0.05`: `slope_max_abs < 1e-6`, collapse signature `TRUE`
+  - `tau = 0.95`: `slope_max_abs < 1e-6`, collapse signature `TRUE`
+- Coefficient recovery tables show that nearly all non-intercept coefficients are effectively zero under the failed tail `VB + RHS` fits.
+
+Interpretation:
+- This matches the qdesn-side collapse pattern where the RHS global shrinkage level can become too aggressive.
+- The current `tau0 = 1` default is not automatically safe for tail `exAL` `VB` in this static setup.
+- The failure is localized:
+  - static `AL + RHS` is behaving reasonably,
+  - static `exAL + RHS` `MCMC` is behaving reasonably,
+  - the main blocker is static `exAL + RHS` `VB` in the tails.
+
+Focused debugging outcome:
+- [x] Added an explicit collapse diagnostic / warning to static `VB + RHS` outputs when:
+  - `rhs_tau` is near zero, and
+  - the slope vector norm / max absolute slope is effectively zero.
+- [x] Implemented qdesn-style tau warmup/freeze scheduling in the shared static RHS VB prior block:
+  - `freeze_tau_iters`
+  - `freeze_tau_warmup_iters`
+  - `update_every`
+  - `update_every_warmup`
+  - `update_every_warmup_iters`
+  - `force_tau_after_warmup`
+- [x] Kept the debug scope localized:
+  - no changes to the static `AL + RHS` likelihood path
+  - no changes to the static `exAL + RHS` `MCMC` likelihood path
+
+### 2026-03-08 static exAL VB + RHS warmup/freeze recheck
+
+Targeted recheck root:
+- [static_exal_rhs_tail_warmfreeze_recheck_20260308](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/sim_suite_static/audits/static_exal_rhs_tail_warmfreeze_recheck_20260308)
+
+Recheck conclusion:
+- The qdesn-style tau warmup/freeze stage prevented the previously observed static `exAL` `VB + RHS` tail collapse on the frozen high-dimensional shrinkage dataset.
+- The same tail cases (`tau = 0.05`, `0.95`) now retain nonzero signal coefficients, keep zero coefficients small, and converge with finite nonzero RHS global scale.
+
+Concrete evidence from `warmfreeze_recheck_summary.csv`:
+- `tau = 0.05`
+  - baseline `rhs_tau = 4.24864984155777e-18`
+  - warmup/freeze `rhs_tau = 0.0867720651786426`
+  - baseline signal mean abs estimate `= 1.02790622132233e-33`
+  - warmup/freeze signal mean abs estimate `= 0.721571978207561`
+  - warmup/freeze zero mean abs estimate `= 0.00445551564104866`
+- `tau = 0.95`
+  - baseline `rhs_tau = 4.24864984155777e-18`
+  - warmup/freeze `rhs_tau = 0.0838155997165169`
+  - baseline signal mean abs estimate `= 1.03605591418165e-33`
+  - warmup/freeze signal mean abs estimate `= 0.69675527902913`
+  - warmup/freeze zero mean abs estimate `= 0.00250496334651129`
+
+Interpretation:
+- The failure mode was genuinely a tau-collapse regime.
+- The warmup/freeze schedule addresses that mechanism directly.
+- The next gate is broader RHS validation using the stabilized schedule, rather than more localized tail debugging.
+
+### 2026-03-08 broader static RHS validation rerun after warmup/freeze
+
+Updated RHS run root:
+- [static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260308_154217_shrink_rhs_warmfreeze](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260308_static_homoskedastic_shrinkage_gaussian/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260308_154217_shrink_rhs_warmfreeze)
+
+Updated `ridge vs rhs` compare root:
+- [shrinkage_compare_20260308_154217_warmfreeze](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/results/function_testing_20260308_static_homoskedastic_shrinkage_gaussian/shrinkage_compare_20260308_154217_warmfreeze)
+
+Rerun conclusion:
+- The stabilized warmup/freeze schedule removed the catastrophic `static exAL VB + RHS` tail-collapse failure in the broader high-dimensional shrinkage campaign.
+- The remaining `exAL` failures are no longer coefficient-collapse failures; they revert to the expected signoff gates:
+  - weak `gamma` mixing / ESS in `MCMC`
+  - LD stability gate failures in `VB`
+
+Concrete before/after improvement for `static exAL VB + RHS`:
+- `tau = 0.05`
+  - previous `beta_rmse_signal = 0.855131568824353`
+  - rerun `beta_rmse_signal = 0.0142199704035757`
+  - previous `mean_abs_est_zero = 5.44074821497885e-35`
+  - rerun `mean_abs_est_zero = 0.00445551565574937`
+  - previous `support_tpr_signal = 0`
+  - rerun `support_tpr_signal = 1`
+- `tau = 0.95`
+  - previous `beta_rmse_signal = 0.855131568824353`
+  - rerun `beta_rmse_signal = 0.0181885978846463`
+  - previous `mean_abs_est_zero = 5.14879301533093e-35`
+  - rerun `mean_abs_est_zero = 0.00250496334842183`
+  - previous `support_tpr_signal = 0`
+  - rerun `support_tpr_signal = 1`
+
+Broader interpretation:
+- `AL + RHS` remains strong.
+- `exAL + RHS` `MCMC` remains promising.
+- `exAL + RHS` `VB` no longer collapses in the tails under the stabilized tau schedule.
+- Remaining `exAL` signoff failures are now scientifically interpretable and comparable to the non-RHS extended-model issues, rather than being dominated by prior-collapse pathology.
+
+Current gate status on the updated RHS run:
+- `AL` rows: all pass.
+- `exAL` rows:
+  - `tau = 0.05`: fails on low `ESS_sigma`, low `ESS_gamma`, and LD stability gate
+  - `tau = 0.50`: fails on low `ESS_gamma` and LD stability gate
+  - `tau = 0.95`: fails on low `ESS_sigma`, low `ESS_gamma`, and LD stability gate
+- `rhs_collapse_flag_count = 0`
+
+Next validation gate:
+- [x] Rerun the broader static RHS shrinkage validation arm with the stabilized warmup/freeze schedule recorded explicitly in the run configuration.
+- [x] Rebuild the `ridge vs rhs` shrinkage comparison outputs against the frozen ridge baseline.
+- [ ] Decide whether to relax or redesign the current LD stability gate for `RHS` tail `exAL VB`, now that collapse is gone but the tail traces remain highly variable.

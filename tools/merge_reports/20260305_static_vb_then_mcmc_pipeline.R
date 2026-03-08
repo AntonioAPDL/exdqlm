@@ -68,12 +68,36 @@ rhs_nu <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_NU", "4"), 4)
 rhs_s2 <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_S2", "1"), 1)
 rhs_shrink_intercept <- safe_bool(Sys.getenv("EXDQLM_STATIC_RHS_SHRINK_INTERCEPT", "false"), FALSE)
 rhs_intercept_prec <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_INTERCEPT_PREC", "1e-16"), 1e-16)
+rhs_freeze_tau_iters <- safe_int(Sys.getenv("EXDQLM_STATIC_RHS_FREEZE_TAU_ITERS", "50"), 50L)
+rhs_freeze_tau_warmup_iters <- safe_int(
+  Sys.getenv("EXDQLM_STATIC_RHS_FREEZE_TAU_WARMUP_ITERS", as.character(rhs_freeze_tau_iters)),
+  rhs_freeze_tau_iters
+)
+rhs_update_every <- safe_int(Sys.getenv("EXDQLM_STATIC_RHS_UPDATE_EVERY", "1"), 1L)
+rhs_update_every_warmup <- safe_int(
+  Sys.getenv("EXDQLM_STATIC_RHS_UPDATE_EVERY_WARMUP", as.character(rhs_update_every)),
+  rhs_update_every
+)
+rhs_update_every_warmup_iters <- safe_int(Sys.getenv("EXDQLM_STATIC_RHS_UPDATE_EVERY_WARMUP_ITERS", "0"), 0L)
+rhs_force_tau_after_warmup <- safe_bool(Sys.getenv("EXDQLM_STATIC_RHS_FORCE_TAU_AFTER_WARMUP", "true"), TRUE)
+rhs_collapse_tau_ratio_tol <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_COLLAPSE_TAU_RATIO_TOL", "1e-6"), 1e-6)
+rhs_collapse_beta_max_abs_tol <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_COLLAPSE_BETA_MAX_ABS_TOL", "1e-6"), 1e-6)
+rhs_warn_on_collapse <- safe_bool(Sys.getenv("EXDQLM_STATIC_RHS_WARN_ON_COLLAPSE", "true"), TRUE)
 beta_prior_controls <- list(
   tau0 = rhs_tau0,
   nu = rhs_nu,
   s2 = rhs_s2,
   shrink_intercept = rhs_shrink_intercept,
-  intercept_prec = rhs_intercept_prec
+  intercept_prec = rhs_intercept_prec,
+  freeze_tau_iters = rhs_freeze_tau_iters,
+  freeze_tau_warmup_iters = rhs_freeze_tau_warmup_iters,
+  update_every = rhs_update_every,
+  update_every_warmup = rhs_update_every_warmup,
+  update_every_warmup_iters = rhs_update_every_warmup_iters,
+  force_tau_after_warmup = rhs_force_tau_after_warmup,
+  collapse_tau_ratio_tol = rhs_collapse_tau_ratio_tol,
+  collapse_beta_max_abs_tol = rhs_collapse_beta_max_abs_tol,
+  warn_on_collapse = rhs_warn_on_collapse
 )
 
 vb_max_iter <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_MAX_ITER", "300"), 300L)

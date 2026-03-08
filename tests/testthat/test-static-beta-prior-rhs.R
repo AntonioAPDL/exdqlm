@@ -129,3 +129,58 @@ test_that("static AL MCMC reduced path supports RHS prior", {
   expect_true(is.finite(fit$rhs.diagnostics$summary$tau))
   expect_true(is.finite(fit$rhs.diagnostics$summary$c2))
 })
+
+test_that("static RHS VB warmup freezes tau before the forced post-warmup update", {
+  obj <- exdqlm:::.static_beta_prior_make(
+    beta_prior = "rhs",
+    p = 3L,
+    b0 = rep(0, 3L),
+    V0 = diag(1, 3L),
+    beta_prior_controls = list(
+      tau0 = 0.5,
+      nu = 3,
+      s2 = 1,
+      shrink_intercept = FALSE,
+      freeze_tau_iters = 3L,
+      freeze_tau_warmup_iters = 3L,
+      update_every = 5L,
+      force_tau_after_warmup = TRUE
+    )
+  )
+  state <- obj$init_vb()
+  tau_init <- exp(state$eta_tau_hat)
+  qbeta <- list(m = c(0, 0.8, -0.4), V = diag(c(1e-6, 0.1, 0.1)))
+
+  state <- obj$update_vb(state, qbeta)
+  expect_equal(exp(state$eta_tau_hat), tau_init, tolerance = 1e-12)
+  expect_true(isTRUE(state$last_schedule$tau_warmup))
+  expect_identical(state$tau_update_count, 0L)
+
+  state <- obj$update_vb(state, qbeta)
+  state <- obj$update_vb(state, qbeta)
+  expect_identical(state$tau_update_count, 0L)
+
+  state <- obj$update_vb(state, qbeta)
+  expect_false(isTRUE(state$last_schedule$tau_warmup))
+  expect_identical(state$last_schedule$reason, "force_after_warmup")
+  expect_identical(state$tau_update_count, 1L)
+})
+
+test_that("static RHS collapse diagnostic flags tau collapse and zeroed slopes", {
+  ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(
+    tau0 = 1,
+    nu = 4,
+    s2 = 1,
+    shrink_intercept = FALSE
+  ))
+  state <- exdqlm:::.static_rhs_init_vb_state(4L, ctrl)
+  state$eta_tau_hat <- ctrl$eta_bounds$tau[1]
+  qbeta <- list(m = c(0.7, 1e-8, -3e-7, 6e-7), V = diag(rep(1e-10, 4L)))
+
+  diag <- exdqlm:::.static_rhs_collapse_diag(state, qbeta, ctrl)
+  expect_true(isTRUE(diag$collapse_flag))
+  expect_true(isTRUE(diag$tau_near_zero))
+  expect_true(isTRUE(diag$slope_collapse))
+  expect_true(is.finite(diag$tau_ratio))
+  expect_match(diag$warning, "collapsed near zero")
+})
