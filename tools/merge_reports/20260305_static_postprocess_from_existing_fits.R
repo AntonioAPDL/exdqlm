@@ -373,7 +373,29 @@ vb_conv <- do.call(rbind, vb_rows)
 ld_diag <- do.call(rbind, ld_rows)
 mc_diag <- do.call(rbind, mc_rows)
 metrics_df <- do.call(rbind, metrics_rows)
-rhs_diag_df <- if (length(rhs_rows)) do.call(rbind, rhs_rows) else data.frame()
+rhs_diag_df <- if (length(rhs_rows)) {
+  do.call(rbind, rhs_rows)
+} else {
+  data.frame(
+    inference = character(0),
+    model = character(0),
+    tau = numeric(0),
+    beta_prior = character(0),
+    rhs_tau = numeric(0),
+    rhs_c2 = numeric(0),
+    rhs_lambda_mean = numeric(0),
+    rhs_lambda_min = numeric(0),
+    rhs_lambda_max = numeric(0),
+    rhs_tau0 = numeric(0),
+    rhs_nu = numeric(0),
+    rhs_s = numeric(0),
+    rhs_s2 = numeric(0),
+    rhs_shrink_intercept = logical(0),
+    rhs_ess_tau = numeric(0),
+    rhs_ess_c2 = numeric(0),
+    stringsAsFactors = FALSE
+  )
+}
 
 utils::write.csv(fit_summary, file.path(run_root, "tables", "fit_summary.csv"), row.names = FALSE)
 utils::write.csv(vb_conv, file.path(run_root, "tables", "vb_convergence_summary.csv"), row.names = FALSE)
