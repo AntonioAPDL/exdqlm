@@ -70,6 +70,43 @@ infer_mcmc_file <- function(run_root, model, tau) {
   file.path(run_root, "fits", "mcmc", sprintf("mcmc_%s_tau_%s_fit.rds", model, tau_lab(tau)))
 }
 
+plot_coef_tree <- function(file_path, beta_draws, main, lambda_summary = NULL) {
+  beta_draws <- as.matrix(beta_draws)
+  if (!nrow(beta_draws) || !ncol(beta_draws)) return(invisible(NULL))
+  cn <- colnames(beta_draws)
+  if (is.null(cn)) cn <- paste0("beta", seq_len(ncol(beta_draws)))
+  post_mean <- colMeans(beta_draws, na.rm = TRUE)
+  qs <- t(apply(beta_draws, 2, stats::quantile, probs = c(0.05, 0.5, 0.95), na.rm = TRUE))
+  ord <- order(abs(post_mean), decreasing = TRUE)
+  qs <- qs[ord, , drop = FALSE]
+  cn <- cn[ord]
+  grDevices::png(file_path, width = 1500, height = max(900, 220 + 70 * ncol(beta_draws)), res = 140)
+  old_par <- graphics::par(no.readonly = TRUE)
+  on.exit({
+    graphics::par(old_par)
+    grDevices::dev.off()
+  }, add = TRUE)
+  graphics::par(mar = c(5, 8, 4, 2))
+  yy <- seq_along(cn)
+  xlim <- range(qs, finite = TRUE)
+  graphics::plot(qs[, 2], yy,
+    xlim = xlim, ylim = c(0.5, length(cn) + 0.5),
+    yaxt = "n", ylab = "", xlab = "posterior coefficient value",
+    pch = 19, col = "#C73E1D", main = main
+  )
+  graphics::segments(qs[, 1], yy, qs[, 3], yy, lwd = 2.2, col = "#1F78B4")
+  graphics::abline(v = 0, lty = 2, col = "grey40")
+  graphics::axis(2, at = yy, labels = cn, las = 1)
+  if (!is.null(lambda_summary) && length(lambda_summary) == length(cn)) {
+    usr <- graphics::par("usr")
+    x_txt <- usr[2] - 0.03 * diff(usr[1:2])
+    graphics::text(x_txt, yy,
+      labels = sprintf("lambda=%.2f", lambda_summary[ord]),
+      pos = 2, cex = 0.85, col = "grey25"
+    )
+  }
+}
+
 run_root <- resolve_run_root()
 if (!dir.exists(run_root)) stop("Run root does not exist: ", run_root)
 
@@ -108,14 +145,17 @@ out_plots <- file.path(run_root, "plots")
 out_plots_comp <- file.path(out_plots, "comparison")
 out_plots_diag <- file.path(out_plots, "diagnostics")
 out_plots_cloud <- file.path(out_plots, "cloud")
+out_plots_rhs <- file.path(out_plots, "rhs")
 dir.create(out_tables, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_plots, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_plots_comp, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_plots_diag, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_plots_cloud, recursive = TRUE, showWarnings = FALSE)
+dir.create(out_plots_rhs, recursive = TRUE, showWarnings = FALSE)
 
 TT <- if (!is.null(cfg$TT)) as.integer(cfg$TT) else nrow(sim$extras$X)
 X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
+if (is.null(colnames(X))) colnames(X) <- paste0("x", seq_len(ncol(X)))
 q_true <- as.matrix(sim$q[seq_len(TT), , drop = FALSE])
 p_grid <- as.numeric(sim$p)
 y_obs <- as.numeric(sim$y[seq_len(TT)])
@@ -126,8 +166,13 @@ default_cov <- {
   if (length(nn)) nn[1] else cn[1]
 }
 covar_name <- Sys.getenv("EXDQLM_STATIC_PLOT_COVAR", default_cov)
-if (!(covar_name %in% colnames(X))) covar_name <- default_cov
-x_primary <- as.numeric(X[, covar_name])
+covar_idx <- match(covar_name, colnames(X))
+if (!is.finite(covar_idx) || is.na(covar_idx)) {
+  covar_name <- default_cov
+  covar_idx <- match(covar_name, colnames(X))
+}
+if (!is.finite(covar_idx) || is.na(covar_idx)) covar_idx <- 1L
+x_primary <- as.numeric(X[, covar_idx])
 
 closest_p_index <- function(tau) which.min(abs(p_grid - tau))
 
@@ -215,6 +260,12 @@ utils::write.csv(runtime_diag, file.path(out_tables, "runtime_diagnostics_summar
 ld_diag_path <- file.path(out_tables, "vb_ld_diagnostics_summary.csv")
 ld_diag <- if (file.exists(ld_diag_path)) {
   utils::read.csv(ld_diag_path, check.names = FALSE)
+} else {
+  data.frame()
+}
+rhs_diag_path <- file.path(out_tables, "rhs_diagnostics_summary.csv")
+rhs_diag <- if (file.exists(rhs_diag_path)) {
+  utils::read.csv(rhs_diag_path, check.names = FALSE)
 } else {
   data.frame()
 }
@@ -493,6 +544,33 @@ if (nrow(metrics_df) > 0) {
     }
   }
 
+  # RHS-only coefficient tree plots.
+  for (key in names(plot_payload)) {
+    files <- fit_file_payload[[key]]
+    tau <- plot_payload[[key]]$tau
+    model <- plot_payload[[key]]$model
+    for (method in c("vb", "mcmc")) {
+      fit_path <- if (identical(method, "vb")) files$vb_file else files$mcmc_file
+      if (is.null(fit_path) || !file.exists(fit_path)) next
+      fit <- readRDS(fit_path)$fit
+      if (is.null(fit$beta_prior) || !identical(fit$beta_prior$type, "rhs")) next
+      if (identical(method, "vb")) {
+        beta_draws <- matrix(as.numeric(fit$qbeta$m), nrow = 1L)
+        colnames(beta_draws) <- colnames(X)
+        lambda_sum <- if (!is.null(fit$beta_prior$summary$lambda)) fit$beta_prior$summary$lambda else NULL
+      } else {
+        beta_draws <- as.matrix(fit$samp.beta)
+        lambda_sum <- if (!is.null(fit$rhs.diagnostics$summary$lambda)) fit$rhs.diagnostics$summary$lambda else NULL
+      }
+      plot_coef_tree(
+        file.path(out_plots_rhs, sprintf("%s_%s_tau_%s_coef_tree.png", method, model, tau_lab(tau))),
+        beta_draws = beta_draws,
+        main = sprintf("%s %s coefficient tree (tau=%.2f)", toupper(method), toupper(model), tau),
+        lambda_summary = lambda_sum
+      )
+    }
+  }
+
   # Runtime bar plot
   done_df <- runtime_diag[runtime_diag$status %in% c("done", "skipped_existing"), , drop = FALSE]
   if (nrow(done_df) > 0) {
@@ -539,6 +617,7 @@ writeLines(c(
   sprintf("- comparison_plot_png_count: %d", length(list.files(out_plots_comp, pattern = "\\.png$", full.names = TRUE))),
   sprintf("- cloud_plot_png_count: %d", length(list.files(out_plots_cloud, pattern = "\\.png$", full.names = TRUE))),
   sprintf("- diagnostics_plot_png_count: %d", length(list.files(out_plots_diag, pattern = "\\.png$", full.names = TRUE))),
+  sprintf("- rhs_plot_png_count: %d", length(list.files(out_plots_rhs, pattern = "\\.png$", full.names = TRUE))),
   "",
   "## Gate thresholds",
   sprintf("- ESS sigma min: %.1f", ess_sigma_min),
@@ -549,7 +628,8 @@ writeLines(c(
   "- accuracy gate: RMSE(MCMC) <= 1.25 * RMSE(VB)",
   "",
   sprintf("- gate_pass_count: %d", sum(gate_df$overall_pass, na.rm = TRUE)),
-  sprintf("- gate_fail_count: %d", sum(!gate_df$overall_pass, na.rm = TRUE))
+  sprintf("- gate_fail_count: %d", sum(!gate_df$overall_pass, na.rm = TRUE)),
+  sprintf("- rhs_rows: %d", if (nrow(rhs_diag)) nrow(rhs_diag) else 0L)
 ), con)
 
 cat(sprintf("S4 report generated under: %s\n", run_root))

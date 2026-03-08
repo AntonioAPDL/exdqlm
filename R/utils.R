@@ -939,6 +939,7 @@ check_ts = function(dat){
   tol = 1e-4,
   b0 = NULL,
   V0 = NULL,
+  beta_prior_obj = NULL,
   a_sigma = 1,
   b_sigma = 1,
   init = NULL,
@@ -956,19 +957,26 @@ check_ts = function(dat){
   if (is.null(V0)) V0 <- diag(1e6, p)
   V0 <- as.matrix(V0)
   if (!all(dim(V0) == c(p, p))) stop("V0 must be p x p.")
+  if (is.null(beta_prior_obj)) {
+    beta_prior_obj <- .static_beta_prior_make(
+      beta_prior = "ridge",
+      p = p,
+      b0 = b0,
+      V0 = V0,
+      beta_prior_controls = NULL,
+      warn_rhs_b0 = FALSE,
+      warn_rhs_V0 = FALSE
+    )
+  }
 
   A_tau <- (1 - 2 * p0) / (p0 * (1 - p0))
   B_tau <- 2 / (p0 * (1 - p0))
-
-  V0_inv <- tryCatch(
-    solve(V0),
-    error = function(e) solve(V0 + 1e-8 * diag(p))
-  )
 
   # Initialization
   m_beta <- if (!is.null(init$beta)) as.numeric(init$beta) else rep(0, p)
   if (length(m_beta) != p) m_beta <- rep(m_beta[1], p)
   V_beta <- V0
+  beta_state <- beta_prior_obj$init_vb()
 
   sigma0 <- if (!is.null(init$sigma)) as.numeric(init$sigma)[1] else 1
   if (!is.finite(sigma0) || sigma0 <= 0) sigma0 <- 1
@@ -1005,15 +1013,20 @@ check_ts = function(dat){
     # (1) q(beta): Normal
     W <- (kappa / B_tau) * ell
     Xw <- X * sqrt(W)
-    V_inv <- crossprod(Xw) + V0_inv
+    prior_sys <- beta_prior_obj$beta_system_vb(beta_state)
+    V_inv <- crossprod(Xw) + prior_sys$Prec
     Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
     if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
     V_beta <- chol2inv(Uc)
 
-    rhs <- V0_inv %*% b0 + (kappa / B_tau) * (
+    rhs <- prior_sys$h + (kappa / B_tau) * (
       crossprod(X, ell * y) - A_tau * colSums(X)
     )
     m_beta <- as.numeric(V_beta %*% rhs)
+    beta_state <- beta_prior_obj$update_vb(
+      beta_state,
+      list(m = m_beta, V = V_beta)
+    )
 
     # Residual moments under q(beta)
     m_eta <- as.numeric(X %*% m_beta)
@@ -1043,10 +1056,10 @@ check_ts = function(dat){
     E_log_sigma <- log(b_q) - digamma(a_q)
 
     # ELBO
-    logdetV0 <- as.numeric(determinant(V0, logarithm = TRUE)$modulus)
-    E_log_p_beta <- - (p / 2) * log(2 * pi) - 0.5 * logdetV0 -
-      0.5 * (sum(V0_inv * V_beta) +
-               drop(crossprod(m_beta - b0, V0_inv %*% (m_beta - b0))))
+    E_log_p_beta <- beta_prior_obj$elbo_vb(
+      beta_state,
+      list(m = m_beta, V = V_beta)
+    )
 
     E_log_p_sigma <- a_sigma * log(b_sigma) - lgamma(a_sigma) -
       (a_sigma + 1) * E_log_sigma - b_sigma * E_inv_sigma
@@ -1123,6 +1136,12 @@ check_ts = function(dat){
     converged = converged,
     iter = iter,
     run.time = as.numeric(t1 - t0),
+    beta_prior = list(
+      type = beta_prior_obj$type,
+      controls = beta_prior_obj$controls,
+      summary = beta_prior_obj$summary_vb(beta_state),
+      state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+    ),
     misc = list(
       p0 = p0,
       n = n,

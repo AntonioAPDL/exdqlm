@@ -12,6 +12,8 @@ exal_static_LDVB(
   tol = 1e-04,
   b0 = NULL,
   V0 = NULL,
+  beta_prior = c("ridge", "rhs"),
+  beta_prior_controls = NULL,
   a_sigma = 1,
   b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
@@ -35,6 +37,19 @@ exal_static_LDVB(
 \item{tol}{Numeric; convergence tolerance based on relative ELBO changes (default 1e-4).}
 
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.}
+
+\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default) or
+\code{"rhs"} for the regularized horseshoe.}
+
+\item{beta_prior_controls}{Optional list of prior-specific controls. For
+\code{beta_prior = "rhs"}, supported keys follow the qdesn implementation:
+\code{tau0}, \code{nu}, \code{s} or \code{s2}, \code{shrink_intercept},
+\code{intercept_prec}, \code{n_inner}, \code{eta_bounds},
+\code{var_floor}, \code{h_curv}, \code{verbose}, \code{init_lambda},
+\code{init_log_lambda}, \code{init_tau}, \code{init_log_tau},
+\code{init_c2}, and \code{init_log_c2}. When \code{beta_prior = "rhs"},
+\code{b0} and \code{V0} are retained only for backward-compatible ridge
+behavior and are ignored for the shrunk coefficients.}
 
 \item{a_sigma, b_sigma}{Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.}
@@ -85,6 +100,8 @@ A object of class "\code{exal_ldvb}" containing:
 \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
 \item \code{converged}, \code{iter}, \code{run.time}, and
 \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
+\item \code{beta_prior}: prior metadata and, for RHS, posterior summaries of
+the shrinkage hyperparameters.
 \item \code{diagnostics}: ELBO and joint-convergence diagnostics
 (state/sigma/gamma/ELBO deltas, stopping reason, and
 Laplace-Delta block trace diagnostics, including replicated-\code{xi}

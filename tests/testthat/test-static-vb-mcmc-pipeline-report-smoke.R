@@ -50,6 +50,11 @@ test_that("static VB->MCMC pipeline and report scripts produce core artifacts", 
     "EXDQLM_STATIC_LD_XI_MODE=replicated",
     "EXDQLM_STATIC_LD_XI_REPLICATES=2",
     "EXDQLM_STATIC_LD_REUSE_SEED=20260305",
+    "EXDQLM_STATIC_BETA_PRIOR=rhs",
+    "EXDQLM_STATIC_RHS_TAU0=0.5",
+    "EXDQLM_STATIC_RHS_NU=3",
+    "EXDQLM_STATIC_RHS_S2=1",
+    "EXDQLM_STATIC_RHS_SHRINK_INTERCEPT=false",
     "EXDQLM_STATIC_MCMC_BURN=8",
     "EXDQLM_STATIC_MCMC_N=10",
     "EXDQLM_STATIC_MCMC_THIN=1",
@@ -82,6 +87,8 @@ test_that("static VB->MCMC pipeline and report scripts produce core artifacts", 
   summary_df <- utils::read.csv(summary_path, check.names = FALSE)
   expect_equal(nrow(summary_df), 6)
   expect_true(all(summary_df$status %in% c("done", "failed")))
+  expect_true("beta_prior" %in% names(summary_df))
+  expect_true(all(summary_df$beta_prior == "rhs"))
 
   out2 <- tryCatch(
     system2(
@@ -100,12 +107,16 @@ test_that("static VB->MCMC pipeline and report scripts produce core artifacts", 
 
   gate_path <- file.path(run_root, "tables", "acceptance_gate_summary.csv")
   metrics_path <- file.path(run_root, "tables", "fit_metrics_by_task.csv")
+  rhs_path <- file.path(run_root, "tables", "rhs_diagnostics_summary.csv")
   expect_true(file.exists(gate_path))
   expect_true(file.exists(metrics_path))
+  expect_true(file.exists(rhs_path))
 
   gate_df <- utils::read.csv(gate_path, check.names = FALSE)
+  rhs_df <- utils::read.csv(rhs_path, check.names = FALSE)
   expect_true(all(c("model", "tau", "overall_pass") %in% names(gate_df)))
   expect_true("gate_vb_ld_stable" %in% names(gate_df))
   expect_true("gate_vb_ld_local_mode" %in% names(gate_df))
   expect_true("gate_mcmc_kernel_exact" %in% names(gate_df))
+  expect_true(all(c("beta_prior", "rhs_tau", "rhs_c2") %in% names(rhs_df)))
 })

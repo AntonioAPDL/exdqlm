@@ -383,6 +383,17 @@
 #' @param max_iter Integer; maximum CAVI iterations (default 1000).
 #' @param tol Numeric; convergence tolerance based on relative ELBO changes (default 1e-4).
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
+#' @param beta_prior Coefficient prior type: \code{"ridge"} (default) or
+#'   \code{"rhs"} for the regularized horseshoe.
+#' @param beta_prior_controls Optional list of prior-specific controls. For
+#'   \code{beta_prior = "rhs"}, supported keys follow the qdesn implementation:
+#'   \code{tau0}, \code{nu}, \code{s} or \code{s2}, \code{shrink_intercept},
+#'   \code{intercept_prec}, \code{n_inner}, \code{eta_bounds},
+#'   \code{var_floor}, \code{h_curv}, \code{verbose}, \code{init_lambda},
+#'   \code{init_log_lambda}, \code{init_tau}, \code{init_log_tau},
+#'   \code{init_c2}, and \code{init_log_c2}. When \code{beta_prior = "rhs"},
+#'   \code{b0} and \code{V0} are retained only for backward-compatible ridge
+#'   behavior and are ignored for the shrunk coefficients.
 #' @param a_sigma,b_sigma Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 #'   density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
 #' @param gamma_bounds Two-vector (L, U) support for \code{gamma}.
@@ -424,6 +435,8 @@
 #'         \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
 #'   \item \code{converged}, \code{iter}, \code{run.time}, and
 #'         \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
+#'   \item \code{beta_prior}: prior metadata and, for RHS, posterior summaries of
+#'         the shrinkage hyperparameters.
 #'   \item \code{diagnostics}: ELBO and joint-convergence diagnostics
 #'         (state/sigma/gamma/ELBO deltas, stopping reason, and
 #'         Laplace-Delta block trace diagnostics, including replicated-\code{xi}
@@ -455,6 +468,8 @@ exal_static_LDVB <- function(
   y, X, p0,
   max_iter = 1000, tol = 1e-4,
   b0 = NULL, V0 = NULL,
+  beta_prior = c("ridge", "rhs"),
+  beta_prior_controls = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
   log_prior_gamma = NULL,
@@ -471,10 +486,21 @@ exal_static_LDVB <- function(
   if (nrow(X) != n) stop("nrow(X) must match length(y).")
   if (!(p0 > 0 && p0 < 1)) stop("p0 must be in (0,1).")
 
+  b0_missing <- is.null(b0)
+  V0_missing <- is.null(V0)
   if (is.null(b0)) b0 <- rep(0, p)
   if (is.null(V0)) V0 <- diag(1e6, p)
   V0 <- as.matrix(V0)
   if (!all(dim(V0) == c(p, p))) stop("V0 must be p x p.")
+  beta_prior_obj <- .static_beta_prior_make(
+    beta_prior = beta_prior,
+    p = p,
+    b0 = b0,
+    V0 = V0,
+    beta_prior_controls = beta_prior_controls,
+    warn_rhs_b0 = !b0_missing,
+    warn_rhs_V0 = !V0_missing
+  )
 
   # Reduced AL / DQLM branch: no gamma, no s, no LD block.
   if (isTRUE(dqlm.ind)) {
@@ -486,6 +512,7 @@ exal_static_LDVB <- function(
       tol = tol,
       b0 = b0,
       V0 = V0,
+      beta_prior_obj = beta_prior_obj,
       a_sigma = a_sigma,
       b_sigma = b_sigma,
       init = init,
@@ -523,6 +550,7 @@ exal_static_LDVB <- function(
   V_beta  <- V0
   sigma0  <- ld_setup$sigma0
   gamma0  <- ld_setup$gamma0
+  beta_state <- beta_prior_obj$init_vb()
 
   # q(v): initialize moments (use 1 for both)
   E_inv_v <- rep(1, n)
@@ -550,11 +578,6 @@ exal_static_LDVB <- function(
   }
 
   # --- numerics helpers ------------------------------------------------------
-  V0_inv <- tryCatch(
-    solve(V0),
-    error = function(e) solve(V0 + 1e-8 * diag(p))
-  )
-
     # E[log V] for V ~ GIG(k, chi, psi)
     gig_E_log <- function(k, chi, psi) {
     chi <- pmax(chi, 1e-14); psi <- pmax(psi, 1e-14)
@@ -920,7 +943,8 @@ exal_static_LDVB <- function(
     # V = (V0^{-1} + xi1 * X^T diag(E[1/v]) X)^{-1}
     W <- xis$xi1 * E_inv_v
     Xw <- X * sqrt(W)
-    V_inv <- crossprod(Xw) + V0_inv
+    prior_sys <- beta_prior_obj$beta_system_vb(beta_state)
+    V_inv <- crossprod(Xw) + prior_sys$Prec
     Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
     if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
     V_beta_new <- chol2inv(Uc)
@@ -930,9 +954,13 @@ exal_static_LDVB <- function(
            crossprod(X, (xis$xi_lambda * (E_inv_v * E_s))) 
 
     # Careful: The xi_A * 1_n term multiplies X^T * 1_n
-    rhs <- rhs + (V0_inv %*% b0) - (xis$xi_A) * colSums(X)
+    rhs <- rhs + prior_sys$h - (xis$xi_A) * colSums(X)
 
     m_beta_new <- V_beta_new %*% rhs
+    beta_state_new <- beta_prior_obj$update_vb(
+      beta_state,
+      list(m = as.numeric(m_beta_new), V = V_beta_new)
+    )
 
     # ---- (2) q(v_i) = GIG(1/2, chi_i, psi)
     xb   <- drop(X %*% m_beta_new)
@@ -1022,6 +1050,7 @@ exal_static_LDVB <- function(
 
     # commit new values
     m_beta <- as.numeric(m_beta_new); V_beta <- V_beta_new
+    beta_state <- beta_state_new
     E_v    <- as.numeric(E_v_new);    E_inv_v <- as.numeric(E_inv_v_new)
     qs_mu  <- as.numeric(mu_s);       qs_tau2 <- as.numeric(tau2)
     E_s    <- as.numeric(s_mom$Es);   E_s2    <- as.numeric(s_mom$Es2)
@@ -1063,11 +1092,11 @@ exal_static_LDVB <- function(
     # (5) E[log p(s)] for s_i ~ N^+(0,1)
     E_log_ps <- n * log(2) - (n/2) * log(2*pi) - 0.5 * sum(E_s2)
 
-    # (6) E[log p(beta)] : Normal(b0, V0)
-    logdetV0 <- as.numeric(determinant(V0, logarithm = TRUE)$modulus)
-    E_log_pb <- - (p/2) * log(2*pi) - 0.5 * logdetV0 -
-                0.5 * ( sum(V0_inv * V_beta) +
-                        drop(crossprod(m_beta - b0, V0_inv %*% (m_beta - b0))) )
+    # (6) E[log p(beta)] : prior contribution (ridge or RHS)
+    E_log_pb <- beta_prior_obj$elbo_vb(
+      beta_state,
+      list(m = m_beta, V = V_beta)
+    )
 
     # (7) E[log p(sigma)] : IG(a_sigma, b_sigma)
     E_log_psig <- a_sigma * log(b_sigma) - lgamma(a_sigma) -
@@ -1244,6 +1273,12 @@ exal_static_LDVB <- function(
     converged = converged,
     iter = iter,
     run.time = as.numeric(t1 - t0),
+    beta_prior = list(
+      type = beta_prior_obj$type,
+      controls = beta_prior_obj$controls,
+      summary = beta_prior_obj$summary_vb(beta_state),
+      state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+    ),
     misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace),
     diagnostics = list(
       elbo = elbo_trace,

@@ -10,6 +10,8 @@ exal_static_mcmc(
   p0,
   b0 = NULL,
   V0 = NULL,
+  beta_prior = c("ridge", "rhs"),
+  beta_prior_controls = NULL,
   a_sigma = 1,
   b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
@@ -45,6 +47,21 @@ exal_static_mcmc(
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.}
 
+\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default) or
+\code{"rhs"} for the regularized horseshoe.}
+
+\item{beta_prior_controls}{Optional list of prior-specific controls. For
+\code{beta_prior = "rhs"}, supported keys follow the qdesn-style static
+interface: \code{tau0}, \code{nu}, \code{s} or \code{s2},
+\code{shrink_intercept}, \code{intercept_prec}, \code{n_inner},
+\code{eta_bounds}, \code{var_floor}, \code{h_curv}, \code{verbose},
+\code{init_lambda}, \code{init_log_lambda}, \code{init_tau},
+\code{init_log_tau}, \code{init_c2}, \code{init_log_c2},
+\code{slice_width}, and \code{slice_max_steps}. When
+\code{beta_prior = "rhs"}, \code{b0} and \code{V0} are ignored for the
+shrunk coefficients and retained only for backward-compatible ridge
+behavior.}
+
 \item{a_sigma, b_sigma}{Hyperparameters for an inverse-gamma prior on
 \code{sigma}, with density proportional to
 \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.}
@@ -56,8 +73,10 @@ Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 on (L, U). Default is a truncated Student-t prior centered at 0 on the
 admissible support.}
 
-\item{init}{Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
-\code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.}
+\item{init}{Optional list with starting values: \code{beta}, \code{sigma},
+\code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
+for \code{beta_prior = "rhs"} optionally \code{lambda}, \code{tau}, and
+\code{c2}. Missing pieces are filled sensibly.}
 
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
@@ -125,8 +144,14 @@ A object of class "\code{exal_mcmc}" containing:
 \item \code{samp.gamma} - posterior sample of \code{gamma} as \code{coda::mcmc}.
 \item \code{samp.v} - latent \code{v} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
+\item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
+draws when \code{beta_prior = "rhs"}; otherwise \code{NULL}.
+\item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
+of the shrinkage block.
 \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 including whether the saved kernel is exact/signoff-ready.
+\item \code{rhs.diagnostics} - RHS latent summaries and optional trace
+metadata when \code{beta_prior = "rhs"}.
 \item \code{last} - last state of the chain (useful for restarts).
 }
 }

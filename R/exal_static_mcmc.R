@@ -17,6 +17,19 @@
 #' @param p0 Quantile level in \eqn{(0,1)}.
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 #'   \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.
+#' @param beta_prior Coefficient prior type: \code{"ridge"} (default) or
+#'   \code{"rhs"} for the regularized horseshoe.
+#' @param beta_prior_controls Optional list of prior-specific controls. For
+#'   \code{beta_prior = "rhs"}, supported keys follow the qdesn-style static
+#'   interface: \code{tau0}, \code{nu}, \code{s} or \code{s2},
+#'   \code{shrink_intercept}, \code{intercept_prec}, \code{n_inner},
+#'   \code{eta_bounds}, \code{var_floor}, \code{h_curv}, \code{verbose},
+#'   \code{init_lambda}, \code{init_log_lambda}, \code{init_tau},
+#'   \code{init_log_tau}, \code{init_c2}, \code{init_log_c2},
+#'   \code{slice_width}, and \code{slice_max_steps}. When
+#'   \code{beta_prior = "rhs"}, \code{b0} and \code{V0} are ignored for the
+#'   shrunk coefficients and retained only for backward-compatible ridge
+#'   behavior.
 #' @param a_sigma,b_sigma Hyperparameters for an inverse-gamma prior on
 #'   \code{sigma}, with density proportional to
 #'   \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.
@@ -25,8 +38,10 @@
 #' @param log_prior_gamma Function \code{function(g) log pi(g)} for \code{gamma}
 #'   on (L, U). Default is a truncated Student-t prior centered at 0 on the
 #'   admissible support.
-#' @param init Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
-#'   \code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.
+#' @param init Optional list with starting values: \code{beta}, \code{sigma},
+#'   \code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
+#'   for \code{beta_prior = "rhs"} optionally \code{lambda}, \code{tau}, and
+#'   \code{c2}. Missing pieces are filled sensibly.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 #'   with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.
 #' @param n.burn Number of burn-in iterations. Default \code{2000}.
@@ -75,8 +90,14 @@
 #'   \item \code{samp.gamma} - posterior sample of \code{gamma} as \code{coda::mcmc}.
 #'   \item \code{samp.v} - latent \code{v} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 #'   \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
+#'   \item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
+#'         draws when \code{beta_prior = "rhs"}; otherwise \code{NULL}.
+#'   \item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
+#'         of the shrinkage block.
 #'   \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 #'         including whether the saved kernel is exact/signoff-ready.
+#'   \item \code{rhs.diagnostics} - RHS latent summaries and optional trace
+#'         metadata when \code{beta_prior = "rhs"}.
 #'   \item \code{last} - last state of the chain (useful for restarts).
 #' }
 #' @export
@@ -96,6 +117,8 @@
 exal_static_mcmc <- function(
   y, X, p0,
   b0 = NULL, V0 = NULL,
+  beta_prior = c("ridge", "rhs"),
+  beta_prior_controls = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
   log_prior_gamma = NULL,
@@ -125,10 +148,26 @@ exal_static_mcmc <- function(
   if (!(p0 > 0 && p0 < 1)) stop("p0 must be in (0,1).")
   if (n.burn < 0 || n.mcmc <= 0 || thin < 1) stop("n.burn>=0, n.mcmc>0, thin>=1 required.")
 
+  b0_missing <- is.null(b0)
+  V0_missing <- is.null(V0)
   if (is.null(b0)) b0 <- rep(0, p)
   if (is.null(V0)) V0 <- diag(1e6, p)
   V0 <- as.matrix(V0)
   if (!all(dim(V0) == c(p, p))) stop("V0 must be p x p.")
+  beta_prior_obj <- .static_beta_prior_make(
+    beta_prior = beta_prior,
+    p = p,
+    b0 = b0,
+    V0 = V0,
+    beta_prior_controls = beta_prior_controls,
+    warn_rhs_b0 = !b0_missing,
+    warn_rhs_V0 = !V0_missing
+  )
+  rhs_active_idx <- if (identical(beta_prior_obj$type, "rhs")) {
+    .static_rhs_active_idx(p, beta_prior_obj$controls$shrink_intercept)
+  } else {
+    integer(0)
+  }
 
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
   if (!(L < U)) stop("gamma_bounds must satisfy L < U.")
@@ -196,6 +235,8 @@ exal_static_mcmc <- function(
       max_iter = vb.ctrl$max_iter,
       tol = vb.ctrl$tol,
       b0 = b0, V0 = V0,
+      beta_prior = beta_prior,
+      beta_prior_controls = beta_prior_controls,
       a_sigma = a_sigma, b_sigma = b_sigma,
       gamma_bounds = gamma_bounds,
       log_prior_gamma = log_prior_gamma,
@@ -226,6 +267,9 @@ exal_static_mcmc <- function(
   save.gamma <- numeric(n_save)
   save.v     <- matrix(NA_real_, n, n_save)
   save.s     <- matrix(NA_real_, n, n_save)
+  save.lambda <- if (identical(beta_prior_obj$type, "rhs")) matrix(NA_real_, n_save, p) else NULL
+  save.tau <- if (identical(beta_prior_obj$type, "rhs")) numeric(n_save) else NULL
+  save.c2 <- if (identical(beta_prior_obj$type, "rhs")) numeric(n_save) else NULL
 
   ## --- initialize -----------------------------------------------------------
   beta  <- if (is.null(init$beta))  rep(0, p) else as.numeric(init$beta)
@@ -239,11 +283,23 @@ exal_static_mcmc <- function(
   v <- if (is.null(init$v)) rep(1, n) else as.numeric(init$v)
   if (length(v) != n) v <- rep(v[1], n)
   s <- if (is.null(init$s)) abs(stats::rnorm(n)) else pmax(0, as.numeric(init$s))
-
-  V0_inv <- tryCatch(
-    solve(V0),
-    error = function(e) solve(V0 + 1e-8 * diag(p))
-  )
+  beta_state <- beta_prior_obj$init_mcmc()
+  if (identical(beta_prior_obj$type, "rhs")) {
+    if (isTRUE(init.from.vb) && exists("vb.fit", inherits = FALSE) &&
+        !is.null(vb.fit$beta_prior$state)) {
+      vb_state <- vb.fit$beta_prior$state
+      beta_state$lambda <- .static_rhs_safe_exp(vb_state$eta_lambda_hat)
+      beta_state$tau <- .static_rhs_safe_exp(vb_state$eta_tau_hat)
+      beta_state$c2 <- .static_rhs_safe_exp(vb_state$eta_c_hat)
+    }
+    if (!is.null(init$lambda)) {
+      lam0 <- as.numeric(init$lambda)
+      if (length(lam0) == 1L) lam0 <- rep(lam0, p)
+      if (length(lam0) == p) beta_state$lambda <- pmax(lam0, 1e-16)
+    }
+    if (!is.null(init$tau)) beta_state$tau <- pmax(as.numeric(init$tau)[1], 1e-16)
+    if (!is.null(init$c2)) beta_state$c2 <- pmax(as.numeric(init$c2)[1], 1e-16)
+  }
 
   # --- reduced AL / DQLM Gibbs path (no gamma, no s) ------------------------
   if (isTRUE(dqlm.ind)) {
@@ -275,14 +331,16 @@ exal_static_mcmc <- function(
       # (1) beta | sigma, v, y
       W_diag <- 1 / (B * sigma * v)
       Xw     <- X * sqrt(W_diag)
-      V_inv  <- crossprod(Xw) + V0_inv
-      rhs    <- crossprod(X, W_diag * (y - A * v)) + V0_inv %*% b0
+      prior_sys <- beta_prior_obj$beta_system_mcmc(beta_state)
+      V_inv  <- crossprod(Xw) + prior_sys$Prec
+      rhs    <- crossprod(X, W_diag * (y - A * v)) + prior_sys$h
 
       Uc <- tryCatch(chol(V_inv), error = function(e) NULL)
       if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
       m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
       beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
       xb     <- drop(X %*% beta)
+      beta_state <- beta_prior_obj$update_mcmc(beta_state, beta)
 
       # (2) sigma | beta, v, y (inverse-gamma)
       r <- y - xb - A * v
@@ -304,6 +362,13 @@ exal_static_mcmc <- function(
         save.beta[ksave, ] <- beta
         save.sigma[ksave]  <- sigma
         save.v[, ksave]    <- v
+        if (identical(beta_prior_obj$type, "rhs")) {
+          lam_draw <- rep(NA_real_, p)
+          lam_draw[rhs_active_idx] <- beta_state$lambda[rhs_active_idx]
+          save.lambda[ksave, ] <- lam_draw
+          save.tau[ksave] <- beta_state$tau
+          save.c2[ksave] <- beta_state$c2
+        }
       }
 
       if (verbose && (i %% 500 == 0)) {
@@ -325,6 +390,9 @@ exal_static_mcmc <- function(
       bounds     = c(L = NA_real_, U = NA_real_),
       samp.beta  = coda::as.mcmc(save.beta),
       samp.sigma = coda::as.mcmc(save.sigma),
+      samp.lambda = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.lambda) else NULL,
+      samp.tau = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.tau) else NULL,
+      samp.c2 = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.c2) else NULL,
       samp.v     = coda::as.mcmc(t(save.v)),
       init.from.vb = isTRUE(init.from.vb),
       vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,
@@ -349,6 +417,21 @@ exal_static_mcmc <- function(
         ),
         acceptance = list(total = NA_real_, burn = NA_real_, keep = NA_real_)
       ),
+      beta_prior = list(
+        type = beta_prior_obj$type,
+        controls = beta_prior_obj$controls,
+        summary = beta_prior_obj$summary_mcmc(beta_state),
+        state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+      ),
+      rhs.diagnostics = if (identical(beta_prior_obj$type, "rhs")) {
+        list(
+          summary = beta_prior_obj$summary_mcmc(beta_state),
+          ess = list(
+            tau = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.tau))), error = function(e) NA_real_),
+            c2 = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.c2))), error = function(e) NA_real_)
+          )
+        )
+      } else NULL,
       last = list(beta = beta, sigma = sigma, v = v)
     )
     class(ret) <- "exal_static_mcmc"
@@ -542,15 +625,17 @@ exal_static_mcmc <- function(
     ## (3) beta | rest ~ N(m, V) with W = diag(1/(B sigma v))
     W_diag <- 1 / (B * sigma * v)
     Xw     <- X * sqrt(W_diag)
-    V_inv  <- crossprod(Xw) + V0_inv
+    prior_sys <- beta_prior_obj$beta_system_mcmc(beta_state)
+    V_inv  <- crossprod(Xw) + prior_sys$Prec
     y_star <- y - lambda * sigma * s - A * v
-    rhs    <- crossprod(X, W_diag * y_star) + V0_inv %*% b0
+    rhs    <- crossprod(X, W_diag * y_star) + prior_sys$h
 
     Uc    <- tryCatch(chol(V_inv), error = function(e) NULL)
     if (is.null(Uc)) Uc <- chol(V_inv + 1e-10 * diag(p))
     m_beta <- backsolve(Uc, forwardsolve(t(Uc), rhs))
     beta   <- as.numeric(m_beta + backsolve(Uc, stats::rnorm(p)))
     xb     <- drop(X %*% beta)
+    beta_state <- beta_prior_obj$update_mcmc(beta_state, beta)
 
     ## (4) sigma | rest ~ GIG(k_sigma, chi_sigma, psi_sigma)
     r          <- y - xb - A * v
@@ -650,6 +735,7 @@ exal_static_mcmc <- function(
       gamma <- g_from_eta(eta)
     }
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
+    rhs_summary <- if (identical(beta_prior_obj$type, "rhs")) beta_prior_obj$summary_mcmc(beta_state) else NULL
     if (trace.diagnostics && (i %% trace.every == 0L)) {
       s_stats <- .exdqlm_trace_summary(s)
       tau2_stats <- .exdqlm_trace_summary(tau2)
@@ -683,6 +769,11 @@ exal_static_mcmc <- function(
         s_tau2_q95 = tau2_stats[["q95"]],
         s_tau2_min = tau2_stats[["min"]],
         s_tau2_max = tau2_stats[["max"]],
+        rhs_tau = if (!is.null(rhs_summary)) rhs_summary$tau else NA_real_,
+        rhs_c2 = if (!is.null(rhs_summary)) rhs_summary$c2 else NA_real_,
+        rhs_lambda_mean = if (!is.null(rhs_summary)) rhs_summary$lambda_mean else NA_real_,
+        rhs_lambda_min = if (!is.null(rhs_summary)) rhs_summary$lambda_min else NA_real_,
+        rhs_lambda_max = if (!is.null(rhs_summary)) rhs_summary$lambda_max else NA_real_,
         stringsAsFactors = FALSE
       )
     }
@@ -695,6 +786,13 @@ exal_static_mcmc <- function(
       save.gamma[ksave]  <- gamma
       save.v[, ksave]    <- v
       save.s[, ksave]    <- s
+      if (identical(beta_prior_obj$type, "rhs")) {
+        lam_draw <- rep(NA_real_, p)
+        lam_draw[rhs_active_idx] <- beta_state$lambda[rhs_active_idx]
+        save.lambda[ksave, ] <- lam_draw
+        save.tau[ksave] <- beta_state$tau
+        save.c2[ksave] <- beta_state$c2
+      }
     }
 
     if (verbose && (i %% 500 == 0)) {
@@ -759,17 +857,43 @@ exal_static_mcmc <- function(
     samp.beta  = coda::as.mcmc(save.beta),
     samp.sigma = coda::as.mcmc(save.sigma),
     samp.gamma = coda::as.mcmc(save.gamma),
+    samp.lambda = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.lambda) else NULL,
+    samp.tau = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.tau) else NULL,
+    samp.c2 = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.c2) else NULL,
     samp.v     = coda::as.mcmc(t(save.v)),
     samp.s     = coda::as.mcmc(t(save.s)),
     accept.rate = accept_total,
     accept.rate.burn = accept_burn,
     accept.rate.keep = accept_keep,
     mh.diagnostics = mh_diag,
+    beta_prior = list(
+      type = beta_prior_obj$type,
+      controls = beta_prior_obj$controls,
+      summary = beta_prior_obj$summary_mcmc(beta_state),
+      state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+    ),
+    rhs.diagnostics = if (identical(beta_prior_obj$type, "rhs")) {
+      list(
+        summary = beta_prior_obj$summary_mcmc(beta_state),
+        ess = list(
+          tau = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.tau))), error = function(e) NA_real_),
+          c2 = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.c2))), error = function(e) NA_real_),
+          lambda = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.lambda))), error = function(e) rep(NA_real_, p))
+        )
+      )
+    } else NULL,
     diagnostics = list(
       mh = mh_diag,
       ess = list(sigma = ess_sigma, gamma = ess_gamma),
       acceptance = list(total = accept_total, burn = accept_burn, keep = accept_keep),
-      rhat_ready = list(sigma = as.numeric(save.sigma), gamma = as.numeric(save.gamma))
+      rhat_ready = list(sigma = as.numeric(save.sigma), gamma = as.numeric(save.gamma)),
+      rhs = if (identical(beta_prior_obj$type, "rhs")) {
+        list(
+          tau = as.numeric(save.tau),
+          c2 = as.numeric(save.c2),
+          lambda = save.lambda
+        )
+      } else NULL
     ),
     init.from.vb = isTRUE(init.from.vb),
     vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,
