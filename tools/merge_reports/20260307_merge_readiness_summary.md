@@ -1,6 +1,6 @@
 # Merge Readiness Summary
 
-Date: 2026-03-07
+Date: 2026-03-08
 Repo: `/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp`
 Branch: `jaguir26/dqlm-conjugacy-cavi-gibbs`
 Target integration branch later: `cransub/0.4.0`
@@ -16,6 +16,8 @@ This branch prepares the `0.4.0` line with the dynamic/static exAL and AL work c
 - exact slice support for gamma in MCMC
 - optional MCMC trace diagnostics and related efficiency improvements
 - audit and comparison scripts under `tools/merge_reports/` for reproducibility of the branch work
+- static `RHS` prior support for `AL` / `exAL` in both `VB` and `MCMC`
+- qdesn-style `RHS` tau warmup/freeze safeguards for static `VB`
 
 ## Main package-level changes
 
@@ -34,6 +36,11 @@ This branch prepares the `0.4.0` line with the dynamic/static exAL and AL work c
   - optional per-iteration diagnostics traces
   - cached `xb = X %*% beta` reuse in the gamma slice path for better efficiency
 - static fit normalization/reporting supports the richer diagnostics structure.
+- static `AL` / `exAL` now support `beta_prior = "ridge"` or `"rhs"` with:
+  - zero-centered regularized horseshoe shrinkage
+  - optional intercept shrinkage control
+  - RHS latent summaries in `VB` and `MCMC`
+  - RHS-only coefficient tree plots in static reporting
 
 ### Tooling and reproducibility
 - Added/updated simulation, pipeline, audit, and comparison scripts under `tools/merge_reports/`.
@@ -53,26 +60,34 @@ This branch prepares the `0.4.0` line with the dynamic/static exAL and AL work c
 
 ### Targeted tests
 - Status: passed
-- Counts: `PASS 352, FAIL 0, WARN 0, SKIP 1`
+- Counts: `PASS 43, FAIL 0, WARN 0, SKIP 1`
 - The single skip is an expected guarded skip from smoke-style coverage.
 
 ### Full package test suite
 - Status: passed
-- Counts: `PASS 1320, FAIL 0, WARN 0, SKIP 1`
+- Counts: `PASS 1363, FAIL 0, WARN 0, SKIP 1`
 - The single skip is an expected environment/path guard in the static pipeline/report smoke test.
 
 ### Package-level check
 - Status: completed for merge-readiness via `R CMD check --no-manual --no-examples`
-- First pass surfaced one actionable namespace/code note (`tail()` qualification in internal reduced-path helpers), which was fixed.
 - Authoritative merge-readiness result:
   - `Status: 1 NOTE`
   - NOTE source: installed package size (`libs` directory size)
-- A heavier `R CMD check --as-cran --no-manual` pass was also launched and stayed green through install/load/Rd/code checks; it remained in long `donttest` examples at the time of this summary, so it is treated as extra signal rather than the gating check result.
-- Non-actionable environment/tooling notes observed in the long `--as-cran` pass include:
-  - installed size note (`libs` directory size)
-  - inability to verify current time in the check environment
-  - missing `pandoc` note for top-level markdown checks
-  - compiler hardening flags note from the system toolchain
+
+## RHS-specific signoff status
+
+- The earlier static `exAL + RHS` `VB` tail-collapse pathology was fixed by the
+  qdesn-style tau warmup/freeze schedule.
+- Updated broad static `RHS` validation shows:
+  - `AL + RHS` behaving well
+  - `exAL + RHS` `VB` tails no longer collapsing
+  - `exAL + RHS` `MCMC` remaining scientifically interpretable but still showing
+    weak tail mixing (`ESS_gamma`, `ESS_sigma`)
+- The current `VB` LD stability gate was revised for `RHS` tails so that it
+  still guards collapse/local-mode quality without failing stabilized tail fits
+  solely because sigma/gamma traces oscillate around convergence.
+- Remaining `RHS` work before later integration should be treated as localized
+  tuning/signoff work for `exAL` tails, not as a structural blocker.
 
 ## Cleanup status
 
@@ -88,6 +103,18 @@ This branch prepares the `0.4.0` line with the dynamic/static exAL and AL work c
    - namespace/roxygen outputs
    - tests
    - any files in `R/` touched by release prep
+3. Likely file overlap to check explicitly during later integration:
+   - `R/utils.R`
+   - `R/exdqlmLDVB.R`
+   - `R/exdqlmISVB.R`
+   - `R/exdqlmMCMC.R`
+   - `R/exal_static_LDVB.R`
+   - `R/exal_static_mcmc.R`
+   - `R/static_fit_normalization.R`
+   - `man/exal_static_LDVB.Rd`
+   - `man/exal_static_mcmc.Rd`
+   - `tests/testthat/`
+   - `tools/merge_reports/`
 3. Integration should be done only after her confirmation, followed by:
    - pull/rebase or merge strategy decision
    - full test suite rerun

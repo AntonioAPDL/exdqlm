@@ -106,7 +106,10 @@ A object of class "\code{exal_ldvb}" containing:
 \item \code{converged}, \code{iter}, \code{run.time}, and
 \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
 \item \code{beta_prior}: prior metadata and, for RHS, posterior summaries of
-the shrinkage hyperparameters.
+the shrinkage hyperparameters, including warmup/freeze-aware
+\code{tau} summaries and collapse diagnostics
+(\code{collapse_flag}, \code{tau_near_zero}, \code{beta_collapse},
+and \code{warning} when triggered).
 \item \code{diagnostics}: ELBO and joint-convergence diagnostics
 (state/sigma/gamma/ELBO deltas, stopping reason, and
 Laplace-Delta block trace diagnostics, including replicated-\code{xi}
@@ -127,7 +130,10 @@ The \code{xi} expectations used in CAVI updates can be computed either from a
 deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
 Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
 optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
-stabilized qdesn readout implementation.
+stabilized qdesn readout implementation. When \code{beta_prior = "rhs"}, the
+prior block uses qdesn-style \code{tau} warmup/freeze scheduling to avoid the
+early-collapse regime where global shrinkage drives all slope coefficients
+toward zero before the likelihood-side variational factors stabilize.
 }
 \examples{
 \donttest{

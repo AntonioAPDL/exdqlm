@@ -36,5 +36,6 @@
 ^check-logs$
 ^Plan\.txt$
 ^tools$
+^src/.*\.(o|so|dll)$
 ^.*\.Rproj$
 ^exdqlm\.Rproj$

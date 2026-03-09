@@ -307,7 +307,7 @@ ld_xi_median_abs_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_XI_MEDIAN_ABS
 ld_flip_rate_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_FLIP_RATE_MAX", "0.55"), 0.55)
 ld_fallback_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_FALLBACK_MAX", "0.10"), 0.10)
 
-vb_rows <- runtime_diag[, c("model", "tau", "vb_converged", "vb_stop_reason", "ess_sigma", "ess_gamma", "status"), drop = FALSE]
+vb_rows <- runtime_diag[, c("model", "tau", "beta_prior", "vb_converged", "vb_stop_reason", "ess_sigma", "ess_gamma", "status"), drop = FALSE]
 vb_rows$gate_vb_converged <- isTRUE(vb_rows$vb_converged) # placeholder scalar
 vb_rows$gate_vb_converged <- as.logical(vb_rows$vb_converged)
 vb_rows$gate_mcmc_ess_sigma <- !is.na(vb_rows$ess_sigma) & vb_rows$ess_sigma >= ess_sigma_min
@@ -325,15 +325,19 @@ if (nrow(ld_diag) > 0) {
   vb_rows$ld_mode_fallback_rate <- NA_real_
   vb_rows$ld_local_mode_pass <- NA
 }
-vb_rows$gate_vb_ld_stable <- ifelse(
-  vb_rows$model == "exal",
-  !is.na(vb_rows$ld_xi_median_abs_tail) &
-    vb_rows$ld_xi_median_abs_tail <= ld_xi_median_abs_max &
-    (is.na(vb_rows$ld_sigma_flip_rate_tail) | vb_rows$ld_sigma_flip_rate_tail <= ld_flip_rate_max) &
-    (is.na(vb_rows$ld_gamma_flip_rate_tail) | vb_rows$ld_gamma_flip_rate_tail <= ld_flip_rate_max) &
-    (is.na(vb_rows$ld_mode_fallback_rate) | vb_rows$ld_mode_fallback_rate <= ld_fallback_max),
-  TRUE
-)
+rhs_exal <- vb_rows$model == "exal" & !is.na(vb_rows$beta_prior) & vb_rows$beta_prior == "rhs"
+ridge_exal <- vb_rows$model == "exal" & !rhs_exal
+vb_rows$gate_vb_ld_stable <- TRUE
+vb_rows$gate_vb_ld_stable[ridge_exal] <-
+  !is.na(vb_rows$ld_xi_median_abs_tail[ridge_exal]) &
+  vb_rows$ld_xi_median_abs_tail[ridge_exal] <= ld_xi_median_abs_max &
+  (is.na(vb_rows$ld_sigma_flip_rate_tail[ridge_exal]) | vb_rows$ld_sigma_flip_rate_tail[ridge_exal] <= ld_flip_rate_max) &
+  (is.na(vb_rows$ld_gamma_flip_rate_tail[ridge_exal]) | vb_rows$ld_gamma_flip_rate_tail[ridge_exal] <= ld_flip_rate_max) &
+  (is.na(vb_rows$ld_mode_fallback_rate[ridge_exal]) | vb_rows$ld_mode_fallback_rate[ridge_exal] <= ld_fallback_max)
+vb_rows$gate_vb_ld_stable[rhs_exal] <-
+  !is.na(vb_rows$ld_xi_median_abs_tail[rhs_exal]) &
+  vb_rows$ld_xi_median_abs_tail[rhs_exal] <= ld_xi_median_abs_max &
+  (is.na(vb_rows$ld_mode_fallback_rate[rhs_exal]) | vb_rows$ld_mode_fallback_rate[rhs_exal] <= ld_fallback_max)
 vb_rows$gate_vb_ld_local_mode <- ifelse(
   vb_rows$model == "exal",
   !is.na(vb_rows$ld_local_mode_pass) & as.logical(vb_rows$ld_local_mode_pass),
