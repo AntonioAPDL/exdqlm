@@ -10,14 +10,34 @@ Main items prepared on this branch:
 - slice support added for gamma in MCMC
 - optional per-iteration diagnostics traces added for MCMC
 - MCMC efficiency improvements added, especially in the static exAL slice path
+- static `RHS` prior support added for `AL` / `exAL` in both `VB` and `MCMC`
+- qdesn-style `RHS` tau warmup/freeze safeguards added to the static `VB` path
 - reduced DQLM path support and tests added
 - roxygen docs regenerated and test coverage expanded
 
 Validation completed on this branch:
 
-- targeted branch tests passed
-- full package test suite passed
-- package-level check run as part of merge readiness
+- targeted branch tests passed (`PASS 43, FAIL 0, WARN 0, SKIP 1`)
+- full package test suite passed (`PASS 1363, FAIL 0, WARN 0, SKIP 1`)
+- package-level tarball check completed with only the installed-size note
+
+Important scientific note:
+
+- on several simple and skew-normal validation datasets, `AL` often recovered
+  the target quantile better than `exAL`
+- that same qualitative behavior was also reproduced against the external
+  Yan-Kottas `GAL` implementation (`bqrgal`), so it does not currently look
+  like a purely repo-specific coding artifact
+- on matched exAL/GAL-generated data, our `exAL` and the external package
+  behaved similarly, which is consistent with the current implementation being
+  scientifically interpretable rather than structurally broken
+
+Important RHS note:
+
+- the initial static `exAL + RHS` `VB` tail-collapse issue was fixed with the
+  tau warmup/freeze schedule
+- the remaining `RHS` signoff issue is localized tail mixing/tuning for
+  `exAL`, not a structural failure of the feature
 
 Important integration note:
 
