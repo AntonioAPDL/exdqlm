@@ -8,6 +8,16 @@
 - Date: 2026-03-05
 - Package repo: `/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp`
 
+## Important Scope Note
+
+This tracker records the algorithm-development and branch-hardening work.
+
+The later simulation-validation reset caused by the quantile-centering mistake in the old DGPs is tracked separately in:
+
+- [20260308_quantile_specific_sim_validation_reset_tracker.md](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260308_quantile_specific_sim_validation_reset_tracker.md)
+
+That reset tracker should be treated as the source of truth for all future corrected simulation-based validation work.
+
 ## Primary Goal
 
 Extend current package algorithms to support non-extended AL quantile regression (DQLM/BQR) in both static and dynamic settings, with mathematically correct Gibbs and VB-CAVI updates and robust tests.
@@ -1999,3 +2009,41 @@ Pre-merge signoff update:
   - traces are moving and scientifically interpretable
   - remaining issue is weak tail mixing (`ESS_gamma`, `ESS_sigma`), not a kernel/pathology failure
   - treat this as a localized tuning/signoff item rather than a structural blocker
+
+### 2026-03-09 next-step plan: static exAL VB LD signoff layer
+
+A dedicated next-phase plan for the remaining static `exAL VB` issue is now tracked here:
+- [20260309_exal_vb_ld_signoff_plan.md](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260309_exal_vb_ld_signoff_plan.md)
+
+Scope note:
+- the next debugging phase is explicitly narrowed to the `VB` LD signoff layer,
+- not the broader `exAL` model,
+- not the `s_i` update itself,
+- and not `AL` or `exAL MCMC`.
+
+### 2026-03-09 reporting/signoff cleanup + guardrail propagation
+
+Status:
+- [x] Reporting/signoff cleanup started for the stabilized LD path.
+- [x] Guardrail propagation applied to the dynamic `exdqlmLDVB` path.
+- [x] `ISVB` left unchanged by design.
+- [x] Shared LD signoff helper hardened so dynamic traces without numeric `xi_rel_drift` no longer break downstream diagnostics.
+- [x] Dynamic targeted validation rerun:
+  - `devtools::test(filter = "vb-mcmc-convergence-controls")` -> `PASS 47, FAIL 0, WARN 0, SKIP 0`
+- [x] Static regression/normalization rechecks after the shared-helper patch:
+  - `devtools::test(filter = "static-fit-normalization")` -> `PASS 61, FAIL 0, WARN 0, SKIP 0`
+  - `devtools::test(filter = "static-regression-regmod")` -> `PASS 45, FAIL 0, WARN 0, SKIP 0`
+
+Implementation notes:
+- Dynamic `exdqlmLDVB` now records stabilized LD candidate/committed diagnostics analogous to the static `exAL VB` path.
+- Dynamic postprocess was updated to emit `vb_ld_diagnostics_summary.csv` with:
+  - candidate vs committed local-mode pass rates,
+  - stabilization/direct-vs-damped commit rates,
+  - objective-gap and fallback summaries.
+- The dynamic postprocess smoke was re-run on the completed qspec run root:
+  - `results/function_testing_dynamic_qspec/dlm_constV_smallW_tau_0p05_tt5000_vbns1000_burn2000_n1000`
+  - it started cleanly and is CPU-bound inside the postprocess stage; no runtime error signal has appeared so far.
+
+Interpretation:
+- The stabilized LD reporting/signoff layer is now consistent enough for static/dynamic extended-VB diagnostics.
+- The remaining open work should now shift to the simulation-design comparison question rather than more LD guardrail propagation.

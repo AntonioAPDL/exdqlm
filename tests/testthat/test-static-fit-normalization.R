@@ -61,6 +61,8 @@ test_that("static VB normalization and init extraction work for exAL", {
   expect_true(is.data.frame(norm$diagnostics$ld_block$trace))
   expect_true(nrow(norm$diagnostics$ld_block$trace) >= 1)
   expect_true(is.list(norm$diagnostics$ld_block$setup))
+  expect_true(is.list(norm$diagnostics$ld_block$stabilization))
+  expect_true(is.list(norm$diagnostics$ld_block$signoff_summary))
   expect_true(norm$diagnostics$ld_block$setup$sigma_min < norm$diagnostics$ld_block$setup$sigma_max)
   expect_true(is.data.frame(norm$diagnostics$s_block$trace))
   expect_true(nrow(norm$diagnostics$s_block$trace) >= 1)
