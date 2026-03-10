@@ -200,7 +200,7 @@ for (inf in c("vb", "mcmc")) {
     for (tau in taus) {
       ff <- fit_file(inf, mdl, tau)
       if (!file.exists(ff)) stop("Missing fit file: ", ff)
-      wrap <- readRDS(ff)
+      wrap <- .exdqlm_unwrap_fit_bundle(readRDS(ff))
       fit <- wrap$fit
       norm <- wrap$normalized
 
@@ -515,10 +515,10 @@ for (tau in taus) {
 # Traces (trim from trace_start onward).
 for (tau in taus) {
   tlabel <- tau_lab(tau)
-  vb_ex <- readRDS(fit_file("vb", "exal", tau))$fit
-  vb_al <- readRDS(fit_file("vb", "al", tau))$fit
-  mc_ex <- readRDS(fit_file("mcmc", "exal", tau))$fit
-  mc_al <- readRDS(fit_file("mcmc", "al", tau))$fit
+  vb_ex <- .exdqlm_unwrap_fit_bundle(readRDS(fit_file("vb", "exal", tau)))$fit
+  vb_al <- .exdqlm_unwrap_fit_bundle(readRDS(fit_file("vb", "al", tau)))$fit
+  mc_ex <- .exdqlm_unwrap_fit_bundle(readRDS(fit_file("mcmc", "exal", tau)))$fit
+  mc_al <- .exdqlm_unwrap_fit_bundle(readRDS(fit_file("mcmc", "al", tau)))$fit
 
   # ELBO traces (post warm-up).
   elbo_ex <- trim_trace(vb_ex$diagnostics$elbo, trace_start)

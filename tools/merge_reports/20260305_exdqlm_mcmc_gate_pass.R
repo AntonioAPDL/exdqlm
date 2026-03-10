@@ -255,7 +255,7 @@ if (length(bad) > 0L) {
 rows <- list()
 for (tau in p_vec) {
   tlabel <- tau_lab(tau)
-  wrap <- readRDS(file.path(out_root, "fits", sprintf("mcmc_exdqlm_tau_%s_fit.rds", tlabel)))
+  wrap <- .exdqlm_unwrap_fit_bundle(readRDS(file.path(out_root, "fits", sprintf("mcmc_exdqlm_tau_%s_fit.rds", tlabel))))
   fit <- wrap$fit
   meta <- wrap$meta
   mh_diag <- fit$mh.diagnostics

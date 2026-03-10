@@ -51,7 +51,7 @@ res_rows <- list()
 coef_rows <- list()
 
 for (tau in taus) {
-  base_wrap <- readRDS(fit_file(tau))
+  base_wrap <- .exdqlm_unwrap_fit_bundle(readRDS(fit_file(tau)))
   base_fit <- base_wrap$fit
   beta_ctrl <- base_fit$beta_prior$controls
   ld_ctrl <- base_fit$diagnostics$ld_block$controls
