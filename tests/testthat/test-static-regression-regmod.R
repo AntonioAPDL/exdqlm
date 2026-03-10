@@ -33,6 +33,8 @@ test_that("exal_static_LDVB runs on tiny deterministic input", {
       xi_method = "delta",
       optimizer_method = "lbfgsb",
       direct_commit = TRUE,
+      auto_stabilize = FALSE,
+      reject_bad_mode_commit = FALSE,
       sigma_init_mode = "data_scale"
     ),
     verbose = FALSE
@@ -63,6 +65,8 @@ test_that("static LDVB qdesn-style delta xi path is deterministic", {
     xi_method = "delta",
     optimizer_method = "lbfgsb",
     direct_commit = TRUE,
+    auto_stabilize = FALSE,
+    reject_bad_mode_commit = FALSE,
     sigma_init_mode = "data_scale",
     store_trace = TRUE
   )
@@ -148,6 +152,109 @@ test_that("static LD precision regularization handles singular Hessians", {
   expect_true(all(is.finite(reg$Sigma)))
   expect_true(all(eig_cov > 0))
   expect_true(isTRUE(reg$used_floor))
+})
+
+test_that("static LD cycle detector identifies alternating traces", {
+  cycle_fun <- getFromNamespace(".exal_static_ld_cycle_detect", "exdqlm")
+  ld_ctrl <- list(
+    auto_stabilize = TRUE,
+    cycle_window = 8L,
+    cycle_lag1_max = -0.8,
+    cycle_lag2_min = 0.95,
+    cycle_gamma_min_amp = 1e-3,
+    cycle_sigma_min_amp = 1e-3,
+    cycle_s_min_amp = 1e-5,
+    cycle_tau2_min_amp = 1e-5
+  )
+  ld_trace <- data.frame(
+    gamma = c(1, 3, 1, 3, 1, 3, 1),
+    sigma = c(10, 20, 10, 20, 10, 20, 10)
+  )
+  s_trace <- data.frame(
+    s_mean = c(0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2),
+    tau2_mean = c(0.1, 0.4, 0.1, 0.4, 0.1, 0.4, 0.1)
+  )
+  cand <- list(gamma = 3, sigma = 20, s_mean = 0.5, tau2_mean = 0.4)
+
+  out <- cycle_fun(ld_trace, s_trace, cand, ld_ctrl)
+
+  expect_true(out$triggered)
+  expect_match(out$reason, "cycle_detected")
+  expect_true(isTRUE(out$flags[["gamma"]]))
+  expect_true(isTRUE(out$flags[["sigma"]]))
+})
+
+test_that("static LD cycle detector stays quiet on smooth traces", {
+  cycle_fun <- getFromNamespace(".exal_static_ld_cycle_detect", "exdqlm")
+  ld_ctrl <- list(
+    auto_stabilize = TRUE,
+    cycle_window = 8L,
+    cycle_lag1_max = -0.8,
+    cycle_lag2_min = 0.95,
+    cycle_gamma_min_amp = 1e-3,
+    cycle_sigma_min_amp = 1e-3,
+    cycle_s_min_amp = 1e-5,
+    cycle_tau2_min_amp = 1e-5
+  )
+  ld_trace <- data.frame(
+    gamma = seq(0.1, 0.8, length.out = 8),
+    sigma = seq(1, 2, length.out = 8)
+  )
+  s_trace <- data.frame(
+    s_mean = seq(0.2, 0.3, length.out = 8),
+    tau2_mean = seq(0.1, 0.15, length.out = 8)
+  )
+  cand <- list(gamma = 0.9, sigma = 2.1, s_mean = 0.31, tau2_mean = 0.16)
+
+  out <- cycle_fun(ld_trace, s_trace, cand, ld_ctrl)
+
+  expect_false(out$triggered)
+})
+
+test_that("static LDVB records stabilization diagnostics", {
+  set.seed(125)
+  n <- 16
+  X <- cbind(1, seq(-1, 1, length.out = n))
+  beta <- c(0.2, -0.1)
+  y <- as.numeric(X %*% beta + rnorm(n, sd = 0.08))
+
+  fit <- exal_static_LDVB(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    max_iter = 20,
+    tol = 1e-2,
+    n_samp_xi = 40,
+    ld_controls = list(
+      xi_method = "delta",
+      optimizer_method = "lbfgsb",
+      direct_commit = TRUE,
+      auto_stabilize = TRUE,
+      store_trace = TRUE
+    ),
+    verbose = FALSE
+  )
+
+  expect_true(is.list(fit$diagnostics$ld_block$stabilization))
+  expect_true(all(c("active_final", "since_iter", "reason",
+    "cycle_detect_count", "stabilized_iter_count") %in%
+    names(fit$diagnostics$ld_block$stabilization)))
+  expect_true(is.list(fit$diagnostics$ld_block$signoff_summary))
+  expect_true(all(c(
+    "candidate_local_pass_rate", "committed_local_pass_rate",
+    "optim_fallback_rate", "numeric_hessian_rate",
+    "identity_hessian_rate", "cov_floor_rate",
+    "direct_commit_rate", "damped_commit_rate"
+  ) %in% names(fit$diagnostics$ld_block$signoff_summary)))
+  expect_true(all(c(
+    "ld_used_optim_fallback", "ld_used_numeric_hessian",
+    "ld_used_identity_hessian", "ld_used_cov_floor",
+    "ld_commit_mode", "ld_mode_local_pass_candidate",
+    "ld_mode_local_pass_committed"
+  ) %in% names(fit$diagnostics$ld_block$trace)))
+  expect_true(all(c("ld_cycle_detected", "ld_stabilized",
+    "ld_stabilize_reason") %in%
+    names(fit$diagnostics$s_block$trace)))
 })
 
 test_that("exal_static_mcmc runs on tiny deterministic input", {

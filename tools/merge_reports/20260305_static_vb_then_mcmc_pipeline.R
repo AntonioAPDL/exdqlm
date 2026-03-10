@@ -58,7 +58,31 @@ TT <- min(TT_full, max(100L, safe_int(Sys.getenv("EXDQLM_STATIC_PIPELINE_TT", "5
 y <- as.numeric(sim$y[seq_len(TT)])
 X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
 
-p_vec <- c(0.05, 0.50, 0.95)
+sim_taus <- if (!is.null(sim$p)) as.numeric(sim$p) else numeric(0)
+sim_taus <- sim_taus[is.finite(sim_taus)]
+p_vec_env <- safe_num_vec(Sys.getenv("EXDQLM_STATIC_PIPELINE_TAUS", ""), default = NULL)
+p_tau_single <- suppressWarnings(as.numeric(Sys.getenv("EXDQLM_STATIC_PIPELINE_TAU", ""))[1])
+if (length(p_vec_env)) {
+  p_vec <- p_vec_env
+} else if (is.finite(p_tau_single) && !is.na(p_tau_single)) {
+  p_vec <- p_tau_single
+} else if (length(sim_taus)) {
+  p_vec <- sim_taus
+} else {
+  p_vec <- c(0.05, 0.50, 0.95)
+}
+p_vec <- unique(as.numeric(p_vec))
+p_vec <- p_vec[is.finite(p_vec) & p_vec > 0 & p_vec < 1]
+if (!length(p_vec)) stop("No valid taus resolved for the static pipeline.")
+if (length(sim_taus) == 1L && (length(p_vec) != 1L || abs(p_vec[1] - sim_taus[1]) > 1e-12)) {
+  stop("Single-tau static simulation file must be fit with the matching tau only.")
+}
+if (!is.null(sim$q)) {
+  q_cols <- NCOL(as.matrix(sim$q))
+  if (q_cols == 1L && length(p_vec) != 1L) {
+    stop("Single-column static truth matrix is only valid for a single tau run.")
+  }
+}
 
 beta_prior <- tolower(Sys.getenv("EXDQLM_STATIC_BETA_PRIOR", "ridge"))
 if (identical(beta_prior, "gaussian")) beta_prior <- "ridge"

@@ -71,7 +71,7 @@ Sys.setenv(
   NUMEXPR_NUM_THREADS = "1"
 )
 
-sim_path <- "results/sim_suite_dlm/series/dlm_constV_smallW/sim_output.rds"
+sim_path <- Sys.getenv("EXDQLM_DYNAMIC_SIM_PATH", "results/sim_suite_dlm/series/dlm_constV_smallW/sim_output.rds")
 if (!file.exists(sim_path)) stop("Simulation file not found: ", sim_path)
 sim <- readRDS(sim_path)
 
@@ -80,7 +80,28 @@ TT <- min(TT_full, max(200L, safe_int(Sys.getenv("EXDQLM_PIPELINE_TT", "5000"), 
 y <- as.numeric(sim$y[seq_len(TT)])
 mu_true <- if (!is.null(sim$extras$mu)) as.numeric(sim$extras$mu[seq_len(TT)]) else rep(NA_real_, TT)
 
-p_vec <- c(0.05, 0.50, 0.95)
+sim_taus <- if (!is.null(sim$p)) as.numeric(sim$p) else numeric(0)
+sim_taus <- sim_taus[is.finite(sim_taus)]
+p_vec_env <- safe_num_vec(Sys.getenv("EXDQLM_DYNAMIC_PIPELINE_TAUS", ""), default = NULL)
+p_tau_single <- safe_num_vec(Sys.getenv("EXDQLM_DYNAMIC_PIPELINE_TAU", ""), default = NULL, length_out = 1L)
+if (!is.null(p_vec_env)) {
+  p_vec <- p_vec_env
+} else if (!is.null(p_tau_single)) {
+  p_vec <- p_tau_single
+} else if (length(sim_taus)) {
+  p_vec <- sim_taus
+} else {
+  p_vec <- c(0.05, 0.50, 0.95)
+}
+p_vec <- unique(as.numeric(p_vec))
+p_vec <- p_vec[is.finite(p_vec) & p_vec > 0 & p_vec < 1]
+if (!length(p_vec)) stop("No valid taus resolved for dynamic pipeline.")
+if (!is.null(sim$q)) {
+  q_mat_check <- as.matrix(sim$q)
+  if (nrow(q_mat_check) >= TT && ncol(q_mat_check) == 1L && length(p_vec) != 1L) {
+    stop("Quantile-specific dynamic simulation has one truth column but pipeline resolved ", length(p_vec), " taus. Set EXDQLM_DYNAMIC_PIPELINE_TAU(S) consistently or use sim$p length 1.")
+  }
+}
 df_base <- safe_num(Sys.getenv("EXDQLM_DF_BASE", "0.98"), 0.98)
 df_candidate_vals <- sort(unique(c(df_base, 0.995, 0.999)))
 df_candidate_list <- lapply(df_candidate_vals, function(v) rep(v, 3))

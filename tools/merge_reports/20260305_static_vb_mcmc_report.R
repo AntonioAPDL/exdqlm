@@ -324,6 +324,15 @@ if (nrow(ld_diag) > 0) {
   vb_rows$ld_gamma_flip_rate_tail <- NA_real_
   vb_rows$ld_mode_fallback_rate <- NA_real_
   vb_rows$ld_local_mode_pass <- NA
+  vb_rows$ld_candidate_local_pass_rate_tail <- NA_real_
+  vb_rows$ld_committed_local_pass_rate_tail <- NA_real_
+  vb_rows$ld_committed_stable_tail <- NA
+  vb_rows$ld_objective_gap_median_tail <- NA_real_
+  vb_rows$ld_stabilized_rate_tail <- NA_real_
+  vb_rows$ld_optim_fallback_rate <- NA_real_
+  vb_rows$ld_numeric_hessian_rate <- NA_real_
+  vb_rows$ld_identity_hessian_rate <- NA_real_
+  vb_rows$ld_cov_floor_rate <- NA_real_
 }
 rhs_exal <- vb_rows$model == "exal" & !is.na(vb_rows$beta_prior) & vb_rows$beta_prior == "rhs"
 ridge_exal <- vb_rows$model == "exal" & !rhs_exal
@@ -335,14 +344,27 @@ vb_rows$gate_vb_ld_stable[ridge_exal] <-
   (is.na(vb_rows$ld_gamma_flip_rate_tail[ridge_exal]) | vb_rows$ld_gamma_flip_rate_tail[ridge_exal] <= ld_flip_rate_max) &
   (is.na(vb_rows$ld_mode_fallback_rate[ridge_exal]) | vb_rows$ld_mode_fallback_rate[ridge_exal] <= ld_fallback_max)
 vb_rows$gate_vb_ld_stable[rhs_exal] <-
-  !is.na(vb_rows$ld_xi_median_abs_tail[rhs_exal]) &
-  vb_rows$ld_xi_median_abs_tail[rhs_exal] <= ld_xi_median_abs_max &
-  (is.na(vb_rows$ld_mode_fallback_rate[rhs_exal]) | vb_rows$ld_mode_fallback_rate[rhs_exal] <= ld_fallback_max)
+  ifelse(
+    !is.na(vb_rows$ld_stabilized_rate_tail[rhs_exal]) & vb_rows$ld_stabilized_rate_tail[rhs_exal] > 0,
+    !is.na(vb_rows$ld_committed_stable_tail[rhs_exal]) &
+      as.logical(vb_rows$ld_committed_stable_tail[rhs_exal]) &
+      (is.na(vb_rows$ld_optim_fallback_rate[rhs_exal]) | vb_rows$ld_optim_fallback_rate[rhs_exal] <= ld_fallback_max) &
+      (is.na(vb_rows$ld_identity_hessian_rate[rhs_exal]) | vb_rows$ld_identity_hessian_rate[rhs_exal] <= ld_fallback_max) &
+      (is.na(vb_rows$ld_cov_floor_rate[rhs_exal]) | vb_rows$ld_cov_floor_rate[rhs_exal] <= ld_fallback_max),
+    !is.na(vb_rows$ld_xi_median_abs_tail[rhs_exal]) &
+      vb_rows$ld_xi_median_abs_tail[rhs_exal] <= ld_xi_median_abs_max &
+      (is.na(vb_rows$ld_mode_fallback_rate[rhs_exal]) | vb_rows$ld_mode_fallback_rate[rhs_exal] <= ld_fallback_max)
+  )
 vb_rows$gate_vb_ld_local_mode <- ifelse(
-  vb_rows$model == "exal",
-  !is.na(vb_rows$ld_local_mode_pass) & as.logical(vb_rows$ld_local_mode_pass),
-  TRUE
+  vb_rows$model == "exal" & !is.na(vb_rows$ld_stabilized_rate_tail) & vb_rows$ld_stabilized_rate_tail > 0,
+  !is.na(vb_rows$ld_candidate_local_pass_rate_tail) & vb_rows$ld_candidate_local_pass_rate_tail >= 0.80,
+  ifelse(
+    vb_rows$model == "exal",
+    !is.na(vb_rows$ld_local_mode_pass) & as.logical(vb_rows$ld_local_mode_pass),
+    TRUE
+  )
 )
+vb_rows$gate_vb_ld_local_mode[is.na(vb_rows$gate_vb_ld_local_mode)] <- TRUE
 vb_rows$gate_mcmc_kernel_exact <- ifelse(
   vb_rows$model == "exal",
   !is.na(summary_df$mcmc_gamma_kernel_exact[match(paste(vb_rows$model, vb_rows$tau), paste(summary_df$model, summary_df$tau))]) &

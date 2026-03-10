@@ -70,6 +70,20 @@
     reuse_seed = getOption("exdqlm.static.ldvb.reuse_seed", NA_integer_),
     mode_grad_tol = getOption("exdqlm.static.ldvb.mode_grad_tol", 5e-3),
     mode_min_eig = getOption("exdqlm.static.ldvb.mode_min_eig", 1e-8),
+    auto_stabilize = getOption("exdqlm.static.ldvb.auto_stabilize", TRUE),
+    cycle_window = getOption("exdqlm.static.ldvb.cycle_window", 8L),
+    cycle_lag1_max = getOption("exdqlm.static.ldvb.cycle_lag1_max", -0.8),
+    cycle_lag2_min = getOption("exdqlm.static.ldvb.cycle_lag2_min", 0.95),
+    cycle_gamma_min_amp = getOption("exdqlm.static.ldvb.cycle_gamma_min_amp", 1e-3),
+    cycle_sigma_min_amp = getOption("exdqlm.static.ldvb.cycle_sigma_min_amp", 1e-3),
+    cycle_s_min_amp = getOption("exdqlm.static.ldvb.cycle_s_min_amp", 1e-5),
+    cycle_tau2_min_amp = getOption("exdqlm.static.ldvb.cycle_tau2_min_amp", 1e-5),
+    stabilize_damping = getOption("exdqlm.static.ldvb.stabilize_damping", 0.25),
+    stabilize_xi_damping = getOption("exdqlm.static.ldvb.stabilize_xi_damping", 0.25),
+    stabilize_xi_method = getOption("exdqlm.static.ldvb.stabilize_xi_method", "mc"),
+    stabilize_step_cap_eta = getOption("exdqlm.static.ldvb.stabilize_step_cap_eta", 2.0),
+    stabilize_step_cap_ell = getOption("exdqlm.static.ldvb.stabilize_step_cap_ell", 0.75),
+    reject_bad_mode_commit = getOption("exdqlm.static.ldvb.reject_bad_mode_commit", TRUE),
     store_trace = getOption("exdqlm.static.ldvb.store_trace", TRUE)
   )
   if (!is.null(ld_controls)) {
@@ -163,6 +177,31 @@
   if (!is.finite(defaults$mode_grad_tol) || defaults$mode_grad_tol <= 0) defaults$mode_grad_tol <- 5e-3
   defaults$mode_min_eig <- as.numeric(defaults$mode_min_eig)[1]
   if (!is.finite(defaults$mode_min_eig) || defaults$mode_min_eig <= 0) defaults$mode_min_eig <- 1e-8
+  defaults$auto_stabilize <- isTRUE(defaults$auto_stabilize)
+  defaults$cycle_window <- suppressWarnings(as.integer(defaults$cycle_window)[1])
+  if (!is.finite(defaults$cycle_window) || defaults$cycle_window < 4L) defaults$cycle_window <- 8L
+  defaults$cycle_lag1_max <- as.numeric(defaults$cycle_lag1_max)[1]
+  if (!is.finite(defaults$cycle_lag1_max)) defaults$cycle_lag1_max <- -0.8
+  defaults$cycle_lag2_min <- as.numeric(defaults$cycle_lag2_min)[1]
+  if (!is.finite(defaults$cycle_lag2_min)) defaults$cycle_lag2_min <- 0.95
+  defaults$cycle_gamma_min_amp <- as.numeric(defaults$cycle_gamma_min_amp)[1]
+  if (!is.finite(defaults$cycle_gamma_min_amp) || defaults$cycle_gamma_min_amp < 0) defaults$cycle_gamma_min_amp <- 1e-3
+  defaults$cycle_sigma_min_amp <- as.numeric(defaults$cycle_sigma_min_amp)[1]
+  if (!is.finite(defaults$cycle_sigma_min_amp) || defaults$cycle_sigma_min_amp < 0) defaults$cycle_sigma_min_amp <- 1e-3
+  defaults$cycle_s_min_amp <- as.numeric(defaults$cycle_s_min_amp)[1]
+  if (!is.finite(defaults$cycle_s_min_amp) || defaults$cycle_s_min_amp < 0) defaults$cycle_s_min_amp <- 1e-5
+  defaults$cycle_tau2_min_amp <- as.numeric(defaults$cycle_tau2_min_amp)[1]
+  if (!is.finite(defaults$cycle_tau2_min_amp) || defaults$cycle_tau2_min_amp < 0) defaults$cycle_tau2_min_amp <- 1e-5
+  defaults$stabilize_damping <- as.numeric(defaults$stabilize_damping)[1]
+  if (!is.finite(defaults$stabilize_damping) || defaults$stabilize_damping <= 0 || defaults$stabilize_damping > 1) defaults$stabilize_damping <- 0.25
+  defaults$stabilize_xi_damping <- as.numeric(defaults$stabilize_xi_damping)[1]
+  if (!is.finite(defaults$stabilize_xi_damping) || defaults$stabilize_xi_damping <= 0 || defaults$stabilize_xi_damping > 1) defaults$stabilize_xi_damping <- 0.25
+  defaults$stabilize_xi_method <- match.arg(as.character(defaults$stabilize_xi_method)[1], c("delta", "mc"))
+  defaults$stabilize_step_cap_eta <- as.numeric(defaults$stabilize_step_cap_eta)[1]
+  if (is.na(defaults$stabilize_step_cap_eta) || defaults$stabilize_step_cap_eta <= 0) defaults$stabilize_step_cap_eta <- 2.0
+  defaults$stabilize_step_cap_ell <- as.numeric(defaults$stabilize_step_cap_ell)[1]
+  if (is.na(defaults$stabilize_step_cap_ell) || defaults$stabilize_step_cap_ell <= 0) defaults$stabilize_step_cap_ell <- 0.75
+  defaults$reject_bad_mode_commit <- isTRUE(defaults$reject_bad_mode_commit)
   defaults$store_trace <- isTRUE(defaults$store_trace)
   defaults
 }
@@ -333,6 +372,75 @@
   out
 }
 
+.exal_static_ld_cycle_metrics <- function(x) {
+  x <- as.numeric(x)
+  x <- x[is.finite(x)]
+  n <- length(x)
+  if (n < 4L || length(unique(x)) < 2L) {
+    return(list(
+      lag1 = NA_real_,
+      lag2 = NA_real_,
+      mean_abs_diff = if (n >= 2L) mean(abs(diff(x))) else NA_real_,
+      range = if (n >= 1L) diff(range(x)) else NA_real_
+    ))
+  }
+  list(
+    lag1 = stats::cor(x[-1L], x[-n]),
+    lag2 = stats::cor(x[-(1:2)], x[-((n - 1L):n)]),
+    mean_abs_diff = mean(abs(diff(x))),
+    range = diff(range(x))
+  )
+}
+
+.exal_static_ld_cycle_detect <- function(ld_trace, s_trace, candidate, ld_ctrl) {
+  if (!isTRUE(ld_ctrl$auto_stabilize)) {
+    return(list(triggered = FALSE, reason = NA_character_, metrics = list(), flags = logical()))
+  }
+  window <- max(4L, suppressWarnings(as.integer(ld_ctrl$cycle_window)[1]))
+  if (nrow(ld_trace) < max(2L, window - 1L) || nrow(s_trace) < max(2L, window - 1L)) {
+    return(list(triggered = FALSE, reason = NA_character_, metrics = list(), flags = logical()))
+  }
+
+  tail_with_candidate <- function(df, col, value) {
+    tail(c(df[[col]], value), window)
+  }
+
+  metrics <- list(
+    gamma = .exal_static_ld_cycle_metrics(tail_with_candidate(ld_trace, "gamma", candidate$gamma)),
+    sigma = .exal_static_ld_cycle_metrics(tail_with_candidate(ld_trace, "sigma", candidate$sigma)),
+    s_mean = .exal_static_ld_cycle_metrics(tail_with_candidate(s_trace, "s_mean", candidate$s_mean)),
+    tau2_mean = .exal_static_ld_cycle_metrics(tail_with_candidate(s_trace, "tau2_mean", candidate$tau2_mean))
+  )
+
+  trig <- function(m, amp_min) {
+    is.finite(m$lag1) &&
+      is.finite(m$lag2) &&
+      is.finite(m$range) &&
+      m$lag1 <= ld_ctrl$cycle_lag1_max &&
+      m$lag2 >= ld_ctrl$cycle_lag2_min &&
+      m$range >= amp_min
+  }
+
+  flags <- c(
+    gamma = trig(metrics$gamma, ld_ctrl$cycle_gamma_min_amp),
+    sigma = trig(metrics$sigma, ld_ctrl$cycle_sigma_min_amp),
+    s_mean = trig(metrics$s_mean, ld_ctrl$cycle_s_min_amp),
+    tau2_mean = trig(metrics$tau2_mean, ld_ctrl$cycle_tau2_min_amp)
+  )
+
+  triggered <- (isTRUE(flags[["gamma"]]) && isTRUE(flags[["sigma"]])) ||
+    ((isTRUE(flags[["gamma"]]) || isTRUE(flags[["sigma"]])) &&
+      isTRUE(flags[["s_mean"]]) && isTRUE(flags[["tau2_mean"]]))
+
+  reason <- if (triggered) {
+    paste0("cycle_detected:", paste(names(flags)[flags], collapse = "+"))
+  } else {
+    NA_character_
+  }
+
+  list(triggered = triggered, reason = reason, metrics = metrics, flags = flags)
+}
+
 .exal_static_ld_mode_quality <- function(log_q_fn, par, grad_tol = 5e-3, min_eig = 1e-8) {
   grad <- try(numDeriv::grad(log_q_fn, x = as.numeric(par)), silent = TRUE)
   grad <- if (inherits(grad, "try-error")) rep(NA_real_, length(par)) else as.numeric(grad)
@@ -369,6 +477,64 @@
       is.finite(neg_hess_min_eig) &&
       neg_hess_min_eig > min_eig
   )
+}
+
+.exal_static_ld_committed_stability <- function(ld_trace_df, conv_ctrl, tail_n = 50L) {
+  if (!is.data.frame(ld_trace_df) || !nrow(ld_trace_df)) {
+    return(list(
+      tail_n = 0L,
+      cycle_rate = NA_real_,
+      objective_gap_median = NA_real_,
+      xi_drift_median = NA_real_,
+      delta_state_median = NA_real_,
+      delta_sigma_median = NA_real_,
+      delta_gamma_median = NA_real_,
+      candidate_local_pass_rate = NA_real_,
+      committed_stable = FALSE
+    ))
+  }
+  metric_vec <- function(df, col) {
+    if (!col %in% names(df)) {
+      return(rep(NA_real_, nrow(df)))
+    }
+    vals <- df[[col]]
+    if (is.null(vals)) {
+      return(rep(NA_real_, nrow(df)))
+    }
+    if (is.logical(vals)) {
+      return(as.numeric(vals))
+    }
+    if (is.factor(vals)) {
+      vals <- as.character(vals)
+    }
+    suppressWarnings(as.numeric(vals))
+  }
+  tail_n <- max(1L, min(as.integer(tail_n)[1], nrow(ld_trace_df)))
+  tail_df <- utils::tail(ld_trace_df, tail_n)
+  cycle_vals <- metric_vec(tail_df, "ld_cycle_detected")
+  gap_vals <- metric_vec(tail_df, "ld_objective_gap")
+  xi_vals <- metric_vec(tail_df, "xi_rel_drift")
+  state_vals <- metric_vec(tail_df, "delta_state")
+  sigma_vals <- metric_vec(tail_df, "delta_sigma")
+  gamma_vals <- metric_vec(tail_df, "delta_gamma")
+  local_pass_vals <- metric_vec(tail_df, "ld_mode_local_pass_candidate")
+  out <- list(
+    tail_n = tail_n,
+    cycle_rate = mean(as.logical(cycle_vals), na.rm = TRUE),
+    objective_gap_median = stats::median(abs(gap_vals), na.rm = TRUE),
+    xi_drift_median = stats::median(abs(xi_vals), na.rm = TRUE),
+    delta_state_median = stats::median(abs(state_vals), na.rm = TRUE),
+    delta_sigma_median = stats::median(abs(sigma_vals), na.rm = TRUE),
+    delta_gamma_median = stats::median(abs(gamma_vals), na.rm = TRUE),
+    candidate_local_pass_rate = mean(as.logical(local_pass_vals), na.rm = TRUE)
+  )
+  out$committed_stable <- isTRUE(out$candidate_local_pass_rate >= 0.80) &&
+    isTRUE(out$cycle_rate <= 0.05) &&
+    isTRUE(out$objective_gap_median <= 1e-3) &&
+    isTRUE(out$delta_state_median <= conv_ctrl$tol_state) &&
+    isTRUE(out$delta_sigma_median <= conv_ctrl$tol_sigma) &&
+    isTRUE(out$delta_gamma_median <= conv_ctrl$tol_gamma)
+  out
 }
 
 #' Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)
@@ -424,8 +590,13 @@
 #'   \code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
 #'   \code{sigma_max_mult}, \code{sigma_bound_ratio_min},
 #'   \code{gamma_init_pad_frac}, \code{logit_eps}, \code{init_cov_diag},
-#'   \code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig}, and
-#'   \code{store_trace}.
+#'   \code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig},
+#'   \code{auto_stabilize}, \code{cycle_window}, \code{cycle_lag1_max},
+#'   \code{cycle_lag2_min}, \code{cycle_gamma_min_amp},
+#'   \code{cycle_sigma_min_amp}, \code{cycle_s_min_amp},
+#'   \code{cycle_tau2_min_amp}, \code{stabilize_damping},
+#'   \code{stabilize_xi_damping}, \code{stabilize_step_cap_eta},
+#'   \code{stabilize_step_cap_ell}, and \code{store_trace}.
 #' @param verbose Logical; print progress.
 #'
 #' @return A object of class "\code{exal_ldvb}" containing:
@@ -448,7 +619,8 @@
 #'   \item \code{diagnostics}: ELBO and joint-convergence diagnostics
 #'         (state/sigma/gamma/ELBO deltas, stopping reason, and
 #'         Laplace-Delta block trace diagnostics, including replicated-\code{xi}
-#'         controls and final local-mode quality checks).
+#'         controls, automatic stabilization / cycle-detection fields, and
+#'         final local-mode quality checks).
 #' }
 #'
 #' @details
@@ -787,8 +959,9 @@ exal_static_LDVB <- function(
     out_named
   }
 
-  compute_xi <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi, base_Z = NULL) {
-    if (identical(ld_ctrl$xi_method, "delta")) {
+  compute_xi <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi, base_Z = NULL, method = ld_ctrl$xi_method) {
+    method <- match.arg(as.character(method)[1], c("delta", "mc"))
+    if (identical(method, "delta")) {
       xi_val <- compute_xi_delta(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma)
       return(list(
         value = xi_val,
@@ -838,7 +1011,9 @@ exal_static_LDVB <- function(
     par0[1] <- min(max(par0[1], ld_ctrl$eta_lo), ld_ctrl$eta_hi)
     par0[2] <- min(max(par0[2], ld_setup$ell_lo), ld_setup$ell_hi)
     par_start <- par0
-    used_fallback <- FALSE
+    used_optim_fallback <- FALSE
+    used_numeric_hessian <- FALSE
+    used_identity_hessian <- FALSE
 
     opt <- if (identical(ld_ctrl$optimizer_method, "lbfgsb")) {
       try(
@@ -873,7 +1048,7 @@ exal_static_LDVB <- function(
       )
     }
     if (inherits(opt, "try-error") || !is.finite(opt$value)) {
-      used_fallback <- TRUE
+      used_optim_fallback <- TRUE
       opt <- list(par = as.numeric(par_start), value = fn_neg(par_start), hessian = diag(2) * 1e-2, convergence = 1L)
     }
     H <- opt$hessian
@@ -887,10 +1062,13 @@ exal_static_LDVB <- function(
     }
     if (!all(is.finite(H)) || any(is.nan(H))) {
       # numeric Hessian as fallback
-      H <- try(numDeriv::hessian(function(z) -log_qsiggam(z), x = opt$par), silent = TRUE)
-      if (inherits(H, "try-error") || any(!is.finite(H))) {
-        used_fallback <- TRUE
+      H_num <- try(numDeriv::hessian(function(z) -log_qsiggam(z), x = opt$par), silent = TRUE)
+      if (inherits(H_num, "try-error") || any(!is.finite(H_num))) {
+        used_identity_hessian <- TRUE
         H <- diag(2) * 1e-2
+      } else {
+        used_numeric_hessian <- TRUE
+        H <- H_num
       }
     }
     H <- (H + t(H)) / 2
@@ -906,7 +1084,11 @@ exal_static_LDVB <- function(
       objective = as.numeric(log_qsiggam(opt$par)),
       optim_convergence = if (!is.null(opt$convergence)) as.integer(opt$convergence)[1] else NA_integer_,
       optimizer_method = ld_ctrl$optimizer_method,
-      used_fallback = used_fallback || isTRUE(reg$used_floor),
+      used_optim_fallback = used_optim_fallback,
+      used_numeric_hessian = used_numeric_hessian,
+      used_identity_hessian = used_identity_hessian,
+      used_cov_floor = isTRUE(reg$used_floor),
+      used_fallback = used_optim_fallback || used_numeric_hessian || used_identity_hessian || isTRUE(reg$used_floor),
       hess_condition = reg$condition_raw,
       cov_condition = reg$condition_reg,
       cov_eig_min = min(reg$cov_eig_reg),
@@ -941,6 +1123,14 @@ exal_static_LDVB <- function(
   delta_elbo <- numeric(0)
   ld_trace_rows <- vector("list", max_iter)
   s_trace_rows <- vector("list", max_iter)
+  gamma_hist <- numeric(0)
+  sigma_hist <- numeric(0)
+  s_mean_hist <- numeric(0)
+  tau2_mean_hist <- numeric(0)
+  stabilize_active <- FALSE
+  stabilize_since_iter <- NA_integer_
+  stabilize_reason_active <- NA_character_
+  stabilize_xi_method_active <- ld_ctrl$xi_method
   stable_count <- 0L
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   stop_reason <- "max_iter"
@@ -1000,7 +1190,68 @@ exal_static_LDVB <- function(
     ell_prev <- ell_hat
     Sigma_prev <- Sig_eta_ell
     ld <- find_mode_ld(eta_hat, ell_hat)
-    if (isTRUE(ld_ctrl$direct_commit)) {
+    candidate <- list(
+      gamma = g_from_eta(ld$eta_hat),
+      sigma = exp(ld$ell_hat),
+      s_mean = mean(s_mom$Es),
+      tau2_mean = mean(tau2)
+    )
+    ld_hist_df <- if (length(gamma_hist)) {
+      data.frame(gamma = gamma_hist, sigma = sigma_hist)
+    } else {
+      data.frame(gamma = numeric(0), sigma = numeric(0))
+    }
+    s_hist_df <- if (length(s_mean_hist)) {
+      data.frame(s_mean = s_mean_hist, tau2_mean = tau2_mean_hist)
+    } else {
+      data.frame(s_mean = numeric(0), tau2_mean = numeric(0))
+    }
+    cycle_info <- .exal_static_ld_cycle_detect(ld_hist_df, s_hist_df, candidate, ld_ctrl)
+    ld_cycle_detected <- isTRUE(cycle_info$triggered)
+    ld_stabilized <- FALSE
+    ld_stabilize_reason <- NA_character_
+    ld_candidate_mode_quality_iter <- if (isTRUE(ld_ctrl$auto_stabilize) || isTRUE(ld_ctrl$reject_bad_mode_commit)) {
+      .exal_static_ld_mode_quality(
+        log_q_fn = log_qsiggam,
+        par = c(ld$eta_hat, ld$ell_hat),
+        grad_tol = ld_ctrl$mode_grad_tol,
+        min_eig = ld_ctrl$mode_min_eig
+      )
+    } else {
+      NULL
+    }
+    ld_bad_mode_iter <- !is.null(ld_candidate_mode_quality_iter) && !isTRUE(ld_candidate_mode_quality_iter$local_mode_pass)
+    if (isTRUE(ld_ctrl$auto_stabilize)) {
+      if (isTRUE(ld_ctrl$direct_commit) &&
+          (!isTRUE(stabilize_active)) &&
+          (isTRUE(ld_cycle_detected) ||
+            isTRUE(ld$used_fallback) ||
+            (!is.na(ld$optim_convergence) && ld$optim_convergence != 0L) ||
+            isTRUE(ld_bad_mode_iter))) {
+        stabilize_active <- TRUE
+        stabilize_since_iter <- iter
+        stabilize_reason_active <- if (isTRUE(ld_cycle_detected)) {
+          cycle_info$reason
+        } else if (isTRUE(ld$used_fallback)) {
+          "ld_used_fallback"
+        } else if (isTRUE(ld_bad_mode_iter)) {
+          "ld_bad_mode"
+        } else {
+          sprintf("ld_optim_convergence_%s", ld$optim_convergence)
+        }
+        stabilize_xi_method_active <- ld_ctrl$stabilize_xi_method
+      }
+      if (isTRUE(stabilize_active)) {
+        ld_stabilized <- TRUE
+        ld_stabilize_reason <- stabilize_reason_active
+      }
+    }
+    xi_damping_use <- if (isTRUE(ld_stabilized)) ld_ctrl$stabilize_xi_damping else ld_ctrl$xi_damping
+    active_xi_method <- if (isTRUE(ld_stabilized)) stabilize_xi_method_active else ld_ctrl$xi_method
+    use_direct_commit <- isTRUE(ld_ctrl$direct_commit) && !isTRUE(ld_stabilized) &&
+      !(isTRUE(ld_ctrl$reject_bad_mode_commit) && isTRUE(ld_bad_mode_iter))
+    ld_commit_mode <- if (use_direct_commit) "direct" else "damped"
+    if (use_direct_commit) {
       eta_hat <- as.numeric(ld$eta_hat)
       ell_hat <- as.numeric(ld$ell_hat)
       Sig_eta_ell <- .exal_static_ld_regularize_cov(
@@ -1009,36 +1260,55 @@ exal_static_LDVB <- function(
         eig_cap = ld_ctrl$eig_cap
       )$Sigma
     } else {
+      damping_use <- if (isTRUE(ld_stabilized)) ld_ctrl$stabilize_damping else ld_ctrl$damping
+      step_cap_eta_use <- if (isTRUE(ld_stabilized)) min(ld_ctrl$step_cap_eta, ld_ctrl$stabilize_step_cap_eta) else ld_ctrl$step_cap_eta
+      step_cap_ell_use <- if (isTRUE(ld_stabilized)) min(ld_ctrl$step_cap_ell, ld_ctrl$stabilize_step_cap_ell) else ld_ctrl$step_cap_ell
       eta_hat <- .exal_static_ld_mix_step(
         old = eta_prev,
         new = ld$eta_hat,
-        damping = ld_ctrl$damping,
-        step_cap = ld_ctrl$step_cap_eta
+        damping = damping_use,
+        step_cap = step_cap_eta_use
       )
       ell_hat <- .exal_static_ld_mix_step(
         old = ell_prev,
         new = ld$ell_hat,
-        damping = ld_ctrl$damping,
-        step_cap = ld_ctrl$step_cap_ell
+        damping = damping_use,
+        step_cap = step_cap_ell_use
       )
-      Sigma_mix <- (1 - ld_ctrl$damping) * Sigma_prev + ld_ctrl$damping * ld$Sigma
+      Sigma_mix <- (1 - damping_use) * Sigma_prev + damping_use * ld$Sigma
       Sig_eta_ell <- .exal_static_ld_regularize_cov(
         Sigma_mix,
         eig_floor = ld_ctrl$eig_floor,
         eig_cap = ld_ctrl$eig_cap
       )$Sigma
     }
+    ld_committed_objective <- as.numeric(log_qsiggam(c(eta_hat, ell_hat)))
+    ld_committed_mode_quality_iter <- if (use_direct_commit && !isTRUE(ld_stabilized) &&
+      is.null(ld_candidate_mode_quality_iter)) {
+      NULL
+    } else if (use_direct_commit && !isTRUE(ld_stabilized)) {
+      ld_candidate_mode_quality_iter
+    } else {
+      .exal_static_ld_mode_quality(
+        log_q_fn = log_qsiggam,
+        par = c(eta_hat, ell_hat),
+        grad_tol = ld_ctrl$mode_grad_tol,
+        min_eig = ld_ctrl$mode_min_eig
+      )
+    }
 
     # update xi via MC under Gaussian (eta,ell)
+    xi_base_draws_use <- if (identical(active_xi_method, "mc")) ld_base_draws else NULL
     xis_eval_raw <- compute_xi(
       eta_hat,
       ell_hat,
       Sig_eta_ell,
       ns = n_samp_xi,
-      base_Z = ld_base_draws
+      base_Z = xi_base_draws_use,
+      method = active_xi_method
     )
     xis_raw <- xis_eval_raw$value
-    xis_new <- .exal_static_ld_mix_numeric_lists(xis, xis_raw, damping = ld_ctrl$xi_damping)
+    xis_new <- .exal_static_ld_mix_numeric_lists(xis, xis_raw, damping = xi_damping_use)
 
     # ---- check convergence
     rel_mb <- sqrt(sum((m_beta_new - m_beta)^2)) / (1e-8 + sqrt(sum(m_beta^2)))
@@ -1054,8 +1324,11 @@ exal_static_LDVB <- function(
     if (verbose && (iter %% 50 == 0)) {
       ghat <- g_from_eta(eta_hat); shat <- exp(ell_hat)
       cat(sprintf(
-        "iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f | ld(raw)=%.2e/%.2e used=%.2e/%.2e\n",
-        iter, rel_mb, rel_xi, ghat, shat, eta_step_raw, ell_step_raw, eta_step_used, ell_step_used
+        "iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f | ld(raw)=%.2e/%.2e used=%.2e/%.2e | stabilize=%s xi=%s bad_mode=%s\n",
+        iter, rel_mb, rel_xi, ghat, shat, eta_step_raw, ell_step_raw, eta_step_used, ell_step_used,
+        ifelse(ld_stabilized, ld_stabilize_reason, "none"),
+        active_xi_method,
+        ifelse(ld_bad_mode_iter, "yes", "no")
       ))
     }
 
@@ -1066,6 +1339,10 @@ exal_static_LDVB <- function(
     qs_mu  <- as.numeric(mu_s);       qs_tau2 <- as.numeric(tau2)
     E_s    <- as.numeric(s_mom$Es);   E_s2    <- as.numeric(s_mom$Es2)
     xis    <- xis_new
+    gamma_hist <- c(gamma_hist, gamma_cur <- g_from_eta(eta_hat))
+    sigma_hist <- c(sigma_hist, sigma_cur <- exp(ell_hat))
+    s_mean_hist <- c(s_mean_hist, mean(E_s))
+    tau2_mean_hist <- c(tau2_mean_hist, mean(qs_tau2))
 
     ## ---------- ELBO (term-by-term) ------------------------------------------
     # Precompute residual pieces
@@ -1144,13 +1421,12 @@ exal_static_LDVB <- function(
                 H_qb + H_qv + H_qs + H_qsg
     elbo_trace <- c(elbo_trace, elbo_new)
 
-    gamma_cur <- g_from_eta(eta_hat)
-    sigma_cur <- exp(ell_hat)
     d_beta <- max(abs(m_beta_new - prev_m_beta))
     d_sigma <- abs(sigma_cur - sigma_prev)
     d_gamma <- abs(gamma_cur - gamma_prev)
     d_s <- .exal_static_ld_rel_change(s_mom$Es, E_s)
     d_elbo <- if (iter >= 2L) elbo_new - elbo_old else NA_real_
+    use_elbo_gate <- !(isTRUE(ld_stabilized) && identical(active_xi_method, "mc"))
     step <- .vb_joint_step(
       iter = iter,
       d_state = d_beta,
@@ -1158,7 +1434,7 @@ exal_static_LDVB <- function(
       d_gamma = d_gamma,
       d_elbo = d_elbo,
       controls = conv_ctrl,
-      compute_elbo = TRUE,
+      compute_elbo = use_elbo_gate,
       stable_count = stable_count
     )
     stable_count <- step$stable_count
@@ -1170,6 +1446,14 @@ exal_static_LDVB <- function(
     if (isTRUE(ld_ctrl$store_trace)) {
       s_stats <- .exdqlm_trace_summary(s_mom$Es)
       tau2_stats <- .exdqlm_trace_summary(tau2)
+      cycle_gamma_lag1 <- if (!is.null(cycle_info$metrics$gamma$lag1)) cycle_info$metrics$gamma$lag1 else NA_real_
+      cycle_gamma_lag2 <- if (!is.null(cycle_info$metrics$gamma$lag2)) cycle_info$metrics$gamma$lag2 else NA_real_
+      cycle_sigma_lag1 <- if (!is.null(cycle_info$metrics$sigma$lag1)) cycle_info$metrics$sigma$lag1 else NA_real_
+      cycle_sigma_lag2 <- if (!is.null(cycle_info$metrics$sigma$lag2)) cycle_info$metrics$sigma$lag2 else NA_real_
+      cycle_s_lag1 <- if (!is.null(cycle_info$metrics$s_mean$lag1)) cycle_info$metrics$s_mean$lag1 else NA_real_
+      cycle_s_lag2 <- if (!is.null(cycle_info$metrics$s_mean$lag2)) cycle_info$metrics$s_mean$lag2 else NA_real_
+      cycle_tau2_lag1 <- if (!is.null(cycle_info$metrics$tau2_mean$lag1)) cycle_info$metrics$tau2_mean$lag1 else NA_real_
+      cycle_tau2_lag2 <- if (!is.null(cycle_info$metrics$tau2_mean$lag2)) cycle_info$metrics$tau2_mean$lag2 else NA_real_
       ld_trace_rows[[iter]] <- data.frame(
         iter = iter,
         eta = eta_hat,
@@ -1178,19 +1462,48 @@ exal_static_LDVB <- function(
         sigma = sigma_cur,
         eta_raw = ld$eta_hat,
         ell_raw = ld$ell_hat,
+        gamma_raw = candidate$gamma,
+        sigma_raw = candidate$sigma,
         eta_step_raw = eta_step_raw,
         ell_step_raw = ell_step_raw,
         eta_step_used = eta_step_used,
         ell_step_used = ell_step_used,
         xi_rel_drift = rel_xi,
-        xi_method = ld_ctrl$xi_method,
+        xi_method = active_xi_method,
         xi_mcse_mean = as.numeric(xis_eval_raw$mcse_mean)[1],
         xi_mcse_max = as.numeric(xis_eval_raw$mcse_max)[1],
         xi_replicates = as.integer(xis_eval_raw$replicate_count)[1],
-        ld_objective = ld$objective,
+        ld_objective_candidate = ld$objective,
+        ld_objective_committed = ld_committed_objective,
+        ld_objective_gap = ld_committed_objective - ld$objective,
         ld_optim_convergence = ld$optim_convergence,
         ld_optimizer_method = ld$optimizer_method,
         ld_used_fallback = isTRUE(ld$used_fallback),
+        ld_used_optim_fallback = isTRUE(ld$used_optim_fallback),
+        ld_used_numeric_hessian = isTRUE(ld$used_numeric_hessian),
+        ld_used_identity_hessian = isTRUE(ld$used_identity_hessian),
+        ld_used_cov_floor = isTRUE(ld$used_cov_floor),
+        ld_commit_mode = ld_commit_mode,
+        ld_bad_mode = ld_bad_mode_iter,
+        ld_mode_grad_inf_norm_candidate = if (!is.null(ld_candidate_mode_quality_iter)) ld_candidate_mode_quality_iter$grad_inf_norm else NA_real_,
+        ld_mode_neg_hess_min_eig_candidate = if (!is.null(ld_candidate_mode_quality_iter)) ld_candidate_mode_quality_iter$neg_hess_min_eig else NA_real_,
+        ld_mode_local_pass_candidate = if (!is.null(ld_candidate_mode_quality_iter)) isTRUE(ld_candidate_mode_quality_iter$local_mode_pass) else NA,
+        ld_mode_grad_inf_norm_committed = if (!is.null(ld_committed_mode_quality_iter)) ld_committed_mode_quality_iter$grad_inf_norm else NA_real_,
+        ld_mode_neg_hess_min_eig_committed = if (!is.null(ld_committed_mode_quality_iter)) ld_committed_mode_quality_iter$neg_hess_min_eig else NA_real_,
+        ld_mode_local_pass_committed = if (!is.null(ld_committed_mode_quality_iter)) isTRUE(ld_committed_mode_quality_iter$local_mode_pass) else NA,
+        ld_cycle_detected = ld_cycle_detected,
+        ld_stabilized = ld_stabilized,
+        ld_stabilize_reason = if (!is.na(ld_stabilize_reason)) ld_stabilize_reason else "",
+        ld_stabilize_active = stabilize_active,
+        ld_stabilize_since_iter = if (is.finite(stabilize_since_iter)) stabilize_since_iter else NA_integer_,
+        ld_cycle_gamma_lag1 = cycle_gamma_lag1,
+        ld_cycle_gamma_lag2 = cycle_gamma_lag2,
+        ld_cycle_sigma_lag1 = cycle_sigma_lag1,
+        ld_cycle_sigma_lag2 = cycle_sigma_lag2,
+        ld_cycle_s_lag1 = cycle_s_lag1,
+        ld_cycle_s_lag2 = cycle_s_lag2,
+        ld_cycle_tau2_lag1 = cycle_tau2_lag1,
+        ld_cycle_tau2_lag2 = cycle_tau2_lag2,
         ld_hess_condition = ld$hess_condition,
         ld_cov_condition = ld$cov_condition,
         ld_cov_eig_min = ld$cov_eig_min,
@@ -1227,6 +1540,10 @@ exal_static_LDVB <- function(
         tau2_min = tau2_stats[["min"]],
         tau2_max = tau2_stats[["max"]],
         delta_s = d_s,
+        ld_cycle_detected = ld_cycle_detected,
+        ld_stabilized = ld_stabilized,
+        ld_stabilize_reason = if (!is.na(ld_stabilize_reason)) ld_stabilize_reason else "",
+        xi_method = active_xi_method,
         stringsAsFactors = FALSE
       )
     }
@@ -1270,6 +1587,38 @@ exal_static_LDVB <- function(
     if (length(keep)) do.call(rbind, keep) else data.frame()
   } else {
     data.frame()
+  }
+
+  ld_signoff_summary <- if (nrow(ld_trace_df)) {
+    base <- {
+      tail_n <- min(50L, nrow(ld_trace_df))
+      tail_df <- utils::tail(ld_trace_df, tail_n)
+      list(
+        tail_n = tail_n,
+        candidate_local_pass_rate = mean(as.logical(tail_df$ld_mode_local_pass_candidate), na.rm = TRUE),
+        committed_local_pass_rate = mean(as.logical(tail_df$ld_mode_local_pass_committed), na.rm = TRUE),
+        candidate_grad_inf_median = stats::median(tail_df$ld_mode_grad_inf_norm_candidate, na.rm = TRUE),
+        committed_grad_inf_median = stats::median(tail_df$ld_mode_grad_inf_norm_committed, na.rm = TRUE),
+        candidate_min_eig_median = stats::median(tail_df$ld_mode_neg_hess_min_eig_candidate, na.rm = TRUE),
+        committed_min_eig_median = stats::median(tail_df$ld_mode_neg_hess_min_eig_committed, na.rm = TRUE),
+        stabilized_rate = mean(as.logical(tail_df$ld_stabilized), na.rm = TRUE),
+        fallback_rate = mean(as.logical(tail_df$ld_used_fallback), na.rm = TRUE),
+        optim_fallback_rate = mean(as.logical(tail_df$ld_used_optim_fallback), na.rm = TRUE),
+        numeric_hessian_rate = mean(as.logical(tail_df$ld_used_numeric_hessian), na.rm = TRUE),
+        identity_hessian_rate = mean(as.logical(tail_df$ld_used_identity_hessian), na.rm = TRUE),
+        cov_floor_rate = mean(as.logical(tail_df$ld_used_cov_floor), na.rm = TRUE),
+        direct_commit_rate = mean(tail_df$ld_commit_mode == "direct", na.rm = TRUE),
+        damped_commit_rate = mean(tail_df$ld_commit_mode == "damped", na.rm = TRUE),
+        objective_gap_median = stats::median(tail_df$ld_objective_gap, na.rm = TRUE)
+      )
+    }
+    c(base, .exal_static_ld_committed_stability(ld_trace_df, conv_ctrl))
+  } else {
+    list()
+  }
+  if (!converged && identical(stop_reason, "max_iter") && isTRUE(ld_signoff_summary$committed_stable)) {
+    converged <- TRUE
+    stop_reason <- "joint_converged_stabilized"
   }
 
   ret <- list(
@@ -1326,6 +1675,13 @@ exal_static_LDVB <- function(
         controls = ld_ctrl,
         setup = ld_setup,
         trace = ld_trace_df,
+        stabilization = list(
+          active_final = stabilize_active,
+          since_iter = stabilize_since_iter,
+          reason = stabilize_reason_active,
+          cycle_detect_count = if (nrow(ld_trace_df)) sum(ld_trace_df$ld_cycle_detected, na.rm = TRUE) else 0L,
+          stabilized_iter_count = if (nrow(ld_trace_df)) sum(ld_trace_df$ld_stabilized, na.rm = TRUE) else 0L
+        ),
         xi = list(
           method = ld_ctrl$xi_method,
           mode = if (identical(ld_ctrl$xi_method, "delta")) "delta" else ld_ctrl$xi_mode,
@@ -1333,7 +1689,8 @@ exal_static_LDVB <- function(
           reuse_draws = ld_ctrl$reuse_draws,
           reuse_seed = ld_ctrl$reuse_seed
         ),
-        mode_quality = mode_quality
+        mode_quality = mode_quality,
+        signoff_summary = ld_signoff_summary
       )
     )
   )

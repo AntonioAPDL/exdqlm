@@ -114,7 +114,9 @@
         trace = ld_trace,
         final = if (!is.null(ld_last)) as.list(ld_last) else list(),
         xi = ld_xi_meta,
-        mode_quality = ld_mode_quality
+        mode_quality = ld_mode_quality,
+        stabilization = if (!is.null(ld_diag$stabilization)) ld_diag$stabilization else list(),
+        signoff_summary = if (!is.null(ld_diag$signoff_summary)) ld_diag$signoff_summary else list()
       ),
       s_block = list(
         trace = s_trace,

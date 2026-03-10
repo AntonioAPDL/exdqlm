@@ -21,6 +21,8 @@ log_msg <- function(...) {
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
 resolve_out_root <- function() {
+  args <- commandArgs(trailingOnly = TRUE)
+  if (length(args) && nzchar(args[1]) && dir.exists(args[1])) return(args[1])
   rr <- Sys.getenv("EXDQLM_DYNAMIC_RUN_ROOT", "")
   if (nzchar(rr) && dir.exists(rr)) return(rr)
   "results/function_testing_20260304_vb_quantiles"
@@ -216,6 +218,7 @@ log_msg("Wrote fit summary table")
 
 vb_rows <- list()
 mc_rows <- list()
+ld_diag_rows <- list()
 for (tau in p_vec) {
   for (mdl in c("exdqlm", "dqlm")) {
     vb_fit <- readRDS(get_fit_file("vb", mdl, tau))$fit
@@ -233,6 +236,40 @@ for (tau in p_vec) {
       delta_sigma_last = if (!is.null(dlt$sigma)) utils::tail(as.numeric(dlt$sigma), 1) else NA_real_,
       delta_gamma_last = if (!is.null(dlt$gamma)) utils::tail(as.numeric(dlt$gamma), 1) else NA_real_,
       delta_s_last = if (!is.null(dlt$s)) utils::tail(as.numeric(dlt$s), 1) else NA_real_,
+      stringsAsFactors = FALSE
+    )
+    ld_block <- if (!is.null(vb_fit$diagnostics$ld_block)) vb_fit$diagnostics$ld_block else list()
+    ld_signoff <- if (!is.null(ld_block$signoff_summary)) ld_block$signoff_summary else list()
+    ld_trace <- if (!is.null(ld_block$trace)) ld_block$trace else data.frame()
+    ld_final <- if (!is.null(ld_block$final)) ld_block$final else list()
+    mode_quality <- if (!is.null(ld_block$mode_quality)) ld_block$mode_quality else list()
+    ld_diag_rows[[length(ld_diag_rows) + 1L]] <- data.frame(
+      model = mdl,
+      tau = tau,
+      ld_trace_rows = if (is.data.frame(ld_trace)) nrow(ld_trace) else NA_integer_,
+      ld_hess_condition_last = if (!is.null(ld_final$ld_hess_condition)) as.numeric(ld_final$ld_hess_condition)[1] else NA_real_,
+      ld_cov_condition_last = if (!is.null(ld_final$ld_cov_condition)) as.numeric(ld_final$ld_cov_condition)[1] else NA_real_,
+      ld_cov_eig_min = if (!is.null(ld_final$ld_cov_eig_min)) as.numeric(ld_final$ld_cov_eig_min)[1] else NA_real_,
+      ld_cov_eig_max = if (!is.null(ld_final$ld_cov_eig_max)) as.numeric(ld_final$ld_cov_eig_max)[1] else NA_real_,
+      ld_mode_grad_inf_norm_final = if (!is.null(mode_quality$grad_inf_norm)) as.numeric(mode_quality$grad_inf_norm)[1] else NA_real_,
+      ld_mode_neg_hess_min_eig_final = if (!is.null(mode_quality$neg_hess_min_eig)) as.numeric(mode_quality$neg_hess_min_eig)[1] else NA_real_,
+      ld_local_mode_pass = if (!is.null(mode_quality$local_mode_pass)) isTRUE(mode_quality$local_mode_pass) else NA,
+      ld_candidate_local_pass_rate_tail = if (!is.null(ld_signoff$candidate_local_pass_rate)) as.numeric(ld_signoff$candidate_local_pass_rate)[1] else NA_real_,
+      ld_committed_local_pass_rate_tail = if (!is.null(ld_signoff$committed_local_pass_rate)) as.numeric(ld_signoff$committed_local_pass_rate)[1] else NA_real_,
+      ld_committed_stable_tail = if (!is.null(ld_signoff$committed_stable)) isTRUE(ld_signoff$committed_stable) else NA,
+      ld_candidate_grad_inf_median_tail = if (!is.null(ld_signoff$candidate_grad_inf_median)) as.numeric(ld_signoff$candidate_grad_inf_median)[1] else NA_real_,
+      ld_committed_grad_inf_median_tail = if (!is.null(ld_signoff$committed_grad_inf_median)) as.numeric(ld_signoff$committed_grad_inf_median)[1] else NA_real_,
+      ld_objective_gap_median_tail = if (!is.null(ld_signoff$objective_gap_median)) as.numeric(ld_signoff$objective_gap_median)[1] else NA_real_,
+      ld_stabilized_rate_tail = if (!is.null(ld_signoff$stabilized_rate)) as.numeric(ld_signoff$stabilized_rate)[1] else NA_real_,
+      ld_direct_commit_rate_tail = if (!is.null(ld_signoff$direct_commit_rate)) as.numeric(ld_signoff$direct_commit_rate)[1] else NA_real_,
+      ld_damped_commit_rate_tail = if (!is.null(ld_signoff$damped_commit_rate)) as.numeric(ld_signoff$damped_commit_rate)[1] else NA_real_,
+      ld_optim_fallback_rate = if (!is.null(ld_signoff$optim_fallback_rate)) as.numeric(ld_signoff$optim_fallback_rate)[1] else NA_real_,
+      ld_numeric_hessian_rate = if (!is.null(ld_signoff$numeric_hessian_rate)) as.numeric(ld_signoff$numeric_hessian_rate)[1] else NA_real_,
+      ld_identity_hessian_rate = if (!is.null(ld_signoff$identity_hessian_rate)) as.numeric(ld_signoff$identity_hessian_rate)[1] else NA_real_,
+      ld_cov_floor_rate = if (!is.null(ld_signoff$cov_floor_rate)) as.numeric(ld_signoff$cov_floor_rate)[1] else NA_real_,
+      ld_mode_fallback_rate = if (!is.null(ld_signoff$fallback_rate)) as.numeric(ld_signoff$fallback_rate)[1] else NA_real_,
+      ld_sigma_flip_rate_tail = if (!is.null(ld_signoff$sigma_flip_rate)) as.numeric(ld_signoff$sigma_flip_rate)[1] else NA_real_,
+      ld_gamma_flip_rate_tail = if (!is.null(ld_signoff$gamma_flip_rate)) as.numeric(ld_signoff$gamma_flip_rate)[1] else NA_real_,
       stringsAsFactors = FALSE
     )
 
@@ -262,9 +299,11 @@ for (tau in p_vec) {
 
 vb_conv <- do.call(rbind, vb_rows)
 mc_diag <- do.call(rbind, mc_rows)
+ld_diag <- do.call(rbind, ld_diag_rows)
 utils::write.csv(vb_conv, file.path(out_root, "tables", "vb_convergence_summary.csv"), row.names = FALSE)
 utils::write.csv(mc_diag, file.path(out_root, "tables", "mcmc_diagnostics_summary.csv"), row.names = FALSE)
-log_msg("Wrote VB and MCMC diagnostics tables")
+utils::write.csv(ld_diag, file.path(out_root, "tables", "vb_ld_diagnostics_summary.csv"), row.names = FALSE)
+log_msg("Wrote VB, MCMC, and LD diagnostics tables")
 
 metrics_rows <- list()
 for (inf in c("vb", "mcmc")) {

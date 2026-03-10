@@ -266,6 +266,7 @@ for (inf in c("vb", "mcmc")) {
       if (identical(inf, "vb")) {
         dlt <- fit$diagnostics$deltas
         ld_block <- norm$diagnostics$ld_block
+        ld_signoff <- if (!is.null(ld_block$signoff_summary)) ld_block$signoff_summary else list()
         ld_trace <- if (!is.null(ld_block$trace)) ld_block$trace else data.frame()
         ld_last <- if (is.data.frame(ld_trace) && nrow(ld_trace)) ld_trace[nrow(ld_trace), , drop = FALSE] else NULL
         mode_quality <- if (!is.null(ld_block$mode_quality)) ld_block$mode_quality else list()
@@ -310,6 +311,19 @@ for (inf in c("vb", "mcmc")) {
           ld_mode_neg_hess_min_eig_final = if (!is.null(mode_quality$neg_hess_min_eig)) as.numeric(mode_quality$neg_hess_min_eig)[1] else NA_real_,
           ld_mode_neg_hess_condition_final = if (!is.null(mode_quality$neg_hess_condition)) as.numeric(mode_quality$neg_hess_condition)[1] else NA_real_,
           ld_local_mode_pass = if (!is.null(mode_quality$local_mode_pass)) isTRUE(mode_quality$local_mode_pass) else NA,
+          ld_candidate_local_pass_rate_tail = if (!is.null(ld_signoff$candidate_local_pass_rate)) as.numeric(ld_signoff$candidate_local_pass_rate)[1] else NA_real_,
+          ld_committed_local_pass_rate_tail = if (!is.null(ld_signoff$committed_local_pass_rate)) as.numeric(ld_signoff$committed_local_pass_rate)[1] else NA_real_,
+          ld_committed_stable_tail = if (!is.null(ld_signoff$committed_stable)) isTRUE(ld_signoff$committed_stable) else NA,
+          ld_candidate_grad_inf_median_tail = if (!is.null(ld_signoff$candidate_grad_inf_median)) as.numeric(ld_signoff$candidate_grad_inf_median)[1] else NA_real_,
+          ld_committed_grad_inf_median_tail = if (!is.null(ld_signoff$committed_grad_inf_median)) as.numeric(ld_signoff$committed_grad_inf_median)[1] else NA_real_,
+          ld_objective_gap_median_tail = if (!is.null(ld_signoff$objective_gap_median)) as.numeric(ld_signoff$objective_gap_median)[1] else NA_real_,
+          ld_stabilized_rate_tail = if (!is.null(ld_signoff$stabilized_rate)) as.numeric(ld_signoff$stabilized_rate)[1] else NA_real_,
+          ld_direct_commit_rate_tail = if (!is.null(ld_signoff$direct_commit_rate)) as.numeric(ld_signoff$direct_commit_rate)[1] else NA_real_,
+          ld_damped_commit_rate_tail = if (!is.null(ld_signoff$damped_commit_rate)) as.numeric(ld_signoff$damped_commit_rate)[1] else NA_real_,
+          ld_optim_fallback_rate = if (!is.null(ld_signoff$optim_fallback_rate)) as.numeric(ld_signoff$optim_fallback_rate)[1] else NA_real_,
+          ld_numeric_hessian_rate = if (!is.null(ld_signoff$numeric_hessian_rate)) as.numeric(ld_signoff$numeric_hessian_rate)[1] else NA_real_,
+          ld_identity_hessian_rate = if (!is.null(ld_signoff$identity_hessian_rate)) as.numeric(ld_signoff$identity_hessian_rate)[1] else NA_real_,
+          ld_cov_floor_rate = if (!is.null(ld_signoff$cov_floor_rate)) as.numeric(ld_signoff$cov_floor_rate)[1] else NA_real_,
           ld_mode_fallback_rate = if (is.data.frame(ld_trace) && nrow(ld_trace) && "ld_used_fallback" %in% names(ld_trace)) {
             mean(as.logical(ld_trace$ld_used_fallback))
           } else {

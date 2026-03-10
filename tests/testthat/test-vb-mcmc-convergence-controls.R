@@ -36,6 +36,8 @@ test_that("dynamic LDVB exposes joint convergence diagnostics", {
   expect_true(length(fit$diagnostics$deltas$s) >= 1)
   expect_true(is.list(fit$diagnostics$ld_block))
   expect_true(is.data.frame(fit$diagnostics$ld_block$trace))
+  expect_true(is.list(fit$diagnostics$ld_block$stabilization))
+  expect_true(is.list(fit$diagnostics$ld_block$signoff_summary))
   expect_true(is.list(fit$diagnostics$s_block))
   expect_true(is.data.frame(fit$diagnostics$s_block$trace))
 })
