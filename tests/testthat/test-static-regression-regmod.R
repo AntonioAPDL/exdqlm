@@ -99,7 +99,7 @@ test_that("static LDVB qdesn-style delta xi path is deterministic", {
   expect_identical(fit1$diagnostics$ld_block$xi$mode, "delta")
 })
 
-test_that("static LDVB replicated MC xi mode remains available with reused draws", {
+test_that("static LDVB ignores stale MC xi controls and stays deterministic Delta", {
   set.seed(1241)
   n <- 14
   X <- cbind(1, seq(-1, 1, length.out = n))
@@ -111,6 +111,7 @@ test_that("static LDVB replicated MC xi mode remains available with reused draws
     xi_replicates = 3L,
     reuse_draws = TRUE,
     reuse_seed = 20260305L,
+    antithetic = TRUE,
     optimizer_method = "bfgs",
     direct_commit = FALSE,
     store_trace = TRUE
@@ -138,8 +139,11 @@ test_that("static LDVB replicated MC xi mode remains available with reused draws
   )
 
   expect_equal(unlist(fit1$qsiggam$xi), unlist(fit2$qsiggam$xi), tolerance = 1e-12)
-  expect_equal(fit1$diagnostics$ld_block$xi$replicates, 3L)
-  expect_identical(fit1$diagnostics$ld_block$xi$mode, "replicated")
+  expect_equal(fit1$diagnostics$ld_block$xi$replicates, 0L)
+  expect_identical(fit1$diagnostics$ld_block$xi$mode, "delta")
+  expect_identical(fit1$diagnostics$ld_block$controls$xi_method, "delta")
+  expect_identical(fit1$diagnostics$ld_block$controls$xi_mode, "delta")
+  expect_false(isTRUE(fit1$diagnostics$ld_block$controls$reuse_draws))
 })
 
 test_that("static LD precision regularization handles singular Hessians", {

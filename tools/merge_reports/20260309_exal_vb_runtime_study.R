@@ -6,7 +6,16 @@ suppressPackageStartupMessages({
 
 repo_root <- normalizePath(getwd())
 devtools::load_all(repo_root, quiet = TRUE, export_all = FALSE)
-audit_root <- file.path(repo_root, "results", "sim_suite_static", "audits", "exal_runtime_microbenchmark_delta_20260309")
+audit_tag <- Sys.getenv("EXAL_RUNTIME_AUDIT_TAG", unset = "delta_20260309")
+audit_root <- file.path(
+  repo_root,
+  "results",
+  "sim_suite_static",
+  "audits",
+  sprintf("exal_runtime_microbenchmark_%s", audit_tag)
+)
+force_rerun <- identical(tolower(Sys.getenv("EXAL_RUNTIME_FORCE", unset = "0")), "1")
+variant_regex <- Sys.getenv("EXAL_RUNTIME_VARIANT_REGEX", unset = "")
 dir.create(audit_root, recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(audit_root, "tables"), recursive = TRUE, showWarnings = FALSE)
 
@@ -58,7 +67,7 @@ extract_fit <- function(fit, method, model, variant) {
 }
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
-run_vb <- function(model = c("al", "exal"), variant, ld_controls = list(), max_iter = 300L, verbose = FALSE) {
+run_vb <- function(model = c("al", "exal"), variant, ld_controls = list(), max_iter = 1000L, verbose = FALSE) {
   model <- match.arg(model)
   old_opts <- options(
     exdqlm.tol_sigma = 1e-4,
@@ -95,28 +104,141 @@ run_mcmc <- function(model = c("al", "exal"), variant, proposal = "slice") {
 
 variants <- list(
   vb_al_ref = function() run_vb("al", "vb_al_ref", ld_controls = list(store_trace = FALSE)),
-  vb_exal_delta_default_trace = function() run_vb("exal", "vb_exal_delta_default_trace", ld_controls = list(store_trace = TRUE)),
-  vb_exal_delta_default_notrace = function() run_vb("exal", "vb_exal_delta_default_notrace", ld_controls = list(store_trace = FALSE)),
+  vb_exal_delta_default_trace = function() run_vb(
+    "exal",
+    "vb_exal_delta_default_trace",
+    ld_controls = list(store_trace = TRUE, xi_method = "delta", stabilize_xi_method = "delta")
+  ),
+  vb_exal_delta_default_notrace = function() run_vb(
+    "exal",
+    "vb_exal_delta_default_notrace",
+    ld_controls = list(store_trace = FALSE, xi_method = "delta", stabilize_xi_method = "delta")
+  ),
   vb_exal_delta_strictchecks = function() run_vb(
     "exal",
     "vb_exal_delta_strictchecks",
     ld_controls = list(
       store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
       candidate_mode_check_every = 1L,
       stabilize_candidate_mode_check_every = 1L,
       committed_mode_check_every = 1L,
       committed_mode_check_stabilized = TRUE
     )
   ),
+  vb_exal_delta_stride5 = function() run_vb(
+    "exal",
+    "vb_exal_delta_stride5",
+    ld_controls = list(
+      store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
+      ld_update_every = 1L,
+      ld_update_every_stable = 5L,
+      hessian_refresh_stabilized_every = 50L
+    )
+  ),
+  vb_exal_delta_stride10 = function() run_vb(
+    "exal",
+    "vb_exal_delta_stride10",
+    ld_controls = list(
+      store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
+      ld_update_every = 1L,
+      ld_update_every_stable = 10L,
+      hessian_refresh_stabilized_every = 50L
+    )
+  ),
+  vb_exal_delta_stride10_fastrelease = function() run_vb(
+    "exal",
+    "vb_exal_delta_stride10_fastrelease",
+    ld_controls = list(
+      store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
+      ld_update_every = 1L,
+      ld_update_every_stable = 10L,
+      stabilize_release_window = 10L,
+      hessian_refresh_stabilized_every = 50L
+    )
+  ),
+  vb_exal_delta_stride25_fastrelease = function() run_vb(
+    "exal",
+    "vb_exal_delta_stride25_fastrelease",
+    ld_controls = list(
+      store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
+      ld_update_every = 1L,
+      ld_update_every_stable = 25L,
+      stabilize_release_window = 10L,
+      hessian_refresh_stabilized_every = 75L
+    )
+  ),
+  vb_exal_delta_stride50_fastrelease = function() run_vb(
+    "exal",
+    "vb_exal_delta_stride50_fastrelease",
+    ld_controls = list(
+      store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
+      ld_update_every = 1L,
+      ld_update_every_stable = 50L,
+      stabilize_release_window = 10L,
+      hessian_refresh_stabilized_every = 100L
+    )
+  ),
+  vb_exal_delta_stride25_lightchecks = function() run_vb(
+    "exal",
+    "vb_exal_delta_stride25_lightchecks",
+    ld_controls = list(
+      store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
+      ld_update_every = 1L,
+      ld_update_every_stable = 25L,
+      stabilize_release_window = 10L,
+      candidate_mode_check_every = 20L,
+      stabilize_candidate_mode_check_every = 50L,
+      hessian_refresh_stabilized_every = 75L
+    )
+  ),
+  vb_exal_delta_stride25_lightchecks_opt100 = function() run_vb(
+    "exal",
+    "vb_exal_delta_stride25_lightchecks_opt100",
+    ld_controls = list(
+      store_trace = FALSE,
+      xi_method = "delta",
+      stabilize_xi_method = "delta",
+      ld_update_every = 1L,
+      ld_update_every_stable = 25L,
+      stabilize_release_window = 10L,
+      candidate_mode_check_every = 20L,
+      stabilize_candidate_mode_check_every = 50L,
+      optimizer_maxit = 100L,
+      hessian_refresh_every = 25L,
+      hessian_refresh_stabilized_every = 100L
+    )
+  ),
   mcmc_al_ref = function() run_mcmc("al", "mcmc_al_ref"),
   mcmc_exal_ref = function() run_mcmc("exal", "mcmc_exal_ref")
 )
+
+if (nzchar(variant_regex)) {
+  keep <- grepl(variant_regex, names(variants))
+  variants <- variants[keep]
+  if (!length(variants)) {
+    stop(sprintf("No runtime-study variants matched EXAL_RUNTIME_VARIANT_REGEX='%s'", variant_regex))
+  }
+}
 
 results <- list()
 summaries <- list()
 for (nm in names(variants)) {
   fit_path <- file.path(audit_root, sprintf("%s.rds", nm))
-  if (file.exists(fit_path)) {
+  if (!force_rerun && file.exists(fit_path)) {
     cat(sprintf("Reusing %s\n", nm))
     fit <- readRDS(fit_path)
     method <- if (startsWith(nm, "mcmc")) "mcmc" else "vb"

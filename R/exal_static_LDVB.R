@@ -18,16 +18,26 @@
     return(-Inf)
   }
 
-  xb <- drop(state$X %*% state$m_beta)
-  t_i <- state$y - xb
-  q_i <- rowSums((state$X %*% state$V_beta) * state$X)
+  if (!is.null(state$ld_cache)) {
+    cache <- state$ld_cache
+    term1 <- - (1 / (2 * B * sigma)) * (
+      cache$sum_einv_quad - 2 * A * cache$sum_t + (A * A) * cache$sum_Ev
+    )
+    term2 <- - cache$sum_Ev_bsigma / sigma
+    term3 <- + (lam / B) * (cache$sum_s_einv_t - cache$sum_s * A)
+    term4 <- - ((lam * lam) / (2 * B)) * sigma * cache$sum_s2_einv
+  } else {
+    xb <- drop(state$X %*% state$m_beta)
+    t_i <- state$y - xb
+    q_i <- rowSums((state$X %*% state$V_beta) * state$X)
 
-  term1 <- - (1 / (2 * B * sigma)) * sum(
-    state$E_inv_v * (t_i^2 + q_i) - 2 * A * t_i + (A * A) * state$E_v
-  )
-  term2 <- - (sum(state$E_v) + state$b_sigma) / sigma
-  term3 <- + (lam / B) * sum(state$E_s * state$E_inv_v * t_i - state$E_s * A)
-  term4 <- - ((lam * lam) / (2 * B)) * sigma * sum(state$E_s2 * state$E_inv_v)
+    term1 <- - (1 / (2 * B * sigma)) * sum(
+      state$E_inv_v * (t_i^2 + q_i) - 2 * A * t_i + (A * A) * state$E_v
+    )
+    term2 <- - (sum(state$E_v) + state$b_sigma) / sigma
+    term3 <- + (lam / B) * sum(state$E_s * state$E_inv_v * t_i - state$E_s * A)
+    term4 <- - ((lam * lam) / (2 * B)) * sigma * sum(state$E_s2 * state$E_inv_v)
+  }
 
   log_prior <- state$log_prior_gamma(gamma)
   log_det <- - (state$n / 2) * log(B) - (((3 * state$n) / 2) + state$a_sigma + 1) * ell
@@ -42,15 +52,15 @@
 
 .exal_static_ld_controls <- function(ld_controls = NULL) {
   defaults <- list(
-    xi_method = getOption("exdqlm.static.ldvb.xi_method", "delta"),
+    xi_method = "delta",
     optimizer_method = getOption("exdqlm.static.ldvb.optimizer_method", "lbfgsb"),
     direct_commit = getOption("exdqlm.static.ldvb.direct_commit", NULL),
     damping = getOption("exdqlm.static.ldvb.damping", NULL),
-    xi_damping = getOption("exdqlm.static.ldvb.xi_damping", NULL),
-    xi_mode = getOption("exdqlm.static.ldvb.xi_mode", "single"),
-    xi_replicates = getOption("exdqlm.static.ldvb.xi_replicates", 1L),
-    reuse_draws = getOption("exdqlm.static.ldvb.reuse_draws", TRUE),
-    antithetic = getOption("exdqlm.static.ldvb.antithetic", TRUE),
+    xi_damping = 1,
+    xi_mode = "delta",
+    xi_replicates = 0L,
+    reuse_draws = FALSE,
+    antithetic = FALSE,
     optimizer_maxit = getOption("exdqlm.static.ldvb.optimizer_maxit", NULL),
     eig_floor = getOption("exdqlm.static.ldvb.eig_floor", 1e-6),
     eig_cap = getOption("exdqlm.static.ldvb.eig_cap", NULL),
@@ -79,15 +89,30 @@
     cycle_s_min_amp = getOption("exdqlm.static.ldvb.cycle_s_min_amp", 1e-5),
     cycle_tau2_min_amp = getOption("exdqlm.static.ldvb.cycle_tau2_min_amp", 1e-5),
     stabilize_damping = getOption("exdqlm.static.ldvb.stabilize_damping", 0.25),
-    stabilize_xi_damping = getOption("exdqlm.static.ldvb.stabilize_xi_damping", 0.25),
-    stabilize_xi_method = getOption("exdqlm.static.ldvb.stabilize_xi_method", "delta"),
+    stabilize_xi_damping = 1,
+    stabilize_xi_method = "delta",
     stabilize_step_cap_eta = getOption("exdqlm.static.ldvb.stabilize_step_cap_eta", 2.0),
     stabilize_step_cap_ell = getOption("exdqlm.static.ldvb.stabilize_step_cap_ell", 0.75),
-    candidate_mode_check_every = getOption("exdqlm.static.ldvb.candidate_mode_check_every", 1L),
-    stabilize_candidate_mode_check_every = getOption("exdqlm.static.ldvb.stabilize_candidate_mode_check_every", 5L),
+    candidate_mode_check_every = getOption("exdqlm.static.ldvb.candidate_mode_check_every", 5L),
+    stabilize_candidate_mode_check_every = getOption("exdqlm.static.ldvb.stabilize_candidate_mode_check_every", 10L),
     committed_mode_check_every = getOption("exdqlm.static.ldvb.committed_mode_check_every", 0L),
     committed_mode_check_stabilized = getOption("exdqlm.static.ldvb.committed_mode_check_stabilized", FALSE),
     reject_bad_mode_commit = getOption("exdqlm.static.ldvb.reject_bad_mode_commit", TRUE),
+    stabilize_release_window = getOption("exdqlm.static.ldvb.stabilize_release_window", 20L),
+    stabilize_release_eta_tol = getOption("exdqlm.static.ldvb.stabilize_release_eta_tol", 5e-3),
+    stabilize_release_ell_tol = getOption("exdqlm.static.ldvb.stabilize_release_ell_tol", 5e-3),
+    stabilize_release_objective_gap_tol = getOption("exdqlm.static.ldvb.stabilize_release_objective_gap_tol", 1e-4),
+    hessian_backend = getOption("exdqlm.static.ldvb.hessian_backend", "optimhess"),
+    numeric_hessian_triggers_stabilize = getOption("exdqlm.static.ldvb.numeric_hessian_triggers_stabilize", FALSE),
+    hessian_refresh_every = getOption("exdqlm.static.ldvb.hessian_refresh_every", 10L),
+    hessian_refresh_stabilized_every = getOption("exdqlm.static.ldvb.hessian_refresh_stabilized_every", 25L),
+    hessian_refresh_eta_tol = getOption("exdqlm.static.ldvb.hessian_refresh_eta_tol", 0.10),
+    hessian_refresh_ell_tol = getOption("exdqlm.static.ldvb.hessian_refresh_ell_tol", 0.05),
+    trust_step_when_hessian_reused = getOption("exdqlm.static.ldvb.trust_step_when_hessian_reused", TRUE),
+    trust_line_scales = getOption("exdqlm.static.ldvb.trust_line_scales", c(1, 0.5, 0.25, 0.125)),
+    ld_update_every = getOption("exdqlm.static.ldvb.ld_update_every", 1L),
+    ld_update_every_stable = getOption("exdqlm.static.ldvb.ld_update_every_stable", 1L),
+    stabilize_relax_elbo_gate_delta = getOption("exdqlm.static.ldvb.stabilize_relax_elbo_gate_delta", TRUE),
     store_trace = getOption("exdqlm.static.ldvb.store_trace", TRUE),
     profile_timing = getOption("exdqlm.static.ldvb.profile_timing", FALSE),
     profile_iter_trace = getOption("exdqlm.static.ldvb.profile_iter_trace", FALSE)
@@ -96,7 +121,7 @@
     defaults <- utils::modifyList(defaults, ld_controls)
   }
 
-  defaults$xi_method <- match.arg(as.character(defaults$xi_method)[1], c("delta", "mc"))
+  defaults$xi_method <- "delta"
   defaults$optimizer_method <- match.arg(as.character(defaults$optimizer_method)[1], c("lbfgsb", "bfgs"))
   if (is.null(defaults$direct_commit)) {
     defaults$direct_commit <- identical(defaults$optimizer_method, "lbfgsb")
@@ -109,19 +134,14 @@
   if (!is.finite(defaults$damping) || defaults$damping <= 0 || defaults$damping > 1) {
     defaults$damping <- if (defaults$direct_commit) 1 else 0.45
   }
-  if (is.null(defaults$xi_damping)) {
-    defaults$xi_damping <- if (identical(defaults$xi_method, "delta")) 1 else defaults$damping
-  }
   defaults$xi_damping <- as.numeric(defaults$xi_damping)[1]
   if (!is.finite(defaults$xi_damping) || defaults$xi_damping <= 0 || defaults$xi_damping > 1) {
-    defaults$xi_damping <- if (identical(defaults$xi_method, "delta")) 1 else defaults$damping
+    defaults$xi_damping <- 1
   }
-  defaults$xi_mode <- match.arg(as.character(defaults$xi_mode)[1], c("single", "replicated"))
-  defaults$xi_replicates <- suppressWarnings(as.integer(defaults$xi_replicates)[1])
-  if (!is.finite(defaults$xi_replicates) || defaults$xi_replicates < 1L) defaults$xi_replicates <- 1L
-  if (identical(defaults$xi_mode, "single")) defaults$xi_replicates <- 1L
-  defaults$reuse_draws <- isTRUE(defaults$reuse_draws) && identical(defaults$xi_method, "mc")
-  defaults$antithetic <- isTRUE(defaults$antithetic)
+  defaults$xi_mode <- "delta"
+  defaults$xi_replicates <- 0L
+  defaults$reuse_draws <- FALSE
+  defaults$antithetic <- FALSE
   if (is.null(defaults$optimizer_maxit)) {
     defaults$optimizer_maxit <- if (identical(defaults$optimizer_method, "lbfgsb")) 2000L else 200L
   }
@@ -201,8 +221,8 @@
   defaults$stabilize_damping <- as.numeric(defaults$stabilize_damping)[1]
   if (!is.finite(defaults$stabilize_damping) || defaults$stabilize_damping <= 0 || defaults$stabilize_damping > 1) defaults$stabilize_damping <- 0.25
   defaults$stabilize_xi_damping <- as.numeric(defaults$stabilize_xi_damping)[1]
-  if (!is.finite(defaults$stabilize_xi_damping) || defaults$stabilize_xi_damping <= 0 || defaults$stabilize_xi_damping > 1) defaults$stabilize_xi_damping <- 0.25
-  defaults$stabilize_xi_method <- match.arg(as.character(defaults$stabilize_xi_method)[1], c("delta", "mc"))
+  if (!is.finite(defaults$stabilize_xi_damping) || defaults$stabilize_xi_damping <= 0 || defaults$stabilize_xi_damping > 1) defaults$stabilize_xi_damping <- 1
+  defaults$stabilize_xi_method <- "delta"
   defaults$stabilize_step_cap_eta <- as.numeric(defaults$stabilize_step_cap_eta)[1]
   if (is.na(defaults$stabilize_step_cap_eta) || defaults$stabilize_step_cap_eta <= 0) defaults$stabilize_step_cap_eta <- 2.0
   defaults$stabilize_step_cap_ell <- as.numeric(defaults$stabilize_step_cap_ell)[1]
@@ -215,6 +235,34 @@
   if (!is.finite(defaults$committed_mode_check_every) || defaults$committed_mode_check_every < 0L) defaults$committed_mode_check_every <- 0L
   defaults$committed_mode_check_stabilized <- isTRUE(defaults$committed_mode_check_stabilized)
   defaults$reject_bad_mode_commit <- isTRUE(defaults$reject_bad_mode_commit)
+  defaults$stabilize_release_window <- suppressWarnings(as.integer(defaults$stabilize_release_window)[1])
+  if (!is.finite(defaults$stabilize_release_window) || defaults$stabilize_release_window < 1L) defaults$stabilize_release_window <- 20L
+  defaults$stabilize_release_eta_tol <- as.numeric(defaults$stabilize_release_eta_tol)[1]
+  if (!is.finite(defaults$stabilize_release_eta_tol) || defaults$stabilize_release_eta_tol <= 0) defaults$stabilize_release_eta_tol <- 5e-3
+  defaults$stabilize_release_ell_tol <- as.numeric(defaults$stabilize_release_ell_tol)[1]
+  if (!is.finite(defaults$stabilize_release_ell_tol) || defaults$stabilize_release_ell_tol <= 0) defaults$stabilize_release_ell_tol <- 5e-3
+  defaults$stabilize_release_objective_gap_tol <- as.numeric(defaults$stabilize_release_objective_gap_tol)[1]
+  if (!is.finite(defaults$stabilize_release_objective_gap_tol) || defaults$stabilize_release_objective_gap_tol <= 0) defaults$stabilize_release_objective_gap_tol <- 1e-4
+  defaults$hessian_backend <- match.arg(as.character(defaults$hessian_backend)[1], c("optimhess", "numderiv"))
+  defaults$numeric_hessian_triggers_stabilize <- isTRUE(defaults$numeric_hessian_triggers_stabilize)
+  defaults$hessian_refresh_every <- suppressWarnings(as.integer(defaults$hessian_refresh_every)[1])
+  if (!is.finite(defaults$hessian_refresh_every) || defaults$hessian_refresh_every < 1L) defaults$hessian_refresh_every <- 10L
+  defaults$hessian_refresh_stabilized_every <- suppressWarnings(as.integer(defaults$hessian_refresh_stabilized_every)[1])
+  if (!is.finite(defaults$hessian_refresh_stabilized_every) || defaults$hessian_refresh_stabilized_every < 1L) defaults$hessian_refresh_stabilized_every <- 25L
+  defaults$hessian_refresh_eta_tol <- as.numeric(defaults$hessian_refresh_eta_tol)[1]
+  if (!is.finite(defaults$hessian_refresh_eta_tol) || defaults$hessian_refresh_eta_tol <= 0) defaults$hessian_refresh_eta_tol <- 0.10
+  defaults$hessian_refresh_ell_tol <- as.numeric(defaults$hessian_refresh_ell_tol)[1]
+  if (!is.finite(defaults$hessian_refresh_ell_tol) || defaults$hessian_refresh_ell_tol <= 0) defaults$hessian_refresh_ell_tol <- 0.05
+  defaults$trust_step_when_hessian_reused <- isTRUE(defaults$trust_step_when_hessian_reused)
+  defaults$trust_line_scales <- as.numeric(defaults$trust_line_scales)
+  defaults$trust_line_scales <- defaults$trust_line_scales[is.finite(defaults$trust_line_scales) & defaults$trust_line_scales > 0]
+  if (!length(defaults$trust_line_scales)) defaults$trust_line_scales <- c(1, 0.5, 0.25, 0.125)
+  defaults$trust_line_scales <- sort(unique(defaults$trust_line_scales), decreasing = TRUE)
+  defaults$ld_update_every <- suppressWarnings(as.integer(defaults$ld_update_every)[1])
+  if (!is.finite(defaults$ld_update_every) || defaults$ld_update_every < 1L) defaults$ld_update_every <- 1L
+  defaults$ld_update_every_stable <- suppressWarnings(as.integer(defaults$ld_update_every_stable)[1])
+  if (!is.finite(defaults$ld_update_every_stable) || defaults$ld_update_every_stable < 1L) defaults$ld_update_every_stable <- 1L
+  defaults$stabilize_relax_elbo_gate_delta <- isTRUE(defaults$stabilize_relax_elbo_gate_delta)
   defaults$store_trace <- isTRUE(defaults$store_trace)
   defaults$profile_timing <- isTRUE(defaults$profile_timing)
   defaults$profile_iter_trace <- isTRUE(defaults$profile_iter_trace) && isTRUE(defaults$profile_timing)
@@ -259,43 +307,11 @@
   )
 }
 
-.exal_static_ld_make_base_draws <- function(ns, antithetic = TRUE, seed = NA_integer_) {
-  ns <- max(1L, suppressWarnings(as.integer(ns)[1]))
-  old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-  } else {
-    NULL
-  }
-  if (is.finite(seed)) set.seed(seed)
-  on.exit({
-    if (!is.null(old_seed)) {
-      assign(".Random.seed", old_seed, envir = .GlobalEnv)
-    }
-  }, add = TRUE)
-
-  if (isTRUE(antithetic) && ns > 1L) {
-    half <- ceiling(ns / 2)
-    z_half <- matrix(stats::rnorm(2L * half), nrow = 2L, ncol = half)
-    z <- cbind(z_half, -z_half)[, seq_len(ns), drop = FALSE]
-  } else {
-    z <- matrix(stats::rnorm(2L * ns), nrow = 2L, ncol = ns)
-  }
-  z
-}
-
 .exal_static_ld_named_numeric <- function(x) {
   xx <- unlist(x, use.names = TRUE)
   out <- as.numeric(xx)
   names(out) <- names(xx)
   out
-}
-
-.exal_static_ld_make_base_draws_list <- function(ns, replicates = 1L, antithetic = TRUE, seed = NA_integer_) {
-  replicates <- max(1L, suppressWarnings(as.integer(replicates)[1]))
-  lapply(seq_len(replicates), function(i) {
-    seed_i <- if (is.finite(seed)) seed + (i - 1L) else NA_integer_
-    .exal_static_ld_make_base_draws(ns = ns, antithetic = antithetic, seed = seed_i)
-  })
 }
 
 .exal_static_ld_regularize_cov <- function(Sigma, eig_floor = 1e-6, eig_cap = 25) {
@@ -387,6 +403,74 @@
   out
 }
 
+.exal_static_ld_trust_step <- function(log_q_fn,
+                                       par0,
+                                       precision_prev,
+                                       eta_lo,
+                                       eta_hi,
+                                       ell_lo,
+                                       ell_hi,
+                                       step_cap_eta = Inf,
+                                       step_cap_ell = Inf,
+                                       line_scales = c(1, 0.5, 0.25, 0.125)) {
+  par0 <- as.numeric(par0)
+  precision_prev <- suppressWarnings(as.matrix(precision_prev))
+  if (!all(dim(precision_prev) == c(2L, 2L))) {
+    return(list(success = FALSE, par = par0, objective = as.numeric(log_q_fn(par0)), reason = "bad_precision"))
+  }
+  precision_prev <- (precision_prev + t(precision_prev)) / 2
+  if (any(!is.finite(precision_prev))) {
+    return(list(success = FALSE, par = par0, objective = as.numeric(log_q_fn(par0)), reason = "nonfinite_precision"))
+  }
+  eig <- try(eigen(precision_prev, symmetric = TRUE, only.values = TRUE)$values, silent = TRUE)
+  eig <- if (inherits(eig, "try-error")) rep(NA_real_, 2L) else as.numeric(eig)
+  if (any(!is.finite(eig)) || min(eig) <= 0) {
+    return(list(success = FALSE, par = par0, objective = as.numeric(log_q_fn(par0)), reason = "indefinite_precision"))
+  }
+
+  grad <- try(numDeriv::grad(log_q_fn, x = par0), silent = TRUE)
+  grad <- if (inherits(grad, "try-error")) rep(NA_real_, 2L) else as.numeric(grad)
+  if (any(!is.finite(grad))) {
+    return(list(success = FALSE, par = par0, objective = as.numeric(log_q_fn(par0)), reason = "bad_gradient"))
+  }
+
+  step <- try(solve(precision_prev, grad), silent = TRUE)
+  step <- if (inherits(step, "try-error")) rep(NA_real_, 2L) else as.numeric(step)
+  if (any(!is.finite(step))) {
+    return(list(success = FALSE, par = par0, objective = as.numeric(log_q_fn(par0)), reason = "bad_step"))
+  }
+
+  if (is.finite(step_cap_eta)) step[1] <- min(max(step[1], -step_cap_eta), step_cap_eta)
+  if (is.finite(step_cap_ell)) step[2] <- min(max(step[2], -step_cap_ell), step_cap_ell)
+
+  base_obj <- as.numeric(log_q_fn(par0))
+  best_par <- par0
+  best_obj <- base_obj
+  best_scale <- 0
+  for (scale in line_scales) {
+    cand <- par0 + scale * step
+    cand[1] <- min(max(cand[1], eta_lo), eta_hi)
+    cand[2] <- min(max(cand[2], ell_lo), ell_hi)
+    obj <- as.numeric(log_q_fn(cand))
+    if (is.finite(obj) && obj > best_obj) {
+      best_obj <- obj
+      best_par <- cand
+      best_scale <- scale
+    }
+  }
+
+  list(
+    success = is.finite(best_obj) && best_obj > base_obj,
+    par = best_par,
+    objective = best_obj,
+    base_objective = base_obj,
+    step = step,
+    step_scale = best_scale,
+    step_norm = sqrt(sum(step^2)),
+    reason = if (best_scale > 0) "improved" else "no_improve"
+  )
+}
+
 .exal_static_ld_cycle_metrics <- function(x) {
   x <- as.numeric(x)
   x <- x[is.finite(x)]
@@ -456,17 +540,28 @@
   list(triggered = triggered, reason = reason, metrics = metrics, flags = flags)
 }
 
-.exal_static_ld_mode_quality <- function(log_q_fn, par, grad_tol = 5e-3, min_eig = 1e-8) {
+.exal_static_ld_hessian <- function(log_q_fn, par, backend = c("optimhess", "numderiv")) {
+  backend <- match.arg(backend)
+  if (identical(backend, "optimhess")) {
+    hh <- try(stats::optimHess(par = as.numeric(par), fn = function(z) -log_q_fn(z)), silent = TRUE)
+    if (!inherits(hh, "try-error") && all(is.finite(hh))) {
+      return((as.matrix(hh) + t(as.matrix(hh))) / 2)
+    }
+  }
+  hh <- try(numDeriv::hessian(function(z) -log_q_fn(z), x = as.numeric(par)), silent = TRUE)
+  if (inherits(hh, "try-error") || any(!is.finite(hh))) {
+    matrix(NA_real_, nrow = length(par), ncol = length(par))
+  } else {
+    hh <- as.matrix(hh)
+    (hh + t(hh)) / 2
+  }
+}
+
+.exal_static_ld_mode_quality <- function(log_q_fn, par, grad_tol = 5e-3, min_eig = 1e-8, hessian_backend = "optimhess") {
   grad <- try(numDeriv::grad(log_q_fn, x = as.numeric(par)), silent = TRUE)
   grad <- if (inherits(grad, "try-error")) rep(NA_real_, length(par)) else as.numeric(grad)
 
-  neg_hess <- try(-numDeriv::hessian(log_q_fn, x = as.numeric(par)), silent = TRUE)
-  neg_hess <- if (inherits(neg_hess, "try-error")) {
-    matrix(NA_real_, nrow = length(par), ncol = length(par))
-  } else {
-    hh <- as.matrix(neg_hess)
-    (hh + t(hh)) / 2
-  }
+  neg_hess <- .exal_static_ld_hessian(log_q_fn, par = as.numeric(par), backend = hessian_backend)
 
   eig <- try(eigen(neg_hess, symmetric = TRUE, only.values = TRUE)$values, silent = TRUE)
   eig <- if (inherits(eig, "try-error")) rep(NA_real_, length(par)) else as.numeric(eig)
@@ -591,15 +686,13 @@
 #'   \code{gamma}; if missing, reasonable defaults are used.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 #'   using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.
-#' @param n_samp_xi Integer; number of Gaussian draws used only when
-#'   \code{ld_controls$xi_method = "mc"} for the \eqn{\xi} expectations in
-#'   \eqn{q(\sigma,\gamma)} (default 200).
+#' @param n_samp_xi Integer; retained for backward compatibility in the
+#'   Laplace-Delta block. Under the current delta-only implementation this
+#'   value is ignored.
 #' @param ld_controls Optional list of controls for the Laplace-Delta block.
-#'   Supported keys include \code{xi_method} (\code{"delta"} or \code{"mc"}),
-#'   \code{optimizer_method} (\code{"lbfgsb"} or \code{"bfgs"}),
-#'   \code{direct_commit}, \code{damping}, \code{xi_damping},
-#'   \code{xi_mode}, \code{xi_replicates}, \code{reuse_draws},
-#'   \code{antithetic}, \code{optimizer_maxit}, \code{eig_floor},
+#'   Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
+#'   \code{"bfgs"}), \code{direct_commit}, \code{damping},
+#'   \code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
 #'   \code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
 #'   \code{eta_lo}, \code{eta_hi}, \code{sigma_bounds},
 #'   \code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
@@ -764,17 +857,6 @@ exal_static_LDVB <- function(
   eta_hat <- ld_setup$eta0
   ell_hat <- ld_setup$ell0
   Sig_eta_ell <- diag(ld_ctrl$init_cov_diag, 2L)
-  ld_base_draws <- if (ld_ctrl$reuse_draws) {
-    .exal_static_ld_make_base_draws_list(
-      ns = max(50L, as.integer(n_samp_xi)),
-      replicates = ld_ctrl$xi_replicates,
-      antithetic = ld_ctrl$antithetic,
-      seed = ld_ctrl$reuse_seed
-    )
-  } else {
-    NULL
-  }
-
   # --- numerics helpers ------------------------------------------------------
     # E[log V] for V ~ GIG(k, chi, psi)
     gig_E_log <- function(k, chi, psi) {
@@ -826,98 +908,6 @@ exal_static_LDVB <- function(
       B = B,
       lam = lam,
       log_hprime = log_hprime
-    )
-  }
-
-  # compute xi's from Gaussian approx in (eta,ell)
-  compute_xi_mc_single <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi, base_Z = NULL) {
-    ns <- max(1L, as.integer(ns))
-
-    # draw (eta, ell) ~ N([eta_hat, ell_hat], Sigma)
-    chol_U <- tryCatch(chol(Sigma), error = function(e) NULL)
-    if (is.null(chol_U)) chol_U <- chol(Sigma + 1e-8 * diag(2))
-
-    if (!is.null(base_Z)) {
-      if (nrow(base_Z) != 2L) stop("base_Z must be a 2 x ns matrix.")
-      if (ncol(base_Z) < ns) stop("base_Z does not contain enough draws.")
-      Z <- base_Z[, seq_len(ns), drop = FALSE]
-    } else {
-      Z <- matrix(stats::rnorm(2 * ns), nrow = 2, ncol = ns)   # 2 x ns
-    }
-    pars <- sweep(chol_U %*% Z, 1, c(eta_hat, ell_hat), "+")  # 2 x ns
-    eta  <- pars[1, ]
-    ell  <- pars[2, ]
-
-    gamma <- g_from_eta(eta)
-    sigma <- sig_from_ell(ell)
-
-    A   <- A_of(gamma)
-    B   <- pmax(B_of(gamma), 1e-12)
-    lam <- lam_of(gamma)
-
-    xi1        <- mean(1 / (B * sigma))
-    xi_lambda  <- mean(lam / B)
-    xi_lambda2 <- mean((lam * lam) * sigma / B)
-    xi_A       <- mean(A / (B * sigma))
-    xi_A2      <- mean((A * A) / (B * sigma))
-    xi_siginv  <- mean(exp(-ell))               # E[1/sigma]
-    zeta_lam   <- mean((lam * A) / B)
-    zeta_logJ     <- mean(.exal_static_ld_log_jacobian(eta, ell, L, U))
-    zeta_logsigma <- mean(ell)
-    zeta_logB     <- mean(log(pmax(B, 1e-300)))
-    zeta_logpi    <- mean(vapply(gamma, log_prior_gamma, numeric(1)))
-
-    list(
-      xi1 = xi1,
-      xi_lambda = xi_lambda,
-      xi_lambda2 = xi_lambda2,
-      xi_A = xi_A,
-      xi_A2 = xi_A2,
-      xi_siginv = xi_siginv,
-      zeta_lam = zeta_lam,
-      zeta_logJ = zeta_logJ,
-      zeta_logsigma = zeta_logsigma,
-      zeta_logB = zeta_logB,
-      zeta_logpi = zeta_logpi
-    )
-  }
-
-  compute_xi_mc <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi, base_Z = NULL) {
-    rep_count <- if (identical(ld_ctrl$xi_mode, "replicated")) {
-      ld_ctrl$xi_replicates
-    } else {
-      1L
-    }
-    if (is.null(base_Z)) {
-      base_list <- vector("list", rep_count)
-    } else if (is.list(base_Z)) {
-      base_list <- base_Z
-    } else {
-      base_list <- replicate(rep_count, base_Z, simplify = FALSE)
-    }
-    vals <- lapply(seq_len(rep_count), function(i) {
-      compute_xi_mc_single(
-        eta_hat = eta_hat,
-        ell_hat = ell_hat,
-        Sigma = Sigma,
-        ns = ns,
-        base_Z = if (length(base_list) >= i) base_list[[i]] else NULL
-      )
-    })
-    val_mat <- do.call(rbind, lapply(vals, .exal_static_ld_named_numeric))
-    center <- colMeans(val_mat)
-    mcse <- if (nrow(val_mat) >= 2L) {
-      matrixStats::colSds(val_mat) / sqrt(nrow(val_mat))
-    } else {
-      rep(NA_real_, ncol(val_mat))
-    }
-    names(mcse) <- colnames(val_mat)
-    list(
-      value = as.list(center),
-      mcse = as.list(mcse),
-      replicate_count = nrow(val_mat),
-      mcse_mean = if (all(is.na(mcse))) NA_real_ else mean(mcse, na.rm = TRUE),
-      mcse_max = if (all(is.na(mcse))) NA_real_ else max(mcse, na.rm = TRUE)
     )
   }
 
@@ -974,29 +964,28 @@ exal_static_LDVB <- function(
     out_named
   }
 
-  compute_xi <- function(eta_hat, ell_hat, Sigma, ns = n_samp_xi, base_Z = NULL, method = ld_ctrl$xi_method) {
-    method <- match.arg(as.character(method)[1], c("delta", "mc"))
-    if (identical(method, "delta")) {
-      xi_val <- compute_xi_delta(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma)
-      return(list(
-        value = xi_val,
-        mcse = as.list(stats::setNames(rep(NA_real_, length(xi_val)), names(xi_val))),
-        replicate_count = 0L,
-        mcse_mean = NA_real_,
-        mcse_max = NA_real_
-      ))
-    }
-    compute_xi_mc(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma, ns = ns, base_Z = base_Z)
+  compute_xi <- function(eta_hat, ell_hat, Sigma) {
+    xi_val <- compute_xi_delta(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma)
+    list(
+      value = xi_val,
+      mcse = as.list(stats::setNames(rep(NA_real_, length(xi_val)), names(xi_val))),
+      replicate_count = 0L,
+      mcse_mean = NA_real_,
+      mcse_max = NA_real_
+    )
   }
+
+  ld_cache <- NULL
 
   # log-kernel for q(sigma,gamma) as a function of (eta, ell)
   log_qsiggam <- function(par) {
     .exal_static_ld_log_qsiggam(
       par = par,
       state = list(
+        n = n,
+        ld_cache = ld_cache,
         y = y,
         X = X,
-        n = n,
         m_beta = m_beta,
         V_beta = V_beta,
         E_inv_v = E_inv_v,
@@ -1019,7 +1008,7 @@ exal_static_LDVB <- function(
   }
 
   # find LD mode & covariance for (eta, ell)
-  find_mode_ld <- function(eta0, ell0) {
+  find_mode_ld <- function(eta0, ell0, hessian_prev = NULL, refresh_hessian = TRUE) {
     par0 <- c(eta0, ell0)
     fn_neg <- function(z) { val <- log_qsiggam(z); if (is.finite(val)) -val else 1e50 }
     par0 <- c(eta0, ell0)
@@ -1029,44 +1018,83 @@ exal_static_LDVB <- function(
     used_optim_fallback <- FALSE
     used_numeric_hessian <- FALSE
     used_identity_hessian <- FALSE
+    used_trust_step <- FALSE
+    trust_step_scale <- NA_real_
+    trust_step_norm <- NA_real_
+    trust_reason <- NA_character_
 
-    opt <- if (identical(ld_ctrl$optimizer_method, "lbfgsb")) {
-      try(
-        optim(
-          par = par_start,
-          fn = fn_neg,
-          method = "L-BFGS-B",
-          lower = c(ld_ctrl$eta_lo, ld_setup$ell_lo),
-          upper = c(ld_ctrl$eta_hi, ld_setup$ell_hi),
-          control = list(maxit = ld_ctrl$optimizer_maxit)
-        ),
-        silent = TRUE
+    if (!isTRUE(refresh_hessian) && isTRUE(ld_ctrl$trust_step_when_hessian_reused) &&
+        !is.null(hessian_prev) && all(is.finite(hessian_prev))) {
+      trust <- .exal_static_ld_trust_step(
+        log_q_fn = log_qsiggam,
+        par0 = par_start,
+        precision_prev = hessian_prev,
+        eta_lo = ld_ctrl$eta_lo,
+        eta_hi = ld_ctrl$eta_hi,
+        ell_lo = ld_setup$ell_lo,
+        ell_hi = ld_setup$ell_hi,
+        step_cap_eta = ld_ctrl$stabilize_step_cap_eta,
+        step_cap_ell = ld_ctrl$stabilize_step_cap_ell,
+        line_scales = ld_ctrl$trust_line_scales
       )
+      trust_reason <- trust$reason
+      trust_step_scale <- trust$step_scale
+      trust_step_norm <- trust$step_norm
+      if (isTRUE(trust$success)) {
+        used_trust_step <- TRUE
+        opt <- list(
+          par = as.numeric(trust$par),
+          value = -trust$objective,
+          hessian = hessian_prev,
+          convergence = 0L
+        )
+      } else {
+        opt <- list(
+          par = as.numeric(par_start),
+          value = fn_neg(par_start),
+          hessian = hessian_prev,
+          convergence = 1L
+        )
+      }
     } else {
-      cand <- rbind(
-        par0,
-        par0 + c(-1, 0), par0 + c(1, 0), par0 + c(0, -1), par0 + c(0, 1),
-        par0 + c(-2, 0), par0 + c(2, 0), par0 + c(0, -2), par0 + c(0, 2)
-      )
-      vals <- apply(cand, 1, function(z) log_qsiggam(z))
-      idx <- which(is.finite(vals))
-      par_start <- if (length(idx)) cand[idx[which.max(vals[idx])], ] else par0
-      try(
-        optim(
-          par = par_start,
-          fn = fn_neg,
-          method = "BFGS",
-          control = list(maxit = ld_ctrl$optimizer_maxit),
-          hessian = TRUE
-        ),
-        silent = TRUE
-      )
+      opt <- if (identical(ld_ctrl$optimizer_method, "lbfgsb")) {
+        try(
+          optim(
+            par = par_start,
+            fn = fn_neg,
+            method = "L-BFGS-B",
+            lower = c(ld_ctrl$eta_lo, ld_setup$ell_lo),
+            upper = c(ld_ctrl$eta_hi, ld_setup$ell_hi),
+            control = list(maxit = ld_ctrl$optimizer_maxit)
+          ),
+          silent = TRUE
+        )
+      } else {
+        cand <- rbind(
+          par0,
+          par0 + c(-1, 0), par0 + c(1, 0), par0 + c(0, -1), par0 + c(0, 1),
+          par0 + c(-2, 0), par0 + c(2, 0), par0 + c(0, -2), par0 + c(0, 2)
+        )
+        vals <- apply(cand, 1, function(z) log_qsiggam(z))
+        idx <- which(is.finite(vals))
+        par_start <- if (length(idx)) cand[idx[which.max(vals[idx])], ] else par0
+        try(
+          optim(
+            par = par_start,
+            fn = fn_neg,
+            method = "BFGS",
+            control = list(maxit = ld_ctrl$optimizer_maxit),
+            hessian = TRUE
+          ),
+          silent = TRUE
+        )
+      }
     }
     if (inherits(opt, "try-error") || !is.finite(opt$value)) {
       used_optim_fallback <- TRUE
       opt <- list(par = as.numeric(par_start), value = fn_neg(par_start), hessian = diag(2) * 1e-2, convergence = 1L)
     }
-    H <- opt$hessian
+    H <- if (isTRUE(refresh_hessian)) opt$hessian else hessian_prev
     if (is.null(H)) {
       H <- matrix(NA_real_, nrow = 2L, ncol = 2L)
     } else {
@@ -1076,9 +1104,16 @@ exal_static_LDVB <- function(
       }
     }
     if (!all(is.finite(H)) || any(is.nan(H))) {
-      # numeric Hessian as fallback
-      H_num <- try(numDeriv::hessian(function(z) -log_qsiggam(z), x = opt$par), silent = TRUE)
-      if (inherits(H_num, "try-error") || any(!is.finite(H_num))) {
+      if (isTRUE(refresh_hessian)) {
+        H_num <- .exal_static_ld_hessian(
+          log_q_fn = log_qsiggam,
+          par = opt$par,
+          backend = ld_ctrl$hessian_backend
+        )
+      } else {
+        H_num <- matrix(NA_real_, nrow = 2L, ncol = 2L)
+      }
+      if (any(!is.finite(H_num))) {
         used_identity_hessian <- TRUE
         H <- diag(2) * 1e-2
       } else {
@@ -1100,10 +1135,20 @@ exal_static_LDVB <- function(
       optim_convergence = if (!is.null(opt$convergence)) as.integer(opt$convergence)[1] else NA_integer_,
       optimizer_method = ld_ctrl$optimizer_method,
       used_optim_fallback = used_optim_fallback,
+      used_trust_step = used_trust_step,
+      trust_step_scale = trust_step_scale,
+      trust_step_norm = trust_step_norm,
+      trust_reason = trust_reason,
       used_numeric_hessian = used_numeric_hessian,
       used_identity_hessian = used_identity_hessian,
       used_cov_floor = isTRUE(reg$used_floor),
-      used_fallback = used_optim_fallback || used_numeric_hessian || used_identity_hessian || isTRUE(reg$used_floor),
+      used_fallback = used_optim_fallback ||
+        used_identity_hessian ||
+        isTRUE(reg$used_floor) ||
+        (isTRUE(ld_ctrl$numeric_hessian_triggers_stabilize) && used_numeric_hessian),
+      hessian_refreshed = isTRUE(refresh_hessian),
+      hessian_backend = if (isTRUE(refresh_hessian)) ld_ctrl$hessian_backend else "reused",
+      H = H,
       hess_condition = reg$condition_raw,
       cov_condition = reg$condition_reg,
       cov_eig_min = min(reg$cov_eig_reg),
@@ -1120,13 +1165,13 @@ exal_static_LDVB <- function(
                 n, p, max_iter, tol))
   }
 
-  # initial xi from a tiny covariance (deterministic when base draws are reused)
+  # Initial xi from the Delta approximation. The static exAL VB path is
+  # intentionally deterministic; MC xi fallback is not part of the production
+  # algorithm anymore.
   xis_eval <- compute_xi(
     eta_hat,
     ell_hat,
-    Sig_eta_ell,
-    ns = max(50L, floor(n_samp_xi / 2)),
-    base_Z = ld_base_draws
+    Sig_eta_ell
   )
   xis <- xis_eval$value
   elbo_trace <- numeric(0)
@@ -1142,6 +1187,10 @@ exal_static_LDVB <- function(
   sigma_hist <- numeric(0)
   s_mean_hist <- numeric(0)
   tau2_mean_hist <- numeric(0)
+  ld_hessian_prev <- tryCatch(solve(Sig_eta_ell), error = function(e) diag(2) * 1e-2)
+  ld_hessian_prev <- (ld_hessian_prev + t(ld_hessian_prev)) / 2
+  ld_hessian_anchor <- c(eta_hat, ell_hat)
+  ld_hessian_last_iter <- 0L
   timing_labels <- c(
     "init_xi", "qbeta", "qv", "qs", "ld_mode", "ld_cycle",
     "ld_mode_quality_candidate", "ld_commit", "ld_mode_quality_committed",
@@ -1152,7 +1201,11 @@ exal_static_LDVB <- function(
   stabilize_active <- FALSE
   stabilize_since_iter <- NA_integer_
   stabilize_reason_active <- NA_character_
-  stabilize_xi_method_active <- ld_ctrl$xi_method
+  stabilize_xi_method_active <- "delta"
+  stabilize_release_ok_hist <- logical(0)
+  stabilize_release_count <- 0L
+  candidate_mode_pass_last <- NA
+  ld_good_streak <- 0L
   stable_count <- 0L
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   stop_reason <- "max_iter"
@@ -1228,13 +1281,81 @@ exal_static_LDVB <- function(
       timing_totals["qs"] <- timing_totals["qs"] + qs_elapsed
     }
 
+    ld_cache <- list(
+      sum_einv_quad = sum(E_inv_v_new * (t_i^2 + q_i)),
+      sum_t = sum(t_i),
+      sum_Ev = sum(E_v_new),
+      sum_Ev_bsigma = sum(E_v_new) + b_sigma,
+      sum_s_einv_t = sum(s_mom$Es * E_inv_v_new * t_i),
+      sum_s = sum(s_mom$Es),
+      sum_s2_einv = sum(s_mom$Es2 * E_inv_v_new)
+    )
+
     # ---- (4) q(sigma,gamma) via LD
-    ld_mode_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     eta_prev <- eta_hat
     ell_prev <- ell_hat
     Sigma_prev <- Sig_eta_ell
-    ld <- find_mode_ld(eta_hat, ell_hat)
-    if (isTRUE(ld_ctrl$profile_timing)) {
+    ld_update_every_use <- if (isTRUE(stabilize_active)) {
+      1L
+    } else if (ld_good_streak >= ld_ctrl$stabilize_release_window) {
+      ld_ctrl$ld_update_every_stable
+    } else {
+      ld_ctrl$ld_update_every
+    }
+    do_ld_update <- iter == 1L ||
+      ld_update_every_use <= 1L ||
+      ((iter - 1L) %% ld_update_every_use) == 0L
+    ld_mode_start <- if (isTRUE(ld_ctrl$profile_timing) && isTRUE(do_ld_update)) proc.time()[3] else NA_real_
+    if (isTRUE(do_ld_update)) {
+      hessian_refresh_every_use <- if (isTRUE(stabilize_active)) {
+        ld_ctrl$hessian_refresh_stabilized_every
+      } else {
+        ld_ctrl$hessian_refresh_every
+      }
+      refresh_hessian <- iter == 1L ||
+        ((iter - ld_hessian_last_iter) >= hessian_refresh_every_use) ||
+        abs(eta_hat - ld_hessian_anchor[1]) >= ld_ctrl$hessian_refresh_eta_tol ||
+        abs(ell_hat - ld_hessian_anchor[2]) >= ld_ctrl$hessian_refresh_ell_tol
+      ld <- find_mode_ld(
+        eta_hat,
+        ell_hat,
+        hessian_prev = ld_hessian_prev,
+        refresh_hessian = refresh_hessian
+      )
+      if (isTRUE(ld$hessian_refreshed)) {
+        ld_hessian_prev <- ld$H
+        ld_hessian_anchor <- c(ld$eta_hat, ld$ell_hat)
+        ld_hessian_last_iter <- iter
+      }
+    } else {
+      ld <- list(
+        eta_hat = as.numeric(eta_hat),
+        ell_hat = as.numeric(ell_hat),
+        Sigma = Sig_eta_ell,
+        objective = as.numeric(log_qsiggam(c(eta_hat, ell_hat))),
+        optim_convergence = NA_integer_,
+        optimizer_method = "hold",
+        used_optim_fallback = FALSE,
+        used_trust_step = FALSE,
+        trust_step_scale = NA_real_,
+        trust_step_norm = 0,
+        trust_reason = "hold",
+        used_numeric_hessian = FALSE,
+        used_identity_hessian = FALSE,
+        used_cov_floor = FALSE,
+        used_fallback = FALSE,
+        hessian_refreshed = FALSE,
+        hessian_backend = "reused",
+        H = ld_hessian_prev,
+        hess_condition = NA_real_,
+        cov_condition = NA_real_,
+        cov_eig_min = NA_real_,
+        cov_eig_max = NA_real_,
+        cov_eig_raw_min = NA_real_,
+        cov_eig_raw_max = NA_real_
+      )
+    }
+    if (isTRUE(ld_ctrl$profile_timing) && isTRUE(do_ld_update)) {
       ld_mode_elapsed <- proc.time()[3] - ld_mode_start
       timing_totals["ld_mode"] <- timing_totals["ld_mode"] + ld_mode_elapsed
     }
@@ -1244,51 +1365,64 @@ exal_static_LDVB <- function(
       s_mean = mean(s_mom$Es),
       tau2_mean = mean(tau2)
     )
-    ld_hist_df <- if (length(gamma_hist)) {
-      data.frame(gamma = gamma_hist, sigma = sigma_hist)
+    if (isTRUE(do_ld_update)) {
+      ld_hist_df <- if (length(gamma_hist)) {
+        data.frame(gamma = gamma_hist, sigma = sigma_hist)
+      } else {
+        data.frame(gamma = numeric(0), sigma = numeric(0))
+      }
+      s_hist_df <- if (length(s_mean_hist)) {
+        data.frame(s_mean = s_mean_hist, tau2_mean = tau2_mean_hist)
+      } else {
+        data.frame(s_mean = numeric(0), tau2_mean = numeric(0))
+      }
+      ld_cycle_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
+      cycle_info <- .exal_static_ld_cycle_detect(ld_hist_df, s_hist_df, candidate, ld_ctrl)
+      if (isTRUE(ld_ctrl$profile_timing)) {
+        ld_cycle_elapsed <- proc.time()[3] - ld_cycle_start
+        timing_totals["ld_cycle"] <- timing_totals["ld_cycle"] + ld_cycle_elapsed
+      }
+      ld_cycle_detected <- isTRUE(cycle_info$triggered)
+      candidate_check_every_use <- if (isTRUE(stabilize_active)) {
+        ld_ctrl$stabilize_candidate_mode_check_every
+      } else {
+        ld_ctrl$candidate_mode_check_every
+      }
+      do_candidate_mode_check <- (isTRUE(ld_ctrl$auto_stabilize) || isTRUE(ld_ctrl$reject_bad_mode_commit)) &&
+        (iter == 1L || ((iter - 1L) %% candidate_check_every_use) == 0L)
+      ld_mode_quality_candidate_start <- if (isTRUE(ld_ctrl$profile_timing) && do_candidate_mode_check) proc.time()[3] else NA_real_
+      ld_candidate_mode_quality_iter <- if (do_candidate_mode_check) {
+        .exal_static_ld_mode_quality(
+          log_q_fn = log_qsiggam,
+          par = c(ld$eta_hat, ld$ell_hat),
+          grad_tol = ld_ctrl$mode_grad_tol,
+          min_eig = ld_ctrl$mode_min_eig,
+          hessian_backend = ld_ctrl$hessian_backend
+        )
+      } else {
+        NULL
+      }
+      if (isTRUE(ld_ctrl$profile_timing) && do_candidate_mode_check) {
+        ld_mode_quality_candidate_elapsed <- proc.time()[3] - ld_mode_quality_candidate_start
+        timing_totals["ld_mode_quality_candidate"] <- timing_totals["ld_mode_quality_candidate"] + ld_mode_quality_candidate_elapsed
+      }
+      ld_bad_mode_iter <- !is.null(ld_candidate_mode_quality_iter) && !isTRUE(ld_candidate_mode_quality_iter$local_mode_pass)
+      if (!is.null(ld_candidate_mode_quality_iter)) {
+        candidate_mode_pass_last <- isTRUE(ld_candidate_mode_quality_iter$local_mode_pass)
+      }
     } else {
-      data.frame(gamma = numeric(0), sigma = numeric(0))
+      cycle_info <- list(triggered = FALSE, reason = "hold", metrics = list())
+      ld_cycle_detected <- FALSE
+      do_candidate_mode_check <- FALSE
+      ld_candidate_mode_quality_iter <- NULL
+      ld_bad_mode_iter <- FALSE
     }
-    s_hist_df <- if (length(s_mean_hist)) {
-      data.frame(s_mean = s_mean_hist, tau2_mean = tau2_mean_hist)
-    } else {
-      data.frame(s_mean = numeric(0), tau2_mean = numeric(0))
-    }
-    ld_cycle_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
-    cycle_info <- .exal_static_ld_cycle_detect(ld_hist_df, s_hist_df, candidate, ld_ctrl)
-    if (isTRUE(ld_ctrl$profile_timing)) {
-      ld_cycle_elapsed <- proc.time()[3] - ld_cycle_start
-      timing_totals["ld_cycle"] <- timing_totals["ld_cycle"] + ld_cycle_elapsed
-    }
-    ld_cycle_detected <- isTRUE(cycle_info$triggered)
     ld_stabilized <- FALSE
     ld_stabilize_reason <- NA_character_
-    candidate_check_every_use <- if (isTRUE(stabilize_active)) {
-      ld_ctrl$stabilize_candidate_mode_check_every
-    } else {
-      ld_ctrl$candidate_mode_check_every
-    }
-    do_candidate_mode_check <- (isTRUE(ld_ctrl$auto_stabilize) || isTRUE(ld_ctrl$reject_bad_mode_commit)) &&
-      (iter == 1L || ((iter - 1L) %% candidate_check_every_use) == 0L)
-    ld_mode_quality_candidate_start <- if (isTRUE(ld_ctrl$profile_timing) && do_candidate_mode_check) proc.time()[3] else NA_real_
-    ld_candidate_mode_quality_iter <- if (do_candidate_mode_check) {
-      .exal_static_ld_mode_quality(
-        log_q_fn = log_qsiggam,
-        par = c(ld$eta_hat, ld$ell_hat),
-        grad_tol = ld_ctrl$mode_grad_tol,
-        min_eig = ld_ctrl$mode_min_eig
-      )
-    } else {
-      NULL
-    }
-    if (isTRUE(ld_ctrl$profile_timing) && do_candidate_mode_check) {
-      ld_mode_quality_candidate_elapsed <- proc.time()[3] - ld_mode_quality_candidate_start
-      timing_totals["ld_mode_quality_candidate"] <- timing_totals["ld_mode_quality_candidate"] + ld_mode_quality_candidate_elapsed
-    }
-    ld_bad_mode_iter <- !is.null(ld_candidate_mode_quality_iter) && !isTRUE(ld_candidate_mode_quality_iter$local_mode_pass)
     if (isTRUE(ld_ctrl$auto_stabilize)) {
       if (isTRUE(ld_ctrl$direct_commit) &&
           (!isTRUE(stabilize_active)) &&
+          isTRUE(do_ld_update) &&
           (isTRUE(ld_cycle_detected) ||
             isTRUE(ld$used_fallback) ||
             (!is.na(ld$optim_convergence) && ld$optim_convergence != 0L) ||
@@ -1304,7 +1438,9 @@ exal_static_LDVB <- function(
         } else {
           sprintf("ld_optim_convergence_%s", ld$optim_convergence)
         }
-        stabilize_xi_method_active <- ld_ctrl$stabilize_xi_method
+        stabilize_xi_method_active <- "delta"
+        stabilize_release_ok_hist <- logical(0)
+        stabilize_release_count <- 0L
       }
       if (isTRUE(stabilize_active)) {
         ld_stabilized <- TRUE
@@ -1312,12 +1448,22 @@ exal_static_LDVB <- function(
       }
     }
     xi_damping_use <- if (isTRUE(ld_stabilized)) ld_ctrl$stabilize_xi_damping else ld_ctrl$xi_damping
-    active_xi_method <- if (isTRUE(ld_stabilized)) stabilize_xi_method_active else ld_ctrl$xi_method
-    use_direct_commit <- isTRUE(ld_ctrl$direct_commit) && !isTRUE(ld_stabilized) &&
+    active_xi_method <- "delta"
+    use_direct_commit <- isTRUE(do_ld_update) && isTRUE(ld_ctrl$direct_commit) && !isTRUE(ld_stabilized) &&
       !(isTRUE(ld_ctrl$reject_bad_mode_commit) && isTRUE(ld_bad_mode_iter))
-    ld_commit_mode <- if (use_direct_commit) "direct" else "damped"
+    ld_commit_mode <- if (!isTRUE(do_ld_update)) {
+      "hold"
+    } else if (use_direct_commit) {
+      "direct"
+    } else {
+      "damped"
+    }
     ld_commit_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
-    if (use_direct_commit) {
+    if (!isTRUE(do_ld_update)) {
+      eta_hat <- eta_prev
+      ell_hat <- ell_prev
+      Sig_eta_ell <- Sigma_prev
+    } else if (use_direct_commit) {
       eta_hat <- as.numeric(ld$eta_hat)
       ell_hat <- as.numeric(ld$ell_hat)
       Sig_eta_ell <- .exal_static_ld_regularize_cov(
@@ -1353,7 +1499,35 @@ exal_static_LDVB <- function(
       timing_totals["ld_commit"] <- timing_totals["ld_commit"] + ld_commit_elapsed
     }
     ld_committed_objective <- as.numeric(log_qsiggam(c(eta_hat, ell_hat)))
-    do_committed_mode_check <- (ld_ctrl$committed_mode_check_every > 0L) &&
+    ld_objective_gap_abs <- abs(as.numeric(ld$objective - ld_committed_objective))
+    stabilization_release_ok <- isTRUE(stabilize_active) &&
+      !isTRUE(ld_cycle_detected) &&
+      !isTRUE(ld$used_fallback) &&
+      !isTRUE(ld_bad_mode_iter) &&
+      !isFALSE(candidate_mode_pass_last) &&
+      abs(eta_hat - eta_prev) <= ld_ctrl$stabilize_release_eta_tol &&
+      abs(ell_hat - ell_prev) <= ld_ctrl$stabilize_release_ell_tol &&
+      ld_objective_gap_abs <= ld_ctrl$stabilize_release_objective_gap_tol
+    if (isTRUE(stabilize_active)) {
+      stabilize_release_ok_hist <- c(stabilize_release_ok_hist, isTRUE(stabilization_release_ok))
+      if (length(stabilize_release_ok_hist) > ld_ctrl$stabilize_release_window) {
+        stabilize_release_ok_hist <- tail(stabilize_release_ok_hist, ld_ctrl$stabilize_release_window)
+      }
+      stabilize_release_count <- sum(stabilize_release_ok_hist)
+      if (length(stabilize_release_ok_hist) >= ld_ctrl$stabilize_release_window &&
+          all(stabilize_release_ok_hist)) {
+        stabilize_active <- FALSE
+        stabilize_since_iter <- NA_integer_
+        stabilize_reason_active <- NA_character_
+        stabilize_xi_method_active <- "delta"
+        ld_stabilized <- FALSE
+        ld_stabilize_reason <- NA_character_
+        stabilize_release_ok_hist <- logical(0)
+        stabilize_release_count <- 0L
+      }
+    }
+    do_committed_mode_check <- isTRUE(do_ld_update) &&
+      (ld_ctrl$committed_mode_check_every > 0L) &&
       (!isTRUE(ld_stabilized) || isTRUE(ld_ctrl$committed_mode_check_stabilized)) &&
       (iter == 1L || ((iter - 1L) %% ld_ctrl$committed_mode_check_every) == 0L)
     ld_mode_quality_committed_start <- if (isTRUE(ld_ctrl$profile_timing) && do_committed_mode_check) proc.time()[3] else NA_real_
@@ -1367,7 +1541,8 @@ exal_static_LDVB <- function(
         log_q_fn = log_qsiggam,
         par = c(eta_hat, ell_hat),
         grad_tol = ld_ctrl$mode_grad_tol,
-        min_eig = ld_ctrl$mode_min_eig
+        min_eig = ld_ctrl$mode_min_eig,
+        hessian_backend = ld_ctrl$hessian_backend
       )
     }
     if (isTRUE(ld_ctrl$profile_timing) && do_committed_mode_check) {
@@ -1375,20 +1550,27 @@ exal_static_LDVB <- function(
       timing_totals["ld_mode_quality_committed"] <- timing_totals["ld_mode_quality_committed"] + ld_mode_quality_committed_elapsed
     }
 
-    # update xi via MC under Gaussian (eta,ell)
-    xi_eval_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
-    xi_base_draws_use <- if (identical(active_xi_method, "mc")) ld_base_draws else NULL
-    xis_eval_raw <- compute_xi(
-      eta_hat,
-      ell_hat,
-      Sig_eta_ell,
-      ns = n_samp_xi,
-      base_Z = xi_base_draws_use,
-      method = active_xi_method
-    )
-    xis_raw <- xis_eval_raw$value
-    xis_new <- .exal_static_ld_mix_numeric_lists(xis, xis_raw, damping = xi_damping_use)
-    if (isTRUE(ld_ctrl$profile_timing)) {
+    # update xi under Gaussian (eta,ell); reuse when the LD state is held fixed
+    xi_eval_start <- if (isTRUE(ld_ctrl$profile_timing) && isTRUE(do_ld_update)) proc.time()[3] else NA_real_
+    if (!isTRUE(do_ld_update)) {
+      xis_eval_raw <- list(
+        value = xis,
+        mcse_mean = NA_real_,
+        mcse_max = NA_real_,
+        replicate_count = 1L
+      )
+      xis_raw <- xis
+      xis_new <- xis
+    } else {
+      xis_eval_raw <- compute_xi(
+        eta_hat,
+        ell_hat,
+        Sig_eta_ell
+      )
+      xis_raw <- xis_eval_raw$value
+      xis_new <- .exal_static_ld_mix_numeric_lists(xis, xis_raw, damping = xi_damping_use)
+    }
+    if (isTRUE(ld_ctrl$profile_timing) && isTRUE(do_ld_update)) {
       xi_eval_elapsed <- proc.time()[3] - xi_eval_start
       timing_totals["xi_eval"] <- timing_totals["xi_eval"] + xi_eval_elapsed
     }
@@ -1410,9 +1592,24 @@ exal_static_LDVB <- function(
         "iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f | ld(raw)=%.2e/%.2e used=%.2e/%.2e | stabilize=%s xi=%s bad_mode=%s\n",
         iter, rel_mb, rel_xi, ghat, shat, eta_step_raw, ell_step_raw, eta_step_used, ell_step_used,
         ifelse(ld_stabilized, ld_stabilize_reason, "none"),
-        active_xi_method,
+        "delta",
         ifelse(ld_bad_mode_iter, "yes", "no")
       ))
+    }
+
+    if (isTRUE(do_ld_update)) {
+      ld_update_good <- !isTRUE(stabilize_active) &&
+        !isTRUE(ld_cycle_detected) &&
+        !isTRUE(ld$used_fallback) &&
+        !isTRUE(ld_bad_mode_iter) &&
+        !isFALSE(candidate_mode_pass_last)
+      if (isTRUE(ld_update_good)) {
+        ld_good_streak <- ld_good_streak + 1L
+      } else {
+        ld_good_streak <- 0L
+      }
+    } else if (isTRUE(stabilize_active)) {
+      ld_good_streak <- 0L
     }
 
     # commit new values
@@ -1514,7 +1711,17 @@ exal_static_LDVB <- function(
     d_gamma <- abs(gamma_cur - gamma_prev)
     d_s <- .exal_static_ld_rel_change(s_mom$Es, E_s)
     d_elbo <- if (iter >= 2L) elbo_new - elbo_old else NA_real_
-    use_elbo_gate <- !(isTRUE(ld_stabilized) && identical(active_xi_method, "mc"))
+    delta_relaxed_signoff_ok <- isTRUE(ld_stabilized) &&
+      TRUE &&
+      isTRUE(ld_ctrl$stabilize_relax_elbo_gate_delta) &&
+      !isTRUE(ld_cycle_detected) &&
+      !isTRUE(ld_bad_mode_iter) &&
+      !isTRUE(ld$used_fallback) &&
+      !isFALSE(candidate_mode_pass_last) &&
+      abs(eta_hat - eta_prev) <= ld_ctrl$stabilize_release_eta_tol &&
+      abs(ell_hat - ell_prev) <= ld_ctrl$stabilize_release_ell_tol &&
+      ld_objective_gap_abs <= ld_ctrl$stabilize_release_objective_gap_tol
+    use_elbo_gate <- !delta_relaxed_signoff_ok
     step <- .vb_joint_step(
       iter = iter,
       d_state = d_beta,
@@ -1558,10 +1765,10 @@ exal_static_LDVB <- function(
         eta_step_used = eta_step_used,
         ell_step_used = ell_step_used,
         xi_rel_drift = rel_xi,
-        xi_method = active_xi_method,
+        xi_method = "delta",
         xi_mcse_mean = as.numeric(xis_eval_raw$mcse_mean)[1],
         xi_mcse_max = as.numeric(xis_eval_raw$mcse_max)[1],
-        xi_replicates = as.integer(xis_eval_raw$replicate_count)[1],
+        xi_replicates = 0L,
         ld_objective_candidate = ld$objective,
         ld_objective_committed = ld_committed_objective,
         ld_objective_gap = ld_committed_objective - ld$objective,
@@ -1571,6 +1778,10 @@ exal_static_LDVB <- function(
         ld_used_optim_fallback = isTRUE(ld$used_optim_fallback),
         ld_used_numeric_hessian = isTRUE(ld$used_numeric_hessian),
         ld_used_identity_hessian = isTRUE(ld$used_identity_hessian),
+        ld_hessian_refreshed = isTRUE(ld$hessian_refreshed),
+        ld_hessian_backend = ld$hessian_backend,
+        ld_updated = do_ld_update,
+        ld_update_every_used = ld_update_every_use,
         ld_used_cov_floor = isTRUE(ld$used_cov_floor),
         ld_commit_mode = ld_commit_mode,
         ld_bad_mode = ld_bad_mode_iter,
@@ -1585,6 +1796,8 @@ exal_static_LDVB <- function(
         ld_stabilize_reason = if (!is.na(ld_stabilize_reason)) ld_stabilize_reason else "",
         ld_stabilize_active = stabilize_active,
         ld_stabilize_since_iter = if (is.finite(stabilize_since_iter)) stabilize_since_iter else NA_integer_,
+        ld_stabilize_release_ok = isTRUE(stabilization_release_ok),
+        ld_stabilize_good_count = stabilize_release_count,
         ld_cycle_gamma_lag1 = cycle_gamma_lag1,
         ld_cycle_gamma_lag2 = cycle_gamma_lag2,
         ld_cycle_sigma_lag1 = cycle_sigma_lag1,
@@ -1632,7 +1845,7 @@ exal_static_LDVB <- function(
         ld_cycle_detected = ld_cycle_detected,
         ld_stabilized = ld_stabilized,
         ld_stabilize_reason = if (!is.na(ld_stabilize_reason)) ld_stabilize_reason else "",
-        xi_method = active_xi_method,
+        xi_method = "delta",
         stringsAsFactors = FALSE
       )
       if (isTRUE(ld_ctrl$profile_timing)) {
@@ -1674,8 +1887,10 @@ exal_static_LDVB <- function(
       timing_rows[[iter]]$accounted <- accounted
       timing_rows[[iter]]$other <- max(iter_elapsed - accounted, 0)
       timing_rows[[iter]]$ld_stabilized <- ld_stabilized
-      timing_rows[[iter]]$xi_method <- active_xi_method
+      timing_rows[[iter]]$xi_method <- "delta"
       timing_rows[[iter]]$ld_commit_mode <- ld_commit_mode
+      timing_rows[[iter]]$ld_updated <- do_ld_update
+      timing_rows[[iter]]$ld_update_every_used <- ld_update_every_use
     }
 
     if (verbose && (iter %% 50 == 0)) {
@@ -1738,8 +1953,10 @@ exal_static_LDVB <- function(
         numeric_hessian_rate = mean(as.logical(tail_df$ld_used_numeric_hessian), na.rm = TRUE),
         identity_hessian_rate = mean(as.logical(tail_df$ld_used_identity_hessian), na.rm = TRUE),
         cov_floor_rate = mean(as.logical(tail_df$ld_used_cov_floor), na.rm = TRUE),
+        update_rate = mean(as.logical(tail_df$ld_updated), na.rm = TRUE),
         direct_commit_rate = mean(tail_df$ld_commit_mode == "direct", na.rm = TRUE),
         damped_commit_rate = mean(tail_df$ld_commit_mode == "damped", na.rm = TRUE),
+        hold_commit_rate = mean(tail_df$ld_commit_mode == "hold", na.rm = TRUE),
         objective_gap_median = stats::median(tail_df$ld_objective_gap, na.rm = TRUE)
       )
     }
@@ -1814,11 +2031,11 @@ exal_static_LDVB <- function(
           stabilized_iter_count = if (nrow(ld_trace_df)) sum(ld_trace_df$ld_stabilized, na.rm = TRUE) else 0L
         ),
         xi = list(
-          method = ld_ctrl$xi_method,
-          mode = if (identical(ld_ctrl$xi_method, "delta")) "delta" else ld_ctrl$xi_mode,
-          replicates = if (identical(ld_ctrl$xi_method, "delta")) 0L else ld_ctrl$xi_replicates,
-          reuse_draws = ld_ctrl$reuse_draws,
-          reuse_seed = ld_ctrl$reuse_seed
+          method = "delta",
+          mode = "delta",
+          replicates = 0L,
+          reuse_draws = FALSE,
+          reuse_seed = NA_integer_
         ),
         mode_quality = mode_quality,
         signoff_summary = ld_signoff_summary,

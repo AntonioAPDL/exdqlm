@@ -188,7 +188,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   }
 
   ld_ctrl <- .exal_static_ld_controls(list(
-    xi_method = getOption("exdqlm.dynamic.ldvb.xi_method", getOption("exdqlm.static.ldvb.xi_method", "delta")),
     optimizer_method = getOption("exdqlm.dynamic.ldvb.optimizer_method", getOption("exdqlm.static.ldvb.optimizer_method", "lbfgsb")),
     direct_commit = getOption("exdqlm.dynamic.ldvb.direct_commit", getOption("exdqlm.static.ldvb.direct_commit", NULL)),
     damping = getOption("exdqlm.dynamic.ldvb.damping", getOption("exdqlm.static.ldvb.damping", NULL)),
@@ -203,12 +202,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     cycle_tau2_min_amp = getOption("exdqlm.dynamic.ldvb.cycle_tau2_min_amp", getOption("exdqlm.static.ldvb.cycle_tau2_min_amp", 1e-4)),
     stabilize_damping = getOption("exdqlm.dynamic.ldvb.stabilize_damping", getOption("exdqlm.static.ldvb.stabilize_damping", NULL)),
     stabilize_xi_damping = getOption("exdqlm.dynamic.ldvb.stabilize_xi_damping", getOption("exdqlm.static.ldvb.stabilize_xi_damping", NULL)),
-    stabilize_xi_method = getOption("exdqlm.dynamic.ldvb.stabilize_xi_method", getOption("exdqlm.dynamic.ldvb.xi_method", getOption("exdqlm.static.ldvb.xi_method", "delta"))),
     reject_bad_mode_commit = getOption("exdqlm.dynamic.ldvb.reject_bad_mode_commit", getOption("exdqlm.static.ldvb.reject_bad_mode_commit", TRUE)),
-    xi_mode = getOption("exdqlm.dynamic.ldvb.xi_mode", getOption("exdqlm.static.ldvb.xi_mode", "single")),
-    xi_replicates = getOption("exdqlm.dynamic.ldvb.xi_replicates", getOption("exdqlm.static.ldvb.xi_replicates", 1L)),
-    reuse_draws = getOption("exdqlm.dynamic.ldvb.reuse_draws", getOption("exdqlm.static.ldvb.reuse_draws", TRUE)),
-    antithetic = getOption("exdqlm.dynamic.ldvb.antithetic", getOption("exdqlm.static.ldvb.antithetic", TRUE)),
     optimizer_maxit = getOption("exdqlm.dynamic.ldvb.optimizer_maxit", getOption("exdqlm.static.ldvb.optimizer_maxit", NULL)),
     eig_floor = getOption("exdqlm.dynamic.ldvb.eig_floor", getOption("exdqlm.static.ldvb.eig_floor", 1e-6)),
     eig_cap = getOption("exdqlm.dynamic.ldvb.eig_cap", getOption("exdqlm.static.ldvb.eig_cap", NULL)),
@@ -292,7 +286,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   stabilize_active <- FALSE
   stabilize_since_iter <- NA_integer_
   stabilize_reason_active <- NA_character_
-  stabilize_xi_method_active <- ld_ctrl$xi_method
+  stabilize_xi_method_active <- "delta"
 
   # function update q(st)  (trunc-normal on (0, \\infty))
   update_sts <- function(exps, inv.uts, c2.invb.absgam2.sigma, c.invb.absgam, c.a.invb.absgam) {
@@ -451,13 +445,22 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     p <- trans_par(par)
     if (!is.finite(p$B) || p$B <= 0 || !is.finite(p$sigma) || p$sigma <= 0) return(-Inf)
 
-    t_i <- state$y - state$exps
-    term1 <- - (1 / (2 * p$B * p$sigma)) * sum(
-      state$inv_uts * (t_i^2 + pmax(state$theta_var, 0)) - 2 * p$A * t_i + (p$A * p$A) * state$uts
-    )
-    term2 <- - (sum(state$uts) + state$b_sigma) / p$sigma
-    term3 <- + (p$lambda / p$B) * sum(state$sts * state$inv_uts * t_i - state$sts * p$A)
-    term4 <- - ((p$lambda * p$lambda) / (2 * p$B)) * p$sigma * sum(state$sts2 * state$inv_uts)
+    cache <- state$ld_cache
+    if (!is.null(cache)) {
+      term1 <- - (1 / (2 * p$B * p$sigma)) *
+        (cache$sum_einv_quad - 2 * p$A * cache$sum_t + (p$A * p$A) * cache$sum_uts)
+      term2 <- - cache$sum_uts_bsigma / p$sigma
+      term3 <- + (p$lambda / p$B) * (cache$sum_s_einv_t - p$A * cache$sum_s)
+      term4 <- - ((p$lambda * p$lambda) / (2 * p$B)) * p$sigma * cache$sum_s2_einv
+    } else {
+      t_i <- state$y - state$exps
+      term1 <- - (1 / (2 * p$B * p$sigma)) * sum(
+        state$inv_uts * (t_i^2 + pmax(state$theta_var, 0)) - 2 * p$A * t_i + (p$A * p$A) * state$uts
+      )
+      term2 <- - (sum(state$uts) + state$b_sigma) / p$sigma
+      term3 <- + (p$lambda / p$B) * sum(state$sts * state$inv_uts * t_i - state$sts * p$A)
+      term4 <- - ((p$lambda * p$lambda) / (2 * p$B)) * p$sigma * sum(state$sts2 * state$inv_uts)
+    }
 
     log_prior <- log_prior_gamma(p$gamma) + state$a_sigma * log(state$b_sigma) -
       lgamma(state$a_sigma) - (state$a_sigma + 1) * p$ell
@@ -587,17 +590,35 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   update_gamma_sigma <- function(gamma, var.gam, sigma, var.sig,
                                 exps, exps2, sts, sts2, uts, inv.uts) {
+    y_vec <- as.numeric(y)
+    exps_vec <- as.numeric(exps)
+    theta_var_vec <- pmax(as.numeric(exps2) - exps_vec^2, 0)
+    sts_vec <- as.numeric(sts)
+    sts2_vec <- as.numeric(sts2)
+    uts_vec <- as.numeric(uts)
+    inv_uts_vec <- as.numeric(inv.uts)
+    t_i <- y_vec - exps_vec
+    ld_cache <- list(
+      sum_einv_quad = sum(inv_uts_vec * (t_i^2 + theta_var_vec)),
+      sum_t = sum(t_i),
+      sum_uts = sum(uts_vec),
+      sum_uts_bsigma = sum(uts_vec) + PriorSigma$b_sig,
+      sum_s_einv_t = sum(sts_vec * inv_uts_vec * t_i),
+      sum_s = sum(sts_vec),
+      sum_s2_einv = sum(sts2_vec * inv_uts_vec)
+    )
     state <- list(
-      y = as.numeric(y),
-      exps = as.numeric(exps),
-      theta_var = pmax(as.numeric(exps2) - as.numeric(exps)^2, 0),
-      sts = as.numeric(sts),
-      sts2 = as.numeric(sts2),
-      uts = as.numeric(uts),
-      inv_uts = as.numeric(inv.uts),
+      y = y_vec,
+      exps = exps_vec,
+      theta_var = theta_var_vec,
+      sts = sts_vec,
+      sts2 = sts2_vec,
+      uts = uts_vec,
+      inv_uts = inv_uts_vec,
       a_sigma = PriorSigma$a_sig,
       b_sigma = PriorSigma$b_sig,
-      nn = length(y)
+      nn = length(y_vec),
+      ld_cache = ld_cache
     )
 
     eta_prev <- eta_hat
