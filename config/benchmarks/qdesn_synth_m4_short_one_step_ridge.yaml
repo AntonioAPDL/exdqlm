@@ -1,0 +1,118 @@
+evaluation:
+  experiment_name: qdesn_synth_m4_short_one_step_ridge
+  result_root: results/benchmarks/qdesn_synth
+  datasets:
+    - m4_monthly
+  max_series_per_dataset: 1
+  parallel:
+    workers: 1
+  series_overrides:
+    selection:
+      m4_monthly: [M6336]
+    evaluation:
+      m4_monthly: [M6336]
+    audit:
+      m4_monthly: [M6336]
+  one_step_audit:
+    stage: test
+
+models:
+  qdesn_synth:
+    base:
+      readout_approximation: laplace_delta
+      p_vec: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+      fit:
+        D: 1
+        "n": [64]
+        m: 12
+        alpha: [0.05]
+        rho: [0.90]
+        act_f: tanh
+        act_k: identity
+        pi_w: [0.005]
+        pi_in: [0.02]
+        washout: 24
+        add_bias: true
+        standardize_inputs: true
+        input_bound: tanh
+        seed: 20260309
+        seed_set:
+          - [101]
+      vb_args:
+        max_iter: 1000
+        min_iter_elbo: 20
+        tol: 1.0e-4
+        tol_par: 1.0e-4
+        n_samp_xi: 500
+        verbose: false
+        readout_scale: true
+        diagnostics:
+          rhs_trace: true
+          rhs_deep: false
+          rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
+          rhs_trace_top_k: 20
+          rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          update_every: 1
+          update_every_warmup: 1
+          update_every_warmup_iters: 0
+          beta_presteps: 1
+          beta_presteps_iters: 0
+          gradcheck: false
+          gradcheck_iters: [1, 5]
+          gradcheck_h: 1.0e-5
+          tau_local_tol: 1.0e-3
+          min_tau_updates: 1
+          max_tau_updates: null
+          force_tau_after_warmup: true
+          recompute_elbo_after_tau_update: true
+        beta_prior_type: ridge
+        beta_ridge_tau2: 10.0
+      sampling:
+        nd_draws: 160
+        chunk: 64
+      synthesis:
+        n_samp: 160
+        grid_M: 201
+        isotonic: true
+        rearrange: true
+        seed: 20260309
+      preproc:
+        scale_y: true
+      calibration:
+        mode: none
+      metrics:
+        probs: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+    candidates:
+      - candidate_id: short_ridge_compact_n32_m12_w18
+        seed_group_id: short_ridge_compact_n32_m12_w18
+        fit:
+          "n": [32]
+          m: 12
+          rho: [0.90]
+          alpha: [0.05]
+          pi_in: [0.02]
+          pi_w: [0.005]
+          washout: 18
+      - candidate_id: short_ridge_n64_m12_w24
+        seed_group_id: short_ridge_n64_m12_w24
+        fit:
+          "n": [64]
+          m: 12
+          rho: [0.90]
+          alpha: [0.05]
+          pi_in: [0.02]
+          pi_w: [0.005]
+          washout: 24
+      - candidate_id: short_ridge_n64_m18_w24
+        seed_group_id: short_ridge_n64_m18_w24
+        fit:
+          "n": [64]
+          m: 18
+          rho: [0.92]
+          alpha: [0.05]
+          pi_in: [0.02]
+          pi_w: [0.005]
+          washout: 24

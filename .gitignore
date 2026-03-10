@@ -88,3 +88,17 @@ slides/build/
 scripts/*.Rout
 scripts/*.Rout.*
 scripts/*.log
+
+# Benchmark pipeline artifacts
+/data-raw/benchmarks/*
+!/data-raw/benchmarks/README.md
+/data-processed/benchmarks/*
+!/data-processed/benchmarks/README.md
+/figures/benchmarks/generated/
+!/figures/benchmarks/README.md
+/reports/benchmarks/generated/
+!/reports/benchmarks/README.md
+/logs/benchmarks/*
+!/logs/benchmarks/README.md
+/results/benchmarks/qdesn_synth/*
+!/results/benchmarks/qdesn_synth/README.md

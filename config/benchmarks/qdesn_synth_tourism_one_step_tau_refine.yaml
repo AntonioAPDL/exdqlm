@@ -1,0 +1,140 @@
+evaluation:
+  experiment_name: qdesn_synth_tourism_one_step_tau_refine
+  result_root: results/benchmarks/qdesn_synth
+  datasets:
+    - tourism_monthly
+  max_series_per_dataset: 1
+  parallel:
+    workers: 1
+  series_overrides:
+    selection:
+      tourism_monthly: [T109]
+    evaluation:
+      tourism_monthly: [T109]
+    audit:
+      tourism_monthly: [T109]
+  one_step_audit:
+    stage: validation
+
+models:
+  qdesn_synth:
+    base:
+      readout_approximation: laplace_delta
+      p_vec: [0.20, 0.50, 0.80]
+      fit:
+        D: 1
+        "n": [128]
+        m: 36
+        alpha: [0.05]
+        rho: [0.90]
+        act_f: tanh
+        act_k: identity
+        pi_w: [0.005]
+        pi_in: [0.02]
+        washout: 96
+        add_bias: true
+        standardize_inputs: true
+        input_bound: tanh
+        seed: 20260309
+        seed_set:
+          - [101]
+      vb_args:
+        max_iter: 1000
+        min_iter_elbo: 20
+        tol: 1.0e-4
+        tol_par: 1.0e-4
+        n_samp_xi: 500
+        verbose: false
+        readout_scale: true
+        diagnostics:
+          rhs_trace: true
+          rhs_deep: false
+          rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
+          rhs_trace_top_k: 20
+          rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          update_every: 1
+          update_every_warmup: 1
+          update_every_warmup_iters: 0
+          beta_presteps: 1
+          beta_presteps_iters: 0
+          gradcheck: false
+          gradcheck_iters: [1, 5]
+          gradcheck_h: 1.0e-5
+          tau_local_tol: 1.0e-3
+          min_tau_updates: 1
+          max_tau_updates: null
+          force_tau_after_warmup: true
+          recompute_elbo_after_tau_update: true
+        beta_prior_type: rhs
+        beta_rhs:
+          tau0: 100.0
+          nu: 4.0
+          s2: 1.0
+          shrink_intercept: false
+          intercept_prec: 1.0e-16
+          n_inner: 1
+          eta_bounds:
+            lambda: [-20, 20]
+            tau: [-20, 20]
+            c2: [-20, 20]
+          h_curv: 1.0e-8
+          var_floor: 1.0e-8
+          verbose: false
+          init_log_lambda: 0.0
+          init_log_tau: 2.302585093
+          init_log_c2: 0.0
+      sampling:
+        nd_draws: 160
+        chunk: 64
+      synthesis:
+        n_samp: 160
+        grid_M: 201
+        isotonic: true
+        rearrange: true
+        seed: 20260309
+      preproc:
+        scale_y: true
+      calibration:
+        mode: none
+      metrics:
+        probs: [0.20, 0.50, 0.80]
+    candidates:
+      - candidate_id: scale_soft_n128_m36_r090_a005_in002_w005_w96_tau100
+        seed_group_id: scale_soft_n128_m36_r090_a005_in002_w005_w96
+        fit:
+          "n": [128]
+          m: 36
+          alpha: [0.05]
+          rho: [0.90]
+          pi_w: [0.005]
+          pi_in: [0.02]
+          washout: 96
+      - candidate_id: scale_soft_n128_m36_r090_a005_in002_w005_w96_tau150
+        seed_group_id: scale_soft_n128_m36_r090_a005_in002_w005_w96
+        fit:
+          "n": [128]
+          m: 36
+          alpha: [0.05]
+          rho: [0.90]
+          pi_w: [0.005]
+          pi_in: [0.02]
+          washout: 96
+        vb_args:
+          beta_rhs:
+            tau0: 150.0
+      - candidate_id: scale_soft_n128_m36_r090_a005_in002_w005_w96_tau250
+        seed_group_id: scale_soft_n128_m36_r090_a005_in002_w005_w96
+        fit:
+          "n": [128]
+          m: 36
+          alpha: [0.05]
+          rho: [0.90]
+          pi_w: [0.005]
+          pi_in: [0.02]
+          washout: 96
+        vb_args:
+          beta_rhs:
+            tau0: 250.0

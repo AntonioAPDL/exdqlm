@@ -258,6 +258,29 @@ pp_plot_zoom(y = y, samples = syn$draws, p0 = 0.5, last_n = 40L)
   approximation/IS noise. Look for an overall upward trend; if not,
   simplify the model or adjust variance/discounts.
 
+## Benchmark Data Pipeline
+
+The repo also includes a script-driven benchmark data pipeline for the Monash
+Forecasting Archive and the official M4 dataset. It keeps Monash and official
+M4 as separate source families, preserves the official M4 train/test split, and
+excludes Monash M4 duplicates from the Monash main pool by registry design.
+
+Run the workflow from the repo root with:
+
+```bash
+Rscript --vanilla scripts/benchmark_download.R
+Rscript --vanilla scripts/benchmark_build.R
+Rscript --vanilla scripts/benchmark_analyze.R
+```
+
+Or run the end-to-end orchestrator:
+
+```bash
+Rscript --vanilla scripts/benchmark_pipeline.R
+```
+
+Additional details live in [docs/BENCHMARK_PIPELINE.md](docs/BENCHMARK_PIPELINE.md).
+
 - **Synthesis seems unchanged.** Ensure your anchors are well-separated
   (e.g., 0.25–0.5–0.75), and verify that each anchor model converged
   (check ELBO tail). If anchors already respect monotonicity, isotonic

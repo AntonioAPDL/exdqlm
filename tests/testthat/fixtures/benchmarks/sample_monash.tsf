@@ -1,0 +1,11 @@
+# Synthetic Monash-style fixture for parser smoke tests
+@relation sample_monash
+@attribute series_name string
+@attribute start_timestamp date
+@attribute horizon numeric
+@frequency monthly
+@missing true
+@equallength false
+@data
+S1:2020-01-01 00-00-00:3:1,2,3,4,5,?
+S2:2021-06-01 00-00-00:2:10,11,12,13

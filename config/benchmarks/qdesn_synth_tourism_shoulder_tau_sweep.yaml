@@ -1,0 +1,245 @@
+evaluation:
+  experiment_name: qdesn_synth_tourism_shoulder_tau_sweep
+  result_root: results/benchmarks/qdesn_synth
+  datasets:
+    - tourism_monthly
+  max_series_per_dataset: 1
+  audit_stage: validation
+  parallel:
+    workers: 1
+  series_overrides:
+    selection:
+      tourism_monthly: [T109]
+    evaluation:
+      tourism_monthly: [T109]
+    audit:
+      tourism_monthly: [T109]
+  selection:
+    enabled: true
+    subset_size: 1
+    min_train_points: 24
+    metric: crps_mean
+    checkpoint_each_candidate: false
+    quantile_guard:
+      enabled: true
+      max_abs_coverage_dev: 0.45
+      max_abs_tail_coverage_dev: 0.50
+      max_abs_pit_dev_mean: 0.35
+      max_shoulder_pinball_ratio: 250
+      max_shoulder_qhat_ratio: 250
+      forbid_rhs_collapse: true
+      forbid_rhs_near_bound: true
+      relax_if_no_eligible_candidates: false
+  routing:
+    enabled: false
+    fallback: dataset
+  quantile_eval:
+    enabled: true
+    tail_threshold: 0.20
+  m4_comparability:
+    enabled: false
+  baselines:
+    models: []
+    n_draws: 0
+  audit:
+    subset_size: 1
+    save_draws: false
+
+models:
+  qdesn_synth:
+    base:
+      readout_approximation: laplace_delta
+      p_vec: [0.20, 0.50, 0.80]
+      fit:
+        D: 1
+        "n": [128]
+        m: 34
+        alpha: [0.06]
+        rho: [0.91]
+        act_f: tanh
+        act_k: identity
+        pi_w: [0.005]
+        pi_in: [0.05]
+        washout: 64
+        add_bias: true
+        standardize_inputs: true
+        input_bound: tanh
+        seed: 20260308
+        seed_set:
+          - [101]
+      vb_args:
+        max_iter: 1000
+        min_iter_elbo: 20
+        tol: 1.0e-4
+        tol_par: 1.0e-4
+        n_samp_xi: 500
+        verbose: false
+        readout_scale: true
+        diagnostics:
+          rhs_trace: true
+          rhs_deep: false
+          rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
+          rhs_trace_top_k: 20
+          rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          update_every: 1
+          update_every_warmup: 1
+          update_every_warmup_iters: 0
+          beta_presteps: 1
+          beta_presteps_iters: 0
+          gradcheck: false
+          gradcheck_iters: [1, 5]
+          gradcheck_h: 1.0e-5
+          tau_local_tol: 1.0e-3
+          min_tau_updates: 1
+          max_tau_updates: null
+          force_tau_after_warmup: true
+          recompute_elbo_after_tau_update: true
+        beta_prior_type: rhs
+        beta_rhs:
+          tau0: 100.0
+          nu: 4.0
+          s2: 1.0
+          shrink_intercept: false
+          intercept_prec: 1.0e-16
+          n_inner: 1
+          eta_bounds:
+            lambda: [-20, 20]
+            tau: [-20, 20]
+            c2: [-20, 20]
+          h_curv: 1.0e-8
+          var_floor: 1.0e-8
+          verbose: false
+          init_log_lambda: 0.0
+          init_log_tau: 2.302585093
+          init_log_c2: 0.0
+      sampling:
+        nd_draws: 80
+        chunk: 32
+      synthesis:
+        n_samp: 160
+        grid_M: 201
+        isotonic: true
+        rearrange: true
+        seed: 20260308
+      preproc:
+        scale_y: true
+      calibration:
+        mode: none
+        tail_h: 0
+        min_points: 0
+      metrics:
+        probs: [0.20, 0.50, 0.80]
+    candidates:
+      - candidate_id: tau100_bridge_n128_m34_r091_a006_in005_w005
+        fit:
+          "n": [128]
+          m: 34
+          alpha: [0.06]
+          rho: [0.91]
+          pi_w: [0.005]
+          pi_in: [0.05]
+          washout: 64
+        vb_args:
+          beta_rhs:
+            tau0: 100.0
+      - candidate_id: tau250_bridge_n128_m34_r091_a006_in005_w005
+        fit:
+          "n": [128]
+          m: 34
+          alpha: [0.06]
+          rho: [0.91]
+          pi_w: [0.005]
+          pi_in: [0.05]
+          washout: 64
+        vb_args:
+          beta_rhs:
+            tau0: 250.0
+      - candidate_id: tau500_bridge_n128_m34_r091_a006_in005_w005
+        fit:
+          "n": [128]
+          m: 34
+          alpha: [0.06]
+          rho: [0.91]
+          pi_w: [0.005]
+          pi_in: [0.05]
+          washout: 64
+        vb_args:
+          beta_rhs:
+            tau0: 500.0
+
+      - candidate_id: tau100_bridge_n128_m36_r091_a006_in006_w005
+        fit:
+          "n": [128]
+          m: 36
+          alpha: [0.06]
+          rho: [0.91]
+          pi_w: [0.005]
+          pi_in: [0.06]
+          washout: 72
+        vb_args:
+          beta_rhs:
+            tau0: 100.0
+      - candidate_id: tau250_bridge_n128_m36_r091_a006_in006_w005
+        fit:
+          "n": [128]
+          m: 36
+          alpha: [0.06]
+          rho: [0.91]
+          pi_w: [0.005]
+          pi_in: [0.06]
+          washout: 72
+        vb_args:
+          beta_rhs:
+            tau0: 250.0
+      - candidate_id: tau500_bridge_n128_m36_r091_a006_in006_w005
+        fit:
+          "n": [128]
+          m: 36
+          alpha: [0.06]
+          rho: [0.91]
+          pi_w: [0.005]
+          pi_in: [0.06]
+          washout: 72
+        vb_args:
+          beta_rhs:
+            tau0: 500.0
+
+      - candidate_id: tau100_bridge_n160_m34_r0915_a006_in006_w005
+        fit:
+          "n": [160]
+          m: 34
+          alpha: [0.06]
+          rho: [0.915]
+          pi_w: [0.005]
+          pi_in: [0.06]
+          washout: 64
+        vb_args:
+          beta_rhs:
+            tau0: 100.0
+      - candidate_id: tau250_bridge_n160_m34_r0915_a006_in006_w005
+        fit:
+          "n": [160]
+          m: 34
+          alpha: [0.06]
+          rho: [0.915]
+          pi_w: [0.005]
+          pi_in: [0.06]
+          washout: 64
+        vb_args:
+          beta_rhs:
+            tau0: 250.0
+      - candidate_id: tau500_bridge_n160_m34_r0915_a006_in006_w005
+        fit:
+          "n": [160]
+          m: 34
+          alpha: [0.06]
+          rho: [0.915]
+          pi_w: [0.005]
+          pi_in: [0.06]
+          washout: 64
+        vb_args:
+          beta_rhs:
+            tau0: 500.0

@@ -1,0 +1,32 @@
+registry_path: config/benchmarks/datasets.yaml
+seed: 20260305
+
+paths:
+  raw_root: data-raw/benchmarks
+  processed_root: data-processed/benchmarks
+  figures_root: figures/benchmarks/generated
+  reports_root: reports/benchmarks/generated
+  logs_root: logs/benchmarks
+
+download:
+  timeout_sec: 600
+  overwrite: false
+  user_agent: exdqlm-benchmark-pipeline/0.1
+
+processing:
+  write_rds: true
+  write_csv_sidecars: true
+  panel_partition: dataset
+  compress: gzip
+
+split:
+  monash_protocol: train_val_test_tail
+  m4_protocol: official_only
+  validation:
+    block_strategy: horizon
+    min_train_points: 24
+
+analysis:
+  top_n_roles_per_dataset: 6
+  facet_ncol: 2
+  save_acf_diagnostics: true

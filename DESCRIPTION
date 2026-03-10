@@ -43,12 +43,19 @@ Imports:
     grDevices,
     Rcpp,
     nimble,
-    numDeriv
+    numDeriv,
+    data.table
 Suggests:
     testthat (>= 3.0.0),
     ggplot2,
+    forecast,
     pkgload,
-    matrixStats
+    matrixStats,
+    yaml,
+    jsonlite,
+    digest,
+    withr,
+    scales
 LinkingTo:
     BH,
     Rcpp,
