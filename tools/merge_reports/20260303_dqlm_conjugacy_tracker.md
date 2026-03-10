@@ -2047,3 +2047,13 @@ Implementation notes:
 Interpretation:
 - The stabilized LD reporting/signoff layer is now consistent enough for static/dynamic extended-VB diagnostics.
 - The remaining open work should now shift to the simulation-design comparison question rather than more LD guardrail propagation.
+
+### 2026-03-09 exAL VB runtime audit
+
+- A dedicated runtime audit and rollout note now exists at:
+  - [20260309_exal_vb_runtime_audit_and_rollout_plan.md](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260309_exal_vb_runtime_audit_and_rollout_plan.md)
+- Current runtime conclusion on the frozen reduced benchmark:
+  - the best Delta-only static `exAL VB` variant is now faster than the corresponding `exAL MCMC`
+  - the root bottleneck was repeated LD-objective recomputation, not trace building
+- Next runtime gate before broader rollout:
+  - validate the same Delta-only settings on the large `n=10000` reference benchmark, then propagate the proven fix across the other LDVB paths

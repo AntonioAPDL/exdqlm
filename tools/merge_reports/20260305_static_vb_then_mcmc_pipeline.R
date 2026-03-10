@@ -142,8 +142,6 @@ vb_allow_elbo_drop <- safe_num(
   vb_tol_elbo
 )
 vb_n_samp_xi <- safe_int(Sys.getenv("EXDQLM_STATIC_VB_NSAMP", "1000"), 1000L)
-vb_ld_xi_method <- tolower(Sys.getenv("EXDQLM_STATIC_LD_XI_METHOD", "delta"))
-if (!(vb_ld_xi_method %in% c("delta", "mc"))) vb_ld_xi_method <- "delta"
 vb_ld_optimizer_method <- tolower(Sys.getenv("EXDQLM_STATIC_LD_OPTIMIZER_METHOD", "lbfgsb"))
 if (!(vb_ld_optimizer_method %in% c("lbfgsb", "bfgs"))) vb_ld_optimizer_method <- "lbfgsb"
 vb_ld_direct_commit <- safe_bool(Sys.getenv("EXDQLM_STATIC_LD_DIRECT_COMMIT", "true"), TRUE)
@@ -152,17 +150,10 @@ vb_ld_damping <- safe_num(
   if (vb_ld_direct_commit) 1 else 0.45
 )
 vb_ld_xi_damping <- safe_num(
-  Sys.getenv("EXDQLM_STATIC_LD_XI_DAMPING", if (vb_ld_xi_method == "delta") "1" else "0.65"),
-  if (vb_ld_xi_method == "delta") 1 else 0.65
+  Sys.getenv("EXDQLM_STATIC_LD_XI_DAMPING", "1"),
+  1
 )
-vb_ld_xi_mode <- tolower(Sys.getenv("EXDQLM_STATIC_LD_XI_MODE", "single"))
-if (!(vb_ld_xi_mode %in% c("single", "replicated"))) vb_ld_xi_mode <- "single"
-vb_ld_xi_replicates <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_XI_REPLICATES", "1"), 1L)
-if (vb_ld_xi_mode == "single") vb_ld_xi_replicates <- 1L
-if (vb_ld_xi_method == "delta") vb_ld_xi_replicates <- 0L
-vb_ld_reuse_draws <- safe_bool(Sys.getenv("EXDQLM_STATIC_LD_REUSE_DRAWS", "true"), TRUE)
-vb_ld_antithetic <- safe_bool(Sys.getenv("EXDQLM_STATIC_LD_ANTITHETIC", "true"), TRUE)
-vb_ld_reuse_seed <- safe_int(Sys.getenv("EXDQLM_STATIC_LD_REUSE_SEED", "20260305"), 20260305L)
+vb_ld_reuse_seed <- NA_integer_
 vb_ld_step_cap_eta <- safe_num(
   Sys.getenv("EXDQLM_STATIC_LD_STEP_CAP_ETA", if (vb_ld_direct_commit) "Inf" else "2.0"),
   if (vb_ld_direct_commit) Inf else 2.0
@@ -175,9 +166,9 @@ vb_ld_eig_floor <- safe_num(Sys.getenv("EXDQLM_STATIC_LD_EIG_FLOOR", "1e-6"), 1e
 vb_ld_eig_cap <- safe_num(
   Sys.getenv(
     "EXDQLM_STATIC_LD_EIG_CAP",
-    if (vb_ld_direct_commit && vb_ld_xi_method == "delta") "1" else "25"
+    if (vb_ld_direct_commit) "1" else "25"
   ),
-  if (vb_ld_direct_commit && vb_ld_xi_method == "delta") 1 else 25
+  if (vb_ld_direct_commit) 1 else 25
 )
 vb_ld_optimizer_maxit <- safe_int(
   Sys.getenv("EXDQLM_STATIC_LD_OPTIMIZER_MAXIT", if (vb_ld_optimizer_method == "lbfgsb") "2000" else "200"),
@@ -291,15 +282,10 @@ cfg <- list(
     ),
     n_samp_xi = vb_n_samp_xi,
     ld = list(
-      xi_method = vb_ld_xi_method,
       optimizer_method = vb_ld_optimizer_method,
       direct_commit = vb_ld_direct_commit,
       damping = vb_ld_damping,
       xi_damping = vb_ld_xi_damping,
-      xi_mode = vb_ld_xi_mode,
-      xi_replicates = vb_ld_xi_replicates,
-      reuse_draws = vb_ld_reuse_draws,
-      antithetic = vb_ld_antithetic,
       reuse_seed = vb_ld_reuse_seed,
       step_cap_eta = vb_ld_step_cap_eta,
       step_cap_ell = vb_ld_step_cap_ell,
@@ -463,15 +449,10 @@ run_one_pipeline <- function(task_row) {
   row <- empty_summary_row(model_name, tau)
   ld_ctrl <- if (!dqlm.ind) {
     list(
-      xi_method = vb_ld_xi_method,
       optimizer_method = vb_ld_optimizer_method,
       direct_commit = vb_ld_direct_commit,
       damping = vb_ld_damping,
       xi_damping = vb_ld_xi_damping,
-      xi_mode = vb_ld_xi_mode,
-      xi_replicates = vb_ld_xi_replicates,
-      reuse_draws = vb_ld_reuse_draws,
-      antithetic = vb_ld_antithetic,
       reuse_seed = vb_ld_reuse_seed,
       step_cap_eta = vb_ld_step_cap_eta,
       step_cap_ell = vb_ld_step_cap_ell,
@@ -678,12 +659,12 @@ log_master(sprintf("starting static VB->MCMC pipeline run in %s", out_root))
 log_master(sprintf(
   paste0(
     "TT=%d VB(max_iter=%d,tol=%.4f,tol_sigma=%.4g,tol_gamma=%.4g,tol_elbo=%.4g,min_iter=%d,patience=%d,",
-    "allow_elbo_drop=%.4g,n_samp_xi=%d,xi=%s,opt=%s,direct=%s,",
+    "allow_elbo_drop=%.4g,n_samp_xi=%d,xi=delta,opt=%s,direct=%s,",
     "ld_damp=%s,ld_xi_damp=%s,sigma_init=%s,eta=[%.1f,%.1f]) ",
     "MCMC(burn=%d,n=%d,thin=%d,mh=%s) cores=%d overwrite=%s"
   ),
   TT, vb_max_iter, vb_tol, vb_tol_sigma, vb_tol_gamma, vb_tol_elbo, vb_min_iter, vb_patience, vb_allow_elbo_drop,
-  vb_n_samp_xi, vb_ld_xi_method, vb_ld_optimizer_method, vb_ld_direct_commit,
+  vb_n_samp_xi, vb_ld_optimizer_method, vb_ld_direct_commit,
   format(vb_ld_damping, trim = TRUE), format(vb_ld_xi_damping, trim = TRUE), vb_ld_sigma_init_mode, vb_ld_eta_lo, vb_ld_eta_hi,
   mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, cores_pipeline, overwrite_existing
 ))

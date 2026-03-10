@@ -1328,7 +1328,6 @@ exal_static_LDVB <- function(
     )
 
     # ---- (4) q(sigma,gamma) via LD
-    ld_mode_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     eta_prev <- eta_hat
     ell_prev <- ell_hat
     Sigma_prev <- Sig_eta_ell
