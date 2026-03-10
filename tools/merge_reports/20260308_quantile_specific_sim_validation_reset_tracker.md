@@ -251,6 +251,25 @@ Each session should write:
 | `Q7` | Launch and complete dynamic reruns | dynamic run roots + plots + tables |
 | `Q8` | Produce final integrated review of all corrected campaigns | consolidated summary tables and interpretation |
 
+## Q2/Q3 Generation Launch Status
+
+Launched on 2026-03-09.
+
+Dataset-generation-only campaigns now exist for:
+- static paper-family qspec datasets
+- static shrinkage-family qspec datasets
+- dynamic family qspec datasets
+
+These launchers generate and validate datasets only. They do not launch model fits.
+
+Launcher scripts:
+- `tools/merge_reports/20260309_run_static_paper_family_qspec_campaign.sh`
+- `tools/merge_reports/20260309_run_static_shrinkage_family_qspec_campaign.sh`
+- `tools/merge_reports/20260309_run_dynamic_family_qspec_campaign.sh`
+
+Study plan of record:
+- `tools/merge_reports/20260309_paper_family_qspec_study_plan.md`
+
 ## Q1 Script Inventory And Reuse Decisions
 
 ### Reusable with quantile-specific path/schema updates only
@@ -258,6 +277,31 @@ Each session should write:
 Pipelines:
 - `tools/merge_reports/20260305_static_vb_then_mcmc_pipeline.R`
 - `tools/merge_reports/20260305_vb_then_mcmc_pipeline.R`
+
+## Q1.5 DGP Comparison Against Yan-Kottas / bqrgal
+
+Comparison note:
+- [20260309_paper_vs_qspec_dgp_audit.md](/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp/tools/merge_reports/20260309_paper_vs_qspec_dgp_audit.md)
+
+Main conclusion:
+- the current quantile-specific centering principle is conceptually correct and
+  is consistent with the paper-side generators
+- the main discrepancies are benchmark-design differences, not the basic
+  quantile shift itself
+
+Most important benchmark differences identified:
+- paper focuses on lower-tail targets `0.05, 0.25, 0.50`
+- paper uses correlated 8-dimensional Gaussian designs
+- paper evaluates multiple error families: normal, Laplace, Gaussian mixture,
+  and log-GPD
+- paper aggregates over replicated train/test splits
+- several earlier local qspec runs here addressed different scientific regimes
+  (one-covariate, skew-normal, heteroskedastic, shrinkage-specific)
+
+Operational implication:
+- do not replace the qspec centering rule
+- instead, revise the remaining generator families so the benchmark design
+  matches the intended scientific question before launching the full rerun grid
 - `tools/merge_reports/20260305_static_postprocess_from_existing_fits.R`
 - `tools/merge_reports/20260305_postprocess_from_existing_fits.R`
 - `tools/merge_reports/20260305_static_vb_mcmc_report.R`

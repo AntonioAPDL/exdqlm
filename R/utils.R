@@ -49,6 +49,24 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   stop("Unable to compute valid gamma bounds for p0 = ", p0)
 }
 
+
+.exdqlm_unwrap_fit_bundle <- function(obj, max_depth = 32L) {
+  depth <- 0L
+  fit <- obj
+  normalized <- NULL
+  meta <- NULL
+  is_bundle <- function(x) {
+    is.list(x) && all(c("fit", "normalized", "meta") %in% names(x))
+  }
+  while (is_bundle(fit) && depth < max_depth) {
+    if (is.null(normalized) && !is.null(fit$normalized)) normalized <- fit$normalized
+    if (is.null(meta) && !is.null(fit$meta)) meta <- fit$meta
+    fit <- fit$fit
+    depth <- depth + 1L
+  }
+  list(fit = fit, normalized = normalized, meta = meta, depth = depth)
+}
+
 .normalize_gamma_prior_trunc_t <- function(PriorGamma = NULL) {
   if (is.null(PriorGamma)) {
     PriorGamma <- list(m_gam = 0, s_gam = 1, df_gam = 1)

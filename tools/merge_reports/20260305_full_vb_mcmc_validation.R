@@ -489,7 +489,7 @@ for (inf in c("vb", "mcmc")) {
     for (tau in p_vec) {
       tlabel <- tau_lab(tau)
       fit_file <- get_fit_file(inf, mdl, tau)
-      fit_wrap <- readRDS(fit_file)
+      fit_wrap <- .exdqlm_unwrap_fit_bundle(readRDS(fit_file))
       fit_obj <- fit_wrap$fit
 
       summ <- derive_map_ci(fit_obj)

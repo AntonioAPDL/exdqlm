@@ -69,7 +69,7 @@ get_fit_file <- function(inference, model_name, tau) {
 parse_fit <- function(inference, model_name, tau) {
   fit_file <- get_fit_file(inference, model_name, tau)
   if (!file.exists(fit_file)) stop("Missing fit file: ", fit_file)
-  wrap <- readRDS(fit_file)
+  wrap <- .exdqlm_unwrap_fit_bundle(readRDS(fit_file))
   fit <- wrap$fit
   meta <- wrap$meta
 

@@ -80,11 +80,17 @@
     cycle_tau2_min_amp = getOption("exdqlm.static.ldvb.cycle_tau2_min_amp", 1e-5),
     stabilize_damping = getOption("exdqlm.static.ldvb.stabilize_damping", 0.25),
     stabilize_xi_damping = getOption("exdqlm.static.ldvb.stabilize_xi_damping", 0.25),
-    stabilize_xi_method = getOption("exdqlm.static.ldvb.stabilize_xi_method", "mc"),
+    stabilize_xi_method = getOption("exdqlm.static.ldvb.stabilize_xi_method", "delta"),
     stabilize_step_cap_eta = getOption("exdqlm.static.ldvb.stabilize_step_cap_eta", 2.0),
     stabilize_step_cap_ell = getOption("exdqlm.static.ldvb.stabilize_step_cap_ell", 0.75),
+    candidate_mode_check_every = getOption("exdqlm.static.ldvb.candidate_mode_check_every", 1L),
+    stabilize_candidate_mode_check_every = getOption("exdqlm.static.ldvb.stabilize_candidate_mode_check_every", 5L),
+    committed_mode_check_every = getOption("exdqlm.static.ldvb.committed_mode_check_every", 0L),
+    committed_mode_check_stabilized = getOption("exdqlm.static.ldvb.committed_mode_check_stabilized", FALSE),
     reject_bad_mode_commit = getOption("exdqlm.static.ldvb.reject_bad_mode_commit", TRUE),
-    store_trace = getOption("exdqlm.static.ldvb.store_trace", TRUE)
+    store_trace = getOption("exdqlm.static.ldvb.store_trace", TRUE),
+    profile_timing = getOption("exdqlm.static.ldvb.profile_timing", FALSE),
+    profile_iter_trace = getOption("exdqlm.static.ldvb.profile_iter_trace", FALSE)
   )
   if (!is.null(ld_controls)) {
     defaults <- utils::modifyList(defaults, ld_controls)
@@ -201,8 +207,17 @@
   if (is.na(defaults$stabilize_step_cap_eta) || defaults$stabilize_step_cap_eta <= 0) defaults$stabilize_step_cap_eta <- 2.0
   defaults$stabilize_step_cap_ell <- as.numeric(defaults$stabilize_step_cap_ell)[1]
   if (is.na(defaults$stabilize_step_cap_ell) || defaults$stabilize_step_cap_ell <= 0) defaults$stabilize_step_cap_ell <- 0.75
+  defaults$candidate_mode_check_every <- suppressWarnings(as.integer(defaults$candidate_mode_check_every)[1])
+  if (!is.finite(defaults$candidate_mode_check_every) || defaults$candidate_mode_check_every < 1L) defaults$candidate_mode_check_every <- 1L
+  defaults$stabilize_candidate_mode_check_every <- suppressWarnings(as.integer(defaults$stabilize_candidate_mode_check_every)[1])
+  if (!is.finite(defaults$stabilize_candidate_mode_check_every) || defaults$stabilize_candidate_mode_check_every < 1L) defaults$stabilize_candidate_mode_check_every <- 5L
+  defaults$committed_mode_check_every <- suppressWarnings(as.integer(defaults$committed_mode_check_every)[1])
+  if (!is.finite(defaults$committed_mode_check_every) || defaults$committed_mode_check_every < 0L) defaults$committed_mode_check_every <- 0L
+  defaults$committed_mode_check_stabilized <- isTRUE(defaults$committed_mode_check_stabilized)
   defaults$reject_bad_mode_commit <- isTRUE(defaults$reject_bad_mode_commit)
   defaults$store_trace <- isTRUE(defaults$store_trace)
+  defaults$profile_timing <- isTRUE(defaults$profile_timing)
+  defaults$profile_iter_trace <- isTRUE(defaults$profile_iter_trace) && isTRUE(defaults$profile_timing)
   defaults
 }
 
@@ -1127,6 +1142,13 @@ exal_static_LDVB <- function(
   sigma_hist <- numeric(0)
   s_mean_hist <- numeric(0)
   tau2_mean_hist <- numeric(0)
+  timing_labels <- c(
+    "init_xi", "qbeta", "qv", "qs", "ld_mode", "ld_cycle",
+    "ld_mode_quality_candidate", "ld_commit", "ld_mode_quality_committed",
+    "xi_eval", "elbo", "trace_build", "other"
+  )
+  timing_totals <- stats::setNames(numeric(length(timing_labels)), timing_labels)
+  timing_rows <- if (isTRUE(ld_ctrl$profile_iter_trace)) vector("list", max_iter) else NULL
   stabilize_active <- FALSE
   stabilize_since_iter <- NA_integer_
   stabilize_reason_active <- NA_character_
@@ -1135,12 +1157,19 @@ exal_static_LDVB <- function(
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   stop_reason <- "max_iter"
   converged <- FALSE
+  timing_totals["init_xi"] <- proc.time()[3] - t0
   for (iter in 1:max_iter) {
+    iter_start_time <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
+    qbeta_elapsed <- qv_elapsed <- qs_elapsed <- ld_mode_elapsed <- NA_real_
+    ld_cycle_elapsed <- ld_mode_quality_candidate_elapsed <- NA_real_
+    ld_commit_elapsed <- ld_mode_quality_committed_elapsed <- NA_real_
+    xi_eval_elapsed <- elbo_elapsed <- trace_elapsed <- NA_real_
     prev_m_beta <- m_beta
     gamma_prev <- g_from_eta(eta_hat)
     sigma_prev <- exp(ell_hat)
 
     # ---- (1) q(beta) = N(m,V)
+    qbeta_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     # V = (V0^{-1} + xi1 * X^T diag(E[1/v]) X)^{-1}
     W <- xis$xi1 * E_inv_v
     Xw <- X * sqrt(W)
@@ -1162,8 +1191,13 @@ exal_static_LDVB <- function(
       beta_state,
       list(m = as.numeric(m_beta_new), V = V_beta_new)
     )
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      qbeta_elapsed <- proc.time()[3] - qbeta_start
+      timing_totals["qbeta"] <- timing_totals["qbeta"] + qbeta_elapsed
+    }
 
     # ---- (2) q(v_i) = GIG(1/2, chi_i, psi)
+    qv_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     xb   <- drop(X %*% m_beta_new)
     t_i  <- y - xb
     q_i  <- rowSums((X %*% V_beta_new) * X)
@@ -1179,17 +1213,31 @@ exal_static_LDVB <- function(
     # moments
     E_v_new    <- gig_moment(k = 0.5, chi = chi, psi = psi, r = 1)
     E_inv_v_new<- gig_moment(k = 0.5, chi = chi, psi = psi, r = -1)
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      qv_elapsed <- proc.time()[3] - qv_start
+      timing_totals["qv"] <- timing_totals["qv"] + qv_elapsed
+    }
 
     # ---- (3) q(s_i) = TN(mu, tau^2) on (0, Inf)
+    qs_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     tau2  <- 1 / (1 + xis$xi_lambda2 * E_inv_v_new)
     mu_s  <- tau2 * ( xis$xi_lambda * (E_inv_v_new * (y - xb)) - xis$zeta_lam )
     s_mom <- tn_moments(mu_s, tau2)
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      qs_elapsed <- proc.time()[3] - qs_start
+      timing_totals["qs"] <- timing_totals["qs"] + qs_elapsed
+    }
 
     # ---- (4) q(sigma,gamma) via LD
+    ld_mode_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     eta_prev <- eta_hat
     ell_prev <- ell_hat
     Sigma_prev <- Sig_eta_ell
     ld <- find_mode_ld(eta_hat, ell_hat)
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      ld_mode_elapsed <- proc.time()[3] - ld_mode_start
+      timing_totals["ld_mode"] <- timing_totals["ld_mode"] + ld_mode_elapsed
+    }
     candidate <- list(
       gamma = g_from_eta(ld$eta_hat),
       sigma = exp(ld$ell_hat),
@@ -1206,11 +1254,24 @@ exal_static_LDVB <- function(
     } else {
       data.frame(s_mean = numeric(0), tau2_mean = numeric(0))
     }
+    ld_cycle_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     cycle_info <- .exal_static_ld_cycle_detect(ld_hist_df, s_hist_df, candidate, ld_ctrl)
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      ld_cycle_elapsed <- proc.time()[3] - ld_cycle_start
+      timing_totals["ld_cycle"] <- timing_totals["ld_cycle"] + ld_cycle_elapsed
+    }
     ld_cycle_detected <- isTRUE(cycle_info$triggered)
     ld_stabilized <- FALSE
     ld_stabilize_reason <- NA_character_
-    ld_candidate_mode_quality_iter <- if (isTRUE(ld_ctrl$auto_stabilize) || isTRUE(ld_ctrl$reject_bad_mode_commit)) {
+    candidate_check_every_use <- if (isTRUE(stabilize_active)) {
+      ld_ctrl$stabilize_candidate_mode_check_every
+    } else {
+      ld_ctrl$candidate_mode_check_every
+    }
+    do_candidate_mode_check <- (isTRUE(ld_ctrl$auto_stabilize) || isTRUE(ld_ctrl$reject_bad_mode_commit)) &&
+      (iter == 1L || ((iter - 1L) %% candidate_check_every_use) == 0L)
+    ld_mode_quality_candidate_start <- if (isTRUE(ld_ctrl$profile_timing) && do_candidate_mode_check) proc.time()[3] else NA_real_
+    ld_candidate_mode_quality_iter <- if (do_candidate_mode_check) {
       .exal_static_ld_mode_quality(
         log_q_fn = log_qsiggam,
         par = c(ld$eta_hat, ld$ell_hat),
@@ -1219,6 +1280,10 @@ exal_static_LDVB <- function(
       )
     } else {
       NULL
+    }
+    if (isTRUE(ld_ctrl$profile_timing) && do_candidate_mode_check) {
+      ld_mode_quality_candidate_elapsed <- proc.time()[3] - ld_mode_quality_candidate_start
+      timing_totals["ld_mode_quality_candidate"] <- timing_totals["ld_mode_quality_candidate"] + ld_mode_quality_candidate_elapsed
     }
     ld_bad_mode_iter <- !is.null(ld_candidate_mode_quality_iter) && !isTRUE(ld_candidate_mode_quality_iter$local_mode_pass)
     if (isTRUE(ld_ctrl$auto_stabilize)) {
@@ -1251,6 +1316,7 @@ exal_static_LDVB <- function(
     use_direct_commit <- isTRUE(ld_ctrl$direct_commit) && !isTRUE(ld_stabilized) &&
       !(isTRUE(ld_ctrl$reject_bad_mode_commit) && isTRUE(ld_bad_mode_iter))
     ld_commit_mode <- if (use_direct_commit) "direct" else "damped"
+    ld_commit_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     if (use_direct_commit) {
       eta_hat <- as.numeric(ld$eta_hat)
       ell_hat <- as.numeric(ld$ell_hat)
@@ -1282,13 +1348,21 @@ exal_static_LDVB <- function(
         eig_cap = ld_ctrl$eig_cap
       )$Sigma
     }
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      ld_commit_elapsed <- proc.time()[3] - ld_commit_start
+      timing_totals["ld_commit"] <- timing_totals["ld_commit"] + ld_commit_elapsed
+    }
     ld_committed_objective <- as.numeric(log_qsiggam(c(eta_hat, ell_hat)))
+    do_committed_mode_check <- (ld_ctrl$committed_mode_check_every > 0L) &&
+      (!isTRUE(ld_stabilized) || isTRUE(ld_ctrl$committed_mode_check_stabilized)) &&
+      (iter == 1L || ((iter - 1L) %% ld_ctrl$committed_mode_check_every) == 0L)
+    ld_mode_quality_committed_start <- if (isTRUE(ld_ctrl$profile_timing) && do_committed_mode_check) proc.time()[3] else NA_real_
     ld_committed_mode_quality_iter <- if (use_direct_commit && !isTRUE(ld_stabilized) &&
       is.null(ld_candidate_mode_quality_iter)) {
       NULL
-    } else if (use_direct_commit && !isTRUE(ld_stabilized)) {
+    } else if (use_direct_commit && !isTRUE(ld_stabilized) && do_candidate_mode_check) {
       ld_candidate_mode_quality_iter
-    } else {
+    } else if (do_committed_mode_check) {
       .exal_static_ld_mode_quality(
         log_q_fn = log_qsiggam,
         par = c(eta_hat, ell_hat),
@@ -1296,8 +1370,13 @@ exal_static_LDVB <- function(
         min_eig = ld_ctrl$mode_min_eig
       )
     }
+    if (isTRUE(ld_ctrl$profile_timing) && do_committed_mode_check) {
+      ld_mode_quality_committed_elapsed <- proc.time()[3] - ld_mode_quality_committed_start
+      timing_totals["ld_mode_quality_committed"] <- timing_totals["ld_mode_quality_committed"] + ld_mode_quality_committed_elapsed
+    }
 
     # update xi via MC under Gaussian (eta,ell)
+    xi_eval_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     xi_base_draws_use <- if (identical(active_xi_method, "mc")) ld_base_draws else NULL
     xis_eval_raw <- compute_xi(
       eta_hat,
@@ -1309,6 +1388,10 @@ exal_static_LDVB <- function(
     )
     xis_raw <- xis_eval_raw$value
     xis_new <- .exal_static_ld_mix_numeric_lists(xis, xis_raw, damping = xi_damping_use)
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      xi_eval_elapsed <- proc.time()[3] - xi_eval_start
+      timing_totals["xi_eval"] <- timing_totals["xi_eval"] + xi_eval_elapsed
+    }
 
     # ---- check convergence
     rel_mb <- sqrt(sum((m_beta_new - m_beta)^2)) / (1e-8 + sqrt(sum(m_beta^2)))
@@ -1345,6 +1428,7 @@ exal_static_LDVB <- function(
     tau2_mean_hist <- c(tau2_mean_hist, mean(qs_tau2))
 
     ## ---------- ELBO (term-by-term) ------------------------------------------
+    elbo_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
     # Precompute residual pieces
     xb  <- drop(X %*% m_beta)
     t_i <- y - xb
@@ -1420,6 +1504,10 @@ exal_static_LDVB <- function(
                 E_log_pv + E_log_ps + E_log_pb + E_log_psig + E_log_pgam +
                 H_qb + H_qv + H_qs + H_qsg
     elbo_trace <- c(elbo_trace, elbo_new)
+    if (isTRUE(ld_ctrl$profile_timing)) {
+      elbo_elapsed <- proc.time()[3] - elbo_start
+      timing_totals["elbo"] <- timing_totals["elbo"] + elbo_elapsed
+    }
 
     d_beta <- max(abs(m_beta_new - prev_m_beta))
     d_sigma <- abs(sigma_cur - sigma_prev)
@@ -1444,6 +1532,7 @@ exal_static_LDVB <- function(
     delta_s <- c(delta_s, d_s)
     delta_elbo <- c(delta_elbo, d_elbo)
     if (isTRUE(ld_ctrl$store_trace)) {
+      trace_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
       s_stats <- .exdqlm_trace_summary(s_mom$Es)
       tau2_stats <- .exdqlm_trace_summary(tau2)
       cycle_gamma_lag1 <- if (!is.null(cycle_info$metrics$gamma$lag1)) cycle_info$metrics$gamma$lag1 else NA_real_
@@ -1546,6 +1635,47 @@ exal_static_LDVB <- function(
         xi_method = active_xi_method,
         stringsAsFactors = FALSE
       )
+      if (isTRUE(ld_ctrl$profile_timing)) {
+        trace_elapsed <- proc.time()[3] - trace_start
+        timing_totals["trace_build"] <- timing_totals["trace_build"] + trace_elapsed
+      }
+    }
+    if (isTRUE(ld_ctrl$profile_iter_trace)) {
+      iter_elapsed <- proc.time()[3] - iter_start_time
+      accounted <- sum(c(
+        qbeta_elapsed,
+        qv_elapsed,
+        qs_elapsed,
+        ld_mode_elapsed,
+        ld_cycle_elapsed,
+        ld_mode_quality_candidate_elapsed,
+        ld_commit_elapsed,
+        ld_mode_quality_committed_elapsed,
+        xi_eval_elapsed,
+        elbo_elapsed,
+        trace_elapsed
+      ), na.rm = TRUE)
+      timing_rows[[iter]] <- data.frame(
+        iter = iter,
+        qbeta = qbeta_elapsed,
+        qv = qv_elapsed,
+        qs = qs_elapsed,
+        ld_mode = ld_mode_elapsed,
+        ld_cycle = ld_cycle_elapsed,
+        ld_mode_quality_candidate = ld_mode_quality_candidate_elapsed,
+        ld_commit = ld_commit_elapsed,
+        ld_mode_quality_committed = ld_mode_quality_committed_elapsed,
+        xi_eval = xi_eval_elapsed,
+        elbo = elbo_elapsed,
+        trace_build = trace_elapsed,
+        stringsAsFactors = FALSE
+      )
+      timing_rows[[iter]]$iter_elapsed <- iter_elapsed
+      timing_rows[[iter]]$accounted <- accounted
+      timing_rows[[iter]]$other <- max(iter_elapsed - accounted, 0)
+      timing_rows[[iter]]$ld_stabilized <- ld_stabilized
+      timing_rows[[iter]]$xi_method <- active_xi_method
+      timing_rows[[iter]]$ld_commit_mode <- ld_commit_mode
     }
 
     if (verbose && (iter %% 50 == 0)) {
@@ -1566,6 +1696,7 @@ exal_static_LDVB <- function(
   }
 
   t1 <- proc.time()[3]
+  timing_totals["other"] <- max((t1 - t0) - sum(timing_totals[names(timing_totals) != "other"]), 0)
 
   # approximate means for gamma, sigma from LD mode
   gamma_mean <- g_from_eta(eta_hat)
@@ -1690,7 +1821,20 @@ exal_static_LDVB <- function(
           reuse_seed = ld_ctrl$reuse_seed
         ),
         mode_quality = mode_quality,
-        signoff_summary = ld_signoff_summary
+        signoff_summary = ld_signoff_summary,
+        timing = if (isTRUE(ld_ctrl$profile_timing)) {
+          list(
+            totals = as.list(timing_totals),
+            iteration_trace = if (isTRUE(ld_ctrl$profile_iter_trace)) {
+              keep <- Filter(Negate(is.null), timing_rows[seq_len(iter)])
+              if (length(keep)) do.call(rbind, keep) else data.frame()
+            } else {
+              data.frame()
+            }
+          )
+        } else {
+          list()
+        }
       )
     )
   )

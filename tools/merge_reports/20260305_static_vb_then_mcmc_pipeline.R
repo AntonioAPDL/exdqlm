@@ -383,28 +383,30 @@ empty_summary_row <- function(model_name, tau, status = "pending", error = NA_ch
 }
 
 normalize_vb_wrap <- function(vb_obj, model_name, tau) {
-  vb_fit <- vb_obj$fit
-  vb_norm <- vb_obj$normalized
+  vb_unwrapped <- .exdqlm_unwrap_fit_bundle(vb_obj)
+  vb_fit <- vb_unwrapped$fit
+  vb_norm <- vb_unwrapped$normalized
   if (is.null(vb_norm) || is.null(vb_norm$diagnostics$ld_block$mode_quality)) {
     vb_norm <- .static_normalize_vb_fit(vb_fit, model_name = model_name, tau = tau)
   }
   list(
     fit = vb_fit,
     normalized = vb_norm,
-    runtime_sec = if (!is.null(vb_obj$meta$runtime_sec)) as.numeric(vb_obj$meta$runtime_sec)[1] else NA_real_
+    runtime_sec = if (!is.null(vb_unwrapped$meta$runtime_sec)) as.numeric(vb_unwrapped$meta$runtime_sec)[1] else NA_real_
   )
 }
 
 normalize_mcmc_wrap <- function(m_obj, model_name, tau) {
-  m_fit <- m_obj$fit
-  m_norm <- m_obj$normalized
+  m_unwrapped <- .exdqlm_unwrap_fit_bundle(m_obj)
+  m_fit <- m_unwrapped$fit
+  m_norm <- m_unwrapped$normalized
   if (is.null(m_norm) || is.null(m_norm$diagnostics$mh$kernel_exact)) {
     m_norm <- .static_normalize_mcmc_fit(m_fit, model_name = model_name, tau = tau)
   }
   list(
     fit = m_fit,
     normalized = m_norm,
-    runtime_sec = if (!is.null(m_obj$meta$runtime_sec)) as.numeric(m_obj$meta$runtime_sec)[1] else NA_real_
+    runtime_sec = if (!is.null(m_unwrapped$meta$runtime_sec)) as.numeric(m_unwrapped$meta$runtime_sec)[1] else NA_real_
   )
 }
 

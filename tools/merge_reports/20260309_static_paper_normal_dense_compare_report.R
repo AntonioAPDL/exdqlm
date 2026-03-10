@@ -1,8 +1,11 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
+  library(devtools)
   library(ggplot2)
 })
+
+devtools::load_all(".", quiet = TRUE)
 
 run_root <- Sys.getenv("EXDQLM_PAPER_NORMAL_DENSE_RUN_ROOT", "")
 if (!nzchar(run_root) || !dir.exists(run_root)) {
@@ -42,7 +45,7 @@ if (!all(file.exists(fit_specs$fit_file))) {
 
 coef_rows <- lapply(seq_len(nrow(fit_specs)), function(i) {
   spec <- fit_specs[i, , drop = FALSE]
-  fit <- readRDS(spec$fit_file)$fit
+  fit <- .exdqlm_unwrap_fit_bundle(readRDS(spec$fit_file))$fit
   if (spec$inference == "vb") {
     beta_mean <- as.numeric(fit$qbeta$m)
     beta_sd <- if (!is.null(fit$qbeta$V)) sqrt(pmax(diag(as.matrix(fit$qbeta$V)), 0)) else rep(NA_real_, length(beta_mean))
@@ -113,7 +116,7 @@ obs_df <- data.frame(
 )
 pred_rows <- lapply(seq_len(nrow(fit_specs)), function(i) {
   spec <- fit_specs[i, , drop = FALSE]
-  fit <- readRDS(spec$fit_file)$fit
+  fit <- .exdqlm_unwrap_fit_bundle(readRDS(spec$fit_file))$fit
   if (spec$inference == "vb") {
     q_hat <- as.numeric(drop(X %*% fit$qbeta$m))
   } else {
