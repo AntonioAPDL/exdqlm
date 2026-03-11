@@ -4,6 +4,65 @@ Date: 2026-03-06
 Owner: benchmark evaluation of the current Q-DESN model family
 Status: implemented benchmark runner with active pilot validation; tracker now records current protocol, current RHS-collapse evidence, and the immediate low-cost debugging plan before any heavy rerun
 
+## Frozen State: 2026-03-10
+
+Current benchmark work is intentionally frozen at the tourism medium-route RHS
+failure before any wider benchmark rerun.
+
+Latest decisive corrected checkpoint:
+
+- corrected run:
+  - `results/benchmarks/qdesn_synth/qdesn_synth_tourism_one_step_medium_n256_rhs_refine__20260310-133219__git-39c0cf7`
+- corrected log:
+  - `logs/benchmarks/qdesn_synth_tourism_one_step_medium_n256_rhs_refine__20260310-133034.log`
+- first corrected candidate result:
+  - `medium_n256_tau100_f50`
+  - warmup now correctly uses `tau = tau0`
+  - still fails with `coverage_dev|pit_dev|rhs_collapse|rhs_near_bound`
+  - runtime `13911.9s`
+
+Operational rule from this freeze point:
+
+- do **not** rerun `check`, `dev`, `monthly`, or any broader synthesis benchmark
+  until the isolated quantile debug mode produces a non-collapsing shoulder fit
+  on the pinned tourism series.
+- the current expensive full-ladder refinement run was stopped after the first
+  corrected checkpoint because the next efficient step is a single-quantile,
+  single-candidate debug loop.
+
+## Isolated Debug Mode
+
+New isolated debug mode:
+
+- script:
+  - `scripts/benchmark_qdesn_quantile_debug_run.R`
+- config:
+  - `config/benchmarks/qdesn_tourism_q20_quantile_debug.yaml`
+
+Design:
+
+- one dataset: `tourism_monthly`
+- one series: `T109`
+- one stage: `validation`
+- one candidate: `medium_n256_tau100_f50`
+- one quantile: `q = 0.20`
+
+Outputs:
+
+- `tables/quantile_debug_summary.*`
+- `tables/quantile_debug_collapse_summary.*`
+- `tables/quantile_debug_rhs_trace.*`
+- `reports/quantile_debug_report.md`
+- `figures/quantile_debug_tau_trace.png`
+- `figures/quantile_debug_beta_l2_trace.png`
+
+Purpose:
+
+- isolate the collapse at the single-quantile level;
+- record the exact post-warmup tau behavior;
+- avoid rerunning the full synthesis ladder while the core RHS issue is still
+  unresolved.
+
 ## 0) Scope and core decision
 
 This tracker defines how to evaluate the current Q-DESN workflow on the benchmark
@@ -1307,6 +1366,38 @@ These can be phase-2 work if needed, but the tracker should keep them visible.
     - `m4_monthly`: `none` beat both `bias` and `affine` on CRPS and OWA
     - `cif_2016_monthly`: `bias` and `affine` both degraded sharply and failed on medium-route series
   - Current conclusion: keep `calibration.mode = none` for the routed ridge family
+- [x] Re-pointed the forward routed benchmark path back to RHS
+  - User preference and modeling intent are explicit: routed benchmark configs should not default to ridge
+  - Added forward-path RHS configs:
+    - `config/benchmarks/qdesn_synth_check_rhs_routed.yaml`
+    - `config/benchmarks/qdesn_synth_dev_rhs_routed.yaml`
+    - `config/benchmarks/qdesn_synth_monthly_rhs_routed.yaml`
+  - These keep the routed DESN geometry from the benchmark-safe family, but switch the readout prior back to `rhs`
+  - Active RHS controls in the new routed configs:
+    - `tau0 = 100`
+    - `s2 = 1`
+    - `init_log_tau = 2.302585093`
+    - `freeze_tau_iters = 50`
+    - `freeze_tau_warmup_iters = 50`
+    - `calibration.mode = none`
+  - `scripts/benchmark_qdesn_sequence.sh` now treats these RHS-routed configs as the forward `check`, `dev`, and `monthly` path
+  - Ridge configs remain in the repo only as archived comparison baselines, not as the default modeling direction
+- [x] Expanded the forward RHS-routed candidate family so the prior is used in a meaningfully larger coefficient regime
+  - Medium/long route now includes both `n = 128` and `n = 256` RHS candidates
+  - Short route now includes both `n = 32` and `n = 64` RHS candidates
+  - The intention is explicit: benchmark-side RHS evaluation should not be judged only on tiny readout geometries that make aggressive shrinkage less informative
+- [x] First widened RHS gate landed and showed the next refinement target clearly
+  - Run: `results/benchmarks/qdesn_synth/qdesn_synth_check_rhs_routed__20260309-190233__git-39c0cf7`
+  - `tourism_monthly` medium route failed before the gate could proceed to M4
+  - `n = 256` dramatically improved raw validation CRPS relative to `n = 128`, but still failed because the shoulder/interior band collapsed under RHS
+  - Next step is a targeted `n = 256` medium-route RHS refinement, varying `tau0` plus tau freeze/warmup
+- [x] Added targeted tourism medium-route RHS refinement config
+  - Config: `config/benchmarks/qdesn_synth_tourism_one_step_medium_n256_rhs_refine.yaml`
+  - Fixed geometry: `n = 256`, `m = 36`, `rho = 0.90`, `alpha = 0.05`, `pi_in = 0.02`, `pi_w = 0.005`, `washout = 96`
+  - Variations:
+    - `tau0 = 100, 150, 250`
+    - higher freeze/warmup at `100` and `150` iterations for the stronger `tau0` settings
+  - Goal: reduce or eliminate shoulder/interior collapse without returning to scale explosion
 
 ### 13.4 Audit risks to watch
 

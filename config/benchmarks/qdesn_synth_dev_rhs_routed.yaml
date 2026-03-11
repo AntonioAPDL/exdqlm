@@ -1,74 +1,79 @@
 evaluation:
-  experiment_name: qdesn_synth_tourism_shoulder_scale_control
+  experiment_name: qdesn_synth_dev_rhs_routed
   result_root: results/benchmarks/qdesn_synth
   datasets:
     - tourism_monthly
-  max_series_per_dataset: 1
+    - m4_monthly
+  max_series_per_dataset: 2
   parallel:
     workers: 1
   series_overrides:
     selection:
-      tourism_monthly: [T109]
+      tourism_monthly: [T146, T109]
+      m4_monthly: [M6336, M23845]
     evaluation:
-      tourism_monthly: [T109]
+      tourism_monthly: [T146, T109]
+      m4_monthly: [M6336, M23845]
     audit:
-      tourism_monthly: [T109]
+      tourism_monthly: [T146, T109]
+      m4_monthly: [M6336, M23845]
   selection:
     enabled: true
-    subset_size: 1
+    subset_size: 2
     min_train_points: 24
     metric: crps_mean
-    checkpoint_each_candidate: true
     tie_breakers:
       - rhs_collapse_n
       - rhs_near_bound_n
       - shoulder_pinball_ratio
       - shoulder_qhat_ratio
+      - tail_pinball_mean
       - quantile_abs_coverage_dev_mean
       - runtime_sec
       - candidate_id
     quantile_guard:
       enabled: true
-      max_abs_coverage_dev: 0.45
-      max_abs_tail_coverage_dev: 0.50
-      max_abs_pit_dev_mean: 0.35
-      max_shoulder_pinball_ratio: 250
-      max_shoulder_qhat_ratio: 250
+      max_abs_coverage_dev: 0.35
+      max_abs_tail_coverage_dev: 0.40
+      max_abs_pit_dev_mean: 0.25
+      max_shoulder_pinball_ratio: 100
+      max_shoulder_qhat_ratio: 100
       forbid_rhs_collapse: true
       forbid_rhs_near_bound: true
       relax_if_no_eligible_candidates: false
   routing:
-    enabled: false
+    enabled: true
+    breaks: [96, 480]
+    labels: [short, medium, long]
     fallback: dataset
   quantile_eval:
     enabled: true
-    tail_threshold: 0.20
+    tail_threshold: 0.10
   m4_comparability:
-    enabled: false
+    enabled: true
   baselines:
-    models: []
-    n_draws: 0
+    models: [naive, seasonal_naive, naive2, drift, theta, auto_arima]
+    n_draws: 80
   audit:
-    subset_size: 1
-    save_draws: false
-    recommended_config_path: config/benchmarks/qdesn_synth_tourism_shoulder_scale_control.yaml
+    subset_size: 2
+    save_draws: true
 
 models:
   qdesn_synth:
     base:
       readout_approximation: laplace_delta
-      p_vec: [0.20, 0.50, 0.80]
+      p_vec: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
       fit:
         D: 1
         "n": [128]
-        m: 32
-        alpha: [0.03]
-        rho: [0.88]
+        m: 36
+        alpha: [0.05]
+        rho: [0.90]
         act_f: tanh
         act_k: identity
-        pi_w: [0.002]
+        pi_w: [0.005]
         pi_in: [0.02]
-        washout: 72
+        washout: 96
         add_bias: true
         standardize_inputs: true
         input_bound: tanh
@@ -124,9 +129,9 @@ models:
           init_log_c2: 0.0
       sampling:
         nd_draws: 80
-        chunk: 32
+        chunk: 64
       synthesis:
-        n_samp: 160
+        n_samp: 200
         grid_M: 201
         isotonic: true
         rearrange: true
@@ -135,68 +140,40 @@ models:
         scale_y: true
       calibration:
         mode: none
-        tail_h: 0
-        min_points: 0
       metrics:
-        probs: [0.20, 0.50, 0.80]
+        probs: [0.05, 0.10, 0.50, 0.90, 0.95]
     candidates:
-      - candidate_id: scale_soft_n128_m32_r088_a003_in002_w002_w72_tau100
+      - candidate_id: dev_rhs_medium_tau100_n128
+        seed_group_id: medium_rhs_scale_soft_n128_m36_w96
+        applicability:
+          route_keys: [medium, long]
+      - candidate_id: dev_rhs_medium_tau100_n256
+        seed_group_id: medium_rhs_scale_soft_n256_m36_w96
+        applicability:
+          route_keys: [medium, long]
         fit:
-          "n": [128]
-          m: 32
-          alpha: [0.03]
-          rho: [0.88]
-          pi_w: [0.002]
-          pi_in: [0.02]
-          washout: 72
-      - candidate_id: scale_soft_n128_m34_r090_a003_in004_w002_w96_tau100
+          "n": [256]
+      - candidate_id: dev_rhs_short_tau100_n32
+        seed_group_id: short_rhs_compact_n32_m12_w18
+        applicability:
+          route_keys: [short]
         fit:
-          "n": [128]
-          m: 34
-          alpha: [0.03]
+          "n": [32]
+          m: 12
           rho: [0.90]
-          pi_w: [0.002]
-          pi_in: [0.04]
-          washout: 96
-      - candidate_id: scale_soft_n128_m36_r090_a005_in002_w005_w96_tau100
-        fit:
-          "n": [128]
-          m: 36
           alpha: [0.05]
-          rho: [0.90]
+          pi_in: [0.02]
           pi_w: [0.005]
-          pi_in: [0.02]
-          washout: 96
-      - candidate_id: scale_soft_n160_m32_r088_a003_in002_w002_w96_tau100
+          washout: 18
+      - candidate_id: dev_rhs_short_tau100_n64
+        seed_group_id: short_rhs_compact_n64_m18_w24
+        applicability:
+          route_keys: [short]
         fit:
-          "n": [160]
-          m: 32
-          alpha: [0.03]
-          rho: [0.88]
-          pi_w: [0.002]
-          pi_in: [0.02]
-          washout: 96
-      - candidate_id: scale_soft_n160_m34_r090_a003_in004_w002_w96_tau250
-        fit:
-          "n": [160]
-          m: 34
-          alpha: [0.03]
+          "n": [64]
+          m: 18
           rho: [0.90]
-          pi_w: [0.002]
-          pi_in: [0.04]
-          washout: 96
-        vb_args:
-          beta_rhs:
-            tau0: 250.0
-      - candidate_id: scale_soft_n160_m36_r088_a005_in002_w005_w96_tau250
-        fit:
-          "n": [160]
-          m: 36
           alpha: [0.05]
-          rho: [0.88]
-          pi_w: [0.005]
           pi_in: [0.02]
-          washout: 96
-        vb_args:
-          beta_rhs:
-            tau0: 250.0
+          pi_w: [0.005]
+          washout: 24

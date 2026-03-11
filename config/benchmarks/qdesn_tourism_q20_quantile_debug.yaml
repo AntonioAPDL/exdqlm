@@ -1,10 +1,9 @@
 evaluation:
-  experiment_name: qdesn_synth_tourism_shoulder_trace_audit
+  experiment_name: qdesn_tourism_q20_quantile_debug
   result_root: results/benchmarks/qdesn_synth
   datasets:
     - tourism_monthly
   max_series_per_dataset: 1
-  audit_stage: validation
   parallel:
     workers: 1
   series_overrides:
@@ -14,57 +13,30 @@ evaluation:
       tourism_monthly: [T109]
     audit:
       tourism_monthly: [T109]
-  selection:
-    enabled: true
-    subset_size: 1
-    min_train_points: 24
-    metric: crps_mean
-    checkpoint_each_candidate: false
-    quantile_guard:
-      enabled: true
-      max_abs_coverage_dev: 0.45
-      max_abs_tail_coverage_dev: 0.50
-      max_abs_pit_dev_mean: 0.35
-      max_shoulder_pinball_ratio: 250
-      max_shoulder_qhat_ratio: 250
-      forbid_rhs_collapse: true
-      forbid_rhs_near_bound: true
-      relax_if_no_eligible_candidates: false
-  routing:
-    enabled: false
-    fallback: dataset
-  quantile_eval:
-    enabled: true
-    tail_threshold: 0.20
-  m4_comparability:
-    enabled: false
-  baselines:
-    models: []
-    n_draws: 0
-  audit:
-    subset_size: 1
-    save_draws: false
+  quantile_debug:
+    stage: validation
+    quantile: 0.20
 
 models:
   qdesn_synth:
     base:
       readout_approximation: laplace_delta
-      p_vec: [0.20, 0.50, 0.80]
+      p_vec: [0.20, 0.50]
       fit:
         D: 1
-        "n": [128]
-        m: 32
-        alpha: [0.08]
-        rho: [0.92]
+        "n": [256]
+        m: 36
+        alpha: [0.05]
+        rho: [0.90]
         act_f: tanh
         act_k: identity
-        pi_w: [0.01]
-        pi_in: [0.08]
-        washout: 64
+        pi_w: [0.005]
+        pi_in: [0.02]
+        washout: 96
         add_bias: true
         standardize_inputs: true
         input_bound: tanh
-        seed: 20260308
+        seed: 20260310
         seed_set:
           - [101]
       vb_args:
@@ -77,7 +49,7 @@ models:
         readout_scale: true
         diagnostics:
           rhs_trace: true
-          rhs_deep: false
+          rhs_deep: true
           rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
           rhs_trace_top_k: 20
           rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
@@ -115,47 +87,20 @@ models:
           init_log_lambda: 0.0
           init_log_c2: 0.0
       sampling:
-        nd_draws: 80
-        chunk: 32
+        nd_draws: 120
+        chunk: 64
       synthesis:
-        n_samp: 160
+        n_samp: 120
         grid_M: 201
         isotonic: true
         rearrange: true
-        seed: 20260308
+        seed: 20260310
       preproc:
         scale_y: true
       calibration:
         mode: none
-        tail_h: 0
-        min_points: 0
       metrics:
-        probs: [0.20, 0.50, 0.80]
+        probs: [0.05, 0.10, 0.50, 0.90, 0.95]
     candidates:
-      - candidate_id: audit_collapse_small
-        fit:
-          "n": [128]
-          m: 28
-          alpha: [0.08]
-          rho: [0.90]
-          pi_w: [0.005]
-          pi_in: [0.05]
-          washout: 56
-      - candidate_id: audit_explosion_bridge
-        fit:
-          "n": [128]
-          m: 36
-          alpha: [0.05]
-          rho: [0.92]
-          pi_w: [0.005]
-          pi_in: [0.08]
-          washout: 72
-      - candidate_id: audit_partial_large
-        fit:
-          "n": [192]
-          m: 28
-          alpha: [0.10]
-          rho: [0.90]
-          pi_w: [0.01]
-          pi_in: [0.05]
-          washout: 56
+      - candidate_id: medium_n256_tau100_f50
+        seed_group_id: medium_rhs_scale_soft_n256_m36_w96

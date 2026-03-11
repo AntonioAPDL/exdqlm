@@ -8,6 +8,7 @@ mkdir -p logs/benchmarks
 
 run_stage() {
   local config_path="$1"
+  local run_script="${2:-scripts/benchmark_qdesn_run.R}"
   local experiment_name
   local stamp
   local stage_log
@@ -29,7 +30,7 @@ run_stage() {
   MKL_NUM_THREADS=1 \
   VECLIB_MAXIMUM_THREADS=1 \
   NUMEXPR_NUM_THREADS=1 \
-    Rscript --vanilla scripts/benchmark_qdesn_run.R --config "$config_path" 2>&1 | tee "$stage_log"
+    Rscript --vanilla "$run_script" --config "$config_path" 2>&1 | tee "$stage_log"
 
   run_dir="$(find results/benchmarks/qdesn_synth -maxdepth 1 -type d -name "${experiment_name}__*" | sort | tail -n 1)"
   if [[ -z "$run_dir" || ! -d "$run_dir/tables" ]]; then
@@ -48,19 +49,31 @@ run_stage() {
 
 case "${1:-all}" in
   check)
-    run_stage "config/benchmarks/qdesn_synth_check.yaml"
+    run_stage "config/benchmarks/qdesn_synth_check_rhs_routed.yaml"
     ;;
   check_ridge)
     run_stage "config/benchmarks/qdesn_synth_check_ridge.yaml"
+    ;;
+  check_rhs_routed)
+    run_stage "config/benchmarks/qdesn_synth_check_rhs_routed.yaml"
     ;;
   check_ridge_routed)
     run_stage "config/benchmarks/qdesn_synth_check_ridge_routed.yaml"
     ;;
   dev)
-    run_stage "config/benchmarks/qdesn_synth_dev.yaml"
+    run_stage "config/benchmarks/qdesn_synth_dev_rhs_routed.yaml"
+    ;;
+  dev_rhs_routed)
+    run_stage "config/benchmarks/qdesn_synth_dev_rhs_routed.yaml"
     ;;
   dev_ridge_routed)
     run_stage "config/benchmarks/qdesn_synth_dev_ridge_routed.yaml"
+    ;;
+  monthly)
+    run_stage "config/benchmarks/qdesn_synth_monthly_rhs_routed.yaml"
+    ;;
+  monthly_rhs_routed)
+    run_stage "config/benchmarks/qdesn_synth_monthly_rhs_routed.yaml"
     ;;
   monthly_ridge_routed)
     run_stage "config/benchmarks/qdesn_synth_monthly_ridge_routed.yaml"
@@ -98,6 +111,12 @@ case "${1:-all}" in
   tourism_one_step_tau_refine)
     run_stage "config/benchmarks/qdesn_synth_tourism_one_step_tau_refine.yaml"
     ;;
+  tourism_one_step_medium_n256_rhs_refine)
+    run_stage "config/benchmarks/qdesn_synth_tourism_one_step_medium_n256_rhs_refine.yaml"
+    ;;
+  tourism_q20_quantile_debug)
+    run_stage "config/benchmarks/qdesn_tourism_q20_quantile_debug.yaml" "scripts/benchmark_qdesn_quantile_debug_run.R"
+    ;;
   tourism_one_step_readout_refine)
     run_stage "config/benchmarks/qdesn_synth_tourism_one_step_readout_refine.yaml"
     ;;
@@ -117,11 +136,11 @@ case "${1:-all}" in
     run_stage "config/benchmarks/qdesn_synth.yaml"
     ;;
   all)
-    run_stage "config/benchmarks/qdesn_synth_check.yaml"
-    run_stage "config/benchmarks/qdesn_synth_dev.yaml"
+    run_stage "config/benchmarks/qdesn_synth_check_rhs_routed.yaml"
+    run_stage "config/benchmarks/qdesn_synth_dev_rhs_routed.yaml"
     ;;
   *)
-    echo "Usage: scripts/benchmark_qdesn_sequence.sh [check|check_ridge|check_ridge_routed|candidate_debug|tourism_prescreen1|tourism_prescreen2|tourism_prescreen3|tourism_shoulder_debug|tourism_shoulder_followup|tourism_shoulder_scale_control|tourism_one_step_audit|tourism_one_step_tau_refine|tourism_one_step_readout_refine|tourism_one_step_ridge_full_ladder|m4_one_step_ridge_full_ladder|m4_short_one_step_ridge|m4_prescreen1|dev|dev_ridge_routed|monthly_ridge_routed|monthly_ridge_bias|monthly_ridge_affine|full|all]" >&2
+    echo "Usage: scripts/benchmark_qdesn_sequence.sh [check|check_rhs_routed|check_ridge|check_ridge_routed|candidate_debug|tourism_prescreen1|tourism_prescreen2|tourism_prescreen3|tourism_shoulder_debug|tourism_shoulder_followup|tourism_shoulder_scale_control|tourism_one_step_audit|tourism_one_step_tau_refine|tourism_one_step_medium_n256_rhs_refine|tourism_q20_quantile_debug|tourism_one_step_readout_refine|tourism_one_step_ridge_full_ladder|m4_one_step_ridge_full_ladder|m4_short_one_step_ridge|m4_prescreen1|dev|dev_rhs_routed|dev_ridge_routed|monthly|monthly_rhs_routed|monthly_ridge_routed|monthly_ridge_bias|monthly_ridge_affine|full|all]" >&2
     exit 1
     ;;
 esac

@@ -1,7 +1,11 @@
 # Focused tourism shoulder-quantile audit for Q-DESN candidates.
 
 bench_qdesn_shoulder_trace_table <- function(qfit, bundle, candidate_id, quantile_p, seed = NA_integer_, seed_index = NA_integer_) {
-  tr <- qfit$misc$rhs_trace %||% qfit$fit$misc$rhs_trace %||% NULL
+  tr <- qfit$misc$rhs_trace %||%
+    qfit$fit$misc$rhs_trace %||%
+    qfit$fit$rhs_trace %||%
+    qfit$fit$diagnostics$rhs_trace %||%
+    NULL
   if (is.null(tr) || !nrow(tr)) {
     return(data.table::data.table())
   }

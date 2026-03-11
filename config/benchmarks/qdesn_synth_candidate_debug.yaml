@@ -124,7 +124,6 @@ models:
           var_floor: 1.0e-8
           verbose: false
           init_log_lambda: 0.0
-          init_log_tau: 2.302585093
           init_log_c2: 0.0
       sampling:
         nd_draws: 80

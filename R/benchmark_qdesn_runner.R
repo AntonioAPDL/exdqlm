@@ -246,7 +246,7 @@ bench_qdesn_normalize_vb_args <- function(vb_args) {
   out
 }
 
-bench_qdesn_normalize_model_cfg <- function(model_cfg) {
+bench_qdesn_normalize_model_cfg <- function(model_cfg, allow_single_quantile = FALSE) {
   model_cfg <- model_cfg %||% list()
   readout_approximation <- tolower(as.character(model_cfg$readout_approximation %||% "laplace_delta")[1L])
   readout_approximation <- gsub("[-[:space:]]+", "_", readout_approximation)
@@ -290,7 +290,7 @@ bench_qdesn_normalize_model_cfg <- function(model_cfg) {
     )
   )
 
-  if (length(out$p_vec) < 2L) {
+  if (length(out$p_vec) < 2L && !isTRUE(allow_single_quantile)) {
     stop("Q-DESN synthesized forecast requires at least two quantiles in p_vec.", call. = FALSE)
   }
   if (!identical(out$readout_approximation, "laplace_delta")) {
