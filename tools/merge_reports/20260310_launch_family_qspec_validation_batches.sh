@@ -6,6 +6,18 @@ if ! command -v tmux >/dev/null 2>&1; then
   exit 1
 fi
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root_default="$(cd "${script_dir}/../.." && pwd)"
+repo_root="${EXDQLM_REPO_ROOT:-${repo_root_default}}"
+
+if [[ ! -d "${repo_root}/.git" ]]; then
+  echo "Invalid EXDQLM repo root: ${repo_root}" >&2
+  echo "Set EXDQLM_REPO_ROOT to a valid exdqlm worktree path." >&2
+  exit 1
+fi
+
+cd "$repo_root"
+
 stamp="$(date '+%Y%m%d_%H%M%S')"
 launch_manifest="tools/merge_reports/20260310_family_qspec_batch_launch_${stamp}.tsv"
 printf "session\tscope\tfit_size\tprior\tlog\tcmd\n" > "$launch_manifest"
@@ -18,7 +30,7 @@ launch_session() {
   local log="$5"
   local cmd="$6"
 
-  tmux new-session -d -s "$session" "cd /data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp && $cmd > \"$log\" 2>&1"
+  tmux new-session -d -s "$session" "cd \"$repo_root\" && $cmd > \"$log\" 2>&1"
   printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$session" "$scope" "$fit_size" "$prior" "$log" "$cmd" >> "$launch_manifest"
 }
 

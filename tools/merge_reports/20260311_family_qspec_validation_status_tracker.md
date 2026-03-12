@@ -1,303 +1,199 @@
 # Family-QSpec Validation Status Tracker
 
-Last updated: 2026-03-12 13:51 PDT
+Last updated: 2026-03-12 17:14 EDT
 
-## Source docs
+This file is the current authoritative human-readable tracker for the family-qspec
+validation campaign on muscat. It supersedes the earlier mixed jerez-only and
+pre-rehome notes.
 
-- Broad corrected-simulation tracker:
-  - `tools/merge_reports/20260308_quantile_specific_sim_validation_reset_tracker.md`
-- Current full validation grid:
-  - `tools/merge_reports/20260310_family_qspec_full_validation_plan.md`
-- Current launch manifest:
-  - `tools/merge_reports/20260310_family_qspec_batch_launch_20260310_004857.tsv`
+## Scope
 
-This note is the compact current-status tracker for the family-qspec validation campaign.
+Current validation-run scope:
 
-## Scope clarification
+- families: `normal`, `laplace`, `gausmix`
+- taus: `0.05`, `0.25`, `0.50`
+- static fit sizes: `100`, `1000`
+- dynamic fit sizes: `500`, `5000`
+- static shrinkage priors: `ridge`, `rhs`
+- `ISVB` excluded
 
-There are two layers that should not be conflated:
-
-1. Dataset-generation scope
-   - documented in `20260309_paper_family_qspec_study_plan.md`
-   - includes extra prepared subsets such as static `tt5000` and dynamic `lastTT1000/2000/5000`
-   - mentions `loggpd` at the study-plan stage
-
-2. Current validation-run scope
-   - documented in `20260310_family_qspec_full_validation_plan.md`
-   - families: `normal`, `laplace`, `gausmix`
-   - taus: `0.05`, `0.25`, `0.50`
-   - static fit sizes: `100`, `1000`
-   - dynamic fit sizes: `500`, `5000`
-   - static shrinkage priors: `ridge`, `rhs`
-   - `ISVB` excluded
-
-Current validation-run totals:
+Validation totals:
 
 - static paper:
-  - `3 families x 3 taus x 2 sizes = 18` run roots
-  - `18 x 4 = 72` fits
+  - `18` roots
+  - `72` fits
 - static shrinkage:
-  - `3 families x 3 taus x 2 sizes x 2 priors = 36` run roots
-  - `36 x 4 = 144` fits
+  - `36` roots
+  - `144` fits
 - dynamic:
-  - `3 families x 3 taus x 2 sizes = 18` run roots
-  - `18 x 4 = 72` fits
+  - `18` roots
+  - `72` fits
 - total:
-  - `72` run roots
+  - `72` roots
   - `288` fits
 
-## Current campaign summary
-X
-Run-root status:
+## References
 
-| Group | Complete roots | Running roots | Not launched roots | Total roots |
-| --- | ---: | ---: | ---: | ---: |
-| static paper | 2 | 2 | 14 | 18 |
-| static shrinkage | 4 | 4 | 28 | 36 |
-| dynamic | 3 | 1 | 14 | 18 |
-| total | 9 | 7 | 56 | 72 |
+Primary planning and launch references:
 
-Fit-level status:
-
-| Group | Complete fits | Running fits | Not launched fits | Total fits |
-| --- | ---: | ---: | ---: | ---: |
-| static paper | 14 | 2 | 56 | 72 |
-| static shrinkage | 28 | 4 | 112 | 144 |
-| dynamic | 14 | 2 | 56 | 72 |
-| total | 56 | 8 | 224 | 288 |
-
-## Unified coordination status after muscat launch
-
-At `2026-03-12 00:51 PDT`, the previously unlaunched backlog had been
-assigned to muscat using the exact exclusion manifest produced from the
-jerez audit. This supersedes the older jerez-only "not launched anywhere"
-view below.
-
-Current unified root placement:
-
-| State | Roots |
-| --- | ---: |
-| complete on jerez | 9 |
-| running on jerez | 7 |
-| launched on muscat | 56 |
-| not launched anywhere | 0 |
-
-Muscat coordination references:
-
-- global reconciliation:
-  - `tools/merge_reports/20260312_family_qspec_global_root_status.tsv`
-- exact muscat launch set:
+- full validation plan:
+  - `tools/merge_reports/20260310_family_qspec_full_validation_plan.md`
+- original exact muscat backlog manifest:
   - `tools/merge_reports/20260312_family_qspec_muscat_launch_manifest.tsv`
-- exact jerez exclusions:
+- current machine-readable unified status:
+  - `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv`
+- original jerez exclusion snapshot:
   - `tools/merge_reports/20260312_family_qspec_jerez_excluded_roots.tsv`
-- exact later sync plan:
+- original muscat launch registries:
+  - `tools/merge_reports/20260312_muscat_launch_registry_20260312_024859.tsv`
+  - `tools/merge_reports/20260312_muscat_launch_registry_manual_20260312_025039.tsv`
+- former jerez partial-root handoff manifest:
+  - `tools/merge_reports/20260312_jerez_gausmix_partial_roots_to_muscat.tsv`
+- later exact sync plan for jerez-complete roots:
   - `tools/merge_reports/20260312_jerez_to_muscat_exact_sync_plan.tsv`
   - `tools/merge_reports/20260312_jerez_to_muscat_exact_sync_plan.sh`
 
-Muscat active batch sessions:
+Important interpretation note:
 
-| Session | Batch class | Current evidence-backed stage |
-| --- | --- | --- |
-| `mqsp_static_paper_tt100_20260312_024859` | static paper `TT=100` | `gausmix tau=0.50` done, `laplace tau=0.05` done, now in `laplace tau=0.25 exAL` MCMC |
-| `mqsp_static_paper_tt1000_20260312_024859` | static paper `TT=1000` | `gausmix tau=0.50` done, `laplace tau=0.05` done, now in `laplace tau=0.25 exAL` MCMC |
-| `mqsp_static_shrink_ridge_tt100_20260312_024859` | static shrink ridge `TT=100` | `laplace tau=0.05` done, now in `laplace tau=0.25 exAL` MCMC |
-| `mqsp_static_shrink_rhs_tt100_20260312_024859` | static shrink rhs `TT=100` | `laplace tau=0.05` done, now in `laplace tau=0.25 exAL` MCMC |
-| `mqsp_static_shrink_ridge_tt1000_20260312_025039` | static shrink ridge `TT=1000` | `laplace tau=0.05` done, now in `laplace tau=0.25 exAL` MCMC |
-| `mqsp_static_shrink_rhs_tt1000_20260312_025039` | static shrink rhs `TT=1000` | `laplace tau=0.05` done, now in `laplace tau=0.25 exAL` MCMC |
-| `mqsp_dynamic_tt500_20260312_025039` | dynamic `TT=500` | `laplace tau=0.05` done, now in `laplace tau=0.25` with `exDQLM` already `MCMC_DONE` and `DQLM` still in MCMC |
-| `mqsp_dynamic_tt5000_20260312_025039` | dynamic `TT=5000` | resumed `gausmix tau=0.25`; both `DQLM` and `exDQLM` reached `MCMC_START` |
+- `tools/merge_reports/20260312_family_qspec_global_root_status.tsv` is still
+  useful as the original pre-rehome reconciliation snapshot.
+- it does not yet encode the later `16:50 EDT` muscat resume sessions for the
+  former jerez partial roots.
+- `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv` is the
+  current machine-readable unified status table.
+- this markdown tracker is the readable narrative companion to that unified TSV.
 
-## Jerez shutdown and muscat relocation
+## Current Unified Root Placement
 
-At `2026-03-12 13:34 PDT`, the remaining `7` live jerez `gausmix` roots were
-classified as safe to stop at the pipeline level but not checkpointable at the
-in-flight MCMC level. The shutdown and migration were then executed at
-`2026-03-12 13:51 PDT`.
+| State | Roots | Notes |
+| --- | ---: | --- |
+| complete on jerez, pending exact sync to muscat | 9 | these are complete outputs, not active compute |
+| complete on muscat from backlog wave | 13 | completed inside the original `mqsp_*` muscat batch lanes |
+| active on muscat from backlog wave | 8 | current root in each batch lane listed below |
+| active on muscat, rehomed from former jerez partial roots | 7 | standalone resume sessions started at `2026-03-12 16:50 EDT` |
+| queued on muscat behind active backlog lanes | 35 | already assigned to muscat; waiting behind the current 8 batch roots |
+| not launched anywhere | 0 | no campaign roots remain unassigned |
 
-- all `7` roots are past VB
-- the `6` static roots also already have completed base-model `AL` MCMC fits
-- none of the active resume scripts writes mid-chain MCMC checkpoints
-- stopping the jobs frees jerez immediately but discards the current in-flight
-  MCMC work since the last `RESUME_MCMC_START`
+Sanity check:
 
-Operational decision:
+- `9 + 13 + 8 + 7 + 35 = 72` total campaign roots
+- these counts match `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv`
 
-- stop the `7` jerez validation sessions to free jerez for other work
-- preserve their partial validation roots
-- sync those exact partial roots to muscat
-- resume the missing MCMC work on muscat from the saved VB artifacts and, for
-  static roots, the already completed `mcmc_al_*` base fits
+## Current Muscat Live Execution
 
-Exact partial-root handoff manifest:
+Interpretation caveat:
 
-- `tools/merge_reports/20260312_jerez_gausmix_partial_roots_to_muscat.tsv`
+- the batch logs are sparse inside long MCMC phases
+- log timestamps mostly move at root boundaries, not continuously during sampling
+- live process checks therefore matter more than log recency for current-health interpretation
 
-Executed result:
+### Active Backlog-Wave Batch Roots
 
-| State | Roots |
-| --- | ---: |
-| complete on jerez, pending exact sync | 9 |
-| former jerez partial roots synced and relaunched on muscat | 7 |
-| already launched on muscat backlog | 56 |
-| not launched anywhere | 0 |
+These 8 sessions belong to the original exact muscat backlog launch.
 
-Current jerez state after shutdown:
+| Session | Root type | Current root | Current models/stage | Batch progress | Remaining queued after current |
+| --- | --- | --- | --- | --- | --- |
+| `mqsp_dynamic_tt5000_20260312_025039` | dynamic | `gausmix tau=0.25 lastTT=5000` | `DQLM + exDQLM` in `VB -> MCMC` pipeline | `0 / 8` done | `gausmix tau=0.50`, `laplace tau=0.05/0.25/0.50`, `normal tau=0.05/0.25/0.50` |
+| `mqsp_dynamic_tt500_20260312_025039` | dynamic | `laplace tau=0.25 lastTT=500` | `DQLM + exDQLM` in `VB -> MCMC` pipeline | `1 / 6` done | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `mqsp_static_paper_tt1000_20260312_024859` | static paper | `laplace tau=0.25 TT=1000` | `AL + exAL` in `VB -> MCMC` pipeline | `2 / 7` done | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `mqsp_static_paper_tt100_20260312_024859` | static paper | `laplace tau=0.25 TT=100` | `AL + exAL` in `VB -> MCMC` pipeline | `2 / 7` done | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `mqsp_static_shrink_rhs_tt1000_20260312_025039` | static shrink `rhs` | `laplace tau=0.25 TT=1000` | `AL + exAL` in `VB -> MCMC` pipeline | `2 / 7` done | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `mqsp_static_shrink_rhs_tt100_20260312_024859` | static shrink `rhs` | `laplace tau=0.25 TT=100` | `AL + exAL` in `VB -> MCMC` pipeline | `2 / 7` done | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `mqsp_static_shrink_ridge_tt1000_20260312_025039` | static shrink `ridge` | `laplace tau=0.25 TT=1000` | `AL + exAL` in `VB -> MCMC` pipeline | `2 / 7` done | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `mqsp_static_shrink_ridge_tt100_20260312_024859` | static shrink `ridge` | `laplace tau=0.25 TT=100` | `AL + exAL` in `VB -> MCMC` pipeline | `2 / 7` done | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
 
-- no remaining live `qsp_*` validation sessions
-- no remaining `20260305_resume_static_mcmc_from_vb.R` workers
-- no remaining `20260305_resume_dynamic_mcmc_from_vb.R` workers
+### Active Rehomed Former-Jerez Roots
 
-Current muscat resume sessions for the former jerez roots:
+These 7 sessions were relaunched on muscat at `2026-03-12 16:50 EDT` after the
+former jerez partial roots were preserved and handed off.
 
-- `mqsp_jr_rsp100_20260312_135054`
-- `mqsp_jr_rsp1k_20260312_135054`
-- `mqsp_jr_rss100r_20260312_135054`
-- `mqsp_jr_rss1kr_20260312_135054`
-- `mqsp_jr_rss100h_20260312_135054`
-- `mqsp_jr_rss1kh_20260312_135054`
-- `mqsp_jr_rdy5k_20260312_135054`
+| Session | Former jerez session | Root | Current muscat stage | Resume goal |
+| --- | --- | --- | --- | --- |
+| `mqsp_jr_rsp100_20260312_135054` | `qsp_rsp100_20260310_204439` | static paper `gausmix tau=0.25 TT=100` | `resume_static_mcmc_from_vb.R` active | finish `exAL` MCMC, then postprocess/report |
+| `mqsp_jr_rsp1k_20260312_135054` | `qsp_rsp1k_20260310_204439` | static paper `gausmix tau=0.25 TT=1000` | `resume_static_mcmc_from_vb.R` active | finish `exAL` MCMC, then postprocess/report |
+| `mqsp_jr_rss100r_20260312_135054` | `qsp_rss100r_20260310_204439` | static shrink `ridge`, `gausmix tau=0.25 TT=100` | `resume_static_mcmc_from_vb.R` active | finish `exAL` MCMC, then postprocess/report |
+| `mqsp_jr_rss1kr_20260312_135054` | `qsp_rss1kr_20260310_204439` | static shrink `ridge`, `gausmix tau=0.25 TT=1000` | `resume_static_mcmc_from_vb.R` active | finish `exAL` MCMC, then postprocess/report |
+| `mqsp_jr_rss100h_20260312_135054` | `qsp_rss100h_20260310_204439` | static shrink `rhs`, `gausmix tau=0.25 TT=100` | `resume_static_mcmc_from_vb.R` active | finish `exAL` MCMC, then postprocess/report |
+| `mqsp_jr_rss1kh_20260312_135054` | `qsp_rss1kh_20260310_204439` | static shrink `rhs`, `gausmix tau=0.25 TT=1000` | `resume_static_mcmc_from_vb.R` active | finish `exAL` MCMC, then postprocess/report |
+| `mqsp_jr_rdy5k_20260312_135054` | `qsp_rdy5k_fix_20260311_173314` | dynamic `gausmix tau=0.05 lastTT=5000` | `resume_dynamic_mcmc_from_vb.R` active | finish `DQLM` and `exDQLM` MCMC, then postprocess |
 
-Those `7` roots should not be restarted on jerez again. They have been
-re-homed to muscat with the existing resume scripts:
+## Completed On Muscat So Far
 
-- static:
-  - `tools/merge_reports/20260305_resume_static_mcmc_from_vb.R`
-  - followed by `tools/merge_reports/20260305_static_postprocess_from_existing_fits.R`
-  - followed by `tools/merge_reports/20260305_static_vb_mcmc_report.R`
-- dynamic:
-  - `tools/merge_reports/20260305_resume_dynamic_mcmc_from_vb.R`
-  - followed by `tools/merge_reports/20260305_postprocess_from_existing_fits.R`
+These roots are already complete inside the original muscat backlog wave.
 
-## What had been launched on jerez before muscat cutover
+### Static Paper
 
-Only the `gausmix` family has been launched so far.
+| Family | Tau | TT | State |
+| --- | --- | ---: | --- |
+| `gausmix` | `0.50` | 100 | complete on muscat |
+| `gausmix` | `0.50` | 1000 | complete on muscat |
+| `laplace` | `0.05` | 100 | complete on muscat |
+| `laplace` | `0.05` | 1000 | complete on muscat |
 
-Launched static subset:
+### Static Shrink Ridge
 
-- static paper:
-  - `TT=100`, `1000`
-  - `tau=0.05`, `0.25`
-- static shrinkage:
-  - `TT=100`, `1000`
-  - `tau=0.05`, `0.25`
-  - both `ridge` and `rhs`
+| Family | Tau | TT | State |
+| --- | --- | ---: | --- |
+| `gausmix` | `0.50` | 100 | complete on muscat |
+| `gausmix` | `0.50` | 1000 | complete on muscat |
+| `laplace` | `0.05` | 100 | complete on muscat |
+| `laplace` | `0.05` | 1000 | complete on muscat |
 
-Launched dynamic subset:
+### Static Shrink RHS
 
-- `TT=500`:
-  - `tau=0.05`, `0.25`, `0.50`
-- `TT=5000`:
-  - `tau=0.05` only
+| Family | Tau | TT | State |
+| --- | --- | ---: | --- |
+| `gausmix` | `0.50` | 100 | complete on muscat |
+| `gausmix` | `0.50` | 1000 | complete on muscat |
+| `laplace` | `0.05` | 100 | complete on muscat |
+| `laplace` | `0.05` | 1000 | complete on muscat |
 
-Not yet launched on jerez before muscat cutover:
+### Dynamic
 
-- all `normal` roots
-- all `laplace` roots
-- all static `gausmix tau=0.50` roots
-- dynamic `gausmix tau=0.25, TT=5000`
-- dynamic `gausmix tau=0.50, TT=5000`
+| Family | Tau | lastTT | State |
+| --- | --- | ---: | --- |
+| `laplace` | `0.05` | 500 | complete on muscat |
 
-Those roots are now covered by the muscat launch manifest above.
+## Queued Muscat Backlog After The Current Active Batch Roots
 
-## Jerez live runs before shutdown
+These `35` roots are already assigned to muscat and are waiting in the queue
+behind the current 8 batch-current roots.
 
-Static live sessions:
+| Lane | Exact queued roots |
+| --- | --- |
+| `dynamic_tt5000` | `gausmix tau=0.50`, `laplace tau=0.05/0.25/0.50`, `normal tau=0.05/0.25/0.50` |
+| `dynamic_tt500` | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `static_paper_tt1000` | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `static_paper_tt100` | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `static_shrink_rhs_tt1000` | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `static_shrink_rhs_tt100` | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `static_shrink_ridge_tt1000` | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
+| `static_shrink_ridge_tt100` | `laplace tau=0.50`, `normal tau=0.05/0.25/0.50` |
 
-| Session | Root class | Current stage |
-| --- | --- | --- |
-| `qsp_rsp100_20260310_204439` | static paper `gausmix tau=0.25 TT=100` | `exAL` resumed MCMC |
-| `qsp_rsp1k_20260310_204439` | static paper `gausmix tau=0.25 TT=1000` | `exAL` resumed MCMC |
-| `qsp_rss100r_20260310_204439` | static shrink ridge `gausmix tau=0.25 TT=100` | `exAL` resumed MCMC |
-| `qsp_rss1kr_20260310_204439` | static shrink ridge `gausmix tau=0.25 TT=1000` | `exAL` resumed MCMC |
-| `qsp_rss100h_20260310_204439` | static shrink rhs `gausmix tau=0.25 TT=100` | `exAL` resumed MCMC |
-| `qsp_rss1kh_20260310_204439` | static shrink rhs `gausmix tau=0.25 TT=1000` | `exAL` resumed MCMC |
+## Jerez-Complete Roots Still Pending Exact Sync
 
-Dynamic live sessions:
+These 9 roots are complete but their results still need to be copied into the
+muscat workspace using the exact sync plan.
 
-| Session | Root class | Current stage |
-| --- | --- | --- |
-| `qsp_rdy5k_fix_20260311_173314` | dynamic `gausmix tau=0.05 TT=5000` | `DQLM` and `exDQLM` resumed MCMC |
+| Type | Family | Tau | Size | Prior |
+| --- | --- | --- | --- | --- |
+| static paper | `gausmix` | `0.05` | `TT=100` | `paper` |
+| static paper | `gausmix` | `0.05` | `TT=1000` | `paper` |
+| static shrink | `gausmix` | `0.05` | `TT=100` | `ridge` |
+| static shrink | `gausmix` | `0.05` | `TT=1000` | `ridge` |
+| static shrink | `gausmix` | `0.05` | `TT=100` | `rhs` |
+| static shrink | `gausmix` | `0.05` | `TT=1000` | `rhs` |
+| dynamic | `gausmix` | `0.05` | `lastTT=500` | `-` |
+| dynamic | `gausmix` | `0.25` | `lastTT=500` | `-` |
+| dynamic | `gausmix` | `0.50` | `lastTT=500` | `-` |
 
-Recently completed since the previous check:
+## Operational Notes
 
-| Session | Root class | Completion evidence |
-| --- | --- | --- |
-| `qsp_rdy500_fix_20260311_173314` | dynamic `gausmix tau=0.50 TT=500` | outer log reached `Post-processing from existing fits completed` at `2026-03-11 20:44:17 PDT`; tmux session exited; summary tables now present under `tables/` |
-
-### Live audit snapshot
-
-This snapshot reflects the current tmux/process state on `jerez` at
-`2026-03-12 00:51 PDT`.
-
-| Session | Case | Status | Evidence |
-| --- | --- | --- | --- |
-| `qsp_rsp100_20260310_204439` | static paper `TT=100 tau=0.25` | running `exAL` MCMC | worker `1197252` at `1032%` CPU; `mcmc_al_tau_0p25_fit.rds` present; `mcmc_exal_tau_0p25_fit.rds` absent; `exal_tau_0p25.status.tsv` last line `RESUME_MCMC_START` |
-| `qsp_rsp1k_20260310_204439` | static paper `TT=1000 tau=0.25` | running `exAL` MCMC | worker `1206708` at `1061%` CPU; `mcmc_al_tau_0p25_fit.rds` present; `mcmc_exal_tau_0p25_fit.rds` absent; `exal_tau_0p25.status.tsv` last line `RESUME_MCMC_START` |
-| `qsp_rss100r_20260310_204439` | static shrink-ridge `TT=100 tau=0.25` | running `exAL` MCMC | worker `1197486` at `1038%` CPU; base `AL` MCMC fit present; extended `exAL` MCMC fit absent |
-| `qsp_rss1kr_20260310_204439` | static shrink-ridge `TT=1000 tau=0.25` | running `exAL` MCMC | worker `1208408` at `1028%` CPU; base `AL` MCMC fit present; extended `exAL` MCMC fit absent |
-| `qsp_rss100h_20260310_204439` | static shrink-rhs `TT=100 tau=0.25` | running `exAL` MCMC | worker `1199335` at `1023%` CPU; base `AL` MCMC fit present; extended `exAL` MCMC fit absent |
-| `qsp_rss1kh_20260310_204439` | static shrink-rhs `TT=1000 tau=0.25` | running `exAL` MCMC | worker `1208948` at `1030%` CPU; base `AL` MCMC fit present; extended `exAL` MCMC fit absent |
-| `qsp_rdy5k_fix_20260311_173314` | dynamic `TT=5000 tau=0.05` | running `DQLM` + `exDQLM` resumed MCMC | workers `3792556` and `3792558` at `16.2%` CPU each; both status TSVs still at `RESUME_MCMC_START`; no MCMC fit files yet |
-
-Status-file caveat:
-
-- static resume logs are sparse after `RESUME_MCMC_START`; health for those six
-  roots is being inferred from live high-CPU workers plus the continued absence
-  of the final `mcmc_exal_*` fit files.
-
-## Current launched-subset status table
-
-### Static paper, gausmix
-
-| Tau | TT | Status | Remaining work |
-| --- | ---: | --- | --- |
-| `0.05` | 100 | complete | none |
-| `0.05` | 1000 | complete | none |
-| `0.25` | 100 | running | `exAL` MCMC, then postprocess/report |
-| `0.25` | 1000 | running | `exAL` MCMC, then postprocess/report |
-| `0.50` | 100 | not launched | full root |
-| `0.50` | 1000 | not launched | full root |
-
-### Static shrinkage, gausmix, ridge
-
-| Tau | TT | Status | Remaining work |
-| --- | ---: | --- | --- |
-| `0.05` | 100 | complete | none |
-| `0.05` | 1000 | complete | none |
-| `0.25` | 100 | running | `exAL` MCMC, then postprocess/report |
-| `0.25` | 1000 | running | `exAL` MCMC, then postprocess/report |
-| `0.50` | 100 | not launched | full root |
-| `0.50` | 1000 | not launched | full root |
-
-### Static shrinkage, gausmix, rhs
-
-| Tau | TT | Status | Remaining work |
-| --- | ---: | --- | --- |
-| `0.05` | 100 | complete | none |
-| `0.05` | 1000 | complete | none |
-| `0.25` | 100 | running | `exAL` MCMC, then postprocess/report |
-| `0.25` | 1000 | running | `exAL` MCMC, then postprocess/report |
-| `0.50` | 100 | not launched | full root |
-| `0.50` | 1000 | not launched | full root |
-
-### Dynamic, gausmix
-
-| Tau | TT | Status | Remaining work |
-| --- | ---: | --- | --- |
-| `0.05` | 500 | complete | none |
-| `0.25` | 500 | complete | none |
-| `0.50` | 500 | complete | none |
-| `0.05` | 5000 | running | `DQLM` and `exDQLM` MCMC, then postprocess |
-| `0.25` | 5000 | not launched | full root |
-| `0.50` | 5000 | not launched | full root |
-
-## Important caveat
-
-Prepared directories exist outside the current validation-run scope:
-
-- static `fit_input_subsample_tt5000_x01_sorted`
-- dynamic `fit_input_lastTT1000`
-- dynamic `fit_input_lastTT2000`
-
-These should not be counted as launched validation roots unless corresponding
-`validation_*` run roots exist.
+- no campaign roots remain unassigned
+- do not relaunch the 7 rehomed former jerez partial roots again elsewhere
+- the exact handoff for those 7 roots is documented in:
+  - `tools/merge_reports/20260312_jerez_gausmix_partial_roots_to_muscat.tsv`
+- the exact later sync for the 9 jerez-complete roots is documented in:
+  - `tools/merge_reports/20260312_jerez_to_muscat_exact_sync_plan.tsv`
+- `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv` is the
+  machine-readable current-state table for this tracker

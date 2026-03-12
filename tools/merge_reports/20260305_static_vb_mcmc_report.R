@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  library(devtools)
 })
 
 Sys.setenv(
@@ -12,7 +11,19 @@ Sys.setenv(
   NUMEXPR_NUM_THREADS = "1"
 )
 
-devtools::load_all(".", quiet = TRUE)
+load_exdqlm <- function(repo_root = ".") {
+  if (requireNamespace("devtools", quietly = TRUE)) {
+    devtools::load_all(repo_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+  if (requireNamespace("pkgload", quietly = TRUE)) {
+    pkgload::load_all(repo_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+  stop("Neither devtools nor pkgload is installed; cannot load local exdqlm package.")
+}
+
+load_exdqlm(".")
 
 safe_num <- function(x, default = NA_real_) {
   v <- suppressWarnings(as.numeric(x)[1])

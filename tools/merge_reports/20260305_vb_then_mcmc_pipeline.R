@@ -1,12 +1,23 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  library(devtools)
   library(Matrix)
   library(parallel)
 })
 
-devtools::load_all(".", quiet = TRUE)
+load_exdqlm <- function(repo_root = ".") {
+  if (requireNamespace("devtools", quietly = TRUE)) {
+    devtools::load_all(repo_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+  if (requireNamespace("pkgload", quietly = TRUE)) {
+    pkgload::load_all(repo_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+  stop("Neither devtools nor pkgload is installed; cannot load local exdqlm package.")
+}
+
+load_exdqlm(".")
 source("tools/merge_reports/20260305_dynamic_dgp_model_helpers.R")
 
 safe_int <- function(x, default) {
