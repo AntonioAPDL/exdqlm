@@ -1,11 +1,22 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  library(devtools)
   library(matrixStats)
 })
 
-devtools::load_all(".", quiet = TRUE)
+load_exdqlm <- function(repo_root = ".") {
+  if (requireNamespace("devtools", quietly = TRUE)) {
+    devtools::load_all(repo_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+  if (requireNamespace("pkgload", quietly = TRUE)) {
+    pkgload::load_all(repo_root, quiet = TRUE)
+    return(invisible(TRUE))
+  }
+  stop("Neither devtools nor pkgload is installed; cannot load local exdqlm package.")
+}
+
+load_exdqlm(".")
 
 log_file <- "tools/merge_reports/20260305_postprocess_from_existing_fits.log"
 dir.create(dirname(log_file), recursive = TRUE, showWarnings = FALSE)

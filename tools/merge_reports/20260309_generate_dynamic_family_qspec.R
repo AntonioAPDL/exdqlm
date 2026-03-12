@@ -1,12 +1,22 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  library(devtools)
+  if (requireNamespace("devtools", quietly = TRUE)) {
+    library(devtools)
+  } else if (requireNamespace("pkgload", quietly = TRUE)) {
+    library(pkgload)
+  } else {
+    stop("Need either 'devtools' or 'pkgload' installed to load local package code.")
+  }
   library(Matrix)
   library(ggplot2)
 })
 
-devtools::load_all('.', quiet = TRUE)
+if (requireNamespace("devtools", quietly = TRUE)) {
+  devtools::load_all(".", quiet = TRUE)
+} else {
+  pkgload::load_all(".", quiet = TRUE)
+}
 source('tools/merge_reports/20260308_quantile_specific_sim_helpers.R')
 
 Sys.setenv(OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1', VECLIB_MAXIMUM_THREADS='1', NUMEXPR_NUM_THREADS='1')

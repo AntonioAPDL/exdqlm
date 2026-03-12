@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="/data/muscat_data/jaguir26/exdqlm__wt__0.3.0-cpp"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root_default="$(cd "${script_dir}/../.." && pwd)"
+repo_root="${EXDQLM_REPO_ROOT:-${repo_root_default}}"
+
+if [[ ! -d "${repo_root}/.git" ]]; then
+  echo "Invalid EXDQLM repo root: ${repo_root}" >&2
+  echo "Set EXDQLM_REPO_ROOT to a valid exdqlm worktree path." >&2
+  exit 1
+fi
+
 cd "$repo_root"
 
 stamp="$(date '+%Y%m%d_%H%M%S')"
