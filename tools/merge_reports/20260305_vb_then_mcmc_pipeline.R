@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
 })
 
 devtools::load_all(".", quiet = TRUE)
+source("tools/merge_reports/20260305_dynamic_dgp_model_helpers.R")
 
 safe_int <- function(x, default) {
   v <- suppressWarnings(as.integer(x)[1])
@@ -41,41 +42,6 @@ sanitize_exps0 <- function(x, fallback) {
   if (length(z) != length(fallback)) z <- rep(stats::median(fallback), length(fallback))
   z[!is.finite(z)] <- stats::median(fallback)
   z
-}
-
-build_dgp_matched_model <- function(params, TT) {
-  period <- as.numeric(params$period)[1]
-  if (!is.finite(period) || period <= 2) stop("Invalid DGP period.")
-  no_trend <- isTRUE(params$no_trend)
-
-  lam1 <- 2 * pi / period
-  lam2 <- 2 * lam1
-  rot <- function(lam) {
-    matrix(c(cos(lam), sin(lam), -sin(lam), cos(lam)), nrow = 2, byrow = TRUE)
-  }
-
-  GG_trend <- if (no_trend) diag(2) else matrix(c(1, 1, 0, 1), nrow = 2, byrow = TRUE)
-  GG_one <- as.matrix(Matrix::bdiag(GG_trend, rot(lam1), rot(lam2)))
-  GG <- array(0, dim = c(6, 6, TT))
-  for (t in seq_len(TT)) GG[, , t] <- GG_one
-
-  FF <- matrix(rep(c(1, 0, 1, 0, 1, 0), TT), nrow = 6, ncol = TT)
-  m0 <- as.numeric(params$m0)
-  if (length(m0) != 6L || any(!is.finite(m0))) m0 <- rep(0, 6L)
-  C0_raw <- params$C0
-  if (is.null(C0_raw)) {
-    C0_scale <- as.numeric(params$C0_scale)[1]
-    if (!is.finite(C0_scale) || C0_scale <= 0) C0_scale <- 25
-    C0 <- diag(C0_scale, 6L)
-  } else {
-    C0 <- as.matrix(C0_raw)
-    if (!identical(dim(C0), c(6L, 6L)) || any(!is.finite(C0))) {
-      C0_scale <- as.numeric(params$C0_scale)[1]
-      if (!is.finite(C0_scale) || C0_scale <= 0) C0_scale <- 25
-      C0 <- diag(C0_scale, 6L)
-    }
-  }
-  as.exdqlm(list(FF = FF, GG = GG, m0 = m0, C0 = C0))
 }
 
 Sys.setenv(
@@ -253,7 +219,7 @@ cfg <- list(
 )
 saveRDS(cfg, file.path(out_root, "tables", "run_config.rds"))
 
-model <- build_dgp_matched_model(sim$info$params, TT = TT)
+model <- build_dynamic_dgp_matched_model(sim$info$params, TT = TT)
 
 old_opts <- options(
   exdqlm.use_cpp_kf = FALSE,
