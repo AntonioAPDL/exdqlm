@@ -39,13 +39,14 @@
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' trend.comp = polytrendMod(1,mean(y),10)
-#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+#' trend.comp = polytrendMod(order = 1, m0 = mean(y), C0 = 10)
+#' seas.comp = seasMod(p = 365, h = c(1,2,4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
-#' M2 = exdqlmMCMC(y,p0=0.85,model,df=c(1,1),dim.df = c(1,6),
-#'                 gam.init=-3.5,sig.init=15,
-#'                 n.burn=100,n.mcmc=150)
+#' M2 = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,6),
+#'                 gam.init = -3.5, sig.init = 15,
+#'                 n.burn = 100, n.mcmc = 150)
 #' }
 #'
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,

@@ -59,7 +59,7 @@
 #' syn = exdqlm_synthesize_from_draws(
 #'   draws_list = draws,
 #'   p = p0s,
-#'   T_expected = TT )
+#'   T_expected = TT)
 #' }
 exdqlm_synthesize_from_draws <- function(draws_list, p,
                                          enforce_isotonic = TRUE,

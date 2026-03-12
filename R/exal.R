@@ -72,7 +72,7 @@ qexal <- function(p, p0 = 0.5, mu = 0, sigma = 1, gamma = 0, lower.tail = TRUE, 
 #' @return Numeric vector of length `n`.
 #'
 #' @examples
-#' set.seed(1); length(rexal(10))
+#' set.seed(1)
 #' rexal(3, p0 = 0.5, mu = c(-1, 0, 1))
 #'
 #' @export

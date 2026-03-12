@@ -2,18 +2,18 @@
 #'
 #' The function creates an n-th order polynomial exDQLM component.
 #'
-#' @param order The order of the polynomial model.
-#' @param m0 Prior mean of the state vector. Default is `m0 = rep(0,order)`.
-#' @param C0 Prior covariance of the state vector. Default is `C0 = 1e3*diag(order)`.
+#' @param order Numeric order \eqn{n} of the polynomial model.
+#' @param m0 Optional numeric prior mean. Defaults to \eqn{n \times 1} vector of zeros.
+#' @param C0 Optional numeric prior covariance. Defaults to matrix \eqn{10^3 I_n}.
 #' @param backend Backend selection for matrix construction:
 #'   `"auto"` (default), `"R"`, or `"cpp"`.
 #'
 #' @return A object of class "\code{exdqlm}" containing the following:
 #' \itemize{
-#'   \item FF - Observational vector.
-#'   \item GG - Evolution matrix.
-#'   \item m0 - Prior mean of the state vector.
-#'   \item C0 - Prior covariance of the state vector.
+#'   \item \code{FF} - \eqn{n \times 1} observational vector.
+#'   \item \code{GG} - \eqn{n \times n} evolution matrix.
+#'   \item \code{m0} - \eqn{n \times 1} prior mean of the state vector.
+#'   \item \code{C0} - \eqn{n \times n} prior covariance matrix of the state vector.
 #' }
 #' @export
 #'
@@ -21,7 +21,7 @@
 #' # create a second order polynomial component
 #' trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
 #' 
-polytrendMod = function(order,m0,C0, backend = c("auto", "R", "cpp")){
+polytrendMod = function(order, m0, C0, backend = c("auto", "R", "cpp")){
   backend <- match.arg(backend)
 
   build_r <- function(order) {
@@ -67,12 +67,13 @@ polytrendMod = function(order,m0,C0, backend = c("auto", "R", "cpp")){
 
   FF <- built$FF
   GG <- built$GG
-  if(methods::hasArg(m0)){
+  if(!missing(m0)){
     if(length(m0) != order){stop("length of m0 does not match specified polynomial component")}
+    m0 = as.matrix(m0,order,1)
   }else{
-    m0 = as.matrix(numeric(order))
+    m0 = as.matrix(numeric(order),order,1)
   }
-  if(methods::hasArg(C0)){
+  if(!missing(C0)){
     C0 = as.matrix(C0)
     if((nrow(C0) != order) || (ncol(C0) != order)){stop("dimensions of C0 do not match specified polynomial component")}
   }else{

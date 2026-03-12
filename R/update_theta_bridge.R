@@ -1,6 +1,6 @@
 # R/update_theta_bridge.R
 # Bridge for univariate (J = 0) only. Keeps the R-visible contract identical to update_theta().
-#' Internal bridge for univariate KF used by exdqlmISVB.
+#' Internal bridge for univariate KF used by exdqlmISVB and exdqlmLDVB.
 #' @keywords internal
 #' @noRd
 update_theta_bridge <- function(ex.f, ex.q, GG, FF, y, m0, C0, df.mat,

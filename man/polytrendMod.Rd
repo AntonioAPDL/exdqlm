@@ -7,11 +7,11 @@
 polytrendMod(order, m0, C0, backend = c("auto", "R", "cpp"))
 }
 \arguments{
-\item{order}{The order of the polynomial model.}
+\item{order}{Numeric order \eqn{n} of the polynomial model.}
 
-\item{m0}{Prior mean of the state vector. Default is \code{m0 = rep(0,order)}.}
+\item{m0}{Optional numeric prior mean. Defaults to \eqn{n \times 1} vector of zeros.}
 
-\item{C0}{Prior covariance of the state vector. Default is \code{C0 = 1e3*diag(order)}.}
+\item{C0}{Optional numeric prior covariance. Defaults to matrix \eqn{10^3 I_n}.}
 
 \item{backend}{Backend selection for matrix construction:
 \code{"auto"} (default), \code{"R"}, or \code{"cpp"}.}
@@ -19,10 +19,10 @@ polytrendMod(order, m0, C0, backend = c("auto", "R", "cpp"))
 \value{
 A object of class "\code{exdqlm}" containing the following:
 \itemize{
-\item FF - Observational vector.
-\item GG - Evolution matrix.
-\item m0 - Prior mean of the state vector.
-\item C0 - Prior covariance of the state vector.
+\item \code{FF} - \eqn{n \times 1} observational vector.
+\item \code{GG} - \eqn{n \times n} evolution matrix.
+\item \code{m0} - \eqn{n \times 1} prior mean of the state vector.
+\item \code{C0} - \eqn{n \times n} prior covariance matrix of the state vector.
 }
 }
 \description{

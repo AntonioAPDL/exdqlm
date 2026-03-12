@@ -13,9 +13,14 @@ using the extended asymmetric Laplace error distribution (exDQLM).
 
 \itemize{
 \item \code{options(exdqlm.use_cpp_kf = TRUE|FALSE)} – C++ Kalman bridge (optional; default TRUE).
+\item \code{options(exdqlm.compute_elbo = TRUE|FALSE)} – Compute ELBO (optional; default TRUE).
+\item \code{options(exdqlm.tol_elbo = numeric)} – ELBO convergence tolerance (optional; default 1e-6).
+\item \code{options(exdqlm.use_cpp_builders = TRUE|FALSE)} – C++ model builders (optional; default FALSE).
 \item \code{options(exdqlm.use_cpp_samplers = TRUE|FALSE)} – C++ samplers (optional; default FALSE).
+\item \code{options(exdqlm.use_cpp_postpred = TRUE|FALSE)} – C++ posterior predictive sampler (optional; default FALSE).
 \item \code{options(exdqlm.use_cpp_mcmc = TRUE|FALSE)} – MCMC backend routing (optional; default TRUE).
 \item \code{options(exdqlm.cpp_mcmc_mode = "strict"|"fast")} – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
+\item \code{options(exdqlm.cpp_threads = numeric)} – (Optional; default 1L).
 }
 }
 

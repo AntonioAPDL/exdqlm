@@ -83,6 +83,6 @@ for(i in 1:length(p0s)){
 syn = exdqlm_synthesize_from_draws(
   draws_list = draws,
   p = p0s,
-  T_expected = TT )
+  T_expected = TT)
 }
 }

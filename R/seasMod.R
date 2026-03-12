@@ -2,19 +2,19 @@
 #'
 #' The function creates a Fourier form periodic component for given period and harmonics.
 #'
-#' @param p The period.
-#' @param h Vector of harmonics to be included.
-#' @param m0 Prior mean of the state vector.
-#' @param C0 Prior covariance of the state vector.
+#' @param p Numeric period.
+#' @param h  Numeric vector of harmonics to be included.
+#' @param m0 Optional numeric prior mean. Defaults to \eqn{q \times 1} vector of zeros where \eqn{q} is the dimension of the period component. 
+#' @param C0 Optional numeric prior covariance. Defaults to matrix \eqn{10^3 I_q}.
 #' @param backend Backend selection for matrix construction:
 #'   `"auto"` (default), `"R"`, or `"cpp"`.
 #'
 #' @return A object of class "\code{exdqlm}" containing the following:
 #' \itemize{
-#'   \item FF - Observational vector.
-#'   \item GG - Evolution matrix.
-#'   \item m0 - Prior mean of the state vector.
-#'   \item C0 - Prior covariance of the state vector.
+#'   \item \code{FF} - \eqn{q \times 1} observational vector.
+#'   \item \code{GG} - \eqn{q \times q} evolution matrix.
+#'   \item \code{m0} - \eqn{q \times 1} prior mean of the state vector.
+#'   \item \code{C0} - \eqn{q \times q} prior covariance matrix of the state vector.
 #' }
 #' @export
 #'
@@ -95,12 +95,13 @@ seasMod = function(p, h, m0, C0, backend = c("auto", "R", "cpp")){
 
   FF <- built$FF
   GG <- built$GG
-  if(methods::hasArg(m0)){
+  if(!missing(m0)){
     if(length(m0) != nrow(GG)){stop("length of m0 does not match specified seasonal component(s)")}
+    m0 = as.matrix(m0,nrow(GG),1)
   }else{
     m0 = as.matrix(numeric(nrow(GG)))
   }
-  if(methods::hasArg(C0)){
+  if(!missing(C0)){
     C0 = as.matrix(C0)
     if((nrow(C0) != nrow(GG)) || (ncol(C0) != nrow(GG))){stop("dimensions of C0 do not match specified seasonal component(s)")}
   }else{
