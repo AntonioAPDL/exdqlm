@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
 })
 
 devtools::load_all(".", quiet = TRUE)
+source("tools/merge_reports/20260305_dynamic_dgp_model_helpers.R")
 
 safe_int <- function(x, default) {
   v <- suppressWarnings(as.integer(x)[1])
@@ -20,26 +21,6 @@ safe_num <- function(x, default) {
 
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
-build_dgp_matched_model <- function(params, TT) {
-  period <- as.numeric(params$period)[1]
-  if (!is.finite(period) || period <= 2) stop("Invalid DGP period.")
-
-  lam1 <- 2 * pi / period
-  lam2 <- 2 * lam1
-  rot <- function(lam) {
-    matrix(c(cos(lam), sin(lam), -sin(lam), cos(lam)), nrow = 2, byrow = TRUE)
-  }
-
-  GG_one <- as.matrix(Matrix::bdiag(diag(2), rot(lam1), rot(lam2)))
-  GG <- array(0, dim = c(6, 6, TT))
-  for (t in seq_len(TT)) GG[, , t] <- GG_one
-
-  FF <- matrix(rep(c(1, 0, 1, 0, 1, 0), TT), nrow = 6, ncol = TT)
-  m0 <- as.numeric(params$m0)
-  C0 <- as.matrix(params$C0)
-  as.exdqlm(list(FF = FF, GG = GG, m0 = m0, C0 = C0))
-}
-
 cfg_path <- Sys.getenv(
   "EXDQLM_DYNAMIC_RUN_CONFIG",
   "results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_183508/tables/run_config.rds"
@@ -52,7 +33,7 @@ if (!dir.exists(run_root)) stop("run_root not found: ", run_root)
 sim <- readRDS(cfg$sim_path)
 TT <- as.integer(cfg$TT)
 y <- as.numeric(sim$y[seq_len(TT)])
-model <- build_dgp_matched_model(sim$info$params, TT = TT)
+model <- build_dynamic_dgp_matched_model(sim$info$params, TT = TT)
 
 p_vec <- as.numeric(cfg$taus)
 mcmc_burn <- safe_int(cfg$mcmc$burn, 2000L)
