@@ -69,8 +69,8 @@ mode_overrides:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  'n': [50, 50, 50]      # units per layer (length D)
-  n_tilde: [50, 50]        # skip/reducer sizes (length D-1 when D>1)
+  'n': [300, 300, 300]      # units per layer (length D)
+  n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
   m: 30                   # number of lags in u_t
   alpha: [0.2, 0.2, 0.2]     # leak per layer (length D)
   rho: [0.95, 0.95, 0.95]    # spectral scales per layer (length D)
@@ -185,7 +185,7 @@ ij:
 # --------------------------------------------------------------------
 forecast:
   last_window: 250           # legacy sbase window
-  horizon: 1                 # multi-step horizon for lattice forecasts
+  horizon: 60                 # multi-step horizon for lattice forecasts
   mode: origin               # origin (lead-1) | mixture | lattice
   lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (mixture only; power=0 => uniform)
   # mixture draws per target time = sampling.nd_draws
