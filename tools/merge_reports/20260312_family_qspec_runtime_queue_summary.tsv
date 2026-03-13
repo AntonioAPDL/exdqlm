@@ -1,0 +1,7 @@
+unit_type	blocked.FALSE	complete_reusable.FALSE	missing.TRUE	partial_reusable.TRUE	partial_stale.TRUE
+campaign_review	3	0	0	0	0
+global_summary	1	0	0	0	0
+model_path	0	46	68	17	13
+prior_compare	14	0	4	0	0
+root_postprocess	56	16	0	0	0
+root_review	42	12	0	0	0

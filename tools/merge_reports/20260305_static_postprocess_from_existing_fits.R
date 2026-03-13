@@ -77,7 +77,13 @@ if (is.null(sim_path) || !file.exists(sim_path)) stop("Missing sim_path in run c
 sim <- readRDS(sim_path)
 
 TT <- if (!is.null(run_cfg$TT)) as.integer(run_cfg$TT) else length(sim$y)
-taus <- if (!is.null(run_cfg$taus)) as.numeric(run_cfg$taus) else c(0.05, 0.50, 0.95)
+taus <- if (!is.null(run_cfg$taus)) {
+  as.numeric(run_cfg$taus)
+} else if (!is.null(sim$p)) {
+  as.numeric(sim$p)
+} else {
+  c(0.05, 0.25, 0.95)
+}
 trace_start <- max(1L, safe_int(Sys.getenv("EXDQLM_STATIC_TRACE_START", "20"), 20L))
 
 y <- as.numeric(sim$y[seq_len(TT)])

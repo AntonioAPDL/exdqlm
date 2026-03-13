@@ -1,0 +1,9 @@
+unit_type	blocked	complete_out_of_scope	complete_reusable	missing	partial_reusable	partial_stale
+campaign_review	3	0	0	0	0	0
+global_summary	1	0	0	0	0	0
+legacy_root	0	6	0	0	0	0
+model_path	0	0	46	68	17	13
+prepared_input	0	0	54	0	0	0
+prior_compare	14	0	0	4	0	0
+root_postprocess	56	0	16	0	0	0
+root_review	56	0	16	0	0	0

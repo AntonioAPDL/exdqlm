@@ -46,6 +46,14 @@ safe_num_vec <- function(x, default = NULL, length_out = NULL) {
   vals
 }
 
+safe_chr_vec <- function(x, default = NULL) {
+  if (!nzchar(x)) return(default)
+  vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+  vals <- vals[nzchar(vals)]
+  if (!length(vals)) return(default)
+  vals
+}
+
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
 sanitize_exps0 <- function(x, fallback) {
@@ -83,7 +91,7 @@ if (!is.null(p_vec_env)) {
 } else if (length(sim_taus)) {
   p_vec <- sim_taus
 } else {
-  p_vec <- c(0.05, 0.50, 0.95)
+  p_vec <- c(0.05, 0.25, 0.95)
 }
 p_vec <- unique(as.numeric(p_vec))
 p_vec <- p_vec[is.finite(p_vec) & p_vec > 0 & p_vec < 1]
@@ -139,6 +147,10 @@ n_core_phys <- tryCatch(parallel::detectCores(logical = FALSE), error = function
 if (!is.finite(n_core_phys) || is.na(n_core_phys) || n_core_phys < 1L) n_core_phys <- 2L
 cores_pipeline <- safe_int(Sys.getenv("EXDQLM_PIPELINE_CORES", "6"), 6L)
 cores_pipeline <- max(1L, min(cores_pipeline, n_core_phys))
+model_filter <- safe_chr_vec(Sys.getenv("EXDQLM_DYNAMIC_PIPELINE_MODELS", ""), default = c("exdqlm", "dqlm"))
+model_filter <- unique(tolower(model_filter))
+model_filter <- model_filter[model_filter %in% c("exdqlm", "dqlm")]
+if (!length(model_filter)) stop("No valid EXDQLM_DYNAMIC_PIPELINE_MODELS resolved.")
 
 stamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 default_run_name <- sprintf(
@@ -464,7 +476,7 @@ run_one_pipeline <- function(task_row) {
 }
 
 tasks <- expand.grid(
-  model = c("exdqlm", "dqlm"),
+  model = model_filter,
   tau = p_vec,
   stringsAsFactors = FALSE
 )

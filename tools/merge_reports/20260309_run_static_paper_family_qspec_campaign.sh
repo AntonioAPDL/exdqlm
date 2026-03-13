@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="results/function_testing_20260309_static_paper_family_qspec"
-FAMILIES=(normal laplace gausmix loggpd)
-TAUS=(0.05 0.25 0.50)
+FAMILIES=(normal laplace gausmix)
+TAUS=(0.05 0.25 0.95)
 mkdir -p "$ROOT"
 echo "START $(date '+%F %T') static_paper_family_qspec" 
 for family in "${FAMILIES[@]}"; do

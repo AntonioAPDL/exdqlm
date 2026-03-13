@@ -206,7 +206,20 @@ if (is.null(coef_truth) || !is.data.frame(coef_truth)) {
   stop("sim$extras$coef_truth must be present for shrinkage comparison")
 }
 
-taus <- c(0.05, 0.50, 0.95)
+taus_env <- safe_chr(Sys.getenv("EXDQLM_STATIC_SHRINK_TAUS", ""), "")
+taus <- if (nzchar(taus_env)) {
+  suppressWarnings(as.numeric(trimws(strsplit(taus_env, ",", fixed = TRUE)[[1]])))
+} else if ("tau" %in% names(coef_truth)) {
+  sort(unique(as.numeric(coef_truth$tau)))
+} else if (!is.null(sim$p)) {
+  sort(unique(as.numeric(sim$p)))
+} else {
+  c(0.05, 0.25, 0.95)
+}
+taus <- taus[is.finite(taus)]
+if (!length(taus)) {
+  stop("No valid taus resolved for shrinkage comparison.")
+}
 inferences <- c("vb", "mcmc")
 models <- c("al", "exal")
 run_roots <- list(ridge = ridge_run_root, rhs = rhs_run_root)

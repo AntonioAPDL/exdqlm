@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
-TAUS="${EXDQLM_QSPEC_TAUS:-0.05 0.50 0.95}"
+TAUS="${EXDQLM_QSPEC_TAUS:-0.05 0.25 0.95}"
 BASE_OUT="${EXDQLM_SIMPLE_NORMAL_OUT_ROOT:-results/function_testing_20260306_static_simple_linear_normal_qspec}"
 N_TOTAL="${EXDQLM_SIMPLE_NORMAL_N:-7000}"
 TARGET_N="${EXDQLM_SIMPLE_NORMAL_TARGET_N:-5000}"
