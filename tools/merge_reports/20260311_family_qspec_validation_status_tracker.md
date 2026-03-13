@@ -1,17 +1,26 @@
 # Family-QSpec Validation Status Tracker
 
-Last updated: 2026-03-12 17:14 EDT
+Last updated: 2026-03-12 21:45 EDT
 
-This file is the current authoritative human-readable tracker for the family-qspec
-validation campaign on muscat. It supersedes the earlier mixed jerez-only and
-pre-rehome notes.
+This file is the authoritative human-readable tracker for the family-qspec
+validation campaign on muscat.
+
+Important interpretation rule:
+
+- the current authoritative live state is the canonical relaunch state beginning
+  at `## 2026-03-12 Canonical Relaunch Reset (Authoritative)` and the progress
+  tables referenced near the end of this file
+- the earlier `mqsp_*` sections are preserved as historical pre-reset notes so
+  the migration/relaunch path remains auditable
+- historical sections should not be used as the live source of truth for the
+  current `fqv2_*` launcher state
 
 ## Scope
 
 Current validation-run scope:
 
 - families: `normal`, `laplace`, `gausmix`
-- taus: `0.05`, `0.25`, `0.50`
+- taus: `0.05`, `0.25`, `0.95`
 - static fit sizes: `100`, `1000`
 - dynamic fit sizes: `500`, `5000`
 - static shrinkage priors: `ridge`, `rhs`
@@ -21,16 +30,16 @@ Validation totals:
 
 - static paper:
   - `18` roots
-  - `72` fits
+  - `72` VB/MCMC fit stages
 - static shrinkage:
   - `36` roots
-  - `144` fits
+  - `144` VB/MCMC fit stages
 - dynamic:
   - `18` roots
-  - `72` fits
+  - `72` VB/MCMC fit stages
 - total:
   - `72` roots
-  - `288` fits
+  - `288` VB/MCMC fit stages
 
 ## References
 
@@ -40,7 +49,7 @@ Primary planning and launch references:
   - `tools/merge_reports/20260310_family_qspec_full_validation_plan.md`
 - original exact muscat backlog manifest:
   - `tools/merge_reports/20260312_family_qspec_muscat_launch_manifest.tsv`
-- current machine-readable unified status:
+- historical pre-reset unified status snapshot:
   - `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv`
 - original jerez exclusion snapshot:
   - `tools/merge_reports/20260312_family_qspec_jerez_excluded_roots.tsv`
@@ -52,6 +61,15 @@ Primary planning and launch references:
 - later exact sync plan for jerez-complete roots:
   - `tools/merge_reports/20260312_jerez_to_muscat_exact_sync_plan.tsv`
   - `tools/merge_reports/20260312_jerez_to_muscat_exact_sync_plan.sh`
+- current reusable-state audit:
+  - `tools/merge_reports/20260312_family_qspec_reusable_state_audit.tsv`
+  - `tools/merge_reports/20260312_family_qspec_reusable_state_audit_summary.tsv`
+- current runtime queue:
+  - `tools/merge_reports/20260312_family_qspec_runtime_queue.tsv`
+  - `tools/merge_reports/20260312_family_qspec_runtime_queue_summary.tsv`
+- current full periodic progress tables:
+  - `tools/merge_reports/20260312_family_qspec_model_path_progress.md`
+  - `tools/merge_reports/20260312_family_qspec_barrier_progress.md`
 
 Important interpretation note:
 
@@ -59,11 +77,16 @@ Important interpretation note:
   useful as the original pre-rehome reconciliation snapshot.
 - it does not yet encode the later `16:50 EDT` muscat resume sessions for the
   former jerez partial roots.
-- `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv` is the
-  current machine-readable unified status table.
-- this markdown tracker is the readable narrative companion to that unified TSV.
+- `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv` is a
+  historical pre-reset unified status table.
+- the current live coordination state is now carried by:
+  - `tools/merge_reports/20260312_family_qspec_reusable_state_audit.tsv`
+  - `tools/merge_reports/20260312_family_qspec_runtime_queue.tsv`
+  - `tools/merge_reports/20260312_family_qspec_v2_active_tasks.tsv`
+  - `/home/jaguir26/local/state/exdqlm/family_qspec_v2/task_events.tsv`
+- this markdown tracker is the readable narrative companion to those files.
 
-## Current Unified Root Placement
+## Historical Pre-Reset Root Placement Snapshot
 
 | State | Roots | Notes |
 | --- | ---: | --- |
@@ -78,8 +101,10 @@ Sanity check:
 
 - `9 + 13 + 8 + 7 + 35 = 72` total campaign roots
 - these counts match `tools/merge_reports/20260312_family_qspec_unified_root_status.tsv`
+- this section is historical and describes the state before the canonical
+  relaunch reset
 
-## Current Muscat Live Execution
+## Historical Pre-Reset Muscat Live Execution
 
 Interpretation caveat:
 
@@ -117,7 +142,7 @@ former jerez partial roots were preserved and handed off.
 | `mqsp_jr_rss1kh_20260312_135054` | `qsp_rss1kh_20260310_204439` | static shrink `rhs`, `gausmix tau=0.25 TT=1000` | `resume_static_mcmc_from_vb.R` active | finish `exAL` MCMC, then postprocess/report |
 | `mqsp_jr_rdy5k_20260312_135054` | `qsp_rdy5k_fix_20260311_173314` | dynamic `gausmix tau=0.05 lastTT=5000` | `resume_dynamic_mcmc_from_vb.R` active | finish `DQLM` and `exDQLM` MCMC, then postprocess |
 
-## Completed On Muscat So Far
+## Historical Pre-Reset Roots Completed Before Canonical Relaunch Reset
 
 These roots are already complete inside the original muscat backlog wave.
 
@@ -779,22 +804,26 @@ Machine-readable audit:
 - `tools/merge_reports/20260312_family_qspec_reusable_state_audit.tsv`
 - `tools/merge_reports/20260312_family_qspec_reusable_state_audit_summary.tsv`
 
-Current local audit counts after:
+Latest local audit counts at the last refresh after:
 - canonical tau reset
 - exact jerez sync
 - static `0.95` prepared-input materialization
 - clean stop of the old muscat batch wave
+- active `fqv2_*` relaunch progress
 
-| unit_type | blocked | complete_reusable | missing | partial_reusable | notes |
-| --- | ---: | ---: | ---: | ---: | --- |
-| prepared_input | 0 | 54 | 0 | 0 | all canonical prepared roots now exist locally |
-| model_path | 0 | 46 | 84 | 14 | `14` are reusable resume-from-VB cases; `84` still need fresh VB->MCMC |
-| root_postprocess | 56 | 16 | 0 | 0 | `16` roots already have reusable postprocess outputs |
-| root_review | 56 | 16 | 0 | 0 | `16` roots already have reusable root-review outputs |
-| prior_compare | 14 | 0 | 4 | 0 | `4` prior-compare tasks are now ready but not yet run |
-| campaign_review | 3 | 0 | 0 | 0 | all still blocked on lower-level completion |
-| global_summary | 1 | 0 | 0 | 0 | blocked on campaign reviews |
-| legacy_root | n/a | n/a | n/a | n/a | `6` complete-out-of-scope legacy roots under `tau = 0.50`; see note below |
+These values evolve during the relaunch. The detailed live progress should be
+read from the periodic progress tables referenced below.
+
+| unit_type | blocked | complete_reusable | missing | partial_reusable | % complete within unit_type | notes |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| prepared_input | 0 | 54 | 0 | 0 | 100.0% | all canonical prepared roots now exist locally |
+| model_path | 0 | 50 | 64 | 30 | 34.7% | `30` are reusable resume-from-VB cases; `64` still need fresh VB->MCMC |
+| root_postprocess | 54 | 16 | 2 | 0 | 22.2% | `16` roots already have reusable postprocess outputs; `2` more are ready now |
+| root_review | 56 | 16 | 0 | 0 | 22.2% | `16` roots already have reusable root-review outputs |
+| prior_compare | 14 | 0 | 4 | 0 | 0.0% | `4` prior-compare tasks are ready but not yet run |
+| campaign_review | 3 | 0 | 0 | 0 | 0.0% | all still blocked on lower-level completion |
+| global_summary | 1 | 0 | 0 | 0 | 0.0% | blocked on campaign reviews |
+| legacy_root | n/a | n/a | n/a | n/a | n/a | `6` complete-out-of-scope legacy roots under `tau = 0.50`; see note below |
 
 Out-of-scope legacy inventory:
 - `tools/merge_reports/20260312_family_qspec_reusable_state_audit.tsv`
@@ -903,3 +932,83 @@ Current authoritative state is now split across three layers:
   - `tools/merge_reports/20260312_family_qspec_v2_active_tasks.tsv`
 
 This is the new authoritative coordination model for the muscat relaunch.
+
+### Full Periodic Progress Tables
+
+For day-to-day tracking, the tracker itself should stay narrative and stable.
+The full detailed progress tables should be regenerated and read from these
+files:
+
+- full 144-row model-path table:
+  - `tools/merge_reports/20260312_family_qspec_model_path_progress.md`
+  - `tools/merge_reports/20260312_family_qspec_model_path_progress.tsv`
+- model-path summary counts and percentages:
+  - `tools/merge_reports/20260312_family_qspec_model_path_progress_summary.md`
+  - `tools/merge_reports/20260312_family_qspec_model_path_progress_summary.tsv`
+- higher-layer root/barrier table:
+  - `tools/merge_reports/20260312_family_qspec_barrier_progress.md`
+  - `tools/merge_reports/20260312_family_qspec_barrier_progress.tsv`
+- higher-layer root/barrier summary:
+  - `tools/merge_reports/20260312_family_qspec_barrier_progress_summary.md`
+  - `tools/merge_reports/20260312_family_qspec_barrier_progress_summary.tsv`
+
+Refresh command from the repo root:
+
+```bash
+Rscript tools/merge_reports/20260312_build_family_qspec_progress_views.R "$PWD"
+```
+
+Interpretation of the model-path `stage_label` values:
+
+- `running_resume_mcmc`: active now; resuming from an existing VB fit into MCMC
+- `running_fresh_vb_then_mcmc`: active now; running the full fresh VB -> MCMC path
+- `queued_resume_ready`: not active yet; ready to resume as soon as a slot opens
+- `queued_restart_ready`: not active yet; stale partial state exists and the path
+  should restart cleanly
+- `queued_fresh_ready`: not active yet; no reusable fit exists and the path is
+  ready for a fresh launch
+- `complete_reusable`: fully complete on the canonical tau grid and should be
+  skipped by the launcher
+- `blocked`: waiting on prerequisites and not yet launchable
+
+Interpretation of the higher-layer barrier `stage_label` values:
+
+- `root_postprocess_ready`: both model paths for a root are done and root-level
+  postprocess can run
+- `root_postprocess_waiting_for_model_paths`: one or both model paths are still
+  incomplete
+- `root_review_complete`: root postprocess/review outputs are complete
+- `prior_compare_ready`: static shrink `ridge vs rhs` comparison is ready to run
+- `prior_compare_waiting_for_root_reviews`: waiting on one or both shrink root
+  reviews
+- `campaign_review_waiting_for_prerequisites`: campaign aggregate cannot run yet
+- `global_summary_waiting_for_campaigns`: final cross-family summary cannot run
+  yet
+
+Current regenerated model-path summary snapshot:
+
+| root_kind | stage_label | count | root_kind_total | % of root_kind | % of all model_paths |
+|---|---|---:|---:|---:|---:|
+| dynamic | `complete_reusable` | 14 | 36 | 38.9% | 9.7% |
+| dynamic | `queued_fresh_ready` | 4 | 36 | 11.1% | 2.8% |
+| dynamic | `running_resume_mcmc` | 18 | 36 | 50.0% | 12.5% |
+| static_paper | `complete_reusable` | 12 | 36 | 33.3% | 8.3% |
+| static_paper | `queued_fresh_ready` | 20 | 36 | 55.6% | 13.9% |
+| static_paper | `running_resume_mcmc` | 4 | 36 | 11.1% | 2.8% |
+| static_shrink | `complete_reusable` | 24 | 72 | 33.3% | 16.7% |
+| static_shrink | `queued_fresh_ready` | 40 | 72 | 55.6% | 27.8% |
+| static_shrink | `running_resume_mcmc` | 8 | 72 | 11.1% | 5.6% |
+
+Current regenerated barrier summary snapshot:
+
+| unit_type | stage_label | count | unit_type_total | % of unit_type | % of all barriers |
+|---|---|---:|---:|---:|---:|
+| `campaign_review` | `campaign_review_waiting_for_prerequisites` | 3 | 3 | 100.0% | 1.8% |
+| `global_summary` | `global_summary_waiting_for_campaigns` | 1 | 1 | 100.0% | 0.6% |
+| `prior_compare` | `prior_compare_ready` | 4 | 18 | 22.2% | 2.4% |
+| `prior_compare` | `prior_compare_waiting_for_root_reviews` | 14 | 18 | 77.8% | 8.4% |
+| `root_postprocess` | `root_postprocess_complete` | 16 | 72 | 22.2% | 9.6% |
+| `root_postprocess` | `root_postprocess_ready` | 2 | 72 | 2.8% | 1.2% |
+| `root_postprocess` | `root_postprocess_waiting_for_model_paths` | 54 | 72 | 75.0% | 32.5% |
+| `root_review` | `root_review_complete` | 16 | 72 | 22.2% | 9.6% |
+| `root_review` | `root_review_waiting_for_postprocess` | 56 | 72 | 77.8% | 33.7% |
