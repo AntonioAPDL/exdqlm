@@ -1,0 +1,4 @@
+sync_action	count
+skip_already_complete_on_muscat	8
+sync_root	8
+skip_not_complete_on_jerez	56

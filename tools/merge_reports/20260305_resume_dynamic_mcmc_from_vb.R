@@ -32,6 +32,14 @@ safe_num <- function(x, default) {
 
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
+safe_chr_vec <- function(x, default = NULL) {
+  if (!nzchar(x)) return(default)
+  vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+  vals <- vals[nzchar(vals)]
+  if (!length(vals)) return(default)
+  vals
+}
+
 cfg_path <- Sys.getenv(
   "EXDQLM_DYNAMIC_RUN_CONFIG",
   "results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_183508/tables/run_config.rds"
@@ -199,7 +207,12 @@ old_opts <- options(
 )
 on.exit(options(old_opts), add = TRUE)
 
-tasks <- expand.grid(model = c("exdqlm", "dqlm"), tau = p_vec, stringsAsFactors = FALSE)
+model_filter <- safe_chr_vec(Sys.getenv("EXDQLM_DYNAMIC_RESUME_MODELS", ""), default = c("exdqlm", "dqlm"))
+model_filter <- unique(tolower(model_filter))
+model_filter <- model_filter[model_filter %in% c("exdqlm", "dqlm")]
+if (!length(model_filter)) stop("No valid EXDQLM_DYNAMIC_RESUME_MODELS resolved.")
+
+tasks <- expand.grid(model = model_filter, tau = p_vec, stringsAsFactors = FALSE)
 tasks$seed <- vapply(seq_len(nrow(tasks)), function(i) {
   seed_from_status(tasks$model[i], tasks$tau[i], 202603060L + i * 1000L)
 }, integer(1))

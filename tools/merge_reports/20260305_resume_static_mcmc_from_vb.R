@@ -38,6 +38,14 @@ safe_num <- function(x, default) {
 
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
+safe_chr_vec <- function(x, default = NULL) {
+  if (!nzchar(x)) return(default)
+  vals <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
+  vals <- vals[nzchar(vals)]
+  if (!length(vals)) return(default)
+  vals
+}
+
 cfg_path <- Sys.getenv(
   "EXDQLM_STATIC_RUN_CONFIG",
   "results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_194203/tables/run_config.rds"
@@ -120,7 +128,12 @@ seed_from_status <- function(model_name, tau, fallback) {
   as.integer(fallback)
 }
 
-tasks <- expand.grid(model = c("exal", "al"), tau = p_vec, stringsAsFactors = FALSE)
+model_filter <- safe_chr_vec(Sys.getenv("EXDQLM_STATIC_RESUME_MODELS", ""), default = c("exal", "al"))
+model_filter <- unique(tolower(model_filter))
+model_filter <- model_filter[model_filter %in% c("exal", "al")]
+if (!length(model_filter)) stop("No valid EXDQLM_STATIC_RESUME_MODELS resolved.")
+
+tasks <- expand.grid(model = model_filter, tau = p_vec, stringsAsFactors = FALSE)
 tasks$seed <- vapply(seq_len(nrow(tasks)), function(i) {
   seed_from_status(tasks$model[i], tasks$tau[i], 202603050L + i * 1000L)
 }, integer(1))

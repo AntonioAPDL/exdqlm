@@ -1,0 +1,15 @@
+session_name	status	note
+mqsp_dynamic_tt5000_20260312_025039	tmux_killed	dynamic|gausmix|0.25|5000|
+mqsp_dynamic_tt500_20260312_025039	tmux_killed	dynamic|laplace|0.25|500|
+mqsp_jr_rsp100_20260312_135054	tmux_killed	static_paper|gausmix|0.25|100|paper
+mqsp_jr_rsp1k_20260312_135054	tmux_killed	static_paper|gausmix|0.25|1000|paper
+mqsp_jr_rss100h_20260312_135054	tmux_killed	static_shrink|gausmix|0.25|100|rhs
+mqsp_jr_rss100r_20260312_135054	tmux_killed	static_shrink|gausmix|0.25|100|ridge
+mqsp_jr_rss1kh_20260312_135054	tmux_killed	static_shrink|gausmix|0.25|1000|rhs
+mqsp_jr_rss1kr_20260312_135054	tmux_killed	static_shrink|gausmix|0.25|1000|ridge
+mqsp_static_paper_tt1000_20260312_024859	tmux_killed	static_paper|laplace|0.25|1000|
+mqsp_static_paper_tt100_20260312_024859	tmux_killed	static_paper|laplace|0.25|100|
+mqsp_static_shrink_rhs_tt1000_20260312_025039	tmux_killed	static_shrink|laplace|0.25|1000|rhs
+mqsp_static_shrink_rhs_tt100_20260312_024859	tmux_killed	static_shrink|laplace|0.25|100|rhs
+mqsp_static_shrink_ridge_tt1000_20260312_025039	tmux_killed	static_shrink|laplace|0.25|1000|ridge
+mqsp_static_shrink_ridge_tt100_20260312_024859	tmux_killed	static_shrink|laplace|0.25|100|ridge
