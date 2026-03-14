@@ -14,6 +14,28 @@
   merge(base_df, cand_df, by = by, all = TRUE, sort = FALSE)
 }
 
+.qdesn_validation_compare_plot_frame <- function(pair_group_cmp, metric_specs) {
+  frames <- lapply(metric_specs, function(spec) {
+    value_col <- spec$value_col
+    if (!value_col %in% names(pair_group_cmp)) {
+      return(NULL)
+    }
+    data.frame(
+      scenario = pair_group_cmp$scenario,
+      tau_label = pair_group_cmp$tau_label,
+      beta_prior_type = pair_group_cmp$beta_prior_type,
+      metric = spec$metric,
+      value = pair_group_cmp[[value_col]],
+      stringsAsFactors = FALSE
+    )
+  })
+  frames <- Filter(Negate(is.null), frames)
+  if (!length(frames)) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  .qdesn_validation_bind_rows(frames)
+}
+
 .qdesn_validation_compare_method_groups <- function(base_df, cand_df) {
   by <- c("scenario", "tau", "beta_prior_type", "reservoir_profile", "method")
   out <- .qdesn_validation_compare_merge(base_df, cand_df, by = by)
@@ -214,22 +236,14 @@ qdesn_validation_compare_campaign_reports <- function(baseline_report_root,
       ggplot2::ggsave(file.path(output_root, "plots", "runtime_ratio_compare.png"), p_runtime, width = 12, height = 8, dpi = 150)
     }
 
-    delta_df <- .qdesn_validation_bind_rows(list(
-      data.frame(
-        scenario = pair_group_cmp$scenario,
-        tau_label = pair_group_cmp$tau_label,
-        beta_prior_type = pair_group_cmp$beta_prior_type,
+    delta_df <- .qdesn_validation_compare_plot_frame(pair_group_cmp, list(
+      list(
         metric = "qhat_mae_delta",
-        value = pair_group_cmp$forecast_qhat_mae_delta_mcmc_minus_vb_delta_tuned_minus_baseline,
-        stringsAsFactors = FALSE
+        value_col = "forecast_qhat_mae_delta_mcmc_minus_vb_mean_delta_tuned_minus_baseline"
       ),
-      data.frame(
-        scenario = pair_group_cmp$scenario,
-        tau_label = pair_group_cmp$tau_label,
-        beta_prior_type = pair_group_cmp$beta_prior_type,
+      list(
         metric = "pinball_tau_delta",
-        value = pair_group_cmp$forecast_pinball_tau_delta_mcmc_minus_vb_delta_tuned_minus_baseline,
-        stringsAsFactors = FALSE
+        value_col = "forecast_pinball_tau_delta_mcmc_minus_vb_mean_delta_tuned_minus_baseline"
       )
     ))
     delta_df <- delta_df[is.finite(delta_df$value), , drop = FALSE]

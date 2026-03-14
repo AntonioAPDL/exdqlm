@@ -124,6 +124,19 @@ test_that("pilot validation root writes method summaries and campaign summaries"
   expect_true(file.exists(file.path(cmp_root, "tables", "pair_group_compare.csv")))
   expect_true(file.exists(file.path(cmp_root, "comparison_summary.md")))
   expect_true(all(abs(cmp$pair_group_compare$pair_comparison_eligible_rate_delta_tuned_minus_baseline) < 1e-12 | is.na(cmp$pair_group_compare$pair_comparison_eligible_rate_delta_tuned_minus_baseline)))
+
+  if (requireNamespace("ggplot2", quietly = TRUE)) {
+    cmp_plot_root <- file.path(tempdir(), paste0("qdesn-validation-compare-plots-", Sys.getpid()))
+    exdqlm:::qdesn_validation_compare_campaign_reports(
+      baseline_report_root = reports_root,
+      tuned_report_root = reports_root,
+      output_root = cmp_plot_root,
+      create_plots = TRUE
+    )
+    expect_true(file.exists(file.path(cmp_plot_root, "plots", "pair_eligibility_rate_compare.png")))
+    expect_true(file.exists(file.path(cmp_plot_root, "plots", "runtime_ratio_compare.png")))
+    expect_true(file.exists(file.path(cmp_plot_root, "plots", "score_delta_change_compare.png")))
+  }
 })
 
 test_that("VB signoff distinguishes stable converged from stable unconverged traces", {
