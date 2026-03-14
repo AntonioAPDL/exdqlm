@@ -79,7 +79,10 @@
 #'   for lighter-weight runs.
 #' @param trace.every Positive integer; when \code{trace.diagnostics=TRUE},
 #'   record one diagnostics row every \code{trace.every} iterations.
-#' @param verbose Print progress every 500 iters.
+#' @param verbose Print progress every \code{progress_every} iterations.
+#' @param progress_callback Optional callback invoked with a named list at MCMC
+#'   start, at each progress checkpoint, and on completion. Intended for
+#'   workflow-level per-case progress logging.
 #'
 #' @return A object of class "\code{exal_mcmc}" containing:
 #' \itemize{
@@ -138,7 +141,8 @@ exal_static_mcmc <- function(
   slice.max.steps = Inf,
   trace.diagnostics = TRUE,
   trace.every = 1L,
-  verbose = TRUE
+  verbose = TRUE,
+  progress_callback = NULL
 ){
   ## --- checks (mirror exdqlmMCMC style) ------------------------------------
   y <- as.numeric(y)
@@ -207,6 +211,20 @@ exal_static_mcmc <- function(
   trace.every <- suppressWarnings(as.integer(trace.every)[1])
   if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
   if (n.burn < mh.min_burn_adapt) mh.adapt <- FALSE
+  progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+  progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
+    progress_every_env
+  } else if (trace.diagnostics) {
+    trace.every
+  } else {
+    100L
+  }
+  progress_every <- max(1L, as.integer(progress_every)[1])
+  safe_progress_callback <- function(info) {
+    if (!is.function(progress_callback)) return(invisible(NULL))
+    try(progress_callback(info), silent = TRUE)
+    invisible(NULL)
+  }
 
   if (is.null(init)) init <- list()
   if (isTRUE(init.from.vb)) {
@@ -324,6 +342,21 @@ exal_static_mcmc <- function(
       cat(sprintf("Static DQLM MCMC | n=%d, p=%d | burn=%d, keep=%d, thin=%d\n",
                   n, p, n.burn, n.mcmc, thin))
     }
+    safe_progress_callback(list(
+      event = "start",
+      iter = 0L,
+      total_iter = as.integer(I),
+      phase = "burn",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      thin = as.integer(thin),
+      kept_completed = 0L,
+      kept_target = as.integer(n.mcmc),
+      sigma = sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_
+    ))
 
     tictoc::tic()
     ksave <- 0L
@@ -371,9 +404,26 @@ exal_static_mcmc <- function(
         }
       }
 
-      if (verbose && (i %% 500 == 0)) {
+      if (verbose && (i %% progress_every == 0)) {
         cat(sprintf("%s iteration %d | sigma=%.3f\n",
                     ifelse(i <= n.burn, "burn-in", "MCMC"), i, sigma))
+      }
+      if (i %% progress_every == 0L) {
+        safe_progress_callback(list(
+          event = "progress",
+          iter = as.integer(i),
+          total_iter = as.integer(I),
+          phase = if (i <= n.burn) "burn" else "keep",
+          n_burn = as.integer(n.burn),
+          n_mcmc = as.integer(n.mcmc),
+          thin = as.integer(thin),
+          kept_completed = as.integer(ksave),
+          kept_target = as.integer(n.mcmc),
+          sigma = sigma,
+          gamma = NA_real_,
+          kernel = "conjugate",
+          accept = NA_real_
+        ))
       }
     }
     run.time <- tictoc::toc(quiet = TRUE)
@@ -381,6 +431,22 @@ exal_static_mcmc <- function(
       cat(sprintf("MCMC complete: %d iterations, %.3f seconds\n",
                   I, run.time$toc - run.time$tic))
     }
+    safe_progress_callback(list(
+      event = "complete",
+      iter = as.integer(I),
+      total_iter = as.integer(I),
+      phase = "done",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      thin = as.integer(thin),
+      kept_completed = as.integer(ksave),
+      kept_target = as.integer(n.mcmc),
+      sigma = sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_,
+      runtime_sec = as.numeric(run.time$toc - run.time$tic)
+    ))
 
     ret <- list(
       run.time   = (run.time$toc - run.time$tic),
@@ -585,16 +651,6 @@ exal_static_mcmc <- function(
   )
   trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
   trace_idx <- 0L
-  progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
-  progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
-    progress_every_env
-  } else if (trace.diagnostics) {
-    trace.every
-  } else {
-    100L
-  }
-  progress_every <- max(1L, as.integer(progress_every)[1])
-
   if (mh.proposal %in% c("rw", "laplace_rw")) {
     mode0 <- find_mode_eta(eta, xb, sigma, v, s)
     proposal_sd <- if (identical(mh.proposal, "laplace_rw")) {
@@ -610,6 +666,21 @@ exal_static_mcmc <- function(
     cat(sprintf("Static exAL MCMC | n=%d, p=%d | burn=%d, keep=%d, thin=%d | mh=%s\n",
                 n, p, n.burn, n.mcmc, thin, mh.proposal))
   }
+  safe_progress_callback(list(
+    event = "start",
+    iter = 0L,
+    total_iter = as.integer(I),
+    phase = "burn",
+    n_burn = as.integer(n.burn),
+    n_mcmc = as.integer(n.mcmc),
+    thin = as.integer(thin),
+    kept_completed = 0L,
+    kept_target = as.integer(n.mcmc),
+    sigma = sigma,
+    gamma = gamma,
+    kernel = mh.proposal,
+    accept = NA_real_
+  ))
 
   tictoc::tic()
   ksave <- 0L
@@ -817,12 +888,45 @@ exal_static_mcmc <- function(
       utils::flush.console()
       try(flush(stdout()), silent = TRUE)
     }
+    if (i %% progress_every == 0L) {
+      safe_progress_callback(list(
+        event = "progress",
+        iter = as.integer(i),
+        total_iter = as.integer(I),
+        phase = if (i <= n.burn) "burn" else "keep",
+        n_burn = as.integer(n.burn),
+        n_mcmc = as.integer(n.mcmc),
+        thin = as.integer(thin),
+        kept_completed = as.integer(ksave),
+        kept_target = as.integer(n.mcmc),
+        sigma = sigma,
+        gamma = gamma,
+        kernel = mh.proposal,
+        accept = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+      ))
+    }
   }
   run.time <- tictoc::toc(quiet = TRUE)
   if (verbose) {
     cat(sprintf("MCMC complete: %d iterations, %.3f seconds\n",
                 I, run.time$toc - run.time$tic))
   }
+  safe_progress_callback(list(
+    event = "complete",
+    iter = as.integer(I),
+    total_iter = as.integer(I),
+    phase = "done",
+    n_burn = as.integer(n.burn),
+    n_mcmc = as.integer(n.mcmc),
+    thin = as.integer(thin),
+    kept_completed = as.integer(ksave),
+    kept_target = as.integer(n.mcmc),
+    sigma = sigma,
+    gamma = gamma,
+    kernel = mh.proposal,
+    accept = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+    runtime_sec = as.numeric(run.time$toc - run.time$tic)
+  ))
 
   accept_total <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
   accept_burn <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_

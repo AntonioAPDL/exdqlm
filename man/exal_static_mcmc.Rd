@@ -34,7 +34,8 @@ exal_static_mcmc(
   slice.max.steps = Inf,
   trace.diagnostics = TRUE,
   trace.every = 1L,
-  verbose = TRUE
+  verbose = TRUE,
+  progress_callback = NULL
 )
 }
 \arguments{
@@ -132,7 +133,11 @@ for lighter-weight runs.}
 \item{trace.every}{Positive integer; when \code{trace.diagnostics=TRUE},
 record one diagnostics row every \code{trace.every} iterations.}
 
-\item{verbose}{Print progress every 500 iters.}
+\item{verbose}{Print progress every \code{progress_every} iterations.}
+
+\item{progress_callback}{Optional callback invoked with a named list at MCMC
+start, at each progress checkpoint, and on completion. Intended for
+workflow-level per-case progress logging.}
 }
 \value{
 A object of class "\code{exal_mcmc}" containing:

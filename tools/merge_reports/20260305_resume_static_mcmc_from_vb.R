@@ -46,6 +46,8 @@ safe_chr_vec <- function(x, default = NULL) {
   vals
 }
 
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 cfg_path <- Sys.getenv(
   "EXDQLM_STATIC_RUN_CONFIG",
   "results/sim_suite_static/static_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_194203/tables/run_config.rds"
@@ -104,6 +106,7 @@ master_log <- file.path(status_dir, "resume_static_master.log")
 task_key <- function(model_name, tau) sprintf("%s_tau_%s", model_name, tau_lab(tau))
 task_log_file <- function(model_name, tau) file.path(status_dir, paste0(task_key(model_name, tau), ".log"))
 task_status_file <- function(model_name, tau) file.path(status_dir, paste0(task_key(model_name, tau), ".status.tsv"))
+task_progress_file <- function(model_name, tau) file.path(status_dir, paste0(task_key(model_name, tau), ".progress.tsv"))
 
 log_master <- function(...) {
   line <- paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "|", paste(..., collapse = " "))
@@ -119,6 +122,68 @@ log_task <- function(model_name, tau, ...) {
 write_status <- function(model_name, tau, stage, note = "") {
   line <- paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), stage, note, sep = "\t")
   cat(line, "\n", file = task_status_file(model_name, tau), append = TRUE)
+}
+
+ensure_progress_header <- function(model_name, tau) {
+  pf <- task_progress_file(model_name, tau)
+  if (!file.exists(pf)) {
+    cat(
+      paste(
+        c(
+          "timestamp", "event", "phase", "iter", "total_iter",
+          "n_burn", "n_mcmc", "thin", "kept_completed", "kept_target",
+          "sigma", "gamma", "kernel", "accept", "runtime_sec"
+        ),
+        collapse = "\t"
+      ),
+      "\n",
+      file = pf,
+      append = FALSE
+    )
+  }
+  invisible(pf)
+}
+
+fmt_num <- function(x, digits = 6L) {
+  x <- suppressWarnings(as.numeric(x)[1])
+  if (!is.finite(x) || is.na(x)) return("")
+  formatC(x, format = "fg", digits = digits, flag = "#")
+}
+
+append_progress <- function(model_name, tau, info) {
+  pf <- ensure_progress_header(model_name, tau)
+  fields <- c(
+    format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    as.character(info$event %||% ""),
+    as.character(info$phase %||% ""),
+    as.character(as.integer(info$iter %||% NA_integer_)),
+    as.character(as.integer(info$total_iter %||% NA_integer_)),
+    as.character(as.integer(info$n_burn %||% NA_integer_)),
+    as.character(as.integer(info$n_mcmc %||% NA_integer_)),
+    as.character(as.integer(info$thin %||% NA_integer_)),
+    as.character(as.integer(info$kept_completed %||% NA_integer_)),
+    as.character(as.integer(info$kept_target %||% NA_integer_)),
+    fmt_num(info$sigma),
+    fmt_num(info$gamma),
+    as.character(info$kernel %||% ""),
+    fmt_num(info$accept),
+    fmt_num(info$runtime_sec)
+  )
+  cat(paste(fields, collapse = "\t"), "\n", file = pf, append = TRUE)
+}
+
+progress_note <- function(info) {
+  paste(
+    sprintf("event=%s", as.character(info$event %||% "")),
+    sprintf("phase=%s", as.character(info$phase %||% "")),
+    sprintf("iter=%d/%d", as.integer(info$iter %||% 0L), as.integer(info$total_iter %||% 0L)),
+    sprintf("kept=%d/%d", as.integer(info$kept_completed %||% 0L), as.integer(info$kept_target %||% 0L)),
+    sprintf("sigma=%s", fmt_num(info$sigma)),
+    sprintf("gamma=%s", fmt_num(info$gamma)),
+    sprintf("kernel=%s", as.character(info$kernel %||% "")),
+    sprintf("acc=%s", fmt_num(info$accept)),
+    sep = " "
+  )
 }
 
 seed_from_status <- function(model_name, tau, fallback) {
@@ -174,6 +239,7 @@ safe_task <- function(task_row) {
 
   write_status(model_name, tau, "RESUME_MCMC_START", sprintf("seed=%d", seed))
   log_task(model_name, tau, sprintf("resume mcmc start seed=%d", seed))
+  ensure_progress_header(model_name, tau)
 
   vb_obj <- readRDS(vb_file)
   vb_fit <- vb_obj$fit
@@ -201,7 +267,13 @@ safe_task <- function(task_row) {
       mh.min_burn_adapt = mcmc_mh_min_burn_adapt,
       trace.diagnostics = mcmc_trace_diagnostics,
       trace.every = mcmc_trace_every,
-      verbose = mcmc_verbose
+      verbose = mcmc_verbose,
+      progress_callback = function(info) {
+        append_progress(model_name, tau, info)
+        if (identical(info$event, "progress")) {
+          write_status(model_name, tau, "MCMC_PROGRESS", progress_note(info))
+        }
+      }
     ),
     error = function(e) e
   )
@@ -286,6 +358,10 @@ resume_csv <- file.path(run_root, "tables", sprintf("pipeline_task_summary_resum
 utils::write.csv(resume_df, resume_csv, row.names = FALSE)
 
 log_master(sprintf("static resume complete | summary=%s", resume_csv))
+if (dry_run) {
+  cat(sprintf("Static resume dry-run complete. Summary: %s\n", resume_csv))
+  quit(save = "no", status = 0L)
+}
 bad_rows <- resume_df[!(resume_df$status %in% c("done", "skipped_existing")), , drop = FALSE]
 if (nrow(bad_rows)) {
   stop(
