@@ -78,6 +78,7 @@ test_that("pilot validation root writes method summaries and campaign summaries"
   expect_true(file.exists(file.path(res$root_dir, "manifest", "root_status.txt")))
   expect_true(file.exists(file.path(res$root_dir, "tables", "method_compare_long.csv")))
   expect_true(file.exists(file.path(res$root_dir, "tables", "method_compare_summary.csv")))
+  expect_true(file.exists(file.path(res$root_dir, "tables", "method_signoff_long.csv")))
   expect_true(file.exists(file.path(res$root_dir, "fits", "vb", "fit_summary.json")))
   expect_true(file.exists(file.path(res$root_dir, "fits", "mcmc", "fit_summary.json")))
   expect_true(file.exists(file.path(res$root_dir, "fits", "mcmc", "chain_summary.csv")))
@@ -85,17 +86,20 @@ test_that("pilot validation root writes method summaries and campaign summaries"
   camp <- exdqlm:::qdesn_validation_collect_campaign(
     results_root = results_root,
     report_root = reports_root,
-    create_plots = FALSE
+    create_plots = FALSE,
+    defaults = defaults
   )
 
   expect_true(nrow(camp$root_summary) >= 1L)
   expect_true(nrow(camp$method_summary) >= 2L)
+  expect_true(nrow(camp$method_signoff) >= 2L)
   expect_true(nrow(camp$method_group) >= 2L)
   expect_true(nrow(camp$pair_group) >= 1L)
   expect_true(nrow(camp$stage_group) >= 1L)
   expect_true(nrow(camp$chain_group) >= 1L)
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_root_summary.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_method_summary.csv")))
+  expect_true(file.exists(file.path(reports_root, "tables", "campaign_method_signoff.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_method_group_summary.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_pair_group_summary.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_stage_group_summary.csv")))
@@ -103,4 +107,78 @@ test_that("pilot validation root writes method summaries and campaign summaries"
   expect_true(file.exists(file.path(reports_root, "campaign_summary.md")))
   expect_true(any(camp$method_summary$method == "vb"))
   expect_true(any(camp$method_summary$method == "mcmc"))
+  expect_true(all(c("signoff_grade", "comparison_eligible") %in% names(camp$method_summary)))
+  expect_true("pair_signoff_grade" %in% names(camp$pair_summary))
+  expect_true("pair_comparison_eligible" %in% names(camp$pair_summary))
+})
+
+test_that("VB signoff distinguishes stable converged from stable unconverged traces", {
+  meta <- data.frame(
+    root_id = "root",
+    scenario = "toy_sine_small",
+    tau = 0.25,
+    beta_prior_type = "ridge",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8",
+    stringsAsFactors = FALSE
+  )
+  cfg <- exdqlm:::.qdesn_validation_signoff_cfg(NULL)$vb
+  progress <- data.frame(
+    method = "vb",
+    step = 1:8,
+    gamma = c(1.00, 1.02, 1.01, 1.009, 1.008, 1.0085, 1.0084, 1.00845),
+    sigma = c(0.60, 0.61, 0.605, 0.604, 0.6035, 0.6033, 0.6034, 0.60335),
+    elbo = c(-1.20, -1.05, -1.00, -0.995, -0.994, -0.9938, -0.9937, -0.99365),
+    beta_norm = c(0.80, 0.82, 0.815, 0.814, 0.8138, 0.8137, 0.81375, 0.81374),
+    stringsAsFactors = FALSE
+  )
+  health_pass <- data.frame(status = "SUCCESS", finite_ok = TRUE, domain_ok = TRUE, vb_converged = TRUE, stringsAsFactors = FALSE)
+  health_warn <- data.frame(status = "SUCCESS", finite_ok = TRUE, domain_ok = TRUE, vb_converged = FALSE, stringsAsFactors = FALSE)
+
+  pass_row <- exdqlm:::.qdesn_validation_vb_signoff_from_rows(meta, health_pass, progress, cfg)
+  warn_row <- exdqlm:::.qdesn_validation_vb_signoff_from_rows(meta, health_warn, progress, cfg)
+
+  expect_identical(pass_row$signoff_grade, "PASS")
+  expect_true(pass_row$comparison_eligible)
+  expect_identical(warn_row$signoff_grade, "WARN")
+  expect_true(warn_row$comparison_eligible)
+})
+
+test_that("MCMC signoff fails clearly drifting low-information chains", {
+  set.seed(42)
+  meta <- data.frame(
+    root_id = "root",
+    scenario = "toy_sine_small",
+    tau = 0.25,
+    beta_prior_type = "rhs",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8",
+    stringsAsFactors = FALSE
+  )
+  cfg <- exdqlm:::.qdesn_validation_signoff_cfg(NULL)$mcmc
+  x <- seq(0, 1, length.out = 40)
+  progress <- data.frame(
+    method = "mcmc",
+    step = seq_along(x),
+    gamma = x,
+    sigma = 0.2 + x / 10,
+    beta_norm = 1 + x,
+    rhs_tau = exp(-4 + x),
+    rhs_c2 = 0.5 + x,
+    rhs_lambda_mean = 1 + x / 2,
+    stringsAsFactors = FALSE
+  )
+  health <- data.frame(
+    status = "SUCCESS",
+    finite_ok = TRUE,
+    domain_ok = TRUE,
+    mcmc_n_keep = 40L,
+    stringsAsFactors = FALSE
+  )
+
+  row <- exdqlm:::.qdesn_validation_mcmc_signoff_from_rows(meta, health, progress, cfg)
+
+  expect_identical(row$signoff_grade, "FAIL")
+  expect_false(row$comparison_eligible)
+  expect_match(row$signoff_reason, "short_chain|low_ess|geweke_drift|half_chain_drift")
 })

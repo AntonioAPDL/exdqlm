@@ -13,6 +13,29 @@ pilot:
 runtime:
   threads: 1
 
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.10
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.20
+    require_converged_for_pass: true
+  mcmc:
+    min_keep_pass: 160
+    min_keep_warn: 100
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.90
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.50
+
 toy:
   scenarios:
     toy_sine_small:

@@ -95,6 +95,84 @@ Operational note:
   - total roots:
     - `24`
 
+## 0.2) Inference Signoff Layer Added On 2026-03-14
+
+The validation framework now distinguishes three levels of fit quality:
+
+- execution-healthy:
+  the job finished with finite values and no domain violation;
+- comparison-eligible:
+  the fit passed a minimum inference-health gate and may be compared with
+  caution;
+- convergence-certified:
+  the fit passed the stricter signoff gate and is suitable as a tuned baseline.
+
+This was added because the phase-1 comparison run completed cleanly at the
+pipeline level, but that alone is not enough to justify tuning decisions.
+
+### Current signoff policy
+
+For `vb`, signoff uses:
+
+- `status`, finite checks, and domain checks;
+- the package convergence flag;
+- tail-window stabilization of:
+  - `ELBO`
+  - `gamma`
+  - `sigma`
+  - `beta_norm`
+  - and, under `rhs`, the shrinkage traces `tau`, `c2`, and `lambda_mean`
+
+For `mcmc`, signoff uses the current single-chain diagnostics:
+
+- kept-draw count;
+- effective sample size;
+- lag-1 autocorrelation;
+- Geweke absolute `z`;
+- first-half versus second-half standardized drift.
+
+This is intentionally high-standard for a single-chain phase. It is strong
+enough to drive tuning, but it is still not the final multi-chain certification
+step. In particular:
+
+- split-`R-hat` is not used yet because the current validation campaign is
+  intentionally single-core and single-chain;
+- once the main tuning pass is complete, a reduced multi-chain validation layer
+  should be added before any broader default claims are finalized.
+
+### Baseline phase-1 signoff read
+
+Using the completed untuned phase-1 baseline campaign:
+
+- method signoff counts:
+  - `vb`: `PASS = 8`, `WARN = 7`, `FAIL = 9`
+  - `mcmc`: `PASS = 1`, `WARN = 5`, `FAIL = 18`
+- method comparison-eligible rates:
+  - `vb`: `0.625`
+  - `mcmc`: `0.250`
+- pair signoff counts:
+  - `PASS = 1`, `WARN = 3`, `FAIL = 20`
+- pair comparison-eligible rate:
+  - `0.1667`
+
+### Main current reading
+
+- The baseline campaign is operationally healthy.
+- The baseline campaign is not yet inference-certified as a full comparison
+  baseline.
+- `vb` is much closer to comparison-ready than `mcmc` on this current untuned
+  grid, but it still has several tail-stability warnings and failures.
+- The largest immediate tuning pressure is on MCMC mixing and chain length,
+  especially for:
+  - `rhs`
+  - lower-tail runs
+  - and a subset of ridge lower-tail cases
+- The strongest current `vb` tuning pressure is:
+  - increase the number of certified `PASS` cases without reintroducing RHS
+    collapse;
+  - reduce the number of stable-but-not-certified runs where the convergence
+    flag remains false.
+
 ## 1) Design Principles
 
 The validation framework should follow the same strengths as the more mature

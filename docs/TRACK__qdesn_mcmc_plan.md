@@ -687,6 +687,18 @@ The broader collector now also writes:
 - campaign chain-diagnostic summaries;
 - a markdown campaign overview.
 
+As of `2026-03-14`, the validation collector also includes a formal inference
+signoff layer:
+
+- `PASS / WARN / FAIL` grading for each `vb` fit;
+- `PASS / WARN / FAIL` grading for each `mcmc` fit;
+- pair-level comparison eligibility and pair-level signoff grading;
+- report manifests that record the analysis SHA and signoff thresholds used for
+  each collected campaign.
+
+This was added after the full phase-1 run showed that execution health alone
+was too weak a basis for tuning decisions.
+
 ## 12) Acceptance Criteria
 
 We should consider the MCMC workstream ready for broader use only when all of
@@ -702,13 +714,13 @@ the following are true:
 
 ## 13) Immediate Next Actions
 
-1. Extend the current smoke evaluation into larger MCMC-only simulation and
-   real-data study grids that remain outside the benchmark workflow.
-2. Profile runtime by stage and isolate the dominant cost centers for ridge and
+1. Use the completed phase-1 baseline plus the new signoff tables to choose
+   default tuning targets for `vb` and `mcmc`.
+2. Run the same phase-1 grid again under tuned settings so the comparison is
+   baseline versus tuned, not one tuned method against one untuned method.
+3. Profile runtime by stage and isolate the dominant cost centers for ridge and
    RHS MCMC separately.
-3. Tighten chain diagnostics, storage defaults, and reporting so MCMC run
-   quality is visible from saved artifacts without manual inspection.
-4. Compare VB versus MCMC on controlled non-benchmark cases where numerical
-   health and score quality can be assessed jointly.
+4. Once the tuned single-chain campaign is stable, add a reduced multi-chain
+   validation layer for final MCMC certification.
 5. Only after the MCMC path is judged stable and informative should broader
    evaluation work resume.

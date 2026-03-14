@@ -436,6 +436,89 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   as.numeric(out)[1L]
 }
 
+.qdesn_validation_safe_geweke_absz <- function(x) {
+  .qdesn_validation_require_namespace("coda")
+  x <- as.numeric(x)
+  x <- x[is.finite(x)]
+  if (length(x) < 10L) return(NA_real_)
+  out <- tryCatch(coda::geweke.diag(coda::as.mcmc(x))$z, error = function(...) NA_real_)
+  abs(as.numeric(out)[1L])
+}
+
+.qdesn_validation_halfchain_drift <- function(x) {
+  x <- as.numeric(x)
+  x <- x[is.finite(x)]
+  n <- length(x)
+  if (n < 8L) return(NA_real_)
+  n1 <- floor(n / 2L)
+  x1 <- x[seq_len(n1)]
+  x2 <- x[seq.int(n1 + 1L, n)]
+  s_full <- stats::sd(x)
+  if (!is.finite(s_full) || s_full <= 1e-12) {
+    return(if (isTRUE(all.equal(mean(x1), mean(x2), tolerance = 1e-12))) 0 else NA_real_)
+  }
+  abs(mean(x1) - mean(x2)) / s_full
+}
+
+.qdesn_validation_trace_tail_metrics <- function(x, tail_window = 5L, scale_floor = 1e-8, unit_floor = FALSE) {
+  x <- as.numeric(x)
+  x <- x[is.finite(x)]
+  if (!length(x)) {
+    return(list(
+      n_total = 0L,
+      n_tail = 0L,
+      last = NA_real_,
+      rel_range = NA_real_,
+      rel_drift = NA_real_,
+      rel_step_max = NA_real_
+    ))
+  }
+  tail_window <- max(2L, as.integer(tail_window)[1L])
+  tail_x <- utils::tail(x, min(length(x), tail_window))
+  scale <- max(scale_floor, stats::median(abs(tail_x)), abs(tail_x[[length(tail_x)]]))
+  if (isTRUE(unit_floor)) scale <- max(scale, 1)
+  list(
+    n_total = length(x),
+    n_tail = length(tail_x),
+    last = as.numeric(tail_x[[length(tail_x)]]),
+    rel_range = if (length(tail_x) > 1L) (max(tail_x) - min(tail_x)) / scale else 0,
+    rel_drift = if (length(tail_x) > 1L) abs(tail_x[[length(tail_x)]] - tail_x[[1L]]) / scale else 0,
+    rel_step_max = if (length(tail_x) > 1L) max(abs(diff(tail_x))) / scale else 0
+  )
+}
+
+.qdesn_validation_signoff_cfg <- function(defaults = NULL) {
+  base <- list(
+    vb = list(
+      tail_window = 5L,
+      min_trace_length = 5L,
+      elbo_rel_range_pass = 0.01,
+      elbo_rel_range_warn = 0.05,
+      core_rel_range_pass = 0.02,
+      core_rel_range_warn = 0.10,
+      rhs_rel_range_pass = 0.05,
+      rhs_rel_range_warn = 0.20,
+      require_converged_for_pass = TRUE
+    ),
+    mcmc = list(
+      min_keep_pass = 160L,
+      min_keep_warn = 100L,
+      ess_pass = 30,
+      ess_warn = 10,
+      acf1_pass = 0.90,
+      acf1_warn = 0.98,
+      geweke_absz_pass = 2.0,
+      geweke_absz_warn = 3.0,
+      half_drift_pass = 0.25,
+      half_drift_warn = 0.50
+    )
+  )
+  if (is.list(defaults) && is.list(defaults$signoff)) {
+    base <- utils::modifyList(base, defaults$signoff)
+  }
+  base
+}
+
 .qdesn_validation_bind_rows <- function(rows) {
   rows <- rows[!vapply(rows, is.null, logical(1))]
   if (!length(rows)) return(data.frame(stringsAsFactors = FALSE))
@@ -615,6 +698,240 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   base
 }
 
+.qdesn_validation_join_reasons <- function(x) {
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(x)]
+  if (!length(x)) return("")
+  paste(unique(x), collapse = "; ")
+}
+
+.qdesn_validation_vb_signoff_from_rows <- function(meta_row, health_row, progress_rows, cfg) {
+  out <- meta_row
+  out$method <- "vb"
+  out$signoff_grade <- "FAIL"
+  out$comparison_eligible <- FALSE
+  out$signoff_reason <- ""
+
+  status <- as.character(health_row$status[1L] %||% NA_character_)
+  finite_ok <- isTRUE(health_row$finite_ok[1L])
+  domain_ok <- isTRUE(health_row$domain_ok[1L])
+  converged <- isTRUE(health_row$vb_converged[1L])
+
+  out$vb_tail_window <- as.integer(cfg$tail_window %||% 5L)[1L]
+  out$vb_trace_length <- if (nrow(progress_rows)) nrow(progress_rows) else 0L
+  out$vb_converged <- converged
+
+  elbo_tail <- .qdesn_validation_trace_tail_metrics(progress_rows$elbo %||% numeric(0), tail_window = out$vb_tail_window, unit_floor = TRUE)
+  gamma_tail <- .qdesn_validation_trace_tail_metrics(progress_rows$gamma %||% numeric(0), tail_window = out$vb_tail_window)
+  sigma_tail <- .qdesn_validation_trace_tail_metrics(progress_rows$sigma %||% numeric(0), tail_window = out$vb_tail_window)
+  beta_tail <- .qdesn_validation_trace_tail_metrics(progress_rows$beta_norm %||% numeric(0), tail_window = out$vb_tail_window)
+  tau_tail <- .qdesn_validation_trace_tail_metrics(progress_rows$rhs_tau %||% numeric(0), tail_window = out$vb_tail_window)
+  c2_tail <- .qdesn_validation_trace_tail_metrics(progress_rows$rhs_c2 %||% numeric(0), tail_window = out$vb_tail_window)
+  lambda_tail <- .qdesn_validation_trace_tail_metrics(progress_rows$rhs_lambda_mean %||% numeric(0), tail_window = out$vb_tail_window)
+
+  out$vb_elbo_tail_rel_range <- elbo_tail$rel_range
+  out$vb_elbo_tail_rel_drift <- elbo_tail$rel_drift
+  out$vb_gamma_tail_rel_range <- gamma_tail$rel_range
+  out$vb_sigma_tail_rel_range <- sigma_tail$rel_range
+  out$vb_beta_norm_tail_rel_range <- beta_tail$rel_range
+  out$vb_rhs_tau_tail_rel_range <- tau_tail$rel_range
+  out$vb_rhs_c2_tail_rel_range <- c2_tail$rel_range
+  out$vb_rhs_lambda_mean_tail_rel_range <- lambda_tail$rel_range
+
+  core_vals <- c(gamma_tail$rel_range, sigma_tail$rel_range, beta_tail$rel_range)
+  rhs_vals <- c(tau_tail$rel_range, c2_tail$rel_range, lambda_tail$rel_range)
+  out$vb_core_tail_rel_range_max <- if (any(is.finite(core_vals))) max(core_vals, na.rm = TRUE) else NA_real_
+  out$vb_rhs_tail_rel_range_max <- if (any(is.finite(rhs_vals))) max(rhs_vals, na.rm = TRUE) else NA_real_
+  out$vb_tail_trace_ready <- is.finite(out$vb_trace_length) &&
+    out$vb_trace_length >= as.integer(cfg$min_trace_length %||% 5L)[1L]
+
+  reasons <- character(0)
+  if (!identical(status, "SUCCESS")) reasons <- c(reasons, "status_not_success")
+  if (!finite_ok) reasons <- c(reasons, "non_finite_fit")
+  if (!domain_ok) reasons <- c(reasons, "domain_violation")
+  if (!isTRUE(out$vb_tail_trace_ready)) reasons <- c(reasons, "short_trace")
+
+  if (length(reasons)) {
+    out$signoff_reason <- .qdesn_validation_join_reasons(reasons)
+    return(out)
+  }
+
+  core_pass <- is.finite(out$vb_core_tail_rel_range_max) &&
+    out$vb_core_tail_rel_range_max <= as.numeric(cfg$core_rel_range_pass %||% 0.02)
+  core_warn <- is.finite(out$vb_core_tail_rel_range_max) &&
+    out$vb_core_tail_rel_range_max <= as.numeric(cfg$core_rel_range_warn %||% 0.10)
+  elbo_pass <- is.finite(out$vb_elbo_tail_rel_range) &&
+    out$vb_elbo_tail_rel_range <= as.numeric(cfg$elbo_rel_range_pass %||% 0.01)
+  elbo_warn <- is.finite(out$vb_elbo_tail_rel_range) &&
+    out$vb_elbo_tail_rel_range <= as.numeric(cfg$elbo_rel_range_warn %||% 0.05)
+
+  rhs_present <- any(is.finite(rhs_vals))
+  rhs_pass <- !rhs_present || (is.finite(out$vb_rhs_tail_rel_range_max) &&
+    out$vb_rhs_tail_rel_range_max <= as.numeric(cfg$rhs_rel_range_pass %||% 0.05))
+  rhs_warn <- !rhs_present || (is.finite(out$vb_rhs_tail_rel_range_max) &&
+    out$vb_rhs_tail_rel_range_max <= as.numeric(cfg$rhs_rel_range_warn %||% 0.20))
+
+  if (!converged) reasons <- c(reasons, "vb_converged_false")
+  if (!elbo_warn) reasons <- c(reasons, "elbo_tail_unstable")
+  if (!core_warn) reasons <- c(reasons, "core_parameter_tail_unstable")
+  if (rhs_present && !rhs_warn) reasons <- c(reasons, "rhs_parameter_tail_unstable")
+
+  if (isTRUE(converged) && core_pass && elbo_pass && rhs_pass) {
+    out$signoff_grade <- "PASS"
+    out$comparison_eligible <- TRUE
+    out$signoff_reason <- "vb_converged; stable_tail"
+    return(out)
+  }
+
+  if (core_warn && elbo_warn && rhs_warn) {
+    out$signoff_grade <- "WARN"
+    out$comparison_eligible <- TRUE
+    if (!length(reasons)) reasons <- "stable_tail_but_not_certified"
+    out$signoff_reason <- .qdesn_validation_join_reasons(reasons)
+    return(out)
+  }
+
+  out$signoff_reason <- .qdesn_validation_join_reasons(reasons)
+  out
+}
+
+.qdesn_validation_mcmc_chain_diagnostics <- function(progress_rows, health_row) {
+  params <- c("gamma", "sigma", "beta_norm")
+  if ("rhs_tau" %in% names(progress_rows) && any(is.finite(progress_rows$rhs_tau))) params <- c(params, "rhs_tau")
+  if ("rhs_c2" %in% names(progress_rows) && any(is.finite(progress_rows$rhs_c2))) params <- c(params, "rhs_c2")
+  if ("rhs_lambda_mean" %in% names(progress_rows) && any(is.finite(progress_rows$rhs_lambda_mean))) params <- c(params, "rhs_lambda_mean")
+
+  rows <- lapply(params, function(nm) {
+    x <- as.numeric(progress_rows[[nm]])
+    x <- x[is.finite(x)]
+    if (!length(x)) return(NULL)
+    data.frame(
+      parameter = nm,
+      ess = .qdesn_validation_safe_ess(x),
+      acf1 = .qdesn_validation_safe_acf1(x),
+      geweke_absz = .qdesn_validation_safe_geweke_absz(x),
+      half_drift = .qdesn_validation_halfchain_drift(x),
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- .qdesn_validation_bind_rows(rows)
+  if (!nrow(out) && "mcmc_n_keep" %in% names(health_row)) {
+    out$n_keep <- as.integer(health_row$mcmc_n_keep[1L] %||% NA_integer_)
+  }
+  out
+}
+
+.qdesn_validation_mcmc_signoff_from_rows <- function(meta_row, health_row, progress_rows, cfg) {
+  out <- meta_row
+  out$method <- "mcmc"
+  out$signoff_grade <- "FAIL"
+  out$comparison_eligible <- FALSE
+  out$signoff_reason <- ""
+
+  status <- as.character(health_row$status[1L] %||% NA_character_)
+  finite_ok <- isTRUE(health_row$finite_ok[1L])
+  domain_ok <- isTRUE(health_row$domain_ok[1L])
+  n_keep <- as.integer(health_row$mcmc_n_keep[1L] %||% if (nrow(progress_rows)) nrow(progress_rows) else NA_integer_)
+  out$mcmc_n_keep <- n_keep
+
+  diag_rows <- .qdesn_validation_mcmc_chain_diagnostics(progress_rows, health_row)
+  if (!nrow(diag_rows)) {
+    out$signoff_reason <- .qdesn_validation_join_reasons(c("missing_chain_diagnostics"))
+    return(out)
+  }
+
+  core_params <- c("gamma", "sigma", "beta_norm")
+  rhs_params <- c("rhs_tau", "rhs_c2", "rhs_lambda_mean")
+  core_rows <- diag_rows[diag_rows$parameter %in% core_params, , drop = FALSE]
+  rhs_rows <- diag_rows[diag_rows$parameter %in% rhs_params, , drop = FALSE]
+
+  out$mcmc_min_ess_core <- if (nrow(core_rows) && any(is.finite(core_rows$ess))) min(core_rows$ess, na.rm = TRUE) else NA_real_
+  out$mcmc_max_acf1_core <- if (nrow(core_rows) && any(is.finite(core_rows$acf1))) max(core_rows$acf1, na.rm = TRUE) else NA_real_
+  out$mcmc_max_geweke_absz_core <- if (nrow(core_rows) && any(is.finite(core_rows$geweke_absz))) max(core_rows$geweke_absz, na.rm = TRUE) else NA_real_
+  out$mcmc_max_half_drift_core <- if (nrow(core_rows) && any(is.finite(core_rows$half_drift))) max(core_rows$half_drift, na.rm = TRUE) else NA_real_
+  out$mcmc_min_ess_rhs <- if (nrow(rhs_rows) && any(is.finite(rhs_rows$ess))) min(rhs_rows$ess, na.rm = TRUE) else NA_real_
+  out$mcmc_max_acf1_rhs <- if (nrow(rhs_rows) && any(is.finite(rhs_rows$acf1))) max(rhs_rows$acf1, na.rm = TRUE) else NA_real_
+  out$mcmc_max_geweke_absz_rhs <- if (nrow(rhs_rows) && any(is.finite(rhs_rows$geweke_absz))) max(rhs_rows$geweke_absz, na.rm = TRUE) else NA_real_
+  out$mcmc_max_half_drift_rhs <- if (nrow(rhs_rows) && any(is.finite(rhs_rows$half_drift))) max(rhs_rows$half_drift, na.rm = TRUE) else NA_real_
+
+  reasons <- character(0)
+  if (!identical(status, "SUCCESS")) reasons <- c(reasons, "status_not_success")
+  if (!finite_ok) reasons <- c(reasons, "non_finite_fit")
+  if (!domain_ok) reasons <- c(reasons, "domain_violation")
+  if (!is.finite(n_keep) || n_keep < as.integer(cfg$min_keep_warn %||% 100L)) reasons <- c(reasons, "short_chain")
+
+  fail_ess <- c(out$mcmc_min_ess_core, out$mcmc_min_ess_rhs)
+  fail_acf <- c(out$mcmc_max_acf1_core, out$mcmc_max_acf1_rhs)
+  fail_geweke <- c(out$mcmc_max_geweke_absz_core, out$mcmc_max_geweke_absz_rhs)
+  fail_drift <- c(out$mcmc_max_half_drift_core, out$mcmc_max_half_drift_rhs)
+
+  if (any(is.finite(fail_ess) & fail_ess < as.numeric(cfg$ess_warn %||% 10), na.rm = TRUE)) {
+    reasons <- c(reasons, "low_ess")
+  }
+  if (any(is.finite(fail_acf) & fail_acf > as.numeric(cfg$acf1_warn %||% 0.98), na.rm = TRUE)) {
+    reasons <- c(reasons, "high_autocorrelation")
+  }
+  if (any(is.finite(fail_geweke) & fail_geweke > as.numeric(cfg$geweke_absz_warn %||% 3), na.rm = TRUE)) {
+    reasons <- c(reasons, "geweke_drift")
+  }
+  if (any(is.finite(fail_drift) & fail_drift > as.numeric(cfg$half_drift_warn %||% 0.5), na.rm = TRUE)) {
+    reasons <- c(reasons, "half_chain_drift")
+  }
+
+  pass_keep <- is.finite(n_keep) && n_keep >= as.integer(cfg$min_keep_pass %||% 160L)
+  pass_ess <- all(c(
+    !is.finite(out$mcmc_min_ess_core) || out$mcmc_min_ess_core >= as.numeric(cfg$ess_pass %||% 30),
+    !is.finite(out$mcmc_min_ess_rhs) || out$mcmc_min_ess_rhs >= as.numeric(cfg$ess_pass %||% 30)
+  ))
+  pass_acf <- all(c(
+    !is.finite(out$mcmc_max_acf1_core) || out$mcmc_max_acf1_core <= as.numeric(cfg$acf1_pass %||% 0.90),
+    !is.finite(out$mcmc_max_acf1_rhs) || out$mcmc_max_acf1_rhs <= as.numeric(cfg$acf1_pass %||% 0.90)
+  ))
+  pass_geweke <- all(c(
+    !is.finite(out$mcmc_max_geweke_absz_core) || out$mcmc_max_geweke_absz_core <= as.numeric(cfg$geweke_absz_pass %||% 2),
+    !is.finite(out$mcmc_max_geweke_absz_rhs) || out$mcmc_max_geweke_absz_rhs <= as.numeric(cfg$geweke_absz_pass %||% 2)
+  ))
+  pass_drift <- all(c(
+    !is.finite(out$mcmc_max_half_drift_core) || out$mcmc_max_half_drift_core <= as.numeric(cfg$half_drift_pass %||% 0.25),
+    !is.finite(out$mcmc_max_half_drift_rhs) || out$mcmc_max_half_drift_rhs <= as.numeric(cfg$half_drift_pass %||% 0.25)
+  ))
+
+  warn_ess <- all(c(
+    !is.finite(out$mcmc_min_ess_core) || out$mcmc_min_ess_core >= as.numeric(cfg$ess_warn %||% 10),
+    !is.finite(out$mcmc_min_ess_rhs) || out$mcmc_min_ess_rhs >= as.numeric(cfg$ess_warn %||% 10)
+  ))
+  warn_acf <- all(c(
+    !is.finite(out$mcmc_max_acf1_core) || out$mcmc_max_acf1_core <= as.numeric(cfg$acf1_warn %||% 0.98),
+    !is.finite(out$mcmc_max_acf1_rhs) || out$mcmc_max_acf1_rhs <= as.numeric(cfg$acf1_warn %||% 0.98)
+  ))
+  warn_geweke <- all(c(
+    !is.finite(out$mcmc_max_geweke_absz_core) || out$mcmc_max_geweke_absz_core <= as.numeric(cfg$geweke_absz_warn %||% 3),
+    !is.finite(out$mcmc_max_geweke_absz_rhs) || out$mcmc_max_geweke_absz_rhs <= as.numeric(cfg$geweke_absz_warn %||% 3)
+  ))
+  warn_drift <- all(c(
+    !is.finite(out$mcmc_max_half_drift_core) || out$mcmc_max_half_drift_core <= as.numeric(cfg$half_drift_warn %||% 0.5),
+    !is.finite(out$mcmc_max_half_drift_rhs) || out$mcmc_max_half_drift_rhs <= as.numeric(cfg$half_drift_warn %||% 0.5)
+  ))
+
+  if (!length(reasons) && pass_keep && pass_ess && pass_acf && pass_geweke && pass_drift) {
+    out$signoff_grade <- "PASS"
+    out$comparison_eligible <- TRUE
+    out$signoff_reason <- "adequate_chain_length; acceptable_ess_acf_geweke_drift"
+    return(out)
+  }
+
+  if (identical(status, "SUCCESS") && finite_ok && domain_ok && warn_ess && warn_acf && warn_geweke && warn_drift) {
+    out$signoff_grade <- "WARN"
+    out$comparison_eligible <- TRUE
+    if (!length(reasons)) reasons <- "chain_marginal_but_usable"
+    out$signoff_reason <- .qdesn_validation_join_reasons(reasons)
+    return(out)
+  }
+
+  out$signoff_reason <- .qdesn_validation_join_reasons(reasons)
+  out
+}
+
 .qdesn_validation_method_fit_summary <- function(method, root_spec, cfg, summary_obj, error_message = NA_character_) {
   health <- .qdesn_validation_method_health(method, root_spec, summary_obj)
   list(
@@ -704,6 +1021,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       max = max(x),
       ess = .qdesn_validation_safe_ess(x),
       acf1 = .qdesn_validation_safe_acf1(x),
+      geweke_absz = .qdesn_validation_safe_geweke_absz(x),
+      half_drift = .qdesn_validation_halfchain_drift(x),
       stringsAsFactors = FALSE
     )
   })
@@ -1019,11 +1338,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
                "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
                "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
                "finite_ok", "domain_ok", "vb_converged", "vb_iter", "vb_gamma_last",
-               "vb_sigma_last", "vb_elbo_last", "vb_beta_norm", "rhs_tau_last", "rhs_c2_last")
+               "vb_sigma_last", "vb_elbo_last", "vb_beta_norm", "rhs_tau_last", "rhs_c2_last",
+               "signoff_grade", "comparison_eligible", "signoff_reason")
   keep_mc <- c(keys, "status", "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
                "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
                "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
-               "finite_ok", "domain_ok",
+               "finite_ok", "domain_ok", "signoff_grade", "comparison_eligible", "signoff_reason",
                "mcmc_n_keep", "mcmc_ess_gamma", "mcmc_ess_sigma", "mcmc_ess_beta_norm",
                "mcmc_ess_per_second_gamma", "mcmc_ess_per_second_sigma", "mcmc_ess_per_second_beta_norm",
                "mcmc_gamma_mean", "mcmc_sigma_mean", "mcmc_beta_norm_mean",
@@ -1078,6 +1398,16 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     out$mcmc_better_pinball_tau <- as.logical(is.finite(out$forecast_pinball_tau_delta_mcmc_minus_vb) &
       out$forecast_pinball_tau_delta_mcmc_minus_vb < 0)
   }
+  if (all(c("vb_signoff_grade", "mcmc_signoff_grade") %in% names(out))) {
+    out$pair_signoff_grade <- ifelse(
+      out$vb_signoff_grade == "PASS" & out$mcmc_signoff_grade == "PASS",
+      "PASS",
+      ifelse(out$vb_signoff_grade != "FAIL" & out$mcmc_signoff_grade != "FAIL", "WARN", "FAIL")
+    )
+  }
+  if (all(c("vb_comparison_eligible", "mcmc_comparison_eligible") %in% names(out))) {
+    out$pair_comparison_eligible <- as.logical(out$vb_comparison_eligible & out$mcmc_comparison_eligible)
+  }
   out
 }
 
@@ -1096,6 +1426,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     n_methods = nrow(method_rows),
     vb_status = if (any(method_rows$method == "vb")) as.character(method_rows$status[method_rows$method == "vb"][1L]) else NA_character_,
     mcmc_status = if (any(method_rows$method == "mcmc")) as.character(method_rows$status[method_rows$method == "mcmc"][1L]) else NA_character_,
+    vb_signoff_grade = if (any(method_rows$method == "vb")) as.character(method_rows$signoff_grade[method_rows$method == "vb"][1L] %||% NA_character_) else NA_character_,
+    mcmc_signoff_grade = if (any(method_rows$method == "mcmc")) as.character(method_rows$signoff_grade[method_rows$method == "mcmc"][1L] %||% NA_character_) else NA_character_,
+    pair_signoff_grade = as.character(pair_summary$pair_signoff_grade[1L] %||% NA_character_),
+    pair_comparison_eligible = as.logical(pair_summary$pair_comparison_eligible[1L] %||% FALSE),
     both_finite_ok = as.logical(pair_summary$both_finite_ok[1L] %||% FALSE),
     both_domain_ok = as.logical(pair_summary$both_domain_ok[1L] %||% FALSE),
     runtime_ratio_mcmc_vs_vb = as.numeric(pair_summary$runtime_ratio_mcmc_vs_vb[1L] %||% NA_real_),
@@ -1179,6 +1513,17 @@ qdesn_validation_run_root <- function(root_spec,
   }
 
   method_rows <- .qdesn_validation_bind_rows(lapply(results, function(x) x$health))
+  signoff_rows <- .qdesn_validation_collect_method_signoff_rows(root_dir, defaults = defaults)
+  if (nrow(signoff_rows)) {
+    method_rows <- merge(
+      method_rows,
+      signoff_rows,
+      by = c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile", "method"),
+      all.x = TRUE,
+      sort = FALSE
+    )
+    .qdesn_validation_write_df(signoff_rows, file.path(root_dir, "tables", "method_signoff_long.csv"))
+  }
   if (nrow(method_rows)) {
     .qdesn_validation_write_df(method_rows, file.path(root_dir, "tables", "method_compare_long.csv"))
   }
@@ -1291,6 +1636,34 @@ qdesn_validation_run_root <- function(root_spec,
   .qdesn_validation_bind_rows(rows)
 }
 
+.qdesn_validation_collect_method_signoff_rows <- function(root_dirs, defaults = NULL) {
+  cfg <- .qdesn_validation_signoff_cfg(defaults)
+  rows <- list()
+  for (root_dir in root_dirs) {
+    meta <- .qdesn_validation_collect_root_meta(root_dir)
+    if (!nrow(meta)) next
+    for (method in c("vb", "mcmc")) {
+      health_path <- file.path(root_dir, "fits", method, "health_summary.csv")
+      if (!file.exists(health_path)) next
+      health_row <- utils::read.csv(health_path, stringsAsFactors = FALSE)
+      if (!nrow(health_row)) next
+      progress_path <- file.path(root_dir, "fits", method, "progress_trace.csv")
+      progress_rows <- if (file.exists(progress_path)) {
+        utils::read.csv(progress_path, stringsAsFactors = FALSE)
+      } else {
+        data.frame(stringsAsFactors = FALSE)
+      }
+      signoff_row <- if (identical(method, "vb")) {
+        .qdesn_validation_vb_signoff_from_rows(meta[1L, , drop = FALSE], health_row[1L, , drop = FALSE], progress_rows, cfg$vb)
+      } else {
+        .qdesn_validation_mcmc_signoff_from_rows(meta[1L, , drop = FALSE], health_row[1L, , drop = FALSE], progress_rows, cfg$mcmc)
+      }
+      rows[[length(rows) + 1L]] <- signoff_row
+    }
+  }
+  .qdesn_validation_bind_rows(rows)
+}
+
 .qdesn_validation_group_method_summary <- function(method_summary) {
   if (!nrow(method_summary)) return(data.frame(stringsAsFactors = FALSE))
   group_cols <- c("scenario", "tau", "beta_prior_type", "reservoir_profile", "method")
@@ -1312,6 +1685,11 @@ qdesn_validation_run_root <- function(root_spec,
     row$success_rate <- row$n_success / row$n_roots
     row$finite_ok_rate <- mean(as.logical(sub$finite_ok), na.rm = TRUE)
     row$domain_ok_rate <- mean(as.logical(sub$domain_ok), na.rm = TRUE)
+    row$n_signoff_pass <- sum(as.character(sub$signoff_grade) == "PASS", na.rm = TRUE)
+    row$n_signoff_warn <- sum(as.character(sub$signoff_grade) == "WARN", na.rm = TRUE)
+    row$n_signoff_fail <- sum(as.character(sub$signoff_grade) == "FAIL", na.rm = TRUE)
+    row$signoff_pass_rate <- row$n_signoff_pass / row$n_roots
+    row$comparison_eligible_rate <- mean(as.logical(sub$comparison_eligible), na.rm = TRUE)
     row
   })
   status_part <- .qdesn_validation_bind_rows(status_rows)
@@ -1343,6 +1721,11 @@ qdesn_validation_run_root <- function(root_spec,
     row$both_success_rate <- row$n_both_success / row$n_pairs
     row$both_finite_ok_rate <- mean(as.logical(sub$both_finite_ok), na.rm = TRUE)
     row$both_domain_ok_rate <- mean(as.logical(sub$both_domain_ok), na.rm = TRUE)
+    row$n_pair_signoff_pass <- sum(as.character(sub$pair_signoff_grade) == "PASS", na.rm = TRUE)
+    row$n_pair_signoff_warn <- sum(as.character(sub$pair_signoff_grade) == "WARN", na.rm = TRUE)
+    row$n_pair_signoff_fail <- sum(as.character(sub$pair_signoff_grade) == "FAIL", na.rm = TRUE)
+    row$pair_signoff_pass_rate <- row$n_pair_signoff_pass / row$n_pairs
+    row$pair_comparison_eligible_rate <- mean(as.logical(sub$pair_comparison_eligible), na.rm = TRUE)
     row$n_mcmc_better_qhat_mae <- sum(as.logical(sub$mcmc_better_qhat_mae), na.rm = TRUE)
     row$n_mcmc_better_pinball_tau <- sum(as.logical(sub$mcmc_better_pinball_tau), na.rm = TRUE)
     row$mcmc_better_qhat_mae_rate <- row$n_mcmc_better_qhat_mae / row$n_pairs
@@ -1367,7 +1750,7 @@ qdesn_validation_run_root <- function(root_spec,
   .qdesn_validation_group_numeric(
     chain_rows,
     group_cols = c("scenario", "tau", "beta_prior_type", "reservoir_profile", "parameter"),
-    numeric_cols = c("mean", "sd", "min", "max", "ess", "acf1")
+    numeric_cols = c("mean", "sd", "min", "max", "ess", "acf1", "geweke_absz", "half_drift")
   )
 }
 
@@ -1383,10 +1766,20 @@ qdesn_validation_run_root <- function(root_spec,
 
   pair_rollup <- if (nrow(pair_group)) {
     pair_group[, c("scenario", "tau", "beta_prior_type", "n_pairs", "both_success_rate",
-                   "both_finite_ok_rate", "runtime_ratio_mcmc_vs_vb_mean",
+                   "both_finite_ok_rate", "pair_comparison_eligible_rate",
+                   "pair_signoff_pass_rate", "runtime_ratio_mcmc_vs_vb_mean",
                    "forecast_qhat_mae_delta_mcmc_minus_vb_mean",
                    "forecast_pinball_tau_delta_mcmc_minus_vb_mean"),
                drop = FALSE]
+  } else {
+    data.frame(stringsAsFactors = FALSE)
+  }
+
+  method_rollup <- if (nrow(method_group)) {
+    method_group[, c("scenario", "tau", "beta_prior_type", "method", "n_roots",
+                     "success_rate", "comparison_eligible_rate", "signoff_pass_rate",
+                     "fit_runtime_seconds_mean"),
+                 drop = FALSE]
   } else {
     data.frame(stringsAsFactors = FALSE)
   }
@@ -1408,14 +1801,23 @@ qdesn_validation_run_root <- function(root_spec,
   )
   lines <- c(lines, .qdesn_validation_df_to_markdown(utils::head(pair_rollup, 20L)))
   lines <- c(lines, "", "## Method Rollup", "")
-  lines <- c(lines, .qdesn_validation_df_to_markdown(utils::head(method_group, 20L)))
+  lines <- c(lines, .qdesn_validation_df_to_markdown(utils::head(method_rollup, 20L)))
   lines
 }
 
-qdesn_validation_collect_campaign <- function(results_root, report_root, create_plots = TRUE) {
+qdesn_validation_collect_campaign <- function(results_root,
+                                             report_root,
+                                             create_plots = TRUE,
+                                             defaults = NULL,
+                                             defaults_path = file.path("config", "validation", "qdesn_mcmc_compare_defaults.yaml"),
+                                             signoff_cfg = NULL) {
   .qdesn_validation_dir_create(report_root)
   .qdesn_validation_dir_create(file.path(report_root, "tables"))
   .qdesn_validation_dir_create(file.path(report_root, "plots"))
+  .qdesn_validation_dir_create(file.path(report_root, "manifest"))
+
+  defaults <- defaults %||% tryCatch(qdesn_validation_load_defaults(defaults_path), error = function(...) NULL)
+  signoff_cfg <- signoff_cfg %||% .qdesn_validation_signoff_cfg(defaults)
 
   roots_dir <- file.path(results_root, "roots")
   root_dirs <- sort(list.dirs(roots_dir, recursive = FALSE, full.names = TRUE))
@@ -1434,7 +1836,34 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
 
   root_summary <- .qdesn_validation_bind_rows(root_summary_rows)
   method_summary <- .qdesn_validation_bind_rows(method_rows)
-  pair_summary <- .qdesn_validation_bind_rows(pair_rows)
+  signoff_rows <- .qdesn_validation_collect_method_signoff_rows(root_dirs, defaults = defaults)
+  if (nrow(signoff_rows) && nrow(method_summary)) {
+    drop_cols <- intersect(
+      names(method_summary),
+      setdiff(names(signoff_rows), c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile", "method"))
+    )
+    if (length(drop_cols)) {
+      method_summary <- method_summary[, setdiff(names(method_summary), drop_cols), drop = FALSE]
+    }
+    method_summary <- merge(
+      method_summary,
+      signoff_rows,
+      by = c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile", "method"),
+      all.x = TRUE,
+      sort = FALSE
+    )
+  }
+  pair_summary <- if (nrow(method_summary)) .qdesn_validation_pair_summary(method_summary) else .qdesn_validation_bind_rows(pair_rows)
+  if (nrow(method_summary)) {
+    root_summary <- .qdesn_validation_bind_rows(lapply(split(method_summary, method_summary$root_id), function(sub) {
+      pair_sub <- pair_summary[pair_summary$root_id == as.character(sub$root_id[1L]), , drop = FALSE]
+      .qdesn_validation_root_summary(
+        root_spec = as.list(sub[1L, c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile"), drop = FALSE]),
+        method_rows = sub,
+        pair_summary = pair_sub
+      )
+    }))
+  }
   stage_rows <- .qdesn_validation_collect_stage_rows(root_dirs)
   chain_rows <- .qdesn_validation_collect_chain_rows(root_dirs)
   method_group <- .qdesn_validation_group_method_summary(method_summary)
@@ -1444,6 +1873,7 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
 
   .qdesn_validation_write_df(root_summary, file.path(report_root, "tables", "campaign_root_summary.csv"))
   .qdesn_validation_write_df(method_summary, file.path(report_root, "tables", "campaign_method_summary.csv"))
+  .qdesn_validation_write_df(signoff_rows, file.path(report_root, "tables", "campaign_method_signoff.csv"))
   .qdesn_validation_write_df(pair_summary, file.path(report_root, "tables", "campaign_pair_summary.csv"))
   .qdesn_validation_write_df(stage_rows, file.path(report_root, "tables", "campaign_stage_timing_long.csv"))
   .qdesn_validation_write_df(chain_rows, file.path(report_root, "tables", "campaign_chain_summary.csv"))
@@ -1464,6 +1894,14 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
     stringsAsFactors = FALSE
   )
   .qdesn_validation_write_df(campaign_status, file.path(report_root, "tables", "campaign_status.csv"))
+  .qdesn_validation_write_json(file.path(report_root, "manifest", "report_manifest.json"), list(
+    generated_at = as.character(Sys.time()),
+    report_root = report_root,
+    results_root = results_root,
+    analysis_git_sha = .qdesn_validation_git_sha(),
+    defaults_path = defaults_path,
+    signoff = signoff_cfg
+  ))
   .qdesn_validation_write_lines(
     file.path(report_root, "campaign_summary.md"),
     .qdesn_validation_campaign_overview_lines(
@@ -1515,19 +1953,23 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
       ggplot2::ggsave(file.path(report_root, "plots", "campaign_score_compare.png"), p_score, width = 13, height = 8, dpi = 150)
     }
 
-    health_df <- method_summary[, c("scenario", "tau_label", "beta_prior_type", "method", "status", "finite_ok", "domain_ok"), drop = FALSE]
+    health_df <- method_summary[, c("scenario", "tau_label", "beta_prior_type", "method", "status", "finite_ok", "domain_ok", "signoff_grade"), drop = FALSE]
     health_df$health_flag <- ifelse(
       as.character(health_df$status) != "SUCCESS",
-      "fail",
-      ifelse(!(as.logical(health_df$finite_ok) & as.logical(health_df$domain_ok)), "unhealthy", "healthy")
+      "FAIL",
+      ifelse(
+        !(as.logical(health_df$finite_ok) & as.logical(health_df$domain_ok)),
+        "FAIL",
+        ifelse(is.na(health_df$signoff_grade) | !nzchar(as.character(health_df$signoff_grade)), "FAIL", as.character(health_df$signoff_grade))
+      )
     )
     health_df$row_label <- paste(health_df$scenario, health_df$beta_prior_type, sep = " | ")
     if (nrow(health_df)) {
       p_health <- ggplot2::ggplot(health_df, ggplot2::aes(x = tau_label, y = row_label, fill = health_flag)) +
         ggplot2::geom_tile(colour = "white", linewidth = 0.4) +
         ggplot2::facet_wrap(~ method) +
-        ggplot2::scale_fill_manual(values = c(healthy = "#059669", unhealthy = "#d97706", fail = "#dc2626")) +
-        ggplot2::labs(title = "Campaign Health Matrix", x = "tau", y = NULL, fill = NULL) +
+        ggplot2::scale_fill_manual(values = c(PASS = "#059669", WARN = "#d97706", FAIL = "#dc2626")) +
+        ggplot2::labs(title = "Campaign Inference Signoff Matrix", x = "tau", y = NULL, fill = NULL) +
         ggplot2::theme_minimal(base_size = 11) +
         ggplot2::theme(legend.position = "top")
       ggplot2::ggsave(file.path(report_root, "plots", "campaign_health_matrix.png"), p_health, width = 10, height = 5.5, dpi = 150)
@@ -1541,6 +1983,20 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
         reservoir_profile = pair_summary$reservoir_profile
       )
       pair_summary$tau_label <- .qdesn_validation_tau_label(pair_summary$tau)
+      pair_summary$row_label <- paste(pair_summary$scenario, pair_summary$beta_prior_type, sep = " | ")
+      if ("pair_signoff_grade" %in% names(pair_summary)) {
+        pair_heat <- pair_summary[, c("tau_label", "row_label", "pair_signoff_grade"), drop = FALSE]
+        pair_heat <- pair_heat[!is.na(pair_heat$pair_signoff_grade) & nzchar(pair_heat$pair_signoff_grade), , drop = FALSE]
+        if (nrow(pair_heat)) {
+          p_pair_health <- ggplot2::ggplot(pair_heat, ggplot2::aes(x = tau_label, y = row_label, fill = pair_signoff_grade)) +
+            ggplot2::geom_tile(colour = "white", linewidth = 0.4) +
+            ggplot2::scale_fill_manual(values = c(PASS = "#059669", WARN = "#d97706", FAIL = "#dc2626")) +
+            ggplot2::labs(title = "Pair Comparison Signoff Matrix", x = "tau", y = NULL, fill = NULL) +
+            ggplot2::theme_minimal(base_size = 11) +
+            ggplot2::theme(legend.position = "top")
+          ggplot2::ggsave(file.path(report_root, "plots", "campaign_pair_signoff_matrix.png"), p_pair_health, width = 10, height = 5.5, dpi = 150)
+        }
+      }
     }
 
     if (nrow(pair_summary) && "runtime_ratio_mcmc_vs_vb" %in% names(pair_summary)) {
@@ -1614,6 +2070,7 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
   invisible(list(
     root_summary = root_summary,
     method_summary = method_summary,
+    method_signoff = signoff_rows,
     pair_summary = pair_summary,
     stage_rows = stage_rows,
     chain_rows = chain_rows,
@@ -1706,10 +2163,22 @@ qdesn_validation_run_campaign <- function(grid = NULL,
     }
     run_status_rows[[length(run_status_rows) + 1L]] <- row
     .qdesn_validation_write_df(.qdesn_validation_bind_rows(run_status_rows), file.path(report_run_root, "tables", "campaign_progress.csv"))
-    qdesn_validation_collect_campaign(results_root = results_run_root, report_root = report_run_root, create_plots = create_plots)
+    qdesn_validation_collect_campaign(
+      results_root = results_run_root,
+      report_root = report_run_root,
+      create_plots = create_plots,
+      defaults = defaults,
+      defaults_path = defaults_path
+    )
   }
 
-  final <- qdesn_validation_collect_campaign(results_root = results_run_root, report_root = report_run_root, create_plots = create_plots)
+  final <- qdesn_validation_collect_campaign(
+    results_root = results_run_root,
+    report_root = report_run_root,
+    create_plots = create_plots,
+    defaults = defaults,
+    defaults_path = defaults_path
+  )
   .qdesn_validation_write_json(file.path(report_run_root, "manifest", "campaign_completed.json"), list(
     finished_at = as.character(Sys.time()),
     results_root = results_run_root,

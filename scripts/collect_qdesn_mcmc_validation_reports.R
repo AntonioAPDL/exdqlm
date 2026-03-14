@@ -23,6 +23,7 @@ pkgload::load_all(repo_root, quiet = TRUE)
 
 results_root <- get_arg("--results-root")
 reports_root <- get_arg("--reports-root")
+defaults_path <- get_arg("--defaults", file.path("config", "validation", "qdesn_mcmc_compare_defaults.yaml"))
 if (is.null(results_root) || is.null(reports_root)) {
   stop("--results-root and --reports-root are required.", call. = FALSE)
 }
@@ -30,7 +31,8 @@ if (is.null(results_root) || is.null(reports_root)) {
 res <- exdqlm:::qdesn_validation_collect_campaign(
   results_root = normalizePath(results_root, winslash = "/", mustWork = TRUE),
   report_root = normalizePath(reports_root, winslash = "/", mustWork = FALSE),
-  create_plots = !has_flag("--no-plots")
+  create_plots = !has_flag("--no-plots"),
+  defaults_path = defaults_path
 )
 
 cat(sprintf("Collected %d roots into %s\n", nrow(res$root_summary), res$report_root))
