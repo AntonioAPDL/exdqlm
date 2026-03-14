@@ -1094,3 +1094,48 @@ Current clean recovery relaunch evidence:
   - `worker heartbeat | pid=... | elapsed_s=60 | cpu=100 | rss_mb=284.1`
     in
     `worker_logs/mp__root__static_paper__normal__tau_0p25__tt_100__exal.log`
+
+## 2026-03-14 Static exAL Resume Root-Cause Closure
+
+Status snapshot at 2026-03-14 18:44 EDT:
+
+- Root cause of the stuck static `exAL` tail is confirmed: the static resume path was reusing non-finite VB expectations as MCMC initials for the remaining `tau=0.25` static `exAL` cases.
+- For all 18 formerly stuck cases, the exAL VB fit had:
+  - non-finite `qbeta$m`
+  - non-finite `qv$E_v`
+  - non-finite `qs$E_s`
+  - finite `qsiggam$sigma_mean`
+  - finite `qsiggam$gamma_mean`
+- That made the first static MCMC `v` update invalid before iteration 1:
+  - `beta`, `v`, `s` entered as `NaN`
+  - `z` became `NaN`
+  - `chi_i` became `NaN`
+  - `sample_gig_devroye_vector()` then spun in the first GIG draw
+- The apparent lack of progress rows was therefore a consequence of invalid MCMC state, not the primary bug.
+
+Implemented fix:
+
+- `.static_vb_to_mcmc_init()` now sanitizes non-finite VB-derived initials and drops bad `beta`, `v`, and `s` instead of passing `NaN` into MCMC.
+- `exal_static_mcmc()` now validates static init state and GIG inputs explicitly and fails fast on invalid numeric state.
+- `sample_gig_devroye_vector()` now rejects non-finite/non-positive inputs instead of entering an unbounded spin.
+- static resume logging now records `RESUME_INIT_SANITIZED` when fallback initialization is used.
+
+Validation:
+
+- A representative live-case scratch replay using the exact production resume script and a copied real `tau=0.25` static `exAL` root succeeded with:
+  - `RESUME_INIT_SANITIZED`
+  - `MCMC_PROGRESS`
+  - `MCMC_DONE`
+- The 18 live static `exAL` resume workers were then cleanly recycled at `2026-03-14 18:40:34 EDT`.
+- All 18 were relaunched at `2026-03-14 18:40:51 EDT` under the fixed path.
+- The recycled static `exAL` cases now emit real progress rows and no longer stall at `start`.
+- Model-path layer is now fully complete again:
+  - `144 / 144` model paths complete
+
+New downstream blocker after model-fit completion:
+
+- The next failing layer is `root_review`, not model fitting.
+- Current failure is in `20260305_static_vb_mcmc_report.R` with:
+  - `Error in [.data.frame(runtime_diag, , c("model", "tau", "beta_prior", ...): undefined columns selected`
+- `prior_compare` tasks are succeeding.
+- So the static resume/MCMC issue is closed; the remaining blocker is now the static review/report stage.
