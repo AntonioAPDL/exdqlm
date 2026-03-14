@@ -1,0 +1,503 @@
+# TRACK: Q-DESN MCMC Alternative to VB
+
+Date: 2026-03-13
+Branch: `feature/qdesn-mcmc-alternative`
+Owner: Q-DESN readout inference refactor
+Status: planning and theory-to-code design
+
+## 0) Goal
+
+Add an MCMC implementation for the Q-DESN readout that is:
+
+- theory-consistent with the current Q-DESN / exAL hierarchy;
+- a real alternative to the current VB path, not a separate experimental fork;
+- integrated so the same Q-DESN reservoir/design code can be used with either
+  inference method;
+- usable from the existing simulation and real-data pipelines with a clean
+  `vb` vs `mcmc` switch;
+- tested at the sampler, model, and pipeline levels.
+
+Benchmarking is intentionally on standby during this workstream. The first goal
+is to make the MCMC readout correct, stable, and easy to route through the
+existing Q-DESN stack.
+
+## 1) Scope Boundaries
+
+### In scope
+
+- Static single-quantile exAL readout MCMC for a fixed design matrix `X`.
+- Q-DESN integration for one quantile at a time using the same reservoir and
+  design matrix construction already used by `qdesn_fit_vb()`.
+- Support for both ridge and RHS beta priors.
+- Posterior-draw and posterior-predictive APIs that match the current VB-facing
+  downstream consumers.
+- Simulation and real-data pipeline integration.
+- New tests and diagnostics for MCMC correctness and efficiency.
+
+### Out of scope for the first pass
+
+- Online MCMC.
+- Benchmark reruns or benchmark-specific tuning.
+- C++ reimplementation before the R implementation is correct and validated.
+- A full rework of historical `exdqlmMCMC()` state-space code.
+
+## 2) Current Codebase Leverage
+
+The implementation should reuse the following existing seams instead of
+rebuilding everything:
+
+- `R/qdesn_vb.R`
+  - already contains the Q-DESN reservoir roll, design construction, and
+    forecast recursion logic;
+  - should remain the canonical place for design/state construction until a
+    method-agnostic wrapper is introduced.
+- `R/qdesn_design_only.R`
+  - already exposes the reservoir/design layer without fitting the readout;
+  - this is the right abstraction boundary to avoid duplicating DESN logic for
+    MCMC.
+- `R/exal_static_mcmc.R`
+  - already contains a working static exAL Gibbs-style sampler for the ridge
+    case with latent `v_t`, `s_t`, closed-form `beta`, and a nonconjugate
+    `gamma` step;
+  - should be mined, then generalized, rather than replaced blindly.
+- `R/exdqlmMCMC.R`
+  - older state-space MCMC code contains useful conventions for chain storage,
+    diagnostics, and return-object style.
+- `scripts/pipeline_sim_main.R` and `scripts/pipeline_real_main.R`
+  - currently centralize fit, posterior-draw, and forecast dispatch;
+  - these are the main integration points for `method = "vb"` versus
+    `method = "mcmc"`.
+
+## 3) Theory-Aligned Sampler Design
+
+We work at a fixed quantile level `p0` and condition on the Q-DESN design
+matrix `X`. The theory file already gives the Gibbs blocking structure for:
+
+- `beta`
+- `(sigma, gamma)`
+- `(lambda, tau, c^2)` under RHS
+- `v_t`
+- `s_t`
+
+The MCMC implementation should follow that structure directly.
+
+### 3.1 Conjugate or closed-form blocks
+
+These blocks should use exact Gibbs updates, not slice sampling:
+
+1. `beta | rest`
+   - multivariate Gaussian;
+   - precision:
+     `X' W X + D^{-1}`;
+   - mean:
+     `Sigma_beta X' W y*`.
+
+2. `v_t | rest`
+   - univariate GIG with index `1/2`;
+   - use the existing GIG sampler already used elsewhere in the package.
+
+3. `s_t | rest`
+   - univariate truncated normal on `(0, Inf)`;
+   - use the existing truncated-normal sampler already used elsewhere.
+
+4. `sigma | rest`
+   - keep the closed-form GIG update already used in `R/exal_static_mcmc.R`;
+   - this is preferable to slice sampling because the conditional is available
+     in a standard family.
+
+### 3.2 Nonconjugate blocks
+
+These blocks should use slice sampling on unconstrained coordinates.
+
+1. `gamma`
+   - transform to
+     `eta_gamma = logit((gamma - L) / (U - L))`;
+   - sample `eta_gamma` with univariate slice sampling;
+   - include the transform Jacobian in the log-target.
+
+2. RHS local scales `lambda_j`
+   - transform to `eta_lambda_j = log(lambda_j)`;
+   - update each coordinate with univariate slice sampling;
+   - if `shrink_intercept = false`, exclude the intercept coefficient from the
+     RHS local-scale block and keep its prior fixed separately.
+
+3. RHS global scale `tau`
+   - transform to `eta_tau = log(tau)`;
+   - sample with univariate slice sampling.
+
+4. RHS slab scale `c^2`
+   - transform to `eta_c = log(c^2)`;
+   - sample with univariate slice sampling.
+
+This directly matches the user decision: use slice sampling for the
+nonconjugate blocks.
+
+## 4) Expressions To Derive and Lock Down
+
+Before implementation, we should formalize the exact log-kernels used by the
+slice steps and re-check the closed-form blocks against the current theory file.
+
+### 4.1 `gamma` slice target
+
+For fixed `beta`, `sigma`, `v`, `s`, the slice target on `eta_gamma` should be
+the transformed version of:
+
+- likelihood contribution through `A(gamma)`, `B(gamma)`,
+  `C(gamma) |gamma|`;
+- prior contribution `log pi_gamma(gamma)`;
+- Jacobian term from `gamma = L + (U-L) plogis(eta_gamma)`.
+
+Working log-target:
+
+`log p(eta_gamma | rest) = log p(gamma(eta_gamma) | rest) + log |d gamma / d eta_gamma|`.
+
+### 4.2 `sigma` full conditional
+
+The current static exAL MCMC code already uses a GIG draw for `sigma`. We
+should write this explicitly into the theory/implementation note for the
+Q-DESN readout path, using the same notation as the current exAL decomposition.
+
+### 4.3 RHS slice targets
+
+For each transformed RHS coordinate, write the log-target as:
+
+- Gaussian prior term induced by
+  `beta_j | lambda_j, tau, c^2 ~ N(0, V_j)`;
+- corresponding hyperprior term;
+- transform Jacobian term.
+
+Concretely:
+
+1. `eta_lambda_j`
+   - uses `V_j(lambda_j, tau, c^2)`;
+   - half-Cauchy prior on `lambda_j`;
+   - Jacobian `+ eta_lambda_j`.
+
+2. `eta_tau`
+   - uses all `V_j`;
+   - half-Cauchy prior with scale `tau0`;
+   - Jacobian `+ eta_tau`.
+
+3. `eta_c`
+   - uses all `V_j`;
+   - inverse-gamma prior on `c^2`;
+   - Jacobian `+ eta_c`.
+
+### 4.4 Ridge case
+
+The ridge case should be a clean subset:
+
+- no RHS latent state;
+- `D^{-1}` is fixed;
+- only `gamma` remains nonconjugate;
+- this is the correct first implementation target because it removes the
+  hardest nonconjugate block while preserving the same exAL likelihood.
+
+## 5) Engineering Architecture
+
+### 5.1 Readout-level API
+
+Introduce a method-agnostic readout layer:
+
+- `exal_fit(..., method = c("vb", "mcmc"))`
+- `exal_posterior_draws(fit, ...)`
+- `exal_posterior_predict(fit, X_new, ...)`
+
+Keep the current functions for backward compatibility:
+
+- `exal_ldvb_fit()`
+- `exal_vb_posterior_draws()`
+- `exal_vb_posterior_predict()`
+
+Add the new MCMC functions:
+
+- `exal_mcmc_fit()`
+- `exal_mcmc_posterior_draws()` if needed as a thin wrapper;
+- but downstream code should prefer the generic
+  `exal_posterior_draws()` / `exal_posterior_predict()`.
+
+### 5.2 Q-DESN-level API
+
+Do not force downstream code to know how the readout was fit.
+
+Recommended structure:
+
+- keep `qdesn_fit_vb()` unchanged for backward compatibility;
+- add `qdesn_fit_mcmc()`;
+- add a new dispatcher:
+  `qdesn_fit(..., method = c("vb", "mcmc"))`.
+
+Internally:
+
+- reservoir/design construction should remain shared;
+- readout fitting should dispatch to `exal_ldvb_fit()` or `exal_mcmc_fit()`;
+- the returned object should still be class `"qdesn_fit"` with
+  `object$fit` holding either an `exal_vb` or `exal_mcmc` object.
+
+### 5.3 Prior object contract
+
+The current `beta_prior()` contract is VB-oriented. We should extend it so the
+same prior object can support both inference engines.
+
+Recommended direction:
+
+- keep existing VB methods:
+  - `init`
+  - `expected_prec`
+  - `update`
+  - `elbo`
+- add MCMC methods:
+  - `mcmc_init`
+  - `mcmc_sample_state`
+  - `mcmc_prec_diag`
+  - `mcmc_log_prior`
+
+This keeps ridge and RHS under one prior interface and avoids hard-coding the
+RHS sampler inside unrelated readout code.
+
+## 6) Sampler Control Design
+
+Add a dedicated `mcmc` control block rather than overloading `vb`.
+
+Recommended config shape:
+
+```yaml
+inference:
+  method: mcmc
+  vb:
+    ...
+  mcmc:
+    n_burn: 2000
+    n_keep: 1500
+    thin: 1
+    n_chains: 4
+    init: vb
+    verbose: false
+    store_latent_draws: false
+    slice:
+      width_gamma: 1.0
+      width_lambda: 1.0
+      width_tau: 1.0
+      width_c2: 1.0
+      max_steps_out: 100
+      max_shrink: 1000
+      adapt_during_burn: true
+```
+
+Backward compatibility policy:
+
+- if `inference.method` is missing, default to `vb`;
+- existing configs with only `vb:` remain valid;
+- `vb.online` remains a VB-only feature.
+
+## 7) Data Structures and Return Objects
+
+The core downstream requirement is stable draw access.
+
+### 7.1 `exal_mcmc` object
+
+Recommended fields:
+
+- `method = "mcmc"`
+- `call`
+- `control`
+- `misc`
+  - `p0`
+  - `bounds`
+  - prior metadata
+  - runtime
+- `chains`
+  - `beta`
+  - `sigma`
+  - `gamma`
+  - optional `v`
+  - optional `s`
+  - optional RHS latent states
+- `summary`
+  - posterior means, medians, intervals
+  - acceptance / slice diagnostics
+  - ESS, R-hat, autocorrelation summaries
+- `last`
+  - final chain state for restart
+
+### 7.2 Draw interface
+
+`exal_posterior_draws()` should return the same basic shape for both methods:
+
+- `beta`: matrix `nd x p`
+- `sigma`: length `nd`
+- `gamma`: length `nd`
+- `nd`
+
+That lets:
+
+- `forecast_paths.qdesn_fit()`
+- `posterior_predict.qdesn_fit()`
+- synthesis code
+- sim/real pipelines
+
+stay almost unchanged once they stop calling the VB-specific helper names.
+
+## 8) Pipeline Refactor Plan
+
+The current simulation and real-data scripts duplicate some inference-dispatch
+logic. The MCMC work is the right time to centralize that.
+
+### 8.1 First refactor
+
+Move duplicated readout dispatch helpers out of scripts and into package code:
+
+- `fit_exal_readout(...)`
+- `get_exal_param_draws(...)`
+- `predict_exal_readout(...)`
+
+These helpers should:
+
+- dispatch on `inference.method`;
+- hide whether the fit object is `exal_vb` or `exal_mcmc`;
+- present a uniform draw/predict interface to pipeline code.
+
+### 8.2 Pipeline config handling
+
+Update:
+
+- `scripts/pipeline_sim_main.R`
+- `scripts/pipeline_real_main.R`
+
+so they:
+
+- read `inference.method`;
+- read `inference.vb` or `inference.mcmc`;
+- keep legacy fallback to `cfg$vb`.
+
+### 8.3 Reporting artifacts
+
+All saved artifacts should record:
+
+- `inference_method`
+- method-specific control settings
+- chain diagnostics if `mcmc`
+- VB diagnostics if `vb`
+
+This is required so simulation and real-data outputs remain comparable.
+
+## 9) Efficiency Strategy
+
+The MCMC path must be correct first, then optimized deliberately.
+
+### Phase-1 efficiency choices
+
+- keep the reservoir/design fixed and reuse `qdesn_build_design()` /
+  `fit_readout = FALSE` flows;
+- reuse existing compiled GIG / truncated-normal samplers;
+- use scalar slice sampling for nonconjugate parameters on transformed scales;
+- allow optional initialization from VB for faster warm starts;
+- avoid storing full latent draws by default.
+
+### Phase-2 efficiency options
+
+- C++ implementation of repeated slice updates if profiling shows they dominate;
+- blocking or elliptical proposals for subsets of RHS coordinates if univariate
+  slice is too slow;
+- Rao-Blackwellized summaries where possible;
+- parallel chains at the outer level.
+
+## 10) Testing Plan
+
+### 10.1 Unit tests
+
+- slice sampler invariants on transformed bounded and positive domains;
+- `beta` Gaussian update dimensions and SPD handling;
+- `v_t` and `s_t` closed-form update correctness on toy inputs;
+- `sigma` GIG update sanity;
+- RHS transformed log-target finite-value checks.
+
+### 10.2 Model tests
+
+- ridge MCMC on a small synthetic linear design:
+  posterior means recover the data-generating signal reasonably;
+- RHS MCMC smoke test:
+  chain stays finite and does not violate domain constraints;
+- multi-chain diagnostics test:
+  R-hat and ESS fields are produced.
+
+### 10.3 API compatibility tests
+
+- `exal_posterior_draws()` returns the same fields for VB and MCMC;
+- `posterior_predict.qdesn_fit()` works with both `exal_vb` and `exal_mcmc`;
+- `forecast_paths.qdesn_fit()` works unchanged when given MCMC draws.
+
+### 10.4 Pipeline tests
+
+- simulation pipeline smoke config with `method = vb`;
+- simulation pipeline smoke config with `method = mcmc`;
+- real-data pipeline smoke config with `method = vb`;
+- real-data pipeline smoke config with `method = mcmc`.
+
+### 10.5 Regression tests
+
+- existing VB behavior must remain unchanged when `method = vb`;
+- config fallback from legacy `cfg$vb` must still work;
+- MCMC introduction must not break benchmark code even though benchmark use is
+  paused.
+
+## 11) Rollout Phases
+
+### Phase A: derivation and contract freeze
+
+- write the exact log-targets and closed-form updates for the static readout;
+- freeze the readout object contract and generic draw/predict API;
+- decide final config schema.
+
+### Phase B: ridge MCMC core
+
+- implement `exal_mcmc_fit()` for ridge;
+- implement generic draw/predict dispatch;
+- add unit tests and synthetic recovery tests.
+
+### Phase C: RHS MCMC
+
+- extend the prior contract for MCMC;
+- implement slice updates for `lambda_j`, `tau`, `c^2`;
+- add RHS diagnostics and smoke tests.
+
+### Phase D: Q-DESN integration
+
+- add `qdesn_fit_mcmc()` and `qdesn_fit()`;
+- keep reservoir/design code shared;
+- ensure forecast recursion works with MCMC draws.
+
+### Phase E: pipeline integration
+
+- refactor sim/real scripts to use inference dispatch helpers;
+- add method-aware config and output recording;
+- add smoke runs for both methods.
+
+### Phase F: quality hardening
+
+- profile bottlenecks;
+- improve storage defaults and diagnostics;
+- document when VB or MCMC should be preferred.
+
+## 12) Acceptance Criteria
+
+We should consider the MCMC workstream ready for broader use only when all of
+the following are true:
+
+- the static exAL MCMC readout is correct on synthetic tests;
+- ridge and RHS both run with finite chains on small Q-DESN examples;
+- the same forecast and synthesis code can consume VB and MCMC draws;
+- simulation and real-data pipelines can run with either method from config;
+- existing VB runs are unchanged under legacy configs;
+- chain diagnostics are stored and surfaced clearly enough to judge MCMC
+  quality.
+
+## 13) Immediate Next Actions
+
+1. Freeze the method-agnostic readout API and config schema before coding.
+2. Derive and document the exact slice targets for `gamma`, `lambda_j`, `tau`,
+   and `c^2`.
+3. Implement the ridge MCMC core first.
+4. Only after ridge is stable, add RHS MCMC.
+5. Only after core MCMC is stable, integrate it into the sim and real-data
+   pipelines.
