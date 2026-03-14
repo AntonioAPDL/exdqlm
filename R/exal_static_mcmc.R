@@ -225,6 +225,41 @@ exal_static_mcmc <- function(
     try(progress_callback(info), silent = TRUE)
     invisible(NULL)
   }
+  fail_state <- function(msg, iter = NA_integer_) {
+    iter_lab <- if (is.finite(iter)) sprintf("iter=%d", as.integer(iter)[1]) else "iter=NA"
+    stop(sprintf("Static MCMC state invalid (%s): %s", iter_lab, msg), call. = FALSE)
+  }
+  require_finite_scalar <- function(x, label, positive = FALSE) {
+    val <- as.numeric(x)[1]
+    if (!is.finite(val)) fail_state(sprintf("%s is non-finite", label))
+    if (positive && val <= 0) fail_state(sprintf("%s must be > 0; got %.6g", label, val))
+    val
+  }
+  require_finite_vector <- function(x, label, positive = FALSE) {
+    val <- as.numeric(x)
+    bad <- which(!is.finite(val))
+    if (length(bad)) fail_state(sprintf("%s has %d non-finite values (first index=%d)", label, length(bad), bad[1]))
+    if (positive) {
+      badp <- which(val <= 0)
+      if (length(badp)) fail_state(sprintf("%s has %d non-positive values (first index=%d, value=%.6g)", label, length(badp), badp[1], val[badp[1]]))
+    }
+    val
+  }
+  validate_gig_inputs <- function(chi, psi, iter, label) {
+    chi <- as.numeric(chi)
+    bad <- which(!is.finite(chi))
+    if (length(bad)) {
+      fail_state(sprintf("%s chi has %d non-finite values (first index=%d)", label, length(bad), bad[1]), iter = iter)
+    }
+    badneg <- which(chi < 0)
+    if (length(badneg)) {
+      fail_state(sprintf("%s chi has %d negative values (first index=%d, value=%.6g)", label, length(badneg), badneg[1], chi[badneg[1]]), iter = iter)
+    }
+    if (!is.finite(psi) || psi <= 0) {
+      fail_state(sprintf("%s psi must be finite and > 0; got %.6g", label, psi), iter = iter)
+    }
+    list(chi = pmax(chi, 1e-12), psi = max(as.numeric(psi)[1], 1e-12))
+  }
 
   if (is.null(init)) init <- list()
   if (isTRUE(init.from.vb)) {
@@ -290,9 +325,13 @@ exal_static_mcmc <- function(
   save.c2 <- if (identical(beta_prior_obj$type, "rhs")) numeric(n_save) else NULL
 
   ## --- initialize -----------------------------------------------------------
-  beta  <- if (is.null(init$beta))  rep(0, p) else as.numeric(init$beta)
-  sigma <- if (is.null(init$sigma)) 1        else as.numeric(init$sigma)[1]
-  gamma <- if (is.null(init$gamma)) 0        else as.numeric(init$gamma)[1]
+  beta  <- if (is.null(init$beta)) rep(0, p) else as.numeric(init$beta)
+  if (length(beta) != p) beta <- rep(beta[1], p)
+  beta <- require_finite_vector(beta, "init$beta")
+  sigma <- if (is.null(init$sigma)) 1 else as.numeric(init$sigma)[1]
+  sigma <- require_finite_scalar(sigma, "init$sigma", positive = TRUE)
+  gamma <- if (is.null(init$gamma)) 0 else as.numeric(init$gamma)[1]
+  gamma <- require_finite_scalar(gamma, "init$gamma")
   gamma <- min(max(gamma, L + 1e-6), U - 1e-6)
   xb <- drop(X %*% beta)
 
@@ -300,7 +339,11 @@ exal_static_mcmc <- function(
 
   v <- if (is.null(init$v)) rep(1, n) else as.numeric(init$v)
   if (length(v) != n) v <- rep(v[1], n)
-  s <- if (is.null(init$s)) abs(stats::rnorm(n)) else pmax(0, as.numeric(init$s))
+  v <- require_finite_vector(v, "init$v", positive = TRUE)
+  s <- if (is.null(init$s)) abs(stats::rnorm(n)) else as.numeric(init$s)
+  if (length(s) != n) s <- rep(s[1], n)
+  s <- require_finite_vector(s, "init$s")
+  s <- pmax(0, s)
   beta_state <- beta_prior_obj$init_mcmc()
   if (identical(beta_prior_obj$type, "rhs")) {
     if (isTRUE(init.from.vb) && exists("vb.fit", inherits = FALSE) &&
@@ -329,12 +372,15 @@ exal_static_mcmc <- function(
     save.sigma <- numeric(n_save)
     save.v     <- matrix(NA_real_, n, n_save)
 
-    beta  <- if (is.null(init$beta))  rep(0, p) else as.numeric(init$beta)
-    sigma <- if (is.null(init$sigma)) 1        else as.numeric(init$sigma)[1]
-    if (!is.finite(sigma) || sigma <= 0) sigma <- 1
+    beta  <- if (is.null(init$beta)) rep(0, p) else as.numeric(init$beta)
+    if (length(beta) != p) beta <- rep(beta[1], p)
+    beta <- require_finite_vector(beta, "init$beta")
+    sigma <- if (is.null(init$sigma)) 1 else as.numeric(init$sigma)[1]
+    sigma <- require_finite_scalar(sigma, "init$sigma", positive = TRUE)
 
     v <- if (is.null(init$v)) rep(1, n) else as.numeric(init$v)
     if (length(v) != n) v <- rep(v[1], n)
+    v <- require_finite_vector(v, "init$v", positive = TRUE)
     v <- pmax(v, 1e-12)
 
     I <- n.burn + n.mcmc * thin
@@ -385,8 +431,9 @@ exal_static_mcmc <- function(
       r0 <- y - xb
       chi_i <- (r0 * r0) / (B * sigma)
       psi_i <- (A * A / B + 2) / sigma
+      gig_in <- validate_gig_inputs(chi_i, psi_i, i, "static_al")
       v <- as.numeric(sample_gig_devroye_vector(
-        1L, p = 0.5, a = psi_i, b_vec = chi_i
+        1L, p = 0.5, a = gig_in$psi, b_vec = gig_in$chi
       )[1, ])
       v <- pmax(v, 1e-12)
 
@@ -690,8 +737,9 @@ exal_static_mcmc <- function(
     z     <- y - xb - lambda * sigma * s
     chi_i <- (z * z) / (B * sigma)
     psi_i <- (A * A) / (B * sigma) + (2 / sigma)
+    gig_in <- validate_gig_inputs(chi_i, psi_i, i, "static_exal")
     v     <- as.numeric(sample_gig_devroye_vector(
-      1L, p = 0.5, a = psi_i, b_vec = chi_i
+      1L, p = 0.5, a = gig_in$psi, b_vec = gig_in$chi
     )[1, ])
     v <- pmax(v, 1e-12)
 
