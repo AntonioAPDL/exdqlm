@@ -2,7 +2,9 @@
 
 Date: 2026-03-06
 Owner: benchmark evaluation of the current Q-DESN model family
-Status: implemented benchmark runner with active pilot validation; tracker now records current protocol, current RHS-collapse evidence, and the immediate low-cost debugging plan before any heavy rerun
+Status: implemented benchmark runner with operational scripts; tracker now
+records the current protocol, current RHS/shoulder evidence, and the active
+issue-isolation gate before any heavy rerun
 
 ## Frozen State: 2026-03-10
 
@@ -29,6 +31,8 @@ Operational rule from this freeze point:
 - the current expensive full-ladder refinement run was stopped after the first
   corrected checkpoint because the next efficient step is a single-quantile,
   single-candidate debug loop.
+- this freeze reflects the current research gate, not a broken benchmark
+  workflow; the scripts and targeted debug profiles remain valid and runnable.
 
 ## Isolated Debug Mode
 
@@ -85,6 +89,9 @@ This means:
 - individual quantile fits are intermediate components,
 - the synthesized forecast is the object that should be scored, ranked, and compared,
 - point metrics for M4-style comparability must be computed from the synthesized forecast summary, not from a standalone median-fit forecast.
+- candidate eligibility is intentionally stricter than synthesized score alone:
+  component-quantile health guards remain part of the protocol so that only
+  scientifically usable synthesis ladders advance.
 
 The benchmark implementation must be careful about:
 
@@ -170,7 +177,8 @@ What it established:
 
 Operational implication:
 
-- keep `tau0 = 100` as the default;
+- keep `tau0 = 100` as the pinned setting for this tourism shoulder debug
+  family;
 - use `tau0 = 250` only as a fallback branch for the larger candidate shapes
   that still collapse;
 - the next step is a tourism-only scale-control family, not a wider benchmark
@@ -190,7 +198,8 @@ What it established:
 - the best scale-control candidate still has shoulder/reference pinball and
   |qhat| ratios on the order of `10^6`;
 - `tau0 = 250` on the larger shapes makes the shoulder explosion materially
-  worse, so the scale-control family should keep `tau0 = 100` by default.
+  worse, so the scale-control family should keep `tau0 = 100` as its pinned
+  debug setting.
 
 Operational implication:
 
@@ -395,18 +404,25 @@ Operational note:
   fast-iteration profile for candidate development under the strengthened
   protocol.
 
-### 1.7 Revised default alignment after tau review
+### 1.7 Defaults chronology and current policy
 
-The benchmark configs were then revised again to align with the repo-level
-defaults in `config/defaults.yaml`:
+The benchmark runner fallback defaults were revised to align with the
+repo-level defaults in `config/defaults.yaml`:
 
-- RHS beta prior now defaults to `tau0 = 0.001`, `s2 = 0.1`, and the tighter
-  numerical settings used by the main config defaults;
-- benchmark-side fallback defaults in `R/benchmark_qdesn_runner.R` now mirror
-  those base RHS settings rather than the older large-scale values from the
-  script-era pipeline;
-- the benchmark search no longer uses huge `tau0` values as a model-capacity
-  lever.
+- RHS beta prior fallback defaults are `tau0 = 0.001`, `s2 = 0.1`, together
+  with the tighter numerical settings used by the main package defaults;
+- benchmark-side fallback defaults in `R/benchmark_qdesn_runner.R` mirror those
+  base RHS settings rather than the older large-scale values from the
+  script-era pipeline.
+
+However, the active benchmark research profiles do **not** currently inherit
+those bounded defaults blindly:
+
+- the bounded-default smoke run documented below collapsed under those settings;
+- for that reason, the active routed/shoulder debug YAMLs pin their own RHS
+  overrides explicitly, currently centered on `tau0 = 100`, `s2 = 1`;
+- references in this tracker to a benchmark "default" at `tau0 = 100` should be
+  read as a benchmark debug-profile default, not as a repo-wide default.
 
 At the same time, the search itself was broadened where it belongs:
 
@@ -426,6 +442,9 @@ Current operational status:
   the broader DESN search under the corrected VB defaults is materially more
   expensive than the previous benchmark-dev profile;
 - this is now a runtime-management problem, not a benchmark-correctness problem.
+- the most recent frozen tourism diagnostics still indicate that blind DESN-side
+  tuning is lower-value than direct readout/prior-side diagnosis for the active
+  shoulder failure mode.
 
 ### 1.8 Clarification on defaults provenance
 
@@ -735,7 +754,7 @@ Latest completed staged debug runs:
 - Stage C fixed-candidate full synthesis-grid check:
   - `results/benchmarks/qdesn_synth/qdesn_rhs_debug_stageC__20260306-224321__git-2eb8111`
 
-Current preferred RHS debug setting:
+Current preferred pinned RHS debug setting:
 
 - `tau0 = 100`
 - `s2 = 1`
@@ -1257,7 +1276,7 @@ These can be phase-2 work if needed, but the tracker should keep them visible.
 - [x] Internal recalibration candidates (`none`, `bias`, `affine`)
 - [x] M4 comparability outputs with `Naive2`, `OWA`, and `MSIS95`
 - [x] Audit diagnostics with PIT, coverage, calibration bins, and fan charts
-- [x] Default active benchmark RHS setup locked to `tau0 = 100`, `s2 = 1`, `init_log_tau = 2.302585093`, `freeze_tau_iters = 50`, `freeze_tau_warmup_iters = 50`, `max_iter = 1000`
+- [x] Default active benchmark debug RHS profile locked to `tau0 = 100`, `s2 = 1`, `init_log_tau = 2.302585093`, `freeze_tau_iters = 50`, `freeze_tau_warmup_iters = 50`, `max_iter = 1000`
 - [x] Active candidate selection now hard-vetoes `rhs_collapse`, `rhs_near_bound`, shoulder pinball explosion, and shoulder scale explosion
 - [x] If all candidates are vetoed, selection now fails loudly with a guard-veto summary instead of silently relaxing to an unsafe winner
 - [x] Added a reusable stage runner at `scripts/benchmark_qdesn_sequence.sh` to execute `check -> report -> dev -> report`
@@ -1414,6 +1433,9 @@ These can be phase-2 work if needed, but the tracker should keep them visible.
 - [ ] Decide whether final claims are dataset-level tuned or frequency-level tuned
 - [ ] Run the uncapped research protocol on a longer compute budget
 - [ ] Review whether additional distributional recalibration layers are justified
+- [ ] Resolve the medium-route shoulder failure through targeted DESN
+  specification and quantile/prior-side model work before reopening broader
+  routed benchmark promotion
 
 ## 14) Suggested end-state commands
 
@@ -1434,35 +1456,33 @@ compute budget than the pilot.
 The repo now has the benchmark evaluation layer needed to study the current
 Q-DESN approach carefully.
 
-The main work left is now split into two branches:
+The main work left is now model-side, not benchmark-plumbing-side.
 
-- benchmark promotion of the first viable ridge-readout candidate, and
-- route-aware promotion of the short/medium ridge family into broader benchmark runs, and
-- if that candidate fails on M4 or wider validation, direct readout-side
-  model work rather than more broad DESN/RHS searching.
+Current immediate gate:
 
-The current next gate is:
+- keep broader routed benchmark expansion paused;
+- continue isolating the tourism medium-route shoulder failure with the
+  single-quantile and one-step audit tools already added on this branch;
+- treat the next research step, once that gate is cleared, as targeted DESN
+  specification plus quantile/prior-side work rather than another broad search
+  pass.
 
-- run `config/benchmarks/qdesn_synth_m4_one_step_ridge_full_ladder.yaml`
-- if M4 also stays non-collapsing and well-scaled, reopen a fixed-candidate benchmark gate via `config/benchmarks/qdesn_synth_check_ridge.yaml`
-- if M4 fails badly, stop benchmark expansion and keep iterating at the
-  readout gate
+Interpretation:
 
-The current next gate is now:
-
-- promote the routed ridge family beyond the pinned dev set
-- either by building `qdesn_synth_full_ridge_routed.yaml` or by replacing the
-  current broad `qdesn_synth.yaml` candidate family with the routed ridge
-  family before a longer benchmark run
+- the benchmark workflow itself is in place and usable;
+- the blocking issue is the current shoulder-readout / RHS behavior on pinned
+  routed slices;
+- March 2026 repo-default changes for long-horizon DESN runs do not change that
+  current benchmark diagnosis.
 
 Calibration is no longer the next tuning lever for this family. The evidence
-now points back to improving the core routed readout/forecast family itself if
-broader monthly performance is still insufficient.
+points back to improving the core routed readout/forecast family itself once
+the current issue-isolation gate is cleared.
 
 The remaining broader work is no longer infrastructure. It is research protocol
 hardening:
 
-- enriching and freezing the final candidate family,
-- running broader benchmarks on a larger compute budget,
-- and improving the synthesized forecast where the benchmark now shows clear
+- enriching and freezing the final candidate family;
+- running broader benchmarks on a larger compute budget;
+- improving the synthesized forecast where the benchmark now shows clear
   weaknesses.

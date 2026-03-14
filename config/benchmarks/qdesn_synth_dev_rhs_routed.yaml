@@ -1,4 +1,6 @@
 evaluation:
+  # Routed dev profile with explicit RHS overrides for the current benchmark
+  # debug loop. Repo-wide defaults still live in config/defaults.yaml.
   experiment_name: qdesn_synth_dev_rhs_routed
   result_root: results/benchmarks/qdesn_synth
   datasets:
@@ -112,6 +114,8 @@ models:
           recompute_elbo_after_tau_update: true
         beta_prior_type: rhs
         beta_rhs:
+          # Benchmark profile override: pinned research/debug RHS setting.
+          # Repo-wide defaults remain in config/defaults.yaml.
           tau0: 100.0
           nu: 4.0
           s2: 1.0

@@ -142,9 +142,13 @@ Important clarifications to keep in tracker/implementation:
 
 ## 2.5 RHS precision moment consistency
 
-- Current code now computes `E_q[1/V_j]` in closed form under Gaussian RHS transformed variables:
+- Current code keeps `E_q[1/V_j]` on the same second-order delta-method
+  approximation used by the offline engine:
   - `R/qdesn_rhs_prior.R:523` onward.
-- This aligns with the audited theory fix and removes prior delta-bias for this moment.
+- This matches the current theory and repo policy: RHS precision moments are
+  handled through Laplace-Delta approximations.
+- Any online RHS refresh therefore inherits the same approximation policy as the
+  offline fit.
 
 ## 3) Proposed online architecture (single quantile)
 

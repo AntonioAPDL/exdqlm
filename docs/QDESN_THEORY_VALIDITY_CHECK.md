@@ -71,11 +71,16 @@ Primary fit path (used by QDESN):
 - Pipeline/QDESN path currently uses `exal_ldvb_engine` through `exal_ldvb_fit`.
 - Action: declare canonical path (`exal_ldvb_engine`) for QDESN and treat `exal_static_LDVB` as secondary/legacy.
 
-4. RHS expected precision exactness (fixed)
-- `expected_prec` in `R/qdesn_rhs_prior.R` now uses the exact Gaussian-moment identity for
-  `E_q[1/V_j] = E_q[exp(-eta_c)] + E_q[exp(-2 eta_tau - 2 eta_lambda_j)]`.
-- This removes the prior delta-approximation bias for this specific moment while keeping the same Laplace Gaussian factor.
-- Action: keep this as canonical for RHS precision updates.
+4. RHS expected precision approximation policy (current canonical implementation)
+- `expected_prec` in `R/qdesn_rhs_prior.R` uses the second-order delta-method
+  approximation for `E_q[1/V_j]` under the Laplace Gaussian approximation on
+  transformed RHS variables.
+- This matches the current theory file, which also treats RHS moments through
+  Laplace-Delta approximations.
+- Historical note: an alternative closed-form moment variant was tried and
+  later reverted; it is not part of the current model specification.
+- Action: keep the delta-method approximation as canonical for RHS precision
+  updates and remove exact-moment wording from repo docs.
 
 ## 4) Validity Verdict
 
@@ -152,25 +157,25 @@ Result:
 Conclusion:
 - Laplace curvature implementation is consistent with the transformed objective.
 
-### 6.4 Post-Fix Exact-Moment Confirmation for `E_q[1/V_j]`
+### 6.4 Current Delta-Method Form for `E_q[1/V_j]`
 
 Check:
-- Compare code `expected_prec` (exact Gaussian-moment implementation) with direct exact Gaussian moments:
-  - `E[exp(-eta_c)] = exp(-mu_c + 0.5 Var_c)`
-  - `E[exp(-2 eta_tau - 2 eta_lambda_j)] = exp(-2(mu_tau+mu_lambda_j) + 2 Var(eta_tau+eta_lambda_j))`
-
-Result (relative error `|code-exact|/exact`, pooled):
-- `median = 0`
-- `p90 = 0`
-- `p95 = 0`
-- `max = 0`
+- Inspect the live `expected_prec` update in `R/qdesn_rhs_prior.R`.
+- The implemented form is
+  `D_j ~= g(mu) + 0.5 tr(H_g(mu) Sigma)` for
+  `g_j = exp(-2 eta_lambda_j - 2 eta_tau) + exp(-eta_c)`.
+- This is a second-order delta-method update under the Laplace Gaussian factor,
+  not a separate closed-form moment evaluation.
 
 Conclusion:
-- `expected_prec` now matches exact Gaussian moments for this block.
-- No approximation mismatch remains for `E_q[1/V_j]`.
+- `expected_prec` intentionally uses the delta-method approximation for this
+  block.
+- Repo theory and implementation should describe that approximation as the
+  canonical RHS precision update.
 
 ### 6.5 Final Decision on the Original Issue
 
 - The original `q_{lambda,tau,c2}` shape mismatch is **resolved** as notation/software factoring.
 - No crucial structural mismatch was found in objective, Hessian, ELBO, or factor wiring.
-- The previous `expected_prec` approximation gap is fixed by exact Gaussian-moment computation.
+- The current `expected_prec` policy is the intended delta-method approximation,
+  and repo documentation should treat that as canonical.

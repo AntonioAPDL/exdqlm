@@ -118,6 +118,8 @@ vb:
       ridge:
         tau2: 10000
       rhs:
+        # Repo-wide base RHS defaults. Benchmark research/debug profiles may
+        # override these explicitly in their own YAMLs.
         tau0: 0.001
         nu: 4.0
         s2: 0.1

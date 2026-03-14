@@ -1,4 +1,7 @@
 evaluation:
+  # Full research protocol. This file uses explicit benchmark-side RHS
+  # overrides for the current debug family and should not be read as the
+  # repo-wide default model configuration.
   experiment_name: qdesn_synth_full
   result_root: results/benchmarks/qdesn_synth
   parallel:
@@ -97,6 +100,8 @@ models:
           recompute_elbo_after_tau_update: true
         beta_prior_type: rhs
         beta_rhs:
+          # Benchmark profile override: pinned research/debug RHS setting.
+          # Repo-wide defaults remain in config/defaults.yaml.
           tau0: 100.0
           nu: 4.0
           s2: 1.0

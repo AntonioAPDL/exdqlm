@@ -126,6 +126,25 @@ The current benchmark runner now includes:
 - audit diagnostics for saved synthesized-Q-DESN forecast artifacts, including
   PIT summaries, 95% coverage summaries, and fan-chart figures.
 
+## Current Research Status
+
+- The benchmark workflow and scripts are operational. The current freeze on
+  broader reruns is a research gate, not a benchmark-plumbing failure.
+- Broad routed synthesis reruns are intentionally paused while the pinned
+  tourism shoulder issue is isolated with targeted debug configs and audits.
+- Repo-wide model defaults live in `config/defaults.yaml`. Some benchmark YAMLs
+  intentionally override those defaults with pinned research/debug RHS settings;
+  those overrides should be read as experiment-specific profiles, not package
+  defaults.
+- The scored benchmark object is the synthesized forecast, but candidate
+  selection intentionally also applies component-quantile health guards. The
+  goal is to promote healthy synthesis, not merely the lowest synthesized score
+  from an unhealthy component ladder.
+- The `testthat` suite mainly validates ingestion, plumbing, numerical
+  invariants, and toy smoke runs. Scientific health on hard routed benchmark
+  slices is established through the saved benchmark audits and trackers, not
+  through unit tests alone.
+
 The main full config, `config/benchmarks/qdesn_synth.yaml`, uses a block-based
 candidate grid so D=1 and D=2 families can be edited independently without
 rewriting the benchmark runner. It is designed as a deterministic research

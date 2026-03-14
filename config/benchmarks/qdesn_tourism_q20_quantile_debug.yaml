@@ -1,4 +1,6 @@
 evaluation:
+  # Single-quantile tourism debug profile. This file intentionally pins a
+  # benchmark-specific RHS setting instead of inheriting repo-wide defaults.
   experiment_name: qdesn_tourism_q20_quantile_debug
   result_root: results/benchmarks/qdesn_synth
   datasets:
@@ -71,6 +73,8 @@ models:
           recompute_elbo_after_tau_update: true
         beta_prior_type: rhs
         beta_rhs:
+          # Benchmark profile override: pinned research/debug RHS setting.
+          # Repo-wide defaults remain in config/defaults.yaml.
           tau0: 100.0
           nu: 4.0
           s2: 1.0
