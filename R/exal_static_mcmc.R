@@ -589,6 +589,21 @@ exal_static_mcmc <- function(
       cat(sprintf("Static DQLM MCMC | n=%d, p=%d | burn=%d, keep=%d, thin=%d\n",
                   n, p, n.burn, n.mcmc, thin))
     }
+    safe_progress_callback(list(
+      event = "start",
+      iter = 0L,
+      total_iter = as.integer(I),
+      phase = "burn",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      thin = as.integer(thin),
+      kept_completed = 0L,
+      kept_target = as.integer(n.mcmc),
+      sigma = sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_
+    ))
 
     tictoc::tic()
     ksave <- 0L
@@ -636,9 +651,26 @@ exal_static_mcmc <- function(
         }
       }
 
-      if (verbose && (i %% 500 == 0)) {
+      if (verbose && (i %% progress_every == 0)) {
         cat(sprintf("%s iteration %d | sigma=%.3f\n",
                     ifelse(i <= n.burn, "burn-in", "MCMC"), i, sigma))
+      }
+      if (i %% progress_every == 0L) {
+        safe_progress_callback(list(
+          event = "progress",
+          iter = as.integer(i),
+          total_iter = as.integer(I),
+          phase = if (i <= n.burn) "burn" else "keep",
+          n_burn = as.integer(n.burn),
+          n_mcmc = as.integer(n.mcmc),
+          thin = as.integer(thin),
+          kept_completed = as.integer(ksave),
+          kept_target = as.integer(n.mcmc),
+          sigma = sigma,
+          gamma = NA_real_,
+          kernel = "conjugate",
+          accept = NA_real_
+        ))
       }
     }
     run.time <- tictoc::toc(quiet = TRUE)
@@ -646,6 +678,22 @@ exal_static_mcmc <- function(
       cat(sprintf("MCMC complete: %d iterations, %.3f seconds\n",
                   I, run.time$toc - run.time$tic))
     }
+    safe_progress_callback(list(
+      event = "complete",
+      iter = as.integer(I),
+      total_iter = as.integer(I),
+      phase = "done",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      thin = as.integer(thin),
+      kept_completed = as.integer(ksave),
+      kept_target = as.integer(n.mcmc),
+      sigma = sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_,
+      runtime_sec = as.numeric(run.time$toc - run.time$tic)
+    ))
 
     ret <- list(
       run.time   = (run.time$toc - run.time$tic),
