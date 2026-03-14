@@ -156,6 +156,87 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(qspec$prior_sigma$b, 3)
 })
 
+test_that("VB RHS config preserves null tau init and separate warmup freeze settings", {
+  cfg <- list(
+    inference = list(
+      method = "vb",
+      readout_scale = TRUE,
+      vb = list(
+        max_iter = 20L,
+        rhs = list(
+          freeze_tau_iters = 5L,
+          freeze_tau_warmup_iters = 9L
+        ),
+        priors = list(
+          beta = list(
+            type = "rhs",
+            rhs = list(
+              tau0 = 0.01,
+              nu = 4,
+              s2 = 0.5,
+              shrink_intercept = FALSE,
+              intercept_prec = 1e-10,
+              init_log_tau = NULL,
+              init_log_c2 = 0.0
+            )
+          )
+        )
+      )
+    )
+  )
+
+  inf <- exdqlm:::resolve_exal_inference_config(cfg, p_vec = 0.25, verbose = FALSE)
+  expect_identical(inf$method, "vb")
+  expect_equal(inf$vb$args_base$rhs_freeze_tau_iters, 5L)
+  expect_equal(inf$vb$args_base$rhs_freeze_tau_warmup_iters, 9L)
+
+  qspec <- exdqlm:::resolve_exal_quantile_fit_spec(inf, idx_p = 1L, p0 = 0.25)
+  state0 <- qspec$beta_prior_obj$init(3L)
+
+  expect_identical(qspec$beta_type, "rhs")
+  expect_equal(exp(state0$eta_tau_hat), 0.01, tolerance = 1e-12)
+})
+
+test_that("VB RHS stays numerically healthy on a centered lower-tail toy regression", {
+  withr::local_seed(1)
+
+  n <- 48L
+  x1 <- scale(sin(seq_len(n) / 6))[, 1L]
+  X <- cbind(1, x1)
+  y <- as.numeric(0.4 * x1 + stats::rnorm(n, sd = 0.1))
+
+  fit_rhs_vb <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.25,
+    gamma_bounds = exdqlm::get_gamma_bounds(0.25),
+    method = "vb",
+    max_iter = 12L,
+    min_iter_elbo = 4L,
+    tol = 1e-4,
+    tol_par = 1e-4,
+    n_samp_xi = 30L,
+    verbose = FALSE,
+    beta_prior_obj = exdqlm::beta_prior("rhs", rhs = list(
+      tau0 = 0.01,
+      nu = 4,
+      s2 = 0.5,
+      shrink_intercept = FALSE,
+      intercept_prec = 1e-10,
+      init_log_tau = NULL,
+      eta_bounds = list(lambda = c(-8, 8), tau = c(-8, 8), c2 = c(-8, 8)),
+      h_curv = 1e-8,
+      var_floor = 1e-8
+    ))
+  )
+
+  expect_s3_class(fit_rhs_vb, "exal_vb")
+  expect_true(all(is.finite(fit_rhs_vb$qbeta$m)))
+  expect_lt(sqrt(sum(fit_rhs_vb$qbeta$m^2)), 10)
+  expect_equal(fit_rhs_vb$misc$rhs_tau_trace[[1L]], 0.01, tolerance = 1e-3)
+  expect_gt(fit_rhs_vb$qsiggam$gamma_mean, exdqlm::get_gamma_bounds(0.25)[1L] + 0.01)
+})
+
 test_that("Q-DESN MCMC path reuses the existing forecast interface", {
   withr::local_seed(321)
 

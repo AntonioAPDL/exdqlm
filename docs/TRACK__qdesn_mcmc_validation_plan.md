@@ -50,6 +50,22 @@ The implemented framework now:
   algorithm progress;
 - collects campaign-level summaries and plots across roots.
 
+RHS VB stabilization note:
+
+- the shared VB RHS path was corrected after the first pilot exposed a false
+  collapse mode;
+- the main fixes were:
+  - preserve `init_log_tau = null` through the shared inference-config merge,
+    so RHS can start at `tau0` instead of being silently reset to `tau = 1`;
+  - preserve `freeze_tau_iters` and `freeze_tau_warmup_iters` as separate
+    controls in the shared VB path;
+  - initialize the `(eta, ell)` covariance for `q(sigma, gamma)` with a tiny
+    matrix, matching the stable static core, instead of a diffuse
+    `diag(1e-2)`;
+  - fall back from invalid delta-corrected `xi` bundles to a damped or
+    point-moment bundle when the delta approximation leaves the admissible
+    domain.
+
 Operational note:
 
 - the first no-plots pilot campaign has already completed successfully with

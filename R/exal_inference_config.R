@@ -15,7 +15,7 @@
     var_floor = 1e-24,
     verbose = FALSE,
     init_log_lambda = 0.0,
-    init_log_tau = 0.0,
+    init_log_tau = NULL,
     init_log_c2 = 0.0
   )
 }
@@ -126,6 +126,17 @@
   rhs_cfg <- default_rhs_cfg
   if (!is.null(beta_cfg$rhs)) {
     rhs_cfg <- modifyList(rhs_cfg, beta_cfg$rhs)
+    rhs_names <- names(beta_cfg$rhs)
+    if (!is.null(rhs_names)) {
+      nullable_init_keys <- c(
+        "init_lambda", "init_log_lambda",
+        "init_tau", "init_log_tau",
+        "init_c2", "init_log_c2"
+      )
+      for (nm in intersect(rhs_names, nullable_init_keys)) {
+        rhs_cfg[[nm]] <- beta_cfg$rhs[[nm]]
+      }
+    }
   }
 
   list(
@@ -151,6 +162,7 @@
   rhs_trace_top_k <- 20L
   rhs_trace_eps <- c(1e-6, 1e-4, 1e-2)
   rhs_freeze_tau_iters <- 0L
+  rhs_freeze_tau_warmup_iters <- 0L
   rhs_update_every <- 1L
   rhs_update_every_warmup <- 1L
   rhs_update_every_warmup_iters <- 0L
@@ -188,10 +200,13 @@
     rhs_cfg <- vb_cfg$rhs
     if (!is.null(rhs_cfg$verbose_trace)) rhs_trace_on <- isTRUE(rhs_cfg$verbose_trace)
     if (!is.null(rhs_cfg$trace)) rhs_trace_on <- isTRUE(rhs_cfg$trace)
-    if (!is.null(rhs_cfg$freeze_tau_warmup_iters)) {
-      rhs_freeze_tau_iters <- as.integer(rhs_cfg$freeze_tau_warmup_iters)[1L]
-    } else if (!is.null(rhs_cfg$freeze_tau_iters)) {
+    if (!is.null(rhs_cfg$freeze_tau_iters)) {
       rhs_freeze_tau_iters <- as.integer(rhs_cfg$freeze_tau_iters)[1L]
+    }
+    if (!is.null(rhs_cfg$freeze_tau_warmup_iters)) {
+      rhs_freeze_tau_warmup_iters <- as.integer(rhs_cfg$freeze_tau_warmup_iters)[1L]
+    } else {
+      rhs_freeze_tau_warmup_iters <- rhs_freeze_tau_iters
     }
     if (!is.null(rhs_cfg$update_every)) rhs_update_every <- as.integer(rhs_cfg$update_every)[1L]
     if (!is.null(rhs_cfg$update_every_warmup)) rhs_update_every_warmup <- as.integer(rhs_cfg$update_every_warmup)[1L]
@@ -223,6 +238,7 @@
   vb_args_base$rhs_trace_top_k <- rhs_trace_top_k
   vb_args_base$rhs_trace_eps <- rhs_trace_eps
   vb_args_base$rhs_freeze_tau_iters <- rhs_freeze_tau_iters
+  vb_args_base$rhs_freeze_tau_warmup_iters <- rhs_freeze_tau_warmup_iters
   vb_args_base$rhs_update_every <- rhs_update_every
   vb_args_base$rhs_update_every_warmup <- rhs_update_every_warmup
   vb_args_base$rhs_update_every_warmup_iters <- rhs_update_every_warmup_iters

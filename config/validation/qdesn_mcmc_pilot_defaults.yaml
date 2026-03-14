@@ -87,6 +87,9 @@ pipeline:
       rhs:
         freeze_tau_iters: 4
         freeze_tau_warmup_iters: 4
+        tau_local_tol: 1.0e-3
+        min_tau_updates: 1
+        force_tau_after_warmup: true
       priors:
         gamma:
           mu0: 0
@@ -109,6 +112,8 @@ pipeline:
               c2: [-8, 8]
             h_curv: 1.0e-8
             var_floor: 1.0e-8
+            init_log_tau: null
+            init_log_c2: 0.0
     mcmc:
       n_burn: 120
       n_mcmc: 180

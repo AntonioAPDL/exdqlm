@@ -105,7 +105,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   qsiggam <- list(
     eta_hat = as.numeric(eta_hat),
     ell_hat = as.numeric(ell_hat),
-    Sigma   = as.matrix(init$siggam_Sigma %||% diag(c(1e-2, 1e-2), 2L))  # (eta, ell)
+    Sigma   = as.matrix(init$siggam_Sigma %||% diag(c(1e-16, 1e-16), 2L))  # (eta, ell)
   )
   if (!all(dim(qsiggam$Sigma) == c(2,2))) .stopf("init$siggam_Sigma must be 2x2 if supplied.")
 
@@ -665,6 +665,23 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   corr <- 0.5 * (H11 * Sigma[1,1] + 2 * H12 * Sigma[1,2] + H22 * Sigma[2,2])
   out <- f00 + corr
+
+  core_pos <- c("xi1", "xi_lambda2", "xi_A2")
+  if (any(!is.finite(out[core_pos])) || any(out[core_pos] <= 0)) {
+    damp_grid <- c(0.5, 0.25, 0.1, 0)
+    repaired <- FALSE
+    for (w in damp_grid) {
+      cand <- f00 + w * corr
+      if (all(is.finite(cand[core_pos])) && all(cand[core_pos] > 0)) {
+        out <- cand
+        repaired <- TRUE
+        break
+      }
+    }
+    if (!repaired) {
+      out <- f00
+    }
+  }
 
   # exact sigma-only moments under ell ~ N(ell_hat, Sigma[2,2])
   out <- c(out,

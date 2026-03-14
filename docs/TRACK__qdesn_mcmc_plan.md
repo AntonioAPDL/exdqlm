@@ -44,6 +44,13 @@ This means the implementation is now past the algorithm-only stage. The repo
 can already execute the same sim/real workflow under either inference method on
 controlled smoke configurations.
 
+Important current status:
+
+- the earlier RHS VB smoke pathology on tiny validation/smoke cases has now
+  been traced and stabilized in the shared inference path;
+- the remaining workstream focus stays on MCMC evaluation and refinement, not
+  benchmark reruns.
+
 ## 1) Scope Boundaries
 
 ### In scope
