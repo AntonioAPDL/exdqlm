@@ -70,6 +70,13 @@ reap_stale_locks() {
   shopt -s nullglob
   for lock_dir in "$state_dir"/locks/*; do
     [[ -d "$lock_dir" ]] || continue
+    pid=""
+    if [[ -f "$lock_dir/pid" ]]; then
+      pid="$(< "$lock_dir/pid")"
+    fi
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      continue
+    fi
     session_name=""
     if [[ -f "$lock_dir/session_name" ]]; then
       session_name="$(< "$lock_dir/session_name")"
@@ -84,6 +91,17 @@ reap_stale_locks() {
 
 count_running_slots() {
   find "$state_dir/locks" -mindepth 1 -maxdepth 1 -type d | wc -l
+}
+
+count_ready_unlocked() {
+  awk -F'\t' '
+    NR==1 { for (i = 1; i <= NF; i++) idx[$i] = i; next }
+    $idx["launch_ready"] == "TRUE" { print $idx["task_id"] }
+  ' "$queue_tsv" | while IFS= read -r task_id; do
+    [[ -n "$task_id" ]] || continue
+    [[ -d "$state_dir/locks/${task_id}" ]] && continue
+    printf '.'
+  done | wc -c
 }
 
 print_status() {
@@ -126,7 +144,12 @@ launch_task() {
   local lock_dir="${state_dir}/locks/${task_id}"
   mkdir "$lock_dir"
   printf '%s\n' "$session_name" > "$lock_dir/session_name"
-  tmux new-session -d -s "$session_name" "cd '$repo_root' && tools/merge_reports/20260312_family_qspec_worker.sh '$repo_root' '$state_dir' '$task_id' '$session_name'"
+  (
+    cd "$repo_root"
+    nohup setsid tools/merge_reports/20260312_family_qspec_worker.sh "$repo_root" "$state_dir" "$task_id" "$session_name" >/dev/null 2>&1 < /dev/null &
+    printf '%s\n' "$!" > "$lock_dir/pid"
+    printf '%s\n' "$!" > "$lock_dir/pgid"
+  )
   log_registry "$session_name" "$task_id" "$unit_type"
 }
 
@@ -156,9 +179,9 @@ while true; do
   rebuild_queue
   reap_stale_locks
   active_slots="$(count_running_slots)"
-  ready_count="$(awk -F'\t' 'NR>1 && $12 == "TRUE" {c++} END {print c+0}' "$queue_tsv")"
-  echo "$(date '+%Y-%m-%d %H:%M:%S') | active_slots=${active_slots} ready_count=${ready_count}"
-  if [[ "$active_slots" -eq 0 && "$ready_count" -eq 0 ]]; then
+  ready_unlocked="$(count_ready_unlocked)"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') | active_slots=${active_slots} ready_unlocked=${ready_unlocked}"
+  if [[ "$active_slots" -eq 0 && "$ready_unlocked" -eq 0 ]]; then
     break
   fi
   sleep "$poll_sec"

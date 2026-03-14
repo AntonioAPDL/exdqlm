@@ -130,7 +130,7 @@ if (!(vb_ld_sigma_init_mode %in% c("data_scale", "fixed1"))) vb_ld_sigma_init_mo
 vb_ld_init_cov_diag <- safe_num_vec(Sys.getenv("EXDQLM_DYNAMIC_LD_INIT_COV_DIAG", "1e-2,1e-2"), default = c(1e-2, 1e-2), length_out = 2L)
 vb_ld_store_trace <- safe_bool(Sys.getenv("EXDQLM_DYNAMIC_LD_STORE_TRACE", "true"), TRUE)
 
-mcmc_burn <- safe_int(Sys.getenv("EXDQLM_MCMC_BURN", "2000"), 2000L)
+mcmc_burn <- safe_int(Sys.getenv("EXDQLM_MCMC_BURN", "500"), 500L)
 mcmc_n <- safe_int(Sys.getenv("EXDQLM_MCMC_N", "1000"), 1000L)
 mcmc_mh_adapt_interval <- safe_int(Sys.getenv("EXDQLM_MCMC_MH_ADAPT_INTERVAL", "25"), 25L)
 mcmc_mh_target_lo <- safe_num(Sys.getenv("EXDQLM_MCMC_MH_TARGET_LO", "0.25"), 0.25)
@@ -142,6 +142,10 @@ mcmc_mh_min_burn_adapt <- safe_int(Sys.getenv("EXDQLM_MCMC_MH_MIN_BURN_ADAPT", "
 mcmc_primary_proposal <- tolower(Sys.getenv("EXDQLM_MCMC_PRIMARY_PROPOSAL", "laplace_rw"))
 if (!(mcmc_primary_proposal %in% c("laplace_rw", "rw"))) mcmc_primary_proposal <- "laplace_rw"
 mcmc_primary_joint_sample <- identical(tolower(Sys.getenv("EXDQLM_MCMC_PRIMARY_JOINT_SAMPLE", "false")), "true")
+mcmc_trace_diagnostics <- safe_bool(Sys.getenv("EXDQLM_DYNAMIC_MCMC_TRACE_DIAGNOSTICS", "true"), TRUE)
+mcmc_trace_every <- safe_int(Sys.getenv("EXDQLM_DYNAMIC_MCMC_TRACE_EVERY", "25"), 25L)
+if (mcmc_trace_every < 1L) mcmc_trace_every <- 1L
+mcmc_verbose <- safe_bool(Sys.getenv("EXDQLM_DYNAMIC_MCMC_VERBOSE", "true"), TRUE)
 
 n_core_phys <- tryCatch(parallel::detectCores(logical = FALSE), error = function(e) 2L)
 if (!is.finite(n_core_phys) || is.na(n_core_phys) || n_core_phys < 1L) n_core_phys <- 2L
@@ -371,7 +375,9 @@ fit_mcmc_with_vb <- function(model_name, tau, seed, vb_fit, df_used) {
         mh.min_burn_adapt = mcmc_mh_min_burn_adapt,
         joint.sample = a$joint_sample,
         Sig.mh = diag(c(0.001, 0.001)),
-        verbose = FALSE
+        trace.diagnostics = mcmc_trace_diagnostics,
+        trace.every = mcmc_trace_every,
+        verbose = mcmc_verbose
       ),
       error = function(e) e
     )
@@ -484,8 +490,9 @@ tasks$seed <- 202603060L + seq_len(nrow(tasks)) * 1000L
 
 log_master(sprintf("starting VB->MCMC pipeline run in %s", out_root))
 log_master(sprintf(
-  "TT=%d VB(n_samp=%d,max_iter=%d) MCMC(burn=%d,n=%d,primary=%s,joint=%s) cores=%d",
-  TT, vb_n_samp, vb_max_iter, mcmc_burn, mcmc_n, mcmc_primary_proposal, mcmc_primary_joint_sample, cores_pipeline
+  "TT=%d VB(n_samp=%d,max_iter=%d) MCMC(burn=%d,n=%d,primary=%s,joint=%s,trace=%s,trace_every=%d,verbose=%s) cores=%d",
+  TT, vb_n_samp, vb_max_iter, mcmc_burn, mcmc_n, mcmc_primary_proposal, mcmc_primary_joint_sample,
+  mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose, cores_pipeline
 ))
 log_master(sprintf("models=%s taus=%s",
                    paste(unique(tasks$model), collapse = ","),
@@ -536,3 +543,13 @@ utils::write.csv(summary_df, file.path(out_root, "tables", "pipeline_task_summar
 
 log_master("pipeline run completed")
 log_master(sprintf("summary table: %s", file.path(out_root, "tables", "pipeline_task_summary.csv")))
+bad_rows <- summary_df[!(summary_df$status %in% c("done", "skipped_existing")), , drop = FALSE]
+if (nrow(bad_rows)) {
+  stop(
+    sprintf(
+      "Dynamic pipeline finished with incomplete tasks: %s",
+      paste(sprintf("%s@tau=%s:%s", bad_rows$model, bad_rows$tau, bad_rows$status), collapse = ", ")
+    ),
+    call. = FALSE
+  )
+}

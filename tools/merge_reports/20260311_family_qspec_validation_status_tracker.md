@@ -1,6 +1,6 @@
 # Family-QSpec Validation Status Tracker
 
-Last updated: 2026-03-12 21:45 EDT
+Last updated: 2026-03-14 04:40 EDT
 
 This file is the authoritative human-readable tracker for the family-qspec
 validation campaign on muscat.
@@ -814,16 +814,16 @@ Latest local audit counts at the last refresh after:
 These values evolve during the relaunch. The detailed live progress should be
 read from the periodic progress tables referenced below.
 
-| unit_type | blocked | complete_reusable | missing | partial_reusable | % complete within unit_type | notes |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| prepared_input | 0 | 54 | 0 | 0 | 100.0% | all canonical prepared roots now exist locally |
-| model_path | 0 | 50 | 64 | 30 | 34.7% | `30` are reusable resume-from-VB cases; `64` still need fresh VB->MCMC |
-| root_postprocess | 54 | 16 | 2 | 0 | 22.2% | `16` roots already have reusable postprocess outputs; `2` more are ready now |
-| root_review | 56 | 16 | 0 | 0 | 22.2% | `16` roots already have reusable root-review outputs |
-| prior_compare | 14 | 0 | 4 | 0 | 0.0% | `4` prior-compare tasks are ready but not yet run |
-| campaign_review | 3 | 0 | 0 | 0 | 0.0% | all still blocked on lower-level completion |
-| global_summary | 1 | 0 | 0 | 0 | 0.0% | blocked on campaign reviews |
-| legacy_root | n/a | n/a | n/a | n/a | n/a | `6` complete-out-of-scope legacy roots under `tau = 0.50`; see note below |
+| unit_type | blocked | complete_reusable | partial_reusable | % complete within unit_type | notes |
+| --- | ---: | ---: | ---: | ---: | --- |
+| prepared_input | 0 | 54 | 0 | 100.0% | all canonical prepared roots exist locally |
+| model_path | 0 | 124 | 20 | 86.1% | all remaining incomplete model paths are now resume-ready after the overnight worker drain |
+| root_postprocess | 20 | 52 | 0 | 72.2% | `52` roots already have reusable postprocess outputs |
+| root_review | 20 | 52 | 0 | 72.2% | `52` roots already have reusable root-review outputs |
+| prior_compare | 6 | 12 | 0 | 66.7% | `12` shrink prior-compare tasks are already complete |
+| campaign_review | 3 | 0 | 0 | 0.0% | all still blocked on lower-level completion |
+| global_summary | 1 | 0 | 0 | 0.0% | blocked on campaign reviews |
+| legacy_root | n/a | n/a | n/a | n/a | `6` complete-out-of-scope legacy roots under `tau = 0.50`; see note below |
 
 Out-of-scope legacy inventory:
 - `tools/merge_reports/20260312_family_qspec_reusable_state_audit.tsv`
@@ -890,11 +890,14 @@ New launcher scripts:
 - active-task snapshot: `tools/merge_reports/20260312_snapshot_family_qspec_v2_active_tasks.R`
 
 Supervisor runtime state:
-- supervisor tmux session: `fqv2_supervisor_20260312_210707`
+- current supervisor tmux session: `fqv2_supervisor_20260314_043810`
 - state dir: `/home/jaguir26/local/state/exdqlm/family_qspec_v2`
 - launch registry: `/home/jaguir26/local/state/exdqlm/family_qspec_v2/launch_registry.tsv`
 - worker event log: `/home/jaguir26/local/state/exdqlm/family_qspec_v2/task_events.tsv`
 - active-task snapshot: `tools/merge_reports/20260312_family_qspec_v2_active_tasks.tsv`
+- archived noisy pre-fix recovery attempt:
+  - `/home/jaguir26/local/state/exdqlm/family_qspec_v2/archive_20260314_043731/task_events.tsv`
+  - `/home/jaguir26/local/state/exdqlm/family_qspec_v2/archive_20260314_043731/launch_registry.tsv`
 
 Initial relaunch wave:
 - slot budget: `30`
@@ -989,15 +992,26 @@ Current regenerated model-path summary snapshot:
 
 | root_kind | stage_label | count | root_kind_total | % of root_kind | % of all model_paths |
 |---|---|---:|---:|---:|---:|
-| dynamic | `complete_reusable` | 14 | 36 | 38.9% | 9.7% |
-| dynamic | `queued_fresh_ready` | 4 | 36 | 11.1% | 2.8% |
-| dynamic | `running_resume_mcmc` | 18 | 36 | 50.0% | 12.5% |
-| static_paper | `complete_reusable` | 12 | 36 | 33.3% | 8.3% |
-| static_paper | `queued_fresh_ready` | 20 | 36 | 55.6% | 13.9% |
-| static_paper | `running_resume_mcmc` | 4 | 36 | 11.1% | 2.8% |
-| static_shrink | `complete_reusable` | 24 | 72 | 33.3% | 16.7% |
-| static_shrink | `queued_fresh_ready` | 40 | 72 | 55.6% | 27.8% |
-| static_shrink | `running_resume_mcmc` | 8 | 72 | 11.1% | 5.6% |
+| dynamic | `complete_reusable` | 34 | 36 | 94.4% | 23.6% |
+| dynamic | `running_resume_mcmc` | 2 | 36 | 5.6% | 1.4% |
+| static_paper | `complete_reusable` | 30 | 36 | 83.3% | 20.8% |
+| static_paper | `running_resume_mcmc` | 6 | 36 | 16.7% | 4.2% |
+| static_shrink | `complete_reusable` | 60 | 72 | 83.3% | 41.7% |
+| static_shrink | `running_resume_mcmc` | 12 | 72 | 16.7% | 8.3% |
+
+Current regenerated model-path snapshot by family:
+
+| model class | family | complete | resume_ready | total | % complete |
+|---|---|---:|---:|---:|---:|
+| dynamic | `gausmix` | 11 | 1 | 12 | 91.7% |
+| dynamic | `laplace` | 11 | 1 | 12 | 91.7% |
+| dynamic | `normal` | 12 | 0 | 12 | 100.0% |
+| static paper | `gausmix` | 10 | 2 | 12 | 83.3% |
+| static paper | `laplace` | 10 | 2 | 12 | 83.3% |
+| static paper | `normal` | 10 | 2 | 12 | 83.3% |
+| static shrink | `gausmix` | 20 | 4 | 24 | 83.3% |
+| static shrink | `laplace` | 20 | 4 | 24 | 83.3% |
+| static shrink | `normal` | 20 | 4 | 24 | 83.3% |
 
 Current regenerated barrier summary snapshot:
 
@@ -1005,10 +1019,78 @@ Current regenerated barrier summary snapshot:
 |---|---|---:|---:|---:|---:|
 | `campaign_review` | `campaign_review_waiting_for_prerequisites` | 3 | 3 | 100.0% | 1.8% |
 | `global_summary` | `global_summary_waiting_for_campaigns` | 1 | 1 | 100.0% | 0.6% |
-| `prior_compare` | `prior_compare_ready` | 4 | 18 | 22.2% | 2.4% |
-| `prior_compare` | `prior_compare_waiting_for_root_reviews` | 14 | 18 | 77.8% | 8.4% |
-| `root_postprocess` | `root_postprocess_complete` | 16 | 72 | 22.2% | 9.6% |
-| `root_postprocess` | `root_postprocess_ready` | 2 | 72 | 2.8% | 1.2% |
-| `root_postprocess` | `root_postprocess_waiting_for_model_paths` | 54 | 72 | 75.0% | 32.5% |
-| `root_review` | `root_review_complete` | 16 | 72 | 22.2% | 9.6% |
-| `root_review` | `root_review_waiting_for_postprocess` | 56 | 72 | 77.8% | 33.7% |
+| `prior_compare` | `complete_reusable` | 12 | 18 | 66.7% | 7.2% |
+| `prior_compare` | `prior_compare_waiting_for_root_reviews` | 6 | 18 | 33.3% | 3.6% |
+| `root_postprocess` | `root_postprocess_complete` | 52 | 72 | 72.2% | 31.3% |
+| `root_postprocess` | `root_postprocess_waiting_for_model_paths` | 20 | 72 | 27.8% | 12.0% |
+| `root_review` | `root_review_complete` | 52 | 72 | 72.2% | 31.3% |
+| `root_review` | `root_review_waiting_for_postprocess` | 20 | 72 | 27.8% | 12.0% |
+
+Current regenerated higher-layer snapshot by family:
+
+| workflow layer | family | complete | waiting | total | % complete |
+|---|---|---:|---:|---:|---:|
+| dynamic root postprocess | `gausmix` | 5 | 1 | 6 | 83.3% |
+| dynamic root postprocess | `laplace` | 5 | 1 | 6 | 83.3% |
+| dynamic root postprocess | `normal` | 6 | 0 | 6 | 100.0% |
+| static paper root postprocess | `gausmix` | 4 | 2 | 6 | 66.7% |
+| static paper root postprocess | `laplace` | 4 | 2 | 6 | 66.7% |
+| static paper root postprocess | `normal` | 4 | 2 | 6 | 66.7% |
+| static shrink root postprocess | `gausmix` | 8 | 4 | 12 | 66.7% |
+| static shrink root postprocess | `laplace` | 8 | 4 | 12 | 66.7% |
+| static shrink root postprocess | `normal` | 8 | 4 | 12 | 66.7% |
+| shrink prior compare | `gausmix` | 4 | 2 | 6 | 66.7% |
+| shrink prior compare | `laplace` | 4 | 2 | 6 | 66.7% |
+| shrink prior compare | `normal` | 4 | 2 | 6 | 66.7% |
+
+Latest live launcher verification at `2026-03-14 04:40 EDT`:
+
+- active workers: `20`
+- current task events in the clean recovery relaunch: `20 START`, `0 DONE`, `0 FAILED`
+- host load: `24.00 / 20.99 / 14.69`
+- available memory: `486 GiB`
+- current active workload mix:
+  - dynamic: `2` resume-MCMC model paths
+  - static paper: `6` resume-MCMC model paths
+  - static shrink: `12` resume-MCMC model paths
+
+Main confirmed root issue from the failed overnight tail:
+
+- the worker previously recorded `DONE` from shell exit semantics alone
+- `DONE` therefore did not guarantee that the expected `mcmc_*.rds` artifact
+  and `MCMC_DONE` status line actually existed
+- the old per-worker control plane also allowed orphaned worker/R processes to
+  survive after session teardown, which made ownership and relaunch behavior
+  unreliable
+
+Durable fixes now in place:
+
+- `DONE` is now emitted only after
+  `tools/merge_reports/20260312_verify_family_qspec_task_completion.R`
+  verifies the on-disk task outputs
+- all family-qspec MCMC burn-in defaults used by the relaunch are now `500`,
+  not `2000`
+- per-worker `tmux` ownership has been removed; workers are now launched as
+  detached pid-tracked processes
+- each current worker is isolated into its own session/pgid via `setsid`
+- supervisor heartbeat now reports `ready_unlocked`, not the misleading raw
+  ready count
+- worker logs are no longer quiet:
+  - dynamic workers emit live MCMC iteration lines again
+  - all workers emit a `60`-second heartbeat with pid, elapsed time, cpu, rss,
+    and the latest task status line when available
+
+Current clean recovery relaunch evidence:
+
+- current supervisor session: `fqv2_supervisor_20260314_043810`
+- current event log and launch registry were reset cleanly for this relaunch
+- the noisy prior recovery attempt was archived at:
+  - `/home/jaguir26/local/state/exdqlm/family_qspec_v2/archive_20260314_043731`
+- dynamic log evidence now shows live progress, for example:
+  - `burn-in iteration 10` in
+    `worker_logs/mp__root__dynamic__gausmix__tau_0p25__lasttt_5000__dqlm.log`
+- static workers now show live health even before they print internal iteration
+  lines, for example:
+  - `worker heartbeat | pid=... | elapsed_s=60 | cpu=100 | rss_mb=284.1`
+    in
+    `worker_logs/mp__root__static_paper__normal__tau_0p25__tt_100__exal.log`

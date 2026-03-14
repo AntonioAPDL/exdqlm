@@ -211,7 +211,7 @@ vb_ld_init_cov_diag <- safe_num_vec(
 )
 vb_ld_profile_name <- Sys.getenv("EXDQLM_STATIC_LD_PROFILE_NAME", "manual")
 
-mcmc_burn <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_BURN", "2000"), 2000L)
+mcmc_burn <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_BURN", "500"), 500L)
 mcmc_n <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_N", "1000"), 1000L)
 mcmc_thin <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_THIN", "1"), 1L)
 mcmc_mh_proposal <- tolower(Sys.getenv("EXDQLM_STATIC_MCMC_MH_PROPOSAL", "laplace_rw"))
@@ -225,8 +225,9 @@ mcmc_mh_scale_max <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_SCALE_MAX", "10"
 mcmc_mh_max_scale_step <- safe_num(Sys.getenv("EXDQLM_STATIC_MCMC_MH_MAX_SCALE_STEP", "0.35"), 0.35)
 mcmc_mh_min_burn_adapt <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_MH_MIN_BURN_ADAPT", "50"), 50L)
 mcmc_trace_diagnostics <- safe_bool(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_DIAGNOSTICS", "true"), TRUE)
-mcmc_trace_every <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_EVERY", "1"), 1L)
+mcmc_trace_every <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_EVERY", "25"), 25L)
 if (mcmc_trace_every < 1L) mcmc_trace_every <- 1L
+mcmc_verbose <- safe_bool(Sys.getenv("EXDQLM_STATIC_MCMC_VERBOSE", "true"), TRUE)
 
 n_core_phys <- tryCatch(parallel::detectCores(logical = FALSE), error = function(e) 2L)
 if (!is.finite(n_core_phys) || is.na(n_core_phys) || n_core_phys < 1L) n_core_phys <- 2L
@@ -610,7 +611,7 @@ run_one_pipeline <- function(task_row) {
       mh.min_burn_adapt = mcmc_mh_min_burn_adapt,
       trace.diagnostics = mcmc_trace_diagnostics,
       trace.every = mcmc_trace_every,
-      verbose = FALSE
+      verbose = mcmc_verbose
     ),
     error = function(e) e
   )
@@ -684,12 +685,12 @@ log_master(sprintf(
     "TT=%d VB(max_iter=%d,tol=%.4f,tol_sigma=%.4g,tol_gamma=%.4g,tol_elbo=%.4g,min_iter=%d,patience=%d,",
     "allow_elbo_drop=%.4g,n_samp_xi=%d,xi=delta,opt=%s,direct=%s,",
     "ld_damp=%s,ld_xi_damp=%s,sigma_init=%s,eta=[%.1f,%.1f]) ",
-    "MCMC(burn=%d,n=%d,thin=%d,mh=%s) cores=%d overwrite=%s"
+    "MCMC(burn=%d,n=%d,thin=%d,mh=%s,trace=%s,trace_every=%d,verbose=%s) cores=%d overwrite=%s"
   ),
   TT, vb_max_iter, vb_tol, vb_tol_sigma, vb_tol_gamma, vb_tol_elbo, vb_min_iter, vb_patience, vb_allow_elbo_drop,
   vb_n_samp_xi, vb_ld_optimizer_method, vb_ld_direct_commit,
   format(vb_ld_damping, trim = TRUE), format(vb_ld_xi_damping, trim = TRUE), vb_ld_sigma_init_mode, vb_ld_eta_lo, vb_ld_eta_hi,
-  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, cores_pipeline, overwrite_existing
+  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose, cores_pipeline, overwrite_existing
 ))
 log_master(sprintf("models=%s taus=%s", paste(unique(tasks$model), collapse = ","), paste(sprintf("%.2f", p_vec), collapse = ",")))
 
@@ -719,3 +720,13 @@ utils::write.csv(summary_df, file.path(out_root, "tables", "pipeline_task_summar
 
 log_master("pipeline run completed")
 log_master(sprintf("summary table: %s", file.path(out_root, "tables", "pipeline_task_summary.csv")))
+bad_rows <- summary_df[!(summary_df$status %in% c("done", "skipped_existing")), , drop = FALSE]
+if (nrow(bad_rows)) {
+  stop(
+    sprintf(
+      "Static pipeline finished with incomplete tasks: %s",
+      paste(sprintf("%s@tau=%s:%s", bad_rows$model, bad_rows$tau, bad_rows$status), collapse = ", ")
+    ),
+    call. = FALSE
+  )
+}
