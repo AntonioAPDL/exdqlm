@@ -1482,14 +1482,13 @@ plot_beta_forest_summary <- function(beta_hat,
 }
 
 get_exal_param_draws <- function(fit, p, nd = 2000, gamma_bounds = NULL, seed = NULL) {
-  stopifnot(inherits(fit, "exal_vb"))
   if (!is.null(seed)) set.seed(seed)
-  if (!exists("exal_vb_posterior_draws", mode = "function")) {
-    stop("exal_vb_posterior_draws() not found; cannot get parameter draws.")
+  if (!exists("exal_posterior_draws", mode = "function")) {
+    stop("exal_posterior_draws() not found; cannot get parameter draws.")
   }
-  dr <- exal_vb_posterior_draws(fit, nd = nd)
+  dr <- exal_posterior_draws(fit, nd = nd)
   if (!is.null(dr$beta) && is.matrix(dr$beta) && ncol(dr$beta) != p) {
-    stop(sprintf("exal_vb_posterior_draws(): expected %d columns in beta, got %d", p, ncol(dr$beta)))
+    stop(sprintf("exal_posterior_draws(): expected %d columns in beta, got %d", p, ncol(dr$beta)))
   }
   list(gamma = dr$gamma, sigma = dr$sigma, beta = dr$beta, gamma_bounds = gamma_bounds)
 }
@@ -1855,7 +1854,7 @@ fit_and_forecast_p <- function(p0) {
     )$beta
   }
 
-  pred_draws <- exal_vb_posterior_draws(fit_exal, nd = nd_draws)
+  pred_draws <- exal_posterior_draws(fit_exal, nd = nd_draws)
   if (isTRUE(use_ij_correction) && !is.null(sd_ij_beta) &&
       is.matrix(pred_draws$beta) && length(sd_ij_beta) == ncol(pred_draws$beta)) {
     pred_draws$beta <- ij_correct_beta_draws(
@@ -1868,7 +1867,7 @@ fit_and_forecast_p <- function(p0) {
   # ---- Posterior predictive (train + forecast) ----------------------------
   pp_tr <- timed(
     sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nrow(pred_draws$beta)),
-    exal_vb_posterior_predict(
+    exal_posterior_predict(
       fit_exal,
       X_new = X_train,
       nd = nrow(pred_draws$beta),

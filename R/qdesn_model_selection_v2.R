@@ -364,7 +364,7 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
 
     fit_exal <- ms_fit_one_tau(X_train, y_train_keep, p0, cfg, vb_control)
 
-    pred_draws <- exal_vb_posterior_draws(fit_exal, nd = nd_draws)
+    pred_draws <- exal_posterior_draws(fit_exal, nd = nd_draws)
 
     fit_meta <- shared_fit$meta
     fit_meta$readout_spec <- readout_spec

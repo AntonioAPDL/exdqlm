@@ -3,7 +3,7 @@
 Date: 2026-03-13
 Branch: `feature/qdesn-mcmc-alternative`
 Owner: Q-DESN readout inference refactor
-Status: planning and theory-to-code design
+Status: phase-A derivations and the first ridge-MCMC integration seam have landed locally; RHS MCMC and full pipeline method-dispatch remain next
 
 ## 0) Goal
 
@@ -151,11 +151,44 @@ Working log-target:
 
 `log p(eta_gamma | rest) = log p(gamma(eta_gamma) | rest) + log |d gamma / d eta_gamma|`.
 
+More explicitly, with
+
+- `gamma = L + (U-L) plogis(eta_gamma)`,
+- `lambda(gamma) = C(gamma) |gamma|`,
+- `mu_t(gamma) = x_t' beta + lambda(gamma) sigma s_t + A(gamma) v_t`,
+
+the log-kernel is
+
+`ell_gamma(eta_gamma) = -(T/2) log B(gamma)
+ - (1/2) sum_t (y_t - mu_t(gamma))^2 / (B(gamma) sigma v_t)
+ + log pi_gamma(gamma)
+ + log(U-L) + log plogis(eta_gamma) + log(1-plogis(eta_gamma))`.
+
+This is the exact one-dimensional target the slice step should use.
+
 ### 4.2 `sigma` full conditional
 
 The current static exAL MCMC code already uses a GIG draw for `sigma`. We
 should write this explicitly into the theory/implementation note for the
 Q-DESN readout path, using the same notation as the current exAL decomposition.
+
+For fixed `beta`, `gamma`, `v`, `s`, let
+
+- `lambda = C(gamma) |gamma|`,
+- `r_t = y_t - x_t' beta - A(gamma) v_t`.
+
+Then the conditional kernel for `sigma` is
+
+`p(sigma | rest) propto sigma^{k_sigma - 1}
+ exp{- (psi_sigma sigma + chi_sigma / sigma) / 2 }`,
+
+with
+
+- `k_sigma = -(a_sigma + 3T/2)`,
+- `chi_sigma = sum_t r_t^2 / (B(gamma) v_t) + 2 sum_t v_t + 2 b_sigma`,
+- `psi_sigma = (lambda^2 / B(gamma)) sum_t s_t^2 / v_t`.
+
+So `sigma | rest` is a GIG draw and should remain a Gibbs step.
 
 ### 4.3 RHS slice targets
 
@@ -182,6 +215,36 @@ Concretely:
    - uses all `V_j`;
    - inverse-gamma prior on `c^2`;
    - Jacobian `+ eta_c`.
+
+Writing these out:
+
+1. `eta_lambda_j = log lambda_j`
+
+`ell_lambda_j(eta_lambda_j) =
+ - (1/2) log V_j
+ - beta_j^2 / (2 V_j)
+ + eta_lambda_j
+ - log(1 + exp(2 eta_lambda_j))`,
+
+where `V_j = tau^2 * (c^2 lambda_j^2) / (c^2 + tau^2 lambda_j^2)` and
+`lambda_j = exp(eta_lambda_j)`.
+
+2. `eta_tau = log tau`
+
+`ell_tau(eta_tau) =
+ - (1/2) sum_j [log V_j + beta_j^2 / V_j]
+ + eta_tau
+ - log(1 + exp(2 eta_tau) / tau0^2)`.
+
+3. `eta_c = log c^2`
+
+`ell_c(eta_c) =
+ - (1/2) sum_j [log V_j + beta_j^2 / V_j]
+ - (nu / 2) eta_c
+ - nu s^2 / (2 exp(eta_c))`.
+
+All three are smooth one-dimensional targets under coordinate-wise updates and
+are therefore appropriate for slice sampling on transformed coordinates.
 
 ### 4.4 Ridge case
 

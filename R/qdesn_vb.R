@@ -448,7 +448,15 @@ ret <- list(
 #' @export
 predict_mu.qdesn_fit <- function(object) {
   if (is.null(object$fit)) stop("predict_mu(): object has no fitted readout (fit_readout=FALSE).", call. = FALSE)
-  as.numeric(object$X %*% object$fit$qbeta$m)
+  if (inherits(object$fit, "exal_vb")) {
+    return(as.numeric(object$X %*% object$fit$qbeta$m))
+  }
+  if (inherits(object$fit, "exal_mcmc")) {
+    beta_mean <- object$fit$summary$beta_mean
+    if (is.null(beta_mean)) stop("predict_mu(): MCMC fit is missing beta_mean summary.", call. = FALSE)
+    return(as.numeric(object$X %*% beta_mean))
+  }
+  stop("predict_mu(): unsupported readout fit class.", call. = FALSE)
 }
 
 # ================================================================
@@ -565,7 +573,7 @@ exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L,
 posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk = 200L, draws = NULL) {
   stopifnot(is.list(object), !is.null(object$fit), !is.null(object$X))
   X_use <- if (is.null(X_new)) object$X else as.matrix(X_new)
-  exal_vb_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk, draws = draws)
+  exal_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk, draws = draws)
 }
 #' Multi-horizon posterior predictive paths for a Q-DESN fit
 #'
@@ -899,7 +907,7 @@ forecast_paths.qdesn_fit <- function(
   }
 
   if (is.null(draws)) {
-    draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+    draws <- exal_posterior_draws(object$fit, nd = nd)
   }
   Bdraw <- draws$beta
   sdraw <- draws$sigma
@@ -1197,7 +1205,7 @@ forecast_lattice.qdesn_fit <- function(
 
   if (!is.null(seed)) set.seed(as.integer(seed))
   if (is.null(draws)) {
-    draws <- exal_vb_posterior_draws(object$fit, nd = nd)
+    draws <- exal_posterior_draws(object$fit, nd = nd)
   }
   nd_eff <- nrow(draws$beta)
 

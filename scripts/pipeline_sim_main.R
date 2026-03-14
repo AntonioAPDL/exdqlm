@@ -1588,20 +1588,18 @@ plot_beta_forest_summary <- function(beta_hat,
 
 get_exal_param_draws <- function(fit, p, nd = 2000, gamma_bounds = NULL, seed = NULL) {
   # Minimal, exAL-only version:
-  #  - assumes `fit` is an `exal_vb` object from `exal_static_LDVB`
-  #  - uses the package-native exal_vb_posterior_draws()
-  stopifnot(inherits(fit, "exal_vb"))
+  #  - dispatches to the active readout inference backend
   if (!is.null(seed)) set.seed(seed)
 
-  if (!exists("exal_vb_posterior_draws", mode = "function")) {
-    stop("exal_vb_posterior_draws() not found; cannot get parameter draws.")
+  if (!exists("exal_posterior_draws", mode = "function")) {
+    stop("exal_posterior_draws() not found; cannot get parameter draws.")
   }
 
-  dr <- exal_vb_posterior_draws(fit, nd = nd)
+  dr <- exal_posterior_draws(fit, nd = nd)
 
   # sanity check on β dimension
   if (!is.null(dr$beta) && is.matrix(dr$beta) && ncol(dr$beta) != p) {
-    stop(sprintf("exal_vb_posterior_draws(): expected %d columns in beta, got %d",
+    stop(sprintf("exal_posterior_draws(): expected %d columns in beta, got %d",
                  p, ncol(dr$beta)))
   }
 
@@ -2427,7 +2425,7 @@ fit_and_forecast_p <- function(p0) {
     )$beta
   }
 
-  pred_draws <- exal_vb_posterior_draws(fit_exal, nd = nd_draws)
+  pred_draws <- exal_posterior_draws(fit_exal, nd = nd_draws)
   if (isTRUE(use_ij_correction) && !is.null(sd_ij_beta) &&
       is.matrix(pred_draws$beta) && length(sd_ij_beta) == ncol(pred_draws$beta)) {
     pred_draws$beta <- ij_correct_beta_draws(
@@ -2440,7 +2438,7 @@ fit_and_forecast_p <- function(p0) {
   # ---- Posterior predictive: TRAIN (for q̂ diagnostics) -------------------
   pp_tr <- timed(
     sprintf("posterior_predict TRAIN (p=%s, nd=%d)", fmt_p(p0), nrow(pred_draws$beta)),
-    exal_vb_posterior_predict(
+    exal_posterior_predict(
       fit_exal,
       X_new = X_train,
       nd = nrow(pred_draws$beta),
