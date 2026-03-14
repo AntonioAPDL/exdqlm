@@ -573,10 +573,11 @@ The MCMC path must be correct first, then optimized deliberately.
 
 ### Phase F: quality hardening
 
-- Status: next active phase.
+- Status: active on this branch.
 - profile bottlenecks;
 - improve storage defaults and diagnostics;
 - document when VB or MCMC should be preferred.
+- broaden the controlled validation campaign using the fixed VB RHS baseline.
 
 ## 11.1) Smoke Matrix Completion
 
@@ -651,6 +652,40 @@ That framework is now implemented for the phase-0 pilot:
 - campaign collector;
 - root/campaign plots and summaries;
 - focused regression tests for the pilot artifact contract.
+
+The next validation layer is also implemented on this branch:
+
+- `config/validation/qdesn_mcmc_compare_defaults.yaml`
+- `config/validation/qdesn_mcmc_compare_grid.csv`
+- `scripts/run_qdesn_mcmc_full_comparison.R`
+
+This phase-1 comparison extends the same root contract to a broader controlled
+toy-study grid:
+
+- scenarios:
+  - `toy_sine_small`
+  - `const_small`
+  - `sin_asym_small`
+  - `level_shift_small`
+- taus:
+  - `0.05`
+  - `0.25`
+  - `0.50`
+- priors:
+  - `ridge`
+  - `rhs`
+- seed:
+  - `123`
+- total roots:
+  - `24`
+
+The broader collector now also writes:
+
+- grouped method summaries;
+- grouped pair summaries;
+- campaign stage-timing summaries;
+- campaign chain-diagnostic summaries;
+- a markdown campaign overview.
 
 ## 12) Acceptance Criteria
 

@@ -2,7 +2,7 @@
 
 Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
-Status: phase-0 pilot framework implemented on this branch; the two-root pilot campaign is ready to run
+Status: phase-0 pilot framework implemented; phase-1 broader toy comparison campaign now implemented on this branch using the fixed VB RHS baseline
 Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
@@ -39,6 +39,11 @@ The following pieces are now implemented on this branch:
   - `scripts/collect_qdesn_mcmc_validation_reports.R`
 - focused regression coverage in:
   - `tests/testthat/test-qdesn-mcmc-validation-pilot.R`
+- broader comparison campaign defaults and grid:
+  - `config/validation/qdesn_mcmc_compare_defaults.yaml`
+  - `config/validation/qdesn_mcmc_compare_grid.csv`
+- broader comparison runner:
+  - `scripts/run_qdesn_mcmc_full_comparison.R`
 
 The implemented framework now:
 
@@ -49,6 +54,8 @@ The implemented framework now:
 - creates comparison plots for series, forecast behavior, runtime, scores, and
   algorithm progress;
 - collects campaign-level summaries and plots across roots.
+- collects campaign-level stage-timing, chain-diagnostic, grouped comparison,
+  and markdown summary artifacts that scale past the pilot-only two-root case.
 
 RHS VB stabilization note:
 
@@ -70,7 +77,23 @@ Operational note:
 
 - the first no-plots pilot campaign has already completed successfully with
   `2 / 2` successful roots;
-- the plots-enabled pilot rerun is the current live background execution.
+- the next active validation layer is the phase-1 broader toy comparison:
+  - scenarios:
+    - `toy_sine_small`
+    - `const_small`
+    - `sin_asym_small`
+    - `level_shift_small`
+  - taus:
+    - `0.05`
+    - `0.25`
+    - `0.50`
+  - priors:
+    - `ridge`
+    - `rhs`
+  - seeds:
+    - `123`
+  - total roots:
+    - `24`
 
 ## 1) Design Principles
 

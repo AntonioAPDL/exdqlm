@@ -50,6 +50,21 @@
   invisible(path)
 }
 
+.qdesn_validation_tau_label <- function(x, digits = 2L) {
+  sprintf(paste0("%.", as.integer(digits), "f"), as.numeric(x))
+}
+
+.qdesn_validation_case_label <- function(scenario, tau, seed = NULL, reservoir_profile = NULL) {
+  base <- paste0(as.character(scenario), "\n", "tau=", .qdesn_validation_tau_label(tau))
+  if (!is.null(seed) && length(unique(as.integer(seed))) > 1L) {
+    base <- paste0(base, "\nseed=", as.integer(seed))
+  }
+  if (!is.null(reservoir_profile) && length(unique(as.character(reservoir_profile))) > 1L) {
+    base <- paste0(base, "\nres=", as.character(reservoir_profile))
+  }
+  base
+}
+
 .qdesn_validation_prob_label <- function(x, digits = 2L) {
   gsub("\\.", "p", format(as.numeric(x)[1L], nsmall = digits, digits = digits + 2L, trim = TRUE))
 }
@@ -167,6 +182,63 @@ qdesn_validation_generate_toy_series <- function(scenario = "toy_sine_small",
       period = period,
       noise_sd = noise_sd,
       phase = phase
+    )
+  } else if (identical(scenario, "const_small")) {
+    level <- as.numeric(scenario_cfg$level %||% 0.4)[1L]
+    noise_sd <- as.numeric(scenario_cfg$noise_sd %||% 0.08)[1L]
+    mu <- rep(level, T_use)
+    y <- as.numeric(mu + stats::rnorm(T_use, sd = noise_sd))
+    q_mat <- outer(mu, stats::qnorm(p_grid) * noise_sd, "+")
+    scenario_meta <- list(
+      name = scenario,
+      level = level,
+      noise_sd = noise_sd
+    )
+  } else if (identical(scenario, "sin_asym_small")) {
+    amplitude <- as.numeric(scenario_cfg$amplitude %||% 0.6)[1L]
+    period <- as.numeric(scenario_cfg$period %||% 12)[1L]
+    phase <- as.numeric(scenario_cfg$phase %||% 0)[1L]
+    meanlog <- as.numeric(scenario_cfg$meanlog %||% -0.35)[1L]
+    sdlog <- as.numeric(scenario_cfg$sdlog %||% 0.45)[1L]
+    noise_scale <- as.numeric(scenario_cfg$noise_scale %||% 0.35)[1L]
+    mu <- amplitude * sin((2 * pi * (t + phase)) / period)
+    centered_lognorm_mean <- exp(meanlog + 0.5 * sdlog^2)
+    eps <- noise_scale * (stats::rlnorm(T_use, meanlog = meanlog, sdlog = sdlog) - centered_lognorm_mean)
+    y <- as.numeric(mu + eps)
+    q_noise <- noise_scale * (stats::qlnorm(p_grid, meanlog = meanlog, sdlog = sdlog) - centered_lognorm_mean)
+    q_mat <- outer(mu, q_noise, "+")
+    scenario_meta <- list(
+      name = scenario,
+      amplitude = amplitude,
+      period = period,
+      phase = phase,
+      meanlog = meanlog,
+      sdlog = sdlog,
+      noise_scale = noise_scale
+    )
+  } else if (identical(scenario, "level_shift_small")) {
+    break_1 <- as.integer(scenario_cfg$break_1 %||% floor(T_use / 3))[1L]
+    break_2 <- as.integer(scenario_cfg$break_2 %||% floor(2 * T_use / 3))[1L]
+    level_1 <- as.numeric(scenario_cfg$level_1 %||% 0.15)[1L]
+    level_2 <- as.numeric(scenario_cfg$level_2 %||% 0.75)[1L]
+    level_3 <- as.numeric(scenario_cfg$level_3 %||% -0.05)[1L]
+    noise_sd <- as.numeric(scenario_cfg$noise_sd %||% 0.10)[1L]
+    mu <- c(
+      rep(level_1, max(1L, break_1)),
+      rep(level_2, max(1L, break_2 - break_1)),
+      rep(level_3, max(1L, T_use - break_2))
+    )
+    mu <- as.numeric(mu[seq_len(T_use)])
+    y <- as.numeric(mu + stats::rnorm(T_use, sd = noise_sd))
+    q_mat <- outer(mu, stats::qnorm(p_grid) * noise_sd, "+")
+    scenario_meta <- list(
+      name = scenario,
+      break_1 = break_1,
+      break_2 = break_2,
+      level_1 = level_1,
+      level_2 = level_2,
+      level_3 = level_3,
+      noise_sd = noise_sd
     )
   } else {
     stop(sprintf("Unsupported toy validation scenario '%s'.", scenario), call. = FALSE)
@@ -382,6 +454,53 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   invisible(path)
 }
 
+.qdesn_validation_group_numeric <- function(df, group_cols, numeric_cols) {
+  if (!nrow(df)) return(data.frame(stringsAsFactors = FALSE))
+  group_cols <- group_cols[group_cols %in% names(df)]
+  numeric_cols <- numeric_cols[numeric_cols %in% names(df)]
+  if (!length(group_cols) || !length(numeric_cols)) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  split_idx <- split(seq_len(nrow(df)), interaction(df[, group_cols, drop = FALSE], drop = TRUE, lex.order = TRUE))
+  rows <- lapply(split_idx, function(idx) {
+    sub <- df[idx, , drop = FALSE]
+    row <- sub[1L, group_cols, drop = FALSE]
+    row$n_rows <- nrow(sub)
+    for (nm in numeric_cols) {
+      x <- as.numeric(sub[[nm]])
+      ok <- is.finite(x)
+      row[[paste0(nm, "_n_finite")]] <- sum(ok)
+      row[[paste0(nm, "_mean")]] <- if (any(ok)) mean(x[ok]) else NA_real_
+      row[[paste0(nm, "_median")]] <- if (any(ok)) stats::median(x[ok]) else NA_real_
+      row[[paste0(nm, "_sd")]] <- if (sum(ok) > 1L) stats::sd(x[ok]) else NA_real_
+      row[[paste0(nm, "_min")]] <- if (any(ok)) min(x[ok]) else NA_real_
+      row[[paste0(nm, "_max")]] <- if (any(ok)) max(x[ok]) else NA_real_
+    }
+    row
+  })
+  .qdesn_validation_bind_rows(rows)
+}
+
+.qdesn_validation_df_to_markdown <- function(df, digits = 3L) {
+  if (is.null(df) || !nrow(df)) {
+    return(c("| empty |", "|---|", "| no rows |"))
+  }
+  fmt_one <- function(x) {
+    if (is.numeric(x)) {
+      ifelse(is.finite(x), format(round(x, digits), nsmall = 0L, trim = TRUE), "NA")
+    } else {
+      out <- as.character(x)
+      out[is.na(out) | !nzchar(out)] <- "NA"
+      out
+    }
+  }
+  df_fmt <- as.data.frame(lapply(df, fmt_one), stringsAsFactors = FALSE)
+  header <- paste0("| ", paste(names(df_fmt), collapse = " | "), " |")
+  rule <- paste0("|", paste(rep("---", ncol(df_fmt)), collapse = "|"), "|")
+  body <- apply(df_fmt, 1L, function(row) paste0("| ", paste(row, collapse = " | "), " |"))
+  c(header, rule, body)
+}
+
 .qdesn_validation_method_health <- function(method, root_spec, summary_obj) {
   fit <- .qdesn_validation_extract_fit(summary_obj)
   summary_row <- summary_obj$summary
@@ -473,6 +592,15 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$rhs_tau_mean <- if (length(tau_draws)) mean(tau_draws) else NA_real_
     base$rhs_c2_mean <- if (length(c2_draws)) mean(c2_draws) else NA_real_
     base$rhs_lambda_mean <- if (length(lambda_mean_draws)) mean(lambda_mean_draws) else NA_real_
+    if (is.finite(base$fit_runtime_seconds) && base$fit_runtime_seconds > 0) {
+      base$mcmc_ess_per_second_gamma <- base$mcmc_ess_gamma / base$fit_runtime_seconds
+      base$mcmc_ess_per_second_sigma <- base$mcmc_ess_sigma / base$fit_runtime_seconds
+      base$mcmc_ess_per_second_beta_norm <- base$mcmc_ess_beta_norm / base$fit_runtime_seconds
+    } else {
+      base$mcmc_ess_per_second_gamma <- NA_real_
+      base$mcmc_ess_per_second_sigma <- NA_real_
+      base$mcmc_ess_per_second_beta_norm <- NA_real_
+    }
     base$finite_ok <- all(is.finite(c(base$mcmc_gamma_mean, base$mcmc_sigma_mean, base$mcmc_beta_norm_mean)))
     base$domain_ok <- all(is.finite(sigma_draws)) && all(sigma_draws > 0) &&
       all(is.finite(gamma_draws)) &&
@@ -890,12 +1018,16 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   keep_vb <- c(keys, "status", "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
                "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
                "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
-               "vb_converged", "vb_iter", "vb_gamma_last", "vb_sigma_last", "vb_elbo_last", "vb_beta_norm")
+               "finite_ok", "domain_ok", "vb_converged", "vb_iter", "vb_gamma_last",
+               "vb_sigma_last", "vb_elbo_last", "vb_beta_norm", "rhs_tau_last", "rhs_c2_last")
   keep_mc <- c(keys, "status", "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
                "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
                "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
+               "finite_ok", "domain_ok",
                "mcmc_n_keep", "mcmc_ess_gamma", "mcmc_ess_sigma", "mcmc_ess_beta_norm",
-               "mcmc_gamma_mean", "mcmc_sigma_mean", "mcmc_beta_norm_mean")
+               "mcmc_ess_per_second_gamma", "mcmc_ess_per_second_sigma", "mcmc_ess_per_second_beta_norm",
+               "mcmc_gamma_mean", "mcmc_sigma_mean", "mcmc_beta_norm_mean",
+               "rhs_tau_mean", "rhs_c2_mean", "rhs_lambda_mean")
   keep_vb <- keep_vb[keep_vb %in% names(vb)]
   keep_mc <- keep_mc[keep_mc %in% names(mc)]
 
@@ -906,6 +1038,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   out <- merge(vb_sub, mc_sub, by = keys, all = TRUE, sort = FALSE)
   if ("mcmc_wall_seconds" %in% names(out) && "vb_wall_seconds" %in% names(out)) {
     out$runtime_ratio_mcmc_vs_vb <- with(out, ifelse(is.finite(vb_wall_seconds) & vb_wall_seconds > 0, mcmc_wall_seconds / vb_wall_seconds, NA_real_))
+  }
+  if ("mcmc_total_stage_seconds" %in% names(out) && "vb_total_stage_seconds" %in% names(out)) {
+    out$stage_runtime_ratio_mcmc_vs_vb <- with(out, ifelse(
+      is.finite(vb_total_stage_seconds) & vb_total_stage_seconds > 0,
+      mcmc_total_stage_seconds / vb_total_stage_seconds,
+      NA_real_
+    ))
   }
   if ("mcmc_forecast_CRPS_mean" %in% names(out) && "vb_forecast_CRPS_mean" %in% names(out)) {
     out$forecast_CRPS_delta_mcmc_minus_vb <- out$mcmc_forecast_CRPS_mean - out$vb_forecast_CRPS_mean
@@ -921,6 +1060,23 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   }
   if ("mcmc_forecast_pinball_tau" %in% names(out) && "vb_forecast_pinball_tau" %in% names(out)) {
     out$forecast_pinball_tau_delta_mcmc_minus_vb <- out$mcmc_forecast_pinball_tau - out$vb_forecast_pinball_tau
+  }
+  if ("mcmc_status" %in% names(out) && "vb_status" %in% names(out)) {
+    out$both_success <- as.logical(out$vb_status == "SUCCESS" & out$mcmc_status == "SUCCESS")
+  }
+  if (all(c("vb_finite_ok", "mcmc_finite_ok") %in% names(out))) {
+    out$both_finite_ok <- as.logical(out$vb_finite_ok & out$mcmc_finite_ok)
+  }
+  if (all(c("vb_domain_ok", "mcmc_domain_ok") %in% names(out))) {
+    out$both_domain_ok <- as.logical(out$vb_domain_ok & out$mcmc_domain_ok)
+  }
+  if ("forecast_qhat_mae_delta_mcmc_minus_vb" %in% names(out)) {
+    out$mcmc_better_qhat_mae <- as.logical(is.finite(out$forecast_qhat_mae_delta_mcmc_minus_vb) &
+      out$forecast_qhat_mae_delta_mcmc_minus_vb < 0)
+  }
+  if ("forecast_pinball_tau_delta_mcmc_minus_vb" %in% names(out)) {
+    out$mcmc_better_pinball_tau <- as.logical(is.finite(out$forecast_pinball_tau_delta_mcmc_minus_vb) &
+      out$forecast_pinball_tau_delta_mcmc_minus_vb < 0)
   }
   out
 }
@@ -940,7 +1096,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     n_methods = nrow(method_rows),
     vb_status = if (any(method_rows$method == "vb")) as.character(method_rows$status[method_rows$method == "vb"][1L]) else NA_character_,
     mcmc_status = if (any(method_rows$method == "mcmc")) as.character(method_rows$status[method_rows$method == "mcmc"][1L]) else NA_character_,
+    both_finite_ok = as.logical(pair_summary$both_finite_ok[1L] %||% FALSE),
+    both_domain_ok = as.logical(pair_summary$both_domain_ok[1L] %||% FALSE),
     runtime_ratio_mcmc_vs_vb = as.numeric(pair_summary$runtime_ratio_mcmc_vs_vb[1L] %||% NA_real_),
+    stage_runtime_ratio_mcmc_vs_vb = as.numeric(pair_summary$stage_runtime_ratio_mcmc_vs_vb[1L] %||% NA_real_),
     forecast_CRPS_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_CRPS_delta_mcmc_minus_vb[1L] %||% NA_real_),
     forecast_Pinball_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_Pinball_delta_mcmc_minus_vb[1L] %||% NA_real_),
     forecast_S_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_S_delta_mcmc_minus_vb[1L] %||% NA_real_),
@@ -1077,6 +1236,182 @@ qdesn_validation_run_root <- function(root_spec,
   )
 }
 
+.qdesn_validation_collect_root_meta <- function(root_dir) {
+  root_summary_path <- file.path(root_dir, "tables", "root_summary.csv")
+  if (file.exists(root_summary_path)) {
+    out <- utils::read.csv(root_summary_path, stringsAsFactors = FALSE)
+    if (nrow(out)) return(out[1L, , drop = FALSE])
+  }
+  root_manifest_path <- file.path(root_dir, "manifest", "root_manifest.json")
+  manifest <- .qdesn_validation_read_json_if_exists(root_manifest_path)
+  if (is.null(manifest)) return(data.frame(stringsAsFactors = FALSE))
+  data.frame(
+    root_id = as.character(manifest$root_id %||% basename(root_dir)),
+    scenario = as.character(manifest$scenario %||% NA_character_),
+    tau = as.numeric(manifest$tau %||% NA_real_),
+    beta_prior_type = as.character(manifest$beta_prior_type %||% NA_character_),
+    seed = as.integer(manifest$seed %||% NA_integer_),
+    reservoir_profile = as.character(manifest$reservoir_profile %||% NA_character_),
+    stringsAsFactors = FALSE
+  )
+}
+
+.qdesn_validation_collect_stage_rows <- function(root_dirs) {
+  rows <- list()
+  for (root_dir in root_dirs) {
+    meta <- .qdesn_validation_collect_root_meta(root_dir)
+    if (!nrow(meta)) next
+    for (method in c("vb", "mcmc")) {
+      stage_path <- file.path(root_dir, "fits", method, "tables", "timing_breakdown.csv")
+      if (!file.exists(stage_path)) next
+      stage_df <- utils::read.csv(stage_path, stringsAsFactors = FALSE)
+      if (!nrow(stage_df)) next
+      rows[[length(rows) + 1L]] <- cbind(
+        meta[rep(1L, nrow(stage_df)), , drop = FALSE],
+        data.frame(method = method, stringsAsFactors = FALSE),
+        stage_df,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  .qdesn_validation_bind_rows(rows)
+}
+
+.qdesn_validation_collect_chain_rows <- function(root_dirs) {
+  rows <- list()
+  for (root_dir in root_dirs) {
+    meta <- .qdesn_validation_collect_root_meta(root_dir)
+    if (!nrow(meta)) next
+    chain_path <- file.path(root_dir, "fits", "mcmc", "chain_summary.csv")
+    if (!file.exists(chain_path)) next
+    chain_df <- utils::read.csv(chain_path, stringsAsFactors = FALSE)
+    if (!nrow(chain_df)) next
+    rows[[length(rows) + 1L]] <- cbind(meta[rep(1L, nrow(chain_df)), , drop = FALSE], chain_df, stringsAsFactors = FALSE)
+  }
+  .qdesn_validation_bind_rows(rows)
+}
+
+.qdesn_validation_group_method_summary <- function(method_summary) {
+  if (!nrow(method_summary)) return(data.frame(stringsAsFactors = FALSE))
+  group_cols <- c("scenario", "tau", "beta_prior_type", "reservoir_profile", "method")
+  numeric_cols <- c(
+    "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
+    "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
+    "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
+    "mcmc_ess_gamma", "mcmc_ess_sigma", "mcmc_ess_beta_norm",
+    "mcmc_ess_per_second_gamma", "mcmc_ess_per_second_sigma",
+    "mcmc_ess_per_second_beta_norm"
+  )
+  numeric_part <- .qdesn_validation_group_numeric(method_summary, group_cols, numeric_cols)
+  split_idx <- split(seq_len(nrow(method_summary)), interaction(method_summary[, group_cols, drop = FALSE], drop = TRUE, lex.order = TRUE))
+  status_rows <- lapply(split_idx, function(idx) {
+    sub <- method_summary[idx, , drop = FALSE]
+    row <- sub[1L, group_cols, drop = FALSE]
+    row$n_roots <- nrow(sub)
+    row$n_success <- sum(as.character(sub$status) == "SUCCESS", na.rm = TRUE)
+    row$success_rate <- row$n_success / row$n_roots
+    row$finite_ok_rate <- mean(as.logical(sub$finite_ok), na.rm = TRUE)
+    row$domain_ok_rate <- mean(as.logical(sub$domain_ok), na.rm = TRUE)
+    row
+  })
+  status_part <- .qdesn_validation_bind_rows(status_rows)
+  merge(status_part, numeric_part, by = group_cols, all = TRUE, sort = FALSE)
+}
+
+.qdesn_validation_group_pair_summary <- function(pair_summary) {
+  if (!nrow(pair_summary)) return(data.frame(stringsAsFactors = FALSE))
+  group_cols <- c("scenario", "tau", "beta_prior_type", "reservoir_profile")
+  numeric_cols <- c(
+    "vb_wall_seconds", "mcmc_wall_seconds", "vb_total_stage_seconds",
+    "mcmc_total_stage_seconds", "runtime_ratio_mcmc_vs_vb",
+    "stage_runtime_ratio_mcmc_vs_vb", "vb_forecast_CRPS_mean",
+    "mcmc_forecast_CRPS_mean", "forecast_CRPS_delta_mcmc_minus_vb",
+    "vb_forecast_PinballMean_mean", "mcmc_forecast_PinballMean_mean",
+    "forecast_Pinball_delta_mcmc_minus_vb", "vb_forecast_S_mean",
+    "mcmc_forecast_S_mean", "forecast_S_delta_mcmc_minus_vb",
+    "vb_forecast_qhat_mae", "mcmc_forecast_qhat_mae",
+    "forecast_qhat_mae_delta_mcmc_minus_vb", "vb_forecast_pinball_tau",
+    "mcmc_forecast_pinball_tau", "forecast_pinball_tau_delta_mcmc_minus_vb"
+  )
+  numeric_part <- .qdesn_validation_group_numeric(pair_summary, group_cols, numeric_cols)
+  split_idx <- split(seq_len(nrow(pair_summary)), interaction(pair_summary[, group_cols, drop = FALSE], drop = TRUE, lex.order = TRUE))
+  status_rows <- lapply(split_idx, function(idx) {
+    sub <- pair_summary[idx, , drop = FALSE]
+    row <- sub[1L, group_cols, drop = FALSE]
+    row$n_pairs <- nrow(sub)
+    row$n_both_success <- sum(as.logical(sub$both_success), na.rm = TRUE)
+    row$both_success_rate <- row$n_both_success / row$n_pairs
+    row$both_finite_ok_rate <- mean(as.logical(sub$both_finite_ok), na.rm = TRUE)
+    row$both_domain_ok_rate <- mean(as.logical(sub$both_domain_ok), na.rm = TRUE)
+    row$n_mcmc_better_qhat_mae <- sum(as.logical(sub$mcmc_better_qhat_mae), na.rm = TRUE)
+    row$n_mcmc_better_pinball_tau <- sum(as.logical(sub$mcmc_better_pinball_tau), na.rm = TRUE)
+    row$mcmc_better_qhat_mae_rate <- row$n_mcmc_better_qhat_mae / row$n_pairs
+    row$mcmc_better_pinball_tau_rate <- row$n_mcmc_better_pinball_tau / row$n_pairs
+    row
+  })
+  status_part <- .qdesn_validation_bind_rows(status_rows)
+  merge(status_part, numeric_part, by = group_cols, all = TRUE, sort = FALSE)
+}
+
+.qdesn_validation_group_stage_summary <- function(stage_rows) {
+  if (!nrow(stage_rows)) return(data.frame(stringsAsFactors = FALSE))
+  .qdesn_validation_group_numeric(
+    stage_rows,
+    group_cols = c("scenario", "tau", "beta_prior_type", "reservoir_profile", "method", "tag"),
+    numeric_cols = c("seconds")
+  )
+}
+
+.qdesn_validation_group_chain_summary <- function(chain_rows) {
+  if (!nrow(chain_rows)) return(data.frame(stringsAsFactors = FALSE))
+  .qdesn_validation_group_numeric(
+    chain_rows,
+    group_cols = c("scenario", "tau", "beta_prior_type", "reservoir_profile", "parameter"),
+    numeric_cols = c("mean", "sd", "min", "max", "ess", "acf1")
+  )
+}
+
+.qdesn_validation_campaign_overview_lines <- function(report_root,
+                                                      campaign_status,
+                                                      root_summary,
+                                                      method_group,
+                                                      pair_group) {
+  n_scenarios <- length(unique(as.character(root_summary$scenario %||% character(0))))
+  n_taus <- length(unique(as.numeric(root_summary$tau %||% numeric(0))))
+  n_priors <- length(unique(as.character(root_summary$beta_prior_type %||% character(0))))
+  n_seeds <- length(unique(as.integer(root_summary$seed %||% integer(0))))
+
+  pair_rollup <- if (nrow(pair_group)) {
+    pair_group[, c("scenario", "tau", "beta_prior_type", "n_pairs", "both_success_rate",
+                   "both_finite_ok_rate", "runtime_ratio_mcmc_vs_vb_mean",
+                   "forecast_qhat_mae_delta_mcmc_minus_vb_mean",
+                   "forecast_pinball_tau_delta_mcmc_minus_vb_mean"),
+               drop = FALSE]
+  } else {
+    data.frame(stringsAsFactors = FALSE)
+  }
+
+  lines <- c(
+    "# Q-DESN MCMC Validation Campaign",
+    "",
+    sprintf("- Report root: `%s`", report_root),
+    sprintf("- Roots: `%d`", as.integer(campaign_status$n_roots[1L] %||% 0L)),
+    sprintf("- Successful roots: `%d`", as.integer(campaign_status$n_root_success[1L] %||% 0L)),
+    sprintf("- Failed roots: `%d`", as.integer(campaign_status$n_root_fail[1L] %||% 0L)),
+    sprintf("- Unique scenarios: `%d`", n_scenarios),
+    sprintf("- Unique taus: `%d`", n_taus),
+    sprintf("- Unique priors: `%d`", n_priors),
+    sprintf("- Unique seeds: `%d`", n_seeds),
+    "",
+    "## Pair Rollup",
+    ""
+  )
+  lines <- c(lines, .qdesn_validation_df_to_markdown(utils::head(pair_rollup, 20L)))
+  lines <- c(lines, "", "## Method Rollup", "")
+  lines <- c(lines, .qdesn_validation_df_to_markdown(utils::head(method_group, 20L)))
+  lines
+}
+
 qdesn_validation_collect_campaign <- function(results_root, report_root, create_plots = TRUE) {
   .qdesn_validation_dir_create(report_root)
   .qdesn_validation_dir_create(file.path(report_root, "tables"))
@@ -1100,60 +1435,179 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
   root_summary <- .qdesn_validation_bind_rows(root_summary_rows)
   method_summary <- .qdesn_validation_bind_rows(method_rows)
   pair_summary <- .qdesn_validation_bind_rows(pair_rows)
+  stage_rows <- .qdesn_validation_collect_stage_rows(root_dirs)
+  chain_rows <- .qdesn_validation_collect_chain_rows(root_dirs)
+  method_group <- .qdesn_validation_group_method_summary(method_summary)
+  pair_group <- .qdesn_validation_group_pair_summary(pair_summary)
+  stage_group <- .qdesn_validation_group_stage_summary(stage_rows)
+  chain_group <- .qdesn_validation_group_chain_summary(chain_rows)
 
   .qdesn_validation_write_df(root_summary, file.path(report_root, "tables", "campaign_root_summary.csv"))
   .qdesn_validation_write_df(method_summary, file.path(report_root, "tables", "campaign_method_summary.csv"))
   .qdesn_validation_write_df(pair_summary, file.path(report_root, "tables", "campaign_pair_summary.csv"))
+  .qdesn_validation_write_df(stage_rows, file.path(report_root, "tables", "campaign_stage_timing_long.csv"))
+  .qdesn_validation_write_df(chain_rows, file.path(report_root, "tables", "campaign_chain_summary.csv"))
+  .qdesn_validation_write_df(method_group, file.path(report_root, "tables", "campaign_method_group_summary.csv"))
+  .qdesn_validation_write_df(pair_group, file.path(report_root, "tables", "campaign_pair_group_summary.csv"))
+  .qdesn_validation_write_df(stage_group, file.path(report_root, "tables", "campaign_stage_group_summary.csv"))
+  .qdesn_validation_write_df(chain_group, file.path(report_root, "tables", "campaign_chain_group_summary.csv"))
 
   status_vec <- if (nrow(root_summary) && "root_status" %in% names(root_summary)) as.character(root_summary$root_status) else character(0)
   campaign_status <- data.frame(
     n_roots = nrow(root_summary),
     n_root_success = sum(status_vec == "SUCCESS"),
     n_root_fail = sum(status_vec != "SUCCESS"),
+    n_method_rows = nrow(method_summary),
+    n_pair_rows = nrow(pair_summary),
+    n_stage_rows = nrow(stage_rows),
+    n_chain_rows = nrow(chain_rows),
     stringsAsFactors = FALSE
   )
   .qdesn_validation_write_df(campaign_status, file.path(report_root, "tables", "campaign_status.csv"))
+  .qdesn_validation_write_lines(
+    file.path(report_root, "campaign_summary.md"),
+    .qdesn_validation_campaign_overview_lines(
+      report_root = report_root,
+      campaign_status = campaign_status,
+      root_summary = root_summary,
+      method_group = method_group,
+      pair_group = pair_group
+    )
+  )
 
   if (isTRUE(create_plots) && nrow(method_summary)) {
     .qdesn_validation_require_namespace("ggplot2")
-
-    runtime_df <- method_summary[is.finite(method_summary$wall_seconds), c("beta_prior_type", "method", "wall_seconds"), drop = FALSE]
+    method_summary$case_label <- .qdesn_validation_case_label(
+      method_summary$scenario,
+      method_summary$tau,
+      seed = method_summary$seed,
+      reservoir_profile = method_summary$reservoir_profile
+    )
+    method_summary$tau_label <- .qdesn_validation_tau_label(method_summary$tau)
+    runtime_df <- method_summary[is.finite(method_summary$wall_seconds), c("scenario", "tau_label", "beta_prior_type", "method", "case_label", "wall_seconds"), drop = FALSE]
     if (nrow(runtime_df)) {
-      p_runtime <- ggplot2::ggplot(runtime_df, ggplot2::aes(x = beta_prior_type, y = wall_seconds, fill = method)) +
+      p_runtime <- ggplot2::ggplot(runtime_df, ggplot2::aes(x = case_label, y = wall_seconds, fill = method)) +
         ggplot2::geom_col(position = "dodge", width = 0.65) +
+        ggplot2::facet_wrap(~ beta_prior_type, scales = "free_x") +
         ggplot2::scale_fill_manual(values = c(vb = "#2563eb", mcmc = "#dc2626")) +
-        ggplot2::labs(title = "Campaign Runtime by Prior", x = "beta prior", y = "wall seconds", fill = NULL) +
-        ggplot2::theme_minimal(base_size = 11)
-      ggplot2::ggsave(file.path(report_root, "plots", "campaign_runtime_compare.png"), p_runtime, width = 8, height = 4.5, dpi = 150)
+        ggplot2::labs(title = "Campaign Runtime by Case", x = NULL, y = "wall seconds", fill = NULL) +
+        ggplot2::theme_minimal(base_size = 11) +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 35, hjust = 1), legend.position = "top")
+      ggplot2::ggsave(file.path(report_root, "plots", "campaign_runtime_compare.png"), p_runtime, width = 11, height = 5.5, dpi = 150)
     }
 
     score_long <- .qdesn_validation_bind_rows(list(
-      data.frame(beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_CRPS_mean", value = method_summary$forecast_CRPS_mean, stringsAsFactors = FALSE),
-      data.frame(beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_PinballMean_mean", value = method_summary$forecast_PinballMean_mean, stringsAsFactors = FALSE),
-      data.frame(beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_S_mean", value = method_summary$forecast_S_mean, stringsAsFactors = FALSE),
-      data.frame(beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_qhat_mae", value = method_summary$forecast_qhat_mae, stringsAsFactors = FALSE),
-      data.frame(beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_pinball_tau", value = method_summary$forecast_pinball_tau, stringsAsFactors = FALSE)
+      data.frame(scenario = method_summary$scenario, tau_label = method_summary$tau_label, beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_CRPS_mean", value = method_summary$forecast_CRPS_mean, stringsAsFactors = FALSE),
+      data.frame(scenario = method_summary$scenario, tau_label = method_summary$tau_label, beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_PinballMean_mean", value = method_summary$forecast_PinballMean_mean, stringsAsFactors = FALSE),
+      data.frame(scenario = method_summary$scenario, tau_label = method_summary$tau_label, beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_S_mean", value = method_summary$forecast_S_mean, stringsAsFactors = FALSE),
+      data.frame(scenario = method_summary$scenario, tau_label = method_summary$tau_label, beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_qhat_mae", value = method_summary$forecast_qhat_mae, stringsAsFactors = FALSE),
+      data.frame(scenario = method_summary$scenario, tau_label = method_summary$tau_label, beta_prior_type = method_summary$beta_prior_type, method = method_summary$method, metric = "forecast_pinball_tau", value = method_summary$forecast_pinball_tau, stringsAsFactors = FALSE)
     ))
     score_long <- score_long[is.finite(score_long$value), , drop = FALSE]
     if (nrow(score_long)) {
-      p_score <- ggplot2::ggplot(score_long, ggplot2::aes(x = beta_prior_type, y = value, fill = method)) +
+      p_score <- ggplot2::ggplot(score_long, ggplot2::aes(x = tau_label, y = value, fill = method)) +
         ggplot2::geom_col(position = "dodge", width = 0.65) +
-        ggplot2::facet_wrap(~ metric, scales = "free_y") +
+        ggplot2::facet_grid(metric ~ scenario + beta_prior_type, scales = "free_y") +
         ggplot2::scale_fill_manual(values = c(vb = "#2563eb", mcmc = "#dc2626")) +
-        ggplot2::labs(title = "Campaign Forecast Score Comparison", x = "beta prior", y = "value", fill = NULL) +
-        ggplot2::theme_minimal(base_size = 11)
-      ggplot2::ggsave(file.path(report_root, "plots", "campaign_score_compare.png"), p_score, width = 9, height = 4.8, dpi = 150)
+        ggplot2::labs(title = "Campaign Forecast Score Comparison", x = "tau", y = "value", fill = NULL) +
+        ggplot2::theme_minimal(base_size = 11) +
+        ggplot2::theme(legend.position = "top")
+      ggplot2::ggsave(file.path(report_root, "plots", "campaign_score_compare.png"), p_score, width = 13, height = 8, dpi = 150)
+    }
+
+    health_df <- method_summary[, c("scenario", "tau_label", "beta_prior_type", "method", "status", "finite_ok", "domain_ok"), drop = FALSE]
+    health_df$health_flag <- ifelse(
+      as.character(health_df$status) != "SUCCESS",
+      "fail",
+      ifelse(!(as.logical(health_df$finite_ok) & as.logical(health_df$domain_ok)), "unhealthy", "healthy")
+    )
+    health_df$row_label <- paste(health_df$scenario, health_df$beta_prior_type, sep = " | ")
+    if (nrow(health_df)) {
+      p_health <- ggplot2::ggplot(health_df, ggplot2::aes(x = tau_label, y = row_label, fill = health_flag)) +
+        ggplot2::geom_tile(colour = "white", linewidth = 0.4) +
+        ggplot2::facet_wrap(~ method) +
+        ggplot2::scale_fill_manual(values = c(healthy = "#059669", unhealthy = "#d97706", fail = "#dc2626")) +
+        ggplot2::labs(title = "Campaign Health Matrix", x = "tau", y = NULL, fill = NULL) +
+        ggplot2::theme_minimal(base_size = 11) +
+        ggplot2::theme(legend.position = "top")
+      ggplot2::ggsave(file.path(report_root, "plots", "campaign_health_matrix.png"), p_health, width = 10, height = 5.5, dpi = 150)
+    }
+
+    if (nrow(pair_summary)) {
+      pair_summary$case_label <- .qdesn_validation_case_label(
+        pair_summary$scenario,
+        pair_summary$tau,
+        seed = pair_summary$seed,
+        reservoir_profile = pair_summary$reservoir_profile
+      )
+      pair_summary$tau_label <- .qdesn_validation_tau_label(pair_summary$tau)
     }
 
     if (nrow(pair_summary) && "runtime_ratio_mcmc_vs_vb" %in% names(pair_summary)) {
-      ratio_df <- pair_summary[is.finite(pair_summary$runtime_ratio_mcmc_vs_vb), c("beta_prior_type", "runtime_ratio_mcmc_vs_vb"), drop = FALSE]
+      ratio_df <- pair_summary[is.finite(pair_summary$runtime_ratio_mcmc_vs_vb), c("scenario", "tau_label", "beta_prior_type", "runtime_ratio_mcmc_vs_vb"), drop = FALSE]
       if (nrow(ratio_df)) {
-        p_ratio <- ggplot2::ggplot(ratio_df, ggplot2::aes(x = beta_prior_type, y = runtime_ratio_mcmc_vs_vb)) +
-          ggplot2::geom_col(fill = "#7c3aed", width = 0.6) +
-          ggplot2::labs(title = "MCMC / VB Runtime Ratio", x = "beta prior", y = "ratio") +
-          ggplot2::theme_minimal(base_size = 11)
-        ggplot2::ggsave(file.path(report_root, "plots", "campaign_runtime_ratio.png"), p_ratio, width = 7, height = 4, dpi = 150)
+        p_ratio <- ggplot2::ggplot(ratio_df, ggplot2::aes(x = tau_label, y = runtime_ratio_mcmc_vs_vb, fill = beta_prior_type)) +
+          ggplot2::geom_col(position = "dodge", width = 0.65) +
+          ggplot2::facet_wrap(~ scenario, scales = "free_x") +
+          ggplot2::labs(title = "MCMC / VB Runtime Ratio", x = "tau", y = "ratio", fill = "prior") +
+          ggplot2::theme_minimal(base_size = 11) +
+          ggplot2::theme(legend.position = "top")
+        ggplot2::ggsave(file.path(report_root, "plots", "campaign_runtime_ratio.png"), p_ratio, width = 10.5, height = 5, dpi = 150)
       }
+    }
+
+    if (nrow(pair_summary)) {
+      delta_long <- .qdesn_validation_bind_rows(list(
+        data.frame(scenario = pair_summary$scenario, tau_label = pair_summary$tau_label, beta_prior_type = pair_summary$beta_prior_type, metric = "forecast_qhat_mae_delta_mcmc_minus_vb", value = pair_summary$forecast_qhat_mae_delta_mcmc_minus_vb, stringsAsFactors = FALSE),
+        data.frame(scenario = pair_summary$scenario, tau_label = pair_summary$tau_label, beta_prior_type = pair_summary$beta_prior_type, metric = "forecast_pinball_tau_delta_mcmc_minus_vb", value = pair_summary$forecast_pinball_tau_delta_mcmc_minus_vb, stringsAsFactors = FALSE),
+        data.frame(scenario = pair_summary$scenario, tau_label = pair_summary$tau_label, beta_prior_type = pair_summary$beta_prior_type, metric = "forecast_CRPS_delta_mcmc_minus_vb", value = pair_summary$forecast_CRPS_delta_mcmc_minus_vb, stringsAsFactors = FALSE),
+        data.frame(scenario = pair_summary$scenario, tau_label = pair_summary$tau_label, beta_prior_type = pair_summary$beta_prior_type, metric = "forecast_S_delta_mcmc_minus_vb", value = pair_summary$forecast_S_delta_mcmc_minus_vb, stringsAsFactors = FALSE)
+      ))
+      delta_long <- delta_long[is.finite(delta_long$value), , drop = FALSE]
+      if (nrow(delta_long)) {
+        p_delta <- ggplot2::ggplot(delta_long, ggplot2::aes(x = tau_label, y = value, colour = beta_prior_type, group = beta_prior_type)) +
+          ggplot2::geom_hline(yintercept = 0, linetype = 2, linewidth = 0.5, colour = "#6b7280") +
+          ggplot2::geom_point(size = 2) +
+          ggplot2::facet_grid(metric ~ scenario, scales = "free_y") +
+          ggplot2::labs(title = "MCMC - VB Score Deltas", x = "tau", y = "delta", colour = "prior") +
+          ggplot2::theme_minimal(base_size = 11) +
+          ggplot2::theme(legend.position = "top")
+        line_groups <- interaction(delta_long$scenario, delta_long$metric, delta_long$beta_prior_type, drop = TRUE)
+        if (any(table(line_groups) > 1L)) {
+          p_delta <- p_delta + ggplot2::geom_line(linewidth = 0.8)
+        }
+        ggplot2::ggsave(file.path(report_root, "plots", "campaign_score_delta.png"), p_delta, width = 12.5, height = 8.5, dpi = 150)
+      }
+    }
+  }
+
+  if (isTRUE(create_plots) && nrow(chain_group)) {
+    .qdesn_validation_require_namespace("ggplot2")
+    chain_group$tau_label <- .qdesn_validation_tau_label(chain_group$tau)
+    ess_df <- chain_group[is.finite(chain_group$ess_mean), c("scenario", "tau_label", "beta_prior_type", "parameter", "ess_mean"), drop = FALSE]
+    if (nrow(ess_df)) {
+      p_ess <- ggplot2::ggplot(ess_df, ggplot2::aes(x = tau_label, y = ess_mean, fill = beta_prior_type)) +
+        ggplot2::geom_col(position = "dodge", width = 0.65) +
+        ggplot2::facet_grid(parameter ~ scenario, scales = "free_y") +
+        ggplot2::labs(title = "MCMC ESS by Scenario and Tau", x = "tau", y = "ESS", fill = "prior") +
+        ggplot2::theme_minimal(base_size = 11) +
+        ggplot2::theme(legend.position = "top")
+      ggplot2::ggsave(file.path(report_root, "plots", "campaign_chain_ess.png"), p_ess, width = 12, height = 8, dpi = 150)
+    }
+  }
+
+  if (isTRUE(create_plots) && nrow(stage_group)) {
+    .qdesn_validation_require_namespace("ggplot2")
+    stage_df <- stage_group[is.finite(stage_group$seconds_mean), c("scenario", "beta_prior_type", "method", "tag", "seconds_mean"), drop = FALSE]
+    if (nrow(stage_df)) {
+      p_stage <- ggplot2::ggplot(stage_df, ggplot2::aes(x = tag, y = seconds_mean, fill = method)) +
+        ggplot2::geom_col(position = "dodge", width = 0.7) +
+        ggplot2::facet_grid(scenario ~ beta_prior_type, scales = "free_x") +
+        ggplot2::scale_fill_manual(values = c(vb = "#2563eb", mcmc = "#dc2626")) +
+        ggplot2::labs(title = "Average Stage Runtime Profile", x = NULL, y = "mean seconds", fill = NULL) +
+        ggplot2::theme_minimal(base_size = 11) +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 35, hjust = 1), legend.position = "top")
+      ggplot2::ggsave(file.path(report_root, "plots", "campaign_stage_profile.png"), p_stage, width = 12.5, height = 8.5, dpi = 150)
     }
   }
 
@@ -1161,6 +1615,12 @@ qdesn_validation_collect_campaign <- function(results_root, report_root, create_
     root_summary = root_summary,
     method_summary = method_summary,
     pair_summary = pair_summary,
+    stage_rows = stage_rows,
+    chain_rows = chain_rows,
+    method_group = method_group,
+    pair_group = pair_group,
+    stage_group = stage_group,
+    chain_group = chain_group,
     report_root = report_root
   ))
 }
