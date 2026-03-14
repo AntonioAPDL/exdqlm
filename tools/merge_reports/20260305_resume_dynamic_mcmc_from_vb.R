@@ -55,7 +55,7 @@ y <- as.numeric(sim$y[seq_len(TT)])
 model <- build_dynamic_dgp_matched_model(sim$info$params, TT = TT)
 
 p_vec <- as.numeric(cfg$taus)
-mcmc_burn <- safe_int(cfg$mcmc$burn, 2000L)
+mcmc_burn <- safe_int(Sys.getenv("EXDQLM_DYNAMIC_MCMC_BURN", Sys.getenv("EXDQLM_MCMC_BURN", as.character(cfg$mcmc$burn))), safe_int(cfg$mcmc$burn, 500L))
 mcmc_n <- safe_int(cfg$mcmc$n, 1000L)
 mh_adapt_interval <- safe_int(cfg$mcmc$mh$adapt_interval, 25L)
 mh_target <- as.numeric(cfg$mcmc$mh$target_accept)
@@ -71,6 +71,10 @@ mh_primary_joint_sample <- identical(tolower(Sys.getenv(
   "EXDQLM_MCMC_PRIMARY_JOINT_SAMPLE",
   if (!is.null(cfg$mcmc$mh$primary_joint_sample)) as.character(cfg$mcmc$mh$primary_joint_sample)[1] else "false"
 )), "true")
+mcmc_trace_diagnostics <- identical(tolower(Sys.getenv("EXDQLM_DYNAMIC_MCMC_TRACE_DIAGNOSTICS", "true")), "true")
+mcmc_trace_every <- safe_int(Sys.getenv("EXDQLM_DYNAMIC_MCMC_TRACE_EVERY", "25"), 25L)
+if (mcmc_trace_every < 1L) mcmc_trace_every <- 1L
+mcmc_verbose <- identical(tolower(Sys.getenv("EXDQLM_DYNAMIC_MCMC_VERBOSE", "true")), "true")
 
 cores <- safe_int(Sys.getenv("EXDQLM_DYNAMIC_RESUME_CORES", as.character(cfg$cores_pipeline)), safe_int(cfg$cores_pipeline, 2L))
 cores <- max(1L, min(cores, safe_int(parallel::detectCores(logical = FALSE), 2L)))
@@ -173,7 +177,9 @@ fit_mcmc_with_vb <- function(model_name, tau, seed, vb_fit, df_used) {
         mh.min_burn_adapt = mh_min_burn_adapt,
         joint.sample = a$joint_sample,
         Sig.mh = diag(c(0.001, 0.001)),
-        verbose = FALSE
+        trace.diagnostics = mcmc_trace_diagnostics,
+        trace.every = mcmc_trace_every,
+        verbose = mcmc_verbose
       ),
       error = function(e) e
     )
@@ -218,6 +224,10 @@ tasks$seed <- vapply(seq_len(nrow(tasks)), function(i) {
 }, integer(1))
 
 log_master(sprintf("dynamic resume start | run_root=%s | dry_run=%s | cores=%d", run_root, dry_run, cores))
+log_master(sprintf(
+  "dynamic resume mcmc config | burn=%d | keep=%d | mh_primary=%s | trace=%s | trace_every=%d | verbose=%s",
+  mcmc_burn, mcmc_n, mh_primary_proposal, mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose
+))
 
 safe_task <- function(task_row) {
   model_name <- as.character(task_row$model)
@@ -321,4 +331,14 @@ resume_csv <- file.path(run_root, "tables", sprintf("pipeline_task_summary_resum
 utils::write.csv(resume_df, resume_csv, row.names = FALSE)
 
 log_master(sprintf("dynamic resume complete | summary=%s", resume_csv))
+bad_rows <- resume_df[!(resume_df$status %in% c("done", "skipped_existing")), , drop = FALSE]
+if (nrow(bad_rows)) {
+  stop(
+    sprintf(
+      "Dynamic resume finished with incomplete tasks: %s",
+      paste(sprintf("%s@tau=%s:%s", bad_rows$model, bad_rows$tau, bad_rows$status), collapse = ", ")
+    ),
+    call. = FALSE
+  )
+}
 cat(sprintf("Dynamic resume complete. Summary: %s\n", resume_csv))

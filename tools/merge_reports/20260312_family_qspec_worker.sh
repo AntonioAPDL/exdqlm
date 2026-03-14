@@ -27,6 +27,22 @@ export EXDQLM_STATIC_PIPELINE_CORES=1
 export EXDQLM_STATIC_RESUME_CORES=1
 export EXDQLM_PIPELINE_CORES=1
 export EXDQLM_DYNAMIC_RESUME_CORES=1
+export EXDQLM_MCMC_BURN="${EXDQLM_MCMC_BURN:-500}"
+export EXDQLM_STATIC_MCMC_BURN="${EXDQLM_STATIC_MCMC_BURN:-500}"
+export EXDQLM_DYNAMIC_MCMC_BURN="${EXDQLM_DYNAMIC_MCMC_BURN:-500}"
+export EXDQLM_STATIC_MCMC_VERBOSE="${EXDQLM_STATIC_MCMC_VERBOSE:-true}"
+export EXDQLM_DYNAMIC_MCMC_VERBOSE="${EXDQLM_DYNAMIC_MCMC_VERBOSE:-true}"
+export EXDQLM_STATIC_MCMC_TRACE_DIAGNOSTICS="${EXDQLM_STATIC_MCMC_TRACE_DIAGNOSTICS:-true}"
+export EXDQLM_DYNAMIC_MCMC_TRACE_DIAGNOSTICS="${EXDQLM_DYNAMIC_MCMC_TRACE_DIAGNOSTICS:-true}"
+export EXDQLM_STATIC_MCMC_TRACE_EVERY="${EXDQLM_STATIC_MCMC_TRACE_EVERY:-25}"
+export EXDQLM_DYNAMIC_MCMC_TRACE_EVERY="${EXDQLM_DYNAMIC_MCMC_TRACE_EVERY:-25}"
+export EXDQLM_MCMC_PROGRESS_EVERY="${EXDQLM_MCMC_PROGRESS_EVERY:-10}"
+export EXDQLM_WORKER_HEARTBEAT_SEC="${EXDQLM_WORKER_HEARTBEAT_SEC:-60}"
+
+task_succeeded=0
+task_signal=""
+child_pid=""
+heartbeat_pid=""
 
 append_event() {
   local event="$1"
@@ -44,14 +60,23 @@ append_event() {
 
 cleanup() {
   local rc=$?
-  if [[ $rc -eq 0 ]]; then
+  if [[ -n "${heartbeat_pid}" ]] && kill -0 "${heartbeat_pid}" 2>/dev/null; then
+    kill "${heartbeat_pid}" 2>/dev/null || true
+    wait "${heartbeat_pid}" 2>/dev/null || true
+  fi
+  if [[ "${task_succeeded}" -eq 1 ]]; then
     append_event "DONE" "worker completed successfully"
+  elif [[ -n "${task_signal}" ]]; then
+    append_event "FAILED" "worker interrupted by ${task_signal} rc=${rc}"
   else
     append_event "FAILED" "worker exited with rc=${rc}"
   fi
   rm -rf "$lock_dir"
 }
 trap cleanup EXIT
+trap 'task_signal="HUP"; exit 129' HUP
+trap 'task_signal="INT"; exit 130' INT
+trap 'task_signal="TERM"; exit 143' TERM
 
 row="$(awk -F'\t' -v task_id="$task_id" '
   NR==1 { for (i = 1; i <= NF; i++) idx[$i] = i; next }
@@ -76,17 +101,66 @@ if [[ -n "$run_root" && "$run_root" != "NA" ]]; then
   run_root_abs="${repo_root}/${run_root}"
 fi
 
+status_tail_file=""
+if [[ "$unit_type" == "model_path" ]]; then
+  tau_status="$(printf '%s' "$tau" | sed 's/\\./p/g')"
+  status_tail_file="${run_root_abs}/logs/${model}_tau_${tau_status}.status.tsv"
+fi
+
+start_heartbeat() {
+  local pid="$1"
+  local interval
+  interval="$(printf '%s' "${EXDQLM_WORKER_HEARTBEAT_SEC:-60}" | sed 's/[^0-9].*$//')"
+  [[ -n "$interval" ]] || interval=60
+  if (( interval < 5 )); then
+    interval=5
+  fi
+  (
+    while kill -0 "$pid" 2>/dev/null; do
+      stamp=""
+      elapsed=""
+      cpu=""
+      rss_kb=""
+      status_tail=""
+      stamp="$(date '+%Y-%m-%d %H:%M:%S')"
+      elapsed="$(ps -p "$pid" -o etimes= 2>/dev/null | awk '{print $1}')"
+      cpu="$(ps -p "$pid" -o pcpu= 2>/dev/null | awk '{print $1}')"
+      rss_kb="$(ps -p "$pid" -o rss= 2>/dev/null | awk '{print $1}')"
+      status_tail=""
+      if [[ -n "$status_tail_file" && -f "$status_tail_file" ]]; then
+        status_tail="$(tail -n 1 "$status_tail_file" | tr '\t' ' ')"
+      fi
+      printf '%s | worker heartbeat | task_id=%s | pid=%s | elapsed_s=%s | cpu=%s | rss_mb=%.1f' \
+        "$stamp" "$task_id" "$pid" "${elapsed:-NA}" "${cpu:-NA}" \
+        "$(awk -v kb="${rss_kb:-0}" 'BEGIN{printf "%.1f", kb/1024}')" 
+      if [[ -n "$status_tail" ]]; then
+        printf ' | status_tail=%s' "$status_tail"
+      fi
+      printf '\n'
+      sleep "$interval"
+    done
+  ) &
+  heartbeat_pid="$!"
+}
+
+run_and_watch() {
+  "$@" &
+  child_pid="$!"
+  start_heartbeat "$child_pid"
+  wait "$child_pid"
+}
+
 case "$unit_type" in
   model_path)
     mkdir -p "$run_root_abs"
     if [[ "$root_kind" == "dynamic" ]]; then
       if [[ "$launch_mode" == "resume_mcmc_from_vb" ]]; then
-        env \
+        run_and_watch env \
           EXDQLM_DYNAMIC_RUN_CONFIG="${run_root_abs}/tables/run_config.rds" \
           EXDQLM_DYNAMIC_RESUME_MODELS="$model" \
           nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_resume_dynamic_mcmc_from_vb.R"
       else
-        env \
+        run_and_watch env \
           EXDQLM_DYNAMIC_SIM_PATH="${prepared_abs}/sim_output.rds" \
           EXDQLM_PIPELINE_TT="$fit_size" \
           EXDQLM_DYNAMIC_PIPELINE_TAU="$tau" \
@@ -101,12 +175,12 @@ case "$unit_type" in
         prior_use="ridge"
       fi
       if [[ "$launch_mode" == "resume_mcmc_from_vb" ]]; then
-        env \
+        run_and_watch env \
           EXDQLM_STATIC_RUN_CONFIG="${run_root_abs}/tables/run_config.rds" \
           EXDQLM_STATIC_RESUME_MODELS="$model" \
           nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_resume_static_mcmc_from_vb.R"
       else
-        env \
+        run_and_watch env \
           EXDQLM_STATIC_SIM_PATH="${prepared_abs}/sim_output.rds" \
           EXDQLM_STATIC_PIPELINE_TT="$fit_size" \
           EXDQLM_STATIC_PIPELINE_TAU="$tau" \
@@ -120,19 +194,19 @@ case "$unit_type" in
     ;;
   root_postprocess)
     if [[ "$root_kind" == "dynamic" ]]; then
-      env EXDQLM_DYNAMIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_postprocess_from_existing_fits.R"
+      run_and_watch env EXDQLM_DYNAMIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_postprocess_from_existing_fits.R"
     else
-      env EXDQLM_STATIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_postprocess_from_existing_fits.R"
+      run_and_watch env EXDQLM_STATIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_postprocess_from_existing_fits.R"
     fi
     ;;
   root_review)
-    env EXDQLM_STATIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_vb_mcmc_report.R"
+    run_and_watch env EXDQLM_STATIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_vb_mcmc_report.R"
     ;;
   prior_compare)
     compare_out_root="$run_root_abs"
     ridge_run_root="${repo_root}/${prepared_root}/validation_shrink_ridge_tt${fit_size}"
     rhs_run_root="${repo_root}/${prepared_root}/validation_shrink_rhs_tt${fit_size}"
-    env \
+    run_and_watch env \
       EXDQLM_STATIC_SHRINK_SIM_PATH="${prepared_abs}/sim_output.rds" \
       EXDQLM_STATIC_SHRINK_RIDGE_RUN_ROOT="$ridge_run_root" \
       EXDQLM_STATIC_SHRINK_RHS_RUN_ROOT="$rhs_run_root" \
@@ -141,10 +215,14 @@ case "$unit_type" in
       nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260308_static_shrinkage_compare_report.R"
     ;;
   campaign_review|global_summary)
-    nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260312_family_qspec_campaign_aggregate.R" "$task_id" "$repo_root"
+    run_and_watch nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260312_family_qspec_campaign_aggregate.R" "$task_id" "$repo_root"
     ;;
   *)
     echo "Unsupported unit_type: $unit_type" >&2
     exit 1
     ;;
 esac
+
+Rscript "${repo_root}/tools/merge_reports/20260312_verify_family_qspec_task_completion.R" "$repo_root" "$task_id"
+echo "post-run verification passed for ${task_id}"
+task_succeeded=1

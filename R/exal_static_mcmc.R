@@ -585,6 +585,15 @@ exal_static_mcmc <- function(
   )
   trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
   trace_idx <- 0L
+  progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+  progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
+    progress_every_env
+  } else if (trace.diagnostics) {
+    trace.every
+  } else {
+    100L
+  }
+  progress_every <- max(1L, as.integer(progress_every)[1])
 
   if (mh.proposal %in% c("rw", "laplace_rw")) {
     mode0 <- find_mode_eta(eta, xb, sigma, v, s)
@@ -795,7 +804,7 @@ exal_static_mcmc <- function(
       }
     }
 
-    if (verbose && (i %% 500 == 0)) {
+    if (verbose && (i %% progress_every == 0)) {
       acc_msg <- if (mh.proposal %in% c("laplace_local", "slice")) {
         "NA"
       } else {
@@ -805,6 +814,8 @@ exal_static_mcmc <- function(
         "%s iteration %d | sigma=%.3f | gamma=%.3f | kernel=%s | acc=%s\n",
         ifelse(i <= n.burn, "burn-in", "MCMC"), i, sigma, gamma, mh.proposal, acc_msg
       ))
+      utils::flush.console()
+      try(flush(stdout()), silent = TRUE)
     }
   }
   run.time <- tictoc::toc(quiet = TRUE)

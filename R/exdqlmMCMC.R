@@ -690,13 +690,25 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       return(list(log.sigma=log.sigma.new,logit.gamma=logit.gamma.new,accept=accept))
     }
 
+    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
+      progress_every_env
+    } else if (trace.diagnostics) {
+      trace.every
+    } else {
+      100L
+    }
+    progress_every <- max(1L, as.integer(progress_every)[1])
+
     # Sample from exdqlm posterior
     tictoc::tic()
     for (i in 1:I){
       # counter
-      if(verbose & i%%500==0){
+      if(verbose & i%%progress_every==0){
         acc_msg <- if (identical(mh.proposal, "slice")) "NA" else round(n.accept / i, 4)
         cat(sprintf("%s iteration %s, acceptance rate %s: %s", ifelse(i<=n.burn,"burn-in","MCMC"), i , acc_msg, Sys.time()),"\n")
+        utils::flush.console()
+        try(flush(stdout()), silent = TRUE)
         }
 
       # exAL parameters
@@ -1024,12 +1036,24 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                rate = PriorSigma$b_sig + 0.5*sum( ((as.vector(y) - reg1 - a_tau*uts)^2)/(b_tau*uts) ) + sum(uts) )
     }
 
+    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
+      progress_every_env
+    } else if (trace.diagnostics) {
+      trace.every
+    } else {
+      100L
+    }
+    progress_every <- max(1L, as.integer(progress_every)[1])
+
     # Sample from dqlm posterior
     tictoc::tic()
     for (i in 1:I){
       # counter
-      if(verbose & i%%500==0){
+      if(verbose & i%%progress_every==0){
         cat(sprintf("%s iteration %s: %s ", ifelse(i<=n.burn,"burn-in","MCMC"), i, Sys.time()), "\n")
+        utils::flush.console()
+        try(flush(stdout()), silent = TRUE)
         }
 
       # sample theta

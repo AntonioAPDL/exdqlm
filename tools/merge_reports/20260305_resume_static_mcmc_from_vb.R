@@ -61,7 +61,7 @@ y <- as.numeric(sim$y[seq_len(TT)])
 X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
 
 p_vec <- as.numeric(cfg$taus)
-mcmc_burn <- safe_int(cfg$mcmc$burn, 2000L)
+mcmc_burn <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_BURN", as.character(cfg$mcmc$burn)), safe_int(cfg$mcmc$burn, 500L))
 mcmc_n <- safe_int(cfg$mcmc$n, 1000L)
 mcmc_thin <- safe_int(cfg$mcmc$thin, 1L)
 mcmc_mh_proposal <- tolower(Sys.getenv(
@@ -89,6 +89,10 @@ mcmc_mh_min_burn_adapt <- safe_int(
   Sys.getenv("EXDQLM_STATIC_MCMC_MH_MIN_BURN_ADAPT", as.character(cfg$mcmc$mh$min_burn_adapt)),
   safe_int(cfg$mcmc$mh$min_burn_adapt, 50L)
 )
+mcmc_trace_diagnostics <- identical(tolower(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_DIAGNOSTICS", "true")), "true")
+mcmc_trace_every <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_EVERY", "25"), 25L)
+if (mcmc_trace_every < 1L) mcmc_trace_every <- 1L
+mcmc_verbose <- identical(tolower(Sys.getenv("EXDQLM_STATIC_MCMC_VERBOSE", "true")), "true")
 
 cores <- safe_int(Sys.getenv("EXDQLM_STATIC_RESUME_CORES", as.character(cfg$cores_pipeline)), safe_int(cfg$cores_pipeline, 2L))
 cores <- max(1L, min(cores, safe_int(parallel::detectCores(logical = FALSE), 2L)))
@@ -139,6 +143,10 @@ tasks$seed <- vapply(seq_len(nrow(tasks)), function(i) {
 }, integer(1))
 
 log_master(sprintf("static resume start | run_root=%s | dry_run=%s | cores=%d", run_root, dry_run, cores))
+log_master(sprintf(
+  "static resume mcmc config | burn=%d | keep=%d | thin=%d | mh=%s | trace=%s | trace_every=%d | verbose=%s",
+  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose
+))
 
 safe_task <- function(task_row) {
   model_name <- as.character(task_row$model)
@@ -191,7 +199,9 @@ safe_task <- function(task_row) {
       mh.scale.bounds = mcmc_mh_scale_bounds,
       mh.max_scale.step = mcmc_mh_max_scale_step,
       mh.min_burn_adapt = mcmc_mh_min_burn_adapt,
-      verbose = FALSE
+      trace.diagnostics = mcmc_trace_diagnostics,
+      trace.every = mcmc_trace_every,
+      verbose = mcmc_verbose
     ),
     error = function(e) e
   )
@@ -276,4 +286,14 @@ resume_csv <- file.path(run_root, "tables", sprintf("pipeline_task_summary_resum
 utils::write.csv(resume_df, resume_csv, row.names = FALSE)
 
 log_master(sprintf("static resume complete | summary=%s", resume_csv))
+bad_rows <- resume_df[!(resume_df$status %in% c("done", "skipped_existing")), , drop = FALSE]
+if (nrow(bad_rows)) {
+  stop(
+    sprintf(
+      "Static resume finished with incomplete tasks: %s",
+      paste(sprintf("%s@tau=%s:%s", bad_rows$model, bad_rows$tau, bad_rows$status), collapse = ", ")
+    ),
+    call. = FALSE
+  )
+}
 cat(sprintf("Static resume complete. Summary: %s\n", resume_csv))
