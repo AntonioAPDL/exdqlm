@@ -312,6 +312,17 @@ qdesn_validation_generate_toy_series <- function(scenario = "toy_sine_small",
   cfg
 }
 
+.qdesn_validation_apply_prior_override <- function(method_cfg, beta_prior_type) {
+  method_cfg <- method_cfg %||% list()
+  prior_overrides <- method_cfg$prior_overrides %||% list()
+  override <- prior_overrides[[beta_prior_type]] %||% NULL
+  if (is.list(override)) {
+    method_cfg <- modifyList(method_cfg, override)
+  }
+  method_cfg$prior_overrides <- NULL
+  method_cfg
+}
+
 qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c("vb", "mcmc")) {
   method <- match.arg(method)
   pipeline_cfg <- defaults$pipeline %||% list()
@@ -379,11 +390,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
   if (identical(method, "vb")) {
     cfg$inference$vb <- modifyList(list(), infer_cfg$vb %||% list())
+    cfg$inference$vb <- .qdesn_validation_apply_prior_override(cfg$inference$vb, root_spec$beta_prior_type)
     cfg$inference$vb$priors <- modifyList(list(), cfg$inference$vb$priors %||% list())
     cfg$inference$vb$priors$beta <- modifyList(list(type = root_spec$beta_prior_type), cfg$inference$vb$priors$beta %||% list())
     cfg$inference$vb$priors$beta$type <- root_spec$beta_prior_type
   } else {
     cfg$inference$mcmc <- modifyList(list(), infer_cfg$mcmc %||% list())
+    cfg$inference$mcmc <- .qdesn_validation_apply_prior_override(cfg$inference$mcmc, root_spec$beta_prior_type)
     cfg$inference$mcmc$priors <- modifyList(list(), cfg$inference$mcmc$priors %||% list())
     cfg$inference$mcmc$priors$beta <- modifyList(list(type = root_spec$beta_prior_type), cfg$inference$mcmc$priors$beta %||% list())
     cfg$inference$mcmc$priors$beta$type <- root_spec$beta_prior_type

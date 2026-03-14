@@ -110,6 +110,20 @@ test_that("pilot validation root writes method summaries and campaign summaries"
   expect_true(all(c("signoff_grade", "comparison_eligible") %in% names(camp$method_summary)))
   expect_true("pair_signoff_grade" %in% names(camp$pair_summary))
   expect_true("pair_comparison_eligible" %in% names(camp$pair_summary))
+
+  cmp_root <- file.path(tempdir(), paste0("qdesn-validation-compare-", Sys.getpid()))
+  cmp <- exdqlm:::qdesn_validation_compare_campaign_reports(
+    baseline_report_root = reports_root,
+    tuned_report_root = reports_root,
+    output_root = cmp_root,
+    create_plots = FALSE
+  )
+  expect_true(nrow(cmp$method_group_compare) >= 2L)
+  expect_true(nrow(cmp$pair_group_compare) >= 1L)
+  expect_true(file.exists(file.path(cmp_root, "tables", "method_group_compare.csv")))
+  expect_true(file.exists(file.path(cmp_root, "tables", "pair_group_compare.csv")))
+  expect_true(file.exists(file.path(cmp_root, "comparison_summary.md")))
+  expect_true(all(abs(cmp$pair_group_compare$pair_comparison_eligible_rate_delta_tuned_minus_baseline) < 1e-12 | is.na(cmp$pair_group_compare$pair_comparison_eligible_rate_delta_tuned_minus_baseline)))
 })
 
 test_that("VB signoff distinguishes stable converged from stable unconverged traces", {
@@ -181,4 +195,36 @@ test_that("MCMC signoff fails clearly drifting low-information chains", {
   expect_identical(row$signoff_grade, "FAIL")
   expect_false(row$comparison_eligible)
   expect_match(row$signoff_reason, "short_chain|low_ess|geweke_drift|half_chain_drift")
+})
+
+test_that("validation config builder applies prior-specific inference overrides", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_tuned_defaults.yaml"))
+  ridge_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "toy_sine_small",
+    tau = 0.25,
+    beta_prior_type = "ridge",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+  rhs_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "toy_sine_small",
+    tau = 0.25,
+    beta_prior_type = "rhs",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+
+  vb_ridge <- exdqlm:::qdesn_validation_build_pipeline_cfg(ridge_spec, defaults, method = "vb")
+  vb_rhs <- exdqlm:::qdesn_validation_build_pipeline_cfg(rhs_spec, defaults, method = "vb")
+  mc_ridge <- exdqlm:::qdesn_validation_build_pipeline_cfg(ridge_spec, defaults, method = "mcmc")
+  mc_rhs <- exdqlm:::qdesn_validation_build_pipeline_cfg(rhs_spec, defaults, method = "mcmc")
+
+  expect_equal(vb_ridge$inference$vb$max_iter, 35L)
+  expect_equal(vb_rhs$inference$vb$max_iter, 60L)
+  expect_equal(vb_rhs$inference$vb$rhs$freeze_tau_warmup_iters, 10L)
+  expect_equal(vb_rhs$inference$vb$n_samp_xi, 128L)
+  expect_equal(mc_ridge$inference$mcmc$n_burn, 300L)
+  expect_equal(mc_rhs$inference$mcmc$n_burn, 500L)
+  expect_equal(mc_rhs$inference$mcmc$slice$width_rhs_tau, 0.25)
+  expect_equal(mc_rhs$inference$mcmc$slice$max_steps_out, 50L)
 })

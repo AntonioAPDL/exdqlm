@@ -173,6 +173,69 @@ Using the completed untuned phase-1 baseline campaign:
   - reduce the number of stable-but-not-certified runs where the convergence
     flag remains false.
 
+## 0.3) Tuned Phase-1 Validation Setup Added On 2026-03-14
+
+The next validation layer is now wired for a controlled tuned rerun:
+
+- tuned defaults:
+  - `config/validation/qdesn_mcmc_compare_tuned_defaults.yaml`
+- tuned preflight grid:
+  - `config/validation/qdesn_mcmc_compare_preflight_grid.csv`
+- tuned runners:
+  - `scripts/run_qdesn_mcmc_tuned_preflight.R`
+  - `scripts/run_qdesn_mcmc_tuned_phase1.R`
+- baseline-vs-tuned comparison:
+  - `R/qdesn_mcmc_validation_compare.R`
+  - `scripts/compare_qdesn_mcmc_validation_campaigns.R`
+
+The validation builder now also supports prior-specific inference overrides
+inside the validation defaults so the tuned phase can use different settings
+for:
+
+- `vb.ridge`
+- `vb.rhs`
+- `mcmc.ridge`
+- `mcmc.rhs`
+
+without changing the grid, runner, or artifact schema.
+
+### Tuned preflight result
+
+The 4-root tuned preflight was completed on:
+
+- `reports/qdesn_mcmc_validation/phase1_compare_tuned/20260314-181709__git-907d9fb`
+
+Sentinel roots:
+
+- `level_shift_small`, `tau=0.50`, `ridge`
+- `const_small`, `tau=0.05`, `ridge`
+- `toy_sine_small`, `tau=0.25`, `rhs`
+- `const_small`, `tau=0.05`, `rhs`
+
+Preflight read:
+
+- root success:
+  - `4 / 4`
+- method signoff counts:
+  - `vb`: `PASS = 2`, `WARN = 2`, `FAIL = 0`
+  - `mcmc`: `PASS = 0`, `WARN = 3`, `FAIL = 1`
+- pair signoff counts:
+  - `WARN = 3`
+  - `FAIL = 1`
+- pair comparison-eligible rate:
+  - `0.75`
+
+Interpretation:
+
+- the tuned ridge settings are strong enough to promote;
+- the central RHS sentinel is now comparison-eligible;
+- the hardest remaining failure is still the lower-tail RHS case
+  `const_small | tau = 0.05 | rhs`, where tuned MCMC still fails the current
+  signoff gate on chain drift;
+- despite that remaining hard case, the tuned phase is strong enough to justify
+  launching the full 24-root tuned campaign, because it is materially better
+  than the untuned baseline on the sentinel set.
+
 ## 1) Design Principles
 
 The validation framework should follow the same strengths as the more mature
