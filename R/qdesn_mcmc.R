@@ -29,6 +29,11 @@ qdesn_fit <- function(..., method = c("vb", "mcmc"), vb_args = list(), mcmc_args
 #' @export
 qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
+  get_exact <- function(x, name, default = NULL) {
+    if (!is.list(x)) return(default)
+    out <- x[[name, exact = TRUE]]
+    if (is.null(out)) default else out
+  }
 
   design_fit <- do.call(qdesn_fit_vb, c(list(fit_readout = FALSE, vb_args = list()), list(...)))
   if (!isTRUE(fit_readout)) {
@@ -40,46 +45,43 @@ qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
     stop("qdesn_fit_mcmc: design object is missing a valid p0.", call. = FALSE)
   }
 
-  beta_prior_obj <- mcmc_args$beta_prior_obj
+  beta_prior_obj <- get_exact(mcmc_args, "beta_prior_obj")
   if (is.null(beta_prior_obj)) {
-    beta_type <- tolower(as.character(mcmc_args$beta_prior_type %||% "ridge"))
-    if (identical(beta_type, "rhs")) {
-      rhs_list <- mcmc_args$beta_rhs %||% list()
-      beta_prior_obj <- beta_prior("rhs", rhs = rhs_list)
-    } else {
-      tau2 <- as.numeric(mcmc_args$beta_ridge_tau2 %||% mcmc_args$tau2 %||% 1e4)
-      beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = tau2))
-    }
+    beta_type <- tolower(as.character(get_exact(mcmc_args, "beta_prior_type", "ridge")))
+    rhs_list <- get_exact(mcmc_args, "beta_rhs", list())
+    tau2 <- as.numeric(get_exact(mcmc_args, "beta_ridge_tau2", get_exact(mcmc_args, "tau2", 1e4)))
+    beta_prior_obj <- exal_make_beta_prior(type = beta_type, tau2 = tau2, rhs = rhs_list)
   }
 
   mcmc_control <- modifyList(list(
-    n_burn = mcmc_args$n_burn %||% 2000L,
-    n_mcmc = mcmc_args$n_mcmc %||% 1500L,
-    thin = mcmc_args$thin %||% 1L,
-    verbose = isTRUE(mcmc_args$verbose %||% FALSE),
-    init_from_vb = isTRUE(mcmc_args$init_from_vb %||% FALSE),
-    store_latent_draws = isTRUE(mcmc_args$store_latent_draws %||% FALSE),
-    slice = mcmc_args$slice %||% list()
-  ), mcmc_args$mcmc_control %||% list())
+    n_burn = get_exact(mcmc_args, "n_burn", 2000L),
+    n_mcmc = get_exact(mcmc_args, "n_mcmc", 1500L),
+    thin = get_exact(mcmc_args, "thin", 1L),
+    verbose = isTRUE(get_exact(mcmc_args, "verbose", FALSE)),
+    init_from_vb = isTRUE(get_exact(mcmc_args, "init_from_vb", FALSE)),
+    store_latent_draws = isTRUE(get_exact(mcmc_args, "store_latent_draws", FALSE)),
+    store_rhs_draws = isTRUE(get_exact(mcmc_args, "store_rhs_draws", FALSE)),
+    slice = get_exact(mcmc_args, "slice", list())
+  ), get_exact(mcmc_args, "mcmc_control", list()))
 
   fit <- exal_mcmc_fit(
     y = design_fit$y_fit,
     X = design_fit$X,
     p0 = p0,
-    gamma_bounds = mcmc_args$gamma_bounds %||% c(L.fn(p0), U.fn(p0)),
-    mcmc_control = mcmc_control,
-    init = mcmc_args$init %||% list(),
-    prior_gamma = mcmc_args$prior_gamma %||% list(
-      mu0 = mcmc_args$prior_gamma_mu0 %||% 0,
-      s20 = mcmc_args$prior_gamma_s20 %||% 10
-    ),
-    prior_sigma = mcmc_args$prior_sigma %||% list(
-      a = mcmc_args$a_sigma %||% 1,
-      b = mcmc_args$b_sigma %||% 1
-    ),
-    log_prior_gamma = mcmc_args$log_prior_gamma,
-    beta_prior_obj = beta_prior_obj
-  )
+	    gamma_bounds = get_exact(mcmc_args, "gamma_bounds", c(L.fn(p0), U.fn(p0))),
+	    mcmc_control = mcmc_control,
+	    init = get_exact(mcmc_args, "init", list()),
+	    prior_gamma = get_exact(mcmc_args, "prior_gamma", list(
+	      mu0 = get_exact(mcmc_args, "prior_gamma_mu0", 0),
+	      s20 = get_exact(mcmc_args, "prior_gamma_s20", 10)
+	    )),
+	    prior_sigma = get_exact(mcmc_args, "prior_sigma", list(
+	      a = get_exact(mcmc_args, "a_sigma", 1),
+	      b = get_exact(mcmc_args, "b_sigma", 1)
+	    )),
+	    log_prior_gamma = get_exact(mcmc_args, "log_prior_gamma"),
+	    beta_prior_obj = beta_prior_obj
+	  )
 
   design_fit$fit <- fit
   design_fit$mu_hat <- as.numeric(design_fit$X %*% fit$summary$beta_mean)

@@ -371,19 +371,14 @@ qdesn_fit_vb <- function(
     init <- vb_args$init %||% list()
 
     # --- beta prior: ridge or rhs (NEW MODEL HOOK) ---
-    if (!is.null(vb_args$beta_prior_obj)) {
-      beta_prior_obj <- vb_args$beta_prior_obj
-    } else {
-      beta_type <- tolower(vb_args$beta_prior_type %||% "ridge")
-
-      if (beta_type == "rhs") {
-        rhs_list <- vb_args$beta_rhs %||% list()
-        beta_prior_obj <- beta_prior("rhs", rhs = rhs_list)
-      } else {
-        tau2 <- vb_args$beta_ridge_tau2 %||% vb_args$tau2 %||% 1e4
-        beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = tau2))
-      }
-    }
+	    if (!is.null(vb_args$beta_prior_obj)) {
+	      beta_prior_obj <- vb_args$beta_prior_obj
+	    } else {
+	      beta_type <- tolower(vb_args$beta_prior_type %||% "ridge")
+	      rhs_list <- vb_args$beta_rhs %||% list()
+	      tau2 <- vb_args$beta_ridge_tau2 %||% vb_args$tau2 %||% 1e4
+	      beta_prior_obj <- exal_make_beta_prior(type = beta_type, tau2 = tau2, rhs = rhs_list)
+	    }
 
     vb_control <- vb_args$vb_control %||% list(
       max_iter = vb_args$max_iter %||% 1000L,
@@ -415,12 +410,13 @@ ret <- list(
     mu_hat = mu_hat,
     reservoir = reservoir,
     states = list(H_last = H[[D]], H_all = H, H_tilde = H_tilde),
-    meta = list(
-        keep_idx = keep_idx, drop = drop, T = T, p0 = p0,
-        D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
-        add_bias = add_bias,
-        # NEW: store number of readout columns used in training (bias+reservoir features only)
-        p_res = ncol(X),
+	    meta = list(
+	        keep_idx = keep_idx, drop = drop, T = T, p0 = p0,
+	        D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
+	        add_bias = add_bias,
+	        inference_method = "vb",
+	        # NEW: store number of readout columns used in training (bias+reservoir features only)
+	        p_res = ncol(X),
 
         # Input preprocessing carried into forecasting so it reproduces training exactly
         standardize_inputs = standardize_inputs,

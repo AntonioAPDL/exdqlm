@@ -5,6 +5,265 @@
 #' `gamma` block on a transformed coordinate. Closed-form Gibbs updates are used
 #' for `beta`, `v`, `s`, and `sigma`.
 #'
+#' The current implementation supports both ridge and regularized horseshoe
+#' readout priors. Under RHS, the MCMC kernel conditions on the exact current
+#' local/global/slab scales and therefore uses the exact conditional precision
+#' `1 / V_j = exp(-eta_c2) + exp(-2 eta_tau - 2 eta_lambda_j)` in the Gaussian
+#' beta block; the delta-method approximation remains a VB-only moment device.
+#'
+#' @keywords internal
+.exal_mcmc_sample_mvnorm_prec <- function(rhs, Prec) {
+  Uc <- tryCatch(chol(Prec), error = function(e) NULL)
+  if (is.null(Uc)) Uc <- chol(Prec + 1e-10 * diag(nrow(Prec)))
+  mu <- backsolve(Uc, forwardsolve(t(Uc), rhs))
+  as.numeric(mu + backsolve(Uc, stats::rnorm(length(mu))))
+}
+
+#' @keywords internal
+.exal_mcmc_slice_sample_1d <- function(x0, logf, width = 1.0, max_steps_out = 100L,
+                                       max_shrink = 1000L, lower = -Inf, upper = Inf) {
+  logx0 <- logf(x0)
+  if (!is.finite(logx0)) .stopf("slice sampler received a non-finite initial log density.")
+  logy <- logx0 - stats::rexp(1L, rate = 1)
+
+  u <- stats::runif(1L, 0, width)
+  left <- x0 - u
+  right <- x0 + (width - u)
+  if (is.finite(lower)) left <- max(left, lower)
+  if (is.finite(upper)) right <- min(right, upper)
+
+  j <- as.integer(floor(stats::runif(1L, 0, max_steps_out + 1L)))
+  k <- max_steps_out - j
+  n_steps_out <- 0L
+
+  while (j > 0L && left > lower) {
+    val <- logf(left)
+    if (!is.finite(val) || val <= logy) break
+    left <- max(left - width, lower)
+    j <- j - 1L
+    n_steps_out <- n_steps_out + 1L
+  }
+  while (k > 0L && right < upper) {
+    val <- logf(right)
+    if (!is.finite(val) || val <= logy) break
+    right <- min(right + width, upper)
+    k <- k - 1L
+    n_steps_out <- n_steps_out + 1L
+  }
+
+  n_shrink <- 0L
+  repeat {
+    x1 <- stats::runif(1L, left, right)
+    logx1 <- logf(x1)
+    if (is.finite(logx1) && logx1 >= logy) {
+      return(list(x = x1, logf = logx1, n_steps_out = n_steps_out, n_shrink = n_shrink))
+    }
+    if (x1 < x0) {
+      left <- x1
+    } else {
+      right <- x1
+    }
+    n_shrink <- n_shrink + 1L
+    if (n_shrink >= max_shrink) {
+      .stopf("slice sampler exceeded max_shrink=%d without finding an acceptable point.", max_shrink)
+    }
+  }
+}
+
+#' @keywords internal
+.exal_mcmc_rhs_prepare_state <- function(beta_prior_obj, p, init = list(), vb_warm = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (!identical(beta_prior_obj$type, "rhs")) return(NULL)
+
+  state <- beta_prior_obj$init(p)
+  rhs_state_init <- init$rhs_state %||% init$beta_prior_state %||% NULL
+  vb_state <- vb_warm$beta_prior$state %||% NULL
+  state_src <- rhs_state_init %||% vb_state
+
+  if (!is.null(state_src)) {
+    for (nm in intersect(names(state_src), names(state))) {
+      state[[nm]] <- state_src[[nm]]
+    }
+    if (!is.null(state_src$eta_lambda_hat)) state$eta_lambda_hat <- as.numeric(state_src$eta_lambda_hat)
+    if (!is.null(state_src$eta_tau_hat)) state$eta_tau_hat <- as.numeric(state_src$eta_tau_hat)[1L]
+    if (!is.null(state_src$eta_c_hat)) state$eta_c_hat <- as.numeric(state_src$eta_c_hat)[1L]
+    if (!is.null(state_src$lambda)) state$eta_lambda_hat <- log(pmax(as.numeric(state_src$lambda), 1e-16))
+    if (!is.null(state_src$tau)) state$eta_tau_hat <- log(max(as.numeric(state_src$tau)[1L], 1e-16))
+    if (!is.null(state_src$c2)) state$eta_c_hat <- log(max(as.numeric(state_src$c2)[1L], 1e-16))
+  }
+
+  if (length(state$eta_lambda_hat) != p) .stopf("RHS MCMC init requires eta_lambda_hat of length p=%d.", p)
+  if (!is.finite(state$eta_tau_hat) || !is.finite(state$eta_c_hat)) {
+    .stopf("RHS MCMC init requires finite eta_tau_hat and eta_c_hat.")
+  }
+  state$eta_lambda_hat <- as.numeric(state$eta_lambda_hat)
+  state$eta_tau_hat <- as.numeric(state$eta_tau_hat)[1L]
+  state$eta_c_hat <- as.numeric(state$eta_c_hat)[1L]
+  state
+}
+
+#' @keywords internal
+.exal_mcmc_rhs_precisions <- function(state, p) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (is.null(state) || !identical(as.integer(state$p), as.integer(p))) {
+    .stopf("RHS MCMC state is missing or has incompatible dimension.")
+  }
+
+  eta_lambda <- as.numeric(state$eta_lambda_hat)
+  eta_tau <- as.numeric(state$eta_tau_hat)[1L]
+  eta_c2 <- as.numeric(state$eta_c_hat)[1L]
+  log_invV <- .logsumexp2(-eta_c2, -2 * (eta_tau + eta_lambda))
+  prec <- .safe_exp(log_invV)
+  prec <- pmax(as.numeric(prec), 1e-16)
+  if (!isTRUE(state$shrink_intercept)) {
+    prec[1L] <- as.numeric(state$intercept_prec %||% 1e-16)[1L]
+  }
+  prec
+}
+
+#' @keywords internal
+.exal_mcmc_rhs_slice_update <- function(state, beta, beta_prior_obj, slice_cfg) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (!identical(beta_prior_obj$type, "rhs")) {
+    return(list(
+      state = state,
+      stats = list(
+        tau = NA_real_,
+        c2 = NA_real_,
+        lambda_mean = NA_real_,
+        lambda_min = NA_real_,
+        lambda_max = NA_real_,
+        tau_steps_out = 0L,
+        tau_shrink = 0L,
+        c2_steps_out = 0L,
+        c2_shrink = 0L,
+        lambda_steps_out_mean = 0,
+        lambda_steps_out_max = 0L,
+        lambda_shrink_mean = 0,
+        lambda_shrink_max = 0L
+      )
+    ))
+  }
+
+  max_steps_out <- as.integer(slice_cfg$max_steps_out %||% 100L)
+  max_shrink <- as.integer(slice_cfg$max_shrink %||% 1000L)
+  width_lambda <- as.numeric(slice_cfg$width_rhs_lambda %||% slice_cfg$width_lambda %||% 1.0)[1L]
+  width_tau <- as.numeric(slice_cfg$width_rhs_tau %||% slice_cfg$width_tau %||% 1.0)[1L]
+  width_c2 <- as.numeric(slice_cfg$width_rhs_c2 %||% slice_cfg$width_c2 %||% 1.0)[1L]
+  if (!is.finite(width_lambda) || width_lambda <= 0) .stopf("RHS slice width_lambda must be positive.")
+  if (!is.finite(width_tau) || width_tau <= 0) .stopf("RHS slice width_tau must be positive.")
+  if (!is.finite(width_c2) || width_c2 <= 0) .stopf("RHS slice width_c2 must be positive.")
+
+  tau0 <- as.numeric(beta_prior_obj$hypers$tau0 %||% 1)[1L]
+  nu <- as.numeric(beta_prior_obj$hypers$nu %||% 4)[1L]
+  s <- as.numeric(beta_prior_obj$hypers$s %||% 1)[1L]
+  eta_bounds <- beta_prior_obj$control$eta_bounds %||% list()
+  b_lam <- as.numeric(eta_bounds$lambda %||% c(-40, 40))
+  b_tau <- as.numeric(eta_bounds$tau %||% c(-40, 40))
+  b_c2 <- as.numeric(eta_bounds$c2 %||% c(-40, 40))
+
+  eta_lam <- as.numeric(state$eta_lambda_hat)
+  eta_tau <- as.numeric(state$eta_tau_hat)[1L]
+  eta_c2 <- as.numeric(state$eta_c_hat)[1L]
+  beta2 <- as.numeric(beta)^2
+
+  active_idx <- if (isTRUE(state$shrink_intercept)) {
+    seq_along(beta2)
+  } else if (length(beta2) >= 2L) {
+    seq.int(2L, length(beta2))
+  } else {
+    integer(0)
+  }
+  lambda_steps <- integer(length(active_idx))
+  lambda_shrink <- integer(length(active_idx))
+
+  if (length(active_idx)) {
+    for (ii in seq_along(active_idx)) {
+      j <- active_idx[[ii]]
+      out <- .exal_mcmc_slice_sample_1d(
+        x0 = eta_lam[j],
+        logf = function(eta_j) {
+          eta_now <- eta_lam
+          eta_now[j] <- eta_j
+          rhs_obj_eta(
+            eta_now, eta_tau, eta_c2, beta2,
+            tau0 = tau0, nu = nu, s = s,
+            shrink_intercept = state$shrink_intercept
+          )
+        },
+        width = width_lambda,
+        max_steps_out = max_steps_out,
+        max_shrink = max_shrink,
+        lower = b_lam[1L],
+        upper = b_lam[2L]
+      )
+      eta_lam[j] <- out$x
+      lambda_steps[ii] <- out$n_steps_out
+      lambda_shrink[ii] <- out$n_shrink
+    }
+  }
+
+  tau_out <- .exal_mcmc_slice_sample_1d(
+    x0 = eta_tau,
+    logf = function(etau) {
+      rhs_obj_eta(
+        eta_lam, etau, eta_c2, beta2,
+        tau0 = tau0, nu = nu, s = s,
+        shrink_intercept = state$shrink_intercept
+      )
+    },
+    width = width_tau,
+    max_steps_out = max_steps_out,
+    max_shrink = max_shrink,
+    lower = b_tau[1L],
+    upper = b_tau[2L]
+  )
+  eta_tau <- tau_out$x
+
+  c2_out <- .exal_mcmc_slice_sample_1d(
+    x0 = eta_c2,
+    logf = function(ec2) {
+      rhs_obj_eta(
+        eta_lam, eta_tau, ec2, beta2,
+        tau0 = tau0, nu = nu, s = s,
+        shrink_intercept = state$shrink_intercept
+      )
+    },
+    width = width_c2,
+    max_steps_out = max_steps_out,
+    max_shrink = max_shrink,
+    lower = b_c2[1L],
+    upper = b_c2[2L]
+  )
+  eta_c2 <- c2_out$x
+
+  state$eta_lambda_hat <- eta_lam
+  state$eta_tau_hat <- eta_tau
+  state$eta_c_hat <- eta_c2
+
+  lambda_now <- exp(eta_lam)
+  lambda_active <- if (length(active_idx)) lambda_now[active_idx] else numeric(0)
+
+  list(
+    state = state,
+    stats = list(
+      tau = .safe_exp(eta_tau),
+      c2 = .safe_exp(eta_c2),
+      lambda_mean = if (length(lambda_active)) mean(lambda_active) else NA_real_,
+      lambda_min = if (length(lambda_active)) min(lambda_active) else NA_real_,
+      lambda_max = if (length(lambda_active)) max(lambda_active) else NA_real_,
+      tau_steps_out = tau_out$n_steps_out,
+      tau_shrink = tau_out$n_shrink,
+      c2_steps_out = c2_out$n_steps_out,
+      c2_shrink = c2_out$n_shrink,
+      lambda_steps_out_mean = if (length(lambda_steps)) mean(lambda_steps) else 0,
+      lambda_steps_out_max = if (length(lambda_steps)) max(lambda_steps) else 0L,
+      lambda_shrink_mean = if (length(lambda_shrink)) mean(lambda_shrink) else 0,
+      lambda_shrink_max = if (length(lambda_shrink)) max(lambda_shrink) else 0L
+    )
+  )
+}
+
 #' @export
 exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
                           mcmc_control = NULL,
@@ -49,9 +308,10 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   verbose <- isTRUE(mcmc_control$verbose %||% FALSE)
   init_from_vb <- isTRUE(mcmc_control$init_from_vb %||% FALSE)
   store_latent_draws <- isTRUE(mcmc_control$store_latent_draws %||% FALSE)
+  store_rhs_draws <- isTRUE(mcmc_control$store_rhs_draws %||% FALSE)
 
   slice_cfg <- mcmc_control$slice %||% list()
-  gamma_slice_width <- as.numeric(slice_cfg$width_gamma %||% 1.0)
+  gamma_slice_width <- as.numeric(slice_cfg$width_gamma %||% 1.0)[1L]
   gamma_slice_max_steps_out <- as.integer(slice_cfg$max_steps_out %||% 100L)
   gamma_slice_max_shrink <- as.integer(slice_cfg$max_shrink %||% 1000L)
 
@@ -82,12 +342,19 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   if (is.null(beta_prior_obj)) {
     beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = 1e4))
   }
-  if (!identical(beta_prior_obj$type, "ridge")) {
-    .stopf("exal_mcmc_fit currently supports only ridge beta priors. Got '%s'.",
-           as.character(beta_prior_obj$type))
+  beta_prior_type <- as.character(beta_prior_obj$type %||% NA_character_)[1L]
+  if (!beta_prior_type %in% c("ridge", "rhs")) {
+    .stopf("exal_mcmc_fit supports beta_prior_obj$type in {'ridge','rhs'}; got '%s'.",
+           beta_prior_type)
   }
-  tau2 <- as.numeric(beta_prior_obj$hypers$tau2 %||% NA_real_)
-  if (!is.finite(tau2) || tau2 <= 0) .stopf("ridge tau2 must be positive.")
+  ridge_tau2 <- if (identical(beta_prior_type, "ridge")) {
+    as.numeric(beta_prior_obj$hypers$tau2 %||% NA_real_)[1L]
+  } else {
+    NA_real_
+  }
+  if (identical(beta_prior_type, "ridge") && (!is.finite(ridge_tau2) || ridge_tau2 <= 0)) {
+    .stopf("ridge tau2 must be positive.")
+  }
 
   y <- as.numeric(y)
   X <- as.matrix(X)
@@ -112,63 +379,6 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     s <- stats::plogis(eta)
     s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
     log(U - L) + log(s) + log1p(-s)
-  }
-
-  .sample_mvnorm_prec <- function(rhs, Prec) {
-    Uc <- tryCatch(chol(Prec), error = function(e) NULL)
-    if (is.null(Uc)) Uc <- chol(Prec + 1e-10 * diag(nrow(Prec)))
-    mu <- backsolve(Uc, forwardsolve(t(Uc), rhs))
-    as.numeric(mu + backsolve(Uc, stats::rnorm(length(mu))))
-  }
-
-  .slice_sample_1d <- function(x0, logf, width = 1.0, max_steps_out = 100L,
-                               max_shrink = 1000L, lower = -Inf, upper = Inf) {
-    logx0 <- logf(x0)
-    if (!is.finite(logx0)) .stopf("slice sampler received a non-finite initial log density.")
-    logy <- logx0 - stats::rexp(1L, rate = 1)
-
-    u <- stats::runif(1L, 0, width)
-    left <- x0 - u
-    right <- x0 + (width - u)
-    if (is.finite(lower)) left <- max(left, lower)
-    if (is.finite(upper)) right <- min(right, upper)
-
-    j <- as.integer(floor(stats::runif(1L, 0, max_steps_out + 1L)))
-    k <- max_steps_out - j
-    n_steps_out <- 0L
-
-    while (j > 0L && left > lower) {
-      val <- logf(left)
-      if (!is.finite(val) || val <= logy) break
-      left <- max(left - width, lower)
-      j <- j - 1L
-      n_steps_out <- n_steps_out + 1L
-    }
-    while (k > 0L && right < upper) {
-      val <- logf(right)
-      if (!is.finite(val) || val <= logy) break
-      right <- min(right + width, upper)
-      k <- k - 1L
-      n_steps_out <- n_steps_out + 1L
-    }
-
-    n_shrink <- 0L
-    repeat {
-      x1 <- stats::runif(1L, left, right)
-      logx1 <- logf(x1)
-      if (is.finite(logx1) && logx1 >= logy) {
-        return(list(x = x1, logf = logx1, n_steps_out = n_steps_out, n_shrink = n_shrink))
-      }
-      if (x1 < x0) {
-        left <- x1
-      } else {
-        right <- x1
-      }
-      n_shrink <- n_shrink + 1L
-      if (n_shrink >= max_shrink) {
-        .stopf("slice sampler exceeded max_shrink=%d without finding an acceptable point.", max_shrink)
-      }
-    }
   }
 
   A_of <- function(g) A.fn(p0, g)
@@ -231,6 +441,13 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   if (length(s) != n) s <- rep(s[1L], n)
   s <- pmax(s, 0)
 
+  rhs_state <- .exal_mcmc_rhs_prepare_state(beta_prior_obj, p = p, init = init, vb_warm = vb_warm)
+  beta_prec_diag <- if (identical(beta_prior_type, "rhs")) {
+    .exal_mcmc_rhs_precisions(rhs_state, p = p)
+  } else {
+    rep(1 / ridge_tau2, p)
+  }
+
   n_total <- n_burn + n_keep * thin
   beta_draws <- matrix(NA_real_, nrow = n_keep, ncol = p)
   sigma_draws <- numeric(n_keep)
@@ -244,6 +461,51 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   }
   gamma_steps_out <- integer(n_total)
   gamma_shrink <- integer(n_total)
+  if (identical(beta_prior_type, "rhs")) {
+    rhs_tau_trace <- rep(NA_real_, n_total)
+    rhs_c2_trace <- rep(NA_real_, n_total)
+    rhs_lambda_mean_trace <- rep(NA_real_, n_total)
+    rhs_lambda_min_trace <- rep(NA_real_, n_total)
+    rhs_lambda_max_trace <- rep(NA_real_, n_total)
+    rhs_tau_steps_out <- integer(n_total)
+    rhs_tau_shrink <- integer(n_total)
+    rhs_c2_steps_out <- integer(n_total)
+    rhs_c2_shrink <- integer(n_total)
+    rhs_lambda_steps_out_mean <- numeric(n_total)
+    rhs_lambda_steps_out_max <- integer(n_total)
+    rhs_lambda_shrink_mean <- numeric(n_total)
+    rhs_lambda_shrink_max <- integer(n_total)
+    tau_draws <- numeric(n_keep)
+    c2_draws <- numeric(n_keep)
+    lambda_mean_draws <- numeric(n_keep)
+    lambda_min_draws <- numeric(n_keep)
+    lambda_max_draws <- numeric(n_keep)
+    if (store_rhs_draws) {
+      lambda_draws <- matrix(NA_real_, nrow = n_keep, ncol = p)
+    } else {
+      lambda_draws <- NULL
+    }
+  } else {
+    rhs_tau_trace <- NULL
+    rhs_c2_trace <- NULL
+    rhs_lambda_mean_trace <- NULL
+    rhs_lambda_min_trace <- NULL
+    rhs_lambda_max_trace <- NULL
+    rhs_tau_steps_out <- NULL
+    rhs_tau_shrink <- NULL
+    rhs_c2_steps_out <- NULL
+    rhs_c2_shrink <- NULL
+    rhs_lambda_steps_out_mean <- NULL
+    rhs_lambda_steps_out_max <- NULL
+    rhs_lambda_shrink_mean <- NULL
+    rhs_lambda_shrink_max <- NULL
+    tau_draws <- NULL
+    c2_draws <- NULL
+    lambda_mean_draws <- NULL
+    lambda_min_draws <- NULL
+    lambda_max_draws <- NULL
+    lambda_draws <- NULL
+  }
 
   t0 <- proc.time()[3L]
   save_idx <- 0L
@@ -268,10 +530,37 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     s <- pmax(s, 0)
 
     W_diag <- 1 / (B * sigma * v)
-    Prec_beta <- crossprod(X * sqrt(W_diag)) + diag(1 / tau2, p)
+    Prec_beta <- crossprod(X * sqrt(W_diag)) + diag(beta_prec_diag, p)
     y_star <- y - Cabs * sigma * s - A * v
     rhs_beta <- crossprod(X, W_diag * y_star)
-    beta <- .sample_mvnorm_prec(rhs_beta, Prec_beta)
+    beta <- .exal_mcmc_sample_mvnorm_prec(rhs_beta, Prec_beta)
+
+    rhs_stats <- NULL
+    if (identical(beta_prior_type, "rhs")) {
+      rhs_upd <- .exal_mcmc_rhs_slice_update(
+        state = rhs_state,
+        beta = beta,
+        beta_prior_obj = beta_prior_obj,
+        slice_cfg = slice_cfg
+      )
+      rhs_state <- rhs_upd$state
+      rhs_stats <- rhs_upd$stats
+      beta_prec_diag <- .exal_mcmc_rhs_precisions(rhs_state, p = p)
+
+      rhs_tau_trace[iter] <- rhs_stats$tau
+      rhs_c2_trace[iter] <- rhs_stats$c2
+      rhs_lambda_mean_trace[iter] <- rhs_stats$lambda_mean
+      rhs_lambda_min_trace[iter] <- rhs_stats$lambda_min
+      rhs_lambda_max_trace[iter] <- rhs_stats$lambda_max
+      rhs_tau_steps_out[iter] <- rhs_stats$tau_steps_out
+      rhs_tau_shrink[iter] <- rhs_stats$tau_shrink
+      rhs_c2_steps_out[iter] <- rhs_stats$c2_steps_out
+      rhs_c2_shrink[iter] <- rhs_stats$c2_shrink
+      rhs_lambda_steps_out_mean[iter] <- rhs_stats$lambda_steps_out_mean
+      rhs_lambda_steps_out_max[iter] <- rhs_stats$lambda_steps_out_max
+      rhs_lambda_shrink_mean[iter] <- rhs_stats$lambda_shrink_mean
+      rhs_lambda_shrink_max[iter] <- rhs_stats$lambda_shrink_max
+    }
 
     r_sigma <- y - drop(X %*% beta) - A * v
     chi_sigma <- sum((r_sigma * r_sigma) / (B * v)) + 2 * sum(v) + 2 * as.numeric(prior_sigma$b)
@@ -282,7 +571,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     )[1L, 1L])
     if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
 
-    slice_gamma <- .slice_sample_1d(
+    slice_gamma <- .exal_mcmc_slice_sample_1d(
       x0 = eta_gamma,
       logf = function(eta) logpost_eta_gamma(eta, beta = beta, sigma = sigma, v = v, s_vec = s),
       width = gamma_slice_width,
@@ -303,11 +592,27 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         v_draws[save_idx, ] <- v
         s_draws[save_idx, ] <- s
       }
+      if (identical(beta_prior_type, "rhs")) {
+        tau_draws[save_idx] <- rhs_stats$tau
+        c2_draws[save_idx] <- rhs_stats$c2
+        lambda_mean_draws[save_idx] <- rhs_stats$lambda_mean
+        lambda_min_draws[save_idx] <- rhs_stats$lambda_min
+        lambda_max_draws[save_idx] <- rhs_stats$lambda_max
+        if (store_rhs_draws) {
+          lambda_draws[save_idx, ] <- exp(as.numeric(rhs_state$eta_lambda_hat))
+        }
+      }
     }
 
     if (verbose && (iter %% 500L == 0L)) {
-      cat(sprintf("%s iteration %d | sigma=%.3f | gamma=%.3f\n",
-                  ifelse(iter <= n_burn, "burn-in", "MCMC"), iter, sigma, gamma))
+      if (identical(beta_prior_type, "rhs")) {
+        cat(sprintf("%s iteration %d | sigma=%.3f | gamma=%.3f | tau=%.3f | c2=%.3f\n",
+                    ifelse(iter <= n_burn, "burn-in", "MCMC"), iter, sigma, gamma,
+                    rhs_stats$tau, rhs_stats$c2))
+      } else {
+        cat(sprintf("%s iteration %d | sigma=%.3f | gamma=%.3f\n",
+                    ifelse(iter <= n_burn, "burn-in", "MCMC"), iter, sigma, gamma))
+      }
     }
   }
   runtime <- as.numeric(proc.time()[3L] - t0)
@@ -316,6 +621,45 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   beta_median <- apply(beta_draws, 2L, stats::median)
   sigma_mean <- mean(sigma_draws)
   gamma_mean <- mean(gamma_draws)
+  .mean_or_na <- function(x) if (!length(x) || all(!is.finite(x))) NA_real_ else mean(x[is.finite(x)])
+  summary_out <- list(
+    beta_mean = beta_mean,
+    beta_median = beta_median,
+    sigma_mean = sigma_mean,
+    gamma_mean = gamma_mean
+  )
+  diagnostics_out <- list(
+    gamma_slice_steps_out_mean = mean(gamma_steps_out),
+    gamma_slice_steps_out_max = max(gamma_steps_out),
+    gamma_slice_shrink_mean = mean(gamma_shrink),
+    gamma_slice_shrink_max = max(gamma_shrink)
+  )
+  beta_prior_out <- list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers)
+
+  if (identical(beta_prior_type, "rhs")) {
+    summary_out$rhs <- list(
+      tau_mean = mean(tau_draws),
+      c2_mean = mean(c2_draws),
+      lambda_mean = .mean_or_na(lambda_mean_draws),
+      lambda_min = .mean_or_na(lambda_min_draws),
+      lambda_max = .mean_or_na(lambda_max_draws)
+    )
+    diagnostics_out$rhs <- list(
+      tau_slice_steps_out_mean = mean(rhs_tau_steps_out),
+      tau_slice_steps_out_max = max(rhs_tau_steps_out),
+      tau_slice_shrink_mean = mean(rhs_tau_shrink),
+      tau_slice_shrink_max = max(rhs_tau_shrink),
+      c2_slice_steps_out_mean = mean(rhs_c2_steps_out),
+      c2_slice_steps_out_max = max(rhs_c2_steps_out),
+      c2_slice_shrink_mean = mean(rhs_c2_shrink),
+      c2_slice_shrink_max = max(rhs_c2_shrink),
+      lambda_slice_steps_out_mean = mean(rhs_lambda_steps_out_mean),
+      lambda_slice_steps_out_max = max(rhs_lambda_steps_out_max),
+      lambda_slice_shrink_mean = mean(rhs_lambda_shrink_mean),
+      lambda_slice_shrink_max = max(rhs_lambda_shrink_max)
+    )
+    beta_prior_out$state <- rhs_state
+  }
 
   structure(list(
     method = "mcmc",
@@ -326,8 +670,12 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       verbose = verbose,
       init_from_vb = init_from_vb,
       store_latent_draws = store_latent_draws,
+      store_rhs_draws = store_rhs_draws,
       slice = list(
         width_gamma = gamma_slice_width,
+        width_rhs_lambda = as.numeric(slice_cfg$width_rhs_lambda %||% slice_cfg$width_lambda %||% 1.0)[1L],
+        width_rhs_tau = as.numeric(slice_cfg$width_rhs_tau %||% slice_cfg$width_tau %||% 1.0)[1L],
+        width_rhs_c2 = as.numeric(slice_cfg$width_rhs_c2 %||% slice_cfg$width_c2 %||% 1.0)[1L],
         max_steps_out = gamma_slice_max_steps_out,
         max_shrink = gamma_slice_max_shrink
       )
@@ -341,19 +689,15 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     samp.gamma = coda::as.mcmc(gamma_draws),
     samp.v = if (!is.null(v_draws)) coda::as.mcmc(v_draws) else NULL,
     samp.s = if (!is.null(s_draws)) coda::as.mcmc(s_draws) else NULL,
-    beta_prior = list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers),
-    summary = list(
-      beta_mean = beta_mean,
-      beta_median = beta_median,
-      sigma_mean = sigma_mean,
-      gamma_mean = gamma_mean
-    ),
-    diagnostics = list(
-      gamma_slice_steps_out_mean = mean(gamma_steps_out),
-      gamma_slice_steps_out_max = max(gamma_steps_out),
-      gamma_slice_shrink_mean = mean(gamma_shrink),
-      gamma_slice_shrink_max = max(gamma_shrink)
-    ),
+    samp.tau = if (!is.null(tau_draws)) coda::as.mcmc(tau_draws) else NULL,
+    samp.c2 = if (!is.null(c2_draws)) coda::as.mcmc(c2_draws) else NULL,
+    samp.lambda = if (!is.null(lambda_draws)) coda::as.mcmc(lambda_draws) else NULL,
+    samp.lambda_mean = if (!is.null(lambda_mean_draws)) coda::as.mcmc(lambda_mean_draws) else NULL,
+    samp.lambda_min = if (!is.null(lambda_min_draws)) coda::as.mcmc(lambda_min_draws) else NULL,
+    samp.lambda_max = if (!is.null(lambda_max_draws)) coda::as.mcmc(lambda_max_draws) else NULL,
+    beta_prior = beta_prior_out,
+    summary = summary_out,
+    diagnostics = diagnostics_out,
     misc = list(
       p0 = p0,
       bounds = c(L = L, U = U),
@@ -361,14 +705,30 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       p = p,
       method = "mcmc",
       gamma_slice_steps_out = gamma_steps_out,
-      gamma_slice_shrink = gamma_shrink
+      gamma_slice_shrink = gamma_shrink,
+      beta_prec_last = beta_prec_diag,
+      rhs_tau_trace = rhs_tau_trace,
+      rhs_c2_trace = rhs_c2_trace,
+      rhs_lambda_mean_trace = rhs_lambda_mean_trace,
+      rhs_lambda_min_trace = rhs_lambda_min_trace,
+      rhs_lambda_max_trace = rhs_lambda_max_trace,
+      rhs_tau_steps_out = rhs_tau_steps_out,
+      rhs_tau_shrink = rhs_tau_shrink,
+      rhs_c2_steps_out = rhs_c2_steps_out,
+      rhs_c2_shrink = rhs_c2_shrink,
+      rhs_lambda_steps_out_mean = rhs_lambda_steps_out_mean,
+      rhs_lambda_steps_out_max = rhs_lambda_steps_out_max,
+      rhs_lambda_shrink_mean = rhs_lambda_shrink_mean,
+      rhs_lambda_shrink_max = rhs_lambda_shrink_max
     ),
     last = list(
       beta = beta,
       sigma = sigma,
       gamma = gamma,
       v = v,
-      s = s
+      s = s,
+      beta_prec_diag = beta_prec_diag,
+      beta_prior_state = rhs_state
     )
   ), class = c("exal_mcmc", "exal_static_mcmc"))
 }

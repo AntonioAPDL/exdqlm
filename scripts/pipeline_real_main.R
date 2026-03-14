@@ -1176,6 +1176,36 @@ vb_online_cfg$update_sigmagam <- if (is.null(vb_online_cfg$update_sigmagam)) TRU
 if (vb_online_cfg$K < vb_online_cfg$M) vb_online_cfg$K <- vb_online_cfg$M
 if (isTRUE(vb_online_cfg$strict)) vb_online_cfg$W <- 0L
 
+inference_cfg <- resolve_exal_inference_config(cfg, p_vec = p_vec, verbose = VERBOSE)
+inference_method <- inference_cfg$method
+readout_scale <- isTRUE(inference_cfg$readout_scale)
+vb_args_base <- inference_cfg$vb$args_base
+vb_online_cfg <- inference_cfg$vb$online
+vb_tol_for <- inference_cfg$vb$tol_for
+vb_tol_par_for <- inference_cfg$vb$tol_par_for
+tol50 <- inference_cfg$vb$tol50
+tolext <- inference_cfg$vb$tolext
+tol_par_50 <- inference_cfg$vb$tol_par_50
+tol_par_ext <- inference_cfg$vb$tol_par_ext
+vb_init_gamma <- inference_cfg$init_gamma
+vb_init_sigma <- inference_cfg$init_sigma
+vb_prior_gamma_mu0 <- inference_cfg$prior_gamma_mu0
+vb_prior_gamma_s20 <- inference_cfg$prior_gamma_s20
+vb_prior_sigma_a <- inference_cfg$prior_sigma_a
+vb_prior_sigma_b <- inference_cfg$prior_sigma_b
+vb_prior_beta_type <- inference_cfg$beta_prior_type
+vb_prior_beta_tau2 <- inference_cfg$beta_prior_tau2
+vb_prior_beta_rhs <- inference_cfg$beta_prior_rhs
+mcmc_control_base <- inference_cfg$mcmc$control_base
+rhs_trace_on <- isTRUE(vb_args_base$rhs_trace)
+rhs_deep_on <- isTRUE(vb_args_base$rhs_deep)
+rhs_trace_thresholds <- vb_args_base$rhs_trace_thresholds
+rhs_trace_top_k <- vb_args_base$rhs_trace_top_k
+rhs_trace_eps <- vb_args_base$rhs_trace_eps
+if (identical(inference_method, "mcmc") && isTRUE(vb_online_cfg$enabled)) {
+  message("[inference] online VB settings are ignored because inference.method='mcmc'.")
+}
+
 nd_draws <- as.integer((cfg$sampling$nd_draws %||% 3000L))
 chunk_sz <- as.integer((cfg$sampling$chunk    %||% 250L))
 # Mixture draws per target time are tied to posterior draws.
@@ -1231,27 +1261,50 @@ synth_grid_M    <- as.integer((cfg$synthesis$grid_M %||% 2001L))
 synth_nsamp     <- as.integer((cfg$synthesis$n_samp %||% 4000L))
 synth_seed      <- as.integer((cfg$synthesis$seed   %||% 123L))
 
-log_msg(
-  "Effective VB → max_iter=%d | min_iter_elbo=%d | tol_50=%.1e | tol_extreme=%.1e | n_samp_xi=%d",
-  vb_args_base$max_iter, vb_args_base$min_iter_elbo, tol50, tolext, vb_args_base$n_samp_xi
-)
+if (identical(inference_method, "vb")) {
+  log_msg(
+    "Effective inference → method=vb | max_iter=%d | min_iter_elbo=%d | tol_50=%.1e | tol_extreme=%.1e | tol_par_50=%.1e | tol_par_extreme=%.1e | n_samp_xi=%d",
+    vb_args_base$max_iter, vb_args_base$min_iter_elbo, tol50, tolext, tol_par_50, tol_par_ext, vb_args_base$n_samp_xi
+  )
+} else {
+  log_msg(
+    "Effective inference → method=mcmc | n_burn=%d | n_mcmc=%d | thin=%d | init_from_vb=%s | store_latent_draws=%s | store_rhs_draws=%s",
+    as.integer(mcmc_control_base$n_burn),
+    as.integer(mcmc_control_base$n_mcmc),
+    as.integer(mcmc_control_base$thin),
+    as.character(isTRUE(mcmc_control_base$init_from_vb)),
+    as.character(isTRUE(mcmc_control_base$store_latent_draws)),
+    as.character(isTRUE(mcmc_control_base$store_rhs_draws))
+  )
+  log_msg(
+    "Effective MCMC slice → width_gamma=%.3f | width_rhs_lambda=%.3f | width_rhs_tau=%.3f | width_rhs_c2=%.3f | max_steps_out=%d | max_shrink=%d",
+    as.numeric((mcmc_control_base$slice %||% list())$width_gamma %||% 1.0),
+    as.numeric((mcmc_control_base$slice %||% list())$width_rhs_lambda %||% 1.0),
+    as.numeric((mcmc_control_base$slice %||% list())$width_rhs_tau %||% 1.0),
+    as.numeric((mcmc_control_base$slice %||% list())$width_rhs_c2 %||% 1.0),
+    as.integer((mcmc_control_base$slice %||% list())$max_steps_out %||% 100L),
+    as.integer((mcmc_control_base$slice %||% list())$max_shrink %||% 1000L)
+  )
+}
 log_msg(
   "Effective beta prior → type=%s | ridge_tau2=%s | rhs(tau0=%.3f, nu=%.3f, s2=%.3f)",
   vb_prior_beta_type,
   if (is.null(vb_prior_beta_tau2)) "NULL" else format(vb_prior_beta_tau2, digits = 4, trim = TRUE),
   vb_prior_beta_rhs$tau0, vb_prior_beta_rhs$nu, vb_prior_beta_rhs$s2
 )
-log_msg(
-  "Effective online VB → enabled=%s | strict=%s | M=%d | K=%d | W=%d | L_loc=%d | warm_start_n=%s | warm_start_frac=%.3f",
-  as.character(isTRUE(vb_online_cfg$enabled)),
-  as.character(isTRUE(vb_online_cfg$strict)),
-  as.integer(vb_online_cfg$M),
-  as.integer(vb_online_cfg$K),
-  as.integer(vb_online_cfg$W),
-  as.integer(vb_online_cfg$L_loc),
-  if (is.null(vb_online_cfg$warm_start_n)) "NULL" else as.character(as.integer(vb_online_cfg$warm_start_n)[1L]),
-  as.numeric(vb_online_cfg$warm_start_frac)
-)
+if (identical(inference_method, "vb")) {
+  log_msg(
+    "Effective online VB → enabled=%s | strict=%s | M=%d | K=%d | W=%d | L_loc=%d | warm_start_n=%s | warm_start_frac=%.3f",
+    as.character(isTRUE(vb_online_cfg$enabled)),
+    as.character(isTRUE(vb_online_cfg$strict)),
+    as.integer(vb_online_cfg$M),
+    as.integer(vb_online_cfg$K),
+    as.integer(vb_online_cfg$W),
+    as.integer(vb_online_cfg$L_loc),
+    if (is.null(vb_online_cfg$warm_start_n)) "NULL" else as.character(as.integer(vb_online_cfg$warm_start_n)[1L]),
+    as.numeric(vb_online_cfg$warm_start_frac)
+  )
+}
 log_msg("Effective sampling → nd_draws=%d | chunk=%d", nd_draws, chunk_sz)
 log_msg("Effective IJ → use_ij_correction=%s | ij_nd_draws=%d | beta_mode=%s",
         as.character(use_ij_correction), as.integer(ij_nd_draws), ij_beta_mode)
@@ -1676,92 +1729,35 @@ compute_mu_bands_with_ij <- function(
 fit_and_forecast_p <- function(p0) {
   # Index of this quantile in p_vec
   idx_p <- which.min(abs(p_vec - p0))
-
-  # Beta prior (ridge or RHS)
-  beta_type <- tolower(vb_prior_beta_type %||% "ridge")
-  if (!beta_type %in% c("ridge", "rhs")) {
-    stop(sprintf("Unknown beta prior type '%s' (expected 'ridge' or 'rhs')", beta_type))
-  }
-  tau2_beta_p <- if (!is.null(vb_prior_beta_tau2)) vb_prior_beta_tau2 else 1e4
-  beta_prior_obj <- if (beta_type == "rhs") {
-    if (is.null(vb_prior_beta_rhs) || !is.list(vb_prior_beta_rhs)) {
-      stop("vb$priors$beta$rhs must be a YAML mapping (list).")
-    }
-    beta_prior("rhs", rhs = vb_prior_beta_rhs)
-  } else {
-    beta_prior("ridge", ridge = list(tau2 = tau2_beta_p))
-  }
-
-  vb_args_p <- vb_args_base
-  vb_args_p$tol     <- vb_tol_for(p0)
-  vb_args_p$tol_par <- vb_tol_par_for(p0)
-
-  gamma_init_p <- if (!is.null(vb_init_gamma)) vb_init_gamma[idx_p] else 0
-  sigma_init_p <- if (!is.null(vb_init_sigma)) vb_init_sigma[idx_p] else 1
-
-  gamma_mu0_p <- if (!is.null(vb_prior_gamma_mu0)) vb_prior_gamma_mu0[idx_p] else 0
-  gamma_s20_p <- if (!is.null(vb_prior_gamma_s20)) vb_prior_gamma_s20[idx_p] else 10
-
-  sigma_a_p <- if (!is.null(vb_prior_sigma_a)) vb_prior_sigma_a[idx_p] else 1
-  sigma_b_p <- if (!is.null(vb_prior_sigma_b)) vb_prior_sigma_b[idx_p] else 1
+  qfit_spec <- resolve_exal_quantile_fit_spec(inference_cfg, idx_p = idx_p, p0 = p0)
+  beta_type <- qfit_spec$beta_type
 
   fit_args <- list(
     y            = y_tr_keep,
     X            = X_train,
     p0           = p0,
     gamma_bounds = c(L.fn(p0), U.fn(p0)),
-    a_sigma      = sigma_a_p,
-    b_sigma      = sigma_b_p,
-    max_iter     = vb_args_p$max_iter,
-    vb_control   = list(
-      min_iter_elbo = vb_args_p$min_iter_elbo,
-      rhs_trace = vb_args_p$rhs_trace,
-      rhs_deep = vb_args_p$rhs_deep,
-      rhs_trace_thresholds = vb_args_p$rhs_trace_thresholds,
-      rhs_trace_top_k = vb_args_p$rhs_trace_top_k,
-      rhs_trace_eps = vb_args_p$rhs_trace_eps,
-      rhs_freeze_tau_iters = vb_args_p$rhs_freeze_tau_iters,
-      rhs_update_every = vb_args_p$rhs_update_every,
-      rhs_update_every_warmup = vb_args_p$rhs_update_every_warmup,
-      rhs_update_every_warmup_iters = vb_args_p$rhs_update_every_warmup_iters,
-      rhs_beta_presteps = vb_args_p$rhs_beta_presteps,
-      rhs_beta_presteps_iters = vb_args_p$rhs_beta_presteps_iters,
-      rhs_gradcheck = vb_args_p$rhs_gradcheck,
-      rhs_gradcheck_iters = vb_args_p$rhs_gradcheck_iters,
-      rhs_gradcheck_h = vb_args_p$rhs_gradcheck_h,
-      rhs_tau_local_tol = vb_args_p$rhs_tau_local_tol,
-      rhs_min_tau_updates = vb_args_p$rhs_min_tau_updates,
-      rhs_max_tau_updates = vb_args_p$rhs_max_tau_updates,
-      rhs_force_tau_after_warmup = vb_args_p$rhs_force_tau_after_warmup,
-      rhs_recompute_elbo_after_tau_update = vb_args_p$rhs_recompute_elbo_after_tau_update
-    ),
-    tol          = vb_args_p$tol,
-    tol_par      = vb_args_p$tol_par,
-    n_samp_xi    = vb_args_p$n_samp_xi,
-    verbose      = vb_args_p$verbose,
-    init         = list(gamma = gamma_init_p, sigma = sigma_init_p),
-    beta_prior_obj = beta_prior_obj
+    prior_gamma  = qfit_spec$prior_gamma,
+    prior_sigma  = qfit_spec$prior_sigma,
+    init         = qfit_spec$init,
+    log_prior_gamma = qfit_spec$log_prior_gamma,
+    beta_prior_obj = qfit_spec$beta_prior_obj
   )
 
-  if (!is.null(vb_prior_gamma_mu0)) {
-    fit_args$prior_gamma_mu0 <- gamma_mu0_p
-    fit_args$prior_gamma_s20 <- gamma_s20_p
-    fit_args$log_prior_gamma <- function(g) {
-      sum(stats::dnorm(g, mean = gamma_mu0_p, sd = sqrt(gamma_s20_p), log = TRUE))
-    }
-  } else {
-    fit_args$log_prior_gamma <- function(g) 0
-  }
-
-  fit_exal <- if (isTRUE(vb_online_cfg$enabled)) {
+  fit_exal <- if (identical(qfit_spec$method, "vb") && isTRUE(qfit_spec$online_control$enabled)) {
     timed(
-      sprintf("fit_exAL_online_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
-      do.call(exal_online_fit, c(fit_args, list(control = vb_online_cfg)))
+      sprintf("fit_exAL_online_on_X_train(p=%s, method=%s, prior=%s)", fmt_p(p0), qfit_spec$method, beta_type),
+      do.call(exal_online_fit, c(fit_args, list(vb_control = qfit_spec$vb_control, control = qfit_spec$online_control)))
     )
   } else {
+    method_fit_args <- if (identical(qfit_spec$method, "vb")) {
+      c(fit_args, list(vb_control = qfit_spec$vb_control, method = "vb"))
+    } else {
+      c(fit_args, list(mcmc_control = qfit_spec$mcmc_control, method = "mcmc"))
+    }
     timed(
-      sprintf("fit_exAL_on_X_train(p=%s, prior=%s)", fmt_p(p0), beta_type),
-      do.call(exal_ldvb_fit, fit_args)
+      sprintf("fit_exAL_on_X_train(p=%s, method=%s, prior=%s)", fmt_p(p0), qfit_spec$method, beta_type),
+      do.call(exal_fit, method_fit_args)
     )
   }
 
@@ -3725,11 +3721,18 @@ if (isTRUE(save_outputs)) {
     list(
       fits_fc = fits_fc,
       synth_fc = synth_fc,
-      compare_fc = compare_fc,
-      compare_tr = compare_tr,
-      cfg = list(
-        p_vec = p_vec, desn_args = desn_args, vb_args_base = vb_args_base,
-        nd_draws = nd_draws, chunk_sz = chunk_sz,
+	      compare_fc = compare_fc,
+	      compare_tr = compare_tr,
+	      cfg = list(
+	        p_vec = p_vec, desn_args = desn_args, vb_args_base = vb_args_base,
+	        inference = list(
+	          method = inference_method,
+	          readout_scale = readout_scale,
+	          vb = list(args_base = vb_args_base, online = vb_online_cfg),
+	          mcmc = list(control_base = mcmc_control_base),
+	          beta_prior = list(type = vb_prior_beta_type, tau2 = vb_prior_beta_tau2, rhs = vb_prior_beta_rhs)
+	        ),
+	        nd_draws = nd_draws, chunk_sz = chunk_sz,
         last_window          = fore_last_window,
         last_window_train    = train_last_window,
         last_window_forecast = fore_last_window,

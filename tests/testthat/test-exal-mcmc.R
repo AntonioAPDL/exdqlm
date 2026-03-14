@@ -60,6 +60,102 @@ test_that("generic exAL draw and predictive dispatch works for VB and MCMC", {
   expect_equal(dim(pp_mcmc$mu_draws), c(6L, 10L))
 })
 
+test_that("RHS MCMC exposes healthy prior-state outputs and exact current precisions", {
+  withr::local_seed(456)
+
+  n <- 28L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.4, -0.5, 0.25) + stats::rnorm(n, sd = 0.4))
+
+  rhs_prec0 <- 1e-10
+  fit_rhs <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    beta_prior_obj = exdqlm::beta_prior("rhs", rhs = list(
+      tau0 = 0.5,
+      nu = 4,
+      s2 = 1,
+      shrink_intercept = FALSE,
+      intercept_prec = rhs_prec0,
+      eta_bounds = list(lambda = c(-4, 4), tau = c(-4, 4), c2 = c(-4, 4))
+    )),
+    mcmc_control = list(
+      n_burn = 15L,
+      n_mcmc = 20L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = TRUE,
+      store_rhs_draws = TRUE
+    )
+  )
+
+  expect_true(inherits(fit_rhs, "exal_mcmc"))
+  expect_identical(fit_rhs$beta_prior$type, "rhs")
+  expect_false(is.null(fit_rhs$samp.tau))
+  expect_false(is.null(fit_rhs$samp.c2))
+  expect_false(is.null(fit_rhs$samp.lambda))
+  expect_true(is.finite(fit_rhs$summary$rhs$tau_mean))
+  expect_true(fit_rhs$summary$rhs$tau_mean > 0)
+  expect_true(is.finite(fit_rhs$summary$rhs$c2_mean))
+  expect_true(fit_rhs$summary$rhs$c2_mean > 0)
+  expect_equal(fit_rhs$last$beta_prec_diag[1L], rhs_prec0)
+})
+
+test_that("inference config resolver supports explicit mcmc mode with backward-compatible structure", {
+  cfg <- list(
+    vb = list(
+      max_iter = 99L,
+      online = list(enabled = TRUE, M = 5L)
+    ),
+    inference = list(
+      method = "mcmc",
+      readout_scale = TRUE,
+      mcmc = list(
+        n_burn = 11L,
+        n_mcmc = 17L,
+        thin = 2L,
+        init_from_vb = FALSE,
+        slice = list(width_gamma = 0.6, width_rhs_tau = 0.9),
+        init = list(gamma = c(0.1, 0.2)),
+        priors = list(
+          gamma = list(mu0 = c(-0.2, 0.3), s20 = 4),
+          sigma = list(a = 2, b = 3),
+          beta = list(
+            type = "rhs",
+            rhs = list(tau0 = 0.4, s2 = 2, shrink_intercept = FALSE)
+          )
+        )
+      )
+    )
+  )
+
+  inf <- exdqlm:::resolve_exal_inference_config(cfg, p_vec = c(0.1, 0.9), verbose = FALSE)
+  expect_identical(inf$method, "mcmc")
+  expect_true(inf$readout_scale)
+  expect_equal(inf$mcmc$control_base$n_burn, 11L)
+  expect_equal(inf$mcmc$control_base$n_mcmc, 17L)
+  expect_equal(inf$mcmc$control_base$thin, 2L)
+  expect_false(isTRUE(inf$mcmc$control_base$init_from_vb))
+  expect_equal(inf$mcmc$control_base$slice$width_gamma, 0.6)
+  expect_equal(inf$mcmc$control_base$slice$width_rhs_tau, 0.9)
+  expect_identical(inf$beta_prior_type, "rhs")
+  expect_equal(inf$prior_gamma_mu0, c(-0.2, 0.3))
+  expect_equal(inf$prior_gamma_s20, c(4, 4))
+  expect_equal(inf$prior_sigma_a, c(2, 2))
+  expect_equal(inf$prior_sigma_b, c(3, 3))
+
+  qspec <- exdqlm:::resolve_exal_quantile_fit_spec(inf, idx_p = 2L, p0 = 0.9)
+  expect_identical(qspec$method, "mcmc")
+  expect_identical(qspec$beta_type, "rhs")
+  expect_identical(qspec$beta_prior_obj$type, "rhs")
+  expect_equal(qspec$init$gamma, 0.2)
+  expect_equal(qspec$prior_sigma$a, 2)
+  expect_equal(qspec$prior_sigma$b, 3)
+})
+
 test_that("Q-DESN MCMC path reuses the existing forecast interface", {
   withr::local_seed(321)
 
