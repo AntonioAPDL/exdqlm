@@ -59,7 +59,7 @@ act_scalar <- function(x, nm) {
 
 
 suppressPackageStartupMessages({
-  req <- c("devtools","ggplot2","dplyr","tidyr","tibble","scales",
+  req <- c("pkgload","ggplot2","dplyr","tidyr","tibble","scales",
          "MASS","numDeriv","matrixStats","purrr","readr","patchwork","jsonlite",
          "truncnorm")
   need <- setdiff(req, rownames(installed.packages()))
@@ -72,7 +72,7 @@ repo_root <- tryCatch(
   normalizePath(system("git rev-parse --show-toplevel", intern = TRUE)),
   error = function(...) normalizePath(".", mustWork = TRUE)
 )
-devtools::load_all(repo_root)
+pkgload::load_all(repo_root)
 set.seed(12345)
 
 # --- Timing helpers (minimal, flush-friendly) ---------------------------------
@@ -4455,4 +4455,20 @@ if (isTRUE(do_scores)) {
     }
   })
 }
+}
+
+if (isTRUE(save_outputs)) {
+  write_pipeline_timing_outputs(
+    timing_rows = .timing_env$rows,
+    tables_dir = TABLES,
+    models_dir = MODELS,
+    context = list(
+      mode = mode,
+      inference_method = inference_method,
+      beta_prior_type = vb_prior_beta_type,
+      n_quantiles = length(p_vec),
+      T_use = T_use,
+      H_forecast = H_forecast
+    )
+  )
 }

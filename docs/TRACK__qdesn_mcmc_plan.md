@@ -1,9 +1,9 @@
 # TRACK: Q-DESN MCMC Alternative to VB
 
-Date: 2026-03-13
+Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
 Owner: Q-DESN readout inference refactor
-Status: phase-A derivations and the first ridge-MCMC integration seam have landed locally; RHS MCMC and full pipeline method-dispatch remain next
+Status: phases A-E smoke integration are now in place on this branch; the next work is broader MCMC-focused evaluation, profiling, and refinement rather than benchmark reruns
 
 ## 0) Goal
 
@@ -20,6 +20,29 @@ Add an MCMC implementation for the Q-DESN readout that is:
 Benchmarking is intentionally on standby during this workstream. The first goal
 is to make the MCMC readout correct, stable, and easy to route through the
 existing Q-DESN stack.
+
+## 0.1) Current State on 2026-03-14
+
+The following items are implemented on `feature/qdesn-mcmc-alternative`:
+
+- method-agnostic exAL dispatch via `exal_fit()`,
+  `exal_posterior_draws()`, and `exal_posterior_predict()`;
+- ridge and RHS MCMC readout support with Gibbs updates for the conjugate
+  blocks and slice sampling for the nonconjugate blocks;
+- `qdesn_fit_mcmc()` plus `qdesn_fit(method = "vb" | "mcmc")`, reusing the
+  same DESN design/reservoir path as the VB implementation;
+- explicit `inference.method` config handling in the simulation and real-data
+  pipelines, while keeping legacy `cfg$vb` compatibility;
+- pipeline timing/runtime artifacts so VB and MCMC runs can be compared on
+  elapsed time and score summaries from saved outputs;
+- focused pipeline smoke specs and a smoke-matrix runner covering
+  sim/real x vb/mcmc x ridge/rhs;
+- regression tests that exercise the pipeline boundary, not just the readout
+  internals.
+
+This means the implementation is now past the algorithm-only stage. The repo
+can already execute the same sim/real workflow under either inference method on
+controlled smoke configurations.
 
 ## 1) Scope Boundaries
 
@@ -508,39 +531,97 @@ The MCMC path must be correct first, then optimized deliberately.
 
 ### Phase A: derivation and contract freeze
 
+- Status: complete on this branch.
 - write the exact log-targets and closed-form updates for the static readout;
 - freeze the readout object contract and generic draw/predict API;
 - decide final config schema.
 
 ### Phase B: ridge MCMC core
 
+- Status: complete on this branch.
 - implement `exal_mcmc_fit()` for ridge;
 - implement generic draw/predict dispatch;
 - add unit tests and synthetic recovery tests.
 
 ### Phase C: RHS MCMC
 
+- Status: complete on this branch for the first R implementation.
 - extend the prior contract for MCMC;
 - implement slice updates for `lambda_j`, `tau`, `c^2`;
 - add RHS diagnostics and smoke tests.
 
 ### Phase D: Q-DESN integration
 
+- Status: complete on this branch.
 - add `qdesn_fit_mcmc()` and `qdesn_fit()`;
 - keep reservoir/design code shared;
 - ensure forecast recursion works with MCMC draws.
 
 ### Phase E: pipeline integration
 
+- Status: complete at the smoke-test level.
 - refactor sim/real scripts to use inference dispatch helpers;
 - add method-aware config and output recording;
 - add smoke runs for both methods.
 
 ### Phase F: quality hardening
 
+- Status: next active phase.
 - profile bottlenecks;
 - improve storage defaults and diagnostics;
 - document when VB or MCMC should be preferred.
+
+## 11.1) Smoke Matrix Completion
+
+The smoke-matrix layer is now implemented through:
+
+- `scripts/mcmc_smoke_matrix.R`;
+- eight explicit smoke specs covering
+  sim/real x vb/mcmc x ridge/rhs;
+- local committed datasets for reproducible non-benchmark smoke validation;
+- pipeline summary collectors that read timing and score artifacts from saved
+  runs.
+
+The current completed matrix is:
+
+- `sim_vb_ridge`
+- `sim_vb_rhs`
+- `sim_mcmc_ridge`
+- `sim_mcmc_rhs`
+- `real_vb_ridge`
+- `real_vb_rhs`
+- `real_mcmc_ridge`
+- `real_mcmc_rhs`
+
+All eight cases completed successfully in the latest smoke run.
+
+## 11.2) Current VB vs MCMC Smoke Findings
+
+These findings are only for the controlled smoke configurations used to validate
+integration, runtime recording, and method comparability. They are not
+benchmark claims.
+
+- Ridge, real-data smoke:
+  MCMC is about 1.37x slower than VB in wall time, but achieved better forecast
+  CRPS and S scores on the latest smoke run.
+- Ridge, simulation smoke:
+  MCMC is about 1.38x slower than VB in wall time and was worse than VB on the
+  latest smoke score summary.
+- RHS, both real and simulation smoke:
+  VB completed, but produced extremely unhealthy score magnitudes on the latest
+  smoke configurations, while RHS MCMC produced finite and reasonable forecast
+  scores.
+- RHS, runtime cost:
+  MCMC is about 1.54x to 1.56x slower than VB in wall time on the latest smoke
+  runs.
+
+Operational conclusion from the current smoke evidence:
+
+- the new `vb | mcmc` dispatch is working in both sim and real-data pipelines;
+- MCMC is slower, as expected, but currently gives the healthier RHS behavior
+  on these smoke settings;
+- the right next step is not benchmarking, but targeted MCMC evaluation,
+  profiling, and refinement under larger non-benchmark study grids.
 
 ## 12) Acceptance Criteria
 
@@ -557,10 +638,13 @@ the following are true:
 
 ## 13) Immediate Next Actions
 
-1. Freeze the method-agnostic readout API and config schema before coding.
-2. Derive and document the exact slice targets for `gamma`, `lambda_j`, `tau`,
-   and `c^2`.
-3. Implement the ridge MCMC core first.
-4. Only after ridge is stable, add RHS MCMC.
-5. Only after core MCMC is stable, integrate it into the sim and real-data
-   pipelines.
+1. Extend the current smoke evaluation into larger MCMC-only simulation and
+   real-data study grids that remain outside the benchmark workflow.
+2. Profile runtime by stage and isolate the dominant cost centers for ridge and
+   RHS MCMC separately.
+3. Tighten chain diagnostics, storage defaults, and reporting so MCMC run
+   quality is visible from saved artifacts without manual inspection.
+4. Compare VB versus MCMC on controlled non-benchmark cases where numerical
+   health and score quality can be assessed jointly.
+5. Only after the MCMC path is judged stable and informative should broader
+   evaluation work resume.

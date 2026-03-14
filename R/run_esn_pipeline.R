@@ -44,11 +44,13 @@ run_esn_pipeline_from_cfg <- function(
   repo_root = NULL,
   save_outputs = TRUE,
   rscript = "Rscript",
-  pipeline_script = file.path("scripts", "pipeline_sim_main.R"),
+  pipeline_script = NULL,
   verbose = TRUE
 ) {
   stopifnot(is.list(cfg), is.character(file_long), length(file_long) == 1L)
   stopifnot(is.character(out_dir), length(out_dir) == 1L)
+
+  `%||%` <- function(a, b) if (is.null(a)) b else a
 
   if (is.null(repo_root)) {
     repo_root <- tryCatch(
@@ -56,10 +58,27 @@ run_esn_pipeline_from_cfg <- function(
       error = function(...) normalizePath(".", mustWork = TRUE)
     )
   }
+  mode <- tolower(as.character((cfg$pipeline %||% list())$mode %||% "sim")[1L])
+  if (!mode %in% c("sim", "simulation", "real", "observed", "data")) {
+    stop("run_esn_pipeline_from_cfg(): unsupported pipeline mode: ", mode)
+  }
+
+  if (is.null(pipeline_script)) {
+    pipeline_script <- if (mode %in% c("real", "observed", "data")) {
+      file.path("scripts", "pipeline_real_main.R")
+    } else {
+      file.path("scripts", "pipeline_sim_main.R")
+    }
+  }
   pipeline_path <- normalizePath(file.path(repo_root, pipeline_script), mustWork = TRUE)
 
   if (!file.exists(file_long)) {
     stop("run_esn_pipeline_from_cfg(): file_long not found: ", file_long)
+  }
+  if (mode %in% c("real", "observed", "data")) {
+    if (is.null(file_obs) || !is.character(file_obs) || length(file_obs) != 1L || !file.exists(file_obs)) {
+      stop("run_esn_pipeline_from_cfg(): file_obs not found for real-data mode: ", file_obs %||% "NULL")
+    }
   }
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -69,10 +88,11 @@ run_esn_pipeline_from_cfg <- function(
   # Env vars for the child R process
   env_vars <- c(
     EXDQLM_FILE_LONG    = normalizePath(file_long),
-    EXDQLM_FILE_OBS     = if (!is.null(file_obs)) normalizePath(file_obs) else "",
+    EXDQLM_FILE_OBS     = if (!is.null(file_obs) && nzchar(file_obs)) normalizePath(file_obs) else "",
     EXDQLM_OUT_DIR      = normalizePath(out_dir),
     EXDQLM_CFG_JSON     = cfg_json,
-    EXDQLM_SAVE_OUTPUTS = if (isTRUE(save_outputs)) "1" else "0"
+    EXDQLM_SAVE_OUTPUTS = if (isTRUE(save_outputs)) "1" else "0",
+    EXDQLM_PIPELINE_MODE = mode
   )
 
   # Build command
@@ -81,30 +101,33 @@ run_esn_pipeline_from_cfg <- function(
   if (isTRUE(verbose)) {
     message("[run_esn_pipeline_from_cfg] Running pipeline script:")
     message("  repo_root: ", repo_root)
+    message("  mode     : ", mode)
     message("  script   : ", pipeline_path)
     message("  out_dir  : ", out_dir)
   }
 
   # Execute Rscript with the given environment
   # Use stdout capture to return logs to the caller
+  t0 <- proc.time()[["elapsed"]]
   res <- tryCatch(
     {
-      out <- system2(
-        command = rscript,
-        args    = cmd,
-        stdout  = TRUE,
-        stderr  = TRUE,
-        env     = env_vars
-      )
-      list(status = 0L, stdout = out)
-    },
-    warning = function(w) {
-      list(status = 1L, stdout = conditionMessage(w))
+      out <- withr::with_envvar(env_vars, {
+        suppressWarnings(system2(
+          command = rscript,
+          args    = cmd,
+          stdout  = TRUE,
+          stderr  = TRUE
+        ))
+      })
+      status <- attr(out, "status")
+      if (is.null(status)) status <- 0L
+      list(status = as.integer(status)[1L], stdout = as.character(out))
     },
     error = function(e) {
       list(status = 1L, stdout = conditionMessage(e))
     }
   )
+  elapsed_seconds <- as.numeric(proc.time()[["elapsed"]] - t0)
 
   if (!identical(res$status, 0L)) {
     warning(
@@ -120,6 +143,9 @@ run_esn_pipeline_from_cfg <- function(
   invisible(list(
     status = res$status,
     cmd    = c(rscript, cmd),
-    stdout = res$stdout
+    stdout = res$stdout,
+    mode = mode,
+    out_dir = normalizePath(out_dir, winslash = "/", mustWork = FALSE),
+    elapsed_seconds = elapsed_seconds
   ))
 }

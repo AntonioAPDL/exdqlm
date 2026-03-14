@@ -14,7 +14,7 @@ VERBOSE <- TRUE
 
 suppressPackageStartupMessages({
   req <- c(
-    "devtools","ggplot2","dplyr","tidyr","tibble","scales","MASS","numDeriv",
+    "pkgload","ggplot2","dplyr","tidyr","tibble","scales","MASS","numDeriv",
     "matrixStats","purrr","readr","patchwork","jsonlite","stringr"
   )
   need <- setdiff(req, rownames(installed.packages()))
@@ -84,7 +84,7 @@ repo_root <- tryCatch(
   normalizePath(system("git rev-parse --show-toplevel", intern = TRUE)),
   error = function(...) normalizePath(".", mustWork = TRUE)
 )
-devtools::load_all(repo_root, quiet = TRUE)
+pkgload::load_all(repo_root, quiet = TRUE)
 set.seed(12345)
 
 # --- ENV & I/O (parity with sim) ---------------------------------------------
@@ -173,6 +173,8 @@ do_plots       <- TRUE
 pit_scope      <- "all+synth"
 do_fan_charts  <- FALSE
 fan_stride     <- 1L
+cov_window     <- 365L
+show_last      <- 300L
 if (!is.null(cfg$diagnostics)) {
   do_calibration <- cfg$diagnostics$calibration %nz% do_calibration
   do_pit         <- cfg$diagnostics$pit         %nz% do_pit
@@ -187,6 +189,12 @@ if (!is.null(cfg$diagnostics)) {
   }
   if (!is.null(cfg$diagnostics$plots)) {
     do_plots <- isTRUE(cfg$diagnostics$plots)
+  }
+  if (!is.null(cfg$diagnostics$cov_window)) {
+    cov_window <- as.integer(cfg$diagnostics$cov_window)
+  }
+  if (!is.null(cfg$diagnostics$cov_show_last)) {
+    show_last <- as.integer(cfg$diagnostics$cov_show_last)
   }
 }
 
@@ -319,6 +327,7 @@ crps_vec <- function(y_vec, draws_mat) {
   stopifnot(length(y_vec) == nrow(draws_mat))
   vapply(seq_len(nrow(draws_mat)), function(i) crps_row(y_vec[i], draws_mat[i, ]), numeric(1))
 }
+pinball_loss <- function(y, qhat, p) { e <- y - qhat; (p - (e < 0)) * e }
 
 band_from_draws <- function(mat, level = 0.95, target_len = NULL) {
   mat <- as.matrix(mat)
@@ -2802,9 +2811,16 @@ if (isTRUE(do_plots) && nrow(rhs_lambda_df)) {
 # --- Synthesis (forecast + train) --------------------------------------------
 # Canonical comparison grid for synthesis/metrics (same as fitted models)
 p_comp <- p_vec
+synth_quantile_tbl_from_draws <- function(draws_mat, taus) {
+  cols <- lapply(taus, function(tau) apply(draws_mat, 1L, stats::quantile, probs = tau, names = FALSE))
+  names(cols) <- paste0("synth_q_", fmt_p(taus))
+  tibble::as_tibble(cols)
+}
 if (!synth_enabled) {
   synth_fc <- NULL
   synth_tr <- NULL
+  synth_q_fc <- NULL
+  synth_q_tr <- NULL
   compare_fc <- NULL
   compare_tr <- NULL
 } else {
@@ -2829,6 +2845,8 @@ if (!synth_enabled) {
       grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed + 1L, T_expected = T_train_keep
     )
   )
+  synth_q_fc <- synth_quantile_tbl_from_draws(synth_fc$draws, p_comp)
+  synth_q_tr <- synth_quantile_tbl_from_draws(synth_tr$draws, p_comp)
 }
 
 # Predictive band plots (same names as sim)
@@ -3028,7 +3046,6 @@ wilson_ci <- function(k, n, conf = 0.95) {
   rad <- z * sqrt(p*(1-p)/n + z^2/(4*n^2)) / den
   c(max(0, cen - rad), min(1, cen + rad))
 }
-pinball_loss <- function(y, qhat, p) { e <- y - qhat; (p - (e < 0)) * e }
 qhat_from_fit <- function(fit_obj, d_pred, p0, target_len, scope) {
   qhat <- as.numeric(d_pred$q_pred)
   if (length(qhat) != target_len) {
@@ -3949,6 +3966,22 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
 if (isTRUE(save_outputs) && isTRUE(rhs_trace_on)) {
   write_rhs_run_summary(MODELS, out_dir, cfg, p_vec, fits_fc,
                         readout_scale, readout_scale_diag, vb_prior_beta_rhs)
+}
+
+if (isTRUE(save_outputs)) {
+  write_pipeline_timing_outputs(
+    timing_rows = .timing_env$rows,
+    tables_dir = TABLES,
+    models_dir = MODELS,
+    context = list(
+      mode = mode,
+      inference_method = inference_method,
+      beta_prior_type = vb_prior_beta_type,
+      n_quantiles = length(p_vec),
+      T_use = T_use,
+      H_forecast = H_forecast
+    )
+  )
 }
 
 # --- Manifest (kept; mirrors runner style) ------------------------------------

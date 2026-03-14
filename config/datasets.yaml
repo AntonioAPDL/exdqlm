@@ -15,3 +15,14 @@ datasets:
   - slug: san_lorenzo_daily
     mode: real
     input_path: /data/muscat_data/jaguir26/data/data_USGS_ppt_soil.csv
+
+  # Local smoke fixtures committed in the repo. These keep inference validation
+  # runs reproducible even when the environment-specific absolute paths above are
+  # unavailable.
+  - slug: dlm_constV_smallW_local_sim
+    mode: sim
+    input_path: results/sim_suite_dlm/series/dlm_constV_smallW/series_long.csv
+
+  - slug: dlm_constV_smallW_local_real
+    mode: real
+    input_path: results/sim_suite_dlm/series/dlm_constV_smallW/series_wide.csv

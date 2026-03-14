@@ -138,15 +138,24 @@ if (!is.null(spec_path)) {
 fix_bool_keys <- function(x) {
   if (is.null(x) || !is.list(x)) return(x)
   nm <- names(x)
-  if (!is.null(nm) && "TRUE" %in% nm)  { x[["y"]] <- x[["TRUE"]];  x[["TRUE"]]  <- NULL }
-  if (!is.null(nm) && "FALSE" %in% nm) { x[["n"]] <- x[["FALSE"]]; x[["FALSE"]] <- NULL }
+  if (!is.null(nm) && "TRUE" %in% nm)  {
+    if (is.null(x[["y"]])) x[["y"]] <- x[["TRUE"]]
+    x[["TRUE"]] <- NULL
+  }
+  if (!is.null(nm) && "FALSE" %in% nm) {
+    if (is.null(x[["n"]])) x[["n"]] <- x[["FALSE"]]
+    x[["FALSE"]] <- NULL
+  }
   x
 }
 
 fix_desn_keys <- function(d) {
   if (is.null(d) || !is.list(d)) return(d)
   nm <- names(d)
-  if (!is.null(nm) && "FALSE" %in% nm) { d[["n"]] <- d[["FALSE"]]; d[["FALSE"]] <- NULL }
+  if (!is.null(nm) && "FALSE" %in% nm) {
+    if (is.null(d[["n"]])) d[["n"]] <- d[["FALSE"]]
+    d[["FALSE"]] <- NULL
+  }
   d
 }
 
@@ -429,12 +438,45 @@ tryCatch({
   status <<- 1L
 })
 end_time <- Sys.time()
+elapsed_seconds <- as.numeric(difftime(end_time, start_time, units = "secs"))
 cat(sprintf("\n== EXDQLM run finished at %s (elapsed: %0.2f mins) ==\n",
             format(end_time, "%Y-%m-%d %H:%M:%S"),
             as.numeric(difftime(end_time, start_time, units="mins"))))
 
 # Close sinks before file moves
 sink_stop()
+
+runtime_summary <- list(
+  started_at = as.character(start_time),
+  finished_at = as.character(end_time),
+  elapsed_seconds = elapsed_seconds,
+  elapsed_minutes = elapsed_seconds / 60,
+  status = if (status == 0L) "SUCCESS" else "FAIL",
+  dataset_slug = slug,
+  spec = spec_name,
+  mode = mode_eff
+)
+jsonlite::write_json(
+  runtime_summary,
+  fs::path(run_dir, "manifest", "runtime_summary.json"),
+  pretty = TRUE,
+  auto_unbox = TRUE
+)
+utils::write.csv(
+  data.frame(
+    started_at = runtime_summary$started_at,
+    finished_at = runtime_summary$finished_at,
+    elapsed_seconds = runtime_summary$elapsed_seconds,
+    elapsed_minutes = runtime_summary$elapsed_minutes,
+    status = runtime_summary$status,
+    dataset_slug = runtime_summary$dataset_slug,
+    spec = runtime_summary$spec,
+    mode = runtime_summary$mode,
+    stringsAsFactors = FALSE
+  ),
+  fs::path(run_dir, "manifest", "runtime_summary.csv"),
+  row.names = FALSE
+)
 
 # Sort artifacts
 safe_move <- function(files, dest_dir) {

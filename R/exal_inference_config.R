@@ -69,6 +69,10 @@
   )
 }
 
+.exal_list_or_empty <- function(x) {
+  if (is.list(x)) x else list()
+}
+
 .exal_recycle_quantile_param <- function(x, len_p, nm, verbose = FALSE, method = NULL) {
   if (is.null(x)) return(NULL)
   x <- as.numeric(x)
@@ -135,6 +139,7 @@
   `%nz%` <- function(x, alt) if (!is.null(x)) x else alt
 
   len_p <- length(p_vec)
+  vb_cfg <- .exal_list_or_empty(vb_cfg)
   vb_args_base <- .exal_default_vb_args_base()
   vb_online_cfg <- .exal_default_vb_online_cfg()
   default_rhs_cfg <- .exal_default_rhs_cfg()
@@ -253,8 +258,8 @@
   if (vb_online_cfg$K < vb_online_cfg$M) vb_online_cfg$K <- vb_online_cfg$M
   if (isTRUE(vb_online_cfg$strict)) vb_online_cfg$W <- 0L
 
-  init_cfg <- vb_cfg$init %||% list()
-  priors_cfg <- vb_cfg$priors %||% list()
+  init_cfg <- .exal_list_or_empty(vb_cfg$init)
+  priors_cfg <- .exal_list_or_empty(vb_cfg$priors)
   beta_prior <- .exal_resolve_beta_prior_settings(priors_cfg$beta, default_rhs_cfg)
 
   list(
@@ -269,10 +274,10 @@
     readout_scale = isTRUE(vb_cfg$readout_scale %||% FALSE),
     init_gamma = .exal_recycle_quantile_param(init_cfg$gamma, len_p, "init$gamma", verbose = verbose, method = "vb"),
     init_sigma = .exal_recycle_quantile_param(init_cfg$sigma, len_p, "init$sigma", verbose = verbose, method = "vb"),
-    prior_gamma_mu0 = .exal_recycle_quantile_param((priors_cfg$gamma %||% list())$mu0, len_p, "priors$gamma$mu0", verbose = verbose, method = "vb"),
-    prior_gamma_s20 = .exal_recycle_quantile_param((priors_cfg$gamma %||% list())$s20, len_p, "priors$gamma$s20", verbose = verbose, method = "vb"),
-    prior_sigma_a = .exal_recycle_quantile_param((priors_cfg$sigma %||% list())$a, len_p, "priors$sigma$a", verbose = verbose, method = "vb"),
-    prior_sigma_b = .exal_recycle_quantile_param((priors_cfg$sigma %||% list())$b, len_p, "priors$sigma$b", verbose = verbose, method = "vb"),
+    prior_gamma_mu0 = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$gamma)$mu0, len_p, "priors$gamma$mu0", verbose = verbose, method = "vb"),
+    prior_gamma_s20 = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$gamma)$s20, len_p, "priors$gamma$s20", verbose = verbose, method = "vb"),
+    prior_sigma_a = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$sigma)$a, len_p, "priors$sigma$a", verbose = verbose, method = "vb"),
+    prior_sigma_b = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$sigma)$b, len_p, "priors$sigma$b", verbose = verbose, method = "vb"),
     beta_prior_type = beta_prior$type,
     beta_prior_tau2 = beta_prior$tau2,
     beta_prior_rhs = beta_prior$rhs
@@ -282,6 +287,7 @@
 .exal_resolve_mcmc_config <- function(mcmc_cfg, p_vec, verbose = FALSE) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
   len_p <- length(p_vec)
+  mcmc_cfg <- .exal_list_or_empty(mcmc_cfg)
   default_rhs_cfg <- .exal_default_rhs_cfg()
 
   control <- .exal_default_mcmc_control()
@@ -298,8 +304,8 @@
     control$slice <- modifyList(control$slice %||% list(), mcmc_cfg$slice)
   }
 
-  init_cfg <- mcmc_cfg$init %||% list()
-  priors_cfg <- mcmc_cfg$priors %||% list()
+  init_cfg <- .exal_list_or_empty(mcmc_cfg$init)
+  priors_cfg <- .exal_list_or_empty(mcmc_cfg$priors)
   beta_prior <- .exal_resolve_beta_prior_settings(priors_cfg$beta, default_rhs_cfg)
 
   list(
@@ -307,10 +313,10 @@
     readout_scale = isTRUE(mcmc_cfg$readout_scale %||% FALSE),
     init_gamma = .exal_recycle_quantile_param(init_cfg$gamma, len_p, "init$gamma", verbose = verbose, method = "mcmc"),
     init_sigma = .exal_recycle_quantile_param(init_cfg$sigma, len_p, "init$sigma", verbose = verbose, method = "mcmc"),
-    prior_gamma_mu0 = .exal_recycle_quantile_param((priors_cfg$gamma %||% list())$mu0, len_p, "priors$gamma$mu0", verbose = verbose, method = "mcmc"),
-    prior_gamma_s20 = .exal_recycle_quantile_param((priors_cfg$gamma %||% list())$s20, len_p, "priors$gamma$s20", verbose = verbose, method = "mcmc"),
-    prior_sigma_a = .exal_recycle_quantile_param((priors_cfg$sigma %||% list())$a, len_p, "priors$sigma$a", verbose = verbose, method = "mcmc"),
-    prior_sigma_b = .exal_recycle_quantile_param((priors_cfg$sigma %||% list())$b, len_p, "priors$sigma$b", verbose = verbose, method = "mcmc"),
+    prior_gamma_mu0 = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$gamma)$mu0, len_p, "priors$gamma$mu0", verbose = verbose, method = "mcmc"),
+    prior_gamma_s20 = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$gamma)$s20, len_p, "priors$gamma$s20", verbose = verbose, method = "mcmc"),
+    prior_sigma_a = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$sigma)$a, len_p, "priors$sigma$a", verbose = verbose, method = "mcmc"),
+    prior_sigma_b = .exal_recycle_quantile_param(.exal_list_or_empty(priors_cfg$sigma)$b, len_p, "priors$sigma$b", verbose = verbose, method = "mcmc"),
     beta_prior_type = beta_prior$type,
     beta_prior_tau2 = beta_prior$tau2,
     beta_prior_rhs = beta_prior$rhs
@@ -321,14 +327,14 @@ resolve_exal_inference_config <- function(cfg, p_vec, verbose = FALSE) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
   cfg <- cfg %||% list()
-  inference_cfg <- cfg$inference %||% list()
+  inference_cfg <- .exal_list_or_empty(cfg$inference)
   method <- .exal_normalize_inference_method(cfg)
 
-  legacy_vb_cfg <- cfg$vb %||% list()
-  legacy_mcmc_cfg <- cfg$mcmc %||% list()
+  legacy_vb_cfg <- .exal_list_or_empty(cfg$vb)
+  legacy_mcmc_cfg <- .exal_list_or_empty(cfg$mcmc)
 
-  vb_cfg <- modifyList(legacy_vb_cfg, inference_cfg$vb %||% list())
-  mcmc_cfg <- modifyList(legacy_mcmc_cfg, inference_cfg$mcmc %||% list())
+  vb_cfg <- modifyList(legacy_vb_cfg, .exal_list_or_empty(inference_cfg$vb))
+  mcmc_cfg <- modifyList(legacy_mcmc_cfg, .exal_list_or_empty(inference_cfg$mcmc))
 
   vb_out <- .exal_resolve_vb_config(vb_cfg, p_vec = p_vec, verbose = verbose)
   mcmc_out <- .exal_resolve_mcmc_config(mcmc_cfg, p_vec = p_vec, verbose = verbose)
