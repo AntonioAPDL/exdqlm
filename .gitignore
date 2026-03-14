@@ -41,6 +41,7 @@ tools/merge_reports/20260312_family_qspec_model_path_progress*.tsv
 tools/merge_reports/20260312_family_qspec_barrier_progress*.md
 tools/merge_reports/20260312_family_qspec_barrier_progress*.tsv
 tools/merge_reports/20260312_family_qspec_campaign_review__*/
+tools/merge_reports/20260312_family_qspec_global_cross_family_summary/
 tools/merge_reports/20260312_muscat_batch_*.tsv
 tools/merge_reports/20260312_muscat_launch_registry*.tsv
 tools/addr2line_*.sh
