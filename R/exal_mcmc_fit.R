@@ -306,6 +306,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   n_keep <- max(1L, as.integer(mcmc_control$n_mcmc %||% 1500L))
   thin <- max(1L, as.integer(mcmc_control$thin %||% 1L))
   verbose <- isTRUE(mcmc_control$verbose %||% FALSE)
+  progress_every <- max(1L, as.integer(mcmc_control$progress_every %||% 100L))
   init_from_vb <- isTRUE(mcmc_control$init_from_vb %||% FALSE)
   store_latent_draws <- isTRUE(mcmc_control$store_latent_draws %||% FALSE)
   store_rhs_draws <- isTRUE(mcmc_control$store_rhs_draws %||% FALSE)
@@ -604,7 +605,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       }
     }
 
-    if (verbose && (iter %% 500L == 0L)) {
+    if (verbose && (iter %% progress_every == 0L)) {
       if (identical(beta_prior_type, "rhs")) {
         cat(sprintf("%s iteration %d | sigma=%.3f | gamma=%.3f | tau=%.3f | c2=%.3f\n",
                     ifelse(iter <= n_burn, "burn-in", "MCMC"), iter, sigma, gamma,
@@ -668,6 +669,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       n_mcmc = n_keep,
       thin = thin,
       verbose = verbose,
+      progress_every = progress_every,
       init_from_vb = init_from_vb,
       store_latent_draws = store_latent_draws,
       store_rhs_draws = store_rhs_draws,

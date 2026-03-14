@@ -99,7 +99,9 @@ scripts/*.log
 /reports/benchmarks/generated/
 !/reports/benchmarks/README.md
 /reports/mcmc_inference_smoke/
+/reports/qdesn_mcmc_validation/
 /logs/benchmarks/*
 !/logs/benchmarks/README.md
 /results/benchmarks/qdesn_synth/*
 !/results/benchmarks/qdesn_synth/README.md
+/results/qdesn_mcmc_validation/

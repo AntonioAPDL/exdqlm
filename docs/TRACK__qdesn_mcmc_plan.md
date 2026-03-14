@@ -623,6 +623,28 @@ Operational conclusion from the current smoke evidence:
 - the right next step is not benchmarking, but targeted MCMC evaluation,
   profiling, and refinement under larger non-benchmark study grids.
 
+## 11.3) Validation Framework Planning
+
+The next workstream is now split out into a dedicated validation-plan tracker:
+
+- `docs/TRACK__qdesn_mcmc_validation_plan.md`
+
+That file is the planning document for the post-smoke validation framework:
+
+- single-root `vb -> mcmc` comparison;
+- toy-scenario-first rollout;
+- fixed artifact contract;
+- expandable grid over scenarios, taus, priors, and seeds.
+
+That framework is now implemented for the phase-0 pilot:
+
+- toy-series generator;
+- root runner;
+- campaign runner;
+- campaign collector;
+- root/campaign plots and summaries;
+- focused regression tests for the pilot artifact contract.
+
 ## 12) Acceptance Criteria
 
 We should consider the MCMC workstream ready for broader use only when all of

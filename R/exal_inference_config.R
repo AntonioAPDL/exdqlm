@@ -55,6 +55,7 @@
     n_mcmc = 1500L,
     thin = 1L,
     verbose = FALSE,
+    progress_every = 100L,
     init_from_vb = TRUE,
     store_latent_draws = FALSE,
     store_rhs_draws = FALSE,
@@ -297,6 +298,7 @@
   if (!is.null(mcmc_cfg$n_mcmc)) control$n_mcmc <- as.integer(mcmc_cfg$n_mcmc)[1L]
   if (!is.null(mcmc_cfg$thin)) control$thin <- as.integer(mcmc_cfg$thin)[1L]
   if (!is.null(mcmc_cfg$verbose)) control$verbose <- isTRUE(mcmc_cfg$verbose)
+  if (!is.null(mcmc_cfg$progress_every)) control$progress_every <- as.integer(mcmc_cfg$progress_every)[1L]
   if (!is.null(mcmc_cfg$init_from_vb)) control$init_from_vb <- isTRUE(mcmc_cfg$init_from_vb)
   if (!is.null(mcmc_cfg$store_latent_draws)) control$store_latent_draws <- isTRUE(mcmc_cfg$store_latent_draws)
   if (!is.null(mcmc_cfg$store_rhs_draws)) control$store_rhs_draws <- isTRUE(mcmc_cfg$store_rhs_draws)

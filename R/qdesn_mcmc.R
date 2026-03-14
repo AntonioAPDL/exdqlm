@@ -58,6 +58,7 @@ qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
     n_mcmc = get_exact(mcmc_args, "n_mcmc", 1500L),
     thin = get_exact(mcmc_args, "thin", 1L),
     verbose = isTRUE(get_exact(mcmc_args, "verbose", FALSE)),
+    progress_every = get_exact(mcmc_args, "progress_every", 100L),
     init_from_vb = isTRUE(get_exact(mcmc_args, "init_from_vb", FALSE)),
     store_latent_draws = isTRUE(get_exact(mcmc_args, "store_latent_draws", FALSE)),
     store_rhs_draws = isTRUE(get_exact(mcmc_args, "store_rhs_draws", FALSE)),
