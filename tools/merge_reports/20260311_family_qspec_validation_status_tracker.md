@@ -1139,3 +1139,63 @@ New downstream blocker after model-fit completion:
   - `Error in [.data.frame(runtime_diag, , c("model", "tau", "beta_prior", ...): undefined columns selected`
 - `prior_compare` tasks are succeeding.
 - So the static resume/MCMC issue is closed; the remaining blocker is now the static review/report stage.
+
+## 2026-03-14 Review/Campaign Closure
+
+Status snapshot at 2026-03-14 19:02 EDT:
+
+- The `root_review` blocker is now closed.
+- The `campaign_review` blocker is now closed.
+- The `global_summary` barrier is now complete.
+- The relaunch runtime queue now has:
+  - `0` launch-ready tasks
+  - `0` non-complete canonical units
+
+Root-review fix:
+
+- `20260305_static_vb_mcmc_report.R` no longer builds review diagnostics from
+  brittle `pipeline_task_summary*` state.
+- It now reconstructs the review layer from canonical per-root outputs:
+  - `fit_summary.csv`
+  - `vb_convergence_summary.csv`
+  - `mcmc_diagnostics_summary.csv`
+  - `vb_ld_diagnostics_summary.csv`
+- Review diagnostics now use the root context as the canonical prior label for
+  static roots, rather than trusting inconsistent `beta_prior` labels from
+  resumed fit objects.
+- The report layer is also hardened against optional plot/data edge cases:
+  - degenerate residual-density inputs no longer abort the review
+  - degenerate RHS coefficient-tree inputs no longer abort the review
+  - empty `pairwise_exal_vs_al.csv` outputs now write a schemaful zero-row file
+
+Campaign-aggregation fix:
+
+- `20260312_family_qspec_campaign_aggregate.R` is now robust to zero-row review
+  tables and mixed legacy/new review schemas.
+- Campaign aggregation now:
+  - accepts blank review tables as valid zero-row inputs where appropriate
+  - stacks mixed review schemas using column-union semantics instead of failing
+    on strict `rbind()` column mismatches
+
+Validation and closure state:
+
+- Representative static paper and static shrink review roots were rerun
+  successfully under the fixed review script.
+- The reusable-state audit now reports:
+  - `144 / 144` model paths `complete_reusable`
+  - `72 / 72` root postprocess tasks `complete_reusable`
+  - `72 / 72` root review tasks `complete_reusable`
+  - `18 / 18` prior-compare tasks `complete_reusable`
+  - `3 / 3` campaign-review tasks `complete_reusable`
+  - `1 / 1` global-summary task `complete_reusable`
+- The final global cross-family summary now exists under:
+  - `tools/merge_reports/20260312_family_qspec_global_cross_family_summary`
+
+Operational note:
+
+- The supervisor event log still contains repeated historical `FAILED` entries
+  for the earlier broken `campaign__static_paper` and
+  `campaign__static_shrink` attempts.
+- Those failures are now superseded by the corrected on-disk state.
+- The authoritative truth is the rebuilt reusable-state audit and runtime queue,
+  not the stale historical failure rows in `task_events.tsv`.

@@ -91,6 +91,116 @@ infer_mcmc_file <- function(run_root, model, tau) {
   file.path(run_root, "fits", "mcmc", sprintf("mcmc_%s_tau_%s_fit.rds", model, tau_lab(tau)))
 }
 
+infer_root_beta_prior <- function(run_root) {
+  rr <- normalizePath(run_root, winslash = "/", mustWork = FALSE)
+  if (grepl("validation_shrink_rhs", rr, fixed = TRUE)) return("rhs")
+  if (grepl("validation_shrink_ridge", rr, fixed = TRUE)) return("ridge")
+  "ridge"
+}
+
+build_runtime_diag <- function(run_root, out_tables, summary_df) {
+  fit_summary <- read_csv_maybe_empty(file.path(out_tables, "fit_summary.csv"))
+  vb_conv <- read_csv_maybe_empty(file.path(out_tables, "vb_convergence_summary.csv"))
+  mc_diag <- read_csv_maybe_empty(file.path(out_tables, "mcmc_diagnostics_summary.csv"))
+
+  if (!nrow(fit_summary)) {
+    stop("Missing or empty fit_summary.csv under run root: ", run_root)
+  }
+
+  root_prior <- infer_root_beta_prior(run_root)
+
+  fit_summary$model <- as.character(fit_summary$model)
+  fit_summary$tau <- suppressWarnings(as.numeric(fit_summary$tau))
+  fit_summary$inference <- tolower(as.character(fit_summary$inference))
+
+  vb_fit <- fit_summary[fit_summary$inference == "vb", c("model", "tau", "runtime_sec", "fit_file"), drop = FALSE]
+  names(vb_fit) <- c("model", "tau", "vb_runtime_sec", "vb_file")
+
+  mc_fit <- fit_summary[fit_summary$inference == "mcmc", c("model", "tau", "runtime_sec", "fit_file"), drop = FALSE]
+  names(mc_fit) <- c("model", "tau", "mcmc_runtime_sec", "mcmc_file")
+
+  key_df <- unique(rbind(
+    vb_fit[, c("model", "tau"), drop = FALSE],
+    mc_fit[, c("model", "tau"), drop = FALSE]
+  ))
+  key_df$model <- as.character(key_df$model)
+  key_df$tau <- suppressWarnings(as.numeric(key_df$tau))
+
+  runtime_diag <- merge(key_df, vb_fit, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+  runtime_diag <- merge(runtime_diag, mc_fit, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+
+  if (nrow(vb_conv) > 0) {
+    vb_conv$model <- as.character(vb_conv$model)
+    vb_conv$tau <- suppressWarnings(as.numeric(vb_conv$tau))
+    vb_conv <- vb_conv[, c("model", "tau", "converged", "stop_reason"), drop = FALSE]
+    names(vb_conv) <- c("model", "tau", "vb_converged", "vb_stop_reason")
+    runtime_diag <- merge(runtime_diag, vb_conv, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+  } else {
+    runtime_diag$vb_converged <- NA
+    runtime_diag$vb_stop_reason <- NA_character_
+  }
+
+  if (nrow(mc_diag) > 0) {
+    mc_diag$model <- as.character(mc_diag$model)
+    mc_diag$tau <- suppressWarnings(as.numeric(mc_diag$tau))
+    mc_diag <- mc_diag[, c(
+      "model", "tau", "accept_rate", "ess_sigma", "ess_gamma",
+      "mh_kernel_exact", "mh_signoff_ready"
+    ), drop = FALSE]
+    names(mc_diag) <- c(
+      "model", "tau", "accept_rate", "ess_sigma", "ess_gamma",
+      "mcmc_gamma_kernel_exact", "mcmc_signoff_ready"
+    )
+    runtime_diag <- merge(runtime_diag, mc_diag, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+  } else {
+    runtime_diag$accept_rate <- NA_real_
+    runtime_diag$ess_sigma <- NA_real_
+    runtime_diag$ess_gamma <- NA_real_
+    runtime_diag$mcmc_gamma_kernel_exact <- NA
+    runtime_diag$mcmc_signoff_ready <- NA
+  }
+
+  if (nrow(summary_df) > 0) {
+    summary_sel <- unique(summary_df[, c("model", "tau", "status"), drop = FALSE])
+    summary_sel$model <- as.character(summary_sel$model)
+    summary_sel$tau <- suppressWarnings(as.numeric(summary_sel$tau))
+    summary_sel$status <- as.character(summary_sel$status)
+    runtime_diag <- merge(runtime_diag, summary_sel, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+  } else {
+    runtime_diag$status <- NA_character_
+  }
+
+  runtime_diag$beta_prior <- root_prior
+  runtime_diag$vb_runtime_sec <- suppressWarnings(as.numeric(runtime_diag$vb_runtime_sec))
+  runtime_diag$mcmc_runtime_sec <- suppressWarnings(as.numeric(runtime_diag$mcmc_runtime_sec))
+  runtime_diag$accept_rate <- suppressWarnings(as.numeric(runtime_diag$accept_rate))
+  runtime_diag$ess_sigma <- suppressWarnings(as.numeric(runtime_diag$ess_sigma))
+  runtime_diag$ess_gamma <- suppressWarnings(as.numeric(runtime_diag$ess_gamma))
+  runtime_diag$runtime_sec <- runtime_diag$mcmc_runtime_sec
+
+  for (i in seq_len(nrow(runtime_diag))) {
+    vb_file <- resolve_file_path(runtime_diag$vb_file[i], run_root)
+    mc_file <- resolve_file_path(runtime_diag$mcmc_file[i], run_root)
+    if (is.na(vb_file)) {
+      vb_guess <- infer_vb_file(run_root, runtime_diag$model[i], runtime_diag$tau[i])
+      if (file.exists(vb_guess)) vb_file <- vb_guess
+    }
+    if (is.na(mc_file)) {
+      mc_guess <- infer_mcmc_file(run_root, runtime_diag$model[i], runtime_diag$tau[i])
+      if (file.exists(mc_guess)) mc_file <- mc_guess
+    }
+    runtime_diag$vb_file[i] <- vb_file
+    runtime_diag$mcmc_file[i] <- mc_file
+  }
+
+  complete_idx <- !is.na(runtime_diag$vb_file) & file.exists(runtime_diag$vb_file) &
+    !is.na(runtime_diag$mcmc_file) & file.exists(runtime_diag$mcmc_file)
+  runtime_diag$status[complete_idx] <- "done"
+  runtime_diag$status[is.na(runtime_diag$status) | !nzchar(runtime_diag$status)] <- "unknown"
+
+  runtime_diag[order(runtime_diag$model, runtime_diag$tau), , drop = FALSE]
+}
+
 plot_coef_tree <- function(file_path, beta_draws, main, lambda_summary = NULL) {
   beta_draws <- as.matrix(beta_draws)
   if (!nrow(beta_draws) || !ncol(beta_draws)) return(invisible(NULL))
@@ -98,6 +208,7 @@ plot_coef_tree <- function(file_path, beta_draws, main, lambda_summary = NULL) {
   if (is.null(cn)) cn <- paste0("beta", seq_len(ncol(beta_draws)))
   post_mean <- colMeans(beta_draws, na.rm = TRUE)
   qs <- t(apply(beta_draws, 2, stats::quantile, probs = c(0.05, 0.5, 0.95), na.rm = TRUE))
+  if (!any(is.finite(qs))) return(invisible(NULL))
   ord <- order(abs(post_mean), decreasing = TRUE)
   qs <- qs[ord, , drop = FALSE]
   cn <- cn[ord]
@@ -110,6 +221,7 @@ plot_coef_tree <- function(file_path, beta_draws, main, lambda_summary = NULL) {
   graphics::par(mar = c(5, 8, 4, 2))
   yy <- seq_along(cn)
   xlim <- range(qs, finite = TRUE)
+  if (!all(is.finite(xlim))) return(invisible(NULL))
   graphics::plot(qs[, 2], yy,
     xlim = xlim, ylim = c(0.5, length(cn) + 0.5),
     yaxt = "n", ylab = "", xlab = "posterior coefficient value",
@@ -174,6 +286,9 @@ dir.create(out_plots_diag, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_plots_cloud, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_plots_rhs, recursive = TRUE, showWarnings = FALSE)
 
+runtime_diag <- build_runtime_diag(run_root, out_tables, summary_df)
+utils::write.csv(runtime_diag, file.path(out_tables, "runtime_diagnostics_summary.csv"), row.names = FALSE)
+
 TT <- if (!is.null(cfg$TT)) as.integer(cfg$TT) else nrow(sim$extras$X)
 X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
 if (is.null(colnames(X))) colnames(X) <- paste0("x", seq_len(ncol(X)))
@@ -201,8 +316,8 @@ collect_rows <- list()
 plot_payload <- list()
 fit_file_payload <- list()
 
-for (i in seq_len(nrow(summary_df))) {
-  row <- summary_df[i, , drop = FALSE]
+for (i in seq_len(nrow(runtime_diag))) {
+  row <- runtime_diag[i, , drop = FALSE]
   row_status <- as.character(row$status)
   if (!(row_status %in% c("done", "skipped_existing"))) next
 
@@ -219,8 +334,8 @@ for (i in seq_len(nrow(summary_df))) {
     if (file.exists(mc_guess)) mcmc_file <- mc_guess
   }
   if (is.na(vb_file) || is.na(mcmc_file)) next
-  summary_df$vb_file[i] <- vb_file
-  summary_df$mcmc_file[i] <- mcmc_file
+  runtime_diag$vb_file[i] <- vb_file
+  runtime_diag$mcmc_file[i] <- mcmc_file
 
   vb_obj <- readRDS(vb_file)
   m_obj <- readRDS(mcmc_file)
@@ -228,15 +343,15 @@ for (i in seq_len(nrow(summary_df))) {
   m_fit <- m_obj$fit
   vb_norm <- .static_normalize_vb_fit(vb_fit)
   m_norm <- .static_normalize_mcmc_fit(m_fit)
-  if (is.na(summary_df$vb_converged[i])) summary_df$vb_converged[i] <- isTRUE(vb_norm$converged)
-  if (is.na(summary_df$vb_stop_reason[i]) || !nzchar(summary_df$vb_stop_reason[i])) {
-    summary_df$vb_stop_reason[i] <- vb_norm$stop_reason
+  if (is.na(runtime_diag$vb_converged[i])) runtime_diag$vb_converged[i] <- isTRUE(vb_norm$converged)
+  if (is.na(runtime_diag$vb_stop_reason[i]) || !nzchar(runtime_diag$vb_stop_reason[i])) {
+    runtime_diag$vb_stop_reason[i] <- vb_norm$stop_reason
   }
-  if (is.na(summary_df$ess_sigma[i])) summary_df$ess_sigma[i] <- as.numeric(m_norm$diagnostics$ess$sigma)[1]
-  if (is.na(summary_df$ess_gamma[i])) summary_df$ess_gamma[i] <- as.numeric(m_norm$diagnostics$ess$gamma)[1]
-  if (is.na(summary_df$accept_rate[i])) summary_df$accept_rate[i] <- as.numeric(m_norm$diagnostics$acceptance$total)[1]
-  summary_df$mcmc_gamma_kernel_exact[i] <- isTRUE(m_norm$diagnostics$mh$kernel_exact)
-  summary_df$mcmc_signoff_ready[i] <- isTRUE(m_norm$diagnostics$mh$signoff_ready)
+  if (is.na(runtime_diag$ess_sigma[i])) runtime_diag$ess_sigma[i] <- as.numeric(m_norm$diagnostics$ess$sigma)[1]
+  if (is.na(runtime_diag$ess_gamma[i])) runtime_diag$ess_gamma[i] <- as.numeric(m_norm$diagnostics$ess$gamma)[1]
+  if (is.na(runtime_diag$accept_rate[i])) runtime_diag$accept_rate[i] <- as.numeric(m_norm$diagnostics$acceptance$total)[1]
+  runtime_diag$mcmc_gamma_kernel_exact[i] <- isTRUE(m_norm$diagnostics$mh$kernel_exact)
+  runtime_diag$mcmc_signoff_ready[i] <- isTRUE(m_norm$diagnostics$mh$signoff_ready)
 
   true_idx <- closest_p_index(tau)
   q_ref <- q_true[, true_idx]
@@ -270,8 +385,7 @@ for (i in seq_len(nrow(summary_df))) {
 metrics_df <- if (length(collect_rows)) do.call(rbind, collect_rows) else data.frame()
 utils::write.csv(metrics_df, file.path(out_tables, "fit_metrics_by_task.csv"), row.names = FALSE)
 
-# Runtime + diagnostic summary from pipeline table
-runtime_diag <- summary_df
+# Runtime + diagnostic summary from canonical postprocess tables
 runtime_diag$vb_runtime_sec <- suppressWarnings(as.numeric(runtime_diag$vb_runtime_sec))
 runtime_diag$mcmc_runtime_sec <- suppressWarnings(as.numeric(runtime_diag$mcmc_runtime_sec))
 runtime_diag$ess_sigma <- suppressWarnings(as.numeric(runtime_diag$ess_sigma))
@@ -308,7 +422,21 @@ if (nrow(metrics_df) > 0) {
     }
   }
 }
-pair_df <- if (length(pair_rows)) do.call(rbind, pair_rows) else data.frame()
+pair_df <- if (length(pair_rows)) {
+  do.call(rbind, pair_rows)
+} else {
+  data.frame(
+    tau = numeric(0),
+    method = character(0),
+    rmse_exal = numeric(0),
+    rmse_al = numeric(0),
+    mae_exal = numeric(0),
+    mae_al = numeric(0),
+    rmse_delta_exal_minus_al = numeric(0),
+    mae_delta_exal_minus_al = numeric(0),
+    stringsAsFactors = FALSE
+  )
+}
 utils::write.csv(pair_df, file.path(out_tables, "pairwise_exal_vs_al.csv"), row.names = FALSE)
 
 # Acceptance gates
@@ -318,7 +446,10 @@ ld_xi_median_abs_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_XI_MEDIAN_ABS
 ld_flip_rate_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_FLIP_RATE_MAX", "0.55"), 0.55)
 ld_fallback_max <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_LD_FALLBACK_MAX", "0.10"), 0.10)
 
-vb_rows <- runtime_diag[, c("model", "tau", "beta_prior", "vb_converged", "vb_stop_reason", "ess_sigma", "ess_gamma", "status"), drop = FALSE]
+vb_rows <- runtime_diag[, c(
+  "model", "tau", "beta_prior", "vb_converged", "vb_stop_reason",
+  "ess_sigma", "ess_gamma", "status", "mcmc_gamma_kernel_exact", "mcmc_signoff_ready"
+), drop = FALSE]
 vb_rows$gate_vb_converged <- isTRUE(vb_rows$vb_converged) # placeholder scalar
 vb_rows$gate_vb_converged <- as.logical(vb_rows$vb_converged)
 vb_rows$gate_mcmc_ess_sigma <- !is.na(vb_rows$ess_sigma) & vb_rows$ess_sigma >= ess_sigma_min
@@ -378,8 +509,7 @@ vb_rows$gate_vb_ld_local_mode <- ifelse(
 vb_rows$gate_vb_ld_local_mode[is.na(vb_rows$gate_vb_ld_local_mode)] <- TRUE
 vb_rows$gate_mcmc_kernel_exact <- ifelse(
   vb_rows$model == "exal",
-  !is.na(summary_df$mcmc_gamma_kernel_exact[match(paste(vb_rows$model, vb_rows$tau), paste(summary_df$model, summary_df$tau))]) &
-    as.logical(summary_df$mcmc_gamma_kernel_exact[match(paste(vb_rows$model, vb_rows$tau), paste(summary_df$model, summary_df$tau))]),
+  !is.na(vb_rows$mcmc_gamma_kernel_exact) & as.logical(vb_rows$mcmc_gamma_kernel_exact),
   TRUE
 )
 
@@ -532,15 +662,34 @@ if (nrow(metrics_df) > 0) {
       `exAL-MCMC` = y_obs - ex$mcmc$mean
     )
     dens_cols <- c("#1f77b4", "#17becf", "#d62728", "#ff7f0e")
-    dens_vals <- lapply(res_list, function(z) stats::density(z[is.finite(z)], n = 512))
-    xlim_den <- range(unlist(lapply(dens_vals, `[[`, "x")), finite = TRUE)
-    ylim_den <- range(unlist(lapply(dens_vals, `[[`, "y")), finite = TRUE)
+    safe_density <- function(z) {
+      z <- as.numeric(z)
+      z <- z[is.finite(z)]
+      if (length(z) < 2L) return(NULL)
+      if (length(unique(signif(z, 12L))) < 2L) return(NULL)
+      tryCatch(stats::density(z, n = 512), error = function(e) NULL)
+    }
+    dens_vals <- lapply(res_list, safe_density)
+    keep_idx <- vapply(dens_vals, function(x) !is.null(x), logical(1))
     png(file.path(out_plots_diag, sprintf("residual_density_tau_%s.png", tau_lab(tau))), width = 1400, height = 900)
-    plot(dens_vals[[1]], col = dens_cols[1], lwd = 2, main = sprintf("Residual Density (tau=%.2f)", tau),
-         xlab = "residual (y - qhat)", ylab = "density", xlim = xlim_den, ylim = ylim_den)
-    for (k in 2:length(dens_vals)) lines(dens_vals[[k]], col = dens_cols[k], lwd = 2)
-    abline(v = 0, lty = 2, col = "grey35")
-    legend("topright", bty = "n", lwd = 2, col = dens_cols, legend = names(res_list))
+    if (any(keep_idx)) {
+      dens_keep <- dens_vals[keep_idx]
+      cols_keep <- dens_cols[keep_idx]
+      labels_keep <- names(res_list)[keep_idx]
+      xlim_den <- range(unlist(lapply(dens_keep, `[[`, "x")), finite = TRUE)
+      ylim_den <- range(unlist(lapply(dens_keep, `[[`, "y")), finite = TRUE)
+      plot(dens_keep[[1]], col = cols_keep[1], lwd = 2, main = sprintf("Residual Density (tau=%.2f)", tau),
+           xlab = "residual (y - qhat)", ylab = "density", xlim = xlim_den, ylim = ylim_den)
+      if (length(dens_keep) > 1L) {
+        for (k in 2:length(dens_keep)) lines(dens_keep[[k]], col = cols_keep[k], lwd = 2)
+      }
+      abline(v = 0, lty = 2, col = "grey35")
+      legend("topright", bty = "n", lwd = 2, col = cols_keep, legend = labels_keep)
+    } else {
+      plot.new()
+      title(main = sprintf("Residual Density (tau=%.2f)", tau))
+      text(0.5, 0.5, "Insufficient finite residual variation for density plot", cex = 1.0)
+    }
     dev.off()
 
     # MCMC/VB trace diagnostics by tau using AL vs exAL.
@@ -646,10 +795,10 @@ writeLines(c(
   sprintf("- generated_at: `%s`", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
   sprintf("- primary_cloud_covariate: `%s`", covar_name),
   "",
-  sprintf("- tasks_total: %d", nrow(summary_df)),
-  sprintf("- tasks_done_or_reused: %d", sum(summary_df$status %in% c("done", "skipped_existing"), na.rm = TRUE)),
-  sprintf("- tasks_reused_existing: %d", sum(summary_df$status == "skipped_existing", na.rm = TRUE)),
-  sprintf("- tasks_failed: %d", sum(summary_df$status == "failed", na.rm = TRUE)),
+  sprintf("- tasks_total: %d", nrow(runtime_diag)),
+  sprintf("- tasks_done_or_reused: %d", sum(runtime_diag$status %in% c("done", "skipped_existing"), na.rm = TRUE)),
+  sprintf("- tasks_reused_existing: %d", sum(runtime_diag$status == "skipped_existing", na.rm = TRUE)),
+  sprintf("- tasks_failed: %d", sum(runtime_diag$status == "failed", na.rm = TRUE)),
   "",
   "## Plot Outputs",
   sprintf("- root_plot_png_count: %d", length(list.files(out_plots, pattern = "\\.png$", full.names = TRUE))),

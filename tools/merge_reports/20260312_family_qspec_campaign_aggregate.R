@@ -24,6 +24,20 @@ dir.create(file.path(out_root, "tables"), recursive = TRUE, showWarnings = FALSE
 
 timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 
+rbind_fill_list <- function(dfs) {
+  dfs <- dfs[!vapply(dfs, is.null, logical(1))]
+  if (!length(dfs)) return(data.frame())
+  all_names <- unique(unlist(lapply(dfs, names), use.names = FALSE))
+  dfs <- lapply(dfs, function(df) {
+    missing <- setdiff(all_names, names(df))
+    if (length(missing)) {
+      for (nm in missing) df[[nm]] <- NA
+    }
+    df[, all_names, drop = FALSE]
+  })
+  do.call(rbind, dfs)
+}
+
 dep_rows <- dependency_edges[dependency_edges$parent_task_id == barrier_id, , drop = FALSE]
 if (!nrow(dep_rows)) {
   stop("No dependency edges found for barrier_id: ", barrier_id)
@@ -34,14 +48,138 @@ read_table_annotated <- function(root_row, rel_file) {
   if (!file.exists(path)) {
     stop("Missing required root table for ", root_row$root_id, ": ", path)
   }
-  df <- utils::read.csv(path, stringsAsFactors = FALSE)
-  df$root_id <- root_row$root_id
-  df$root_kind <- root_row$root_kind
-  df$family <- root_row$family
-  df$tau <- root_row$tau
-  df$fit_size <- root_row$fit_size
-  df$prior <- root_row$prior
-  df$run_root <- root_row$run_root
+  empty_schema <- switch(
+    rel_file,
+    "metrics_summary.csv" = data.frame(
+      inference = character(0),
+      model = character(0),
+      tau = numeric(0),
+      rmse = numeric(0),
+      coverage = numeric(0),
+      mean_ci_width = numeric(0),
+      stringsAsFactors = FALSE
+    ),
+    "pairwise_exal_vs_al.csv" = data.frame(
+      tau = numeric(0),
+      method = character(0),
+      rmse_exal = numeric(0),
+      rmse_al = numeric(0),
+      mae_exal = numeric(0),
+      mae_al = numeric(0),
+      rmse_delta_exal_minus_al = numeric(0),
+      mae_delta_exal_minus_al = numeric(0),
+      stringsAsFactors = FALSE
+    ),
+    "runtime_diagnostics_summary.csv" = data.frame(
+      model = character(0),
+      tau = numeric(0),
+      vb_runtime_sec = numeric(0),
+      vb_file = character(0),
+      mcmc_runtime_sec = numeric(0),
+      mcmc_file = character(0),
+      vb_converged = logical(0),
+      vb_stop_reason = character(0),
+      accept_rate = numeric(0),
+      ess_sigma = numeric(0),
+      ess_gamma = numeric(0),
+      mcmc_gamma_kernel_exact = logical(0),
+      mcmc_signoff_ready = logical(0),
+      status = character(0),
+      beta_prior = character(0),
+      runtime_sec = numeric(0),
+      stringsAsFactors = FALSE
+    ),
+    "acceptance_gate_summary.csv" = data.frame(
+      model = character(0),
+      tau = numeric(0),
+      beta_prior = character(0),
+      vb_converged = logical(0),
+      vb_stop_reason = character(0),
+      ess_sigma = numeric(0),
+      ess_gamma = numeric(0),
+      status = character(0),
+      mcmc_gamma_kernel_exact = logical(0),
+      mcmc_signoff_ready = logical(0),
+      gate_vb_converged = logical(0),
+      gate_mcmc_ess_sigma = logical(0),
+      gate_mcmc_ess_gamma = logical(0),
+      ld_trace_rows = integer(0),
+      ld_xi_rel_drift_last = numeric(0),
+      ld_xi_median_abs_tail = numeric(0),
+      ld_xi_flip_rate_tail = numeric(0),
+      ld_cov_condition_last = numeric(0),
+      ld_hess_condition_last = numeric(0),
+      ld_sigma_sd_tail = numeric(0),
+      ld_sigma_range_tail = numeric(0),
+      ld_sigma_flip_rate_tail = numeric(0),
+      ld_gamma_sd_tail = numeric(0),
+      ld_gamma_range_tail = numeric(0),
+      ld_gamma_flip_rate_tail = numeric(0),
+      ld_xi_mcse_max_last = numeric(0),
+      ld_xi_mcse_mean_last = numeric(0),
+      ld_xi_mcse_max_tail = numeric(0),
+      ld_mode_grad_inf_norm_final = numeric(0),
+      ld_mode_neg_hess_min_eig_final = numeric(0),
+      ld_mode_neg_hess_condition_final = numeric(0),
+      ld_local_mode_pass = logical(0),
+      ld_candidate_local_pass_rate_tail = numeric(0),
+      ld_committed_local_pass_rate_tail = numeric(0),
+      ld_committed_stable_tail = logical(0),
+      ld_candidate_grad_inf_median_tail = numeric(0),
+      ld_committed_grad_inf_median_tail = numeric(0),
+      ld_objective_gap_median_tail = numeric(0),
+      ld_stabilized_rate_tail = numeric(0),
+      ld_direct_commit_rate_tail = numeric(0),
+      ld_damped_commit_rate_tail = numeric(0),
+      ld_optim_fallback_rate = numeric(0),
+      ld_numeric_hessian_rate = numeric(0),
+      ld_identity_hessian_rate = numeric(0),
+      ld_cov_floor_rate = numeric(0),
+      ld_mode_fallback_rate = numeric(0),
+      gate_vb_ld_stable = logical(0),
+      gate_vb_ld_local_mode = logical(0),
+      gate_mcmc_kernel_exact = logical(0),
+      gate_accuracy = logical(0),
+      overall_pass = logical(0),
+      stringsAsFactors = FALSE
+    ),
+    "fit_summary.csv" = data.frame(
+      inference = character(0),
+      model = character(0),
+      tau = numeric(0),
+      beta_prior = character(0),
+      runtime_sec = numeric(0),
+      iter_like = integer(0),
+      converged = logical(0),
+      stop_reason = character(0),
+      sigma_mean = numeric(0),
+      gamma_mean = numeric(0),
+      rhs_collapse_flag = logical(0),
+      rhs_collapse_warning = character(0),
+      fit_file = character(0),
+      stringsAsFactors = FALSE
+    ),
+    data.frame()
+  )
+  df <- tryCatch(
+    utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (grepl("first five rows are empty", msg, fixed = TRUE) ||
+          grepl("no lines available in input", msg, fixed = TRUE)) {
+        return(empty_schema)
+      }
+      stop(e)
+    }
+  )
+  n <- nrow(df)
+  df$root_id <- rep(root_row$root_id, n)
+  df$root_kind <- rep(root_row$root_kind, n)
+  df$family <- rep(root_row$family, n)
+  df$tau <- rep(root_row$tau, n)
+  df$fit_size <- rep(root_row$fit_size, n)
+  df$prior <- rep(root_row$prior, n)
+  df$run_root <- rep(root_row$run_root, n)
   df
 }
 
@@ -51,12 +189,13 @@ read_compare_table <- function(barrier_row, rel_file) {
     stop("Missing required compare table for ", barrier_row$barrier_id, ": ", path)
   }
   df <- utils::read.csv(path, stringsAsFactors = FALSE)
-  df$barrier_id <- barrier_row$barrier_id
-  df$root_kind <- barrier_row$root_kind
-  df$family <- barrier_row$family
-  df$tau <- barrier_row$tau
-  df$fit_size <- barrier_row$fit_size
-  df$compare_root <- barrier_row$compare_root
+  n <- nrow(df)
+  df$barrier_id <- rep(barrier_row$barrier_id, n)
+  df$root_kind <- rep(barrier_row$root_kind, n)
+  df$family <- rep(barrier_row$family, n)
+  df$tau <- rep(barrier_row$tau, n)
+  df$fit_size <- rep(barrier_row$fit_size, n)
+  df$compare_root <- rep(barrier_row$compare_root, n)
   df
 }
 
@@ -119,23 +258,23 @@ if (barrier_type == "campaign_review") {
 
   utils::write.table(prereq_inventory, file.path(out_root, "tables", "prerequisite_inventory.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
 
-  metrics_long <- do.call(rbind, lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "metrics_summary.csv")))
+  metrics_long <- rbind_fill_list(lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "metrics_summary.csv")))
   utils::write.table(metrics_long, file.path(out_root, "tables", "metrics_summary_long.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
 
   if (barrier_id %in% c("campaign__static_paper", "campaign__static_shrink")) {
-    pairwise_long <- do.call(rbind, lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "pairwise_exal_vs_al.csv")))
-    runtime_long <- do.call(rbind, lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "runtime_diagnostics_summary.csv")))
-    gates_long <- do.call(rbind, lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "acceptance_gate_summary.csv")))
+    pairwise_long <- rbind_fill_list(lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "pairwise_exal_vs_al.csv")))
+    runtime_long <- rbind_fill_list(lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "runtime_diagnostics_summary.csv")))
+    gates_long <- rbind_fill_list(lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "acceptance_gate_summary.csv")))
     utils::write.table(pairwise_long, file.path(out_root, "tables", "pairwise_exal_vs_al_long.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
     utils::write.table(runtime_long, file.path(out_root, "tables", "runtime_diagnostics_summary_long.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
     utils::write.table(gates_long, file.path(out_root, "tables", "acceptance_gate_summary_long.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
   } else {
-    fit_long <- do.call(rbind, lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "fit_summary.csv")))
+    fit_long <- rbind_fill_list(lapply(seq_len(nrow(root_rows)), function(i) read_table_annotated(root_rows[i, , drop = FALSE], "fit_summary.csv")))
     utils::write.table(fit_long, file.path(out_root, "tables", "fit_summary_long.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
   }
 
   if (barrier_id == "campaign__static_shrink") {
-    compare_long <- do.call(rbind, lapply(seq_len(nrow(compare_rows)), function(i) read_compare_table(compare_rows[i, , drop = FALSE], "rhs_vs_ridge_summary.csv")))
+    compare_long <- rbind_fill_list(lapply(seq_len(nrow(compare_rows)), function(i) read_compare_table(compare_rows[i, , drop = FALSE], "rhs_vs_ridge_summary.csv")))
     utils::write.table(compare_long, file.path(out_root, "tables", "rhs_vs_ridge_summary_long.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
   }
 
@@ -188,7 +327,7 @@ if (barrier_type == "campaign_review") {
     utils::read.delim(file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "campaign_summary.tsv"), sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
   })
   utils::write.table(prereq_inventory, file.path(out_root, "tables", "prerequisite_inventory.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
-  global_df <- do.call(rbind, summary_rows)
+  global_df <- rbind_fill_list(summary_rows)
   utils::write.table(global_df, file.path(out_root, "tables", "global_summary.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
   writeLines(c(
     "# campaign__global_cross_family_summary",
