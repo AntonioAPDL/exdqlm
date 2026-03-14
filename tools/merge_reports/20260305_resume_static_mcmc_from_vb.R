@@ -244,6 +244,12 @@ safe_task <- function(task_row) {
   vb_obj <- readRDS(vb_file)
   vb_fit <- vb_obj$fit
   init_list <- .static_vb_to_mcmc_init(vb_fit, dqlm.ind = dqlm.ind)
+  init_notes <- attr(init_list, "resume_init_notes")
+  if (length(init_notes)) {
+    note <- paste(init_notes, collapse = "; ")
+    write_status(model_name, tau, "RESUME_INIT_SANITIZED", note)
+    log_task(model_name, tau, sprintf("resume init sanitized | %s", note))
+  }
 
   set.seed(seed + 700000L)
   t0 <- Sys.time()

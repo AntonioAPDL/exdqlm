@@ -4,22 +4,46 @@
   if (!is.list(vb_fit)) stop("vb_fit must be a list")
 
   beta_prior <- if (!is.null(vb_fit$beta_prior)) vb_fit$beta_prior else list(type = "ridge")
+  dropped_fields <- character(0)
+
+  take_scalar <- function(x, field, positive = FALSE) {
+    if (is.null(x)) return(NULL)
+    val <- as.numeric(x)[1]
+    ok <- is.finite(val) && (!positive || val > 0)
+    if (!ok) {
+      dropped_fields <<- c(dropped_fields, field)
+      return(NULL)
+    }
+    val
+  }
+
+  take_vector <- function(x, field, positive = FALSE) {
+    if (is.null(x)) return(NULL)
+    val <- as.numeric(x)
+    ok <- length(val) > 0L && all(is.finite(val)) && (!positive || all(val > 0))
+    if (!ok) {
+      dropped_fields <<- c(dropped_fields, field)
+      return(NULL)
+    }
+    val
+  }
 
   if (isTRUE(dqlm.ind)) {
     if (is.null(vb_fit$qbeta$m) || is.null(vb_fit$qsig$E_sigma) || is.null(vb_fit$qv$E_v)) {
       stop("DQLM VB fit missing required fields qbeta$m, qsig$E_sigma, or qv$E_v")
     }
     out <- list(
-      beta = as.numeric(vb_fit$qbeta$m),
-      sigma = as.numeric(vb_fit$qsig$E_sigma)[1],
-      v = as.numeric(vb_fit$qv$E_v)
+      beta = take_vector(vb_fit$qbeta$m, "beta"),
+      sigma = take_scalar(vb_fit$qsig$E_sigma, "sigma", positive = TRUE),
+      v = take_vector(vb_fit$qv$E_v, "v", positive = TRUE)
     )
     if (identical(beta_prior$type, "rhs") && !is.null(beta_prior$state)) {
       st <- beta_prior$state
-      if (!is.null(st$eta_lambda_hat)) out$lambda <- exp(as.numeric(st$eta_lambda_hat))
-      if (!is.null(st$eta_tau_hat)) out$tau <- exp(as.numeric(st$eta_tau_hat)[1])
-      if (!is.null(st$eta_c_hat)) out$c2 <- exp(as.numeric(st$eta_c_hat)[1])
+      if (!is.null(st$eta_lambda_hat)) out$lambda <- take_vector(exp(as.numeric(st$eta_lambda_hat)), "lambda", positive = TRUE)
+      if (!is.null(st$eta_tau_hat)) out$tau <- take_scalar(exp(as.numeric(st$eta_tau_hat)[1]), "tau", positive = TRUE)
+      if (!is.null(st$eta_c_hat)) out$c2 <- take_scalar(exp(as.numeric(st$eta_c_hat)[1]), "c2", positive = TRUE)
     }
+    attr(out, "resume_init_notes") <- unique(sprintf("dropped_nonfinite_%s", dropped_fields))
     return(out)
   }
 
@@ -29,18 +53,19 @@
   }
 
   out <- list(
-    beta = as.numeric(vb_fit$qbeta$m),
-    sigma = as.numeric(vb_fit$qsiggam$sigma_mean)[1],
-    gamma = as.numeric(vb_fit$qsiggam$gamma_mean)[1],
-    v = as.numeric(vb_fit$qv$E_v),
-    s = as.numeric(vb_fit$qs$E_s)
+    beta = take_vector(vb_fit$qbeta$m, "beta"),
+    sigma = take_scalar(vb_fit$qsiggam$sigma_mean, "sigma", positive = TRUE),
+    gamma = take_scalar(vb_fit$qsiggam$gamma_mean, "gamma"),
+    v = take_vector(vb_fit$qv$E_v, "v", positive = TRUE),
+    s = take_vector(vb_fit$qs$E_s, "s")
   )
   if (identical(beta_prior$type, "rhs") && !is.null(beta_prior$state)) {
     st <- beta_prior$state
-    if (!is.null(st$eta_lambda_hat)) out$lambda <- exp(as.numeric(st$eta_lambda_hat))
-    if (!is.null(st$eta_tau_hat)) out$tau <- exp(as.numeric(st$eta_tau_hat)[1])
-    if (!is.null(st$eta_c_hat)) out$c2 <- exp(as.numeric(st$eta_c_hat)[1])
+    if (!is.null(st$eta_lambda_hat)) out$lambda <- take_vector(exp(as.numeric(st$eta_lambda_hat)), "lambda", positive = TRUE)
+    if (!is.null(st$eta_tau_hat)) out$tau <- take_scalar(exp(as.numeric(st$eta_tau_hat)[1]), "tau", positive = TRUE)
+    if (!is.null(st$eta_c_hat)) out$c2 <- take_scalar(exp(as.numeric(st$eta_c_hat)[1]), "c2", positive = TRUE)
   }
+  attr(out, "resume_init_notes") <- unique(sprintf("dropped_nonfinite_%s", dropped_fields))
   out
 }
 

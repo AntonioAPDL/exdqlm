@@ -582,6 +582,7 @@ exal_static_mcmc <- function(
 
     v <- if (is.null(init$v)) rep(1, n) else as.numeric(init$v)
     if (length(v) != n) v <- rep(v[1], n)
+    v <- require_finite_vector(v, "init$v", positive = TRUE)
     v <- pmax(v, 1e-12)
 
     I <- n.burn + n.mcmc * thin
@@ -632,8 +633,9 @@ exal_static_mcmc <- function(
       r0 <- y - xb
       chi_i <- (r0 * r0) / (B * sigma)
       psi_i <- (A * A / B + 2) / sigma
+      gig_in <- validate_gig_inputs(chi_i, psi_i, i, "static_al")
       v <- as.numeric(sample_gig_devroye_vector(
-        1L, p = 0.5, a = psi_i, b_vec = chi_i
+        1L, p = 0.5, a = gig_in$psi, b_vec = gig_in$chi
       )[1, ])
       v <- pmax(v, 1e-12)
 
