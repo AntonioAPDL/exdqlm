@@ -236,6 +236,137 @@ Interpretation:
   launching the full 24-root tuned campaign, because it is materially better
   than the untuned baseline on the sentinel set.
 
+## 0.4) Full Tuned Phase-1 Result And Phase-2 Targets Added On 2026-03-14
+
+The full tuned campaign completed on:
+
+- `reports/qdesn_mcmc_validation/phase1_compare_tuned/20260314-183449__git-1ec79ff`
+
+The baseline-vs-tuned comparison is recorded at:
+
+- `reports/qdesn_mcmc_validation/phase1_compare_tuned_compare/20260314-183449__vs-baseline-b39220b`
+
+### Full tuned outcome
+
+- root success:
+  - `24 / 24`
+- execution failures:
+  - `0`
+- pair comparison-eligible groups:
+  - baseline: `4`
+  - tuned: `19`
+- pair signoff-pass groups:
+  - baseline: `1`
+  - tuned: `3`
+- pair eligibility gains:
+  - `15 / 24`
+
+### Main read from tuned-vs-baseline
+
+- `vb.ridge` is stable enough to keep as-is for the next pass.
+- `mcmc.ridge` improved enough that it should also remain stable for the next
+  pass; only one ridge case still fails signoff and it is the lower-tail
+  `level_shift_small` stress case.
+- `vb.rhs` no longer shows collapse on this grid and now has:
+  - `PASS = 6`
+  - `WARN = 6`
+  - `FAIL = 0`
+  Most remaining RHS-VB warnings are `vb_converged_false` with stable tails,
+  not numerical pathologies.
+- `mcmc.rhs` is the dominant remaining tuning target. Under the tuned phase-1
+  defaults it has:
+  - `PASS = 0`
+  - `WARN = 8`
+  - `FAIL = 4`
+  and the failure modes are now concentrated in:
+  - `geweke_drift`
+  - `half_chain_drift`
+  rather than low ESS or obvious chain sticking.
+
+### Why the next tuning should target RHS MCMC specifically
+
+The tuned phase-1 run already moved RHS MCMC from broad ineligibility to broad
+usability:
+
+- all RHS MCMC fits executed successfully;
+- `8 / 12` RHS MCMC roots are now comparison-eligible;
+- the remaining failures are on a small subset of harder roots:
+  - `const_small | tau = 0.25 | rhs`
+  - `level_shift_small | tau = 0.05 | rhs`
+  - `level_shift_small | tau = 0.25 | rhs`
+  - `sin_asym_small | tau = 0.25 | rhs`
+
+That pattern says the next pass should not change the ridge settings broadly.
+It should focus on reducing post-burn drift in `mcmc.rhs`.
+
+### Phase-2 default tuning targets
+
+The next validation defaults are stored in:
+
+- `config/validation/qdesn_mcmc_compare_phase2_defaults.yaml`
+
+They intentionally keep the ridge and VB settings effectively stable while
+making one targeted move on `mcmc.rhs`.
+
+Keep stable:
+
+- `vb.ridge`
+  - `max_iter = 35`
+  - `min_iter_elbo = 10`
+  - `n_samp_xi = 64`
+- `mcmc.ridge`
+  - `n_burn = 300`
+  - `n_mcmc = 600`
+  - `width_gamma = 0.6`
+  - `max_steps_out = 40`
+  - `max_shrink = 150`
+- `vb.rhs`
+  - `max_iter = 60`
+  - `min_iter_elbo = 12`
+  - `n_samp_xi = 128`
+  - `freeze_tau_iters = 10`
+  - `freeze_tau_warmup_iters = 10`
+  - `tau_local_tol = 5e-4`
+  - `min_tau_updates = 2`
+
+Targeted phase-2 change for `mcmc.rhs`:
+
+- `n_burn = 800`
+- `n_mcmc = 1600`
+- `progress_every = 200`
+- `width_gamma = 0.55`
+- `width_rhs_lambda = 0.25`
+- `width_rhs_tau = 0.15`
+- `width_rhs_c2 = 0.25`
+- `max_steps_out = 60`
+- `max_shrink = 250`
+
+Rationale:
+
+- ESS is no longer the main blocker, so the next change needs more burn-in and
+  more kept draws to stabilize half-chain and Geweke diagnostics.
+- Narrower RHS slice widths target the remaining drift in:
+  - `rhs_tau`
+  - `rhs_c2`
+  - and, secondarily, `rhs_lambda`
+- `width_gamma` is only reduced slightly because the core chain diagnostics are
+  materially healthier than the RHS-specific diagnostics.
+- `progress_every = 200` reduces console overhead in the longer RHS runs
+  without changing the inference target.
+
+### Quality suggestions before running phase-2
+
+- Keep the grid unchanged so phase-1 tuned vs phase-2 remains a clean
+  comparison.
+- Run a new 4-root RHS-heavy preflight before the next full 24-root campaign.
+- Keep signoff thresholds fixed for the next pass. Changing the thresholds now
+  would confound the tuning read.
+- Do not thin the chains by default. The current issue is certification of
+  mixing and stationarity, not storage pressure.
+- After the next single-chain pass, run a small multichain confirmation on the
+  hardest RHS roots to add `R-hat` before promoting any RHS-MCMC setting as a
+  broader default.
+
 ## 1) Design Principles
 
 The validation framework should follow the same strengths as the more mature
