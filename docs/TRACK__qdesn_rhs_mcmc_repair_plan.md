@@ -57,6 +57,15 @@ Rationale:
 - this keeps the nonconjugate strategy slice-based;
 - it is narrower and easier to interpret than a full kernel redesign.
 
+This first structural repair has now been validated on the persistent failed
+set and promoted to a broader-validation candidate profile:
+
+- `config/validation/qdesn_mcmc_compare_rhs_structural_defaults.yaml`
+
+The next gate is broader toy-grid validation against the previous repaired
+baseline, followed by representative RHS multichain confirmation only if the
+broader structural candidate holds up.
+
 ## 0.2) Stage B/C Outcome On 2026-03-14
 
 The Stage B/C repair sequence completed at:

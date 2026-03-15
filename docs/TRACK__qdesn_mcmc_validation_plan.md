@@ -32,6 +32,15 @@ Current state note:
 - the current active work is the first structural repair on the transformed
   global RHS block.
 
+Broader validation promotion note:
+
+- the first structural RHS repair succeeded on the persistent failed set;
+- it has now been promoted to a broader phase-1 toy-grid candidate profile;
+- the next decision gate is:
+  - broader structural candidate versus prior repaired baseline;
+  - then representative RHS multichain confirmation if the broader candidate
+    is strong enough.
+
 ## 0.1) Implemented State On 2026-03-14
 
 The following pieces are now implemented on this branch:
