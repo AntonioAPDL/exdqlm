@@ -118,6 +118,8 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
         n_mcmc = 17L,
         thin = 2L,
         init_from_vb = FALSE,
+        vb_warm_start_control = list(max_iter = 33L),
+        rhs = list(freeze_tau_burnin_iters = 7L),
         slice = list(width_gamma = 0.6, width_rhs_tau = 0.9),
         init = list(gamma = c(0.1, 0.2)),
         priors = list(
@@ -139,6 +141,8 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(inf$mcmc$control_base$n_mcmc, 17L)
   expect_equal(inf$mcmc$control_base$thin, 2L)
   expect_false(isTRUE(inf$mcmc$control_base$init_from_vb))
+  expect_equal(inf$mcmc$control_base$vb_warm_start_control$max_iter, 33L)
+  expect_equal(inf$mcmc$control_base$rhs$freeze_tau_burnin_iters, 7L)
   expect_equal(inf$mcmc$control_base$slice$width_gamma, 0.6)
   expect_equal(inf$mcmc$control_base$slice$width_rhs_tau, 0.9)
   expect_identical(inf$beta_prior_type, "rhs")
@@ -154,6 +158,56 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(qspec$init$gamma, 0.2)
   expect_equal(qspec$prior_sigma$a, 2)
   expect_equal(qspec$prior_sigma$b, 3)
+})
+
+test_that("RHS MCMC can freeze tau during burn-in warmup", {
+  withr::local_seed(789)
+
+  n <- 20L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.3, -0.4, 0.2) + stats::rnorm(n, sd = 0.35))
+  beta_prior_obj <- exdqlm::beta_prior("rhs", rhs = list(
+    tau0 = 0.3,
+    nu = 4,
+    s2 = 1,
+    shrink_intercept = FALSE,
+    intercept_prec = 1e-10,
+    eta_bounds = list(lambda = c(-4, 4), tau = c(-4, 4), c2 = c(-4, 4))
+  ))
+
+  fit_rhs <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    beta_prior_obj = beta_prior_obj,
+    mcmc_control = list(
+      n_burn = 6L,
+      n_mcmc = 8L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      rhs = list(
+        freeze_tau_burnin_iters = 4L,
+        freeze_tau_only_during_burn = TRUE
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n),
+      rhs_state = beta_prior_obj$init(ncol(X))
+    )
+  )
+
+  expect_true(inherits(fit_rhs, "exal_mcmc"))
+  expect_equal(fit_rhs$control$rhs$freeze_tau_burnin_iters, 4L)
+  expect_true(all(fit_rhs$misc$rhs_tau_frozen_trace[1:4]))
+  expect_true(!any(fit_rhs$misc$rhs_tau_frozen_trace[7:length(fit_rhs$misc$rhs_tau_frozen_trace)]))
+  expect_equal(length(unique(round(fit_rhs$misc$rhs_tau_trace[1:4], 12L))), 1L)
 })
 
 test_that("VB RHS config preserves null tau init and separate warmup freeze settings", {

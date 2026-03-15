@@ -122,7 +122,7 @@
 }
 
 #' @keywords internal
-.exal_mcmc_rhs_slice_update <- function(state, beta, beta_prior_obj, slice_cfg) {
+.exal_mcmc_rhs_slice_update <- function(state, beta, beta_prior_obj, slice_cfg, freeze_tau = FALSE) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
   if (!identical(beta_prior_obj$type, "rhs")) {
     return(list(
@@ -203,22 +203,26 @@
     }
   }
 
-  tau_out <- .exal_mcmc_slice_sample_1d(
-    x0 = eta_tau,
-    logf = function(etau) {
-      rhs_obj_eta(
-        eta_lam, etau, eta_c2, beta2,
-        tau0 = tau0, nu = nu, s = s,
-        shrink_intercept = state$shrink_intercept
-      )
-    },
-    width = width_tau,
-    max_steps_out = max_steps_out,
-    max_shrink = max_shrink,
-    lower = b_tau[1L],
-    upper = b_tau[2L]
-  )
-  eta_tau <- tau_out$x
+  if (isTRUE(freeze_tau)) {
+    tau_out <- list(x = eta_tau, n_steps_out = 0L, n_shrink = 0L)
+  } else {
+    tau_out <- .exal_mcmc_slice_sample_1d(
+      x0 = eta_tau,
+      logf = function(etau) {
+        rhs_obj_eta(
+          eta_lam, etau, eta_c2, beta2,
+          tau0 = tau0, nu = nu, s = s,
+          shrink_intercept = state$shrink_intercept
+        )
+      },
+      width = width_tau,
+      max_steps_out = max_steps_out,
+      max_shrink = max_shrink,
+      lower = b_tau[1L],
+      upper = b_tau[2L]
+    )
+    eta_tau <- tau_out$x
+  }
 
   c2_out <- .exal_mcmc_slice_sample_1d(
     x0 = eta_c2,
@@ -259,7 +263,8 @@
       lambda_steps_out_mean = if (length(lambda_steps)) mean(lambda_steps) else 0,
       lambda_steps_out_max = if (length(lambda_steps)) max(lambda_steps) else 0L,
       lambda_shrink_mean = if (length(lambda_shrink)) mean(lambda_shrink) else 0,
-      lambda_shrink_max = if (length(lambda_shrink)) max(lambda_shrink) else 0L
+      lambda_shrink_max = if (length(lambda_shrink)) max(lambda_shrink) else 0L,
+      tau_frozen = isTRUE(freeze_tau)
     )
   )
 }
@@ -310,6 +315,9 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   init_from_vb <- isTRUE(mcmc_control$init_from_vb %||% FALSE)
   store_latent_draws <- isTRUE(mcmc_control$store_latent_draws %||% FALSE)
   store_rhs_draws <- isTRUE(mcmc_control$store_rhs_draws %||% FALSE)
+  rhs_warm_cfg <- mcmc_control$rhs %||% list()
+  rhs_freeze_tau_iters <- max(0L, as.integer(rhs_warm_cfg$freeze_tau_burnin_iters %||% rhs_warm_cfg$freeze_tau_iters %||% 0L))
+  rhs_freeze_tau_only_during_burn <- if (is.null(rhs_warm_cfg$freeze_tau_only_during_burn)) TRUE else isTRUE(rhs_warm_cfg$freeze_tau_only_during_burn)
 
   slice_cfg <- mcmc_control$slice %||% list()
   gamma_slice_width <- as.numeric(slice_cfg$width_gamma %||% 1.0)[1L]
@@ -476,6 +484,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     rhs_lambda_steps_out_max <- integer(n_total)
     rhs_lambda_shrink_mean <- numeric(n_total)
     rhs_lambda_shrink_max <- integer(n_total)
+    rhs_tau_frozen_trace <- logical(n_total)
     tau_draws <- numeric(n_keep)
     c2_draws <- numeric(n_keep)
     lambda_mean_draws <- numeric(n_keep)
@@ -500,6 +509,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     rhs_lambda_steps_out_max <- NULL
     rhs_lambda_shrink_mean <- NULL
     rhs_lambda_shrink_max <- NULL
+    rhs_tau_frozen_trace <- NULL
     tau_draws <- NULL
     c2_draws <- NULL
     lambda_mean_draws <- NULL
@@ -538,11 +548,17 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
 
     rhs_stats <- NULL
     if (identical(beta_prior_type, "rhs")) {
+      freeze_tau_now <- isTRUE(
+        rhs_freeze_tau_iters > 0L &&
+          iter <= rhs_freeze_tau_iters &&
+          (!rhs_freeze_tau_only_during_burn || iter <= n_burn)
+      )
       rhs_upd <- .exal_mcmc_rhs_slice_update(
         state = rhs_state,
         beta = beta,
         beta_prior_obj = beta_prior_obj,
-        slice_cfg = slice_cfg
+        slice_cfg = slice_cfg,
+        freeze_tau = freeze_tau_now
       )
       rhs_state <- rhs_upd$state
       rhs_stats <- rhs_upd$stats
@@ -561,6 +577,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       rhs_lambda_steps_out_max[iter] <- rhs_stats$lambda_steps_out_max
       rhs_lambda_shrink_mean[iter] <- rhs_stats$lambda_shrink_mean
       rhs_lambda_shrink_max[iter] <- rhs_stats$lambda_shrink_max
+      rhs_tau_frozen_trace[iter] <- isTRUE(rhs_stats$tau_frozen)
     }
 
     r_sigma <- y - drop(X %*% beta) - A * v
@@ -671,8 +688,13 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       verbose = verbose,
       progress_every = progress_every,
       init_from_vb = init_from_vb,
+      vb_warm_start_control = mcmc_control$vb_warm_start_control %||% list(),
       store_latent_draws = store_latent_draws,
       store_rhs_draws = store_rhs_draws,
+      rhs = list(
+        freeze_tau_burnin_iters = rhs_freeze_tau_iters,
+        freeze_tau_only_during_burn = rhs_freeze_tau_only_during_burn
+      ),
       slice = list(
         width_gamma = gamma_slice_width,
         width_rhs_lambda = as.numeric(slice_cfg$width_rhs_lambda %||% slice_cfg$width_lambda %||% 1.0)[1L],
@@ -721,7 +743,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       rhs_lambda_steps_out_mean = rhs_lambda_steps_out_mean,
       rhs_lambda_steps_out_max = rhs_lambda_steps_out_max,
       rhs_lambda_shrink_mean = rhs_lambda_shrink_mean,
-      rhs_lambda_shrink_max = rhs_lambda_shrink_max
+      rhs_lambda_shrink_max = rhs_lambda_shrink_max,
+      rhs_tau_frozen_trace = rhs_tau_frozen_trace
     ),
     last = list(
       beta = beta,
