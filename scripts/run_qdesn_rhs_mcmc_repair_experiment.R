@@ -36,7 +36,7 @@ res <- exdqlm:::qdesn_rhs_mcmc_repair_run_experiment(
   matrix_path = matrix_path,
   profiles_path = profiles_path,
   results_root = results_root,
-  report_root = reports_root,
+  reports_root = reports_root,
   vb_warm_start_profile_override = vb_profile_override,
   freeze_tau_burnin_iters_override = if (is.null(freeze_tau_override)) NULL else as.integer(freeze_tau_override)[1L],
   create_plots = !has_flag("--no-plots"),
