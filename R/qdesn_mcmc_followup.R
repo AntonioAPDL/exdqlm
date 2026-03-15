@@ -414,6 +414,11 @@ qdesn_validation_run_multichain_campaign <- function(grid = NULL,
                                                      verbose = TRUE) {
   defaults <- defaults %||% qdesn_validation_load_defaults(defaults_path)
   grid <- grid %||% qdesn_validation_load_grid(grid_path)
+  results_root <- .qdesn_validation_resolve_path(results_root, must_work = FALSE)
+  report_root <- .qdesn_validation_resolve_path(report_root, must_work = FALSE)
+  if (is.null(results_root) || is.null(report_root)) {
+    stop("results_root and report_root must both be non-empty paths for multichain campaigns.", call. = FALSE)
+  }
 
   for (d in c(results_root, file.path(results_root, "roots"), report_root, file.path(report_root, "tables"), file.path(report_root, "plots"), file.path(report_root, "manifest"))) {
     .qdesn_validation_dir_create(d)

@@ -19,7 +19,11 @@
 }
 
 .qdesn_validation_resolve_path <- function(path, repo_root = NULL, must_work = TRUE) {
-  if (is.null(path) || !nzchar(path)) return(NULL)
+  if (is.null(path) || !length(path)) return(NULL)
+  path <- as.character(path)[1L]
+  if (is.na(path)) return(NULL)
+  path <- trimws(path)
+  if (!nzchar(path)) return(NULL)
   if (grepl("^/", path)) {
     return(normalizePath(path, winslash = "/", mustWork = must_work))
   }

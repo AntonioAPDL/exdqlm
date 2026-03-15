@@ -181,6 +181,32 @@ test_that("multichain campaign collection reads multichain root metadata cleanly
   expect_equal(nrow(campaign_root), 1L)
 })
 
+test_that("multichain campaign rejects invalid output roots", {
+  tmp <- withr::local_tempdir()
+  grid <- data.frame(
+    scenario = "toy_sine_small",
+    tau = 0.25,
+    beta_prior_type = "rhs",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8",
+    enabled = TRUE,
+    stringsAsFactors = FALSE
+  )
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_rhs_structural_defaults.yaml"))
+  expect_error(
+    exdqlm:::qdesn_validation_run_multichain_campaign(
+      grid = grid,
+      defaults = defaults,
+      results_root = NA_character_,
+      report_root = file.path(tmp, "report"),
+      n_chains = 2L,
+      create_plots = FALSE,
+      verbose = FALSE
+    ),
+    "results_root and report_root must both be non-empty paths"
+  )
+})
+
 test_that("multichain follow-up assessment chooses structural repair when failures remain", {
   tmp <- withr::local_tempdir()
   report_root <- file.path(tmp, "multichain")
@@ -212,4 +238,37 @@ test_that("multichain follow-up assessment chooses structural repair when failur
 
   res <- exdqlm:::qdesn_validation_assess_multichain_followup(report_root, out_root)
   expect_identical(res$decision_mode, "structural_rhs_repair")
+})
+
+test_that("multichain follow-up assessment chooses representative confirmation when confirmation is strong", {
+  tmp <- withr::local_tempdir()
+  report_root <- file.path(tmp, "multichain")
+  out_root <- file.path(tmp, "decision")
+  dir.create(file.path(report_root, "tables"), recursive = TRUE)
+
+  utils::write.csv(data.frame(
+    root_id = c("r1", "r2", "r3"),
+    scenario = c("toy", "const", "sin"),
+    tau = c(0.25, 0.25, 0.50),
+    beta_prior_type = c("rhs", "rhs", "rhs"),
+    seed = c(1L, 1L, 1L),
+    reservoir_profile = c("tiny", "tiny", "tiny"),
+    confirmation_grade = c("PASS", "WARN", "WARN"),
+    stringsAsFactors = FALSE
+  ), file.path(report_root, "tables", "campaign_root_confirmation.csv"), row.names = FALSE)
+
+  utils::write.csv(data.frame(
+    root_id = rep(c("r1", "r2", "r3"), each = 2),
+    scenario = rep(c("toy", "const", "sin"), each = 2),
+    tau = rep(c(0.25, 0.25, 0.50), each = 2),
+    beta_prior_type = "rhs",
+    seed = 1L,
+    reservoir_profile = "tiny",
+    parameter = rep(c("gamma", "rhs_tau"), 3),
+    rhat = c(1.02, 1.04, 1.03, 1.08, 1.01, 1.05),
+    stringsAsFactors = FALSE
+  ), file.path(report_root, "tables", "campaign_multichain_rhat.csv"), row.names = FALSE)
+
+  res <- exdqlm:::qdesn_validation_assess_multichain_followup(report_root, out_root)
+  expect_identical(res$decision_mode, "representative_confirmation")
 })

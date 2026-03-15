@@ -73,7 +73,7 @@ decision <- exdqlm:::qdesn_validation_assess_rhs_repair_candidate(
 )
 
 multichain_report_root <- NA_character_
-multichain_results_root <- NA_character_
+multichain_results_run_root <- NA_character_
 if (identical(decision$decision_mode, "representative")) {
   multichain_results_root <- multichain_results_root %||% file.path(
     "results", "qdesn_mcmc_validation", "multichain_confirmation_rhs_structural"
@@ -91,10 +91,8 @@ if (identical(decision$decision_mode, "representative")) {
     create_plots = create_plots,
     verbose = verbose
   )
-  multichain_results_root <- normalizePath(multichain_results_root, winslash = "/", mustWork = FALSE)
+  multichain_results_run_root <- normalizePath(multichain_results_root, winslash = "/", mustWork = FALSE)
   multichain_report_root <- normalizePath(multichain_reports_root, winslash = "/", mustWork = FALSE)
-} else {
-  multichain_reports_root <- NA_character_
 }
 
 summary_root <- file.path(compare_root, "structural_followup")
@@ -108,7 +106,7 @@ exdqlm:::.qdesn_validation_write_json(file.path(summary_root, "manifest.json"), 
   decision_root = normalizePath(decision_root, winslash = "/", mustWork = TRUE),
   decision_mode = decision$decision_mode,
   representative_grid = if (identical(decision$decision_mode, "representative")) normalizePath(representative_grid, winslash = "/", mustWork = TRUE) else NA_character_,
-  multichain_results_root = multichain_results_root,
+  multichain_results_root = multichain_results_run_root,
   multichain_report_root = multichain_report_root,
   generated_at = as.character(Sys.time()),
   git_sha = exdqlm:::.qdesn_validation_git_sha()

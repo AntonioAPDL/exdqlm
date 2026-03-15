@@ -2,7 +2,7 @@
 
 Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
-Status: validation framework implemented; broader toy comparison, rhs repair, and multichain triage completed; structural rhs sampler repair now underway
+Status: validation framework implemented; broader toy comparison, rhs repair, structural rhs promotion, and representative multichain confirmation completed
 Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
@@ -40,6 +40,18 @@ Broader validation promotion note:
   - broader structural candidate versus prior repaired baseline;
   - then representative RHS multichain confirmation if the broader candidate
     is strong enough.
+
+Current promotion note:
+
+- the broader structural candidate completed and passed the promotion gate;
+- representative RHS multichain confirmation also completed and returned
+  `representative_confirmation`;
+- the blocked transformed global RHS update is now the working validation
+  default for RHS MCMC;
+- one representative failure remains:
+  - `sin_asym_small | tau = 0.25 | rhs`
+- the next work should therefore be targeted refinement on that remaining
+  representative failure, not another broad validation redesign.
 
 ## 0.1) Implemented State On 2026-03-14
 

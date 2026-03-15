@@ -2,7 +2,7 @@
 
 Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
-Status: multichain failure triage completed; moving into first structural RHS repair
+Status: first structural RHS repair completed; broader structural candidate and representative multichain confirmation completed
 Purpose: isolate why `RHS MCMC` still fails inference signoff on a subset of
 hard toy roots, and define an organized experiment ladder that can tell us
 whether the issue is:
@@ -65,6 +65,76 @@ set and promoted to a broader-validation candidate profile:
 The next gate is broader toy-grid validation against the previous repaired
 baseline, followed by representative RHS multichain confirmation only if the
 broader structural candidate holds up.
+
+## 0.4) Broader Structural Candidate Outcome On 2026-03-15
+
+The broader structural candidate completed at:
+
+- `reports/qdesn_mcmc_validation/phase1_compare_rhs_structural/20260315-164753__git-1ff8d4d`
+
+The broader comparison decision was:
+
+- `representative`
+
+Decision root:
+
+- `reports/qdesn_mcmc_validation/phase1_compare_rhs_structural_compare/20260315-164753__git-1ff8d4d__vs-phase1-rhs-repair/decision`
+
+Main broad-campaign read:
+
+- `rhs` pair eligibility improved from `0.417` to `0.917`;
+- `rhs` `tau = 0.25` pair eligibility improved from `0.250` to `1.000`;
+- `rhs` MCMC fail count dropped from `7` to `1`;
+- ridge pair eligibility moved from `0.750` to `0.667`, which stayed within
+  the broader-promotion tolerance.
+
+Interpretation:
+
+- the blocked transformed global update for `(eta_tau, eta_c2)` is strong
+  enough to justify representative multichain confirmation;
+- the broader structural candidate is no longer just a failed-case repair.
+
+## 0.5) Representative Structural Confirmation Outcome On 2026-03-15
+
+The representative structural multichain confirmation completed at:
+
+- `reports/qdesn_mcmc_validation/multichain_confirmation_rhs_structural`
+
+The follow-up decision was:
+
+- `representative_confirmation`
+
+Decision root:
+
+- `reports/qdesn_mcmc_validation/multichain_confirmation_rhs_structural/decision`
+
+Representative confirmation summary:
+
+- `const_small | tau = 0.05 | rhs`
+  - `WARN`
+- `level_shift_small | tau = 0.25 | rhs`
+  - `PASS`
+- `sin_asym_small | tau = 0.25 | rhs`
+  - `FAIL`
+- `toy_sine_small | tau = 0.50 | rhs`
+  - `PASS`
+
+Decision metrics:
+
+- `rhs_confirmation_usable_rate = 0.750`
+- `rhs_confirmation_pass_rate = 0.500`
+- `rhs_tau025_confirmation_usable_rate = 0.500`
+- `rhs_multichain_fail_count = 1`
+- `rhs_split_rhat_ok_rate = 0.958`
+
+Interpretation:
+
+- the structural candidate is now strong enough to promote as the working RHS
+  MCMC validation default;
+- the main unresolved representative failure is
+  `sin_asym_small | tau = 0.25 | rhs`;
+- the next work should therefore be targeted follow-up on that remaining
+  geometry, not another broad RHS redesign.
 
 ## 0.2) Stage B/C Outcome On 2026-03-14
 
