@@ -1749,3 +1749,85 @@ Durable rescue-analysis artifacts:
   - `tools/merge_reports/20260315_family_qspec_residual_action_by_model.tsv`
 - compact summary:
   - `tools/merge_reports/20260315_family_qspec_threshold_rescue_summary.md`
+
+## 2026-03-15 Accepted Second-Wave Decision
+
+Decision:
+
+- adopt the **moderate** MCMC threshold rescue policy only
+- do **not** adopt the aggressive policy-only relaxation
+- do **not** relax VB thresholds
+- keep hard numerical failures excluded from scientific comparison
+
+Accepted second-wave signoff policy:
+
+- `ESS sigma warn`: `3`
+- `ESS gamma warn`: `3`
+- `ESS state warn`: `3`
+- `ACF1 warn`: `0.998`
+- `Geweke abs z warn`: `7.5`
+- `half-chain drift warn`: `1.0`
+
+This policy is recorded in:
+
+- `tools/merge_reports/20260315_family_qspec_signoff_policy_second_wave.env`
+
+Second-wave rerun tuning chosen for the remaining deeper-chain MCMC subset:
+
+- `burn = 3000`
+- `keep = 8000`
+- `progress_every = 25`
+
+This tuning is recorded in:
+
+- `tools/merge_reports/20260315_family_qspec_repair_tuning_second_wave.env`
+
+Accepted action split across the current `100` unhealthy rows:
+
+- newly eligible under the second-wave policy:
+  - `23`
+- aggressive-policy-only holdouts:
+  - `23`
+- rerun with deeper MCMC:
+  - `25`
+- direct VB debug / targeted refit:
+  - `5`
+- mixed model-debug + resample:
+  - `20`
+- hard numerical holdouts:
+  - `4`
+
+Decision rationale:
+
+- the moderate policy recovers a meaningful subset (`23`) without collapsing validation standards
+- the aggressive policy would recover more rows (`46 soft-only` total) but pushes the thresholds past a level that is defensible for scientific comparison
+- the remaining `25` deeper-chain MCMC rows are better treated as genuine resampling targets
+- the remaining mixed / hard / VB-debug rows should not be forced through by threshold changes
+
+Second-wave decision bundle:
+
+- policy decision:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_policy_decision.tsv`
+- compact decision note:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_decision.md`
+- action summary:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_action_summary.tsv`
+- newly eligible rows:
+  - `tools/merge_reports/20260315_family_qspec_newly_eligible_under_second_wave_policy.tsv`
+- deeper-chain rerun targets:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_deeper_chain_targets.tsv`
+- VB debug targets:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_vb_debug_targets.tsv`
+- mixed debug/resample targets:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_mixed_debug_targets.tsv`
+- hard numerical holdouts:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_hard_holdouts.tsv`
+- aggressive-policy holdouts:
+  - `tools/merge_reports/20260315_family_qspec_aggressive_policy_holdouts.tsv`
+
+Operational implication:
+
+- the next wave should **not** target all `100` residual rows
+- the next wave should rerun only the `25` deeper-chain targets
+- the `23` newly eligible rows can be admitted to comparison under the accepted second-wave policy without rerun
+- the `52` remaining rows (`23 + 20 + 5 + 4`) stay out of automatic rerun until addressed by later policy or debugging work
