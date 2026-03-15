@@ -2,7 +2,7 @@
 
 Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
-Status: planning and experiment-design tracker
+Status: experiment-design tracker with execution assets implemented
 Purpose: isolate why `RHS MCMC` still fails inference signoff on a subset of
 hard toy roots, and define an organized experiment ladder that can tell us
 whether the issue is:
@@ -17,6 +17,43 @@ whether the issue is:
 This tracker is intentionally narrower than the general Q-DESN validation plan.
 It is focused on repairing the `rhs` MCMC readout and deciding what class of
 solution should be expanded.
+
+## 0.1) Implemented Execution Assets
+
+The following repair assets are now implemented on this branch:
+
+- repair matrix:
+  - `config/validation/qdesn_rhs_mcmc_repair_matrix.csv`
+- repair root-set grid:
+  - `config/validation/qdesn_rhs_primary_hard_grid.csv`
+- repair profile library:
+  - `config/validation/qdesn_rhs_mcmc_repair_profiles.yaml`
+- package-side resolver:
+  - `R/qdesn_rhs_mcmc_repair.R`
+- CLI runner:
+  - `scripts/run_qdesn_rhs_mcmc_repair_experiment.R`
+- focused regression coverage:
+  - `tests/testthat/test-qdesn-rhs-mcmc-repair.R`
+
+The implemented resolver does three things:
+
+- selects an experiment by `experiment_id` or `run_order`;
+- materializes the exact validation defaults for that experiment while keeping
+  the broader validation stack unchanged;
+- rejects non-executable placeholder stages such as:
+  - multichain stubs;
+  - `best_from_B` profile dependencies;
+  - and design-only rows in stage `E`.
+
+This means stages `A` and `B` are directly executable now, while later stages
+remain deliberately blocked until the earlier evidence determines the correct
+branch to expand.
+
+Current execution entry point:
+
+```bash
+Rscript scripts/run_qdesn_rhs_mcmc_repair_experiment.R --experiment-id A1_current_long --no-plots
+```
 
 ## 0) Main Current Question
 

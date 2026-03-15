@@ -380,6 +380,13 @@ and its own machine-readable experiment matrix:
 
 - `config/validation/qdesn_rhs_mcmc_repair_matrix.csv`
 
+with the current executable support files:
+
+- `config/validation/qdesn_rhs_primary_hard_grid.csv`
+- `config/validation/qdesn_rhs_mcmc_repair_profiles.yaml`
+- `R/qdesn_rhs_mcmc_repair.R`
+- `scripts/run_qdesn_rhs_mcmc_repair_experiment.R`
+
 Use those files for:
 
 - the long-run diagnosis;
