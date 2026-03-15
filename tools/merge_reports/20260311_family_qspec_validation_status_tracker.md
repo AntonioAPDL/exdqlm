@@ -1423,3 +1423,90 @@ Interpretation:
 - It is dependency-aware and signoff-aware.
 - The next decision is no longer infrastructure readiness.
 - The next decision is threshold policy and the exact repair wave to launch.
+
+## 2026-03-14 Recommended Policy And Repair Wiring
+
+Based on the current completed campaign outputs, the recommended policy is now:
+
+- keep all current `PASS` thresholds unchanged
+- keep hard numerical / missing-diagnostic failures as `FAIL`
+- relax only the `WARN`-level MCMC eligibility thresholds
+
+Recommended MCMC `WARN` overrides:
+
+- `ESS sigma warn`: `10 -> 5`
+- `ESS gamma warn`: `10 -> 5`
+- `ESS state warn`: `10 -> 5`
+- `ACF1 warn`: `0.98 -> 0.995`
+- `Geweke abs z warn`: `3.0 -> 5.0`
+- `Half-chain drift warn`: `0.50 -> 0.75`
+
+No VB threshold relaxation is currently recommended.
+
+Rationale from the current failure surface:
+
+- under the original policy:
+  - unhealthy fitted-method rows: `114`
+  - comparison-eligible method fits: `174 / 288`
+  - targeted repair model paths: `91`
+- under the recommended policy:
+  - unhealthy fitted-method rows: `100`
+  - comparison-eligible method fits: `188 / 288`
+  - targeted repair model paths: `80`
+
+Current updated signoff counts under the recommended policy:
+
+- `PASS`: `93`
+- `WARN`: `95`
+- `FAIL`: `100`
+- algorithm-pair eligible: `64 / 144`
+- model-pair eligible: `62 / 144`
+- fully eligible roots: `10 / 72`
+- any-eligible roots: `67 / 72`
+
+Residual failure composition after the recommended policy:
+
+- soft-only failures:
+  - `71`
+- hard-only failures:
+  - `27`
+- mixed hard/soft failures:
+  - `2`
+
+Interpretation:
+
+- the remaining repair wave is still necessary
+- but the policy-adjusted view confirms that most residual failures are still MCMC-soft rather than hard-execution pathologies
+- all current VB failures remain concentrated in the extended models and still look like real repair targets rather than threshold artifacts
+
+Recommended policy/tuning files now in the repo:
+
+- signoff policy env:
+  - `tools/merge_reports/20260314_family_qspec_signoff_policy_recommended.env`
+- repair tuning env:
+  - `tools/merge_reports/20260314_family_qspec_repair_tuning_recommended.env`
+- policy rebuild wrapper:
+  - `tools/merge_reports/20260314_rebuild_family_qspec_signoff_recommended.sh`
+- repair supervisor wrapper with policy+tuning:
+  - `tools/merge_reports/20260314_family_qspec_repair_supervisor_recommended.sh`
+- policy note:
+  - `tools/merge_reports/20260314_family_qspec_policy_recommendation.md`
+
+Recommended repair-wave defaults now wired:
+
+- static MCMC burn:
+  - `1000`
+- dynamic MCMC burn:
+  - `1000`
+- static MCMC keep:
+  - `3000`
+- dynamic MCMC keep:
+  - `3000`
+- static and dynamic trace diagnostics:
+  - enabled
+- trace interval:
+  - `25`
+
+This means the framework is now ready for the next step:
+
+- rerun only the remaining unhealthy model-path targets under the recommended policy and the heavier repair-wave MCMC settings

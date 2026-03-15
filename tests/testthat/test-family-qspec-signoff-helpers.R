@@ -28,4 +28,16 @@ test_that("family-qspec signoff helpers classify diagnostics consistently", {
   cfg <- fqsg_signoff_cfg()
   expect_true(cfg$vb$tail_window >= 2L)
   expect_true(cfg$mcmc$min_keep_pass >= cfg$mcmc$min_keep_warn)
+
+  withr::local_envvar(c(
+    EXDQLM_FQSG_MCMC_ESS_SIGMA_WARN = "5",
+    EXDQLM_FQSG_MCMC_ACF1_WARN = "0.995",
+    EXDQLM_FQSG_MCMC_GEWEKE_ABSZ_WARN = "5.0",
+    EXDQLM_FQSG_MCMC_HALF_DRIFT_WARN = "0.75"
+  ))
+  cfg_override <- fqsg_signoff_cfg()
+  expect_equal(cfg_override$mcmc$ess_sigma_warn, 5)
+  expect_equal(cfg_override$mcmc$acf1_warn, 0.995)
+  expect_equal(cfg_override$mcmc$geweke_absz_warn, 5.0)
+  expect_equal(cfg_override$mcmc$half_drift_warn, 0.75)
 })

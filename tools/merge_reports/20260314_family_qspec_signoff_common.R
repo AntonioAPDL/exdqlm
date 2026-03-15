@@ -35,6 +35,22 @@ fqsg_safe_num <- function(x) {
   out[[1L]]
 }
 
+fqsg_env_num <- function(name, default) {
+  raw <- Sys.getenv(name, "")
+  if (!nzchar(raw)) return(default)
+  val <- suppressWarnings(as.numeric(raw)[1L])
+  if (!is.finite(val) || is.na(val)) return(default)
+  val
+}
+
+fqsg_env_int <- function(name, default) {
+  raw <- Sys.getenv(name, "")
+  if (!nzchar(raw)) return(default)
+  val <- suppressWarnings(as.integer(raw)[1L])
+  if (!is.finite(val) || is.na(val)) return(default)
+  val
+}
+
 fqsg_strip_attrs <- function(x) {
   y <- unclass(x)
   attributes(y) <- attributes(y)[setdiff(names(attributes(y)), "class")]
@@ -143,39 +159,39 @@ fqsg_trace_tail_metrics <- function(x, tail_window = 5L, scale_floor = 1e-8, uni
 fqsg_signoff_cfg <- function() {
   list(
     vb = list(
-      tail_window = 5L,
-      min_trace_length = 5L,
-      elbo_rel_range_pass = 0.01,
-      elbo_rel_range_warn = 0.05,
-      core_rel_range_pass = 0.02,
-      core_rel_range_warn = 0.10,
-      rhs_rel_range_pass = 0.05,
-      rhs_rel_range_warn = 0.20,
-      delta_state_pass = 0.02,
-      delta_state_warn = 0.10,
-      delta_sigma_pass = 0.02,
-      delta_sigma_warn = 0.10,
-      delta_gamma_pass = 0.02,
-      delta_gamma_warn = 0.10,
-      delta_s_pass = 0.02,
-      delta_s_warn = 0.10,
+      tail_window = fqsg_env_int("EXDQLM_FQSG_VB_TAIL_WINDOW", 5L),
+      min_trace_length = fqsg_env_int("EXDQLM_FQSG_VB_MIN_TRACE_LENGTH", 5L),
+      elbo_rel_range_pass = fqsg_env_num("EXDQLM_FQSG_VB_ELBO_REL_RANGE_PASS", 0.01),
+      elbo_rel_range_warn = fqsg_env_num("EXDQLM_FQSG_VB_ELBO_REL_RANGE_WARN", 0.05),
+      core_rel_range_pass = fqsg_env_num("EXDQLM_FQSG_VB_CORE_REL_RANGE_PASS", 0.02),
+      core_rel_range_warn = fqsg_env_num("EXDQLM_FQSG_VB_CORE_REL_RANGE_WARN", 0.10),
+      rhs_rel_range_pass = fqsg_env_num("EXDQLM_FQSG_VB_RHS_REL_RANGE_PASS", 0.05),
+      rhs_rel_range_warn = fqsg_env_num("EXDQLM_FQSG_VB_RHS_REL_RANGE_WARN", 0.20),
+      delta_state_pass = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_STATE_PASS", 0.02),
+      delta_state_warn = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_STATE_WARN", 0.10),
+      delta_sigma_pass = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_SIGMA_PASS", 0.02),
+      delta_sigma_warn = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_SIGMA_WARN", 0.10),
+      delta_gamma_pass = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_GAMMA_PASS", 0.02),
+      delta_gamma_warn = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_GAMMA_WARN", 0.10),
+      delta_s_pass = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_S_PASS", 0.02),
+      delta_s_warn = fqsg_env_num("EXDQLM_FQSG_VB_DELTA_S_WARN", 0.10),
       require_converged_for_pass = TRUE
     ),
     mcmc = list(
-      min_keep_pass = 160L,
-      min_keep_warn = 100L,
-      ess_sigma_pass = 30,
-      ess_sigma_warn = 10,
-      ess_gamma_pass = 20,
-      ess_gamma_warn = 10,
-      ess_state_pass = 30,
-      ess_state_warn = 10,
-      acf1_pass = 0.90,
-      acf1_warn = 0.98,
-      geweke_absz_pass = 2.0,
-      geweke_absz_warn = 3.0,
-      half_drift_pass = 0.25,
-      half_drift_warn = 0.50,
+      min_keep_pass = fqsg_env_int("EXDQLM_FQSG_MCMC_MIN_KEEP_PASS", 160L),
+      min_keep_warn = fqsg_env_int("EXDQLM_FQSG_MCMC_MIN_KEEP_WARN", 100L),
+      ess_sigma_pass = fqsg_env_num("EXDQLM_FQSG_MCMC_ESS_SIGMA_PASS", 30),
+      ess_sigma_warn = fqsg_env_num("EXDQLM_FQSG_MCMC_ESS_SIGMA_WARN", 10),
+      ess_gamma_pass = fqsg_env_num("EXDQLM_FQSG_MCMC_ESS_GAMMA_PASS", 20),
+      ess_gamma_warn = fqsg_env_num("EXDQLM_FQSG_MCMC_ESS_GAMMA_WARN", 10),
+      ess_state_pass = fqsg_env_num("EXDQLM_FQSG_MCMC_ESS_STATE_PASS", 30),
+      ess_state_warn = fqsg_env_num("EXDQLM_FQSG_MCMC_ESS_STATE_WARN", 10),
+      acf1_pass = fqsg_env_num("EXDQLM_FQSG_MCMC_ACF1_PASS", 0.90),
+      acf1_warn = fqsg_env_num("EXDQLM_FQSG_MCMC_ACF1_WARN", 0.98),
+      geweke_absz_pass = fqsg_env_num("EXDQLM_FQSG_MCMC_GEWEKE_ABSZ_PASS", 2.0),
+      geweke_absz_warn = fqsg_env_num("EXDQLM_FQSG_MCMC_GEWEKE_ABSZ_WARN", 3.0),
+      half_drift_pass = fqsg_env_num("EXDQLM_FQSG_MCMC_HALF_DRIFT_PASS", 0.25),
+      half_drift_warn = fqsg_env_num("EXDQLM_FQSG_MCMC_HALF_DRIFT_WARN", 0.50),
       require_signoff_ready_for_extended = TRUE
     )
   )

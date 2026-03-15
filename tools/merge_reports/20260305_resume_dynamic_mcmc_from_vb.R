@@ -56,7 +56,7 @@ model <- build_dynamic_dgp_matched_model(sim$info$params, TT = TT)
 
 p_vec <- as.numeric(cfg$taus)
 mcmc_burn <- safe_int(Sys.getenv("EXDQLM_DYNAMIC_MCMC_BURN", Sys.getenv("EXDQLM_MCMC_BURN", as.character(cfg$mcmc$burn))), safe_int(cfg$mcmc$burn, 500L))
-mcmc_n <- safe_int(cfg$mcmc$n, 1000L)
+mcmc_n <- safe_int(Sys.getenv("EXDQLM_DYNAMIC_MCMC_N", as.character(cfg$mcmc$n)), safe_int(cfg$mcmc$n, 1000L))
 mh_adapt_interval <- safe_int(cfg$mcmc$mh$adapt_interval, 25L)
 mh_target <- as.numeric(cfg$mcmc$mh$target_accept)
 mh_bounds <- as.numeric(cfg$mcmc$mh$scale_bounds)

@@ -64,7 +64,7 @@ X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
 
 p_vec <- as.numeric(cfg$taus)
 mcmc_burn <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_BURN", as.character(cfg$mcmc$burn)), safe_int(cfg$mcmc$burn, 500L))
-mcmc_n <- safe_int(cfg$mcmc$n, 1000L)
+mcmc_n <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_N", as.character(cfg$mcmc$n)), safe_int(cfg$mcmc$n, 1000L))
 mcmc_thin <- safe_int(cfg$mcmc$thin, 1L)
 mcmc_mh_proposal <- tolower(Sys.getenv(
   "EXDQLM_STATIC_MCMC_MH_PROPOSAL",

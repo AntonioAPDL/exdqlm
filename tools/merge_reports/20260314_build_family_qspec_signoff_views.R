@@ -4,6 +4,8 @@ args <- commandArgs(trailingOnly = TRUE)
 repo_root <- if (length(args) >= 1L) args[[1]] else "."
 repo_root <- normalizePath(repo_root, mustWork = TRUE)
 force_rebuild <- any(args %in% c("--force", "force"))
+jobs <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_FQSG_REBUILD_JOBS", "1"))[1L])
+if (!is.finite(jobs) || is.na(jobs) || jobs < 1L) jobs <- 1L
 
 source(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_v2_common.R"))
 
@@ -42,8 +44,11 @@ ensure_root_signoff <- function(root_row) {
   invisible(TRUE)
 }
 
-for (i in seq_len(nrow(root_catalog))) {
-  ensure_root_signoff(root_catalog[i, , drop = FALSE])
+root_rows <- lapply(seq_len(nrow(root_catalog)), function(i) root_catalog[i, , drop = FALSE])
+if (jobs > 1L && .Platform$OS.type == "unix") {
+  parallel::mclapply(root_rows, ensure_root_signoff, mc.cores = jobs)
+} else {
+  lapply(root_rows, ensure_root_signoff)
 }
 
 read_root_signoff <- function(root_row, name) {
