@@ -1495,13 +1495,13 @@ Recommended policy/tuning files now in the repo:
 Recommended repair-wave defaults now wired:
 
 - static MCMC burn:
-  - `1000`
+  - `1500`
 - dynamic MCMC burn:
-  - `1000`
+  - `1500`
 - static MCMC keep:
-  - `3000`
+  - `5000`
 - dynamic MCMC keep:
-  - `3000`
+  - `5000`
 - static and dynamic trace diagnostics:
   - enabled
 - trace interval:
@@ -1510,3 +1510,42 @@ Recommended repair-wave defaults now wired:
 This means the framework is now ready for the next step:
 
 - rerun only the remaining unhealthy model-path targets under the recommended policy and the heavier repair-wave MCMC settings
+
+Residual unhealthy concentration under the recommended policy:
+
+- dynamic:
+  - `dqlm` MCMC failures: `18`
+  - `exdqlm` MCMC failures: `18`
+  - `exdqlm` VB failures: `5`
+- static paper:
+  - `exAL` MCMC failures: `12`
+  - `exAL` VB failures: `6`
+- static shrink:
+  - `exAL` MCMC failures: `29`
+  - `exAL` VB failures: `12`
+
+Current median MCMC failure diagnostics for the main residual groups:
+
+- dynamic `dqlm`:
+  - `ESS_sigma ~ 288.5`
+  - `ESS_state ~ 242.3`
+  - `Geweke_sigma ~ 0.64`
+  - failures are mainly state-level Geweke/drift rather than low ESS
+- dynamic `exdqlm`:
+  - `ESS_sigma ~ 11.9`
+  - `ESS_gamma ~ 4.5`
+  - `ACF1_gamma ~ 0.991`
+  - `drift_gamma ~ 0.986`
+- static paper `exAL`:
+  - `ESS_sigma ~ 19.1`
+  - `ESS_gamma ~ 2.45`
+  - `drift_gamma ~ 1.236`
+- static shrink `exAL`:
+  - `ESS_sigma ~ 23.7`
+  - `ESS_gamma ~ 3.50`
+  - `drift_gamma ~ 1.151`
+
+Interpretation:
+
+- the remaining MCMC failures are not consistent with another shallow rerun
+- the repair-wave tuning has therefore been strengthened before launch

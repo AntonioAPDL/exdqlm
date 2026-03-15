@@ -54,11 +54,17 @@ This policy is intentionally conservative:
 
 Recommended repair tuning is currently set to:
 
-- static MCMC burn: `1000`
-- dynamic MCMC burn: `1000`
-- static MCMC keep: `3000`
-- dynamic MCMC keep: `3000`
+- static MCMC burn: `1500`
+- dynamic MCMC burn: `1500`
+- static MCMC keep: `5000`
+- dynamic MCMC keep: `5000`
 - static/dynamic trace diagnostics: enabled
 - static/dynamic trace interval: `25`
+
+Why the heavier rerun is justified:
+
+- dynamic `dqlm` failures are mostly state-Geweke failures despite otherwise decent ESS
+- dynamic `exdqlm` failures still show weak gamma ESS and large drift
+- static `exAL` failures still have very weak gamma ESS and large half-chain drift
 
 This is meant to address the remaining MCMC-heavy tail without changing the scientific interpretation of hard-failure VB cases.
