@@ -199,8 +199,15 @@ case "$unit_type" in
       run_and_watch env EXDQLM_STATIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_postprocess_from_existing_fits.R"
     fi
     ;;
+  root_signoff)
+    run_and_watch nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260314_family_qspec_root_signoff.R" "$run_root_abs" "$repo_root"
+    ;;
   root_review)
-    run_and_watch env EXDQLM_STATIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_vb_mcmc_report.R"
+    if [[ "$root_kind" == "dynamic" ]]; then
+      run_and_watch nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260314_dynamic_vb_mcmc_report.R" "$run_root_abs"
+    else
+      run_and_watch env EXDQLM_STATIC_RUN_ROOT="$run_root_abs" nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_vb_mcmc_report.R"
+    fi
     ;;
   prior_compare)
     compare_out_root="$run_root_abs"

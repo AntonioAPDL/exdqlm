@@ -1199,3 +1199,94 @@ Operational note:
 - Those failures are now superseded by the corrected on-disk state.
 - The authoritative truth is the rebuilt reusable-state audit and runtime queue,
   not the stale historical failure rows in `task_events.tsv`.
+
+## 2026-03-14 Signoff / Eligibility Phase Closure
+
+Status snapshot at 2026-03-14 20:33 EDT:
+
+- The family-qspec workflow now has an explicit fit-health and comparison-eligibility layer between raw fit completion and scientific comparison.
+- This signoff layer is now the authoritative gate for whether a fitted method result is safe to use in root-level, prior-level, campaign-level, and global comparison outputs.
+- Execution is fully complete on the canonical grid:
+  - `144 / 144` model paths complete
+  - `72 / 72` root postprocess tasks complete
+  - `72 / 72` root review tasks complete
+  - `18 / 18` static shrink prior-compare tasks complete
+  - `3 / 3` campaign-review tasks complete
+  - `1 / 1` global-summary task complete
+- However, signoff is intentionally stricter than execution success:
+  - `288` fitted method results audited
+  - `93` method results graded `PASS`
+  - `81` method results graded `WARN`
+  - `114` method results graded `FAIL`
+  - `174 / 288` method results marked `comparison_eligible`
+  - `93 / 288` method results marked `convergence_certified`
+  - `53 / 144` algorithm pairs (`VB vs MCMC`) marked eligible
+  - `50 / 144` model pairs (`extended vs baseline`) marked eligible
+  - `1 / 72` roots fully eligible across all required comparison units
+  - `66 / 72` roots have at least one eligible comparison unit
+  - `114` unhealthy fit targets are now explicitly listed for repair/re-run planning
+
+Signoff outputs now produced for the canonical campaign:
+
+- method-fit signoff:
+  - `tools/merge_reports/20260314_family_qspec_method_signoff.tsv`
+- method-fit summary:
+  - `tools/merge_reports/20260314_family_qspec_method_signoff_summary.tsv`
+- algorithm-pair signoff:
+  - `tools/merge_reports/20260314_family_qspec_algorithm_pair_signoff.tsv`
+- model-pair signoff:
+  - `tools/merge_reports/20260314_family_qspec_model_pair_signoff.tsv`
+- pair summary:
+  - `tools/merge_reports/20260314_family_qspec_pair_signoff_summary.tsv`
+- root readiness:
+  - `tools/merge_reports/20260314_family_qspec_root_readiness.tsv`
+- unhealthy-target repair manifest:
+  - `tools/merge_reports/20260314_family_qspec_unhealthy_targets.tsv`
+- signoff summary:
+  - `tools/merge_reports/20260314_family_qspec_signoff_summary.tsv`
+  - `tools/merge_reports/20260314_family_qspec_signoff_summary.md`
+
+Implemented signoff architecture:
+
+- one row per fitted method result (`VB` or `MCMC`, baseline or extended)
+- explicit `PASS / WARN / FAIL` grading
+- explicit `comparison_eligible` and `convergence_certified` flags
+- explicit pair-level signoff for:
+  - `VB vs MCMC` within a model path
+  - `extended vs baseline` within an inference method
+- explicit root readiness table for downstream comparison gating
+
+Current integration points:
+
+- static and dynamic root-review layers now consume the signoff outputs instead of relying only on artifact existence
+- static shrink prior-compare now uses eligible-only fit rows and writes excluded rows separately
+- campaign and global aggregation are now robust to zero-row / excluded-only cases and mixed legacy/new review schemas
+- the runtime queue is now closed under the signoff-aware workflow:
+  - `0` launch-ready units remain in `20260312_family_qspec_runtime_queue_summary.tsv`
+
+Interpretation:
+
+- The canonical family-qspec execution campaign is complete.
+- The scientific comparison layer is now explicitly gated by health/signoff rather than by file existence alone.
+- The next improvement cycle is therefore not a generic rerun of the whole campaign.
+- The next improvement cycle should be targeted repair of the `114` unhealthy fitted method results listed in `20260314_family_qspec_unhealthy_targets.tsv`, followed by selective rebuild of the affected comparison layers.
+
+Main observed failure modes in the unhealthy-target manifest:
+
+- `low_ess`
+- `high_autocorrelation`
+- `geweke_drift`
+- `half_chain_drift`
+- `non_finite_fit`
+- `ld_unstable`
+- `vb_converged_false`
+- `elbo_tail_unstable`
+- `missing_elbo_trace`
+
+This closes the implementation of the signoff phases. The workflow now supports:
+
+- complete execution tracking
+- explicit fit-health grading
+- explicit comparison eligibility
+- explicit unhealthy-target repair manifests
+- signoff-aware downstream comparison and aggregation

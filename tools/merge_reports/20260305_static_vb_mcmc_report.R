@@ -289,6 +289,25 @@ dir.create(out_plots_rhs, recursive = TRUE, showWarnings = FALSE)
 runtime_diag <- build_runtime_diag(run_root, out_tables, summary_df)
 utils::write.csv(runtime_diag, file.path(out_tables, "runtime_diagnostics_summary.csv"), row.names = FALSE)
 
+method_signoff <- read_csv_maybe_empty(file.path(out_tables, "method_signoff_long.csv"))
+algorithm_pair_signoff <- read_csv_maybe_empty(file.path(out_tables, "algorithm_pair_signoff.csv"))
+model_pair_signoff <- read_csv_maybe_empty(file.path(out_tables, "model_pair_signoff.csv"))
+root_signoff_summary <- read_csv_maybe_empty(file.path(out_tables, "root_signoff_summary.csv"))
+
+if (nrow(method_signoff) > 0) {
+  method_signoff$inference <- tolower(as.character(method_signoff$inference))
+  method_signoff$model <- tolower(as.character(method_signoff$model))
+  method_signoff$tau <- suppressWarnings(as.numeric(method_signoff$tau))
+}
+if (nrow(algorithm_pair_signoff) > 0) {
+  algorithm_pair_signoff$model <- tolower(as.character(algorithm_pair_signoff$model))
+  algorithm_pair_signoff$tau <- suppressWarnings(as.numeric(algorithm_pair_signoff$tau))
+}
+if (nrow(model_pair_signoff) > 0) {
+  model_pair_signoff$inference <- tolower(as.character(model_pair_signoff$inference))
+  model_pair_signoff$tau <- suppressWarnings(as.numeric(model_pair_signoff$tau))
+}
+
 TT <- if (!is.null(cfg$TT)) as.integer(cfg$TT) else nrow(sim$extras$X)
 X <- as.matrix(sim$extras$X[seq_len(TT), , drop = FALSE])
 if (is.null(colnames(X))) colnames(X) <- paste0("x", seq_len(ncol(X)))
@@ -383,7 +402,28 @@ for (i in seq_len(nrow(runtime_diag))) {
 }
 
 metrics_df <- if (length(collect_rows)) do.call(rbind, collect_rows) else data.frame()
+if (nrow(metrics_df) > 0 && nrow(method_signoff) > 0) {
+  signoff_cols <- method_signoff[, c(
+    "inference", "model", "tau", "signoff_grade", "comparison_eligible",
+    "convergence_certified", "execution_healthy", "signoff_reason"
+  ), drop = FALSE]
+  metrics_df <- merge(
+    metrics_df,
+    signoff_cols,
+    by.x = c("method", "model", "tau"),
+    by.y = c("inference", "model", "tau"),
+    all.x = TRUE,
+    sort = FALSE
+  )
+}
+metrics_df <- ensure_col(metrics_df, "signoff_grade", NA_character_)
+metrics_df <- ensure_col(metrics_df, "comparison_eligible", NA)
+metrics_df <- ensure_col(metrics_df, "convergence_certified", NA)
+metrics_df <- ensure_col(metrics_df, "execution_healthy", NA)
+metrics_df <- ensure_col(metrics_df, "signoff_reason", NA_character_)
 utils::write.csv(metrics_df, file.path(out_tables, "fit_metrics_by_task.csv"), row.names = FALSE)
+eligible_metrics_df <- if (nrow(metrics_df)) metrics_df[as.logical(metrics_df$comparison_eligible %in% TRUE), , drop = FALSE] else metrics_df
+utils::write.csv(eligible_metrics_df, file.path(out_tables, "fit_metrics_by_task_eligible.csv"), row.names = FALSE)
 
 # Runtime + diagnostic summary from canonical postprocess tables
 runtime_diag$vb_runtime_sec <- suppressWarnings(as.numeric(runtime_diag$vb_runtime_sec))
@@ -437,7 +477,30 @@ pair_df <- if (length(pair_rows)) {
     stringsAsFactors = FALSE
   )
 }
-utils::write.csv(pair_df, file.path(out_tables, "pairwise_exal_vs_al.csv"), row.names = FALSE)
+pair_df <- ensure_col(pair_df, "pair_signoff_grade", NA_character_)
+pair_df <- ensure_col(pair_df, "pair_comparison_eligible", NA)
+pair_df <- ensure_col(pair_df, "baseline_signoff_grade", NA_character_)
+pair_df <- ensure_col(pair_df, "extended_signoff_grade", NA_character_)
+if (nrow(pair_df) > 0 && nrow(model_pair_signoff) > 0) {
+  pair_map <- model_pair_signoff[, c(
+    "inference", "tau", "pair_signoff_grade", "pair_comparison_eligible",
+    "baseline_signoff_grade", "extended_signoff_grade"
+  ), drop = FALSE]
+  names(pair_map)[names(pair_map) == "inference"] <- "method"
+  pair_df <- merge(pair_df, pair_map, by = c("method", "tau"), all.x = TRUE, sort = FALSE, suffixes = c("", ".signoff"))
+  for (nm in c("pair_signoff_grade", "pair_comparison_eligible", "baseline_signoff_grade", "extended_signoff_grade")) {
+    nm_new <- paste0(nm, ".signoff")
+    if (nm_new %in% names(pair_df)) {
+      idx <- is.na(pair_df[[nm]]) | !nzchar(as.character(pair_df[[nm]]))
+      pair_df[[nm]][idx] <- pair_df[[nm_new]][idx]
+      pair_df[[nm_new]] <- NULL
+    }
+  }
+}
+pair_df_eligible <- if (nrow(pair_df)) pair_df[as.logical(pair_df$pair_comparison_eligible %in% TRUE), , drop = FALSE] else pair_df
+pair_df_excluded <- if (nrow(pair_df)) pair_df[!as.logical(pair_df$pair_comparison_eligible %in% TRUE), , drop = FALSE] else pair_df
+utils::write.csv(pair_df_eligible, file.path(out_tables, "pairwise_exal_vs_al.csv"), row.names = FALSE)
+utils::write.csv(pair_df_excluded, file.path(out_tables, "pairwise_exal_vs_al_excluded.csv"), row.names = FALSE)
 
 # Acceptance gates
 ess_sigma_min <- safe_num(Sys.getenv("EXDQLM_STATIC_GATE_ESS_SIGMA_MIN", "30"), 30)
@@ -533,6 +596,19 @@ if (nrow(metrics_df) > 0) {
 
 gate_df <- merge(vb_rows, acc_df, by = c("model", "tau"), all.x = TRUE)
 gate_df$gate_accuracy[is.na(gate_df$gate_accuracy)] <- FALSE
+if (nrow(method_signoff) > 0) {
+  vb_signoff <- method_signoff[method_signoff$inference == "vb", c("model", "tau", "signoff_grade", "comparison_eligible", "signoff_reason"), drop = FALSE]
+  names(vb_signoff) <- c("model", "tau", "vb_signoff_grade", "vb_comparison_eligible", "vb_signoff_reason")
+  gate_df <- merge(gate_df, vb_signoff, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+  mc_signoff <- method_signoff[method_signoff$inference == "mcmc", c("model", "tau", "signoff_grade", "comparison_eligible", "signoff_reason"), drop = FALSE]
+  names(mc_signoff) <- c("model", "tau", "mcmc_signoff_grade", "mcmc_comparison_eligible", "mcmc_signoff_reason")
+  gate_df <- merge(gate_df, mc_signoff, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+}
+if (nrow(algorithm_pair_signoff) > 0) {
+  alg_cols <- algorithm_pair_signoff[, c("model", "tau", "pair_signoff_grade", "pair_comparison_eligible"), drop = FALSE]
+  names(alg_cols) <- c("model", "tau", "algorithm_pair_signoff_grade", "algorithm_pair_comparison_eligible")
+  gate_df <- merge(gate_df, alg_cols, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+}
 gate_df$overall_pass <- with(
   gate_df,
   gate_vb_converged & gate_vb_ld_stable & gate_vb_ld_local_mode &
@@ -817,6 +893,15 @@ writeLines(c(
   "",
   sprintf("- gate_pass_count: %d", sum(gate_df$overall_pass, na.rm = TRUE)),
   sprintf("- gate_fail_count: %d", sum(!gate_df$overall_pass, na.rm = TRUE)),
+  sprintf("- method_signoff_pass_count: %d", if (nrow(method_signoff)) sum(method_signoff$signoff_grade == "PASS", na.rm = TRUE) else 0L),
+  sprintf("- method_signoff_warn_count: %d", if (nrow(method_signoff)) sum(method_signoff$signoff_grade == "WARN", na.rm = TRUE) else 0L),
+  sprintf("- method_signoff_fail_count: %d", if (nrow(method_signoff)) sum(method_signoff$signoff_grade == "FAIL", na.rm = TRUE) else 0L),
+  sprintf("- method_comparison_eligible_count: %d", if (nrow(method_signoff)) sum(as.logical(method_signoff$comparison_eligible), na.rm = TRUE) else 0L),
+  sprintf("- algorithm_pair_eligible_count: %d", if (nrow(algorithm_pair_signoff)) sum(as.logical(algorithm_pair_signoff$pair_comparison_eligible), na.rm = TRUE) else 0L),
+  sprintf("- model_pair_eligible_count: %d", if (nrow(model_pair_signoff)) sum(as.logical(model_pair_signoff$pair_comparison_eligible), na.rm = TRUE) else 0L),
+  sprintf("- eligible_metric_rows: %d", nrow(eligible_metrics_df)),
+  sprintf("- eligible_pairwise_rows: %d", nrow(pair_df_eligible)),
+  sprintf("- excluded_pairwise_rows: %d", nrow(pair_df_excluded)),
   sprintf("- rhs_rows: %d", if (nrow(rhs_diag)) nrow(rhs_diag) else 0L),
   sprintf("- rhs_collapse_flag_count: %d", if (nrow(rhs_diag) && "rhs_collapse_flag" %in% names(rhs_diag)) sum(rhs_diag$rhs_collapse_flag, na.rm = TRUE) else 0L)
 ), con)
