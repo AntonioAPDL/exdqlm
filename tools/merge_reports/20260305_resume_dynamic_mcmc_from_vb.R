@@ -40,6 +40,11 @@ safe_chr_vec <- function(x, default = NULL) {
   vals
 }
 
+is_true_env <- function(name, default = "false") {
+  raw <- Sys.getenv(name, default)
+  tolower(raw) %in% c("1", "true", "yes", "on")
+}
+
 cfg_path <- Sys.getenv(
   "EXDQLM_DYNAMIC_RUN_CONFIG",
   "results/function_testing_20260304_vb_quantiles/rerun_vb_then_mcmc_tt5000_vbns1000_burn2000_n1000_20260304_183508/tables/run_config.rds"
@@ -79,6 +84,10 @@ mcmc_verbose <- identical(tolower(Sys.getenv("EXDQLM_DYNAMIC_MCMC_VERBOSE", "tru
 cores <- safe_int(Sys.getenv("EXDQLM_DYNAMIC_RESUME_CORES", as.character(cfg$cores_pipeline)), safe_int(cfg$cores_pipeline, 2L))
 cores <- max(1L, min(cores, safe_int(parallel::detectCores(logical = FALSE), 2L)))
 dry_run <- identical(tolower(Sys.getenv("EXDQLM_DYNAMIC_RESUME_DRYRUN", "0")), "1")
+force_resume_overwrite <- is_true_env(
+  "EXDQLM_DYNAMIC_RESUME_OVERWRITE",
+  if (is_true_env("EXDQLM_RESUME_OVERWRITE", "false")) "true" else "false"
+)
 
 status_dir <- file.path(run_root, "logs")
 master_log <- file.path(status_dir, "resume_dynamic_master.log")
@@ -237,9 +246,13 @@ safe_task <- function(task_row) {
   vb_file <- file.path(run_root, "fits", "vb", sprintf("vb_%s_tau_%s_fit.rds", model_name, tau_lab(tau)))
   m_file <- file.path(run_root, "fits", "mcmc", sprintf("mcmc_%s_tau_%s_fit.rds", model_name, tau_lab(tau)))
 
-  if (file.exists(m_file)) {
+  if (file.exists(m_file) && !force_resume_overwrite) {
     log_task(model_name, tau, "resume skip: mcmc fit already exists")
     return(data.frame(model = model_name, tau = tau, status = "skipped_existing", mcmc_file = m_file, stringsAsFactors = FALSE))
+  }
+  if (file.exists(m_file) && force_resume_overwrite) {
+    write_status(model_name, tau, "RESUME_FORCE_OVERWRITE", sprintf("existing_mcmc=%s", basename(m_file)))
+    log_task(model_name, tau, "resume overwrite: existing mcmc fit will be replaced")
   }
   if (!file.exists(vb_file)) {
     msg <- sprintf("missing VB fit file: %s", vb_file)
