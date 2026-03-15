@@ -1831,3 +1831,90 @@ Operational implication:
 - the next wave should rerun only the `25` deeper-chain targets
 - the `23` newly eligible rows can be admitted to comparison under the accepted second-wave policy without rerun
 - the `52` remaining rows (`23 + 20 + 5 + 4`) stay out of automatic rerun until addressed by later policy or debugging work
+
+## 2026-03-15 Applied Second-Wave Policy Refresh And Corrected Relaunch
+
+Accepted second-wave policy was applied to the canonical signoff and scientific-comparison outputs.
+
+Applied post-policy signoff snapshot:
+
+- method fits:
+  - `288` total
+  - `93 PASS`
+  - `118 WARN`
+  - `77 FAIL`
+  - `211 comparison-eligible`
+- algorithm pairs:
+  - `86 / 144 eligible`
+- model pairs:
+  - `74 / 144 eligible`
+- roots:
+  - `21 / 72 fully eligible`
+  - `69 / 72 with any eligible comparison`
+- unhealthy targets remaining under the accepted second-wave policy:
+  - `77`
+
+Net effect relative to the pre-refresh recommended-policy state:
+
+- `FAIL`: `100 -> 77`
+- comparison-eligible method fits: `188 -> 211`
+- eligible algorithm pairs: `64 -> 86`
+- eligible model pairs: `62 -> 74`
+- fully eligible roots: `10 -> 21`
+
+Authoritative refreshed outputs:
+
+- `tools/merge_reports/20260314_family_qspec_method_signoff.tsv`
+- `tools/merge_reports/20260314_family_qspec_algorithm_pair_signoff.tsv`
+- `tools/merge_reports/20260314_family_qspec_model_pair_signoff.tsv`
+- `tools/merge_reports/20260314_family_qspec_root_readiness.tsv`
+- `tools/merge_reports/20260314_family_qspec_signoff_summary.tsv`
+- `tools/merge_reports/20260314_family_qspec_scientific_comparison_snapshot.tsv`
+
+### First Second-Wave Launch Was Aborted
+
+The first second-wave launch was invalid and intentionally aborted.
+
+Aborted state dir:
+
+- `/home/jaguir26/local/state/exdqlm/family_qspec_second_wave_20260315_170244_aborted_skip_existing`
+
+Reason:
+
+- resume tasks were still respecting existing `mcmc_*.rds` outputs and immediately short-circuiting as `skipped_existing`
+- this produced a no-op wave rather than a genuine deeper-chain rerun
+
+Corrective fix:
+
+- force-overwrite support was added to the resume runners:
+  - `tools/merge_reports/20260305_resume_dynamic_mcmc_from_vb.R`
+  - `tools/merge_reports/20260305_resume_static_mcmc_from_vb.R`
+- second-wave supervisor now exports overwrite env vars so the deeper-chain rerun actually replaces the existing MCMC artifacts for the targeted rows:
+  - `tools/merge_reports/20260315_family_qspec_second_wave_supervisor.sh`
+
+### Valid Corrected Second-Wave Relaunch
+
+Valid second-wave state dir:
+
+- `/home/jaguir26/local/state/exdqlm/family_qspec_second_wave_20260315_171146_force`
+
+Launch characteristics:
+
+- scope:
+  - `25` deeper-chain `model_path` reruns
+  - `18` downstream impacted roots
+  - `7` impacted prior-compare barriers
+  - `3` campaign reviews
+  - `1` global summary
+- tuning:
+  - `burn = 3000`
+  - `keep = 8000`
+  - `progress_every = 25`
+- launch mode:
+  - forced overwrite of targeted existing MCMC fits
+
+Live validation at relaunch:
+
+- worker logs showed real burn-in / MCMC iteration progress for both dynamic and static targeted rows
+- the corrected wave no longer exhibited the immediate `skipped_existing` no-op pattern
+- the live queue state at launch showed `25` running `model_path` tasks and no downstream launches yet, which is the expected initial condition for a genuine second-wave rerun
