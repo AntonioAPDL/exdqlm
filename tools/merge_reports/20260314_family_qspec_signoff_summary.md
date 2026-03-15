@@ -1,6 +1,6 @@
 # Family-QSpec Signoff Views
 
-- generated_at: `2026-03-14 22:37:43`
+- generated_at: `2026-03-15 16:02:59`
 - method_fit_count: `288`
 - method_fit_pass_count: `93`
 - method_fit_warn_count: `95`
