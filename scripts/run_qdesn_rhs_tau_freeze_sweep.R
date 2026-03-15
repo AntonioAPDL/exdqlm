@@ -34,7 +34,7 @@ results_root <- get_arg("--results-root", file.path("results", "qdesn_mcmc_valid
 reports_root <- get_arg("--reports-root", file.path("reports", "qdesn_mcmc_validation", "rhs_tau_freeze_sweep"))
 
 stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
-analysis_root <- file.path(reports_root, paste0(stamp, "__git-", exdqlm:::qdesn_validation_git_sha()))
+analysis_root <- file.path(reports_root, paste0(stamp, "__git-", exdqlm:::.qdesn_validation_git_sha()))
 dir.create(analysis_root, recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(analysis_root, "tables"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(analysis_root, "manifest"), recursive = TRUE, showWarnings = FALSE)
