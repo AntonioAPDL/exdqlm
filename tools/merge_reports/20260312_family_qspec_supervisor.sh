@@ -6,6 +6,10 @@ state_dir="/home/jaguir26/local/state/exdqlm/family_qspec_v2"
 slot_budget=30
 poll_sec=20
 mode="dry_run"
+queue_builder_script="tools/merge_reports/20260312_build_family_qspec_runtime_queue.R"
+queue_tsv=""
+queue_summary_tsv=""
+worker_script="tools/merge_reports/20260312_family_qspec_worker.sh"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -19,6 +23,22 @@ while [[ $# -gt 0 ]]; do
       ;;
     --slot-budget)
       slot_budget="$2"
+      shift 2
+      ;;
+    --queue-builder-script)
+      queue_builder_script="$2"
+      shift 2
+      ;;
+    --queue-tsv)
+      queue_tsv="$2"
+      shift 2
+      ;;
+    --queue-summary-tsv)
+      queue_summary_tsv="$2"
+      shift 2
+      ;;
+    --worker-script)
+      worker_script="$2"
       shift 2
       ;;
     --poll-sec)
@@ -42,9 +62,28 @@ done
 
 repo_root="$(cd "$repo_root" && pwd)"
 mkdir -p "$state_dir/locks" "$state_dir/worker_logs"
-queue_tsv="${repo_root}/tools/merge_reports/20260312_family_qspec_runtime_queue.tsv"
-queue_summary_tsv="${repo_root}/tools/merge_reports/20260312_family_qspec_runtime_queue_summary.tsv"
+queue_tsv="${queue_tsv:-${repo_root}/tools/merge_reports/20260312_family_qspec_runtime_queue.tsv}"
+queue_summary_tsv="${queue_summary_tsv:-${repo_root}/tools/merge_reports/20260312_family_qspec_runtime_queue_summary.tsv}"
 launch_registry="${state_dir}/launch_registry.tsv"
+if [[ "$queue_builder_script" = /* ]]; then
+  queue_builder_abs="$queue_builder_script"
+else
+  queue_builder_abs="${repo_root}/${queue_builder_script}"
+fi
+if [[ "$worker_script" = /* ]]; then
+  worker_script_abs="$worker_script"
+else
+  worker_script_abs="${repo_root}/${worker_script}"
+fi
+
+if [[ ! -f "$queue_builder_abs" ]]; then
+  echo "Queue builder script not found: $queue_builder_abs" >&2
+  exit 1
+fi
+if [[ ! -f "$worker_script_abs" ]]; then
+  echo "Worker script not found: $worker_script_abs" >&2
+  exit 1
+fi
 
 log_registry() {
   local session_name="$1"
@@ -62,8 +101,10 @@ log_registry() {
 }
 
 rebuild_queue() {
-  (cd "$repo_root" && Rscript tools/merge_reports/20260312_build_family_qspec_reusable_state_audit.R "$repo_root" >/dev/null)
-  (cd "$repo_root" && Rscript tools/merge_reports/20260312_build_family_qspec_runtime_queue.R "$repo_root" >/dev/null)
+  if [[ "$queue_builder_script" == "tools/merge_reports/20260312_build_family_qspec_runtime_queue.R" ]]; then
+    (cd "$repo_root" && Rscript tools/merge_reports/20260312_build_family_qspec_reusable_state_audit.R "$repo_root" >/dev/null)
+  fi
+  (cd "$repo_root" && Rscript "$queue_builder_abs" "$repo_root" "$state_dir" >/dev/null)
 }
 
 reap_stale_locks() {
@@ -146,7 +187,7 @@ launch_task() {
   printf '%s\n' "$session_name" > "$lock_dir/session_name"
   (
     cd "$repo_root"
-    nohup setsid tools/merge_reports/20260312_family_qspec_worker.sh "$repo_root" "$state_dir" "$task_id" "$session_name" >/dev/null 2>&1 < /dev/null &
+    nohup setsid "$worker_script_abs" "$repo_root" "$state_dir" "$task_id" "$session_name" "$queue_tsv" >/dev/null 2>&1 < /dev/null &
     printf '%s\n' "$!" > "$lock_dir/pid"
     printf '%s\n' "$!" > "$lock_dir/pgid"
   )

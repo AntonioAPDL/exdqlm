@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 4 ]]; then
-  echo "Usage: $0 <repo_root> <state_dir> <task_id> <session_name>" >&2
+if [[ $# -lt 4 || $# -gt 5 ]]; then
+  echo "Usage: $0 <repo_root> <state_dir> <task_id> <session_name> [queue_tsv]" >&2
   exit 1
 fi
 
@@ -10,7 +10,7 @@ repo_root="$1"
 state_dir="$2"
 task_id="$3"
 session_name="$4"
-queue_tsv="${repo_root}/tools/merge_reports/20260312_family_qspec_runtime_queue.tsv"
+queue_tsv="${5:-${repo_root}/tools/merge_reports/20260312_family_qspec_runtime_queue.tsv}"
 log_dir="${state_dir}/worker_logs"
 lock_dir="${state_dir}/locks/${task_id}"
 log_path="${log_dir}/${task_id}.log"

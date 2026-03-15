@@ -1343,3 +1343,83 @@ Interpretation:
 - The full comparison stack is now implemented and rebuilt on the canonical campaign outputs.
 - The next iteration no longer needs new comparison plumbing.
 - The next iteration should focus on repairing unhealthy fitted methods so a larger share of the existing comparison surfaces becomes scientifically eligible.
+
+## 2026-03-14 Targeted Repair Launcher Ready
+
+The targeted repair lane for unhealthy fits is now implemented as a separate, signoff-aware repair wave rather than a rerun of the whole campaign.
+
+New repair-wave control files:
+
+- repair queue builder:
+  - `tools/merge_reports/20260314_build_family_qspec_repair_queue.R`
+- repair supervisor wrapper:
+  - `tools/merge_reports/20260314_family_qspec_repair_supervisor.sh`
+- repair queue:
+  - `tools/merge_reports/20260314_family_qspec_repair_queue.tsv`
+- repair queue summary:
+  - `tools/merge_reports/20260314_family_qspec_repair_queue_summary.tsv`
+- repair plan summary:
+  - `tools/merge_reports/20260314_family_qspec_repair_plan_summary.tsv`
+
+Repair-wave design:
+
+- uses a dedicated state directory:
+  - `/home/jaguir26/local/state/exdqlm/family_qspec_repair_v1`
+- uses the existing unhealthy-target manifest as the seed:
+  - `tools/merge_reports/20260314_family_qspec_unhealthy_targets.tsv`
+- expands that seed through the dependency graph to rebuild only the affected downstream units:
+  - `model_path`
+  - `root_postprocess`
+  - `root_signoff`
+  - `root_review`
+  - `prior_compare`
+  - `campaign_review`
+  - `global_summary`
+- tracks completion within the repair wave itself instead of confusing old on-disk artifacts with repaired results
+
+Current dry-run counts:
+
+- unhealthy fitted-method rows:
+  - `114`
+- targeted `model_path` repair tasks:
+  - `91`
+- impacted roots:
+  - `71`
+- targeted `root_postprocess` tasks:
+  - `71`
+- targeted `root_signoff` tasks:
+  - `71`
+- targeted `root_review` tasks:
+  - `71`
+- targeted `prior_compare` tasks:
+  - `18`
+- targeted `campaign_review` tasks:
+  - `3`
+- targeted `global_summary` tasks:
+  - `1`
+- launch-ready now:
+  - `91`
+
+Current launch-ready semantics:
+
+- only the unhealthy `model_path` tasks are launch-ready at the start of the repair wave
+- all downstream tasks remain blocked until the repair wave marks the relevant upstream tasks as complete
+
+Dry-run verification completed:
+
+- `bash -n` passed for:
+  - `tools/merge_reports/20260312_family_qspec_supervisor.sh`
+  - `tools/merge_reports/20260312_family_qspec_worker.sh`
+  - `tools/merge_reports/20260314_family_qspec_repair_supervisor.sh`
+- the repair queue builder now writes all three repair artifacts successfully
+- the repair supervisor dry-run now reports the correct queue state and launch-ready head
+- the repair smoke test passes:
+  - `tests/testthat/test-family-qspec-repair-queue-smoke.R`
+
+Interpretation:
+
+- The targeted unhealthy-fit repair lane is ready to launch.
+- It is isolated from the canonical campaign state.
+- It is dependency-aware and signoff-aware.
+- The next decision is no longer infrastructure readiness.
+- The next decision is threshold policy and the exact repair wave to launch.
