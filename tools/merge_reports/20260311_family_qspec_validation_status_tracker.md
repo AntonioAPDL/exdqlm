@@ -1290,3 +1290,56 @@ This closes the implementation of the signoff phases. The workflow now supports:
 - explicit comparison eligibility
 - explicit unhealthy-target repair manifests
 - signoff-aware downstream comparison and aggregation
+
+## 2026-03-14 Comparison Snapshot Closure
+
+The validation framework now has all three intended scientific comparison layers materialized at campaign and global scope:
+
+- `VB vs MCMC`
+- `extended vs baseline`
+- `rhs vs ridge`
+
+The missing compact `VB vs MCMC` campaign/global summary has now been added and rebuilt across the canonical campaign:
+
+- campaign-level outputs:
+  - `tools/merge_reports/20260312_family_qspec_campaign_review__static_paper/tables/vb_vs_mcmc_summary.tsv`
+  - `tools/merge_reports/20260312_family_qspec_campaign_review__static_shrink/tables/vb_vs_mcmc_summary.tsv`
+  - `tools/merge_reports/20260312_family_qspec_campaign_review__dynamic/tables/vb_vs_mcmc_summary.tsv`
+- global outputs:
+  - `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/vb_vs_mcmc_summary.tsv`
+  - `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/pairwise_vb_vs_mcmc_long.tsv`
+  - `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/pairwise_vb_vs_mcmc_eligible_long.tsv`
+  - `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/pairwise_vb_vs_mcmc_excluded_long.tsv`
+
+The campaign/global aggregation layer now also propagates dynamic `extended vs baseline` comparison outputs instead of only the static `exAL vs AL` surface:
+
+- `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/pairwise_exdqlm_vs_dqlm_long.tsv`
+- `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/pairwise_exdqlm_vs_dqlm_excluded_long.tsv`
+- `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/pairwise_model_compare_long.tsv`
+- `tools/merge_reports/20260312_family_qspec_global_cross_family_summary/tables/pairwise_model_compare_excluded_long.tsv`
+
+For human review, the compact scientific snapshot now lives at:
+
+- `tools/merge_reports/20260314_family_qspec_scientific_comparison_snapshot.tsv`
+- `tools/merge_reports/20260314_family_qspec_scientific_comparison_snapshot.md`
+
+Current high-level picture from the produced comparison outputs:
+
+- Dynamic:
+  - baseline `DQLM` currently looks better with `MCMC` than `VB` in `laplace` and `normal`, but not in `gausmix`
+  - extended `exDQLM` currently looks better with `VB` than `MCMC` in all three families
+  - current produced `extended vs baseline` rows lean toward the extended dynamic model under `VB`
+- Static paper:
+  - `MCMC` usually lowers RMSE relative to `VB` for both `AL` and `exAL`
+  - the runtime cost of `MCMC` is much larger than `VB`
+  - `exAL vs AL` remains family-dependent rather than uniformly one-sided
+- Static shrink:
+  - `MCMC` again tends to lower RMSE relative to `VB`
+  - `rhs` lowers false positives relative to `ridge`
+  - `ridge` usually protects signal-recovery RMSE better, though the tradeoff is family-dependent
+
+Interpretation:
+
+- The full comparison stack is now implemented and rebuilt on the canonical campaign outputs.
+- The next iteration no longer needs new comparison plumbing.
+- The next iteration should focus on repairing unhealthy fitted methods so a larger share of the existing comparison surfaces becomes scientifically eligible.

@@ -28,6 +28,13 @@ ensure_col <- function(df, nm, default = NA) {
   df
 }
 
+mean_or_na <- function(x) {
+  x <- suppressWarnings(as.numeric(x))
+  x <- x[is.finite(x)]
+  if (!length(x)) return(NA_real_)
+  mean(x)
+}
+
 metrics_df <- read_csv_required(file.path(out_tables, "metrics_summary.csv"))
 method_signoff <- read_csv_required(file.path(out_tables, "method_signoff_long.csv"))
 algorithm_pair_signoff <- read_csv_required(file.path(out_tables, "algorithm_pair_signoff.csv"))
@@ -118,11 +125,55 @@ if (nrow(gate_df) && nrow(algorithm_pair_signoff)) {
   gate_df <- merge(gate_df, alg_cols, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
 }
 
+vb_mcmc_df <- gate_df
+if (nrow(vb_mcmc_df)) {
+  vb_mcmc_df$mae_vb <- NA_real_
+  vb_mcmc_df$mae_mcmc <- NA_real_
+  vb_mcmc_df$mae_delta_mcmc_minus_vb <- NA_real_
+  vb_mcmc_df$bias_vb <- NA_real_
+  vb_mcmc_df$bias_mcmc <- NA_real_
+  vb_mcmc_df$bias_delta_mcmc_minus_vb <- NA_real_
+  vb_mcmc_df$corr_vb <- NA_real_
+  vb_mcmc_df$corr_mcmc <- NA_real_
+  vb_mcmc_df$corr_delta_mcmc_minus_vb <- NA_real_
+  vb_mcmc_df$vb_runtime_sec <- NA_real_
+  vb_mcmc_df$mcmc_runtime_sec <- NA_real_
+  vb_mcmc_df$runtime_ratio_mcmc_vs_vb <- NA_real_
+  vb_mcmc_df$rmse_delta_mcmc_minus_vb <- vb_mcmc_df$rmse_mcmc - vb_mcmc_df$rmse_vb
+  vb_mcmc_df$coverage_delta_mcmc_minus_vb <- vb_mcmc_df$coverage_mcmc - vb_mcmc_df$coverage_vb
+  vb_mcmc_df$mean_ci_width_delta_mcmc_minus_vb <- vb_mcmc_df$mean_ci_width_mcmc - vb_mcmc_df$mean_ci_width_vb
+  names(vb_mcmc_df)[names(vb_mcmc_df) == "algorithm_pair_signoff_grade.y"] <- "algorithm_pair_signoff_grade"
+  names(vb_mcmc_df)[names(vb_mcmc_df) == "algorithm_pair_comparison_eligible.y"] <- "algorithm_pair_comparison_eligible"
+  vb_mcmc_df <- ensure_col(vb_mcmc_df, "algorithm_pair_signoff_grade", NA_character_)
+  vb_mcmc_df <- ensure_col(vb_mcmc_df, "algorithm_pair_comparison_eligible", NA)
+  keep_cols <- c(
+    "model", "tau",
+    "rmse_vb", "rmse_mcmc", "rmse_delta_mcmc_minus_vb",
+    "mae_vb", "mae_mcmc", "mae_delta_mcmc_minus_vb",
+    "bias_vb", "bias_mcmc", "bias_delta_mcmc_minus_vb",
+    "corr_vb", "corr_mcmc", "corr_delta_mcmc_minus_vb",
+    "coverage_vb", "coverage_mcmc", "coverage_delta_mcmc_minus_vb",
+    "mean_ci_width_vb", "mean_ci_width_mcmc", "mean_ci_width_delta_mcmc_minus_vb",
+    "n_draws_vb", "n_draws_mcmc",
+    "vb_runtime_sec", "mcmc_runtime_sec", "runtime_ratio_mcmc_vs_vb",
+    "signoff_grade_vb", "signoff_grade_mcmc",
+    "comparison_eligible_vb", "comparison_eligible_mcmc",
+    "signoff_reason_vb", "signoff_reason_mcmc",
+    "algorithm_pair_signoff_grade", "algorithm_pair_comparison_eligible"
+  )
+  vb_mcmc_df <- vb_mcmc_df[, keep_cols, drop = FALSE]
+}
+vb_mcmc_eligible_df <- if (nrow(vb_mcmc_df)) vb_mcmc_df[as.logical(vb_mcmc_df$algorithm_pair_comparison_eligible %in% TRUE), , drop = FALSE] else vb_mcmc_df
+vb_mcmc_excluded_df <- if (nrow(vb_mcmc_df)) vb_mcmc_df[!as.logical(vb_mcmc_df$algorithm_pair_comparison_eligible %in% TRUE), , drop = FALSE] else vb_mcmc_df
+
 utils::write.csv(fit_metrics, file.path(out_tables, "fit_metrics_by_task.csv"), row.names = FALSE)
 utils::write.csv(fit_metrics_eligible, file.path(out_tables, "fit_metrics_by_task_eligible.csv"), row.names = FALSE)
 utils::write.csv(pair_df_eligible, file.path(out_tables, "pairwise_exdqlm_vs_dqlm.csv"), row.names = FALSE)
 utils::write.csv(pair_df_excluded, file.path(out_tables, "pairwise_exdqlm_vs_dqlm_excluded.csv"), row.names = FALSE)
 utils::write.csv(gate_df, file.path(out_tables, "acceptance_gate_summary.csv"), row.names = FALSE)
+utils::write.csv(vb_mcmc_df, file.path(out_tables, "pairwise_vb_vs_mcmc.csv"), row.names = FALSE)
+utils::write.csv(vb_mcmc_eligible_df, file.path(out_tables, "pairwise_vb_vs_mcmc_eligible.csv"), row.names = FALSE)
+utils::write.csv(vb_mcmc_excluded_df, file.path(out_tables, "pairwise_vb_vs_mcmc_excluded.csv"), row.names = FALSE)
 
 summary_md <- file.path(out_tables, "report_summary.md")
 writeLines(c(
@@ -142,13 +193,19 @@ writeLines(c(
   sprintf("- fit_metric_rows_eligible: %d", nrow(fit_metrics_eligible)),
   sprintf("- eligible_pairwise_rows: %d", nrow(pair_df_eligible)),
   sprintf("- excluded_pairwise_rows: %d", nrow(pair_df_excluded)),
+  sprintf("- vb_vs_mcmc_rows_all: %d", nrow(vb_mcmc_df)),
+  sprintf("- vb_vs_mcmc_rows_eligible: %d", nrow(vb_mcmc_eligible_df)),
+  sprintf("- vb_vs_mcmc_rows_excluded: %d", nrow(vb_mcmc_excluded_df)),
   "",
   "## Core tables",
   "- `tables/fit_metrics_by_task.csv`",
   "- `tables/fit_metrics_by_task_eligible.csv`",
   "- `tables/pairwise_exdqlm_vs_dqlm.csv`",
   "- `tables/pairwise_exdqlm_vs_dqlm_excluded.csv`",
-  "- `tables/acceptance_gate_summary.csv`"
+  "- `tables/acceptance_gate_summary.csv`",
+  "- `tables/pairwise_vb_vs_mcmc.csv`",
+  "- `tables/pairwise_vb_vs_mcmc_eligible.csv`",
+  "- `tables/pairwise_vb_vs_mcmc_excluded.csv`"
 ), con = summary_md)
 
 cat(sprintf("Dynamic review outputs written under: %s\n", out_tables))
