@@ -137,6 +137,37 @@
   )
 }
 
+.qdesn_validation_collect_multichain_root_meta <- function(root_dir) {
+  confirm_path <- file.path(root_dir, "tables", "root_confirmation.csv")
+  if (file.exists(confirm_path)) {
+    confirm_df <- utils::read.csv(confirm_path, stringsAsFactors = FALSE)
+    if (nrow(confirm_df)) {
+      keep <- intersect(
+        c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile"),
+        names(confirm_df)
+      )
+      if (length(keep)) return(confirm_df[1L, keep, drop = FALSE])
+    }
+  }
+
+  root_manifest_path <- file.path(root_dir, "manifest", "multichain_root_manifest.json")
+  manifest <- .qdesn_validation_read_json_if_exists(root_manifest_path)
+  if (!is.null(manifest)) {
+    root_spec <- manifest$root_spec %||% manifest
+    return(data.frame(
+      root_id = as.character(root_spec$root_id %||% basename(root_dir)),
+      scenario = as.character(root_spec$scenario %||% NA_character_),
+      tau = as.numeric(root_spec$tau %||% NA_real_),
+      beta_prior_type = as.character(root_spec$beta_prior_type %||% NA_character_),
+      seed = as.integer(root_spec$seed %||% NA_integer_),
+      reservoir_profile = as.character(root_spec$reservoir_profile %||% NA_character_),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  .qdesn_validation_collect_root_meta(root_dir)
+}
+
 qdesn_validation_run_multichain_root <- function(root_spec,
                                                  defaults = NULL,
                                                  defaults_path = file.path("config", "validation", "qdesn_mcmc_compare_rhs_repair_defaults.yaml"),
@@ -289,12 +320,30 @@ qdesn_validation_run_multichain_root <- function(root_spec,
   rhat_rows <- list()
   chain_rows <- list()
   for (root_dir in root_dirs) {
+    meta <- .qdesn_validation_collect_multichain_root_meta(root_dir)
     confirm_path <- file.path(root_dir, "tables", "root_confirmation.csv")
     rhat_path <- file.path(root_dir, "tables", "multichain_rhat_summary.csv")
     chain_path <- file.path(root_dir, "tables", "chain_signoff.csv")
     if (file.exists(confirm_path)) confirm_rows[[length(confirm_rows) + 1L]] <- utils::read.csv(confirm_path, stringsAsFactors = FALSE)
-    if (file.exists(rhat_path)) rhat_rows[[length(rhat_rows) + 1L]] <- cbind(.qdesn_validation_collect_root_meta(root_dir), utils::read.csv(rhat_path, stringsAsFactors = FALSE), stringsAsFactors = FALSE)
-    if (file.exists(chain_path)) chain_rows[[length(chain_rows) + 1L]] <- utils::read.csv(chain_path, stringsAsFactors = FALSE)
+    if (file.exists(rhat_path)) {
+      rhat_df <- utils::read.csv(rhat_path, stringsAsFactors = FALSE)
+      if (nrow(rhat_df)) {
+        meta_rows <- if (nrow(meta)) {
+          meta[rep.int(1L, nrow(rhat_df)), , drop = FALSE]
+        } else {
+          data.frame(stringsAsFactors = FALSE)
+        }
+        rhat_rows[[length(rhat_rows) + 1L]] <- cbind(meta_rows, rhat_df, stringsAsFactors = FALSE)
+      }
+    }
+    if (file.exists(chain_path)) {
+      chain_df <- utils::read.csv(chain_path, stringsAsFactors = FALSE)
+      if (nrow(chain_df) && nrow(meta) && !all(c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile") %in% names(chain_df))) {
+        meta_rows <- meta[rep.int(1L, nrow(chain_df)), , drop = FALSE]
+        chain_df <- cbind(meta_rows, chain_df, stringsAsFactors = FALSE)
+      }
+      chain_rows[[length(chain_rows) + 1L]] <- chain_df
+    }
   }
   list(
     root_confirmation = .qdesn_validation_bind_rows(confirm_rows),
@@ -509,5 +558,97 @@ qdesn_validation_assess_rhs_repair_candidate <- function(candidate_report_root,
     decision_mode = decision_mode,
     decision_reason = decision_reason,
     metrics = summary_df
+  )
+}
+
+qdesn_validation_extract_multichain_failed_rhs_grid <- function(multichain_report_root,
+                                                                output_path) {
+  confirm_df <- .qdesn_validation_read_report_csv(multichain_report_root, "campaign_root_confirmation.csv")
+  fail_df <- subset(confirm_df, beta_prior_type == "rhs" & confirmation_grade == "FAIL")
+  if (nrow(fail_df)) {
+    fail_df <- unique(fail_df[, c("scenario", "tau", "beta_prior_type", "seed", "reservoir_profile"), drop = FALSE])
+    fail_df$enabled <- TRUE
+  }
+  .qdesn_validation_write_df(fail_df, output_path)
+  output_path
+}
+
+qdesn_validation_assess_multichain_followup <- function(multichain_report_root,
+                                                        output_root) {
+  safe_mean <- function(x) {
+    x <- as.numeric(x)
+    x <- x[is.finite(x)]
+    if (!length(x)) return(NA_real_)
+    mean(x)
+  }
+  .qdesn_validation_dir_create(output_root)
+  .qdesn_validation_dir_create(file.path(output_root, "tables"))
+  .qdesn_validation_dir_create(file.path(output_root, "manifest"))
+
+  confirm_df <- .qdesn_validation_read_report_csv(multichain_report_root, "campaign_root_confirmation.csv")
+  rhat_df <- .qdesn_validation_read_report_csv(multichain_report_root, "campaign_multichain_rhat.csv")
+  rhs_confirm <- subset(confirm_df, beta_prior_type == "rhs")
+  rhs_tau025 <- subset(rhs_confirm, abs(tau - 0.25) < 1e-12)
+
+  metrics <- data.frame(
+    metric = c(
+      "rhs_confirmation_usable_rate",
+      "rhs_confirmation_pass_rate",
+      "rhs_tau025_confirmation_usable_rate",
+      "rhs_multichain_fail_count",
+      "rhs_split_rhat_ok_rate"
+    ),
+    value = c(
+      safe_mean(rhs_confirm$confirmation_grade != "FAIL"),
+      safe_mean(rhs_confirm$confirmation_grade == "PASS"),
+      safe_mean(rhs_tau025$confirmation_grade != "FAIL"),
+      sum(rhs_confirm$confirmation_grade == "FAIL", na.rm = TRUE),
+      safe_mean(subset(rhat_df, beta_prior_type == "rhs")$rhat <= 1.10)
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  usable_rate <- metrics$value[metrics$metric == "rhs_confirmation_usable_rate"]
+  pass_rate <- metrics$value[metrics$metric == "rhs_confirmation_pass_rate"]
+  tau025_usable <- metrics$value[metrics$metric == "rhs_tau025_confirmation_usable_rate"]
+  fail_count <- metrics$value[metrics$metric == "rhs_multichain_fail_count"]
+  rhat_ok_rate <- metrics$value[metrics$metric == "rhs_split_rhat_ok_rate"]
+
+  representative_ok <- isTRUE(usable_rate >= 0.70) &&
+    isTRUE(tau025_usable >= 0.50) &&
+    isTRUE(rhat_ok_rate >= 0.70) &&
+    isTRUE(fail_count <= max(1, floor(0.30 * nrow(rhs_confirm))))
+
+  decision_mode <- if (isTRUE(representative_ok)) "representative_confirmation" else "structural_rhs_repair"
+  decision_reason <- if (identical(decision_mode, "representative_confirmation")) {
+    "failed rhs roots are mostly acceptable under multichain confirmation; move to representative confirmation"
+  } else {
+    "failed rhs roots remain unstable under multichain confirmation; escalate to structural rhs sampler repair"
+  }
+
+  .qdesn_validation_write_df(metrics, file.path(output_root, "tables", "decision_metrics.csv"))
+  .qdesn_validation_write_json(file.path(output_root, "manifest", "decision_manifest.json"), list(
+    multichain_report_root = normalizePath(multichain_report_root, winslash = "/", mustWork = TRUE),
+    decision_mode = decision_mode,
+    decision_reason = decision_reason,
+    generated_at = as.character(Sys.time()),
+    git_sha = .qdesn_validation_git_sha()
+  ))
+  .qdesn_validation_write_lines(file.path(output_root, "decision_summary.md"), c(
+    "# Multichain Follow-up Decision",
+    "",
+    sprintf("- Decision mode: `%s`", decision_mode),
+    sprintf("- Reason: %s", decision_reason),
+    "",
+    "## Metrics",
+    "",
+    .qdesn_validation_df_to_markdown(metrics)
+  ))
+
+  list(
+    output_root = normalizePath(output_root, winslash = "/", mustWork = FALSE),
+    decision_mode = decision_mode,
+    decision_reason = decision_reason,
+    metrics = metrics
   )
 }

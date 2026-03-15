@@ -110,3 +110,106 @@ test_that("split rhat helper distinguishes stable and unstable chains", {
   expect_lt(rhat_stable, 1.10)
   expect_gt(rhat_unstable, rhat_stable)
 })
+
+test_that("multichain campaign collection reads multichain root metadata cleanly", {
+  tmp <- withr::local_tempdir()
+  results_root <- file.path(tmp, "results")
+  report_root <- file.path(tmp, "report")
+  root_dir <- file.path(results_root, "roots", "scenario-a__tau-0p25__prior-rhs__seed-123__res-tiny")
+  dir.create(file.path(root_dir, "manifest"), recursive = TRUE)
+  dir.create(file.path(root_dir, "tables"), recursive = TRUE)
+
+  exdqlm:::.qdesn_validation_write_json(file.path(root_dir, "manifest", "multichain_root_manifest.json"), list(
+    root_spec = list(
+      root_id = "scenario-a__tau-0p25__prior-rhs__seed-123__res-tiny",
+      scenario = "a",
+      tau = 0.25,
+      beta_prior_type = "rhs",
+      seed = 123L,
+      reservoir_profile = "tiny"
+    )
+  ))
+
+  utils::write.csv(data.frame(
+    root_id = "scenario-a__tau-0p25__prior-rhs__seed-123__res-tiny",
+    scenario = "a",
+    tau = 0.25,
+    beta_prior_type = "rhs",
+    seed = 123L,
+    reservoir_profile = "tiny",
+    vb_signoff_grade = "PASS",
+    n_chains = 4L,
+    n_chain_pass = 4L,
+    n_chain_warn = 0L,
+    n_chain_fail = 0L,
+    max_split_rhat = 1.02,
+    confirmation_grade = "PASS",
+    confirmation_reason = "acceptable_split_rhat",
+    stringsAsFactors = FALSE
+  ), file.path(root_dir, "tables", "root_confirmation.csv"), row.names = FALSE)
+
+  utils::write.csv(data.frame(
+    parameter = c("gamma", "rhs_tau"),
+    n_chains = c(4L, 4L),
+    min_chain_length = c(300L, 300L),
+    rhat = c(1.01, 1.04),
+    chain_mean_min = c(-0.1, 0.01),
+    chain_mean_max = c(0.1, 0.02),
+    chain_sd_min = c(0.2, 0.03),
+    chain_sd_max = c(0.3, 0.04),
+    stringsAsFactors = FALSE
+  ), file.path(root_dir, "tables", "multichain_rhat_summary.csv"), row.names = FALSE)
+
+  utils::write.csv(data.frame(
+    chain_id = 1:4,
+    mcmc_seed = 1:4,
+    status = rep("SUCCESS", 4),
+    signoff_grade = rep("PASS", 4),
+    signoff_reason = rep("ok", 4),
+    stringsAsFactors = FALSE
+  ), file.path(root_dir, "tables", "chain_signoff.csv"), row.names = FALSE)
+
+  collected <- exdqlm:::.qdesn_validation_collect_multichain_results(results_root)
+  expect_equal(nrow(collected$root_confirmation), 1L)
+  expect_equal(nrow(collected$rhat_summary), 2L)
+  expect_equal(nrow(collected$chain_signoff), 4L)
+  expect_true(all(collected$rhat_summary$root_id == "scenario-a__tau-0p25__prior-rhs__seed-123__res-tiny"))
+  expect_true(all(collected$chain_signoff$scenario == "a"))
+
+  exdqlm:::qdesn_validation_collect_multichain_campaign(results_root, report_root, create_plots = FALSE)
+  campaign_root <- utils::read.csv(file.path(report_root, "tables", "campaign_root_confirmation.csv"), stringsAsFactors = FALSE)
+  expect_equal(nrow(campaign_root), 1L)
+})
+
+test_that("multichain follow-up assessment chooses structural repair when failures remain", {
+  tmp <- withr::local_tempdir()
+  report_root <- file.path(tmp, "multichain")
+  out_root <- file.path(tmp, "decision")
+  dir.create(file.path(report_root, "tables"), recursive = TRUE)
+
+  utils::write.csv(data.frame(
+    root_id = c("r1", "r2", "r3"),
+    scenario = c("toy", "const", "sin"),
+    tau = c(0.25, 0.25, 0.50),
+    beta_prior_type = c("rhs", "rhs", "rhs"),
+    seed = c(1L, 1L, 1L),
+    reservoir_profile = c("tiny", "tiny", "tiny"),
+    confirmation_grade = c("FAIL", "WARN", "FAIL"),
+    stringsAsFactors = FALSE
+  ), file.path(report_root, "tables", "campaign_root_confirmation.csv"), row.names = FALSE)
+
+  utils::write.csv(data.frame(
+    root_id = rep(c("r1", "r2", "r3"), each = 2),
+    scenario = rep(c("toy", "const", "sin"), each = 2),
+    tau = rep(c(0.25, 0.25, 0.50), each = 2),
+    beta_prior_type = "rhs",
+    seed = 1L,
+    reservoir_profile = "tiny",
+    parameter = rep(c("gamma", "rhs_tau"), 3),
+    rhat = c(1.03, 1.14, 1.02, 1.08, 1.05, 1.16),
+    stringsAsFactors = FALSE
+  ), file.path(report_root, "tables", "campaign_multichain_rhat.csv"), row.names = FALSE)
+
+  res <- exdqlm:::qdesn_validation_assess_multichain_followup(report_root, out_root)
+  expect_identical(res$decision_mode, "structural_rhs_repair")
+})
