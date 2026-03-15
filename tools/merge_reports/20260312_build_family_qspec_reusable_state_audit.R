@@ -9,6 +9,7 @@ source(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_v2_
 root_catalog <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_catalog.tsv"))
 model_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_model_path_scheduler_manifest.tsv"))
 postprocess_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_postprocess_manifest.tsv"))
+signoff_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_signoff_manifest.tsv"))
 dependency_edges <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_dependency_edges.tsv"))
 comparison_barriers <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_comparison_barriers.tsv"))
 
@@ -25,6 +26,7 @@ model_with_root <- merge(
 rows <- list()
 model_state_map <- setNames(vector("list", nrow(model_with_root)), model_with_root$task_id)
 post_state_map <- setNames(vector("list", nrow(postprocess_manifest)), postprocess_manifest$task_id)
+signoff_state_map <- setNames(vector("list", nrow(signoff_manifest)), signoff_manifest$task_id)
 review_state_map <- setNames(vector("list", nrow(root_catalog)), root_catalog$review_task_id)
 barrier_state_map <- list()
 
@@ -138,16 +140,50 @@ for (i in seq_len(nrow(postprocess_manifest))) {
   ))
 }
 
+for (i in seq_len(nrow(signoff_manifest))) {
+  row <- signoff_manifest[i, , drop = FALSE]
+  root_row <- root_lookup[row$root_id, , drop = FALSE]
+  det <- fq_detect_root_signoff(root_row, repo_root)
+  dep_ids <- dependency_edges$child_task_id[dependency_edges$parent_task_id == row$task_id]
+  deps_complete <- all(vapply(dep_ids, function(id) identical(post_state_map[[id]]$state, "complete_reusable"), logical(1)))
+  state <- det$state[[1]]
+  recommended_action <- if (state == "complete_reusable") "skip" else "run_root_signoff"
+  if (state == "missing" && !deps_complete) {
+    state <- "blocked"
+    recommended_action <- "wait_for_root_postprocess"
+  }
+  signoff_state_map[[row$task_id[[1]]]] <- list(state = state, recommended_action = recommended_action)
+  add_row(data.frame(
+    unit_id = row$task_id,
+    unit_type = "root_signoff",
+    root_id = row$root_id,
+    task_id = row$task_id,
+    barrier_id = NA_character_,
+    root_kind = row$root_kind,
+    family = row$family,
+    tau = row$tau,
+    fit_size = as.integer(row$fit_size),
+    prior = row$prior,
+    model = NA_character_,
+    scope = "in_scope",
+    state = state,
+    recommended_action = recommended_action,
+    location = root_row$run_root,
+    notes = paste(c(sprintf("deps_complete=%s", deps_complete), sprintf("missing_count=%d", det$missing_count[[1]])), collapse = " | "),
+    stringsAsFactors = FALSE
+  ))
+}
+
 for (i in seq_len(nrow(root_catalog))) {
   row <- root_catalog[i, , drop = FALSE]
   det <- fq_detect_root_review(row, repo_root)
   dep_ids <- dependency_edges$child_task_id[dependency_edges$parent_task_id == row$review_task_id]
-  deps_complete <- all(vapply(dep_ids, function(id) identical(post_state_map[[id]]$state, "complete_reusable"), logical(1)))
+  deps_complete <- all(vapply(dep_ids, function(id) identical(signoff_state_map[[id]]$state, "complete_reusable"), logical(1)))
   state <- det$state[[1]]
-  recommended_action <- if (state == "complete_reusable") "skip" else if (row$root_kind == "dynamic") "run_root_postprocess" else "run_root_review"
+  recommended_action <- if (state == "complete_reusable") "skip" else if (row$root_kind == "dynamic") "wait_for_root_signoff" else "run_root_review"
   if (state == "missing" && !deps_complete) {
     state <- "blocked"
-    recommended_action <- "wait_for_root_postprocess"
+    recommended_action <- "wait_for_root_signoff"
   }
   review_state_map[[row$review_task_id[[1]]]] <- list(state = state, recommended_action = recommended_action)
   add_row(data.frame(

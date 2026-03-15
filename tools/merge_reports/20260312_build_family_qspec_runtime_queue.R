@@ -10,6 +10,7 @@ audit <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_fa
 root_catalog <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_catalog.tsv"))
 model_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_model_path_scheduler_manifest.tsv"))
 postprocess_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_postprocess_manifest.tsv"))
+signoff_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_signoff_manifest.tsv"))
 comparison_barriers <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_comparison_barriers.tsv"))
 
 queue_rows <- list()
@@ -85,7 +86,35 @@ if (nrow(post_rows)) {
   ))
 }
 
-review_audit <- audit[audit$unit_type == "root_review" & audit$root_kind != "dynamic", , drop = FALSE]
+signoff_audit <- audit[audit$unit_type == "root_signoff", , drop = FALSE]
+signoff_rows <- merge(signoff_manifest, signoff_audit[, c("task_id", "state", "recommended_action", "notes")], by = "task_id", all.x = TRUE, sort = FALSE)
+signoff_rows$launch_ready <- signoff_rows$state %in% c("missing", "partial_reusable")
+if (nrow(signoff_rows)) {
+  add_queue_row(data.frame(
+    task_id = signoff_rows$task_id,
+    unit_type = "root_signoff",
+    root_id = signoff_rows$root_id,
+    barrier_id = NA_character_,
+    root_kind = signoff_rows$root_kind,
+    family = signoff_rows$family,
+    tau = signoff_rows$tau,
+    fit_size = as.integer(signoff_rows$fit_size),
+    prior = signoff_rows$prior,
+    model = NA_character_,
+    state = signoff_rows$state,
+    launch_ready = signoff_rows$launch_ready,
+    launch_mode = signoff_rows$recommended_action,
+    slot_cost = 1L,
+    priority = 21L,
+    prepared_root = root_catalog$prepared_root[match(signoff_rows$root_id, root_catalog$root_id)],
+    run_root = root_catalog$run_root[match(signoff_rows$root_id, root_catalog$root_id)],
+    script_ref = signoff_rows$signoff_script,
+    notes = signoff_rows$notes,
+    stringsAsFactors = FALSE
+  ))
+}
+
+review_audit <- audit[audit$unit_type == "root_review", , drop = FALSE]
 if (nrow(review_audit)) {
   add_queue_row(data.frame(
     task_id = review_audit$task_id,
@@ -102,10 +131,14 @@ if (nrow(review_audit)) {
     launch_ready = review_audit$state %in% c("missing", "partial_reusable"),
     launch_mode = review_audit$recommended_action,
     slot_cost = 1L,
-    priority = 21L,
+    priority = 22L,
     prepared_root = root_catalog$prepared_root[match(review_audit$root_id, root_catalog$root_id)],
     run_root = root_catalog$run_root[match(review_audit$root_id, root_catalog$root_id)],
-    script_ref = "tools/merge_reports/20260305_static_vb_mcmc_report.R",
+    script_ref = ifelse(
+      review_audit$root_kind == "dynamic",
+      "tools/merge_reports/20260314_dynamic_vb_mcmc_report.R",
+      "tools/merge_reports/20260305_static_vb_mcmc_report.R"
+    ),
     notes = review_audit$notes,
     stringsAsFactors = FALSE
   ))
@@ -169,9 +202,14 @@ if (nrow(higher_rows)) {
 
 queue <- do.call(rbind, queue_rows)
 queue <- queue[order(-as.integer(queue$launch_ready), queue$priority, queue$root_kind, queue$family, queue$tau, queue$fit_size, queue$prior, queue$model), ]
-summary_df <- as.data.frame.matrix(table(queue$unit_type, interaction(queue$state, queue$launch_ready, drop = TRUE)), stringsAsFactors = FALSE)
-summary_df <- cbind(unit_type = rownames(summary_df), summary_df)
-rownames(summary_df) <- NULL
+summary_df <- as.data.frame(table(
+  unit_type = queue$unit_type,
+  state = queue$state,
+  launch_ready = queue$launch_ready
+))
+names(summary_df)[names(summary_df) == "Freq"] <- "count"
+summary_df <- summary_df[summary_df$count > 0, , drop = FALSE]
+summary_df <- summary_df[order(summary_df$unit_type, summary_df$state, summary_df$launch_ready), , drop = FALSE]
 
 out_dir <- file.path(repo_root, "tools", "merge_reports")
 fq_write_tsv(queue, file.path(out_dir, "20260312_family_qspec_runtime_queue.tsv"))

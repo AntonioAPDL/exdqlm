@@ -9,6 +9,11 @@ safe_chr <- function(x, default) {
   if (!nzchar(v) || is.na(v)) default else v
 }
 
+read_csv_maybe_empty <- function(path) {
+  if (!file.exists(path)) return(data.frame(stringsAsFactors = FALSE))
+  utils::read.csv(path, stringsAsFactors = FALSE)
+}
+
 tau_lab <- function(tau) gsub("\\.", "p", sprintf("%.2f", as.numeric(tau)[1]))
 
 fit_file_path <- function(run_root, inference, model, tau) {
@@ -45,14 +50,14 @@ mcmc_beta_summary <- function(fit) {
   )
 }
 
-load_fit_summary <- function(run_root, inference, model, tau) {
+load_fit_summary <- function(run_root, inference, model, tau, signoff_lookup = NULL, prior_name = NA_character_) {
   fp <- fit_file_path(run_root, inference, model, tau)
   if (!file.exists(fp)) return(NULL)
   obj <- readRDS(fp)
   fit <- obj$fit
   summ <- if (identical(inference, "vb")) vb_beta_summary(fit) else mcmc_beta_summary(fit)
   beta_prior <- if (!is.null(fit$beta_prior$type)) as.character(fit$beta_prior$type)[1] else "ridge"
-  data.frame(
+  out <- data.frame(
     summ,
     inference = inference,
     model = model,
@@ -61,6 +66,30 @@ load_fit_summary <- function(run_root, inference, model, tau) {
     runtime_sec = if (!is.null(fit$run.time)) as.numeric(fit$run.time)[1] else NA_real_,
     stringsAsFactors = FALSE
   )
+  out$source_prior <- prior_name
+  out$signoff_grade <- NA_character_
+  out$comparison_eligible <- NA
+  out$convergence_certified <- NA
+  out$execution_healthy <- NA
+  out$signoff_reason <- NA_character_
+  if (!is.null(signoff_lookup) && nrow(signoff_lookup) > 0) {
+    hit <- signoff_lookup[
+      signoff_lookup$inference == inference &
+      signoff_lookup$model == model &
+      abs(signoff_lookup$tau - as.numeric(tau)) < 1e-8,
+      ,
+      drop = FALSE
+    ]
+    if (nrow(hit)) {
+      hit <- hit[1, , drop = FALSE]
+      out$signoff_grade <- hit$signoff_grade[[1]]
+      out$comparison_eligible <- hit$comparison_eligible[[1]]
+      out$convergence_certified <- hit$convergence_certified[[1]]
+      out$execution_healthy <- hit$execution_healthy[[1]]
+      out$signoff_reason <- hit$signoff_reason[[1]]
+    }
+  }
+  out
 }
 
 metric_row <- function(df) {
@@ -223,6 +252,15 @@ if (!length(taus)) {
 inferences <- c("vb", "mcmc")
 models <- c("al", "exal")
 run_roots <- list(ridge = ridge_run_root, rhs = rhs_run_root)
+signoff_lookup <- lapply(run_roots, function(run_root) {
+  df <- read_csv_maybe_empty(file.path(run_root, "tables", "method_signoff_long.csv"))
+  if (nrow(df) > 0) {
+    df$inference <- tolower(as.character(df$inference))
+    df$model <- tolower(as.character(df$model))
+    df$tau <- suppressWarnings(as.numeric(df$tau))
+  }
+  df
+})
 
 coef_rows <- list()
 for (prior_name in names(run_roots)) {
@@ -230,7 +268,7 @@ for (prior_name in names(run_roots)) {
   for (inference in inferences) {
     for (model in models) {
       for (tau in taus) {
-        fit_sum <- load_fit_summary(run_root, inference, model, tau)
+        fit_sum <- load_fit_summary(run_root, inference, model, tau, signoff_lookup = signoff_lookup[[prior_name]], prior_name = prior_name)
         if (is.null(fit_sum)) next
         truth_tau <- coef_truth[abs(coef_truth$tau - tau) < 1e-8, , drop = FALSE]
         fit_sum$term <- truth_tau$term
@@ -250,36 +288,38 @@ for (prior_name in names(run_roots)) {
   }
 }
 
-coef_df <- do.call(rbind, coef_rows)
+coef_df <- if (length(coef_rows)) do.call(rbind, coef_rows) else data.frame(stringsAsFactors = FALSE)
 coef_df$group_simple <- ifelse(coef_df$is_signal, "signal", ifelse(coef_df$is_near_zero, "near_zero", ifelse(coef_df$is_zero, "zero", "other")))
-write.csv(coef_df, file.path(out_root, "tables", "coefficient_recovery_long.csv"), row.names = FALSE)
+coef_df_eligible <- if (nrow(coef_df)) coef_df[as.logical(coef_df$comparison_eligible %in% TRUE), , drop = FALSE] else coef_df
+coef_df_excluded <- if (nrow(coef_df)) coef_df[!as.logical(coef_df$comparison_eligible %in% TRUE), , drop = FALSE] else coef_df
+write.csv(coef_df_eligible, file.path(out_root, "tables", "coefficient_recovery_long.csv"), row.names = FALSE)
+write.csv(coef_df_excluded, file.path(out_root, "tables", "coefficient_recovery_long_excluded.csv"), row.names = FALSE)
 
-summary_split <- split(coef_df, list(coef_df$inference, coef_df$model, coef_df$tau, coef_df$beta_prior), drop = TRUE)
-summary_keys <- unique(coef_df[c("inference", "model", "tau", "beta_prior")])
+summary_keys <- unique(coef_df_eligible[c("inference", "model", "tau", "beta_prior")])
 summary_rows <- lapply(seq_len(nrow(summary_keys)), function(i) {
   key <- summary_keys[i, , drop = FALSE]
-  ss <- coef_df[
-    coef_df$inference == key$inference &
-      coef_df$model == key$model &
-      abs(coef_df$tau - key$tau) < 1e-8 &
-      coef_df$beta_prior == key$beta_prior,
+  ss <- coef_df_eligible[
+    coef_df_eligible$inference == key$inference &
+      coef_df_eligible$model == key$model &
+      abs(coef_df_eligible$tau - key$tau) < 1e-8 &
+      coef_df_eligible$beta_prior == key$beta_prior,
     ,
     drop = FALSE
   ]
   cbind(key, metric_row(ss))
 })
-summary_df <- do.call(rbind, summary_rows)
+summary_df <- if (length(summary_rows)) do.call(rbind, summary_rows) else data.frame(stringsAsFactors = FALSE)
 write.csv(summary_df, file.path(out_root, "tables", "coefficient_recovery_summary.csv"), row.names = FALSE)
 
-group_keys <- unique(coef_df[c("inference", "model", "tau", "beta_prior", "group_simple")])
+group_keys <- unique(coef_df_eligible[c("inference", "model", "tau", "beta_prior", "group_simple")])
 group_rows <- lapply(seq_len(nrow(group_keys)), function(i) {
   key <- group_keys[i, , drop = FALSE]
-  ss <- coef_df[
-    coef_df$inference == key$inference &
-      coef_df$model == key$model &
-      abs(coef_df$tau - key$tau) < 1e-8 &
-      coef_df$beta_prior == key$beta_prior &
-      coef_df$group_simple == key$group_simple,
+  ss <- coef_df_eligible[
+    coef_df_eligible$inference == key$inference &
+      coef_df_eligible$model == key$model &
+      abs(coef_df_eligible$tau - key$tau) < 1e-8 &
+      coef_df_eligible$beta_prior == key$beta_prior &
+      coef_df_eligible$group_simple == key$group_simple,
     ,
     drop = FALSE
   ]
@@ -291,7 +331,7 @@ group_rows <- lapply(seq_len(nrow(group_keys)), function(i) {
     stringsAsFactors = FALSE
   ))
 })
-group_df <- do.call(rbind, group_rows)
+group_df <- if (length(group_rows)) do.call(rbind, group_rows) else data.frame(stringsAsFactors = FALSE)
 names(group_df)[names(group_df) == "group_simple"] <- "group"
 write.csv(group_df, file.path(out_root, "tables", "coefficient_group_summary.csv"), row.names = FALSE)
 
@@ -306,12 +346,15 @@ metric_names <- c(
 for (nm in metric_names) {
   pair_df[[paste0(nm, "_rhs_minus_ridge")]] <- pair_df[[paste0(nm, "_rhs")]] - pair_df[[paste0(nm, "_ridge")]]
 }
+if (nrow(pair_df)) {
+  pair_df$comparison_pair_eligible <- TRUE
+}
 write.csv(pair_df, file.path(out_root, "tables", "rhs_vs_ridge_summary.csv"), row.names = FALSE)
 
 for (inference in inferences) {
   for (model in models) {
     for (tau in taus) {
-      ss <- coef_df[coef_df$inference == inference & coef_df$model == model & abs(coef_df$tau - tau) < 1e-8, , drop = FALSE]
+      ss <- coef_df_eligible[coef_df_eligible$inference == inference & coef_df_eligible$model == model & abs(coef_df_eligible$tau - tau) < 1e-8, , drop = FALSE]
       if (!nrow(ss)) next
       plot_coef_recovery(
         ss,
@@ -342,13 +385,17 @@ writeLines(c(
   "",
   "## Core tables",
   "- `tables/coefficient_recovery_long.csv`",
+  "- `tables/coefficient_recovery_long_excluded.csv`",
   "- `tables/coefficient_recovery_summary.csv`",
   "- `tables/coefficient_group_summary.csv`",
   "- `tables/rhs_vs_ridge_summary.csv`",
   "",
-  sprintf("- coefficient_rows: %d", nrow(coef_df)),
+  sprintf("- coefficient_rows_total: %d", nrow(coef_df)),
+  sprintf("- coefficient_rows_eligible: %d", nrow(coef_df_eligible)),
+  sprintf("- coefficient_rows_excluded: %d", nrow(coef_df_excluded)),
   sprintf("- summary_rows: %d", nrow(summary_df)),
   sprintf("- group_rows: %d", nrow(group_df)),
+  sprintf("- rhs_vs_ridge_pair_rows: %d", nrow(pair_df)),
   sprintf("- plot_png_count: %d", length(list.files(file.path(out_root, "plots"), pattern = "\\.png$", recursive = TRUE, full.names = TRUE)))
 ), con = summary_md)
 

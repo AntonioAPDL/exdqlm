@@ -13,6 +13,7 @@ source(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_v2_
 root_catalog <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_catalog.tsv"))
 model_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_model_path_scheduler_manifest.tsv"))
 postprocess_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_postprocess_manifest.tsv"))
+signoff_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_signoff_manifest.tsv"))
 comparison_barriers <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_comparison_barriers.tsv"))
 
 fail_verify <- function(unit_type, state, details = character()) {
@@ -61,6 +62,17 @@ if (!is.na(post_idx)) {
     fail_verify("root_postprocess", det$state[[1]], sprintf("missing_count=%d", det$missing_count[[1]]))
   }
   cat(sprintf("verified root_postprocess '%s' as complete_reusable\n", task_id))
+  quit(save = "no", status = 0L)
+}
+
+signoff_idx <- match(task_id, signoff_manifest$task_id)
+if (!is.na(signoff_idx)) {
+  row <- root_lookup[signoff_manifest$root_id[signoff_idx], , drop = FALSE]
+  det <- fq_detect_root_signoff(row, repo_root)
+  if (!identical(det$state[[1]], "complete_reusable")) {
+    fail_verify("root_signoff", det$state[[1]], sprintf("missing_count=%d", det$missing_count[[1]]))
+  }
+  cat(sprintf("verified root_signoff '%s' as complete_reusable\n", task_id))
   quit(save = "no", status = 0L)
 }
 

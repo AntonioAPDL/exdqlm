@@ -160,14 +160,37 @@ fq_required_postprocess_files <- function(root_row, repo_root = ".") {
 fq_required_review_files <- function(root_row, repo_root = ".") {
   run_root <- fq_path(repo_root, root_row$run_root)
   if (root_row$root_kind == "dynamic") {
-    return(fq_required_postprocess_files(root_row, repo_root))
+    return(c(
+      fq_required_signoff_files(root_row, repo_root),
+      fq_required_postprocess_files(root_row, repo_root),
+      file.path(run_root, "tables", "fit_metrics_by_task.csv"),
+      file.path(run_root, "tables", "fit_metrics_by_task_eligible.csv"),
+      file.path(run_root, "tables", "pairwise_exdqlm_vs_dqlm.csv"),
+      file.path(run_root, "tables", "pairwise_exdqlm_vs_dqlm_excluded.csv"),
+      file.path(run_root, "tables", "acceptance_gate_summary.csv"),
+      file.path(run_root, "tables", "report_summary.md")
+    ))
   }
   c(
+    fq_required_signoff_files(root_row, repo_root),
     file.path(run_root, "tables", "pairwise_exal_vs_al.csv"),
+    file.path(run_root, "tables", "pairwise_exal_vs_al_excluded.csv"),
     file.path(run_root, "tables", "runtime_diagnostics_summary.csv"),
     file.path(run_root, "tables", "acceptance_gate_summary.csv"),
     file.path(run_root, "tables", "fit_metrics_by_task.csv"),
+    file.path(run_root, "tables", "fit_metrics_by_task_eligible.csv"),
     file.path(run_root, "tables", "report_summary.md")
+  )
+}
+
+fq_required_signoff_files <- function(root_row, repo_root = ".") {
+  run_root <- fq_path(repo_root, root_row$run_root)
+  c(
+    file.path(run_root, "tables", "method_signoff_long.csv"),
+    file.path(run_root, "tables", "algorithm_pair_signoff.csv"),
+    file.path(run_root, "tables", "model_pair_signoff.csv"),
+    file.path(run_root, "tables", "root_signoff_summary.csv"),
+    file.path(run_root, "tables", "repair_targets.csv")
   )
 }
 
@@ -195,6 +218,18 @@ fq_detect_root_postprocess <- function(root_row, repo_root = ".") {
 
 fq_detect_root_review <- function(root_row, repo_root = ".") {
   req <- fq_required_review_files(root_row, repo_root)
+  det <- fq_detect_file_group(req, repo_root)
+  state <- if (det$complete) "complete_reusable" else if (det$any_present) "partial_reusable" else "missing"
+  data.frame(
+    state = state,
+    required_files = paste(req, collapse = ";"),
+    missing_count = det$missing_count,
+    stringsAsFactors = FALSE
+  )
+}
+
+fq_detect_root_signoff <- function(root_row, repo_root = ".") {
+  req <- fq_required_signoff_files(root_row, repo_root)
   det <- fq_detect_file_group(req, repo_root)
   state <- if (det$complete) "complete_reusable" else if (det$any_present) "partial_reusable" else "missing"
   data.frame(

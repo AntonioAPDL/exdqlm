@@ -112,6 +112,7 @@ make_root_record <- function(kind, family, tau, fit_size, prior = NA_character_)
   root_id <- make_root_id(kind, family, tau, fit_size, prior_label)
   model_task_ids <- paste0("mp__", root_id, "__", models)
   postprocess_task_id <- paste0("post__", root_id)
+  signoff_task_id <- paste0("signoff__", root_id)
   review_task_id <- paste0("review__", root_id)
   if (identical(kind, "static_shrink")) {
     cross_root_barrier_id <- paste(
@@ -142,6 +143,8 @@ make_root_record <- function(kind, family, tau, fit_size, prior = NA_character_)
     pipeline_script = pipeline_script,
     postprocess_task_id = postprocess_task_id,
     postprocess_script = postprocess_script,
+    signoff_task_id = signoff_task_id,
+    signoff_script = "tools/merge_reports/20260314_family_qspec_root_signoff.R",
     review_task_id = review_task_id,
     review_script = if (is.na(report_script)) postprocess_script else paste(postprocess_script, report_script, sep = " + "),
     cross_root_barrier_id = cross_root_barrier_id,
@@ -242,6 +245,24 @@ postprocess_manifest <- data.frame(
   stringsAsFactors = FALSE
 )
 
+signoff_manifest <- data.frame(
+  task_id = root_catalog$signoff_task_id,
+  task_type = "root_signoff",
+  root_id = root_catalog$root_id,
+  root_kind = root_catalog$root_kind,
+  family = root_catalog$family,
+  tau = root_catalog$tau,
+  fit_axis = root_catalog$fit_axis,
+  fit_size = root_catalog$fit_size,
+  prior = root_catalog$prior,
+  slot_cost = 1L,
+  threads_per_process = 1L,
+  trigger_rule = "root_postprocess_done",
+  signoff_script = root_catalog$signoff_script,
+  review_task_id = root_catalog$review_task_id,
+  stringsAsFactors = FALSE
+)
+
 edge_rows <- list()
 add_edge <- function(parent_id, parent_type, child_id, child_type, role, kind = NA_character_, family = NA_character_, tau = NA_character_, fit_size = NA_integer_, prior = NA_character_) {
   edge_rows[[length(edge_rows) + 1L]] <<- data.frame(
@@ -263,7 +284,8 @@ for (i in seq_len(nrow(root_catalog))) {
   row <- root_catalog[i, ]
   add_edge(row$postprocess_task_id, "root_postprocess", row$model_path_task_a, "model_path", "requires_model_path_done", row$root_kind, row$family, row$tau, row$fit_size, row$prior)
   add_edge(row$postprocess_task_id, "root_postprocess", row$model_path_task_b, "model_path", "requires_model_path_done", row$root_kind, row$family, row$tau, row$fit_size, row$prior)
-  add_edge(row$review_task_id, "root_review", row$postprocess_task_id, "root_postprocess", ifelse(row$root_kind == "dynamic", "requires_postprocess_done", "requires_postprocess_and_report_done"), row$root_kind, row$family, row$tau, row$fit_size, row$prior)
+  add_edge(row$signoff_task_id, "root_signoff", row$postprocess_task_id, "root_postprocess", "requires_postprocess_done", row$root_kind, row$family, row$tau, row$fit_size, row$prior)
+  add_edge(row$review_task_id, "root_review", row$signoff_task_id, "root_signoff", "requires_signoff_done", row$root_kind, row$family, row$tau, row$fit_size, row$prior)
 }
 
 for (family in families) {
@@ -340,12 +362,12 @@ barrier_rows[[length(barrier_rows) + 1L]] <- data.frame(
   tau = "all",
   fit_size = NA_integer_,
   prerequisite_count = 18L,
-  implementation_status = "planned_not_standardized",
-  implementation_script = NA_character_,
+  implementation_status = "implemented",
+  implementation_script = "tools/merge_reports/20260312_family_qspec_campaign_aggregate.R",
   prepared_root = NA_character_,
   compare_root = NA_character_,
-  output_table = NA_character_,
-  notes = "Should aggregate all static paper root reviews into campaign-level AL vs exAL, VB vs MCMC, and runtime comparisons.",
+  output_table = "tables/campaign_summary.tsv",
+  notes = "Aggregates static paper root reviews, signoff tables, and eligible comparison tables into campaign outputs.",
   stringsAsFactors = FALSE
 )
 
@@ -357,12 +379,12 @@ barrier_rows[[length(barrier_rows) + 1L]] <- data.frame(
   tau = "all",
   fit_size = NA_integer_,
   prerequisite_count = 54L,
-  implementation_status = "partially_implemented",
-  implementation_script = "tools/merge_reports/20260308_static_shrinkage_compare_report.R",
+  implementation_status = "implemented",
+  implementation_script = "tools/merge_reports/20260312_family_qspec_campaign_aggregate.R",
   prepared_root = NA_character_,
   compare_root = NA_character_,
-  output_table = "tables/rhs_vs_ridge_summary.csv",
-  notes = "Needs all 36 root reviews plus 18 ridge-vs-rhs compare outputs; only the per-slice prior compare layer is currently standardized.",
+  output_table = "tables/campaign_summary.tsv",
+  notes = "Aggregates static shrink root reviews, signoff tables, eligible comparison tables, and ridge-vs-rhs compare outputs.",
   stringsAsFactors = FALSE
 )
 
@@ -374,12 +396,12 @@ barrier_rows[[length(barrier_rows) + 1L]] <- data.frame(
   tau = "all",
   fit_size = NA_integer_,
   prerequisite_count = 18L,
-  implementation_status = "planned_not_standardized",
-  implementation_script = NA_character_,
+  implementation_status = "implemented",
+  implementation_script = "tools/merge_reports/20260312_family_qspec_campaign_aggregate.R",
   prepared_root = NA_character_,
   compare_root = NA_character_,
-  output_table = NA_character_,
-  notes = "Should aggregate all dynamic root reviews into campaign-level DQLM vs exDQLM, VB vs MCMC, and runtime comparisons.",
+  output_table = "tables/campaign_summary.tsv",
+  notes = "Aggregates dynamic root signoff/postprocess outputs into eligible comparison and campaign summary tables.",
   stringsAsFactors = FALSE
 )
 
@@ -391,12 +413,12 @@ barrier_rows[[length(barrier_rows) + 1L]] <- data.frame(
   tau = "all",
   fit_size = NA_integer_,
   prerequisite_count = 3L,
-  implementation_status = "planned_not_standardized",
-  implementation_script = NA_character_,
+  implementation_status = "implemented",
+  implementation_script = "tools/merge_reports/20260312_family_qspec_campaign_aggregate.R",
   prepared_root = NA_character_,
   compare_root = NA_character_,
-  output_table = NA_character_,
-  notes = "Final cross-family synthesis over the static paper, static shrink, and dynamic campaign reviews.",
+  output_table = "tables/global_summary.tsv",
+  notes = "Final cross-family synthesis over the static paper, static shrink, and dynamic campaign reviews, including signoff summaries.",
   stringsAsFactors = FALSE
 )
 
@@ -481,6 +503,7 @@ tau_audit <- data.frame(
 write.table(root_catalog, file.path(out_dir, "20260312_family_qspec_root_catalog.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
 write.table(model_manifest, file.path(out_dir, "20260312_family_qspec_model_path_scheduler_manifest.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
 write.table(postprocess_manifest, file.path(out_dir, "20260312_family_qspec_root_postprocess_manifest.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
+write.table(signoff_manifest, file.path(out_dir, "20260312_family_qspec_root_signoff_manifest.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
 write.table(dependency_edges, file.path(out_dir, "20260312_family_qspec_dependency_edges.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
 write.table(comparison_barriers, file.path(out_dir, "20260312_family_qspec_comparison_barriers.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
 write.table(tau_audit, file.path(out_dir, "20260312_family_qspec_tau_adaptation_audit.tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
@@ -489,6 +512,7 @@ cat("Wrote:\n")
 cat(file.path(out_dir, "20260312_family_qspec_root_catalog.tsv"), "\n")
 cat(file.path(out_dir, "20260312_family_qspec_model_path_scheduler_manifest.tsv"), "\n")
 cat(file.path(out_dir, "20260312_family_qspec_root_postprocess_manifest.tsv"), "\n")
+cat(file.path(out_dir, "20260312_family_qspec_root_signoff_manifest.tsv"), "\n")
 cat(file.path(out_dir, "20260312_family_qspec_dependency_edges.tsv"), "\n")
 cat(file.path(out_dir, "20260312_family_qspec_comparison_barriers.tsv"), "\n")
 cat(file.path(out_dir, "20260312_family_qspec_tau_adaptation_audit.tsv"), "\n")
