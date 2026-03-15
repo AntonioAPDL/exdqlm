@@ -1626,3 +1626,126 @@ Key conclusion:
   - soft MCMC diagnostic failures that may need threshold-policy changes or materially deeper chains
   - mixed extended-model failures that likely need both modeling/debug attention and stronger sampling
   - the small hard-failure residue that should remain excluded until numerically repaired
+
+## 2026-03-15 Residual Threshold-Rescue And Action-Plan Analysis
+
+The post-repair unhealthy set was further decomposed into:
+
+1. rows that could be recovered by a **moderate** MCMC policy relaxation
+2. rows that would only be recovered by a much more **aggressive** and likely not acceptable relaxation
+3. rows that still need materially deeper reruns or direct debugging
+
+Current soft-failure metric surface:
+
+- `mcmc dqlm` (`18` rows):
+  - median `ESS sigma`: `288.52`
+  - median `ESS state`: `242.27`
+  - q75 `Geweke state`: `12.73`
+  - interpretation:
+    - not an ESS problem
+    - mainly a state-level drift/Geweke problem
+- `mcmc exAL` (`35` rows):
+  - median `ESS sigma`: `20.47`
+  - median `ESS gamma`: `3.10`
+  - median `ESS state`: `59.43`
+  - max `ACF1 gamma`: `0.997`
+  - q75 `drift gamma`: `1.44`
+  - interpretation:
+    - gamma mixing remains the main bottleneck
+- `mcmc exDQLM` (`18` rows):
+  - median `ESS sigma`: `9.17`
+  - median `ESS gamma`: `3.96`
+  - median `ESS state`: `195.28`
+  - max `ACF1 gamma`: `0.999`
+  - q75 `Geweke state`: `13.21`
+  - q75 `drift gamma`: `1.44`
+  - interpretation:
+    - still a genuine extended-state mixing problem, not just mild threshold overshoot
+- `vb exDQLM` (`5` rows):
+  - these remain VB-side instability/debug targets, not MCMC threshold cases
+
+Threshold rescue scenarios on the `76` soft-only rows:
+
+- current recommended policy:
+  - rescues `0 / 76`
+- moderate MCMC relaxation:
+  - `ESS >= 3`
+  - `ACF1 <= 0.998`
+  - `Geweke <= 7.5`
+  - `half-chain drift <= 1.0`
+  - rescues `23 / 76` (`30.3%`)
+- aggressive MCMC relaxation:
+  - `ESS >= 1`
+  - `ACF1 <= 0.999`
+  - `Geweke <= 10`
+  - `half-chain drift <= 1.5`
+  - rescues `46 / 76` (`60.5%`)
+
+Rescue counts by model under the moderate relaxation:
+
+- `mcmc dqlm`: `11`
+- `mcmc exAL`: `10`
+- `mcmc exDQLM`: `2`
+
+Full residual action plan across the `100` current unhealthy rows:
+
+- `threshold_only_rescue_moderate`: `23`
+- `aggressive_policy_only_rescue`: `23`
+- `needs_deeper_chain`: `25`
+- `needs_model_or_vb_debug`: `5`
+- `mixed_debug_and_resample`: `20`
+- `hard_numerical_repair`: `4`
+
+Residual action concentration by inference/model:
+
+- `mcmc dqlm`:
+  - `11 threshold_only_rescue_moderate`
+  - `7 needs_deeper_chain`
+- `mcmc exAL`:
+  - `10 threshold_only_rescue_moderate`
+  - `16 aggressive_policy_only_rescue`
+  - `9 needs_deeper_chain`
+  - `2 mixed_debug_and_resample`
+  - `4 hard_numerical_repair`
+- `mcmc exDQLM`:
+  - `2 threshold_only_rescue_moderate`
+  - `7 aggressive_policy_only_rescue`
+  - `9 needs_deeper_chain`
+- `vb exAL`:
+  - `18 mixed_debug_and_resample`
+- `vb exDQLM`:
+  - `5 needs_model_or_vb_debug`
+
+Interpretation:
+
+- there is a real threshold-sensitive subset, but it is only `23 / 100`
+- a second wave should **not** be framed as “relax everything and rerun all”
+- the cleanest next split is:
+  - moderate-policy candidates:
+    - `23`
+  - deeper-chain MCMC candidates:
+    - `25`
+  - aggressive-policy-only rows that should probably **not** be rescued by threshold relaxation alone:
+    - `23`
+  - mixed / hard / VB-debug rows:
+    - `29`
+
+Durable rescue-analysis artifacts:
+
+- soft metric summary:
+  - `tools/merge_reports/20260315_family_qspec_soft_failure_metric_summary.tsv`
+- threshold scenarios:
+  - `tools/merge_reports/20260315_family_qspec_threshold_rescue_scenarios.tsv`
+- threshold rescue by model:
+  - `tools/merge_reports/20260315_family_qspec_threshold_rescue_by_model.tsv`
+- soft-row rescue classification:
+  - `tools/merge_reports/20260315_family_qspec_threshold_rescue_classification.tsv`
+- soft-row rescue summary:
+  - `tools/merge_reports/20260315_family_qspec_threshold_rescue_class_summary.tsv`
+  - `tools/merge_reports/20260315_family_qspec_threshold_rescue_class_by_model.tsv`
+- full residual action plan:
+  - `tools/merge_reports/20260315_family_qspec_residual_action_plan.tsv`
+  - `tools/merge_reports/20260315_family_qspec_residual_action_summary.tsv`
+  - `tools/merge_reports/20260315_family_qspec_residual_action_by_model.tsv`
+- compact summary:
+  - `tools/merge_reports/20260315_family_qspec_threshold_rescue_summary.md`
