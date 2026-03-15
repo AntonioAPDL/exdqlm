@@ -367,6 +367,28 @@ Rationale:
   hardest RHS roots to add `R-hat` before promoting any RHS-MCMC setting as a
   broader default.
 
+## 0.5) RHS MCMC Repair Sub-Tracker Added On 2026-03-14
+
+The current bottleneck is no longer the broad validation framework. It is the
+hard-root repair path for `rhs` MCMC.
+
+That work now has its own focused tracker:
+
+- `docs/TRACK__qdesn_rhs_mcmc_repair_plan.md`
+
+and its own machine-readable experiment matrix:
+
+- `config/validation/qdesn_rhs_mcmc_repair_matrix.csv`
+
+Use those files for:
+
+- the long-run diagnosis;
+- the initialization-only study;
+- the short `tau`-warmup study;
+- the RHS slice-width study;
+- and the structural fallback options such as reparameterization, blocked
+  updates, alternate hyperparameter updates, and alternate RHS kernels.
+
 ## 1) Design Principles
 
 The validation framework should follow the same strengths as the more mature
