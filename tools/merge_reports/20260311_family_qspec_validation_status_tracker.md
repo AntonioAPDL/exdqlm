@@ -1549,3 +1549,80 @@ Interpretation:
 
 - the remaining MCMC failures are not consistent with another shallow rerun
 - the repair-wave tuning has therefore been strengthened before launch
+
+## 2026-03-15 Repair Wave Closure And Post-Repair Health Audit
+
+The recommended repair wave is now fully closed:
+
+- repair state dir:
+  - `/home/jaguir26/local/state/exdqlm/family_qspec_repair_recommended_20260314_224409`
+- final queue state:
+  - `model_path: 80 wave_complete`
+  - `root_postprocess: 62 wave_complete`
+  - `root_signoff: 62 wave_complete`
+  - `root_review: 62 wave_complete`
+  - `prior_compare: 17 wave_complete`
+  - `campaign_review: 3 wave_complete`
+  - `global_summary: 1 wave_complete`
+- final repair-wave closures:
+  - `campaign__dynamic DONE` at `2026-03-15 15:53:39 EDT`
+  - `campaign__global_cross_family_summary DONE` at `2026-03-15 15:53:47 EDT`
+
+The final dynamic campaign and global cross-family summary outputs were refreshed after the last two long-tail dynamic `exdqlm` repairs completed.
+
+Post-repair signoff was then re-aggregated directly from the on-disk root signoff outputs under the recommended policy. Important result:
+
+- aggregate signoff counts were unchanged versus the pre-repair baseline:
+  - `PASS: 93`
+  - `WARN: 95`
+  - `FAIL: 100`
+  - comparison-eligible method fits: `188 / 288`
+  - algorithm-pair eligible: `64 / 144`
+  - model-pair eligible: `62 / 144`
+  - fully eligible roots: `10 / 72`
+  - any-eligible roots: `67 / 72`
+  - unhealthy targets: `100`
+
+Interpretation:
+
+- the first repair wave succeeded operationally
+- it refreshed the repaired roots and all downstream comparison artifacts cleanly
+- but it did **not** reduce the aggregate unhealthy/signoff-fail set under the current recommended policy
+
+Residual unhealthy composition after the completed repair wave:
+
+- `soft_only`: `76`
+- `mixed`: `20`
+- `hard_only`: `4`
+
+Residual concentration by inference/model:
+
+- `mcmc dqlm`: `18 soft_only`
+- `mcmc exdqlm`: `18 soft_only`
+- `mcmc exAL`: `35 soft_only`, `2 mixed`, `4 hard_only`
+- `vb exAL`: `18 mixed`
+- `vb exdqlm`: `5 soft_only`
+
+Post-repair delta artifacts:
+
+- aggregate delta:
+  - `tools/merge_reports/20260315_family_qspec_post_repair_signoff_delta.tsv`
+- reason delta:
+  - `tools/merge_reports/20260315_family_qspec_post_repair_reason_delta.tsv`
+- residual unhealthy classification:
+  - `tools/merge_reports/20260315_family_qspec_post_repair_unhealthy_classification.tsv`
+- residual bucket summaries:
+  - `tools/merge_reports/20260315_family_qspec_post_repair_bucket_summary.tsv`
+  - `tools/merge_reports/20260315_family_qspec_post_repair_bucket_by_model.tsv`
+- row-level before/after change audit:
+  - `tools/merge_reports/20260315_family_qspec_post_repair_row_changes.tsv`
+- compact summary note:
+  - `tools/merge_reports/20260315_family_qspec_post_repair_delta_summary.md`
+
+Key conclusion:
+
+- the next move should **not** be another blind replay of the same repair-wave settings
+- the remaining work must be triaged as:
+  - soft MCMC diagnostic failures that may need threshold-policy changes or materially deeper chains
+  - mixed extended-model failures that likely need both modeling/debug attention and stronger sampling
+  - the small hard-failure residue that should remain excluded until numerically repaired
