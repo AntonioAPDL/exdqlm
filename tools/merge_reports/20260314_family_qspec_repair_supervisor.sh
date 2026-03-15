@@ -41,8 +41,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 repo_root="$(cd "$repo_root" && pwd)"
-queue_tsv="${repo_root}/tools/merge_reports/20260314_family_qspec_repair_queue.tsv"
-queue_summary_tsv="${repo_root}/tools/merge_reports/20260314_family_qspec_repair_queue_summary.tsv"
+queue_dir="${state_dir}/queue"
+queue_tsv="${queue_dir}/20260314_family_qspec_repair_queue.tsv"
+queue_summary_tsv="${queue_dir}/20260314_family_qspec_repair_queue_summary.tsv"
 
 mode_arg="--dry-run"
 if [[ "$mode" == "launch" ]]; then

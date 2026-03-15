@@ -471,12 +471,16 @@ repair_plan_summary <- data.frame(
   stringsAsFactors = FALSE
 )
 
-out_dir <- file.path(repo_root, "tools", "merge_reports")
-fq_write_tsv(queue, file.path(out_dir, "20260314_family_qspec_repair_queue.tsv"))
-fq_write_tsv(summary_df, file.path(out_dir, "20260314_family_qspec_repair_queue_summary.tsv"))
-fq_write_tsv(repair_plan_summary, file.path(out_dir, "20260314_family_qspec_repair_plan_summary.tsv"))
+out_dir <- file.path(state_dir, "queue")
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+queue_path <- file.path(out_dir, "20260314_family_qspec_repair_queue.tsv")
+queue_summary_path <- file.path(out_dir, "20260314_family_qspec_repair_queue_summary.tsv")
+plan_summary_path <- file.path(out_dir, "20260314_family_qspec_repair_plan_summary.tsv")
+fq_write_tsv(queue, queue_path)
+fq_write_tsv(summary_df, queue_summary_path)
+fq_write_tsv(repair_plan_summary, plan_summary_path)
 
 cat("Wrote:\n")
-cat(file.path(out_dir, "20260314_family_qspec_repair_queue.tsv"), "\n")
-cat(file.path(out_dir, "20260314_family_qspec_repair_queue_summary.tsv"), "\n")
-cat(file.path(out_dir, "20260314_family_qspec_repair_plan_summary.tsv"), "\n")
+cat(queue_path, "\n")
+cat(queue_summary_path, "\n")
+cat(plan_summary_path, "\n")
