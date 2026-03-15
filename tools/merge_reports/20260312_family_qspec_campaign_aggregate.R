@@ -85,6 +85,52 @@ combine_root_tables <- function(root_rows, rel_file, required = TRUE) {
   rbind_fill_list(lapply(seq_len(nrow(root_rows)), function(i) read_root_table(root_rows[i, , drop = FALSE], rel_file, required = required)))
 }
 
+normalize_model_pair_table <- function(df, root_kind) {
+  if (!nrow(df)) {
+    return(df)
+  }
+  out <- df
+  if (!("rmse_extended" %in% names(out)) && "rmse_exal" %in% names(out)) {
+    out$rmse_baseline <- out$rmse_al
+    out$rmse_extended <- out$rmse_exal
+  }
+  if (!("mae_extended" %in% names(out)) && "mae_exal" %in% names(out)) {
+    out$mae_baseline <- out$mae_al
+    out$mae_extended <- out$mae_exal
+  }
+  if (!("rmse_delta_extended_minus_baseline" %in% names(out)) && "rmse_delta_exal_minus_al" %in% names(out)) {
+    out$rmse_delta_extended_minus_baseline <- out$rmse_delta_exal_minus_al
+  }
+  if (!("mae_delta_extended_minus_baseline" %in% names(out)) && "mae_delta_exal_minus_al" %in% names(out)) {
+    out$mae_delta_extended_minus_baseline <- out$mae_delta_exal_minus_al
+  }
+  if (!("signoff_grade_baseline" %in% names(out)) && "baseline_signoff_grade" %in% names(out)) {
+    out$signoff_grade_baseline <- out$baseline_signoff_grade
+  }
+  if (!("signoff_grade_extended" %in% names(out)) && "extended_signoff_grade" %in% names(out)) {
+    out$signoff_grade_extended <- out$extended_signoff_grade
+  }
+  if (!("comparison_eligible_baseline" %in% names(out))) {
+    out$comparison_eligible_baseline <- NA
+  }
+  if (!("comparison_eligible_extended" %in% names(out))) {
+    out$comparison_eligible_extended <- NA
+  }
+  if (!("method" %in% names(out)) && "inference" %in% names(out)) {
+    out$method <- out$inference
+  }
+  if (!("inference" %in% names(out)) && "method" %in% names(out)) {
+    out$inference <- out$method
+  }
+  if (!("model_baseline" %in% names(out))) {
+    out$model_baseline <- if (identical(root_kind, "dynamic")) "dqlm" else "al"
+  }
+  if (!("model_extended" %in% names(out))) {
+    out$model_extended <- if (identical(root_kind, "dynamic")) "exdqlm" else "exal"
+  }
+  out
+}
+
 summarise_signoff_counts <- function(method_long, algorithm_long, model_long, root_long, repair_long, metrics_all, metrics_eligible, pair_eligible, pair_excluded) {
   data.frame(
     method_rows = nrow(method_long),
@@ -112,6 +158,69 @@ summarise_signoff_counts <- function(method_long, algorithm_long, model_long, ro
     pairwise_rows_excluded = nrow(pair_excluded),
     stringsAsFactors = FALSE
   )
+}
+
+safe_mean_num <- function(x) {
+  x <- suppressWarnings(as.numeric(x))
+  x <- x[is.finite(x)]
+  if (!length(x)) return(NA_real_)
+  mean(x)
+}
+
+summarise_vb_vs_mcmc <- function(vb_long) {
+  if (!nrow(vb_long)) {
+    return(data.frame(
+      root_kind = character(0),
+      family = character(0),
+      model = character(0),
+      comparison_rows = integer(0),
+      eligible_rows = integer(0),
+      mcmc_better_rmse_count = integer(0),
+      vb_better_rmse_count = integer(0),
+      tie_rmse_count = integer(0),
+      mean_rmse_vb = numeric(0),
+      mean_rmse_mcmc = numeric(0),
+      mean_rmse_delta_mcmc_minus_vb = numeric(0),
+      mean_mae_delta_mcmc_minus_vb = numeric(0),
+      mean_bias_delta_mcmc_minus_vb = numeric(0),
+      mean_corr_delta_mcmc_minus_vb = numeric(0),
+      mean_coverage_delta_mcmc_minus_vb = numeric(0),
+      mean_ci_width_delta_mcmc_minus_vb = numeric(0),
+      mean_runtime_ratio_mcmc_vs_vb = numeric(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+  key_df <- unique(vb_long[, c("root_kind", "family", "model"), drop = FALSE])
+  key_df <- key_df[order(key_df$root_kind, key_df$family, key_df$model), , drop = FALSE]
+  rows <- lapply(seq_len(nrow(key_df)), function(i) {
+    rk <- key_df$root_kind[[i]]
+    fm <- key_df$family[[i]]
+    md <- key_df$model[[i]]
+    sub <- vb_long[vb_long$root_kind == rk & vb_long$family == fm & vb_long$model == md, , drop = FALSE]
+    delta <- suppressWarnings(as.numeric(sub$rmse_delta_mcmc_minus_vb))
+    elig <- as.logical(sub$algorithm_pair_comparison_eligible %in% TRUE)
+    data.frame(
+      root_kind = rk,
+      family = fm,
+      model = md,
+      comparison_rows = nrow(sub),
+      eligible_rows = sum(elig, na.rm = TRUE),
+      mcmc_better_rmse_count = sum(delta < 0, na.rm = TRUE),
+      vb_better_rmse_count = sum(delta > 0, na.rm = TRUE),
+      tie_rmse_count = sum(delta == 0, na.rm = TRUE),
+      mean_rmse_vb = safe_mean_num(sub$rmse_vb),
+      mean_rmse_mcmc = safe_mean_num(sub$rmse_mcmc),
+      mean_rmse_delta_mcmc_minus_vb = safe_mean_num(sub$rmse_delta_mcmc_minus_vb),
+      mean_mae_delta_mcmc_minus_vb = safe_mean_num(sub$mae_delta_mcmc_minus_vb),
+      mean_bias_delta_mcmc_minus_vb = safe_mean_num(sub$bias_delta_mcmc_minus_vb),
+      mean_corr_delta_mcmc_minus_vb = safe_mean_num(sub$corr_delta_mcmc_minus_vb),
+      mean_coverage_delta_mcmc_minus_vb = safe_mean_num(sub$coverage_delta_mcmc_minus_vb),
+      mean_ci_width_delta_mcmc_minus_vb = safe_mean_num(sub$mean_ci_width_delta_mcmc_minus_vb),
+      mean_runtime_ratio_mcmc_vs_vb = safe_mean_num(sub$runtime_ratio_mcmc_vs_vb),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
 }
 
 if (identical(barrier_type, "campaign_review")) {
@@ -175,6 +284,11 @@ if (identical(barrier_type, "campaign_review")) {
   fit_metrics_eligible_long <- data.frame(stringsAsFactors = FALSE)
   pairwise_long <- data.frame(stringsAsFactors = FALSE)
   pairwise_excluded_long <- data.frame(stringsAsFactors = FALSE)
+  pairwise_model_compare_long <- data.frame(stringsAsFactors = FALSE)
+  pairwise_model_compare_excluded_long <- data.frame(stringsAsFactors = FALSE)
+  vb_mcmc_long <- data.frame(stringsAsFactors = FALSE)
+  vb_mcmc_eligible_long <- data.frame(stringsAsFactors = FALSE)
+  vb_mcmc_excluded_long <- data.frame(stringsAsFactors = FALSE)
   runtime_long <- data.frame(stringsAsFactors = FALSE)
   gates_long <- data.frame(stringsAsFactors = FALSE)
   fit_summary_long <- data.frame(stringsAsFactors = FALSE)
@@ -194,11 +308,19 @@ if (identical(barrier_type, "campaign_review")) {
     )
     fit_metrics_eligible_long <- fit_metrics_long[as.logical(fit_metrics_long$comparison_eligible %in% TRUE), , drop = FALSE]
     write_tsv(fit_summary_long, "fit_summary_long.tsv")
+    pairwise_long <- combine_root_tables(root_rows, "pairwise_exdqlm_vs_dqlm.csv")
+    pairwise_excluded_long <- combine_root_tables(root_rows, "pairwise_exdqlm_vs_dqlm_excluded.csv")
+    pairwise_model_compare_long <- normalize_model_pair_table(pairwise_long, "dynamic")
+    pairwise_model_compare_excluded_long <- normalize_model_pair_table(pairwise_excluded_long, "dynamic")
+    write_tsv(pairwise_long, "pairwise_exdqlm_vs_dqlm_long.tsv")
+    write_tsv(pairwise_excluded_long, "pairwise_exdqlm_vs_dqlm_excluded_long.tsv")
   } else {
     fit_metrics_long <- combine_root_tables(root_rows, "fit_metrics_by_task.csv")
     fit_metrics_eligible_long <- combine_root_tables(root_rows, "fit_metrics_by_task_eligible.csv")
     pairwise_long <- combine_root_tables(root_rows, "pairwise_exal_vs_al.csv")
     pairwise_excluded_long <- combine_root_tables(root_rows, "pairwise_exal_vs_al_excluded.csv")
+    pairwise_model_compare_long <- normalize_model_pair_table(pairwise_long, unique(root_rows$root_kind)[[1]])
+    pairwise_model_compare_excluded_long <- normalize_model_pair_table(pairwise_excluded_long, unique(root_rows$root_kind)[[1]])
     runtime_long <- combine_root_tables(root_rows, "runtime_diagnostics_summary.csv")
     gates_long <- combine_root_tables(root_rows, "acceptance_gate_summary.csv")
     write_tsv(pairwise_long, "pairwise_exal_vs_al_long.tsv")
@@ -207,8 +329,19 @@ if (identical(barrier_type, "campaign_review")) {
     write_tsv(gates_long, "acceptance_gate_summary_long.tsv")
   }
 
+  write_tsv(pairwise_model_compare_long, "pairwise_model_compare_long.tsv")
+  write_tsv(pairwise_model_compare_excluded_long, "pairwise_model_compare_excluded_long.tsv")
+
+  vb_mcmc_long <- combine_root_tables(root_rows, "pairwise_vb_vs_mcmc.csv")
+  vb_mcmc_eligible_long <- combine_root_tables(root_rows, "pairwise_vb_vs_mcmc_eligible.csv")
+  vb_mcmc_excluded_long <- combine_root_tables(root_rows, "pairwise_vb_vs_mcmc_excluded.csv")
+
   write_tsv(fit_metrics_long, "fit_metrics_by_task_long.tsv")
   write_tsv(fit_metrics_eligible_long, "fit_metrics_by_task_eligible_long.tsv")
+  write_tsv(vb_mcmc_long, "pairwise_vb_vs_mcmc_long.tsv")
+  write_tsv(vb_mcmc_eligible_long, "pairwise_vb_vs_mcmc_eligible_long.tsv")
+  write_tsv(vb_mcmc_excluded_long, "pairwise_vb_vs_mcmc_excluded_long.tsv")
+  write_tsv(summarise_vb_vs_mcmc(vb_mcmc_long), "vb_vs_mcmc_summary.tsv")
 
   if (identical(barrier_id, "campaign__static_shrink") && nrow(compare_rows)) {
     rhs_vs_ridge_long <- rbind_fill_list(lapply(seq_len(nrow(compare_rows)), function(i) read_compare_table(compare_rows[i, , drop = FALSE], "rhs_vs_ridge_summary.csv")))
@@ -227,8 +360,8 @@ if (identical(barrier_type, "campaign_review")) {
     repair_long = repair_targets_long,
     metrics_all = fit_metrics_long,
     metrics_eligible = fit_metrics_eligible_long,
-    pair_eligible = pairwise_long,
-    pair_excluded = pairwise_excluded_long
+    pair_eligible = pairwise_model_compare_long,
+    pair_excluded = pairwise_model_compare_excluded_long
   )
 
   summary_df <- cbind(
@@ -245,6 +378,9 @@ if (identical(barrier_type, "campaign_review")) {
     ),
     signoff_counts
   )
+  summary_df$vb_mcmc_rows_all <- nrow(vb_mcmc_long)
+  summary_df$vb_mcmc_rows_eligible <- nrow(vb_mcmc_eligible_long)
+  summary_df$vb_mcmc_rows_excluded <- nrow(vb_mcmc_excluded_long)
   write_tsv(summary_df, "campaign_summary.tsv")
 
   writeLines(c(
@@ -261,6 +397,12 @@ if (identical(barrier_type, "campaign_review")) {
     paste0("- repair_targets_long: `tables/repair_targets_long.tsv`"),
     paste0("- fit_metrics_by_task_long: `tables/fit_metrics_by_task_long.tsv`"),
     paste0("- fit_metrics_by_task_eligible_long: `tables/fit_metrics_by_task_eligible_long.tsv`"),
+    paste0("- pairwise_model_compare_long: `tables/pairwise_model_compare_long.tsv`"),
+    paste0("- pairwise_model_compare_excluded_long: `tables/pairwise_model_compare_excluded_long.tsv`"),
+    paste0("- pairwise_vb_vs_mcmc_long: `tables/pairwise_vb_vs_mcmc_long.tsv`"),
+    paste0("- pairwise_vb_vs_mcmc_eligible_long: `tables/pairwise_vb_vs_mcmc_eligible_long.tsv`"),
+    paste0("- pairwise_vb_vs_mcmc_excluded_long: `tables/pairwise_vb_vs_mcmc_excluded_long.tsv`"),
+    paste0("- vb_vs_mcmc_summary: `tables/vb_vs_mcmc_summary.tsv`"),
     paste0("- campaign_summary: `tables/campaign_summary.tsv`")
   ), con = file.path(out_root, "report_summary.md"))
 } else if (identical(barrier_type, "global_summary")) {
@@ -302,12 +444,40 @@ if (identical(barrier_type, "campaign_review")) {
   repair_long <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) fq_read_tsv(file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "repair_targets_long.tsv"))))
   metrics_all <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) fq_read_tsv(file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "fit_metrics_by_task_long.tsv"))))
   metrics_eligible <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) fq_read_tsv(file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "fit_metrics_by_task_eligible_long.tsv"))))
-  pair_eligible <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+  static_pair_eligible <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
     path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_exal_vs_al_long.tsv")
     if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
   }))
-  pair_excluded <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+  static_pair_excluded <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
     path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_exal_vs_al_excluded_long.tsv")
+    if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
+  }))
+  dynamic_pair_eligible <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+    path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_exdqlm_vs_dqlm_long.tsv")
+    if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
+  }))
+  dynamic_pair_excluded <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+    path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_exdqlm_vs_dqlm_excluded_long.tsv")
+    if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
+  }))
+  pair_eligible <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+    path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_model_compare_long.tsv")
+    if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
+  }))
+  pair_excluded <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+    path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_model_compare_excluded_long.tsv")
+    if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
+  }))
+  vb_mcmc_long <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+    path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_vb_vs_mcmc_long.tsv")
+    if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
+  }))
+  vb_mcmc_eligible_long <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+    path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_vb_vs_mcmc_eligible_long.tsv")
+    if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
+  }))
+  vb_mcmc_excluded_long <- rbind_fill_list(lapply(dep_barrier_ids, function(dep_id) {
+    path <- file.path(fq_barrier_output_root(dep_id, repo_root), "tables", "pairwise_vb_vs_mcmc_excluded_long.tsv")
     if (file.exists(path)) fq_read_tsv(path) else data.frame(stringsAsFactors = FALSE)
   }))
 
@@ -318,8 +488,16 @@ if (identical(barrier_type, "campaign_review")) {
   write_tsv(repair_long, "repair_targets_long.tsv")
   write_tsv(metrics_all, "fit_metrics_by_task_long.tsv")
   write_tsv(metrics_eligible, "fit_metrics_by_task_eligible_long.tsv")
-  write_tsv(pair_eligible, "pairwise_exal_vs_al_long.tsv")
-  write_tsv(pair_excluded, "pairwise_exal_vs_al_excluded_long.tsv")
+  write_tsv(static_pair_eligible, "pairwise_exal_vs_al_long.tsv")
+  write_tsv(static_pair_excluded, "pairwise_exal_vs_al_excluded_long.tsv")
+  write_tsv(dynamic_pair_eligible, "pairwise_exdqlm_vs_dqlm_long.tsv")
+  write_tsv(dynamic_pair_excluded, "pairwise_exdqlm_vs_dqlm_excluded_long.tsv")
+  write_tsv(pair_eligible, "pairwise_model_compare_long.tsv")
+  write_tsv(pair_excluded, "pairwise_model_compare_excluded_long.tsv")
+  write_tsv(vb_mcmc_long, "pairwise_vb_vs_mcmc_long.tsv")
+  write_tsv(vb_mcmc_eligible_long, "pairwise_vb_vs_mcmc_eligible_long.tsv")
+  write_tsv(vb_mcmc_excluded_long, "pairwise_vb_vs_mcmc_excluded_long.tsv")
+  write_tsv(summarise_vb_vs_mcmc(vb_mcmc_long), "vb_vs_mcmc_summary.tsv")
 
   global_signoff_summary <- cbind(
     data.frame(
@@ -340,6 +518,9 @@ if (identical(barrier_type, "campaign_review")) {
       pair_excluded = pair_excluded
     )
   )
+  global_signoff_summary$vb_mcmc_rows_all <- nrow(vb_mcmc_long)
+  global_signoff_summary$vb_mcmc_rows_eligible <- nrow(vb_mcmc_eligible_long)
+  global_signoff_summary$vb_mcmc_rows_excluded <- nrow(vb_mcmc_excluded_long)
   write_tsv(global_signoff_summary, "global_signoff_summary.tsv")
 
   writeLines(c(
@@ -349,7 +530,13 @@ if (identical(barrier_type, "campaign_review")) {
     paste0("- campaign_count: `", nrow(global_df), "`"),
     paste0("- prerequisite_inventory: `tables/prerequisite_inventory.tsv`"),
     paste0("- global_summary: `tables/global_summary.tsv`"),
-    paste0("- global_signoff_summary: `tables/global_signoff_summary.tsv`")
+    paste0("- global_signoff_summary: `tables/global_signoff_summary.tsv`"),
+    paste0("- pairwise_model_compare_long: `tables/pairwise_model_compare_long.tsv`"),
+    paste0("- pairwise_model_compare_excluded_long: `tables/pairwise_model_compare_excluded_long.tsv`"),
+    paste0("- pairwise_vb_vs_mcmc_long: `tables/pairwise_vb_vs_mcmc_long.tsv`"),
+    paste0("- pairwise_vb_vs_mcmc_eligible_long: `tables/pairwise_vb_vs_mcmc_eligible_long.tsv`"),
+    paste0("- pairwise_vb_vs_mcmc_excluded_long: `tables/pairwise_vb_vs_mcmc_excluded_long.tsv`"),
+    paste0("- vb_vs_mcmc_summary: `tables/vb_vs_mcmc_summary.tsv`")
   ), con = file.path(out_root, "report_summary.md"))
 } else {
   stop("Unsupported barrier_type for aggregation: ", barrier_type, call. = FALSE)

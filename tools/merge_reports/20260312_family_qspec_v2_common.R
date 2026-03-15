@@ -165,6 +165,9 @@ fq_required_review_files <- function(root_row, repo_root = ".") {
       fq_required_postprocess_files(root_row, repo_root),
       file.path(run_root, "tables", "fit_metrics_by_task.csv"),
       file.path(run_root, "tables", "fit_metrics_by_task_eligible.csv"),
+      file.path(run_root, "tables", "pairwise_vb_vs_mcmc.csv"),
+      file.path(run_root, "tables", "pairwise_vb_vs_mcmc_eligible.csv"),
+      file.path(run_root, "tables", "pairwise_vb_vs_mcmc_excluded.csv"),
       file.path(run_root, "tables", "pairwise_exdqlm_vs_dqlm.csv"),
       file.path(run_root, "tables", "pairwise_exdqlm_vs_dqlm_excluded.csv"),
       file.path(run_root, "tables", "acceptance_gate_summary.csv"),
@@ -173,6 +176,9 @@ fq_required_review_files <- function(root_row, repo_root = ".") {
   }
   c(
     fq_required_signoff_files(root_row, repo_root),
+    file.path(run_root, "tables", "pairwise_vb_vs_mcmc.csv"),
+    file.path(run_root, "tables", "pairwise_vb_vs_mcmc_eligible.csv"),
+    file.path(run_root, "tables", "pairwise_vb_vs_mcmc_excluded.csv"),
     file.path(run_root, "tables", "pairwise_exal_vs_al.csv"),
     file.path(run_root, "tables", "pairwise_exal_vs_al_excluded.csv"),
     file.path(run_root, "tables", "runtime_diagnostics_summary.csv"),

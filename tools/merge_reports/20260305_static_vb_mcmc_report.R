@@ -616,6 +616,101 @@ gate_df$overall_pass <- with(
 )
 utils::write.csv(gate_df, file.path(out_tables, "acceptance_gate_summary.csv"), row.names = FALSE)
 
+vb_mcmc_rows <- list()
+if (nrow(metrics_df) > 0) {
+  taus <- sort(unique(metrics_df$tau))
+  models <- sort(unique(metrics_df$model))
+  for (tau in taus) {
+    for (model in models) {
+      vb <- metrics_df[metrics_df$model == model & metrics_df$tau == tau & metrics_df$method == "vb", , drop = FALSE]
+      mc <- metrics_df[metrics_df$model == model & metrics_df$tau == tau & metrics_df$method == "mcmc", , drop = FALSE]
+      if (nrow(vb) == 1 && nrow(mc) == 1) {
+        vb_mcmc_rows[[length(vb_mcmc_rows) + 1L]] <- data.frame(
+          model = model,
+          tau = tau,
+          mae_vb = vb$mae,
+          mae_mcmc = mc$mae,
+          mae_delta_mcmc_minus_vb = mc$mae - vb$mae,
+          rmse_vb = vb$rmse,
+          rmse_mcmc = mc$rmse,
+          rmse_delta_mcmc_minus_vb = mc$rmse - vb$rmse,
+          bias_vb = vb$bias,
+          bias_mcmc = mc$bias,
+          bias_delta_mcmc_minus_vb = mc$bias - vb$bias,
+          corr_vb = vb$corr,
+          corr_mcmc = mc$corr,
+          corr_delta_mcmc_minus_vb = mc$corr - vb$corr,
+          coverage_vb = NA_real_,
+          coverage_mcmc = NA_real_,
+          coverage_delta_mcmc_minus_vb = NA_real_,
+          mean_ci_width_vb = NA_real_,
+          mean_ci_width_mcmc = NA_real_,
+          mean_ci_width_delta_mcmc_minus_vb = NA_real_,
+          n_draws_vb = NA_real_,
+          n_draws_mcmc = NA_real_,
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+  }
+}
+vb_mcmc_df <- if (length(vb_mcmc_rows)) do.call(rbind, vb_mcmc_rows) else data.frame(
+  model = character(0),
+  tau = numeric(0),
+  mae_vb = numeric(0),
+  mae_mcmc = numeric(0),
+  mae_delta_mcmc_minus_vb = numeric(0),
+  rmse_vb = numeric(0),
+  rmse_mcmc = numeric(0),
+  rmse_delta_mcmc_minus_vb = numeric(0),
+  bias_vb = numeric(0),
+  bias_mcmc = numeric(0),
+  bias_delta_mcmc_minus_vb = numeric(0),
+  corr_vb = numeric(0),
+  corr_mcmc = numeric(0),
+  corr_delta_mcmc_minus_vb = numeric(0),
+  coverage_vb = numeric(0),
+  coverage_mcmc = numeric(0),
+  coverage_delta_mcmc_minus_vb = numeric(0),
+  mean_ci_width_vb = numeric(0),
+  mean_ci_width_mcmc = numeric(0),
+  mean_ci_width_delta_mcmc_minus_vb = numeric(0),
+  n_draws_vb = numeric(0),
+  n_draws_mcmc = numeric(0),
+  stringsAsFactors = FALSE
+)
+if (nrow(vb_mcmc_df) > 0) {
+  rt_cols <- runtime_diag[, c("model", "tau", "beta_prior", "vb_runtime_sec", "mcmc_runtime_sec"), drop = FALSE]
+  vb_mcmc_df <- merge(vb_mcmc_df, rt_cols, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+  vb_mcmc_df$runtime_ratio_mcmc_vs_vb <- vb_mcmc_df$mcmc_runtime_sec / vb_mcmc_df$vb_runtime_sec
+  gate_cols <- gate_df[, c(
+    "model", "tau", "vb_signoff_grade", "vb_comparison_eligible", "vb_signoff_reason",
+    "mcmc_signoff_grade", "mcmc_comparison_eligible", "mcmc_signoff_reason",
+    "algorithm_pair_signoff_grade", "algorithm_pair_comparison_eligible",
+    "gate_accuracy", "overall_pass"
+  ), drop = FALSE]
+  vb_mcmc_df <- merge(vb_mcmc_df, gate_cols, by = c("model", "tau"), all.x = TRUE, sort = FALSE)
+}
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "beta_prior", NA_character_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "vb_runtime_sec", NA_real_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "mcmc_runtime_sec", NA_real_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "runtime_ratio_mcmc_vs_vb", NA_real_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "vb_signoff_grade", NA_character_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "vb_comparison_eligible", NA)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "vb_signoff_reason", NA_character_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "mcmc_signoff_grade", NA_character_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "mcmc_comparison_eligible", NA)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "mcmc_signoff_reason", NA_character_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "algorithm_pair_signoff_grade", NA_character_)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "algorithm_pair_comparison_eligible", NA)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "gate_accuracy", NA)
+vb_mcmc_df <- ensure_col(vb_mcmc_df, "overall_pass", NA)
+vb_mcmc_df_eligible <- if (nrow(vb_mcmc_df)) vb_mcmc_df[as.logical(vb_mcmc_df$algorithm_pair_comparison_eligible %in% TRUE), , drop = FALSE] else vb_mcmc_df
+vb_mcmc_df_excluded <- if (nrow(vb_mcmc_df)) vb_mcmc_df[!as.logical(vb_mcmc_df$algorithm_pair_comparison_eligible %in% TRUE), , drop = FALSE] else vb_mcmc_df
+utils::write.csv(vb_mcmc_df, file.path(out_tables, "pairwise_vb_vs_mcmc.csv"), row.names = FALSE)
+utils::write.csv(vb_mcmc_df_eligible, file.path(out_tables, "pairwise_vb_vs_mcmc_eligible.csv"), row.names = FALSE)
+utils::write.csv(vb_mcmc_df_excluded, file.path(out_tables, "pairwise_vb_vs_mcmc_excluded.csv"), row.names = FALSE)
+
 # Plots: per tau compare truth vs four model-method combos when all available.
 if (nrow(metrics_df) > 0) {
   for (tau in sort(unique(metrics_df$tau))) {
@@ -899,6 +994,9 @@ writeLines(c(
   sprintf("- method_comparison_eligible_count: %d", if (nrow(method_signoff)) sum(as.logical(method_signoff$comparison_eligible), na.rm = TRUE) else 0L),
   sprintf("- algorithm_pair_eligible_count: %d", if (nrow(algorithm_pair_signoff)) sum(as.logical(algorithm_pair_signoff$pair_comparison_eligible), na.rm = TRUE) else 0L),
   sprintf("- model_pair_eligible_count: %d", if (nrow(model_pair_signoff)) sum(as.logical(model_pair_signoff$pair_comparison_eligible), na.rm = TRUE) else 0L),
+  sprintf("- vb_vs_mcmc_rows_all: %d", nrow(vb_mcmc_df)),
+  sprintf("- vb_vs_mcmc_rows_eligible: %d", nrow(vb_mcmc_df_eligible)),
+  sprintf("- vb_vs_mcmc_rows_excluded: %d", nrow(vb_mcmc_df_excluded)),
   sprintf("- eligible_metric_rows: %d", nrow(eligible_metrics_df)),
   sprintf("- eligible_pairwise_rows: %d", nrow(pair_df_eligible)),
   sprintf("- excluded_pairwise_rows: %d", nrow(pair_df_excluded)),
