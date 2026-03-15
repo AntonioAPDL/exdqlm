@@ -2,7 +2,7 @@
 
 Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
-Status: phase-0 pilot framework implemented; phase-1 broader toy comparison campaign now implemented on this branch using the fixed VB RHS baseline
+Status: validation framework implemented; broader toy comparison, rhs repair, and multichain triage completed; structural rhs sampler repair now underway
 Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
@@ -22,6 +22,15 @@ Build a validation framework for Q-DESN inference that is:
 
 This framework is not a benchmark framework. It is a validation framework for
 algorithm correctness, stability, and controlled method comparison.
+
+Current state note:
+
+- the framework has now progressed beyond broad `vb` versus `mcmc` comparison;
+- `vb` is stable enough to serve as the reference path;
+- the remaining bottleneck is structural `rhs` MCMC behavior on a small
+  persistent failed set;
+- the current active work is the first structural repair on the transformed
+  global RHS block.
 
 ## 0.1) Implemented State On 2026-03-14
 

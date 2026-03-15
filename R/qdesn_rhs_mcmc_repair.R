@@ -23,7 +23,11 @@ qdesn_rhs_mcmc_repair_load_profiles <- function(path = file.path("config", "vali
 
 .qdesn_rhs_mcmc_repair_field_is_placeholder <- function(x) {
   x <- trimws(as.character(x %||% ""))
-  !nzchar(x) || identical(tolower(x), "na") || startsWith(tolower(x), "best_from_") || identical(tolower(x), "n/a")
+  if (!length(x) || all(is.na(x))) return(TRUE)
+  x1 <- x[[1L]]
+  if (is.na(x1)) return(TRUE)
+  lx <- tolower(x1)
+  !nzchar(x1) || identical(lx, "na") || startsWith(lx, "best_from_") || identical(lx, "n/a")
 }
 
 .qdesn_rhs_mcmc_repair_parse_bool <- function(x) {
@@ -130,6 +134,28 @@ qdesn_rhs_mcmc_repair_resolve_experiment <- function(experiment_id = NULL,
     executable <- FALSE
     blockers <- c(blockers, "numeric_control_placeholder")
   }
+  global_block_mode <- if ("rhs_global_block_update" %in% names(row)) {
+    trimws(as.character(row$rhs_global_block_update %||% ""))
+  } else {
+    ""
+  }
+  width_tau_c2_block <- if ("width_rhs_tau_c2_block" %in% names(row)) {
+    .qdesn_rhs_mcmc_repair_parse_num(row$width_rhs_tau_c2_block)
+  } else {
+    NA_real_
+  }
+  if (nzchar(global_block_mode) && identical(tolower(global_block_mode), "n/a")) {
+    global_block_mode <- ""
+  }
+  if (nzchar(global_block_mode) && !(tolower(global_block_mode) %in% c("coordinate", "directional_tau_c2"))) {
+    executable <- FALSE
+    blockers <- c(blockers, "unsupported_rhs_global_block_update")
+  }
+  if (nzchar(global_block_mode) && identical(tolower(global_block_mode), "directional_tau_c2") &&
+      (!is.finite(width_tau_c2_block) || width_tau_c2_block <= 0)) {
+    executable <- FALSE
+    blockers <- c(blockers, "width_rhs_tau_c2_block_placeholder")
+  }
 
   root_grid_path <- .qdesn_rhs_mcmc_repair_root_set_path(row$root_set, profiles, repo_root = repo_root)
   vb_profile <- if (!.qdesn_rhs_mcmc_repair_field_is_placeholder(vb_profile_name)) {
@@ -155,6 +181,10 @@ qdesn_rhs_mcmc_repair_resolve_experiment <- function(experiment_id = NULL,
     max_steps_out = .qdesn_rhs_mcmc_repair_parse_int(row$max_steps_out),
     max_shrink = .qdesn_rhs_mcmc_repair_parse_int(row$max_shrink)
   ))
+  if (nzchar(global_block_mode)) {
+    rhs_override$slice$rhs_global_block_update <- tolower(global_block_mode)
+    rhs_override$slice$width_rhs_tau_c2_block <- width_tau_c2_block
+  }
   rhs_override$rhs <- modifyList(rhs_override$rhs %||% list(), list(
     freeze_tau_burnin_iters = freeze_tau_burnin_iters,
     freeze_tau_only_during_burn = isTRUE(freeze_tau_only_during_burn)
@@ -176,7 +206,9 @@ qdesn_rhs_mcmc_repair_resolve_experiment <- function(experiment_id = NULL,
     applied_controls = list(
       vb_warm_start_profile = vb_profile_name,
       freeze_tau_burnin_iters = freeze_tau_burnin_iters,
-      freeze_tau_only_during_burn = isTRUE(freeze_tau_only_during_burn)
+      freeze_tau_only_during_burn = isTRUE(freeze_tau_only_during_burn),
+      rhs_global_block_update = if (nzchar(global_block_mode)) tolower(global_block_mode) else "coordinate",
+      width_rhs_tau_c2_block = if (nzchar(global_block_mode)) width_tau_c2_block else NA_real_
     ),
     repo_root = repo_root
   )

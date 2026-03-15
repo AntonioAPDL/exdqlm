@@ -2,7 +2,7 @@
 
 Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
-Status: Stage B/C repair sequence completed; candidate broader-validation settings selected
+Status: multichain failure triage completed; moving into first structural RHS repair
 Purpose: isolate why `RHS MCMC` still fails inference signoff on a subset of
 hard toy roots, and define an organized experiment ladder that can tell us
 whether the issue is:
@@ -17,6 +17,45 @@ whether the issue is:
 This tracker is intentionally narrower than the general Q-DESN validation plan.
 It is focused on repairing the `rhs` MCMC readout and deciding what class of
 solution should be expanded.
+
+## 0.3) Structural Follow-up Decision On 2026-03-15
+
+The multichain failure triage completed at:
+
+- `reports/qdesn_mcmc_validation/multichain_failure_triage/20260315-023411__git-a600ba9/20260315-023425__git-a600ba9`
+
+The follow-up monitor decision was:
+
+- `structural_rhs_repair`
+
+Decision root:
+
+- `reports/qdesn_mcmc_validation/multichain_followup_monitor/20260315-023425__git-a600ba9`
+
+Main interpretation:
+
+- the remaining `rhs` failures are not just single-chain signoff artifacts;
+- multichain confirmation still leaves a small persistent failed set;
+- the next move should target the RHS hyperparameter geometry directly.
+
+Persistent failed RHS set carried forward:
+
+- `const_small | tau = 0.50 | rhs`
+- `sin_asym_small | tau = 0.25 | rhs`
+- `toy_sine_small | tau = 0.05 | rhs`
+- `toy_sine_small | tau = 0.50 | rhs`
+
+The first structural repair to implement is:
+
+- a joint directional slice update for the transformed global RHS block
+  `(eta_tau, eta_c2)`, while keeping coordinate-wise `lambda_j` updates
+  unchanged.
+
+Rationale:
+
+- the remaining failures are concentrated in the global/slab shrinkage block;
+- this keeps the nonconjugate strategy slice-based;
+- it is narrower and easier to interpret than a full kernel redesign.
 
 ## 0.2) Stage B/C Outcome On 2026-03-14
 

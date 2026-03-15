@@ -1,5 +1,6 @@
 root_sets:
   primary_hard_rhs: config/validation/qdesn_rhs_primary_hard_grid.csv
+  persistent_failed_rhs: config/validation/qdesn_rhs_structural_failed_grid.csv
 
 vb_warm_start_profiles:
   phase1_tuned_vb_rhs:

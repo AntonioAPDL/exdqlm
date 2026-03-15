@@ -69,3 +69,19 @@ test_that("RHS MCMC repair ranking prioritizes eligibility then stability", {
   expect_equal(as.character(ranked$experiment_id[[1L]]), "B3")
   expect_equal(ranked$rank, c(1, 2, 3))
 })
+
+test_that("RHS MCMC repair resolver materializes structural blocked tau/c2 experiment", {
+  resolved <- exdqlm:::qdesn_rhs_mcmc_repair_resolve_experiment(
+    experiment_id = "E4_blocked_tau_c2_directional",
+    matrix_path = file.path("config", "validation", "qdesn_rhs_mcmc_repair_matrix.csv"),
+    profiles_path = file.path("config", "validation", "qdesn_rhs_mcmc_repair_profiles.yaml")
+  )
+
+  expect_true(isTRUE(resolved$executable))
+  expect_equal(basename(resolved$grid_path), "qdesn_rhs_structural_failed_grid.csv")
+  rhs_override <- resolved$defaults$pipeline$inference$mcmc$prior_overrides$rhs
+  expect_identical(rhs_override$slice$rhs_global_block_update, "directional_tau_c2")
+  expect_equal(rhs_override$slice$width_rhs_tau_c2_block, 1.0)
+  expect_equal(rhs_override$rhs$freeze_tau_burnin_iters, 50L)
+  expect_equal(resolved$applied_controls$rhs_global_block_update, "directional_tau_c2")
+})

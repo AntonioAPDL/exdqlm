@@ -71,6 +71,34 @@
 }
 
 #' @keywords internal
+.exal_mcmc_slice_line_bounds <- function(x0, direction, lower, upper) {
+  x0 <- as.numeric(x0)
+  direction <- as.numeric(direction)
+  lower <- as.numeric(lower)
+  upper <- as.numeric(upper)
+  if (!(length(x0) == length(direction) && length(x0) == length(lower) && length(x0) == length(upper))) {
+    .stopf("slice line bounds require equal-length vectors.")
+  }
+
+  z_lower <- -Inf
+  z_upper <- Inf
+  for (ii in seq_along(x0)) {
+    di <- direction[[ii]]
+    if (!is.finite(di) || abs(di) < 1e-14) {
+      if (x0[[ii]] < lower[[ii]] || x0[[ii]] > upper[[ii]]) {
+        return(list(lower = Inf, upper = -Inf))
+      }
+      next
+    }
+    zi1 <- (lower[[ii]] - x0[[ii]]) / di
+    zi2 <- (upper[[ii]] - x0[[ii]]) / di
+    z_lower <- max(z_lower, min(zi1, zi2))
+    z_upper <- min(z_upper, max(zi1, zi2))
+  }
+  list(lower = z_lower, upper = z_upper)
+}
+
+#' @keywords internal
 .exal_mcmc_rhs_prepare_state <- function(beta_prior_obj, p, init = list(), vb_warm = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
   if (!identical(beta_prior_obj$type, "rhs")) return(NULL)
@@ -150,9 +178,15 @@
   width_lambda <- as.numeric(slice_cfg$width_rhs_lambda %||% slice_cfg$width_lambda %||% 1.0)[1L]
   width_tau <- as.numeric(slice_cfg$width_rhs_tau %||% slice_cfg$width_tau %||% 1.0)[1L]
   width_c2 <- as.numeric(slice_cfg$width_rhs_c2 %||% slice_cfg$width_c2 %||% 1.0)[1L]
+  width_tau_c2_block <- as.numeric(slice_cfg$width_rhs_tau_c2_block %||% 1.0)[1L]
+  global_block_mode <- tolower(trimws(as.character(slice_cfg$rhs_global_block_update %||% "coordinate")))[1L]
+  if (!global_block_mode %in% c("coordinate", "directional_tau_c2")) {
+    .stopf("Unsupported RHS global block update mode '%s'.", global_block_mode)
+  }
   if (!is.finite(width_lambda) || width_lambda <= 0) .stopf("RHS slice width_lambda must be positive.")
   if (!is.finite(width_tau) || width_tau <= 0) .stopf("RHS slice width_tau must be positive.")
   if (!is.finite(width_c2) || width_c2 <= 0) .stopf("RHS slice width_c2 must be positive.")
+  if (!is.finite(width_tau_c2_block) || width_tau_c2_block <= 0) .stopf("RHS slice width_tau_c2_block must be positive.")
 
   tau0 <- as.numeric(beta_prior_obj$hypers$tau0 %||% 1)[1L]
   nu <- as.numeric(beta_prior_obj$hypers$nu %||% 4)[1L]
@@ -203,43 +237,114 @@
     }
   }
 
+  global_block_used <- FALSE
+  global_block_steps_out <- 0L
+  global_block_shrink <- 0L
+  global_block_dir_tau <- 0
+  global_block_dir_c2 <- 0
+
   if (isTRUE(freeze_tau)) {
     tau_out <- list(x = eta_tau, n_steps_out = 0L, n_shrink = 0L)
   } else {
-    tau_out <- .exal_mcmc_slice_sample_1d(
-      x0 = eta_tau,
-      logf = function(etau) {
+    if (identical(global_block_mode, "directional_tau_c2")) {
+      x0_block <- c(eta_tau, eta_c2)
+      dir_seed <- stats::rnorm(2L)
+      dir_norm <- sqrt(sum(dir_seed * dir_seed))
+      if (!is.finite(dir_norm) || dir_norm <= 1e-12) dir_seed <- c(1, 0)
+      dir_norm <- sqrt(sum(dir_seed * dir_seed))
+      dir_unit <- dir_seed / dir_norm
+      dir_vec <- c(width_tau, width_c2) * dir_unit
+      line_bounds <- .exal_mcmc_slice_line_bounds(
+        x0 = x0_block,
+        direction = dir_vec,
+        lower = c(b_tau[1L], b_c2[1L]),
+        upper = c(b_tau[2L], b_c2[2L])
+      )
+      if (is.finite(line_bounds$lower) && is.finite(line_bounds$upper) &&
+          (line_bounds$upper - line_bounds$lower) > 1e-10) {
+        block_out <- .exal_mcmc_slice_sample_1d(
+          x0 = 0,
+          logf = function(z) {
+            rhs_obj_eta(
+              eta_lam,
+              x0_block[1L] + z * dir_vec[1L],
+              x0_block[2L] + z * dir_vec[2L],
+              beta2,
+              tau0 = tau0, nu = nu, s = s,
+              shrink_intercept = state$shrink_intercept
+            )
+          },
+          width = width_tau_c2_block,
+          max_steps_out = max_steps_out,
+          max_shrink = max_shrink,
+          lower = line_bounds$lower,
+          upper = line_bounds$upper
+        )
+        eta_tau <- x0_block[1L] + block_out$x * dir_vec[1L]
+        eta_c2 <- x0_block[2L] + block_out$x * dir_vec[2L]
+        tau_out <- list(x = eta_tau, n_steps_out = block_out$n_steps_out, n_shrink = block_out$n_shrink)
+        c2_out <- list(x = eta_c2, n_steps_out = block_out$n_steps_out, n_shrink = block_out$n_shrink)
+        global_block_used <- TRUE
+        global_block_steps_out <- block_out$n_steps_out
+        global_block_shrink <- block_out$n_shrink
+        global_block_dir_tau <- dir_vec[1L]
+        global_block_dir_c2 <- dir_vec[2L]
+      } else {
+        tau_out <- .exal_mcmc_slice_sample_1d(
+          x0 = eta_tau,
+          logf = function(etau) {
+            rhs_obj_eta(
+              eta_lam, etau, eta_c2, beta2,
+              tau0 = tau0, nu = nu, s = s,
+              shrink_intercept = state$shrink_intercept
+            )
+          },
+          width = width_tau,
+          max_steps_out = max_steps_out,
+          max_shrink = max_shrink,
+          lower = b_tau[1L],
+          upper = b_tau[2L]
+        )
+        eta_tau <- tau_out$x
+      }
+    } else {
+      tau_out <- .exal_mcmc_slice_sample_1d(
+        x0 = eta_tau,
+        logf = function(etau) {
+          rhs_obj_eta(
+            eta_lam, etau, eta_c2, beta2,
+            tau0 = tau0, nu = nu, s = s,
+            shrink_intercept = state$shrink_intercept
+          )
+        },
+        width = width_tau,
+        max_steps_out = max_steps_out,
+        max_shrink = max_shrink,
+        lower = b_tau[1L],
+        upper = b_tau[2L]
+      )
+      eta_tau <- tau_out$x
+    }
+  }
+
+  if (!exists("c2_out", inherits = FALSE)) {
+    c2_out <- .exal_mcmc_slice_sample_1d(
+      x0 = eta_c2,
+      logf = function(ec2) {
         rhs_obj_eta(
-          eta_lam, etau, eta_c2, beta2,
+          eta_lam, eta_tau, ec2, beta2,
           tau0 = tau0, nu = nu, s = s,
           shrink_intercept = state$shrink_intercept
         )
       },
-      width = width_tau,
+      width = width_c2,
       max_steps_out = max_steps_out,
       max_shrink = max_shrink,
-      lower = b_tau[1L],
-      upper = b_tau[2L]
+      lower = b_c2[1L],
+      upper = b_c2[2L]
     )
-    eta_tau <- tau_out$x
+    eta_c2 <- c2_out$x
   }
-
-  c2_out <- .exal_mcmc_slice_sample_1d(
-    x0 = eta_c2,
-    logf = function(ec2) {
-      rhs_obj_eta(
-        eta_lam, eta_tau, ec2, beta2,
-        tau0 = tau0, nu = nu, s = s,
-        shrink_intercept = state$shrink_intercept
-      )
-    },
-    width = width_c2,
-    max_steps_out = max_steps_out,
-    max_shrink = max_shrink,
-    lower = b_c2[1L],
-    upper = b_c2[2L]
-  )
-  eta_c2 <- c2_out$x
 
   state$eta_lambda_hat <- eta_lam
   state$eta_tau_hat <- eta_tau
@@ -264,7 +369,13 @@
       lambda_steps_out_max = if (length(lambda_steps)) max(lambda_steps) else 0L,
       lambda_shrink_mean = if (length(lambda_shrink)) mean(lambda_shrink) else 0,
       lambda_shrink_max = if (length(lambda_shrink)) max(lambda_shrink) else 0L,
-      tau_frozen = isTRUE(freeze_tau)
+      tau_frozen = isTRUE(freeze_tau),
+      global_block_mode = global_block_mode,
+      global_block_used = isTRUE(global_block_used),
+      global_block_steps_out = as.integer(global_block_steps_out),
+      global_block_shrink = as.integer(global_block_shrink),
+      global_block_dir_tau = as.numeric(global_block_dir_tau),
+      global_block_dir_c2 = as.numeric(global_block_dir_c2)
     )
   )
 }
@@ -490,6 +601,11 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     rhs_lambda_shrink_mean <- numeric(n_total)
     rhs_lambda_shrink_max <- integer(n_total)
     rhs_tau_frozen_trace <- logical(n_total)
+    rhs_global_block_used_trace <- logical(n_total)
+    rhs_global_block_steps_out <- integer(n_total)
+    rhs_global_block_shrink <- integer(n_total)
+    rhs_global_block_dir_tau <- numeric(n_total)
+    rhs_global_block_dir_c2 <- numeric(n_total)
     tau_draws <- numeric(n_keep)
     c2_draws <- numeric(n_keep)
     lambda_mean_draws <- numeric(n_keep)
@@ -515,6 +631,11 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     rhs_lambda_shrink_mean <- NULL
     rhs_lambda_shrink_max <- NULL
     rhs_tau_frozen_trace <- NULL
+    rhs_global_block_used_trace <- NULL
+    rhs_global_block_steps_out <- NULL
+    rhs_global_block_shrink <- NULL
+    rhs_global_block_dir_tau <- NULL
+    rhs_global_block_dir_c2 <- NULL
     tau_draws <- NULL
     c2_draws <- NULL
     lambda_mean_draws <- NULL
@@ -583,6 +704,11 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       rhs_lambda_shrink_mean[iter] <- rhs_stats$lambda_shrink_mean
       rhs_lambda_shrink_max[iter] <- rhs_stats$lambda_shrink_max
       rhs_tau_frozen_trace[iter] <- isTRUE(rhs_stats$tau_frozen)
+      rhs_global_block_used_trace[iter] <- isTRUE(rhs_stats$global_block_used)
+      rhs_global_block_steps_out[iter] <- as.integer(rhs_stats$global_block_steps_out %||% 0L)
+      rhs_global_block_shrink[iter] <- as.integer(rhs_stats$global_block_shrink %||% 0L)
+      rhs_global_block_dir_tau[iter] <- as.numeric(rhs_stats$global_block_dir_tau %||% 0)
+      rhs_global_block_dir_c2[iter] <- as.numeric(rhs_stats$global_block_dir_c2 %||% 0)
     }
 
     r_sigma <- y - drop(X %*% beta) - A * v
@@ -679,7 +805,13 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       lambda_slice_steps_out_mean = mean(rhs_lambda_steps_out_mean),
       lambda_slice_steps_out_max = max(rhs_lambda_steps_out_max),
       lambda_slice_shrink_mean = mean(rhs_lambda_shrink_mean),
-      lambda_slice_shrink_max = max(rhs_lambda_shrink_max)
+      lambda_slice_shrink_max = max(rhs_lambda_shrink_max),
+      global_block_update_mode = as.character(slice_cfg$rhs_global_block_update %||% "coordinate"),
+      global_block_used_rate = mean(rhs_global_block_used_trace),
+      global_block_steps_out_mean = mean(rhs_global_block_steps_out),
+      global_block_steps_out_max = max(rhs_global_block_steps_out),
+      global_block_shrink_mean = mean(rhs_global_block_shrink),
+      global_block_shrink_max = max(rhs_global_block_shrink)
     )
     beta_prior_out$state <- rhs_state
   }
@@ -706,6 +838,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         width_rhs_lambda = as.numeric(slice_cfg$width_rhs_lambda %||% slice_cfg$width_lambda %||% 1.0)[1L],
         width_rhs_tau = as.numeric(slice_cfg$width_rhs_tau %||% slice_cfg$width_tau %||% 1.0)[1L],
         width_rhs_c2 = as.numeric(slice_cfg$width_rhs_c2 %||% slice_cfg$width_c2 %||% 1.0)[1L],
+        width_rhs_tau_c2_block = as.numeric(slice_cfg$width_rhs_tau_c2_block %||% 1.0)[1L],
+        rhs_global_block_update = as.character(slice_cfg$rhs_global_block_update %||% "coordinate"),
         max_steps_out = gamma_slice_max_steps_out,
         max_shrink = gamma_slice_max_shrink
       )
@@ -750,7 +884,12 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       rhs_lambda_steps_out_max = rhs_lambda_steps_out_max,
       rhs_lambda_shrink_mean = rhs_lambda_shrink_mean,
       rhs_lambda_shrink_max = rhs_lambda_shrink_max,
-      rhs_tau_frozen_trace = rhs_tau_frozen_trace
+      rhs_tau_frozen_trace = rhs_tau_frozen_trace,
+      rhs_global_block_used_trace = rhs_global_block_used_trace,
+      rhs_global_block_steps_out = rhs_global_block_steps_out,
+      rhs_global_block_shrink = rhs_global_block_shrink,
+      rhs_global_block_dir_tau = rhs_global_block_dir_tau,
+      rhs_global_block_dir_c2 = rhs_global_block_dir_c2
     ),
     last = list(
       beta = beta,

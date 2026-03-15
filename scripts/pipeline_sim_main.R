@@ -878,11 +878,13 @@ if (identical(inference_method, "vb")) {
     as.character(isTRUE(mcmc_control_base$store_rhs_draws))
   )
   log_msg(
-    "Effective MCMC slice → width_gamma=%.3f | width_rhs_lambda=%.3f | width_rhs_tau=%.3f | width_rhs_c2=%.3f | max_steps_out=%d | max_shrink=%d",
+    "Effective MCMC slice → width_gamma=%.3f | width_rhs_lambda=%.3f | width_rhs_tau=%.3f | width_rhs_c2=%.3f | width_rhs_tau_c2_block=%.3f | rhs_global_block_update=%s | max_steps_out=%d | max_shrink=%d",
     as.numeric((mcmc_control_base$slice %||% list())$width_gamma %||% 1.0),
     as.numeric((mcmc_control_base$slice %||% list())$width_rhs_lambda %||% 1.0),
     as.numeric((mcmc_control_base$slice %||% list())$width_rhs_tau %||% 1.0),
     as.numeric((mcmc_control_base$slice %||% list())$width_rhs_c2 %||% 1.0),
+    as.numeric((mcmc_control_base$slice %||% list())$width_rhs_tau_c2_block %||% 1.0),
+    as.character((mcmc_control_base$slice %||% list())$rhs_global_block_update %||% "coordinate"),
     as.integer((mcmc_control_base$slice %||% list())$max_steps_out %||% 100L),
     as.integer((mcmc_control_base$slice %||% list())$max_shrink %||% 1000L)
   )

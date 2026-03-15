@@ -210,6 +210,67 @@ test_that("RHS MCMC can freeze tau during burn-in warmup", {
   expect_equal(length(unique(round(fit_rhs$misc$rhs_tau_trace[1:4], 12L))), 1L)
 })
 
+test_that("RHS MCMC supports joint directional tau/c2 block updates", {
+  withr::local_seed(790)
+
+  n <- 20L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.35, -0.25, 0.15) + stats::rnorm(n, sd = 0.3))
+  beta_prior_obj <- exdqlm::beta_prior("rhs", rhs = list(
+    tau0 = 0.3,
+    nu = 4,
+    s2 = 1,
+    shrink_intercept = FALSE,
+    intercept_prec = 1e-10,
+    eta_bounds = list(lambda = c(-4, 4), tau = c(-4, 4), c2 = c(-4, 4))
+  ))
+
+  fit_rhs <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    beta_prior_obj = beta_prior_obj,
+    mcmc_control = list(
+      n_burn = 4L,
+      n_mcmc = 6L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      rhs = list(
+        freeze_tau_burnin_iters = 0L,
+        freeze_tau_only_during_burn = TRUE
+      ),
+      slice = list(
+        rhs_global_block_update = "directional_tau_c2",
+        width_rhs_tau_c2_block = 1.0,
+        width_rhs_lambda = 0.3,
+        width_rhs_tau = 0.2,
+        width_rhs_c2 = 0.2,
+        max_steps_out = 20L,
+        max_shrink = 80L
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n),
+      rhs_state = beta_prior_obj$init(ncol(X))
+    )
+  )
+
+  expect_true(inherits(fit_rhs, "exal_mcmc"))
+  expect_identical(fit_rhs$control$slice$rhs_global_block_update, "directional_tau_c2")
+  expect_equal(fit_rhs$control$slice$width_rhs_tau_c2_block, 1.0)
+  expect_identical(fit_rhs$diagnostics$rhs$global_block_update_mode, "directional_tau_c2")
+  expect_true(all(fit_rhs$misc$rhs_global_block_used_trace))
+  expect_true(any(abs(fit_rhs$misc$rhs_global_block_dir_tau) > 0))
+  expect_true(any(abs(fit_rhs$misc$rhs_global_block_dir_c2) > 0))
+})
+
 test_that("MCMC sampler rng_seed is accepted and stored on the fit", {
   withr::local_seed(2026)
 
