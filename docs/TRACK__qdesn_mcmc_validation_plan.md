@@ -396,6 +396,38 @@ Use those files for:
 - and the structural fallback options such as reparameterization, blocked
   updates, alternate hyperparameter updates, and alternate RHS kernels.
 
+## 0.6) RHS Repair Candidate Promotion Added On 2026-03-14
+
+The hard-root RHS repair sequence completed on:
+
+- `reports/qdesn_mcmc_validation/rhs_mcmc_repair_sequence/20260314-222329__git-0817936`
+
+That sequence selected the current broader-validation candidate settings for
+`rhs` MCMC:
+
+- VB warm start:
+  - `vb_rhs_stronger_tau40`
+- MCMC tau warmup:
+  - `freeze_tau_burnin_iters = 50`
+
+Those settings are now promoted into a dedicated broader-validation defaults
+file:
+
+- `config/validation/qdesn_mcmc_compare_rhs_repair_defaults.yaml`
+
+with dedicated wrappers:
+
+- `scripts/run_qdesn_mcmc_rhs_repair_phase1.R`
+- `scripts/compare_qdesn_mcmc_rhs_repair_phase1.R`
+
+Purpose of this promotion step:
+
+- keep the broader phase-1 toy grid fixed;
+- keep signoff thresholds fixed;
+- change only the repaired RHS-MCMC controls;
+- compare the repaired candidate against the current tuned phase-1 baseline
+  before any wider claims are made.
+
 ## 1) Design Principles
 
 The validation framework should follow the same strengths as the more mature

@@ -2,7 +2,7 @@
 
 Date: 2026-03-14
 Branch: `feature/qdesn-mcmc-alternative`
-Status: experiment-design tracker with execution assets implemented
+Status: Stage B/C repair sequence completed; candidate broader-validation settings selected
 Purpose: isolate why `RHS MCMC` still fails inference signoff on a subset of
 hard toy roots, and define an organized experiment ladder that can tell us
 whether the issue is:
@@ -17,6 +17,35 @@ whether the issue is:
 This tracker is intentionally narrower than the general Q-DESN validation plan.
 It is focused on repairing the `rhs` MCMC readout and deciding what class of
 solution should be expanded.
+
+## 0.2) Stage B/C Outcome On 2026-03-14
+
+The Stage B/C repair sequence completed at:
+
+- `reports/qdesn_mcmc_validation/rhs_mcmc_repair_sequence/20260314-222329__git-0817936`
+
+Selected settings:
+
+- Stage B winner:
+  - `B2_vbinit_stronger_medium`
+  - profile: `vb_rhs_stronger_tau40`
+- Stage C winner:
+  - `C3_taufreeze_50`
+  - `freeze_tau_burnin_iters = 50`
+
+Main read:
+
+- stronger `init_from_vb` was the dominant repair step;
+- short `tau` warmups at `10` and `20` regressed at least one hard root;
+- `tau` warmup at `50` restored `3 / 3` comparison eligibility on the hard
+  `tau = 0.25` RHS set;
+- the best current RHS-MCMC candidate is therefore:
+  - B2 initializer
+  - plus C3 tau warmup
+
+This does **not** mean the RHS chain is fully certified. The winning Stage C
+configuration still grades as `WARN`, not `PASS`. The next step is broader
+validation promotion, not unconditional default promotion across the package.
 
 ## 0.1) Implemented Execution Assets
 

@@ -241,3 +241,26 @@ test_that("validation config builder applies prior-specific inference overrides"
   expect_equal(mc_rhs$inference$mcmc$slice$width_rhs_tau, 0.25)
   expect_equal(mc_rhs$inference$mcmc$slice$max_steps_out, 50L)
 })
+
+test_that("rhs repair candidate defaults promote the B2 and C3 controls", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_rhs_repair_defaults.yaml"))
+  rhs_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "sin_asym_small",
+    tau = 0.25,
+    beta_prior_type = "rhs",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+
+  mc_rhs <- exdqlm:::qdesn_validation_build_pipeline_cfg(rhs_spec, defaults, method = "mcmc")
+
+  expect_equal(mc_rhs$inference$mcmc$n_burn, 800L)
+  expect_equal(mc_rhs$inference$mcmc$n_mcmc, 1600L)
+  expect_equal(mc_rhs$inference$mcmc$progress_every, 200L)
+  expect_equal(mc_rhs$inference$mcmc$slice$width_rhs_tau, 0.15)
+  expect_equal(mc_rhs$inference$mcmc$rhs$freeze_tau_burnin_iters, 50L)
+  expect_true(isTRUE(mc_rhs$inference$mcmc$rhs$freeze_tau_only_during_burn))
+  expect_equal(mc_rhs$inference$mcmc$vb_warm_start_control$max_iter, 80L)
+  expect_equal(mc_rhs$inference$mcmc$vb_warm_start_control$n_samp_xi, 200L)
+  expect_equal(mc_rhs$inference$mcmc$vb_warm_start_control$rhs$freeze_tau_iters, 40L)
+})
