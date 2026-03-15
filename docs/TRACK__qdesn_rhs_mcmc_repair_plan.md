@@ -575,3 +575,31 @@ This repair plan should let us answer:
 4. Is the current RHS block geometry too hard for coordinate-wise slice?
 5. Which deeper structural alternative should be implemented if tuning is not
    enough?
+
+## 12) Added On 2026-03-15: Broader-Run Monitor And Decision Automation
+
+The repair path now includes a live monitor plus a result-driven follow-up
+launcher:
+
+- monitor:
+  - `scripts/monitor_qdesn_mcmc_rhs_repair_phase1.R`
+- decision + follow-up helpers:
+  - `R/qdesn_mcmc_followup.R`
+- multichain follow-up runner:
+  - `scripts/run_qdesn_mcmc_multichain_followup.R`
+
+This does two things:
+
+1. it prevents us from making the next decision off a partial broader rerun;
+2. it makes the next move explicit:
+   - if the repaired candidate really broadens well, run representative
+     multichain confirmation;
+   - if it does not, run targeted multichain triage on the persistent RHS
+     failures first.
+
+This keeps the decision boundary clean:
+
+- do not jump into structural RHS redesign while the broader single-chain
+  evidence is still incomplete;
+- do not promote the repaired RHS settings generally unless the broader rerun
+  plus reduced multichain follow-up justify it.

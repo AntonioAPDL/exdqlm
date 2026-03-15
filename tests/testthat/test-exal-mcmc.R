@@ -210,6 +210,65 @@ test_that("RHS MCMC can freeze tau during burn-in warmup", {
   expect_equal(length(unique(round(fit_rhs$misc$rhs_tau_trace[1:4], 12L))), 1L)
 })
 
+test_that("MCMC sampler rng_seed is accepted and stored on the fit", {
+  withr::local_seed(2026)
+
+  n <- 24L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.25, -0.35, 0.15) + stats::rnorm(n, sd = 0.3))
+
+  fit_a <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 12L,
+      n_mcmc = 16L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      seed = 11L
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  fit_c <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 12L,
+      n_mcmc = 16L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      seed = 12L
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  expect_equal(fit_a$control$rng_seed, 11L)
+  expect_equal(fit_c$control$rng_seed, 12L)
+  expect_length(as.numeric(fit_a$samp.gamma), 16L)
+  expect_length(as.numeric(fit_c$samp.gamma), 16L)
+})
+
 test_that("VB RHS config preserves null tau init and separate warmup freeze settings", {
   cfg <- list(
     inference = list(

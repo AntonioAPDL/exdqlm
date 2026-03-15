@@ -837,6 +837,40 @@ Only after the pilot is stable should the framework expand in this order:
 The framework should never need a redesign for these expansions. Only the grid
 should grow.
 
+## 16) Added On 2026-03-15: Live Monitor And Multichain Follow-up
+
+The repaired broader phase-1 campaign now has an automated follow-up layer:
+
+- 10-minute live monitor:
+  - `scripts/monitor_qdesn_mcmc_rhs_repair_phase1.R`
+- automatic broader-run decision:
+  - `R/qdesn_mcmc_followup.R`
+- multichain follow-up runner:
+  - `scripts/run_qdesn_mcmc_multichain_followup.R`
+- representative multichain grid:
+  - `config/validation/qdesn_mcmc_multichain_representative_grid.csv`
+
+The current automation path is:
+
+1. monitor the repaired broader phase-1 rerun every 10 minutes;
+2. once complete, compare it against the tuned phase-1 baseline;
+3. decide whether the next step should be:
+   - representative multichain confirmation; or
+   - targeted RHS-failure multichain triage;
+4. launch that follow-up automatically.
+
+The decision rule is intentionally conservative:
+
+- use representative multichain confirmation only if the repaired candidate is
+  at least as good as the tuned baseline on the main RHS eligibility/failure
+  metrics while not materially regressing ridge;
+- otherwise, isolate the persistent failed RHS roots first.
+
+The multichain layer is reduced-scope by design. It is meant to answer whether
+the remaining single-chain `WARN/FAIL` patterns are real stationarity problems
+or artifacts of a single-chain signoff gate before we move to structural RHS
+sampler changes.
+
 ## 14) Immediate Next Actions After Approval
 
 If this plan is approved, the next implementation step should be:

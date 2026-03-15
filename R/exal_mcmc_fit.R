@@ -312,6 +312,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   thin <- max(1L, as.integer(mcmc_control$thin %||% 1L))
   verbose <- isTRUE(mcmc_control$verbose %||% FALSE)
   progress_every <- max(1L, as.integer(mcmc_control$progress_every %||% 100L))
+  rng_seed <- mcmc_control$rng_seed %||% mcmc_control$seed %||% NULL
   init_from_vb <- isTRUE(mcmc_control$init_from_vb %||% FALSE)
   store_latent_draws <- isTRUE(mcmc_control$store_latent_draws %||% FALSE)
   store_rhs_draws <- isTRUE(mcmc_control$store_rhs_draws %||% FALSE)
@@ -455,6 +456,10 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     .exal_mcmc_rhs_precisions(rhs_state, p = p)
   } else {
     rep(1 / ridge_tau2, p)
+  }
+
+  if (!is.null(rng_seed)) {
+    set.seed(as.integer(rng_seed)[1L])
   }
 
   n_total <- n_burn + n_keep * thin
@@ -685,6 +690,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       n_burn = n_burn,
       n_mcmc = n_keep,
       thin = thin,
+      rng_seed = if (is.null(rng_seed)) NA_integer_ else as.integer(rng_seed)[1L],
       verbose = verbose,
       progress_every = progress_every,
       init_from_vb = init_from_vb,
