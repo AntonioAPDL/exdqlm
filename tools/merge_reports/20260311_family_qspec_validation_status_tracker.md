@@ -2012,3 +2012,8 @@ Freeze outputs:
 - `tools/merge_reports/20260316_family_qspec_scientific_comparison_snapshot_freeze.tsv`
 - `tools/merge_reports/20260316_family_qspec_scientific_comparison_snapshot_freeze.md`
 - `tools/merge_reports/20260316_family_qspec_signoff_summary_freeze.tsv`
+
+Dynamic runtime tracking update:
+
+- dynamic VB/MCMC review now reads `runtime_sec` from the fit bundles (fallback to `fit$run.time`)
+- dynamic runtime ratios now populate the scientific snapshot and global summaries

@@ -35,6 +35,24 @@ mean_or_na <- function(x) {
   mean(x)
 }
 
+tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
+
+fit_bundle_path <- function(inference, model, tau) {
+  file.path(run_root, "fits", inference, sprintf("%s_%s_tau_%s_fit.rds", inference, model, tau_lab(tau)))
+}
+
+read_fit_runtime <- function(inference, model, tau) {
+  path <- fit_bundle_path(inference, model, tau)
+  if (!file.exists(path)) return(NA_real_)
+  bundle <- tryCatch(readRDS(path), error = function(e) NULL)
+  if (is.null(bundle)) return(NA_real_)
+  meta_rt <- suppressWarnings(as.numeric(bundle$meta$runtime_sec)[1])
+  if (is.finite(meta_rt)) return(meta_rt)
+  fit_rt <- suppressWarnings(as.numeric(bundle$fit$run.time)[1])
+  if (is.finite(fit_rt)) return(fit_rt)
+  NA_real_
+}
+
 metrics_df <- read_csv_required(file.path(out_tables, "metrics_summary.csv"))
 method_signoff <- read_csv_required(file.path(out_tables, "method_signoff_long.csv"))
 algorithm_pair_signoff <- read_csv_required(file.path(out_tables, "algorithm_pair_signoff.csv"))
@@ -136,9 +154,10 @@ if (nrow(vb_mcmc_df)) {
   vb_mcmc_df$corr_vb <- NA_real_
   vb_mcmc_df$corr_mcmc <- NA_real_
   vb_mcmc_df$corr_delta_mcmc_minus_vb <- NA_real_
-  vb_mcmc_df$vb_runtime_sec <- NA_real_
-  vb_mcmc_df$mcmc_runtime_sec <- NA_real_
-  vb_mcmc_df$runtime_ratio_mcmc_vs_vb <- NA_real_
+  vb_mcmc_df$vb_runtime_sec <- mapply(read_fit_runtime, "vb", vb_mcmc_df$model, vb_mcmc_df$tau, USE.NAMES = FALSE)
+  vb_mcmc_df$mcmc_runtime_sec <- mapply(read_fit_runtime, "mcmc", vb_mcmc_df$model, vb_mcmc_df$tau, USE.NAMES = FALSE)
+  vb_mcmc_df$runtime_ratio_mcmc_vs_vb <- vb_mcmc_df$mcmc_runtime_sec / vb_mcmc_df$vb_runtime_sec
+  vb_mcmc_df$runtime_ratio_mcmc_vs_vb[!is.finite(vb_mcmc_df$runtime_ratio_mcmc_vs_vb) | vb_mcmc_df$vb_runtime_sec <= 0] <- NA_real_
   vb_mcmc_df$rmse_delta_mcmc_minus_vb <- vb_mcmc_df$rmse_mcmc - vb_mcmc_df$rmse_vb
   vb_mcmc_df$coverage_delta_mcmc_minus_vb <- vb_mcmc_df$coverage_mcmc - vb_mcmc_df$coverage_vb
   vb_mcmc_df$mean_ci_width_delta_mcmc_minus_vb <- vb_mcmc_df$mean_ci_width_mcmc - vb_mcmc_df$mean_ci_width_vb
