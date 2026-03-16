@@ -95,6 +95,18 @@ format_vb_vs_mcmc <- function(df, root_kind, family, model) {
   )
 }
 
+format_runtime_ratio <- function(df, root_kind, family, model) {
+  row <- df[df$root_kind == root_kind & df$family == family & df$model == model, , drop = FALSE]
+  if (nrow(row) == 0) {
+    return("not available")
+  }
+  runtime_ratio <- suppressWarnings(as.numeric(row$mean_runtime_ratio_mcmc_vs_vb[[1]]))
+  if (!is.finite(runtime_ratio)) {
+    return("not available")
+  }
+  sprintf("MCMC/VB x%s", format_num(runtime_ratio, 1))
+}
+
 summarise_extended_vs_baseline <- function(df) {
   split_key <- interaction(df$root_kind, df$family, df$method, drop = TRUE)
   pieces <- lapply(split(df, split_key), function(chunk) {
@@ -234,6 +246,8 @@ snapshot_rows <- lapply(root_kinds, function(root_kind) {
       family = family,
       vb_vs_mcmc_baseline = format_vb_vs_mcmc(vb_vs_mcmc, root_kind, family, models[[1]]),
       vb_vs_mcmc_extended = format_vb_vs_mcmc(vb_vs_mcmc, root_kind, family, models[[2]]),
+      vb_vs_mcmc_runtime_baseline = format_runtime_ratio(vb_vs_mcmc, root_kind, family, models[[1]]),
+      vb_vs_mcmc_runtime_extended = format_runtime_ratio(vb_vs_mcmc, root_kind, family, models[[2]]),
       extended_vs_baseline_vb = lookup_extended_summary(root_kind, family, "vb"),
       extended_vs_baseline_mcmc = lookup_extended_summary(root_kind, family, "mcmc"),
       prior_takeaway = if (identical(root_kind, "static_shrink")) {
@@ -264,8 +278,8 @@ md_lines <- c(
   paste0("- source_vb_vs_mcmc: `", sub(paste0("^", normalizePath(repo_root), "/?"), "", normalizePath(vb_vs_mcmc_path)), "`"),
   paste0("- source_extended_vs_baseline: `", sub(paste0("^", normalizePath(repo_root), "/?"), "", normalizePath(extended_vs_baseline_path)), "`"),
   "",
-  "| Campaign | Family | VB vs MCMC baseline | VB vs MCMC extended | Extended vs baseline under VB | Extended vs baseline under MCMC | RHS vs ridge |",
-  "|---|---|---|---|---|---|---|"
+  "| Campaign | Family | VB vs MCMC baseline | VB vs MCMC extended | Runtime baseline | Runtime extended | Extended vs baseline under VB | Extended vs baseline under MCMC | RHS vs ridge |",
+  "|---|---|---|---|---|---|---|---|---|"
 )
 
 for (i in seq_len(nrow(snapshot_df))) {
@@ -281,6 +295,10 @@ for (i in seq_len(nrow(snapshot_df))) {
       row$vb_vs_mcmc_baseline,
       "|",
       row$vb_vs_mcmc_extended,
+      "|",
+      row$vb_vs_mcmc_runtime_baseline,
+      "|",
+      row$vb_vs_mcmc_runtime_extended,
       "|",
       ifelse(length(row$extended_vs_baseline_vb) && nzchar(row$extended_vs_baseline_vb), row$extended_vs_baseline_vb, "not available"),
       "|",
