@@ -5,48 +5,48 @@
 | metric | before | after | delta |
 |---|---:|---:|---:|
 | method_fit_pass_count | 93 | 93 | +0 |
-| method_fit_warn_count | 95 | 95 | +0 |
-| method_fit_fail_count | 100 | 100 | +0 |
-| method_fit_eligible_count | 188 | 188 | +0 |
+| method_fit_warn_count | 118 | 119 | +1 |
+| method_fit_fail_count | 77 | 76 | -1 |
+| method_fit_eligible_count | 211 | 212 | +1 |
 | method_fit_certified_count | 93 | 93 | +0 |
-| algorithm_pair_eligible_count | 64 | 64 | +0 |
-| model_pair_eligible_count | 62 | 62 | +0 |
-| root_full_eligible_count | 10 | 10 | +0 |
-| root_any_eligible_count | 67 | 67 | +0 |
-| unhealthy_target_count | 100 | 100 | +0 |
+| algorithm_pair_eligible_count | 86 | 86 | +0 |
+| model_pair_eligible_count | 74 | 75 | +1 |
+| root_full_eligible_count | 21 | 21 | +0 |
+| root_any_eligible_count | 69 | 69 | +0 |
+| unhealthy_target_count | 77 | 76 | -1 |
 
 ## Reason Delta
 
 | reason | before | after | delta |
 |---|---:|---:|---:|
-| geweke_drift | 50 | 50 | +0 |
-| low_ess | 44 | 45 | +1 |
-| half_chain_drift | 40 | 42 | +2 |
-| non_finite_fit | 24 | 24 | +0 |
+| non_finite_fit | 24 | 27 | +3 |
+| half_chain_drift | 37 | 25 | -12 |
+| geweke_drift | 27 | 23 | -4 |
 | ld_unstable | 23 | 23 | +0 |
 | vb_converged_false | 23 | 23 | +0 |
-| high_autocorrelation | 21 | 22 | +1 |
 | elbo_tail_unstable | 18 | 18 | +0 |
 | missing_elbo_trace | 18 | 18 | +0 |
+| low_ess | 26 | 17 | -9 |
+| high_autocorrelation | 11 | 13 | +2 |
 | core_parameter_tail_unstable | 5 | 5 | +0 |
 
 ## Residual Failure Buckets
 
 | bucket | count |
 |---|---:|
-| soft_only | 76 |
-| mixed | 20 |
-| hard_only | 4 |
+| soft_only | 49 |
+| mixed | 21 |
+| hard_only | 6 |
 
 ## Residual Bucket By Model
 
 | inference | model | bucket | count |
 |---|---|---|---:|
-| mcmc | dqlm | soft_only | 18 |
-| mcmc | exal | hard_only | 4 |
-| mcmc | exal | mixed | 2 |
-| mcmc | exal | soft_only | 35 |
-| mcmc | exdqlm | soft_only | 18 |
+| mcmc | dqlm | soft_only | 7 |
+| mcmc | exal | hard_only | 6 |
+| mcmc | exal | mixed | 3 |
+| mcmc | exal | soft_only | 21 |
+| mcmc | exdqlm | soft_only | 16 |
 | vb | exal | mixed | 18 |
 | vb | exdqlm | soft_only | 5 |
 
@@ -54,5 +54,6 @@
 
 | class | count |
 |---|---:|
-| unchanged | 97 |
-| changed | 3 |
+| unchanged | 63 |
+| changed | 13 |
+| resolved | 1 |

@@ -1,7 +1,3 @@
 scenario_id	scenario_label	inference	model	count
-moderate_relax	Moderate MCMC threshold relaxation	mcmc	dqlm	11
-moderate_relax	Moderate MCMC threshold relaxation	mcmc	exal	10
-moderate_relax	Moderate MCMC threshold relaxation	mcmc	exdqlm	2
-aggressive_relax	Aggressive MCMC threshold relaxation	mcmc	dqlm	11
-aggressive_relax	Aggressive MCMC threshold relaxation	mcmc	exal	26
-aggressive_relax	Aggressive MCMC threshold relaxation	mcmc	exdqlm	9
+aggressive_relax	Aggressive MCMC threshold relaxation	mcmc	exal	18
+aggressive_relax	Aggressive MCMC threshold relaxation	mcmc	exdqlm	7

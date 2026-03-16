@@ -1918,3 +1918,50 @@ Live validation at relaunch:
 - worker logs showed real burn-in / MCMC iteration progress for both dynamic and static targeted rows
 - the corrected wave no longer exhibited the immediate `skipped_existing` no-op pattern
 - the live queue state at launch showed `25` running `model_path` tasks and no downstream launches yet, which is the expected initial condition for a genuine second-wave rerun
+
+## 2026-03-16 Second-Wave Closeout And Post-Wave Health Rebuild
+
+Wave closure checks:
+
+- second-wave state dir: `/home/jaguir26/local/state/exdqlm/family_qspec_second_wave_20260315_171146_force`
+- `model_path` reruns: `25 / 25` complete
+- downstream wave: `18 / 18` root postprocess + signoff, `18 / 18` root review
+- `7 / 7` prior-compare
+- `3 / 3` campaign review
+- `1 / 1` global summary
+- no new `FAILED` events during the closeout window
+
+Post-wave signoff summary (accepted second-wave policy):
+
+- method fits:
+  - `93 PASS`
+  - `119 WARN`
+  - `76 FAIL`
+  - `212 comparison-eligible`
+- algorithm pairs eligible: `86 / 144`
+- model pairs eligible: `75 / 144`
+- roots:
+  - `21 / 72 fully eligible`
+  - `69 / 72 with any eligible comparison`
+- remaining unhealthy targets: `76`
+
+Post-wave delta vs the pre-closeout baseline:
+
+- `FAIL`: `77 -> 76` (`-1`)
+- comparison-eligible fits: `211 -> 212` (`+1`)
+- model pairs eligible: `74 -> 75` (`+1`)
+- all other aggregate counters unchanged
+
+Residual action summary (remaining `76` unhealthy rows):
+
+- `aggressive_policy_only_rescue`: `25`
+- `needs_deeper_chain`: `19`
+- `mixed_debug_and_resample`: `21`
+- `needs_model_or_vb_debug`: `5`
+- `hard_numerical_repair`: `6`
+
+Authoritative outputs:
+
+- `tools/merge_reports/20260314_family_qspec_signoff_summary.tsv`
+- `tools/merge_reports/20260315_family_qspec_post_repair_signoff_delta.tsv`
+- `tools/merge_reports/20260315_family_qspec_residual_action_summary.tsv`
