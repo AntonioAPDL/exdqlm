@@ -1999,3 +1999,16 @@ Refreshed comparison outputs:
 - `tools/merge_reports/20260312_family_qspec_global_cross_family_summary`
 - `tools/merge_reports/20260314_family_qspec_scientific_comparison_snapshot.tsv`
 - `tools/merge_reports/20260314_family_qspec_scientific_comparison_snapshot.md`
+
+## 2026-03-16 Comparison Snapshot Freeze (Before Unhealthy-Fit Fixes)
+
+Freeze rationale:
+
+- preserve the current scientific comparison surface and signoff totals so we can measure the delta after unhealthy-fit repair
+- add explicit runtime-ratio columns for VB vs MCMC (baseline and extended)
+
+Freeze outputs:
+
+- `tools/merge_reports/20260316_family_qspec_scientific_comparison_snapshot_freeze.tsv`
+- `tools/merge_reports/20260316_family_qspec_scientific_comparison_snapshot_freeze.md`
+- `tools/merge_reports/20260316_family_qspec_signoff_summary_freeze.tsv`
