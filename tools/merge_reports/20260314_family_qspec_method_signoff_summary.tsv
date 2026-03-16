@@ -38,8 +38,8 @@ static_paper	laplace	vb	exal	FAIL	FALSE	FALSE	2
 static_paper	laplace	vb	exal	WARN	TRUE	FALSE	4
 static_paper	normal	mcmc	al	PASS	TRUE	TRUE	5
 static_paper	normal	mcmc	al	WARN	TRUE	FALSE	1
-static_paper	normal	mcmc	exal	FAIL	FALSE	FALSE	4
-static_paper	normal	mcmc	exal	WARN	TRUE	FALSE	2
+static_paper	normal	mcmc	exal	FAIL	FALSE	FALSE	3
+static_paper	normal	mcmc	exal	WARN	TRUE	FALSE	3
 static_paper	normal	vb	al	PASS	TRUE	TRUE	6
 static_paper	normal	vb	exal	FAIL	FALSE	FALSE	2
 static_paper	normal	vb	exal	WARN	TRUE	FALSE	4
