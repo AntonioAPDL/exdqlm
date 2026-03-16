@@ -136,6 +136,36 @@ Interpretation:
 - the next work should therefore be targeted follow-up on that remaining
   geometry, not another broad RHS redesign.
 
+## 0.6) Targeted `rhs_c2` Stabilization Follow-up On 2026-03-15
+
+The targeted follow-up on the remaining representative failure completed at:
+
+- `reports/qdesn_mcmc_validation/multichain_confirmation_rhs_structural_remaining_fail`
+
+Targeted settings relative to the broader structural candidate:
+
+- `n_burn = 1000`
+- `n_mcmc = 2000`
+- `width_rhs_c2 = 0.18`
+- `width_rhs_tau_c2_block = 0.70`
+
+Targeted root:
+
+- `sin_asym_small | tau = 0.25 | rhs`
+
+Outcome:
+
+- representative multichain confirmation changed from `FAIL` to `PASS`;
+- split-`Rhat` on `rhs_c2` improved from `1.102` to `1.024`;
+- max split-`Rhat` for the root improved to `1.044`.
+
+Interpretation:
+
+- the remaining representative failure was a narrow `rhs_c2` stabilization
+  issue, not a broad structural breakdown of the blocked global update;
+- the next sensible step is to fold this `rhs_c2` stabilization into a small
+  representative rerun before promoting it beyond the representative layer.
+
 ## 0.2) Stage B/C Outcome On 2026-03-14
 
 The Stage B/C repair sequence completed at:

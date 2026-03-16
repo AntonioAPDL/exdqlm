@@ -272,3 +272,18 @@ test_that("multichain follow-up assessment chooses representative confirmation w
   res <- exdqlm:::qdesn_validation_assess_multichain_followup(report_root, out_root)
   expect_identical(res$decision_mode, "representative_confirmation")
 })
+
+test_that("remaining-fail structural follow-up grid isolates the representative failure root", {
+  grid_path <- exdqlm:::.qdesn_validation_resolve_path(
+    file.path("config", "validation", "qdesn_mcmc_multichain_remaining_rhs_fail_grid.csv"),
+    must_work = TRUE
+  )
+  grid <- utils::read.csv(
+    grid_path,
+    stringsAsFactors = FALSE
+  )
+  expect_equal(nrow(grid), 1L)
+  expect_identical(grid$scenario[[1L]], "sin_asym_small")
+  expect_equal(grid$tau[[1L]], 0.25)
+  expect_identical(grid$beta_prior_type[[1L]], "rhs")
+})

@@ -53,6 +53,15 @@ Current promotion note:
 - the next work should therefore be targeted refinement on that remaining
   representative failure, not another broad validation redesign.
 
+Current follow-up note:
+
+- the targeted refinement on the remaining representative failure completed;
+- `sin_asym_small | tau = 0.25 | rhs` was rescued from `FAIL` to `PASS` under
+  a narrower `rhs_c2`/global-block follow-up setting;
+- the next step is a small representative rerun with that `rhs_c2`
+  stabilization folded in, to decide whether it should replace the current
+  structural representative setting more broadly.
+
 ## 0.1) Implemented State On 2026-03-14
 
 The following pieces are now implemented on this branch:
