@@ -1965,3 +1965,37 @@ Authoritative outputs:
 - `tools/merge_reports/20260314_family_qspec_signoff_summary.tsv`
 - `tools/merge_reports/20260315_family_qspec_post_repair_signoff_delta.tsv`
 - `tools/merge_reports/20260315_family_qspec_residual_action_summary.tsv`
+
+## 2026-03-16 Full Comparison Validation Refresh (Existing Outputs)
+
+Validation refresh scope:
+
+- forced rebuild of all root signoff outputs under the accepted second-wave policy
+- regenerated root-level VB/MCMC review outputs for all `72` roots
+- regenerated all `18` static shrink `ridge vs rhs` prior-compare barriers
+- rebuilt all `3` campaign reviews and the `1` global summary
+- rebuilt the compact scientific comparison snapshot
+
+Current signoff summary (post-refresh):
+
+- generated_at: `2026-03-16 16:27:49`
+- method fits:
+  - `93 PASS`
+  - `119 WARN`
+  - `76 FAIL`
+  - `212 comparison-eligible`
+- algorithm pairs eligible: `86 / 144`
+- model pairs eligible: `75 / 144`
+- roots:
+  - `21 / 72 fully eligible`
+  - `69 / 72 with any eligible comparison`
+- remaining unhealthy targets: `76`
+
+Refreshed comparison outputs:
+
+- `tools/merge_reports/20260312_family_qspec_campaign_review__static_paper`
+- `tools/merge_reports/20260312_family_qspec_campaign_review__static_shrink`
+- `tools/merge_reports/20260312_family_qspec_campaign_review__dynamic`
+- `tools/merge_reports/20260312_family_qspec_global_cross_family_summary`
+- `tools/merge_reports/20260314_family_qspec_scientific_comparison_snapshot.tsv`
+- `tools/merge_reports/20260314_family_qspec_scientific_comparison_snapshot.md`
