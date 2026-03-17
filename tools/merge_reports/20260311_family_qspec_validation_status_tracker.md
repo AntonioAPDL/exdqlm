@@ -2042,3 +2042,25 @@ Dry-run queue summary (pre-launch):
 - `2` prior-compare
 - `3` campaign reviews
 - `1` global summary
+
+## 2026-03-16 Repair Autopilot Wiring
+
+Autopilot script added:
+
+- `tools/merge_reports/20260316_family_qspec_repair_autopilot.sh`
+
+Autopilot behavior:
+
+- continuously refreshes the second-wave queue state
+- ensures the second-wave supervisor is running (auto-restarts if it stops early while work remains)
+- waits for `active_locks=0` and `ready_unlocked=0`
+- runs full closeout refresh:
+  - signoff rebuild
+  - dynamic/static root reviews
+  - prior comparisons
+  - campaign/global aggregates
+  - scientific snapshot + delta analyses
+- writes closeout artifacts to:
+  - `${STATE_DIR}/autopilot/autopilot.log`
+  - `${STATE_DIR}/autopilot/autopilot_status.tsv`
+  - `${STATE_DIR}/autopilot/final_closeout_summary.md`
