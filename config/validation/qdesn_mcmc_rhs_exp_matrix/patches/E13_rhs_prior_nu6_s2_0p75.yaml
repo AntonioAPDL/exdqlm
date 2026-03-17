@@ -1,0 +1,22 @@
+experiment:
+  id: E13
+  description: alternative RHS regularity with nu=6 and s2=0.75
+
+patch:
+  pipeline:
+    inference:
+      vb:
+        priors:
+          beta:
+            rhs:
+              tau0: 0.01
+              s2: 0.75
+              nu: 6
+      mcmc:
+        priors:
+          beta:
+            rhs:
+              tau0: 0.01
+              s2: 0.75
+              nu: 6
+

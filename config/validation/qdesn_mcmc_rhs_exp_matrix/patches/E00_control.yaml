@@ -1,0 +1,6 @@
+experiment:
+  id: E00
+  description: control run with current Gate-B tauwarm25 defaults
+
+patch: {}
+

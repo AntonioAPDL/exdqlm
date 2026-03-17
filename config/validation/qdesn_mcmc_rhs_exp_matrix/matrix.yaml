@@ -1,0 +1,76 @@
+matrix:
+  name: qdesn_rhs_mcmc_mixing_isolation_matrix
+  base_defaults: ../qdesn_mcmc_compare_rhs_structural_reparam_gateB_tauwarm25.yaml
+  grid: ../qdesn_mcmc_multichain_rhs_runtime_isolation_grid.csv
+  n_chains: 4
+  chain_seed_base: 500000
+  selection:
+    phase_keep_top: 2
+
+phases:
+  - id: phase1_init_freeze
+    description: isolate initialization and tau warmup effects before kernel changes
+    experiments:
+      - id: E00
+        label: control_gateB
+        patch: patches/E00_control.yaml
+      - id: E01
+        label: no_vb_init
+        patch: patches/E01_no_init_from_vb.yaml
+      - id: E02
+        label: strong_vb_init
+        patch: patches/E02_strong_vb_init.yaml
+      - id: E03
+        label: strong_vb_init_no_tauwarm
+        patch: patches/E03_strong_vb_init_tauwarm0.yaml
+      - id: E04
+        label: strong_vb_init_tauwarm50
+        patch: patches/E04_strong_vb_init_tauwarm50.yaml
+
+  - id: phase2_kernel_widths
+    description: isolate RHS global block and width/step behavior using phase-1 winner baseline
+    base_from_phase: phase1_init_freeze
+    experiments:
+      - id: E05
+        label: coordinate_global_update
+        patch: patches/E05_coordinate_global_update.yaml
+      - id: E06
+        label: narrow_rhs_widths
+        patch: patches/E06_narrow_rhs_widths.yaml
+      - id: E07
+        label: wide_rhs_widths
+        patch: patches/E07_wide_rhs_widths.yaml
+      - id: E08
+        label: narrow_widths_high_step_budget
+        patch: patches/E08_narrow_widths_high_step_budget.yaml
+
+  - id: phase3_chain_length_seed
+    description: test chain-length hypothesis and seed robustness using phase-2 winner baseline
+    base_from_phase: phase2_kernel_widths
+    experiments:
+      - id: E09
+        label: long_chain
+        patch: patches/E09_long_chain.yaml
+      - id: E10
+        label: very_long_chain
+        patch: patches/E10_very_long_chain.yaml
+      - id: E11
+        label: very_long_chain_alt_seedbase
+        patch: patches/E11_very_long_chain_alt_seedbase.yaml
+
+  - id: phase4_prior_geometry
+    description: test RHS prior geometry only if long-chain gate still shows elevated split-Rhat
+    base_from_phase: phase3_chain_length_seed
+    trigger:
+      source_experiment: E11
+      metric: max_split_rhat
+      op: ">"
+      threshold: 1.10
+    experiments:
+      - id: E12
+        label: rhs_prior_tau0_0p02_s2_1
+        patch: patches/E12_rhs_prior_tau0_0p02_s2_1.yaml
+      - id: E13
+        label: rhs_prior_nu6_s2_0p75
+        patch: patches/E13_rhs_prior_nu6_s2_0p75.yaml
+

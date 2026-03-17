@@ -1,0 +1,14 @@
+experiment:
+  id: E09
+  description: longer chain to test if failures are primarily chain-length limited
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 2500
+            n_mcmc: 5000
+            progress_every: 500
+

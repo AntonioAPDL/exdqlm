@@ -1,0 +1,16 @@
+experiment:
+  id: E06
+  description: narrow RHS slice widths to reduce oversized excursions
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            slice:
+              width_rhs_lambda: 0.14
+              width_rhs_tau: 0.10
+              width_rhs_c2: 0.12
+              width_rhs_tau_c2_block: 0.45
+
