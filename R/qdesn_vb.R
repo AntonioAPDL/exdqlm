@@ -967,6 +967,8 @@ forecast_paths.qdesn_fit <- function(
   D    <- as.integer(meta$D)
   m_res_raw <- as.integer(meta$m %||% 0L)
   m_res_input <- as.integer(meta$m_input %||% m_res_raw)
+  # Backward-compatible alias used by older forecast-lag closures.
+  m_res <- m_res_input
   add_bias <- isTRUE(meta$add_bias)
   Q_is_identity <- res$Q_is_identity
   if (is.null(Q_is_identity)) Q_is_identity <- rep(FALSE, max(0, D - 1L))
@@ -1160,14 +1162,21 @@ forecast_paths.qdesn_fit <- function(
   }
 
   make_u <- function(y_hist_vec, decomp_buffers = NULL) {
+    m_res_local <- if (exists("m_res_input", inherits = TRUE)) {
+      as.integer(m_res_input)
+    } else if (exists("m_res", inherits = TRUE)) {
+      as.integer(m_res)
+    } else {
+      0L
+    }
     if (isTRUE(decomp_mode)) {
       if (is.null(decomp_buffers)) {
         stop("forecast_paths: decomp_buffers must be supplied in decomposition mode.")
       }
       lag_features <- .qdesn_component_lag_vector(decomp_buffers, decomp_input_components)
       nb <- if (length(lag_features)) process_lags(lag_features) else numeric(0)
-    } else if (m_res_input > 0L) {
-      nb <- process_lags(rev(tail(y_hist_vec, m_res_input)))
+    } else if (isTRUE(m_res_local > 0L)) {
+      nb <- process_lags(rev(tail(y_hist_vec, m_res_local)))
     } else {
       nb <- numeric(0)
     }
