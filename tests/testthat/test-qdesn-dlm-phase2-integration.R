@@ -48,6 +48,95 @@ test_that("input mode resolver keeps decomposition mode active in phase 2", {
   expect_identical(info$decomposition$variance$S0, 4)
 })
 
+test_that("seasonal auto-harmonic selection picks dominant harmonics for fixed period", {
+  withr::local_seed(20260317)
+
+  tt <- seq_len(240L)
+  y <- as.numeric(
+    1.5 * sin(2 * pi * 2 * tt / 12) +
+      1.1 * sin(2 * pi * 4 * tt / 12) +
+      stats::rnorm(length(tt), sd = 0.05)
+  )
+
+  info <- exdqlm:::.qdesn_resolve_input_mode_scaffold(
+    input_mode = "dlm_decomp_lags",
+    decomposition = list(
+      enabled = TRUE,
+      backend = "r",
+      state_estimate = "filtered",
+      components = c("trend", "seasonal", "residual"),
+      trend = list(degree = 0L),
+      seasonal = list(
+        period = 12,
+        harmonics = integer(0),
+        auto = list(
+          enabled = TRUE,
+          top_k = 2L,
+          min_harmonic = 1L,
+          max_harmonic = 6L,
+          use_log_score = TRUE,
+          center = TRUE,
+          prefer_manual = TRUE
+        )
+      ),
+      input_lags = list(trend = 2L, seasonal = 2L, residual = 2L),
+      discount = list(trend = 0.99, seasonal = 0.99),
+      variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+    ),
+    m_default = 2L,
+    context = "test"
+  )
+
+  runtime <- exdqlm:::.qdesn_prepare_decomposition_runtime(y, info$decomposition, context = "test")
+  expect_identical(runtime$seasonal$harmonics_source, "auto_spectral")
+  expect_equal(length(runtime$seasonal$harmonics_effective), 2L)
+  expect_true(all(c(2L, 4L) %in% runtime$seasonal$harmonics_effective))
+  expect_false(is.null(runtime$seasonal$auto_selection))
+  expect_true(is.data.frame(runtime$seasonal$auto_selection$ranking))
+})
+
+test_that("manual seasonal harmonics can be preferred over auto selection", {
+  withr::local_seed(20260318)
+
+  tt <- seq_len(180L)
+  y <- as.numeric(
+    1.2 * sin(2 * pi * 2 * tt / 12) +
+      0.9 * sin(2 * pi * 4 * tt / 12) +
+      stats::rnorm(length(tt), sd = 0.05)
+  )
+
+  info <- exdqlm:::.qdesn_resolve_input_mode_scaffold(
+    input_mode = "dlm_decomp_lags",
+    decomposition = list(
+      enabled = TRUE,
+      backend = "r",
+      state_estimate = "filtered",
+      components = c("trend", "seasonal", "residual"),
+      trend = list(degree = 0L),
+      seasonal = list(
+        period = 12,
+        harmonics = c(1L, 3L),
+        auto = list(
+          enabled = TRUE,
+          top_k = 2L,
+          min_harmonic = 1L,
+          max_harmonic = 6L,
+          prefer_manual = TRUE
+        )
+      ),
+      input_lags = list(trend = 2L, seasonal = 2L, residual = 2L),
+      discount = list(trend = 0.99, seasonal = 0.99),
+      variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+    ),
+    m_default = 2L,
+    context = "test"
+  )
+
+  runtime <- exdqlm:::.qdesn_prepare_decomposition_runtime(y, info$decomposition, context = "test")
+  expect_identical(runtime$seasonal$harmonics_source, "manual_preferred_over_auto")
+  expect_identical(runtime$seasonal$harmonics_effective, c(1L, 3L))
+})
+
 test_that("qdesn_fit_vb builds decomposition runtime and input width", {
   withr::local_seed(123)
 

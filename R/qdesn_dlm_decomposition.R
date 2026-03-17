@@ -72,6 +72,82 @@
   )
 }
 
+.qdesn_select_harmonics_spectral <- function(y,
+                                             period,
+                                             top_k = 3L,
+                                             min_harmonic = 1L,
+                                             max_harmonic = NA_integer_,
+                                             use_log_score = TRUE,
+                                             center = TRUE,
+                                             context = "qdesn") {
+  y <- as.numeric(y)
+  y <- y[is.finite(y)]
+  if (length(y) < 8L) {
+    stop(sprintf("[%s] seasonal auto-harmonic selection requires at least 8 finite observations.", context), call. = FALSE)
+  }
+
+  period <- as.numeric(period)[1L]
+  if (!is.finite(period) || period <= 0) {
+    stop(sprintf("[%s] seasonal period must be positive for auto-harmonic selection.", context), call. = FALSE)
+  }
+
+  top_k <- as.integer(top_k)[1L]
+  if (!is.finite(top_k) || top_k < 1L) {
+    stop(sprintf("[%s] seasonal auto top_k must be >= 1.", context), call. = FALSE)
+  }
+
+  min_harmonic <- as.integer(min_harmonic)[1L]
+  if (!is.finite(min_harmonic) || min_harmonic < 1L) {
+    stop(sprintf("[%s] seasonal auto min_harmonic must be >= 1.", context), call. = FALSE)
+  }
+
+  h_max_theory <- floor(period / 2)
+  if (!is.finite(h_max_theory) || h_max_theory < 1L) {
+    stop(sprintf("[%s] period is too small for seasonal harmonics.", context), call. = FALSE)
+  }
+
+  max_h_eff <- if (is.na(max_harmonic)) h_max_theory else min(as.integer(max_harmonic)[1L], h_max_theory)
+  if (!is.finite(max_h_eff) || max_h_eff < min_harmonic) {
+    stop(sprintf("[%s] no candidate harmonics after applying min/max bounds.", context), call. = FALSE)
+  }
+
+  harmonics <- seq.int(min_harmonic, max_h_eff)
+  y_work <- y
+  if (isTRUE(center)) y_work <- y_work - mean(y_work)
+
+  tt <- seq_along(y_work)
+  omega <- 2 * pi * harmonics / period
+  score_raw <- vapply(omega, function(w) {
+    cc <- sum(y_work * cos(w * tt))
+    ss <- sum(y_work * sin(w * tt))
+    (cc^2 + ss^2) / length(y_work)
+  }, numeric(1))
+  score_used <- if (isTRUE(use_log_score)) log(pmax(score_raw, .Machine$double.eps)) else score_raw
+
+  ord <- order(-score_used, harmonics)
+  k_eff <- min(top_k, length(harmonics))
+  selected <- sort(harmonics[ord][seq_len(k_eff)])
+  rank_vec <- integer(length(harmonics))
+  rank_vec[ord] <- seq_along(ord)
+
+  ranking <- data.frame(
+    harmonic = as.integer(harmonics),
+    frequency = harmonics / period,
+    implied_period = period / harmonics,
+    score_raw = as.numeric(score_raw),
+    score_used = as.numeric(score_used),
+    rank = as.integer(rank_vec),
+    selected = harmonics %in% selected,
+    stringsAsFactors = FALSE
+  )
+
+  list(
+    harmonics = as.integer(selected),
+    ranking = ranking,
+    top_k = as.integer(k_eff)
+  )
+}
+
 #' @keywords internal
 .qdesn_ndlm_filter_smooth_r <- function(y,
                                        FF,
@@ -411,7 +487,7 @@ qdesn_ndlm_structured_forecast <- function(
   out
 }
 
-.qdesn_build_dlm_model_from_cfg <- function(decomp_cfg, context = "qdesn") {
+.qdesn_build_dlm_model_from_cfg <- function(decomp_cfg, y = NULL, context = "qdesn") {
   trend_degree <- as.integer(decomp_cfg$trend$degree %||% 1L)
   trend_order <- trend_degree + 1L
   if (!is.finite(trend_order) || trend_order < 1L) {
@@ -425,7 +501,42 @@ qdesn_ndlm_structured_forecast <- function(
   )
 
   period <- as.numeric(decomp_cfg$seasonal$period %||% NA_real_)
-  harmonics <- as.integer(decomp_cfg$seasonal$harmonics %||% integer(0))
+  harmonics_requested <- as.integer(decomp_cfg$seasonal$harmonics %||% integer(0))
+  harmonics_requested <- harmonics_requested[is.finite(harmonics_requested) & harmonics_requested > 0L]
+  harmonics_requested <- sort(unique(harmonics_requested))
+
+  auto_cfg <- decomp_cfg$seasonal$auto %||% list()
+  auto_enabled <- isTRUE(auto_cfg$enabled %||% FALSE)
+  prefer_manual <- isTRUE(auto_cfg$prefer_manual %||% TRUE)
+  harmonics <- harmonics_requested
+  harmonics_source <- if (length(harmonics_requested)) "manual" else "none"
+  auto_selection <- NULL
+
+  if (isTRUE(auto_enabled)) {
+    if (is.na(period) || !is.finite(period) || period <= 0) {
+      stop(sprintf("[%s] decomposition.seasonal.auto.enabled requires decomposition.seasonal.period > 0.", context), call. = FALSE)
+    }
+    if (length(harmonics_requested) > 0L && isTRUE(prefer_manual)) {
+      harmonics_source <- "manual_preferred_over_auto"
+    } else {
+      if (is.null(y)) {
+        stop(sprintf("[%s] seasonal auto-harmonic selection requires y in model build context.", context), call. = FALSE)
+      }
+      auto_selection <- .qdesn_select_harmonics_spectral(
+        y = y,
+        period = period,
+        top_k = auto_cfg$top_k %||% 3L,
+        min_harmonic = auto_cfg$min_harmonic %||% 1L,
+        max_harmonic = auto_cfg$max_harmonic %||% NA_integer_,
+        use_log_score = isTRUE(auto_cfg$use_log_score %||% TRUE),
+        center = isTRUE(auto_cfg$center %||% TRUE),
+        context = context
+      )
+      harmonics <- auto_selection$harmonics
+      harmonics_source <- "auto_spectral"
+    }
+  }
+
   harmonics <- harmonics[is.finite(harmonics) & harmonics > 0L]
   harmonics <- sort(unique(harmonics))
 
@@ -473,7 +584,15 @@ qdesn_ndlm_structured_forecast <- function(
     idx = list(trend = idx_trend, seasonal = idx_seasonal),
     dim_df = as.integer(dim_df),
     df = as.numeric(df_vec),
-    seasonal_enabled = seasonal_enabled
+    seasonal_enabled = seasonal_enabled,
+    seasonal = list(
+      period = period,
+      harmonics_requested = as.integer(harmonics_requested),
+      harmonics_effective = as.integer(harmonics),
+      harmonics_source = harmonics_source,
+      auto_enabled = auto_enabled,
+      auto_selection = auto_selection
+    )
   )
 }
 
@@ -501,7 +620,7 @@ qdesn_ndlm_structured_forecast <- function(
     stop(sprintf("[%s] decomposition mode requires at least 3 observations.", context), call. = FALSE)
   }
 
-  model_info <- .qdesn_build_dlm_model_from_cfg(decomp_cfg, context = context)
+  model_info <- .qdesn_build_dlm_model_from_cfg(decomp_cfg, y = y, context = context)
   expanded <- .qdesn_expand_state_space(model_info$model, T_len = T_len, context = context)
 
   variance_cfg <- decomp_cfg$variance %||% list()
@@ -588,6 +707,7 @@ qdesn_ndlm_structured_forecast <- function(
     state_estimate_requested = state_est_req,
     state_estimate_effective = state_est_eff,
     components = comp_order,
+    seasonal = model_info$seasonal,
     input_components = input_components,
     input_lags = input_lags,
     lag_component_order = lag_component_order,

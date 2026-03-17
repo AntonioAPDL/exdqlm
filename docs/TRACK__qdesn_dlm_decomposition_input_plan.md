@@ -2,7 +2,7 @@
 
 Date: 2026-03-17
 Branch: `feature/qdesn-mcmc-alternative`
-Status: Phases 0-6 implemented and validated (R + C++ NDLM backend, decomposition-aware fit/forecast, sim/real pipeline integration, parity/regression coverage)
+Status: Phases 0-6 implemented and validated (R + C++ NDLM backend, decomposition-aware fit/forecast, sim/real pipeline integration, parity/regression coverage, automatic seasonal harmonic selection)
 
 ## Document Placement Note
 
@@ -12,6 +12,7 @@ This plan is placed in `docs/` with a `TRACK__...md` prefix because this branch 
 
 Status update: this tracker now reflects completed implementation for both simulation and real-data pipelines with:
 - YAML controls for seasonal period/harmonics and polynomial trend degree,
+- optional automatic top-k seasonal harmonic selection from spectral scores at harmonic frequencies,
 - a derivation-first C++ NDLM Kalman filter/smoother implementation (`src/kalman_ndlm.cpp`),
 - R/C++ backend dispatch and fallback wiring for NDLM filter/smoother + structured forecast roll-forward,
 - decomposition-aware reservoir-input recursion in fit/forecast/lattice paths,
@@ -48,6 +49,7 @@ Implemented in this repository/branch:
   - `decomposition.trend.degree` (`0=level`, `1=linear`, `2=quadratic`, ...),
   - `decomposition.seasonal.period`,
   - `decomposition.seasonal.harmonics`,
+  - `decomposition.seasonal.auto` (`enabled`, `top_k`, `min_harmonic`, `max_harmonic`, `use_log_score`, `center`, `prefer_manual`),
   - decomposition lag/discount/variance/forecast-recursion options,
 - dedicated NDLM C++ backend + R wrappers and runtime backend-effective reporting,
 - R/C++ parity and integration tests across filter/smoother outputs and structured trajectories.
@@ -391,6 +393,14 @@ decomposition:
   seasonal:
     period: 365
     harmonics: [1, 2, 4]
+    auto:
+      enabled: false
+      top_k: 3
+      min_harmonic: 1
+      max_harmonic: null
+      use_log_score: true
+      center: true
+      prefer_manual: true
 
   input_lags:
     trend: 30
@@ -413,6 +423,8 @@ decomposition:
 Compatibility/mapping notes:
 - `trend.degree` maps to polynomial order via `order = degree + 1` if reusing `polytrendMod`.
 - `seasonal.period` + `seasonal.harmonics` map directly to `seasMod`.
+- `seasonal.auto` computes harmonic scores on candidate frequencies `h / period` using cosine/sine projections and selects top-k harmonics.
+- if `seasonal.auto.enabled=true` and `seasonal.harmonics` is empty (or `prefer_manual=false`), selected harmonics are injected as effective harmonics.
 - `backend = cpp` should require parity-tested NDLM kernel; otherwise fail fast or fallback explicitly with warning.
 
 ### 8.2 Pipeline pass-through points (implemented)
@@ -643,7 +655,7 @@ Resolved in this implementation:
 - Decomposition feature extraction for predictive rows is causal/filtered; no future-smoothed leakage in forecast recursion.
 
 7. Config semantics for harmonic/period/trend controls:
-- YAML keys for `trend.degree`, `seasonal.period`, and `seasonal.harmonics` are wired and exercised in tests/smokes.
+- YAML keys for `trend.degree`, `seasonal.period`, `seasonal.harmonics`, and `seasonal.auto.*` are wired and exercised in tests/smokes.
 
 Still-open follow-up decisions (non-blocking):
 
@@ -708,14 +720,20 @@ Still-open follow-up decisions (non-blocking):
 - Tests executed and passing:
   - `tests/testthat/test-qdesn-dlm-phase3-ndlm-backend.R`
   - `tests/testthat/test-qdesn-dlm-phase2-integration.R`
+    - includes auto-harmonic tests for dominant-frequency recovery and manual-preference override.
   - `tests/testthat/test-smoke.R`
   - `tests/testthat/test-pipeline-inference-validation.R`
   - `tests/testthat/test-benchmark-pipeline.R`
 - Pipeline dry-runs executed and passing:
   - sim: `pipeline_run.R --slug dlm_constV_smallW_local_sim --spec /tmp/qdesn_dlm_sim_smoke.yaml --dry-run`
   - real: `pipeline_run.R --slug dlm_constV_smallW_local_real --spec /tmp/qdesn_dlm_real_smoke.yaml --dry-run`
+  - sim (auto harmonics): `pipeline_run.R --slug dlm_constV_smallW_local_sim --spec /tmp/qdesn_dlm_auto_harm_sim.yaml --dry-run`
+  - real (auto harmonics): `pipeline_run.R --slug dlm_constV_smallW_local_real --spec /tmp/qdesn_dlm_auto_harm_real.yaml --dry-run`
 - Pipeline smoke runs executed and passing:
   - decomposition-enabled sim/real runs with `decomposition.backend=cpp`,
+  - sim (auto harmonics): `pipeline_run.R --slug dlm_constV_smallW_local_sim --spec /tmp/qdesn_dlm_auto_harm_sim.yaml`,
+  - real (auto harmonics): `pipeline_run.R --slug dlm_constV_smallW_local_real --spec /tmp/qdesn_dlm_auto_harm_real.yaml`,
+  - decomposition-enabled sim/real runs with `decomposition.seasonal.auto.enabled=true` and fixed `seasonal.period`,
   - raw-baseline sim/real runs with existing smoke specs (`mcmc_smoke_*_vb_ridge.yaml`).
 
 ## 12. Confirmed Existing vs Implemented Work
@@ -738,7 +756,11 @@ Still-open follow-up decisions (non-blocking):
 
 - YAML/config surface for:
   - `trend.degree`, `seasonal.period`, `seasonal.harmonics`,
+  - `seasonal.auto` top-k spectral harmonic selection controls,
   - decomposition backend/state/variance/forecast recursion controls.
+- automatic harmonic selection implementation:
+  - `R/qdesn_dlm_decomposition.R::.qdesn_select_harmonics_spectral`,
+  - model runtime metadata fields (`harmonics_requested`, `harmonics_effective`, `harmonics_source`, `auto_selection`).
 - dedicated NDLM C++ path:
   - `src/kalman_ndlm.cpp` with `dlm_ndlm_filter_smooth_cpp` and `dlm_ndlm_structured_forecast_cpp`.
 - decomposition-aware reservoir input/forecast recursion:

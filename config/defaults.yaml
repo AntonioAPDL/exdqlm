@@ -181,6 +181,14 @@ decomposition:
   seasonal:
     period: null            # e.g. 12 for monthly
     harmonics: []           # e.g. [1, 2, 3]
+    auto:
+      enabled: false        # if true and harmonics is empty (or prefer_manual=false), select harmonics automatically from spectral scores
+      top_k: 3              # number of dominant harmonics to keep
+      min_harmonic: 1       # lower harmonic index bound (>=1)
+      max_harmonic: null    # null => floor(period/2)
+      use_log_score: true   # rank by log spectral power at candidate harmonic frequencies
+      center: true          # mean-center y before spectral scoring
+      prefer_manual: true   # if harmonics is explicitly provided, keep it and skip auto selection
   input_lags:
     trend: 12
     seasonal: 12

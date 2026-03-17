@@ -16,7 +16,19 @@
     state_estimate = "filtered",
     components = c("trend", "seasonal", "residual"),
     trend = list(degree = 1L),
-    seasonal = list(period = NA_real_, harmonics = integer(0)),
+    seasonal = list(
+      period = NA_real_,
+      harmonics = integer(0),
+      auto = list(
+        enabled = FALSE,
+        top_k = 3L,
+        min_harmonic = 1L,
+        max_harmonic = NA_integer_,
+        use_log_score = TRUE,
+        center = TRUE,
+        prefer_manual = TRUE
+      )
+    ),
     input_lags = list(
       trend = m_default,
       seasonal = m_default,
@@ -82,6 +94,37 @@
   harmonics <- unique(harmonics)
   cfg$seasonal$period <- period
   cfg$seasonal$harmonics <- harmonics
+
+  auto_in <- (decomposition$seasonal %||% list())$auto %||% cfg$seasonal$auto %||% list()
+  auto_enabled <- isTRUE(auto_in$enabled %||% cfg$seasonal$auto$enabled %||% FALSE)
+  top_k <- as.integer(auto_in$top_k %||% cfg$seasonal$auto$top_k %||% 3L)[1L]
+  if (!is.finite(top_k) || top_k < 1L) {
+    warning(sprintf("[%s] decomposition.seasonal.auto.top_k must be integer >= 1; using 3.", context), call. = FALSE)
+    top_k <- 3L
+  }
+  min_h <- as.integer(auto_in$min_harmonic %||% cfg$seasonal$auto$min_harmonic %||% 1L)[1L]
+  if (!is.finite(min_h) || min_h < 1L) {
+    warning(sprintf("[%s] decomposition.seasonal.auto.min_harmonic must be integer >= 1; using 1.", context), call. = FALSE)
+    min_h <- 1L
+  }
+  max_h_raw <- auto_in$max_harmonic %||% cfg$seasonal$auto$max_harmonic %||% NA_integer_
+  max_h <- as.integer(max_h_raw)[1L]
+  if (!is.na(max_h) && (!is.finite(max_h) || max_h < min_h)) {
+    warning(sprintf("[%s] decomposition.seasonal.auto.max_harmonic must be NA or >= min_harmonic; using NA.", context), call. = FALSE)
+    max_h <- NA_integer_
+  }
+  use_log_score <- isTRUE(auto_in$use_log_score %||% cfg$seasonal$auto$use_log_score %||% TRUE)
+  center_auto <- isTRUE(auto_in$center %||% cfg$seasonal$auto$center %||% TRUE)
+  prefer_manual <- isTRUE(auto_in$prefer_manual %||% cfg$seasonal$auto$prefer_manual %||% TRUE)
+  cfg$seasonal$auto <- list(
+    enabled = auto_enabled,
+    top_k = top_k,
+    min_harmonic = min_h,
+    max_harmonic = max_h,
+    use_log_score = use_log_score,
+    center = center_auto,
+    prefer_manual = prefer_manual
+  )
 
   norm_lag <- function(x, nm) {
     out <- as.integer(x)[1L]
