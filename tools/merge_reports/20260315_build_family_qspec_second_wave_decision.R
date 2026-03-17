@@ -47,16 +47,18 @@ vb_debug_rows <- attach_metrics(vb_debug_rows)
 mixed_rows <- attach_metrics(mixed_rows)
 hard_rows <- attach_metrics(hard_rows)
 
-deeper_rows$recommended_action <- "rerun_with_deeper_mcmc"
-deeper_rows$recommended_burn <- 3000L
-deeper_rows$recommended_keep <- 8000L
-deeper_rows$recommended_trace_every <- 25L
+if (nrow(deeper_rows)) {
+  deeper_rows$recommended_action <- "rerun_with_deeper_mcmc"
+  deeper_rows$recommended_burn <- 3000L
+  deeper_rows$recommended_keep <- 8000L
+  deeper_rows$recommended_trace_every <- 25L
+}
 
-vb_debug_rows$recommended_action <- "debug_vb_then_targeted_refit"
-mixed_rows$recommended_action <- "debug_model_then_resample"
-hard_rows$recommended_action <- "exclude_until_numerical_fix"
-moderate_rows$recommended_action <- "mark_comparison_eligible_under_second_wave_policy"
-aggressive_rows$recommended_action <- "hold_out_from_policy_rescue"
+if (nrow(vb_debug_rows)) vb_debug_rows$recommended_action <- "debug_vb_then_targeted_refit"
+if (nrow(mixed_rows)) mixed_rows$recommended_action <- "debug_model_then_resample"
+if (nrow(hard_rows)) hard_rows$recommended_action <- "exclude_until_numerical_fix"
+if (nrow(moderate_rows)) moderate_rows$recommended_action <- "mark_comparison_eligible_under_second_wave_policy"
+if (nrow(aggressive_rows)) aggressive_rows$recommended_action <- "hold_out_from_policy_rescue"
 
 policy_decision <- data.frame(
   decision_id = "second_wave_moderate_policy",

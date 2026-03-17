@@ -2017,3 +2017,28 @@ Dynamic runtime tracking update:
 
 - dynamic VB/MCMC review now reads `runtime_sec` from the fit bundles (fallback to `fit$run.time`)
 - dynamic runtime ratios now populate the scientific snapshot and global summaries
+
+## 2026-03-16 Repair Wave Launch (Deeper-Chain MCMC Only)
+
+Wave scope:
+
+- targeted `needs_deeper_chain` MCMC reruns only
+- excludes `aggressive_policy_only_rescue`, `needs_model_or_vb_debug`, and `hard_numerical_repair` rows
+
+State and tuning:
+
+- state dir: `/home/jaguir26/local/state/exdqlm/family_qspec_repair_wave_20260316_200910`
+- slot budget: `25`
+- burn/keep: `3000 / 8000`
+- progress logging: `progress_every = 25`
+- policy: accepted second-wave MCMC thresholds
+
+Dry-run queue summary (pre-launch):
+
+- `19` model-path reruns (MCMC resume)
+- `12` root postprocess
+- `12` root signoff
+- `12` root review
+- `2` prior-compare
+- `3` campaign reviews
+- `1` global summary
