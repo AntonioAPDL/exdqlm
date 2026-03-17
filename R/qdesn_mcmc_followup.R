@@ -657,3 +657,152 @@ qdesn_validation_assess_multichain_followup <- function(multichain_report_root,
     metrics = metrics
   )
 }
+
+.qdesn_validation_compare_multichain_root_confirmation <- function(base_df, cand_df) {
+  by <- c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile")
+  out <- merge(base_df, cand_df, by = by, all = TRUE, sort = FALSE, suffixes = c("_baseline", "_candidate"))
+  base_score <- .qdesn_validation_multichain_grade_score(out$confirmation_grade_baseline)
+  cand_score <- .qdesn_validation_multichain_grade_score(out$confirmation_grade_candidate)
+  out$confirmation_grade_score_delta_candidate_minus_baseline <- cand_score - base_score
+  out
+}
+
+qdesn_validation_compare_multichain_reports <- function(baseline_report_root,
+                                                        candidate_report_root,
+                                                        output_root) {
+  .qdesn_validation_dir_create(output_root)
+  .qdesn_validation_dir_create(file.path(output_root, "tables"))
+  .qdesn_validation_dir_create(file.path(output_root, "manifest"))
+
+  baseline_report_root <- normalizePath(baseline_report_root, winslash = "/", mustWork = TRUE)
+  candidate_report_root <- normalizePath(candidate_report_root, winslash = "/", mustWork = TRUE)
+
+  root_cmp <- .qdesn_validation_compare_multichain_root_confirmation(
+    .qdesn_validation_read_report_csv(baseline_report_root, "campaign_root_confirmation.csv"),
+    .qdesn_validation_read_report_csv(candidate_report_root, "campaign_root_confirmation.csv")
+  )
+  base_rhat <- .qdesn_validation_read_report_csv(baseline_report_root, "campaign_multichain_rhat.csv")
+  cand_rhat <- .qdesn_validation_read_report_csv(candidate_report_root, "campaign_multichain_rhat.csv")
+  rhat_cmp <- merge(
+    base_rhat,
+    cand_rhat,
+    by = c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile", "parameter"),
+    all = TRUE,
+    sort = FALSE,
+    suffixes = c("_baseline", "_candidate")
+  )
+  if (all(c("rhat_baseline", "rhat_candidate") %in% names(rhat_cmp))) {
+    rhat_cmp$rhat_delta_candidate_minus_baseline <- rhat_cmp$rhat_candidate - rhat_cmp$rhat_baseline
+  }
+
+  .qdesn_validation_write_df(root_cmp, file.path(output_root, "tables", "root_confirmation_compare.csv"))
+  .qdesn_validation_write_df(rhat_cmp, file.path(output_root, "tables", "rhat_compare.csv"))
+  .qdesn_validation_write_json(file.path(output_root, "manifest", "comparison_manifest.json"), list(
+    baseline_report_root = baseline_report_root,
+    candidate_report_root = candidate_report_root,
+    output_root = normalizePath(output_root, winslash = "/", mustWork = FALSE),
+    generated_at = as.character(Sys.time()),
+    git_sha = .qdesn_validation_git_sha()
+  ))
+  .qdesn_validation_write_lines(file.path(output_root, "comparison_summary.md"), c(
+    "# Multichain Representative Comparison",
+    "",
+    sprintf("- Baseline report root: `%s`", baseline_report_root),
+    sprintf("- Candidate report root: `%s`", candidate_report_root),
+    "",
+    "## Root Confirmation Deltas",
+    "",
+    .qdesn_validation_df_to_markdown(root_cmp)
+  ))
+
+  invisible(list(
+    output_root = normalizePath(output_root, winslash = "/", mustWork = FALSE),
+    root_confirmation_compare = root_cmp,
+    rhat_compare = rhat_cmp
+  ))
+}
+
+qdesn_validation_assess_representative_default_candidate <- function(candidate_report_root,
+                                                                     baseline_report_root,
+                                                                     output_root) {
+  safe_mean <- function(x) {
+    x <- as.numeric(x)
+    x <- x[is.finite(x)]
+    if (!length(x)) return(NA_real_)
+    mean(x)
+  }
+  .qdesn_validation_dir_create(output_root)
+  .qdesn_validation_dir_create(file.path(output_root, "tables"))
+  .qdesn_validation_dir_create(file.path(output_root, "manifest"))
+
+  base_confirm <- .qdesn_validation_read_report_csv(baseline_report_root, "campaign_root_confirmation.csv")
+  cand_confirm <- .qdesn_validation_read_report_csv(candidate_report_root, "campaign_root_confirmation.csv")
+  base_rhat <- .qdesn_validation_read_report_csv(baseline_report_root, "campaign_multichain_rhat.csv")
+  cand_rhat <- .qdesn_validation_read_report_csv(candidate_report_root, "campaign_multichain_rhat.csv")
+
+  metric_df <- data.frame(
+    metric = c(
+      "rhs_confirmation_usable_rate",
+      "rhs_confirmation_pass_rate",
+      "rhs_tau025_confirmation_usable_rate",
+      "rhs_multichain_fail_count",
+      "rhs_split_rhat_ok_rate"
+    ),
+    baseline = c(
+      safe_mean(base_confirm$confirmation_grade != "FAIL"),
+      safe_mean(base_confirm$confirmation_grade == "PASS"),
+      safe_mean(base_confirm$confirmation_grade[abs(base_confirm$tau - 0.25) < 1e-12] != "FAIL"),
+      sum(base_confirm$confirmation_grade == "FAIL", na.rm = TRUE),
+      safe_mean(base_rhat$rhat <= 1.10)
+    ),
+    candidate = c(
+      safe_mean(cand_confirm$confirmation_grade != "FAIL"),
+      safe_mean(cand_confirm$confirmation_grade == "PASS"),
+      safe_mean(cand_confirm$confirmation_grade[abs(cand_confirm$tau - 0.25) < 1e-12] != "FAIL"),
+      sum(cand_confirm$confirmation_grade == "FAIL", na.rm = TRUE),
+      safe_mean(cand_rhat$rhat <= 1.10)
+    ),
+    stringsAsFactors = FALSE
+  )
+  metric_df$delta_candidate_minus_baseline <- metric_df$candidate - metric_df$baseline
+
+  promote_ok <- isTRUE(metric_df$candidate[metric_df$metric == "rhs_confirmation_usable_rate"] >= metric_df$baseline[metric_df$metric == "rhs_confirmation_usable_rate"]) &&
+    isTRUE(metric_df$candidate[metric_df$metric == "rhs_confirmation_pass_rate"] >= metric_df$baseline[metric_df$metric == "rhs_confirmation_pass_rate"]) &&
+    isTRUE(metric_df$candidate[metric_df$metric == "rhs_tau025_confirmation_usable_rate"] >= metric_df$baseline[metric_df$metric == "rhs_tau025_confirmation_usable_rate"]) &&
+    isTRUE(metric_df$candidate[metric_df$metric == "rhs_multichain_fail_count"] <= metric_df$baseline[metric_df$metric == "rhs_multichain_fail_count"]) &&
+    isTRUE(metric_df$candidate[metric_df$metric == "rhs_split_rhat_ok_rate"] >= metric_df$baseline[metric_df$metric == "rhs_split_rhat_ok_rate"])
+
+  decision_mode <- if (isTRUE(promote_ok)) "promote_representative_default" else "hold_representative_default"
+  decision_reason <- if (identical(decision_mode, "promote_representative_default")) {
+    "candidate representative rerun is at least as strong as the current representative structural default and improves the remaining hard root"
+  } else {
+    "candidate representative rerun does not clearly dominate the current representative structural default"
+  }
+
+  .qdesn_validation_write_df(metric_df, file.path(output_root, "tables", "decision_metrics.csv"))
+  .qdesn_validation_write_json(file.path(output_root, "manifest", "decision_manifest.json"), list(
+    baseline_report_root = normalizePath(baseline_report_root, winslash = "/", mustWork = TRUE),
+    candidate_report_root = normalizePath(candidate_report_root, winslash = "/", mustWork = TRUE),
+    decision_mode = decision_mode,
+    decision_reason = decision_reason,
+    generated_at = as.character(Sys.time()),
+    git_sha = .qdesn_validation_git_sha()
+  ))
+  .qdesn_validation_write_lines(file.path(output_root, "decision_summary.md"), c(
+    "# Representative Default Promotion Decision",
+    "",
+    sprintf("- Decision mode: `%s`", decision_mode),
+    sprintf("- Reason: %s", decision_reason),
+    "",
+    "## Metrics",
+    "",
+    .qdesn_validation_df_to_markdown(metric_df)
+  ))
+
+  list(
+    output_root = normalizePath(output_root, winslash = "/", mustWork = FALSE),
+    decision_mode = decision_mode,
+    decision_reason = decision_reason,
+    metrics = metric_df
+  )
+}

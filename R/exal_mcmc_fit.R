@@ -3,7 +3,8 @@
 #' This is the MCMC counterpart to [exal_ldvb_fit()]. The initial implementation
 #' supports the ridge beta prior and uses slice sampling for the nonconjugate
 #' `gamma` block on a transformed coordinate. Closed-form Gibbs updates are used
-#' for `beta`, `v`, `s`, and `sigma`.
+#' for `beta`, `v`, and `s`. The `sigma` block can be sampled either via the
+#' conjugate GIG draw (default) or a log-sigma slice sampler when enabled.
 #'
 #' The current implementation supports both ridge and regularized horseshoe
 #' readout priors. Under RHS, the MCMC kernel conditions on the exact current
@@ -423,7 +424,20 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   thin <- max(1L, as.integer(mcmc_control$thin %||% 1L))
   verbose <- isTRUE(mcmc_control$verbose %||% FALSE)
   progress_every <- max(1L, as.integer(mcmc_control$progress_every %||% 100L))
-  rng_seed <- mcmc_control$rng_seed %||% mcmc_control$seed %||% NULL
+  normalize_seed <- function(seed) {
+    if (is.null(seed)) return(NULL)
+    s <- suppressWarnings(as.integer(seed)[1L])
+    if (!is.finite(s) || is.na(s)) return(NULL)
+    # Keep seed in valid R integer RNG range and avoid zero.
+    s <- abs(s %% 2147483647L)
+    if (s == 0L) s <- 1L
+    s
+  }
+  rng_seed <- normalize_seed(mcmc_control$rng_seed %||% mcmc_control$seed %||% NULL)
+  vb_warm_start_seed <- normalize_seed(
+    mcmc_control$vb_warm_start_seed %||%
+      if (!is.null(rng_seed)) rng_seed + 104729L else NULL
+  )
   init_from_vb <- isTRUE(mcmc_control$init_from_vb %||% FALSE)
   store_latent_draws <- isTRUE(mcmc_control$store_latent_draws %||% FALSE)
   store_rhs_draws <- isTRUE(mcmc_control$store_rhs_draws %||% FALSE)
@@ -436,8 +450,26 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   gamma_slice_max_steps_out <- as.integer(slice_cfg$max_steps_out %||% 100L)
   gamma_slice_max_shrink <- as.integer(slice_cfg$max_shrink %||% 1000L)
 
+  transform_cfg <- mcmc_control$transforms %||% mcmc_control$transform %||% list()
+  use_log_sigma <- isTRUE(transform_cfg$use_log_sigma %||% transform_cfg$use_transformed_sigma %||% FALSE)
+  sigma_eta_bounds <- transform_cfg$sigma_eta_bounds %||% c(-20, 20)
+  sigma_eta_bounds <- as.numeric(sigma_eta_bounds)
+  if (length(sigma_eta_bounds) != 2L || any(!is.finite(sigma_eta_bounds))) {
+    sigma_eta_bounds <- c(-Inf, Inf)
+  }
+  if (is.finite(sigma_eta_bounds[1L]) && is.finite(sigma_eta_bounds[2L]) &&
+      sigma_eta_bounds[1L] >= sigma_eta_bounds[2L]) {
+    .stopf("mcmc_control$transforms$sigma_eta_bounds must have lower < upper.")
+  }
+  sigma_slice_width <- as.numeric(slice_cfg$width_sigma %||% slice_cfg$width_log_sigma %||% 0.35)[1L]
+  sigma_slice_max_steps_out <- as.integer(slice_cfg$max_steps_out_sigma %||% slice_cfg$max_steps_out %||% 100L)
+  sigma_slice_max_shrink <- as.integer(slice_cfg$max_shrink_sigma %||% slice_cfg$max_shrink %||% 1000L)
+
   if (!is.finite(gamma_slice_width) || gamma_slice_width <= 0) {
     .stopf("mcmc_control$slice$width_gamma must be positive.")
+  }
+  if (use_log_sigma && (!is.finite(sigma_slice_width) || sigma_slice_width <= 0)) {
+    .stopf("mcmc_control$slice$width_sigma must be positive when using log-sigma sampling.")
   }
 
   if (is.null(prior_gamma)) prior_gamma <- list(mu0 = 0, s20 = 10)
@@ -527,6 +559,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
 
   vb_warm <- NULL
   if (init_from_vb) {
+    if (!is.null(vb_warm_start_seed)) set.seed(vb_warm_start_seed)
     vb_warm <- exal_ldvb_fit(
       y = y,
       X = X,
@@ -550,6 +583,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
 
   beta <- as.numeric(init$beta %||% if (!is.null(vb_warm)) vb_warm$qbeta$m else rep(0, p))
   sigma <- as.numeric(init$sigma %||% if (!is.null(vb_warm)) vb_warm$qsiggam$sigma_mean else 1)[1L]
+  eta_sigma <- log(max(as.numeric(sigma)[1L], 1e-12))
   gamma <- as.numeric(init$gamma %||% if (!is.null(vb_warm)) vb_warm$qsiggam$gamma_mean else 0)[1L]
   gamma <- min(max(gamma, L + 1e-6), U - 1e-6)
   eta_gamma <- eta_from_g(gamma)
@@ -570,7 +604,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   }
 
   if (!is.null(rng_seed)) {
-    set.seed(as.integer(rng_seed)[1L])
+    set.seed(rng_seed)
   }
 
   n_total <- n_burn + n_keep * thin
@@ -715,10 +749,30 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     chi_sigma <- sum((r_sigma * r_sigma) / (B * v)) + 2 * sum(v) + 2 * as.numeric(prior_sigma$b)
     psi_sigma <- (Cabs * Cabs / B) * sum((s * s) / v)
     k_sigma <- -(as.numeric(prior_sigma$a) + 1.5 * n)
-    sigma_new <- as.numeric(sample_gig_devroye_vector(
-      1L, p = k_sigma, a = psi_sigma, b_vec = chi_sigma
-    )[1L, 1L])
-    if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
+    if (isTRUE(use_log_sigma)) {
+      sigma_slice <- .exal_mcmc_slice_sample_1d(
+        x0 = eta_sigma,
+        logf = function(eta) {
+          if (!is.finite(eta)) return(-Inf)
+          sig <- .safe_exp(eta)
+          if (!is.finite(sig) || sig <= 0) return(-Inf)
+          k_sigma * eta - 0.5 * (psi_sigma * sig + chi_sigma / sig)
+        },
+        width = sigma_slice_width,
+        max_steps_out = sigma_slice_max_steps_out,
+        max_shrink = sigma_slice_max_shrink,
+        lower = sigma_eta_bounds[1L],
+        upper = sigma_eta_bounds[2L]
+      )
+      eta_sigma <- sigma_slice$x
+      sigma <- .safe_exp(eta_sigma)
+    } else {
+      sigma_new <- as.numeric(sample_gig_devroye_vector(
+        1L, p = k_sigma, a = psi_sigma, b_vec = chi_sigma
+      )[1L, 1L])
+      if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
+      eta_sigma <- log(max(as.numeric(sigma)[1L], 1e-12))
+    }
 
     slice_gamma <- .exal_mcmc_slice_sample_1d(
       x0 = eta_gamma,
@@ -822,10 +876,11 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       n_burn = n_burn,
       n_mcmc = n_keep,
       thin = thin,
-      rng_seed = if (is.null(rng_seed)) NA_integer_ else as.integer(rng_seed)[1L],
+      rng_seed = if (is.null(rng_seed)) NA_integer_ else rng_seed,
       verbose = verbose,
       progress_every = progress_every,
       init_from_vb = init_from_vb,
+      vb_warm_start_seed = if (is.null(vb_warm_start_seed)) NA_integer_ else vb_warm_start_seed,
       vb_warm_start_control = mcmc_control$vb_warm_start_control %||% list(),
       store_latent_draws = store_latent_draws,
       store_rhs_draws = store_rhs_draws,

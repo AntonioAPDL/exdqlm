@@ -60,6 +60,41 @@ test_that("generic exAL draw and predictive dispatch works for VB and MCMC", {
   expect_equal(dim(pp_mcmc$mu_draws), c(6L, 10L))
 })
 
+test_that("MCMC supports log-sigma slice sampling when enabled", {
+  withr::local_seed(321)
+
+  n <- 24L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  beta0 <- c(0.25, -0.4, 0.15)
+  y <- as.numeric(X %*% beta0 + stats::rnorm(n, sd = 0.6))
+
+  fit_mcmc <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 10L,
+      n_mcmc = 15L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = TRUE,
+      transforms = list(
+        use_log_sigma = TRUE,
+        sigma_eta_bounds = c(-8, 8)
+      ),
+      slice = list(
+        width_sigma = 0.4
+      )
+    )
+  )
+
+  expect_true(inherits(fit_mcmc, "exal_mcmc"))
+  expect_true(all(is.finite(fit_mcmc$samp.sigma)))
+  expect_true(all(fit_mcmc$samp.sigma > 0))
+})
+
 test_that("RHS MCMC exposes healthy prior-state outputs and exact current precisions", {
   withr::local_seed(456)
 
@@ -118,9 +153,11 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
         n_mcmc = 17L,
         thin = 2L,
         init_from_vb = FALSE,
+        vb_warm_start_seed = 12345L,
         vb_warm_start_control = list(max_iter = 33L),
         rhs = list(freeze_tau_burnin_iters = 7L),
         slice = list(width_gamma = 0.6, width_rhs_tau = 0.9),
+        transforms = list(use_log_sigma = TRUE, sigma_eta_bounds = c(-6, 6)),
         init = list(gamma = c(0.1, 0.2)),
         priors = list(
           gamma = list(mu0 = c(-0.2, 0.3), s20 = 4),
@@ -140,6 +177,9 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(inf$mcmc$control_base$n_burn, 11L)
   expect_equal(inf$mcmc$control_base$n_mcmc, 17L)
   expect_equal(inf$mcmc$control_base$thin, 2L)
+  expect_equal(inf$mcmc$control_base$vb_warm_start_seed, 12345L)
+  expect_true(isTRUE(inf$mcmc$control_base$transforms$use_log_sigma))
+  expect_equal(inf$mcmc$control_base$transforms$sigma_eta_bounds, c(-6, 6))
   expect_false(isTRUE(inf$mcmc$control_base$init_from_vb))
   expect_equal(inf$mcmc$control_base$vb_warm_start_control$max_iter, 33L)
   expect_equal(inf$mcmc$control_base$rhs$freeze_tau_burnin_iters, 7L)
@@ -328,6 +368,56 @@ test_that("MCMC sampler rng_seed is accepted and stored on the fit", {
   expect_equal(fit_c$control$rng_seed, 12L)
   expect_length(as.numeric(fit_a$samp.gamma), 16L)
   expect_length(as.numeric(fit_c$samp.gamma), 16L)
+})
+
+test_that("MCMC accepts and stores vb warm-start seed under init_from_vb", {
+  withr::local_seed(2027)
+
+  n <- 22L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.2, -0.3, 0.1) + stats::rnorm(n, sd = 0.35))
+
+  control_cfg <- list(
+    n_burn = 12L,
+    n_mcmc = 16L,
+    thin = 1L,
+    verbose = FALSE,
+    init_from_vb = TRUE,
+    rng_seed = 777L,
+    vb_warm_start_seed = 1777L,
+    vb_warm_start_control = list(
+      max_iter = 20L,
+      min_iter_elbo = 5L,
+      n_samp_xi = 40L,
+      verbose = FALSE
+    )
+  )
+
+  fit_a <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = control_cfg
+  )
+  fit_b <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = control_cfg
+  )
+
+  expect_equal(fit_a$control$rng_seed, 777L)
+  expect_equal(fit_a$control$vb_warm_start_seed, 1777L)
+  expect_equal(fit_b$control$rng_seed, 777L)
+  expect_equal(fit_b$control$vb_warm_start_seed, 1777L)
+  expect_length(as.numeric(fit_a$samp.gamma), 16L)
+  expect_length(as.numeric(fit_b$samp.gamma), 16L)
+  expect_true(all(is.finite(as.numeric(fit_a$samp.sigma))))
+  expect_true(all(is.finite(as.numeric(fit_b$samp.sigma))))
 })
 
 test_that("VB RHS config preserves null tau init and separate warmup freeze settings", {

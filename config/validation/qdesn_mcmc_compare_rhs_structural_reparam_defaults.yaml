@@ -1,0 +1,257 @@
+campaign:
+  name: qdesn_mcmc_rhs_reparam_phase1
+  results_root: results/qdesn_mcmc_validation/phase1_reparam
+  reports_root: reports/qdesn_mcmc_validation/phase1_reparam
+
+pilot:
+  scenario: toy_sine_small
+  tau: 0.25
+  seed: 123
+  reservoir_profile: tiny_d1_n8
+  enabled: true
+
+runtime:
+  threads: 1
+
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.10
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.20
+    require_converged_for_pass: true
+  mcmc:
+    min_keep_pass: 160
+    min_keep_warn: 100
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.90
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.50
+
+toy:
+  scenarios:
+    toy_sine_small:
+      T_use: 96
+      n_train: 78
+      amplitude: 0.7
+      period: 12
+      noise_sd: 0.12
+      phase: 0.0
+    const_small:
+      T_use: 96
+      n_train: 78
+      level: 0.4
+      noise_sd: 0.08
+    sin_asym_small:
+      T_use: 96
+      n_train: 78
+      amplitude: 0.6
+      period: 12
+      phase: 0.0
+      meanlog: -0.35
+      sdlog: 0.45
+      noise_scale: 0.35
+    level_shift_small:
+      T_use: 96
+      n_train: 78
+      break_1: 32
+      break_2: 64
+      level_1: 0.15
+      level_2: 0.75
+      level_3: -0.05
+      noise_sd: 0.10
+
+reservoir_profiles:
+  tiny_d1_n8:
+    D: 1
+    n: [8]
+    n_tilde: []
+    m: 4
+    alpha: 0.2
+    rho: 0.9
+    act_f: tanh
+    act_k: identity
+    pi_w: 0.15
+    pi_in: 1.0
+    washout: 4
+    add_bias: true
+    seed: 123
+
+pipeline:
+  verbose: true
+  readout:
+    include_input: true
+    reservoir_lags: 1
+    input_position: after_reservoir
+  sampling:
+    nd_draws: 96
+    chunk: 48
+  forecast:
+    mode: origin
+    train_last_window: 18
+    fore_last_window: 18
+  synthesis:
+    isotonic: true
+    rearrange: true
+    grid_M: 151
+    n_samp: 96
+    seed: 321
+  diagnostics:
+    calibration: false
+    pit: false
+    scores: true
+    lead_eval: false
+    fan_charts: false
+    plots: false
+  cpp:
+    use_postpred: false
+    postpred_omp: false
+    postpred_precompute: false
+    postpred_threads: 1
+  outputs:
+    save: true
+    keep_draws: false
+    thesis_subset: false
+  inference:
+    readout_scale: true
+    vb:
+      max_iter: 35
+      min_iter_elbo: 10
+      n_samp_xi: 64
+      verbose: true
+      diagnostics:
+        rhs_trace: true
+        rhs_deep: false
+      rhs:
+        freeze_tau_iters: 6
+        freeze_tau_warmup_iters: 6
+        tau_local_tol: 1.0e-3
+        min_tau_updates: 1
+        force_tau_after_warmup: true
+      prior_overrides:
+        ridge:
+          max_iter: 35
+          min_iter_elbo: 10
+          n_samp_xi: 64
+        rhs:
+          max_iter: 60
+          min_iter_elbo: 12
+          n_samp_xi: 128
+          rhs:
+            freeze_tau_iters: 10
+            freeze_tau_warmup_iters: 10
+            tau_local_tol: 5.0e-4
+            min_tau_updates: 2
+            force_tau_after_warmup: true
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs:
+            tau0: 0.01
+            nu: 4
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            eta_bounds:
+              lambda: [-8, 8]
+              tau: [-8, 8]
+              c2: [-8, 8]
+            h_curv: 1.0e-8
+            var_floor: 1.0e-8
+            init_log_tau: null
+            init_log_c2: 0.0
+    mcmc:
+      n_burn: 300
+      n_mcmc: 600
+      thin: 1
+      verbose: true
+      progress_every: 50
+      init_from_vb: true
+      store_latent_draws: false
+      store_rhs_draws: false
+      transforms:
+        use_log_sigma: true
+        sigma_eta_bounds: [-10, 10]
+      slice:
+        width_gamma: 0.6
+        width_sigma: 0.35
+        width_rhs_lambda: 0.6
+        width_rhs_tau: 0.6
+        width_rhs_c2: 0.6
+        max_steps_out: 40
+        max_shrink: 150
+      prior_overrides:
+        ridge:
+          n_burn: 300
+          n_mcmc: 600
+          progress_every: 50
+          slice:
+            width_gamma: 0.6
+            width_sigma: 0.35
+            max_steps_out: 40
+            max_shrink: 150
+        rhs:
+          n_burn: 1000
+          n_mcmc: 2000
+          progress_every: 250
+          vb_warm_start_control:
+            max_iter: 80
+            min_iter_elbo: 12
+            n_samp_xi: 200
+            verbose: false
+            rhs:
+              freeze_tau_iters: 40
+              freeze_tau_warmup_iters: 40
+              tau_local_tol: 5.0e-4
+              min_tau_updates: 2
+              force_tau_after_warmup: true
+          rhs:
+            freeze_tau_burnin_iters: 50
+            freeze_tau_only_during_burn: true
+          slice:
+            width_gamma: 0.55
+            width_sigma: 0.35
+            width_rhs_lambda: 0.18
+            width_rhs_tau: 0.15
+            width_rhs_c2: 0.12
+            width_rhs_tau_c2_block: 0.50
+            rhs_global_block_update: directional_tau_c2
+            max_steps_out: 70
+            max_shrink: 300
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs:
+            tau0: 0.01
+            nu: 4
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            eta_bounds:
+              lambda: [-8, 8]
+              tau: [-8, 8]
+              c2: [-8, 8]
+            h_curv: 1.0e-8
+            var_floor: 1.0e-8

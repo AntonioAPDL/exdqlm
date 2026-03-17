@@ -273,6 +273,53 @@ test_that("multichain follow-up assessment chooses representative confirmation w
   expect_identical(res$decision_mode, "representative_confirmation")
 })
 
+test_that("representative default candidate assessment promotes when multichain confirmation improves", {
+  tmp <- withr::local_tempdir()
+  base_root <- file.path(tmp, "baseline")
+  cand_root <- file.path(tmp, "candidate")
+  out_root <- file.path(tmp, "decision")
+  dir.create(file.path(base_root, "tables"), recursive = TRUE)
+  dir.create(file.path(cand_root, "tables"), recursive = TRUE)
+
+  base_confirm <- data.frame(
+    root_id = c("r1", "r2"),
+    scenario = c("a", "b"),
+    tau = c(0.25, 0.50),
+    beta_prior_type = c("rhs", "rhs"),
+    seed = c(1L, 1L),
+    reservoir_profile = c("tiny", "tiny"),
+    confirmation_grade = c("FAIL", "PASS"),
+    stringsAsFactors = FALSE
+  )
+  cand_confirm <- base_confirm
+  cand_confirm$confirmation_grade <- c("PASS", "PASS")
+
+  base_rhat <- data.frame(
+    root_id = c("r1", "r2"),
+    scenario = c("a", "b"),
+    tau = c(0.25, 0.50),
+    beta_prior_type = c("rhs", "rhs"),
+    seed = c(1L, 1L),
+    reservoir_profile = c("tiny", "tiny"),
+    parameter = c("rhs_c2", "rhs_c2"),
+    rhat = c(1.12, 1.03),
+    stringsAsFactors = FALSE
+  )
+  cand_rhat <- base_rhat
+  cand_rhat$rhat <- c(1.04, 1.02)
+
+  utils::write.csv(base_confirm, file.path(base_root, "tables", "campaign_root_confirmation.csv"), row.names = FALSE)
+  utils::write.csv(cand_confirm, file.path(cand_root, "tables", "campaign_root_confirmation.csv"), row.names = FALSE)
+  utils::write.csv(base_rhat, file.path(base_root, "tables", "campaign_multichain_rhat.csv"), row.names = FALSE)
+  utils::write.csv(cand_rhat, file.path(cand_root, "tables", "campaign_multichain_rhat.csv"), row.names = FALSE)
+
+  cmp <- exdqlm:::qdesn_validation_compare_multichain_reports(base_root, cand_root, file.path(tmp, "compare"))
+  expect_equal(nrow(cmp$root_confirmation_compare), 2L)
+
+  res <- exdqlm:::qdesn_validation_assess_representative_default_candidate(cand_root, base_root, out_root)
+  expect_identical(res$decision_mode, "promote_representative_default")
+})
+
 test_that("remaining-fail structural follow-up grid isolates the representative failure root", {
   grid_path <- exdqlm:::.qdesn_validation_resolve_path(
     file.path("config", "validation", "qdesn_mcmc_multichain_remaining_rhs_fail_grid.csv"),

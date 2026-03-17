@@ -57,9 +57,14 @@
     verbose = FALSE,
     progress_every = 100L,
     init_from_vb = TRUE,
+    vb_warm_start_seed = NULL,
     vb_warm_start_control = list(),
     store_latent_draws = FALSE,
     store_rhs_draws = FALSE,
+    transforms = list(
+      use_log_sigma = FALSE,
+      sigma_eta_bounds = c(-20, 20)
+    ),
     rhs = list(
       freeze_tau_burnin_iters = 0L,
       freeze_tau_only_during_burn = TRUE
@@ -321,6 +326,7 @@
   if (!is.null(mcmc_cfg$verbose)) control$verbose <- isTRUE(mcmc_cfg$verbose)
   if (!is.null(mcmc_cfg$progress_every)) control$progress_every <- as.integer(mcmc_cfg$progress_every)[1L]
   if (!is.null(mcmc_cfg$init_from_vb)) control$init_from_vb <- isTRUE(mcmc_cfg$init_from_vb)
+  if (!is.null(mcmc_cfg$vb_warm_start_seed)) control$vb_warm_start_seed <- as.integer(mcmc_cfg$vb_warm_start_seed)[1L]
   if (!is.null(mcmc_cfg$vb_warm_start_control) && is.list(mcmc_cfg$vb_warm_start_control)) {
     control$vb_warm_start_control <- modifyList(control$vb_warm_start_control %||% list(), mcmc_cfg$vb_warm_start_control)
   }
@@ -331,6 +337,12 @@
   }
   if (!is.null(mcmc_cfg$slice) && is.list(mcmc_cfg$slice)) {
     control$slice <- modifyList(control$slice %||% list(), mcmc_cfg$slice)
+  }
+  if (!is.null(mcmc_cfg$transforms) && is.list(mcmc_cfg$transforms)) {
+    control$transforms <- modifyList(control$transforms %||% list(), mcmc_cfg$transforms)
+  }
+  if (!is.null(mcmc_cfg$transform) && is.list(mcmc_cfg$transform)) {
+    control$transforms <- modifyList(control$transforms %||% list(), mcmc_cfg$transform)
   }
 
   init_cfg <- .exal_list_or_empty(mcmc_cfg$init)
