@@ -318,6 +318,8 @@ readout_scale <- FALSE
 readout_include_input <- FALSE
 readout_reservoir_lags <- 0L
 readout_input_position <- "after_reservoir"
+readout_input_mode <- "raw_y_lags"
+readout_decomposition <- list()
 
 
 # --- IJ correction toggles (global) -------------------------------------------
@@ -679,6 +681,15 @@ if (!is.null(cfg$readout)) {
   if (!is.null(cfg$readout$input_position)) {
     readout_input_position <- tolower(as.character(cfg$readout$input_position))
   }
+  if (!is.null(cfg$readout$input_mode)) {
+    readout_input_mode <- tolower(as.character(cfg$readout$input_mode)[1L])
+  }
+  if (!is.null(cfg$readout$decomposition)) {
+    readout_decomposition <- cfg$readout$decomposition
+  }
+}
+if (!is.null(cfg$decomposition)) {
+  readout_decomposition <- cfg$decomposition
 }
 
 if (!is.null(cfg$cpp)) {
@@ -830,6 +841,21 @@ if (is.null(readout_input_position) || !readout_input_position %in% c("after_res
                   as.character(readout_input_position)))
   readout_input_position <- "after_reservoir"
 }
+readout_mode_info <- exdqlm:::.qdesn_resolve_input_mode_scaffold(
+  input_mode = readout_input_mode,
+  decomposition = readout_decomposition,
+  m_default = as.integer(desn_args$m %||% 0L),
+  context = "pipeline_sim_main.readout"
+)
+readout_input_mode_requested <- readout_mode_info$input_mode_requested
+readout_input_mode_effective <- readout_mode_info$input_mode_effective
+readout_decomposition_cfg <- readout_mode_info$decomposition
+log_msg(
+  "Readout input mode → requested=%s | effective=%s | decomposition_enabled=%s",
+  readout_input_mode_requested,
+  readout_input_mode_effective,
+  as.character(isTRUE(readout_decomposition_cfg$enabled))
+)
 
 # --- Optional lightweight profile overrides (e.g. model selection runs) -----
 if (isTRUE(is_model_selection)) {
@@ -2016,10 +2042,24 @@ if (isTRUE(VERBOSE)) {
   cat(sprintf("[lens] y_train=%d | y_forecast=%d\n", length(y_train), length(y_forecast)))
 }
 # === Shared reservoir pass → precompute design for train + 1-step forecast ===
-n_drop <- max(as.integer(desn_args$m), as.integer(desn_args$washout))
+effective_input_lag_warmup <- as.integer(desn_args$m)
+if (identical(readout_input_mode_effective, "dlm_decomp_lags")) {
+  il <- readout_decomposition_cfg$input_lags %||% list()
+  comp <- as.character(readout_decomposition_cfg$components %||% c("trend", "seasonal", "residual"))
+  lag_map <- c(
+    trend = as.integer(il$trend %||% 0L),
+    seasonal = as.integer(il$seasonal %||% 0L),
+    residual = as.integer(il$residual %||% 0L)
+  )
+  lag_map[!is.finite(lag_map) | lag_map < 0L] <- 0L
+  comp <- intersect(comp, names(lag_map))
+  if (!length(comp)) comp <- names(lag_map)
+  effective_input_lag_warmup <- max(as.integer(lag_map[comp]), 0L)
+}
+n_drop <- max(effective_input_lag_warmup, as.integer(desn_args$washout))
 if (n_train <= n_drop) {
   stop(sprintf(
-    "Invalid split after feature drop: n_train=%d <= drop=max(m,washout)=%d. ",
+    "Invalid split after feature drop: n_train=%d <= drop=max(input_lag_warmup,washout)=%d. ",
     n_train, n_drop
   ), "Increase train_n/train_prop (or reduce m/washout).")
 }
@@ -2050,7 +2090,9 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
     list(
       y = y_full$y,
       p0 = 0.50,            # unused in design-only mode
-      fit_readout = FALSE   # IMPORTANT: no VB fit here
+      fit_readout = FALSE,  # IMPORTANT: no VB fit here
+      input_mode = readout_input_mode_requested,
+      decomposition = readout_decomposition_cfg
     ),
     desn_args
   ))
@@ -2248,6 +2290,10 @@ if (isTRUE(rhs_trace_on) && !is.null(readout_scale_diag)) {
 readout_spec <- list(
   include_input   = isTRUE(readout_include_input),
   input_position  = readout_input_position,
+  input_mode_requested = readout_input_mode_requested,
+  input_mode_effective = readout_input_mode_effective,
+  input_mode = readout_input_mode_effective,
+  decomposition = readout_decomposition_cfg,
   input_lags_y    = as.integer(input_lags_y),
   input_lags_x    = list(),
   reservoir_lags  = as.integer(readout_reservoir_lags),
@@ -2463,6 +2509,10 @@ fit_and_forecast_p <- function(p0) {
 
   # ---- Forecast via lattice (multi-step posterior predictive) -------------
   fit_meta <- shared_fit$meta
+  fit_meta$input_mode_requested <- readout_input_mode_requested
+  fit_meta$input_mode_effective <- readout_input_mode_effective
+  fit_meta$input_mode <- readout_input_mode_effective
+  fit_meta$decomposition <- readout_decomposition_cfg
   fit_meta$readout_spec <- readout_spec
   fit_q <- list(
     fit       = fit_exal,

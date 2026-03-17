@@ -706,8 +706,21 @@ ms_maybe_use_default <- function(value, default_val) {
   value
 }
 
-ms_build_readout_design_sim <- function(y_full, desn_args, readout_include_input, readout_reservoir_lags) {
-  shared_fit <- do.call(qdesn_fit_vb, c(list(y = y_full, p0 = 0.50, fit_readout = FALSE), desn_args))
+ms_build_readout_design_sim <- function(y_full, desn_args, readout_include_input, readout_reservoir_lags,
+                                        readout_input_mode = "raw_y_lags", readout_decomposition = list()) {
+  shared_fit <- do.call(
+    qdesn_fit_vb,
+    c(
+      list(
+        y = y_full,
+        p0 = 0.50,
+        fit_readout = FALSE,
+        input_mode = readout_input_mode,
+        decomposition = readout_decomposition
+      ),
+      desn_args
+    )
+  )
   keep_all_abs <- as.integer(shared_fit$meta$keep_idx)
   X_all_kept <- as.matrix(shared_fit$X)
 
@@ -807,7 +820,9 @@ ms_build_readout_design_sim <- function(y_full, desn_args, readout_include_input
   list(shared_fit = shared_fit, X_aug_all = X_aug_all, X_res_all = X_res_all, keep_aug_abs = keep_aug_abs)
 }
 
-ms_build_readout_design_real <- function(y_full, X_use, cfg, desn_args, readout_include_input, readout_reservoir_lags, readout_scale) {
+ms_build_readout_design_real <- function(y_full, X_use, cfg, desn_args, readout_include_input,
+                                         readout_reservoir_lags, readout_scale,
+                                         readout_input_mode = "raw_y_lags", readout_decomposition = list()) {
   lags_cfg <- cfg$lags %||% list()
   exp_y <- lags_cfg$y
   exp_x <- lags_cfg$x
@@ -859,7 +874,19 @@ ms_build_readout_design_real <- function(y_full, X_use, cfg, desn_args, readout_
   Ylags_all <- build_lag_mat(y_full, lags_y)
   Xlags_all <- build_lag_mat_multi(X_use, lags_x, base_names = if (!is.null(X_use)) colnames(X_use) else character(0))
 
-  shared_fit <- do.call(qdesn_fit_vb, c(list(y = y_full, p0 = 0.50, fit_readout = FALSE), desn_args))
+  shared_fit <- do.call(
+    qdesn_fit_vb,
+    c(
+      list(
+        y = y_full,
+        p0 = 0.50,
+        fit_readout = FALSE,
+        input_mode = readout_input_mode,
+        decomposition = readout_decomposition
+      ),
+      desn_args
+    )
+  )
   keep_all_abs <- as.integer(shared_fit$meta$keep_idx)
   X_all_kept <- as.matrix(shared_fit$X)
 

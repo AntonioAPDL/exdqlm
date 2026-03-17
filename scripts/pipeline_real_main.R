@@ -120,6 +120,8 @@ rhs_recompute_elbo_after_tau_update <- TRUE
 readout_include_input <- FALSE
 readout_reservoir_lags <- 0L
 readout_input_position <- "after_reservoir"
+readout_input_mode <- "raw_y_lags"
+readout_decomposition <- list()
 
 if (!is.null(cfg$readout)) {
   if (!is.null(cfg$readout$include_input)) {
@@ -131,6 +133,15 @@ if (!is.null(cfg$readout)) {
   if (!is.null(cfg$readout$input_position)) {
     readout_input_position <- tolower(as.character(cfg$readout$input_position))
   }
+  if (!is.null(cfg$readout$input_mode)) {
+    readout_input_mode <- tolower(as.character(cfg$readout$input_mode)[1L])
+  }
+  if (!is.null(cfg$readout$decomposition)) {
+    readout_decomposition <- cfg$readout$decomposition
+  }
+}
+if (!is.null(cfg$decomposition)) {
+  readout_decomposition <- cfg$decomposition
 }
 
 readout_include_input <- isTRUE(readout_include_input)
@@ -641,6 +652,22 @@ if (length(desn_args$act_k) != 1L) {
   }
 }
 
+readout_mode_info <- exdqlm:::.qdesn_resolve_input_mode_scaffold(
+  input_mode = readout_input_mode,
+  decomposition = readout_decomposition,
+  m_default = as.integer(desn_args$m %||% 0L),
+  context = "pipeline_real_main.readout"
+)
+readout_input_mode_requested <- readout_mode_info$input_mode_requested
+readout_input_mode_effective <- readout_mode_info$input_mode_effective
+readout_decomposition_cfg <- readout_mode_info$decomposition
+log_msg(
+  "Readout input mode → requested=%s | effective=%s | decomposition_enabled=%s",
+  readout_input_mode_requested,
+  readout_input_mode_effective,
+  as.character(isTRUE(readout_decomposition_cfg$enabled))
+)
+
 
 log_msg(
   "DESN (used) → D=%d | n=%s | n_tilde=%s | m=%d | rho=%s | alpha=%s | act_f=%s | act_k=%s | pi_w=%s | pi_in=%s | washout=%d | add_bias=%s | seed=%s",
@@ -664,7 +691,9 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
   do.call(qdesn_fit_vb, c(
     list(
       y = y_full, p0 = 0.50,
-      fit_readout = FALSE
+      fit_readout = FALSE,
+      input_mode = readout_input_mode_requested,
+      decomposition = readout_decomposition_cfg
     ),
     desn_args
   ))
@@ -876,6 +905,10 @@ input_lags_x <- if (isTRUE(readout_include_input)) x_lags_list else list()
 readout_spec <- list(
   include_input  = isTRUE(readout_include_input),
   input_position = readout_input_position,
+  input_mode_requested = readout_input_mode_requested,
+  input_mode_effective = readout_input_mode_effective,
+  input_mode = readout_input_mode_effective,
+  decomposition = readout_decomposition_cfg,
   input_lags_y   = input_lags_y,
   input_lags_x   = input_lags_x,
   reservoir_lags = as.integer(readout_reservoir_lags),
@@ -1919,6 +1952,10 @@ fit_and_forecast_p <- function(p0) {
 
   # ---- Forecast via lattice (multi-step posterior predictive) -------------
   fit_meta <- shared_fit$meta
+  fit_meta$input_mode_requested <- readout_input_mode_requested
+  fit_meta$input_mode_effective <- readout_input_mode_effective
+  fit_meta$input_mode <- readout_input_mode_effective
+  fit_meta$decomposition <- readout_decomposition_cfg
   fit_meta$readout_spec <- readout_spec
   fit_q <- list(
     fit       = fit_exal,

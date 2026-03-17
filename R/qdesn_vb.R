@@ -1,3 +1,199 @@
+.qdesn_warn_once <- function(option_name, message_text) {
+  if (!isTRUE(getOption(option_name, FALSE))) {
+    warning(message_text, call. = FALSE)
+    options(structure(list(TRUE), names = option_name))
+  }
+}
+
+#' @keywords internal
+.qdesn_default_decomposition_cfg <- function(m_default = NULL) {
+  if (is.null(m_default)) m_default <- 0L
+  m_default <- as.integer(m_default)
+  if (!is.finite(m_default) || m_default < 0L) m_default <- 0L
+  list(
+    enabled = FALSE,
+    backend = "r",
+    state_estimate = "filtered",
+    components = c("trend", "seasonal", "residual"),
+    trend = list(degree = 1L),
+    seasonal = list(period = NA_real_, harmonics = integer(0)),
+    input_lags = list(
+      trend = m_default,
+      seasonal = m_default,
+      residual = m_default
+    ),
+    discount = list(trend = 0.99, seasonal = 0.99),
+    variance = list(mode = "unknown_constant", l0 = 1, S0 = 1),
+    forecast = list(residual_recursion = "sampled_path")
+  )
+}
+
+#' @keywords internal
+.qdesn_normalize_decomposition_cfg <- function(decomposition = NULL, m_default = NULL, context = "qdesn") {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  cfg <- .qdesn_default_decomposition_cfg(m_default = m_default)
+
+  if (is.null(decomposition)) {
+    return(cfg)
+  }
+  if (!is.list(decomposition)) {
+    warning(sprintf("[%s] decomposition must be a list; using defaults.", context), call. = FALSE)
+    return(cfg)
+  }
+
+  cfg$enabled <- isTRUE(decomposition$enabled %||% cfg$enabled)
+
+  backend <- tolower(as.character(decomposition$backend %||% cfg$backend)[1L])
+  if (!backend %in% c("r", "cpp")) {
+    warning(sprintf("[%s] decomposition.backend '%s' not recognized; using 'r'.", context, backend), call. = FALSE)
+    backend <- "r"
+  }
+  cfg$backend <- backend
+
+  state_estimate <- tolower(as.character(decomposition$state_estimate %||% cfg$state_estimate)[1L])
+  if (!state_estimate %in% c("filtered", "smoothed")) {
+    warning(sprintf("[%s] decomposition.state_estimate '%s' not recognized; using 'filtered'.", context, state_estimate), call. = FALSE)
+    state_estimate <- "filtered"
+  }
+  cfg$state_estimate <- state_estimate
+
+  components <- as.character(unlist(decomposition$components %||% cfg$components, use.names = FALSE))
+  components <- unique(tolower(components))
+  components <- components[nzchar(components)]
+  valid_components <- c("trend", "seasonal", "residual")
+  components <- intersect(components, valid_components)
+  if (!length(components)) components <- valid_components
+  cfg$components <- components
+
+  degree <- as.integer((decomposition$trend %||% list())$degree %||% cfg$trend$degree)
+  if (!is.finite(degree) || degree < 0L) {
+    warning(sprintf("[%s] decomposition.trend.degree must be integer >= 0; using 1.", context), call. = FALSE)
+    degree <- 1L
+  }
+  cfg$trend$degree <- as.integer(degree)
+
+  period <- as.numeric((decomposition$seasonal %||% list())$period %||% cfg$seasonal$period)
+  if (length(period) != 1L || (!is.na(period) && (!is.finite(period) || period <= 0))) {
+    warning(sprintf("[%s] decomposition.seasonal.period must be positive or NA; using NA.", context), call. = FALSE)
+    period <- NA_real_
+  }
+  harmonics <- as.integer(unlist((decomposition$seasonal %||% list())$harmonics %||% cfg$seasonal$harmonics, use.names = FALSE))
+  harmonics <- harmonics[is.finite(harmonics) & harmonics > 0L]
+  harmonics <- unique(harmonics)
+  cfg$seasonal$period <- period
+  cfg$seasonal$harmonics <- harmonics
+
+  norm_lag <- function(x, nm) {
+    out <- as.integer(x)[1L]
+    if (!is.finite(out) || out < 0L) {
+      warning(sprintf("[%s] decomposition.input_lags.%s must be integer >= 0; using 0.", context, nm), call. = FALSE)
+      out <- 0L
+    }
+    out
+  }
+  in_lags <- decomposition$input_lags %||% list()
+  cfg$input_lags$trend <- norm_lag(in_lags$trend %||% cfg$input_lags$trend, "trend")
+  cfg$input_lags$seasonal <- norm_lag(in_lags$seasonal %||% cfg$input_lags$seasonal, "seasonal")
+  cfg$input_lags$residual <- norm_lag(in_lags$residual %||% cfg$input_lags$residual, "residual")
+
+  discount <- decomposition$discount %||% list()
+  d_tr <- as.numeric(discount$trend %||% cfg$discount$trend)
+  d_se <- as.numeric(discount$seasonal %||% cfg$discount$seasonal)
+  if (!is.finite(d_tr) || d_tr <= 0 || d_tr > 1) {
+    warning(sprintf("[%s] decomposition.discount.trend must be in (0,1]; using 0.99.", context), call. = FALSE)
+    d_tr <- 0.99
+  }
+  if (!is.finite(d_se) || d_se <= 0 || d_se > 1) {
+    warning(sprintf("[%s] decomposition.discount.seasonal must be in (0,1]; using 0.99.", context), call. = FALSE)
+    d_se <- 0.99
+  }
+  cfg$discount$trend <- d_tr
+  cfg$discount$seasonal <- d_se
+
+  variance_mode <- tolower(as.character((decomposition$variance %||% list())$mode %||% cfg$variance$mode)[1L])
+  if (!variance_mode %in% c("unknown_constant")) {
+    warning(sprintf("[%s] decomposition.variance.mode '%s' not recognized; using 'unknown_constant'.", context, variance_mode), call. = FALSE)
+    variance_mode <- "unknown_constant"
+  }
+  cfg$variance$mode <- variance_mode
+  l0 <- as.numeric((decomposition$variance %||% list())$l0 %||% cfg$variance$l0)
+  S0 <- as.numeric((decomposition$variance %||% list())$S0 %||% cfg$variance$S0)
+  if (!is.finite(l0) || l0 <= 0) {
+    warning(sprintf("[%s] decomposition.variance.l0 must be > 0; using 1.", context), call. = FALSE)
+    l0 <- 1
+  }
+  if (!is.finite(S0) || S0 <= 0) {
+    warning(sprintf("[%s] decomposition.variance.S0 must be > 0; using 1.", context), call. = FALSE)
+    S0 <- 1
+  }
+  cfg$variance$l0 <- l0
+  cfg$variance$S0 <- S0
+
+  residual_recursion <- tolower(as.character((decomposition$forecast %||% list())$residual_recursion %||% cfg$forecast$residual_recursion)[1L])
+  if (!residual_recursion %in% c("sampled_path", "deterministic_plugin")) {
+    warning(sprintf("[%s] decomposition.forecast.residual_recursion '%s' not recognized; using 'sampled_path'.", context, residual_recursion), call. = FALSE)
+    residual_recursion <- "sampled_path"
+  }
+  cfg$forecast$residual_recursion <- residual_recursion
+
+  cfg
+}
+
+#' @keywords internal
+.qdesn_resolve_input_mode_scaffold <- function(input_mode = "raw_y_lags",
+                                              decomposition = NULL,
+                                              m_default = NULL,
+                                              context = "qdesn") {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+
+  mode_requested <- tolower(as.character(input_mode %||% "raw_y_lags")[1L])
+  if (!mode_requested %in% c("raw_y_lags", "dlm_decomp_lags")) {
+    warning(sprintf("[%s] readout.input_mode '%s' not recognized; using 'raw_y_lags'.", context, mode_requested), call. = FALSE)
+    mode_requested <- "raw_y_lags"
+  }
+
+  decomp_cfg <- .qdesn_normalize_decomposition_cfg(
+    decomposition = decomposition,
+    m_default = m_default,
+    context = context
+  )
+
+  if (isTRUE(decomp_cfg$enabled) && identical(mode_requested, "raw_y_lags")) {
+    mode_requested <- "dlm_decomp_lags"
+  }
+  if (!isTRUE(decomp_cfg$enabled) && identical(mode_requested, "dlm_decomp_lags")) {
+    decomp_cfg$enabled <- TRUE
+  }
+
+  mode_effective <- mode_requested
+  if (identical(mode_requested, "dlm_decomp_lags")) {
+    decomp_cfg$backend_effective <- decomp_cfg$backend
+
+    state_estimate_effective <- decomp_cfg$state_estimate
+    if (identical(state_estimate_effective, "smoothed")) {
+      .qdesn_warn_once(
+        "exdqlm.warned_dlm_smoothed_predictive",
+        sprintf("[%s] decomposition.state_estimate='smoothed' is not forecast-causal; using 'filtered' for predictive inputs.", context)
+      )
+      state_estimate_effective <- "filtered"
+    }
+    decomp_cfg$state_estimate_effective <- state_estimate_effective
+  } else {
+    decomp_cfg$backend_effective <- decomp_cfg$backend
+    decomp_cfg$state_estimate_effective <- decomp_cfg$state_estimate
+  }
+
+  if (identical(mode_requested, "dlm_decomp_lags") && !isTRUE(decomp_cfg$enabled)) {
+    decomp_cfg$enabled <- TRUE
+  }
+
+  list(
+    input_mode_requested = mode_requested,
+    input_mode_effective = mode_effective,
+    decomposition = decomp_cfg
+  )
+}
+
 #' Q-DESN (Quantile Deep Echo State Network) via exAL-LDVB Readout
 #'
 #' Implements the model in your LaTeX: a deep, leaky reservoir with spectral
@@ -46,6 +242,10 @@ qdesn_fit_vb <- function(
   n_tilde = c(50L, 25L),
   m = 12L,
 
+  # --- Decomposition-aware reservoir-input mode ---
+  input_mode = c("raw_y_lags", "dlm_decomp_lags"),
+  decomposition = NULL,
+
   # --- NEW: input preprocessing & scaling ---
   standardize_inputs = FALSE,        # z-score the lag inputs (not y target)
   input_bound = c("none","tanh"),    # optional bounding of inputs
@@ -74,7 +274,6 @@ qdesn_fit_vb <- function(
   vb_args = list(),
   fit_readout = TRUE
 ){
-
   ## ---- checks ----
   y <- as.numeric(y); T <- length(y)
 
@@ -88,7 +287,23 @@ qdesn_fit_vb <- function(
   rho <- as.numeric(rho); stopifnot(length(rho) == D, all(rho > 0), all(rho < 1))
   if (!is.null(seed)) set.seed(seed)
 
+  input_mode <- match.arg(input_mode)
+  input_mode_info <- .qdesn_resolve_input_mode_scaffold(
+    input_mode = input_mode,
+    decomposition = decomposition,
+    m_default = m,
+    context = "qdesn_fit_vb"
+  )
+
   input_bound <- match.arg(input_bound)
+  input_mode_requested <- input_mode_info$input_mode_requested
+  input_mode_effective <- input_mode_info$input_mode_effective
+  decomp_cfg <- input_mode_info$decomposition
+
+  decomp_runtime <- NULL
+  input_components <- character(0)
+  m_input <- as.integer(m)
+  input_lag_warmup <- as.integer(m)
 
   # alpha: scalar or length-D vector
   alpha_vec <- if (length(alpha) == 1L) rep(as.numeric(alpha), D) else as.numeric(alpha)
@@ -109,9 +324,19 @@ qdesn_fit_vb <- function(
     stop("pi_in must be in (0,1].", call. = FALSE)
   }
 
-  # per-lag scaling
-  if (!is.null(win_scale_lags)) {
-    stopifnot(length(win_scale_lags) == m)
+  if (identical(input_mode_effective, "dlm_decomp_lags")) {
+    decomp_runtime <- .qdesn_prepare_decomposition_runtime(
+      y = y,
+      decomp_cfg = decomp_cfg,
+      context = "qdesn_fit_vb"
+    )
+    decomp_cfg$backend_effective <- decomp_runtime$backend_effective %||% decomp_cfg$backend_effective
+    input_components <- decomp_runtime$input_components
+    m_input <- as.integer(decomp_runtime$m_input)
+    input_lag_warmup <- max(as.integer(unlist(decomp_runtime$input_lags[input_components], use.names = FALSE)), 0L)
+    if (!is.finite(m_input) || m_input < 1L) {
+      stop("qdesn_fit_vb: decomposition input mode requires at least one lagged component feature.", call. = FALSE)
+    }
   }
 
   # segments: either NULL or list of integer vectors
@@ -120,11 +345,34 @@ qdesn_fit_vb <- function(
     stopifnot(all(vapply(segments, function(r) all(r >= 1 & r <= T), TRUE)))
   }
 
-  # --- optional standardization stats for lag inputs (not target y) ---
-  lag_center <- 0; lag_scale <- 1
-  if (isTRUE(standardize_inputs) && m > 0L) {
-    lag_center <- mean(y, na.rm = TRUE)
-    lag_scale  <- stats::sd(y, na.rm = TRUE); if (!is.finite(lag_scale) || lag_scale <= 1e-12) lag_scale <- 1
+  # --- optional standardization stats for reservoir-input lags ---
+  if (identical(input_mode_effective, "dlm_decomp_lags")) {
+    lag_center <- as.numeric(decomp_runtime$lag_center)
+    lag_scale <- as.numeric(decomp_runtime$lag_scale)
+  } else {
+    lag_center <- 0
+    lag_scale <- 1
+    if (isTRUE(standardize_inputs) && m_input > 0L) {
+      lag_center <- mean(y, na.rm = TRUE)
+      lag_scale <- stats::sd(y, na.rm = TRUE)
+      if (!is.finite(lag_scale) || lag_scale <= 1e-12) lag_scale <- 1
+    }
+  }
+
+  if (m_input > 0L) {
+    if (length(lag_center) == 1L) lag_center <- rep(as.numeric(lag_center), m_input)
+    if (length(lag_scale) == 1L) lag_scale <- rep(as.numeric(lag_scale), m_input)
+    if (length(lag_center) != m_input || length(lag_scale) != m_input) {
+      stop("qdesn_fit_vb: lag_center/lag_scale length mismatch with effective input width.", call. = FALSE)
+    }
+  } else {
+    lag_center <- numeric(0)
+    lag_scale <- numeric(0)
+  }
+
+  # per-lag scaling
+  if (!is.null(win_scale_lags)) {
+    stopifnot(length(win_scale_lags) == m_input)
   }
 
   # helper to post-process inputs (excluding bias)
@@ -204,8 +452,8 @@ qdesn_fit_vb <- function(
   Qred<- vector("list", max(0, D - 1))
   Q_is_identity <- logical(max(0, D - 1))
 
-  # Layer 1: input size m+1 (includes constant)
-  Win[[1]] <- make_sparse_weights(n[1], m + 1L, pi_in[1], in_dist)
+  # Layer 1: input size m_input+1 (includes constant)
+  Win[[1]] <- make_sparse_weights(n[1], m_input + 1L, pi_in[1], in_dist)
   W[[1]]   <- make_sparse_weights(n[1], n[1], pi_w[1],  w_dist)
 
   if (D >= 2L) {
@@ -232,7 +480,7 @@ qdesn_fit_vb <- function(
   }
 
   reservoir <- list(
-    D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
+    D = D, n = n, n_tilde = n_tilde, m = m, m_input = m_input, alpha = alpha_vec, rho = rho,
     W = W, Win = Win, Q = Qred, Q_is_identity = Q_is_identity,
     act_f = act_f, act_k = act_k,
     pi_w = pi_w, pi_in = pi_in, w_dist = substitute(w_dist), in_dist = substitute(in_dist),
@@ -240,18 +488,25 @@ qdesn_fit_vb <- function(
   )
 
   ## ---- roll states and stack features ----
-  # inputs u_t = (bias, y_{t-1}, ..., y_{t-m}), then apply scaling
-  # Segment-safe lag buffer: stores [y_{t-1}, y_{t-2}, ..., y_{t-m}] (most-recent-first)
-  make_u_from_lagbuf <- function(lag_buf) {
-    if (m == 0L) {
+  # inputs u_t = (bias, lagged-input-features), then apply scaling
+  make_u_from_inputbuf <- function(input_buf) {
+    if (m_input == 0L) {
       u <- c(1)
     } else {
-      lags <- process_inputs(lag_buf)  # standardize/bound/per-lag scale
+      lags <- process_inputs(input_buf)  # standardize/bound/per-lag scale
       u <- c(1, lags)
     }
     u[1] <- u[1] * win_scale_bias
     if (length(u) > 1L) u[-1] <- u[-1] * win_scale_global
     u
+  }
+
+  init_component_buffers <- function() {
+    list(
+      trend = if (decomp_runtime$input_lags$trend > 0L) rep(0, decomp_runtime$input_lags$trend) else numeric(0),
+      seasonal = if (decomp_runtime$input_lags$seasonal > 0L) rep(0, decomp_runtime$input_lags$seasonal) else numeric(0),
+      residual = if (decomp_runtime$input_lags$residual > 0L) rep(0, decomp_runtime$input_lags$residual) else numeric(0)
+    )
   }
 
   # helper to reset states to zero (or could be a learned x_init later)
@@ -269,11 +524,17 @@ qdesn_fit_vb <- function(
   for (seg in segs) {
     h_prev <- reset_states()
 
-    # reset lag buffer at each segment boundary
-    lag_buf <- if (m > 0L) rep(0, m) else numeric(0)
+    # reset lag buffers at each segment boundary
+    lag_buf <- if (m_input > 0L) rep(0, m_input) else numeric(0)
+    comp_buffers <- if (identical(input_mode_effective, "dlm_decomp_lags")) init_component_buffers() else NULL
 
     for (t in seg) {
-      u_t <- make_u_from_lagbuf(lag_buf)
+      lag_features <- if (identical(input_mode_effective, "dlm_decomp_lags")) {
+        .qdesn_component_lag_vector(comp_buffers, input_components)
+      } else {
+        lag_buf
+      }
+      u_t <- make_u_from_inputbuf(lag_features)
 
       # layer 1
       pre1   <- reservoir$W[[1]] %*% h_prev[[1]] + reservoir$Win[[1]] %*% u_t
@@ -301,8 +562,19 @@ qdesn_fit_vb <- function(
         }
       }
 
-      # update lag buffer AFTER using it (so it remains y_{t-1},...,y_{t-m})
-      if (m > 0L) lag_buf <- c(y[t], lag_buf[seq_len(m - 1L)])
+      # update lag buffers AFTER using them (so they remain t-1, t-2, ...)
+      if (identical(input_mode_effective, "dlm_decomp_lags")) {
+        comp_buffers <- .qdesn_update_component_lag_buffers(
+          comp_buffers,
+          list(
+            trend = decomp_runtime$series$trend[t],
+            seasonal = decomp_runtime$series$seasonal[t],
+            residual = decomp_runtime$series$residual[t]
+          )
+        )
+      } else if (m_input > 0L) {
+        lag_buf <- c(y[t], lag_buf[seq_len(max(0L, m_input - 1L))])
+      }
     }
   }
 
@@ -318,8 +590,8 @@ qdesn_fit_vb <- function(
   X_all <- t(vapply(seq_len(T), build_xrow, numeric(n[D] + if (D == 1L) 0 else sum(n_tilde))))
   if (add_bias) X_all <- cbind(1, X_all)
 
-  # indices to keep: drop lags (m) and washout
-  drop <- max(m, washout)
+  # indices to keep: drop lag warmup and washout
+  drop <- max(as.integer(input_lag_warmup), washout)
   keep_idx <- seq.int(from = drop + 1L, to = T)
   X <- X_all[keep_idx, , drop = FALSE]
   y_fit <- y[keep_idx]
@@ -409,25 +681,31 @@ ret <- list(
     y_fit = y_fit,
     mu_hat = mu_hat,
     reservoir = reservoir,
-    states = list(H_last = H[[D]], H_all = H, H_tilde = H_tilde),
+    states = list(H_last = H[[D]], H_all = H, H_tilde = H_tilde, decomposition = decomp_runtime),
 	    meta = list(
 	        keep_idx = keep_idx, drop = drop, T = T, p0 = p0,
-	        D = D, n = n, n_tilde = n_tilde, m = m, alpha = alpha_vec, rho = rho,
+	        D = D, n = n, n_tilde = n_tilde, m = m, m_input = m_input, input_components = input_components,
+          input_lag_warmup = input_lag_warmup,
+          alpha = alpha_vec, rho = rho,
 	        add_bias = add_bias,
 	        inference_method = "vb",
+          input_mode_requested = input_mode_requested,
+          input_mode_effective = input_mode_effective,
+          input_mode = input_mode_effective,
+          decomposition = decomp_cfg,
 	        # NEW: store number of readout columns used in training (bias+reservoir features only)
 	        p_res = ncol(X),
 
         # Input preprocessing carried into forecasting so it reproduces training exactly
         standardize_inputs = standardize_inputs,
         input_bound = input_bound,
-        win_scale_global = win_scale_global,
-        win_scale_bias = win_scale_bias,
-        win_scale_lags = win_scale_lags,
+	        win_scale_global = win_scale_global,
+	        win_scale_bias = win_scale_bias,
+	        win_scale_lags = win_scale_lags,
 
-        # NEW: store the z-score stats for lag inputs (only if used)
-        lag_center = if (isTRUE(standardize_inputs)) lag_center else 0,
-        lag_scale  = if (isTRUE(standardize_inputs)) lag_scale  else 1,
+	        # NEW: store the z-score stats for lag inputs (only if used)
+	        lag_center = if (isTRUE(standardize_inputs)) lag_center else if (m_input > 0L) rep(0, m_input) else numeric(0),
+	        lag_scale  = if (isTRUE(standardize_inputs)) lag_scale  else if (m_input > 0L) rep(1, m_input) else numeric(0),
 
         # Optional fit-time extras (kept for completeness)
         weights = if (!is.null(weights)) weights[keep_idx] else NULL,
@@ -618,7 +896,8 @@ forecast_paths.qdesn_fit <- function(
   origin_state = NULL,
   readout_spec = NULL,
   draws = NULL,
-  res_lag_init = NULL
+  res_lag_init = NULL,
+  origin_index = NULL
 ) {
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   method <- match.arg(method)
@@ -643,7 +922,8 @@ forecast_paths.qdesn_fit <- function(
   meta <- object$meta %||% list()
   res  <- object$reservoir
   D    <- as.integer(meta$D)
-  m_res <- as.integer(meta$m %||% 0L)
+  m_res_raw <- as.integer(meta$m %||% 0L)
+  m_res_input <- as.integer(meta$m_input %||% m_res_raw)
   add_bias <- isTRUE(meta$add_bias)
   Q_is_identity <- res$Q_is_identity
   if (is.null(Q_is_identity)) Q_is_identity <- rep(FALSE, max(0, D - 1L))
@@ -653,6 +933,17 @@ forecast_paths.qdesn_fit <- function(
 
   # ---------- readout spec ----------
   spec <- readout_spec %||% meta$readout_spec %||% list()
+  input_mode_info <- .qdesn_resolve_input_mode_scaffold(
+    input_mode = spec$input_mode_requested %||% spec$input_mode %||%
+      meta$input_mode_requested %||% meta$input_mode %||% "raw_y_lags",
+    decomposition = spec$decomposition %||% meta$decomposition %||% list(),
+    m_default = m_res_input,
+    context = "forecast_paths.qdesn_fit"
+  )
+
+  input_mode_requested <- input_mode_info$input_mode_requested
+  input_mode_effective <- input_mode_info$input_mode_effective
+  decomp_cfg <- input_mode_info$decomposition
   include_input <- isTRUE(spec$include_input %||% FALSE)
   input_position <- spec$input_position %||% "after_reservoir"
   input_lags_y <- as.integer(spec$input_lags_y %||% integer(0))
@@ -664,6 +955,8 @@ forecast_paths.qdesn_fit <- function(
   x_lags  <- spec$x_lags %||% list()
   p_res <- as.integer(spec$p_res %||% meta$p_res %||% ncol(object$X))
   scale_info <- spec$scale_info %||% meta$readout_scale %||% object$fit$misc$readout_scale
+
+  decomp_mode <- identical(input_mode_effective, "dlm_decomp_lags")
 
   normalize_x_lags <- function(x_lags_in, x_names) {
     if (!length(x_names)) return(list())
@@ -703,7 +996,8 @@ forecast_paths.qdesn_fit <- function(
     input_position <- "after_reservoir"
   }
 
-  max_y_lag <- max(c(0L, m_res, y_lags_readout, input_lags_y))
+  m_res_for_y <- if (isTRUE(decomp_mode)) 0L else m_res_input
+  max_y_lag <- max(c(0L, m_res_for_y, y_lags_readout, input_lags_y))
 
   if (is.null(y_hist)) y_hist <- object$y_fit
   y_hist <- as.numeric(y_hist)
@@ -718,6 +1012,37 @@ forecast_paths.qdesn_fit <- function(
     n <- length(hist)
     if (max(lags) > n) stop("lag_vals: history too short for requested lags.")
     vapply(lags, function(L) hist[n - L + 1L], numeric(1))
+  }
+
+  decomp_runtime <- NULL
+  decomp_buffers0 <- NULL
+  decomp_traj <- NULL
+  decomp_input_components <- character(0)
+  decomp_residual_recursion <- decomp_cfg$forecast$residual_recursion %||% "sampled_path"
+  if (isTRUE(decomp_mode)) {
+    decomp_runtime <- object$states$decomposition %||% NULL
+    if (is.null(decomp_runtime)) {
+      stop("forecast_paths: decomposition runtime is missing in object$states$decomposition.", call. = FALSE)
+    }
+    if (is.null(origin_index)) {
+      origin_index <- as.integer(nrow(decomp_runtime$state_filtered))
+    } else {
+      origin_index <- as.integer(origin_index)
+    }
+    if (!is.finite(origin_index) || origin_index < 1L || origin_index > nrow(decomp_runtime$state_filtered)) {
+      stop("forecast_paths: invalid origin_index for decomposition runtime.", call. = FALSE)
+    }
+    decomp_buffers0 <- .qdesn_init_component_lag_buffers(decomp_runtime, tau = origin_index)
+    decomp_traj <- .qdesn_decomp_forecast_trajectory(
+      runtime = decomp_runtime,
+      origin_index = origin_index,
+      H = H,
+      context = "forecast_paths.qdesn_fit"
+    )
+    decomp_input_components <- as.character(decomp_runtime$input_components %||% character(0))
+    if (!length(decomp_input_components)) {
+      stop("forecast_paths: decomposition runtime has no input_components.", call. = FALSE)
+    }
   }
 
   # ---------- exogenous history/future (readout/input block) ----------
@@ -791,12 +1116,17 @@ forecast_paths.qdesn_fit <- function(
     z
   }
 
-  make_u <- function(y_hist_vec) {
-    if (m_res > 0L) {
-      lags <- process_lags(rev(tail(y_hist_vec, m_res)))
-      nb   <- lags
+  make_u <- function(y_hist_vec, decomp_buffers = NULL) {
+    if (isTRUE(decomp_mode)) {
+      if (is.null(decomp_buffers)) {
+        stop("forecast_paths: decomp_buffers must be supplied in decomposition mode.")
+      }
+      lag_features <- .qdesn_component_lag_vector(decomp_buffers, decomp_input_components)
+      nb <- if (length(lag_features)) process_lags(lag_features) else numeric(0)
+    } else if (m_res_input > 0L) {
+      nb <- process_lags(rev(tail(y_hist_vec, m_res_input)))
     } else {
-      nb   <- numeric(0)
+      nb <- numeric(0)
     }
     if (identical(input_bound, "tanh") && length(nb)) nb <- base::tanh(nb)
     u <- c(1, nb)
@@ -927,6 +1257,11 @@ forecast_paths.qdesn_fit <- function(
   use_cpp_omp <- isTRUE(getOption("exdqlm.use_cpp_postpred_omp", FALSE))
   precompute_noise <- isTRUE(getOption("exdqlm.use_cpp_postpred_precompute", FALSE)) || isTRUE(use_cpp_omp)
 
+  if (isTRUE(use_cpp) && isTRUE(decomp_mode)) {
+    message("[forecast_paths] C++ backend is not available for decomposition input mode; using R backend.")
+    use_cpp <- FALSE
+  }
+
   if (isTRUE(use_cpp)) {
     if (!exists("forecast_paths_cpp", mode = "function", inherits = TRUE)) {
       stop("exdqlm.use_cpp_postpred=TRUE but forecast_paths_cpp not found.")
@@ -983,7 +1318,7 @@ forecast_paths.qdesn_fit <- function(
         lam_d = lam_d,
         y_obs_vec = y_obs_vec,
         H = H,
-        m_res = m_res,
+        m_res = m_res_input,
         p_res = p_res,
         standardize_inputs = standardize_inputs,
         lag_center = lag_center,
@@ -1016,13 +1351,14 @@ forecast_paths.qdesn_fit <- function(
       h_now        <- origin_state
       y_hist_work  <- y_hist0
       res_lag_buf  <- res_lag_buf0
+      decomp_buffers <- if (isTRUE(decomp_mode)) decomp_buffers0 else NULL
 
       s_vec <- abs(rnorm(H))
       v_vec <- rexp(H, rate = 1 / sdraw[j])
       z_vec <- rnorm(H)
 
       for (h in seq_len(H)) {
-        u_h   <- make_u(y_hist_work)
+        u_h   <- make_u(y_hist_work, decomp_buffers = decomp_buffers)
         step  <- forward_one(h_now, u_h)
         h_now <- step$h
         x_res <- step$x_res
@@ -1068,6 +1404,24 @@ forecast_paths.qdesn_fit <- function(
           } else {
             res_lag_buf <- rbind(z_curr, res_lag_buf[seq_len(reservoir_lags - 1L), , drop = FALSE])
           }
+        }
+        if (isTRUE(decomp_mode)) {
+          structured_h <- as.numeric(decomp_traj$structured[h])
+          residual_h <- if (!is.na(y_obs_vec[h])) {
+            y_obs_vec[h] - structured_h
+          } else if (identical(decomp_residual_recursion, "deterministic_plugin")) {
+            mu_h - structured_h
+          } else {
+            y_h - structured_h
+          }
+          decomp_buffers <- .qdesn_update_component_lag_buffers(
+            decomp_buffers,
+            list(
+              trend = decomp_traj$trend[h],
+              seasonal = decomp_traj$seasonal[h],
+              residual = residual_h
+            )
+          )
         }
       }
     }
@@ -1120,6 +1474,17 @@ forecast_lattice.qdesn_fit <- function(
   add_bias <- isTRUE(meta$add_bias)
 
   spec <- meta$readout_spec %||% list()
+  m_res_raw <- as.integer(meta$m %||% 0L)
+  m_res_input <- as.integer(meta$m_input %||% m_res_raw)
+  input_mode_info <- .qdesn_resolve_input_mode_scaffold(
+    input_mode = spec$input_mode_requested %||% spec$input_mode %||%
+      meta$input_mode_requested %||% meta$input_mode %||% "raw_y_lags",
+    decomposition = spec$decomposition %||% meta$decomposition %||% list(),
+    m_default = m_res_input,
+    context = "forecast_lattice.qdesn_fit"
+  )
+  input_mode_effective <- input_mode_info$input_mode_effective
+  decomp_mode <- identical(input_mode_effective, "dlm_decomp_lags")
   include_input <- isTRUE(spec$include_input %||% FALSE)
   input_lags_y <- as.integer(spec$input_lags_y %||% integer(0))
   input_lags_x <- spec$input_lags_x %||% list()
@@ -1163,7 +1528,8 @@ forecast_lattice.qdesn_fit <- function(
     stop("forecast_lattice: reservoir_lags must be a nonnegative integer.")
   }
 
-  max_y_lag <- max(c(0L, as.integer(meta$m %||% 0L), y_lags_readout, input_lags_y))
+  m_res_for_y <- if (isTRUE(decomp_mode)) 0L else m_res_input
+  max_y_lag <- max(c(0L, m_res_for_y, y_lags_readout, input_lags_y))
 
   get_act <- function(a) {
     if (is.function(a)) return(a)
@@ -1273,7 +1639,8 @@ forecast_lattice.qdesn_fit <- function(
       origin_state = origin_state,
       res_lag_init = res_lag_init,
       readout_spec = spec,
-      draws = draws
+      draws = draws,
+      origin_index = tau
     )
 
     yrep_list[[i]] <- out$yrep

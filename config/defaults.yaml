@@ -166,6 +166,34 @@ readout:
   include_input: true       # append raw input-lag block to readout
   reservoir_lags: 1         # number of reservoir-feature lags to append
   input_position: after_reservoir  # ordering for input block (reserved)
+  input_mode: raw_y_lags    # raw_y_lags | dlm_decomp_lags
+
+# --------------------------------------------------------------------
+# Optional decomposition-informed reservoir input mode
+# --------------------------------------------------------------------
+decomposition:
+  enabled: false            # when true with input_mode=raw_y_lags, mode is promoted to dlm_decomp_lags
+  backend: cpp                # r | cpp (cpp backend implemented with NDLM parity tests)
+  state_estimate: smoothed  # filtered | smoothed (forecast-valid path should use filtered)
+  components: [trend, seasonal, residual]
+  trend:
+    degree: 1               # 0=level, 1=linear, 2=quadratic, ...
+  seasonal:
+    period: null            # e.g. 12 for monthly
+    harmonics: []           # e.g. [1, 2, 3]
+  input_lags:
+    trend: 12
+    seasonal: 12
+    residual: 12
+  discount:
+    trend: 0.999999
+    seasonal: 0.999999
+  variance:
+    mode: unknown_constant  # current target: NDLM with unknown constant variance
+    l0: 1
+    S0: 1
+  forecast:
+    residual_recursion: sampled_path  # sampled_path | deterministic_plugin
 
 # --------------------------------------------------------------------
 # Sampling defaults (posterior / predictive)

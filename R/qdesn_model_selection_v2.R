@@ -237,6 +237,17 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
   readout_include_input <- isTRUE(cfg$readout$include_input %||% FALSE)
   readout_reservoir_lags <- as.integer(cfg$readout$reservoir_lags %||% 0L)
   readout_scale <- isTRUE(cfg$vb$readout_scale %||% FALSE)
+  readout_input_mode <- tolower(as.character(cfg$readout$input_mode %||% "raw_y_lags")[1L])
+  readout_decomposition <- cfg$decomposition %||% cfg$readout$decomposition %||% list()
+  readout_mode_info <- .qdesn_resolve_input_mode_scaffold(
+    input_mode = readout_input_mode,
+    decomposition = readout_decomposition,
+    m_default = as.integer(cfg$desn$m %||% 0L),
+    context = "ms_evaluate_candidate_v2.readout"
+  )
+  readout_input_mode_requested <- readout_mode_info$input_mode_requested
+  readout_input_mode_effective <- readout_mode_info$input_mode_effective
+  readout_decomposition_cfg <- readout_mode_info$decomposition
 
   split_info <- data_bundle$split_info
   n_train <- split_info$n_train
@@ -245,7 +256,14 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
 
   if (data_bundle$mode == "sim") {
     y_full <- data_bundle$y_full
-    readout_design <- ms_build_readout_design_sim(y_full, cfg$desn, readout_include_input, readout_reservoir_lags)
+    readout_design <- ms_build_readout_design_sim(
+      y_full = y_full,
+      desn_args = cfg$desn,
+      readout_include_input = readout_include_input,
+      readout_reservoir_lags = readout_reservoir_lags,
+      readout_input_mode = readout_input_mode_requested,
+      readout_decomposition = readout_decomposition_cfg
+    )
     X_aug_all <- readout_design$X_aug_all
     keep_aug_abs <- readout_design$keep_aug_abs
 
@@ -271,6 +289,10 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     readout_spec <- list(
       include_input   = isTRUE(readout_include_input),
       input_position  = cfg$readout$input_position %||% "after_reservoir",
+      input_mode_requested = readout_input_mode_requested,
+      input_mode_effective = readout_input_mode_effective,
+      input_mode = readout_input_mode_effective,
+      decomposition = readout_decomposition_cfg,
       input_lags_y    = if (isTRUE(readout_include_input)) seq_len(as.integer(cfg$desn$m)) else integer(0),
       input_lags_x    = list(),
       reservoir_lags  = as.integer(readout_reservoir_lags),
@@ -293,8 +315,17 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
   } else {
     y_full <- data_bundle$y_full
     X_use <- data_bundle$X_use
-    readout_design <- ms_build_readout_design_real(y_full, X_use, cfg, cfg$desn,
-                                                   readout_include_input, readout_reservoir_lags, readout_scale)
+    readout_design <- ms_build_readout_design_real(
+      y_full = y_full,
+      X_use = X_use,
+      cfg = cfg,
+      desn_args = cfg$desn,
+      readout_include_input = readout_include_input,
+      readout_reservoir_lags = readout_reservoir_lags,
+      readout_scale = readout_scale,
+      readout_input_mode = readout_input_mode_requested,
+      readout_decomposition = readout_decomposition_cfg
+    )
     X_aug_all <- readout_design$X_aug_all
     keep_aug_abs <- readout_design$keep_aug_abs
     lag_max <- readout_design$lag_max
@@ -329,6 +360,10 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     readout_spec <- list(
       include_input  = isTRUE(readout_include_input),
       input_position = cfg$readout$input_position %||% "after_reservoir",
+      input_mode_requested = readout_input_mode_requested,
+      input_mode_effective = readout_input_mode_effective,
+      input_mode = readout_input_mode_effective,
+      decomposition = readout_decomposition_cfg,
       input_lags_y   = if (isTRUE(readout_include_input)) as.integer(readout_design$lags_y) else integer(0),
       input_lags_x   = if (isTRUE(readout_include_input)) x_lags_list else list(),
       reservoir_lags = as.integer(readout_reservoir_lags),
@@ -367,6 +402,10 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     pred_draws <- exal_posterior_draws(fit_exal, nd = nd_draws)
 
     fit_meta <- shared_fit$meta
+    fit_meta$input_mode_requested <- readout_input_mode_requested
+    fit_meta$input_mode_effective <- readout_input_mode_effective
+    fit_meta$input_mode <- readout_input_mode_effective
+    fit_meta$decomposition <- readout_decomposition_cfg
     fit_meta$readout_spec <- readout_spec
     fit_q <- list(
       fit = fit_exal,
