@@ -699,6 +699,34 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
   ))
 )
 
+decomposition_runtime_summary <- NULL
+if (identical(readout_input_mode_effective, "dlm_decomp_lags")) {
+  decomp_state <- shared_fit$states$decomposition %||% NULL
+  if (!is.null(decomp_state)) {
+    decomposition_runtime_summary <- list(
+      backend_requested = as.character(decomp_state$backend_requested %||% NA_character_)[1L],
+      backend_effective = as.character(decomp_state$backend_effective %||% NA_character_)[1L],
+      state_estimate_requested = as.character(decomp_state$state_estimate_requested %||% NA_character_)[1L],
+      state_estimate_effective = as.character(decomp_state$state_estimate_effective %||% NA_character_)[1L],
+      input_components = as.character(decomp_state$input_components %||% character(0)),
+      input_lags = decomp_state$input_lags %||% list(),
+      seasonal = decomp_state$seasonal %||% NULL
+    )
+    seasonal_info <- decomposition_runtime_summary$seasonal %||% list()
+    harmonics_eff <- as.integer(seasonal_info$harmonics_effective %||% integer(0))
+    harmonics_src <- as.character(seasonal_info$harmonics_source %||% "unknown")[1L]
+    if (length(harmonics_eff)) {
+      log_msg(
+        "Decomposition seasonal harmonics → source=%s | effective=[%s]",
+        harmonics_src,
+        paste(harmonics_eff, collapse = ", ")
+      )
+    } else {
+      log_msg("Decomposition seasonal harmonics unavailable (source=%s).", harmonics_src)
+    }
+  }
+}
+
 keep_all_abs <- as.integer(shared_fit$meta$keep_idx) # absolute times 1..T_use after washout & m
 X_all_kept   <- as.matrix(shared_fit$X)
 
@@ -909,6 +937,7 @@ readout_spec <- list(
   input_mode_effective = readout_input_mode_effective,
   input_mode = readout_input_mode_effective,
   decomposition = readout_decomposition_cfg,
+  decomposition_runtime = decomposition_runtime_summary,
   input_lags_y   = input_lags_y,
   input_lags_x   = input_lags_x,
   reservoir_lags = as.integer(readout_reservoir_lags),
@@ -1956,6 +1985,7 @@ fit_and_forecast_p <- function(p0) {
   fit_meta$input_mode_effective <- readout_input_mode_effective
   fit_meta$input_mode <- readout_input_mode_effective
   fit_meta$decomposition <- readout_decomposition_cfg
+  fit_meta$decomposition_runtime <- decomposition_runtime_summary
   fit_meta$readout_spec <- readout_spec
   fit_q <- list(
     fit       = fit_exal,
@@ -2140,7 +2170,14 @@ fit_and_forecast_p <- function(p0) {
   }
 
   list(
-    fit_train   = list(fit = fit_exal, meta = list(keep_idx = keep_train_abs)),
+    fit_train   = list(
+      fit = fit_exal,
+      meta = list(
+        keep_idx = keep_train_abs,
+        fit_meta = fit_meta,
+        decomposition_runtime = decomposition_runtime_summary
+      )
+    ),
     yrep_fc     = yrep_fc,
     mu_draws_fc = mu_draws_fc,
     df_mu_fc    = df_mu_fc,
