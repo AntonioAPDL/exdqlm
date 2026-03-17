@@ -1,0 +1,124 @@
+# Sim pipeline profile: decomposition-informed ESN inputs with automatic seasonal harmonic selection.
+# Uses level-only trend, period=50 (matching dlm_constV_smallW simulator default), top-5 spectral harmonics.
+
+suite_name: mcmc_inference_dlm_auto_harm
+
+pipeline:
+  mode: sim
+  verbose: false
+
+split:
+  use_last: true
+  T_use: 1000
+  train_prop: 0.85
+
+p_vec: [0.25, 0.50, 0.75]
+
+desn:
+  D: 1
+  'n': [16]
+  n_tilde: []
+  m: 6
+  alpha: [0.2]
+  rho: [0.9]
+  act_f: tanh
+  act_k: identity
+  pi_w: [0.15]
+  pi_in: [1.0]
+  washout: 6
+  add_bias: true
+  seed: 101
+
+readout:
+  include_input: true
+  reservoir_lags: 1
+  input_position: after_reservoir
+  input_mode: dlm_decomp_lags
+
+inference:
+  method: vb
+  readout_scale: true
+  vb:
+    max_iter: 25
+    min_iter_elbo: 6
+    n_samp_xi: 60
+    verbose: false
+    diagnostics:
+      rhs_trace: false
+      rhs_deep: false
+    rhs:
+      freeze_tau_iters: 5
+      freeze_tau_warmup_iters: 5
+    priors:
+      beta:
+        type: ridge
+        ridge:
+          tau2: 25
+
+sampling:
+  nd_draws: 48
+  chunk: 24
+
+forecast:
+  mode: origin
+  horizon: 4
+  train_last_window: 20
+  fore_last_window: 20
+
+synthesis:
+  isotonic: true
+  rearrange: true
+  grid_M: 301
+  n_samp: 48
+  seed: 123
+
+diagnostics:
+  calibration: false
+  pit: false
+  scores: true
+  lead_eval: false
+  fan_charts: false
+  plots: true
+
+cpp:
+  use_postpred: false
+  postpred_omp: false
+  postpred_precompute: false
+  postpred_threads: 1
+
+outputs:
+  save: true
+  keep_draws: false
+  thesis_subset: false
+
+decomposition:
+  enabled: true
+  backend: cpp
+  state_estimate: filtered
+  components: [trend, seasonal, residual]
+  trend:
+    degree: 0
+  seasonal:
+    period: 50
+    harmonics: []
+    auto:
+      enabled: true
+      top_k: 5
+      min_harmonic: 1
+      max_harmonic: 25
+      use_log_score: true
+      center: true
+      prefer_manual: true
+  input_lags:
+    trend: 12
+    seasonal: 12
+    residual: 12
+  discount:
+    trend: 0.999999
+    seasonal: 0.999999
+  variance:
+    mode: unknown_constant
+    l0: 1
+    S0: 1
+  forecast:
+    residual_recursion: sampled_path
