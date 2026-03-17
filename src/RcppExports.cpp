@@ -212,6 +212,45 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// dlm_ndlm_filter_smooth_cpp
+Rcpp::List dlm_ndlm_filter_smooth_cpp(const arma::vec& y, const arma::mat& FF, const arma::cube& GG, const arma::vec& m0, const arma::mat& C0, const arma::vec& df, const arma::ivec& dim_df, const double l0, const double S0, const bool compute_smoothed, const bool return_intermediates, const double jitter);
+RcppExport SEXP _exdqlm_dlm_ndlm_filter_smooth_cpp(SEXP ySEXP, SEXP FFSEXP, SEXP GGSEXP, SEXP m0SEXP, SEXP C0SEXP, SEXP dfSEXP, SEXP dim_dfSEXP, SEXP l0SEXP, SEXP S0SEXP, SEXP compute_smoothedSEXP, SEXP return_intermediatesSEXP, SEXP jitterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type m0(m0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type C0(C0SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type dim_df(dim_dfSEXP);
+    Rcpp::traits::input_parameter< const double >::type l0(l0SEXP);
+    Rcpp::traits::input_parameter< const double >::type S0(S0SEXP);
+    Rcpp::traits::input_parameter< const bool >::type compute_smoothed(compute_smoothedSEXP);
+    Rcpp::traits::input_parameter< const bool >::type return_intermediates(return_intermediatesSEXP);
+    Rcpp::traits::input_parameter< const double >::type jitter(jitterSEXP);
+    rcpp_result_gen = Rcpp::wrap(dlm_ndlm_filter_smooth_cpp(y, FF, GG, m0, C0, df, dim_df, l0, S0, compute_smoothed, return_intermediates, jitter));
+    return rcpp_result_gen;
+END_RCPP
+}
+// dlm_ndlm_structured_forecast_cpp
+Rcpp::List dlm_ndlm_structured_forecast_cpp(const arma::cube& GG, const arma::mat& FF, const arma::vec& state_origin, const arma::ivec& idx_trend, const arma::ivec& idx_seasonal, const int origin_index, const int H);
+RcppExport SEXP _exdqlm_dlm_ndlm_structured_forecast_cpp(SEXP GGSEXP, SEXP FFSEXP, SEXP state_originSEXP, SEXP idx_trendSEXP, SEXP idx_seasonalSEXP, SEXP origin_indexSEXP, SEXP HSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type state_origin(state_originSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type idx_trend(idx_trendSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type idx_seasonal(idx_seasonalSEXP);
+    Rcpp::traits::input_parameter< const int >::type origin_index(origin_indexSEXP);
+    Rcpp::traits::input_parameter< const int >::type H(HSEXP);
+    rcpp_result_gen = Rcpp::wrap(dlm_ndlm_structured_forecast_cpp(GG, FF, state_origin, idx_trend, idx_seasonal, origin_index, H));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sample_truncnorm
 Rcpp::NumericMatrix sample_truncnorm(int n_samp, int TT, Rcpp::NumericVector sts_mu, Rcpp::NumericVector sts_sig2);
 RcppExport SEXP _exdqlm_sample_truncnorm(SEXP n_sampSEXP, SEXP TTSEXP, SEXP sts_muSEXP, SEXP sts_sig2SEXP) {
@@ -432,6 +471,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_compute_cholesky", (DL_FUNC) &_exdqlm_compute_cholesky, 2},
     {"_exdqlm_H_t_k_r", (DL_FUNC) &_exdqlm_H_t_k_r, 4},
     {"_exdqlm_update_theta_cpp", (DL_FUNC) &_exdqlm_update_theta_cpp, 16},
+    {"_exdqlm_dlm_ndlm_filter_smooth_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_filter_smooth_cpp, 12},
+    {"_exdqlm_dlm_ndlm_structured_forecast_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_structured_forecast_cpp, 7},
     {"_exdqlm_sample_truncnorm", (DL_FUNC) &_exdqlm_sample_truncnorm, 4},
     {"_exdqlm_sample_gig_devroye_vector", (DL_FUNC) &_exdqlm_sample_gig_devroye_vector, 4},
     {"_exdqlm_sample_multivariate_normal", (DL_FUNC) &_exdqlm_sample_multivariate_normal, 6},

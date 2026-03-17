@@ -45,6 +45,14 @@ update_theta_cpp <- function(GG, m0, C0, ex_f, ex_q, FF, y, ex_df_mat, ex_df_mat
     .Call(`_exdqlm_update_theta_cpp`, GG, m0, C0, ex_f, ex_q, FF, y, ex_df_mat, ex_df_mat_k, Ones, p, J, ppx, TT, k, dM)
 }
 
+dlm_ndlm_filter_smooth_cpp <- function(y, FF, GG, m0, C0, df, dim_df, l0, S0, compute_smoothed, return_intermediates, jitter) {
+    .Call(`_exdqlm_dlm_ndlm_filter_smooth_cpp`, y, FF, GG, m0, C0, df, dim_df, l0, S0, compute_smoothed, return_intermediates, jitter)
+}
+
+dlm_ndlm_structured_forecast_cpp <- function(GG, FF, state_origin, idx_trend, idx_seasonal, origin_index, H) {
+    .Call(`_exdqlm_dlm_ndlm_structured_forecast_cpp`, GG, FF, state_origin, idx_trend, idx_seasonal, origin_index, H)
+}
+
 sample_truncnorm <- function(n_samp, TT, sts_mu, sts_sig2) {
     .Call(`_exdqlm_sample_truncnorm`, n_samp, TT, sts_mu, sts_sig2)
 }
