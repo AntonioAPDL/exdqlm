@@ -1,2 +1,0 @@
-decision_id	accepted	mcmc_ess_sigma_warn	mcmc_ess_gamma_warn	mcmc_ess_state_warn	mcmc_acf1_warn	mcmc_geweke_absz_warn	mcmc_half_drift_warn	keep_hard_failures_strict	keep_vb_policy_strict	rationale
-second_wave_moderate_policy	TRUE	3	3	3	0.998	7.5	1	TRUE	TRUE	Adopt only the moderate MCMC relaxation; reject the aggressive policy-only rescue set; rerun deeper-chain cases separately; keep hard and mixed/VB-debug rows out of automatic policy rescue.

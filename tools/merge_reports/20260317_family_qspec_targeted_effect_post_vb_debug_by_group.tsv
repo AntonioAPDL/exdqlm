@@ -1,5 +1,0 @@
-target_group	change_class	count
-hard_only	reshuffled_fail	2
-hard_only	resolved	4
-vb_debug	resolved	3
-vb_debug	unchanged_fail	2
