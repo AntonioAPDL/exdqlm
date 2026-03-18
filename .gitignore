@@ -27,27 +27,8 @@ outputs/
 results/
 dump_exdqlm_files_to_txt.sh
 
-# tools scratch + outputs (keep only tools/diag_abort_printf.sh tracked)
-tools/*.out
-tools/*.txt
-tools/merge_reports/*.log
-tools/merge_reports/20260312_family_qspec_reusable_state_audit.tsv
-tools/merge_reports/20260312_family_qspec_reusable_state_audit_summary.tsv
-tools/merge_reports/20260312_family_qspec_runtime_queue.tsv
-tools/merge_reports/20260312_family_qspec_runtime_queue_summary.tsv
-tools/merge_reports/20260312_family_qspec_v2_active_tasks.tsv
-tools/merge_reports/20260312_family_qspec_model_path_progress*.md
-tools/merge_reports/20260312_family_qspec_model_path_progress*.tsv
-tools/merge_reports/20260312_family_qspec_barrier_progress*.md
-tools/merge_reports/20260312_family_qspec_barrier_progress*.tsv
-tools/merge_reports/20260312_family_qspec_campaign_review__*/
-tools/merge_reports/20260312_family_qspec_global_cross_family_summary/
-tools/merge_reports/20260312_muscat_batch_*.tsv
-tools/merge_reports/20260312_muscat_launch_registry*.tsv
-tools/addr2line_*.sh
-tools/locate_*.sh
-tools/merge_reports/*.log
-tools/merge_reports/LOCAL_*.md
+# Local tooling workspace (excluded from package source by .Rbuildignore)
+tools/
 
 # notebooks
 notebooks/
