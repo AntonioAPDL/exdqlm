@@ -55,7 +55,7 @@ Default is flat (returns 0).}
 \item{verbose}{Print progress every 500 iters.}
 }
 \value{
-A object of class "\code{exal_static_mcmc}" containing:
+A object of class "\code{exal_mcmc}" containing:
 \itemize{
 \item \code{run.time} - total wall time in seconds.
 \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).

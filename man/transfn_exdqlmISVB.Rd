@@ -126,15 +126,17 @@ When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
 }
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
+data("ELIanoms", package = "exdqlm")
 y = scIVTmag[1:1095]
 X = ELIanoms[1:1095]
-trend.comp = polytrendMod(1,mean(y),10)
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 model = trend.comp + seas.comp
-M1 = transfn_exdqlmISVB(y,p0=0.85,model=model,
-                          X,df=c(1,1),dim.df = c(1,6),
-                          gam.init=-3.5,sig.init=15,
-                          lam=0.38,tf.df=c(0.97,0.97))
+M1 = transfn_exdqlmISVB(y, p0 = 0.85, model = model,
+                          X, df = c(1,1), dim.df = c(1,6),
+                          gam.init = -3.5, sig.init = 15,
+                          lam = 0.38, tf.df = c(0.97,0.97))
 }
 
 }

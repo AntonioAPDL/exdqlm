@@ -22,7 +22,7 @@ compPlot(
 
 \item{col}{Character vector of length 1 giving color of the dynamic component to be plotted. Default is \code{purple}.}
 
-\item{just.theta}{If \code{TRUE}, the function plots the dynamic distribution of the \code{index} element of the state vector. If \code{just.theta=TRUE}, \code{index} must have length 1.}
+\item{just.theta}{Logical; if \code{TRUE}, the function plots the dynamic distribution of the \code{index} element of the state vector. If \code{just.theta=TRUE}, \code{index} must have length 1.}
 
 \item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
 intervals (e.g., \code{0.95}). Default \code{0.95}.}
@@ -40,14 +40,15 @@ The function plots the dynamic MAP estimates and 95\% credible intervals (CrIs) 
 }
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:365]
-trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
+seas.comp = seasMod(365, c(1, 2, 4), C0 = 10*diag(6))
 model = trend.comp + seas.comp
-M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98,1),dim.df = c(2,6),
-                   gam.init=-3.5,sig.init=15,tol=0.05)
+M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 6),
+                   gam.init = -3.5, sig.init = 15, tol = 0.05)
 # plot first harmonic component
-compPlot(M0,index=c(3,4),col="blue")
+compPlot(M0, index = c(3, 4), col = "blue")
 }
 
 }

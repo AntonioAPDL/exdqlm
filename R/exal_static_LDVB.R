@@ -63,7 +63,7 @@
 #'   \eqn{q(\sigma,\gamma)} (default 200).
 #' @param verbose Logical; print progress.
 #'
-#' @return A object of class "\code{exal_vb}" containing:
+#' @return A object of class "\code{exal_ldvb}" containing:
 #' \itemize{
 #'   \item \code{qbeta}: list with \code{m}, \code{V}.
 #'   \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),
@@ -511,7 +511,7 @@ exal_static_LDVB <- function(
     run.time = as.numeric(t1 - t0),
     misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace)
   )
-  class(ret) <- "exal_vb"
+  class(ret) <- "exal_ldvb"
   if (verbose) {
     cat(sprintf("LDVB %s in %d iters (%.2fs): gamma~%.3f, sigma~%.3f\n",
                 ifelse(converged, "converged", "stopped"),

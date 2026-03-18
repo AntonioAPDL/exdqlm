@@ -80,8 +80,8 @@ as.exdqlm <- function(m){
 #' }
 #'
 #' @examples
-#' trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
-#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+#' trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
+#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
 #'
 #' @export
@@ -196,11 +196,12 @@ is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M2 = exdqlmMCMC(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                 gam.init=-3.5,sig.init=15,
-#'                 n.burn=100,n.mcmc=150)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M2 = exdqlmMCMC(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                 gam.init = -3.5, sig.init = 15,
+#'                 n.burn = 100, n.mcmc = 150)
 #' print(M2)                
 #' }
 #'
@@ -224,11 +225,12 @@ print.exdqlmMCMC <- function(x, ...) {
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M2 = exdqlmMCMC(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                 gam.init=-3.5,sig.init=15,
-#'                 n.burn=100,n.mcmc=150)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M2 = exdqlmMCMC(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                 gam.init = -3.5, sig.init = 15,
+#'                 n.burn = 100, n.mcmc = 150)
 #' summary(M2)                
 #' }
 #'
@@ -252,11 +254,12 @@ summary.exdqlmMCMC <- function(object, ...) {
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M2 = exdqlmMCMC(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                 gam.init=-3.5,sig.init=15,
-#'                 n.burn=100,n.mcmc=150)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M2 = exdqlmMCMC(y, p0=0.85, model, df = c(0.98), dim.df = c(1),
+#'                 gam.init = -3.5, sig.init = 15,
+#'                 n.burn = 100, n.mcmc = 150)
 #' plot(M2)                
 #' }
 #'
@@ -292,10 +295,11 @@ is.exdqlmISVB = function(m){ return(methods::is(m,"exdqlmISVB")) }
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                    gam.init=-3.5,sig.init=15)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                    gam.init = -3.5, sig.init = 15)
 #' print(M0)
 #' }
 #'
@@ -320,10 +324,11 @@ print.exdqlmISVB <- function(x, ...) {
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                    gam.init=-3.5,sig.init=15)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                    gam.init = -3.5, sig.init = 15)
 #' summary(M0)
 #' }
 #'
@@ -348,10 +353,11 @@ summary.exdqlmISVB <- function(object, ...) {
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                    gam.init=-3.5,sig.init=15)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                    gam.init = -3.5, sig.init = 15)
 #' plot(M0)
 #' }
 #'
@@ -387,10 +393,11 @@ is.exdqlmLDVB = function(m){ return(methods::is(m,"exdqlmLDVB")) }
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                    gam.init=-3.5,sig.init=15)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                    gam.init = -3.5, sig.init = 15)
 #' print(M0)
 #' }
 #'
@@ -415,10 +422,11 @@ print.exdqlmLDVB <- function(x, ...) {
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                    gam.init=-3.5,sig.init=15)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                    gam.init = -3.5, sig.init = 15)
 #' summary(M0)
 #' }
 #'
@@ -443,10 +451,11 @@ summary.exdqlmLDVB <- function(object, ...) {
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,quantile(y,0.85),10)
-#' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-#'                    gam.init=-3.5,sig.init=15)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                    gam.init = -3.5, sig.init = 15)
 #' plot(M0)
 #' }
 #'
@@ -480,11 +489,12 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,mean(y),10)
-#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
-#'                   gam.init=-3.5,sig.init=15)
-#' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+#'                   gam.init = -3.5, sig.init = 15)
+#' M0.diags = exdqlmDiagnostics(M0, plot=FALSE)
 #' print(M0.diags)
 #' }
 #'
@@ -510,11 +520,12 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,mean(y),10)
-#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
-#'                   gam.init=-3.5,sig.init=15)
-#' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+#'                   gam.init = -3.5, sig.init = 15)
+#' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
 #' summary(M0.diags)
 #' }
 #'
@@ -540,11 +551,12 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 #' 
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' model = polytrendMod(1,mean(y),10)
-#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
-#'                   gam.init=-3.5,sig.init=15)
-#' M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+#' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+#'                   gam.init = -3.5, sig.init = 15)
+#' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
 #' plot(M0.diags)
 #' }
 #'
@@ -613,9 +625,10 @@ is.exdqlmForecast = function(x){ return(methods::is(x,"exdqlmForecast")) }
 #' 
 #' @examples
 #' \donttest{
-#'  y <- scIVTmag[1:100]
-#'  model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
-#'  M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'  data("scIVTmag", package = "exdqlm")
+#'  y = scIVTmag[1:100]
+#'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#'  M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 #'  print(M0.forecast)
@@ -639,9 +652,10 @@ print.exdqlmForecast <- function(x, ...) {
 #' 
 #' @examples
 #' \donttest{
-#'  y <- scIVTmag[1:100]
-#'  model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
-#'  M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'  data("scIVTmag", package = "exdqlm")
+#'  y = scIVTmag[1:100]
+#'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#'  M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 #'  summary(M0.forecast)
@@ -665,9 +679,10 @@ summary.exdqlmForecast <- function(object, ...) {
 #' 
 #' @examples
 #' \donttest{
-#'  y <- scIVTmag[1:100]
-#'  model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
-#'  M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'  data("scIVTmag", package = "exdqlm")
+#'  y = scIVTmag[1:100]
+#'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#'  M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 #'  plot(M0.forecast)

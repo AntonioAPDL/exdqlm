@@ -39,12 +39,13 @@
 #' @examples
 #' \donttest{
 #' # short example
+#' data("scIVTmag", package = "exdqlm")
 #' TT = 100
 #' y = scIVTmag[1:TT]
 #' 
 #' # create trend & seasonal model
-#' trend.comp = polytrendMod(1,mean(y),10)
-#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+#' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
 #' 
 #' # fit five quantiles using LDVB algorithm & save individual posterior predictive samples

@@ -21,7 +21,7 @@ exdqlmDiagnostics(
 
 \item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
 
-\item{ref}{Optional reference sample of size \code{length(y)} from a standard normal distribution used to compute the KL divergence.}
+\item{ref}{Optional reference sample of size \code{length(m1$y)} from a standard normal distribution. Used to compute the KL divergence.}
 }
 \value{
 A object of class "\code{exdqlmDiagnostics}" containing the following:
@@ -42,11 +42,12 @@ The function computes the following for the model(s) provided: the posterior pre
 }
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:100]
-model = polytrendMod(1,mean(y),10)
-M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.95),dim.df = c(1),
-                  gam.init=-3.5,sig.init=15)
-M0.diags = exdqlmDiagnostics(M0,plot=FALSE)
+model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+                  gam.init = -3.5, sig.init = 15)
+M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
 }
 
 }

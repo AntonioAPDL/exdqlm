@@ -19,7 +19,7 @@
 #'
 #' @examples
 #' # create a second order polynomial component
-#' trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
+#' trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
 #' 
 polytrendMod = function(order, m0, C0, backend = c("auto", "R", "cpp")){
   backend <- match.arg(backend)

@@ -32,7 +32,7 @@
 #'   \code{n.burn + n.mcmc * thin} iterations to return exactly \code{n.mcmc} saved draws.
 #' @param verbose Print progress every 500 iters.
 #'
-#' @return A object of class "\code{exal_static_mcmc}" containing:
+#' @return A object of class "\code{exal_mcmc}" containing:
 #' \itemize{
 #'   \item \code{run.time} - total wall time in seconds.
 #'   \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).
@@ -283,6 +283,6 @@ exal_static_mcmc <- function(
     samp.s     = coda::as.mcmc(t(save.s)),
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)
   )
-  class(ret) <- "exal_static_mcmc"
+  class(ret) <- "exal_mcmc"
   ret
 }

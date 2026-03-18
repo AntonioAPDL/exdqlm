@@ -20,7 +20,7 @@
 #'
 #' @examples
 #' # create a seasonal component with first, second and fourth harmonics of a period of 365
-#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+#' seas.comp = seasMod(365, c(1, 2, 4), C0 = 10*diag(6))
 #'
 seasMod = function(p, h, m0, C0, backend = c("auto", "R", "cpp")){
   backend <- match.arg(backend)

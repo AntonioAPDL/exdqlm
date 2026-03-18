@@ -24,8 +24,8 @@ A object of class "\code{exdqlm}" containing the new combined state space model 
 Combines two state space blocks into a single state space model for an exDQLM.
 }
 \examples{
-trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
+seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 model = trend.comp + seas.comp
 
 }

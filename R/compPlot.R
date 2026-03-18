@@ -6,7 +6,7 @@
 #' @param index Vector of consecutive integers in \eqn{\{1,\dots,q\}} indicating the component or element of the state vector to be plotted.
 #' @param add Logical value indicating whether the dynamic component will be added to existing plot. Default is \code{FALSE}.
 #' @param col Character vector of length 1 giving color of the dynamic component to be plotted. Default is `purple`.
-#' @param just.theta If `TRUE`, the function plots the dynamic distribution of the `index` element of the state vector. If `just.theta=TRUE`, `index` must have length 1.
+#' @param just.theta Logical; if `TRUE`, the function plots the dynamic distribution of the `index` element of the state vector. If `just.theta=TRUE`, `index` must have length 1.
 #'
 #' @return A list of the following is returned:
 #'  \itemize{
@@ -18,14 +18,15 @@
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:365]
-#' trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
-#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+#' trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
+#' seas.comp = seasMod(365, c(1, 2, 4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
-#' M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98,1),dim.df = c(2,6),
-#'                    gam.init=-3.5,sig.init=15,tol=0.05)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 6),
+#'                    gam.init = -3.5, sig.init = 15, tol = 0.05)
 #' # plot first harmonic component
-#' compPlot(M0,index=c(3,4),col="blue")
+#' compPlot(M0, index = c(3, 4), col = "blue")
 #' }
 #'
 compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, cr.percent = 0.95){

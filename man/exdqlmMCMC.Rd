@@ -97,7 +97,7 @@ The function applies a Markov chain Monte Carlo (MCMC) algorithm to sample the p
 \donttest{
 data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:100]
-trend.comp = polytrendMod(order = 1, m0 = mean(y), C0 = 10)
+trend.comp = polytrendMod(order = 1, m0 = stats::quantile(y, 0.85), C0 = 10)
 seas.comp = seasMod(p = 365, h = c(1,2,4), C0 = 10*diag(6))
 model = trend.comp + seas.comp
 M2 = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,6),

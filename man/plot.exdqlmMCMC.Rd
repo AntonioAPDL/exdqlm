@@ -16,11 +16,12 @@ Plot Method for \code{exdqlmMCMC} Objects
 }
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:100]
-model = polytrendMod(1,quantile(y,0.85),10)
-M2 = exdqlmMCMC(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-                gam.init=-3.5,sig.init=15,
-                n.burn=100,n.mcmc=150)
+model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+M2 = exdqlmMCMC(y, p0=0.85, model, df = c(0.98), dim.df = c(1),
+                gam.init = -3.5, sig.init = 15,
+                n.burn = 100, n.mcmc = 150)
 plot(M2)                
 }
 

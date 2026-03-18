@@ -32,6 +32,6 @@ The function creates a Fourier form periodic component for given period and harm
 }
 \examples{
 # create a seasonal component with first, second and fourth harmonics of a period of 365
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
+seas.comp = seasMod(365, c(1, 2, 4), C0 = 10*diag(6))
 
 }

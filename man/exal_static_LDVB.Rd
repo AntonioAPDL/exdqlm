@@ -51,7 +51,7 @@ Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 \item{verbose}{Logical; print progress.}
 }
 \value{
-A object of class "\code{exal_vb}" containing:
+A object of class "\code{exal_ldvb}" containing:
 \itemize{
 \item \code{qbeta}: list with \code{m}, \code{V}.
 \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),

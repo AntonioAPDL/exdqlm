@@ -79,12 +79,13 @@
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' trend.comp = polytrendMod(1,mean(y),10)
-#' seas.comp = seasMod(52,c(1,2),C0=10*diag(4))
+#' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' seas.comp = seasMod(365, c(1,2), C0 = 10*diag(4))
 #' model = trend.comp + seas.comp
-#' M0 = exdqlmLDVB(y,p0=0.85,model,df=c(1,1),dim.df = c(1,4),
-#'                  gam.init=-3.5,sig.init=15,tol=0.05)
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,4),
+#'                  gam.init = -3.5, sig.init = 15, tol = 0.05)
 #' }
 #'
 exdqlmLDVB <- function(y, p0, model, df, dim.df,

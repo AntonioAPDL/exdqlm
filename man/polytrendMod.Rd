@@ -30,6 +30,6 @@ The function creates an n-th order polynomial exDQLM component.
 }
 \examples{
 # create a second order polynomial component
-trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
+trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
 
 }

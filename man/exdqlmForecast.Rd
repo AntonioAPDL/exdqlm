@@ -64,6 +64,7 @@ dynamic quantile model and optionally adds them to an existing plot.
 \examples{
 \donttest{
  # Toy example
+ data("scIVTmag", package = "exdqlm")
  y = scIVTmag[1:100]
  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
  M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
