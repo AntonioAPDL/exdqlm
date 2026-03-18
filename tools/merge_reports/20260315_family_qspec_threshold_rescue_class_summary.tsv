@@ -1,4 +1,4 @@
 rescue_class	count
-aggressive_policy_only_rescue	25
-needs_deeper_chain	19
+aggressive_policy_only_rescue	27
+needs_deeper_chain	16
 needs_model_or_vb_debug	5

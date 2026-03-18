@@ -1,15 +1,17 @@
 # Family-QSpec Validation Status Tracker
 
-Last updated: 2026-03-14 04:40 EDT
+Last updated: 2026-03-18 16:30 EDT
 
 This file is the authoritative human-readable tracker for the family-qspec
 validation campaign on muscat.
 
 Important interpretation rule:
 
-- the current authoritative live state is the canonical relaunch state beginning
-  at `## 2026-03-12 Canonical Relaunch Reset (Authoritative)` and the progress
-  tables referenced near the end of this file
+- the primary quick-read live status is the section
+  `## 2026-03-18 Weekly Consolidated Progress Update (2026-03-12 to 2026-03-18)`
+- the canonical relaunch architecture and historical context still begin at
+  `## 2026-03-12 Canonical Relaunch Reset (Authoritative)` and the progress
+  tables referenced in this file
 - the earlier `mqsp_*` sections are preserved as historical pre-reset notes so
   the migration/relaunch path remains auditable
 - historical sections should not be used as the live source of truth for the
@@ -2043,24 +2045,222 @@ Dry-run queue summary (pre-launch):
 - `3` campaign reviews
 - `1` global summary
 
-## 2026-03-16 Repair Autopilot Wiring
+## 2026-03-17 Residual VB-Debug Micro-Wave (tt5000) Implementation
 
-Autopilot script added:
+Post-wave closure was verified first for the vb-debug relaunch state:
 
-- `tools/merge_reports/20260316_family_qspec_repair_autopilot.sh`
+- state dir: `/home/jaguir26/local/state/exdqlm/family_qspec_vb_debug_20260317_run1`
+- queue closure: all units at `wave_complete`
+- active locks at close: `0`
 
-Autopilot behavior:
+Authoritative post-wave signoff snapshot after forced rebuild from root outputs:
 
-- continuously refreshes the second-wave queue state
-- ensures the second-wave supervisor is running (auto-restarts if it stops early while work remains)
-- waits for `active_locks=0` and `ready_unlocked=0`
-- runs full closeout refresh:
-  - signoff rebuild
-  - dynamic/static root reviews
-  - prior comparisons
-  - campaign/global aggregates
-  - scientific snapshot + delta analyses
-- writes closeout artifacts to:
-  - `${STATE_DIR}/autopilot/autopilot.log`
-  - `${STATE_DIR}/autopilot/autopilot_status.tsv`
-  - `${STATE_DIR}/autopilot/final_closeout_summary.md`
+- generated_at: `2026-03-17 20:47:04`
+- method fits:
+  - `93 PASS`
+  - `128 WARN`
+  - `67 FAIL`
+  - `221 comparison-eligible`
+- algorithm pairs eligible: `88 / 144`
+- model pairs eligible: `84 / 144`
+- roots:
+  - `23 / 72 fully eligible`
+  - `72 / 72 with any eligible comparison`
+- remaining unhealthy targets: `67`
+
+Delta vs the pre-vb-debug baseline snapshot (`2026-03-17 09:13:51`):
+
+- method FAIL: `75 -> 67` (`-8`)
+- method WARN: `120 -> 128` (`+8`)
+- method comparison-eligible: `213 -> 221` (`+8`)
+- algorithm pairs eligible: `86 -> 88` (`+2`)
+- model pairs eligible: `76 -> 84` (`+8`)
+- full-eligible roots: `21 -> 23` (`+2`)
+- any-eligible roots: `69 -> 72` (`+3`)
+
+Targeted-effect summary for the repaired classes:
+
+- overall:
+  - `resolved = 7`
+  - `reshuffled_fail = 2`
+  - `unchanged_fail = 2`
+- by group:
+  - `hard_only`: `4 resolved`, `2 reshuffled_fail`
+  - `vb_debug`: `3 resolved`, `2 unchanged_fail`
+
+Residual vb-debug unresolved rows are now only:
+
+- `root__dynamic__laplace__tau_0p05__lasttt_5000 | vb::exdqlm`
+- `root__dynamic__gausmix__tau_0p05__lasttt_5000 | vb::exdqlm`
+
+Both rows still fail with:
+
+- `ld_unstable; vb_converged_false; core_parameter_tail_unstable`
+
+### New Automation For Residual Two-Case Fix
+
+Implemented scripts/env for a gated residual micro-wave:
+
+- configurable vb-debug supervisor tuning env:
+  - `tools/merge_reports/20260317_family_qspec_vb_debug_supervisor.sh`
+    now supports `--tuning-env`
+- deeper `tt5000` vb-debug tuning profile:
+  - `tools/merge_reports/20260317_family_qspec_vb_debug_tuning_tt5000_deeper.env`
+- canary-then-second orchestrator:
+  - `tools/merge_reports/20260317_run_family_qspec_vb_debug_residual_wave.sh`
+
+Micro-wave policy:
+
+- stage 1 (canary): `laplace tt5000 vb::exdqlm`
+- gate: rebuild signoff and require canary grade to move off `FAIL`
+- stage 2: `gausmix tt5000 vb::exdqlm`
+- closeout: force signoff/scientific snapshot rebuild and targeted-effect delta vs baseline
+
+Launch command:
+
+```bash
+tools/merge_reports/20260317_run_family_qspec_vb_debug_residual_wave.sh --repo-root "$PWD"
+```
+
+Primary runtime artifacts produced by the orchestrator:
+
+- run root: `/home/jaguir26/local/state/exdqlm/family_qspec_vb_debug_residual_<timestamp>`
+- status file: `status.tsv`
+- live log: `orchestrator.log`
+- final run summary: `summary.md`
+
+### Live Checkpoint (2026-03-17 21:36 EDT)
+
+Residual micro-wave run id:
+
+- `/home/jaguir26/local/state/exdqlm/family_qspec_vb_debug_residual_20260317_2105_debug`
+
+Current phase:
+
+- `setup: DONE`
+- `canary: RUNNING`
+- `second: pending canary gate`
+
+Case-level live health:
+
+- canary task:
+  - `mp__root__dynamic__laplace__tau_0p05__lasttt_5000__exdqlm`
+- worker health:
+  - active R process running `20260305_vb_then_mcmc_pipeline.R`
+  - sustained CPU near `99%`
+  - no `FAILED` event in canary `task_events.tsv` during the checkpoint window
+
+Downstream state:
+
+- canary queue still at `model_path=running`, downstream units not started yet (expected)
+- second-stage queue/logs not created yet (expected)
+- top-level signoff outputs remain at the pre-micro-wave timestamp (`2026-03-17 20:47`) until canary completion triggers the orchestrator rebuild step
+
+### Live Checkpoint (2026-03-17 21:45 EDT)
+
+Residual micro-wave run id:
+
+- `/home/jaguir26/local/state/exdqlm/family_qspec_vb_debug_residual_20260317_2105_debug`
+
+Current phase:
+
+- `setup: DONE`
+- `canary: RUNNING`
+- `second: pending canary gate`
+
+Case-level execution evidence:
+
+- canary `task_events.tsv` currently contains:
+  - `START` for `mp__root__dynamic__laplace__tau_0p05__lasttt_5000__exdqlm` at `2026-03-17 21:00:09`
+- canonical root status file currently contains:
+  - `START` at `2026-03-17 21:00:13`
+  - `VB_START` at `2026-03-17 21:00:13`
+  - no `VB_DONE`/`MCMC_START` yet for this new canary attempt (still in VB phase)
+
+Worker health at checkpoint:
+
+- active R process: `20260305_vb_then_mcmc_pipeline.R`
+- sustained CPU near `99.6%` through the window
+- stable resident memory (no runaway growth)
+- no `FAILED` event observed
+
+Downstream state:
+
+- canary queue remains `model_path=running`, downstream units still blocked (expected)
+- second-stage queue/log artifacts still absent (expected before canary gate)
+- top-level signoff/unhealthy files remain unchanged since `2026-03-17 20:47` and will be refreshed only after canary completes
+
+## 2026-03-18 Weekly Consolidated Progress Update (2026-03-12 to 2026-03-18)
+
+This section is the consolidated week-level checkpoint for the current campaign
+state and is now the primary quick-read status section for this tracker.
+
+### Authoritative Snapshot Timeline
+
+| Snapshot time | Source | Key counts |
+| --- | --- | --- |
+| `2026-03-15` | `tools/merge_reports/20260315_family_qspec_post_repair_delta_summary.md` | post-repair delta: `FAIL 76 -> 68`, `eligible 212 -> 220`, `model-pair eligible 75 -> 83` |
+| `2026-03-16 17:39:59 EDT` | `tools/merge_reports/20260316_family_qspec_scientific_comparison_snapshot_freeze.md` + `20260316_family_qspec_signoff_summary_freeze.tsv` | frozen comparison/signoff baseline before later unhealthy-fit fixes |
+| `2026-03-17 20:47:04 EDT` | targeted vb-debug rebuild (documented below + `20260317_family_qspec_targeted_effect_post_vb_debug_summary.md`) | `PASS/WARN/FAIL = 93/128/67`, `eligible=221`, `model-pair eligible=84`, `unhealthy=67` |
+| `2026-03-18 05:48:12` | `tools/merge_reports/20260314_family_qspec_signoff_summary.md` | latest on-disk signoff summary: `PASS/WARN/FAIL = 93/127/68`, `eligible=220`, `model-pair eligible=83`, `unhealthy=68` |
+
+Interpretation:
+
+- the campaign has materially improved versus the pre-repair baseline from this
+  week
+- the latest on-disk signoff is effectively stable versus the post-repair
+  window, with only minor boundary movement (`67` vs `68` unhealthy rows across
+  different rebuild checkpoints)
+
+### Current Active Repair Wave (Fail-Only Relaunch)
+
+Authoritative live state dir:
+
+- `/home/jaguir26/local/state/exdqlm/family_qspec_fail_only_20260318_fail_only_overwrite_152412`
+
+Superseded/aborted predecessor (kept for history only):
+
+- `/home/jaguir26/local/state/exdqlm/family_qspec_fail_only_20260318_fail_only_152054`
+
+Live queue checkpoint (`2026-03-18 16:26 EDT`):
+
+| Metric | Value |
+| --- | ---: |
+| `model_path total` | `56` |
+| `START` | `30` |
+| `DONE` | `21` |
+| `FAILED` | `0` |
+| running (`START - DONE - FAILED`) | `9` |
+| not started | `26` |
+| completion (`DONE / total`) | `37.5%` |
+| active locks | `9` |
+| first `START` in this run | `2026-03-18 15:24:14` |
+| latest `DONE` in this run | `2026-03-18 16:22:05` |
+
+Running-task health checkpoint (`2026-03-18 16:26 EDT`):
+
+- all `9` active tasks show fresh heartbeats (`<= 1 minute` age at check time)
+- CPU for active workers is sustained around `99.4% - 99.6%`
+- dynamic MCMC acceptance rates in the active set are in a plausible band
+  (about `0.31 - 0.47`)
+- no new `FAILED` events were observed in the active fail-only overwrite wave
+
+Execution note for operators:
+
+- this overwrite wave is healthy on active chains, but dispatch is currently
+  not filling beyond the initial start burst (`30` started so far), so the
+  remaining `26` not-started rows are still pending launch
+
+### Week-To-Date Validation Deliverables Now In Place
+
+- full signoff/eligibility machinery is in place and reproducible:
+  - `method_signoff`, `algorithm_pair_signoff`, `model_pair_signoff`,
+    `root_readiness`, `unhealthy_targets`
+- scientific comparison snapshots are built and frozen for before/after
+  comparison:
+  - `tools/merge_reports/20260316_family_qspec_scientific_comparison_snapshot_freeze.tsv`
+  - `tools/merge_reports/20260316_family_qspec_scientific_comparison_snapshot_freeze.md`
+- dynamic runtime tracking is wired into comparison summaries (VB vs MCMC runtime
+  ratios now available in the snapshot/global summaries)
+- targeted-effect accounting for vb-debug/hard-only repairs is documented:
+  - `tools/merge_reports/20260317_family_qspec_targeted_effect_post_vb_debug_summary.md`

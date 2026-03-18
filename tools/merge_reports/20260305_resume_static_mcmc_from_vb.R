@@ -36,6 +36,13 @@ safe_num <- function(x, default) {
   if (!is.finite(v) || is.na(v)) default else v
 }
 
+safe_bool <- function(x, default = FALSE) {
+  z <- tolower(trimws(as.character(x)[1]))
+  if (z %in% c("true", "t", "1", "yes", "y")) return(TRUE)
+  if (z %in% c("false", "f", "0", "no", "n")) return(FALSE)
+  default
+}
+
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
 safe_chr_vec <- function(x, default = NULL) {
@@ -52,6 +59,14 @@ is_true_env <- function(name, default = "false") {
 }
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
+
+normalize_prior_type <- function(x, default = "ridge") {
+  val <- tolower(trimws(as.character(x %||% default)[1]))
+  if (!nzchar(val) || is.na(val)) val <- default
+  if (identical(val, "gaussian")) val <- "ridge"
+  if (!(val %in% c("ridge", "rhs"))) val <- default
+  val
+}
 
 cfg_path <- Sys.getenv(
   "EXDQLM_STATIC_RUN_CONFIG",
@@ -100,6 +115,20 @@ mcmc_trace_diagnostics <- identical(tolower(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE
 mcmc_trace_every <- safe_int(Sys.getenv("EXDQLM_STATIC_MCMC_TRACE_EVERY", "25"), 25L)
 if (mcmc_trace_every < 1L) mcmc_trace_every <- 1L
 mcmc_verbose <- identical(tolower(Sys.getenv("EXDQLM_STATIC_MCMC_VERBOSE", "true")), "true")
+beta_prior <- normalize_prior_type(
+  Sys.getenv(
+    "EXDQLM_STATIC_BETA_PRIOR",
+    if (!is.null(cfg$mcmc$beta_prior)) as.character(cfg$mcmc$beta_prior)[1] else "ridge"
+  )
+)
+beta_prior_controls <- cfg$mcmc$beta_prior_controls
+if (is.null(beta_prior_controls) && !is.null(cfg$vb$beta_prior_controls)) {
+  beta_prior_controls <- cfg$vb$beta_prior_controls
+}
+if (is.null(beta_prior_controls) || !is.list(beta_prior_controls)) {
+  beta_prior_controls <- list()
+}
+enforce_prior_match <- safe_bool(Sys.getenv("EXDQLM_STATIC_ENFORCE_PRIOR_MATCH", "true"), TRUE)
 
 cores <- safe_int(Sys.getenv("EXDQLM_STATIC_RESUME_CORES", as.character(cfg$cores_pipeline)), safe_int(cfg$cores_pipeline, 2L))
 cores <- max(1L, min(cores, safe_int(parallel::detectCores(logical = FALSE), 2L)))
@@ -218,8 +247,9 @@ tasks$seed <- vapply(seq_len(nrow(tasks)), function(i) {
 
 log_master(sprintf("static resume start | run_root=%s | dry_run=%s | cores=%d", run_root, dry_run, cores))
 log_master(sprintf(
-  "static resume mcmc config | burn=%d | keep=%d | thin=%d | mh=%s | trace=%s | trace_every=%d | verbose=%s",
-  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose
+  "static resume mcmc config | burn=%d | keep=%d | thin=%d | mh=%s | trace=%s | trace_every=%d | verbose=%s | beta_prior=%s | enforce_prior_match=%s",
+  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose,
+  beta_prior, enforce_prior_match
 ))
 
 safe_task <- function(task_row) {
@@ -256,6 +286,14 @@ safe_task <- function(task_row) {
 
   vb_obj <- readRDS(vb_file)
   vb_fit <- vb_obj$fit
+  vb_prior <- normalize_prior_type(if (!is.null(vb_fit$beta_prior$type)) vb_fit$beta_prior$type else beta_prior, default = beta_prior)
+  if (enforce_prior_match && !identical(vb_prior, beta_prior)) {
+    msg <- sprintf("VB prior mismatch with run config: expected=%s observed=%s", beta_prior, vb_prior)
+    write_status(model_name, tau, "FAILED", msg)
+    log_task(model_name, tau, paste("resume failed:", msg))
+    return(data.frame(model = model_name, tau = tau, status = "failed", error = msg, stringsAsFactors = FALSE))
+  }
+
   init_list <- .static_vb_to_mcmc_init(vb_fit, dqlm.ind = dqlm.ind)
   init_notes <- attr(init_list, "resume_init_notes")
   if (length(init_notes)) {
@@ -272,6 +310,8 @@ safe_task <- function(task_row) {
       X = X,
       p0 = tau,
       dqlm.ind = dqlm.ind,
+      beta_prior = beta_prior,
+      beta_prior_controls = beta_prior_controls,
       init = init_list,
       init.from.vb = FALSE,
       n.burn = mcmc_burn,
@@ -303,6 +343,23 @@ safe_task <- function(task_row) {
     return(data.frame(model = model_name, tau = tau, status = "failed", error = conditionMessage(m_fit), stringsAsFactors = FALSE))
   }
 
+  fit_prior <- normalize_prior_type(if (!is.null(m_fit$beta_prior$type)) m_fit$beta_prior$type else "ridge")
+  if (enforce_prior_match && !identical(fit_prior, beta_prior)) {
+    msg <- sprintf("MCMC prior mismatch: expected=%s observed=%s", beta_prior, fit_prior)
+    write_status(model_name, tau, "FAILED", msg)
+    log_task(model_name, tau, paste("resume failed:", msg))
+    return(data.frame(model = model_name, tau = tau, status = "failed", error = msg, stringsAsFactors = FALSE))
+  }
+  if (enforce_prior_match && identical(beta_prior, "rhs")) {
+    has_rhs_draws <- !is.null(m_fit$samp.tau) && !is.null(m_fit$samp.c2) && !is.null(m_fit$samp.lambda)
+    if (!has_rhs_draws) {
+      msg <- "MCMC RHS diagnostics missing (samp.tau/c2/lambda); refusing inconsistent fit"
+      write_status(model_name, tau, "FAILED", msg)
+      log_task(model_name, tau, paste("resume failed:", msg))
+      return(data.frame(model = model_name, tau = tau, status = "failed", error = msg, stringsAsFactors = FALSE))
+    }
+  }
+
   runtime <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
   norm <- .static_normalize_mcmc_fit(
     m_fit,
@@ -329,7 +386,14 @@ safe_task <- function(task_row) {
     list(
       fit = m_fit,
       normalized = norm,
-      meta = list(model = model_name, tau = tau, seed = seed, runtime_sec = runtime, resumed = TRUE)
+      meta = list(
+        model = model_name,
+        tau = tau,
+        seed = seed,
+        runtime_sec = runtime,
+        resumed = TRUE,
+        beta_prior = fit_prior
+      )
     ),
     m_file,
     compress = "xz"
@@ -339,9 +403,12 @@ safe_task <- function(task_row) {
     model_name,
     tau,
     "MCMC_DONE",
-    sprintf("runtime_sec=%.1f ess_sigma=%.2f ess_gamma=%.2f", runtime, norm$diagnostics$ess$sigma, norm$diagnostics$ess$gamma)
+    sprintf(
+      "runtime_sec=%.1f ess_sigma=%.2f ess_gamma=%.2f beta_prior=%s",
+      runtime, norm$diagnostics$ess$sigma, norm$diagnostics$ess$gamma, fit_prior
+    )
   )
-  log_task(model_name, tau, sprintf("resume mcmc done runtime=%.1fs", runtime))
+  log_task(model_name, tau, sprintf("resume mcmc done runtime=%.1fs beta_prior=%s", runtime, fit_prior))
 
   data.frame(
     model = model_name,
