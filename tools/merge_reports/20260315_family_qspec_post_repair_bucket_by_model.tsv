@@ -1,7 +1,0 @@
-inference	model	failure_bucket	count
-mcmc	dqlm	soft_only	7
-mcmc	exal	mixed	3
-mcmc	exal	soft_only	22
-mcmc	exdqlm	soft_only	16
-vb	exal	mixed	18
-vb	exdqlm	soft_only	2

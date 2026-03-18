@@ -1,6 +1,0 @@
-inference	model	rescue_class	count
-mcmc	exal	aggressive_policy_only_rescue	20
-mcmc	exdqlm	aggressive_policy_only_rescue	7
-mcmc	dqlm	needs_deeper_chain	7
-mcmc	exdqlm	needs_deeper_chain	9
-vb	exdqlm	needs_model_or_vb_debug	5
