@@ -3,10 +3,47 @@
 args <- commandArgs(trailingOnly = TRUE)
 repo_root <- if (length(args) >= 1L) normalizePath(args[[1]], mustWork = TRUE) else normalizePath(".", mustWork = TRUE)
 state_dir <- if (length(args) >= 2L) normalizePath(args[[2]], mustWork = FALSE) else "/home/jaguir26/local/state/exdqlm/family_qspec_repair_v1"
+targets_path_arg <- if (length(args) >= 3L) as.character(args[[3L]]) else ""
+queue_prefix_arg <- if (length(args) >= 4L) as.character(args[[4L]]) else ""
+
+default_targets_path <- file.path(repo_root, "tools", "merge_reports", "20260314_family_qspec_unhealthy_targets.tsv")
+targets_path <- targets_path_arg
+if (!nzchar(targets_path)) {
+  targets_path <- Sys.getenv("EXDQLM_FQ_REPAIR_TARGETS_TSV", default_targets_path)
+}
+if (!grepl("^/", targets_path)) {
+  targets_path <- file.path(repo_root, targets_path)
+}
+targets_path <- normalizePath(targets_path, mustWork = TRUE)
+
+queue_prefix <- queue_prefix_arg
+if (!nzchar(queue_prefix)) {
+  queue_prefix <- Sys.getenv("EXDQLM_FQ_REPAIR_QUEUE_PREFIX", "20260314_family_qspec_repair")
+}
+queue_prefix <- gsub("[^A-Za-z0-9._-]+", "_", queue_prefix)
+if (!nzchar(queue_prefix)) {
+  queue_prefix <- "20260314_family_qspec_repair"
+}
+
+force_launch_mode <- tolower(trimws(Sys.getenv("EXDQLM_FQ_REPAIR_FORCE_LAUNCH_MODE", "")))
+if (identical(force_launch_mode, "rerun_mcmc_from_existing_vb")) {
+  force_launch_mode <- "resume_mcmc_from_vb"
+}
+if (!(force_launch_mode %in% c("", "resume_mcmc_from_vb", "fresh_vb_then_mcmc"))) {
+  force_launch_mode <- ""
+}
+model_note_prefix <- Sys.getenv("EXDQLM_FQ_REPAIR_NOTE_PREFIX", "repair_required")
+if (!nzchar(model_note_prefix)) {
+  model_note_prefix <- "repair_required"
+}
 
 source(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_v2_common.R"))
 
-unhealthy_targets <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260314_family_qspec_unhealthy_targets.tsv"))
+unhealthy_targets <- fq_read_tsv(targets_path)
+if (!("suggested_action" %in% names(unhealthy_targets))) unhealthy_targets$suggested_action <- NA_character_
+if (!("recommended_action" %in% names(unhealthy_targets))) unhealthy_targets$recommended_action <- NA_character_
+if (!("signoff_reason" %in% names(unhealthy_targets))) unhealthy_targets$signoff_reason <- NA_character_
+if (!("inference" %in% names(unhealthy_targets))) unhealthy_targets$inference <- NA_character_
 model_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_model_path_scheduler_manifest.tsv"))
 post_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_postprocess_manifest.tsv"))
 signoff_manifest <- fq_read_tsv(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_signoff_manifest.tsv"))
@@ -146,8 +183,21 @@ join_unique <- function(x) {
 }
 
 action_rank <- function(x) {
-  ifelse(x == "fresh_vb_then_mcmc", 2L,
-         ifelse(x == "rerun_mcmc_from_existing_vb", 1L, 0L))
+  x <- tolower(trimws(as.character(x)))
+  ifelse(
+    x %in% c("fresh_vb_then_mcmc", "debug_vb_then_targeted_refit"),
+    2L,
+    ifelse(
+      x %in% c(
+        "rerun_mcmc_from_existing_vb",
+        "resume_mcmc_from_vb",
+        "rerun_with_deeper_mcmc",
+        "exclude_until_numerical_fix"
+      ),
+      1L,
+      0L
+    )
+  )
 }
 
 task_from_target <- merge(
@@ -164,7 +214,7 @@ task_from_target <- merge(
 )
 
 if (!nrow(task_from_target)) {
-  stop("No model_path manifest rows matched unhealthy targets.", call. = FALSE)
+  stop(sprintf("No model_path manifest rows matched targets from: %s", targets_path), call. = FALSE)
 }
 
 task_from_target$run_root_manifest <- ifelse(
@@ -175,8 +225,15 @@ task_from_target$run_root_manifest <- ifelse(
 
 split_targets <- split(task_from_target, task_from_target$task_id)
 model_plan <- do.call(rbind, lapply(split_targets, function(df) {
-  strongest_rank <- max(action_rank(df$suggested_action), na.rm = TRUE)
-  launch_mode <- if (strongest_rank >= 2L) "fresh_vb_then_mcmc" else "resume_mcmc_from_vb"
+  strongest_rank <- max(action_rank(c(df$suggested_action, df$recommended_action)), na.rm = TRUE)
+  if (!is.finite(strongest_rank)) strongest_rank <- 0L
+  launch_mode <- if (nzchar(force_launch_mode)) {
+    force_launch_mode
+  } else if (strongest_rank >= 2L) {
+    "fresh_vb_then_mcmc"
+  } else {
+    "resume_mcmc_from_vb"
+  }
   base_priority <- scalar_int(df$priority_band, default = 99L)
   if (!is.finite(base_priority)) base_priority <- 99L
   priority <- if (identical(launch_mode, "fresh_vb_then_mcmc")) base_priority else 10L + base_priority
@@ -202,8 +259,10 @@ model_plan <- do.call(rbind, lapply(split_targets, function(df) {
     run_root = scalar_chr(df$run_root_manifest),
     script_ref = scalar_chr(df$pipeline_script),
     notes = paste(
+      model_note_prefix,
       sprintf("repair_reasons=%s", join_unique(df$signoff_reason)),
       sprintf("targeted_inference=%s", join_unique(df$inference)),
+      sprintf("target_source=%s", basename(targets_path)),
       sprintf("attempt_count=%d", attempt_count(scalar_chr(df$task_id))),
       sep = " | "
     ),
@@ -230,6 +289,31 @@ dependency_ready <- function(parent_task_id, targeted_child_ids) {
 }
 
 build_wave_rows <- function(task_ids, unit_type, launch_mode, priority, manifest_lookup, prepared_lookup = NULL, run_lookup = NULL, script_lookup = NULL, dependency_task_ids = character(0), note_prefix = "repair_required") {
+  if (!length(task_ids)) {
+    out_empty <- data.frame(
+      task_id = character(0),
+      unit_type = character(0),
+      root_id = character(0),
+      barrier_id = character(0),
+      root_kind = character(0),
+      family = character(0),
+      tau = character(0),
+      fit_size = integer(0),
+      prior = character(0),
+      model = character(0),
+      state = character(0),
+      launch_ready = logical(0),
+      launch_mode = character(0),
+      slot_cost = integer(0),
+      priority = integer(0),
+      prepared_root = character(0),
+      run_root = character(0),
+      script_ref = character(0),
+      notes = character(0),
+      stringsAsFactors = FALSE
+    )
+    return(out_empty)
+  }
   rows <- lapply(task_ids, function(task_id) {
     state <- wave_task_state(task_id)
     launch_ready <- state %in% c("not_started", "failed", "interrupted") && dependency_ready(task_id, dependency_task_ids)
@@ -337,14 +421,15 @@ prior_target_ids <- unique(dependency_edges$parent_task_id[
     dependency_edges$child_task_id %in% review_plan$task_id
 ])
 prior_targets <- prior_lookup[prior_lookup$barrier_id %in% prior_target_ids, , drop = FALSE]
+n_prior <- nrow(prior_targets)
 prior_manifest <- data.frame(
   task_id = prior_targets$barrier_id,
-  root_id = NA_character_,
+  root_id = rep(NA_character_, n_prior),
   root_kind = prior_targets$root_kind,
   family = prior_targets$family,
   tau = prior_targets$tau,
   fit_size = prior_targets$fit_size,
-  prior = "ridge_vs_rhs",
+  prior = rep("ridge_vs_rhs", n_prior),
   prepared_root = prior_targets$prepared_root,
   run_root = prior_targets$compare_root,
   implementation_script = prior_targets$implementation_script,
@@ -372,15 +457,16 @@ campaign_target_ids <- unique(dependency_edges$parent_task_id[
     (dependency_edges$child_task_id %in% review_plan$task_id | dependency_edges$child_task_id %in% prior_plan$task_id)
 ])
 campaign_targets <- campaign_lookup[campaign_lookup$barrier_id %in% campaign_target_ids, , drop = FALSE]
+n_campaign <- nrow(campaign_targets)
 campaign_manifest <- data.frame(
   task_id = campaign_targets$barrier_id,
-  root_id = NA_character_,
+  root_id = rep(NA_character_, n_campaign),
   root_kind = campaign_targets$root_kind,
   family = campaign_targets$family,
   tau = campaign_targets$tau,
   fit_size = campaign_targets$fit_size,
-  prior = NA_character_,
-  prepared_root = NA_character_,
+  prior = rep(NA_character_, n_campaign),
+  prepared_root = rep(NA_character_, n_campaign),
   run_root = vapply(campaign_targets$barrier_id, fq_barrier_output_root, character(1), repo_root = repo_root),
   implementation_script = campaign_targets$implementation_script,
   stringsAsFactors = FALSE
@@ -405,15 +491,16 @@ global_target_ids <- unique(dependency_edges$parent_task_id[
     dependency_edges$child_task_id %in% campaign_plan$task_id
 ])
 global_targets <- global_lookup[global_lookup$barrier_id %in% global_target_ids, , drop = FALSE]
+n_global <- nrow(global_targets)
 global_manifest <- data.frame(
   task_id = global_targets$barrier_id,
-  root_id = NA_character_,
+  root_id = rep(NA_character_, n_global),
   root_kind = global_targets$root_kind,
   family = global_targets$family,
   tau = global_targets$tau,
   fit_size = global_targets$fit_size,
-  prior = NA_character_,
-  prepared_root = NA_character_,
+  prior = rep(NA_character_, n_global),
+  prepared_root = rep(NA_character_, n_global),
   run_root = vapply(global_targets$barrier_id, fq_barrier_output_root, character(1), repo_root = repo_root),
   implementation_script = global_targets$implementation_script,
   stringsAsFactors = FALSE
@@ -459,6 +546,9 @@ summary_df <- summary_df[order(summary_df$unit_type, summary_df$state, summary_d
 repair_plan_summary <- data.frame(
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
   unhealthy_method_rows = nrow(unhealthy_targets),
+  targets_source = targets_path,
+  queue_prefix = queue_prefix,
+  forced_launch_mode = if (nzchar(force_launch_mode)) force_launch_mode else NA_character_,
   targeted_model_path_tasks = nrow(model_plan),
   impacted_root_count = length(impacted_root_ids),
   targeted_root_postprocess_tasks = nrow(post_plan),
@@ -473,9 +563,9 @@ repair_plan_summary <- data.frame(
 
 out_dir <- file.path(state_dir, "queue")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-queue_path <- file.path(out_dir, "20260314_family_qspec_repair_queue.tsv")
-queue_summary_path <- file.path(out_dir, "20260314_family_qspec_repair_queue_summary.tsv")
-plan_summary_path <- file.path(out_dir, "20260314_family_qspec_repair_plan_summary.tsv")
+queue_path <- file.path(out_dir, sprintf("%s_queue.tsv", queue_prefix))
+queue_summary_path <- file.path(out_dir, sprintf("%s_queue_summary.tsv", queue_prefix))
+plan_summary_path <- file.path(out_dir, sprintf("%s_plan_summary.tsv", queue_prefix))
 fq_write_tsv(queue, queue_path)
 fq_write_tsv(summary_df, queue_summary_path)
 fq_write_tsv(repair_plan_summary, plan_summary_path)

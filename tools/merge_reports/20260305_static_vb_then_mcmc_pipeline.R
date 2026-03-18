@@ -61,6 +61,24 @@ safe_chr_vec <- function(x, default = NULL) {
   vals
 }
 
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+normalize_prior_type <- function(x, default = "ridge") {
+  v <- tolower(trimws(as.character(x %||% default)[1]))
+  if (!nzchar(v) || is.na(v)) v <- default
+  if (identical(v, "gaussian")) v <- "ridge"
+  if (!(v %in% c("ridge", "rhs"))) v <- default
+  v
+}
+
+extract_prior_type <- function(prior_obj, default = "ridge") {
+  if (is.null(prior_obj)) return(normalize_prior_type(default, default = default))
+  if (is.list(prior_obj) && !is.null(prior_obj$type)) {
+    return(normalize_prior_type(prior_obj$type, default = default))
+  }
+  normalize_prior_type(prior_obj, default = default)
+}
+
 tau_lab <- function(tau) gsub("\\.", "p", format(as.numeric(tau), nsmall = 2))
 
 sim_path <- Sys.getenv(
@@ -103,9 +121,8 @@ if (!is.null(sim$q)) {
   }
 }
 
-beta_prior <- tolower(Sys.getenv("EXDQLM_STATIC_BETA_PRIOR", "ridge"))
-if (identical(beta_prior, "gaussian")) beta_prior <- "ridge"
-if (!(beta_prior %in% c("ridge", "rhs"))) beta_prior <- "ridge"
+beta_prior <- normalize_prior_type(Sys.getenv("EXDQLM_STATIC_BETA_PRIOR", "ridge"), default = "ridge")
+enforce_prior_match <- safe_bool(Sys.getenv("EXDQLM_STATIC_ENFORCE_PRIOR_MATCH", "true"), TRUE)
 rhs_tau0 <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_TAU0", "1"), 1)
 rhs_nu <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_NU", "4"), 4)
 rhs_s2 <- safe_num(Sys.getenv("EXDQLM_STATIC_RHS_S2", "1"), 1)
@@ -518,6 +535,14 @@ run_one_pipeline <- function(task_row) {
     vb_fit <- vb_dat$fit
     vb_norm <- vb_dat$normalized
     vb_runtime <- vb_dat$runtime_sec
+    vb_prior <- extract_prior_type(vb_fit$beta_prior, default = beta_prior)
+    if (enforce_prior_match && !identical(vb_prior, beta_prior)) {
+      row$status <- "failed"
+      row$error <- sprintf("existing VB prior mismatch: expected=%s observed=%s", beta_prior, vb_prior)
+      write_status(model_name, tau, "FAILED", row$error)
+      log_task(model_name, tau, paste("vb prior mismatch:", row$error))
+      return(row)
+    }
     row <- populate_vb_summary(row, vb_norm, vb_runtime, vb_file)
     write_status(model_name, tau, "VB_EXISTING", sprintf("iter=%s stop=%s", row$vb_iter, row$vb_stop_reason))
     log_task(model_name, tau, "reuse existing vb fit")
@@ -546,6 +571,14 @@ run_one_pipeline <- function(task_row) {
       row$error <- conditionMessage(vb_fit)
       write_status(model_name, tau, "FAILED", row$error)
       log_task(model_name, tau, paste("vb failed:", row$error))
+      return(row)
+    }
+    vb_prior <- extract_prior_type(vb_fit$beta_prior, default = beta_prior)
+    if (enforce_prior_match && !identical(vb_prior, beta_prior)) {
+      row$status <- "failed"
+      row$error <- sprintf("new VB prior mismatch: expected=%s observed=%s", beta_prior, vb_prior)
+      write_status(model_name, tau, "FAILED", row$error)
+      log_task(model_name, tau, paste("vb prior mismatch:", row$error))
       return(row)
     }
     vb_runtime <- as.numeric(difftime(Sys.time(), vb_t0, units = "secs"))
@@ -622,6 +655,24 @@ run_one_pipeline <- function(task_row) {
     log_task(model_name, tau, paste("mcmc failed:", row$error))
     return(row)
   }
+  m_prior <- extract_prior_type(m_fit$beta_prior, default = "ridge")
+  if (enforce_prior_match && !identical(m_prior, beta_prior)) {
+    row$status <- "failed"
+    row$error <- sprintf("MCMC prior mismatch: expected=%s observed=%s", beta_prior, m_prior)
+    write_status(model_name, tau, "FAILED", row$error)
+    log_task(model_name, tau, paste("mcmc prior mismatch:", row$error))
+    return(row)
+  }
+  if (enforce_prior_match && identical(beta_prior, "rhs")) {
+    has_rhs_draws <- !is.null(m_fit$samp.tau) && !is.null(m_fit$samp.c2) && !is.null(m_fit$samp.lambda)
+    if (!has_rhs_draws) {
+      row$status <- "failed"
+      row$error <- "MCMC RHS diagnostics missing (samp.tau/c2/lambda); refusing inconsistent fit"
+      write_status(model_name, tau, "FAILED", row$error)
+      log_task(model_name, tau, paste("mcmc failed:", row$error))
+      return(row)
+    }
+  }
 
   m_runtime <- as.numeric(difftime(Sys.time(), m_t0, units = "secs"))
   m_norm <- .static_normalize_mcmc_fit(
@@ -650,7 +701,7 @@ run_one_pipeline <- function(task_row) {
     list(
       fit = m_fit,
       normalized = m_norm,
-      meta = list(model = model_name, tau = tau, seed = seed, runtime_sec = m_runtime)
+      meta = list(model = model_name, tau = tau, seed = seed, runtime_sec = m_runtime, beta_prior = m_prior)
     ),
     m_file,
     compress = "xz"
@@ -661,8 +712,8 @@ run_one_pipeline <- function(task_row) {
     tau,
     "MCMC_DONE",
     sprintf(
-      "runtime_sec=%.1f ess_sigma=%.2f ess_gamma=%.2f kernel=%s",
-      m_runtime, m_norm$diagnostics$ess$sigma, m_norm$diagnostics$ess$gamma, m_norm$diagnostics$mh$proposal
+      "runtime_sec=%.1f ess_sigma=%.2f ess_gamma=%.2f kernel=%s beta_prior=%s",
+      m_runtime, m_norm$diagnostics$ess$sigma, m_norm$diagnostics$ess$gamma, m_norm$diagnostics$mh$proposal, m_prior
     )
   )
   log_task(model_name, tau, sprintf("mcmc done runtime=%.1fs", m_runtime))
@@ -685,13 +736,13 @@ log_master(sprintf(
     "TT=%d VB(max_iter=%d,tol=%.4f,tol_sigma=%.4g,tol_gamma=%.4g,tol_elbo=%.4g,min_iter=%d,patience=%d,",
     "allow_elbo_drop=%.4g,n_samp_xi=%d,xi=delta,opt=%s,direct=%s,",
     "ld_damp=%s,ld_xi_damp=%s,sigma_init=%s,eta=[%.1f,%.1f]) ",
-    "MCMC(burn=%d,n=%d,thin=%d,mh=%s,trace=%s,trace_every=%d,verbose=%s) cores=%d overwrite=%s"
-  ),
-  TT, vb_max_iter, vb_tol, vb_tol_sigma, vb_tol_gamma, vb_tol_elbo, vb_min_iter, vb_patience, vb_allow_elbo_drop,
-  vb_n_samp_xi, vb_ld_optimizer_method, vb_ld_direct_commit,
-  format(vb_ld_damping, trim = TRUE), format(vb_ld_xi_damping, trim = TRUE), vb_ld_sigma_init_mode, vb_ld_eta_lo, vb_ld_eta_hi,
-  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose, cores_pipeline, overwrite_existing
-))
+	    "MCMC(burn=%d,n=%d,thin=%d,mh=%s,trace=%s,trace_every=%d,verbose=%s,enforce_prior_match=%s,beta_prior=%s) cores=%d overwrite=%s"
+	  ),
+	  TT, vb_max_iter, vb_tol, vb_tol_sigma, vb_tol_gamma, vb_tol_elbo, vb_min_iter, vb_patience, vb_allow_elbo_drop,
+	  vb_n_samp_xi, vb_ld_optimizer_method, vb_ld_direct_commit,
+	  format(vb_ld_damping, trim = TRUE), format(vb_ld_xi_damping, trim = TRUE), vb_ld_sigma_init_mode, vb_ld_eta_lo, vb_ld_eta_hi,
+	  mcmc_burn, mcmc_n, mcmc_thin, mcmc_mh_proposal, mcmc_trace_diagnostics, mcmc_trace_every, mcmc_verbose, enforce_prior_match, beta_prior, cores_pipeline, overwrite_existing
+	))
 log_master(sprintf("models=%s taus=%s", paste(unique(tasks$model), collapse = ","), paste(sprintf("%.2f", p_vec), collapse = ",")))
 
 safe_task <- function(task_row) {

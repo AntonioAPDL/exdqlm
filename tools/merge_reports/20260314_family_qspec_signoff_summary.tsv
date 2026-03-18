@@ -1,2 +1,2 @@
 generated_at	method_fit_count	method_fit_pass_count	method_fit_warn_count	method_fit_fail_count	method_fit_eligible_count	method_fit_certified_count	algorithm_pair_count	algorithm_pair_eligible_count	model_pair_count	model_pair_eligible_count	root_count	root_full_eligible_count	root_any_eligible_count	unhealthy_target_count
-2026-03-16 16:27:49	288	93	119	76	212	93	144	86	144	75	72	21	69	76
+2026-03-18 05:48:12	288	93	127	68	220	93	144	88	144	83	72	23	72	68

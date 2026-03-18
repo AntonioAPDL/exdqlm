@@ -180,6 +180,8 @@ case "$unit_type" in
       if [[ "$launch_mode" == "resume_mcmc_from_vb" ]]; then
         run_and_watch env \
           EXDQLM_STATIC_RUN_CONFIG="${run_root_abs}/tables/run_config.rds" \
+          EXDQLM_STATIC_BETA_PRIOR="$prior_use" \
+          EXDQLM_STATIC_ENFORCE_PRIOR_MATCH="true" \
           EXDQLM_STATIC_RESUME_MODELS="$model" \
           nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_resume_static_mcmc_from_vb.R"
       else
@@ -189,6 +191,7 @@ case "$unit_type" in
           EXDQLM_STATIC_PIPELINE_TAU="$tau" \
           EXDQLM_STATIC_PIPELINE_MODELS="$model" \
           EXDQLM_STATIC_BETA_PRIOR="$prior_use" \
+          EXDQLM_STATIC_ENFORCE_PRIOR_MATCH="true" \
           EXDQLM_STATIC_OUT_ROOT="$run_root_abs" \
           EXDQLM_STATIC_PIPELINE_LABEL="${session_name}" \
           nice -n 10 Rscript "${repo_root}/tools/merge_reports/20260305_static_vb_then_mcmc_pipeline.R"
