@@ -1,11 +1,81 @@
 # TRACK: Q-DESN MCMC Validation Framework
 
-Date: 2026-03-14
+Date: 2026-03-18
 Branch: `feature/qdesn-mcmc-alternative`
-Status: validation framework implemented; broader toy comparison, rhs repair, structural rhs promotion, and representative multichain confirmation completed
+Status: validation framework and gated RHS matrix are implemented and completed; failed-only RHS repair relaunch is active to remove the remaining `FAIL` roots (accepting `WARN` for now)
 Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
+
+## Weekly Consolidated Status (Updated 2026-03-18 16:21 EDT)
+
+This section is the canonical weekly status for the full validation program.
+
+### Last-week milestone summary
+
+- 2026-03-13:
+  - initial Q-DESN `mcmc` integration landed;
+  - inference dispatch and pipeline wiring for `vb`/`mcmc` became runnable from
+    common entry points.
+- 2026-03-14:
+  - validation pilot and broader comparison framework landed;
+  - signoff diagnostics were added;
+  - tuned phase-1 validation defaults were introduced;
+  - RHS-VB collapse fixes were integrated into the shared inference path.
+- 2026-03-15:
+  - RHS repair ladder, structural candidate promotion, and representative
+    multichain confirmation flows landed;
+  - targeted follow-up utilities for remaining RHS failures were added.
+- 2026-03-16:
+  - reparameterization gate workflow and follow-up phase scripts were added for
+    transformed-parameter RHS analysis.
+- 2026-03-17:
+  - runtime-confound isolation wave landed;
+  - phased RHS experiment matrix orchestrator and patch matrix (`E00..E13`)
+    landed with tests.
+- 2026-03-18:
+  - failed-only repair relaunch was started from the completed matrix to rescue
+    only the remaining `FAIL` roots.
+
+### Canonical run state
+
+- Matrix preflight:
+  - `20260317-201834__git-15b388e__preflight`
+  - completed as `dry_run=true` with `14` planned experiments.
+- Full gated matrix:
+  - `20260317-201850__git-15b388e__relaunch_full`
+  - completed with `12/12` experiments;
+  - phase winners:
+    - phase 1: `E00`
+    - phase 2: `E07`
+    - phase 3: `E11`
+    - phase 4: `SKIPPED_BY_TRIGGER`;
+  - final winner:
+    - `E11`
+    - `max_split_rhat = 1.0347`
+    - `min_ess_rhs = 130.76`.
+- Failed-only repair relaunch (current active run):
+  - `20260318-152303__git-15b388e__failed-repair`
+  - targeted roots:
+    - `level_shift_small | tau=0.25 | rhs`
+    - `const_small | tau=0.05 | rhs`
+  - live progress at this update:
+    - first root started;
+    - chain completions: `2/4` complete on first root;
+    - second root pending.
+
+### Current gate and decision rule
+
+- Immediate objective:
+  - eliminate remaining `FAIL` roots from the matrix carry-over set.
+- Acceptable near-term state:
+  - `PASS` or `WARN` is acceptable;
+  - remaining `FAIL` is not acceptable.
+- Next step after repair completion:
+  - if both roots are `PASS/WARN`, close this repair wave and update candidate
+    RHS defaults;
+  - if any root stays `FAIL`, run a tightly scoped follow-up on only the
+    unresolved root with one-factor kernel/warmup interventions.
 
 ## 0) Goal
 

@@ -94,7 +94,8 @@ outputs:
 decomposition:
   enabled: true
   backend: cpp
-  state_estimate: filtered
+  state_estimate: smoothed
+  input_lags_mode: component
   components: [trend, seasonal, residual]
   trend:
     degree: 0

@@ -1,0 +1,61 @@
+# Full sim pipeline run based on config/defaults.yaml with decomposition-informed inputs.
+# Purpose: end-to-end validation on local sim data with full diagnostics/plots/tables enabled.
+
+suite_name: mcmc_inference_dlm_auto_harm_full_defaults
+
+pipeline:
+  mode: sim
+  verbose: true
+
+readout:
+  input_mode: dlm_decomp_lags
+
+decomposition:
+  enabled: true
+  backend: cpp
+  state_estimate: smoothed
+  input_lags_mode: component
+  components: [trend, seasonal, residual]
+  trend:
+    degree: 0
+  seasonal:
+    period: 50
+    harmonics: []
+    auto:
+      enabled: true
+      top_k: 5
+      min_harmonic: 1
+      max_harmonic: 25
+      use_log_score: true
+      center: true
+      prefer_manual: true
+  input_lags:
+    trend: 30
+    seasonal: 30
+    residual: 30
+  forecast:
+    residual_recursion: sampled_path
+
+forecast:
+  mode: mixture
+  horizon: 60
+  train_last_window: 300
+  fore_last_window: 300
+  coverage_report: global
+
+diagnostics:
+  calibration: true
+  pit: true
+  pit_scope: all+synth
+  scores: true
+  lead_eval: true
+  fan_charts: true
+  fan_stride: 60
+  cov_window: 365
+  cov_show_last: 300
+  plots: true
+
+outputs:
+  save: true
+  keep_draws: false
+  thesis_subset: false

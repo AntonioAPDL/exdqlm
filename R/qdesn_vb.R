@@ -7,13 +7,10 @@
 
 #' @keywords internal
 .qdesn_default_decomposition_cfg <- function(m_default = NULL) {
-  if (is.null(m_default)) m_default <- 0L
-  m_default <- as.integer(m_default)
-  if (!is.finite(m_default) || m_default < 0L) m_default <- 0L
   list(
     enabled = FALSE,
     backend = "r",
-    state_estimate = "filtered",
+    state_estimate = "smoothed",
     components = c("trend", "seasonal", "residual"),
     trend = list(degree = 1L),
     seasonal = list(
@@ -21,7 +18,7 @@
       harmonics = integer(0),
       auto = list(
         enabled = FALSE,
-        top_k = 3L,
+        top_k = 5L,
         min_harmonic = 1L,
         max_harmonic = NA_integer_,
         use_log_score = TRUE,
@@ -29,10 +26,11 @@
         prefer_manual = TRUE
       )
     ),
+    input_lags_mode = "component",
     input_lags = list(
-      trend = m_default,
-      seasonal = m_default,
-      residual = m_default
+      trend = 12L,
+      seasonal = 12L,
+      residual = 12L
     ),
     discount = list(trend = 0.99, seasonal = 0.99),
     variance = list(mode = "unknown_constant", l0 = 1, S0 = 1),
@@ -64,8 +62,8 @@
 
   state_estimate <- tolower(as.character(decomposition$state_estimate %||% cfg$state_estimate)[1L])
   if (!state_estimate %in% c("filtered", "smoothed")) {
-    warning(sprintf("[%s] decomposition.state_estimate '%s' not recognized; using 'filtered'.", context, state_estimate), call. = FALSE)
-    state_estimate <- "filtered"
+    warning(sprintf("[%s] decomposition.state_estimate '%s' not recognized; using 'smoothed'.", context, state_estimate), call. = FALSE)
+    state_estimate <- "smoothed"
   }
   cfg$state_estimate <- state_estimate
 
@@ -97,10 +95,10 @@
 
   auto_in <- (decomposition$seasonal %||% list())$auto %||% cfg$seasonal$auto %||% list()
   auto_enabled <- isTRUE(auto_in$enabled %||% cfg$seasonal$auto$enabled %||% FALSE)
-  top_k <- as.integer(auto_in$top_k %||% cfg$seasonal$auto$top_k %||% 3L)[1L]
+  top_k <- as.integer(auto_in$top_k %||% cfg$seasonal$auto$top_k %||% 5L)[1L]
   if (!is.finite(top_k) || top_k < 1L) {
-    warning(sprintf("[%s] decomposition.seasonal.auto.top_k must be integer >= 1; using 3.", context), call. = FALSE)
-    top_k <- 3L
+    warning(sprintf("[%s] decomposition.seasonal.auto.top_k must be integer >= 1; using 5.", context), call. = FALSE)
+    top_k <- 5L
   }
   min_h <- as.integer(auto_in$min_harmonic %||% cfg$seasonal$auto$min_harmonic %||% 1L)[1L]
   if (!is.finite(min_h) || min_h < 1L) {
@@ -134,10 +132,22 @@
     }
     out
   }
-  in_lags <- decomposition$input_lags %||% list()
-  cfg$input_lags$trend <- norm_lag(in_lags$trend %||% cfg$input_lags$trend, "trend")
-  cfg$input_lags$seasonal <- norm_lag(in_lags$seasonal %||% cfg$input_lags$seasonal, "seasonal")
-  cfg$input_lags$residual <- norm_lag(in_lags$residual %||% cfg$input_lags$residual, "residual")
+  lag_mode <- tolower(as.character(decomposition$input_lags_mode %||% cfg$input_lags_mode)[1L])
+  if (!lag_mode %in% c("component", "inherit_m")) {
+    warning(sprintf("[%s] decomposition.input_lags_mode '%s' not recognized; using 'component'.", context, lag_mode), call. = FALSE)
+    lag_mode <- "component"
+  }
+  cfg$input_lags_mode <- lag_mode
+
+  m_default_int <- as.integer(m_default)[1L]
+  if (!is.finite(m_default_int) || m_default_int < 0L) m_default_int <- 0L
+  lag_fallback <- if (identical(lag_mode, "inherit_m")) m_default_int else NULL
+
+  in_lags <- decomposition[["input_lags"]] %||% list()
+  if (!is.list(in_lags)) in_lags <- list()
+  cfg$input_lags$trend <- norm_lag(in_lags$trend %||% lag_fallback %||% cfg$input_lags$trend, "trend")
+  cfg$input_lags$seasonal <- norm_lag(in_lags$seasonal %||% lag_fallback %||% cfg$input_lags$seasonal, "seasonal")
+  cfg$input_lags$residual <- norm_lag(in_lags$residual %||% lag_fallback %||% cfg$input_lags$residual, "residual")
 
   discount <- decomposition$discount %||% list()
   d_tr <- as.numeric(discount$trend %||% cfg$discount$trend)

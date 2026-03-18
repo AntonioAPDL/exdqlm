@@ -201,11 +201,12 @@ Global seasonal block:
 | `decomposition.trend.degree` | trend polynomial order `order=d+1` | `polytrendMod(order, ...)` |
 | `decomposition.seasonal.period` | period `p` | `seasMod(p, h, ...)` |
 | `decomposition.seasonal.harmonics` | harmonic set `{h_j}` | `seasMod(p, h, ...)` |
+| `decomposition.input_lags_mode` | lag-source policy (`component` vs `inherit_m`) | QDESN decomposition config normalization |
 | `decomposition.input_lags.trend` | lag set for trend feature | QDESN input builder |
 | `decomposition.input_lags.seasonal` | lag set for seasonal feature | QDESN input builder |
 | `decomposition.input_lags.residual` | lag set for residual feature | QDESN input builder |
 | `decomposition.variance.mode` | unknown constant `V` recursion | `l_t`, `S_t` equations above |
-| `decomposition.state_estimate` | filtered vs smoothed selection | filtered for predictive path |
+| `decomposition.state_estimate` | filtered vs smoothed selection | default smoothed; filtered for predictive path |
 
 ## 11. C++ Interface Contract (Phase 3 lock)
 

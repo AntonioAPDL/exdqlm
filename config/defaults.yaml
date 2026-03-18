@@ -69,16 +69,16 @@ mode_overrides:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  'n': [300, 300, 300]      # units per layer (length D)
-  n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
-  m: 30                   # number of lags in u_t
-  alpha: [0.2, 0.2, 0.2]     # leak per layer (length D)
+  'n': [50, 50, 50]      # units per layer (length D)
+  n_tilde: [50, 50]        # skip/reducer sizes (length D-1 when D>1)
+  m: 30                   # raw_y_lags only; ignored by decomposition mode unless decomposition.input_lags_mode=inherit_m
+  alpha: [0.1, 0.1, 0.1]     # leak per layer (length D)
   rho: [0.95, 0.95, 0.95]    # spectral scales per layer (length D)
   act_f: ["tanh", "tanh", "tanh"]            # state nonlinearity per layer
   act_k: ["identity", "identity", "identity"] # output activation per layer
   pi_w: [0.1, 0.1, 0.1]      # sparsity of recurrent weights per layer
   pi_in: [1.0, 1.0, 1.0]     # sparsity of input weights per layer
-  washout: 500               # initial time steps discardedmode_overrides
+  washout: 500               # initial time steps discarded
   add_bias: true             # include bias column in readout
   seed: [12345, 12344, 12343] # per-layer seeds (or use a scalar if your code expands it)
 
@@ -175,24 +175,26 @@ decomposition:
   enabled: false            # when true with input_mode=raw_y_lags, mode is promoted to dlm_decomp_lags
   backend: cpp                # r | cpp (cpp backend implemented with NDLM parity tests)
   state_estimate: smoothed  # filtered | smoothed (forecast-valid path should use filtered)
+  input_lags_mode: component # component | inherit_m ; component uses decomposition.input_lags.* as the single source of truth
   components: [trend, seasonal, residual]
   trend:
-    degree: 1               # 0=level, 1=linear, 2=quadratic, ...
+    degree: 0               # 0=level, 1=linear, 2=quadratic, ...
   seasonal:
     period: null            # e.g. 12 for monthly
     harmonics: []           # e.g. [1, 2, 3]
     auto:
       enabled: false        # if true and harmonics is empty (or prefer_manual=false), select harmonics automatically from spectral scores
-      top_k: 3              # number of dominant harmonics to keep
+      top_k: 5              # number of dominant harmonics to keep
       min_harmonic: 1       # lower harmonic index bound (>=1)
       max_harmonic: null    # null => floor(period/2)
       use_log_score: true   # rank by log spectral power at candidate harmonic frequencies
       center: true          # mean-center y before spectral scoring
       prefer_manual: true   # if harmonics is explicitly provided, keep it and skip auto selection
   input_lags:
-    trend: 12
-    seasonal: 12
-    residual: 12
+    # Internal warmup/drop for decomposition mode uses max(trend, seasonal, residual) for index validity.
+    trend: 30               # used directly when input_lags_mode=component
+    seasonal: 30            # used directly when input_lags_mode=component
+    residual: 30            # used directly when input_lags_mode=component
   discount:
     trend: 0.999999
     seasonal: 0.999999

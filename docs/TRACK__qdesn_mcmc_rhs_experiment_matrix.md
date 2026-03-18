@@ -1,12 +1,59 @@
 # QDESN RHS MCMC Experiment Matrix (Gated)
 
-Date: 2026-03-17  
+Date: 2026-03-18  
 Branch: `feature/qdesn-mcmc-alternative`
 
 ## Goal
 
 Run a controlled, phase-gated matrix to isolate the dominant RHS-MCMC failure mode after runtime confounds were removed.  
 Primary target is reducing multichain root failures caused by elevated split-Rhat in RHS blocks.
+
+## Latest Execution Status (Updated 2026-03-18 16:21 EDT)
+
+### Completed matrix runs
+
+- preflight:
+  - `20260317-201834__git-15b388e__preflight`
+  - completed with `dry_run=true`, `n_planned_experiments=14`.
+- full matrix relaunch:
+  - `20260317-201850__git-15b388e__relaunch_full`
+  - completed with `12/12` experiments.
+
+### Full matrix outcome
+
+- phase winners:
+  - phase 1: `E00`
+  - phase 2: `E07`
+  - phase 3: `E11`
+  - phase 4: `SKIPPED_BY_TRIGGER` (trigger condition on `E11` was not met).
+- final matrix decision:
+  - winner `E11`
+  - `max_split_rhat=1.0347`
+  - `min_ess_rhs=130.76`
+  - `final_completed_phase=phase3_chain_length_seed`.
+
+### Remaining failure set and active continuation
+
+The full matrix still left two `FAIL` roots that were extracted and relaunched
+as a failed-only repair continuation:
+
+- `level_shift_small | tau=0.25 | rhs`
+- `const_small | tau=0.05 | rhs`
+
+Active continuation run:
+
+- `rhs_exp_failed_repair/20260318-152303__git-15b388e__failed-repair`
+
+Live progress at this update:
+
+- first root started;
+- first-root chains completed: `2/4`;
+- second root not started yet.
+
+Repair acceptance rule for this continuation:
+
+- `PASS` or `WARN` is acceptable for now;
+- only unresolved `FAIL` requires another targeted follow-up.
 
 ## Fixed Baseline
 
@@ -110,4 +157,3 @@ Key report tables:
 - `tables/phase_triggers.csv`
 - `tables/phase_topk.csv`
 - `decision/matrix_decision.csv`
-

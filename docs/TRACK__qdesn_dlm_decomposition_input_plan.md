@@ -384,7 +384,8 @@ readout:
 decomposition:
   enabled: false
   backend: r               # r | cpp (cpp uses NDLM C++ filter/smoother)
-  state_estimate: filtered # filtered | smoothed (smoothed for diagnostics only)
+  state_estimate: smoothed # filtered | smoothed (forecast path is forced to filtered)
+  input_lags_mode: component # component | inherit_m
   components: [trend, seasonal, residual]
 
   trend:
@@ -395,7 +396,7 @@ decomposition:
     harmonics: [1, 2, 4]
     auto:
       enabled: false
-      top_k: 3
+      top_k: 5
       min_harmonic: 1
       max_harmonic: null
       use_log_score: true
@@ -421,6 +422,9 @@ decomposition:
 ```
 
 Compatibility/mapping notes:
+- `input_lags_mode=component` means `decomposition.input_lags.*` is authoritative and `desn.m` is ignored for decomposition inputs.
+- `input_lags_mode=inherit_m` is a compatibility mode where missing component lags inherit `desn.m`.
+- warmup/drop for decomposition mode is computed internally as `max(trend_lags, seasonal_lags, residual_lags)`; this is not a user config knob, only an index-validity requirement.
 - `trend.degree` maps to polynomial order via `order = degree + 1` if reusing `polytrendMod`.
 - `seasonal.period` + `seasonal.harmonics` map directly to `seasMod`.
 - `seasonal.auto` computes harmonic scores on candidate frequencies `h / period` using cosine/sine projections and selects top-k harmonics.

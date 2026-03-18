@@ -48,6 +48,50 @@ test_that("input mode resolver keeps decomposition mode active in phase 2", {
   expect_identical(info$decomposition$variance$S0, 4)
 })
 
+test_that("decomposition lag mode defaults to component-only and ignores m_default", {
+  withr::local_options(list(
+    exdqlm.warned_dlm_smoothed_predictive = TRUE
+  ))
+
+  info <- exdqlm:::.qdesn_resolve_input_mode_scaffold(
+    input_mode = "dlm_decomp_lags",
+    decomposition = list(
+      enabled = TRUE,
+      backend = "r",
+      state_estimate = "smoothed",
+      trend = list(degree = 1L),
+      seasonal = list(period = 12, harmonics = c(1L, 2L))
+    ),
+    m_default = 30L,
+    context = "test"
+  )
+
+  expect_identical(info$decomposition$input_lags_mode, "component")
+  expect_identical(info$decomposition$input_lags$trend, 12L)
+  expect_identical(info$decomposition$input_lags$seasonal, 12L)
+  expect_identical(info$decomposition$input_lags$residual, 12L)
+})
+
+test_that("decomposition lag mode inherit_m uses m_default for missing components", {
+  info <- exdqlm:::.qdesn_resolve_input_mode_scaffold(
+    input_mode = "dlm_decomp_lags",
+    decomposition = list(
+      enabled = TRUE,
+      backend = "r",
+      state_estimate = "filtered",
+      input_lags_mode = "inherit_m",
+      input_lags = list(trend = 5L)
+    ),
+    m_default = 30L,
+    context = "test"
+  )
+
+  expect_identical(info$decomposition$input_lags_mode, "inherit_m")
+  expect_identical(info$decomposition$input_lags$trend, 5L)
+  expect_identical(info$decomposition$input_lags$seasonal, 30L)
+  expect_identical(info$decomposition$input_lags$residual, 30L)
+})
+
 test_that("seasonal auto-harmonic selection picks dominant harmonics for fixed period", {
   withr::local_seed(20260317)
 
@@ -176,6 +220,45 @@ test_that("qdesn_fit_vb builds decomposition runtime and input width", {
   expect_equal(length(fit$states$decomposition$series$seasonal), length(y))
   expect_equal(length(fit$states$decomposition$series$residual), length(y))
   expect_identical(fit$states$decomposition$input_components, c("trend", "seasonal", "residual"))
+})
+
+test_that("qdesn_fit_vb uses component lag policy independent of m", {
+  withr::local_seed(456)
+
+  tt <- seq_len(140)
+  y <- as.numeric(1 + 0.03 * tt + 0.7 * sin(2 * pi * tt / 12) + stats::rnorm(140, sd = 0.07))
+
+  fit <- exdqlm:::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 12L,
+    n_tilde = integer(0),
+    m = 30L,
+    alpha = 0.2,
+    rho = 0.9,
+    pi_w = 1.0,
+    pi_in = 1.0,
+    washout = 5L,
+    add_bias = TRUE,
+    seed = 77L,
+    fit_readout = FALSE,
+    standardize_inputs = TRUE,
+    input_mode = "dlm_decomp_lags",
+    decomposition = list(
+      enabled = TRUE,
+      backend = "r",
+      state_estimate = "filtered",
+      input_lags_mode = "component",
+      components = c("trend", "seasonal", "residual"),
+      trend = list(degree = 0L),
+      seasonal = list(period = 12, harmonics = c(1L, 2L))
+    )
+  )
+
+  expect_identical(fit$meta$decomposition$input_lags_mode, "component")
+  expect_equal(fit$meta$m_input, 36L)
+  expect_equal(fit$meta$input_lag_warmup, 12L)
 })
 
 test_that("forecast paths/lattice run in decomposition mode with non-terminal origins", {

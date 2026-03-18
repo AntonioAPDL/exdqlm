@@ -74,7 +74,7 @@
 
 .qdesn_select_harmonics_spectral <- function(y,
                                              period,
-                                             top_k = 3L,
+                                             top_k = 5L,
                                              min_harmonic = 1L,
                                              max_harmonic = NA_integer_,
                                              use_log_score = TRUE,
@@ -525,7 +525,7 @@ qdesn_ndlm_structured_forecast <- function(
       auto_selection <- .qdesn_select_harmonics_spectral(
         y = y,
         period = period,
-        top_k = auto_cfg$top_k %||% 3L,
+        top_k = auto_cfg$top_k %||% 5L,
         min_harmonic = auto_cfg$min_harmonic %||% 1L,
         max_harmonic = auto_cfg$max_harmonic %||% NA_integer_,
         use_log_score = isTRUE(auto_cfg$use_log_score %||% TRUE),
@@ -648,7 +648,7 @@ qdesn_ndlm_structured_forecast <- function(
   )
   backend_actual <- as.character(filt$backend %||% backend_pref)[1L]
 
-  state_est_req <- tolower(as.character(decomp_cfg$state_estimate %||% "filtered")[1L])
+  state_est_req <- tolower(as.character(decomp_cfg$state_estimate %||% "smoothed")[1L])
   state_est_eff <- tolower(as.character(decomp_cfg$state_estimate_effective %||% state_est_req)[1L])
   if (!state_est_eff %in% c("filtered", "smoothed")) state_est_eff <- "filtered"
 
