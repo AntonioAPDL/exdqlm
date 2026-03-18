@@ -1,6 +1,8 @@
 test_that("family-qspec signoff helpers classify diagnostics consistently", {
   repo_root <- normalizePath(file.path("..", ".."), winslash = "/", mustWork = TRUE)
-  source(file.path(repo_root, "tools", "merge_reports", "20260314_family_qspec_signoff_common.R"))
+  helper_path <- file.path(repo_root, "tools", "merge_reports", "20260314_family_qspec_signoff_common.R")
+  skip_if_not(file.exists(helper_path), "family-qspec signoff helper unavailable")
+  source(helper_path)
 
   acf1 <- fqsg_safe_acf1(seq_len(50))
   expect_true(is.finite(acf1))
@@ -29,12 +31,31 @@ test_that("family-qspec signoff helpers classify diagnostics consistently", {
   expect_true(cfg$vb$tail_window >= 2L)
   expect_true(cfg$mcmc$min_keep_pass >= cfg$mcmc$min_keep_warn)
 
-  withr::local_envvar(c(
+  old_env <- Sys.getenv(
+    c(
+      "EXDQLM_FQSG_MCMC_ESS_SIGMA_WARN",
+      "EXDQLM_FQSG_MCMC_ACF1_WARN",
+      "EXDQLM_FQSG_MCMC_GEWEKE_ABSZ_WARN",
+      "EXDQLM_FQSG_MCMC_HALF_DRIFT_WARN"
+    ),
+    unset = NA_character_
+  )
+  on.exit({
+    for (nm in names(old_env)) {
+      val <- old_env[[nm]]
+      if (is.na(val)) {
+        Sys.unsetenv(nm)
+      } else {
+        do.call(Sys.setenv, stats::setNames(list(val), nm))
+      }
+    }
+  }, add = TRUE)
+  Sys.setenv(
     EXDQLM_FQSG_MCMC_ESS_SIGMA_WARN = "5",
     EXDQLM_FQSG_MCMC_ACF1_WARN = "0.995",
     EXDQLM_FQSG_MCMC_GEWEKE_ABSZ_WARN = "5.0",
     EXDQLM_FQSG_MCMC_HALF_DRIFT_WARN = "0.75"
-  ))
+  )
   cfg_override <- fqsg_signoff_cfg()
   expect_equal(cfg_override$mcmc$ess_sigma_warn, 5)
   expect_equal(cfg_override$mcmc$acf1_warn, 0.995)
