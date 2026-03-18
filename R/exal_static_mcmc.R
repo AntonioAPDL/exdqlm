@@ -190,6 +190,25 @@ exal_static_mcmc <- function(
     if (!is.finite(info) || info <= 0) info <- 1e-4
     list(eta_hat = eta_hat, info = info)
   }
+  sample_sigma_conditional <- function(k, chi, psi) {
+    k <- as.numeric(k)[1]
+    chi <- as.numeric(chi)[1]
+    psi <- as.numeric(psi)[1]
+
+    if (!is.finite(k) || !is.finite(chi) || chi <= 0 || !is.finite(psi) || psi < 0) {
+      return(NA_real_)
+    }
+
+    if (psi <= 1e-12) {
+      if (k >= 0) return(NA_real_)
+      # GIG(k, chi, 0) with k < 0 reduces to inverse-gamma(shape=-k, rate=chi/2).
+      return(1 / stats::rgamma(1L, shape = -k, rate = pmax(0.5 * chi, 1e-12)))
+    }
+
+    as.numeric(sample_gig_devroye_vector(
+      1L, p = k, a = psi, b_vec = chi
+    )[1, 1])
+  }
 
   # initialize eta from current gamma
   eta <- stats::qlogis((gamma - L) / (U - L))
@@ -238,9 +257,7 @@ exal_static_mcmc <- function(
     chi_sigma  <- sum((r * r) / (B * v)) + 2 * sum(v) + 2 * b_sigma
     psi_sigma  <- (lambda * lambda / B) * sum((s * s) / v)
     k_sigma    <- -(a_sigma + 1.5 * n)
-    sigma_new  <- as.numeric(sample_gig_devroye_vector(
-                     1L, p = k_sigma, a = psi_sigma, b_vec = chi_sigma
-                   )[1, 1])
+    sigma_new  <- sample_sigma_conditional(k = k_sigma, chi = chi_sigma, psi = psi_sigma)
     if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
 
     ## (5) gamma | rest via Laplace-Delta in eta
