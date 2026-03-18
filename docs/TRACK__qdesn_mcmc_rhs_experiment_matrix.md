@@ -55,6 +55,30 @@ Repair acceptance rule for this continuation:
 - `PASS` or `WARN` is acceptable for now;
 - only unresolved `FAIL` requires another targeted follow-up.
 
+## Const `rhs_c2` Follow-up Wave (Implemented)
+
+Because failed-only continuation finished with:
+
+- `level_shift_small | tau=0.25 | rhs`: `WARN`
+- `const_small | tau=0.05 | rhs`: `FAIL` (`split_rhat_high` on `rhs_c2`)
+
+the next implemented wave is a focused const-root micro-matrix plus two-root
+reconfirm:
+
+- phase-A matrix:
+  - `config/validation/qdesn_mcmc_rhs_const_c2_matrix/matrix.yaml`
+- const-only grid:
+  - `config/validation/qdesn_mcmc_multichain_rhs_const_fail_grid.csv`
+- phase-B reconfirm grid:
+  - `config/validation/qdesn_mcmc_multichain_rhs_runtime_isolation_grid.csv`
+- orchestrator:
+  - `scripts/run_qdesn_mcmc_rhs_const_c2_wave.R`
+
+Promotion rule:
+
+- write provisional defaults only when reconfirm has `FAIL=0`;
+- otherwise keep defaults unchanged and emit a kernel-escalation next-step note.
+
 ## Fixed Baseline
 
 Base defaults:

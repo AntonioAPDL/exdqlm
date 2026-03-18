@@ -77,6 +77,40 @@ This section is the canonical weekly status for the full validation program.
   - if any root stays `FAIL`, run a tightly scoped follow-up on only the
     unresolved root with one-factor kernel/warmup interventions.
 
+### Post-repair escalation wave (const `rhs_c2`) on 2026-03-18
+
+The failed-only continuation completed with one unresolved fail:
+
+- `const_small | tau=0.05 | rhs`
+- failure reason: `split_rhat_high` driven by `rhs_c2`.
+
+To isolate this remaining issue without resetting broader progress, the next
+wave is implemented as:
+
+1. phase-A micro-matrix on const-only root
+   - matrix config:
+     - `config/validation/qdesn_mcmc_rhs_const_c2_matrix/matrix.yaml`
+   - grid:
+     - `config/validation/qdesn_mcmc_multichain_rhs_const_fail_grid.csv`
+   - experiments:
+     - `B0` control (`E07+E11` equivalent),
+     - `B1`/`B2` narrowed `rhs_c2` and block widths,
+     - `B3` coordinate global update,
+     - `B4` long-chain stress with strong narrowing.
+2. phase-B reconfirm on two roots
+   - grid:
+     - `config/validation/qdesn_mcmc_multichain_rhs_runtime_isolation_grid.csv`
+3. provisional promotion gate
+   - promote selected defaults only if reconfirm has `FAIL=0`;
+   - otherwise keep defaults unchanged and escalate kernel changes.
+
+End-to-end orchestrator:
+
+- `scripts/run_qdesn_mcmc_rhs_const_c2_wave.R`
+
+This preserves existing signoff thresholds and keeps all changes localized to
+the unresolved `rhs_c2` geometry.
+
 ## 0) Goal
 
 Build a validation framework for Q-DESN inference that is:
