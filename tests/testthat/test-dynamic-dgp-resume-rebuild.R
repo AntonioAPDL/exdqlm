@@ -1,8 +1,8 @@
 helper_path <- testthat::test_path("..", "..", "tools", "merge_reports", "20260305_dynamic_dgp_model_helpers.R")
 if (!exists("as.exdqlm", mode = "function")) {
-  devtools::load_all(testthat::test_path("..", ".."), quiet = TRUE)
+  pkgload::load_all(testthat::test_path("..", ".."), quiet = TRUE)
 }
-stopifnot(file.exists(helper_path))
+testthat::skip_if_not(file.exists(helper_path), "dynamic DGP helper script unavailable in test sandbox")
 source(helper_path, local = TRUE)
 
 test_that("dynamic DGP helper reconstructs lean family-qspec schema defaults", {

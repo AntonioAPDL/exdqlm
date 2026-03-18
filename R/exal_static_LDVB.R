@@ -501,7 +501,7 @@
   }
 
   tail_with_candidate <- function(df, col, value) {
-    tail(c(df[[col]], value), window)
+    utils::tail(c(df[[col]], value), window)
   }
 
   metrics <- list(
@@ -1511,7 +1511,7 @@ exal_static_LDVB <- function(
     if (isTRUE(stabilize_active)) {
       stabilize_release_ok_hist <- c(stabilize_release_ok_hist, isTRUE(stabilization_release_ok))
       if (length(stabilize_release_ok_hist) > ld_ctrl$stabilize_release_window) {
-        stabilize_release_ok_hist <- tail(stabilize_release_ok_hist, ld_ctrl$stabilize_release_window)
+        stabilize_release_ok_hist <- utils::tail(stabilize_release_ok_hist, ld_ctrl$stabilize_release_window)
       }
       stabilize_release_count <- sum(stabilize_release_ok_hist)
       if (length(stabilize_release_ok_hist) >= ld_ctrl$stabilize_release_window &&

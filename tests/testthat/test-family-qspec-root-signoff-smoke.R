@@ -1,6 +1,8 @@
 test_that("family-qspec root signoff script writes complete bundles for representative roots", {
   repo_root <- normalizePath(file.path("..", ".."), winslash = "/", mustWork = TRUE)
-  source(file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_v2_common.R"))
+  common_path <- file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_v2_common.R")
+  skip_if_not(file.exists(common_path), "family-qspec common helper unavailable")
+  source(common_path)
 
   catalog_path <- file.path(repo_root, "tools", "merge_reports", "20260312_family_qspec_root_catalog.tsv")
   script_path <- file.path(repo_root, "tools", "merge_reports", "20260314_family_qspec_root_signoff.R")
