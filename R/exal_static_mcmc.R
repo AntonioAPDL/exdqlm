@@ -547,7 +547,7 @@ exal_static_mcmc <- function(
       } else NULL,
       last = list(beta = beta, sigma = sigma, v = v)
     )
-    class(ret) <- "exal_static_mcmc"
+    class(ret) <- c("exal_mcmc", "exal_static_mcmc")
     return(ret)
   }
 
@@ -1064,6 +1064,6 @@ exal_static_mcmc <- function(
     n.mcmc = n.mcmc,
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)
   )
-  class(ret) <- "exal_mcmc"
+  class(ret) <- c("exal_mcmc", "exal_static_mcmc")
   ret
 }

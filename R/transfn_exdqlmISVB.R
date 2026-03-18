@@ -80,6 +80,7 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
   X = check_ts(X)
   if(length(X) != length(y)){stop("y and X must be time-series of the same length")}
   model = check_mod(model)
+  p = length(model$m0)
   if(length(lam) != 1 | lam >= 1 | lam <= 0){stop("lam must be a single value between 0 and 1")}
   if(!methods::hasArg(dim.df)){
     if(length(df)!=1){
@@ -136,8 +137,16 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
   tf.model.dim.df = c(dim.df,rep(1,2))
 
   # fit transfer function exdqlm
-  tf.return = exdqlmISVB(y,p0,tf.model,tf.model.df,tf.model.dim.df,fix.gamma,gam.init,fix.sigma,sig.init,dqlm.ind,
-                         exps0,tol,n.IS,n.samp,PriorSigma,PriorGamma,verbose)
+  tf.return = exdqlmISVB(
+    y = y, p0 = p0, model = tf.model,
+    df = tf.model.df, dim.df = tf.model.dim.df,
+    fix.gamma = fix.gamma, gam.init = gam.init,
+    fix.sigma = fix.sigma, sig.init = sig.init,
+    dqlm.ind = dqlm.ind, exps0 = exps0, tol = tol,
+    n.IS = n.IS, n.samp = n.samp,
+    PriorSigma = PriorSigma, PriorGamma = PriorGamma,
+    verbose = verbose
+  )
   tf.return$lam = lam
 
   k_seq = (log(1e-3)-log(abs(c(tf.model$m0[1],tf.return$theta.out$sm[(dim(tf.return$theta.out$sm)[1]-1),-TT])*c(X))))/(log(lam))

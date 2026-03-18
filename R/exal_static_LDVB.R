@@ -809,7 +809,7 @@ exal_static_LDVB <- function(
       init = init,
       verbose = verbose
     )
-    class(ret) <- "exal_vb"
+    class(ret) <- c("exal_ldvb", "exal_vb")
     return(ret)
   }
 
@@ -2058,7 +2058,7 @@ exal_static_LDVB <- function(
   if (identical(beta_prior_obj$type, "rhs")) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
-  class(ret) <- "exal_ldvb"
+  class(ret) <- c("exal_ldvb", "exal_vb")
   if (verbose) {
     cat(sprintf("LDVB %s in %d iters (%.2fs): gamma~%.3f, sigma~%.3f\n",
                 ifelse(converged, "converged", "stopped"),
