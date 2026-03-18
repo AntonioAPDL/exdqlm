@@ -16,6 +16,7 @@
  */
 
 #include <RcppArmadillo.h>
+#include <cmath>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -33,7 +34,7 @@ arma::mat svd_inv(const arma::mat& M, double tol = 1e-12) {
   arma::svd(U, s, V, M);
   arma::vec s_inv = s;
   for (arma::uword i = 0; i < s_inv.n_elem; ++i) {
-    if (!arma::is_finite(s_inv(i)) || s_inv(i) <= tol) {
+    if (!std::isfinite(s_inv(i)) || s_inv(i) <= tol) {
       s_inv(i) = tol;
     }
     s_inv(i) = 1.0 / s_inv(i);
@@ -48,7 +49,7 @@ arma::vec mvn_svd_draw(const arma::vec& mean, const arma::mat& cov, double tol =
   arma::vec s;
   arma::svd(U, s, V, S);
   for (arma::uword i = 0; i < s.n_elem; ++i) {
-    if (!arma::is_finite(s(i)) || s(i) < tol) {
+    if (!std::isfinite(s(i)) || s(i) < tol) {
       s(i) = tol;
     }
   }
@@ -99,7 +100,7 @@ Rcpp::List mcmc_ffbs_smooth_cpp(const arma::cube& GG,
     double f = arma::as_scalar(FF.col(t).t() * a) + ex_f(t);
     arma::rowvec fB = FF.col(t).t() * R;
     double q = arma::as_scalar(fB * FF.col(t)) + ex_q(t);
-    if (!arma::is_finite(q) || q <= 0.0) {
+    if (!std::isfinite(q) || q <= 0.0) {
       q = 1e-12;
     }
 
@@ -166,7 +167,7 @@ Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG,
     double f = arma::as_scalar(FF.col(t).t() * a) + ex_f(t);
     arma::rowvec fB = FF.col(t).t() * R;
     double q = arma::as_scalar(fB * FF.col(t)) + ex_q(t);
-    if (!arma::is_finite(q) || q <= 0.0) {
+    if (!std::isfinite(q) || q <= 0.0) {
       q = 1e-12;
     }
 
