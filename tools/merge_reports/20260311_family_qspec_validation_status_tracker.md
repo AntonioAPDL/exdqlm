@@ -1,6 +1,6 @@
 # Family-QSpec Validation Status Tracker
 
-Last updated: 2026-03-18 16:30 EDT
+Last updated: 2026-03-18 17:08 EDT
 
 This file is the authoritative human-readable tracker for the family-qspec
 validation campaign on muscat.
@@ -2212,9 +2212,9 @@ Interpretation:
   window, with only minor boundary movement (`67` vs `68` unhealthy rows across
   different rebuild checkpoints)
 
-### Current Active Repair Wave (Fail-Only Relaunch)
+### Current Fail-Only Repair Wave (Operator-Stopped)
 
-Authoritative live state dir:
+Authoritative state dir:
 
 - `/home/jaguir26/local/state/exdqlm/family_qspec_fail_only_20260318_fail_only_overwrite_152412`
 
@@ -2222,7 +2222,7 @@ Superseded/aborted predecessor (kept for history only):
 
 - `/home/jaguir26/local/state/exdqlm/family_qspec_fail_only_20260318_fail_only_152054`
 
-Live queue checkpoint (`2026-03-18 16:26 EDT`):
+Pre-stop queue checkpoint (`2026-03-18 16:26 EDT`):
 
 | Metric | Value |
 | --- | ---: |
@@ -2237,7 +2237,7 @@ Live queue checkpoint (`2026-03-18 16:26 EDT`):
 | first `START` in this run | `2026-03-18 15:24:14` |
 | latest `DONE` in this run | `2026-03-18 16:22:05` |
 
-Running-task health checkpoint (`2026-03-18 16:26 EDT`):
+Running-task health checkpoint before stop (`2026-03-18 16:26 EDT`):
 
 - all `9` active tasks show fresh heartbeats (`<= 1 minute` age at check time)
 - CPU for active workers is sustained around `99.4% - 99.6%`
@@ -2245,11 +2245,26 @@ Running-task health checkpoint (`2026-03-18 16:26 EDT`):
   (about `0.31 - 0.47`)
 - no new `FAILED` events were observed in the active fail-only overwrite wave
 
-Execution note for operators:
+Operator stop record (`2026-03-18 17:06-17:07 EDT`):
 
-- this overwrite wave is healthy on active chains, but dispatch is currently
-  not filling beyond the initial start burst (`30` started so far), so the
-  remaining `26` not-started rows are still pending launch
+- stop requested by operator for reprioritization at
+  `2026-03-18 17:06:07 EDT`
+- clean stop completion recorded at `2026-03-18 17:07:35 EDT`
+- launch log now includes:
+  - `OPERATOR_STOP_REQUEST`
+  - `OPERATOR_STOP_COMPLETE`
+- final at-stop queue counts:
+  - `total=56`
+  - `done=23`
+  - `failed=7`
+  - `running=0`
+  - `not_started=26`
+  - `completion=41.1%`
+- all 7 new failures from this stop are expected `TERM` interruptions:
+  `worker interrupted by TERM rc=143`
+- post-stop verification:
+  - active locks: `0`
+  - active worker/model processes for this state: `0`
 
 ### Week-To-Date Validation Deliverables Now In Place
 
