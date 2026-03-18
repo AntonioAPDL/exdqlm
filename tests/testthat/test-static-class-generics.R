@@ -13,11 +13,9 @@ test_that("exal_mcmc generics dispatch and return stable outputs", {
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
-    dqlm.ind = FALSE,
     n.burn = 8,
     n.mcmc = 10,
     thin = 1,
-    mh.proposal = "slice",
     verbose = FALSE
   )
 
@@ -40,7 +38,6 @@ test_that("exal_ldvb generics dispatch and enforce plot X contract", {
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
-    dqlm.ind = FALSE,
     max_iter = 40,
     tol = 5e-3,
     n_samp_xi = 60,
