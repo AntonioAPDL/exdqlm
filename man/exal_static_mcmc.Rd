@@ -10,15 +10,32 @@ exal_static_mcmc(
   p0,
   b0 = NULL,
   V0 = NULL,
+  beta_prior = c("ridge", "rhs"),
+  beta_prior_controls = NULL,
   a_sigma = 1,
   b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  log_prior_gamma = function(g) 0,
+  log_prior_gamma = NULL,
   init = NULL,
+  dqlm.ind = FALSE,
   n.burn = 2000,
   n.mcmc = 1500,
   thin = 1,
-  verbose = TRUE
+  init.from.vb = FALSE,
+  vb_init_controls = NULL,
+  mh.proposal = c("laplace_local", "laplace_rw", "rw", "slice"),
+  mh.adapt = TRUE,
+  mh.adapt.interval = 50L,
+  mh.target.accept = c(0.2, 0.45),
+  mh.scale.bounds = c(0.1, 10),
+  mh.max_scale.step = 0.35,
+  mh.min_burn_adapt = 50L,
+  slice.width = 0.1,
+  slice.max.steps = Inf,
+  trace.diagnostics = TRUE,
+  trace.every = 1L,
+  verbose = TRUE,
+  progress_callback = NULL
 )
 }
 \arguments{
@@ -31,6 +48,21 @@ exal_static_mcmc(
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.}
 
+\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default) or
+\code{"rhs"} for the regularized horseshoe.}
+
+\item{beta_prior_controls}{Optional list of prior-specific controls. For
+\code{beta_prior = "rhs"}, supported keys follow the qdesn-style static
+interface: \code{tau0}, \code{nu}, \code{s} or \code{s2},
+\code{shrink_intercept}, \code{intercept_prec}, \code{n_inner},
+\code{eta_bounds}, \code{var_floor}, \code{h_curv}, \code{verbose},
+\code{init_lambda}, \code{init_log_lambda}, \code{init_tau},
+\code{init_log_tau}, \code{init_c2}, \code{init_log_c2},
+\code{slice_width}, and \code{slice_max_steps}. When
+\code{beta_prior = "rhs"}, \code{b0} and \code{V0} are ignored for the
+shrunk coefficients and retained only for backward-compatible ridge
+behavior.}
+
 \item{a_sigma, b_sigma}{Hyperparameters for an inverse-gamma prior on
 \code{sigma}, with density proportional to
 \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.}
@@ -39,11 +71,16 @@ exal_static_mcmc(
 Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 
 \item{log_prior_gamma}{Function \code{function(g) log pi(g)} for \code{gamma}
-on (L, U).
-Default is flat (returns 0).}
+on (L, U). Default is a truncated Student-t prior centered at 0 on the
+admissible support.}
 
-\item{init}{Optional list with starting values: \code{beta}, \code{sigma}, \code{gamma},
-\code{v} (length \eqn{n}), \code{s} (length \eqn{n}). Missing pieces are filled sensibly.}
+\item{init}{Optional list with starting values: \code{beta}, \code{sigma},
+\code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
+for \code{beta_prior = "rhs"} optionally \code{lambda}, \code{tau}, and
+\code{c2}. Missing pieces are filled sensibly.}
+
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
+with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
 
 \item{n.burn}{Number of burn-in iterations. Default \code{2000}.}
 
@@ -52,7 +89,55 @@ Default is flat (returns 0).}
 \item{thin}{Integer; save every \code{thin}-th iteration after burn. We internally run
 \code{n.burn + n.mcmc * thin} iterations to return exactly \code{n.mcmc} saved draws.}
 
-\item{verbose}{Print progress every 500 iters.}
+\item{init.from.vb}{Logical; if \code{TRUE}, run static VB first and use its
+posterior moments as MCMC initialization.}
+
+\item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
+\code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
+\code{ld_controls} (passed through to \code{exal_static_LDVB()}).}
+
+\item{mh.proposal}{Character string controlling the exAL gamma update kernel.
+\code{"laplace_local"} reproduces the previous Laplace-local draw.
+\code{"laplace_rw"} initializes a random-walk MH scale from local curvature
+and adapts it during burn-in. \code{"rw"} uses adaptive random-walk MH
+without Laplace scaling. \code{"slice"} uses an exact bounded univariate
+slice sampler directly on \code{gamma}. Only \code{"rw"},
+\code{"laplace_rw"}, and \code{"slice"} are exact posterior kernels for
+the \code{gamma} update; \code{"laplace_local"} is approximate and should
+not be treated as signoff-ready.}
+
+\item{mh.adapt}{Logical; adapt the random-walk proposal scale during burn-in.
+Ignored for \code{"laplace_local"} and \code{"slice"}.}
+
+\item{mh.adapt.interval}{Integer adaptation window for RW-based kernels.}
+
+\item{mh.target.accept}{Numeric length-2 target acceptance band.}
+
+\item{mh.scale.bounds}{Numeric length-2 lower/upper bounds for RW proposal scale.}
+
+\item{mh.max_scale.step}{Numeric multiplicative adaptation cap in \code{(0,1)}.}
+
+\item{mh.min_burn_adapt}{Integer minimum burn-in before adaptation starts.}
+
+\item{slice.width}{Positive numeric width for the bounded slice sampler when
+\code{mh.proposal = "slice"}. Default \code{0.1} for parity with
+\code{bqrgal}.}
+
+\item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
+expansions for the slice sampler.}
+
+\item{trace.diagnostics}{Logical; if \code{TRUE}, retain per-iteration
+gamma/s diagnostics under \code{mh.diagnostics$trace}. Set \code{FALSE}
+for lighter-weight runs.}
+
+\item{trace.every}{Positive integer; when \code{trace.diagnostics=TRUE},
+record one diagnostics row every \code{trace.every} iterations.}
+
+\item{verbose}{Print progress every \code{progress_every} iterations.}
+
+\item{progress_callback}{Optional callback invoked with a named list at MCMC
+start, at each progress checkpoint, and on completion. Intended for
+workflow-level per-case progress logging.}
 }
 \value{
 A object of class "\code{exal_mcmc}" containing:
@@ -64,13 +149,22 @@ A object of class "\code{exal_mcmc}" containing:
 \item \code{samp.gamma} - posterior sample of \code{gamma} as \code{coda::mcmc}.
 \item \code{samp.v} - latent \code{v} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
+\item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
+draws when \code{beta_prior = "rhs"}; otherwise \code{NULL}.
+\item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
+of the shrinkage block.
+\item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
+including whether the saved kernel is exact/signoff-ready.
+\item \code{rhs.diagnostics} - RHS latent summaries and optional trace
+metadata when \code{beta_prior = "rhs"}.
 \item \code{last} - last state of the chain (useful for restarts).
 }
 }
 \description{
 The function applies a Gibbs sampler for static Extended Asymmetric Laplace regression
 (exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
-draw \eqn{\gamma} via a Laplace-Delta step on a logit transform of (L, U).
+update \eqn{\gamma} on the transformed logit scale using either the legacy
+Laplace-local draw or an adaptive random-walk MH kernel.
 }
 \examples{
 \donttest{
@@ -83,5 +177,20 @@ fit <- exal_static_mcmc(
   y, X, p0 = 0.5, n.burn = 200, n.mcmc = 200, thin = 1, verbose = FALSE
 )
 summary(fit$samp.beta)
+
+fit_rhs <- exal_static_mcmc(
+  y, X, p0 = 0.5,
+  beta_prior = "rhs",
+  beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
+  n.burn = 120, n.mcmc = 120, thin = 1, mh.proposal = "slice", verbose = FALSE
+)
+fit_rhs$beta_prior$type
+
+fit_al <- exal_static_mcmc(
+  y, X, p0 = 0.5,
+  dqlm.ind = TRUE,
+  n.burn = 120, n.mcmc = 120, thin = 1, verbose = FALSE
+)
+fit_al$dqlm.ind
 }
 }

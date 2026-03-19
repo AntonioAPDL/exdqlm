@@ -42,6 +42,8 @@
 #'   \item `theta.out` - List containing the variational distribution of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
 #'   \item `fix.sigma` Logical value indicating whether sigma was fixed at `sig.init`.
+#'   \item `diagnostics` - List containing ELBO trace and convergence diagnostics
+#'   (joint stopping status, deltas for state/sigma/gamma/ELBO, and criteria used).
 #' }
 #' If `dqlm.ind=FALSE`, the object also contains:
 #' \itemize{
@@ -67,6 +69,10 @@
 #'   \item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
 #'   \item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
 #'   \item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+#'   \item \code{exdqlm.tol_sigma}: sigma-delta convergence tolerance (default: `tol`).
+#'   \item \code{exdqlm.tol_gamma}: gamma-delta convergence tolerance (default: `tol`).
+#'   \item \code{exdqlm.vb.min_iter}: minimum iterations before convergence can trigger (default 10).
+#'   \item \code{exdqlm.vb.patience}: number of consecutive joint-converged iterations required (default 3).
 #'   \item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
 #'         When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
 #'   \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
@@ -81,6 +87,9 @@
 #' model = trend.comp + seas.comp
 #' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
 #'                  gam.init = -3.5, sig.init = 15, tol = 0.05)
+#'
+#' M0_al = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
+#'                    dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
 #' }
 #'
 exdqlmISVB <- function(y, p0, model, df, dim.df,
@@ -102,7 +111,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   model = check_mod(model)
   rv = check_logics(gam.init,sig.init,fix.gamma,fix.sigma,dqlm.ind)
   gam.init = rv$gam.init
-  dqlm.int = rv$dqlm.ind
+  dqlm.ind = rv$dqlm.ind
   fix.gamma = rv$fix.gamma
 
   ### Define L and U
@@ -127,16 +136,10 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       }
   }
   # gamma ~ truncated student t on L,U
-  if(is.null(PriorGamma)){
-    PriorGamma$m_gam = 0
-    PriorGamma$s_gam = 1
-    PriorGamma$df_gam = 1
-   }else{
-     if(!is.list(PriorGamma) | any( is.na( match(c("m_gam", "s_gam", "df_gam"),names(PriorGamma)) ) )){
-       stop("`PriorGamma` must be a list containing `m_gam`,`s_gam`, and `df_gam`")
-     }
-   }
-  PriorGammaDens<-function(gamma){ crch::dtt(gamma,location = PriorGamma$m_gam, scale = PriorGamma$s_gam, df = PriorGamma$df_gam, left = L, right = U, log = FALSE) }
+  PriorGamma <- .normalize_gamma_prior_trunc_t(PriorGamma)
+  PriorGammaDens <- function(gamma) {
+    .gamma_prior_density_trunc_t(gamma, bounds = c(L, U), PriorGamma = PriorGamma, log = FALSE)
+  }
 
   ### state-space model
   ## prior, theta ~ N(m0,C0)
@@ -161,6 +164,30 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     dim.df = p
   }
   df.mat = make_df_mat(df,dim.df,p)
+  max_iter <- suppressWarnings(as.integer(getOption("exdqlm.max_iter", 200L)))
+  if (!is.finite(max_iter) || max_iter < 1L) max_iter <- 200L
+
+  # Reduced AL branch (DQLM): conjugate CAVI without gamma/s_t blocks.
+  if (isTRUE(dqlm.ind)) {
+    exps0_user <- if (methods::hasArg(exps0)) exps0 else NULL
+    retlist <- .run_dynamic_dqlm_cavi(
+      y = as.numeric(y),
+      p0 = p0,
+      model = model,
+      df = df,
+      dim.df = dim.df,
+      fix.sigma = fix.sigma,
+      sig.init = sig.init,
+      tol = tol,
+      n.samp = n.samp,
+      PriorSigma = PriorSigma,
+      verbose = verbose,
+      exps0 = exps0_user,
+      max_iter = max_iter
+    )
+    class(retlist) <- "exdqlmISVB"
+    return(retlist)
+  }
 
   ### Initialize VB
   gam0 = ifelse(!is.na(gam.init),gam.init,(L+U)/2)
@@ -188,10 +215,16 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
   ### initialize convergence evaluations
   iter = 0
-  conv.count = 0
-  new.max = Inf
+  stable.count = 0L
   seq.gamma = new.gamsig.out$E.gam
   seq.sigma = new.gamsig.out$E.sigma
+  delta.state = numeric(0)
+  delta.sigma = numeric(0)
+  delta.gamma = numeric(0)
+  delta.elbo = numeric(0)
+  compute.elbo <- isTRUE(getOption("exdqlm.compute_elbo", TRUE))
+  conv.ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
+  stop.reason <- "max_iter"
 
   # function update q(st)  (trunc-normal on (0, \\infty))
   update_sts <- function(exps, inv.uts, c2.invb.absgam2.sigma, c.invb.absgam, c.a.invb.absgam) {
@@ -505,13 +538,12 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
   tictoc::tic("run time")
   ### estimate posterior
-  while( (new.max > tol && conv.count < 5) && iter < 200 ){
+  while(iter < max_iter){
 
     # counter
     iter <- iter + 1L
     if (verbose && iter %% 5 == 0) {
-      message(sprintf("ISVB iteration %d: new.max=%.4f, conv.count=%d",
-                      iter, new.max, conv.count))
+      message(sprintf("ISVB iteration %d", iter))
       utils::flush.console()
     }
 
@@ -564,44 +596,72 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
                                        new.uts.out$E.uts,new.uts.out$E.inv.uts)
 
     # ELBO (now uses gs$elbo_logZ if available)
-    if (isTRUE(getOption("exdqlm.compute_elbo", TRUE))) {
+    if (compute.elbo) {
       elbo.obj <- .elbo_snapshot(y, new.theta.out, new.sts.out, new.uts.out, new.gamsig.out)
       if (!exists("elbo.seq", inherits = FALSE)) elbo.seq <- numeric(0)
       elbo.seq <- c(elbo.seq, elbo.obj$total)
-
-      if (verbose && iter %% 5 == 0) {
-        dELBO <- if (length(elbo.seq) >= 2) elbo.seq[length(elbo.seq)] - elbo.seq[length(elbo.seq)-1] else NA_real_
-        # Optional: show gs_logZ when available
-        if (!is.null(new.gamsig.out$elbo_logZ)) {
-          message(sprintf("    ELBO: %.6f  \\Delta=%.3e  (gs_logZ=%.6f)",
-                          elbo.obj$total, dELBO, new.gamsig.out$elbo_logZ))
-        } else {
-          message(sprintf("    ELBO: %.6f  \\Delta=%.3e", elbo.obj$total, dELBO))
-        }
-        utils::flush.console()
-      }
-
-      # ELBO-based stopping (paired with your param-diff)
-      tol_elbo <- getOption("exdqlm.tol_elbo", 1e-4)
-      if (length(elbo.seq) >= 2) {
-        if (abs(elbo.seq[length(elbo.seq)] - elbo.seq[length(elbo.seq)-1]) < tol_elbo && new.max < tol) {
-          break
-        }
-      }
     }
 
     # save ISVB gamma and sigma estimates
     seq.gamma = c(seq.gamma,new.gamsig.out$E.gam)
     seq.sigma = c(seq.sigma,new.gamsig.out$E.sigma)
 
-    # evaluate convergence
-    new.max    <- max(abs(c(cur.theta.out$exps - new.theta.out$exps)))
-    conv.count <- ifelse(new.max < tol, conv.count + 1L, 0L)
+    # evaluate convergence with joint criteria (state + sigma + gamma + ELBO)
+    d.state <- max(abs(c(cur.theta.out$exps - new.theta.out$exps)))
+    d.sigma <- abs(cur.gamsig.out$E.sigma - new.gamsig.out$E.sigma)
+    d.gamma <- abs(cur.gamsig.out$E.gam - new.gamsig.out$E.gam)
+    d.elbo <- if (compute.elbo && exists("elbo.seq", inherits = FALSE) && length(elbo.seq) >= 2L) {
+      elbo.seq[length(elbo.seq)] - elbo.seq[length(elbo.seq) - 1L]
+    } else {
+      NA_real_
+    }
+    conv.step <- .vb_joint_step(
+      iter = iter,
+      d_state = d.state,
+      d_sigma = d.sigma,
+      d_gamma = d.gamma,
+      d_elbo = d.elbo,
+      controls = conv.ctrl,
+      compute_elbo = compute.elbo,
+      stable_count = stable.count
+    )
+    stable.count <- conv.step$stable_count
+    delta.state <- c(delta.state, d.state)
+    delta.sigma <- c(delta.sigma, d.sigma)
+    delta.gamma <- c(delta.gamma, d.gamma)
+    delta.elbo <- c(delta.elbo, d.elbo)
+
+    if (verbose && iter %% 5 == 0) {
+      if (compute.elbo) {
+        msg <- sprintf(
+          "    d_state=%.3g d_sigma=%.3g d_gamma=%.3g | sigma=%.3g | gamma=%.3g | ELBO=%.6f (Delta=%.3e) | stable=%d/%d",
+          d.state, d.sigma, d.gamma, new.gamsig.out$E.sigma, new.gamsig.out$E.gam,
+          utils::tail(elbo.seq, 1), d.elbo, stable.count, conv.ctrl$patience
+        )
+      } else {
+        msg <- sprintf(
+          "    d_state=%.3g d_sigma=%.3g d_gamma=%.3g | sigma=%.3g | gamma=%.3g | stable=%d/%d",
+          d.state, d.sigma, d.gamma, new.gamsig.out$E.sigma, new.gamsig.out$E.gam,
+          stable.count, conv.ctrl$patience
+        )
+      }
+      if (!is.null(new.gamsig.out$elbo_logZ)) {
+        msg <- sprintf("%s | gs_logZ=%.6f", msg, new.gamsig.out$elbo_logZ)
+      }
+      message(msg)
+      utils::flush.console()
+    }
+
+    if (conv.step$stop_now) {
+      stop.reason <- "joint_converged"
+      break
+    }
 
   }
   run.time <- tictoc::toc(quiet = TRUE)
   if (verbose) {
-    cat(sprintf("ISVB converged: %s iterations, %s seconds",
+    cat(sprintf("ISVB %s: %s iterations, %s seconds",
+                ifelse(identical(stop.reason, "joint_converged"), "converged", "stopped"),
                 iter, round(run.time$toc - run.time$tic, 3)), "\n")
   }
 
@@ -759,8 +819,28 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   }
 
   retlist$diagnostics <- list(
-  elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL
+    elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL,
+    convergence = list(
+      converged = identical(stop.reason, "joint_converged"),
+      stop_reason = stop.reason,
+      iter = iter,
+      stable_count = stable.count,
+      criteria = conv.ctrl,
+      final = list(
+        delta_state = if (length(delta.state)) utils::tail(delta.state, 1L) else NA_real_,
+        delta_sigma = if (length(delta.sigma)) utils::tail(delta.sigma, 1L) else NA_real_,
+        delta_gamma = if (length(delta.gamma)) utils::tail(delta.gamma, 1L) else NA_real_,
+        delta_elbo = if (length(delta.elbo)) utils::tail(delta.elbo, 1L) else NA_real_
+      )
+    ),
+    deltas = list(
+      state = delta.state,
+      sigma = delta.sigma,
+      gamma = delta.gamma,
+      elbo = delta.elbo
+    )
   )
+  retlist$converged <- isTRUE(retlist$diagnostics$convergence$converged)
 
   # return results
   class(retlist) <- "exdqlmISVB"

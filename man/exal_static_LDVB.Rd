@@ -12,12 +12,16 @@ exal_static_LDVB(
   tol = 1e-04,
   b0 = NULL,
   V0 = NULL,
+  beta_prior = c("ridge", "rhs"),
+  beta_prior_controls = NULL,
   a_sigma = 1,
   b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
-  log_prior_gamma = function(g) 0,
+  log_prior_gamma = NULL,
   init = NULL,
+  dqlm.ind = FALSE,
   n_samp_xi = 200,
+  ld_controls = NULL,
   verbose = TRUE
 )
 }
@@ -34,19 +38,60 @@ exal_static_LDVB(
 
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.}
 
+\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default) or
+\code{"rhs"} for the regularized horseshoe.}
+
+\item{beta_prior_controls}{Optional list of prior-specific controls. For
+\code{beta_prior = "rhs"}, supported keys follow the qdesn implementation:
+\code{tau0}, \code{nu}, \code{s} or \code{s2}, \code{shrink_intercept},
+\code{intercept_prec}, \code{n_inner}, \code{eta_bounds},
+\code{freeze_tau_iters}, \code{freeze_tau_warmup_iters},
+\code{update_every}, \code{update_every_warmup},
+\code{update_every_warmup_iters}, \code{force_tau_after_warmup},
+\code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
+\code{warn_on_collapse}, \code{var_floor}, \code{h_curv},
+\code{verbose}, \code{init_lambda}, \code{init_log_lambda},
+\code{init_tau}, \code{init_log_tau}, \code{init_c2},
+and \code{init_log_c2}. When \code{beta_prior = "rhs"},
+\code{b0} and \code{V0} are retained only for backward-compatible ridge
+behavior and are ignored for the shrunk coefficients.}
+
 \item{a_sigma, b_sigma}{Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.}
 
 \item{gamma_bounds}{Two-vector (L, U) support for \code{gamma}.
 Defaults to \code{c(L.fn(p0), U.fn(p0))}.}
 
-\item{log_prior_gamma}{Function \code{g -> log pi(gamma=g)} (default flat).}
+\item{log_prior_gamma}{Function \code{g -> log pi(gamma=g)}. Default is a
+truncated Student-t prior centered at 0 on the admissible \code{gamma}
+support.}
 
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}; if missing, reasonable defaults are used.}
 
-\item{n_samp_xi}{Integer; number of MC draws used to compute the xi expectations for
-\eqn{q(\sigma,\gamma)} (default 200).}
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
+using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.}
+
+\item{n_samp_xi}{Integer; retained for backward compatibility in the
+Laplace-Delta block. Under the current delta-only implementation this
+value is ignored.}
+
+\item{ld_controls}{Optional list of controls for the Laplace-Delta block.
+Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
+\code{"bfgs"}), \code{direct_commit}, \code{damping},
+\code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
+\code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
+\code{eta_lo}, \code{eta_hi}, \code{sigma_bounds},
+\code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
+\code{sigma_max_mult}, \code{sigma_bound_ratio_min},
+\code{gamma_init_pad_frac}, \code{logit_eps}, \code{init_cov_diag},
+\code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig},
+\code{auto_stabilize}, \code{cycle_window}, \code{cycle_lag1_max},
+\code{cycle_lag2_min}, \code{cycle_gamma_min_amp},
+\code{cycle_sigma_min_amp}, \code{cycle_s_min_amp},
+\code{cycle_tau2_min_amp}, \code{stabilize_damping},
+\code{stabilize_xi_damping}, \code{stabilize_step_cap_eta},
+\code{stabilize_step_cap_ell}, and \code{store_trace}.}
 
 \item{verbose}{Logical; print progress.}
 }
@@ -63,6 +108,16 @@ A object of class "\code{exal_ldvb}" containing:
 \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
 \item \code{converged}, \code{iter}, \code{run.time}, and
 \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
+\item \code{beta_prior}: prior metadata and, for RHS, posterior summaries of
+the shrinkage hyperparameters, including warmup/freeze-aware
+\code{tau} summaries and collapse diagnostics
+(\code{collapse_flag}, \code{tau_near_zero}, \code{beta_collapse},
+and \code{warning} when triggered).
+\item \code{diagnostics}: ELBO and joint-convergence diagnostics
+(state/sigma/gamma/ELBO deltas, stopping reason, and
+Laplace-Delta block trace diagnostics, including replicated-\code{xi}
+controls, automatic stabilization / cycle-detection fields, and
+final local-mode quality checks).
 }
 }
 \description{
@@ -75,8 +130,14 @@ Mean-field factorization:
 \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
 The LD block is parameterized in transformed coordinates
 \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
-The \code{xi} expectations used in CAVI updates are approximated from a small
-Gaussian Monte Carlo sample in \eqn{(\eta,\ell)}.
+The \code{xi} expectations used in CAVI updates can be computed either from a
+deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
+Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
+optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
+stabilized qdesn readout implementation. When \code{beta_prior = "rhs"}, the
+prior block uses qdesn-style \code{tau} warmup/freeze scheduling to avoid the
+early-collapse regime where global shrinkage drives all slope coefficients
+toward zero before the likelihood-side variational factors stabilize.
 }
 \examples{
 \donttest{
@@ -86,5 +147,20 @@ X <- cbind(1, seq(-1, 1, length.out = n))
 y <- as.numeric(X \%*\% c(0.2, -0.1) + rnorm(n, sd = 0.15))
 fit <- exal_static_LDVB(y = y, X = X, p0 = 0.5, max_iter = 100, tol = 1e-3, verbose = FALSE)
 fit$converged
+
+fit_rhs <- exal_static_LDVB(
+  y = y, X = X, p0 = 0.5,
+  beta_prior = "rhs",
+  beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
+  max_iter = 80, tol = 5e-3, verbose = FALSE
+)
+fit_rhs$beta_prior$type
+
+fit_al <- exal_static_LDVB(
+  y = y, X = X, p0 = 0.5,
+  dqlm.ind = TRUE,
+  max_iter = 80, tol = 5e-3, verbose = FALSE
+)
+fit_al$dqlm.ind
 }
 }
