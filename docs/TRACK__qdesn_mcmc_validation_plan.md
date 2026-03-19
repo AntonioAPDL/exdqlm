@@ -1,11 +1,35 @@
 # TRACK: Q-DESN MCMC Validation Framework
 
-Date: 2026-03-18
+Date: 2026-03-19
 Branch: `feature/qdesn-mcmc-alternative`
-Status: validation framework and gated RHS matrix are implemented and completed; failed-only RHS repair relaunch is active to remove the remaining `FAIL` roots (accepting `WARN` for now)
+Status: const-`rhs_c2` wave completed and reconfirmed with `FAIL=0`; candidate defaults are frozen as `v1`; broader confirmation and healthy-only comparison runners are implemented
 Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
+
+## Latest Update (2026-03-19)
+
+- Const `rhs_c2` targeted wave:
+  - run: `rhs_const_c2_wave/20260318-182919__git-a034805__const-c2-wave`
+  - phase-A winner: `B4` (`max_split_rhat=1.0286`, `winner_n_root_fail=0`)
+  - phase-B reconfirm result: `PASS=2`, `WARN=0`, `FAIL=0`
+  - provisional defaults promotion: `TRUE`
+- Frozen defaults baseline:
+  - candidate: `config/validation/qdesn_mcmc_compare_rhs_structural_reparam_constc2_candidate.yaml`
+  - frozen v1: `config/validation/qdesn_mcmc_compare_rhs_structural_reparam_constc2_v1.yaml`
+- Finalization bookkeeping:
+  - `scripts/run_qdesn_mcmc_rhs_const_c2_wave.R` now writes
+    `manifest/wave_completed.json` in addition to `wave_manifest.json`.
+- YAML robustness:
+  - promotion writers now sanitize YAML boolean-key coercion so reservoir
+    width is persisted under `'n'` (not `'FALSE'`) in promoted defaults files.
+- New move-forward runners:
+  - broader RHS multichain confirmation:
+    `scripts/run_qdesn_mcmc_rhs_constc2_broader_confirmation.R`
+  - healthy-only VB vs MCMC comparison (runs campaign + healthy-filter summaries):
+    `scripts/run_qdesn_mcmc_compare_healthy_only.R`
+  - broader confirmation grid:
+    `config/validation/qdesn_mcmc_multichain_rhs_broader_confirmation_grid.csv`
 
 ## Weekly Consolidated Status (Updated 2026-03-18 16:21 EDT)
 

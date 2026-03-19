@@ -1,12 +1,50 @@
 # QDESN RHS MCMC Experiment Matrix (Gated)
 
-Date: 2026-03-18  
+Date: 2026-03-19  
 Branch: `feature/qdesn-mcmc-alternative`
 
 ## Goal
 
 Run a controlled, phase-gated matrix to isolate the dominant RHS-MCMC failure mode after runtime confounds were removed.  
 Primary target is reducing multichain root failures caused by elevated split-Rhat in RHS blocks.
+
+## Latest Execution Status (Updated 2026-03-19)
+
+### Const `rhs_c2` wave completion
+
+- wave run:
+  - `rhs_const_c2_wave/20260318-182919__git-a034805__const-c2-wave`
+- phase-A matrix:
+  - completed (`5/5`);
+  - winner: `B4`;
+  - winner metrics:
+    - `max_split_rhat=1.0286`
+    - `min_ess_rhs=195.15`
+    - `winner_n_root_fail=0`
+- phase-B two-root reconfirm:
+  - completed roots: `2`
+  - root grades:
+    - `const_small | tau=0.05 | rhs`: `PASS` (`max_split_rhat=1.0113`)
+    - `level_shift_small | tau=0.25 | rhs`: `PASS` (`max_split_rhat=1.0385`)
+  - reconfirm totals: `PASS=2`, `WARN=0`, `FAIL=0`
+  - wave summary gate: `reconfirm_wave_pass=TRUE`
+  - defaults promotion: `promoted_defaults=TRUE`
+
+### Promotion output
+
+- promoted candidate path:
+  - `config/validation/qdesn_mcmc_compare_rhs_structural_reparam_constc2_candidate.yaml`
+- frozen v1 baseline path:
+  - `config/validation/qdesn_mcmc_compare_rhs_structural_reparam_constc2_v1.yaml`
+
+### Implementation note
+
+- wave finalization now writes both:
+  - `manifest/wave_manifest.json`
+  - `manifest/wave_completed.json`
+  in `scripts/run_qdesn_mcmc_rhs_const_c2_wave.R`.
+- promotion and broader-confirmation writers now sanitize YAML boolean-key
+  coercion so reservoir width is emitted as `'n'` in promoted defaults.
 
 ## Latest Execution Status (Updated 2026-03-18 16:21 EDT)
 

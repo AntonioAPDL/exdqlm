@@ -15,6 +15,23 @@ get_arg <- function(flag, default = NULL) {
 }
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+sanitize_yaml_keys <- function(x) {
+  if (!is.list(x)) return(x)
+  nm <- names(x)
+  if (!is.null(nm) && ("FALSE" %in% nm)) {
+    if (is.null(x[["n", exact = TRUE]])) {
+      x[["n"]] <- x[["FALSE", exact = TRUE]]
+    }
+    x[["FALSE"]] <- NULL
+  }
+  if (length(x)) {
+    for (ii in seq_along(x)) {
+      x[[ii]] <- sanitize_yaml_keys(x[[ii]])
+    }
+  }
+  x
+}
+
 repo_root <- tryCatch(
   normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE),
   error = function(...) normalizePath(".", winslash = "/", mustWork = TRUE)
@@ -194,6 +211,7 @@ selected_defaults$campaign$name <- "qdesn_rhs_const_c2_wave_reconfirm"
 selected_defaults$campaign$results_root <- phaseB_results_root
 selected_defaults$campaign$reports_root <- phaseB_report_root
 
+selected_defaults <- sanitize_yaml_keys(selected_defaults)
 selected_defaults_path <- file.path(analysis_root, "tables", "selected_defaults.yaml")
 yaml::write_yaml(selected_defaults, selected_defaults_path)
 
@@ -225,6 +243,7 @@ if (isTRUE(promote_on_pass) && isTRUE(wave_pass)) {
   promoted_defaults$campaign$name <- "qdesn_mcmc_rhs_constc2_candidate"
   promoted_defaults$campaign$results_root <- "results/qdesn_mcmc_validation/rhs_constc2_candidate"
   promoted_defaults$campaign$reports_root <- "reports/qdesn_mcmc_validation/rhs_constc2_candidate"
+  promoted_defaults <- sanitize_yaml_keys(promoted_defaults)
   dir.create(dirname(promotion_defaults_path), recursive = TRUE, showWarnings = FALSE)
   yaml::write_yaml(promoted_defaults, promotion_defaults_path)
   promoted <- TRUE
@@ -288,6 +307,28 @@ exdqlm:::.qdesn_validation_write_json(file.path(analysis_root, "manifest", "wave
     n_pass = n_pass,
     wave_pass = wave_pass
   ),
+  promoted_defaults = promoted,
+  promotion_defaults_path = if (promoted) promotion_defaults_path else NULL,
+  git_sha = exdqlm:::.qdesn_validation_git_sha()
+))
+
+exdqlm:::.qdesn_validation_write_json(file.path(analysis_root, "manifest", "wave_completed.json"), list(
+  finished_at = as.character(Sys.time()),
+  matrix_path = matrix_path,
+  reconfirm_grid = reconfirm_grid,
+  phaseA_report_root = phaseA_report_root,
+  phaseA_results_root = phaseA_results_root,
+  phaseB_report_root = phaseB_report_root,
+  phaseB_results_root = phaseB_results_root,
+  winner_experiment_id = winner_id,
+  winner_rhs_c2_rhat = winner$rhs_c2_rhat_num[[1L]],
+  winner_max_split_rhat = to_num(winner$max_split_rhat_num[[1L]], default = NA_real_),
+  winner_n_root_fail = as.integer(winner$n_root_fail_num[[1L]]),
+  reconfirm_n_roots = if (nrow(root_conf)) nrow(root_conf) else 0L,
+  reconfirm_n_fail = if (is.finite(n_fail)) as.integer(n_fail) else NA_integer_,
+  reconfirm_n_warn = if (is.finite(n_warn)) as.integer(n_warn) else NA_integer_,
+  reconfirm_n_pass = if (is.finite(n_pass)) as.integer(n_pass) else NA_integer_,
+  reconfirm_wave_pass = wave_pass,
   promoted_defaults = promoted,
   promotion_defaults_path = if (promoted) promotion_defaults_path else NULL,
   git_sha = exdqlm:::.qdesn_validation_git_sha()

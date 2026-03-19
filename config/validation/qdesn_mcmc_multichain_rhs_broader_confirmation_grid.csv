@@ -1,0 +1,9 @@
+scenario,tau,beta_prior_type,seed,reservoir_profile,enabled
+toy_sine_small,0.05,rhs,123,tiny_d1_n8,TRUE
+toy_sine_small,0.25,rhs,123,tiny_d1_n8,TRUE
+const_small,0.05,rhs,123,tiny_d1_n8,TRUE
+const_small,0.25,rhs,123,tiny_d1_n8,TRUE
+sin_asym_small,0.05,rhs,123,tiny_d1_n8,TRUE
+sin_asym_small,0.25,rhs,123,tiny_d1_n8,TRUE
+level_shift_small,0.05,rhs,123,tiny_d1_n8,TRUE
+level_shift_small,0.25,rhs,123,tiny_d1_n8,TRUE
