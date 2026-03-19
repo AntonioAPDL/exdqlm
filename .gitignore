@@ -27,8 +27,13 @@ outputs/
 results/
 dump_exdqlm_files_to_txt.sh
 
-# Local tooling workspace (excluded from package source by .Rbuildignore)
-tools/
+# tools scratch + outputs (keep only tools/diag_abort_printf.sh tracked)
+tools/*.out
+tools/*.txt
+tools/addr2line_*.sh
+tools/locate_*.sh
+tools/merge_reports/*.log
+tools/merge_reports/LOCAL_*.md
 
 # notebooks
 notebooks/

@@ -19,11 +19,11 @@ test_that("static VB normalization and init extraction work for AL (dqlm.ind=TRU
     verbose = FALSE
   )
 
-  init <- exdqlm:::.static_vb_to_mcmc_init(vb_fit, dqlm.ind = TRUE)
+  init <- .static_vb_to_mcmc_init(vb_fit, dqlm.ind = TRUE)
   expect_true(all(c("beta", "sigma", "v") %in% names(init)))
   expect_length(init$beta, ncol(dat$X))
 
-  norm <- exdqlm:::.static_normalize_vb_fit(vb_fit, model_name = "al", tau = 0.5)
+  norm <- .static_normalize_vb_fit(vb_fit, model_name = "al", tau = 0.5)
   expect_identical(norm$model_family, "static")
   expect_identical(norm$algorithm, "vb")
   expect_true(isTRUE(norm$dqlm.ind))
@@ -47,11 +47,11 @@ test_that("static VB normalization and init extraction work for exAL", {
     verbose = FALSE
   )
 
-  init <- exdqlm:::.static_vb_to_mcmc_init(vb_fit, dqlm.ind = FALSE)
+  init <- .static_vb_to_mcmc_init(vb_fit, dqlm.ind = FALSE)
   expect_true(all(c("beta", "sigma", "gamma", "v", "s") %in% names(init)))
   expect_length(init$beta, ncol(dat$X))
 
-  norm <- exdqlm:::.static_normalize_vb_fit(vb_fit, model_name = "exal", tau = 0.5)
+  norm <- .static_normalize_vb_fit(vb_fit, model_name = "exal", tau = 0.5)
   expect_identical(norm$model_family, "static")
   expect_identical(norm$algorithm, "vb")
   expect_false(norm$dqlm.ind)
@@ -82,7 +82,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
     thin = 1,
     verbose = FALSE
   )
-  norm_al <- exdqlm:::.static_normalize_mcmc_fit(fit_al, model_name = "al", tau = 0.5)
+  norm_al <- .static_normalize_mcmc_fit(fit_al, model_name = "al", tau = 0.5)
   expect_identical(norm_al$algorithm, "mcmc")
   expect_true(isTRUE(norm_al$dqlm.ind))
   expect_true(is.finite(norm_al$diagnostics$ess$sigma) || is.na(norm_al$diagnostics$ess$sigma))
@@ -101,7 +101,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
     mh.adapt.interval = 6,
     verbose = FALSE
   )
-  norm_exal <- exdqlm:::.static_normalize_mcmc_fit(fit_exal, model_name = "exal", tau = 0.5)
+  norm_exal <- .static_normalize_mcmc_fit(fit_exal, model_name = "exal", tau = 0.5)
   expect_identical(norm_exal$algorithm, "mcmc")
   expect_false(norm_exal$dqlm.ind)
   expect_true(is.finite(norm_exal$sigma_est))
@@ -127,7 +127,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
     mh.proposal = "laplace_local",
     verbose = FALSE
   )
-  norm_exal_local <- exdqlm:::.static_normalize_mcmc_fit(fit_exal_local, model_name = "exal", tau = 0.5)
+  norm_exal_local <- .static_normalize_mcmc_fit(fit_exal_local, model_name = "exal", tau = 0.5)
   expect_identical(norm_exal_local$diagnostics$mh$proposal, "laplace_local")
   expect_false(norm_exal_local$diagnostics$mh$kernel_exact)
   expect_false(norm_exal_local$diagnostics$mh$signoff_ready)
@@ -144,7 +144,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
     mh.proposal = "slice",
     verbose = FALSE
   )
-  norm_exal_slice <- exdqlm:::.static_normalize_mcmc_fit(fit_exal_slice, model_name = "exal", tau = 0.5)
+  norm_exal_slice <- .static_normalize_mcmc_fit(fit_exal_slice, model_name = "exal", tau = 0.5)
   expect_identical(norm_exal_slice$diagnostics$mh$proposal, "slice")
   expect_true(norm_exal_slice$diagnostics$mh$kernel_exact)
   expect_true(norm_exal_slice$diagnostics$mh$signoff_ready)
@@ -200,8 +200,8 @@ test_that("static quantile path extractor returns aligned vectors", {
     verbose = FALSE
   )
 
-  q_vb <- exdqlm:::.static_quantile_path_from_fit(vb_fit, dat$X, algorithm = "vb")
-  q_mc <- exdqlm:::.static_quantile_path_from_fit(mcmc_fit, dat$X, algorithm = "mcmc")
+  q_vb <- .static_quantile_path_from_fit(vb_fit, dat$X, algorithm = "vb")
+  q_mc <- .static_quantile_path_from_fit(mcmc_fit, dat$X, algorithm = "mcmc")
 
   expect_length(q_vb$mean, nrow(dat$X))
   expect_length(q_vb$lo, nrow(dat$X))
