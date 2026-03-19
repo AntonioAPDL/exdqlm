@@ -40,3 +40,6 @@ notebooks/
 
 # local execution tracker (do not commit)
 Plan.txt
+
+# local tooling/work logs (not shipped)
+tools/
