@@ -5,20 +5,35 @@
   0.4.0/0.5.0/0.6.0 feature line in one submission.
 - `exdqlmLDVB`: Laplace-Delta variational Bayes routine for dynamic quantile
   state-space fitting under the extended asymmetric Laplace error distribution.
+- Reduced-model controls for dynamic routines (`exdqlmISVB()`,
+  `exdqlmLDVB()`, `exdqlmMCMC()`) through `dqlm.ind = TRUE`, fixing `gamma = 0`
+  for AL/DQLM inference when desired.
 - Added synthesis helper `exdqlm_synthesize_from_draws()` for combining
   posterior quantile-draw objects.
 - Added static regression support with `regMod()` plus static exAL inference
   routines for VB/LDVB and MCMC workflows.
+- Added static reduced AL support (`dqlm.ind = TRUE`) in
+  `exal_static_LDVB()` and `exal_static_mcmc()`.
+- Added static coefficient prior options for ridge and regularized horseshoe
+  (`beta_prior = "ridge"` / `"rhs"`) in both static LDVB and static MCMC.
+- Added `transfn_exdqlmLDVB()` for post-fit transformed summaries analogous to
+  the ISVB path.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),
   return-value structure, and CRAN-safe examples aligned with existing package style.
 
 ## Fixes and clarifications
 - Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for parity
   with the C++ bridge and theory derivations.
+- Fixed static MCMC `psi = 0` boundary behavior in exAL sigma updates to avoid
+  unstable scale draws in reduced/near-reduced settings.
 - Aligned static LDVB `(sigma, gamma)` transformed objective/entropy handling
   with the Jacobian contract used in the static theory reference.
 - Clarified that C++ `elbo.part` in `kalman.cpp` is an internal diagnostic;
   package-level ELBO reporting remains R-level contract output.
+- Added dedicated static-fit object generics for `exal_mcmc` and `exal_ldvb`
+  and aligned post-fit compatibility for exdqlm classes.
+- Replaced deprecated `arma::is_finite(...)` usage in FFBS C++ with
+  `std::isfinite(...)` to eliminate compiler deprecation warnings.
 - Optional C++ builder acceleration remains opt-in (`exdqlm.use_cpp_builders`
   default `FALSE`); no backend default flip in this release.
 - Optional C++ post-predictive sampler remains opt-in

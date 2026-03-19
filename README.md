@@ -14,9 +14,11 @@ quantiles** (not only means) while keeping a familiar state-space
 specification (design/evolution matrices and a state vector). In
 **v0.4.0**, this CRAN update consolidates the internal 0.4/0.5/0.6
 feature line: dynamic **LDVB** (`exdqlmLDVB()`), synthesis
-(`exdqlm_synthesize_from_draws()`), and static regression/exAL routines
-(`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), while keeping
-backend defaults conservative for CRAN stability.
+(`exdqlm_synthesize_from_draws()`), static regression/exAL routines
+(`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), reduced
+AL/DQLM modes (`dqlm.ind = TRUE`), and static ridge/RHS priors
+(`beta_prior = "ridge"` / `"rhs"`), while keeping backend defaults
+conservative for CRAN stability.
 
 > **Terminology.** We say **exAL** for the extended Asymmetric Laplace
 > family used here. It extends the standard AL by adding a **skewness**
@@ -84,6 +86,12 @@ tail(fit$diagnostics$elbo, 3)
   posterior quantile-draw objects.
 - **Static regression support** via `regMod()`, `exal_static_LDVB()`,
   and `exal_static_mcmc()`.
+- **Reduced AL/DQLM paths** across dynamic and static APIs via
+  `dqlm.ind = TRUE`.
+- **Static shrinkage priors** in both static LDVB/MCMC via
+  `beta_prior = "ridge"` or `"rhs"`.
+- **LDVB transform helper** `transfn_exdqlmLDVB()` and expanded static
+  object generics (`exal_mcmc`, `exal_ldvb`).
 - **C++ backend controls** retained as optional: Kalman bridge default
   **TRUE**; builders, samplers, and post-predictive C++ paths default
   **FALSE**.
@@ -192,6 +200,35 @@ rexal(5, p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
 
 > **CRAN-safety.** All examples set a seed, use tiny data, finish in a
 > few seconds, and explicitly keep the pure-R path.
+
+### 3) Static reduced AL + RHS API sketch
+
+``` r
+set.seed(4)
+n <- 80
+p <- 5
+X <- matrix(rnorm(n * p), n, p)
+beta <- c(1, -1, 0, 0, 0.5)
+y <- as.numeric(X %*% beta + rnorm(n))
+
+# Reduced AL fit (gamma fixed at zero)
+fit_al <- exal_static_LDVB(
+  y = y, X = X, p0 = 0.5,
+  dqlm.ind = TRUE,
+  max_iter = 150, tol = 1e-4, verbose = FALSE
+)
+
+# exAL fit with regularized horseshoe prior on coefficients
+fit_rhs <- exal_static_mcmc(
+  y = y, X = X, p0 = 0.5,
+  beta_prior = "rhs",
+  nsim = 1200, burnin = 200, thin = 5,
+  print_every = 0
+)
+
+fit_al$dqlm.ind
+fit_rhs$beta_prior$type
+```
 
 ## FAQ / Troubleshooting
 
