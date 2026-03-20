@@ -104,6 +104,7 @@ collect_pipeline_run_summary <- function(out_dir) {
   timing_breakdown_path <- file.path(out_dir, "tables", "timing_breakdown.csv")
   timing_rds_path <- file.path(out_dir, "models", "timing_summary.rds")
   forecast_objects_path <- file.path(out_dir, "models", "forecast_objects.rds")
+  rhs_run_summary_path <- file.path(out_dir, "models", "rhs_run_summary.csv")
 
   status <- if (file.exists(status_path)) {
     trimws(readLines(status_path, warn = FALSE)[1L])
@@ -117,6 +118,7 @@ collect_pipeline_run_summary <- function(out_dir) {
   timing_breakdown <- .pipeline_read_csv_if_exists(timing_breakdown_path)
   timing_rds <- if (file.exists(timing_rds_path)) readRDS(timing_rds_path) else NULL
   forecast_objects <- if (file.exists(forecast_objects_path)) readRDS(forecast_objects_path) else NULL
+  rhs_run_summary <- .pipeline_read_csv_if_exists(rhs_run_summary_path)
 
   score_path <- .pipeline_pick_existing(c(
     file.path(out_dir, "tables", "scores_summary.csv"),
@@ -189,6 +191,44 @@ collect_pipeline_run_summary <- function(out_dir) {
     NA_integer_
   }
 
+  rhs_diag_available <- !is.null(rhs_run_summary) && nrow(rhs_run_summary) > 0L
+  rhs_collapse_flag_any <- if (rhs_diag_available && "collapse_flag" %in% names(rhs_run_summary)) {
+    any(as.logical(rhs_run_summary$collapse_flag), na.rm = TRUE)
+  } else {
+    NA
+  }
+  rhs_collapse_flag_bound_any <- if (rhs_diag_available && "collapse_flag_bound" %in% names(rhs_run_summary)) {
+    any(as.logical(rhs_run_summary$collapse_flag_bound), na.rm = TRUE)
+  } else {
+    NA
+  }
+  rhs_collapse_flag_shrink_any <- if (rhs_diag_available && "collapse_flag_shrink" %in% names(rhs_run_summary)) {
+    any(as.logical(rhs_run_summary$collapse_flag_shrink), na.rm = TRUE)
+  } else {
+    NA
+  }
+  rhs_unhealthy_any <- if (rhs_diag_available && "unhealthy_flag" %in% names(rhs_run_summary)) {
+    any(as.logical(rhs_run_summary$unhealthy_flag), na.rm = TRUE)
+  } else {
+    isTRUE(rhs_collapse_flag_any)
+  }
+  rhs_focus_row <- NULL
+  if (rhs_diag_available) {
+    if ("unhealthy_flag" %in% names(rhs_run_summary)) {
+      idx <- which(as.logical(rhs_run_summary$unhealthy_flag))
+      if (length(idx)) rhs_focus_row <- rhs_run_summary[idx[1L], , drop = FALSE]
+    }
+    if (is.null(rhs_focus_row) && "collapse_flag" %in% names(rhs_run_summary)) {
+      idx <- which(as.logical(rhs_run_summary$collapse_flag))
+      if (length(idx)) rhs_focus_row <- rhs_run_summary[idx[1L], , drop = FALSE]
+    }
+    if (is.null(rhs_focus_row)) rhs_focus_row <- rhs_run_summary[1L, , drop = FALSE]
+  }
+  rhs_focus_value <- function(col, default = NA) {
+    if (is.null(rhs_focus_row) || !(col %in% names(rhs_focus_row))) return(default)
+    rhs_focus_row[[col]][1L]
+  }
+
   summary_row <- data.frame(
     out_dir = out_dir,
     status = status,
@@ -209,6 +249,18 @@ collect_pipeline_run_summary <- function(out_dir) {
     forecast_PinballMean_mean = .pipeline_score_value(score_tbl, "forecast", "PinballMean_mean"),
     train_S_mean = .pipeline_score_value(score_tbl, "train", "S_mean"),
     forecast_S_mean = .pipeline_score_value(score_tbl, "forecast", "S_mean"),
+    rhs_diag_available = as.logical(rhs_diag_available),
+    rhs_collapse_flag_any = as.logical(rhs_collapse_flag_any),
+    rhs_collapse_flag_bound_any = as.logical(rhs_collapse_flag_bound_any),
+    rhs_collapse_flag_shrink_any = as.logical(rhs_collapse_flag_shrink_any),
+    rhs_unhealthy_any = as.logical(rhs_unhealthy_any),
+    rhs_unhealthy_reason = as.character(rhs_focus_value("unhealthy_reason", NA_character_)),
+    rhs_root_cause_context = as.character(rhs_focus_value("root_cause_context", NA_character_)),
+    rhs_tau_last = as.numeric(rhs_focus_value("tau_last", NA_real_)),
+    rhs_E_invV_med_last = as.numeric(rhs_focus_value("E_invV_med_last", NA_real_)),
+    rhs_beta_l2_last = as.numeric(rhs_focus_value("beta_l2_last", NA_real_)),
+    rhs_beta_small_frac_1e4_last = as.numeric(rhs_focus_value("beta_small_frac_1e4_last", NA_real_)),
+    rhs_quantile_p = as.numeric(rhs_focus_value("quantile_p", NA_real_)),
     score_file = if (is.null(score_path)) NA_character_ else score_path,
     stringsAsFactors = FALSE
   )
@@ -220,6 +272,7 @@ collect_pipeline_run_summary <- function(out_dir) {
     run_manifest = run_manifest,
     timing_summary = timing_summary_resolved,
     timing_breakdown = timing_breakdown_resolved,
+    rhs_run_summary = rhs_run_summary,
     score_table = score_tbl,
     forecast_objects = forecast_objects
   )

@@ -25,15 +25,28 @@ which initialized `tau` at `tau0` (very small in our defaults), causing extreme 
    - `.exal_resolve_beta_prior_settings()` restores default init values when nullable keys are explicitly `NULL`
 2. `R/exal_ldvb_engine.R`
    - periodic `RHS_MONITOR` now reports `beta_small_frac_1e4`
-   - `collapse_proxy` includes shrinkage-mode criteria
+   - `RHS_MONITOR` prints `collapse_flag_bound`, `collapse_flag_shrink`, and combined `collapse_flag`
 3. `scripts/pipeline_sim_main.R`
+   - RHS preflight line logs:
+     - `beta_prior_type`
+     - `tau0`
+     - resolved `init_log_tau`
+     - `eta_bounds$tau`
+   - for VB+RHS runs, `rhs_trace` is force-enabled to guarantee collapse monitoring persistence
    - `rhs_run_summary.csv` now reports:
      - `beta_small_frac_1e4_last`
      - `collapse_flag_bound`
      - `collapse_flag_shrink`
      - `collapse_flag` (combined)
+     - `unhealthy_flag`
+     - `unhealthy_reason`
+     - `root_cause_context`
 4. `tests/testthat/test-exal-inference-config.R`
-   - regression tests for `NULL` fallback and explicit numeric override behavior
+   - regression tests for `NULL` fallback, explicit numeric override, and non-numeric fallback warning behavior
+5. `R/pipeline_inference_validation.R` + `R/qdesn_mcmc_validation.R`
+   - run summaries ingest `rhs_run_summary.csv`
+   - shrinkage-collapse is promoted to method-level `unhealthy` with root-cause context
+   - signoff pipelines fail unhealthy runs instead of treating them as healthy-successful fits
 
 ## Operational preflight for benchmarking/simulation
 
@@ -44,6 +57,11 @@ which initialized `tau` at `tau0` (very small in our defaults), causing extreme 
    - `tau`, `E_invV_med`, `beta_l2`, `beta_small_frac_1e4`
 3. Early-stop unhealthy runs when:
    - `E_invV_med` is very high, `beta_l2` is very small, and `beta_small_frac_1e4` is near 1
+
+## Guardrail permanence
+
+These semantics are part of the default validation guardrails for benchmarking/simulation.
+Do not change `init_log_tau` fallback/monitoring/unhealthy propagation behavior without explicit instruction and a tracker update in this file.
 
 ## Codex handoff prompt (copy/paste template)
 
@@ -68,4 +86,3 @@ Reference implementation anchors:
 - scripts/pipeline_sim_main.R
 - tests/testthat/test-exal-inference-config.R
 ```
-

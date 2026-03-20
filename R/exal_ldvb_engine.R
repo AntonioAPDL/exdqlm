@@ -1305,7 +1305,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         collapse_proxy <- isTRUE(collapse_proxy_bound) || isTRUE(collapse_proxy_shrink)
 
         cat(sprintf(
-          "iter %4d | gamma≈%.4f sigma≈%.4f | new_term=%.3e | RHS_MONITOR tau=%.3e log_tau=%.3f bounds=[%.3f,%.3f] near_lo=%s near_hi=%s E_invV_med=%.3e beta_l2=%.3e beta_small_frac_1e4=%.3f R_over_D=%.3f tau_update=%s/%s u_tau=%s collapse_proxy=%s\n",
+          "iter %4d | gamma≈%.4f sigma≈%.4f | new_term=%.3e | RHS_MONITOR tau=%.3e log_tau=%.3f bounds=[%.3f,%.3f] near_lo=%s near_hi=%s E_invV_med=%.3e beta_l2=%.3e beta_small_frac_1e4=%.3f R_over_D=%.3f tau_update=%s/%s u_tau=%s collapse_flag_bound=%s collapse_flag_shrink=%s collapse_flag=%s\n",
           iter, gamma_hat, sigma_hat, new_term,
           tau_now, eta_tau_now, tau_lo, tau_hi,
           if (near_lo) "TRUE" else "FALSE",
@@ -1314,6 +1314,8 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
           ifelse(is.na(tau_performed), "NA", ifelse(isTRUE(tau_performed), "YES", "NO")),
           ifelse(is.na(tau_reason) || !nzchar(tau_reason), "NA", tau_reason),
           ifelse(is.na(u_tau_now), "NA", as.character(u_tau_now)),
+          if (collapse_proxy_bound) "TRUE" else "FALSE",
+          if (collapse_proxy_shrink) "TRUE" else "FALSE",
           if (collapse_proxy) "TRUE" else "FALSE"
         ))
       } else {

@@ -605,6 +605,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   fit <- .qdesn_validation_extract_fit(summary_obj)
   summary_row <- summary_obj$summary
   forecast_df <- .qdesn_validation_extract_forecast_df(summary_obj)
+  add_reason <- function(curr, new_reason) {
+    curr <- as.character(curr %||% NA_character_)[1L]
+    new_reason <- as.character(new_reason %||% NA_character_)[1L]
+    if (is.na(new_reason) || !nzchar(new_reason)) return(if (is.na(curr)) "" else curr)
+    if (is.na(curr) || !nzchar(curr)) return(new_reason)
+    .qdesn_validation_join_reasons(c(curr, new_reason))
+  }
   pinball_tau <- NA_real_
   qhat_mae <- NA_real_
   qhat_bias <- NA_real_
@@ -616,6 +623,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     qhat_mae <- mean(abs(as.numeric(forecast_df$q_pred) - as.numeric(forecast_df$q_true)), na.rm = TRUE)
     qhat_bias <- mean(as.numeric(forecast_df$q_pred) - as.numeric(forecast_df$q_true), na.rm = TRUE)
   }
+  rhs_diag_available <- as.logical(summary_row$rhs_diag_available[1L] %||% NA)
+  rhs_collapse_flag <- as.logical(summary_row$rhs_collapse_flag_any[1L] %||% NA)
+  rhs_collapse_flag_bound <- as.logical(summary_row$rhs_collapse_flag_bound_any[1L] %||% NA)
+  rhs_collapse_flag_shrink <- as.logical(summary_row$rhs_collapse_flag_shrink_any[1L] %||% NA)
+  rhs_unhealthy_any <- as.logical(summary_row$rhs_unhealthy_any[1L] %||% NA)
+  rhs_unhealthy_reason <- as.character(summary_row$rhs_unhealthy_reason[1L] %||% NA_character_)
+  rhs_root_cause_context <- as.character(summary_row$rhs_root_cause_context[1L] %||% NA_character_)
   base <- data.frame(
     root_id = root_spec$root_id,
     scenario = root_spec$scenario,
@@ -633,8 +647,37 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     forecast_qhat_mae = qhat_mae,
     forecast_pinball_tau = pinball_tau,
     forecast_qhat_bias = qhat_bias,
+    rhs_diag_available = rhs_diag_available,
+    rhs_collapse_flag = rhs_collapse_flag,
+    rhs_collapse_flag_bound = rhs_collapse_flag_bound,
+    rhs_collapse_flag_shrink = rhs_collapse_flag_shrink,
+    rhs_diag_tau_last = as.numeric(summary_row$rhs_tau_last[1L] %||% NA_real_),
+    rhs_diag_E_invV_med_last = as.numeric(summary_row$rhs_E_invV_med_last[1L] %||% NA_real_),
+    rhs_diag_beta_l2_last = as.numeric(summary_row$rhs_beta_l2_last[1L] %||% NA_real_),
+    rhs_diag_beta_small_frac_1e4_last = as.numeric(summary_row$rhs_beta_small_frac_1e4_last[1L] %||% NA_real_),
+    rhs_root_cause_context = rhs_root_cause_context,
+    unhealthy = FALSE,
+    unhealthy_reason = "",
     stringsAsFactors = FALSE
   )
+  if (isTRUE(rhs_unhealthy_any)) {
+    base$unhealthy <- TRUE
+    base$unhealthy_reason <- add_reason(base$unhealthy_reason, rhs_unhealthy_reason %||% "rhs_unhealthy")
+  }
+  if (isTRUE(rhs_collapse_flag_shrink)) {
+    base$unhealthy <- TRUE
+    base$unhealthy_reason <- add_reason(base$unhealthy_reason, "rhs_shrinkage_collapse")
+  }
+  if (isTRUE(rhs_collapse_flag_bound)) {
+    base$unhealthy <- TRUE
+    base$unhealthy_reason <- add_reason(base$unhealthy_reason, "rhs_tau_bound_collapse")
+  }
+  if (identical(root_spec$beta_prior_type, "rhs") &&
+      identical(method, "vb") &&
+      !isTRUE(rhs_diag_available)) {
+    base$unhealthy <- TRUE
+    base$unhealthy_reason <- add_reason(base$unhealthy_reason, "rhs_diagnostics_missing")
+  }
   if (is.null(fit)) {
     base$fit_class <- NA_character_
     base$fit_runtime_seconds <- NA_real_
@@ -733,6 +776,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   finite_ok <- isTRUE(health_row$finite_ok[1L])
   domain_ok <- isTRUE(health_row$domain_ok[1L])
   converged <- isTRUE(health_row$vb_converged[1L])
+  unhealthy <- isTRUE(health_row$unhealthy[1L])
+  unhealthy_reason <- as.character(health_row$unhealthy_reason[1L] %||% NA_character_)
 
   out$vb_tail_window <- as.integer(cfg$tail_window %||% 5L)[1L]
   out$vb_trace_length <- if (nrow(progress_rows)) nrow(progress_rows) else 0L
@@ -766,6 +811,11 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   if (!identical(status, "SUCCESS")) reasons <- c(reasons, "status_not_success")
   if (!finite_ok) reasons <- c(reasons, "non_finite_fit")
   if (!domain_ok) reasons <- c(reasons, "domain_violation")
+  if (unhealthy) {
+    u_reason <- as.character(unhealthy_reason)[1L]
+    if (is.na(u_reason) || !nzchar(u_reason)) u_reason <- "unhealthy_fit"
+    reasons <- c(reasons, u_reason)
+  }
   if (!isTRUE(out$vb_tail_trace_ready)) reasons <- c(reasons, "short_trace")
 
   if (length(reasons)) {
@@ -848,6 +898,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   status <- as.character(health_row$status[1L] %||% NA_character_)
   finite_ok <- isTRUE(health_row$finite_ok[1L])
   domain_ok <- isTRUE(health_row$domain_ok[1L])
+  unhealthy <- isTRUE(health_row$unhealthy[1L])
+  unhealthy_reason <- as.character(health_row$unhealthy_reason[1L] %||% NA_character_)
   n_keep <- as.integer(health_row$mcmc_n_keep[1L] %||% if (nrow(progress_rows)) nrow(progress_rows) else NA_integer_)
   out$mcmc_n_keep <- n_keep
 
@@ -875,6 +927,11 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   if (!identical(status, "SUCCESS")) reasons <- c(reasons, "status_not_success")
   if (!finite_ok) reasons <- c(reasons, "non_finite_fit")
   if (!domain_ok) reasons <- c(reasons, "domain_violation")
+  if (unhealthy) {
+    u_reason <- as.character(unhealthy_reason)[1L]
+    if (is.na(u_reason) || !nzchar(u_reason)) u_reason <- "unhealthy_fit"
+    reasons <- c(reasons, u_reason)
+  }
   if (!is.finite(n_keep) || n_keep < as.integer(cfg$min_keep_warn %||% 100L)) reasons <- c(reasons, "short_chain")
 
   fail_ess <- c(out$mcmc_min_ess_core, out$mcmc_min_ess_rhs)
@@ -1356,11 +1413,14 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
                "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
                "finite_ok", "domain_ok", "vb_converged", "vb_iter", "vb_gamma_last",
                "vb_sigma_last", "vb_elbo_last", "vb_beta_norm", "rhs_tau_last", "rhs_c2_last",
+               "unhealthy", "unhealthy_reason", "rhs_collapse_flag", "rhs_collapse_flag_shrink",
                "signoff_grade", "comparison_eligible", "signoff_reason")
   keep_mc <- c(keys, "status", "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
                "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
                "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
-               "finite_ok", "domain_ok", "signoff_grade", "comparison_eligible", "signoff_reason",
+               "finite_ok", "domain_ok", "unhealthy", "unhealthy_reason",
+               "rhs_collapse_flag", "rhs_collapse_flag_shrink",
+               "signoff_grade", "comparison_eligible", "signoff_reason",
                "mcmc_n_keep", "mcmc_ess_gamma", "mcmc_ess_sigma", "mcmc_ess_beta_norm",
                "mcmc_ess_per_second_gamma", "mcmc_ess_per_second_sigma", "mcmc_ess_per_second_beta_norm",
                "mcmc_gamma_mean", "mcmc_sigma_mean", "mcmc_beta_norm_mean",

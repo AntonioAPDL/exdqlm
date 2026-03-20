@@ -121,6 +121,53 @@
 .exal_resolve_beta_prior_settings <- function(beta_cfg, default_rhs_cfg) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
+  resolve_init_log_tau <- function(rhs_cfg, default_rhs_cfg) {
+    # Guardrail: canonical fallback is always 0.0 (tau=1 at init),
+    # independent of nullable YAML values.
+    default_val <- 0.0
+
+    raw <- rhs_cfg[["init_log_tau", exact = TRUE]]
+    # Guardrail: YAML null and missing values are treated as "unset".
+    if (is.null(raw) || (length(raw) == 1L && is.na(raw))) return(default_val)
+
+    val <- suppressWarnings(as.numeric(raw)[1L])
+    if (is.finite(val)) return(val)
+
+    warning(
+      sprintf(
+        "[inference] RHS init_log_tau override is non-numeric (%s); falling back to default %.6f.",
+        paste(class(raw), collapse = "/"),
+        default_val
+      ),
+      call. = FALSE
+    )
+    default_val
+  }
+
+  resolve_tau_bounds <- function(rhs_cfg, default_rhs_cfg) {
+    default_bounds <- as.numeric((default_rhs_cfg$eta_bounds %||% list())$tau %||% c(-12, 12))
+    if (length(default_bounds) < 2L || any(!is.finite(default_bounds[1:2])) ||
+        default_bounds[1L] >= default_bounds[2L]) {
+      default_bounds <- c(-12, 12)
+    }
+    default_bounds <- default_bounds[1:2]
+
+    tau_bounds <- as.numeric(((rhs_cfg$eta_bounds %||% list())$tau) %||% default_bounds)
+    if (length(tau_bounds) < 2L || any(!is.finite(tau_bounds[1:2])) ||
+        tau_bounds[1L] >= tau_bounds[2L]) {
+      warning(
+        sprintf(
+          "[inference] RHS eta_bounds$tau is invalid; falling back to defaults [%s, %s].",
+          format(default_bounds[1L], digits = 6),
+          format(default_bounds[2L], digits = 6)
+        ),
+        call. = FALSE
+      )
+      tau_bounds <- default_bounds
+    }
+    tau_bounds[1:2]
+  }
+
   beta_cfg <- beta_cfg %||% list()
   beta_type <- tolower(as.character(beta_cfg$type %||% "ridge")[1L])
   if (!beta_type %in% c("ridge", "rhs")) {
@@ -163,6 +210,12 @@
       }
     }
   }
+
+  # Guardrail: resolved init_log_tau is always numeric and defaults to 0.0
+  # unless a numeric override is explicitly provided.
+  rhs_cfg$init_log_tau <- resolve_init_log_tau(rhs_cfg, default_rhs_cfg)
+  rhs_cfg$eta_bounds <- rhs_cfg$eta_bounds %||% list()
+  rhs_cfg$eta_bounds$tau <- resolve_tau_bounds(rhs_cfg, default_rhs_cfg)
 
   list(
     type = beta_type,

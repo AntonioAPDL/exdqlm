@@ -790,6 +790,13 @@ rhs_deep_on <- isTRUE(vb_args_base$rhs_deep)
 rhs_trace_thresholds <- vb_args_base$rhs_trace_thresholds
 rhs_trace_top_k <- vb_args_base$rhs_trace_top_k
 rhs_trace_eps <- vb_args_base$rhs_trace_eps
+if (identical(inference_method, "vb") &&
+    identical(tolower(as.character(vb_prior_beta_type %||% "")), "rhs") &&
+    !isTRUE(rhs_trace_on)) {
+  rhs_trace_on <- TRUE
+  vb_args_base$rhs_trace <- TRUE
+  message("[RHS_GUARDRAIL] Enabling vb.rhs_trace=TRUE to persist collapse diagnostics.")
+}
 if (identical(inference_method, "mcmc") && isTRUE(vb_online_cfg$enabled)) {
   message("[inference] online VB settings are ignored because inference.method='mcmc'.")
 }
@@ -922,6 +929,25 @@ log_msg(
   if (is.null(vb_prior_beta_tau2)) "NULL"
   else format(vb_prior_beta_tau2, digits = 4, trim = TRUE),
   vb_prior_beta_rhs$tau0, vb_prior_beta_rhs$nu, vb_prior_beta_rhs$s2
+)
+rhs_preflight_active <- identical(tolower(as.character(vb_prior_beta_type %||% "")), "rhs")
+rhs_preflight_tau0 <- if (rhs_preflight_active) as.numeric(vb_prior_beta_rhs$tau0 %||% NA_real_) else NA_real_
+rhs_preflight_eta_tau <- as.numeric(((vb_prior_beta_rhs$eta_bounds %||% list())$tau) %||% c(NA_real_, NA_real_))
+if (length(rhs_preflight_eta_tau) < 2L) {
+  rhs_preflight_eta_tau <- c(rhs_preflight_eta_tau[1L] %||% NA_real_, NA_real_)
+}
+rhs_preflight_init_log_tau <- suppressWarnings(as.numeric(vb_prior_beta_rhs$init_log_tau %||% NA_real_)[1L])
+if (!is.finite(rhs_preflight_init_log_tau) && !is.null(vb_prior_beta_rhs$init_tau)) {
+  rhs_preflight_init_log_tau <- log(as.numeric(vb_prior_beta_rhs$init_tau)[1L])
+}
+if (!is.finite(rhs_preflight_init_log_tau)) rhs_preflight_init_log_tau <- 0.0
+log_msg(
+  "RHS preflight → beta_prior_type=%s | tau0=%s | init_log_tau_resolved=%.6f | eta_bounds$tau=[%.3f, %.3f]",
+  vb_prior_beta_type,
+  if (is.finite(rhs_preflight_tau0)) format(rhs_preflight_tau0, digits = 6, trim = TRUE) else "NA",
+  rhs_preflight_init_log_tau,
+  as.numeric(rhs_preflight_eta_tau[1L]),
+  as.numeric(rhs_preflight_eta_tau[2L])
 )
 if (identical(inference_method, "vb")) {
   log_msg(
@@ -3813,12 +3839,56 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   if (is.na(init_log_tau) && !is.null(vb_prior_beta_rhs$init_tau)) {
     init_log_tau <- log(as.numeric(vb_prior_beta_rhs$init_tau)[1])
   }
+  if (!is.finite(init_log_tau)) init_log_tau <- 0.0
+  post_sd <- readout_scale_diag$post$sd_stats %||% c(min = NA_real_, median = NA_real_, max = NA_real_)
 
   rows <- lapply(seq_along(p_vec), function(i) {
     fit <- fits_fc[[i]]$fit_train$fit %||% NULL
     if (is.null(fit) || is.null(fit$misc)) return(NULL)
     tr <- fit$misc$rhs_trace %||% NULL
-    if (is.null(tr) || !nrow(tr)) return(NULL)
+    if (is.null(tr) || !nrow(tr)) {
+      return(data.frame(
+        run_id = run_id,
+        git_sha = git_sha,
+        spec_name = spec_name,
+        quantile_p = p_vec[i],
+        seed = seed_str,
+        tau0 = as.numeric(vb_prior_beta_rhs$tau0 %||% NA_real_),
+        nu = as.numeric(vb_prior_beta_rhs$nu %||% NA_real_),
+        s_used = as.numeric(vb_prior_beta_rhs$s %||% sqrt(as.numeric(vb_prior_beta_rhs$s2 %||% NA_real_))),
+        s2_used = as.numeric(vb_prior_beta_rhs$s2 %||% NA_real_),
+        init_log_tau = as.numeric(init_log_tau),
+        eta_tau_lower_bound = eta_tau_lo,
+        eta_tau_upper_bound = eta_tau_hi,
+        rhs_trace_available = FALSE,
+        shrink_intercept = as.logical(fit$beta_prior$state$shrink_intercept %||% NA),
+        tau_last = NA_real_,
+        log_tau_last = NA_real_,
+        near_bound_flag = NA,
+        E_invV_med_last = NA_real_,
+        beta_l2_last = NA_real_,
+        beta_small_frac_1e4_last = NA_real_,
+        R_over_D_last = NA_real_,
+        min_R_over_D = NA_real_,
+        iter_first_R_over_D_lt_0_5 = NA_integer_,
+        iter_first_R_over_D_lt_0_2 = NA_integer_,
+        iter_first_R_over_D_lt_0_1 = NA_integer_,
+        collapse_flag = NA,
+        collapse_flag_bound = NA,
+        collapse_flag_shrink = NA,
+        unhealthy_flag = TRUE,
+        unhealthy_reason = "rhs_trace_unavailable",
+        root_cause_context = "rhs_trace_missing",
+        final_ELBO = NA_real_,
+        best_ELBO = NA_real_,
+        delta_ELBO_last10 = NA_real_,
+        scaled_X_flag = as.logical(readout_scale),
+        post_scale_sd_min = as.numeric(post_sd["min"]),
+        post_scale_sd_med = as.numeric(post_sd["median"]),
+        post_scale_sd_max = as.numeric(post_sd["max"]),
+        stringsAsFactors = FALSE
+      ))
+    }
     last <- tr[nrow(tr), , drop = FALSE]
 
     R_over_D <- tr$R_over_D
@@ -3851,8 +3921,23 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
       isTRUE(as.numeric(last$beta_l2) < 1e-2) &&
       isTRUE(is.finite(beta_small_frac_1e4) && beta_small_frac_1e4 > 0.95)
     collapse_flag <- isTRUE(collapse_flag_bound) || isTRUE(collapse_flag_shrink)
-
-    post_sd <- readout_scale_diag$post$sd_stats %||% c(min = NA_real_, median = NA_real_, max = NA_real_)
+    unhealthy_reason <- if (isTRUE(collapse_flag_shrink)) {
+      "rhs_shrinkage_collapse"
+    } else if (isTRUE(collapse_flag_bound)) {
+      "rhs_tau_lower_bound_collapse"
+    } else {
+      ""
+    }
+    root_cause_context <- sprintf(
+      "tau=%.6g; E_invV_med=%.6g; beta_l2=%.6g; beta_small_frac_1e4=%.6g; near_bound=%s; collapse_bound=%s; collapse_shrink=%s",
+      as.numeric(last$tau),
+      as.numeric(last$E_invV_med),
+      as.numeric(last$beta_l2),
+      as.numeric(beta_small_frac_1e4),
+      if (isTRUE(near_bound_flag)) "TRUE" else "FALSE",
+      if (isTRUE(collapse_flag_bound)) "TRUE" else "FALSE",
+      if (isTRUE(collapse_flag_shrink)) "TRUE" else "FALSE"
+    )
 
     data.frame(
       run_id = run_id,
@@ -3867,6 +3952,7 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
       init_log_tau = as.numeric(init_log_tau),
       eta_tau_lower_bound = eta_tau_lo,
       eta_tau_upper_bound = eta_tau_hi,
+      rhs_trace_available = TRUE,
       shrink_intercept = as.logical(fit$beta_prior$state$shrink_intercept %||% NA),
       tau_last = as.numeric(last$tau),
       log_tau_last = as.numeric(last$log_tau),
@@ -3882,6 +3968,9 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
       collapse_flag = collapse_flag,
       collapse_flag_bound = isTRUE(collapse_flag_bound),
       collapse_flag_shrink = isTRUE(collapse_flag_shrink),
+      unhealthy_flag = collapse_flag,
+      unhealthy_reason = unhealthy_reason,
+      root_cause_context = root_cause_context,
       final_ELBO = as.numeric(final_elbo),
       best_ELBO = as.numeric(best_elbo),
       delta_ELBO_last10 = as.numeric(delta_last10),
@@ -3897,9 +3986,21 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   if (!length(rows)) return(invisible(NULL))
   summary_df <- do.call(rbind, rows)
   utils::write.csv(summary_df, file.path(models_dir, "rhs_run_summary.csv"), row.names = FALSE)
+  bad_idx <- which(!is.na(summary_df$unhealthy_flag) & as.logical(summary_df$unhealthy_flag))
+  if (length(bad_idx)) {
+    bad_rows <- summary_df[bad_idx, , drop = FALSE]
+    for (j in seq_len(nrow(bad_rows))) {
+      message(sprintf(
+        "[RHS_GUARDRAIL][UNHEALTHY] p=%.4f reason=%s context=%s",
+        as.numeric(bad_rows$quantile_p[j]),
+        as.character(bad_rows$unhealthy_reason[j] %||% "rhs_unhealthy"),
+        as.character(bad_rows$root_cause_context[j] %||% "")
+      ))
+    }
+  }
 }
 
-if (isTRUE(save_outputs) && isTRUE(rhs_trace_on)) {
+if (isTRUE(save_outputs) && identical(tolower(as.character(vb_prior_beta_type %||% "")), "rhs")) {
   write_rhs_run_summary(MODELS, out_dir, cfg, p_vec, fits_fc,
                         readout_scale, readout_scale_diag, vb_prior_beta_rhs)
 }
