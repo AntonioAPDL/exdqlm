@@ -7,6 +7,28 @@ pipeline:
   mode: sim
   verbose: true
 
+desn:
+  D: 3
+  'n': [50, 50, 50]
+  n_tilde: [50, 50]
+  m: 30
+  alpha: [0.1, 0.1, 0.1]
+  rho: [0.95, 0.95, 0.95]
+  act_f: ["tanh", "tanh", "tanh"]
+  act_k: ["identity", "identity", "identity"]
+  pi_w: [0.1, 0.1, 0.1]
+  pi_in: [1.0, 1.0, 1.0]
+  washout: 500
+  add_bias: true
+  seed: [12345, 12344, 12343]
+
+vb:
+  max_iter: 300
+  min_iter_elbo: 50
+  rhs:
+    freeze_tau_iters: 50
+    freeze_tau_warmup_iters: 50
+
 readout:
   input_mode: dlm_decomp_lags
 
@@ -38,7 +60,8 @@ decomposition:
 
 forecast:
   mode: mixture
-  horizon: 60
+  horizon: 20
+  last_window: 300
   train_last_window: 300
   fore_last_window: 300
   coverage_report: global
@@ -50,7 +73,7 @@ diagnostics:
   scores: true
   lead_eval: true
   fan_charts: true
-  fan_stride: 60
+  fan_stride: 20
   cov_window: 365
   cov_show_last: 300
   plots: true

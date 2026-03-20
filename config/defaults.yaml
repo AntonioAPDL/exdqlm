@@ -87,8 +87,8 @@ desn:
 # These match what pipeline_sim_main.R expects in cfg$vb
 # --------------------------------------------------------------------
 vb:
-  max_iter: 100
-  min_iter_elbo: 20        # mssinimum VB iterations before ELBO/tol stopping
+  max_iter: 300
+  min_iter_elbo: 50        # minimum VB iterations before ELBO/tol stopping
   readout_scale: true       # z-score readout design matrix (excluding intercept)
   diagnostics:
     rhs_trace: true
@@ -97,8 +97,8 @@ vb:
     rhs_trace_top_k: 20
     rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
   rhs:
-    freeze_tau_iters: 20
-    freeze_tau_warmup_iters: 20
+    freeze_tau_iters: 50
+    freeze_tau_warmup_iters: 50
     update_every: 1
     update_every_warmup: 1
     update_every_warmup_iters: 0
@@ -224,7 +224,7 @@ ij:
 # Forecasting defaults
 # --------------------------------------------------------------------
 forecast:
-  last_window: 250           # legacy sbase window
+  last_window: 300           # legacy sbase window
   horizon: 60                 # multi-step horizon for lattice forecasts
   mode: origin               # origin (lead-1) | mixture | lattice
   lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (mixture only; power=0 => uniform)

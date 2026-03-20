@@ -1341,6 +1341,27 @@ forecast_paths.qdesn_fit <- function(
     }
 
     if (isTRUE(use_cpp)) {
+      lag_center_cpp <- as.numeric(lag_center)
+      lag_scale_cpp <- as.numeric(lag_scale)
+      if (!length(lag_center_cpp)) lag_center_cpp <- 0
+      if (!length(lag_scale_cpp)) lag_scale_cpp <- 1
+      if (length(lag_center_cpp) > 1L) {
+        if (any(!is.finite(lag_center_cpp)) ||
+            stats::sd(lag_center_cpp) > 1e-12) {
+          message("[forecast_paths] C++ disabled: lag_center must be scalar or constant across lags.")
+          use_cpp <- FALSE
+        }
+        lag_center_cpp <- lag_center_cpp[1L]
+      }
+      if (length(lag_scale_cpp) > 1L) {
+        if (any(!is.finite(lag_scale_cpp)) ||
+            any(lag_scale_cpp <= 0) ||
+            stats::sd(lag_scale_cpp) > 1e-12) {
+          message("[forecast_paths] C++ disabled: lag_scale must be positive scalar or constant across lags.")
+          use_cpp <- FALSE
+        }
+        lag_scale_cpp <- lag_scale_cpp[1L]
+      }
       scale_info_cpp <- scale_info
       if (is.null(scale_info_cpp) || !isTRUE(scale_info_cpp$scaled)) {
         scale_info_cpp <- list(scaled = FALSE)
@@ -1360,47 +1381,49 @@ forecast_paths.qdesn_fit <- function(
         }
       }
 
-      Q_list_cpp <- if (is.null(res$Q)) list() else res$Q
-      y_lags_cpp <- if (isTRUE(include_input)) input_lags_y else y_lags_readout
-      out <- forecast_paths_cpp(
-        W_list = res$W,
-        Win_list = res$Win,
-        Q_list = Q_list_cpp,
-        Q_is_identity = Q_is_identity,
-        alpha = res$alpha,
-        D = D,
-        add_bias = add_bias,
-        y_hist0 = y_hist0,
-        y_lags = y_lags_cpp,
-        x_blocks = x_blocks,
-        beta = Bdraw,
-        sigma = sdraw,
-        A_d = A_d,
-        B_d = B_d,
-        lam_d = lam_d,
-        y_obs_vec = y_obs_vec,
-        H = H,
-        m_res = m_res_input,
-        p_res = p_res,
-        standardize_inputs = standardize_inputs,
-        lag_center = lag_center,
-        lag_scale = lag_scale,
-        win_scale_lags = win_scale_lags_cpp,
-        input_bound = input_bound,
-        win_scale_global = win_scale_global,
-        win_scale_bias = win_scale_bias,
-        scale_info = scale_info_cpp,
-        act_f_code = act_f_code,
-        act_k_code = act_k_code,
-        origin_state = origin_state,
-        res_lags = as.integer(reservoir_lags),
-        res_lag_init = res_lag_init_cpp,
-        s_draws = s_draws,
-        v_draws = v_draws,
-        z_draws = z_draws,
-        use_omp = isTRUE(use_cpp_omp)
-      )
-      return(out)
+      if (isTRUE(use_cpp)) {
+        Q_list_cpp <- if (is.null(res$Q)) list() else res$Q
+        y_lags_cpp <- if (isTRUE(include_input)) input_lags_y else y_lags_readout
+        out <- forecast_paths_cpp(
+          W_list = res$W,
+          Win_list = res$Win,
+          Q_list = Q_list_cpp,
+          Q_is_identity = Q_is_identity,
+          alpha = res$alpha,
+          D = D,
+          add_bias = add_bias,
+          y_hist0 = y_hist0,
+          y_lags = y_lags_cpp,
+          x_blocks = x_blocks,
+          beta = Bdraw,
+          sigma = sdraw,
+          A_d = A_d,
+          B_d = B_d,
+          lam_d = lam_d,
+          y_obs_vec = y_obs_vec,
+          H = H,
+          m_res = m_res_input,
+          p_res = p_res,
+          standardize_inputs = standardize_inputs,
+          lag_center = lag_center_cpp,
+          lag_scale = lag_scale_cpp,
+          win_scale_lags = win_scale_lags_cpp,
+          input_bound = input_bound,
+          win_scale_global = win_scale_global,
+          win_scale_bias = win_scale_bias,
+          scale_info = scale_info_cpp,
+          act_f_code = act_f_code,
+          act_k_code = act_k_code,
+          origin_state = origin_state,
+          res_lags = as.integer(reservoir_lags),
+          res_lag_init = res_lag_init_cpp,
+          s_draws = s_draws,
+          v_draws = v_draws,
+          z_draws = z_draws,
+          use_omp = isTRUE(use_cpp_omp)
+        )
+        return(out)
+      }
     }
   }
 
