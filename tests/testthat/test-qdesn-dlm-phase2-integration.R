@@ -40,7 +40,7 @@ test_that("input mode resolver keeps decomposition mode active in phase 2", {
   expect_identical(info$decomposition$state_estimate_effective, "filtered")
   expect_identical(info$decomposition$trend$degree, 2L)
   expect_equal(info$decomposition$seasonal$period, 12)
-  expect_identical(info$decomposition$seasonal$harmonics, c(1L, 2L))
+  expect_equal(info$decomposition$seasonal$harmonics, c(1, 2))
   expect_identical(info$decomposition$input_lags$trend, 5L)
   expect_identical(info$decomposition$input_lags$seasonal, 6L)
   expect_identical(info$decomposition$input_lags$residual, 7L)
@@ -178,7 +178,46 @@ test_that("manual seasonal harmonics can be preferred over auto selection", {
 
   runtime <- exdqlm:::.qdesn_prepare_decomposition_runtime(y, info$decomposition, context = "test")
   expect_identical(runtime$seasonal$harmonics_source, "manual_preferred_over_auto")
-  expect_identical(runtime$seasonal$harmonics_effective, c(1L, 3L))
+  expect_equal(runtime$seasonal$harmonics_effective, c(1, 3))
+})
+
+test_that("manual seasonal harmonics can include values smaller than 1", {
+  withr::local_seed(20260320)
+
+  tt <- seq_len(240L)
+  period <- 363.5854
+  harmonics_manual <- c(1, 2, 0.1469108476)
+  y <- as.numeric(
+    0.8 * sin(2 * pi * harmonics_manual[1] * tt / period) +
+      0.6 * sin(2 * pi * harmonics_manual[2] * tt / period) +
+      0.4 * sin(2 * pi * harmonics_manual[3] * tt / period) +
+      stats::rnorm(length(tt), sd = 0.03)
+  )
+
+  info <- exdqlm:::.qdesn_resolve_input_mode_scaffold(
+    input_mode = "dlm_decomp_lags",
+    decomposition = list(
+      enabled = TRUE,
+      backend = "r",
+      state_estimate = "filtered",
+      components = c("trend", "seasonal", "residual"),
+      trend = list(degree = 0L),
+      seasonal = list(
+        period = period,
+        harmonics = harmonics_manual
+      ),
+      input_lags = list(trend = 2L, seasonal = 2L, residual = 2L),
+      discount = list(trend = 0.99, seasonal = 0.99),
+      variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+    ),
+    m_default = 2L,
+    context = "test"
+  )
+
+  runtime <- exdqlm:::.qdesn_prepare_decomposition_runtime(y, info$decomposition, context = "test")
+  expect_identical(runtime$seasonal$harmonics_source, "manual")
+  expect_equal(runtime$seasonal$harmonics_effective, sort(harmonics_manual), tolerance = 1e-12)
+  expect_true(any(runtime$seasonal$harmonics_effective < 1))
 })
 
 test_that("qdesn_fit_vb builds decomposition runtime and input width", {
@@ -220,6 +259,188 @@ test_that("qdesn_fit_vb builds decomposition runtime and input width", {
   expect_equal(length(fit$states$decomposition$series$seasonal), length(y))
   expect_equal(length(fit$states$decomposition$series$residual), length(y))
   expect_identical(fit$states$decomposition$input_components, c("trend", "seasonal", "residual"))
+})
+
+test_that("qdesn decomposition runtime supports regression and transfer components", {
+  withr::local_seed(90210)
+
+  tt <- seq_len(160L)
+  x1 <- sin(2 * pi * tt / 20)
+  x2 <- cos(2 * pi * tt / 15)
+  X <- cbind(x_reg = x1, x_tf = x2)
+  y <- as.numeric(
+    1.5 + 0.015 * tt +
+      0.7 * sin(2 * pi * tt / 12) +
+      0.5 * x1 +
+      stats::rnorm(length(tt), sd = 0.05)
+  )
+
+  decomp_cfg <- list(
+    enabled = TRUE,
+    backend = "r",
+    state_estimate = "filtered",
+    components = c("trend", "seasonal", "regression", "transfer", "residual"),
+    trend = list(degree = 0L),
+    seasonal = list(period = 12, harmonics = c(1L, 2L)),
+    regression = list(enabled = TRUE, x_cols = "x_reg"),
+    transfer = list(enabled = TRUE, x_cols = "x_tf", lambda = 0.9),
+    input_lags = list(trend = 2L, seasonal = 2L, regression = 2L, transfer = 2L, residual = 2L),
+    discount = list(trend = 0.99, seasonal = 0.99, regression = 1.0, transfer_zeta = 0.98, transfer_psi = 1.0),
+    variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+  )
+
+  fit <- exdqlm:::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 16L,
+    n_tilde = integer(0),
+    m = 4L,
+    alpha = 0.2,
+    rho = 0.9,
+    pi_w = 1.0,
+    pi_in = 1.0,
+    washout = 5L,
+    add_bias = TRUE,
+    seed = 2026L,
+    fit_readout = FALSE,
+    input_mode = "dlm_decomp_lags",
+    decomposition = decomp_cfg,
+    decomposition_xreg = X
+  )
+
+  runtime <- fit$states$decomposition
+  expect_false(is.null(runtime))
+  expect_true(all(c("trend", "seasonal", "regression", "transfer", "residual") %in% names(runtime$series)))
+  expect_identical(runtime$input_components, c("trend", "seasonal", "regression", "transfer", "residual"))
+  expect_equal(fit$meta$m_input, 10L)
+  expect_equal(length(runtime$idx$regression), 1L)
+  expect_equal(length(runtime$idx$transfer), 2L)
+  expect_true(all(is.finite(runtime$series$regression)))
+  expect_true(all(is.finite(runtime$series$transfer)))
+})
+
+test_that("decomposition regression/transfer feature engineering supports lags squares and interactions", {
+  withr::local_seed(90212)
+
+  tt <- seq_len(140L)
+  X <- cbind(
+    soil = sin(2 * pi * tt / 17),
+    ppt = cos(2 * pi * tt / 23)
+  )
+  y <- as.numeric(
+    2 + 0.01 * tt +
+      0.5 * X[, "soil"] +
+      0.3 * X[, "ppt"] +
+      stats::rnorm(length(tt), sd = 0.06)
+  )
+
+  decomp_cfg <- list(
+    enabled = TRUE,
+    backend = "r",
+    state_estimate = "filtered",
+    components = c("trend", "regression", "transfer", "residual"),
+    trend = list(degree = 0L),
+    regression = list(
+      enabled = TRUE,
+      x_cols = c("soil", "ppt"),
+      features = list(
+        lags = c(0L, 1L, 2L, 3L),
+        include_squares = TRUE,
+        include_interactions = TRUE,
+        interaction_pairs = list(c("soil", "ppt")),
+        same_lag_only = TRUE
+      )
+    ),
+    transfer = list(
+      enabled = TRUE,
+      x_cols = c("soil", "ppt"),
+      lambda = 0.97,
+      features = list(
+        lags = c(0L, 1L, 2L, 3L),
+        include_squares = TRUE,
+        include_interactions = TRUE,
+        interaction_pairs = list(c("soil", "ppt")),
+        same_lag_only = TRUE
+      )
+    ),
+    input_lags = list(trend = 2L, regression = 2L, transfer = 2L, residual = 2L),
+    discount = list(trend = 0.99, regression = 1.0, transfer_zeta = 0.98, transfer_psi = 1.0),
+    variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+  )
+
+  fit <- exdqlm:::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 12L,
+    n_tilde = integer(0),
+    m = 4L,
+    alpha = 0.2,
+    rho = 0.9,
+    pi_w = 1.0,
+    pi_in = 1.0,
+    washout = 5L,
+    add_bias = TRUE,
+    seed = 2026L,
+    fit_readout = FALSE,
+    input_mode = "dlm_decomp_lags",
+    decomposition = decomp_cfg,
+    decomposition_xreg = X
+  )
+
+  runtime <- fit$states$decomposition
+  reg_info <- runtime$regression
+  tf_info <- runtime$transfer
+
+  # raw(2*4) + sq(2*4) + interactions(1*4) = 20 engineered predictors
+  expect_equal(length(reg_info$feature_names), 20L)
+  expect_equal(reg_info$n_state, 20L)
+
+  # transfer has zeta + engineered predictors
+  expect_equal(length(tf_info$feature_names), 20L)
+  expect_equal(tf_info$n_state, 21L)
+  expect_equal(tf_info$lambda[1], 0.97)
+})
+
+test_that("qdesn decomposition regression/transfer blocks require decomposition covariates", {
+  withr::local_seed(90211)
+
+  y <- as.numeric(1 + 0.01 * seq_len(80L) + stats::rnorm(80L, sd = 0.05))
+  decomp_cfg <- list(
+    enabled = TRUE,
+    backend = "r",
+    state_estimate = "filtered",
+    components = c("trend", "regression", "transfer", "residual"),
+    trend = list(degree = 0L),
+    regression = list(enabled = TRUE),
+    transfer = list(enabled = TRUE, lambda = 0.9),
+    input_lags = list(trend = 2L, regression = 2L, transfer = 2L, residual = 2L),
+    discount = list(trend = 0.99, regression = 1.0, transfer_zeta = 0.99, transfer_psi = 1.0),
+    variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+  )
+
+  expect_error(
+    exdqlm:::qdesn_fit_vb(
+      y = y,
+      p0 = 0.5,
+      D = 1L,
+      n = 10L,
+      n_tilde = integer(0),
+      m = 4L,
+      alpha = 0.2,
+      rho = 0.9,
+      pi_w = 1.0,
+      pi_in = 1.0,
+      washout = 5L,
+      add_bias = TRUE,
+      seed = 2026L,
+      fit_readout = FALSE,
+      input_mode = "dlm_decomp_lags",
+      decomposition = decomp_cfg
+    ),
+    regexp = "requires decomposition covariates"
+  )
 })
 
 test_that("qdesn_fit_vb uses component lag policy independent of m", {

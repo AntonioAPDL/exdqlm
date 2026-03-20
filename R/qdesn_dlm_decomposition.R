@@ -72,6 +72,207 @@
   )
 }
 
+.qdesn_standardize_decomp_xreg <- function(decomp_xreg, context = "qdesn") {
+  if (is.null(decomp_xreg)) return(NULL)
+  if (is.vector(decomp_xreg) && !is.list(decomp_xreg)) {
+    decomp_xreg <- matrix(as.numeric(decomp_xreg), ncol = 1L)
+  } else if (is.data.frame(decomp_xreg)) {
+    decomp_xreg <- as.matrix(decomp_xreg)
+  } else if (!is.matrix(decomp_xreg)) {
+    stop(sprintf("[%s] decomposition covariates must be a numeric matrix/data.frame/vector.", context), call. = FALSE)
+  }
+
+  decomp_xreg <- as.matrix(decomp_xreg)
+  storage.mode(decomp_xreg) <- "double"
+  if (!nrow(decomp_xreg) || !ncol(decomp_xreg)) {
+    stop(sprintf("[%s] decomposition covariates must have at least one row and one column.", context), call. = FALSE)
+  }
+  if (any(!is.finite(decomp_xreg))) {
+    stop(sprintf("[%s] decomposition covariates contain non-finite values.", context), call. = FALSE)
+  }
+
+  coln <- colnames(decomp_xreg)
+  if (is.null(coln) || length(coln) != ncol(decomp_xreg)) {
+    coln <- paste0("x", seq_len(ncol(decomp_xreg)))
+  }
+  coln <- as.character(coln)
+  coln[is.na(coln)] <- ""
+  empty <- which(!nzchar(coln))
+  if (length(empty)) coln[empty] <- paste0("x", empty)
+  colnames(decomp_xreg) <- make.unique(coln, sep = "_")
+  decomp_xreg
+}
+
+.qdesn_lag_shift_zero <- function(x, lag) {
+  x <- as.numeric(x)
+  n <- length(x)
+  lag <- as.integer(lag)[1L]
+  if (!is.finite(lag) || lag < 0L) lag <- 0L
+  if (lag <= 0L) return(x)
+  if (lag >= n) return(rep(0, n))
+  c(rep(0, lag), x[seq_len(n - lag)])
+}
+
+.qdesn_normalize_interaction_pairs <- function(pairs, available_cols, context = "qdesn", label = "component") {
+  if (is.null(pairs) || !length(pairs)) return(list())
+  out <- list()
+
+  if (is.list(pairs)) {
+    for (it in pairs) {
+      v <- as.character(unlist(it, use.names = FALSE))
+      v <- v[nzchar(v)]
+      if (length(v) == 2L) out[[length(out) + 1L]] <- v
+    }
+  }
+
+  if (!length(out)) return(list())
+
+  norm_pair <- function(v) {
+    v <- as.character(v)
+    if (length(v) != 2L) return(NULL)
+    if (any(!v %in% available_cols)) {
+      stop(
+        sprintf("[%s] decomposition.%s.features interaction pair has unknown column(s): %s",
+                context, label, paste(v, collapse = ", ")),
+        call. = FALSE
+      )
+    }
+    if (identical(v[1L], v[2L])) {
+      stop(sprintf("[%s] decomposition.%s.features interaction pairs must use two distinct columns.", context, label), call. = FALSE)
+    }
+    v
+  }
+
+  out <- lapply(out, norm_pair)
+  out <- Filter(Negate(is.null), out)
+  if (!length(out)) return(list())
+  keys <- vapply(out, function(v) paste(v, collapse = "||"), character(1))
+  out[!duplicated(keys)]
+}
+
+.qdesn_engineer_component_xreg <- function(X_base, feature_cfg = list(), context = "qdesn", label = "component") {
+  X_base <- as.matrix(X_base)
+  storage.mode(X_base) <- "double"
+  if (!nrow(X_base) || !ncol(X_base)) {
+    stop(sprintf("[%s] decomposition.%s requires at least one covariate column.", context, label), call. = FALSE)
+  }
+  if (any(!is.finite(X_base))) {
+    stop(sprintf("[%s] decomposition.%s covariates contain non-finite values.", context, label), call. = FALSE)
+  }
+  coln <- colnames(X_base)
+  if (is.null(coln) || length(coln) != ncol(X_base)) {
+    coln <- paste0("x", seq_len(ncol(X_base)))
+  }
+  coln <- as.character(coln)
+  coln[is.na(coln)] <- ""
+  empty <- which(!nzchar(coln))
+  if (length(empty)) coln[empty] <- paste0("x", empty)
+  colnames(X_base) <- make.unique(coln, sep = "_")
+
+  include_raw <- isTRUE(feature_cfg$include_raw %||% TRUE)
+  lags <- as.integer(unlist(feature_cfg$lags %||% 0L, use.names = FALSE))
+  lags <- lags[is.finite(lags) & lags >= 0L]
+  if (!length(lags)) lags <- 0L
+  lags <- sort(unique(lags))
+  include_squares <- isTRUE(feature_cfg$include_squares %||% FALSE)
+  include_interactions <- isTRUE(feature_cfg$include_interactions %||% FALSE)
+  same_lag_only <- isTRUE(feature_cfg$same_lag_only %||% TRUE)
+  pairs_in <- feature_cfg$interaction_pairs %||% list()
+  pairs <- .qdesn_normalize_interaction_pairs(
+    pairs = pairs_in,
+    available_cols = colnames(X_base),
+    context = context,
+    label = label
+  )
+  if (isTRUE(include_interactions) && !length(pairs)) {
+    if (ncol(X_base) < 2L) {
+      include_interactions <- FALSE
+    } else {
+      cmb <- utils::combn(colnames(X_base), 2L, simplify = FALSE)
+      pairs <- lapply(cmb, function(v) as.character(v))
+    }
+  }
+
+  raw_terms <- list()
+  for (nm in colnames(X_base)) {
+    v <- X_base[, nm]
+    for (L in lags) {
+      key <- paste0(nm, "__lag", L)
+      raw_terms[[key]] <- .qdesn_lag_shift_zero(v, lag = L)
+    }
+  }
+
+  out_terms <- list()
+  if (isTRUE(include_raw)) out_terms <- c(out_terms, raw_terms)
+
+  if (isTRUE(include_squares) && length(raw_terms)) {
+    sq_terms <- lapply(raw_terms, function(v) as.numeric(v)^2)
+    names(sq_terms) <- paste0(names(raw_terms), "__sq")
+    out_terms <- c(out_terms, sq_terms)
+  }
+
+  if (isTRUE(include_interactions) && length(pairs) && length(raw_terms)) {
+    int_terms <- list()
+    if (isTRUE(same_lag_only)) {
+      for (pr in pairs) {
+        a <- pr[1L]
+        b <- pr[2L]
+        for (L in lags) {
+          ka <- paste0(a, "__lag", L)
+          kb <- paste0(b, "__lag", L)
+          if (!is.null(raw_terms[[ka]]) && !is.null(raw_terms[[kb]])) {
+            kn <- paste0(a, "_x_", b, "__lag", L)
+            int_terms[[kn]] <- as.numeric(raw_terms[[ka]]) * as.numeric(raw_terms[[kb]])
+          }
+        }
+      }
+    } else {
+      for (pr in pairs) {
+        a <- pr[1L]
+        b <- pr[2L]
+        for (La in lags) {
+          for (Lb in lags) {
+            ka <- paste0(a, "__lag", La)
+            kb <- paste0(b, "__lag", Lb)
+            if (!is.null(raw_terms[[ka]]) && !is.null(raw_terms[[kb]])) {
+              kn <- paste0(a, "_x_", b, "__lag", La, "x", Lb)
+              int_terms[[kn]] <- as.numeric(raw_terms[[ka]]) * as.numeric(raw_terms[[kb]])
+            }
+          }
+        }
+      }
+    }
+    out_terms <- c(out_terms, int_terms)
+  }
+
+  if (!length(out_terms)) {
+    stop(
+      sprintf("[%s] decomposition.%s feature engineering produced zero columns; enable raw/squares/interactions.", context, label),
+      call. = FALSE
+    )
+  }
+
+  X_out <- as.matrix(data.frame(out_terms, check.names = FALSE, stringsAsFactors = FALSE))
+  storage.mode(X_out) <- "double"
+  if (any(!is.finite(X_out))) {
+    stop(sprintf("[%s] decomposition.%s engineered covariates contain non-finite values.", context, label), call. = FALSE)
+  }
+  colnames(X_out) <- make.unique(colnames(X_out), sep = "_")
+
+  list(
+    X = X_out,
+    feature_names = colnames(X_out),
+    feature_cfg_effective = list(
+      include_raw = include_raw,
+      lags = as.integer(lags),
+      include_squares = include_squares,
+      include_interactions = include_interactions,
+      interaction_pairs = pairs,
+      same_lag_only = same_lag_only
+    )
+  )
+}
+
 .qdesn_select_harmonics_spectral <- function(y,
                                              period,
                                              top_k = 5L,
@@ -487,7 +688,34 @@ qdesn_ndlm_structured_forecast <- function(
   out
 }
 
-.qdesn_build_dlm_model_from_cfg <- function(decomp_cfg, y = NULL, context = "qdesn") {
+.qdesn_build_dlm_model_from_cfg <- function(decomp_cfg, y = NULL, decomp_xreg = NULL, context = "qdesn") {
+  decomp_xreg <- .qdesn_standardize_decomp_xreg(decomp_xreg, context = context)
+  y <- as.numeric(y)
+  T_len <- if (length(y)) length(y) else if (!is.null(decomp_xreg)) nrow(decomp_xreg) else NA_integer_
+  if (!is.null(decomp_xreg) && is.finite(T_len) && nrow(decomp_xreg) != T_len) {
+    stop(sprintf("[%s] decomposition covariates must have nrow equal to length(y).", context), call. = FALSE)
+  }
+
+  pick_x_cols <- function(xreg, cols, label) {
+    if (is.null(xreg)) {
+      stop(sprintf("[%s] decomposition.%s.enabled requires decomposition covariates.", context, label), call. = FALSE)
+    }
+    cols <- as.character(unlist(cols %||% character(0), use.names = FALSE))
+    cols <- unique(cols[nzchar(cols)])
+    if (!length(cols)) {
+      return(list(X = xreg, x_cols_effective = colnames(xreg)))
+    }
+    missing_cols <- setdiff(cols, colnames(xreg))
+    if (length(missing_cols)) {
+      stop(
+        sprintf("[%s] decomposition.%s.x_cols missing in decomposition covariates: %s",
+                context, label, paste(missing_cols, collapse = ", ")),
+        call. = FALSE
+      )
+    }
+    list(X = as.matrix(xreg[, cols, drop = FALSE]), x_cols_effective = cols)
+  }
+
   trend_degree <- as.integer(decomp_cfg$trend$degree %||% 1L)
   trend_order <- trend_degree + 1L
   if (!is.finite(trend_order) || trend_order < 1L) {
@@ -501,8 +729,8 @@ qdesn_ndlm_structured_forecast <- function(
   )
 
   period <- as.numeric(decomp_cfg$seasonal$period %||% NA_real_)
-  harmonics_requested <- as.integer(decomp_cfg$seasonal$harmonics %||% integer(0))
-  harmonics_requested <- harmonics_requested[is.finite(harmonics_requested) & harmonics_requested > 0L]
+  harmonics_requested <- as.numeric(decomp_cfg$seasonal$harmonics %||% numeric(0))
+  harmonics_requested <- harmonics_requested[is.finite(harmonics_requested) & harmonics_requested > 0]
   harmonics_requested <- sort(unique(harmonics_requested))
 
   auto_cfg <- decomp_cfg$seasonal$auto %||% list()
@@ -537,7 +765,7 @@ qdesn_ndlm_structured_forecast <- function(
     }
   }
 
-  harmonics <- harmonics[is.finite(harmonics) & harmonics > 0L]
+  harmonics <- harmonics[is.finite(harmonics) & harmonics > 0]
   harmonics <- sort(unique(harmonics))
 
   seasonal_enabled <- !is.na(period) && period > 0 && length(harmonics) > 0L
@@ -545,9 +773,9 @@ qdesn_ndlm_structured_forecast <- function(
   seasonal_dim <- 0L
 
   if (seasonal_enabled) {
-    max_h <- floor(period / 2)
+    max_h <- period / 2
     if (any(harmonics > max_h)) {
-      stop(sprintf("[%s] decomposition.seasonal.harmonics must be <= floor(period/2).", context), call. = FALSE)
+      stop(sprintf("[%s] decomposition.seasonal.harmonics must be <= period/2.", context), call. = FALSE)
     }
     seasonal_dim_tmp <- length(seasMod(period, harmonics)$m0)
     seasonal_mod <- seasMod(
@@ -566,61 +794,195 @@ qdesn_ndlm_structured_forecast <- function(
 
   idx_trend <- seq_len(trend_order)
   idx_seasonal <- if (seasonal_dim > 0L) seq.int(trend_order + 1L, trend_order + seasonal_dim) else integer(0)
+  idx_regression <- integer(0)
+  idx_transfer <- integer(0)
 
   d_tr <- as.numeric((decomp_cfg$discount %||% list())$trend %||% 0.99)
   d_se <- as.numeric((decomp_cfg$discount %||% list())$seasonal %||% 0.99)
+  d_rg <- as.numeric((decomp_cfg$discount %||% list())$regression %||% 1.0)
+  d_tf_z <- as.numeric((decomp_cfg$discount %||% list())$transfer_zeta %||% 0.99)
+  d_tf_p <- as.numeric((decomp_cfg$discount %||% list())$transfer_psi %||% 1.0)
   if (!is.finite(d_tr) || d_tr <= 0 || d_tr > 1) {
     stop(sprintf("[%s] decomposition.discount.trend must be in (0,1].", context), call. = FALSE)
   }
   if (!is.finite(d_se) || d_se <= 0 || d_se > 1) {
     stop(sprintf("[%s] decomposition.discount.seasonal must be in (0,1].", context), call. = FALSE)
   }
+  if (!is.finite(d_rg) || d_rg <= 0 || d_rg > 1) {
+    stop(sprintf("[%s] decomposition.discount.regression must be in (0,1].", context), call. = FALSE)
+  }
+  if (!is.finite(d_tf_z) || d_tf_z <= 0 || d_tf_z > 1) {
+    stop(sprintf("[%s] decomposition.discount.transfer_zeta must be in (0,1].", context), call. = FALSE)
+  }
+  if (!is.finite(d_tf_p) || d_tf_p <= 0 || d_tf_p > 1) {
+    stop(sprintf("[%s] decomposition.discount.transfer_psi must be in (0,1].", context), call. = FALSE)
+  }
 
   dim_df <- c(trend_order, if (seasonal_dim > 0L) seasonal_dim else NULL)
   df_vec <- c(d_tr, if (seasonal_dim > 0L) d_se else NULL)
 
+  reg_cfg <- decomp_cfg$regression %||% list()
+  reg_enabled <- isTRUE(reg_cfg$enabled %||% FALSE)
+  reg_info <- list(
+    enabled = reg_enabled,
+    x_cols_requested = as.character(unlist(reg_cfg$x_cols %||% character(0), use.names = FALSE)),
+    x_cols_effective = character(0),
+    n_state = 0L,
+    x_base_cols = character(0),
+    feature_names = character(0),
+    features = reg_cfg$features %||% list()
+  )
+  if (isTRUE(reg_enabled)) {
+    reg_pick <- pick_x_cols(
+      xreg = decomp_xreg,
+      cols = reg_cfg$x_cols %||% character(0),
+      label = "regression"
+    )
+    reg_feat <- .qdesn_engineer_component_xreg(
+      X_base = reg_pick$X,
+      feature_cfg = reg_cfg$features %||% list(),
+      context = context,
+      label = "regression"
+    )
+    X_reg <- reg_feat$X
+    reg_mod <- regMod(X_reg, m0 = rep(0, ncol(X_reg)), C0 = diag(1e3, ncol(X_reg)))
+    model <- combineMods(model, reg_mod)
+    n_reg <- ncol(X_reg)
+    offset <- if (length(model$m0) > n_reg) length(model$m0) - n_reg else 0L
+    idx_regression <- seq.int(offset + 1L, offset + n_reg)
+    dim_df <- c(dim_df, n_reg)
+    df_vec <- c(df_vec, d_rg)
+    reg_info$x_cols_effective <- reg_pick$x_cols_effective
+    reg_info$x_base_cols <- colnames(reg_pick$X)
+    reg_info$feature_names <- reg_feat$feature_names
+    reg_info$features <- reg_feat$feature_cfg_effective
+    reg_info$n_state <- as.integer(n_reg)
+  }
+
+  tf_cfg <- decomp_cfg$transfer %||% list()
+  tf_enabled <- isTRUE(tf_cfg$enabled %||% FALSE)
+  tf_info <- list(
+    enabled = tf_enabled,
+    x_cols_requested = as.character(unlist(tf_cfg$x_cols %||% character(0), use.names = FALSE)),
+    x_cols_effective = character(0),
+    n_state = 0L,
+    lambda = numeric(0),
+    x_base_cols = character(0),
+    feature_names = character(0),
+    features = tf_cfg$features %||% list()
+  )
+  if (isTRUE(tf_enabled)) {
+    tf_pick <- pick_x_cols(
+      xreg = decomp_xreg,
+      cols = tf_cfg$x_cols %||% character(0),
+      label = "transfer"
+    )
+    tf_feat <- .qdesn_engineer_component_xreg(
+      X_base = tf_pick$X,
+      feature_cfg = tf_cfg$features %||% list(),
+      context = context,
+      label = "transfer"
+    )
+    X_tf <- tf_feat$X
+    lambda_tf <- as.numeric(unlist(tf_cfg$lambda %||% 0.9, use.names = FALSE))
+    if (!length(lambda_tf) || any(!is.finite(lambda_tf))) {
+      stop(sprintf("[%s] decomposition.transfer.lambda must be finite scalar/vector.", context), call. = FALSE)
+    }
+    if (length(lambda_tf) == 1L) {
+      lambda_tf <- rep(lambda_tf, nrow(X_tf))
+    }
+    if (length(lambda_tf) != nrow(X_tf)) {
+      stop(sprintf("[%s] decomposition.transfer.lambda must be scalar or length nrow(xreg).", context), call. = FALSE)
+    }
+    tf_mod <- tfRegMod(X_tf, lambda = lambda_tf, m0 = rep(0, ncol(X_tf) + 1L), C0 = diag(1e3, ncol(X_tf) + 1L))
+    model <- combineMods(model, tf_mod)
+    n_tf <- ncol(X_tf)
+    offset <- if (length(model$m0) > (n_tf + 1L)) length(model$m0) - (n_tf + 1L) else 0L
+    idx_transfer <- seq.int(offset + 1L, offset + n_tf + 1L)
+    dim_df <- c(dim_df, 1L, n_tf)
+    df_vec <- c(df_vec, d_tf_z, d_tf_p)
+    tf_info$x_cols_effective <- tf_pick$x_cols_effective
+    tf_info$x_base_cols <- colnames(tf_pick$X)
+    tf_info$feature_names <- tf_feat$feature_names
+    tf_info$features <- tf_feat$feature_cfg_effective
+    tf_info$n_state <- as.integer(n_tf + 1L)
+    tf_info$lambda <- as.numeric(lambda_tf)
+  }
+
+  if (sum(as.integer(dim_df)) != length(model$m0)) {
+    stop(sprintf("[%s] dim_df does not sum to state dimension after model assembly.", context), call. = FALSE)
+  }
+
   list(
     model = model,
-    idx = list(trend = idx_trend, seasonal = idx_seasonal),
+    idx = list(
+      trend = idx_trend,
+      seasonal = idx_seasonal,
+      regression = idx_regression,
+      transfer = idx_transfer
+    ),
     dim_df = as.integer(dim_df),
     df = as.numeric(df_vec),
     seasonal_enabled = seasonal_enabled,
     seasonal = list(
       period = period,
-      harmonics_requested = as.integer(harmonics_requested),
-      harmonics_effective = as.integer(harmonics),
+      harmonics_requested = as.numeric(harmonics_requested),
+      harmonics_effective = as.numeric(harmonics),
       harmonics_source = harmonics_source,
       auto_enabled = auto_enabled,
       auto_selection = auto_selection
-    )
+    ),
+    regression = reg_info,
+    transfer = tf_info
   )
 }
 
-.qdesn_extract_decomp_series <- function(state_mat, FF, idx, y) {
+.qdesn_extract_decomp_series <- function(state_mat, FF, idx, y, component_names = c("trend", "seasonal", "regression", "transfer")) {
   T_len <- nrow(state_mat)
-  trend <- numeric(T_len)
-  seasonal <- numeric(T_len)
+  component_names <- unique(component_names)
+  component_names <- component_names[component_names %in% c("trend", "seasonal", "regression", "transfer")]
+
+  component_series <- setNames(
+    lapply(component_names, function(...) numeric(T_len)),
+    component_names
+  )
 
   for (t in seq_len(T_len)) {
     F_t <- FF[, t]
-    trend[t] <- if (length(idx$trend)) sum(F_t[idx$trend] * state_mat[t, idx$trend]) else 0
-    seasonal[t] <- if (length(idx$seasonal)) sum(F_t[idx$seasonal] * state_mat[t, idx$seasonal]) else 0
+    for (nm in component_names) {
+      idx_nm <- as.integer(idx[[nm]] %||% integer(0))
+      component_series[[nm]][t] <- if (length(idx_nm)) sum(F_t[idx_nm] * state_mat[t, idx_nm]) else 0
+    }
   }
 
-  structured <- trend + seasonal
+  structured <- if (length(component_series)) {
+    Reduce(`+`, component_series)
+  } else {
+    numeric(T_len)
+  }
   residual <- as.numeric(y) - structured
-  list(trend = trend, seasonal = seasonal, structured = structured, residual = residual)
+  c(component_series, list(structured = structured, residual = residual))
 }
 
 #' @keywords internal
-.qdesn_prepare_decomposition_runtime <- function(y, decomp_cfg, context = "qdesn") {
+.qdesn_prepare_decomposition_runtime <- function(y, decomp_cfg, decomp_xreg = NULL, context = "qdesn") {
   y <- as.numeric(y)
   T_len <- length(y)
   if (T_len < 3L) {
     stop(sprintf("[%s] decomposition mode requires at least 3 observations.", context), call. = FALSE)
   }
 
-  model_info <- .qdesn_build_dlm_model_from_cfg(decomp_cfg, y = y, context = context)
+  decomp_xreg <- .qdesn_standardize_decomp_xreg(decomp_xreg, context = context)
+  if (!is.null(decomp_xreg) && nrow(decomp_xreg) != T_len) {
+    stop(sprintf("[%s] decomposition covariates must have nrow equal to length(y).", context), call. = FALSE)
+  }
+
+  model_info <- .qdesn_build_dlm_model_from_cfg(
+    decomp_cfg = decomp_cfg,
+    y = y,
+    decomp_xreg = decomp_xreg,
+    context = context
+  )
   expanded <- .qdesn_expand_state_space(model_info$model, T_len = T_len, context = context)
 
   variance_cfg <- decomp_cfg$variance %||% list()
@@ -652,10 +1014,20 @@ qdesn_ndlm_structured_forecast <- function(
   state_est_eff <- tolower(as.character(decomp_cfg$state_estimate_effective %||% state_est_req)[1L])
   if (!state_est_eff %in% c("filtered", "smoothed")) state_est_eff <- "filtered"
 
-  series_filtered <- .qdesn_extract_decomp_series(filt$fm, expanded$FF, model_info$idx, y = y)
+  series_filtered <- .qdesn_extract_decomp_series(
+    state_mat = filt$fm,
+    FF = expanded$FF,
+    idx = model_info$idx,
+    y = y
+  )
   series_smoothed <- NULL
   if (!is.null(filt$sm)) {
-    series_smoothed <- .qdesn_extract_decomp_series(filt$sm, expanded$FF, model_info$idx, y = y)
+    series_smoothed <- .qdesn_extract_decomp_series(
+      state_mat = filt$sm,
+      FF = expanded$FF,
+      idx = model_info$idx,
+      y = y
+    )
   }
 
   series_effective <- if (identical(state_est_eff, "smoothed") && !is.null(series_smoothed)) {
@@ -667,6 +1039,8 @@ qdesn_ndlm_structured_forecast <- function(
   input_lags <- list(
     trend = as.integer((decomp_cfg$input_lags %||% list())$trend %||% 0L),
     seasonal = as.integer((decomp_cfg$input_lags %||% list())$seasonal %||% 0L),
+    regression = as.integer((decomp_cfg$input_lags %||% list())$regression %||% 0L),
+    transfer = as.integer((decomp_cfg$input_lags %||% list())$transfer %||% 0L),
     residual = as.integer((decomp_cfg$input_lags %||% list())$residual %||% 0L)
   )
   for (nm in names(input_lags)) {
@@ -674,7 +1048,7 @@ qdesn_ndlm_structured_forecast <- function(
   }
 
   comp_order <- as.character(decomp_cfg$components %||% c("trend", "seasonal", "residual"))
-  comp_order <- comp_order[comp_order %in% c("trend", "seasonal", "residual")]
+  comp_order <- comp_order[comp_order %in% c("trend", "seasonal", "regression", "transfer", "residual")]
   if (!length(comp_order)) comp_order <- c("trend", "seasonal", "residual")
 
   input_components <- comp_order[vapply(comp_order, function(nm) input_lags[[nm]] > 0L, logical(1))]
@@ -685,15 +1059,14 @@ qdesn_ndlm_structured_forecast <- function(
   lag_component_order <- unlist(lapply(input_components, function(nm) rep(nm, input_lags[[nm]])), use.names = FALSE)
   m_input <- length(lag_component_order)
 
-  component_means <- c(
-    trend = mean(series_effective$trend, na.rm = TRUE),
-    seasonal = mean(series_effective$seasonal, na.rm = TRUE),
-    residual = mean(series_effective$residual, na.rm = TRUE)
+  component_names <- names(input_lags)
+  component_means <- setNames(
+    vapply(component_names, function(nm) mean(as.numeric(series_effective[[nm]] %||% 0), na.rm = TRUE), numeric(1)),
+    component_names
   )
-  component_sds <- c(
-    trend = stats::sd(series_effective$trend, na.rm = TRUE),
-    seasonal = stats::sd(series_effective$seasonal, na.rm = TRUE),
-    residual = stats::sd(series_effective$residual, na.rm = TRUE)
+  component_sds <- setNames(
+    vapply(component_names, function(nm) stats::sd(as.numeric(series_effective[[nm]] %||% 0), na.rm = TRUE), numeric(1)),
+    component_names
   )
   component_sds[!is.finite(component_sds) | component_sds <= 1e-12] <- 1
 
@@ -708,6 +1081,8 @@ qdesn_ndlm_structured_forecast <- function(
     state_estimate_effective = state_est_eff,
     components = comp_order,
     seasonal = model_info$seasonal,
+    regression = model_info$regression,
+    transfer = model_info$transfer,
     input_components = input_components,
     input_lags = input_lags,
     lag_component_order = lag_component_order,
@@ -728,7 +1103,11 @@ qdesn_ndlm_structured_forecast <- function(
     ),
     state_filtered = filt$fm,
     state_smoothed = filt$sm,
-    variance = list(s = filt$s, n = filt$n)
+    variance = list(s = filt$s, n = filt$n),
+    xreg = list(
+      provided = !is.null(decomp_xreg),
+      cols = if (is.null(decomp_xreg)) character(0) else colnames(decomp_xreg)
+    )
   )
 }
 
@@ -744,11 +1123,10 @@ qdesn_ndlm_structured_forecast <- function(
     c(rev(src), rep(0, L - avail))
   }
 
-  list(
-    trend = mk_buf(runtime$series$trend, runtime$input_lags$trend, tau),
-    seasonal = mk_buf(runtime$series$seasonal, runtime$input_lags$seasonal, tau),
-    residual = mk_buf(runtime$series$residual, runtime$input_lags$residual, tau)
-  )
+  lags <- runtime$input_lags %||% list()
+  out <- lapply(names(lags), function(nm) mk_buf(runtime$series[[nm]] %||% rep(0, nrow(runtime$state_filtered)), lags[[nm]], tau))
+  names(out) <- names(lags)
+  out
 }
 
 #' @keywords internal
@@ -781,7 +1159,7 @@ qdesn_ndlm_structured_forecast <- function(
 
   GG <- runtime$model$GG
   FF <- runtime$model$FF
-  idx <- runtime$idx
+  idx <- runtime$idx %||% list()
   n_state <- nrow(FF)
 
   if (is.null(state_origin)) {
@@ -798,16 +1176,76 @@ qdesn_ndlm_structured_forecast <- function(
 
   backend_use <- tolower(as.character(runtime$backend_effective %||% runtime$backend_requested %||% "r")[1L])
   if (!backend_use %in% c("r", "cpp")) backend_use <- "r"
+  has_extended_components <- length(idx$regression %||% integer(0)) > 0L || length(idx$transfer %||% integer(0)) > 0L
 
-  out <- qdesn_ndlm_structured_forecast(
-    GG = GG,
-    FF = FF,
-    state_origin = state_now,
-    idx_trend = idx$trend,
-    idx_seasonal = idx$seasonal,
-    origin_index = tau,
-    H = H,
-    backend = backend_use
+  if (!has_extended_components) {
+    out_base <- qdesn_ndlm_structured_forecast(
+      GG = GG,
+      FF = FF,
+      state_origin = state_now,
+      idx_trend = idx$trend %||% integer(0),
+      idx_seasonal = idx$seasonal %||% integer(0),
+      origin_index = tau,
+      H = H,
+      backend = backend_use
+    )
+    out <- list(
+      components = list(
+        trend = as.numeric(out_base$trend),
+        seasonal = as.numeric(out_base$seasonal)
+      ),
+      trend = as.numeric(out_base$trend),
+      seasonal = as.numeric(out_base$seasonal),
+      regression = rep(0, H),
+      transfer = rep(0, H),
+      structured = as.numeric(out_base$structured),
+      state_last = as.numeric(out_base$state_last),
+      backend = as.character(out_base$backend %||% backend_use)[1L]
+    )
+    return(out)
+  }
+
+  component_names <- names(runtime$input_lags %||% list())
+  if (!length(component_names)) {
+    component_names <- c("trend", "seasonal", "regression", "transfer", "residual")
+  }
+  component_names <- setdiff(component_names, "residual")
+  component_names <- component_names[component_names %in% c("trend", "seasonal", "regression", "transfer")]
+  if (!length(component_names)) component_names <- c("trend", "seasonal")
+
+  comps <- setNames(lapply(component_names, function(...) numeric(H)), component_names)
+  structured <- numeric(H)
+  state_path <- state_now
+  g_tmax <- dim(GG)[3]
+  f_tmax <- ncol(FF)
+
+  for (h in seq_len(H)) {
+    t_abs <- tau + h
+    g_idx <- min(max(1L, t_abs), g_tmax)
+    f_idx <- min(max(1L, t_abs), f_tmax)
+    G_t <- GG[, , g_idx]
+    F_t <- FF[, f_idx]
+    state_path <- as.vector(G_t %*% state_path)
+
+    vals_h <- numeric(length(component_names))
+    for (k in seq_along(component_names)) {
+      nm <- component_names[k]
+      idx_nm <- as.integer(idx[[nm]] %||% integer(0))
+      vals_h[k] <- if (length(idx_nm)) sum(F_t[idx_nm] * state_path[idx_nm]) else 0
+      comps[[nm]][h] <- vals_h[k]
+    }
+    structured[h] <- sum(vals_h)
+  }
+
+  out <- list(
+    components = comps,
+    structured = structured,
+    state_last = state_path,
+    backend = "r"
   )
+  for (nm in names(comps)) out[[nm]] <- comps[[nm]]
+  for (nm in c("trend", "seasonal", "regression", "transfer")) {
+    if (is.null(out[[nm]])) out[[nm]] <- rep(0, H)
+  }
   out
 }

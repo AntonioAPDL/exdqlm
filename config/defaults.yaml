@@ -60,8 +60,8 @@ mode_overrides:
       scale_y: true
       scale_x: true
     lags:
-      m_y: 365
-      m_x: 365
+      m_y: 180
+      m_x: 180
 
 # --------------------------------------------------------------------
 # DESN (reservoir) defaults
@@ -69,8 +69,8 @@ mode_overrides:
 desn:
   # Deep Echo State Network (reservoir) defaults.
   D: 3                       # number of reservoir layers
-  'n': [50, 50, 50]      # units per layer (length D)
-  n_tilde: [50, 50]        # skip/reducer sizes (length D-1 when D>1)
+  'n': [300, 300, 300]      # units per layer (length D)
+  n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
   m: 30                   # raw_y_lags only; ignored by decomposition mode unless decomposition.input_lags_mode=inherit_m
   alpha: [0.1, 0.1, 0.1]     # leak per layer (length D)
   rho: [0.95, 0.95, 0.95]    # spectral scales per layer (length D)
@@ -190,20 +190,54 @@ decomposition:
       use_log_score: true   # rank by log spectral power at candidate harmonic frequencies
       center: true          # mean-center y before spectral scoring
       prefer_manual: true   # if harmonics is explicitly provided, keep it and skip auto selection
+  regression:
+    enabled: false          # include regression block in decomposition state-space model
+    x_cols: []              # empty => use all decomposition covariates passed from pipeline
+    dynamic: false          # reserved flag; current NDLM uses identity evolution with discount-controlled drift
+    features:
+      include_raw: true
+      lags: [0]             # decomposition-regression feature lags built from selected x_cols
+      include_squares: false
+      include_interactions: false
+      interaction_pairs: [] # optional list of [col_a, col_b]; empty + include_interactions=true => all pairs
+      same_lag_only: true
+  transfer:
+    enabled: false          # include transfer-function block in decomposition state-space model
+    x_cols: []              # empty => use all decomposition covariates passed from pipeline
+    lambda: 0.9             # scalar or length-T vector in direct API usage
+    features:
+      include_raw: true
+      lags: [0]             # decomposition-transfer feature lags built from selected x_cols
+      include_squares: false
+      include_interactions: false
+      interaction_pairs: [] # optional list of [col_a, col_b]; empty + include_interactions=true => all pairs
+      same_lag_only: true
   input_lags:
-    # Internal warmup/drop for decomposition mode uses max(trend, seasonal, residual) for index validity.
+    # Internal warmup/drop for decomposition mode uses max over active component lags for index validity.
     trend: 30               # used directly when input_lags_mode=component
     seasonal: 30            # used directly when input_lags_mode=component
+    regression: 0           # lagged regression-component inputs for reservoir (0 disables)
+    transfer: 0             # lagged transfer-component inputs for reservoir (0 disables)
     residual: 30            # used directly when input_lags_mode=component
   discount:
     trend: 0.999999
     seasonal: 0.999999
+    regression: 1.0
+    transfer_zeta: 0.99
+    transfer_psi: 1.0
   variance:
     mode: unknown_constant  # current target: NDLM with unknown constant variance
     l0: 1
     S0: 1
   forecast:
     residual_recursion: sampled_path  # sampled_path | deterministic_plugin
+  sim_xreg:
+    enabled: false          # sim-mode helper to construct decomposition covariates from available sim columns
+    include_mu: true
+    include_y: false
+    include_t: false
+    include_t_scaled: true
+    x_cols: []              # optional explicit subset among [mu, y, t, t_scaled]
 
 # --------------------------------------------------------------------
 # Sampling defaults (posterior / predictive)

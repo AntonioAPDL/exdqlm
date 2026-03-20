@@ -693,7 +693,8 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
       y = y_full, p0 = 0.50,
       fit_readout = FALSE,
       input_mode = readout_input_mode_requested,
-      decomposition = readout_decomposition_cfg
+      decomposition = readout_decomposition_cfg,
+      decomposition_xreg = X_use
     ),
     desn_args
   ))
@@ -710,16 +711,19 @@ if (identical(readout_input_mode_effective, "dlm_decomp_lags")) {
       state_estimate_effective = as.character(decomp_state$state_estimate_effective %||% NA_character_)[1L],
       input_components = as.character(decomp_state$input_components %||% character(0)),
       input_lags = decomp_state$input_lags %||% list(),
-      seasonal = decomp_state$seasonal %||% NULL
+      seasonal = decomp_state$seasonal %||% NULL,
+      regression = decomp_state$regression %||% NULL,
+      transfer = decomp_state$transfer %||% NULL
     )
     seasonal_info <- decomposition_runtime_summary$seasonal %||% list()
-    harmonics_eff <- as.integer(seasonal_info$harmonics_effective %||% integer(0))
+    harmonics_eff <- as.numeric(seasonal_info$harmonics_effective %||% numeric(0))
     harmonics_src <- as.character(seasonal_info$harmonics_source %||% "unknown")[1L]
     if (length(harmonics_eff)) {
+      harmonics_txt <- paste(format(harmonics_eff, digits = 10, trim = TRUE, scientific = FALSE), collapse = ", ")
       log_msg(
         "Decomposition seasonal harmonics → source=%s | effective=[%s]",
         harmonics_src,
-        paste(harmonics_eff, collapse = ", ")
+        harmonics_txt
       )
     } else {
       log_msg("Decomposition seasonal harmonics unavailable (source=%s).", harmonics_src)

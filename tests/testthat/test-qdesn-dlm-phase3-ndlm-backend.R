@@ -341,3 +341,118 @@ test_that("decomposition forecast_paths cpp matches r with fixed noise draws", {
   run_case("sampled_path")
   run_case("deterministic_plugin")
 })
+
+test_that("decomposition forecast_paths cpp matches r with regression and transfer components", {
+  withr::local_seed(3001)
+
+  tt <- seq_len(180L)
+  X <- cbind(
+    x_reg = sin(2 * pi * tt / 18),
+    x_tf = cos(2 * pi * tt / 27)
+  )
+  y <- as.numeric(
+    1.8 + 0.01 * tt +
+      0.8 * sin(2 * pi * tt / 12) +
+      0.4 * X[, "x_reg"] +
+      stats::rnorm(length(tt), sd = 0.08)
+  )
+
+  decomp_cfg <- list(
+    enabled = TRUE,
+    backend = "cpp",
+    state_estimate = "filtered",
+    components = c("trend", "seasonal", "regression", "transfer", "residual"),
+    trend = list(degree = 0L),
+    seasonal = list(period = 12, harmonics = c(1L, 2L)),
+    regression = list(enabled = TRUE, x_cols = "x_reg"),
+    transfer = list(enabled = TRUE, x_cols = "x_tf", lambda = 0.92),
+    input_lags = list(trend = 2L, seasonal = 2L, regression = 2L, transfer = 2L, residual = 2L),
+    discount = list(trend = 0.99, seasonal = 0.98, regression = 1.0, transfer_zeta = 0.98, transfer_psi = 1.0),
+    variance = list(mode = "unknown_constant", l0 = 2, S0 = 1),
+    forecast = list(residual_recursion = "sampled_path")
+  )
+
+  fit <- exdqlm:::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 14L,
+    n_tilde = integer(0),
+    m = 5L,
+    alpha = 0.2,
+    rho = 0.9,
+    pi_w = 1.0,
+    pi_in = 1.0,
+    washout = 8L,
+    add_bias = TRUE,
+    seed = 333,
+    fit_readout = TRUE,
+    input_mode = "dlm_decomp_lags",
+    decomposition = decomp_cfg,
+    decomposition_xreg = X,
+    vb_args = list(max_iter = 12L, min_iter_elbo = 2L, tol = 1e-3, tol_par = 1e-3, verbose = FALSE)
+  )
+
+  nd <- 16L
+  H <- 5L
+  origin_index <- 140L
+  draws <- exdqlm::exal_posterior_draws(fit$fit, nd = nd)
+  withr::local_seed(3002)
+  noise_draws <- list(
+    s = matrix(abs(stats::rnorm(H * nd)), nrow = H, ncol = nd),
+    v = matrix(abs(stats::rnorm(H * nd)) + 0.1, nrow = H, ncol = nd),
+    z = matrix(stats::rnorm(H * nd), nrow = H, ncol = nd)
+  )
+
+  readout_spec <- list(
+    include_input = FALSE,
+    input_position = "after_reservoir",
+    input_mode_requested = "dlm_decomp_lags",
+    input_mode_effective = "dlm_decomp_lags",
+    input_mode = "dlm_decomp_lags",
+    decomposition = decomp_cfg,
+    input_lags_y = integer(0),
+    input_lags_x = list(),
+    reservoir_lags = 0L,
+    y_lags = integer(0),
+    x_names = character(0),
+    x_lags = list(),
+    p_res = ncol(fit$X),
+    scale_info = NULL
+  )
+
+  withr::local_options(list(
+    exdqlm.use_cpp_postpred = FALSE,
+    exdqlm.use_cpp_postpred_precompute = FALSE,
+    exdqlm.use_cpp_postpred_omp = FALSE
+  ))
+  out_r <- exdqlm:::forecast_paths.qdesn_fit(
+    object = fit,
+    H = H,
+    nd = nd,
+    readout_spec = readout_spec,
+    origin_index = origin_index,
+    draws = draws,
+    noise_draws = noise_draws,
+    seed = 111
+  )
+
+  withr::local_options(list(
+    exdqlm.use_cpp_postpred = TRUE,
+    exdqlm.use_cpp_postpred_precompute = FALSE,
+    exdqlm.use_cpp_postpred_omp = FALSE
+  ))
+  out_cpp <- exdqlm:::forecast_paths.qdesn_fit(
+    object = fit,
+    H = H,
+    nd = nd,
+    readout_spec = readout_spec,
+    origin_index = origin_index,
+    draws = draws,
+    noise_draws = noise_draws,
+    seed = 111
+  )
+
+  expect_equal(out_cpp$mu_draws, out_r$mu_draws, tolerance = 1e-10)
+  expect_equal(out_cpp$yrep, out_r$yrep, tolerance = 1e-10)
+})

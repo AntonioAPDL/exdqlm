@@ -1,0 +1,113 @@
+# Sim smoke: decomposition-informed inputs with transfer component enabled only.
+# Regression is disabled in this profile.
+
+suite_name: sim_suite_dlm_transfer_smoke
+
+pipeline:
+  mode: sim
+  verbose: true
+
+split:
+  T_use: 1600
+  train_prop: 0.9
+
+p_vec: [0.50]
+
+desn:
+  D: 1
+  'n': [32]
+  n_tilde: []
+  m: 30
+  alpha: [0.2]
+  rho: [0.9]
+  act_f: [tanh]
+  act_k: [identity]
+  pi_w: [0.15]
+  pi_in: [1.0]
+  washout: 100
+  add_bias: true
+  seed: [124]
+
+vb:
+  max_iter: 80
+  min_iter_elbo: 20
+  readout_scale: true
+
+readout:
+  input_mode: dlm_decomp_lags
+
+decomposition:
+  enabled: true
+  backend: cpp
+  state_estimate: smoothed
+  components: [trend, seasonal, transfer, residual]
+  trend:
+    degree: 0
+  seasonal:
+    period: 50
+    harmonics: []
+    auto:
+      enabled: true
+      top_k: 5
+      min_harmonic: 1
+      max_harmonic: 25
+      use_log_score: true
+      center: true
+      prefer_manual: true
+  regression:
+    enabled: false
+  transfer:
+    enabled: true
+    x_cols: [mu, t_scaled]
+    lambda: 0.97
+    features:
+      include_raw: true
+      lags: [0, 1, 2, 3]
+      include_squares: true
+      include_interactions: true
+      interaction_pairs: [[mu, t_scaled]]
+      same_lag_only: true
+  input_lags:
+    trend: 30
+    seasonal: 30
+    regression: 0
+    transfer: 30
+    residual: 30
+  discount:
+    trend: 0.999999
+    seasonal: 0.999999
+    transfer_zeta: 0.99
+    transfer_psi: 1.0
+  forecast:
+    residual_recursion: sampled_path
+  sim_xreg:
+    enabled: true
+    include_mu: true
+    include_t_scaled: true
+    include_t: false
+    include_y: false
+    x_cols: [mu, t_scaled]
+
+forecast:
+  mode: mixture
+  horizon: 10
+  train_last_window: 120
+  fore_last_window: 120
+
+diagnostics:
+  calibration: true
+  pit: true
+  scores: true
+  lead_eval: true
+  fan_charts: false
+  plots: true
+
+cpp:
+  use_postpred: true
+  postpred_omp: true
+  postpred_precompute: true
+  postpred_threads: 4
+
+outputs:
+  save: true
+  keep_draws: false

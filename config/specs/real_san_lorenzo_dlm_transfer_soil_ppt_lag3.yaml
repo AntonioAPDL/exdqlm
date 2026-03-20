@@ -1,0 +1,90 @@
+# Real-data profile for San Lorenzo:
+# decomposition-informed inputs with level trend, fixed harmonics,
+# and transfer-function block using soil/ppt with lagged/squared/interaction features.
+
+suite_name: real_suite_dlm_transfer_soil_ppt
+
+pipeline:
+  mode: real
+  verbose: true
+
+columns:
+  y: USGS
+  x: [ppt, soil]
+
+readout:
+  input_mode: dlm_decomp_lags
+
+decomposition:
+  enabled: true
+  backend: cpp
+  state_estimate: smoothed
+  components: [trend, seasonal, transfer, residual]
+  trend:
+    degree: 0
+  seasonal:
+    period: 363.5854
+    harmonics: [1, 2, 0.1469108476]
+    auto:
+      enabled: false
+  regression:
+    enabled: false
+    x_cols: [soil, ppt]
+    features:
+      include_raw: true
+      lags: [0, 1, 2, 3]
+      include_squares: true
+      include_interactions: true
+      interaction_pairs: [[soil, ppt]]
+      same_lag_only: true
+  transfer:
+    enabled: true
+    x_cols: [soil, ppt]
+    lambda: 0.97
+    features:
+      include_raw: true
+      lags: [0, 1, 2, 3]
+      include_squares: true
+      include_interactions: true
+      interaction_pairs: [[soil, ppt]]
+      same_lag_only: true
+  input_lags_mode: component
+  input_lags:
+    trend: 30
+    seasonal: 30
+    regression: 0
+    transfer: 30
+    residual: 30
+  discount:
+    trend: 0.999999
+    seasonal: 0.999999
+    transfer_zeta: 0.99
+    transfer_psi: 1.0
+  variance:
+    mode: unknown_constant
+    l0: 1
+    S0: 1
+  forecast:
+    residual_recursion: sampled_path
+
+forecast:
+  mode: mixture
+  horizon: 20
+  train_last_window: 300
+  fore_last_window: 300
+
+diagnostics:
+  calibration: true
+  pit: true
+  pit_scope: all+synth
+  scores: true
+  lead_eval: true
+  fan_charts: true
+  fan_stride: 20
+  cov_window: 365
+  cov_show_last: 300
+  plots: true
+
+outputs:
+  save: true
+  keep_draws: false

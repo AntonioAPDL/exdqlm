@@ -15,7 +15,7 @@
     trend = list(degree = 1L),
     seasonal = list(
       period = NA_real_,
-      harmonics = integer(0),
+      harmonics = numeric(0),
       auto = list(
         enabled = FALSE,
         top_k = 5L,
@@ -26,15 +26,57 @@
         prefer_manual = TRUE
       )
     ),
+    regression = list(
+      enabled = FALSE,
+      x_cols = character(0),
+      dynamic = FALSE,
+      features = list(
+        include_raw = TRUE,
+        lags = 0L,
+        include_squares = FALSE,
+        include_interactions = FALSE,
+        interaction_pairs = list(),
+        same_lag_only = TRUE
+      )
+    ),
+    transfer = list(
+      enabled = FALSE,
+      x_cols = character(0),
+      lambda = 0.9,
+      features = list(
+        include_raw = TRUE,
+        lags = 0L,
+        include_squares = FALSE,
+        include_interactions = FALSE,
+        interaction_pairs = list(),
+        same_lag_only = TRUE
+      )
+    ),
     input_lags_mode = "component",
     input_lags = list(
       trend = 12L,
       seasonal = 12L,
+      regression = 0L,
+      transfer = 0L,
       residual = 12L
     ),
-    discount = list(trend = 0.99, seasonal = 0.99),
+    discount = list(
+      trend = 0.99,
+      seasonal = 0.99,
+      regression = 1.0,
+      transfer_zeta = 0.99,
+      transfer_psi = 1.0
+    ),
     variance = list(mode = "unknown_constant", l0 = 1, S0 = 1),
-    forecast = list(residual_recursion = "sampled_path")
+    forecast = list(residual_recursion = "sampled_path"),
+    sim_xreg = list(
+      enabled = FALSE,
+      include_mu = TRUE,
+      include_y = FALSE,
+      include_t = FALSE,
+      include_t_scaled = TRUE,
+      x_cols = character(0)
+    )
   )
 }
 
@@ -70,9 +112,9 @@
   components <- as.character(unlist(decomposition$components %||% cfg$components, use.names = FALSE))
   components <- unique(tolower(components))
   components <- components[nzchar(components)]
-  valid_components <- c("trend", "seasonal", "residual")
+  valid_components <- c("trend", "seasonal", "regression", "transfer", "residual")
   components <- intersect(components, valid_components)
-  if (!length(components)) components <- valid_components
+  if (!length(components)) components <- cfg$components
   cfg$components <- components
 
   degree <- as.integer((decomposition$trend %||% list())$degree %||% cfg$trend$degree)
@@ -87,8 +129,8 @@
     warning(sprintf("[%s] decomposition.seasonal.period must be positive or NA; using NA.", context), call. = FALSE)
     period <- NA_real_
   }
-  harmonics <- as.integer(unlist((decomposition$seasonal %||% list())$harmonics %||% cfg$seasonal$harmonics, use.names = FALSE))
-  harmonics <- harmonics[is.finite(harmonics) & harmonics > 0L]
+  harmonics <- as.numeric(unlist((decomposition$seasonal %||% list())$harmonics %||% cfg$seasonal$harmonics, use.names = FALSE))
+  harmonics <- harmonics[is.finite(harmonics) & harmonics > 0]
   harmonics <- unique(harmonics)
   cfg$seasonal$period <- period
   cfg$seasonal$harmonics <- harmonics
@@ -124,6 +166,101 @@
     prefer_manual = prefer_manual
   )
 
+  normalize_component_features <- function(features_in, defaults, label) {
+    fi <- features_in %||% defaults %||% list()
+    include_raw <- isTRUE(fi$include_raw %||% defaults$include_raw %||% TRUE)
+
+    lags <- as.integer(unlist(fi$lags %||% defaults$lags %||% 0L, use.names = FALSE))
+    lags <- lags[is.finite(lags) & lags >= 0L]
+    if (!length(lags)) lags <- 0L
+    lags <- sort(unique(lags))
+
+    include_squares <- isTRUE(fi$include_squares %||% defaults$include_squares %||% FALSE)
+    include_interactions <- isTRUE(fi$include_interactions %||% defaults$include_interactions %||% FALSE)
+    same_lag_only <- isTRUE(fi$same_lag_only %||% defaults$same_lag_only %||% TRUE)
+
+    interaction_pairs <- fi$interaction_pairs %||% defaults$interaction_pairs %||% list()
+
+    interactions_in <- fi$interactions %||% list()
+    if (is.logical(interactions_in) && length(interactions_in) == 1L && !is.na(interactions_in)) {
+      include_interactions <- isTRUE(interactions_in)
+    } else if (is.list(interactions_in) && length(interactions_in)) {
+      include_interactions <- isTRUE(interactions_in$enabled %||% include_interactions)
+      interaction_pairs <- interactions_in$pairs %||% interaction_pairs
+      same_lag_only <- isTRUE(interactions_in$same_lag_only %||% same_lag_only)
+    }
+
+    normalize_pairs <- function(x) {
+      if (is.null(x) || !length(x)) return(list())
+      out <- list()
+      if (is.list(x)) {
+        for (it in x) {
+          pair <- as.character(unlist(it, use.names = FALSE))
+          pair <- pair[nzchar(pair)]
+          if (length(pair) == 2L) out[[length(out) + 1L]] <- pair
+        }
+      }
+      if (!length(out)) return(list())
+      key <- vapply(out, function(v) paste(v, collapse = "||"), character(1))
+      out[!duplicated(key)]
+    }
+
+    features_out <- list(
+      include_raw = include_raw,
+      lags = as.integer(lags),
+      include_squares = include_squares,
+      include_interactions = include_interactions,
+      interaction_pairs = normalize_pairs(interaction_pairs),
+      same_lag_only = same_lag_only
+    )
+
+    if (isTRUE(features_out$include_interactions) &&
+        !length(features_out$interaction_pairs) &&
+        !isTRUE(features_out$same_lag_only)) {
+      warning(sprintf("[%s] decomposition.%s.features has cross-lag interactions with no explicit pairs; using same_lag_only=TRUE.", context, label), call. = FALSE)
+      features_out$same_lag_only <- TRUE
+    }
+    features_out
+  }
+
+  reg_in <- decomposition$regression %||% cfg$regression %||% list()
+  reg_enabled <- isTRUE(reg_in$enabled %||% cfg$regression$enabled %||% FALSE)
+  reg_x_cols <- as.character(unlist(reg_in$x_cols %||% cfg$regression$x_cols %||% character(0), use.names = FALSE))
+  reg_x_cols <- unique(reg_x_cols[nzchar(reg_x_cols)])
+  reg_dynamic <- isTRUE(reg_in$dynamic %||% cfg$regression$dynamic %||% FALSE)
+  reg_features <- normalize_component_features(
+    features_in = reg_in$features %||% list(),
+    defaults = cfg$regression$features %||% list(),
+    label = "regression"
+  )
+  cfg$regression <- list(
+    enabled = reg_enabled,
+    x_cols = reg_x_cols,
+    dynamic = reg_dynamic,
+    features = reg_features
+  )
+
+  tf_in <- decomposition$transfer %||% cfg$transfer %||% list()
+  tf_enabled <- isTRUE(tf_in$enabled %||% cfg$transfer$enabled %||% FALSE)
+  tf_x_cols <- as.character(unlist(tf_in$x_cols %||% cfg$transfer$x_cols %||% character(0), use.names = FALSE))
+  tf_x_cols <- unique(tf_x_cols[nzchar(tf_x_cols)])
+  tf_lambda <- as.numeric(unlist(tf_in$lambda %||% cfg$transfer$lambda, use.names = FALSE))
+  if (!length(tf_lambda) || any(!is.finite(tf_lambda))) {
+    warning(sprintf("[%s] decomposition.transfer.lambda must be numeric finite scalar/vector; using 0.9.", context), call. = FALSE)
+    tf_lambda <- 0.9
+  }
+  tf_features <- normalize_component_features(
+    features_in = tf_in$features %||% list(),
+    defaults = cfg$transfer$features %||% list(),
+    label = "transfer"
+  )
+  cfg$transfer <- list(
+    enabled = tf_enabled,
+    x_cols = tf_x_cols,
+    lambda = tf_lambda,
+    features = tf_features
+  )
+
   norm_lag <- function(x, nm) {
     out <- as.integer(x)[1L]
     if (!is.finite(out) || out < 0L) {
@@ -147,11 +284,16 @@
   if (!is.list(in_lags)) in_lags <- list()
   cfg$input_lags$trend <- norm_lag(in_lags$trend %||% lag_fallback %||% cfg$input_lags$trend, "trend")
   cfg$input_lags$seasonal <- norm_lag(in_lags$seasonal %||% lag_fallback %||% cfg$input_lags$seasonal, "seasonal")
+  cfg$input_lags$regression <- norm_lag(in_lags$regression %||% lag_fallback %||% cfg$input_lags$regression, "regression")
+  cfg$input_lags$transfer <- norm_lag(in_lags$transfer %||% lag_fallback %||% cfg$input_lags$transfer, "transfer")
   cfg$input_lags$residual <- norm_lag(in_lags$residual %||% lag_fallback %||% cfg$input_lags$residual, "residual")
 
   discount <- decomposition$discount %||% list()
   d_tr <- as.numeric(discount$trend %||% cfg$discount$trend)
   d_se <- as.numeric(discount$seasonal %||% cfg$discount$seasonal)
+  d_rg <- as.numeric(discount$regression %||% cfg$discount$regression)
+  d_tf_z <- as.numeric(discount$transfer_zeta %||% cfg$discount$transfer_zeta)
+  d_tf_p <- as.numeric(discount$transfer_psi %||% cfg$discount$transfer_psi)
   if (!is.finite(d_tr) || d_tr <= 0 || d_tr > 1) {
     warning(sprintf("[%s] decomposition.discount.trend must be in (0,1]; using 0.99.", context), call. = FALSE)
     d_tr <- 0.99
@@ -160,8 +302,23 @@
     warning(sprintf("[%s] decomposition.discount.seasonal must be in (0,1]; using 0.99.", context), call. = FALSE)
     d_se <- 0.99
   }
+  if (!is.finite(d_rg) || d_rg <= 0 || d_rg > 1) {
+    warning(sprintf("[%s] decomposition.discount.regression must be in (0,1]; using 1.", context), call. = FALSE)
+    d_rg <- 1
+  }
+  if (!is.finite(d_tf_z) || d_tf_z <= 0 || d_tf_z > 1) {
+    warning(sprintf("[%s] decomposition.discount.transfer_zeta must be in (0,1]; using 0.99.", context), call. = FALSE)
+    d_tf_z <- 0.99
+  }
+  if (!is.finite(d_tf_p) || d_tf_p <= 0 || d_tf_p > 1) {
+    warning(sprintf("[%s] decomposition.discount.transfer_psi must be in (0,1]; using 1.", context), call. = FALSE)
+    d_tf_p <- 1
+  }
   cfg$discount$trend <- d_tr
   cfg$discount$seasonal <- d_se
+  cfg$discount$regression <- d_rg
+  cfg$discount$transfer_zeta <- d_tf_z
+  cfg$discount$transfer_psi <- d_tf_p
 
   variance_mode <- tolower(as.character((decomposition$variance %||% list())$mode %||% cfg$variance$mode)[1L])
   if (!variance_mode %in% c("unknown_constant")) {
@@ -188,6 +345,18 @@
     residual_recursion <- "sampled_path"
   }
   cfg$forecast$residual_recursion <- residual_recursion
+
+  sim_in <- decomposition$sim_xreg %||% cfg$sim_xreg %||% list()
+  sim_x_cols <- as.character(unlist(sim_in$x_cols %||% cfg$sim_xreg$x_cols %||% character(0), use.names = FALSE))
+  sim_x_cols <- unique(sim_x_cols[nzchar(sim_x_cols)])
+  cfg$sim_xreg <- list(
+    enabled = isTRUE(sim_in$enabled %||% cfg$sim_xreg$enabled %||% FALSE),
+    include_mu = isTRUE(sim_in$include_mu %||% cfg$sim_xreg$include_mu %||% TRUE),
+    include_y = isTRUE(sim_in$include_y %||% cfg$sim_xreg$include_y %||% FALSE),
+    include_t = isTRUE(sim_in$include_t %||% cfg$sim_xreg$include_t %||% FALSE),
+    include_t_scaled = isTRUE(sim_in$include_t_scaled %||% cfg$sim_xreg$include_t_scaled %||% TRUE),
+    x_cols = sim_x_cols
+  )
 
   cfg
 }
@@ -266,6 +435,8 @@
 #' @param n Integer vector of length D with reservoir sizes \eqn{n_d}.
 #' @param n_tilde Integer vector of length D-1 with reducers \eqn{\tilde n_d} (ignored if D=1).
 #' @param m Integer number of lags in \eqn{u_t=(1, y_{t-1},..., y_{t-m})}.
+#' @param decomposition_xreg Optional numeric matrix/data.frame of covariates
+#'   used only by decomposition mode when regression/transfer blocks are enabled.
 #' @param alpha Leak in \eqn{(0,1)}.
 #' @param rho Numeric vector length D, spectral scales \eqn{\rho_d \in (0,1)}.
 #' @param act_f Activation for reservoir pre-activations (string or function): "tanh","relu","identity" or function.
@@ -298,6 +469,7 @@ qdesn_fit_vb <- function(
   # --- Decomposition-aware reservoir-input mode ---
   input_mode = c("raw_y_lags", "dlm_decomp_lags"),
   decomposition = NULL,
+  decomposition_xreg = NULL,
 
   # --- NEW: input preprocessing & scaling ---
   standardize_inputs = FALSE,        # z-score the lag inputs (not y target)
@@ -381,6 +553,7 @@ qdesn_fit_vb <- function(
     decomp_runtime <- .qdesn_prepare_decomposition_runtime(
       y = y,
       decomp_cfg = decomp_cfg,
+      decomp_xreg = decomposition_xreg,
       context = "qdesn_fit_vb"
     )
     decomp_cfg$backend_effective <- decomp_runtime$backend_effective %||% decomp_cfg$backend_effective
@@ -555,11 +728,14 @@ qdesn_fit_vb <- function(
   }
 
   init_component_buffers <- function() {
-    list(
-      trend = if (decomp_runtime$input_lags$trend > 0L) rep(0, decomp_runtime$input_lags$trend) else numeric(0),
-      seasonal = if (decomp_runtime$input_lags$seasonal > 0L) rep(0, decomp_runtime$input_lags$seasonal) else numeric(0),
-      residual = if (decomp_runtime$input_lags$residual > 0L) rep(0, decomp_runtime$input_lags$residual) else numeric(0)
-    )
+    lags <- decomp_runtime$input_lags %||% list()
+    out <- lapply(names(lags), function(nm) {
+      L <- as.integer(lags[[nm]])
+      if (!is.finite(L) || L <= 0L) return(numeric(0))
+      rep(0, L)
+    })
+    names(out) <- names(lags)
+    out
   }
 
   # helper to reset states to zero (or could be a learned x_init later)
@@ -617,13 +793,15 @@ qdesn_fit_vb <- function(
 
       # update lag buffers AFTER using them (so they remain t-1, t-2, ...)
       if (identical(input_mode_effective, "dlm_decomp_lags")) {
+        comp_values_now <- lapply(names(comp_buffers), function(nm) {
+          series_nm <- decomp_runtime$series[[nm]]
+          if (is.null(series_nm) || length(series_nm) < t) return(0)
+          as.numeric(series_nm[t])
+        })
+        names(comp_values_now) <- names(comp_buffers)
         comp_buffers <- .qdesn_update_component_lag_buffers(
           comp_buffers,
-          list(
-            trend = decomp_runtime$series$trend[t],
-            seasonal = decomp_runtime$series$seasonal[t],
-            residual = decomp_runtime$series$residual[t]
-          )
+          comp_values_now
         )
       } else if (m_input > 0L) {
         lag_buf <- c(y[t], lag_buf[seq_len(max(0L, m_input - 1L))])
@@ -1417,7 +1595,13 @@ forecast_paths.qdesn_fit <- function(
         }
       }
 
-      decomp_code_map <- c(trend = 1L, seasonal = 2L, residual = 3L)
+      decomp_code_map <- c(
+        trend = 1L,
+        seasonal = 2L,
+        regression = 3L,
+        transfer = 4L,
+        residual = 5L
+      )
       decomp_codes_cpp <- as.integer(decomp_code_map[decomp_input_components])
       if (isTRUE(decomp_mode) && (length(decomp_codes_cpp) == 0L || any(is.na(decomp_codes_cpp)))) {
         stop("forecast_paths: invalid decomposition input component ordering for C++ backend.")
@@ -1425,9 +1609,13 @@ forecast_paths.qdesn_fit <- function(
       decomp_residual_mode_cpp <- if (identical(decomp_residual_recursion, "deterministic_plugin")) 1L else 0L
       decomp_trend_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$trend) else numeric(0)
       decomp_seasonal_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$seasonal) else numeric(0)
+      decomp_regression_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$regression %||% rep(0, H)) else numeric(0)
+      decomp_transfer_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$transfer %||% rep(0, H)) else numeric(0)
       decomp_structured_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$structured) else numeric(0)
       decomp_trend_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$trend %||% numeric(0)) else numeric(0)
       decomp_seasonal_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$seasonal %||% numeric(0)) else numeric(0)
+      decomp_regression_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$regression %||% numeric(0)) else numeric(0)
+      decomp_transfer_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$transfer %||% numeric(0)) else numeric(0)
       decomp_residual_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$residual %||% numeric(0)) else numeric(0)
 
       if (isTRUE(use_cpp)) {
@@ -1473,9 +1661,13 @@ forecast_paths.qdesn_fit <- function(
           decomp_mode = isTRUE(decomp_mode),
           decomp_trend = decomp_trend_cpp,
           decomp_seasonal = decomp_seasonal_cpp,
+          decomp_regression = decomp_regression_cpp,
+          decomp_transfer = decomp_transfer_cpp,
           decomp_structured = decomp_structured_cpp,
           decomp_trend_init = decomp_trend_init_cpp,
           decomp_seasonal_init = decomp_seasonal_init_cpp,
+          decomp_regression_init = decomp_regression_init_cpp,
+          decomp_transfer_init = decomp_transfer_init_cpp,
           decomp_residual_init = decomp_residual_init_cpp,
           decomp_component_codes = decomp_codes_cpp,
           decomp_residual_mode = decomp_residual_mode_cpp
@@ -1569,13 +1761,16 @@ forecast_paths.qdesn_fit <- function(
           } else {
             y_h - structured_h
           }
+          decomp_values_now <- lapply(names(decomp_buffers), function(nm) {
+            if (identical(nm, "residual")) return(residual_h)
+            comp_nm <- decomp_traj[[nm]]
+            if (is.null(comp_nm) || length(comp_nm) < h) return(0)
+            as.numeric(comp_nm[h])
+          })
+          names(decomp_values_now) <- names(decomp_buffers)
           decomp_buffers <- .qdesn_update_component_lag_buffers(
             decomp_buffers,
-            list(
-              trend = decomp_traj$trend[h],
-              seasonal = decomp_traj$seasonal[h],
-              residual = residual_h
-            )
+            decomp_values_now
           )
         }
       }

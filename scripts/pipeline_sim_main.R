@@ -2111,6 +2111,80 @@ log_msg(
   pretty_vec(as.numeric(desn_args$seed))
 )
 
+build_sim_decomp_xreg <- function(dat_long_use, y_full, decomp_cfg) {
+  sim_cfg <- (decomp_cfg %||% list())$sim_xreg %||% list()
+  enabled <- isTRUE(sim_cfg$enabled %||% FALSE)
+  if (!isTRUE(enabled)) return(NULL)
+
+  base <- dat_long_use |>
+    dplyr::distinct(t, y, mu) |>
+    dplyr::arrange(t)
+
+  if (nrow(base) != nrow(y_full)) {
+    stop(sprintf(
+      "sim_xreg builder mismatch: base rows=%d but y_full rows=%d.",
+      nrow(base), nrow(y_full)
+    ))
+  }
+
+  include_mu <- isTRUE(sim_cfg$include_mu %||% TRUE)
+  include_y <- isTRUE(sim_cfg$include_y %||% FALSE)
+  include_t <- isTRUE(sim_cfg$include_t %||% FALSE)
+  include_t_scaled <- isTRUE(sim_cfg$include_t_scaled %||% TRUE)
+
+  out <- list()
+  if (isTRUE(include_mu)) out$mu <- as.numeric(base$mu)
+  if (isTRUE(include_y)) out$y <- as.numeric(base$y)
+  if (isTRUE(include_t)) out$t <- as.numeric(base$t)
+  if (isTRUE(include_t_scaled)) out$t_scaled <- as.numeric(scale(base$t))
+
+  x_cols <- as.character(unlist(sim_cfg$x_cols %||% character(0), use.names = FALSE))
+  x_cols <- unique(x_cols[nzchar(x_cols)])
+  if (length(x_cols)) {
+    candidate <- data.frame(
+      mu = as.numeric(base$mu),
+      y = as.numeric(base$y),
+      t = as.numeric(base$t),
+      t_scaled = as.numeric(scale(base$t)),
+      stringsAsFactors = FALSE
+    )
+    miss <- setdiff(x_cols, names(candidate))
+    if (length(miss)) {
+      stop(sprintf("sim_xreg.x_cols contains unknown names: %s", paste(miss, collapse = ", ")))
+    }
+    out <- as.list(candidate[, x_cols, drop = FALSE])
+  }
+
+  if (!length(out)) {
+    stop("sim_xreg is enabled but produced zero columns; set include_* or x_cols.", call. = FALSE)
+  }
+
+  X <- as.matrix(data.frame(out, check.names = FALSE, stringsAsFactors = FALSE))
+  storage.mode(X) <- "double"
+  if (any(!is.finite(X))) stop("sim_xreg generated non-finite values.", call. = FALSE)
+  colnames(X) <- make.unique(colnames(X), sep = "_")
+  X
+}
+
+decomp_has_cov_blocks <- identical(readout_input_mode_effective, "dlm_decomp_lags") && (
+  isTRUE((readout_decomposition_cfg$regression %||% list())$enabled %||% FALSE) ||
+    isTRUE((readout_decomposition_cfg$transfer %||% list())$enabled %||% FALSE)
+)
+decomp_xreg_sim <- if (isTRUE(decomp_has_cov_blocks)) {
+  build_sim_decomp_xreg(
+    dat_long_use = dat_long_use,
+    y_full = y_full,
+    decomp_cfg = readout_decomposition_cfg
+  )
+} else {
+  NULL
+}
+if (!is.null(decomp_xreg_sim)) {
+  log_msg("Decomposition sim_xreg enabled with %d columns: %s",
+          ncol(decomp_xreg_sim),
+          paste(colnames(decomp_xreg_sim), collapse = ", "))
+}
+
 shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
   do.call(qdesn_fit_vb, c(
     list(
@@ -2118,7 +2192,8 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
       p0 = 0.50,            # unused in design-only mode
       fit_readout = FALSE,  # IMPORTANT: no VB fit here
       input_mode = readout_input_mode_requested,
-      decomposition = readout_decomposition_cfg
+      decomposition = readout_decomposition_cfg,
+      decomposition_xreg = decomp_xreg_sim
     ),
     desn_args
   ))
@@ -2135,16 +2210,19 @@ if (identical(readout_input_mode_effective, "dlm_decomp_lags")) {
       state_estimate_effective = as.character(decomp_state$state_estimate_effective %||% NA_character_)[1L],
       input_components = as.character(decomp_state$input_components %||% character(0)),
       input_lags = decomp_state$input_lags %||% list(),
-      seasonal = decomp_state$seasonal %||% NULL
+      seasonal = decomp_state$seasonal %||% NULL,
+      regression = decomp_state$regression %||% NULL,
+      transfer = decomp_state$transfer %||% NULL
     )
     seasonal_info <- decomposition_runtime_summary$seasonal %||% list()
-    harmonics_eff <- as.integer(seasonal_info$harmonics_effective %||% integer(0))
+    harmonics_eff <- as.numeric(seasonal_info$harmonics_effective %||% numeric(0))
     harmonics_src <- as.character(seasonal_info$harmonics_source %||% "unknown")[1L]
     if (length(harmonics_eff)) {
+      harmonics_txt <- paste(format(harmonics_eff, digits = 10, trim = TRUE, scientific = FALSE), collapse = ", ")
       log_msg(
         "Decomposition seasonal harmonics → source=%s | effective=[%s]",
         harmonics_src,
-        paste(harmonics_eff, collapse = ", ")
+        harmonics_txt
       )
     } else {
       log_msg("Decomposition seasonal harmonics unavailable (source=%s).", harmonics_src)

@@ -77,9 +77,13 @@ Rcpp::List forecast_paths_cpp(
   bool decomp_mode = false,
   Rcpp::Nullable<Rcpp::NumericVector> decomp_trend = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_regression = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_transfer = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericVector> decomp_structured = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericVector> decomp_trend_init = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal_init = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_regression_init = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_transfer_init = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericVector> decomp_residual_init = R_NilValue,
   Rcpp::Nullable<Rcpp::IntegerVector> decomp_component_codes = R_NilValue,
   int decomp_residual_mode = 0
@@ -142,28 +146,46 @@ Rcpp::List forecast_paths_cpp(
 
   std::vector<double> decomp_trend_vec;
   std::vector<double> decomp_seasonal_vec;
+  std::vector<double> decomp_regression_vec;
+  std::vector<double> decomp_transfer_vec;
   std::vector<double> decomp_structured_vec;
   std::vector<double> decomp_trend_buf_init;
   std::vector<double> decomp_seasonal_buf_init;
+  std::vector<double> decomp_regression_buf_init;
+  std::vector<double> decomp_transfer_buf_init;
   std::vector<double> decomp_residual_buf_init;
   std::vector<int> decomp_codes;
 
   if (decomp_mode) {
-    if (decomp_trend.isNull() || decomp_seasonal.isNull() || decomp_structured.isNull()) {
-      stop("forecast_paths_cpp: decomposition mode requires trend/seasonal/structured trajectories.");
+    if (decomp_structured.isNull()) {
+      stop("forecast_paths_cpp: decomposition mode requires structured trajectory.");
     }
     if (decomp_component_codes.isNull()) {
       stop("forecast_paths_cpp: decomposition mode requires component code ordering.");
     }
 
-    NumericVector trend_in = as<NumericVector>(decomp_trend);
-    NumericVector seas_in = as<NumericVector>(decomp_seasonal);
+    NumericVector trend_in;
+    NumericVector seas_in;
+    NumericVector reg_in;
+    NumericVector tf_in;
+    if (!decomp_trend.isNull()) trend_in = as<NumericVector>(decomp_trend);
+    if (!decomp_seasonal.isNull()) seas_in = as<NumericVector>(decomp_seasonal);
+    if (!decomp_regression.isNull()) reg_in = as<NumericVector>(decomp_regression);
+    if (!decomp_transfer.isNull()) tf_in = as<NumericVector>(decomp_transfer);
     NumericVector struct_in = as<NumericVector>(decomp_structured);
-    if (trend_in.size() != H || seas_in.size() != H || struct_in.size() != H) {
-      stop("forecast_paths_cpp: decomposition trajectories must have length H.");
+    if (struct_in.size() != H) {
+      stop("forecast_paths_cpp: structured trajectory must have length H.");
     }
-    decomp_trend_vec.assign(trend_in.begin(), trend_in.end());
-    decomp_seasonal_vec.assign(seas_in.begin(), seas_in.end());
+    if ((!decomp_trend.isNull() && trend_in.size() != H) ||
+        (!decomp_seasonal.isNull() && seas_in.size() != H) ||
+        (!decomp_regression.isNull() && reg_in.size() != H) ||
+        (!decomp_transfer.isNull() && tf_in.size() != H)) {
+      stop("forecast_paths_cpp: decomposition component trajectories must have length H when supplied.");
+    }
+    if (!decomp_trend.isNull()) decomp_trend_vec.assign(trend_in.begin(), trend_in.end());
+    if (!decomp_seasonal.isNull()) decomp_seasonal_vec.assign(seas_in.begin(), seas_in.end());
+    if (!decomp_regression.isNull()) decomp_regression_vec.assign(reg_in.begin(), reg_in.end());
+    if (!decomp_transfer.isNull()) decomp_transfer_vec.assign(tf_in.begin(), tf_in.end());
     decomp_structured_vec.assign(struct_in.begin(), struct_in.end());
 
     if (!decomp_trend_init.isNull()) {
@@ -174,6 +196,14 @@ Rcpp::List forecast_paths_cpp(
       NumericVector v = as<NumericVector>(decomp_seasonal_init);
       decomp_seasonal_buf_init.assign(v.begin(), v.end());
     }
+    if (!decomp_regression_init.isNull()) {
+      NumericVector v = as<NumericVector>(decomp_regression_init);
+      decomp_regression_buf_init.assign(v.begin(), v.end());
+    }
+    if (!decomp_transfer_init.isNull()) {
+      NumericVector v = as<NumericVector>(decomp_transfer_init);
+      decomp_transfer_buf_init.assign(v.begin(), v.end());
+    }
     if (!decomp_residual_init.isNull()) {
       NumericVector v = as<NumericVector>(decomp_residual_init);
       decomp_residual_buf_init.assign(v.begin(), v.end());
@@ -183,17 +213,38 @@ Rcpp::List forecast_paths_cpp(
     decomp_codes.reserve(codes.size());
     for (int i = 0; i < codes.size(); ++i) {
       int code = codes[i];
-      if (code < 1 || code > 3) {
-        stop("forecast_paths_cpp: decomposition component codes must be in {1,2,3}.");
+      if (code < 1 || code > 5) {
+        stop("forecast_paths_cpp: decomposition component codes must be in {1,2,3,4,5}.");
       }
       decomp_codes.push_back(code);
+    }
+
+    const auto check_component_present = [&](int code, const std::vector<double> &traj, const std::vector<double> &init, const char *label) {
+      bool used = std::find(decomp_codes.begin(), decomp_codes.end(), code) != decomp_codes.end();
+      if (!used) return;
+      if (traj.size() != static_cast<size_t>(H)) {
+        stop("forecast_paths_cpp: %s trajectory is required with length H when its code is active.", label);
+      }
+      if (init.empty()) {
+        stop("forecast_paths_cpp: %s lag buffer init is required when its code is active.", label);
+      }
+    };
+    check_component_present(1, decomp_trend_vec, decomp_trend_buf_init, "trend");
+    check_component_present(2, decomp_seasonal_vec, decomp_seasonal_buf_init, "seasonal");
+    check_component_present(3, decomp_regression_vec, decomp_regression_buf_init, "regression");
+    check_component_present(4, decomp_transfer_vec, decomp_transfer_buf_init, "transfer");
+    if (std::find(decomp_codes.begin(), decomp_codes.end(), 5) != decomp_codes.end() &&
+        decomp_residual_buf_init.empty()) {
+      stop("forecast_paths_cpp: residual lag buffer init is required when residual code is active.");
     }
 
     int m_expected = 0;
     for (int code : decomp_codes) {
       if (code == 1) m_expected += static_cast<int>(decomp_trend_buf_init.size());
       if (code == 2) m_expected += static_cast<int>(decomp_seasonal_buf_init.size());
-      if (code == 3) m_expected += static_cast<int>(decomp_residual_buf_init.size());
+      if (code == 3) m_expected += static_cast<int>(decomp_regression_buf_init.size());
+      if (code == 4) m_expected += static_cast<int>(decomp_transfer_buf_init.size());
+      if (code == 5) m_expected += static_cast<int>(decomp_residual_buf_init.size());
     }
     if (m_expected != m_res) {
       stop("forecast_paths_cpp: decomposition lag width mismatch (m_res).");
@@ -331,6 +382,8 @@ Rcpp::List forecast_paths_cpp(
       std::vector<double> res_buf = res_init;
       std::vector<double> decomp_trend_buf = decomp_trend_buf_init;
       std::vector<double> decomp_seasonal_buf = decomp_seasonal_buf_init;
+      std::vector<double> decomp_regression_buf = decomp_regression_buf_init;
+      std::vector<double> decomp_transfer_buf = decomp_transfer_buf_init;
       std::vector<double> decomp_residual_buf = decomp_residual_buf_init;
 
       for (int h = 0; h < H; ++h) {
@@ -344,6 +397,10 @@ Rcpp::List forecast_paths_cpp(
               } else if (code == 2) {
                 nb.insert(nb.end(), decomp_seasonal_buf.begin(), decomp_seasonal_buf.end());
               } else if (code == 3) {
+                nb.insert(nb.end(), decomp_regression_buf.begin(), decomp_regression_buf.end());
+              } else if (code == 4) {
+                nb.insert(nb.end(), decomp_transfer_buf.begin(), decomp_transfer_buf.end());
+              } else if (code == 5) {
                 nb.insert(nb.end(), decomp_residual_buf.begin(), decomp_residual_buf.end());
               }
             }
@@ -491,8 +548,10 @@ Rcpp::List forecast_paths_cpp(
           } else {
             residual_h = y_h - structured_h;
           }
-          shift_insert(decomp_trend_buf, decomp_trend_vec[h]);
-          shift_insert(decomp_seasonal_buf, decomp_seasonal_vec[h]);
+          if (!decomp_trend_vec.empty()) shift_insert(decomp_trend_buf, decomp_trend_vec[h]);
+          if (!decomp_seasonal_vec.empty()) shift_insert(decomp_seasonal_buf, decomp_seasonal_vec[h]);
+          if (!decomp_regression_vec.empty()) shift_insert(decomp_regression_buf, decomp_regression_vec[h]);
+          if (!decomp_transfer_vec.empty()) shift_insert(decomp_transfer_buf, decomp_transfer_vec[h]);
           shift_insert(decomp_residual_buf, residual_h);
         }
         if (res_lags > 0) {
@@ -519,6 +578,8 @@ Rcpp::List forecast_paths_cpp(
       std::vector<double> res_buf = res_init;
       std::vector<double> decomp_trend_buf = decomp_trend_buf_init;
       std::vector<double> decomp_seasonal_buf = decomp_seasonal_buf_init;
+      std::vector<double> decomp_regression_buf = decomp_regression_buf_init;
+      std::vector<double> decomp_transfer_buf = decomp_transfer_buf_init;
       std::vector<double> decomp_residual_buf = decomp_residual_buf_init;
 
       std::vector<double> s_vec(H), v_vec(H), z_vec(H);
@@ -545,6 +606,10 @@ Rcpp::List forecast_paths_cpp(
               } else if (code == 2) {
                 nb.insert(nb.end(), decomp_seasonal_buf.begin(), decomp_seasonal_buf.end());
               } else if (code == 3) {
+                nb.insert(nb.end(), decomp_regression_buf.begin(), decomp_regression_buf.end());
+              } else if (code == 4) {
+                nb.insert(nb.end(), decomp_transfer_buf.begin(), decomp_transfer_buf.end());
+              } else if (code == 5) {
                 nb.insert(nb.end(), decomp_residual_buf.begin(), decomp_residual_buf.end());
               }
             }
@@ -692,8 +757,10 @@ Rcpp::List forecast_paths_cpp(
           } else {
             residual_h = y_h - structured_h;
           }
-          shift_insert(decomp_trend_buf, decomp_trend_vec[h]);
-          shift_insert(decomp_seasonal_buf, decomp_seasonal_vec[h]);
+          if (!decomp_trend_vec.empty()) shift_insert(decomp_trend_buf, decomp_trend_vec[h]);
+          if (!decomp_seasonal_vec.empty()) shift_insert(decomp_seasonal_buf, decomp_seasonal_vec[h]);
+          if (!decomp_regression_vec.empty()) shift_insert(decomp_regression_buf, decomp_regression_vec[h]);
+          if (!decomp_transfer_vec.empty()) shift_insert(decomp_transfer_buf, decomp_transfer_vec[h]);
           shift_insert(decomp_residual_buf, residual_h);
         }
         if (res_lags > 0) {

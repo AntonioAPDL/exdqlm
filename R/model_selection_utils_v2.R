@@ -716,7 +716,8 @@ ms_build_readout_design_sim <- function(y_full, desn_args, readout_include_input
         p0 = 0.50,
         fit_readout = FALSE,
         input_mode = readout_input_mode,
-        decomposition = readout_decomposition
+        decomposition = readout_decomposition,
+        decomposition_xreg = X_use
       ),
       desn_args
     )
