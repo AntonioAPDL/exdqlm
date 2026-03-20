@@ -26,6 +26,10 @@
     force_tau_after_warmup = TRUE,
     collapse_tau_ratio_tol = 1e-6,
     collapse_beta_max_abs_tol = 1e-6,
+    collapse_invV_med_tol = 1e8,
+    collapse_beta_l2_tol = 1e-6,
+    collapse_small_beta_frac_tol = 0.95,
+    small_beta_abs_tol = 1e-4,
     warn_on_collapse = TRUE,
     eta_bounds = list(
       lambda = c(-40, 40),
@@ -139,12 +143,56 @@
   ctrl$collapse_beta_max_abs_tol <- as.numeric(ctrl$collapse_beta_max_abs_tol)[1]
   if (!is.finite(ctrl$collapse_beta_max_abs_tol) || ctrl$collapse_beta_max_abs_tol <= 0) ctrl$collapse_beta_max_abs_tol <- 1e-6
   ctrl$warn_on_collapse <- isTRUE(ctrl$warn_on_collapse)
+  ctrl$collapse_invV_med_tol <- as.numeric(ctrl$collapse_invV_med_tol)[1]
+  if (!is.finite(ctrl$collapse_invV_med_tol) || ctrl$collapse_invV_med_tol <= 0) ctrl$collapse_invV_med_tol <- 1e8
+  ctrl$collapse_beta_l2_tol <- as.numeric(ctrl$collapse_beta_l2_tol)[1]
+  if (!is.finite(ctrl$collapse_beta_l2_tol) || ctrl$collapse_beta_l2_tol <= 0) ctrl$collapse_beta_l2_tol <- 1e-6
+  ctrl$collapse_small_beta_frac_tol <- as.numeric(ctrl$collapse_small_beta_frac_tol)[1]
+  if (!is.finite(ctrl$collapse_small_beta_frac_tol) || ctrl$collapse_small_beta_frac_tol <= 0 || ctrl$collapse_small_beta_frac_tol > 1) {
+    ctrl$collapse_small_beta_frac_tol <- 0.95
+  }
+  ctrl$small_beta_abs_tol <- as.numeric(ctrl$small_beta_abs_tol)[1]
+  if (!is.finite(ctrl$small_beta_abs_tol) || ctrl$small_beta_abs_tol <= 0) ctrl$small_beta_abs_tol <- 1e-4
+
   init_lambda <- if (!is.null(ctrl$init_log_lambda)) .static_rhs_safe_exp(ctrl$init_log_lambda) else ctrl$init_lambda
-  init_tau <- if (!is.null(ctrl$init_log_tau)) .static_rhs_safe_exp(ctrl$init_log_tau) else ctrl$init_tau
+  init_lambda <- as.numeric(init_lambda)
+  if (!length(init_lambda) || any(!is.finite(init_lambda)) || any(init_lambda <= 0)) {
+    stop("beta_prior_controls$init_lambda must be finite and > 0 (scalar or length p).")
+  }
+  ctrl$init_lambda <- init_lambda
+
+  has_init_log_tau <- !is.null(ctrl$init_log_tau)
+  has_init_tau <- !is.null(ctrl$init_tau)
+  if (has_init_log_tau) {
+    resolved_init_log_tau <- as.numeric(ctrl$init_log_tau)[1]
+    if (!is.finite(resolved_init_log_tau)) stop("beta_prior_controls$init_log_tau must be finite when provided.")
+    resolved_init_tau <- .static_rhs_safe_exp(resolved_init_log_tau)
+    init_tau_source <- "init_log_tau"
+  } else if (has_init_tau) {
+    resolved_init_tau <- as.numeric(ctrl$init_tau)[1]
+    if (!is.finite(resolved_init_tau) || resolved_init_tau <= 0) stop("beta_prior_controls$init_tau must be finite and > 0 when provided.")
+    resolved_init_log_tau <- log(resolved_init_tau)
+    init_tau_source <- "init_tau"
+  } else {
+    # Guardrail: unset/null tau init defaults to log(1)=0, not tau0.
+    resolved_init_log_tau <- 0
+    resolved_init_tau <- 1
+    init_tau_source <- "default_log_tau_0"
+  }
+  if (!is.finite(resolved_init_log_tau) || !is.finite(resolved_init_tau) || resolved_init_tau <= 0) {
+    stop("Resolved RHS tau initialization is invalid; check init_log_tau/init_tau controls.")
+  }
+  ctrl$init_log_tau <- resolved_init_log_tau
+  ctrl$init_tau <- resolved_init_tau
+  ctrl$init_tau_source <- init_tau_source
+
   init_c2 <- if (!is.null(ctrl$init_log_c2)) .static_rhs_safe_exp(ctrl$init_log_c2) else ctrl$init_c2
-  ctrl$init_lambda <- as.numeric(init_lambda)
-  ctrl$init_tau <- if (!is.null(init_tau)) as.numeric(init_tau)[1] else NULL
-  ctrl$init_c2 <- if (!is.null(init_c2)) as.numeric(init_c2)[1] else NULL
+  if (!is.null(init_c2)) {
+    init_c2 <- as.numeric(init_c2)[1]
+    if (!is.finite(init_c2) || init_c2 <= 0) stop("beta_prior_controls$init_c2 must be finite and > 0 when provided.")
+  }
+  ctrl$init_c2 <- init_c2
+  ctrl$init_log_c2 <- if (!is.null(init_c2)) log(init_c2) else NULL
   ctrl$slice_width <- as.numeric(ctrl$slice_width)[1]
   if (!is.finite(ctrl$slice_width) || ctrl$slice_width <= 0) ctrl$slice_width <- 1
   ctrl$slice_max_steps <- suppressWarnings(as.integer(ctrl$slice_max_steps)[1])
@@ -186,6 +234,38 @@
 
 .static_rhs_safe_exp <- function(x) {
   exp(pmin(pmax(as.numeric(x), -745), 709))
+}
+
+.static_rhs_preflight_config <- function(ctrl) {
+  cfg <- list(
+    tau0 = as.numeric(ctrl$tau0)[1],
+    nu = as.numeric(ctrl$nu)[1],
+    s = as.numeric(ctrl$s)[1],
+    s2 = as.numeric(ctrl$s2)[1],
+    init_log_tau = as.numeric(ctrl$init_log_tau)[1],
+    init_tau = as.numeric(ctrl$init_tau)[1],
+    init_tau_source = as.character(.static_prior_or(ctrl$init_tau_source, "unknown"))[1],
+    eta_bounds_tau = as.numeric(ctrl$eta_bounds$tau),
+    shrink_intercept = isTRUE(ctrl$shrink_intercept)
+  )
+  if (!is.finite(cfg$init_log_tau) || !is.finite(cfg$init_tau) || cfg$init_tau <= 0) {
+    stop("RHS preflight failed: resolved init_log_tau/init_tau must be finite with init_tau > 0.")
+  }
+  if (length(cfg$eta_bounds_tau) != 2L || any(!is.finite(cfg$eta_bounds_tau)) || cfg$eta_bounds_tau[1] >= cfg$eta_bounds_tau[2]) {
+    stop("RHS preflight failed: eta_bounds$tau must be finite and ordered.")
+  }
+  cfg
+}
+
+.static_rhs_preflight_emit <- function(cfg, context = "rhs") {
+  msg <- sprintf(
+    "[%s] RHS preflight | tau0=%.6g nu=%.6g s=%.6g s2=%.6g init_log_tau=%.6g init_tau=%.6g init_source=%s eta_bounds_tau=[%.6g, %.6g] shrink_intercept=%s",
+    context,
+    cfg$tau0, cfg$nu, cfg$s, cfg$s2, cfg$init_log_tau, cfg$init_tau, cfg$init_tau_source,
+    cfg$eta_bounds_tau[1], cfg$eta_bounds_tau[2], ifelse(cfg$shrink_intercept, "TRUE", "FALSE")
+  )
+  message(msg)
+  invisible(msg)
 }
 
 .static_rhs_log1p_exp <- function(x) {
@@ -361,7 +441,7 @@
   if (length(lam0) == 1L) lam0 <- rep(lam0, p)
   lam0 <- pmax(as.numeric(lam0), 1e-16)
   if (length(lam0) != p) stop("beta_prior_controls$init_lambda must be scalar or length p.")
-  tau0 <- if (!is.null(ctrl$init_tau)) ctrl$init_tau else ctrl$tau0
+  tau0 <- as.numeric(ctrl$init_tau)[1]
   c20 <- if (!is.null(ctrl$init_c2)) ctrl$init_c2 else ctrl$s2
   list(
     p = p,
@@ -387,7 +467,7 @@
   if (length(lam0) == 1L) lam0 <- rep(lam0, p)
   lam0 <- pmax(as.numeric(lam0), 1e-16)
   if (length(lam0) != p) stop("beta_prior_controls$init_lambda must be scalar or length p.")
-  tau0 <- if (!is.null(ctrl$init_tau)) ctrl$init_tau else ctrl$tau0
+  tau0 <- as.numeric(ctrl$init_tau)[1]
   c20 <- if (!is.null(ctrl$init_c2)) ctrl$init_c2 else ctrl$s2
   list(
     p = p,
@@ -463,35 +543,127 @@
   idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
   beta_use <- if (length(idx)) as.numeric(qbeta$m)[idx] else numeric(0)
   tau <- .static_rhs_safe_exp(state$eta_tau_hat)
+  log_tau <- as.numeric(state$eta_tau_hat)[1]
   tau0 <- max(as.numeric(ctrl$tau0)[1], 1e-16)
   tau_ratio <- tau / tau0
   slope_l2 <- if (length(beta_use)) sqrt(sum(beta_use^2)) else NA_real_
   slope_max_abs <- if (length(beta_use)) max(abs(beta_use)) else NA_real_
+  small_beta_abs_tol <- as.numeric(ctrl$small_beta_abs_tol)[1]
+  small_beta_frac <- if (length(beta_use)) {
+    mean(abs(beta_use) <= small_beta_abs_tol)
+  } else {
+    NA_real_
+  }
+  E_invV <- .static_rhs_expected_prec_vb(state, ctrl)
+  E_invV_use <- if (length(idx)) as.numeric(E_invV)[idx] else numeric(0)
+  E_invV_med <- if (length(E_invV_use) && any(is.finite(E_invV_use))) stats::median(E_invV_use[is.finite(E_invV_use)]) else NA_real_
   tau_near_zero <- isTRUE(is.finite(tau_ratio) && tau_ratio <= ctrl$collapse_tau_ratio_tol) ||
     isTRUE(abs(as.numeric(state$eta_tau_hat) - ctrl$eta_bounds$tau[1]) <= 1e-6)
   slope_collapse <- isTRUE(is.finite(slope_max_abs) && slope_max_abs <= ctrl$collapse_beta_max_abs_tol)
-  collapse_flag <- isTRUE(tau_near_zero && slope_collapse)
+  precision_beta_pattern <- isTRUE(
+    is.finite(E_invV_med) && E_invV_med >= ctrl$collapse_invV_med_tol &&
+      is.finite(slope_l2) && slope_l2 <= ctrl$collapse_beta_l2_tol &&
+      is.finite(small_beta_frac) && small_beta_frac >= ctrl$collapse_small_beta_frac_tol
+  )
+  collapse_flag <- isTRUE((tau_near_zero && slope_collapse) || precision_beta_pattern)
   warning_msg <- if (collapse_flag) {
-    paste(
-      "RHS global scale collapsed near zero and active coefficients collapsed toward zero.",
-      "Consider a larger tau0 and/or RHS tau warmup/freeze tuning."
-    )
+    if (isTRUE(precision_beta_pattern) && !isTRUE(tau_near_zero && slope_collapse)) {
+      paste(
+        "RHS shrinkage-collapse detected from precision/beta pattern",
+        "(large E_invV + tiny beta norm + high near-zero-beta fraction).",
+        "Consider revising tau initialization and RHS controls."
+      )
+    } else {
+      paste(
+        "RHS global scale collapsed near zero and active coefficients collapsed toward zero.",
+        "Consider a larger tau0 and/or RHS tau warmup/freeze tuning."
+      )
+    }
   } else {
     NA_character_
   }
   list(
     collapse_flag = collapse_flag,
+    precision_beta_pattern = precision_beta_pattern,
     tau_near_zero = tau_near_zero,
     slope_collapse = slope_collapse,
+    beta_collapse = slope_collapse,
     tau = tau,
+    log_tau = log_tau,
     tau0 = tau0,
     tau_ratio = tau_ratio,
+    E_invV_med = E_invV_med,
     slope_l2 = slope_l2,
+    beta_l2 = slope_l2,
     slope_max_abs = slope_max_abs,
+    small_beta_frac = small_beta_frac,
+    small_beta_abs_tol = small_beta_abs_tol,
     active_count = length(idx),
     eta_tau = as.numeric(state$eta_tau_hat)[1],
     eta_tau_lower = ctrl$eta_bounds$tau[1],
     at_tau_lower_bound = isTRUE(abs(as.numeric(state$eta_tau_hat)[1] - ctrl$eta_bounds$tau[1]) <= 1e-6),
+    warning = warning_msg
+  )
+}
+
+.static_rhs_collapse_diag_mcmc <- function(state, beta, ctrl) {
+  idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
+  beta_use <- if (length(idx)) as.numeric(beta)[idx] else numeric(0)
+  tau <- pmax(as.numeric(state$tau)[1], 1e-16)
+  log_tau <- log(tau)
+  tau0 <- max(as.numeric(ctrl$tau0)[1], 1e-16)
+  tau_ratio <- tau / tau0
+  slope_l2 <- if (length(beta_use)) sqrt(sum(beta_use^2)) else NA_real_
+  slope_max_abs <- if (length(beta_use)) max(abs(beta_use)) else NA_real_
+  small_beta_abs_tol <- as.numeric(ctrl$small_beta_abs_tol)[1]
+  small_beta_frac <- if (length(beta_use)) mean(abs(beta_use) <= small_beta_abs_tol) else NA_real_
+  invV <- .static_rhs_prec_mcmc(state, ctrl)
+  invV_use <- if (length(idx)) as.numeric(invV)[idx] else numeric(0)
+  E_invV_med <- if (length(invV_use) && any(is.finite(invV_use))) stats::median(invV_use[is.finite(invV_use)]) else NA_real_
+  tau_near_zero <- isTRUE(is.finite(tau_ratio) && tau_ratio <= ctrl$collapse_tau_ratio_tol) ||
+    isTRUE(log_tau <= (ctrl$eta_bounds$tau[1] + 1e-6))
+  slope_collapse <- isTRUE(is.finite(slope_max_abs) && slope_max_abs <= ctrl$collapse_beta_max_abs_tol)
+  precision_beta_pattern <- isTRUE(
+    is.finite(E_invV_med) && E_invV_med >= ctrl$collapse_invV_med_tol &&
+      is.finite(slope_l2) && slope_l2 <= ctrl$collapse_beta_l2_tol &&
+      is.finite(small_beta_frac) && small_beta_frac >= ctrl$collapse_small_beta_frac_tol
+  )
+  collapse_flag <- isTRUE((tau_near_zero && slope_collapse) || precision_beta_pattern)
+  warning_msg <- if (collapse_flag) {
+    if (isTRUE(precision_beta_pattern) && !isTRUE(tau_near_zero && slope_collapse)) {
+      paste(
+        "RHS shrinkage-collapse detected from precision/beta pattern",
+        "(large E_invV + tiny beta norm + high near-zero-beta fraction).",
+        "Consider revising tau initialization and RHS controls."
+      )
+    } else {
+      paste(
+        "RHS global scale collapsed near zero and active coefficients collapsed toward zero.",
+        "Consider a larger tau0 and/or RHS tau warmup/freeze tuning."
+      )
+    }
+  } else {
+    NA_character_
+  }
+  list(
+    collapse_flag = collapse_flag,
+    precision_beta_pattern = precision_beta_pattern,
+    tau_near_zero = tau_near_zero,
+    slope_collapse = slope_collapse,
+    beta_collapse = slope_collapse,
+    tau = tau,
+    log_tau = log_tau,
+    tau0 = tau0,
+    tau_ratio = tau_ratio,
+    E_invV_med = E_invV_med,
+    slope_l2 = slope_l2,
+    beta_l2 = slope_l2,
+    slope_max_abs = slope_max_abs,
+    small_beta_frac = small_beta_frac,
+    small_beta_abs_tol = small_beta_abs_tol,
+    active_count = length(idx),
+    eta_tau_lower = ctrl$eta_bounds$tau[1],
+    at_tau_lower_bound = isTRUE(log_tau <= (ctrl$eta_bounds$tau[1] + 1e-6)),
     warning = warning_msg
   )
 }
@@ -679,7 +851,7 @@
           0.5 * (sum(V0_inv * qbeta$V) + drop(crossprod(qbeta$m - b0, V0_inv %*% (qbeta$m - b0))))
       },
       summary_vb = function(state) NULL,
-      summary_mcmc = function(state) NULL
+      summary_mcmc = function(state, beta = NULL) NULL
     ))
   }
 
@@ -718,6 +890,7 @@
       collapse_diag <- .static_prior_or(state$collapse_diag, list())
       list(
         tau = .static_rhs_safe_exp(state$eta_tau_hat),
+        log_tau = as.numeric(state$eta_tau_hat)[1],
         c2 = .static_rhs_safe_exp(state$eta_c_hat),
         lambda = lam,
         lambda_mean = if (length(lam)) mean(lam) else NA_real_,
@@ -734,19 +907,35 @@
         rhs_update_reason_last = as.character(.static_prior_or(state$last_schedule$reason, NA_character_))[1],
         rhs_update_every_last = as.integer(.static_prior_or(state$last_schedule$update_every_eff, NA_integer_)),
         collapse_flag = isTRUE(collapse_diag$collapse_flag),
+        collapse_pattern = isTRUE(collapse_diag$precision_beta_pattern),
         collapse_tau_near_zero = isTRUE(collapse_diag$tau_near_zero),
         collapse_beta = isTRUE(collapse_diag$slope_collapse),
         collapse_tau_ratio = as.numeric(collapse_diag$tau_ratio)[1],
+        collapse_E_invV_med = as.numeric(collapse_diag$E_invV_med)[1],
+        collapse_beta_l2 = as.numeric(collapse_diag$beta_l2)[1],
+        collapse_small_beta_frac = as.numeric(collapse_diag$small_beta_frac)[1],
+        collapse_small_beta_abs_tol = as.numeric(collapse_diag$small_beta_abs_tol)[1],
         collapse_slope_l2 = as.numeric(collapse_diag$slope_l2)[1],
         collapse_slope_max_abs = as.numeric(collapse_diag$slope_max_abs)[1],
-        collapse_warning = as.character(.static_prior_or(collapse_diag$warning, NA_character_))[1]
+        collapse_warning = as.character(.static_prior_or(collapse_diag$warning, NA_character_))[1],
+        init_log_tau_resolved = as.numeric(ctrl$init_log_tau)[1],
+        init_tau_resolved = as.numeric(ctrl$init_tau)[1],
+        init_tau_source = as.character(ctrl$init_tau_source)[1],
+        eta_tau_lower = as.numeric(ctrl$eta_bounds$tau[1]),
+        eta_tau_upper = as.numeric(ctrl$eta_bounds$tau[2])
       )
     },
-    summary_mcmc = function(state) {
+    summary_mcmc = function(state, beta = NULL) {
       idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
       lam <- state$lambda[idx]
+      collapse_diag <- if (!is.null(beta)) {
+        .static_rhs_collapse_diag_mcmc(state, beta, ctrl)
+      } else {
+        list()
+      }
       list(
         tau = state$tau,
+        log_tau = log(pmax(as.numeric(state$tau)[1], 1e-16)),
         c2 = state$c2,
         lambda = lam,
         lambda_mean = if (length(lam)) mean(lam) else NA_real_,
@@ -756,7 +945,22 @@
         tau0 = ctrl$tau0,
         nu = ctrl$nu,
         s = ctrl$s,
-        s2 = ctrl$s2
+        s2 = ctrl$s2,
+        collapse_flag = if (!is.null(collapse_diag$collapse_flag)) isTRUE(collapse_diag$collapse_flag) else NA,
+        collapse_pattern = if (!is.null(collapse_diag$precision_beta_pattern)) isTRUE(collapse_diag$precision_beta_pattern) else NA,
+        collapse_tau_near_zero = if (!is.null(collapse_diag$tau_near_zero)) isTRUE(collapse_diag$tau_near_zero) else NA,
+        collapse_beta = if (!is.null(collapse_diag$slope_collapse)) isTRUE(collapse_diag$slope_collapse) else NA,
+        collapse_tau_ratio = as.numeric(.static_prior_or(collapse_diag$tau_ratio, NA_real_))[1],
+        collapse_E_invV_med = as.numeric(.static_prior_or(collapse_diag$E_invV_med, NA_real_))[1],
+        collapse_beta_l2 = as.numeric(.static_prior_or(collapse_diag$beta_l2, NA_real_))[1],
+        collapse_small_beta_frac = as.numeric(.static_prior_or(collapse_diag$small_beta_frac, NA_real_))[1],
+        collapse_small_beta_abs_tol = as.numeric(.static_prior_or(collapse_diag$small_beta_abs_tol, ctrl$small_beta_abs_tol))[1],
+        collapse_warning = as.character(.static_prior_or(collapse_diag$warning, NA_character_))[1],
+        init_log_tau_resolved = as.numeric(ctrl$init_log_tau)[1],
+        init_tau_resolved = as.numeric(ctrl$init_tau)[1],
+        init_tau_source = as.character(ctrl$init_tau_source)[1],
+        eta_tau_lower = as.numeric(ctrl$eta_bounds$tau[1]),
+        eta_tau_upper = as.numeric(ctrl$eta_bounds$tau[2])
       )
     }
   )

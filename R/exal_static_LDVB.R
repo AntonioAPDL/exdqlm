@@ -669,12 +669,17 @@
 #'   \code{update_every}, \code{update_every_warmup},
 #'   \code{update_every_warmup_iters}, \code{force_tau_after_warmup},
 #'   \code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
+#'   \code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
+#'   \code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
 #'   \code{warn_on_collapse}, \code{var_floor}, \code{h_curv},
 #'   \code{verbose}, \code{init_lambda}, \code{init_log_lambda},
 #'   \code{init_tau}, \code{init_log_tau}, \code{init_c2},
 #'   and \code{init_log_c2}. When \code{beta_prior = "rhs"},
 #'   \code{b0} and \code{V0} are retained only for backward-compatible ridge
-#'   behavior and are ignored for the shrunk coefficients.
+#'   behavior and are ignored for the shrunk coefficients. If both
+#'   \code{init_log_tau} and \code{init_tau} are omitted (or \code{NULL}),
+#'   the RHS global scale initializes at \code{tau = 1}
+#'   (\code{init_log_tau = 0}) instead of \code{tau0}.
 #' @param a_sigma,b_sigma Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 #'   density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
 #' @param gamma_bounds Two-vector (L, U) support for \code{gamma}.
@@ -728,7 +733,9 @@
 #'         (state/sigma/gamma/ELBO deltas, stopping reason, and
 #'         Laplace-Delta block trace diagnostics, including replicated-\code{xi}
 #'         controls, automatic stabilization / cycle-detection fields, and
-#'         final local-mode quality checks).
+#'         final local-mode quality checks). For RHS fits this also includes
+#'         \code{diagnostics$rhs} with the resolved preflight configuration and
+#'         collapse diagnostics.
 #' }
 #'
 #' @details
@@ -807,6 +814,11 @@ exal_static_LDVB <- function(
     warn_rhs_b0 = !b0_missing,
     warn_rhs_V0 = !V0_missing
   )
+  rhs_preflight <- NULL
+  if (identical(beta_prior_obj$type, "rhs")) {
+    rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
+    .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_ldvb")
+  }
 
   # Reduced AL / DQLM branch: no gamma, no s, no LD block.
   if (isTRUE(dqlm.ind)) {
@@ -824,6 +836,12 @@ exal_static_LDVB <- function(
       init = init,
       verbose = verbose
     )
+    if (identical(beta_prior_obj$type, "rhs")) {
+      ret$diagnostics$rhs <- list(
+        preflight = rhs_preflight,
+        summary = ret$beta_prior$summary
+      )
+    }
     class(ret) <- c("exal_ldvb", "exal_vb")
     return(ret)
   }
@@ -1757,6 +1775,11 @@ exal_static_LDVB <- function(
       trace_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
       s_stats <- .exdqlm_trace_summary(s_mom$Es)
       tau2_stats <- .exdqlm_trace_summary(tau2)
+      rhs_summary <- if (identical(beta_prior_obj$type, "rhs")) {
+        beta_prior_obj$summary_vb(beta_state)
+      } else {
+        NULL
+      }
       cycle_gamma_lag1 <- if (!is.null(cycle_info$metrics$gamma$lag1)) cycle_info$metrics$gamma$lag1 else NA_real_
       cycle_gamma_lag2 <- if (!is.null(cycle_info$metrics$gamma$lag2)) cycle_info$metrics$gamma$lag2 else NA_real_
       cycle_sigma_lag1 <- if (!is.null(cycle_info$metrics$sigma$lag1)) cycle_info$metrics$sigma$lag1 else NA_real_
@@ -1837,6 +1860,12 @@ exal_static_LDVB <- function(
         s_q95 = s_stats[["q95"]],
         s_min = s_stats[["min"]],
         s_max = s_stats[["max"]],
+        rhs_tau = if (!is.null(rhs_summary)) rhs_summary$tau else NA_real_,
+        rhs_log_tau = if (!is.null(rhs_summary)) rhs_summary$log_tau else NA_real_,
+        rhs_e_invv_med = if (!is.null(rhs_summary)) rhs_summary$collapse_E_invV_med else NA_real_,
+        rhs_beta_l2 = if (!is.null(rhs_summary)) rhs_summary$collapse_beta_l2 else NA_real_,
+        rhs_small_beta_frac = if (!is.null(rhs_summary)) rhs_summary$collapse_small_beta_frac else NA_real_,
+        rhs_collapse_flag = if (!is.null(rhs_summary)) isTRUE(rhs_summary$collapse_flag) else NA,
         stringsAsFactors = FALSE
       )
       s_trace_rows[[iter]] <- data.frame(
@@ -1983,6 +2012,7 @@ exal_static_LDVB <- function(
     converged <- TRUE
     stop_reason <- "joint_converged_stabilized"
   }
+  beta_prior_summary <- beta_prior_obj$summary_vb(beta_state)
 
   ret <- list(
     qbeta = list(m = m_beta, V = V_beta),
@@ -1999,7 +2029,7 @@ exal_static_LDVB <- function(
     beta_prior = list(
       type = beta_prior_obj$type,
       controls = beta_prior_obj$controls,
-      summary = beta_prior_obj$summary_vb(beta_state),
+      summary = beta_prior_summary,
       state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
     ),
     misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace),
@@ -2026,6 +2056,14 @@ exal_static_LDVB <- function(
         s = delta_s,
         elbo = delta_elbo
       ),
+      rhs = if (identical(beta_prior_obj$type, "rhs")) {
+        list(
+          preflight = rhs_preflight,
+          summary = beta_prior_summary
+        )
+      } else {
+        NULL
+      },
       s_block = list(
         trace = s_trace_df,
         final = if (nrow(s_trace_df)) {

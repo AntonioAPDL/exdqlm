@@ -97,7 +97,10 @@
   s_trace <- if (!is.null(s_diag$trace)) s_diag$trace else data.frame()
   s_last <- if (is.data.frame(s_trace) && nrow(s_trace)) s_trace[nrow(s_trace), , drop = FALSE] else NULL
   beta_prior <- if (!is.null(fit$beta_prior)) fit$beta_prior else list(type = "ridge")
+  rhs_diag <- if (!is.null(fit$diagnostics$rhs)) fit$diagnostics$rhs else list()
   rhs_summary <- if (!is.null(beta_prior$summary)) beta_prior$summary else NULL
+  rhs_preflight <- if (!is.null(rhs_diag$preflight)) rhs_diag$preflight else NULL
+  rhs_collapse <- isTRUE(rhs_summary$collapse_flag)
 
   elbo_trace <- if (!is.null(fit$diagnostics$elbo)) {
     as.numeric(fit$diagnostics$elbo)
@@ -113,7 +116,8 @@
     model = model_name,
     tau = as.numeric(tau)[1],
     dqlm.ind = dqlm.ind,
-    status = if (converged) "converged" else "stopped",
+    status = if (rhs_collapse) "collapse" else if (converged) "converged" else "stopped",
+    healthy = !rhs_collapse && converged,
     runtime_sec = if (!is.null(fit$run.time)) as.numeric(fit$run.time)[1] else NA_real_,
     iter = if (!is.null(fit$iter)) as.integer(fit$iter)[1] else NA_integer_,
     stop_reason = stop_reason,
@@ -148,7 +152,11 @@
         final = if (!is.null(s_last)) as.list(s_last) else list()
       ),
       rhs = if (identical(beta_prior$type, "rhs")) {
-        list(summary = rhs_summary)
+        list(
+          preflight = rhs_preflight,
+          summary = rhs_summary,
+          collapse_flag = rhs_collapse
+        )
       } else {
         NULL
       },
@@ -186,6 +194,9 @@
   beta_prior <- if (!is.null(fit$beta_prior)) fit$beta_prior else list(type = "ridge")
   rhs_diag <- if (!is.null(fit$rhs.diagnostics)) fit$rhs.diagnostics else NULL
   rhs_draws <- if (!is.null(fit$diagnostics$rhs)) fit$diagnostics$rhs else NULL
+  rhs_summary <- if (!is.null(rhs_diag$summary)) rhs_diag$summary else if (!is.null(beta_prior$summary)) beta_prior$summary else NULL
+  rhs_preflight <- if (!is.null(rhs_diag$preflight)) rhs_diag$preflight else NULL
+  rhs_collapse <- isTRUE(rhs_summary$collapse_flag)
   proposal <- if (!is.null(mh_diag$proposal)) as.character(mh_diag$proposal)[1] else NA_character_
   kernel_exact <- if (!is.null(mh_diag$kernel_exact)) {
     isTRUE(mh_diag$kernel_exact)
@@ -211,7 +222,8 @@
     model = model_name,
     tau = as.numeric(tau)[1],
     dqlm.ind = dqlm.ind,
-    status = "completed",
+    status = if (rhs_collapse) "collapse" else "completed",
+    healthy = !rhs_collapse,
     runtime_sec = if (!is.null(fit$run.time)) as.numeric(fit$run.time)[1] else NA_real_,
     n_burn = if (!is.null(fit$n.burn)) as.integer(fit$n.burn)[1] else NA_integer_,
     n_mcmc = if (!is.null(fit$n.mcmc)) as.integer(fit$n.mcmc)[1] else length(sigma_draws),
@@ -244,7 +256,9 @@
       ),
       rhs = if (identical(beta_prior$type, "rhs")) {
         list(
-          summary = if (!is.null(rhs_diag$summary)) rhs_diag$summary else if (!is.null(beta_prior$summary)) beta_prior$summary else NULL,
+          preflight = rhs_preflight,
+          summary = rhs_summary,
+          collapse_flag = rhs_collapse,
           ess = if (!is.null(rhs_diag$ess)) rhs_diag$ess else list(),
           draws = rhs_draws
         )

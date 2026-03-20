@@ -212,3 +212,51 @@ test_that("static quantile path extractor returns aligned vectors", {
   expect_length(q_mc$hi, nrow(dat$X))
   expect_true(all(is.finite(q_mc$mean)))
 })
+
+test_that("static normalization marks RHS collapse runs as unhealthy", {
+  set.seed(505)
+  dat <- tiny_static_xy(16)
+
+  vb_fit <- exal_static_LDVB(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    beta_prior = "rhs",
+    beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
+    max_iter = 35,
+    tol = 5e-3,
+    n_samp_xi = 40,
+    verbose = FALSE
+  )
+  vb_fit$beta_prior$summary$collapse_flag <- TRUE
+  if (!is.null(vb_fit$diagnostics$rhs$summary)) {
+    vb_fit$diagnostics$rhs$summary$collapse_flag <- TRUE
+  }
+  norm_vb <- .static_normalize_vb_fit(vb_fit, model_name = "exal", tau = 0.5)
+  expect_identical(norm_vb$status, "collapse")
+  expect_false(norm_vb$healthy)
+  expect_true(isTRUE(norm_vb$diagnostics$rhs$collapse_flag))
+  expect_true(is.list(norm_vb$diagnostics$rhs$preflight))
+
+  mc_fit <- exal_static_mcmc(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    beta_prior = "rhs",
+    beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
+    n.burn = 8,
+    n.mcmc = 10,
+    mh.proposal = "slice",
+    trace.diagnostics = FALSE,
+    verbose = FALSE
+  )
+  mc_fit$beta_prior$summary$collapse_flag <- TRUE
+  if (!is.null(mc_fit$rhs.diagnostics$summary)) {
+    mc_fit$rhs.diagnostics$summary$collapse_flag <- TRUE
+  }
+  norm_mc <- .static_normalize_mcmc_fit(mc_fit, model_name = "exal", tau = 0.5)
+  expect_identical(norm_mc$status, "collapse")
+  expect_false(norm_mc$healthy)
+  expect_true(isTRUE(norm_mc$diagnostics$rhs$collapse_flag))
+  expect_true(is.list(norm_mc$diagnostics$rhs$preflight))
+})
