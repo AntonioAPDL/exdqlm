@@ -26,10 +26,15 @@
 #'   \code{eta_bounds}, \code{var_floor}, \code{h_curv}, \code{verbose},
 #'   \code{init_lambda}, \code{init_log_lambda}, \code{init_tau},
 #'   \code{init_log_tau}, \code{init_c2}, \code{init_log_c2},
+#'   \code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
+#'   \code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
+#'   \code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
 #'   \code{slice_width}, and \code{slice_max_steps}. When
 #'   \code{beta_prior = "rhs"}, \code{b0} and \code{V0} are ignored for the
 #'   shrunk coefficients and retained only for backward-compatible ridge
-#'   behavior.
+#'   behavior. If both \code{init_log_tau} and \code{init_tau} are omitted
+#'   (or \code{NULL}), the RHS global scale initializes at \code{tau = 1}
+#'   (\code{init_log_tau = 0}) instead of \code{tau0}.
 #' @param a_sigma,b_sigma Hyperparameters for an inverse-gamma prior on
 #'   \code{sigma}, with density proportional to
 #'   \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.
@@ -100,7 +105,8 @@
 #'   \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 #'         including whether the saved kernel is exact/signoff-ready.
 #'   \item \code{rhs.diagnostics} - RHS latent summaries and optional trace
-#'         metadata when \code{beta_prior = "rhs"}.
+#'         metadata when \code{beta_prior = "rhs"}, including the resolved
+#'         preflight configuration used at fit start.
 #'   \item \code{last} - last state of the chain (useful for restarts).
 #' }
 #' @export
@@ -186,6 +192,11 @@ exal_static_mcmc <- function(
     .static_rhs_active_idx(p, beta_prior_obj$controls$shrink_intercept)
   } else {
     integer(0)
+  }
+  rhs_preflight <- NULL
+  if (identical(beta_prior_obj$type, "rhs")) {
+    rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
+    .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_mcmc")
   }
 
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
@@ -277,6 +288,24 @@ exal_static_mcmc <- function(
   }
 
   if (is.null(init)) init <- list()
+  sanitize_init_component <- function(name, positive = FALSE) {
+    val <- init[[name]]
+    if (is.null(val)) return(invisible(NULL))
+    vec <- suppressWarnings(as.numeric(val))
+    bad <- !is.finite(vec) | if (positive) vec <= 0 else FALSE
+    if (any(bad)) {
+      kind <- if (positive) "non-finite/non-positive" else "non-finite"
+      warning(
+        sprintf(
+          "Dropping %s warm-start values in init$%s; falling back to internal defaults.",
+          kind, name
+        ),
+        call. = FALSE
+      )
+      init[[name]] <<- NULL
+    }
+    invisible(NULL)
+  }
   if (isTRUE(init.from.vb)) {
     vb.ctrl.default <- list(
       max_iter = 500L,
@@ -327,6 +356,17 @@ exal_static_mcmc <- function(
       if (is.null(init$s)) init$s <- as.numeric(vb.fit$qs$E_s)
     }
   }
+
+  # VB warm starts can occasionally carry non-finite seeds in hard cases.
+  # Drop invalid components and let standard defaults initialize those blocks.
+  sanitize_init_component("beta", positive = FALSE)
+  sanitize_init_component("sigma", positive = TRUE)
+  sanitize_init_component("gamma", positive = FALSE)
+  sanitize_init_component("v", positive = TRUE)
+  sanitize_init_component("s", positive = FALSE)
+  sanitize_init_component("lambda", positive = TRUE)
+  sanitize_init_component("tau", positive = TRUE)
+  sanitize_init_component("c2", positive = TRUE)
 
   ## --- storage (post-burn) --------------------------------------------------
   n_save <- n.mcmc
@@ -548,12 +588,13 @@ exal_static_mcmc <- function(
       beta_prior = list(
         type = beta_prior_obj$type,
         controls = beta_prior_obj$controls,
-        summary = beta_prior_obj$summary_mcmc(beta_state),
+        summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
         state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
       ),
       rhs.diagnostics = if (identical(beta_prior_obj$type, "rhs")) {
         list(
-          summary = beta_prior_obj$summary_mcmc(beta_state),
+          preflight = rhs_preflight,
+          summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
           ess = list(
             tau = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.tau))), error = function(e) NA_real_),
             c2 = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.c2))), error = function(e) NA_real_)
@@ -878,7 +919,7 @@ exal_static_mcmc <- function(
       gamma <- g_from_eta(eta)
     }
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
-    rhs_summary <- if (identical(beta_prior_obj$type, "rhs")) beta_prior_obj$summary_mcmc(beta_state) else NULL
+    rhs_summary <- if (identical(beta_prior_obj$type, "rhs")) beta_prior_obj$summary_mcmc(beta_state, beta = beta) else NULL
     if (trace.diagnostics && (i %% trace.every == 0L)) {
       s_stats <- .exdqlm_trace_summary(s)
       tau2_stats <- .exdqlm_trace_summary(tau2)
@@ -913,10 +954,15 @@ exal_static_mcmc <- function(
         s_tau2_min = tau2_stats[["min"]],
         s_tau2_max = tau2_stats[["max"]],
         rhs_tau = if (!is.null(rhs_summary)) rhs_summary$tau else NA_real_,
+        rhs_log_tau = if (!is.null(rhs_summary)) rhs_summary$log_tau else NA_real_,
         rhs_c2 = if (!is.null(rhs_summary)) rhs_summary$c2 else NA_real_,
         rhs_lambda_mean = if (!is.null(rhs_summary)) rhs_summary$lambda_mean else NA_real_,
         rhs_lambda_min = if (!is.null(rhs_summary)) rhs_summary$lambda_min else NA_real_,
         rhs_lambda_max = if (!is.null(rhs_summary)) rhs_summary$lambda_max else NA_real_,
+        rhs_e_invv_med = if (!is.null(rhs_summary)) rhs_summary$collapse_E_invV_med else NA_real_,
+        rhs_beta_l2 = if (!is.null(rhs_summary)) rhs_summary$collapse_beta_l2 else NA_real_,
+        rhs_small_beta_frac = if (!is.null(rhs_summary)) rhs_summary$collapse_small_beta_frac else NA_real_,
+        rhs_collapse_flag = if (!is.null(rhs_summary)) isTRUE(rhs_summary$collapse_flag) else NA,
         stringsAsFactors = FALSE
       )
     }
@@ -1047,12 +1093,13 @@ exal_static_mcmc <- function(
     beta_prior = list(
       type = beta_prior_obj$type,
       controls = beta_prior_obj$controls,
-      summary = beta_prior_obj$summary_mcmc(beta_state),
+      summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
       state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
     ),
     rhs.diagnostics = if (identical(beta_prior_obj$type, "rhs")) {
       list(
-        summary = beta_prior_obj$summary_mcmc(beta_state),
+        preflight = rhs_preflight,
+        summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
         ess = list(
           tau = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.tau))), error = function(e) NA_real_),
           c2 = tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.c2))), error = function(e) NA_real_),
@@ -1080,5 +1127,8 @@ exal_static_mcmc <- function(
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)
   )
   class(ret) <- c("exal_mcmc", "exal_static_mcmc")
+  if (identical(beta_prior_obj$type, "rhs")) {
+    .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
+  }
   ret
 }

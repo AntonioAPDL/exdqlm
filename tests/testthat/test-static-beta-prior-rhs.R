@@ -36,6 +36,10 @@ test_that("static VB RHS warns about ignored Gaussian prior inputs and returns R
   expect_false(isTRUE(fit$beta_prior$summary$shrink_intercept))
   expect_true(is.finite(fit$beta_prior$summary$tau))
   expect_true(is.finite(fit$beta_prior$summary$c2))
+  expect_true(is.list(fit$diagnostics$rhs))
+  expect_true(is.list(fit$diagnostics$rhs$preflight))
+  expect_true(is.finite(fit$diagnostics$rhs$preflight$init_log_tau))
+  expect_true(is.finite(fit$diagnostics$rhs$preflight$init_tau))
 
   vb_state <- fit$beta_prior$state
   expect_true(is.list(vb_state))
@@ -76,6 +80,8 @@ test_that("static AL VB reduced path supports RHS prior", {
   expect_identical(fit$beta_prior$type, "rhs")
   expect_true(is.finite(fit$beta_prior$summary$tau))
   expect_true(is.numeric(fit$qbeta$m))
+  expect_true(is.list(fit$diagnostics$rhs))
+  expect_true(is.list(fit$diagnostics$rhs$preflight))
 })
 
 test_that("static MCMC RHS warns, stores latent draws, and normalizes cleanly", {
@@ -107,6 +113,9 @@ test_that("static MCMC RHS warns, stores latent draws, and normalizes cleanly", 
   expect_true(is.list(fit$rhs.diagnostics))
   expect_true(is.finite(fit$rhs.diagnostics$summary$tau))
   expect_true(is.finite(fit$rhs.diagnostics$summary$c2))
+  expect_true(is.list(fit$rhs.diagnostics$preflight))
+  expect_true(is.finite(fit$rhs.diagnostics$preflight$init_log_tau))
+  expect_true(is.finite(fit$rhs.diagnostics$preflight$init_tau))
   expect_true(is.list(fit$beta_prior))
   expect_identical(fit$beta_prior$type, "rhs")
   expect_true(is.list(fit$beta_prior$summary))
@@ -133,6 +142,7 @@ test_that("static AL MCMC reduced path supports RHS prior", {
   expect_s3_class(fit$samp.lambda, "mcmc")
   expect_true(is.finite(fit$rhs.diagnostics$summary$tau))
   expect_true(is.finite(fit$rhs.diagnostics$summary$c2))
+  expect_true(is.list(fit$rhs.diagnostics$preflight))
 })
 
 test_that("static RHS VB warmup freezes tau before the forced post-warmup update", {
@@ -188,4 +198,67 @@ test_that("static RHS collapse diagnostic flags tau collapse and zeroed slopes",
   expect_true(isTRUE(diag$slope_collapse))
   expect_true(is.finite(diag$tau_ratio))
   expect_match(diag$warning, "collapsed near zero")
+})
+
+test_that("static RHS init_log_tau null/unset resolves to log(1)=0 and tau=1", {
+  ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(
+    tau0 = 1e-10,
+    init_log_tau = NULL
+  ))
+  expect_equal(ctrl$init_log_tau, 0)
+  expect_equal(ctrl$init_tau, 1)
+  expect_identical(ctrl$init_tau_source, "default_log_tau_0")
+})
+
+test_that("static RHS explicit numeric init_log_tau override is preserved", {
+  ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(
+    tau0 = 1e-10,
+    init_log_tau = -3.5
+  ))
+  expect_equal(ctrl$init_log_tau, -3.5)
+  expect_equal(ctrl$init_tau, exp(-3.5), tolerance = 1e-12)
+  expect_identical(ctrl$init_tau_source, "init_log_tau")
+})
+
+test_that("static RHS small tau0 does not force collapse-prone init when unset", {
+  ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(
+    tau0 = 1e-12
+  ))
+  expect_equal(ctrl$tau0, 1e-12, tolerance = 1e-20)
+  expect_equal(ctrl$init_log_tau, 0)
+  expect_equal(ctrl$init_tau, 1)
+  expect_gt(ctrl$init_tau, ctrl$tau0)
+})
+
+test_that("static RHS preflight fails on non-finite resolved tau init", {
+  expect_error(
+    exdqlm:::.static_parse_beta_prior_controls(list(init_log_tau = NaN)),
+    "must be finite"
+  )
+  expect_error(
+    exdqlm:::.static_parse_beta_prior_controls(list(init_tau = NA_real_)),
+    "must be finite and > 0"
+  )
+})
+
+test_that("static RHS collapse diagnostic flags precision-beta pattern without tau at lower bound", {
+  ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(
+    tau0 = 1,
+    nu = 4,
+    s2 = 1,
+    shrink_intercept = FALSE,
+    collapse_invV_med_tol = 1e8,
+    collapse_beta_l2_tol = 1e-6,
+    collapse_small_beta_frac_tol = 0.95,
+    small_beta_abs_tol = 1e-4
+  ))
+  state <- exdqlm:::.static_rhs_init_vb_state(4L, ctrl)
+  state$eta_tau_hat <- -10
+  qbeta <- list(m = c(0.4, 1e-8, -2e-8, 3e-8), V = diag(rep(1e-12, 4L)))
+
+  diag <- exdqlm:::.static_rhs_collapse_diag(state, qbeta, ctrl)
+  expect_true(isTRUE(diag$precision_beta_pattern))
+  expect_true(isTRUE(diag$collapse_flag))
+  expect_false(isTRUE(diag$tau_near_zero))
+  expect_match(diag$warning, "precision/beta pattern")
 })
