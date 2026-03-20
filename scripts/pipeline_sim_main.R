@@ -3837,9 +3837,20 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
     }
 
     near_bound_flag <- isTRUE(abs(as.numeric(last$log_tau) - eta_tau_lo) < 1e-3)
-    collapse_flag <- isTRUE(near_bound_flag) &&
-      isTRUE(as.numeric(last$E_invV_med) > 1e12) &&
-      isTRUE(as.numeric(last$beta_l2) < 1e-6)
+    d_rhs_last <- as.numeric(last$D_rhs %||% NA_real_)
+    n_small_1e4 <- as.numeric(last[["n_beta_abs_lt_1e-04"]] %||% NA_real_)
+    beta_small_frac_1e4 <- if (is.finite(d_rhs_last) && d_rhs_last > 0 && is.finite(n_small_1e4)) {
+      n_small_1e4 / d_rhs_last
+    } else {
+      NA_real_
+    }
+    collapse_flag_bound <- isTRUE(near_bound_flag) &&
+      isTRUE(as.numeric(last$E_invV_med) > 1e8) &&
+      isTRUE(as.numeric(last$beta_l2) < 1e-3)
+    collapse_flag_shrink <- isTRUE(as.numeric(last$E_invV_med) > 1e6) &&
+      isTRUE(as.numeric(last$beta_l2) < 1e-2) &&
+      isTRUE(is.finite(beta_small_frac_1e4) && beta_small_frac_1e4 > 0.95)
+    collapse_flag <- isTRUE(collapse_flag_bound) || isTRUE(collapse_flag_shrink)
 
     post_sd <- readout_scale_diag$post$sd_stats %||% c(min = NA_real_, median = NA_real_, max = NA_real_)
 
@@ -3862,12 +3873,15 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
       near_bound_flag = near_bound_flag,
       E_invV_med_last = as.numeric(last$E_invV_med),
       beta_l2_last = as.numeric(last$beta_l2),
+      beta_small_frac_1e4_last = as.numeric(beta_small_frac_1e4),
       R_over_D_last = as.numeric(last$R_over_D),
       min_R_over_D = min_R_over_D,
       iter_first_R_over_D_lt_0_5 = first_lt(0.5),
       iter_first_R_over_D_lt_0_2 = first_lt(0.2),
       iter_first_R_over_D_lt_0_1 = first_lt(0.1),
       collapse_flag = collapse_flag,
+      collapse_flag_bound = isTRUE(collapse_flag_bound),
+      collapse_flag_shrink = isTRUE(collapse_flag_shrink),
       final_ELBO = as.numeric(final_elbo),
       best_ELBO = as.numeric(best_elbo),
       delta_ELBO_last10 = as.numeric(delta_last10),

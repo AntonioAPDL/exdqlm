@@ -15,7 +15,8 @@
     var_floor = 1e-24,
     verbose = FALSE,
     init_log_lambda = 0.0,
-    init_log_tau = NULL,
+    # Keep legacy default behavior: initialize tau at exp(0)=1 unless explicitly overridden.
+    init_log_tau = 0.0,
     init_log_c2 = 0.0
   )
 }
@@ -138,13 +139,27 @@
     rhs_cfg <- modifyList(rhs_cfg, beta_cfg$rhs)
     rhs_names <- names(beta_cfg$rhs)
     if (!is.null(rhs_names)) {
+      # Legacy compatibility: explicit NULL init values in YAML should behave like "unset"
+      # and must not override the stable defaults from rhs_cfg.
       nullable_init_keys <- c(
         "init_lambda", "init_log_lambda",
         "init_tau", "init_log_tau",
         "init_c2", "init_log_c2"
       )
+      nullable_init_defaults <- list(
+        init_lambda = default_rhs_cfg$init_lambda %||% NULL,
+        init_log_lambda = default_rhs_cfg$init_log_lambda %||% 0.0,
+        init_tau = default_rhs_cfg$init_tau %||% NULL,
+        init_log_tau = default_rhs_cfg$init_log_tau %||% 0.0,
+        init_c2 = default_rhs_cfg$init_c2 %||% NULL,
+        init_log_c2 = default_rhs_cfg$init_log_c2 %||% 0.0
+      )
       for (nm in intersect(rhs_names, nullable_init_keys)) {
-        rhs_cfg[[nm]] <- beta_cfg$rhs[[nm]]
+        if (is.null(beta_cfg$rhs[[nm]])) {
+          rhs_cfg[[nm]] <- nullable_init_defaults[[nm]]
+        } else {
+          rhs_cfg[[nm]] <- beta_cfg$rhs[[nm]]
+        }
       }
     }
   }

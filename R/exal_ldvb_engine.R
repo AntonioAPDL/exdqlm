@@ -1265,8 +1265,61 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     sigma_old <- sigma_hat
 
     if (isTRUE(vb_control$verbose) && (iter %% 25L == 0L)) {
-      cat(sprintf("iter %4d | gamma≈%.4f sigma≈%.4f | new_term=%.3e\n",
-                  iter, gamma_hat, sigma_hat, new_term))
+      if (identical(beta_prior_obj$type, "rhs")) {
+        eta_tau_now <- as.numeric(beta_state$eta_tau_hat %||% NA_real_)
+        tau_now <- exp_safe(eta_tau_now)
+        tau_bounds_now <- beta_prior_obj$control$eta_bounds$tau %||% c(NA_real_, NA_real_)
+        tau_lo <- if (length(tau_bounds_now) >= 1L) as.numeric(tau_bounds_now[1L]) else NA_real_
+        tau_hi <- if (length(tau_bounds_now) >= 2L) as.numeric(tau_bounds_now[2L]) else NA_real_
+        near_lo <- isTRUE(is.finite(eta_tau_now) && is.finite(tau_lo) && abs(eta_tau_now - tau_lo) < 1e-3)
+        near_hi <- isTRUE(is.finite(eta_tau_now) && is.finite(tau_hi) && abs(eta_tau_now - tau_hi) < 1e-3)
+
+        e_invv_med <- NA_real_
+        beta_l2_now <- NA_real_
+        r_over_d <- NA_real_
+        beta_small_frac_1e4 <- NA_real_
+        tau_reason <- NA_character_
+        tau_performed <- NA
+        u_tau_now <- NA_integer_
+        if (isTRUE(rhs_trace_on) && !is.null(rhs_trace_rows[[iter]])) {
+          row_now <- rhs_trace_rows[[iter]]
+          e_invv_med <- as.numeric(row_now$E_invV_med %||% NA_real_)
+          beta_l2_now <- as.numeric(row_now$beta_l2 %||% NA_real_)
+          r_over_d <- as.numeric(row_now$R_over_D %||% NA_real_)
+          d_rhs_now <- as.numeric(row_now$D_rhs %||% NA_real_)
+          n_small_1e4 <- as.numeric(row_now[["n_beta_abs_lt_1e-04"]] %||% NA_real_)
+          if (is.finite(d_rhs_now) && d_rhs_now > 0 && is.finite(n_small_1e4)) {
+            beta_small_frac_1e4 <- n_small_1e4 / d_rhs_now
+          }
+          tau_reason <- as.character(row_now$tau_update_reason %||% NA_character_)
+          tau_performed <- as.logical(row_now$tau_update_performed %||% NA)
+          u_tau_now <- as.integer(row_now$u_tau %||% NA_integer_)
+        }
+
+        collapse_proxy_bound <- isTRUE(near_lo) &&
+          isTRUE(is.finite(e_invv_med) && e_invv_med > 1e8) &&
+          isTRUE(is.finite(beta_l2_now) && beta_l2_now < 1e-3)
+        collapse_proxy_shrink <- isTRUE(is.finite(e_invv_med) && e_invv_med > 1e6) &&
+          isTRUE(is.finite(beta_l2_now) && beta_l2_now < 1e-2) &&
+          isTRUE(is.finite(beta_small_frac_1e4) && beta_small_frac_1e4 > 0.95)
+        collapse_proxy <- isTRUE(collapse_proxy_bound) || isTRUE(collapse_proxy_shrink)
+
+        cat(sprintf(
+          "iter %4d | gamma≈%.4f sigma≈%.4f | new_term=%.3e | RHS_MONITOR tau=%.3e log_tau=%.3f bounds=[%.3f,%.3f] near_lo=%s near_hi=%s E_invV_med=%.3e beta_l2=%.3e beta_small_frac_1e4=%.3f R_over_D=%.3f tau_update=%s/%s u_tau=%s collapse_proxy=%s\n",
+          iter, gamma_hat, sigma_hat, new_term,
+          tau_now, eta_tau_now, tau_lo, tau_hi,
+          if (near_lo) "TRUE" else "FALSE",
+          if (near_hi) "TRUE" else "FALSE",
+          e_invv_med, beta_l2_now, beta_small_frac_1e4, r_over_d,
+          ifelse(is.na(tau_performed), "NA", ifelse(isTRUE(tau_performed), "YES", "NO")),
+          ifelse(is.na(tau_reason) || !nzchar(tau_reason), "NA", tau_reason),
+          ifelse(is.na(u_tau_now), "NA", as.character(u_tau_now)),
+          if (collapse_proxy) "TRUE" else "FALSE"
+        ))
+      } else {
+        cat(sprintf("iter %4d | gamma≈%.4f sigma≈%.4f | new_term=%.3e\n",
+                    iter, gamma_hat, sigma_hat, new_term))
+      }
     }
   }
 
