@@ -233,3 +233,111 @@ test_that("qdesn decomposition mode uses cpp backend when requested", {
   expect_equal(dim(out$mu_draws), c(4L, 12L))
   expect_true(all(is.finite(out$mu_draws)))
 })
+
+test_that("decomposition forecast_paths cpp matches r with fixed noise draws", {
+  withr::local_seed(1004)
+
+  tt <- seq_len(150)
+  y <- as.numeric(2.5 + 0.01 * tt + 0.7 * sin(2 * pi * tt / 12) + stats::rnorm(150, sd = 0.1))
+
+  decomp_cfg <- list(
+    enabled = TRUE,
+    backend = "cpp",
+    state_estimate = "filtered",
+    components = c("trend", "seasonal", "residual"),
+    trend = list(degree = 0L),
+    seasonal = list(period = 12, harmonics = c(1L, 2L)),
+    input_lags = list(trend = 4L, seasonal = 4L, residual = 4L),
+    discount = list(trend = 0.98, seasonal = 0.97),
+    variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+  )
+
+  fit <- exdqlm:::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 14L,
+    n_tilde = integer(0),
+    m = 5L,
+    alpha = 0.2,
+    rho = 0.9,
+    pi_w = 1.0,
+    pi_in = 1.0,
+    washout = 8L,
+    add_bias = TRUE,
+    seed = 222,
+    fit_readout = TRUE,
+    input_mode = "dlm_decomp_lags",
+    decomposition = decomp_cfg,
+    vb_args = list(max_iter = 12L, min_iter_elbo = 2L, tol = 1e-3, tol_par = 1e-3, verbose = FALSE)
+  )
+
+  nd <- 18L
+  H <- 6L
+  origin_index <- 120L
+  draws <- exdqlm::exal_posterior_draws(fit$fit, nd = nd)
+
+  withr::local_seed(44)
+  noise_draws <- list(
+    s = matrix(abs(stats::rnorm(H * nd)), nrow = H, ncol = nd),
+    v = matrix(abs(stats::rnorm(H * nd)) + 0.1, nrow = H, ncol = nd),
+    z = matrix(stats::rnorm(H * nd), nrow = H, ncol = nd)
+  )
+
+  run_case <- function(residual_recursion) {
+    readout_spec <- list(
+      include_input = FALSE,
+      input_position = "after_reservoir",
+      input_mode_requested = "dlm_decomp_lags",
+      input_mode_effective = "dlm_decomp_lags",
+      input_mode = "dlm_decomp_lags",
+      decomposition = utils::modifyList(decomp_cfg, list(forecast = list(residual_recursion = residual_recursion))),
+      input_lags_y = integer(0),
+      input_lags_x = list(),
+      reservoir_lags = 0L,
+      y_lags = integer(0),
+      x_names = character(0),
+      x_lags = list(),
+      p_res = ncol(fit$X),
+      scale_info = NULL
+    )
+
+    withr::local_options(list(
+      exdqlm.use_cpp_postpred = FALSE,
+      exdqlm.use_cpp_postpred_precompute = FALSE,
+      exdqlm.use_cpp_postpred_omp = FALSE
+    ))
+    out_r <- exdqlm:::forecast_paths.qdesn_fit(
+      object = fit,
+      H = H,
+      nd = nd,
+      readout_spec = readout_spec,
+      origin_index = origin_index,
+      draws = draws,
+      noise_draws = noise_draws,
+      seed = 999
+    )
+
+    withr::local_options(list(
+      exdqlm.use_cpp_postpred = TRUE,
+      exdqlm.use_cpp_postpred_precompute = FALSE,
+      exdqlm.use_cpp_postpred_omp = FALSE
+    ))
+    out_cpp <- exdqlm:::forecast_paths.qdesn_fit(
+      object = fit,
+      H = H,
+      nd = nd,
+      readout_spec = readout_spec,
+      origin_index = origin_index,
+      draws = draws,
+      noise_draws = noise_draws,
+      seed = 999
+    )
+
+    expect_equal(out_cpp$mu_draws, out_r$mu_draws, tolerance = 1e-10)
+    expect_equal(out_cpp$yrep, out_r$yrep, tolerance = 1e-10)
+  }
+
+  run_case("sampled_path")
+  run_case("deterministic_plugin")
+})

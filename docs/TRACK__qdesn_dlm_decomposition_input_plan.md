@@ -836,3 +836,259 @@ Still-open follow-up decisions (non-blocking):
 - `src/kalman_ndlm.cpp` (NDLM filter/smoother + structured-trajectory backend for decomposition mode)
 - `R/RcppExports.R`
 - `src/RcppExports.cpp`
+
+## 14. Forecast-Lattice Performance Optimization Plan (2026-03-20, pre-implementation)
+
+This section defines a concrete optimization plan before touching implementation code.
+The objective is to keep predictive semantics and API behavior equivalent while reducing
+`forecast_lattice` runtime in decomposition mode to near raw-mode C++ performance.
+
+### 14.1 Validated bottleneck evidence
+
+Observed run timings (`H=20`, `origins=301`, `nd=1000`):
+
+- raw mode:
+  - `forecast_lattice(p=0.05)` = `213.292s`
+  - `forecast_lattice(p=0.50)` = `214.377s`
+  - `forecast_lattice(p=0.95)` = `213.086s`
+- decomposition mode:
+  - `forecast_lattice(p=0.05)` = `3054.849s`
+  - slowdown vs raw = `14.32x` for the same `H`, `origins`, `nd`.
+
+Code-path root cause is confirmed in `R/qdesn_vb.R`:
+
+- decomposition mode forces R fallback:
+  - `forecast_paths.qdesn_fit` explicitly disables C++ in decomposition mode (`lines 1322-1325`).
+- fallback then runs nested R loops over origins x draws x horizon:
+  - `forecast_lattice.qdesn_fit` origin loop (`line 1662` onward),
+  - per-origin recursive sampler loop (`line 1434` onward).
+
+Controlled benchmarks (local) showed:
+
+- when decomposition uses R fallback, runtime is essentially raw-R runtime (same order);
+- NDLM structured trajectory propagation alone is negligible (`~0.017s` for 80 origins, `H=20`);
+- per-step readout scaling in R (`readout_scale_apply`) is a major additive cost.
+
+Conclusion: trend/seasonal NDLM roll-forward is not the bottleneck; forecast-path backend
+selection and per-step R-side feature transforms are.
+
+### 14.2 Numerical-equivalence and validity constraints
+
+All optimization phases must preserve:
+
+1. Forecast validity:
+- decomposition forecast path remains causal at each origin;
+- decomposition `state_estimate_effective = filtered` for predictive recursion.
+
+2. Predictive law:
+- same exAL conditional sampling law for `y_{t+h}`;
+- same residual recursion semantics:
+  - `sampled_path`: `resid_{t+h} = y_{t+h}^{draw} - structured_{t+h}`,
+  - `deterministic_plugin`: `resid_{t+h} = mu_{t+h}^{draw} - structured_{t+h}`.
+
+3. Draw reproducibility contract:
+- with fixed seed and fixed precomputed noise draws (`s`, `v`, `z`), R and C++ paths should
+  be numerically equivalent up to floating-point tolerance.
+
+4. User-facing API/config compatibility:
+- no breaking changes to current YAML schema;
+- decomposition options and defaults remain stable.
+
+### 14.3 Phase plan with estimated speedups
+
+#### Phase P0: Freeze baseline harness and acceptance gates (no algorithm changes)
+
+Deliverables:
+
+- checked-in benchmark script for:
+  - raw C++,
+  - raw R fallback,
+  - decomposition R fallback,
+  - (later) decomposition C++.
+- frozen baseline table saved under `reports/` or `results/` for comparison.
+
+Estimated direct speedup: none (instrumentation only).
+
+#### Phase P1 (primary): Add decomposition support to C++ forecast path
+
+Scope:
+
+- extend `src/forecast_paths.cpp` and its R wrapper path so decomposition mode can use C++.
+- remove decomposition-only C++ disable branch in `forecast_paths.qdesn_fit`.
+- preserve current call contract from `forecast_lattice.qdesn_fit` (minimal intrusion).
+
+Design notes:
+
+- keep the same origin-level calling pattern first (one call per origin, all draws inside C++).
+- pass decomposition trajectory and lag-buffer initialization to C++.
+- keep residual recursion mode switch exactly as in R reference.
+- keep precomputed `s/v/z` draws support for deterministic parity checks.
+
+Estimated speedup (from current decomposition runtime):
+
+- conservative: `5x` to `8x`,
+- target range: move from `~507 us/step` toward `~45-90 us/step`,
+- expected end-to-end lattice reduction from `~3055s` toward `~400-700s` for the current heavy run.
+
+#### Phase P2: Remove per-step R-side readout scaling overhead (fallback-safe)
+
+Scope:
+
+- for any remaining R fallback path, eliminate repeated `readout_scale_apply()` in inner loops.
+- use an equivalent transformed-beta approach (`readout_unscale_beta`) so scaling is applied once.
+
+Why:
+
+- measured overhead in fallback is large (roughly +50% to +60% in controlled checks).
+
+Estimated speedup:
+
+- fallback-only: `1.4x` to `1.7x`,
+- in C++ decomposition path: negligible if scaling is already cheap in C++.
+
+#### Phase P3: R fallback micro-optimizations and log hygiene
+
+Scope:
+
+- replace list-based component lag updates with fixed numeric buffers;
+- reduce allocations in inner loops (`x_row`, lag extraction);
+- emit decomposition fallback warning once per lattice call (not per origin).
+
+Estimated speedup:
+
+- fallback-only additional `1.05x` to `1.20x`,
+- warning suppression alone: small (`~1%` to `3%`).
+
+#### Phase P4 (optional): Batch multi-origin lattice work in C++
+
+Scope:
+
+- optional second-stage C++ API to process multiple origins in one call.
+- goal is reducing R↔C++ call overhead and origin-loop overhead.
+
+Estimated speedup:
+
+- additional `1.1x` to `1.4x` after P1, depending on workload.
+
+### 14.4 Integration/style requirements
+
+- Maintain current naming/style patterns used in `R/qdesn_vb.R`, `src/forecast_paths.cpp`,
+  and decomposition helpers (`R/qdesn_dlm_decomposition.R`).
+- Keep decomposition behavior wired through existing `readout_spec`/`meta` contracts.
+- Add only additive metadata fields when needed; avoid breaking old serialized artifacts.
+- Keep fallback behavior explicit and actionable (single warning with clear context).
+
+### 14.5 Validation and performance test matrix
+
+#### Fast checks (CI-friendly, seconds to low minutes)
+
+1. Path activation tests:
+- decomposition mode with `cpp` enabled actually enters C++ forecast path.
+- no per-origin repeated fallback warning in healthy C++ mode.
+
+2. Numeric parity tests (small synthetic case):
+- `forecast_paths.qdesn_fit` R vs C++ under decomposition mode with fixed precomputed noise.
+- both residual recursion modes (`sampled_path`, `deterministic_plugin`).
+- shape and indexing checks for non-terminal origins.
+
+3. Scaling-equivalence tests:
+- with/without transformed-beta optimization produce numerically equivalent outputs.
+
+Suggested tolerance:
+
+- deterministic recursions: max abs diff `<= 1e-10` (or tighter where stable),
+- sampled recursions with identical precomputed draws: max abs diff `<= 1e-8`.
+
+Concrete command set (current branch, pre-optimization):
+
+- package-aware integration checks:
+  - `Rscript -e 'pkgload::load_all(export_all = TRUE, helpers = TRUE, quiet = TRUE); testthat::test_file("tests/testthat/test-qdesn-dlm-phase2-integration.R")'`
+  - `Rscript -e 'pkgload::load_all(export_all = TRUE, helpers = TRUE, quiet = TRUE); testthat::test_file("tests/testthat/test-qdesn-dlm-phase3-ndlm-backend.R")'`
+- raw C++ vs raw R numerical equivalence sanity:
+  - `Rscript -e 'pkgload::load_all(export_all = FALSE, helpers = TRUE, quiet = TRUE); source("scripts/check_cpp_r_equivalence_simple.R")'`
+- performance baseline artifact checks (already run and recorded in this branch):
+  - `/tmp/bench_forecast_dlm_vs_raw_results.rds`
+  - `/tmp/bench_forecast_scaling_results.rds`
+  - `/tmp/bench_forecast_augwidth_results.rds`
+
+#### Robust checks (pre-merge gates, longer)
+
+1. End-to-end pipeline parity:
+- decomposition backend `r` vs `cpp` with fixed seed/spec on sim fixture.
+- compare:
+  - train and forecast quantile summaries,
+  - calibration and score tables,
+  - key artifacts (`forecast_full` structure/dimensions).
+
+2. Distributional equivalence:
+- compare empirical quantiles (`p=0.05,0.5,0.95`) over forecast targets.
+- require tight tolerance bands on summary metrics.
+
+3. Performance confirmation:
+- fixed benchmark spec with measured wallclock and per-step cost.
+- required pass criteria:
+  - decomposition C++ faster than decomposition R by at least `4x`,
+  - decomposition C++ within `<= 1.5x` of raw C++ under matched workload.
+
+Current baseline snapshot (for post-optimization comparison):
+
+- pipeline logs (`H=20`, `nd=1000`, `origins=301`):
+  - raw mode: `213.292s` (`~35.43 us/step`)
+  - decomposition mode (current R fallback path): `3054.849s` (`~507.45 us/step`)
+  - observed slowdown: `14.32x`
+- controlled benchmark (`origins=80`, `H=20`, `nd=120`):
+  - `raw_cpp`: `8.918s`
+  - `raw_r`: `45.399s` (`5.09x` vs raw C++)
+  - `dlm_mode_cpp_flag_on` (actual fallback): `48.618s` (`5.45x` vs raw C++)
+  - `dlm_structured_traj_only`: `0.017s` (negligible)
+
+### 14.6 Acceptance criteria for optimization signoff
+
+Optimization is complete when all are true:
+
+1. decomposition forecast path uses C++ by default when configured and available.
+2. numeric parity tests pass against the R reference path.
+3. fallback path remains correct and materially faster than current baseline.
+4. end-to-end sim pipeline completes with the same qualitative calibration behavior.
+5. measured decomposition-lattice runtime drops from current multi-quantile hours-scale
+   to an operational range aligned with raw C++ expectations for matched `H`, `origins`, `nd`.
+
+### 14.7 Implementation status update (2026-03-20)
+
+Implemented in this branch:
+
+- `P1` complete:
+  - decomposition mode now runs through `forecast_paths_cpp` (no forced R fallback branch).
+  - decomposition recursion semantics are implemented in C++:
+    - component-lag input assembly from trend/seasonal/residual lag buffers,
+    - causal buffer updates per horizon,
+    - residual recursion mode switch (`sampled_path` vs `deterministic_plugin`).
+- `P2` complete:
+  - one-time `readout_unscale_beta()` transform is applied before recursion,
+  - per-step `readout_scale_apply()` is removed from the hot loop in normal scaled workflows.
+- `P3` partially complete:
+  - per-origin fallback-message spam is suppressed in lattice calls (`cpp_fallback_note = (i == 1)`).
+  - fallback inner-loop scaling overhead removed via transformed-beta path.
+- parity harness extension:
+  - `forecast_paths.qdesn_fit()` now accepts optional `noise_draws = list(s, v, z)` (`H x nd`) for deterministic R/C++ parity checks.
+
+Post-implementation benchmark snapshot (same harness family):
+
+- controlled benchmark (`origins=80`, `H=20`, `nd=120`):
+  - `raw_cpp`: `7.85s`
+  - `raw_r`: `41.6s`
+  - `dlm_mode_cpp_flag_on`: `6.97s`
+  - decomposition now runs at `~0.89x` raw C++ wallclock in this benchmark.
+- scaling sweep (`/tmp/bench_forecast_scaling.R`):
+  - decomposition path now tracks raw C++ per-step timing (same order, within noise).
+- wide-feature benchmark (`p≈331`):
+  - `raw_cpp`: `7.84s`
+  - `dlm`: `7.09s`
+  - `raw_r`: `56.5s`
+
+Post-implementation test status:
+
+- `tests/testthat/test-qdesn-dlm-phase2-integration.R`: pass (`50`).
+- `tests/testthat/test-qdesn-dlm-phase3-ndlm-backend.R`: pass (`39`).
+- added strict decomposition parity test (R vs C++ with fixed `noise_draws`) covering both residual recursion modes.
+- existing raw-path parity script (`scripts/check_cpp_r_equivalence_simple.R`) remains at machine-precision parity.

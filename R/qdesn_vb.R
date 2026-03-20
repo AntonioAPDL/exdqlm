@@ -931,6 +931,10 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
 #' @param res_lag_init optional matrix of reservoir-lag features at the origin
 #'   (rows = lags 1..L, cols = reservoir feature dimension without bias).
 #' @param draws optional posterior draws list from exal_vb_posterior_draws()
+#' @param noise_draws optional list with matrices \code{s}, \code{v}, \code{z}
+#'   (each \code{H x nd}) to force deterministic R/C++ parity in recursive sampling.
+#' @param cpp_fallback_note logical; when \code{FALSE}, suppresses C++ fallback
+#'   informational messages (used by lattice caller to avoid per-origin spam).
 #' @return list with yrep (H x nd) and mu_draws (H x nd)
 #' @export
 forecast_paths.qdesn_fit <- function(
@@ -950,7 +954,9 @@ forecast_paths.qdesn_fit <- function(
   readout_spec = NULL,
   draws = NULL,
   res_lag_init = NULL,
-  origin_index = NULL
+  origin_index = NULL,
+  noise_draws = NULL,
+  cpp_fallback_note = TRUE
 ) {
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   method <- match.arg(method)
@@ -960,6 +966,9 @@ forecast_paths.qdesn_fit <- function(
   }
 
   `%||%` <- function(a, b) if (is.null(a)) b else a
+  cpp_note <- function(msg) {
+    if (isTRUE(cpp_fallback_note)) message(msg)
+  }
 
   if (!is.null(seed)) set.seed(as.integer(seed))
 
@@ -1307,6 +1316,34 @@ forecast_paths.qdesn_fit <- function(
     stop("forecast_paths: draw lengths do not match beta draws.")
   }
 
+  scale_info_use <- scale_info
+  if (!is.null(scale_info_use) && isTRUE(scale_info_use$scaled)) {
+    Bdraw <- readout_unscale_beta(Bdraw, scale_info_use)
+    scale_info_use <- list(scaled = FALSE)
+  }
+
+  s_draws_in <- v_draws_in <- z_draws_in <- NULL
+  if (!is.null(noise_draws)) {
+    if (!is.list(noise_draws)) {
+      stop("forecast_paths: noise_draws must be a list with entries s, v, z.")
+    }
+    s_draws_in <- as.matrix(noise_draws$s %||% NULL)
+    v_draws_in <- as.matrix(noise_draws$v %||% NULL)
+    z_draws_in <- as.matrix(noise_draws$z %||% NULL)
+    if (is.null(s_draws_in) || is.null(v_draws_in) || is.null(z_draws_in)) {
+      stop("forecast_paths: noise_draws must include s, v, z matrices.")
+    }
+    dims_ok <- identical(dim(s_draws_in), c(H, nd_eff)) &&
+      identical(dim(v_draws_in), c(H, nd_eff)) &&
+      identical(dim(z_draws_in), c(H, nd_eff))
+    if (!isTRUE(dims_ok)) {
+      stop("forecast_paths: noise_draws matrices must have dimension H x nd.")
+    }
+    if (any(!is.finite(s_draws_in)) || any(!is.finite(v_draws_in)) || any(!is.finite(z_draws_in))) {
+      stop("forecast_paths: noise_draws contains non-finite values.")
+    }
+  }
+
   p0    <- object$fit$misc$p0
   A_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$A, numeric(1))
   B_d <- vapply(gdraw, function(g) exal_get_ABC(p0 = p0, gamma = g)$B, numeric(1))
@@ -1319,11 +1356,6 @@ forecast_paths.qdesn_fit <- function(
   use_cpp_omp <- isTRUE(getOption("exdqlm.use_cpp_postpred_omp", FALSE))
   precompute_noise <- isTRUE(getOption("exdqlm.use_cpp_postpred_precompute", FALSE)) || isTRUE(use_cpp_omp)
 
-  if (isTRUE(use_cpp) && isTRUE(decomp_mode)) {
-    message("[forecast_paths] C++ backend is not available for decomposition input mode; using R backend.")
-    use_cpp <- FALSE
-  }
-
   if (isTRUE(use_cpp)) {
     if (!exists("forecast_paths_cpp", mode = "function", inherits = TRUE)) {
       stop("exdqlm.use_cpp_postpred=TRUE but forecast_paths_cpp not found.")
@@ -1332,11 +1364,11 @@ forecast_paths.qdesn_fit <- function(
     act_f_code <- act_code(res$act_f)
     act_k_code <- act_code(res$act_k)
     if (!is.finite(act_f_code) || !is.finite(act_k_code)) {
-      message("[forecast_paths] C++ disabled: custom activation functions not supported.")
+      cpp_note("[forecast_paths] C++ disabled: custom activation functions not supported.")
       use_cpp <- FALSE
     }
     if (!input_bound %in% c("none", "tanh")) {
-      message("[forecast_paths] C++ disabled: input_bound must be 'none' or 'tanh'.")
+      cpp_note("[forecast_paths] C++ disabled: input_bound must be 'none' or 'tanh'.")
       use_cpp <- FALSE
     }
 
@@ -1348,7 +1380,7 @@ forecast_paths.qdesn_fit <- function(
       if (length(lag_center_cpp) > 1L) {
         if (any(!is.finite(lag_center_cpp)) ||
             stats::sd(lag_center_cpp) > 1e-12) {
-          message("[forecast_paths] C++ disabled: lag_center must be scalar or constant across lags.")
+          cpp_note("[forecast_paths] C++ disabled: lag_center must be scalar or constant across lags.")
           use_cpp <- FALSE
         }
         lag_center_cpp <- lag_center_cpp[1L]
@@ -1357,29 +1389,46 @@ forecast_paths.qdesn_fit <- function(
         if (any(!is.finite(lag_scale_cpp)) ||
             any(lag_scale_cpp <= 0) ||
             stats::sd(lag_scale_cpp) > 1e-12) {
-          message("[forecast_paths] C++ disabled: lag_scale must be positive scalar or constant across lags.")
+          cpp_note("[forecast_paths] C++ disabled: lag_scale must be positive scalar or constant across lags.")
           use_cpp <- FALSE
         }
         lag_scale_cpp <- lag_scale_cpp[1L]
       }
-      scale_info_cpp <- scale_info
+      scale_info_cpp <- scale_info_use
       if (is.null(scale_info_cpp) || !isTRUE(scale_info_cpp$scaled)) {
         scale_info_cpp <- list(scaled = FALSE)
       }
       win_scale_lags_cpp <- if (is.null(win_scale_lags)) numeric(0) else as.numeric(win_scale_lags)
       res_lag_init_cpp <- if (reservoir_lags > 0L) res_lag_buf0 else NULL
 
-      s_draws <- v_draws <- z_draws <- NULL
-      if (isTRUE(precompute_noise)) {
-        s_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
-        v_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
-        z_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+      s_draws_cpp <- v_draws_cpp <- z_draws_cpp <- NULL
+      if (!is.null(s_draws_in)) {
+        s_draws_cpp <- s_draws_in
+        v_draws_cpp <- v_draws_in
+        z_draws_cpp <- z_draws_in
+      } else if (isTRUE(precompute_noise)) {
+        s_draws_cpp <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+        v_draws_cpp <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+        z_draws_cpp <- matrix(NA_real_, nrow = H, ncol = nd_eff)
         for (j in seq_len(nd_eff)) {
-          s_draws[, j] <- abs(rnorm(H))
-          v_draws[, j] <- rexp(H, rate = 1 / sdraw[j])
-          z_draws[, j] <- rnorm(H)
+          s_draws_cpp[, j] <- abs(rnorm(H))
+          v_draws_cpp[, j] <- rexp(H, rate = 1 / sdraw[j])
+          z_draws_cpp[, j] <- rnorm(H)
         }
       }
+
+      decomp_code_map <- c(trend = 1L, seasonal = 2L, residual = 3L)
+      decomp_codes_cpp <- as.integer(decomp_code_map[decomp_input_components])
+      if (isTRUE(decomp_mode) && (length(decomp_codes_cpp) == 0L || any(is.na(decomp_codes_cpp)))) {
+        stop("forecast_paths: invalid decomposition input component ordering for C++ backend.")
+      }
+      decomp_residual_mode_cpp <- if (identical(decomp_residual_recursion, "deterministic_plugin")) 1L else 0L
+      decomp_trend_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$trend) else numeric(0)
+      decomp_seasonal_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$seasonal) else numeric(0)
+      decomp_structured_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_traj$structured) else numeric(0)
+      decomp_trend_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$trend %||% numeric(0)) else numeric(0)
+      decomp_seasonal_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$seasonal %||% numeric(0)) else numeric(0)
+      decomp_residual_init_cpp <- if (isTRUE(decomp_mode)) as.numeric(decomp_buffers0$residual %||% numeric(0)) else numeric(0)
 
       if (isTRUE(use_cpp)) {
         Q_list_cpp <- if (is.null(res$Q)) list() else res$Q
@@ -1417,18 +1466,33 @@ forecast_paths.qdesn_fit <- function(
           origin_state = origin_state,
           res_lags = as.integer(reservoir_lags),
           res_lag_init = res_lag_init_cpp,
-          s_draws = s_draws,
-          v_draws = v_draws,
-          z_draws = z_draws,
-          use_omp = isTRUE(use_cpp_omp)
+          s_draws = s_draws_cpp,
+          v_draws = v_draws_cpp,
+          z_draws = z_draws_cpp,
+          use_omp = isTRUE(use_cpp_omp),
+          decomp_mode = isTRUE(decomp_mode),
+          decomp_trend = decomp_trend_cpp,
+          decomp_seasonal = decomp_seasonal_cpp,
+          decomp_structured = decomp_structured_cpp,
+          decomp_trend_init = decomp_trend_init_cpp,
+          decomp_seasonal_init = decomp_seasonal_init_cpp,
+          decomp_residual_init = decomp_residual_init_cpp,
+          decomp_component_codes = decomp_codes_cpp,
+          decomp_residual_mode = decomp_residual_mode_cpp
         )
         return(out)
       }
     }
   }
 
+  if (!isTRUE(use_cpp) && isTRUE(cpp_fallback_note) && isTRUE(getOption("exdqlm.use_cpp_postpred", FALSE))) {
+    cpp_note("[forecast_paths] Using R backend for posterior predictive recursion.")
+  }
+
   yrep     <- matrix(NA_real_, H, nd_eff)
   mu_draws <- matrix(NA_real_, H, nd_eff)
+
+  apply_scale <- !is.null(scale_info_use) && isTRUE(scale_info_use$scaled)
 
   ids_list <- split(seq_len(nd_eff), ceiling(seq_len(nd_eff) / as.integer(chunk)))
   for (ids in ids_list) {
@@ -1438,9 +1502,15 @@ forecast_paths.qdesn_fit <- function(
       res_lag_buf  <- res_lag_buf0
       decomp_buffers <- if (isTRUE(decomp_mode)) decomp_buffers0 else NULL
 
-      s_vec <- abs(rnorm(H))
-      v_vec <- rexp(H, rate = 1 / sdraw[j])
-      z_vec <- rnorm(H)
+      if (!is.null(s_draws_in)) {
+        s_vec <- s_draws_in[, j]
+        v_vec <- v_draws_in[, j]
+        z_vec <- z_draws_in[, j]
+      } else {
+        s_vec <- abs(rnorm(H))
+        v_vec <- rexp(H, rate = 1 / sdraw[j])
+        z_vec <- rnorm(H)
+      }
 
       for (h in seq_len(H)) {
         u_h   <- make_u(y_hist_work, decomp_buffers = decomp_buffers)
@@ -1458,8 +1528,8 @@ forecast_paths.qdesn_fit <- function(
         readout_block <- c(if (isTRUE(include_input)) input_y_vec else y_lag_vec, x_blocks[[h]])
         res_lag_block <- if (reservoir_lags > 0L) as.numeric(t(res_lag_buf)) else numeric(0)
         x_row <- c(x_res, readout_block, res_lag_block)
-        if (!is.null(scale_info)) {
-          x_row <- readout_scale_apply(matrix(x_row, nrow = 1), scale_info)[1, ]
+        if (isTRUE(apply_scale)) {
+          x_row <- readout_scale_apply(matrix(x_row, nrow = 1), scale_info_use)[1, ]
         }
 
         if (h == 1L && length(x_row) != ncol(Bdraw)) {
@@ -1725,7 +1795,8 @@ forecast_lattice.qdesn_fit <- function(
       res_lag_init = res_lag_init,
       readout_spec = spec,
       draws = draws,
-      origin_index = tau
+      origin_index = tau,
+      cpp_fallback_note = (i == 1L)
     )
 
     yrep_list[[i]] <- out$yrep

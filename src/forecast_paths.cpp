@@ -28,6 +28,14 @@ inline double act_scalar(double x, int code) {
   return x;
 }
 
+inline void shift_insert(std::vector<double> &buf, double value) {
+  if (buf.empty()) return;
+  for (int i = static_cast<int>(buf.size()) - 1; i >= 1; --i) {
+    buf[i] = buf[i - 1];
+  }
+  buf[0] = value;
+}
+
 // [[Rcpp::export]]
 Rcpp::List forecast_paths_cpp(
   Rcpp::List W_list,
@@ -65,7 +73,16 @@ Rcpp::List forecast_paths_cpp(
   Rcpp::Nullable<Rcpp::NumericMatrix> v_draws = R_NilValue,
   Rcpp::Nullable<Rcpp::NumericMatrix> z_draws = R_NilValue,
   bool use_omp = false,
-  Rcpp::Nullable<Rcpp::LogicalVector> Q_is_identity = R_NilValue
+  Rcpp::Nullable<Rcpp::LogicalVector> Q_is_identity = R_NilValue,
+  bool decomp_mode = false,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_trend = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_structured = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_trend_init = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal_init = R_NilValue,
+  Rcpp::Nullable<Rcpp::NumericVector> decomp_residual_init = R_NilValue,
+  Rcpp::Nullable<Rcpp::IntegerVector> decomp_component_codes = R_NilValue,
+  int decomp_residual_mode = 0
 ) {
   int nd = beta.nrow();
   int p = beta.ncol();
@@ -122,6 +139,69 @@ Rcpp::List forecast_paths_cpp(
   for (int i = 0; i < y_lags.size(); ++i) ylags[i] = y_lags[i];
 
   int max_y_lag = y_hist0.size();
+
+  std::vector<double> decomp_trend_vec;
+  std::vector<double> decomp_seasonal_vec;
+  std::vector<double> decomp_structured_vec;
+  std::vector<double> decomp_trend_buf_init;
+  std::vector<double> decomp_seasonal_buf_init;
+  std::vector<double> decomp_residual_buf_init;
+  std::vector<int> decomp_codes;
+
+  if (decomp_mode) {
+    if (decomp_trend.isNull() || decomp_seasonal.isNull() || decomp_structured.isNull()) {
+      stop("forecast_paths_cpp: decomposition mode requires trend/seasonal/structured trajectories.");
+    }
+    if (decomp_component_codes.isNull()) {
+      stop("forecast_paths_cpp: decomposition mode requires component code ordering.");
+    }
+
+    NumericVector trend_in = as<NumericVector>(decomp_trend);
+    NumericVector seas_in = as<NumericVector>(decomp_seasonal);
+    NumericVector struct_in = as<NumericVector>(decomp_structured);
+    if (trend_in.size() != H || seas_in.size() != H || struct_in.size() != H) {
+      stop("forecast_paths_cpp: decomposition trajectories must have length H.");
+    }
+    decomp_trend_vec.assign(trend_in.begin(), trend_in.end());
+    decomp_seasonal_vec.assign(seas_in.begin(), seas_in.end());
+    decomp_structured_vec.assign(struct_in.begin(), struct_in.end());
+
+    if (!decomp_trend_init.isNull()) {
+      NumericVector v = as<NumericVector>(decomp_trend_init);
+      decomp_trend_buf_init.assign(v.begin(), v.end());
+    }
+    if (!decomp_seasonal_init.isNull()) {
+      NumericVector v = as<NumericVector>(decomp_seasonal_init);
+      decomp_seasonal_buf_init.assign(v.begin(), v.end());
+    }
+    if (!decomp_residual_init.isNull()) {
+      NumericVector v = as<NumericVector>(decomp_residual_init);
+      decomp_residual_buf_init.assign(v.begin(), v.end());
+    }
+
+    IntegerVector codes = as<IntegerVector>(decomp_component_codes);
+    decomp_codes.reserve(codes.size());
+    for (int i = 0; i < codes.size(); ++i) {
+      int code = codes[i];
+      if (code < 1 || code > 3) {
+        stop("forecast_paths_cpp: decomposition component codes must be in {1,2,3}.");
+      }
+      decomp_codes.push_back(code);
+    }
+
+    int m_expected = 0;
+    for (int code : decomp_codes) {
+      if (code == 1) m_expected += static_cast<int>(decomp_trend_buf_init.size());
+      if (code == 2) m_expected += static_cast<int>(decomp_seasonal_buf_init.size());
+      if (code == 3) m_expected += static_cast<int>(decomp_residual_buf_init.size());
+    }
+    if (m_expected != m_res) {
+      stop("forecast_paths_cpp: decomposition lag width mismatch (m_res).");
+    }
+    if (!(decomp_residual_mode == 0 || decomp_residual_mode == 1)) {
+      stop("forecast_paths_cpp: decomp_residual_mode must be 0(sampled_path) or 1(deterministic_plugin).");
+    }
+  }
 
   if (res_lags < 0) stop("forecast_paths_cpp: res_lags must be >= 0.");
   int z_dim = add_bias ? (p_res - 1) : p_res;
@@ -249,12 +329,29 @@ Rcpp::List forecast_paths_cpp(
       for (int i = 0; i < max_y_lag; ++i) y_hist[i] = y_hist0[i];
       std::vector<arma::vec> h_now = h0;
       std::vector<double> res_buf = res_init;
+      std::vector<double> decomp_trend_buf = decomp_trend_buf_init;
+      std::vector<double> decomp_seasonal_buf = decomp_seasonal_buf_init;
+      std::vector<double> decomp_residual_buf = decomp_residual_buf_init;
 
       for (int h = 0; h < H; ++h) {
-        std::vector<double> nb(m_res);
+        std::vector<double> nb;
         if (m_res > 0) {
-          for (int k = 0; k < m_res; ++k) {
-            nb[k] = y_hist[max_y_lag - 1 - k];
+          nb.reserve(m_res);
+          if (decomp_mode) {
+            for (int code : decomp_codes) {
+              if (code == 1) {
+                nb.insert(nb.end(), decomp_trend_buf.begin(), decomp_trend_buf.end());
+              } else if (code == 2) {
+                nb.insert(nb.end(), decomp_seasonal_buf.begin(), decomp_seasonal_buf.end());
+              } else if (code == 3) {
+                nb.insert(nb.end(), decomp_residual_buf.begin(), decomp_residual_buf.end());
+              }
+            }
+          } else {
+            nb.resize(m_res);
+            for (int k = 0; k < m_res; ++k) {
+              nb[k] = y_hist[max_y_lag - 1 - k];
+            }
           }
           if (standardize_inputs) {
             for (int k = 0; k < m_res; ++k) nb[k] = (nb[k] - lag_center) / lag_scale;
@@ -384,6 +481,20 @@ Rcpp::List forecast_paths_cpp(
           }
           y_hist[max_y_lag - 1] = y_h;
         }
+        if (decomp_mode) {
+          double structured_h = decomp_structured_vec[h];
+          double residual_h;
+          if (!y_obs_is_na[h]) {
+            residual_h = y_obs[h] - structured_h;
+          } else if (decomp_residual_mode == 1) {
+            residual_h = mu_h - structured_h;
+          } else {
+            residual_h = y_h - structured_h;
+          }
+          shift_insert(decomp_trend_buf, decomp_trend_vec[h]);
+          shift_insert(decomp_seasonal_buf, decomp_seasonal_vec[h]);
+          shift_insert(decomp_residual_buf, residual_h);
+        }
         if (res_lags > 0) {
           int offset = add_bias ? 1 : 0;
           for (int i = res_lags - 1; i >= 1; --i) {
@@ -406,6 +517,9 @@ Rcpp::List forecast_paths_cpp(
       for (int i = 0; i < max_y_lag; ++i) y_hist[i] = y_hist0[i];
       std::vector<arma::vec> h_now = h0;
       std::vector<double> res_buf = res_init;
+      std::vector<double> decomp_trend_buf = decomp_trend_buf_init;
+      std::vector<double> decomp_seasonal_buf = decomp_seasonal_buf_init;
+      std::vector<double> decomp_residual_buf = decomp_residual_buf_init;
 
       std::vector<double> s_vec(H), v_vec(H), z_vec(H);
       if (!has_pre) {
@@ -421,10 +535,24 @@ Rcpp::List forecast_paths_cpp(
       }
 
       for (int h = 0; h < H; ++h) {
-        std::vector<double> nb(m_res);
+        std::vector<double> nb;
         if (m_res > 0) {
-          for (int k = 0; k < m_res; ++k) {
-            nb[k] = y_hist[max_y_lag - 1 - k];
+          nb.reserve(m_res);
+          if (decomp_mode) {
+            for (int code : decomp_codes) {
+              if (code == 1) {
+                nb.insert(nb.end(), decomp_trend_buf.begin(), decomp_trend_buf.end());
+              } else if (code == 2) {
+                nb.insert(nb.end(), decomp_seasonal_buf.begin(), decomp_seasonal_buf.end());
+              } else if (code == 3) {
+                nb.insert(nb.end(), decomp_residual_buf.begin(), decomp_residual_buf.end());
+              }
+            }
+          } else {
+            nb.resize(m_res);
+            for (int k = 0; k < m_res; ++k) {
+              nb[k] = y_hist[max_y_lag - 1 - k];
+            }
           }
           if (standardize_inputs) {
             for (int k = 0; k < m_res; ++k) nb[k] = (nb[k] - lag_center) / lag_scale;
@@ -553,6 +681,20 @@ Rcpp::List forecast_paths_cpp(
             y_hist[k] = y_hist[k + 1];
           }
           y_hist[max_y_lag - 1] = y_h;
+        }
+        if (decomp_mode) {
+          double structured_h = decomp_structured_vec[h];
+          double residual_h;
+          if (!Rcpp::NumericVector::is_na(y_obs_vec[h])) {
+            residual_h = y_obs_vec[h] - structured_h;
+          } else if (decomp_residual_mode == 1) {
+            residual_h = mu_h - structured_h;
+          } else {
+            residual_h = y_h - structured_h;
+          }
+          shift_insert(decomp_trend_buf, decomp_trend_vec[h]);
+          shift_insert(decomp_seasonal_buf, decomp_seasonal_vec[h]);
+          shift_insert(decomp_residual_buf, residual_h);
         }
         if (res_lags > 0) {
           int offset = add_bias ? 1 : 0;
