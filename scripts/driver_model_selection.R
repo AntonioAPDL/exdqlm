@@ -45,6 +45,7 @@ csv_env <- Sys.getenv("EXDQLM_DATA", Sys.getenv("QDESN_DATA", NA))
 if (!is.na(csv_env) && dir.exists(csv_env)) csv_env <- file.path(csv_env, "data_USGS_ppt_soil.csv")
 csv_candidates <- c(
   if (!is.na(csv_env)) csv_env,
+  file.path(getwd(), "data-raw", "external", "data_USGS_ppt_soil.csv"),
   "/data/muscat_data/jaguir26/data/data_USGS_ppt_soil.csv",
   "C:/Users/anton/Downloads/data_USGS_ppt_soil.csv",
   "/mnt/c/Users/anton/Downloads/data_USGS_ppt_soil.csv",

@@ -14,7 +14,8 @@ datasets:
 
   - slug: san_lorenzo_daily
     mode: real
-    input_path: /data/muscat_data/jaguir26/data/data_USGS_ppt_soil.csv
+    # Canonical local path populated by scripts/fetch_san_lorenzo_usgs_csv.sh
+    input_path: data-raw/external/data_USGS_ppt_soil.csv
 
   # Local smoke fixtures committed in the repo. These keep inference validation
   # runs reproducible even when the environment-specific absolute paths above are

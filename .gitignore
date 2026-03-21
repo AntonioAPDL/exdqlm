@@ -92,6 +92,8 @@ scripts/*.log
 # Benchmark pipeline artifacts
 /data-raw/benchmarks/*
 !/data-raw/benchmarks/README.md
+/data-raw/external/*
+!/data-raw/external/README.md
 /data-processed/benchmarks/*
 !/data-processed/benchmarks/README.md
 /figures/benchmarks/generated/
