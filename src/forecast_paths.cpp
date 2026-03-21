@@ -57,8 +57,8 @@ Rcpp::List forecast_paths_cpp(
   int m_res,
   int p_res,
   bool standardize_inputs,
-  double lag_center,
-  double lag_scale,
+  Rcpp::NumericVector lag_center,
+  Rcpp::NumericVector lag_scale,
   Rcpp::NumericVector win_scale_lags,
   std::string input_bound,
   double win_scale_global,
@@ -318,6 +318,38 @@ Rcpp::List forecast_paths_cpp(
     stop("forecast_paths_cpp: win_scale_lags length must equal m_res.");
   }
 
+  std::vector<double> lag_center_vec;
+  std::vector<double> lag_scale_vec;
+  if (standardize_inputs && m_res > 0) {
+    lag_center_vec.assign(m_res, 0.0);
+    lag_scale_vec.assign(m_res, 1.0);
+
+    if (lag_center.size() == 1) {
+      std::fill(lag_center_vec.begin(), lag_center_vec.end(), lag_center[0]);
+    } else if (lag_center.size() == m_res) {
+      lag_center_vec.assign(lag_center.begin(), lag_center.end());
+    } else if (lag_center.size() != 0) {
+      stop("forecast_paths_cpp: lag_center length must be 1 or m_res.");
+    }
+
+    if (lag_scale.size() == 1) {
+      std::fill(lag_scale_vec.begin(), lag_scale_vec.end(), lag_scale[0]);
+    } else if (lag_scale.size() == m_res) {
+      lag_scale_vec.assign(lag_scale.begin(), lag_scale.end());
+    } else if (lag_scale.size() != 0) {
+      stop("forecast_paths_cpp: lag_scale length must be 1 or m_res.");
+    }
+
+    for (int k = 0; k < m_res; ++k) {
+      if (!std::isfinite(lag_center_vec[k])) {
+        stop("forecast_paths_cpp: lag_center contains non-finite values.");
+      }
+      if (!std::isfinite(lag_scale_vec[k]) || lag_scale_vec[k] <= 0.0) {
+        stop("forecast_paths_cpp: lag_scale must be finite and > 0.");
+      }
+    }
+  }
+
   bool has_pre = !s_draws.isNull() && !v_draws.isNull() && !z_draws.isNull();
   if (use_omp && !has_pre) {
     stop("forecast_paths_cpp: use_omp=TRUE requires precomputed s/v/z draws.");
@@ -411,7 +443,7 @@ Rcpp::List forecast_paths_cpp(
             }
           }
           if (standardize_inputs) {
-            for (int k = 0; k < m_res; ++k) nb[k] = (nb[k] - lag_center) / lag_scale;
+            for (int k = 0; k < m_res; ++k) nb[k] = (nb[k] - lag_center_vec[k]) / lag_scale_vec[k];
           }
           if (has_winscale) {
             for (int k = 0; k < m_res; ++k) nb[k] = nb[k] * win_scale_lags[k];
@@ -620,7 +652,7 @@ Rcpp::List forecast_paths_cpp(
             }
           }
           if (standardize_inputs) {
-            for (int k = 0; k < m_res; ++k) nb[k] = (nb[k] - lag_center) / lag_scale;
+            for (int k = 0; k < m_res; ++k) nb[k] = (nb[k] - lag_center_vec[k]) / lag_scale_vec[k];
           }
           if (has_winscale) {
             for (int k = 0; k < m_res; ++k) nb[k] = nb[k] * win_scale_lags[k];

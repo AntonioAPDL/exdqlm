@@ -688,6 +688,140 @@ qdesn_ndlm_structured_forecast <- function(
   out
 }
 
+.qdesn_ndlm_component_forecast_r <- function(
+    GG, FF, state_origin,
+    idx_trend = integer(0),
+    idx_seasonal = integer(0),
+    idx_regression = integer(0),
+    idx_transfer = integer(0),
+    origin_index, H,
+    context = "qdesn_ndlm_component_forecast_r"
+) {
+  GG <- as.array(GG)
+  FF <- as.matrix(FF)
+  state_origin <- as.numeric(state_origin)
+  idx_trend <- as.integer(idx_trend)
+  idx_seasonal <- as.integer(idx_seasonal)
+  idx_regression <- as.integer(idx_regression)
+  idx_transfer <- as.integer(idx_transfer)
+  origin_index <- as.integer(origin_index)
+  H <- as.integer(H)
+
+  if (!is.finite(H) || H < 1L) {
+    stop(sprintf("[%s] H must be >= 1.", context), call. = FALSE)
+  }
+  if (!is.finite(origin_index) || origin_index < 1L) {
+    stop(sprintf("[%s] origin_index must be >= 1.", context), call. = FALSE)
+  }
+
+  n_state <- length(state_origin)
+  if (n_state < 1L) stop(sprintf("[%s] state dimension must be >= 1.", context), call. = FALSE)
+  if (nrow(FF) != n_state) stop(sprintf("[%s] FF row dimension mismatch.", context), call. = FALSE)
+  if (dim(GG)[1] != n_state || dim(GG)[2] != n_state) stop(sprintf("[%s] GG dimension mismatch.", context), call. = FALSE)
+
+  check_idx <- function(idx_nm, nm) {
+    if (length(idx_nm) && any(idx_nm < 1L | idx_nm > n_state)) {
+      stop(sprintf("[%s] %s out of range.", context, nm), call. = FALSE)
+    }
+  }
+  check_idx(idx_trend, "idx_trend")
+  check_idx(idx_seasonal, "idx_seasonal")
+  check_idx(idx_regression, "idx_regression")
+  check_idx(idx_transfer, "idx_transfer")
+
+  g_tmax <- dim(GG)[3]
+  f_tmax <- ncol(FF)
+  state_now <- state_origin
+  trend <- numeric(H)
+  seasonal <- numeric(H)
+  regression <- numeric(H)
+  transfer <- numeric(H)
+  structured <- numeric(H)
+
+  for (h in seq_len(H)) {
+    t_abs <- origin_index + h
+    g_idx <- min(max(1L, t_abs), g_tmax)
+    f_idx <- min(max(1L, t_abs), f_tmax)
+
+    G_t <- GG[, , g_idx]
+    F_t <- FF[, f_idx]
+    state_now <- as.vector(G_t %*% state_now)
+
+    tr <- if (length(idx_trend)) sum(F_t[idx_trend] * state_now[idx_trend]) else 0
+    se <- if (length(idx_seasonal)) sum(F_t[idx_seasonal] * state_now[idx_seasonal]) else 0
+    rg <- if (length(idx_regression)) sum(F_t[idx_regression] * state_now[idx_regression]) else 0
+    tf <- if (length(idx_transfer)) sum(F_t[idx_transfer] * state_now[idx_transfer]) else 0
+
+    trend[h] <- tr
+    seasonal[h] <- se
+    regression[h] <- rg
+    transfer[h] <- tf
+    structured[h] <- tr + se + rg + tf
+  }
+
+  list(
+    trend = trend,
+    seasonal = seasonal,
+    regression = regression,
+    transfer = transfer,
+    structured = structured,
+    state_last = state_now
+  )
+}
+
+qdesn_ndlm_component_forecast <- function(
+    GG, FF, state_origin,
+    idx_trend = integer(0),
+    idx_seasonal = integer(0),
+    idx_regression = integer(0),
+    idx_transfer = integer(0),
+    origin_index, H,
+    backend = c("r", "cpp")
+) {
+  backend <- match.arg(backend)
+  if (identical(backend, "cpp")) {
+    cpp_fc <- tryCatch(
+      dlm_ndlm_component_forecast_cpp(
+        GG = as.array(GG),
+        FF = as.matrix(FF),
+        state_origin = as.numeric(state_origin),
+        idx_trend = as.integer(idx_trend) - 1L,
+        idx_seasonal = as.integer(idx_seasonal) - 1L,
+        idx_regression = as.integer(idx_regression) - 1L,
+        idx_transfer = as.integer(idx_transfer) - 1L,
+        origin_index = as.integer(origin_index),
+        H = as.integer(H)
+      ),
+      error = function(e) e
+    )
+    if (!inherits(cpp_fc, "error")) {
+      for (nm in c("trend", "seasonal", "regression", "transfer", "structured", "state_last")) {
+        if (!is.null(cpp_fc[[nm]])) cpp_fc[[nm]] <- as.numeric(cpp_fc[[nm]])
+      }
+      cpp_fc$backend <- "cpp"
+      return(cpp_fc)
+    }
+    .qdesn_warn_once_local(
+      "exdqlm.warned_dlm_component_cpp_fallback",
+      sprintf("[qdesn_ndlm_component_forecast] cpp backend failed; using r backend. (%s)", cpp_fc$message)
+    )
+  }
+
+  out <- .qdesn_ndlm_component_forecast_r(
+    GG = GG,
+    FF = FF,
+    state_origin = state_origin,
+    idx_trend = idx_trend,
+    idx_seasonal = idx_seasonal,
+    idx_regression = idx_regression,
+    idx_transfer = idx_transfer,
+    origin_index = origin_index,
+    H = H
+  )
+  out$backend <- "r"
+  out
+}
+
 .qdesn_build_dlm_model_from_cfg <- function(decomp_cfg, y = NULL, decomp_xreg = NULL, context = "qdesn") {
   decomp_xreg <- .qdesn_standardize_decomp_xreg(decomp_xreg, context = context)
   y <- as.numeric(y)
@@ -1176,35 +1310,6 @@ qdesn_ndlm_structured_forecast <- function(
 
   backend_use <- tolower(as.character(runtime$backend_effective %||% runtime$backend_requested %||% "r")[1L])
   if (!backend_use %in% c("r", "cpp")) backend_use <- "r"
-  has_extended_components <- length(idx$regression %||% integer(0)) > 0L || length(idx$transfer %||% integer(0)) > 0L
-
-  if (!has_extended_components) {
-    out_base <- qdesn_ndlm_structured_forecast(
-      GG = GG,
-      FF = FF,
-      state_origin = state_now,
-      idx_trend = idx$trend %||% integer(0),
-      idx_seasonal = idx$seasonal %||% integer(0),
-      origin_index = tau,
-      H = H,
-      backend = backend_use
-    )
-    out <- list(
-      components = list(
-        trend = as.numeric(out_base$trend),
-        seasonal = as.numeric(out_base$seasonal)
-      ),
-      trend = as.numeric(out_base$trend),
-      seasonal = as.numeric(out_base$seasonal),
-      regression = rep(0, H),
-      transfer = rep(0, H),
-      structured = as.numeric(out_base$structured),
-      state_last = as.numeric(out_base$state_last),
-      backend = as.character(out_base$backend %||% backend_use)[1L]
-    )
-    return(out)
-  }
-
   component_names <- names(runtime$input_lags %||% list())
   if (!length(component_names)) {
     component_names <- c("trend", "seasonal", "regression", "transfer", "residual")
@@ -1213,35 +1318,29 @@ qdesn_ndlm_structured_forecast <- function(
   component_names <- component_names[component_names %in% c("trend", "seasonal", "regression", "transfer")]
   if (!length(component_names)) component_names <- c("trend", "seasonal")
 
-  comps <- setNames(lapply(component_names, function(...) numeric(H)), component_names)
-  structured <- numeric(H)
-  state_path <- state_now
-  g_tmax <- dim(GG)[3]
-  f_tmax <- ncol(FF)
+  fc <- qdesn_ndlm_component_forecast(
+    GG = GG,
+    FF = FF,
+    state_origin = state_now,
+    idx_trend = idx$trend %||% integer(0),
+    idx_seasonal = idx$seasonal %||% integer(0),
+    idx_regression = idx$regression %||% integer(0),
+    idx_transfer = idx$transfer %||% integer(0),
+    origin_index = tau,
+    H = H,
+    backend = backend_use
+  )
 
-  for (h in seq_len(H)) {
-    t_abs <- tau + h
-    g_idx <- min(max(1L, t_abs), g_tmax)
-    f_idx <- min(max(1L, t_abs), f_tmax)
-    G_t <- GG[, , g_idx]
-    F_t <- FF[, f_idx]
-    state_path <- as.vector(G_t %*% state_path)
-
-    vals_h <- numeric(length(component_names))
-    for (k in seq_along(component_names)) {
-      nm <- component_names[k]
-      idx_nm <- as.integer(idx[[nm]] %||% integer(0))
-      vals_h[k] <- if (length(idx_nm)) sum(F_t[idx_nm] * state_path[idx_nm]) else 0
-      comps[[nm]][h] <- vals_h[k]
-    }
-    structured[h] <- sum(vals_h)
-  }
+  comps <- setNames(
+    lapply(component_names, function(nm) as.numeric(fc[[nm]] %||% rep(0, H))),
+    component_names
+  )
 
   out <- list(
     components = comps,
-    structured = structured,
-    state_last = state_path,
-    backend = "r"
+    structured = as.numeric(fc$structured),
+    state_last = as.numeric(fc$state_last),
+    backend = as.character(fc$backend %||% backend_use)[1L]
   )
   for (nm in names(comps)) out[[nm]] <- comps[[nm]]
   for (nm in c("trend", "seasonal", "regression", "transfer")) {

@@ -1555,22 +1555,13 @@ forecast_paths.qdesn_fit <- function(
       lag_scale_cpp <- as.numeric(lag_scale)
       if (!length(lag_center_cpp)) lag_center_cpp <- 0
       if (!length(lag_scale_cpp)) lag_scale_cpp <- 1
-      if (length(lag_center_cpp) > 1L) {
-        if (any(!is.finite(lag_center_cpp)) ||
-            stats::sd(lag_center_cpp) > 1e-12) {
-          cpp_note("[forecast_paths] C++ disabled: lag_center must be scalar or constant across lags.")
-          use_cpp <- FALSE
-        }
-        lag_center_cpp <- lag_center_cpp[1L]
+      if (any(!is.finite(lag_center_cpp))) {
+        cpp_note("[forecast_paths] C++ disabled: lag_center contains non-finite values.")
+        use_cpp <- FALSE
       }
-      if (length(lag_scale_cpp) > 1L) {
-        if (any(!is.finite(lag_scale_cpp)) ||
-            any(lag_scale_cpp <= 0) ||
-            stats::sd(lag_scale_cpp) > 1e-12) {
-          cpp_note("[forecast_paths] C++ disabled: lag_scale must be positive scalar or constant across lags.")
-          use_cpp <- FALSE
-        }
-        lag_scale_cpp <- lag_scale_cpp[1L]
+      if (any(!is.finite(lag_scale_cpp)) || any(lag_scale_cpp <= 0)) {
+        cpp_note("[forecast_paths] C++ disabled: lag_scale must be finite and > 0.")
+        use_cpp <- FALSE
       }
       scale_info_cpp <- scale_info_use
       if (is.null(scale_info_cpp) || !isTRUE(scale_info_cpp$scaled)) {
@@ -1672,6 +1663,7 @@ forecast_paths.qdesn_fit <- function(
           decomp_component_codes = decomp_codes_cpp,
           decomp_residual_mode = decomp_residual_mode_cpp
         )
+        attr(out, "backend") <- "cpp"
         return(out)
       }
     }
@@ -1777,7 +1769,9 @@ forecast_paths.qdesn_fit <- function(
     }
   }
 
-  list(yrep = yrep, mu_draws = mu_draws)
+  out <- list(yrep = yrep, mu_draws = mu_draws)
+  attr(out, "backend") <- "r"
+  out
 }
 
 #' Lattice multi-step forecasts for a Q-DESN fit using posterior predictive draws

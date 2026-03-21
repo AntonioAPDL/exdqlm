@@ -8,6 +8,12 @@ pipeline:
   mode: real
   verbose: true
 
+cpp:
+  use_postpred: true
+  postpred_omp: true
+  postpred_precompute: true
+  postpred_threads: 4
+
 columns:
   y: USGS
   x: [ppt, soil]

@@ -53,6 +53,10 @@ dlm_ndlm_structured_forecast_cpp <- function(GG, FF, state_origin, idx_trend, id
     .Call(`_exdqlm_dlm_ndlm_structured_forecast_cpp`, GG, FF, state_origin, idx_trend, idx_seasonal, origin_index, H)
 }
 
+dlm_ndlm_component_forecast_cpp <- function(GG, FF, state_origin, idx_trend, idx_seasonal, idx_regression, idx_transfer, origin_index, H) {
+    .Call(`_exdqlm_dlm_ndlm_component_forecast_cpp`, GG, FF, state_origin, idx_trend, idx_seasonal, idx_regression, idx_transfer, origin_index, H)
+}
+
 sample_truncnorm <- function(n_samp, TT, sts_mu, sts_sig2) {
     .Call(`_exdqlm_sample_truncnorm`, n_samp, TT, sts_mu, sts_sig2)
 }

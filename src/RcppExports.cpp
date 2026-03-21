@@ -104,7 +104,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // forecast_paths_cpp
-Rcpp::List forecast_paths_cpp(Rcpp::List W_list, Rcpp::List Win_list, Rcpp::List Q_list, Rcpp::NumericVector alpha, int D, bool add_bias, Rcpp::NumericVector y_hist0, Rcpp::IntegerVector y_lags, Rcpp::List x_blocks, Rcpp::NumericMatrix beta, Rcpp::NumericVector sigma, Rcpp::NumericVector A_d, Rcpp::NumericVector B_d, Rcpp::NumericVector lam_d, Rcpp::NumericVector y_obs_vec, int H, int m_res, int p_res, bool standardize_inputs, double lag_center, double lag_scale, Rcpp::NumericVector win_scale_lags, std::string input_bound, double win_scale_global, double win_scale_bias, Rcpp::List scale_info, int act_f_code, int act_k_code, Rcpp::List origin_state, int res_lags, Rcpp::Nullable<Rcpp::NumericMatrix> res_lag_init, Rcpp::Nullable<Rcpp::NumericMatrix> s_draws, Rcpp::Nullable<Rcpp::NumericMatrix> v_draws, Rcpp::Nullable<Rcpp::NumericMatrix> z_draws, bool use_omp, Rcpp::Nullable<Rcpp::LogicalVector> Q_is_identity, bool decomp_mode, Rcpp::Nullable<Rcpp::NumericVector> decomp_trend, Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal, Rcpp::Nullable<Rcpp::NumericVector> decomp_regression, Rcpp::Nullable<Rcpp::NumericVector> decomp_transfer, Rcpp::Nullable<Rcpp::NumericVector> decomp_structured, Rcpp::Nullable<Rcpp::NumericVector> decomp_trend_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_regression_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_transfer_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_residual_init, Rcpp::Nullable<Rcpp::IntegerVector> decomp_component_codes, int decomp_residual_mode);
+Rcpp::List forecast_paths_cpp(Rcpp::List W_list, Rcpp::List Win_list, Rcpp::List Q_list, Rcpp::NumericVector alpha, int D, bool add_bias, Rcpp::NumericVector y_hist0, Rcpp::IntegerVector y_lags, Rcpp::List x_blocks, Rcpp::NumericMatrix beta, Rcpp::NumericVector sigma, Rcpp::NumericVector A_d, Rcpp::NumericVector B_d, Rcpp::NumericVector lam_d, Rcpp::NumericVector y_obs_vec, int H, int m_res, int p_res, bool standardize_inputs, Rcpp::NumericVector lag_center, Rcpp::NumericVector lag_scale, Rcpp::NumericVector win_scale_lags, std::string input_bound, double win_scale_global, double win_scale_bias, Rcpp::List scale_info, int act_f_code, int act_k_code, Rcpp::List origin_state, int res_lags, Rcpp::Nullable<Rcpp::NumericMatrix> res_lag_init, Rcpp::Nullable<Rcpp::NumericMatrix> s_draws, Rcpp::Nullable<Rcpp::NumericMatrix> v_draws, Rcpp::Nullable<Rcpp::NumericMatrix> z_draws, bool use_omp, Rcpp::Nullable<Rcpp::LogicalVector> Q_is_identity, bool decomp_mode, Rcpp::Nullable<Rcpp::NumericVector> decomp_trend, Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal, Rcpp::Nullable<Rcpp::NumericVector> decomp_regression, Rcpp::Nullable<Rcpp::NumericVector> decomp_transfer, Rcpp::Nullable<Rcpp::NumericVector> decomp_structured, Rcpp::Nullable<Rcpp::NumericVector> decomp_trend_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_seasonal_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_regression_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_transfer_init, Rcpp::Nullable<Rcpp::NumericVector> decomp_residual_init, Rcpp::Nullable<Rcpp::IntegerVector> decomp_component_codes, int decomp_residual_mode);
 RcppExport SEXP _exdqlm_forecast_paths_cpp(SEXP W_listSEXP, SEXP Win_listSEXP, SEXP Q_listSEXP, SEXP alphaSEXP, SEXP DSEXP, SEXP add_biasSEXP, SEXP y_hist0SEXP, SEXP y_lagsSEXP, SEXP x_blocksSEXP, SEXP betaSEXP, SEXP sigmaSEXP, SEXP A_dSEXP, SEXP B_dSEXP, SEXP lam_dSEXP, SEXP y_obs_vecSEXP, SEXP HSEXP, SEXP m_resSEXP, SEXP p_resSEXP, SEXP standardize_inputsSEXP, SEXP lag_centerSEXP, SEXP lag_scaleSEXP, SEXP win_scale_lagsSEXP, SEXP input_boundSEXP, SEXP win_scale_globalSEXP, SEXP win_scale_biasSEXP, SEXP scale_infoSEXP, SEXP act_f_codeSEXP, SEXP act_k_codeSEXP, SEXP origin_stateSEXP, SEXP res_lagsSEXP, SEXP res_lag_initSEXP, SEXP s_drawsSEXP, SEXP v_drawsSEXP, SEXP z_drawsSEXP, SEXP use_ompSEXP, SEXP Q_is_identitySEXP, SEXP decomp_modeSEXP, SEXP decomp_trendSEXP, SEXP decomp_seasonalSEXP, SEXP decomp_regressionSEXP, SEXP decomp_transferSEXP, SEXP decomp_structuredSEXP, SEXP decomp_trend_initSEXP, SEXP decomp_seasonal_initSEXP, SEXP decomp_regression_initSEXP, SEXP decomp_transfer_initSEXP, SEXP decomp_residual_initSEXP, SEXP decomp_component_codesSEXP, SEXP decomp_residual_modeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -128,8 +128,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type m_res(m_resSEXP);
     Rcpp::traits::input_parameter< int >::type p_res(p_resSEXP);
     Rcpp::traits::input_parameter< bool >::type standardize_inputs(standardize_inputsSEXP);
-    Rcpp::traits::input_parameter< double >::type lag_center(lag_centerSEXP);
-    Rcpp::traits::input_parameter< double >::type lag_scale(lag_scaleSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type lag_center(lag_centerSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type lag_scale(lag_scaleSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type win_scale_lags(win_scale_lagsSEXP);
     Rcpp::traits::input_parameter< std::string >::type input_bound(input_boundSEXP);
     Rcpp::traits::input_parameter< double >::type win_scale_global(win_scale_globalSEXP);
@@ -261,6 +261,25 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type origin_index(origin_indexSEXP);
     Rcpp::traits::input_parameter< const int >::type H(HSEXP);
     rcpp_result_gen = Rcpp::wrap(dlm_ndlm_structured_forecast_cpp(GG, FF, state_origin, idx_trend, idx_seasonal, origin_index, H));
+    return rcpp_result_gen;
+END_RCPP
+}
+// dlm_ndlm_component_forecast_cpp
+Rcpp::List dlm_ndlm_component_forecast_cpp(const arma::cube& GG, const arma::mat& FF, const arma::vec& state_origin, const arma::ivec& idx_trend, const arma::ivec& idx_seasonal, const arma::ivec& idx_regression, const arma::ivec& idx_transfer, const int origin_index, const int H);
+RcppExport SEXP _exdqlm_dlm_ndlm_component_forecast_cpp(SEXP GGSEXP, SEXP FFSEXP, SEXP state_originSEXP, SEXP idx_trendSEXP, SEXP idx_seasonalSEXP, SEXP idx_regressionSEXP, SEXP idx_transferSEXP, SEXP origin_indexSEXP, SEXP HSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type state_origin(state_originSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type idx_trend(idx_trendSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type idx_seasonal(idx_seasonalSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type idx_regression(idx_regressionSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type idx_transfer(idx_transferSEXP);
+    Rcpp::traits::input_parameter< const int >::type origin_index(origin_indexSEXP);
+    Rcpp::traits::input_parameter< const int >::type H(HSEXP);
+    rcpp_result_gen = Rcpp::wrap(dlm_ndlm_component_forecast_cpp(GG, FF, state_origin, idx_trend, idx_seasonal, idx_regression, idx_transfer, origin_index, H));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -486,6 +505,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_update_theta_cpp", (DL_FUNC) &_exdqlm_update_theta_cpp, 16},
     {"_exdqlm_dlm_ndlm_filter_smooth_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_filter_smooth_cpp, 12},
     {"_exdqlm_dlm_ndlm_structured_forecast_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_structured_forecast_cpp, 7},
+    {"_exdqlm_dlm_ndlm_component_forecast_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_component_forecast_cpp, 9},
     {"_exdqlm_sample_truncnorm", (DL_FUNC) &_exdqlm_sample_truncnorm, 4},
     {"_exdqlm_sample_gig_devroye_vector", (DL_FUNC) &_exdqlm_sample_gig_devroye_vector, 4},
     {"_exdqlm_sample_multivariate_normal", (DL_FUNC) &_exdqlm_sample_multivariate_normal, 6},

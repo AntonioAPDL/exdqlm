@@ -151,6 +151,115 @@ test_that("CPP NDLM backend matches R backend for filter and smoother outputs", 
   expect_equal(tr_cpp$state_last, tr_r$state_last, tolerance = 1e-8)
 })
 
+test_that("CPP extended NDLM component forecast matches R backend", {
+  withr::local_seed(1005)
+
+  tt <- seq_len(120L)
+  X <- cbind(
+    x_reg = sin(2 * pi * tt / 15),
+    x_tf = cos(2 * pi * tt / 21)
+  )
+  y <- as.numeric(
+    1.2 + 0.02 * tt +
+      0.5 * sin(2 * pi * tt / 12) +
+      0.3 * X[, "x_reg"] +
+      stats::rnorm(length(tt), sd = 0.1)
+  )
+
+  decomp_cfg <- list(
+    enabled = TRUE,
+    backend = "cpp",
+    state_estimate = "filtered",
+    components = c("trend", "seasonal", "regression", "transfer", "residual"),
+    trend = list(degree = 0L),
+    seasonal = list(period = 12, harmonics = c(1L, 2L)),
+    regression = list(enabled = TRUE, x_cols = "x_reg"),
+    transfer = list(enabled = TRUE, x_cols = "x_tf", lambda = 0.9),
+    input_lags = list(trend = 2L, seasonal = 2L, regression = 2L, transfer = 2L, residual = 2L),
+    discount = list(trend = 0.99, seasonal = 0.98, regression = 1.0, transfer_zeta = 0.98, transfer_psi = 1.0),
+    variance = list(mode = "unknown_constant", l0 = 2, S0 = 1)
+  )
+
+  fit <- exdqlm:::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 12L,
+    n_tilde = integer(0),
+    m = 4L,
+    alpha = 0.2,
+    rho = 0.9,
+    pi_w = 1.0,
+    pi_in = 1.0,
+    washout = 6L,
+    add_bias = TRUE,
+    seed = 2222,
+    fit_readout = TRUE,
+    input_mode = "dlm_decomp_lags",
+    decomposition = decomp_cfg,
+    decomposition_xreg = X,
+    vb_args = list(max_iter = 10L, min_iter_elbo = 2L, tol = 1e-3, tol_par = 1e-3, verbose = FALSE)
+  )
+
+  runtime <- fit$states$decomposition
+  tau <- 100L
+  H <- 7L
+
+  fc_r <- exdqlm:::qdesn_ndlm_component_forecast(
+    GG = runtime$model$GG,
+    FF = runtime$model$FF,
+    state_origin = runtime$state_filtered[tau, ],
+    idx_trend = runtime$idx$trend,
+    idx_seasonal = runtime$idx$seasonal,
+    idx_regression = runtime$idx$regression,
+    idx_transfer = runtime$idx$transfer,
+    origin_index = tau,
+    H = H,
+    backend = "r"
+  )
+  fc_cpp <- exdqlm:::qdesn_ndlm_component_forecast(
+    GG = runtime$model$GG,
+    FF = runtime$model$FF,
+    state_origin = runtime$state_filtered[tau, ],
+    idx_trend = runtime$idx$trend,
+    idx_seasonal = runtime$idx$seasonal,
+    idx_regression = runtime$idx$regression,
+    idx_transfer = runtime$idx$transfer,
+    origin_index = tau,
+    H = H,
+    backend = "cpp"
+  )
+
+  expect_identical(fc_cpp$backend, "cpp")
+  expect_equal(fc_cpp$trend, fc_r$trend, tolerance = 1e-9)
+  expect_equal(fc_cpp$seasonal, fc_r$seasonal, tolerance = 1e-9)
+  expect_equal(fc_cpp$regression, fc_r$regression, tolerance = 1e-9)
+  expect_equal(fc_cpp$transfer, fc_r$transfer, tolerance = 1e-9)
+  expect_equal(fc_cpp$structured, fc_r$structured, tolerance = 1e-9)
+  expect_equal(fc_cpp$state_last, fc_r$state_last, tolerance = 1e-8)
+})
+
+test_that("CPP extended NDLM component forecast validates component indices", {
+  fixture <- make_ndlm_fixture(60L)
+  expanded <- exdqlm:::.qdesn_expand_state_space(fixture$model, T_len = 60L, context = "test")
+  n_state <- nrow(expanded$FF)
+
+  expect_error(
+    exdqlm:::dlm_ndlm_component_forecast_cpp(
+      GG = expanded$GG,
+      FF = expanded$FF,
+      state_origin = as.numeric(expanded$m0),
+      idx_trend = as.integer(c(0L)),
+      idx_seasonal = as.integer(c(1L)),
+      idx_regression = as.integer(c(2L)),
+      idx_transfer = as.integer(c(n_state + 2L)),
+      origin_index = 10L,
+      H = 4L
+    ),
+    "idx_transfer index out of range"
+  )
+})
+
 test_that("qdesn decomposition mode uses cpp backend when requested", {
   withr::local_seed(1003)
   withr::local_options(list(exdqlm.use_cpp_postpred = FALSE))
@@ -334,6 +443,8 @@ test_that("decomposition forecast_paths cpp matches r with fixed noise draws", {
       seed = 999
     )
 
+    expect_identical(attr(out_r, "backend"), "r")
+    expect_identical(attr(out_cpp, "backend"), "cpp")
     expect_equal(out_cpp$mu_draws, out_r$mu_draws, tolerance = 1e-10)
     expect_equal(out_cpp$yrep, out_r$yrep, tolerance = 1e-10)
   }
@@ -453,6 +564,8 @@ test_that("decomposition forecast_paths cpp matches r with regression and transf
     seed = 111
   )
 
+  expect_identical(attr(out_r, "backend"), "r")
+  expect_identical(attr(out_cpp, "backend"), "cpp")
   expect_equal(out_cpp$mu_draws, out_r$mu_draws, tolerance = 1e-10)
   expect_equal(out_cpp$yrep, out_r$yrep, tolerance = 1e-10)
 })

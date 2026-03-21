@@ -105,6 +105,17 @@ arma::uvec validate_and_convert_idx(const arma::ivec& idx, const int n_state, co
   return out;
 }
 
+double component_contrib(const arma::vec& F_t,
+                         const arma::vec& state_t,
+                         const arma::uvec& idx) {
+  double out = 0.0;
+  for (arma::uword k = 0; k < idx.n_elem; ++k) {
+    const arma::uword i = idx[k];
+    out += F_t[i] * state_t[i];
+  }
+  return out;
+}
+
 } // namespace
 
 // [[Rcpp::export]]
@@ -337,6 +348,78 @@ Rcpp::List dlm_ndlm_structured_forecast_cpp(
   return Rcpp::List::create(
     Rcpp::Named("trend") = trend,
     Rcpp::Named("seasonal") = seasonal,
+    Rcpp::Named("structured") = structured,
+    Rcpp::Named("state_last") = state_now
+  );
+}
+
+// [[Rcpp::export]]
+Rcpp::List dlm_ndlm_component_forecast_cpp(
+    const arma::cube& GG,
+    const arma::mat& FF,
+    const arma::vec& state_origin,
+    const arma::ivec& idx_trend,
+    const arma::ivec& idx_seasonal,
+    const arma::ivec& idx_regression,
+    const arma::ivec& idx_transfer,
+    const int origin_index,
+    const int H
+) {
+  if (H < 1) stop("dlm_ndlm_component_forecast_cpp: H must be >= 1.");
+  if (origin_index < 1) stop("dlm_ndlm_component_forecast_cpp: origin_index must be >= 1.");
+
+  const int n_state = static_cast<int>(state_origin.n_elem);
+  if (n_state < 1) stop("dlm_ndlm_component_forecast_cpp: state dimension must be >= 1.");
+  if (FF.n_rows != static_cast<arma::uword>(n_state)) {
+    stop("dlm_ndlm_component_forecast_cpp: FF rows must equal state dimension.");
+  }
+  if (GG.n_rows != static_cast<arma::uword>(n_state) || GG.n_cols != static_cast<arma::uword>(n_state)) {
+    stop("dlm_ndlm_component_forecast_cpp: GG must be n_state x n_state x T.");
+  }
+  if (FF.n_cols < 1 || GG.n_slices < 1) {
+    stop("dlm_ndlm_component_forecast_cpp: FF/GG must have at least one time slice.");
+  }
+
+  const arma::uvec idx_tr = validate_and_convert_idx(idx_trend, n_state, "idx_trend");
+  const arma::uvec idx_se = validate_and_convert_idx(idx_seasonal, n_state, "idx_seasonal");
+  const arma::uvec idx_rg = validate_and_convert_idx(idx_regression, n_state, "idx_regression");
+  const arma::uvec idx_tf = validate_and_convert_idx(idx_transfer, n_state, "idx_transfer");
+
+  arma::vec state_now = state_origin;
+  arma::vec trend(H, arma::fill::zeros);
+  arma::vec seasonal(H, arma::fill::zeros);
+  arma::vec regression(H, arma::fill::zeros);
+  arma::vec transfer(H, arma::fill::zeros);
+  arma::vec structured(H, arma::fill::zeros);
+
+  const int g_tmax = static_cast<int>(GG.n_slices);
+  const int f_tmax = static_cast<int>(FF.n_cols);
+
+  for (int h = 0; h < H; ++h) {
+    const int t_abs = origin_index + (h + 1);
+    const int g_idx = std::min(std::max(t_abs, 1), g_tmax) - 1;
+    const int f_idx = std::min(std::max(t_abs, 1), f_tmax) - 1;
+
+    state_now = GG.slice(g_idx) * state_now;
+    const arma::vec F_t = FF.col(f_idx);
+
+    const double tr = component_contrib(F_t, state_now, idx_tr);
+    const double se = component_contrib(F_t, state_now, idx_se);
+    const double rg = component_contrib(F_t, state_now, idx_rg);
+    const double tf = component_contrib(F_t, state_now, idx_tf);
+
+    trend[h] = tr;
+    seasonal[h] = se;
+    regression[h] = rg;
+    transfer[h] = tf;
+    structured[h] = tr + se + rg + tf;
+  }
+
+  return Rcpp::List::create(
+    Rcpp::Named("trend") = trend,
+    Rcpp::Named("seasonal") = seasonal,
+    Rcpp::Named("regression") = regression,
+    Rcpp::Named("transfer") = transfer,
     Rcpp::Named("structured") = structured,
     Rcpp::Named("state_last") = state_now
   );
