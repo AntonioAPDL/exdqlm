@@ -327,9 +327,35 @@ qdesn_validation_generate_toy_series <- function(scenario = "toy_sine_small",
   method_cfg
 }
 
+.qdesn_validation_assert_non_dlm_input <- function(pipeline_cfg) {
+  readout_cfg <- pipeline_cfg$readout %||% list()
+  decomposition_cfg <- pipeline_cfg$decomposition %||% list()
+
+  input_mode <- tolower(as.character(readout_cfg$input_mode %||% "raw_y_lags")[1L])
+  decomposition_enabled <- isTRUE(decomposition_cfg$enabled %||% FALSE)
+
+  if (!identical(input_mode, "raw_y_lags")) {
+    stop(
+      sprintf(
+        "Validation campaigns enforce readout.input_mode='raw_y_lags'. Received '%s'.",
+        input_mode
+      ),
+      call. = FALSE
+    )
+  }
+  if (decomposition_enabled) {
+    stop(
+      "Validation campaigns enforce decomposition.enabled=FALSE; DLM-informed input is disabled for this framework.",
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
 qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c("vb", "mcmc")) {
   method <- match.arg(method)
   pipeline_cfg <- defaults$pipeline %||% list()
+  .qdesn_validation_assert_non_dlm_input(pipeline_cfg)
   infer_cfg <- pipeline_cfg$inference %||% list()
   scenario_cfg <- .qdesn_validation_scenario_cfg(defaults, root_spec$scenario)
   reservoir_cfg <- .qdesn_validation_reservoir_cfg(defaults, root_spec$reservoir_profile)
@@ -356,8 +382,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     readout = modifyList(list(
       include_input = TRUE,
       reservoir_lags = 1L,
-      input_position = "after_reservoir"
+      input_position = "after_reservoir",
+      input_mode = "raw_y_lags"
     ), pipeline_cfg$readout %||% list()),
+    decomposition = modifyList(list(
+      enabled = FALSE
+    ), pipeline_cfg$decomposition %||% list()),
     sampling = modifyList(list(nd_draws = 96L, chunk = 48L), pipeline_cfg$sampling %||% list()),
     forecast = forecast_cfg,
     synthesis = modifyList(list(

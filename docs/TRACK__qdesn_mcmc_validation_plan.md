@@ -7,6 +7,22 @@ Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
 
+## Latest Operational Update (2026-03-20)
+
+- Added explicit operational tracker for current stepwise workflow:
+  - `docs/TRACK__qdesn_mcmc_validation_guardrail_wave.md`
+- Added campaign metadata reconciliation utility:
+  - `scripts/reconcile_qdesn_validation_campaign_status.R`
+- Added guardrail materialization utility and lock profile:
+  - `scripts/materialize_qdesn_rhs_guardrail_defaults.R`
+  - `config/validation/qdesn_rhs_guardrail_lock.yaml`
+- Added targeted wave orchestrator that consumes source report failures under
+  the non-DLM + RHS guardrails:
+  - `scripts/run_qdesn_mcmc_targeted_guardrail_wave.R`
+- Validation builder now hard-fails any DLM-informed input in this framework:
+  - `readout.input_mode` must be `raw_y_lags`
+  - `decomposition.enabled` must be `FALSE`
+
 ## Latest Update (2026-03-19)
 
 - Const `rhs_c2` targeted wave:

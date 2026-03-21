@@ -242,6 +242,45 @@ test_that("validation config builder applies prior-specific inference overrides"
   expect_equal(mc_rhs$inference$mcmc$slice$max_steps_out, 50L)
 })
 
+test_that("validation config builder enforces non-DLM input mode", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_tuned_defaults.yaml"))
+  root_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "toy_sine_small",
+    tau = 0.25,
+    beta_prior_type = "rhs",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+
+  defaults_bad_input <- defaults
+  defaults_bad_input$pipeline$readout$input_mode <- "dlm_decomp_lags"
+  expect_error(
+    exdqlm:::qdesn_validation_build_pipeline_cfg(root_spec, defaults_bad_input, method = "vb"),
+    "raw_y_lags"
+  )
+
+  defaults_bad_decomp <- defaults
+  defaults_bad_decomp$pipeline$decomposition <- list(enabled = TRUE)
+  expect_error(
+    exdqlm:::qdesn_validation_build_pipeline_cfg(root_spec, defaults_bad_decomp, method = "vb"),
+    "decomposition.enabled=FALSE"
+  )
+})
+
+test_that("validation config builder stamps explicit raw input-mode defaults", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_tuned_defaults.yaml"))
+  root_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "toy_sine_small",
+    tau = 0.25,
+    beta_prior_type = "ridge",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+  cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(root_spec, defaults, method = "vb")
+  expect_identical(cfg$readout$input_mode, "raw_y_lags")
+  expect_true(identical(cfg$decomposition$enabled, FALSE))
+})
+
 test_that("rhs repair candidate defaults promote the B2 and C3 controls", {
   defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_rhs_repair_defaults.yaml"))
   rhs_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
