@@ -52,6 +52,7 @@
         same_lag_only = TRUE
       )
     ),
+    input_builder = "component_lags",
     input_lags_mode = "component",
     input_lags = list(
       trend = 12L,
@@ -59,6 +60,14 @@
       regression = 0L,
       transfer = 0L,
       residual = 12L
+    ),
+    state_resid_y = list(
+      state_lags = NULL,
+      residual_lags = NULL,
+      y_lags = NULL,
+      include_xreg = FALSE,
+      xreg_lags = 0L,
+      xreg_source = c("transfer")
     ),
     discount = list(
       trend = 0.99,
@@ -287,6 +296,54 @@
   cfg$input_lags$regression <- norm_lag(in_lags$regression %||% lag_fallback %||% cfg$input_lags$regression, "regression")
   cfg$input_lags$transfer <- norm_lag(in_lags$transfer %||% lag_fallback %||% cfg$input_lags$transfer, "transfer")
   cfg$input_lags$residual <- norm_lag(in_lags$residual %||% lag_fallback %||% cfg$input_lags$residual, "residual")
+
+  input_builder <- tolower(as.character(decomposition$input_builder %||% cfg$input_builder)[1L])
+  if (!input_builder %in% c("component_lags", "state_resid_y")) {
+    warning(sprintf("[%s] decomposition.input_builder '%s' not recognized; using 'component_lags'.", context, input_builder), call. = FALSE)
+    input_builder <- "component_lags"
+  }
+  cfg$input_builder <- input_builder
+
+  sr_in <- decomposition$state_resid_y %||% cfg$state_resid_y %||% list()
+  if (!is.list(sr_in)) sr_in <- list()
+  state_lags_default <- max(c(
+    cfg$input_lags$trend,
+    cfg$input_lags$seasonal,
+    cfg$input_lags$regression,
+    cfg$input_lags$transfer
+  ))
+  resid_lags_default <- cfg$input_lags$residual
+  y_lags_default <- cfg$input_lags$residual
+
+  norm_opt_lag <- function(val, default_val, nm) {
+    if (is.null(val) || length(val) == 0L || (length(val) == 1L && is.na(val))) {
+      return(as.integer(default_val))
+    }
+    out <- as.integer(val)[1L]
+    if (!is.finite(out) || out < 0L) {
+      warning(sprintf("[%s] decomposition.state_resid_y.%s must be integer >= 0; using %d.", context, nm, as.integer(default_val)), call. = FALSE)
+      out <- as.integer(default_val)
+    }
+    out
+  }
+
+  state_lags_sr <- norm_opt_lag(sr_in$state_lags %||% cfg$state_resid_y$state_lags, state_lags_default, "state_lags")
+  residual_lags_sr <- norm_opt_lag(sr_in$residual_lags %||% cfg$state_resid_y$residual_lags, resid_lags_default, "residual_lags")
+  y_lags_sr <- norm_opt_lag(sr_in$y_lags %||% cfg$state_resid_y$y_lags, y_lags_default, "y_lags")
+  xreg_lags_sr <- norm_opt_lag(sr_in$xreg_lags %||% cfg$state_resid_y$xreg_lags %||% 0L, 0L, "xreg_lags")
+  include_xreg_sr <- isTRUE(sr_in$include_xreg %||% cfg$state_resid_y$include_xreg %||% FALSE)
+  xreg_source_sr <- as.character(unlist(sr_in$xreg_source %||% cfg$state_resid_y$xreg_source %||% c("transfer"), use.names = FALSE))
+  xreg_source_sr <- unique(tolower(xreg_source_sr[nzchar(xreg_source_sr)]))
+  xreg_source_sr <- intersect(xreg_source_sr, c("regression", "transfer"))
+  if (!length(xreg_source_sr)) xreg_source_sr <- c("transfer")
+  cfg$state_resid_y <- list(
+    state_lags = state_lags_sr,
+    residual_lags = residual_lags_sr,
+    y_lags = y_lags_sr,
+    include_xreg = include_xreg_sr,
+    xreg_lags = xreg_lags_sr,
+    xreg_source = xreg_source_sr
+  )
 
   discount <- decomposition$discount %||% list()
   d_tr <- as.numeric(discount$trend %||% cfg$discount$trend)
@@ -559,9 +616,17 @@ qdesn_fit_vb <- function(
     decomp_cfg$backend_effective <- decomp_runtime$backend_effective %||% decomp_cfg$backend_effective
     input_components <- decomp_runtime$input_components
     m_input <- as.integer(decomp_runtime$m_input)
-    input_lag_warmup <- max(as.integer(unlist(decomp_runtime$input_lags[input_components], use.names = FALSE)), 0L)
+    decomp_builder <- as.character(decomp_runtime$input_builder %||% "component_lags")[1L]
+    if (identical(decomp_builder, "component_lags")) {
+      input_lag_warmup <- max(as.integer(unlist(decomp_runtime$input_lags[input_components], use.names = FALSE)), 0L)
+    } else if (identical(decomp_builder, "state_resid_y")) {
+      lag_meta <- decomp_runtime$state_resid_y_lags %||% list()
+      input_lag_warmup <- max(as.integer(unlist(lag_meta, use.names = FALSE)), 0L)
+    } else {
+      stop("qdesn_fit_vb: unknown decomposition input builder.", call. = FALSE)
+    }
     if (!is.finite(m_input) || m_input < 1L) {
-      stop("qdesn_fit_vb: decomposition input mode requires at least one lagged component feature.", call. = FALSE)
+      stop("qdesn_fit_vb: decomposition input mode requires at least one lagged feature.", call. = FALSE)
     }
   }
 
@@ -727,17 +792,6 @@ qdesn_fit_vb <- function(
     u
   }
 
-  init_component_buffers <- function() {
-    lags <- decomp_runtime$input_lags %||% list()
-    out <- lapply(names(lags), function(nm) {
-      L <- as.integer(lags[[nm]])
-      if (!is.finite(L) || L <= 0L) return(numeric(0))
-      rep(0, L)
-    })
-    names(out) <- names(lags)
-    out
-  }
-
   # helper to reset states to zero (or could be a learned x_init later)
   reset_states <- function() lapply(seq_len(D), function(d) rep(0, n[d]))
 
@@ -755,11 +809,15 @@ qdesn_fit_vb <- function(
 
     # reset lag buffers at each segment boundary
     lag_buf <- if (m_input > 0L) rep(0, m_input) else numeric(0)
-    comp_buffers <- if (identical(input_mode_effective, "dlm_decomp_lags")) init_component_buffers() else NULL
+    comp_buffers <- if (identical(input_mode_effective, "dlm_decomp_lags")) {
+      .qdesn_init_decomp_input_buffers(decomp_runtime, tau = 0L)
+    } else {
+      NULL
+    }
 
     for (t in seg) {
       lag_features <- if (identical(input_mode_effective, "dlm_decomp_lags")) {
-        .qdesn_component_lag_vector(comp_buffers, input_components)
+        .qdesn_decomp_input_vector(comp_buffers, decomp_runtime)
       } else {
         lag_buf
       }
@@ -793,15 +851,15 @@ qdesn_fit_vb <- function(
 
       # update lag buffers AFTER using them (so they remain t-1, t-2, ...)
       if (identical(input_mode_effective, "dlm_decomp_lags")) {
-        comp_values_now <- lapply(names(comp_buffers), function(nm) {
-          series_nm <- decomp_runtime$series[[nm]]
-          if (is.null(series_nm) || length(series_nm) < t) return(0)
-          as.numeric(series_nm[t])
-        })
-        names(comp_values_now) <- names(comp_buffers)
-        comp_buffers <- .qdesn_update_component_lag_buffers(
+        decomp_values_now <- .qdesn_get_input_values_at_t(
+          runtime = decomp_runtime,
+          t = t,
+          y_value = y[t]
+        )
+        comp_buffers <- .qdesn_update_decomp_input_buffers(
           comp_buffers,
-          comp_values_now
+          decomp_values_now,
+          decomp_runtime
         )
       } else if (m_input > 0L) {
         lag_buf <- c(y[t], lag_buf[seq_len(max(0L, m_input - 1L))])
@@ -1259,6 +1317,7 @@ forecast_paths.qdesn_fit <- function(
   decomp_runtime <- NULL
   decomp_buffers0 <- NULL
   decomp_traj <- NULL
+  decomp_input_builder <- "component_lags"
   decomp_input_components <- character(0)
   decomp_residual_recursion <- decomp_cfg$forecast$residual_recursion %||% "sampled_path"
   if (isTRUE(decomp_mode)) {
@@ -1274,7 +1333,8 @@ forecast_paths.qdesn_fit <- function(
     if (!is.finite(origin_index) || origin_index < 1L || origin_index > nrow(decomp_runtime$state_filtered)) {
       stop("forecast_paths: invalid origin_index for decomposition runtime.", call. = FALSE)
     }
-    decomp_buffers0 <- .qdesn_init_component_lag_buffers(decomp_runtime, tau = origin_index)
+    decomp_input_builder <- as.character(decomp_runtime$input_builder %||% "component_lags")[1L]
+    decomp_buffers0 <- .qdesn_init_decomp_input_buffers(decomp_runtime, tau = origin_index)
     decomp_traj <- .qdesn_decomp_forecast_trajectory(
       runtime = decomp_runtime,
       origin_index = origin_index,
@@ -1282,7 +1342,7 @@ forecast_paths.qdesn_fit <- function(
       context = "forecast_paths.qdesn_fit"
     )
     decomp_input_components <- as.character(decomp_runtime$input_components %||% character(0))
-    if (!length(decomp_input_components)) {
+    if (identical(decomp_input_builder, "component_lags") && !length(decomp_input_components)) {
       stop("forecast_paths: decomposition runtime has no input_components.", call. = FALSE)
     }
   }
@@ -1370,7 +1430,7 @@ forecast_paths.qdesn_fit <- function(
       if (is.null(decomp_buffers)) {
         stop("forecast_paths: decomp_buffers must be supplied in decomposition mode.")
       }
-      lag_features <- .qdesn_component_lag_vector(decomp_buffers, decomp_input_components)
+      lag_features <- .qdesn_decomp_input_vector(decomp_buffers, decomp_runtime)
       nb <- if (length(lag_features)) process_lags(lag_features) else numeric(0)
     } else if (isTRUE(m_res_local > 0L)) {
       nb <- process_lags(rev(tail(y_hist_vec, m_res_local)))
@@ -1547,6 +1607,10 @@ forecast_paths.qdesn_fit <- function(
     }
     if (!input_bound %in% c("none", "tanh")) {
       cpp_note("[forecast_paths] C++ disabled: input_bound must be 'none' or 'tanh'.")
+      use_cpp <- FALSE
+    }
+    if (isTRUE(decomp_mode) && !identical(decomp_input_builder, "component_lags")) {
+      cpp_note("[forecast_paths] C++ disabled: decomposition input_builder != 'component_lags' currently uses R recursion.")
       use_cpp <- FALSE
     }
 
@@ -1753,16 +1817,39 @@ forecast_paths.qdesn_fit <- function(
           } else {
             y_h - structured_h
           }
-          decomp_values_now <- lapply(names(decomp_buffers), function(nm) {
-            if (identical(nm, "residual")) return(residual_h)
-            comp_nm <- decomp_traj[[nm]]
-            if (is.null(comp_nm) || length(comp_nm) < h) return(0)
-            as.numeric(comp_nm[h])
-          })
-          names(decomp_values_now) <- names(decomp_buffers)
-          decomp_buffers <- .qdesn_update_component_lag_buffers(
+          decomp_values_now <- if (identical(decomp_input_builder, "component_lags")) {
+            vals <- lapply(names(decomp_buffers), function(nm) {
+              if (identical(nm, "residual")) return(residual_h)
+              comp_nm <- decomp_traj[[nm]]
+              if (is.null(comp_nm) || length(comp_nm) < h) return(0)
+              as.numeric(comp_nm[h])
+            })
+            names(vals) <- names(decomp_buffers)
+            vals
+          } else if (identical(decomp_input_builder, "state_resid_y")) {
+            state_h <- if (!is.null(decomp_traj$state_path) && nrow(decomp_traj$state_path) >= h) {
+              as.numeric(decomp_traj$state_path[h, ])
+            } else {
+              numeric(0)
+            }
+            xreg_h <- if (!is.null(decomp_traj$xreg_path) && nrow(decomp_traj$xreg_path) >= h) {
+              as.numeric(decomp_traj$xreg_path[h, ])
+            } else {
+              numeric(0)
+            }
+            list(
+              state = state_h,
+              residual = residual_h,
+              y = if (!is.na(y_obs_vec[h])) y_obs_vec[h] else y_h,
+              xreg = xreg_h
+            )
+          } else {
+            stop("forecast_paths: unknown decomposition input builder.", call. = FALSE)
+          }
+          decomp_buffers <- .qdesn_update_decomp_input_buffers(
             decomp_buffers,
-            decomp_values_now
+            decomp_values_now,
+            decomp_runtime
           )
         }
       }

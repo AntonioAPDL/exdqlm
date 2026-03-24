@@ -964,6 +964,7 @@ qdesn_ndlm_component_forecast <- function(
     n_state = 0L,
     x_base_cols = character(0),
     feature_names = character(0),
+    X_engineered = NULL,
     features = reg_cfg$features %||% list()
   )
   if (isTRUE(reg_enabled)) {
@@ -989,6 +990,7 @@ qdesn_ndlm_component_forecast <- function(
     reg_info$x_cols_effective <- reg_pick$x_cols_effective
     reg_info$x_base_cols <- colnames(reg_pick$X)
     reg_info$feature_names <- reg_feat$feature_names
+    reg_info$X_engineered <- X_reg
     reg_info$features <- reg_feat$feature_cfg_effective
     reg_info$n_state <- as.integer(n_reg)
   }
@@ -1003,6 +1005,7 @@ qdesn_ndlm_component_forecast <- function(
     lambda = numeric(0),
     x_base_cols = character(0),
     feature_names = character(0),
+    X_engineered = NULL,
     features = tf_cfg$features %||% list()
   )
   if (isTRUE(tf_enabled)) {
@@ -1038,6 +1041,7 @@ qdesn_ndlm_component_forecast <- function(
     tf_info$x_cols_effective <- tf_pick$x_cols_effective
     tf_info$x_base_cols <- colnames(tf_pick$X)
     tf_info$feature_names <- tf_feat$feature_names
+    tf_info$X_engineered <- X_tf
     tf_info$features <- tf_feat$feature_cfg_effective
     tf_info$n_state <- as.integer(n_tf + 1L)
     tf_info$lambda <- as.numeric(lambda_tf)
@@ -1169,6 +1173,11 @@ qdesn_ndlm_component_forecast <- function(
   } else {
     series_filtered
   }
+  state_effective <- if (identical(state_est_eff, "smoothed") && !is.null(filt$sm)) {
+    filt$sm
+  } else {
+    filt$fm
+  }
 
   input_lags <- list(
     trend = as.integer((decomp_cfg$input_lags %||% list())$trend %||% 0L),
@@ -1185,27 +1194,155 @@ qdesn_ndlm_component_forecast <- function(
   comp_order <- comp_order[comp_order %in% c("trend", "seasonal", "regression", "transfer", "residual")]
   if (!length(comp_order)) comp_order <- c("trend", "seasonal", "residual")
 
-  input_components <- comp_order[vapply(comp_order, function(nm) input_lags[[nm]] > 0L, logical(1))]
-  if (!length(input_components)) {
-    stop(sprintf("[%s] decomposition.input_lags must include at least one positive lag.", context), call. = FALSE)
+  input_builder <- tolower(as.character(decomp_cfg$input_builder %||% "component_lags")[1L])
+  if (!input_builder %in% c("component_lags", "state_resid_y")) {
+    input_builder <- "component_lags"
   }
 
-  lag_component_order <- unlist(lapply(input_components, function(nm) rep(nm, input_lags[[nm]])), use.names = FALSE)
-  m_input <- length(lag_component_order)
+  lag_component_order <- character(0)
+  input_components <- character(0)
+  input_xreg_matrix <- NULL
+  state_resid_y_cfg <- decomp_cfg$state_resid_y %||% list()
+  state_resid_y_lags <- list(state = 0L, residual = 0L, y = 0L, xreg = 0L)
+  m_input <- 0L
+  lag_center <- numeric(0)
+  lag_scale <- numeric(0)
 
-  component_names <- names(input_lags)
-  component_means <- setNames(
-    vapply(component_names, function(nm) mean(as.numeric(series_effective[[nm]] %||% 0), na.rm = TRUE), numeric(1)),
-    component_names
-  )
-  component_sds <- setNames(
-    vapply(component_names, function(nm) stats::sd(as.numeric(series_effective[[nm]] %||% 0), na.rm = TRUE), numeric(1)),
-    component_names
-  )
-  component_sds[!is.finite(component_sds) | component_sds <= 1e-12] <- 1
+  if (identical(input_builder, "component_lags")) {
+    input_components <- comp_order[vapply(comp_order, function(nm) input_lags[[nm]] > 0L, logical(1))]
+    if (!length(input_components)) {
+      stop(sprintf("[%s] decomposition.input_lags must include at least one positive lag.", context), call. = FALSE)
+    }
 
-  lag_center <- if (m_input > 0L) unname(component_means[lag_component_order]) else numeric(0)
-  lag_scale <- if (m_input > 0L) unname(component_sds[lag_component_order]) else numeric(0)
+    lag_component_order <- unlist(lapply(input_components, function(nm) rep(nm, input_lags[[nm]])), use.names = FALSE)
+    m_input <- length(lag_component_order)
+
+    component_names <- names(input_lags)
+    component_means <- setNames(
+      vapply(component_names, function(nm) mean(as.numeric(series_effective[[nm]] %||% 0), na.rm = TRUE), numeric(1)),
+      component_names
+    )
+    component_sds <- setNames(
+      vapply(component_names, function(nm) stats::sd(as.numeric(series_effective[[nm]] %||% 0), na.rm = TRUE), numeric(1)),
+      component_names
+    )
+    component_sds[!is.finite(component_sds) | component_sds <= 1e-12] <- 1
+
+    lag_center <- if (m_input > 0L) unname(component_means[lag_component_order]) else numeric(0)
+    lag_scale <- if (m_input > 0L) unname(component_sds[lag_component_order]) else numeric(0)
+  } else {
+    as_nonneg_int <- function(x, default = 0L) {
+      out <- as.integer(x %||% default)[1L]
+      if (!is.finite(out) || out < 0L) out <- as.integer(default)
+      out
+    }
+    state_default <- max(c(input_lags$trend, input_lags$seasonal, input_lags$regression, input_lags$transfer))
+    resid_default <- input_lags$residual
+    y_default <- input_lags$residual
+    xreg_default <- 0L
+
+    state_lags <- as_nonneg_int(state_resid_y_cfg$state_lags, state_default)
+    residual_lags <- as_nonneg_int(state_resid_y_cfg$residual_lags, resid_default)
+    y_lags <- as_nonneg_int(state_resid_y_cfg$y_lags, y_default)
+    include_xreg <- isTRUE(state_resid_y_cfg$include_xreg %||% FALSE)
+    xreg_lags <- as_nonneg_int(state_resid_y_cfg$xreg_lags, xreg_default)
+    xreg_source <- tolower(as.character(unlist(state_resid_y_cfg$xreg_source %||% c("transfer"), use.names = FALSE)))
+    xreg_source <- unique(xreg_source[xreg_source %in% c("regression", "transfer")])
+    if (!length(xreg_source)) xreg_source <- c("transfer")
+
+    xreg_parts <- list()
+    if (isTRUE(include_xreg)) {
+      if ("regression" %in% xreg_source) {
+        X_rg <- model_info$regression$X_engineered %||% NULL
+        if (!is.null(X_rg) && is.matrix(X_rg) && ncol(X_rg) > 0L) {
+          xreg_parts[[length(xreg_parts) + 1L]] <- as.matrix(X_rg)
+        }
+      }
+      if ("transfer" %in% xreg_source) {
+        X_tf <- model_info$transfer$X_engineered %||% NULL
+        if (!is.null(X_tf) && is.matrix(X_tf) && ncol(X_tf) > 0L) {
+          xreg_parts[[length(xreg_parts) + 1L]] <- as.matrix(X_tf)
+        }
+      }
+    }
+    if (length(xreg_parts)) {
+      input_xreg_matrix <- do.call(cbind, xreg_parts)
+      storage.mode(input_xreg_matrix) <- "double"
+      if (nrow(input_xreg_matrix) != T_len) {
+        stop(sprintf("[%s] engineered decomposition xreg matrix length mismatch.", context), call. = FALSE)
+      }
+    } else {
+      input_xreg_matrix <- NULL
+      xreg_lags <- 0L
+    }
+
+    state_resid_y_lags <- list(
+      state = as.integer(state_lags),
+      residual = as.integer(residual_lags),
+      y = as.integer(y_lags),
+      xreg = as.integer(xreg_lags)
+    )
+
+    n_state <- ncol(state_effective)
+    p_xreg <- if (is.null(input_xreg_matrix)) 0L else ncol(input_xreg_matrix)
+    m_input <- as.integer(state_lags * n_state + residual_lags + y_lags + xreg_lags * p_xreg)
+    if (!is.finite(m_input) || m_input < 1L) {
+      stop(sprintf("[%s] decomposition.state_resid_y produced zero input width; increase lags or enable xreg block.", context), call. = FALSE)
+    }
+
+    input_components <- c(
+      if (state_lags > 0L) "state",
+      if (residual_lags > 0L) "residual",
+      if (y_lags > 0L) "y",
+      if (xreg_lags > 0L && p_xreg > 0L) "xreg"
+    )
+
+    lag_component_order <- c(
+      if (state_lags > 0L) rep("state", state_lags * n_state),
+      if (residual_lags > 0L) rep("residual", residual_lags),
+      if (y_lags > 0L) rep("y", y_lags),
+      if (xreg_lags > 0L && p_xreg > 0L) rep("xreg", xreg_lags * p_xreg)
+    )
+
+    state_mu <- colMeans(state_effective)
+    state_sd <- apply(state_effective, 2L, stats::sd)
+    state_sd[!is.finite(state_sd) | state_sd <= 1e-12] <- 1
+    resid_mu <- mean(as.numeric(series_effective$residual), na.rm = TRUE)
+    resid_sd <- stats::sd(as.numeric(series_effective$residual), na.rm = TRUE)
+    if (!is.finite(resid_sd) || resid_sd <= 1e-12) resid_sd <- 1
+    y_mu <- mean(y, na.rm = TRUE)
+    y_sd <- stats::sd(y, na.rm = TRUE)
+    if (!is.finite(y_sd) || y_sd <= 1e-12) y_sd <- 1
+
+    lag_center <- c(
+      if (state_lags > 0L) rep(state_mu, times = state_lags),
+      if (residual_lags > 0L) rep(resid_mu, times = residual_lags),
+      if (y_lags > 0L) rep(y_mu, times = y_lags),
+      if (xreg_lags > 0L && !is.null(input_xreg_matrix) && ncol(input_xreg_matrix) > 0L) {
+        x_mu <- colMeans(input_xreg_matrix)
+        rep(x_mu, times = xreg_lags)
+      }
+    )
+    lag_scale <- c(
+      if (state_lags > 0L) rep(state_sd, times = state_lags),
+      if (residual_lags > 0L) rep(resid_sd, times = residual_lags),
+      if (y_lags > 0L) rep(y_sd, times = y_lags),
+      if (xreg_lags > 0L && !is.null(input_xreg_matrix) && ncol(input_xreg_matrix) > 0L) {
+        x_sd <- apply(input_xreg_matrix, 2L, stats::sd)
+        x_sd[!is.finite(x_sd) | x_sd <= 1e-12] <- 1
+        rep(x_sd, times = xreg_lags)
+      }
+    )
+
+    state_resid_y_cfg <- list(
+      state_lags = as.integer(state_lags),
+      residual_lags = as.integer(residual_lags),
+      y_lags = as.integer(y_lags),
+      include_xreg = isTRUE(include_xreg),
+      xreg_lags = as.integer(xreg_lags),
+      xreg_source = as.character(xreg_source)
+    )
+  }
 
   list(
     enabled = TRUE,
@@ -1214,6 +1351,9 @@ qdesn_ndlm_component_forecast <- function(
     state_estimate_requested = state_est_req,
     state_estimate_effective = state_est_eff,
     components = comp_order,
+    input_builder = input_builder,
+    state_resid_y = state_resid_y_cfg,
+    state_resid_y_lags = state_resid_y_lags,
     seasonal = model_info$seasonal,
     regression = model_info$regression,
     transfer = model_info$transfer,
@@ -1227,6 +1367,7 @@ qdesn_ndlm_component_forecast <- function(
     series_filtered = series_filtered,
     series_smoothed = series_smoothed,
     idx = model_info$idx,
+    y = as.numeric(y),
     model = list(
       FF = expanded$FF,
       GG = expanded$GG,
@@ -1237,6 +1378,8 @@ qdesn_ndlm_component_forecast <- function(
     ),
     state_filtered = filt$fm,
     state_smoothed = filt$sm,
+    state_effective = state_effective,
+    input_xreg_matrix = input_xreg_matrix,
     variance = list(s = filt$s, n = filt$n),
     xreg = list(
       provided = !is.null(decomp_xreg),
@@ -1246,42 +1389,229 @@ qdesn_ndlm_component_forecast <- function(
 }
 
 #' @keywords internal
-.qdesn_init_component_lag_buffers <- function(runtime, tau) {
+.qdesn_init_decomp_input_buffers <- function(runtime, tau) {
   mk_buf <- function(series, L, idx) {
     L <- as.integer(L)
     if (L <= 0L) return(numeric(0))
     idx <- as.integer(idx)
     if (!is.finite(idx) || idx <= 0L) return(rep(0, L))
-    avail <- min(L, idx)
-    src <- series[seq.int(idx - avail + 1L, idx)]
+    idx_eff <- min(idx, length(series))
+    if (idx_eff <= 0L) return(rep(0, L))
+    avail <- min(L, idx_eff)
+    src <- series[seq.int(idx_eff - avail + 1L, idx_eff)]
     c(rev(src), rep(0, L - avail))
   }
 
-  lags <- runtime$input_lags %||% list()
-  out <- lapply(names(lags), function(nm) mk_buf(runtime$series[[nm]] %||% rep(0, nrow(runtime$state_filtered)), lags[[nm]], tau))
-  names(out) <- names(lags)
+  mk_mat <- function(mat, L, idx) {
+    L <- as.integer(L)
+    p <- if (is.null(mat)) 0L else as.integer(ncol(mat))
+    if (L <= 0L) return(matrix(0, nrow = 0L, ncol = p))
+    if (p <= 0L) return(matrix(0, nrow = L, ncol = 0L))
+    idx <- as.integer(idx)
+    if (!is.finite(idx) || idx <= 0L) return(matrix(0, nrow = L, ncol = p))
+    idx_eff <- min(idx, nrow(mat))
+    if (idx_eff <= 0L) return(matrix(0, nrow = L, ncol = p))
+    avail <- min(L, idx_eff)
+    src <- mat[seq.int(idx_eff - avail + 1L, idx_eff), , drop = FALSE]
+    out <- rbind(
+      src[seq.int(nrow(src), 1L), , drop = FALSE],
+      matrix(0, nrow = L - avail, ncol = p)
+    )
+    storage.mode(out) <- "double"
+    out
+  }
+
+  builder <- as.character(runtime$input_builder %||% "component_lags")[1L]
+  if (identical(builder, "component_lags")) {
+    lags <- runtime$input_lags %||% list()
+    out <- lapply(names(lags), function(nm) {
+      mk_buf(runtime$series[[nm]] %||% rep(0, nrow(runtime$state_filtered)), lags[[nm]], tau)
+    })
+    names(out) <- names(lags)
+    return(out)
+  }
+
+  if (!identical(builder, "state_resid_y")) {
+    stop(".qdesn_init_decomp_input_buffers: unknown decomposition input builder.", call. = FALSE)
+  }
+
+  lag_cfg <- runtime$state_resid_y_lags %||% list(state = 0L, residual = 0L, y = 0L, xreg = 0L)
+  state_mat <- runtime$state_effective %||% runtime$state_filtered
+  xreg_mat <- runtime$input_xreg_matrix %||% NULL
+  list(
+    state = mk_mat(state_mat, lag_cfg$state %||% 0L, tau),
+    residual = mk_buf(runtime$series$residual %||% rep(0, nrow(state_mat)), lag_cfg$residual %||% 0L, tau),
+    y = mk_buf(runtime$y %||% rep(0, nrow(state_mat)), lag_cfg$y %||% 0L, tau),
+    xreg = mk_mat(xreg_mat, lag_cfg$xreg %||% 0L, tau)
+  )
+}
+
+#' @keywords internal
+.qdesn_decomp_input_vector <- function(buffers, runtime) {
+  builder <- as.character(runtime$input_builder %||% "component_lags")[1L]
+  if (identical(builder, "component_lags")) {
+    input_components <- runtime$input_components %||% names(buffers)
+    if (!length(input_components)) return(numeric(0))
+    return(unlist(lapply(input_components, function(nm) as.numeric(buffers[[nm]] %||% numeric(0))), use.names = FALSE))
+  }
+
+  if (!identical(builder, "state_resid_y")) {
+    stop(".qdesn_decomp_input_vector: unknown decomposition input builder.", call. = FALSE)
+  }
+
+  out <- numeric(0)
+  state_buf <- buffers$state %||% matrix(0, nrow = 0L, ncol = 0L)
+  if (is.matrix(state_buf) && nrow(state_buf) > 0L && ncol(state_buf) > 0L) {
+    out <- c(out, as.numeric(t(state_buf)))
+  }
+  if (length(buffers$residual %||% numeric(0))) {
+    out <- c(out, as.numeric(buffers$residual))
+  }
+  if (length(buffers$y %||% numeric(0))) {
+    out <- c(out, as.numeric(buffers$y))
+  }
+  xreg_buf <- buffers$xreg %||% matrix(0, nrow = 0L, ncol = 0L)
+  if (is.matrix(xreg_buf) && nrow(xreg_buf) > 0L && ncol(xreg_buf) > 0L) {
+    out <- c(out, as.numeric(t(xreg_buf)))
+  }
   out
 }
 
 #' @keywords internal
+.qdesn_get_input_values_at_t <- function(runtime,
+                                         t,
+                                         y_value = NULL,
+                                         residual_value = NULL,
+                                         state_value = NULL,
+                                         xreg_value = NULL) {
+  t <- as.integer(t)[1L]
+  builder <- as.character(runtime$input_builder %||% "component_lags")[1L]
+  if (identical(builder, "component_lags")) {
+    comp_names <- names(runtime$input_lags %||% list())
+    vals <- lapply(comp_names, function(nm) {
+      series_nm <- runtime$series[[nm]]
+      if (is.null(series_nm) || !is.finite(t) || t < 1L || t > length(series_nm)) return(0)
+      as.numeric(series_nm[t])
+    })
+    names(vals) <- comp_names
+    return(vals)
+  }
+
+  if (!identical(builder, "state_resid_y")) {
+    stop(".qdesn_get_input_values_at_t: unknown decomposition input builder.", call. = FALSE)
+  }
+
+  state_mat <- runtime$state_effective %||% runtime$state_filtered
+  n_state <- if (is.null(state_mat)) 0L else ncol(state_mat)
+  state_now <- if (!is.null(state_value)) {
+    as.numeric(state_value)
+  } else if (!is.null(state_mat) && is.finite(t) && t >= 1L && t <= nrow(state_mat)) {
+    as.numeric(state_mat[t, ])
+  } else {
+    rep(0, n_state)
+  }
+
+  resid_now <- if (!is.null(residual_value)) {
+    as.numeric(residual_value)[1L]
+  } else if (is.finite(t) && t >= 1L && t <= length(runtime$series$residual %||% numeric(0))) {
+    as.numeric(runtime$series$residual[t])
+  } else {
+    0
+  }
+
+  y_now <- if (!is.null(y_value)) {
+    as.numeric(y_value)[1L]
+  } else if (is.finite(t) && t >= 1L && t <= length(runtime$y %||% numeric(0))) {
+    as.numeric(runtime$y[t])
+  } else {
+    0
+  }
+
+  xmat <- runtime$input_xreg_matrix %||% NULL
+  p_x <- if (is.null(xmat)) 0L else ncol(xmat)
+  x_now <- if (!is.null(xreg_value)) {
+    as.numeric(xreg_value)
+  } else if (!is.null(xmat) && is.finite(t) && t >= 1L && t <= nrow(xmat)) {
+    as.numeric(xmat[t, ])
+  } else {
+    rep(0, p_x)
+  }
+
+  list(
+    state = state_now,
+    residual = resid_now,
+    y = y_now,
+    xreg = x_now
+  )
+}
+
+#' @keywords internal
+.qdesn_update_decomp_input_buffers <- function(buffers, value_now, runtime) {
+  builder <- as.character(runtime$input_builder %||% "component_lags")[1L]
+  if (identical(builder, "component_lags")) {
+    for (nm in names(buffers)) {
+      buf <- buffers[[nm]]
+      if (!length(buf)) next
+      v <- as.numeric(value_now[[nm]] %||% 0)[1L]
+      if (length(buf) == 1L) {
+        buffers[[nm]] <- v
+      } else {
+        buffers[[nm]] <- c(v, buf[seq_len(length(buf) - 1L)])
+      }
+    }
+    return(buffers)
+  }
+
+  if (!identical(builder, "state_resid_y")) {
+    stop(".qdesn_update_decomp_input_buffers: unknown decomposition input builder.", call. = FALSE)
+  }
+
+  push_vec <- function(buf, v) {
+    if (!length(buf)) return(buf)
+    vv <- as.numeric(v)[1L]
+    if (!is.finite(vv)) vv <- 0
+    if (length(buf) == 1L) return(vv)
+    c(vv, buf[seq_len(length(buf) - 1L)])
+  }
+  push_mat <- function(buf, row, label = "state") {
+    if (!is.matrix(buf) || nrow(buf) < 1L) return(buf)
+    p <- ncol(buf)
+    if (p < 1L) return(buf)
+    rr <- as.numeric(row)
+    if (!length(rr)) rr <- rep(0, p)
+    if (length(rr) != p) {
+      stop(sprintf(".qdesn_update_decomp_input_buffers: %s row length mismatch.", label), call. = FALSE)
+    }
+    rr[!is.finite(rr)] <- 0
+    row_mat <- matrix(rr, nrow = 1L)
+    if (nrow(buf) == 1L) return(row_mat)
+    rbind(row_mat, buf[seq_len(nrow(buf) - 1L), , drop = FALSE])
+  }
+
+  buffers$state <- push_mat(buffers$state %||% matrix(0, 0, 0), value_now$state %||% numeric(0), label = "state")
+  buffers$residual <- push_vec(buffers$residual %||% numeric(0), value_now$residual %||% 0)
+  buffers$y <- push_vec(buffers$y %||% numeric(0), value_now$y %||% 0)
+  buffers$xreg <- push_mat(buffers$xreg %||% matrix(0, 0, 0), value_now$xreg %||% numeric(0), label = "xreg")
+  buffers
+}
+
+#' @keywords internal
+.qdesn_init_component_lag_buffers <- function(runtime, tau) {
+  runtime_comp <- runtime
+  runtime_comp$input_builder <- "component_lags"
+  .qdesn_init_decomp_input_buffers(runtime_comp, tau = tau)
+}
+
+#' @keywords internal
 .qdesn_component_lag_vector <- function(buffers, input_components) {
-  if (!length(input_components)) return(numeric(0))
-  unlist(lapply(input_components, function(nm) as.numeric(buffers[[nm]] %||% numeric(0))), use.names = FALSE)
+  runtime_comp <- list(input_builder = "component_lags", input_components = input_components)
+  .qdesn_decomp_input_vector(buffers, runtime_comp)
 }
 
 #' @keywords internal
 .qdesn_update_component_lag_buffers <- function(buffers, value_now) {
-  for (nm in names(buffers)) {
-    buf <- buffers[[nm]]
-    if (!length(buf)) next
-    v <- as.numeric(value_now[[nm]] %||% 0)[1L]
-    if (length(buf) == 1L) {
-      buffers[[nm]] <- v
-    } else {
-      buffers[[nm]] <- c(v, buf[seq_len(length(buf) - 1L)])
-    }
-  }
-  buffers
+  runtime_comp <- list(input_builder = "component_lags")
+  .qdesn_update_decomp_input_buffers(buffers, value_now, runtime_comp)
 }
 
 #' @keywords internal
@@ -1336,9 +1666,39 @@ qdesn_ndlm_component_forecast <- function(
     component_names
   )
 
+  g_tmax <- dim(GG)[3]
+  state_path <- matrix(0, nrow = H, ncol = n_state)
+  state_iter <- as.numeric(state_now)
+  for (h in seq_len(H)) {
+    t_abs <- tau + h
+    g_idx <- min(max(1L, t_abs), g_tmax)
+    state_iter <- as.vector(GG[, , g_idx] %*% state_iter)
+    state_path[h, ] <- state_iter
+  }
+  storage.mode(state_path) <- "double"
+
+  xreg_path <- NULL
+  builder <- as.character(runtime$input_builder %||% "component_lags")[1L]
+  lag_cfg <- runtime$state_resid_y_lags %||% list(xreg = 0L)
+  if (identical(builder, "state_resid_y")) {
+    X <- runtime$input_xreg_matrix %||% NULL
+    if (!is.null(X) && is.matrix(X) && ncol(X) > 0L && as.integer(lag_cfg$xreg %||% 0L) > 0L) {
+      xreg_path <- matrix(0, nrow = H, ncol = ncol(X))
+      x_tmax <- nrow(X)
+      for (h in seq_len(H)) {
+        t_abs <- tau + h
+        x_idx <- min(max(1L, t_abs), x_tmax)
+        xreg_path[h, ] <- as.numeric(X[x_idx, ])
+      }
+      storage.mode(xreg_path) <- "double"
+    }
+  }
+
   out <- list(
     components = comps,
     structured = as.numeric(fc$structured),
+    state_path = state_path,
+    xreg_path = xreg_path,
     state_last = as.numeric(fc$state_last),
     backend = as.character(fc$backend %||% backend_use)[1L]
   )
