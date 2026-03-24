@@ -211,6 +211,32 @@ test_that("static MCMC supports VB warm start", {
   expect_true(is.finite(fit$accept.rate.keep))
 })
 
+test_that("static MCMC supports eta-space slice gamma kernel", {
+  set.seed(1041)
+  n <- 40
+  X <- cbind(1, seq(-1, 1, length.out = n))
+  y <- as.numeric(X %*% c(0.2, -0.1) + stats::rnorm(n, sd = 0.2))
+
+  fit <- exal_static_mcmc(
+    y = y, X = X, p0 = 0.5,
+    n.burn = 12, n.mcmc = 12, thin = 1,
+    mh.proposal = "slice_eta",
+    slice.width = 0.5,
+    slice.max.steps = 120,
+    verbose = FALSE
+  )
+
+  expect_identical(fit$mh.diagnostics$proposal, "slice_eta")
+  expect_identical(fit$mh.diagnostics$slice_space, "eta")
+  expect_true(isTRUE(fit$mh.diagnostics$kernel_exact))
+  expect_true(isTRUE(fit$mh.diagnostics$signoff_ready))
+  expect_true(is.na(fit$accept.rate))
+  expect_true(is.data.frame(fit$mh.diagnostics$trace))
+  expect_true(all(c("slice_evals", "s_mean", "s_sd") %in% names(fit$mh.diagnostics$trace)))
+  expect_true(all(is.finite(as.numeric(fit$samp.gamma))))
+  expect_true(all(is.finite(as.numeric(fit$samp.sigma))))
+})
+
 test_that("multichain diagnostics helper returns chain summaries", {
   set.seed(105)
   TT <- 16

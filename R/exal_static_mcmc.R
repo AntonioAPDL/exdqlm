@@ -64,20 +64,22 @@
 #'   \code{"laplace_rw"} initializes a random-walk MH scale from local curvature
 #'   and adapts it during burn-in. \code{"rw"} uses adaptive random-walk MH
 #'   without Laplace scaling. \code{"slice"} uses an exact bounded univariate
-#'   slice sampler directly on \code{gamma}. Only \code{"rw"},
-#'   \code{"laplace_rw"}, and \code{"slice"} are exact posterior kernels for
-#'   the \code{gamma} update; \code{"laplace_local"} is approximate and should
-#'   not be treated as signoff-ready.
+#'   slice sampler directly on \code{gamma}. \code{"slice_eta"} runs bounded
+#'   slice updates on the transformed eta scale and maps back to \code{gamma}.
+#'   Only \code{"rw"}, \code{"laplace_rw"}, \code{"slice"}, and
+#'   \code{"slice_eta"} are exact posterior kernels for the \code{gamma}
+#'   update; \code{"laplace_local"} is approximate and should not be treated as
+#'   signoff-ready.
 #' @param mh.adapt Logical; adapt the random-walk proposal scale during burn-in.
-#'   Ignored for \code{"laplace_local"} and \code{"slice"}.
+#'   Ignored for \code{"laplace_local"}, \code{"slice"}, and
+#'   \code{"slice_eta"}.
 #' @param mh.adapt.interval Integer adaptation window for RW-based kernels.
 #' @param mh.target.accept Numeric length-2 target acceptance band.
 #' @param mh.scale.bounds Numeric length-2 lower/upper bounds for RW proposal scale.
 #' @param mh.max_scale.step Numeric multiplicative adaptation cap in \code{(0,1)}.
 #' @param mh.min_burn_adapt Integer minimum burn-in before adaptation starts.
-#' @param slice.width Positive numeric width for the bounded slice sampler when
-#'   \code{mh.proposal = "slice"}. Default \code{0.1} for parity with
-#'   \code{bqrgal}.
+#' @param slice.width Positive numeric width for bounded slice updates when
+#'   \code{mh.proposal = "slice"} or \code{"slice_eta"}.
 #' @param slice.max.steps Positive integer or \code{Inf}; maximum stepping-out
 #'   expansions for the slice sampler.
 #' @param gamma.substeps Positive integer; number of consecutive gamma-kernel
@@ -159,7 +161,7 @@ exal_static_mcmc <- function(
   n.burn = 2000, n.mcmc = 1500, thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
-  mh.proposal = c("laplace_local", "laplace_rw", "rw", "slice"),
+  mh.proposal = c("laplace_local", "laplace_rw", "rw", "slice", "slice_eta"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.20, 0.45),
@@ -244,6 +246,7 @@ exal_static_mcmc <- function(
   if (!(is.infinite(slice.max.steps) || (is.finite(slice.max.steps) && slice.max.steps >= 1 && floor(slice.max.steps) == slice.max.steps))) {
     slice.max.steps <- Inf
   }
+  eta.slice.bounds <- c(-20, 20)
   gamma.substeps <- suppressWarnings(as.integer(gamma.substeps)[1])
   if (!is.finite(gamma.substeps) || gamma.substeps < 1L) gamma.substeps <- 1L
   p.global.eta.jump <- as.numeric(p.global.eta.jump)[1]
@@ -908,28 +911,58 @@ exal_static_mcmc <- function(
         }
         global_jump_accepts_iter <- global_jump_accepts_iter + as.integer(isTRUE(accepted))
         gamma <- g_from_eta(eta)
-      } else if (identical(mh.proposal, "slice")) {
+      } else if (mh.proposal %in% c("slice", "slice_eta")) {
         local_kernel_steps_iter <- local_kernel_steps_iter + 1L
-        current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
-        if (!is.finite(current_gamma_lp)) {
-          gamma <- min(max(gamma, L + 1e-8), U - 1e-8)
+        if (identical(mh.proposal, "slice_eta")) {
+          eta_lo <- eta.slice.bounds[1]
+          eta_hi <- eta.slice.bounds[2]
+          eta_w <- max(0.25, 4 * slice.width)
+          if (!is.finite(eta) || eta <= eta_lo || eta >= eta_hi) {
+            eta <- min(max(eta, eta_lo + 1e-8), eta_hi - 1e-8)
+          }
+          current_eta_lp <- logpost_eta(eta, xb, sigma, v, s)
+          if (!is.finite(current_eta_lp)) {
+            mode_out <- find_mode_eta(eta, xb, sigma, v, s)
+            eta <- min(max(mode_out$eta_hat, eta_lo + 1e-8), eta_hi - 1e-8)
+            current_eta_lp <- logpost_eta(eta, xb, sigma, v, s)
+          }
+          if (!is.finite(current_eta_lp)) {
+            eta <- 0
+          }
+          slice_out <- .exdqlm_uni_slice_bounded(
+            x0 = eta,
+            log_density = function(e) logpost_eta(e, xb, sigma, v, s),
+            w = eta_w,
+            m = slice.max.steps,
+            lower = eta_lo,
+            upper = eta_hi
+          )
+          eta <- as.numeric(slice_out$value)[1]
+          gamma <- g_from_eta(eta)
+          slice_evals <- as.integer(slice_out$evals)
+          proposal_sd_used <- eta_w
+        } else {
           current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+          if (!is.finite(current_gamma_lp)) {
+            gamma <- min(max(gamma, L + 1e-8), U - 1e-8)
+            current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+          }
+          if (!is.finite(current_gamma_lp)) {
+            gamma <- min(max(0, L + 1e-8), U - 1e-8)
+            current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+          }
+          slice_out <- .exdqlm_uni_slice_bounded(
+            x0 = gamma,
+            log_density = function(g) logpost_gamma(g, xb, sigma, v, s),
+            w = slice.width,
+            m = slice.max.steps,
+            lower = L + 1e-10,
+            upper = U - 1e-10
+          )
+          gamma <- as.numeric(slice_out$value)[1]
+          eta <- stats::qlogis((gamma - L) / (U - L))
+          slice_evals <- as.integer(slice_out$evals)
         }
-        if (!is.finite(current_gamma_lp)) {
-          gamma <- min(max(0, L + 1e-8), U - 1e-8)
-          current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
-        }
-        slice_out <- .exdqlm_uni_slice_bounded(
-          x0 = gamma,
-          log_density = function(g) logpost_gamma(g, xb, sigma, v, s),
-          w = slice.width,
-          m = slice.max.steps,
-          lower = L + 1e-10,
-          upper = U - 1e-10
-        )
-        gamma <- as.numeric(slice_out$value)[1]
-        eta <- stats::qlogis((gamma - L) / (U - L))
-        slice_evals <- as.integer(slice_out$evals)
       } else {
         local_kernel_steps_iter <- local_kernel_steps_iter + 1L
         mode_out <- find_mode_eta(eta, xb, sigma, v, s)
@@ -1012,7 +1045,7 @@ exal_static_mcmc <- function(
         mode_optim_convergence = mode_out$optim_convergence,
         mode_used_fallback = isTRUE(mode_out$used_fallback),
         proposal_sd = proposal_sd_used,
-        accepted = if ((mh.proposal %in% c("laplace_local", "slice")) && global_jump_attempts_iter == 0L) NA else isTRUE(accepted),
+        accepted = if ((mh.proposal %in% c("laplace_local", "slice", "slice_eta")) && global_jump_attempts_iter == 0L) NA else isTRUE(accepted),
         kernel = mh.proposal,
         gamma_substeps = as.integer(gamma.substeps),
         gamma_local_steps = as.integer(local_kernel_steps_iter),
@@ -1068,7 +1101,7 @@ exal_static_mcmc <- function(
     }
 
     if (verbose && (i %% progress_every == 0)) {
-      acc_msg <- if (mh.proposal %in% c("laplace_local", "slice")) {
+      acc_msg <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) {
         "NA"
       } else {
         format(round(n.accept / pmax(n.trial.burn + n.trial.keep, 1L), 4), nsmall = 4)
@@ -1094,7 +1127,7 @@ exal_static_mcmc <- function(
         sigma = sigma,
         gamma = gamma,
         kernel = mh.proposal,
-        accept = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+        accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
         gamma_substeps = as.integer(gamma.substeps),
         p_global_eta_jump = p.global.eta.jump,
         global_jump_attempts_iter = as.integer(global_jump_attempts_iter),
@@ -1120,7 +1153,7 @@ exal_static_mcmc <- function(
     sigma = sigma,
     gamma = gamma,
     kernel = mh.proposal,
-    accept = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+    accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
     gamma_substeps = as.integer(gamma.substeps),
     p_global_eta_jump = p.global.eta.jump,
     global_jump_attempts = as.integer(n.global.trial),
@@ -1128,9 +1161,9 @@ exal_static_mcmc <- function(
     runtime_sec = as.numeric(run.time$toc - run.time$tic)
   ))
 
-  accept_total <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
-  accept_burn <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
-  accept_keep <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+  accept_total <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+  accept_burn <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
+  accept_keep <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
   global_accept_total <- if (n.global.trial > 0L) n.global.accept / n.global.trial else NA_real_
   global_accept_burn <- if (n.global.trial.burn > 0L) n.global.accept.burn / n.global.trial.burn else NA_real_
   global_accept_keep <- if (n.global.trial.keep > 0L) n.global.accept.keep / n.global.trial.keep else NA_real_
@@ -1139,14 +1172,15 @@ exal_static_mcmc <- function(
   kernel_exact <- (n.approx_local_draw == 0L)
   mh_diag <- list(
     proposal = mh.proposal,
-    adapt = if (mh.proposal %in% c("laplace_local", "slice")) FALSE else mh.adapt,
-    adapt_interval = if (mh.proposal %in% c("laplace_local", "slice")) NA_integer_ else mh.adapt.interval,
-    target_accept = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.target.accept,
-    scale_bounds = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.scale.bounds,
-    scale_initial = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd_init,
-    scale_final = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd,
-    slice_width = if (identical(mh.proposal, "slice")) slice.width else NA_real_,
-    slice_max_steps = if (identical(mh.proposal, "slice")) slice.max.steps else NA_real_,
+    adapt = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) FALSE else mh.adapt,
+    adapt_interval = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_integer_ else mh.adapt.interval,
+    target_accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) c(NA_real_, NA_real_) else mh.target.accept,
+    scale_bounds = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) c(NA_real_, NA_real_) else mh.scale.bounds,
+    scale_initial = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else proposal_sd_init,
+    scale_final = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else proposal_sd,
+    slice_width = if (mh.proposal %in% c("slice", "slice_eta")) slice.width else NA_real_,
+    slice_max_steps = if (mh.proposal %in% c("slice", "slice_eta")) slice.max.steps else NA_real_,
+    slice_space = if (identical(mh.proposal, "slice")) "gamma" else if (identical(mh.proposal, "slice_eta")) "eta" else NA_character_,
     gamma_substeps = as.integer(gamma.substeps),
     global_eta_jump = list(
       enabled = p.global.eta.jump > 0,
