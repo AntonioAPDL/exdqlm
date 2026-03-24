@@ -32,6 +32,9 @@ exal_static_mcmc(
   mh.min_burn_adapt = 50L,
   slice.width = 0.1,
   slice.max.steps = Inf,
+  gamma.substeps = 1L,
+  p.global.eta.jump = 0,
+  global.eta.jump.scale = 1,
   trace.diagnostics = TRUE,
   trace.every = 1L,
   verbose = TRUE,
@@ -126,6 +129,16 @@ Ignored for \code{"laplace_local"} and \code{"slice"}.}
 \item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
 expansions for the slice sampler.}
 
+\item{gamma.substeps}{Positive integer; number of consecutive gamma-kernel
+refreshes per outer MCMC iteration. Default \code{1}.}
+
+\item{p.global.eta.jump}{Numeric in \code{[0,1]}; per-substep probability of
+proposing a global independence-MH move on eta (the logit transform of
+gamma) using a Laplace proposal with MH correction. Default \code{0}.}
+
+\item{global.eta.jump.scale}{Positive numeric scale multiplier applied to the
+Laplace proposal SD used in global eta jumps.}
+
 \item{trace.diagnostics}{Logical; if \code{TRUE}, retain per-iteration
 gamma/s diagnostics under \code{mh.diagnostics$trace}. Set \code{FALSE}
 for lighter-weight runs.}
@@ -163,8 +176,9 @@ metadata when \code{beta_prior = "rhs"}.
 \description{
 The function applies a Gibbs sampler for static Extended Asymmetric Laplace regression
 (exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
-update \eqn{\gamma} on the transformed logit scale using either the legacy
-Laplace-local draw or an adaptive random-walk MH kernel.
+update \eqn{\gamma} on the transformed logit scale using slice or MH kernels.
+Optional multi-refresh and global-jump controls are available to improve
+\eqn{\gamma}-mixing in hard cases.
 }
 \examples{
 \donttest{

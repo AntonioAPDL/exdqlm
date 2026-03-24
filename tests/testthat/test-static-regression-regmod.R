@@ -283,3 +283,36 @@ test_that("exal_static_mcmc runs on tiny deterministic input", {
   expect_true(all(is.finite(as.numeric(fit$samp.sigma))))
   expect_true(all(is.finite(as.numeric(fit$samp.gamma))))
 })
+
+test_that("exal_static_mcmc supports gamma substeps and global eta jump controls", {
+  set.seed(777)
+  n <- 10
+  X <- cbind(1, seq(-0.4, 0.4, length.out = n))
+  beta <- c(0.05, -0.2)
+  y <- as.numeric(X %*% beta + rnorm(n, sd = 0.1))
+
+  fit <- exal_static_mcmc(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    n.burn = 12,
+    n.mcmc = 20,
+    thin = 1,
+    mh.proposal = "slice",
+    gamma.substeps = 2,
+    p.global.eta.jump = 0.25,
+    global.eta.jump.scale = 1.0,
+    trace.every = 2,
+    verbose = FALSE
+  )
+
+  expect_true(all(is.finite(as.numeric(fit$samp.gamma))))
+  expect_equal(fit$mh.diagnostics$gamma_substeps, 2L)
+  expect_true(is.list(fit$mh.diagnostics$global_eta_jump))
+  expect_equal(fit$mh.diagnostics$global_eta_jump$p, 0.25)
+  expect_true(all(c(
+    "gamma_global_jump_attempts",
+    "gamma_global_jump_accepts",
+    "p_global_eta_jump"
+  ) %in% names(fit$mh.diagnostics$trace)))
+})
