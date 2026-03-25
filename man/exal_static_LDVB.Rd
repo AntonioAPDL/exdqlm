@@ -49,12 +49,17 @@ exal_static_LDVB(
 \code{update_every}, \code{update_every_warmup},
 \code{update_every_warmup_iters}, \code{force_tau_after_warmup},
 \code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
+\code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
+\code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
 \code{warn_on_collapse}, \code{var_floor}, \code{h_curv},
 \code{verbose}, \code{init_lambda}, \code{init_log_lambda},
 \code{init_tau}, \code{init_log_tau}, \code{init_c2},
 and \code{init_log_c2}. When \code{beta_prior = "rhs"},
 \code{b0} and \code{V0} are retained only for backward-compatible ridge
-behavior and are ignored for the shrunk coefficients.}
+behavior and are ignored for the shrunk coefficients. If both
+\code{init_log_tau} and \code{init_tau} are omitted (or \code{NULL}),
+the RHS global scale initializes at \code{tau = 1}
+(\code{init_log_tau = 0}) instead of \code{tau0}.}
 
 \item{a_sigma, b_sigma}{Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.}
@@ -117,7 +122,9 @@ and \code{warning} when triggered).
 (state/sigma/gamma/ELBO deltas, stopping reason, and
 Laplace-Delta block trace diagnostics, including replicated-\code{xi}
 controls, automatic stabilization / cycle-detection fields, and
-final local-mode quality checks).
+final local-mode quality checks). For RHS fits this also includes
+\code{diagnostics$rhs} with the resolved preflight configuration and
+collapse diagnostics.
 }
 }
 \description{

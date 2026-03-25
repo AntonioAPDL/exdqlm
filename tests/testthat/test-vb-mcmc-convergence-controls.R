@@ -209,6 +209,10 @@ test_that("static MCMC supports VB warm start", {
   expect_true(is.finite(fit$accept.rate))
   expect_true(is.finite(fit$accept.rate.burn))
   expect_true(is.finite(fit$accept.rate.keep))
+  expect_true(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
+  expect_identical(fit$mh.diagnostics$transformed_state, c("eta", "ell"))
+  expect_true(all(is.finite(diag(fit$mh.diagnostics$proposal_cov_final))))
+  expect_true(all(c("ell", "mode_ell", "mode_info_max") %in% names(fit$mh.diagnostics$trace)))
 })
 
 test_that("static MCMC supports eta-space slice gamma kernel", {
