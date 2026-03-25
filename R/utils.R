@@ -583,6 +583,54 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_chain_health_metrics <- function(x, n_keep = length(x)) {
+  z <- as.numeric(x)
+  z <- z[is.finite(z)]
+  n_keep <- suppressWarnings(as.numeric(n_keep)[1])
+  if (!is.finite(n_keep) || n_keep <= 0) n_keep <- length(z)
+
+  ess <- if (length(z) >= 10L) {
+    tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(z))), error = function(e) NA_real_)
+  } else {
+    NA_real_
+  }
+
+  acf1 <- if (length(z) >= 10L) {
+    ac <- tryCatch(stats::acf(z, lag.max = 1L, plot = FALSE)$acf, error = function(e) NULL)
+    if (is.null(ac) || length(ac) < 2L) NA_real_ else as.numeric(ac[2L])
+  } else {
+    NA_real_
+  }
+
+  geweke_absz <- if (length(z) >= 20L) {
+    gz <- tryCatch(coda::geweke.diag(coda::as.mcmc(z))$z, error = function(e) NA_real_)
+    as.numeric(abs(gz[1]))
+  } else {
+    NA_real_
+  }
+
+  half_drift <- if (length(z) >= 20L) {
+    i <- floor(length(z) / 2L)
+    s <- stats::sd(z)
+    if (!is.finite(s) || s <= 0 || i < 5L || (length(z) - i) < 5L) {
+      NA_real_
+    } else {
+      as.numeric(abs(mean(z[(i + 1L):length(z)]) - mean(z[seq_len(i)])) / s)
+    }
+  } else {
+    NA_real_
+  }
+
+  list(
+    n = as.integer(length(z)),
+    ess = ess,
+    ess_per1k = if (is.finite(ess) && is.finite(n_keep) && n_keep > 0) as.numeric(ess / n_keep * 1000) else NA_real_,
+    acf1 = acf1,
+    geweke_absz = geweke_absz,
+    half_drift = half_drift
+  )
+}
+
 # Reduced dynamic DQLM CAVI core (no gamma / no s_t block).
 .run_dynamic_dqlm_cavi <- function(
   y, p0, model, df, dim.df,

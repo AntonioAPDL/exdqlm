@@ -244,6 +244,18 @@ exal_static_mcmc <- function(
   if (!is.finite(mh_max_scale_step) || mh_max_scale_step <= 0 || mh_max_scale_step >= 1) {
     mh_max_scale_step <- 0.35
   }
+  mh_laplace_refresh_interval <- suppressWarnings(as.integer(getOption("exdqlm.static.mcmc.laplace_refresh_interval", mh.adapt.interval))[1])
+  if (!is.finite(mh_laplace_refresh_interval) || mh_laplace_refresh_interval < 5L) {
+    mh_laplace_refresh_interval <- mh.adapt.interval
+  }
+  mh_laplace_refresh_start <- suppressWarnings(as.integer(getOption("exdqlm.static.mcmc.laplace_refresh_start", mh.min_burn_adapt))[1])
+  if (!is.finite(mh_laplace_refresh_start) || mh_laplace_refresh_start < 1L) {
+    mh_laplace_refresh_start <- mh.min_burn_adapt
+  }
+  mh_laplace_refresh_weight <- as.numeric(getOption("exdqlm.static.mcmc.laplace_refresh_weight", 0.60))[1]
+  if (!is.finite(mh_laplace_refresh_weight) || mh_laplace_refresh_weight <= 0 || mh_laplace_refresh_weight > 1) {
+    mh_laplace_refresh_weight <- 0.60
+  }
   slice.width <- as.numeric(slice.width)[1]
   if (!is.finite(slice.width) || slice.width <= 0) slice.width <- 0.1
   slice.max.steps <- as.numeric(slice.max.steps)[1]
@@ -919,6 +931,8 @@ exal_static_mcmc <- function(
   n.trial.keep <- 0L
   window.accept <- 0L
   window.total <- 0L
+  laplace_refresh_attempts <- 0L
+  laplace_refresh_success <- 0L
   adapt.history <- data.frame(
     iter = integer(0),
     window_accept = numeric(0),
@@ -929,6 +943,7 @@ exal_static_mcmc <- function(
     cov12 = numeric(0),
     mode_info = numeric(0),
     mode_info_max = numeric(0),
+    laplace_refreshed = logical(0),
     stringsAsFactors = FALSE
   )
   trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
@@ -1182,6 +1197,19 @@ exal_static_mcmc <- function(
             i >= mh.min_burn_adapt && i < n.burn &&
             (i %% mh.adapt.interval == 0)
           ) {
+            laplace_refreshed <- FALSE
+            if (identical(mh.proposal, "laplace_rw") &&
+                i >= mh_laplace_refresh_start &&
+                (i %% mh_laplace_refresh_interval == 0)) {
+              laplace_refresh_attempts <- laplace_refresh_attempts + 1L
+              mode_refresh <- find_mode_eta_ell(c(eta, ell), xb, v, s)
+              cov_refresh <- prep_cov_2d(mode_refresh$cov, fallback_diag = c(1, 1))
+              if (all(is.finite(cov_refresh))) {
+                proposal_cov <- prep_cov_2d((1 - mh_laplace_refresh_weight) * proposal_cov + mh_laplace_refresh_weight * cov_refresh)
+                laplace_refresh_success <- laplace_refresh_success + 1L
+                laplace_refreshed <- TRUE
+              }
+            }
             acc_win <- window.accept / pmax(window.total, 1L)
             if (acc_win < mh.target.accept[1]) {
               proposal_scale <- proposal_scale * (1 - mh_max_scale_step)
@@ -1202,6 +1230,7 @@ exal_static_mcmc <- function(
                 cov12 = proposal_cov[1, 2],
                 mode_info = mode_out$info_min_eig,
                 mode_info_max = mode_out$info_max_eig,
+                laplace_refreshed = isTRUE(laplace_refreshed),
                 stringsAsFactors = FALSE
               )
             )
@@ -1378,6 +1407,8 @@ exal_static_mcmc <- function(
   global_accept_keep <- if (n.global.trial.keep > 0L) n.global.accept.keep / n.global.trial.keep else NA_real_
   ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
   ess_gamma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.gamma))), error = function(e) NA_real_)
+  chain_health_sigma <- .exdqlm_chain_health_metrics(save.sigma, n_keep = n.mcmc)
+  chain_health_gamma <- .exdqlm_chain_health_metrics(save.gamma, n_keep = n.mcmc)
   kernel_exact <- (n.approx_local_draw == 0L)
   mh_diag <- list(
     proposal = mh.proposal,
@@ -1402,6 +1433,14 @@ exal_static_mcmc <- function(
       attempts = list(total = as.integer(n.global.trial), burn = as.integer(n.global.trial.burn), keep = as.integer(n.global.trial.keep)),
       accepts = list(total = as.integer(n.global.accept), burn = as.integer(n.global.accept.burn), keep = as.integer(n.global.accept.keep)),
       accept = list(total = global_accept_total, burn = global_accept_burn, keep = global_accept_keep)
+    ),
+    laplace_refresh = list(
+      enabled = identical(mh.proposal, "laplace_rw"),
+      interval = if (identical(mh.proposal, "laplace_rw")) as.integer(mh_laplace_refresh_interval) else NA_integer_,
+      start = if (identical(mh.proposal, "laplace_rw")) as.integer(mh_laplace_refresh_start) else NA_integer_,
+      weight = if (identical(mh.proposal, "laplace_rw")) as.numeric(mh_laplace_refresh_weight) else NA_real_,
+      attempts = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_attempts) else NA_integer_,
+      success = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_success) else NA_integer_
     ),
     approx_local_draws = as.integer(n.approx_local_draw),
     kernel_exact = kernel_exact,
@@ -1464,6 +1503,10 @@ exal_static_mcmc <- function(
     diagnostics = list(
       mh = mh_diag,
       ess = list(sigma = ess_sigma, gamma = ess_gamma),
+      chain_health = list(
+        sigma = chain_health_sigma,
+        gamma = chain_health_gamma
+      ),
       acceptance = list(total = accept_total, burn = accept_burn, keep = accept_keep),
       rhat_ready = list(sigma = as.numeric(save.sigma), gamma = as.numeric(save.gamma)),
       rhs = if (identical(beta_prior_obj$type, "rhs")) {
