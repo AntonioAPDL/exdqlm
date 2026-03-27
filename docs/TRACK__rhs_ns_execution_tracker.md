@@ -341,6 +341,10 @@ Owner: Codex + user
   - `testthat::test_local(filter = "exal-(inference-config|mcmc)")`: PASS (146)
   - `testthat::test_local(filter = "online-vbld")`: PASS (86)
   - `testthat::test_local(filter = "qdesn-mcmc-validation")`: PASS (87)
+  - updated `test-exal-mcmc.R` to exercise `qdesn_fit(..., method=\"mcmc\")` with
+    `beta_prior_type = "rhs_ns"` and validated forecast-interface compatibility.
+  - `testthat::test_local(filter = "exal-mcmc")` re-run after qdesn rhs_ns test edit:
+    PASS (131)
   - `R CMD check --no-manual --as-cran .`: fails due pre-existing DESCRIPTION issue
     (`Author` field missing/empty), not due rhs_ns code path.
 - Stage-8 initial quick compare (small synthetic smoke benchmark):

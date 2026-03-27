@@ -808,12 +808,21 @@ test_that("Q-DESN MCMC path reuses the existing forecast interface", {
       n_mcmc = 30L,
       thin = 1L,
       verbose = FALSE,
-      init_from_vb = TRUE
+      init_from_vb = TRUE,
+      beta_prior_type = "rhs_ns",
+      beta_rhs = list(
+        tau0 = 0.35,
+        a_zeta = 2.5,
+        b_zeta = 1.5,
+        s2 = 0.8,
+        shrink_intercept = FALSE
+      )
     )
   )
 
   expect_s3_class(fit, "qdesn_fit")
   expect_true(inherits(fit$fit, "exal_mcmc"))
+  expect_identical(fit$fit$beta_prior$type, "rhs_ns")
   expect_equal(length(exdqlm::predict_mu.qdesn_fit(fit)), nrow(fit$X))
 
   pp <- exdqlm::posterior_predict.qdesn_fit(fit, nd = 12L)
