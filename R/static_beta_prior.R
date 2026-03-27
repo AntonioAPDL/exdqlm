@@ -2,22 +2,32 @@
   if (!is.null(x)) x else alt
 }
 
+.static_is_rhs_family <- function(beta_prior_type) {
+  tolower(as.character(beta_prior_type)[1]) %in% c("rhs", "rhs_ns")
+}
+
 .static_match_beta_prior <- function(beta_prior) {
   prior <- tolower(as.character(beta_prior)[1])
   if (!nzchar(prior)) prior <- "ridge"
   if (identical(prior, "gaussian")) prior <- "ridge"
-  match.arg(prior, c("ridge", "rhs"))
+  match.arg(prior, c("ridge", "rhs", "rhs_ns"))
 }
 
-.static_parse_beta_prior_controls <- function(beta_prior_controls = NULL) {
+.static_parse_beta_prior_controls <- function(beta_prior_controls = NULL, prior_type = c("rhs", "rhs_ns")) {
+  prior_type <- match.arg(prior_type)
+
+  default_n_inner <- if (identical(prior_type, "rhs_ns")) 2L else 1L
   ctrl <- list(
     tau0 = 1,
     nu = 4,
     s = NULL,
     s2 = 1,
+    a_zeta = if (identical(prior_type, "rhs_ns")) 2 else NULL,
+    b_zeta = if (identical(prior_type, "rhs_ns")) 1 else NULL,
+    zeta2_fixed = NULL,
     shrink_intercept = FALSE,
     intercept_prec = 1e-16,
-    n_inner = 1L,
+    n_inner = default_n_inner,
     freeze_tau_iters = 50L,
     freeze_tau_warmup_iters = NULL,
     update_every = 1L,
@@ -53,6 +63,9 @@
     ctrl <- utils::modifyList(ctrl, beta_prior_controls)
   }
 
+  input_names <- names(beta_prior_controls %||% list())
+  has_input <- function(nm) nm %in% input_names
+
   tau0 <- as.numeric(ctrl$tau0)[1]
   nu <- as.numeric(ctrl$nu)[1]
   if (!is.finite(tau0) || tau0 <= 0) stop("beta_prior_controls$tau0 must be > 0.")
@@ -87,6 +100,43 @@
     }
   }
 
+  if (identical(prior_type, "rhs_ns")) {
+    a_zeta <- as.numeric(ctrl$a_zeta)[1]
+    b_zeta <- as.numeric(ctrl$b_zeta)[1]
+    if ((has_input("a_zeta") || has_input("b_zeta")) && (!is.finite(a_zeta) || a_zeta <= 0 || !is.finite(b_zeta) || b_zeta <= 0)) {
+      stop("beta_prior_controls$a_zeta and beta_prior_controls$b_zeta must be finite and > 0 when provided.")
+    }
+
+    explicit_ab <- has_input("a_zeta") || has_input("b_zeta")
+    explicit_nu_s <- has_input("nu") || has_input("s") || has_input("s2")
+    if (explicit_ab && !explicit_nu_s) {
+      nu <- 2 * a_zeta
+      s2 <- b_zeta / a_zeta
+      s <- sqrt(s2)
+      s_source <- "rhs_ns_ab"
+    } else {
+      a_from_rhs <- nu / 2
+      b_from_rhs <- (nu * s2) / 2
+      if (explicit_ab) {
+        rel_a <- abs(a_zeta - a_from_rhs) / max(1, abs(a_zeta), abs(a_from_rhs))
+        rel_b <- abs(b_zeta - b_from_rhs) / max(1, abs(b_zeta), abs(b_from_rhs))
+        if (max(rel_a, rel_b) > 1e-8) {
+          warning(
+            "beta_prior_controls supplied both RHS and RHS_NS slab controls inconsistently; using nu/s/s2 and mapping to a_zeta/b_zeta.",
+            call. = FALSE
+          )
+        }
+      }
+      a_zeta <- a_from_rhs
+      b_zeta <- b_from_rhs
+    }
+    ctrl$a_zeta <- a_zeta
+    ctrl$b_zeta <- b_zeta
+  } else {
+    ctrl$a_zeta <- NULL
+    ctrl$b_zeta <- NULL
+  }
+
   parse_bounds <- function(x, default) {
     x <- as.numeric(.static_prior_or(x, default))
     if (length(x) != 2L || any(!is.finite(x)) || x[1] >= x[2]) default else x
@@ -97,6 +147,15 @@
   ctrl$s <- s
   ctrl$s2 <- s2
   ctrl$s_source <- s_source
+  zeta2_fixed <- .static_prior_or(ctrl$zeta2_fixed, ctrl$c2_fixed)
+  if (!is.null(zeta2_fixed)) {
+    zeta2_fixed <- as.numeric(zeta2_fixed)[1]
+    if (!is.finite(zeta2_fixed) || zeta2_fixed <= 0) {
+      stop("beta_prior_controls$zeta2_fixed must be finite and > 0 when provided.")
+    }
+  }
+  ctrl$zeta2_fixed <- zeta2_fixed
+  ctrl$prior_type <- prior_type
   ctrl$shrink_intercept <- isTRUE(ctrl$shrink_intercept)
   ctrl$intercept_prec <- as.numeric(ctrl$intercept_prec)[1]
   if (!is.finite(ctrl$intercept_prec) || ctrl$intercept_prec <= 0) ctrl$intercept_prec <- 1e-16
@@ -191,6 +250,9 @@
     init_c2 <- as.numeric(init_c2)[1]
     if (!is.finite(init_c2) || init_c2 <= 0) stop("beta_prior_controls$init_c2 must be finite and > 0 when provided.")
   }
+  if (!is.null(ctrl$zeta2_fixed)) {
+    init_c2 <- as.numeric(ctrl$zeta2_fixed)[1]
+  }
   ctrl$init_c2 <- init_c2
   ctrl$init_log_c2 <- if (!is.null(init_c2)) log(init_c2) else NULL
   ctrl$slice_width <- as.numeric(ctrl$slice_width)[1]
@@ -238,10 +300,14 @@
 
 .static_rhs_preflight_config <- function(ctrl) {
   cfg <- list(
+    prior_type = as.character(.static_prior_or(ctrl$prior_type, "rhs"))[1],
     tau0 = as.numeric(ctrl$tau0)[1],
     nu = as.numeric(ctrl$nu)[1],
     s = as.numeric(ctrl$s)[1],
     s2 = as.numeric(ctrl$s2)[1],
+    a_zeta = as.numeric(.static_prior_or(ctrl$a_zeta, NA_real_))[1],
+    b_zeta = as.numeric(.static_prior_or(ctrl$b_zeta, NA_real_))[1],
+    zeta2_fixed = as.numeric(.static_prior_or(ctrl$zeta2_fixed, NA_real_))[1],
     init_log_tau = as.numeric(ctrl$init_log_tau)[1],
     init_tau = as.numeric(ctrl$init_tau)[1],
     init_tau_source = as.character(.static_prior_or(ctrl$init_tau_source, "unknown"))[1],
@@ -680,6 +746,7 @@
   eta_lam <- as.numeric(state$eta_lambda_hat)
   eta_tau <- as.numeric(state$eta_tau_hat)
   eta_c2 <- as.numeric(state$eta_c_hat)
+  if (!is.null(ctrl$zeta2_fixed)) eta_c2 <- log(as.numeric(ctrl$zeta2_fixed)[1])
   active_idx <- .static_rhs_active_idx(p, ctrl$shrink_intercept)
   iter_now <- as.integer(.static_prior_or(state$iter, 0L)) + 1L
   sched <- .static_rhs_vb_schedule(state, ctrl, iter_now)
@@ -715,7 +782,7 @@
         tau_updated <- TRUE
       }
 
-      if (!isTRUE(update_tau_only)) {
+      if (!isTRUE(update_tau_only) && is.null(ctrl$zeta2_fixed)) {
         f_c2 <- function(ec) .static_rhs_obj_eta(eta_lam, eta_tau, ec, beta2, ctrl)
         eta_c2 <- .static_rhs_opt_1d_mode(
           f_c2,
@@ -735,7 +802,7 @@
 
   state$eta_lambda_hat <- eta_lam
   state$eta_tau_hat <- eta_tau
-  state$eta_c_hat <- eta_c2
+  state$eta_c_hat <- if (!is.null(ctrl$zeta2_fixed)) log(as.numeric(ctrl$zeta2_fixed)[1]) else eta_c2
   state$iter <- iter_now
   state$freeze_tau <- isTRUE(sched$tau_warmup)
   state$update_tau_only <- isTRUE(sched$update_tau_only)
@@ -789,6 +856,7 @@
   eta_lam <- log(pmax(state$lambda, 1e-16))
   eta_tau <- log(pmax(state$tau, 1e-16))
   eta_c2 <- log(pmax(state$c2, 1e-16))
+  if (!is.null(ctrl$zeta2_fixed)) eta_c2 <- log(as.numeric(ctrl$zeta2_fixed)[1])
 
   for (j in .static_rhs_active_idx(length(beta2), ctrl$shrink_intercept)) {
     log_density_j <- function(eta_j) {
@@ -815,22 +883,26 @@
     upper = ctrl$eta_bounds$tau[2]
   )$value
 
-  eta_c2 <- .exdqlm_uni_slice_bounded(
-    x0 = eta_c2,
-    log_density = function(ec) .static_rhs_logtarget_eta(eta_lam, eta_tau, ec, beta2, ctrl),
-    w = slice_width,
-    m = slice_max_steps,
-    lower = ctrl$eta_bounds$c2[1],
-    upper = ctrl$eta_bounds$c2[2]
-  )$value
+  if (is.null(ctrl$zeta2_fixed)) {
+    eta_c2 <- .exdqlm_uni_slice_bounded(
+      x0 = eta_c2,
+      log_density = function(ec) .static_rhs_logtarget_eta(eta_lam, eta_tau, ec, beta2, ctrl),
+      w = slice_width,
+      m = slice_max_steps,
+      lower = ctrl$eta_bounds$c2[1],
+      upper = ctrl$eta_bounds$c2[2]
+    )$value
+  } else {
+    eta_c2 <- log(as.numeric(ctrl$zeta2_fixed)[1])
+  }
 
   state$lambda <- .static_rhs_safe_exp(eta_lam)
   state$tau <- .static_rhs_safe_exp(eta_tau)
-  state$c2 <- .static_rhs_safe_exp(eta_c2)
+  state$c2 <- if (!is.null(ctrl$zeta2_fixed)) as.numeric(ctrl$zeta2_fixed)[1] else .static_rhs_safe_exp(eta_c2)
   state
 }
 
-.static_beta_prior_make <- function(beta_prior = c("ridge", "rhs"), p, b0, V0, beta_prior_controls = NULL,
+.static_beta_prior_make <- function(beta_prior = c("ridge", "rhs", "rhs_ns"), p, b0, V0, beta_prior_controls = NULL,
                                     warn_rhs_b0 = FALSE, warn_rhs_V0 = FALSE) {
   beta_prior <- .static_match_beta_prior(beta_prior)
   V0_inv <- tryCatch(solve(V0), error = function(e) solve(V0 + 1e-8 * diag(ncol(V0))))
@@ -855,13 +927,19 @@
     ))
   }
 
-  ctrl <- .static_parse_beta_prior_controls(beta_prior_controls)
+  ctrl <- .static_parse_beta_prior_controls(beta_prior_controls, prior_type = beta_prior)
   if (warn_rhs_b0 || warn_rhs_V0) {
-    warning("beta_prior = 'rhs' ignores b0/V0 for the shrunk coefficients; they are only retained for backward-compatible ridge behavior.", call. = FALSE)
+    warning(
+      sprintf(
+        "beta_prior = '%s' ignores b0/V0 for the shrunk coefficients; they are only retained for backward-compatible ridge behavior.",
+        beta_prior
+      ),
+      call. = FALSE
+    )
   }
 
   list(
-    type = "rhs",
+    type = beta_prior,
     controls = ctrl,
     init_vb = function() .static_rhs_init_vb_state(p, ctrl),
     init_mcmc = function() .static_rhs_init_mcmc_state(p, ctrl),
@@ -892,6 +970,7 @@
         tau = .static_rhs_safe_exp(state$eta_tau_hat),
         log_tau = as.numeric(state$eta_tau_hat)[1],
         c2 = .static_rhs_safe_exp(state$eta_c_hat),
+        zeta2 = .static_rhs_safe_exp(state$eta_c_hat),
         lambda = lam,
         lambda_mean = if (length(lam)) mean(lam) else NA_real_,
         lambda_min = if (length(lam)) min(lam) else NA_real_,
@@ -901,6 +980,9 @@
         nu = ctrl$nu,
         s = ctrl$s,
         s2 = ctrl$s2,
+        a_zeta = as.numeric(.static_prior_or(ctrl$a_zeta, NA_real_))[1],
+        b_zeta = as.numeric(.static_prior_or(ctrl$b_zeta, NA_real_))[1],
+        zeta2_fixed = as.numeric(.static_prior_or(ctrl$zeta2_fixed, NA_real_))[1],
         rhs_iter = as.integer(.static_prior_or(state$iter, NA_integer_)),
         rhs_tau_update_count = as.integer(.static_prior_or(state$tau_update_count, NA_integer_)),
         rhs_tau_warmup_last = isTRUE(.static_prior_or(state$last_schedule$tau_warmup, FALSE)),
@@ -937,6 +1019,7 @@
         tau = state$tau,
         log_tau = log(pmax(as.numeric(state$tau)[1], 1e-16)),
         c2 = state$c2,
+        zeta2 = state$c2,
         lambda = lam,
         lambda_mean = if (length(lam)) mean(lam) else NA_real_,
         lambda_min = if (length(lam)) min(lam) else NA_real_,
@@ -946,6 +1029,9 @@
         nu = ctrl$nu,
         s = ctrl$s,
         s2 = ctrl$s2,
+        a_zeta = as.numeric(.static_prior_or(ctrl$a_zeta, NA_real_))[1],
+        b_zeta = as.numeric(.static_prior_or(ctrl$b_zeta, NA_real_))[1],
+        zeta2_fixed = as.numeric(.static_prior_or(ctrl$zeta2_fixed, NA_real_))[1],
         collapse_flag = if (!is.null(collapse_diag$collapse_flag)) isTRUE(collapse_diag$collapse_flag) else NA,
         collapse_pattern = if (!is.null(collapse_diag$precision_beta_pattern)) isTRUE(collapse_diag$precision_beta_pattern) else NA,
         collapse_tau_near_zero = if (!is.null(collapse_diag$tau_near_zero)) isTRUE(collapse_diag$tau_near_zero) else NA,

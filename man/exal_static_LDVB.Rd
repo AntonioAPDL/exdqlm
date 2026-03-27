@@ -12,7 +12,7 @@ exal_static_LDVB(
   tol = 1e-04,
   b0 = NULL,
   V0 = NULL,
-  beta_prior = c("ridge", "rhs"),
+  beta_prior = c("ridge", "rhs", "rhs_ns"),
   beta_prior_controls = NULL,
   a_sigma = 1,
   b_sigma = 1,
@@ -38,23 +38,33 @@ exal_static_LDVB(
 
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.}
 
-\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default) or
-\code{"rhs"} for the regularized horseshoe.}
+\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default),
+\code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
+(Nishimura-Suchard style regularized horseshoe controls).}
 
 \item{beta_prior_controls}{Optional list of prior-specific controls. For
-\code{beta_prior = "rhs"}, supported keys follow the qdesn implementation:
+RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
+\code{"rhs_ns"}), supported keys follow the qdesn implementation:
 \code{tau0}, \code{nu}, \code{s} or \code{s2}, \code{shrink_intercept},
 \code{intercept_prec}, \code{n_inner}, \code{eta_bounds},
 \code{freeze_tau_iters}, \code{freeze_tau_warmup_iters},
 \code{update_every}, \code{update_every_warmup},
 \code{update_every_warmup_iters}, \code{force_tau_after_warmup},
 \code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
+\code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
+\code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
 \code{warn_on_collapse}, \code{var_floor}, \code{h_curv},
 \code{verbose}, \code{init_lambda}, \code{init_log_lambda},
 \code{init_tau}, \code{init_log_tau}, \code{init_c2},
-and \code{init_log_c2}. When \code{beta_prior = "rhs"},
+and \code{init_log_c2}. For \code{beta_prior = "rhs_ns"}, optional slab
+aliases \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also
+supported (mapped to \code{nu}/\code{s2} and \code{c2} controls).
+When \code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"},
 \code{b0} and \code{V0} are retained only for backward-compatible ridge
-behavior and are ignored for the shrunk coefficients.}
+behavior and are ignored for the shrunk coefficients. If both
+\code{init_log_tau} and \code{init_tau} are omitted (or \code{NULL}),
+the RHS global scale initializes at \code{tau = 1}
+(\code{init_log_tau = 0}) instead of \code{tau0}.}
 
 \item{a_sigma, b_sigma}{Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.}
@@ -117,7 +127,9 @@ and \code{warning} when triggered).
 (state/sigma/gamma/ELBO deltas, stopping reason, and
 Laplace-Delta block trace diagnostics, including replicated-\code{xi}
 controls, automatic stabilization / cycle-detection fields, and
-final local-mode quality checks).
+final local-mode quality checks). For RHS fits this also includes
+\code{diagnostics$rhs} with the resolved preflight configuration and
+collapse diagnostics.
 }
 }
 \description{
@@ -134,7 +146,7 @@ The \code{xi} expectations used in CAVI updates can be computed either from a
 deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
 Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
 optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
-stabilized qdesn readout implementation. When \code{beta_prior = "rhs"}, the
+stabilized qdesn readout implementation. For RHS-family priors, the
 prior block uses qdesn-style \code{tau} warmup/freeze scheduling to avoid the
 early-collapse regime where global shrinkage drives all slope coefficients
 toward zero before the likelihood-side variational factors stabilize.
@@ -155,6 +167,14 @@ fit_rhs <- exal_static_LDVB(
   max_iter = 80, tol = 5e-3, verbose = FALSE
 )
 fit_rhs$beta_prior$type
+
+fit_rhs_ns <- exal_static_LDVB(
+  y = y, X = X, p0 = 0.5,
+  beta_prior = "rhs_ns",
+  beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
+  max_iter = 80, tol = 5e-3, verbose = FALSE
+)
+fit_rhs_ns$beta_prior$type
 
 fit_al <- exal_static_LDVB(
   y = y, X = X, p0 = 0.5,

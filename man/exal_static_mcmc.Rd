@@ -10,7 +10,7 @@ exal_static_mcmc(
   p0,
   b0 = NULL,
   V0 = NULL,
-  beta_prior = c("ridge", "rhs"),
+  beta_prior = c("ridge", "rhs", "rhs_ns"),
   beta_prior_controls = NULL,
   a_sigma = 1,
   b_sigma = 1,
@@ -48,20 +48,31 @@ exal_static_mcmc(
 \item{b0, V0}{Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.}
 
-\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default) or
-\code{"rhs"} for the regularized horseshoe.}
+\item{beta_prior}{Coefficient prior type: \code{"ridge"} (default),
+\code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
+(Nishimura-Suchard style regularized horseshoe controls).}
 
 \item{beta_prior_controls}{Optional list of prior-specific controls. For
-\code{beta_prior = "rhs"}, supported keys follow the qdesn-style static
-interface: \code{tau0}, \code{nu}, \code{s} or \code{s2},
+RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
+\code{"rhs_ns"}), supported keys follow the qdesn-style static interface:
+\code{tau0}, \code{nu}, \code{s} or \code{s2},
 \code{shrink_intercept}, \code{intercept_prec}, \code{n_inner},
 \code{eta_bounds}, \code{var_floor}, \code{h_curv}, \code{verbose},
 \code{init_lambda}, \code{init_log_lambda}, \code{init_tau},
 \code{init_log_tau}, \code{init_c2}, \code{init_log_c2},
-\code{slice_width}, and \code{slice_max_steps}. When
-\code{beta_prior = "rhs"}, \code{b0} and \code{V0} are ignored for the
+\code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
+\code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
+\code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
+\code{slice_width}, and \code{slice_max_steps}. For
+\code{beta_prior = "rhs_ns"}, optional slab aliases
+\code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported
+(mapped to \code{nu}/\code{s2} and \code{c2} controls). When
+\code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"}, \code{b0} and \code{V0}
+are ignored for the
 shrunk coefficients and retained only for backward-compatible ridge
-behavior.}
+behavior. If both \code{init_log_tau} and \code{init_tau} are omitted
+(or \code{NULL}), the RHS global scale initializes at \code{tau = 1}
+(\code{init_log_tau = 0}) instead of \code{tau0}.}
 
 \item{a_sigma, b_sigma}{Hyperparameters for an inverse-gamma prior on
 \code{sigma}, with density proportional to
@@ -76,7 +87,7 @@ admissible support.}
 
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
-for \code{beta_prior = "rhs"} optionally \code{lambda}, \code{tau}, and
+for RHS-family priors optionally \code{lambda}, \code{tau}, and
 \code{c2}. Missing pieces are filled sensibly.}
 
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
@@ -150,13 +161,14 @@ A object of class "\code{exal_mcmc}" containing:
 \item \code{samp.v} - latent \code{v} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 \item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
-draws when \code{beta_prior = "rhs"}; otherwise \code{NULL}.
+draws when an RHS-family prior is used; otherwise \code{NULL}.
 \item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
 of the shrinkage block.
 \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 including whether the saved kernel is exact/signoff-ready.
 \item \code{rhs.diagnostics} - RHS latent summaries and optional trace
-metadata when \code{beta_prior = "rhs"}.
+metadata when an RHS-family prior is used, including the resolved
+preflight configuration used at fit start.
 \item \code{last} - last state of the chain (useful for restarts).
 }
 }
@@ -185,6 +197,14 @@ fit_rhs <- exal_static_mcmc(
   n.burn = 120, n.mcmc = 120, thin = 1, mh.proposal = "slice", verbose = FALSE
 )
 fit_rhs$beta_prior$type
+
+fit_rhs_ns <- exal_static_mcmc(
+  y, X, p0 = 0.5,
+  beta_prior = "rhs_ns",
+  beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
+  n.burn = 80, n.mcmc = 80, thin = 1, mh.proposal = "slice", verbose = FALSE
+)
+fit_rhs_ns$beta_prior$type
 
 fit_al <- exal_static_mcmc(
   y, X, p0 = 0.5,

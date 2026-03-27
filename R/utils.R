@@ -1158,7 +1158,7 @@ check_ts = function(dat){
       type = beta_prior_obj$type,
       controls = beta_prior_obj$controls,
       summary = beta_prior_obj$summary_vb(beta_state),
-      state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+      state = if (.static_is_rhs_family(beta_prior_obj$type)) beta_state else NULL
     ),
     misc = list(
       p0 = p0,
@@ -1191,7 +1191,7 @@ check_ts = function(dat){
       )
     )
   )
-  if (identical(beta_prior_obj$type, "rhs")) {
+  if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
   ret
