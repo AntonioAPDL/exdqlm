@@ -68,15 +68,49 @@
     ),
     rhs = list(
       freeze_tau_burnin_iters = 0L,
-      freeze_tau_only_during_burn = TRUE
+      freeze_tau_only_during_burn = TRUE,
+      width_adapt = list(
+        enabled = FALSE,
+        warmup_iters = 0L,
+        only_during_burn = TRUE,
+        target_score_low = -1.5,
+        target_score_high = 1.5,
+        step_size = 0.05,
+        width_min = 0.02,
+        width_max = 2.5
+      )
     ),
     slice = list(
       width_gamma = 1.0,
       width_rhs_lambda = 1.0,
       width_rhs_tau = 1.0,
       width_rhs_c2 = 1.0,
+      width_rhs_tau_c2_block = 1.0,
+      width_rhs_tau_c2_transformed_z1 = 1.0,
+      width_rhs_tau_c2_transformed_z2 = 1.0,
+      rhs_global_block_update = "coordinate",
+      rhs_transformed_block_passes = 1L,
+      core_extra_passes = 0L,
       max_steps_out = 100L,
       max_shrink = 1000L
+    ),
+    multi_start = list(
+      enabled = FALSE,
+      n_starts = 4L,
+      pilot_n_burn = 120L,
+      pilot_n_mcmc = 160L,
+      pilot_seed = NULL,
+      perturb_sd_log_tau = 0.35,
+      perturb_sd_log_c2 = 0.35,
+      perturb_sd_log_lambda = 0.20,
+      perturb_sd_beta = 0.05,
+      diagnostics = list(
+        ess_min = 20,
+        geweke_max = 3.0,
+        half_drift_max = 0.5,
+        collapse_tau_floor = 1e-7,
+        collapse_beta_norm_floor = 1e-4
+      )
     )
   )
 }
@@ -411,6 +445,9 @@
   }
   if (!is.null(mcmc_cfg$transform) && is.list(mcmc_cfg$transform)) {
     control$transforms <- modifyList(control$transforms %||% list(), mcmc_cfg$transform)
+  }
+  if (!is.null(mcmc_cfg$multi_start) && is.list(mcmc_cfg$multi_start)) {
+    control$multi_start <- modifyList(control$multi_start %||% list(), mcmc_cfg$multi_start)
   }
 
   init_cfg <- .exal_list_or_empty(mcmc_cfg$init)

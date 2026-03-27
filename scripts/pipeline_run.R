@@ -88,7 +88,17 @@ deep_merge <- function(a,b){
   if (is.null(b)) return(a)
   if (is.null(a)) return(b)
   if (is.list(a) && is.list(b)) {
-    keys <- unique(c(names(a), names(b)))
+    na <- names(a)
+    nb <- names(b)
+    has_names_a <- !is.null(na) && any(nzchar(na))
+    has_names_b <- !is.null(nb) && any(nzchar(nb))
+
+    # Unnamed lists behave like vectors in YAML parsing; replacing is safer
+    # than recursive merge-by-name (which can silently drop entries).
+    if (!has_names_a && !has_names_b) return(b)
+    if (xor(has_names_a, has_names_b)) return(b)
+
+    keys <- unique(c(na, nb))
     out  <- lapply(keys, function(k) deep_merge(a[[k]], b[[k]]))
     names(out) <- keys
     out

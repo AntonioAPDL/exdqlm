@@ -701,6 +701,7 @@ shared_fit <- timed("shared_reservoir_roll (one pass over y_full)",
 )
 
 decomposition_runtime_summary <- NULL
+decomp_fit_plot_df <- NULL
 if (identical(readout_input_mode_effective, "dlm_decomp_lags")) {
   decomp_state <- shared_fit$states$decomposition %||% NULL
   if (!is.null(decomp_state)) {
@@ -727,6 +728,21 @@ if (identical(readout_input_mode_effective, "dlm_decomp_lags")) {
       )
     } else {
       log_msg("Decomposition seasonal harmonics unavailable (source=%s).", harmonics_src)
+    }
+
+    structured_fit <- as.numeric((decomp_state$series %||% list())$structured %||% numeric(0))
+    if (length(structured_fit) == length(y_full) && all(is.finite(structured_fit))) {
+      decomp_fit_plot_df <- tibble::tibble(
+        t = as.numeric(idx_use),
+        y_obs = as.numeric(bt_y(as.numeric(y_full))),
+        y_dlm = as.numeric(bt_y(structured_fit))
+      )
+    } else {
+      log_msg(
+        "Decomposition structured-fit plot skipped: length/finite mismatch (len=%d, expected=%d).",
+        length(structured_fit),
+        length(y_full)
+      )
     }
   }
 }
@@ -2510,6 +2526,79 @@ if (isTRUE(do_plots)) {
   }
 }
 
+# --- DLM structured fit diagnostics (full + last-window) --------------------
+plot_dlm_structured_fit <- function(df_fit, title, window = NULL) {
+  if (is.null(df_fit) || !nrow(df_fit)) return(NULL)
+  df_plot <- df_fit
+  win_txt <- "full"
+  if (!is.null(window) && is.finite(window) && window >= 1L) {
+    window <- min(as.integer(window), nrow(df_fit))
+    df_plot <- utils::tail(df_fit, window)
+    win_txt <- sprintf("last %d", window)
+  }
+  rmse <- sqrt(mean((df_plot$y_obs - df_plot$y_dlm)^2, na.rm = TRUE))
+  mae <- mean(abs(df_plot$y_obs - df_plot$y_dlm), na.rm = TRUE)
+  ggplot2::ggplot(df_plot, ggplot2::aes(x = t)) +
+    theme_exdqlm() +
+    ggplot2::geom_line(ggplot2::aes(y = y_obs, color = "Observed"), linewidth = 0.45, alpha = 0.8) +
+    ggplot2::geom_line(ggplot2::aes(y = y_dlm, color = "DLM structured mean"), linewidth = 0.55, alpha = 0.9) +
+    ggplot2::scale_color_manual(values = c(
+      "Observed" = "#111827",
+      "DLM structured mean" = "#c2410c"
+    )) +
+    ggplot2::labs(
+      title = title,
+      subtitle = sprintf("%s window | RMSE=%.4f | MAE=%.4f", win_txt, rmse, mae),
+      x = "time index",
+      y = "value",
+      color = NULL
+    )
+}
+
+if (isTRUE(do_plots) &&
+    identical(readout_input_mode_effective, "dlm_decomp_lags") &&
+    !is.null(decomp_fit_plot_df) &&
+    nrow(decomp_fit_plot_df) > 0L) {
+  timed("plot+save dlm_structured_fit_full", {
+    g_dlm_full <- plot_dlm_structured_fit(
+      df_fit = decomp_fit_plot_df,
+      title = "DLM structured fitted mean vs observed (all data)"
+    )
+    if (!is.null(g_dlm_full)) {
+      print(g_dlm_full)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(
+          file.path(FIGS, "dlm_structured_fit_full.png"),
+          g_dlm_full,
+          width = 9,
+          height = 4.8,
+          dpi = 150
+        )
+      }
+    }
+  })
+
+  timed("plot+save dlm_structured_fit_last", {
+    g_dlm_last <- plot_dlm_structured_fit(
+      df_fit = decomp_fit_plot_df,
+      title = "DLM structured fitted mean vs observed (recent window)",
+      window = train_last_window
+    )
+    if (!is.null(g_dlm_last)) {
+      print(g_dlm_last)
+      if (isTRUE(save_outputs)) {
+        ggplot2::ggsave(
+          file.path(FIGS, "dlm_structured_fit_last.png"),
+          g_dlm_last,
+          width = 9,
+          height = 4.8,
+          dpi = 150
+        )
+      }
+    }
+  })
+}
+
 # --- Posterior parameter plots (γ, σ, β) ------------------------------------
 if (isTRUE(do_plots)) {
   for (k in seq_along(p_vec)) {
@@ -3971,12 +4060,154 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   if (is.na(init_log_tau) && !is.null(vb_prior_beta_rhs$init_tau)) {
     init_log_tau <- log(as.numeric(vb_prior_beta_rhs$init_tau)[1])
   }
+  if (!is.finite(init_log_tau)) init_log_tau <- 0.0
+  post_sd <- readout_scale_diag$post$sd_stats %||% c(min = NA_real_, median = NA_real_, max = NA_real_)
+
+  tail_finite <- function(x) {
+    x <- as.numeric(x %||% numeric(0))
+    idx <- which(is.finite(x))
+    if (!length(idx)) return(NA_real_)
+    x[idx[length(idx)]]
+  }
 
   rows <- lapply(seq_along(p_vec), function(i) {
     fit <- fits_fc[[i]]$fit_train$fit %||% NULL
     if (is.null(fit) || is.null(fit$misc)) return(NULL)
     tr <- fit$misc$rhs_trace %||% NULL
-    if (is.null(tr) || !nrow(tr)) return(NULL)
+    if (is.null(tr) || !nrow(tr)) {
+      rhs_tau_trace <- as.numeric(fit$misc$rhs_tau_trace %||% numeric(0))
+      has_mcmc_rhs_diag <- any(is.finite(rhs_tau_trace))
+      if (isTRUE(has_mcmc_rhs_diag)) {
+        beta_prior_hypers <- fit$beta_prior$hypers %||% list()
+        beta_vec <- as.numeric(fit$summary$beta_mean %||% fit$last$beta %||% numeric(0))
+        if (!length(beta_vec) && !is.null(fit$samp.beta)) {
+          beta_mat <- suppressWarnings(as.matrix(fit$samp.beta))
+          if (is.matrix(beta_mat) && ncol(beta_mat)) beta_vec <- colMeans(beta_mat)
+        }
+        beta_l2_last <- if (length(beta_vec)) sqrt(sum(beta_vec * beta_vec, na.rm = TRUE)) else NA_real_
+        beta_small_frac_1e4 <- if (length(beta_vec)) mean(abs(beta_vec) < 1e-4, na.rm = TRUE) else NA_real_
+
+        beta_prec_last <- as.numeric(fit$misc$beta_prec_last %||% fit$last$beta_prec_diag %||% numeric(0))
+        beta_prec_last <- beta_prec_last[is.finite(beta_prec_last) & beta_prec_last > 0]
+        E_invV_med_last <- if (length(beta_prec_last)) stats::median(beta_prec_last) else NA_real_
+
+        tau_last <- tail_finite(rhs_tau_trace)
+        log_tau_last <- if (is.finite(tau_last) && tau_last > 0) log(tau_last) else NA_real_
+        near_bound_flag <- isTRUE(is.finite(log_tau_last) && abs(log_tau_last - eta_tau_lo) < 1e-3)
+
+        collapse_flag_bound <- isTRUE(near_bound_flag) &&
+          isTRUE(is.finite(E_invV_med_last) && E_invV_med_last > 1e8) &&
+          isTRUE(is.finite(beta_l2_last) && beta_l2_last < 1e-3)
+        collapse_flag_shrink <- isTRUE(is.finite(E_invV_med_last) && E_invV_med_last > 1e6) &&
+          isTRUE(is.finite(beta_l2_last) && beta_l2_last < 1e-2) &&
+          isTRUE(is.finite(beta_small_frac_1e4) && beta_small_frac_1e4 > 0.95)
+        collapse_flag <- isTRUE(collapse_flag_bound) || isTRUE(collapse_flag_shrink)
+
+        unhealthy_reason <- if (isTRUE(collapse_flag_shrink)) {
+          "rhs_shrinkage_collapse"
+        } else if (isTRUE(collapse_flag_bound)) {
+          "rhs_tau_lower_bound_collapse"
+        } else {
+          ""
+        }
+        root_cause_context <- sprintf(
+          "source=mcmc_rhs_trace; tau=%.6g; E_invV_med=%.6g; beta_l2=%.6g; beta_small_frac_1e4=%.6g; near_bound=%s; collapse_bound=%s; collapse_shrink=%s",
+          as.numeric(tau_last),
+          as.numeric(E_invV_med_last),
+          as.numeric(beta_l2_last),
+          as.numeric(beta_small_frac_1e4),
+          if (isTRUE(near_bound_flag)) "TRUE" else "FALSE",
+          if (isTRUE(collapse_flag_bound)) "TRUE" else "FALSE",
+          if (isTRUE(collapse_flag_shrink)) "TRUE" else "FALSE"
+        )
+
+        s_used <- as.numeric(beta_prior_hypers$s %||% sqrt(as.numeric(beta_prior_hypers$s2 %||% vb_prior_beta_rhs$s2 %||% NA_real_)))
+        s2_used <- as.numeric(beta_prior_hypers$s2 %||% if (is.finite(s_used)) s_used^2 else vb_prior_beta_rhs$s2 %||% NA_real_)
+
+        return(data.frame(
+          run_id = run_id,
+          git_sha = git_sha,
+          spec_name = spec_name,
+          quantile_p = p_vec[i],
+          seed = seed_str,
+          tau0 = as.numeric(beta_prior_hypers$tau0 %||% vb_prior_beta_rhs$tau0 %||% NA_real_),
+          nu = as.numeric(beta_prior_hypers$nu %||% vb_prior_beta_rhs$nu %||% NA_real_),
+          s_used = s_used,
+          s2_used = s2_used,
+          init_log_tau = as.numeric(init_log_tau),
+          eta_tau_lower_bound = eta_tau_lo,
+          eta_tau_upper_bound = eta_tau_hi,
+          rhs_trace_available = TRUE,
+          shrink_intercept = as.logical(fit$beta_prior$state$shrink_intercept %||% beta_prior_hypers$shrink_intercept %||% NA),
+          tau_last = as.numeric(tau_last),
+          log_tau_last = as.numeric(log_tau_last),
+          near_bound_flag = near_bound_flag,
+          E_invV_med_last = as.numeric(E_invV_med_last),
+          beta_l2_last = as.numeric(beta_l2_last),
+          beta_small_frac_1e4_last = as.numeric(beta_small_frac_1e4),
+          R_over_D_last = NA_real_,
+          min_R_over_D = NA_real_,
+          iter_first_R_over_D_lt_0_5 = NA_integer_,
+          iter_first_R_over_D_lt_0_2 = NA_integer_,
+          iter_first_R_over_D_lt_0_1 = NA_integer_,
+          collapse_flag = collapse_flag,
+          collapse_flag_bound = isTRUE(collapse_flag_bound),
+          collapse_flag_shrink = isTRUE(collapse_flag_shrink),
+          unhealthy_flag = collapse_flag,
+          unhealthy_reason = unhealthy_reason,
+          root_cause_context = root_cause_context,
+          final_ELBO = NA_real_,
+          best_ELBO = NA_real_,
+          delta_ELBO_last10 = NA_real_,
+          scaled_X_flag = as.logical(readout_scale),
+          post_scale_sd_min = as.numeric(post_sd["min"]),
+          post_scale_sd_med = as.numeric(post_sd["median"]),
+          post_scale_sd_max = as.numeric(post_sd["max"]),
+          stringsAsFactors = FALSE
+        ))
+      }
+      return(data.frame(
+        run_id = run_id,
+        git_sha = git_sha,
+        spec_name = spec_name,
+        quantile_p = p_vec[i],
+        seed = seed_str,
+        tau0 = as.numeric(vb_prior_beta_rhs$tau0 %||% NA_real_),
+        nu = as.numeric(vb_prior_beta_rhs$nu %||% NA_real_),
+        s_used = as.numeric(vb_prior_beta_rhs$s %||% sqrt(as.numeric(vb_prior_beta_rhs$s2 %||% NA_real_))),
+        s2_used = as.numeric(vb_prior_beta_rhs$s2 %||% NA_real_),
+        init_log_tau = as.numeric(init_log_tau),
+        eta_tau_lower_bound = eta_tau_lo,
+        eta_tau_upper_bound = eta_tau_hi,
+        rhs_trace_available = FALSE,
+        shrink_intercept = as.logical(fit$beta_prior$state$shrink_intercept %||% NA),
+        tau_last = NA_real_,
+        log_tau_last = NA_real_,
+        near_bound_flag = NA,
+        E_invV_med_last = NA_real_,
+        beta_l2_last = NA_real_,
+        beta_small_frac_1e4_last = NA_real_,
+        R_over_D_last = NA_real_,
+        min_R_over_D = NA_real_,
+        iter_first_R_over_D_lt_0_5 = NA_integer_,
+        iter_first_R_over_D_lt_0_2 = NA_integer_,
+        iter_first_R_over_D_lt_0_1 = NA_integer_,
+        collapse_flag = NA,
+        collapse_flag_bound = NA,
+        collapse_flag_shrink = NA,
+        unhealthy_flag = TRUE,
+        unhealthy_reason = "rhs_trace_unavailable",
+        root_cause_context = "rhs_trace_missing_or_mcmc_diag_unavailable",
+        final_ELBO = NA_real_,
+        best_ELBO = NA_real_,
+        delta_ELBO_last10 = NA_real_,
+        scaled_X_flag = as.logical(readout_scale),
+        post_scale_sd_min = as.numeric(post_sd["min"]),
+        post_scale_sd_med = as.numeric(post_sd["median"]),
+        post_scale_sd_max = as.numeric(post_sd["max"]),
+        stringsAsFactors = FALSE
+      ))
+    }
     last <- tr[nrow(tr), , drop = FALSE]
 
     R_over_D <- tr$R_over_D
@@ -3995,11 +4226,37 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
     }
 
     near_bound_flag <- isTRUE(abs(as.numeric(last$log_tau) - eta_tau_lo) < 1e-3)
-    collapse_flag <- isTRUE(near_bound_flag) &&
-      isTRUE(as.numeric(last$E_invV_med) > 1e12) &&
-      isTRUE(as.numeric(last$beta_l2) < 1e-6)
-
-    post_sd <- readout_scale_diag$post$sd_stats %||% c(min = NA_real_, median = NA_real_, max = NA_real_)
+    d_rhs_last <- as.numeric(last$D_rhs %||% NA_real_)
+    n_small_1e4 <- as.numeric(last[["n_beta_abs_lt_1e-04"]] %||% NA_real_)
+    beta_small_frac_1e4 <- if (is.finite(d_rhs_last) && d_rhs_last > 0 && is.finite(n_small_1e4)) {
+      n_small_1e4 / d_rhs_last
+    } else {
+      NA_real_
+    }
+    collapse_flag_bound <- isTRUE(near_bound_flag) &&
+      isTRUE(as.numeric(last$E_invV_med) > 1e8) &&
+      isTRUE(as.numeric(last$beta_l2) < 1e-3)
+    collapse_flag_shrink <- isTRUE(as.numeric(last$E_invV_med) > 1e6) &&
+      isTRUE(as.numeric(last$beta_l2) < 1e-2) &&
+      isTRUE(is.finite(beta_small_frac_1e4) && beta_small_frac_1e4 > 0.95)
+    collapse_flag <- isTRUE(collapse_flag_bound) || isTRUE(collapse_flag_shrink)
+    unhealthy_reason <- if (isTRUE(collapse_flag_shrink)) {
+      "rhs_shrinkage_collapse"
+    } else if (isTRUE(collapse_flag_bound)) {
+      "rhs_tau_lower_bound_collapse"
+    } else {
+      ""
+    }
+    root_cause_context <- sprintf(
+      "source=vb_rhs_trace; tau=%.6g; E_invV_med=%.6g; beta_l2=%.6g; beta_small_frac_1e4=%.6g; near_bound=%s; collapse_bound=%s; collapse_shrink=%s",
+      as.numeric(last$tau),
+      as.numeric(last$E_invV_med),
+      as.numeric(last$beta_l2),
+      as.numeric(beta_small_frac_1e4),
+      if (isTRUE(near_bound_flag)) "TRUE" else "FALSE",
+      if (isTRUE(collapse_flag_bound)) "TRUE" else "FALSE",
+      if (isTRUE(collapse_flag_shrink)) "TRUE" else "FALSE"
+    )
 
     data.frame(
       run_id = run_id,
@@ -4014,18 +4271,25 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
       init_log_tau = as.numeric(init_log_tau),
       eta_tau_lower_bound = eta_tau_lo,
       eta_tau_upper_bound = eta_tau_hi,
+      rhs_trace_available = TRUE,
       shrink_intercept = as.logical(fit$beta_prior$state$shrink_intercept %||% NA),
       tau_last = as.numeric(last$tau),
       log_tau_last = as.numeric(last$log_tau),
       near_bound_flag = near_bound_flag,
       E_invV_med_last = as.numeric(last$E_invV_med),
       beta_l2_last = as.numeric(last$beta_l2),
+      beta_small_frac_1e4_last = as.numeric(beta_small_frac_1e4),
       R_over_D_last = as.numeric(last$R_over_D),
       min_R_over_D = min_R_over_D,
       iter_first_R_over_D_lt_0_5 = first_lt(0.5),
       iter_first_R_over_D_lt_0_2 = first_lt(0.2),
       iter_first_R_over_D_lt_0_1 = first_lt(0.1),
       collapse_flag = collapse_flag,
+      collapse_flag_bound = isTRUE(collapse_flag_bound),
+      collapse_flag_shrink = isTRUE(collapse_flag_shrink),
+      unhealthy_flag = collapse_flag,
+      unhealthy_reason = unhealthy_reason,
+      root_cause_context = root_cause_context,
       final_ELBO = as.numeric(final_elbo),
       best_ELBO = as.numeric(best_elbo),
       delta_ELBO_last10 = as.numeric(delta_last10),
@@ -4043,7 +4307,7 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   utils::write.csv(summary_df, file.path(models_dir, "rhs_run_summary.csv"), row.names = FALSE)
 }
 
-if (isTRUE(save_outputs) && isTRUE(rhs_trace_on)) {
+if (isTRUE(save_outputs) && identical(tolower(as.character(vb_prior_beta_type %||% "")), "rhs")) {
   write_rhs_run_summary(MODELS, out_dir, cfg, p_vec, fits_fc,
                         readout_scale, readout_scale_diag, vb_prior_beta_rhs)
 }

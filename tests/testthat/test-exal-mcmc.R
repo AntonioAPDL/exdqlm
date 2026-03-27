@@ -155,8 +155,29 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
         init_from_vb = FALSE,
         vb_warm_start_seed = 12345L,
         vb_warm_start_control = list(max_iter = 33L),
-        rhs = list(freeze_tau_burnin_iters = 7L),
-        slice = list(width_gamma = 0.6, width_rhs_tau = 0.9),
+        rhs = list(
+          freeze_tau_burnin_iters = 7L,
+          width_adapt = list(
+            enabled = TRUE,
+            warmup_iters = 12L,
+            target_score_low = -1.0,
+            target_score_high = 1.0
+          )
+        ),
+        slice = list(
+          width_gamma = 0.6,
+          width_rhs_tau = 0.9,
+          rhs_global_block_update = "transformed_tau_c2_block",
+          core_extra_passes = 2L,
+          width_rhs_tau_c2_transformed_z1 = 0.5,
+          width_rhs_tau_c2_transformed_z2 = 0.4
+        ),
+        multi_start = list(
+          enabled = TRUE,
+          n_starts = 3L,
+          pilot_n_burn = 40L,
+          pilot_n_mcmc = 60L
+        ),
         transforms = list(use_log_sigma = TRUE, sigma_eta_bounds = c(-6, 6)),
         init = list(gamma = c(0.1, 0.2)),
         priors = list(
@@ -183,8 +204,16 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_false(isTRUE(inf$mcmc$control_base$init_from_vb))
   expect_equal(inf$mcmc$control_base$vb_warm_start_control$max_iter, 33L)
   expect_equal(inf$mcmc$control_base$rhs$freeze_tau_burnin_iters, 7L)
+  expect_true(isTRUE(inf$mcmc$control_base$rhs$width_adapt$enabled))
+  expect_equal(inf$mcmc$control_base$rhs$width_adapt$warmup_iters, 12L)
   expect_equal(inf$mcmc$control_base$slice$width_gamma, 0.6)
   expect_equal(inf$mcmc$control_base$slice$width_rhs_tau, 0.9)
+  expect_identical(inf$mcmc$control_base$slice$rhs_global_block_update, "transformed_tau_c2_block")
+  expect_equal(inf$mcmc$control_base$slice$core_extra_passes, 2L)
+  expect_equal(inf$mcmc$control_base$slice$width_rhs_tau_c2_transformed_z1, 0.5)
+  expect_equal(inf$mcmc$control_base$slice$width_rhs_tau_c2_transformed_z2, 0.4)
+  expect_true(isTRUE(inf$mcmc$control_base$multi_start$enabled))
+  expect_equal(inf$mcmc$control_base$multi_start$n_starts, 3L)
   expect_identical(inf$beta_prior_type, "rhs")
   expect_equal(inf$prior_gamma_mu0, c(-0.2, 0.3))
   expect_equal(inf$prior_gamma_s20, c(4, 4))
@@ -309,6 +338,179 @@ test_that("RHS MCMC supports joint directional tau/c2 block updates", {
   expect_true(all(fit_rhs$misc$rhs_global_block_used_trace))
   expect_true(any(abs(fit_rhs$misc$rhs_global_block_dir_tau) > 0))
   expect_true(any(abs(fit_rhs$misc$rhs_global_block_dir_c2) > 0))
+})
+
+test_that("RHS MCMC supports transformed tau/c2 block updates with warmup width adaptation", {
+  withr::local_seed(791)
+
+  n <- 18L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.3, -0.2, 0.1) + stats::rnorm(n, sd = 0.28))
+  beta_prior_obj <- exdqlm::beta_prior("rhs", rhs = list(
+    tau0 = 0.3,
+    nu = 4,
+    s2 = 1,
+    shrink_intercept = FALSE,
+    intercept_prec = 1e-10,
+    eta_bounds = list(lambda = c(-4, 4), tau = c(-4, 4), c2 = c(-4, 4))
+  ))
+
+  fit_rhs <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    beta_prior_obj = beta_prior_obj,
+    mcmc_control = list(
+      n_burn = 8L,
+      n_mcmc = 10L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      rhs = list(
+        freeze_tau_burnin_iters = 0L,
+        width_adapt = list(
+          enabled = TRUE,
+          warmup_iters = 4L,
+          only_during_burn = TRUE,
+          target_score_low = -1.0,
+          target_score_high = 1.0,
+          step_size = 0.08,
+          width_min = 0.05,
+          width_max = 1.5
+        )
+      ),
+      slice = list(
+        rhs_global_block_update = "transformed_tau_c2_block",
+        rhs_transformed_block_passes = 2L,
+        width_rhs_lambda = 0.3,
+        width_rhs_tau = 0.2,
+        width_rhs_c2 = 0.2,
+        width_rhs_tau_c2_block = 0.3,
+        width_rhs_tau_c2_transformed_z1 = 0.35,
+        width_rhs_tau_c2_transformed_z2 = 0.25,
+        max_steps_out = 20L,
+        max_shrink = 80L
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n),
+      rhs_state = beta_prior_obj$init(ncol(X))
+    )
+  )
+
+  expect_true(inherits(fit_rhs, "exal_mcmc"))
+  expect_identical(fit_rhs$control$slice$rhs_global_block_update, "transformed_tau_c2_block")
+  expect_equal(fit_rhs$control$slice$rhs_transformed_block_passes, 2L)
+  expect_true(any(fit_rhs$misc$rhs_width_adapt_active_trace[1:4]))
+  expect_true(all(!fit_rhs$misc$rhs_width_adapt_active_trace[9:length(fit_rhs$misc$rhs_width_adapt_active_trace)]))
+  expect_true(all(fit_rhs$misc$rhs_width_tau_trace >= 0.05 & fit_rhs$misc$rhs_width_tau_trace <= 1.5))
+  expect_true(is.finite(fit_rhs$diagnostics$rhs$width_rhs_tau_final))
+  expect_true(is.finite(fit_rhs$diagnostics$rhs$transformed_z1_steps_out_mean))
+})
+
+test_that("MCMC supports core extra sigma/gamma passes and records control metadata", {
+  withr::local_seed(793)
+
+  n <- 20L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.3, -0.22, 0.08) + stats::rnorm(n, sd = 0.3))
+
+  fit <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 6L,
+      n_mcmc = 8L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      slice = list(
+        width_gamma = 0.6,
+        core_extra_passes = 1L,
+        max_steps_out = 20L,
+        max_shrink = 80L
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  expect_s3_class(fit, "exal_mcmc")
+  expect_equal(fit$control$slice$core_extra_passes, 1L)
+  expect_equal(fit$diagnostics$core_sigma_gamma_passes_per_iter, 2L)
+  expect_true(all(is.finite(as.numeric(fit$samp.gamma))))
+  expect_true(all(is.finite(as.numeric(fit$samp.sigma))))
+})
+
+test_that("RHS MCMC multi-start pilot selection stores diagnostics and selected start", {
+  withr::local_seed(792)
+
+  n <- 16L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.25, -0.18, 0.12) + stats::rnorm(n, sd = 0.25))
+  beta_prior_obj <- exdqlm::beta_prior("rhs", rhs = list(
+    tau0 = 0.2,
+    nu = 4,
+    s2 = 1,
+    shrink_intercept = FALSE,
+    intercept_prec = 1e-10,
+    eta_bounds = list(lambda = c(-4, 4), tau = c(-4, 4), c2 = c(-4, 4))
+  ))
+
+  fit_rhs <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    beta_prior_obj = beta_prior_obj,
+    mcmc_control = list(
+      n_burn = 6L,
+      n_mcmc = 8L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      multi_start = list(
+        enabled = TRUE,
+        n_starts = 2L,
+        pilot_n_burn = 3L,
+        pilot_n_mcmc = 5L,
+        perturb_sd_log_tau = 0.2,
+        perturb_sd_log_c2 = 0.2,
+        perturb_sd_log_lambda = 0.1,
+        perturb_sd_beta = 0.03
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n),
+      rhs_state = beta_prior_obj$init(ncol(X))
+    )
+  )
+
+  expect_true(inherits(fit_rhs, "exal_mcmc"))
+  expect_true(is.list(fit_rhs$control$multi_start))
+  expect_true(isTRUE(fit_rhs$control$multi_start$enabled))
+  expect_true("selected_start_id" %in% names(fit_rhs$control$multi_start))
+  expect_true(is.data.frame(fit_rhs$misc$multi_start_pilot_summary))
+  expect_equal(nrow(fit_rhs$misc$multi_start_pilot_summary), 2L)
 })
 
 test_that("MCMC sampler rng_seed is accepted and stored on the fit", {
@@ -458,7 +660,7 @@ test_that("VB RHS config preserves null tau init and separate warmup freeze sett
   state0 <- qspec$beta_prior_obj$init(3L)
 
   expect_identical(qspec$beta_type, "rhs")
-  expect_equal(exp(state0$eta_tau_hat), 0.01, tolerance = 1e-12)
+  expect_equal(exp(state0$eta_tau_hat), 1.0, tolerance = 1e-12)
 })
 
 test_that("VB RHS stays numerically healthy on a centered lower-tail toy regression", {

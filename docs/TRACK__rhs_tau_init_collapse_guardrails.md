@@ -63,6 +63,18 @@ which initialized `tau` at `tau0` (very small in our defaults), causing extreme 
 These semantics are part of the default validation guardrails for benchmarking/simulation.
 Do not change `init_log_tau` fallback/monitoring/unhealthy propagation behavior without explicit instruction and a tracker update in this file.
 
+## Current operational default path (2026-03-23)
+
+For post Stage-J/K/L validation relaunches, generate wave defaults by applying
+the guardrail lock to the promoted base profile:
+
+- base: `config/validation/qdesn_mcmc_compare_rhs_stageJKL_promoted.yaml`
+- lock: `config/validation/qdesn_rhs_guardrail_lock.yaml`
+- materialized output: `config/validation/qdesn_mcmc_compare_rhs_stageM_guardrailed.yaml`
+
+This ensures all new Stage-M and follow-up simulation studies inherit the same
+RHS init/collapse protections before any long campaign is launched.
+
 ## Codex handoff prompt (copy/paste template)
 
 Use this prompt when asking Codex to run benchmarking/simulation work:

@@ -155,4 +155,9 @@ test_that("real pipeline smoke supports MCMC inference summaries", {
   expect_true(is.finite(summary_obj$summary$total_stage_seconds[[1L]]))
   expect_true(is.finite(summary_obj$summary$forecast_CRPS_mean[[1L]]))
   expect_true(nrow(summary_obj$timing_breakdown) >= 1L)
+  expect_true(nrow(summary_obj$rhs_run_summary) >= 1L)
+  expect_true(any(as.logical(summary_obj$rhs_run_summary$rhs_trace_available), na.rm = TRUE))
+  if ("unhealthy_reason" %in% names(summary_obj$rhs_run_summary)) {
+    expect_false(any(as.character(summary_obj$rhs_run_summary$unhealthy_reason) == "rhs_trace_unavailable", na.rm = TRUE))
+  }
 })
