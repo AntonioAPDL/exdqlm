@@ -119,3 +119,54 @@ test_that("RHS_NS settings resolve and instantiate beta prior object", {
   expect_true(st$tau2 > 0)
   expect_true(st$zeta2 > 0)
 })
+
+test_that("RHS_NS NULL init_log_tau keeps guardrail default log_tau=0", {
+  cfg <- list(
+    inference = list(
+      method = "vb",
+      vb = list(
+        priors = list(
+          beta = list(
+            type = "rhs_ns",
+            rhs_ns = list(
+              tau0 = 0.001,
+              s2 = 0.1,
+              init_log_tau = NULL
+            )
+          )
+        )
+      )
+    )
+  )
+
+  inf <- exdqlm:::resolve_exal_inference_config(cfg, p_vec = c(0.5), verbose = FALSE)
+  expect_equal(as.numeric(inf$beta_prior_rhs$init_log_tau), 0.0, tolerance = 1e-12)
+  expect_equal(as.numeric(inf$beta_prior_rhs$init_tau2), 1.0, tolerance = 1e-12)
+})
+
+test_that("RHS_NS non-numeric init_log_tau falls back to guardrail default with warning", {
+  cfg <- list(
+    inference = list(
+      method = "vb",
+      vb = list(
+        priors = list(
+          beta = list(
+            type = "rhs_ns",
+            rhs_ns = list(
+              tau0 = 0.001,
+              s2 = 0.1,
+              init_log_tau = "not-a-number"
+            )
+          )
+        )
+      )
+    )
+  )
+
+  expect_warning(
+    inf <- exdqlm:::resolve_exal_inference_config(cfg, p_vec = c(0.5), verbose = FALSE),
+    "non-numeric"
+  )
+  expect_equal(as.numeric(inf$beta_prior_rhs$init_log_tau), 0.0, tolerance = 1e-12)
+  expect_equal(as.numeric(inf$beta_prior_rhs$init_tau2), 1.0, tolerance = 1e-12)
+})

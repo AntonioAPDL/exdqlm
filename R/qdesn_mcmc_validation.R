@@ -320,6 +320,9 @@ qdesn_validation_generate_toy_series <- function(scenario = "toy_sine_small",
   method_cfg <- method_cfg %||% list()
   prior_overrides <- method_cfg$prior_overrides %||% list()
   override <- prior_overrides[[beta_prior_type]] %||% NULL
+  if (is.null(override) && identical(as.character(beta_prior_type), "rhs_ns")) {
+    override <- prior_overrides[["rhs"]] %||% NULL
+  }
   if (is.list(override)) {
     method_cfg <- modifyList(method_cfg, override)
   }
@@ -644,14 +647,25 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   }
   pinball_tau <- NA_real_
   qhat_mae <- NA_real_
+  qhat_rmse <- NA_real_
+  qhat_corr <- NA_real_
   qhat_bias <- NA_real_
   if (!is.null(forecast_df) && nrow(forecast_df) &&
       all(c("q_pred", "q_true", "y") %in% names(forecast_df))) {
+    q_pred <- as.numeric(forecast_df$q_pred)
+    q_true <- as.numeric(forecast_df$q_true)
     err_y <- as.numeric(forecast_df$y) - as.numeric(forecast_df$q_pred)
     p0 <- as.numeric(root_spec$tau)
     pinball_tau <- mean((p0 - (err_y < 0)) * err_y, na.rm = TRUE)
-    qhat_mae <- mean(abs(as.numeric(forecast_df$q_pred) - as.numeric(forecast_df$q_true)), na.rm = TRUE)
-    qhat_bias <- mean(as.numeric(forecast_df$q_pred) - as.numeric(forecast_df$q_true), na.rm = TRUE)
+    q_err <- q_pred - q_true
+    qhat_mae <- mean(abs(q_err), na.rm = TRUE)
+    qhat_rmse <- sqrt(mean(q_err^2, na.rm = TRUE))
+    qhat_bias <- mean(q_err, na.rm = TRUE)
+    keep_idx <- is.finite(q_pred) & is.finite(q_true)
+    if (sum(keep_idx) >= 3L) {
+      qhat_corr <- suppressWarnings(stats::cor(q_pred[keep_idx], q_true[keep_idx]))
+      if (!is.finite(qhat_corr)) qhat_corr <- NA_real_
+    }
   }
   rhs_diag_available <- as.logical(summary_row$rhs_diag_available[1L] %||% NA)
   rhs_collapse_flag <- as.logical(summary_row$rhs_collapse_flag_any[1L] %||% NA)
@@ -675,8 +689,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     forecast_PinballMean_mean = as.numeric(summary_row$forecast_PinballMean_mean[1L] %||% NA_real_),
     forecast_S_mean = as.numeric(summary_row$forecast_S_mean[1L] %||% NA_real_),
     forecast_qhat_mae = qhat_mae,
+    forecast_qhat_rmse = qhat_rmse,
     forecast_pinball_tau = pinball_tau,
     forecast_qhat_bias = qhat_bias,
+    signal_qhat_mae = qhat_mae,
+    signal_qhat_rmse = qhat_rmse,
+    signal_qhat_corr = qhat_corr,
     rhs_diag_available = rhs_diag_available,
     rhs_collapse_flag = rhs_collapse_flag,
     rhs_collapse_flag_bound = rhs_collapse_flag_bound,
@@ -1440,14 +1458,16 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
   keep_vb <- c(keys, "status", "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
                "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
-               "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
+               "forecast_qhat_rmse", "forecast_pinball_tau", "forecast_qhat_bias",
+               "signal_qhat_mae", "signal_qhat_rmse", "signal_qhat_corr", "fit_runtime_seconds",
                "finite_ok", "domain_ok", "vb_converged", "vb_iter", "vb_gamma_last",
                "vb_sigma_last", "vb_elbo_last", "vb_beta_norm", "rhs_tau_last", "rhs_c2_last",
                "unhealthy", "unhealthy_reason", "rhs_collapse_flag", "rhs_collapse_flag_shrink",
                "signoff_grade", "comparison_eligible", "signoff_reason")
   keep_mc <- c(keys, "status", "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
                "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
-               "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
+               "forecast_qhat_rmse", "forecast_pinball_tau", "forecast_qhat_bias",
+               "signal_qhat_mae", "signal_qhat_rmse", "signal_qhat_corr", "fit_runtime_seconds",
                "finite_ok", "domain_ok", "unhealthy", "unhealthy_reason",
                "rhs_collapse_flag", "rhs_collapse_flag_shrink",
                "signoff_grade", "comparison_eligible", "signoff_reason",
@@ -1485,8 +1505,17 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   if ("mcmc_forecast_qhat_mae" %in% names(out) && "vb_forecast_qhat_mae" %in% names(out)) {
     out$forecast_qhat_mae_delta_mcmc_minus_vb <- out$mcmc_forecast_qhat_mae - out$vb_forecast_qhat_mae
   }
+  if ("mcmc_forecast_qhat_rmse" %in% names(out) && "vb_forecast_qhat_rmse" %in% names(out)) {
+    out$forecast_qhat_rmse_delta_mcmc_minus_vb <- out$mcmc_forecast_qhat_rmse - out$vb_forecast_qhat_rmse
+  }
   if ("mcmc_forecast_pinball_tau" %in% names(out) && "vb_forecast_pinball_tau" %in% names(out)) {
     out$forecast_pinball_tau_delta_mcmc_minus_vb <- out$mcmc_forecast_pinball_tau - out$vb_forecast_pinball_tau
+  }
+  if ("mcmc_signal_qhat_rmse" %in% names(out) && "vb_signal_qhat_rmse" %in% names(out)) {
+    out$signal_qhat_rmse_delta_mcmc_minus_vb <- out$mcmc_signal_qhat_rmse - out$vb_signal_qhat_rmse
+  }
+  if ("mcmc_signal_qhat_corr" %in% names(out) && "vb_signal_qhat_corr" %in% names(out)) {
+    out$signal_qhat_corr_delta_mcmc_minus_vb <- out$mcmc_signal_qhat_corr - out$vb_signal_qhat_corr
   }
   if ("mcmc_status" %in% names(out) && "vb_status" %in% names(out)) {
     out$both_success <- as.logical(out$vb_status == "SUCCESS" & out$mcmc_status == "SUCCESS")
@@ -1545,7 +1574,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     forecast_Pinball_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_Pinball_delta_mcmc_minus_vb[1L] %||% NA_real_),
     forecast_S_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_S_delta_mcmc_minus_vb[1L] %||% NA_real_),
     forecast_qhat_mae_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_qhat_mae_delta_mcmc_minus_vb[1L] %||% NA_real_),
+    forecast_qhat_rmse_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_qhat_rmse_delta_mcmc_minus_vb[1L] %||% NA_real_),
     forecast_pinball_tau_delta_mcmc_minus_vb = as.numeric(pair_summary$forecast_pinball_tau_delta_mcmc_minus_vb[1L] %||% NA_real_),
+    signal_qhat_rmse_delta_mcmc_minus_vb = as.numeric(pair_summary$signal_qhat_rmse_delta_mcmc_minus_vb[1L] %||% NA_real_),
+    signal_qhat_corr_delta_mcmc_minus_vb = as.numeric(pair_summary$signal_qhat_corr_delta_mcmc_minus_vb[1L] %||% NA_real_),
     stringsAsFactors = FALSE
   )
 }
@@ -1777,7 +1809,8 @@ qdesn_validation_run_root <- function(root_spec,
   numeric_cols <- c(
     "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
     "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
-    "forecast_pinball_tau", "forecast_qhat_bias", "fit_runtime_seconds",
+    "forecast_qhat_rmse", "forecast_pinball_tau", "forecast_qhat_bias",
+    "signal_qhat_mae", "signal_qhat_rmse", "signal_qhat_corr", "fit_runtime_seconds",
     "mcmc_ess_gamma", "mcmc_ess_sigma", "mcmc_ess_beta_norm",
     "mcmc_ess_per_second_gamma", "mcmc_ess_per_second_sigma",
     "mcmc_ess_per_second_beta_norm"
@@ -1819,8 +1852,15 @@ qdesn_validation_run_root <- function(root_spec,
     "forecast_Pinball_delta_mcmc_minus_vb", "vb_forecast_S_mean",
     "mcmc_forecast_S_mean", "forecast_S_delta_mcmc_minus_vb",
     "vb_forecast_qhat_mae", "mcmc_forecast_qhat_mae",
-    "forecast_qhat_mae_delta_mcmc_minus_vb", "vb_forecast_pinball_tau",
-    "mcmc_forecast_pinball_tau", "forecast_pinball_tau_delta_mcmc_minus_vb"
+    "forecast_qhat_mae_delta_mcmc_minus_vb",
+    "vb_forecast_qhat_rmse", "mcmc_forecast_qhat_rmse",
+    "forecast_qhat_rmse_delta_mcmc_minus_vb",
+    "vb_signal_qhat_rmse", "mcmc_signal_qhat_rmse",
+    "signal_qhat_rmse_delta_mcmc_minus_vb",
+    "vb_signal_qhat_corr", "mcmc_signal_qhat_corr",
+    "signal_qhat_corr_delta_mcmc_minus_vb",
+    "vb_forecast_pinball_tau", "mcmc_forecast_pinball_tau",
+    "forecast_pinball_tau_delta_mcmc_minus_vb"
   )
   numeric_part <- .qdesn_validation_group_numeric(pair_summary, group_cols, numeric_cols)
   split_idx <- split(seq_len(nrow(pair_summary)), interaction(pair_summary[, group_cols, drop = FALSE], drop = TRUE, lex.order = TRUE))

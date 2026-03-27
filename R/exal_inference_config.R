@@ -35,6 +35,7 @@
     verbose = FALSE,
     init_lambda2 = 1.0,
     init_nu = 1.0,
+    init_log_tau = 0.0,
     init_tau2 = NULL,
     init_xi = 1.0,
     init_zeta2 = NULL
@@ -294,6 +295,7 @@
     rhs_ns_cfg$b_zeta <- as.numeric(rhs_ns_cfg$b_zeta %||% 1.0)[1L]
     rhs_ns_cfg$tau0 <- as.numeric(rhs_ns_cfg$tau0 %||% 1.0)[1L]
     rhs_ns_cfg$s2 <- as.numeric(rhs_ns_cfg$s2 %||% rhs_ns_cfg$zeta2 %||% 1.0)[1L]
+    rhs_ns_cfg$init_log_tau <- resolve_init_log_tau(rhs_ns_cfg, default_rhs_ns_cfg)
 
     if (!is.null(rhs_ns_cfg$init_log_tau) && is.null(rhs_ns_cfg$init_tau2)) {
       ilt <- suppressWarnings(as.numeric(rhs_ns_cfg$init_log_tau)[1L])

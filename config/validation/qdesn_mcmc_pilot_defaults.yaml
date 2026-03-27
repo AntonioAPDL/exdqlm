@@ -137,6 +137,18 @@ pipeline:
             var_floor: 1.0e-8
             init_log_tau: null
             init_log_c2: 0.0
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-8
+            init_log_tau: null
+            init_log_lambda: 0.0
+            init_log_c2: 0.0
     mcmc:
       n_burn: 120
       n_mcmc: 180
@@ -175,3 +187,15 @@ pipeline:
               c2: [-8, 8]
             h_curv: 1.0e-8
             var_floor: 1.0e-8
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-8
+            init_log_tau: null
+            init_log_lambda: 0.0
+            init_log_c2: 0.0

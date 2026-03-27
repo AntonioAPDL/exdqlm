@@ -93,6 +93,26 @@ worst_reason <- function(df) {
   as.character(df$signoff_reason[1L] %||% NA_character_)
 }
 
+resolve_rhs_family_guardrail <- function(cfg) {
+  beta_cfg <- cfg$pipeline$inference$vb$priors$beta %||% list()
+  beta_prior_type <- tolower(as.character(beta_cfg$type %||% "rhs")[1L])
+  rhs_key <- if (identical(beta_prior_type, "rhs_ns")) "rhs_ns" else "rhs"
+  rhs_cfg <- beta_cfg[[rhs_key]] %||% beta_cfg$rhs %||% list()
+
+  init_log_tau <- suppressWarnings(as.numeric(rhs_cfg$init_log_tau %||% NA_real_)[1L])
+  if (!is.finite(init_log_tau)) {
+    init_tau <- suppressWarnings(as.numeric(rhs_cfg$init_tau %||% NA_real_)[1L])
+    if (is.finite(init_tau) && init_tau > 0) init_log_tau <- log(init_tau)
+  }
+  if (!is.finite(init_log_tau)) {
+    init_tau2 <- suppressWarnings(as.numeric(rhs_cfg$init_tau2 %||% NA_real_)[1L])
+    if (is.finite(init_tau2) && init_tau2 > 0) init_log_tau <- 0.5 * log(init_tau2)
+  }
+  if (!is.finite(init_log_tau)) init_log_tau <- 0.0
+
+  list(beta_prior_type = beta_prior_type, rhs_key = rhs_key, init_log_tau = as.numeric(init_log_tau))
+}
+
 find_latest_completed_campaign <- function(parent_report_root) {
   if (!dir.exists(parent_report_root)) return(NULL)
   run_dirs <- sort(list.dirs(parent_report_root, recursive = FALSE, full.names = TRUE), decreasing = TRUE)
@@ -207,7 +227,8 @@ choose_winner <- function(df) {
 validate_guardrails <- function(cfg) {
   input_mode <- tolower(as.character(cfg$pipeline$readout$input_mode %||% "raw_y_lags")[1L])
   decomp_enabled <- isTRUE(cfg$pipeline$decomposition$enabled %||% FALSE)
-  init_log_tau <- cfg$pipeline$inference$vb$priors$beta$rhs$init_log_tau %||% NA_real_
+  guardrail <- resolve_rhs_family_guardrail(cfg)
+  init_log_tau <- guardrail$init_log_tau
   if (!identical(input_mode, "raw_y_lags")) {
     stop(sprintf("Guardrail violation: readout.input_mode must be raw_y_lags; got '%s'.", input_mode), call. = FALSE)
   }
@@ -215,7 +236,7 @@ validate_guardrails <- function(cfg) {
     stop("Guardrail violation: decomposition.enabled must be FALSE for this validation framework.", call. = FALSE)
   }
   if (!is.finite(as.numeric(init_log_tau))) {
-    stop("Guardrail violation: vb.priors.beta.rhs.init_log_tau must resolve to numeric.", call. = FALSE)
+    stop("Guardrail violation: RHS-family init_log_tau must resolve to numeric.", call. = FALSE)
   }
   invisible(TRUE)
 }

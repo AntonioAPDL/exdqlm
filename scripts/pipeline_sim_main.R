@@ -790,12 +790,41 @@ rhs_deep_on <- isTRUE(vb_args_base$rhs_deep)
 rhs_trace_thresholds <- vb_args_base$rhs_trace_thresholds
 rhs_trace_top_k <- vb_args_base$rhs_trace_top_k
 rhs_trace_eps <- vb_args_base$rhs_trace_eps
+beta_prior_type_lwr <- tolower(as.character(vb_prior_beta_type %||% ""))
+is_rhs_family_prior <- beta_prior_type_lwr %in% c("rhs", "rhs_ns")
 if (identical(inference_method, "vb") &&
-    identical(tolower(as.character(vb_prior_beta_type %||% "")), "rhs") &&
+    isTRUE(is_rhs_family_prior) &&
     !isTRUE(rhs_trace_on)) {
   rhs_trace_on <- TRUE
   vb_args_base$rhs_trace <- TRUE
-  message("[RHS_GUARDRAIL] Enabling vb.rhs_trace=TRUE to persist collapse diagnostics.")
+  message(sprintf(
+    "[RHS_GUARDRAIL] Enabling vb.rhs_trace=TRUE to persist collapse diagnostics (beta_prior_type=%s).",
+    beta_prior_type_lwr
+  ))
+}
+if (identical(inference_method, "vb") && isTRUE(is_rhs_family_prior)) {
+  tau_bounds <- vb_prior_beta_rhs$eta_bounds$tau %||% c(NA_real_, NA_real_)
+  tau_bounds <- as.numeric(tau_bounds)
+  if (length(tau_bounds) < 2L) tau_bounds <- c(NA_real_, NA_real_)
+  init_log_tau_resolved <- suppressWarnings(as.numeric(vb_prior_beta_rhs$init_log_tau %||% NA_real_)[1L])
+  if (!is.finite(init_log_tau_resolved)) {
+    init_tau <- suppressWarnings(as.numeric(vb_prior_beta_rhs$init_tau %||% NA_real_)[1L])
+    if (is.finite(init_tau) && init_tau > 0) init_log_tau_resolved <- log(init_tau)
+  }
+  if (!is.finite(init_log_tau_resolved)) {
+    init_tau2 <- suppressWarnings(as.numeric(vb_prior_beta_rhs$init_tau2 %||% NA_real_)[1L])
+    if (is.finite(init_tau2) && init_tau2 > 0) init_log_tau_resolved <- 0.5 * log(init_tau2)
+  }
+  if (!is.finite(init_log_tau_resolved)) init_log_tau_resolved <- 0.0
+  tau0_preflight <- suppressWarnings(as.numeric(vb_prior_beta_rhs$tau0 %||% NA_real_)[1L])
+  message(sprintf(
+    "[RHS_PREFLIGHT] beta_prior_type=%s tau0=%s init_log_tau=%.6f eta_bounds$tau=[%s,%s]",
+    beta_prior_type_lwr,
+    ifelse(is.finite(tau0_preflight), format(tau0_preflight, digits = 6), "NA"),
+    as.numeric(init_log_tau_resolved),
+    ifelse(is.finite(tau_bounds[1L]), format(tau_bounds[1L], digits = 6), "NA"),
+    ifelse(is.finite(tau_bounds[2L]), format(tau_bounds[2L], digits = 6), "NA")
+  ))
 }
 if (identical(inference_method, "mcmc") && isTRUE(vb_online_cfg$enabled)) {
   message("[inference] online VB settings are ignored because inference.method='mcmc'.")
@@ -3999,6 +4028,16 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   }
   seed_val <- cfg$seed %||% cfg$desn$seed %||% NA
   seed_str <- if (is.null(seed_val)) NA_character_ else paste(seed_val, collapse = ",")
+  first_fit <- NULL
+  if (length(fits_fc)) {
+    first_fit <- fits_fc[[1L]]$fit_train$fit %||% NULL
+  }
+  beta_prior_type <- tolower(as.character(
+    first_fit$beta_prior$type %||%
+      cfg$inference$vb$priors$beta$type %||%
+      cfg$inference$mcmc$priors$beta$type %||%
+      NA_character_
+  )[1L])
 
   eta_bounds <- vb_prior_beta_rhs$eta_bounds$tau %||% c(-40, 40)
   eta_tau_lo <- as.numeric(eta_bounds[1])
@@ -4007,6 +4046,10 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   init_log_tau <- vb_prior_beta_rhs$init_log_tau %||% NA_real_
   if (is.na(init_log_tau) && !is.null(vb_prior_beta_rhs$init_tau)) {
     init_log_tau <- log(as.numeric(vb_prior_beta_rhs$init_tau)[1])
+  }
+  if (is.na(init_log_tau) && !is.null(vb_prior_beta_rhs$init_tau2)) {
+    init_tau2 <- suppressWarnings(as.numeric(vb_prior_beta_rhs$init_tau2)[1L])
+    if (is.finite(init_tau2) && init_tau2 > 0) init_log_tau <- 0.5 * log(init_tau2)
   }
   if (!is.finite(init_log_tau)) init_log_tau <- 0.0
   post_sd <- readout_scale_diag$post$sd_stats %||% c(min = NA_real_, median = NA_real_, max = NA_real_)
@@ -4076,6 +4119,7 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
           run_id = run_id,
           git_sha = git_sha,
           spec_name = spec_name,
+          beta_prior_type = beta_prior_type,
           quantile_p = p_vec[i],
           seed = seed_str,
           tau0 = as.numeric(beta_prior_hypers$tau0 %||% vb_prior_beta_rhs$tau0 %||% NA_real_),
@@ -4114,12 +4158,13 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
           stringsAsFactors = FALSE
         ))
       }
-      return(data.frame(
-        run_id = run_id,
-        git_sha = git_sha,
-        spec_name = spec_name,
-        quantile_p = p_vec[i],
-        seed = seed_str,
+        return(data.frame(
+          run_id = run_id,
+          git_sha = git_sha,
+          spec_name = spec_name,
+          beta_prior_type = beta_prior_type,
+          quantile_p = p_vec[i],
+          seed = seed_str,
         tau0 = as.numeric(vb_prior_beta_rhs$tau0 %||% NA_real_),
         nu = as.numeric(vb_prior_beta_rhs$nu %||% NA_real_),
         s_used = as.numeric(vb_prior_beta_rhs$s %||% sqrt(as.numeric(vb_prior_beta_rhs$s2 %||% NA_real_))),
@@ -4210,6 +4255,7 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
       run_id = run_id,
       git_sha = git_sha,
       spec_name = spec_name,
+      beta_prior_type = beta_prior_type,
       quantile_p = p_vec[i],
       seed = seed_str,
       tau0 = as.numeric(last$tau0),
@@ -4267,7 +4313,7 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   }
 }
 
-if (isTRUE(save_outputs) && identical(tolower(as.character(vb_prior_beta_type %||% "")), "rhs")) {
+if (isTRUE(save_outputs) && tolower(as.character(vb_prior_beta_type %||% "")) %in% c("rhs", "rhs_ns")) {
   write_rhs_run_summary(MODELS, out_dir, cfg, p_vec, fits_fc,
                         readout_scale, readout_scale_diag, vb_prior_beta_rhs)
 }

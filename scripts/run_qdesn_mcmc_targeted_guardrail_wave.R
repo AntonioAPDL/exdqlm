@@ -50,6 +50,26 @@ safe_num <- function(x, n = length(x), default = NA_real_) {
   out
 }
 
+resolve_rhs_family_guardrail <- function(cfg) {
+  beta_cfg <- cfg$pipeline$inference$vb$priors$beta %||% list()
+  beta_prior_type <- tolower(as.character(beta_cfg$type %||% "rhs")[1L])
+  rhs_key <- if (identical(beta_prior_type, "rhs_ns")) "rhs_ns" else "rhs"
+  rhs_cfg <- beta_cfg[[rhs_key]] %||% beta_cfg$rhs %||% list()
+
+  init_log_tau <- suppressWarnings(as.numeric(rhs_cfg$init_log_tau %||% NA_real_)[1L])
+  if (!is.finite(init_log_tau)) {
+    init_tau <- suppressWarnings(as.numeric(rhs_cfg$init_tau %||% NA_real_)[1L])
+    if (is.finite(init_tau) && init_tau > 0) init_log_tau <- log(init_tau)
+  }
+  if (!is.finite(init_log_tau)) {
+    init_tau2 <- suppressWarnings(as.numeric(rhs_cfg$init_tau2 %||% NA_real_)[1L])
+    if (is.finite(init_tau2) && init_tau2 > 0) init_log_tau <- 0.5 * log(init_tau2)
+  }
+  if (!is.finite(init_log_tau)) init_log_tau <- 0.0
+
+  list(beta_prior_type = beta_prior_type, rhs_key = rhs_key, init_log_tau = as.numeric(init_log_tau))
+}
+
 selection_mode <- tolower(as.character(get_arg("--selection", "fail_or_ineligible"))[1L])
 include_warn <- isTRUE(has_flag("--include-warn")) || identical(selection_mode, "fail_and_warn")
 include_ridge <- isTRUE(has_flag("--include-ridge"))
@@ -252,7 +272,8 @@ materialized$campaign$reports_root <- report_root_base
 
 input_mode <- tolower(as.character(materialized$pipeline$readout$input_mode %||% "raw_y_lags")[1L])
 decomp_enabled <- isTRUE(materialized$pipeline$decomposition$enabled %||% FALSE)
-init_log_tau <- suppressWarnings(as.numeric(materialized$pipeline$inference$vb$priors$beta$rhs$init_log_tau %||% NA_real_)[1L])
+guardrail <- resolve_rhs_family_guardrail(materialized)
+init_log_tau <- guardrail$init_log_tau
 if (!identical(input_mode, "raw_y_lags")) {
   stop(sprintf("Materialized defaults violate non-DLM guardrail: readout.input_mode='%s'.", input_mode), call. = FALSE)
 }
@@ -260,7 +281,7 @@ if (decomp_enabled) {
   stop("Materialized defaults violate non-DLM guardrail: decomposition.enabled must be FALSE.", call. = FALSE)
 }
 if (!is.finite(init_log_tau)) {
-  stop("Materialized defaults violate RHS guardrail: vb.priors.beta.rhs.init_log_tau is not numeric.", call. = FALSE)
+  stop("Materialized defaults violate RHS-family guardrail: init_log_tau is not numeric.", call. = FALSE)
 }
 
 yaml::write_yaml(materialized, target_defaults_path)
@@ -277,6 +298,7 @@ summary_lines <- c(
   sprintf("- target_defaults: `%s`", target_defaults_path),
   sprintf("- non_dlm_guardrail.readout_input_mode: `%s`", input_mode),
   sprintf("- non_dlm_guardrail.decomposition_enabled: `%s`", if (decomp_enabled) "true" else "false"),
+  sprintf("- rhs_guardrail.beta_prior_type: `%s`", as.character(guardrail$beta_prior_type)),
   sprintf("- rhs_guardrail.init_log_tau: `%.6f`", init_log_tau)
 )
 writeLines(summary_lines, file.path(staging_root, "targeted_wave_prepare_summary.md"))

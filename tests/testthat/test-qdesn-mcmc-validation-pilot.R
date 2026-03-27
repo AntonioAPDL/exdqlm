@@ -242,6 +242,74 @@ test_that("validation config builder applies prior-specific inference overrides"
   expect_equal(mc_rhs$inference$mcmc$slice$max_steps_out, 50L)
 })
 
+test_that("validation config builder falls back rhs_ns overrides from rhs block", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_tuned_defaults.yaml"))
+  defaults$pipeline$inference$vb$prior_overrides$rhs_ns <- NULL
+  defaults$pipeline$inference$mcmc$prior_overrides$rhs_ns <- NULL
+
+  rhs_ns_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "toy_sine_small",
+    tau = 0.50,
+    beta_prior_type = "rhs_ns",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+
+  vb_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(rhs_ns_spec, defaults, method = "vb")
+  mc_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(rhs_ns_spec, defaults, method = "mcmc")
+
+  expect_equal(vb_cfg$inference$vb$max_iter, 60L)
+  expect_equal(vb_cfg$inference$vb$min_iter_elbo, 12L)
+  expect_equal(vb_cfg$inference$vb$n_samp_xi, 128L)
+  expect_equal(mc_cfg$inference$mcmc$n_burn, 500L)
+  expect_equal(mc_cfg$inference$mcmc$n_mcmc, 1000L)
+  expect_equal(mc_cfg$inference$mcmc$slice$width_rhs_tau, 0.25)
+})
+
+test_that("rhs_ns VB emits RHS diagnostics traces for signoff health checks", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_rhs_vs_rhs_ns_median_defaults.yaml"))
+  defaults$toy$scenarios$toy_sine_small$T_use <- 48L
+  defaults$toy$scenarios$toy_sine_small$n_train <- 36L
+  defaults$pipeline$sampling$nd_draws <- 24L
+  defaults$pipeline$sampling$chunk <- 12L
+  defaults$pipeline$synthesis$n_samp <- 24L
+  defaults$pipeline$inference$vb$max_iter <- 12L
+  defaults$pipeline$inference$vb$min_iter_elbo <- 4L
+  defaults$pipeline$inference$vb$n_samp_xi <- 24L
+  defaults$pipeline$inference$mcmc$n_burn <- 8L
+  defaults$pipeline$inference$mcmc$n_mcmc <- 12L
+  defaults$pipeline$inference$mcmc$progress_every <- 4L
+
+  output_root <- file.path(tempdir(), paste0("qdesn-rhsns-root-", Sys.getpid()))
+  dir.create(output_root, recursive = TRUE, showWarnings = FALSE)
+
+  root_spec <- list(
+    scenario = "toy_sine_small",
+    tau = 0.50,
+    beta_prior_type = "rhs_ns",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  )
+
+  res <- exdqlm:::qdesn_validation_run_root(
+    root_spec = root_spec,
+    defaults = defaults,
+    output_root = output_root,
+    create_plots = FALSE,
+    verbose = FALSE
+  )
+  expect_true(dir.exists(res$root_dir))
+
+  vb_health <- utils::read.csv(file.path(res$root_dir, "fits", "vb", "health_summary.csv"), stringsAsFactors = FALSE)
+  vb_trace <- utils::read.csv(file.path(res$root_dir, "fits", "vb", "progress_trace.csv"), stringsAsFactors = FALSE)
+  unhealthy_reason <- if ("unhealthy_reason" %in% names(vb_health)) as.character(vb_health$unhealthy_reason[1L]) else ""
+
+  expect_true(isTRUE(as.logical(vb_health$rhs_diag_available[1L])))
+  expect_false(grepl("rhs_diagnostics_missing", unhealthy_reason, fixed = TRUE))
+  expect_true(all(c("rhs_tau", "rhs_c2", "rhs_lambda_mean") %in% names(vb_trace)))
+  expect_true(any(is.finite(as.numeric(vb_trace$rhs_tau))))
+})
+
 test_that("validation config builder enforces non-DLM input mode", {
   defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_tuned_defaults.yaml"))
   root_spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(

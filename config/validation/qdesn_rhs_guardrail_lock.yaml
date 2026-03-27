@@ -25,6 +25,9 @@ pipeline:
         beta:
           rhs:
             init_log_tau: 0.0
+          rhs_ns:
+            init_log_tau: 0.0
+            init_log_c2: 0.0
     mcmc:
       init_from_vb: true
       transforms:
