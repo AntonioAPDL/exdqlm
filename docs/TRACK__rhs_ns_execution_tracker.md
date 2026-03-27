@@ -58,12 +58,12 @@ This tracker executes stages 3-9 from the approved plan. Stage 2 (baseline captu
 Status legend: `[ ]` not started, `[-]` in progress, `[x]` completed, `[!]` blocked
 
 - [x] Stage 3: Safe Integration Setup
-- [!] Stage 4: Branch Reconciliation
+- [x] Stage 4: Branch Reconciliation
 - [x] Stage 5: Robust Regression/Quality Gate
 - [x] Stage 6: RHS_NS Design Freeze
 - [x] Stage 7: RHS_NS Implementation
 - [x] Stage 8: Comparative Evaluation + Default Decision
-- [!] Stage 9: Release Finalization (`0.4.0` readiness)
+- [x] Stage 9: Release Finalization (`0.4.0` readiness)
 
 ## 5) Update Protocol (Mandatory)
 
@@ -82,7 +82,7 @@ Do not advance a stage without completing its pre-stage investigation checklist.
 
 ## 6) Stage 3: Safe Integration Setup
 
-Status: `[-]`  
+Status: `[x]`  
 Owner: Codex + user
 
 ### 6.1 Pre-Stage Investigation Checklist
@@ -119,19 +119,19 @@ Owner: Codex + user
 ### 7.2 Execution Checklist
 
 - [x] Select strategy with lowest operational risk (default preference: merge-based).
-- [ ] Reconcile modules in deterministic order:
+- [x] Reconcile modules in deterministic order:
   1. inference core (`R/exal_*`, `R/priors_beta.R`)
   2. qdesn wrappers (`R/qdesn_*`)
   3. config/model-selection plumbing
   4. tests/docs/scripts
-- [ ] Resolve conflicts with explicit rationale notes.
-- [ ] Keep behavior of existing `rhs` path unchanged.
+- [x] Resolve conflicts with explicit rationale notes.
+- [x] Keep behavior of existing `rhs` path unchanged.
 
 ### 7.3 Exit Gate
 
-- [ ] Reconciled integration branch compiles and loads.
-- [ ] No namespace/export regressions.
-- [ ] Critical smoke tests pass.
+- [x] Reconciled integration branch compiles and loads.
+- [x] No namespace/export regressions.
+- [x] Critical smoke tests pass.
 
 ## 8) Stage 5: Robust Regression/Quality Gate
 
@@ -266,25 +266,25 @@ Owner: Codex + user
 
 ## 12) Stage 9: Release Finalization (`0.4.0`)
 
-Status: `[-]`  
+Status: `[x]`  
 Owner: Codex + user
 
 ### 12.1 Pre-Stage Investigation Checklist
 
 - [x] Verify CRAN-facing branch state and release policy constraints.
-- [ ] Verify docs/examples only reference finalized API names.
-- [ ] Verify all staged changes are scoped and reviewable.
+- [x] Verify docs/examples only reference finalized API names.
+- [x] Verify all staged changes are scoped and reviewable.
 
 ### 12.2 Execution Checklist
 
-- [ ] Update NEWS and user-facing docs.
-- [ ] Add/update examples for both `rhs` and `rhs_ns`.
-- [ ] Run full package checks (`R CMD check --as-cran` and project smoke suite).
-- [ ] Final release-candidate pass on test and diagnostics artifacts.
+- [x] Update NEWS and user-facing docs.
+- [x] Add/update examples for both `rhs` and `rhs_ns`.
+- [x] Run full package checks (`R CMD check --as-cran` and project smoke suite).
+- [x] Final release-candidate pass on test and diagnostics artifacts.
 
 ### 12.3 Exit Gate
 
-- [ ] Submission-ready commit set with clear traceability.
+- [x] Submission-ready commit set with clear traceability.
 
 ## 13) Branching and Version-Control Policy
 
@@ -387,8 +387,30 @@ Owner: Codex + user
 - Cross-branch compatibility healthcheck re-run on `feature/qdesn-mcmc-alternative`:
   - `testthat::test_local(filter = "exal-(inference-config|mcmc)")`: PASS (147)
   - no local diffs on feature branch after verification run.
+- CRAN-facing release-finalization pass completed on `origin/cransub/0.4.0`:
+  - docs/API polish commit: `293d1ca` (`Finalize rhs_ns release docs and static API examples`)
+  - user-facing updates:
+    - `NEWS.md` (`rhs_ns` addition and slab-control aliases)
+    - `README.Rmd`, `README.md` (finalized static API names; added `rhs_ns` example)
+  - full project test suite:
+    - `testthat::test_local('tests/testthat', stop_on_failure = TRUE)`: PASS (1348)
+  - release smoke re-run:
+    - `testthat::test_local(filter = "smoke|static-beta-prior-rhs", stop_on_failure = TRUE)`: PASS (90)
+  - tarball CRAN-style check:
+    - `R CMD build .` -> `exdqlm_0.4.0.tar.gz`
+    - `env _R_CHECK_DONTTEST_EXAMPLES_=false R CMD check --as-cran exdqlm_0.4.0.tar.gz`
+    - result: `DONE`, `Status: 4 NOTEs`, `0 WARNING`, `0 ERROR`
+    - note summary from `exdqlm.Rcheck/00check.log`:
+      - installed size (`30.1Mb`, mainly `libs`)
+      - future timestamp unverifiable in environment
+      - `pandoc` unavailable for top-level README/NEWS check
+      - environment/toolchain portability flags note
+  - evidence logs:
+    - `/home/jaguir26/local/src/exdqlm__wt__rhs_ns_reconcile/check-logs/rhs_ns_stage9_R_CMD_build.log`
+    - `/home/jaguir26/local/src/exdqlm__wt__rhs_ns_reconcile/check-logs/rhs_ns_stage9_R_CMD_check_as_cran_tarball.log`
+    - `/home/jaguir26/local/src/exdqlm__wt__rhs_ns_reconcile/exdqlm.Rcheck/00check.log`
 
-## 15) Next Action (When Implementation Starts)
+## 15) Next Actions (Post-Implementation)
 
-1. Execute a dedicated native `rhs_ns` port for `cransub/0.4.0` in its legacy static stack.
-2. Re-run CRAN-facing checks on the 0.4.0 line after native port completion.
+1. Prepare submission memo using recorded NOTE rationale (environmental/non-blocking).
+2. If desired post-CRAN, evaluate whether to switch default from `rhs` to `rhs_ns` after broader external benchmarking.
