@@ -266,12 +266,12 @@ Owner: Codex + user
 
 ## 12) Stage 9: Release Finalization (`0.4.0`)
 
-Status: `[!]`  
+Status: `[-]`  
 Owner: Codex + user
 
 ### 12.1 Pre-Stage Investigation Checklist
 
-- [ ] Verify CRAN-facing branch state and release policy constraints.
+- [x] Verify CRAN-facing branch state and release policy constraints.
 - [ ] Verify docs/examples only reference finalized API names.
 - [ ] Verify all staged changes are scoped and reviewable.
 
@@ -370,6 +370,23 @@ Owner: Codex + user
   - action: cherry-pick aborted cleanly; mark Stage-9 as blocked pending a native
     0.4.0-line port in the legacy static architecture (`R/static_beta_prior.R`,
     `R/exal_static_LDVB.R`, `R/exal_static_mcmc.R`).
+- Native 0.4.0 RHS_NS port completed on `origin/cransub/0.4.0`:
+  - commit: `9876844` (`Add rhs_ns support to static exAL VB/MCMC on 0.4.0`)
+  - core files updated:
+    - `R/static_beta_prior.R`
+    - `R/exal_static_LDVB.R`
+    - `R/exal_static_mcmc.R`
+    - `R/utils.R`
+    - `man/exal_static_LDVB.Rd`
+    - `man/exal_static_mcmc.Rd`
+    - `tests/testthat/test-static-beta-prior-rhs.R`
+  - verified on `cransub/0.4.0`:
+    - `testthat::test_local(filter = "static-beta-prior-rhs")`: PASS (86)
+    - `testthat::test_local(filter = "static-beta-prior-rhs|dqlm-reduced-paths")`: PASS (121)
+    - `testthat::test_local(filter = "static-exal-shared-issue-checks|static-class-generics|static-regression-regmod|static-ldvb-jacobian")`: PASS (255)
+- Cross-branch compatibility healthcheck re-run on `feature/qdesn-mcmc-alternative`:
+  - `testthat::test_local(filter = "exal-(inference-config|mcmc)")`: PASS (147)
+  - no local diffs on feature branch after verification run.
 
 ## 15) Next Action (When Implementation Starts)
 
