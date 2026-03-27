@@ -409,6 +409,15 @@ Owner: Codex + user
     - `/home/jaguir26/local/src/exdqlm__wt__rhs_ns_reconcile/check-logs/rhs_ns_stage9_R_CMD_build.log`
     - `/home/jaguir26/local/src/exdqlm__wt__rhs_ns_reconcile/check-logs/rhs_ns_stage9_R_CMD_check_as_cran_tarball.log`
     - `/home/jaguir26/local/src/exdqlm__wt__rhs_ns_reconcile/exdqlm.Rcheck/00check.log`
+- Added final stage-9 submission handoff memo on CRAN branch:
+  - commit: `a95ee8c` (`Add rhs_ns stage-9 submission handoff memo`)
+  - memo file:
+    - `/home/jaguir26/local/src/exdqlm__wt__rhs_ns_reconcile/RHS_NS_STAGE9_SUBMISSION_MEMO.md`
+  - memo captures:
+    - final scope/commit map,
+    - full validation summary,
+    - NOTE triage,
+    - release recommendation.
 
 ## 15) Next Actions (Post-Implementation)
 
