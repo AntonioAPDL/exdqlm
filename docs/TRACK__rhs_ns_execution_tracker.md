@@ -58,12 +58,12 @@ This tracker executes stages 3-9 from the approved plan. Stage 2 (baseline captu
 Status legend: `[ ]` not started, `[-]` in progress, `[x]` completed, `[!]` blocked
 
 - [x] Stage 3: Safe Integration Setup
-- [-] Stage 4: Branch Reconciliation
+- [!] Stage 4: Branch Reconciliation
 - [x] Stage 5: Robust Regression/Quality Gate
 - [x] Stage 6: RHS_NS Design Freeze
 - [x] Stage 7: RHS_NS Implementation
-- [-] Stage 8: Comparative Evaluation + Default Decision
-- [ ] Stage 9: Release Finalization (`0.4.0` readiness)
+- [x] Stage 8: Comparative Evaluation + Default Decision
+- [!] Stage 9: Release Finalization (`0.4.0` readiness)
 
 ## 5) Update Protocol (Mandatory)
 
@@ -238,35 +238,35 @@ Updates expected:
 
 ## 11) Stage 8: Comparative Evaluation + Default Decision
 
-Status: `[-]`  
+Status: `[x]`  
 Owner: Codex + user
 
 ### 11.1 Pre-Stage Investigation Checklist
 
-- [ ] Define benchmark matrix and compute budget.
-- [ ] Define objective criteria for “better”:
+- [x] Define benchmark matrix and compute budget.
+- [x] Define objective criteria for “better”:
   - predictive quality,
   - calibration,
   - runtime,
   - stability/mixing.
-- [ ] Define decision thresholds for default switch.
+- [x] Define decision thresholds for default switch.
 
 ### 11.2 Execution Checklist
 
-- [ ] Run matched experiments for `rhs` vs `rhs_ns`.
-- [ ] Compare VB (ELBO behavior, convergence, runtime).
-- [ ] Compare MCMC (mixing diagnostics, runtime, chain health).
-- [ ] Summarize equivalence/non-equivalence findings clearly.
+- [x] Run matched experiments for `rhs` vs `rhs_ns`.
+- [x] Compare VB (ELBO behavior, convergence, runtime).
+- [x] Compare MCMC (mixing diagnostics, runtime, chain health).
+- [x] Summarize equivalence/non-equivalence findings clearly.
 
 ### 11.3 Default Decision Gate
 
 - [ ] If `rhs_ns` is at least parity in predictive behavior and better in efficiency/stability, set default to `rhs_ns`.
-- [ ] Otherwise keep default as `rhs` and ship `rhs_ns` as opt-in.
-- [ ] Record final decision and rationale in docs.
+- [x] Otherwise keep default as `rhs` and ship `rhs_ns` as opt-in.
+- [x] Record final decision and rationale in docs.
 
 ## 12) Stage 9: Release Finalization (`0.4.0`)
 
-Status: `[ ]`  
+Status: `[!]`  
 Owner: Codex + user
 
 ### 12.1 Pre-Stage Investigation Checklist
@@ -351,8 +351,27 @@ Owner: Codex + user
   - VB runtime: `rhs ~7.33s` vs `rhs_ns ~2.50s`
   - MCMC runtime: `rhs ~18.73s` vs `rhs_ns ~5.21s`
   - posterior summaries (`beta_l2`, `sigma`, `gamma`) are in similar ranges.
+- Stage-8 full matrix benchmark finalized (artifact:
+  `reports/rhs_ns_stage8_matrix_20260327_v4.csv`):
+  - design: 3 synthetic seeds, both methods (`vb`, `mcmc`), both priors (`rhs`, `rhs_ns`)
+  - all 12 runs completed without fit errors
+  - VB mean runtime: `rhs 7.79s` vs `rhs_ns 1.25s` (speedup ~`6.25x`)
+  - MCMC mean runtime: `rhs 33.89s` vs `rhs_ns 9.15s` (speedup ~`3.70x`)
+  - predictive parity remained close:
+    - VB RMSE: `rhs 0.5478` vs `rhs_ns 0.5281`
+    - MCMC RMSE: `rhs 0.5262` vs `rhs_ns 0.5307`
+  - decision: keep `rhs` as current default for release stability, ship `rhs_ns` as recommended opt-in.
+- Attempted direct backport/cherry-pick into `cransub/0.4.0` from rhs_ns commits:
+  - command attempted in reconcile worktree:
+    - `cherry-pick 6756954 f500e7b`
+  - result: hard modify/delete conflicts because `cransub/0.4.0` does not contain
+    the newer inference/qdesn module file set (`exal_inference_config.R`,
+    `exal_ldvb_engine.R`, `exal_mcmc_fit.R`, etc.)
+  - action: cherry-pick aborted cleanly; mark Stage-9 as blocked pending a native
+    0.4.0-line port in the legacy static architecture (`R/static_beta_prior.R`,
+    `R/exal_static_LDVB.R`, `R/exal_static_mcmc.R`).
 
 ## 15) Next Action (When Implementation Starts)
 
-1. Complete Stage 8 with full benchmark matrix and formal default-switch criteria.
-2. If Stage-8 acceptance passes, execute Stage 9 release-finalization checklist.
+1. Execute a dedicated native `rhs_ns` port for `cransub/0.4.0` in its legacy static stack.
+2. Re-run CRAN-facing checks on the 0.4.0 line after native port completion.
