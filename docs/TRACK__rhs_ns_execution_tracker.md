@@ -418,6 +418,28 @@ Owner: Codex + user
     - full validation summary,
     - NOTE triage,
     - release recommendation.
+- Feature-branch static qdesn rhs-family hardening for rhs_ns completed:
+  - extended rhs-family diagnostics/trace plumbing so healthy `rhs_ns` VB runs no longer fail with `rhs_diagnostics_missing`.
+  - propagated rhs-family guardrail/init semantics (`init_log_tau` fallback and preflight visibility) through validation/simulation scripts.
+  - added median comparison assets:
+    - `config/validation/qdesn_rhs_vs_rhs_ns_median_defaults.yaml`
+    - `config/validation/qdesn_rhs_vs_rhs_ns_median_grid.csv`
+    - `scripts/run_qdesn_rhs_vs_rhsns_median_validation.R`
+  - added rhs_ns-focused validation tests in:
+    - `tests/testthat/test-exal-inference-config.R`
+    - `tests/testthat/test-qdesn-mcmc-validation-pilot.R`
+  - targeted tests:
+    - `exal-inference-config`: PASS (`21` expectations)
+    - `qdesn-mcmc-validation-pilot`: PASS (`98` expectations)
+    - `pipeline-inference-validation`: PASS (`20` expectations)
+  - focused run evidence:
+    - run tag: `20260327-104735__git-2acd278`
+    - report root:
+      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/rhs_vs_rhs_ns_median/20260327-104735__git-2acd278`
+    - results root:
+      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/results/qdesn_mcmc_validation/rhs_vs_rhs_ns_median/20260327-104735__git-2acd278`
+    - all 4 fits succeeded, no collapse flags, rhs diagnostics present for both priors.
+    - VB signoff improved on `rhs_ns` (`PASS`) relative to `rhs` (`WARN`); both MCMC fits still flagged `geweke_drift`.
 
 ## 15) Next Actions (Post-Implementation)
 
