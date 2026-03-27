@@ -1,0 +1,70 @@
+base_patch: {}
+
+profiles:
+  - id: MR1_base_replay
+    description: "Replay current guardrailed Stage-M defaults on failed roots."
+    patch: {}
+
+  - id: MR1_longer_chain
+    description: "Longer RHS chain on failed roots."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 3200
+                n_mcmc: 6400
+                progress_every: 640
+
+  - id: MR1_longer_chain_plus_mixing
+    description: "Longer chain plus stronger transformed RHS block mixing."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 3200
+                n_mcmc: 6400
+                progress_every: 640
+                slice:
+                  width_rhs_lambda: 0.20
+                  width_rhs_tau: 0.14
+                  width_rhs_c2: 0.09
+                  width_rhs_tau_c2_block: 0.30
+                  rhs_transformed_block_passes: 3
+                  width_rhs_tau_c2_transformed_z1: 0.26
+                  width_rhs_tau_c2_transformed_z2: 0.20
+
+  - id: MR1_longer_chain_plus_adapt
+    description: "Profile 3 plus longer adaptation warmup and stronger tau freeze."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 3600
+                n_mcmc: 7200
+                progress_every: 720
+                rhs:
+                  freeze_tau_burnin_iters: 60
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 500
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.03
+                    width_min: 0.04
+                    width_max: 1.0
+                slice:
+                  width_rhs_lambda: 0.20
+                  width_rhs_tau: 0.14
+                  width_rhs_c2: 0.09
+                  width_rhs_tau_c2_block: 0.30
+                  rhs_transformed_block_passes: 3
+                  width_rhs_tau_c2_transformed_z1: 0.26
+                  width_rhs_tau_c2_transformed_z2: 0.20

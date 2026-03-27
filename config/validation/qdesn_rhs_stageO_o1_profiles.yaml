@@ -1,0 +1,38 @@
+base_patch: {}
+
+profiles:
+  - id: O1_probe_seedA
+    description: "Baseline replay with chain/VB warm-start seed A."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                mcmc_control:
+                  rng_seed: 1101
+                  vb_warm_start_seed: 2101
+
+  - id: O1_probe_seedB
+    description: "Baseline replay with chain/VB warm-start seed B."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                mcmc_control:
+                  rng_seed: 1102
+                  vb_warm_start_seed: 2102
+
+  - id: O1_probe_seedC
+    description: "Baseline replay with chain/VB warm-start seed C."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                mcmc_control:
+                  rng_seed: 1103
+                  vb_warm_start_seed: 2103

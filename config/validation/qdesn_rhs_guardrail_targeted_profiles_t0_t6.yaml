@@ -1,0 +1,140 @@
+base_patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 1200
+            n_mcmc: 2400
+            progress_every: 240
+            vb_warm_start_control:
+              max_iter: 70
+              min_iter_elbo: 12
+              n_samp_xi: 160
+              verbose: no
+              rhs:
+                freeze_tau_iters: 20
+                freeze_tau_warmup_iters: 20
+                tau_local_tol: 5.0e-4
+                min_tau_updates: 2
+                force_tau_after_warmup: yes
+            rhs:
+              freeze_tau_burnin_iters: 20
+              freeze_tau_only_during_burn: yes
+            slice:
+              width_gamma: 0.55
+              width_sigma: 0.35
+              width_rhs_lambda: 0.24
+              width_rhs_tau: 0.18
+              width_rhs_c2: 0.11
+              width_rhs_tau_c2_block: 0.40
+              rhs_global_block_update: directional_tau_c2
+              max_steps_out: 70
+              max_shrink: 300
+
+profiles:
+  - id: T0_control_balanced_v1
+    description: "Control profile (balanced_v1-equivalent)."
+    patch: {}
+
+  - id: T1_chain_length_only
+    description: "Longer chain only to test finite-sample stationarity."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+
+  - id: T2_tau_warmup_only
+    description: "Increase MCMC tau freeze window only."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                rhs:
+                  freeze_tau_burnin_iters: 35
+                  freeze_tau_only_during_burn: yes
+
+  - id: T3_vb_warmstart_stronger
+    description: "Strengthen VB warm start only."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                vb_warm_start_control:
+                  max_iter: 90
+                  min_iter_elbo: 12
+                  n_samp_xi: 220
+                  verbose: no
+                  rhs:
+                    freeze_tau_iters: 30
+                    freeze_tau_warmup_iters: 30
+                    tau_local_tol: 5.0e-4
+                    min_tau_updates: 2
+                    force_tau_after_warmup: yes
+
+  - id: T4_rhs_widths_narrow
+    description: "Narrow RHS slice geometry only."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                slice:
+                  width_rhs_lambda: 0.22
+                  width_rhs_tau: 0.16
+                  width_rhs_c2: 0.10
+                  width_rhs_tau_c2_block: 0.35
+                  rhs_global_block_update: directional_tau_c2
+
+  - id: T5_global_block_coordinate
+    description: "Switch global block update mode to coordinate only."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                slice:
+                  rhs_global_block_update: coordinate
+
+  - id: T6_combined_length_and_geometry
+    description: "Combined profile: longer chain + stronger warm start + narrower RHS geometry."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+                vb_warm_start_control:
+                  max_iter: 90
+                  min_iter_elbo: 12
+                  n_samp_xi: 220
+                  verbose: no
+                  rhs:
+                    freeze_tau_iters: 30
+                    freeze_tau_warmup_iters: 30
+                    tau_local_tol: 5.0e-4
+                    min_tau_updates: 2
+                    force_tau_after_warmup: yes
+                rhs:
+                  freeze_tau_burnin_iters: 35
+                  freeze_tau_only_during_burn: yes
+                slice:
+                  width_rhs_lambda: 0.22
+                  width_rhs_tau: 0.16
+                  width_rhs_c2: 0.10
+                  width_rhs_tau_c2_block: 0.35
+                  rhs_global_block_update: directional_tau_c2

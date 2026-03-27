@@ -1,0 +1,137 @@
+base_patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 1200
+            n_mcmc: 2400
+            progress_every: 240
+            vb_warm_start_control:
+              max_iter: 70
+              min_iter_elbo: 12
+              n_samp_xi: 160
+              verbose: no
+              rhs:
+                freeze_tau_iters: 20
+                freeze_tau_warmup_iters: 20
+                tau_local_tol: 5.0e-4
+                min_tau_updates: 2
+                force_tau_after_warmup: yes
+            rhs:
+              freeze_tau_burnin_iters: 35
+              freeze_tau_only_during_burn: yes
+            slice:
+              width_gamma: 0.55
+              width_sigma: 0.35
+              width_rhs_lambda: 0.24
+              width_rhs_tau: 0.18
+              width_rhs_c2: 0.11
+              width_rhs_tau_c2_block: 0.40
+              rhs_global_block_update: directional_tau_c2
+              max_steps_out: 70
+              max_shrink: 300
+
+profiles:
+  - id: F0_control
+    description: "Control profile from drift-rescue winner path."
+    patch: {}
+
+  - id: F1_chain_length_2x
+    description: "Longer chain only."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+
+  - id: F2_chain2x_tau_freeze50
+    description: "Longer chain + RHS tau freeze burn-in at 50."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+                rhs:
+                  freeze_tau_burnin_iters: 50
+                  freeze_tau_only_during_burn: yes
+
+  - id: F3_chain2x_tau50_vbstrong
+    description: "Longer chain + tau freeze 50 + stronger VB warm start."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+                vb_warm_start_control:
+                  max_iter: 90
+                  min_iter_elbo: 12
+                  n_samp_xi: 220
+                  verbose: no
+                  rhs:
+                    freeze_tau_iters: 30
+                    freeze_tau_warmup_iters: 30
+                    tau_local_tol: 5.0e-4
+                    min_tau_updates: 2
+                    force_tau_after_warmup: yes
+                rhs:
+                  freeze_tau_burnin_iters: 50
+                  freeze_tau_only_during_burn: yes
+
+  - id: F4_chain2x_tau50_narrow
+    description: "Longer chain + tau freeze 50 + narrower RHS slice geometry."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+                rhs:
+                  freeze_tau_burnin_iters: 50
+                  freeze_tau_only_during_burn: yes
+                slice:
+                  width_rhs_lambda: 0.20
+                  width_rhs_tau: 0.14
+                  width_rhs_c2: 0.09
+                  width_rhs_tau_c2_block: 0.30
+                  rhs_global_block_update: directional_tau_c2
+                  max_steps_out: 80
+                  max_shrink: 350
+
+  - id: F5_chain2x_tau50_narrow_coordinate
+    description: "F4 + coordinate global block update."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+                rhs:
+                  freeze_tau_burnin_iters: 50
+                  freeze_tau_only_during_burn: yes
+                slice:
+                  width_rhs_lambda: 0.20
+                  width_rhs_tau: 0.14
+                  width_rhs_c2: 0.09
+                  width_rhs_tau_c2_block: 0.30
+                  rhs_global_block_update: coordinate
+                  max_steps_out: 80
+                  max_shrink: 350

@@ -1,0 +1,2 @@
+scenario,tau,beta_prior_type,seed,reservoir_profile,enabled
+sin_asym_small,0.05,rhs,231,tiny_d1_n8,TRUE

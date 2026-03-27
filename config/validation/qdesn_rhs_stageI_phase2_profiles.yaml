@@ -1,0 +1,46 @@
+base_patch: {}
+
+profiles:
+  - id: P2_baseline_from_phase1
+    description: "Carry forward Phase1 winner unchanged."
+    patch: {}
+
+  - id: P2_core_extra_passes
+    description: "Add one extra sigma/gamma core pass per iteration."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                slice:
+                  core_extra_passes: 1
+
+  - id: P2_rhs_transformed_block
+    description: "Switch RHS block to transformed (log_tau, log_c2) with two passes."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                slice:
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 2
+                  width_rhs_tau_c2_transformed_z1: 0.34
+                  width_rhs_tau_c2_transformed_z2: 0.26
+
+  - id: P2_combined_core_and_transformed
+    description: "Combine transformed RHS block strategy and extra core passes."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                slice:
+                  core_extra_passes: 1
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 2
+                  width_rhs_tau_c2_transformed_z1: 0.34
+                  width_rhs_tau_c2_transformed_z2: 0.26

@@ -1800,7 +1800,11 @@ qdesn_validation_run_root <- function(root_spec,
     row
   })
   status_part <- .qdesn_validation_bind_rows(status_rows)
-  merge(status_part, numeric_part, by = group_cols, all = TRUE, sort = FALSE)
+  if (!nrow(status_part)) return(numeric_part)
+  if (!nrow(numeric_part)) return(status_part)
+  by_cols <- intersect(group_cols, intersect(names(status_part), names(numeric_part)))
+  if (!length(by_cols)) return(status_part)
+  merge(status_part, numeric_part, by = by_cols, all = TRUE, sort = FALSE)
 }
 
 .qdesn_validation_group_pair_summary <- function(pair_summary) {
@@ -1840,7 +1844,11 @@ qdesn_validation_run_root <- function(root_spec,
     row
   })
   status_part <- .qdesn_validation_bind_rows(status_rows)
-  merge(status_part, numeric_part, by = group_cols, all = TRUE, sort = FALSE)
+  if (!nrow(status_part)) return(numeric_part)
+  if (!nrow(numeric_part)) return(status_part)
+  by_cols <- intersect(group_cols, intersect(names(status_part), names(numeric_part)))
+  if (!length(by_cols)) return(status_part)
+  merge(status_part, numeric_part, by = by_cols, all = TRUE, sort = FALSE)
 }
 
 .qdesn_validation_group_stage_summary <- function(stage_rows) {
@@ -2197,11 +2205,15 @@ qdesn_validation_run_campaign <- function(grid = NULL,
                                           report_root = NULL,
                                           create_plots = TRUE,
                                           root_filter = NULL,
-                                          verbose = TRUE) {
+                                          verbose = TRUE,
+                                          workers = NULL) {
   defaults <- defaults %||% qdesn_validation_load_defaults(defaults_path)
   grid <- grid %||% qdesn_validation_load_grid(grid_path)
 
   campaign_cfg <- defaults$campaign %||% list()
+  runtime_cfg <- defaults$runtime %||% list()
+  workers <- as.integer(workers %||% runtime_cfg$campaign_workers %||% runtime_cfg$workers %||% 1L)[1L]
+  if (!is.finite(workers) || is.na(workers) || workers < 1L) workers <- 1L
   results_root <- results_root %||% .qdesn_validation_resolve_path(
     campaign_cfg$results_root %||% file.path("results", "qdesn_mcmc_validation", "pilot"),
     must_work = FALSE
@@ -2229,14 +2241,22 @@ qdesn_validation_run_campaign <- function(grid = NULL,
   ))
 
   root_filter <- as.character(root_filter %||% character(0))
-  run_status_rows <- list()
-
+  root_targets <- list()
   for (i in seq_len(nrow(grid))) {
     root_spec <- qdesn_validation_enrich_root_spec(as.list(grid[i, , drop = FALSE]), defaults)
     if (!isTRUE(root_spec$enabled)) next
     if (length(root_filter) && !(root_spec$root_id %in% root_filter)) next
+    root_targets[[length(root_targets) + 1L]] <- list(
+      root_spec = root_spec,
+      grid_index = i
+    )
+  }
+
+  run_status_rows <- list()
+  run_one <- function(target, seq_id, n_total) {
+    root_spec <- target$root_spec
     if (isTRUE(verbose)) {
-      message(sprintf("[qdesn_validation_run_campaign] root %d/%d | %s", i, nrow(grid), root_spec$root_id))
+      message(sprintf("[qdesn_validation_run_campaign] root %d/%d | %s", seq_id, n_total, root_spec$root_id))
     }
     res <- tryCatch(
       qdesn_validation_run_root(
@@ -2260,23 +2280,44 @@ qdesn_validation_run_campaign <- function(grid = NULL,
         )
       }
     )
-
-    row <- if (is.data.frame(res)) {
-      res
-    } else {
-      tmp <- res$root_summary
-      tmp$error_message <- ""
-      tmp
+    if (is.data.frame(res)) {
+      return(res)
     }
-    run_status_rows[[length(run_status_rows) + 1L]] <- row
-    .qdesn_validation_write_df(.qdesn_validation_bind_rows(run_status_rows), file.path(report_run_root, "tables", "campaign_progress.csv"))
-    qdesn_validation_collect_campaign(
-      results_root = results_run_root,
-      report_root = report_run_root,
-      create_plots = create_plots,
-      defaults = defaults,
-      defaults_path = defaults_path
+    tmp <- res$root_summary
+    tmp$error_message <- ""
+    tmp
+  }
+
+  n_targets <- length(root_targets)
+  if (!n_targets) {
+    if (isTRUE(verbose)) message("[qdesn_validation_run_campaign] no enabled roots after filtering.")
+  } else if (workers > 1L && .Platform$OS.type == "unix" && n_targets > 1L) {
+    if (isTRUE(verbose)) {
+      message(sprintf("[qdesn_validation_run_campaign] running in parallel | workers=%d | roots=%d", workers, n_targets))
+    }
+    run_status_rows <- parallel::mclapply(
+      X = seq_len(n_targets),
+      FUN = function(jj) run_one(root_targets[[jj]], jj, n_targets),
+      mc.cores = workers,
+      mc.preschedule = TRUE
     )
+    .qdesn_validation_write_df(.qdesn_validation_bind_rows(run_status_rows), file.path(report_run_root, "tables", "campaign_progress.csv"))
+  } else {
+    if (isTRUE(workers > 1L) && .Platform$OS.type != "unix" && isTRUE(verbose)) {
+      message("[qdesn_validation_run_campaign] workers>1 requested but OS is non-unix; falling back to serial.")
+    }
+    for (jj in seq_len(n_targets)) {
+      row <- run_one(root_targets[[jj]], jj, n_targets)
+      run_status_rows[[length(run_status_rows) + 1L]] <- row
+      .qdesn_validation_write_df(.qdesn_validation_bind_rows(run_status_rows), file.path(report_run_root, "tables", "campaign_progress.csv"))
+      qdesn_validation_collect_campaign(
+        results_root = results_run_root,
+        report_root = report_run_root,
+        create_plots = create_plots,
+        defaults = defaults,
+        defaults_path = defaults_path
+      )
+    }
   }
 
   final <- qdesn_validation_collect_campaign(

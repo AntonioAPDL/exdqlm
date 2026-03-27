@@ -1,0 +1,48 @@
+inputs:
+  candidate_defaults: config/validation/qdesn_mcmc_compare_rhs_stageI_candidate.yaml
+  broader_grid: config/validation/qdesn_mcmc_multichain_rhs_broader_confirmation_grid.csv
+  stagek_profiles: config/validation/qdesn_rhs_stageK_profiles.yaml
+  stagei_analysis_root: reports/qdesn_mcmc_validation/rhs_stageI_phase1_phase2_wave/stageI-20260323-045151__git-88c0369
+
+gates:
+  stageJ:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  stageK:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  stageL:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+
+stageM:
+  scenario:
+    - toy_sine_small
+    - const_small
+    - sin_asym_small
+    - level_shift_small
+  tau:
+    - 0.05
+    - 0.25
+    - 0.5
+  beta_prior_type:
+    - rhs
+  seed:
+    - 123
+    - 231
+    - 321
+  reservoir_profile:
+    - tiny_d1_n8
+  enabled: yes
+
+outputs:
+  promotion_defaults: config/validation/qdesn_mcmc_compare_rhs_stageJKL_promoted.yaml
+  stagem_defaults_template: config/validation/qdesn_mcmc_compare_rhs_stageM_template.yaml
+  stagem_grid: config/validation/qdesn_rhs_stageM_expansion_grid.csv
+  tracker_doc: docs/TRACK__qdesn_rhs_stageJ_K_L_M_wave.md

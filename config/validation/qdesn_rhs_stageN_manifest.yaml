@@ -1,0 +1,36 @@
+meta:
+  tracker_title: "TRACK: QDESN RHS Stage-N Targeted Drift Repair Wave"
+  stage_label: "Stage-N"
+  mr2_description: "Blocker reconfirm (2 roots) with NR1 winner."
+  mr3_description: "Full 36-root reconfirmation with NR1 winner."
+  output_manifest_name: "stageM_repair_manifest.json"
+
+inputs:
+  promoted_defaults: config/validation/qdesn_mcmc_compare_rhs_stageM_repair_winner.yaml
+  guardrail_lock: config/validation/qdesn_rhs_guardrail_lock.yaml
+  failed_grid: config/validation/qdesn_rhs_stageN_blocker_grid.csv
+  canary_grid: config/validation/qdesn_rhs_stageN_blocker_grid.csv
+  full_grid: config/validation/qdesn_rhs_stageM_expansion_grid.csv
+  mr1_profiles: config/validation/qdesn_rhs_stageN_profiles.yaml
+
+gates:
+  mr1:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  mr2:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  mr3:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+
+outputs:
+  winner_defaults: config/validation/qdesn_mcmc_compare_rhs_stageN_repair_winner.yaml
+  promoted_defaults: config/validation/qdesn_mcmc_compare_rhs_stageN_repair_promoted.yaml
+  tracker_doc: docs/TRACK__qdesn_rhs_stageN_wave.md

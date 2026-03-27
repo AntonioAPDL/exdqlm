@@ -1,0 +1,132 @@
+base_patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 1200
+            n_mcmc: 2400
+            progress_every: 240
+            vb_warm_start_control:
+              max_iter: 70
+              min_iter_elbo: 12
+              n_samp_xi: 160
+              verbose: no
+              rhs:
+                freeze_tau_iters: 20
+                freeze_tau_warmup_iters: 20
+                tau_local_tol: 5.0e-4
+                min_tau_updates: 2
+                force_tau_after_warmup: yes
+            rhs:
+              freeze_tau_burnin_iters: 35
+              freeze_tau_only_during_burn: yes
+            slice:
+              width_gamma: 0.55
+              width_sigma: 0.35
+              width_rhs_lambda: 0.24
+              width_rhs_tau: 0.18
+              width_rhs_c2: 0.11
+              width_rhs_tau_c2_block: 0.40
+              rhs_global_block_update: directional_tau_c2
+              max_steps_out: 70
+              max_shrink: 300
+
+profiles:
+  - id: G0_baseline
+    description: "Frozen Stage-F control baseline (F0-equivalent)."
+    patch: {}
+
+  - id: G1_transformed_block_only
+    description: "Use transformed (log_tau, log_c2) blocked slice updates only."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                slice:
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 2
+                  width_rhs_tau_c2_transformed_z1: 0.36
+                  width_rhs_tau_c2_transformed_z2: 0.28
+
+  - id: G2_adaptation_only
+    description: "Keep baseline kernel, add RHS width warmup adaptation then freeze."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                rhs:
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 220
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.06
+                    width_min: 0.05
+                    width_max: 1.20
+
+  - id: G3_multistart_only
+    description: "Keep baseline kernel, select start via short RHS multi-start pilots."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                multi_start:
+                  enabled: yes
+                  n_starts: 4
+                  pilot_n_burn: 180
+                  pilot_n_mcmc: 220
+                  perturb_sd_log_tau: 0.30
+                  perturb_sd_log_c2: 0.30
+                  perturb_sd_log_lambda: 0.18
+                  perturb_sd_beta: 0.04
+                  diagnostics:
+                    ess_min: 20
+                    geweke_max: 3.0
+                    half_drift_max: 0.50
+                    collapse_tau_floor: 1.0e-7
+                    collapse_beta_norm_floor: 1.0e-4
+
+  - id: G4_combined
+    description: "Transformed blocked RHS updates + warmup adaptation + multi-start pilots."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                multi_start:
+                  enabled: yes
+                  n_starts: 4
+                  pilot_n_burn: 180
+                  pilot_n_mcmc: 220
+                  perturb_sd_log_tau: 0.30
+                  perturb_sd_log_c2: 0.30
+                  perturb_sd_log_lambda: 0.18
+                  perturb_sd_beta: 0.04
+                  diagnostics:
+                    ess_min: 20
+                    geweke_max: 3.0
+                    half_drift_max: 0.50
+                rhs:
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 220
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.06
+                    width_min: 0.05
+                    width_max: 1.20
+                slice:
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 2
+                  width_rhs_tau_c2_transformed_z1: 0.36
+                  width_rhs_tau_c2_transformed_z2: 0.28

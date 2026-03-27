@@ -1,0 +1,52 @@
+meta:
+  tracker_title: "TRACK: QDESN RHS Stage-O Drift Closure Wave"
+  stage_label: "Stage-O"
+  o1_description: "O1 stochasticity probe on blocker root."
+  o2_description: "O2 blocker-root candidate racing matrix."
+  o3_description: "O3 stress6 reconfirmation with selected candidate."
+  o4_description: "O4 full 36-root reconfirmation with selected candidate."
+  output_manifest_name: "stageO_manifest.json"
+
+inputs:
+  base_defaults: config/validation/qdesn_mcmc_compare_rhs_stageN_repair_winner.yaml
+  guardrail_lock: config/validation/qdesn_rhs_guardrail_lock.yaml
+  blocker_grid: config/validation/qdesn_rhs_stageO_blocker_grid.csv
+  stress_grid: config/validation/qdesn_rhs_stageO_stress6_grid.csv
+  full_grid: config/validation/qdesn_rhs_stageM_expansion_grid.csv
+  o1_profiles: config/validation/qdesn_rhs_stageO_o1_profiles.yaml
+  o2_profiles: config/validation/qdesn_rhs_stageO_o2_profiles.yaml
+  stageN_analysis_root: reports/qdesn_mcmc_validation/rhs_stageM_repair_wave/stageNrepair-20260325-150856__git-d81c311
+
+gates:
+  o1:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  o2:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  o3:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  o4:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+
+controls:
+  skip_o2_if_o1_clean: yes
+  runtime_guardrail_max_increase_frac: 0.20
+  outer_workers: 6
+  profile_workers: 3
+  threads_per_worker: 1
+
+outputs:
+  winner_defaults: config/validation/qdesn_mcmc_compare_rhs_stageO_candidate.yaml
+  promoted_defaults: config/validation/qdesn_mcmc_compare_rhs_stageO_promoted.yaml
+  tracker_doc: docs/TRACK__qdesn_rhs_stageO_wave.md
