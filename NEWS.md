@@ -16,6 +16,10 @@
   `exal_static_LDVB()` and `exal_static_mcmc()`.
 - Added static coefficient prior options for ridge and regularized horseshoe
   (`beta_prior = "ridge"` / `"rhs"`) in both static LDVB and static MCMC.
+- Added additive static `rhs_ns` prior support for both static LDVB and static
+  MCMC (`beta_prior = "rhs_ns"`), including slab-control aliases
+  (`a_zeta`, `b_zeta`, `zeta2_fixed`) while preserving existing `rhs` and
+  `ridge` behavior.
 - Added `transfn_exdqlmLDVB()` for post-fit transformed summaries analogous to
   the ISVB path.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),

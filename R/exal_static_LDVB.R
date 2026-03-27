@@ -659,10 +659,12 @@
 #' @param max_iter Integer; maximum CAVI iterations (default 1000).
 #' @param tol Numeric; convergence tolerance based on relative ELBO changes (default 1e-4).
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
-#' @param beta_prior Coefficient prior type: \code{"ridge"} (default) or
-#'   \code{"rhs"} for the regularized horseshoe.
+#' @param beta_prior Coefficient prior type: \code{"ridge"} (default),
+#'   \code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
+#'   (Nishimura-Suchard style regularized horseshoe controls).
 #' @param beta_prior_controls Optional list of prior-specific controls. For
-#'   \code{beta_prior = "rhs"}, supported keys follow the qdesn implementation:
+#'   RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
+#'   \code{"rhs_ns"}), supported keys follow the qdesn implementation:
 #'   \code{tau0}, \code{nu}, \code{s} or \code{s2}, \code{shrink_intercept},
 #'   \code{intercept_prec}, \code{n_inner}, \code{eta_bounds},
 #'   \code{freeze_tau_iters}, \code{freeze_tau_warmup_iters},
@@ -674,7 +676,10 @@
 #'   \code{warn_on_collapse}, \code{var_floor}, \code{h_curv},
 #'   \code{verbose}, \code{init_lambda}, \code{init_log_lambda},
 #'   \code{init_tau}, \code{init_log_tau}, \code{init_c2},
-#'   and \code{init_log_c2}. When \code{beta_prior = "rhs"},
+#'   and \code{init_log_c2}. For \code{beta_prior = "rhs_ns"}, optional slab
+#'   aliases \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also
+#'   supported (mapped to \code{nu}/\code{s2} and \code{c2} controls).
+#'   When \code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"},
 #'   \code{b0} and \code{V0} are retained only for backward-compatible ridge
 #'   behavior and are ignored for the shrunk coefficients. If both
 #'   \code{init_log_tau} and \code{init_tau} are omitted (or \code{NULL}),
@@ -747,7 +752,7 @@
 #' deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
 #' Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
 #' optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
-#' stabilized qdesn readout implementation. When \code{beta_prior = "rhs"}, the
+#' stabilized qdesn readout implementation. For RHS-family priors, the
 #' prior block uses qdesn-style \code{tau} warmup/freeze scheduling to avoid the
 #' early-collapse regime where global shrinkage drives all slope coefficients
 #' toward zero before the likelihood-side variational factors stabilize.
@@ -769,6 +774,14 @@
 #' )
 #' fit_rhs$beta_prior$type
 #'
+#' fit_rhs_ns <- exal_static_LDVB(
+#'   y = y, X = X, p0 = 0.5,
+#'   beta_prior = "rhs_ns",
+#'   beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
+#'   max_iter = 80, tol = 5e-3, verbose = FALSE
+#' )
+#' fit_rhs_ns$beta_prior$type
+#'
 #' fit_al <- exal_static_LDVB(
 #'   y = y, X = X, p0 = 0.5,
 #'   dqlm.ind = TRUE,
@@ -781,7 +794,7 @@ exal_static_LDVB <- function(
   y, X, p0,
   max_iter = 1000, tol = 1e-4,
   b0 = NULL, V0 = NULL,
-  beta_prior = c("ridge", "rhs"),
+  beta_prior = c("ridge", "rhs", "rhs_ns"),
   beta_prior_controls = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
@@ -815,7 +828,7 @@ exal_static_LDVB <- function(
     warn_rhs_V0 = !V0_missing
   )
   rhs_preflight <- NULL
-  if (identical(beta_prior_obj$type, "rhs")) {
+  if (.static_is_rhs_family(beta_prior_obj$type)) {
     rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
     .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_ldvb")
   }
@@ -836,7 +849,7 @@ exal_static_LDVB <- function(
       init = init,
       verbose = verbose
     )
-    if (identical(beta_prior_obj$type, "rhs")) {
+    if (.static_is_rhs_family(beta_prior_obj$type)) {
       ret$diagnostics$rhs <- list(
         preflight = rhs_preflight,
         summary = ret$beta_prior$summary
@@ -1775,7 +1788,7 @@ exal_static_LDVB <- function(
       trace_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
       s_stats <- .exdqlm_trace_summary(s_mom$Es)
       tau2_stats <- .exdqlm_trace_summary(tau2)
-      rhs_summary <- if (identical(beta_prior_obj$type, "rhs")) {
+      rhs_summary <- if (.static_is_rhs_family(beta_prior_obj$type)) {
         beta_prior_obj$summary_vb(beta_state)
       } else {
         NULL
@@ -2030,7 +2043,7 @@ exal_static_LDVB <- function(
       type = beta_prior_obj$type,
       controls = beta_prior_obj$controls,
       summary = beta_prior_summary,
-      state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+      state = if (.static_is_rhs_family(beta_prior_obj$type)) beta_state else NULL
     ),
     misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace),
     diagnostics = list(
@@ -2056,7 +2069,7 @@ exal_static_LDVB <- function(
         s = delta_s,
         elbo = delta_elbo
       ),
-      rhs = if (identical(beta_prior_obj$type, "rhs")) {
+      rhs = if (.static_is_rhs_family(beta_prior_obj$type)) {
         list(
           preflight = rhs_preflight,
           summary = beta_prior_summary
@@ -2108,7 +2121,7 @@ exal_static_LDVB <- function(
       )
     )
   )
-  if (identical(beta_prior_obj$type, "rhs")) {
+  if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
   class(ret) <- c("exal_ldvb", "exal_vb")

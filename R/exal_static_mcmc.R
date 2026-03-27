@@ -21,11 +21,13 @@
 #' @param p0 Quantile level in \eqn{(0,1)}.
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta} (Normal). Defaults:
 #'   \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.
-#' @param beta_prior Coefficient prior type: \code{"ridge"} (default) or
-#'   \code{"rhs"} for the regularized horseshoe.
+#' @param beta_prior Coefficient prior type: \code{"ridge"} (default),
+#'   \code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
+#'   (Nishimura-Suchard style regularized horseshoe controls).
 #' @param beta_prior_controls Optional list of prior-specific controls. For
-#'   \code{beta_prior = "rhs"}, supported keys follow the qdesn-style static
-#'   interface: \code{tau0}, \code{nu}, \code{s} or \code{s2},
+#'   RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
+#'   \code{"rhs_ns"}), supported keys follow the qdesn-style static interface:
+#'   \code{tau0}, \code{nu}, \code{s} or \code{s2},
 #'   \code{shrink_intercept}, \code{intercept_prec}, \code{n_inner},
 #'   \code{eta_bounds}, \code{var_floor}, \code{h_curv}, \code{verbose},
 #'   \code{init_lambda}, \code{init_log_lambda}, \code{init_tau},
@@ -33,8 +35,12 @@
 #'   \code{collapse_tau_ratio_tol}, \code{collapse_beta_max_abs_tol},
 #'   \code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
 #'   \code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
-#'   \code{slice_width}, and \code{slice_max_steps}. When
-#'   \code{beta_prior = "rhs"}, \code{b0} and \code{V0} are ignored for the
+#'   \code{slice_width}, and \code{slice_max_steps}. For
+#'   \code{beta_prior = "rhs_ns"}, optional slab aliases
+#'   \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported
+#'   (mapped to \code{nu}/\code{s2} and \code{c2} controls). When
+#'   \code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"}, \code{b0} and \code{V0}
+#'   are ignored for the
 #'   shrunk coefficients and retained only for backward-compatible ridge
 #'   behavior. If both \code{init_log_tau} and \code{init_tau} are omitted
 #'   (or \code{NULL}), the RHS global scale initializes at \code{tau = 1}
@@ -49,7 +55,7 @@
 #'   admissible support.
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
-#'   for \code{beta_prior = "rhs"} optionally \code{lambda}, \code{tau}, and
+#'   for RHS-family priors optionally \code{lambda}, \code{tau}, and
 #'   \code{c2}. Missing pieces are filled sensibly.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 #'   with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.
@@ -113,13 +119,13 @@
 #'   \item \code{samp.v} - latent \code{v} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 #'   \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 #'   \item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
-#'         draws when \code{beta_prior = "rhs"}; otherwise \code{NULL}.
+#'         draws when an RHS-family prior is used; otherwise \code{NULL}.
 #'   \item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
 #'         of the shrinkage block.
 #'   \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 #'         including whether the saved kernel is exact/signoff-ready.
 #'   \item \code{rhs.diagnostics} - RHS latent summaries and optional trace
-#'         metadata when \code{beta_prior = "rhs"}, including the resolved
+#'         metadata when an RHS-family prior is used, including the resolved
 #'         preflight configuration used at fit start.
 #'   \item \code{last} - last state of the chain (useful for restarts).
 #' }
@@ -145,6 +151,14 @@
 #' )
 #' fit_rhs$beta_prior$type
 #'
+#' fit_rhs_ns <- exal_static_mcmc(
+#'   y, X, p0 = 0.5,
+#'   beta_prior = "rhs_ns",
+#'   beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
+#'   n.burn = 80, n.mcmc = 80, thin = 1, mh.proposal = "slice", verbose = FALSE
+#' )
+#' fit_rhs_ns$beta_prior$type
+#'
 #' fit_al <- exal_static_mcmc(
 #'   y, X, p0 = 0.5,
 #'   dqlm.ind = TRUE,
@@ -155,7 +169,7 @@
 exal_static_mcmc <- function(
   y, X, p0,
   b0 = NULL, V0 = NULL,
-  beta_prior = c("ridge", "rhs"),
+  beta_prior = c("ridge", "rhs", "rhs_ns"),
   beta_prior_controls = NULL,
   a_sigma = 1, b_sigma = 1,
   gamma_bounds = c(L.fn(p0), U.fn(p0)),
@@ -205,13 +219,13 @@ exal_static_mcmc <- function(
     warn_rhs_b0 = !b0_missing,
     warn_rhs_V0 = !V0_missing
   )
-  rhs_active_idx <- if (identical(beta_prior_obj$type, "rhs")) {
+  rhs_active_idx <- if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_active_idx(p, beta_prior_obj$controls$shrink_intercept)
   } else {
     integer(0)
   }
   rhs_preflight <- NULL
-  if (identical(beta_prior_obj$type, "rhs")) {
+  if (.static_is_rhs_family(beta_prior_obj$type)) {
     rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
     .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_mcmc")
   }
@@ -414,9 +428,9 @@ exal_static_mcmc <- function(
   save.gamma <- numeric(n_save)
   save.v     <- matrix(NA_real_, n, n_save)
   save.s     <- matrix(NA_real_, n, n_save)
-  save.lambda <- if (identical(beta_prior_obj$type, "rhs")) matrix(NA_real_, n_save, p) else NULL
-  save.tau <- if (identical(beta_prior_obj$type, "rhs")) numeric(n_save) else NULL
-  save.c2 <- if (identical(beta_prior_obj$type, "rhs")) numeric(n_save) else NULL
+  save.lambda <- if (.static_is_rhs_family(beta_prior_obj$type)) matrix(NA_real_, n_save, p) else NULL
+  save.tau <- if (.static_is_rhs_family(beta_prior_obj$type)) numeric(n_save) else NULL
+  save.c2 <- if (.static_is_rhs_family(beta_prior_obj$type)) numeric(n_save) else NULL
 
   ## --- initialize -----------------------------------------------------------
   beta  <- if (is.null(init$beta)) rep(0, p) else as.numeric(init$beta)
@@ -439,7 +453,7 @@ exal_static_mcmc <- function(
   s <- require_finite_vector(s, "init$s")
   s <- pmax(0, s)
   beta_state <- beta_prior_obj$init_mcmc()
-  if (identical(beta_prior_obj$type, "rhs")) {
+  if (.static_is_rhs_family(beta_prior_obj$type)) {
     if (isTRUE(init.from.vb) && exists("vb.fit", inherits = FALSE) &&
         !is.null(vb.fit$beta_prior$state)) {
       vb_state <- vb.fit$beta_prior$state
@@ -536,7 +550,7 @@ exal_static_mcmc <- function(
         save.beta[ksave, ] <- beta
         save.sigma[ksave]  <- sigma
         save.v[, ksave]    <- v
-        if (identical(beta_prior_obj$type, "rhs")) {
+        if (.static_is_rhs_family(beta_prior_obj$type)) {
           lam_draw <- rep(NA_real_, p)
           lam_draw[rhs_active_idx] <- beta_state$lambda[rhs_active_idx]
           save.lambda[ksave, ] <- lam_draw
@@ -597,9 +611,9 @@ exal_static_mcmc <- function(
       bounds     = c(L = NA_real_, U = NA_real_),
       samp.beta  = coda::as.mcmc(save.beta),
       samp.sigma = coda::as.mcmc(save.sigma),
-      samp.lambda = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.lambda) else NULL,
-      samp.tau = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.tau) else NULL,
-      samp.c2 = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.c2) else NULL,
+      samp.lambda = if (.static_is_rhs_family(beta_prior_obj$type)) coda::as.mcmc(save.lambda) else NULL,
+      samp.tau = if (.static_is_rhs_family(beta_prior_obj$type)) coda::as.mcmc(save.tau) else NULL,
+      samp.c2 = if (.static_is_rhs_family(beta_prior_obj$type)) coda::as.mcmc(save.c2) else NULL,
       samp.v     = coda::as.mcmc(t(save.v)),
       init.from.vb = isTRUE(init.from.vb),
       vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,
@@ -628,9 +642,9 @@ exal_static_mcmc <- function(
         type = beta_prior_obj$type,
         controls = beta_prior_obj$controls,
         summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
-        state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+        state = if (.static_is_rhs_family(beta_prior_obj$type)) beta_state else NULL
       ),
-      rhs.diagnostics = if (identical(beta_prior_obj$type, "rhs")) {
+      rhs.diagnostics = if (.static_is_rhs_family(beta_prior_obj$type)) {
         list(
           preflight = rhs_preflight,
           summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
@@ -1263,7 +1277,7 @@ exal_static_mcmc <- function(
       }
     }
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
-    rhs_summary <- if (identical(beta_prior_obj$type, "rhs")) beta_prior_obj$summary_mcmc(beta_state, beta = beta) else NULL
+    rhs_summary <- if (.static_is_rhs_family(beta_prior_obj$type)) beta_prior_obj$summary_mcmc(beta_state, beta = beta) else NULL
     if (trace.diagnostics && (i %% trace.every == 0L)) {
       s_stats <- .exdqlm_trace_summary(s)
       tau2_stats <- .exdqlm_trace_summary(tau2)
@@ -1329,7 +1343,7 @@ exal_static_mcmc <- function(
       save.gamma[ksave]  <- gamma
       save.v[, ksave]    <- v
       save.s[, ksave]    <- s
-      if (identical(beta_prior_obj$type, "rhs")) {
+      if (.static_is_rhs_family(beta_prior_obj$type)) {
         lam_draw <- rep(NA_real_, p)
         lam_draw[rhs_active_idx] <- beta_state$lambda[rhs_active_idx]
         save.lambda[ksave, ] <- lam_draw
@@ -1474,9 +1488,9 @@ exal_static_mcmc <- function(
     samp.beta  = coda::as.mcmc(save.beta),
     samp.sigma = coda::as.mcmc(save.sigma),
     samp.gamma = coda::as.mcmc(save.gamma),
-    samp.lambda = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.lambda) else NULL,
-    samp.tau = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.tau) else NULL,
-    samp.c2 = if (identical(beta_prior_obj$type, "rhs")) coda::as.mcmc(save.c2) else NULL,
+    samp.lambda = if (.static_is_rhs_family(beta_prior_obj$type)) coda::as.mcmc(save.lambda) else NULL,
+    samp.tau = if (.static_is_rhs_family(beta_prior_obj$type)) coda::as.mcmc(save.tau) else NULL,
+    samp.c2 = if (.static_is_rhs_family(beta_prior_obj$type)) coda::as.mcmc(save.c2) else NULL,
     samp.v     = coda::as.mcmc(t(save.v)),
     samp.s     = coda::as.mcmc(t(save.s)),
     accept.rate = accept_total,
@@ -1487,9 +1501,9 @@ exal_static_mcmc <- function(
       type = beta_prior_obj$type,
       controls = beta_prior_obj$controls,
       summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
-      state = if (identical(beta_prior_obj$type, "rhs")) beta_state else NULL
+      state = if (.static_is_rhs_family(beta_prior_obj$type)) beta_state else NULL
     ),
-    rhs.diagnostics = if (identical(beta_prior_obj$type, "rhs")) {
+    rhs.diagnostics = if (.static_is_rhs_family(beta_prior_obj$type)) {
       list(
         preflight = rhs_preflight,
         summary = beta_prior_obj$summary_mcmc(beta_state, beta = beta),
@@ -1509,7 +1523,7 @@ exal_static_mcmc <- function(
       ),
       acceptance = list(total = accept_total, burn = accept_burn, keep = accept_keep),
       rhat_ready = list(sigma = as.numeric(save.sigma), gamma = as.numeric(save.gamma)),
-      rhs = if (identical(beta_prior_obj$type, "rhs")) {
+      rhs = if (.static_is_rhs_family(beta_prior_obj$type)) {
         list(
           tau = as.numeric(save.tau),
           c2 = as.numeric(save.c2),
@@ -1524,7 +1538,7 @@ exal_static_mcmc <- function(
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)
   )
   class(ret) <- c("exal_mcmc", "exal_static_mcmc")
-  if (identical(beta_prior_obj$type, "rhs")) {
+  if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
   ret

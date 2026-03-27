@@ -262,3 +262,86 @@ test_that("static RHS collapse diagnostic flags precision-beta pattern without t
   expect_false(isTRUE(diag$tau_near_zero))
   expect_match(diag$warning, "precision/beta pattern")
 })
+
+test_that("static RHS_NS slab aliases map to RHS slab controls", {
+  ctrl <- exdqlm:::.static_parse_beta_prior_controls(
+    list(a_zeta = 3, b_zeta = 6, shrink_intercept = FALSE),
+    prior_type = "rhs_ns"
+  )
+  expect_equal(ctrl$a_zeta, 3, tolerance = 1e-12)
+  expect_equal(ctrl$b_zeta, 6, tolerance = 1e-12)
+  expect_equal(ctrl$nu, 6, tolerance = 1e-12)
+  expect_equal(ctrl$s2, 2, tolerance = 1e-12)
+  expect_equal(ctrl$s, sqrt(2), tolerance = 1e-12)
+  expect_true(is.null(ctrl$zeta2_fixed))
+})
+
+test_that("static VB RHS_NS supports fixed zeta2 via zeta2_fixed", {
+  set.seed(605)
+  dat <- tiny_rhs_xy(16)
+  zeta2_fixed <- 0.75
+
+  fit <- exal_static_LDVB(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    beta_prior = "rhs_ns",
+    beta_prior_controls = list(
+      tau0 = 0.5,
+      a_zeta = 2,
+      b_zeta = 1,
+      zeta2_fixed = zeta2_fixed,
+      shrink_intercept = FALSE
+    ),
+    max_iter = 50,
+    tol = 5e-3,
+    n_samp_xi = 40,
+    ld_controls = list(
+      xi_method = "delta",
+      optimizer_method = "lbfgsb",
+      direct_commit = TRUE,
+      sigma_init_mode = "data_scale"
+    ),
+    verbose = FALSE
+  )
+
+  expect_identical(fit$beta_prior$type, "rhs_ns")
+  expect_true(is.list(fit$diagnostics$rhs))
+  expect_equal(fit$beta_prior$summary$c2, zeta2_fixed, tolerance = 1e-12)
+  expect_equal(fit$beta_prior$summary$zeta2, zeta2_fixed, tolerance = 1e-12)
+  expect_equal(fit$beta_prior$summary$zeta2_fixed, zeta2_fixed, tolerance = 1e-12)
+  expect_equal(fit$diagnostics$rhs$preflight$zeta2_fixed, zeta2_fixed, tolerance = 1e-12)
+  expect_equal(fit$beta_prior$summary$a_zeta, 2, tolerance = 1e-12)
+  expect_equal(fit$beta_prior$summary$b_zeta, 1, tolerance = 1e-12)
+})
+
+test_that("static MCMC RHS_NS fixed zeta2 keeps c2 draws constant", {
+  set.seed(606)
+  dat <- tiny_rhs_xy(16)
+  zeta2_fixed <- 0.9
+
+  fit <- exal_static_mcmc(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    beta_prior = "rhs_ns",
+    beta_prior_controls = list(
+      tau0 = 0.5,
+      a_zeta = 2,
+      b_zeta = 1,
+      zeta2_fixed = zeta2_fixed,
+      shrink_intercept = FALSE
+    ),
+    n.burn = 8,
+    n.mcmc = 10,
+    mh.proposal = "slice",
+    trace.diagnostics = FALSE,
+    verbose = FALSE
+  )
+
+  expect_identical(fit$beta_prior$type, "rhs_ns")
+  expect_s3_class(fit$samp.c2, "mcmc")
+  expect_true(all(abs(as.numeric(fit$samp.c2) - zeta2_fixed) <= 1e-12))
+  expect_equal(fit$beta_prior$summary$zeta2_fixed, zeta2_fixed, tolerance = 1e-12)
+  expect_equal(fit$rhs.diagnostics$summary$zeta2, zeta2_fixed, tolerance = 1e-12)
+})
