@@ -914,12 +914,15 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     }
     do_rhs_update <- (update_every_eff <= 1L) || ((iter %% update_every_eff) == 0L)
 
-    if (identical(beta_prior_obj$type, "rhs") && isTRUE(do_rhs_update)) {
+    is_rhs <- identical(beta_prior_obj$type, "rhs")
+    do_prior_update <- if (is_rhs) isTRUE(do_rhs_update) else TRUE
+
+    if (is_rhs && isTRUE(do_rhs_update)) {
       beta_state$freeze_tau <- isTRUE(tau_warmup || tau_local_tol_on)
       beta_state$update_tau_only <- FALSE
     }
 
-    if (do_rhs_update) {
+    if (do_prior_update) {
       beta_state <- beta_prior_obj$update(beta_state, qbeta)
     }
     # RHS traces are collected after any tau gating below.
@@ -986,7 +989,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     if (beta_prior_obj$type == "ridge") {
       # reuse the same diag precision used in qbeta update this iter: `prec_diag`
       E_log_pb <- sum(0.5 * (log(prec_diag) - log(2*pi)) - 0.5 * prec_diag * beta2)
-    } else if (beta_prior_obj$type == "rhs") {
+    } else if (beta_prior_obj$type %in% c("rhs", "rhs_ns")) {
       E_log_beta_latents <- as.numeric(beta_prior_obj$elbo(beta_state, qbeta)$elbo)
     }
 

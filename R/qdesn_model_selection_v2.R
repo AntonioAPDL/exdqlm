@@ -50,6 +50,9 @@ ms_build_beta_prior_obj <- function(cfg) {
   if (beta_type == "rhs") {
     rhs_hypers <- beta$rhs %||% list()
     beta_prior(type = "rhs", rhs = rhs_hypers)
+  } else if (beta_type == "rhs_ns") {
+    rhs_ns_hypers <- beta$rhs_ns %||% beta$rhs %||% list()
+    beta_prior(type = "rhs_ns", rhs = rhs_ns_hypers)
   } else {
     ridge_cfg <- beta$ridge %||% list()
     beta_prior(type = "ridge", ridge = list(tau2 = ridge_cfg$tau2 %||% 1e4))

@@ -81,3 +81,41 @@ test_that("RHS non-numeric init_log_tau override falls back to legacy default wi
   )
   expect_equal(as.numeric(inf$beta_prior_rhs$init_log_tau), 0.0, tolerance = 1e-12)
 })
+
+test_that("RHS_NS settings resolve and instantiate beta prior object", {
+  cfg <- list(
+    inference = list(
+      method = "vb",
+      vb = list(
+        priors = list(
+          beta = list(
+            type = "rhs_ns",
+            rhs_ns = list(
+              tau0 = 0.25,
+              a_zeta = 3.0,
+              b_zeta = 2.0,
+              s2 = 0.5,
+              shrink_intercept = FALSE,
+              init_log_tau = log(0.4)
+            )
+          )
+        )
+      )
+    )
+  )
+
+  inf <- exdqlm:::resolve_exal_inference_config(cfg, p_vec = c(0.5), verbose = FALSE)
+  expect_identical(inf$beta_prior_type, "rhs_ns")
+  expect_equal(as.numeric(inf$beta_prior_rhs$tau0), 0.25, tolerance = 1e-12)
+  expect_equal(as.numeric(inf$beta_prior_rhs$a_zeta), 3.0, tolerance = 1e-12)
+  expect_equal(as.numeric(inf$beta_prior_rhs$b_zeta), 2.0, tolerance = 1e-12)
+  expect_true(is.finite(as.numeric(inf$beta_prior_rhs$init_tau2)))
+
+  prior_obj <- exdqlm:::exal_make_beta_prior(type = "rhs_ns", rhs = inf$beta_prior_rhs)
+  expect_identical(prior_obj$type, "rhs_ns")
+  st <- prior_obj$init(4L)
+  expect_equal(length(st$lambda2), 4L)
+  expect_true(all(is.finite(st$lambda2)))
+  expect_true(st$tau2 > 0)
+  expect_true(st$zeta2 > 0)
+})

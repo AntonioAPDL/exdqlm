@@ -139,6 +139,85 @@ test_that("RHS MCMC exposes healthy prior-state outputs and exact current precis
   expect_equal(fit_rhs$last$beta_prec_diag[1L], rhs_prec0)
 })
 
+test_that("RHS_NS VB path runs and contributes finite ELBO traces", {
+  withr::local_seed(457)
+
+  n <- 26L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.3, -0.45, 0.2) + stats::rnorm(n, sd = 0.45))
+
+  fit_ns <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "vb",
+    beta_prior_obj = exdqlm::beta_prior("rhs_ns", rhs = list(
+      tau0 = 0.35,
+      a_zeta = 2.5,
+      b_zeta = 1.5,
+      s2 = 0.8,
+      shrink_intercept = FALSE,
+      intercept_prec = 1e-10,
+      n_inner = 2L
+    )),
+    max_iter = 12L,
+    tol = 1e-3,
+    tol_par = 1e-3,
+    n_samp_xi = 50L,
+    verbose = FALSE
+  )
+
+  expect_true(inherits(fit_ns, "exal_vb"))
+  expect_identical(fit_ns$beta_prior$type, "rhs_ns")
+  expect_true(all(is.finite(fit_ns$qbeta$m)))
+  expect_true(all(is.finite(fit_ns$misc$elbo_trace)))
+})
+
+test_that("RHS_NS MCMC exposes prior-state outputs and finite precisions", {
+  withr::local_seed(458)
+
+  n <- 24L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.35, -0.4, 0.2) + stats::rnorm(n, sd = 0.4))
+
+  rhs_prec0 <- 1e-10
+  fit_rhs_ns <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    beta_prior_obj = exdqlm::beta_prior("rhs_ns", rhs = list(
+      tau0 = 0.35,
+      a_zeta = 2.5,
+      b_zeta = 1.5,
+      s2 = 0.8,
+      shrink_intercept = FALSE,
+      intercept_prec = rhs_prec0
+    )),
+    mcmc_control = list(
+      n_burn = 12L,
+      n_mcmc = 16L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = TRUE,
+      store_rhs_draws = TRUE
+    )
+  )
+
+  expect_true(inherits(fit_rhs_ns, "exal_mcmc"))
+  expect_identical(fit_rhs_ns$beta_prior$type, "rhs_ns")
+  expect_false(is.null(fit_rhs_ns$samp.tau))
+  expect_false(is.null(fit_rhs_ns$samp.c2))
+  expect_false(is.null(fit_rhs_ns$samp.lambda))
+  expect_true(all(is.finite(as.numeric(fit_rhs_ns$samp.tau))))
+  expect_true(all(as.numeric(fit_rhs_ns$samp.tau) > 0))
+  expect_true(all(is.finite(as.numeric(fit_rhs_ns$samp.c2))))
+  expect_true(all(as.numeric(fit_rhs_ns$samp.c2) > 0))
+  expect_equal(fit_rhs_ns$last$beta_prec_diag[1L], rhs_prec0)
+})
+
 test_that("inference config resolver supports explicit mcmc mode with backward-compatible structure", {
   cfg <- list(
     vb = list(

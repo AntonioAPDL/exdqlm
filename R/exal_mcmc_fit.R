@@ -6,7 +6,8 @@
 #' for `beta`, `v`, and `s`. The `sigma` block can be sampled either via the
 #' conjugate GIG draw (default) or a log-sigma slice sampler when enabled.
 #'
-#' The current implementation supports both ridge and regularized horseshoe
+#' The current implementation supports ridge, regularized horseshoe (`rhs`),
+#' and Nishimura-Suchard-style augmented regularized horseshoe (`rhs_ns`)
 #' readout priors. Under RHS, the MCMC kernel conditions on the exact current
 #' local/global/slab scales and therefore uses the exact conditional precision
 #' `1 / V_j = exp(-eta_c2) + exp(-2 eta_tau - 2 eta_lambda_j)` in the Gaussian
@@ -634,6 +635,214 @@
   )
 }
 
+#' @keywords internal
+.exal_mcmc_rhs_ns_prepare_state <- function(beta_prior_obj, p, init = list(), vb_warm = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (!identical(beta_prior_obj$type, "rhs_ns")) return(NULL)
+
+  state <- beta_prior_obj$init(p)
+  ns_state_init <- init$rhs_ns_state %||% init$rhs_state %||% init$beta_prior_state %||% NULL
+  vb_state <- vb_warm$beta_prior$state %||% NULL
+  state_src <- ns_state_init %||% vb_state
+
+  if (!is.null(state_src) && is.list(state_src)) {
+    for (nm in intersect(names(state_src), names(state))) {
+      state[[nm]] <- state_src[[nm]]
+    }
+    if (!is.null(state_src$lambda)) state$lambda2 <- pmax(as.numeric(state_src$lambda)^2, 1e-16)
+    if (!is.null(state_src$lambda2)) state$lambda2 <- pmax(as.numeric(state_src$lambda2), 1e-16)
+    if (!is.null(state_src$nu)) state$nu <- pmax(as.numeric(state_src$nu), 1e-16)
+    if (!is.null(state_src$tau)) state$tau2 <- max(as.numeric(state_src$tau)[1L]^2, 1e-16)
+    if (!is.null(state_src$tau2)) state$tau2 <- max(as.numeric(state_src$tau2)[1L], 1e-16)
+    if (!is.null(state_src$xi)) state$xi <- max(as.numeric(state_src$xi)[1L], 1e-16)
+    if (!is.null(state_src$zeta2)) state$zeta2 <- max(as.numeric(state_src$zeta2)[1L], 1e-16)
+    if (!is.null(state_src$c2)) state$zeta2 <- max(as.numeric(state_src$c2)[1L], 1e-16)
+    if (!is.null(state_src$zeta2_fixed)) state$zeta2_fixed <- as.numeric(state_src$zeta2_fixed)[1L]
+    if (!is.null(state_src$zeta2_is_fixed)) state$zeta2_is_fixed <- isTRUE(state_src$zeta2_is_fixed)
+  }
+
+  if (length(state$lambda2) != p) .stopf("RHS_NS MCMC init requires lambda2 of length p=%d.", p)
+  if (length(state$nu) != p) .stopf("RHS_NS MCMC init requires nu of length p=%d.", p)
+  state$lambda2 <- pmax(as.numeric(state$lambda2), 1e-16)
+  state$nu <- pmax(as.numeric(state$nu), 1e-16)
+  state$tau2 <- max(as.numeric(state$tau2)[1L], 1e-16)
+  state$xi <- max(as.numeric(state$xi)[1L], 1e-16)
+  if (isTRUE(state$zeta2_is_fixed)) {
+    state$zeta2 <- max(as.numeric(state$zeta2_fixed)[1L], 1e-16)
+  } else {
+    state$zeta2 <- max(as.numeric(state$zeta2)[1L], 1e-16)
+  }
+  state
+}
+
+#' @keywords internal
+.exal_mcmc_rhs_ns_precisions <- function(state, p) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (is.null(state) || !identical(as.integer(state$p), as.integer(p))) {
+    .stopf("RHS_NS MCMC state is missing or has incompatible dimension.")
+  }
+
+  lambda2 <- pmax(as.numeric(state$lambda2), 1e-16)
+  tau2 <- max(as.numeric(state$tau2)[1L], 1e-16)
+  zeta2 <- if (isTRUE(state$zeta2_is_fixed)) {
+    max(as.numeric(state$zeta2_fixed)[1L], 1e-16)
+  } else {
+    max(as.numeric(state$zeta2)[1L], 1e-16)
+  }
+
+  prec <- 1.0 / (tau2 * lambda2) + 1.0 / zeta2
+  prec <- pmax(as.numeric(prec), 1e-16)
+  if (!isTRUE(state$shrink_intercept)) {
+    prec[1L] <- as.numeric(state$intercept_prec %||% 1e-16)[1L]
+  }
+  prec
+}
+
+#' @keywords internal
+.exal_mcmc_rhs_ns_gibbs_update <- function(state, beta, beta_prior_obj, freeze_tau = FALSE) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (!identical(beta_prior_obj$type, "rhs_ns")) {
+    return(list(
+      state = state,
+      stats = list(
+        tau = NA_real_,
+        c2 = NA_real_,
+        lambda_mean = NA_real_,
+        lambda_min = NA_real_,
+        lambda_max = NA_real_,
+        tau_steps_out = 0L,
+        tau_shrink = 0L,
+        c2_steps_out = 0L,
+        c2_shrink = 0L,
+        lambda_steps_out_mean = 0,
+        lambda_steps_out_max = 0L,
+        lambda_shrink_mean = 0,
+        lambda_shrink_max = 0L,
+        tau_frozen = isTRUE(freeze_tau),
+        global_block_mode = "gibbs",
+        global_block_used = FALSE,
+        global_block_steps_out = 0L,
+        global_block_shrink = 0L,
+        global_block_dir_tau = 0,
+        global_block_dir_c2 = 0,
+        global_block_transformed_passes = 0L,
+        transformed_z1_steps_out = 0L,
+        transformed_z1_shrink = 0L,
+        transformed_z2_steps_out = 0L,
+        transformed_z2_shrink = 0L
+      )
+    ))
+  }
+
+  p <- as.integer(state$p)
+  beta <- as.numeric(beta)
+  if (length(beta) != p) .stopf("RHS_NS Gibbs update: beta length mismatch.")
+
+  tau0 <- as.numeric(beta_prior_obj$hypers$tau0 %||% 1.0)[1L]
+  a_zeta0 <- as.numeric(beta_prior_obj$hypers$a_zeta %||% 2.0)[1L]
+  b_zeta0 <- as.numeric(beta_prior_obj$hypers$b_zeta %||% 1.0)[1L]
+
+  lambda2 <- pmax(as.numeric(state$lambda2), 1e-16)
+  nu <- pmax(as.numeric(state$nu), 1e-16)
+  tau2 <- max(as.numeric(state$tau2)[1L], 1e-16)
+  xi <- max(as.numeric(state$xi)[1L], 1e-16)
+  zeta2 <- if (isTRUE(state$zeta2_is_fixed)) {
+    max(as.numeric(state$zeta2_fixed)[1L], 1e-16)
+  } else {
+    max(as.numeric(state$zeta2)[1L], 1e-16)
+  }
+
+  active_idx <- if (isTRUE(state$shrink_intercept)) {
+    seq_len(p)
+  } else if (p >= 2L) {
+    seq.int(2L, p)
+  } else {
+    integer(0)
+  }
+  beta2 <- beta^2
+
+  if (length(active_idx)) {
+    for (j in active_idx) {
+      rate_lambda <- 0.5 * beta2[j] / tau2 + 1.0 / nu[j]
+      rate_lambda <- max(as.numeric(rate_lambda), 1e-16)
+      lambda2[j] <- 1.0 / stats::rgamma(1L, shape = 1.0, rate = rate_lambda)
+      lambda2[j] <- max(lambda2[j], 1e-16)
+
+      rate_nu <- 1.0 + 1.0 / lambda2[j]
+      rate_nu <- max(as.numeric(rate_nu), 1e-16)
+      nu[j] <- 1.0 / stats::rgamma(1L, shape = 1.0, rate = rate_nu)
+      nu[j] <- max(nu[j], 1e-16)
+    }
+
+    if (!isTRUE(freeze_tau)) {
+      shape_tau <- (length(active_idx) + 1.0) / 2.0
+      rate_tau <- 0.5 * sum(beta2[active_idx] / lambda2[active_idx]) + 1.0 / xi
+      rate_tau <- max(as.numeric(rate_tau), 1e-16)
+      tau2 <- 1.0 / stats::rgamma(1L, shape = shape_tau, rate = rate_tau)
+      tau2 <- max(tau2, 1e-16)
+
+      rate_xi <- (1.0 / (tau0^2)) + 1.0 / tau2
+      rate_xi <- max(as.numeric(rate_xi), 1e-16)
+      xi <- 1.0 / stats::rgamma(1L, shape = 1.0, rate = rate_xi)
+      xi <- max(xi, 1e-16)
+    }
+
+    if (!isTRUE(state$zeta2_is_fixed)) {
+      shape_zeta <- a_zeta0 + length(active_idx) / 2.0
+      rate_zeta <- b_zeta0 + 0.5 * sum(beta2[active_idx])
+      rate_zeta <- max(as.numeric(rate_zeta), 1e-16)
+      zeta2 <- 1.0 / stats::rgamma(1L, shape = shape_zeta, rate = rate_zeta)
+      zeta2 <- max(zeta2, 1e-16)
+    }
+  }
+
+  state$lambda2 <- lambda2
+  state$nu <- nu
+  state$tau2 <- tau2
+  state$xi <- xi
+  state$zeta2 <- zeta2
+
+  # keep prior-object moments aligned for diagnostics/warm restarts
+  state$E_inv_lambda2 <- 1.0 / pmax(lambda2, 1e-16)
+  state$E_inv_nu <- 1.0 / pmax(nu, 1e-16)
+  state$E_inv_tau2 <- 1.0 / max(tau2, 1e-16)
+  state$E_inv_xi <- 1.0 / max(xi, 1e-16)
+  state$E_inv_zeta2 <- 1.0 / max(zeta2, 1e-16)
+
+  lambda_now <- sqrt(lambda2)
+  lambda_active <- if (length(active_idx)) lambda_now[active_idx] else numeric(0)
+  list(
+    state = state,
+    stats = list(
+      tau = sqrt(tau2),
+      c2 = zeta2,
+      lambda_mean = if (length(lambda_active)) mean(lambda_active) else NA_real_,
+      lambda_min = if (length(lambda_active)) min(lambda_active) else NA_real_,
+      lambda_max = if (length(lambda_active)) max(lambda_active) else NA_real_,
+      tau_steps_out = 0L,
+      tau_shrink = 0L,
+      c2_steps_out = 0L,
+      c2_shrink = 0L,
+      lambda_steps_out_mean = 0,
+      lambda_steps_out_max = 0L,
+      lambda_shrink_mean = 0,
+      lambda_shrink_max = 0L,
+      tau_frozen = isTRUE(freeze_tau),
+      global_block_mode = "gibbs",
+      global_block_used = FALSE,
+      global_block_steps_out = 0L,
+      global_block_shrink = 0L,
+      global_block_dir_tau = 0,
+      global_block_dir_c2 = 0,
+      global_block_transformed_passes = 0L,
+      transformed_z1_steps_out = 0L,
+      transformed_z1_shrink = 0L,
+      transformed_z2_steps_out = 0L,
+      transformed_z2_shrink = 0L
+    )
+  )
+}
+
 #' @export
 exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
                           mcmc_control = NULL,
@@ -775,10 +984,13 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = 1e4))
   }
   beta_prior_type <- as.character(beta_prior_obj$type %||% NA_character_)[1L]
-  if (!beta_prior_type %in% c("ridge", "rhs")) {
-    .stopf("exal_mcmc_fit supports beta_prior_obj$type in {'ridge','rhs'}; got '%s'.",
+  if (!beta_prior_type %in% c("ridge", "rhs", "rhs_ns")) {
+    .stopf("exal_mcmc_fit supports beta_prior_obj$type in {'ridge','rhs','rhs_ns'}; got '%s'.",
            beta_prior_type)
   }
+  is_rhs <- identical(beta_prior_type, "rhs")
+  is_rhs_ns <- identical(beta_prior_type, "rhs_ns")
+  is_rhs_family <- is_rhs || is_rhs_ns
   ridge_tau2 <- if (identical(beta_prior_type, "ridge")) {
     as.numeric(beta_prior_obj$hypers$tau2 %||% NA_real_)[1L]
   } else {
@@ -875,9 +1087,17 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   if (length(s) != n) s <- rep(s[1L], n)
   s <- pmax(s, 0)
 
-  rhs_state <- .exal_mcmc_rhs_prepare_state(beta_prior_obj, p = p, init = init, vb_warm = vb_warm)
-  beta_prec_diag <- if (identical(beta_prior_type, "rhs")) {
+  rhs_state <- if (is_rhs) {
+    .exal_mcmc_rhs_prepare_state(beta_prior_obj, p = p, init = init, vb_warm = vb_warm)
+  } else if (is_rhs_ns) {
+    .exal_mcmc_rhs_ns_prepare_state(beta_prior_obj, p = p, init = init, vb_warm = vb_warm)
+  } else {
+    NULL
+  }
+  beta_prec_diag <- if (is_rhs) {
     .exal_mcmc_rhs_precisions(rhs_state, p = p)
+  } else if (is_rhs_ns) {
+    .exal_mcmc_rhs_ns_precisions(rhs_state, p = p)
   } else {
     rep(1 / ridge_tau2, p)
   }
@@ -885,7 +1105,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   # Multi-start pilot selection for hard RHS roots:
   # run short pilots from VB-init and perturbed transformed starts,
   # then continue from the healthiest/highest-score pilot endpoint.
-  if (identical(beta_prior_type, "rhs") && isTRUE(multi_start_enabled) && !isTRUE(multi_start_internal)) {
+  if (is_rhs && isTRUE(multi_start_enabled) && !isTRUE(multi_start_internal)) {
     n_starts <- max(1L, as.integer(multi_start_cfg$n_starts %||% 4L))
     pilot_n_burn <- max(0L, as.integer(multi_start_cfg$pilot_n_burn %||% min(120L, n_burn)))
     pilot_n_mcmc <- max(10L, as.integer(multi_start_cfg$pilot_n_mcmc %||% min(160L, n_keep)))
@@ -1098,7 +1318,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
 
   slice_cfg_runtime <- slice_cfg
   rhs_slice_widths_initial <- list()
-  if (identical(beta_prior_type, "rhs")) {
+  if (is_rhs) {
     slice_cfg_runtime$width_rhs_lambda <- as.numeric(slice_cfg_runtime$width_rhs_lambda %||% slice_cfg_runtime$width_lambda %||% 1.0)[1L]
     slice_cfg_runtime$width_rhs_tau <- as.numeric(slice_cfg_runtime$width_rhs_tau %||% slice_cfg_runtime$width_tau %||% 1.0)[1L]
     slice_cfg_runtime$width_rhs_c2 <- as.numeric(slice_cfg_runtime$width_rhs_c2 %||% slice_cfg_runtime$width_c2 %||% 1.0)[1L]
@@ -1135,7 +1355,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   }
   gamma_steps_out <- integer(n_total)
   gamma_shrink <- integer(n_total)
-  if (identical(beta_prior_type, "rhs")) {
+  if (is_rhs_family) {
     rhs_tau_trace <- rep(NA_real_, n_total)
     rhs_c2_trace <- rep(NA_real_, n_total)
     rhs_lambda_mean_trace <- rep(NA_real_, n_total)
@@ -1160,13 +1380,13 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     rhs_transformed_z1_shrink <- integer(n_total)
     rhs_transformed_z2_steps_out <- integer(n_total)
     rhs_transformed_z2_shrink <- integer(n_total)
-    rhs_width_lambda_trace <- numeric(n_total)
-    rhs_width_tau_trace <- numeric(n_total)
-    rhs_width_c2_trace <- numeric(n_total)
-    rhs_width_tau_c2_block_trace <- numeric(n_total)
-    rhs_width_tau_c2_transformed_z1_trace <- numeric(n_total)
-    rhs_width_tau_c2_transformed_z2_trace <- numeric(n_total)
-    rhs_width_adapt_active_trace <- logical(n_total)
+    rhs_width_lambda_trace <- rep(NA_real_, n_total)
+    rhs_width_tau_trace <- rep(NA_real_, n_total)
+    rhs_width_c2_trace <- rep(NA_real_, n_total)
+    rhs_width_tau_c2_block_trace <- rep(NA_real_, n_total)
+    rhs_width_tau_c2_transformed_z1_trace <- rep(NA_real_, n_total)
+    rhs_width_tau_c2_transformed_z2_trace <- rep(NA_real_, n_total)
+    rhs_width_adapt_active_trace <- rep(FALSE, n_total)
     rhs_width_adapt_iter <- 0L
     tau_draws <- numeric(n_keep)
     c2_draws <- numeric(n_keep)
@@ -1249,22 +1469,35 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     beta <- .exal_mcmc_sample_mvnorm_prec(rhs_beta, Prec_beta)
 
     rhs_stats <- NULL
-    if (identical(beta_prior_type, "rhs")) {
+    if (is_rhs_family) {
       freeze_tau_now <- isTRUE(
         rhs_freeze_tau_iters > 0L &&
           iter <= rhs_freeze_tau_iters &&
           (!rhs_freeze_tau_only_during_burn || iter <= n_burn)
       )
-      rhs_upd <- .exal_mcmc_rhs_slice_update(
-        state = rhs_state,
-        beta = beta,
-        beta_prior_obj = beta_prior_obj,
-        slice_cfg = slice_cfg_runtime,
-        freeze_tau = freeze_tau_now
-      )
+      rhs_upd <- if (is_rhs) {
+        .exal_mcmc_rhs_slice_update(
+          state = rhs_state,
+          beta = beta,
+          beta_prior_obj = beta_prior_obj,
+          slice_cfg = slice_cfg_runtime,
+          freeze_tau = freeze_tau_now
+        )
+      } else {
+        .exal_mcmc_rhs_ns_gibbs_update(
+          state = rhs_state,
+          beta = beta,
+          beta_prior_obj = beta_prior_obj,
+          freeze_tau = freeze_tau_now
+        )
+      }
       rhs_state <- rhs_upd$state
       rhs_stats <- rhs_upd$stats
-      beta_prec_diag <- .exal_mcmc_rhs_precisions(rhs_state, p = p)
+      beta_prec_diag <- if (is_rhs) {
+        .exal_mcmc_rhs_precisions(rhs_state, p = p)
+      } else {
+        .exal_mcmc_rhs_ns_precisions(rhs_state, p = p)
+      }
 
       rhs_tau_trace[iter] <- rhs_stats$tau
       rhs_c2_trace[iter] <- rhs_stats$c2
@@ -1292,7 +1525,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       rhs_transformed_z2_shrink[iter] <- as.integer(rhs_stats$transformed_z2_shrink %||% 0L)
 
       width_adapt_active_now <- isTRUE(
-        width_adapt_enabled &&
+        is_rhs &&
+          width_adapt_enabled &&
           iter <= width_adapt_warmup_iters &&
           (!width_adapt_only_during_burn || iter <= n_burn)
       )
@@ -1336,6 +1570,14 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       rhs_width_tau_c2_block_trace[iter] <- as.numeric(slice_cfg_runtime$width_rhs_tau_c2_block %||% NA_real_)
       rhs_width_tau_c2_transformed_z1_trace[iter] <- as.numeric(slice_cfg_runtime$width_rhs_tau_c2_transformed_z1 %||% NA_real_)
       rhs_width_tau_c2_transformed_z2_trace[iter] <- as.numeric(slice_cfg_runtime$width_rhs_tau_c2_transformed_z2 %||% NA_real_)
+      if (is_rhs_ns) {
+        rhs_width_lambda_trace[iter] <- NA_real_
+        rhs_width_tau_trace[iter] <- NA_real_
+        rhs_width_c2_trace[iter] <- NA_real_
+        rhs_width_tau_c2_block_trace[iter] <- NA_real_
+        rhs_width_tau_c2_transformed_z1_trace[iter] <- NA_real_
+        rhs_width_tau_c2_transformed_z2_trace[iter] <- NA_real_
+      }
     }
 
     gamma_steps_iter <- 0L
@@ -1368,20 +1610,24 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         v_draws[save_idx, ] <- v
         s_draws[save_idx, ] <- s
       }
-      if (identical(beta_prior_type, "rhs")) {
+      if (is_rhs_family) {
         tau_draws[save_idx] <- rhs_stats$tau
         c2_draws[save_idx] <- rhs_stats$c2
         lambda_mean_draws[save_idx] <- rhs_stats$lambda_mean
         lambda_min_draws[save_idx] <- rhs_stats$lambda_min
         lambda_max_draws[save_idx] <- rhs_stats$lambda_max
         if (store_rhs_draws) {
-          lambda_draws[save_idx, ] <- exp(as.numeric(rhs_state$eta_lambda_hat))
+          if (is_rhs) {
+            lambda_draws[save_idx, ] <- exp(as.numeric(rhs_state$eta_lambda_hat))
+          } else {
+            lambda_draws[save_idx, ] <- sqrt(pmax(as.numeric(rhs_state$lambda2), 1e-16))
+          }
         }
       }
     }
 
     if (verbose && (iter %% progress_every == 0L)) {
-      if (identical(beta_prior_type, "rhs")) {
+      if (is_rhs_family) {
         cat(sprintf("%s iteration %d | sigma=%.3f | gamma=%.3f | tau=%.3f | c2=%.3f\n",
                     ifelse(iter <= n_burn, "burn-in", "MCMC"), iter, sigma, gamma,
                     rhs_stats$tau, rhs_stats$c2))
@@ -1413,7 +1659,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   )
   beta_prior_out <- list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers)
 
-  if (identical(beta_prior_type, "rhs")) {
+  if (is_rhs_family) {
     summary_out$rhs <- list(
       tau_mean = mean(tau_draws),
       c2_mean = mean(c2_draws),
@@ -1434,7 +1680,11 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       lambda_slice_steps_out_max = max(rhs_lambda_steps_out_max),
       lambda_slice_shrink_mean = mean(rhs_lambda_shrink_mean),
       lambda_slice_shrink_max = max(rhs_lambda_shrink_max),
-      global_block_update_mode = as.character(slice_cfg_runtime$rhs_global_block_update %||% "coordinate"),
+      global_block_update_mode = if (is_rhs) {
+        as.character(slice_cfg_runtime$rhs_global_block_update %||% "coordinate")
+      } else {
+        "gibbs"
+      },
       global_block_used_rate = mean(rhs_global_block_used_trace),
       global_block_steps_out_mean = mean(rhs_global_block_steps_out),
       global_block_steps_out_max = max(rhs_global_block_steps_out),
@@ -1445,7 +1695,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       transformed_z1_shrink_mean = mean(rhs_transformed_z1_shrink),
       transformed_z2_steps_out_mean = mean(rhs_transformed_z2_steps_out),
       transformed_z2_shrink_mean = mean(rhs_transformed_z2_shrink),
-      width_adapt_enabled = isTRUE(width_adapt_enabled),
+      width_adapt_enabled = isTRUE(is_rhs && width_adapt_enabled),
       width_adapt_warmup_iters = as.integer(width_adapt_warmup_iters),
       width_adapt_active_rate = mean(rhs_width_adapt_active_trace),
       width_rhs_lambda_initial = as.numeric(rhs_slice_widths_initial$width_rhs_lambda %||% NA_real_),

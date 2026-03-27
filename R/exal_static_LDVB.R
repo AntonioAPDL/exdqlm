@@ -164,6 +164,8 @@ exal_static_LDVB_core <- function(
       tp <- tolower(beta_prior_module$type)
       if (tp == "rhs") {
         beta_prior_obj <- beta_prior("rhs", rhs = rhs_hypers %||% beta_prior_module$hypers %||% list())
+      } else if (tp == "rhs_ns") {
+        beta_prior_obj <- beta_prior("rhs_ns", rhs = rhs_hypers %||% beta_prior_module$hypers %||% list())
       } else {
         tau2 <- if (is_diag_matrix(V0)) mean(diag(V0)) else 1e6
         beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = tau2))
@@ -524,7 +526,7 @@ exal_static_LDVB_core <- function(
       E_log_pb <- - (p/2) * log(2*pi) - 0.5 * logdetV0 -
         0.5 * ( sum(V0_inv * V_beta) +
                 drop(crossprod(m_beta - b0, V0_inv %*% (m_beta - b0))) )
-    } else if (beta_prior_obj$type == "rhs") {
+    } else if (beta_prior_obj$type %in% c("rhs", "rhs_ns")) {
       E_log_beta_latents <- beta_prior_obj$elbo(beta_state, list(m = m_beta, V = V_beta))$elbo
     }
 
@@ -790,4 +792,3 @@ ridge_prior_module <- function(b0, V0) {
     V0   = V0
   )
 }
-

@@ -21,6 +21,26 @@
   )
 }
 
+.exal_default_rhs_ns_cfg <- function() {
+  list(
+    tau0 = 1.0,
+    a_zeta = 2.0,
+    b_zeta = 1.0,
+    zeta2_fixed = NULL,
+    s2 = 1.0,
+    shrink_intercept = FALSE,
+    intercept_prec = 1e-24,
+    n_inner = 2L,
+    var_floor = 1e-24,
+    verbose = FALSE,
+    init_lambda2 = 1.0,
+    init_nu = 1.0,
+    init_tau2 = NULL,
+    init_xi = 1.0,
+    init_zeta2 = NULL
+  )
+}
+
 .exal_default_vb_args_base <- function() {
   list(
     max_iter = 150L,
@@ -152,8 +172,9 @@
   method
 }
 
-.exal_resolve_beta_prior_settings <- function(beta_cfg, default_rhs_cfg) {
+.exal_resolve_beta_prior_settings <- function(beta_cfg, default_rhs_cfg, default_rhs_ns_cfg = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (is.null(default_rhs_ns_cfg)) default_rhs_ns_cfg <- .exal_default_rhs_ns_cfg()
 
   resolve_init_log_tau <- function(rhs_cfg, default_rhs_cfg) {
     # Guardrail: canonical fallback is always 0.0 (tau=1 at init),
@@ -204,8 +225,8 @@
 
   beta_cfg <- beta_cfg %||% list()
   beta_type <- tolower(as.character(beta_cfg$type %||% "ridge")[1L])
-  if (!beta_type %in% c("ridge", "rhs")) {
-    .stopf("Unsupported beta prior type '%s'. Expected 'ridge' or 'rhs'.", beta_type)
+  if (!beta_type %in% c("ridge", "rhs", "rhs_ns")) {
+    .stopf("Unsupported beta prior type '%s'. Expected 'ridge', 'rhs', or 'rhs_ns'.", beta_type)
   }
 
   tau2_val <- NULL
@@ -215,46 +236,103 @@
     tau2_val <- as.numeric(beta_cfg$tau2)[1L]
   }
 
-  rhs_cfg <- default_rhs_cfg
-  if (!is.null(beta_cfg$rhs)) {
-    rhs_cfg <- modifyList(rhs_cfg, beta_cfg$rhs)
-    rhs_names <- names(beta_cfg$rhs)
-    if (!is.null(rhs_names)) {
-      # Legacy compatibility: explicit NULL init values in YAML should behave like "unset"
-      # and must not override the stable defaults from rhs_cfg.
-      nullable_init_keys <- c(
-        "init_lambda", "init_log_lambda",
-        "init_tau", "init_log_tau",
-        "init_c2", "init_log_c2"
-      )
-      nullable_init_defaults <- list(
-        init_lambda = default_rhs_cfg$init_lambda %||% NULL,
-        init_log_lambda = default_rhs_cfg$init_log_lambda %||% 0.0,
-        init_tau = default_rhs_cfg$init_tau %||% NULL,
-        init_log_tau = default_rhs_cfg$init_log_tau %||% 0.0,
-        init_c2 = default_rhs_cfg$init_c2 %||% NULL,
-        init_log_c2 = default_rhs_cfg$init_log_c2 %||% 0.0
-      )
-      for (nm in intersect(rhs_names, nullable_init_keys)) {
-        if (is.null(beta_cfg$rhs[[nm]])) {
-          rhs_cfg[[nm]] <- nullable_init_defaults[[nm]]
-        } else {
-          rhs_cfg[[nm]] <- beta_cfg$rhs[[nm]]
+  if (identical(beta_type, "rhs")) {
+    rhs_cfg <- default_rhs_cfg
+    if (!is.null(beta_cfg$rhs)) {
+      rhs_cfg <- modifyList(rhs_cfg, beta_cfg$rhs)
+      rhs_names <- names(beta_cfg$rhs)
+      if (!is.null(rhs_names)) {
+        # Legacy compatibility: explicit NULL init values in YAML should behave like "unset"
+        # and must not override the stable defaults from rhs_cfg.
+        nullable_init_keys <- c(
+          "init_lambda", "init_log_lambda",
+          "init_tau", "init_log_tau",
+          "init_c2", "init_log_c2"
+        )
+        nullable_init_defaults <- list(
+          init_lambda = default_rhs_cfg$init_lambda %||% NULL,
+          init_log_lambda = default_rhs_cfg$init_log_lambda %||% 0.0,
+          init_tau = default_rhs_cfg$init_tau %||% NULL,
+          init_log_tau = default_rhs_cfg$init_log_tau %||% 0.0,
+          init_c2 = default_rhs_cfg$init_c2 %||% NULL,
+          init_log_c2 = default_rhs_cfg$init_log_c2 %||% 0.0
+        )
+        for (nm in intersect(rhs_names, nullable_init_keys)) {
+          if (is.null(beta_cfg$rhs[[nm]])) {
+            rhs_cfg[[nm]] <- nullable_init_defaults[[nm]]
+          } else {
+            rhs_cfg[[nm]] <- beta_cfg$rhs[[nm]]
+          }
         }
       }
     }
+
+    # Guardrail: resolved init_log_tau is always numeric and defaults to 0.0
+    # unless a numeric override is explicitly provided.
+    rhs_cfg$init_log_tau <- resolve_init_log_tau(rhs_cfg, default_rhs_cfg)
+    rhs_cfg$eta_bounds <- rhs_cfg$eta_bounds %||% list()
+    rhs_cfg$eta_bounds$tau <- resolve_tau_bounds(rhs_cfg, default_rhs_cfg)
+
+    return(list(
+      type = beta_type,
+      tau2 = tau2_val,
+      rhs = rhs_cfg
+    ))
   }
 
-  # Guardrail: resolved init_log_tau is always numeric and defaults to 0.0
-  # unless a numeric override is explicitly provided.
-  rhs_cfg$init_log_tau <- resolve_init_log_tau(rhs_cfg, default_rhs_cfg)
-  rhs_cfg$eta_bounds <- rhs_cfg$eta_bounds %||% list()
-  rhs_cfg$eta_bounds$tau <- resolve_tau_bounds(rhs_cfg, default_rhs_cfg)
+  if (identical(beta_type, "rhs_ns")) {
+    rhs_ns_cfg <- default_rhs_ns_cfg
+    if (!is.null(beta_cfg$rhs) && is.list(beta_cfg$rhs)) {
+      rhs_ns_cfg <- modifyList(rhs_ns_cfg, beta_cfg$rhs)
+    }
+    if (!is.null(beta_cfg$rhs_ns) && is.list(beta_cfg$rhs_ns)) {
+      rhs_ns_cfg <- modifyList(rhs_ns_cfg, beta_cfg$rhs_ns)
+    }
+
+    rhs_ns_cfg$zeta2_fixed <- rhs_ns_cfg$zeta2_fixed %||% rhs_ns_cfg$c2_fixed %||% NULL
+    rhs_ns_cfg$a_zeta <- as.numeric(rhs_ns_cfg$a_zeta %||% 2.0)[1L]
+    rhs_ns_cfg$b_zeta <- as.numeric(rhs_ns_cfg$b_zeta %||% 1.0)[1L]
+    rhs_ns_cfg$tau0 <- as.numeric(rhs_ns_cfg$tau0 %||% 1.0)[1L]
+    rhs_ns_cfg$s2 <- as.numeric(rhs_ns_cfg$s2 %||% rhs_ns_cfg$zeta2 %||% 1.0)[1L]
+
+    if (!is.null(rhs_ns_cfg$init_log_tau) && is.null(rhs_ns_cfg$init_tau2)) {
+      ilt <- suppressWarnings(as.numeric(rhs_ns_cfg$init_log_tau)[1L])
+      if (is.finite(ilt)) {
+        rhs_ns_cfg$init_tau2 <- exp(2 * ilt)
+      }
+    }
+    if (!is.null(rhs_ns_cfg$init_tau) && is.null(rhs_ns_cfg$init_tau2)) {
+      itau <- suppressWarnings(as.numeric(rhs_ns_cfg$init_tau)[1L])
+      if (is.finite(itau) && itau > 0) rhs_ns_cfg$init_tau2 <- itau^2
+    }
+    if (!is.null(rhs_ns_cfg$init_lambda) && is.null(rhs_ns_cfg$init_lambda2)) {
+      ilam <- suppressWarnings(as.numeric(rhs_ns_cfg$init_lambda))
+      rhs_ns_cfg$init_lambda2 <- ilam^2
+    }
+    if (!is.null(rhs_ns_cfg$init_log_lambda) && is.null(rhs_ns_cfg$init_lambda2)) {
+      ilogl <- suppressWarnings(as.numeric(rhs_ns_cfg$init_log_lambda))
+      rhs_ns_cfg$init_lambda2 <- exp(2 * ilogl)
+    }
+    if (!is.null(rhs_ns_cfg$init_c2) && is.null(rhs_ns_cfg$init_zeta2)) {
+      rhs_ns_cfg$init_zeta2 <- suppressWarnings(as.numeric(rhs_ns_cfg$init_c2)[1L])
+    }
+    if (!is.null(rhs_ns_cfg$init_log_c2) && is.null(rhs_ns_cfg$init_zeta2)) {
+      ilogc2 <- suppressWarnings(as.numeric(rhs_ns_cfg$init_log_c2)[1L])
+      if (is.finite(ilogc2)) rhs_ns_cfg$init_zeta2 <- exp(ilogc2)
+    }
+    if (is.null(rhs_ns_cfg$init_zeta2)) rhs_ns_cfg$init_zeta2 <- rhs_ns_cfg$s2 %||% 1.0
+
+    return(list(
+      type = beta_type,
+      tau2 = tau2_val,
+      rhs = rhs_ns_cfg
+    ))
+  }
 
   list(
     type = beta_type,
     tau2 = tau2_val,
-    rhs = rhs_cfg
+    rhs = default_rhs_cfg
   )
 }
 
@@ -267,6 +345,7 @@
   vb_args_base <- .exal_default_vb_args_base()
   vb_online_cfg <- .exal_default_vb_online_cfg()
   default_rhs_cfg <- .exal_default_rhs_cfg()
+  default_rhs_ns_cfg <- .exal_default_rhs_ns_cfg()
 
   rhs_trace_on <- FALSE
   rhs_deep_on <- FALSE
@@ -389,7 +468,7 @@
 
   init_cfg <- .exal_list_or_empty(vb_cfg$init)
   priors_cfg <- .exal_list_or_empty(vb_cfg$priors)
-  beta_prior <- .exal_resolve_beta_prior_settings(priors_cfg$beta, default_rhs_cfg)
+  beta_prior <- .exal_resolve_beta_prior_settings(priors_cfg$beta, default_rhs_cfg, default_rhs_ns_cfg)
 
   list(
     args_base = vb_args_base,
@@ -418,6 +497,7 @@
   len_p <- length(p_vec)
   mcmc_cfg <- .exal_list_or_empty(mcmc_cfg)
   default_rhs_cfg <- .exal_default_rhs_cfg()
+  default_rhs_ns_cfg <- .exal_default_rhs_ns_cfg()
 
   control <- .exal_default_mcmc_control()
   control <- modifyList(control, mcmc_cfg$mcmc_control %||% mcmc_cfg$control %||% list())
@@ -452,7 +532,7 @@
 
   init_cfg <- .exal_list_or_empty(mcmc_cfg$init)
   priors_cfg <- .exal_list_or_empty(mcmc_cfg$priors)
-  beta_prior <- .exal_resolve_beta_prior_settings(priors_cfg$beta, default_rhs_cfg)
+  beta_prior <- .exal_resolve_beta_prior_settings(priors_cfg$beta, default_rhs_cfg, default_rhs_ns_cfg)
 
   list(
     control_base = control,
@@ -505,7 +585,7 @@ resolve_exal_inference_config <- function(cfg, p_vec, verbose = FALSE) {
   )
 }
 
-exal_make_beta_prior <- function(type = c("ridge", "rhs"), tau2 = NULL, rhs = NULL) {
+exal_make_beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), tau2 = NULL, rhs = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
   type <- tolower(match.arg(type))
   if (identical(type, "rhs")) {
@@ -513,6 +593,12 @@ exal_make_beta_prior <- function(type = c("ridge", "rhs"), tau2 = NULL, rhs = NU
       .stopf("RHS beta prior requires a list of rhs hyperparameters.")
     }
     return(beta_prior("rhs", rhs = rhs))
+  }
+  if (identical(type, "rhs_ns")) {
+    if (is.null(rhs) || !is.list(rhs)) {
+      .stopf("RHS_NS beta prior requires a list of rhs_ns hyperparameters.")
+    }
+    return(beta_prior("rhs_ns", rhs = rhs))
   }
 
   tau2 <- as.numeric(tau2 %||% 1e4)[1L]

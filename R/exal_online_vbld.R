@@ -494,6 +494,8 @@ exal_online_init <- function(y, X, p0, gamma_bounds,
     if (!is.null(batch_fit$beta_prior$type)) {
       if (identical(batch_fit$beta_prior$type, "rhs")) {
         beta_prior_obj <- beta_prior("rhs", rhs = batch_fit$beta_prior$hypers %||% list())
+      } else if (identical(batch_fit$beta_prior$type, "rhs_ns")) {
+        beta_prior_obj <- beta_prior("rhs_ns", rhs = batch_fit$beta_prior$hypers %||% list())
       } else {
         tau2 <- as.numeric(batch_fit$beta_prior$hypers$tau2 %||% 1e4)[1L]
         beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = tau2))

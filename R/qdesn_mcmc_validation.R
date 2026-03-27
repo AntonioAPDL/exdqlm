@@ -133,7 +133,7 @@ qdesn_validation_enrich_root_spec <- function(root_spec, defaults) {
   reservoir_profile <- as.character(root_spec$reservoir_profile %||% pilot_cfg$reservoir_profile %||% "tiny_d1_n8")[1L]
   enabled <- .qdesn_validation_as_flag(root_spec$enabled %||% pilot_cfg$enabled, default = TRUE)
 
-  if (!beta_prior_type %in% c("ridge", "rhs")) {
+  if (!beta_prior_type %in% c("ridge", "rhs", "rhs_ns")) {
     stop(sprintf("Unsupported beta_prior_type '%s'.", beta_prior_type), call. = FALSE)
   }
   if (!is.finite(tau) || tau <= 0 || tau >= 1) {
@@ -702,7 +702,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$unhealthy <- TRUE
     base$unhealthy_reason <- add_reason(base$unhealthy_reason, "rhs_tau_bound_collapse")
   }
-  if (identical(root_spec$beta_prior_type, "rhs") &&
+  if (root_spec$beta_prior_type %in% c("rhs", "rhs_ns") &&
       identical(method, "vb") &&
       !isTRUE(rhs_diag_available)) {
     base$unhealthy <- TRUE
@@ -1664,7 +1664,7 @@ qdesn_validation_run_root <- function(root_spec,
     .qdesn_validation_plot_runtime_compare(root_dir, method_rows)
     .qdesn_validation_plot_score_compare(root_dir, method_rows)
     .qdesn_validation_plot_algorithm_progress(root_dir, progress_rows)
-    if (identical(root_spec$beta_prior_type, "rhs")) {
+    if (root_spec$beta_prior_type %in% c("rhs", "rhs_ns")) {
       .qdesn_validation_plot_rhs_progress(root_dir, progress_rows)
     }
   }

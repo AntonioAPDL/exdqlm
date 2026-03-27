@@ -25,7 +25,7 @@ if (!exists("%||%", mode = "function")) {
 
 
 #' Construct beta prior object used by LDVB engine
-#' @param type "ridge" or "rhs"
+#' @param type "ridge", "rhs", or "rhs_ns"
 #' @param ridge list(tau2=...)
 #' @param rhs list(tau0, nu, s or s2,
 #'   shrink_intercept, intercept_prec,
@@ -34,10 +34,11 @@ if (!exists("%||%", mode = "function")) {
 #'   init_c2 or init_log_c2,
 #'   n_inner, eta_bounds, h_curv, var_floor, verbose)
 #' @export
-beta_prior <- function(type = c("ridge", "rhs"), ridge = list(), rhs = list()) {
+beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), ridge = list(), rhs = list()) {
   type <- tolower(match.arg(type))
-  if (type == "ridge") beta_prior_ridge(ridge$tau2 %||% 1e4)
-  else beta_prior_rhs(rhs)
+  if (type == "ridge") return(beta_prior_ridge(ridge$tau2 %||% 1e4))
+  if (type == "rhs") return(beta_prior_rhs(rhs))
+  beta_prior_rhs_ns(rhs)
 }
 
 beta_prior_ridge <- function(tau2) {
@@ -140,6 +141,95 @@ beta_prior_rhs <- function(rhs) {
                                   hypers = hypers, init = init, control = control)
 
   # Guarantee LDVB engine contract: elbo() exists and returns list(elbo=scalar)
+  if (is.null(obj$elbo) || !is.function(obj$elbo)) {
+    obj$elbo <- function(...) list(elbo = 0)
+  }
+
+  obj
+}
+
+beta_prior_rhs_ns <- function(rhs) {
+  rhs <- rhs %||% list()
+
+  tau0 <- as.numeric(rhs$tau0 %||% 1.0)[1L]
+  a_zeta <- as.numeric(rhs$a_zeta %||% 2.0)[1L]
+  b_zeta <- as.numeric(rhs$b_zeta %||% 1.0)[1L]
+  zeta2_fixed <- rhs$zeta2_fixed %||% rhs$c2_fixed %||% NULL
+
+  # Keep API similarity with RHS by supporting s/s2 as slab-scale aliases.
+  s_provided <- if (!is.null(rhs$s)) as.numeric(rhs$s)[1L] else NA_real_
+  s2_provided <- if (!is.null(rhs$s2)) as.numeric(rhs$s2)[1L] else NA_real_
+  has_s <- !is.null(rhs$s)
+  has_s2 <- !is.null(rhs$s2)
+  if (has_s2) {
+    slab_s2 <- s2_provided
+    slab_s <- sqrt(slab_s2)
+    s_source <- "s2"
+  } else if (has_s) {
+    slab_s <- s_provided
+    slab_s2 <- slab_s^2
+    s_source <- "s"
+  } else {
+    slab_s2 <- 1.0
+    slab_s <- 1.0
+    s_source <- "default"
+  }
+  if (!is.finite(slab_s2) || slab_s2 <= 0) slab_s2 <- 1.0
+  if (!is.finite(slab_s) || slab_s <= 0) slab_s <- sqrt(slab_s2)
+
+  shrink_intercept <- isTRUE(rhs$shrink_intercept %||% TRUE)
+  intercept_prec <- as.numeric(rhs$intercept_prec %||% 1e-16)[1L]
+
+  init_lambda2 <- rhs$init_lambda2
+  if (is.null(init_lambda2) && !is.null(rhs$init_lambda)) init_lambda2 <- (as.numeric(rhs$init_lambda)^2)
+  if (is.null(init_lambda2) && !is.null(rhs$init_log_lambda)) init_lambda2 <- exp(2 * as.numeric(rhs$init_log_lambda))
+
+  init_tau2 <- rhs$init_tau2
+  if (is.null(init_tau2) && !is.null(rhs$init_tau)) init_tau2 <- as.numeric(rhs$init_tau)^2
+  if (is.null(init_tau2) && !is.null(rhs$init_log_tau)) init_tau2 <- exp(2 * as.numeric(rhs$init_log_tau))
+
+  init_zeta2 <- rhs$init_zeta2
+  if (is.null(init_zeta2) && !is.null(rhs$init_c2)) init_zeta2 <- as.numeric(rhs$init_c2)
+  if (is.null(init_zeta2) && !is.null(rhs$init_log_c2)) init_zeta2 <- exp(as.numeric(rhs$init_log_c2))
+
+  init_nu <- rhs$init_nu %||% 1.0
+  init_xi <- rhs$init_xi %||% 1.0
+
+  hypers <- list(
+    tau0 = tau0,
+    a_zeta = a_zeta,
+    b_zeta = b_zeta,
+    zeta2_fixed = zeta2_fixed,
+    s = slab_s,
+    s2 = slab_s2,
+    s_source = s_source,
+    s_provided = s_provided,
+    s2_provided = s2_provided,
+    shrink_intercept = shrink_intercept,
+    intercept_prec = intercept_prec
+  )
+
+  init <- list(
+    lambda2 = init_lambda2 %||% 1.0,
+    nu = init_nu,
+    tau2 = init_tau2 %||% (tau0^2),
+    xi = init_xi,
+    zeta2 = init_zeta2 %||% slab_s2
+  )
+
+  control <- list(
+    n_inner = as.integer(rhs$n_inner %||% rhs$rhs_maxit %||% 2L),
+    var_floor = as.numeric(rhs$var_floor %||% 1e-16)[1L],
+    verbose = isTRUE(rhs$verbose %||% FALSE)
+  )
+
+  obj <- .call_with_supported_args(
+    qdesn_rhs_ns_prior_obj,
+    hypers = hypers,
+    init = init,
+    control = control
+  )
+
   if (is.null(obj$elbo) || !is.function(obj$elbo)) {
     obj$elbo <- function(...) list(elbo = 0)
   }
