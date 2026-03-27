@@ -1,0 +1,328 @@
+# TRACK: RHS_NS Execution Tracker (Stages 3-9)
+
+Date: 2026-03-27  
+Last Updated: 2026-03-27  
+Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`  
+Primary Working Branch: `feature/qdesn-mcmc-alternative`  
+Related Branches: `origin/cransub/0.4.0`, `origin/feature/qdesn-mcmc-alternative`
+
+## 0) Purpose
+
+This is the operational tracker for delivering `rhs_ns` as an additive, production-quality prior option across exAL/qdesn inference paths, while preserving current `rhs` behavior and CRAN-readiness.
+
+This tracker executes stages 3-9 from the approved plan. Stage 2 (baseline capture) is intentionally skipped by user instruction after validation work freeze.
+
+## 1) Non-Negotiables
+
+1. Keep existing `beta_prior_type: rhs` behavior unchanged.
+2. Keep existing `beta_prior_type: ridge` behavior unchanged.
+3. Add `beta_prior_type: rhs_ns` as additive option only.
+4. Keep `qdesn` integrated through shared exAL inference plumbing (special-case consumer, not divergent fork).
+5. Preserve code style, roxygen style, and current package organization conventions.
+6. Keep release hygiene suitable for CRAN submission trajectory (`0.4.0` line).
+
+## 2) Current Facts (Confirmed)
+
+1. Both remote branches exist:
+   - `origin/cransub/0.4.0`
+   - `origin/feature/qdesn-mcmc-alternative`
+2. Branches are heavily diverged (`157` vs `233` commits from merge base `091d0e8fb2381d508d22ee8addd617c06ea95302`).
+3. `cransub/0.4.0` appears CRAN-focused and leaner for qdesn/RHS internals.
+4. `feature/qdesn-mcmc-alternative` contains the richer qdesn + inference stack.
+5. Validation campaigns are frozen per user instruction.
+
+## 3) Quality and Style Contract
+
+### 3.1 Code/Architecture
+
+- Reuse prior object contract in `R/priors_beta.R`:
+  - `init(p)`, `expected_prec(state, p)`, `update(state, qbeta)`, `elbo(state, qbeta)`
+- Avoid duplicated inference logic in qdesn wrappers when shared exAL path can be reused.
+- Keep new `rhs_ns` code modular (new prior file + minimal bridge changes).
+- Preserve backward compatibility in public APIs and existing configs.
+
+### 3.2 Documentation
+
+- Use concise roxygen updates for any new arguments/behavior.
+- Update NEWS and user-facing docs only after behavior stabilizes.
+- Keep tracker evidence links explicit (configs, scripts, test outputs).
+
+### 3.3 Testing
+
+- Add unit tests for prior object correctness and ELBO finite behavior.
+- Add integration tests for exAL VB/MCMC and qdesn VB/MCMC with `rhs_ns`.
+- Include compatibility tests that prove `rhs` behavior is unchanged.
+
+## 4) Global Stage Board
+
+Status legend: `[ ]` not started, `[-]` in progress, `[x]` completed, `[!]` blocked
+
+- [ ] Stage 3: Safe Integration Setup
+- [ ] Stage 4: Branch Reconciliation
+- [ ] Stage 5: Robust Regression/Quality Gate
+- [ ] Stage 6: RHS_NS Design Freeze
+- [ ] Stage 7: RHS_NS Implementation
+- [ ] Stage 8: Comparative Evaluation + Default Decision
+- [ ] Stage 9: Release Finalization (`0.4.0` readiness)
+
+## 5) Update Protocol (Mandatory)
+
+For every stage transition and major subtask:
+
+1. Update stage checkbox and status line.
+2. Append a dated entry in `Progress Log` with:
+   - what was investigated,
+   - what was changed,
+   - what was verified,
+   - blockers/risks,
+   - next action.
+3. Record evidence pointers (file paths, commit SHA, test command/result summary).
+
+Do not advance a stage without completing its pre-stage investigation checklist.
+
+## 6) Stage 3: Safe Integration Setup
+
+Status: `[ ]`  
+Owner: Codex + user
+
+### 6.1 Pre-Stage Investigation Checklist
+
+- [ ] Confirm clean recovery strategy for current dirty worktree state.
+- [ ] Inventory all modified/untracked validation assets to preserve.
+- [ ] Decide archival mechanism (dedicated branch/tag/commit) for frozen validation state.
+- [ ] Confirm no active jobs are writing into tracked outputs.
+
+### 6.2 Execution Checklist
+
+- [ ] Create safety branch/tag anchors for both active lines.
+- [ ] Preserve frozen validation artifacts without content mutation.
+- [ ] Create separate clean worktrees for reconciliation.
+- [ ] Document exact branch/worktree map in this tracker.
+
+### 6.3 Exit Gate
+
+- [ ] Any current state can be restored quickly.
+- [ ] Integration can proceed without risking frozen validation evidence.
+
+## 7) Stage 4: Branch Reconciliation
+
+Status: `[ ]`  
+Owner: Codex + user
+
+### 7.1 Pre-Stage Investigation Checklist
+
+- [ ] Generate file-level conflict forecast (`R/`, `src/`, `man/`, tests, configs).
+- [ ] Classify modules by ownership/priority (CRAN-critical vs qdesn-forward).
+- [ ] Dry-run both reconciliation strategies (merge vs rebase) in disposable worktree.
+- [ ] Quantify conflict volume and breakage risk for each strategy.
+
+### 7.2 Execution Checklist
+
+- [ ] Select strategy with lowest operational risk (default preference: merge-based).
+- [ ] Reconcile modules in deterministic order:
+  1. inference core (`R/exal_*`, `R/priors_beta.R`)
+  2. qdesn wrappers (`R/qdesn_*`)
+  3. config/model-selection plumbing
+  4. tests/docs/scripts
+- [ ] Resolve conflicts with explicit rationale notes.
+- [ ] Keep behavior of existing `rhs` path unchanged.
+
+### 7.3 Exit Gate
+
+- [ ] Reconciled integration branch compiles and loads.
+- [ ] No namespace/export regressions.
+- [ ] Critical smoke tests pass.
+
+## 8) Stage 5: Robust Regression/Quality Gate
+
+Status: `[ ]`  
+Owner: Codex + user
+
+### 8.1 Pre-Stage Investigation Checklist
+
+- [ ] Define test matrix tiers: unit, integration, pipeline smoke, CRAN checks.
+- [ ] Identify deterministic seeds/specs for repeatable parity checks.
+- [ ] Define pass/fail thresholds for runtime and stability diagnostics.
+
+### 8.2 Execution Checklist
+
+- [ ] Run unit/integration suites for exAL + qdesn.
+- [ ] Run VB and MCMC parity checks under current `rhs`/`ridge`.
+- [ ] Run `R CMD check` and collect warnings/errors.
+- [ ] Record failures and either fix or explicitly defer with justification.
+
+### 8.3 Exit Gate
+
+- [ ] Existing behavior remains stable.
+- [ ] Reconciled line is quality-gated and ready for rhs_ns design freeze.
+
+## 9) Stage 6: RHS_NS Design Freeze
+
+Status: `[ ]`  
+Owner: Codex + user
+
+### 9.1 Pre-Stage Investigation Checklist
+
+- [ ] Re-read local theory anchors and align notation (`tau`, `lambda_j`, `c^2`/`zeta^2`).
+- [ ] Finalize exact hierarchical model for `rhs_ns` (including random slab default).
+- [ ] Enumerate conditional updates and classify: closed-form vs nonconjugate.
+- [ ] Verify conditional-vs-joint equivalence language in design notes.
+
+### 9.2 ELBO-Specific Design Checklist (Required)
+
+- [ ] Specify full `rhs_ns` ELBO contribution under prior object contract.
+- [ ] Ensure no double-counting between:
+  - `E[log p(beta | latents)]`
+  - latent-prior terms
+  - latent-factor entropies.
+- [ ] Confirm compatibility with current ELBO assembly locations:
+  - `R/exal_ldvb_engine.R`
+  - `R/exal_static_LDVB.R`
+- [ ] Define optional ELBO component diagnostics (if exposed) while preserving existing return contract.
+
+### 9.3 Execution Checklist
+
+- [ ] Freeze API contract for `rhs_ns` hyperparameters and controls.
+- [ ] Freeze expected state structure for VB and MCMC.
+- [ ] Freeze update ordering and numerical guardrails.
+- [ ] Record approved design in tracker + implementation notes.
+
+### 9.4 Exit Gate
+
+- [ ] Mathematical and computational design approved.
+- [ ] ELBO design complete for full objective accounting in CAVI/VB.
+
+## 10) Stage 7: RHS_NS Implementation
+
+Status: `[ ]`  
+Owner: Codex
+
+### 10.1 Pre-Stage Investigation Checklist
+
+- [ ] Confirm exact touch set and ownership boundaries.
+- [ ] Identify reusable helpers from current `rhs` path.
+- [ ] Define minimal-risk commit slicing strategy.
+
+### 10.2 Target File Map
+
+New file(s):
+- [ ] `R/qdesn_rhs_ns_prior.R`
+- [ ] optional `R/exal_mcmc_rhs_ns_helpers.R` (only if needed)
+
+Updates expected:
+- [ ] `R/priors_beta.R`
+- [ ] `R/exal_inference_config.R`
+- [ ] `R/exal_ldvb_engine.R`
+- [ ] `R/exal_static_LDVB.R`
+- [ ] `R/exal_mcmc_fit.R`
+- [ ] `R/qdesn_vb.R`
+- [ ] `R/qdesn_mcmc.R`
+- [ ] `R/qdesn_model_selection_v2.R`
+- [ ] `NAMESPACE` / `man/` as needed
+
+### 10.3 Implementation Checklist
+
+- [ ] Add `rhs_ns` constructor route and validation logic.
+- [ ] Implement `rhs_ns` prior object methods:
+  - `init`, `expected_prec`, `update`, `elbo`.
+- [ ] Integrate VB path in `exal_ldvb_engine` and static wrapper path.
+- [ ] Integrate MCMC path in `exal_mcmc_fit` with additive branching.
+- [ ] Keep qdesn as consumer of shared exAL inference path.
+- [ ] Add configuration parsing/defaults for `beta_prior_type: rhs_ns`.
+- [ ] Keep legacy `rhs` diagnostics and controls intact.
+
+### 10.4 Exit Gate
+
+- [ ] `rhs_ns` runs in both VB and MCMC paths.
+- [ ] Current `rhs` and `ridge` tests still pass unchanged.
+
+## 11) Stage 8: Comparative Evaluation + Default Decision
+
+Status: `[ ]`  
+Owner: Codex + user
+
+### 11.1 Pre-Stage Investigation Checklist
+
+- [ ] Define benchmark matrix and compute budget.
+- [ ] Define objective criteria for “better”:
+  - predictive quality,
+  - calibration,
+  - runtime,
+  - stability/mixing.
+- [ ] Define decision thresholds for default switch.
+
+### 11.2 Execution Checklist
+
+- [ ] Run matched experiments for `rhs` vs `rhs_ns`.
+- [ ] Compare VB (ELBO behavior, convergence, runtime).
+- [ ] Compare MCMC (mixing diagnostics, runtime, chain health).
+- [ ] Summarize equivalence/non-equivalence findings clearly.
+
+### 11.3 Default Decision Gate
+
+- [ ] If `rhs_ns` is at least parity in predictive behavior and better in efficiency/stability, set default to `rhs_ns`.
+- [ ] Otherwise keep default as `rhs` and ship `rhs_ns` as opt-in.
+- [ ] Record final decision and rationale in docs.
+
+## 12) Stage 9: Release Finalization (`0.4.0`)
+
+Status: `[ ]`  
+Owner: Codex + user
+
+### 12.1 Pre-Stage Investigation Checklist
+
+- [ ] Verify CRAN-facing branch state and release policy constraints.
+- [ ] Verify docs/examples only reference finalized API names.
+- [ ] Verify all staged changes are scoped and reviewable.
+
+### 12.2 Execution Checklist
+
+- [ ] Update NEWS and user-facing docs.
+- [ ] Add/update examples for both `rhs` and `rhs_ns`.
+- [ ] Run full package checks (`R CMD check --as-cran` and project smoke suite).
+- [ ] Final release-candidate pass on test and diagnostics artifacts.
+
+### 12.3 Exit Gate
+
+- [ ] Submission-ready commit set with clear traceability.
+
+## 13) Branching and Version-Control Policy
+
+1. Never rewrite remote history of long-lived branches without explicit approval.
+2. Keep integration work in dedicated branch/worktree.
+3. Use small, reviewable commits grouped by concern:
+   - config/API,
+   - prior core,
+   - VB integration,
+   - MCMC integration,
+   - tests/docs.
+4. Every merge/rebase decision must be logged in `Progress Log` with rationale.
+
+## 14) Progress Log (Living)
+
+### 2026-03-27
+
+- Confirmed branch topology and divergence:
+  - `origin/cransub/0.4.0...origin/feature/qdesn-mcmc-alternative = 157/233`
+  - merge base `091d0e8fb2381d508d22ee8addd617c06ea95302`
+- Confirmed current role split:
+  - CRAN-focused lean line (`cransub/0.4.0`)
+  - qdesn-rich development line (`feature/qdesn-mcmc-alternative`)
+- Confirmed relevant current inference touchpoints for `rhs`:
+  - `R/priors_beta.R`
+  - `R/exal_inference_config.R`
+  - `R/exal_ldvb_engine.R`
+  - `R/exal_mcmc_fit.R`
+  - `R/qdesn_vb.R`, `R/qdesn_mcmc.R`, `R/qdesn_model_selection_v2.R`
+- Confirmed CAVI ELBO integration points that must be adapted for `rhs_ns`:
+  - existing prior latent ELBO plug-in path in `exal_ldvb_engine`
+  - corresponding static path in `exal_static_LDVB`
+- Created this execution tracker with stage gates and checklists.
+
+## 15) Next Action (When Implementation Starts)
+
+1. Start Stage 3 and complete safety anchors/worktree setup.
+2. Update this tracker immediately with:
+   - branch/tag names,
+   - worktree paths,
+   - archived validation state reference.
