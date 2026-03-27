@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
 <!-- badges: end -->
 
 `exdqlm` fits **dynamic quantile** state-space models using the **extended Asymmetric Laplace** (exAL) error family. It targets time-series applications where the goal is to model **conditional quantiles** (not only means) while keeping a familiar state-space specification (design/evolution matrices and a state vector).
-In **v0.4.0**, this CRAN update consolidates the internal 0.4/0.5/0.6 feature line: dynamic **LDVB** (`exdqlmLDVB()`), synthesis (`exdqlm_synthesize_from_draws()`), static regression/exAL routines (`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), reduced AL/DQLM modes (`dqlm.ind = TRUE`), and static ridge/RHS priors (`beta_prior = "ridge"` / `"rhs"`), while keeping backend defaults conservative for CRAN stability.
+In **v0.4.0**, this CRAN update consolidates the internal 0.4/0.5/0.6 feature line: dynamic **LDVB** (`exdqlmLDVB()`), synthesis (`exdqlm_synthesize_from_draws()`), static regression/exAL routines (`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), reduced AL/DQLM modes (`dqlm.ind = TRUE`), and static shrinkage priors (`beta_prior = "ridge"` / `"rhs"` / `"rhs_ns"`), while keeping backend defaults conservative for CRAN stability.
 
 > **Terminology (exAL)**
 > We use **exAL** for the extended Asymmetric Laplace family throughout this package. It generalizes the standard AL by adding a skewness parameter, allowing for asymmetric tails. The standard AL is a special case with zero skewness. We refer to the generalized AL from Kotz et al. as **Kotz-GAL** to avoid confusion.
@@ -82,7 +82,7 @@ tail(fit$diagnostics$elbo, 3)
 * **Synthesis helper** `exdqlm_synthesize_from_draws()` to combine posterior quantile-draw objects.
 * **Static regression support** via `regMod()`, `exal_static_LDVB()`, and `exal_static_mcmc()`.
 * **Reduced AL/DQLM paths** across dynamic and static APIs via `dqlm.ind = TRUE`.
-* **Static shrinkage priors** in both static LDVB/MCMC via `beta_prior = "ridge"` or `"rhs"`.
+* **Static shrinkage priors** in both static LDVB/MCMC via `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
 * **LDVB transform helper** `transfn_exdqlmLDVB()` and expanded static object generics (`exal_mcmc`, `exal_ldvb`).
 * **C++ backend controls** retained as optional: Kalman bridge default **TRUE**; builders, samplers,
   and post-predictive C++ paths default **FALSE**.
@@ -178,7 +178,7 @@ rexal(5, p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
 
 > **CRAN-safety.** All examples set a seed, use tiny data, finish in a few seconds, and explicitly keep the pure-R path.
 
-### 3) Static reduced AL + RHS API sketch
+### 3) Static reduced AL + RHS-family API sketch
 
 ```{r static-api-sketch, eval=FALSE}
 set.seed(4)
@@ -199,12 +199,31 @@ fit_al <- exal_static_LDVB(
 fit_rhs <- exal_static_mcmc(
   y = y, X = X, p0 = 0.5,
   beta_prior = "rhs",
-  nsim = 1200, burnin = 200, thin = 5,
-  print_every = 0
+  n.burn = 200, n.mcmc = 200, thin = 1,
+  mh.proposal = "slice",
+  trace.diagnostics = FALSE,
+  verbose = FALSE
+)
+
+# exAL fit with rhs_ns controls (same API family, additive option)
+fit_rhs_ns <- exal_static_mcmc(
+  y = y, X = X, p0 = 0.5,
+  beta_prior = "rhs_ns",
+  beta_prior_controls = list(
+    tau0 = 0.5,
+    a_zeta = 2,
+    b_zeta = 1,
+    shrink_intercept = FALSE
+  ),
+  n.burn = 200, n.mcmc = 200, thin = 1,
+  mh.proposal = "slice",
+  trace.diagnostics = FALSE,
+  verbose = FALSE
 )
 
 fit_al$dqlm.ind
 fit_rhs$beta_prior$type
+fit_rhs_ns$beta_prior$type
 ```
 
 ## FAQ / Troubleshooting

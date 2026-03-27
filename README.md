@@ -16,8 +16,8 @@ specification (design/evolution matrices and a state vector). In
 feature line: dynamic **LDVB** (`exdqlmLDVB()`), synthesis
 (`exdqlm_synthesize_from_draws()`), static regression/exAL routines
 (`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), reduced
-AL/DQLM modes (`dqlm.ind = TRUE`), and static ridge/RHS priors
-(`beta_prior = "ridge"` / `"rhs"`), while keeping backend defaults
+AL/DQLM modes (`dqlm.ind = TRUE`), and static shrinkage priors
+(`beta_prior = "ridge"` / `"rhs"` / `"rhs_ns"`), while keeping backend defaults
 conservative for CRAN stability.
 
 > **Terminology.** We say **exAL** for the extended Asymmetric Laplace
@@ -89,7 +89,7 @@ tail(fit$diagnostics$elbo, 3)
 - **Reduced AL/DQLM paths** across dynamic and static APIs via
   `dqlm.ind = TRUE`.
 - **Static shrinkage priors** in both static LDVB/MCMC via
-  `beta_prior = "ridge"` or `"rhs"`.
+  `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
 - **LDVB transform helper** `transfn_exdqlmLDVB()` and expanded static
   object generics (`exal_mcmc`, `exal_ldvb`).
 - **C++ backend controls** retained as optional: Kalman bridge default
@@ -201,7 +201,7 @@ rexal(5, p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
 > **CRAN-safety.** All examples set a seed, use tiny data, finish in a
 > few seconds, and explicitly keep the pure-R path.
 
-### 3) Static reduced AL + RHS API sketch
+### 3) Static reduced AL + RHS-family API sketch
 
 ``` r
 set.seed(4)
@@ -222,12 +222,31 @@ fit_al <- exal_static_LDVB(
 fit_rhs <- exal_static_mcmc(
   y = y, X = X, p0 = 0.5,
   beta_prior = "rhs",
-  nsim = 1200, burnin = 200, thin = 5,
-  print_every = 0
+  n.burn = 200, n.mcmc = 200, thin = 1,
+  mh.proposal = "slice",
+  trace.diagnostics = FALSE,
+  verbose = FALSE
+)
+
+# exAL fit with rhs_ns controls (same API family, additive option)
+fit_rhs_ns <- exal_static_mcmc(
+  y = y, X = X, p0 = 0.5,
+  beta_prior = "rhs_ns",
+  beta_prior_controls = list(
+    tau0 = 0.5,
+    a_zeta = 2,
+    b_zeta = 1,
+    shrink_intercept = FALSE
+  ),
+  n.burn = 200, n.mcmc = 200, thin = 1,
+  mh.proposal = "slice",
+  trace.diagnostics = FALSE,
+  verbose = FALSE
 )
 
 fit_al$dqlm.ind
 fit_rhs$beta_prior$type
+fit_rhs_ns$beta_prior$type
 ```
 
 ## FAQ / Troubleshooting
