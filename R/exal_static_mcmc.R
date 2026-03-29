@@ -457,17 +457,70 @@ exal_static_mcmc <- function(
     if (isTRUE(init.from.vb) && exists("vb.fit", inherits = FALSE) &&
         !is.null(vb.fit$beta_prior$state)) {
       vb_state <- vb.fit$beta_prior$state
-      beta_state$lambda <- .static_rhs_safe_exp(vb_state$eta_lambda_hat)
-      beta_state$tau <- .static_rhs_safe_exp(vb_state$eta_tau_hat)
-      beta_state$c2 <- .static_rhs_safe_exp(vb_state$eta_c_hat)
+      if (identical(beta_prior_obj$type, "rhs_ns")) {
+        if (!is.null(vb_state$lambda2)) {
+          lam2 <- as.numeric(vb_state$lambda2)
+          if (length(lam2) == 1L) lam2 <- rep(lam2, p)
+          if (length(lam2) == p) beta_state$lambda2 <- pmax(lam2, 1e-16)
+        } else if (!is.null(vb_state$eta_lambda_hat)) {
+          beta_state$lambda2 <- pmax(.static_rhs_safe_exp(vb_state$eta_lambda_hat)^2, 1e-16)
+        }
+        if (!is.null(vb_state$tau2)) {
+          beta_state$tau2 <- pmax(as.numeric(vb_state$tau2)[1], 1e-16)
+        } else if (!is.null(vb_state$eta_tau_hat)) {
+          beta_state$tau2 <- pmax(.static_rhs_safe_exp(vb_state$eta_tau_hat)^2, 1e-16)
+        }
+        if (!is.null(vb_state$zeta2)) {
+          beta_state$zeta2 <- pmax(as.numeric(vb_state$zeta2)[1], 1e-16)
+        } else if (!is.null(vb_state$c2)) {
+          beta_state$zeta2 <- pmax(as.numeric(vb_state$c2)[1], 1e-16)
+        } else if (!is.null(vb_state$eta_c_hat)) {
+          beta_state$zeta2 <- pmax(.static_rhs_safe_exp(vb_state$eta_c_hat)[1], 1e-16)
+        }
+        if (!is.null(vb_state$nu)) {
+          nu0 <- as.numeric(vb_state$nu)
+          if (length(nu0) == 1L) nu0 <- rep(nu0, p)
+          if (length(nu0) == p) beta_state$nu <- pmax(nu0, 1e-16)
+        }
+        if (!is.null(vb_state$xi)) beta_state$xi <- pmax(as.numeric(vb_state$xi)[1], 1e-16)
+        beta_state <- .static_rhs_ns_recompute_moments(beta_state, beta_prior_obj$controls)
+      } else {
+        beta_state$lambda <- .static_rhs_safe_exp(vb_state$eta_lambda_hat)
+        beta_state$tau <- .static_rhs_safe_exp(vb_state$eta_tau_hat)
+        beta_state$c2 <- .static_rhs_safe_exp(vb_state$eta_c_hat)
+      }
     }
-    if (!is.null(init$lambda)) {
-      lam0 <- as.numeric(init$lambda)
-      if (length(lam0) == 1L) lam0 <- rep(lam0, p)
-      if (length(lam0) == p) beta_state$lambda <- pmax(lam0, 1e-16)
+    if (identical(beta_prior_obj$type, "rhs_ns")) {
+      if (!is.null(init$lambda)) {
+        lam0 <- as.numeric(init$lambda)
+        if (length(lam0) == 1L) lam0 <- rep(lam0, p)
+        if (length(lam0) == p) beta_state$lambda2 <- pmax(lam0^2, 1e-16)
+      }
+      if (!is.null(init$lambda2)) {
+        lam2 <- as.numeric(init$lambda2)
+        if (length(lam2) == 1L) lam2 <- rep(lam2, p)
+        if (length(lam2) == p) beta_state$lambda2 <- pmax(lam2, 1e-16)
+      }
+      if (!is.null(init$nu)) {
+        nu0 <- as.numeric(init$nu)
+        if (length(nu0) == 1L) nu0 <- rep(nu0, p)
+        if (length(nu0) == p) beta_state$nu <- pmax(nu0, 1e-16)
+      }
+      if (!is.null(init$tau)) beta_state$tau2 <- pmax(as.numeric(init$tau)[1]^2, 1e-16)
+      if (!is.null(init$tau2)) beta_state$tau2 <- pmax(as.numeric(init$tau2)[1], 1e-16)
+      if (!is.null(init$xi)) beta_state$xi <- pmax(as.numeric(init$xi)[1], 1e-16)
+      if (!is.null(init$c2)) beta_state$zeta2 <- pmax(as.numeric(init$c2)[1], 1e-16)
+      if (!is.null(init$zeta2)) beta_state$zeta2 <- pmax(as.numeric(init$zeta2)[1], 1e-16)
+      beta_state <- .static_rhs_ns_recompute_moments(beta_state, beta_prior_obj$controls)
+    } else {
+      if (!is.null(init$lambda)) {
+        lam0 <- as.numeric(init$lambda)
+        if (length(lam0) == 1L) lam0 <- rep(lam0, p)
+        if (length(lam0) == p) beta_state$lambda <- pmax(lam0, 1e-16)
+      }
+      if (!is.null(init$tau)) beta_state$tau <- pmax(as.numeric(init$tau)[1], 1e-16)
+      if (!is.null(init$c2)) beta_state$c2 <- pmax(as.numeric(init$c2)[1], 1e-16)
     }
-    if (!is.null(init$tau)) beta_state$tau <- pmax(as.numeric(init$tau)[1], 1e-16)
-    if (!is.null(init$c2)) beta_state$c2 <- pmax(as.numeric(init$c2)[1], 1e-16)
   }
 
   # --- reduced AL / DQLM Gibbs path (no gamma, no s) ------------------------

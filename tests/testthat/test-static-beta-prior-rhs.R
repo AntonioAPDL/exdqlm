@@ -345,3 +345,93 @@ test_that("static MCMC RHS_NS fixed zeta2 keeps c2 draws constant", {
   expect_equal(fit$beta_prior$summary$zeta2_fixed, zeta2_fixed, tolerance = 1e-12)
   expect_equal(fit$rhs.diagnostics$summary$zeta2, zeta2_fixed, tolerance = 1e-12)
 })
+
+test_that("static RHS_NS VB uses closed-form IG block moments and precision map", {
+  obj <- exdqlm:::.static_beta_prior_make(
+    beta_prior = "rhs_ns",
+    p = 4L,
+    b0 = rep(0, 4L),
+    V0 = diag(1, 4L),
+    beta_prior_controls = list(
+      tau0 = 0.7,
+      a_zeta = 2.5,
+      b_zeta = 1.2,
+      shrink_intercept = FALSE,
+      n_inner = 1L,
+      freeze_tau_warmup_iters = 0L,
+      update_every = 1L
+    )
+  )
+  st <- obj$init_vb()
+  qbeta <- list(
+    m = c(0.25, 0.7, -0.35, 0.15),
+    V = diag(c(1e-4, 0.08, 0.05, 0.04))
+  )
+
+  st <- obj$update_vb(st, qbeta)
+  active <- 2:4
+
+  expect_true(all(is.finite(st$lambda2[active])))
+  expect_true(all(st$lambda2[active] > 0))
+  expect_true(is.finite(st$tau2))
+  expect_true(st$tau2 > 0)
+  expect_true(is.finite(st$xi))
+  expect_true(st$xi > 0)
+  expect_true(is.finite(st$zeta2))
+  expect_true(st$zeta2 > 0)
+
+  expect_equal(st$a_lambda[active], rep(1, length(active)), tolerance = 1e-12)
+  expect_equal(st$a_nu[active], rep(1, length(active)), tolerance = 1e-12)
+  expect_equal(st$a_tau, (length(active) + 1) / 2, tolerance = 1e-12)
+  expect_equal(st$a_xi, 1, tolerance = 1e-12)
+  expect_equal(st$a_zeta, obj$controls$a_zeta + length(active) / 2, tolerance = 1e-12)
+
+  prec <- obj$beta_system_vb(st)$prec_diag
+  expect_equal(prec[1], obj$controls$intercept_prec, tolerance = 1e-12)
+  expect_equal(
+    prec[active],
+    st$E_inv_tau2 * st$E_inv_lambda2[active] + st$E_inv_zeta2,
+    tolerance = 1e-10
+  )
+})
+
+test_that("static RHS_NS MCMC uses closed-form Gibbs scales and exact precision expression", {
+  set.seed(607)
+  obj <- exdqlm:::.static_beta_prior_make(
+    beta_prior = "rhs_ns",
+    p = 4L,
+    b0 = rep(0, 4L),
+    V0 = diag(1, 4L),
+    beta_prior_controls = list(
+      tau0 = 0.6,
+      a_zeta = 2,
+      b_zeta = 1,
+      shrink_intercept = FALSE,
+      freeze_tau_warmup_iters = 1L
+    )
+  )
+  beta_vec <- c(0.2, 0.9, -0.5, 0.3)
+  active <- 2:4
+
+  st0 <- obj$init_mcmc()
+  tau2_0 <- st0$tau2
+
+  st1 <- obj$update_mcmc(st0, beta_vec)
+  expect_true(isTRUE(st1$freeze_tau))
+  expect_equal(st1$tau2, tau2_0, tolerance = 1e-12)
+
+  st2 <- obj$update_mcmc(st1, beta_vec)
+  expect_false(isTRUE(st2$freeze_tau))
+  expect_true(is.finite(st2$tau2))
+  expect_true(st2$tau2 > 0)
+  expect_true(all(st2$lambda2[active] > 0))
+  expect_true(all(st2$nu[active] > 0))
+
+  prec <- obj$beta_system_mcmc(st2)$prec_diag
+  expect_equal(prec[1], obj$controls$intercept_prec, tolerance = 1e-12)
+  expect_equal(
+    prec[active],
+    1 / (st2$tau2 * st2$lambda2[active]) + 1 / st2$zeta2,
+    tolerance = 1e-10
+  )
+})

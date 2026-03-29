@@ -37,11 +37,14 @@
       sigma = take_scalar(vb_fit$qsig$E_sigma, "sigma", positive = TRUE),
       v = take_vector(vb_fit$qv$E_v, "v", positive = TRUE)
     )
-    if (identical(beta_prior$type, "rhs") && !is.null(beta_prior$state)) {
+    if (beta_prior$type %in% c("rhs", "rhs_ns") && !is.null(beta_prior$state)) {
       st <- beta_prior$state
-      if (!is.null(st$eta_lambda_hat)) out$lambda <- take_vector(exp(as.numeric(st$eta_lambda_hat)), "lambda", positive = TRUE)
-      if (!is.null(st$eta_tau_hat)) out$tau <- take_scalar(exp(as.numeric(st$eta_tau_hat)[1]), "tau", positive = TRUE)
-      if (!is.null(st$eta_c_hat)) out$c2 <- take_scalar(exp(as.numeric(st$eta_c_hat)[1]), "c2", positive = TRUE)
+      if (!is.null(st$lambda2)) out$lambda <- take_vector(sqrt(pmax(as.numeric(st$lambda2), 1e-16)), "lambda", positive = TRUE)
+      if (!is.null(st$tau2)) out$tau <- take_scalar(sqrt(pmax(as.numeric(st$tau2)[1], 1e-16)), "tau", positive = TRUE)
+      if (!is.null(st$zeta2)) out$c2 <- take_scalar(as.numeric(st$zeta2)[1], "c2", positive = TRUE)
+      if (is.null(out$lambda) && !is.null(st$eta_lambda_hat)) out$lambda <- take_vector(exp(as.numeric(st$eta_lambda_hat)), "lambda", positive = TRUE)
+      if (is.null(out$tau) && !is.null(st$eta_tau_hat)) out$tau <- take_scalar(exp(as.numeric(st$eta_tau_hat)[1]), "tau", positive = TRUE)
+      if (is.null(out$c2) && !is.null(st$eta_c_hat)) out$c2 <- take_scalar(exp(as.numeric(st$eta_c_hat)[1]), "c2", positive = TRUE)
     }
     attr(out, "resume_init_notes") <- unique(sprintf("dropped_nonfinite_%s", dropped_fields))
     return(out)
@@ -59,11 +62,14 @@
     v = take_vector(vb_fit$qv$E_v, "v", positive = TRUE),
     s = take_vector(vb_fit$qs$E_s, "s")
   )
-  if (identical(beta_prior$type, "rhs") && !is.null(beta_prior$state)) {
+  if (beta_prior$type %in% c("rhs", "rhs_ns") && !is.null(beta_prior$state)) {
     st <- beta_prior$state
-    if (!is.null(st$eta_lambda_hat)) out$lambda <- take_vector(exp(as.numeric(st$eta_lambda_hat)), "lambda", positive = TRUE)
-    if (!is.null(st$eta_tau_hat)) out$tau <- take_scalar(exp(as.numeric(st$eta_tau_hat)[1]), "tau", positive = TRUE)
-    if (!is.null(st$eta_c_hat)) out$c2 <- take_scalar(exp(as.numeric(st$eta_c_hat)[1]), "c2", positive = TRUE)
+    if (!is.null(st$lambda2)) out$lambda <- take_vector(sqrt(pmax(as.numeric(st$lambda2), 1e-16)), "lambda", positive = TRUE)
+    if (!is.null(st$tau2)) out$tau <- take_scalar(sqrt(pmax(as.numeric(st$tau2)[1], 1e-16)), "tau", positive = TRUE)
+    if (!is.null(st$zeta2)) out$c2 <- take_scalar(as.numeric(st$zeta2)[1], "c2", positive = TRUE)
+    if (is.null(out$lambda) && !is.null(st$eta_lambda_hat)) out$lambda <- take_vector(exp(as.numeric(st$eta_lambda_hat)), "lambda", positive = TRUE)
+    if (is.null(out$tau) && !is.null(st$eta_tau_hat)) out$tau <- take_scalar(exp(as.numeric(st$eta_tau_hat)[1]), "tau", positive = TRUE)
+    if (is.null(out$c2) && !is.null(st$eta_c_hat)) out$c2 <- take_scalar(exp(as.numeric(st$eta_c_hat)[1]), "c2", positive = TRUE)
   }
   attr(out, "resume_init_notes") <- unique(sprintf("dropped_nonfinite_%s", dropped_fields))
   out
