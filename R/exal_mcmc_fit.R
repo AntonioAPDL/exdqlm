@@ -848,6 +848,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
                           mcmc_control = NULL,
                           n_burn = NULL, n_mcmc = NULL, thin = NULL,
                           verbose = NULL,
+                          likelihood_family = c("exal", "al"),
+                          al_fixed_gamma = NULL,
                           init = list(),
                           prior_gamma = NULL,
                           prior_gamma_mu0 = NULL,
@@ -860,6 +862,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
                           ...) {
 
   `%||%` <- function(a, b) if (is.null(a)) b else a
+  likelihood_family <- match.arg(tolower(as.character(likelihood_family)[1L]), c("exal", "al"))
+  is_al <- identical(likelihood_family, "al")
 
   assert_matrix(X, "X")
   if (!is.numeric(y) || length(y) != nrow(X)) .stopf("y length must match nrow(X).")
@@ -1008,6 +1012,23 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
 
   L <- gamma_bounds[1L]
   U <- gamma_bounds[2L]
+  resolve_al_gamma <- function(g, L, U) {
+    g <- as.numeric(g)[1L]
+    if (!is.finite(g) || g <= L || g >= U) {
+      if (L < 0 && U > 0) {
+        g <- 0
+      } else {
+        g <- 0.5 * (L + U)
+      }
+    }
+    eps <- 1e-8 * max(1, abs(U - L))
+    min(max(g, L + eps), U - eps)
+  }
+  al_gamma_fixed <- if (is_al) {
+    resolve_al_gamma(al_fixed_gamma %||% init$gamma %||% 0, L = L, U = U)
+  } else {
+    NA_real_
+  }
 
   g_from_eta <- function(eta) {
     s <- stats::plogis(eta)
@@ -1030,6 +1051,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   Cabs_of <- function(g) C.fn(p0, g) * abs(g)
 
   logpost_eta_gamma <- function(eta, beta, sigma, v, s_vec) {
+    if (is_al) return(-Inf)
     if (!is.finite(eta) || sigma <= 0 || any(!is.finite(beta)) || any(v <= 0) ||
         any(!is.finite(v)) || any(s_vec < 0) || any(!is.finite(s_vec))) {
       return(-Inf)
@@ -1065,6 +1087,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         verbose = FALSE
       ), mcmc_control$vb_warm_start_control %||% list()),
       init = init,
+      likelihood_family = likelihood_family,
       prior_gamma = prior_gamma,
       prior_sigma = prior_sigma,
       log_prior_gamma = log_prior_gamma,
@@ -1075,8 +1098,12 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   beta <- as.numeric(init$beta %||% if (!is.null(vb_warm)) vb_warm$qbeta$m else rep(0, p))
   sigma <- as.numeric(init$sigma %||% if (!is.null(vb_warm)) vb_warm$qsiggam$sigma_mean else 1)[1L]
   eta_sigma <- log(max(as.numeric(sigma)[1L], 1e-12))
-  gamma <- as.numeric(init$gamma %||% if (!is.null(vb_warm)) vb_warm$qsiggam$gamma_mean else 0)[1L]
-  gamma <- min(max(gamma, L + 1e-6), U - 1e-6)
+  gamma <- if (is_al) {
+    as.numeric(al_gamma_fixed)
+  } else {
+    g0 <- as.numeric(init$gamma %||% if (!is.null(vb_warm)) vb_warm$qsiggam$gamma_mean else 0)[1L]
+    min(max(g0, L + 1e-6), U - 1e-6)
+  }
   eta_gamma <- eta_from_g(gamma)
 
   v <- as.numeric(init$v %||% if (!is.null(vb_warm)) vb_warm$qv$E_v else rep(1, n))
@@ -1171,6 +1198,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         X = X,
         p0 = p0,
         gamma_bounds = gamma_bounds,
+        likelihood_family = likelihood_family,
+        al_fixed_gamma = al_fixed_gamma,
         mcmc_control = pilot_control,
         init = candidate_inits[[ii]],
         prior_gamma = prior_gamma,
@@ -1223,6 +1252,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       X = X,
       p0 = p0,
       gamma_bounds = gamma_bounds,
+      likelihood_family = likelihood_family,
+      al_fixed_gamma = al_fixed_gamma,
       mcmc_control = final_control,
       init = init_final,
       prior_gamma = prior_gamma,
@@ -1261,7 +1292,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   }
 
   update_sigma_gamma_once <- function(beta_now, v_now, s_now, sigma_now, eta_sigma_now, eta_gamma_now) {
-    gamma_now <- g_from_eta(eta_gamma_now)
+    gamma_now <- if (is_al) as.numeric(al_gamma_fixed) else g_from_eta(eta_gamma_now)
     A_now <- as.numeric(A_of(gamma_now))[1L]
     B_now <- as.numeric(B_of(gamma_now))[1L]
     Cabs_now <- as.numeric(Cabs_of(gamma_now))[1L]
@@ -1296,23 +1327,32 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       eta_sigma_now <- log(max(as.numeric(sigma_now)[1L], 1e-12))
     }
 
-    slice_gamma <- .exal_mcmc_slice_sample_1d(
-      x0 = eta_gamma_now,
-      logf = function(eta) logpost_eta_gamma(eta, beta = beta_now, sigma = sigma_now, v = v_now, s_vec = s_now),
-      width = gamma_slice_width,
-      max_steps_out = gamma_slice_max_steps_out,
-      max_shrink = gamma_slice_max_shrink
-    )
-    eta_gamma_now <- slice_gamma$x
-    gamma_now <- g_from_eta(eta_gamma_now)
+    if (!is_al) {
+      slice_gamma <- .exal_mcmc_slice_sample_1d(
+        x0 = eta_gamma_now,
+        logf = function(eta) logpost_eta_gamma(eta, beta = beta_now, sigma = sigma_now, v = v_now, s_vec = s_now),
+        width = gamma_slice_width,
+        max_steps_out = gamma_slice_max_steps_out,
+        max_shrink = gamma_slice_max_shrink
+      )
+      eta_gamma_now <- slice_gamma$x
+      gamma_now <- g_from_eta(eta_gamma_now)
+      gamma_steps_out <- as.integer(slice_gamma$n_steps_out)
+      gamma_shrink <- as.integer(slice_gamma$n_shrink)
+    } else {
+      eta_gamma_now <- eta_from_g(as.numeric(al_gamma_fixed))
+      gamma_now <- as.numeric(al_gamma_fixed)
+      gamma_steps_out <- 0L
+      gamma_shrink <- 0L
+    }
 
     list(
       sigma = sigma_now,
       eta_sigma = eta_sigma_now,
       gamma = gamma_now,
       eta_gamma = eta_gamma_now,
-      gamma_steps_out = as.integer(slice_gamma$n_steps_out),
-      gamma_shrink = as.integer(slice_gamma$n_shrink)
+      gamma_steps_out = gamma_steps_out,
+      gamma_shrink = gamma_shrink
     )
   }
 
@@ -1717,6 +1757,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   structure(list(
     method = "mcmc",
     control = list(
+      likelihood_family = likelihood_family,
+      al_fixed_gamma = if (is_al) as.numeric(al_gamma_fixed) else NA_real_,
       n_burn = n_burn,
       n_mcmc = n_keep,
       thin = thin,
@@ -1768,6 +1810,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     X = X,
     bounds = c(L = L, U = U),
     p0 = p0,
+    likelihood_family = likelihood_family,
     samp.beta = coda::as.mcmc(beta_draws),
     samp.sigma = coda::as.mcmc(sigma_draws),
     samp.gamma = coda::as.mcmc(gamma_draws),
@@ -1784,6 +1827,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     diagnostics = diagnostics_out,
     misc = list(
       p0 = p0,
+      likelihood_family = likelihood_family,
+      al_fixed_gamma = if (is_al) as.numeric(al_gamma_fixed) else NA_real_,
       bounds = c(L = L, U = U),
       n = n,
       p = p,
@@ -1868,12 +1913,13 @@ exal_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L, dr
 #' Fit exAL readout with either VB or MCMC
 #'
 #' @export
-exal_fit <- function(..., method = c("vb", "mcmc")) {
+exal_fit <- function(..., method = c("vb", "mcmc"), likelihood_family = c("exal", "al")) {
   method <- match.arg(method)
+  likelihood_family <- match.arg(tolower(as.character(likelihood_family)[1L]), c("exal", "al"))
   if (identical(method, "vb")) {
-    return(exal_ldvb_fit(...))
+    return(exal_ldvb_fit(..., likelihood_family = likelihood_family))
   }
-  exal_mcmc_fit(...)
+  exal_mcmc_fit(..., likelihood_family = likelihood_family)
 }
 
 #' Draw posterior samples of (beta, sigma, gamma) from an exAL MCMC fit

@@ -40,6 +40,28 @@ test_that("toy validation generator supports expanded phase-1 scenarios", {
   }
 })
 
+test_that("validation generator supports dynamic DLM scenarios via simulation backend", {
+  toy <- exdqlm:::qdesn_validation_generate_toy_series(
+    scenario = "dlm_constV_smallW",
+    seed = 321L,
+    p_grid = c(0.05, 0.50, 0.95),
+    scenario_cfg = list(
+      T_use = 24L,
+      n_train = 18L,
+      burnin = 120L,
+      R_mc = 400L,
+      params = list(period = 24L, V = 0.25, alpha = 1e-4, no_trend = TRUE)
+    )
+  )
+
+  expect_equal(nrow(toy$wide), 24L)
+  expect_equal(nrow(toy$long), 72L)
+  expect_true(all(c("q_005", "q_050", "q_095") %in% names(toy$wide)))
+  expect_true(all(c("t", "p", "q", "y", "mu") %in% names(toy$long)))
+  expect_identical(as.character(toy$meta$source), "simulate_ts_mc_quantiles")
+  expect_equal(as.integer(toy$split$n_train[[1L]]), 18L)
+})
+
 test_that("pilot validation root writes method summaries and campaign summaries", {
   defaults <- exdqlm:::qdesn_validation_load_defaults()
   defaults$toy$scenarios$toy_sine_small$T_use <- 48L
@@ -95,6 +117,8 @@ test_that("pilot validation root writes method summaries and campaign summaries"
   expect_true(nrow(camp$method_signoff) >= 2L)
   expect_true(nrow(camp$method_group) >= 2L)
   expect_true(nrow(camp$pair_group) >= 1L)
+  expect_true(nrow(camp$tau_method_group) >= 2L)
+  expect_true(nrow(camp$tau_pair_group) >= 1L)
   expect_true(nrow(camp$stage_group) >= 1L)
   expect_true(nrow(camp$chain_group) >= 1L)
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_root_summary.csv")))
@@ -102,6 +126,8 @@ test_that("pilot validation root writes method summaries and campaign summaries"
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_method_signoff.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_method_group_summary.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_pair_group_summary.csv")))
+  expect_true(file.exists(file.path(reports_root, "tables", "campaign_tau_set_method_summary.csv")))
+  expect_true(file.exists(file.path(reports_root, "tables", "campaign_tau_set_pair_summary.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_stage_group_summary.csv")))
   expect_true(file.exists(file.path(reports_root, "tables", "campaign_chain_group_summary.csv")))
   expect_true(file.exists(file.path(reports_root, "campaign_summary.md")))
@@ -264,6 +290,111 @@ test_that("validation config builder falls back rhs_ns overrides from rhs block"
   expect_equal(mc_cfg$inference$mcmc$n_burn, 500L)
   expect_equal(mc_cfg$inference$mcmc$n_mcmc, 1000L)
   expect_equal(mc_cfg$inference$mcmc$slice$width_rhs_tau, 0.25)
+})
+
+test_that("validation config builder honors validation_p_vec override", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_tuned_defaults.yaml"))
+  defaults$pipeline$validation_p_vec <- c(0.05, 0.50, 0.95)
+
+  spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "toy_sine_small",
+    tau = 0.50,
+    beta_prior_type = "rhs_ns",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+
+  vb_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(spec, defaults, method = "vb")
+  mc_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(spec, defaults, method = "mcmc")
+
+  expect_equal(vb_cfg$p_vec, c(0.05, 0.50, 0.95))
+  expect_equal(mc_cfg$p_vec, c(0.05, 0.50, 0.95))
+  expect_equal(spec$tau, 0.50)
+})
+
+test_that("validation root spec and config route likelihood family", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_mcmc_compare_tuned_defaults.yaml"))
+  spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "toy_sine_small",
+    tau = 0.50,
+    likelihood_family = "al",
+    beta_prior_type = "ridge",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+
+  expect_identical(spec$likelihood_family, "al")
+  expect_true(grepl("__lik-al__", spec$root_id, fixed = TRUE))
+
+  vb_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(spec, defaults, method = "vb")
+  mc_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(spec, defaults, method = "mcmc")
+  expect_identical(vb_cfg$inference$likelihood_family, "al")
+  expect_identical(mc_cfg$inference$likelihood_family, "al")
+})
+
+test_that("validation config routes AL with rhs_ns prior and preserves root keying", {
+  defaults <- exdqlm:::qdesn_validation_load_defaults(file.path("config", "validation", "qdesn_dynamic_family_prior_defaults.yaml"))
+  spec <- exdqlm:::qdesn_validation_enrich_root_spec(list(
+    scenario = "dlm_constV_smallW",
+    tau = 0.50,
+    likelihood_family = "al",
+    beta_prior_type = "rhs_ns",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8"
+  ), defaults)
+
+  expect_true(grepl("__lik-al__", spec$root_id, fixed = TRUE))
+  expect_true(grepl("__prior-rhs_ns__", spec$root_id, fixed = TRUE))
+
+  vb_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(spec, defaults, method = "vb")
+  mc_cfg <- exdqlm:::qdesn_validation_build_pipeline_cfg(spec, defaults, method = "mcmc")
+  expect_identical(vb_cfg$inference$likelihood_family, "al")
+  expect_identical(vb_cfg$inference$vb$priors$beta$type, "rhs_ns")
+  expect_identical(mc_cfg$inference$likelihood_family, "al")
+  expect_identical(mc_cfg$inference$mcmc$priors$beta$type, "rhs_ns")
+})
+
+test_that("MCMC signoff for AL does not require gamma diagnostics", {
+  cfg <- exdqlm:::.qdesn_validation_signoff_cfg(NULL)$mcmc
+  cfg$min_keep_pass <- 60L
+  cfg$ess_pass <- 1
+  cfg$ess_warn <- 1
+  cfg$acf1_pass <- 0.999
+  cfg$acf1_warn <- 0.999
+  cfg$geweke_absz_pass <- 10
+  cfg$geweke_absz_warn <- 10
+  cfg$half_drift_pass <- 10
+  cfg$half_drift_warn <- 10
+
+  meta <- data.frame(
+    root_id = "root",
+    scenario = "dlm_constV_smallW",
+    tau = 0.50,
+    likelihood_family = "al",
+    beta_prior_type = "rhs_ns",
+    seed = 123L,
+    reservoir_profile = "tiny_d1_n8",
+    stringsAsFactors = FALSE
+  )
+  health <- data.frame(
+    status = "SUCCESS",
+    finite_ok = TRUE,
+    domain_ok = TRUE,
+    mcmc_n_keep = 120L,
+    likelihood_family = "al",
+    stringsAsFactors = FALSE
+  )
+  progress <- data.frame(
+    method = "mcmc",
+    step = 1:120,
+    sigma = 1 + 0.05 * sin((1:120) / 8),
+    beta_norm = 0.8 + 0.02 * cos((1:120) / 6),
+    stringsAsFactors = FALSE
+  )
+
+  out <- exdqlm:::.qdesn_validation_mcmc_signoff_from_rows(meta, health, progress, cfg)
+  expect_false(grepl("missing_chain_diagnostics", as.character(out$signoff_reason), fixed = TRUE))
+  expect_true(out$signoff_grade %in% c("PASS", "WARN"))
 })
 
 test_that("rhs_ns VB emits RHS diagnostics traces for signoff health checks", {

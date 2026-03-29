@@ -170,3 +170,28 @@ test_that("RHS_NS non-numeric init_log_tau falls back to guardrail default with 
   expect_equal(as.numeric(inf$beta_prior_rhs$init_log_tau), 0.0, tolerance = 1e-12)
   expect_equal(as.numeric(inf$beta_prior_rhs$init_tau2), 1.0, tolerance = 1e-12)
 })
+
+test_that("likelihood family defaults to exal and supports explicit al routing", {
+  cfg_default <- list(
+    inference = list(
+      method = "vb",
+      vb = list(priors = list(beta = list(type = "ridge", tau2 = 1e4)))
+    )
+  )
+  inf_default <- exdqlm:::resolve_exal_inference_config(cfg_default, p_vec = c(0.5), verbose = FALSE)
+  expect_identical(inf_default$likelihood_family, "exal")
+  spec_default <- exdqlm:::resolve_exal_quantile_fit_spec(inf_default, idx_p = 1L, p0 = 0.5)
+  expect_identical(spec_default$likelihood_family, "exal")
+
+  cfg_al <- list(
+    inference = list(
+      method = "mcmc",
+      likelihood_family = "al",
+      mcmc = list(priors = list(beta = list(type = "rhs_ns")))
+    )
+  )
+  inf_al <- exdqlm:::resolve_exal_inference_config(cfg_al, p_vec = c(0.5), verbose = FALSE)
+  expect_identical(inf_al$likelihood_family, "al")
+  spec_al <- exdqlm:::resolve_exal_quantile_fit_spec(inf_al, idx_p = 1L, p0 = 0.5)
+  expect_identical(spec_al$likelihood_family, "al")
+})

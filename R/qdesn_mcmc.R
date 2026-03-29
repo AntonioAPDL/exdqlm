@@ -70,6 +70,8 @@ qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
     X = design_fit$X,
     p0 = p0,
 	    gamma_bounds = get_exact(mcmc_args, "gamma_bounds", c(L.fn(p0), U.fn(p0))),
+	    likelihood_family = get_exact(mcmc_args, "likelihood_family", "exal"),
+	    al_fixed_gamma = get_exact(mcmc_args, "al_fixed_gamma", NULL),
 	    mcmc_control = mcmc_control,
 	    init = get_exact(mcmc_args, "init", list()),
 	    prior_gamma = get_exact(mcmc_args, "prior_gamma", list(

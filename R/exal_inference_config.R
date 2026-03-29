@@ -173,6 +173,21 @@
   method
 }
 
+.exal_normalize_likelihood_family <- function(cfg) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+
+  inference_cfg <- cfg$inference %||% list()
+  raw_family <- inference_cfg$likelihood_family %||%
+    cfg[["inference.likelihood_family"]] %||%
+    cfg$likelihood_family %||%
+    "exal"
+  family <- tolower(as.character(raw_family)[1L])
+  if (!family %in% c("exal", "al")) {
+    .stopf("Unsupported likelihood family '%s'. Expected 'exal' or 'al'.", family)
+  }
+  family
+}
+
 .exal_resolve_beta_prior_settings <- function(beta_cfg, default_rhs_cfg, default_rhs_ns_cfg = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
   if (is.null(default_rhs_ns_cfg)) default_rhs_ns_cfg <- .exal_default_rhs_ns_cfg()
@@ -557,6 +572,7 @@ resolve_exal_inference_config <- function(cfg, p_vec, verbose = FALSE) {
   cfg <- cfg %||% list()
   inference_cfg <- .exal_list_or_empty(cfg$inference)
   method <- .exal_normalize_inference_method(cfg)
+  likelihood_family <- .exal_normalize_likelihood_family(cfg)
 
   legacy_vb_cfg <- .exal_list_or_empty(cfg$vb)
   legacy_mcmc_cfg <- .exal_list_or_empty(cfg$mcmc)
@@ -572,6 +588,7 @@ resolve_exal_inference_config <- function(cfg, p_vec, verbose = FALSE) {
 
   list(
     method = method,
+    likelihood_family = likelihood_family,
     readout_scale = readout_scale,
     init_gamma = active$init_gamma,
     init_sigma = active$init_sigma,
@@ -641,6 +658,7 @@ resolve_exal_quantile_fit_spec <- function(inference_cfg, idx_p, p0) {
 
   out <- list(
     method = inference_cfg$method,
+    likelihood_family = tolower(as.character(inference_cfg$likelihood_family %||% "exal")[1L]),
     beta_type = beta_type,
     beta_prior_obj = beta_prior_obj,
     init = list(gamma = gamma_init, sigma = sigma_init),
@@ -648,6 +666,9 @@ resolve_exal_quantile_fit_spec <- function(inference_cfg, idx_p, p0) {
     prior_sigma = list(a = sigma_a, b = sigma_b),
     log_prior_gamma = log_prior_gamma
   )
+  if (!out$likelihood_family %in% c("exal", "al")) {
+    .stopf("resolve_exal_quantile_fit_spec: unsupported likelihood family '%s'.", out$likelihood_family)
+  }
 
   if (identical(inference_cfg$method, "vb")) {
     vb_control <- inference_cfg$vb$args_base

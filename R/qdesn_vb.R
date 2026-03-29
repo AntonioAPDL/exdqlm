@@ -1043,6 +1043,7 @@ predict_mu.qdesn_fit <- function(object) {
 #' @export
 exal_vb_posterior_draws <- function(fit_exal, nd = 1000L) {
   stopifnot(inherits(fit_exal, "exal_vb"))
+  `%||%` <- function(a, b) if (is.null(a)) b else a
 
   # beta ~ N(m, V)
   m  <- as.numeric(fit_exal$qbeta$m)
@@ -1064,7 +1065,13 @@ exal_vb_posterior_draws <- function(fit_exal, nd = 1000L) {
 
   L <- as.numeric(fit_exal$misc$bounds["L"])
   U <- as.numeric(fit_exal$misc$bounds["U"])
-  gamma <- L + (U - L) * plogis(eta)
+  likelihood_family <- tolower(as.character(fit_exal$misc$likelihood_family %||% fit_exal$likelihood_family %||% "exal")[1L])
+  if (identical(likelihood_family, "al")) {
+    gamma_fixed <- as.numeric(fit_exal$misc$al_fixed_gamma %||% 0)[1L]
+    gamma <- rep(gamma_fixed, nd)
+  } else {
+    gamma <- L + (U - L) * plogis(eta)
+  }
   sigma <- exp(ell)
 
   list(beta = B, sigma = sigma, gamma = gamma, nd = nd)

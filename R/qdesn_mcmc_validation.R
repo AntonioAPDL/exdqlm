@@ -82,6 +82,28 @@
   isTRUE(x)
 }
 
+.qdesn_validation_resolve_validation_p_vec <- function(root_spec, defaults) {
+  pipeline_cfg <- defaults$pipeline %||% list()
+  p_raw <- pipeline_cfg$validation_p_vec %||% NULL
+  if (is.null(p_raw) || !length(p_raw)) {
+    return(as.numeric(root_spec$tau)[1L])
+  }
+  p_vec <- sort(unique(as.numeric(unlist(p_raw, use.names = FALSE))))
+  p_vec <- p_vec[is.finite(p_vec) & p_vec > 0 & p_vec < 1]
+  if (!length(p_vec)) {
+    return(as.numeric(root_spec$tau)[1L])
+  }
+  tau <- as.numeric(root_spec$tau)[1L]
+  if (is.finite(tau) && tau > 0 && tau < 1 && !any(abs(p_vec - tau) < 1e-12)) {
+    p_vec <- sort(unique(c(p_vec, tau)))
+  }
+  p_vec
+}
+
+.qdesn_validation_tau_key <- function(x, digits = 3L) {
+  sprintf(paste0("%.", as.integer(digits), "f"), as.numeric(x))
+}
+
 .qdesn_validation_git_sha <- function(repo_root = NULL) {
   root <- .qdesn_validation_repo_root(repo_root)
   sha <- tryCatch(
@@ -115,9 +137,10 @@ qdesn_validation_load_grid <- function(path = file.path("config", "validation", 
 
 qdesn_validation_build_root_id <- function(root_spec) {
   sprintf(
-    "scenario-%s__tau-%s__prior-%s__seed-%s__res-%s",
+    "scenario-%s__tau-%s__lik-%s__prior-%s__seed-%s__res-%s",
     as.character(root_spec$scenario)[1L],
     .qdesn_validation_prob_label(root_spec$tau),
+    as.character(root_spec$likelihood_family)[1L],
     as.character(root_spec$beta_prior_type)[1L],
     as.integer(root_spec$seed)[1L],
     as.character(root_spec$reservoir_profile)[1L]
@@ -128,11 +151,19 @@ qdesn_validation_enrich_root_spec <- function(root_spec, defaults) {
   pilot_cfg <- defaults$pilot %||% list()
   scenario <- as.character(root_spec$scenario %||% pilot_cfg$scenario %||% "toy_sine_small")[1L]
   tau <- as.numeric(root_spec$tau %||% pilot_cfg$tau %||% 0.25)[1L]
+  likelihood_family <- tolower(as.character(
+    root_spec$likelihood_family %||%
+      pilot_cfg$likelihood_family %||%
+      "exal"
+  )[1L])
   beta_prior_type <- tolower(as.character(root_spec$beta_prior_type %||% pilot_cfg$beta_prior_type %||% "ridge")[1L])
   seed <- as.integer(root_spec$seed %||% pilot_cfg$seed %||% 123L)[1L]
   reservoir_profile <- as.character(root_spec$reservoir_profile %||% pilot_cfg$reservoir_profile %||% "tiny_d1_n8")[1L]
   enabled <- .qdesn_validation_as_flag(root_spec$enabled %||% pilot_cfg$enabled, default = TRUE)
 
+  if (!likelihood_family %in% c("exal", "al")) {
+    stop(sprintf("Unsupported likelihood_family '%s'.", likelihood_family), call. = FALSE)
+  }
   if (!beta_prior_type %in% c("ridge", "rhs", "rhs_ns")) {
     stop(sprintf("Unsupported beta_prior_type '%s'.", beta_prior_type), call. = FALSE)
   }
@@ -146,6 +177,7 @@ qdesn_validation_enrich_root_spec <- function(root_spec, defaults) {
   out <- list(
     scenario = scenario,
     tau = tau,
+    likelihood_family = likelihood_family,
     beta_prior_type = beta_prior_type,
     seed = as.integer(seed),
     reservoir_profile = reservoir_profile,
@@ -169,10 +201,56 @@ qdesn_validation_generate_toy_series <- function(scenario = "toy_sine_small",
 
   T_use <- as.integer(scenario_cfg$T_use %||% 96L)[1L]
   n_train <- as.integer(scenario_cfg$n_train %||% max(2L, T_use - 18L))[1L]
+  if (!is.finite(T_use) || T_use < 8L) {
+    stop("T_use must be at least 8 for validation scenarios.", call. = FALSE)
+  }
+  if (!is.finite(n_train) || n_train < 2L || n_train >= T_use) {
+    n_train <- max(2L, T_use - 18L)
+  }
   t <- seq_len(T_use)
   set.seed(seed)
 
-  if (identical(scenario, "toy_sine_small")) {
+  dynamic_scenarios <- c("dlm_constV_smallW", "dlm_constV_bigW", "dlm_ar1V")
+  if (scenario %in% dynamic_scenarios) {
+    burnin <- as.integer(scenario_cfg$burnin %||% 500L)[1L]
+    if (!is.finite(burnin) || burnin < 0L) burnin <- 500L
+    R_mc <- as.integer(scenario_cfg$R_mc %||% 2000L)[1L]
+    if (!is.finite(R_mc) || R_mc < 100L) R_mc <- 2000L
+    sim_params <- scenario_cfg$params %||% scenario_cfg$sim_params %||% list()
+
+    sim_obj <- simulate_ts_mc_quantiles(
+      T = T_use,
+      p_grid = p_grid,
+      R_mc = R_mc,
+      scenario = scenario,
+      params = sim_params,
+      burnin = burnin,
+      seed = seed,
+      keep_latents = TRUE,
+      keep_draws = FALSE
+    )
+
+    y <- as.numeric(sim_obj$y %||% numeric(0))
+    q_mat <- as.matrix(sim_obj$q %||% matrix(numeric(0), 0L, 0L))
+    if (length(y) != T_use || nrow(q_mat) != T_use || ncol(q_mat) != length(p_grid)) {
+      stop(
+        sprintf(
+          "Dynamic scenario '%s' returned incompatible shapes: length(y)=%d, q=[%d x %d], expected T=%d, K=%d.",
+          scenario, length(y), nrow(q_mat), ncol(q_mat), T_use, length(p_grid)
+        ),
+        call. = FALSE
+      )
+    }
+    mu <- as.numeric((sim_obj$extras %||% list())$mu %||% rep(NA_real_, T_use))
+    if (length(mu) != T_use) mu <- rep(NA_real_, T_use)
+    scenario_meta <- list(
+      name = scenario,
+      source = "simulate_ts_mc_quantiles",
+      burnin = burnin,
+      R_mc = R_mc,
+      params = sim_obj$info$params %||% sim_params
+    )
+  } else if (identical(scenario, "toy_sine_small")) {
     amplitude <- as.numeric(scenario_cfg$amplitude %||% 0.7)[1L]
     period <- as.numeric(scenario_cfg$period %||% 12)[1L]
     noise_sd <- as.numeric(scenario_cfg$noise_sd %||% 0.12)[1L]
@@ -380,7 +458,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       T_use = as.integer(scenario_cfg$T_use),
       train_n = as.integer(scenario_cfg$n_train)
     ),
-    p_vec = as.numeric(root_spec$tau),
+    p_vec = .qdesn_validation_resolve_validation_p_vec(root_spec, defaults),
     desn = reservoir_cfg,
     readout = modifyList(list(
       include_input = TRUE,
@@ -421,6 +499,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     ), pipeline_cfg$outputs %||% list()),
     inference = list(
       method = method,
+      likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
       readout_scale = isTRUE(infer_cfg$readout_scale %||% TRUE)
     )
   )
@@ -678,6 +757,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     root_id = root_spec$root_id,
     scenario = root_spec$scenario,
     tau = as.numeric(root_spec$tau),
+    likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
     beta_prior_type = root_spec$beta_prior_type,
     seed = as.integer(root_spec$seed),
     reservoir_profile = root_spec$reservoir_profile,
@@ -911,7 +991,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 }
 
 .qdesn_validation_mcmc_chain_diagnostics <- function(progress_rows, health_row) {
-  params <- c("gamma", "sigma", "beta_norm")
+  likelihood_family <- tolower(as.character(health_row$likelihood_family[1L] %||% "exal"))
+  params <- if (identical(likelihood_family, "al")) c("sigma", "beta_norm") else c("gamma", "sigma", "beta_norm")
   if ("rhs_tau" %in% names(progress_rows) && any(is.finite(progress_rows$rhs_tau))) params <- c(params, "rhs_tau")
   if ("rhs_c2" %in% names(progress_rows) && any(is.finite(progress_rows$rhs_c2))) params <- c(params, "rhs_c2")
   if ("rhs_lambda_mean" %in% names(progress_rows) && any(is.finite(progress_rows$rhs_lambda_mean))) params <- c(params, "rhs_lambda_mean")
@@ -957,7 +1038,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     return(out)
   }
 
-  core_params <- c("gamma", "sigma", "beta_norm")
+  likelihood_family <- tolower(as.character(health_row$likelihood_family[1L] %||% "exal"))
+  core_params <- if (identical(likelihood_family, "al")) c("sigma", "beta_norm") else c("gamma", "sigma", "beta_norm")
   rhs_params <- c("rhs_tau", "rhs_c2", "rhs_lambda_mean")
   core_rows <- diag_rows[diag_rows$parameter %in% core_params, , drop = FALSE]
   rhs_rows <- diag_rows[diag_rows$parameter %in% rhs_params, , drop = FALSE]
@@ -1060,6 +1142,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     root_id = root_spec$root_id,
     scenario = root_spec$scenario,
     tau = as.numeric(root_spec$tau),
+    likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
     beta_prior_type = root_spec$beta_prior_type,
     seed = as.integer(root_spec$seed),
     reservoir_profile = root_spec$reservoir_profile,
@@ -1320,6 +1403,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     spec = paste(root_spec$root_id, method, sep = "::"),
     mode = "sim",
     inference_method = method,
+    likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
     beta_prior_type = root_spec$beta_prior_type
   ))
 }
@@ -1385,6 +1469,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       root_id = root_spec$root_id,
       scenario = root_spec$scenario,
       tau = as.numeric(root_spec$tau),
+      likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
       beta_prior_type = root_spec$beta_prior_type,
       seed = as.integer(root_spec$seed),
       reservoir_profile = root_spec$reservoir_profile,
@@ -1408,6 +1493,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       root_id = root_spec$root_id,
       scenario = root_spec$scenario,
       tau = as.numeric(root_spec$tau),
+      likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
       beta_prior_type = root_spec$beta_prior_type,
       seed = as.integer(root_spec$seed),
       reservoir_profile = root_spec$reservoir_profile,
@@ -1451,7 +1537,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
 .qdesn_validation_pair_summary <- function(method_rows) {
   if (!nrow(method_rows)) return(data.frame(stringsAsFactors = FALSE))
-  keys <- c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile")
+  keys <- c("root_id", "scenario", "tau", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile")
   vb <- method_rows[method_rows$method == "vb", , drop = FALSE]
   mc <- method_rows[method_rows$method == "mcmc", , drop = FALSE]
   if (!nrow(vb) || !nrow(mc)) return(data.frame(stringsAsFactors = FALSE))
@@ -1477,12 +1563,14 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
                "rhs_tau_mean", "rhs_c2_mean", "rhs_lambda_mean")
   keep_vb <- keep_vb[keep_vb %in% names(vb)]
   keep_mc <- keep_mc[keep_mc %in% names(mc)]
+  keys_eff <- keys[keys %in% keep_vb & keys %in% keep_mc]
+  if (!length(keys_eff)) return(data.frame(stringsAsFactors = FALSE))
 
   vb_sub <- vb[, keep_vb, drop = FALSE]
   mc_sub <- mc[, keep_mc, drop = FALSE]
-  names(vb_sub) <- c(keys, paste0("vb_", setdiff(keep_vb, keys)))
-  names(mc_sub) <- c(keys, paste0("mcmc_", setdiff(keep_mc, keys)))
-  out <- merge(vb_sub, mc_sub, by = keys, all = TRUE, sort = FALSE)
+  names(vb_sub) <- c(keys_eff, paste0("vb_", setdiff(keep_vb, keys_eff)))
+  names(mc_sub) <- c(keys_eff, paste0("mcmc_", setdiff(keep_mc, keys_eff)))
+  out <- merge(vb_sub, mc_sub, by = keys_eff, all = TRUE, sort = FALSE)
   if ("mcmc_wall_seconds" %in% names(out) && "vb_wall_seconds" %in% names(out)) {
     out$runtime_ratio_mcmc_vs_vb <- with(out, ifelse(is.finite(vb_wall_seconds) & vb_wall_seconds > 0, mcmc_wall_seconds / vb_wall_seconds, NA_real_))
   }
@@ -1555,6 +1643,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     root_id = root_spec$root_id,
     scenario = root_spec$scenario,
     tau = as.numeric(root_spec$tau),
+    likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
     beta_prior_type = root_spec$beta_prior_type,
     seed = as.integer(root_spec$seed),
     reservoir_profile = root_spec$reservoir_profile,
@@ -1617,6 +1706,7 @@ qdesn_validation_run_root <- function(root_spec,
     root_id = root_spec$root_id,
     scenario = root_spec$scenario,
     tau = as.numeric(root_spec$tau),
+    likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
     beta_prior_type = root_spec$beta_prior_type,
     seed = as.integer(root_spec$seed),
     reservoir_profile = root_spec$reservoir_profile,
@@ -1657,7 +1747,7 @@ qdesn_validation_run_root <- function(root_spec,
     method_rows <- merge(
       method_rows,
       signoff_rows,
-      by = c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile", "method"),
+      by = c("root_id", "scenario", "tau", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile", "method"),
       all.x = TRUE,
       sort = FALSE
     )
@@ -1724,7 +1814,12 @@ qdesn_validation_run_root <- function(root_spec,
   root_summary_path <- file.path(root_dir, "tables", "root_summary.csv")
   if (file.exists(root_summary_path)) {
     out <- utils::read.csv(root_summary_path, stringsAsFactors = FALSE)
-    if (nrow(out)) return(out[1L, , drop = FALSE])
+    if (nrow(out)) {
+      if (!("likelihood_family" %in% names(out))) {
+        out$likelihood_family <- "exal"
+      }
+      return(out[1L, , drop = FALSE])
+    }
   }
   root_manifest_path <- file.path(root_dir, "manifest", "root_manifest.json")
   manifest <- .qdesn_validation_read_json_if_exists(root_manifest_path)
@@ -1733,6 +1828,7 @@ qdesn_validation_run_root <- function(root_spec,
     root_id = as.character(manifest$root_id %||% basename(root_dir)),
     scenario = as.character(manifest$scenario %||% NA_character_),
     tau = as.numeric(manifest$tau %||% NA_real_),
+    likelihood_family = as.character(manifest$likelihood_family %||% "exal"),
     beta_prior_type = as.character(manifest$beta_prior_type %||% NA_character_),
     seed = as.integer(manifest$seed %||% NA_integer_),
     reservoir_profile = as.character(manifest$reservoir_profile %||% NA_character_),
@@ -1805,7 +1901,9 @@ qdesn_validation_run_root <- function(root_spec,
 
 .qdesn_validation_group_method_summary <- function(method_summary) {
   if (!nrow(method_summary)) return(data.frame(stringsAsFactors = FALSE))
-  group_cols <- c("scenario", "tau", "beta_prior_type", "reservoir_profile", "method")
+  group_cols <- c("scenario", "tau", "likelihood_family", "beta_prior_type", "reservoir_profile", "method")
+  group_cols <- group_cols[group_cols %in% names(method_summary)]
+  if (!length(group_cols)) return(data.frame(stringsAsFactors = FALSE))
   numeric_cols <- c(
     "wall_seconds", "total_stage_seconds", "forecast_CRPS_mean",
     "forecast_PinballMean_mean", "forecast_S_mean", "forecast_qhat_mae",
@@ -1842,7 +1940,9 @@ qdesn_validation_run_root <- function(root_spec,
 
 .qdesn_validation_group_pair_summary <- function(pair_summary) {
   if (!nrow(pair_summary)) return(data.frame(stringsAsFactors = FALSE))
-  group_cols <- c("scenario", "tau", "beta_prior_type", "reservoir_profile")
+  group_cols <- c("scenario", "tau", "likelihood_family", "beta_prior_type", "reservoir_profile")
+  group_cols <- group_cols[group_cols %in% names(pair_summary)]
+  if (!length(group_cols)) return(data.frame(stringsAsFactors = FALSE))
   numeric_cols <- c(
     "vb_wall_seconds", "mcmc_wall_seconds", "vb_total_stage_seconds",
     "mcmc_total_stage_seconds", "runtime_ratio_mcmc_vs_vb",
@@ -1891,11 +1991,196 @@ qdesn_validation_run_root <- function(root_spec,
   merge(status_part, numeric_part, by = by_cols, all = TRUE, sort = FALSE)
 }
 
+.qdesn_validation_resolve_tau_targets <- function(method_summary, defaults = NULL) {
+  cfg_tau <- ((defaults %||% list())$pipeline %||% list())$validation_p_vec %||% NULL
+  tau_targets <- as.numeric(unlist(cfg_tau %||% numeric(0), use.names = FALSE))
+  tau_targets <- tau_targets[is.finite(tau_targets) & tau_targets > 0 & tau_targets < 1]
+  if (!length(tau_targets) && nrow(method_summary) && "tau" %in% names(method_summary)) {
+    tau_targets <- as.numeric(method_summary$tau)
+  }
+  tau_targets <- sort(unique(tau_targets))
+  if (!length(tau_targets)) tau_targets <- 0.5
+  tau_targets
+}
+
+.qdesn_validation_row_health_flag <- function(df) {
+  status_ok <- if ("status" %in% names(df)) as.character(df$status) == "SUCCESS" else FALSE
+  finite_ok <- if ("finite_ok" %in% names(df)) as.logical(df$finite_ok) else FALSE
+  domain_ok <- if ("domain_ok" %in% names(df)) as.logical(df$domain_ok) else FALSE
+  signoff_ok <- if ("signoff_grade" %in% names(df)) {
+    sg <- as.character(df$signoff_grade)
+    !is.na(sg) & nzchar(sg) & sg != "FAIL"
+  } else {
+    FALSE
+  }
+  unhealthy <- if ("unhealthy" %in% names(df)) as.logical(df$unhealthy) else FALSE
+  as.logical(status_ok & finite_ok & domain_ok & signoff_ok & !unhealthy)
+}
+
+.qdesn_validation_group_tau_set_method_summary <- function(method_summary, tau_targets = NULL) {
+  if (!nrow(method_summary)) return(data.frame(stringsAsFactors = FALSE))
+  tau_targets <- as.numeric(tau_targets %||% numeric(0))
+  tau_targets <- tau_targets[is.finite(tau_targets) & tau_targets > 0 & tau_targets < 1]
+  if (!length(tau_targets)) {
+    tau_targets <- sort(unique(as.numeric(method_summary$tau)))
+  }
+  tau_targets <- sort(unique(tau_targets))
+  tau_target_keys <- .qdesn_validation_tau_key(tau_targets)
+  tau_targets_label <- paste(tau_target_keys, collapse = ",")
+
+  group_cols <- c("scenario", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile", "method")
+  group_cols <- group_cols[group_cols %in% names(method_summary)]
+  split_idx <- split(
+    seq_len(nrow(method_summary)),
+    interaction(method_summary[, group_cols, drop = FALSE], drop = TRUE, lex.order = TRUE)
+  )
+
+  mean_if_finite <- function(x) {
+    x <- as.numeric(x)
+    ok <- is.finite(x)
+    if (!any(ok)) return(NA_real_)
+    mean(x[ok])
+  }
+  sum_if_finite <- function(x) {
+    x <- as.numeric(x)
+    ok <- is.finite(x)
+    if (!any(ok)) return(NA_real_)
+    sum(x[ok])
+  }
+
+  rows <- lapply(split_idx, function(idx) {
+    sub <- method_summary[idx, , drop = FALSE]
+    sub$tau_key <- .qdesn_validation_tau_key(sub$tau)
+    sub <- sub[sub$tau_key %in% tau_target_keys, , drop = FALSE]
+
+    key_present <- setNames(rep(FALSE, length(tau_target_keys)), tau_target_keys)
+    key_success <- setNames(rep(FALSE, length(tau_target_keys)), tau_target_keys)
+    key_healthy <- setNames(rep(FALSE, length(tau_target_keys)), tau_target_keys)
+    if (nrow(sub)) {
+      split_key <- split(seq_len(nrow(sub)), sub$tau_key)
+      for (k in names(split_key)) {
+        jj <- split_key[[k]]
+        key_present[[k]] <- TRUE
+        key_success[[k]] <- any(as.character(sub$status[jj]) == "SUCCESS", na.rm = TRUE)
+        key_healthy[[k]] <- any(.qdesn_validation_row_health_flag(sub[jj, , drop = FALSE]), na.rm = TRUE)
+      }
+    }
+
+    n_tau_targets <- length(tau_target_keys)
+    n_tau_present <- sum(key_present)
+    n_tau_success <- sum(key_success)
+    n_tau_healthy <- sum(key_healthy)
+    tau_complete_present <- n_tau_present == n_tau_targets
+    tau_complete_success <- tau_complete_present && n_tau_success == n_tau_targets
+    tau_complete_healthy <- tau_complete_present && n_tau_healthy == n_tau_targets
+    synthesis_status <- if (!tau_complete_present) {
+      "INCOMPLETE"
+    } else if (tau_complete_healthy) {
+      "COMPLETE_HEALTHY"
+    } else if (tau_complete_success) {
+      "COMPLETE_UNHEALTHY"
+    } else {
+      "INCOMPLETE"
+    }
+
+    row <- sub[1L, group_cols, drop = FALSE]
+    row$tau_targets <- tau_targets_label
+    row$n_tau_targets <- n_tau_targets
+    row$n_tau_present <- n_tau_present
+    row$n_tau_success <- n_tau_success
+    row$n_tau_healthy <- n_tau_healthy
+    row$tau_complete_present <- tau_complete_present
+    row$tau_complete_success <- tau_complete_success
+    row$tau_complete_healthy <- tau_complete_healthy
+    row$synthesis_status <- synthesis_status
+
+    row$wall_seconds_sum <- if ("wall_seconds" %in% names(sub)) sum_if_finite(sub$wall_seconds) else NA_real_
+    row$total_stage_seconds_sum <- if ("total_stage_seconds" %in% names(sub)) sum_if_finite(sub$total_stage_seconds) else NA_real_
+    row$fit_runtime_seconds_sum <- if ("fit_runtime_seconds" %in% names(sub)) sum_if_finite(sub$fit_runtime_seconds) else NA_real_
+    row$forecast_CRPS_mean_avg <- if ("forecast_CRPS_mean" %in% names(sub)) mean_if_finite(sub$forecast_CRPS_mean) else NA_real_
+    row$forecast_PinballMean_mean_avg <- if ("forecast_PinballMean_mean" %in% names(sub)) mean_if_finite(sub$forecast_PinballMean_mean) else NA_real_
+    row$forecast_S_mean_avg <- if ("forecast_S_mean" %in% names(sub)) mean_if_finite(sub$forecast_S_mean) else NA_real_
+    row$forecast_qhat_mae_avg <- if ("forecast_qhat_mae" %in% names(sub)) mean_if_finite(sub$forecast_qhat_mae) else NA_real_
+    row$forecast_qhat_rmse_avg <- if ("forecast_qhat_rmse" %in% names(sub)) mean_if_finite(sub$forecast_qhat_rmse) else NA_real_
+    row$forecast_pinball_tau_avg <- if ("forecast_pinball_tau" %in% names(sub)) mean_if_finite(sub$forecast_pinball_tau) else NA_real_
+    row$signal_qhat_rmse_avg <- if ("signal_qhat_rmse" %in% names(sub)) mean_if_finite(sub$signal_qhat_rmse) else NA_real_
+    row$signal_qhat_corr_avg <- if ("signal_qhat_corr" %in% names(sub)) mean_if_finite(sub$signal_qhat_corr) else NA_real_
+
+    if ("signoff_grade" %in% names(sub)) {
+      sg <- as.character(sub$signoff_grade)
+      row$n_signoff_pass <- sum(sg == "PASS", na.rm = TRUE)
+      row$n_signoff_warn <- sum(sg == "WARN", na.rm = TRUE)
+      row$n_signoff_fail <- sum(sg == "FAIL", na.rm = TRUE)
+    } else {
+      row$n_signoff_pass <- NA_integer_
+      row$n_signoff_warn <- NA_integer_
+      row$n_signoff_fail <- NA_integer_
+    }
+    row
+  })
+  .qdesn_validation_bind_rows(rows)
+}
+
+.qdesn_validation_group_tau_set_pair_summary <- function(tau_method_summary) {
+  if (!nrow(tau_method_summary)) return(data.frame(stringsAsFactors = FALSE))
+  keys <- c("scenario", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile")
+  keys <- keys[keys %in% names(tau_method_summary)]
+  vb <- tau_method_summary[tolower(as.character(tau_method_summary$method)) == "vb", , drop = FALSE]
+  mc <- tau_method_summary[tolower(as.character(tau_method_summary$method)) == "mcmc", , drop = FALSE]
+  if (!nrow(vb) || !nrow(mc)) return(data.frame(stringsAsFactors = FALSE))
+
+  rename_non_keys <- function(df, prefix) {
+    nms <- names(df)
+    names(df) <- ifelse(nms %in% keys, nms, paste0(prefix, nms))
+    df
+  }
+  vb2 <- rename_non_keys(vb, "vb_")
+  mc2 <- rename_non_keys(mc, "mcmc_")
+  out <- merge(vb2, mc2, by = keys, all = TRUE, sort = FALSE)
+  if (!nrow(out)) return(out)
+
+  vb_complete <- as.character(out$vb_synthesis_status) %in% c("COMPLETE_HEALTHY", "COMPLETE_UNHEALTHY")
+  mc_complete <- as.character(out$mcmc_synthesis_status) %in% c("COMPLETE_HEALTHY", "COMPLETE_UNHEALTHY")
+  vb_healthy <- as.character(out$vb_synthesis_status) == "COMPLETE_HEALTHY"
+  mc_healthy <- as.character(out$mcmc_synthesis_status) == "COMPLETE_HEALTHY"
+
+  out$pair_synthesis_status <- ifelse(
+    vb_healthy & mc_healthy,
+    "COMPLETE_HEALTHY",
+    ifelse(vb_complete & mc_complete, "COMPLETE_UNHEALTHY", "INCOMPLETE")
+  )
+  out$pair_comparison_eligible <- as.logical(vb_healthy & mc_healthy)
+  out$pair_signoff_grade <- ifelse(
+    out$pair_synthesis_status == "COMPLETE_HEALTHY", "PASS",
+    ifelse(out$pair_synthesis_status == "COMPLETE_UNHEALTHY", "WARN", "FAIL")
+  )
+  out$both_tau_complete_present <- as.logical(out$vb_tau_complete_present & out$mcmc_tau_complete_present)
+  out$both_tau_complete_success <- as.logical(out$vb_tau_complete_success & out$mcmc_tau_complete_success)
+  out$both_tau_complete_healthy <- as.logical(out$vb_tau_complete_healthy & out$mcmc_tau_complete_healthy)
+  out$runtime_ratio_mcmc_vs_vb <- with(
+    out,
+    ifelse(is.finite(vb_wall_seconds_sum) & vb_wall_seconds_sum > 0, mcmc_wall_seconds_sum / vb_wall_seconds_sum, NA_real_)
+  )
+  out$fit_runtime_ratio_mcmc_vs_vb <- with(
+    out,
+    ifelse(is.finite(vb_fit_runtime_seconds_sum) & vb_fit_runtime_seconds_sum > 0, mcmc_fit_runtime_seconds_sum / vb_fit_runtime_seconds_sum, NA_real_)
+  )
+  out$forecast_CRPS_delta_mcmc_minus_vb <- out$mcmc_forecast_CRPS_mean_avg - out$vb_forecast_CRPS_mean_avg
+  out$forecast_PinballMean_delta_mcmc_minus_vb <- out$mcmc_forecast_PinballMean_mean_avg - out$vb_forecast_PinballMean_mean_avg
+  out$forecast_S_delta_mcmc_minus_vb <- out$mcmc_forecast_S_mean_avg - out$vb_forecast_S_mean_avg
+  out$forecast_qhat_mae_delta_mcmc_minus_vb <- out$mcmc_forecast_qhat_mae_avg - out$vb_forecast_qhat_mae_avg
+  out$forecast_qhat_rmse_delta_mcmc_minus_vb <- out$mcmc_forecast_qhat_rmse_avg - out$vb_forecast_qhat_rmse_avg
+  out$forecast_pinball_tau_delta_mcmc_minus_vb <- out$mcmc_forecast_pinball_tau_avg - out$vb_forecast_pinball_tau_avg
+  out$signal_qhat_rmse_delta_mcmc_minus_vb <- out$mcmc_signal_qhat_rmse_avg - out$vb_signal_qhat_rmse_avg
+  out$signal_qhat_corr_delta_mcmc_minus_vb <- out$mcmc_signal_qhat_corr_avg - out$vb_signal_qhat_corr_avg
+  out
+}
+
 .qdesn_validation_group_stage_summary <- function(stage_rows) {
   if (!nrow(stage_rows)) return(data.frame(stringsAsFactors = FALSE))
   .qdesn_validation_group_numeric(
     stage_rows,
-    group_cols = c("scenario", "tau", "beta_prior_type", "reservoir_profile", "method", "tag"),
+    group_cols = c("scenario", "tau", "likelihood_family", "beta_prior_type", "reservoir_profile", "method", "tag"),
     numeric_cols = c("seconds")
   )
 }
@@ -1904,7 +2189,7 @@ qdesn_validation_run_root <- function(root_spec,
   if (!nrow(chain_rows)) return(data.frame(stringsAsFactors = FALSE))
   .qdesn_validation_group_numeric(
     chain_rows,
-    group_cols = c("scenario", "tau", "beta_prior_type", "reservoir_profile", "parameter"),
+    group_cols = c("scenario", "tau", "likelihood_family", "beta_prior_type", "reservoir_profile", "parameter"),
     numeric_cols = c("mean", "sd", "min", "max", "ess", "acf1", "geweke_absz", "half_drift")
   )
 }
@@ -1920,7 +2205,7 @@ qdesn_validation_run_root <- function(root_spec,
   n_seeds <- length(unique(as.integer(root_summary$seed %||% integer(0))))
 
   pair_rollup <- if (nrow(pair_group)) {
-    pair_group[, c("scenario", "tau", "beta_prior_type", "n_pairs", "both_success_rate",
+    pair_group[, c("scenario", "tau", "likelihood_family", "beta_prior_type", "n_pairs", "both_success_rate",
                    "both_finite_ok_rate", "pair_comparison_eligible_rate",
                    "pair_signoff_pass_rate", "runtime_ratio_mcmc_vs_vb_mean",
                    "forecast_qhat_mae_delta_mcmc_minus_vb_mean",
@@ -1931,7 +2216,7 @@ qdesn_validation_run_root <- function(root_spec,
   }
 
   method_rollup <- if (nrow(method_group)) {
-    method_group[, c("scenario", "tau", "beta_prior_type", "method", "n_roots",
+    method_group[, c("scenario", "tau", "likelihood_family", "beta_prior_type", "method", "n_roots",
                      "success_rate", "comparison_eligible_rate", "signoff_pass_rate",
                      "fit_runtime_seconds_mean"),
                  drop = FALSE]
@@ -1995,7 +2280,7 @@ qdesn_validation_collect_campaign <- function(results_root,
   if (nrow(signoff_rows) && nrow(method_summary)) {
     drop_cols <- intersect(
       names(method_summary),
-      setdiff(names(signoff_rows), c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile", "method"))
+      setdiff(names(signoff_rows), c("root_id", "scenario", "tau", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile", "method"))
     )
     if (length(drop_cols)) {
       method_summary <- method_summary[, setdiff(names(method_summary), drop_cols), drop = FALSE]
@@ -2003,7 +2288,7 @@ qdesn_validation_collect_campaign <- function(results_root,
     method_summary <- merge(
       method_summary,
       signoff_rows,
-      by = c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile", "method"),
+      by = c("root_id", "scenario", "tau", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile", "method"),
       all.x = TRUE,
       sort = FALSE
     )
@@ -2013,7 +2298,7 @@ qdesn_validation_collect_campaign <- function(results_root,
     root_summary <- .qdesn_validation_bind_rows(lapply(split(method_summary, method_summary$root_id), function(sub) {
       pair_sub <- pair_summary[pair_summary$root_id == as.character(sub$root_id[1L]), , drop = FALSE]
       .qdesn_validation_root_summary(
-        root_spec = as.list(sub[1L, c("root_id", "scenario", "tau", "beta_prior_type", "seed", "reservoir_profile"), drop = FALSE]),
+        root_spec = as.list(sub[1L, c("root_id", "scenario", "tau", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile"), drop = FALSE]),
         method_rows = sub,
         pair_summary = pair_sub
       )
@@ -2023,6 +2308,9 @@ qdesn_validation_collect_campaign <- function(results_root,
   chain_rows <- .qdesn_validation_collect_chain_rows(root_dirs)
   method_group <- .qdesn_validation_group_method_summary(method_summary)
   pair_group <- .qdesn_validation_group_pair_summary(pair_summary)
+  tau_targets <- .qdesn_validation_resolve_tau_targets(method_summary, defaults = defaults)
+  tau_method_group <- .qdesn_validation_group_tau_set_method_summary(method_summary, tau_targets = tau_targets)
+  tau_pair_group <- .qdesn_validation_group_tau_set_pair_summary(tau_method_group)
   stage_group <- .qdesn_validation_group_stage_summary(stage_rows)
   chain_group <- .qdesn_validation_group_chain_summary(chain_rows)
 
@@ -2034,6 +2322,8 @@ qdesn_validation_collect_campaign <- function(results_root,
   .qdesn_validation_write_df(chain_rows, file.path(report_root, "tables", "campaign_chain_summary.csv"))
   .qdesn_validation_write_df(method_group, file.path(report_root, "tables", "campaign_method_group_summary.csv"))
   .qdesn_validation_write_df(pair_group, file.path(report_root, "tables", "campaign_pair_group_summary.csv"))
+  .qdesn_validation_write_df(tau_method_group, file.path(report_root, "tables", "campaign_tau_set_method_summary.csv"))
+  .qdesn_validation_write_df(tau_pair_group, file.path(report_root, "tables", "campaign_tau_set_pair_summary.csv"))
   .qdesn_validation_write_df(stage_group, file.path(report_root, "tables", "campaign_stage_group_summary.csv"))
   .qdesn_validation_write_df(chain_group, file.path(report_root, "tables", "campaign_chain_group_summary.csv"))
 
@@ -2118,7 +2408,7 @@ qdesn_validation_collect_campaign <- function(results_root,
         ifelse(is.na(health_df$signoff_grade) | !nzchar(as.character(health_df$signoff_grade)), "FAIL", as.character(health_df$signoff_grade))
       )
     )
-    health_df$row_label <- paste(health_df$scenario, health_df$beta_prior_type, sep = " | ")
+    health_df$row_label <- paste(health_df$scenario, health_df$likelihood_family, health_df$beta_prior_type, sep = " | ")
     if (nrow(health_df)) {
       p_health <- ggplot2::ggplot(health_df, ggplot2::aes(x = tau_label, y = row_label, fill = health_flag)) +
         ggplot2::geom_tile(colour = "white", linewidth = 0.4) +
@@ -2138,7 +2428,7 @@ qdesn_validation_collect_campaign <- function(results_root,
         reservoir_profile = pair_summary$reservoir_profile
       )
       pair_summary$tau_label <- .qdesn_validation_tau_label(pair_summary$tau)
-      pair_summary$row_label <- paste(pair_summary$scenario, pair_summary$beta_prior_type, sep = " | ")
+      pair_summary$row_label <- paste(pair_summary$scenario, pair_summary$likelihood_family, pair_summary$beta_prior_type, sep = " | ")
       if ("pair_signoff_grade" %in% names(pair_summary)) {
         pair_heat <- pair_summary[, c("tau_label", "row_label", "pair_signoff_grade"), drop = FALSE]
         pair_heat <- pair_heat[!is.na(pair_heat$pair_signoff_grade) & nzchar(pair_heat$pair_signoff_grade), , drop = FALSE]
@@ -2209,7 +2499,7 @@ qdesn_validation_collect_campaign <- function(results_root,
 
   if (isTRUE(create_plots) && nrow(stage_group)) {
     .qdesn_validation_require_namespace("ggplot2")
-    stage_df <- stage_group[is.finite(stage_group$seconds_mean), c("scenario", "beta_prior_type", "method", "tag", "seconds_mean"), drop = FALSE]
+    stage_df <- stage_group[is.finite(stage_group$seconds_mean), c("scenario", "likelihood_family", "beta_prior_type", "method", "tag", "seconds_mean"), drop = FALSE]
     if (nrow(stage_df)) {
       p_stage <- ggplot2::ggplot(stage_df, ggplot2::aes(x = tag, y = seconds_mean, fill = method)) +
         ggplot2::geom_col(position = "dodge", width = 0.7) +
@@ -2231,6 +2521,8 @@ qdesn_validation_collect_campaign <- function(results_root,
     chain_rows = chain_rows,
     method_group = method_group,
     pair_group = pair_group,
+    tau_method_group = tau_method_group,
+    tau_pair_group = tau_pair_group,
     stage_group = stage_group,
     chain_group = chain_group,
     report_root = report_root
@@ -2311,6 +2603,7 @@ qdesn_validation_run_campaign <- function(grid = NULL,
           root_id = root_spec$root_id,
           scenario = root_spec$scenario,
           tau = as.numeric(root_spec$tau),
+          likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
           beta_prior_type = root_spec$beta_prior_type,
           seed = as.integer(root_spec$seed),
           reservoir_profile = root_spec$reservoir_profile,

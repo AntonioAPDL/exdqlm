@@ -1,11 +1,55 @@
 # TRACK: Q-DESN MCMC Validation Framework
 
-Date: 2026-03-19
+Date: 2026-03-28
 Branch: `feature/qdesn-mcmc-alternative`
-Status: const-`rhs_c2` wave completed and reconfirmed with `FAIL=0`; candidate defaults are frozen as `v1`; broader confirmation and healthy-only comparison runners are implemented
+Status: Stage-Q `rhs_ns` wrap-up wave completed (`36/36` roots successful); healthy-comparable tau-set pairs are established; this validation phase is closed and ready for a larger follow-on study
 Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
+
+## Latest Wrap-Up Update (2026-03-28)
+
+- Canonical Stage-Q tracker:
+  - `docs/TRACK__qdesn_rhsns_stageQ_wave.md`
+- Stage-Q run:
+  - `stageQ-20260328-093000__git-2641e6b`
+- Final Stage-Q outcome:
+  - roots: `36/36 SUCCESS`
+  - method rows: `72`
+  - method signoff: `WARN 69`, `FAIL 3`, `PASS 0`
+  - tau-set pair status: `COMPLETE_HEALTHY 10`, `COMPLETE_UNHEALTHY 2`, `INCOMPLETE 0`
+  - pair signoff: `WARN 33`, `FAIL 3`, `PASS 0`
+- Safety/health interpretation of non-healthy cases:
+  - no catastrophic failures were observed (`collapse=0`, `unhealthy=0`,
+    `non-finite=0`, `domain-fail=0`);
+  - the `FAIL` set is diagnostic quality only (primarily `geweke_drift`,
+    with one mixed `geweke_drift + half_chain_drift` case).
+- Stage-Q artifacts:
+  - summary:
+    `reports/qdesn_mcmc_validation/rhsns_stageQ_wave/stageQ-20260328-093000__git-2641e6b/summary/stageQ_wave_summary.md`
+  - campaign tables:
+    `reports/qdesn_mcmc_validation/rhsns_stageQ_wave/stageQ-20260328-093000__git-2641e6b/rhsns_full/20260328-092645__git-2641e6b/tables/`
+
+Decision note:
+
+- The current static validation study is considered complete and documented.
+- The next step is a broader/challenging validation campaign on a larger matrix,
+  reusing the same non-DLM contract, guardrails, tau-set synthesis summaries,
+  and healthy-only comparison policy from Stage-Q.
+
+## Dynamic Relaunch Update (2026-03-29)
+
+- New dynamic family/prior relaunch tracker:
+  - `docs/TRACK__qdesn_dynamic_family_prior_validation.md`
+- New dynamic relaunch defaults/grid:
+  - `config/validation/qdesn_dynamic_family_prior_defaults.yaml`
+  - `config/validation/qdesn_dynamic_family_prior_grid.csv`
+- New launch/healthcheck scripts:
+  - `scripts/run_qdesn_dynamic_family_prior_wave.R`
+  - `scripts/healthcheck_qdesn_dynamic_family_prior_wave.R`
+- Discovery-gate decision:
+  - no new model classes required;
+  - work is integration/routing/diagnostics parity plus dynamic relaunch execution.
 
 ## Latest Operational Update (2026-03-20)
 

@@ -2,10 +2,14 @@
 exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
                              vb_control, init,
                              prior_gamma, prior_sigma,
-                             beta_prior_obj) {
+                             beta_prior_obj,
+                             likelihood_family = c("exal", "al"),
+                             al_fixed_gamma = NULL) {
 
   assert_matrix(X, "X")
   `%||%` <- function(x, alt) if (!is.null(x)) x else alt
+  likelihood_family <- match.arg(tolower(as.character(likelihood_family)[1L]), c("exal", "al"))
+  is_al <- identical(likelihood_family, "al")
 
   init        <- init        %||% list()
   prior_gamma <- prior_gamma %||% list()
@@ -61,6 +65,18 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   L <- as.numeric(gamma_bounds[1])
   U <- as.numeric(gamma_bounds[2])
   if (!is.finite(L) || !is.finite(U) || !(L < U)) .stopf("gamma_bounds must be finite with L < U.")
+  resolve_al_gamma <- function(g, L, U) {
+    g <- as.numeric(g)[1L]
+    if (!is.finite(g) || g <= L || g >= U) {
+      if (L < 0 && U > 0) {
+        g <- 0
+      } else {
+        g <- 0.5 * (L + U)
+      }
+    }
+    eps <- 1e-8 * max(1, abs(U - L))
+    min(max(g, L + eps), U - eps)
+  }
 
   # scale-based sigma bounds (wide but finite)
   y_scale  <- stats::mad(y, constant = 1.4826)
@@ -87,7 +103,11 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   if (!all(dim(qbeta$V) == c(p,p))) .stopf("init$beta_V must be p x p.")
 
   # --- initialize q(sig, gam) in unconstrained space (eta, ell) ---
-  gamma0 <- init$gamma %||% prior_gamma$mu0 %||% 0
+  gamma0 <- if (is_al) {
+    resolve_al_gamma(al_fixed_gamma %||% init$gamma %||% 0, L = L, U = U)
+  } else {
+    init$gamma %||% prior_gamma$mu0 %||% 0
+  }
   sigma0 <- init$sigma %||% 1
 
   # keep gamma0 away from bounds
@@ -205,7 +225,14 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   converged <- FALSE
 
   # helpers: current point estimates
-  cur_gamma_hat <- function() L + (U - L) * plogis(qsiggam$eta_hat)
+  gamma_fixed <- if (is_al) {
+    resolve_al_gamma(al_fixed_gamma %||% gamma0 %||% 0, L = L, U = U)
+  } else {
+    NA_real_
+  }
+  cur_gamma_hat <- function() {
+    if (is_al) as.numeric(gamma_fixed) else L + (U - L) * plogis(qsiggam$eta_hat)
+  }
   cur_sigma_hat <- function() exp(qsiggam$ell_hat)
   exp_safe <- function(x) exp(pmin(pmax(as.numeric(x), -745), 709))
 
@@ -787,7 +814,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   trans_par <- function(z) {
     eta <- z[1]; ell <- z[2]
     s   <- plogis(eta)
-    gamma <- L + (U - L) * s
+    gamma <- if (is_al) as.numeric(gamma_fixed) else L + (U - L) * s
     sigma <- exp(ell)
 
     abc <- exal_get_ABC(p0 = p0, gamma = gamma)
@@ -796,10 +823,34 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     lam <- abc$C * abs(gamma)  # lambda(gamma) = C(gamma)*|gamma|
 
     list(eta = eta, ell = ell, gamma = gamma, sigma = sigma, A = A, B = B, lam = lam,
-         log_hprime = log_hprime_noconst(eta))
+         log_hprime = if (is_al) 0 else log_hprime_noconst(eta))
   }
 
   compute_xi_fast <- function(eta_hat, ell_hat, Sigma) {
+  if (is_al) {
+    gamma <- as.numeric(gamma_fixed)
+    abc <- exal_get_ABC(p0 = p0, gamma = gamma)
+    A <- as.numeric(abc$A)[1L]
+    B <- pmax(as.numeric(abc$B)[1L], 1e-12)
+    lam <- as.numeric(abc$C * abs(gamma))[1L]
+    var_ell <- pmax(as.numeric(Sigma[2, 2]), 1e-12)
+    ell_hat <- as.numeric(ell_hat)[1L]
+    E_inv_sigma <- exp(-ell_hat + 0.5 * var_ell)
+    E_sigma <- exp(ell_hat + 0.5 * var_ell)
+    return(list(
+      xi1 = (1 / B) * E_inv_sigma,
+      xi_lambda = lam / B,
+      xi_lambda2 = (lam^2 / B) * E_sigma,
+      xi_A = (A / B) * E_inv_sigma,
+      xi_A2 = (A^2 / B) * E_inv_sigma,
+      zeta_lam = (lam * A) / B,
+      zeta_logB = log(B),
+      zeta_logpi = as.numeric(log_prior_gamma_fun(gamma)),
+      zeta_loghprime = 0,
+      xi_siginv = E_inv_sigma,
+      zeta_logsigma = ell_hat
+    ))
+  }
   z0 <- c(eta_hat, ell_hat)
 
   g_vec <- function(z) {
@@ -885,7 +936,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   log_qsiggam <- function(par) {
     eta <- as.numeric(par[1]); ell <- as.numeric(par[2])
     s <- plogis(eta)
-    gamma <- L + (U - L) * s
+    gamma <- if (is_al) as.numeric(gamma_fixed) else L + (U - L) * s
     sigma <- exp(ell)
 
     abc <- exal_get_ABC(p0 = p0, gamma = gamma)
@@ -902,7 +953,8 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     term4 <- - ((lam * lam) / (2 * B)) * sigma * S5
 
     log_prior_g <- log_prior_gamma_fun(gamma)
-    log_det <- - (n / 2) * log(B) - (a_sigma + (3 * n) / 2) * ell + log_hprime_noconst(eta)
+    log_det <- - (n / 2) * log(B) - (a_sigma + (3 * n) / 2) * ell +
+      if (is_al) 0 else log_hprime_noconst(eta)
 
     log_prior_g + log_det + term1 + term2 + term3 + term4
   }
@@ -913,6 +965,25 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     par0 <- c(eta0, ell0)
     par0[1] <- min(max(par0[1], eta_lo), eta_hi)
     par0[2] <- min(max(par0[2], ell_lo), ell_hi)
+
+    if (is_al) {
+      fn1 <- function(ell) {
+        val <- log_qsiggam(c(par0[1], ell))
+        if (is.finite(val)) -val else 1e100
+      }
+      opt1 <- stats::optimize(fn1, interval = c(ell_lo, ell_hi))
+      ell_hat <- as.numeric(opt1$minimum)
+      h <- 1e-4 * (1 + abs(ell_hat))
+      h <- min(max(h, 1e-6), 1e-2)
+      f0 <- fn1(ell_hat)
+      fp <- fn1(min(ell_hi, ell_hat + h))
+      fm <- fn1(max(ell_lo, ell_hat - h))
+      h_eff <- min(ell_hi, ell_hat + h) - max(ell_lo, ell_hat - h)
+      if (!is.finite(h_eff) || h_eff <= 0) h_eff <- 2 * h
+      H22 <- pmax((fp - 2 * f0 + fm) / ((h_eff / 2)^2), 1e-6)
+      Sig <- diag(c(1e-16, 1 / H22), 2L)
+      return(list(eta_hat = as.numeric(par0[1]), ell_hat = ell_hat, Sigma = Sig))
+    }
 
     fn_neg <- function(z) { val <- log_qsiggam(z); if (is.finite(val)) -val else 1e100 }
 
@@ -1069,16 +1140,18 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       .stopf("xis contains non-finite values (saved debug_xis_nan_iter_%04d.rds).", iter)
     }
 
-    # These must be >0 in your algebra
-    if (xis$xi1 <= 0 || xis$xi_lambda2 <= 0 || xis$xi_A2 <= 0 || xis$xi_siginv <= 0) {
+    # Core positivity checks; AL can legitimately hit xi_lambda2==0 when fixed gamma yields lambda=0.
+    bad_xi <- (xis$xi1 <= 0) || ((!is_al) && xis$xi_A2 <= 0) || (xis$xi_siginv <= 0) ||
+      (!is_al && xis$xi_lambda2 <= 0)
+    if (bad_xi) {
       saveRDS(list(iter=iter, xis=xis, qsiggam=qsiggam),
               file = sprintf("debug_xis_bad_iter_%04d.rds", iter))
       .stopf("xis has invalid sign/scale (saved debug_xis_bad_iter_%04d.rds).", iter)
     }
 
     xis$xi1        <- pmax(as.numeric(xis$xi1),        1e-12)
-    xis$xi_A2      <- pmax(as.numeric(xis$xi_A2),      1e-12)
-    xis$xi_lambda2 <- pmax(as.numeric(xis$xi_lambda2), 1e-12)
+    xis$xi_A2      <- if (is_al) pmax(as.numeric(xis$xi_A2), 0) else pmax(as.numeric(xis$xi_A2), 1e-12)
+    xis$xi_lambda2 <- if (is_al) pmax(as.numeric(xis$xi_lambda2), 0) else pmax(as.numeric(xis$xi_lambda2), 1e-12)
     xis$xi_siginv  <- pmax(as.numeric(xis$xi_siginv),  1e-12)
 
     # Optional: extra q(beta) refinement before RHS update (path-only)
@@ -1231,13 +1304,19 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     )
 
     # (12) Entropy H(q_{sigma,gamma}) from LD Gaussian + Jacobian term
-    Sig <- qsiggam$Sigma
-    detSig <- Sig[1,1] * Sig[2,2] - Sig[1,2] * Sig[2,1]
-    logdetSig <- log(pmax(detSig, 1e-12))
+    if (is_al) {
+      var_ell <- pmax(as.numeric(qsiggam$Sigma[2, 2]), 1e-12)
+      H_qsg <- 0.5 * (1 + log(2 * pi) + log(var_ell)) +
+        as.numeric(xis$zeta_logsigma)
+    } else {
+      Sig <- qsiggam$Sigma
+      detSig <- Sig[1,1] * Sig[2,2] - Sig[1,2] * Sig[2,1]
+      logdetSig <- log(pmax(detSig, 1e-12))
 
-    H_qsg <- 0.5 * (2 * (1 + log(2*pi)) + logdetSig) +
-      as.numeric(xis$zeta_logsigma) +
-      as.numeric(xis$zeta_loghprime)
+      H_qsg <- 0.5 * (2 * (1 + log(2*pi)) + logdetSig) +
+        as.numeric(xis$zeta_logsigma) +
+        as.numeric(xis$zeta_loghprime)
+    }
 
     elbo_new <- lik_norm + lik_quad1 + lik_cross +
       E_log_pv + E_log_ps +
@@ -1623,11 +1702,14 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     converged = converged,
     iter = iter_run,
     run.time = as.numeric(t_end - t0),
+    likelihood_family = likelihood_family,
 
     beta_prior = list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers, state = beta_state),
 
     misc = list(
       p0 = p0, bounds = c(L = L, U = U), n = n, p = p,
+      likelihood_family = likelihood_family,
+      al_fixed_gamma = if (is_al) as.numeric(gamma_fixed) else NA_real_,
       gamma_trace = gamma_trace, sigma_trace = sigma_trace, new_term_trace = new_term_trace,
       elbo = elbo_trace, elbo_trace = elbo_trace,
       rhs_tau_trace = rhs_tau_trace,

@@ -68,6 +68,7 @@ write_pipeline_timing_outputs <- function(timing_rows,
     created_at = as.character(Sys.time()),
     mode = as.character(.pipeline_as_scalar(context$mode, NA_character_)),
     inference_method = as.character(.pipeline_as_scalar(context$inference_method, NA_character_)),
+    likelihood_family = as.character(.pipeline_as_scalar(context$likelihood_family, NA_character_)),
     beta_prior_type = as.character(.pipeline_as_scalar(context$beta_prior_type, NA_character_)),
     n_quantiles = as.integer(.pipeline_as_scalar(context$n_quantiles, NA_integer_)),
     T_use = as.integer(.pipeline_as_scalar(context$T_use, NA_integer_)),
@@ -157,6 +158,13 @@ collect_pipeline_run_summary <- function(out_dir) {
   } else {
     NA_character_
   }
+  timing_family <- if (!is.null(timing_summary_resolved) &&
+                       nrow(timing_summary_resolved) &&
+                       "likelihood_family" %in% names(timing_summary_resolved)) {
+    as.character(timing_summary_resolved$likelihood_family[1L])
+  } else {
+    NA_character_
+  }
 
   method <- as.character(
     .pipeline_as_scalar(
@@ -167,6 +175,12 @@ collect_pipeline_run_summary <- function(out_dir) {
   beta_prior_type <- as.character(
     .pipeline_as_scalar(
       beta_prior_cfg$type %||% vb_priors$beta_type %||% runtime_info$beta_prior_type %||% timing_prior,
+      NA_character_
+    )
+  )
+  likelihood_family <- as.character(
+    .pipeline_as_scalar(
+      inference_cfg$likelihood_family %||% cfg$likelihood_family %||% runtime_info$likelihood_family %||% timing_family,
       NA_character_
     )
   )
@@ -234,6 +248,7 @@ collect_pipeline_run_summary <- function(out_dir) {
     status = status,
     mode = mode,
     inference_method = method,
+    likelihood_family = likelihood_family,
     beta_prior_type = beta_prior_type,
     p_count = as.integer(p_count),
     T_use = as.integer(.pipeline_as_scalar(split_cfg$T_use, NA_integer_)),

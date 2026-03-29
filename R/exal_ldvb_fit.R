@@ -15,6 +15,7 @@ exal_ldvb_fit <- function(y, X, p0, gamma_bounds,
                           vb_control = NULL,
                           max_iter = NULL, tol = NULL, tol_par = NULL,
                           n_samp_xi = NULL, verbose = NULL,
+                          likelihood_family = c("exal", "al"),
                           init = list(),
                           prior_gamma = NULL,
                           prior_gamma_mu0 = NULL,
@@ -29,6 +30,7 @@ exal_ldvb_fit <- function(y, X, p0, gamma_bounds,
   assert_matrix(X, "X")
   if (!is.numeric(y) || length(y) != nrow(X)) .stopf("y length must match nrow(X).")
   assert_scalar_numeric(p0, "p0")
+  likelihood_family <- match.arg(tolower(as.character(likelihood_family)[1L]), c("exal", "al"))
 
   if (!is.numeric(gamma_bounds) || length(gamma_bounds) != 2L) {
     .stopf("gamma_bounds must be a numeric vector of length 2.")
@@ -94,7 +96,8 @@ exal_ldvb_fit <- function(y, X, p0, gamma_bounds,
     y = y, X = X, p0 = p0, gamma_bounds = gamma_bounds,
     vb_control = vb_control, init = init,
     prior_gamma = prior_gamma, prior_sigma = prior_sigma,
-    beta_prior_obj = beta_prior_obj
+    beta_prior_obj = beta_prior_obj,
+    likelihood_family = likelihood_family
   )
 
   if (!is.null(log_prior_gamma)) arglist$log_prior_gamma <- log_prior_gamma

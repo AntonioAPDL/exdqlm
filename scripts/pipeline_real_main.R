@@ -1269,6 +1269,7 @@ if (isTRUE(vb_online_cfg$strict)) vb_online_cfg$W <- 0L
 
 inference_cfg <- resolve_exal_inference_config(cfg, p_vec = p_vec, verbose = VERBOSE)
 inference_method <- inference_cfg$method
+likelihood_family <- tolower(as.character(inference_cfg$likelihood_family %||% "exal")[1L])
 readout_scale <- isTRUE(inference_cfg$readout_scale)
 vb_args_base <- inference_cfg$vb$args_base
 vb_online_cfg <- inference_cfg$vb$online
@@ -1830,6 +1831,7 @@ fit_and_forecast_p <- function(p0) {
     X            = X_train,
     p0           = p0,
     gamma_bounds = c(L.fn(p0), U.fn(p0)),
+    likelihood_family = qfit_spec$likelihood_family %||% "exal",
     prior_gamma  = qfit_spec$prior_gamma,
     prior_sigma  = qfit_spec$prior_sigma,
     init         = qfit_spec$init,
@@ -1837,7 +1839,9 @@ fit_and_forecast_p <- function(p0) {
     beta_prior_obj = qfit_spec$beta_prior_obj
   )
 
-  fit_exal <- if (identical(qfit_spec$method, "vb") && isTRUE(qfit_spec$online_control$enabled)) {
+  fit_exal <- if (identical(qfit_spec$method, "vb") &&
+                  isTRUE(qfit_spec$online_control$enabled) &&
+                  !identical(as.character(qfit_spec$likelihood_family), "al")) {
     timed(
       sprintf("fit_exAL_online_on_X_train(p=%s, method=%s, prior=%s)", fmt_p(p0), qfit_spec$method, beta_type),
       do.call(exal_online_fit, c(fit_args, list(vb_control = qfit_spec$vb_control, control = qfit_spec$online_control)))
@@ -2604,7 +2608,17 @@ if (isTRUE(do_plots)) {
   for (k in seq_along(p_vec)) {
     p0 <- p_vec[k]
     pars <- fits_fc[[k]]$param_draws
-    if (is.null(pars) || (!length(pars$gamma) && !length(pars$sigma) && is.null(pars$beta))) {
+    fit_k <- fits_fc[[k]]$fit_train$fit %||% list()
+    likelihood_family_k <- tolower(as.character(
+      fit_k$misc$likelihood_family %||% fit_k$likelihood_family %||% likelihood_family %||% "exal"
+    )[1L])
+    gamma_supported <- !identical(likelihood_family_k, "al")
+
+    has_gamma_draws <- isTRUE(gamma_supported) && !is.null(pars$gamma) && length(pars$gamma)
+    has_sigma_draws <- !is.null(pars$sigma) && length(pars$sigma)
+    has_beta_draws <- !is.null(pars$beta) && is.matrix(pars$beta)
+
+    if (is.null(pars) || !(has_gamma_draws || has_sigma_draws || has_beta_draws)) {
       message(sprintf("[warn] No parameter draws available for p=%s; skipping posterior param plots.", fmt_p(p0)))
       next
     }
@@ -2612,7 +2626,7 @@ if (isTRUE(do_plots)) {
     plots_left <- list()
 
     # γ
-    if (!is.null(pars$gamma) && length(pars$gamma)) {
+    if (has_gamma_draws) {
       qs_gam <- qs_ci(pars$gamma, 0.95)
       x_lim_g <- stats::quantile(pars$gamma, c(0.01, 0.99), names = FALSE)
       if (!all(is.finite(x_lim_g)) || x_lim_g[1] >= x_lim_g[2]) {
@@ -2641,7 +2655,7 @@ if (isTRUE(do_plots)) {
     }
 
     # σ (optionally back-transform to original units)
-    if (!is.null(pars$sigma) && length(pars$sigma)) {
+    if (has_sigma_draws) {
       sig_draws <- pars$sigma
       if (isTRUE(scale_y)) sig_draws <- sig_draws * y_sd
       qs_sig <- qs_ci(sig_draws, 0.95)
@@ -2670,7 +2684,12 @@ if (isTRUE(do_plots)) {
       g_params <- Reduce(`|`, plots_left)
       print(g_params)
       if (isTRUE(save_outputs)) {
-        ggsave(file.path(FIGS, sprintf("posterior_gamma_sigma_p=%s.png", as.character(p0))),
+        fname <- if (has_gamma_draws) {
+          sprintf("posterior_gamma_sigma_p=%s.png", as.character(p0))
+        } else {
+          sprintf("posterior_sigma_p=%s.png", as.character(p0))
+        }
+        ggsave(file.path(FIGS, fname),
                g_params, width = 10.5, height = 4.8, dpi = 150)
       }
     }
@@ -2807,7 +2826,12 @@ if (isTRUE(do_plots) && nrow(elbo_df)) {
 
 # --- γ and σ traces -----------------------------------------------------------
 gamma_df <- dplyr::bind_rows(lapply(seq_along(fits_fc), function(i) {
-  tr <- fits_fc[[i]]$fit_train$fit$misc$gamma_trace
+  fit_i <- fits_fc[[i]]$fit_train$fit %||% list()
+  likelihood_family_i <- tolower(as.character(
+    fit_i$misc$likelihood_family %||% fit_i$likelihood_family %||% likelihood_family %||% "exal"
+  )[1L])
+  if (identical(likelihood_family_i, "al")) return(tibble::tibble())
+  tr <- fit_i$misc$gamma_trace
   if (is.null(tr) || !length(tr)) return(tibble::tibble())
   tibble::tibble(p0 = p_vec[i], iter = seq_along(tr), gamma = as.numeric(tr))
 }))
@@ -4320,6 +4344,7 @@ if (isTRUE(save_outputs)) {
     context = list(
       mode = mode,
       inference_method = inference_method,
+      likelihood_family = likelihood_family,
       beta_prior_type = vb_prior_beta_type,
       n_quantiles = length(p_vec),
       T_use = T_use,
