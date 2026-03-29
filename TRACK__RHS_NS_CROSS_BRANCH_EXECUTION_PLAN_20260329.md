@@ -104,18 +104,18 @@
 
 ### 6.1 Implementation Checklist
 
-- [ ] W3.1 Set Q-DESN MCMC default beta prior type to RHS-NS (`R/qdesn_mcmc.R`).
-- [ ] W3.2 Set Q-DESN VB default beta prior type to RHS-NS (`R/qdesn_vb.R`).
-- [ ] W3.3 Align config resolver defaults to RHS-NS for Q-DESN routing (`R/exal_inference_config.R`, config defaults as required).
-- [ ] W3.4 Enforce `shrink_intercept = FALSE` for Q-DESN RHS-family constructors/routing (`R/priors_beta.R`, `R/qdesn_rhs_ns_prior.R`, and entry points as needed).
-- [ ] W3.5 Add guardrail behavior when users request `shrink_intercept = TRUE` in Q-DESN context (override or fail-fast; document choice).
-- [ ] W3.6 Add/update tests for default-resolution and intercept-policy enforcement.
+- [x] W3.1 Set Q-DESN MCMC default beta prior type to RHS-NS (`R/qdesn_mcmc.R`). Done: 2026-03-29, by: Codex, evidence: `feature/qdesn-mcmc-alternative` commit `6ac4727`.
+- [x] W3.2 Set Q-DESN VB default beta prior type to RHS-NS (`R/qdesn_vb.R`). Done: 2026-03-29, by: Codex, evidence: `feature/qdesn-mcmc-alternative` commit `6ac4727`.
+- [x] W3.3 Align config resolver defaults to RHS-NS for Q-DESN routing (`R/exal_inference_config.R`, config defaults as required). Done: 2026-03-29, by: Codex, evidence: `feature/qdesn-mcmc-alternative` commit `6ac4727`.
+- [x] W3.4 Enforce `shrink_intercept = FALSE` for Q-DESN RHS-family constructors/routing (`R/priors_beta.R`, `R/qdesn_rhs_ns_prior.R`, and entry points as needed). Done: 2026-03-29, by: Codex, evidence: `feature/qdesn-mcmc-alternative` commit `6ac4727`.
+- [x] W3.5 Add guardrail behavior when users request `shrink_intercept = TRUE` in Q-DESN context (override or fail-fast; document choice). Done: 2026-03-29, by: Codex, evidence: `tests/testthat/test-qdesn-prior-defaults.R` + warning/validation helpers in `R/priors_beta.R`.
+- [x] W3.6 Add/update tests for default-resolution and intercept-policy enforcement. Done: 2026-03-29, by: Codex, evidence: `tests/testthat/test-qdesn-prior-defaults.R`.
 
 ### 6.2 Exit Gate
 
-- [ ] G3.1 Q-DESN default prior resolution tests pass.
-- [ ] G3.2 Intercept-policy tests pass.
-- [ ] G3.3 Ridge override path still works as expected.
+- [x] G3.1 Q-DESN default prior resolution tests pass. Done: 2026-03-29, by: Codex, evidence: `test-qdesn-prior-defaults` and `test-exal-inference-config` PASS.
+- [x] G3.2 Intercept-policy tests pass. Done: 2026-03-29, by: Codex, evidence: `test-qdesn-prior-defaults` PASS.
+- [x] G3.3 Ridge override path still works as expected. Done: 2026-03-29, by: Codex, evidence: `test-qdesn-mcmc-validation-pilot` PASS (includes ridge routes).
 
 ---
 
@@ -215,10 +215,15 @@
 | G2.1 | [x] | 2026-03-29 | test matrix | targeted static RHS/RHS-NS tests pass | `reports/rhs_ns_alignment_20260329/test_matrix_results.md` |
 | G2.2 | [x] | 2026-03-29 | test matrix | static regression suites pass (`static-` filter) | `reports/rhs_ns_alignment_20260329/test_matrix_results.md` |
 | G2.3 | [x] | 2026-03-29 | scope audit | `0.4.0` changes remain qdesn-free | `reports/rhs_ns_alignment_20260329/test_matrix_results.md` |
-| W3.1 | [ ] |  |  |  |  |
-| W3.2 | [ ] |  |  |  |  |
-| W3.3 | [ ] |  |  |  |  |
-| W3.4 | [ ] |  |  |  |  |
+| W3.1 | [x] | 2026-03-29 | `feature/qdesn-mcmc-alternative` | set qdesn MCMC default `beta_prior_type` to `rhs_ns` and enforce RHS intercept policy routing | `R/qdesn_mcmc.R`; commit `6ac4727` |
+| W3.2 | [x] | 2026-03-29 | `feature/qdesn-mcmc-alternative` | set qdesn VB default `beta_prior_type` to `rhs_ns` and enforce RHS intercept policy routing | `R/qdesn_vb.R`; commit `6ac4727` |
+| W3.3 | [x] | 2026-03-29 | `feature/qdesn-mcmc-alternative` | align inference-config default beta prior routing to `rhs_ns` and harden RHS intercept controls | `R/exal_inference_config.R`; commit `6ac4727` |
+| W3.4 | [x] | 2026-03-29 | `feature/qdesn-mcmc-alternative` | enforce `shrink_intercept = FALSE` across Q-DESN RHS constructors/prior objects | `R/priors_beta.R`; `R/qdesn_rhs_prior.R`; `R/qdesn_rhs_ns_prior.R`; commit `6ac4727` |
+| W3.5 | [x] | 2026-03-29 | `feature/qdesn-mcmc-alternative` | add guardrail for `shrink_intercept=TRUE` (force false + warning; fail-fast for invalid custom prior objects) | `R/priors_beta.R`; commit `6ac4727` |
+| W3.6 | [x] | 2026-03-29 | `feature/qdesn-mcmc-alternative` | add default-resolution/intercept-policy regression tests | `tests/testthat/test-qdesn-prior-defaults.R`; commit `6ac4727` |
+| G3.1 | [x] | 2026-03-29 | test matrix | qdesn default prior resolution checks pass | `test-exal-inference-config` + `test-qdesn-prior-defaults` PASS |
+| G3.2 | [x] | 2026-03-29 | test matrix | intercept policy checks pass | `test-qdesn-prior-defaults` PASS |
+| G3.3 | [x] | 2026-03-29 | test matrix | ridge override path remains valid | `test-qdesn-mcmc-validation-pilot` PASS |
 | W4.1 | [ ] |  |  |  |  |
 | W4.3 | [ ] |  |  |  |  |
 | W4.6 | [ ] |  |  |  |  |
