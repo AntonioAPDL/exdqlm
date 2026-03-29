@@ -11,6 +11,9 @@ qdesn_fit_vb(
   n = c(200L, 100L, 50L),
   n_tilde = c(50L, 25L),
   m = 12L,
+  input_mode = c("raw_y_lags", "dlm_decomp_lags"),
+  decomposition = NULL,
+  decomposition_xreg = NULL,
   standardize_inputs = FALSE,
   input_bound = c("none", "tanh"),
   win_scale_global = 1,
@@ -47,6 +50,9 @@ qdesn_fit_vb(
 
 \item{m}{Integer number of lags in \eqn{u_t=(1, y_{t-1},..., y_{t-m})}.}
 
+\item{decomposition_xreg}{Optional numeric matrix/data.frame of covariates
+used only by decomposition mode when regression/transfer blocks are enabled.}
+
 \item{alpha}{Leak in \eqn{(0,1)}.}
 
 \item{rho}{Numeric vector length D, spectral scales \eqn{\rho_d \in (0,1)}.}
@@ -65,7 +71,11 @@ qdesn_fit_vb(
 
 \item{seed}{Optional integer to make the reservoir repeatable.}
 
-\item{vb_args}{Named list forwarded to \code{exal_static_LDVB} (e.g. b0, V0, a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...).}
+\item{vb_args}{Named list forwarded to \code{exal_static_LDVB} (e.g. b0, V0,
+a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...). If
+\code{vb_args$beta_prior_type} is omitted, Q-DESN defaults to
+\code{"rhs_ns"}. For RHS-family priors, \code{shrink_intercept} is
+enforced as \code{FALSE}.}
 }
 \value{
 A list with:
@@ -82,7 +92,7 @@ A list with:
 \description{
 Implements the model in your LaTeX: a deep, leaky reservoir with spectral
 normalization produces features X_t; a linear readout \eqn{\mu_t = x_t' \beta}
-is fitted under exAL_{p0} noise using your \code{exal_static_LDVB()}.
+is fitted under \eqn{exAL_{p0}} noise using your \code{exal_static_LDVB()}.
 }
 \section{Pipeline}{
 
@@ -94,4 +104,3 @@ is fitted under exAL_{p0} noise using your \code{exal_static_LDVB()}.
 \item Fit \eqn{\beta,\sigma,\gamma} with \code{exal_static_LDVB()} for a single p0.\cr
 }
 }
-

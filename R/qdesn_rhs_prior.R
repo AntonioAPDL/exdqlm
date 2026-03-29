@@ -128,7 +128,7 @@ if (!exists(".stopf", mode = "function")) {
 #   f_j contributes: 0.5 log g_j - 0.5 S_j g_j + (log prior terms on eta)
 rhs_obj_eta <- function(eta_lambda, eta_tau, eta_c2, beta2,
                         tau0 = 1.0, nu = 4.0, s = 1.0,
-                        shrink_intercept = TRUE) {
+                        shrink_intercept = FALSE) {
 
   if (!isTRUE(shrink_intercept)) {
     if (length(beta2) >= 2L) {
@@ -251,7 +251,7 @@ rhs_grad_tau <- function(eta_lambda, eta_tau, eta_c2, beta2, tau0) {
 
 .rhs_hess_active <- function(eta_lambda, eta_tau, eta_c2, S,
                              tau0, nu, s,
-                             shrink_intercept = TRUE) {
+                             shrink_intercept = FALSE) {
   p <- length(eta_lambda)
   if (length(S) != p) .stopf(".rhs_hess_active: S length mismatch.")
 
@@ -419,7 +419,7 @@ rhs_grad_tau <- function(eta_lambda, eta_tau, eta_c2, beta2, tau0) {
 
 qdesn_rhs_prior_obj <- function(
   hypers = list(tau0 = 1, nu = 4, s = 1,
-                shrink_intercept = TRUE,
+                shrink_intercept = FALSE,
                 intercept_prec = 1e-16),
   init = list(lambda = 1, tau = NULL, c2 = NULL),
   control = list(n_inner = 1L,
@@ -438,7 +438,10 @@ qdesn_rhs_prior_obj <- function(
   if (!is.finite(nu)   || nu   <= 0) .stopf("RHS hypers$nu must be > 0.")
   if (!is.finite(s)    || s    <= 0) .stopf("RHS hypers$s must be > 0.")
 
-  shrink_intercept <- isTRUE(hypers$shrink_intercept %||% TRUE)
+  shrink_intercept <- .qdesn_force_rhs_no_intercept_shrink(
+    hypers$shrink_intercept %||% FALSE,
+    context = "qdesn_rhs_prior_obj"
+  )
   intercept_prec   <- as.numeric(hypers$intercept_prec %||% 1e-16)[1]
   if (!is.finite(intercept_prec) || intercept_prec <= 0) intercept_prec <- 1e-16
 

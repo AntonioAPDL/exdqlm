@@ -25,7 +25,7 @@ qdesn_rhs_ns_prior_obj <- function(
     b_zeta = 1.0,
     zeta2_fixed = NULL,
     s2 = 1.0,
-    shrink_intercept = TRUE,
+    shrink_intercept = FALSE,
     intercept_prec = 1e-16
   ),
   init = list(
@@ -58,7 +58,10 @@ qdesn_rhs_ns_prior_obj <- function(
   slab_s2 <- as.numeric(hypers$s2 %||% hypers$zeta2 %||% 1.0)[1L]
   if (!is.finite(slab_s2) || slab_s2 <= 0) slab_s2 <- 1.0
 
-  shrink_intercept <- isTRUE(hypers$shrink_intercept %||% TRUE)
+  shrink_intercept <- .qdesn_force_rhs_no_intercept_shrink(
+    hypers$shrink_intercept %||% FALSE,
+    context = "qdesn_rhs_ns_prior_obj"
+  )
   intercept_prec <- as.numeric(hypers$intercept_prec %||% 1e-16)[1L]
   if (!is.finite(intercept_prec) || intercept_prec <= 0) intercept_prec <- 1e-16
 
@@ -410,4 +413,3 @@ qdesn_rhs_ns_prior_obj <- function(
     }
   )
 }
-

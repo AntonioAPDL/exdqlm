@@ -156,7 +156,7 @@ qdesn_validation_enrich_root_spec <- function(root_spec, defaults) {
       pilot_cfg$likelihood_family %||%
       "exal"
   )[1L])
-  beta_prior_type <- tolower(as.character(root_spec$beta_prior_type %||% pilot_cfg$beta_prior_type %||% "ridge")[1L])
+  beta_prior_type <- tolower(as.character(root_spec$beta_prior_type %||% pilot_cfg$beta_prior_type %||% "rhs_ns")[1L])
   seed <- as.integer(root_spec$seed %||% pilot_cfg$seed %||% 123L)[1L]
   reservoir_profile <- as.character(root_spec$reservoir_profile %||% pilot_cfg$reservoir_profile %||% "tiny_d1_n8")[1L]
   enabled <- .qdesn_validation_as_flag(root_spec$enabled %||% pilot_cfg$enabled, default = TRUE)

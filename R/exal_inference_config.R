@@ -42,6 +42,16 @@
   )
 }
 
+.exal_enforce_rhs_no_intercept_shrink <- function(rhs_cfg, context = "inference") {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  rhs_cfg <- rhs_cfg %||% list()
+  rhs_cfg$shrink_intercept <- .qdesn_force_rhs_no_intercept_shrink(
+    rhs_cfg$shrink_intercept %||% FALSE,
+    context = context
+  )
+  rhs_cfg
+}
+
 .exal_default_vb_args_base <- function() {
   list(
     max_iter = 150L,
@@ -240,7 +250,7 @@
   }
 
   beta_cfg <- beta_cfg %||% list()
-  beta_type <- tolower(as.character(beta_cfg$type %||% "ridge")[1L])
+  beta_type <- tolower(as.character(beta_cfg$type %||% "rhs_ns")[1L])
   if (!beta_type %in% c("ridge", "rhs", "rhs_ns")) {
     .stopf("Unsupported beta prior type '%s'. Expected 'ridge', 'rhs', or 'rhs_ns'.", beta_type)
   }
@@ -253,7 +263,7 @@
   }
 
   if (identical(beta_type, "rhs")) {
-    rhs_cfg <- default_rhs_cfg
+    rhs_cfg <- .exal_enforce_rhs_no_intercept_shrink(default_rhs_cfg, context = "inference.rhs")
     if (!is.null(beta_cfg$rhs)) {
       rhs_cfg <- modifyList(rhs_cfg, beta_cfg$rhs)
       rhs_names <- names(beta_cfg$rhs)
@@ -282,6 +292,7 @@
         }
       }
     }
+    rhs_cfg <- .exal_enforce_rhs_no_intercept_shrink(rhs_cfg, context = "inference.rhs")
 
     # Guardrail: resolved init_log_tau is always numeric and defaults to 0.0
     # unless a numeric override is explicitly provided.
@@ -297,13 +308,14 @@
   }
 
   if (identical(beta_type, "rhs_ns")) {
-    rhs_ns_cfg <- default_rhs_ns_cfg
+    rhs_ns_cfg <- .exal_enforce_rhs_no_intercept_shrink(default_rhs_ns_cfg, context = "inference.rhs_ns")
     if (!is.null(beta_cfg$rhs) && is.list(beta_cfg$rhs)) {
       rhs_ns_cfg <- modifyList(rhs_ns_cfg, beta_cfg$rhs)
     }
     if (!is.null(beta_cfg$rhs_ns) && is.list(beta_cfg$rhs_ns)) {
       rhs_ns_cfg <- modifyList(rhs_ns_cfg, beta_cfg$rhs_ns)
     }
+    rhs_ns_cfg <- .exal_enforce_rhs_no_intercept_shrink(rhs_ns_cfg, context = "inference.rhs_ns")
 
     rhs_ns_cfg$zeta2_fixed <- rhs_ns_cfg$zeta2_fixed %||% rhs_ns_cfg$c2_fixed %||% NULL
     rhs_ns_cfg$a_zeta <- as.numeric(rhs_ns_cfg$a_zeta %||% 2.0)[1L]

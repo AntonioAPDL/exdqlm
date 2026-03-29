@@ -477,7 +477,7 @@
 #'
 #' Implements the model in your LaTeX: a deep, leaky reservoir with spectral
 #' normalization produces features X_t; a linear readout \eqn{\mu_t = x_t' \beta}
-#' is fitted under exAL_{p0} noise using your \code{exal_static_LDVB()}.
+#' is fitted under \eqn{exAL_{p0}} noise using your \code{exal_static_LDVB()}.
 #'
 #' @section Pipeline:
 #' 1) Build (or accept) a DESN reservoir with fixed random sparse weights.\cr
@@ -503,7 +503,11 @@
 #' @param washout Integer >=0; additional initial samples to drop after lag m to allow state settling.
 #' @param add_bias Logical; if TRUE, appends a constant 1 column to the readout design X.
 #' @param seed Optional integer to make the reservoir repeatable.
-#' @param vb_args Named list forwarded to \code{exal_static_LDVB} (e.g. b0, V0, a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...).
+#' @param vb_args Named list forwarded to \code{exal_static_LDVB} (e.g. b0, V0,
+#'   a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...). If
+#'   \code{vb_args$beta_prior_type} is omitted, Q-DESN defaults to
+#'   \code{"rhs_ns"}. For RHS-family priors, \code{shrink_intercept} is
+#'   enforced as \code{FALSE}.
 #'
 #' @return A list with:
 #' \itemize{
@@ -934,9 +938,13 @@ qdesn_fit_vb <- function(
     # --- beta prior: ridge or rhs (NEW MODEL HOOK) ---
 	    if (!is.null(vb_args$beta_prior_obj)) {
 	      beta_prior_obj <- vb_args$beta_prior_obj
+	      .qdesn_assert_rhs_prior_obj_intercept_policy(beta_prior_obj, context = "qdesn_fit_vb")
 	    } else {
-	      beta_type <- tolower(vb_args$beta_prior_type %||% "ridge")
+	      beta_type <- tolower(vb_args$beta_prior_type %||% "rhs_ns")
 	      rhs_list <- vb_args$beta_rhs %||% list()
+	      if (beta_type %in% c("rhs", "rhs_ns")) {
+	        rhs_list <- .qdesn_enforce_rhs_controls(rhs_list, context = "qdesn_fit_vb")
+	      }
 	      tau2 <- vb_args$beta_ridge_tau2 %||% vb_args$tau2 %||% 1e4
 	      beta_prior_obj <- exal_make_beta_prior(type = beta_type, tau2 = tau2, rhs = rhs_list)
 	    }

@@ -4,10 +4,10 @@
 \alias{beta_prior}
 \title{Construct beta prior object used by LDVB engine}
 \usage{
-beta_prior(type = c("ridge", "rhs"), ridge = list(), rhs = list())
+beta_prior(type = c("ridge", "rhs", "rhs_ns"), ridge = list(), rhs = list())
 }
 \arguments{
-\item{type}{"ridge" or "rhs"}
+\item{type}{"ridge", "rhs", or "rhs_ns"}
 
 \item{ridge}{list(tau2=...)}
 
@@ -16,7 +16,8 @@ shrink_intercept, intercept_prec,
 init_lambda or init_log_lambda,
 init_tau or init_log_tau,
 init_c2 or init_log_c2,
-n_inner, eta_bounds, h_curv, var_floor, verbose)}
+n_inner, eta_bounds, h_curv, var_floor, verbose). For Q-DESN RHS-family
+priors, \code{shrink_intercept} is always enforced as \code{FALSE}.}
 }
 \description{
 Construct beta prior object used by LDVB engine

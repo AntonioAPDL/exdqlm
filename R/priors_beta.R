@@ -2,6 +2,42 @@ if (!exists("%||%", mode = "function")) {
   `%||%` <- function(x, alt) if (!is.null(x)) x else alt
 }
 
+.qdesn_prior_warn_once <- function(option_name, message_text) {
+  if (!isTRUE(getOption(option_name, FALSE))) {
+    warning(message_text, call. = FALSE)
+    options(structure(list(TRUE), names = option_name))
+  }
+}
+
+.qdesn_force_rhs_no_intercept_shrink <- function(shrink_intercept, context = "qdesn") {
+  if (isTRUE(shrink_intercept %||% FALSE)) {
+    .qdesn_prior_warn_once(
+      "exdqlm.warned_qdesn_rhs_shrink_intercept_forced_false",
+      sprintf("[%s] RHS-family shrink_intercept=TRUE is unsupported in Q-DESN; forcing shrink_intercept=FALSE.", context)
+    )
+  }
+  FALSE
+}
+
+.qdesn_enforce_rhs_controls <- function(rhs, context = "qdesn") {
+  rhs <- rhs %||% list()
+  rhs$shrink_intercept <- .qdesn_force_rhs_no_intercept_shrink(rhs$shrink_intercept, context = context)
+  rhs
+}
+
+.qdesn_assert_rhs_prior_obj_intercept_policy <- function(beta_prior_obj, context = "qdesn") {
+  if (is.null(beta_prior_obj) || !is.list(beta_prior_obj)) return(invisible(TRUE))
+  ptype <- tolower(as.character(beta_prior_obj$type %||% "")[1L])
+  if (!ptype %in% c("rhs", "rhs_ns")) return(invisible(TRUE))
+  hypers <- beta_prior_obj[["hypers", exact = TRUE]]
+  hypers <- if (is.list(hypers)) hypers else list()
+  shrink_flag <- isTRUE(hypers$shrink_intercept %||% FALSE)
+  if (isTRUE(shrink_flag)) {
+    stop(sprintf("[%s] RHS-family beta_prior_obj must use shrink_intercept=FALSE for Q-DESN.", context), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 .call_with_supported_args <- function(fn, ...) {
   if (is.character(fn) && length(fn) == 1L) {
     fn <- get(fn, mode = "function", inherits = TRUE)
@@ -32,7 +68,8 @@ if (!exists("%||%", mode = "function")) {
 #'   init_lambda or init_log_lambda,
 #'   init_tau or init_log_tau,
 #'   init_c2 or init_log_c2,
-#'   n_inner, eta_bounds, h_curv, var_floor, verbose)
+#'   n_inner, eta_bounds, h_curv, var_floor, verbose). For Q-DESN RHS-family
+#'   priors, \code{shrink_intercept} is always enforced as \code{FALSE}.
 #' @export
 beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), ridge = list(), rhs = list()) {
   type <- tolower(match.arg(type))
@@ -59,6 +96,7 @@ beta_prior_ridge <- function(tau2) {
 }
 
 beta_prior_rhs <- function(rhs) {
+  rhs <- .qdesn_enforce_rhs_controls(rhs, context = "beta_prior_rhs")
 
   tau0 <- as.numeric(rhs$tau0 %||% 1.0)[1L]
   nu   <- as.numeric(rhs$nu   %||% 4.0)[1L]
@@ -105,7 +143,7 @@ beta_prior_rhs <- function(rhs) {
     s_source = s_source,
     s_provided = s_provided,
     s2_provided = s2_provided,
-    shrink_intercept = isTRUE(rhs$shrink_intercept %||% TRUE),
+    shrink_intercept = FALSE,
     intercept_prec   = as.numeric(rhs$intercept_prec %||% 1e-16)[1L]
   )
 
@@ -149,7 +187,7 @@ beta_prior_rhs <- function(rhs) {
 }
 
 beta_prior_rhs_ns <- function(rhs) {
-  rhs <- rhs %||% list()
+  rhs <- .qdesn_enforce_rhs_controls(rhs, context = "beta_prior_rhs_ns")
 
   tau0 <- as.numeric(rhs$tau0 %||% 1.0)[1L]
   a_zeta <- as.numeric(rhs$a_zeta %||% 2.0)[1L]
@@ -177,7 +215,7 @@ beta_prior_rhs_ns <- function(rhs) {
   if (!is.finite(slab_s2) || slab_s2 <= 0) slab_s2 <- 1.0
   if (!is.finite(slab_s) || slab_s <= 0) slab_s <- sqrt(slab_s2)
 
-  shrink_intercept <- isTRUE(rhs$shrink_intercept %||% TRUE)
+  shrink_intercept <- FALSE
   intercept_prec <- as.numeric(rhs$intercept_prec %||% 1e-16)[1L]
 
   init_lambda2 <- rhs$init_lambda2

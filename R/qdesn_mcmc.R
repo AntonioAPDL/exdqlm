@@ -5,7 +5,10 @@
 #' reservoir and design construction.
 #'
 #' @param method One of `"vb"` or `"mcmc"`.
-#' @param vb_args,mcmc_args Named lists of inference-specific settings.
+#' @param vb_args,mcmc_args Named lists of inference-specific settings. If
+#'   \code{beta_prior_type} is omitted in either list, Q-DESN defaults to
+#'   \code{"rhs_ns"}. For RHS-family priors, \code{shrink_intercept} is
+#'   enforced as \code{FALSE}.
 #' @param ... Additional arguments forwarded to the underlying Q-DESN fitter.
 #' @export
 qdesn_fit <- function(..., method = c("vb", "mcmc"), vb_args = list(), mcmc_args = list()) {
@@ -23,7 +26,9 @@ qdesn_fit <- function(..., method = c("vb", "mcmc"), vb_args = list(), mcmc_args
 #' [exal_mcmc_fit()] so the returned object remains compatible with the current
 #' `qdesn_fit` forecasting code.
 #'
-#' @param mcmc_args Named list forwarded to [exal_mcmc_fit()].
+#' @param mcmc_args Named list forwarded to [exal_mcmc_fit()]. If
+#'   \code{mcmc_args$beta_prior_type} is omitted, Q-DESN defaults to
+#'   \code{"rhs_ns"}.
 #' @param fit_readout Logical; if `FALSE`, return the shared design-only object.
 #' @param ... Additional arguments forwarded to the Q-DESN design builder.
 #' @export
@@ -47,10 +52,15 @@ qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
 
   beta_prior_obj <- get_exact(mcmc_args, "beta_prior_obj")
   if (is.null(beta_prior_obj)) {
-    beta_type <- tolower(as.character(get_exact(mcmc_args, "beta_prior_type", "ridge")))
+    beta_type <- tolower(as.character(get_exact(mcmc_args, "beta_prior_type", "rhs_ns")))
     rhs_list <- get_exact(mcmc_args, "beta_rhs", list())
+    if (beta_type %in% c("rhs", "rhs_ns")) {
+      rhs_list <- .qdesn_enforce_rhs_controls(rhs_list, context = "qdesn_fit_mcmc")
+    }
     tau2 <- as.numeric(get_exact(mcmc_args, "beta_ridge_tau2", get_exact(mcmc_args, "tau2", 1e4)))
     beta_prior_obj <- exal_make_beta_prior(type = beta_type, tau2 = tau2, rhs = rhs_list)
+  } else {
+    .qdesn_assert_rhs_prior_obj_intercept_policy(beta_prior_obj, context = "qdesn_fit_mcmc")
   }
 
   mcmc_control <- modifyList(list(
