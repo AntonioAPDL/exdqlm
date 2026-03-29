@@ -167,3 +167,67 @@ Secondary tables still report all fits for transparency.
 
 - Keep existing static validation defaults untouched.
 - Relaunch is isolated in new defaults/grid/scripts and separate report/result roots.
+
+## 8) Baseline Completion Snapshot (2026-03-29)
+
+The main dynamic relaunch baseline is complete and frozen:
+
+- run_tag: `dynamic-family-prior-20260329-053603`
+- roots: `36/36` successful
+- results root:
+  - `results/qdesn_mcmc_validation/dynamic_family_prior_rerun/dynamic-family-prior-20260329-053603/20260329-053636__git-2641e6b`
+- reports root:
+  - `reports/qdesn_mcmc_validation/dynamic_family_prior_rerun/dynamic-family-prior-20260329-053603/20260329-053636__git-2641e6b`
+
+Stale histories remain preserved and excluded from promotion decisions:
+
+- `dynamic-family-prior-20260329-053316` -> `ABORTED_STALE`
+- `stageP ridge_anchor` arm -> `ABORTED_STALE`
+
+## 9) Finalization Closeout (2026-03-29)
+
+Finalization wave executed with zero broad-grid recompute and strict gates:
+
+- closeout tag:
+  - `closeout-20260329-074000__git-4536ccc`
+- workspace:
+  - `reports/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc`
+  - `results/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc`
+
+### 9.1 Gate A
+
+- `PASS`
+- MCMC FAIL rows in baseline: `17`
+- dominant clusters: `low_ess`, `half_chain_drift`, `high_acf`
+- concentration: top-3 clusters explain `100%` of MCMC FAIL rows
+
+### 9.2 Micro-Pilot (Gate B) Outcome
+
+Profiles tested on 6 stratified failing roots:
+
+- `P1_longer_chain`
+- `P2_conservative_slice`
+- `P3_blocked_adapt`
+
+Hard-gate result:
+
+- `Gate B = FAIL` (no profile satisfied all promotion criteria)
+- best fail reduction: `33.3%` (`P1`), below required `>=40%`
+- finite/domain safety: preserved in all profiles
+- collapse guardrail regressions: none
+- runtime inflation (median): `+89%`, `+117%`, `+144%` (all above `<=50%` gate)
+
+### 9.3 Final Recommendation
+
+- **Hold current MCMC defaults**
+- **Escalate to kernel-level redesign** for MCMC failure roots
+- **No conditional expansion run launched**, by design after Gate B fail
+
+Authoritative outputs:
+
+- phase01 summary:
+  - `reports/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc/summary/phase01_summary.md`
+- phase35 summary:
+  - `reports/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc/summary/phase35_summary.md`
+- phase35 manifest:
+  - `reports/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc/summary/phase35_manifest.json`

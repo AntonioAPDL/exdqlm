@@ -51,6 +51,48 @@ Decision note:
   - no new model classes required;
   - work is integration/routing/diagnostics parity plus dynamic relaunch execution.
 
+## Closeout Finalization Update (2026-03-29)
+
+Fast closeout was executed on completed artifacts first, with strict no-broad-rerun
+gating and micro-pilot-only remediation:
+
+- baseline used:
+  - `dynamic-family-prior-20260329-053603`
+  - roots: `36/36 SUCCESS`
+- closeout tag:
+  - `closeout-20260329-074000__git-4536ccc`
+- finalization workspace:
+  - `reports/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc`
+  - `results/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc`
+
+Gate outcomes:
+
+1. Gate A: `PASS`
+   - baseline MCMC fails clustered into 3 dominant modes:
+     - `low_ess` (52.9%)
+     - `half_chain_drift` (23.5%)
+     - `high_acf` (23.5%)
+   - top-3 explained `100%` of fail rows.
+2. Gate B: `FAIL`
+   - micro-pilot profiles:
+     - `P1_longer_chain`, `P2_conservative_slice`, `P3_blocked_adapt`
+   - no profile met all hard conditions
+     (`fail_reduction >= 40%`, no finite/domain regressions, no collapse regressions,
+     runtime inflation `<= 50%`).
+   - best reduction was `33.3%` (P1) with runtime inflation `+89.4%`.
+
+Decision:
+
+- hold current tuned defaults for this validation cycle;
+- escalate remaining failing-cell remediation to kernel-level redesign path;
+- do not run broad recompute until redesigned kernels are validated.
+
+Authoritative closeout outputs:
+
+- `.../summary/phase01_summary.md`
+- `.../summary/phase35_summary.md`
+- `.../summary/phase35_manifest.json`
+
 ## Latest Operational Update (2026-03-20)
 
 - Added explicit operational tracker for current stepwise workflow:
