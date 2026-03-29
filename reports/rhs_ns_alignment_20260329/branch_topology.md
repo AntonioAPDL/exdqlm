@@ -129,3 +129,23 @@ detached
    - Worktree A checked against origin/cransub/0.4.0.
    - Worktree B checked against origin/feature/qdesn-mcmc-alternative.
 3. No new worktree creation command was executed during Wave 0.
+
+---
+
+## Wave 4 Refresh Snapshot (2026-03-29)
+
+Post-Wave-3/Wave-5 status refresh used for reconciliation closeout:
+
+- `origin/cransub/0.4.0`: `a95ee8c`
+- `origin/validation/rerun-after-0.4.0-sync`: `9a7d05e`
+- `origin/feature/qdesn-mcmc-alternative`: `6ac4727`
+
+Divergence checks:
+
+- `origin/cransub/0.4.0...origin/validation/rerun-after-0.4.0-sync` -> `0 left / 70 right`.
+- `origin/cransub/0.4.0...origin/feature/qdesn-mcmc-alternative` -> `160 left / 248 right`.
+
+Sync checks:
+
+- `git -C /home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs pull --ff-only` -> `Already up to date.`
+- `git -C /home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline pull --ff-only` -> `Already up to date.`
