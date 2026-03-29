@@ -661,7 +661,8 @@
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
 #' @param beta_prior Coefficient prior type: \code{"ridge"} (default),
 #'   \code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
-#'   (Nishimura-Suchard style regularized horseshoe controls).
+#'   (Nishimura-Suchard regularized horseshoe with a closed-form
+#'   inverse-gamma hierarchy for static inference).
 #' @param beta_prior_controls Optional list of prior-specific controls. For
 #'   RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
 #'   \code{"rhs_ns"}), supported keys follow the qdesn implementation:
@@ -677,14 +678,18 @@
 #'   \code{verbose}, \code{init_lambda}, \code{init_log_lambda},
 #'   \code{init_tau}, \code{init_log_tau}, \code{init_c2},
 #'   and \code{init_log_c2}. For \code{beta_prior = "rhs_ns"}, optional slab
-#'   aliases \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also
-#'   supported (mapped to \code{nu}/\code{s2} and \code{c2} controls).
+#'   controls \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also
+#'   supported. In this mode, the local-global-slab block is represented by
+#'   \eqn{(\lambda_j^2,\nu_j,\tau^2,\xi,\zeta^2)}, with closed-form
+#'   inverse-gamma updates in VB and MCMC.
 #'   When \code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"},
 #'   \code{b0} and \code{V0} are retained only for backward-compatible ridge
 #'   behavior and are ignored for the shrunk coefficients. If both
 #'   \code{init_log_tau} and \code{init_tau} are omitted (or \code{NULL}),
 #'   the RHS global scale initializes at \code{tau = 1}
-#'   (\code{init_log_tau = 0}) instead of \code{tau0}.
+#'   (\code{init_log_tau = 0}) instead of \code{tau0}. By default
+#'   (\code{shrink_intercept = FALSE}), the intercept is excluded from
+#'   horseshoe shrinkage and uses \code{intercept_prec}.
 #' @param a_sigma,b_sigma Prior for \eqn{\sigma \sim IG(a_\sigma,b_\sigma)} with
 #'   density \eqn{p(\sigma)\propto \sigma^{-(a_\sigma+1)} e^{-b_\sigma/\sigma}}.
 #' @param gamma_bounds Two-vector (L, U) support for \code{gamma}.
@@ -729,11 +734,13 @@
 #'         \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
 #'   \item \code{converged}, \code{iter}, \code{run.time}, and
 #'         \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
-#'   \item \code{beta_prior}: prior metadata and, for RHS, posterior summaries of
-#'         the shrinkage hyperparameters, including warmup/freeze-aware
-#'         \code{tau} summaries and collapse diagnostics
+#'   \item \code{beta_prior}: prior metadata and, for RHS-family priors,
+#'         posterior summaries of the shrinkage hyperparameters, including
+#'         warmup/freeze-aware \code{tau} summaries and collapse diagnostics
 #'         (\code{collapse_flag}, \code{tau_near_zero}, \code{beta_collapse},
-#'         and \code{warning} when triggered).
+#'         and \code{warning} when triggered). For \code{"rhs_ns"}, the state
+#'         also tracks \code{lambda2}, \code{nu}, \code{tau2}, \code{xi}, and
+#'         \code{zeta2} with the corresponding inverse moments.
 #'   \item \code{diagnostics}: ELBO and joint-convergence diagnostics
 #'         (state/sigma/gamma/ELBO deltas, stopping reason, and
 #'         Laplace-Delta block trace diagnostics, including replicated-\code{xi}

@@ -23,7 +23,8 @@
 #'   \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.
 #' @param beta_prior Coefficient prior type: \code{"ridge"} (default),
 #'   \code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
-#'   (Nishimura-Suchard style regularized horseshoe controls).
+#'   (Nishimura-Suchard regularized horseshoe with a closed-form
+#'   inverse-gamma hierarchy for static inference).
 #' @param beta_prior_controls Optional list of prior-specific controls. For
 #'   RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
 #'   \code{"rhs_ns"}), supported keys follow the qdesn-style static interface:
@@ -36,15 +37,19 @@
 #'   \code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
 #'   \code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
 #'   \code{slice_width}, and \code{slice_max_steps}. For
-#'   \code{beta_prior = "rhs_ns"}, optional slab aliases
-#'   \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported
-#'   (mapped to \code{nu}/\code{s2} and \code{c2} controls). When
+#'   \code{beta_prior = "rhs_ns"}, optional slab controls
+#'   \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported.
+#'   In this mode, the local-global-slab block is represented by
+#'   \eqn{(\lambda_j^2,\nu_j,\tau^2,\xi,\zeta^2)} and updated with
+#'   closed-form Gibbs steps. When
 #'   \code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"}, \code{b0} and \code{V0}
 #'   are ignored for the
 #'   shrunk coefficients and retained only for backward-compatible ridge
 #'   behavior. If both \code{init_log_tau} and \code{init_tau} are omitted
 #'   (or \code{NULL}), the RHS global scale initializes at \code{tau = 1}
-#'   (\code{init_log_tau = 0}) instead of \code{tau0}.
+#'   (\code{init_log_tau = 0}) instead of \code{tau0}. By default
+#'   (\code{shrink_intercept = FALSE}), the intercept is excluded from
+#'   horseshoe shrinkage and uses \code{intercept_prec}.
 #' @param a_sigma,b_sigma Hyperparameters for an inverse-gamma prior on
 #'   \code{sigma}, with density proportional to
 #'   \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.
@@ -56,7 +61,10 @@
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
 #'   for RHS-family priors optionally \code{lambda}, \code{tau}, and
-#'   \code{c2}. Missing pieces are filled sensibly.
+#'   \code{c2}. For \code{beta_prior = "rhs_ns"}, the squared-scale
+#'   parameterization \code{lambda2}, \code{tau2}, \code{zeta2}, and optional
+#'   auxiliaries \code{nu}, \code{xi} are also accepted. Missing pieces are
+#'   filled sensibly.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 #'   with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.
 #' @param n.burn Number of burn-in iterations. Default \code{2000}.
@@ -120,8 +128,10 @@
 #'   \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 #'   \item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
 #'         draws when an RHS-family prior is used; otherwise \code{NULL}.
-#'   \item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
-#'         of the shrinkage block.
+#'   \item \code{beta_prior} - prior metadata and, for RHS-family priors,
+#'         posterior summaries of the shrinkage block. For \code{"rhs_ns"},
+#'         the state tracks \code{lambda2}, \code{nu}, \code{tau2}, \code{xi},
+#'         and \code{zeta2}.
 #'   \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 #'         including whether the saved kernel is exact/signoff-ready.
 #'   \item \code{rhs.diagnostics} - RHS latent summaries and optional trace

@@ -908,6 +908,13 @@
   a + log(b) + lgamma(a) - (a + 1) * digamma(a)
 }
 
+# RHS-NS closed-form hierarchy used by static VB/MCMC:
+#   lambda_j^2 | nu_j ~ IG(1/2, 1/nu_j),   nu_j ~ IG(1/2, 1)
+#   tau^2      | xi   ~ IG(1/2, 1/xi),     xi   ~ IG(1/2, 1/tau0^2)
+#   zeta^2 ~ IG(a_zeta, b_zeta) (or fixed via zeta2_fixed).
+# The induced coefficient precision is
+#   invV_j = 1 / (tau^2 * lambda_j^2) + 1 / zeta^2
+# with intercept handled separately when shrink_intercept = FALSE.
 .static_rhs_ns_recompute_moments <- function(state, ctrl) {
   floor <- max(as.numeric(ctrl$var_floor)[1], 1e-16)
   p <- as.integer(state$p)
