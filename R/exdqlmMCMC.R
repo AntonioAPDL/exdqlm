@@ -36,6 +36,9 @@
 #'   lighter-weight runs.
 #' @param trace.every Positive integer; when `trace.diagnostics = TRUE`, record
 #'   one diagnostics row every `trace.every` iterations.
+#' @param progress_callback Optional callback invoked with a named list at MCMC
+#'   start, at each progress checkpoint, and on completion. Intended for
+#'   workflow-level progress logging.
 #'
 #' @return A object of class "\code{exdqlmMCMC}" containing the following:
 #'  \itemize{
@@ -92,7 +95,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,
-                    trace.diagnostics=TRUE,trace.every=1L){
+                    trace.diagnostics=TRUE,trace.every=1L,
+                    progress_callback=NULL){
 
   # check inputs
   y = check_ts(y)
@@ -181,6 +185,11 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   trace.diagnostics <- isTRUE(trace.diagnostics)
   trace.every <- suppressWarnings(as.integer(trace.every)[1])
   if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
+  safe_progress_callback <- function(info) {
+    if (!is.function(progress_callback)) return(invisible(NULL))
+    try(progress_callback(info), silent = TRUE)
+    invisible(NULL)
+  }
 
   state_signal <- function(FF_local, theta_mat) {
     drop(colSums(FF_local * theta_mat))
@@ -722,6 +731,18 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # Sample from exdqlm posterior
     tictoc::tic()
+    safe_progress_callback(list(
+      event = "start",
+      iter = 0L,
+      total_iter = as.integer(I),
+      phase = "burn",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = cursam.gamma,
+      kernel = mh.proposal,
+      accept = if (identical(mh.proposal, "slice")) NA_real_ else 0
+    ))
     for (i in 1:I){
       # counter
       if(verbose & i%%progress_every==0){
@@ -730,6 +751,20 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         utils::flush.console()
         try(flush(stdout()), silent = TRUE)
         }
+      if (i %% progress_every == 0L) {
+        safe_progress_callback(list(
+          event = "progress",
+          iter = as.integer(i),
+          total_iter = as.integer(I),
+          phase = if (i <= n.burn) "burn" else "keep",
+          n_burn = as.integer(n.burn),
+          n_mcmc = as.integer(n.mcmc),
+          sigma = cursam.sigma,
+          gamma = cursam.gamma,
+          kernel = mh.proposal,
+          accept = if (identical(mh.proposal, "slice")) NA_real_ else n.accept / i
+        ))
+      }
 
       # exAL parameters
       tau = p.fn(p0,cursam.gamma)
@@ -892,6 +927,19 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     if(verbose){
       cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
     }
+    safe_progress_callback(list(
+      event = "complete",
+      iter = as.integer(I),
+      total_iter = as.integer(I),
+      phase = "done",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = cursam.gamma,
+      kernel = mh.proposal,
+      accept = if (identical(mh.proposal, "slice")) NA_real_ else n.accept / I,
+      runtime_sec = as.numeric(run.time$toc - run.time$tic)
+    ))
 
     # exdqlm MAP standard forecast errors
     map.gam = mean(save.gamma)
@@ -1098,6 +1146,18 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # Sample from dqlm posterior
     tictoc::tic()
+    safe_progress_callback(list(
+      event = "start",
+      iter = 0L,
+      total_iter = as.integer(I),
+      phase = "burn",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_
+    ))
     for (i in 1:I){
       # counter
       if(verbose & i%%progress_every==0){
@@ -1105,6 +1165,20 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         utils::flush.console()
         try(flush(stdout()), silent = TRUE)
         }
+      if (i %% progress_every == 0L) {
+        safe_progress_callback(list(
+          event = "progress",
+          iter = as.integer(i),
+          total_iter = as.integer(I),
+          phase = if (i <= n.burn) "burn" else "keep",
+          n_burn = as.integer(n.burn),
+          n_mcmc = as.integer(n.mcmc),
+          sigma = cursam.sigma,
+          gamma = NA_real_,
+          kernel = "conjugate",
+          accept = NA_real_
+        ))
+      }
 
       # sample theta
       ex.f = cursam.Ut*a_tau
@@ -1134,6 +1208,19 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     if(verbose){
       cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
     }
+    safe_progress_callback(list(
+      event = "complete",
+      iter = as.integer(I),
+      total_iter = as.integer(I),
+      phase = "done",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_,
+      runtime_sec = as.numeric(run.time$toc - run.time$tic)
+    ))
 
     # dqlm MAP standard forecast errors
     map.sig = mean(save.sigma)
