@@ -52,6 +52,7 @@
 #'   \item `theta.out` - List containing the distributions of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #'   \item `n.burn` Number of MCMC iterations that were burned.
 #'   \item `n.mcmc` Number of MCMC iterations that were sampled.
+#'   \item `diagnostics` - ESS and chain-ready summaries for sigma/gamma.
 #' }
 #' If `dqlm.ind=FALSE`, the object also contains the following:
 #' \itemize{
@@ -64,7 +65,6 @@
 #'   \item `accept.rate.keep` - MH acceptance rate in kept MCMC samples.
 #'   \item `Sig.mh` - Covariance matrix used in MH step to jointly sample sigma and gamma.
 #'   \item `mh.diagnostics` - MH tuning diagnostics (proposal mode, scaling path, adaptation summary).
-#'   \item `diagnostics` - ESS and chain-ready summaries for sigma/gamma.
 #' }
 #' @export
 #'

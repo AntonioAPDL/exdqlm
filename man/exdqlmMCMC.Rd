@@ -134,6 +134,7 @@ A object of class "\code{exdqlmMCMC}" containing the following:
 \item \code{theta.out} - List containing the distributions of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{n.burn} Number of MCMC iterations that were burned.
 \item \code{n.mcmc} Number of MCMC iterations that were sampled.
+\item \code{diagnostics} - ESS and chain-ready summaries for sigma/gamma.
 }
 If \code{dqlm.ind=FALSE}, the object also contains the following:
 \itemize{
@@ -146,7 +147,6 @@ If \code{dqlm.ind=FALSE}, the object also contains the following:
 \item \code{accept.rate.keep} - MH acceptance rate in kept MCMC samples.
 \item \code{Sig.mh} - Covariance matrix used in MH step to jointly sample sigma and gamma.
 \item \code{mh.diagnostics} - MH tuning diagnostics (proposal mode, scaling path, adaptation summary).
-\item \code{diagnostics} - ESS and chain-ready summaries for sigma/gamma.
 }
 }
 \description{
