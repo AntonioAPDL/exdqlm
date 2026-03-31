@@ -38,12 +38,14 @@ Operational status:
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-2. `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
-3. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-4. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
-5. `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/profile_rank_summary.csv`
-6. `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/phase35_micro_pilot_diag_shift.csv`
+1. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+2. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+3. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+4. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+5. `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
+6. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+7. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+8. `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/profile_rank_summary.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -114,6 +116,49 @@ Interpretation:
 - the earlier overnight screen signal did not reproduce strongly enough on current `HEAD` to justify promoting `X10`, `X3`, or `X8` into package defaults;
 - the main blocker remains unresolved shared `exal` kernel behavior on the severe quartet, especially the persistent ridge hard case;
 - the repair wave assets are worth keeping, but the candidate default promotion itself should not be adopted.
+
+## 5B) Phase 2 Audit Outcome
+
+The Phase 2 artifact-only audit is now complete.
+
+Primary outputs:
+
+- audit generator:
+  `scripts/run_qdesn_validation_phase2_audit.R`
+- audit report:
+  `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+- audit summary:
+  `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+- hard-root metrics:
+  `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/tables/hard_root_profile_metrics.csv`
+- conditioning metrics:
+  `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/tables/tiny_d1_n8_conditioning_by_design.csv`
+
+Checklist:
+
+- [x] WP1 hard-root forensics
+- [x] WP2 `tiny_d1_n8` conditioning audit
+- [x] produce reusable audit tables and summary
+- [x] decide whether conditioning is primary or amplifying
+
+Main findings:
+
+- the persistent hard root remains `dlm_constV_bigW @ tau=0.05 exal ridge`;
+- current candidate families change the dominant failure mode, but do not remove the hard-root failure;
+- `R1` lifts ESS on the hard root, but worsens half-drift;
+- `R2` best contains hard-root drift, but still leaves ESS too low;
+- `R3` degrades the hard root too much to be a serious next default;
+- all unique `tiny_d1_n8` augmented readout designs are highly ill-conditioned and highly correlated;
+- the same `tiny_d1_n8` design keys appear in both severe and sentinel roots, so conditioning is real but not sufficient.
+
+Hypothesis-gate result:
+
+- choose `H1` first:
+  structural shared `gamma/sigma` traversal repair in the static `exal` core
+- keep `H2` second:
+  readout conditioning / preconditioning if `H1` fails
+- keep `H3` third:
+  `rhs_ns` residual cleanup only after shared-core progress exists
 
 ## 6) Candidate Improvement Areas
 
@@ -308,6 +353,7 @@ Every future candidate should satisfy these standards:
 
 ### Main findings and takeaways
 
+- `docs/PLAN__qdesn_validation_phase2_20260331.md`
 - `docs/REPORT__qdesn_validation_repair_wave1_20260331.md`
 - `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
@@ -324,6 +370,8 @@ Every future candidate should satisfy these standards:
 ### Operational roadmap
 
 - `docs/TRACK__qdesn_validation_repair_20260331.md`
+- `docs/PLAN__qdesn_validation_phase2_20260331.md`
+- `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
 
 ## 12) Current Recommended Next Move
 
@@ -332,5 +380,6 @@ Do not promote `X10`, `X3`, or the `X8` overlay into package defaults from the c
 The next highest-signal step is:
 
 1. keep the repair-wave scaffolding and legacy anchor as the evaluation harness;
-2. move to targeted structural debugging on the persistent severe ridge root and the `tiny_d1_n8` conditioning cluster;
-3. only return to another repair-wave rerun after a genuinely new kernel hypothesis exists.
+2. implement exactly one shared-core structural `gamma/sigma` candidate that aims to preserve `R2`-style drift control while adding `R1`-style ESS lift;
+3. validate that candidate on the hard ridge canary first;
+4. only if the canary improves materially, move to the severe quartet and then the full 6-root harness.

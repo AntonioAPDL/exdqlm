@@ -1,0 +1,5 @@
+"profile_id","root_label","signoff_grade","comparison_eligible","signoff_reason","mcmc_min_ess_core","mcmc_max_acf1_core","mcmc_max_geweke_absz_core","mcmc_max_half_drift_core"
+"R1_promoted_x10_core","dlm_constV_bigW @ tau=0.05 exal ridge","FAIL",FALSE,"half_chain_drift",13.2010915352906,0.95687323097985,1.63338436823447,1.06139006612576
+"R0_legacy_anchor","dlm_constV_bigW @ tau=0.05 exal ridge","FAIL",FALSE,"low_ess; high_autocorrelation; half_chain_drift",6.79798923621074,0.982575300204589,1.30006735870406,0.795035753692695
+"R3_x10_plus_x8_rhsns_overlay","dlm_constV_bigW @ tau=0.05 exal ridge","FAIL",FALSE,"low_ess; high_autocorrelation; geweke_drift; half_chain_drift",3.48050435271685,0.988446052703997,4.4270418761112,1.02122358425323
+"R2_x3_alternate","dlm_constV_bigW @ tau=0.05 exal ridge","FAIL",FALSE,"low_ess; high_autocorrelation; half_chain_drift",4.30511930540578,0.982088062779069,0.960724354625516,0.540566763551335

@@ -1,0 +1,7 @@
+"root_label","root_class","design_key","scenario","tau","likelihood_family","beta_prior_type"
+"dlm_ar1V @ tau=0.95 exal rhs_ns","severe","dlm_ar1V||123||tiny_d1_n8","dlm_ar1V",0.95,"exal","rhs_ns"
+"dlm_constV_smallW @ tau=0.95 exal ridge","severe","dlm_constV_smallW||123||tiny_d1_n8","dlm_constV_smallW",0.95,"exal","ridge"
+"dlm_constV_bigW @ tau=0.05 exal ridge","severe","dlm_constV_bigW||123||tiny_d1_n8","dlm_constV_bigW",0.05,"exal","ridge"
+"dlm_constV_smallW @ tau=0.95 exal rhs_ns","severe","dlm_constV_smallW||123||tiny_d1_n8","dlm_constV_smallW",0.95,"exal","rhs_ns"
+"dlm_constV_smallW @ tau=0.50 exal rhs_ns","sentinel","dlm_constV_smallW||123||tiny_d1_n8","dlm_constV_smallW",0.5,"exal","rhs_ns"
+"dlm_constV_bigW @ tau=0.95 al rhs_ns","sentinel","dlm_constV_bigW||123||tiny_d1_n8","dlm_constV_bigW",0.95,"al","rhs_ns"
