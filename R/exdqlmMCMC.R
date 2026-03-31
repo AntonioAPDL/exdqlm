@@ -363,6 +363,48 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   save.theta <- array(NA,c(p,TT,n.mcmc))
   save.post.pred <- matrix(NA,TT,n.mcmc)
   vb.out <- NULL
+  gig_backend <- "cpp_devroye_required"
+  gig_eps <- 1e-12
+  current_iter <- NA_integer_
+
+  sample_gig_cpp_required <- function(chi, psi, lambda = 0.5, context = "gig") {
+    if (!exists("sample_gig_devroye_vector", mode = "function")) {
+      stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
+    }
+
+    chi <- as.numeric(chi)
+    psi <- as.numeric(psi)[1]
+    lambda <- as.numeric(lambda)[1]
+    iter_suffix <- if (is.finite(current_iter)) sprintf(" (iter=%d)", current_iter) else ""
+
+    bad <- which(!is.finite(chi))
+    if (length(bad)) {
+      stop(sprintf("%s%s chi has %d non-finite values (first index=%d)", context, iter_suffix, length(bad), bad[1]))
+    }
+    badneg <- which(chi < 0)
+    if (length(badneg)) {
+      stop(sprintf("%s%s chi has %d negative values (first index=%d, value=%.6g)", context, iter_suffix, length(badneg), badneg[1], chi[badneg[1]]))
+    }
+    if (!is.finite(psi) || psi <= 0) {
+      stop(sprintf("%s%s psi must be finite and > 0; got %.6g", context, iter_suffix, psi))
+    }
+    if (!is.finite(lambda)) {
+      stop(sprintf("%s%s lambda must be finite; got %.6g", context, iter_suffix, lambda))
+    }
+
+    chi <- pmax(chi, gig_eps)
+    psi <- max(psi, gig_eps)
+
+    draws <- as.numeric(sample_gig_devroye_vector(
+      1L, p = lambda, a = psi, b_vec = chi
+    )[1, ])
+    bad_draws <- which(!is.finite(draws) | draws <= 0)
+    if (length(bad_draws)) {
+      stop(sprintf("%s%s sample_gig_devroye_vector returned %d invalid draws (first index=%d, value=%.6g)",
+                   context, iter_suffix, length(bad_draws), bad_draws[1], draws[bad_draws[1]]))
+    }
+    pmax(draws, gig_eps)
+  }
 
   run_vb_init <- function() {
     old_opt <- options(exdqlm.max_iter = vb.ctrl$max_iter)
@@ -410,6 +452,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     cursam.sigma <- m_sigma
     cursam.Ut <- rep(1/m_sigma,TT)
     cursam.theta <- matrix(m0,p,TT)
+  }
+
+  if (verbose) {
+    cat("GIG backend: C++ Devroye (required)\n")
   }
 
   ######## exDQLM
@@ -597,8 +643,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # exdqlm function sample uts
     ex_samp_uts<-function(reg1,gamma,sigma,sts,a_tau,b_tau,c_tau){
-      apply(((y-reg1-sigma*c_tau*abs(gamma)*sts)^2)/(b_tau*sigma),1,
-            function(x){GeneralizedHyperbolic::rgig(1,chi=x,psi = (a_tau^2)/(b_tau*sigma) + (2/sigma), lambda = 0.5)})
+      chi <- as.numeric(((y-reg1-sigma*c_tau*abs(gamma)*sts)^2)/(b_tau*sigma))
+      psi <- (a_tau^2)/(b_tau*sigma) + (2/sigma)
+      sample_gig_cpp_required(chi = chi, psi = psi, lambda = 0.5, context = "exdqlm_mcmc_uts")
     }
 
     # exdqlm function sample sts
@@ -744,6 +791,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       accept = if (identical(mh.proposal, "slice")) NA_real_ else 0
     ))
     for (i in 1:I){
+      current_iter <- as.integer(i)
       # counter
       if(verbose & i%%progress_every==0){
         acc_msg <- if (identical(mh.proposal, "slice")) "NA" else round(n.accept / i, 4)
@@ -1124,8 +1172,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # dqlm function sample uts
     samp_uts<-function(reg1,sigma){
-      apply(((y-reg1)^2)/(b_tau*sigma),1,
-            function(x){GeneralizedHyperbolic::rgig(1,chi=x,psi = (a_tau^2)/(b_tau*sigma) + (2/sigma), lambda = 0.5)})
+      chi <- as.numeric(((y-reg1)^2)/(b_tau*sigma))
+      psi <- (a_tau^2)/(b_tau*sigma) + (2/sigma)
+      sample_gig_cpp_required(chi = chi, psi = psi, lambda = 0.5, context = "dqlm_mcmc_uts")
     }
 
     # dqlm function sample sigma
@@ -1159,6 +1208,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       accept = NA_real_
     ))
     for (i in 1:I){
+      current_iter <- as.integer(i)
       # counter
       if(verbose & i%%progress_every==0){
         cat(sprintf("%s iteration %s: %s ", ifelse(i<=n.burn,"burn-in","MCMC"), i, Sys.time()), "\n")
@@ -1247,7 +1297,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 n.burn=n.burn,n.mcmc=n.mcmc)
   }
 
-  retlist$backend <- list(mcmc = mcmc_backend, mode = cpp_mcmc_mode)
+  retlist$backend <- list(mcmc = mcmc_backend, mode = cpp_mcmc_mode, gig = gig_backend)
 
   # return results
   class(retlist) <- "exdqlmMCMC"
