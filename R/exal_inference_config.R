@@ -112,6 +112,7 @@
       )
     ),
     slice = list(
+      core_update_mode = "sigma_then_gamma",
       width_gamma = 1.0,
       width_rhs_lambda = 1.0,
       width_rhs_tau = 1.0,

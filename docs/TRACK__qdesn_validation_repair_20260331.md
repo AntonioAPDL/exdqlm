@@ -33,6 +33,7 @@ Operational status:
 - the overnight kernel screen completed cleanly (`12/12` profiles completed);
 - current branch package hygiene also includes the separate GIG propagation fix, but that fix does not replace the QDESN blocker analysis because QDESN MCMC uses `qdesn_fit_mcmc()` -> `exal_mcmc_fit()`.
 - repair wave 1 on current `HEAD` completed cleanly (`4/4` profiles, `0` operational failures), but no candidate passed Gate B or reduced the severe fail set.
+- repair wave 2 completed cleanly at the canary stage, but the new structural bridge candidate failed the canary gate and did not advance to the severe quartet.
 
 ## 3) Read These First
 
@@ -40,12 +41,12 @@ If someone needs the shortest path to the current findings, read these in order:
 
 1. `docs/PLAN__qdesn_validation_phase2_20260331.md`
 2. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-3. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-4. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-5. `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
-6. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-7. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
-8. `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/profile_rank_summary.csv`
+3. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+4. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+5. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+6. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/summary/repair_wave2_results.md`
+7. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+8. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -116,6 +117,49 @@ Interpretation:
 - the earlier overnight screen signal did not reproduce strongly enough on current `HEAD` to justify promoting `X10`, `X3`, or `X8` into package defaults;
 - the main blocker remains unresolved shared `exal` kernel behavior on the severe quartet, especially the persistent ridge hard case;
 - the repair wave assets are worth keeping, but the candidate default promotion itself should not be adopted.
+
+## 5C) Repair Wave 2 Outcome
+
+Run:
+
+- manifest: `config/validation/qdesn_validation_repair_wave2_manifest.yaml`
+- supervisor: `scripts/run_qdesn_validation_repair_wave2.R`
+- run tag: `qdesn-validation-repair-wave2-20260331__git-49c96b4`
+- result summary:
+  `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/summary/repair_wave2_results.md`
+
+Profiles tested:
+
+- `R0_legacy_anchor`
+- `R4_gamma_sigma_bridge`
+
+Structural candidate:
+
+- new shared-core traversal mode in `R/exal_mcmc_fit.R`:
+  `gamma_sigma_gamma`
+- intent:
+  preserve `R2`-style narrower sigma movement while adding an extra gamma refresh inside each core pass
+
+Outcome:
+
+- the wave was operationally healthy and stopped exactly where it should:
+  `S1_canary`
+- `R4_gamma_sigma_bridge` stayed `FAIL` on
+  `dlm_constV_bigW @ tau=0.05 exal ridge`
+- compared with the anchor on the canary:
+  - `ESS`: `6.25 -> 4.06`
+  - `Geweke`: `10.74 -> 1.22`
+  - `half_drift`: `0.53 -> 0.98`
+  - runtime: `2.452s -> 3.445s`
+
+Interpretation:
+
+- the bridge traversal improved one piece of the canary (`Geweke`) but moved the hard root in the wrong overall direction;
+- the candidate did not produce the required “ESS up without drift blowup” behavior;
+- the failure is now stronger evidence that minor traversal reshuffling around the same local kernel is not enough;
+- the next repair should step away from this bridge family and move toward either:
+  - a more substantive shared-core reparameterization / blocked move, or
+  - an explicit readout conditioning / preconditioning intervention.
 
 ## 5B) Phase 2 Audit Outcome
 
@@ -243,11 +287,10 @@ Code files:
 
 Checklist:
 
-- [x] implement one `X10`-style candidate
+- [x] implement one shared-core structural candidate
 - [x] keep the change minimal and attributable
-- [x] document the exact parameter deltas from defaults
 - [x] avoid mixing in `rhs_ns`-only changes here
-- [x] back out package-default promotion after Wave 1 failed to justify adoption
+- [x] keep the candidate off package defaults unless it proves itself on validation
 
 Success intent:
 
@@ -263,9 +306,11 @@ Scope:
 
 Checklist:
 
-- [x] rerun the exact 6-root harness already selected in closeout
+- [x] implement and run the staged canary gate first
 - [x] capture root transitions, diag deltas, and runtime inflation
 - [x] compare against the same baseline used by the completed screen
+- [ ] advance the new candidate to the severe quartet
+- [ ] advance the new candidate to the full 6-root harness
 
 Hard gates:
 
@@ -355,10 +400,12 @@ Every future candidate should satisfy these standards:
 
 - `docs/PLAN__qdesn_validation_phase2_20260331.md`
 - `docs/REPORT__qdesn_validation_repair_wave1_20260331.md`
+- `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
 - `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
 - `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
 - `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave1/qdesn-validation-repair-wave1-20260331__git-59e0e2a/summary/screen_results.md`
+- `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/summary/repair_wave2_results.md`
 
 ### Root-level evidence
 
@@ -380,6 +427,10 @@ Do not promote `X10`, `X3`, or the `X8` overlay into package defaults from the c
 The next highest-signal step is:
 
 1. keep the repair-wave scaffolding and legacy anchor as the evaluation harness;
-2. implement exactly one shared-core structural `gamma/sigma` candidate that aims to preserve `R2`-style drift control while adding `R1`-style ESS lift;
-3. validate that candidate on the hard ridge canary first;
-4. only if the canary improves materially, move to the severe quartet and then the full 6-root harness.
+2. treat the `gamma_sigma_gamma` bridge candidate as tested and rejected for promotion;
+3. implement the next candidate from a new family, not another small bridge/width reshuffle;
+4. prioritize either:
+   - a more substantive shared-core reparameterization / blocked move, or
+   - a readout conditioning / preconditioning repair targeted at `tiny_d1_n8`;
+5. validate that next candidate on the hard ridge canary first;
+6. only if the canary improves materially, move to the severe quartet and then the full 6-root harness.

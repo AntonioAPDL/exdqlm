@@ -244,6 +244,7 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
           )
         ),
         slice = list(
+          core_update_mode = "gamma_sigma_gamma",
           width_gamma = 0.6,
           width_rhs_tau = 0.9,
           rhs_global_block_update = "transformed_tau_c2_block",
@@ -285,6 +286,7 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(inf$mcmc$control_base$rhs$freeze_tau_burnin_iters, 7L)
   expect_true(isTRUE(inf$mcmc$control_base$rhs$width_adapt$enabled))
   expect_equal(inf$mcmc$control_base$rhs$width_adapt$warmup_iters, 12L)
+  expect_identical(inf$mcmc$control_base$slice$core_update_mode, "gamma_sigma_gamma")
   expect_equal(inf$mcmc$control_base$slice$width_gamma, 0.6)
   expect_equal(inf$mcmc$control_base$slice$width_rhs_tau, 0.9)
   expect_identical(inf$mcmc$control_base$slice$rhs_global_block_update, "transformed_tau_c2_block")
@@ -306,6 +308,49 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(qspec$init$gamma, 0.2)
   expect_equal(qspec$prior_sigma$a, 2)
   expect_equal(qspec$prior_sigma$b, 3)
+})
+
+test_that("MCMC supports shared gamma-sigma bridge traversal mode", {
+  withr::local_seed(654)
+
+  n <- 24L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.4, -0.35, 0.2) + stats::rnorm(n, sd = 0.45))
+
+  fit_bridge <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 12L,
+      n_mcmc = 16L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = TRUE,
+      transforms = list(
+        use_log_sigma = TRUE,
+        sigma_eta_bounds = c(-8, 8)
+      ),
+      slice = list(
+        core_update_mode = "gamma_sigma_gamma",
+        width_gamma = 0.45,
+        width_sigma = 0.25,
+        core_extra_passes = 0L,
+        max_steps_out = 30L,
+        max_shrink = 120L
+      )
+    )
+  )
+
+  expect_true(inherits(fit_bridge, "exal_mcmc"))
+  expect_identical(fit_bridge$control$slice$core_update_mode, "gamma_sigma_gamma")
+  expect_identical(fit_bridge$diagnostics$core_update_mode, "gamma_sigma_gamma")
+  expect_equal(fit_bridge$diagnostics$core_gamma_refreshes_per_iter, 2L)
+  expect_true(all(is.finite(as.numeric(fit_bridge$samp.gamma))))
+  expect_true(all(is.finite(as.numeric(fit_bridge$samp.sigma))))
+  expect_true(all(as.numeric(fit_bridge$samp.sigma) > 0))
 })
 
 test_that("RHS MCMC can freeze tau during burn-in warmup", {

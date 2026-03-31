@@ -1,0 +1,137 @@
+meta:
+  name: qdesn_validation_repair_wave2_20260331
+  purpose: >
+    Stage-gated Phase 2 repair wave for the shared exAL gamma/sigma core.
+    Reuses the fixed closeout micro-pilot roots and advances only on explicit canary/severe/full gates.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_repair_wave2
+
+controls:
+  resume_completed_stages: true
+  create_plots: false
+  profile_verbose: true
+  campaign_workers: 1
+  threads_per_worker: 1
+  profile_timeout_minutes: 45
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 2
+  max_error_profiles: 3
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_repair_wave2
+    description: Legacy anchor versus a new shared gamma-sigma bridge traversal candidate.
+
+profiles:
+  - id: R0_legacy_anchor
+    batch: B0_repair_wave2
+    family: anchor
+    description: Preserve the historical pre-repair validation controls for an apples-to-apples anchor on current code.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_update_mode: sigma_then_gamma
+              width_gamma: 0.60
+              width_sigma: 0.35
+              core_extra_passes: 0
+              max_steps_out: 40
+              max_shrink: 150
+            prior_overrides:
+              ridge:
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 40
+                  max_shrink: 150
+              rhs_ns:
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 50
+                  max_shrink: 200
+
+  - id: R4_gamma_sigma_bridge
+    batch: B0_repair_wave2
+    family: structural_core
+    description: >
+      Shared exAL structural repair candidate: gamma -> sigma -> gamma bridge traversal,
+      seeded from the R2 drift-stable widths to try to raise gamma ESS without recreating R1 drift.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_update_mode: gamma_sigma_gamma
+              width_gamma: 0.45
+              width_sigma: 0.25
+              core_extra_passes: 0
+              max_steps_out: 60
+              max_shrink: 220
+            prior_overrides:
+              ridge:
+                slice:
+                  core_update_mode: gamma_sigma_gamma
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 60
+                  max_shrink: 220
+              rhs_ns:
+                slice:
+                  core_update_mode: gamma_sigma_gamma
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 70
+                  max_shrink: 240
+
+stages:
+  - id: S1_canary
+    description: Single hard-root canary on the persistent ridge blocker.
+    selector:
+      mode: exact_root
+      scenario: dlm_constV_bigW
+      tau: 0.05
+      likelihood_family: exal
+      beta_prior_type: ridge
+      seed: 123
+      reservoir_profile: tiny_d1_n8
+    gate:
+      type: canary_material_improvement
+      candidate_profile: R4_gamma_sigma_bridge
+      min_delta_ess_core: 2.0
+      max_delta_half_drift_increase: 0.05
+      max_delta_geweke_absz_increase: 0.50
+
+  - id: S2_severe_quartet
+    description: Severe quartet confirmation on the four all-four roots.
+    selector:
+      mode: failure_cluster
+      failure_clusters: [all_four]
+    gate:
+      type: rank_table_threshold
+      candidate_profile: R4_gamma_sigma_bridge
+      max_severe_fail_n: 3
+      max_runtime_inflation: 0.60
+
+  - id: S3_full_six
+    description: Full fixed 6-root repair harness once the candidate clears the severe gate.
+    selector:
+      mode: all
+    gate:
+      type: rank_table_threshold
+      candidate_profile: R4_gamma_sigma_bridge
+      max_total_fail_n: 4
+      max_sentinel_fail_n: 1
+      max_runtime_inflation: 0.60

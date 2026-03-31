@@ -1,0 +1,19 @@
+{
+  "completed": true,
+  "exit_status": 0,
+  "execution_status": "COMPLETED",
+  "operational_pass": true,
+  "gate_pass": false,
+  "gate_reason": "canary_not_improved_enough",
+  "metrics": {
+    "root_label": "dlm_constV_bigW @ tau=0.05 exal ridge",
+    "signoff_grade_base": "FAIL",
+    "signoff_grade_prof": "FAIL",
+    "delta_ess_core": -2.1941,
+    "delta_geweke_absz": -9.5258,
+    "delta_half_drift": 0.451
+  },
+  "stage_report_root": "/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/stages/S1_canary/screen_runs/qdesn-validation-repair-wave2-20260331__git-49c96b4__S1_canary",
+  "stage_results_root": "/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/results/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/stages/S1_canary/screen_runs/qdesn-validation-repair-wave2-20260331__git-49c96b4__S1_canary",
+  "log_path": "/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/logs/S1_canary.log"
+}

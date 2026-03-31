@@ -1,0 +1,11 @@
+# QDESN Validation Repair Wave 2 Results
+
+- run_tag: `qdesn-validation-repair-wave2-20260331__git-49c96b4`
+- stop_reason: `gate_failed_S1_canary`
+
+## Stage Results
+
+| stage_id | execution_status | operational_pass | gate_pass | gate_reason | stage_report_root |
+| --- | --- | --- | --- | --- | --- |
+| S1_canary | COMPLETED | TRUE | FALSE | canary_not_improved_enough | /home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/stages/S1_canary/screen_runs/qdesn-validation-repair-wave2-20260331__git-49c96b4__S1_canary |
+
