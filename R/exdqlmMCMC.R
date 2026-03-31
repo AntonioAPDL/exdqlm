@@ -22,6 +22,7 @@
 #'   \item `samp.sigma` - Posterior sample of scale parameter sigma.
 #'   \item `samp.vts` - Posterior sample of latent parameters, v_t.
 #'   \item `theta.out` - List containing the distributions of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
+#'   \item `backend` - Backend tags for critical samplers; `backend$gig` reports the required C++ GIG backend.
 #' }
 #' If `dqlm.ind=FALSE`, the list also contains the following:
 #' \itemize{
@@ -178,6 +179,52 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   save.Ut <- save.st <- matrix(NA,TT,n.mcmc)
   save.theta <- array(NA,c(p,TT,n.mcmc))
   save.post.pred <- matrix(NA,TT,n.mcmc)
+  gig_backend <- "cpp_devroye_required"
+  gig_eps <- 1e-12
+  current_iter <- NA_integer_
+
+  sample_gig_cpp_required <- function(chi, psi, lambda = 0.5, context = "gig") {
+    if (!exists("sample_gig_devroye_vector", mode = "function")) {
+      stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
+    }
+
+    chi <- as.numeric(chi)
+    psi <- as.numeric(psi)[1]
+    lambda <- as.numeric(lambda)[1]
+    iter_suffix <- if (is.finite(current_iter)) sprintf(" (iter=%d)", current_iter) else ""
+
+    bad <- which(!is.finite(chi))
+    if (length(bad)) {
+      stop(sprintf("%s%s chi has %d non-finite values (first index=%d)", context, iter_suffix, length(bad), bad[1]))
+    }
+    badneg <- which(chi < 0)
+    if (length(badneg)) {
+      stop(sprintf("%s%s chi has %d negative values (first index=%d, value=%.6g)", context, iter_suffix, length(badneg), badneg[1], chi[badneg[1]]))
+    }
+    if (!is.finite(psi) || psi <= 0) {
+      stop(sprintf("%s%s psi must be finite and > 0; got %.6g", context, iter_suffix, psi))
+    }
+    if (!is.finite(lambda)) {
+      stop(sprintf("%s%s lambda must be finite; got %.6g", context, iter_suffix, lambda))
+    }
+
+    chi <- pmax(chi, gig_eps)
+    psi <- max(psi, gig_eps)
+
+    draws <- as.numeric(sample_gig_devroye_vector(
+      1L, p = lambda, a = psi, b_vec = chi
+    )[1, ])
+    bad_draws <- which(!is.finite(draws) | draws <= 0)
+    if (length(bad_draws)) {
+      stop(sprintf("%s%s sample_gig_devroye_vector returned %d invalid draws (first index=%d, value=%.6g)",
+                   context, iter_suffix, length(bad_draws), bad_draws[1], draws[bad_draws[1]]))
+    }
+    pmax(draws, gig_eps)
+  }
+
+  if(verbose){
+    cat("GIG backend: C++ Devroye (required)\n")
+  }
   # Set initial values
   if(init.from.isvb){
     if(verbose){
@@ -293,8 +340,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # exdqlm function sample uts
     ex_samp_uts<-function(reg1,gamma,sigma,sts,a_tau,b_tau,c_tau){
-      apply(((y-reg1-sigma*c_tau*abs(gamma)*sts)^2)/(b_tau*sigma),1,
-            function(x){GeneralizedHyperbolic::rgig(1,chi=x,psi = (a_tau^2)/(b_tau*sigma) + (2/sigma), lambda = 0.5)})
+      chi <- as.numeric(((y-reg1-sigma*c_tau*abs(gamma)*sts)^2)/(b_tau*sigma))
+      psi <- (a_tau^2)/(b_tau*sigma) + (2/sigma)
+      sample_gig_cpp_required(chi = chi, psi = psi, lambda = 0.5, context = "exdqlm_mcmc_uts")
     }
 
     # exdqlm function sample sts
@@ -334,6 +382,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     # Sample from exdqlm posterior
     tictoc::tic()
     for (i in 1:I){
+      current_iter <- as.integer(i)
       # counter
       if(verbose & i%%500==0){
         cat(sprintf("%s iteration %s, acceptance rate %s: %s", ifelse(i<=n.burn,"burn-in","MCMC"), i , round(n.accept/i,4), Sys.time()),"\n")
@@ -473,8 +522,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # dqlm function sample uts
     samp_uts<-function(reg1,sigma){
-      apply(((y-reg1)^2)/(b_tau*sigma),1,
-            function(x){GeneralizedHyperbolic::rgig(1,chi=x,psi = (a_tau^2)/(b_tau*sigma) + (2/sigma), lambda = 0.5)})
+      chi <- as.numeric(((y-reg1)^2)/(b_tau*sigma))
+      psi <- (a_tau^2)/(b_tau*sigma) + (2/sigma)
+      sample_gig_cpp_required(chi = chi, psi = psi, lambda = 0.5, context = "dqlm_mcmc_uts")
     }
 
     # dqlm function sample sigma
@@ -486,6 +536,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     # Sample from dqlm posterior
     tictoc::tic()
     for (i in 1:I){
+      current_iter <- as.integer(i)
       # counter
       if(verbose & i%%500==0){
         cat(sprintf("%s iteration %s: %s ", ifelse(i<=n.burn,"burn-in","MCMC"), i, Sys.time()), "\n")
@@ -535,6 +586,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   }
 
   # return results
+  retlist$backend <- list(gig = gig_backend)
   class(retlist) <- "exdqlm"
   return(retlist)
 }

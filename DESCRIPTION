@@ -36,7 +36,6 @@ Imports:
     magic,
     crch,
     truncnorm,
-    GeneralizedHyperbolic,
     brms,
     FNN,
     LaplacesDemon,

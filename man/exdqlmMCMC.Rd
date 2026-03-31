@@ -76,6 +76,7 @@ A list of the following is returned:
 \item \code{samp.sigma} - Posterior sample of scale parameter sigma.
 \item \code{samp.vts} - Posterior sample of latent parameters, v_t.
 \item \code{theta.out} - List containing the distributions of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
+\item \code{backend} - Backend tags for critical samplers; \code{backend$gig} reports the required C++ GIG backend.
 }
 If \code{dqlm.ind=FALSE}, the list also contains the following:
 \itemize{

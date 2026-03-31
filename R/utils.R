@@ -7,6 +7,78 @@ A.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((1-2*temp.p)/(temp.p*(1-te
 B.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((2)/(temp.p*(1-temp.p))) }
 C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)^(-1)) }
 #
+.sample_gig_devroye_required <- function(n_samples, p, a, b_vec, context = "gig") {
+  if (!exists("sample_gig_devroye_vector", mode = "function")) {
+    stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
+  }
+
+  eps_gig <- sqrt(.Machine$double.eps)
+  p <- as.numeric(p)[1]
+  a <- as.numeric(a)[1]
+  b_vec <- as.numeric(b_vec)
+
+  if (!is.finite(p)) {
+    stop(sprintf("%s requires a finite lambda; got %.6g", context, p))
+  }
+
+  if (!is.finite(a) || a <= 0) a <- eps_gig
+  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+
+  draws <- sample_gig_devroye_vector(
+    as.integer(n_samples)[1],
+    p = p,
+    a = a,
+    b_vec = b_vec
+  )
+
+  bad <- which(!is.finite(draws) | draws <= 0)
+  if (length(bad)) {
+    first <- bad[1]
+    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
+                 context, length(bad), first, draws[first]))
+  }
+
+  pmax(draws, eps_gig)
+}
+
+.sample_gig_devroye_pairs_required <- function(n_samples, p, a_vec, b_vec, context = "gig") {
+  if (!exists("sample_gig_devroye_pairs", mode = "function")) {
+    stop(sprintf("%s requires sample_gig_devroye_pairs(), but it is not available", context))
+  }
+
+  eps_gig <- sqrt(.Machine$double.eps)
+  p <- as.numeric(p)[1]
+  a_vec <- as.numeric(a_vec)
+  b_vec <- as.numeric(b_vec)
+
+  if (!is.finite(p)) {
+    stop(sprintf("%s requires a finite lambda; got %.6g", context, p))
+  }
+  if (length(a_vec) != length(b_vec)) {
+    stop(sprintf("%s requires a_vec and b_vec to have the same length", context))
+  }
+
+  a_vec[!is.finite(a_vec) | a_vec <= 0] <- eps_gig
+  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+
+  draws <- sample_gig_devroye_pairs(
+    as.integer(n_samples)[1],
+    p = p,
+    a_vec = a_vec,
+    b_vec = b_vec
+  )
+
+  bad <- which(!is.finite(draws) | draws <= 0)
+  if (length(bad)) {
+    first <- bad[1]
+    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
+                 context, length(bad), first, draws[first]))
+  }
+
+  pmax(draws, eps_gig)
+}
+
+#
 CheckLossFn = function(p0,diff){diff*p0 - diff*as.numeric(diff<0)}
 #
 dlm_df = function(y, model, df, dim.df, s.priors = list(l0=1,S0=10), just.lik=FALSE){
@@ -237,5 +309,4 @@ check_X <- function(X, Tlen = NULL, name = "X") {
     stop(name, " must have nrow == length(y) == ", Tlen, ".")
   X
 }
-
 

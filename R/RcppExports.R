@@ -65,6 +65,10 @@ sample_gig_devroye_vector <- function(n_samples, p, a, b_vec) {
     .Call(`_exdqlm_sample_gig_devroye_vector`, n_samples, p, a, b_vec)
 }
 
+sample_gig_devroye_pairs <- function(n_samples, p, a_vec, b_vec) {
+    .Call(`_exdqlm_sample_gig_devroye_pairs`, n_samples, p, a_vec, b_vec)
+}
+
 sample_multivariate_normal <- function(n_samp, TT, sC, sm, p, J) {
     .Call(`_exdqlm_sample_multivariate_normal`, n_samp, TT, sC, sm, p, J)
 }

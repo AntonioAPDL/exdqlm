@@ -311,6 +311,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// sample_gig_devroye_pairs
+Rcpp::NumericMatrix sample_gig_devroye_pairs(int n_samples, double p, Rcpp::NumericVector a_vec, Rcpp::NumericVector b_vec);
+RcppExport SEXP _exdqlm_sample_gig_devroye_pairs(SEXP n_samplesSEXP, SEXP pSEXP, SEXP a_vecSEXP, SEXP b_vecSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n_samples(n_samplesSEXP);
+    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type a_vec(a_vecSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type b_vec(b_vecSEXP);
+    rcpp_result_gen = Rcpp::wrap(sample_gig_devroye_pairs(n_samples, p, a_vec, b_vec));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sample_multivariate_normal
 arma::cube sample_multivariate_normal(int n_samp, int TT, arma::cube sC, arma::mat sm, int p, int J);
 RcppExport SEXP _exdqlm_sample_multivariate_normal(SEXP n_sampSEXP, SEXP TTSEXP, SEXP sCSEXP, SEXP smSEXP, SEXP pSEXP, SEXP JSEXP) {
@@ -508,6 +522,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_dlm_ndlm_component_forecast_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_component_forecast_cpp, 9},
     {"_exdqlm_sample_truncnorm", (DL_FUNC) &_exdqlm_sample_truncnorm, 4},
     {"_exdqlm_sample_gig_devroye_vector", (DL_FUNC) &_exdqlm_sample_gig_devroye_vector, 4},
+    {"_exdqlm_sample_gig_devroye_pairs", (DL_FUNC) &_exdqlm_sample_gig_devroye_pairs, 4},
     {"_exdqlm_sample_multivariate_normal", (DL_FUNC) &_exdqlm_sample_multivariate_normal, 6},
     {"_exdqlm_samp_post_pred", (DL_FUNC) &_exdqlm_samp_post_pred, 10},
     {"_exdqlm_generate_samples", (DL_FUNC) &_exdqlm_generate_samples, 11},
