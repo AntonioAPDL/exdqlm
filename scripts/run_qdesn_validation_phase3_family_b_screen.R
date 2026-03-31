@@ -152,6 +152,40 @@ select_stage_roots <- function(selector, micro_roots) {
     return(out)
   }
 
+  if (identical(mode, "explicit_roots")) {
+    roots_cfg <- (selector %||% list())$roots %||% list()
+    if (!length(roots_cfg)) {
+      stop("Stage selector mode 'explicit_roots' requires selector$roots.", call. = FALSE)
+    }
+
+    match_one_root <- function(root_cfg) {
+      out <- micro_roots
+      fields <- c("scenario", "likelihood_family", "beta_prior_type", "seed", "reservoir_profile")
+      for (nm in fields) {
+        target <- (root_cfg %||% list())[[nm]]
+        if (!is.null(target) && nm %in% names(out)) {
+          out <- out[as.character(out[[nm]]) == as.character(target)[1L], , drop = FALSE]
+        }
+      }
+      if ("tau" %in% names(out) && !is.null(root_cfg$tau)) {
+        tau_target <- safe_num(root_cfg$tau)
+        out <- out[abs(suppressWarnings(as.numeric(out$tau)) - tau_target) < 1e-10, , drop = FALSE]
+      }
+      out
+    }
+
+    out_parts <- lapply(roots_cfg, match_one_root)
+    out <- do.call(rbind, out_parts)
+    if (!nrow(out)) return(out)
+    if ("root_join_key" %in% names(out)) {
+      out <- out[!duplicated(out$root_join_key), , drop = FALSE]
+    } else {
+      out <- unique(out)
+    }
+    rownames(out) <- NULL
+    return(out)
+  }
+
   stop(sprintf("Unsupported stage selector mode '%s'.", mode), call. = FALSE)
 }
 

@@ -41,21 +41,24 @@ Operational status:
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-2. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-3. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-4. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-5. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-6. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-7. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-8. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-9. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-10. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-11. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
-12. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-13. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
-14. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-15. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+1. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+2. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+3. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+4. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+5. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+6. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+7. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+8. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+9. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+10. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+11. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+12. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+13. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
+14. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
+15. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+16. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
+17. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+18. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -373,6 +376,64 @@ Hypothesis-gate result:
   readout conditioning / preconditioning if `H1` fails
 - keep `H3` third:
   `rhs_ns` residual cleanup only after shared-core progress exists
+
+## 5I) Phase 4 Split-Prior Outcome
+
+Run:
+
+- manifest: `config/validation/qdesn_validation_phase4_split_prior_screen_manifest.yaml`
+- supervisor: `scripts/run_qdesn_validation_phase4_split_prior_screen.R`
+- run tag: `qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a`
+- report:
+  `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+- result summary:
+  `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
+
+Outcome:
+
+- the split-prior wave completed cleanly and stopped at `S1_severe_quartet_broad`;
+- no candidate met the quartet advance gate;
+- `R18_split_prior_rhsns_overlay` was the only profile that produced a real scientific improvement;
+- `R18` reduced the severe quartet from `4 FAIL` to `3 FAIL` at low runtime inflation (`0.2019`);
+- the repaired root was `dlm_ar1V @ tau=0.95 exal rhs_ns`, which moved from `FAIL` to `WARN`.
+
+Interpretation:
+
+- the `rhs_ns` overlay embedded in `R18` is worth carrying forward;
+- Phase 4 did not produce a final winner, but it clearly narrowed the problem;
+- the unresolved pain cluster is now:
+  - `dlm_constV_bigW @ tau=0.05 exal ridge`
+  - `dlm_constV_smallW @ tau=0.95 exal ridge`
+  - `dlm_constV_smallW @ tau=0.95 exal rhs_ns`
+
+## 5J) Follow-Up Program After Phase 4
+
+Plan:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+- Phase 4B manifest:
+  `config/validation/qdesn_validation_phase4b_r18_fullsix_manifest.yaml`
+- Phase 5 manifest:
+  `config/validation/qdesn_validation_phase5_core_triad_screen_manifest.yaml`
+- generic staged runner:
+  `scripts/run_qdesn_validation_phase3_family_b_screen.R`
+- thin wrappers:
+  `scripts/run_qdesn_validation_phase4b_r18_fullsix.R`
+  `scripts/run_qdesn_validation_phase5_core_triad_screen.R`
+
+Program:
+
+1. `Phase 4B`: carry `R18_split_prior_rhsns_overlay` into the fixed 6-root harness against the current anchor.
+2. `Phase 5`: keep `R18` as the local baseline and screen only the unresolved 3-root core triad.
+3. advance to a full-6 follow-up only for triad survivors.
+
+Why this is the right next move:
+
+- it preserves the one Phase 4 improvement that clearly worked;
+- it stops replaying dead QR, multistart, and chain-led families;
+- it aligns the gate with the actual objective: remove `FAIL`, accept `WARN`;
+- it narrows compute to the exact remaining blocker roots.
 
 ## 6) Candidate Improvement Areas
 
