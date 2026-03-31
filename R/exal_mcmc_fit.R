@@ -944,6 +944,15 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   sigma_slice_width <- as.numeric(slice_cfg$width_sigma %||% slice_cfg$width_log_sigma %||% 0.35)[1L]
   sigma_slice_max_steps_out <- as.integer(slice_cfg$max_steps_out_sigma %||% slice_cfg$max_steps_out %||% 100L)
   sigma_slice_max_shrink <- as.integer(slice_cfg$max_shrink_sigma %||% slice_cfg$max_shrink %||% 1000L)
+  conditioning_cfg <- mcmc_control$conditioning %||% list()
+  conditioning_mode <- tolower(trimws(as.character(conditioning_cfg$mode %||% conditioning_cfg$type %||% "none")))[1L]
+  if (conditioning_mode %in% c("scale_only", "diag_standardize")) conditioning_mode <- "diag_scale"
+  if (conditioning_mode %in% c("qr", "whiten", "qr_precondition")) conditioning_mode <- "qr_whiten"
+  conditioning_scale_metric <- tolower(trimws(as.character(conditioning_cfg$scale_metric %||% "sd")))[1L]
+  conditioning_scale_floor <- as.numeric(conditioning_cfg$scale_floor %||% 1e-8)[1L]
+  conditioning_intercept_column <- suppressWarnings(as.integer(conditioning_cfg$intercept_column %||% 1L))[1L]
+  conditioning_constant_tol <- as.numeric(conditioning_cfg$constant_tol %||% 1e-12)[1L]
+  conditioning_gram_ridge <- as.numeric(conditioning_cfg$gram_ridge %||% 1e-8)[1L]
 
   if (!is.finite(gamma_slice_width) || gamma_slice_width <= 0) {
     .stopf("mcmc_control$slice$width_gamma must be positive.")
@@ -957,6 +966,27 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   }
   if (use_log_sigma && (!is.finite(sigma_slice_width) || sigma_slice_width <= 0)) {
     .stopf("mcmc_control$slice$width_sigma must be positive when using log-sigma sampling.")
+  }
+  if (!conditioning_mode %in% c("none", "diag_scale", "qr_whiten")) {
+    .stopf(
+      "Unsupported mcmc_control$conditioning$mode '%s'. Expected 'none', 'diag_scale', or 'qr_whiten'.",
+      conditioning_mode
+    )
+  }
+  if (!conditioning_scale_metric %in% c("sd", "rms")) {
+    .stopf(
+      "Unsupported mcmc_control$conditioning$scale_metric '%s'. Expected 'sd' or 'rms'.",
+      conditioning_scale_metric
+    )
+  }
+  if (!is.finite(conditioning_scale_floor) || conditioning_scale_floor <= 0) {
+    conditioning_scale_floor <- 1e-8
+  }
+  if (!is.finite(conditioning_constant_tol) || conditioning_constant_tol <= 0) {
+    conditioning_constant_tol <- 1e-12
+  }
+  if (!is.finite(conditioning_gram_ridge) || conditioning_gram_ridge <= 0) {
+    conditioning_gram_ridge <- 1e-8
   }
   if (!is.finite(width_adapt_target_score_low)) width_adapt_target_score_low <- -1.5
   if (!is.finite(width_adapt_target_score_high)) width_adapt_target_score_high <- 1.5
@@ -1016,6 +1046,124 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   storage.mode(X) <- "double"
   n <- nrow(X)
   p <- ncol(X)
+
+  .safe_matrix_kappa <- function(mat) {
+    tryCatch({
+      if (!is.matrix(mat) || !nrow(mat) || !ncol(mat)) return(NA_real_)
+      if (nrow(mat) < 2L) return(NA_real_)
+      as.numeric(kappa(mat, exact = FALSE))
+    }, error = function(...) NA_real_)
+  }
+  .stable_chol <- function(mat, ridge_start = 1e-8, max_tries = 8L) {
+    ridge_now <- max(as.numeric(ridge_start)[1L], 1e-12)
+    for (ii in seq_len(max(1L, as.integer(max_tries)[1L]))) {
+      cand <- tryCatch(chol(mat + diag(ridge_now, ncol(mat))), error = function(...) NULL)
+      if (!is.null(cand)) {
+        return(list(R = cand, ridge = ridge_now))
+      }
+      ridge_now <- ridge_now * 10
+    }
+    NULL
+  }
+  .build_beta_conditioning_state <- function(X, mode, scale_metric, scale_floor, intercept_column, constant_tol) {
+    p <- ncol(X)
+    col_names <- colnames(X)
+    beta_scale <- rep(1, p)
+    raw_metric <- rep(NA_real_, p)
+    transform <- diag(p)
+    transform_inv <- diag(p)
+    intercept_idx <- if (length(intercept_column) &&
+      is.finite(intercept_column) &&
+      intercept_column >= 1L &&
+      intercept_column <= p) {
+      as.integer(intercept_column)[1L]
+    } else {
+      NA_integer_
+    }
+    scale_idx <- seq_len(p)
+    if (is.finite(intercept_idx)) scale_idx <- setdiff(scale_idx, intercept_idx)
+
+    if (identical(mode, "diag_scale") && length(scale_idx)) {
+      for (jj in scale_idx) {
+        xj <- as.numeric(X[, jj])
+        metric_j <- if (identical(scale_metric, "rms")) {
+          sqrt(mean(xj * xj))
+        } else {
+          stats::sd(xj)
+        }
+        if (!is.finite(metric_j) || metric_j <= constant_tol) metric_j <- 1
+        raw_metric[jj] <- metric_j
+        beta_scale[jj] <- max(metric_j, scale_floor)
+      }
+      transform <- diag(beta_scale, p)
+      transform_inv <- diag(1 / beta_scale, p)
+    } else if (identical(mode, "qr_whiten") && length(scale_idx)) {
+      X_ns <- X[, scale_idx, drop = FALSE]
+      gram_ns <- crossprod(X_ns) / max(1, nrow(X_ns))
+      raw_metric[scale_idx] <- sqrt(pmax(diag(gram_ns), 0))
+      chol_fit <- .stable_chol(gram_ns, ridge_start = conditioning_gram_ridge)
+      if (is.null(chol_fit)) {
+        .stopf("mcmc_control$conditioning qr_whiten could not factor the non-intercept Gram matrix.")
+      }
+      transform_ns <- chol_fit$R
+      transform_inv_ns <- backsolve(transform_ns, diag(ncol(transform_ns)))
+      transform[scale_idx, scale_idx] <- transform_ns
+      transform_inv[scale_idx, scale_idx] <- transform_inv_ns
+      beta_scale[scale_idx] <- diag(transform_ns)
+    }
+
+    active <- FALSE
+    if (length(scale_idx)) {
+      if (identical(mode, "diag_scale")) {
+        active <- any(abs(beta_scale[scale_idx] - 1) > 1e-12)
+      } else if (identical(mode, "qr_whiten")) {
+        active <- TRUE
+      }
+    }
+    X_work <- if (isTRUE(active)) X %*% transform_inv else X
+    raw_kappa <- .safe_matrix_kappa(X)
+    work_kappa <- .safe_matrix_kappa(X_work)
+    gain_ratio <- if (is.finite(raw_kappa) && is.finite(work_kappa) && work_kappa > 0) {
+      raw_kappa / work_kappa
+    } else {
+      NA_real_
+    }
+    scale_vals <- if (length(scale_idx)) beta_scale[scale_idx] else numeric(0)
+
+    list(
+      mode = mode,
+      active = isTRUE(active),
+      scale_metric = scale_metric,
+      scale_floor = scale_floor,
+      constant_tol = constant_tol,
+      intercept_column = if (is.finite(intercept_idx)) intercept_idx else NA_integer_,
+      beta_scale = beta_scale,
+      beta_scale_sq = beta_scale * beta_scale,
+      transform = transform,
+      transform_inv = transform_inv,
+      X_work = X_work,
+      raw_metric = raw_metric,
+      raw_kappa = raw_kappa,
+      work_kappa = work_kappa,
+      gain_ratio = gain_ratio,
+      scaled_columns_n = if (length(scale_idx)) sum(abs(beta_scale[scale_idx] - 1) > 1e-12) else 0L,
+      scale_min = if (length(scale_vals)) min(scale_vals) else NA_real_,
+      scale_max = if (length(scale_vals)) max(scale_vals) else NA_real_,
+      column_names = col_names
+    )
+  }
+  conditioning_state <- .build_beta_conditioning_state(
+    X = X,
+    mode = conditioning_mode,
+    scale_metric = conditioning_scale_metric,
+    scale_floor = conditioning_scale_floor,
+    intercept_column = conditioning_intercept_column,
+    constant_tol = conditioning_constant_tol
+  )
+  beta_draw_design <- conditioning_state$X_work
+  beta_draw_scale <- as.numeric(conditioning_state$beta_scale)
+  beta_draw_scale_sq <- as.numeric(conditioning_state$beta_scale_sq)
+  beta_draw_transform_inv <- as.matrix(conditioning_state$transform_inv)
 
   L <- gamma_bounds[1L]
   U <- gamma_bounds[2L]
@@ -1576,10 +1724,13 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     s <- pmax(s, 0)
 
     W_diag <- 1 / (B * sigma * v)
-    Prec_beta <- crossprod(X * sqrt(W_diag)) + diag(beta_prec_diag, p)
     y_star <- y - Cabs * sigma * s - A * v
-    rhs_beta <- crossprod(X, W_diag * y_star)
-    beta <- .exal_mcmc_sample_mvnorm_prec(rhs_beta, Prec_beta)
+    beta_prec_diag_work <- sweep(beta_draw_transform_inv, 1L, beta_prec_diag, `*`)
+    prior_prec_work <- crossprod(beta_draw_transform_inv, beta_prec_diag_work)
+    Prec_beta <- crossprod(beta_draw_design * sqrt(W_diag)) + prior_prec_work
+    rhs_beta <- crossprod(beta_draw_design, W_diag * y_star)
+    beta_work <- .exal_mcmc_sample_mvnorm_prec(rhs_beta, Prec_beta)
+    beta <- as.numeric(beta_draw_transform_inv %*% beta_work)
 
     rhs_stats <- NULL
     if (is_rhs_family) {
@@ -1772,7 +1923,22 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     gamma_slice_steps_out_mean = mean(gamma_steps_out),
     gamma_slice_steps_out_max = max(gamma_steps_out),
     gamma_slice_shrink_mean = mean(gamma_shrink),
-    gamma_slice_shrink_max = max(gamma_shrink)
+    gamma_slice_shrink_max = max(gamma_shrink),
+    conditioning = list(
+      mode = conditioning_state$mode,
+      active = isTRUE(conditioning_state$active),
+      scale_metric = conditioning_state$scale_metric,
+      scale_floor = as.numeric(conditioning_state$scale_floor),
+      constant_tol = as.numeric(conditioning_state$constant_tol),
+      intercept_column = as.integer(conditioning_state$intercept_column),
+      scaled_columns_n = as.integer(conditioning_state$scaled_columns_n),
+      gram_ridge = as.numeric(conditioning_gram_ridge),
+      raw_condition_kappa = as.numeric(conditioning_state$raw_kappa),
+      conditioned_condition_kappa = as.numeric(conditioning_state$work_kappa),
+      condition_gain_ratio = as.numeric(conditioning_state$gain_ratio),
+      scale_min = as.numeric(conditioning_state$scale_min),
+      scale_max = as.numeric(conditioning_state$scale_max)
+    )
   )
   beta_prior_out <- list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers)
 
@@ -1854,6 +2020,15 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       ),
       store_latent_draws = store_latent_draws,
       store_rhs_draws = store_rhs_draws,
+      conditioning = list(
+        mode = conditioning_state$mode,
+        active = isTRUE(conditioning_state$active),
+        scale_metric = conditioning_state$scale_metric,
+        scale_floor = as.numeric(conditioning_state$scale_floor),
+        constant_tol = as.numeric(conditioning_state$constant_tol),
+        intercept_column = as.integer(conditioning_state$intercept_column),
+        gram_ridge = as.numeric(conditioning_gram_ridge)
+      ),
       rhs = list(
         freeze_tau_burnin_iters = rhs_freeze_tau_iters,
         freeze_tau_only_during_burn = rhs_freeze_tau_only_during_burn,
@@ -1944,10 +2119,26 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       rhs_width_tau_c2_block_trace = rhs_width_tau_c2_block_trace,
       rhs_width_tau_c2_transformed_z1_trace = rhs_width_tau_c2_transformed_z1_trace,
       rhs_width_tau_c2_transformed_z2_trace = rhs_width_tau_c2_transformed_z2_trace,
-      rhs_width_adapt_active_trace = rhs_width_adapt_active_trace
+      rhs_width_adapt_active_trace = rhs_width_adapt_active_trace,
+      conditioning = list(
+        mode = conditioning_state$mode,
+        active = isTRUE(conditioning_state$active),
+        scale_metric = conditioning_state$scale_metric,
+        intercept_column = as.integer(conditioning_state$intercept_column),
+        beta_scale = stats::setNames(as.numeric(conditioning_state$beta_scale), conditioning_state$column_names %||% seq_along(conditioning_state$beta_scale)),
+        raw_metric = stats::setNames(as.numeric(conditioning_state$raw_metric), conditioning_state$column_names %||% seq_along(conditioning_state$raw_metric)),
+        transform_diag = stats::setNames(as.numeric(diag(conditioning_state$transform)), conditioning_state$column_names %||% seq_len(ncol(conditioning_state$transform))),
+        raw_condition_kappa = as.numeric(conditioning_state$raw_kappa),
+        conditioned_condition_kappa = as.numeric(conditioning_state$work_kappa),
+        condition_gain_ratio = as.numeric(conditioning_state$gain_ratio),
+        scaled_columns_n = as.integer(conditioning_state$scaled_columns_n),
+        scale_min = as.numeric(conditioning_state$scale_min),
+        scale_max = as.numeric(conditioning_state$scale_max)
+      )
     ),
     last = list(
       beta = beta,
+      beta_work = as.numeric(beta_work %||% (conditioning_state$transform %*% beta)),
       sigma = sigma,
       gamma = gamma,
       v = v,

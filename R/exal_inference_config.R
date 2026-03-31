@@ -97,6 +97,13 @@
       use_log_sigma = FALSE,
       sigma_eta_bounds = c(-20, 20)
     ),
+    conditioning = list(
+      mode = "none",
+      scale_metric = "sd",
+      scale_floor = 1e-8,
+      intercept_column = 1L,
+      constant_tol = 1e-12
+    ),
     rhs = list(
       freeze_tau_burnin_iters = 0L,
       freeze_tau_only_during_burn = TRUE,
@@ -555,6 +562,9 @@
   }
   if (!is.null(mcmc_cfg$transform) && is.list(mcmc_cfg$transform)) {
     control$transforms <- modifyList(control$transforms %||% list(), mcmc_cfg$transform)
+  }
+  if (!is.null(mcmc_cfg$conditioning) && is.list(mcmc_cfg$conditioning)) {
+    control$conditioning <- modifyList(control$conditioning %||% list(), mcmc_cfg$conditioning)
   }
   if (!is.null(mcmc_cfg$multi_start) && is.list(mcmc_cfg$multi_start)) {
     control$multi_start <- modifyList(control$multi_start %||% list(), mcmc_cfg$multi_start)

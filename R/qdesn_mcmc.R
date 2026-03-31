@@ -72,7 +72,8 @@ qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
     init_from_vb = isTRUE(get_exact(mcmc_args, "init_from_vb", FALSE)),
     store_latent_draws = isTRUE(get_exact(mcmc_args, "store_latent_draws", FALSE)),
     store_rhs_draws = isTRUE(get_exact(mcmc_args, "store_rhs_draws", FALSE)),
-    slice = get_exact(mcmc_args, "slice", list())
+    slice = get_exact(mcmc_args, "slice", list()),
+    conditioning = get_exact(mcmc_args, "conditioning", list())
   ), get_exact(mcmc_args, "mcmc_control", list()))
 
   fit <- exal_mcmc_fit(

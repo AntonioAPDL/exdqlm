@@ -259,6 +259,12 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
           pilot_n_mcmc = 60L
         ),
         transforms = list(use_log_sigma = TRUE, sigma_eta_bounds = c(-6, 6)),
+        conditioning = list(
+          mode = "diag_scale",
+          scale_metric = "rms",
+          scale_floor = 1e-6,
+          intercept_column = 1L
+        ),
         init = list(gamma = c(0.1, 0.2)),
         priors = list(
           gamma = list(mu0 = c(-0.2, 0.3), s20 = 4),
@@ -281,6 +287,10 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(inf$mcmc$control_base$vb_warm_start_seed, 12345L)
   expect_true(isTRUE(inf$mcmc$control_base$transforms$use_log_sigma))
   expect_equal(inf$mcmc$control_base$transforms$sigma_eta_bounds, c(-6, 6))
+  expect_identical(inf$mcmc$control_base$conditioning$mode, "diag_scale")
+  expect_identical(inf$mcmc$control_base$conditioning$scale_metric, "rms")
+  expect_equal(inf$mcmc$control_base$conditioning$scale_floor, 1e-6)
+  expect_equal(inf$mcmc$control_base$conditioning$intercept_column, 1L)
   expect_false(isTRUE(inf$mcmc$control_base$init_from_vb))
   expect_equal(inf$mcmc$control_base$vb_warm_start_control$max_iter, 33L)
   expect_equal(inf$mcmc$control_base$rhs$freeze_tau_burnin_iters, 7L)
@@ -351,6 +361,104 @@ test_that("MCMC supports shared gamma-sigma bridge traversal mode", {
   expect_true(all(is.finite(as.numeric(fit_bridge$samp.gamma))))
   expect_true(all(is.finite(as.numeric(fit_bridge$samp.sigma))))
   expect_true(all(as.numeric(fit_bridge$samp.sigma) > 0))
+})
+
+test_that("MCMC supports diagonal beta-draw preconditioning with original-scale outputs", {
+  withr::local_seed(655)
+
+  n <- 28L
+  X <- cbind(
+    1,
+    stats::rnorm(n, sd = 0.05),
+    stats::rnorm(n, sd = 8)
+  )
+  beta0 <- c(0.2, -0.6, 0.08)
+  y <- as.numeric(X %*% beta0 + stats::rnorm(n, sd = 0.45))
+
+  fit_cond <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 12L,
+      n_mcmc = 16L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = TRUE,
+      conditioning = list(
+        mode = "diag_scale",
+        scale_metric = "sd",
+        scale_floor = 1e-8,
+        intercept_column = 1L
+      )
+    )
+  )
+
+  expect_true(inherits(fit_cond, "exal_mcmc"))
+  expect_identical(fit_cond$control$conditioning$mode, "diag_scale")
+  expect_true(isTRUE(fit_cond$diagnostics$conditioning$active))
+  expect_equal(unname(fit_cond$misc$conditioning$beta_scale[1L]), 1)
+  expect_true(fit_cond$misc$conditioning$scaled_columns_n >= 1L)
+  expect_true(all(is.finite(as.numeric(fit_cond$samp.beta))))
+  expect_equal(ncol(as.matrix(fit_cond$samp.beta)), ncol(X))
+  expect_true(is.finite(fit_cond$diagnostics$conditioning$raw_condition_kappa))
+  expect_true(is.finite(fit_cond$diagnostics$conditioning$conditioned_condition_kappa))
+  expect_true(
+    fit_cond$diagnostics$conditioning$conditioned_condition_kappa <
+      fit_cond$diagnostics$conditioning$raw_condition_kappa
+  )
+
+  pp_cond <- exdqlm::exal_posterior_predict(
+    fit_cond,
+    X_new = X[1:4, , drop = FALSE],
+    nd = 8L,
+    seed = 1L
+  )
+  expect_equal(dim(pp_cond$yrep), c(4L, 8L))
+})
+
+test_that("MCMC supports QR whitening beta-draw preconditioning", {
+  withr::local_seed(656)
+
+  n <- 30L
+  x1 <- stats::rnorm(n)
+  x2 <- x1 + stats::rnorm(n, sd = 0.03)
+  X <- cbind(1, x1, x2)
+  y <- as.numeric(X %*% c(0.25, -0.5, 0.45) + stats::rnorm(n, sd = 0.35))
+
+  fit_qr <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 12L,
+      n_mcmc = 16L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = TRUE,
+      conditioning = list(
+        mode = "qr_whiten",
+        intercept_column = 1L,
+        gram_ridge = 1e-8
+      )
+    )
+  )
+
+  expect_true(inherits(fit_qr, "exal_mcmc"))
+  expect_identical(fit_qr$control$conditioning$mode, "qr_whiten")
+  expect_true(isTRUE(fit_qr$diagnostics$conditioning$active))
+  expect_true(fit_qr$misc$conditioning$scaled_columns_n >= 2L)
+  expect_true(
+    fit_qr$diagnostics$conditioning$conditioned_condition_kappa <
+      fit_qr$diagnostics$conditioning$raw_condition_kappa
+  )
+  expect_true(all(is.finite(as.numeric(fit_qr$samp.beta))))
+  expect_true(all(is.finite(as.numeric(fit_qr$samp.sigma))))
+  expect_true(all(as.numeric(fit_qr$samp.sigma) > 0))
 })
 
 test_that("RHS MCMC can freeze tau during burn-in warmup", {

@@ -34,19 +34,24 @@ Operational status:
 - current branch package hygiene also includes the separate GIG propagation fix, but that fix does not replace the QDESN blocker analysis because QDESN MCMC uses `qdesn_fit_mcmc()` -> `exal_mcmc_fit()`.
 - repair wave 1 on current `HEAD` completed cleanly (`4/4` profiles, `0` operational failures), but no candidate passed Gate B or reduced the severe fail set.
 - repair wave 2 completed cleanly at the canary stage, but the new structural bridge candidate failed the canary gate and did not advance to the severe quartet.
+- repair wave 3 completed cleanly at the canary stage; diagonal conditioning was effectively inactive on the hard canary and failed immediately.
+- repair wave 4 completed cleanly at the canary stage; QR whitening activated exactly as intended and fixed the working-space condition number, but still failed the canary because drift worsened too much.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+1. `docs/PLAN__qdesn_validation_phase3_20260331.md`
 2. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
 3. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-4. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-5. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-6. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/summary/repair_wave2_results.md`
-7. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-8. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+4. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+5. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+6. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+7. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+8. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+9. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
+10. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+11. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -67,11 +72,19 @@ Core code paths to inspect before changing anything:
 - The best overall profile was `X10_core_gamma_focus_pass1`.
 - The best `rhs_ns` cleanup profile was `X8_rhsns_freeze60_multistart3`.
 - No screen profile created finite/domain/collapse regressions.
+- The first conditioning candidate (`R5_diag_scale_precondition`) was effectively a no-op on the canary:
+  raw and working condition numbers were identical and no columns were scaled.
+- The stronger conditioning candidate (`R6_qr_whiten_precondition`) activated correctly:
+  raw condition number `77.60 -> 1.00`, `20` columns transformed.
+- Even with QR whitening, the hard canary still failed because:
+  `ESS` fell slightly (`6.25 -> 5.49`) and `half_drift` worsened materially
+  (`0.53 -> 1.08`), despite a large `Geweke` improvement (`10.74 -> 0.87`).
 
 ### Main takeaways
 
 - This is a kernel-quality problem, not an orchestration problem.
 - The primary pain point is shared `exal` core mixing, especially around `gamma`.
+- Conditioning is a real lever for geometry, but conditioning alone is not enough to close the hard canary.
 - `rhs_ns` tau-path behavior is secondary and should be repaired after the core is healthier.
 - The hard benchmark root is `dlm_constV_bigW @ tau=0.05 exal ridge`.
 - Broader reruns are not justified until a narrow micro-pilot winner exists.
@@ -161,6 +174,98 @@ Interpretation:
   - a more substantive shared-core reparameterization / blocked move, or
   - an explicit readout conditioning / preconditioning intervention.
 
+## 5D) Repair Wave 3 Outcome
+
+Run:
+
+- manifest: `config/validation/qdesn_validation_repair_wave3_manifest.yaml`
+- supervisor: `scripts/run_qdesn_validation_repair_wave3.R`
+- run tag: `qdesn-validation-repair-wave3-20260331a__precommit`
+- result summary:
+  `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave3/qdesn-validation-repair-wave3-20260331a__precommit/summary/repair_wave3_results.md`
+
+Profiles tested:
+
+- `R0_legacy_anchor`
+- `R5_diag_scale_precondition`
+
+Conditioning candidate:
+
+- new conditioning controls in `R/exal_inference_config.R`
+- new conditioning path in `R/exal_mcmc_fit.R`
+- candidate mode:
+  `conditioning$mode = "diag_scale"`
+
+Outcome:
+
+- the wave was operationally healthy and stopped at `S1_canary`
+- `R5_diag_scale_precondition` stayed `FAIL` on
+  `dlm_constV_bigW @ tau=0.05 exal ridge`
+- compared with the anchor on the canary:
+  - `ESS`: `6.25 -> 3.32`
+  - `Geweke`: `10.74 -> 5.41`
+  - `half_drift`: `0.53 -> 1.31`
+  - runtime: `2.452s -> 2.355s`
+- conditioning summary showed the key diagnostic:
+  - mode: `diag_scale`
+  - active: `FALSE`
+  - raw/work condition numbers: `77.60 -> 77.60`
+  - gain ratio: `1.0`
+  - scaled columns: `0`
+
+Interpretation:
+
+- diagonal standardization was effectively inert on the QDESN hard canary;
+- this means Wave 3 was an honest negative result, not a hidden implementation failure;
+- the canary still worsened, but the more important lesson is that the first conditioning family did not actually change the working geometry;
+- that justified escalating within the conditioning family to a basis-level transform rather than spending any compute on quartet/full-six reruns.
+
+## 5E) Repair Wave 4 Outcome
+
+Run:
+
+- manifest: `config/validation/qdesn_validation_repair_wave4_manifest.yaml`
+- supervisor used: `scripts/run_qdesn_validation_repair_wave3.R`
+- run tag: `qdesn-validation-repair-wave4-20260331a__precommit`
+- result summary:
+  `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
+
+Profiles tested:
+
+- `R0_legacy_anchor`
+- `R6_qr_whiten_precondition`
+
+Conditioning candidate:
+
+- exact QR-whitening beta-draw preconditioning with original-scale beta outputs preserved
+- candidate mode:
+  `conditioning$mode = "qr_whiten"`
+
+Outcome:
+
+- the wave was operationally healthy and stopped at `S1_canary`
+- `R6_qr_whiten_precondition` stayed `FAIL` on
+  `dlm_constV_bigW @ tau=0.05 exal ridge`
+- compared with the anchor on the canary:
+  - `ESS`: `6.25 -> 5.49`
+  - `Geweke`: `10.74 -> 0.87`
+  - `half_drift`: `0.53 -> 1.08`
+  - runtime: `2.452s -> 2.372s`
+- conditioning summary showed the transform activated exactly as designed:
+  - mode: `qr_whiten`
+  - active: `TRUE`
+  - raw/work condition numbers: `77.60 -> 1.00`
+  - gain ratio: `77.60`
+  - transformed columns: `20`
+
+Interpretation:
+
+- the QR-whitening candidate proved that conditioning is a real geometry lever;
+- however, conditioning alone did not repair the hard canary because it traded a large `Geweke` win for a still-bad drift outcome and a small ESS drop;
+- the branch now has a stronger diagnosis:
+  poor working-space geometry is part of the problem, but the remaining blocker is the shared-core chain dynamics under that geometry, not geometry alone;
+- this is the cleanest evidence yet that the next candidate family should be a true blocked/reparameterized shared-core move, with conditioning available only as a supporting ingredient.
+
 ## 5B) Phase 2 Audit Outcome
 
 The Phase 2 artifact-only audit is now complete.
@@ -206,55 +311,60 @@ Hypothesis-gate result:
 
 ## 6) Candidate Improvement Areas
 
-### Area A: shared `exal` core refresh
+### Area A: conditioning / preconditioning family
 
-Highest-confidence repair area.
+Status:
 
-Best-supported direction from the completed screen:
+- tested
+- informative
+- not promotable as a standalone fix
 
-- one extra core pass;
-- gamma-focused sharpening;
-- moderate runtime overhead;
-- no broad chain-length inflation.
+What we now know:
 
-Reference screen candidates:
+- diagonal scaling (`R5`) was effectively inert on the QDESN hard canary;
+- QR whitening (`R6`) dramatically improved working-space conditioning and Geweke;
+- neither candidate fixed the canary because drift remained too poor and ESS did not recover enough.
 
-- `X10_core_gamma_focus_pass1`
-- `X3_core_pass1_sharp`
+Interpretation:
 
-### Area B: `rhs_ns` residual warmup / initialization
+- geometry matters;
+- conditioning alone does not close the current blocker;
+- any future use of conditioning should be as a supporting ingredient for a stronger shared-core repair, not as the main hypothesis.
+
+### Area B: blocked / reparameterized shared-core kernel
+
+Current highest-priority repair area.
+
+Why it is now first:
+
+- the bridge family was too local a change;
+- the conditioning family was real but insufficient;
+- the hard canary still points to shared-core chain dynamics under stressed geometry.
+
+Most plausible next directions:
+
+- blocked `gamma/sigma` move rather than purely sequential local refreshes;
+- a more explicit reparameterization that stabilizes drift without giving back all ESS;
+- an implementation that can optionally reuse the QR-whitened work space without changing user-facing output scale.
+
+### Area C: residual `rhs_ns` warmup / initialization
 
 Secondary repair area.
 
-Most promising direction from the completed screen:
+Use only after Area B produces a narrow winner.
 
-- moderate `freeze_tau_burnin_iters`;
-- multistart pilot screening.
+Why it remains secondary:
 
-Reference screen candidate:
+- the hard canary is `exal + ridge`;
+- the strongest recent failures are still shared-core, not prior-specific.
 
-- `X8_rhsns_freeze60_multistart3`
+### Area D: branch revalidation
 
-### Area C: design-conditioning audit on hard roots
-
-Supporting analysis area.
-
-Reason to include:
-
-- the pain is concentrated in `tiny_d1_n8`;
-- even strong sampler tuning leaves one ridge hard root behind;
-- we should verify whether X scaling / conditioning is amplifying the kernel issue.
-
-This is not the first code patch, but it is a worthwhile sidecar diagnostic.
-
-### Area D: structural kernel redesign
-
-Escalation area only if Areas A and B fail.
+Deferred area.
 
 Trigger:
 
-- two serious shared-core candidates fail to improve the common hard root enough;
-- or a candidate only trades one fail cluster for another.
+- only after a new narrow winner clears the canary, the severe quartet, and the fixed 6-root harness.
 
 ## 7) Repair Strategy
 
@@ -265,94 +375,105 @@ Checklist:
 - [x] freeze the completed closeout findings
 - [x] freeze the completed overnight kernel screen
 - [x] separate the qdesn blocker map from the unrelated GIG propagation work
-- [ ] keep this tracker updated after every decision-changing change
+- [x] keep this tracker updated after every decision-changing change
 
 Rules:
 
 - do not launch broad validation reruns yet;
 - do not compare across changing root sets;
 - always include the anchor baseline in narrow reruns;
-- always preserve run tags and manifests.
+- always preserve run tags, manifests, and per-stage summaries.
 
-### Work Package 1: Implement candidate A only
+### Work Package 1: Conditioning family completed
 
-Target:
+Scope:
 
-- shared `exal` core repair based on the `X10` signal
-
-Code files:
-
-- `R/exal_mcmc_fit.R`
-- `R/exal_inference_config.R`
+- Candidate A1: `R5_diag_scale_precondition`
+- Candidate A2: `R6_qr_whiten_precondition`
 
 Checklist:
 
-- [x] implement one shared-core structural candidate
-- [x] keep the change minimal and attributable
-- [x] avoid mixing in `rhs_ns`-only changes here
-- [x] keep the candidate off package defaults unless it proves itself on validation
+- [x] add conditioning control plumbing to config resolution
+- [x] add root-level conditioning metadata to validation summaries
+- [x] implement diagonal-scale conditioning candidate
+- [x] run diagonal-scale candidate through the staged canary
+- [x] confirm whether diagonal scaling is actually active on the canary
+- [x] implement QR-whitening candidate
+- [x] run QR-whitening candidate through the staged canary
+- [x] document the family as informative but insufficient
+
+Outcome:
+
+- Family A is complete.
+- Family A should not be promoted into defaults.
+- Family A can be reused later as a supporting option, not as the primary standalone fix.
+
+### Work Package 2: Structural shared-core family B
+
+Target:
+
+- one true blocked or reparameterized shared-core `gamma/sigma` candidate
+
+Primary code files:
+
+- `R/exal_mcmc_fit.R`
+- `R/exal_inference_config.R`
+- `R/qdesn_mcmc.R`
+- `tests/testthat/test-exal-mcmc.R`
+
+Checklist:
+
+- [ ] choose one Family-B hypothesis only
+- [ ] keep the patch attributable to a single mechanism
+- [ ] decide whether conditioning support is required or optional
+- [ ] add config controls only for the chosen Family-B candidate
+- [ ] add targeted invariance tests for the new core move
+- [ ] keep the candidate off defaults unless it wins the staged funnel
 
 Success intent:
 
-- improve both `exal + ridge` and `exal + rhs_ns`
-- no chain-length inflation as the main mechanism
+- improve the hard canary in the overall intended direction;
+- recover meaningful ESS without recreating drift blowup;
+- remain operationally clean and runtime-disciplined.
 
-### Work Package 2: Narrow rerun on the fixed 6-root harness
+### Work Package 3: Narrow validation funnel for Family B
 
 Scope:
 
 - anchor baseline
-- candidate A only
+- one new Family-B candidate only
 
 Checklist:
 
-- [x] implement and run the staged canary gate first
-- [x] capture root transitions, diag deltas, and runtime inflation
-- [x] compare against the same baseline used by the completed screen
-- [ ] advance the new candidate to the severe quartet
-- [ ] advance the new candidate to the full 6-root harness
+- [ ] run `V0` targeted unit and smoke invariants
+- [ ] run `V1` hard canary
+- [ ] capture root transitions, diag deltas, runtime inflation, and condition metrics
+- [ ] advance to the severe quartet only if the canary really improves
+- [ ] advance to the full 6-root harness only if the quartet improves
 
 Hard gates:
 
 - no new finite/domain failures
 - no collapse regressions
-- median runtime inflation `<= 0.50`
-- severe fail count below `3`
-- visible improvement on `dlm_constV_bigW @ tau=0.05 exal ridge`
-
-### Work Package 3: Immediate alternate if candidate A is mixed
-
-Scope:
-
-- shared-core alternate only
-
-Candidate:
-
-- `X3`-style alternate
-
-Checklist:
-
-- [x] launch only if candidate A misses key severe roots
-- [x] keep the comparison apples-to-apples on the same 6 roots
-- [x] do not move to longer-chain profiles before this comparison is complete
+- candidate must improve the hard canary overall, not just one metric
+- runtime increase remains moderate
+- severe fail count below current narrow-wave baseline before broader reruns
 
 ### Work Package 4: Residual `rhs_ns` overlay
 
 Scope:
 
-- winning shared-core candidate + `X8` residual layer
+- winning Family-B candidate plus residual `rhs_ns` cleanup
 
 Checklist:
 
-- [x] add moderate tau freeze
-- [x] add multistart pilot screening
-- [x] test only after the shared-core winner is known
-- [x] record that the overlay helped only one sentinel and still failed Gate B
+- [ ] revisit moderate tau freeze only after a shared-core winner exists
+- [ ] revisit multistart pilot screening only after a shared-core winner exists
+- [ ] keep overlay evaluation separate from the core candidate proof
 
 Success intent:
 
-- clean the `al + rhs_ns` sentinel
-- improve residual `rhs_ns` severe rows without degrading the shared-core gains
+- clean residual `rhs_ns` sentinels after the main blocker is already improved.
 
 ### Work Package 5: Broader validation only after a narrow winner exists
 
@@ -362,16 +483,16 @@ Checklist:
 - [ ] rerun dynamic family/prior baseline only after the micro-pilot holds
 - [ ] regenerate closeout only after the dynamic baseline is fresh
 
-This is the first point where branch-level re-closeout becomes worth the compute.
+This remains the first point where branch-level re-closeout becomes worth the compute.
 
 ## 8) Stop Conditions
 
-Stop narrow tuning and escalate to structural redesign if any of these happen:
+Stop narrow repair and escalate to deeper redesign if any of these happen:
 
-- the common hard root remains `FAIL` after two serious shared-core candidates;
-- a candidate improves one cluster but introduces new finite/domain/collapse issues;
+- the common hard root remains `FAIL` after the bridge family, the conditioning family, and at least one serious Family-B blocked/reparameterized candidate;
+- a candidate improves one dimension but repeatedly reproduces the same drift blowup pattern;
 - a candidate only wins by chain-length inflation close to the rejected `X2/X4/X9` regime;
-- the `rhs_ns` overlay helps sentinels but leaves the shared-core ridge hard case unchanged.
+- a candidate needs multiple unrelated mechanisms mixed together just to match the anchor.
 
 ## 9) Debugging and Documentation Standards
 
@@ -383,6 +504,7 @@ Every future candidate should satisfy these standards:
 - record root-level `FAIL -> WARN/PASS` transitions;
 - record runtime inflation;
 - record `ESS`, `Geweke`, and `half_drift` deltas;
+- record whether conditioning support was active and how much it changed the working geometry;
 - update this tracker with the outcome before moving to the next candidate;
 - keep code changes attributable to a single hypothesis whenever possible.
 
@@ -390,22 +512,28 @@ Every future candidate should satisfy these standards:
 
 - do not rerun the full branch validation ladder before a narrow winner exists;
 - do not spend more time on pure chain-length inflation as the first move;
+- do not retry the bridge family as the main idea;
+- do not retry conditioning alone as the main idea;
 - do not treat this as a purely `rhs_ns`-only repair problem;
-- do not mix multiple new hypotheses into one candidate patch;
-- do not use the old legacy `exdqlmMCMC()` path as the truth source for qdesn blocker resolution.
+- do not mix multiple unrelated hypotheses into one candidate patch.
 
 ## 11) Main Docs To Watch Going Forward
 
 ### Main findings and takeaways
 
+- `docs/PLAN__qdesn_validation_phase3_20260331.md`
 - `docs/PLAN__qdesn_validation_phase2_20260331.md`
 - `docs/REPORT__qdesn_validation_repair_wave1_20260331.md`
 - `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+- `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+- `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
 - `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
 - `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
 - `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave1/qdesn-validation-repair-wave1-20260331__git-59e0e2a/summary/screen_results.md`
 - `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave2/qdesn-validation-repair-wave2-20260331__git-49c96b4/summary/repair_wave2_results.md`
+- `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave3/qdesn-validation-repair-wave3-20260331a__precommit/summary/repair_wave3_results.md`
+- `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
 
 ### Root-level evidence
 
@@ -413,24 +541,26 @@ Every future candidate should satisfy these standards:
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/phase35_transitions_X10_core_gamma_focus_pass1.csv`
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/phase35_transitions_X8_rhsns_freeze60_multistart3.csv`
 - `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave1/qdesn-validation-repair-wave1-20260331__git-59e0e2a/tables/phase35_transitions_R3_x10_plus_x8_rhsns_overlay.csv`
+- `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave3/qdesn-validation-repair-wave3-20260331a__precommit/stages/S1_canary/screen_runs/qdesn-validation-repair-wave3-20260331a__precommit__S1_canary/tables/phase35_transitions_R5_diag_scale_precondition.csv`
+- `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/stages/S1_canary/screen_runs/qdesn-validation-repair-wave4-20260331a__precommit__S1_canary/tables/phase35_transitions_R6_qr_whiten_precondition.csv`
 
 ### Operational roadmap
 
 - `docs/TRACK__qdesn_validation_repair_20260331.md`
+- `docs/PLAN__qdesn_validation_phase3_20260331.md`
 - `docs/PLAN__qdesn_validation_phase2_20260331.md`
 - `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
 
 ## 12) Current Recommended Next Move
 
-Do not promote `X10`, `X3`, or the `X8` overlay into package defaults from the current evidence.
+Do not promote the bridge family, diagonal conditioning, or QR whitening into package defaults from the current evidence.
 
 The next highest-signal step is:
 
 1. keep the repair-wave scaffolding and legacy anchor as the evaluation harness;
-2. treat the `gamma_sigma_gamma` bridge candidate as tested and rejected for promotion;
-3. implement the next candidate from a new family, not another small bridge/width reshuffle;
-4. prioritize either:
-   - a more substantive shared-core reparameterization / blocked move, or
-   - a readout conditioning / preconditioning repair targeted at `tiny_d1_n8`;
-5. validate that next candidate on the hard ridge canary first;
+2. treat the bridge family and the standalone conditioning family as tested and rejected for promotion;
+3. implement the next candidate from a new family:
+   a blocked or reparameterized shared-core `gamma/sigma` move;
+4. use conditioning only as an optional supporting mechanism, not the primary idea;
+5. validate that new candidate on the hard ridge canary first;
 6. only if the canary improves materially, move to the severe quartet and then the full 6-root harness.

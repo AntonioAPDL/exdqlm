@@ -860,6 +860,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$mcmc_acf1_beta_norm <- .qdesn_validation_safe_acf1(beta_norm)
     base$mcmc_gamma_slice_steps_out_mean <- as.numeric(fit$diagnostics$gamma_slice_steps_out_mean %||% NA_real_)
     base$mcmc_gamma_slice_shrink_mean <- as.numeric(fit$diagnostics$gamma_slice_shrink_mean %||% NA_real_)
+    base$mcmc_conditioning_mode <- as.character((fit$diagnostics$conditioning %||% list())$mode %||% NA_character_)
+    base$mcmc_conditioning_active <- isTRUE((fit$diagnostics$conditioning %||% list())$active %||% FALSE)
+    base$mcmc_conditioning_raw_kappa <- as.numeric((fit$diagnostics$conditioning %||% list())$raw_condition_kappa %||% NA_real_)
+    base$mcmc_conditioning_work_kappa <- as.numeric((fit$diagnostics$conditioning %||% list())$conditioned_condition_kappa %||% NA_real_)
+    base$mcmc_conditioning_gain_ratio <- as.numeric((fit$diagnostics$conditioning %||% list())$condition_gain_ratio %||% NA_real_)
+    base$mcmc_conditioning_scaled_columns_n <- as.integer((fit$diagnostics$conditioning %||% list())$scaled_columns_n %||% NA_integer_)
     base$rhs_tau_mean <- if (length(tau_draws)) mean(tau_draws) else NA_real_
     base$rhs_c2_mean <- if (length(c2_draws)) mean(c2_draws) else NA_real_
     base$rhs_lambda_mean <- if (length(lambda_mean_draws)) mean(lambda_mean_draws) else NA_real_
