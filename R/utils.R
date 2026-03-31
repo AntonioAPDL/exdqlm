@@ -49,6 +49,77 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   stop("Unable to compute valid gamma bounds for p0 = ", p0)
 }
 
+.sample_gig_devroye_required <- function(n_samples, p, a, b_vec, context = "gig") {
+  if (!exists("sample_gig_devroye_vector", mode = "function")) {
+    stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
+  }
+
+  eps_gig <- sqrt(.Machine$double.eps)
+  p <- as.numeric(p)[1]
+  a <- as.numeric(a)[1]
+  b_vec <- as.numeric(b_vec)
+
+  if (!is.finite(p)) {
+    stop(sprintf("%s requires a finite lambda; got %.6g", context, p))
+  }
+
+  if (!is.finite(a) || a <= 0) a <- eps_gig
+  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+
+  draws <- sample_gig_devroye_vector(
+    as.integer(n_samples)[1],
+    p = p,
+    a = a,
+    b_vec = b_vec
+  )
+
+  bad <- which(!is.finite(draws) | draws <= 0)
+  if (length(bad)) {
+    first <- bad[1]
+    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
+                 context, length(bad), first, draws[first]))
+  }
+
+  pmax(draws, eps_gig)
+}
+
+.sample_gig_devroye_pairs_required <- function(n_samples, p, a_vec, b_vec, context = "gig") {
+  if (!exists("sample_gig_devroye_pairs", mode = "function")) {
+    stop(sprintf("%s requires sample_gig_devroye_pairs(), but it is not available", context))
+  }
+
+  eps_gig <- sqrt(.Machine$double.eps)
+  p <- as.numeric(p)[1]
+  a_vec <- as.numeric(a_vec)
+  b_vec <- as.numeric(b_vec)
+
+  if (!is.finite(p)) {
+    stop(sprintf("%s requires a finite lambda; got %.6g", context, p))
+  }
+  if (length(a_vec) != length(b_vec)) {
+    stop(sprintf("%s requires a_vec and b_vec to have the same length", context))
+  }
+
+  a_vec[!is.finite(a_vec) | a_vec <= 0] <- eps_gig
+  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+
+  draws <- sample_gig_devroye_pairs(
+    as.integer(n_samples)[1],
+    p = p,
+    a_vec = a_vec,
+    b_vec = b_vec
+  )
+
+  bad <- which(!is.finite(draws) | draws <= 0)
+  if (length(bad)) {
+    first <- bad[1]
+    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
+                 context, length(bad), first, draws[first]))
+  }
+
+  pmax(draws, eps_gig)
+}
+
 
 .exdqlm_unwrap_fit_bundle <- function(obj, max_depth = 32L) {
   depth <- 0L
@@ -902,14 +973,10 @@ check_ts = function(dat){
     samp.sigma <- rep(E_sigma, ns)
   }
 
-  # q(v_t): use C++ sampler when available; fallback to GH.
-  if (exists("sample_gig_devroye_vector", mode = "function")) {
-    samp.v <- t(sample_gig_devroye_vector(ns, p = 0.5, a = psi, b_vec = chi))
-  } else {
-    samp.v <- t(vapply(seq_len(TT), function(t) {
-      GeneralizedHyperbolic::rgig(ns, chi = chi[t], psi = psi, lambda = 0.5)
-    }, numeric(ns)))
-  }
+  # q(v_t): require the package C++ Devroye sampler.
+  samp.v <- t(.sample_gig_devroye_required(
+    ns, p = 0.5, a = psi, b_vec = chi, context = "q(v_t) sampling"
+  ))
 
   # q(theta_t): independent Gaussian draws per t from smoothed marginals.
   samp.theta <- array(NA_real_, dim = c(p, TT, ns))

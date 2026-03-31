@@ -156,6 +156,64 @@ Rcpp::NumericMatrix sample_gig_devroye_vector(int n_samples, double p, double a,
     return samples;
 }
 
+// [[Rcpp::export]]
+Rcpp::NumericMatrix sample_gig_devroye_pairs(int n_samples, double p,
+                                             Rcpp::NumericVector a_vec,
+                                             Rcpp::NumericVector b_vec) {
+    int TT = b_vec.size();
+    Rcpp::NumericMatrix samples(n_samples, TT);
+
+    if (!std::isfinite(p)) {
+        Rcpp::stop("sample_gig_devroye_pairs: p must be finite");
+    }
+    if (a_vec.size() != TT) {
+        Rcpp::stop("sample_gig_devroye_pairs: a_vec and b_vec must have the same length");
+    }
+
+    int bad_a_idx = -1;
+    double bad_a_val = NA_REAL;
+    for (int t = 0; t < TT; ++t) {
+        if (!std::isfinite(a_vec[t]) || a_vec[t] <= 0.0) {
+            bad_a_idx = t;
+            bad_a_val = a_vec[t];
+            break;
+        }
+    }
+    if (bad_a_idx >= 0) {
+        Rcpp::stop("sample_gig_devroye_pairs: a_vec must be finite and > 0 (first bad index=%d, value=%g)", bad_a_idx + 1, bad_a_val);
+    }
+
+    int bad_b_idx = -1;
+    double bad_b_val = NA_REAL;
+    for (int t = 0; t < TT; ++t) {
+        if (!std::isfinite(b_vec[t]) || b_vec[t] <= 0.0) {
+            bad_b_idx = t;
+            bad_b_val = b_vec[t];
+            break;
+        }
+    }
+    if (bad_b_idx >= 0) {
+        Rcpp::stop("sample_gig_devroye_pairs: b_vec must be finite and > 0 (first bad index=%d, value=%g)", bad_b_idx + 1, bad_b_val);
+    }
+
+#ifdef _OPENMP
+    #pragma omp parallel for collapse(2)
+    for (int t = 0; t < TT; ++t) {
+        for (int i = 0; i < n_samples; ++i) {
+            samples(i, t) = sample_gig_devroye(p, a_vec[t], b_vec[t]);
+        }
+    }
+#else
+    for (int t = 0; t < TT; ++t) {
+        for (int i = 0; i < n_samples; ++i) {
+            samples(i, t) = sample_gig_devroye(p, a_vec[t], b_vec[t]);
+        }
+    }
+#endif
+
+    return samples;
+}
+
 double rasym_laplace(boost::random::mt19937& gen, double mu, double sigma, double tau) {
     boost::random::uniform_01<> uniform_dist;
     double U = uniform_dist(gen);

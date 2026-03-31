@@ -118,7 +118,8 @@ Advanced options (set via \code{options()}):
 \item \code{exdqlm.vb.min_iter}: minimum iterations before convergence can trigger (default 10).
 \item \code{exdqlm.vb.patience}: number of consecutive joint-converged iterations required (default 3).
 \item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
-When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
+The GIG-based u_t sampler always uses the package C++ Devroye implementation;
+when FALSE, the remaining samplers fall back to R implementations.
 \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
 }
 }
