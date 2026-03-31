@@ -41,24 +41,28 @@ Operational status:
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-2. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-3. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-4. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-5. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-6. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-7. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-8. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-9. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-10. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-11. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-12. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-13. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
-14. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
-15. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-16. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
-17. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-18. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+1. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+2. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+3. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+4. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+5. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+6. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+7. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+8. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+9. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+10. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+11. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+12. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+13. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+14. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+15. `reports/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen/qdesn-phase5-coretriad-20260331a__git-cfacba5/summary/family_b_screen_results.md`
+16. `reports/qdesn_mcmc_validation/qdesn_validation_phase4b_r18_fullsix/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5/stages/S1_full_six_confirmation/screen_runs/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5__S1_full_six_confirmation/tables/profile_rank_summary.csv`
+17. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
+18. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
+19. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+20. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
+21. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+22. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -434,6 +438,72 @@ Why this is the right next move:
 - it stops replaying dead QR, multistart, and chain-led families;
 - it aligns the gate with the actual objective: remove `FAIL`, accept `WARN`;
 - it narrows compute to the exact remaining blocker roots.
+
+## 5K) Phase 4B + Phase 5 Outcome
+
+Run evidence:
+
+- report:
+  `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+- Phase 4B manifest:
+  `config/validation/qdesn_validation_phase4b_r18_fullsix_manifest.yaml`
+- Phase 5 manifest:
+  `config/validation/qdesn_validation_phase5_core_triad_screen_manifest.yaml`
+
+Main results:
+
+- `R18_split_prior_rhsns_overlay` improved the full fixed 6-root harness from `6 FAIL -> 5 FAIL`;
+- `R31_r18_rhsns_pass2` then improved the unresolved triad from `3 FAIL -> 1 FAIL`;
+- `R31_r18_rhsns_pass2` also improved the full fixed 6-root harness from `5 FAIL -> 3 FAIL`;
+- `R31` removed all sentinel fails on the full-6 harness;
+- the remaining fail set under `R31` is now:
+  - `dlm_ar1V @ tau=0.95 exal rhs_ns`
+  - `dlm_constV_bigW @ tau=0.05 exal ridge`
+  - `dlm_constV_smallW @ tau=0.95 exal ridge`
+
+Interpretation:
+
+- `R31` is the current best profile and the right new anchor;
+- the old broad split-prior question is now answered;
+- the unresolved rhs issue is no longer broad instability, but a narrow drift problem;
+- the dominant remaining blocker is now the ridge pair, both on `tiny_d1_n8`, and both centered on
+  ESS plus half-drift.
+
+## 5L) Phase 6 Overnight Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+- manifest:
+  `config/validation/qdesn_validation_phase6_overnight_fullsix_screen_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase6_overnight_fullsix_screen.R`
+
+Design choice:
+
+- use a single broad full-6 overnight screen rooted at `R31`;
+- do not stage-gate on the triad again, because that question is already answered;
+- do not rerun dead QR-led, conditioning-led, bridge-led, or old split-prior families;
+- screen only targeted `R31` descendants that attack:
+  - rhs drift stabilization;
+  - ridge ESS plus half-drift recovery;
+  - combined descendants of those two levers.
+
+Success definition:
+
+- `WARN` is acceptable;
+- the next meaningful milestone is `total_fail_n <= 2` on the full fixed 6-root harness;
+- preferred additional conditions are:
+  - `sentinel_fail_n = 0`
+  - `fail_reduction >= 0.30`
+  - `runtime_inflation <= 1.25`
+
+Why this is the right overnight wave:
+
+- the fixed 6-root harness is now cheap enough to run broadly overnight;
+- `R31` has already removed the nonessential search space;
+- the remaining blocker set is small, explicit, and mechanically interpretable.
 
 ## 6) Candidate Improvement Areas
 

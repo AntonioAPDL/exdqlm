@@ -1,0 +1,765 @@
+meta:
+  name: qdesn_validation_phase6_overnight_fullsix_screen_20260331
+  display_name: QDESN Phase 6 Overnight Full-6 Screen
+  purpose: >
+    Broad overnight screen rooted at the current best profile, R31_r18_rhsns_pass2. Searches only
+    targeted descendants that attack the final three FAIL roots on the fixed 6-root harness while
+    treating WARN as acceptable.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen
+
+controls:
+  anchor_profile_id: R40_r31_baseline
+  resume_completed_stages: true
+  create_plots: false
+  profile_verbose: true
+  campaign_workers: 4
+  threads_per_worker: 1
+  profile_timeout_minutes: 180
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 4
+  max_error_profiles: 4
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_anchor
+    description: Exact R31 carry-forward baseline.
+  - id: B1_rhs_drift
+    description: rhs_ns stabilization descendants that target the remaining ar1V drift FAIL.
+  - id: B2_ridge_recovery
+    description: Ridge-focused descendants that target the remaining ESS plus half-drift ridge pair.
+  - id: B3_combined
+    description: Joint descendants that combine the best new rhs and ridge recovery ideas.
+
+profiles:
+  - id: R40_r31_baseline
+    batch: B0_anchor
+    family: r31_baseline
+    description: Exact R31 carry-forward baseline from Phase 5 full-6 confirmation.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 50
+                  max_shrink: 210
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 340
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R41_r31_rhs_burn700_freeze120
+    batch: B1_rhs_drift
+    family: r31_rhs_burn700_freeze120
+    description: Increase rhs burn-in and tau freeze while keeping the rest of R31 fixed.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 50
+                  max_shrink: 210
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 340
+              rhs_ns:
+                n_burn: 700
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R42_r31_rhs_burn700_chain1400
+    batch: B1_rhs_drift
+    family: r31_rhs_burn700_chain1400
+    description: Extend rhs burn, tau freeze, and kept chain length while leaving ridge at R31.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 50
+                  max_shrink: 210
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 340
+              rhs_ns:
+                n_burn: 700
+                n_mcmc: 1400
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R43_r31_rhs_burn650_chain1200_softsigma
+    batch: B1_rhs_drift
+    family: r31_rhs_burn650_chain1200_softsigma
+    description: Combine rhs stabilization with a slightly gentler rhs local sigma/gamma path.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 50
+                  max_shrink: 210
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 340
+              rhs_ns:
+                n_burn: 650
+                n_mcmc: 1200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.40
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 75
+                  max_shrink: 280
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 390
+
+  - id: R44_r31_ridge_chain900_stepsout
+    batch: B2_ridge_recovery
+    family: r31_ridge_chain900_stepsout
+    description: Extend ridge chain length and widen ridge step-out budgets while keeping rhs at R31.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R45_r31_ridge_chain1200_softsigma
+    batch: B2_ridge_recovery
+    family: r31_ridge_chain1200_softsigma
+    description: Longer softer ridge chain to target ESS and half-drift on the remaining ridge pair.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1200
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.52
+                  width_sigma: 0.20
+                  core_extra_passes: 0
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 420
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R46_r31_ridge_pass1_chain900
+    batch: B2_ridge_recovery
+    family: r31_ridge_pass1_chain900
+    description: Add one ridge-only extra pass plus a moderate chain extension while keeping rhs at R31.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.52
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 60
+                  max_shrink: 240
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R47_r31_ridge_pass1_chain1200_softsigma
+    batch: B2_ridge_recovery
+    family: r31_ridge_pass1_chain1200_softsigma
+    description: Heavier ridge-only repair that combines one extra pass with a longer softer ridge chain.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1200
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.50
+                  width_sigma: 0.20
+                  core_extra_passes: 1
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 420
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R48_r31_rhsfreeze120_ridgechain900
+    batch: B3_combined
+    family: r31_rhsfreeze120_ridgechain900
+    description: Combine the low-risk rhs stabilization from R41 with the moderate ridge recovery from R44.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 700
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R49_r31_rhsfreeze120_ridgechain1200soft
+    batch: B3_combined
+    family: r31_rhsfreeze120_ridgechain1200soft
+    description: Combine the low-risk rhs stabilization from R41 with the longer softer ridge chain from R45.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1200
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.52
+                  width_sigma: 0.20
+                  core_extra_passes: 0
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 420
+              rhs_ns:
+                n_burn: 700
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R50_r31_rhslong_ridgepass1_chain900
+    batch: B3_combined
+    family: r31_rhslong_ridgepass1_chain900
+    description: Combine the stronger rhs stabilization from R42 with the moderate ridge pass-plus-chain repair from R46.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.52
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 60
+                  max_shrink: 240
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 700
+                n_mcmc: 1400
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R51_r31_rhssoft_ridgepass1_chain1200
+    batch: B3_combined
+    family: r31_rhssoft_ridgepass1_chain1200
+    description: Broadest new descendant combining the gentler long rhs path from R43 with the heavier ridge repair from R47.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1200
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.50
+                  width_sigma: 0.20
+                  core_extra_passes: 1
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 420
+              rhs_ns:
+                n_burn: 650
+                n_mcmc: 1200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.40
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 75
+                  max_shrink: 280
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 390
+
+stages:
+  - id: S1_full_six_overnight
+    description: Broad full-6 overnight screen rooted at R31 and focused only on the remaining useful tuning space.
+    profile_source: all_candidates
+    selector:
+      mode: all
+    advance:
+      type: rank_filter_top_n
+      top_n: 4
+      max_total_fail_n: 2
+      max_sentinel_fail_n: 0
+      max_runtime_inflation: 1.25
+      min_fail_reduction: 0.30
+      min_severe_improved_n: 1
