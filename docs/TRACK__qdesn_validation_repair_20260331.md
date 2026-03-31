@@ -32,6 +32,7 @@ Operational status:
 - relaunch infrastructure has already been proven;
 - the overnight kernel screen completed cleanly (`12/12` profiles completed);
 - current branch package hygiene also includes the separate GIG propagation fix, but that fix does not replace the QDESN blocker analysis because QDESN MCMC uses `qdesn_fit_mcmc()` -> `exal_mcmc_fit()`.
+- repair wave 1 on current `HEAD` completed cleanly (`4/4` profiles, `0` operational failures), but no candidate passed Gate B or reduced the severe fail set.
 
 ## 3) Read These First
 
@@ -82,6 +83,37 @@ Core code paths to inspect before changing anything:
 | Persistent ridge hard case | `dlm_constV_bigW @ tau=0.05 exal ridge` stayed `FAIL` under top profiles | strongest canary for a real fix | `P0` |
 | Reservoir-specific stress | severe roots all sit on `tiny_d1_n8` | likely interaction between readout geometry and sampler quality | `P1` |
 | Not the core issue | no finite/domain/collapse failures, no evidence of boundary collapse dominance | do not optimize around infrastructure or collapse first | `P2` |
+
+## 5A) Repair Wave 1 Outcome
+
+Run:
+
+- manifest: `config/validation/qdesn_validation_repair_wave1_manifest.yaml`
+- run tag: `qdesn-validation-repair-wave1-20260331__git-59e0e2a`
+- summary: `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave1/qdesn-validation-repair-wave1-20260331__git-59e0e2a/summary/screen_results.md`
+
+Profiles tested:
+
+- `R0_legacy_anchor`
+- `R1_promoted_x10_core`
+- `R2_x3_alternate`
+- `R3_x10_plus_x8_rhsns_overlay`
+
+Outcome:
+
+- all four profiles were operationally healthy;
+- no profile produced finite/domain/collapse regressions;
+- no profile passed Gate B;
+- no profile reduced the severe fail set below `4`;
+- the best profiles (`R1` and `R3`) only reduced the total fail count from `6` to `5`;
+- the common hard ridge root still failed under every candidate;
+- the `rhs_ns` overlay helped one sentinel but did not change the branch-level decision.
+
+Interpretation:
+
+- the earlier overnight screen signal did not reproduce strongly enough on current `HEAD` to justify promoting `X10`, `X3`, or `X8` into package defaults;
+- the main blocker remains unresolved shared `exal` kernel behavior on the severe quartet, especially the persistent ridge hard case;
+- the repair wave assets are worth keeping, but the candidate default promotion itself should not be adopted.
 
 ## 6) Candidate Improvement Areas
 
@@ -166,10 +198,11 @@ Code files:
 
 Checklist:
 
-- [ ] implement one `X10`-style candidate
-- [ ] keep the change minimal and attributable
-- [ ] document the exact parameter deltas from defaults
-- [ ] avoid mixing in `rhs_ns`-only changes here
+- [x] implement one `X10`-style candidate
+- [x] keep the change minimal and attributable
+- [x] document the exact parameter deltas from defaults
+- [x] avoid mixing in `rhs_ns`-only changes here
+- [x] back out package-default promotion after Wave 1 failed to justify adoption
 
 Success intent:
 
@@ -185,9 +218,9 @@ Scope:
 
 Checklist:
 
-- [ ] rerun the exact 6-root harness already selected in closeout
-- [ ] capture root transitions, diag deltas, and runtime inflation
-- [ ] compare against the same baseline used by the completed screen
+- [x] rerun the exact 6-root harness already selected in closeout
+- [x] capture root transitions, diag deltas, and runtime inflation
+- [x] compare against the same baseline used by the completed screen
 
 Hard gates:
 
@@ -209,9 +242,9 @@ Candidate:
 
 Checklist:
 
-- [ ] launch only if candidate A misses key severe roots
-- [ ] keep the comparison apples-to-apples on the same 6 roots
-- [ ] do not move to longer-chain profiles before this comparison is complete
+- [x] launch only if candidate A misses key severe roots
+- [x] keep the comparison apples-to-apples on the same 6 roots
+- [x] do not move to longer-chain profiles before this comparison is complete
 
 ### Work Package 4: Residual `rhs_ns` overlay
 
@@ -221,9 +254,10 @@ Scope:
 
 Checklist:
 
-- [ ] add moderate tau freeze
-- [ ] add multistart pilot screening
-- [ ] test only after the shared-core winner is known
+- [x] add moderate tau freeze
+- [x] add multistart pilot screening
+- [x] test only after the shared-core winner is known
+- [x] record that the overlay helped only one sentinel and still failed Gate B
 
 Success intent:
 
@@ -274,15 +308,18 @@ Every future candidate should satisfy these standards:
 
 ### Main findings and takeaways
 
+- `docs/REPORT__qdesn_validation_repair_wave1_20260331.md`
 - `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
 - `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+- `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave1/qdesn-validation-repair-wave1-20260331__git-59e0e2a/summary/screen_results.md`
 
 ### Root-level evidence
 
 - `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/phase35_transitions_X10_core_gamma_focus_pass1.csv`
 - `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/phase35_transitions_X8_rhsns_freeze60_multistart3.csv`
+- `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave1/qdesn-validation-repair-wave1-20260331__git-59e0e2a/tables/phase35_transitions_R3_x10_plus_x8_rhsns_overlay.csv`
 
 ### Operational roadmap
 
@@ -290,6 +327,10 @@ Every future candidate should satisfy these standards:
 
 ## 12) Current Recommended Next Move
 
-Implement one `X10`-style shared-core candidate in the production QDESN MCMC path, then rerun only the 6-root harness.
+Do not promote `X10`, `X3`, or the `X8` overlay into package defaults from the current evidence.
 
-That is the highest-signal, lowest-waste next step supported by the current evidence.
+The next highest-signal step is:
+
+1. keep the repair-wave scaffolding and legacy anchor as the evaluation harness;
+2. move to targeted structural debugging on the persistent severe ridge root and the `tiny_d1_n8` conditioning cluster;
+3. only return to another repair-wave rerun after a genuinely new kernel hypothesis exists.
