@@ -93,6 +93,10 @@ test_that("MCMC supports log-sigma slice sampling when enabled", {
   expect_true(inherits(fit_mcmc, "exal_mcmc"))
   expect_true(all(is.finite(fit_mcmc$samp.sigma)))
   expect_true(all(fit_mcmc$samp.sigma > 0))
+  expect_true(isTRUE(fit_mcmc$control$transforms$use_log_sigma))
+  expect_equal(fit_mcmc$control$slice$width_sigma, 0.4)
+  expect_equal(fit_mcmc$control$slice$max_steps_out_sigma, fit_mcmc$control$slice$max_steps_out)
+  expect_equal(fit_mcmc$control$slice$max_shrink_sigma, fit_mcmc$control$slice$max_shrink)
 })
 
 test_that("RHS MCMC exposes healthy prior-state outputs and exact current precisions", {

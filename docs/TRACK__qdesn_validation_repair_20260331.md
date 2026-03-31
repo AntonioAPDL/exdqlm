@@ -41,18 +41,21 @@ Operational status:
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-2. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-3. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-4. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-5. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-6. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-7. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-8. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-9. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-10. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
-11. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-12. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+1. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+2. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+3. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+4. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+5. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+6. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+7. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+8. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+9. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+10. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+11. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
+12. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+13. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
+14. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+15. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -77,6 +80,14 @@ Core code paths to inspect before changing anything:
   raw and working condition numbers were identical and no columns were scaled.
 - The stronger conditioning candidate (`R6_qr_whiten_precondition`) activated correctly:
   raw condition number `77.60 -> 1.00`, `20` columns transformed.
+- The completed Family-B broad screen showed that transformed sigma plus gamma focus is a real working
+  ingredient, but not a complete fix.
+- The Family-B winner (`R8_logsigma_gamma_focus`) cut the severe quartet from `3 FAIL` to `2 FAIL`,
+  but tied the anchor at `5 FAIL` on the fixed 6-root harness.
+- Family-B also showed that the remaining fail set is now naturally split by prior family:
+  ridge and `rhs_ns` do not want the same repair profile.
+- The Family-B telemetry gap (`mcmc_use_log_sigma = FALSE`) was a reporting issue, not an execution issue:
+  per-fit `cfg_received.json` confirmed that transformed sigma really was enabled in the screen.
 - Even with QR whitening, the hard canary still failed because:
   `ESS` fell slightly (`6.25 -> 5.49`) and `half_drift` worsened materially
   (`0.53 -> 1.08`), despite a large `Geweke` improvement (`10.74 -> 0.87`).
@@ -89,6 +100,7 @@ Core code paths to inspect before changing anything:
 - `rhs_ns` tau-path behavior is secondary and should be repaired after the core is healthier.
 - The hard benchmark root is `dlm_constV_bigW @ tau=0.05 exal ridge`.
 - Broader reruns are not justified until a narrow micro-pilot winner exists.
+- The next broad wave should optimize for `zero FAIL`, not universal `PASS`.
 
 ## 5) Pain-Cluster Map
 
@@ -218,10 +230,62 @@ Interpretation:
 
 - diagonal standardization was effectively inert on the QDESN hard canary;
 - this means Wave 3 was an honest negative result, not a hidden implementation failure;
-- the canary still worsened, but the more important lesson is that the first conditioning family did not actually change the working geometry;
-- that justified escalating within the conditioning family to a basis-level transform rather than spending any compute on quartet/full-six reruns.
 
-## 5E) Repair Wave 4 Outcome
+## 5E) Phase 3 Family-B Outcome
+
+Run:
+
+- manifest: `config/validation/qdesn_validation_phase3_family_b_screen_manifest.yaml`
+- supervisor: `scripts/run_qdesn_validation_phase3_family_b_screen.R`
+- run tag: `qdesn-phase3-familyb-screen-20260331a__git-7ef7554`
+- result summary:
+  `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
+
+Outcome:
+
+- the broad transformed-sigma screen was operationally clean end to end;
+- `S1_canary_screen` advanced three candidates:
+  `R8_logsigma_gamma_focus`, `R12_logsigma_sigma_focus`, `R9_logsigma_gamma_focus_qr`;
+- `S2_severe_quartet` selected only `R8_logsigma_gamma_focus`;
+- `S3_full_six_final` found no final winner.
+
+Main scientific read:
+
+- transformed sigma plus gamma focus is now the strongest shared-core pattern we have;
+- global sigma-focus alone is not enough;
+- global QR is not enough as a whole-profile switch;
+- the remaining fail set under the best Family-B candidate splits into:
+  - ridge drift/geweke failures;
+  - ridge ess/acf/geweke failures;
+  - rhs_ns core drift/ess failures;
+  - rhs_ns rhs-only geweke failures.
+
+Interpretation:
+
+- the screen narrowed the problem;
+- it did not solve it;
+- the next wave should split ridge and `rhs_ns` rather than forcing them through one global profile.
+
+## 5F) Next Broad Wave
+
+Next run:
+
+- manifest:
+  `config/validation/qdesn_validation_phase4_split_prior_screen_manifest.yaml`
+- supervisor:
+  `scripts/run_qdesn_validation_phase4_split_prior_screen.R`
+- plan:
+  `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+
+Program:
+
+- use the best Family-B profile as the live anchor;
+- keep transformed sigma on;
+- give ridge and `rhs_ns` different repair controls;
+- optimize for `FAIL -> WARN`;
+- stage on the severe quartet first, then the fixed 6-root harness.
+
+## 5G) Repair Wave 4 Outcome
 
 Run:
 
@@ -267,7 +331,7 @@ Interpretation:
   poor working-space geometry is part of the problem, but the remaining blocker is the shared-core chain dynamics under that geometry, not geometry alone;
 - this is the cleanest evidence yet that the next candidate family should be a true blocked/reparameterized shared-core move, with conditioning available only as a supporting ingredient.
 
-## 5B) Phase 2 Audit Outcome
+## 5H) Phase 2 Audit Outcome
 
 The Phase 2 artifact-only audit is now complete.
 

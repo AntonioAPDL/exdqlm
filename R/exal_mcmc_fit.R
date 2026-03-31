@@ -2020,6 +2020,10 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       ),
       store_latent_draws = store_latent_draws,
       store_rhs_draws = store_rhs_draws,
+      transforms = list(
+        use_log_sigma = isTRUE(use_log_sigma),
+        sigma_eta_bounds = as.numeric(sigma_eta_bounds)
+      ),
       conditioning = list(
         mode = conditioning_state$mode,
         active = isTRUE(conditioning_state$active),
@@ -2046,6 +2050,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       slice = list(
         core_update_mode = core_update_mode,
         width_gamma = gamma_slice_width,
+        width_sigma = if (isTRUE(use_log_sigma)) sigma_slice_width else NA_real_,
         width_rhs_lambda = as.numeric(slice_cfg_runtime$width_rhs_lambda %||% slice_cfg_runtime$width_lambda %||% 1.0)[1L],
         width_rhs_tau = as.numeric(slice_cfg_runtime$width_rhs_tau %||% slice_cfg_runtime$width_tau %||% 1.0)[1L],
         width_rhs_c2 = as.numeric(slice_cfg_runtime$width_rhs_c2 %||% slice_cfg_runtime$width_c2 %||% 1.0)[1L],
@@ -2056,7 +2061,9 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         rhs_transformed_block_passes = as.integer(slice_cfg_runtime$rhs_transformed_block_passes %||% 1L),
         core_extra_passes = as.integer(core_extra_passes),
         max_steps_out = gamma_slice_max_steps_out,
-        max_shrink = gamma_slice_max_shrink
+        max_shrink = gamma_slice_max_shrink,
+        max_steps_out_sigma = if (isTRUE(use_log_sigma)) sigma_slice_max_steps_out else gamma_slice_max_steps_out,
+        max_shrink_sigma = if (isTRUE(use_log_sigma)) sigma_slice_max_shrink else gamma_slice_max_shrink
       )
     ),
     run.time = runtime,

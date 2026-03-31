@@ -19,7 +19,7 @@ usage <- function() {
   cat(
     "Usage: scripts/run_qdesn_validation_phase3_family_b_screen.R [options]\n\n",
     "Options:\n",
-    "  --manifest <path>   Family-B screen manifest YAML.\n",
+    "  --manifest <path>   Staged repair screen manifest YAML.\n",
     "  --run-tag <tag>     Screen run tag.\n",
     "  --execute           Run the staged screen.\n",
     "  --prepare-only      Prepare artifacts only (default).\n",
@@ -396,9 +396,9 @@ write_runner_state <- function(path, run_tag, current_stage_id, execution_tbl, s
   write_json_safe(payload, path)
 }
 
-write_plan_summary <- function(path, run_tag, git_sha, manifest_path, stages_df, profiles_df, controls_tbl) {
+write_plan_summary <- function(path, title, run_tag, git_sha, manifest_path, stages_df, profiles_df, controls_tbl) {
   lines <- c(
-    "# QDESN Phase 3 Family-B Screen",
+    sprintf("# %s", title),
     "",
     sprintf("- generated_at: `%s`", as.character(Sys.time())),
     sprintf("- run_tag: `%s`", run_tag),
@@ -421,9 +421,9 @@ write_plan_summary <- function(path, run_tag, git_sha, manifest_path, stages_df,
   write_lines_safe(lines, path)
 }
 
-write_result_summary <- function(path, run_tag, stop_reason, stage_results_df) {
+write_result_summary <- function(path, title, run_tag, stop_reason, stage_results_df) {
   lines <- c(
-    "# QDESN Phase 3 Family-B Screen Results",
+    sprintf("# %s Results", title),
     "",
     sprintf("- updated_at: `%s`", as.character(Sys.time())),
     sprintf("- run_tag: `%s`", run_tag),
@@ -536,6 +536,11 @@ profile_tbl <- do.call(rbind, lapply(seq_along(profiles_cfg), function(i) {
   )
 }))
 
+screen_title <- safe_chr(
+  (cfg$meta %||% list())$display_name,
+  safe_chr((cfg$meta %||% list())$name, "QDESN Validation Repair Screen")
+)
+
 stages_cfg <- cfg$stages %||% list()
 if (!length(stages_cfg)) stop("No stages defined in manifest.", call. = FALSE)
 
@@ -568,6 +573,7 @@ controls_tbl <- data.frame(
 
 write_plan_summary(
   path = file.path(summary_dir, "family_b_screen_plan.md"),
+  title = screen_title,
   run_tag = run_tag,
   git_sha = git_sha,
   manifest_path = manifest_path,
@@ -591,7 +597,7 @@ write_json_safe(
 )
 
 if (!isTRUE(execute)) {
-  cat(sprintf("Prepared Phase 3 Family-B screen workspace: %s\n", report_workspace))
+  cat(sprintf("Prepared %s workspace: %s\n", screen_title, report_workspace))
   cat(sprintf("Plan summary: %s\n", file.path(summary_dir, "family_b_screen_plan.md")))
   quit(status = 0)
 }
@@ -776,7 +782,7 @@ for (ii in seq_along(stages_cfg)) {
 
   stage_results_df <- do.call(rbind, stage_result_rows)
   utils::write.csv(stage_results_df, file.path(tables_dir, "stage_execution_status.csv"), row.names = FALSE)
-  write_result_summary(file.path(summary_dir, "family_b_screen_results.md"), run_tag, stop_reason, stage_results_df)
+  write_result_summary(file.path(summary_dir, "family_b_screen_results.md"), screen_title, run_tag, stop_reason, stage_results_df)
   write_runner_state(file.path(status_dir, "runner_state.json"), run_tag, stage_id, stage_results_df, stop_reason)
 
   if (!operational_pass) {
@@ -791,7 +797,7 @@ for (ii in seq_along(stages_cfg)) {
 
 stage_results_df <- if (length(stage_result_rows)) do.call(rbind, stage_result_rows) else data.frame(stringsAsFactors = FALSE)
 utils::write.csv(stage_results_df, file.path(tables_dir, "stage_execution_status.csv"), row.names = FALSE)
-write_result_summary(file.path(summary_dir, "family_b_screen_results.md"), run_tag, stop_reason, stage_results_df)
+write_result_summary(file.path(summary_dir, "family_b_screen_results.md"), screen_title, run_tag, stop_reason, stage_results_df)
 write_runner_state(file.path(status_dir, "runner_state.json"), run_tag, NA_character_, stage_results_df, stop_reason)
 write_json_safe(
   list(
@@ -804,6 +810,6 @@ write_json_safe(
   file.path(manifest_dir, "family_b_screen_completed.json")
 )
 
-cat(sprintf("Phase 3 Family-B screen workspace: %s\n", report_workspace))
+cat(sprintf("%s workspace: %s\n", screen_title, report_workspace))
 cat(sprintf("Plan summary: %s\n", file.path(summary_dir, "family_b_screen_plan.md")))
 cat(sprintf("Result summary: %s\n", file.path(summary_dir, "family_b_screen_results.md")))
