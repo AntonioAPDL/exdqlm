@@ -46,12 +46,13 @@ If someone needs the shortest path to the current findings, read these in order:
 3. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
 4. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
 5. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-6. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-7. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-8. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-9. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
-10. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-11. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+6. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+7. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+8. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+9. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+10. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
+11. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+12. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -522,6 +523,7 @@ Every future candidate should satisfy these standards:
 ### Main findings and takeaways
 
 - `docs/PLAN__qdesn_validation_phase3_20260331.md`
+- `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
 - `docs/PLAN__qdesn_validation_phase2_20260331.md`
 - `docs/REPORT__qdesn_validation_repair_wave1_20260331.md`
 - `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
@@ -559,8 +561,8 @@ The next highest-signal step is:
 
 1. keep the repair-wave scaffolding and legacy anchor as the evaluation harness;
 2. treat the bridge family and the standalone conditioning family as tested and rejected for promotion;
-3. implement the next candidate from a new family:
-   a blocked or reparameterized shared-core `gamma/sigma` move;
+3. run the broad Family-B transformed-sigma screen defined in
+   `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`;
 4. use conditioning only as an optional supporting mechanism, not the primary idea;
-5. validate that new candidate on the hard ridge canary first;
-6. only if the canary improves materially, move to the severe quartet and then the full 6-root harness.
+5. advance only the best canary survivors to the severe quartet and full 6-root harness;
+6. use the resulting best Family-B candidate as the decision point for whether a deeper blocked redesign is still required.
