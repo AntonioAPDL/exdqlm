@@ -2,6 +2,10 @@
 
 Date: 2026-04-01
 
+Follow-on state and the focused rerun decision are now recorded in:
+
+- `reports/static_exal_tuning_20260401/c060_focus_rerun_and_wave6_closeout.md`
+
 ## Current Baseline
 
 The current production anchor is still:
