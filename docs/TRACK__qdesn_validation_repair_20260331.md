@@ -21,12 +21,11 @@ This tracker is the operational roadmap for the next validation wave.
 
 Current best read:
 
-- the branch baseline improved materially in Phase 7 stability confirmation;
-- the exact `R44` settings, rerun as `R61_r44_anchor`, are now the best stable baseline;
-- the remaining fail set is down to two `smallW @ tau=0.95 exal` roots:
-  one `rhs_ns`, one `ridge`;
-- the current problem is no longer a broad full-surface search problem;
-- the next highest-value step is a narrow `smallW` resolution screen with explicit guard rails.
+- the exact `R61/R44` settings remain the best reference baseline conceptually, but Phase 8 showed they are not yet stable enough to treat as a fully settled branch baseline;
+- Phase 8 did not promote a new winner;
+- the strongest focused Phase-8 local winner (`R84`) failed the full-6 confirmation step;
+- the current highest-value question is now family-level replication, not another broad local sweep;
+- the next highest-value step is a replicated full-6 audit across the still-plausible recipe families.
 
 Operational status:
 
@@ -41,35 +40,39 @@ Operational status:
 - Phase 7 completed cleanly (`12/12` Stage-1 profiles, `4/4` stability reruns, `0` timeouts, `0` runner errors).
 - Phase 7 also showed that first-pass winners are not reliable by themselves; stability reruns materially changed the ordering.
 - the current working baseline is therefore the exact `R61/R44` configuration, not a new descendant profile.
+- Phase 8 completed cleanly (`14/14` Stage-1 profiles, `2/2` full-6 confirmations, `0` timeouts, `0` runner errors).
+- Phase 8 showed that a focused local winner can improve the narrow screen and still fail the branch-facing full-6 confirmation step.
+- Phase 8 also showed that the exact `R61` reference family did not reproduce its earlier `2 FAIL` result in that rerun.
+- the current branch state therefore needs a replication-first audit before another local search wave.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
-2. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
-3. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
-4. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
-5. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-6. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-7. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-8. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-9. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-10. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-11. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-12. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-13. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-14. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-15. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-16. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-17. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-18. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-19. `reports/qdesn_mcmc_validation/qdesn_validation_phase7_r44_refinement/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7/stages/S2_stability_confirmation/screen_runs/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7__S2_stability_confirmation/tables/profile_rank_summary.csv`
-20. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
-21. `reports/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen/qdesn-phase5-coretriad-20260331a__git-cfacba5/summary/family_b_screen_results.md`
-22. `reports/qdesn_mcmc_validation/qdesn_validation_phase4b_r18_fullsix/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5/stages/S1_full_six_confirmation/screen_runs/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5__S1_full_six_confirmation/tables/profile_rank_summary.csv`
-23. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
-24. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
+1. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+2. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+3. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+4. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+5. `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
+6. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+7. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+8. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+9. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+10. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+11. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+12. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+13. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+14. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+15. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+16. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+17. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+18. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+19. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+20. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+21. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S2_full_six_confirmation/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S2_full_six_confirmation/tables/profile_rank_summary.csv`
+22. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S1_smallw_resolution_screen/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S1_smallw_resolution_screen/tables/profile_rank_summary.csv`
+23. `reports/qdesn_mcmc_validation/qdesn_validation_phase7_r44_refinement/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7/stages/S2_stability_confirmation/screen_runs/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7__S2_stability_confirmation/tables/profile_rank_summary.csv`
+24. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
 25. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
 
 Core code paths to inspect before changing anything:
@@ -116,6 +119,9 @@ Core code paths to inspect before changing anything:
 - The remaining `rhs_ns` fail is now a narrow rhs-side `Geweke + half_drift` problem, not a core ESS problem.
 - The remaining ridge fail is now a narrow `ESS + ACF + half_drift` problem with acceptable `Geweke`.
 - Phase 7 also proved that stability reruns materially improve decision quality and should remain part of the repair program.
+- Phase 8 proved that a focused local winner can improve the narrow target set and still fail the full-6 confirmation step.
+- Phase 8 also showed that the exact `R61` reference family did not cleanly reproduce its earlier best result.
+- The current branch-facing question is now family-level reproducibility, not just local tuning direction.
 
 ### Main takeaways
 
@@ -129,6 +135,8 @@ Core code paths to inspect before changing anything:
 - The current best stable baseline is `R61_r44_anchor`.
 - The search space is now small enough that broad full-6 screening is wasteful as a first stage.
 - The next overnight program should focus on the two remaining `smallW @ tau=0.95 exal` fail roots and protect the current `WARN` guard rails.
+- Full-6 confirmation has now become more important than local Stage-1 wins.
+- The next promoted winner should be chosen from replicated family-level evidence, not a single profile instance.
 
 ## 5) Pain-Cluster Map
 
@@ -685,6 +693,76 @@ What Phase 8 explicitly avoids:
 - rerunning weak Phase-7 descendants such as `R62`, `R64`, `R67`, `R69`, `R70`, or `R71` as lead ideas;
 - spending full-6 compute on every broad candidate before local evidence exists.
 
+## 5Q) Phase 8 Outcome
+
+Run:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- result report:
+  `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase8_smallw_resolution_manifest.yaml`
+- run tag:
+  `qdesn-phase8-smallw-resolution-20260401a__git-4852ec8`
+
+Outcome:
+
+- the full Phase-8 program completed cleanly:
+  `14/14` Stage-1 profiles, `2/2` full-6 confirmations, `0` timeouts, `0` runner errors;
+- no completed profile introduced finite, domain, collapse, or unhealthy regressions;
+- the strongest local winner was `R84_r61_rhs_freeze100_blockpass5`;
+- `R84` reduced the focused 5-root screen to:
+  - `total_fail_n = 2`
+  - `severe_fail_n = 2`
+  - `sentinel_fail_n = 0`
+- but `R84` then failed the full-6 confirmation:
+  - `total_fail_n = 6`
+  - `severe_fail_n = 4`
+  - `sentinel_fail_n = 2`
+- the exact `R61` reference family reran at:
+  - `total_fail_n = 5`
+  - `severe_fail_n = 4`
+  - `sentinel_fail_n = 1`
+
+Interpretation:
+
+- the focused Stage-1 screen is still scientifically useful;
+- but local winners cannot be promoted without full-6 confirmation;
+- Phase 8 did not produce a new promotable baseline;
+- the branch now needs a replication-first decision layer before more local tuning.
+
+## 5R) Phase 9 Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase9_replication_audit_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase9_replication_audit.R`
+
+Design choice:
+
+- stop broad local searching for one wave;
+- rerun only the still-plausible families on the fixed 6-root harness;
+- repeat each family exactly `3` times;
+- summarize results at the family level as well as the profile-instance level.
+
+Families included:
+
+- exact `R61` reference family
+- exact `R84` rhs-local winner family
+- exact `R68` clean ridge-signal family
+- exact `R65` stronger ridge-chain family
+
+What Phase 9 explicitly avoids:
+
+- rerunning weak Phase-8 descendants as lead ideas;
+- reopening broad local search before replication is understood;
+- treating a single lucky profile instance as enough evidence for promotion.
+
 ## 6) Candidate Improvement Areas
 
 ### Area A: conditioning / preconditioning family
@@ -892,14 +970,42 @@ Checklist:
 - [x] define a 3-stage focused screen (`smallW resolution -> full-6 confirmation -> stability rerun`)
 - [x] include only still-useful controls and local descendants
 - [x] run prepare-only validation on the Phase-8 manifest
-- [ ] launch the overnight Phase-8 program
-- [ ] update the tracker with the first Phase-8 health/result checkpoint
+- [x] launch the overnight Phase-8 program
+- [x] update the tracker with the Phase-8 outcome
 
 Success intent:
 
 - best case: `0 FAIL` on full-6 confirmation and rerun;
 - meaningful win: `1 FAIL` with `0` sentinel FAIL that reproduces;
 - minimum win: clear improvement on the two remaining fail roots without guard-rail regression.
+
+### Work Package 7: Phase 9 replicated family audit
+
+Target:
+
+- quantify family-level rerun stability on the fixed 6-root harness before promoting any new baseline;
+- decide whether the next repair move should stay rhs-local, ridge-local, or remain baseline-centered.
+
+Primary artifacts:
+
+- `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+- `config/validation/qdesn_validation_phase9_replication_audit_manifest.yaml`
+- `scripts/run_qdesn_validation_phase9_replication_audit.R`
+
+Checklist:
+
+- [x] freeze the Phase-8 outcome as a scientific but non-promoting result
+- [x] define the still-plausible family set (`R61`, `R84`, `R68`, `R65`)
+- [x] add family-level ranking output to the replication runner
+- [x] run prepare-only validation on the Phase-9 manifest
+- [ ] launch the overnight Phase-9 replication audit
+- [ ] update the tracker with the first Phase-9 health/result checkpoint
+
+Success intent:
+
+- identify the best family by median full-6 fail count, sentinel stability, and runtime;
+- promote only a family that is stable across reruns, not just best on one instance.
 
 ## 8) Stop Conditions
 
@@ -937,6 +1043,8 @@ Every future candidate should satisfy these standards:
 
 ### Main findings and takeaways
 
+- `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
 - `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
 - `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
 - `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
@@ -968,20 +1076,21 @@ Every future candidate should satisfy these standards:
 ### Operational roadmap
 
 - `docs/TRACK__qdesn_validation_repair_20260331.md`
+- `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+- `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
 - `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
 - `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
 - `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
 
 ## 12) Current Recommended Next Move
 
-Do not reopen broad Phase-7-style full-6 screening as the primary search surface.
+Do not start another broad local search wave before family-level replication is understood.
 
 The next highest-signal step is:
 
-1. treat `R61_r44_anchor` as the live stable baseline;
-2. run the focused Phase-8 `smallW` resolution screen defined in
-   `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`;
-3. use the 5-root Stage-1 screen to compare rhs-local, ridge-local, and disciplined combined descendants efficiently;
-4. carry only the strongest survivors into the fixed 6-root confirmation harness;
-5. require a final exact rerun before promoting any new baseline;
-6. reopen broader branch validation only if Phase 8 produces a stable winner.
+1. treat `R61` as the reference recipe, but only provisionally until it is replicated;
+2. run the replicated family audit defined in
+   `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`;
+3. compare exact reruns of `R61`, `R84`, `R68`, and `R65` on the fixed 6-root harness;
+4. choose the next repair direction from family-level medians and sentinel stability, not single-run rankings;
+5. reopen narrow local tuning only after the replicated family ordering is clear.

@@ -480,6 +480,56 @@ compute_rank_table <- function(eval_tbl, transition_map, profiles_tbl, micro_roo
   rank_df
 }
 
+compute_family_rank_table <- function(rank_df, execution_tbl) {
+  if (!is.data.frame(rank_df) || !nrow(rank_df) || !"family" %in% names(rank_df)) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+
+  fam <- as.character(rank_df$family)
+  fam[is.na(fam) | !nzchar(fam)] <- "unknown"
+  if (!any(duplicated(fam))) return(data.frame(stringsAsFactors = FALSE))
+
+  completed_like <- c("COMPLETED", "COMPLETED_RECONCILED", "RESUMED_COMPLETED")
+  rows <- lapply(unique(fam), function(fm) {
+    sub_rank <- rank_df[fam == fm, , drop = FALSE]
+    sub_exec <- execution_tbl[as.character(execution_tbl$family) == fm, , drop = FALSE]
+    data.frame(
+      family = fm,
+      batch_id = safe_chr(sub_rank$batch_id[1L], safe_chr(sub_exec$batch_id[1L], NA_character_)),
+      n_profiles = nrow(sub_rank),
+      n_completed = sum(as.character(sub_exec$execution_status) %in% completed_like, na.rm = TRUE),
+      operational_fail_n = sum(!as.logical(sub_exec$operational_pass), na.rm = TRUE),
+      median_severe_fail_n = safe_median(sub_rank$severe_fail_n),
+      min_severe_fail_n = safe_min(sub_rank$severe_fail_n),
+      max_severe_fail_n = safe_max(sub_rank$severe_fail_n),
+      median_sentinel_fail_n = safe_median(sub_rank$sentinel_fail_n),
+      zero_sentinel_runs_n = sum(suppressWarnings(as.numeric(sub_rank$sentinel_fail_n)) == 0, na.rm = TRUE),
+      median_total_fail_n = safe_median(sub_rank$total_fail_n),
+      min_total_fail_n = safe_min(sub_rank$total_fail_n),
+      max_total_fail_n = safe_max(sub_rank$total_fail_n),
+      total_fail_le2_runs_n = sum(suppressWarnings(as.numeric(sub_rank$total_fail_n)) <= 2, na.rm = TRUE),
+      median_fail_reduction = safe_median(sub_rank$fail_reduction),
+      median_runtime_inflation = safe_median(sub_rank$median_runtime_inflation),
+      gateB_pass_n = sum(as.logical(sub_rank$gateB_pass), na.rm = TRUE),
+      profile_ids = paste(as.character(sub_rank$profile_id), collapse = ", "),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  out <- do.call(rbind, rows)
+  out <- out[order(
+    as.numeric(out$median_total_fail_n),
+    as.numeric(out$median_sentinel_fail_n),
+    as.numeric(out$median_severe_fail_n),
+    -as.numeric(out$zero_sentinel_runs_n),
+    -as.numeric(out$total_fail_le2_runs_n),
+    as.numeric(out$median_runtime_inflation),
+    as.character(out$family)
+  ), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
 write_runner_state <- function(path,
                                run_tag,
                                current_batch_id,
@@ -541,6 +591,7 @@ write_result_summary <- function(path,
                                  execution_tbl,
                                  eval_tbl,
                                  rank_df,
+                                 family_df,
                                  batches_tbl) {
   completed_like <- c("COMPLETED", "COMPLETED_RECONCILED", "RESUMED_COMPLETED")
   lines <- c(
@@ -569,6 +620,15 @@ write_result_summary <- function(path,
     lines <- c(lines, "## Ranking", "", render_markdown_table(rank_df[, keep_cols, drop = FALSE]), "")
   } else if (nrow(eval_tbl)) {
     lines <- c(lines, "## Ranking", "", "No completed evaluable profiles yet.", "")
+  }
+  if (is.data.frame(family_df) && nrow(family_df)) {
+    keep_family <- intersect(c(
+      "family", "batch_id", "n_profiles", "n_completed", "median_total_fail_n",
+      "min_total_fail_n", "max_total_fail_n", "median_sentinel_fail_n",
+      "zero_sentinel_runs_n", "total_fail_le2_runs_n",
+      "median_fail_reduction", "median_runtime_inflation"
+    ), names(family_df))
+    lines <- c(lines, "## Family Ranking", "", render_markdown_table(family_df[, keep_family, drop = FALSE]), "")
   }
   if (nrow(batches_tbl)) {
     lines <- c(lines, "## Batch Order", "", render_markdown_table(batches_tbl), "")
@@ -1000,12 +1060,14 @@ for (bb in seq_len(nrow(batches_tbl))) {
     diag_tbl <- if (length(diag_rows)) do.call(rbind, diag_rows) else data.frame(stringsAsFactors = FALSE)
     metric_tbl <- if (length(metric_rows)) do.call(rbind, metric_rows) else data.frame(stringsAsFactors = FALSE)
     rank_df <- compute_rank_table(eval_tbl, transition_map, profiles_tbl, micro_roots)
+    family_df <- compute_family_rank_table(rank_df, execution_tbl)
 
     utils::write.csv(execution_tbl, file.path(tables_dir, "profile_execution_status.csv"), row.names = FALSE)
     if (nrow(eval_tbl)) utils::write.csv(eval_tbl, file.path(tables_dir, "phase35_micro_pilot_summary.csv"), row.names = FALSE)
     if (nrow(diag_tbl)) utils::write.csv(diag_tbl, file.path(tables_dir, "phase35_micro_pilot_diag_shift.csv"), row.names = FALSE)
     if (nrow(metric_tbl)) utils::write.csv(metric_tbl, file.path(tables_dir, "phase35_micro_pilot_metric_shift.csv"), row.names = FALSE)
     if (nrow(rank_df)) utils::write.csv(rank_df, file.path(tables_dir, "profile_rank_summary.csv"), row.names = FALSE)
+    if (nrow(family_df)) utils::write.csv(family_df, file.path(tables_dir, "family_rank_summary.csv"), row.names = FALSE)
 
     write_result_summary(
       path = file.path(summary_dir, "screen_results.md"),
@@ -1014,6 +1076,7 @@ for (bb in seq_len(nrow(batches_tbl))) {
       execution_tbl = execution_tbl,
       eval_tbl = eval_tbl,
       rank_df = rank_df,
+      family_df = family_df,
       batches_tbl = batches_tbl[, c("batch_id", "description"), drop = FALSE]
     )
     write_runner_state(
@@ -1099,12 +1162,14 @@ eval_tbl <- if (length(eval_rows)) do.call(rbind, eval_rows) else data.frame(str
 diag_tbl <- if (length(diag_rows)) do.call(rbind, diag_rows) else data.frame(stringsAsFactors = FALSE)
 metric_tbl <- if (length(metric_rows)) do.call(rbind, metric_rows) else data.frame(stringsAsFactors = FALSE)
 rank_df <- compute_rank_table(eval_tbl, transition_map, profiles_tbl, micro_roots)
+family_df <- compute_family_rank_table(rank_df, execution_tbl)
 
 utils::write.csv(execution_tbl, file.path(tables_dir, "profile_execution_status.csv"), row.names = FALSE)
 if (nrow(eval_tbl)) utils::write.csv(eval_tbl, file.path(tables_dir, "phase35_micro_pilot_summary.csv"), row.names = FALSE)
 if (nrow(diag_tbl)) utils::write.csv(diag_tbl, file.path(tables_dir, "phase35_micro_pilot_diag_shift.csv"), row.names = FALSE)
 if (nrow(metric_tbl)) utils::write.csv(metric_tbl, file.path(tables_dir, "phase35_micro_pilot_metric_shift.csv"), row.names = FALSE)
 if (nrow(rank_df)) utils::write.csv(rank_df, file.path(tables_dir, "profile_rank_summary.csv"), row.names = FALSE)
+if (nrow(family_df)) utils::write.csv(family_df, file.path(tables_dir, "family_rank_summary.csv"), row.names = FALSE)
 
 write_result_summary(
   path = file.path(summary_dir, "screen_results.md"),
@@ -1113,6 +1178,7 @@ write_result_summary(
   execution_tbl = execution_tbl,
   eval_tbl = eval_tbl,
   rank_df = rank_df,
+  family_df = family_df,
   batches_tbl = batches_tbl[, c("batch_id", "description"), drop = FALSE]
 )
 write_runner_state(
