@@ -104,7 +104,7 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   class(retlist) <- "exdqlmForecast"
 
   # plot forecast
-  if(plot){ plot(retlist, cols, add) }
+  if(plot){ plot(retlist, cols = cols, add = add) }
 
   # return forecast distributions
   return(invisible(retlist))

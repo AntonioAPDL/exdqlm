@@ -417,8 +417,10 @@ check_logics = function(gam.init,sig.init,fix.gamma,fix.sigma,dqlm.ind){
 }
 #
 check_ts = function(dat){
-  dat = as.matrix(dat)
-  if(all(dim(dat)>1)){
+  if(is.null(dim(dat))){
+    dim(dat) <- c(length(dat),1)
+  }
+  if(all(dim(dat)>1) || all(dim(dat)==1)){
     stop("data must be univariate time-series")
   }
   if(dim(dat)[1]<dim(dat)[2]){
