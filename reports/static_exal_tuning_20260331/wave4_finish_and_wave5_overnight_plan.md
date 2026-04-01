@@ -2,6 +2,10 @@
 
 Date: 2026-03-31
 
+Follow-on state and the next targeted program are recorded in:
+
+- `reports/static_exal_tuning_20260401/wave5_baseline_and_wave6_program.md`
+
 ## Wave-4 Finish: Main Takeaways
 
 The narrow finish selected:
