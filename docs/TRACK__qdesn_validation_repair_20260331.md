@@ -21,11 +21,12 @@ This tracker is the operational roadmap for the next validation wave.
 
 Current best read:
 
-- the exact `R61/R44` settings remain the best reference baseline conceptually, but Phase 8 showed they are not yet stable enough to treat as a fully settled branch baseline;
-- Phase 8 did not promote a new winner;
-- the strongest focused Phase-8 local winner (`R84`) failed the full-6 confirmation step;
-- the current highest-value question is now family-level replication, not another broad local sweep;
-- the next highest-value step is a replicated full-6 audit across the still-plausible recipe families.
+- Phase 9 finished the replication-first audit cleanly and resolved the family ordering enough to reopen targeted local search;
+- the best replicated scientific signal is now the exact `R68` ridge-signal family;
+- the best runtime-balanced fallback is the exact `R65` ridge-chain family;
+- the exact `R61` family remains a useful runtime reference control, but it is no longer the clean active search lead;
+- the `R84` rhs-local family should now be treated as retired for lead-candidate purposes;
+- the next highest-value step is a ridge-led descendant search rooted at `R68` and `R65`, with `R61` kept only as a reference control and with staged full-6 plus stability confirmation.
 
 Operational status:
 
@@ -43,37 +44,43 @@ Operational status:
 - Phase 8 completed cleanly (`14/14` Stage-1 profiles, `2/2` full-6 confirmations, `0` timeouts, `0` runner errors).
 - Phase 8 showed that a focused local winner can improve the narrow screen and still fail the branch-facing full-6 confirmation step.
 - Phase 8 also showed that the exact `R61` reference family did not reproduce its earlier `2 FAIL` result in that rerun.
-- the current branch state therefore needs a replication-first audit before another local search wave.
+- Phase 9 completed cleanly (`12/12` replicated full-6 profiles, `0` timeouts, `0` runner errors).
+- Phase 9 showed that `R68` is the strongest replicated family, `R65` is the best runtime-balanced fallback, `R61` is no longer a clean lead baseline, and `R84` does not hold up under replication.
+- the current branch state therefore supports a new ridge-led local search wave, but only around the replicated `R68/R65` neighborhood and with explicit stability confirmation.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
 1. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
-2. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
-3. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
-4. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
-5. `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
-6. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
-7. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-8. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-9. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-10. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-11. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-12. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-13. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-14. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-15. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-16. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-17. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-18. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-19. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-20. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-21. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S2_full_six_confirmation/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S2_full_six_confirmation/tables/profile_rank_summary.csv`
-22. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S1_smallw_resolution_screen/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S1_smallw_resolution_screen/tables/profile_rank_summary.csv`
-23. `reports/qdesn_mcmc_validation/qdesn_validation_phase7_r44_refinement/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7/stages/S2_stability_confirmation/screen_runs/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7__S2_stability_confirmation/tables/profile_rank_summary.csv`
-24. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
-25. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+2. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+3. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+4. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+5. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+6. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+7. `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
+8. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+9. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+10. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+11. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+12. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+13. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+14. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+15. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+16. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+17. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+18. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+19. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+20. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+21. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+22. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+23. `reports/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit/qdesn-phase9-replication-audit-20260401a__git-e31ec94/summary/screen_results.md`
+24. `reports/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit/qdesn-phase9-replication-audit-20260401a__git-e31ec94/tables/family_rank_summary.csv`
+25. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S2_full_six_confirmation/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S2_full_six_confirmation/tables/profile_rank_summary.csv`
+26. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S1_smallw_resolution_screen/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S1_smallw_resolution_screen/tables/profile_rank_summary.csv`
+27. `reports/qdesn_mcmc_validation/qdesn_validation_phase7_r44_refinement/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7/stages/S2_stability_confirmation/screen_runs/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7__S2_stability_confirmation/tables/profile_rank_summary.csv`
+28. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
+29. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
 
 Core code paths to inspect before changing anything:
 
@@ -121,7 +128,14 @@ Core code paths to inspect before changing anything:
 - Phase 7 also proved that stability reruns materially improve decision quality and should remain part of the repair program.
 - Phase 8 proved that a focused local winner can improve the narrow target set and still fail the full-6 confirmation step.
 - Phase 8 also showed that the exact `R61` reference family did not cleanly reproduce its earlier best result.
-- The current branch-facing question is now family-level reproducibility, not just local tuning direction.
+- Phase 9 resolved that family-level reproducibility question enough to reopen local search.
+- `R68` is now the best replicated scientific lead:
+  median `total_fail_n = 4`, median `sentinel_fail_n = 0`, and one exact replicate reached `2 FAIL / 0 sentinel FAIL`.
+- `R65` is the best runtime-balanced ridge fallback:
+  median `total_fail_n = 4`, median `sentinel_fail_n = 0`, median runtime inflation `0.878`.
+- `R61` remains the cheapest useful reference family, but it no longer deserves to be treated as the lead search baseline because its median `sentinel_fail_n = 1`.
+- `R84` is now a retired lead family: median `total_fail_n = 5`, median `sentinel_fail_n = 2`.
+- The current branch-facing question is no longer “which family survives replication,” but rather “which ridge-led descendants of `R68` and `R65` can hold their replicated signal while reducing the remaining FAIL roots.”
 
 ### Main takeaways
 
@@ -763,6 +777,102 @@ What Phase 9 explicitly avoids:
 - reopening broad local search before replication is understood;
 - treating a single lucky profile instance as enough evidence for promotion.
 
+## 5S) Phase 9 Outcome
+
+Run:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+- result report:
+  `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase9_replication_audit_manifest.yaml`
+- run tag:
+  `qdesn-phase9-replication-audit-20260401a__git-e31ec94`
+
+Outcome:
+
+- the full Phase-9 program completed cleanly:
+  `12/12` replicated full-6 profiles, `0` timeouts, `0` runner errors;
+- no completed profile introduced finite, domain, collapse, or unhealthy regressions;
+- the replicated family ordering is now clear enough to guide the next search wave:
+  - `r68_ridge_signal`: best overall family signal;
+  - `r65_ridge_chain_stepsout`: best runtime-balanced ridge fallback;
+  - `r61_stable_anchor`: still useful as a runtime reference, but no longer a clean baseline leader;
+  - `r84_rhs_blockpass5`: retired as a lead idea.
+
+Phase-9 family ranking:
+
+| family | median_total_fail_n | median_sentinel_fail_n | min_total_fail_n | zero_sentinel_runs_n | median_runtime_inflation |
+|---|---:|---:|---:|---:|---:|
+| `r68_ridge_signal` | `4` | `0` | `2` | `2/3` | `1.1174` |
+| `r65_ridge_chain_stepsout` | `4` | `0` | `3` | `2/3` | `0.8785` |
+| `r61_stable_anchor` | `4` | `1` | `4` | `0/3` | `0.7117` |
+| `r84_rhs_blockpass5` | `5` | `2` | `4` | `0/3` | `0.7982` |
+
+Interpretation:
+
+- `R68` is the new active scientific lead because it produced the best replicated sentinel behavior and
+  the only replicated `2 FAIL / 0 sentinel FAIL` outcome (`R122`);
+- `R65` is worth carrying forward because it preserves the ridge-led improvement direction with much
+  lower runtime inflation than `R68`;
+- `R61` should now be retained as a runtime reference control, not as the main search anchor;
+- `R84` should no longer be used as a lead family.
+
+What the best replicated runs actually improved:
+
+- `R122_r68_rep3` repaired:
+  - `dlm_constV_bigW @ tau=0.05 exal ridge` (`FAIL -> WARN`)
+  - `dlm_constV_smallW @ tau=0.95 exal rhs_ns` (`FAIL -> WARN`)
+  - `dlm_constV_smallW @ tau=0.50 exal rhs_ns` (`FAIL -> WARN`)
+  - `dlm_constV_bigW @ tau=0.95 al rhs_ns` (`FAIL -> WARN`)
+- `R131_r65_rep2` showed the best balanced ridge-chain fallback:
+  - `total_fail_n = 3`
+  - `sentinel_fail_n = 0`
+  - runtime inflation `0.8785`
+
+What still fails:
+
+- the remaining difficult surface is now ridge-led, not rhs-led;
+- the most persistent unresolved roots are:
+  - `dlm_constV_smallW @ tau=0.95 exal ridge`
+  - `dlm_ar1V @ tau=0.95 exal rhs_ns`
+- `R68` reduces the ridge-dominant fail set best, but still needs guard-rail stabilization around the rhs side;
+- `R65` is more runtime-disciplined, but does not yet match `R68` on best-case fail reduction.
+
+## 5T) Phase 10 Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase10_replicated_ridge_resolution_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase10_replicated_ridge_resolution.R`
+
+Design choice:
+
+- promote the exact `R68` family to the active search anchor for the next overnight wave;
+- keep exact `R65` as the balanced ridge fallback control;
+- keep exact `R61` as the cheaper runtime reference control;
+- stop using `R84` as a lead candidate family;
+- search only the remaining live ridge-led space:
+  - `R68` ridge-local descendants;
+  - `R68` plus mild rhs guard descendants;
+  - `R65` balanced descendants that blend ridge and mild rhs guard ideas;
+- stage the program:
+  - broad 5-root ridge-resolution plus rhs-guard screen;
+  - full fixed 6-root confirmation for survivors;
+  - exact stability rerun of the confirmation survivors.
+
+What Phase 10 explicitly avoids:
+
+- any new `R84`-style blockpass-5 family as a lead idea;
+- replaying QR-only, bridge-only, conditioning-only, or old transformed-sigma families;
+- heavy ridge widening (`R67`-style) and other descendants already shown to be weak;
+- spending full-6 confirmation compute on every broad candidate before the targeted screen filters them.
+
 ## 6) Candidate Improvement Areas
 
 ### Area A: conditioning / preconditioning family
@@ -1043,6 +1153,8 @@ Every future candidate should satisfy these standards:
 
 ### Main findings and takeaways
 
+- `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+- `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
 - `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
 - `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
 - `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
@@ -1076,6 +1188,8 @@ Every future candidate should satisfy these standards:
 ### Operational roadmap
 
 - `docs/TRACK__qdesn_validation_repair_20260331.md`
+- `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+- `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
 - `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
 - `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
 - `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
@@ -1084,13 +1198,17 @@ Every future candidate should satisfy these standards:
 
 ## 12) Current Recommended Next Move
 
-Do not start another broad local search wave before family-level replication is understood.
+Do not reopen broad family searching outside the replicated `R68/R65` neighborhood.
 
 The next highest-signal step is:
 
-1. treat `R61` as the reference recipe, but only provisionally until it is replicated;
-2. run the replicated family audit defined in
-   `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`;
-3. compare exact reruns of `R61`, `R84`, `R68`, and `R65` on the fixed 6-root harness;
-4. choose the next repair direction from family-level medians and sentinel stability, not single-run rankings;
-5. reopen narrow local tuning only after the replicated family ordering is clear.
+1. use exact `R68` as the active scientific search anchor;
+2. keep exact `R65` as the balanced ridge fallback control;
+3. keep exact `R61` as the runtime reference control;
+4. run the staged replicated-ridge resolution program defined in
+   `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`;
+5. search only the remaining live space:
+   - `R68` ridge-local descendants,
+   - `R68` plus mild rhs-guard descendants,
+   - `R65` balanced descendants;
+6. require full fixed 6-root confirmation and a final exact rerun before carrying any new winner forward.
