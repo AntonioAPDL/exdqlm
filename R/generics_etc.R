@@ -41,7 +41,7 @@ as.exdqlm <- function(m){
        !is.null(m$JV) | !is.null(m$JW)){
       stop("'dlm' object input must be a time-invariant")
     }
-    l$FF = t(m$FF)
+    m$FF = t(m$FF)
   }
   
   # check for required components & remove extras
@@ -875,7 +875,9 @@ summary.exdqlmForecast <- function(object, ...) {
 plot.exdqlmForecast <- function(x, ...) {
   aa = list(...)
   if(is.null(aa$cols)){cols=c("purple","magenta")}else{cols = aa$cols}
+  print(cols)
   if(is.null(aa$add)){add=FALSE}else{add=aa$add}
+  print(add)
   
   y = x$m1$y
   p = dim(x$m1$model$GG)[1]

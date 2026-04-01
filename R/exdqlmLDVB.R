@@ -186,7 +186,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       exps0 = exps0_user,
       max_iter = max_iter
     )
-    class(retlist) <- "exdqlm"
+    class(retlist) <- "exdqlmLDVB"
     return(retlist)
   }
 
