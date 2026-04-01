@@ -21,11 +21,12 @@ This tracker is the operational roadmap for the next validation wave.
 
 Current best read:
 
-- the main blocker is a shared `exal` MCMC chain-quality problem in the QDESN static readout path;
-- this is most visible on the `tiny_d1_n8` reservoir profile;
-- the failure is not primarily a `rhs_ns`-only problem;
-- the failure is not primarily a numerical stability problem;
-- longer chains alone are not the right first response.
+- the branch baseline improved materially in Phase 7 stability confirmation;
+- the exact `R44` settings, rerun as `R61_r44_anchor`, are now the best stable baseline;
+- the remaining fail set is down to two `smallW @ tau=0.95 exal` roots:
+  one `rhs_ns`, one `ridge`;
+- the current problem is no longer a broad full-surface search problem;
+- the next highest-value step is a narrow `smallW` resolution screen with explicit guard rails.
 
 Operational status:
 
@@ -36,36 +37,40 @@ Operational status:
 - repair wave 2 completed cleanly at the canary stage, but the new structural bridge candidate failed the canary gate and did not advance to the severe quartet.
 - repair wave 3 completed cleanly at the canary stage; diagonal conditioning was effectively inactive on the hard canary and failed immediately.
 - repair wave 4 completed cleanly at the canary stage; QR whitening activated exactly as intended and fixed the working-space condition number, but still failed the canary because drift worsened too much.
+- Phase 6 completed cleanly and established `R44_r31_ridge_chain900_stepsout` as the practical carry-forward.
+- Phase 7 completed cleanly (`12/12` Stage-1 profiles, `4/4` stability reruns, `0` timeouts, `0` runner errors).
+- Phase 7 also showed that first-pass winners are not reliable by themselves; stability reruns materially changed the ordering.
+- the current working baseline is therefore the exact `R61/R44` configuration, not a new descendant profile.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
 1. `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
-2. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
-3. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-4. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-5. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-6. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-7. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-8. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-9. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-10. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-11. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-12. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-13. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-14. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-15. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-16. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-17. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
-18. `reports/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen/qdesn-phase5-coretriad-20260331a__git-cfacba5/summary/family_b_screen_results.md`
-19. `reports/qdesn_mcmc_validation/qdesn_validation_phase4b_r18_fullsix/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5/stages/S1_full_six_confirmation/screen_runs/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5__S1_full_six_confirmation/tables/profile_rank_summary.csv`
-20. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
-21. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
-22. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-23. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
-24. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-25. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+2. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+3. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+4. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+5. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+6. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+7. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+8. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+9. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+10. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+11. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+12. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+13. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+14. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+15. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+16. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+17. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+18. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+19. `reports/qdesn_mcmc_validation/qdesn_validation_phase7_r44_refinement/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7/stages/S2_stability_confirmation/screen_runs/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7__S2_stability_confirmation/tables/profile_rank_summary.csv`
+20. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
+21. `reports/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen/qdesn-phase5-coretriad-20260331a__git-cfacba5/summary/family_b_screen_results.md`
+22. `reports/qdesn_mcmc_validation/qdesn_validation_phase4b_r18_fullsix/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5/stages/S1_full_six_confirmation/screen_runs/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5__S1_full_six_confirmation/tables/profile_rank_summary.csv`
+23. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
+24. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
+25. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
 
 Core code paths to inspect before changing anything:
 
@@ -101,6 +106,16 @@ Core code paths to inspect before changing anything:
 - Even with QR whitening, the hard canary still failed because:
   `ESS` fell slightly (`6.25 -> 5.49`) and `half_drift` worsened materially
   (`0.53 -> 1.08`), despite a large `Geweke` improvement (`10.74 -> 0.87`).
+- Phase 6 established `R44_r31_ridge_chain900_stepsout` as the practical carry-forward profile.
+- Phase 7 stability confirmation showed that the exact `R44` settings reran better than the Stage-1 leaders.
+- The new stable branch baseline is `R61_r44_anchor`, not a Phase-7 descendant.
+- Under that stable baseline, the remaining fail set is only:
+  - `dlm_constV_smallW @ tau=0.95 exal rhs_ns`
+  - `dlm_constV_smallW @ tau=0.95 exal ridge`
+- Under that same baseline, the previous broad hard ridge cluster is no longer the main branch blocker.
+- The remaining `rhs_ns` fail is now a narrow rhs-side `Geweke + half_drift` problem, not a core ESS problem.
+- The remaining ridge fail is now a narrow `ESS + ACF + half_drift` problem with acceptable `Geweke`.
+- Phase 7 also proved that stability reruns materially improve decision quality and should remain part of the repair program.
 
 ### Main takeaways
 
@@ -111,6 +126,9 @@ Core code paths to inspect before changing anything:
 - The hard benchmark root is `dlm_constV_bigW @ tau=0.05 exal ridge`.
 - Broader reruns are not justified until a narrow micro-pilot winner exists.
 - The next broad wave should optimize for `zero FAIL`, not universal `PASS`.
+- The current best stable baseline is `R61_r44_anchor`.
+- The search space is now small enough that broad full-6 screening is wasteful as a first stage.
+- The next overnight program should focus on the two remaining `smallW @ tau=0.95 exal` fail roots and protect the current `WARN` guard rails.
 
 ## 5) Pain-Cluster Map
 
@@ -581,6 +599,92 @@ What Phase 7 should explicitly avoid:
 - treating sentinel-breaking candidates as acceptable just because they improve severe roots;
 - reopening broader closeout reruns before this local screen settles.
 
+## 5O) Phase 7 Outcome
+
+Run:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+- result report:
+  `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase7_r44_refinement_manifest.yaml`
+- run tag:
+  `qdesn-phase7-r44-refinement-20260401a__git-d3e43f7`
+
+Outcome:
+
+- the full Phase 7 program completed cleanly:
+  `12/12` Stage-1 profiles, `4/4` Stage-2 reruns, `0` timeouts, `0` runner errors;
+- no completed profile introduced finite, domain, collapse, or unhealthy regressions;
+- the Stage-1 leaderboard was not stable:
+  `R66` led the first-pass ranking but weakened materially on rerun;
+- the exact `R44` settings reran best as `R61_r44_anchor`;
+- `R61` improved to the best stable baseline currently observed:
+  - `total_fail_n = 2`
+  - `severe_fail_n = 2`
+  - `sentinel_fail_n = 0`
+  - `runtime_inflation = 0.7038`
+
+Remaining fail set under `R61_r44_anchor`:
+
+- `dlm_constV_smallW @ tau=0.95 exal rhs_ns`
+  - `geweke_drift; half_chain_drift`
+- `dlm_constV_smallW @ tau=0.95 exal ridge`
+  - `low_ess; high_autocorrelation; half_chain_drift`
+
+Guard-rail `WARN` roots under `R61_r44_anchor`:
+
+- `dlm_ar1V @ tau=0.95 exal rhs_ns`
+- `dlm_constV_bigW @ tau=0.05 exal ridge`
+- `dlm_constV_smallW @ tau=0.50 exal rhs_ns`
+- `dlm_constV_bigW @ tau=0.95 al rhs_ns`
+
+Interpretation:
+
+- the branch baseline improved, but by stabilizing the existing `R44` settings rather than promoting a new descendant;
+- the remaining problem is now tightly localized to the `smallW @ tau=0.95 exal` pair;
+- the `rhs_ns` residual is now a narrow rhs-side drift/Geweke problem;
+- the ridge residual is now a narrow ESS/ACF/half-drift problem;
+- stability reruns are now mandatory for decision-quality, not optional polish.
+
+## 5P) Phase 8 Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase8_smallw_resolution_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase8_smallw_resolution.R`
+
+Design choice:
+
+- use the exact `R61/R44` settings as the new stable anchor;
+- stop treating the current problem as a broad full-6 search;
+- run a focused Stage-1 screen on the two remaining fail roots plus the most informative guard rails;
+- carry only the best survivors into full-6 confirmation;
+- require a final exact rerun before promoting any new winner.
+
+Candidate families included:
+
+- stable controls:
+  `R80`, `R81`, `R82`
+- rhs local repair descendants:
+  `R83` to `R86`
+- ridge local repair descendants:
+  `R87` to `R90`
+- disciplined combined descendants:
+  `R91` to `R93`
+
+What Phase 8 explicitly avoids:
+
+- replaying the broad Phase-7 full-6 screen as the primary search surface;
+- reopening QR-only, bridge-only, conditioning-only, or old transformed-sigma families;
+- rerunning weak Phase-7 descendants such as `R62`, `R64`, `R67`, `R69`, `R70`, or `R71` as lead ideas;
+- spending full-6 compute on every broad candidate before local evidence exists.
+
 ## 6) Candidate Improvement Areas
 
 ### Area A: conditioning / preconditioning family
@@ -603,32 +707,39 @@ Interpretation:
 - conditioning alone does not close the current blocker;
 - any future use of conditioning should be as a supporting ingredient for a stronger shared-core repair, not as the main hypothesis.
 
-### Area B: blocked / reparameterized shared-core kernel
+### Area B: local `smallW rhs_ns` residual repair
 
-Current highest-priority repair area.
+Current co-primary repair area.
 
-Why it is now first:
+Why it is now active:
 
-- the bridge family was too local a change;
-- the conditioning family was real but insufficient;
-- the hard canary still points to shared-core chain dynamics under stressed geometry.
+- the remaining `rhs_ns` fail under the stable baseline is localized to one root;
+- the failure signature is now rhs-side `Geweke + half_drift`, not broad core ESS weakness;
+- Phase 7 retained a credible rhs-local signal (`R63`) that can be reused in a disciplined way.
 
-Most plausible next directions:
+Most plausible directions:
 
-- blocked `gamma/sigma` move rather than purely sequential local refreshes;
-- a more explicit reparameterization that stabilizes drift without giving back all ESS;
-- an implementation that can optionally reuse the QR-whitened work space without changing user-facing output scale.
+- slightly deeper tau freeze during burn-in;
+- softer transformed tau/c2 movement;
+- one extra transformed-block refresh pass;
+- modest keep-size increase only when paired with softer movement.
 
-### Area C: residual `rhs_ns` warmup / initialization
+### Area C: local `smallW ridge` residual repair
 
-Secondary repair area.
+Current co-primary repair area.
 
-Use only after Area B produces a narrow winner.
+Why it is now active:
 
-Why it remains secondary:
+- the remaining ridge fail is also localized to one root;
+- the failure signature is now `ESS + ACF + half_drift` with acceptable `Geweke`;
+- Phase 7 retained credible ridge-local signals (`R68`, `R65`) even though the Stage-1 leader did not replicate.
 
-- the hard canary is `exal + ridge`;
-- the strongest recent failures are still shared-core, not prior-specific.
+Most plausible directions:
+
+- one extra ridge core pass;
+- slightly softer sigma movement;
+- mild step-out expansion;
+- modest ridge-only keep-size increase without reopening the heavy Phase-6 chain regime.
 
 ### Area D: branch revalidation
 
@@ -636,7 +747,10 @@ Deferred area.
 
 Trigger:
 
-- only after a new narrow winner clears the canary, the severe quartet, and the fixed 6-root harness.
+- only after a new narrow winner clears:
+  - the focused `smallW` resolution screen,
+  - the fixed 6-root confirmation harness,
+  - and the final stability rerun.
 
 ## 7) Repair Strategy
 
@@ -757,6 +871,36 @@ Checklist:
 
 This remains the first point where branch-level re-closeout becomes worth the compute.
 
+### Work Package 6: Phase 8 `smallW` resolution program
+
+Target:
+
+- resolve the two remaining `smallW @ tau=0.95 exal` fail roots under the stable `R61` baseline;
+- protect the current `WARN` guard rails while doing so.
+
+Primary artifacts:
+
+- `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+- `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- `config/validation/qdesn_validation_phase8_smallw_resolution_manifest.yaml`
+- `scripts/run_qdesn_validation_phase8_smallw_resolution.R`
+
+Checklist:
+
+- [x] freeze the Phase-7 stability outcome as the new baseline
+- [x] document the remaining fail pair and guard-rail set
+- [x] define a 3-stage focused screen (`smallW resolution -> full-6 confirmation -> stability rerun`)
+- [x] include only still-useful controls and local descendants
+- [x] run prepare-only validation on the Phase-8 manifest
+- [ ] launch the overnight Phase-8 program
+- [ ] update the tracker with the first Phase-8 health/result checkpoint
+
+Success intent:
+
+- best case: `0 FAIL` on full-6 confirmation and rerun;
+- meaningful win: `1 FAIL` with `0` sentinel FAIL that reproduces;
+- minimum win: clear improvement on the two remaining fail roots without guard-rail regression.
+
 ## 8) Stop Conditions
 
 Stop narrow repair and escalate to deeper redesign if any of these happen:
@@ -793,6 +937,10 @@ Every future candidate should satisfy these standards:
 
 ### Main findings and takeaways
 
+- `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+- `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
+- `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
 - `docs/PLAN__qdesn_validation_phase3_20260331.md`
 - `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
 - `docs/PLAN__qdesn_validation_phase2_20260331.md`
@@ -820,20 +968,20 @@ Every future candidate should satisfy these standards:
 ### Operational roadmap
 
 - `docs/TRACK__qdesn_validation_repair_20260331.md`
-- `docs/PLAN__qdesn_validation_phase3_20260331.md`
-- `docs/PLAN__qdesn_validation_phase2_20260331.md`
-- `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+- `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+- `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+- `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
 
 ## 12) Current Recommended Next Move
 
-Do not promote the bridge family, diagonal conditioning, or QR whitening into package defaults from the current evidence.
+Do not reopen broad Phase-7-style full-6 screening as the primary search surface.
 
 The next highest-signal step is:
 
-1. keep the repair-wave scaffolding and legacy anchor as the evaluation harness;
-2. treat the bridge family and the standalone conditioning family as tested and rejected for promotion;
-3. run the broad Family-B transformed-sigma screen defined in
-   `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`;
-4. use conditioning only as an optional supporting mechanism, not the primary idea;
-5. advance only the best canary survivors to the severe quartet and full 6-root harness;
-6. use the resulting best Family-B candidate as the decision point for whether a deeper blocked redesign is still required.
+1. treat `R61_r44_anchor` as the live stable baseline;
+2. run the focused Phase-8 `smallW` resolution screen defined in
+   `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`;
+3. use the 5-root Stage-1 screen to compare rhs-local, ridge-local, and disciplined combined descendants efficiently;
+4. carry only the strongest survivors into the fixed 6-root confirmation harness;
+5. require a final exact rerun before promoting any new baseline;
+6. reopen broader branch validation only if Phase 8 produces a stable winner.
