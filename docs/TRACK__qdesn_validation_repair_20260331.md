@@ -41,28 +41,31 @@ Operational status:
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-2. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-3. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-4. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-5. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-6. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-7. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-8. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-9. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-10. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-11. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-12. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-13. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-14. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-15. `reports/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen/qdesn-phase5-coretriad-20260331a__git-cfacba5/summary/family_b_screen_results.md`
-16. `reports/qdesn_mcmc_validation/qdesn_validation_phase4b_r18_fullsix/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5/stages/S1_full_six_confirmation/screen_runs/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5__S1_full_six_confirmation/tables/profile_rank_summary.csv`
-17. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
-18. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
-19. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
-20. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
-21. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
-22. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+1. `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
+2. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+3. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+4. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+5. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+6. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+7. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+8. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+9. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+10. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+11. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+12. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+13. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+14. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+15. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+16. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+17. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
+18. `reports/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen/qdesn-phase5-coretriad-20260331a__git-cfacba5/summary/family_b_screen_results.md`
+19. `reports/qdesn_mcmc_validation/qdesn_validation_phase4b_r18_fullsix/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5/stages/S1_full_six_confirmation/screen_runs/qdesn-phase4b-r18-fullsix-20260331a__git-cfacba5__S1_full_six_confirmation/tables/profile_rank_summary.csv`
+20. `reports/qdesn_mcmc_validation/qdesn_validation_phase4_split_prior_screen/qdesn-phase4-splitprior-screen-20260331b__git-5f02a8a/summary/family_b_screen_results.md`
+21. `reports/qdesn_mcmc_validation/qdesn_validation_phase3_family_b_screen/qdesn-phase3-familyb-screen-20260331a__git-7ef7554/summary/family_b_screen_results.md`
+22. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+23. `reports/qdesn_mcmc_validation/qdesn_validation_repair_wave4/qdesn-validation-repair-wave4-20260331a__precommit/summary/repair_wave3_results.md`
+24. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+25. `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -504,6 +507,79 @@ Why this is the right overnight wave:
 - the fixed 6-root harness is now cheap enough to run broadly overnight;
 - `R31` has already removed the nonessential search space;
 - the remaining blocker set is small, explicit, and mechanically interpretable.
+
+## 5M) Phase 6 Overnight Outcome
+
+Run:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+- result report:
+  `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase6_overnight_fullsix_screen_manifest.yaml`
+- run tag:
+  `qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331`
+
+Outcome:
+
+- the overnight screen completed cleanly with `12/12` profiles, `0` timeouts, and `0` runner errors;
+- no profile created finite, domain, collapse, or unhealthy regressions;
+- the stage stopped correctly with `selected_n = 0`;
+- the nominal rank-1 profile was `R51_r31_rhssoft_ridgepass1_chain1200`, but it reintroduced `2` sentinel FAILs and
+  was too expensive to treat as the next practical baseline;
+- the best practical profile was `R44_r31_ridge_chain900_stepsout`.
+
+Why `R44` is the practical carry-forward:
+
+- `R44` reduced the fixed 6-root harness from `4 FAIL -> 3 FAIL` on the rerun baseline used in Phase 6;
+- `R44` kept `sentinel_fail_n = 0`;
+- `R44` had materially lower runtime inflation than the more aggressive combined winners;
+- `R44` is the cleanest signal that moderate ridge chain extension plus wider step-out budgets are helping.
+
+Exact remaining fail set under `R44`:
+
+- `dlm_ar1V @ tau=0.95 exal rhs_ns`
+  - `geweke_drift; half_chain_drift`
+- `dlm_constV_bigW @ tau=0.05 exal ridge`
+  - `low_ess; high_autocorrelation; half_chain_drift`
+- `dlm_constV_smallW @ tau=0.95 exal ridge`
+  - `low_ess; high_autocorrelation; half_chain_drift`
+
+Additional important read:
+
+- `R44` preserved the repaired sentinel behavior;
+- `R51` showed that heavier combined tuning can fix both ridge roots, but it does so by destabilizing rhs and sentinel roots;
+- the Phase 6 rerun also showed that exact `R31` behavior is not perfectly stable across waves, so the next program should
+  include an explicit stability check rather than assuming single-run rankings are exact.
+
+## 5N) Phase 7 Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+- manifest:
+  `config/validation/qdesn_validation_phase7_r44_refinement_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase7_r44_refinement.R`
+
+Design choice:
+
+- use `R44_r31_ridge_chain900_stepsout` as the new anchor;
+- keep `R31` as a control profile, not the main baseline;
+- search only the remaining useful space around:
+  - mild rhs drift stabilization on top of `R44`;
+  - ridge ESS plus half-drift refinement on top of `R44`;
+  - a few combined descendants of those two levers;
+- add a second-stage rerun of the top Stage-1 survivors to measure stability and filter out single-run winners.
+
+What Phase 7 should explicitly avoid:
+
+- replaying the full Phase 6 family unchanged;
+- carrying `R51` forward as the main baseline;
+- treating sentinel-breaking candidates as acceptable just because they improve severe roots;
+- reopening broader closeout reruns before this local screen settles.
 
 ## 6) Candidate Improvement Areas
 
