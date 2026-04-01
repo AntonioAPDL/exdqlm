@@ -84,6 +84,11 @@ safe_num <- function(x, default = NA_real_) {
   if (!length(x) || !is.finite(x[1L])) default else x[1L]
 }
 
+safe_chr <- function(x, default = NA_character_) {
+  x <- as.character(x %||% default)
+  if (!length(x)) default else x[1L]
+}
+
 safe_median <- function(x) {
   x <- suppressWarnings(as.numeric(x))
   x <- x[is.finite(x)]
