@@ -5,6 +5,15 @@ Date: 2026-04-01
 Follow-on state and the focused rerun decision are now recorded in:
 
 - `reports/static_exal_tuning_20260401/c060_focus_rerun_and_wave6_closeout.md`
+- `reports/static_exal_tuning_20260401/transfer_reassessment_and_wave7_program.md`
+
+## Status Note
+
+This document is now a historical planning record for the wave-5 to wave-6 handoff.
+
+The current baseline reassessment is no longer the original wave-6 program. After the stopped focused rerun exposed an exact-runner transfer mismatch, the active forward plan moved to the wave-7 transfer-validation program:
+
+- `reports/static_exal_tuning_20260401/transfer_reassessment_and_wave7_program.md`
 
 ## Current Baseline
 

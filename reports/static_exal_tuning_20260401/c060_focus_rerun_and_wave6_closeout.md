@@ -6,6 +6,15 @@ Follow-on state from the earlier tuning reports:
 
 - `reports/static_exal_tuning_20260331/wave4_finish_and_wave5_overnight_plan.md`
 - `reports/static_exal_tuning_20260401/wave5_baseline_and_wave6_program.md`
+- `reports/static_exal_tuning_20260401/transfer_reassessment_and_wave7_program.md`
+
+## Status Note
+
+This document is no longer the current execution guide.
+
+It remains the historical record of the first `C060_110_sub2` promotion and the initial focused-rerun decision, but the focused rerun was then stopped after it exposed an exact-runner transfer mismatch. The current baseline reassessment and next-stage plan now live in:
+
+- `reports/static_exal_tuning_20260401/transfer_reassessment_and_wave7_program.md`
 
 ## Current Baseline
 
