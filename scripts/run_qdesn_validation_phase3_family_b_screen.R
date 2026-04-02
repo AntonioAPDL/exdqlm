@@ -362,6 +362,12 @@ evaluate_canary_candidates <- function(stage_report_root, candidate_profiles, ga
 evaluate_rank_candidates <- function(stage_report_root, candidate_profiles, gate_cfg) {
   exec_tbl <- read_csv_safe(file.path(stage_report_root, "tables", "profile_execution_status.csv"))
   rank_tbl <- read_csv_safe(file.path(stage_report_root, "tables", "profile_rank_summary.csv"))
+  reference_profile_id <- safe_chr(gate_cfg$reference_profile_id, NA_character_)
+  ref_row <- rank_tbl[as.character(rank_tbl$profile_id) == reference_profile_id, , drop = FALSE]
+  reference_severe_fail_n <- safe_num(ref_row$severe_fail_n, NA_real_)
+  reference_sentinel_fail_n <- safe_num(ref_row$sentinel_fail_n, NA_real_)
+  reference_total_fail_n <- safe_num(ref_row$total_fail_n, NA_real_)
+  reference_runtime_inflation <- safe_num(ref_row$median_runtime_inflation, NA_real_)
 
   rows <- lapply(candidate_profiles, function(profile_id) {
     exec_row <- exec_tbl[as.character(exec_tbl$profile_id) == profile_id, , drop = FALSE]
@@ -373,6 +379,22 @@ evaluate_rank_candidates <- function(stage_report_root, candidate_profiles, gate
     total_fail_n <- safe_num(rank_row$total_fail_n, Inf)
     fail_reduction <- safe_num(rank_row$fail_reduction, -Inf)
     runtime_inflation <- safe_num(rank_row$median_runtime_inflation, Inf)
+    better_than_reference <- if (nzchar(reference_profile_id) && nrow(ref_row)) {
+      total_fail_n < reference_total_fail_n ||
+        (total_fail_n == reference_total_fail_n && sentinel_fail_n < reference_sentinel_fail_n) ||
+        (total_fail_n == reference_total_fail_n && sentinel_fail_n == reference_sentinel_fail_n &&
+           severe_fail_n < reference_severe_fail_n) ||
+        (total_fail_n == reference_total_fail_n && sentinel_fail_n == reference_sentinel_fail_n &&
+           severe_fail_n == reference_severe_fail_n && runtime_inflation < reference_runtime_inflation)
+    } else {
+      NA
+    }
+    not_worse_than_reference <- if (nzchar(reference_profile_id) && nrow(ref_row)) {
+      total_fail_n <= reference_total_fail_n &&
+        sentinel_fail_n <= reference_sentinel_fail_n
+    } else {
+      NA
+    }
 
     candidate_pass <- isTRUE(safe_lgl(exec_row$operational_pass, FALSE)) &&
       (is.null(gate_cfg$max_severe_fail_n) || severe_fail_n <= safe_num(gate_cfg$max_severe_fail_n, Inf)) &&
@@ -380,7 +402,9 @@ evaluate_rank_candidates <- function(stage_report_root, candidate_profiles, gate
       (is.null(gate_cfg$max_sentinel_fail_n) || sentinel_fail_n <= safe_num(gate_cfg$max_sentinel_fail_n, Inf)) &&
       (is.null(gate_cfg$max_runtime_inflation) || runtime_inflation <= safe_num(gate_cfg$max_runtime_inflation, Inf)) &&
       (is.null(gate_cfg$min_fail_reduction) || fail_reduction >= safe_num(gate_cfg$min_fail_reduction, -Inf)) &&
-      (is.null(gate_cfg$min_severe_improved_n) || severe_improved_n >= safe_num(gate_cfg$min_severe_improved_n, -Inf))
+      (is.null(gate_cfg$min_severe_improved_n) || severe_improved_n >= safe_num(gate_cfg$min_severe_improved_n, -Inf)) &&
+      (!isTRUE(safe_lgl(gate_cfg$require_not_worse_than_reference, FALSE)) || isTRUE(not_worse_than_reference)) &&
+      (!isTRUE(safe_lgl(gate_cfg$require_better_than_reference, FALSE)) || isTRUE(better_than_reference))
 
     data.frame(
       profile_id = profile_id,
@@ -392,6 +416,13 @@ evaluate_rank_candidates <- function(stage_report_root, candidate_profiles, gate
       total_fail_n = total_fail_n,
       fail_reduction = fail_reduction,
       median_runtime_inflation = runtime_inflation,
+      reference_profile_id = if (nzchar(reference_profile_id)) reference_profile_id else NA_character_,
+      reference_severe_fail_n = reference_severe_fail_n,
+      reference_sentinel_fail_n = reference_sentinel_fail_n,
+      reference_total_fail_n = reference_total_fail_n,
+      reference_runtime_inflation = reference_runtime_inflation,
+      better_than_reference = better_than_reference,
+      not_worse_than_reference = not_worse_than_reference,
       candidate_pass = candidate_pass,
       stringsAsFactors = FALSE
     )
@@ -400,6 +431,7 @@ evaluate_rank_candidates <- function(stage_report_root, candidate_profiles, gate
   df <- do.call(rbind, rows)
   df <- df[order(
     !as.logical(df$candidate_pass),
+    !(as.logical(df$better_than_reference) %in% TRUE),
     as.numeric(df$severe_fail_n),
     as.numeric(df$total_fail_n),
     as.numeric(df$sentinel_fail_n),

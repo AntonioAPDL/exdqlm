@@ -21,12 +21,16 @@ This tracker is the operational roadmap for the next validation wave.
 
 Current best read:
 
-- Phase 9 finished the replication-first audit cleanly and resolved the family ordering enough to reopen targeted local search;
-- the best replicated scientific signal is now the exact `R68` ridge-signal family;
-- the best runtime-balanced fallback is the exact `R65` ridge-chain family;
-- the exact `R61` family remains a useful runtime reference control, but it is no longer the clean active search lead;
-- the `R84` rhs-local family should now be treated as retired for lead-candidate purposes;
-- the next highest-value step is a ridge-led descendant search rooted at `R68` and `R65`, with `R61` kept only as a reference control and with staged full-6 plus stability confirmation.
+- Phase 10 completed cleanly and confirmed that reduced-screen wins are still not trustworthy enough for promotion;
+- the exact `R68` ridge-signal family remains the strongest branch-facing reference family;
+- the exact `R65` ridge-chain family remains the best runtime-balanced challenger family, but its best local Phase-10 win did not transfer to the full-6 harness;
+- the exact `R61` family remains a runtime reference control only;
+- the `R84` rhs-local family should remain retired for lead-candidate purposes;
+- the most useful new cross-worktree lesson is now explicit:
+  the QDESN branch is facing the same “local winner vs exact-harness parity” problem that the
+  long static-exAL work is solving with a reference-control transfer matrix;
+- the next highest-value step is therefore an exact full-6 transfer matrix rooted in `R68`,
+  with `R65` and `R61` kept as challenger and runtime controls and with rerun confirmation before promotion.
 
 Operational status:
 
@@ -40,26 +44,31 @@ Operational status:
 - Phase 6 completed cleanly and established `R44_r31_ridge_chain900_stepsout` as the practical carry-forward.
 - Phase 7 completed cleanly (`12/12` Stage-1 profiles, `4/4` stability reruns, `0` timeouts, `0` runner errors).
 - Phase 7 also showed that first-pass winners are not reliable by themselves; stability reruns materially changed the ordering.
-- the current working baseline is therefore the exact `R61/R44` configuration, not a new descendant profile.
+- the earlier `R61/R44` stable result remains an important historical milestone, but the current
+  branch-facing reference hierarchy is now `R68` scientific lead, `R65` balanced challenger, and
+  `R61` runtime control.
 - Phase 8 completed cleanly (`14/14` Stage-1 profiles, `2/2` full-6 confirmations, `0` timeouts, `0` runner errors).
 - Phase 8 showed that a focused local winner can improve the narrow screen and still fail the branch-facing full-6 confirmation step.
 - Phase 8 also showed that the exact `R61` reference family did not reproduce its earlier `2 FAIL` result in that rerun.
 - Phase 9 completed cleanly (`12/12` replicated full-6 profiles, `0` timeouts, `0` runner errors).
 - Phase 9 showed that `R68` is the strongest replicated family, `R65` is the best runtime-balanced fallback, `R61` is no longer a clean lead baseline, and `R84` does not hold up under replication.
-- the current branch state therefore supports a new ridge-led local search wave, but only around the replicated `R68/R65` neighborhood and with explicit stability confirmation.
+- Phase 10 completed cleanly (`15/15` Stage-1 profiles, `2/2` full-6 confirmations, `0` timeouts, `0` runner errors).
+- Phase 10 showed that the focused local `R65` winner did not survive the exact full-6 confirmation step.
+- Phase 10 also showed that exact `R68` remains stronger than that selected `R65` challenger on the real branch-facing harness.
+- the current branch state therefore supports a broader exact full-6 search wave, but not another reduced-screen-first program.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
-2. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
-3. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
-4. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
-5. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
-6. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
-7. `docs/REPORT__qdesn_validation_phase6_overnight_fullsix_screen_20260401.md`
-8. `docs/PLAN__qdesn_validation_phase7_r44_refinement_20260401.md`
+1. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+2. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
+3. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+4. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+5. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+6. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+7. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+8. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
 9. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
 10. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
 11. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
@@ -117,25 +126,24 @@ Core code paths to inspect before changing anything:
   `ESS` fell slightly (`6.25 -> 5.49`) and `half_drift` worsened materially
   (`0.53 -> 1.08`), despite a large `Geweke` improvement (`10.74 -> 0.87`).
 - Phase 6 established `R44_r31_ridge_chain900_stepsout` as the practical carry-forward profile.
-- Phase 7 stability confirmation showed that the exact `R44` settings reran better than the Stage-1 leaders.
-- The new stable branch baseline is `R61_r44_anchor`, not a Phase-7 descendant.
-- Under that stable baseline, the remaining fail set is only:
-  - `dlm_constV_smallW @ tau=0.95 exal rhs_ns`
-  - `dlm_constV_smallW @ tau=0.95 exal ridge`
-- Under that same baseline, the previous broad hard ridge cluster is no longer the main branch blocker.
-- The remaining `rhs_ns` fail is now a narrow rhs-side `Geweke + half_drift` problem, not a core ESS problem.
-- The remaining ridge fail is now a narrow `ESS + ACF + half_drift` problem with acceptable `Geweke`.
+- Phase 7 stability confirmation showed that the exact `R44` settings reran better than the Stage-1 leaders and temporarily localized the remaining fail set under `R61_r44_anchor`.
 - Phase 7 also proved that stability reruns materially improve decision quality and should remain part of the repair program.
-- Phase 8 proved that a focused local winner can improve the narrow target set and still fail the full-6 confirmation step.
+- Phase 8 then showed that a focused local winner can improve the narrow target set and still fail the full-6 confirmation step.
 - Phase 8 also showed that the exact `R61` reference family did not cleanly reproduce its earlier best result.
-- Phase 9 resolved that family-level reproducibility question enough to reopen local search.
+- Phase 9 resolved that family-level reproducibility question enough to reopen local search and reorder the surviving families on replicated evidence.
 - `R68` is now the best replicated scientific lead:
   median `total_fail_n = 4`, median `sentinel_fail_n = 0`, and one exact replicate reached `2 FAIL / 0 sentinel FAIL`.
 - `R65` is the best runtime-balanced ridge fallback:
   median `total_fail_n = 4`, median `sentinel_fail_n = 0`, median runtime inflation `0.878`.
 - `R61` remains the cheapest useful reference family, but it no longer deserves to be treated as the lead search baseline because its median `sentinel_fail_n = 1`.
 - `R84` is now a retired lead family: median `total_fail_n = 5`, median `sentinel_fail_n = 2`.
-- The current branch-facing question is no longer “which family survives replication,” but rather “which ridge-led descendants of `R68` and `R65` can hold their replicated signal while reducing the remaining FAIL roots.”
+- Phase 10 then showed that the focused local `R65` winner did not survive exact full-6 confirmation and that the exact `R68` control remained stronger on the real branch-facing harness.
+- Under the exact Phase-10 `R68` rerun, the residual FAIL roots are:
+  - `dlm_constV_bigW @ tau=0.05 exal ridge`
+  - `dlm_constV_smallW @ tau=0.50 exal rhs_ns`
+  - `dlm_constV_smallW @ tau=0.95 exal rhs_ns`
+  - `dlm_constV_smallW @ tau=0.95 exal ridge`
+- The current branch-facing question is no longer “which family survives replication,” but rather “which exact full-6 descendants of `R68` and `R65` can beat the reference without losing transfer stability.”
 
 ### Main takeaways
 
@@ -146,9 +154,9 @@ Core code paths to inspect before changing anything:
 - The hard benchmark root is `dlm_constV_bigW @ tau=0.05 exal ridge`.
 - Broader reruns are not justified until a narrow micro-pilot winner exists.
 - The next broad wave should optimize for `zero FAIL`, not universal `PASS`.
-- The current best stable baseline is `R61_r44_anchor`.
-- The search space is now small enough that broad full-6 screening is wasteful as a first stage.
-- The next overnight program should focus on the two remaining `smallW @ tau=0.95 exal` fail roots and protect the current `WARN` guard rails.
+- The current branch-facing reference is the exact `R68` family, with exact `R65` as the balanced challenger and exact `R61` as the runtime control.
+- The search space is now small enough that broad family reopening is wasteful, but broad exact full-6 search inside the `R68/R65/R61` neighborhood is justified.
+- The next overnight program should use the fixed 6-root harness from Stage 1, not a reduced-screen-first gate.
 - Full-6 confirmation has now become more important than local Stage-1 wins.
 - The next promoted winner should be chosen from replicated family-level evidence, not a single profile instance.
 
@@ -873,6 +881,76 @@ What Phase 10 explicitly avoids:
 - heavy ridge widening (`R67`-style) and other descendants already shown to be weak;
 - spending full-6 confirmation compute on every broad candidate before the targeted screen filters them.
 
+## 5U) Phase 10 Outcome
+
+Run:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+- result report:
+  `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+- manifest:
+  `config/validation/qdesn_validation_phase10_replicated_ridge_resolution_manifest.yaml`
+- run tag:
+  `qdesn-phase10-ridge-resolution-20260401a__git-227e125`
+
+Outcome:
+
+- the full Phase-10 program completed cleanly:
+  `15/15` Stage-1 profiles, `2/2` Stage-2 profiles, `0` timeouts, `0` runner errors;
+- no completed profile introduced finite, domain, collapse, or unhealthy regressions;
+- Stage 1 selected only `R201_r65_balanced_control`;
+- Stage 2 then showed that the exact `R68` anchor still outperformed that selected `R65` local winner on the real full-6 harness;
+- no candidate advanced out of Stage 2;
+- Phase 10 therefore did not produce a promotable new baseline.
+
+Phase-10 decision-quality read:
+
+| view | profile | total_fail_n | sentinel_fail_n | runtime_inflation | read |
+|---|---|---:|---:|---:|---|
+| Stage-1 winner | `R201_r65_balanced_control` | `3` | `0` | `0.904` | best reduced-screen local result |
+| strongest severe improver | `R222_r68_pass1_chain1000` | `3` | `1` | `1.079` | strong ridge-local science, but sentinel blocked it |
+| Stage-2 exact reference | `R200_r68_replicated_anchor` | `4` | `1` | `1.072` | better full-6 result |
+| Stage-2 selected survivor | `R201_r65_balanced_control` | `5` | `1` | `0.853` | local win did not transfer |
+
+Interpretation:
+
+- exact `R68` remains the strongest branch-facing reference family;
+- exact `R65` remains worth keeping as a challenger control, but not as a promoted replacement;
+- the main Phase-10 lesson is now the same as the one emerging in the long static-exAL work:
+  reduced-screen winners still need explicit exact-harness transfer proof before promotion.
+
+## 5V) Phase 11 Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
+- result report:
+  `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+- manifest:
+  `config/validation/qdesn_validation_phase11_exact_fullsix_matrix_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase11_exact_fullsix_matrix.R`
+
+Design choice:
+
+- stop using reduced screens as the first promotion gate;
+- keep exact `R68` as the scientific reference anchor in every stage;
+- keep exact `R65` as the balanced challenger control;
+- keep exact `R61` as the runtime reference control;
+- search only close exact-harness descendants around those three surviving families;
+- run the real fixed 6-root harness from Stage 1 onward;
+- require challengers to be not worse than the exact `R68` reference before they advance;
+- rerun survivors before any promotion decision.
+
+What Phase 11 explicitly avoids:
+
+- reopening dead `R84`, QR, conditioning, bridge-only, or heavy-widening families;
+- trusting a reduced root subset as a transfer proxy;
+- promoting a new winner from a single exact full-6 run;
+- spending overnight compute on challengers that do not at least hold the line against the exact `R68` control.
+
 ## 6) Candidate Improvement Areas
 
 ### Area A: conditioning / preconditioning family
@@ -1153,6 +1231,8 @@ Every future candidate should satisfy these standards:
 
 ### Main findings and takeaways
 
+- `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+- `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
 - `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
 - `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
 - `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
@@ -1188,6 +1268,8 @@ Every future candidate should satisfy these standards:
 ### Operational roadmap
 
 - `docs/TRACK__qdesn_validation_repair_20260331.md`
+- `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
+- `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
 - `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
 - `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
 - `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
@@ -1198,17 +1280,18 @@ Every future candidate should satisfy these standards:
 
 ## 12) Current Recommended Next Move
 
-Do not reopen broad family searching outside the replicated `R68/R65` neighborhood.
+Do not reopen broad family searching outside the replicated `R68/R65/R61` neighborhood.
 
 The next highest-signal step is:
 
-1. use exact `R68` as the active scientific search anchor;
-2. keep exact `R65` as the balanced ridge fallback control;
+1. use exact `R68` as the scientific reference anchor in every stage;
+2. keep exact `R65` as the balanced challenger control;
 3. keep exact `R61` as the runtime reference control;
-4. run the staged replicated-ridge resolution program defined in
-   `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`;
+4. run the exact full-6 transfer matrix defined in
+   `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`;
 5. search only the remaining live space:
-   - `R68` ridge-local descendants,
-   - `R68` plus mild rhs-guard descendants,
-   - `R65` balanced descendants;
-6. require full fixed 6-root confirmation and a final exact rerun before carrying any new winner forward.
+   - `R68` exact-neighborhood descendants,
+   - `R65` exact-neighborhood descendants,
+   - no reopened dead families;
+6. require challengers to be not worse than the exact `R68` reference before they advance;
+7. rerun selected survivors before carrying any new winner forward.
