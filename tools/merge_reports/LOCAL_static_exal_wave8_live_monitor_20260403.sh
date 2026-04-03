@@ -82,6 +82,21 @@ print(tab, row.names=FALSE)
 RS
 }
 
+latest_row_log_heartbeat() {
+  local latest_line
+  latest_line="$(find "$out_dir" -maxdepth 1 -type f -name 'LOCAL_static_exal_wave8_*_resume.log' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 || true)"
+  if [[ -z "$latest_line" ]]; then
+    echo "NA|NA"
+    return 0
+  fi
+  local latest_epoch latest_path now_epoch age_sec
+  latest_epoch="${latest_line%% *}"
+  latest_path="${latest_line#* }"
+  now_epoch="$(date +%s)"
+  age_sec=$(( now_epoch - ${latest_epoch%.*} ))
+  echo "${age_sec}|${latest_path}"
+}
+
 prev_done="NA"
 stagnant=0
 check=0
@@ -99,8 +114,11 @@ while true; do
   if [[ -z "$runner_count" ]]; then
     runner_count="0"
   fi
+  heartbeat="$(latest_row_log_heartbeat)"
+  latest_row_log_age_sec="${heartbeat%%|*}"
+  latest_row_log_path="${heartbeat#*|}"
 
-  echo "tmux_session=${session_state} runner_processes=${runner_count}"
+  echo "tmux_session=${session_state} runner_processes=${runner_count} latest_row_log_age_sec=${latest_row_log_age_sec} latest_row_log_path=${latest_row_log_path}"
 
   output="$(snapshot)"
   echo "$output"
@@ -126,7 +144,15 @@ while true; do
   fi
 
   if [[ "$stagnant" -ge 3 ]]; then
-    echo "Warning: no progress detected for 3 consecutive checks."
+    if [[ "${runner_count:-0}" == "0" ]]; then
+      echo "Warning: no progress detected for 3 consecutive checks and no runner processes are active."
+    elif [[ "$latest_row_log_age_sec" == "NA" ]]; then
+      echo "Warning: no progress detected for 3 consecutive checks and no row-log heartbeat is available."
+    elif [[ "$latest_row_log_age_sec" -gt $(( interval * 2 )) ]]; then
+      echo "Warning: no progress detected for 3 consecutive checks and active row logs have been quiet for ${latest_row_log_age_sec}s."
+    else
+      echo "Notice: summary counts are unchanged, but active row logs were updated ${latest_row_log_age_sec}s ago; long rows still appear to be progressing."
+    fi
   fi
 
   echo ""
