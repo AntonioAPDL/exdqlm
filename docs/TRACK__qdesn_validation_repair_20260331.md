@@ -1435,8 +1435,20 @@ Checklist:
 - [x] define a 3-stage exact full-6 refinement matrix around `R412 + R421 + R402`
 - [x] keep the candidate space inside the `R412/R400/R402/R421` neighborhood
 - [x] run prepare-only validation on the Phase-13 manifest
-- [ ] launch the overnight Phase-13 program
-- [ ] update the tracker with the first Phase-13 health/result checkpoint
+- [x] launch the overnight Phase-13 program
+- [x] update the tracker with the first Phase-13 health/result checkpoint
+
+Current live run:
+
+- run tag:
+  `qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f`
+- current stage:
+  `S1_exact_fullsix_refinement`
+- current anchor:
+  `R500_r412_provisional_anchor`
+- first health read:
+  stage workspace exists, stage runner state is live, and the anchor campaign has launched with
+  root-level workers active.
 
 ## 8) Stop Conditions
 
