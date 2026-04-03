@@ -95,7 +95,10 @@ while true; do
   if tmux has-session -t "$session" 2>/dev/null; then
     session_state="RUNNING"
   fi
-  runner_count="$(pgrep -af 'LOCAL_static_exal_case_runner_20260323.R' | wc -l | tr -d ' ')"
+  runner_count="$( { pgrep -af 'LOCAL_static_exal_case_runner_20260323.R' 2>/dev/null || true; } | wc -l | tr -d ' ' )"
+  if [[ -z "$runner_count" ]]; then
+    runner_count="0"
+  fi
 
   echo "tmux_session=${session_state} runner_processes=${runner_count}"
 

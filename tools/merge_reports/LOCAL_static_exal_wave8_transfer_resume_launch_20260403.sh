@@ -60,9 +60,27 @@ fi
 
 manifest="$out_dir/LOCAL_static_exal_wave8_${stage}_resume_manifest_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.csv"
 fail_log="$out_dir/LOCAL_static_exal_wave8_${stage}_resume_failures_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.log"
-echo "ts,stage,row_id,run_root,root_kind,family,tt,tau_label,variant_tag,gamma_substeps,p_global_eta_jump,global_eta_jump_scale,seed,log_path" > "$manifest"
+manifest_lock="${manifest}.lock"
+fail_log_lock="${fail_log}.lock"
+echo "ts,stage,row_id,run_root,root_kind,family,tt,tau_label,variant_tag,gamma_substeps,p_global_eta_jump,global_eta_jump_scale,seed,runner_rc,log_path" > "$manifest"
 
-export runner out_dir n_burn n_mcmc thin trace_every progress_every mh_proposal mh_adapt slice_width slice_max_steps init_mode force keep_going fail_log
+export runner out_dir n_burn n_mcmc thin trace_every progress_every mh_proposal mh_adapt slice_width slice_max_steps init_mode force keep_going fail_log manifest manifest_lock fail_log_lock
+
+append_manifest() {
+  local line="$1"
+  {
+    flock 9
+    printf '%s\n' "$line" >> "$manifest"
+  } 9>>"$manifest_lock"
+}
+
+append_fail_log() {
+  local line="$1"
+  {
+    flock 9
+    printf '%s\n' "$line" >> "$fail_log"
+  } 9>>"$fail_log_lock"
+}
 
 run_one() {
   local stage="$1"
@@ -114,17 +132,20 @@ run_one() {
     "${cmd[@]}" > "$log_path" 2>&1 || rc=$?
 
   if [[ "$rc" -ne 0 ]]; then
-    echo "$(date '+%Y-%m-%d %H:%M:%S'),${stage},${row_id},${variant_tag},rc=${rc},log=${log_path}" >> "$fail_log"
+    append_fail_log "$(date '+%Y-%m-%d %H:%M:%S'),${stage},${row_id},${variant_tag},rc=${rc},log=${log_path}"
     if [[ "$keep_going" == "0" ]]; then
+      append_manifest "$(date '+%Y-%m-%d %H:%M:%S'),${stage},${row_id},${run_root},${root_kind},${family},${tt},${tau_label},${variant_tag},${gamma_substeps},${p_global_eta_jump},${global_eta_jump_scale},${seed},${rc},${log_path}"
       return "$rc"
     fi
-    rc=0
   fi
 
-  echo "$(date '+%Y-%m-%d %H:%M:%S'),${stage},${row_id},${run_root},${root_kind},${family},${tt},${tau_label},${variant_tag},${gamma_substeps},${p_global_eta_jump},${global_eta_jump_scale},${seed},${log_path}" >> "$manifest"
+  append_manifest "$(date '+%Y-%m-%d %H:%M:%S'),${stage},${row_id},${run_root},${root_kind},${family},${tt},${tau_label},${variant_tag},${gamma_substeps},${p_global_eta_jump},${global_eta_jump_scale},${seed},${rc},${log_path}"
+  if [[ "$keep_going" == "1" ]]; then
+    rc=0
+  fi
   return "$rc"
 }
-export -f run_one
+export -f run_one append_manifest append_fail_log
 
 set +e
 xargs -P "$parallel_jobs" -n 12 bash -c 'run_one "$@"' _ < "$rows_tsv"

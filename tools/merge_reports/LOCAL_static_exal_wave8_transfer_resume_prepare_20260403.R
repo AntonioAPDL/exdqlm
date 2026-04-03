@@ -32,6 +32,11 @@ out_tsv <- as.character(args$out %||% file.path(out_dir, sprintf("LOCAL_static_e
 
 if (!file.exists(schedule_path)) stop(sprintf("schedule not found: %s", schedule_path))
 
+dir.create(dirname(out_tsv), recursive = TRUE, showWarnings = FALSE)
+if (file.exists(out_tsv)) {
+  invisible(file.remove(out_tsv))
+}
+
 sched <- utils::read.csv(schedule_path, stringsAsFactors = FALSE, check.names = FALSE)
 if (!nrow(sched)) stop("schedule is empty")
 
@@ -39,6 +44,7 @@ sched <- sched[sched$stage == stage, , drop = FALSE]
 if (!nrow(sched)) stop(sprintf("no rows in schedule for stage %s", stage))
 
 sched$case_id <- case_id_from_root(sched$run_root, "exal")
+sched$sched_key <- paste(sched$case_id, sched$variant_tag, sep = "\r")
 
 summary_files <- Sys.glob(file.path(out_dir, "LOCAL_static_case_health_summary_wave8_transfer_*.csv"))
 summary_list <- lapply(summary_files, function(p) {
@@ -53,24 +59,22 @@ if (!nrow(summ)) {
   sched$gate_overall <- NA_character_
 } else {
   summ <- summ[summ$variant_tag %in% unique(sched$variant_tag), , drop = FALSE]
-  merged <- merge(
-    sched[, c("case_id", "variant_tag", "row_id")],
-    summ[, c("case_id", "variant_tag", "gate_overall")],
-    by = c("case_id", "variant_tag"),
-    all.x = TRUE
-  )
-  sched$gate_overall <- merged$gate_overall
+  summ$sched_key <- paste(summ$case_id, summ$variant_tag, sep = "\r")
+  # Preserve the exact schedule row identity; merge() reorders and can
+  # misassign gate status back onto the schedule.
+  key_index <- match(sched$sched_key, summ$sched_key)
+  sched$gate_overall <- summ$gate_overall[key_index]
 }
 
 missing <- sched[is.na(sched$gate_overall) | !nzchar(sched$gate_overall), , drop = FALSE]
 if (!nrow(missing)) {
+  invisible(file.create(out_tsv))
   cat(sprintf("no missing rows for stage %s\n", stage))
   quit(status = 0)
 }
 
 missing <- missing[order(missing$candidate_id, missing$row_id), , drop = FALSE]
 
-dir.create(dirname(out_tsv), recursive = TRUE, showWarnings = FALSE)
 utils::write.table(
   missing[, c(
     "stage","row_id","run_root","root_kind","family","tt","tau_label","variant_tag",
