@@ -128,3 +128,13 @@ Wave-8 is a disciplined, exact-runner transfer program focused only on the `F080
 1. keep `F080_sub2_s100` as the best exact-runner baseline so far
 2. do not relaunch the full `72`-row static rerun until wave-8 produces a `0 FAIL` transfer winner
 3. if wave-8 still fails to yield `0 FAIL`, we will pause and re-evaluate the acceptance rule with the stakeholder group
+
+## Status Update (2026-04-03)
+
+- wave-8 launcher and scoring scripts are now implemented on the validation
+  branch:
+  - `tools/merge_reports/LOCAL_static_exal_wave8_transfer_prepare_20260403.R`
+  - `tools/merge_reports/LOCAL_static_exal_wave8_transfer_score_20260403.R`
+  - `tools/merge_reports/LOCAL_static_exal_wave8_transfer_launch_20260403.sh`
+- wave-8 prepare-only validation should be run before launch to confirm the
+  schedule CSVs are generated as expected
