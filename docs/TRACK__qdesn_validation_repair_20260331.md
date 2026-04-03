@@ -1318,7 +1318,7 @@ Checklist:
 - [x] define a 3-stage exact full-6 stabilization matrix
 - [x] keep the candidate space inside the `R312/R68/R65/R61` neighborhood
 - [x] run prepare-only validation on the Phase-12 manifest
-- [ ] launch the overnight Phase-12 program
+- [x] launch the overnight Phase-12 program
 - [ ] update the tracker with the Phase-12 outcome
 
 ## 8) Stop Conditions
