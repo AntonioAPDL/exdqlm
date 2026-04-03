@@ -595,7 +595,7 @@ check_ts = function(dat){
   exps0 = NULL,
   max_iter = 200L
 ) {
-  y <- as.numeric(y)
+  # y <- as.numeric(y)
   TT <- length(y)
   p <- length(model$m0)
 
