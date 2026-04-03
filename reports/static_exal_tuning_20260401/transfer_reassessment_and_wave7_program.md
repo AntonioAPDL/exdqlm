@@ -7,6 +7,15 @@ Current tracked context:
 - `reports/static_exal_tuning_20260331/wave4_finish_and_wave5_overnight_plan.md`
 - `reports/static_exal_tuning_20260401/wave5_baseline_and_wave6_program.md`
 - `reports/static_exal_tuning_20260401/c060_focus_rerun_and_wave6_closeout.md`
+- `reports/static_exal_tuning_20260403/wave7_closeout_and_wave8_program.md`
+
+## Status Note
+
+This document is now a historical planning record for the wave-7 transfer program.
+
+Wave-7 completed, and the current baseline and next-stage plan are now recorded in:
+
+- `reports/static_exal_tuning_20260403/wave7_closeout_and_wave8_program.md`
 
 ## Current Validation State
 
