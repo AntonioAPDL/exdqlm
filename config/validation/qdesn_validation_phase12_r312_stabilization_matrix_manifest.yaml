@@ -1,0 +1,603 @@
+meta:
+  name: qdesn_validation_phase12_r312_stabilization_matrix_20260403
+  display_name: QDESN Phase 12 R312 Stabilization Matrix
+  purpose: >
+    Three-stage exact full-6 stabilization wave rooted in the Phase-11 provisional scientific lead
+    R312. Stage 1 runs a broad but disciplined exact matrix around R312, Stage 2 reruns the best
+    exact survivors against the same full-6 harness, and Stage 3 requires zero sentinel FAIL before
+    any promotion decision.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_phase12_r312_stabilization_matrix
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_phase12_r312_stabilization_matrix
+
+controls:
+  anchor_profile_id: R400_r312_provisional_anchor
+  resume_completed_stages: true
+  create_plots: false
+  profile_verbose: true
+  campaign_workers: 6
+  threads_per_worker: 1
+  profile_timeout_minutes: 240
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 4
+  max_error_profiles: 4
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_controls
+    description: Exact full-6 scientific, balanced, and runtime controls.
+  - id: B1_r312_ridge_local
+    description: Mild ridge-local descendants around the provisional R312 lead.
+  - id: B2_r312_rhs_local
+    description: Mild rhs-local descendants around the provisional R312 lead.
+  - id: B3_r312_combined
+    description: Narrow combined descendants that pair one ridge and one rhs stabilization idea.
+  - id: B4_r301_hedge
+    description: One clean balanced hedge around the sentinel-friendly R301 control.
+
+shared_patches:
+  logsigma: &logsigma
+    use_log_sigma: true
+    sigma_eta_bounds: [-10, 10]
+
+  width_adapt_350: &width_adapt_350
+    enabled: true
+    warmup_iters: 350
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_360: &width_adapt_360
+    enabled: true
+    warmup_iters: 360
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_400: &width_adapt_400
+    enabled: true
+    warmup_iters: 400
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  rhs_slice_base: &rhs_slice_base
+    core_update_mode: sigma_then_gamma
+    width_gamma: 0.42
+    width_sigma: 0.32
+    width_rhs_lambda: 0.18
+    width_rhs_tau: 0.12
+    width_rhs_c2: 0.08
+    width_rhs_tau_c2_block: 0.26
+    rhs_global_block_update: transformed_tau_c2_block
+    rhs_transformed_block_passes: 4
+    width_rhs_tau_c2_transformed_z1: 0.22
+    width_rhs_tau_c2_transformed_z2: 0.18
+    core_extra_passes: 2
+    max_steps_out: 70
+    max_shrink: 260
+    max_steps_out_sigma: 130
+    max_shrink_sigma: 360
+
+  rhs_slice_blockpass5: &rhs_slice_blockpass5
+    core_update_mode: sigma_then_gamma
+    width_gamma: 0.42
+    width_sigma: 0.32
+    width_rhs_lambda: 0.18
+    width_rhs_tau: 0.12
+    width_rhs_c2: 0.08
+    width_rhs_tau_c2_block: 0.24
+    rhs_global_block_update: transformed_tau_c2_block
+    rhs_transformed_block_passes: 5
+    width_rhs_tau_c2_transformed_z1: 0.20
+    width_rhs_tau_c2_transformed_z2: 0.16
+    core_extra_passes: 2
+    max_steps_out: 70
+    max_shrink: 260
+    max_steps_out_sigma: 130
+    max_shrink_sigma: 360
+
+  rhs_base: &rhs_base
+    n_burn: 500
+    n_mcmc: 1000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 80
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_350
+    slice: *rhs_slice_base
+
+  rhs_freeze90: &rhs_freeze90
+    n_burn: 525
+    n_mcmc: 1000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 90
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_360
+    slice: *rhs_slice_base
+
+  rhs_freeze100_chain1100: &rhs_freeze100_chain1100
+    n_burn: 550
+    n_mcmc: 1100
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 100
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_400
+    slice: *rhs_slice_base
+
+  rhs_blockpass5: &rhs_blockpass5
+    n_burn: 500
+    n_mcmc: 1000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 80
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_350
+    slice: *rhs_slice_blockpass5
+
+  rhs_freeze100_blockpass5: &rhs_freeze100_blockpass5
+    n_burn: 550
+    n_mcmc: 1000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 100
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_400
+    slice: *rhs_slice_blockpass5
+
+  r61_ridge: &r61_ridge
+    n_burn: 450
+    n_mcmc: 900
+    progress_every: 75
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.55
+      width_sigma: 0.22
+      core_extra_passes: 0
+      max_steps_out: 65
+      max_shrink: 260
+      max_steps_out_sigma: 140
+      max_shrink_sigma: 380
+
+  r68_ridge: &r68_ridge
+    n_burn: 450
+    n_mcmc: 900
+    progress_every: 75
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.55
+      width_sigma: 0.22
+      core_extra_passes: 1
+      max_steps_out: 65
+      max_shrink: 260
+      max_steps_out_sigma: 140
+      max_shrink_sigma: 380
+
+  r65_ridge: &r65_ridge
+    n_burn: 500
+    n_mcmc: 1200
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.55
+      width_sigma: 0.22
+      core_extra_passes: 0
+      max_steps_out: 70
+      max_shrink: 280
+      max_steps_out_sigma: 150
+      max_shrink_sigma: 420
+
+  r312_ridge: &r312_ridge
+    n_burn: 500
+    n_mcmc: 950
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.55
+      width_sigma: 0.22
+      core_extra_passes: 1
+      max_steps_out: 65
+      max_shrink: 260
+      max_steps_out_sigma: 140
+      max_shrink_sigma: 380
+
+  r312_ridge_steps70: &r312_ridge_steps70
+    n_burn: 500
+    n_mcmc: 950
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.55
+      width_sigma: 0.22
+      core_extra_passes: 1
+      max_steps_out: 70
+      max_shrink: 280
+      max_steps_out_sigma: 150
+      max_shrink_sigma: 400
+
+  r312_ridge_softsigma: &r312_ridge_softsigma
+    n_burn: 500
+    n_mcmc: 950
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.53
+      width_sigma: 0.20
+      core_extra_passes: 1
+      max_steps_out: 65
+      max_shrink: 260
+      max_steps_out_sigma: 140
+      max_shrink_sigma: 380
+
+  r312_ridge_softsigma_steps70: &r312_ridge_softsigma_steps70
+    n_burn: 500
+    n_mcmc: 950
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.53
+      width_sigma: 0.20
+      core_extra_passes: 1
+      max_steps_out: 70
+      max_shrink: 280
+      max_steps_out_sigma: 150
+      max_shrink_sigma: 400
+
+  r312_ridge_chain975: &r312_ridge_chain975
+    n_burn: 500
+    n_mcmc: 975
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.55
+      width_sigma: 0.22
+      core_extra_passes: 1
+      max_steps_out: 65
+      max_shrink: 260
+      max_steps_out_sigma: 140
+      max_shrink_sigma: 380
+
+  r301_pass1_chain1100_ridge: &r301_pass1_chain1100_ridge
+    n_burn: 500
+    n_mcmc: 1100
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.55
+      width_sigma: 0.22
+      core_extra_passes: 1
+      max_steps_out: 70
+      max_shrink: 280
+      max_steps_out_sigma: 150
+      max_shrink_sigma: 420
+
+  r61_patch: &r61_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r61_ridge
+            rhs_ns: *rhs_base
+
+  r68_patch: &r68_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r68_ridge
+            rhs_ns: *rhs_base
+
+  r65_patch: &r65_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r65_ridge
+            rhs_ns: *rhs_base
+
+  r312_patch: &r312_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge
+            rhs_ns: *rhs_base
+
+  r312_steps70_patch: &r312_steps70_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge_steps70
+            rhs_ns: *rhs_base
+
+  r312_softsigma_patch: &r312_softsigma_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge_softsigma
+            rhs_ns: *rhs_base
+
+  r312_softsigma_steps70_patch: &r312_softsigma_steps70_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge_softsigma_steps70
+            rhs_ns: *rhs_base
+
+  r312_chain975_patch: &r312_chain975_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge_chain975
+            rhs_ns: *rhs_base
+
+  r312_rhsfreeze90_patch: &r312_rhsfreeze90_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge
+            rhs_ns: *rhs_freeze90
+
+  r312_rhsfreeze100_chain1100_patch: &r312_rhsfreeze100_chain1100_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge
+            rhs_ns: *rhs_freeze100_chain1100
+
+  r312_blockpass5_patch: &r312_blockpass5_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge
+            rhs_ns: *rhs_blockpass5
+
+  r312_rhsfreeze100_blockpass5_patch: &r312_rhsfreeze100_blockpass5_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge
+            rhs_ns: *rhs_freeze100_blockpass5
+
+  r312_steps70_rhsfreeze90_patch: &r312_steps70_rhsfreeze90_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge_steps70
+            rhs_ns: *rhs_freeze90
+
+  r312_steps70_blockpass5_patch: &r312_steps70_blockpass5_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r312_ridge_steps70
+            rhs_ns: *rhs_blockpass5
+
+  r301_pass1_chain1100_patch: &r301_pass1_chain1100_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms: *logsigma
+          prior_overrides:
+            ridge: *r301_pass1_chain1100_ridge
+            rhs_ns: *rhs_base
+
+profiles:
+  - id: R400_r312_provisional_anchor
+    batch: B0_controls
+    family: r312_provisional_anchor
+    description: Phase-11 provisional scientific lead from exact rerun confirmation.
+    patch: *r312_patch
+
+  - id: R401_r68_exact_anchor
+    batch: B0_controls
+    family: r68_exact_anchor
+    description: Legacy exact R68 reference retained for direct comparison.
+    patch: *r68_patch
+
+  - id: R402_r65_balanced_control
+    batch: B0_controls
+    family: r65_balanced_control
+    description: Balanced clean control retained for sentinel discipline.
+    patch: *r65_patch
+
+  - id: R403_r61_runtime_reference
+    batch: B0_controls
+    family: r61_runtime_reference
+    description: Runtime reference control retained for cost discipline.
+    patch: *r61_patch
+
+  - id: R410_r312_steps70
+    batch: B1_r312_ridge_local
+    family: r312_steps70
+    description: Modest ridge step-out expansion around the R312 lead.
+    patch: *r312_steps70_patch
+
+  - id: R411_r312_softsigma
+    batch: B1_r312_ridge_local
+    family: r312_softsigma
+    description: Slightly softer ridge movement around the R312 lead.
+    patch: *r312_softsigma_patch
+
+  - id: R412_r312_softsigma_steps70
+    batch: B1_r312_ridge_local
+    family: r312_softsigma_steps70
+    description: Softer ridge movement paired with modest step-out expansion.
+    patch: *r312_softsigma_steps70_patch
+
+  - id: R413_r312_chain975
+    batch: B1_r312_ridge_local
+    family: r312_chain975
+    description: Slightly longer ridge keep-size around the R312 sweet spot.
+    patch: *r312_chain975_patch
+
+  - id: R420_r312_rhsfreeze90
+    batch: B2_r312_rhs_local
+    family: r312_rhsfreeze90
+    description: Mild rhs drift stabilization with slightly deeper tau freeze.
+    patch: *r312_rhsfreeze90_patch
+
+  - id: R421_r312_rhsfreeze100_chain1100
+    batch: B2_r312_rhs_local
+    family: r312_rhsfreeze100_chain1100
+    description: Deeper tau freeze plus moderate rhs keep-size increase.
+    patch: *r312_rhsfreeze100_chain1100_patch
+
+  - id: R422_r312_blockpass5
+    batch: B2_r312_rhs_local
+    family: r312_blockpass5
+    description: One extra transformed rhs block refresh pass without softblock replay.
+    patch: *r312_blockpass5_patch
+
+  - id: R423_r312_rhsfreeze100_blockpass5
+    batch: B2_r312_rhs_local
+    family: r312_rhsfreeze100_blockpass5
+    description: Combined rhs drift and rhs mixing support around the R312 lead.
+    patch: *r312_rhsfreeze100_blockpass5_patch
+
+  - id: R430_r312_steps70_rhsfreeze90
+    batch: B3_r312_combined
+    family: r312_steps70_rhsfreeze90
+    description: Ridge drift support plus mild rhs drift support.
+    patch: *r312_steps70_rhsfreeze90_patch
+
+  - id: R431_r312_steps70_blockpass5
+    batch: B3_r312_combined
+    family: r312_steps70_blockpass5
+    description: Ridge drift support plus rhs mixing support.
+    patch: *r312_steps70_blockpass5_patch
+
+  - id: R440_r301_pass1_chain1100
+    batch: B4_r301_hedge
+    family: r301_pass1_chain1100
+    description: Narrow balanced hedge around the sentinel-clean R301 control.
+    patch: *r301_pass1_chain1100_patch
+
+stages:
+  - id: S1_exact_fullsix_stabilization
+    description: Broad exact full-6 stabilization matrix around the provisional R312 lead.
+    profile_source: all_candidates
+    selector:
+      mode: explicit_roots
+      roots:
+        - scenario: dlm_ar1V
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_bigW
+          tau: 0.05
+          likelihood_family: exal
+          beta_prior_type: ridge
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_bigW
+          tau: 0.95
+          likelihood_family: al
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.50
+          likelihood_family: exal
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: ridge
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+    advance:
+      type: rank_filter_top_n
+      top_n: 6
+      max_total_fail_n: 4
+      max_sentinel_fail_n: 1
+      max_runtime_inflation: 1.25
+      min_fail_reduction: 0.333
+      min_severe_improved_n: 1
+      reference_profile_id: R400_r312_provisional_anchor
+      require_not_worse_than_reference: true
+
+  - id: S2_rerun_confirmation
+    description: Exact rerun confirmation of the strongest Stage-1 survivors against the same full-6 harness.
+    profile_source: selected_from_previous
+    selector:
+      mode: all
+    advance:
+      type: rank_filter_top_n
+      top_n: 4
+      max_total_fail_n: 3
+      max_sentinel_fail_n: 1
+      max_runtime_inflation: 1.25
+      min_fail_reduction: 0.500
+      min_severe_improved_n: 1
+      reference_profile_id: R400_r312_provisional_anchor
+      require_better_than_reference: true
+
+  - id: S3_sentinel_confirmation
+    description: Final exact rerun of the confirmation survivors with a zero-sentinel requirement.
+    profile_source: selected_from_previous
+    selector:
+      mode: all
+    advance:
+      type: rank_filter_top_n
+      top_n: 2
+      max_total_fail_n: 3
+      max_sentinel_fail_n: 0
+      max_runtime_inflation: 1.25
+      min_fail_reduction: 0.500
+      min_severe_improved_n: 1
+      reference_profile_id: R400_r312_provisional_anchor
+      require_better_than_reference: true
