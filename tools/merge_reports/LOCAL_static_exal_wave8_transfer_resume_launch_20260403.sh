@@ -9,6 +9,7 @@ runner="$out_dir/LOCAL_static_exal_case_runner_20260323.R"
 stage="guard8"
 parallel_jobs="6"
 force="0"
+keep_going="1"
 n_burn="1500"
 n_mcmc="5000"
 thin="1"
@@ -25,6 +26,7 @@ for arg in "$@"; do
     --stage=*) stage="${arg#*=}" ;;
     --parallel-jobs=*) parallel_jobs="${arg#*=}" ;;
     --force) force="1" ;;
+    --stop-on-error) keep_going="0" ;;
     --n-burn=*) n_burn="${arg#*=}" ;;
     --n-mcmc=*) n_mcmc="${arg#*=}" ;;
     --thin=*) thin="${arg#*=}" ;;
@@ -57,9 +59,10 @@ if [[ ! -s "$rows_tsv" ]]; then
 fi
 
 manifest="$out_dir/LOCAL_static_exal_wave8_${stage}_resume_manifest_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.csv"
+fail_log="$out_dir/LOCAL_static_exal_wave8_${stage}_resume_failures_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.log"
 echo "ts,stage,row_id,run_root,root_kind,family,tt,tau_label,variant_tag,gamma_substeps,p_global_eta_jump,global_eta_jump_scale,seed,log_path" > "$manifest"
 
-export runner out_dir n_burn n_mcmc thin trace_every progress_every mh_proposal mh_adapt slice_width slice_max_steps init_mode force
+export runner out_dir n_burn n_mcmc thin trace_every progress_every mh_proposal mh_adapt slice_width slice_max_steps init_mode force keep_going fail_log
 
 run_one() {
   local stage="$1"
@@ -105,14 +108,33 @@ run_one() {
     cmd+=(--force)
   fi
 
+  local rc=0
   OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
     VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
-    "${cmd[@]}" > "$log_path" 2>&1
+    "${cmd[@]}" > "$log_path" 2>&1 || rc=$?
+
+  if [[ "$rc" -ne 0 ]]; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S'),${stage},${row_id},${variant_tag},rc=${rc},log=${log_path}" >> "$fail_log"
+    if [[ "$keep_going" == "0" ]]; then
+      return "$rc"
+    fi
+    rc=0
+  fi
 
   echo "$(date '+%Y-%m-%d %H:%M:%S'),${stage},${row_id},${run_root},${root_kind},${family},${tt},${tau_label},${variant_tag},${gamma_substeps},${p_global_eta_jump},${global_eta_jump_scale},${seed},${log_path}" >> "$manifest"
+  return "$rc"
 }
 export -f run_one
 
+set +e
 xargs -P "$parallel_jobs" -n 12 bash -c 'run_one "$@"' _ < "$rows_tsv"
+xargs_rc=$?
+set -e
+
+if [[ "$xargs_rc" -ne 0 && "$keep_going" == "0" ]]; then
+  echo "resume launch aborted due to non-zero exit (rc=$xargs_rc)"
+  exit "$xargs_rc"
+fi
 
 echo "manifest: $manifest"
+echo "fail_log: $fail_log"
