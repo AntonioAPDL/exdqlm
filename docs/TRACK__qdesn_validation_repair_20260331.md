@@ -21,23 +21,27 @@ This tracker is the operational roadmap for the next validation wave.
 
 Current best read:
 
-- Phase 11 completed cleanly and confirmed that exact full-6 Stage-1 winners still need rerun
-  confirmation before promotion;
-- `R312_r68_pass1_chain950` is now the new provisional scientific lead because it beat the old exact
-  `R68` anchor on rerun confirmation (`3 FAIL / 1 sentinel FAIL` vs `5 FAIL / 1 sentinel FAIL`);
-- `R301_r65_balanced_control` remains the clean balanced control because it preserved `0` sentinel
-  FAIL on rerun;
-- the old exact `R68` anchor should now be treated as a legacy reference control, not the active
-  search anchor;
+- Phase 12 completed cleanly and again confirmed that exact full-6 Stage-1 winners still need rerun
+  and final sentinel confirmation before promotion;
+- `R412_r312_softsigma_steps70` is now the new provisional scientific/practical lead because it
+  beat the prior `R312` anchor on rerun confirmation while keeping `0` sentinel FAIL;
+- `R421_r312_rhsfreeze100_chain1100` is now the high-upside rhs-local reference because it produced
+  the strongest raw local scientific result of the wave (`2 FAIL`), even though runtime and
+  sentinel cost blocked promotion;
+- `R402_r65_balanced_control` remains the clean balanced control because it preserved `0` sentinel
+  FAIL and stayed the most stable clean hedge in Phase 12;
+- `R400_r312_provisional_anchor` should now be treated as the previous-anchor reference control,
+  not the active search anchor;
 - the exact `R61` family remains a runtime reference control only;
-- the `R84` rhs-local family should remain retired for lead-candidate purposes;
+- the `R84` rhs-local family and the `R422` blockpass-led line should remain retired for
+  lead-candidate purposes;
 - the most useful new cross-worktree lesson is now explicit:
   the QDESN branch is facing the same “new exact lead, but still not exact-ready” problem that the
-  long static-exAL work is solving by narrowing around the best exact-runner transfer candidate
-  rather than reopening dominated families;
-- the next highest-value step is therefore an exact full-6 stabilization matrix rooted in `R312`,
-  with `R68`, `R65`, and `R61` retained as reference controls and rerun confirmation still required
-  before promotion.
+  long static-exAL work is solving by narrowing around the best exact-runner transfer candidate,
+  keeping the prior anchor and clean control alive, and refusing to reopen dominated families;
+- the next highest-value step is therefore an exact full-6 refinement matrix rooted in `R412`,
+  with `R400`, `R402`, and `R421` retained as reference controls and rerun/final confirmation still
+  required before promotion.
 
 Operational status:
 
@@ -73,42 +77,57 @@ Operational status:
   and `dlm_constV_smallW @ tau=0.95 exal rhs_ns`.
 - the current branch state therefore supports a broader exact full-6 stabilization wave around
   `R312`, but not another family-reopening or reduced-screen-first program.
+- Phase 12 completed cleanly (`15/15` Stage-1 profiles, `2/2` Stage-2 reruns, `1/1` Stage-3
+  confirmations, `0` timeouts, `0` runner errors).
+- Phase 12 showed that `R412_r312_softsigma_steps70` is the best practical rerun-confirmed local
+  lead and should replace `R312` as the active search anchor.
+- Phase 12 also showed that `R421_r312_rhsfreeze100_chain1100` is the strongest rhs-local upside
+  signal, but still too costly and sentinel-risky for promotion.
+- Phase 12 finally showed that `R422_r312_blockpass5` does not hold up cleanly enough to remain a
+  lead family.
+- Under the best practical Phase-12 rerun (`R412` Stage 2), the remaining FAIL roots are:
+  `dlm_ar1V @ tau=0.95 exal rhs_ns`,
+  `dlm_constV_bigW @ tau=0.05 exal ridge`,
+  and `dlm_constV_smallW @ tau=0.95 exal ridge`.
+- The current branch state therefore supports a broader but still disciplined exact full-6
+  refinement wave around `R412 + R421 + R402`, not a reopening of retired families or a return to
+  reduced-screen-first promotion logic.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
 1. `docs/REPORT__qdesn_validation_phase11_exact_fullsix_matrix_20260403.md`
-2. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-3. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
-4. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
-5. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
-6. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
-7. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
-6. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
-7. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
-8. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
-9. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-10. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-11. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-12. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-13. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-14. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-15. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-16. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-17. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-18. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-19. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-20. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-21. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-22. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-23. `reports/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit/qdesn-phase9-replication-audit-20260401a__git-e31ec94/summary/screen_results.md`
-24. `reports/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit/qdesn-phase9-replication-audit-20260401a__git-e31ec94/tables/family_rank_summary.csv`
-25. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S2_full_six_confirmation/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S2_full_six_confirmation/tables/profile_rank_summary.csv`
-26. `reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8/stages/S1_smallw_resolution_screen/screen_runs/qdesn-phase8-smallw-resolution-20260401a__git-4852ec8__S1_smallw_resolution_screen/tables/profile_rank_summary.csv`
-27. `reports/qdesn_mcmc_validation/qdesn_validation_phase7_r44_refinement/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7/stages/S2_stability_confirmation/screen_runs/qdesn-phase7-r44-refinement-20260401a__git-d3e43f7__S2_stability_confirmation/tables/profile_rank_summary.csv`
-28. `reports/qdesn_mcmc_validation/qdesn_validation_phase6_overnight_fullsix_screen/qdesn-phase6-overnight-fullsix-20260331a__git-fc1f331/summary/family_b_screen_results.md`
-29. `reports/qdesn_mcmc_validation/qdesn_validation_phase2_audit/qdesn-validation-phase2-audit-20260331__git-5b5864f/summary/phase2_audit_summary.md`
+2. `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+3. `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+4. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+5. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
+6. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+7. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+8. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+9. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+10. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+11. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+12. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+13. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+14. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+15. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+16. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+17. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+18. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+19. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+20. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+21. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+22. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+23. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+24. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+25. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+26. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+27. `reports/qdesn_mcmc_validation/qdesn_validation_phase12_r312_stabilization_matrix/qdesn-phase12-r312-stabilization-20260403a__git-1af9e79/summary/family_b_screen_results.md`
+28. `reports/qdesn_mcmc_validation/qdesn_validation_phase12_r312_stabilization_matrix/qdesn-phase12-r312-stabilization-20260403a__git-1af9e79/stages/S2_rerun_confirmation/summary/stage_candidate_selection.md`
+29. `reports/qdesn_mcmc_validation/qdesn_validation_phase12_r312_stabilization_matrix/qdesn-phase12-r312-stabilization-20260403a__git-1af9e79/stages/S3_sentinel_confirmation/summary/stage_candidate_selection.md`
+30. `reports/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit/qdesn-phase9-replication-audit-20260401a__git-e31ec94/summary/screen_results.md`
+31. `reports/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit/qdesn-phase9-replication-audit-20260401a__git-e31ec94/tables/family_rank_summary.csv`
 
 Core code paths to inspect before changing anything:
 
@@ -175,6 +194,21 @@ Core code paths to inspect before changing anything:
 - The current branch-facing question is now:
   which exact full-6 descendants of `R312` can preserve those repaired roots while clearing the
   remaining three-root residual set.
+- Phase 12 then showed that the best practical rerun-confirmed result is no longer raw `R312`, but
+  `R412_r312_softsigma_steps70`.
+- Relative to the previous `R312` anchor, Stage-2 `R412` repaired:
+  - `dlm_constV_smallW @ tau=0.95 exal rhs_ns` (`FAIL -> WARN`)
+- That gain came at a cost:
+  - `dlm_constV_smallW @ tau=0.95 exal ridge` regressed from `WARN -> FAIL`
+- Under the best practical Phase-12 rerun-confirmed profile (`R412`), the remaining FAIL roots are:
+  - `dlm_ar1V @ tau=0.95 exal rhs_ns`
+  - `dlm_constV_bigW @ tau=0.05 exal ridge`
+  - `dlm_constV_smallW @ tau=0.95 exal ridge`
+- Phase 12 also showed that `R421_r312_rhsfreeze100_chain1100` is the strongest rhs-local upside
+  signal, but that its runtime/sentinel cost still blocks promotion.
+- The current branch-facing question is now:
+  which exact full-6 descendants of `R412` can preserve the repaired `smallW rhs_ns` behavior,
+  borrow only the useful part of `R421`, and survive final sentinel confirmation.
 
 ### Main takeaways
 
@@ -995,34 +1029,85 @@ Interpretation:
 - `R301` remains valuable as the clean balanced control;
 - `R323` should now be treated as a local-only winner that did not survive rerun confirmation.
 
-## 5W) Phase 12 Direction
+## 5W) Phase 12 Outcome
 
-Next wave:
+Run:
 
+- result report:
+  `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
 - plan doc:
   `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-- result report:
-  `docs/REPORT__qdesn_validation_phase11_exact_fullsix_matrix_20260403.md`
 - manifest:
   `config/validation/qdesn_validation_phase12_r312_stabilization_matrix_manifest.yaml`
 - thin wrapper:
   `scripts/run_qdesn_validation_phase12_r312_stabilization_matrix.R`
+- run tag:
+  `qdesn-phase12-r312-stabilization-20260403a__git-1af9e79`
+
+Outcome:
+
+- the full Phase-12 program completed cleanly:
+  `15/15` Stage-1 profiles, `2/2` Stage-2 reruns, `1/1` Stage-3 confirmations, `0` timeouts,
+  `0` runner errors;
+- no completed profile introduced finite, domain, collapse, or unhealthy regressions;
+- Stage 1 found two real local winners:
+  `R412_r312_softsigma_steps70` and `R421_r312_rhsfreeze100_chain1100`;
+- Stage 2 then showed that `R412` is the best practical rerun-confirmed result;
+- Stage 3 finally showed that `R412` still regresses under final sentinel confirmation;
+- Phase 12 therefore did not produce a promotable new baseline.
+
+Phase-12 decision-quality read:
+
+| view | profile | total_fail_n | sentinel_fail_n | runtime_inflation | read |
+|---|---|---:|---:|---:|---|
+| best Stage-1 local result | `R421_r312_rhsfreeze100_chain1100` | `2` | `1` | `1.291` | strongest local scientific improver |
+| best Stage-1 practical survivor | `R412_r312_softsigma_steps70` | `3` | `0` | `1.094` | best balanced local winner |
+| best rerun-confirmed practical result | `R412_r312_softsigma_steps70` | `3` | `0` | `1.072` | new provisional scientific/practical lead |
+| previous anchor | `R400_r312_provisional_anchor` | `3` | `0` | `1.214` | now weaker control |
+| clean control | `R402_r65_balanced_control` | `4` | `0` | `0.944` | best stable clean control |
+
+Interpretation:
+
+- `R412` should now replace `R312` as the active search anchor;
+- `R421` should be retained as the high-upside rhs reference, not treated as auto-promotable;
+- `R422` should not remain a lead family after rerun;
+- the wave again confirmed the same promotion lesson seen in the long static-exAL work:
+  exact local winners must still beat the reference on rerun and final confirmation before
+  promotion.
+
+## 5X) Phase 13 Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+- result report:
+  `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+- manifest:
+  `config/validation/qdesn_validation_phase13_r412_r421_stability_matrix_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase13_r412_r421_stability_matrix.R`
 
 Design choice:
 
-- promote `R312` to the provisional scientific search anchor;
-- keep exact `R68` as the legacy exact reference control;
-- keep exact `R65` as the clean balanced control;
-- keep exact `R61` as the runtime reference control;
-- search only local descendants around `R312` plus one narrow `R301` hedge;
+- promote `R412` to the provisional scientific search anchor;
+- keep `R400` as the previous-anchor control;
+- keep `R402` as the clean balanced control;
+- keep `R421` as the high-upside rhs reference;
+- search only:
+  - `R412` stability descendants,
+  - trimmed `R421` descendants,
+  - narrow `R412 + R421` combined descendants,
+  - one small `R402` hedge;
 - run the real fixed 6-root harness from Stage 1 onward;
 - rerun survivors before any final decision;
 - reserve the strict zero-sentinel requirement for the final confirmation stage.
 
-What Phase 12 explicitly avoids:
+What Phase 13 explicitly avoids:
 
 - reopening dead `R84`, QR, conditioning, bridge-only, or heavy-widening families;
-- replaying the softblock-heavy guarded descendants that underperformed in Phase 11;
+- replaying the `R422` blockpass-led line as a main search family;
+- replaying the softblock-heavy guarded descendants that underperformed in Phases 11 and 12;
 - trusting a reduced root subset as the first promotion gate;
 - promoting a new winner from a single exact full-6 run.
 
@@ -1306,7 +1391,7 @@ Target:
 
 Primary artifacts:
 
-- `docs/REPORT__qdesn_validation_phase11_exact_fullsix_matrix_20260403.md`
+- `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
 - `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
 - `config/validation/qdesn_validation_phase12_r312_stabilization_matrix_manifest.yaml`
 - `scripts/run_qdesn_validation_phase12_r312_stabilization_matrix.R`
@@ -1319,7 +1404,39 @@ Checklist:
 - [x] keep the candidate space inside the `R312/R68/R65/R61` neighborhood
 - [x] run prepare-only validation on the Phase-12 manifest
 - [x] launch the overnight Phase-12 program
-- [ ] update the tracker with the Phase-12 outcome
+- [x] update the tracker with the Phase-12 outcome
+
+Primary outcome:
+
+- complete;
+- `R412_r312_softsigma_steps70` became the new provisional scientific/practical lead;
+- `R421_r312_rhsfreeze100_chain1100` became the new rhs-local upside reference;
+- `R422_r312_blockpass5` did not hold up as a lead family;
+- no candidate cleared final sentinel confirmation strongly enough for promotion.
+
+### Work Package 11: Phase 13 `R412/R421` stability matrix
+
+Target:
+
+- stabilize the new `R412` lead while borrowing only the useful rhs-local upside from `R421`;
+- do so without reopening retired families or reduced-screen-first logic.
+
+Primary artifacts:
+
+- `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+- `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+- `config/validation/qdesn_validation_phase13_r412_r421_stability_matrix_manifest.yaml`
+- `scripts/run_qdesn_validation_phase13_r412_r421_stability_matrix.R`
+
+Checklist:
+
+- [x] freeze the Phase-12 outcome as a scientific but non-promoting result
+- [x] document the `R412` residual fail set and control hierarchy
+- [x] define a 3-stage exact full-6 refinement matrix around `R412 + R421 + R402`
+- [x] keep the candidate space inside the `R412/R400/R402/R421` neighborhood
+- [x] run prepare-only validation on the Phase-13 manifest
+- [ ] launch the overnight Phase-13 program
+- [ ] update the tracker with the first Phase-13 health/result checkpoint
 
 ## 8) Stop Conditions
 
@@ -1357,6 +1474,8 @@ Every future candidate should satisfy these standards:
 
 ### Main findings and takeaways
 
+- `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+- `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
 - `docs/REPORT__qdesn_validation_phase11_exact_fullsix_matrix_20260403.md`
 - `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
 - `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
@@ -1396,6 +1515,8 @@ Every future candidate should satisfy these standards:
 ### Operational roadmap
 
 - `docs/TRACK__qdesn_validation_repair_20260331.md`
+- `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+- `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
 - `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
 - `docs/REPORT__qdesn_validation_phase11_exact_fullsix_matrix_20260403.md`
 - `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
@@ -1410,21 +1531,21 @@ Every future candidate should satisfy these standards:
 
 ## 12) Current Recommended Next Move
 
-Do not reopen broad family searching outside the exact `R312/R68/R65/R61` neighborhood.
+Do not reopen broad family searching outside the exact `R412/R400/R402/R421` neighborhood.
 
 The next highest-signal step is:
 
-1. use `R312` as the provisional scientific search anchor in every stage;
-2. keep exact `R68` as the legacy exact reference control;
-3. keep exact `R65` as the balanced clean control;
-4. keep exact `R61` as the runtime reference control;
-5. run the exact full-6 stabilization matrix defined in
-   `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`;
+1. use `R412` as the provisional scientific search anchor in every stage;
+2. keep `R400` as the previous-anchor reference control;
+3. keep `R402` as the balanced clean control;
+4. keep `R421` as the high-upside rhs reference control;
+5. run the exact full-6 refinement matrix defined in
+   `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`;
 6. search only the remaining live space:
-   - `R312` ridge-local stabilization descendants,
-   - `R312` rhs-local stabilization descendants,
-   - a very small combined `R312` neighborhood,
-   - one narrow `R301` hedge,
+   - `R412` stability descendants,
+   - trimmed `R421` rhs descendants,
+   - a very small combined `R412 + R421` neighborhood,
+   - one narrow `R402` hedge,
    - no reopened dead families;
 7. rerun selected survivors before carrying any new winner forward;
 8. require `0` sentinel FAIL only at the final confirmation stage, not before.
