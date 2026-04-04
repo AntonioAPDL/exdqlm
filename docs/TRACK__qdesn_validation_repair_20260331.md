@@ -52,9 +52,10 @@ Current best read:
 - the most useful new cross-worktree lesson is now sharper:
   once an exact winner is promoted and the next local wave fails, the correct response is not
   family reopening but a tiny crossover matrix built only from the surviving local signals;
-- the next highest-value step is therefore an exact full-6 sentinel-crossover matrix rooted in
-  `R512`, with `R600`, `R612`, `R622`, `R616`, and `R402` retained as controls or crossover
-  ingredients and no dominated families reopened.
+- that sentinel-crossover matrix is now complete and non-promoting;
+- the next highest-value step is one final frozen full-matrix certification rerun with `R512`,
+  using the authoritative dynamic baseline campaign as the comparison reference and avoiding any
+  new exploratory search wave.
 
 Operational status:
 
@@ -132,42 +133,49 @@ Operational status:
   coupled variants are not the right next lead directions.
 - The current branch state therefore supports one more exact full-6 crossover wave around the
   surviving `R512` ingredients, not another one-axis sweep or family reopening.
-- Phase 15 is now launched from clean pushed checkpoint `bbbf2ca`.
+- Phase 15 completed cleanly (`15/15` Stage-1 profiles, `7/7` Stage-2 reruns, `2/2` Stage-3
+  confirmations, `0` timeouts, `0` runner errors).
+- Phase 15 showed that `R702_r612_ridge_reference` was the strongest rerun-confirmed local signal,
+  but it failed final confirmation by reintroducing a sentinel FAIL and therefore did not justify
+  promotion over `R512`.
+- The current branch state therefore supports a final frozen full-matrix certification rerun using
+  `R512`, not another exploratory local repair wave.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
-1. `docs/REPORT__qdesn_validation_phase11_exact_fullsix_matrix_20260403.md`
-2. `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
-3. `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+1. `docs/PLAN__qdesn_validation_final_r512_certification_20260403.md`
+2. `docs/REPORT__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+3. `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
 4. `docs/REPORT__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
-5. `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
-6. `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
-7. `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-8. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-9. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
-10. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
-11. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
-12. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
-13. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
-14. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
-15. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
-16. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
-17. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-18. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-19. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-20. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-21. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-22. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-23. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-24. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-25. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-26. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-27. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-28. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-29. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-30. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+5. `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+6. `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
+7. `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+8. `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+9. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+10. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
+11. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+12. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+13. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+14. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+15. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+16. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+17. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+18. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+19. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+20. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+21. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+22. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+23. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+24. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+25. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+26. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+27. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+28. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+29. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+30. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+31. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
 31. `reports/qdesn_mcmc_validation/qdesn_validation_phase14_r512_residual_resolution/qdesn-phase14-r512-residual-resolution-20260403a__git-8ef64e1/summary/family_b_screen_results.md`
 32. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/summary/family_b_screen_results.md`
 33. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S2_rerun_confirmation/summary/stage_candidate_selection.md`
@@ -1211,9 +1219,9 @@ Interpretation:
 - Phase 14 changed the next-step question from “which local axis wins” to “can the surviving local
   signals be combined into a low-fail, zero-sentinel exact winner.”
 
-## 5Z) Phase 15 Direction
+## 5Z) Phase 15 Outcome
 
-Next wave:
+Completed wave:
 
 - plan doc:
   `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
@@ -1222,28 +1230,39 @@ Next wave:
 - thin wrapper:
   `scripts/run_qdesn_validation_phase15_r512_sentinel_crossover_matrix.R`
 
-Design choice:
+Final read:
 
 - keep `R512` as the promoted scientific and practical baseline;
-- keep `R402` as the clean balanced control;
-- retain `R600`, `R612`, `R622`, and `R616` as the active signal references from Phase 14;
-- search only untried crossovers of:
-  - `R612` ridge rescue,
-  - `R622` rhs softness,
-  - `R616` sentinel-clean geometry;
-- run the exact full-6 harness from Stage 1 onward;
-- allow low-fail / one-sentinel candidates through Stage 1 if they are scientifically strong;
-- require zero-sentinel rerun confirmation in Stage 2;
-- require `2 FAIL / 0 sentinel FAIL` before any new promotion decision.
+- keep `R402` as the clean balanced control and `R700` as the direct anchor control;
+- note that `R702_r612_ridge_reference` was the true rerun-confirmed scientific winner of the
+  wave, but it failed final residual confirmation by reintroducing a sentinel FAIL;
+- record that no candidate beat `R512` cleanly enough for promotion.
 
-What Phase 15 explicitly avoids:
+What Phase 15 established:
 
-- reopening `R421`, combined `R412 + R421`, `R84`, `R422`, or any other retired family;
-- replaying the weak Phase-14 one-axis lines (`R610`, `R611`, `R613`, `R614`, `R615`) as if they
-  were still active lead directions;
-- replaying the weak narrow coupled variants (`R630`, `R631`);
-- trusting reduced-screen-first logic;
-- promoting a new winner without rerun and final confirmation.
+- broad crossover search inside the surviving `R512` ingredients is now exhausted enough;
+- the best remaining signal is still ridge-led, not broad-family-led;
+- the next step should be final certification, not another exploratory search wave.
+
+## 5ZA) Final Certification Direction
+
+Next step:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_final_r512_certification_20260403.md`
+- frozen defaults:
+  `config/validation/qdesn_dynamic_family_prior_r512_certification_defaults.yaml`
+- orchestrator:
+  `scripts/run_qdesn_validation_final_r512_certification.R`
+
+Design choice:
+
+- freeze `R512_r412_pass2_chain1000` as the tuned certification candidate;
+- rerun the full dynamic `36`-root matrix once from start to finish;
+- compare the rerun against the authoritative dynamic baseline campaign;
+- finish the sequence with either:
+  - `ACCEPT_R512_AS_CERTIFIED_BASELINE`, or
+  - `HOLD_R512_WITH_CAVEATS`.
 
 ## 6) Candidate Improvement Areas
 
@@ -1638,19 +1657,43 @@ Checklist:
 - [x] keep the candidate space inside the `R512/R612/R622/R616/R402` neighborhood
 - [x] run prepare-only validation on the Phase-15 manifest
 - [x] launch the overnight Phase-15 program
-- [x] update the tracker with the Phase-15 launch state
+- [x] update the tracker with the final Phase-15 outcome
 
-Current live run:
+Primary outcome:
 
-- run tag:
-  `qdesn-phase15-r512-sentinel-crossover-20260403a__git-bbbf2ca`
-- current stage:
-  `S1_exact_fullsix_sentinel_crossover`
-- current anchor:
-  `R700_r512_anchor_control`
-- current health read:
-  Stage-1 runner state is live with `15` profiles total, `0` completed, `0` timeouts,
-  `0` errors, and the anchor campaign has launched with all `6` roots entering `vb`.
+- complete;
+- `R702_r612_ridge_reference` was the only Stage-2 survivor and the best local signal of the wave;
+- `R702` failed final residual confirmation by reintroducing a sentinel FAIL;
+- `R512` remains the active promoted baseline;
+- Phase 15 is a non-promoting exploratory closeout wave.
+
+### Work Package 14: Final frozen-`R512` certification rerun
+
+Target:
+
+- stop exploratory tuning cleanly;
+- rerun the full dynamic `36`-root matrix with frozen `R512`;
+- compare the rerun against the authoritative dynamic baseline campaign;
+- issue a single final certification recommendation.
+
+Primary artifacts:
+
+- `docs/REPORT__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+- `docs/PLAN__qdesn_validation_final_r512_certification_20260403.md`
+- `config/validation/qdesn_dynamic_family_prior_r512_certification_defaults.yaml`
+- `scripts/run_qdesn_validation_final_r512_certification.R`
+
+Checklist:
+
+- [x] close Phase 15 as a completed non-promoting wave
+- [x] freeze `R512` as the certification candidate
+- [x] define the final certification acceptance criteria
+- [x] add the frozen certification defaults
+- [x] add the final certification orchestrator
+- [x] run prepare-only validation on the certification workflow
+- [ ] commit and push the certification workflow
+- [ ] launch the final full certification rerun
+- [ ] close the full validation cycle with the final recommendation
 
 ## 8) Stop Conditions
 

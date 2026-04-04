@@ -7,6 +7,37 @@ Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
 
+## Final Certification Update (2026-04-03)
+
+The framework is no longer in an exploratory design phase for the dynamic QDESN
+matrix.
+
+The current best tuned candidate is:
+
+- `R512_r412_pass2_chain1000`
+
+Recent late-stage waves did not beat it cleanly enough for a new promotion. The
+correct finish is therefore one frozen full-matrix certification rerun, not
+another tuning matrix.
+
+Final certification assets:
+
+- frozen defaults:
+  - `config/validation/qdesn_dynamic_family_prior_r512_certification_defaults.yaml`
+- final runner:
+  - `scripts/run_qdesn_validation_final_r512_certification.R`
+- certification plan:
+  - `docs/PLAN__qdesn_validation_final_r512_certification_20260403.md`
+- latest exploratory closeout:
+  - `docs/REPORT__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+
+Important note:
+
+- `scripts/run_qdesn_mcmc_full_comparison.R` remains the older comparison runner
+  for the early toy-grid framework;
+- the final QDESN certification pass should instead use the dynamic-wave
+  machinery plus explicit baseline-vs-tuned comparison reporting.
+
 ## Latest Wrap-Up Update (2026-03-28)
 
 - Canonical Stage-Q tracker:

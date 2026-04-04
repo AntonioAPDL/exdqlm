@@ -231,3 +231,36 @@ Authoritative outputs:
   - `reports/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc/summary/phase35_summary.md`
 - phase35 manifest:
   - `reports/qdesn_mcmc_validation/finalization_closeout-20260329-074000__git-4536ccc/summary/phase35_manifest.json`
+
+## 10) Final R512 Certification Update (2026-04-03)
+
+This tracker remains the canonical record for the full dynamic matrix itself.
+
+The late-stage QDESN repair sequence has now produced a promoted tuned candidate:
+
+- `R512_r412_pass2_chain1000`
+
+That candidate was not beaten cleanly by Phase 14 or Phase 15. The right final
+move is therefore not more tuning, but one frozen certification rerun of this
+same dynamic matrix.
+
+New certification assets:
+
+- frozen defaults:
+  - `config/validation/qdesn_dynamic_family_prior_r512_certification_defaults.yaml`
+- final orchestrator:
+  - `scripts/run_qdesn_validation_final_r512_certification.R`
+- certification plan:
+  - `docs/PLAN__qdesn_validation_final_r512_certification_20260403.md`
+- Phase-15 closeout:
+  - `docs/REPORT__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+
+Certification intent:
+
+1. rerun the full `36`-root dynamic matrix once with frozen `R512`;
+2. summarize root health, method signoff, and pair signoff end to end;
+3. compare the rerun against the authoritative baseline campaign:
+   - `dynamic-family-prior-20260329-053603`
+4. finish with either:
+   - `ACCEPT_R512_AS_CERTIFIED_BASELINE`, or
+   - `HOLD_R512_WITH_CAVEATS`.
