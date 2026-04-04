@@ -7,6 +7,14 @@ Context:
 - `reports/static_exal_tuning_20260403/wave8_closeout_and_fail_only_repair_program.md`
 - `reports/static_exal_tuning_20260403/PROMPT__wave8_fail_only_repair_20260403.md`
 
+## Status Note
+
+This document is now the evidence record for the fail-only bridge run.
+
+The active campaign-level forward plan now lives in:
+
+- `reports/static_exal_tuning_20260403/post_wave8_campaign_readiness_plan_20260403.md`
+
 ## Objective
 
 Run a narrow fail-only bridge program that targets the two residual weak
@@ -131,3 +139,5 @@ Operational conclusion:
 - the fail-only repair program succeeded
 - the residual FAIL boundary is now understood
 - no additional broad rerun is justified from this evidence alone
+- the next active step is the comparison-readiness plan recorded in:
+  `reports/static_exal_tuning_20260403/post_wave8_campaign_readiness_plan_20260403.md`

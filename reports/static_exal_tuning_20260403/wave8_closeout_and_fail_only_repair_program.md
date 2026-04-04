@@ -11,6 +11,15 @@ Primary references:
 - `tools/merge_reports/LOCAL_static_exal_wave8_guard8_resume_manifest_20260403_194245_23169_3807732.csv`
 - `tools/merge_reports/LOCAL_static_exal_wave8_mix12_transfer_resume_manifest_20260403_195011_4088_3808775.csv`
 
+## Status Note
+
+This document is now a historical closeout record for wave-8 and the fail-only
+repair scope.
+
+The active comparison-readiness plan now lives in:
+
+- `reports/static_exal_tuning_20260403/post_wave8_campaign_readiness_plan_20260403.md`
+
 ## Wave-8 Final State
 
 Wave-8 completed successfully under the repaired resume pipeline.
@@ -80,11 +89,11 @@ Interpretation:
 
 Working recommendation:
 
-1. treat `F080_sub2_s105` as the leading zero-FAIL promotion candidate
+1. promote `F080_sub2_s105` as the active exact-runner carry-forward baseline
 2. keep `F080_sub2_s100_ref` as the primary backup
-3. do not reopen a broad wave; only target the residual FAIL patterns
-4. drop `F075_sub2_s095` unless a targeted repair materially changes the row119
-   failure mechanism
+3. retain `F080_sub2_s0975` as the new secondary bridge candidate after the
+   fail-only repair
+4. drop `F075_sub2_s095`
 
 ## Fail-Only Program
 
@@ -144,3 +153,4 @@ The fail-only bridge program has now been implemented and executed. Results and
 carry-forward recommendations live in:
 
 - `reports/static_exal_tuning_20260403/fail_only_bridge_results_20260403.md`
+- `reports/static_exal_tuning_20260403/post_wave8_campaign_readiness_plan_20260403.md`
