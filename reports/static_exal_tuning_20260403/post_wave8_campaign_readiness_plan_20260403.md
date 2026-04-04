@@ -24,18 +24,32 @@ The execution record for the focused completion phase now lives in:
 
 - `reports/static_exal_tuning_20260403/campaign_completion_execution_20260403.md`
 
-## Promoted Baseline
+The post-refresh closeout and next-wave fail-band plan now lives in:
 
-The latest completed results do improve the previous exact-runner baseline and
-should now be treated as the active carry-forward baseline.
+- `reports/static_exal_tuning_20260403/static_refresh_closeout_and_failband_program_20260403.md`
+
+## Historical Baseline Promotion
+
+The latest completed results do improve the previous exact-runner baseline.
+After the completed static refresh, `F080_sub2_s105` should be treated as the
+active repair-planning reference wave, not as a signoff-ready production
+baseline.
 
 | role | candidate_id | evidence | current decision |
 |---|---|---|---|
 | historical stage-budget winner | `C060_110_sub2` | wave-5 `mix12`: `10 PASS / 2 WARN / 0 FAIL` | historical tuning winner only; not the active validation rerun baseline |
 | prior exact-runner baseline | `F080_sub2_s100` | wave-7: `7 PASS / 4 WARN / 1 FAIL` | superseded |
-| active exact-runner baseline | `F080_sub2_s105` | wave-8: `22 PASS / 4 WARN / 0 FAIL` | promote and carry forward |
+| active repair-planning reference wave | `F080_sub2_s105` | wave-8: `22 PASS / 4 WARN / 0 FAIL` | promote for fail-band planning, not final signoff |
 | primary backup | `F080_sub2_s100_ref` | wave-8: `19 PASS / 7 WARN / 0 FAIL` | keep as fallback control |
 | secondary bridge option | `F080_sub2_s0975` | fail-only bridge: `1 PASS / 1 WARN / 0 FAIL` | optional narrow hedge only |
+
+Important revision after the completed static refresh:
+
+- `F080_sub2_s105` remains the best completed broad exact-runner reference wave
+- `F080_sub2_s105` is **not** the final production campaign baseline because
+  the completed `72`-row static refresh still left `30` FAIL scope-cases
+- the completed refresh should now be treated as the empirical reference wave
+  for fail-band repair planning, not as the signoff-ready endpoint
 
 ## Main Takeaways
 
@@ -57,15 +71,18 @@ should now be treated as the active carry-forward baseline.
 
 ### What still fails or remains unresolved
 
-- the full `72`-row static `exal` rerun under the promoted baseline has not yet
-  been executed, so those outputs are still stale relative to the new baseline
+- the completed `72`-row static refresh improved the stale slice, but still
+  leaves `30` FAIL scope-cases:
+  - `21` current RHS-NS
+  - `9` legacy RHS
 - dynamic row `15` remains `done / FAIL / FALSE` under
   `full288_dynamic_tail_cppgig_refresh_20260331`
 - the campaign-level merged health tables and publishable comparison summary
-  table have not yet been regenerated from the latest promoted baseline
-- the remaining scientific uncertainty is no longer "which family to try?" but
-  "how well does `F080_sub2_s105` generalize across the full stale static
-  rerun slice and the final dynamic tail debt?"
+  table still cannot be signed off because the campaign still violates the
+  `0 FAIL` rule
+- the remaining scientific uncertainty is now much narrower:
+  it is concentrated in the static fail band identified by the completed
+  refresh plus the dynamic row `15` sidecar
 
 ### What worked best
 
@@ -89,12 +106,13 @@ should now be treated as the active carry-forward baseline.
 
 ### Highest-value directions now
 
-1. rerun the stale static `exal` slice under `F080_sub2_s105`
-2. repair or replace dynamic row `15` under current `HEAD`
-3. merge the refreshed outputs with the already valid artifacts and generate
-   the final comparison-ready campaign tables
+1. treat the completed static refresh as the new repair-planning baseline
+2. rerun only the residual static FAIL band, not the refreshed non-FAIL rows
+3. repair or replace dynamic row `15` under current `HEAD`
+4. merge the reusable refreshed outputs only after the residual FAIL band is
+   eliminated
 
-## Remaining Comparison Debt
+## Updated Remaining Comparison Debt
 
 The current goal is not to relaunch the full `291`-row campaign. The current
 goal is to reuse all trustworthy artifacts and rerun only the stale or still
@@ -102,15 +120,15 @@ failing debt.
 
 | workstream | cases | current state | why still needed |
 |---|---:|---|---|
-| static `exal` current RHS-NS rerun | 54 | stale relative to promoted baseline | these rows still reflect the old static baseline and dominate the residual campaign fail debt |
-| static `exal` legacy RHS rerun | 18 | stale relative to promoted baseline | needed for apples-to-apples current-vs-legacy comparison under the promoted static baseline |
-| dynamic tail row `15` | 1 | current-HEAD refresh still `FAIL` | only remaining dynamic unresolved row; row `5` and row `57` are already resolved |
-| reusable validated artifacts | 218 | reusable now | these do not require rerun if provenance is preserved |
+| refreshed static non-FAIL rows | 42 | reusable now | these are already valid and should not be rerun |
+| previously reusable campaign artifacts | 218 | reusable now | these do not require rerun if provenance is preserved |
+| residual static FAIL scope-cases | 30 | unresolved | these now define the next-wave static repair scope |
+| dynamic tail row `15` | 1 | current-HEAD refresh still `FAIL` | only remaining dynamic unresolved row |
 
-Minimal remaining rerun scope to reach a refreshed full-campaign closeout:
+Minimal unresolved campaign debt after the completed static refresh:
 
-- `73` cases total (`72` static + `1` dynamic)
-- not `291`
+- `31` cases total (`30` static fail scope-cases + `1` dynamic sidecar)
+- not `73`
 
 ## Comparison-Ready Acceptance Rule
 
@@ -130,25 +148,24 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 ## Recommended Next-Phase Plan
 
-### Phase A: Freeze the promoted baseline
+### Phase A: Freeze the promoted reference wave
 
-- [ ] Freeze `F080_sub2_s105` as the active static `exal` validation baseline
+- [ ] Freeze `F080_sub2_s105` as the active static `exal` repair-planning
+      reference wave
 - [ ] Keep `F080_sub2_s100_ref` as the fallback control in case the full rerun
       exposes a concentrated regression
 - [ ] Record `F080_sub2_s0975` as a secondary bridge candidate, not the primary
       production baseline
 
-### Phase B: Prepare the 72-row static rerun
+### Phase B: Prepare the fail-band-only static repair wave
 
-- [ ] rebuild the `72`-row static rerun manifest from the stale current and
-      legacy static `exal` rows
-- [ ] keep current RHS-NS and legacy RHS scopes distinct even where `row_id`
-      and `run_root` overlap
-- [ ] use scope-correct prior templates so current static-paper rows really run
-      as `rhs_ns` rather than silently inheriting the original `ridge` baseline
-- [ ] apply `F080_sub2_s105` exact-runner overrides with the same robust
-      orchestration standards used in wave-8
-- [ ] validate the prepare-only outputs before launch
+- [ ] isolate only the `30` residual static FAIL scope-cases
+- [ ] preserve separate current RHS-NS and legacy RHS scope labels
+- [ ] prioritize the recurring cross-scope fail anchors and dominant family/tau
+      clusters
+- [ ] use the completed `F080_sub2_s105` refresh as the empirical comparison
+      baseline for next-wave candidates
+- [ ] do not rerun the `42` refreshed static non-FAIL rows
 - [ ] preserve deterministic manifests, failure logs, supervisor logs, and
       monitor heartbeats
 
@@ -182,10 +199,9 @@ The study is in a materially better place now.
 The open problem is no longer "find a plausible static tuning family" and it is
 no longer "fix the resume chain." The open problem is now much cleaner:
 
-1. roll the promoted exact-runner baseline through the stale `72`-row static
-   slice
+1. isolate and repair the residual `30`-case static fail band
 2. clean up dynamic row `15`
-3. regenerate the full campaign tables
+3. regenerate the full campaign tables once all FAILs are removed
 
 That is the shortest rigorous path from the current branch state to a
 comparison-ready and publication-ready validation summary.

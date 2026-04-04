@@ -1,0 +1,16 @@
+"family","tau","tt","fail_scope_cases"
+"gausmix","0p25",1000,4
+"gausmix","0p05",1000,3
+"gausmix","0p25",100,3
+"laplace","0p05",1000,3
+"gausmix","0p95",100,2
+"gausmix","0p95",1000,2
+"laplace","0p95",1000,2
+"normal","0p05",1000,2
+"normal","0p25",1000,2
+"normal","0p95",100,2
+"laplace","0p25",1000,1
+"laplace","0p95",100,1
+"normal","0p05",100,1
+"normal","0p25",100,1
+"normal","0p95",1000,1

@@ -210,13 +210,39 @@ After the static lane completes and row `15` is repaired:
 5. apply the narrow fail-only discipline again only if a small residual band
    remains
 
+## Launch Outcome
+
+The focused static refresh was launched and completed successfully.
+
+Runtime result:
+
+- the refresh orchestration held to completion
+- the scope-aware prior-template correction behaved as intended
+- both current RHS-NS and legacy RHS scopes finished under their intended prior
+  semantics
+
+Scientific result:
+
+- the refresh materially improved the stale static slice
+- the refresh did **not** produce a comparison-ready static baseline
+- the final static outcome was:
+  - current RHS-NS: `11 PASS / 22 WARN / 21 FAIL`
+  - legacy RHS: `4 PASS / 5 WARN / 9 FAIL`
+  - overall: `15 PASS / 27 WARN / 30 FAIL`
+
+The active closeout and next-wave planning document is now:
+
+- `reports/static_exal_tuning_20260403/static_refresh_closeout_and_failband_program_20260403.md`
+
 ## Operational Bottom Line
 
-The current highest-value action is now clear:
+The current highest-value action was to complete the focused static refresh.
 
-1. launch the focused `72`-row static refresh under `F080_sub2_s105`
-2. keep row `15` isolated as a documented sidecar debt
-3. regenerate the final merged campaign tables once the static lane completes
+That is now done.
 
-That is the shortest rigorous path from the current validated branch state to a
-comparison-ready and publication-ready validation campaign.
+The next highest-value action is now:
+
+1. freeze the completed static refresh as the new empirical repair baseline
+2. isolate only the `30` residual static FAIL scope-cases
+3. keep row `15` isolated as a documented sidecar debt
+4. prepare a fail-only next wave rather than reopening the full campaign

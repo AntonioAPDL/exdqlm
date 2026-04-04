@@ -1082,3 +1082,65 @@ Operational rule:
 - do not relaunch the full `291`-row campaign
 - rerun only the `73` cases that still block a no-FAIL comparison-ready
   campaign
+
+## 12.1 Static refresh closeout and fail-band checkpoint (2026-04-03)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260403/campaign_completion_execution_20260403.md`
+- `reports/static_exal_tuning_20260403/static_refresh_closeout_and_failband_program_20260403.md`
+- `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_fail_inventory_20260403.csv`
+- `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_fail_patterns_20260403.csv`
+
+The focused `72`-row static rerun under `F080_sub2_s105` is now complete.
+
+Validated final static refresh result:
+
+| scope | total | PASS | WARN | FAIL |
+|---|---:|---:|---:|---:|
+| current RHS-NS | 54 | 11 | 22 | 21 |
+| legacy RHS | 18 | 4 | 5 | 9 |
+| overall static refresh | 72 | 15 | 27 | 30 |
+
+What improved:
+
+- the stale static fail burden was cut from `60` FAIL scope-cases to `30`
+- current RHS-NS improved from `47 FAIL / 7 WARN / 0 PASS` to
+  `21 FAIL / 22 WARN / 11 PASS`
+- legacy RHS improved from `13 FAIL / 4 WARN / 1 PASS` to
+  `9 FAIL / 5 WARN / 4 PASS`
+- the refresh orchestration and scope-aware prior semantics held to completion
+
+What did not improve enough:
+
+- `F080_sub2_s105` did not generalize cleanly enough to become a
+  comparison-ready full-campaign baseline
+- the campaign still violates the `0 FAIL` rule
+- dynamic row `15` remains unresolved and separate
+
+Important decision update:
+
+- keep the completed `F080_sub2_s105` refresh as the new empirical reference
+  wave for repair planning
+- do **not** treat it as the final production baseline
+- the remaining campaign debt is now:
+  - `30` residual static FAIL scope-cases
+  - `1` dynamic row `15`
+  - total unresolved debt: `31`
+
+Fail-band structure:
+
+- `30` static FAIL scope-cases collapse to `15` unique `(family, tau, tt)`
+  patterns
+- highest-priority recurring anchors across current and legacy scope:
+  - row `157` / `gausmix` / `tt1000` / `tau0p05`
+  - row `165` / `gausmix` / `tt100` / `tau0p25`
+  - row `173` / `gausmix` / `tt1000` / `tau0p25`
+  - row `237` / `laplace` / `tt1000` / `tau0p95`
+
+Updated immediate decision:
+
+1. freeze the completed static refresh as the new repair-planning baseline
+2. do not rerun the `42` refreshed static non-FAIL rows
+3. prepare a fail-only next wave on the `30` static FAIL scope-cases
+4. keep dynamic row `15` as a separate sidecar lane
