@@ -19,7 +19,7 @@ done
 
 latest_row_log_heartbeat() {
   local latest_line
-  latest_line="$(find "$out_dir" -maxdepth 1 -type f -name 'LOCAL_static_exal_failband_wave3_*.log' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 || true)"
+  latest_line="$(find "$out_dir" -maxdepth 1 -type f -name 'LOCAL_static_exal_failband_wave3_*_row*.log' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 || true)"
   if [[ -z "$latest_line" ]]; then
     echo "NA|NA"
     return 0
@@ -55,8 +55,19 @@ while true; do
 
   echo "tmux_session=${session_state} runner_processes=${runner_count} latest_row_log_age_sec=${latest_row_log_age_sec} latest_row_log_path=${latest_row_log_path}"
 
-  output="$(Rscript "$evaluate_script")"
-  echo "$output" | sed -n '/^SUMMARY /,/^UNRESOLVED_DETAIL$/p' | sed '$d'
+  if output="$(Rscript "$evaluate_script" 2>&1)"; then
+    echo "$output" | sed -n '/^SUMMARY /,/^UNRESOLVED_DETAIL$/p' | sed '$d'
+  else
+    echo "$output"
+    echo "Notice: evaluator is not ready yet; continuing monitor."
+    echo ""
+    if [[ "$check" -ge "$max_checks" ]]; then
+      echo "Max checks reached; exiting monitor."
+      exit 0
+    fi
+    sleep "$interval"
+    continue
+  fi
 
   summary_line="$(echo "$output" | awk '/^SUMMARY /{print; exit}')"
   done_now="$(echo "$summary_line" | awk -F' ' '{for(i=1;i<=NF;i++){if($i ~ /^done=/){sub("done=","",$i); print $i; exit}}}')"

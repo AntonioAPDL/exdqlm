@@ -20,9 +20,14 @@ if (!length(manifest_files)) {
 
 manifest_list <- lapply(manifest_files, function(path) {
   x <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
-  x$manifest_path <- path
+  if (!nrow(x)) return(NULL)
+  x$manifest_path <- rep(path, nrow(x))
   x
 })
+manifest_list <- Filter(Negate(is.null), manifest_list)
+if (!length(manifest_list)) {
+  stop("no wave-3 launch manifests with rows found")
+}
 manifests <- do.call(rbind, manifest_list)
 manifests <- manifests[order(manifests$ts, manifests$manifest_path), , drop = FALSE]
 manifests$key <- paste(manifests$stage, manifests$candidate_id, manifests$scope_label, manifests$row_id, manifests$variant_tag, sep = "\r")
