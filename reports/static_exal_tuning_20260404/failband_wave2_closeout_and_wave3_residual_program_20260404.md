@@ -13,22 +13,12 @@ Primary references:
 
 ## Status Note
 
-Wave-2 is no longer running.
+Wave-3 has now completed and the active next-step program has moved on to:
 
-This is good news operationally because the stopped state is decision-clean:
-there are no live tmux sessions, no active runner processes, and the launched
-wave-2 evidence is already strong enough to move forward without blindly
-resuming the old staged run.
+- `reports/static_exal_tuning_20260404/failband_wave3_closeout_and_wave4_targeted_repair_program_20260404.md`
 
-The right next step is therefore not "restart wave-2 exactly as-is."
-
-The right next step is:
-
-1. treat the launched wave-2 evidence as the new residual-band planning
-   baseline
-2. keep only the scientifically alive candidate neighborhood
-3. rerun only the still-informative residual rows first
-4. then confirm finalists back on the full `30`-row fail band
+This document remains the decision record for the wave-2 closeout and the
+residual-only wave-3 bridge search.
 
 ## Wave-2 Closeout
 

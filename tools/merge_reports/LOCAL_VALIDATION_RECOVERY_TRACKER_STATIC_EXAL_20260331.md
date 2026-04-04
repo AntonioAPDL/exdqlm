@@ -1357,3 +1357,54 @@ Updated immediate decision:
 4. open a residual-only wave-3 bridge search on the `18` unresolved rows
 5. confirm the top `2` wave-3 candidates on the full `30` residual rows
 6. keep dynamic row `15` separate until it has its own repair hypothesis
+
+## 12.5 Fail-band wave-3 closeout and wave-4 targeted repair checkpoint (2026-04-04)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260404/failband_wave3_closeout_and_wave4_targeted_repair_program_20260404.md`
+- `reports/static_exal_tuning_20260404/failband_wave2_closeout_and_wave3_residual_program_20260404.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave3_schedule_20260404.csv`
+
+Wave-3 closeout summary:
+
+| stage | total | PASS | WARN | FAIL | missing |
+|---|---:|---:|---:|---:|---:|
+| `residual18` | 144 | 28 | 44 | 72 | 0 |
+| `confirm30` | 60 | 7 | 28 | 25 | 0 |
+
+Main operational takeaways:
+
+- wave-3 completed cleanly; orchestration is still not the blocker
+- `F085_sub2_s100` remains the best completed broad residual-band baseline
+- `F0825_sub2_s100` and `F0835_sub2_s1025` tied on `residual18`, but both
+  failed to beat `F085_sub2_s100` on the broad confirmation pass
+- the active static repair problem is now most usefully expressed as the
+  `9` rows still failing under `F085_sub2_s100`
+
+Static rows still failing under the best broad baseline:
+
+- current: `87`, `115`, `135`, `174`, `190`, `206`, `278`
+- legacy: `181`, `269`
+
+Important row-level evidence:
+
+- rows `87`, `174`, and `269` remain the hardest shared repair cluster
+- row `135` has one uniquely useful observed rescue:
+  - `F0825_sub2_s105`
+- row `190` is most favorable to:
+  - `F0825_sub2_s1025`
+- row `206` is favorable to:
+  - `F0825_sub2_s100`
+  - `F085_sub2_s1025`
+- rows `115`, `181`, and `278` now have multiple plausible repair candidates
+
+Updated immediate decision:
+
+1. freeze `F085_sub2_s100` as the best completed broad static repair baseline
+2. do **not** run another broad shared-setup wave
+3. open a targeted wave-4 repair matrix on only the `9` rows still failing
+   under that baseline
+4. keep candidate search inside the surviving `F0825` to `F085` band, with
+   `F0825_sub2_s105` retained only as a special-case probe
+5. keep dynamic row `15` separate until it has a true repair hypothesis

@@ -41,6 +41,10 @@ The wave-2 closeout and active residual-only wave-3 program now live in:
 
 - `reports/static_exal_tuning_20260404/failband_wave2_closeout_and_wave3_residual_program_20260404.md`
 
+The wave-3 closeout and active targeted wave-4 repair program now live in:
+
+- `reports/static_exal_tuning_20260404/failband_wave3_closeout_and_wave4_targeted_repair_program_20260404.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
@@ -73,6 +77,16 @@ Important refinement after the wave-2 residual-band closeout:
 - the active residual search space is no longer the broad `F080` to `F0875`
   neighborhood; it is now the tighter bridge band from `F0825` to `F085`
   with scale in `[1.000, 1.025]`
+
+Important refinement after the completed wave-3 bridge closeout:
+
+- `F085_sub2_s100` remains the best completed broad residual-band baseline
+- `F0825_sub2_s100` and `F0835_sub2_s1025` remain useful complements, but
+  neither beats `F085_sub2_s100` on the full `30`-row confirmation pass
+- the active static repair debt is now most usefully expressed as the `9` rows
+  still failing under `F085_sub2_s100`, not as the full old `30`-row band
+- the next credible search shape is a targeted repair matrix on those `9`
+  rows only
 
 ## Main Takeaways
 
@@ -132,10 +146,11 @@ Important refinement after the wave-2 residual-band closeout:
 1. treat the completed static refresh as the new repair-planning baseline
 2. treat `F085_sub2_s100` as the new residual-band repair baseline and
    `F0825_sub2_s100` as the complementary control
-3. search only inside the surviving bridge neighborhood:
-   `F0825` through `F085`, scale `1.000` through `1.025`
-4. spend broad compute only on the `18` still-informative residual rows, then
-   confirm finalists on the full `30`
+3. search only inside the surviving repair neighborhood:
+   `F0825` through `F085`, scale `1.000` through `1.025`, with
+   `F0825_sub2_s105` retained only as a targeted special-case probe
+4. spend broad compute only on the `9` rows still failing under
+   `F085_sub2_s100`
 5. repair or replace dynamic row `15` under current `HEAD`
 6. merge the reusable refreshed outputs only after the residual FAIL band is
    eliminated
@@ -150,13 +165,14 @@ failing debt.
 |---|---:|---|---|
 | refreshed static non-FAIL rows | 42 | reusable now | these are already valid and should not be rerun |
 | previously reusable campaign artifacts | 218 | reusable now | these do not require rerun if provenance is preserved |
-| residual static FAIL scope-cases | 30 | unresolved | these now define the next-wave static repair scope |
+| resolved residual-band static rows under `F085_sub2_s100` | 21 | provisionally reusable repair coverage | these no longer need active repair search |
+| active static repair rows under `F085_sub2_s100` | 9 | unresolved | these now define the next-wave static repair scope |
 | dynamic tail row `15` | 1 | current-HEAD refresh still `FAIL` | only remaining dynamic unresolved row |
 
-Minimal unresolved campaign debt after the completed static refresh:
+Minimal active repair debt after the completed wave-3 closeout:
 
-- `31` cases total (`30` static fail scope-cases + `1` dynamic sidecar)
-- not `73`
+- `10` cases total (`9` static repair rows + `1` dynamic sidecar)
+- not `31`
 
 ## Comparison-Ready Acceptance Rule
 
