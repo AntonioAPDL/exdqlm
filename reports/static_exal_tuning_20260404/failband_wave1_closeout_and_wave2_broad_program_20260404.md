@@ -16,12 +16,12 @@ Primary references:
 
 Fail-band wave-1 is complete.
 
-It produced a materially better map of the residual tuning space, but it did
-not yield a signoff-ready zero-FAIL candidate across the residual static band.
+Wave-2 has now also completed enough launched work to serve as a
+decision-quality closeout, and the active next-step program has moved on to:
 
-The active next-step program is therefore not another flat rerun. It is a
-broader but more disciplined staged wave centered on the only directions that
-still look scientifically alive.
+- `reports/static_exal_tuning_20260404/failband_wave2_closeout_and_wave3_residual_program_20260404.md`
+
+This document remains the design record for the broad staged wave-2 search.
 
 ## Wave-1 Closeout
 

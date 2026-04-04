@@ -1300,3 +1300,60 @@ Readiness verification completed:
 - actual staged execution budget remains bounded at `280` runs
 - shell launch/supervisor/monitor scripts parse cleanly
 - stage promotion now penalizes missing rows before FAIL/WARN ranking
+
+## 12.4 Fail-band wave-2 closeout and residual-only wave-3 checkpoint (2026-04-04)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260404/failband_wave2_closeout_and_wave3_residual_program_20260404.md`
+- `reports/static_exal_tuning_20260404/failband_wave1_closeout_and_wave2_broad_program_20260404.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave2_schedule_20260404.csv`
+
+Operational state:
+
+- wave-2 is not running
+- no tmux session or runner process remains active
+- the launched wave-2 evidence is still strong enough to move forward without
+  resuming the old staged program
+
+Actual launched wave-2 stage summary:
+
+| stage | total | done | missing | PASS | WARN | FAIL |
+|---|---:|---:|---:|---:|---:|---:|
+| `sentinel12` | 120 | 119 | 1 | 10 | 42 | 67 |
+| `expand20` | 100 | 100 | 0 | 13 | 47 | 40 |
+| `full30` | 60 | 59 | 1 | 13 | 27 | 19 |
+
+Important closeout findings:
+
+- new best completed broad residual-band baseline:
+  - `F085_sub2_s100` on `full30`: `6 PASS / 15 WARN / 9 FAIL`
+- strongest complementary control:
+  - `F0825_sub2_s100` on `full30`: `7 PASS / 12 WARN / 10 FAIL / 1 MISSING`
+- the remaining useful search space tightened materially:
+  - keep only jump in `[0.0825, 0.0850]`
+  - keep only scale in `[1.000, 1.025]`
+- screened out for the active residual-band search:
+  - `F080_sub2_s0975`
+  - `F0825_sub2_s105`
+  - `F085_sub2_s105`
+  - all `F0875_sub2_*`
+
+Residual row structure after wave-2:
+
+- the union of rows still `FAIL` or `MISSING` under
+  `F085_sub2_s100` or `F0825_sub2_s100` is `18`
+- two especially stubborn shared fail rows remain:
+  - current row `87` / `gausmix / tt1000 / tau0p25`
+  - current row `174` / `gausmix / tt1000 / tau0p25`
+- the only bookkeeping miss that remains decision-relevant is:
+  - `F0825_sub2_s100 / current row 103 / laplace / tt1000 / tau0p05`
+
+Updated immediate decision:
+
+1. do **not** resume the old wave-2 staged program
+2. treat `F085_sub2_s100` as the new residual-band planning baseline
+3. treat `F0825_sub2_s100` as the primary complement
+4. open a residual-only wave-3 bridge search on the `18` unresolved rows
+5. confirm the top `2` wave-3 candidates on the full `30` residual rows
+6. keep dynamic row `15` separate until it has its own repair hypothesis

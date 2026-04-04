@@ -37,6 +37,10 @@ in:
 
 - `reports/static_exal_tuning_20260404/failband_wave1_closeout_and_wave2_broad_program_20260404.md`
 
+The wave-2 closeout and active residual-only wave-3 program now live in:
+
+- `reports/static_exal_tuning_20260404/failband_wave2_closeout_and_wave3_residual_program_20260404.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
@@ -59,6 +63,16 @@ Important revision after the completed static refresh:
   the completed `72`-row static refresh still left `30` FAIL scope-cases
 - the completed refresh should now be treated as the empirical reference wave
   for fail-band repair planning, not as the signoff-ready endpoint
+
+Important refinement after the wave-2 residual-band closeout:
+
+- `F080_sub2_s105` remains the best completed broad refresh reference wave
+- `F085_sub2_s100` is now the best completed residual-band repair baseline on
+  the `30`-row fail band
+- `F0825_sub2_s100` is now the strongest complementary residual-band control
+- the active residual search space is no longer the broad `F080` to `F0875`
+  neighborhood; it is now the tighter bridge band from `F0825` to `F085`
+  with scale in `[1.000, 1.025]`
 
 ## Main Takeaways
 
@@ -116,11 +130,12 @@ Important revision after the completed static refresh:
 ### Highest-value directions now
 
 1. treat the completed static refresh as the new repair-planning baseline
-2. treat the completed wave-1 fail-band screen as the new residual-band
-   evidence baseline
-3. search broadly only inside the surviving upper-central neighborhood:
-   `F080_sub2_s0975` through `F0875_sub2_s105`
-4. stage the next screen so only finalists consume full-band budget
+2. treat `F085_sub2_s100` as the new residual-band repair baseline and
+   `F0825_sub2_s100` as the complementary control
+3. search only inside the surviving bridge neighborhood:
+   `F0825` through `F085`, scale `1.000` through `1.025`
+4. spend broad compute only on the `18` still-informative residual rows, then
+   confirm finalists on the full `30`
 5. repair or replace dynamic row `15` under current `HEAD`
 6. merge the reusable refreshed outputs only after the residual FAIL band is
    eliminated
