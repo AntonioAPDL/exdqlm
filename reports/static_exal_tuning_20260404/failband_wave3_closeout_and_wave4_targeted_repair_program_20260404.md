@@ -10,22 +10,31 @@ Primary references:
 
 ## Status Note
 
-Wave-3 is complete.
+Wave-4 is now complete.
+
+The active next-step program has moved on to:
+
+- `reports/static_exal_tuning_20260404/failband_wave4_closeout_and_wave5_local_repair_program_20260404.md`
+
+This document remains the decision record for the wave-3 closeout and the
+targeted wave-4 repair search.
 
 This is still good news scientifically, even though it did not produce a new
-better broad baseline.
+single shared baseline that beats the best broad residual-band default.
 
 Why it is still good news:
 
 - it completed cleanly and end to end
 - it gave a decision-quality answer about the remaining shared-setup search
 - it showed that the broad upper-central bridge search is close to exhausted
-- it reduced the active remaining static repair scope from the full
-  `30`-row residual band to the `9` rows that still fail under the best
-  completed broad baseline
+- it reduced the active static problem from the `30`-row residual band to the
+  `9` rows that still failed under the best completed broad baseline
+- it showed that those `9` rows can be covered by a default-plus-local repair
+  map rather than another full shared-setup search
 
 The active next-step program is therefore no longer another broad shared-setup
-wave. It is a targeted repair matrix on only the rows that still need fixing.
+wave. It is a local repair confirmation/probe lane built on the wave-4 repair
+map.
 
 ## Wave-3 Closeout
 

@@ -299,6 +299,65 @@ Primary execution note:
   semantics during the static rerun, not merely on replaying the `72` stale
   rows with one generic variant tag
 
+## 0.5 Wave-4 closeout and local-repair baseline checkpoint (2026-04-04)
+
+Wave-4 targeted repair status:
+
+- wave-4 completed end to end under the repaired orchestration stack
+- active decision artifact:
+  `reports/static_exal_tuning_20260404/failband_wave4_closeout_and_wave5_local_repair_program_20260404.md`
+
+Wave-4 result summary:
+
+| stage | total | PASS | WARN | FAIL | missing |
+|---|---:|---:|---:|---:|---:|
+| `repair9` | 81 | 13 | 28 | 40 | 0 |
+
+Most important scientific update:
+
+- no single shared candidate solved the residual band cleanly
+- but the completed evidence now supports a default-plus-local repair map with:
+  - `6 PASS`
+  - `3 WARN`
+  - `0 FAIL`
+  across the old `9`-row static residual band
+
+Promoted static baseline:
+
+- default baseline:
+  `F085_sub2_s100`
+- local overrides:
+  - row `87`: `F085_sub2_s1025`
+  - row `115`: `F0845_sub2_s1025`
+  - row `135`: `F0835_sub2_s1025`
+  - row `174`: `F0845_sub2_s100`
+  - row `190`: `F085_sub2_s1025`
+  - row `206`: `F0835_sub2_s1025`
+  - row `278`: `F0845_sub2_s1025`
+  - row `181`: keep default `F085_sub2_s100`
+  - row `269`: keep default `F085_sub2_s100`
+
+High-value remaining static uncertainty:
+
+- the static problem is no longer unresolved FAIL elimination across the full
+  residual band
+- the active static uncertainty is now concentrated in the WARN-only rows:
+  - current `87`
+  - current `174`
+  - legacy `269`
+
+Operational implication:
+
+- broad shared-setup search is now lower value than local confirmation/probing
+- the next static lane should confirm the chosen local repair map and probe
+  only rows `174` and `269` with the one historically credible outlier:
+  `F0875_sub2_s105`
+
+Dynamic implication:
+
+- dynamic row `15` is still the only remaining dynamic unresolved row
+- it remains deferred until there is a real repair hypothesis beyond replay
+
 ## 1. Current validated picture
 
 Current effective study state after the successful row `57` C++-GIG replacement:

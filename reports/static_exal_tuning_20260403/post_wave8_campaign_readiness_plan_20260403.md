@@ -45,6 +45,11 @@ The wave-3 closeout and active targeted wave-4 repair program now live in:
 
 - `reports/static_exal_tuning_20260404/failband_wave3_closeout_and_wave4_targeted_repair_program_20260404.md`
 
+The wave-4 closeout and active local repair confirmation/probe program now live
+in:
+
+- `reports/static_exal_tuning_20260404/failband_wave4_closeout_and_wave5_local_repair_program_20260404.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
@@ -88,6 +93,23 @@ Important refinement after the completed wave-3 bridge closeout:
 - the next credible search shape is a targeted repair matrix on those `9`
   rows only
 
+Important refinement after the completed wave-4 targeted repair closeout:
+
+- `F085_sub2_s100` remains the default broad residual-band baseline
+- a default-plus-local repair map now improves the full `9`-row residual band
+  to:
+  - `6 PASS`
+  - `3 WARN`
+  - `0 FAIL`
+- the promoted static baseline is now:
+  - default: `F085_sub2_s100`
+  - local overrides only on the rows where the default still fails
+- the active static uncertainty is no longer failure elimination across the
+  `9`-row band; it is confirmation/probing of the three WARN-only rows:
+  - current `87`
+  - current `174`
+  - legacy `269`
+
 ## Main Takeaways
 
 ### What improved
@@ -130,6 +152,7 @@ Important refinement after the completed wave-3 bridge closeout:
 4. the repaired orchestration stack:
    deterministic manifests, auditable logs, locked summaries, supervisor, and
    live monitor
+5. local row-level tuning once the broad shared search was exhausted
 
 ### What clearly did not work
 
@@ -140,20 +163,22 @@ Important refinement after the completed wave-3 bridge closeout:
 - aggressive `F090 / F095` frontier families
 - lambda-tempering, no-jump, and pathological `substeps = 3` lanes
 - any broad rerun before exact-runner carry-forward evidence was clean
+- continuing to chase a single generic residual-band setup after wave-4 had
+  already shown that a local repair map is better
 
 ### Highest-value directions now
 
 1. treat the completed static refresh as the new repair-planning baseline
-2. treat `F085_sub2_s100` as the new residual-band repair baseline and
-   `F0825_sub2_s100` as the complementary control
-3. search only inside the surviving repair neighborhood:
-   `F0825` through `F085`, scale `1.000` through `1.025`, with
-   `F0825_sub2_s105` retained only as a targeted special-case probe
-4. spend broad compute only on the `9` rows still failing under
-   `F085_sub2_s100`
+2. keep `F085_sub2_s100` as the broad default baseline, not the only tuning
+   profile
+3. use the completed local repair map as the new active static baseline for
+   the residual band
+4. spend new compute only on:
+   - confirming the chosen local repair map
+   - probing the WARN-only rows with row-specific high-value exceptions
 5. repair or replace dynamic row `15` under current `HEAD`
 6. merge the reusable refreshed outputs only after the residual FAIL band is
-   eliminated
+   eliminated and the local repair map is confirmed
 
 ## Updated Remaining Comparison Debt
 
@@ -166,13 +191,14 @@ failing debt.
 | refreshed static non-FAIL rows | 42 | reusable now | these are already valid and should not be rerun |
 | previously reusable campaign artifacts | 218 | reusable now | these do not require rerun if provenance is preserved |
 | resolved residual-band static rows under `F085_sub2_s100` | 21 | provisionally reusable repair coverage | these no longer need active repair search |
-| active static repair rows under `F085_sub2_s100` | 9 | unresolved | these now define the next-wave static repair scope |
+| provisional static repair-map rows | 9 | locally resolved from completed evidence | these define the promoted local static baseline |
+| WARN-only static confirmation/probe rows | 3 | high-risk but not failing | these define the next-wave static scope |
 | dynamic tail row `15` | 1 | current-HEAD refresh still `FAIL` | only remaining dynamic unresolved row |
 
-Minimal active repair debt after the completed wave-3 closeout:
+Minimal active scientific debt after the completed wave-4 closeout:
 
-- `10` cases total (`9` static repair rows + `1` dynamic sidecar)
-- not `31`
+- `4` cases total (`3` static WARN-only scenarios + `1` dynamic sidecar)
+- not `10`
 
 ## Comparison-Ready Acceptance Rule
 
@@ -194,24 +220,18 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 ### Phase A: Freeze the promoted reference wave
 
-- [ ] Freeze `F080_sub2_s105` as the active static `exal` repair-planning
-      reference wave
-- [ ] Keep `F080_sub2_s100_ref` as the fallback control in case the full rerun
-      exposes a concentrated regression
-- [ ] Record `F080_sub2_s0975` as a secondary bridge candidate, not the primary
-      production baseline
+- [ ] Keep `F080_sub2_s105` as the historical repair-planning reference wave
+- [ ] Keep `F085_sub2_s100` as the broad static default baseline
+- [ ] Promote the local repair map from wave-4 as the active static residual
+      baseline
 
-### Phase B: Prepare the fail-band-only static repair wave
+### Phase B: Confirm the local static repair map
 
-- [ ] isolate only the `30` residual static FAIL scope-cases
+- [ ] rerun only the `9` selected local repair-map rows under fresh final tags
 - [ ] preserve separate current RHS-NS and legacy RHS scope labels
-- [ ] prioritize the recurring cross-scope fail anchors and dominant family/tau
-      clusters
-- [ ] use the completed `F080_sub2_s105` refresh as the empirical comparison
-      baseline for next-wave candidates
-- [ ] do not rerun the `42` refreshed static non-FAIL rows
-- [ ] run the active wave-1 overnight screen across the `6` retained nearby
-      candidate profiles only
+- [ ] probe only the WARN-only stubborn rows with row-specific high-value
+      exceptions
+- [ ] do not reopen any broad shared-setup search
 - [ ] preserve deterministic manifests, failure logs, supervisor logs, and
       monitor heartbeats
 
@@ -245,7 +265,8 @@ The study is in a materially better place now.
 The open problem is no longer "find a plausible static tuning family" and it is
 no longer "fix the resume chain." The open problem is now much cleaner:
 
-1. isolate and repair the residual `30`-case static fail band
+1. confirm the local static repair map and close the remaining WARN-only
+   uncertainty
 2. clean up dynamic row `15`
 3. regenerate the full campaign tables once all FAILs are removed
 
