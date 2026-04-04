@@ -138,3 +138,11 @@ Wave-8 is a disciplined, exact-runner transfer program focused only on the `F080
   - `tools/merge_reports/LOCAL_static_exal_wave8_transfer_launch_20260403.sh`
 - wave-8 prepare-only validation should be run before launch to confirm the
   schedule CSVs are generated as expected
+
+## Closeout Note
+
+Wave-8 has now completed on the validation branch. The closeout, residual
+FAIL analysis, and fail-only next-step program live in:
+
+- `reports/static_exal_tuning_20260403/wave8_closeout_and_fail_only_repair_program.md`
+- `reports/static_exal_tuning_20260403/PROMPT__wave8_fail_only_repair_20260403.md`
