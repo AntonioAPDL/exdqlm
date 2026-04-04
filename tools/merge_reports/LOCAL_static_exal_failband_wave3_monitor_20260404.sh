@@ -57,6 +57,9 @@ while true; do
 
   if output="$(Rscript "$evaluate_script" 2>&1)"; then
     echo "$output" | sed -n '/^SUMMARY /,/^UNRESOLVED_DETAIL$/p' | sed '$d'
+    if [[ "${runner_count:-0}" != "0" || "$session_state" == "RUNNING" ]]; then
+      echo "Notice: manifest-based stage counts reflect completed rows only while jobs are still live."
+    fi
   else
     echo "$output"
     echo "Notice: evaluator is not ready yet; continuing monitor."
@@ -80,7 +83,7 @@ while true; do
   fi
   prev_done="$done_now"
 
-  if [[ -n "$missing_now" && "$missing_now" == "0" ]]; then
+  if [[ -n "$missing_now" && "$missing_now" == "0" && "$session_state" != "RUNNING" && "${runner_count:-0}" == "0" ]]; then
     echo "All failband wave3 rows completed. Exiting monitor."
     exit 0
   fi
