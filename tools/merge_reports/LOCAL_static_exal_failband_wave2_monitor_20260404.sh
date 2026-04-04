@@ -56,7 +56,7 @@ while true; do
   echo "tmux_session=${session_state} runner_processes=${runner_count} latest_row_log_age_sec=${latest_row_log_age_sec} latest_row_log_path=${latest_row_log_path}"
 
   output="$(Rscript "$evaluate_script")"
-  echo "$output"
+  echo "$output" | sed -n '/^SUMMARY /,/^UNRESOLVED_DETAIL$/p' | sed '$d'
 
   summary_line="$(echo "$output" | awk '/^SUMMARY /{print; exit}')"
   done_now="$(echo "$summary_line" | awk -F' ' '{for(i=1;i<=NF;i++){if($i ~ /^done=/){sub("done=","",$i); print $i; exit}}}')"
