@@ -36,6 +36,28 @@ New cross-study assets:
 - healthcheck:
   - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
 
+Current cross-study read:
+
+- the first broad shared-setup launch established a usable source baseline at `66/72` successful
+  roots;
+- the remaining hard root FAIL band is only the six
+  `static_shrink x laplace x tt=1000` roots;
+- the remaining broad debt is mostly `rhs_ns` comparison-eligibility debt;
+- the correct next move is a debt-only rerun, not another whole-surface relaunch.
+
+Debt-wave assets:
+
+- broad-launch report:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
+- debt-wave plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave2_debt_resolution_20260404.md`
+- debt-wave manifest:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_debt_wave_manifest.yaml`
+- debt-wave launcher:
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_debt_wave.R`
+- debt-wave healthcheck:
+  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_debt_wave.R`
+
 Important boundary:
 
 - this follow-on is not another dynamic DLM tuning loop;

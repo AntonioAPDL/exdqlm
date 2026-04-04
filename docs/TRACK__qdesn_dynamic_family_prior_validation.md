@@ -20,6 +20,18 @@ The next apples-to-apples comparison program is separate:
 
 That follow-on program mirrors the exdqlm static `gausmix / normal / laplace` dataset surface.
 
+Static cross-study update:
+
+- the initial broad shared-setup launch established the source baseline at `66/72` successful
+  roots;
+- the remaining hard FAIL band is only the six
+  `static_shrink x laplace x tt=1000` roots;
+- the remaining broader debt is `rhs_ns` comparison-eligibility debt;
+- the active follow-up is now a debt-only static wave, not another broad static relaunch:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave2_debt_resolution_20260404.md`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_debt_wave_manifest.yaml`
+
 Important boundary:
 
 - the dynamic matrix here is complete and certified;

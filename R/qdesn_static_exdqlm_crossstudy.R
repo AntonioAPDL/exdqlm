@@ -1587,9 +1587,11 @@ qdesn_static_crossstudy_run_campaign <- function(grid = NULL,
       ),
       error = function(e) {
         root_status_path <- file.path(results_run_root, "roots", root_spec$root_id, "manifest", "root_status.txt")
+        root_error_path <- file.path(results_run_root, "roots", root_spec$root_id, "manifest", "root_error.txt")
         if (file.exists(root_status_path)) {
           .qdesn_validation_write_lines(root_status_path, "FAIL")
         }
+        .qdesn_validation_write_lines(root_error_path, conditionMessage(e))
         data.frame(
           root_id = root_spec$root_id,
           dataset_cell_id = root_spec$dataset_cell_id,
@@ -1611,12 +1613,68 @@ qdesn_static_crossstudy_run_campaign <- function(grid = NULL,
   }
 
   status_rows <- list()
-  if (workers > 1L && .Platform$OS.type == "unix" && n_targets > 1L) {
-    status_rows <- parallel::mclapply(
+  if (workers > 1L && n_targets > 1L) {
+    repo_root <- .qdesn_validation_repo_root()
+    cl <- parallel::makePSOCKcluster(workers, outfile = "")
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterExport(
+      cl,
+      varlist = c(
+        "repo_root",
+        "targets",
+        "defaults",
+        "results_run_root",
+        "create_plots",
+        "verbose",
+        "n_targets"
+      ),
+      envir = environment()
+    )
+    parallel::clusterEvalQ(cl, {
+      suppressPackageStartupMessages(library(pkgload))
+      pkgload::load_all(repo_root, quiet = TRUE)
+      NULL
+    })
+    status_rows <- parallel::parLapply(
+      cl,
       X = seq_len(n_targets),
-      FUN = function(j) run_one(targets[[j]], j, n_targets),
-      mc.cores = workers,
-      mc.preschedule = TRUE
+      fun = function(j) {
+        root_spec <- targets[[j]]
+        tryCatch(
+          {
+            res <- exdqlm:::qdesn_static_crossstudy_run_root(
+              root_spec = root_spec,
+              defaults = defaults,
+              output_root = file.path(results_run_root, "roots"),
+              create_plots = create_plots,
+              verbose = verbose
+            )
+            out <- res$root_summary
+            out$error_message <- ""
+            out
+          },
+          error = function(e) {
+            root_status_path <- file.path(results_run_root, "roots", root_spec$root_id, "manifest", "root_status.txt")
+            root_error_path <- file.path(results_run_root, "roots", root_spec$root_id, "manifest", "root_error.txt")
+            if (file.exists(root_status_path)) {
+              exdqlm:::.qdesn_validation_write_lines(root_status_path, "FAIL")
+            }
+            exdqlm:::.qdesn_validation_write_lines(root_error_path, conditionMessage(e))
+            data.frame(
+              root_id = root_spec$root_id,
+              dataset_cell_id = root_spec$dataset_cell_id,
+              root_kind = root_spec$source_root_kind,
+              family = root_spec$source_family,
+              tau = as.numeric(root_spec$tau),
+              fit_size = as.integer(root_spec$fit_size),
+              prior = root_spec$beta_prior_type,
+              root_status = "FAIL",
+              error_message = conditionMessage(e),
+              stringsAsFactors = FALSE
+            )
+          }
+        )
+      }
     )
     .qdesn_validation_write_df(.qdesn_validation_bind_rows(status_rows), file.path(report_run_root, "tables", "campaign_progress.csv"))
   } else {

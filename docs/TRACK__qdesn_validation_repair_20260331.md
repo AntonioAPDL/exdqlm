@@ -33,6 +33,19 @@ The next comparison-facing program is a separate cross-worktree study:
 That follow-on program reuses the exdqlm static `gausmix / normal / laplace` datasets and builds
 the QDESN analog with `exal/al x vb/mcmc x ridge/rhs_ns`.
 
+Static cross-study status is now more concrete:
+
+- Wave 1 broad shared-setup launch established the source baseline at `66/72` successful roots;
+- the remaining hard FAIL band is exactly the six
+  `static_shrink x laplace x tt=1000` roots;
+- the broad `rhs_ns` debt is now tracked separately as comparison-eligibility debt, not as a
+  reason to relaunch the full study surface;
+- the active follow-up is a debt-only wave:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave2_debt_resolution_20260404.md`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_debt_wave_manifest.yaml`
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_debt_wave.R`
+
 Important boundary:
 
 - this tracker remains the record for the dynamic QDESN repair/certification sequence;
