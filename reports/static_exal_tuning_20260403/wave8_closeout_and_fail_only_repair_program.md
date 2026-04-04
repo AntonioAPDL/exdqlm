@@ -5,6 +5,7 @@ Date: 2026-04-03
 Primary references:
 
 - `reports/static_exal_tuning_20260403/wave7_closeout_and_wave8_program.md`
+- `reports/static_exal_tuning_20260403/fail_only_bridge_results_20260403.md`
 - `tools/merge_reports/LOCAL_static_exal_wave8_resume_supervisor_20260403.log`
 - `tools/merge_reports/LOCAL_static_exal_wave8_live_monitor_20260403.log`
 - `tools/merge_reports/LOCAL_static_exal_wave8_guard8_resume_manifest_20260403_194245_23169_3807732.csv`
@@ -136,3 +137,10 @@ So the next step is not "redo wave-8." The next step is:
 - run a disciplined fail-only repair mini-program on the two residual weak
   patterns
 - keep the zero-FAIL shortlist intact as the current best path forward
+
+## Result Note
+
+The fail-only bridge program has now been implemented and executed. Results and
+carry-forward recommendations live in:
+
+- `reports/static_exal_tuning_20260403/fail_only_bridge_results_20260403.md`

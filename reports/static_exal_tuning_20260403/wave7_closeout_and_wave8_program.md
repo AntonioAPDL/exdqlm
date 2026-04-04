@@ -146,3 +146,4 @@ FAIL analysis, and fail-only next-step program live in:
 
 - `reports/static_exal_tuning_20260403/wave8_closeout_and_fail_only_repair_program.md`
 - `reports/static_exal_tuning_20260403/PROMPT__wave8_fail_only_repair_20260403.md`
+- `reports/static_exal_tuning_20260403/fail_only_bridge_results_20260403.md`
