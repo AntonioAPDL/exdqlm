@@ -10,7 +10,14 @@ Primary references:
 
 ## Status Note
 
-Wave-4 is complete.
+Wave-5 is now complete.
+
+The active next-step program has moved on to:
+
+- `reports/static_exal_tuning_20260404/failband_wave5_closeout_and_wave6_row_specific_closure_program_20260404.md`
+
+This document remains the decision record for the wave-4 closeout and the
+wave-5 local confirmation/probe lane.
 
 This is good news scientifically and operationally.
 
@@ -25,7 +32,8 @@ Why it is good news:
   "confirm a local repair map and probe only the stubborn WARN-only rows"
 
 The active next-step program is therefore no longer another neighborhood
-search. It is a compact local confirmation/probe lane.
+search. Wave-5 has completed and the next lane is now a row-specific closure
+program built from the wave-5 closeout.
 
 ## Wave-4 Closeout
 

@@ -1467,3 +1467,62 @@ Updated immediate decision:
 4. keep candidate search inside the surviving `F0825` to `F085` band, with
    `F0825_sub2_s105` retained only as a special-case probe
 5. keep dynamic row `15` separate until it has a true repair hypothesis
+
+## 12.6 Fail-band wave-5 closeout and wave-6 row-specific closure checkpoint (2026-04-04)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260404/failband_wave5_closeout_and_wave6_row_specific_closure_program_20260404.md`
+- `reports/static_exal_tuning_20260404/failband_wave4_closeout_and_wave5_local_repair_program_20260404.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave5_schedule_20260404.csv`
+
+Wave-5 closeout summary:
+
+| stage | total | PASS | WARN | FAIL | missing |
+|---|---:|---:|---:|---:|---:|
+| `confirm9` | 9 | 1 | 4 | 4 | 0 |
+| `probe2` | 2 | 0 | 1 | 1 | 0 |
+| `overall` | 11 | 1 | 5 | 5 | 0 |
+
+Main operational takeaways:
+
+- wave-5 completed cleanly; orchestration remains healthy
+- the wave-4 provisional local map should **not** be used unchanged
+- the better static baseline is now:
+  - broad default: `F085_sub2_s100`
+  - evidence-weighted local overrides only where repeated row-level evidence
+    supports them
+- the active static problem is now best expressed as:
+  - `3` core closure rows: `135`, `190`, `269`
+  - `6` non-`FAIL` rows needing only stability/provenance confirmation
+
+Promoted local repair baseline v2:
+
+- `87` -> `F085_sub2_s1025`
+- `115` -> `F0825_sub2_s100`
+- `135` -> `F0845_sub2_s100` (current safest fallback; still active closure row)
+- `174` -> `F0875_sub2_s105`
+- `181` -> `F0825_sub2_s100`
+- `190` -> `F0825_sub2_s1025`
+- `206` -> `F0825_sub2_s1025`
+- `269` -> `F0845_sub2_s100` (current safest fallback; still active closure row)
+- `278` -> `F0845_sub2_s1025`
+
+Important row-level evidence after wave-5:
+
+- row `115`: `F0825_sub2_s100` is materially stronger than the older
+  provisional `F0845_sub2_s1025` choice
+- row `174`: `F0875_sub2_s105` remains the only durable row-specific exception
+- row `181`: `F0825_sub2_s100` is more stable than keeping the broad default
+- row `190`: `F0825_sub2_s1025` is now the best closure anchor
+- row `269`: `F0845_sub2_s100` is the safest current non-`FAIL` fallback
+
+Updated immediate decision:
+
+1. keep `F085_sub2_s100` as the broad static default baseline
+2. promote the evidence-weighted local repair baseline v2
+3. do **not** reopen any shared residual-band search
+4. open a wave-6 row-specific closure lane with:
+   - full `9`-row confirmation of the improved local baseline
+   - extra repair probes only on rows `135`, `190`, and `269`
+5. keep dynamic row `15` separate until it has a true repair hypothesis
