@@ -12,8 +12,20 @@ Primary references:
 
 ## Status Note
 
-This is the active next-wave execution program after the completed
-`F080_sub2_s105` static refresh closeout.
+This wave is complete.
+
+It should now be read as the completed execution record for the first
+fail-band-only screen after the `F080_sub2_s105` static refresh closeout.
+
+The active next-step program now lives in:
+
+- `reports/static_exal_tuning_20260404/failband_wave1_closeout_and_wave2_broad_program_20260404.md`
+
+Historical reason for preserving this document:
+
+- it records the first full-band screen across the residual `30` static FAIL
+  scope-cases
+- it remains the direct reference for the completed wave-1 candidate results
 
 The study is no longer in broad tuning search. The active goal is now:
 

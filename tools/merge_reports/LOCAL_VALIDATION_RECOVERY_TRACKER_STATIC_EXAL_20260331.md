@@ -1218,3 +1218,85 @@ Updated immediate decision:
 3. rank candidates strictly by FAIL count first
 4. if no candidate reaches `0 FAIL`, isolate only the remaining residual rows
    for wave-2
+
+## 12.3 Fail-band wave-1 closeout and broad staged wave-2 program (2026-04-04)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260404/failband_wave1_closeout_and_wave2_broad_program_20260404.md`
+- `reports/static_exal_tuning_20260403/failband_wave1_overnight_program_20260403.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave1_schedule_20260403.csv`
+
+Wave-1 closeout summary:
+
+| candidate_id | PASS | WARN | FAIL | resolved |
+|---|---:|---:|---:|---:|
+| `F080_sub2_s0975` | 7 | 11 | 12 | 18 |
+| `F085_sub2_s105` | 7 | 11 | 12 | 18 |
+| `F075_sub2_s105` | 3 | 13 | 14 | 16 |
+| `F0825_sub2_s100` | 3 | 13 | 14 | 16 |
+| `F080_sub2_s100_ref` | 3 | 8 | 19 | 11 |
+| `F085_sub2_s095` | 3 | 7 | 20 | 10 |
+
+Main operational takeaways:
+
+- wave-1 completed cleanly; orchestration is still solid
+- no candidate reached `0 FAIL`
+- the co-lead repair anchors are now:
+  - `F080_sub2_s0975`
+  - `F085_sub2_s105`
+- the tertiary midpoint control worth preserving is:
+  - `F0825_sub2_s100`
+- the following candidates should now be treated as screened out for the
+  active residual-band search:
+  - `F075_sub2_s105`
+  - `F080_sub2_s100_ref`
+  - `F085_sub2_s095`
+
+Hardest rows after wave-1:
+
+- failed under all six screened candidates:
+  - current `87`, `254`, `286`
+  - legacy `269`
+
+Updated immediate decision:
+
+1. keep dynamic row `15` separate
+2. keep the static scope at the same `30` residual FAIL scope-cases
+3. broaden only within the surviving upper-central neighborhood
+4. use a staged wave-2 screen rather than another flat full-band pass
+
+Wave-2 candidate neighborhood:
+
+| class | candidates |
+|---|---|
+| retained anchors | `F080_sub2_s0975`, `F0825_sub2_s100`, `F085_sub2_s105` |
+| new bridge variants | `F0825_sub2_s1025`, `F0825_sub2_s105`, `F085_sub2_s100`, `F085_sub2_s1025` |
+| cautious upper-edge extension | `F0875_sub2_s100`, `F0875_sub2_s1025`, `F0875_sub2_s105` |
+
+Wave-2 staging rule:
+
+1. `sentinel12` on the hardest `12` rows across all `10` candidates
+2. advance top `5` candidates to `expand20`
+3. advance top `2` candidates to `full30`
+4. keep ranking order:
+   - lowest FAIL
+   - lowest WARN
+   - highest PASS
+
+Operational objective:
+
+- spend full-band budget only on finalists
+- keep the search broad enough to find a real alternative if one exists
+- avoid reopening low-jump, tight upper-edge, or frontier families that now
+  have enough negative evidence
+
+Readiness verification completed:
+
+- prepare-only counts:
+  - `sentinel12 = 120`
+  - `expand20 = 200`
+  - `full30 = 300`
+- actual staged execution budget remains bounded at `280` runs
+- shell launch/supervisor/monitor scripts parse cleanly
+- stage promotion now penalizes missing rows before FAIL/WARN ranking

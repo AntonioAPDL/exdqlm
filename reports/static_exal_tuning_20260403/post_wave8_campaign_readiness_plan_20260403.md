@@ -32,6 +32,11 @@ The active overnight fail-band execution program now lives in:
 
 - `reports/static_exal_tuning_20260403/failband_wave1_overnight_program_20260403.md`
 
+The completed wave-1 closeout and active broad staged wave-2 program now live
+in:
+
+- `reports/static_exal_tuning_20260404/failband_wave1_closeout_and_wave2_broad_program_20260404.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
@@ -111,9 +116,13 @@ Important revision after the completed static refresh:
 ### Highest-value directions now
 
 1. treat the completed static refresh as the new repair-planning baseline
-2. rerun only the residual static FAIL band, not the refreshed non-FAIL rows
-3. repair or replace dynamic row `15` under current `HEAD`
-4. merge the reusable refreshed outputs only after the residual FAIL band is
+2. treat the completed wave-1 fail-band screen as the new residual-band
+   evidence baseline
+3. search broadly only inside the surviving upper-central neighborhood:
+   `F080_sub2_s0975` through `F0875_sub2_s105`
+4. stage the next screen so only finalists consume full-band budget
+5. repair or replace dynamic row `15` under current `HEAD`
+6. merge the reusable refreshed outputs only after the residual FAIL band is
    eliminated
 
 ## Updated Remaining Comparison Debt
