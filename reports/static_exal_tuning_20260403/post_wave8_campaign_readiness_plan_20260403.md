@@ -28,6 +28,10 @@ The post-refresh closeout and next-wave fail-band plan now lives in:
 
 - `reports/static_exal_tuning_20260403/static_refresh_closeout_and_failband_program_20260403.md`
 
+The active overnight fail-band execution program now lives in:
+
+- `reports/static_exal_tuning_20260403/failband_wave1_overnight_program_20260403.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
@@ -166,6 +170,8 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 - [ ] use the completed `F080_sub2_s105` refresh as the empirical comparison
       baseline for next-wave candidates
 - [ ] do not rerun the `42` refreshed static non-FAIL rows
+- [ ] run the active wave-1 overnight screen across the `6` retained nearby
+      candidate profiles only
 - [ ] preserve deterministic manifests, failure logs, supervisor logs, and
       monitor heartbeats
 

@@ -1144,3 +1144,77 @@ Updated immediate decision:
 2. do not rerun the `42` refreshed static non-FAIL rows
 3. prepare a fail-only next wave on the `30` static FAIL scope-cases
 4. keep dynamic row `15` as a separate sidecar lane
+
+## 12.2 Static fail-band wave-1 overnight plan (2026-04-03)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260403/failband_wave1_overnight_program_20260403.md`
+- `reports/static_exal_tuning_20260403/static_refresh_closeout_and_failband_program_20260403.md`
+- `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_fail_inventory_20260403.csv`
+- `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_fail_patterns_20260403.csv`
+
+Current planning baseline:
+
+- keep the completed `F080_sub2_s105` refresh as the empirical reference wave
+- do not treat it as a signoff-ready production baseline
+
+Main planning takeaways:
+
+- the study improved materially, but the remaining static debt is still a real
+  `30`-case fail band
+- broad reruns are no longer justified
+- the next useful broad search is now "broad within the fail band," not broad
+  across the whole campaign
+
+Wave-1 candidate set:
+
+| candidate_id | jump | scale | role |
+|---|---:|---:|---|
+| `F080_sub2_s100_ref` | 0.0800 | 1.000 | strongest direct control |
+| `F080_sub2_s0975` | 0.0800 | 0.975 | repaired bridge candidate |
+| `F0825_sub2_s100` | 0.0825 | 1.000 | midpoint hedge |
+| `F075_sub2_s105` | 0.0750 | 1.050 | lower-jump hedge |
+| `F085_sub2_s095` | 0.0850 | 0.950 | upper-edge tempered hedge |
+| `F085_sub2_s105` | 0.0850 | 1.050 | upper-edge wide hedge |
+
+Explicit exclusions:
+
+- `F080_sub2_s105` rerun: use existing completed reference results instead
+- `F075_sub2_s095`: dominated
+- `F080_sub2_s095`: too tight
+- `C060`, `F090`, `F095`, lambda-tempering, no-jump, `substeps = 3`: already
+  screened as weak or unhelpful
+
+Wave-1 scope:
+
+- `30` residual static FAIL scope-cases only
+- `21` current RHS-NS
+- `9` legacy RHS
+- `6` candidate profiles
+- `180` total runs
+
+Dynamic row `15` decision:
+
+- keep separate
+- do not relaunch in the overnight static wave
+- require a genuine repair hypothesis first
+
+Readiness verification completed:
+
+- prepare-only counts confirm `180` total runs (`126` current, `54` legacy)
+- two-row live smoke under `F080_sub2_s100_ref` succeeded operationally:
+  - current row `79` -> `WARN`
+  - legacy row `269` -> `FAIL`
+- conclusion:
+  - the new wave-1 tooling is launch-ready
+  - the smoke is evidence of orchestration correctness, not of final candidate
+    ranking
+
+Updated immediate decision:
+
+1. launch the fail-band-only overnight screen on the `30` static FAIL rows
+2. preserve `F080_sub2_s105` as the non-rerun reference wave
+3. rank candidates strictly by FAIL count first
+4. if no candidate reaches `0 FAIL`, isolate only the remaining residual rows
+   for wave-2

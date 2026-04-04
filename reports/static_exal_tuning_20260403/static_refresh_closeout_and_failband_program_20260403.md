@@ -19,6 +19,10 @@ promoted directly from wave-8 into a comparison-ready campaign baseline. The
 completed static refresh materially improves the stale validation state, but it
 does **not** satisfy the campaign acceptance rule of `0` gate FAILs.
 
+The active detailed execution program for the next overnight wave now lives in:
+
+- `reports/static_exal_tuning_20260403/failband_wave1_overnight_program_20260403.md`
+
 The study is now in a new state:
 
 - the full stale static slice has been refreshed once under a clean,
