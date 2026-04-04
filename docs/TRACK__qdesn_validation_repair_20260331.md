@@ -132,6 +132,7 @@ Operational status:
   coupled variants are not the right next lead directions.
 - The current branch state therefore supports one more exact full-6 crossover wave around the
   surviving `R512` ingredients, not another one-axis sweep or family reopening.
+- Phase 15 is now launched from clean pushed checkpoint `bbbf2ca`.
 
 ## 3) Read These First
 
@@ -1635,9 +1636,21 @@ Checklist:
 - [x] document the `R600/R612/R622/R616` crossover read and control hierarchy
 - [x] define a 3-stage exact full-6 crossover matrix around the surviving `R512` ingredients
 - [x] keep the candidate space inside the `R512/R612/R622/R616/R402` neighborhood
-- [ ] run prepare-only validation on the Phase-15 manifest
-- [ ] launch the overnight Phase-15 program
-- [ ] update the tracker with the Phase-15 launch state
+- [x] run prepare-only validation on the Phase-15 manifest
+- [x] launch the overnight Phase-15 program
+- [x] update the tracker with the Phase-15 launch state
+
+Current live run:
+
+- run tag:
+  `qdesn-phase15-r512-sentinel-crossover-20260403a__git-bbbf2ca`
+- current stage:
+  `S1_exact_fullsix_sentinel_crossover`
+- current anchor:
+  `R700_r512_anchor_control`
+- current health read:
+  Stage-1 runner state is live with `15` profiles total, `0` completed, `0` timeouts,
+  `0` errors, and the anchor campaign has launched with all `6` roots entering `vb`.
 
 ## 8) Stop Conditions
 
