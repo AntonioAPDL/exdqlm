@@ -1,0 +1,1084 @@
+# Validation Recovery Tracker: Static exal MCMC Focus
+
+Date: 2026-03-31
+
+Purpose: provide a rigorous, execution-ready recovery plan for the current
+validation study, centered on the dominant unresolved problem area while keeping
+the validation branch organized and scientifically defensible.
+
+This is a local tracker intended for operational use. It is not a signoff
+document and should not be treated as final scientific reporting.
+
+## 0. Execution checkpoint (2026-03-31 06:36 EDT)
+
+Operational progress completed after the initial tracker draft:
+
+- stale dynamic tail refresh was launched on the validation branch under tag
+  `dynamic_tail_cppgig_refresh_20260331`
+- static `exal` debug worktree created at
+  `/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331`
+- debug branch created:
+  `debug/static-exal-shared-core-20260331`
+- gated invalid-state snapshot capture implemented on the debug branch and
+  committed at `c0bccef`
+- static sentinel manifest and launcher created on the debug worktree:
+  - `tools/merge_reports/LOCAL_static_exal_sentinel_prepare_20260331.R`
+  - `tools/merge_reports/LOCAL_static_exal_sentinel_launch_20260331.sh`
+  - `tools/merge_reports/LOCAL_static_exal_sentinel_status_20260331.R`
+
+Important new evidence from actual execution:
+
+1. dynamic stale refresh is genuinely progressing
+   - row `5` under `dynamic_tail_cppgig_refresh_20260331` is still active and
+     has advanced through burn-in to at least iteration `1400`
+   - current evidence path:
+     `tools/merge_reports/full288_dynamic_tail_cppgig_refresh_20260331/`
+
+2. exact full-runner static canary still reproduces the historical crash on
+   current `HEAD`
+   - exact command path:
+     `tools/merge_reports/LOCAL_full288_case_runner_20260327.R`
+   - exact current-HEAD canary artifact:
+     `tools/merge_reports/full288_static_exal_anchor_repro_20260331/rows/row_0261.csv`
+   - result:
+     `failed_runtime`
+   - error:
+     `Static MCMC state invalid (iter=2): static_exal chi has 100 non-finite values (first index=1)`
+
+3. the first debug static harness was good enough for broad health comparison,
+   but not yet exact enough for crash reproduction
+   - anchor `row 83` in the debug harness completed `FAIL` rather than
+     reproducing the old runtime crash
+   - this correctly triggered a pause before the full matrix was allowed to
+     continue
+
+4. one concrete debug-harness mismatch was identified and fixed
+   - the debug harness had been inheriting `beta_prior = rhs` from
+     `run_config.rds`
+   - the exact validation runner uses manifest `prior_override = rhs_ns`
+   - the harness was patched to pass the manifest prior override explicitly
+
+5. despite that fix, the debug harness still has at least one remaining
+   execution delta relative to the exact full validation runner
+   - exact row `261` reproduces the crash
+   - debug row `261` with the current harness enters burn-in and continues
+   - therefore candidate-comparison results from the current debug harness
+     should be treated as provisional until the remaining runner delta is
+     removed
+
+Current immediate decision:
+
+- trust the exact full-runner canary evidence
+- do not trust the current debug crash matrix as the final reproducer yet
+- next tool-building step should be a direct full-runner-based static matrix
+  wrapper, not more tuning on top of the current approximate runner
+
+## 0.1 Exact full-runner smoke checkpoint (2026-03-31 06:58 EDT)
+
+The direct full-runner wrapper has now been implemented in the debug worktree
+and the first 2-row smoke has been launched and completed.
+
+Operational wrapper and plan artifacts:
+
+- debug wrapper prepare:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_prepare_20260331.R`
+- debug wrapper launch:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_launch_20260331.sh`
+- debug wrapper status:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_status_20260331.R`
+- local operator plan:
+  `tools/merge_reports/LOCAL_static_exal_exact_full_runner_PLAN_20260331.md`
+
+Important result:
+
+- the exact wrapper is now trustworthy enough for crash-lane work
+- both smoke rows reproduced the same historical runtime failure under the
+  debug worktree package code
+- both rows emitted the new invalid-state snapshot artifact at `iter=2`
+
+Exact smoke artifacts:
+
+- debug manifest:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_manifest_20260331.csv`
+- debug status detail:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_status_detail_20260331.csv`
+- debug status summary:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_status_summary_20260331.csv`
+- full-runner row `261`:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/full288_static_exal_exact_smoke_20260331/rows/row_0261.csv`
+- full-runner row `83`:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/full288_static_exal_exact_smoke_20260331/rows/row_0083.csv`
+- invalid snapshot `261`:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/static_exal_exact_smoke_20260331/invalid_state/row_0261/invalid_state_static_exal_iter0002_20260331_065726.rds`
+- invalid snapshot `83`:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/static_exal_exact_smoke_20260331/invalid_state/row_0083/invalid_state_static_exal_iter0002_20260331_065746.rds`
+
+Smoke result summary:
+
+| Row | Scope | Status | Error pattern | Snapshot |
+|---|---|---|---|---|
+| `261` | `static_shrink / normal / tau=0.25` | `failed_runtime` | `static_exal chi has 100 non-finite values (iter=2)` | yes |
+| `83` | `static_paper / gausmix / tau=0.25` | `failed_runtime` | `static_exal chi has 100 non-finite values (iter=2)` | yes |
+
+Interpretation:
+
+- the remaining execution delta between the provisional debug harness and the
+  exact validation runner has now been removed for the smoke lane
+- the crash is not confined to one root-family combination; it reproduces in
+  both the shrink and paper slices under the exact wrapper
+- the immediate next debugging step should shift from runner alignment to
+  snapshot inspection and then widening to the 6-row crash sentinel under the
+  same exact wrapper
+
+Updated immediate decision:
+
+- treat the exact full-runner wrapper as the authoritative static crash
+  reproducer
+- do not spend more effort on the old approximate static sentinel runner
+- inspect the new invalid-state snapshots before proposing repair candidates
+- if snapshot structure is coherent, widen from the 2-row smoke to the 6-row
+  crash sentinel using the same exact wrapper
+
+## 0.2 Exact crash6 and warm-start root-cause checkpoint (2026-03-31 10:25 EDT)
+
+The exact crash sentinel has now been widened and completed under:
+
+- `static_exal_exact_crash6_20260331`
+
+Result:
+
+- all 6 crash-band rows failed
+- all 6 failed at the new beta-step hook, not only later at the `chi` check
+- every row emitted a beta-step invalid-state snapshot at iteration `1`
+
+Rows:
+
+- `261`, `83`, `107`, `131`, `165`, `213`
+
+Key artifacts:
+
+- exact crash6 status summary:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_status_summary_20260331.csv`
+- exact crash6 status detail:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_exact_full_runner_status_detail_20260331.csv`
+- exact crash6 invalid-state directory:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/static_exal_exact_crash6_20260331/invalid_state/`
+
+Important new forensic finding:
+
+- in the new beta-step snapshots, `rhs`, `y_star`, and `W_diag` remain finite
+- `prior_prec_diag` is already non-finite for the shrunk coefficients and
+  finite only for the intercept
+- therefore `V_inv` already contains non-finite entries before the beta solve
+- then `chol_diag`, `m_beta`, `beta`, and `xb` fail downstream
+
+This localizes the failure more sharply:
+
+- it is not primarily a `chi`-validation problem
+- it is not primarily a `v` GIG sampling problem
+- it is a corrupted prior-precision problem entering the static beta step
+
+Direct warm-start probe result:
+
+- fresh `exal_static_LDVB(..., beta_prior = "rhs_ns", ...)` calls on rows `83`
+  and `261` already produce:
+  - fully non-finite `qbeta`
+  - non-finite `tau2`, `xi`, `zeta2`, `E_inv_tau2`, `E_inv_zeta2`
+  - `lambda2` and `nu` finite only for the intercept
+  - warning:
+    `NaNs produced`
+
+Supporting artifacts:
+
+- root-cause note:
+  `tools/merge_reports/LOCAL_static_exal_root_cause_NOTE_20260331.md`
+- snapshot forensics note:
+  `tools/merge_reports/LOCAL_static_exal_snapshot_forensics_NOTE_20260331.md`
+- VB probe CSV:
+  `../exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_rhsns_vb_probe_20260331.csv`
+
+Updated immediate decision:
+
+- treat the static `rhs_ns` LDVB warm-start path as the new lead debugging
+  target
+- pause any move toward broad reruns
+- shift the next code-level diagnosis to `R/exal_static_LDVB.R`, especially the
+  `W <- xis$xi1 * E_inv_v` / `Xw <- X * sqrt(W)` / qbeta-prior path
+
+## 0.3 Wave-7 closeout and wave-8 exact-runner transfer program (2026-04-03)
+
+Wave-7 transfer status (exact-runner transfer program):
+
+- wave-7 completed and produced a new best exact-runner transfer baseline:
+  `F080_sub2_s100`
+- reference decision artifact:
+  `/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_wave7_transfer_final_decision_20260401.md`
+
+Wave-7 transfer result summary:
+
+| candidate_id | pass_n | warn_n | fail_n | healthy_n | exact_ready |
+|---|---:|---:|---:|---:|---|
+| `F080_sub2_s100` | 7 | 4 | 1 | 11 | `FALSE` |
+
+Interpretation:
+
+- exact-runner baseline is improved but still not exact-ready (`0 FAIL`)
+- the remaining uncertainty is now tightly concentrated around the `F080`
+  neighborhood
+
+Wave-8 program status:
+
+- wave-8 is the next disciplined exact-runner transfer search focused only on
+  the `F080` neighborhood
+- the schedule (transfer6 -> guard8 -> mix12_transfer) is defined in:
+  `reports/static_exal_tuning_20260403/wave7_closeout_and_wave8_program.md`
+- wave-8 launcher + scoring scripts are implemented on the validation branch
+  under:
+  - `tools/merge_reports/LOCAL_static_exal_wave8_transfer_prepare_20260403.R`
+  - `tools/merge_reports/LOCAL_static_exal_wave8_transfer_score_20260403.R`
+  - `tools/merge_reports/LOCAL_static_exal_wave8_transfer_launch_20260403.sh`
+
+Updated immediate decision:
+
+- treat `F080_sub2_s100` as the best exact-runner baseline until wave-8
+  completes
+- proceed with wave-8 overnight to attempt the first `0 FAIL` transfer baseline
+- do not relaunch the full 72-row static rerun until wave-8 yields a
+  `0 FAIL` candidate or the acceptance rule is revised
+
+## 0.4 Post-wave8 closeout and campaign-completion execution checkpoint (2026-04-03)
+
+Wave-8 and the fail-only bridge lane have now finished successfully.
+
+Validated carry-forward state:
+
+- active exact-runner baseline: `F080_sub2_s105`
+- primary backup: `F080_sub2_s100_ref`
+- secondary bridge hedge: `F080_sub2_s0975`
+- dropped candidate: `F075_sub2_s095`
+
+Debt reduction:
+
+- the remaining campaign debt is now `73` cases, not `291`
+- breakdown:
+  - `72` stale static `exal` reruns
+  - `1` dynamic tail debt (`row 15`)
+- dynamic tail row `5` is now resolved and should not be relaunched
+
+Important execution correction identified before the focused static rerun:
+
+- the stale `72`-row static slice is not just two disjoint row sets
+- the `18` legacy RHS comparison rows overlap the current refresh slice on
+  `row_id` and `run_root`
+- the static tuning runner therefore needed a scope-aware prior-template path,
+  because:
+  - current static-paper refresh rows must run as `rhs_ns`, but their original
+    baseline fits are still `ridge`
+  - overlapping static-shrink comparison rows must remain `rhs`
+
+Focused completion tooling now implemented on the validation branch:
+
+- static completion lane:
+  - `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_prepare_20260403.R`
+  - `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_evaluate_20260403.R`
+  - `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_launch_20260403.sh`
+  - `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_supervisor_20260403.sh`
+  - `tools/merge_reports/LOCAL_static_exal_f080s105_refresh_monitor_20260403.sh`
+- dynamic sidecar bookkeeping:
+  - `tools/merge_reports/LOCAL_dynamic_row15_sidecar_prepare_20260403.R`
+
+Current lane decision:
+
+- static `72`-row rerun is the active completion lane
+- dynamic row `15` remains a separate sidecar lane and is not yet launch-ready
+  until there is a concrete repair hypothesis beyond identical rerun
+
+Primary execution note:
+
+- comparison-ready refresh now depends on preserving current-vs-legacy prior
+  semantics during the static rerun, not merely on replaying the `72` stale
+  rows with one generic variant tag
+
+## 1. Current validated picture
+
+Current effective study state after the successful row `57` C++-GIG replacement:
+
+| Slice | Total | Done | Failed runtime | Pending | PASS | WARN | FAIL | Healthy TRUE |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Static RHS-NS refresh | 216 | 198 | 18 | 0 | 144 | 25 | 47 | 169 |
+| Legacy RHS refresh | 72 | 72 | 0 | 0 | 37 | 22 | 13 | 59 |
+| Tail, effective current state | 3 | 2 | 1 | 0 | 1 | 0 | 2 | 1 |
+| Overall, effective current state | 291 | 272 | 19 | 0 | 182 | 47 | 62 | 229 |
+
+Primary supporting artifacts:
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/health_compact_20260329_114727.csv`
+- `tools/merge_reports/full288_rhs_legacy_refresh_20260329/health_compact_20260329_123208.csv`
+- `tools/merge_reports/full288_dynamic_tail_refresh_20260329/rows/row_0005.csv`
+- `tools/merge_reports/full288_dynamic_tail_refresh_20260329/rows/row_0015.csv`
+- `tools/merge_reports/full288_row57_cppgig_same_seed_20260330/rows/row_0057.csv`
+
+## 2. Core diagnosis
+
+### 2.1 Dominant pain cluster
+
+Yes: the main current concern is the static `exal` MCMC path.
+
+Evidence:
+- all `18` static runtime failures are `model=exal`, `inference=mcmc`,
+  `tau=0.25`
+- `18/19` total runtime failures in the effective campaign are in that exact
+  static `exal` cluster
+- `60/62` overall gate FAILs are static `exal` MCMC
+
+The sharp execution-failure cluster is:
+
+| Problem | Count | Scope |
+|---|---:|---|
+| runtime failure with `static_exal chi has 100 non-finite values` | 18 | `static_paper` + `static_shrink`, all 3 families, `tau=0.25` |
+
+Representative artifacts:
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/rows/row_0083.csv`
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/rows/row_0165.csv`
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/logs/row_83.log`
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/logs/row_165.log`
+
+The broader scientific-quality cluster is:
+
+| Problem | Count | Scope |
+|---|---:|---|
+| completed but gate FAIL | 42 | static `exal` MCMC |
+| completed but gate WARN | 11 | static `exal` MCMC |
+| completed and gate PASS | 1 | static `exal` MCMC |
+
+Among the completed static `exal` MCMC FAIL rows, the dominant gate components are:
+
+| Gate component | FAIL count | WARN count | PASS count |
+|---|---:|---:|---:|
+| `gate_sigma` | 38 | 3 | 1 |
+| `gate_gamma` | 33 | 8 | 1 |
+| `gate_ess_sigma` | 32 | 8 | 2 |
+| `gate_half_drift_sigma` | 28 | 4 | 10 |
+| `gate_ess_gamma` | 26 | 13 | 3 |
+| `gate_acf1_gamma` | 6 | 33 | 3 |
+
+Interpretation:
+- this is not only a crash problem
+- it is also a chain-quality problem, especially low ESS and large half-drift
+- the `tau=0.25` rows are failing as an immediate invalid-state crash
+- many `tau=0.05` and `tau=0.95` rows complete but mix poorly
+
+### 2.2 What row `57` did and did not solve
+
+What is solved:
+- row `57` was a dynamic `dqlm` MCMC stall on the old GH-backed path
+- under the C++-GIG patch, the exact same seed completed `done / PASS / TRUE`
+
+What is not solved:
+- static `exal` MCMC was already using `sample_gig_devroye_vector()`
+- therefore the static `exal` failure band is not explained by the old GH
+  sampler issue that affected dynamic row `57`
+
+Code anchors:
+- dynamic MCMC fix area: `R/exdqlmMCMC.R`
+- static `exal` MCMC already using C++ GIG: `R/exal_static_mcmc.R`
+
+### 2.3 Dynamic tail status
+
+Dynamic tail rows should be treated as follows:
+
+| Row | Current interpretation | Why |
+|---|---|---|
+| `5` | stale and unresolved | old dynamic MCMC path, supervisor stall, no health row |
+| `15` | stale and unresolved | old dynamic MCMC path, completed but unhealthy |
+| `57` | resolved | current C++-GIG replacement succeeded |
+
+Supporting artifacts:
+- row `5`: `tools/merge_reports/full288_dynamic_tail_refresh_20260329/rows/row_0005.csv`
+- row `15`: `tools/merge_reports/full288_dynamic_tail_refresh_20260329/rows/row_0015.csv`
+- row `15` health: `tools/merge_reports/full288_dynamic_tail_refresh_20260329/health/health_0015.csv`
+- row `57` replacement: `tools/merge_reports/full288_row57_cppgig_same_seed_20260330/rows/row_0057.csv`
+
+Important nuance:
+- rows `5` and `15` were produced before the dynamic C++-GIG fix
+- they should be refreshed under current `HEAD`
+- they are not the main bottleneck, but they are still stale
+
+### 2.4 Cross-study lessons from the QDESN branch
+
+Relevant external evidence reviewed on
+`feature/qdesn-mcmc-alternative @ 59e0e2a2aba7b95f75933faffcaf70f25f2edb4e`:
+- `docs/TRACK__qdesn_validation_repair_20260331.md`
+- `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+- `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/summary/screen_results.md`
+- `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_summary.md`
+- `reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/tables/phase01_mcmc_fail_forensics.csv`
+- `reports/qdesn_mcmc_validation/exal_kernel_screen/exal-kernel-screen-overnight-20260330c__git-412b379/tables/profile_rank_summary.csv`
+
+Portable lessons we should explicitly import:
+
+1. shared `exal` core first, rhs-specific overlay second
+   - qdesn found the main blocker in shared `exal` mixing, not in the
+     `rhs_ns`-specific layer
+   - this matches our static evidence because failures occur in both
+     `static_paper` and `static_shrink`, not only in the shrink/RHS branch
+
+2. do not use longer chains as the first response
+   - qdesn screening showed geometry-improving kernel changes beat longer chains
+   - for our static `exal` issue, chain-length inflation should be a late
+     confirmation lane, not the first repair lever
+
+3. narrow anchor harness before broad rerun
+   - qdesn used a narrow root harness with an anchor baseline and a few focused
+     candidates before spending more compute
+   - we should do the same with our crash sentinel and mixing sentinel instead
+     of jumping directly to the full 72-row static rerun
+
+4. define hard canaries explicitly
+   - qdesn benefited from treating one persistent hard root as the benchmark
+   - we should do the same here
+
+Recommended hard canaries for this study:
+- crash canary: `current_static / static_shrink / normal / tau=0p25 / row 261`
+- low-tail mixing canary: `current_static / static_shrink / normal / tau=0p05 / row 245`
+- high-tail mixing canary: `current_static / static_shrink / normal / tau=0p95 / row 277`
+
+## 3. Working decision
+
+The optimal efficient plan is:
+
+1. keep the validation branch clean and frozen for validation execution
+2. refresh the stale dynamic tail rows `5` and `15` under current `HEAD`
+3. do all static `exal` diagnosis and package-code experimentation in a
+   separate debug worktree/branch
+4. test one shared-core static `exal` candidate at a time on a narrow anchor
+   harness before any broad rerun
+5. treat rhs/shrink-specific overlays as second-stage cleanup only after the
+   shared static `exal` core is healthier
+6. treat longer-chain inflation as a confirmation lane, not as the first-line
+   repair
+7. do not authorize another broad rerun until the static `exal` crash mechanism
+   and chain-quality problem are better understood
+8. after a credible static `exal` fix exists, run a focused rerun, not a full
+   291-row relaunch
+
+## 4. Operating rules
+
+- [ ] Freeze validation execution target at the current pushed validation head
+      before launching any new validation jobs.
+- [ ] Do not edit package code on `validation/rerun-after-0.4.0-sync` while it
+      is serving as the execution branch.
+- [ ] Create a separate debug worktree/branch for static `exal` diagnosis.
+- [ ] Use same-seed reruns first for any reproduced failure.
+- [ ] Preserve all new runs under new tags; do not overwrite older evidence.
+- [ ] Qualify row references by wave/tag, not only by `row_id`.
+
+Why the row-id warning matters:
+- `row_id` values overlap across `current_static` and `legacy_rhs`
+- for example, `165` exists in both waves but refers to different rerun tags
+
+## 5. Workstreams
+
+### WS0. Freeze, inventory, and branch hygiene
+
+Objective:
+- ensure validation execution, debugging, and documentation do not contaminate
+  one another
+
+Checklist:
+- [ ] Confirm `git status --short --branch` is clean on the validation branch.
+- [ ] Record validation execution head commit in the next run note.
+- [ ] Create a separate debug branch/worktree for static `exal` investigation.
+- [ ] Record the diagnostic branch name in the evidence log.
+
+Exit criteria:
+- validation branch clean
+- debug worktree exists
+- roles are separated: validation execution vs code diagnosis
+
+### WS1. Refresh stale dynamic tail rows under current HEAD
+
+Objective:
+- refresh rows `5` and `15` using the current dynamic MCMC code
+- separate stale dynamic results from the static `exal` problem
+
+Scope:
+- rows `5` and `15` only
+- do not rerun row `57` unless later regression testing is needed
+
+Preferred launch path:
+- use the hardened sequential tail runner directly with a new tag
+- avoid reusing the old `dynamic_tail_refresh_20260329` tag
+
+Recommended command pattern:
+
+```bash
+bash tools/merge_reports/LOCAL_full288_tail3_hardened_seq_20260329.sh \
+  --manifest=tools/merge_reports/LOCAL_targeted_manifest_dynamic_tail3_20260329.csv \
+  --rows=5,15 \
+  --tag=dynamic_tail_cppgig_refresh_20260331 \
+  --interval=30 \
+  --inactivity-sec=2400 \
+  --force=1 \
+  --verbose-mcmc=1 \
+  --harness=0
+```
+
+Checklist:
+- [ ] Launch row `5` and row `15` under a fresh tag.
+- [ ] Confirm fresh `rows/`, `health/`, `logs/`, `heartbeat/`, and `telemetry/`
+      artifacts are created.
+- [ ] Capture final `health_compact` for the new tag.
+- [ ] Compare new row `15` health to the old `health_0015.csv`.
+
+Acceptance criteria:
+- row `5` reaches a terminal row artifact under current `HEAD`
+- row `15` reaches a terminal row artifact under current `HEAD`
+- neither row is pending or silently missing
+
+Decision after WS1:
+- if `5` and `15` improve materially, dynamic stale risk is closed
+- if they still fail, keep them as secondary issues and continue with WS2-WS4
+
+### WS2. Static exal crash diagnosis: sentinel matrix
+
+Objective:
+- reproduce and diagnose the immediate invalid-state failure in static `exal`
+  MCMC at `tau=0.25`
+- establish a narrow anchor harness that any code candidate must beat before
+  broader reruns are authorized
+
+Sentinel crash matrix:
+
+| Wave | Root | Family | Tau | Row |
+|---|---|---|---|---:|
+| `current_static` | `static_paper` | `gausmix` | `0p25` | `83` |
+| `current_static` | `static_paper` | `laplace` | `0p25` | `107` |
+| `current_static` | `static_paper` | `normal` | `0p25` | `131` |
+| `current_static` | `static_shrink` | `gausmix` | `0p25` | `165` |
+| `current_static` | `static_shrink` | `laplace` | `0p25` | `213` |
+| `current_static` | `static_shrink` | `normal` | `0p25` | `261` |
+
+What must be captured before any fix attempt is considered credible:
+- exact seed and manifest row
+- `i`, `sigma`, `gamma`, `lambda`, `tau`, `c2`
+- first invalid `chi_i` index and value
+- upstream `z`, `s`, `v`, and derived `psi_i`
+- all warnings emitted before failure
+- whether failure occurs before or after the first `s` update
+
+Checklist:
+- [ ] Implement non-invasive debug instrumentation on the debug branch only.
+- [ ] Reproduce at least one crash case with full state capture.
+- [ ] Check whether all six sentinel rows fail through the same upstream state.
+- [ ] Determine whether the non-finite `chi_i` originates from `z`, `sigma`,
+      `s`, `lambda`, or RHS prior hyperparameter drift.
+- [ ] If the mechanism is clearly shared, stop at the six-row sentinel.
+- [ ] If not clearly shared, expand to the full 18-row crash set.
+
+Full crash set if expansion is needed:
+- current static paper: `83,87,107,111,131,135`
+- current static shrink: `165,166,173,174,213,214,221,222,261,262,269,270`
+
+Acceptance criteria:
+- a concrete upstream mechanism is identified for the invalid `chi_i`
+- the mechanism is reproducible on at least two families and both roots
+- the crash canary row `261` is explicitly tracked in every candidate run
+
+### WS3. Static exal chain-quality diagnosis: sentinel matrix
+
+Objective:
+- diagnose why completed static `exal` MCMC runs frequently fail health gates
+- evaluate candidate fixes on a narrow anchor harness instead of broad reruns
+
+Sentinel mixing matrix:
+
+| Wave | Root | Family | Tau | Row |
+|---|---|---|---|---:|
+| `current_static` | `static_paper` | `gausmix` | `0p05` | `75` |
+| `current_static` | `static_paper` | `laplace` | `0p05` | `99` |
+| `current_static` | `static_paper` | `normal` | `0p05` | `123` |
+| `current_static` | `static_paper` | `gausmix` | `0p95` | `91` |
+| `current_static` | `static_paper` | `laplace` | `0p95` | `115` |
+| `current_static` | `static_paper` | `normal` | `0p95` | `139` |
+| `current_static` | `static_shrink` | `gausmix` | `0p05` | `149` |
+| `current_static` | `static_shrink` | `laplace` | `0p05` | `197` |
+| `current_static` | `static_shrink` | `normal` | `0p05` | `245` |
+| `current_static` | `static_shrink` | `gausmix` | `0p95` | `181` |
+| `current_static` | `static_shrink` | `laplace` | `0p95` | `229` |
+| `current_static` | `static_shrink` | `normal` | `0p95` | `277` |
+
+What to capture:
+- `accept_keep`
+- trace of `sigma` and `gamma`
+- ESS, ACF1, Geweke, half-drift
+- MH adaptation history
+- proposal covariance refresh outcomes
+- whether the issue is dominated by low movement, sticky tail behavior, or
+  unstable adaptation
+
+Checklist:
+- [ ] Run the 12-row mixing sentinel under the debug branch after crash
+      instrumentation is available.
+- [ ] Compare each sentinel row to its current baseline health metrics.
+- [ ] Determine whether poor mixing is primarily a `sigma` problem, a `gamma`
+      problem, or both.
+- [ ] Determine whether behavior differs materially by `tau=0p05` vs `0p95`.
+- [ ] Determine whether shrinkage root cases are materially worse than paper
+      root cases.
+
+Acceptance criteria for “clear improvement”:
+- zero new runtime failures on the 12 sentinel rows
+- at least 6 of 12 sentinel rows improve from `FAIL` to `WARN` or `PASS`
+- median `ess_sigma` and median `ess_gamma` improve relative to current
+  baseline
+- median `half_drift_sigma` and `half_drift_gamma` decrease relative to current
+  baseline
+- at least one of the two mixing canaries (`245`, `277`) improves out of `FAIL`
+  or `WARN`
+
+If these are not met, do not authorize the full static rerun yet.
+
+### WS4. Candidate fix implementation and regression protection
+
+Objective:
+- implement the smallest credible fix for static `exal`
+- verify that the fix does not break already-recovered dynamic behavior
+
+Candidate ordering rule imported from qdesn:
+
+1. Candidate A: shared static `exal` core fix only
+2. Candidate B: alternate shared-core fix only if Candidate A misses the
+   canaries
+3. Candidate C: rhs/shrink-specific overlay only after a shared-core winner is
+   known
+4. longer-chain inflation only as confirmation, not as first-line repair
+
+Checklist:
+- [ ] Keep package-code changes on the debug branch only until the sentinel
+      evidence is satisfactory.
+- [ ] Write a short fix note explaining the mechanism addressed.
+- [ ] Re-run the six crash sentinels after the fix.
+- [ ] Re-run the 12 mixing sentinels after the fix.
+- [ ] If shared sampler or shared MCMC code changed, re-run dynamic row `57`
+      same-seed as a regression guard.
+- [ ] If only static `exal` code changed, document why row `57` regression is
+      not needed.
+
+Authorization gate for merge into the validation execution branch:
+- [ ] crash sentinel: `6/6` done, `0` runtime failures
+- [ ] mixing sentinel: passes the WS3 improvement threshold
+- [ ] Candidate A has been evaluated before any rhs/shrink-specific overlay is
+      attempted
+- [ ] no evidence of regression on previously recovered paths
+
+### WS5. Focused validation rerun after accepted fix
+
+Objective:
+- refresh only the scientifically affected validation slice
+
+Target rerun scope after accepted static `exal` fix:
+
+#### A. Current static refresh wave: all static exal MCMC rows
+
+Current static row groups:
+- `static_paper / 0p05`: `75,79,99,103,123,127`
+- `static_paper / 0p25`: `83,87,107,111,131,135`
+- `static_paper / 0p95`: `91,95,115,119,139,143`
+- `static_shrink / 0p05`: `149,150,157,158,197,198,205,206,245,246,253,254`
+- `static_shrink / 0p25`: `165,166,173,174,213,214,221,222,261,262,269,270`
+- `static_shrink / 0p95`: `181,182,189,190,229,230,237,238,277,278,285,286`
+
+Total current-static `exal` MCMC rows: `54`
+
+#### B. Legacy RHS wave: all static exal MCMC rows
+
+Legacy RHS row groups:
+- `static_shrink / 0p05`: `149,157,197,205,245,253`
+- `static_shrink / 0p25`: `165,173,213,221,261,269`
+- `static_shrink / 0p95`: `181,189,229,237,277,285`
+
+Total legacy-RHS `exal` MCMC rows: `18`
+
+Important:
+- these legacy row IDs overlap numerically with current-static row IDs
+- always qualify them by wave/tag
+
+#### C. Dynamic stale tail refresh rows
+
+- row `5`
+- row `15`
+
+Grand focused rerun total after accepted fix:
+- `72` static `exal` MCMC rows
+- plus `2` dynamic stale rows
+- `74` rows total
+
+Checklist:
+- [ ] Build fresh manifests for the focused rerun under new tags.
+- [ ] Run current-static `exal` MCMC rerun.
+- [ ] Run legacy-RHS `exal` MCMC rerun.
+- [ ] Run dynamic stale tail refresh if not already completed in WS1.
+- [ ] Generate fresh compact health tables for each rerun tag.
+
+Acceptance criteria:
+- no pending rows
+- no silent missing artifacts
+- static `exal` runtime failures materially reduced or eliminated
+- overall health profile improved enough to support signoff judgment
+
+### WS6. Campaign reconciliation and signoff prep
+
+Objective:
+- reconcile replacement artifacts and produce a clean end-state summary
+
+Checklist:
+- [ ] Fold row `57` replacement into the final effective study summary.
+- [ ] Record whether rows `5` and `15` were replaced and under which tags.
+- [ ] Produce a final “effective current state” table with no stale rows mixed
+      into the active evidence layer.
+- [ ] Write a signoff note that clearly separates:
+      - accepted replacement evidence
+      - legacy stale evidence
+      - unresolved scientific concerns, if any remain
+
+## 6. What we should not do
+
+- [ ] Do not relaunch another broad 291-row campaign now.
+- [ ] Do not debug static `exal` by repeatedly rerunning all 72 rows blindly.
+- [ ] Do not edit package code directly on the validation execution branch.
+- [ ] Do not overwrite the old tail or static tags when creating refreshed runs.
+- [ ] Do not use row ID alone without wave/tag qualification.
+
+## 7. Immediate next actions
+
+Recommended order from today:
+
+1. [ ] Create the static `exal` debug worktree/branch.
+2. [ ] Refresh dynamic stale rows `5` and `15` under current `HEAD`.
+3. [ ] Implement Candidate A as a shared static `exal` core fix only.
+4. [ ] Run the six-row static crash sentinel with instrumentation.
+5. [ ] Run the twelve-row mixing sentinel.
+6. [ ] If Candidate A misses the canaries, evaluate one alternate shared-core
+      Candidate B on the same anchor harness.
+7. [ ] Only after a shared-core winner exists, consider any rhs/shrink-specific
+      overlay.
+8. [ ] If sentinel evidence is good enough, authorize the focused 74-row rerun.
+
+## 8. Evidence log
+
+Key current evidence anchors:
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/health_compact_20260329_114727.csv`
+- `tools/merge_reports/full288_rhs_legacy_refresh_20260329/health_compact_20260329_123208.csv`
+- `tools/merge_reports/full288_dynamic_tail_refresh_20260329/rows/row_0005.csv`
+- `tools/merge_reports/full288_dynamic_tail_refresh_20260329/rows/row_0015.csv`
+- `tools/merge_reports/full288_dynamic_tail_refresh_20260329/health/health_0015.csv`
+- `tools/merge_reports/full288_row57_cppgig_same_seed_20260330/rows/row_0057.csv`
+- `tools/merge_reports/full288_row57_cppgig_same_seed_20260330/health/health_0057.csv`
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/rows/row_0083.csv`
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/rows/row_0165.csv`
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/logs/row_83.log`
+- `tools/merge_reports/full288_rhsns_impl_refresh_20260329/logs/row_165.log`
+
+## 9. Bottom line
+
+Current best diagnosis:
+- row `57` is fixed
+- rows `5` and `15` are stale and need refresh
+- the main unresolved scientific blocker is static `exal` MCMC
+- the static `exal` issue has two layers:
+  - immediate `tau=0.25` invalid-state crashes
+  - broader mixing/drift failures even when runs complete
+
+Best next move:
+- handle the stale dynamic tail quickly
+- focus debugging effort on static `exal` MCMC before authorizing any broad
+  rerun
+
+## 10. Repair Candidate A Checkpoint (2026-03-31 11:00 EDT)
+
+Status:
+- dynamic stale-refresh lane is now current:
+  - row `5` refreshed to `done / PASS / TRUE`
+  - row `15` refreshed to `done / FAIL / FALSE`
+- the dominant blocker moved from stale evidence to static shared-core quality
+
+Debug branch state:
+- worktree:
+  `/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331`
+- branch:
+  `debug/static-exal-shared-core-20260331`
+- key commits:
+  - `c0bccef` add gated static exal invalid-state snapshots for debug
+  - `4926763` add beta-step invalid-state capture for static exal debug
+  - `7d07bd4` add qbeta invalid-state capture for static ldvb debug
+  - `307bc6b` stabilize static ldvb delta xi moments in debug
+
+Root-cause finding now established:
+- the original static crash is not first caused inside MCMC acceptance or the
+  `chi` update
+- the first upstream failure is in static `rhs_ns` LDVB warm-start at `iter=1`
+- mechanism:
+  - delta-approximated `xis$xi1` became nonpositive
+  - `W = xis$xi1 * E_inv_v` became negative
+  - qbeta then failed before the warm start produced a valid prior state
+- direct warm-start evidence:
+  - [LOCAL_static_exal_rhsns_vb_probe_20260331.csv](/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_rhsns_vb_probe_20260331.csv)
+  - [LOCAL_static_exal_root_cause_NOTE_20260331.md](/home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs/tools/merge_reports/LOCAL_static_exal_root_cause_NOTE_20260331.md)
+
+Candidate A implementation:
+- in `R/exal_static_LDVB.R`, positive xi moments now fall back to their
+  base-at-the-mode values whenever the second-order delta correction makes them
+  non-finite or nonpositive
+- guarded components:
+  - `xi1`
+  - `xi_lambda2`
+  - `xi_A2`
+  - `zeta_logB` fallback to finite base value
+
+Crash-lane results after Candidate A:
+- exact 2-row smoke:
+  - tag: `static_exal_exact_smoke_repair1_20260331`
+  - rows: `261`, `83`
+  - result: `2/2 done`, `0 runtime failures`, `0 invalid-state captures`
+- exact 6-row crash sentinel:
+  - tag: `static_exal_exact_crash6_repair1_20260331`
+  - rows: `83,107,131,165,213,261`
+  - result: `6/6 done`, `0 runtime failures`, `0 invalid-state captures`
+  - gate distribution: `2 PASS`, `4 FAIL`
+
+Interpretation:
+- Candidate A successfully removes the historical `tau=0.25` crash band
+- WS2 crash-removal gate is satisfied
+- the blocker has shifted from hard runtime failure to chain-quality failure
+
+12-row mixing sentinel after Candidate A:
+- tag: `static_exal_exact_mix12_repair1_20260331`
+- result:
+  - `12/12 done`
+  - `0 runtime failures`
+  - `0 invalid-state captures`
+  - `2 WARN / TRUE`
+  - `10 FAIL / FALSE`
+- baseline-vs-repair comparison:
+  - [LOCAL_static_exal_health_compare_20260331.csv](/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_health_compare_20260331.csv)
+
+Mixing interpretation:
+- Candidate A does **not** satisfy the WS3 improvement gate
+- no sentinel row improved from baseline `FAIL` to `WARN` or `PASS`
+- rows `181`, `197`, and `277` degraded from baseline `WARN` to `FAIL`
+- the two `WARN` rows (`99`, `115`) were already `WARN` at baseline
+- therefore Candidate A is not sufficient for focused rerun authorization
+
+Decision after Candidate A:
+- keep Candidate A as the first proven crash-removal fix
+- do **not** authorize the 72-row static rerun yet
+- advance to Candidate B design with a specific goal:
+  preserve the crash fix while improving mixing/drift on the 12-row sentinel
+
+## 11. Candidate B checkpoint and execution decision (2026-03-31 13:15 EDT)
+
+Status:
+- Candidate B evaluation is now complete enough to make a rerun decision.
+- B1 was rejected.
+- B2 is the best candidate tested so far, but it is still not strong enough to
+  authorize the focused 72-row static rerun.
+
+### 11.1 Candidate B1
+
+Design:
+- refresh the initial `(eta, ell)` mode before burn-in in
+  `R/exal_static_mcmc.R`
+
+Exact 2-row smoke tag:
+- `static_exal_exact_smoke_repair2_modeinit_20260331`
+
+Decision:
+- reject B1
+
+Reason:
+- it remained crash-safe, but row `83` effectively froze
+- key failure signal:
+  `accept_keep = 0` with unusable ESS
+
+### 11.2 Candidate B2
+
+Design:
+- keep Candidate A in place
+- keep the VB coefficient warm start
+- stop importing the full `rhs_ns` VB hyper-state into static MCMC
+- instead, reset the `rhs_ns` global/slab hierarchy to neutral MCMC defaults
+  and recompute moments before the first update
+
+Debug commit:
+- `5377050` `debug: neutralize rhs_ns hyper warm start in static exal mcmc`
+
+Code location:
+- `../exdqlm__wt__debug-static-exal-shared-core-20260331/R/exal_static_mcmc.R`
+
+Exact 2-row smoke:
+- tag: `static_exal_exact_smoke_repair2_neutralrhs_20260331`
+- result:
+  - `2/2 done`
+  - `0 runtime failures`
+  - `0 invalid-state captures`
+
+Exact 6-row crash sentinel:
+- tag: `static_exal_exact_crash6_repair2_neutralrhs_20260331`
+- result:
+  - `6/6 done`
+  - `0 runtime failures`
+  - `0 invalid-state captures`
+  - `2 PASS`, `4 FAIL`
+
+Exact 12-row mixing sentinel:
+- tag: `static_exal_exact_mix12_repair2_neutralrhs_20260331`
+- result:
+  - `12/12 done`
+  - `0 runtime failures`
+  - `0 invalid-state captures`
+  - `1 PASS`, `3 WARN`, `8 FAIL`
+  - `4 healthy`
+
+Primary comparison artifacts:
+- [LOCAL_static_exal_three_way_compare_stack_20260331.csv](/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_three_way_compare_stack_20260331.csv)
+- [LOCAL_static_exal_three_way_compare_summary_20260331.csv](/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_three_way_compare_summary_20260331.csv)
+- [LOCAL_static_exal_three_way_compare_medians_20260331.csv](/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_three_way_compare_medians_20260331.csv)
+- [LOCAL_static_exal_baseline_vs_repair2_detail_20260331.csv](/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_baseline_vs_repair2_detail_20260331.csv)
+- [LOCAL_static_exal_baseline_vs_repair2_summary_20260331.csv](/home/jaguir26/local/src/exdqlm__wt__debug-static-exal-shared-core-20260331/tools/merge_reports/LOCAL_static_exal_baseline_vs_repair2_summary_20260331.csv)
+
+Aggregate comparison:
+
+| Candidate | PASS | WARN | FAIL | Healthy | Crash-safe |
+|---|---:|---:|---:|---:|---|
+| baseline | 0 | 5 | 7 | 5 | no |
+| A (`repair1`) | 0 | 2 | 10 | 2 | yes |
+| B2 (`repair2`) | 1 | 3 | 8 | 4 | yes |
+
+Median chain-health metrics on the 12-row mixing sentinel:
+
+| Candidate | ess_sigma | ess_gamma | half_drift_sigma | half_drift_gamma | accept_keep |
+|---|---:|---:|---:|---:|---:|
+| baseline | 5.617 | 6.943 | 0.746 | 0.682 | 0.309 |
+| A (`repair1`) | 6.765 | 5.219 | 0.806 | 1.074 | 0.376 |
+| B2 (`repair2`) | 8.104 | 5.841 | 0.599 | 0.490 | 0.351 |
+
+Baseline-to-B2 transition summary:
+- `FAIL -> WARN/PASS`: `1`
+- `WARN -> PASS`: `1`
+- `healthy FALSE -> TRUE`: `1`
+- `healthy TRUE -> FALSE`: `2`
+
+Interpretation:
+- B2 is the best tested candidate so far.
+- B2 preserves the crash fix and improves the overall aggregate mix sentinel
+  relative to Candidate A.
+- B2 is still not good enough to authorize the focused rerun because the hard
+  shrink-normal canary (`245`) remains `FAIL`, only one baseline `FAIL` row
+  upgraded to `WARN/PASS`, and two baseline-healthy rows became unhealthy.
+
+### 11.3 Important negative finding about a would-be Candidate C
+
+The qdesn-inspired idea of a short MCMC tau-freeze follow-up is **not** a real
+new candidate in this study.
+
+Why:
+- both Candidate A and Candidate B2 already ran with:
+  - `freeze_tau_iters = 50`
+  - `freeze_tau_warmup_iters = 50`
+  - `force_tau_after_warmup = TRUE`
+- this was verified directly from finished repair fit objects under:
+  - `static_exal_exact_mix12_repair1_20260331`
+  - `static_exal_exact_mix12_repair2_neutralrhs_20260331`
+
+Implication:
+- a “Candidate C tau-freeze warmup” would duplicate a control that is already
+  active
+- therefore it should **not** be treated as a new experiment or a credible
+  next-step lever
+
+### 11.4 Execution decision
+
+Decision:
+- do **not** authorize the focused 72-row static rerun yet
+- keep Candidate B2 as the current best debug baseline
+- close the current A/B candidate cycle here
+
+Reason:
+- crash removal is now credible
+- signoff-grade chain quality is still not credible
+- the next valid engineering move must use a genuinely new lever rather than a
+  duplicate tau-freeze study
+
+### 11.5 Next valid work, if the study continues
+
+Only these directions are still justified:
+- new static `rhs_ns` quality lever that is **not already active**
+- same exact crash and mixing sentinels for all further comparisons
+- dynamic row `15` remains a separate current-HEAD quality issue and should not
+  drive the static rerun decision
+
+What not to do next:
+- do not launch the 72-row static rerun now
+- do not run a fake “Candidate C tau-freeze” study
+- do not broaden back into a full campaign relaunch
+
+## 12. Post-wave-8 baseline promotion and comparison-readiness checkpoint (2026-04-03)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260403/wave8_closeout_and_fail_only_repair_program.md`
+- `reports/static_exal_tuning_20260403/fail_only_bridge_results_20260403.md`
+- `reports/static_exal_tuning_20260403/post_wave8_campaign_readiness_plan_20260403.md`
+- `tools/merge_reports/full288_dynamic_tail_cppgig_refresh_20260331/rows/row_0005.csv`
+- `tools/merge_reports/full288_dynamic_tail_cppgig_refresh_20260331/rows/row_0015.csv`
+
+Current validated state after wave-8 closeout and the fail-only bridge run:
+
+- the active exact-runner carry-forward baseline is now `F080_sub2_s105`
+- `F080_sub2_s100_ref` remains the primary backup
+- `F080_sub2_s0975` is a viable narrow bridge candidate, but not the primary
+  production baseline
+- `F075_sub2_s095` is now dropped as a dominated candidate
+
+What improved:
+
+- wave-8 completed end to end under the repaired resume stack
+- the static `exal` problem is no longer blocked on orchestration
+- the exact-runner baseline improved from `F080_sub2_s100` (`7 PASS / 4 WARN /
+  1 FAIL`) to `F080_sub2_s105` (`22 PASS / 4 WARN / 0 FAIL`)
+- dynamic tail row `5` is now resolved under
+  `full288_dynamic_tail_cppgig_refresh_20260331` with `done / PASS / TRUE`
+
+What still remains:
+
+- the stale `72`-row static `exal` rerun debt has not yet been refreshed under
+  `F080_sub2_s105`
+- dynamic row `15` remains `done / FAIL / FALSE` under the refreshed current
+  `HEAD` run
+- the full merged validation campaign tables have not yet been regenerated from
+  the promoted baseline
+
+Minimal remaining refresh scope for a comparison-ready campaign:
+
+| workstream | cases | note |
+|---|---:|---|
+| static `exal` current RHS-NS | 54 | stale relative to promoted baseline |
+| static `exal` legacy RHS | 18 | stale relative to promoted baseline |
+| dynamic tail row `15` | 1 | current-HEAD refresh still fails |
+| total rerun debt | 73 | reuse all other currently valid artifacts |
+
+Updated immediate decision:
+
+1. freeze `F080_sub2_s105` as the active static `exal` validation baseline
+2. prepare and run the focused `72`-row static rerun under the promoted
+   exact-runner baseline
+3. keep dynamic row `15` as a separate but active sidecar repair lane
+4. merge the refreshed outputs with the reusable campaign artifacts and produce
+   the final comparison-ready tables
+
+Operational rule:
+
+- do not reopen a broad tuning wave at this point
+- do not relaunch the full `291`-row campaign
+- rerun only the `73` cases that still block a no-FAIL comparison-ready
+  campaign

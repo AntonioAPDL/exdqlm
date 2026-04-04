@@ -1,0 +1,3 @@
+"scope_label","variant_tag","expected_prior_override","gamma_substeps","p_global_eta_jump","global_eta_jump_scale","mh_proposal"
+"current_rhsns_refresh","static_exal_f080_sub2_s105_rhsns_current_20260403","rhs_ns",2,0.08,1.05,"laplace_rw"
+"legacy_rhs_refresh","static_exal_f080_sub2_s105_rhs_legacy_20260403","rhs",2,0.08,1.05,"laplace_rw"

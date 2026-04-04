@@ -62,6 +62,12 @@ safe_int1 <- function(x, default = NA_integer_) {
   if (is.finite(v)) v else default
 }
 
+safe_chr1 <- function(x, default = NA_character_) {
+  if (is.null(x) || !length(x)) return(default)
+  y <- as.character(x)[1]
+  if (!nzchar(y)) default else y
+}
+
 args <- parse_args(commandArgs(trailingOnly = TRUE))
 
 model_key <- tolower(as.character(args$model %||% 'exal'))
@@ -159,16 +165,46 @@ if (length(y) != nrow(X)) stop('sim_output y and X dimensions mismatch')
 
 beta_prior <- as.character(bf$beta_prior$type %||% 'ridge')
 beta_prior_controls <- bf$beta_prior$controls %||% NULL
+beta_prior_source <- 'baseline_fit'
+beta_prior_override <- safe_chr1(args$beta_prior_override, NA_character_)
+prior_template_path <- safe_chr1(args$prior_template_path, NA_character_)
 
 if (!is.null(run_config_path) && file.exists(run_config_path)) {
   cfg <- tryCatch(readRDS(run_config_path), error = function(e) NULL)
   if (is.list(cfg) && is.list(cfg$mcmc)) {
     if (is.character(cfg$mcmc$beta_prior) && nzchar(cfg$mcmc$beta_prior[1])) {
       beta_prior <- as.character(cfg$mcmc$beta_prior[1])
+      beta_prior_source <- 'run_config'
     }
     if (is.list(cfg$mcmc$beta_prior_controls)) {
       beta_prior_controls <- cfg$mcmc$beta_prior_controls
     }
+  }
+}
+
+if (!is.na(prior_template_path) && nzchar(prior_template_path)) {
+  prior_template_path <- normalizePath(prior_template_path, winslash = '/', mustWork = TRUE)
+  prior_template <- tryCatch(readRDS(prior_template_path), error = function(e) NULL)
+  prior_template_fit <- prior_template$fit %||% prior_template
+  template_prior <- safe_chr1(prior_template_fit$beta_prior$type, NA_character_)
+  template_controls <- prior_template_fit$beta_prior$controls %||% NULL
+  if (!is.na(template_prior)) {
+    beta_prior <- template_prior
+    beta_prior_source <- 'prior_template'
+  }
+  if (is.list(template_controls)) {
+    beta_prior_controls <- template_controls
+  }
+} else {
+  prior_template_path <- NA_character_
+}
+
+if (!is.na(beta_prior_override) && nzchar(beta_prior_override)) {
+  beta_prior <- as.character(beta_prior_override)
+  beta_prior_source <- if (!is.na(prior_template_path) && nzchar(prior_template_path)) {
+    'prior_template+override'
+  } else {
+    'override'
   }
 }
 
@@ -270,6 +306,9 @@ vhg_append_checkpoint(checkpoint_path, list(
   init_from_vb = init_from_vb,
   force = force,
   beta_prior = beta_prior,
+  beta_prior_source = beta_prior_source,
+  beta_prior_override = beta_prior_override,
+  prior_template_path = prior_template_path,
   mcmc_base_path = mcmc_base_path,
   vb_path = vb_path,
   sim_output_path = sim_output_path,
@@ -284,6 +323,11 @@ cat(sprintf('[static-case] %s started | queue=%s tier=%s scope=%s model=%s famil
 cat(sprintf('[static-case] run_root=%s\n', run_root))
 cat(sprintf('[static-case] baseline=%s\n', mcmc_base_path))
 cat(sprintf('[static-case] candidate=%s\n', candidate_path))
+cat(sprintf('[static-case] beta_prior=%s source=%s prior_template=%s override=%s\n',
+            beta_prior,
+            beta_prior_source,
+            ifelse(is.na(prior_template_path), 'NA', prior_template_path),
+            ifelse(is.na(beta_prior_override), 'NA', beta_prior_override)))
 cat(sprintf('[static-case] gamma_substeps=%d p_global_eta_jump=%.3f global_eta_jump_scale=%.3f\n',
             as.integer(gamma_substeps), as.numeric(p_global_eta_jump), as.numeric(global_eta_jump_scale)))
 

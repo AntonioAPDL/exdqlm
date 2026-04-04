@@ -6,6 +6,7 @@ Current tracked context:
 
 - `reports/static_exal_tuning_20260403/wave8_closeout_and_fail_only_repair_program.md`
 - `reports/static_exal_tuning_20260403/fail_only_bridge_results_20260403.md`
+- `reports/static_exal_tuning_20260403/campaign_completion_execution_20260403.md`
 - `tools/merge_reports/LOCAL_VALIDATION_RECOVERY_TRACKER_STATIC_EXAL_20260331.md`
 - `tools/merge_reports/full288_dynamic_tail_cppgig_refresh_20260331/rows/row_0005.csv`
 - `tools/merge_reports/full288_dynamic_tail_cppgig_refresh_20260331/rows/row_0015.csv`
@@ -18,6 +19,10 @@ bridge repair.
 It replaces the earlier question of "which tuning family should we trust next?"
 with the current operational question: "what is the minimum remaining work to
 reach a comparison-ready full validation campaign?"
+
+The execution record for the focused completion phase now lives in:
+
+- `reports/static_exal_tuning_20260403/campaign_completion_execution_20260403.md`
 
 ## Promoted Baseline
 
@@ -137,6 +142,10 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 - [ ] rebuild the `72`-row static rerun manifest from the stale current and
       legacy static `exal` rows
+- [ ] keep current RHS-NS and legacy RHS scopes distinct even where `row_id`
+      and `run_root` overlap
+- [ ] use scope-correct prior templates so current static-paper rows really run
+      as `rhs_ns` rather than silently inheriting the original `ridge` baseline
 - [ ] apply `F080_sub2_s105` exact-runner overrides with the same robust
       orchestration standards used in wave-8
 - [ ] validate the prepare-only outputs before launch
