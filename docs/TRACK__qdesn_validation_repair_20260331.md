@@ -23,28 +23,38 @@ Current best read:
 
 - Phase 13 completed cleanly and produced the first promoted exact full-6 winner in the late-stage
   branch-facing QDESN sequence;
-- `R512_r412_pass2_chain1000` is now the active scientific and practical baseline because it beat
-  `R500_r412_provisional_anchor` on rerun confirmation and then again on final zero-sentinel
-  confirmation;
-- `R500_r412_provisional_anchor` should now be treated as the previous-anchor reference control,
-  not the active search anchor;
+- Phase 14 then completed cleanly and did not produce a new winner, but it sharply narrowed the
+  remaining problem from “find a better local family” to “combine the surviving local repair
+  signals correctly”;
+- `R512_r412_pass2_chain1000` remains the active scientific and practical baseline because no
+  Phase-14 descendant beat it cleanly enough for promotion;
+- the exact Phase-14 anchor rerun (`R600_r512_promoted_anchor`) is now the best raw branch-facing
+  control in the `R512` neighborhood: `2 FAIL / 1 sentinel FAIL`;
+- `R500_r412_provisional_anchor` should now be treated as a historical previous-anchor reference
+  only, not the active comparison control for local crossover work;
 - `R402_r65_balanced_control` remains the clean balanced control because it is still the cheapest
   useful balanced hedge, even though it was not competitive enough to win Phase 13;
-- the `R421` trimmed descendants and the `R412 + R421` combined descendants are now retired as
-  lead families; only their mild rhs-freeze lessons remain worth carrying forward;
+- the `R612` ridge rescue, `R622` rhs-soft hedge, and `R616` sentinel-clean geometry clue are now
+  the three surviving Phase-14 ingredients worth carrying forward;
+- the `R421` trimmed descendants and the `R412 + R421` combined descendants remain retired as
+  lead families; only their mild rhs-freeze lessons have already been absorbed into the surviving
+  `R512` neighborhood;
 - the exact `R61` family remains a runtime reference control only;
 - the `R84` rhs-local family and the `R422` blockpass-led line should remain retired for
   lead-candidate purposes;
-- under the final promoted `R512` result, the remaining FAIL set is now only three roots wide:
+- under the final promoted `R512` result, the remaining FAIL set is still only three roots wide:
   `dlm_constV_bigW @ tau=0.05 exal ridge`,
   `dlm_constV_smallW @ tau=0.95 exal rhs_ns`,
   and `dlm_constV_smallW @ tau=0.95 exal ridge`;
-- the most useful new cross-worktree lesson is now explicit:
-  once an exact winner is promoted, the next wave should narrow even further around that winner,
-  keep the prior anchor and clean control alive, and refuse to reopen dominated families;
-- the next highest-value step is therefore an exact full-6 residual-resolution matrix rooted in
-  `R512`, with `R500` and `R402` retained as reference controls and only mild local ridge/rhs
-  descendants allowed back into the search.
+- Phase 14 also showed that the current blocking issue on the exact 6-root harness is now one
+  sentinel root (`dlm_constV_smallW @ tau=0.50 exal rhs_ns`) plus the still-hard
+  `bigW ridge` residual, not a broad family-wide failure;
+- the most useful new cross-worktree lesson is now sharper:
+  once an exact winner is promoted and the next local wave fails, the correct response is not
+  family reopening but a tiny crossover matrix built only from the surviving local signals;
+- the next highest-value step is therefore an exact full-6 sentinel-crossover matrix rooted in
+  `R512`, with `R600`, `R612`, `R622`, `R616`, and `R402` retained as controls or crossover
+  ingredients and no dominated families reopened.
 
 Operational status:
 
@@ -110,42 +120,57 @@ Operational status:
   and `dlm_constV_smallW @ tau=0.95 exal ridge`.
 - The current branch state therefore supports a narrower exact full-6 residual-resolution wave
   around `R512`, not another reopening of `R421`, combined, hedge, or retired families.
+- Phase 14 completed cleanly (`15/15` Stage-1 profiles, `0` timeouts, `0` runner errors).
+- Phase 14 showed that no descendant beat `R512` cleanly enough to advance, but it also showed
+  that the surviving local repair space is now a crossover problem, not a family problem.
+- Phase 14 identified:
+  - `R600` as the best broad repair pattern,
+  - `R612` as the best ridge rescue,
+  - `R622` as the best rhs-local hedge,
+  - `R616` as the only zero-sentinel geometry clue.
+- Phase 14 also showed that chain-only, pass-only, raw step-out-only, and the tested narrow
+  coupled variants are not the right next lead directions.
+- The current branch state therefore supports one more exact full-6 crossover wave around the
+  surviving `R512` ingredients, not another one-axis sweep or family reopening.
 
 ## 3) Read These First
 
 If someone needs the shortest path to the current findings, read these in order:
 
 1. `docs/REPORT__qdesn_validation_phase11_exact_fullsix_matrix_20260403.md`
-2. `docs/REPORT__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
-3. `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
-4. `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
-5. `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-6. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-7. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
-8. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
-9. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
-10. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
-11. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
-12. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
-13. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
-14. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
-15. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-16. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-17. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-18. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-19. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-20. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-21. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-22. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-23. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-24. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-25. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-26. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-27. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-28. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-29. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/summary/family_b_screen_results.md`
-30. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S2_rerun_confirmation/summary/stage_candidate_selection.md`
-31. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S3_final_sentinel_confirmation/summary/stage_candidate_selection.md`
+2. `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
+3. `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+4. `docs/REPORT__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+5. `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
+6. `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+7. `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+8. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+9. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
+10. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+11. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+12. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+13. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+14. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+15. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+16. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+17. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+18. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+19. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+20. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+21. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+22. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+23. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+24. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+25. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+26. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+27. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+28. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+29. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+30. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+31. `reports/qdesn_mcmc_validation/qdesn_validation_phase14_r512_residual_resolution/qdesn-phase14-r512-residual-resolution-20260403a__git-8ef64e1/summary/family_b_screen_results.md`
+32. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/summary/family_b_screen_results.md`
+33. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S2_rerun_confirmation/summary/stage_candidate_selection.md`
+34. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S3_final_sentinel_confirmation/summary/stage_candidate_selection.md`
 
 Core code paths to inspect before changing anything:
 
@@ -1141,36 +1166,82 @@ Interpretation:
   exact Stage-1 winners are not enough; rerun and final sentinel confirmation materially improve
   decision quality.
 
-## 5Y) Phase 14 Direction
+## 5Y) Phase 14 Outcome
 
-Next wave:
+Run:
 
+- result report:
+  `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
 - plan doc:
   `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
 - manifest:
   `config/validation/qdesn_validation_phase14_r512_residual_resolution_manifest.yaml`
 - thin wrapper:
   `scripts/run_qdesn_validation_phase14_r512_residual_resolution.R`
+- run tag:
+  `qdesn-phase14-r512-residual-resolution-20260403a__git-8ef64e1`
+
+Outcome:
+
+- the full Phase-14 program completed cleanly:
+  `15/15` Stage-1 profiles, `0` timeouts, `0` runner errors;
+- no completed profile introduced finite, domain, collapse, or unhealthy regressions;
+- the exact `R512` anchor rerun (`R600`) was the best raw result with `2 FAIL / 1 sentinel FAIL`;
+- no candidate advanced because the wave split into two incomplete success modes:
+  low-fail profiles with `1` sentinel FAIL and one zero-sentinel geometry clue (`R616`) that still
+  had too many total FAILs;
+- Phase 14 therefore produced no new baseline, but it did identify the surviving local repair
+  ingredients clearly enough to justify one more exact crossover wave.
+
+Phase-14 signal-quality read:
+
+| view | profile | total_fail_n | sentinel_fail_n | runtime_inflation | read |
+|---|---|---:|---:|---:|---|
+| best raw rerun | `R600_r512_promoted_anchor` | `2` | `1` | `1.115` | strongest broad repair pattern |
+| best ridge rescue | `R612_r512_burn550_chain1100` | `3` | `1` | `1.031` | repaired `bigW ridge`, but not sentinel-clean |
+| best rhs hedge | `R622_r512_rhssoft_freeze90` | `3` | `1` | `1.086` | strongest rhs-local hedge |
+| only zero-sentinel clue | `R616_r512_softgamma_steps80` | `4` | `0` | `1.138` | useful sentinel clue, not a winner |
+| clean balanced control | `R602_r402_balanced_control` | `3` | `1` | `0.890` | best runtime-balanced benchmark |
+
+Interpretation:
+
+- `R512` remains the active promoted baseline;
+- `R600`, `R612`, `R622`, and `R616` are now the only local signals worth carrying forward;
+- Phase 14 changed the next-step question from “which local axis wins” to “can the surviving local
+  signals be combined into a low-fail, zero-sentinel exact winner.”
+
+## 5Z) Phase 15 Direction
+
+Next wave:
+
+- plan doc:
+  `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+- manifest:
+  `config/validation/qdesn_validation_phase15_r512_sentinel_crossover_matrix_manifest.yaml`
+- thin wrapper:
+  `scripts/run_qdesn_validation_phase15_r512_sentinel_crossover_matrix.R`
 
 Design choice:
 
-- promote `R512` to the active scientific and practical search anchor;
-- keep `R500` as the previous-anchor control;
+- keep `R512` as the promoted scientific and practical baseline;
 - keep `R402` as the clean balanced control;
-- search only:
-  - narrow `R512` ridge-local descendants,
-  - mild `R512` rhs-local descendants,
-  - very small `R512` coupled descendants;
-- run the real fixed 6-root harness from Stage 1 onward;
-- rerun survivors before any final promotion call;
-- require a true residual-set reduction before any new baseline is promoted again.
+- retain `R600`, `R612`, `R622`, and `R616` as the active signal references from Phase 14;
+- search only untried crossovers of:
+  - `R612` ridge rescue,
+  - `R622` rhs softness,
+  - `R616` sentinel-clean geometry;
+- run the exact full-6 harness from Stage 1 onward;
+- allow low-fail / one-sentinel candidates through Stage 1 if they are scientifically strong;
+- require zero-sentinel rerun confirmation in Stage 2;
+- require `2 FAIL / 0 sentinel FAIL` before any new promotion decision.
 
-What Phase 14 explicitly avoids:
+What Phase 15 explicitly avoids:
 
-- reopening `R421`, trimmed `R421`, or `R412 + R421` combined families as main search lines;
-- replaying `R510` as if it were a stable lead after its rerun regression;
-- reopening `R84`, `R422`, QR-only, conditioning-only, bridge-only, or heavy-widening families;
-- trusting a reduced root subset as the first promotion gate;
+- reopening `R421`, combined `R412 + R421`, `R84`, `R422`, or any other retired family;
+- replaying the weak Phase-14 one-axis lines (`R610`, `R611`, `R613`, `R614`, `R615`) as if they
+  were still active lead directions;
+- replaying the weak narrow coupled variants (`R630`, `R631`);
+- trusting reduced-screen-first logic;
 - promoting a new winner without rerun and final confirmation.
 
 ## 6) Candidate Improvement Areas
@@ -1518,7 +1589,7 @@ Target:
 
 Primary artifacts:
 
-- `docs/REPORT__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+- `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
 - `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
 - `config/validation/qdesn_validation_phase14_r512_residual_resolution_manifest.yaml`
 - `scripts/run_qdesn_validation_phase14_r512_residual_resolution.R`
@@ -1531,19 +1602,42 @@ Checklist:
 - [x] keep the candidate space inside the `R512/R500/R402` neighborhood
 - [x] run prepare-only validation on the Phase-14 manifest
 - [x] launch the overnight Phase-14 program
-- [x] update the tracker with the Phase-14 launch state
+- [x] update the tracker with the final Phase-14 outcome
 
-Current live run:
+Primary outcome:
 
-- run tag:
-  `qdesn-phase14-r512-residual-resolution-20260403a__git-8ef64e1`
-- current stage:
-  `S1_exact_fullsix_residual_resolution`
-- current anchor:
-  `R600_r512_promoted_anchor`
-- current health read:
-  stage workspace exists, Stage-1 runner state is live, and the anchor campaign has launched with
-  all `6` roots entering `vb`.
+- complete;
+- no candidate advanced beyond Stage 1;
+- `R600` remained the strongest broad repair pattern;
+- `R612` became the best ridge rescue reference;
+- `R622` became the best rhs-local hedge;
+- `R616` became the only zero-sentinel geometry clue;
+- Phase 14 justified one final crossover wave, not a family reopening.
+
+### Work Package 13: Phase 15 `R512` sentinel-crossover matrix
+
+Target:
+
+- combine the surviving `R600/R612/R622/R616` local signals without reopening dead families;
+- find a candidate that preserves low-fail behavior and removes the remaining sentinel failure;
+- require rerun-confirmed zero-sentinel behavior before any new promotion call.
+
+Primary artifacts:
+
+- `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
+- `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+- `config/validation/qdesn_validation_phase15_r512_sentinel_crossover_matrix_manifest.yaml`
+- `scripts/run_qdesn_validation_phase15_r512_sentinel_crossover_matrix.R`
+
+Checklist:
+
+- [x] freeze the Phase-14 outcome as a scientific but non-promoting result
+- [x] document the `R600/R612/R622/R616` crossover read and control hierarchy
+- [x] define a 3-stage exact full-6 crossover matrix around the surviving `R512` ingredients
+- [x] keep the candidate space inside the `R512/R612/R622/R616/R402` neighborhood
+- [ ] run prepare-only validation on the Phase-15 manifest
+- [ ] launch the overnight Phase-15 program
+- [ ] update the tracker with the Phase-15 launch state
 
 ## 8) Stop Conditions
 
