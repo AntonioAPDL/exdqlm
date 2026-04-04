@@ -29,7 +29,7 @@ prev_missing=""
 for ((pass=1; pass<=max_passes; pass++)); do
   ts="$(date '+%Y-%m-%d %H:%M:%S %Z')"
   echo "=== static failband wave1 supervisor pass ${pass}/${max_passes} at ${ts} ==="
-  launch_output="$("$launch_script" --parallel-jobs="$parallel_jobs")"
+  launch_output="$(bash "$launch_script" --parallel-jobs="$parallel_jobs")"
   echo "$launch_output"
 
   summary_line="$(echo "$launch_output" | awk '/^SUMMARY /{print; exit}')"
