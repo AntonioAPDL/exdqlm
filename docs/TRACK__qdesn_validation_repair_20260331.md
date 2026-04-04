@@ -1530,8 +1530,20 @@ Checklist:
 - [x] define a 3-stage exact full-6 residual-resolution matrix around `R512 + R500 + R402`
 - [x] keep the candidate space inside the `R512/R500/R402` neighborhood
 - [x] run prepare-only validation on the Phase-14 manifest
-- [ ] launch the overnight Phase-14 program
-- [ ] update the tracker with the Phase-14 launch state
+- [x] launch the overnight Phase-14 program
+- [x] update the tracker with the Phase-14 launch state
+
+Current live run:
+
+- run tag:
+  `qdesn-phase14-r512-residual-resolution-20260403a__git-8ef64e1`
+- current stage:
+  `S1_exact_fullsix_residual_resolution`
+- current anchor:
+  `R600_r512_promoted_anchor`
+- current health read:
+  stage workspace exists, Stage-1 runner state is live, and the anchor campaign has launched with
+  all `6` roots entering `vb`.
 
 ## 8) Stop Conditions
 
