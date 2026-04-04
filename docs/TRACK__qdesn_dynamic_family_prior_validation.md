@@ -4,6 +4,27 @@ Date: 2026-03-29
 Branch: `feature/qdesn-mcmc-alternative`  
 Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
 
+## 1.1) Static Cross-Study Follow-On (2026-04-04)
+
+This tracker remains the canonical record for the dynamic family/prior matrix and the final frozen
+`R512` certification pass.
+
+The next apples-to-apples comparison program is separate:
+
+- tracker:
+  - `docs/TRACK__qdesn_static_exdqlm_crossstudy_validation.md`
+- investigation:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+- plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
+
+That follow-on program mirrors the exdqlm static `gausmix / normal / laplace` dataset surface.
+
+Important boundary:
+
+- the dynamic matrix here is complete and certified;
+- the new cross-study is static-only in its first launch and explicitly excludes dynamic row-15.
+
 ## 1) Mission
 
 Relaunch the qdesn simulation/validation workflow with a coherent 2x2x2 matrix:

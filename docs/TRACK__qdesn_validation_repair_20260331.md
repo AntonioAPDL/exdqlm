@@ -17,6 +17,27 @@ Turn the current QDESN validation situation into a disciplined repair program th
 
 This tracker is the operational roadmap for the next validation wave.
 
+## 1.1) Follow-On Cross-Study Update (2026-04-04)
+
+The dynamic QDESN repair/certification program is now closed for this cycle.
+
+The next comparison-facing program is a separate cross-worktree study:
+
+- tracker:
+  - `docs/TRACK__qdesn_static_exdqlm_crossstudy_validation.md`
+- investigation memo:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+- plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
+
+That follow-on program reuses the exdqlm static `gausmix / normal / laplace` datasets and builds
+the QDESN analog with `exal/al x vb/mcmc x ridge/rhs_ns`.
+
+Important boundary:
+
+- this tracker remains the record for the dynamic QDESN repair/certification sequence;
+- the static exdqlm cross-study should not be confused with the finished dynamic DLM certification.
+
 ## 2) Executive Status
 
 Current best read:
@@ -147,39 +168,42 @@ If someone needs the shortest path to the current findings, read these in order:
 
 1. `docs/PLAN__qdesn_validation_final_r512_certification_20260403.md`
 2. `docs/REPORT__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
-3. `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
-4. `docs/REPORT__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
-5. `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
-6. `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
-7. `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
-8. `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-9. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
-10. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
-11. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
-12. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
-13. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
-14. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
-15. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
-16. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
-17. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
-18. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
-19. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
-20. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
-21. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
-22. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
-23. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
-24. `docs/PLAN__qdesn_validation_phase3_20260331.md`
-25. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
-26. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
-27. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
-28. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
-29. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
-30. `docs/PLAN__qdesn_validation_phase2_20260331.md`
-31. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
-31. `reports/qdesn_mcmc_validation/qdesn_validation_phase14_r512_residual_resolution/qdesn-phase14-r512-residual-resolution-20260403a__git-8ef64e1/summary/family_b_screen_results.md`
-32. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/summary/family_b_screen_results.md`
-33. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S2_rerun_confirmation/summary/stage_candidate_selection.md`
-34. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S3_final_sentinel_confirmation/summary/stage_candidate_selection.md`
+3. `docs/TRACK__qdesn_static_exdqlm_crossstudy_validation.md`
+4. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+5. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
+6. `docs/REPORT__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
+7. `docs/REPORT__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+8. `docs/PLAN__qdesn_validation_phase15_r512_sentinel_crossover_matrix_20260403.md`
+9. `docs/PLAN__qdesn_validation_phase14_r512_residual_resolution_20260403.md`
+10. `docs/PLAN__qdesn_validation_phase13_r412_r421_stability_matrix_20260403.md`
+11. `docs/REPORT__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+12. `docs/PLAN__qdesn_validation_phase12_r312_stabilization_matrix_20260403.md`
+13. `docs/PLAN__qdesn_validation_phase11_exact_fullsix_matrix_20260402.md`
+14. `docs/REPORT__qdesn_validation_phase10_replicated_ridge_resolution_20260402.md`
+15. `docs/REPORT__qdesn_validation_phase9_replication_audit_20260401.md`
+16. `docs/PLAN__qdesn_validation_phase10_replicated_ridge_resolution_20260401.md`
+17. `docs/PLAN__qdesn_validation_phase9_replication_audit_20260401.md`
+18. `docs/REPORT__qdesn_validation_phase8_smallw_resolution_20260401.md`
+19. `docs/REPORT__qdesn_validation_phase7_r44_refinement_20260401.md`
+20. `docs/PLAN__qdesn_validation_phase8_smallw_resolution_20260401.md`
+21. `docs/REPORT__qdesn_validation_phase4b_phase5_20260331.md`
+22. `docs/PLAN__qdesn_validation_phase6_overnight_fullsix_screen_20260331.md`
+23. `docs/REPORT__qdesn_validation_phase4_split_prior_screen_20260331.md`
+24. `docs/PLAN__qdesn_validation_phase4b_phase5_followup_20260331.md`
+25. `docs/REPORT__qdesn_validation_phase3_family_b_screen_20260331.md`
+26. `docs/PLAN__qdesn_validation_phase4_split_prior_screen_20260331.md`
+27. `docs/PLAN__qdesn_validation_phase3_20260331.md`
+28. `docs/REPORT__qdesn_validation_phase2_audit_20260331.md`
+29. `docs/REPORT__qdesn_validation_repair_wave2_20260331.md`
+30. `docs/REPORT__qdesn_validation_repair_wave4_20260331.md`
+31. `docs/REPORT__qdesn_validation_repair_wave3_20260331.md`
+32. `docs/PLAN__qdesn_validation_phase3_family_b_screen_20260331.md`
+33. `docs/PLAN__qdesn_validation_phase2_20260331.md`
+34. `docs/REVIEW__qdesn_exal_kernel_next_steps_20260331.md`
+35. `reports/qdesn_mcmc_validation/qdesn_validation_phase14_r512_residual_resolution/qdesn-phase14-r512-residual-resolution-20260403a__git-8ef64e1/summary/family_b_screen_results.md`
+36. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/summary/family_b_screen_results.md`
+37. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S2_rerun_confirmation/summary/stage_candidate_selection.md`
+38. `reports/qdesn_mcmc_validation/qdesn_validation_phase13_r412_r421_stability_matrix/qdesn-phase13-r412-r421-stability-20260403a__git-373aa5f/stages/S3_final_sentinel_confirmation/summary/stage_candidate_selection.md`
 
 Core code paths to inspect before changing anything:
 

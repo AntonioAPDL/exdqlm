@@ -7,6 +7,40 @@ Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
 
+## Cross-Study Follow-On Update (2026-04-04)
+
+The dynamic certification track is now closed for this cycle, but the broader validation program
+has one important comparison-facing follow-on:
+
+- build the QDESN analog on the same static exdqlm datasets used in the
+  `gausmix / normal / laplace` study
+- keep the QDESN fit matrix:
+  - likelihoods: `exal`, `al`
+  - methods: `vb`, `mcmc`
+  - priors: `ridge`, `rhs_ns`
+
+New cross-study assets:
+
+- tracker:
+  - `docs/TRACK__qdesn_static_exdqlm_crossstudy_validation.md`
+- investigation:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+- plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
+- defaults:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
+- grid:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
+- launcher:
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
+- healthcheck:
+  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
+
+Important boundary:
+
+- this follow-on is not another dynamic DLM tuning loop;
+- it is the QDESN counterpart to the exdqlm static validation surface.
+
 ## Final Certification Update (2026-04-03)
 
 The framework is no longer in an exploratory design phase for the dynamic QDESN
