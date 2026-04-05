@@ -1881,3 +1881,55 @@ Updated immediate decision:
    - a tiny `init_mode = none` lane on the lower-mid anchors only
 4. keep the rest of the campaign frozen and reusable while row `87` is being
    closed
+
+## 12.12 Wave-11 closeout and comparison-ready handoff (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/failband_wave11_closeout_and_comparison_ready_handoff_20260405.md`
+- `reports/static_exal_tuning_20260405/failband_wave10_closeout_and_wave11_row87_lowermid_program_20260405.md`
+- `tools/merge_reports/LOCAL_validation_campaign_promoted_local_map_v9_20260405.csv`
+
+Wave-11 closeout summary:
+
+| stage | total | PASS | WARN | FAIL | missing | resolved |
+|---|---:|---:|---:|---:|---:|---:|
+| `anchor4_short_hist` | 4 | 0 | 1 | 3 | 0 | 1 |
+| `confirm4_medium` | 4 | 0 | 1 | 3 | 0 | 1 |
+| `none3_lowermid` | 3 | 0 | 1 | 2 | 0 | 1 |
+| `overall` | 11 | 0 | 3 | 8 | 0 | 3 |
+
+Main takeaways:
+
+- wave-11 completed cleanly with `0 missing`
+- row `87` is now closed to non-`FAIL` at the promoted row-best level
+- the remaining tail is now fully non-`FAIL`:
+  - `87` -> `WARN`
+  - `135` -> `PASS`
+  - `174` -> `WARN`
+  - `269` -> `WARN`
+  - dynamic `15` -> `WARN`
+- there are no active validation jobs running in this worktree now
+- repair search is complete unless a later merge/provenance audit finds a real
+  regression
+
+Promoted campaign map v9:
+
+- broad default:
+  - `F085_sub2_s100`
+- row-local promotions:
+  - `87` -> `F085_sub2_s1025_histshort`
+  - `135` -> `F0825_sub2_s105_none`
+  - `174` -> `F085_sub2_s105_histshort`
+  - `190` -> `F0825_sub2_s100_rwlong`
+  - `206` -> `F0825_sub2_s1025_rwlong`
+  - `269` -> `F0845_sub2_s100_histshort`
+  - dynamic `15` -> `row15_slice_exact_20260405`
+
+Updated immediate decision:
+
+1. stop opening new repair waves by default; the active tail is closed
+2. freeze the promoted campaign map v9 and preserve manifest-level provenance
+3. build the merged final campaign selection table
+4. regenerate campaign-level health and comparison tables
+5. only reopen tuning if the merge/provenance audit reveals a real regression

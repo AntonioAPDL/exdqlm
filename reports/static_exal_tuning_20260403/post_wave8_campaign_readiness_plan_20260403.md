@@ -58,6 +58,10 @@ The wave-6 closeout and active triplet-closure wave-7 program now live in:
 
 - `reports/static_exal_tuning_20260404/failband_wave6_closeout_and_wave7_triplet_closure_program_20260404.md`
 
+The completed wave-11 closeout and comparison-ready handoff now live in:
+
+- `reports/static_exal_tuning_20260405/failband_wave11_closeout_and_comparison_ready_handoff_20260405.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
@@ -321,7 +325,7 @@ failing debt.
 | resolved residual-band static rows under `F085_sub2_s100` | 21 | reusable broad default coverage | these no longer need active repair search |
 | promoted local repair baseline v3 rows | 9 | locally resolved from completed evidence | these define the active row-specific static baseline |
 | static blocking core | 0 | no longer blocking after wave-9 | none |
-| static unstable local exception | 1 | still needs final closure | row `87` |
+| static unstable local exception | 0 | closed after wave-11 | none |
 | promoted warn-only local rescues | 2 | now reusable under the active local map | rows `174`, `269` |
 | promoted local PASS | 1 | now reusable under the active local map | row `135` |
 | static stability/provenance rows | 2 | non-`FAIL`, no new search needed now | rows `190`, `206` |
@@ -339,6 +343,18 @@ Minimal active scientific debt after the completed wave-9 closeout:
   - static row `87`
 - dynamic row `15` is now resolved to `WARN`
 - rows `135`, `174`, and `269` are now resolved to non-`FAIL`
+
+Minimal active scientific debt after the completed wave-11 closeout:
+
+- `0` blocking cases remain in the promoted campaign map
+- the endgame tail is now fully non-`FAIL` at the row-best decision level:
+  - static `87` -> `WARN`
+  - static `135` -> `PASS`
+  - static `174` -> `WARN`
+  - static `269` -> `WARN`
+  - dynamic `15` -> `WARN`
+- the next remaining work is no longer repair search; it is campaign merge,
+  provenance freeze, and final comparison table generation
 
 ## Comparison-Ready Acceptance Rule
 
@@ -358,50 +374,50 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 ## Recommended Next-Phase Plan
 
-### Phase A: Freeze the promoted reference wave
+### Phase A: Freeze the promoted campaign map
 
 - [ ] Keep `F080_sub2_s105` as the historical repair-planning reference wave
 - [ ] Keep `F085_sub2_s100` as the broad static default baseline
-- [ ] Promote the evidence-weighted local repair baseline v3 as the active
-      static residual baseline
+- [ ] Freeze the promoted local campaign map:
+      - `87` -> `F085_sub2_s1025_histshort`
+      - `135` -> `F0825_sub2_s105_none`
+      - `174` -> `F085_sub2_s105_histshort`
+      - `190` -> `F0825_sub2_s100_rwlong`
+      - `206` -> `F0825_sub2_s1025_rwlong`
+      - `269` -> `F0845_sub2_s100_histshort`
+      - dynamic `15` -> `row15_slice_exact_20260405`
 
-### Phase B: Confirm the local static repair map
+### Phase B: Build the final merged campaign table
 
-- [ ] keep `F085_sub2_s100` as the broad static default baseline
-- [ ] probe only the remaining blocking row:
-      `87`
-- [ ] use only:
-      exact short historical non-`FAIL` anchors,
-      moderate-length confirmations on the same lower-mid corridor,
-      and a tiny `init_mode = none` lane on those same lower-mid anchors
-- [ ] preserve separate current RHS-NS and legacy RHS scope labels
-- [ ] do not reopen any broad shared-setup search
-- [ ] preserve deterministic manifests, failure logs, supervisor logs, and
-      monitor heartbeats
+- [ ] merge the reusable historical artifacts, the refreshed static slices, and
+      the promoted row-local repairs into one final campaign selection table
+- [ ] preserve scope labels and prior semantics:
+      current RHS-NS vs legacy RHS must remain distinct
+- [ ] preserve manifest-level provenance for every promoted override
+- [ ] explicitly mark which rows use the broad default vs local override
 
-### Phase C: Keep the dynamic tail debt separate but active
+### Phase C: Regenerate campaign-level health and comparison outputs
 
-- [ ] keep the resolved row-`15` slice replay as the active dynamic local
-      baseline
-- [ ] do not let row `15` trigger another broad dynamic search
-- [ ] do not relaunch rows `5`, `15`, or `57` unless later regression work is
-      required
+- [ ] regenerate campaign-level health tables from the promoted final map
+- [ ] verify:
+      - `0` runtime failures
+      - `0` gate FAILs
+      - `WARN` rows documented and interpretable
+- [ ] produce comparison-ready summary tables by:
+      model,
+      inference,
+      root kind,
+      family,
+      and tau
+- [ ] produce the final broad comparison table used for reporting
 
-### Phase D: Merge and summarize the refreshed campaign
+### Phase D: Audit and signoff
 
-- [ ] merge the refreshed `72` static rows and refreshed row `15` with the
-      existing reusable artifacts
-- [ ] regenerate campaign-level health tables
-- [ ] produce summary distributions by model, inference, root kind, family, and
-      tau
-- [ ] produce the final comparison-ready summary table used for reporting
-
-### Phase E: Stop rule if a narrow residual fail band remains
-
-- [ ] if the refreshed `72`-row rerun leaves only a narrow residual fail band,
-      do not reopen a broad tuning search
-- [ ] isolate only the remaining failing rows and repair them with the same
-      narrow fail-only discipline used successfully after wave-8
+- [ ] run a provenance audit on every promoted local override
+- [ ] confirm there are no accidental stale artifacts in the merged table
+- [ ] confirm branch-tracked reports match the final merged health state
+- [ ] only reopen tuning if the merge audit reveals a real regression or a
+      provenance-selection bug
 
 ## Operational Bottom Line
 
@@ -410,10 +426,11 @@ The study is in a materially better place now.
 The open problem is no longer "find a plausible static tuning family" and it is
 no longer "fix the resume chain." The open problem is now much cleaner:
 
-1. close row `87` with one final disciplined lower-mid replay/confirmation
-   program
-2. freeze the promoted local baselines for `135`, `174`, `269`, and row `15`
-3. regenerate the full campaign tables once row `87` is non-`FAIL`
+1. freeze the promoted local baseline now that the remaining hard tail is
+   fully non-`FAIL`
+2. build the final merged campaign table with explicit provenance
+3. regenerate the campaign-level health outputs and broad comparison tables
+4. move from repair mode into comparison-ready signoff mode
 
 That is the shortest rigorous path from the current branch state to a
 comparison-ready and publication-ready validation summary.
@@ -445,3 +462,27 @@ comparison-ready and publication-ready validation summary.
      `F085_sub2_s1025`
    - moderate-length confirmations on that same corridor
    - a tiny `init_mode = none` lane on the lower-mid anchors only
+
+## Latest Refinement After Wave-11 Closeout And Comparison Handoff (2026-04-05)
+
+1. wave-11 finished cleanly and produced three independent non-`FAIL` row-`87`
+   rescues:
+   - `F085_sub2_s1025_histshort` -> `WARN`
+   - `F0825_sub2_s100_medium` -> `WARN`
+   - `F0825_sub2_s1025_none` -> `WARN`
+2. the promoted row-`87` local rescue should now be:
+   - `87` -> `F085_sub2_s1025_histshort`
+3. the final active campaign map is now fully non-`FAIL` at the row-best
+   level:
+   - static `87` -> `WARN`
+   - static `135` -> `PASS`
+   - static `174` -> `WARN`
+   - static `269` -> `WARN`
+   - dynamic `15` -> `WARN`
+4. no validation jobs are running in this worktree now
+5. repair search is complete unless a later merge/provenance audit reveals a
+   real regression
+6. the highest-value next move is no longer more tuning; it is:
+   - freeze the promoted local map
+   - merge the refreshed artifacts
+   - regenerate the broad comparison-ready campaign tables

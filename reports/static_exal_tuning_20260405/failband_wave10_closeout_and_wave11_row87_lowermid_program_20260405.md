@@ -11,7 +11,14 @@ Primary references:
 
 ## Status Note
 
-Wave-10 completed cleanly. Nothing is currently running.
+Wave-10 completed cleanly. Wave-11 has also now completed cleanly.
+
+The executed closeout and comparison-ready handoff now live in:
+
+- `reports/static_exal_tuning_20260405/failband_wave11_closeout_and_comparison_ready_handoff_20260405.md`
+
+Use that closeout report for the current campaign state. This file remains the
+pre-launch design record for wave-11 itself.
 
 The campaign is now in a one-row endgame:
 
