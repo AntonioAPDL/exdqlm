@@ -9,6 +9,38 @@ the validation branch organized and scientifically defensible.
 This is a local tracker intended for operational use. It is not a signoff
 document and should not be treated as final scientific reporting.
 
+## 0. Dynamic-Only Residual Recovery Checkpoint (2026-04-05)
+
+The next repair phase after the corrected original-`288` carry-forward rebuild
+has now been implemented and validated as a dynamic-only residual program.
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/original_288_dynamic_residual_program_20260405.md`
+- `reports/static_exal_tuning_20260405/original_288_dynamic_residual_execution_20260405.md`
+- `tools/merge_reports/LOCAL_ORIGINAL288_DYNAMIC_RECOVERY_TRACKER_20260405.md`
+- `tools/merge_reports/LOCAL_original288_dynamic_residual_manifest_20260405.csv`
+
+Checkpoint state:
+
+- original publication-target cells: `288`
+- healthy now: `269`
+- unresolved now: `19`
+- all residual debt is dynamic-only
+- static should not be reopened by default
+
+Validated residual schedule:
+
+- `22` archive rescoring rows
+- `2` relaxed `vb::exdqlm` rows
+- `17` targeted dynamic MCMC rows
+- `41` total rows
+
+Operational rule carried forward:
+
+- promote only when a residual candidate improves the same original dynamic
+  case key from baseline `FAIL` to `PASS` or `WARN`
+
 ## 0. Original-288 Realignment Execution Checkpoint (2026-04-05)
 
 The corrected original-`288` carry-forward pipeline has now been implemented

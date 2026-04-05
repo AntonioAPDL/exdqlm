@@ -1,0 +1,4 @@
+"phase","total","candidate_exists_prelaunch","missing_inputs"
+"archive_rescore_existing",22,22,0
+"vb_relaxed",2,0,0
+"mcmc_targeted",17,0,0

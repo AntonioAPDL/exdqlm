@@ -85,5 +85,6 @@ recovery view.
 1. Freeze the corrected original-`288` carry-forward table as the only publication-target comparison registry.
 2. Do not reopen static repair work unless a provenance bug is found; static is fully recovered at `72 / 72` paper and `144 / 144` shrink healthy.
 3. Use `tools/merge_reports/LOCAL_original288_unresolved_dynamic_inventory_v1_20260405.csv` as the exact residual repair queue.
-4. Start the next dynamic phase by harvesting any remaining candidate evidence for those `19` unresolved keys before launching new compute.
-5. Only after that harvest pass, build a dynamic-only residual manifest and repair program.
+4. The dynamic-only residual manifest and execution stack have now been built in:
+   `reports/static_exal_tuning_20260405/original_288_dynamic_residual_program_20260405.md`
+5. Use that residual program as the next repair phase rather than reopening any static work.

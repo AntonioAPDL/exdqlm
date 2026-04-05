@@ -71,6 +71,12 @@ The corrected original-`288` realignment plan and execution now live in:
 - `reports/static_exal_tuning_20260405/original_288_realignment_investigation_and_recovery_plan_20260405.md`
 - `reports/static_exal_tuning_20260405/original_288_realignment_execution_20260405.md`
 
+The dynamic-only residual recovery program and execution now live in:
+
+- `reports/static_exal_tuning_20260405/original_288_dynamic_residual_program_20260405.md`
+- `reports/static_exal_tuning_20260405/original_288_dynamic_residual_execution_20260405.md`
+- `tools/merge_reports/LOCAL_ORIGINAL288_DYNAMIC_RECOVERY_TRACKER_20260405.md`
+
 Important supersession note after the corrected original-`288` rebuild:
 
 - the earlier healthy `291` campaign remains useful as a repair evidence pool
@@ -82,6 +88,20 @@ Important supersession note after the corrected original-`288` rebuild:
   - `269 / 288` healthy
   - `19 / 288` unresolved
   - residual debt is dynamic-only
+
+Important next-phase refinement after the dynamic-only residual program was
+implemented and validated:
+
+- the remaining work should now be treated as a dynamic-only residual closure
+  program
+- no static reruns are justified at this checkpoint
+- the validated residual schedule is:
+  - `22` archive rescoring rows
+  - `2` relaxed VB rows
+  - `17` targeted MCMC rows
+  - `41` total
+- promotion should happen only at the original case-key level when a residual
+  dynamic candidate improves the baseline `FAIL` to `PASS` or `WARN`
 
 ## Historical Baseline Promotion
 
