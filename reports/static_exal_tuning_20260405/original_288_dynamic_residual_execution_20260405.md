@@ -55,10 +55,24 @@ Validated pre-launch selection preview:
 
 ## Launch Checkpoint
 
-This section is updated after the overnight launch from the committed branch
-tip. It should record:
+The overnight run was launched from the clean pushed branch tip:
 
-- commit used for launch
-- tmux session names
-- initial active-run snapshot
-- any immediate post-launch issues and their fixes
+- commit: `1973062`
+- branch: `validation/rerun-after-0.4.0-sync`
+
+Live tmux sessions:
+
+- `original288-dynamic-residual-20260405`
+- `original288-dynamic-residual-monitor-20260405`
+
+Immediate post-launch state:
+
+- active phase: `archive_rescore_existing`
+- active archive parallelism: `10`
+- initial evaluated snapshot: `0 / 41` done, `41 / 41` missing
+
+Launch notes:
+
+- no post-launch script fixes were needed before leaving the run active
+- runtime-generated evaluator outputs are intentionally left out of git
+  tracking so the branch can stay clean while the overnight run progresses

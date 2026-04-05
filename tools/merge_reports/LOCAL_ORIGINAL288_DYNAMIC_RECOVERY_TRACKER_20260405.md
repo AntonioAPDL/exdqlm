@@ -99,7 +99,12 @@ Tie-breaking among non-`FAIL` candidates:
 - [x] promotion preview implemented
 - [x] launcher/supervisor/monitor implemented
 - [x] pre-launch validation completed
-- [ ] overnight residual run launched from clean pushed branch
+- [x] overnight residual run launched from clean pushed branch
 - [ ] morning-after promotion preview reviewed
 - [ ] corrected original-`288` carry-forward table updated if new non-`FAIL`
       dynamic rescues land
+
+Current live sessions:
+
+- `original288-dynamic-residual-20260405`
+- `original288-dynamic-residual-monitor-20260405`
