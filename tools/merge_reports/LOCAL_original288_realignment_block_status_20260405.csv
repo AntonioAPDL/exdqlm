@@ -1,0 +1,4 @@
+block,original_cells,healthy_via_repaired_selection,healthy_via_untouched_baseline,healthy_now,unresolved
+static_paper,72,72,0,72,0
+static_shrink,144,144,0,144,0
+dynamic,72,3,45,48,24

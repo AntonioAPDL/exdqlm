@@ -2077,3 +2077,57 @@ Updated immediate decision:
    branch-level reporting baseline
 3. move next into manuscript-facing synthesis, figure selection, and narrative
    interpretation
+
+## 12.16 Original-288 realignment investigation checkpoint (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/original_288_realignment_investigation_and_recovery_plan_20260405.md`
+- `tools/merge_reports/LOCAL_original288_realignment_block_status_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_realignment_unresolved_dynamic_inventory_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_selection_table_v1_20260405.csv`
+
+Key investigation result:
+
+The current healthy `291`-row selected campaign is not the same study universe
+as the original March 9 `288`-cell baseline design.
+
+Root-cause summary:
+
+1. the final repaired campaign retained only `3` dynamic selected rows instead
+   of the full original `72` dynamic baseline rows
+2. later static repair semantics (`rhs_ns`) drifted away from the original
+   static shrink baseline semantics (`rhs` / `ridge`)
+3. the selected `291` table contains only `233` unique `selected_fit_path`
+   values; all duplicate artifact reuse is concentrated in `static_shrink`
+
+Important salvage result:
+
+If repaired selections are re-anchored by actual artifact root path rather than
+by the later campaign semantic label, then the original `288` study can already
+be recovered to:
+
+| block | original cells | healthy now | unresolved |
+|---|---:|---:|---:|
+| `static_paper` | `72` | `72` | `0` |
+| `static_shrink` | `144` | `144` | `0` |
+| `dynamic` | `72` | `48` | `24` |
+| total | `288` | `264` | `24` |
+
+The residual debt is now cleanly identified:
+
+- exactly `24` unresolved original-baseline rows remain
+- all `24` are dynamic
+- no original static rows remain unresolved under the corrected remap
+
+Updated immediate decision:
+
+1. stop treating the hybrid `291` campaign as the final publication target
+2. treat it instead as a repair knowledge base and artifact pool
+3. do not launch new runs yet
+4. next implement:
+   - a canonical original-`288` registry
+   - a corrected carry-forward table mapped by actual artifact root path
+   - a mechanical verification of the `264 healthy / 24 unresolved` accounting
+5. only after that, design the dynamic-only repair program for the remaining
+   original dynamic gaps

@@ -549,3 +549,38 @@ comparison-ready and publication-ready validation summary.
      are only safe as provenance pointers, not as row-unique reporting inputs
 9. the project is now ready to move out of branch-level reporting assembly and
    into final scientific narrative / manuscript-facing synthesis
+
+## Latest Refinement After Original-288 Realignment Investigation (2026-04-05)
+
+1. the healthy `291`-row repaired campaign is now confirmed to be a hybrid
+   repair universe, not the same study target as the original March 9
+   `288`-cell baseline design
+2. the scope drift came from two sources:
+   - most of the original dynamic baseline universe was dropped from the final
+     selected campaign and replaced by a `3`-row dynamic tail supplement
+   - static shrink artifacts were counted under later `rhs_ns` repair semantics
+     rather than being cleanly re-anchored to the original `rhs` / `ridge`
+     baseline design
+3. the current selected `291` table contains only `233` unique
+   `selected_fit_path` values, and all duplicate artifact reuse is concentrated
+   in `static_shrink`
+4. after remapping repaired selections by actual artifact root path instead of
+   later semantic labels, the original `288` universe can already be recovered
+   to:
+   - `72 / 72` healthy `static_paper`
+   - `144 / 144` healthy `static_shrink`
+   - `48 / 72` healthy `dynamic`
+   - total: `264 / 288` healthy now
+5. the remaining original-baseline debt is exactly `24` rows, and all `24` are
+   dynamic
+6. the new investigation / recovery references are now:
+   - `reports/static_exal_tuning_20260405/original_288_realignment_investigation_and_recovery_plan_20260405.md`
+   - `tools/merge_reports/LOCAL_original288_realignment_block_status_20260405.csv`
+   - `tools/merge_reports/LOCAL_original288_realignment_unresolved_dynamic_inventory_20260405.csv`
+7. the correct next implementation step is no longer publication reporting on
+   the hybrid `291` table; it is:
+   - freeze the canonical original-`288` registry
+   - build the corrected carry-forward table
+   - verify the `264 healthy / 24 unresolved` accounting mechanically
+   - then design the dynamic-only repair program for the remaining original
+     dynamic gaps

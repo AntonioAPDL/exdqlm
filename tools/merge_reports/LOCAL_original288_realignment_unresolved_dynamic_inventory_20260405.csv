@@ -1,0 +1,25 @@
+block,family,tau,horizon,prior_semantics,model,inference,baseline_gate,status_note
+dynamic,gausmix,0p05,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,gausmix,0p05,500,default,dqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,gausmix,0p05,5000,default,exdqlm,vb,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,gausmix,0p05,5000,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,gausmix,0p25,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,gausmix,0p25,500,default,dqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,gausmix,0p95,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,gausmix,0p95,500,default,dqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p05,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p05,500,default,dqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p05,5000,default,exdqlm,vb,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p05,5000,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p25,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p25,500,default,dqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p25,5000,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p95,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p95,500,default,dqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,laplace,0p95,5000,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,normal,0p05,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,normal,0p05,500,default,dqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,normal,0p05,5000,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,normal,0p25,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,normal,0p25,5000,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
+dynamic,normal,0p95,500,default,exdqlm,mcmc,FAIL,original-baseline dynamic gap remains unresolved
