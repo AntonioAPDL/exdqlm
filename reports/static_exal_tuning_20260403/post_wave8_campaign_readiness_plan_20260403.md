@@ -54,6 +54,10 @@ The wave-5 closeout and active row-specific closure program now live in:
 
 - `reports/static_exal_tuning_20260404/failband_wave5_closeout_and_wave6_row_specific_closure_program_20260404.md`
 
+The wave-6 closeout and active triplet-closure wave-7 program now live in:
+
+- `reports/static_exal_tuning_20260404/failband_wave6_closeout_and_wave7_triplet_closure_program_20260404.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
@@ -131,6 +135,22 @@ closeout:
 - the next credible search shape is row-specific closure, not another generic
   bridge search
 
+Important refinement after the completed wave-6 row-specific closure closeout:
+
+- `F085_sub2_s100` remains the broad static default baseline
+- the local static baseline should now be treated as `v3`, not `v2`
+- wave-6 clearly improved row `135`:
+  - promote `F0840_sub2_s1025` as the preferred row-`135` local override
+- rows `115`, `181`, and `278` remain stable `PASS`
+- rows `135`, `190`, and `206` are now the non-`FAIL` stability/provenance
+  lane
+- the static blocking core is now only:
+  - `87`
+  - `174`
+  - `269`
+- the next credible search shape is a row-local triplet-closure lane plus a
+  tiny stability lane, not another band-scale sweep
+
 ## Main Takeaways
 
 ### What improved
@@ -176,6 +196,8 @@ closeout:
 5. local row-level tuning once the broad shared search was exhausted
 6. evidence-weighted baseline promotion after wave-5 instead of trusting the
    first provisional local map unchanged
+7. after wave-6, letting the remaining hard rows use row-specific execution
+   controls instead of pretending geometry-only tuning is still sufficient
 
 ### What clearly did not work
 
@@ -190,6 +212,8 @@ closeout:
   already shown that a local repair map is better
 - preserving the wave-4 provisional local choices after wave-5 directly
   weakened several of them
+- repeating scale-`1.000` controls on row `269` without changing anything else
+  once they had already regressed multiple times
 
 ### Highest-value directions now
 
@@ -198,13 +222,16 @@ closeout:
    profile
 3. use the completed local repair map as the new active static baseline for
    the residual band
-4. update that local map after wave-5 using repeated row-level non-`FAIL`
-   evidence, not just one-off best hits
+4. update that local map again after wave-6 where fresh results clearly
+   improved the old choices
 5. spend new compute only on:
-   - confirming the improved evidence-weighted local map
-   - repairing rows `135`, `190`, and `269`
-6. repair or replace dynamic row `15` under current `HEAD`
-7. merge the reusable refreshed outputs only after the residual FAIL band is
+   - confirming the non-`FAIL` `v3` map on rows `135`, `190`, and `206`
+   - repairing rows `87`, `174`, and `269`
+6. allow a very small row-specific execution-control lane
+   - longer run length
+   - targeted `slice_eta` pilots on the remaining hard rows only
+7. repair or replace dynamic row `15` under current `HEAD`
+8. merge the reusable refreshed outputs only after the residual FAIL band is
    eliminated and the local repair map is confirmed
 
 ## Updated Remaining Comparison Debt
@@ -218,16 +245,16 @@ failing debt.
 | refreshed static non-FAIL rows | 42 | reusable now | these are already valid and should not be rerun |
 | previously reusable campaign artifacts | 218 | reusable now | these do not require rerun if provenance is preserved |
 | resolved residual-band static rows under `F085_sub2_s100` | 21 | reusable broad default coverage | these no longer need active repair search |
-| evidence-weighted local repair baseline v2 rows | 9 | locally resolved from completed evidence | these define the promoted row-specific static baseline |
-| core static closure rows | 3 | still need direct local repair work | rows `135`, `190`, `269` |
-| static confirmation/provenance rows | 6 | non-`FAIL`, but still need fresh local-map confirmation | rows `87`, `115`, `174`, `181`, `206`, `278` |
+| promoted local repair baseline v3 rows | 9 | locally resolved from completed evidence | these define the active row-specific static baseline |
+| static blocking core | 3 | still need direct local repair work | rows `87`, `174`, `269` |
+| static stability/provenance rows | 3 | non-`FAIL`, but still need fresh confirmation under v3 | rows `135`, `190`, `206` |
 | dynamic tail row `15` | 1 | current-HEAD refresh still `FAIL` | only remaining dynamic unresolved row |
 
-Minimal active scientific debt after the completed wave-5 closeout:
+Minimal active scientific debt after the completed wave-6 closeout:
 
-- `4` blocking cases total (`3` static core `FAIL` rows + `1` dynamic sidecar)
-- plus `6` static local-map confirmation/provenance rows
-- not `10`
+- `4` blocking cases total (`3` static blocking rows + `1` dynamic sidecar)
+- plus `3` static non-`FAIL` stability rows
+- not `7`
 
 ## Comparison-Ready Acceptance Rule
 
@@ -251,16 +278,18 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 - [ ] Keep `F080_sub2_s105` as the historical repair-planning reference wave
 - [ ] Keep `F085_sub2_s100` as the broad static default baseline
-- [ ] Promote the evidence-weighted local repair baseline v2 as the active
+- [ ] Promote the evidence-weighted local repair baseline v3 as the active
       static residual baseline
 
 ### Phase B: Confirm the local static repair map
 
-- [ ] rerun the `9` selected local repair baseline v2 rows under fresh final
-      tags
+- [ ] confirm only the `3` non-`FAIL` stability rows under the promoted `v3`
+      map:
+      `135`, `190`, `206`
+- [ ] probe only the `3` blocking static rows with row-local closure programs:
+      `87`, `174`, `269`
+- [ ] allow a very small execution-control lane only on those blocking rows
 - [ ] preserve separate current RHS-NS and legacy RHS scope labels
-- [ ] probe only rows `135`, `190`, and `269` with row-specific
-      high-value alternatives
 - [ ] do not reopen any broad shared-setup search
 - [ ] preserve deterministic manifests, failure logs, supervisor logs, and
       monitor heartbeats
@@ -295,8 +324,8 @@ The study is in a materially better place now.
 The open problem is no longer "find a plausible static tuning family" and it is
 no longer "fix the resume chain." The open problem is now much cleaner:
 
-1. confirm the improved evidence-weighted local static repair map
-2. close the remaining core static rows `135`, `190`, and `269`
+1. confirm the promoted `v3` non-`FAIL` local static rows
+2. close the remaining static rows `87`, `174`, and `269`
 3. clean up dynamic row `15`
 4. regenerate the full campaign tables once all FAILs are removed
 

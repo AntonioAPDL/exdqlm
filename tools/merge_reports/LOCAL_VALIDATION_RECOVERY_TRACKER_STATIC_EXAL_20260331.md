@@ -1526,3 +1526,72 @@ Updated immediate decision:
    - full `9`-row confirmation of the improved local baseline
    - extra repair probes only on rows `135`, `190`, and `269`
 5. keep dynamic row `15` separate until it has a true repair hypothesis
+
+## 12.7 Fail-band wave-6 closeout and wave-7 triplet closure checkpoint (2026-04-04)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260404/failband_wave6_closeout_and_wave7_triplet_closure_program_20260404.md`
+- `reports/static_exal_tuning_20260404/failband_wave5_closeout_and_wave6_row_specific_closure_program_20260404.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave6_schedule_20260404.csv`
+
+Wave-6 closeout summary:
+
+| stage | total | PASS | WARN | FAIL | missing | resolved |
+|---|---:|---:|---:|---:|---:|---:|
+| `confirm9_v2` | 9 | 3 | 2 | 4 | 0 | 5 |
+| `repair13` | 13 | 0 | 5 | 8 | 0 | 5 |
+| `overall` | 22 | 3 | 7 | 12 | 0 | 10 |
+
+Main operational takeaways:
+
+- wave-6 completed cleanly; orchestration is still not the blocker
+- the static repair problem is now no longer a nine-row band
+- wave-6 reduced the active static blocking core to:
+  - current `87`
+  - current `174`
+  - legacy `269`
+- rows `135`, `190`, and `206` are now the non-`FAIL`
+  stability/provenance lane
+- rows `115`, `181`, and `278` remain stable `PASS`
+
+Promoted local repair baseline v3:
+
+- `87` -> `F085_sub2_s1025` (best unresolved anchor only)
+- `115` -> `F0825_sub2_s100`
+- `135` -> `F0840_sub2_s1025`
+- `174` -> `F0875_sub2_s105` (best unresolved anchor only)
+- `181` -> `F0825_sub2_s100`
+- `190` -> `F0825_sub2_s100`
+- `206` -> `F0825_sub2_s1025`
+- `269` -> `F0845_sub2_s100` (best unresolved anchor only)
+- `278` -> `F0845_sub2_s1025`
+
+Important row-level evidence after wave-6:
+
+- row `135`: `F0840_sub2_s1025` is the first fresh wave-6 improvement that
+  clearly beats the old fallback anchor
+- row `190`: the durable non-`FAIL` ridge remains centered on:
+  - `F0825_sub2_s100`
+  - `F0825_sub2_s1025`
+  - `F0835_sub2_s1025`
+  - `F0845_sub2_s1025`
+- row `206`: still non-`FAIL`; keep it narrow and do not waste broad search
+- row `87`: only the `F085_sub2_s1025` corridor plus the lower fallback
+  `F0825_sub2_s100` still show any real non-`FAIL` signal
+- row `174`: remains the lone `F0875_sub2_s105` exception
+- row `269`: repeated scale-`1.000` reruns regressed again, so the next lane
+  must allow a small execution-control pivot, not just more identical reruns
+
+Updated immediate decision:
+
+1. keep `F085_sub2_s100` as the broad static default baseline
+2. promote the local repair baseline to `v3`
+3. do **not** reopen any generic shared-setup search
+4. open a wave-7 triplet-closure lane with:
+   - a tiny `v3` stability confirmation lane on `135`, `190`, `206`
+   - a row-local closure matrix only on `87`, `174`, and `269`
+5. allow a very small execution-control lane on the blocking rows only:
+   - longer runs
+   - targeted `slice_eta` pilots
+6. keep dynamic row `15` separate until it has its own repair hypothesis
