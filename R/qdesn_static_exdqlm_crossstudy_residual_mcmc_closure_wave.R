@@ -17,26 +17,38 @@ qdesn_static_crossstudy_residual_load_manifest <- function(path = file.path("con
   if (!nrow(df) || !length(selector)) return(df)
   keep <- rep(TRUE, nrow(df))
 
-  match_chr <- function(col, values) {
+  match_chr <- function(cols, values) {
     values <- as.character(unlist(values, use.names = FALSE))
-    if (!length(values) || !col %in% names(df)) return(invisible(NULL))
-    keep <<- keep & as.character(df[[col]]) %in% values
+    cols <- as.character(unlist(cols, use.names = FALSE))
+    cols <- cols[cols %in% names(df)]
+    if (!length(values) || !length(cols)) return(invisible(NULL))
+    matched <- Reduce(
+      `|`,
+      lapply(cols, function(col) as.character(df[[col]]) %in% values)
+    )
+    keep <<- keep & matched
   }
 
-  match_num <- function(col, values) {
+  match_num <- function(cols, values) {
     values <- as.numeric(unlist(values, use.names = FALSE))
-    if (!length(values) || !col %in% names(df)) return(invisible(NULL))
-    keep <<- keep & as.numeric(df[[col]]) %in% values
+    cols <- as.character(unlist(cols, use.names = FALSE))
+    cols <- cols[cols %in% names(df)]
+    if (!length(values) || !length(cols)) return(invisible(NULL))
+    matched <- Reduce(
+      `|`,
+      lapply(cols, function(col) as.numeric(df[[col]]) %in% values)
+    )
+    keep <<- keep & matched
   }
 
   match_chr("root_id", selector$root_id)
-  match_chr("root_kind", selector$root_kind)
-  match_chr("family", selector$family)
+  match_chr(c("root_kind", "source_root_kind"), selector$root_kind)
+  match_chr(c("family", "source_family"), selector$family)
   match_num("tau", selector$tau)
   match_num("fit_size", selector$fit_size)
-  match_chr("prior", selector$prior %||% selector$beta_prior_type)
+  match_chr(c("prior", "beta_prior_type"), selector$prior %||% selector$beta_prior_type)
   match_chr("method", selector$method)
-  match_chr("model", selector$model %||% selector$likelihood_family)
+  match_chr(c("model", "likelihood_family"), selector$model %||% selector$likelihood_family)
   match_chr("signoff_grade", selector$signoff_grade)
   match_chr("signoff_reason", selector$signoff_reason)
   match_chr("root_status", selector$root_status)
@@ -86,33 +98,86 @@ qdesn_static_crossstudy_residual_collect_source_state <- function(source_run_tag
     source_run_tag
   )
   completed_manifest_path <- file.path(outer_report_root, "manifest", "fit_fail_closure_completed.json")
-  if (!file.exists(completed_manifest_path)) {
-    stop(sprintf("Missing completed Wave-3 fit-fail closure manifest: %s", completed_manifest_path), call. = FALSE)
-  }
-
-  completed_manifest <- jsonlite::fromJSON(completed_manifest_path)
-  upstream_source_run_tag <- as.character(completed_manifest$source_run_tag %||% "")[1L]
-  if (!nzchar(upstream_source_run_tag)) {
-    stop("Completed fit-fail closure manifest is missing source_run_tag.", call. = FALSE)
-  }
-
-  upstream_source_state <- qdesn_static_crossstudy_fitfail_collect_source_state(
-    source_run_tag = upstream_source_run_tag,
-    defaults = defaults,
-    grid = grid,
-    defaults_path = defaults_path,
-    grid_path = grid_path
+  preflight_manifest_path <- file.path(
+    outer_report_root,
+    "launch",
+    "qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_preflight_manifest.json"
   )
+  current_wave_tables_present <- all(file.exists(c(
+    file.path(outer_report_root, "tables", "promoted_source_fit_summary.csv"),
+    file.path(outer_report_root, "tables", "promoted_source_root_signoff_summary.csv"),
+    file.path(outer_report_root, "tables", "promoted_source_root_status.csv"),
+    file.path(outer_report_root, "tables", "source_root_status_fail_grid.csv"),
+    file.path(outer_report_root, "tables", "stage_execution_status.csv")
+  )))
 
-  stage_status <- .qdesn_static_crossstudy_residual_read_csv(file.path(outer_report_root, "tables", "stage_execution_status.csv"))
-  if (!nrow(stage_status)) {
-    stop(sprintf("Missing stage_execution_status.csv under %s", outer_report_root), call. = FALSE)
+  if (file.exists(completed_manifest_path)) {
+    completed_manifest <- jsonlite::fromJSON(completed_manifest_path)
+    upstream_source_run_tag <- as.character(completed_manifest$source_run_tag %||% "")[1L]
+    if (!nzchar(upstream_source_run_tag)) {
+      stop("Completed fit-fail closure manifest is missing source_run_tag.", call. = FALSE)
+    }
+
+    upstream_source_state <- qdesn_static_crossstudy_fitfail_collect_source_state(
+      source_run_tag = upstream_source_run_tag,
+      defaults = defaults,
+      grid = grid,
+      defaults_path = defaults_path,
+      grid_path = grid_path
+    )
+
+    stage_status <- .qdesn_static_crossstudy_residual_read_csv(file.path(outer_report_root, "tables", "stage_execution_status.csv"))
+    if (!nrow(stage_status)) {
+      stop(sprintf("Missing stage_execution_status.csv under %s", outer_report_root), call. = FALSE)
+    }
+    local_baseline_map <- .qdesn_static_crossstudy_residual_read_csv(file.path(outer_report_root, "tables", "local_baseline_map.csv"))
+
+    promoted_fit_summary <- upstream_source_state$fit_summary
+    promoted_root_summary <- upstream_source_state$root_summary
+    promoted_root_status <- upstream_source_state$root_status
+    original_source_run_tag <- upstream_source_run_tag
+    original_source_root_fail_grid <- qdesn_static_crossstudy_debt_subset_grid(grid, upstream_source_state$root_fail_root_ids)
+    original_source_state <- upstream_source_state
+  } else if (current_wave_tables_present) {
+    completed_manifest <- if (file.exists(preflight_manifest_path)) {
+      jsonlite::fromJSON(preflight_manifest_path)
+    } else {
+      list()
+    }
+    stage_status <- .qdesn_static_crossstudy_residual_read_csv(file.path(outer_report_root, "tables", "stage_execution_status.csv"))
+    if (!nrow(stage_status)) {
+      stop(sprintf("Missing stage_execution_status.csv under %s", outer_report_root), call. = FALSE)
+    }
+    local_baseline_map <- .qdesn_static_crossstudy_residual_read_csv(file.path(outer_report_root, "tables", "source_local_baseline_map.csv"))
+
+    promoted_fit_summary <- .qdesn_static_crossstudy_residual_read_csv(
+      file.path(outer_report_root, "tables", "promoted_source_fit_summary.csv")
+    )
+    promoted_root_summary <- .qdesn_static_crossstudy_residual_read_csv(
+      file.path(outer_report_root, "tables", "promoted_source_root_signoff_summary.csv")
+    )
+    promoted_root_status <- .qdesn_static_crossstudy_residual_read_csv(
+      file.path(outer_report_root, "tables", "promoted_source_root_status.csv")
+    )
+    original_source_root_fail_grid <- .qdesn_static_crossstudy_residual_read_csv(
+      file.path(outer_report_root, "tables", "source_root_status_fail_grid.csv")
+    )
+    original_source_run_tag <- as.character(
+      completed_manifest$original_source_run_tag %||% completed_manifest$source_run_tag %||% ""
+    )[1L]
+    original_source_state <- list(
+      root_fail_root_ids = unique(as.character(original_source_root_fail_grid$root_id))
+    )
+  } else {
+    stop(
+      sprintf(
+        "Missing source state under %s; expected either a completed Wave-3 manifest or residual-wave source tables.",
+        outer_report_root
+      ),
+      call. = FALSE
+    )
   }
-  local_baseline_map <- .qdesn_static_crossstudy_residual_read_csv(file.path(outer_report_root, "tables", "local_baseline_map.csv"))
 
-  promoted_fit_summary <- upstream_source_state$fit_summary
-  promoted_root_summary <- upstream_source_state$root_summary
-  promoted_root_status <- upstream_source_state$root_status
   winner_inventory <- list()
 
   for (i in seq_len(nrow(stage_status))) {
@@ -152,7 +217,7 @@ qdesn_static_crossstudy_residual_collect_source_state <- function(source_run_tag
   }
 
   promoted_fail_summary <- promoted_fit_summary[as.character(promoted_fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
-  original_source_root_fail_grid <- qdesn_static_crossstudy_debt_subset_grid(grid, upstream_source_state$root_fail_root_ids)
+  original_source_root_fail_root_ids <- unique(as.character(original_source_root_fail_grid$root_id))
 
   list(
     source_run_tag = source_run_tag,
@@ -161,13 +226,13 @@ qdesn_static_crossstudy_residual_collect_source_state <- function(source_run_tag
     local_baseline_map = local_baseline_map,
     stage_status = stage_status,
     winner_inventory = exdqlm:::.qdesn_validation_bind_rows(winner_inventory),
-    original_source_run_tag = upstream_source_run_tag,
-    original_source_state = upstream_source_state,
+    original_source_run_tag = original_source_run_tag,
+    original_source_state = original_source_state,
     promoted_fit_summary = promoted_fit_summary,
     promoted_root_summary = promoted_root_summary,
     promoted_root_status = promoted_root_status,
     promoted_fail_summary = promoted_fail_summary,
-    original_source_root_fail_root_ids = upstream_source_state$root_fail_root_ids,
+    original_source_root_fail_root_ids = original_source_root_fail_root_ids,
     original_source_root_fail_grid = original_source_root_fail_grid,
     grid = grid
   )

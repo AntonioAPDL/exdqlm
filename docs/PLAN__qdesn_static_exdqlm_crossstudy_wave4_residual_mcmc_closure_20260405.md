@@ -4,6 +4,15 @@ Date: 2026-04-05
 Branch: `feature/qdesn-mcmc-alternative`  
 Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
 
+Supersession note:
+
+- Wave 4 Stage 1 completed validly and promoted `G530_ridge_tt100_drift_guard_chain1300`
+- the original Wave-4 long-horizon continuation was later superseded because the hard-root
+  carry-forward selector matched both priors on `source_root_status_fail_grid.csv`
+- see:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
+
 ## 1) Why Wave 4 Exists
 
 Wave 3 materially improved the static cross-study, but it did not finish it.

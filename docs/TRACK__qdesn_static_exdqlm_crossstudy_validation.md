@@ -17,7 +17,7 @@ This tracker is for the cross-study program only. It is not the dynamic DLM cert
 
 ## 2) Current Status
 
-Status: **Wave 3 fit-fail closure completed and promoted a local baseline map; Wave 4 residual MCMC closure is now the active follow-up**
+Status: **Wave 4 Stage 1 completed validly and promoted `G530`; the Wave-4 long-horizon continuation was superseded after a prior-scope selector bug; Wave 5 corrected remaining-residual closure is now the active follow-up**
 
 Current scope decision:
 
@@ -38,27 +38,32 @@ Historical source baseline:
 - authoritative source:
   - root-level outputs, not the stale top-level broad-wave closeout
 
-Promoted post-Wave-3 baseline map:
+Promoted current baseline map:
 
 - shared default:
   - `F500_anchor_patched`
-- local ridge baseline:
+- local ridge `tt=100` baseline:
+  - `G530_ridge_tt100_drift_guard_chain1300`
+- local ridge `tt=1000` control:
   - `F510_ridge_rescue_reference`
 - local rhs `tt=100` baseline:
   - `F610_rhs_tt100_conservative_block`
 - local rhs `tt=1000` baseline:
   - `F640_rhs_tt1000_chain1200`
 
-Main post-Wave-3 takeaways:
+Main current takeaways:
 
 - the old `rhs_ns` VB diagnostics-path false-FAIL bucket is closed under the shared baseline;
 - the effective remaining debt is now:
-  - `45` promoted fit FAIL rows on successful roots,
-  - all `45` are `mcmc`,
-  - `41 / 45` are `exal`,
-  - `4 / 45` are `al`;
+  - `42` promoted fit FAIL rows on successful roots,
+  - all `42` are `mcmc`,
+  - `38 / 42` are `exal`,
+  - `4 / 42` are `al`;
+- Wave 4 Stage 1 solved the ridge `tt=100` residual drift slice and promoted `G530`;
+- the Wave-4 long-horizon scopes were contaminated by a prior aliasing bug on
+  `beta_prior_type`, so those partial results must not be promoted;
 - the remaining problem is not one generic family-wide tuning question anymore;
-- the remaining problem is now four residual MCMC slices plus the still-unvalidated original
+- the remaining problem is now three residual MCMC slices plus the still-unvalidated original
   `6` hard-root FAILs.
 
 Validation checkpoints completed:
@@ -70,30 +75,34 @@ Validation checkpoints completed:
 - Wave-2 debt-wave Stage-1 probe: `COMPLETED_AND_STOPPED_BEFORE_STAGE2`
 - rhs-family diagnostics fallback validation on representative `rhs_ns` smoke root: `PASS`
 - Wave-3 fit-fail closure wave: `COMPLETED`
-- Wave-4 residual MCMC closure plan + runner implementation: `PREPARE_ONLY_VALIDATED_AND_READY_FOR_LAUNCH`
+- Wave-4 Stage-1 ridge residual drift stage: `COMPLETED_AND_PROMOTED_G530`
+- Wave-4 long-horizon continuation: `SUPERSEDED_AFTER_STAGE1_DUE_PRIOR_SCOPE_SELECTOR_BUG`
+- Wave-5 corrected remaining residual closure: `PREPARE_ONLY_VALIDATED_AND_READY_FOR_LAUNCH`
 
 ## 3) Read First
 
-1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
-2. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
-3. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
-4. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-5. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
-6. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
-7. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
-8. `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
-9. `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
-10. `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
-11. `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
-12. `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
-13. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
-14. `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-15. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-16. `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-17. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-18. `R/qdesn_static_exdqlm_crossstudy.R`
-19. `R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-20. `R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
+2. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
+3. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
+4. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
+5. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+6. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
+7. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
+8. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
+9. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
+10. `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
+11. `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
+12. `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
+13. `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
+14. `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
+15. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
+16. `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+17. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+18. `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+19. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+20. `R/qdesn_static_exdqlm_crossstudy.R`
+21. `R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+22. `R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
 ## 4) Hard Rules
 
@@ -146,18 +155,17 @@ Implementation assets:
 Remaining scientific debt is now split more precisely:
 
 1. promoted residual fit FAIL surface on successful roots:
-   - `45` fit FAIL rows
-   - `41` roots
-   - `45 / 45` are `mcmc`
-   - `41 / 45` are `exal`
+   - `42` fit FAIL rows
+   - `38` roots
+   - `42 / 42` are `mcmc`
+   - `38 / 42` are `exal`
 2. unresolved original Wave-1 hard-root FAIL band:
    - `6` roots
    - all in `static_shrink x laplace x tt=1000`
    - `3` ridge
    - `3` rhs_ns
 3. residual ridge short-horizon drift slice:
-   - `3` FAIL rows
-   - `3` roots
+   - `RESOLVED_IN_WAVE4_STAGE1_BY_G530`
 4. residual ridge long-horizon ESS slice:
    - `12` FAIL rows
    - `12` roots
@@ -170,9 +178,8 @@ Remaining scientific debt is now split more precisely:
 
 Current highest-value questions:
 
-- can a tighter F510-derived ridge drift guard eliminate the last `3` ridge `tt=100` residuals?
-- can a hybrid F510-plus-chain profile reduce the `12` long-horizon ridge `exal/mcmc` residuals
-  and revalidate the ridge half of the old hard-root FAIL band?
+- can a G530-derived long-horizon ridge hybrid reduce the `12` ridge `tt=1000` `exal/mcmc`
+  residuals and revalidate the ridge half of the old hard-root FAIL band?
 - can F610-derived geometry-first rhs profiles remove the remaining `tt=100` drift-heavy residuals
   without replaying the failed chain-only rhs branch?
 - can F640-derived long-horizon rhs profiles both revalidate the rhs half of the old hard-root
@@ -190,7 +197,9 @@ Shared default baseline:
 
 Local promoted baselines:
 
-- ridge:
+- ridge `tt=100`:
+  - `G530_ridge_tt100_drift_guard_chain1300`
+- ridge `tt=1000`:
   - `F510_ridge_rescue_reference`
 - rhs `tt=100`:
   - `F610_rhs_tt100_conservative_block`
@@ -201,6 +210,8 @@ Current practical read:
 
 - the shared baseline is now the right default only where no local slice winner has already
   beaten it;
-- the ridge, rhs `tt=100`, and rhs `tt=1000` slices now each have a justified local control;
-- the next follow-up should therefore start from the promoted local-baseline map, not from the
-  original broad baseline and not from the earlier Wave-2 probe hints.
+- ridge `tt=100` is now closed under the completed `G530` winner;
+- the Wave-4 long-horizon stage counts `18` and `20` should not be reused because they were
+  inflated by the prior-scope selector bug;
+- the corrected next follow-up should therefore start from the Stage-1-improved local-baseline
+  map and use remaining stage sizes `15`, `12`, and `17`, not the earlier contaminated counts.

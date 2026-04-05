@@ -31,13 +31,19 @@ Cross-study assets:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
 - Wave-3 fit-fail closeout:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
+- Wave-4 Stage-1 closeout + scope fix:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
 - Wave-4 residual closure plan:
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
-- Wave-4 residual closure manifest:
+- Wave-5 corrected remaining-closure plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
+- Wave-5 corrected remaining-closure manifest:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
+- residual closure manifest:
   - `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
-- Wave-4 launcher:
+- residual closure launcher:
   - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-- Wave-4 healthcheck:
+- residual closure healthcheck:
   - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
 Current cross-study read:
@@ -47,17 +53,23 @@ Current cross-study read:
 - Wave 3 then changed the effective baseline map:
   - shared default:
     - `F500_anchor_patched`
-  - ridge local:
+  - ridge `tt=100` local:
+    - `G530_ridge_tt100_drift_guard_chain1300`
+  - ridge `tt=1000` local control:
     - `F510_ridge_rescue_reference`
   - rhs `tt=100` local:
     - `F610_rhs_tt100_conservative_block`
   - rhs `tt=1000` local:
     - `F640_rhs_tt1000_chain1200`
 - the old `rhs_ns` VB diagnostics-path issue is now closed under the shared baseline;
-- the remaining promoted successful-surface debt is `45` MCMC FAIL rows, almost all `exal`;
+- the valid Wave-4 Stage-1 result reduced the remaining promoted successful-surface debt to
+  `42` MCMC FAIL rows, still mostly `exal`;
 - the original `6` Wave-1 hard-root FAILs still need explicit revalidation under the promoted map;
-- the correct next move is therefore a residual MCMC closure wave, not another whole-surface
-  relaunch and not a search for one generic rescue profile.
+- the initial Wave-4 long-horizon continuation exposed a selector aliasing bug that pulled both
+  priors into the hard-root carry-forward stages;
+- the correct next move is therefore a corrected remaining-residual closure wave on the proper
+  `15 / 12 / 17` root slices, not another whole-surface relaunch and not a search for one
+  generic rescue profile.
 
 Important boundary:
 

@@ -1,0 +1,372 @@
+campaign:
+  name: qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure
+  results_root: results/qdesn_mcmc_validation/static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure
+  reports_root: reports/qdesn_mcmc_validation/static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure
+
+source:
+  run_tag: qdesn-static-exdqlm-crossstudy-residualmcmc-20260405d__git-60e8079
+  prior_wave_report_root: reports/qdesn_mcmc_validation/static_exdqlm_crossstudy_residual_mcmc_closure_wave
+  interpretation: wave4_stage1_promoted_map_with_corrected_long_horizon_prior_scoping
+
+runtime:
+  default_workers: 8
+  active_job_workers: 6
+  hard_cap_workers: 8
+
+stages:
+  - id: S1_ridge_tt1000_remaining_ess_plus_ridge_hardroots
+    description: >
+      Corrected long-horizon ridge closure after Wave-4 Stage 1. The short-horizon
+      ridge residuals are now solved by G530, so the remaining ridge debt is the
+      tt=1000 ESS/autocorrelation slice plus the unresolved ridge half of the
+      original hard-root FAIL band. This stage fixes the earlier prior-scoping bug
+      by carrying only ridge hard roots.
+    control_profile_id: H510_ridge_tt1000_local_control
+    stage_selector:
+      prior: ridge
+      method: mcmc
+      model: exal
+      signoff_grade: FAIL
+      fit_size: 1000
+    include_source_root_status_fail_selector:
+      beta_prior_type: ridge
+      root_kind: static_shrink
+      family: laplace
+      fit_size: 1000
+    target_selector:
+      prior: ridge
+      method: mcmc
+      model: exal
+      signoff_grade: FAIL
+      fit_size: 1000
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - H510_ridge_tt1000_local_control
+      - H520_ridge_tt1000_g530_hybrid_chain1400
+      - H530_ridge_tt1000_g530_hybrid_chain1600
+
+  - id: S2_rhs_tt100_remaining_mcmc
+    description: >
+      Residual rhs_ns MCMC closure on the short-horizon slice after the valid
+      Stage-1 ridge promotion. The remaining rhs tt=100 debt is still drift-heavy,
+      so this stage keeps the proven F610-style control and tests only the two
+      geometry-first challengers that remained plausible in Wave 4.
+    control_profile_id: H610_rhs_tt100_local_control
+    stage_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 100
+    target_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 100
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - H610_rhs_tt100_local_control
+      - H620_rhs_tt100_hybrid_chain1250
+      - H630_rhs_tt100_drift_guard_plus
+
+  - id: S3_rhs_tt1000_remaining_mcmc_plus_rhs_hardroots
+    description: >
+      Corrected long-horizon rhs_ns closure after the Wave-4 Stage-1 ridge win.
+      This stage carries only the rhs_ns long-horizon residual slice plus the rhs
+      half of the original hard-root FAIL band; it does not repeat the earlier
+      cross-prior contamination bug.
+    control_profile_id: H640_rhs_tt1000_local_control
+    stage_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 1000
+    include_source_root_status_fail_selector:
+      beta_prior_type: rhs_ns
+      root_kind: static_shrink
+      family: laplace
+      fit_size: 1000
+    target_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 1000
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - H640_rhs_tt1000_local_control
+      - H650_rhs_tt1000_hybrid_block_chain1400
+      - H660_rhs_tt1000_chain1600_focus
+
+profiles:
+  - profile_id: H510_ridge_tt1000_local_control
+    label: Ridge tt1000 Local Control
+    rationale: >
+      The pre-Wave-4 Stage-1 long-horizon ridge control, retained because the
+      new short-horizon G530 win does not by itself prove the older ridge control
+      should be abandoned on the tt=1000 ESS slice.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 550
+                n_mcmc: 1100
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.53
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 400
+
+  - profile_id: H520_ridge_tt1000_g530_hybrid_chain1400
+    label: Ridge tt1000 G530 Hybrid Chain1400
+    rationale: >
+      Stage 1 showed that the tighter G530 geometry materially outperformed the
+      older ridge control on drift-heavy residuals. This challenger carries that
+      geometry family forward into the long-horizon ridge slice with only a
+      moderate chain extension.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 750
+                n_mcmc: 1400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.51
+                  width_sigma: 0.20
+                  core_extra_passes: 3
+                  max_steps_out: 68
+                  max_shrink: 280
+                  max_steps_out_sigma: 145
+                  max_shrink_sigma: 390
+
+  - profile_id: H530_ridge_tt1000_g530_hybrid_chain1600
+    label: Ridge tt1000 G530 Hybrid Chain1600
+    rationale: >
+      Deeper G530-derived persistence hedge for the long-horizon ridge slice.
+      Included because the remaining ridge tt=1000 debt is still ESS-heavy, but
+      now the strongest geometry clue comes from the completed short-horizon G530
+      winner rather than the older F510 line.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 850
+                n_mcmc: 1600
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.52
+                  width_sigma: 0.20
+                  core_extra_passes: 3
+                  max_steps_out: 72
+                  max_shrink: 300
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 410
+
+  - profile_id: H610_rhs_tt100_local_control
+    label: RHS tt100 Local Control
+    rationale: >
+      The promoted Wave-3 rhs_ns short-horizon winner. This remains the control
+      for the remaining rhs tt=100 slice because Wave 4 never reached a valid
+      rhs stage before the scope bug was discovered.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 650
+                n_mcmc: 1200
+                progress_every: 100
+                transformed_block:
+                  enabled: true
+                  center: posterior_median
+                  widths:
+                    beta: 0.28
+                    log_sigma: 0.20
+                    log_lambda: 0.20
+                  extra_passes: 2
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.58
+                  width_sigma: 0.21
+                  core_extra_passes: 2
+                  max_steps_out: 85
+                  max_shrink: 320
+                  max_steps_out_sigma: 160
+                  max_shrink_sigma: 430
+
+  - profile_id: H620_rhs_tt100_hybrid_chain1250
+    label: RHS tt100 Hybrid Chain1250
+    rationale: >
+      Conservative transformed-block geometry plus modest chain extension.
+      Retained because the remaining rhs tt=100 debt is still drift-heavy, but
+      pure chain-only inflation already proved weak.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 700
+                n_mcmc: 1250
+                progress_every: 100
+                transformed_block:
+                  enabled: true
+                  center: posterior_median
+                  widths:
+                    beta: 0.27
+                    log_sigma: 0.19
+                    log_lambda: 0.19
+                  extra_passes: 3
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.57
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 82
+                  max_shrink: 300
+                  max_steps_out_sigma: 155
+                  max_shrink_sigma: 420
+
+  - profile_id: H630_rhs_tt100_drift_guard_plus
+    label: RHS tt100 Drift Guard Plus
+    rationale: >
+      Stronger short-horizon rhs drift guard with tighter transformed-block widths
+      and longer burn, without replaying the old chain-only loser.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 800
+                n_mcmc: 1250
+                progress_every: 100
+                transformed_block:
+                  enabled: true
+                  center: posterior_median
+                  widths:
+                    beta: 0.25
+                    log_sigma: 0.18
+                    log_lambda: 0.18
+                  extra_passes: 3
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.19
+                  core_extra_passes: 2
+                  max_steps_out: 78
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 400
+
+  - profile_id: H640_rhs_tt1000_local_control
+    label: RHS tt1000 Local Control
+    rationale: >
+      The promoted Wave-3 rhs_ns long-horizon winner. This remains the control
+      for the corrected long-horizon rhs stage until a challenger clearly beats
+      it on the properly-scoped root set.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 700
+                n_mcmc: 1400
+                progress_every: 100
+                transformed_block:
+                  enabled: true
+                  center: posterior_median
+                  widths:
+                    beta: 0.28
+                    log_sigma: 0.20
+                    log_lambda: 0.20
+                  extra_passes: 2
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.22
+                  core_extra_passes: 2
+                  max_steps_out: 90
+                  max_shrink: 340
+                  max_steps_out_sigma: 170
+                  max_shrink_sigma: 450
+
+  - profile_id: H650_rhs_tt1000_hybrid_block_chain1400
+    label: RHS tt1000 Hybrid Block+Chain1400
+    rationale: >
+      Long-horizon rhs hybrid that keeps the F640 chain gain but reintroduces
+      the tighter transformed-block geometry that was directionally useful even
+      when geometry-only lost to chain-only in Wave 3.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 800
+                n_mcmc: 1400
+                progress_every: 100
+                transformed_block:
+                  enabled: true
+                  center: posterior_median
+                  widths:
+                    beta: 0.26
+                    log_sigma: 0.19
+                    log_lambda: 0.19
+                  extra_passes: 3
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.58
+                  width_sigma: 0.21
+                  core_extra_passes: 2
+                  max_steps_out: 86
+                  max_shrink: 320
+                  max_steps_out_sigma: 165
+                  max_shrink_sigma: 440
+
+  - profile_id: H660_rhs_tt1000_chain1600_focus
+    label: RHS tt1000 Chain1600 Focus
+    rationale: >
+      Deeper long-horizon rhs persistence hedge that keeps the F640 geometry but
+      pushes keep length further, because the remaining tt=1000 debt is dominated
+      by low ESS and autocorrelation rather than vb diagnostics.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 850
+                n_mcmc: 1600
+                progress_every: 100
+                transformed_block:
+                  enabled: true
+                  center: posterior_median
+                  widths:
+                    beta: 0.28
+                    log_sigma: 0.20
+                    log_lambda: 0.20
+                  extra_passes: 2
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.22
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 175
+                  max_shrink_sigma: 460

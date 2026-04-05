@@ -37,10 +37,12 @@ Static cross-study status is now sharper:
 
 - Wave 1 broad shared-setup launch established the historical source baseline at `66/72`
   successful roots;
-- Wave 3 fit-fail closure then promoted the effective local-baseline map:
+- Wave 4 Stage 1 then refined the effective local-baseline map:
   - shared default:
     - `F500_anchor_patched`
-  - ridge local:
+  - ridge `tt=100` local:
+    - `G530_ridge_tt100_drift_guard_chain1300`
+  - ridge `tt=1000` local control:
     - `F510_ridge_rescue_reference`
   - rhs `tt=100` local:
     - `F610_rhs_tt100_conservative_block`
@@ -48,16 +50,19 @@ Static cross-study status is now sharper:
     - `F640_rhs_tt1000_chain1200`
 - the old `rhs_ns` VB diagnostics-path false-FAIL issue is now closed under the shared baseline;
 - the remaining promoted successful-surface debt is now:
-  - `45` MCMC FAIL rows,
-  - `41 / 45` in `exal`,
-  - `4 / 45` in `al`;
+  - `42` MCMC FAIL rows,
+  - `38 / 42` in `exal`,
+  - `4 / 42` in `al`;
 - the original `6` Wave-1 hard-root FAILs still need explicit revalidation because they were not
-  rerun inside the completed Wave-3 baseline map;
-- the active follow-up is therefore a residual MCMC closure wave, not another whole-surface
-  relaunch and not a search for one generic rescue profile:
+  rerun inside the baseline map;
+- the first Wave-4 long-horizon continuation was superseded after a prior-scope selector bug
+  contaminated the hard-root carry-forward on the long-horizon stages;
+- the active follow-up is therefore a corrected remaining-residual closure wave, not another
+  whole-surface relaunch and not a search for one generic rescue profile:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
-  - `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
   - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
 Important boundary:
