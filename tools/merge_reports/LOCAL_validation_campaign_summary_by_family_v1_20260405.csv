@@ -1,0 +1,4 @@
+"family","total","pass","warn","fail","pct_pass","pct_warn","pct_fail","runtime_sec_total","runtime_sec_mean","runtime_sec_median"
+"gausmix",98,67,31,0,68.4,31.6,0,16855.055,171.99,19.861
+"laplace",96,73,23,0,76,24,0,4600.175,47.918,16.279
+"normal",97,68,29,0,70.1,29.9,0,4831.345,49.808,18.459

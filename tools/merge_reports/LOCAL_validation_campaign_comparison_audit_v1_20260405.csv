@@ -1,0 +1,8 @@
+"check_name","pass","detail"
+"comparison_long_rows_291",TRUE,"rows=291"
+"comparison_long_zero_fail",TRUE,"fail_rows=0"
+"comparison_long_all_source_gates_match",TRUE,"mismatches=0"
+"static_broad_rows_72",TRUE,"rows=72"
+"dynamic_broad_rows_3",TRUE,"rows=3"
+"model_pair_rows_144",TRUE,"rows=144"
+"inference_pair_rows_144",TRUE,"rows=144"

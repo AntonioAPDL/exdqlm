@@ -2030,3 +2030,50 @@ Updated immediate decision:
    validation truth source
 4. move next into broad comparison table generation and publication-ready
    reporting
+
+## 12.15 Broad comparison and final reporting execution (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/final_comparison_reporting_plan_20260405.md`
+- `reports/static_exal_tuning_20260405/final_comparison_reporting_execution_20260405.md`
+- `tools/merge_reports/LOCAL_validation_campaign_comparison_long_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_broad_comparison_table_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_comparison_audit_v1_20260405.csv`
+
+Execution summary:
+
+| artifact | rows / status |
+|---|---:|
+| comparison-long dataset | `291` |
+| static broad comparison table | `72` |
+| dynamic comparison supplement | `3` |
+| model-pair comparison rows | `144` |
+| inference-pair comparison rows | `144` |
+| selected `FAIL` in reporting bundle | `0` |
+
+Key comparison conclusions:
+
+1. the final selected campaign remains fully non-`FAIL` in the reporting
+   bundle
+2. the branch now has one canonical long-format comparison dataset plus one
+   canonical broad comparison table for reporting
+3. `al` remains the cleaner broad static baseline in most matched model-pair
+   comparisons, while promoted `exal` rows remain scientifically necessary to
+   keep the campaign fully non-`FAIL`
+4. `vb` is overwhelmingly faster than `mcmc` in matched static comparisons,
+   while final gate comparisons are mostly ties with a smaller number of true
+   wins on either side
+5. `tau = 0p25` remains the hardest broad final stratum by WARN burden
+6. repaired/default MCMC rows must use the summary-row files as the row-unique
+   diagnostic source; reused generic case-health filenames are safe for
+   provenance but not as canonical reporting inputs
+
+Updated immediate decision:
+
+1. stop building new validation or comparison pipeline code unless a reporting
+   review finds a concrete inconsistency
+2. treat the comparison-long dataset and broad comparison table as the
+   branch-level reporting baseline
+3. move next into manuscript-facing synthesis, figure selection, and narrative
+   interpretation

@@ -1,0 +1,11 @@
+"root_kind","inference","model","total","pass","warn","fail","pct_pass","pct_warn","pct_fail","runtime_sec_total","runtime_sec_mean","runtime_sec_median"
+"dynamic","mcmc","dqlm",2,2,0,0,100,0,0,6498.268,3249.134,3249.134
+"dynamic","mcmc","exdqlm",1,0,1,0,0,100,0,5809.576,5809.576,5809.576
+"static_paper","mcmc","al",18,18,0,0,100,0,0,240.131,13.341,9.157
+"static_paper","mcmc","exal",18,8,10,0,44.4,55.6,0,1146.158,63.675,57.448
+"static_paper","vb","al",18,18,0,0,100,0,0,16.63,0.924,0.922
+"static_paper","vb","exal",18,12,6,0,66.7,33.3,0,231.795,12.877,13.645
+"static_shrink","mcmc","al",54,54,0,0,100,0,0,4933.076,91.353,20.276
+"static_shrink","mcmc","exal",54,18,36,0,33.3,66.7,0,5661.789,104.848,62.63
+"static_shrink","vb","al",54,42,12,0,77.8,22.2,0,573.562,10.622,1.13
+"static_shrink","vb","exal",54,36,18,0,66.7,33.3,0,1175.59,21.77,14.87

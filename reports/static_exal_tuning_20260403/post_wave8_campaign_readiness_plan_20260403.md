@@ -520,3 +520,32 @@ comparison-ready and publication-ready validation summary.
 7. the project is now ready to move out of repair/assembly mode and into:
    - final broad comparison table generation
    - provenance-aware publication reporting
+
+## Latest Refinement After Broad Comparison Reporting Execution (2026-04-05)
+
+1. the broad comparison/reporting bundle is now implemented and audited
+2. the canonical long-format comparison dataset now exists as:
+   - `tools/merge_reports/LOCAL_validation_campaign_comparison_long_v1_20260405.csv`
+3. the canonical broad comparison table used for reporting now exists as:
+   - `tools/merge_reports/LOCAL_validation_campaign_broad_comparison_table_v1_20260405.csv`
+4. the static scenario-wide four-method comparison table now exists as:
+   - `tools/merge_reports/LOCAL_validation_campaign_static_broad_comparison_v1_20260405.csv`
+5. the dynamic comparison supplement now exists as:
+   - `tools/merge_reports/LOCAL_validation_campaign_dynamic_broad_comparison_v1_20260405.csv`
+6. the matched static pairwise summaries now exist as:
+   - `tools/merge_reports/LOCAL_validation_campaign_model_pair_summary_v1_20260405.csv`
+   - `tools/merge_reports/LOCAL_validation_campaign_inference_pair_summary_v1_20260405.csv`
+7. the comparison audit now verifies:
+   - `291` comparison rows
+   - `0` selected `FAIL`
+   - `72` static scenario rows
+   - `3` dynamic scenario rows
+   - `144` static model-pair rows
+   - `144` static inference-pair rows
+8. the final reporting phase uncovered one critical implementation rule:
+   - repaired/default MCMC rows must prefer the row-level summary csv as the
+     diagnostic source
+   - some generic case-health filenames were reused across multiple cases and
+     are only safe as provenance pointers, not as row-unique reporting inputs
+9. the project is now ready to move out of branch-level reporting assembly and
+   into final scientific narrative / manuscript-facing synthesis

@@ -1,0 +1,3 @@
+"inference","total","pass","warn","fail","pct_pass","pct_warn","pct_fail","runtime_sec_total","runtime_sec_mean","runtime_sec_median"
+"mcmc",147,100,47,0,68,32,0,24288.998,165.231,54.941
+"vb",144,108,36,0,75,25,0,1997.577,13.872,11.92

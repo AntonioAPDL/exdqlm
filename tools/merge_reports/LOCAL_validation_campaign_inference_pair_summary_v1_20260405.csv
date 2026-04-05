@@ -1,0 +1,6 @@
+"root_kind","model","total_pairs","mcmc_better","vb_better","tie","mcmc_faster","vb_faster","median_runtime_ratio_mcmc_over_vb"
+"overall","all",144,18,28,98,1,143,6.530636
+"static_paper","al",18,0,0,18,0,18,8.982838
+"static_paper","exal",18,2,6,10,0,18,4.348592
+"static_shrink","al",54,12,0,42,0,54,7.718686
+"static_shrink","exal",54,4,22,28,1,53,4.706869
