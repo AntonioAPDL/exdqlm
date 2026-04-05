@@ -1978,3 +1978,55 @@ Updated immediate decision:
 1. implement the comparison-ready assembly scripts next
 2. do not reopen tuning unless the assembly audit reveals a real regression
 3. keep the promoted campaign map v9 as the scientific decision baseline
+
+## 12.14 Comparison-ready assembly execution (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/comparison_ready_assembly_execution_20260405.md`
+- `reports/static_exal_tuning_20260405/comparison_ready_assembly_plan_20260405.md`
+- `tools/merge_reports/LOCAL_validation_campaign_frozen_policy_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_selection_table_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_health_summary_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_audit_v1_20260405.csv`
+
+Execution summary:
+
+| slice | total | PASS | WARN | FAIL | healthy false |
+|---|---:|---:|---:|---:|---:|
+| merged final campaign | 291 | 208 | 83 | 0 | 0 |
+
+Verified pool accounting:
+
+| pool | count |
+|---|---:|
+| historical reusable static | 216 |
+| refreshed static non-`FAIL` | 42 |
+| residual-band broad default | 21 |
+| promoted local static overrides | 9 |
+| historical dynamic reusable | 2 |
+| promoted dynamic local override | 1 |
+| total | 291 |
+
+Main takeaways:
+
+- the comparison-ready assembly scripts are now implemented and exercised end
+  to end
+- the promoted campaign map is frozen and machine-readable
+- the final merged campaign table is unique, provenance-backed, and fully
+  non-`FAIL`
+- the broad-default residual pool required scope-aware pairing of the old
+  `failband2` checkpoints; a row-id-only summary view would have undercounted
+  that pool by four duplicated RHS scope-cases
+- repair mode is now over at the selected-artifact level unless a later
+  comparison-table generation step reveals a real regression
+
+Updated immediate decision:
+
+1. stop opening any further tuning or repair waves by default
+2. treat the merged `291`-row selection table as the comparison-ready campaign
+   baseline
+3. use the regenerated merged health outputs as the new branch-tracked
+   validation truth source
+4. move next into broad comparison table generation and publication-ready
+   reporting

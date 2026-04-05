@@ -1,0 +1,7 @@
+"slice","total","pass","warn","fail","healthy_true","healthy_false","runtime_sec_total"
+"dynamic_historical_reusable",2,2,0,0,2,0,6498.268
+"dynamic_local_override",1,0,1,0,1,0,5809.576
+"historical_reusable_static",216,180,36,0,216,0,7170.784
+"static_local_override",9,5,4,0,9,0,1422.454
+"static_refresh_nonfail",42,15,27,0,42,0,3369.465
+"static_residual_broad_default",21,6,15,0,21,0,2016.028

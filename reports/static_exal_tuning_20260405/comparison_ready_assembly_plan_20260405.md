@@ -32,6 +32,36 @@ The emphasis is:
 - zero ambiguity about which artifact is selected for each case
 - zero tolerance for silent stale-row leakage
 
+## Execution Complete
+
+The assembly plan defined in this document has now been implemented and run.
+
+Primary execution outputs:
+
+- `tools/merge_reports/LOCAL_validation_campaign_frozen_policy_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_selection_table_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_row_health_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_health_summary_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_validation_campaign_audit_v1_20260405.csv`
+- `reports/static_exal_tuning_20260405/comparison_ready_assembly_execution_20260405.md`
+
+Validated execution result:
+
+- exactly `291` selected cases
+- `208 PASS`
+- `83 WARN`
+- `0 FAIL`
+- `0` unhealthy selected cases
+
+Important correction that mattered during implementation:
+
+- the `21` residual-band broad-default rows were real, but they could only be
+  recovered correctly from the paired `failband2` checkpoint events
+- the old summary-only view flattened four duplicated RHS scope-cases because
+  current and legacy entries shared the same `row_id`
+- the final merged table therefore uses scope-aware `(scope_label, row_id)`
+  keys and checkpoint-pair provenance for the broad-default pool
+
 ## Current Validated End-State
 
 The promoted endgame tail is now fully non-`FAIL`:
@@ -167,7 +197,7 @@ Recommended canonical key:
 
 | workstream | canonical key |
 |---|---|
-| static | `static_exal::<scope_label>::<row_id>` |
+| static | `static_validation::<scope_label>::<row_id>` |
 | dynamic | `dynamic_tail_cppgig_refresh_20260331::<row_id>` |
 
 Required normalized fields in the final merged table:

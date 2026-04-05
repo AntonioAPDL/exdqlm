@@ -1,0 +1,11 @@
+"root_kind","inference","model","total","pass","warn","fail","healthy_true","healthy_false","runtime_sec_total"
+"dynamic","mcmc","dqlm",2,2,0,0,2,0,6498.268
+"dynamic","mcmc","exdqlm",1,0,1,0,1,0,5809.576
+"static_paper","mcmc","al",18,18,0,0,18,0,240.131
+"static_paper","mcmc","exal",18,8,10,0,18,0,1146.158
+"static_paper","vb","al",18,18,0,0,18,0,16.63
+"static_paper","vb","exal",18,12,6,0,18,0,231.795
+"static_shrink","mcmc","al",54,54,0,0,54,0,4933.076
+"static_shrink","mcmc","exal",54,18,36,0,54,0,5661.789
+"static_shrink","vb","al",54,42,12,0,54,0,573.562
+"static_shrink","vb","exal",54,36,18,0,54,0,1175.59

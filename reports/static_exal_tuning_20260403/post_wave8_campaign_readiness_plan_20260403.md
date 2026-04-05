@@ -490,3 +490,33 @@ comparison-ready and publication-ready validation summary.
    - freeze the promoted local map
    - merge the refreshed artifacts
    - regenerate the broad comparison-ready campaign tables
+
+## Latest Refinement After Comparison-Ready Assembly Execution (2026-04-05)
+
+1. the comparison-ready assembly pipeline is now implemented and completed
+2. the promoted campaign map has been frozen into:
+   - `tools/merge_reports/LOCAL_validation_campaign_frozen_policy_v1_20260405.csv`
+3. the merged final campaign table now exists as:
+   - `tools/merge_reports/LOCAL_validation_campaign_selection_table_v1_20260405.csv`
+4. the regenerated merged campaign health now verifies:
+   - total selected rows: `291`
+   - `208 PASS`
+   - `83 WARN`
+   - `0 FAIL`
+   - `0` unhealthy selected cases
+5. the final accounting invariant is now materially verified, not just planned:
+   - `216` historical reusable static rows
+   - `42` refreshed static non-`FAIL` rows
+   - `21` residual-band broad-default rows
+   - `9` promoted local static overrides
+   - `2` historical dynamic reusable rows
+   - `1` promoted dynamic local override
+   - total: `291`
+6. the subtle broad-default accounting issue is now resolved:
+   - the `21` broad-default residual rows required scope-aware pairing of the
+     `failband2` checkpoint events
+   - a row-id-only summary view undercounted that pool because four RHS cases
+     were duplicated across current and legacy scope
+7. the project is now ready to move out of repair/assembly mode and into:
+   - final broad comparison table generation
+   - provenance-aware publication reporting
