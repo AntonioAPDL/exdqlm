@@ -577,10 +577,25 @@ comparison-ready and publication-ready validation summary.
    - `reports/static_exal_tuning_20260405/original_288_realignment_investigation_and_recovery_plan_20260405.md`
    - `tools/merge_reports/LOCAL_original288_realignment_block_status_20260405.csv`
    - `tools/merge_reports/LOCAL_original288_realignment_unresolved_dynamic_inventory_20260405.csv`
-7. the correct next implementation step is no longer publication reporting on
+   - `tools/merge_reports/LOCAL_original288_realignment_unresolved_dynamic_candidate_inventory_20260405.csv`
+7. skeptical re-audit now confirms the same top-line recovery result under a
+   stricter duplicate-key check:
+   - `264 / 288` original cells recoverable now
+   - `24 / 288` still unresolved
+   - residual debt remains dynamic-only
+8. the skeptical re-audit also surfaced two critical implementation rules:
+   - duplicated static-shrink keys in the `291` table must be canonicalized
+     from source truth before they can become the corrected `288` carry-forward
+     table
+   - the unresolved dynamic `24` are not all future reruns; every one already
+     has at least one model-matched non-baseline candidate artifact on disk and
+     should go through a harvest/rescoring phase first
+9. the correct next implementation step is no longer publication reporting on
    the hybrid `291` table; it is:
    - freeze the canonical original-`288` registry
-   - build the corrected carry-forward table
+   - build the corrected carry-forward table with duplicate-key truth rebuild
    - verify the `264 healthy / 24 unresolved` accounting mechanically
-   - then design the dynamic-only repair program for the remaining original
-     dynamic gaps
+   - harvest and rescore the existing dynamic repair archive against the
+     unresolved `24`
+   - only then design the dynamic-only repair program for any true leftover
+     original dynamic gaps

@@ -2128,6 +2128,11 @@ Updated immediate decision:
 4. next implement:
    - a canonical original-`288` registry
    - a corrected carry-forward table mapped by actual artifact root path
+   - a duplicate-key truth rebuild for static-shrink rows where the hybrid
+     `291` table contains conflicting non-`FAIL` labels or multiple candidate
+     paths for the same original key
+   - a dynamic artifact-harvest / rescoring phase using the already existing
+     model-matched dynamic repair archive
    - a mechanical verification of the `264 healthy / 24 unresolved` accounting
 5. only after that, design the dynamic-only repair program for the remaining
    original dynamic gaps

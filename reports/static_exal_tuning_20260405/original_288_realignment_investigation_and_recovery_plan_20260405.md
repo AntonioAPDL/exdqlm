@@ -24,6 +24,30 @@ The goal from this point onward is:
 4. plan the remaining work against the true original target before launching
    any new repair runs
 
+## Skeptical Audit Refinement
+
+The first realignment result has now been re-audited under a stricter rule:
+
+- if a repaired selected row maps onto an original baseline key more than once,
+  that key should only be treated as mechanically safe after the duplicate
+  bundle is canonicalized against source truth
+- the carry-forward table should not assume that the current `291` selection
+  table is already the final truth source for duplicated shrink keys
+
+The stricter audit did **not** change the top-line recovery result:
+
+- original baseline cells recoverable now: `264 / 288`
+- unresolved original baseline cells: `24 / 288`
+- residual debt remains dynamic-only
+
+But it did surface two additional implementation requirements:
+
+1. the corrected `288` assembly must include a canonical truth-rebuild step for
+   duplicated static-shrink keys
+2. the dynamic residual program should begin with artifact harvest and rescoring
+   because every unresolved dynamic key already has at least one model-matched
+   non-baseline candidate artifact on disk
+
 ## Executive Conclusion
 
 The current `291`-row selected campaign is healthy, but it is not yet the
@@ -184,6 +208,29 @@ All duplicate artifact reuse is concentrated in `static_shrink`:
 This means the same repaired fit artifact is sometimes counted twice under two
 different semantic labels.
 
+### 4. Some duplicated static shrink keys also carry conflicting non-`FAIL` labels
+
+The duplicate issue is not only about row counts.
+
+A skeptical audit of the `291` selection table found:
+
+- `72` duplicated original-key groups after remapping by actual artifact path
+- `144` selected rows involved in those duplicated groups
+- all duplicated groups remain non-`FAIL`
+- but `26` duplicated groups have either:
+  - conflicting `PASS` / `WARN` labels, or
+  - multiple candidate fit paths for the same original baseline key
+
+This does **not** break the `264 / 24` recovery result, because these duplicate
+groups remain non-`FAIL`.
+
+However, it does mean the corrected original-`288` assembly must not rely on
+the current selected table's row labels alone when choosing the canonical
+static carry-forward artifact for a duplicated shrink key.
+
+Instead, the corrected assembly must rebuild truth from the underlying source
+artifact and source health/signoff evidence.
+
 ## Important Correction: Artifact-Path Remap Saves Most Of The Work
 
 The semantic labels in the current selected table are not sufficient to recover
@@ -225,6 +272,17 @@ It means:
 - the entire original static universe is already recoverable as healthy
 - the remaining debt is entirely dynamic
 
+This result was rechecked under both:
+
+- an optimistic rule: any mapped selected non-`FAIL` is enough to cover the
+  original key
+- a stricter rule: duplicated selected rows must be canonicalized before the
+  original key can be treated as finalized
+
+Both checks still yield the same unresolved count:
+
+- `24`, all dynamic
+
 ## Current Original-288 Gap Inventory
 
 The unresolved original-baseline cells are exactly `24`, and all of them are
@@ -241,6 +299,14 @@ Machine-readable inventory:
 
 - `tools/merge_reports/LOCAL_original288_realignment_unresolved_dynamic_inventory_20260405.csv`
 - `tools/merge_reports/LOCAL_original288_realignment_block_status_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_realignment_unresolved_dynamic_candidate_inventory_20260405.csv`
+
+Important skeptical-audit refinement:
+
+- every one of the `24` unresolved dynamic keys already has at least one
+  model-matched non-baseline candidate fit artifact on disk
+- therefore the next dynamic phase should begin with artifact harvest and
+  rescoring, not immediate reruns
 
 ## What We Should Treat As The New Ground Truth
 
@@ -297,11 +363,18 @@ This distinction matters because:
 1. Reinterpret the repaired `291` selection table by actual `selected_fit_path`
    root.
 2. Map those repaired artifacts onto the canonical original `288` registry.
-3. For any uncovered original cell, fall back to the untouched baseline result
+3. For any duplicated original key in the repaired selection table, rebuild the
+   canonical gate from source truth:
+   - source `method_signoff_long.csv` where applicable
+   - row-summary csv or candidate health csv where the repaired artifact is not
+     a baseline signoff row
+4. Resolve each duplicated original key to exactly one canonical selected
+   artifact plus one canonical selected gate.
+5. For any uncovered original cell, fall back to the untouched baseline result
    if that baseline row is already `PASS` or `WARN`.
-4. Produce a corrected carry-forward table with exactly `288` target keys.
-5. Verify no target key is duplicated.
-6. Verify no artifact is silently reused under conflicting original-baseline
+6. Produce a corrected carry-forward table with exactly `288` target keys.
+7. Verify no target key is duplicated.
+8. Verify no artifact is silently reused under conflicting original-baseline
    semantics.
 
 ### Phase C: Lock down the static side
@@ -334,12 +407,22 @@ This distinction matters because:
 
 1. Review all existing dynamic repair-sidecar artifacts, especially the row
    `5` / `15` / `57` work and any exact-historical rescue lanes.
-2. Identify whether any of the unresolved `24` dynamic baseline cells already
+2. Review the broader dynamic experiment archive already present under the
+   original dynamic result roots, including:
+   - `rhsns_full_relaunch_20260327`
+   - `slice_pilot_20260318`
+   - `slice_wave1_20260319`
+   - `slice_wave2_20260319`
+   - `tierA_sync_20260322`
+   - `joint_recovery_20260325`
+   - `adaptive_pilot_20260326`
+   - `adaptive_prod_20260326`
+3. Identify whether any of the unresolved `24` dynamic baseline cells already
    have a healthy analogue from later repair work that was not yet mapped back
    into the original registry.
-3. Prefer carry-forward from already completed repaired artifacts over new
+4. Prefer carry-forward from already completed repaired artifacts over new
    reruns wherever scientifically defensible.
-4. Only classify a dynamic cell as needing new computation after the carry-
+5. Only classify a dynamic cell as needing new computation after the carry-
    forward audit is complete.
 
 ### Phase F: Plan the remaining dynamic repair program
@@ -351,7 +434,9 @@ This distinction matters because:
    - `dqlm mcmc`
    - then the small `exdqlm vb` residue
 3. Keep the static side frozen while the dynamic repair work proceeds.
-4. Design the dynamic repair lane so that every new run maps directly back to
+4. Use the harvested existing dynamic candidate inventory to prune the rerun
+   manifest before any new compute is scheduled.
+5. Design the dynamic repair lane so that every new run maps directly back to
    one original `288` registry key.
 
 ### Phase G: Rebuild final reporting on the corrected target
