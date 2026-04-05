@@ -66,6 +66,23 @@ The comparison-ready assembly plan now lives in:
 
 - `reports/static_exal_tuning_20260405/comparison_ready_assembly_plan_20260405.md`
 
+The corrected original-`288` realignment plan and execution now live in:
+
+- `reports/static_exal_tuning_20260405/original_288_realignment_investigation_and_recovery_plan_20260405.md`
+- `reports/static_exal_tuning_20260405/original_288_realignment_execution_20260405.md`
+
+Important supersession note after the corrected original-`288` rebuild:
+
+- the earlier healthy `291` campaign remains useful as a repair evidence pool
+  and as a historical assembly artifact
+- it is **not** the publication-target comparison universe
+- the publication-target universe is now the corrected original `288` carry-
+  forward table
+- current recovered state under that target is:
+  - `269 / 288` healthy
+  - `19 / 288` unresolved
+  - residual debt is dynamic-only
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.

@@ -9,6 +9,43 @@ the validation branch organized and scientifically defensible.
 This is a local tracker intended for operational use. It is not a signoff
 document and should not be treated as final scientific reporting.
 
+## 0. Original-288 Realignment Execution Checkpoint (2026-04-05)
+
+The corrected original-`288` carry-forward pipeline has now been implemented
+and audited.
+
+Primary execution references:
+
+- `reports/static_exal_tuning_20260405/original_288_realignment_investigation_and_recovery_plan_20260405.md`
+- `reports/static_exal_tuning_20260405/original_288_realignment_execution_20260405.md`
+- `tools/merge_reports/LOCAL_original288_registry_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_carryforward_selection_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_health_summary_v1_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_audit_v1_20260405.csv`
+
+Executed state:
+
+- original publication-target baseline cells: `288`
+- healthy now: `269`
+- unresolved now: `19`
+- all unresolved cells are dynamic
+- all original static cells are now recovered as healthy
+
+Important correction:
+
+- the earlier healthy `291` campaign was a repaired hybrid assembly
+- it remains a valid repair evidence pool
+- it should **not** be treated as the publication-target comparison universe
+- the corrected original-`288` carry-forward table is now the authoritative
+  target for broad comparison and remaining repair planning
+
+Operational next step:
+
+- do not relaunch static work by default
+- treat the remaining work as a dynamic-only residual repair program
+- start that phase from the unresolved queue in:
+  `tools/merge_reports/LOCAL_original288_unresolved_dynamic_inventory_v1_20260405.csv`
+
 ## 0. Execution checkpoint (2026-03-31 06:36 EDT)
 
 Operational progress completed after the initial tracker draft:

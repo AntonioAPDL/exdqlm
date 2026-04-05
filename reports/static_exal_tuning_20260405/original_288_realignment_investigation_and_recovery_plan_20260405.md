@@ -2,8 +2,21 @@
 
 Date: 2026-04-05
 
-Status: investigation and planning only. No new validation runs were launched in
-this checkpoint.
+Status: planning document, now followed by an executed carry-forward build.
+No new validation runs were launched in this checkpoint.
+
+The implemented execution record now lives in:
+
+- `reports/static_exal_tuning_20260405/original_288_realignment_execution_20260405.md`
+
+Current executed recovery state:
+
+- corrected original baseline target: `288` cells
+- healthy now: `269`
+- unresolved now: `19`
+- all residual debt is dynamic-only
+- the earlier hybrid `291` bundle remains historically useful, but it is no
+  longer the publication-target comparison universe
 
 ## Purpose
 
