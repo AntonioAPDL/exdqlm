@@ -299,13 +299,14 @@ Latest refinement after the completed wave-9 closeout (2026-04-05):
    TT5000 slice replay
 3. the campaign now has only one remaining blocking case:
    - static row `87`
-4. row `87` is not a broad-family problem; it is now a one-row chain-quality
-   stabilization problem inside the tiny `F085` / `F0855` scale-`1.025`
-   micro-band
-5. the next and likely last credible search shape is:
-   - exact anchor confirmations,
-   - slightly longer confirmations,
-   - and a tiny micro-band expansion on row `87` only
+4. row `87` is not a broad-family problem, but the surviving non-`FAIL`
+   history is broader than the later `F085` / `F0855` micro-band:
+   it also includes lower-mid short-run anchors in
+   `F0825` / `F0835`
+5. the next credible search shape is therefore:
+   - exact short replays of the surviving lower-mid row-`87` anchors
+   - moderate-length confirmations on that same lower-mid corridor
+   - and a tiny `init_mode = none` probe lane on the best lower-mid anchors
 
 ## Updated Remaining Comparison Debt
 
@@ -370,10 +371,9 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 - [ ] probe only the remaining blocking row:
       `87`
 - [ ] use only:
-      exact historical anchor confirmation,
-      slightly longer confirmation,
-      and a tiny micro-band expansion around the only surviving row-`87`
-      corridors
+      exact short historical non-`FAIL` anchors,
+      moderate-length confirmations on the same lower-mid corridor,
+      and a tiny `init_mode = none` lane on those same lower-mid anchors
 - [ ] preserve separate current RHS-NS and legacy RHS scope labels
 - [ ] do not reopen any broad shared-setup search
 - [ ] preserve deterministic manifests, failure logs, supervisor logs, and
@@ -410,9 +410,38 @@ The study is in a materially better place now.
 The open problem is no longer "find a plausible static tuning family" and it is
 no longer "fix the resume chain." The open problem is now much cleaner:
 
-1. close row `87` with one final disciplined micro-band program
+1. close row `87` with one final disciplined lower-mid replay/confirmation
+   program
 2. freeze the promoted local baselines for `135`, `174`, `269`, and row `15`
 3. regenerate the full campaign tables once row `87` is non-`FAIL`
 
 That is the shortest rigorous path from the current branch state to a
 comparison-ready and publication-ready validation summary.
+
+## Latest Refinement After Wave-10 Closeout And Row-87 Audit (2026-04-05)
+
+1. wave-10 completed cleanly but did **not** improve row `87`; the
+   `F085` / `F0855` scale-`1.025` micro-band is now exhausted
+2. row `87` is the only remaining blocker in the full campaign
+3. dynamic row `15` is now resolved to `WARN` and should be treated as closed
+   to non-`FAIL`
+4. the row-`87` evidence audit corrects the earlier narrow framing:
+   historical non-`FAIL` anchors also exist in the lower-mid
+   `F0825` / `F0835` `laplace_rw` short-run corridor
+5. the promoted local baseline should therefore stay:
+   - broad default: `F085_sub2_s100`
+   - local promoted rows:
+     - `135` -> `F0825_sub2_s105_none` (`PASS`)
+     - `174` -> `F085_sub2_s105_histshort` (`WARN`)
+     - `190` -> `F0825_sub2_s100_rwlong` (`WARN`)
+     - `206` -> `F0825_sub2_s1025_rwlong` (`PASS`)
+     - `269` -> `F0845_sub2_s100_histshort` (`WARN`)
+     - dynamic `15` -> `row15_slice_exact_20260405` (`WARN`)
+   - row `87` remains open and should no longer be framed as an
+     `F085` / `F0855`-only problem
+6. the highest-value next move is a row-`87`-only wave on:
+   - exact short historical anchors:
+     `F0825_sub2_s100`, `F0825_sub2_s1025`, `F0835_sub2_s1025`,
+     `F085_sub2_s1025`
+   - moderate-length confirmations on that same corridor
+   - a tiny `init_mode = none` lane on the lower-mid anchors only

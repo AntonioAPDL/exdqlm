@@ -13,6 +13,16 @@ Primary references:
 
 Wave-9 completed cleanly. Nothing is currently running.
 
+Post-wave-10 correction:
+
+- a deeper row-`87` artifact audit shows that the surviving non-`FAIL` history
+  was broader than this report's initial framing
+- historical `WARN` anchors also exist in the lower-mid
+  `F0825` / `F0835` `laplace_rw` short-run corridor
+- wave-10 is still valid and useful, but it should now be read as an
+  exhaustion test of the later `F085` / `F0855` scale-`1.025` micro-band only,
+  not as proof that all credible row-`87` space has been exhausted
+
 This is still a strong result even though row `87` remains unresolved, because
 the final campaign tail is now almost entirely closed:
 
@@ -169,5 +179,11 @@ Current endgame:
 - dynamic resolved to non-`FAIL`: `15`
 - only blocker left: `87`
 
-Wave-10 is therefore the right next move:
-one final disciplined micro-band closure wave on row `87` only.
+Wave-10 should now be interpreted more narrowly:
+
+- it exhausted the later `F085` / `F0855` row-`87` micro-band
+- it did **not** exhaust the overlooked lower-mid historical non-`FAIL`
+  corridor in `F0825` / `F0835`
+
+That lower-mid replay/confirmation lane is the right next move after this
+report.

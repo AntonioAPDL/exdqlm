@@ -1825,3 +1825,59 @@ Updated immediate decision:
      scale-`1.025` corridors
 5. treat this as the final static closure program unless row `87` still
    refuses to reach non-`FAIL`
+
+## 12.11 Wave-10 closeout and wave-11 row-87 lower-mid checkpoint (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/failband_wave10_closeout_and_wave11_row87_lowermid_program_20260405.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave10_schedule_20260405.csv`
+
+Wave-10 closeout summary:
+
+| stage | total | PASS | WARN | FAIL | missing | resolved |
+|---|---:|---:|---:|---:|---:|---:|
+| `anchor4_confirm` | 4 | 0 | 0 | 4 | 0 | 0 |
+| `micro4_expand` | 4 | 0 | 0 | 4 | 0 | 0 |
+| `overall` | 8 | 0 | 0 | 8 | 0 | 0 |
+
+Main takeaways:
+
+- wave-10 completed cleanly and therefore gives valid negative evidence
+- dynamic row `15` is already resolved to `WARN` and no longer blocks closure
+- static row `87` remains the only campaign blocker
+- wave-10 exhausted the later `F085` / `F0855` scale-`1.025` row-`87`
+  micro-band
+- a deeper row-`87` artifact audit corrected the earlier framing:
+  historical non-`FAIL` anchors also exist in:
+  - `F0825_sub2_s100`
+  - `F0825_sub2_s1025`
+  - `F0835_sub2_s1025`
+  - `F085_sub2_s1025`
+  under short `laplace_rw` runs
+
+Promoted local baseline v8:
+
+- broad default:
+  - `F085_sub2_s100`
+- row-local promotions:
+  - `135` -> `F0825_sub2_s105_none`
+  - `174` -> `F085_sub2_s105_histshort`
+  - `190` -> `F0825_sub2_s100_rwlong`
+  - `206` -> `F0825_sub2_s1025_rwlong`
+  - `269` -> `F0845_sub2_s100_histshort`
+  - dynamic `15` -> `row15_slice_exact_20260405`
+- remaining blocker:
+  - `87` -> open lower-mid replay/confirmation corridor
+
+Updated immediate decision:
+
+1. do **not** reopen any broad shared-setup search
+2. do **not** spend more compute inside the exhausted late
+   `F085` / `F0855` micro-band
+3. open a wave-11 row-`87`-only closure lane with:
+   - exact short replays of the lower-mid historical non-`FAIL` anchors
+   - moderate-length confirmations on that same lower-mid corridor
+   - a tiny `init_mode = none` lane on the lower-mid anchors only
+4. keep the rest of the campaign frozen and reusable while row `87` is being
+   closed
