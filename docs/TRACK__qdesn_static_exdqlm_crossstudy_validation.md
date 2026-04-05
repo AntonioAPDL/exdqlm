@@ -1,6 +1,6 @@
 # TRACK: QDESN Static exdqlm Cross-Study Validation
 
-Date: 2026-04-04  
+Date: 2026-04-05
 Branch: `feature/qdesn-mcmc-alternative`  
 Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
 
@@ -17,16 +17,16 @@ This tracker is for the cross-study program only. It is not the dynamic DLM cert
 
 ## 2) Current Status
 
-Status: **Wave 1 broad launch is the authoritative source baseline; Wave 2 completed Stage 1 and was intentionally stopped before Stage 2; Wave 3 local fit-fail closure is now the active follow-up, and the `rhs_ns` VB diagnostics-path fix has been validated on a representative smoke root**
+Status: **Wave 3 fit-fail closure completed and promoted a local baseline map; Wave 4 residual MCMC closure is now the active follow-up**
 
 Current scope decision:
 
 - launch surface: `static only`
 - dynamic row-15 sidecar: `excluded`
 - `gausmix @ tau=0.50`: `excluded`
-- current move-forward mode: `fit-fail closure with local tuning allowed`
+- current move-forward mode: `residual MCMC closure with local tuning allowed`
 
-Wave-1 source baseline:
+Historical source baseline:
 
 - run tag:
   - `qdesn-static-exdqlm-crossstudy-20260404b__git-06ac1c0`
@@ -36,24 +36,30 @@ Wave-1 source baseline:
   - `66 SUCCESS`
   - `6 FAIL`
 - authoritative source:
-  - root-level outputs, not campaign-level closeout
+  - root-level outputs, not the stale top-level broad-wave closeout
 
-Recovered reference contract:
+Promoted post-Wave-3 baseline map:
 
-- final static signoff roots: `54`
-  - `18` paper
-  - `36` shrink
-- unique dataset cells: `36`
-- QDESN analog grid: `72` roots
+- shared default:
+  - `F500_anchor_patched`
+- local ridge baseline:
+  - `F510_ridge_rescue_reference`
+- local rhs `tt=100` baseline:
+  - `F610_rhs_tt100_conservative_block`
+- local rhs `tt=1000` baseline:
+  - `F640_rhs_tt1000_chain1200`
 
-Main Wave-1 scientific takeaways:
+Main post-Wave-3 takeaways:
 
-- the shared static QDESN setup is broadly viable;
-- the hard root FAIL band is narrow:
-  - `static_shrink x laplace x tt=1000 x tau in {0.05, 0.25, 0.95} x prior in {ridge, rhs_ns}`
-- `ridge` is the current broad cross-study baseline family;
-- `rhs_ns` remains the main debt family, but the remaining problem is now better described as fit-level FAIL closure than comparison-only debt;
-- the next step is therefore a local fit-fail closure wave, not another `72`-root relaunch.
+- the old `rhs_ns` VB diagnostics-path false-FAIL bucket is closed under the shared baseline;
+- the effective remaining debt is now:
+  - `45` promoted fit FAIL rows on successful roots,
+  - all `45` are `mcmc`,
+  - `41 / 45` are `exal`,
+  - `4 / 45` are `al`;
+- the remaining problem is not one generic family-wide tuning question anymore;
+- the remaining problem is now four residual MCMC slices plus the still-unvalidated original
+  `6` hard-root FAILs.
 
 Validation checkpoints completed:
 
@@ -63,32 +69,38 @@ Validation checkpoints completed:
 - Wave-1 broad shared-setup launch: `SOURCE_BASELINE_ESTABLISHED`
 - Wave-2 debt-wave Stage-1 probe: `COMPLETED_AND_STOPPED_BEFORE_STAGE2`
 - rhs-family diagnostics fallback validation on representative `rhs_ns` smoke root: `PASS`
-- Wave-3 fit-fail closure plan + runner implementation: `READY_FOR_PREPARE_ONLY_AND_LAUNCH`
+- Wave-3 fit-fail closure wave: `COMPLETED`
+- Wave-4 residual MCMC closure plan + runner implementation: `PREPARE_ONLY_VALIDATED_AND_READY_FOR_LAUNCH`
 
 ## 3) Read First
 
-1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
-2. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-3. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
-4. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
-5. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
-6. `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
-7. `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
-8. `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
-9. `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
-10. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
-11. `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-12. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-13. `scripts/materialize_qdesn_static_exdqlm_crossstudy_grid.R`
-14. `R/qdesn_static_exdqlm_crossstudy.R`
-15. `R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
+2. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
+3. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+4. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
+5. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
+6. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
+7. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
+8. `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
+9. `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
+10. `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
+11. `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
+12. `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
+13. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
+14. `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+15. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+16. `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+17. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+18. `R/qdesn_static_exdqlm_crossstudy.R`
+19. `R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+20. `R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
 ## 4) Hard Rules
 
 1. Recover the dataset surface from disk; do not approximate it.
 2. Preserve current-vs-legacy provenance in metadata and reporting.
 3. Do not reopen the finished dynamic DLM tuning program here.
-4. Keep the first launch static-only.
+4. Keep the cross-study static-only until the static surface is truly closed.
 5. Treat comparison tables as required outputs.
 6. Use prepare-only before real launch.
 7. Keep compute conservative and single-threaded per fit.
@@ -104,54 +116,67 @@ Implementation assets:
   - `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
 - grid:
   - `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
-- helper layer:
+- broad validation helper:
   - `R/qdesn_static_exdqlm_crossstudy.R`
-- grid materializer:
-  - `scripts/materialize_qdesn_static_exdqlm_crossstudy_grid.R`
-- launcher:
-  - `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
-- healthcheck:
-  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
-- debt-wave manifest:
-  - `config/validation/qdesn_static_exdqlm_crossstudy_debt_wave_manifest.yaml`
-- debt-wave helper:
+- Wave-2 debt helper:
   - `R/qdesn_static_exdqlm_crossstudy_debt_wave.R`
-- debt-wave launcher:
-  - `scripts/run_qdesn_static_exdqlm_crossstudy_debt_wave.R`
-- debt-wave healthcheck:
-  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_debt_wave.R`
-- fit-fail closure manifest:
-  - `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
-- fit-fail closure helper:
+- Wave-3 fit-fail closure helper:
   - `R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-- fit-fail closure launcher:
+- Wave-4 residual closure helper:
+  - `R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+- broad launcher:
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
+- broad healthcheck:
+  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
+- Wave-3 manifest:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
+- Wave-3 launcher:
   - `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-- fit-fail closure healthcheck:
+- Wave-3 healthcheck:
   - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+- Wave-4 manifest:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
+- Wave-4 launcher:
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+- Wave-4 healthcheck:
+  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
 ## 6) Current Debt
 
 Remaining scientific debt is now split more precisely:
 
-1. root-status hard FAIL band:
+1. promoted residual fit FAIL surface on successful roots:
+   - `45` fit FAIL rows
+   - `41` roots
+   - `45 / 45` are `mcmc`
+   - `41 / 45` are `exal`
+2. unresolved original Wave-1 hard-root FAIL band:
    - `6` roots
    - all in `static_shrink x laplace x tt=1000`
-2. rhs_ns VB diagnostics-path FAIL bucket:
-   - `66` FAIL rows
-   - `33` roots
-   - likely helper-path debt, not pure tuning debt
-3. ridge `exal/mcmc` stability FAIL bucket:
-   - `24` FAIL rows
-   - `24` roots
-4. rhs_ns `mcmc` stability FAIL bucket:
-   - `40` FAIL rows
-   - `30` roots
+   - `3` ridge
+   - `3` rhs_ns
+3. residual ridge short-horizon drift slice:
+   - `3` FAIL rows
+   - `3` roots
+4. residual ridge long-horizon ESS slice:
+   - `12` FAIL rows
+   - `12` roots
+5. residual rhs short-horizon drift slice:
+   - `15` FAIL rows
+   - `12` roots
+6. residual rhs long-horizon ESS slice:
+   - `15` FAIL rows
+   - `14` roots
 
 Current highest-value questions:
 
-- does the patched shared default clear the full `33`-root `rhs_ns` VB diagnostics bucket under a fresh campaign run the same way it did on the representative smoke root?
-- can the completed `D410_ridge_rescue_reference` probe lead reduce the ridge `exal/mcmc` fail slice on the full targeted ridge set?
-- do the remaining rhs_ns `mcmc` FAILs split better by `tt=100` versus `tt=1000` than by one generic rhs profile?
+- can a tighter F510-derived ridge drift guard eliminate the last `3` ridge `tt=100` residuals?
+- can a hybrid F510-plus-chain profile reduce the `12` long-horizon ridge `exal/mcmc` residuals
+  and revalidate the ridge half of the old hard-root FAIL band?
+- can F610-derived geometry-first rhs profiles remove the remaining `tt=100` drift-heavy residuals
+  without replaying the failed chain-only rhs branch?
+- can F640-derived long-horizon rhs profiles both revalidate the rhs half of the old hard-root
+  FAIL band and reduce the remaining `tt=1000` ESS/autocorrelation residuals?
 
 ## 7) Current Baseline Map
 
@@ -160,15 +185,22 @@ Shared default baseline:
 - keep the shared static defaults as the default baseline everywhere
 - the active shared default now includes the validated `rhs_trace.rds` fallback so successful
   `rhs_ns` VB fits are not falsely marked `FAIL` when `rhs_run_summary.csv` is missing
+- the shared default profile id is:
+  - `F500_anchor_patched`
 
-Local promoted baseline:
+Local promoted baselines:
 
-- promote `D410_ridge_rescue_reference` as the current local ridge rescue baseline
-- do **not** promote any rhs-local Stage-1 profile from Wave 2 as a general rhs baseline
+- ridge:
+  - `F510_ridge_rescue_reference`
+- rhs `tt=100`:
+  - `F610_rhs_tt100_conservative_block`
+- rhs `tt=1000`:
+  - `F640_rhs_tt1000_chain1200`
 
 Current practical read:
 
-- the shared baseline is now the right default for the `rhs_ns` VB closure stage
-- `D410` is the right local reference for the ridge `exal/mcmc` closure stage
-- the rhs `mcmc` closure still needs separate `tt=100` and `tt=1000` local slices rather than
-  one shared rescue profile
+- the shared baseline is now the right default only where no local slice winner has already
+  beaten it;
+- the ridge, rhs `tt=100`, and rhs `tt=1000` slices now each have a justified local control;
+- the next follow-up should therefore start from the promoted local-baseline map, not from the
+  original broad baseline and not from the earlier Wave-2 probe hints.

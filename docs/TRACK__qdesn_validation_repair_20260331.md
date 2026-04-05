@@ -17,7 +17,7 @@ Turn the current QDESN validation situation into a disciplined repair program th
 
 This tracker is the operational roadmap for the next validation wave.
 
-## 1.1) Follow-On Cross-Study Update (2026-04-04)
+## 1.1) Follow-On Cross-Study Update (2026-04-05)
 
 The dynamic QDESN repair/certification program is now closed for this cycle.
 
@@ -33,26 +33,32 @@ The next comparison-facing program is a separate cross-worktree study:
 That follow-on program reuses the exdqlm static `gausmix / normal / laplace` datasets and builds
 the QDESN analog with `exal/al x vb/mcmc x ridge/rhs_ns`.
 
-Static cross-study status is now more concrete:
+Static cross-study status is now sharper:
 
-- Wave 1 broad shared-setup launch established the source baseline at `66/72` successful roots;
-- Wave 2 then completed Stage 1 and was intentionally stopped before Stage 2;
-- Wave-2 Stage 1 showed that the original hard-fail probe roots are rescueable and that
-  `D410_ridge_rescue_reference` is the best completed local ridge rescue clue;
-- the remaining static cross-study debt is now better understood as three fit-fail buckets:
-  - `66` `rhs_ns` VB diagnostics-path FAIL rows,
-  - `24` ridge `exal/mcmc` FAIL rows,
-  - `40` `rhs_ns mcmc` FAIL rows;
-- the active follow-up is now a local fit-fail closure wave, not the older two-stage
-  hard-root/compare-any debt frame:
-  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
-  - `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
-  - `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-- the old `rhs_ns` VB diagnostics-path false-FAIL issue is now patched and smoke-validated via
-  `rhs_trace.rds` fallback recovery, so the remaining cross-study work is increasingly real
-  stage-local stability debt rather than bookkeeping debt
+- Wave 1 broad shared-setup launch established the historical source baseline at `66/72`
+  successful roots;
+- Wave 3 fit-fail closure then promoted the effective local-baseline map:
+  - shared default:
+    - `F500_anchor_patched`
+  - ridge local:
+    - `F510_ridge_rescue_reference`
+  - rhs `tt=100` local:
+    - `F610_rhs_tt100_conservative_block`
+  - rhs `tt=1000` local:
+    - `F640_rhs_tt1000_chain1200`
+- the old `rhs_ns` VB diagnostics-path false-FAIL issue is now closed under the shared baseline;
+- the remaining promoted successful-surface debt is now:
+  - `45` MCMC FAIL rows,
+  - `41 / 45` in `exal`,
+  - `4 / 45` in `al`;
+- the original `6` Wave-1 hard-root FAILs still need explicit revalidation because they were not
+  rerun inside the completed Wave-3 baseline map;
+- the active follow-up is therefore a residual MCMC closure wave, not another whole-surface
+  relaunch and not a search for one generic rescue profile:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
 Important boundary:
 
