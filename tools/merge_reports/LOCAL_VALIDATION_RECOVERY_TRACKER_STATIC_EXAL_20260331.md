@@ -259,6 +259,66 @@ Validated carry-forward state:
 
 Debt reduction:
 
+## 0.5 Wave-7 closeout and wave-8 closure checkpoint (2026-04-05)
+
+Current validated state:
+
+- no validation jobs are running in this worktree
+- wave-7 completed cleanly
+- broad default static baseline remains:
+  - `F085_sub2_s100`
+- the local static repair baseline should now be treated as `v4`
+- promoted row-local improvements after wave-7:
+  - row `87` -> `F085_sub2_s1025_slice` (`WARN`)
+  - row `190` -> `F0825_sub2_s100_rwlong` (`WARN`)
+  - row `206` -> `F0825_sub2_s1025_rwlong` (`PASS`)
+
+Remaining blocking debt:
+
+- static:
+  - row `135`
+  - row `174`
+  - row `269`
+- dynamic sidecar:
+  - row `15`
+
+Important new finding:
+
+- dynamic row `15` is no longer waiting on a new repair hypothesis
+- the exact TT5000 historical artifact
+  `slice_wave2_20260319`
+  already gates to:
+  - `WARN`
+  - `healthy = TRUE`
+
+Interpretation:
+
+- static closure is now a row-local problem, not a generic-family problem
+- dynamic row `15` is now a replay/confirmation problem, not a blind search
+
+Wave-8 program shape:
+
+- static:
+  - one row-`87` confirmation
+  - exact short replay plus `vb`-init probes on `135`, `174`, and `269`
+- dynamic:
+  - exact TT5000 slice replay for row `15`
+  - one mild longer slice control
+
+Explicit exclusions:
+
+- no more broad shared-setup search
+- no more generic residual-band sweeps
+- no more repeated long/slice widening on rows `174` and `269`
+- no more dynamic `laplace_rw` refresh reruns before replaying the known-good
+  slice setup
+
+Updated immediate decision:
+
+- implement the wave-8 closure lane on the validation branch
+- validate prepare/evaluate first
+- launch static and dynamic sidecars separately under tmux
+
 - the remaining campaign debt is now `73` cases, not `291`
 - breakdown:
   - `72` stale static `exal` reruns
@@ -1595,3 +1655,60 @@ Updated immediate decision:
    - longer runs
    - targeted `slice_eta` pilots
 6. keep dynamic row `15` separate until it has its own repair hypothesis
+
+## 12.8 Wave-7 closeout and wave-8 seed-init + dynamic replay checkpoint (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/failband_wave7_closeout_and_wave8_seedinit_dynamic_closure_program_20260405.md`
+- `reports/static_exal_tuning_20260404/failband_wave6_closeout_and_wave7_triplet_closure_program_20260404.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave8_schedule_20260405.csv`
+- `tools/merge_reports/LOCAL_dynamic_row15_wave8_matrix_20260405.csv`
+
+Wave-7 closeout summary:
+
+| stage | total | PASS | WARN | FAIL | missing | resolved |
+|---|---:|---:|---:|---:|---:|---:|
+| `stability3_v3` | 3 | 1 | 1 | 1 | 0 | 2 |
+| `core17_triplet` | 17 | 0 | 2 | 15 | 0 | 2 |
+| `overall` | 20 | 1 | 3 | 16 | 0 | 4 |
+
+Main operational takeaways:
+
+- wave-7 completed cleanly; orchestration remains stable
+- row `87` improved from `FAIL` to `WARN`
+- row `206` improved from reusable `WARN` to fresh `PASS`
+- row `190` remains non-`FAIL`
+- the static blocking core is now:
+  - `135`
+  - `174`
+  - `269`
+- dynamic row `15` now has a concrete replayable rescue:
+  - TT5000 `slice_wave2_20260319`
+
+Promoted local repair baseline v4:
+
+- default:
+  - `F085_sub2_s100`
+- row-local:
+  - `87` -> `F085_sub2_s1025_slice`
+  - `115` -> `F0825_sub2_s100`
+  - `135` -> open anchor `F0835_sub2_s1025`
+  - `174` -> open anchor `F0875_sub2_s105`
+  - `181` -> `F0825_sub2_s100`
+  - `190` -> `F0825_sub2_s100_rwlong`
+  - `206` -> `F0825_sub2_s1025_rwlong`
+  - `269` -> open anchor `F0825_sub2_s100`
+  - `278` -> `F0845_sub2_s1025`
+
+Updated immediate decision:
+
+1. keep `F085_sub2_s100` as the broad static default baseline
+2. do **not** reopen any generic shared-setup search
+3. open a wave-8 closure lane with:
+   - one row-`87` confirmation
+   - exact short replay plus `vb`-init probes on `135`, `174`, `269`
+4. open a separate dynamic row-`15` sidecar with:
+   - exact TT5000 slice replay
+   - one mild longer slice control
+5. treat this as a final closure phase, not another discovery wave

@@ -151,6 +151,29 @@ Important refinement after the completed wave-6 row-specific closure closeout:
 - the next credible search shape is a row-local triplet-closure lane plus a
   tiny stability lane, not another band-scale sweep
 
+Important refinement after the completed wave-7 triplet closeout
+and dynamic replay discovery (2026-04-05):
+
+- `F085_sub2_s100` remains the broad static default baseline
+- the local static baseline should now be treated as `v4`
+- row `87` improved from `FAIL` to `WARN` and should now use:
+  - `F085_sub2_s1025_slice`
+- row `206` improved from reusable `WARN` to fresh `PASS` and should now use:
+  - `F0825_sub2_s1025_rwlong`
+- row `190` remains non-`FAIL` and should now use:
+  - `F0825_sub2_s100_rwlong`
+- the static blocking core remains:
+  - `135`
+  - `174`
+  - `269`
+- dynamic row `15` is no longer missing a repair hypothesis:
+  an exact historical TT5000 `slice_wave2_20260319` replay already gated to
+  `WARN / healthy = TRUE`
+- the next credible search shape is therefore:
+  - one row-`87` confirmation
+  - exact short replay plus `vb`-init probes on `135`, `174`, and `269`
+  - a tiny dynamic row-`15` slice replay sidecar
+
 ## Main Takeaways
 
 ### What improved
@@ -234,6 +257,17 @@ Important refinement after the completed wave-6 row-specific closure closeout:
 8. merge the reusable refreshed outputs only after the residual FAIL band is
    eliminated and the local repair map is confirmed
 
+Latest refinement after wave-7:
+
+1. do not spend more compute on another generic shared setup
+2. keep `F085_sub2_s100` as the broad default and let the local map carry the
+   remaining closure work
+3. use exact historical non-`FAIL` anchors as the geometry baseline for rows
+   `135`, `174`, and `269`
+4. use `init_mode = vb` as the new high-value static closure axis
+5. replay the exact TT5000 dynamic slice rescue for row `15` before trying any
+   broader dynamic alternatives
+
 ## Updated Remaining Comparison Debt
 
 The current goal is not to relaunch the full `291`-row campaign. The current
@@ -255,6 +289,13 @@ Minimal active scientific debt after the completed wave-6 closeout:
 - `4` blocking cases total (`3` static blocking rows + `1` dynamic sidecar)
 - plus `3` static non-`FAIL` stability rows
 - not `7`
+
+Minimal active scientific debt after the completed wave-7 closeout:
+
+- still `4` blocking cases total (`3` static + `1` dynamic)
+- plus only `1` warn-only confirmation row that still benefits from fresh
+  provenance:
+  - row `87`
 
 ## Comparison-Ready Acceptance Rule
 
@@ -283,12 +324,14 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 ### Phase B: Confirm the local static repair map
 
-- [ ] confirm only the `3` non-`FAIL` stability rows under the promoted `v3`
-      map:
-      `135`, `190`, `206`
+- [ ] keep `F085_sub2_s100` as the broad static default baseline
+- [ ] confirm only the single warn-only row that still benefits from fresh
+      provenance:
+      `87`
 - [ ] probe only the `3` blocking static rows with row-local closure programs:
-      `87`, `174`, `269`
-- [ ] allow a very small execution-control lane only on those blocking rows
+      `135`, `174`, `269`
+- [ ] use only exact short rescue-anchor replay plus `vb`-init probes on those
+      rows
 - [ ] preserve separate current RHS-NS and legacy RHS scope labels
 - [ ] do not reopen any broad shared-setup search
 - [ ] preserve deterministic manifests, failure logs, supervisor logs, and
@@ -296,8 +339,10 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 ### Phase C: Keep the dynamic tail debt separate but active
 
-- [ ] open a narrow row-`15` current-HEAD refresh/repair lane
-- [ ] do not let row `15` block preparation of the larger static rerun
+- [ ] open a narrow row-`15` replay lane around the exact TT5000 historical
+      `slice_wave2_20260319` rescue
+- [ ] add at most one mild longer slice control next to that replay
+- [ ] do not let row `15` trigger another broad dynamic search
 - [ ] treat row `15` as the only remaining dynamic debt; do not relaunch rows
       `5` or `57`
 
