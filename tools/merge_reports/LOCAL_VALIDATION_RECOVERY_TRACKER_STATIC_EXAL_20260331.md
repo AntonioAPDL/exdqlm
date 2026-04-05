@@ -1933,3 +1933,48 @@ Updated immediate decision:
 3. build the merged final campaign selection table
 4. regenerate campaign-level health and comparison tables
 5. only reopen tuning if the merge/provenance audit reveals a real regression
+
+## 12.13 Comparison-ready assembly planning checkpoint (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/comparison_ready_assembly_plan_20260405.md`
+- `reports/static_exal_tuning_20260405/failband_wave11_closeout_and_comparison_ready_handoff_20260405.md`
+- `tools/merge_reports/LOCAL_validation_campaign_promoted_local_map_v9_20260405.csv`
+
+Planning conclusions:
+
+- the repair phase is complete at the promoted row-best level
+- the next work is an assembly problem, not a tuning problem
+- the final merged campaign must reconcile exactly to:
+  - `218` reusable historical artifacts
+  - `42` refreshed static non-`FAIL` rows
+  - `21` residual-band broad-default rows
+  - `9` promoted local static overrides
+  - `1` dynamic local override
+- the exact final accounting invariant is therefore:
+  - `218 + 42 + 21 + 9 + 1 = 291`
+
+Most important execution findings:
+
+1. the stale static debt is already defined cleanly by:
+   - `LOCAL_targeted_manifest_current_static_rhsns_20260329.csv`
+   - `LOCAL_targeted_manifest_legacy_rhs_refresh_20260329.csv`
+2. the refresh health pools already expose compact row-level health schemas and
+   should be joined by normalized row metadata plus scope, not by ad hoc file
+   names
+3. the reusable `218`-case pool likely still needs a canonical materialized
+   inventory table before final merge
+4. the safest final merge path is:
+   - freeze map
+   - build manifest registry
+   - materialize reusable inventory
+   - build merged selection table
+   - regenerate campaign health
+   - run provenance audit
+
+Updated immediate decision:
+
+1. implement the comparison-ready assembly scripts next
+2. do not reopen tuning unless the assembly audit reveals a real regression
+3. keep the promoted campaign map v9 as the scientific decision baseline

@@ -62,6 +62,10 @@ The completed wave-11 closeout and comparison-ready handoff now live in:
 
 - `reports/static_exal_tuning_20260405/failband_wave11_closeout_and_comparison_ready_handoff_20260405.md`
 
+The comparison-ready assembly plan now lives in:
+
+- `reports/static_exal_tuning_20260405/comparison_ready_assembly_plan_20260405.md`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.
