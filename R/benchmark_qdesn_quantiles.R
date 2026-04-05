@@ -135,8 +135,9 @@ bench_qdesn_rhs_diagnostics_row <- function(qfit, p0, candidate_cfg, seed = NA_i
   fit_beta_prior <- fit_exal$beta_prior %||% list(type = "ridge", hypers = list(), state = list())
   beta_type <- as.character(fit_beta_prior$type %||% "ridge")[1L]
   qbeta_mean <- as.numeric(fit_exal$qbeta$m %||% numeric(0))
+  is_rhs_family <- beta_type %in% c("rhs", "rhs_ns")
 
-  if (!identical(beta_type, "rhs")) {
+  if (!is_rhs_family) {
     return(data.table::data.table(
       quantile_p = as.numeric(p0),
       quantile_label = bench_qdesn_prob_label(p0),
@@ -165,7 +166,7 @@ bench_qdesn_rhs_diagnostics_row <- function(qfit, p0, candidate_cfg, seed = NA_i
 
   beta_state <- fit_beta_prior$state %||% list()
   beta_hypers <- fit_beta_prior$hypers %||% list()
-  beta_obj <- beta_prior("rhs", rhs = beta_hypers)
+  beta_obj <- beta_prior(beta_type, rhs = beta_hypers)
   p_dim <- length(qbeta_mean)
   prec <- tryCatch(beta_obj$expected_prec(beta_state, p_dim), error = function(...) rep(NA_real_, p_dim))
 
@@ -227,7 +228,7 @@ bench_qdesn_rhs_diagnostics_row <- function(qfit, p0, candidate_cfg, seed = NA_i
 
 bench_qdesn_rhs_summary_row <- function(rhs_diagnostics) {
   dt <- data.table::as.data.table(rhs_diagnostics)
-  rhs_dt <- dt[beta_prior_type == "rhs"]
+  rhs_dt <- dt[beta_prior_type %chin% c("rhs", "rhs_ns")]
   if (!nrow(rhs_dt)) {
     return(list(
       rhs_quantile_rows = 0L,

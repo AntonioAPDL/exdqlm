@@ -36,15 +36,23 @@ the QDESN analog with `exal/al x vb/mcmc x ridge/rhs_ns`.
 Static cross-study status is now more concrete:
 
 - Wave 1 broad shared-setup launch established the source baseline at `66/72` successful roots;
-- the remaining hard FAIL band is exactly the six
-  `static_shrink x laplace x tt=1000` roots;
-- the broad `rhs_ns` debt is now tracked separately as comparison-eligibility debt, not as a
-  reason to relaunch the full study surface;
-- the active follow-up is a debt-only wave:
+- Wave 2 then completed Stage 1 and was intentionally stopped before Stage 2;
+- Wave-2 Stage 1 showed that the original hard-fail probe roots are rescueable and that
+  `D410_ridge_rescue_reference` is the best completed local ridge rescue clue;
+- the remaining static cross-study debt is now better understood as three fit-fail buckets:
+  - `66` `rhs_ns` VB diagnostics-path FAIL rows,
+  - `24` ridge `exal/mcmc` FAIL rows,
+  - `40` `rhs_ns mcmc` FAIL rows;
+- the active follow-up is now a local fit-fail closure wave, not the older two-stage
+  hard-root/compare-any debt frame:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave2_debt_resolution_20260404.md`
-  - `config/validation/qdesn_static_exdqlm_crossstudy_debt_wave_manifest.yaml`
-  - `scripts/run_qdesn_static_exdqlm_crossstudy_debt_wave.R`
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+- the old `rhs_ns` VB diagnostics-path false-FAIL issue is now patched and smoke-validated via
+  `rhs_trace.rds` fallback recovery, so the remaining cross-study work is increasingly real
+  stage-local stability debt rather than bookkeeping debt
 
 Important boundary:
 

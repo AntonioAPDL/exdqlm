@@ -40,23 +40,31 @@ Current cross-study read:
 
 - the first broad shared-setup launch established a usable source baseline at `66/72` successful
   roots;
-- the remaining hard root FAIL band is only the six
-  `static_shrink x laplace x tt=1000` roots;
-- the remaining broad debt is mostly `rhs_ns` comparison-eligibility debt;
-- the correct next move is a debt-only rerun, not another whole-surface relaunch.
+- the older Wave-2 debt-only frame was useful, but Wave-2 Stage 1 changed the problem definition;
+- the real remaining static debt is now split into:
+  - `66` `rhs_ns` VB diagnostics-path FAIL rows,
+  - `24` ridge `exal/mcmc` FAIL rows,
+  - `40` `rhs_ns mcmc` FAIL rows;
+- the `rhs_ns` VB diagnostics-path issue is now patched and representative-smoke validated, so the
+  first stage of the fit-fail closure wave is now a fresh-bucket confirmation step rather than an
+  open bug hunt;
+- the correct next move is therefore a local fit-fail closure wave with the shared baseline kept as
+  default, not another whole-surface relaunch and not a search for one generic rescue profile.
 
 Debt-wave assets:
 
 - broad-launch report:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-- debt-wave plan:
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave2_debt_resolution_20260404.md`
-- debt-wave manifest:
-  - `config/validation/qdesn_static_exdqlm_crossstudy_debt_wave_manifest.yaml`
-- debt-wave launcher:
-  - `scripts/run_qdesn_static_exdqlm_crossstudy_debt_wave.R`
-- debt-wave healthcheck:
-  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_debt_wave.R`
+- Wave-2 Stage-1 closeout:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
+- fit-fail closure plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
+- fit-fail closure manifest:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
+- fit-fail closure launcher:
+  - `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+- fit-fail closure healthcheck:
+  - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
 
 Important boundary:
 

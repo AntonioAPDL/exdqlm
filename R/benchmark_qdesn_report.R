@@ -178,7 +178,7 @@ bench_qdesn_write_report <- function(run_dir) {
     data.table::data.table()
   }
   rhs_overall <- if (nrow(rhs_diagnostics)) {
-    rhs_diagnostics[beta_prior_type == "rhs", .(
+    rhs_diagnostics[beta_prior_type %chin% c("rhs", "rhs_ns"), .(
       rhs_rows = .N,
       rhs_collapse_n = sum(collapse_flag, na.rm = TRUE),
       rhs_near_bound_n = sum(near_bound_flag, na.rm = TRUE),

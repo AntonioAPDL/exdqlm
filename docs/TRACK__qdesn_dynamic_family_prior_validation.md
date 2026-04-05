@@ -24,13 +24,16 @@ Static cross-study update:
 
 - the initial broad shared-setup launch established the source baseline at `66/72` successful
   roots;
-- the remaining hard FAIL band is only the six
-  `static_shrink x laplace x tt=1000` roots;
-- the remaining broader debt is `rhs_ns` comparison-eligibility debt;
-- the active follow-up is now a debt-only static wave, not another broad static relaunch:
+- Wave-2 Stage 1 then completed and showed that the original hard-fail probe roots are rescueable;
+- the remaining static debt is now split into fit-fail buckets rather than one generic debt set:
+  - `66` `rhs_ns` VB diagnostics-path FAIL rows,
+  - `24` ridge `exal/mcmc` FAIL rows,
+  - `40` `rhs_ns mcmc` FAIL rows;
+- the active follow-up is now a local fit-fail closure static wave, not another broad static relaunch:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave2_debt_resolution_20260404.md`
-  - `config/validation/qdesn_static_exdqlm_crossstudy_debt_wave_manifest.yaml`
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
 
 Important boundary:
 

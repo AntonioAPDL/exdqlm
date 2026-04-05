@@ -21,6 +21,160 @@
   hit[[1L]]
 }
 
+.pipeline_parse_prob_from_trace_name <- function(x) {
+  x <- as.character(x %||% NA_character_)[1L]
+  if (is.na(x) || !nzchar(x)) return(NA_real_)
+  x <- sub("^p=", "", x)
+  suppressWarnings(as.numeric(x))
+}
+
+.pipeline_rhs_trace_row_to_summary <- function(trace_row, quantile_p = NA_real_, logtau_grid = numeric(0)) {
+  trace_row <- as.data.frame(trace_row, stringsAsFactors = FALSE)
+  if (!nrow(trace_row)) return(NULL)
+  last <- trace_row[nrow(trace_row), , drop = FALSE]
+
+  get_num <- function(col, default = NA_real_) {
+    if (!(col %in% names(last))) return(default)
+    out <- suppressWarnings(as.numeric(last[[col]][1L]))
+    if (length(out) && is.finite(out)) out else default
+  }
+  get_chr <- function(col, default = NA_character_) {
+    if (!(col %in% names(last))) return(default)
+    out <- as.character(last[[col]][1L] %||% default)
+    if (length(out)) out else default
+  }
+
+  log_tau_last <- get_num("log_tau")
+  tau_last <- get_num("tau")
+  if (!is.finite(log_tau_last) && is.finite(tau_last) && tau_last > 0) {
+    log_tau_last <- log(tau_last)
+  }
+  grid_vals <- suppressWarnings(as.numeric(logtau_grid))
+  grid_vals <- grid_vals[is.finite(grid_vals)]
+  near_bound_flag <- FALSE
+  if (is.finite(log_tau_last) && length(grid_vals)) {
+    near_bound_flag <- isTRUE(abs(log_tau_last - min(grid_vals)) < 1e-3)
+  }
+  clip_side <- tolower(get_chr("log_tau_clip_side", ""))
+  if (!near_bound_flag && nzchar(clip_side)) {
+    near_bound_flag <- clip_side %in% c("lower", "lo", "left")
+  }
+
+  d_rhs <- get_num("D_rhs")
+  n_small_1e4 <- get_num("n_beta_abs_lt_1e-04")
+  beta_small_frac_1e4 <- if (is.finite(d_rhs) && d_rhs > 0 && is.finite(n_small_1e4)) {
+    n_small_1e4 / d_rhs
+  } else {
+    NA_real_
+  }
+  E_invV_med_last <- get_num("E_invV_med", get_num("invV_med"))
+  beta_l2_last <- get_num("beta_l2")
+
+  collapse_flag_bound <- isTRUE(near_bound_flag) &&
+    isTRUE(is.finite(E_invV_med_last) && E_invV_med_last > 1e8) &&
+    isTRUE(is.finite(beta_l2_last) && beta_l2_last < 1e-3)
+  collapse_flag_shrink <- isTRUE(is.finite(E_invV_med_last) && E_invV_med_last > 1e6) &&
+    isTRUE(is.finite(beta_l2_last) && beta_l2_last < 1e-2) &&
+    isTRUE(is.finite(beta_small_frac_1e4) && beta_small_frac_1e4 > 0.95)
+  collapse_flag <- isTRUE(collapse_flag_bound) || isTRUE(collapse_flag_shrink)
+
+  unhealthy_reason <- if (isTRUE(collapse_flag_shrink)) {
+    "rhs_shrinkage_collapse"
+  } else if (isTRUE(collapse_flag_bound)) {
+    "rhs_tau_lower_bound_collapse"
+  } else {
+    ""
+  }
+  root_cause_context <- sprintf(
+    "source=rhs_trace_fallback; tau=%.6g; E_invV_med=%.6g; beta_l2=%.6g; beta_small_frac_1e4=%.6g; near_bound=%s; collapse_bound=%s; collapse_shrink=%s",
+    as.numeric(tau_last),
+    as.numeric(E_invV_med_last),
+    as.numeric(beta_l2_last),
+    as.numeric(beta_small_frac_1e4),
+    if (isTRUE(near_bound_flag)) "TRUE" else "FALSE",
+    if (isTRUE(collapse_flag_bound)) "TRUE" else "FALSE",
+    if (isTRUE(collapse_flag_shrink)) "TRUE" else "FALSE"
+  )
+
+  data.frame(
+    quantile_p = as.numeric(quantile_p),
+    rhs_trace_available = TRUE,
+    tau_last = as.numeric(tau_last),
+    log_tau_last = as.numeric(log_tau_last),
+    near_bound_flag = as.logical(near_bound_flag),
+    E_invV_med_last = as.numeric(E_invV_med_last),
+    beta_l2_last = as.numeric(beta_l2_last),
+    beta_small_frac_1e4_last = as.numeric(beta_small_frac_1e4),
+    collapse_flag = as.logical(collapse_flag),
+    collapse_flag_bound = as.logical(collapse_flag_bound),
+    collapse_flag_shrink = as.logical(collapse_flag_shrink),
+    unhealthy_flag = as.logical(collapse_flag),
+    unhealthy_reason = as.character(unhealthy_reason),
+    root_cause_context = as.character(root_cause_context),
+    stringsAsFactors = FALSE
+  )
+}
+
+.pipeline_recover_rhs_run_summary_from_artifacts <- function(out_dir) {
+  rhs_trace_path <- file.path(out_dir, "models", "rhs_trace.rds")
+  rhs_diag_summary_path <- file.path(out_dir, "models", "rhs_diag_summary.txt")
+
+  if (file.exists(rhs_trace_path)) {
+    rhs_trace_obj <- tryCatch(readRDS(rhs_trace_path), error = function(...) NULL)
+    trace_list <- rhs_trace_obj$traces %||% NULL
+    if (is.list(trace_list) && length(trace_list)) {
+      rows <- lapply(seq_along(trace_list), function(i) {
+        trace_entry <- trace_list[[i]]
+        quantile_p <- NA_real_
+        if (length(rhs_trace_obj$p_vec) >= i) {
+          quantile_p <- suppressWarnings(as.numeric(rhs_trace_obj$p_vec[[i]]))
+        }
+        if (!is.finite(quantile_p) && !is.null(names(trace_list))) {
+          quantile_p <- .pipeline_parse_prob_from_trace_name(names(trace_list)[i])
+        }
+        .pipeline_rhs_trace_row_to_summary(
+          trace_row = trace_entry$trace %||% NULL,
+          quantile_p = quantile_p,
+          logtau_grid = trace_entry$logtau_grid %||% numeric(0)
+        )
+      })
+      rows <- rows[!vapply(rows, is.null, logical(1))]
+      if (length(rows)) {
+        return(do.call(rbind, rows))
+      }
+    }
+  }
+
+  if (file.exists(rhs_diag_summary_path)) {
+    lines <- readLines(rhs_diag_summary_path, warn = FALSE)
+    prob_lines <- grep("^p=", lines, value = TRUE)
+    if (!length(prob_lines)) prob_lines <- NA_character_
+    rows <- lapply(prob_lines, function(line) {
+      quantile_p <- suppressWarnings(as.numeric(sub("^p=([^ ]+).*$", "\\1", as.character(line))))
+      data.frame(
+        quantile_p = quantile_p,
+        rhs_trace_available = TRUE,
+        tau_last = NA_real_,
+        log_tau_last = NA_real_,
+        near_bound_flag = NA,
+        E_invV_med_last = NA_real_,
+        beta_l2_last = NA_real_,
+        beta_small_frac_1e4_last = NA_real_,
+        collapse_flag = NA,
+        collapse_flag_bound = NA,
+        collapse_flag_shrink = NA,
+        unhealthy_flag = FALSE,
+        unhealthy_reason = "",
+        root_cause_context = "source=rhs_diag_summary_fallback",
+        stringsAsFactors = FALSE
+      )
+    })
+    return(do.call(rbind, rows))
+  }
+
+  NULL
+}
+
 .pipeline_score_value <- function(score_tbl, split, column) {
   if (is.null(score_tbl) || !nrow(score_tbl) || !(column %in% names(score_tbl))) {
     return(NA_real_)
@@ -120,6 +274,9 @@ collect_pipeline_run_summary <- function(out_dir) {
   timing_rds <- if (file.exists(timing_rds_path)) readRDS(timing_rds_path) else NULL
   forecast_objects <- if (file.exists(forecast_objects_path)) readRDS(forecast_objects_path) else NULL
   rhs_run_summary <- .pipeline_read_csv_if_exists(rhs_run_summary_path)
+  if (is.null(rhs_run_summary)) {
+    rhs_run_summary <- .pipeline_recover_rhs_run_summary_from_artifacts(out_dir)
+  }
 
   score_path <- .pipeline_pick_existing(c(
     file.path(out_dir, "tables", "scores_summary.csv"),
