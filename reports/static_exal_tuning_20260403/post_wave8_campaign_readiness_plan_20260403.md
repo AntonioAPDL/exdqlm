@@ -590,7 +590,16 @@ comparison-ready and publication-ready validation summary.
    - the unresolved dynamic `24` are not all future reruns; every one already
      has at least one model-matched non-baseline candidate artifact on disk and
      should go through a harvest/rescoring phase first
-9. the correct next implementation step is no longer publication reporting on
+9. the corrected `288` recovery should also explicitly inherit the best
+   operational rules from the repair campaign:
+   - promote improved results when they clearly beat the prior accepted option
+   - keep a default baseline plus local overrides rather than forcing one
+     universal winner
+   - focus only on remaining failed / unstable / provenance-blocked cells
+   - update tracker/reporting docs before any new launch
+   - validate manifests and launch scripts in prepare-only mode before any
+     overnight run
+10. the correct next implementation step is no longer publication reporting on
    the hybrid `291` table; it is:
    - freeze the canonical original-`288` registry
    - build the corrected carry-forward table with duplicate-key truth rebuild

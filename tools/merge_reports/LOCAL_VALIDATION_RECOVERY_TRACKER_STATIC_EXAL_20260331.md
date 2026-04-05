@@ -2136,3 +2136,13 @@ Updated immediate decision:
    - a mechanical verification of the `264 healthy / 24 unresolved` accounting
 5. only after that, design the dynamic-only repair program for the remaining
    original dynamic gaps
+
+Operational rule carry-forward for the next phase:
+
+1. keep the accepted baseline as the default policy and promote only proven
+   improvements
+2. allow local scenario-specific overrides where the default is not enough
+3. spend no effort reopening broad solved regions
+4. require tracker/reporting updates before any new launch
+5. require prepare-only validation, clean commit, and push before any overnight
+   dynamic repair run

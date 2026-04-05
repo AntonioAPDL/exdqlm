@@ -24,6 +24,67 @@ The goal from this point onward is:
 4. plan the remaining work against the true original target before launching
    any new repair runs
 
+## Operational Principles Carried Forward From The Repair Campaign
+
+The corrected original-`288` recovery should explicitly preserve the best
+operational habits from the repair phase.
+
+### 1. Promote improvements, do not reset blindly
+
+If a completed result clearly improves on the current accepted baseline for a
+given original study cell, then it should be promoted and tracked as the new
+working baseline for that cell.
+
+This should be done at the smallest level that is scientifically defensible:
+
+- global default only if a broad improvement is real
+- otherwise at the scenario or row-local level
+
+### 2. Keep a default baseline plus local overrides
+
+The right mental model is no longer "one universal tuning must win
+everywhere."
+
+The corrected original-`288` assembly should use:
+
+- one default baseline policy wherever that remains healthy
+- local scenario-specific overrides where the default is not enough
+
+This is already how the repaired static campaign succeeded, and the dynamic
+recovery phase should follow the same philosophy.
+
+### 3. Focus only on remaining debt
+
+No future work should reopen broad solved regions by default.
+
+The only acceptable targets for new work are:
+
+- original study cells that still map to `FAIL`
+- unstable cells whose repaired carry-forward status is not yet trustworthy
+- provenance or canonicalization gaps that block final signoff
+
+### 4. Prefer reuse and learning value over brute-force reruns
+
+Before any new run is approved, the branch should exhaust higher-value options:
+
+1. reuse already healthy artifacts
+2. harvest already completed candidate artifacts
+3. rescore and canonicalize those candidates against the original registry
+4. launch new compute only for cells that still have no healthy selected option
+
+### 5. Keep tracker/reporting docs current before launches
+
+Before any future dynamic repair program is launched, the branch docs should
+state clearly:
+
+- what improved
+- what still fails
+- which ideas worked best
+- which ideas did not help
+- which directions now have the highest expected value
+
+This should be treated as part of execution discipline, not as optional cleanup.
+
 ## Skeptical Audit Refinement
 
 The first realignment result has now been re-audited under a stricter rule:
@@ -308,6 +369,50 @@ Important skeptical-audit refinement:
 - therefore the next dynamic phase should begin with artifact harvest and
   rescoring, not immediate reruns
 
+## What The Next Broad-But-Disciplined Experiment Program Should Mean Here
+
+The next experiment program should be broad only within the real remaining
+problem space.
+
+That means:
+
+- broad across the unresolved dynamic `24`
+- broad across already-existing dynamic candidate artifacts that were never
+  folded back into the original registry
+- broad across the most promising remaining dynamic tuning corridors
+
+It should **not** mean:
+
+- reopening static repair families that are already effectively closed
+- rerunning the full original `288`
+- re-testing dynamic directions that are already obviously dominated
+- treating the hybrid `291` campaign as if it were the final target universe
+
+The correct search order is:
+
+1. corrected registry and carry-forward assembly
+2. dynamic candidate harvest and rescoring
+3. targeted dynamic-only reruns for the true leftovers
+
+## Broad Default Versus Local Override Policy For The Corrected 288
+
+When the corrected `288` carry-forward table is built, each selected row should
+be assigned one of these roles:
+
+- `default_baseline`
+- `local_override`
+- `baseline_keep`
+- `repaired_carry_forward`
+
+This makes future decision-making cleaner:
+
+- if a candidate only helps one original dynamic cell, it should be treated as
+  a local override, not as a broad baseline change
+- if a candidate helps a coherent stratum of unresolved dynamic cells, it may
+  be promoted to a broader dynamic baseline for that stratum
+- promotion should always be based on actual improvement relative to the
+  currently accepted option for the affected original cells
+
 ## What We Should Treat As The New Ground Truth
 
 From this point onward, the recovery target should be:
@@ -357,6 +462,12 @@ This distinction matters because:
    - model
    - inference
 3. Verify the registry count is exactly `288`.
+4. Record, for each original key, the currently accepted working baseline
+   source:
+   - untouched baseline keep
+   - repaired carry-forward
+   - local override
+   - unresolved
 
 ### Phase B: Build a corrected carry-forward table
 
@@ -376,6 +487,11 @@ This distinction matters because:
 7. Verify no target key is duplicated.
 8. Verify no artifact is silently reused under conflicting original-baseline
    semantics.
+9. For every original key, record whether the selected row is:
+   - an unchanged baseline keep
+   - a promoted improvement over the baseline
+   - a local override
+   - still unresolved
 
 ### Phase C: Lock down the static side
 
@@ -402,6 +518,9 @@ This distinction matters because:
    - tau
    - horizon
 6. Rank these gaps by likely transfer value from the repaired `291` lessons.
+7. Split the unresolved dynamic cells into:
+   - already-supported by archived candidate artifacts
+   - still lacking any healthy candidate after rescoring
 
 ### Phase E: Harvest dynamic repair candidates before launching anything new
 
@@ -424,20 +543,46 @@ This distinction matters because:
    reruns wherever scientifically defensible.
 5. Only classify a dynamic cell as needing new computation after the carry-
    forward audit is complete.
+6. Update the tracker/reporting docs with a clean pre-launch summary of:
+   - improvements since the prior checkpoint
+   - unresolved dynamic cells that still fail
+   - strongest candidate corridors
+   - clearly weak corridors to exclude
 
 ### Phase F: Plan the remaining dynamic repair program
 
 1. Build a dynamic-only repair manifest against the unresolved original `24`
    cells.
-2. Prioritize the weakest baseline strata first:
+2. Keep the current accepted baseline as the default policy and introduce local
+   scenario-specific dynamic overrides only where needed.
+3. Prioritize the weakest baseline strata first:
    - `exdqlm mcmc`
    - `dqlm mcmc`
    - then the small `exdqlm vb` residue
-3. Keep the static side frozen while the dynamic repair work proceeds.
-4. Use the harvested existing dynamic candidate inventory to prune the rerun
+4. Keep the static side frozen while the dynamic repair work proceeds.
+5. Use the harvested existing dynamic candidate inventory to prune the rerun
    manifest before any new compute is scheduled.
-5. Design the dynamic repair lane so that every new run maps directly back to
+6. Design the dynamic repair lane so that every new run maps directly back to
    one original `288` registry key.
+7. Exclude clearly weak or dominated dynamic families/configurations from the
+   rerun manifest when the branch already contains enough evidence that they are
+   low-value.
+8. Optimize for learning value per unit of compute, not raw breadth.
+
+### Phase F.1: Pre-launch execution gate
+
+No overnight dynamic repair run should be launched until all of the following
+are true:
+
+1. tracker and reporting docs have been updated with the latest summary
+2. the unresolved dynamic manifest is regenerated from the corrected original
+   registry, not from ad hoc row lists
+3. launcher, supervisor, and monitor scripts are updated or regenerated as
+   needed
+4. prepare-only validation succeeds
+5. evaluator logic confirms the expected unresolved row count and scope
+6. the branch is committed, pushed, and clean before launch
+7. the selected experiment scope excludes already weak or redundant directions
 
 ### Phase G: Rebuild final reporting on the corrected target
 
@@ -470,9 +615,13 @@ The next correct implementation step is:
 
 1. build the canonical original-`288` registry
 2. build the corrected carry-forward table
-3. verify the `264 healthy / 24 unresolved` accounting mechanically
-4. only after that, design the dynamic-only repair program for the residual
-   `24`
+3. canonicalize duplicated static-shrink truth from source evidence
+4. verify the `264 healthy / 24 unresolved` accounting mechanically
+5. harvest and rescore the existing dynamic archive against the unresolved
+   original dynamic keys
+6. update the tracker/reporting docs with the new dynamic-state summary
+7. only after that, design the dynamic-only repair program for the true
+   residual unresolved cells
 
 That is the cleanest and least risky way to untangle the current hybrid state
 and get back to the true publication target.
