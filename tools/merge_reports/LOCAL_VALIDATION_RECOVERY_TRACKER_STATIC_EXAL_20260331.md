@@ -1712,3 +1712,60 @@ Updated immediate decision:
    - exact TT5000 slice replay
    - one mild longer slice control
 5. treat this as a final closure phase, not another discovery wave
+
+## 12.9 Wave-8 static root-cause checkpoint and wave-9 exact-replay program (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/failband_wave8_rootcause_and_wave9_exact_replay_noneinit_program_20260405.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave8_failures_20260405_010431_8030_1967051.log`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave9_schedule_20260405.csv`
+
+Main root-cause finding:
+
+- the static wave-8 stop was caused by both:
+  - a scientific crash lane:
+    all six `vb` probes on rows `135` and `174` failed immediately with
+    `Static MCMC state invalid (iter=2): static_exal chi has 1000 non-finite values`
+  - an orchestration bug:
+    the static launcher/supervisor path allowed those crashed rows to remain
+    `MISSING` while still exiting as if the stage had completed
+
+Root-cause fix now applied:
+
+- the static launcher now runs the evaluator after each stage and exits
+  non-zero if `missing > 0`
+- this prevents another overnight static lane from silently "finishing" with
+  missing rows
+
+Scientific implications:
+
+- `init_mode = vb` is now explicitly low-value for rows `135` and `174`
+- row `269` is different:
+  `F0845_sub2_s100_vb` improved it from `FAIL` to `WARN` and should now be the
+  promoted local anchor
+- row `87` is now understood as a seed-stability problem, not a missing
+  geometry-corridor problem
+
+Promoted static baseline v5:
+
+- broad default:
+  - `F085_sub2_s100`
+- row-local promotions:
+  - `87` -> exact-history `F085_sub2_s1025` replay corridor
+  - `190` -> `F0825_sub2_s100_rwlong`
+  - `206` -> `F0825_sub2_s1025_rwlong`
+  - `269` -> `F0845_sub2_s100_vb`
+
+Updated immediate decision:
+
+1. keep `F085_sub2_s100` as the broad static default baseline
+2. do **not** reopen any generic shared-setup search
+3. leave the dynamic row-`15` slice sidecar running
+4. open a wave-9 static closure lane with:
+   - exact historical seed replay on row `87`
+   - exact historical short-anchor replay plus `init_mode = none` on rows
+     `135` and `174`
+   - confirmation / hardening of the promoted row-`269` rescue
+5. treat rows `135`, `174`, and dynamic row `15` as the remaining true
+   blocking debts, with `87` and `269` as unstable/promoted local exceptions

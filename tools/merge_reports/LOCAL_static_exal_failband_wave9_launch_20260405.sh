@@ -3,10 +3,10 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 out_dir="$repo_root/tools/merge_reports"
-prepare_script="$out_dir/LOCAL_static_exal_failband_wave8_prepare_20260405.R"
-evaluate_script="$out_dir/LOCAL_static_exal_failband_wave8_evaluate_20260405.R"
+prepare_script="$out_dir/LOCAL_static_exal_failband_wave9_prepare_20260405.R"
+evaluate_script="$out_dir/LOCAL_static_exal_failband_wave9_evaluate_20260405.R"
 runner="$out_dir/LOCAL_static_exal_case_runner_20260323.R"
-rows_tsv="$out_dir/LOCAL_static_exal_failband_wave8_rows_20260405.tsv"
+rows_tsv="$out_dir/LOCAL_static_exal_failband_wave9_rows_20260405.tsv"
 
 mode="launch"
 parallel_jobs="4"
@@ -67,7 +67,7 @@ if [[ ! -s "$rows_tsv" ]]; then
   exit 2
 fi
 
-launch_rows_tsv="$(mktemp "/tmp/exdqlm_static_failband_wave8_rows_XXXX.tsv")"
+launch_rows_tsv="$(mktemp "/tmp/exdqlm_static_failband_wave9_rows_XXXX.tsv")"
 trap 'rm -f "$launch_rows_tsv"' EXIT
 
 awk -F'\t' -v stage_filter="$stage_filter" '
@@ -87,8 +87,8 @@ if [[ ! -s "$launch_rows_tsv" ]]; then
   exit 0
 fi
 
-manifest="$out_dir/LOCAL_static_exal_failband_wave8_manifest_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.csv"
-fail_log="$out_dir/LOCAL_static_exal_failband_wave8_failures_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.log"
+manifest="$out_dir/LOCAL_static_exal_failband_wave9_manifest_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.csv"
+fail_log="$out_dir/LOCAL_static_exal_failband_wave9_failures_$(date '+%Y%m%d_%H%M%S')_${RANDOM}_$$.log"
 manifest_lock="${manifest}.lock"
 fail_log_lock="${fail_log}.lock"
 echo "ts,stage,candidate_id,geometry_candidate,scope_label,row_id,run_root,root_kind,family,tt,tau_label,variant_tag,gamma_substeps,p_global_eta_jump,global_eta_jump_scale,seed,n_burn,n_mcmc,thin,mh_proposal,mh_adapt,slice_width,slice_max_steps,init_mode,mcmc_base_path,run_config_path,prior_template_path,beta_prior_override,candidate_path,runner_rc,log_path" > "$manifest"
@@ -141,7 +141,7 @@ run_one() {
   local init_mode="${27}"
   local candidate_path="${28}"
 
-  local log_path="$out_dir/LOCAL_static_exal_failband_wave8_${candidate_id}_${scope_label}_row${row_id}.log"
+  local log_path="$out_dir/LOCAL_static_exal_failband_wave9_${candidate_id}_${scope_label}_row${row_id}.log"
   local cmd=(Rscript "$runner"
     --queue_id="${row_id}"
     --priority_label="${stage}_${candidate_id}"
@@ -203,7 +203,7 @@ xargs_rc=$?
 set -e
 
 if [[ "$xargs_rc" -ne 0 && "$keep_going" == "0" ]]; then
-  echo "failband wave-8 launch aborted due to non-zero exit (rc=$xargs_rc)"
+  echo "failband wave-9 launch aborted due to non-zero exit (rc=$xargs_rc)"
   exit "$xargs_rc"
 fi
 
@@ -216,11 +216,11 @@ summary_line="$(printf '%s\n' "$eval_output" | awk '/^SUMMARY /{print; exit}')"
 missing_now="$(extract_summary_field "$summary_line" "missing")"
 
 if [[ -z "${missing_now:-}" ]]; then
-  echo "unable to parse evaluator summary for static failband wave-8" >&2
+  echo "unable to parse evaluator summary for static failband wave-9" >&2
   exit 4
 fi
 
 if [[ "${missing_now}" != "0" ]]; then
-  echo "static failband wave-8 stage is incomplete: ${missing_now} rows remain MISSING after launch" >&2
+  echo "static failband wave-9 stage is incomplete: ${missing_now} rows remain MISSING after launch" >&2
   exit 5
 fi
