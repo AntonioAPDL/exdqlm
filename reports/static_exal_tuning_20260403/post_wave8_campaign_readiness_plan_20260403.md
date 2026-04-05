@@ -289,6 +289,24 @@ Latest refinement after the wave-8 static root-cause checkpoint (2026-04-05):
      `174`
    - confirmation / hardening of the promoted row-`269` local rescue
 
+Latest refinement after the completed wave-9 closeout (2026-04-05):
+
+1. wave-9 closed three of the four active static endgame rows:
+   - row `135` -> `PASS`
+   - row `174` -> `WARN`
+   - row `269` -> `WARN`
+2. dynamic row `15` is now resolved to `WARN / healthy = TRUE` under the exact
+   TT5000 slice replay
+3. the campaign now has only one remaining blocking case:
+   - static row `87`
+4. row `87` is not a broad-family problem; it is now a one-row chain-quality
+   stabilization problem inside the tiny `F085` / `F0855` scale-`1.025`
+   micro-band
+5. the next and likely last credible search shape is:
+   - exact anchor confirmations,
+   - slightly longer confirmations,
+   - and a tiny micro-band expansion on row `87` only
+
 ## Updated Remaining Comparison Debt
 
 The current goal is not to relaunch the full `291`-row campaign. The current
@@ -301,11 +319,12 @@ failing debt.
 | previously reusable campaign artifacts | 218 | reusable now | these do not require rerun if provenance is preserved |
 | resolved residual-band static rows under `F085_sub2_s100` | 21 | reusable broad default coverage | these no longer need active repair search |
 | promoted local repair baseline v3 rows | 9 | locally resolved from completed evidence | these define the active row-specific static baseline |
-| static blocking core | 2 | still need direct local repair work | rows `135`, `174` |
-| static unstable local exception | 1 | still needs exact-history replay confirmation | row `87` |
-| promoted warn-only local rescue | 1 | still needs hardening under the promoted map | row `269` |
-| static stability/provenance rows | 2 | non-`FAIL`, but still need no immediate new search | rows `190`, `206` |
-| dynamic tail row `15` | 1 | current-HEAD refresh still `FAIL` | only remaining dynamic unresolved row |
+| static blocking core | 0 | no longer blocking after wave-9 | none |
+| static unstable local exception | 1 | still needs final closure | row `87` |
+| promoted warn-only local rescues | 2 | now reusable under the active local map | rows `174`, `269` |
+| promoted local PASS | 1 | now reusable under the active local map | row `135` |
+| static stability/provenance rows | 2 | non-`FAIL`, no new search needed now | rows `190`, `206` |
+| dynamic tail row `15` | 1 | resolved to `WARN` | reusable resolved sidecar |
 
 Minimal active scientific debt after the completed wave-6 closeout:
 
@@ -313,17 +332,12 @@ Minimal active scientific debt after the completed wave-6 closeout:
 - plus `3` static non-`FAIL` stability rows
 - not `7`
 
-Minimal active scientific debt after the wave-8 static root-cause checkpoint:
+Minimal active scientific debt after the completed wave-9 closeout:
 
-- still `5` active cases total
-  - `4` static row-local items:
-    - `87`
-    - `135`
-    - `174`
-    - `269`
-  - `1` dynamic sidecar:
-    - row `15`
-- but only `3` static rows are still outright `FAIL`
+- only `1` blocking case remains:
+  - static row `87`
+- dynamic row `15` is now resolved to `WARN`
+- rows `135`, `174`, and `269` are now resolved to non-`FAIL`
 
 ## Comparison-Ready Acceptance Rule
 
@@ -353,15 +367,13 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 ### Phase B: Confirm the local static repair map
 
 - [ ] keep `F085_sub2_s100` as the broad static default baseline
-- [ ] confirm only the single warn-only row that still benefits from fresh
-      provenance / exact-history replay:
+- [ ] probe only the remaining blocking row:
       `87`
-- [ ] probe only the remaining static local-closure rows:
-      `135`, `174`, `269`
 - [ ] use only:
-      exact historical rescue-anchor replay,
-      `init_mode = none` on rows `135` / `174`,
-      and promoted `vb` confirmation on row `269`
+      exact historical anchor confirmation,
+      slightly longer confirmation,
+      and a tiny micro-band expansion around the only surviving row-`87`
+      corridors
 - [ ] preserve separate current RHS-NS and legacy RHS scope labels
 - [ ] do not reopen any broad shared-setup search
 - [ ] preserve deterministic manifests, failure logs, supervisor logs, and
@@ -369,12 +381,11 @@ study: `WARN` can be tolerated, `FAIL` cannot.
 
 ### Phase C: Keep the dynamic tail debt separate but active
 
-- [ ] open a narrow row-`15` replay lane around the exact TT5000 historical
-      `slice_wave2_20260319` rescue
-- [ ] add at most one mild longer slice control next to that replay
+- [ ] keep the resolved row-`15` slice replay as the active dynamic local
+      baseline
 - [ ] do not let row `15` trigger another broad dynamic search
-- [ ] treat row `15` as the only remaining dynamic debt; do not relaunch rows
-      `5` or `57`
+- [ ] do not relaunch rows `5`, `15`, or `57` unless later regression work is
+      required
 
 ### Phase D: Merge and summarize the refreshed campaign
 
@@ -399,11 +410,9 @@ The study is in a materially better place now.
 The open problem is no longer "find a plausible static tuning family" and it is
 no longer "fix the resume chain." The open problem is now much cleaner:
 
-1. stabilize row `87` via exact-history replay, not generic search
-2. close the remaining static rows `135` and `174`
-3. harden the promoted row-`269` local rescue
-4. clean up dynamic row `15`
-5. regenerate the full campaign tables once all FAILs are removed
+1. close row `87` with one final disciplined micro-band program
+2. freeze the promoted local baselines for `135`, `174`, `269`, and row `15`
+3. regenerate the full campaign tables once row `87` is non-`FAIL`
 
 That is the shortest rigorous path from the current branch state to a
 comparison-ready and publication-ready validation summary.

@@ -1769,3 +1769,59 @@ Updated immediate decision:
    - confirmation / hardening of the promoted row-`269` rescue
 5. treat rows `135`, `174`, and dynamic row `15` as the remaining true
    blocking debts, with `87` and `269` as unstable/promoted local exceptions
+
+## 12.10 Wave-9 closeout and wave-10 row-87 micro-band checkpoint (2026-04-05)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260405/failband_wave9_closeout_and_wave10_row87_microband_program_20260405.md`
+- `tools/merge_reports/LOCAL_static_exal_failband_wave9_schedule_20260405.csv`
+- `tools/merge_reports/LOCAL_dynamic_row15_wave8_matrix_20260405.csv`
+
+Wave-9 closeout summary:
+
+| stage | total | PASS | WARN | FAIL | missing | resolved |
+|---|---:|---:|---:|---:|---:|---:|
+| `stability7_exact` | 7 | 0 | 1 | 6 | 0 | 1 |
+| `closure12_exact_none` | 12 | 1 | 1 | 10 | 0 | 2 |
+| `overall` | 19 | 1 | 2 | 16 | 0 | 3 |
+
+Main takeaways:
+
+- wave-9 completed cleanly with `0 missing`; the static completeness fix held
+- row `135` improved to `PASS`
+- row `174` improved to `WARN`
+- row `269` improved to `WARN`
+- dynamic row `15` improved to `WARN / healthy = TRUE` under the exact slice
+  replay
+- only one blocking validation case now remains:
+  - static row `87`
+
+Promoted local baseline v7:
+
+- broad default:
+  - `F085_sub2_s100`
+- row-local promotions:
+  - `135` -> `F0825_sub2_s105_none`
+  - `174` -> `F085_sub2_s105_histshort`
+  - `190` -> `F0825_sub2_s100_rwlong`
+  - `206` -> `F0825_sub2_s1025_rwlong`
+  - `269` -> `F0845_sub2_s100_histshort`
+  - dynamic row `15` -> `row15_slice_exact_20260405`
+
+Updated immediate decision:
+
+1. keep `F085_sub2_s100` as the broad static default baseline
+2. freeze the newly promoted non-`FAIL` local baselines for:
+   - `135`
+   - `174`
+   - `269`
+   - dynamic row `15`
+3. do **not** spend more compute on any resolved row
+4. open a wave-10 row-`87`-only closure lane with:
+   - exact historical anchor confirmations
+   - slightly longer confirmations
+   - a tiny micro-band expansion around the only surviving `F085` / `F0855`
+     scale-`1.025` corridors
+5. treat this as the final static closure program unless row `87` still
+   refuses to reach non-`FAIL`
