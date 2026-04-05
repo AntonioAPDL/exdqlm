@@ -70,8 +70,8 @@ while true; do
   fi
 
   summary_line="$(echo "$output" | awk '/^SUMMARY /{print; exit}')"
-  done_now="$(echo "$summary_line" | awk -F' ' '{for(i=1;i<=NF;i++){if($i ~ /^done=/){sub(\"done=\",\"\",$i); print $i; exit}}}')"
-  missing_now="$(echo "$summary_line" | awk -F' ' '{for(i=1;i<=NF;i++){if($i ~ /^missing=/){sub(\"missing=\",\"\",$i); print $i; exit}}}')"
+  done_now="$(echo "$summary_line" | awk -F' ' '{for(i=1;i<=NF;i++){if($i ~ /^done=/){sub("done=","",$i); print $i; exit}}}')"
+  missing_now="$(echo "$summary_line" | awk -F' ' '{for(i=1;i<=NF;i++){if($i ~ /^missing=/){sub("missing=","",$i); print $i; exit}}}')"
 
   if [[ -n "$done_now" && "$done_now" == "$prev_done" ]]; then
     stagnant=$((stagnant + 1))
