@@ -391,6 +391,7 @@ run_and_wrap <- function() {
         n.burn = safe_int(mc_cfg$burn %||% 2000L, 2000L),
         n.mcmc = safe_int(mc_cfg$n %||% 1500L, 1500L),
         init.from.vb = init_from_vb,
+        joint.sample = as_flag(mh$joint_sample %||% mh$primary_joint_sample, FALSE),
         mh.proposal = as.character(mh$proposal %||% mh$primary_proposal %||% 'laplace_rw'),
         mh.adapt = as_flag(mh$adapt, TRUE),
         mh.adapt.interval = safe_int(mh$adapt_interval %||% 50L, 50L),

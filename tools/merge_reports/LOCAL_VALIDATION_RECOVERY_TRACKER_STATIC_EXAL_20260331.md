@@ -97,6 +97,23 @@ Tail-8 closeout and tail-7 geometry refinement (2026-04-06):
   - `20` total
 - static work remains fully closed and should not be reopened in this phase
 
+Tail-7 closeout and dynamic rw-joint refinement (2026-04-06):
+
+- tail-7 finished cleanly with `20 / 20 FAIL`
+- corrected publication-target state therefore stays at:
+  - `281 / 288` healthy
+  - `7 / 288` unresolved
+- the slice-geometry expansion family is now screened out on the surviving
+  dynamic tail
+- the next credible residual lane should switch to `laplace_rw` and stay
+  strictly tail-only:
+  - `7` all-tail `laplace_rw` anchors with explicit VB warm starts and
+    `joint.sample = TRUE`
+  - `4` TT500 refresh-focused follow-ups
+  - `3` TT5000 longer joint follow-ups
+  - `14` total
+- static work remains fully closed and should not be reopened by default
+
 ## 0. Original-288 Realignment Execution Checkpoint (2026-04-05)
 
 The corrected original-`288` carry-forward pipeline has now been implemented

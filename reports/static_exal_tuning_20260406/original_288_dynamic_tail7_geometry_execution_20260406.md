@@ -81,3 +81,23 @@ Launch notes:
 - no archive rescoring rows are included
 - all rows use explicit healthy `exdqlm :: vb` warm starts from carry-forward
   `v3`
+
+## Closeout Outcome
+
+Tail-7 finished cleanly and produced no promotable improvements.
+
+Outcome summary:
+
+- `anchor7_slice_band18`: `7 / 7 FAIL`
+- `anchor7_slice_band24`: `7 / 7 FAIL`
+- `tau05_long6_slice_band18`: `6 / 6 FAIL`
+- total: `20 / 20 FAIL`
+
+Closeout interpretation:
+
+- no candidate improved a baseline `FAIL` to `PASS` or `WARN`
+- corrected original-`288` state stays at `281 / 288` healthy
+- the slice-geometry expansion family is now screened out on the surviving
+  dynamic tail
+- the next credible direction should switch away from slice and revisit the
+  `laplace_rw` corridor in a strictly local, case-specific way

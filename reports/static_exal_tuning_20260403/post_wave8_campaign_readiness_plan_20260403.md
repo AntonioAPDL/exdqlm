@@ -88,6 +88,11 @@ The post-tail-8 dynamic geometry-band follow-up now lives in:
 - `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_program_20260406.md`
 - `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_execution_20260406.md`
 
+The post-tail-7 dynamic rw-joint follow-up now lives in:
+
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_rw_joint_program_20260406.md`
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_rw_joint_execution_20260406.md`
+
 Important supersession note after the corrected original-`288` rebuild:
 
 - the earlier healthy `291` campaign remains useful as a repair evidence pool
@@ -175,6 +180,23 @@ Important refinement after the completed tail-8 closeout and promoted rescue:
 - the remaining search space should stay inside the slice-with-VB-init
   `exdqlm :: mcmc` corridor and should not reopen static work, archive
   rescoring, or the old exact `0.12 / 80` short/long tail-8 geometry
+
+Important refinement after the completed tail-7 geometry closeout:
+
+- tail-7 completed cleanly but produced `0` promotions:
+  - `20 / 20 FAIL`
+- corrected recovered state remains:
+  - `281 / 288` healthy
+  - `7 / 288` unresolved
+- the slice-geometry expansion family is now screened out on the surviving
+  dynamic tail
+- the highest-value next phase is a narrow `laplace_rw` follow-up that keeps
+  explicit healthy same-scenario `exdqlm :: vb` warm starts but changes the
+  kernel family and local adaptation knobs:
+  - `7` all-tail `laplace_rw` joint anchors
+  - `4` TT500 refresh-focused follow-ups
+  - `3` TT5000 longer joint follow-ups
+  - `14` total
 
 ## Historical Baseline Promotion
 

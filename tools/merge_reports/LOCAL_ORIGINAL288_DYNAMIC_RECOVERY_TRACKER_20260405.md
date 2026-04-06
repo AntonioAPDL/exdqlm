@@ -23,6 +23,8 @@ Authoritative references:
 - `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_execution_20260405.md`
 - `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_program_20260406.md`
 - `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_execution_20260406.md`
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_rw_joint_program_20260406.md`
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_rw_joint_execution_20260406.md`
 
 ## Residual Inventory Shape
 
@@ -69,9 +71,9 @@ Authoritative references:
 - keeping the original case key as the canonical promotion unit
 - stopping to regenerate the corrected original-`288` health state before any
   further relaunch planning
-- the slice-based `exdqlm mcmc` rescue corridor with explicit healthy
-  same-scenario `exdqlm vb` warm starts
-- exact slice geometry on moderate and upper-tail analogs
+- explicit healthy same-scenario `exdqlm :: vb` warm starts
+- slice-based `exdqlm :: mcmc` rescues on moderate and upper-tail analogs
+- archive and targeted evidence promotion before new compute
 
 ## What Did Not Help
 
@@ -80,10 +82,29 @@ Authoritative references:
 - broad generic tuning across already resolved cells
 - keeping the older mixed residual relaunch shape after the archive stage had
   already isolated the tail to `8` `exdqlm mcmc` cells
-- treating `joint_long` or broader `laplace_rw` retries as the main follow-up
-  corridor when the historical successes were slice-based
 - rerunning the old exact `0.12 / 80` long low-tail slice follow-up after it
   already failed across the tau-`0p05` cluster in tail-8
+- the full tail-7 slice-geometry relaunch:
+  - `slice.width = 0.18`, `slice.max.steps = 120`
+  - `slice.width = 0.24`, `slice.max.steps = 160`
+  - long `0.18 / 120` tau-`0p05` follow-up
+
+## Highest-Value Direction
+
+- keep the corrected original-`288` carry-forward table as the only
+  publication-target baseline
+- keep the current accepted dynamic baseline at `281 / 288` healthy and
+  promote only strict same-case improvements
+- stop expanding slice geometry on the surviving tail
+- shift the residual search to a narrow `laplace_rw` corridor with:
+  - explicit healthy same-scenario `exdqlm :: vb` warm starts
+  - dynamic `joint.sample = TRUE`
+  - adaptive refresh control for the Laplace proposal
+  - horizon-specific runtime budgets rather than one universal setting
+- prioritize learning value per unit compute:
+  - one all-tail `laplace_rw` anchor
+  - one TT500-focused refresh lane
+  - one TT5000-focused long lane
 
 ## Residual Program Status
 
@@ -129,11 +150,9 @@ What tail-8 proved:
 - the next credible search axis is slice geometry, not more time at the same
   geometry
 
-## Tail-7 Geometry Relaunch Status
+## Tail-7 Geometry Relaunch Closeout
 
-The next phase is now a reduced residual relaunch that starts from the
-post-tail-8 corrected baseline and tests only slice-geometry changes on the
-remaining `7` unresolved case keys.
+Tail-7 completed cleanly and produced no promotable improvements.
 
 | phase | rows | intent |
 |---|---:|---|
@@ -142,14 +161,37 @@ remaining `7` unresolved case keys.
 | `tau05_long6_slice_band18` | `6` | longer follow-up only on the dominant low-tail cluster |
 | `total` | `20` | dynamic-only geometry-band closure program |
 
-Operational rules carried into the relaunch:
+Tail-7 outcome:
+
+- `0` promoted rescues
+- `20 / 20` completed rows remained `FAIL`
+- corrected original-`288` baseline stays at:
+  - `281 / 288` healthy
+  - `7 / 288` unresolved
+- the slice-geometry expansion family is now screened out on the surviving
+  dynamic tail
+
+## Tail-7 RW-Joint Follow-Up Status
+
+The next residual phase should now switch kernel family and stay strictly
+tail-only.
+
+| phase | rows | intent |
+|---|---:|---|
+| `anchor7_rw_joint` | `7` | all-tail `laplace_rw` anchor with VB warm starts and joint covariance rebuild |
+| `tt500_rw_refresh4` | `4` | short-horizon refresh-focused follow-up |
+| `tt5000_rw_joint_long3` | `3` | long-horizon joint/length follow-up |
+| `total` | `14` | dynamic-only `laplace_rw` residual program |
+
+Operational rules carried into the follow-up:
 
 - touch only the `7` remaining unresolved original dynamic case keys
 - use explicit healthy `exdqlm vb` warm starts for every row
 - do not rerun archive rescoring
 - do not reopen `dqlm :: mcmc`, `exdqlm :: vb`, or any static work
 - do not rerun the old exact `0.12 / 80` short or long tail-8 geometry
-- promote only when a tail-7 candidate improves a baseline `FAIL` to `PASS` or
+- do not rerun the failed tail-7 slice geometry bands
+- promote only when a new candidate improves a baseline `FAIL` to `PASS` or
   `WARN`
 
 ## Promotion Rule
@@ -188,9 +230,7 @@ Tie-breaking among non-`FAIL` candidates:
 - [x] remaining unresolved tail shrank to `7`
 - [x] tail-7 geometry-band manifest and helper stack implemented
 - [x] tail-7 prepare/evaluate/select and shell validation completed
-- [ ] tail-7 overnight geometry-band run completed and reviewed
-
-Current live sessions:
-
-- `original288-dynamic-tail7-20260406`
-- `original288-dynamic-tail7-monitor-20260406`
+- [x] tail-7 overnight geometry-band run completed and reviewed
+- [x] tail-7 rw-joint manifest and helper stack implemented
+- [x] tail-7 rw-joint prepare/evaluate/select and shell validation completed
+- [ ] tail-7 rw-joint overnight run launched from clean pushed branch
