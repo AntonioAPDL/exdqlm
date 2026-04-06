@@ -79,8 +79,84 @@ qdesn_static_crossstudy_residual_load_manifest <- function(path = file.path("con
   out[order(out$root_id), , drop = FALSE]
 }
 
+.qdesn_static_crossstudy_residual_overlay_local_baseline_map <- function(base_df, overlay_df) {
+  if (!nrow(base_df)) return(overlay_df)
+  if (!nrow(overlay_df)) return(base_df)
+  keep <- !(as.character(base_df$stage_id) %in% as.character(overlay_df$stage_id))
+  out <- exdqlm:::.qdesn_validation_bind_rows(list(base_df[keep, , drop = FALSE], overlay_df))
+  out[order(out$stage_id), , drop = FALSE]
+}
+
 .qdesn_static_crossstudy_residual_profile_report_root <- function(stage_report_root, profile_id) {
   .qdesn_static_crossstudy_pick_campaign_report_root(file.path(stage_report_root, "profiles", profile_id))
+}
+
+.qdesn_static_crossstudy_residual_apply_stage_winners <- function(stage_status,
+                                                                  local_baseline_map,
+                                                                  promoted_fit_summary,
+                                                                  promoted_root_summary,
+                                                                  promoted_root_status) {
+  winner_inventory <- list()
+  local_baseline_updates <- list()
+  promotable_status <- c("COMPLETED", "PROMOTED_AFTER_STALL")
+
+  for (i in seq_len(nrow(stage_status))) {
+    stage_row <- stage_status[i, , drop = FALSE]
+    if (!as.character(stage_row$execution_status[1L]) %in% promotable_status) next
+    stage_id <- as.character(stage_row$stage_id[1L])
+    profile_id <- as.character(stage_row$recommended_profile[1L])
+    stage_report_root <- as.character(stage_row$stage_report_root[1L])
+    profile_report_root <- .qdesn_static_crossstudy_residual_profile_report_root(stage_report_root, profile_id)
+    fit_path <- file.path(profile_report_root, "tables", "campaign_fit_summary.csv")
+    root_path <- file.path(profile_report_root, "tables", "campaign_root_signoff_summary.csv")
+    stage_root_ids_path <- file.path(stage_report_root, "tables", "stage_root_ids.csv")
+
+    winner_fit_summary <- .qdesn_static_crossstudy_residual_read_csv(fit_path)
+    winner_root_summary <- .qdesn_static_crossstudy_residual_read_csv(root_path)
+    if (!nrow(winner_fit_summary) || !nrow(winner_root_summary)) {
+      stop(sprintf("Winner profile '%s' for stage '%s' is missing campaign summary tables.", profile_id, stage_id), call. = FALSE)
+    }
+
+    promoted_fit_summary <- .qdesn_static_crossstudy_residual_overlay_fit_rows(promoted_fit_summary, winner_fit_summary)
+    promoted_root_summary <- .qdesn_static_crossstudy_residual_overlay_root_rows(promoted_root_summary, winner_root_summary)
+    promoted_root_status <- .qdesn_static_crossstudy_residual_overlay_root_rows(
+      promoted_root_status,
+      winner_root_summary[, c("root_id", "root_status"), drop = FALSE]
+    )
+
+    winner_inventory[[length(winner_inventory) + 1L]] <- data.frame(
+      stage_id = stage_id,
+      local_baseline_profile = profile_id,
+      stage_report_root = stage_report_root,
+      profile_report_root = profile_report_root,
+      fit_summary_path = fit_path,
+      root_summary_path = root_path,
+      stage_root_ids_path = stage_root_ids_path,
+      stringsAsFactors = FALSE
+    )
+    local_baseline_updates[[length(local_baseline_updates) + 1L]] <- data.frame(
+      stage_id = stage_id,
+      local_baseline_profile = profile_id,
+      recommendation = as.character(stage_row$recommendation[1L] %||% "")[1L],
+      stringsAsFactors = FALSE
+    )
+  }
+
+  local_baseline_updates_df <- exdqlm:::.qdesn_validation_bind_rows(local_baseline_updates)
+  if (nrow(local_baseline_updates_df)) {
+    local_baseline_map <- .qdesn_static_crossstudy_residual_overlay_local_baseline_map(
+      local_baseline_map,
+      local_baseline_updates_df
+    )
+  }
+
+  list(
+    local_baseline_map = local_baseline_map,
+    promoted_fit_summary = promoted_fit_summary,
+    promoted_root_summary = promoted_root_summary,
+    promoted_root_status = promoted_root_status,
+    winner_inventory = exdqlm:::.qdesn_validation_bind_rows(winner_inventory)
+  )
 }
 
 qdesn_static_crossstudy_residual_collect_source_state <- function(source_run_tag,
@@ -178,43 +254,17 @@ qdesn_static_crossstudy_residual_collect_source_state <- function(source_run_tag
     )
   }
 
-  winner_inventory <- list()
-
-  for (i in seq_len(nrow(stage_status))) {
-    stage_row <- stage_status[i, , drop = FALSE]
-    if (!identical(as.character(stage_row$execution_status[1L]), "COMPLETED")) next
-    stage_id <- as.character(stage_row$stage_id[1L])
-    profile_id <- as.character(stage_row$recommended_profile[1L])
-    stage_report_root <- as.character(stage_row$stage_report_root[1L])
-    profile_report_root <- .qdesn_static_crossstudy_residual_profile_report_root(stage_report_root, profile_id)
-    fit_path <- file.path(profile_report_root, "tables", "campaign_fit_summary.csv")
-    root_path <- file.path(profile_report_root, "tables", "campaign_root_signoff_summary.csv")
-    stage_root_ids_path <- file.path(stage_report_root, "tables", "stage_root_ids.csv")
-
-    winner_fit_summary <- .qdesn_static_crossstudy_residual_read_csv(fit_path)
-    winner_root_summary <- .qdesn_static_crossstudy_residual_read_csv(root_path)
-    if (!nrow(winner_fit_summary) || !nrow(winner_root_summary)) {
-      stop(sprintf("Winner profile '%s' for stage '%s' is missing campaign summary tables.", profile_id, stage_id), call. = FALSE)
-    }
-
-    promoted_fit_summary <- .qdesn_static_crossstudy_residual_overlay_fit_rows(promoted_fit_summary, winner_fit_summary)
-    promoted_root_summary <- .qdesn_static_crossstudy_residual_overlay_root_rows(promoted_root_summary, winner_root_summary)
-    promoted_root_status <- .qdesn_static_crossstudy_residual_overlay_root_rows(
-      promoted_root_status,
-      winner_root_summary[, c("root_id", "root_status"), drop = FALSE]
-    )
-
-    winner_inventory[[length(winner_inventory) + 1L]] <- data.frame(
-      stage_id = stage_id,
-      local_baseline_profile = profile_id,
-      stage_report_root = stage_report_root,
-      profile_report_root = profile_report_root,
-      fit_summary_path = fit_path,
-      root_summary_path = root_path,
-      stage_root_ids_path = stage_root_ids_path,
-      stringsAsFactors = FALSE
-    )
-  }
+  applied_stage_winners <- .qdesn_static_crossstudy_residual_apply_stage_winners(
+    stage_status = stage_status,
+    local_baseline_map = local_baseline_map,
+    promoted_fit_summary = promoted_fit_summary,
+    promoted_root_summary = promoted_root_summary,
+    promoted_root_status = promoted_root_status
+  )
+  local_baseline_map <- applied_stage_winners$local_baseline_map
+  promoted_fit_summary <- applied_stage_winners$promoted_fit_summary
+  promoted_root_summary <- applied_stage_winners$promoted_root_summary
+  promoted_root_status <- applied_stage_winners$promoted_root_status
 
   promoted_fail_summary <- promoted_fit_summary[as.character(promoted_fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
   original_source_root_fail_root_ids <- unique(as.character(original_source_root_fail_grid$root_id))
@@ -225,7 +275,7 @@ qdesn_static_crossstudy_residual_collect_source_state <- function(source_run_tag
     completed_manifest = completed_manifest,
     local_baseline_map = local_baseline_map,
     stage_status = stage_status,
-    winner_inventory = exdqlm:::.qdesn_validation_bind_rows(winner_inventory),
+    winner_inventory = applied_stage_winners$winner_inventory,
     original_source_run_tag = original_source_run_tag,
     original_source_state = original_source_state,
     promoted_fit_summary = promoted_fit_summary,
@@ -351,12 +401,16 @@ qdesn_static_crossstudy_residual_rank_profiles <- function(metrics_df,
 
 qdesn_static_crossstudy_residual_pick_stage_lead <- function(metrics_df,
                                                              control_profile_id,
+                                                             source_metric = NULL,
                                                              primary_metric = "target_fit_fail_n") {
   ranked <- qdesn_static_crossstudy_residual_rank_profiles(metrics_df, primary_metric = primary_metric)
   if (!nrow(ranked)) return(as.character(control_profile_id)[1L])
 
   control_profile_id <- as.character(control_profile_id)[1L]
   control_row <- ranked[as.character(ranked$profile_id) == control_profile_id, , drop = FALSE]
+  if (!nrow(control_row) && !is.null(source_metric) && nrow(source_metric)) {
+    control_row <- source_metric[1, , drop = FALSE]
+  }
   best_row <- ranked[1, , drop = FALSE]
   if (!nrow(control_row)) return(as.character(best_row$profile_id[1L]))
   if (identical(as.character(best_row$profile_id[1L]), control_profile_id)) return(control_profile_id)

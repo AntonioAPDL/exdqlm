@@ -35,10 +35,16 @@ Cross-study assets:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
 - Wave-4 residual closure plan:
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
+- Wave-5 stall closeout:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
 - Wave-5 corrected remaining-closure plan:
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
+- Wave-6 stall-recovery plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
 - Wave-5 corrected remaining-closure manifest:
   - `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
+- Wave-6 stall-recovery manifest:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_manifest.yaml`
 - residual closure manifest:
   - `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
 - residual closure launcher:
@@ -51,25 +57,26 @@ Current cross-study read:
 - the broad shared-setup launch established the historical source baseline at `66/72` successful
   roots;
 - Wave 3 then changed the effective baseline map:
+- Wave 5 then validly refined the long-horizon ridge local baseline before stalling:
   - shared default:
     - `F500_anchor_patched`
   - ridge `tt=100` local:
     - `G530_ridge_tt100_drift_guard_chain1300`
-  - ridge `tt=1000` local control:
-    - `F510_ridge_rescue_reference`
+  - ridge `tt=1000` local:
+    - `H510_ridge_tt1000_local_control`
   - rhs `tt=100` local:
     - `F610_rhs_tt100_conservative_block`
   - rhs `tt=1000` local:
     - `F640_rhs_tt1000_chain1200`
 - the old `rhs_ns` VB diagnostics-path issue is now closed under the shared baseline;
-- the valid Wave-4 Stage-1 result reduced the remaining promoted successful-surface debt to
-  `42` MCMC FAIL rows, still mostly `exal`;
-- the original `6` Wave-1 hard-root FAILs still need explicit revalidation under the promoted map;
-- the initial Wave-4 long-horizon continuation exposed a selector aliasing bug that pulled both
-  priors into the hard-root carry-forward stages;
-- the correct next move is therefore a corrected remaining-residual closure wave on the proper
-  `15 / 12 / 17` root slices, not another whole-surface relaunch and not a search for one
-  generic rescue profile.
+- the valid completed Wave-5 evidence reduced the remaining promoted successful-surface debt to
+  `37` MCMC FAIL rows on `33` roots, still mostly `exal`;
+- only `3` unresolved root-status FAIL roots remain, all on the rhs `tt=1000` hard-root band;
+- the Wave-5 run itself then stalled during partial `H530`, so only completed evidence was carried
+  forward;
+- the correct next move is therefore a Wave-6 stall-recovery continuation on the post-`H510`
+  `7 / 12 / 17` root slices, not another whole-surface relaunch and not a search for one generic
+  rescue profile.
 
 Important boundary:
 

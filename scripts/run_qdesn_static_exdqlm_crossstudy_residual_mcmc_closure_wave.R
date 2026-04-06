@@ -188,9 +188,6 @@ for (stage_cfg in stage_cfgs) {
   if (length(missing_profiles)) {
     stop(sprintf("Stage '%s' references unknown profiles: %s", stage_name, paste(missing_profiles, collapse = ", ")), call. = FALSE)
   }
-  if (!control_profile_id %in% stage_profile_ids) {
-    stop(sprintf("Stage '%s' control_profile_id '%s' is not in profile_ids.", stage_name, control_profile_id), call. = FALSE)
-  }
   stage_root_ids <- exdqlm:::qdesn_static_crossstudy_residual_stage_root_ids(source_state, grid_df, stage_cfg)
   stage_grid_df <- exdqlm:::qdesn_static_crossstudy_debt_subset_grid(grid_df, stage_root_ids)
   stage_plans[[stage_name]] <- list(
@@ -299,6 +296,7 @@ write_csv(stage_plan_df, file.path(tables_root, "stage_plan.csv"))
 
 promoted_fail_rows <- nrow(source_state$promoted_fail_summary)
 promoted_fail_roots <- length(unique(as.character(source_state$promoted_fail_summary$root_id)))
+promoted_root_status_fail_roots <- sum(as.character(source_state$promoted_root_status$root_status) == "FAIL", na.rm = TRUE)
 resource_snapshot <- list(
   generated_at = as.character(Sys.time()),
   nproc = cmd_lines("nproc"),
@@ -325,6 +323,7 @@ preflight_manifest <- list(
     fail_roots = promoted_fail_roots,
     compare_any_roots = sum(as.logical(source_state$promoted_root_summary$root_comparison_eligible_any), na.rm = TRUE),
     compare_full_roots = sum(as.logical(source_state$promoted_root_summary$root_comparison_eligible_full), na.rm = TRUE),
+    promoted_root_status_fail_roots = promoted_root_status_fail_roots,
     unresolved_source_root_fail_roots = length(source_state$original_source_root_fail_root_ids)
   ),
   stage_plan = stage_plan_df,
@@ -355,6 +354,7 @@ preflight_lines <- c(
   sprintf("- promoted_fail_roots: `%d`", promoted_fail_roots),
   sprintf("- promoted_compare_any_roots: `%d`", sum(as.logical(source_state$promoted_root_summary$root_comparison_eligible_any), na.rm = TRUE)),
   sprintf("- promoted_compare_full_roots: `%d`", sum(as.logical(source_state$promoted_root_summary$root_comparison_eligible_full), na.rm = TRUE)),
+  sprintf("- promoted_root_status_fail_roots: `%d`", promoted_root_status_fail_roots),
   sprintf("- unresolved_source_root_fail_roots: `%d`", length(source_state$original_source_root_fail_root_ids)),
   "",
   "## Stage Plan",
@@ -507,6 +507,7 @@ for (stage_name in names(stage_plans)) {
   stage_lead_id <- exdqlm:::qdesn_static_crossstudy_residual_pick_stage_lead(
     stage_metrics_df,
     control_profile_id = stage_plan$control_profile_id,
+    source_metric = source_metric,
     primary_metric = as.character(stage_cfg$selection_metric %||% "target_fit_fail_n")[1L]
   )
   recommendation <- if (identical(stage_lead_id, stage_plan$control_profile_id)) {
@@ -524,6 +525,7 @@ for (stage_name in names(stage_plans)) {
     sprintf("- source_run_tag: `%s`", source_run_tag),
     sprintf("- original_source_run_tag: `%s`", source_state$original_source_run_tag),
     sprintf("- control_profile_id: `%s`", stage_plan$control_profile_id),
+    sprintf("- control_rerun_in_stage: `%s`", if (stage_plan$control_profile_id %in% stage_profile_ids) "TRUE" else "FALSE"),
     sprintf("- recommendation: `%s`", recommendation),
     sprintf("- selected_local_baseline: `%s`", stage_lead_id),
     "",
@@ -557,7 +559,11 @@ for (stage_name in names(stage_plans)) {
 
 stop_reason <- "completed_requested_scope"
 stage_results_df <- current_stage_results_df()
-local_baseline_df <- do.call(rbind, local_baseline_rows)
+local_baseline_df <- exdqlm:::.qdesn_validation_bind_rows(local_baseline_rows)
+if (nrow(source_state$local_baseline_map)) {
+  local_baseline_df <- exdqlm:::.qdesn_validation_bind_rows(list(source_state$local_baseline_map, local_baseline_df))
+  local_baseline_df <- local_baseline_df[!duplicated(local_baseline_df$stage_id, fromLast = TRUE), , drop = FALSE]
+}
 write_csv(stage_results_df, file.path(tables_root, "stage_execution_status.csv"))
 write_csv(local_baseline_df, file.path(tables_root, "local_baseline_map.csv"))
 write_runner_state(file.path(status_root, "runner_state.json"), run_tag, NA_character_, NA_character_, stage_results_df, length(stage_plans), total_profiles, stop_reason)
