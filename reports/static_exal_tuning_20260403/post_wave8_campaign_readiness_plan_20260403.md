@@ -103,6 +103,25 @@ implemented and validated:
 - promotion should happen only at the original case-key level when a residual
   dynamic candidate improves the baseline `FAIL` to `PASS` or `WARN`
 
+Important checkpoint refinement after the completed archive-only residual
+promotion pass:
+
+- the archive stage has now been completed and applied back to the corrected
+  original `288` carry-forward table
+- corrected recovered state is now:
+  - `280 / 288` healthy
+  - `8 / 288` unresolved
+  - remaining unresolved debt is dynamic-only
+  - remaining unresolved debt is specifically `exdqlm :: mcmc` only
+- the archive pass rescued:
+  - all unresolved `dqlm :: mcmc` dynamic cells
+  - both unresolved `exdqlm :: vb` dynamic cells
+- the overnight flow stopped because of a merged-schema evaluator/selector bug
+  after archive completion, not because the archive rescoring compute failed
+- that bookkeeping bug has now been fixed
+- this checkpoint should stop at promotion and regenerated health rather than
+  planning the next residual relaunch
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.

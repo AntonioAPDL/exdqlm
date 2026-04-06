@@ -317,6 +317,30 @@ read_dynamic_residual_status_original288 <- function(manifest_path = paths_dynam
   if ("healthy_row" %in% names(merged)) merged$healthy <- ifelse(!is.na(merged$healthy_row), merged$healthy_row, merged$healthy)
   if ("runtime_sec_row" %in% names(merged)) merged$runtime_sec <- ifelse(!is.na(merged$runtime_sec_row), merged$runtime_sec_row, merged$runtime_sec)
 
+  normalize_pref_col <- function(base) {
+    if (!(base %in% names(merged))) merged[[base]] <<- NA
+    row_nm <- paste0(base, "_row")
+    manifest_nm <- paste0(base, "_manifest")
+    if (row_nm %in% names(merged)) {
+      row_val <- merged[[row_nm]]
+      merged[[base]] <<- ifelse(!is.na(row_val) & (!is.character(row_val) | nzchar(row_val)), row_val, merged[[base]])
+    }
+    if (manifest_nm %in% names(merged)) {
+      man_val <- merged[[manifest_nm]]
+      merged[[base]] <<- ifelse((is.na(merged[[base]]) | (is.character(merged[[base]]) & !nzchar(merged[[base]]))) &
+                                  (!is.na(man_val) & (!is.character(man_val) | nzchar(man_val))),
+                                man_val,
+                                merged[[base]])
+    }
+  }
+
+  for (nm in c(
+    "root_kind", "family", "tau_label", "model", "inference",
+    "baseline_fit_path", "candidate_fit_path"
+  )) {
+    normalize_pref_col(nm)
+  }
+
   merged$state <- ifelse(is.na(merged$status) | !nzchar(merged$status), "pending", merged$status)
   merged$gate_overall[is.na(merged$gate_overall) | !nzchar(merged$gate_overall)] <- "MISSING"
   merged

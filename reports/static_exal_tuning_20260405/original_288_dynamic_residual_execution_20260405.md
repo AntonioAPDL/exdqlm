@@ -76,3 +76,53 @@ Launch notes:
 - no post-launch script fixes were needed before leaving the run active
 - runtime-generated evaluator outputs are intentionally left out of git
   tracking so the branch can stay clean while the overnight run progresses
+
+## Archive-Stage Closeout Checkpoint
+
+The first residual phase completed partially rather than end to end.
+
+What happened:
+
+- the full `archive_rescore_existing` stage completed
+- all `22` archive rows were scored successfully from on-disk candidates
+- the supervisor then stopped before stage-2 because the evaluator/selector
+  path hit a merged-schema bug after real row outputs existed
+- that reporting bug has now been fixed in the helper/evaluator/selector stack
+- no new rerun has been launched in this checkpoint
+
+Archive-stage result:
+
+| phase | total | done | PASS | WARN | FAIL | resolved |
+|---|---:|---:|---:|---:|---:|---:|
+| `archive_rescore_existing` | `22` | `22` | `7` | `4` | `11` | `11` |
+
+Promoted archive-stage improvements:
+
+- `11` original dynamic baseline-`FAIL` cells now have promoted non-`FAIL`
+  carry-forward replacements
+- all `7` unresolved `dqlm mcmc` cells were rescued to `PASS`
+- both unresolved `exdqlm vb` long-horizon low-tail cells were rescued to
+  `WARN`
+- `2` unresolved `exdqlm mcmc` cells were rescued to `WARN`
+
+Promoted original-`288` state after archive-stage carry-forward:
+
+- healthy now: `280 / 288`
+- unresolved now: `8 / 288`
+- dynamic healthy now: `64 / 72`
+- remaining unresolved cells are all `dynamic :: exdqlm :: mcmc`
+
+Authoritative outputs from this checkpoint:
+
+- `tools/merge_reports/LOCAL_original288_dynamic_residual_selection_update_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_carryforward_selection_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_health_summary_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_recovery_block_status_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_unresolved_dynamic_inventory_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_audit_v2_20260405.csv`
+
+This checkpoint intentionally stops here:
+
+- archive-stage promotions have been applied
+- the corrected original-`288` health state has been regenerated
+- no residual relaunch plan is introduced in this document

@@ -88,3 +88,41 @@ recovery view.
 4. The dynamic-only residual manifest and execution stack have now been built in:
    `reports/static_exal_tuning_20260405/original_288_dynamic_residual_program_20260405.md`
 5. Use that residual program as the next repair phase rather than reopening any static work.
+
+## Archive-Stage Promotion Checkpoint
+
+The first residual dynamic phase has now been partially executed and applied
+back to the corrected original-`288` carry-forward table.
+
+Top-line updated state:
+
+- original baseline cells: `288`
+- healthy now: `280`
+- unresolved now: `8`
+- all unresolved cells remain dynamic
+- all unresolved cells are now `exdqlm :: mcmc`
+
+Archive-stage promotion result:
+
+- `11` dynamic cells improved from baseline `FAIL` to promoted non-`FAIL`
+- all previously unresolved `dqlm :: mcmc` dynamic cells are now healthy
+- both previously unresolved `exdqlm :: vb` dynamic cells are now healthy
+- the remaining unresolved tail is now limited to `8` `exdqlm :: mcmc` cells
+
+Updated authoritative outputs:
+
+- `tools/merge_reports/LOCAL_original288_carryforward_selection_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_row_health_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_health_summary_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_recovery_block_status_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_unresolved_dynamic_inventory_v2_20260405.csv`
+- `tools/merge_reports/LOCAL_original288_audit_v2_20260405.csv`
+
+Important execution note:
+
+- the archive stage completed successfully on disk
+- the overnight flow stopped only because the residual evaluator/selector path
+  hit a merged-schema bookkeeping bug after archive completion
+- that bug has now been fixed
+- this document intentionally stops after promotion and health regeneration
+  rather than planning or launching the next residual relaunch

@@ -8,8 +8,8 @@ the corrected original-`288` carry-forward rebuild.
 ## Current Corrected State
 
 - original publication-target cells: `288`
-- healthy now: `269`
-- unresolved now: `19`
+- healthy now: `280`
+- unresolved now: `8`
 - unresolved block: dynamic only
 - static paper: `72 / 72` healthy
 - static shrink: `144 / 144` healthy
@@ -24,34 +24,34 @@ Authoritative references:
 
 ### By method
 
-- `7` `mcmc::dqlm`
-- `10` `mcmc::exdqlm`
-- `2` `vb::exdqlm`
+- `8` `mcmc::exdqlm`
 
 ### By horizon
 
-- `14` at `TT500`
-- `5` at `TT5000`
+- `5` at `TT500`
+- `3` at `TT5000`
 
 ### By quantile
 
-- `11` at `tau = 0p05`
-- `4` at `tau = 0p25`
-- `4` at `tau = 0p95`
+- `6` at `tau = 0p05`
+- `1` at `tau = 0p25`
+- `1` at `tau = 0p95`
 
 ## What Improved
 
 - the target universe is now the original `288`, not the hybrid `291`
 - all static debt has been removed from the publication-target recovery queue
-- dynamic healthy coverage already rose from `47 / 72` to `53 / 72` via
-  corrected carry-forward plus archive harvest
+- dynamic healthy coverage has now risen from `53 / 72` to `64 / 72` after
+  archive-stage promotion
 - the residual queue is now explicit and machine-readable
+- all unresolved `dqlm::mcmc` and `exdqlm::vb` cells were cleared in the
+  archive stage
 
 ## What Still Fails
 
-- `19` original dynamic cells remain unresolved
-- all are still baseline `FAIL`
-- none of those `19` should be promoted until a residual candidate yields
+- `8` original dynamic cells remain unresolved
+- all `8` are `exdqlm::mcmc`
+- none of those `8` should be promoted until a residual candidate yields
   `PASS` or `WARN`
 
 ## What Worked Best
@@ -60,6 +60,8 @@ Authoritative references:
 - archive-first rescue logic
 - local scenario or cluster-specific repair instead of generic global search
 - keeping the original case key as the canonical promotion unit
+- stopping to regenerate the corrected original-`288` health state before any
+  further relaunch planning
 
 ## What Did Not Help
 
@@ -67,7 +69,7 @@ Authoritative references:
 - reopening healthy static regions
 - broad generic tuning across already resolved cells
 
-## Active Residual Program
+## Residual Program Status
 
 | phase | rows | intent |
 |---|---:|---|
@@ -75,6 +77,15 @@ Authoritative references:
 | `vb_relaxed` | `2` | rescue the remaining unresolved dynamic VB cells |
 | `mcmc_targeted` | `17` | rescue unresolved dynamic MCMC cells by method/horizon cluster |
 | `total` | `41` | full residual dynamic program |
+
+Current execution checkpoint:
+
+- `archive_rescore_existing`: `22 / 22` complete
+- archive-stage outcome: `7 PASS / 4 WARN / 11 FAIL`
+- promoted archive rescues: `11`
+- later phases were not started in this checkpoint because the evaluator path
+  failed after archive completion and has now been repaired
+- no new relaunch is planned in this tracker checkpoint
 
 ## Promotion Rule
 
@@ -100,11 +111,13 @@ Tie-breaking among non-`FAIL` candidates:
 - [x] launcher/supervisor/monitor implemented
 - [x] pre-launch validation completed
 - [x] overnight residual run launched from clean pushed branch
-- [ ] morning-after promotion preview reviewed
-- [ ] corrected original-`288` carry-forward table updated if new non-`FAIL`
-      dynamic rescues land
+- [x] morning-after promotion preview reviewed
+- [x] corrected original-`288` carry-forward table updated with archive-stage
+      non-`FAIL` dynamic rescues
+- [x] residual evaluator/selector merged-schema bug fixed
+- [ ] remaining `8`-cell residual relaunch plan intentionally deferred
+      beyond this checkpoint
 
 Current live sessions:
 
-- `original288-dynamic-residual-20260405`
-- `original288-dynamic-residual-monitor-20260405`
+- none

@@ -24,8 +24,8 @@ Primary references:
 Checkpoint state:
 
 - original publication-target cells: `288`
-- healthy now: `269`
-- unresolved now: `19`
+- healthy now: `280`
+- unresolved now: `8`
 - all residual debt is dynamic-only
 - static should not be reopened by default
 
@@ -40,6 +40,20 @@ Operational rule carried forward:
 
 - promote only when a residual candidate improves the same original dynamic
   case key from baseline `FAIL` to `PASS` or `WARN`
+
+Archive-stage closeout refinement:
+
+- the `22`-row archive rescoring stage completed successfully
+- `11` archive candidates were promoted into the corrected original-`288`
+  carry-forward table
+- all unresolved `dqlm::mcmc` dynamic cells are now healthy
+- all unresolved `exdqlm::vb` dynamic cells are now healthy
+- the remaining unresolved tail is now only `8` `exdqlm::mcmc` dynamic cells
+- the supervisor stopped because of a merged-schema evaluator/selector bug
+  after archive completion, not because the archive compute failed
+- that bookkeeping bug has now been fixed
+- this checkpoint intentionally stops after applying promotions and
+  regenerating health; it does not yet plan the next relaunch
 
 ## 0. Original-288 Realignment Execution Checkpoint (2026-04-05)
 
