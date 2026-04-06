@@ -17,8 +17,9 @@ This tracker is for the cross-study program only. It is not the dynamic DLM cert
 
 ## 2) Current Status
 
-Status: **Wave 5 stalled after partial Stage 1; `H510` was promoted validly from the completed
-evidence; Wave 6 stall-recovery is prepared and prepare-only validated as the next follow-up**
+Status: **Wave 6 is now treated as an orphaned launcher-session stall, not a scientific invalidation;
+the root cause was traced to non-detached supervision; Wave 7 supervised relaunch is now live under
+detached launcher control (`qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`)**
 
 Current scope decision:
 
@@ -86,35 +87,40 @@ Validation checkpoints completed:
 - Wave-4 Stage-1 ridge residual drift stage: `COMPLETED_AND_PROMOTED_G530`
 - Wave-4 long-horizon continuation: `SUPERSEDED_AFTER_STAGE1_DUE_PRIOR_SCOPE_SELECTOR_BUG`
 - Wave-5 corrected remaining residual closure: `STALLED_AFTER_PARTIAL_STAGE1__H510_PROMOTED_AFTER_STALL`
-- Wave-6 stall-recovery continuation: `PREPARE_ONLY_VALIDATED`
+- Wave-6 stall-recovery continuation: `STALLED_AFTER_ORPHANED_LAUNCHER_SESSION`
+- Wave-7 supervised relaunch: `LIVE_UNDER_DETACHED_LAUNCHER`
 
 ## 3) Read First
 
-1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
-2. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
-3. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
-4. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
-5. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
-6. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
-7. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
-8. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-9. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
-10. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
-11. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
-12. `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
-13. `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
-14. `config/validation/qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_manifest.yaml`
-15. `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
-16. `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
-17. `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
-18. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
-19. `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-20. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-21. `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-22. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-23. `R/qdesn_static_exdqlm_crossstudy.R`
-24. `R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
-25. `R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave6_root_cause_and_supervised_relaunch_20260406.md`
+2. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_20260406.md`
+3. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
+4. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
+5. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
+6. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
+7. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
+8. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
+9. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+10. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
+11. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
+12. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
+13. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
+14. `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
+15. `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
+16. `config/validation/qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_manifest.yaml`
+17. `config/validation/qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_manifest.yaml`
+18. `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
+19. `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
+20. `scripts/run_qdesn_static_exdqlm_crossstudy_validation.R`
+21. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_validation.R`
+22. `scripts/run_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+23. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+24. `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+25. `scripts/launch_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+26. `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+27. `R/qdesn_static_exdqlm_crossstudy.R`
+28. `R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R`
+29. `R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
 ## 4) Hard Rules
 
@@ -161,8 +167,11 @@ Implementation assets:
   - `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
   - `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
   - `config/validation/qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_manifest.yaml`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_manifest.yaml`
 - residual closure launcher:
   - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+- residual closure detached launcher:
+  - `scripts/launch_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 - residual closure healthcheck:
   - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 

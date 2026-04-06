@@ -57,6 +57,30 @@ completed_manifest <- if (file.exists(file.path(outer_report_root, "manifest", "
   list()
 }
 promoted_fail_summary <- read_csv_safe(file.path(outer_report_root, "tables", "promoted_source_fail_summary.csv"))
+launcher_meta <- if (file.exists(file.path(outer_report_root, "launch", "launcher_session.json"))) {
+  jsonlite::fromJSON(file.path(outer_report_root, "launch", "launcher_session.json"))
+} else {
+  list()
+}
+launcher_mode <- as.character(launcher_meta$launcher_mode %||% NA_character_)
+launcher_session <- as.character(launcher_meta$session_name %||% NA_character_)
+launcher_log <- as.character(launcher_meta$launcher_log %||% NA_character_)
+launcher_pid <- suppressWarnings(as.integer(launcher_meta$launcher_pid %||% NA_integer_)[1L])
+launcher_session_live <- if (!is.na(launcher_session) && nzchar(launcher_session) && identical(launcher_mode, "tmux")) {
+  identical(suppressWarnings(system2("tmux", c("has-session", "-t", launcher_session))), 0L)
+} else {
+  NA
+}
+launcher_pid_live <- if (is.finite(launcher_pid) && launcher_pid > 0L) {
+  identical(suppressWarnings(system2("ps", c("-p", as.character(launcher_pid)))), 0L)
+} else {
+  NA
+}
+launcher_log_mtime <- if (!is.na(launcher_log) && nzchar(launcher_log) && file.exists(launcher_log)) {
+  as.character(file.info(launcher_log)$mtime[1L])
+} else {
+  NA_character_
+}
 
 cat(sprintf("Snapshot: %s\n", as.character(Sys.time())))
 cat(sprintf("Run tag: %s\n", run_tag))
@@ -71,6 +95,13 @@ cat(sprintf("Total profiles: %s\n", as.character(runner_state$total_profiles %||
 cat(sprintf("Stop reason: %s\n", as.character(runner_state$stop_reason %||% "IN_PROGRESS")))
 cat(sprintf("Source Wave-3 run: %s\n", as.character(completed_manifest$source_run_tag %||% "IN_PROGRESS")))
 cat(sprintf("Residual promoted FAIL rows: %s\n", if (nrow(promoted_fail_summary)) as.character(nrow(promoted_fail_summary)) else "UNKNOWN"))
+cat(sprintf("Launcher mode: %s\n", launcher_mode))
+cat(sprintf("Launcher session: %s\n", launcher_session))
+cat(sprintf("Launcher session live: %s\n", as.character(launcher_session_live)))
+cat(sprintf("Launcher pid: %s\n", as.character(launcher_pid)))
+cat(sprintf("Launcher pid live: %s\n", as.character(launcher_pid_live)))
+cat(sprintf("Launcher log: %s\n", launcher_log))
+cat(sprintf("Launcher log mtime: %s\n", launcher_log_mtime))
 cat("\nStage status:\n")
 if (nrow(stage_status)) {
   utils::write.table(stage_status, row.names = FALSE, quote = FALSE)

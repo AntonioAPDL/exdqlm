@@ -41,14 +41,22 @@ Cross-study assets:
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
 - Wave-6 stall-recovery plan:
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
+- Wave-6 root-cause + supervised relaunch report:
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave6_root_cause_and_supervised_relaunch_20260406.md`
+- Wave-7 supervised relaunch plan:
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_20260406.md`
 - Wave-5 corrected remaining-closure manifest:
   - `config/validation/qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_manifest.yaml`
 - Wave-6 stall-recovery manifest:
   - `config/validation/qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_manifest.yaml`
+- Wave-7 supervised relaunch manifest:
+  - `config/validation/qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_manifest.yaml`
 - residual closure manifest:
   - `config/validation/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave_manifest.yaml`
 - residual closure launcher:
   - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+- residual closure detached launcher:
+  - `scripts/launch_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 - residual closure healthcheck:
   - `scripts/healthcheck_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
 
@@ -74,9 +82,14 @@ Current cross-study read:
 - only `3` unresolved root-status FAIL roots remain, all on the rhs `tt=1000` hard-root band;
 - the Wave-5 run itself then stalled during partial `H530`, so only completed evidence was carried
   forward;
-- the correct next move is therefore a Wave-6 stall-recovery continuation on the post-`H510`
-  `7 / 12 / 17` root slices, not another whole-surface relaunch and not a search for one generic
-  rescue profile.
+- Wave 6 then reproduced the same operational failure shape: valid partial science followed by an
+  orphaned launcher session and a stale `RUNNING` ledger;
+- the main root cause is therefore treated as non-detached supervision rather than a new model
+  defect;
+- the correct next move is therefore the same narrow residual program under a detached supervised
+  relaunch, not another whole-surface relaunch and not a search for one generic rescue profile.
+- that supervised relaunch is now live as:
+  - `qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`
 
 Important boundary:
 

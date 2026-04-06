@@ -55,16 +55,25 @@ Static cross-study status is now sharper:
   - `4 / 37` in `al`,
   - `3` unresolved rhs hard-root FAIL roots at the root-status layer;
 - Wave 5 stalled during partial `H530`, so only completed evidence was carried forward;
-- the active follow-up is therefore a stall-recovery continuation on the post-`H510`
+- Wave 6 then reproduced the same orphaned-launcher failure shape after partial valid progress, so
+  the main operational blocker is now treated as supervision rather than a new model-family
+  failure;
+- the active follow-up is therefore a supervised relaunch on the same post-`H510`
   `7 / 12 / 17` residual slices, not another whole-surface relaunch and not a search for one
   generic rescue profile:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave6_root_cause_and_supervised_relaunch_20260406.md`
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
+  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_20260406.md`
   - `config/validation/qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_manifest.yaml`
+  - `config/validation/qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_manifest.yaml`
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
   - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+  - `scripts/launch_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
+- the supervised relaunch is now live as:
+  - `qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`
 
 Important boundary:
 
