@@ -7,20 +7,36 @@ Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
 
-## Cross-Study Follow-On Update (2026-04-05)
+## Cross-Study Follow-On Correction (2026-04-06)
 
 The dynamic certification track is closed for this cycle, but the broader validation program still
-has one comparison-facing follow-on:
+has one comparison-facing follow-on.
 
-- build the QDESN analog on the same static exdqlm datasets used in the
-  `gausmix / normal / laplace` study
-- keep the QDESN fit matrix:
-  - likelihoods: `exal`, `al`
-  - methods: `vb`, `mcmc`
-  - priors: `ridge`, `rhs_ns`
+The previously completed static exdqlm cross-study is now treated as a **mis-scoped side study**
+relative to the intended deliverable.
+
+The correct target is:
+
+- build the QDESN analog on the same **dynamic** exdqlm validation datasets used for the intended
+  comparison study;
+- preserve:
+  - families
+  - taus
+  - dynamic fit horizons
+  - likelihoods `exal/al`
+  - methods `vb/mcmc`
+- keep the QDESN prior axis:
+  - `ridge`
+  - `rhs_ns`
 
 Cross-study assets:
 
+- scope-correction report:
+  - `docs/REPORT__qdesn_exdqlm_dynamic_scope_correction_20260406.md`
+- corrected dynamic tracker:
+  - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
+- corrected dynamic relaunch plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_validation_20260406.md`
 - tracker:
   - `docs/TRACK__qdesn_static_exdqlm_crossstudy_validation.md`
 - investigation:
@@ -62,38 +78,18 @@ Cross-study assets:
 
 Current cross-study read:
 
-- the broad shared-setup launch established the historical source baseline at `66/72` successful
-  roots;
-- Wave 3 then changed the effective baseline map;
-- Wave 5 validly refined the long-horizon ridge local baseline before stalling;
-- Wave 7 then completed the supervised relaunch cleanly and advanced the long-horizon local
-  baselines again:
-  - shared default:
-    - `F500_anchor_patched`
-  - ridge `tt=100` local:
-    - `G530_ridge_tt100_drift_guard_chain1300`
-  - ridge `tt=1000` local:
-    - `J530_ridge_tt1000_g530_hybrid_chain1600_retry`
-  - rhs `tt=100` local:
-    - `F610_rhs_tt100_conservative_block`
-  - rhs `tt=1000` local:
-    - `J660_rhs_tt1000_chain1600_focus`
-- the old `rhs_ns` VB diagnostics-path issue is now closed under the shared baseline;
-- Wave 7 confirmed the launcher root cause fix by completing the residual program under detached
-  supervision;
-- the remaining promoted successful-surface debt is now:
-  - `38` MCMC FAIL rows on `32` successful roots,
-  - `31 / 38` in `exal`,
-  - `7 / 38` in `al`,
-  - `0` remaining root-status FAIL roots;
-- the program is therefore no longer in a root-status recovery phase;
-- the correct next move is a final comparison-health closure pass over the remaining successful
-  MCMC FAIL rows, not another whole-surface relaunch and not another launcher-recovery exercise.
+- the completed static cross-study was real work but it targeted the wrong dataset surface for the
+  intended comparison deliverable;
+- the live reference dynamic family-qspec surface currently observed on disk is family-based and
+  horizon-based, not the static `paper/shrink` surface and not the scenario-based QDESN dynamic
+  certification grid;
+- the correct next move is therefore a dynamic exdqlm-aligned relaunch, not another static debt
+  wave and not reuse of the current `qdesn_dynamic_family_prior_grid.csv` as-is.
 
 Important boundary:
 
 - this follow-on is not another dynamic DLM tuning loop;
-- it is the QDESN counterpart to the exdqlm static validation surface;
+- it is the QDESN counterpart to the exdqlm **dynamic** comparison surface;
 - local tuning is allowed only where it clearly beats the current local control.
 
 ## Final Certification Update (2026-04-03)

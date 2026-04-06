@@ -4,6 +4,19 @@ Date: 2026-04-06
 Branch: `feature/qdesn-mcmc-alternative`
 Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
 
+## Scope Correction Note
+
+As of 2026-04-06, this tracker documents a completed **static side study**, not the primary
+comparison-facing validation program.
+
+The intended final comparison study is now tracked separately in:
+
+- `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
+
+See:
+
+- `docs/REPORT__qdesn_exdqlm_dynamic_scope_correction_20260406.md`
+
 ## 1) Mission
 
 Build the QDESN counterpart to the exdqlm static validation study on the same recovered static
@@ -17,18 +30,15 @@ This tracker is for the cross-study program only. It is not the dynamic DLM cert
 
 ## 2) Current Status
 
-Status: **Wave 7 supervised relaunch completed cleanly under detached supervision
-(`qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`); the launcher root
-cause is now treated as fixed for this branch path, the effective local-baseline map has advanced
-to `J530/J660`, and the remaining debt is now successful-surface MCMC comparison-health debt rather
-than root-status failure debt**
+Status: **completed static side study; no further compute should be spent here as the primary
+validation target after the 2026-04-06 scope correction**
 
 Current scope decision:
 
 - launch surface: `static only`
 - dynamic row-15 sidecar: `excluded`
 - `gausmix @ tau=0.50`: `excluded`
-- current move-forward mode: `comparison-health closure planning on top of the completed local-baseline map`
+- current move-forward mode: `preserve artifacts only; dynamic-aligned relaunch planning moved to the new dynamic tracker`
 
 Historical source baseline:
 

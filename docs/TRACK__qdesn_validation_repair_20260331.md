@@ -17,11 +17,27 @@ Turn the current QDESN validation situation into a disciplined repair program th
 
 This tracker is the operational roadmap for the next validation wave.
 
-## 1.1) Follow-On Cross-Study Update (2026-04-05)
+## 1.1) Follow-On Cross-Study Correction (2026-04-06)
 
 The dynamic QDESN repair/certification program is now closed for this cycle.
 
-The next comparison-facing program is a separate cross-worktree study:
+The next comparison-facing program is a separate cross-worktree study.
+
+The completed static exdqlm cross-study is now treated as a side study after a scope correction.
+
+The intended deliverable is a **dynamic** exdqlm-aligned QDESN study, not the static analog that
+was previously run.
+
+Primary corrective assets:
+
+- scope-correction report:
+  - `docs/REPORT__qdesn_exdqlm_dynamic_scope_correction_20260406.md`
+- corrected dynamic tracker:
+  - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
+- corrected dynamic relaunch plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_validation_20260406.md`
+
+Historical static side-study assets:
 
 - tracker:
   - `docs/TRACK__qdesn_static_exdqlm_crossstudy_validation.md`
@@ -30,64 +46,28 @@ The next comparison-facing program is a separate cross-worktree study:
 - plan:
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
 
-That follow-on program reuses the exdqlm static `gausmix / normal / laplace` datasets and builds
-the QDESN analog with `exal/al x vb/mcmc x ridge/rhs_ns`.
+The corrected follow-on program should instead mirror the exdqlm **dynamic** family-qspec surface
+with QDESN fits under `exal/al x vb/mcmc x ridge/rhs_ns`.
 
-Static cross-study status is now sharper:
+Key correction findings:
 
-- Wave 1 broad shared-setup launch established the historical source baseline at `66/72`
-  successful roots;
-- Wave 5 then validly refined the effective local-baseline map before stalling:
-  - shared default:
-    - `F500_anchor_patched`
-  - ridge `tt=100` local:
-    - `G530_ridge_tt100_drift_guard_chain1300`
-  - ridge `tt=1000` local:
-    - `H510_ridge_tt1000_local_control`
-  - rhs `tt=100` local:
-    - `F610_rhs_tt100_conservative_block`
-  - rhs `tt=1000` local:
-    - `F640_rhs_tt1000_chain1200`
-- the old `rhs_ns` VB diagnostics-path false-FAIL issue is now closed under the shared baseline;
-- Wave 7 then completed the supervised relaunch and advanced the effective local-baseline map to:
-  - shared default:
-    - `F500_anchor_patched`
-  - ridge `tt=100` local:
-    - `G530_ridge_tt100_drift_guard_chain1300`
-  - ridge `tt=1000` local:
-    - `J530_ridge_tt1000_g530_hybrid_chain1600_retry`
-  - rhs `tt=100` local:
-    - `F610_rhs_tt100_conservative_block`
-  - rhs `tt=1000` local:
-    - `J660_rhs_tt1000_chain1600_focus`
-- the launcher root cause is now treated as fixed for this branch path because Wave 7 completed
-  cleanly under detached supervision;
-- the remaining promoted successful-surface debt is now:
-  - `38` MCMC FAIL rows,
-  - `31 / 38` in `exal`,
-  - `7 / 38` in `al`,
-  - `0` remaining root-status FAIL roots;
-- the next follow-up, if needed, is therefore a comparison-health closure pass on successful roots,
-  not another launcher-recovery wave and not another whole-surface relaunch:
-  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
-  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
-  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave6_root_cause_and_supervised_relaunch_20260406.md`
-  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave7_closeout_20260406.md`
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
-  - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_20260406.md`
-  - `config/validation/qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_manifest.yaml`
-  - `config/validation/qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_manifest.yaml`
-  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
-  - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-  - `scripts/launch_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-- the supervised relaunch that closed this recovery thread is:
-  - `qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`
+- the static cross-study was run on the wrong data surface for the intended comparison study;
+- the currently observed exdqlm dynamic family-qspec surface is:
+  - `dlm_constV_smallW`
+  - `gausmix/laplace/normal`
+  - `tau in {0.05, 0.25, 0.95}`
+  - `lastTT500/lastTT5000`
+  - `18` observed dynamic dataset cells
+- the current QDESN dynamic certification grid is also not a drop-in analog because it is
+  scenario-based and uses `tau=0.50` rather than the observed family-qspec `tau=0.25`;
+- the correct next move is therefore a fresh dynamic exdqlm-aligned relaunch with a new
+  canonical-grid materialization path and a new dedicated external-dynamic runner.
 
 Important boundary:
 
 - this tracker remains the record for the dynamic QDESN repair/certification sequence;
-- the static exdqlm cross-study should not be confused with the finished dynamic DLM certification.
+- the static exdqlm cross-study should not be confused with the intended dynamic exdqlm-aligned
+  comparison study.
 
 ## 2) Executive Status
 
