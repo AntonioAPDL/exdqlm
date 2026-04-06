@@ -626,7 +626,7 @@ check_ts = function(dat){
   sig0 <- if (!is.na(sig.init)) as.numeric(sig.init)[1] else 1
   if (!is.finite(sig0) || sig0 <= 0) sig0 <- 1
   if (isTRUE(fix.sigma) && is.na(sig.init)) {
-    stop("fix.sigma=TRUE requires a finite sig.init in reduced DQLM CAVI.")
+    stop("fix.sigma=TRUE requires a finite sig.init in reduced DQLM VB.")
   }
 
   # Initialize q(v) moments and q(sigma) moments.

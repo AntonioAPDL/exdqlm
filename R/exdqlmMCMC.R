@@ -126,7 +126,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     n.IS = 200L,
     n.samp = 200L,
     max_iter = getOption("exdqlm.max_iter", 200L),
-    verbose = FALSE
+    verbose = verbose
   )
   if (is.null(vb_init_controls)) vb_init_controls <- list()
   vb.ctrl <- utils::modifyList(vb.ctrl.default, vb_init_controls)

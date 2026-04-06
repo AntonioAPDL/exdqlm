@@ -53,8 +53,8 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   y = m1$y
   p = dim(m1$model$GG)[1]
   TT = dim(m1$model$GG)[3]
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1)){
-    stop("m1 must be an output from 'exdqlmISVB()' or 'exdqlmMCMC()'")
+  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
+    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
   }
   if(cr.percent<=0 | cr.percent>=1){
     stop("cr.percent must be between 0 and 1")
