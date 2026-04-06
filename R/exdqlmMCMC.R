@@ -7,10 +7,12 @@
 #' @param joint.sample Logical value indicating whether or not to recompute `Sig.mh` based off the initial burn-in samples of gamma and sigma. Default is `FALSE`.
 #' @param n.burn Number of MCMC iterations to burn. Default is `n.burn = 2000`.
 #' @param n.mcmc Number of MCMC iterations to sample. Default is `n.mcmc = 1500`.
-#' @param init.from.isvb Logical value indicating whether or not to initialize the MCMC using the ISVB algorithm. Default is `TRUE`.
-#' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization step
-#'   (`ISVB` or `LDVB`) and initialize MCMC from converged VB moments.
-#'   If `NULL`, falls back to `init.from.isvb` behavior.
+#' @param init.from.isvb Logical value indicating whether to use the legacy ISVB
+#'   warm start when `init.from.vb = TRUE`. Default is `FALSE`, which favors
+#'   `LDVB` as the default VB warm start.
+#' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization
+#'   step (`LDVB` by default, or `ISVB` when `init.from.isvb = TRUE`) and
+#'   initialize MCMC from converged VB moments. Default is `TRUE`.
 #' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
 #'   `method` (`"isvb"` or `"ldvb"`), `tol`, `n.IS`, `n.samp`, `max_iter`, `verbose`.
 #' @param vb_init_fit Optional precomputed VB fit object. If supplied, warm start
@@ -36,6 +38,9 @@
 #'   lighter-weight runs.
 #' @param trace.every Positive integer; when `trace.diagnostics = TRUE`, record
 #'   one diagnostics row every `trace.every` iterations.
+#' @param verbose.every Positive integer controlling how often console progress
+#'   is printed when `verbose = TRUE`. Default `50`, independent of
+#'   `trace.every`.
 #' @param progress_callback Optional callback invoked with a named list at MCMC
 #'   start, at each progress checkpoint, and on completion. Intended for
 #'   workflow-level progress logging.
@@ -89,13 +94,13 @@
 #' }
 #'
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
-                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=TRUE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
-                    init.from.vb=NULL,vb_init_controls=NULL,vb_init_fit=NULL,
+                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
+                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,
                     mh.proposal=c("laplace_rw","rw","slice"),mh.adapt=TRUE,mh.adapt.interval=50L,
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,
-                    trace.diagnostics=TRUE,trace.every=1L,
+                    trace.diagnostics=TRUE,trace.every=1L,verbose.every=50L,
                     progress_callback=NULL){
 
   # check inputs
@@ -111,14 +116,14 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     stop("number of mcmc samples must be positive")
     }
   if(verbose & n.burn<=0){
-    warning("mcmc will be sampled without burn-in, a burn-in is recommended even if initializing using the isvb algorithm")
+    warning("mcmc will be sampled without burn-in; a burn-in is still recommended, including when using a VB warm start")
     n.burn=0
     }
   I = n.mcmc + n.burn
   mh.proposal <- match.arg(mh.proposal)
 
   if (is.null(init.from.vb)) {
-    init.from.vb <- isTRUE(init.from.isvb)
+    init.from.vb <- TRUE
   }
   if (!is.null(vb_init_fit)) {
     init.from.vb <- TRUE
@@ -131,7 +136,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     n.IS = 200L,
     n.samp = 200L,
     max_iter = getOption("exdqlm.max_iter", 200L),
-    verbose = verbose
+    verbose = FALSE
   )
   if (is.null(vb_init_controls)) vb_init_controls <- list()
   vb.ctrl <- utils::modifyList(vb.ctrl.default, vb_init_controls)
@@ -185,6 +190,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   trace.diagnostics <- isTRUE(trace.diagnostics)
   trace.every <- suppressWarnings(as.integer(trace.every)[1])
   if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
+  verbose.every <- suppressWarnings(as.integer(verbose.every)[1])
+  if (!is.finite(verbose.every) || verbose.every < 1L) verbose.every <- 50L
+  verbose_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+  if (is.finite(verbose_every_env) && !is.na(verbose_every_env) && verbose_every_env >= 1L) {
+    verbose.every <- verbose_every_env
+  }
   safe_progress_callback <- function(info) {
     if (!is.function(progress_callback)) return(invisible(NULL))
     try(progress_callback(info), silent = TRUE)
@@ -435,12 +446,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   # Set initial values
   if(init.from.vb){
     if(verbose){
-      cat(sprintf("running %s algorithm to initialize mcmc\n", toupper(vb.ctrl$method)))
+      cat(sprintf("MCMC init: running %s warm start\n", toupper(vb.ctrl$method)))
     }
     if (!is.null(vb_init_fit)) {
       vb.out <- vb_init_fit
       if (verbose) {
-        cat("using provided vb_init_fit object for MCMC initialization\n")
+        cat("MCMC init: using provided vb_init_fit object\n")
       }
     } else {
       vb.out <- run_vb_init()
@@ -766,15 +777,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       return(list(log.sigma=log.sigma.new,logit.gamma=logit.gamma.new,accept=accept))
     }
 
-    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
-    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
-      progress_every_env
-    } else if (trace.diagnostics) {
+    callback.every <- if (trace.diagnostics) {
       trace.every
     } else {
       100L
     }
-    progress_every <- max(1L, as.integer(progress_every)[1])
+    callback.every <- max(1L, as.integer(callback.every)[1])
 
     # Sample from exdqlm posterior
     tictoc::tic()
@@ -793,13 +801,14 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose & i%%progress_every==0){
-        acc_msg <- if (identical(mh.proposal, "slice")) "NA" else round(n.accept / i, 4)
-        cat(sprintf("%s iteration %s, acceptance rate %s: %s", ifelse(i<=n.burn,"burn-in","MCMC"), i , acc_msg, Sys.time()),"\n")
+      if(verbose && i %% verbose.every == 0L){
+        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
+        acc_msg <- if (identical(mh.proposal, "slice")) "NA" else sprintf("%.4f", n.accept / i)
+        cat(sprintf("%s %d/%d | accept=%s | %s", phase_label, i, I, acc_msg, Sys.time()), "\n")
         utils::flush.console()
         try(flush(stdout()), silent = TRUE)
-        }
-      if (i %% progress_every == 0L) {
+      }
+      if (i %% callback.every == 0L) {
         safe_progress_callback(list(
           event = "progress",
           iter = as.integer(i),
@@ -1048,6 +1057,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       adapt_trace = if (identical(mh.proposal, "slice")) data.frame() else adapt.history,
       trace_enabled = trace.diagnostics,
       trace_every = if (trace.diagnostics) trace.every else NA_integer_,
+      verbose_every = as.integer(verbose.every),
+      callback_every = as.integer(callback.every),
       trace = if (trace.diagnostics && trace_idx > 0L) {
         do.call(rbind, trace_rows[seq_len(trace_idx)])
       } else {
@@ -1071,6 +1082,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 mh.diagnostics = mh.diag,
                 diagnostics = list(
                   mh = mh.diag,
+                  progress = list(
+                    verbose_every = as.integer(verbose.every),
+                    callback_every = as.integer(callback.every)
+                  ),
                   ess = list(sigma = ess_sigma, gamma = ess_gamma),
                   chain_health = list(
                     sigma = chain_health_sigma,
@@ -1183,15 +1198,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                rate = PriorSigma$b_sig + 0.5*sum( ((as.vector(y) - reg1 - a_tau*uts)^2)/(b_tau*uts) ) + sum(uts) )
     }
 
-    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
-    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
-      progress_every_env
-    } else if (trace.diagnostics) {
+    callback.every <- if (trace.diagnostics) {
       trace.every
     } else {
       100L
     }
-    progress_every <- max(1L, as.integer(progress_every)[1])
+    callback.every <- max(1L, as.integer(callback.every)[1])
 
     # Sample from dqlm posterior
     tictoc::tic()
@@ -1210,12 +1222,13 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose & i%%progress_every==0){
-        cat(sprintf("%s iteration %s: %s ", ifelse(i<=n.burn,"burn-in","MCMC"), i, Sys.time()), "\n")
+      if(verbose && i %% verbose.every == 0L){
+        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
+        cat(sprintf("%s %d/%d | %s", phase_label, i, I, Sys.time()), "\n")
         utils::flush.console()
         try(flush(stdout()), silent = TRUE)
-        }
-      if (i %% progress_every == 0L) {
+      }
+      if (i %% callback.every == 0L) {
         safe_progress_callback(list(
           event = "progress",
           iter = as.integer(i),
@@ -1288,6 +1301,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 init.from.vb = init.from.vb,
                 vb.init.method = if (init.from.vb) vb.ctrl$method else NA_character_,
                 diagnostics = list(
+                  progress = list(
+                    verbose_every = as.integer(verbose.every),
+                    callback_every = as.integer(callback.every)
+                  ),
                   ess = list(sigma = ess_sigma, gamma = NA_real_),
                   rhat_ready = list(
                     sigma = as.numeric(save.sigma),

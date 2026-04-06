@@ -35,6 +35,7 @@ run_mcmc_backend <- function(use_cpp_mcmc, mode, dqlm = FALSE) {
     n.burn = 3,
     n.mcmc = 6,
     init.from.isvb = FALSE,
+    init.from.vb = FALSE,
     verbose = FALSE
   )
 }
@@ -83,4 +84,3 @@ test_that("Invalid MCMC mode falls back to strict", {
   expect_equal(fit$backend$mode, "strict")
   expect_equal(fit$backend$mcmc, "R")
 })
-

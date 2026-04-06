@@ -30,6 +30,7 @@ run_mcmc_strict_pair <- function(dqlm = FALSE) {
       n.burn = 3,
       n.mcmc = 8,
       init.from.isvb = FALSE,
+      init.from.vb = FALSE,
       verbose = FALSE
     )
   }
@@ -67,4 +68,3 @@ test_that("strict mode matches R reference for dQLM", {
   expect_equal(as.numeric(r_ref$samp.sigma), as.numeric(strict_cpp$samp.sigma), tolerance = 0)
   expect_equal(as.numeric(r_ref$samp.post.pred), as.numeric(strict_cpp$samp.post.pred), tolerance = 0)
 })
-

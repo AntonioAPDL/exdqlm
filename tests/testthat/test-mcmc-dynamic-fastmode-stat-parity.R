@@ -30,6 +30,7 @@ run_mcmc_fast_compare <- function(dqlm = FALSE) {
       n.burn = 10,
       n.mcmc = 40,
       init.from.isvb = FALSE,
+      init.from.vb = FALSE,
       verbose = FALSE
     )
   }
@@ -79,4 +80,3 @@ test_that("fast mode dQLM stays statistically close to R baseline", {
   expect_true(all(is.finite(pp_c)))
   expect_lt(abs(stats::median(pp_r) - stats::median(pp_c)), 1.0)
 })
-
