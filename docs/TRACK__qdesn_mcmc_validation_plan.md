@@ -64,32 +64,31 @@ Current cross-study read:
 
 - the broad shared-setup launch established the historical source baseline at `66/72` successful
   roots;
-- Wave 3 then changed the effective baseline map:
-- Wave 5 then validly refined the long-horizon ridge local baseline before stalling:
+- Wave 3 then changed the effective baseline map;
+- Wave 5 validly refined the long-horizon ridge local baseline before stalling;
+- Wave 7 then completed the supervised relaunch cleanly and advanced the long-horizon local
+  baselines again:
   - shared default:
     - `F500_anchor_patched`
   - ridge `tt=100` local:
     - `G530_ridge_tt100_drift_guard_chain1300`
   - ridge `tt=1000` local:
-    - `H510_ridge_tt1000_local_control`
+    - `J530_ridge_tt1000_g530_hybrid_chain1600_retry`
   - rhs `tt=100` local:
     - `F610_rhs_tt100_conservative_block`
   - rhs `tt=1000` local:
-    - `F640_rhs_tt1000_chain1200`
+    - `J660_rhs_tt1000_chain1600_focus`
 - the old `rhs_ns` VB diagnostics-path issue is now closed under the shared baseline;
-- the valid completed Wave-5 evidence reduced the remaining promoted successful-surface debt to
-  `37` MCMC FAIL rows on `33` roots, still mostly `exal`;
-- only `3` unresolved root-status FAIL roots remain, all on the rhs `tt=1000` hard-root band;
-- the Wave-5 run itself then stalled during partial `H530`, so only completed evidence was carried
-  forward;
-- Wave 6 then reproduced the same operational failure shape: valid partial science followed by an
-  orphaned launcher session and a stale `RUNNING` ledger;
-- the main root cause is therefore treated as non-detached supervision rather than a new model
-  defect;
-- the correct next move is therefore the same narrow residual program under a detached supervised
-  relaunch, not another whole-surface relaunch and not a search for one generic rescue profile.
-- that supervised relaunch is now live as:
-  - `qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`
+- Wave 7 confirmed the launcher root cause fix by completing the residual program under detached
+  supervision;
+- the remaining promoted successful-surface debt is now:
+  - `38` MCMC FAIL rows on `32` successful roots,
+  - `31 / 38` in `exal`,
+  - `7 / 38` in `al`,
+  - `0` remaining root-status FAIL roots;
+- the program is therefore no longer in a root-status recovery phase;
+- the correct next move is a final comparison-health closure pass over the remaining successful
+  MCMC FAIL rows, not another whole-surface relaunch and not another launcher-recovery exercise.
 
 Important boundary:
 

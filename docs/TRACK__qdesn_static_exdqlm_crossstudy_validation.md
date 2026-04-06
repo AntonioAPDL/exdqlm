@@ -17,16 +17,18 @@ This tracker is for the cross-study program only. It is not the dynamic DLM cert
 
 ## 2) Current Status
 
-Status: **Wave 6 is now treated as an orphaned launcher-session stall, not a scientific invalidation;
-the root cause was traced to non-detached supervision; Wave 7 supervised relaunch is now live under
-detached launcher control (`qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`)**
+Status: **Wave 7 supervised relaunch completed cleanly under detached supervision
+(`qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`); the launcher root
+cause is now treated as fixed for this branch path, the effective local-baseline map has advanced
+to `J530/J660`, and the remaining debt is now successful-surface MCMC comparison-health debt rather
+than root-status failure debt**
 
 Current scope decision:
 
 - launch surface: `static only`
 - dynamic row-15 sidecar: `excluded`
 - `gausmix @ tau=0.50`: `excluded`
-- current move-forward mode: `residual MCMC closure with local tuning allowed`
+- current move-forward mode: `comparison-health closure planning on top of the completed local-baseline map`
 
 Historical source baseline:
 
@@ -47,33 +49,38 @@ Promoted current baseline map:
 - local ridge `tt=100` baseline:
   - `G530_ridge_tt100_drift_guard_chain1300`
 - local ridge `tt=1000` baseline:
-  - `H510_ridge_tt1000_local_control`
+  - `J530_ridge_tt1000_g530_hybrid_chain1600_retry`
 - local rhs `tt=100` baseline:
   - `F610_rhs_tt100_conservative_block`
 - local rhs `tt=1000` baseline:
-  - `F640_rhs_tt1000_chain1200`
+  - `J660_rhs_tt1000_chain1600_focus`
 
 Main current takeaways:
 
 - the old `rhs_ns` VB diagnostics-path false-FAIL bucket remains closed under the shared baseline;
-- Wave 5 Stage 1 completed two valid ridge `tt=1000` candidates before stalling in `H530`;
-- `H510` clearly improved the carried-forward baseline on that slice:
-  - Stage-1 fit FAIL rows: `12 -> 7`
-  - Stage-1 fail roots: `12 -> 7`
-  - Stage-1 root-status FAIL roots: `3 -> 0`
-  - Stage-1 compare-full roots: `0 / 15 -> 8 / 15`
-- `H520` was a clear loser and should not be rerun;
-- `H530` is unresolved because the run died mid-profile after partial VB output only;
-- the effective remaining debt after promoting `H510` is now:
-  - `37` promoted fit FAIL rows on successful roots,
-  - `33` affected roots,
-  - all `37 / 37` are `mcmc`,
-  - `33 / 37` are `exal`,
-  - `4 / 37` are `al`,
-  - only `3` unresolved root-status FAIL roots remain, all on `rhs_ns` hard roots;
-- the remaining problem is not one generic family-wide tuning question anymore;
-- the remaining problem is now one narrow ridge `tt=1000` residual slice plus two rhs residual
-  slices, with local tuning only where it still buys down real FAIL debt.
+- Wave 7 completed cleanly under detached supervision and did not reproduce the orphaned-launcher
+  failure shape from Waves 5 and 6;
+- `J530` beat the carried-forward `H510` local baseline on the remaining ridge `tt=1000` slice:
+  - Stage-1 fit FAIL rows: `7 -> 6`
+  - Stage-1 fail roots: `7 -> 6`
+  - Stage-1 compare-full roots: `0 -> 1`
+- `J540` did not beat `J530` and should be treated as a tested non-winner;
+- `F610` remained the best rhs `tt=100` local baseline; both Wave-7 challengers failed to justify
+  promotion;
+- `J660` beat the carried-forward `F640` long-horizon rhs local baseline and closed the remaining
+  root-status FAIL band:
+  - root-status FAIL roots: `3 -> 0`
+  - original hard-root FAIL band now revalidated to `SUCCESS`
+- the effective remaining debt after Wave 7 is now:
+  - `38` promoted fit FAIL rows on successful roots,
+  - `32` affected successful roots,
+  - all `38 / 38` are `mcmc`,
+  - `31 / 38` are `exal`,
+  - `7 / 38` are `al`,
+  - `0` unresolved root-status FAIL roots remain;
+- the remaining problem is no longer one generic family-wide tuning question;
+- the remaining problem is now a final successful-surface comparison-health closure question over
+  three residual MCMC slices, with local tuning only where it still buys down real FAIL debt.
 
 Validation checkpoints completed:
 
@@ -88,22 +95,22 @@ Validation checkpoints completed:
 - Wave-4 long-horizon continuation: `SUPERSEDED_AFTER_STAGE1_DUE_PRIOR_SCOPE_SELECTOR_BUG`
 - Wave-5 corrected remaining residual closure: `STALLED_AFTER_PARTIAL_STAGE1__H510_PROMOTED_AFTER_STALL`
 - Wave-6 stall-recovery continuation: `STALLED_AFTER_ORPHANED_LAUNCHER_SESSION`
-- Wave-7 supervised relaunch: `LIVE_UNDER_DETACHED_LAUNCHER`
+- Wave-7 supervised relaunch: `COMPLETED__DETACHED_LAUNCHER_FIX_CONFIRMED`
 
 ## 3) Read First
 
-1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave6_root_cause_and_supervised_relaunch_20260406.md`
-2. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_20260406.md`
-3. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
-4. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
-5. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
-6. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
-7. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
-8. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
-9. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
-10. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
-11. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
-12. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closure_20260404.md`
+1. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave7_closeout_20260406.md`
+2. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave6_root_cause_and_supervised_relaunch_20260406.md`
+3. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_20260406.md`
+4. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
+5. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
+6. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
+7. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
+8. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
+9. `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave4_residual_mcmc_closure_20260405.md`
+10. `docs/REPORT__qdesn_static_exdqlm_crossstudy_investigation_20260404.md`
+11. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave1_broad_launch_20260404.md`
+12. `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave2_stage1_closeout_20260404.md`
 13. `docs/PLAN__qdesn_static_exdqlm_crossstudy_validation_20260404.md`
 14. `config/validation/qdesn_static_exdqlm_crossstudy_defaults.yaml`
 15. `config/validation/qdesn_static_exdqlm_crossstudy_grid.csv`
@@ -180,38 +187,37 @@ Implementation assets:
 Remaining scientific debt is now split more precisely:
 
 1. promoted residual fit FAIL surface on successful roots:
-   - `37` fit FAIL rows
-   - `33` roots
-   - `37 / 37` are `mcmc`
-   - `33 / 37` are `exal`
-   - `4 / 37` are `al`
+   - `38` fit FAIL rows
+   - `32` successful roots
+   - `38 / 38` are `mcmc`
+   - `31 / 38` are `exal`
+   - `7 / 38` are `al`
 2. unresolved original Wave-1 hard-root FAIL band:
-   - `3` roots
-   - all in `static_shrink x laplace x tt=1000 x rhs_ns`
-   - `tau in {0.05, 0.25, 0.95}`
+   - `RESOLVED_IN_WAVE7_BY_J660`
 3. residual ridge short-horizon drift slice:
    - `RESOLVED_IN_WAVE4_STAGE1_BY_G530`
-4. residual ridge long-horizon ESS slice after `H510`:
-   - `7` FAIL rows
-   - `7` roots
+4. residual ridge long-horizon ESS slice after `J530`:
+   - `6` FAIL rows
+   - `6` roots
    - no remaining ridge root-status FAILs
 5. residual rhs short-horizon drift slice:
    - `15` FAIL rows
    - `12` roots
-6. residual rhs long-horizon ESS slice:
-   - `15` FAIL rows
+6. residual rhs long-horizon ESS slice after `J660`:
+   - `17` FAIL rows
    - `14` roots
+   - no remaining rhs root-status FAILs
 
 Current highest-value questions:
 
-- can a direct `H510`-geometry chain extension remove the remaining `7` ridge `tt=1000`
-  `exal/mcmc` residuals more cleanly than the stalled G530-derived long-horizon branch?
-- does `H530` deserve one controlled retry now that it is competing against the updated `H510`
-  baseline instead of the older `F510` baseline?
-- can the carried-forward `H620/H630` rhs short-horizon challengers reduce the remaining
-  `tt=100` drift-heavy rhs residuals without replaying chain-only losers?
-- can the carried-forward `H650/H660` rhs long-horizon challengers both revalidate the remaining
-  `3` rhs hard-root FAILs and reduce the remaining `tt=1000` ESS/autocorrelation rhs residuals?
+- can the remaining `6` ridge `tt=1000` `exal/mcmc` comparison-health FAIL rows under `J530` be
+  reduced without giving back the now-closed root-status surface?
+- can the remaining `15` rhs `tt=100` MCMC FAIL rows be reduced without reopening the retired
+  `J620/J630` challenger paths?
+- can the remaining `17` rhs `tt=1000` MCMC FAIL rows under `J660` be reduced now that the hard
+  root-status FAIL band is closed?
+- can the next follow-up operate as a successful-surface comparison-health closure pass rather than
+  another root-status recovery wave?
 
 ## 7) Current Baseline Map
 
@@ -228,20 +234,22 @@ Local promoted baselines:
 - ridge `tt=100`:
   - `G530_ridge_tt100_drift_guard_chain1300`
 - ridge `tt=1000`:
-  - `H510_ridge_tt1000_local_control`
+  - `J530_ridge_tt1000_g530_hybrid_chain1600_retry`
 - rhs `tt=100`:
   - `F610_rhs_tt100_conservative_block`
 - rhs `tt=1000`:
-  - `F640_rhs_tt1000_chain1200`
+  - `J660_rhs_tt1000_chain1600_focus`
 
 Current practical read:
 
 - the shared baseline is now the right default only where no local slice winner has already
   beaten it;
 - ridge `tt=100` is closed under the completed `G530` winner;
-- ridge `tt=1000` now carries `H510`, not the older `F510`, because Wave 5 completed enough valid
-  evidence to justify promotion before stalling;
-- `H520` is retired as a demonstrated loser on the long-horizon ridge slice;
-- `H530` is unresolved and should be treated as a retry candidate, not as a promoted result;
-- the corrected next follow-up should therefore start from the post-`H510` local-baseline map and
-  use remaining stage sizes `7`, `12`, and `17`, not the earlier `15`, `12`, and `17`.
+- ridge `tt=1000` now carries `J530`, not the older `H510`, because Wave 7 completed the clean
+  retry and justified promotion;
+- rhs `tt=100` remains closed under `F610`; `J620` and `J630` are now retired as non-winners on
+  that slice;
+- rhs `tt=1000` now carries `J660`, not the older `F640`, because Wave 7 cleared the remaining
+  root-status FAIL band and won the stage;
+- the correct next follow-up is now a comparison-health closure pass over the remaining successful
+  MCMC FAIL rows, not another recovery pass over root-status failures.

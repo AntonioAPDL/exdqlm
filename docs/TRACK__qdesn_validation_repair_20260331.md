@@ -49,21 +49,30 @@ Static cross-study status is now sharper:
   - rhs `tt=1000` local:
     - `F640_rhs_tt1000_chain1200`
 - the old `rhs_ns` VB diagnostics-path false-FAIL issue is now closed under the shared baseline;
+- Wave 7 then completed the supervised relaunch and advanced the effective local-baseline map to:
+  - shared default:
+    - `F500_anchor_patched`
+  - ridge `tt=100` local:
+    - `G530_ridge_tt100_drift_guard_chain1300`
+  - ridge `tt=1000` local:
+    - `J530_ridge_tt1000_g530_hybrid_chain1600_retry`
+  - rhs `tt=100` local:
+    - `F610_rhs_tt100_conservative_block`
+  - rhs `tt=1000` local:
+    - `J660_rhs_tt1000_chain1600_focus`
+- the launcher root cause is now treated as fixed for this branch path because Wave 7 completed
+  cleanly under detached supervision;
 - the remaining promoted successful-surface debt is now:
-  - `37` MCMC FAIL rows,
-  - `33 / 37` in `exal`,
-  - `4 / 37` in `al`,
-  - `3` unresolved rhs hard-root FAIL roots at the root-status layer;
-- Wave 5 stalled during partial `H530`, so only completed evidence was carried forward;
-- Wave 6 then reproduced the same orphaned-launcher failure shape after partial valid progress, so
-  the main operational blocker is now treated as supervision rather than a new model-family
-  failure;
-- the active follow-up is therefore a supervised relaunch on the same post-`H510`
-  `7 / 12 / 17` residual slices, not another whole-surface relaunch and not a search for one
-  generic rescue profile:
+  - `38` MCMC FAIL rows,
+  - `31 / 38` in `exal`,
+  - `7 / 38` in `al`,
+  - `0` remaining root-status FAIL roots;
+- the next follow-up, if needed, is therefore a comparison-health closure pass on successful roots,
+  not another launcher-recovery wave and not another whole-surface relaunch:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave4_stage1_closeout_and_scope_fix_20260405.md`
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave5_stall_closeout_20260406.md`
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave6_root_cause_and_supervised_relaunch_20260406.md`
+  - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave7_closeout_20260406.md`
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave5_remaining_residual_mcmc_closure_20260405.md`
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave6_stall_recovery_20260406.md`
   - `docs/PLAN__qdesn_static_exdqlm_crossstudy_wave7_supervised_relaunch_20260406.md`
@@ -72,7 +81,7 @@ Static cross-study status is now sharper:
   - `docs/REPORT__qdesn_static_exdqlm_crossstudy_wave3_fit_fail_closeout_20260405.md`
   - `scripts/run_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
   - `scripts/launch_qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R`
-- the supervised relaunch is now live as:
+- the supervised relaunch that closed this recovery thread is:
   - `qdesn-static-exdqlm-crossstudy-residualmcmc-20260406-032836__git-b0dc6ca`
 
 Important boundary:
