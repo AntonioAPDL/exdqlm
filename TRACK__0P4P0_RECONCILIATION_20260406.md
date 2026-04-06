@@ -337,6 +337,88 @@ Operational risks:
 9. Defer downstream sync into the live validation branch until its active run is at a safe checkpoint.
 10. Defer qdesn branch sync until done in a clean integration context; merge/rebase updated `0.4.0` into qdesn rather than trying to merge qdesn into `0.4.0`.
 
+## Execution Results
+
+Implemented on `cransub/0.4.0`:
+
+- Fast-forwarded local `cransub/0.4.0` from `a95ee8c` to upstream `af2dbba`
+- Added reconciliation tracker commit:
+  - `cf9e9ba` `docs: add 0.4.0 reconciliation tracker`
+- Added static shared-base backport commit:
+  - `51a6261` `feat(static): backport rhs_ns static shared base`
+- Added dynamic/C++ sampler backport commit:
+  - `33f4f00` `feat(dynamic): backport cpp gig sampler and mcmc diagnostics`
+
+Focused verification:
+
+- Ran:
+  - `Rscript -e "pkgload::load_all('.', quiet = TRUE); testthat::test_dir('tests/testthat', reporter = 'summary', filter = 'dqlm-vb-sim-smoke|static-beta-prior-rhs|static-fit-normalization|static-regression-regmod|vb-mcmc-convergence-controls')"`
+- Result:
+  - passed
+  - one skip only:
+    - `LDVB smoke on synthetic dynamic quantiles (exDQLM vs DQLM) stays finite and sensible`
+    - skip reason: `skip_on_cran()`
+
+Intentional residual differences from the validation branch after the backport:
+
+- `R/exdqlmLDVB.R`
+  - kept upstream `0.4.0` fixes that preserve `ts` object handling in reduced DQLM mode
+  - kept upstream `exdqlmLDVB` class return so `exdqlmForecast()` compatibility stays intact
+- `R/exdqlmMCMC.R`
+  - kept upstream propagation of `verbose` into the VB warm-start controls
+- `R/utils.R`
+  - kept upstream `check_ts()` preservation of `ts` metadata
+  - kept upstream reduced-DQLM `VB` wording and non-coercive handling
+
+Interpretation:
+
+- The canonical `0.4.0` base now contains the validation branch's shared package implementation changes plus the newer upstream April fixes from Raquel.
+- Validation-only reports/tools were intentionally left out.
+- QDESN-specific code and dirty local qdesn work were intentionally left out.
+
+## Downstream Sync Notes
+
+### Validation branch (`validation/rerun-after-0.4.0-sync`)
+
+Do not touch until the active run is at a safe checkpoint.
+
+When safe:
+
+- merge updated `cransub/0.4.0` into `validation/rerun-after-0.4.0-sync`
+- expect the important reconciliation to be concentrated in:
+  - `R/exdqlmLDVB.R`
+  - `R/exdqlmMCMC.R`
+  - `R/utils.R`
+- reason:
+  - the validation branch already had most shared package changes
+  - the new `0.4.0` base mainly adds the upstream-preserving fixes that validation had not yet absorbed
+
+### QDESN branch (`feature/qdesn-mcmc-alternative`)
+
+Do not sync in place while the worktree is dirty.
+
+Recommended next step:
+
+- first preserve or intentionally commit the current qdesn-only local changes
+- then merge updated `cransub/0.4.0` into a clean qdesn integration context
+- do not attempt the reverse direction
+
+Expected qdesn conflict surface remains:
+
+- the 15 shared package-core files listed above
+- plus the broader generic package drift on the qdesn line:
+  - `.Rbuildignore`
+  - `.gitignore`
+  - `NAMESPACE`
+  - `NEWS.md`
+  - `R/exdqlm-package.R`
+  - `README.Rmd`
+  - `README.md`
+  - `R/transfn_exdqlmLDVB.R`
+  - `R/regMod.R`
+  - `man/transfn_exdqlmLDVB.Rd`
+  - `src/exAL.cpp`
+
 ## Execution Checklist
 
 - [x] Fast-forward local `cransub/0.4.0` to `origin/cransub/0.4.0`
@@ -346,8 +428,8 @@ Operational risks:
 - [x] Identify validation-only artifacts
 - [x] Identify qdesn overlap/conflict surface
 - [x] Identify qdesn-only dirty local files
-- [ ] Port validation package-core changes into `cransub/0.4.0`
-- [ ] Keep only package-core tests/docs needed for the shared base
+- [x] Port validation package-core changes into `cransub/0.4.0`
+- [x] Keep only package-core tests/docs needed for the shared base
 - [ ] Push updated `cransub/0.4.0`
-- [ ] Record downstream sync instructions for validation branch
-- [ ] Record downstream sync instructions for qdesn branch
+- [x] Record downstream sync instructions for validation branch
+- [x] Record downstream sync instructions for qdesn branch
