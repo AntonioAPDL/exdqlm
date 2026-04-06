@@ -46,8 +46,9 @@ Constraints:
 - QDESN validation worktree: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
   - branch: `feature/qdesn-mcmc-alternative`
   - commit: `eb141cc`
-  - dirty tracked change:
+  - dirty tracked changes:
     - `R/qdesn_static_exdqlm_crossstudy.R`
+    - `R/run_esn_pipeline.R`
   - dirty untracked files:
     - `R/qdesn_dynamic_exdqlm_crossstudy.R`
     - `config/validation/qdesn_dynamic_exdqlm_crossstudy_defaults.yaml`
@@ -275,6 +276,8 @@ The current uncommitted qdesn worktree changes are qdesn-only and should stay is
 
 - `R/qdesn_static_exdqlm_crossstudy.R`
   - adds a YAML boolean-coercion guard for `external_data.y_column`
+- `R/run_esn_pipeline.R`
+  - local qdesn-side tracked change discovered during final safety check
 - untracked dynamic cross-study workflow files
   - all are qdesn-only validation orchestration
   - they point at absolute paths inside the active validation worktree:
