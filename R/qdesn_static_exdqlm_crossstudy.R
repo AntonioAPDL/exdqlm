@@ -374,6 +374,27 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
   external_cfg <- defaults$external_data %||% list()
   preproc_cfg <- defaults$preproc %||% list()
   lags_cfg <- defaults$lags %||% list()
+  normalize_column_name <- function(value, default, label) {
+    if (is.null(value) || !length(value)) return(default)
+    if (is.logical(value)) {
+      if (length(value) == 1L && isTRUE(value) && identical(default, "y")) {
+        warning(
+          sprintf(
+            "%s was parsed as logical TRUE; falling back to default column '%s'. Quote the YAML scalar to avoid YAML 1.1 boolean coercion.",
+            label,
+            default
+          ),
+          call. = FALSE
+        )
+        return(default)
+      }
+      stop(sprintf("%s must be a column name string, not logical.", label), call. = FALSE)
+    }
+    out <- as.character(value)[1L]
+    out <- trimws(out)
+    if (!nzchar(out)) return(default)
+    out
+  }
 
   T_eff <- as.integer(T_use %||% root_spec$fit_size)[1L]
   if (!is.finite(T_eff) || T_eff < 20L) {
@@ -398,7 +419,7 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
     ),
     p_vec = as.numeric(root_spec$tau),
     columns = list(
-      y = as.character((external_cfg$y_column %||% "y"))[1L],
+      y = normalize_column_name(external_cfg$y_column %||% "y", default = "y", label = "external_data.y_column"),
       x = as.character(x_cols)
     ),
     lags = list(

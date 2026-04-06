@@ -16,6 +16,7 @@ The intended final comparison study is now tracked separately in:
 See:
 
 - `docs/REPORT__qdesn_exdqlm_dynamic_scope_correction_20260406.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
 
 ## 1) Mission
 
@@ -38,7 +39,7 @@ Current scope decision:
 - launch surface: `static only`
 - dynamic row-15 sidecar: `excluded`
 - `gausmix @ tau=0.50`: `excluded`
-- current move-forward mode: `preserve artifacts only; dynamic-aligned relaunch planning moved to the new dynamic tracker`
+- current move-forward mode: `preserve artifacts only; dynamic-aligned relaunch implementation and smoke validation are now complete in the new dynamic tracker`
 
 Historical source baseline:
 

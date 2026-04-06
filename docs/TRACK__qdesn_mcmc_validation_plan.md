@@ -29,6 +29,19 @@ The correct target is:
   - `ridge`
   - `rhs_ns`
 
+Implementation status update:
+
+- the corrected dynamic exdqlm-aligned runner is now implemented;
+- the canonical dynamic grid has been materialized from the live reference surface and checked in
+  as:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_grid.csv`
+- prepare-only passed for both smoke and full scopes;
+- the real smoke batch completed successfully on the mirrored dynamic surface after fixing:
+  - YAML scalar coercion on `external_data.y_column`
+  - child BLAS oversubscription in `run_esn_pipeline_from_cfg()`
+- authoritative implementation report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
+
 Cross-study assets:
 
 - scope-correction report:
@@ -37,6 +50,8 @@ Cross-study assets:
   - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
 - corrected dynamic relaunch plan:
   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_validation_20260406.md`
+- implementation + smoke report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
 - tracker:
   - `docs/TRACK__qdesn_static_exdqlm_crossstudy_validation.md`
 - investigation:

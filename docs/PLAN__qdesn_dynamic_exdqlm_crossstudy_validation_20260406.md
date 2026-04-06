@@ -29,6 +29,41 @@ This relaunch is a correction, not a continuation of the static cross-study.
 The static cross-study remains a completed side study and must be preserved for auditability, but
 it is no longer the primary deliverable for this comparison program.
 
+## 2.1) Execution Status Update (2026-04-06)
+
+Completed so far:
+
+1. canonical dynamic reference surface reconstructed from disk;
+2. mirrored checked-in QDESN grid written and validated;
+3. new dynamic helper stack implemented;
+4. smoke and full prepare-only passed;
+5. real smoke batch passed on the corrected dynamic surface.
+
+Implementation blockers found and fixed during smoke validation:
+
+- YAML 1.1 scalar coercion on `external_data.y_column`:
+  - `y_column: y` was parsed as boolean `TRUE`;
+  - fixed by quoting the defaults entry and hardening shared column-name normalization.
+- child BLAS oversubscription:
+  - dynamic child fits were overusing CPU via uncapped BLAS thread pools;
+  - fixed in `R/run_esn_pipeline.R` by exporting thread caps into the child pipeline process.
+
+Smoke run used for final validation:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-smoke-20260406-threadsfix__git-eb141cc`
+- result:
+  - `4/4 SUCCESS` roots
+  - `16` fit rows
+  - `6 PASS / 8 WARN / 2 FAIL`
+  - recommendation:
+    - `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`
+
+Current next action:
+
+- commit the implemented dynamic relaunch stack;
+- launch the broad supervised batch on the full `36`-root mirrored dynamic surface.
+
 ## 3) Canonical Dynamic Reference Surface
 
 ### 3.1 Current observed dynamic family-qspec reference surface
@@ -212,6 +247,17 @@ Recommended batch structure:
 4. Batch 3: debt-only follow-up, only if needed
    - restrict to the observed fail band from Batch 2;
    - no whole-surface relaunch unless a structural runner bug is found.
+
+Current execution state against that plan:
+
+1. Batch 0:
+   - `COMPLETE`
+2. Batch 1:
+   - `COMPLETE`
+3. Batch 2:
+   - `READY TO LAUNCH`
+4. Batch 3:
+   - `ONLY IF THE BROAD DYNAMIC RUN LEAVES A NARROW DOCUMENTED FAIL BAND`
 
 ### Stage D: Post-launch move-forward logic
 

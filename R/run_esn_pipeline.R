@@ -84,6 +84,15 @@ run_esn_pipeline_from_cfg <- function(
 
   # Serialize cfg to JSON for the pipeline script
   cfg_json <- jsonlite::toJSON(cfg, auto_unbox = TRUE, null = "null")
+  thread_cap <- max(
+    1L,
+    as.integer(
+      ((cfg$orchestrate %||% list())$threads_per_proc %||%
+         (((cfg$pipeline %||% list())$cpp %||% list())$postpred_threads) %||%
+         1L
+      )[1L]
+    )
+  )
 
   # Env vars for the child R process
   env_vars <- c(
@@ -92,7 +101,13 @@ run_esn_pipeline_from_cfg <- function(
     EXDQLM_OUT_DIR      = normalizePath(out_dir),
     EXDQLM_CFG_JSON     = cfg_json,
     EXDQLM_SAVE_OUTPUTS = if (isTRUE(save_outputs)) "1" else "0",
-    EXDQLM_PIPELINE_MODE = mode
+    EXDQLM_PIPELINE_MODE = mode,
+    OMP_NUM_THREADS = as.character(thread_cap),
+    OPENBLAS_NUM_THREADS = as.character(thread_cap),
+    MKL_NUM_THREADS = as.character(thread_cap),
+    VECLIB_MAXIMUM_THREADS = as.character(thread_cap),
+    NUMEXPR_NUM_THREADS = as.character(thread_cap),
+    BLAS_NUM_THREADS = as.character(thread_cap)
   )
 
   # Build command

@@ -49,6 +49,18 @@ Historical static side-study assets:
 The corrected follow-on program should instead mirror the exdqlm **dynamic** family-qspec surface
 with QDESN fits under `exal/al x vb/mcmc x ridge/rhs_ns`.
 
+Current dynamic relaunch update:
+
+- the corrected dynamic helper stack is now implemented;
+- the canonical mirrored dynamic grid is checked in and validated;
+- smoke and full prepare-only passed;
+- the real smoke batch completed successfully on the intended dynamic surface;
+- two implementation faults were found and fixed before the broad launch:
+  - YAML scalar coercion on `external_data.y_column`
+  - child BLAS oversubscription in the shared pipeline launcher path
+- authoritative implementation report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
+
 Key correction findings:
 
 - the static cross-study was run on the wrong data surface for the intended comparison study;
