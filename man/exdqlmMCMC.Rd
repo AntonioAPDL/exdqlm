@@ -26,7 +26,7 @@ exdqlmMCMC(
   init.from.vb = NULL,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
-  mh.proposal = c("rw", "laplace_rw", "slice"),
+  mh.proposal = c("laplace_rw", "rw", "slice"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
@@ -36,7 +36,8 @@ exdqlmMCMC(
   slice.width = 0.1,
   slice.max.steps = Inf,
   trace.diagnostics = TRUE,
-  trace.every = 1L
+  trace.every = 1L,
+  progress_callback = NULL
 )
 }
 \arguments{
@@ -87,8 +88,9 @@ If \code{NULL}, falls back to \code{init.from.isvb} behavior.}
 uses this object directly and does not rerun VB internally.}
 
 \item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew block.
+\code{"laplace_rw"} (default) uses a Laplace-informed covariance then RW;
 \code{"rw"} uses joint random-walk MH on \verb{(log sigma, logit gamma)};
-\code{"laplace_rw"} uses a Laplace-informed covariance then RW; \code{"slice"} uses
+\code{"slice"} uses
 an exact sigma GIG update plus a bounded univariate slice sampler directly
 on \code{gamma}.}
 
@@ -116,6 +118,10 @@ lighter-weight runs.}
 
 \item{trace.every}{Positive integer; when \code{trace.diagnostics = TRUE}, record
 one diagnostics row every \code{trace.every} iterations.}
+
+\item{progress_callback}{Optional callback invoked with a named list at MCMC
+start, at each progress checkpoint, and on completion. Intended for
+workflow-level progress logging.}
 }
 \value{
 A object of class "\code{exdqlmMCMC}" containing the following:
@@ -134,7 +140,6 @@ A object of class "\code{exdqlmMCMC}" containing the following:
 \item \code{theta.out} - List containing the distributions of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{n.burn} Number of MCMC iterations that were burned.
 \item \code{n.mcmc} Number of MCMC iterations that were sampled.
-\item \code{diagnostics} - ESS and chain-ready summaries for sigma/gamma.
 }
 If \code{dqlm.ind=FALSE}, the object also contains the following:
 \itemize{
@@ -147,6 +152,7 @@ If \code{dqlm.ind=FALSE}, the object also contains the following:
 \item \code{accept.rate.keep} - MH acceptance rate in kept MCMC samples.
 \item \code{Sig.mh} - Covariance matrix used in MH step to jointly sample sigma and gamma.
 \item \code{mh.diagnostics} - MH tuning diagnostics (proposal mode, scaling path, adaptation summary).
+\item \code{diagnostics} - ESS and chain-ready summaries for sigma/gamma.
 }
 }
 \description{

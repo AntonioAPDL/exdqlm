@@ -78,7 +78,8 @@
 #'   \item \code{exdqlm.vb.min_iter}: minimum iterations before convergence can trigger (default 10).
 #'   \item \code{exdqlm.vb.patience}: number of consecutive joint-converged iterations required (default 3).
 #'   \item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
-#'         When FALSE, R fallbacks (truncnorm, GH::rgig, SVD sampling) are used.
+#'         The GIG-based u_t sampler always uses the package C++ Devroye implementation;
+#'         when FALSE, the remaining samplers fall back to R implementations.
 #'   \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
 #' }
 #'
@@ -1147,26 +1148,10 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   psi_vec <- fix_pos(psi_vec)
   chi_vec <- fix_pos(chi_vec)
 
-  # Safe wrapper for R fallback
-  rgig_one <- function(n, chi, psi, lambda) {
-    if (!is.finite(psi) || psi <= 0) psi <- eps_gig
-    if (!is.finite(chi) || chi <= 0) chi <- eps_gig
-    GeneralizedHyperbolic::rgig(n, chi = chi, psi = psi, lambda = lambda)
-  }
-
-  # Devroye C++ fast path only if psi is effectively constant across t
-  same_psi <- (length(unique(round(psi_vec, 12))) == 1L)
-
-  if (use_cpp_samplers && exists("sample_gig_devroye_vector", mode = "function") && same_psi) {
-    a_scalar <- psi_vec[1]
-    # C++ returns n_samp x TT -> transpose to TT x n_samp
-    
-    samp.uts <- t(sample_gig_devroye_vector(ns, lam_gig, a_scalar, chi_vec))
-  } else {
-    # R fallback (guarded)
-    samp.uts <- t(vapply(seq_len(TT), function(t) rgig_one(ns, chi_vec[t], psi_vec[t], lam_gig),
-                         numeric(ns)))
-  }
+  # GIG sampling always uses the package C++ Devroye backend.
+  samp.uts <- t(.sample_gig_devroye_pairs_required(
+    ns, p = lam_gig, a_vec = psi_vec, b_vec = chi_vec, context = "exdqlmLDVB u_t sampling"
+  ))
 
   # ---- theta (multivariate normal) : R fallback via SVD per time ----
   samp.theta <- array(NA_real_, dim = c(p, TT, ns))

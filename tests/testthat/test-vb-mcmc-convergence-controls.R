@@ -96,14 +96,46 @@ test_that("dynamic MCMC supports VB warm start and MH diagnostics", {
 
   expect_true(isTRUE(fit$init.from.vb))
   expect_true(is.list(fit$mh.diagnostics))
+  expect_true(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
+  expect_identical(fit$mh.diagnostics$transformed_state, c("log_sigma", "logit_gamma"))
   expect_true(is.finite(fit$accept.rate))
   expect_true(is.finite(fit$accept.rate.burn))
   expect_true(is.finite(fit$accept.rate.keep))
   expect_true(is.finite(fit$diagnostics$ess$sigma))
+  expect_true(is.list(fit$diagnostics$chain_health))
+  expect_true(is.finite(fit$diagnostics$chain_health$sigma$ess_per1k))
   expect_true(is.data.frame(fit$mh.diagnostics$trace))
   expect_true(all(c("s_mean", "s_sd") %in% names(fit$mh.diagnostics$trace)))
   expect_true(is.list(fit$diagnostics$s_block))
   expect_true(is.data.frame(fit$diagnostics$s_block$trace))
+})
+
+test_that("dynamic MCMC default proposal is joint laplace_rw", {
+  set.seed(1035)
+  TT <- 18
+  y <- stats::rnorm(TT, sd = 0.25)
+  model <- tiny_dyn_model(TT)
+
+  old_opts <- options(
+    exdqlm.use_cpp_mcmc = FALSE,
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.compute_elbo = TRUE,
+    exdqlm.max_iter = 15L
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  fit <- exdqlmMCMC(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    fix.sigma = FALSE,
+    n.burn = 10, n.mcmc = 10,
+    init.from.vb = TRUE,
+    vb_init_controls = list(method = "ldvb", tol = 0.2, n.samp = 20, max_iter = 10, verbose = FALSE),
+    verbose = FALSE
+  )
+
+  expect_identical(fit$mh.diagnostics$proposal, "laplace_rw")
+  expect_true(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
+  expect_true(is.list(fit$mh.diagnostics$laplace_refresh))
 })
 
 test_that("dynamic MCMC supports exact slice gamma kernel", {
@@ -209,6 +241,39 @@ test_that("static MCMC supports VB warm start", {
   expect_true(is.finite(fit$accept.rate))
   expect_true(is.finite(fit$accept.rate.burn))
   expect_true(is.finite(fit$accept.rate.keep))
+  expect_true(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
+  expect_identical(fit$mh.diagnostics$transformed_state, c("eta", "ell"))
+  expect_true(all(is.finite(diag(fit$mh.diagnostics$proposal_cov_final))))
+  expect_true(is.list(fit$mh.diagnostics$laplace_refresh))
+  expect_true(all(c("ell", "mode_ell", "mode_info_max") %in% names(fit$mh.diagnostics$trace)))
+  expect_true(is.list(fit$diagnostics$chain_health))
+  expect_true(is.finite(fit$diagnostics$chain_health$gamma$acf1))
+})
+
+test_that("static MCMC supports eta-space slice gamma kernel", {
+  set.seed(1041)
+  n <- 40
+  X <- cbind(1, seq(-1, 1, length.out = n))
+  y <- as.numeric(X %*% c(0.2, -0.1) + stats::rnorm(n, sd = 0.2))
+
+  fit <- exal_static_mcmc(
+    y = y, X = X, p0 = 0.5,
+    n.burn = 12, n.mcmc = 12, thin = 1,
+    mh.proposal = "slice_eta",
+    slice.width = 0.5,
+    slice.max.steps = 120,
+    verbose = FALSE
+  )
+
+  expect_identical(fit$mh.diagnostics$proposal, "slice_eta")
+  expect_identical(fit$mh.diagnostics$slice_space, "eta")
+  expect_true(isTRUE(fit$mh.diagnostics$kernel_exact))
+  expect_true(isTRUE(fit$mh.diagnostics$signoff_ready))
+  expect_true(is.na(fit$accept.rate))
+  expect_true(is.data.frame(fit$mh.diagnostics$trace))
+  expect_true(all(c("slice_evals", "s_mean", "s_sd") %in% names(fit$mh.diagnostics$trace)))
+  expect_true(all(is.finite(as.numeric(fit$samp.gamma))))
+  expect_true(all(is.finite(as.numeric(fit$samp.sigma))))
 })
 
 test_that("multichain diagnostics helper returns chain summaries", {

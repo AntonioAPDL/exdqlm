@@ -37,7 +37,6 @@ Imports:
     magic,
     crch,
     truncnorm,
-    GeneralizedHyperbolic,
     FNN,
     LaplacesDemon,
     grDevices,
