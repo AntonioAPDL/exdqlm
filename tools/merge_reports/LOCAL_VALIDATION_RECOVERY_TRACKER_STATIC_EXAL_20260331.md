@@ -74,6 +74,29 @@ Dynamic tail-only relaunch refinement:
 - lower-value mixed relaunch ideas such as the broader `joint_long`
   follow-up have now been deprioritized
 
+Tail-8 closeout and tail-7 geometry refinement (2026-04-06):
+
+- tail-8 completed cleanly and produced one new promoted rescue:
+  - `dynamic::gausmix::0p95::500::default::exdqlm::mcmc`
+  - upgraded from `FAIL` to `PASS`
+- corrected publication-target state is now:
+  - `281 / 288` healthy
+  - `7 / 288` unresolved
+  - unresolved debt remains dynamic-only
+- the old exact slice geometry should now be treated as screened out on the
+  surviving low-tail cluster:
+  - `slice.width = 0.12`
+  - `slice.max.steps = 80`
+  - short exact anchor: mostly negative on the remaining tail
+  - long low-tail rerun: fully negative on the tau-`0p05` cluster
+- the next residual run is therefore a geometry-band relaunch, not another
+  length-only rerun:
+  - `7` rows at `slice.width = 0.18`, `slice.max.steps = 120`
+  - `7` rows at `slice.width = 0.24`, `slice.max.steps = 160`
+  - `6` longer `tau = 0p05` follow-ups at the `0.18 / 120` geometry
+  - `20` total
+- static work remains fully closed and should not be reopened in this phase
+
 ## 0. Original-288 Realignment Execution Checkpoint (2026-04-05)
 
 The corrected original-`288` carry-forward pipeline has now been implemented

@@ -8,8 +8,8 @@ the corrected original-`288` carry-forward rebuild.
 ## Current Corrected State
 
 - original publication-target cells: `288`
-- healthy now: `280`
-- unresolved now: `8`
+- healthy now: `281`
+- unresolved now: `7`
 - unresolved block: dynamic only
 - static paper: `72 / 72` healthy
 - static shrink: `144 / 144` healthy
@@ -21,23 +21,24 @@ Authoritative references:
 - `reports/static_exal_tuning_20260405/original_288_dynamic_residual_execution_20260405.md`
 - `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_program_20260405.md`
 - `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_execution_20260405.md`
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_program_20260406.md`
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_execution_20260406.md`
 
 ## Residual Inventory Shape
 
 ### By method
 
-- `8` `mcmc::exdqlm`
+- `7` `mcmc::exdqlm`
 
 ### By horizon
 
-- `5` at `TT500`
+- `4` at `TT500`
 - `3` at `TT5000`
 
 ### By quantile
 
 - `6` at `tau = 0p05`
 - `1` at `tau = 0p25`
-- `1` at `tau = 0p95`
 
 ## What Improved
 
@@ -45,15 +46,19 @@ Authoritative references:
 - all static debt has been removed from the publication-target recovery queue
 - dynamic healthy coverage has now risen from `53 / 72` to `64 / 72` after
   archive-stage promotion
-- the residual queue is now explicit and machine-readable
+- tail-8 promoted one additional original dynamic case:
+  - `dynamic::gausmix::0p95::500::default::exdqlm::mcmc`
+  - upgraded from `FAIL` to `PASS`
+- dynamic healthy coverage is now `65 / 72`
+- the residual queue is now explicit, machine-readable, and down to `7` cases
 - all unresolved `dqlm::mcmc` and `exdqlm::vb` cells were cleared in the
   archive stage
 
 ## What Still Fails
 
-- `8` original dynamic cells remain unresolved
-- all `8` are `exdqlm::mcmc`
-- none of those `8` should be promoted until a residual candidate yields
+- `7` original dynamic cells remain unresolved
+- all `7` are `exdqlm::mcmc`
+- none of those `7` should be promoted until a residual candidate yields
   `PASS` or `WARN`
 
 ## What Worked Best
@@ -66,6 +71,7 @@ Authoritative references:
   further relaunch planning
 - the slice-based `exdqlm mcmc` rescue corridor with explicit healthy
   same-scenario `exdqlm vb` warm starts
+- exact slice geometry on moderate and upper-tail analogs
 
 ## What Did Not Help
 
@@ -76,6 +82,8 @@ Authoritative references:
   already isolated the tail to `8` `exdqlm mcmc` cells
 - treating `joint_long` or broader `laplace_rw` retries as the main follow-up
   corridor when the historical successes were slice-based
+- rerunning the old exact `0.12 / 80` long low-tail slice follow-up after it
+  already failed across the tau-`0p05` cluster in tail-8
 
 ## Residual Program Status
 
@@ -95,10 +103,10 @@ Current execution checkpoint:
   failed after archive completion and has now been repaired
 - no new relaunch is planned in this tracker checkpoint
 
-## Tail-8 Relaunch Status
+## Tail-8 Closeout
 
-The next phase is now a reduced residual relaunch that starts from the
-post-archive corrected baseline instead of the broader mixed residual manifest.
+Tail-8 has now completed and been applied back into the corrected original-288
+baseline.
 
 | phase | rows | intent |
 |---|---:|---|
@@ -106,13 +114,42 @@ post-archive corrected baseline instead of the broader mixed residual manifest.
 | `tau05_long6_slice_sync` | `6` | longer low-tail follow-up only on the `tau = 0p05` cluster |
 | `total` | `14` | reduced dynamic-only tail closure program |
 
+Tail-8 outcome:
+
+- `1` promoted rescue
+- `13` non-promotable failures
+- corrected state moved from `280 / 288` healthy to `281 / 288` healthy
+- remaining unresolved tail moved from `8` to `7`
+
+What tail-8 proved:
+
+- exact `0.12 / 80` slice geometry can still rescue an upper/moderate tail case
+- exact `0.12 / 80` long reruns do **not** rescue the residual `tau = 0p05`
+  cluster
+- the next credible search axis is slice geometry, not more time at the same
+  geometry
+
+## Tail-7 Geometry Relaunch Status
+
+The next phase is now a reduced residual relaunch that starts from the
+post-tail-8 corrected baseline and tests only slice-geometry changes on the
+remaining `7` unresolved case keys.
+
+| phase | rows | intent |
+|---|---:|---|
+| `anchor7_slice_band18` | `7` | moderate slice-geometry expansion on the full remaining tail |
+| `anchor7_slice_band24` | `7` | wider slice-geometry expansion on the full remaining tail |
+| `tau05_long6_slice_band18` | `6` | longer follow-up only on the dominant low-tail cluster |
+| `total` | `20` | dynamic-only geometry-band closure program |
+
 Operational rules carried into the relaunch:
 
-- touch only the `8` remaining unresolved original dynamic case keys
+- touch only the `7` remaining unresolved original dynamic case keys
 - use explicit healthy `exdqlm vb` warm starts for every row
 - do not rerun archive rescoring
 - do not reopen `dqlm :: mcmc`, `exdqlm :: vb`, or any static work
-- promote only when a tail-8 candidate improves a baseline `FAIL` to `PASS` or
+- do not rerun the old exact `0.12 / 80` short or long tail-8 geometry
+- promote only when a tail-7 candidate improves a baseline `FAIL` to `PASS` or
   `WARN`
 
 ## Promotion Rule
@@ -146,9 +183,14 @@ Tie-breaking among non-`FAIL` candidates:
 - [x] remaining `8`-cell residual relaunch plan documented
 - [x] reduced tail-8 manifest and helper stack implemented
 - [x] prepare/evaluate/select and shell validation completed
-- [ ] reduced tail-8 overnight run completed and promoted back to carry-forward
+- [x] reduced tail-8 overnight run completed and promoted back to carry-forward
+- [x] corrected original-288 baseline moved to `281 / 288` healthy
+- [x] remaining unresolved tail shrank to `7`
+- [x] tail-7 geometry-band manifest and helper stack implemented
+- [x] tail-7 prepare/evaluate/select and shell validation completed
+- [ ] tail-7 overnight geometry-band run completed and reviewed
 
 Current live sessions:
 
-- `original288-dynamic-tail8-20260405`
-- `original288-dynamic-tail8-monitor-20260405`
+- `original288-dynamic-tail7-20260406`
+- `original288-dynamic-tail7-monitor-20260406`

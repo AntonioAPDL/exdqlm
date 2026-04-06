@@ -83,6 +83,11 @@ in:
 - `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_program_20260405.md`
 - `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_execution_20260405.md`
 
+The post-tail-8 dynamic geometry-band follow-up now lives in:
+
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_program_20260406.md`
+- `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_execution_20260406.md`
+
 Important supersession note after the corrected original-`288` rebuild:
 
 - the earlier healthy `291` campaign remains useful as a repair evidence pool
@@ -150,6 +155,26 @@ tail-only relaunch design:
   warm-start fits from the corrected carry-forward `v2` table
 - weaker mixed follow-up ideas such as the broader `joint_long` relaunch are
   now deprioritized relative to the slice-based tail-only design
+
+Important refinement after the completed tail-8 closeout and promoted rescue:
+
+- tail-8 produced one clear new rescue:
+  - `dynamic::gausmix::0p95::500::default::exdqlm::mcmc`
+  - promoted from `FAIL` to `PASS`
+- corrected recovered state is now:
+  - `281 / 288` healthy
+  - `7 / 288` unresolved
+  - residual debt remains dynamic-only
+- the long low-tail rerun at the old exact geometry is now screened out as a
+  weak direction on the surviving tail
+- the next credible run shape is a dynamic-only geometry-band relaunch:
+  - `7` moderate slice-geometry expansions on the full tail
+  - `7` wider slice-geometry expansions on the full tail
+  - `6` longer band-18 follow-ups only on the `tau = 0p05` cluster
+  - `20` total
+- the remaining search space should stay inside the slice-with-VB-init
+  `exdqlm :: mcmc` corridor and should not reopen static work, archive
+  rescoring, or the old exact `0.12 / 80` short/long tail-8 geometry
 
 ## Historical Baseline Promotion
 

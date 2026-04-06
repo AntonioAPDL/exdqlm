@@ -76,3 +76,39 @@ Launch notes:
 - this phase intentionally supersedes the broader mixed residual relaunch idea
 - no archive rescoring rows are included
 - all rows use explicit healthy `exdqlm vb` warm starts from carry-forward `v2`
+
+## Closeout Result
+
+Tail-8 is now complete and has been applied back into the corrected
+original-`288` carry-forward table.
+
+Outcome:
+
+- total rows: `14`
+- `PASS`: `1`
+- `WARN`: `0`
+- `FAIL`: `13`
+- promoted rescues: `1`
+
+Promoted rescue:
+
+- `dynamic::gausmix::0p95::500::default::exdqlm::mcmc`
+- promoted candidate:
+  - `orig288_dyn_tail8_slice_sync_20260405`
+- new gate:
+  - `PASS`
+
+Post-closeout corrected state:
+
+- healthy: `281 / 288`
+- unresolved: `7 / 288`
+- unresolved block: dynamic only
+
+Main takeaways:
+
+- the exact `0.12 / 80` slice corridor still works on at least one upper-tail
+  residual case
+- the longer low-tail rerun at the same exact geometry did not rescue the
+  surviving `tau = 0p05` cluster
+- the next credible search axis is slice geometry, not more time at the same
+  geometry
