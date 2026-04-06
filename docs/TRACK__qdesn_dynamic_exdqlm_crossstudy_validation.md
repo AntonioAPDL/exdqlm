@@ -26,7 +26,7 @@ This tracker is for the corrected dynamic comparison-facing program.
 
 Status: **dynamic relaunch implementation completed; canonical grid recovered from the live
 reference surface; smoke and full prepare-only passed; real smoke completed successfully on the
-correct dynamic surface; broad supervised launch is the next step**
+correct dynamic surface; broad supervised launch is now live under detached supervision**
 
 Scope correction summary:
 
@@ -59,6 +59,22 @@ Implementation update:
 Authoritative implementation report:
 
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
+
+Live broad-launch update:
+
+- implementation commit:
+  - `85760fe`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe`
+- detached session:
+  - `qdesn_dynx_0406_163041`
+- early healthcheck snapshot:
+  - `launcher session live = TRUE`
+  - `selected roots = 36`
+  - `materialized roots = 6`
+  - `running roots = 6`
+  - `success roots = 0`
+  - `fail roots = 0`
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 
@@ -146,6 +162,9 @@ Validated campaign artifacts:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-155404__git-eb141cc/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
 - corrected smoke run:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-smoke-20260406-threadsfix__git-eb141cc/20260406-161217__git-eb141cc/summary/qdesn_dynamic_crossstudy_summary.md`
+- live full launch:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/launch/launcher_session.json`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/launch/launcher_stdout.log`
 
 ## 8) Move-Forward Rules
 

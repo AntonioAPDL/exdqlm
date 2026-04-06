@@ -61,8 +61,20 @@ Smoke run used for final validation:
 
 Current next action:
 
-- commit the implemented dynamic relaunch stack;
-- launch the broad supervised batch on the full `36`-root mirrored dynamic surface.
+- broad supervised batch is now live on the full `36`-root mirrored dynamic surface.
+
+Live launch:
+
+- implementation commit:
+  - `85760fe`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe`
+- detached session:
+  - `qdesn_dynx_0406_163041`
+- early health:
+  - `6/36` roots materialized
+  - `6/36` roots currently `RUNNING`
+  - `0` completed root failures observed at launch time
 
 ## 3) Canonical Dynamic Reference Surface
 
@@ -255,7 +267,7 @@ Current execution state against that plan:
 2. Batch 1:
    - `COMPLETE`
 3. Batch 2:
-   - `READY TO LAUNCH`
+   - `RUNNING`
 4. Batch 3:
    - `ONLY IF THE BROAD DYNAMIC RUN LEAVES A NARROW DOCUMENTED FAIL BAND`
 
