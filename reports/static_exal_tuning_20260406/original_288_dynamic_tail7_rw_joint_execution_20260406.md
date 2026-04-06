@@ -64,7 +64,7 @@ Validated pre-launch selection preview:
 The overnight run was launched from the clean pushed branch tip:
 
 - branch: `validation/rerun-after-0.4.0-sync`
-- commit: clean pushed branch tip used at launch time
+- commit: `c0d1685`
 
 Live tmux sessions:
 

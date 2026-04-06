@@ -233,4 +233,4 @@ Tie-breaking among non-`FAIL` candidates:
 - [x] tail-7 overnight geometry-band run completed and reviewed
 - [x] tail-7 rw-joint manifest and helper stack implemented
 - [x] tail-7 rw-joint prepare/evaluate/select and shell validation completed
-- [ ] tail-7 rw-joint overnight run launched from clean pushed branch
+- [x] tail-7 rw-joint overnight run launched from clean pushed branch
