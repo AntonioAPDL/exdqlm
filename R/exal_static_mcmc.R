@@ -8,9 +8,13 @@
 #' exAL (static) - MCMC algorithm
 #'
 #' The function applies a Gibbs sampler for static Extended Asymmetric Laplace regression
-#' (exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
-#' update \eqn{\gamma} on the transformed logit scale using either the legacy
-#' Laplace-local draw or an adaptive random-walk MH kernel.
+#' (exAL). We update \eqn{\beta, v, s} from their full conditionals, then update
+#' \eqn{(\sigma,\gamma)} either jointly on transformed coordinates
+#' \eqn{(\ell,\eta)=(\log \sigma,\mathrm{logit}((\gamma-L)/(U-L)))} (for
+#' \code{"rw"} and \code{"laplace_rw"}) or with the legacy gamma-only kernels
+#' (\code{"slice"}, \code{"slice_eta"}, \code{"laplace_local"}).
+#' Optional multi-refresh and global-jump controls are available to improve
+#' exAL mixing in hard cases.
 #'
 #' @param y Numeric vector of length \eqn{n}.
 #' @param X Numeric matrix \eqn{n \times p} (design).
@@ -19,7 +23,8 @@
 #'   \eqn{b_0=\mathbf{0}_p}, \eqn{V_0=10^6 I_p}.
 #' @param beta_prior Coefficient prior type: \code{"ridge"} (default),
 #'   \code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
-#'   (Nishimura-Suchard style regularized horseshoe controls).
+#'   (Nishimura-Suchard regularized horseshoe with a closed-form
+#'   inverse-gamma hierarchy for static inference).
 #' @param beta_prior_controls Optional list of prior-specific controls. For
 #'   RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
 #'   \code{"rhs_ns"}), supported keys follow the qdesn-style static interface:
@@ -32,15 +37,19 @@
 #'   \code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
 #'   \code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
 #'   \code{slice_width}, and \code{slice_max_steps}. For
-#'   \code{beta_prior = "rhs_ns"}, optional slab aliases
-#'   \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported
-#'   (mapped to \code{nu}/\code{s2} and \code{c2} controls). When
+#'   \code{beta_prior = "rhs_ns"}, optional slab controls
+#'   \code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported.
+#'   In this mode, the local-global-slab block is represented by
+#'   \eqn{(\lambda_j^2,\nu_j,\tau^2,\xi,\zeta^2)} and updated with
+#'   closed-form Gibbs steps. When
 #'   \code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"}, \code{b0} and \code{V0}
 #'   are ignored for the
 #'   shrunk coefficients and retained only for backward-compatible ridge
 #'   behavior. If both \code{init_log_tau} and \code{init_tau} are omitted
 #'   (or \code{NULL}), the RHS global scale initializes at \code{tau = 1}
-#'   (\code{init_log_tau = 0}) instead of \code{tau0}.
+#'   (\code{init_log_tau = 0}) instead of \code{tau0}. By default
+#'   (\code{shrink_intercept = FALSE}), the intercept is excluded from
+#'   horseshoe shrinkage and uses \code{intercept_prec}.
 #' @param a_sigma,b_sigma Hyperparameters for an inverse-gamma prior on
 #'   \code{sigma}, with density proportional to
 #'   \code{sigma^{-(a_sigma+1)} exp(-b_sigma/sigma)}.
@@ -52,7 +61,10 @@
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
 #'   for RHS-family priors optionally \code{lambda}, \code{tau}, and
-#'   \code{c2}. Missing pieces are filled sensibly.
+#'   \code{c2}. For \code{beta_prior = "rhs_ns"}, the squared-scale
+#'   parameterization \code{lambda2}, \code{tau2}, \code{zeta2}, and optional
+#'   auxiliaries \code{nu}, \code{xi} are also accepted. Missing pieces are
+#'   filled sensibly.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 #'   with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.
 #' @param n.burn Number of burn-in iterations. Default \code{2000}.
@@ -64,27 +76,37 @@
 #' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
 #'   \code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
 #'   \code{ld_controls} (passed through to \code{exal_static_LDVB()}).
-#' @param mh.proposal Character string controlling the exAL gamma update kernel.
-#'   \code{"laplace_local"} reproduces the previous Laplace-local draw.
-#'   \code{"laplace_rw"} initializes a random-walk MH scale from local curvature
-#'   and adapts it during burn-in. \code{"rw"} uses adaptive random-walk MH
-#'   without Laplace scaling. \code{"slice"} uses an exact bounded univariate
-#'   slice sampler directly on \code{gamma}. Only \code{"rw"},
-#'   \code{"laplace_rw"}, and \code{"slice"} are exact posterior kernels for
-#'   the \code{gamma} update; \code{"laplace_local"} is approximate and should
-#'   not be treated as signoff-ready.
-#' @param mh.adapt Logical; adapt the random-walk proposal scale during burn-in.
-#'   Ignored for \code{"laplace_local"} and \code{"slice"}.
+#' @param mh.proposal Character string controlling the exAL nonconjugate update
+#'   kernel. \code{"laplace_rw"} (default) uses a Laplace-informed adaptive
+#'   random-walk MH update on the transformed joint block
+#'   \eqn{(\eta,\ell)=(\mathrm{logit}((\gamma-L)/(U-L)), \log\sigma)}.
+#'   \code{"rw"} uses the same exact joint update with identity base covariance.
+#'   \code{"slice"} uses an exact bounded univariate slice sampler on
+#'   \code{gamma} (with \code{sigma} updated from its conditional), and
+#'   \code{"slice_eta"} does the same on transformed \code{eta}. 
+#'   \code{"laplace_local"} reproduces the prior approximate local-Gaussian
+#'   gamma draw (not signoff-ready).
+#'   Only \code{"laplace_local"} is approximate.
+#' @param mh.adapt Logical; adapt the random-walk proposal scale during burn-in
+#'   for \code{"rw"} and \code{"laplace_rw"}. Ignored for
+#'   \code{"laplace_local"}, \code{"slice"}, and \code{"slice_eta"}.
 #' @param mh.adapt.interval Integer adaptation window for RW-based kernels.
 #' @param mh.target.accept Numeric length-2 target acceptance band.
-#' @param mh.scale.bounds Numeric length-2 lower/upper bounds for RW proposal scale.
+#' @param mh.scale.bounds Numeric length-2 lower/upper bounds for RW proposal
+#'   scale multiplier.
 #' @param mh.max_scale.step Numeric multiplicative adaptation cap in \code{(0,1)}.
 #' @param mh.min_burn_adapt Integer minimum burn-in before adaptation starts.
-#' @param slice.width Positive numeric width for the bounded slice sampler when
-#'   \code{mh.proposal = "slice"}. Default \code{0.1} for parity with
-#'   \code{bqrgal}.
+#' @param slice.width Positive numeric width for bounded slice updates when
+#'   \code{mh.proposal = "slice"} or \code{"slice_eta"}.
 #' @param slice.max.steps Positive integer or \code{Inf}; maximum stepping-out
 #'   expansions for the slice sampler.
+#' @param gamma.substeps Positive integer; number of consecutive gamma-kernel
+#'   refreshes per outer MCMC iteration. Default \code{1}.
+#' @param p.global.eta.jump Numeric in \code{[0,1]}; per-substep probability of
+#'   proposing a global independence-MH move on eta (the logit transform of
+#'   gamma) using a Laplace proposal with MH correction. Default \code{0}.
+#' @param global.eta.jump.scale Positive numeric scale multiplier applied to the
+#'   Laplace proposal SD used in global eta jumps.
 #' @param trace.diagnostics Logical; if \code{TRUE}, retain per-iteration
 #'   gamma/s diagnostics under \code{mh.diagnostics$trace}. Set \code{FALSE}
 #'   for lighter-weight runs.
@@ -106,8 +128,10 @@
 #'   \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 #'   \item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
 #'         draws when an RHS-family prior is used; otherwise \code{NULL}.
-#'   \item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
-#'         of the shrinkage block.
+#'   \item \code{beta_prior} - prior metadata and, for RHS-family priors,
+#'         posterior summaries of the shrinkage block. For \code{"rhs_ns"},
+#'         the state tracks \code{lambda2}, \code{nu}, \code{tau2}, \code{xi},
+#'         and \code{zeta2}.
 #'   \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 #'         including whether the saved kernel is exact/signoff-ready.
 #'   \item \code{rhs.diagnostics} - RHS latent summaries and optional trace
@@ -165,7 +189,7 @@ exal_static_mcmc <- function(
   n.burn = 2000, n.mcmc = 1500, thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
-  mh.proposal = c("laplace_local", "laplace_rw", "rw", "slice"),
+  mh.proposal = c("laplace_rw", "rw", "slice", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.20, 0.45),
@@ -174,6 +198,9 @@ exal_static_mcmc <- function(
   mh.min_burn_adapt = 50L,
   slice.width = 0.1,
   slice.max.steps = Inf,
+  gamma.substeps = 1L,
+  p.global.eta.jump = 0,
+  global.eta.jump.scale = 1,
   trace.diagnostics = TRUE,
   trace.every = 1L,
   verbose = TRUE,
@@ -241,11 +268,33 @@ exal_static_mcmc <- function(
   if (!is.finite(mh_max_scale_step) || mh_max_scale_step <= 0 || mh_max_scale_step >= 1) {
     mh_max_scale_step <- 0.35
   }
+  mh_laplace_refresh_interval <- suppressWarnings(as.integer(getOption("exdqlm.static.mcmc.laplace_refresh_interval", mh.adapt.interval))[1])
+  if (!is.finite(mh_laplace_refresh_interval) || mh_laplace_refresh_interval < 5L) {
+    mh_laplace_refresh_interval <- mh.adapt.interval
+  }
+  mh_laplace_refresh_start <- suppressWarnings(as.integer(getOption("exdqlm.static.mcmc.laplace_refresh_start", mh.min_burn_adapt))[1])
+  if (!is.finite(mh_laplace_refresh_start) || mh_laplace_refresh_start < 1L) {
+    mh_laplace_refresh_start <- mh.min_burn_adapt
+  }
+  mh_laplace_refresh_weight <- as.numeric(getOption("exdqlm.static.mcmc.laplace_refresh_weight", 0.60))[1]
+  if (!is.finite(mh_laplace_refresh_weight) || mh_laplace_refresh_weight <= 0 || mh_laplace_refresh_weight > 1) {
+    mh_laplace_refresh_weight <- 0.60
+  }
   slice.width <- as.numeric(slice.width)[1]
   if (!is.finite(slice.width) || slice.width <= 0) slice.width <- 0.1
   slice.max.steps <- as.numeric(slice.max.steps)[1]
   if (!(is.infinite(slice.max.steps) || (is.finite(slice.max.steps) && slice.max.steps >= 1 && floor(slice.max.steps) == slice.max.steps))) {
     slice.max.steps <- Inf
+  }
+  eta.slice.bounds <- c(-20, 20)
+  gamma.substeps <- suppressWarnings(as.integer(gamma.substeps)[1])
+  if (!is.finite(gamma.substeps) || gamma.substeps < 1L) gamma.substeps <- 1L
+  p.global.eta.jump <- as.numeric(p.global.eta.jump)[1]
+  if (!is.finite(p.global.eta.jump)) p.global.eta.jump <- 0
+  p.global.eta.jump <- min(max(p.global.eta.jump, 0), 1)
+  global.eta.jump.scale <- as.numeric(global.eta.jump.scale)[1]
+  if (!is.finite(global.eta.jump.scale) || global.eta.jump.scale <= 0) {
+    global.eta.jump.scale <- 1
   }
   trace.diagnostics <- isTRUE(trace.diagnostics)
   trace.every <- suppressWarnings(as.integer(trace.every)[1])
@@ -418,17 +467,70 @@ exal_static_mcmc <- function(
     if (isTRUE(init.from.vb) && exists("vb.fit", inherits = FALSE) &&
         !is.null(vb.fit$beta_prior$state)) {
       vb_state <- vb.fit$beta_prior$state
-      beta_state$lambda <- .static_rhs_safe_exp(vb_state$eta_lambda_hat)
-      beta_state$tau <- .static_rhs_safe_exp(vb_state$eta_tau_hat)
-      beta_state$c2 <- .static_rhs_safe_exp(vb_state$eta_c_hat)
+      if (identical(beta_prior_obj$type, "rhs_ns")) {
+        if (!is.null(vb_state$lambda2)) {
+          lam2 <- as.numeric(vb_state$lambda2)
+          if (length(lam2) == 1L) lam2 <- rep(lam2, p)
+          if (length(lam2) == p) beta_state$lambda2 <- pmax(lam2, 1e-16)
+        } else if (!is.null(vb_state$eta_lambda_hat)) {
+          beta_state$lambda2 <- pmax(.static_rhs_safe_exp(vb_state$eta_lambda_hat)^2, 1e-16)
+        }
+        if (!is.null(vb_state$tau2)) {
+          beta_state$tau2 <- pmax(as.numeric(vb_state$tau2)[1], 1e-16)
+        } else if (!is.null(vb_state$eta_tau_hat)) {
+          beta_state$tau2 <- pmax(.static_rhs_safe_exp(vb_state$eta_tau_hat)^2, 1e-16)
+        }
+        if (!is.null(vb_state$zeta2)) {
+          beta_state$zeta2 <- pmax(as.numeric(vb_state$zeta2)[1], 1e-16)
+        } else if (!is.null(vb_state$c2)) {
+          beta_state$zeta2 <- pmax(as.numeric(vb_state$c2)[1], 1e-16)
+        } else if (!is.null(vb_state$eta_c_hat)) {
+          beta_state$zeta2 <- pmax(.static_rhs_safe_exp(vb_state$eta_c_hat)[1], 1e-16)
+        }
+        if (!is.null(vb_state$nu)) {
+          nu0 <- as.numeric(vb_state$nu)
+          if (length(nu0) == 1L) nu0 <- rep(nu0, p)
+          if (length(nu0) == p) beta_state$nu <- pmax(nu0, 1e-16)
+        }
+        if (!is.null(vb_state$xi)) beta_state$xi <- pmax(as.numeric(vb_state$xi)[1], 1e-16)
+        beta_state <- .static_rhs_ns_recompute_moments(beta_state, beta_prior_obj$controls)
+      } else {
+        beta_state$lambda <- .static_rhs_safe_exp(vb_state$eta_lambda_hat)
+        beta_state$tau <- .static_rhs_safe_exp(vb_state$eta_tau_hat)
+        beta_state$c2 <- .static_rhs_safe_exp(vb_state$eta_c_hat)
+      }
     }
-    if (!is.null(init$lambda)) {
-      lam0 <- as.numeric(init$lambda)
-      if (length(lam0) == 1L) lam0 <- rep(lam0, p)
-      if (length(lam0) == p) beta_state$lambda <- pmax(lam0, 1e-16)
+    if (identical(beta_prior_obj$type, "rhs_ns")) {
+      if (!is.null(init$lambda)) {
+        lam0 <- as.numeric(init$lambda)
+        if (length(lam0) == 1L) lam0 <- rep(lam0, p)
+        if (length(lam0) == p) beta_state$lambda2 <- pmax(lam0^2, 1e-16)
+      }
+      if (!is.null(init$lambda2)) {
+        lam2 <- as.numeric(init$lambda2)
+        if (length(lam2) == 1L) lam2 <- rep(lam2, p)
+        if (length(lam2) == p) beta_state$lambda2 <- pmax(lam2, 1e-16)
+      }
+      if (!is.null(init$nu)) {
+        nu0 <- as.numeric(init$nu)
+        if (length(nu0) == 1L) nu0 <- rep(nu0, p)
+        if (length(nu0) == p) beta_state$nu <- pmax(nu0, 1e-16)
+      }
+      if (!is.null(init$tau)) beta_state$tau2 <- pmax(as.numeric(init$tau)[1]^2, 1e-16)
+      if (!is.null(init$tau2)) beta_state$tau2 <- pmax(as.numeric(init$tau2)[1], 1e-16)
+      if (!is.null(init$xi)) beta_state$xi <- pmax(as.numeric(init$xi)[1], 1e-16)
+      if (!is.null(init$c2)) beta_state$zeta2 <- pmax(as.numeric(init$c2)[1], 1e-16)
+      if (!is.null(init$zeta2)) beta_state$zeta2 <- pmax(as.numeric(init$zeta2)[1], 1e-16)
+      beta_state <- .static_rhs_ns_recompute_moments(beta_state, beta_prior_obj$controls)
+    } else {
+      if (!is.null(init$lambda)) {
+        lam0 <- as.numeric(init$lambda)
+        if (length(lam0) == 1L) lam0 <- rep(lam0, p)
+        if (length(lam0) == p) beta_state$lambda <- pmax(lam0, 1e-16)
+      }
+      if (!is.null(init$tau)) beta_state$tau <- pmax(as.numeric(init$tau)[1], 1e-16)
+      if (!is.null(init$c2)) beta_state$c2 <- pmax(as.numeric(init$c2)[1], 1e-16)
     }
-    if (!is.null(init$tau)) beta_state$tau <- pmax(as.numeric(init$tau)[1], 1e-16)
-    if (!is.null(init$c2)) beta_state$c2 <- pmax(as.numeric(init$c2)[1], 1e-16)
   }
 
   # --- reduced AL / DQLM Gibbs path (no gamma, no s) ------------------------
@@ -628,11 +730,12 @@ exal_static_mcmc <- function(
     min(max(x, mh.scale.bounds[1]), mh.scale.bounds[2])
   }
 
-  # eta <-> gamma transform on (L,U)
+  # eta <-> gamma transform on (L,U); ell <-> sigma
   g_from_eta <- function(eta) {
     s <- stats::plogis(eta); s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
     L + (U - L) * s
   }
+  sig_from_ell <- function(ell) exp(as.numeric(ell)[1L])
   logJ <- function(eta) {
     s <- stats::plogis(eta); s <- pmin(pmax(s, 1e-12), 1 - 1e-12)
     log(U - L) + log(s) + log1p(-s)
@@ -656,6 +759,46 @@ exal_static_mcmc <- function(
     if (!is.finite(quad)) return(-Inf)
 
     -(n / 2) * log(B) - 0.5 * quad + log_prior_gamma(g) + logJ(eta)
+  }
+
+  # log posterior in transformed joint block (eta, ell=log sigma)
+  logpost_eta_ell <- function(par, xb, v, s_vec) {
+    par <- as.numeric(par)
+    eta <- par[1L]
+    ell <- par[2L]
+    sigma <- sig_from_ell(ell)
+    xb <- as.numeric(xb); v <- as.numeric(v); s_vec <- as.numeric(s_vec)
+    if (!all(is.finite(c(eta, ell, xb, sigma, v, s_vec)))) return(-Inf)
+    if (sigma <= 0 || any(v <= 0)) return(-Inf)
+
+    g <- g_from_eta(eta)
+    A <- as.numeric(A_of(g))[1L]
+    B <- as.numeric(B_of(g))[1L]
+    lam <- as.numeric(lam_of(g))[1L]
+    if (!is.finite(B) || B <= 0 || !is.finite(A) || !is.finite(lam)) return(-Inf)
+
+    t_vec <- y - xb
+    inv_v <- 1 / v
+    sum_einv_quad <- sum((t_vec * t_vec) * inv_v)
+    sum_t <- sum(t_vec)
+    sum_v <- sum(v)
+    sum_s_einv_t <- sum(s_vec * t_vec * inv_v)
+    sum_s <- sum(s_vec)
+    sum_s2_einv <- sum((s_vec * s_vec) * inv_v)
+    if (!all(is.finite(c(sum_einv_quad, sum_t, sum_v, sum_s_einv_t, sum_s, sum_s2_einv)))) return(-Inf)
+
+    term1 <- - (1 / (2 * B * sigma)) * (sum_einv_quad - 2 * A * sum_t + (A * A) * sum_v)
+    term2 <- - (sum_v + b_sigma) / sigma
+    term3 <- + (lam / B) * (sum_s_einv_t - sum_s * A)
+    term4 <- - ((lam * lam) / (2 * B)) * sigma * sum_s2_einv
+
+    log_prior <- log_prior_gamma(g)
+    if (!is.finite(log_prior)) return(-Inf)
+
+    # Includes transformed Jacobian for eta and ell.
+    log_det <- - (n / 2) * log(B) - (((3 * n) / 2) + a_sigma + 1) * ell
+    log_prior + log_det + term1 + term2 + term3 + term4 +
+      .exal_static_ld_log_jacobian(eta = eta, ell = ell, L = L, U = U)
   }
 
   logpost_gamma <- function(g, xb, sigma, v, s_vec) {
@@ -720,8 +863,103 @@ exal_static_mcmc <- function(
     }
     list(
       eta_hat = eta_hat,
+      ell_hat = NA_real_,
       info = info,
+      info_min_eig = info,
+      info_max_eig = info,
+      cov = matrix(1 / pmax(info, 1e-8), 1L, 1L),
       objective = fn_log(eta_hat),
+      optim_convergence = if (!is.null(opt$convergence)) as.integer(opt$convergence)[1] else NA_integer_,
+      used_fallback = used_fallback
+    )
+  }
+
+  prep_cov_2d <- function(cov_in, fallback_diag = c(1, 1)) {
+    C <- as.matrix(cov_in)
+    if (!all(dim(C) == c(2, 2)) || any(!is.finite(C))) {
+      C <- diag(as.numeric(fallback_diag), 2L)
+    }
+    C <- (C + t(C)) / 2
+    eig <- eigen(C, symmetric = TRUE)
+    vals <- pmax(eig$values, 1e-8)
+    eig$vectors %*% diag(vals, 2L, 2L) %*% t(eig$vectors)
+  }
+  chol_cov_2d <- function(cov_in) {
+    C <- prep_cov_2d(cov_in)
+    R <- tryCatch(chol(C), error = function(e) NULL)
+    if (!is.null(R)) return(R)
+    C <- C + 1e-8 * diag(2L)
+    R <- tryCatch(chol(C), error = function(e) NULL)
+    if (!is.null(R)) return(R)
+    chol(diag(c(1e-3, 1e-3), 2L))
+  }
+  log_dmvnorm_chol2 <- function(x, mean, chol_cov) {
+    x <- as.numeric(x); mean <- as.numeric(mean)
+    if (length(x) != 2L || length(mean) != 2L || any(!is.finite(c(x, mean))) || any(!is.finite(chol_cov))) {
+      return(-Inf)
+    }
+    z <- forwardsolve(t(chol_cov), x - mean)
+    log_det <- sum(log(diag(chol_cov)))
+    -log(2 * pi) - log_det - 0.5 * sum(z * z)
+  }
+
+  find_mode_eta_ell <- function(par0, xb, v, s_vec) {
+    fn_log <- function(z) {
+      val <- logpost_eta_ell(z, xb, v, s_vec)
+      if (!is.finite(val)) -Inf else val
+    }
+    fn_neg <- function(z) {
+      val <- fn_log(z)
+      if (!is.finite(val)) 1e50 else -val
+    }
+
+    base <- as.numeric(par0)
+    if (length(base) != 2L || any(!is.finite(base))) {
+      base <- c(0, log(pmax(stats::sd(y), 1e-2)))
+    }
+    starts <- unique(rbind(
+      base,
+      base + c(-1, 0), base + c(1, 0),
+      base + c(0, -0.5), base + c(0, 0.5),
+      c(0, base[2]), c(base[1], 0), c(0, 0)
+    ))
+    vals <- apply(starts, 1L, fn_log)
+    idx <- which(is.finite(vals))
+    start <- if (length(idx)) starts[idx[which.max(vals[idx])], ] else c(0, 0)
+    used_fallback <- FALSE
+
+    opt <- try(
+      optim(
+        par = start, fn = fn_neg, method = "BFGS",
+        control = list(maxit = 300), hessian = TRUE
+      ),
+      silent = TRUE
+    )
+    if (inherits(opt, "try-error") || is.null(opt$par) || any(!is.finite(opt$par)) || !is.finite(opt$value)) {
+      used_fallback <- TRUE
+      opt <- list(par = start, value = fn_neg(start), hessian = diag(c(1, 1), 2L), convergence = 1L)
+    }
+    z_hat <- as.numeric(opt$par)[1:2]
+    info <- if (!is.null(opt$hessian)) as.matrix(opt$hessian) else matrix(NA_real_, 2L, 2L)
+    if (any(!is.finite(info)) || !all(dim(info) == c(2, 2))) {
+      info <- tryCatch(numDeriv::hessian(fn_neg, x = z_hat), error = function(e) matrix(NA_real_, 2L, 2L))
+    }
+    if (any(!is.finite(info)) || !all(dim(info) == c(2, 2))) {
+      used_fallback <- TRUE
+      info <- diag(c(1e-3, 1e-3), 2L)
+    }
+    info <- (info + t(info)) / 2
+    eig <- eigen(info, symmetric = TRUE)
+    eig_vals <- pmax(eig$values, 1e-8)
+    cov_pd <- eig$vectors %*% diag(1 / eig_vals, 2L, 2L) %*% t(eig$vectors)
+    list(
+      eta_hat = z_hat[1],
+      ell_hat = z_hat[2],
+      info = min(eig_vals),
+      info_min_eig = min(eig_vals),
+      info_max_eig = max(eig_vals),
+      cov = cov_pd,
+      objective = fn_log(z_hat),
       optim_convergence = if (!is.null(opt$convergence)) as.integer(opt$convergence)[1] else NA_integer_,
       used_fallback = used_fallback
     )
@@ -746,36 +984,62 @@ exal_static_mcmc <- function(
     )[1, 1])
   }
 
-  # initialize eta from current gamma
+  # initialize transformed nonconjugate block
   eta <- stats::qlogis((gamma - L) / (U - L))
+  ell <- log(sigma)
 
   I <- n.burn + n.mcmc * thin
-  proposal_sd <- NA_real_
-  proposal_sd_init <- NA_real_
+  proposal_scale <- NA_real_
+  proposal_scale_init <- NA_real_
+  proposal_cov <- matrix(NA_real_, 2L, 2L)
+  proposal_cov_init <- matrix(NA_real_, 2L, 2L)
+  proposal_chol <- NULL
   n.accept <- 0L
   n.accept.burn <- 0L
   n.accept.keep <- 0L
+  n.global.accept <- 0L
+  n.global.accept.burn <- 0L
+  n.global.accept.keep <- 0L
+  n.global.trial <- 0L
+  n.global.trial.burn <- 0L
+  n.global.trial.keep <- 0L
+  n.approx_local_draw <- 0L
   n.trial.burn <- 0L
   n.trial.keep <- 0L
   window.accept <- 0L
   window.total <- 0L
+  laplace_refresh_attempts <- 0L
+  laplace_refresh_success <- 0L
   adapt.history <- data.frame(
     iter = integer(0),
     window_accept = numeric(0),
     proposal_sd = numeric(0),
+    proposal_scale = numeric(0),
+    cov11 = numeric(0),
+    cov22 = numeric(0),
+    cov12 = numeric(0),
     mode_info = numeric(0),
+    mode_info_max = numeric(0),
+    laplace_refreshed = logical(0),
     stringsAsFactors = FALSE
   )
   trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
   trace_idx <- 0L
   if (mh.proposal %in% c("rw", "laplace_rw")) {
-    mode0 <- find_mode_eta(eta, xb, sigma, v, s)
-    proposal_sd <- if (identical(mh.proposal, "laplace_rw")) {
-      clamp_scale(sqrt(1 / pmax(mode0$info, 1e-8)))
+    mode0 <- find_mode_eta_ell(c(eta, ell), xb, v, s)
+    proposal_cov <- if (identical(mh.proposal, "laplace_rw")) {
+      prep_cov_2d(mode0$cov, fallback_diag = c(1, 1))
+    } else {
+      diag(c(1, 1), 2L)
+    }
+    proposal_cov_init <- proposal_cov
+    proposal_scale <- if (identical(mh.proposal, "laplace_rw")) {
+      clamp_scale(1)
     } else {
       clamp_scale(0.5)
     }
-    proposal_sd_init <- proposal_sd
+    proposal_scale_init <- proposal_scale
+    proposal_chol <- chol_cov_2d(proposal_cov * (proposal_scale^2))
   }
 
   ## --- main loop (burn + mcmc, prints like exdqlmMCMC) ---------------------
@@ -796,7 +1060,9 @@ exal_static_mcmc <- function(
     sigma = sigma,
     gamma = gamma,
     kernel = mh.proposal,
-    accept = NA_real_
+    accept = NA_real_,
+    gamma_substeps = as.integer(gamma.substeps),
+    p_global_eta_jump = p.global.eta.jump
   ))
 
   tictoc::tic()
@@ -835,18 +1101,27 @@ exal_static_mcmc <- function(
     xb     <- drop(X %*% beta)
     beta_state <- beta_prior_obj$update_mcmc(beta_state, beta)
 
-    ## (4) sigma | rest ~ GIG(k_sigma, chi_sigma, psi_sigma)
-    r          <- y - xb - A * v
-    chi_sigma  <- sum((r * r) / (B * v)) + 2 * sum(v) + 2 * b_sigma
-    psi_sigma  <- (lambda * lambda / B) * sum((s * s) / v)
-    k_sigma    <- -(a_sigma + 1.5 * n)
-    sigma_new  <- sample_sigma_conditional(k = k_sigma, chi = chi_sigma, psi = psi_sigma)
-    if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
+    ## (4) sigma update:
+    ## for slice/laplace_local kernels keep exact conditional sigma update;
+    ## for rw/laplace_rw update sigma jointly with gamma in transformed space.
+    if (!(mh.proposal %in% c("rw", "laplace_rw"))) {
+      r          <- y - xb - A * v
+      chi_sigma  <- sum((r * r) / (B * v)) + 2 * sum(v) + 2 * b_sigma
+      psi_sigma  <- (lambda * lambda / B) * sum((s * s) / v)
+      k_sigma    <- -(a_sigma + 1.5 * n)
+      sigma_new  <- sample_sigma_conditional(k = k_sigma, chi = chi_sigma, psi = psi_sigma)
+      if (is.finite(sigma_new) && sigma_new > 0) sigma <- sigma_new
+      ell <- log(sigma)
+    }
 
-    ## (5) gamma | rest on eta scale
+    ## (5) nonconjugate update kernel
     mode_out <- list(
       eta_hat = NA_real_,
+      ell_hat = NA_real_,
       info = NA_real_,
+      info_min_eig = NA_real_,
+      info_max_eig = NA_real_,
+      cov = matrix(NA_real_, 2L, 2L),
       objective = NA_real_,
       optim_convergence = NA_integer_,
       used_fallback = NA
@@ -854,83 +1129,215 @@ exal_static_mcmc <- function(
     accepted <- NA
     proposal_sd_used <- NA_real_
     slice_evals <- NA_integer_
+    global_jump_attempts_iter <- 0L
+    global_jump_accepts_iter <- 0L
+    local_kernel_steps_iter <- 0L
+    global_kernel_steps_iter <- 0L
+    adapted_this_iter <- FALSE
 
-    if (identical(mh.proposal, "slice")) {
-      current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
-      if (!is.finite(current_gamma_lp)) {
-        gamma <- min(max(gamma, L + 1e-8), U - 1e-8)
-        current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
-      }
-      if (!is.finite(current_gamma_lp)) {
-        gamma <- min(max(0, L + 1e-8), U - 1e-8)
-        current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
-      }
-      slice_out <- .exdqlm_uni_slice_bounded(
-        x0 = gamma,
-        log_density = function(g) logpost_gamma(g, xb, sigma, v, s),
-        w = slice.width,
-        m = slice.max.steps,
-        lower = L + 1e-10,
-        upper = U - 1e-10
-      )
-      gamma <- as.numeric(slice_out$value)[1]
-      eta <- stats::qlogis((gamma - L) / (U - L))
-      slice_evals <- as.integer(slice_out$evals)
-    } else {
-      mode_out <- find_mode_eta(eta, xb, sigma, v, s)
-      current_lp <- logpost_eta(eta, xb, sigma, v, s)
-      if (!is.finite(current_lp)) {
-        eta <- mode_out$eta_hat
-        current_lp <- logpost_eta(eta, xb, sigma, v, s)
-      }
+    for (g_step in seq_len(gamma.substeps)) {
+      use_global_jump <- (p.global.eta.jump > 0) && (stats::runif(1) < p.global.eta.jump)
 
-      proposal_sd_used <- if (identical(mh.proposal, "laplace_local")) {
-        clamp_scale(sqrt(1 / pmax(mode_out$info, 1e-8)))
-      } else {
-        proposal_sd
-      }
-
-      if (identical(mh.proposal, "laplace_local")) {
-        eta <- stats::rnorm(1, mean = mode_out$eta_hat, sd = proposal_sd_used)
-      } else {
-      eta_prop <- eta + proposal_sd_used * stats::rnorm(1)
-      prop_lp <- logpost_eta(eta_prop, xb, sigma, v, s)
-      accepted <- is.finite(prop_lp) && (log(stats::runif(1)) < (prop_lp - current_lp))
-      if (isTRUE(accepted)) eta <- eta_prop
-
-      if (i <= n.burn) {
-        n.trial.burn <- n.trial.burn + 1L
-        n.accept.burn <- n.accept.burn + as.integer(isTRUE(accepted))
-        window.accept <- window.accept + as.integer(isTRUE(accepted))
-        window.total <- window.total + 1L
-        if (mh.adapt && i >= mh.min_burn_adapt && i < n.burn && (i %% mh.adapt.interval == 0)) {
-          acc_win <- window.accept / pmax(window.total, 1L)
-          if (acc_win < mh.target.accept[1]) {
-            proposal_sd <- proposal_sd * (1 - mh_max_scale_step)
-          } else if (acc_win > mh.target.accept[2]) {
-            proposal_sd <- proposal_sd * (1 + mh_max_scale_step)
+      if (isTRUE(use_global_jump)) {
+        global_kernel_steps_iter <- global_kernel_steps_iter + 1L
+        global_jump_attempts_iter <- global_jump_attempts_iter + 1L
+        if (mh.proposal %in% c("rw", "laplace_rw")) {
+          mode_out <- find_mode_eta_ell(c(eta, ell), xb, v, s)
+          z_cur <- c(eta, ell)
+          cur_lp <- logpost_eta_ell(z_cur, xb, v, s)
+          if (!is.finite(cur_lp)) {
+            z_cur <- c(mode_out$eta_hat, mode_out$ell_hat)
+            cur_lp <- logpost_eta_ell(z_cur, xb, v, s)
           }
-          proposal_sd <- clamp_scale(proposal_sd)
-          adapt.history <- rbind(
-            adapt.history,
-            data.frame(
-              iter = i,
-              window_accept = acc_win,
-              proposal_sd = proposal_sd,
-              mode_info = mode_out$info,
-              stringsAsFactors = FALSE
-            )
-          )
-          window.accept <- 0L
-          window.total <- 0L
+          jump_cov <- prep_cov_2d((global.eta.jump.scale^2) * mode_out$cov, fallback_diag = c(1, 1))
+          jump_chol <- chol_cov_2d(jump_cov)
+          z_mode <- c(mode_out$eta_hat, mode_out$ell_hat)
+          z_prop <- z_mode + as.numeric(jump_chol %*% stats::rnorm(2))
+          prop_lp <- logpost_eta_ell(z_prop, xb, v, s)
+          log_q_cur <- log_dmvnorm_chol2(z_cur, mean = z_mode, chol_cov = jump_chol)
+          log_q_prop <- log_dmvnorm_chol2(z_prop, mean = z_mode, chol_cov = jump_chol)
+          accepted <- is.finite(prop_lp) &&
+            (log(stats::runif(1)) < ((prop_lp + log_q_cur) - (cur_lp + log_q_prop)))
+          if (isTRUE(accepted)) z_cur <- z_prop
+          eta <- z_cur[1]
+          ell <- z_cur[2]
+          sigma <- sig_from_ell(ell)
+          gamma <- g_from_eta(eta)
+          proposal_sd_used <- sqrt(mean(diag(jump_cov)))
+        } else {
+          mode_out <- find_mode_eta(eta, xb, sigma, v, s)
+          current_lp <- logpost_eta(eta, xb, sigma, v, s)
+          if (!is.finite(current_lp)) {
+            eta <- mode_out$eta_hat
+            current_lp <- logpost_eta(eta, xb, sigma, v, s)
+          }
+          jump_sd <- clamp_scale(global.eta.jump.scale * sqrt(1 / pmax(mode_out$info, 1e-8)))
+          eta_prop <- stats::rnorm(1, mean = mode_out$eta_hat, sd = jump_sd)
+          prop_lp <- logpost_eta(eta_prop, xb, sigma, v, s)
+          log_q_cur <- stats::dnorm(eta, mean = mode_out$eta_hat, sd = jump_sd, log = TRUE)
+          log_q_prop <- stats::dnorm(eta_prop, mean = mode_out$eta_hat, sd = jump_sd, log = TRUE)
+          accepted <- is.finite(prop_lp) &&
+            (log(stats::runif(1)) < ((prop_lp + log_q_cur) - (current_lp + log_q_prop)))
+          if (isTRUE(accepted)) eta <- eta_prop
+          gamma <- g_from_eta(eta)
+          proposal_sd_used <- jump_sd
         }
+
+        n.global.trial <- n.global.trial + 1L
+        n.global.accept <- n.global.accept + as.integer(isTRUE(accepted))
+        if (i <= n.burn) {
+          n.global.trial.burn <- n.global.trial.burn + 1L
+          n.global.accept.burn <- n.global.accept.burn + as.integer(isTRUE(accepted))
+        } else {
+          n.global.trial.keep <- n.global.trial.keep + 1L
+          n.global.accept.keep <- n.global.accept.keep + as.integer(isTRUE(accepted))
+        }
+        global_jump_accepts_iter <- global_jump_accepts_iter + as.integer(isTRUE(accepted))
+      } else if (mh.proposal %in% c("slice", "slice_eta")) {
+        local_kernel_steps_iter <- local_kernel_steps_iter + 1L
+        if (identical(mh.proposal, "slice_eta")) {
+          eta_lo <- eta.slice.bounds[1]
+          eta_hi <- eta.slice.bounds[2]
+          eta_w <- max(0.25, 4 * slice.width)
+          if (!is.finite(eta) || eta <= eta_lo || eta >= eta_hi) {
+            eta <- min(max(eta, eta_lo + 1e-8), eta_hi - 1e-8)
+          }
+          current_eta_lp <- logpost_eta(eta, xb, sigma, v, s)
+          if (!is.finite(current_eta_lp)) {
+            mode_out <- find_mode_eta(eta, xb, sigma, v, s)
+            eta <- min(max(mode_out$eta_hat, eta_lo + 1e-8), eta_hi - 1e-8)
+            current_eta_lp <- logpost_eta(eta, xb, sigma, v, s)
+          }
+          if (!is.finite(current_eta_lp)) {
+            eta <- 0
+          }
+          slice_out <- .exdqlm_uni_slice_bounded(
+            x0 = eta,
+            log_density = function(e) logpost_eta(e, xb, sigma, v, s),
+            w = eta_w,
+            m = slice.max.steps,
+            lower = eta_lo,
+            upper = eta_hi
+          )
+          eta <- as.numeric(slice_out$value)[1]
+          gamma <- g_from_eta(eta)
+          slice_evals <- as.integer(slice_out$evals)
+          proposal_sd_used <- eta_w
+        } else {
+          current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+          if (!is.finite(current_gamma_lp)) {
+            gamma <- min(max(gamma, L + 1e-8), U - 1e-8)
+            current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+          }
+          if (!is.finite(current_gamma_lp)) {
+            gamma <- min(max(0, L + 1e-8), U - 1e-8)
+            current_gamma_lp <- logpost_gamma(gamma, xb, sigma, v, s)
+          }
+          slice_out <- .exdqlm_uni_slice_bounded(
+            x0 = gamma,
+            log_density = function(g) logpost_gamma(g, xb, sigma, v, s),
+            w = slice.width,
+            m = slice.max.steps,
+            lower = L + 1e-10,
+            upper = U - 1e-10
+          )
+          gamma <- as.numeric(slice_out$value)[1]
+          eta <- stats::qlogis((gamma - L) / (U - L))
+          slice_evals <- as.integer(slice_out$evals)
+        }
+      } else if (mh.proposal %in% c("rw", "laplace_rw")) {
+        local_kernel_steps_iter <- local_kernel_steps_iter + 1L
+        z_cur <- c(eta, ell)
+        cur_lp <- logpost_eta_ell(z_cur, xb, v, s)
+        if (!is.finite(cur_lp)) {
+          mode_out <- find_mode_eta_ell(z_cur, xb, v, s)
+          z_cur <- c(mode_out$eta_hat, mode_out$ell_hat)
+          cur_lp <- logpost_eta_ell(z_cur, xb, v, s)
+        }
+        z_prop <- z_cur + as.numeric(proposal_chol %*% stats::rnorm(2))
+        prop_lp <- logpost_eta_ell(z_prop, xb, v, s)
+        accepted <- is.finite(prop_lp) && (log(stats::runif(1)) < (prop_lp - cur_lp))
+        if (isTRUE(accepted)) z_cur <- z_prop
+        eta <- z_cur[1]
+        ell <- z_cur[2]
+        sigma <- sig_from_ell(ell)
+        gamma <- g_from_eta(eta)
+        proposal_sd_used <- proposal_scale
+
+        if (i <= n.burn) {
+          n.trial.burn <- n.trial.burn + 1L
+          n.accept.burn <- n.accept.burn + as.integer(isTRUE(accepted))
+          window.accept <- window.accept + as.integer(isTRUE(accepted))
+          window.total <- window.total + 1L
+          if (
+            mh.adapt && !adapted_this_iter &&
+            i >= mh.min_burn_adapt && i < n.burn &&
+            (i %% mh.adapt.interval == 0)
+          ) {
+            laplace_refreshed <- FALSE
+            if (identical(mh.proposal, "laplace_rw") &&
+                i >= mh_laplace_refresh_start &&
+                (i %% mh_laplace_refresh_interval == 0)) {
+              laplace_refresh_attempts <- laplace_refresh_attempts + 1L
+              mode_refresh <- find_mode_eta_ell(c(eta, ell), xb, v, s)
+              cov_refresh <- prep_cov_2d(mode_refresh$cov, fallback_diag = c(1, 1))
+              if (all(is.finite(cov_refresh))) {
+                proposal_cov <- prep_cov_2d((1 - mh_laplace_refresh_weight) * proposal_cov + mh_laplace_refresh_weight * cov_refresh)
+                laplace_refresh_success <- laplace_refresh_success + 1L
+                laplace_refreshed <- TRUE
+              }
+            }
+            acc_win <- window.accept / pmax(window.total, 1L)
+            if (acc_win < mh.target.accept[1]) {
+              proposal_scale <- proposal_scale * (1 - mh_max_scale_step)
+            } else if (acc_win > mh.target.accept[2]) {
+              proposal_scale <- proposal_scale * (1 + mh_max_scale_step)
+            }
+            proposal_scale <- clamp_scale(proposal_scale)
+            proposal_chol <- chol_cov_2d(proposal_cov * (proposal_scale^2))
+            adapt.history <- rbind(
+              adapt.history,
+              data.frame(
+                iter = i,
+                window_accept = acc_win,
+                proposal_sd = proposal_scale,
+                proposal_scale = proposal_scale,
+                cov11 = proposal_cov[1, 1],
+                cov22 = proposal_cov[2, 2],
+                cov12 = proposal_cov[1, 2],
+                mode_info = mode_out$info_min_eig,
+                mode_info_max = mode_out$info_max_eig,
+                laplace_refreshed = isTRUE(laplace_refreshed),
+                stringsAsFactors = FALSE
+              )
+            )
+            window.accept <- 0L
+            window.total <- 0L
+            adapted_this_iter <- TRUE
+          }
+        } else {
+          n.trial.keep <- n.trial.keep + 1L
+          n.accept.keep <- n.accept.keep + as.integer(isTRUE(accepted))
+        }
+        n.accept <- n.accept + as.integer(isTRUE(accepted))
       } else {
-        n.trial.keep <- n.trial.keep + 1L
-        n.accept.keep <- n.accept.keep + as.integer(isTRUE(accepted))
+        local_kernel_steps_iter <- local_kernel_steps_iter + 1L
+        mode_out <- find_mode_eta(eta, xb, sigma, v, s)
+        current_lp <- logpost_eta(eta, xb, sigma, v, s)
+        if (!is.finite(current_lp)) {
+          eta <- mode_out$eta_hat
+          current_lp <- logpost_eta(eta, xb, sigma, v, s)
+        }
+
+        proposal_sd_used <- clamp_scale(sqrt(1 / pmax(mode_out$info, 1e-8)))
+
+        if (identical(mh.proposal, "laplace_local")) {
+          eta <- stats::rnorm(1, mean = mode_out$eta_hat, sd = proposal_sd_used)
+          n.approx_local_draw <- n.approx_local_draw + 1L
+        }
+        gamma <- g_from_eta(eta)
+        ell <- log(sigma)
       }
-      n.accept <- n.accept + as.integer(isTRUE(accepted))
-      }
-      gamma <- g_from_eta(eta)
     }
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
     rhs_summary <- if (.static_is_rhs_family(beta_prior_obj$type)) beta_prior_obj$summary_mcmc(beta_state, beta = beta) else NULL
@@ -942,16 +1349,26 @@ exal_static_mcmc <- function(
         iter = i,
         phase = if (i <= n.burn) "burn" else "keep",
         eta = eta,
+        ell = ell,
         gamma = gamma,
         sigma = sigma,
         mode_eta = mode_out$eta_hat,
+        mode_ell = mode_out$ell_hat,
         mode_info = mode_out$info,
+        mode_info_max = mode_out$info_max_eig,
         mode_objective = mode_out$objective,
         mode_optim_convergence = mode_out$optim_convergence,
         mode_used_fallback = isTRUE(mode_out$used_fallback),
         proposal_sd = proposal_sd_used,
-        accepted = if (mh.proposal %in% c("laplace_local", "slice")) NA else isTRUE(accepted),
+        accepted = if ((mh.proposal %in% c("laplace_local", "slice", "slice_eta")) && global_jump_attempts_iter == 0L) NA else isTRUE(accepted),
         kernel = mh.proposal,
+        gamma_substeps = as.integer(gamma.substeps),
+        gamma_local_steps = as.integer(local_kernel_steps_iter),
+        gamma_global_steps = as.integer(global_kernel_steps_iter),
+        gamma_global_jump_attempts = as.integer(global_jump_attempts_iter),
+        gamma_global_jump_accepts = as.integer(global_jump_accepts_iter),
+        p_global_eta_jump = p.global.eta.jump,
+        global_eta_jump_scale = global.eta.jump.scale,
         slice_evals = slice_evals,
         s_mean = s_stats[["mean"]],
         s_sd = s_stats[["sd"]],
@@ -999,7 +1416,7 @@ exal_static_mcmc <- function(
     }
 
     if (verbose && (i %% progress_every == 0)) {
-      acc_msg <- if (mh.proposal %in% c("laplace_local", "slice")) {
+      acc_msg <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) {
         "NA"
       } else {
         format(round(n.accept / pmax(n.trial.burn + n.trial.keep, 1L), 4), nsmall = 4)
@@ -1025,7 +1442,11 @@ exal_static_mcmc <- function(
         sigma = sigma,
         gamma = gamma,
         kernel = mh.proposal,
-        accept = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+        accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+        gamma_substeps = as.integer(gamma.substeps),
+        p_global_eta_jump = p.global.eta.jump,
+        global_jump_attempts_iter = as.integer(global_jump_attempts_iter),
+        global_jump_accepts_iter = as.integer(global_jump_accepts_iter)
       ))
     }
   }
@@ -1047,32 +1468,67 @@ exal_static_mcmc <- function(
     sigma = sigma,
     gamma = gamma,
     kernel = mh.proposal,
-    accept = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+    accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+    gamma_substeps = as.integer(gamma.substeps),
+    p_global_eta_jump = p.global.eta.jump,
+    global_jump_attempts = as.integer(n.global.trial),
+    global_jump_accepts = as.integer(n.global.accept),
     runtime_sec = as.numeric(run.time$toc - run.time$tic)
   ))
 
-  accept_total <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
-  accept_burn <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
-  accept_keep <- if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+  accept_total <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+  accept_burn <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
+  accept_keep <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+  global_accept_total <- if (n.global.trial > 0L) n.global.accept / n.global.trial else NA_real_
+  global_accept_burn <- if (n.global.trial.burn > 0L) n.global.accept.burn / n.global.trial.burn else NA_real_
+  global_accept_keep <- if (n.global.trial.keep > 0L) n.global.accept.keep / n.global.trial.keep else NA_real_
   ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
   ess_gamma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.gamma))), error = function(e) NA_real_)
-  kernel_exact <- mh.proposal %in% c("rw", "laplace_rw", "slice")
+  chain_health_sigma <- .exdqlm_chain_health_metrics(save.sigma, n_keep = n.mcmc)
+  chain_health_gamma <- .exdqlm_chain_health_metrics(save.gamma, n_keep = n.mcmc)
+  kernel_exact <- (n.approx_local_draw == 0L)
   mh_diag <- list(
     proposal = mh.proposal,
-    adapt = if (mh.proposal %in% c("laplace_local", "slice")) FALSE else mh.adapt,
-    adapt_interval = if (mh.proposal %in% c("laplace_local", "slice")) NA_integer_ else mh.adapt.interval,
-    target_accept = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.target.accept,
-    scale_bounds = if (mh.proposal %in% c("laplace_local", "slice")) c(NA_real_, NA_real_) else mh.scale.bounds,
-    scale_initial = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd_init,
-    scale_final = if (mh.proposal %in% c("laplace_local", "slice")) NA_real_ else proposal_sd,
-    slice_width = if (identical(mh.proposal, "slice")) slice.width else NA_real_,
-    slice_max_steps = if (identical(mh.proposal, "slice")) slice.max.steps else NA_real_,
+    adapt = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) FALSE else mh.adapt,
+    adapt_interval = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_integer_ else mh.adapt.interval,
+    target_accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) c(NA_real_, NA_real_) else mh.target.accept,
+    scale_bounds = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) c(NA_real_, NA_real_) else mh.scale.bounds,
+    scale_initial = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else proposal_scale_init,
+    scale_final = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else proposal_scale,
+    joint_sigma_gamma = mh.proposal %in% c("rw", "laplace_rw"),
+    transformed_state = if (mh.proposal %in% c("rw", "laplace_rw")) c("eta", "ell") else c("eta"),
+    proposal_cov_initial = if (mh.proposal %in% c("rw", "laplace_rw")) proposal_cov_init else matrix(NA_real_, 2L, 2L),
+    proposal_cov_final = if (mh.proposal %in% c("rw", "laplace_rw")) proposal_cov else matrix(NA_real_, 2L, 2L),
+    slice_width = if (mh.proposal %in% c("slice", "slice_eta")) slice.width else NA_real_,
+    slice_max_steps = if (mh.proposal %in% c("slice", "slice_eta")) slice.max.steps else NA_real_,
+    slice_space = if (identical(mh.proposal, "slice")) "gamma" else if (identical(mh.proposal, "slice_eta")) "eta" else NA_character_,
+    gamma_substeps = as.integer(gamma.substeps),
+    global_eta_jump = list(
+      enabled = p.global.eta.jump > 0,
+      p = p.global.eta.jump,
+      scale = global.eta.jump.scale,
+      attempts = list(total = as.integer(n.global.trial), burn = as.integer(n.global.trial.burn), keep = as.integer(n.global.trial.keep)),
+      accepts = list(total = as.integer(n.global.accept), burn = as.integer(n.global.accept.burn), keep = as.integer(n.global.accept.keep)),
+      accept = list(total = global_accept_total, burn = global_accept_burn, keep = global_accept_keep)
+    ),
+    laplace_refresh = list(
+      enabled = identical(mh.proposal, "laplace_rw"),
+      interval = if (identical(mh.proposal, "laplace_rw")) as.integer(mh_laplace_refresh_interval) else NA_integer_,
+      start = if (identical(mh.proposal, "laplace_rw")) as.integer(mh_laplace_refresh_start) else NA_integer_,
+      weight = if (identical(mh.proposal, "laplace_rw")) as.numeric(mh_laplace_refresh_weight) else NA_real_,
+      attempts = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_attempts) else NA_integer_,
+      success = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_success) else NA_integer_
+    ),
+    approx_local_draws = as.integer(n.approx_local_draw),
     kernel_exact = kernel_exact,
     signoff_ready = kernel_exact,
     approximation_note = if (kernel_exact) {
       NA_character_
     } else {
-      "laplace_local draws gamma from a local Gaussian approximation without MH correction"
+      sprintf(
+        "gamma used %d laplace_local approximation draw(s) without MH correction",
+        as.integer(n.approx_local_draw)
+      )
     },
     accept = list(total = accept_total, burn = accept_burn, keep = accept_keep),
     adaptation = adapt.history,
@@ -1124,6 +1580,10 @@ exal_static_mcmc <- function(
     diagnostics = list(
       mh = mh_diag,
       ess = list(sigma = ess_sigma, gamma = ess_gamma),
+      chain_health = list(
+        sigma = chain_health_sigma,
+        gamma = chain_health_gamma
+      ),
       acceptance = list(total = accept_total, burn = accept_burn, keep = accept_keep),
       rhat_ready = list(sigma = as.numeric(save.sigma), gamma = as.numeric(save.gamma)),
       rhs = if (.static_is_rhs_family(beta_prior_obj$type)) {

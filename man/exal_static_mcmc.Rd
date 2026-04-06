@@ -23,7 +23,7 @@ exal_static_mcmc(
   thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
-  mh.proposal = c("laplace_local", "laplace_rw", "rw", "slice"),
+  mh.proposal = c("laplace_rw", "rw", "slice", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
@@ -32,6 +32,9 @@ exal_static_mcmc(
   mh.min_burn_adapt = 50L,
   slice.width = 0.1,
   slice.max.steps = Inf,
+  gamma.substeps = 1L,
+  p.global.eta.jump = 0,
+  global.eta.jump.scale = 1,
   trace.diagnostics = TRUE,
   trace.every = 1L,
   verbose = TRUE,
@@ -50,7 +53,8 @@ exal_static_mcmc(
 
 \item{beta_prior}{Coefficient prior type: \code{"ridge"} (default),
 \code{"rhs"} (regularized horseshoe), or \code{"rhs_ns"}
-(Nishimura-Suchard style regularized horseshoe controls).}
+(Nishimura-Suchard regularized horseshoe with a closed-form
+inverse-gamma hierarchy for static inference).}
 
 \item{beta_prior_controls}{Optional list of prior-specific controls. For
 RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
@@ -64,15 +68,19 @@ RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
 \code{collapse_invV_med_tol}, \code{collapse_beta_l2_tol},
 \code{collapse_small_beta_frac_tol}, \code{small_beta_abs_tol},
 \code{slice_width}, and \code{slice_max_steps}. For
-\code{beta_prior = "rhs_ns"}, optional slab aliases
-\code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported
-(mapped to \code{nu}/\code{s2} and \code{c2} controls). When
+\code{beta_prior = "rhs_ns"}, optional slab controls
+\code{a_zeta}, \code{b_zeta}, and \code{zeta2_fixed} are also supported.
+In this mode, the local-global-slab block is represented by
+\eqn{(\lambda_j^2,\nu_j,\tau^2,\xi,\zeta^2)} and updated with
+closed-form Gibbs steps. When
 \code{beta_prior} is \code{"rhs"} or \code{"rhs_ns"}, \code{b0} and \code{V0}
 are ignored for the
 shrunk coefficients and retained only for backward-compatible ridge
 behavior. If both \code{init_log_tau} and \code{init_tau} are omitted
 (or \code{NULL}), the RHS global scale initializes at \code{tau = 1}
-(\code{init_log_tau = 0}) instead of \code{tau0}.}
+(\code{init_log_tau = 0}) instead of \code{tau0}. By default
+(\code{shrink_intercept = FALSE}), the intercept is excluded from
+horseshoe shrinkage and uses \code{intercept_prec}.}
 
 \item{a_sigma, b_sigma}{Hyperparameters for an inverse-gamma prior on
 \code{sigma}, with density proportional to
@@ -88,7 +96,10 @@ admissible support.}
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}, \code{v} (length \eqn{n}), \code{s} (length \eqn{n}), and
 for RHS-family priors optionally \code{lambda}, \code{tau}, and
-\code{c2}. Missing pieces are filled sensibly.}
+\code{c2}. For \code{beta_prior = "rhs_ns"}, the squared-scale
+parameterization \code{lambda2}, \code{tau2}, \code{zeta2}, and optional
+auxiliaries \code{nu}, \code{xi} are also accepted. Missing pieces are
+filled sensibly.}
 
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
 with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
@@ -107,35 +118,48 @@ posterior moments as MCMC initialization.}
 \code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
 \code{ld_controls} (passed through to \code{exal_static_LDVB()}).}
 
-\item{mh.proposal}{Character string controlling the exAL gamma update kernel.
-\code{"laplace_local"} reproduces the previous Laplace-local draw.
-\code{"laplace_rw"} initializes a random-walk MH scale from local curvature
-and adapts it during burn-in. \code{"rw"} uses adaptive random-walk MH
-without Laplace scaling. \code{"slice"} uses an exact bounded univariate
-slice sampler directly on \code{gamma}. Only \code{"rw"},
-\code{"laplace_rw"}, and \code{"slice"} are exact posterior kernels for
-the \code{gamma} update; \code{"laplace_local"} is approximate and should
-not be treated as signoff-ready.}
+\item{mh.proposal}{Character string controlling the exAL nonconjugate update
+kernel. \code{"laplace_rw"} (default) uses a Laplace-informed adaptive
+random-walk MH update on the transformed joint block
+\eqn{(\eta,\ell)=(\mathrm{logit}((\gamma-L)/(U-L)), \log\sigma)}.
+\code{"rw"} uses the same exact joint update with identity base covariance.
+\code{"slice"} uses an exact bounded univariate slice sampler on
+\code{gamma} (with \code{sigma} updated from its conditional), and
+\code{"slice_eta"} does the same on transformed \code{eta}.
+\code{"laplace_local"} reproduces the prior approximate local-Gaussian
+gamma draw (not signoff-ready).
+Only \code{"laplace_local"} is approximate.}
 
-\item{mh.adapt}{Logical; adapt the random-walk proposal scale during burn-in.
-Ignored for \code{"laplace_local"} and \code{"slice"}.}
+\item{mh.adapt}{Logical; adapt the random-walk proposal scale during burn-in
+for \code{"rw"} and \code{"laplace_rw"}. Ignored for
+\code{"laplace_local"}, \code{"slice"}, and \code{"slice_eta"}.}
 
 \item{mh.adapt.interval}{Integer adaptation window for RW-based kernels.}
 
 \item{mh.target.accept}{Numeric length-2 target acceptance band.}
 
-\item{mh.scale.bounds}{Numeric length-2 lower/upper bounds for RW proposal scale.}
+\item{mh.scale.bounds}{Numeric length-2 lower/upper bounds for RW proposal
+scale multiplier.}
 
 \item{mh.max_scale.step}{Numeric multiplicative adaptation cap in \code{(0,1)}.}
 
 \item{mh.min_burn_adapt}{Integer minimum burn-in before adaptation starts.}
 
-\item{slice.width}{Positive numeric width for the bounded slice sampler when
-\code{mh.proposal = "slice"}. Default \code{0.1} for parity with
-\code{bqrgal}.}
+\item{slice.width}{Positive numeric width for bounded slice updates when
+\code{mh.proposal = "slice"} or \code{"slice_eta"}.}
 
 \item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
 expansions for the slice sampler.}
+
+\item{gamma.substeps}{Positive integer; number of consecutive gamma-kernel
+refreshes per outer MCMC iteration. Default \code{1}.}
+
+\item{p.global.eta.jump}{Numeric in \code{[0,1]}; per-substep probability of
+proposing a global independence-MH move on eta (the logit transform of
+gamma) using a Laplace proposal with MH correction. Default \code{0}.}
+
+\item{global.eta.jump.scale}{Positive numeric scale multiplier applied to the
+Laplace proposal SD used in global eta jumps.}
 
 \item{trace.diagnostics}{Logical; if \code{TRUE}, retain per-iteration
 gamma/s diagnostics under \code{mh.diagnostics$trace}. Set \code{FALSE}
@@ -162,8 +186,10 @@ A object of class "\code{exal_mcmc}" containing:
 \item \code{samp.s} - latent \code{s} draws as \code{coda::mcmc} (\code{n.mcmc x n}).
 \item \code{samp.lambda}, \code{samp.tau}, \code{samp.c2} - RHS latent
 draws when an RHS-family prior is used; otherwise \code{NULL}.
-\item \code{beta_prior} - prior metadata and, for RHS, posterior summaries
-of the shrinkage block.
+\item \code{beta_prior} - prior metadata and, for RHS-family priors,
+posterior summaries of the shrinkage block. For \code{"rhs_ns"},
+the state tracks \code{lambda2}, \code{nu}, \code{tau2}, \code{xi},
+and \code{zeta2}.
 \item \code{mh.diagnostics} - proposal kernel diagnostics for the exAL gamma update,
 including whether the saved kernel is exact/signoff-ready.
 \item \code{rhs.diagnostics} - RHS latent summaries and optional trace
@@ -174,9 +200,13 @@ preflight configuration used at fit start.
 }
 \description{
 The function applies a Gibbs sampler for static Extended Asymmetric Laplace regression
-(exAL). We update \eqn{\beta, v, s, \sigma} from their full conditionals and
-update \eqn{\gamma} on the transformed logit scale using either the legacy
-Laplace-local draw or an adaptive random-walk MH kernel.
+(exAL). We update \eqn{\beta, v, s} from their full conditionals, then update
+\eqn{(\sigma,\gamma)} either jointly on transformed coordinates
+\eqn{(\ell,\eta)=(\log \sigma,\mathrm{logit}((\gamma-L)/(U-L)))} (for
+\code{"rw"} and \code{"laplace_rw"}) or with the legacy gamma-only kernels
+(\code{"slice"}, \code{"slice_eta"}, \code{"laplace_local"}).
+Optional multi-refresh and global-jump controls are available to improve
+exAL mixing in hard cases.
 }
 \examples{
 \donttest{

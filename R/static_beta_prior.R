@@ -902,6 +902,687 @@
   state
 }
 
+.static_rhs_ig_entropy <- function(a, b) {
+  a <- pmax(as.numeric(a), 1e-12)
+  b <- pmax(as.numeric(b), 1e-12)
+  a + log(b) + lgamma(a) - (a + 1) * digamma(a)
+}
+
+# RHS-NS closed-form hierarchy used by static VB/MCMC:
+#   lambda_j^2 | nu_j ~ IG(1/2, 1/nu_j),   nu_j ~ IG(1/2, 1)
+#   tau^2      | xi   ~ IG(1/2, 1/xi),     xi   ~ IG(1/2, 1/tau0^2)
+#   zeta^2 ~ IG(a_zeta, b_zeta) (or fixed via zeta2_fixed).
+# The induced coefficient precision is
+#   invV_j = 1 / (tau^2 * lambda_j^2) + 1 / zeta^2
+# with intercept handled separately when shrink_intercept = FALSE.
+.static_rhs_ns_recompute_moments <- function(state, ctrl) {
+  floor <- max(as.numeric(ctrl$var_floor)[1], 1e-16)
+  p <- as.integer(state$p)
+
+  state$lambda2 <- pmax(as.numeric(state$lambda2), floor)
+  state$nu <- pmax(as.numeric(state$nu), floor)
+  state$tau2 <- max(as.numeric(state$tau2)[1], floor)
+  state$xi <- max(as.numeric(state$xi)[1], floor)
+  if (isTRUE(state$zeta2_is_fixed)) {
+    state$zeta2 <- max(as.numeric(state$zeta2_fixed)[1], floor)
+  } else {
+    state$zeta2 <- max(as.numeric(state$zeta2)[1], floor)
+  }
+
+  if (!is.null(state$a_lambda) && !is.null(state$b_lambda)) {
+    a_lambda <- pmax(as.numeric(state$a_lambda), floor)
+    b_lambda <- pmax(as.numeric(state$b_lambda), floor)
+    if (length(a_lambda) == p && length(b_lambda) == p) {
+      state$E_inv_lambda2 <- pmax(a_lambda / b_lambda, floor)
+    } else {
+      state$E_inv_lambda2 <- 1 / state$lambda2
+    }
+  } else {
+    state$E_inv_lambda2 <- 1 / state$lambda2
+  }
+
+  if (!is.null(state$a_nu) && !is.null(state$b_nu)) {
+    a_nu <- pmax(as.numeric(state$a_nu), floor)
+    b_nu <- pmax(as.numeric(state$b_nu), floor)
+    if (length(a_nu) == p && length(b_nu) == p) {
+      state$E_inv_nu <- pmax(a_nu / b_nu, floor)
+    } else {
+      state$E_inv_nu <- 1 / state$nu
+    }
+  } else {
+    state$E_inv_nu <- 1 / state$nu
+  }
+
+  if (!is.null(state$a_tau) && !is.null(state$b_tau)) {
+    a_tau <- max(as.numeric(state$a_tau)[1], floor)
+    b_tau <- max(as.numeric(state$b_tau)[1], floor)
+    state$E_inv_tau2 <- max(a_tau / b_tau, floor)
+  } else {
+    state$E_inv_tau2 <- 1 / state$tau2
+  }
+
+  if (!is.null(state$a_xi) && !is.null(state$b_xi)) {
+    a_xi <- max(as.numeric(state$a_xi)[1], floor)
+    b_xi <- max(as.numeric(state$b_xi)[1], floor)
+    state$E_inv_xi <- max(a_xi / b_xi, floor)
+  } else {
+    state$E_inv_xi <- 1 / state$xi
+  }
+
+  if (isTRUE(state$zeta2_is_fixed)) {
+    state$E_inv_zeta2 <- 1 / state$zeta2
+  } else if (!is.null(state$a_zeta) && !is.null(state$b_zeta) &&
+             is.finite(state$a_zeta) && is.finite(state$b_zeta)) {
+    a_z <- max(as.numeric(state$a_zeta)[1], floor)
+    b_z <- max(as.numeric(state$b_zeta)[1], floor)
+    state$E_inv_zeta2 <- max(a_z / b_z, floor)
+  } else {
+    state$E_inv_zeta2 <- 1 / state$zeta2
+  }
+
+  state$lambda <- sqrt(pmax(state$lambda2, floor))
+  state$tau <- sqrt(max(state$tau2, floor))
+  state$c2 <- state$zeta2
+  state
+}
+
+.static_rhs_ns_init_vb_state <- function(p, ctrl) {
+  floor <- max(as.numeric(ctrl$var_floor)[1], 1e-16)
+  lam0 <- ctrl$init_lambda
+  if (length(lam0) == 1L) lam0 <- rep(lam0, p)
+  lam0 <- pmax(as.numeric(lam0), floor)
+  if (length(lam0) != p) stop("beta_prior_controls$init_lambda must be scalar or length p.")
+
+  tau0 <- pmax(as.numeric(ctrl$init_tau)[1], floor)
+  zeta0 <- if (!is.null(ctrl$zeta2_fixed)) {
+    pmax(as.numeric(ctrl$zeta2_fixed)[1], floor)
+  } else if (!is.null(ctrl$init_c2)) {
+    pmax(as.numeric(ctrl$init_c2)[1], floor)
+  } else {
+    pmax(as.numeric(ctrl$s2)[1], floor)
+  }
+
+  idx <- .static_rhs_active_idx(p, ctrl$shrink_intercept)
+  m_active <- length(idx)
+  a_tau <- max((m_active + 1) / 2, floor)
+  a_xi <- 1
+  xi0 <- 1
+  state <- list(
+    p = p,
+    prior_type = "rhs_ns",
+    shrink_intercept = ctrl$shrink_intercept,
+    intercept_prec = ctrl$intercept_prec,
+    zeta2_is_fixed = !is.null(ctrl$zeta2_fixed),
+    zeta2_fixed = as.numeric(.static_prior_or(ctrl$zeta2_fixed, NA_real_))[1],
+    lambda2 = pmax(lam0^2, floor),
+    nu = rep(1, p),
+    tau2 = tau0^2,
+    xi = xi0,
+    zeta2 = zeta0,
+    a_lambda = rep(1, p),
+    b_lambda = rep(1, p) / pmax(lam0^2, floor),
+    a_nu = rep(1, p),
+    b_nu = rep(1, p),
+    a_tau = a_tau,
+    b_tau = a_tau / pmax(tau0^2, floor),
+    a_xi = a_xi,
+    b_xi = a_xi / xi0,
+    a_zeta = if (!is.null(ctrl$zeta2_fixed)) NA_real_ else as.numeric(ctrl$a_zeta)[1],
+    b_zeta = if (!is.null(ctrl$zeta2_fixed)) NA_real_ else as.numeric(ctrl$b_zeta)[1],
+    iter = 0L,
+    freeze_tau = FALSE,
+    update_tau_only = FALSE,
+    tau_update_count = 0L,
+    has_post_warmup_tau_update = FALSE,
+    last_schedule = list(),
+    collapse_diag = NULL
+  )
+  .static_rhs_ns_recompute_moments(state, ctrl)
+}
+
+.static_rhs_ns_init_mcmc_state <- function(p, ctrl) {
+  .static_rhs_ns_init_vb_state(p, ctrl)
+}
+
+.static_rhs_ns_expected_prec_vb <- function(state, ctrl) {
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  p <- as.integer(state$p)
+  idx <- .static_rhs_active_idx(p, ctrl$shrink_intercept)
+  prec <- rep(as.numeric(state$intercept_prec)[1], p)
+  if (length(idx)) {
+    prec[idx] <- state$E_inv_tau2 * state$E_inv_lambda2[idx] + state$E_inv_zeta2
+  } else if (isTRUE(ctrl$shrink_intercept) && p > 0L) {
+    prec <- state$E_inv_tau2 * state$E_inv_lambda2 + state$E_inv_zeta2
+  }
+  pmax(as.numeric(prec), 1e-16)
+}
+
+.static_rhs_ns_prec_mcmc <- function(state, ctrl) {
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  p <- as.integer(state$p)
+  invV <- pmax(1 / (state$tau2 * state$lambda2) + 1 / state$zeta2, 1e-16)
+  if (!isTRUE(ctrl$shrink_intercept) && p >= 1L) invV[1L] <- ctrl$intercept_prec
+  invV
+}
+
+.static_rhs_ns_collapse_diag_vb <- function(state, qbeta, ctrl) {
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
+  beta_use <- if (length(idx)) as.numeric(qbeta$m)[idx] else numeric(0)
+  tau <- sqrt(pmax(state$tau2, 1e-16))
+  log_tau <- log(tau)
+  tau0 <- max(as.numeric(ctrl$tau0)[1], 1e-16)
+  tau_ratio <- tau / tau0
+  slope_l2 <- if (length(beta_use)) sqrt(sum(beta_use^2)) else NA_real_
+  slope_max_abs <- if (length(beta_use)) max(abs(beta_use)) else NA_real_
+  small_beta_abs_tol <- as.numeric(ctrl$small_beta_abs_tol)[1]
+  small_beta_frac <- if (length(beta_use)) mean(abs(beta_use) <= small_beta_abs_tol) else NA_real_
+  E_invV <- .static_rhs_ns_expected_prec_vb(state, ctrl)
+  E_invV_use <- if (length(idx)) as.numeric(E_invV)[idx] else numeric(0)
+  E_invV_med <- if (length(E_invV_use) && any(is.finite(E_invV_use))) stats::median(E_invV_use[is.finite(E_invV_use)]) else NA_real_
+  tau_near_zero <- isTRUE(is.finite(tau_ratio) && tau_ratio <= ctrl$collapse_tau_ratio_tol) ||
+    isTRUE(log_tau <= (ctrl$eta_bounds$tau[1] + 1e-6))
+  slope_collapse <- isTRUE(is.finite(slope_max_abs) && slope_max_abs <= ctrl$collapse_beta_max_abs_tol)
+  precision_beta_pattern <- isTRUE(
+    is.finite(E_invV_med) && E_invV_med >= ctrl$collapse_invV_med_tol &&
+      is.finite(slope_l2) && slope_l2 <= ctrl$collapse_beta_l2_tol &&
+      is.finite(small_beta_frac) && small_beta_frac >= ctrl$collapse_small_beta_frac_tol
+  )
+  collapse_flag <- isTRUE((tau_near_zero && slope_collapse) || precision_beta_pattern)
+  warning_msg <- if (collapse_flag) {
+    if (isTRUE(precision_beta_pattern) && !isTRUE(tau_near_zero && slope_collapse)) {
+      paste(
+        "RHS shrinkage-collapse detected from precision/beta pattern",
+        "(large E_invV + tiny beta norm + high near-zero-beta fraction).",
+        "Consider revising tau initialization and RHS controls."
+      )
+    } else {
+      paste(
+        "RHS global scale collapsed near zero and active coefficients collapsed toward zero.",
+        "Consider a larger tau0 and/or RHS tau warmup/freeze tuning."
+      )
+    }
+  } else {
+    NA_character_
+  }
+  list(
+    collapse_flag = collapse_flag,
+    precision_beta_pattern = precision_beta_pattern,
+    tau_near_zero = tau_near_zero,
+    slope_collapse = slope_collapse,
+    beta_collapse = slope_collapse,
+    tau = tau,
+    log_tau = log_tau,
+    tau0 = tau0,
+    tau_ratio = tau_ratio,
+    E_invV_med = E_invV_med,
+    slope_l2 = slope_l2,
+    beta_l2 = slope_l2,
+    slope_max_abs = slope_max_abs,
+    small_beta_frac = small_beta_frac,
+    small_beta_abs_tol = small_beta_abs_tol,
+    active_count = length(idx),
+    eta_tau_lower = ctrl$eta_bounds$tau[1],
+    at_tau_lower_bound = isTRUE(log_tau <= (ctrl$eta_bounds$tau[1] + 1e-6)),
+    warning = warning_msg
+  )
+}
+
+.static_rhs_ns_collapse_diag_mcmc <- function(state, beta, ctrl) {
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
+  beta_use <- if (length(idx)) as.numeric(beta)[idx] else numeric(0)
+  tau <- sqrt(pmax(state$tau2, 1e-16))
+  log_tau <- log(tau)
+  tau0 <- max(as.numeric(ctrl$tau0)[1], 1e-16)
+  tau_ratio <- tau / tau0
+  slope_l2 <- if (length(beta_use)) sqrt(sum(beta_use^2)) else NA_real_
+  slope_max_abs <- if (length(beta_use)) max(abs(beta_use)) else NA_real_
+  small_beta_abs_tol <- as.numeric(ctrl$small_beta_abs_tol)[1]
+  small_beta_frac <- if (length(beta_use)) mean(abs(beta_use) <= small_beta_abs_tol) else NA_real_
+  invV <- .static_rhs_ns_prec_mcmc(state, ctrl)
+  invV_use <- if (length(idx)) as.numeric(invV)[idx] else numeric(0)
+  E_invV_med <- if (length(invV_use) && any(is.finite(invV_use))) stats::median(invV_use[is.finite(invV_use)]) else NA_real_
+  tau_near_zero <- isTRUE(is.finite(tau_ratio) && tau_ratio <= ctrl$collapse_tau_ratio_tol) ||
+    isTRUE(log_tau <= (ctrl$eta_bounds$tau[1] + 1e-6))
+  slope_collapse <- isTRUE(is.finite(slope_max_abs) && slope_max_abs <= ctrl$collapse_beta_max_abs_tol)
+  precision_beta_pattern <- isTRUE(
+    is.finite(E_invV_med) && E_invV_med >= ctrl$collapse_invV_med_tol &&
+      is.finite(slope_l2) && slope_l2 <= ctrl$collapse_beta_l2_tol &&
+      is.finite(small_beta_frac) && small_beta_frac >= ctrl$collapse_small_beta_frac_tol
+  )
+  collapse_flag <- isTRUE((tau_near_zero && slope_collapse) || precision_beta_pattern)
+  warning_msg <- if (collapse_flag) {
+    if (isTRUE(precision_beta_pattern) && !isTRUE(tau_near_zero && slope_collapse)) {
+      paste(
+        "RHS shrinkage-collapse detected from precision/beta pattern",
+        "(large E_invV + tiny beta norm + high near-zero-beta fraction).",
+        "Consider revising tau initialization and RHS controls."
+      )
+    } else {
+      paste(
+        "RHS global scale collapsed near zero and active coefficients collapsed toward zero.",
+        "Consider a larger tau0 and/or RHS tau warmup/freeze tuning."
+      )
+    }
+  } else {
+    NA_character_
+  }
+  list(
+    collapse_flag = collapse_flag,
+    precision_beta_pattern = precision_beta_pattern,
+    tau_near_zero = tau_near_zero,
+    slope_collapse = slope_collapse,
+    beta_collapse = slope_collapse,
+    tau = tau,
+    log_tau = log_tau,
+    tau0 = tau0,
+    tau_ratio = tau_ratio,
+    E_invV_med = E_invV_med,
+    slope_l2 = slope_l2,
+    beta_l2 = slope_l2,
+    slope_max_abs = slope_max_abs,
+    small_beta_frac = small_beta_frac,
+    small_beta_abs_tol = small_beta_abs_tol,
+    active_count = length(idx),
+    eta_tau_lower = ctrl$eta_bounds$tau[1],
+    at_tau_lower_bound = isTRUE(log_tau <= (ctrl$eta_bounds$tau[1] + 1e-6)),
+    warning = warning_msg
+  )
+}
+
+.static_rhs_ns_update_vb <- function(state, qbeta, ctrl) {
+  floor <- max(as.numeric(ctrl$var_floor)[1], 1e-16)
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  p <- as.integer(state$p)
+  beta2 <- as.numeric(qbeta$m^2 + diag(qbeta$V))
+  active_idx <- .static_rhs_active_idx(p, ctrl$shrink_intercept)
+  m_active <- length(active_idx)
+  iter_now <- as.integer(.static_prior_or(state$iter, 0L)) + 1L
+  sched <- .static_rhs_vb_schedule(state, ctrl, iter_now)
+  tau_updated <- FALSE
+
+  a_lambda <- pmax(as.numeric(state$a_lambda), floor)
+  b_lambda <- pmax(as.numeric(state$b_lambda), floor)
+  a_nu <- pmax(as.numeric(state$a_nu), floor)
+  b_nu <- pmax(as.numeric(state$b_nu), floor)
+  a_tau <- max((m_active + 1) / 2, floor)
+  b_tau <- max(as.numeric(state$b_tau)[1], floor)
+  a_xi <- 1
+  b_xi <- max(as.numeric(state$b_xi)[1], floor)
+  if (isTRUE(state$zeta2_is_fixed)) {
+    a_zeta <- NA_real_
+    b_zeta <- NA_real_
+  } else {
+    a_zeta <- max(as.numeric(.static_prior_or(state$a_zeta, ctrl$a_zeta))[1], floor)
+    b_zeta <- max(as.numeric(.static_prior_or(state$b_zeta, ctrl$b_zeta))[1], floor)
+  }
+
+  if (isTRUE(sched$do_update) && m_active > 0L) {
+    update_tau_only <- isTRUE(sched$update_tau_only)
+    for (inner in seq_len(ctrl$n_inner)) {
+      if (!isTRUE(update_tau_only)) {
+        e_inv_tau <- a_tau / b_tau
+        e_inv_nu <- a_nu / b_nu
+        b_lambda[active_idx] <- pmax(0.5 * beta2[active_idx] * e_inv_tau + e_inv_nu[active_idx], floor)
+        e_inv_lambda <- a_lambda / b_lambda
+        b_nu[active_idx] <- pmax(1 + e_inv_lambda[active_idx], floor)
+        if (!isTRUE(state$zeta2_is_fixed)) {
+          a_zeta <- max(as.numeric(ctrl$a_zeta)[1] + m_active / 2, floor)
+          b_zeta <- pmax(as.numeric(ctrl$b_zeta)[1] + 0.5 * sum(beta2[active_idx]), floor)
+        }
+      }
+
+      if (!isTRUE(sched$tau_warmup)) {
+        e_inv_lambda <- a_lambda / b_lambda
+        e_inv_xi <- a_xi / b_xi
+        b_tau <- pmax(0.5 * sum(beta2[active_idx] * e_inv_lambda[active_idx]) + e_inv_xi, floor)
+        e_inv_tau <- a_tau / b_tau
+        b_xi <- pmax((1 / (ctrl$tau0^2)) + e_inv_tau, floor)
+        tau_updated <- TRUE
+      }
+    }
+  } else if (!isTRUE(state$zeta2_is_fixed) && m_active > 0L && isTRUE(sched$do_update)) {
+    a_zeta <- max(as.numeric(ctrl$a_zeta)[1] + m_active / 2, floor)
+    b_zeta <- pmax(as.numeric(ctrl$b_zeta)[1] + 0.5 * sum(beta2[active_idx]), floor)
+  }
+
+  state$a_lambda <- a_lambda
+  state$b_lambda <- b_lambda
+  state$a_nu <- a_nu
+  state$b_nu <- b_nu
+  state$a_tau <- a_tau
+  state$b_tau <- b_tau
+  state$a_xi <- a_xi
+  state$b_xi <- b_xi
+  state$a_zeta <- if (isTRUE(state$zeta2_is_fixed)) NA_real_ else a_zeta
+  state$b_zeta <- if (isTRUE(state$zeta2_is_fixed)) NA_real_ else b_zeta
+
+  state$E_inv_lambda2 <- pmax(a_lambda / b_lambda, floor)
+  state$E_inv_nu <- pmax(a_nu / b_nu, floor)
+  state$E_inv_tau2 <- max(a_tau / b_tau, floor)
+  state$E_inv_xi <- max(a_xi / b_xi, floor)
+  if (isTRUE(state$zeta2_is_fixed)) {
+    state$E_inv_zeta2 <- 1 / max(as.numeric(state$zeta2_fixed)[1], floor)
+    state$zeta2 <- max(as.numeric(state$zeta2_fixed)[1], floor)
+  } else {
+    state$E_inv_zeta2 <- max(a_zeta / b_zeta, floor)
+    state$zeta2 <- 1 / state$E_inv_zeta2
+  }
+
+  state$lambda2 <- 1 / pmax(state$E_inv_lambda2, floor)
+  state$nu <- 1 / pmax(state$E_inv_nu, floor)
+  state$tau2 <- 1 / max(state$E_inv_tau2, floor)
+  state$xi <- 1 / max(state$E_inv_xi, floor)
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+
+  state$iter <- iter_now
+  state$freeze_tau <- isTRUE(sched$tau_warmup)
+  state$update_tau_only <- isTRUE(sched$update_tau_only)
+  state$tau_update_count <- as.integer(.static_prior_or(state$tau_update_count, 0L)) + if (tau_updated) 1L else 0L
+  state$has_post_warmup_tau_update <- isTRUE(.static_prior_or(state$has_post_warmup_tau_update, FALSE) || tau_updated)
+  state$last_schedule <- c(
+    sched,
+    list(
+      tau_updated = tau_updated,
+      tau_update_count = state$tau_update_count
+    )
+  )
+  state$collapse_diag <- .static_rhs_ns_collapse_diag_vb(state, qbeta, ctrl)
+  state
+}
+
+.static_rhs_ns_elbo_vb <- function(state, qbeta, ctrl) {
+  floor <- max(as.numeric(ctrl$var_floor)[1], 1e-16)
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  p <- as.integer(state$p)
+  beta2 <- as.numeric(qbeta$m^2 + diag(qbeta$V))
+  active_idx <- .static_rhs_active_idx(p, ctrl$shrink_intercept)
+
+  a_lambda <- pmax(as.numeric(state$a_lambda), floor)
+  b_lambda <- pmax(as.numeric(state$b_lambda), floor)
+  a_nu <- pmax(as.numeric(state$a_nu), floor)
+  b_nu <- pmax(as.numeric(state$b_nu), floor)
+  a_tau <- max(as.numeric(state$a_tau)[1], floor)
+  b_tau <- max(as.numeric(state$b_tau)[1], floor)
+  a_xi <- max(as.numeric(state$a_xi)[1], floor)
+  b_xi <- max(as.numeric(state$b_xi)[1], floor)
+
+  e_log_lambda <- log(b_lambda) - digamma(a_lambda)
+  e_log_nu <- log(b_nu) - digamma(a_nu)
+  e_inv_lambda <- a_lambda / b_lambda
+  e_inv_nu <- a_nu / b_nu
+  e_log_tau <- log(b_tau) - digamma(a_tau)
+  e_inv_tau <- a_tau / b_tau
+  e_log_xi <- log(b_xi) - digamma(a_xi)
+  e_inv_xi <- a_xi / b_xi
+
+  if (isTRUE(state$zeta2_is_fixed)) {
+    e_log_zeta <- log(pmax(as.numeric(state$zeta2_fixed)[1], floor))
+    e_inv_zeta <- 1 / pmax(as.numeric(state$zeta2_fixed)[1], floor)
+    e_log_p_zeta <- 0
+    h_zeta <- 0
+  } else {
+    a_zeta <- max(as.numeric(state$a_zeta)[1], floor)
+    b_zeta <- max(as.numeric(state$b_zeta)[1], floor)
+    e_log_zeta <- log(b_zeta) - digamma(a_zeta)
+    e_inv_zeta <- a_zeta / b_zeta
+    e_log_p_zeta <- as.numeric(ctrl$a_zeta)[1] * log(as.numeric(ctrl$b_zeta)[1]) -
+      lgamma(as.numeric(ctrl$a_zeta)[1]) -
+      (as.numeric(ctrl$a_zeta)[1] + 1) * e_log_zeta -
+      as.numeric(ctrl$b_zeta)[1] * e_inv_zeta
+    h_zeta <- .static_rhs_ig_entropy(a_zeta, b_zeta)
+  }
+
+  if (length(active_idx)) {
+    k_half <- 0.5
+    log2pi_half <- -0.5 * log(2 * pi)
+    e_log_p_beta_hs <- sum(
+      log2pi_half -
+        0.5 * e_log_tau -
+        0.5 * e_log_lambda[active_idx] -
+        0.5 * beta2[active_idx] * e_inv_tau * e_inv_lambda[active_idx]
+    )
+    e_log_p_beta_slab <- sum(
+      log2pi_half -
+        0.5 * e_log_zeta -
+        0.5 * beta2[active_idx] * e_inv_zeta
+    )
+    e_log_p_lambda_given_nu <- sum(
+      k_half * (-e_log_nu[active_idx]) -
+        lgamma(k_half) -
+        (k_half + 1) * e_log_lambda[active_idx] -
+        e_inv_nu[active_idx] * e_inv_lambda[active_idx]
+    )
+    e_log_p_nu <- sum(
+      -lgamma(k_half) -
+        (k_half + 1) * e_log_nu[active_idx] -
+        e_inv_nu[active_idx]
+    )
+    e_log_p_tau_given_xi <- (
+      k_half * (-e_log_xi) -
+        lgamma(k_half) -
+        (k_half + 1) * e_log_tau -
+        e_inv_xi * e_inv_tau
+    )
+    e_log_p_xi <- (
+      k_half * log(1 / (ctrl$tau0^2)) -
+        lgamma(k_half) -
+        (k_half + 1) * e_log_xi -
+        (1 / (ctrl$tau0^2)) * e_inv_xi
+    )
+
+    e_log_joint <- e_log_p_beta_hs + e_log_p_beta_slab +
+      e_log_p_lambda_given_nu + e_log_p_nu +
+      e_log_p_tau_given_xi + e_log_p_xi + e_log_p_zeta
+
+    h_latent <- sum(.static_rhs_ig_entropy(a_lambda[active_idx], b_lambda[active_idx])) +
+      sum(.static_rhs_ig_entropy(a_nu[active_idx], b_nu[active_idx])) +
+      .static_rhs_ig_entropy(a_tau, b_tau) +
+      .static_rhs_ig_entropy(a_xi, b_xi) +
+      h_zeta
+  } else {
+    e_log_joint <- e_log_p_zeta
+    h_latent <- h_zeta
+  }
+
+  e_log_intercept <- 0
+  if (!isTRUE(state$shrink_intercept) && p >= 1L) {
+    prec0 <- as.numeric(state$intercept_prec)[1]
+    prec0 <- if (is.finite(prec0) && prec0 > 0) prec0 else 1e-16
+    e_log_intercept <- 0.5 * (log(prec0) - log(2 * pi)) - 0.5 * prec0 * beta2[1L]
+  }
+
+  as.numeric(e_log_joint + h_latent + e_log_intercept)
+}
+
+.static_rhs_ns_update_mcmc <- function(state, beta, ctrl) {
+  floor <- max(as.numeric(ctrl$var_floor)[1], 1e-16)
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  beta <- as.numeric(beta)
+  p <- as.integer(state$p)
+  if (length(beta) != p) stop("rhs_ns mcmc update: beta length mismatch.")
+  active_idx <- .static_rhs_active_idx(p, ctrl$shrink_intercept)
+  m_active <- length(active_idx)
+  beta2 <- beta^2
+
+  lambda2 <- pmax(as.numeric(state$lambda2), floor)
+  nu <- pmax(as.numeric(state$nu), floor)
+  tau2 <- max(as.numeric(state$tau2)[1], floor)
+  xi <- max(as.numeric(state$xi)[1], floor)
+  zeta2 <- max(as.numeric(state$zeta2)[1], floor)
+
+  iter_now <- as.integer(.static_prior_or(state$iter, 0L)) + 1L
+  tau_warmup <- isTRUE(ctrl$freeze_tau_warmup_iters > 0L && iter_now <= ctrl$freeze_tau_warmup_iters)
+  tau_updated <- FALSE
+
+  if (m_active > 0L) {
+    for (j in active_idx) {
+      rate_lambda <- max(1 / nu[j] + 0.5 * beta2[j] / tau2, floor)
+      lambda2[j] <- 1 / stats::rgamma(1L, shape = 1, rate = rate_lambda)
+      lambda2[j] <- max(lambda2[j], floor)
+
+      rate_nu <- max(1 + 1 / lambda2[j], floor)
+      nu[j] <- 1 / stats::rgamma(1L, shape = 1, rate = rate_nu)
+      nu[j] <- max(nu[j], floor)
+    }
+
+    if (!isTRUE(tau_warmup)) {
+      shape_tau <- (m_active + 1) / 2
+      rate_tau <- max(1 / xi + 0.5 * sum(beta2[active_idx] / lambda2[active_idx]), floor)
+      tau2 <- 1 / stats::rgamma(1L, shape = shape_tau, rate = rate_tau)
+      tau2 <- max(tau2, floor)
+
+      rate_xi <- max(1 / (ctrl$tau0^2) + 1 / tau2, floor)
+      xi <- 1 / stats::rgamma(1L, shape = 1, rate = rate_xi)
+      xi <- max(xi, floor)
+      tau_updated <- TRUE
+    }
+
+    if (!isTRUE(state$zeta2_is_fixed)) {
+      shape_zeta <- max(as.numeric(ctrl$a_zeta)[1] + m_active / 2, floor)
+      rate_zeta <- max(as.numeric(ctrl$b_zeta)[1] + 0.5 * sum(beta2[active_idx]), floor)
+      zeta2 <- 1 / stats::rgamma(1L, shape = shape_zeta, rate = rate_zeta)
+      zeta2 <- max(zeta2, floor)
+    } else {
+      zeta2 <- max(as.numeric(state$zeta2_fixed)[1], floor)
+    }
+  }
+
+  state$lambda2 <- lambda2
+  state$nu <- nu
+  state$tau2 <- tau2
+  state$xi <- xi
+  state$zeta2 <- zeta2
+
+  state$a_lambda <- rep(1, p)
+  state$b_lambda <- 1 / pmax(lambda2, floor)
+  state$a_nu <- rep(1, p)
+  state$b_nu <- 1 / pmax(nu, floor)
+  state$a_tau <- max((m_active + 1) / 2, floor)
+  state$b_tau <- state$a_tau / pmax(tau2, floor)
+  state$a_xi <- 1
+  state$b_xi <- 1 / pmax(xi, floor)
+  if (isTRUE(state$zeta2_is_fixed)) {
+    state$a_zeta <- NA_real_
+    state$b_zeta <- NA_real_
+  } else {
+    state$a_zeta <- max(as.numeric(ctrl$a_zeta)[1] + m_active / 2, floor)
+    state$b_zeta <- state$a_zeta / pmax(zeta2, floor)
+  }
+
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  state$iter <- iter_now
+  state$freeze_tau <- isTRUE(tau_warmup)
+  state$update_tau_only <- FALSE
+  state$tau_update_count <- as.integer(.static_prior_or(state$tau_update_count, 0L)) + if (tau_updated) 1L else 0L
+  state$has_post_warmup_tau_update <- isTRUE(.static_prior_or(state$has_post_warmup_tau_update, FALSE) || tau_updated)
+  state$last_schedule <- list(
+    iter = iter_now,
+    tau_warmup = tau_warmup,
+    reason = if (tau_warmup) "warmup" else "scheduled",
+    tau_updated = tau_updated,
+    tau_update_count = state$tau_update_count
+  )
+  state$collapse_diag <- .static_rhs_ns_collapse_diag_mcmc(state, beta, ctrl)
+  state
+}
+
+.static_rhs_ns_summary_vb <- function(state, ctrl) {
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
+  lam <- state$lambda[idx]
+  collapse_diag <- .static_prior_or(state$collapse_diag, list())
+  list(
+    tau = state$tau,
+    log_tau = log(pmax(state$tau, 1e-16)),
+    c2 = state$c2,
+    zeta2 = state$zeta2,
+    tau2 = state$tau2,
+    xi = state$xi,
+    lambda = lam,
+    lambda2 = state$lambda2[idx],
+    nu = state$nu[idx],
+    lambda_mean = if (length(lam)) mean(lam) else NA_real_,
+    lambda_min = if (length(lam)) min(lam) else NA_real_,
+    lambda_max = if (length(lam)) max(lam) else NA_real_,
+    shrink_intercept = ctrl$shrink_intercept,
+    tau0 = ctrl$tau0,
+    nu_hyper = ctrl$nu,
+    s = ctrl$s,
+    s2 = ctrl$s2,
+    a_zeta = as.numeric(.static_prior_or(ctrl$a_zeta, NA_real_))[1],
+    b_zeta = as.numeric(.static_prior_or(ctrl$b_zeta, NA_real_))[1],
+    zeta2_fixed = as.numeric(.static_prior_or(ctrl$zeta2_fixed, NA_real_))[1],
+    rhs_iter = as.integer(.static_prior_or(state$iter, NA_integer_)),
+    rhs_tau_update_count = as.integer(.static_prior_or(state$tau_update_count, NA_integer_)),
+    rhs_tau_warmup_last = isTRUE(.static_prior_or(state$last_schedule$tau_warmup, FALSE)),
+    rhs_update_reason_last = as.character(.static_prior_or(state$last_schedule$reason, NA_character_))[1],
+    rhs_update_every_last = as.integer(.static_prior_or(state$last_schedule$update_every_eff, NA_integer_)),
+    collapse_flag = isTRUE(collapse_diag$collapse_flag),
+    collapse_pattern = isTRUE(collapse_diag$precision_beta_pattern),
+    collapse_tau_near_zero = isTRUE(collapse_diag$tau_near_zero),
+    collapse_beta = isTRUE(collapse_diag$slope_collapse),
+    collapse_tau_ratio = as.numeric(collapse_diag$tau_ratio)[1],
+    collapse_E_invV_med = as.numeric(collapse_diag$E_invV_med)[1],
+    collapse_beta_l2 = as.numeric(collapse_diag$beta_l2)[1],
+    collapse_small_beta_frac = as.numeric(collapse_diag$small_beta_frac)[1],
+    collapse_small_beta_abs_tol = as.numeric(collapse_diag$small_beta_abs_tol)[1],
+    collapse_slope_l2 = as.numeric(collapse_diag$slope_l2)[1],
+    collapse_slope_max_abs = as.numeric(collapse_diag$slope_max_abs)[1],
+    collapse_warning = as.character(.static_prior_or(collapse_diag$warning, NA_character_))[1],
+    init_log_tau_resolved = as.numeric(ctrl$init_log_tau)[1],
+    init_tau_resolved = as.numeric(ctrl$init_tau)[1],
+    init_tau_source = as.character(ctrl$init_tau_source)[1],
+    eta_tau_lower = as.numeric(ctrl$eta_bounds$tau[1]),
+    eta_tau_upper = as.numeric(ctrl$eta_bounds$tau[2])
+  )
+}
+
+.static_rhs_ns_summary_mcmc <- function(state, ctrl, beta = NULL) {
+  state <- .static_rhs_ns_recompute_moments(state, ctrl)
+  idx <- .static_rhs_active_idx(state$p, ctrl$shrink_intercept)
+  lam <- state$lambda[idx]
+  collapse_diag <- if (!is.null(beta)) .static_rhs_ns_collapse_diag_mcmc(state, beta, ctrl) else list()
+  list(
+    tau = state$tau,
+    log_tau = log(pmax(state$tau, 1e-16)),
+    c2 = state$c2,
+    zeta2 = state$zeta2,
+    tau2 = state$tau2,
+    xi = state$xi,
+    lambda = lam,
+    lambda2 = state$lambda2[idx],
+    nu = state$nu[idx],
+    lambda_mean = if (length(lam)) mean(lam) else NA_real_,
+    lambda_min = if (length(lam)) min(lam) else NA_real_,
+    lambda_max = if (length(lam)) max(lam) else NA_real_,
+    shrink_intercept = ctrl$shrink_intercept,
+    tau0 = ctrl$tau0,
+    nu_hyper = ctrl$nu,
+    s = ctrl$s,
+    s2 = ctrl$s2,
+    a_zeta = as.numeric(.static_prior_or(ctrl$a_zeta, NA_real_))[1],
+    b_zeta = as.numeric(.static_prior_or(ctrl$b_zeta, NA_real_))[1],
+    zeta2_fixed = as.numeric(.static_prior_or(ctrl$zeta2_fixed, NA_real_))[1],
+    collapse_flag = if (!is.null(collapse_diag$collapse_flag)) isTRUE(collapse_diag$collapse_flag) else NA,
+    collapse_pattern = if (!is.null(collapse_diag$precision_beta_pattern)) isTRUE(collapse_diag$precision_beta_pattern) else NA,
+    collapse_tau_near_zero = if (!is.null(collapse_diag$tau_near_zero)) isTRUE(collapse_diag$tau_near_zero) else NA,
+    collapse_beta = if (!is.null(collapse_diag$slope_collapse)) isTRUE(collapse_diag$slope_collapse) else NA,
+    collapse_tau_ratio = as.numeric(.static_prior_or(collapse_diag$tau_ratio, NA_real_))[1],
+    collapse_E_invV_med = as.numeric(.static_prior_or(collapse_diag$E_invV_med, NA_real_))[1],
+    collapse_beta_l2 = as.numeric(.static_prior_or(collapse_diag$beta_l2, NA_real_))[1],
+    collapse_small_beta_frac = as.numeric(.static_prior_or(collapse_diag$small_beta_frac, NA_real_))[1],
+    collapse_small_beta_abs_tol = as.numeric(.static_prior_or(collapse_diag$small_beta_abs_tol, ctrl$small_beta_abs_tol))[1],
+    collapse_warning = as.character(.static_prior_or(collapse_diag$warning, NA_character_))[1],
+    init_log_tau_resolved = as.numeric(ctrl$init_log_tau)[1],
+    init_tau_resolved = as.numeric(ctrl$init_tau)[1],
+    init_tau_source = as.character(ctrl$init_tau_source)[1],
+    eta_tau_lower = as.numeric(ctrl$eta_bounds$tau[1]),
+    eta_tau_upper = as.numeric(ctrl$eta_bounds$tau[2])
+  )
+}
+
 .static_beta_prior_make <- function(beta_prior = c("ridge", "rhs", "rhs_ns"), p, b0, V0, beta_prior_controls = NULL,
                                     warn_rhs_b0 = FALSE, warn_rhs_V0 = FALSE) {
   beta_prior <- .static_match_beta_prior(beta_prior)
@@ -936,6 +1617,28 @@
       ),
       call. = FALSE
     )
+  }
+
+  if (identical(beta_prior, "rhs_ns")) {
+    return(list(
+      type = beta_prior,
+      controls = ctrl,
+      init_vb = function() .static_rhs_ns_init_vb_state(p, ctrl),
+      init_mcmc = function() .static_rhs_ns_init_mcmc_state(p, ctrl),
+      beta_system_vb = function(state) {
+        prec <- .static_rhs_ns_expected_prec_vb(state, ctrl)
+        list(Prec = diag(prec, p), h = rep(0, p), prec_diag = prec)
+      },
+      beta_system_mcmc = function(state) {
+        prec <- .static_rhs_ns_prec_mcmc(state, ctrl)
+        list(Prec = diag(prec, p), h = rep(0, p), prec_diag = prec)
+      },
+      update_vb = function(state, qbeta) .static_rhs_ns_update_vb(state, qbeta, ctrl),
+      update_mcmc = function(state, beta, ...) .static_rhs_ns_update_mcmc(state, beta, ctrl),
+      elbo_vb = function(state, qbeta) .static_rhs_ns_elbo_vb(state, qbeta, ctrl),
+      summary_vb = function(state) .static_rhs_ns_summary_vb(state, ctrl),
+      summary_mcmc = function(state, beta = NULL) .static_rhs_ns_summary_mcmc(state, ctrl, beta = beta)
+    ))
   }
 
   list(
