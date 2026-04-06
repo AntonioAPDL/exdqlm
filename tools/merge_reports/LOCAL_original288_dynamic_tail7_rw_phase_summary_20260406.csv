@@ -1,4 +1,4 @@
 "phase","total","done","missing","PASS","WARN","FAIL","resolved"
-"anchor7_rw_joint",7,0,7,0,0,0,0
-"tt500_rw_refresh4",4,0,4,0,0,0,0
+"anchor7_rw_joint",7,7,0,0,0,7,0
+"tt500_rw_refresh4",4,4,0,0,1,3,1
 "tt5000_rw_joint_long3",3,0,3,0,0,0,0
