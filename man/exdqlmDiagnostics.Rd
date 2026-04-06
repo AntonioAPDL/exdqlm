@@ -21,13 +21,17 @@ exdqlmDiagnostics(
 
 \item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
 
-\item{ref}{Optional reference sample of size \code{length(m1$y)} from a standard normal distribution. Used to compute the KL divergence.}
+\item{ref}{Optional reference sample of size \code{length(m1$y)} from a standard
+normal distribution. Used to compute the KL divergences.}
 }
 \value{
 A object of class "\code{exdqlmDiagnostics}" containing the following:
 \itemize{
 \item \code{m1.uts} - The one-step-ahead distribution sequence of \code{m1}.
 \item \code{m1.KL} - The KL divergence of \code{m1.uts} and a standard normal.
+\item \code{m1.KL.flip} - The reversed ("flipped") KL divergence of \code{m1.uts}
+and a standard normal.
+\item \code{m1.CRPS} - The mean CRPS computed from posterior predictive draws.
 \item \code{m1.pplc} - The posterior predictive loss criterion of \code{m1} based off the check loss function.
 \item \code{m1.qq} - The ordered pairs of the qq-plot comparing \code{m1.uts} with a standard normal distribution.
 \item \code{m1.acf} - The autocorrelations of \code{m1.uts} by lag.
@@ -38,7 +42,13 @@ A object of class "\code{exdqlmDiagnostics}" containing the following:
 If \code{m2} is provided, analogous results for \code{m2} are also included in the list.
 }
 \description{
-The function computes the following for the model(s) provided: the posterior predictive loss criterion based off the check loss, the one-step-ahead distribution sequence and its KL divergence from normality. The function also plots the following: the qq-plot and ACF plot corresponding to the one-step-ahead distribution sequence, and a time series plot of the MAP standard forecast errors.
+The function computes the following for the model(s) provided: the posterior
+predictive loss criterion based off the check loss, the CRPS from posterior
+predictive draws, the one-step-ahead distribution sequence, and both the
+forward and reversed KL divergences from normality. The function also plots
+the following: the qq-plot and ACF plot corresponding to the one-step-ahead
+distribution sequence, and a time series plot of the MAP standard forecast
+errors.
 }
 \examples{
 \donttest{

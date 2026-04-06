@@ -704,10 +704,28 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_crps_row <- function(y_true, draws_vec) {
+  z <- sort(as.numeric(draws_vec))
+  z <- z[is.finite(z)]
+  m <- length(z)
+  if (m < 2L || !is.finite(y_true)) {
+    return(NA_real_)
+  }
+  mean(abs(z - y_true)) - sum((2 * seq_len(m) - m - 1) * z) / (m^2)
+}
+
+.exdqlm_crps_vec <- function(y_true, draws_mat) {
+  draws_mat <- as.matrix(draws_mat)
+  stopifnot(length(y_true) == nrow(draws_mat))
+  vapply(seq_len(nrow(draws_mat)), function(i) {
+    .exdqlm_crps_row(y_true[[i]], draws_mat[i, ])
+  }, numeric(1))
+}
+
 # Reduced dynamic DQLM CAVI core (no gamma / no s_t block).
 .run_dynamic_dqlm_cavi <- function(
   y, p0, model, df, dim.df,
-  fix.sigma = TRUE, sig.init = NA_real_,
+  fix.sigma = FALSE, sig.init = NA_real_,
   tol = 0.1, n.samp = 200L,
   PriorSigma = NULL,
   verbose = TRUE,
