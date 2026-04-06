@@ -42,7 +42,7 @@
 #' }
 transfn_exdqlmLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
                                fix.gamma = FALSE, gam.init = NA,
-                               fix.sigma = TRUE, sig.init = NA,
+                               fix.sigma = FALSE, sig.init = NA,
                                dqlm.ind = FALSE, exps0, tol = 0.1, n.samp = 200,
                                PriorSigma = NULL, PriorGamma = NULL,
                                tf.m0 = rep(0, 2), tf.C0 = diag(1, 2),

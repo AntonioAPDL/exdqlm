@@ -19,11 +19,11 @@ exdqlmMCMC(
   joint.sample = FALSE,
   n.burn = 2000,
   n.mcmc = 1500,
-  init.from.isvb = TRUE,
+  init.from.isvb = FALSE,
   PriorSigma = NULL,
   PriorGamma = NULL,
   verbose = TRUE,
-  init.from.vb = NULL,
+  init.from.vb = TRUE,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
   mh.proposal = c("laplace_rw", "rw", "slice"),
@@ -37,6 +37,7 @@ exdqlmMCMC(
   slice.max.steps = Inf,
   trace.diagnostics = TRUE,
   trace.every = 1L,
+  verbose.every = 50L,
   progress_callback = NULL
 )
 }
@@ -69,7 +70,9 @@ exdqlmMCMC(
 
 \item{n.mcmc}{Number of MCMC iterations to sample. Default is \code{n.mcmc = 1500}.}
 
-\item{init.from.isvb}{Logical value indicating whether or not to initialize the MCMC using the ISVB algorithm. Default is \code{TRUE}.}
+\item{init.from.isvb}{Logical value indicating whether to use the legacy ISVB
+warm start when \code{init.from.vb = TRUE}. Default is \code{FALSE}, which favors
+\code{LDVB} as the default VB warm start.}
 
 \item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape \code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean 1 (or \code{sig.init} if provided) and variance 10.}
 
@@ -77,9 +80,9 @@ exdqlmMCMC(
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 
-\item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization step
-(\code{ISVB} or \code{LDVB}) and initialize MCMC from converged VB moments.
-If \code{NULL}, falls back to \code{init.from.isvb} behavior.}
+\item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization
+step (\code{LDVB} by default, or \code{ISVB} when \code{init.from.isvb = TRUE}) and
+initialize MCMC from converged VB moments. Default is \code{TRUE}.}
 
 \item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
 \code{method} (\code{"isvb"} or \code{"ldvb"}), \code{tol}, \code{n.IS}, \code{n.samp}, \code{max_iter}, \code{verbose}.}
@@ -118,7 +121,9 @@ lighter-weight runs.}
 
 \item{trace.every}{Positive integer; when \code{trace.diagnostics = TRUE}, record
 one diagnostics row every \code{trace.every} iterations.}
-
+\item{verbose.every}{Positive integer controlling how often console progress
+is printed when \code{verbose = TRUE}. Default \code{50}, independent of
+\code{trace.every}.}
 \item{progress_callback}{Optional callback invoked with a named list at MCMC
 start, at each progress checkpoint, and on completion. Intended for
 workflow-level progress logging.}

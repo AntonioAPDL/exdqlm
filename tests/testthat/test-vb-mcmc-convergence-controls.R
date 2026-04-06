@@ -138,6 +138,32 @@ test_that("dynamic MCMC default proposal is joint laplace_rw", {
   expect_true(is.list(fit$mh.diagnostics$laplace_refresh))
 })
 
+test_that("dynamic MCMC defaults to an LDVB warm start", {
+  set.seed(1036)
+  TT <- 18
+  y <- stats::rnorm(TT, sd = 0.25)
+  model <- tiny_dyn_model(TT)
+
+  old_opts <- options(
+    exdqlm.use_cpp_mcmc = FALSE,
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.compute_elbo = TRUE,
+    exdqlm.max_iter = 15L
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  fit <- exdqlmMCMC(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    fix.sigma = FALSE,
+    Sig.mh = diag(c(0.005, 0.005)),
+    n.burn = 10, n.mcmc = 10,
+    verbose = FALSE
+  )
+
+  expect_true(isTRUE(fit$init.from.vb))
+  expect_identical(fit$vb.init.method, "ldvb")
+  expect_identical(fit$mh.diagnostics$verbose_every, 50L)
+})
 test_that("dynamic MCMC supports exact slice gamma kernel", {
   set.seed(1031)
   TT <- 20

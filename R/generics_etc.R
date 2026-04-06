@@ -41,7 +41,7 @@ as.exdqlm <- function(m){
        !is.null(m$JV) | !is.null(m$JW)){
       stop("'dlm' object input must be a time-invariant")
     }
-    l$FF = t(m$FF)
+    m$FF = t(m$FF)
   }
   
   # check for required components & remove extras
@@ -664,6 +664,16 @@ plot.exal_ldvb <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent 
 #' @export
 is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 
+.exdqlm_diagnostic_vector <- function(x, prefix) {
+  c(
+    "KL" = as.numeric(x[[paste0(prefix, "KL")]]),
+    "KL (flipped)" = if (!is.null(x[[paste0(prefix, "KL.flip")]])) as.numeric(x[[paste0(prefix, "KL.flip")]]) else NA_real_,
+    "CRPS" = if (!is.null(x[[paste0(prefix, "CRPS")]])) as.numeric(x[[paste0(prefix, "CRPS")]]) else NA_real_,
+    "pplc" = as.numeric(x[[paste0(prefix, "pplc")]]),
+    "run-time (s)" = as.numeric(x[[paste0(prefix, "rt")]])
+  )
+}
+
 #' Print Method for \code{exdqlmDiagnostic} Objects
 #'
 #' @param x An \code{exdqlmDiagnostic} object.
@@ -684,14 +694,13 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #'
 print.exdqlmDiagnostic <- function(x, ...) {
   #
-  Diagnostic <- c("KL","pplc","run-time (s)")
-  M1 <- c(x$m1.KL,x$m1.pplc,as.numeric(x$m1.rt))
+  M1 <- .exdqlm_diagnostic_vector(x, "m1.")
   #
   if(is.null(x$m2.KL)){
-    print(data.frame(Diagnostic=Diagnostic,M1=M1), row.names = FALSE, digits = 3)
+    print(data.frame(Diagnostic=names(M1),M1=unname(M1)), row.names = FALSE, digits = 3)
   }else{
-    M2 <- c(x$m2.KL,x$m2.pplc,as.numeric(x$m2.rt))
-    print(data.frame(Diagnostic=Diagnostic,M1=M1,M2=M2), row.names = FALSE, digits = 3)
+    M2 <- .exdqlm_diagnostic_vector(x, "m2.")
+    print(data.frame(Diagnostic=names(M1),M1=unname(M1),M2=unname(M2)), row.names = FALSE, digits = 3)
   }
 }
 
@@ -715,14 +724,13 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #'
 summary.exdqlmDiagnostic <- function(object, ...) {
   #
-  Diagnostic <- c("KL","pplc","run-time (s)")
-  M1 <- c(object$m1.KL,object$m1.pplc,as.numeric(object$m1.rt))
+  M1 <- .exdqlm_diagnostic_vector(object, "m1.")
   #
   if(is.null(object$m2.KL)){
-    print(data.frame(Diagnostic=Diagnostic,M1=M1), row.names = FALSE, digits = 3)
+    print(data.frame(Diagnostic=names(M1),M1=unname(M1)), row.names = FALSE, digits = 3)
   }else{
-    M2 <- c(object$m2.KL,object$m2.pplc,as.numeric(object$m2.rt))
-    print(data.frame(Diagnostic=Diagnostic,M1=M1,M2=M2), row.names = FALSE, digits = 3)
+    M2 <- .exdqlm_diagnostic_vector(object, "m2.")
+    print(data.frame(Diagnostic=names(M1),M1=unname(M1),M2=unname(M2)), row.names = FALSE, digits = 3)
   }
 }
 
@@ -911,4 +919,3 @@ plot.exdqlmForecast <- function(x, ...) {
   graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qlb[x$start.t],fqlb),col=cols[2],lty=3)
   
 }
-

@@ -89,6 +89,6 @@ test_that("ISVB/MCMC reach bounds path on tiny model", {
   expect_silent(
     exdqlmMCMC(y, p0 = 0.5, model = model, df = 1, dim.df = 1,
               Sig.mh = diag(c(0.005, 0.005)), n.burn = 0, n.mcmc = 1,
-              init.from.isvb = FALSE, verbose = FALSE)
+              init.from.isvb = FALSE, init.from.vb = FALSE, verbose = FALSE)
   )
 })

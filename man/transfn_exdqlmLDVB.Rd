@@ -15,7 +15,7 @@ transfn_exdqlmLDVB(
   tf.df,
   fix.gamma = FALSE,
   gam.init = NA,
-  fix.sigma = TRUE,
+  fix.sigma = FALSE,
   sig.init = NA,
   dqlm.ind = FALSE,
   exps0,

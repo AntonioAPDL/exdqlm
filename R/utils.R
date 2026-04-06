@@ -488,8 +488,10 @@ check_logics = function(gam.init,sig.init,fix.gamma,fix.sigma,dqlm.ind){
 }
 #
 check_ts = function(dat){
-  dat = as.matrix(dat)
-  if(all(dim(dat)>1)){
+  if(is.null(dim(dat))){
+    dim(dat) <- c(length(dat),1)
+  }
+  if(all(dim(dat)>1) || all(dim(dat)==1)){
     stop("data must be univariate time-series")
   }
   if(dim(dat)[1]<dim(dat)[2]){
@@ -702,17 +704,34 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_crps_row <- function(y_true, draws_vec) {
+  z <- sort(as.numeric(draws_vec))
+  z <- z[is.finite(z)]
+  m <- length(z)
+  if (m < 2L || !is.finite(y_true)) {
+    return(NA_real_)
+  }
+  mean(abs(z - y_true)) - sum((2 * seq_len(m) - m - 1) * z) / (m^2)
+}
+
+.exdqlm_crps_vec <- function(y_true, draws_mat) {
+  draws_mat <- as.matrix(draws_mat)
+  stopifnot(length(y_true) == nrow(draws_mat))
+  vapply(seq_len(nrow(draws_mat)), function(i) {
+    .exdqlm_crps_row(y_true[[i]], draws_mat[i, ])
+  }, numeric(1))
+}
 # Reduced dynamic DQLM CAVI core (no gamma / no s_t block).
 .run_dynamic_dqlm_cavi <- function(
   y, p0, model, df, dim.df,
-  fix.sigma = TRUE, sig.init = NA_real_,
+  fix.sigma = FALSE, sig.init = NA_real_,
   tol = 0.1, n.samp = 200L,
   PriorSigma = NULL,
   verbose = TRUE,
   exps0 = NULL,
   max_iter = 200L
 ) {
-  y <- as.numeric(y)
+  # y <- as.numeric(y)
   TT <- length(y)
   p <- length(model$m0)
 
@@ -743,7 +762,7 @@ check_ts = function(dat){
   sig0 <- if (!is.na(sig.init)) as.numeric(sig.init)[1] else 1
   if (!is.finite(sig0) || sig0 <= 0) sig0 <- 1
   if (isTRUE(fix.sigma) && is.na(sig.init)) {
-    stop("fix.sigma=TRUE requires a finite sig.init in reduced DQLM CAVI.")
+    stop("fix.sigma=TRUE requires a finite sig.init in reduced DQLM VB.")
   }
 
   # Initialize q(v) moments and q(sigma) moments.

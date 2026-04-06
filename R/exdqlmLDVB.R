@@ -99,7 +99,7 @@
 #'
 exdqlmLDVB <- function(y, p0, model, df, dim.df,
                        fix.gamma = FALSE, gam.init = NA,
-                       fix.sigma = TRUE, sig.init = NA,
+                       fix.sigma = FALSE, sig.init = NA,
                        dqlm.ind = FALSE,
                        exps0,
                        tol = 0.1,
@@ -173,7 +173,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   if (isTRUE(dqlm.ind)) {
     exps0_user <- if (methods::hasArg(exps0)) exps0 else NULL
     retlist <- .run_dynamic_dqlm_cavi(
-      y = as.numeric(y),
+      y = y, # as.numeric(y),
       p0 = p0,
       model = model,
       df = df,
@@ -187,7 +187,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       exps0 = exps0_user,
       max_iter = max_iter
     )
-    class(retlist) <- "exdqlm"
+    class(retlist) <- "exdqlmLDVB"
     return(retlist)
   }
 
