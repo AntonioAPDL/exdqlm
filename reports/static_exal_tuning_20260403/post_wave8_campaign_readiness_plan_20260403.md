@@ -77,6 +77,12 @@ The dynamic-only residual recovery program and execution now live in:
 - `reports/static_exal_tuning_20260405/original_288_dynamic_residual_execution_20260405.md`
 - `tools/merge_reports/LOCAL_ORIGINAL288_DYNAMIC_RECOVERY_TRACKER_20260405.md`
 
+The reduced post-archive dynamic tail-8 closure program and execution now live
+in:
+
+- `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_program_20260405.md`
+- `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_execution_20260405.md`
+
 Important supersession note after the corrected original-`288` rebuild:
 
 - the earlier healthy `291` campaign remains useful as a repair evidence pool
@@ -121,6 +127,29 @@ promotion pass:
 - that bookkeeping bug has now been fixed
 - this checkpoint should stop at promotion and regenerated health rather than
   planning the next residual relaunch
+
+Important next-phase refinement after the skeptical post-archive audit and
+tail-only relaunch design:
+
+- the next residual run should no longer reuse the broader mixed residual
+  manifest
+- the remaining debt is concentrated enough that the right shape is now a
+  reduced tail-only program:
+  - `8` exact slice-anchor runs on the full remaining `exdqlm :: mcmc` tail
+  - `6` low-tail escalations only on the `tau = 0p05` subset
+  - `14` total
+- the strongest surviving dynamic rescue corridor is now:
+  - `mh.proposal = slice`
+  - `mh.adapt = FALSE`
+  - `n.burn = 1200`
+  - `n.mcmc = 4000`
+  - `slice.width = 0.12`
+  - `slice.max.steps = 80`
+  - `init.from.vb = TRUE`
+- the relaunch should use explicit healthy same-scenario `exdqlm :: vb`
+  warm-start fits from the corrected carry-forward `v2` table
+- weaker mixed follow-up ideas such as the broader `joint_long` relaunch are
+  now deprioritized relative to the slice-based tail-only design
 
 ## Historical Baseline Promotion
 

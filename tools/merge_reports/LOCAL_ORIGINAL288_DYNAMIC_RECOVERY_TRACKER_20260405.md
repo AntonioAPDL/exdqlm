@@ -19,6 +19,8 @@ Authoritative references:
 - `reports/static_exal_tuning_20260405/original_288_realignment_execution_20260405.md`
 - `reports/static_exal_tuning_20260405/original_288_dynamic_residual_program_20260405.md`
 - `reports/static_exal_tuning_20260405/original_288_dynamic_residual_execution_20260405.md`
+- `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_program_20260405.md`
+- `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_execution_20260405.md`
 
 ## Residual Inventory Shape
 
@@ -62,12 +64,18 @@ Authoritative references:
 - keeping the original case key as the canonical promotion unit
 - stopping to regenerate the corrected original-`288` health state before any
   further relaunch planning
+- the slice-based `exdqlm mcmc` rescue corridor with explicit healthy
+  same-scenario `exdqlm vb` warm starts
 
 ## What Did Not Help
 
 - relying on the hybrid `291` assembly for publication comparison
 - reopening healthy static regions
 - broad generic tuning across already resolved cells
+- keeping the older mixed residual relaunch shape after the archive stage had
+  already isolated the tail to `8` `exdqlm mcmc` cells
+- treating `joint_long` or broader `laplace_rw` retries as the main follow-up
+  corridor when the historical successes were slice-based
 
 ## Residual Program Status
 
@@ -86,6 +94,26 @@ Current execution checkpoint:
 - later phases were not started in this checkpoint because the evaluator path
   failed after archive completion and has now been repaired
 - no new relaunch is planned in this tracker checkpoint
+
+## Tail-8 Relaunch Status
+
+The next phase is now a reduced residual relaunch that starts from the
+post-archive corrected baseline instead of the broader mixed residual manifest.
+
+| phase | rows | intent |
+|---|---:|---|
+| `anchor8_slice_sync` | `8` | exact historical slice corridor on the full remaining tail |
+| `tau05_long6_slice_sync` | `6` | longer low-tail follow-up only on the `tau = 0p05` cluster |
+| `total` | `14` | reduced dynamic-only tail closure program |
+
+Operational rules carried into the relaunch:
+
+- touch only the `8` remaining unresolved original dynamic case keys
+- use explicit healthy `exdqlm vb` warm starts for every row
+- do not rerun archive rescoring
+- do not reopen `dqlm :: mcmc`, `exdqlm :: vb`, or any static work
+- promote only when a tail-8 candidate improves a baseline `FAIL` to `PASS` or
+  `WARN`
 
 ## Promotion Rule
 
@@ -115,9 +143,12 @@ Tie-breaking among non-`FAIL` candidates:
 - [x] corrected original-`288` carry-forward table updated with archive-stage
       non-`FAIL` dynamic rescues
 - [x] residual evaluator/selector merged-schema bug fixed
-- [ ] remaining `8`-cell residual relaunch plan intentionally deferred
-      beyond this checkpoint
+- [x] remaining `8`-cell residual relaunch plan documented
+- [x] reduced tail-8 manifest and helper stack implemented
+- [x] prepare/evaluate/select and shell validation completed
+- [ ] reduced tail-8 overnight run completed and promoted back to carry-forward
 
 Current live sessions:
 
-- none
+- `original288-dynamic-tail8-20260405`
+- `original288-dynamic-tail8-monitor-20260405`

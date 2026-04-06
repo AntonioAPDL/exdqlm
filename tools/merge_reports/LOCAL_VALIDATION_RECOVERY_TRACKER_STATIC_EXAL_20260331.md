@@ -55,6 +55,25 @@ Archive-stage closeout refinement:
 - this checkpoint intentionally stops after applying promotions and
   regenerating health; it does not yet plan the next relaunch
 
+Dynamic tail-only relaunch refinement:
+
+- the next residual execution should now be treated as a reduced tail-only
+  program rather than a continuation of the broader mixed residual manifest
+- new primary references:
+  - `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_program_20260405.md`
+  - `reports/static_exal_tuning_20260405/original_288_dynamic_tail8_closure_execution_20260405.md`
+- narrowed schedule:
+  - `8` exact slice-anchor runs on the full remaining `exdqlm::mcmc` tail
+  - `6` low-tail slice escalations on the `tau = 0p05` subset
+  - `14` total
+- strongest surviving corridor:
+  - dynamic `exdqlm mcmc`
+  - `slice` proposal
+  - `mh_adapt = FALSE`
+  - explicit healthy same-scenario `exdqlm vb` warm starts
+- lower-value mixed relaunch ideas such as the broader `joint_long`
+  follow-up have now been deprioritized
+
 ## 0. Original-288 Realignment Execution Checkpoint (2026-04-05)
 
 The corrected original-`288` carry-forward pipeline has now been implemented
