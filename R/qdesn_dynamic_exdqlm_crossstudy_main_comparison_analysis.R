@@ -411,6 +411,7 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   .qdesn_validation_write_df(pairwise_vb_vs_mcmc, file.path(output_root, "tables", "authoritative_pairwise_vb_vs_mcmc.csv"))
   .qdesn_validation_write_df(model_pair_signoff, file.path(output_root, "tables", "authoritative_model_pair_signoff.csv"))
   .qdesn_validation_write_df(source_state$local_baseline_map, file.path(output_root, "tables", "authoritative_local_baseline_map.csv"))
+  .qdesn_validation_write_df(source_state$root_override_map %||% data.frame(stringsAsFactors = FALSE), file.path(output_root, "tables", "authoritative_root_override_map.csv"))
   .qdesn_validation_write_df(source_state$stage_status, file.path(output_root, "tables", "source_stage_execution_status.csv"))
   .qdesn_validation_write_df(source_state$winner_inventory, file.path(output_root, "tables", "source_winner_inventory.csv"))
   .qdesn_validation_write_df(root_inventory, file.path(output_root, "tables", "authoritative_root_inventory.csv"))
@@ -459,6 +460,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     "",
     "## Authoritative Local Baseline Map",
     .qdesn_validation_df_to_markdown(source_state$local_baseline_map),
+    "",
+    "## Authoritative Root-Level Overrides",
+    .qdesn_validation_df_to_markdown(source_state$root_override_map %||% data.frame(stringsAsFactors = FALSE)),
     "",
     "## Full-Study Overview",
     .qdesn_validation_df_to_markdown(overview),

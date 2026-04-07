@@ -61,6 +61,36 @@ qdesn_dynamic_crossstudy_fitfail_load_manifest <- function(path = file.path("con
   )
 }
 
+.qdesn_dynamic_crossstudy_fitfail_root_override_profile_report_root <- function(override) {
+  if (!is.null(override$profile_report_root) && nzchar(trimws(as.character(override$profile_report_root)[1L]))) {
+    return(.qdesn_dynamic_crossstudy_fitfail_pick_campaign_root(
+      override$profile_report_root,
+      required_child = "tables"
+    ))
+  }
+  report_root <- as.character(override$report_root %||% file.path(
+    "reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_final_fail_closure_wave"
+  ))[1L]
+  run_tag <- as.character(override$run_tag %||% "")[1L]
+  stage_id <- as.character(override$stage_id %||% "")[1L]
+  profile_id <- as.character(override$profile_id %||% "")[1L]
+  if (!nzchar(run_tag) || !nzchar(stage_id) || !nzchar(profile_id)) {
+    stop(
+      "Each source_root_profile_override must provide either profile_report_root or report_root + run_tag + stage_id + profile_id.",
+      call. = FALSE
+    )
+  }
+  outer_root <- file.path(
+    .qdesn_validation_resolve_path(report_root, must_work = FALSE),
+    run_tag,
+    "stages",
+    stage_id,
+    "profiles",
+    profile_id
+  )
+  .qdesn_dynamic_crossstudy_fitfail_pick_campaign_root(outer_root, required_child = "tables")
+}
+
 .qdesn_dynamic_crossstudy_fitfail_match_selector <- function(df, selector = NULL) {
   df <- as.data.frame(df, stringsAsFactors = FALSE)
   selector <- selector %||% list()
@@ -195,10 +225,75 @@ qdesn_dynamic_crossstudy_fitfail_load_manifest <- function(path = file.path("con
   )
 }
 
+.qdesn_dynamic_crossstudy_fitfail_apply_root_overrides <- function(fit_summary,
+                                                                   root_summary,
+                                                                   root_profile_overrides = NULL) {
+  root_profile_overrides <- root_profile_overrides %||% list()
+  if (!length(root_profile_overrides)) {
+    return(list(
+      fit_summary = fit_summary,
+      root_summary = root_summary,
+      root_override_map = data.frame(stringsAsFactors = FALSE)
+    ))
+  }
+
+  override_rows <- list()
+  for (i in seq_along(root_profile_overrides)) {
+    override <- root_profile_overrides[[i]]
+    if (!is.list(override)) {
+      stop("Each source_root_profile_override entry must be a list.", call. = FALSE)
+    }
+    root_id <- as.character(override$root_id %||% "")[1L]
+    if (!nzchar(root_id)) {
+      stop("Each source_root_profile_override entry must define root_id.", call. = FALSE)
+    }
+    profile_id <- as.character(override$profile_id %||% "")[1L]
+    stage_id <- as.character(override$stage_id %||% "")[1L]
+    run_tag <- as.character(override$run_tag %||% "")[1L]
+    rationale <- as.character(override$rationale %||% NA_character_)[1L]
+    profile_report_root <- .qdesn_dynamic_crossstudy_fitfail_root_override_profile_report_root(override)
+    fit_path <- file.path(profile_report_root, "tables", "campaign_fit_summary.csv")
+    root_path <- file.path(profile_report_root, "tables", "campaign_root_signoff_summary.csv")
+    campaign_fit <- .qdesn_dynamic_crossstudy_fitfail_read_csv(fit_path)
+    campaign_root <- .qdesn_dynamic_crossstudy_fitfail_read_csv(root_path)
+    selected_fit <- campaign_fit[as.character(campaign_fit$root_id) == root_id, , drop = FALSE]
+    selected_root <- campaign_root[as.character(campaign_root$root_id) == root_id, , drop = FALSE]
+    if (!nrow(selected_fit) || !nrow(selected_root)) {
+      stop(
+        sprintf(
+          "Root override for '%s' could not be resolved from profile '%s' (%s).",
+          root_id, profile_id %||% "UNKNOWN_PROFILE", profile_report_root
+        ),
+        call. = FALSE
+      )
+    }
+    fit_summary <- .qdesn_dynamic_crossstudy_fitfail_overlay_fit_rows(fit_summary, selected_fit)
+    root_summary <- .qdesn_dynamic_crossstudy_fitfail_overlay_root_rows(root_summary, selected_root)
+    override_rows[[length(override_rows) + 1L]] <- data.frame(
+      root_id = root_id,
+      stage_id = if (nzchar(stage_id)) stage_id else NA_character_,
+      profile_id = if (nzchar(profile_id)) profile_id else NA_character_,
+      run_tag = if (nzchar(run_tag)) run_tag else NA_character_,
+      profile_report_root = profile_report_root,
+      fit_summary_path = fit_path,
+      root_summary_path = root_path,
+      rationale = rationale,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  list(
+    fit_summary = fit_summary,
+    root_summary = root_summary,
+    root_override_map = exdqlm:::.qdesn_validation_bind_rows(override_rows)
+  )
+}
+
 qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag,
                                                                   source_report_root = file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
                                                                   source_mode = c("dynamic_campaign", "prior_fitfail_wave"),
                                                                   source_stage_profile_overrides = NULL,
+                                                                  source_root_profile_overrides = NULL,
                                                                   defaults = NULL,
                                                                   grid = NULL,
                                                                   defaults_path = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_defaults.yaml"),
@@ -240,6 +335,7 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
       fail_root_ids = fail_root_ids,
       local_baseline_map = data.frame(stringsAsFactors = FALSE),
       raw_local_baseline_map = data.frame(stringsAsFactors = FALSE),
+      root_override_map = data.frame(stringsAsFactors = FALSE),
       stage_status = data.frame(stringsAsFactors = FALSE),
       winner_inventory = data.frame(stringsAsFactors = FALSE),
       original_source_root_fail_ids = original_source_root_fail_ids,
@@ -272,8 +368,13 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
     root_summary = source_root_summary,
     stage_profile_overrides = source_stage_profile_overrides
   )
-  fit_summary <- applied$fit_summary
-  root_summary <- applied$root_summary
+  root_applied <- .qdesn_dynamic_crossstudy_fitfail_apply_root_overrides(
+    fit_summary = applied$fit_summary,
+    root_summary = applied$root_summary,
+    root_profile_overrides = source_root_profile_overrides
+  )
+  fit_summary <- root_applied$fit_summary
+  root_summary <- root_applied$root_summary
   fail_summary <- fit_summary[as.character(fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
   fail_root_ids <- sort(unique(as.character(fail_summary$root_id)))
 
@@ -281,7 +382,7 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
     source_run_tag = source_run_tag,
     source_mode = source_mode,
     source_label = "Merged Local Baseline After Prior Targeted Wave",
-    source_rationale = "Effective source state created by overlaying the selected prior-wave local winners onto the branch-local broad rerun, with any explicit source-stage overrides from the new manifest applied last.",
+    source_rationale = "Effective source state created by overlaying the selected prior-wave local winners onto the branch-local broad rerun, with any explicit source-stage and root-level overrides from the new manifest applied last.",
     outer_report_root = outer_report_root,
     campaign_report_root = outer_report_root,
     fit_summary = fit_summary,
@@ -291,6 +392,7 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
     fail_root_ids = fail_root_ids,
     local_baseline_map = applied$local_baseline_map,
     raw_local_baseline_map = local_baseline_map_raw,
+    root_override_map = root_applied$root_override_map,
     stage_status = stage_status,
     winner_inventory = applied$winner_inventory,
     original_source_root_fail_ids = original_source_root_fail_ids,

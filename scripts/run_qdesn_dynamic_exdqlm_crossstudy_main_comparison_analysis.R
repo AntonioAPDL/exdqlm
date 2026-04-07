@@ -81,7 +81,8 @@ state_expectation_table <- function(expected_state, source_state) {
     root_status_fail_rows = sum(as.character(source_state$root_summary$root_status) == "FAIL", na.rm = TRUE),
     root_compare_any_rows = sum(as.logical(source_state$root_summary$root_comparison_eligible_any), na.rm = TRUE),
     root_compare_full_rows = sum(as.logical(source_state$root_summary$root_comparison_eligible_full), na.rm = TRUE),
-    local_baseline_rows = nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))
+    local_baseline_rows = nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE)),
+    root_override_rows = nrow(source_state$root_override_map %||% data.frame(stringsAsFactors = FALSE))
   )
   expected_names <- union(names(actual), names(expected_state))
   rows <- lapply(expected_names, function(metric) {
@@ -127,6 +128,7 @@ source_state <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_collect_source_state(
   source_report_root = source_cfg$report_root %||% file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_residual_fail_closure_wave"),
   source_mode = source_cfg$mode %||% "prior_fitfail_wave",
   source_stage_profile_overrides = source_cfg$stage_profile_overrides %||% list(),
+  source_root_profile_overrides = source_cfg$root_profile_overrides %||% list(),
   defaults = defaults,
   grid = grid_df,
   defaults_path = defaults_path,
@@ -191,6 +193,9 @@ preflight_lines <- c(
   "",
   "## Local Baseline Map",
   render_md_table(source_state$local_baseline_map),
+  "",
+  "## Root Override Map",
+  render_md_table(source_state$root_override_map),
   "",
   sprintf("- output_root: `%s`", output_root)
 )
