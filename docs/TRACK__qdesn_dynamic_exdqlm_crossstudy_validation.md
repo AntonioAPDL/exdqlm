@@ -303,97 +303,89 @@ Completed final wave:
 Important reconciliation result:
 
 - the stage-local winners clear the exact target rows inside the wave;
-- however, when reconciled back into the full `36`-root dynamic surface, they do **not** produce a
-  clear full-study improvement over the pre-wave effective baseline;
-- `M850` is globally neutral:
-  - fit FAIL rows remain `2`
-  - fail-carrying roots remain `2`
-  - compare-full roots remain `34/36`
-- `M940` is globally worse:
-  - fit FAIL rows rise from `2` to `3`
-  - fail-carrying roots remain `2`
-  - compare-full roots remain `34/36`
+- as full 4-root stage swaps, they do **not** produce clear full-study improvements;
+- but when evaluated as **exact-root local promotions**, both do clearly improve the previously
+  failing scenarios.
 
-Authoritative branch-local baseline therefore remains the prior residual-wave map:
+Authoritative branch-local baseline is therefore now:
 
 - `R1 -> L640_gmix_long_split_diag`
 - `R2 -> L670_gmix_short_diag_mix`
 - `R3 -> L720_ridge_long_softgamma_plus`
 - `R4 -> L760_rhs_long_vbguard_deep`
 - `R5 -> L770_short_mixed_local_mcmc`
+- plus exact-root overrides:
+  - `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns -> M850_rhs_long_burnheavy1300`
+  - `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns -> M940_short_rhs_narrow1200_diag5`
 
 Current authoritative branch-local full-study state:
 
 - fit signoff mix:
-  - `77 PASS`
-  - `65 WARN`
-  - `2 FAIL`
+  - `76 PASS`
+  - `68 WARN`
+  - `0 FAIL`
 - fail-carrying roots:
-  - `2 / 36`
+  - `0 / 36`
 - root-status FAILs:
   - `0 / 36`
 - roots with any usable comparison:
   - `36 / 36`
 - fully comparison-ready roots:
-  - `34 / 36`
-
-Exact remaining documented rows:
-
-- `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns`
-  - `mcmc_exal`
-  - `geweke_drift; half_chain_drift`
-- `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns`
-  - `mcmc_exal`
-  - `geweke_drift`
+  - `36 / 36`
 
 Move-forward rule:
 
-- do **not** promote `M850` or `M940` into the authoritative branch baseline
-- do **not** launch another residual wave by default
-- proceed to main comparison analysis on the authoritative baseline above
-- keep the `2 / 144` fit FAIL rows explicitly documented as a tiny residual gap
+- do not launch another residual wave by default
+- proceed from the authoritative zero-fail baseline above
+- use root-specific local tuning only where the evidence already shows it is clearly better
+- treat further validation compute as optional confirmation work, not unresolved fail closure
 
 ## 11) Main Comparison Analysis Pack (2026-04-07)
 
-The main comparison-analysis pack has now been generated from the authoritative merged residual-wave
+The main comparison-analysis pack has now been regenerated from the authoritative reconciled
 baseline on this branch.
 
 Analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
 - summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/summary/qdesn_dynamic_main_comparison_analysis.md`
 - comparison summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/comparison_vs_reference/comparison_summary.md`
 - overview table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/tables/analysis_overview.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/analysis_overview.csv`
 - method/model table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/tables/authoritative_fit_method_model_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/authoritative_fit_method_model_summary.csv`
 - QDESN-vs-reference axis deltas:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/tables/authoritative_qdesn_vs_reference_fit_axis_delta.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/authoritative_qdesn_vs_reference_fit_axis_delta.csv`
+- root override map:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/authoritative_root_override_map.csv`
+- reconciliation report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
 
 Pack-level findings:
 
-- authoritative full-study state is unchanged from the intended carry-forward baseline:
-  - `77 PASS`
-  - `65 WARN`
-  - `2 FAIL`
+- authoritative full-study state is now:
+  - `76 PASS`
+  - `68 WARN`
+  - `0 FAIL`
   - `0 / 36` root-status FAILs
   - `36 / 36` comparison-eligible-any roots
-  - `34 / 36` comparison-eligible-full roots
+  - `36 / 36` comparison-eligible-full roots
 - `ridge` remains the cleaner branch-local prior on signoff:
   - `53 PASS / 19 WARN / 0 FAIL`
-- `rhs_ns` remains broader on local flexibility but still carries the residual fail band:
-  - `24 PASS / 46 WARN / 2 FAIL`
+- `rhs_ns` is now fully comparison-eligible as well:
+  - `23 PASS / 49 WARN / 0 FAIL`
 - `vb/al` is the healthiest and fastest broad method-model combination:
   - `29 PASS / 7 WARN / 0 FAIL`
   - mean runtime about `2.83 s`
-- `mcmc/exal` is the only remaining fail source and the slowest broad combination:
-  - `1 PASS / 33 WARN / 2 FAIL`
-  - mean runtime about `30.50 s`
+- `mcmc/exal` is still the softest area scientifically and the slowest broad combination, but it
+  no longer carries FAIL rows:
+  - `1 PASS / 35 WARN / 0 FAIL`
+  - mean runtime about `30.76 s`
 - VB vs MCMC runtime ratios range from about `2.18x` to `14.14x` across prior/model/horizon
   slices
 - direct QDESN-vs-reference signoff/readiness deltas are now computed with normalized model labels:
@@ -405,5 +397,6 @@ Pack-level findings:
 Recommended use:
 
 - use this pack as the authoritative branch-local source for downstream main comparison analysis
-- keep the remaining `2` fit FAIL rows explicit in any top-level comparison narrative
 - do not launch another tuning wave by default from this state
+- treat validation/tuning on this branch as effectively complete unless explicit confirmation reruns
+  are later requested

@@ -1997,19 +1997,20 @@ Current continuation read on the integration branch:
 
 - the dynamic exdqlm-aligned QDESN validation stack completed its broad rerun plus targeted
   residual cleanup waves;
-- the authoritative branch-local baseline is the residual-wave map:
+- the authoritative branch-local baseline is the residual-wave stage map plus two exact-root
+  promotions:
   - `L640`, `L670`, `L720`, `L760`, `L770`
-- the final rhs-only cleanup wave did **not** yield a further full-study promotion after
-  reconciliation;
+  - `normal tau=0.05 lastTT5000 rhs_ns -> M850`
+  - `normal tau=0.95 lastTT500 rhs_ns -> M940`
 - current authoritative dynamic state is:
-  - `77 PASS`
-  - `65 WARN`
-  - `2 FAIL`
+  - `76 PASS`
+  - `68 WARN`
+  - `0 FAIL`
   - `0` root-status FAILs
   - `36 / 36` roots comparison-eligible-any
-  - `34 / 36` roots comparison-eligible-full
+  - `36 / 36` roots comparison-eligible-full
 
 Practical next step:
 
-- move to main comparison analysis, with the remaining `2 / 144` fit FAIL rows documented rather
-  than hidden.
+- move to main comparison analysis from the authoritative zero-fail baseline;
+- no further validation repair wave is currently required.

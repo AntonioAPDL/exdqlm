@@ -6,46 +6,59 @@ Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
 ## 1) Executive Read
 
-The main comparison-analysis pack is now generated from the authoritative branch-local baseline:
+The authoritative main comparison-analysis pack is now generated from the reconciled branch-local
+baseline:
 
-- `R1 -> L640_gmix_long_split_diag`
-- `R2 -> L670_gmix_short_diag_mix`
-- `R3 -> L720_ridge_long_softgamma_plus`
-- `R4 -> L760_rhs_long_vbguard_deep`
-- `R5 -> L770_short_mixed_local_mcmc`
+- stage-level promoted local winners:
+  - `R1 -> L640_gmix_long_split_diag`
+  - `R2 -> L670_gmix_short_diag_mix`
+  - `R3 -> L720_ridge_long_softgamma_plus`
+  - `R4 -> L760_rhs_long_vbguard_deep`
+  - `R5 -> L770_short_mixed_local_mcmc`
+- exact-root final-wave promotions:
+  - `normal tau=0.05 lastTT5000 rhs_ns -> M850_rhs_long_burnheavy1300`
+  - `normal tau=0.95 lastTT500 rhs_ns -> M940_short_rhs_narrow1200_diag5`
 
-This is the correct comparison-analysis source because it reflects the promoted residual-wave
-winners while **not** over-promoting the later final-wave rhs-only evidence (`M850`, `M940`).
+This is now the authoritative comparison source because it closes the residual fail band while
+staying faithful to the late-stage decision rule:
+
+- keep the stable baseline as default
+- promote only clear local improvements
+- allow scenario-specific overrides where they are genuinely better
 
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
 
 Current authoritative state:
 
 | Metric | Value |
 |---|---:|
 | Fit rows | `144` |
-| `PASS` | `77` |
-| `WARN` | `65` |
-| `FAIL` | `2` |
+| `PASS` | `76` |
+| `WARN` | `68` |
+| `FAIL` | `0` |
 | Root-status `FAIL` | `0 / 36` |
 | Comparison-eligible-any roots | `36 / 36` |
-| Comparison-eligible-full roots | `34 / 36` |
+| Comparison-eligible-full roots | `36 / 36` |
 
 ## 2) Output Inventory
 
 Primary outputs:
 
 - summary markdown:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/summary/qdesn_dynamic_main_comparison_analysis.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/comparison_vs_reference/comparison_summary.md`
 - overview table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/tables/analysis_overview.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/analysis_overview.csv`
+- authoritative local baseline map:
+  - `tables/authoritative_local_baseline_map.csv`
+- authoritative root override map:
+  - `tables/authoritative_root_override_map.csv`
 - fit-signoff summaries:
   - `tables/authoritative_fit_prior_summary.csv`
   - `tables/authoritative_fit_method_model_summary.csv`
@@ -61,7 +74,7 @@ Primary outputs:
 - QDESN-vs-reference deltas:
   - `tables/authoritative_qdesn_vs_reference_fit_axis_delta.csv`
   - `tables/authoritative_qdesn_vs_reference_fit_surface_delta.csv`
-- residual fail inventory:
+- fail inventory:
   - `tables/authoritative_fail_inventory.csv`
 
 ## 3) Main Comparison Findings
@@ -70,131 +83,94 @@ Primary outputs:
 
 | Prior | PASS | WARN | FAIL | Eligible Rate | Mean Runtime (s) |
 |---|---:|---:|---:|---:|---:|
-| `rhs_ns` | `24` | `46` | `2` | `0.972` | `12.329` |
+| `rhs_ns` | `23` | `49` | `0` | `1.000` | `12.516` |
 | `ridge` | `53` | `19` | `0` | `1.000` | `12.185` |
 
 Interpretation:
 
-- `ridge` is the cleaner signoff prior under the authoritative branch-local baseline.
-- `rhs_ns` remains more flexible on a number of local slices, but it carries the only remaining
-  residual fail band.
-- the pairwise prior head-to-head table still favors `rhs_ns` in `55 / 72` surface-level
-  comparisons because the tie-breaker uses fail rate, eligibility, holdout error, and runtime in
-  sequence; that should be read as a **local slice preference summary**, not as a contradiction of
-  the cleaner global signoff profile seen above.
+- both priors are now fully comparison-eligible on the authoritative surface
+- `ridge` remains the cleaner signoff prior overall
+- `rhs_ns` remains more dependent on local tuning, but the residual fail band is now closed
 
 ### 3.2 Method / Likelihood Read
 
 | Inference | Model | PASS | WARN | FAIL | Eligible Rate | Mean Runtime (s) |
 |---|---:|---:|---:|---:|---:|---:|
-| `mcmc` | `al` | `23` | `13` | `0` | `1.000` | `11.789` |
-| `mcmc` | `exal` | `1` | `33` | `2` | `0.944` | `30.502` |
-| `vb` | `al` | `29` | `7` | `0` | `1.000` | `2.831` |
-| `vb` | `exal` | `24` | `12` | `0` | `1.000` | `3.907` |
+| `mcmc` | `al` | `22` | `14` | `0` | `1.000` |
+| `mcmc` | `exal` | `1` | `35` | `0` | `1.000` |
+| `vb` | `al` | `29` | `7` | `0` | `1.000` |
+| `vb` | `exal` | `24` | `12` | `0` | `1.000` |
 
 Interpretation:
 
-- `vb/al` is the healthiest and fastest broad slice.
-- `mcmc/exal` is the only remaining fail source and is also the slowest broad slice by a wide
-  margin.
-- the study is therefore comparison-ready operationally, but the remaining scientific caveat is
-  concentrated in `rhs_ns + mcmc_exal`.
+- the last remaining failures were entirely in `mcmc/exal`, and they are now gone
+- `vb/al` remains the healthiest and fastest broad slice
+- `mcmc/exal` remains the softest area scientifically, but it is now all `WARN/PASS` rather than
+  carrying hard `FAIL`s
 
 ### 3.3 Runtime Read
 
 From `tables/authoritative_pair_axis_summary.csv`:
 
-- VB-to-MCMC runtime ratios range from about `2.18x` to `14.14x`.
-- the slowest MCMC relative to VB is:
+- VB-to-MCMC runtime ratios still range from about `2.20x` to `14.14x`
+- the slowest MCMC relative to VB remains:
   - `ridge / exal / fit_size=5000`
   - mean `runtime_ratio_mcmc_vs_vb = 14.143`
-- the next slowest is:
+- the next slowest remains:
   - `rhs_ns / exal / fit_size=5000`
-  - mean `runtime_ratio_mcmc_vs_vb = 10.169`
+  - mean `runtime_ratio_mcmc_vs_vb = 10.179`
 
 Interpretation:
 
-- MCMC carries a substantial runtime tax everywhere.
-- that tax is largest on the long-horizon `exal` slices, especially under `ridge`.
-- any future extra validation compute should therefore be justified very selectively.
+- runtime conclusions are unchanged by the root-specific promotions
+- future extra MCMC compute should still be justified very selectively
 
 ### 3.4 Root Readiness
 
+All roots are now fully comparison-ready:
+
 | Prior | Fit Size | Roots | Full-Ready | Usable-With-Gap | Noncomparable | Fail Fits Total |
 |---|---:|---:|---:|---:|---:|---:|
-| `rhs_ns` | `500` | `9` | `8` | `1` | `0` | `1` |
-| `rhs_ns` | `5000` | `9` | `8` | `1` | `0` | `1` |
+| `rhs_ns` | `500` | `9` | `9` | `0` | `0` | `0` |
+| `rhs_ns` | `5000` | `9` | `9` | `0` | `0` | `0` |
 | `ridge` | `500` | `9` | `9` | `0` | `0` | `0` |
 | `ridge` | `5000` | `9` | `9` | `0` | `0` | `0` |
 
-Interpretation:
-
-- all `36 / 36` roots now have at least usable comparison output.
-- the only non-full-ready roots are both `rhs_ns` normal tails, one at `500` and one at `5000`.
-- there are no outright broken roots left.
-
 ## 4) QDESN vs exdqlm Reference Read
 
-Direct QDESN-vs-reference signoff/readiness deltas are now computed with a normalized model
-mapping:
+Direct QDESN-vs-reference signoff/readiness deltas continue to use the normalized model mapping:
 
 - `al <-> dqlm`
 - `exal <-> exdqlm`
 
-This enables fair direct deltas for:
+Key pack-level findings:
 
-- `PASS / WARN / FAIL` rate
-- comparison-eligibility rate
+- QDESN now has `0 / 144` fit FAIL rows on the mirrored dynamic surface
+- direct fail-rate deltas versus the mirrored exdqlm reference remain non-worse on all reported
+  slices
+- direct readiness comparisons remain valid on the same normalized join keys
 
-Key pack-level findings from `tables/authoritative_qdesn_vs_reference_fit_axis_delta.csv`:
+Important limitation remains unchanged:
 
-- `8 / 16` axis slices have strictly lower QDESN fail rate than the mirrored exdqlm reference
-- `8 / 16` are tied on fail rate
-- `0 / 16` are worse on fail rate
-- `12 / 16` have higher QDESN pass rate than the mirrored exdqlm reference
-- `8 / 16` have higher QDESN comparison-eligibility rate than the mirrored exdqlm reference
+- reference runtime is still missing in the mirrored exdqlm summary inventory on this surface
+- so direct runtime deltas versus exdqlm remain unavailable
+- QDESN runtime is still fully summarized internally and is sufficient for compute-planning
+  comparisons
 
-Examples:
+## 5) Residual Gap
 
-- `mcmc / exal / fit_size=5000 / rhs_ns`
-  - QDESN fail rate: `0.111`
-  - reference fail rate: `0.778`
-  - delta: `-0.667`
-- `mcmc / exal / fit_size=5000 / ridge`
-  - QDESN fail rate: `0.000`
-  - reference fail rate: `0.778`
-  - delta: `-0.778`
-- `vb / al / fit_size=5000 / ridge`
-  - QDESN pass rate: `1.000`
-  - reference pass rate: `0.333`
-  - delta: `+0.667`
+There is no remaining fit-level FAIL inventory under the authoritative branch-local baseline.
 
-Important limitation:
-
-- reference runtime is currently missing in the mirrored exdqlm summary inventory on this surface
-  (`0 / 16` axis rows have non-missing reference runtime)
-- so direct runtime deltas vs exdqlm remain unavailable in this pack
-- QDESN runtime is still fully summarized internally and should be used for compute planning
-
-## 5) Remaining Residual Gap
-
-Only `2` fit rows remain at `FAIL`, both on `rhs_ns / mcmc_exal`:
-
-| Root | Method Row | Reason |
-|---|---|---|
-| `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns` | `mcmc_exal` | `geweke_drift; half_chain_drift` |
-| `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns` | `mcmc_exal` | `geweke_drift` |
-
-These are the only remaining gaps under the authoritative branch-local baseline.
+`tables/authoritative_fail_inventory.csv` now contains only the header row.
 
 ## 6) Recommendation
 
-Use this analysis pack as the authoritative source for main comparison interpretation and any
-downstream comparison-facing reporting.
+Use this pack as the authoritative comparison-facing source on the integration branch.
 
 Recommended stance:
 
-- move forward to main comparison analysis from this baseline now
-- keep the `2 / 144` residual fit FAIL rows explicit rather than hiding them
-- do not launch further tuning by default unless zero-fit-FAIL certification becomes a hard
-  requirement
+- treat the validation/tuning phase as effectively complete on this branch
+- use the zero-fail pack for downstream comparison interpretation and reporting
+- do **not** launch another validation wave by default
+- reopen tuning only if you later want explicit confirmation reruns rather than because of
+  unresolved fail debt

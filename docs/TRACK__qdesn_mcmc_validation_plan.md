@@ -1405,24 +1405,26 @@ The active QDESN continuation point is now the synced integration branch:
 Latest dynamic cross-study read on that branch:
 
 - the broad rerun, residual wave, and final rhs-only cleanup wave all completed cleanly;
-- the authoritative branch-local baseline remains the prior residual-wave map:
+- the authoritative branch-local baseline remains the prior residual-wave stage map:
   - `L640`
   - `L670`
   - `L720`
   - `L760`
   - `L770`
-- the final rhs-only wave produced useful stage-local evidence, but not a clear full-study global
-  improvement, so no new global promotion was adopted from it;
+- the final rhs-only wave did not justify stage-wide promotion, but it did justify two
+  exact-root promotions:
+  - `normal tau=0.05 lastTT5000 rhs_ns -> M850`
+  - `normal tau=0.95 lastTT500 rhs_ns -> M940`
 - current authoritative full-study state:
-  - `77 PASS`
-  - `65 WARN`
-  - `2 FAIL`
+  - `76 PASS`
+  - `68 WARN`
+  - `0 FAIL`
   - `0` root-status FAILs
   - `36 / 36` roots comparison-eligible-any
-  - `34 / 36` roots comparison-eligible-full
+  - `36 / 36` roots comparison-eligible-full
 
 Current move-forward rule:
 
 - do not launch another residual tuning wave by default;
-- move to main comparison analysis on the authoritative baseline above;
-- keep the remaining `2 / 144` FAIL rows explicitly documented as a tiny residual gap.
+- move to main comparison analysis on the authoritative zero-fail baseline above;
+- treat additional validation compute as optional confirmation work, not unresolved fail closure.

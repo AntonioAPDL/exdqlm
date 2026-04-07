@@ -418,43 +418,24 @@ Current effective local baseline map:
 - do not spend compute on another broad rerun right now
 - do not reopen generic tuning search for one universal rescue profile
 
-## 13) Final-Wave Closeout And Current Decision
+## 13) Final-Wave Reconciliation And Authoritative Promotion Update
 
-The final rhs-only cleanup wave completed cleanly:
+The final rhs-only cleanup wave still should **not** be treated as a stage-wide global promotion.
 
-- run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982`
-- stop reason:
-  - `completed_requested_scope`
-- execution:
-  - `2/2` stages complete
-  - `10/10` profiles complete
-  - `40/40` root-campaigns executed
-- authoritative wave summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_final_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982/summary/qdesn_dynamic_crossstudy_fit_fail_closure_results.md`
+That part of the earlier decision remains correct:
 
-Stage-level winners inside that wave were:
+- `M850` was only globally neutral as a full `F1` stage swap
+- `M940` was globally worse as a full `F2` stage swap
 
-- `F1 -> M850_rhs_long_burnheavy1300`
-- `F2 -> M940_short_rhs_narrow1200_diag5`
+However, the branch now has a stronger and more precise conclusion:
 
-But those stage-local winners were **not** adopted as new global working baselines.
+- both candidates are clear improvements on their **exact remaining failing roots**
+- the stage-wide rejection does **not** mean the exact-root fits should be rejected
+- local scenario-specific tuning is the intended rule for this branch
 
-Why not:
+Authoritative branch-local baseline is therefore now:
 
-- the final wave correctly cleared the exact targeted rhs rows inside each stage;
-- however, after reconciling the selected winners back into the full `36`-root mirrored dynamic
-  surface, they did **not** beat the prior merged baseline on the overall fail inventory;
-- `M850` is globally neutral:
-  - full-study fit FAIL rows remain `2`
-  - fail-carrying roots remain `2`
-  - compare-full roots remain `34/36`
-- `M940` is globally worse:
-  - full-study fit FAIL rows rise from `2` to `3`
-  - fail-carrying roots remain `2`
-  - compare-full roots remain `34/36`
-
-Therefore the authoritative branch-local effective baseline map remains the prior residual-wave map:
+Stage-level local map:
 
 | Residual Stage | Authoritative Local Baseline |
 |---|---|
@@ -464,98 +445,86 @@ Therefore the authoritative branch-local effective baseline map remains the prio
 | `R4_rhs_tt5000_residual` | `L760_rhs_long_vbguard_deep` |
 | `R5_short_horizon_mixed_residual` | `L770_short_mixed_local_mcmc` |
 
-Current authoritative branch-local comparison state:
+Exact-root overrides:
+
+| Root | Promoted Profile | Why |
+|---|---|---|
+| `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns` | `M850_rhs_long_burnheavy1300` | clears the remaining long-horizon rhs `mcmc_exal` fail row and restores full readiness on the exact target root |
+| `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns` | `M940_short_rhs_narrow1200_diag5` | clears the remaining short-horizon rhs `mcmc_exal` fail row and is cleaner than `M950` on the target-root non-fail rows |
+
+## 14) Current Authoritative Validation State
+
+Current authoritative branch-local comparison state is now:
 
 - fit signoff mix:
-  - `77 PASS`
-  - `65 WARN`
-  - `2 FAIL`
+  - `76 PASS`
+  - `68 WARN`
+  - `0 FAIL`
 - fail-carrying roots:
-  - `2 / 36`
+  - `0 / 36`
 - root-status FAILs:
   - `0 / 36`
 - roots with any usable comparison:
   - `36 / 36`
 - fully comparison-ready roots:
-  - `34 / 36`
+  - `36 / 36`
 
-Exact remaining documented fit-level FAIL rows under the authoritative baseline:
+Validation/tuning read:
 
-- `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns`
-  - `mcmc_exal`
-  - `geweke_drift; half_chain_drift`
-- `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns`
-  - `mcmc_exal`
-  - `geweke_drift`
+- the residual fail band is now closed
+- no remaining scientific `FAIL` rows require another overnight repair wave
+- further validation compute is no longer the mainline task on this branch
 
-## 14) Immediate Next Decision
+Authoritative reconciliation report:
 
-The active next phase is now:
-
-- **move into main comparison analysis on the authoritative branch-local baseline**
-- treat the final-wave results as useful targeted evidence, but **not** as promoted new defaults
-- keep the remaining `2 / 144` fit FAIL rows explicitly documented as a tiny residual gap
-- defer any additional micro-wave unless zero-fit-FAIL certification is required later
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
 
 ## 15) Main Comparison Analysis Outputs (2026-04-07)
 
-The authoritative comparison-analysis pack has now been generated from the promoted residual-wave
-baseline, with no new compute-wave promotion applied beyond:
-
-- `R1 -> L640_gmix_long_split_diag`
-- `R2 -> L670_gmix_short_diag_mix`
-- `R3 -> L720_ridge_long_softgamma_plus`
-- `R4 -> L760_rhs_long_vbguard_deep`
-- `R5 -> L770_short_mixed_local_mcmc`
+The authoritative comparison-analysis pack has been regenerated from the reconciled baseline above.
 
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
 - summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/summary/qdesn_dynamic_main_comparison_analysis.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/comparison_vs_reference/comparison_summary.md`
+- root override map:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/authoritative_root_override_map.csv`
 - implementation/interpretation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
 
-Current authoritative study state, as rendered in the main comparison pack:
+Current authoritative study state, as rendered in the comparison pack:
 
 - fit signoff mix:
-  - `77 PASS`
-  - `65 WARN`
-  - `2 FAIL`
+  - `76 PASS`
+  - `68 WARN`
+  - `0 FAIL`
 - root status:
   - `0 / 36` root-status FAILs
 - root readiness:
   - `36 / 36` comparison-eligible-any
-  - `34 / 36` comparison-eligible-full
+  - `36 / 36` comparison-eligible-full
 
 High-value comparison takeaways now documented in the pack:
 
-- `ridge` is the cleaner signoff prior on the current authoritative baseline:
+- `ridge` remains the cleaner signoff prior overall:
   - `53 PASS / 19 WARN / 0 FAIL`
-- `rhs_ns` still carries the only remaining fail rows:
-  - `24 PASS / 46 WARN / 2 FAIL`
-- `vb/al` is the healthiest and fastest broad method-model slice:
+- `rhs_ns` is now fully comparison-eligible as well:
+  - `23 PASS / 49 WARN / 0 FAIL`
+- `vb/al` remains the healthiest and fastest broad method-model slice:
   - `29 PASS / 7 WARN / 0 FAIL`
   - mean runtime about `2.83 s`
-- `mcmc/exal` remains the only active fail source and the slowest slice:
-  - `1 PASS / 33 WARN / 2 FAIL`
-  - mean runtime about `30.50 s`
-- VB-to-MCMC runtime ratios range from about `2.18x` to `14.14x`, depending on
-  prior/model/horizon
-- direct QDESN-vs-reference signoff/readiness deltas are now computed with normalized model
-  labels:
-  - `al <-> dqlm`
-  - `exal <-> exdqlm`
-- reference runtime fields are currently blank on this mirrored surface, so runtime deltas versus
-  exdqlm remain unavailable even though QDESN runtime is fully summarized
+- `mcmc/exal` remains the softest area scientifically, but is now all non-fail:
+  - `1 PASS / 35 WARN / 0 FAIL`
+  - mean runtime about `30.76 s`
 
 Current next move:
 
 - proceed with the main comparison interpretation and downstream comparison-facing reporting from
-  this authoritative pack
-- keep the `2 / 144` fit FAIL rows explicitly documented rather than hiding them
+  this authoritative zero-fail pack
+- do **not** launch another validation repair wave by default
