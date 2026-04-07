@@ -114,6 +114,30 @@ Tail-7 closeout and dynamic rw-joint refinement (2026-04-06):
   - `14` total
 - static work remains fully closed and should not be reopened by default
 
+Tail-7 `rw` closeout and promotion checkpoint (2026-04-06):
+
+- tail-7 `rw` completed with:
+  - `0 PASS`
+  - `1 WARN`
+  - `13 FAIL`
+- one new original dynamic case was promoted:
+  - `dynamic::gausmix::0p05::500::default::exdqlm::mcmc`
+  - upgraded from `FAIL` to `WARN`
+- corrected publication-target state is now:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+- dynamic recovered state is now:
+  - `66 / 72` healthy
+  - `6 / 72` unresolved
+- the remaining unresolved tail is now:
+  - `dynamic::gausmix::0p25::500::default::exdqlm::mcmc`
+  - `dynamic::laplace::0p05::500::default::exdqlm::mcmc`
+  - `dynamic::normal::0p05::500::default::exdqlm::mcmc`
+  - `dynamic::gausmix::0p05::5000::default::exdqlm::mcmc`
+  - `dynamic::laplace::0p05::5000::default::exdqlm::mcmc`
+  - `dynamic::normal::0p05::5000::default::exdqlm::mcmc`
+- static work remains fully closed and should not be reopened by default
+
 ## 0. Original-288 Realignment Execution Checkpoint (2026-04-05)
 
 The corrected original-`288` carry-forward pipeline has now been implemented

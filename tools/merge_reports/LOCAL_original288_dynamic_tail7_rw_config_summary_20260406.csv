@@ -1,4 +1,4 @@
 "phase","config_id","total","done","missing","PASS","WARN","FAIL","resolved"
 "anchor7_rw_joint","mcmc_exdqlm_rw_joint_anchor",7,7,0,0,0,7,0
 "tt500_rw_refresh4","mcmc_exdqlm_rw_refresh_tt500",4,4,0,0,1,3,1
-"tt5000_rw_joint_long3","mcmc_exdqlm_rw_joint_tt5000_long",3,0,3,0,0,0,0
+"tt5000_rw_joint_long3","mcmc_exdqlm_rw_joint_tt5000_long",3,3,0,0,0,3,0
