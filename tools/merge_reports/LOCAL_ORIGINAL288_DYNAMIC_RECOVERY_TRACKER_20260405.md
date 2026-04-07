@@ -37,6 +37,60 @@ Important distinction carried forward on this branch:
 - therefore the accepted carry-forward status and the rerun-on-synced-base
   status must be treated separately in planning and reporting
 
+## Targeted Follow-Up Closeout and Dynamic Closure Launch (2026-04-07)
+
+The synced-base targeted follow-up has now completed and its strict
+improvements have been promoted into accepted `v7`.
+
+Current accepted publication-target state:
+
+- `282 / 288` healthy
+- `230 PASS`
+- `52 WARN`
+- `6 FAIL`
+
+Targeted follow-up closeout:
+
+- scope:
+  - `29` rows
+- outcome:
+  - `3 PASS`
+  - `10 WARN`
+  - `16 FAIL`
+  - `13 / 29` healthy
+- accepted comparison:
+  - `3` better than accepted
+  - `6` matches accepted
+  - `20` worse than accepted
+
+Dynamic implications:
+
+- the accepted unresolved original dynamic tail is still:
+  - `6` rows
+  - all `exdqlm :: mcmc`
+- the synced-base replay regression queue still contains:
+  - `3` accepted-healthy dynamic rows that reproduce as `FAIL`
+  - all `3` are `exdqlm :: mcmc`
+
+Active immediate next step on this branch:
+
+- run the new dynamic-only closure lane:
+  - `6` primary accepted-tail repairs
+  - `3` alternate kernel/family tests for the hardest accepted-tail rows
+  - `3` replay-repair rows for the synced-base dynamic regressions
+  - `12` total
+
+Deferred for now:
+
+- `13` static replay-fail rows
+- `4` PASS-to-WARN stability-review rows
+
+Primary references:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_program_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
+
 ## Faithful Replay Closeout and Residual Repair Pivot (2026-04-07)
 
 The synced-base faithful replay of the accepted healthy `282` rows has now

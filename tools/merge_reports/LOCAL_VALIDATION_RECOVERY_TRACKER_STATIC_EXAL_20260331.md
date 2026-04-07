@@ -42,6 +42,51 @@ Important caveat:
 - synced-base rerun status should therefore be treated as pending rather than
   conflated with accepted carry-forward status
 
+## 0. Targeted Follow-Up Closeout and Static Deferral Checkpoint (2026-04-07)
+
+The synced-base targeted follow-up has now completed and its strict
+improvements have been promoted into accepted `v7`.
+
+Accepted publication-target state:
+
+- `282 / 288` healthy
+- `230 PASS`
+- `52 WARN`
+- `6 FAIL`
+
+Targeted follow-up outcome:
+
+- `29 / 29` complete
+- `3 PASS`
+- `10 WARN`
+- `16 FAIL`
+- `13 / 29` healthy
+
+Static interpretation:
+
+- the follow-up delivered `3` strict `WARN -> PASS` upgrades:
+  - `1` in `static_paper :: exal :: mcmc`
+  - `2` in `static_shrink :: exal :: mcmc`
+- the accepted static publication-target map remains fully healthy:
+  - `72 / 72` static paper healthy
+  - `144 / 144` static shrink healthy
+- but a deferred synced-base replay/stability queue still exists:
+  - `13` static replay-fail rows
+  - `4` PASS-to-WARN stability-review rows
+
+Highest-value next move:
+
+- do **not** reopen another broad static follow-up immediately
+- prioritize the dynamic-only closure lane first because the only accepted
+  publication-target `FAIL` rows are still dynamic
+- keep the deferred static rows documented for later row-local work after the
+  dynamic closure result is known
+
+Primary references:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_program_20260407.md`
+
 ## 0. Faithful Replay Closeout and Static Residual Repair Checkpoint (2026-04-07)
 
 The synced-base faithful replay has now completed and clarified the remaining

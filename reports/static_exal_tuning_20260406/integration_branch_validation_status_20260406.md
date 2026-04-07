@@ -38,11 +38,11 @@ Integration-base merge commit:
 
 Current synced tracker checkpoint on this branch:
 
-- `2026-04-07` post-residual-repair refresh
+- `2026-04-07` post-targeted-follow-up closeout and dynamic-closure launch
 - scope:
-  - apply residual strict improvements into accepted `v6`
-  - document the completed residual repair outcome
-  - document the next targeted synced-base follow-up queue
+  - apply strict targeted-follow-up improvements into accepted `v7`
+  - document the completed targeted follow-up outcome
+  - document and launch the new dynamic-only closure lane
 
 ## Canonical Status Files
 
@@ -56,21 +56,21 @@ Primary branch-level readiness / historical rollup:
 
 Primary accepted carry-forward artifacts:
 
-- `tools/merge_reports/LOCAL_original288_carryforward_selection_v6_20260407.csv`
-- `tools/merge_reports/LOCAL_original288_row_health_v6_20260407.csv`
-- `tools/merge_reports/LOCAL_original288_health_summary_v6_20260407.csv`
-- `tools/merge_reports/LOCAL_original288_recovery_block_status_v6_20260407.csv`
-- `tools/merge_reports/LOCAL_original288_unresolved_dynamic_inventory_v6_20260407.csv`
-- `tools/merge_reports/LOCAL_original288_unresolved_inventory_v6_20260407.csv`
+- `tools/merge_reports/LOCAL_original288_carryforward_selection_v7_20260407.csv`
+- `tools/merge_reports/LOCAL_original288_row_health_v7_20260407.csv`
+- `tools/merge_reports/LOCAL_original288_health_summary_v7_20260407.csv`
+- `tools/merge_reports/LOCAL_original288_recovery_block_status_v7_20260407.csv`
+- `tools/merge_reports/LOCAL_original288_unresolved_dynamic_inventory_v7_20260407.csv`
+- `tools/merge_reports/LOCAL_original288_unresolved_inventory_v7_20260407.csv`
 
 Latest completed rerun execution report:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
 
 Active residual repair planning / execution notes:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_program_20260407.md`
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_program_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
 
 ## Case Universe In Scope
 
@@ -115,7 +115,7 @@ This is the convention encoded in the row-health and health-summary files.
 
 ## Accepted Carry-Forward Status
 
-Accepted publication-target state under `v6`:
+Accepted publication-target state under `v7`:
 
 - overall healthy: `282 / 288`
 - overall unresolved: `6 / 288`
@@ -127,10 +127,10 @@ Accepted gate breakdown:
 
 | slice | total | PASS | WARN | FAIL | healthy |
 |---|---:|---:|---:|---:|---:|
-| overall | `288` | `227` | `55` | `6` | `282` |
+| overall | `288` | `230` | `52` | `6` | `282` |
 | dynamic | `72` | `56` | `10` | `6` | `66` |
-| static_paper | `72` | `56` | `16` | `0` | `72` |
-| static_shrink | `144` | `115` | `29` | `0` | `144` |
+| static_paper | `72` | `57` | `15` | `0` | `72` |
+| static_shrink | `144` | `117` | `27` | `0` | `144` |
 
 Method-level breakdown of the accepted state:
 
@@ -142,50 +142,49 @@ Method-level breakdown of the accepted state:
 | dynamic | `exdqlm` | `vb` | `15` | `3` | `0` |
 | static_paper | `al` | `mcmc` | `18` | `0` | `0` |
 | static_paper | `al` | `vb` | `18` | `0` | `0` |
-| static_paper | `exal` | `mcmc` | `8` | `10` | `0` |
+| static_paper | `exal` | `mcmc` | `9` | `9` | `0` |
 | static_paper | `exal` | `vb` | `12` | `6` | `0` |
 | static_shrink | `al` | `mcmc` | `36` | `0` | `0` |
 | static_shrink | `al` | `vb` | `36` | `0` | `0` |
-| static_shrink | `exal` | `mcmc` | `19` | `17` | `0` |
+| static_shrink | `exal` | `mcmc` | `21` | `15` | `0` |
 | static_shrink | `exal` | `vb` | `24` | `12` | `0` |
 
 ## Latest Completed Validation Campaign
 
 The latest completed rerun campaign is:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
 
 That campaign:
 
-- reran the faithful-replay residual queue only
-- completed with `84 / 84` rows done
+- reran the narrow synced-base follow-up queue only
+- completed with `29 / 29` rows done
 - yielded:
-  - `55 PASS`
+  - `3 PASS`
   - `10 WARN`
-  - `19 FAIL`
-  - `65 / 84` healthy
-- recovered:
-  - all `54 / 54` static `al :: mcmc` rows to non-`FAIL`
-  - `11 / 27` static `exal :: mcmc` rows to non-`FAIL`
-  - `0 / 3` dynamic `exdqlm :: mcmc` rows to non-`FAIL`
+  - `16 FAIL`
+  - `13 / 29` healthy
 - comparison against accepted:
-  - `60` matched accepted status
-  - `1` was better than accepted
-  - `23` were worse than accepted
+  - `3` better than accepted
+  - `6` matched accepted
+  - `20` were worse than accepted
+- strict improvements promoted into accepted `v7`:
+  - `static_paper::gausmix::0p25::1000::paper::exal::mcmc`
+  - `static_shrink::laplace::0p05::100::ridge::exal::mcmc`
+  - `static_shrink::laplace::0p95::1000::ridge::exal::mcmc`
 
-The one strict improvement was promoted into accepted `v6`, which keeps the
-overall accepted publication-target state at:
+Those promotions keep the overall accepted publication-target state at:
 
 - `282 / 288` healthy
 - `6 / 288` unresolved
 
 while improving the pass/warn split from:
 
-- `226 PASS / 56 WARN / 6 FAIL`
+- `227 PASS / 55 WARN / 6 FAIL`
 
 to:
 
-- `227 PASS / 55 WARN / 6 FAIL`
+- `230 PASS / 52 WARN / 6 FAIL`
 
 ## Remaining Failing Cases
 
@@ -215,23 +214,25 @@ This is the critical distinction for the new branch:
 - but the accepted evidence still points to the predecessor validation
   worktree outputs
 
-Observed fit-path provenance in the accepted `v6` row-health file:
+Observed fit-path provenance in the accepted `v7` row-health file:
 
 - selected fit paths in new integration worktree:
-  - `32 / 288`
+  - `35 / 288`
 - selected fit paths in predecessor worktree:
-  - `256 / 288`
+  - `253 / 288`
 
 So the rerun-on-synced-base status is no longer pending in the broad sense:
 
 - faithful replay of the accepted healthy `282` rows is complete
 - first-pass residual repair of the replay failures is complete
-- the remaining synced-base work is now a much smaller targeted follow-up
-  queue of:
-  - `16` static `exal :: mcmc` fail rows
-  - `3` dynamic `exdqlm :: mcmc` fail rows
+- targeted synced-base follow-up is complete
+- the active remaining synced-base work is now a dynamic-only closure lane of:
+  - `6` accepted unresolved dynamic-tail rows
+  - `3` synced-base dynamic replay-fail rows
+  - `12` total dynamic candidates across primary, alternate, and replay-repair phases
+- deferred from this launch:
+  - `13` static replay-fail rows
   - `4` PASS-to-WARN stability-review rows
-- the accepted unresolved dynamic tail of `6` remains deferred and separate
 
 Therefore:
 
@@ -239,7 +240,8 @@ Therefore:
 - synced-base rerun status:
   - broad fidelity replay complete
   - residual repair complete
-  - targeted follow-up now active
+  - targeted follow-up complete
+  - dynamic closure now active
 
 ## Synced-Base Replay Status
 

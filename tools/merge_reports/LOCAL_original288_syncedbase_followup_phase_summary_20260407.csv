@@ -1,5 +1,5 @@
 "phase","total","done","missing","pass","warn","fail","healthy","matches_accepted","better_than_accepted","worse_than_accepted","pending_compare"
-"phase1_static_exal_primary",16,0,16,0,0,0,0,0,0,0,16
-"phase2_static_exal_rowlocal",6,0,6,0,0,0,0,0,0,0,6
-"phase3_dynamic_exdqlm_exactlong",3,0,3,0,0,0,0,0,0,0,3
-"phase4_stability_review",4,0,4,0,0,0,0,0,0,0,4
+"phase1_static_exal_primary",16,16,0,2,6,8,8,6,2,8,0
+"phase2_static_exal_rowlocal",6,6,0,1,0,5,1,0,1,5,0
+"phase3_dynamic_exdqlm_exactlong",3,3,0,0,0,3,0,0,0,3,0
+"phase4_stability_review",4,4,0,0,4,0,4,0,0,4,0
