@@ -426,3 +426,24 @@ For continued QDESN work on this branch, the immediate decision is now:
 - target only the last `2` remaining rhs-specific `mcmc_exal` FAIL rows
 - keep the new merged local baseline map as the source state
 - rerun only the nearby guard roots needed to avoid fragile single-row overfitting
+
+Final wave status:
+
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_final_fail_closure_wave_manifest.yaml`
+- prepare-only:
+  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133850__git-7f3dd74`
+  - source fail surface verified as `2` FAIL rows on `2` roots
+  - stage sizes verified as `4 / 4`
+  - root-campaigns verified as `40`
+- live run:
+  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982`
+- detached session:
+  - `qdesn_dynxff_0407_133928`
+- first healthcheck:
+  - launcher session live
+  - stop reason `RUNNING`
+  - current stage:
+    - `F1_rhs_long_normal_tail_final`
+  - current profile:
+    - `M810_rhs_long_freeze120_chain1400`

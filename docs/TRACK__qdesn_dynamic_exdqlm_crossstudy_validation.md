@@ -329,3 +329,18 @@ Immediate move-forward rule:
 - do not rerun dominated `L740`, `L750`, `L780`, or `L790`
 - run one final rhs-specific residual closure wave over the last `2` failing rows plus their guard
   roots
+
+Final-wave launch status:
+
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_final_fail_closure_wave_manifest.yaml`
+- prepare-only run:
+  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133850__git-7f3dd74`
+- live run:
+  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982`
+- detached session:
+  - `qdesn_dynxff_0407_133928`
+- current read:
+  - `F1_rhs_long_normal_tail_final`
+  - profile `M810_rhs_long_freeze120_chain1400`
+  - launcher healthy at launch time

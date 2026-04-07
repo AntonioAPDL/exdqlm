@@ -312,8 +312,9 @@ Authoritative closeout outputs:
   - `2 / 144` fit FAIL rows
   - `2 / 36` fail-carrying roots
   - `0 / 36` root-status FAILs
-- next compute step is a final rhs-specific residual wave over those last `2` mcmc-exal rows, not
-  another broad rerun
+- current compute step is a final rhs-specific residual wave over those last `2` `mcmc_exal`
+  rows, not another broad rerun:
+  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982`
 
 ## Latest Operational Update (2026-03-20)
 
