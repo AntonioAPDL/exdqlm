@@ -4,6 +4,21 @@ options(stringsAsFactors = FALSE)
 
 `%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
 
+is_missing_scalar <- function(x) {
+  if (is.null(x) || !length(x)) return(TRUE)
+  if (all(is.na(x))) return(TRUE)
+  y <- as.character(x)[1]
+  !nzchar(trimws(y)) || identical(toupper(trimws(y)), "NA")
+}
+
+first_present <- function(..., default = NULL) {
+  vals <- list(...)
+  for (v in vals) {
+    if (!is_missing_scalar(v)) return(v)
+  }
+  default
+}
+
 parse_args <- function(args) {
   out <- list()
   for (x in args) {
@@ -35,9 +50,9 @@ safe_int <- function(x, default = NA_integer_) {
 }
 
 safe_chr <- function(x, default = NA_character_) {
-  if (is.null(x) || !length(x)) return(default)
+  if (is_missing_scalar(x)) return(default)
   y <- as.character(x)[1]
-  if (!nzchar(y)) default else y
+  if (!nzchar(trimws(y)) || identical(toupper(trimws(y)), "NA")) default else y
 }
 
 safe_num_vec <- function(x, default) {
@@ -383,9 +398,28 @@ run_and_wrap <- function() {
       }
 
       accepted_refresh <- accepted_mh$laplace_refresh %||% list()
-      refresh_interval <- safe_int(accepted_refresh$interval %||% mh$laplace_refresh_interval %||% mc_cfg$laplace_refresh_interval, NA_integer_)
-      refresh_start <- safe_int(accepted_refresh$start %||% mh$laplace_refresh_start %||% mc_cfg$laplace_refresh_start, NA_integer_)
-      refresh_weight <- safe_num(accepted_refresh$weight %||% mh$laplace_refresh_weight %||% mc_cfg$laplace_refresh_weight, NA_real_)
+      refresh_interval <- safe_int(first_present(
+        accepted_refresh$interval,
+        accepted_refresh$refresh_interval,
+        accepted_refresh$laplace_refresh_interval,
+        mh$laplace_refresh_interval,
+        mc_cfg$laplace_refresh_interval
+      ), NA_integer_)
+      refresh_start <- safe_int(first_present(
+        accepted_refresh$start,
+        accepted_refresh$start_iter,
+        accepted_refresh$refresh_start,
+        accepted_refresh$laplace_refresh_start,
+        mh$laplace_refresh_start,
+        mc_cfg$laplace_refresh_start
+      ), NA_integer_)
+      refresh_weight <- safe_num(first_present(
+        accepted_refresh$weight,
+        accepted_refresh$refresh_weight,
+        accepted_refresh$laplace_refresh_weight,
+        mh$laplace_refresh_weight,
+        mc_cfg$laplace_refresh_weight
+      ), NA_real_)
 
       refresh_opts <- list()
       if (is.finite(refresh_interval)) {
@@ -413,21 +447,21 @@ run_and_wrap <- function() {
         n.mcmc = safe_int(bf$n.mcmc %||% mc_cfg$n %||% 1500L, 1500L),
         init.from.vb = init_from_vb,
         init.from.isvb = as_flag(identical(tolower(safe_chr(bf$vb.init.method, 'ldvb')), 'isvb') %||% mc_cfg$init_from_isvb, FALSE),
-        joint.sample = as_flag(accepted_mh$joint_sample %||% mh$joint_sample %||% mh$primary_joint_sample, FALSE),
-        mh.proposal = as.character(accepted_mh$proposal %||% mh$proposal %||% mh$primary_proposal %||% 'laplace_rw'),
-        mh.adapt = as_flag(accepted_mh$adapt %||% mh$adapt, TRUE),
-        mh.adapt.interval = safe_int(accepted_mh$adapt_interval %||% mh$adapt_interval %||% 50L, 50L),
-        mh.target.accept = safe_num_vec(accepted_mh$target_accept %||% mh$target_accept, c(0.20, 0.45)),
-        mh.scale.bounds = safe_num_vec(accepted_mh$scale_bounds %||% mh$scale_bounds, c(0.1, 10)),
-        mh.max_scale.step = safe_num(accepted_mh$max_scale_step %||% mh$max_scale_step %||% 0.35, 0.35),
-        mh.min_burn_adapt = safe_int(accepted_mh$min_burn_adapt %||% mh$min_burn_adapt %||% 50L, 50L),
+        joint.sample = as_flag(first_present(accepted_mh$joint_sample, mh$joint_sample, mh$primary_joint_sample), FALSE),
+        mh.proposal = safe_chr(first_present(accepted_mh$proposal, mh$proposal, mh$primary_proposal, 'laplace_rw'), 'laplace_rw'),
+        mh.adapt = as_flag(first_present(accepted_mh$adapt, mh$adapt), TRUE),
+        mh.adapt.interval = safe_int(first_present(accepted_mh$adapt_interval, mh$adapt_interval, 50L), 50L),
+        mh.target.accept = safe_num_vec(first_present(accepted_mh$target_accept, mh$target_accept, c(0.20, 0.45)), c(0.20, 0.45)),
+        mh.scale.bounds = safe_num_vec(first_present(accepted_mh$scale_bounds, mh$scale_bounds, c(0.1, 10)), c(0.1, 10)),
+        mh.max_scale.step = safe_num(first_present(accepted_mh$max_scale_step, mh$max_scale_step, 0.35), 0.35),
+        mh.min_burn_adapt = safe_int(first_present(accepted_mh$min_burn_adapt, mh$min_burn_adapt, 50L), 50L),
         trace.diagnostics = TRUE,
         trace.every = safe_int(accepted_mh$trace_every %||% mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
         verbose = isTRUE(verbose_mcmc),
         progress_callback = progress_telemetry_callback
       )
-      slice_width <- safe_num(accepted_mh$slice_width %||% mh$slice_width, NA_real_)
-      slice_max_steps <- safe_int(accepted_mh$slice_max_steps %||% mh$slice_max_steps, NA_integer_)
+      slice_width <- safe_num(first_present(accepted_mh$slice_width, mh$slice_width), NA_real_)
+      slice_max_steps <- safe_int(first_present(accepted_mh$slice_max_steps, mh$slice_max_steps), NA_integer_)
       if (is.finite(slice_width)) call_args$slice.width <- slice_width
       if (is.finite(slice_max_steps)) call_args$slice.max.steps <- slice_max_steps
       if (isTRUE(init_from_vb) && !is.null(vb_obj)) call_args$vb_init_fit <- vb_obj
@@ -494,9 +528,28 @@ run_and_wrap <- function() {
     }
 
     accepted_refresh <- accepted_mh$laplace_refresh %||% list()
-    refresh_interval <- safe_int(accepted_refresh$interval %||% mh$laplace_refresh_interval %||% mc_cfg$laplace_refresh_interval, NA_integer_)
-    refresh_start <- safe_int(accepted_refresh$start %||% mh$laplace_refresh_start %||% mc_cfg$laplace_refresh_start, NA_integer_)
-    refresh_weight <- safe_num(accepted_refresh$weight %||% mh$laplace_refresh_weight %||% mc_cfg$laplace_refresh_weight, NA_real_)
+    refresh_interval <- safe_int(first_present(
+      accepted_refresh$interval,
+      accepted_refresh$refresh_interval,
+      accepted_refresh$laplace_refresh_interval,
+      mh$laplace_refresh_interval,
+      mc_cfg$laplace_refresh_interval
+    ), NA_integer_)
+    refresh_start <- safe_int(first_present(
+      accepted_refresh$start,
+      accepted_refresh$start_iter,
+      accepted_refresh$refresh_start,
+      accepted_refresh$laplace_refresh_start,
+      mh$laplace_refresh_start,
+      mc_cfg$laplace_refresh_start
+    ), NA_integer_)
+    refresh_weight <- safe_num(first_present(
+      accepted_refresh$weight,
+      accepted_refresh$refresh_weight,
+      accepted_refresh$laplace_refresh_weight,
+      mh$laplace_refresh_weight,
+      mc_cfg$laplace_refresh_weight
+    ), NA_real_)
 
     refresh_opts <- list()
     if (is.finite(refresh_interval)) {
@@ -531,24 +584,24 @@ run_and_wrap <- function() {
         ld_controls = vb_cfg$ld %||% NULL,
         verbose = FALSE
       ),
-      mh.proposal = as.character(accepted_mh$proposal %||% mh$proposal %||% mh$primary_proposal %||% 'laplace_rw'),
-      mh.adapt = as_flag(accepted_mh$adapt %||% mh$adapt, TRUE),
-      mh.adapt.interval = safe_int(accepted_mh$adapt_interval %||% mh$adapt_interval %||% 50L, 50L),
-      mh.target.accept = safe_num_vec(accepted_mh$target_accept %||% mh$target_accept, c(0.20, 0.45)),
-      mh.scale.bounds = safe_num_vec(accepted_mh$scale_bounds %||% mh$scale_bounds, c(0.1, 10)),
-      mh.max_scale.step = safe_num(accepted_mh$max_scale_step %||% mh$max_scale_step %||% 0.35, 0.35),
-      mh.min_burn_adapt = safe_int(accepted_mh$min_burn_adapt %||% mh$min_burn_adapt %||% 50L, 50L),
-      gamma.substeps = safe_int(accepted_mh$gamma_substeps %||% mh$gamma_substeps %||% 1L, 1L),
-      p.global.eta.jump = safe_num(accepted_mh$global_eta_jump$p %||% mh$p_global_eta_jump, 0),
-      global.eta.jump.scale = safe_num(accepted_mh$global_eta_jump$scale %||% mh$global_eta_jump_scale, 1),
-      trace.diagnostics = as_flag(accepted_mh$trace_enabled %||% mh$trace_diagnostics, TRUE),
-      trace.every = safe_int(accepted_mh$trace_every %||% mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
+      mh.proposal = safe_chr(first_present(accepted_mh$proposal, mh$proposal, mh$primary_proposal, 'laplace_rw'), 'laplace_rw'),
+      mh.adapt = as_flag(first_present(accepted_mh$adapt, mh$adapt), TRUE),
+      mh.adapt.interval = safe_int(first_present(accepted_mh$adapt_interval, mh$adapt_interval, 50L), 50L),
+      mh.target.accept = safe_num_vec(first_present(accepted_mh$target_accept, mh$target_accept, c(0.20, 0.45)), c(0.20, 0.45)),
+      mh.scale.bounds = safe_num_vec(first_present(accepted_mh$scale_bounds, mh$scale_bounds, c(0.1, 10)), c(0.1, 10)),
+      mh.max_scale.step = safe_num(first_present(accepted_mh$max_scale_step, mh$max_scale_step, 0.35), 0.35),
+      mh.min_burn_adapt = safe_int(first_present(accepted_mh$min_burn_adapt, mh$min_burn_adapt, 50L), 50L),
+      gamma.substeps = safe_int(first_present(accepted_mh$gamma_substeps, mh$gamma_substeps, 1L), 1L),
+      p.global.eta.jump = safe_num(first_present(accepted_mh$global_eta_jump$p, mh$p_global_eta_jump, 0), 0),
+      global.eta.jump.scale = safe_num(first_present(accepted_mh$global_eta_jump$scale, mh$global_eta_jump_scale, 1), 1),
+      trace.diagnostics = as_flag(first_present(accepted_mh$trace_enabled, mh$trace_diagnostics), TRUE),
+      trace.every = safe_int(first_present(accepted_mh$trace_every, mh$trace_every, mc_cfg$trace_every, 50L), 50L),
       verbose = isTRUE(verbose_mcmc),
       progress_callback = progress_telemetry_callback
     )
 
-    slice_width <- safe_num(accepted_mh$slice_width %||% mh$slice_width, NA_real_)
-    slice_max_steps <- safe_int(accepted_mh$slice_max_steps %||% mh$slice_max_steps, NA_integer_)
+    slice_width <- safe_num(first_present(accepted_mh$slice_width, mh$slice_width), NA_real_)
+    slice_max_steps <- safe_int(first_present(accepted_mh$slice_max_steps, mh$slice_max_steps), NA_integer_)
     if (is.finite(slice_width)) call_args$slice.width <- slice_width
     if (is.finite(slice_max_steps)) call_args$slice.max.steps <- slice_max_steps
     if (isTRUE(static_init_from_vb) && !is.null(vb_obj)) call_args$vb_init_fit <- vb_obj

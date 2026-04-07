@@ -37,6 +37,45 @@ Important distinction carried forward on this branch:
 - therefore the accepted carry-forward status and the rerun-on-synced-base
   status must be treated separately in planning and reporting
 
+## Faithful Replay Closeout and Residual Repair Pivot (2026-04-07)
+
+The synced-base faithful replay of the accepted healthy `282` rows has now
+completed and its strict improvements have been promoted into accepted `v5`.
+
+Current accepted publication-target state:
+
+- `282 / 288` healthy
+- `6 / 288` unresolved
+- accepted gate split:
+  - `226 PASS`
+  - `56 WARN`
+  - `6 FAIL`
+
+Faithful replay closeout:
+
+- replay scope:
+  - accepted healthy `282` rows only
+- replay outcome:
+  - `198 / 282` healthy
+  - `84 / 282` fail
+- comparison against accepted:
+  - `31` better than accepted
+  - `155` matches accepted
+  - `96` worse than accepted
+
+Important refinement:
+
+- the active immediate repair queue on the synced branch is no longer
+  dynamic-only
+- the residual replay-repair queue is now:
+  - `54` static `al :: mcmc` rows
+  - `27` static `exal :: mcmc` rows
+  - `3` dynamic `exdqlm :: mcmc` rows
+
+This tracker remains authoritative for the unresolved original dynamic tail of
+`6`, but the immediate next branch task is the broader residual replay-repair
+program, not another direct attack on that unresolved tail.
+
 ## Synced-Base Rerun Priority Note (2026-04-06)
 
 Residual repair is no longer the immediate next action on this branch.

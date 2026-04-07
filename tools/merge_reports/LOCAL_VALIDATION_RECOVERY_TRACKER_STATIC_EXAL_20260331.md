@@ -42,6 +42,44 @@ Important caveat:
 - synced-base rerun status should therefore be treated as pending rather than
   conflated with accepted carry-forward status
 
+## 0. Faithful Replay Closeout and Static Residual Repair Checkpoint (2026-04-07)
+
+The synced-base faithful replay has now completed and clarified the remaining
+static work much more sharply.
+
+Accepted publication-target state after promotion into `v5`:
+
+- `282 / 288` healthy
+- `6 / 288` unresolved
+
+Faithful replay of accepted healthy rows:
+
+- scope:
+  - `282` accepted healthy rows
+- outcome:
+  - `198 / 282` healthy
+  - `84 / 282` fail
+
+Static interpretation:
+
+- `54` static `al :: mcmc` rows are now classified as invalid replay outcomes
+  caused by a shared runtime proposal bug
+- `27` static `exal :: mcmc` rows are the active scientifically meaningful
+  static residual queue
+- those `27` should be replayed exactly first, and only then should any
+  narrower local tuning be considered
+
+Current active residual program split on the synced branch:
+
+- `54` static `al :: mcmc` bug-fix reruns
+- `27` static `exal :: mcmc` exact accepted replays
+- `3` dynamic `exdqlm :: mcmc` exact accepted replays
+
+Primary references:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_faithful_replay_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_program_20260407.md`
+
 ## 0. Dynamic-Only Residual Recovery Checkpoint (2026-04-05)
 
 The next repair phase after the corrected original-`288` carry-forward rebuild

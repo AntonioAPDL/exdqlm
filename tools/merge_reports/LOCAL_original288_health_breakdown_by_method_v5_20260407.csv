@@ -1,0 +1,13 @@
+"block","model","inference","total","pass","warn","fail","healthy_true","healthy_false"
+"dynamic","dqlm","mcmc",18,17,1,0,18,0
+"dynamic","dqlm","vb",18,18,0,0,18,0
+"dynamic","exdqlm","mcmc",18,6,6,6,12,6
+"dynamic","exdqlm","vb",18,15,3,0,18,0
+"static_paper","al","mcmc",18,18,0,0,18,0
+"static_paper","al","vb",18,18,0,0,18,0
+"static_paper","exal","mcmc",18,8,10,0,18,0
+"static_paper","exal","vb",18,12,6,0,18,0
+"static_shrink","al","mcmc",36,36,0,0,36,0
+"static_shrink","al","vb",36,36,0,0,36,0
+"static_shrink","exal","mcmc",36,18,18,0,36,0
+"static_shrink","exal","vb",36,24,12,0,36,0

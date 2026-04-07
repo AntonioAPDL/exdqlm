@@ -21,6 +21,13 @@ replay was not faithful to the accepted historical reference state:
 This replacement program is designed to be a reference-grade replay of the
 accepted healthy original-`288` study state on the synced `0.4.0` base.
 
+Closeout note:
+
+- the replay has now completed
+- `31` strict improvements were promoted into accepted `v5`
+- the remaining replay regressions are now handled under:
+  `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_program_20260407.md`
+
 ## Reference Target
 
 Accepted carry-forward reference:

@@ -1,6 +1,6 @@
 "phase","total","done","missing","pass","warn","fail","healthy","matches_accepted","better_than_accepted","worse_than_accepted","pending_compare"
-"phase1_vb_all",144,0,144,0,0,0,0,0,0,0,144
-"phase2_static_paper_mcmc",36,0,36,0,0,0,0,0,0,0,36
-"phase3_static_shrink_ridge_mcmc",36,0,36,0,0,0,0,0,0,0,36
-"phase4_static_shrink_rhsns_mcmc",36,0,36,0,0,0,0,0,0,0,36
-"phase5_dynamic_mcmc",30,0,30,0,0,0,0,0,0,0,30
+"phase1_vb_all",144,144,0,123,21,0,144,122,22,0,0
+"phase2_static_paper_mcmc",36,36,0,3,5,28,8,6,0,30,0
+"phase3_static_shrink_ridge_mcmc",36,36,0,4,5,27,9,6,1,29,0
+"phase4_static_shrink_rhsns_mcmc",36,36,0,3,7,26,10,3,1,32,0
+"phase5_dynamic_mcmc",30,30,0,21,6,3,27,18,7,5,0

@@ -83,3 +83,64 @@ Its purpose is to answer:
   synced `0.4.0` base
 
 It is not intended to solve the unresolved dynamic repair tail yet.
+
+## Final Outcome
+
+Final replay outcome:
+
+- `282 / 282` complete
+- `154 PASS`
+- `44 WARN`
+- `84 FAIL`
+- `198 / 282` healthy
+
+Accepted-reference comparison:
+
+- `155` matched accepted status
+- `31` were better than accepted
+- `96` were worse than accepted
+
+Improvement handling:
+
+- all `31` strict improvements were promoted into accepted `v5`
+- accepted publication-target status therefore remains:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+- but with a stronger accepted pass/warn composition than `v4`
+
+## What Worked Best
+
+- strict replay of accepted healthy rows only
+- forcing original `static_shrink::rhs` rows to replay as `rhs_ns`
+- using accepted-reference fit paths and accepted companion VB fit paths
+- replay-precedence fixes for dynamic `proposal`, `joint_sample`, slice, and
+  refresh controls
+- stopping the earlier broad synced-base rerun and restarting from a cleaner
+  reference-fidelity frame
+
+## What Did Not Help
+
+- the deprecated broad synced-base rerun from `2026-04-06`
+- treating baseline-kept MCMC rows like fresh runs
+- leaving `rhs` / `rhs_ns` policy implicit
+- using the faithful replay itself as a generic residual search program
+
+## Main Failure Pattern
+
+The replay finished with a sharply structured residual failure queue:
+
+- `54` static `al :: mcmc` rows failed at runtime with the same proposal
+  resolution error
+- `27` static `exal :: mcmc` rows completed but remained unhealthy
+- `3` dynamic `exdqlm :: mcmc` rows completed but remained unhealthy
+
+This means the next highest-value move is not a broad rerun. It is a targeted
+residual repair program that separates:
+
+1. static `al` replay bug-fix reruns
+2. static `exal` exact accepted replay reruns
+3. dynamic `exdqlm` exact accepted replay reruns
+
+That next phase is documented in:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_program_20260407.md`

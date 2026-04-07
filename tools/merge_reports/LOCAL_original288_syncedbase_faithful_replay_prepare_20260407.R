@@ -69,10 +69,12 @@ for (i in seq_len(nrow(merged))) {
   row <- merged[i, , drop = FALSE]
   source_ctx <- source_context_from_signoff_original288_syncedbase_rerun(row$baseline_signoff_path_source)
   base_cfg <- readRDS(source_ctx$source_run_config_path)
-  cfg <- apply_prior_policy_original288_syncedbase_rerun(base_cfg, row)
+  cfg <- build_selected_config_original288_syncedbase_rerun(base_cfg, row)
   cfg$sim_path <- source_ctx$source_sim_output_path
   cfg$out_root <- target_run_root_original288_syncedbase_rerun(source_ctx$source_run_root, repo_root)
   cfg$cores_pipeline <- 1L
+  selected_obj <- readRDS(row$source_reference_fit_path)
+  selected_seed <- extract_selected_seed_original288_syncedbase_rerun(selected_obj, NA_integer_)
 
   cfg_path <- config_path_original288_syncedbase_rerun(row$row_id)
   ensure_dir_original288_syncedbase_rerun(dirname(cfg_path))
@@ -85,7 +87,7 @@ for (i in seq_len(nrow(merged))) {
   rows[[i]] <- data.frame(
     row_id = row$row_id,
     pair_id = paste(row$original_scenario_key, row$model, sep = "::"),
-    seed = NA_integer_,
+    seed = selected_seed,
     status = "pending",
     phase = row$phase,
     phase_order = row$phase_order,

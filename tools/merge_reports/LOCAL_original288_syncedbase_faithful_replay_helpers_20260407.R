@@ -2,6 +2,21 @@ source("tools/merge_reports/LOCAL_original288_recovery_helpers_20260405.R")
 
 `%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
 
+is_missing_scalar_original288_syncedbase_rerun <- function(x) {
+  if (is.null(x) || !length(x)) return(TRUE)
+  if (all(is.na(x))) return(TRUE)
+  y <- as.character(x)[1]
+  !nzchar(trimws(y)) || identical(toupper(trimws(y)), "NA")
+}
+
+first_present_original288_syncedbase_rerun <- function(..., default = NULL) {
+  vals <- list(...)
+  for (v in vals) {
+    if (!is_missing_scalar_original288_syncedbase_rerun(v)) return(v)
+  }
+  default
+}
+
 rbind_fill_original288_syncedbase_rerun <- function(parts) {
   if (!length(parts)) return(data.frame())
   cols <- unique(unlist(lapply(parts, names), use.names = FALSE))
@@ -67,9 +82,9 @@ paths_original288_syncedbase_rerun <- function() {
 }
 
 safe_chr_original288_syncedbase_rerun <- function(x, default = NA_character_) {
-  if (is.null(x) || !length(x)) return(default)
+  if (is_missing_scalar_original288_syncedbase_rerun(x)) return(default)
   y <- as.character(x)[1]
-  if (!nzchar(y)) default else y
+  if (!nzchar(trimws(y)) || identical(toupper(trimws(y)), "NA")) default else y
 }
 
 safe_int_original288_syncedbase_rerun <- function(x, default = NA_integer_) {
@@ -292,40 +307,82 @@ dynamic_mcmc_config_from_selected_fit_original288_syncedbase_rerun <- function(c
 
   cfg$mcmc$mh <- cfg$mcmc$mh %||% list()
   cfg$mcmc$mh$proposal <- safe_chr_original288_syncedbase_rerun(
-    mhd$proposal %||% cfg$mcmc$mh$primary_proposal %||% cfg$mcmc$mh$proposal,
+    first_present_original288_syncedbase_rerun(
+      mhd$proposal,
+      cfg$mcmc$mh$primary_proposal,
+      cfg$mcmc$mh$proposal
+    ),
     "laplace_rw"
   )
   cfg$mcmc$mh$primary_proposal <- cfg$mcmc$mh$proposal
   cfg$mcmc$mh$joint_sample <- safe_flag_original288_syncedbase_rerun(
-    mhd$joint_sample %||% cfg$mcmc$mh$primary_joint_sample %||% cfg$mcmc$mh$joint_sample,
+    first_present_original288_syncedbase_rerun(
+      mhd$joint_sample,
+      cfg$mcmc$mh$primary_joint_sample,
+      cfg$mcmc$mh$joint_sample
+    ),
     FALSE
   )
   cfg$mcmc$mh$primary_joint_sample <- cfg$mcmc$mh$joint_sample
-  cfg$mcmc$mh$adapt <- safe_flag_original288_syncedbase_rerun(mhd$adapt %||% cfg$mcmc$mh$adapt, TRUE)
-  cfg$mcmc$mh$adapt_interval <- safe_int_original288_syncedbase_rerun(mhd$adapt_interval %||% cfg$mcmc$mh$adapt_interval, 50L)
-  cfg$mcmc$mh$max_scale_step <- safe_num_original288_syncedbase_rerun(mhd$max_scale_step %||% cfg$mcmc$mh$max_scale_step, 0.35)
-  cfg$mcmc$mh$min_burn_adapt <- safe_int_original288_syncedbase_rerun(mhd$min_burn_adapt %||% cfg$mcmc$mh$min_burn_adapt, 50L)
-  if (!is.null(mhd$target_accept) && length(mhd$target_accept)) {
-    cfg$mcmc$mh$target_accept <- as.numeric(mhd$target_accept)
+  cfg$mcmc$mh$adapt <- safe_flag_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$adapt, cfg$mcmc$mh$adapt),
+    TRUE
+  )
+  cfg$mcmc$mh$adapt_interval <- safe_int_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$adapt_interval, cfg$mcmc$mh$adapt_interval),
+    50L
+  )
+  cfg$mcmc$mh$max_scale_step <- safe_num_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$max_scale_step, cfg$mcmc$mh$max_scale_step),
+    0.35
+  )
+  cfg$mcmc$mh$min_burn_adapt <- safe_int_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$min_burn_adapt, cfg$mcmc$mh$min_burn_adapt),
+    50L
+  )
+  target_accept <- first_present_original288_syncedbase_rerun(mhd$target_accept, cfg$mcmc$mh$target_accept)
+  if (!is.null(target_accept) && length(target_accept) &&
+      any(is.finite(suppressWarnings(as.numeric(target_accept))))) {
+    cfg$mcmc$mh$target_accept <- as.numeric(target_accept)
   }
-  if (!is.null(mhd$scale_bounds) && length(mhd$scale_bounds)) {
-    cfg$mcmc$mh$scale_bounds <- as.numeric(mhd$scale_bounds)
+  scale_bounds <- first_present_original288_syncedbase_rerun(mhd$scale_bounds, cfg$mcmc$mh$scale_bounds)
+  if (!is.null(scale_bounds) && length(scale_bounds) &&
+      any(is.finite(suppressWarnings(as.numeric(scale_bounds))))) {
+    cfg$mcmc$mh$scale_bounds <- as.numeric(scale_bounds)
   }
-  if (is.finite(safe_num_original288_syncedbase_rerun(mhd$slice_width, NA_real_))) {
-    cfg$mcmc$mh$slice_width <- safe_num_original288_syncedbase_rerun(mhd$slice_width, NA_real_)
+  slice_width <- first_present_original288_syncedbase_rerun(mhd$slice_width, cfg$mcmc$mh$slice_width)
+  if (is.finite(safe_num_original288_syncedbase_rerun(slice_width, NA_real_))) {
+    cfg$mcmc$mh$slice_width <- safe_num_original288_syncedbase_rerun(slice_width, NA_real_)
   } else {
     cfg$mcmc$mh$slice_width <- NULL
   }
-  if (is.finite(safe_int_original288_syncedbase_rerun(mhd$slice_max_steps, NA_integer_))) {
-    cfg$mcmc$mh$slice_max_steps <- safe_int_original288_syncedbase_rerun(mhd$slice_max_steps, NA_integer_)
+  slice_max_steps <- first_present_original288_syncedbase_rerun(mhd$slice_max_steps, cfg$mcmc$mh$slice_max_steps)
+  if (is.finite(safe_int_original288_syncedbase_rerun(slice_max_steps, NA_integer_))) {
+    cfg$mcmc$mh$slice_max_steps <- safe_int_original288_syncedbase_rerun(slice_max_steps, NA_integer_)
   } else {
     cfg$mcmc$mh$slice_max_steps <- NULL
   }
 
   laplace_refresh <- mhd$laplace_refresh %||% list()
-  refresh_interval <- laplace_refresh$interval %||% laplace_refresh$refresh_interval %||% laplace_refresh$laplace_refresh_interval
-  refresh_start <- laplace_refresh$start %||% laplace_refresh$start_iter %||% laplace_refresh$refresh_start %||% laplace_refresh$laplace_refresh_start
-  refresh_weight <- laplace_refresh$weight %||% laplace_refresh$refresh_weight %||% laplace_refresh$laplace_refresh_weight
+  refresh_interval <- first_present_original288_syncedbase_rerun(
+    laplace_refresh$interval,
+    laplace_refresh$refresh_interval,
+    laplace_refresh$laplace_refresh_interval,
+    cfg$mcmc$mh$laplace_refresh_interval
+  )
+  refresh_start <- first_present_original288_syncedbase_rerun(
+    laplace_refresh$start,
+    laplace_refresh$start_iter,
+    laplace_refresh$refresh_start,
+    laplace_refresh$laplace_refresh_start,
+    cfg$mcmc$mh$laplace_refresh_start
+  )
+  refresh_weight <- first_present_original288_syncedbase_rerun(
+    laplace_refresh$weight,
+    laplace_refresh$refresh_weight,
+    laplace_refresh$laplace_refresh_weight,
+    cfg$mcmc$mh$laplace_refresh_weight
+  )
   if (is.finite(safe_int_original288_syncedbase_rerun(refresh_interval, NA_integer_))) {
     cfg$mcmc$mh$laplace_refresh_interval <- safe_int_original288_syncedbase_rerun(refresh_interval, NA_integer_)
   }
@@ -348,7 +405,7 @@ static_mcmc_config_from_selected_fit_original288_syncedbase_rerun <- function(cf
   cfg$mcmc$n <- safe_int_original288_syncedbase_rerun(fit$n.mcmc %||% cfg$mcmc$n, 8000L)
   cfg$mcmc$thin <- safe_int_original288_syncedbase_rerun(fit$thin %||% cfg$mcmc$thin, 1L)
 
-  beta_prior_type <- fit$beta_prior$type %||% fit$beta_prior
+  beta_prior_type <- first_present_original288_syncedbase_rerun(fit$beta_prior$type, fit$beta_prior)
   if (!is.null(beta_prior_type) && length(beta_prior_type)) {
     cfg$mcmc$beta_prior <- as.character(beta_prior_type)[1]
   }
@@ -361,46 +418,101 @@ static_mcmc_config_from_selected_fit_original288_syncedbase_rerun <- function(cf
   cfg$mcmc$trace_every <- safe_int_original288_syncedbase_rerun(mhd$trace_every %||% cfg$mcmc$trace_every, 50L)
 
   cfg$mcmc$mh <- cfg$mcmc$mh %||% list()
-  cfg$mcmc$mh$proposal <- safe_chr_original288_syncedbase_rerun(mhd$proposal %||% cfg$mcmc$mh$proposal, "laplace_rw")
+  cfg$mcmc$mh$proposal <- safe_chr_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$proposal, cfg$mcmc$mh$proposal),
+    "laplace_rw"
+  )
   cfg$mcmc$mh$primary_proposal <- cfg$mcmc$mh$proposal
-  cfg$mcmc$mh$adapt <- safe_flag_original288_syncedbase_rerun(mhd$adapt %||% cfg$mcmc$mh$adapt, TRUE)
-  cfg$mcmc$mh$adapt_interval <- safe_int_original288_syncedbase_rerun(mhd$adapt_interval %||% cfg$mcmc$mh$adapt_interval, 50L)
-  cfg$mcmc$mh$max_scale_step <- safe_num_original288_syncedbase_rerun(mhd$max_scale_step %||% cfg$mcmc$mh$max_scale_step, 0.35)
-  cfg$mcmc$mh$min_burn_adapt <- safe_int_original288_syncedbase_rerun(mhd$min_burn_adapt %||% cfg$mcmc$mh$min_burn_adapt, 50L)
-  if (!is.null(mhd$target_accept) && length(mhd$target_accept)) {
-    cfg$mcmc$mh$target_accept <- as.numeric(mhd$target_accept)
+  cfg$mcmc$mh$adapt <- safe_flag_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$adapt, cfg$mcmc$mh$adapt),
+    TRUE
+  )
+  cfg$mcmc$mh$adapt_interval <- safe_int_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$adapt_interval, cfg$mcmc$mh$adapt_interval),
+    50L
+  )
+  cfg$mcmc$mh$max_scale_step <- safe_num_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$max_scale_step, cfg$mcmc$mh$max_scale_step),
+    0.35
+  )
+  cfg$mcmc$mh$min_burn_adapt <- safe_int_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$min_burn_adapt, cfg$mcmc$mh$min_burn_adapt),
+    50L
+  )
+  target_accept <- first_present_original288_syncedbase_rerun(mhd$target_accept, cfg$mcmc$mh$target_accept)
+  if (!is.null(target_accept) && length(target_accept) &&
+      any(is.finite(suppressWarnings(as.numeric(target_accept))))) {
+    cfg$mcmc$mh$target_accept <- as.numeric(target_accept)
   }
-  if (!is.null(mhd$scale_bounds) && length(mhd$scale_bounds)) {
-    cfg$mcmc$mh$scale_bounds <- as.numeric(mhd$scale_bounds)
+  scale_bounds <- first_present_original288_syncedbase_rerun(mhd$scale_bounds, cfg$mcmc$mh$scale_bounds)
+  if (!is.null(scale_bounds) && length(scale_bounds) &&
+      any(is.finite(suppressWarnings(as.numeric(scale_bounds))))) {
+    cfg$mcmc$mh$scale_bounds <- as.numeric(scale_bounds)
   }
-  cfg$mcmc$mh$trace_diagnostics <- safe_flag_original288_syncedbase_rerun(mhd$trace_enabled %||% cfg$mcmc$mh$trace_diagnostics, TRUE)
-  cfg$mcmc$mh$trace_every <- safe_int_original288_syncedbase_rerun(mhd$trace_every %||% cfg$mcmc$mh$trace_every, 50L)
+  cfg$mcmc$mh$trace_diagnostics <- safe_flag_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$trace_enabled, cfg$mcmc$mh$trace_diagnostics),
+    TRUE
+  )
+  cfg$mcmc$mh$trace_every <- safe_int_original288_syncedbase_rerun(
+    first_present_original288_syncedbase_rerun(mhd$trace_every, cfg$mcmc$mh$trace_every),
+    50L
+  )
 
-  if (is.finite(safe_num_original288_syncedbase_rerun(mhd$slice_width, NA_real_))) {
-    cfg$mcmc$mh$slice_width <- safe_num_original288_syncedbase_rerun(mhd$slice_width, NA_real_)
+  slice_width <- first_present_original288_syncedbase_rerun(mhd$slice_width, cfg$mcmc$mh$slice_width)
+  if (is.finite(safe_num_original288_syncedbase_rerun(slice_width, NA_real_))) {
+    cfg$mcmc$mh$slice_width <- safe_num_original288_syncedbase_rerun(slice_width, NA_real_)
   } else {
     cfg$mcmc$mh$slice_width <- NULL
   }
-  if (is.finite(safe_int_original288_syncedbase_rerun(mhd$slice_max_steps, NA_integer_))) {
-    cfg$mcmc$mh$slice_max_steps <- safe_int_original288_syncedbase_rerun(mhd$slice_max_steps, NA_integer_)
+  slice_max_steps <- first_present_original288_syncedbase_rerun(mhd$slice_max_steps, cfg$mcmc$mh$slice_max_steps)
+  if (is.finite(safe_int_original288_syncedbase_rerun(slice_max_steps, NA_integer_))) {
+    cfg$mcmc$mh$slice_max_steps <- safe_int_original288_syncedbase_rerun(slice_max_steps, NA_integer_)
   } else {
     cfg$mcmc$mh$slice_max_steps <- NULL
   }
-  if (is.finite(safe_int_original288_syncedbase_rerun(mhd$gamma_substeps, NA_integer_))) {
-    cfg$mcmc$mh$gamma_substeps <- safe_int_original288_syncedbase_rerun(mhd$gamma_substeps, NA_integer_)
+  gamma_substeps <- first_present_original288_syncedbase_rerun(mhd$gamma_substeps, cfg$mcmc$mh$gamma_substeps)
+  if (is.finite(safe_int_original288_syncedbase_rerun(gamma_substeps, NA_integer_))) {
+    cfg$mcmc$mh$gamma_substeps <- safe_int_original288_syncedbase_rerun(gamma_substeps, NA_integer_)
   }
 
   global_eta <- mhd$global_eta_jump %||% list()
-  if (safe_flag_original288_syncedbase_rerun(global_eta$enabled, FALSE)) {
-    cfg$mcmc$mh$p_global_eta_jump <- safe_num_original288_syncedbase_rerun(global_eta$p, NA_real_)
-    cfg$mcmc$mh$global_eta_jump_scale <- safe_num_original288_syncedbase_rerun(global_eta$scale, NA_real_)
+  ge_p <- first_present_original288_syncedbase_rerun(global_eta$p, cfg$mcmc$mh$p_global_eta_jump)
+  ge_scale <- first_present_original288_syncedbase_rerun(global_eta$scale, cfg$mcmc$mh$global_eta_jump_scale)
+  if (is.finite(safe_num_original288_syncedbase_rerun(ge_p, NA_real_))) {
+    cfg$mcmc$mh$p_global_eta_jump <- safe_num_original288_syncedbase_rerun(ge_p, NA_real_)
+  }
+  if (is.finite(safe_num_original288_syncedbase_rerun(ge_scale, NA_real_))) {
+    cfg$mcmc$mh$global_eta_jump_scale <- safe_num_original288_syncedbase_rerun(ge_scale, NA_real_)
   }
 
   laplace_refresh <- mhd$laplace_refresh %||% list()
-  if (safe_flag_original288_syncedbase_rerun(laplace_refresh$enabled, FALSE)) {
-    cfg$mcmc$mh$laplace_refresh_interval <- safe_int_original288_syncedbase_rerun(laplace_refresh$interval, NA_integer_)
-    cfg$mcmc$mh$laplace_refresh_start <- safe_int_original288_syncedbase_rerun(laplace_refresh$start, NA_integer_)
-    cfg$mcmc$mh$laplace_refresh_weight <- safe_num_original288_syncedbase_rerun(laplace_refresh$weight, NA_real_)
+  refresh_interval <- first_present_original288_syncedbase_rerun(
+    laplace_refresh$interval,
+    laplace_refresh$refresh_interval,
+    laplace_refresh$laplace_refresh_interval,
+    cfg$mcmc$mh$laplace_refresh_interval
+  )
+  refresh_start <- first_present_original288_syncedbase_rerun(
+    laplace_refresh$start,
+    laplace_refresh$start_iter,
+    laplace_refresh$refresh_start,
+    laplace_refresh$laplace_refresh_start,
+    cfg$mcmc$mh$laplace_refresh_start
+  )
+  refresh_weight <- first_present_original288_syncedbase_rerun(
+    laplace_refresh$weight,
+    laplace_refresh$refresh_weight,
+    laplace_refresh$laplace_refresh_weight,
+    cfg$mcmc$mh$laplace_refresh_weight
+  )
+  if (is.finite(safe_int_original288_syncedbase_rerun(refresh_interval, NA_integer_))) {
+    cfg$mcmc$mh$laplace_refresh_interval <- safe_int_original288_syncedbase_rerun(refresh_interval, NA_integer_)
+  }
+  if (is.finite(safe_int_original288_syncedbase_rerun(refresh_start, NA_integer_))) {
+    cfg$mcmc$mh$laplace_refresh_start <- safe_int_original288_syncedbase_rerun(refresh_start, NA_integer_)
+  }
+  if (is.finite(safe_num_original288_syncedbase_rerun(refresh_weight, NA_real_))) {
+    cfg$mcmc$mh$laplace_refresh_weight <- safe_num_original288_syncedbase_rerun(refresh_weight, NA_real_)
   }
 
   cfg
@@ -409,7 +521,7 @@ static_mcmc_config_from_selected_fit_original288_syncedbase_rerun <- function(cf
 static_vb_config_from_selected_fit_original288_syncedbase_rerun <- function(cfg, obj) {
   fit <- resolve_selected_fit_original288_syncedbase_rerun(obj)
   cfg$vb <- cfg$vb %||% list()
-  beta_prior_type <- fit$beta_prior$type %||% fit$beta_prior
+  beta_prior_type <- first_present_original288_syncedbase_rerun(fit$beta_prior$type, fit$beta_prior)
   if (!is.null(beta_prior_type) && length(beta_prior_type)) {
     cfg$vb$beta_prior <- as.character(beta_prior_type)[1]
   }

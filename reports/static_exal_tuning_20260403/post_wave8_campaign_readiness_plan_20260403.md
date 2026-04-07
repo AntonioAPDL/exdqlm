@@ -258,6 +258,28 @@ Important synced-base rerun refinement on the active integration branch:
   revalidation on the synced `0.4.0` base**
 - the rerun program and execution notes now live in:
   - `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_program_20260406.md`
+
+Important faithful-replay closeout and residual-repair refinement (2026-04-07):
+
+- the broad synced-base rerun remains deprecated for scientific comparison
+- the reference-grade faithful replay of the accepted healthy `282` rows has
+  now completed
+- that replay produced:
+  - `31` strict improvements promoted into accepted `v5`
+  - final accepted publication-target state:
+    - `282 / 288` healthy
+    - `6 / 288` unresolved
+    - `226 PASS`
+    - `56 WARN`
+    - `6 FAIL`
+- the replay also identified a structured residual replay queue of `84` rows:
+  - `54` static `al :: mcmc` bug-fix reruns
+  - `27` static `exal :: mcmc` exact accepted replays
+  - `3` dynamic `exdqlm :: mcmc` exact accepted replays
+- the active next execution phase on the synced branch is therefore the
+  residual replay-repair program:
+  - `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_program_20260407.md`
+  - `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_execution_20260407.md`
   - `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_execution_20260406.md`
 - validated rerun phase split:
   - `144` VB
