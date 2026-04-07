@@ -56,7 +56,6 @@ fi
 
 RUN_DIR="$OUT_DIR/full288_${TAG}"
 LOG_DIR="$RUN_DIR/logs"
-mkdir -p "$LOG_DIR"
 
 echo "[faithful-replay] repo_root=$REPO_ROOT"
 echo "[faithful-replay] tag=$TAG"
@@ -70,6 +69,8 @@ if [[ "$SKIP_PREPARE" != "1" ]]; then
 else
   echo "[faithful-replay] skip prepare requested"
 fi
+
+mkdir -p "$LOG_DIR"
 
 echo "[faithful-replay] prelaunch evaluate"
 Rscript "$OUT_DIR/LOCAL_original288_syncedbase_faithful_replay_evaluate_20260407.R" --manifest="$MANIFEST" --tag="$TAG"
