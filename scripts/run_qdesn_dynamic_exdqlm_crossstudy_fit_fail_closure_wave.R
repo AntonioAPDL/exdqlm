@@ -167,10 +167,14 @@ reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_invent
 source_cfg <- manifest$source %||% list()
 source_run_tag <- as.character(source_cfg$run_tag %||% "")[1L]
 if (!nzchar(source_run_tag)) stop("Fit-fail closure manifest must define source.run_tag.", call. = FALSE)
+source_mode <- as.character(source_cfg$mode %||% "dynamic_campaign")[1L]
+source_stage_profile_overrides <- source_cfg$stage_profile_overrides %||% list()
 
 source_state <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_collect_source_state(
   source_run_tag = source_run_tag,
   source_report_root = source_cfg$report_root %||% file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
+  source_mode = source_mode,
+  source_stage_profile_overrides = source_stage_profile_overrides,
   defaults = base_defaults,
   grid = grid_df,
   defaults_path = defaults_path,
@@ -249,9 +253,10 @@ if (!is.finite(hard_cap_workers) || hard_cap_workers < 1L) hard_cap_workers <- 6
 workers <- min(as.integer(hard_cap_workers), as.integer(workers))
 
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
+run_tag_prefix <- as.character(manifest$meta$run_tag_prefix %||% "qdesn-dynamic-exdqlm-crossstudy-fitfail")[1L]
 run_tag <- as.character(get_arg(
   "--run-tag",
-  sprintf("qdesn-dynamic-exdqlm-crossstudy-fitfail-%s__git-%s", format(Sys.time(), "%Y%m%d-%H%M%S"), git_sha)
+  sprintf("%s-%s__git-%s", run_tag_prefix, format(Sys.time(), "%Y%m%d-%H%M%S"), git_sha)
 ))[1L]
 
 campaign_cfg <- manifest$campaign %||% list()
@@ -273,6 +278,12 @@ write_csv(source_state$root_summary, file.path(tables_root, "source_root_signoff
 write_csv(source_state$fail_summary, file.path(tables_root, "source_fit_fail_summary.csv"))
 if (nrow(source_state$progress)) {
   write_csv(source_state$progress, file.path(tables_root, "source_campaign_progress.csv"))
+}
+if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) {
+  write_csv(source_state$local_baseline_map, file.path(tables_root, "source_effective_local_baseline_map.csv"))
+}
+if (nrow(source_state$raw_local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) {
+  write_csv(source_state$raw_local_baseline_map, file.path(tables_root, "source_raw_local_baseline_map.csv"))
 }
 write_csv(stage_plan_df, file.path(tables_root, "stage_plan.csv"))
 write_csv(profile_df, file.path(tables_root, "profile_inventory.csv"))
@@ -324,6 +335,7 @@ preflight_manifest <- list(
   create_plots = create_plots,
   chosen_workers = workers,
   source_run_tag = source_run_tag,
+  source_mode = source_mode,
   source_campaign_report_root = source_state$campaign_report_root,
   source_counts = list(
     fit_rows = nrow(source_state$fit_summary),
@@ -350,6 +362,7 @@ preflight_lines <- c(
   sprintf("- git_sha: `%s`", git_sha),
   sprintf("- run_tag: `%s`", run_tag),
   sprintf("- source_run_tag: `%s`", source_run_tag),
+  sprintf("- source_mode: `%s`", source_mode),
   sprintf("- defaults_path: `%s`", defaults_path),
   sprintf("- grid_path: `%s`", grid_path),
   sprintf("- outer_report_root: `%s`", run_report_root),
@@ -366,6 +379,14 @@ preflight_lines <- c(
   sprintf("- source_compare_any_roots: `%d`", sum(as.logical(source_state$root_summary$root_comparison_eligible_any), na.rm = TRUE)),
   sprintf("- source_compare_full_roots: `%d`", sum(as.logical(source_state$root_summary$root_comparison_eligible_full), na.rm = TRUE)),
   "",
+  "## Source Rationale",
+  sprintf("- source_label: `%s`", as.character(source_state$source_label %||% "Source Baseline")),
+  sprintf("- source_rationale: %s", as.character(source_state$source_rationale %||% "")),
+  "",
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) "## Source Effective Local Baseline Map" else NULL,
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) "" else NULL,
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) render_md_table(source_state$local_baseline_map) else NULL,
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) "" else NULL,
   "## Stage Plan",
   "",
   render_md_table(stage_plan_df),
@@ -512,8 +533,8 @@ for (stage_name in names(stage_plans)) {
     run_obj = source_run_obj,
     stage_cfg = stage_cfg
   )
-  source_metric$profile_label <- "Current Integration-Branch Baseline"
-  source_metric$rationale <- "Completed broad rerun on the synced 0.4.0 integration base."
+  source_metric$profile_label <- as.character(source_state$source_label %||% "Source Baseline")[1L]
+  source_metric$rationale <- as.character(source_state$source_rationale %||% "Current source baseline for this wave.")[1L]
   source_metric$error_message <- ""
 
   stage_metrics <- list()
@@ -597,9 +618,11 @@ final_lines <- c(
   sprintf("- updated_at: `%s`", as.character(Sys.time())),
   sprintf("- run_tag: `%s`", run_tag),
   sprintf("- source_run_tag: `%s`", source_run_tag),
+  sprintf("- source_mode: `%s`", source_mode),
   "",
   "## Main Takeaways",
-  "- This wave starts from the completed branch-local broad rerun on the synced 0.4.0 integration base.",
+  sprintf("- Source baseline label: `%s`.", as.character(source_state$source_label %||% "Source Baseline")[1L]),
+  sprintf("- Source rationale: %s", as.character(source_state$source_rationale %||% "Current source baseline for this wave.")),
   "- It targets only the remaining fail and noneligible pockets rather than rerunning the full mirrored dynamic matrix.",
   "- Stage-local promotion is allowed only when a challenger beats the current branch-local source baseline on the targeted fail surface.",
   "",
@@ -607,6 +630,10 @@ final_lines <- c(
   "",
   render_md_table(stage_results_df),
   "",
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) "## Source Effective Local Baseline Map" else NULL,
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) "" else NULL,
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) render_md_table(source_state$local_baseline_map) else NULL,
+  if (nrow(source_state$local_baseline_map %||% data.frame(stringsAsFactors = FALSE))) "" else NULL,
   "## Local Baseline Map",
   "",
   render_md_table(local_baseline_df),

@@ -37,9 +37,9 @@ Reason:
 
 ## 2) Current Status
 
-Status: **the branch-local smoke rerun and branch-local broad dynamic rerun are both complete on
-the synced `0.4.0` integration base; the current next move is a targeted residual fail-closure
-wave, not another broad rerun**
+Status: **the branch-local smoke rerun, the broad dynamic rerun, and the first targeted
+fit-fail closure wave are all complete on the synced `0.4.0` integration base; the current next
+move is a second residual-only overnight wave, not another broad rerun**
 
 Scope correction summary:
 
@@ -114,23 +114,44 @@ Integration-branch continuation rule:
   - `8/36` comparison-eligible-full
   - recommendation:
     - `HOLD_QDESN_DYNAMIC_EXDQLM_WITH_GAPS`
-- the next branch-local validation milestone is therefore a **targeted fail-closure wave**, not
-  another smoke gate and not another full rerun.
-- that targeted wave is now validated in prepare-only on this branch:
-  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87`
-  - stage sizes:
-    - `5 / 5 / 6 / 4 / 8`
-  - verified coverage:
-    - `28/28` fail-carrying roots
-    - `42/42` fail rows
-  - preflight:
-    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
-- the detached overnight targeted-wave launch is now live on this branch:
+- the first targeted fit-fail closure wave is now complete on this branch:
   - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
-  - initial healthcheck:
-    - launcher live
-    - runner `RUNNING`
-    - `0/5` stages complete at launch-check time
+  - `5/5` stages complete
+  - `10/10` challenger profiles complete
+  - clear local promotions:
+    - `K510_gmix_balanced_rescue`
+    - `K540_ridge_vb_guard_plus_softgamma`
+    - `K580_mixed_short_guard_plus_softgamma`
+  - conservative unresolved-stage carry-forward:
+    - `S4` uses `K550_rhs_softfreeze_local` as working control for the next wave
+  - effective residual source state after Wave 1:
+    - `26` FAIL rows
+    - `17` fail-carrying roots
+    - `2` root-status FAILs
+    - `35` comparison-eligible-any roots
+    - `19` comparison-eligible-full roots
+- primary closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_fit_fail_wave1_closeout_and_wave2_inventory_20260407.md`
+- the next branch-local validation milestone is therefore a **second residual-only overnight
+  wave**, not another smoke gate, not another broad rerun, and not a generic global retuning
+  search.
+- that second residual wave is now validated in prepare-only on this branch:
+  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025317__git-2078ff9`
+  - source mode:
+    - `prior_fitfail_wave`
+  - verified source coverage:
+    - `17/17` fail-carrying roots
+    - `26/26` FAIL rows
+  - verified stage sizes:
+    - `5 / 3 / 1 / 4 / 4`
+  - challenger profile count:
+    - `16`
+  - planned root-campaigns:
+    - `56`
+  - plan:
+    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_20260407.md`
+  - manifest:
+    - `config/validation/qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_manifest.yaml`
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 

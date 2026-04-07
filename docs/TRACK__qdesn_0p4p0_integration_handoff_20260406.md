@@ -231,65 +231,95 @@ Completed branch-local broad rerun:
 - recommendation:
   - `HOLD_QDESN_DYNAMIC_EXDQLM_WITH_GAPS`
 
-Current branch-local root inventory:
+Completed targeted fit-fail closure wave:
+
+- `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
+- `5/5` stages complete
+- `10/10` challenger profiles complete
+- `56/56` root-campaigns executed
+
+Clear stage-local promotions from the targeted wave:
+
+- `S2_gausmix_tt500_fail_band`
+  - `K510_gmix_balanced_rescue`
+- `S3_ridge_tt5000_vb_tail_band`
+  - `K540_ridge_vb_guard_plus_softgamma`
+- `S5_short_horizon_mixed_tail`
+  - `K580_mixed_short_guard_plus_softgamma`
+
+Conservative carry-forward decision:
+
+- keep `S1` on `SOURCE_BASELINE`
+- do **not** promote `K560_rhs_softfreeze_long` as a clear winner
+- use `K550_rhs_softfreeze_local` as the effective working control for the next rhs long-horizon
+  residual wave
+
+Current effective branch-local root inventory after applying the conservative carry-forward map:
 
 - `PASS / healthy`:
-  - `8/36`
+  - `19/36`
 - `WARN / needs review`:
-  - `24/36`
+  - `15/36`
 - `FAIL / broken or inconsistent`:
-  - `4/36`
+  - `2/36`
     - `2` outright root failures
-    - `2` successful but noneligible roots
+    - `0` successful but noneligible roots
 
-Current branch-local fit inventory:
+Current effective branch-local fit inventory:
 
 - `PASS`:
-  - `37/144`
+  - not summarized as a new global campaign; use the effective residual source counts below
 - `WARN`:
-  - `65/144`
+  - not summarized as a new global campaign; use the effective residual source counts below
 - `FAIL`:
-  - `42/144`
+  - `26/144`
 
-## 9) Promotion Decision After The Broad Rerun
+Primary closeout report for this decision:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_fit_fail_wave1_closeout_and_wave2_inventory_20260407.md`
+
+## 9) Promotion Decision After Wave 1
 
 No new **global** baseline promotion is justified yet.
 
-Reason:
+But several **local** promotions are justified.
 
-- the branch-local rerun improved:
-  - fit FAIL rows:
-    - `46 -> 42`
-  - roots with any usable comparison:
-    - `31 -> 33`
-- but regressed on:
-  - outright root execution:
-    - `36/36 SUCCESS -> 34/36 SUCCESS`
-  - fully comparison-ready roots:
-    - `11 -> 8`
+Decision rule carried forward:
 
-Working decision:
-
-- keep the current dynamic cross-study defaults as the branch-local default baseline
-- allow only stage-local promotion when a challenger clearly improves the source baseline on its
-  targeted residual slice
+- keep the global dynamic defaults as the default baseline
+- promote only the local winners that clearly beat the source on their stage
+- for ambiguous stages, keep source or carry forward only the safer local control for the next wave
+  without calling it a scientific promotion
 
 ## 10) Remaining Scientific Debt
 
-Current residual fail surface:
+Effective residual fail surface after the conservative carry-forward map:
 
 - fit FAIL rows:
-  - `42`
+  - `26`
 - fail-carrying roots:
-  - `28`
+  - `17`
+- root-status FAIL roots:
+  - `2`
 
 Dominant remaining patterns:
 
-- long-horizon `gausmix` MCMC `exal` crash and drift pockets
-- long-horizon `ridge` residual instability pockets on `laplace/normal`, mostly VB tail with a
-  small `mcmc exal` drift pocket
-- long-horizon `rhs_ns` residual fail pockets on `laplace/normal`
-- short-horizon mixed `laplace/normal` tail pockets
+- long-horizon `gausmix` residual pocket
+  - `5` roots
+  - `9` FAIL rows
+  - still contains both remaining root failures
+- short-horizon `gausmix` residual pocket
+  - `3` roots
+  - `5` FAIL rows
+- long-horizon `rhs_ns` residual pocket
+  - `4` roots
+  - `6` FAIL rows
+- short-horizon mixed `laplace/normal` pocket
+  - `4` roots
+  - `4` FAIL rows
+- long-horizon ridge singleton
+  - `1` root
+  - `2` FAIL rows
 
 Best high-level axis read remains:
 
@@ -299,23 +329,24 @@ Best high-level axis read remains:
 
 ## 11) Recommended Move-Forward On This Branch
 
-The next move is no longer another full rerun.
+The next move is no longer another full rerun and no longer another first-wave targeted fit-fail
+screen.
 
-The next move is a targeted fail-closure wave that:
+The next move is a **second residual-only overnight wave** that:
 
-1. starts from the completed branch-local broad rerun as the source baseline
-2. targets only the remaining fail and noneligible pockets
-3. uses challenger-only local profiles
-4. promotes only when a challenger beats the source baseline on that stage
+1. starts from the merged local baseline state created by the completed targeted wave
+2. targets only the remaining `26` FAIL rows on `17` roots
+3. explores broadly, but only inside the surviving high-value local neighborhoods
+4. promotes only if a challenger clearly beats that effective source state
 
-Targeted fail-closure assets:
+Wave-2 residual assets:
 
-- report:
-  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_rerun_closeout_and_residual_inventory_20260406.md`
 - plan:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_targeted_fail_closure_wave_20260406.md`
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_20260407.md`
+- report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_fit_fail_wave1_closeout_and_wave2_inventory_20260407.md`
 - manifest:
-  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_manifest.yaml`
 - runner:
   - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R`
 - detached launcher:
@@ -323,39 +354,31 @@ Targeted fail-closure assets:
 - healthcheck:
   - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R`
 
-Targeted fit-fail closure preflight is now validated on this branch:
+Wave-2 residual preflight is now validated on this branch:
 
 - prepare-only run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87`
+  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025317__git-2078ff9`
 - verified stage sizes:
-  - `S1=5`
-  - `S2=5`
-  - `S3=6`
-  - `S4=4`
-  - `S5=8`
+  - `R1=5`
+  - `R2=3`
+  - `R3=1`
+  - `R4=4`
+  - `R5=4`
 - verified coverage:
-  - `28/28` fail-carrying roots
-  - `42/42` fail rows
+  - `17/17` fail-carrying roots
+  - `26/26` fail rows
+- planned challenger profiles:
+  - `16`
+- planned root-campaigns:
+  - `56`
 - preflight:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
-
-Targeted fit-fail closure overnight run is now live:
-
-- run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
-- detached session:
-  - `qdesn_dynxff_0407_000615`
-- initial healthcheck:
-  - launcher session live
-  - runner stop reason `RUNNING`
-  - `0/5` stages complete at launch-check time
-- launch metadata:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009/launch/launcher_session.json`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025317__git-2078ff9/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
 
 ## 12) Working Rules
 
 - keep the study on the **dynamic** exdqlm-aligned surface
 - keep the current defaults as the source baseline unless a local challenger clearly wins
+- use the conservative effective local baseline map as the source for residual-only follow-up
 - do not reopen the static cross-study as the main deliverable
 - do not spend compute on another broad rerun right now
 - do not reopen generic tuning search for one universal rescue profile
@@ -364,6 +387,6 @@ Targeted fit-fail closure overnight run is now live:
 
 For continued QDESN work on this branch, the immediate decision is now:
 
-- **run the targeted fit-fail closure wave**
-- **summarize the resulting branch-local PASS / WARN / FAIL inventory after it completes**
-- **only then decide which local stage winners, if any, deserve promotion**
+- **launch the Wave-2 residual-only overnight run**
+- **recompute the branch-local residual inventory after that run completes**
+- **then decide whether any new local winners deserve promotion**

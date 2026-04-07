@@ -42,9 +42,10 @@ if (!is.list(manifest)) {
 
 campaign_cfg <- manifest$campaign %||% list()
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
+run_tag_prefix <- as.character(manifest$meta$run_tag_prefix %||% "qdesn-dynamic-exdqlm-crossstudy-fitfail")[1L]
 run_tag <- as.character(get_arg(
   "--run-tag",
-  sprintf("qdesn-dynamic-exdqlm-crossstudy-fitfail-%s__git-%s", format(Sys.time(), "%Y%m%d-%H%M%S"), git_sha)
+  sprintf("%s-%s__git-%s", run_tag_prefix, format(Sys.time(), "%Y%m%d-%H%M%S"), git_sha)
 ))[1L]
 
 base_report_root <- resolve_path(

@@ -28,6 +28,39 @@ qdesn_dynamic_crossstudy_fitfail_load_manifest <- function(path = file.path("con
   stop(sprintf("Unable to locate dynamic cross-study campaign root under %s", outer_root), call. = FALSE)
 }
 
+.qdesn_dynamic_crossstudy_fitfail_overlay_fit_rows <- function(base_df, overlay_df) {
+  if (!nrow(base_df)) return(overlay_df)
+  if (!nrow(overlay_df)) return(base_df)
+  key_base <- paste(base_df$root_id, base_df$inference, base_df$model, sep = "||")
+  key_overlay <- paste(overlay_df$root_id, overlay_df$inference, overlay_df$model, sep = "||")
+  keep <- !(key_base %in% key_overlay)
+  out <- exdqlm:::.qdesn_validation_bind_rows(list(base_df[keep, , drop = FALSE], overlay_df))
+  out[order(out$root_id, out$inference, out$model), , drop = FALSE]
+}
+
+.qdesn_dynamic_crossstudy_fitfail_overlay_root_rows <- function(base_df, overlay_df) {
+  if (!nrow(base_df)) return(overlay_df)
+  if (!nrow(overlay_df)) return(base_df)
+  keep <- !(as.character(base_df$root_id) %in% as.character(overlay_df$root_id))
+  out <- exdqlm:::.qdesn_validation_bind_rows(list(base_df[keep, , drop = FALSE], overlay_df))
+  out[order(out$root_id), , drop = FALSE]
+}
+
+.qdesn_dynamic_crossstudy_fitfail_overlay_local_baseline_map <- function(base_df, overlay_df) {
+  if (!nrow(base_df)) return(overlay_df)
+  if (!nrow(overlay_df)) return(base_df)
+  keep <- !(as.character(base_df$stage_id) %in% as.character(overlay_df$stage_id))
+  out <- exdqlm:::.qdesn_validation_bind_rows(list(base_df[keep, , drop = FALSE], overlay_df))
+  out[order(out$stage_id), , drop = FALSE]
+}
+
+.qdesn_dynamic_crossstudy_fitfail_profile_report_root <- function(stage_report_root, profile_id) {
+  .qdesn_dynamic_crossstudy_fitfail_pick_campaign_root(
+    file.path(stage_report_root, "profiles", profile_id),
+    required_child = "tables"
+  )
+}
+
 .qdesn_dynamic_crossstudy_fitfail_match_selector <- function(df, selector = NULL) {
   df <- as.data.frame(df, stringsAsFactors = FALSE)
   selector <- selector %||% list()
@@ -68,40 +101,200 @@ qdesn_dynamic_crossstudy_fitfail_load_manifest <- function(path = file.path("con
   df[keep, , drop = FALSE]
 }
 
+.qdesn_dynamic_crossstudy_fitfail_apply_stage_winners <- function(stage_status,
+                                                                  local_baseline_map,
+                                                                  fit_summary,
+                                                                  root_summary,
+                                                                  stage_profile_overrides = NULL) {
+  winner_inventory <- list()
+  local_baseline_updates <- list()
+  promotable_status <- c("COMPLETED", "PROMOTED_AFTER_STALL")
+  stage_profile_overrides <- stage_profile_overrides %||% list()
+  override_names <- names(stage_profile_overrides)
+  if (is.null(override_names)) override_names <- character(0)
+  valid_stage_ids <- unique(as.character(stage_status$stage_id))
+  unknown_override_ids <- setdiff(override_names, valid_stage_ids)
+  if (length(unknown_override_ids)) {
+    stop(
+      sprintf(
+        "Unknown stage ids in source stage_profile_overrides: %s",
+        paste(unknown_override_ids, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+
+  for (i in seq_len(nrow(stage_status))) {
+    stage_row <- stage_status[i, , drop = FALSE]
+    if (!as.character(stage_row$execution_status[1L]) %in% promotable_status) next
+    stage_id <- as.character(stage_row$stage_id[1L])
+    default_profile_id <- if (nrow(local_baseline_map) && stage_id %in% as.character(local_baseline_map$stage_id)) {
+      local_baseline_map$local_baseline_profile[match(stage_id, local_baseline_map$stage_id)][1L]
+    } else {
+      as.character(stage_row$recommended_profile[1L] %||% "SOURCE_BASELINE")[1L]
+    }
+    selected_profile_id <- as.character(stage_profile_overrides[[stage_id]] %||% default_profile_id %||% "SOURCE_BASELINE")[1L]
+    if (!nzchar(selected_profile_id)) selected_profile_id <- "SOURCE_BASELINE"
+
+    selected_recommendation <- if (identical(selected_profile_id, "SOURCE_BASELINE")) {
+      sprintf("KEEP_SOURCE_BASELINE_FOR_%s", stage_id)
+    } else {
+      sprintf("USE_%s_AS_EFFECTIVE_SOURCE_BASELINE_FOR_%s", selected_profile_id, stage_id)
+    }
+
+    stage_report_root <- as.character(stage_row$stage_report_root[1L])
+    if (!identical(selected_profile_id, "SOURCE_BASELINE")) {
+      profile_report_root <- .qdesn_dynamic_crossstudy_fitfail_profile_report_root(stage_report_root, selected_profile_id)
+      fit_path <- file.path(profile_report_root, "tables", "campaign_fit_summary.csv")
+      root_path <- file.path(profile_report_root, "tables", "campaign_root_signoff_summary.csv")
+      winner_fit_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(fit_path)
+      winner_root_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(root_path)
+      if (!nrow(winner_fit_summary) || !nrow(winner_root_summary)) {
+        stop(
+          sprintf(
+            "Selected source profile '%s' for stage '%s' is missing campaign summary tables.",
+            selected_profile_id, stage_id
+          ),
+          call. = FALSE
+        )
+      }
+      fit_summary <- .qdesn_dynamic_crossstudy_fitfail_overlay_fit_rows(fit_summary, winner_fit_summary)
+      root_summary <- .qdesn_dynamic_crossstudy_fitfail_overlay_root_rows(root_summary, winner_root_summary)
+      winner_inventory[[length(winner_inventory) + 1L]] <- data.frame(
+        stage_id = stage_id,
+        local_baseline_profile = selected_profile_id,
+        stage_report_root = stage_report_root,
+        profile_report_root = profile_report_root,
+        fit_summary_path = fit_path,
+        root_summary_path = root_path,
+        stringsAsFactors = FALSE
+      )
+    }
+
+    local_baseline_updates[[length(local_baseline_updates) + 1L]] <- data.frame(
+      stage_id = stage_id,
+      local_baseline_profile = selected_profile_id,
+      recommendation = selected_recommendation,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  local_baseline_updates_df <- exdqlm:::.qdesn_validation_bind_rows(local_baseline_updates)
+  if (nrow(local_baseline_updates_df)) {
+    local_baseline_map <- .qdesn_dynamic_crossstudy_fitfail_overlay_local_baseline_map(
+      local_baseline_map,
+      local_baseline_updates_df
+    )
+  }
+
+  list(
+    local_baseline_map = local_baseline_map,
+    fit_summary = fit_summary,
+    root_summary = root_summary,
+    winner_inventory = exdqlm:::.qdesn_validation_bind_rows(winner_inventory)
+  )
+}
+
 qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag,
                                                                   source_report_root = file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
+                                                                  source_mode = c("dynamic_campaign", "prior_fitfail_wave"),
+                                                                  source_stage_profile_overrides = NULL,
                                                                   defaults = NULL,
                                                                   grid = NULL,
                                                                   defaults_path = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_defaults.yaml"),
                                                                   grid_path = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_grid.csv")) {
   defaults <- defaults %||% qdesn_dynamic_crossstudy_load_defaults(defaults_path)
   grid <- grid %||% qdesn_dynamic_crossstudy_load_grid(grid_path)
+  source_mode <- match.arg(as.character(source_mode)[1L], c("dynamic_campaign", "prior_fitfail_wave"))
 
   outer_report_root <- file.path(
     .qdesn_validation_resolve_path(source_report_root, must_work = FALSE),
     source_run_tag
   )
-  campaign_report_root <- .qdesn_dynamic_crossstudy_fitfail_pick_campaign_root(outer_report_root, required_child = "tables")
 
-  fit_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(campaign_report_root, "tables", "campaign_fit_summary.csv"))
-  root_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(campaign_report_root, "tables", "campaign_root_signoff_summary.csv"))
-  progress <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(campaign_report_root, "tables", "campaign_progress.csv"))
-  if (!nrow(fit_summary) || !nrow(root_summary)) {
-    stop(sprintf("Source run '%s' is missing campaign fit/root summary tables.", source_run_tag), call. = FALSE)
+  if (identical(source_mode, "dynamic_campaign")) {
+    campaign_report_root <- .qdesn_dynamic_crossstudy_fitfail_pick_campaign_root(outer_report_root, required_child = "tables")
+
+    fit_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(campaign_report_root, "tables", "campaign_fit_summary.csv"))
+    root_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(campaign_report_root, "tables", "campaign_root_signoff_summary.csv"))
+    progress <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(campaign_report_root, "tables", "campaign_progress.csv"))
+    if (!nrow(fit_summary) || !nrow(root_summary)) {
+      stop(sprintf("Source run '%s' is missing campaign fit/root summary tables.", source_run_tag), call. = FALSE)
+    }
+
+    fail_summary <- fit_summary[as.character(fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
+    fail_root_ids <- sort(unique(as.character(fail_summary$root_id)))
+    original_source_root_fail_ids <- sort(unique(as.character(root_summary$root_id[as.character(root_summary$root_status) == "FAIL"])))
+
+    return(list(
+      source_run_tag = source_run_tag,
+      source_mode = source_mode,
+      source_label = "Current Integration-Branch Broad Baseline",
+      source_rationale = "Completed branch-local broad dynamic rerun on the synced 0.4.0 integration base.",
+      outer_report_root = outer_report_root,
+      campaign_report_root = campaign_report_root,
+      fit_summary = fit_summary,
+      root_summary = root_summary,
+      progress = progress,
+      fail_summary = fail_summary,
+      fail_root_ids = fail_root_ids,
+      local_baseline_map = data.frame(stringsAsFactors = FALSE),
+      raw_local_baseline_map = data.frame(stringsAsFactors = FALSE),
+      stage_status = data.frame(stringsAsFactors = FALSE),
+      winner_inventory = data.frame(stringsAsFactors = FALSE),
+      original_source_root_fail_ids = original_source_root_fail_ids,
+      original_source_root_fail_grid = qdesn_static_crossstudy_debt_subset_grid(grid, original_source_root_fail_ids),
+      grid = grid,
+      defaults = defaults
+    ))
   }
 
+  stage_status <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(outer_report_root, "tables", "stage_execution_status.csv"))
+  local_baseline_map_raw <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(outer_report_root, "tables", "local_baseline_map.csv"))
+  source_fit_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(outer_report_root, "tables", "source_fit_summary.csv"))
+  source_root_summary <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(outer_report_root, "tables", "source_root_signoff_summary.csv"))
+  progress <- .qdesn_dynamic_crossstudy_fitfail_read_csv(file.path(outer_report_root, "tables", "source_campaign_progress.csv"))
+  if (!nrow(stage_status) || !nrow(source_fit_summary) || !nrow(source_root_summary)) {
+    stop(
+      sprintf(
+        "Prior fit-fail wave '%s' is missing stage status or source summary tables under %s.",
+        source_run_tag, outer_report_root
+      ),
+      call. = FALSE
+    )
+  }
+
+  original_source_root_fail_ids <- sort(unique(as.character(source_root_summary$root_id[as.character(source_root_summary$root_status) == "FAIL"])))
+  applied <- .qdesn_dynamic_crossstudy_fitfail_apply_stage_winners(
+    stage_status = stage_status,
+    local_baseline_map = local_baseline_map_raw,
+    fit_summary = source_fit_summary,
+    root_summary = source_root_summary,
+    stage_profile_overrides = source_stage_profile_overrides
+  )
+  fit_summary <- applied$fit_summary
+  root_summary <- applied$root_summary
   fail_summary <- fit_summary[as.character(fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
   fail_root_ids <- sort(unique(as.character(fail_summary$root_id)))
 
   list(
     source_run_tag = source_run_tag,
+    source_mode = source_mode,
+    source_label = "Merged Local Baseline After Prior Targeted Wave",
+    source_rationale = "Effective source state created by overlaying the selected prior-wave local winners onto the branch-local broad rerun, with any explicit source-stage overrides from the new manifest applied last.",
     outer_report_root = outer_report_root,
-    campaign_report_root = campaign_report_root,
+    campaign_report_root = outer_report_root,
     fit_summary = fit_summary,
     root_summary = root_summary,
     progress = progress,
     fail_summary = fail_summary,
     fail_root_ids = fail_root_ids,
+    local_baseline_map = applied$local_baseline_map,
+    raw_local_baseline_map = local_baseline_map_raw,
+    stage_status = stage_status,
+    winner_inventory = applied$winner_inventory,
+    original_source_root_fail_ids = original_source_root_fail_ids,
+    original_source_root_fail_grid = qdesn_static_crossstudy_debt_subset_grid(grid, original_source_root_fail_ids),
     grid = grid,
     defaults = defaults
   )
@@ -111,6 +304,14 @@ qdesn_dynamic_crossstudy_fitfail_stage_root_ids <- function(source_state, grid_d
   selector <- stage_cfg$stage_selector %||% stage_cfg$target_selector %||% list()
   matched_fail_dt <- .qdesn_dynamic_crossstudy_fitfail_match_selector(source_state$fail_summary, selector)
   root_ids <- sort(unique(as.character(matched_fail_dt$root_id)))
+  extra_root_fail_selector <- stage_cfg$include_source_root_status_fail_selector %||% list()
+  if (length(extra_root_fail_selector) && nrow(source_state$original_source_root_fail_grid %||% data.frame(stringsAsFactors = FALSE))) {
+    extra_fail_grid <- .qdesn_dynamic_crossstudy_fitfail_match_selector(
+      source_state$original_source_root_fail_grid,
+      extra_root_fail_selector
+    )
+    root_ids <- sort(unique(c(root_ids, as.character(extra_fail_grid$root_id))))
+  }
   if (!length(root_ids)) {
     stop(sprintf("Stage '%s' selector produced no roots.", as.character(stage_cfg$id %||% "UNKNOWN")), call. = FALSE)
   }

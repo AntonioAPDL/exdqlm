@@ -25,17 +25,32 @@ Current repair decision:
 
 - no new broad baseline promotion yet
 - keep the current defaults as the source baseline
-- run a targeted dynamic fail-closure wave over the remaining `42` fail rows on `28` roots
-- targeted-wave prepare-only is now validated with corrected full coverage:
-  - `28/28` fail-carrying roots
-  - stage sizes `5 / 5 / 6 / 4 / 8`
-- targeted-wave detached overnight launch is now live:
+- Wave 1 targeted dynamic fail-closure is now complete:
   - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
+  - clear local promotions:
+    - `K510_gmix_balanced_rescue`
+    - `K540_ridge_vb_guard_plus_softgamma`
+    - `K580_mixed_short_guard_plus_softgamma`
+  - conservative rhs long-horizon carry-forward:
+    - `K550_rhs_softfreeze_local`
+  - effective residual repair surface now:
+    - `26` FAIL rows on `17` roots
+    - `2` root-status FAILs
+- next move:
+  - run the residual-only Wave 2 overnight plan over that reduced fail surface
+- Wave 2 prepare-only is now validated:
+  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025317__git-2078ff9`
+  - stage sizes:
+    - `5 / 3 / 1 / 4 / 4`
+  - challenger profiles:
+    - `16`
+  - planned root-campaigns:
+    - `56`
 
 Primary assets:
 
-- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_rerun_closeout_and_residual_inventory_20260406.md`
-- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_targeted_fail_closure_wave_20260406.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_fit_fail_wave1_closeout_and_wave2_inventory_20260407.md`
+- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_20260407.md`
 
 ## 1) Purpose
 

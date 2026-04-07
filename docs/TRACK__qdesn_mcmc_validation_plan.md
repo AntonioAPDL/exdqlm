@@ -32,15 +32,29 @@ Decision:
 
 - no new global baseline promotion yet
 - keep the current dynamic cross-study defaults as the source baseline
-- move next to the targeted fail-closure wave documented in:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_targeted_fail_closure_wave_20260406.md`
-- the targeted wave is now validated in prepare-only with:
-  - `28/28` fail-carrying roots covered
-  - stage sizes `5 / 5 / 6 / 4 / 8`
-  - next action:
-    - detached overnight launch
-- the detached overnight launch is now live as:
+- Wave 1 targeted fit-fail closure is now complete:
   - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
+  - clear local promotions:
+    - `K510_gmix_balanced_rescue`
+    - `K540_ridge_vb_guard_plus_softgamma`
+    - `K580_mixed_short_guard_plus_softgamma`
+  - conservative rhs long-horizon carry-forward:
+    - `K550_rhs_softfreeze_local`
+  - effective residual source state after Wave 1:
+    - `26` FAIL rows
+    - `17` fail-carrying roots
+    - `2` root-status FAILs
+- move next to the residual-only overnight Wave 2 documented in:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_20260407.md`
+- Wave 2 prepare-only is now validated with:
+  - source mode:
+    - `prior_fitfail_wave`
+  - `17/17` fail-carrying roots covered
+  - stage sizes `5 / 3 / 1 / 4 / 4`
+  - challenger profiles:
+    - `16`
+  - planned root-campaigns:
+    - `56`
 
 ## Cross-Study Follow-On Correction (2026-04-06)
 

@@ -1,0 +1,557 @@
+meta:
+  name: qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_20260407
+  display_name: QDESN Dynamic exdqlm Cross-Study Residual Fail Closure Wave
+  purpose: >
+    Continue from the completed targeted fit-fail closure wave using only clearly defensible local
+    winners plus a conservative rhs long-horizon carry-forward control. Search the remaining
+    dynamic fail surface broadly but only inside the surviving high-value tuning neighborhoods.
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  safe_default: prepare_only
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-residualfail
+
+source:
+  mode: prior_fitfail_wave
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave
+  stage_profile_overrides:
+    S1_gausmix_tt5000_fail_band: SOURCE_BASELINE
+    S2_gausmix_tt500_fail_band: K510_gmix_balanced_rescue
+    S3_ridge_tt5000_vb_tail_band: K540_ridge_vb_guard_plus_softgamma
+    S4_rhs_tt5000_fail_band: K550_rhs_softfreeze_local
+    S5_short_horizon_mixed_tail: K580_mixed_short_guard_plus_softgamma
+
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave
+
+runtime:
+  default_workers: 6
+  active_job_workers: 4
+  hard_cap_workers: 6
+
+shared_patches:
+  width_adapt_400: &width_adapt_400
+    enabled: true
+    warmup_iters: 400
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_440: &width_adapt_440
+    enabled: true
+    warmup_iters: 440
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  rhs_vb_guard_strong: &rhs_vb_guard_strong
+    max_iter: 80
+    min_iter_elbo: 15
+    n_samp_xi: 160
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_plus: &rhs_vb_guard_plus
+    max_iter: 100
+    min_iter_elbo: 18
+    n_samp_xi: 192
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  ridge_vb_guard_strong: &ridge_vb_guard_strong
+    max_iter: 80
+    min_iter_elbo: 15
+    n_samp_xi: 160
+
+  ridge_vb_guard_plus: &ridge_vb_guard_plus
+    max_iter: 100
+    min_iter_elbo: 18
+    n_samp_xi: 192
+
+  rhs_softfreeze95_chain1000: &rhs_softfreeze95_chain1000
+    n_burn: 525
+    n_mcmc: 1000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 95
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_400
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.40
+      width_sigma: 0.30
+      width_rhs_lambda: 0.16
+      width_rhs_tau: 0.10
+      width_rhs_c2: 0.07
+      width_rhs_tau_c2_block: 0.24
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.20
+      width_rhs_tau_c2_transformed_z2: 0.16
+      core_extra_passes: 2
+      max_steps_out: 72
+      max_shrink: 270
+      max_steps_out_sigma: 132
+      max_shrink_sigma: 365
+
+  rhs_softfreeze100_chain1100: &rhs_softfreeze100_chain1100
+    n_burn: 550
+    n_mcmc: 1100
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 100
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_400
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.40
+      width_sigma: 0.30
+      width_rhs_lambda: 0.16
+      width_rhs_tau: 0.10
+      width_rhs_c2: 0.07
+      width_rhs_tau_c2_block: 0.24
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.20
+      width_rhs_tau_c2_transformed_z2: 0.16
+      core_extra_passes: 2
+      max_steps_out: 75
+      max_shrink: 280
+      max_steps_out_sigma: 135
+      max_shrink_sigma: 370
+
+  rhs_softfreeze110_chain1200: &rhs_softfreeze110_chain1200
+    n_burn: 600
+    n_mcmc: 1200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 110
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_440
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.39
+      width_sigma: 0.29
+      width_rhs_lambda: 0.15
+      width_rhs_tau: 0.09
+      width_rhs_c2: 0.065
+      width_rhs_tau_c2_block: 0.22
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.18
+      width_rhs_tau_c2_transformed_z2: 0.14
+      core_extra_passes: 2
+      max_steps_out: 78
+      max_shrink: 290
+      max_steps_out_sigma: 138
+      max_shrink_sigma: 380
+
+  ridge_chain1300: &ridge_chain1300
+    n_burn: 600
+    n_mcmc: 1300
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.53
+      width_sigma: 0.19
+      core_extra_passes: 2
+      max_steps_out: 78
+      max_shrink: 300
+      max_steps_out_sigma: 155
+      max_shrink_sigma: 420
+
+  ridge_softgamma_chain1400: &ridge_softgamma_chain1400
+    n_burn: 650
+    n_mcmc: 1400
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.50
+      width_sigma: 0.18
+      core_extra_passes: 2
+      max_steps_out: 82
+      max_shrink: 320
+      max_steps_out_sigma: 160
+      max_shrink_sigma: 430
+
+  ridge_softgamma_chain1500: &ridge_softgamma_chain1500
+    n_burn: 700
+    n_mcmc: 1500
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.49
+      width_sigma: 0.18
+      core_extra_passes: 2
+      max_steps_out: 85
+      max_shrink: 330
+      max_steps_out_sigma: 165
+      max_shrink_sigma: 440
+
+profiles:
+  - profile_id: L610_gmix_long_vbguard_local
+    label: Gmix Long VB Guard Local
+    rationale: >
+      First broad gausmix-long follow-up: add explicit VB guards on both priors and keep MCMC
+      changes modest so we attack drift and tail-instability together without jumping too far from
+      the surviving K510 neighborhood.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_strong
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_chain1300
+              rhs_ns: *rhs_softfreeze95_chain1000
+
+  - profile_id: L620_gmix_long_vbguard_softgamma
+    label: Gmix Long VB Guard Softgamma
+    rationale: >
+      Mixed gausmix-long rescue that keeps the strong VB guard but shifts the ridge MCMC geometry
+      into the softer K540 neighborhood while modestly lengthening the rhs schedule.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_strong
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_chain1400
+              rhs_ns: *rhs_softfreeze100_chain1100
+
+  - profile_id: L630_gmix_long_deep_rescue
+    label: Gmix Long Deep Rescue
+    rationale: >
+      Highest-intensity gausmix-long rescue kept for the worst root-failure and missing-diagnostic
+      pocket: stronger VB guard plus deeper MCMC schedules on both priors.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+              rhs_ns: *rhs_vb_guard_plus
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_chain1500
+              rhs_ns: *rhs_softfreeze110_chain1200
+
+  - profile_id: L640_gmix_long_split_diag
+    label: Gmix Long Split Diag
+    rationale: >
+      Alternative gausmix-long hedge that keeps ridge less soft than L620/L630 while still pushing
+      the rhs_ns branch deeper, aimed at separating ridge VB-tail fixes from rhs MCMC failures.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_chain1300
+              rhs_ns: *rhs_softfreeze110_chain1200
+
+  - profile_id: L650_gmix_short_vbguard_local
+    label: Gmix Short VB Guard Local
+    rationale: >
+      Cheapest short-horizon gausmix follow-up: focus on ridge VB tail cleanup while giving the one
+      remaining rhs_ns MCMC row a mild local freeze extension.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_strong
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_softfreeze95_chain1000
+
+  - profile_id: L660_gmix_short_vbguard_softgamma
+    label: Gmix Short VB Guard Softgamma
+    rationale: >
+      Short-horizon gausmix hedge that combines stronger VB guards with a softer ridge MCMC
+      geometry in case the remaining short ridge rows are coupled VB plus geometry problems.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_chain1400
+              rhs_ns: *rhs_softfreeze95_chain1000
+
+  - profile_id: L670_gmix_short_diag_mix
+    label: Gmix Short Diag Mix
+    rationale: >
+      Broader short-horizon gausmix rescue that deepens both priors modestly but still stays
+      inside the known-good neighborhoods from K510 and K580.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+              rhs_ns: *rhs_vb_guard_plus
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_chain1300
+              rhs_ns: *rhs_softfreeze100_chain1100
+
+  - profile_id: L710_ridge_long_chain_guard
+    label: Ridge Long Chain Guard
+    rationale: >
+      First singleton ridge-long cleanup candidate: keep the stronger VB guard and use a deeper but
+      not ultra-soft ridge chain to target the remaining normal tau=0.95 long-horizon fail.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_chain1300
+
+  - profile_id: L720_ridge_long_softgamma_plus
+    label: Ridge Long Softgamma Plus
+    rationale: >
+      Strongest planned singleton ridge-long cleanup candidate: maxed-out VB guard paired with the
+      softer long-chain ridge geometry that already won the broader long-horizon ridge stage.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_chain1400
+
+  - profile_id: L730_ridge_long_softgamma_deep
+    label: Ridge Long Softgamma Deep
+    rationale: >
+      One extra singleton ridge-long hedge kept for overnight learning value: a slightly deeper
+      version of the softgamma branch in case the remaining two MCMC fail rows are chain-length
+      limited rather than geometry-limited.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_chain1500
+
+  - profile_id: L740_rhs_long_vbguard_local
+    label: RHS Long VB Guard Local
+    rationale: >
+      Conservative long-horizon rhs_ns follow-up using the safer K550-local MCMC profile plus an
+      explicit rhs VB guard for the residual exal tail-instability rows.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_softfreeze95_chain1000
+
+  - profile_id: L750_rhs_long_vbguard_mid
+    label: RHS Long VB Guard Mid
+    rationale: >
+      Mid-intensity rhs_ns long-horizon candidate that lengthens the soft-freeze schedule while
+      keeping the safer local-control geometry and adding the same rhs VB guard.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_softfreeze100_chain1100
+
+  - profile_id: L760_rhs_long_vbguard_deep
+    label: RHS Long VB Guard Deep
+    rationale: >
+      Deep rhs_ns long-horizon hedge retained for overnight coverage: strongest rhs VB guard plus
+      the deepest remaining rhs-only MCMC schedule that is still plausibly worth trying.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_plus
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_softfreeze110_chain1200
+
+  - profile_id: L770_short_mixed_local_mcmc
+    label: Short Mixed Local MCMC
+    rationale: >
+      Cheapest residual short-horizon mixed-tail follow-up after K580: keep strong ridge and rhs VB
+      guards in place and focus on mild MCMC depth increases only.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_strong
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_chain1400
+              rhs_ns: *rhs_softfreeze95_chain1000
+
+  - profile_id: L780_short_mixed_mid_mcmc
+    label: Short Mixed Mid MCMC
+    rationale: >
+      Mid-intensity short mixed-tail hedge that deepens both priors modestly while staying close to
+      the K580 neighborhood that already delivered the biggest short-horizon gains.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+              rhs_ns: *rhs_vb_guard_strong
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_chain1300
+              rhs_ns: *rhs_softfreeze100_chain1100
+
+  - profile_id: L790_short_mixed_softgamma_plus
+    label: Short Mixed Softgamma Plus
+    rationale: >
+      Broadest short mixed-tail candidate kept for the overnight batch: stronger VB guards on both
+      priors plus softer ridge geometry and a mid-depth rhs schedule.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_plus
+              rhs_ns: *rhs_vb_guard_plus
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_chain1400
+              rhs_ns: *rhs_softfreeze100_chain1100
+
+stages:
+  - id: R1_gausmix_tt5000_residual
+    label: Residual Gausmix Long-Horizon Pocket
+    rationale: >
+      Highest-value remaining pocket after the first closure wave. Includes both remaining root
+      failures plus the surviving long-horizon gausmix exal and VB-tail fails.
+    profile_ids:
+      [
+        L610_gmix_long_vbguard_local,
+        L620_gmix_long_vbguard_softgamma,
+        L630_gmix_long_deep_rescue,
+        L640_gmix_long_split_diag
+      ]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      family: [gausmix]
+      fit_size: [5000]
+      signoff_grade: [FAIL]
+
+  - id: R2_gausmix_tt500_residual
+    label: Residual Gausmix Short-Horizon Pocket
+    rationale: >
+      Focused short-horizon gausmix cleanup after K510. Remaining rows are mainly ridge VB-tail
+      failures plus one rhs_ns MCMC exal drift row.
+    profile_ids:
+      [
+        L650_gmix_short_vbguard_local,
+        L660_gmix_short_vbguard_softgamma,
+        L670_gmix_short_diag_mix
+      ]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      family: [gausmix]
+      fit_size: [500]
+      signoff_grade: [FAIL]
+
+  - id: R3_ridge_tt5000_singleton_residual
+    label: Residual Ridge Long-Horizon Singleton
+    rationale: >
+      The long-horizon ridge residual is now a single normal tau=0.95 root, so we can afford a
+      small but explicit overnight singleton cleanup substage.
+    profile_ids:
+      [
+        L710_ridge_long_chain_guard,
+        L720_ridge_long_softgamma_plus,
+        L730_ridge_long_softgamma_deep
+      ]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      family: [normal]
+      tau: [0.95]
+      fit_size: [5000]
+      prior: [ridge]
+      signoff_grade: [FAIL]
+
+  - id: R4_rhs_tt5000_residual
+    label: Residual RHS Long-Horizon Pocket
+    rationale: >
+      Remaining long-horizon rhs_ns fail surface after carrying forward the safer K550 local
+      control. Includes both MCMC drift rows and rhs-specific VB tail-instability rows.
+    profile_ids:
+      [
+        L740_rhs_long_vbguard_local,
+        L750_rhs_long_vbguard_mid,
+        L760_rhs_long_vbguard_deep
+      ]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      family: [laplace, normal]
+      fit_size: [5000]
+      prior: [rhs_ns]
+      signoff_grade: [FAIL]
+
+  - id: R5_short_horizon_mixed_residual
+    label: Residual Short-Horizon Mixed Pocket
+    rationale: >
+      Remaining short-horizon laplace/normal pocket after K580. Surviving rows are mostly MCMC
+      exal tails, so this stage explores only nearby mixed MCMC rescues rather than reopening broad
+      search.
+    profile_ids:
+      [
+        L770_short_mixed_local_mcmc,
+        L780_short_mixed_mid_mcmc,
+        L790_short_mixed_softgamma_plus
+      ]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      family: [laplace, normal]
+      fit_size: [500]
+      signoff_grade: [FAIL]
