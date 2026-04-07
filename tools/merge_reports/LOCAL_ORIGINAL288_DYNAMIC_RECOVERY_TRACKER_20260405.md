@@ -37,6 +37,33 @@ Important distinction carried forward on this branch:
 - therefore the accepted carry-forward status and the rerun-on-synced-base
   status must be treated separately in planning and reporting
 
+## Synced-Base Rerun Priority Note (2026-04-06)
+
+Residual repair is no longer the immediate next action on this branch.
+
+Before any further attempt to close the remaining `6` unresolved dynamic cells,
+the study should first rerun the full accepted original-`288` map on the synced
+`0.4.0` code base.
+
+Validated rerun program:
+
+- `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_program_20260406.md`
+- `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_execution_20260406.md`
+
+That rerun:
+
+- keeps the accepted publication-target reference at `282 / 288` healthy
+- uses the predecessor worktree only as read-only evidence and input source
+- writes fresh candidate outputs into the synced integration worktree
+- phases the full `288` as:
+  - `144` VB
+  - `108` static MCMC
+  - `36` dynamic MCMC
+
+So this tracker remains authoritative for the unresolved dynamic tail, but the
+active immediate branch task is now synced-base rerun / revalidation, not
+another residual-tail search.
+
 ## Current Corrected State
 
 - original publication-target cells: `288`

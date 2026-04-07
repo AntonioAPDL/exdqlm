@@ -400,7 +400,7 @@ run_and_wrap <- function() {
         mh.max_scale.step = safe_num(mh$max_scale_step %||% 0.35, 0.35),
         mh.min_burn_adapt = safe_int(mh$min_burn_adapt %||% 50L, 50L),
         trace.diagnostics = TRUE,
-        trace.every = safe_int(mc_cfg$trace_every %||% 50L, 50L),
+        trace.every = safe_int(mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
         verbose = isTRUE(verbose_mcmc),
         progress_callback = progress_telemetry_callback
       )
@@ -433,6 +433,12 @@ run_and_wrap <- function() {
     X <- as.matrix(sim$extras$X)
     storage.mode(X) <- 'double'
 
+    static_init_from_vb <- if (!is.null(mc_cfg$init_from_vb)) {
+      as_flag(mc_cfg$init_from_vb, TRUE)
+    } else {
+      TRUE
+    }
+
     call_args <- list(
       y = y,
       X = X,
@@ -443,7 +449,7 @@ run_and_wrap <- function() {
       n.burn = safe_int(mc_cfg$burn %||% 3000L, 3000L),
       n.mcmc = safe_int(mc_cfg$n %||% 8000L, 8000L),
       thin = safe_int(mc_cfg$thin %||% 1L, 1L),
-      init.from.vb = TRUE,
+      init.from.vb = static_init_from_vb,
       vb_init_controls = list(
         max_iter = safe_int(vb_cfg$max_iter %||% 300L, 300L),
         tol = safe_num(vb_cfg$tol %||% 0.03, 0.03),
@@ -458,8 +464,8 @@ run_and_wrap <- function() {
       mh.scale.bounds = as.numeric(mh$scale_bounds %||% c(0.1, 10)),
       mh.max_scale.step = safe_num(mh$max_scale_step %||% 0.35, 0.35),
       mh.min_burn_adapt = safe_int(mh$min_burn_adapt %||% 50L, 50L),
-      trace.diagnostics = TRUE,
-      trace.every = 50L,
+      trace.diagnostics = as_flag(mh$trace_diagnostics, TRUE),
+      trace.every = safe_int(mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
       verbose = isTRUE(verbose_mcmc),
       progress_callback = progress_telemetry_callback
     )

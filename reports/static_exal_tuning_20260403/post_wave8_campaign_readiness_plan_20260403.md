@@ -238,6 +238,24 @@ Important refinement after the completed tail-7 `rw` closeout:
   - `66 / 72` healthy
   - `6 / 72` unresolved
 - the `TT5000` long `laplace_rw` lane did not rescue any long-horizon row
+
+Important synced-base rerun refinement on the active integration branch:
+
+- the current accepted publication-target reference state remains:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+- but that accepted evidence still points to predecessor-worktree outputs
+- therefore the next active study phase is now a **true full rerun /
+  revalidation on the synced `0.4.0` base**
+- the rerun program and execution notes now live in:
+  - `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_program_20260406.md`
+  - `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_execution_20260406.md`
+- validated rerun phase split:
+  - `144` VB
+  - `108` static MCMC
+  - `36` dynamic MCMC
+- predecessor-worktree results are used only as historical evidence and input
+  material; fresh rerun outputs are written in the synced integration worktree
 - the remaining unresolved cases are:
   - `dynamic::gausmix::0p25::500::default::exdqlm::mcmc`
   - `dynamic::laplace::0p05::500::default::exdqlm::mcmc`

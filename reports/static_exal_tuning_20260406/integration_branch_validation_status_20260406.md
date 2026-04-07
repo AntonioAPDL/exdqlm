@@ -213,6 +213,46 @@ Therefore:
 - accepted publication-target status: `282 healthy / 6 fail`
 - rerun-on-synced-base status: effectively **pending**
 
+## Prepared Synced-Base Rerun Program
+
+The next active validation phase on this branch is now defined and validated:
+
+- program:
+  `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_program_20260406.md`
+- execution log:
+  `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_execution_20260406.md`
+
+Validated rerun structure:
+
+| phase | rows | purpose |
+|---|---:|---|
+| `phase1_vb_all` | `144` | rerun all accepted VB rows first |
+| `phase2_static_mcmc` | `108` | rerun accepted static MCMC rows |
+| `phase3_dynamic_mcmc` | `36` | rerun accepted dynamic MCMC rows last |
+
+Validated operational assumptions:
+
+- accepted reference state still checks out as:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+- predecessor-worktree input files are readable for all `288` rows:
+  - `method_signoff_long.csv`
+  - `run_config.rds`
+  - `sim_output.rds`
+  - accepted selected fit path
+- fresh candidate fit paths are now mapped into the synced integration
+  worktree for all `288` rows
+- current prelaunch rerun state is:
+  - `0 / 288` done
+  - `288 / 288` pending
+
+Critical replay rule:
+
+- this rerun replays the **accepted per-case repaired configuration map**
+  rather than the obsolete raw broad-default baseline
+- that is necessary because part of the accepted `282 / 288` healthy state now
+  depends on promoted local repairs, including repaired static prior settings
+
 ## Interpretation
 
 The synced integration branch is now the correct place to continue the study,
@@ -236,8 +276,13 @@ updated base. What exists here right now is:
 3. Decide whether the next phase is:
    - strict rerun/revalidation on the synced `0.4.0` base, or
    - continued residual repair using the imported accepted state.
-4. If continuing residual repair first, target only the remaining `6`
-   unresolved dynamic `exdqlm :: mcmc` cases.
+4. This decision is now resolved:
+   - the next active phase is strict full rerun / revalidation of all `288`
+     accepted study cells on the synced `0.4.0` base
+5. After the rerun completes, summarize:
+   - reproduced healthy rows
+   - reproduced unresolved rows
+   - any new regressions on the synced base
 5. If switching to synced-base rerun first, explicitly define whether that
    rerun scope is:
    - all `288`, or
