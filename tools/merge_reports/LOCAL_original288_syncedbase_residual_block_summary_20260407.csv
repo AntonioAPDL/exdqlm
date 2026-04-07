@@ -1,6 +1,6 @@
 "block","model","inference","total","done","missing","pass","warn","fail","healthy","matches_accepted","better_than_accepted","worse_than_accepted","pending_compare"
-"dynamic","exdqlm","mcmc",3,0,3,0,0,0,0,0,0,0,3
-"static_paper","al","mcmc",18,0,18,0,0,0,0,0,0,0,18
-"static_paper","exal","mcmc",10,0,10,0,0,0,0,0,0,0,10
-"static_shrink","al","mcmc",36,0,36,0,0,0,0,0,0,0,36
-"static_shrink","exal","mcmc",17,0,17,0,0,0,0,0,0,0,17
+"dynamic","exdqlm","mcmc",3,3,0,0,0,3,0,0,0,3,0
+"static_paper","al","mcmc",18,18,0,18,0,0,18,18,0,0,0
+"static_paper","exal","mcmc",10,10,0,1,3,6,4,3,0,7,0
+"static_shrink","al","mcmc",36,36,0,34,2,0,36,34,0,2,0
+"static_shrink","exal","mcmc",17,17,0,2,5,10,7,5,1,11,0

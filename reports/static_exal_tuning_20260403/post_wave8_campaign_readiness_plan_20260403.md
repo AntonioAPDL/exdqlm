@@ -259,6 +259,28 @@ Important synced-base rerun refinement on the active integration branch:
 - the rerun program and execution notes now live in:
   - `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_program_20260406.md`
 
+Important residual-repair closeout and targeted-followup refinement:
+
+- the synced-base residual repair program is now complete
+- strict residual improvements have been promoted into accepted `v6`
+- accepted publication-target state is now:
+  - `282 / 288` healthy
+  - `227 PASS`
+  - `55 WARN`
+  - `6 FAIL`
+- the invalid static `al :: mcmc` replay collapse has been resolved:
+  - `54 / 54` reruns now healthy
+- the remaining synced-base replay queue is now:
+  - `16` static `exal :: mcmc` fail rows
+  - `3` dynamic `exdqlm :: mcmc` fail rows
+  - `4` accepted `PASS -> WARN` stability-review rows
+- the next highest-value move is therefore a targeted local follow-up, not
+  another broad replay and not yet a reopening of the unresolved accepted
+  dynamic tail of `6`
+- the new program and execution notes now live in:
+  - `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_program_20260407.md`
+  - `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
+
 Important faithful-replay closeout and residual-repair refinement (2026-04-07):
 
 - the broad synced-base rerun remains deprecated for scientific comparison

@@ -1,0 +1,5 @@
+"block","model","inference","total","done","missing","pass","warn","fail","healthy","matches_accepted","better_than_accepted","worse_than_accepted","pending_compare"
+"dynamic","exdqlm","mcmc",3,0,3,0,0,0,0,0,0,0,3
+"static_paper","exal","mcmc",10,0,10,0,0,0,0,0,0,0,10
+"static_shrink","al","mcmc",2,0,2,0,0,0,0,0,0,0,2
+"static_shrink","exal","mcmc",14,0,14,0,0,0,0,0,0,0,14

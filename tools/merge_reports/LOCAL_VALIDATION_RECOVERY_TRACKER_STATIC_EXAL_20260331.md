@@ -80,6 +80,51 @@ Primary references:
 - `reports/static_exal_tuning_20260407/original_288_syncedbase_faithful_replay_execution_20260407.md`
 - `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_program_20260407.md`
 
+## 0. Residual Repair Closeout and Targeted Follow-Up Checkpoint (2026-04-07)
+
+The residual repair rerun has now completed and the accepted baseline has been
+refreshed to `v6`.
+
+Accepted publication-target state after the residual promotion into `v6`:
+
+- `282 / 288` healthy
+- `6 / 288` unresolved
+- accepted gate split:
+  - `227 PASS`
+  - `55 WARN`
+  - `6 FAIL`
+
+Residual repair closeout:
+
+- `84 / 84` complete
+- `55 PASS`
+- `10 WARN`
+- `19 FAIL`
+- strict improvements promoted:
+  - `1`
+- static `al :: mcmc` bugfix lane:
+  - `54 / 54` healthy
+- static `exal :: mcmc` exact lane:
+  - `11 / 27` healthy
+- dynamic `exdqlm :: mcmc` exact lane:
+  - `0 / 3` healthy
+
+That leaves a much smaller synced-base follow-up queue:
+
+- `16` static `exal :: mcmc` fail rows
+- `3` dynamic `exdqlm :: mcmc` fail rows
+- `4` accepted `PASS -> WARN` stability-review rows
+
+Highest-value next move:
+
+- run a narrow `29`-row targeted follow-up rather than another broad replay
+- keep the accepted unresolved dynamic tail of `6` deferred for now
+
+Primary references:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_program_20260407.md`
+
 ## 0. Dynamic-Only Residual Recovery Checkpoint (2026-04-05)
 
 The next repair phase after the corrected original-`288` carry-forward rebuild

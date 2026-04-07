@@ -76,6 +76,41 @@ This tracker remains authoritative for the unresolved original dynamic tail of
 `6`, but the immediate next branch task is the broader residual replay-repair
 program, not another direct attack on that unresolved tail.
 
+## Residual Repair Closeout and Dynamic Follow-Up Refinement (2026-04-07)
+
+The residual replay-repair program has now completed and the accepted baseline
+has been refreshed to `v6`.
+
+Accepted publication-target state:
+
+- `282 / 288` healthy
+- `227 PASS`
+- `55 WARN`
+- `6 FAIL`
+
+Dynamic implications from the completed residual repair:
+
+- the accepted unresolved original dynamic tail is still:
+  - `6` rows
+  - all `exdqlm :: mcmc`
+- the synced-base replay regression queue now also contains:
+  - `3` accepted-healthy dynamic rows that replayed as `FAIL`
+  - all `3` are `exdqlm :: mcmc`
+  - all `3` are now in scope for an exact-kernel longer-budget follow-up
+
+Immediate dynamic next step on this branch:
+
+- do **not** reopen the unresolved accepted tail of `6` yet
+- first run the small synced-base follow-up dynamic lane:
+  - `3` exact-kernel longer-budget reruns
+  - same accepted kernel family
+  - no broad new dynamic geometry search
+
+Primary references:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_program_20260407.md`
+
 ## Synced-Base Rerun Priority Note (2026-04-06)
 
 Residual repair is no longer the immediate next action on this branch.
