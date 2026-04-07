@@ -1,0 +1,34 @@
+meta:
+  analysis_id: qdesn_dynamic_exdqlm_crossstudy_main_comparison_analysis
+  description: >
+    Rebuild the authoritative branch-local QDESN dynamic comparison surface from the
+    promoted residual-wave baseline and emit the main comparison-analysis pack.
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-maincmp
+
+source:
+  mode: prior_fitfail_wave
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis
+  final_wave_evidence_run_tag: qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982
+  final_wave_evidence_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_final_fail_closure_wave
+
+expected_state:
+  fit_rows: 144
+  fit_pass_rows: 77
+  fit_warn_rows: 65
+  fit_fail_rows: 2
+  root_rows: 36
+  root_status_fail_rows: 0
+  root_compare_any_rows: 36
+  root_compare_full_rows: 34
+  local_baseline_rows: 5
+
+notes:
+  authoritative_baseline_label: merged_local_baseline_after_prior_targeted_wave
+  interpretation: >
+    Use the prior residual-wave promoted local baseline map as the authoritative
+    comparison-analysis source. The later final-fail wave remains evidence only and
+    is not promoted globally.
