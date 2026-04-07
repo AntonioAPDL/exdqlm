@@ -1981,3 +1981,35 @@ The next highest-signal step is:
    - no reopened dead families;
 7. rerun selected survivors before carrying any new winner forward;
 8. require `0` sentinel FAIL only at the final confirmation stage, not before.
+
+## 13) Dynamic Cross-Study Continuation Note (2026-04-07)
+
+For current QDESN validation work, this historical repair tracker is no longer the canonical live
+source of truth.
+
+Use instead:
+
+- `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
+- `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_final_fail_wave_closeout_and_comparison_readiness_20260407.md`
+
+Current continuation read on the integration branch:
+
+- the dynamic exdqlm-aligned QDESN validation stack completed its broad rerun plus targeted
+  residual cleanup waves;
+- the authoritative branch-local baseline is the residual-wave map:
+  - `L640`, `L670`, `L720`, `L760`, `L770`
+- the final rhs-only cleanup wave did **not** yield a further full-study promotion after
+  reconciliation;
+- current authoritative dynamic state is:
+  - `77 PASS`
+  - `65 WARN`
+  - `2 FAIL`
+  - `0` root-status FAILs
+  - `36 / 36` roots comparison-eligible-any
+  - `34 / 36` roots comparison-eligible-full
+
+Practical next step:
+
+- move to main comparison analysis, with the remaining `2 / 144` fit FAIL rows documented rather
+  than hidden.

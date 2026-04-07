@@ -1392,3 +1392,37 @@ These are the recommended defaults for the first implementation pass:
 
 If any of these defaults should change, the framework design still stands. Only
 the pilot grid contents need to change.
+
+## 16) Integration-Branch Comparison Readiness Update (2026-04-07)
+
+The active QDESN continuation point is now the synced integration branch:
+
+- branch:
+  - `feature/qdesn-mcmc-alternative-0p4p0-integration`
+- worktree:
+  - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
+
+Latest dynamic cross-study read on that branch:
+
+- the broad rerun, residual wave, and final rhs-only cleanup wave all completed cleanly;
+- the authoritative branch-local baseline remains the prior residual-wave map:
+  - `L640`
+  - `L670`
+  - `L720`
+  - `L760`
+  - `L770`
+- the final rhs-only wave produced useful stage-local evidence, but not a clear full-study global
+  improvement, so no new global promotion was adopted from it;
+- current authoritative full-study state:
+  - `77 PASS`
+  - `65 WARN`
+  - `2 FAIL`
+  - `0` root-status FAILs
+  - `36 / 36` roots comparison-eligible-any
+  - `34 / 36` roots comparison-eligible-full
+
+Current move-forward rule:
+
+- do not launch another residual tuning wave by default;
+- move to main comparison analysis on the authoritative baseline above;
+- keep the remaining `2 / 144` FAIL rows explicitly documented as a tiny residual gap.

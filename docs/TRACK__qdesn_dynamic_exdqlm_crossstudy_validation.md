@@ -285,19 +285,36 @@ This integration branch should therefore treat the following as the immediate va
 
 ## 10) Latest Update (2026-04-07)
 
-Residual Wave 2 completed cleanly and materially improved the branch-local dynamic validation
-state.
+The final rhs-only cleanup wave is complete, and the branch is now ready to move into main
+comparison analysis.
 
-Completed run:
+Completed final wave:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2`
+  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982`
 - result:
-  - `5/5` stages complete
-  - `16/16` profiles complete
-  - `56/56` root-campaigns executed
+  - `2/2` stages complete
+  - `10/10` profiles complete
+  - `40/40` root-campaigns executed
+- stage-local winners reported by the wave:
+  - `F1 -> M850_rhs_long_burnheavy1300`
+  - `F2 -> M940_short_rhs_narrow1200_diag5`
 
-Promoted local winners:
+Important reconciliation result:
+
+- the stage-local winners clear the exact target rows inside the wave;
+- however, when reconciled back into the full `36`-root dynamic surface, they do **not** produce a
+  clear full-study improvement over the pre-wave effective baseline;
+- `M850` is globally neutral:
+  - fit FAIL rows remain `2`
+  - fail-carrying roots remain `2`
+  - compare-full roots remain `34/36`
+- `M940` is globally worse:
+  - fit FAIL rows rise from `2` to `3`
+  - fail-carrying roots remain `2`
+  - compare-full roots remain `34/36`
+
+Authoritative branch-local baseline therefore remains the prior residual-wave map:
 
 - `R1 -> L640_gmix_long_split_diag`
 - `R2 -> L670_gmix_short_diag_mix`
@@ -305,16 +322,22 @@ Promoted local winners:
 - `R4 -> L760_rhs_long_vbguard_deep`
 - `R5 -> L770_short_mixed_local_mcmc`
 
-Current branch-local residual after those promotions:
+Current authoritative branch-local full-study state:
 
-- fit FAIL rows:
-  - `2 / 144`
+- fit signoff mix:
+  - `77 PASS`
+  - `65 WARN`
+  - `2 FAIL`
 - fail-carrying roots:
   - `2 / 36`
 - root-status FAILs:
   - `0 / 36`
+- roots with any usable comparison:
+  - `36 / 36`
+- fully comparison-ready roots:
+  - `34 / 36`
 
-Exact remaining rows:
+Exact remaining documented rows:
 
 - `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns`
   - `mcmc_exal`
@@ -323,24 +346,9 @@ Exact remaining rows:
   - `mcmc_exal`
   - `geweke_drift`
 
-Immediate move-forward rule:
+Move-forward rule:
 
-- do not reopen cleared gausmix or ridge pockets
-- do not rerun dominated `L740`, `L750`, `L780`, or `L790`
-- run one final rhs-specific residual closure wave over the last `2` failing rows plus their guard
-  roots
-
-Final-wave launch status:
-
-- manifest:
-  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_final_fail_closure_wave_manifest.yaml`
-- prepare-only run:
-  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133850__git-7f3dd74`
-- live run:
-  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982`
-- detached session:
-  - `qdesn_dynxff_0407_133928`
-- current read:
-  - `F1_rhs_long_normal_tail_final`
-  - profile `M810_rhs_long_freeze120_chain1400`
-  - launcher healthy at launch time
+- do **not** promote `M850` or `M940` into the authoritative branch baseline
+- do **not** launch another residual wave by default
+- proceed to main comparison analysis on the authoritative baseline above
+- keep the `2 / 144` fit FAIL rows explicitly documented as a tiny residual gap

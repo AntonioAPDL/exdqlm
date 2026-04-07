@@ -418,32 +418,81 @@ Current effective local baseline map:
 - do not spend compute on another broad rerun right now
 - do not reopen generic tuning search for one universal rescue profile
 
-## 13) Immediate Next Decision
+## 13) Final-Wave Closeout And Current Decision
 
-For continued QDESN work on this branch, the immediate decision is now:
+The final rhs-only cleanup wave completed cleanly:
 
-- **run one final residual-only overnight wave**
-- target only the last `2` remaining rhs-specific `mcmc_exal` FAIL rows
-- keep the new merged local baseline map as the source state
-- rerun only the nearby guard roots needed to avoid fragile single-row overfitting
-
-Final wave status:
-
-- manifest:
-  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_final_fail_closure_wave_manifest.yaml`
-- prepare-only:
-  - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133850__git-7f3dd74`
-  - source fail surface verified as `2` FAIL rows on `2` roots
-  - stage sizes verified as `4 / 4`
-  - root-campaigns verified as `40`
-- live run:
+- run tag:
   - `qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982`
-- detached session:
-  - `qdesn_dynxff_0407_133928`
-- first healthcheck:
-  - launcher session live
-  - stop reason `RUNNING`
-  - current stage:
-    - `F1_rhs_long_normal_tail_final`
-  - current profile:
-    - `M810_rhs_long_freeze120_chain1400`
+- stop reason:
+  - `completed_requested_scope`
+- execution:
+  - `2/2` stages complete
+  - `10/10` profiles complete
+  - `40/40` root-campaigns executed
+- authoritative wave summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_final_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982/summary/qdesn_dynamic_crossstudy_fit_fail_closure_results.md`
+
+Stage-level winners inside that wave were:
+
+- `F1 -> M850_rhs_long_burnheavy1300`
+- `F2 -> M940_short_rhs_narrow1200_diag5`
+
+But those stage-local winners were **not** adopted as new global working baselines.
+
+Why not:
+
+- the final wave correctly cleared the exact targeted rhs rows inside each stage;
+- however, after reconciling the selected winners back into the full `36`-root mirrored dynamic
+  surface, they did **not** beat the prior merged baseline on the overall fail inventory;
+- `M850` is globally neutral:
+  - full-study fit FAIL rows remain `2`
+  - fail-carrying roots remain `2`
+  - compare-full roots remain `34/36`
+- `M940` is globally worse:
+  - full-study fit FAIL rows rise from `2` to `3`
+  - fail-carrying roots remain `2`
+  - compare-full roots remain `34/36`
+
+Therefore the authoritative branch-local effective baseline map remains the prior residual-wave map:
+
+| Residual Stage | Authoritative Local Baseline |
+|---|---|
+| `R1_gausmix_tt5000_residual` | `L640_gmix_long_split_diag` |
+| `R2_gausmix_tt500_residual` | `L670_gmix_short_diag_mix` |
+| `R3_ridge_tt5000_singleton_residual` | `L720_ridge_long_softgamma_plus` |
+| `R4_rhs_tt5000_residual` | `L760_rhs_long_vbguard_deep` |
+| `R5_short_horizon_mixed_residual` | `L770_short_mixed_local_mcmc` |
+
+Current authoritative branch-local comparison state:
+
+- fit signoff mix:
+  - `77 PASS`
+  - `65 WARN`
+  - `2 FAIL`
+- fail-carrying roots:
+  - `2 / 36`
+- root-status FAILs:
+  - `0 / 36`
+- roots with any usable comparison:
+  - `36 / 36`
+- fully comparison-ready roots:
+  - `34 / 36`
+
+Exact remaining documented fit-level FAIL rows under the authoritative baseline:
+
+- `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns`
+  - `mcmc_exal`
+  - `geweke_drift; half_chain_drift`
+- `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns`
+  - `mcmc_exal`
+  - `geweke_drift`
+
+## 14) Immediate Next Decision
+
+The active next phase is now:
+
+- **move into main comparison analysis on the authoritative branch-local baseline**
+- treat the final-wave results as useful targeted evidence, but **not** as promoted new defaults
+- keep the remaining `2 / 144` fit FAIL rows explicitly documented as a tiny residual gap
+- defer any additional micro-wave unless zero-fit-FAIL certification is required later
