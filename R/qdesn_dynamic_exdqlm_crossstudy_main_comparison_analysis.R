@@ -165,6 +165,13 @@ qdesn_dynamic_maincmp_root_axis_summary <- function(root_inventory,
   .qdesn_validation_bind_rows(rows)
 }
 
+.qdesn_dynamic_maincmp_canonical_model <- function(x) {
+  out <- tolower(trimws(as.character(x)))
+  out[out %in% c("dqlm", "al")] <- "al"
+  out[out %in% c("exdqlm", "exal")] <- "exal"
+  out
+}
+
 qdesn_dynamic_maincmp_prior_head_to_head <- function(fit_surface_summary) {
   if (!nrow(fit_surface_summary)) return(data.frame(stringsAsFactors = FALSE))
   required <- c("scenario", "root_kind", "family", "tau", "fit_size", "inference", "model", "prior")
@@ -290,6 +297,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
       "train_mae", "train_rmse", "train_bias", "train_corr"
     )
   )
+  if (nrow(fit_surface_summary) && "model" %in% names(fit_surface_summary)) {
+    fit_surface_summary$canonical_model <- .qdesn_dynamic_maincmp_canonical_model(fit_surface_summary$model)
+  }
   fit_axis_summary <- .qdesn_dynamic_maincmp_metric_summary(
     source_state$fit_summary,
     group_cols = c("prior", "inference", "model", "fit_size"),
@@ -300,6 +310,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
       "train_mae", "train_rmse", "train_bias", "train_corr"
     )
   )
+  if (nrow(fit_axis_summary) && "model" %in% names(fit_axis_summary)) {
+    fit_axis_summary$canonical_model <- .qdesn_dynamic_maincmp_canonical_model(fit_axis_summary$model)
+  }
   fit_prior_summary <- .qdesn_dynamic_maincmp_metric_summary(
     source_state$fit_summary,
     group_cols = c("prior"),
@@ -350,6 +363,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     eligible_col = "comparison_eligible",
     numeric_cols = c("runtime_sec")
   )
+  if (nrow(ref_fit_group) && "model" %in% names(ref_fit_group)) {
+    ref_fit_group$canonical_model <- .qdesn_dynamic_maincmp_canonical_model(ref_fit_group$model)
+  }
   ref_fit_axis <- .qdesn_dynamic_maincmp_metric_summary(
     reference_inventory$fit_summary,
     group_cols = c("inference", "model", "fit_size"),
@@ -357,16 +373,19 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     eligible_col = "comparison_eligible",
     numeric_cols = c("runtime_sec")
   )
+  if (nrow(ref_fit_axis) && "model" %in% names(ref_fit_axis)) {
+    ref_fit_axis$canonical_model <- .qdesn_dynamic_maincmp_canonical_model(ref_fit_axis$model)
+  }
 
   q_vs_ref_surface <- qdesn_dynamic_maincmp_join_reference_metrics(
     fit_surface_summary,
     ref_fit_group,
-    join_cols = c("scenario", "root_kind", "family", "tau", "fit_size", "inference", "model")
+    join_cols = c("scenario", "root_kind", "family", "tau", "fit_size", "inference", "canonical_model")
   )
   q_vs_ref_axis <- qdesn_dynamic_maincmp_join_reference_metrics(
     fit_axis_summary,
     ref_fit_axis,
-    join_cols = c("inference", "model", "fit_size")
+    join_cols = c("inference", "canonical_model", "fit_size")
   )
   prior_head_to_head <- qdesn_dynamic_maincmp_prior_head_to_head(fit_surface_summary)
   prior_head_to_head_counts <- if (nrow(prior_head_to_head)) {
@@ -470,8 +489,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     ), drop = FALSE]),
     "",
     "## Important Interpretation Notes",
-    "- Runtime and signoff/readiness are directly comparable against the exdqlm reference on the mirrored dynamic surface.",
-    "- Forecast fit-performance metrics (`train_*`, `holdout_*`) are fully summarized for the QDESN side.",
+    "- Signoff/readiness deltas are directly comparable against the exdqlm reference on the mirrored dynamic surface once the model labels are normalized (`al <-> dqlm`, `exal <-> exdqlm`).",
+    "- Runtime is summarized in detail for QDESN. Reference-runtime deltas are only meaningful where the reference inventory has non-missing runtime values; some mirrored reference summaries leave runtime blank.",
+    "- Forecast fit-performance metrics (`train_*`, `holdout_*`) are summarized for the QDESN side only.",
     "- The reference-side summary inventory on this surface does not expose matching forecast metric columns, so direct forecast-metric deltas vs exdqlm are not reported here.",
     "",
     sprintf("- comparison_root: `%s`", file.path(output_root, "comparison_vs_reference"))
