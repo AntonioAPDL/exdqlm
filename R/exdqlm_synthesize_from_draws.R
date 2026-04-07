@@ -1,37 +1,67 @@
 #' Synthesize posterior predictive from multiple quantile-model draws
 #'
-#' Implements the two-step correction and synthesis:
+#' The function synthesizes posterior predictive draws from multiple fitted
+#' quantile models using a two-step correction:
 #' (i) isotonic regression at the grid of target quantiles to enforce non-crossing,
 #' (ii) distributional alignment (shift each model's draws so its tau-quantile matches the isotone anchor),
 #' then builds a single predictive quantile function per time by
 #' piecewise-linear blending across adjacent quantile models with optional
 #' global monotone rearrangement.
 #'
-#' @param draws_list list of length L; each element is a matrix of posterior
+#' @param draws_list List of length \code{L}; each element is a numeric matrix of posterior
 #'   predictive draws from a fitted quantile model at level \code{p[i]}. Each matrix
 #'   may be \code{T × ns} or \code{ns × T}; rows will be coerced to time.
-#' @param p numeric vector of target quantile levels in (0,1) of length L
-#'   (same order as \code{draws_list}, not necessarily sorted).
-#' @param enforce_isotonic logical; apply isotonic regression (PAVA) over the grid \code{p}
+#' @param p Numeric vector of target quantile levels in \code{(0,1)} of length \code{L}
+#'   (same order as \code{draws_list}, not necessarily sorted). Duplicate levels are not allowed.
+#' @param enforce_isotonic Logical; apply isotonic regression (PAVA) over the grid \code{p}
 #'   at each time t to remove crossing. Default \code{TRUE}.
-#' @param rearrange logical; apply monotone rearrangement (evaluate → sort → reinterpolate)
+#' @param rearrange Logical; apply monotone rearrangement (evaluate -> sort -> reinterpolate)
 #'   on a dense grid over \code{u in (0,1)}. Default \code{TRUE}.
-#' @param grid_M integer; size of dense grid \code{M} for rearrangement (\code{u_k = k/(M+1)}).
+#' @param grid_M Integer; size of dense grid \code{M} for rearrangement (\code{u_k = k/(M+1)}).
 #'   Default \code{1001L}.
-#' @param n_samp integer; number of synthesized draws per time. Default \code{1000L}.
+#' @param n_samp Integer; number of synthesized draws per time. Default \code{1000L}.
 #' @param seed NULL or integer for reproducible synthesized draws. Default \code{NULL}.
-#' @param T_expected optional integer; if provided, forces the time dimension to \code{T_expected}
+#' @param T_expected Optional integer; if provided, forces the time dimension to \code{T_expected}
 #'   when orienting each matrix to \code{T × ns}. This avoids accidental transposes.
 #'
-#' @return A list with:
-#'   \itemize{
-#'     \item \code{draws}: \code{T × n_samp} synthesized draws
-#'     \item \code{levels}: sorted copy of \code{p}
-#'     \item \code{quantiles}: \code{T × L} matrix of isotone anchors \code{m^*_{i,t}}
-#'     \item \code{summary}: row summaries of \code{draws}
-#'     \item \code{method}: list of options used
-#'   }
+#' @return A list containing:
+#' \itemize{
+#'   \item \code{draws} - Numeric matrix \code{T × n_samp} of synthesized draws.
+#'   \item \code{levels} - Sorted copy of \code{p} (length \code{L}).
+#'   \item \code{quantiles} - Numeric matrix \code{T × L} of isotone anchors \code{m^*_{i,t}}.
+#'   \item \code{summary} - List with row-wise summaries of \code{draws}
+#'   (\code{mean}, \code{q025}, \code{q250}, \code{q500}, \code{q750}, \code{q975}).
+#'   \item \code{method} - List of synthesis settings used
+#'   (\code{name}, \code{isotonic}, \code{rearrange}, \code{grid_M}, \code{T_inferred}).
+#' }
 #' @export
+#' 
+#' @examples
+#' \donttest{
+#' # short example
+#' data("scIVTmag", package = "exdqlm")
+#' TT = 100
+#' y = scIVTmag[1:TT]
+#' 
+#' # create trend & seasonal model
+#' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+#' model = trend.comp + seas.comp
+#' 
+#' # fit five quantiles using LDVB algorithm & save individual posterior predictive samples
+#' fits <- draws <- NULL
+#' p0s = c(0.05, 0.25, 0.50, 0.75, 0.95)
+#' for(i in 1:length(p0s)){
+#'   fits[[i]] = exdqlmLDVB(y, p0=p0s[i], model, df=c(1,1), dim.df = c(1,6), sig.init=15, tol=0.05)
+#'   draws[[i]] = fits[[i]]$samp.post.pred
+#' }
+#' 
+#' # synthesize posterior predictive from all quantiles
+#' syn = exdqlm_synthesize_from_draws(
+#'   draws_list = draws,
+#'   p = p0s,
+#'   T_expected = TT)
+#' }
 exdqlm_synthesize_from_draws <- function(draws_list, p,
                                          enforce_isotonic = TRUE,
                                          rearrange = TRUE,
@@ -129,9 +159,9 @@ exdqlm_synthesize_from_draws <- function(draws_list, p,
     # Left region u <= tau_1 : use model 1
     idx_left  <- which(grid_u <= taus[1L])
     if (length(idx_left)) {
-      q_init[idx_left] <- approx(pp_list[[1L]], adj_list[[1L]][t, ],
-                                 xout = grid_u[idx_left],
-                                 rule = 2, ties = "ordered")$y
+      q_init[idx_left] <- stats::approx(pp_list[[1L]], adj_list[[1L]][t, ],
+                                        xout = grid_u[idx_left],
+                                        rule = 2, ties = "ordered")$y
     }
 
     # Interior regions: linear blend between model i and i+1
@@ -140,17 +170,17 @@ exdqlm_synthesize_from_draws <- function(draws_list, p,
       if (!length(ids)) next
       u  <- grid_u[ids]
       w  <- (u - taus[i]) / (taus[i + 1L] - taus[i])
-      qi  <- approx(pp_list[[i]],   adj_list[[i]][t,   ], xout = u, rule = 2, ties = "ordered")$y
-      qi1 <- approx(pp_list[[i+1]], adj_list[[i+1]][t, ], xout = u, rule = 2, ties = "ordered")$y
+      qi  <- stats::approx(pp_list[[i]],   adj_list[[i]][t,   ], xout = u, rule = 2, ties = "ordered")$y
+      qi1 <- stats::approx(pp_list[[i+1]], adj_list[[i+1]][t, ], xout = u, rule = 2, ties = "ordered")$y
       q_init[ids] <- (1 - w) * qi + w * qi1
     }
 
     # Right region u >= tau_L : use model L
     idx_right <- which(grid_u >= taus[L])
     if (length(idx_right)) {
-      q_init[idx_right] <- approx(pp_list[[L]], adj_list[[L]][t, ],
-                                  xout = grid_u[idx_right],
-                                  rule = 2, ties = "ordered")$y
+      q_init[idx_right] <- stats::approx(pp_list[[L]], adj_list[[L]][t, ],
+                                         xout = grid_u[idx_right],
+                                         rule = 2, ties = "ordered")$y
     }
 
     q_init
@@ -165,9 +195,9 @@ exdqlm_synthesize_from_draws <- function(draws_list, p,
     q_init <- eval_Qinit_at_t(t)
     if (isTRUE(rearrange)) {
       q_sorted <- sort(q_init)                               # enforce global monotonicity
-      draws[t, ] <- approx(x = grid_u, y = q_sorted, xout = U[t, ], rule = 2)$y
+      draws[t, ] <- stats::approx(x = grid_u, y = q_sorted, xout = U[t, ], rule = 2)$y
     } else {
-      draws[t, ] <- approx(x = grid_u, y = q_init,   xout = U[t, ], rule = 2)$y
+      draws[t, ] <- stats::approx(x = grid_u, y = q_init,   xout = U[t, ], rule = 2)$y
     }
   }
 

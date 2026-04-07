@@ -4,12 +4,20 @@
 \alias{posterior_predict.qdesn_fit}
 \title{Posterior predictive for a Q-DESN fit (uses its in-sample design by default)}
 \usage{
-posterior_predict.qdesn_fit(object, nd = 1000L, X_new = NULL, chunk = 200L)
+posterior_predict.qdesn_fit(
+  object,
+  nd = 1000L,
+  X_new = NULL,
+  chunk = 200L,
+  draws = NULL
+)
 }
 \arguments{
 \item{object}{qdesn_fit object from qdesn_fit_vb()}
 
 \item{nd}{draws; @param X_new optional n x p design; @param chunk memory chunk}
+
+\item{draws}{optional posterior draws list from exal_vb_posterior_draws()}
 }
 \value{
 same structure as exal_vb_posterior_predict()

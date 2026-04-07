@@ -10,14 +10,14 @@ Authors@R:
       person(given = "Antonio", family = "Aguirre", role = "aut"))
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
 Description: Routines for Bayesian estimation and analysis of dynamic quantile
-    linear models utilizing the extended asymmetric Laplace error distribution
-    (exDQLM). Includes iterative and variational Bayes inference, optional C++
-    bridges for Kalman filtering and sampling, evidence lower bound (ELBO)
-    diagnostics, and a Laplace–Delta variational Bayes routine ('exdqlmLDVB')
-    for fast quantile state-space fitting. Version 0.5.0 adds posterior
-    predictive synthesis across multiple quantile-specific models via isotonic
-    adjustment, distributional alignment, piecewise-linear blending, and
-    optional monotone rearrangement ('exdqlm_synthesize_from_draws').
+    linear models utilizing the extended asymmetric Laplace error distribution,
+    also known as extended dynamic quantile linear models (exDQLM).
+    Includes MCMC/ISVB/LDVB inference for dynamic and static exAL regression
+    models, reduced AL/DQLM paths via fixed skewness, optional ridge and
+    regularized horseshoe priors for static coefficients, optional C++ bridges
+    for state-space filtering and matrix builders, evidence lower bound
+    diagnostics, posterior predictive synthesis via
+    'exdqlm_synthesize_from_draws()', and static regression utilities.
     Methods described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -30,31 +30,32 @@ Imports:
     stats,
     methods,
     graphics,
-    dlm,
     coda,
     tictoc,
     magic,
     crch,
     truncnorm,
     brms,
+    data.table,
+    dlm,
     FNN,
     LaplacesDemon,
     grDevices,
+    matrixStats,
     Rcpp,
     nimble,
-    numDeriv,
-    data.table
+    numDeriv
 Suggests:
-    testthat (>= 3.0.0),
-    ggplot2,
-    forecast,
-    pkgload,
-    matrixStats,
-    yaml,
-    jsonlite,
     digest,
+    forecast,
+    ggplot2,
+    jsonlite,
+    pkgload,
+    rmarkdown,
+    scales,
+    testthat (>= 3.0.0),
     withr,
-    scales
+    yaml
 LinkingTo:
     BH,
     Rcpp,

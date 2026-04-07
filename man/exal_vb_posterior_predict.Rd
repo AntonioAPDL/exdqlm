@@ -4,7 +4,13 @@
 \alias{exal_vb_posterior_predict}
 \title{Posterior predictive samples for an exAL-LDVB regression}
 \usage{
-exal_vb_posterior_predict(fit_exal, X_new, nd = 1000L, chunk = 200L)
+exal_vb_posterior_predict(
+  fit_exal,
+  X_new,
+  nd = 1000L,
+  chunk = 200L,
+  draws = NULL
+)
 }
 \arguments{
 \item{fit_exal}{exal_vb object}
@@ -12,6 +18,8 @@ exal_vb_posterior_predict(fit_exal, X_new, nd = 1000L, chunk = 200L)
 \item{X_new}{n x p design (defaults to the design you pass via the Q-DESN wrapper)}
 
 \item{nd}{number of draws; @param chunk split draws to cap memory}
+
+\item{draws}{optional posterior draws list from exal_vb_posterior_draws()}
 }
 \value{
 list(yrep=n x nd, mu_draws=n x nd, beta, sigma, gamma)

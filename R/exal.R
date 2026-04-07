@@ -72,11 +72,24 @@ qexal <- function(p, p0 = 0.5, mu = 0, sigma = 1, gamma = 0, lower.tail = TRUE, 
 #' @return Numeric vector of length `n`.
 #'
 #' @examples
-#' set.seed(1); length(rexal(10))
+#' set.seed(1)
+#' rexal(3, p0 = 0.5, mu = c(-1, 0, 1))
 #'
 #' @export
 rexal <- function(n, p0 = 0.5, mu = 0, sigma = 1, gamma = 0) {
   n <- as.integer(n)
   if (length(n) != 1L || is.na(n) || n < 1L) stop("n must be a positive integer")
-  rexal_cpp(n, p0, mu, sigma, gamma)
+  # check parameter lengths
+  if (length(p0) != 1L && length(p0) != n) stop("p0 must have length 1 or n")
+  if (length(mu) != 1L && length(mu) != n) stop("mu must have length 1 or n")
+  if (length(sigma) != 1L && length(sigma) != n) stop("sigma must have length 1 or n")
+  if (length(gamma) != 1L && length(gamma) != n) stop("gamma must have length 1 or n")
+  # make all parameters length n
+  p0 = rep_len(p0,n)
+  mu = rep_len(mu,n)
+  sigma = rep_len(sigma,n)
+  gamma = rep_len(gamma,n)
+  # apply random sampling over new vectors 
+  vapply(1:n, function(nn) rexal_cpp(1, p0[nn], mu[nn], sigma[nn], gamma[nn]), numeric(1))
 }
+

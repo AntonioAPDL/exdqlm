@@ -13,7 +13,9 @@ exal_ldvb_engine(
   init,
   prior_gamma,
   prior_sigma,
-  beta_prior_obj
+  beta_prior_obj,
+  likelihood_family = c("exal", "al"),
+  al_fixed_gamma = NULL
 )
 }
 \description{

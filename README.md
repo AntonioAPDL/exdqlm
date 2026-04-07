@@ -10,21 +10,19 @@ exdqlm — Extended Dynamic Quantile Linear Models
 `exdqlm` fits **dynamic quantile** state-space models using the
 **extended Asymmetric Laplace** (exAL) error family. It targets
 time-series applications where the goal is to model **conditional
-quantiles** across time with a standard state-space specification
-(design/evolution matrices and a state vector).
+quantiles** (not only means) while keeping a familiar state-space
+specification (design/evolution matrices and a state vector). In
+**v0.4.0**, this CRAN update consolidates the internal 0.4/0.5/0.6
+feature line: dynamic **LDVB** (`exdqlmLDVB()`), synthesis
+(`exdqlm_synthesize_from_draws()`), static regression/exAL routines
+(`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), reduced
+AL/DQLM modes (`dqlm.ind = TRUE`), and static shrinkage priors
+(`beta_prior = "ridge"` / `"rhs"` / `"rhs_ns"`), while keeping backend defaults
+conservative for CRAN stability.
 
-**What’s new in v0.5.0.** We add **posterior predictive synthesis**
-across multiple quantile-specific models via
-`exdqlm_synthesize_from_draws()`. The method performs **isotonic
-adjustment** on anchors, **distributional alignment**,
-**piecewise-linear blending**, and optional **monotone rearrangement**
-to produce a single coherent predictive distribution per time point.
-LDVB (`exdqlmLDVB`) and IS-VB remain available; examples below keep the
-**pure-R** path for portability.
-
-> **Terminology.** We use **exAL** for the extended Asymmetric Laplace
+> **Terminology.** We say **exAL** for the extended Asymmetric Laplace
 > family used here. It extends the standard AL by adding a **skewness**
-> parameter; the standard AL is the special case with zero skewness.
+> parameter; AL is the special case with zero skewness.
 
 ## Installation
 
@@ -41,7 +39,7 @@ Development (GitHub):
 pak::pak("AntonioAPDL/exdqlm")
 ```
 
-## Quick start (≤ 10 lines, LDVB)
+## Quick start (≤ 10 lines)
 
 Local-level model at a **single quantile** (the median). We fix
 **scale** and **skewness** to keep it fast and stable for CRAN; we keep
@@ -58,53 +56,80 @@ y      <- state + rnorm(T, sd = 1.0)
 model  <- list(FF = matrix(1), GG = matrix(1), m0 = 0, C0 = 100)
 options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
 
-fit_ld <- exdqlmLDVB(
+fit <- exdqlmISVB(
   y = y, p0 = 0.5, model = model, df = 0.98, dim.df = 1,
   fix.sigma = TRUE, sig.init = 1.0,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> LDVB converged: 2 iterations, 0.36 seconds
+#> ISVB converged: 2 iterations, 0.514 seconds
 
-tail(fit_ld$diagnostics$elbo, 3)
-#> [1] -228.7133 -207.7410
+tail(fit$diagnostics$elbo, 3)
+#> [1] -113.62048  -67.45699
 ```
 
-## Synthesis workflow (at a glance)
+## Core concepts (at a glance)
 
-- **Fit** models at a small set of anchor quantiles (e.g., 0.25, 0.5,
-  0.75).
-- **Isotonic adjustment** at the anchors to reduce crossings.
-- **Distributional alignment** to co-locate supports.
-- **Piecewise-linear blend** in the probability scale to fill gaps.
-- **Optional monotone rearrangement** to enforce global monotonicity.
+- **State-space skeleton**: *design* (`FF`) and *evolution* (`GG`)
+  matrices with a prior for the **state vector** (`m0`, `C0`).
+- **Quantile of interest**: `p0` (e.g., `0.1`, `0.5`, `0.9`).
+- **exAL errors**: controlled by **scale** and **skewness**; fixing them
+  often stabilizes small examples.
+- **Discount factors**: `df` and `dim.df` control evolution per block
+  (e.g., trend vs seasonality).
+- **ELBO**: recorded at `fit$diagnostics$elbo` (weakly monotone up to
+  importance-sampling noise).
 
-## What’s new in v0.5.0
+## What’s new in v0.4.0
 
-- **Posterior predictive synthesis**: `exdqlm_synthesize_from_draws()`
-  combines multiple quantile-model draws into one coherent predictive
-  distribution per time point.
-- **Diagnostics**: examples outline crossing share, RMSE at anchors, and
-  monotonicity checks.
-- **No breaking changes**: LDVB/IS-VB interfaces unchanged; C++ bridges
-  remain opt-in.
+- **Dynamic LDVB algorithm** via `exdqlmLDVB()` for exDQLM fitting.
+- **Synthesis helper** `exdqlm_synthesize_from_draws()` to combine
+  posterior quantile-draw objects.
+- **Static regression support** via `regMod()`, `exal_static_LDVB()`,
+  and `exal_static_mcmc()`.
+- **Reduced AL/DQLM paths** across dynamic and static APIs via
+  `dqlm.ind = TRUE`.
+- **Static shrinkage priors** in both static LDVB/MCMC via
+  `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
+- **LDVB transform helper** `transfn_exdqlmLDVB()` and expanded static
+  object generics (`exal_mcmc`, `exal_ldvb`).
+- **C++ backend controls** retained as optional: Kalman bridge default
+  **TRUE**; builders, samplers, and post-predictive C++ paths default
+  **FALSE**.
+- **ELBO diagnostics** retained for iterative monitoring.
+
+> For CI/CRAN-style runs, keep optional C++ builders/samplers/post-pred
+> **FALSE** and set `exdqlm.use_cpp_kf = FALSE` for strict R-path
+> reproducibility.
 
 ### Runtime options (summary)
 
 | Option                    | Default | Effect                           | Use when…                                |
 |---------------------------|:-------:|----------------------------------|------------------------------------------|
-| `exdqlm.use_cpp_kf`       |  FALSE  | C++ Kalman filter bridge         | you have compilers/OpenMP and want speed |
+| `exdqlm.use_cpp_kf`       |  TRUE   | C++ Kalman filter bridge         | you have compilers/OpenMP and want speed |
+| `exdqlm.use_cpp_builders` |  FALSE  | C++ matrix builders (`polytrendMod`, `seasMod`) | opt-in parity-tested builder speedups |
 | `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
+| `exdqlm.use_cpp_postpred` |  FALSE  | C++ posterior predictive sampler | optional speed path after parity checks  |
+| `exdqlm.use_cpp_mcmc`     |  TRUE   | MCMC backend routing             | C++ FFBS by default for MCMC             |
+| `exdqlm.cpp_mcmc_mode`    | `fast`  | MCMC mode (`strict`/`fast`)      | strict parity checks or fast C++ FFBS    |
 
 Set with:
 
 ``` r
 options(exdqlm.use_cpp_kf = TRUE)
+options(exdqlm.use_cpp_builders = FALSE)
 options(exdqlm.use_cpp_samplers = TRUE)
+options(exdqlm.use_cpp_postpred = FALSE)
+options(exdqlm.use_cpp_mcmc = TRUE)
+options(exdqlm.cpp_mcmc_mode = "fast")
 ```
+
+Backend control (minimal):
+- Force pure-R backend: set `options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_builders = FALSE)`.
+- Keep builder calls explicit with `backend = "R"` or `backend = "cpp"` in `polytrendMod()` and `seasMod()`.
 
 ## Minimal examples (CRAN-safe)
 
-### 1) LDVB on built-in data (tiny slice)
+### 1) Single-quantile fit on built-in data (tiny slice)
 
 Trend + seasonality + one regressor (`nino34`). **Note**: `FF` for the
 regressor is `1 × T`. Combine components **pairwise**.
@@ -121,9 +146,9 @@ seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))
 # 1-d regressor block (explicit 1 x T design)
 reg.comp <- list(m0 = 0, C0 = 1, FF = matrix(x, nrow = 1), GG = matrix(1))
 
-# combine pairwise
-base.mod <- combineMods(trend.comp, seas.comp)
-model    <- combineMods(base.mod, reg.comp)
+# combine via +.exdqlm
+reg.comp <- as.exdqlm(reg.comp)
+model    <- trend.comp + seas.comp + reg.comp
 
 # one discount per block: (trend, seasonal[2-d], reg)
 df     <- c(1.00, 0.98, 1.00)
@@ -131,121 +156,98 @@ dim.df <- c(1,       2,   1)
 
 options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
 
-fit_ld <- exdqlmLDVB(
+fit <- exdqlmISVB(
   y = y, p0 = 0.5, model = model,
   df = df, dim.df = dim.df,
   fix.sigma = TRUE, sig.init = 0.2,
   fix.gamma = TRUE, gam.init = 0.0
 )
-#> LDVB converged: 2 iterations, 0.406 seconds
+#> ISVB converged: 2 iterations, 0.547 seconds
 
 # quick checks
-tail(fit_ld$diagnostics$elbo, 2)
-#> [1] -1227.3245  -998.2651
-dim(fit_ld$theta.out$sm)  # state-dimension x time
+tail(fit$diagnostics$elbo, 2)
+#> [1] -1078.8072  -934.9032
+dim(fit$theta.out$sm)  # state-dimension x time
 #> [1]   4 150
 ```
 
-### 2) Multi-quantile LDVB + synthesis (three anchors)
-
-We fit **three** anchor quantiles, collect their posterior predictive
-draws, then call `exdqlm_synthesize_from_draws()`. We also compute
-simple diagnostics and show a tiny zoom plot.
+### 2) exAL helper sanity check (CDF ↔ quantile)
 
 ``` r
 set.seed(3)
-options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
+x      <- seq(-2, 2, length.out = 5)
+p0     <- 0.25
+mu     <- 0
+sigma  <- 1
+gamma  <- 0.0
 
-p_grid <- c(0.25, 0.5, 0.75)
+# CDF then invert with QF — should approximately return x
+cdf_vals <- pexal(x,  p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
+x_back   <- qexal(cdf_vals, p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
 
-fit_one <- function(p0) {
-  exdqlmLDVB(
-    y = y, p0 = p0, model = model,
-    df = df, dim.df = dim.df,
-    fix.sigma = TRUE, sig.init = 0.2,
-    fix.gamma = TRUE, gam.init = 0.0,
-    verbose = FALSE
-  )
-}
+round(cbind(x, x_back), 4)
+#>       x x_back
+#> [1,] -2     -2
+#> [2,] -1     -1
+#> [3,]  0      0
+#> [4,]  1      1
+#> [5,]  2      2
 
-fits <- lapply(p_grid, fit_one)
-draws_list <- lapply(fits, function(f) f$samp.post.pred)  # list of T×ns (or ns×T)
-
-# --- Synthesize (uses isotonic adj. -> alignment -> blending -> optional rearrangement)
-syn <- exdqlm_synthesize_from_draws(
-  draws_list = draws_list,
-  p          = p_grid
-  # defaults perform the full workflow; see ?exdqlm_synthesize_from_draws
-)
-
-# Small helper for row-quantiles
-rowQ <- function(M, prob) {
-  if (is.null(M)) return(NULL)
-  if (nrow(M) != T) M <- t(M)
-  if (requireNamespace("matrixStats", quietly = TRUE)) {
-    as.numeric(matrixStats::rowQuantiles(M, probs = prob, na.rm = TRUE))
-  } else {
-    apply(M, 1L, quantile, probs = prob, na.rm = TRUE)
-  }
-}
-
-# --- Diagnostics: pre-synthesis crossing share + RMSE @ anchors (syn vs anchors)
-# anchor quantiles from each model
-Q_anchor <- lapply(seq_along(p_grid), function(i) rowQ(draws_list[[i]], p_grid[i]))
-Q_anchor <- do.call(cbind, Q_anchor)  # T x length(p_grid)
-
-# crossing share BEFORE synthesis (any violation at a time index)
-viol <- apply(Q_anchor, 1L, function(v) any(diff(v) < 0))
-crossing_share <- mean(viol)  # in [0,1]
-
-# synthesized anchor quantiles (from syn draws)
-if (nrow(syn$draws) != T) syn$draws <- t(syn$draws)  # ensure T x ns
-Q_syn_at_p <- sapply(p_grid, function(p0) rowQ(syn$draws, p0))
-rmse_anchor <- sqrt(colMeans((Q_syn_at_p - Q_anchor)^2))
-
-c(
-  crossing_share_pre  = rounding <- round(crossing_share, 3),
-  rmse_at_anchors_25  = round(rmse_anchor[1], 4),
-  rmse_at_anchors_50  = round(rmse_anchor[2], 4),
-  rmse_at_anchors_75  = round(rmse_anchor[3], 4)
-)
-#> crossing_share_pre rmse_at_anchors_25 rmse_at_anchors_50 rmse_at_anchors_75 
-#>             0.0000             0.0228             0.0344             0.0255
-
-# --- Minimal zoom plot for the synthesized predictive (last 40 points)
-pp_plot_zoom <- function(y, samples, p0 = 0.5, last_n = 40L) {
-  if (nrow(samples) != length(y)) samples <- t(samples)
-  idx <- (length(y) - last_n + 1L):length(y)
-  S   <- samples[idx, , drop = FALSE]
-  if (requireNamespace("matrixStats", quietly = TRUE)) {
-    qs <- matrixStats::rowQuantiles(S, probs = c(0.025, p0, 0.975), na.rm = TRUE)
-  } else {
-    qs <- t(apply(S, 1L, quantile, probs = c(0.025, p0, 0.975), na.rm = TRUE))
-  }
-  x <- idx; yv <- y[idx]; lo <- qs[,1]; q <- qs[,2]; hi <- qs[,3]
-  ylim <- range(c(yv, lo, hi), finite = TRUE)
-  op <- par(mar = c(3.5, 4.2, 3, 1) + 0.1); on.exit(par(op), add = TRUE)
-  plot(x, yv, type = "n", xlab = "index", ylab = "y",
-       main = "Synthesized posterior predictive (last 40)", ylim = ylim)
-  polygon(c(x, rev(x)), c(lo, rev(hi)), border = NA,
-          col = adjustcolor("steelblue", alpha.f = 0.30))
-  lines(x, q, lwd = 3, col = "orange3")
-  points(x, yv, pch = 16, cex = 0.5)
-  invisible(NULL)
-}
-
-# Ensures samples shape is T x ns
-if (nrow(syn$draws) != length(y)) syn$draws <- t(syn$draws)
-
-# Minimal zoom plot (base graphics)
-pp_plot_zoom(y = y, samples = syn$draws, p0 = 0.5, last_n = 40L)
+# A few random draws
+rexal(5, p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
+#> [1] -0.5296664  5.4402490  0.7934288  0.4376783  2.5354967
 ```
 
-<img src="man/figures/README-synthesis-1.png" width="100%" />
-
 > **CRAN-safety.** All examples set a seed, use tiny data, finish in a
-> few seconds, and keep the pure-R path by default. For speed and
-> stability we fix **scale** and **skewness**.
+> few seconds, and explicitly keep the pure-R path.
+
+### 3) Static reduced AL + RHS-family API sketch
+
+``` r
+set.seed(4)
+n <- 80
+p <- 5
+X <- matrix(rnorm(n * p), n, p)
+beta <- c(1, -1, 0, 0, 0.5)
+y <- as.numeric(X %*% beta + rnorm(n))
+
+# Reduced AL fit (gamma fixed at zero)
+fit_al <- exal_static_LDVB(
+  y = y, X = X, p0 = 0.5,
+  dqlm.ind = TRUE,
+  max_iter = 150, tol = 1e-4, verbose = FALSE
+)
+
+# exAL fit with regularized horseshoe prior on coefficients
+fit_rhs <- exal_static_mcmc(
+  y = y, X = X, p0 = 0.5,
+  beta_prior = "rhs",
+  n.burn = 200, n.mcmc = 200, thin = 1,
+  mh.proposal = "slice",
+  trace.diagnostics = FALSE,
+  verbose = FALSE
+)
+
+# exAL fit with rhs_ns controls (same API family, additive option)
+fit_rhs_ns <- exal_static_mcmc(
+  y = y, X = X, p0 = 0.5,
+  beta_prior = "rhs_ns",
+  beta_prior_controls = list(
+    tau0 = 0.5,
+    a_zeta = 2,
+    b_zeta = 1,
+    shrink_intercept = FALSE
+  ),
+  n.burn = 200, n.mcmc = 200, thin = 1,
+  mh.proposal = "slice",
+  trace.diagnostics = FALSE,
+  verbose = FALSE
+)
+
+fit_al$dqlm.ind
+fit_rhs$beta_prior$type
+fit_rhs_ns$beta_prior$type
+```
 
 ## FAQ / Troubleshooting
 
@@ -255,39 +257,15 @@ pp_plot_zoom(y = y, samples = syn$draws, p0 = 0.5, last_n = 40L)
   them.
 
 - **ELBO dips slightly—bug?** Small downward blips are expected from
-  approximation/IS noise. Look for an overall upward trend; if not,
+  importance-sampling noise. Look for an overall upward trend; if not,
   simplify the model or adjust variance/discounts.
-
-## Benchmark Data Pipeline
-
-The repo also includes a script-driven benchmark data pipeline for the Monash
-Forecasting Archive and the official M4 dataset. It keeps Monash and official
-M4 as separate source families, preserves the official M4 train/test split, and
-excludes Monash M4 duplicates from the Monash main pool by registry design.
-
-Run the workflow from the repo root with:
-
-```bash
-Rscript --vanilla scripts/benchmark_download.R
-Rscript --vanilla scripts/benchmark_build.R
-Rscript --vanilla scripts/benchmark_analyze.R
-```
-
-Or run the end-to-end orchestrator:
-
-```bash
-Rscript --vanilla scripts/benchmark_pipeline.R
-```
-
-Additional details live in [docs/BENCHMARK_PIPELINE.md](docs/BENCHMARK_PIPELINE.md).
-
-- **Synthesis seems unchanged.** Ensure your anchors are well-separated
-  (e.g., 0.25–0.5–0.75), and verify that each anchor model converged
-  (check ELBO tail). If anchors already respect monotonicity, isotonic
-  adjustment may be minimal.
 
 - **OpenMP not available.** That’s fine. It is optional. Everything runs
   serially; examples here use the pure-R path.
+
+- **Numerical stability tips.** Avoid extremely tight `C0`; start with
+  moderate priors (e.g., `C0` around 1–100 for simple models), and fix
+  **scale**/**skewness** for initial runs.
 
 ## How to cite
 

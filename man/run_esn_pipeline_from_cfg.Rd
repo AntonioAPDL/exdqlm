@@ -12,7 +12,7 @@ run_esn_pipeline_from_cfg(
   repo_root = NULL,
   save_outputs = TRUE,
   rscript = "Rscript",
-  pipeline_script = file.path("scripts", "pipeline_sim_main.R"),
+  pipeline_script = NULL,
   verbose = TRUE
 )
 }

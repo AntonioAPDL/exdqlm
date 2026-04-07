@@ -9,13 +9,38 @@ exal_ldvb_fit(
   X,
   p0,
   gamma_bounds,
-  vb_control,
+  vb_control = NULL,
+  max_iter = NULL,
+  tol = NULL,
+  tol_par = NULL,
+  n_samp_xi = NULL,
+  verbose = NULL,
+  likelihood_family = c("exal", "al"),
   init = list(),
-  prior_gamma = list(mu0 = 0, s20 = 10),
-  prior_sigma = list(a = 1, b = 1),
-  beta_prior_obj = beta_prior("ridge", ridge = list(tau2 = 10000))
+  prior_gamma = NULL,
+  prior_gamma_mu0 = NULL,
+  prior_gamma_s20 = NULL,
+  log_prior_gamma = NULL,
+  prior_sigma = NULL,
+  a_sigma = NULL,
+  b_sigma = NULL,
+  beta_prior_obj = NULL,
+  ...
 )
 }
 \description{
-Fit exAL readout with LDVB and pluggable beta prior
+This wrapper is backward compatible with the "list-style" API:
+\itemize{
+\item vb_control = list(max_iter, tol, tol_par, n_samp_xi, verbose)
+\item prior_gamma = list(mu0, s20)
+\item prior_sigma = list(a, b)
+}
+}
+\details{
+And it also supports the "flat" arguments used by pipeline_sim_main.R:
+\itemize{
+\item max_iter, tol, tol_par, n_samp_xi, verbose
+\item prior_gamma_mu0, prior_gamma_s20, log_prior_gamma
+\item a_sigma, b_sigma
+}
 }

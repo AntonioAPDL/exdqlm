@@ -4,18 +4,17 @@
 \alias{exdqlmPlot}
 \title{Plot exDQLM}
 \usage{
-exdqlmPlot(y, m1, add = FALSE, col = "purple", cr.percent = 0.95)
+exdqlmPlot(m1, add = FALSE, col = "purple", cr.percent = 0.95)
 }
 \arguments{
-\item{y}{A univariate time-series.}
+\item{m1}{An object of class "\code{exdqlmMCMC}", "\code{exdqlmLDVB}",  or "\code{exdqlmISVB}".}
 
-\item{m1}{An object of class "\code{exdqlm}".}
+\item{add}{Logical value indicating whether the dynamic quantile will be added to existing plot. Default is \code{FALSE}.}
 
-\item{add}{If \code{TRUE}, the dynamic quantile will be added to existing plot.}
+\item{col}{Character vector of length 1 giving color of the dynamic quantile to be plotted. Default is \code{purple}.}
 
-\item{col}{Color of dynamic quantile to be plotted. Default is \code{purple}.}
-
-\item{cr.percent}{Percentage used in the calculation of the credible intervals.}
+\item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
+intervals (e.g., \code{0.95}). Default \code{0.95}.}
 }
 \value{
 A list of the following is returned:
@@ -30,11 +29,12 @@ The function plots the MAP estimates and 95\% credible intervals (CrIs) of the d
 }
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:100]
-model = polytrendMod(1,quantile(y,0.85),10)
-M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98),dim.df = c(1),
-                   gam.init=-3.5,sig.init=15)
-exdqlmPlot(y,M0,col="blue")
+model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+                   gam.init = -3.5, sig.init = 15)
+exdqlmPlot(M0, col = "blue")
 }
 
 }

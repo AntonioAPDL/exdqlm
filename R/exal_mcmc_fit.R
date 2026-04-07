@@ -1456,6 +1456,9 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     chi_sigma <- sum((r_sigma * r_sigma) / (B_now * v_now)) + 2 * sum(v_now) + 2 * as.numeric(prior_sigma$b)
     psi_sigma <- (Cabs_now * Cabs_now / B_now) * sum((s_now * s_now) / v_now)
     k_sigma <- -(as.numeric(prior_sigma$a) + 1.5 * n)
+    chi_sigma_safe <- if (is.finite(chi_sigma) && chi_sigma > 0) chi_sigma else 1e-12
+    psi_sigma_safe <- if (is.finite(psi_sigma) && psi_sigma >= 0) psi_sigma else 0
+    k_sigma_safe <- if (is.finite(k_sigma)) k_sigma else -(as.numeric(prior_sigma$a) + 1.5 * n)
 
     if (isTRUE(use_log_sigma)) {
       sigma_slice <- .exal_mcmc_slice_sample_1d(
@@ -1464,7 +1467,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
           if (!is.finite(eta)) return(-Inf)
           sig <- .safe_exp(eta)
           if (!is.finite(sig) || sig <= 0) return(-Inf)
-          k_sigma * eta - 0.5 * (psi_sigma * sig + chi_sigma / sig)
+          k_sigma_safe * eta - 0.5 * (psi_sigma_safe * sig + chi_sigma_safe / sig)
         },
         width = sigma_slice_width,
         max_steps_out = sigma_slice_max_steps_out,
@@ -1475,11 +1478,34 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       eta_sigma_now <- sigma_slice$x
       sigma_now <- .safe_exp(eta_sigma_now)
     } else {
-      sigma_new <- as.numeric(sample_gig_devroye_vector(
-        1L, p = k_sigma, a = psi_sigma, b_vec = chi_sigma
-      )[1L, 1L])
-      if (is.finite(sigma_new) && sigma_new > 0) sigma_now <- sigma_new
-      eta_sigma_now <- log(max(as.numeric(sigma_now)[1L], 1e-12))
+      sigma_new <- tryCatch(
+        as.numeric(.sample_gig_devroye_required(
+          1L, p = k_sigma_safe, a = psi_sigma_safe, b_vec = chi_sigma_safe,
+          context = "exal_mcmc_fit::sigma_update"
+        )[1L, 1L]),
+        error = function(e) NA_real_
+      )
+      if (is.finite(sigma_new) && sigma_new > 0) {
+        sigma_now <- sigma_new
+        eta_sigma_now <- log(max(as.numeric(sigma_now)[1L], 1e-12))
+      } else {
+        sigma_slice <- .exal_mcmc_slice_sample_1d(
+          x0 = eta_sigma_now,
+          logf = function(eta) {
+            if (!is.finite(eta)) return(-Inf)
+            sig <- .safe_exp(eta)
+            if (!is.finite(sig) || sig <= 0) return(-Inf)
+            k_sigma_safe * eta - 0.5 * (psi_sigma_safe * sig + chi_sigma_safe / sig)
+          },
+          width = sigma_slice_width,
+          max_steps_out = sigma_slice_max_steps_out,
+          max_shrink = sigma_slice_max_shrink,
+          lower = sigma_eta_bounds[1L],
+          upper = sigma_eta_bounds[2L]
+        )
+        eta_sigma_now <- sigma_slice$x
+        sigma_now <- .safe_exp(eta_sigma_now)
+      }
     }
 
     list(
@@ -1711,8 +1737,9 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     z_v <- y - drop(X %*% beta) - Cabs * sigma * s
     chi_v <- (z_v * z_v) / (B * sigma)
     psi_v <- (A * A) / (B * sigma) + (2 / sigma)
-    v <- as.numeric(sample_gig_devroye_vector(
-      1L, p = 0.5, a = psi_v, b_vec = chi_v
+    v <- as.numeric(.sample_gig_devroye_required(
+      1L, p = 0.5, a = psi_v, b_vec = chi_v,
+      context = "exal_mcmc_fit::latent_v"
     )[1L, ])
     v <- pmax(v, 1e-12)
 

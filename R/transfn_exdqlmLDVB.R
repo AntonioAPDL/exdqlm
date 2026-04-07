@@ -1,185 +1,126 @@
-# R/transfn_exdqlmLDVB.R
-
-#' Transfer Function exDQLM — LDVB algorithm
+#' Transfer Function exDQLM - LDVB algorithm
 #'
-#' Fits an Extended Dynamic Quantile Linear Model (exDQLM) **with an exponential
-#' transfer-function regression block** using the Laplace–Delta VB (LDVB) approximation.
-#' This is a modern replacement for \code{transfn_exdqlmISVB()} and relies on
-#' \code{\link{tfRegMod}} to build the TF block, then calls \code{\link{exdqlmLDVB}}.
+#' The function applies a Laplace-Delta Variational Bayes (LDVB) algorithm to
+#' estimate the posterior of an exDQLM with an exponential-decay transfer
+#' function component.
 #'
 #' @inheritParams exdqlmLDVB
-#' @param X Numeric matrix (T x n): regressors at each time t (rows are time).
-#' @param lambda Numeric scalar or length-T vector in (0,1): TF decay rate(s).
-#'   If scalar, it is recycled across t.
-#' @param df Vector of discount factors for the **existing** blocks in \code{model}.
-#' @param dim.df Integer vector: dimensions per block for the **existing** blocks in \code{model}.
-#'   (These must sum to \code{length(model$m0)}.)
-#' @param tf.df Discount factors for the **TF block**. Accepted shapes:
-#'   \itemize{
-#'     \item length 1: one block for all TF states (size n+1).
-#'     \item length 2: two blocks \eqn{(1, n)} → accumulator and all n coefficients.
-#'     \item length n+1: per-state (n+1) blocks of size 1 (fine-grained control).
-#'   }
-#'   Defaults to \code{c(0.97, 0.97)} (two-block scheme).
-#' @param tf.m0 Optional prior mean for TF block (length n+1).
-#'   Defaults to zeros of length n+1.
-#' @param tf.C0 Optional prior covariance for TF block ((n+1) x (n+1)).
-#'   Defaults to \eqn{10^3 I_{n+1}}.
-#' @param lam Deprecated alias for \code{lambda} (kept for migration). If provided
-#'   and \code{lambda} missing, \code{lambda <- lam}.
+#' @param X A univariate time-series which will be the input of the transfer
+#'   function component.
+#' @param lam Transfer function rate parameter lambda, a value between 0 and 1.
+#' @param tf.df Discount factor(s) used for the transfer function component.
+#' @param tf.m0 Prior mean of the transfer function component.
+#' @param tf.C0 Prior covariance of the transfer function component.
 #'
-#' @return The result of \code{\link{exdqlmLDVB}} with two extras:
+#' @return A object of class "\code{exdqlmLDVB}" containing the exdqlmLDVB
+#'   output for the transfer-function-augmented model, plus:
 #' \itemize{
-#'   \item \code{$lam} — the \code{lambda} used (scalar or vector).
-#'   \item \code{$median.kt} — median time (in steps) for the TF contribution
-#'         \eqn{\lambda^k |X_t^\top \hat{\beta}|} to drop below 1e-3, computed
-#'         using the smoothed posterior mean \eqn{\hat{\beta}} at time T.
+#'   \item `lam` - Transfer function rate parameter lambda.
+#'   \item `median.kt` - Median number of time steps until the effect of `X_t`
+#'   is less than or equal to `1e-3`.
 #' }
+#'
 #' @export
+#'
+#' @importFrom stats median
 #'
 #' @examples
 #' \donttest{
-#' data("BTflow", package = "exdqlm")
-#' data("nino34", package = "exdqlm")
-#'
-#' # Base model
-#' trend.comp <- polytrendMod(order = 1, m0 = mean(BTflow), C0 = 10)
-#' seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))
-#' base.mod   <- combineMods(trend.comp, seas.comp)
-#'
-#' # TF regressors
-#' X <- cbind(nino34, nino34^2)
-#'
-#' fit <- transfn_exdqlmLDVB(
-#'   y = BTflow, p0 = 0.85, model = base.mod,
-#'   X = X, df = c(1, 1), dim.df = c(1, 2),
-#'   lambda = 0.9, tf.df = c(0.97, 0.97),
-#'   gam.init = -3.5, sig.init = 15, tol = 0.05, n.samp = 300
+#' data("scIVTmag", package = "exdqlm")
+#' data("ELIanoms", package = "exdqlm")
+#' y = scIVTmag[1:365]
+#' X = ELIanoms[1:365]
+#' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+#' model = trend.comp + seas.comp
+#' M1 = transfn_exdqlmLDVB(
+#'   y, p0 = 0.85, model = model, X = X,
+#'   df = c(1,1), dim.df = c(1,6),
+#'   gam.init = -3.5, sig.init = 15,
+#'   lam = 0.38, tf.df = c(0.97,0.97)
 #' )
-#'
-#' fit$lam
-#' fit$median.kt
 #' }
-transfn_exdqlmLDVB <- function(
-  y, p0, model, X,
-  df, dim.df,
-  lambda, tf.df = c(0.97, 0.97),
-  fix.gamma = FALSE, gam.init = NA,
-  fix.sigma = TRUE,  sig.init = NA,
-  dqlm.ind  = FALSE,
-  exps0,
-  tol = 0.1,
-  n.samp = 300,
-  PriorSigma = NULL,
-  PriorGamma = NULL,
-  tf.m0, tf.C0,
-  verbose = TRUE,
-  debug_shapes = FALSE,
-  debug_every = 5,
-  lam # deprecated alias
-) {
-  # --- Migration nicety -------------------------------------------------------
-  if (!missing(lam) && missing(lambda)) lambda <- lam
-
-  # --- Basic checks (reuse package helpers) -----------------------------------
-  y     <- check_ts(y)
-  X     <- check_X(X, Tlen = length(y))
-  model <- check_mod(model)
-
-  TT <- length(y)
-  n  <- ncol(X)
-
-  if (missing(lambda)) stop("`lambda` must be provided (scalar or length T) and be in (0,1).")
-  lam_vec <- as.numeric(lambda)
-  if (length(lam_vec) == 1L) lam_vec <- rep(lam_vec, TT)
-  if (length(lam_vec) != TT || any(!is.finite(lam_vec) | lam_vec <= 0 | lam_vec >= 1))
-    stop("`lambda` values must lie strictly in (0,1).")
-
-
-  if (missing(lambda)) stop("`lambda` must be provided (scalar or length T) and be in (0,1).")
-  lam_vec <- as.numeric(lambda)
-  if (length(lam_vec) == 1L) lam_vec <- rep(lam_vec, TT)
-  if (length(lam_vec) != TT) stop("`lambda` must be scalar or length T (nrow(X)).")
-  if (any(lam_vec <= 0 | lam_vec >= 1 | !is.finite(lam_vec)))
-    stop("`lambda` values must lie strictly in (0,1).")
-
-  # Defaults for TF priors
-  if (missing(tf.m0)) tf.m0 <- rep(0, n + 1L) else {
-    if (length(tf.m0) != (n + 1L)) stop("tf.m0 must have length n+1.")
+transfn_exdqlmLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
+                               fix.gamma = FALSE, gam.init = NA,
+                               fix.sigma = FALSE, sig.init = NA,
+                               dqlm.ind = FALSE, exps0, tol = 0.1, n.samp = 200,
+                               PriorSigma = NULL, PriorGamma = NULL,
+                               tf.m0 = rep(0, 2), tf.C0 = diag(1, 2),
+                               verbose = TRUE,
+                               debug_shapes = FALSE, debug_every = 5) {
+  # check inputs
+  y = check_ts(y)
+  X = check_ts(X)
+  if (length(X) != length(y)) stop("y and X must be time-series of the same length")
+  model = check_mod(model)
+  p = length(model$m0)
+  if (length(lam) != 1 || lam >= 1 || lam <= 0) stop("lam must be a single value between 0 and 1")
+  if (!methods::hasArg(dim.df)) {
+    if (length(df) != 1) {
+      stop("length of component discount factors does not match length of component dimensions")
+    }
+    dim.df = p
   }
-  if (missing(tf.C0)) {
-    tf.C0 <- diag(1e3, n + 1L)
+  if (length(tf.m0) != 2) stop("tf.m0 should have length 2")
+  tf.C0 = as.matrix(tf.C0)
+  if (any(dim(tf.C0) != 2)) stop("tf.C0 should be a 2 by 2 covariance matrix")
+
+  # initialize quantile
+  if (methods::hasArg(exps0)) {
+    TT = length(y)
+    if (length(exps0) != TT) stop("exp0 must have same length as y")
   } else {
-    tf.C0 <- as.matrix(tf.C0)
-    if (!all(dim(tf.C0) == c(n + 1L, n + 1L))) stop("tf.C0 must be (n+1) x (n+1).")
+    TT = length(y)
+    if (!is.na(dim(model$GG)[3])) {
+      if (dim(model$GG)[3] != TT) stop("time-varying dimension of GG does not match length of y")
+    }
+    GG = array(model$GG, c(p, p, TT)); model$GG = GG
+    if (ncol(model$FF) > 1) {
+      if (ncol(model$FF) != TT) stop("time-varying dimension of FF does not match length of y")
+    }
+    FF = matrix(model$FF, p, TT); model$FF = FF
+    init.dlm = dlm_df(y, model, df, dim.df, s.priors = list(l0 = 1, S0 = 1), just.lik = FALSE)
+    exps0 = apply(FF * t(init.dlm$m), 2, sum) + stats::qnorm(p0, 0, sqrt(init.dlm$s[TT]))
   }
 
-  # --- Build TF block and combine with base model -----------------------------
-  tf.comp   <- tfRegMod(X, lambda = lam_vec, m0 = tf.m0, C0 = tf.C0)
-  aug.model <- combineMods(model, tf.comp)
+  # augment state-space model
+  temp.p = length(model$m0)
+  p_aug = temp.p + 2
+  FF = matrix(0, p_aug, TT)
+  FF[1:temp.p, ] = model$FF
+  FF[seq(temp.p + 1, temp.p + 2, 2), ] = 1
+  GG = array(0, c(p_aug, p_aug, TT))
+  GG[1:temp.p, 1:temp.p, ] = model$GG
+  GG[(temp.p + 1):(temp.p + 2), (temp.p + 1):(temp.p + 2), ] = matrix(c(lam, 0, NA, 1), 2, 2)
+  GG[(temp.p + 1), (temp.p + 2), ] = X
 
-  # --- Discount factor bookkeeping for TF block -------------------------------
-  # Map tf.df (user) -> (df entries, block sizes) for the TF chunk.
-  tf.df <- as.numeric(tf.df)
+  # update model and dfs with transfer-function component
+  tf.model <- list()
+  tf.model$GG = GG
+  tf.model$FF = FF
+  tf.model$m0 = c(model$m0, tf.m0)
+  tf.model$C0 = magic::adiag(model$C0, tf.C0)
+  tf.model = as.exdqlm(tf.model)
+  tf.model.df = c(df, matrix(tf.df, 1, 2))
+  tf.model.dim.df = c(dim.df, rep(1, 2))
 
-  if (length(tf.df) == 1L) {
-    tf_dim_df <- n + 1L        # one block for the whole TF state
-  } else if (length(tf.df) == 2L) {
-    tf_dim_df <- c(1L, n)      # (accumulator, all coefficients)
-  } else if (length(tf.df) == (n + 1L)) {
-    tf_dim_df <- rep(1L, n + 1L) # per-state blocks
-  } else {
-    stop("tf.df must have length 1, 2, or n+1.")
-  }
-
-  df_all     <- c(df,   tf.df)
-  dim.df_all <- c(dim.df, tf_dim_df)
-
-  # --- Fit LDVB on the augmented model ---------------------------------------
-  fit <- exdqlmLDVB(
-    y = y, p0 = p0, model = aug.model,
-    df = df_all, dim.df = dim.df_all,
+  # fit transfer-function exdqlm
+  tf.return = exdqlmLDVB(
+    y = y, p0 = p0, model = tf.model,
+    df = tf.model.df, dim.df = tf.model.dim.df,
     fix.gamma = fix.gamma, gam.init = gam.init,
     fix.sigma = fix.sigma, sig.init = sig.init,
-    dqlm.ind = dqlm.ind,
-    exps0 = exps0,
-    tol = tol,
+    dqlm.ind = dqlm.ind, exps0 = exps0, tol = tol,
     n.samp = n.samp,
-    PriorSigma = PriorSigma,
-    PriorGamma = PriorGamma,
+    PriorSigma = PriorSigma, PriorGamma = PriorGamma,
     verbose = verbose,
-    debug_shapes = debug_shapes,
-    debug_every = debug_every
+    debug_shapes = debug_shapes, debug_every = debug_every
   )
+  tf.return$lam = lam
 
-  # --- Extras: echo lambda & compute median k_t decay horizon -----------------
-  fit$lam <- lambda
+  k_seq = (log(1e-3) - log(abs(c(tf.model$m0[1], tf.return$theta.out$sm[(dim(tf.return$theta.out$sm)[1] - 1), -TT]) * c(X)))) / (log(lam))
+  tf.return$median.kt = stats::median(k_seq)
 
-  # indices of TF block inside the combined state:
-  p_base    <- length(model$m0)
-  idx_acc   <- p_base + 1L            # accumulator state
-  idx_beta  <- (p_base + 2L):(p_base + 1L + n)
-
-  # posterior mean of beta at final time (smoothed):
-  sm <- fit$theta.out$sm
-  if (is.null(dim(sm)) || nrow(sm) < (p_base + 1L + n))
-    warning("Could not locate TF block in theta.out$sm; skipping median.kt.")
-  else {
-    beta_hat_T <- as.numeric(sm[idx_beta, TT])   # length n
-    x_dot_beta <- as.numeric(X %*% beta_hat_T)   # length T
-
-    # For each t, solve lambda_t^k * |x_t' beta| <= 1e-3  ⇒
-    # k >= (log(1e-3) - log|x_t' beta|) / log(lambda_t)
-    # Guard small magnitudes and non-finite cases.
-    mag   <- pmax(abs(x_dot_beta), 1e-12)
-    numer <- log(1e-3) - log(mag)
-    denom <- log(lam_vec) # negative (since 0<lambda<1)
-    k_raw <- numer / denom
-    k_raw[!is.finite(k_raw)] <- 0
-    k_ce  <- pmax(0, ceiling(k_raw))
-
-    fit$median.kt <- stats::median(k_ce[is.finite(k_ce)])
-  }
-
-  fit
+  # return results
+  return(tf.return)
 }

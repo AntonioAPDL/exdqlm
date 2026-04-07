@@ -7,42 +7,43 @@
 regMod(X, m0, C0)
 }
 \arguments{
-\item{X}{A numeric matrix of dimension T x n (T time points, n regressors).
-Vectors are accepted and treated as T x 1.}
+\item{X}{A numeric matrix of dimension \eqn{T \times n} (T time points, n regressors).
+Vectors are accepted and treated as \eqn{T \times 1}.}
 
 \item{m0}{Optional numeric prior mean (length n). Defaults to zeros.}
 
-\item{C0}{Optional numeric prior covariance (n x n). Defaults to \eqn{10^3 I_n}.}
+\item{C0}{Optional numeric prior covariance (\eqn{n \times n}). Defaults to \eqn{10^3 I_n}.}
 }
 \value{
 An object of class \code{"exdqlm"} with elements:
 \itemize{
-\item \code{FF} — n x T matrix with column \eqn{t} equal to \eqn{F_t = X_t}.
-\item \code{GG} — n x n identity (static coefficients).
-\item \code{m0}, \code{C0} — prior mean/covariance for regression coefficients.
+\item \code{FF} - \eqn{n \times T} matrix with column \eqn{t} equal to \eqn{F_t = X_t}.
+\item \code{GG} - \eqn{n \times n} identity matrix (static coefficients).
+\item \code{m0}, \code{C0} - Prior mean/covariance for regression coefficients.
 }
 }
 \description{
-Constructs a regression block where the observation vector at time t is
+The function constructs a regression block where the observation vector at time \eqn{t} is
 \eqn{F_t = X_t} (row of the design matrix), and the state evolves as
 \eqn{\theta_t = \theta_{t-1}} (i.e., \eqn{G_t = I_n}).
 }
 \details{
-Input X is a T x n matrix of regressors; the returned \code{FF} is an n x T
-matrix (i.e., \code{t(X)}), consistent with \code{combineMods()} semantics.
+Input \code{X} is a \eqn{T \times n} matrix of regressors; the returned \code{FF} is an \eqn{n \times T}
+matrix (i.e., \code{t(X)}), consistent with component composition via
+\code{+.exdqlm}.
 }
 \examples{
 data("BTflow", package = "exdqlm")
 data("nino34", package = "exdqlm")
 # Single regressor (T x 1)
-reg1 <- regMod(nino34)
+reg1 = regMod(nino34)
 # Multiple regressors (T x n)
-X <- cbind(nino34, scale(BTflow)[,1])
-reg2 <- regMod(X)
+X = cbind(nino34, scale(BTflow)[,1])
+reg2 = regMod(X)
 
 # Combine with trend/seasonal components
-trend.comp <- polytrendMod(order = 3, m0 = rep(0,3), C0 = diag(3))
-seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))
-base.mod   <- combineMods(trend.comp, seas.comp)
-model.std  <- combineMods(base.mod, reg2)
+trend.comp = polytrendMod(order = 3, m0 = rep(0,3), C0 = diag(3))
+seas.comp  = seasMod(p = 12, h = 1, C0 = diag(1, 2))
+base.mod   = trend.comp + seas.comp
+model.std  = base.mod + reg2
 }

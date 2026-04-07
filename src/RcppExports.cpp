@@ -12,6 +12,29 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// cpp_build_polytrend_FF_GG
+Rcpp::List cpp_build_polytrend_FF_GG(int order);
+RcppExport SEXP _exdqlm_cpp_build_polytrend_FF_GG(SEXP orderSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_build_polytrend_FF_GG(order));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_build_seas_FF_GG
+Rcpp::List cpp_build_seas_FF_GG(double period, Rcpp::NumericVector harmonics);
+RcppExport SEXP _exdqlm_cpp_build_seas_FF_GG(SEXP periodSEXP, SEXP harmonicsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type period(periodSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type harmonics(harmonicsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_build_seas_FF_GG(period, harmonics));
+    return rcpp_result_gen;
+END_RCPP
+}
 // get_gamma_bounds
 NumericVector get_gamma_bounds(double p0);
 RcppExport SEXP _exdqlm_get_gamma_bounds(SEXP p0SEXP) {
@@ -283,6 +306,42 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mcmc_ffbs_smooth_cpp
+Rcpp::List mcmc_ffbs_smooth_cpp(const arma::cube& GG, const arma::vec& m0, const arma::mat& C0, const arma::mat& FF, const arma::vec& y, const arma::vec& ex_f, const arma::vec& ex_q, const arma::mat& df_mat);
+RcppExport SEXP _exdqlm_mcmc_ffbs_smooth_cpp(SEXP GGSEXP, SEXP m0SEXP, SEXP C0SEXP, SEXP FFSEXP, SEXP ySEXP, SEXP ex_fSEXP, SEXP ex_qSEXP, SEXP df_matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type m0(m0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type C0(C0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_f(ex_fSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_q(ex_qSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type df_mat(df_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcmc_ffbs_smooth_cpp(GG, m0, C0, FF, y, ex_f, ex_q, df_mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mcmc_ffbs_sample_cpp
+Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG, const arma::vec& m0, const arma::mat& C0, const arma::mat& FF, const arma::vec& y, const arma::vec& ex_f, const arma::vec& ex_q, const arma::mat& df_mat);
+RcppExport SEXP _exdqlm_mcmc_ffbs_sample_cpp(SEXP GGSEXP, SEXP m0SEXP, SEXP C0SEXP, SEXP FFSEXP, SEXP ySEXP, SEXP ex_fSEXP, SEXP ex_qSEXP, SEXP df_matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type GG(GGSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type m0(m0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type C0(C0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type FF(FFSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_f(ex_fSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ex_q(ex_qSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type df_mat(df_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcmc_ffbs_sample_cpp(GG, m0, C0, FF, y, ex_f, ex_q, df_mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sample_truncnorm
 Rcpp::NumericMatrix sample_truncnorm(int n_samp, int TT, Rcpp::NumericVector sts_mu, Rcpp::NumericVector sts_sig2);
 RcppExport SEXP _exdqlm_sample_truncnorm(SEXP n_sampSEXP, SEXP TTSEXP, SEXP sts_muSEXP, SEXP sts_sig2SEXP) {
@@ -504,8 +563,40 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// DISC_sample_multivariate_normal
+arma::cube DISC_sample_multivariate_normal(int n_samp, int TT, arma::cube sC, arma::mat sm, int n);
+RcppExport SEXP _exdqlm_DISC_sample_multivariate_normal(SEXP n_sampSEXP, SEXP TTSEXP, SEXP sCSEXP, SEXP smSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n_samp(n_sampSEXP);
+    Rcpp::traits::input_parameter< int >::type TT(TTSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type sC(sCSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type sm(smSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(DISC_sample_multivariate_normal(n_samp, TT, sC, sm, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// DISC_generate_synth_samples_retro_part
+Rcpp::List DISC_generate_synth_samples_retro_part(int n_samp, int TT, int n, arma::cube sC, arma::mat sm);
+RcppExport SEXP _exdqlm_DISC_generate_synth_samples_retro_part(SEXP n_sampSEXP, SEXP TTSEXP, SEXP nSEXP, SEXP sCSEXP, SEXP smSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n_samp(n_sampSEXP);
+    Rcpp::traits::input_parameter< int >::type TT(TTSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type sC(sCSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type sm(smSEXP);
+    rcpp_result_gen = Rcpp::wrap(DISC_generate_synth_samples_retro_part(n_samp, TT, n, sC, sm));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_exdqlm_cpp_build_polytrend_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_polytrend_FF_GG, 1},
+    {"_exdqlm_cpp_build_seas_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_seas_FF_GG, 2},
     {"_exdqlm_get_gamma_bounds", (DL_FUNC) &_exdqlm_get_gamma_bounds, 1},
     {"_exdqlm_dexal", (DL_FUNC) &_exdqlm_dexal, 6},
     {"_exdqlm_pexal", (DL_FUNC) &_exdqlm_pexal, 7},
@@ -520,6 +611,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_dlm_ndlm_filter_smooth_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_filter_smooth_cpp, 12},
     {"_exdqlm_dlm_ndlm_structured_forecast_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_structured_forecast_cpp, 7},
     {"_exdqlm_dlm_ndlm_component_forecast_cpp", (DL_FUNC) &_exdqlm_dlm_ndlm_component_forecast_cpp, 9},
+    {"_exdqlm_mcmc_ffbs_smooth_cpp", (DL_FUNC) &_exdqlm_mcmc_ffbs_smooth_cpp, 8},
+    {"_exdqlm_mcmc_ffbs_sample_cpp", (DL_FUNC) &_exdqlm_mcmc_ffbs_sample_cpp, 8},
     {"_exdqlm_sample_truncnorm", (DL_FUNC) &_exdqlm_sample_truncnorm, 4},
     {"_exdqlm_sample_gig_devroye_vector", (DL_FUNC) &_exdqlm_sample_gig_devroye_vector, 4},
     {"_exdqlm_sample_gig_devroye_pairs", (DL_FUNC) &_exdqlm_sample_gig_devroye_pairs, 4},
@@ -532,6 +625,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_generate_synth_samples_forecast_part", (DL_FUNC) &_exdqlm_generate_synth_samples_forecast_part, 6},
     {"_exdqlm_samp_post_pred_extended", (DL_FUNC) &_exdqlm_samp_post_pred_extended, 11},
     {"_exdqlm_generate_samples_ext", (DL_FUNC) &_exdqlm_generate_samples_ext, 12},
+    {"_exdqlm_DISC_sample_multivariate_normal", (DL_FUNC) &_exdqlm_DISC_sample_multivariate_normal, 5},
+    {"_exdqlm_DISC_generate_synth_samples_retro_part", (DL_FUNC) &_exdqlm_DISC_generate_synth_samples_retro_part, 5},
     {NULL, NULL, 0}
 };
 

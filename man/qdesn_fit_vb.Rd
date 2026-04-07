@@ -104,3 +104,4 @@ is fitted under \eqn{exAL_{p0}} noise using your \code{exal_static_LDVB()}.
 \item Fit \eqn{\beta,\sigma,\gamma} with \code{exal_static_LDVB()} for a single p0.\cr
 }
 }
+

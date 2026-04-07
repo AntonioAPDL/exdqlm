@@ -66,8 +66,9 @@ exdqlmISVB(
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
-A list of the following is returned:
+A object of class "\code{exdqlmISVB}" containing the following:
 \itemize{
+\item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{iter} - Number of iterations until convergence was reached.
 \item \code{dqlm.ind} - Logical value indicating whether gamma was fixed at \code{0}, reducing the exDQLM to the special case of the DQLM.
@@ -84,19 +85,23 @@ A list of the following is returned:
 \item \code{samp.vts} - Posterior sample of latent parameters, v_t, variational distributions.
 \item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
+\item \code{fix.sigma} Logical value indicating whether sigma was fixed at \code{sig.init}.
+\item \code{diagnostics} - List containing ELBO trace and convergence diagnostics
+(joint stopping status, deltas for state/sigma/gamma/ELBO, and criteria used).
 }
-If \code{dqlm.ind=FALSE}, the list also contains:
+If \code{dqlm.ind=FALSE}, the object also contains:
 \itemize{
 \item \code{gam.init} - Initial value for gamma, or value at which gamma was fixed if \code{fix.gamma=TRUE}.
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the IS estimate of the variational distribution of sigma and gamma.
+\item \code{gammasig.out} - List containing the IS estimate of the variational distribution of \code{sigma} and \code{gamma}.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
+\item \code{fix.gamma} Logical value indicating whether gamma was fixed at \code{gam.init}.
 }
-Or if \code{dqlm.ind=TRUE}, the list also contains:
+Or if \code{dqlm.ind=TRUE}, the object also contains:
 \itemize{
-\item \code{sig.out} - List containing the IS estimate of the variational distribution of sigma.
+\item \code{sig.out} - As above but for the DQLM case (\code{gamma = 0}); list containing the IS estimate of the variational distribution of sigma.
 }
 }
 \description{
@@ -108,6 +113,10 @@ Advanced options (set via \code{options()}):
 \item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
 \item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
 \item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+\item \code{exdqlm.tol_sigma}: sigma-delta convergence tolerance (default: \code{tol}).
+\item \code{exdqlm.tol_gamma}: gamma-delta convergence tolerance (default: \code{tol}).
+\item \code{exdqlm.vb.min_iter}: minimum iterations before convergence can trigger (default 10).
+\item \code{exdqlm.vb.patience}: number of consecutive joint-converged iterations required (default 3).
 \item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
 The GIG-based u_t sampler always uses the package C++ Devroye implementation;
 when FALSE, the remaining samplers fall back to R implementations.
@@ -116,12 +125,16 @@ when FALSE, the remaining samplers fall back to R implementations.
 }
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:1095]
-trend.comp = polytrendMod(1,mean(y),10)
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-model = combineMods(trend.comp,seas.comp)
-M0 = exdqlmISVB(y,p0=0.85,model,df=c(1,1),dim.df = c(1,6),
-                 gam.init=-3.5,sig.init=15,tol=0.05)
+trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+model = trend.comp + seas.comp
+M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
+                 gam.init = -3.5, sig.init = 15, tol = 0.05)
+
+M0_al = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
+                   dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
 }
 
 }

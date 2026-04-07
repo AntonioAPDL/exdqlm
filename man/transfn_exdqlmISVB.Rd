@@ -75,7 +75,7 @@ transfn_exdqlmISVB(
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 }
 \value{
-A list of the following is returned:
+A object of class "\code{exdqlmISVB}" containing the following:
 \itemize{
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{iter} - Number of iterations until convergence was reached.
@@ -96,34 +96,48 @@ A list of the following is returned:
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
 \item \code{median.kt} - Median number of time steps until the effect of X_t is less than or equal to 1e-3.
 }
-If \code{dqlm.ind=FALSE}, the list also contains:
+If \code{dqlm.ind=FALSE}, the object also contains:
 \itemize{
 \item \code{gam.init} - Initial value for gamma, or value at which gamma was fixed if \code{fix.gamma=TRUE}.
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the IS estimate of the variational distribution of sigma and gamma.
+\item \code{gammasig.out} - List containing the IS estimate of the variational distribution of \code{sigma} and \code{gamma}.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 }
-Or if \code{dqlm.ind=TRUE}, the list also contains:
+Or if \code{dqlm.ind=TRUE}, the object also contains:
 \itemize{
-\item \code{sig.out} - List containing the IS estimate of the variational distribution of sigma.
+\item \code{sig.out} - As above but for the DQLM case (\code{gamma = 0}); list containing the IS estimate of the variational distribution of sigma.
 }
 }
 \description{
 The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM with exponential decay transfer function component.
 }
+\details{
+Advanced options (set via \code{options()}):
+\itemize{
+\item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
+\item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
+\item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+\item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
+The GIG-based u_t sampler always uses the package C++ Devroye implementation;
+when FALSE, the remaining samplers fall back to R implementations.
+\item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+}
+}
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
+data("ELIanoms", package = "exdqlm")
 y = scIVTmag[1:1095]
 X = ELIanoms[1:1095]
-trend.comp = polytrendMod(1,mean(y),10)
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-model = combineMods(trend.comp,seas.comp)
-M1 = transfn_exdqlmISVB(y,p0=0.85,model=model,
-                          X,df=c(1,1),dim.df = c(1,6),
-                          gam.init=-3.5,sig.init=15,
-                          lam=0.38,tf.df=c(0.97,0.97))
+trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+model = trend.comp + seas.comp
+M1 = transfn_exdqlmISVB(y, p0 = 0.85, model = model,
+                          X, df = c(1,1), dim.df = c(1,6),
+                          gam.init = -3.5, sig.init = 15,
+                          lam = 0.38, tf.df = c(0.97,0.97))
 }
 
 }

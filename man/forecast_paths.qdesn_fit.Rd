@@ -20,7 +20,11 @@ forecast_paths.qdesn_fit(
   return_design = FALSE,
   origin_state = NULL,
   readout_spec = NULL,
-  draws = NULL
+  draws = NULL,
+  res_lag_init = NULL,
+  origin_index = NULL,
+  noise_draws = NULL,
+  cpp_fallback_note = TRUE
 )
 }
 \arguments{
@@ -51,9 +55,19 @@ if NULL and m>0 uses last m of object$y_fit}
 
 \item{origin_state}{optional list of reservoir states at the forecast origin}
 
-\item{readout_spec}{list with y_lags, x_names, x_lags, p_res, scale_info}
+\item{readout_spec}{list with y_lags, x_names, x_lags, p_res, scale_info; may also
+include include_input, input_lags_y, input_lags_x, reservoir_lags, input_position.}
 
 \item{draws}{optional posterior draws list from exal_vb_posterior_draws()}
+
+\item{res_lag_init}{optional matrix of reservoir-lag features at the origin
+(rows = lags 1..L, cols = reservoir feature dimension without bias).}
+
+\item{noise_draws}{optional list with matrices \code{s}, \code{v}, \code{z}
+(each \code{H x nd}) to force deterministic R/C++ parity in recursive sampling.}
+
+\item{cpp_fallback_note}{logical; when \code{FALSE}, suppresses C++ fallback
+informational messages (used by lattice caller to avoid per-origin spam).}
 }
 \value{
 list with yrep (H x nd) and mu_draws (H x nd)
@@ -65,6 +79,6 @@ described by \code{readout_spec}. This is the core primitive used by the lattice
 forecaster.
 }
 \details{
-Note: \code{method}, \code{anchor}, \code{anchor_path}, and \code{return_design} are
-retained for backward compatibility but are ignored; only recursive sampling is used.
+Note: \code{method}, \code{anchor}, \code{anchor_path}, and \code{return_design} are retained for
+backward compatibility but are ignored; only recursive sampling is used.
 }

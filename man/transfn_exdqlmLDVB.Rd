@@ -2,7 +2,7 @@
 % Please edit documentation in R/transfn_exdqlmLDVB.R
 \name{transfn_exdqlmLDVB}
 \alias{transfn_exdqlmLDVB}
-\title{Transfer Function exDQLM — LDVB algorithm}
+\title{Transfer Function exDQLM - LDVB algorithm}
 \usage{
 transfn_exdqlmLDVB(
   y,
@@ -11,24 +11,23 @@ transfn_exdqlmLDVB(
   X,
   df,
   dim.df,
-  lambda,
-  tf.df = c(0.97, 0.97),
+  lam,
+  tf.df,
   fix.gamma = FALSE,
   gam.init = NA,
-  fix.sigma = TRUE,
+  fix.sigma = FALSE,
   sig.init = NA,
   dqlm.ind = FALSE,
   exps0,
   tol = 0.1,
-  n.samp = 300,
+  n.samp = 200,
   PriorSigma = NULL,
   PriorGamma = NULL,
-  tf.m0,
-  tf.C0,
+  tf.m0 = rep(0, 2),
+  tf.C0 = diag(1, 2),
   verbose = TRUE,
   debug_shapes = FALSE,
-  debug_every = 5,
-  lam
+  debug_every = 5
 )
 }
 \arguments{
@@ -38,23 +37,16 @@ transfn_exdqlmLDVB(
 
 \item{model}{List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.}
 
-\item{X}{Numeric matrix (T x n): regressors at each time t (rows are time).}
+\item{X}{A univariate time-series which will be the input of the transfer
+function component.}
 
-\item{df}{Vector of discount factors for the \strong{existing} blocks in \code{model}.}
+\item{df}{Discount factors for each block.}
 
-\item{dim.df}{Integer vector: dimensions per block for the \strong{existing} blocks in \code{model}.
-(These must sum to \code{length(model$m0)}.)}
+\item{dim.df}{Dimension of each block of discount factors.}
 
-\item{lambda}{Numeric scalar or length-T vector in (0,1): TF decay rate(s).
-If scalar, it is recycled across t.}
+\item{lam}{Transfer function rate parameter lambda, a value between 0 and 1.}
 
-\item{tf.df}{Discount factors for the \strong{TF block}. Accepted shapes:
-\itemize{
-\item length 1: one block for all TF states (size n+1).
-\item length 2: two blocks \eqn{(1, n)} → accumulator and all n coefficients.
-\item length n+1: per-state (n+1) blocks of size 1 (fine-grained control).
-}
-Defaults to \code{c(0.97, 0.97)} (two-block scheme).}
+\item{tf.df}{Discount factor(s) used for the transfer function component.}
 
 \item{fix.gamma}{Logical value indicating whether to fix gamma at \code{gam.init}. Default is \code{FALSE}.}
 
@@ -76,57 +68,44 @@ Defaults to \code{c(0.97, 0.97)} (two-block scheme).}
 
 \item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
 
-\item{tf.m0}{Optional prior mean for TF block (length n+1).
-Defaults to zeros of length n+1.}
+\item{tf.m0}{Prior mean of the transfer function component.}
 
-\item{tf.C0}{Optional prior covariance for TF block ((n+1) x (n+1)).
-Defaults to \eqn{10^3 I_{n+1}}.}
+\item{tf.C0}{Prior covariance of the transfer function component.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 
 \item{debug_shapes}{Logical; if TRUE, print KF input/output shapes every \code{debug_every} iterations.}
 
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
-
-\item{lam}{Deprecated alias for \code{lambda} (kept for migration). If provided
-and \code{lambda} missing, \code{lambda <- lam}.}
 }
 \value{
-The result of \code{\link{exdqlmLDVB}} with two extras:
+A object of class "\code{exdqlmLDVB}" containing the exdqlmLDVB
+output for the transfer-function-augmented model, plus:
 \itemize{
-\item \code{$lam} — the \code{lambda} used (scalar or vector).
-\item \code{$median.kt} — median time (in steps) for the TF contribution
-\eqn{\lambda^k |X_t^\top \hat{\beta}|} to drop below 1e-3, computed
-using the smoothed posterior mean \eqn{\hat{\beta}} at time T.
+\item \code{lam} - Transfer function rate parameter lambda.
+\item \code{median.kt} - Median number of time steps until the effect of \code{X_t}
+is less than or equal to \code{1e-3}.
 }
 }
 \description{
-Fits an Extended Dynamic Quantile Linear Model (exDQLM) \strong{with an exponential
-transfer-function regression block} using the Laplace–Delta VB (LDVB) approximation.
-This is a modern replacement for \code{transfn_exdqlmISVB()} and relies on
-\code{\link{tfRegMod}} to build the TF block, then calls \code{\link{exdqlmLDVB}}.
+The function applies a Laplace-Delta Variational Bayes (LDVB) algorithm to
+estimate the posterior of an exDQLM with an exponential-decay transfer
+function component.
 }
 \examples{
 \donttest{
-data("BTflow", package = "exdqlm")
-data("nino34", package = "exdqlm")
-
-# Base model
-trend.comp <- polytrendMod(order = 1, m0 = mean(BTflow), C0 = 10)
-seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))
-base.mod   <- combineMods(trend.comp, seas.comp)
-
-# TF regressors
-X <- cbind(nino34, nino34^2)
-
-fit <- transfn_exdqlmLDVB(
-  y = BTflow, p0 = 0.85, model = base.mod,
-  X = X, df = c(1, 1), dim.df = c(1, 2),
-  lambda = 0.9, tf.df = c(0.97, 0.97),
-  gam.init = -3.5, sig.init = 15, tol = 0.05, n.samp = 300
+data("scIVTmag", package = "exdqlm")
+data("ELIanoms", package = "exdqlm")
+y = scIVTmag[1:365]
+X = ELIanoms[1:365]
+trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+model = trend.comp + seas.comp
+M1 = transfn_exdqlmLDVB(
+  y, p0 = 0.85, model = model, X = X,
+  df = c(1,1), dim.df = c(1,6),
+  gam.init = -3.5, sig.init = 15,
+  lam = 0.38, tf.df = c(0.97,0.97)
 )
-
-fit$lam
-fit$median.kt
 }
 }

@@ -5,7 +5,6 @@
 \title{k-step-ahead quantile forecasts}
 \usage{
 exdqlmForecast(
-  y,
   start.t,
   k,
   m1,
@@ -18,39 +17,42 @@ exdqlmForecast(
 )
 }
 \arguments{
-\item{y}{A univariate numeric time series (vector or \code{ts}) of the observed response.}
-
 \item{start.t}{Integer index at which forecasts start (must be within the span of the fitted model in \code{m1}).}
 
-\item{k}{Integer; number of steps ahead to forecast.}
+\item{k}{Integer number of steps ahead to forecast.}
 
-\item{m1}{A fitted exDQLM model object, typically returned by \code{\link[=exdqlmISVB]{exdqlmISVB()}} or \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}.}
+\item{m1}{A fitted exDQLM model object, returned by \code{\link[=exdqlmISVB]{exdqlmISVB()}}, \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, or \code{\link[=exdqlmLDVB]{exdqlmLDVB()}}.}
 
 \item{fFF}{Optional state vector(s) for the forecast steps. A numeric matrix with
-\eqn{p} rows and either 1 column (non–time-varying) or \code{k} columns (time-varying).
+\eqn{q} rows and either 1 column (non–time-varying) or \code{k} columns (time-varying).
 Its dimension must match the fitted model in \code{m1}.}
 
 \item{fGG}{Optional evolution matrix/matrices for the forecast steps. Either a numeric
-\eqn{p \times p} matrix (non–time-varying) or a \eqn{p \times p \times k} array (time-varying).
+\eqn{q \times q} matrix (non–time-varying) or a \eqn{q \times q \times k} array (time-varying).
 Its dimensions must match the fitted model in \code{m1}.}
 
-\item{plot}{Logical; if \code{TRUE}, plot filtered and forecast quantiles with
-equal–tailed credible intervals. Default \code{TRUE}.}
+\item{plot}{Logical value indicating whether to plot filtered and forecast quantiles with
+equal–tailed credible intervals. Default is \code{TRUE}.}
 
-\item{add}{Logical; if \code{TRUE}, add the forecasted quantiles to the current plot.
-Default \code{FALSE}.}
+\item{add}{Logical value indicating whether to add the forecasted quantiles to the current plot.
+Default is \code{FALSE}.}
 
 \item{cols}{Character vector of length 2 giving the colors for filtered and forecasted
 quantiles respectively. Default \code{c("purple","magenta")}.}
 
-\item{cr.percent}{Numeric in \code{(0, 1)}; the probability mass for the credible
+\item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
 intervals (e.g., \code{0.95}). Default \code{0.95}.}
 }
 \value{
-A list with components:
+A object of class "\code{exdqlmForecast}" containing the following:
 \itemize{
-\item \code{fa} Forecast state mean vectors (\eqn{p \times k} matrix).
-\item \code{fR} Forecast state covariance matrices (\eqn{p \times p \times k} array).
+\item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{m1}).
+\item \code{k} Integer number of steps ahead forecasted.
+\item \code{m1} The fitted exDQLM model object used to initialize the forecast.
+\item \code{cr.percent} The probability mass for the credible
+intervals (e.g., \code{0.95}).
+\item \code{fa} Forecast state mean vectors (\eqn{q \times k} matrix).
+\item \code{fR} Forecast state covariance matrices (\eqn{q \times q \times k} array).
 \item \code{ff} Forecast quantile means (length-\code{k} numeric).
 \item \code{fQ} Forecast quantile variances (length-\code{k} numeric).
 }
@@ -61,12 +63,13 @@ dynamic quantile model and optionally adds them to an existing plot.
 }
 \examples{
 \donttest{
- # Toy example; keep small and fast
- y <- scIVTmag[1:100]
- model <- polytrendMod(1, stats::quantile(y, 0.85), 10)
- M0 <- exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+ # Toy example
+ data("scIVTmag", package = "exdqlm")
+ y = scIVTmag[1:100]
+ model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+ M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15)
- exdqlmForecast(y, start.t = 90, k = 10, m1 = M0)
+ exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 }
 
 }

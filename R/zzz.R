@@ -5,11 +5,14 @@
     exdqlm.use_cpp_kf        = TRUE,   # KF bridge is proven & fast
     exdqlm.compute_elbo      = TRUE,
     exdqlm.tol_elbo          = 1e-6,
+    exdqlm.use_cpp_builders  = FALSE,  # keep OFF until parity is verified
     exdqlm.use_cpp_samplers  = FALSE,  # keep OFF by default (OpenMP/RNG)
     exdqlm.use_cpp_postpred  = FALSE,  # keep OFF by default
+    exdqlm.use_cpp_mcmc      = TRUE,   # MCMC C++ backend default ON
+    exdqlm.cpp_mcmc_mode     = "fast", # strict=R legacy parity; fast=C++ FFBS
+    exdqlm.cpp_threads       = 1L,
     exdqlm.use_cpp_postpred_omp = FALSE,  # optional OpenMP for post-pred
     exdqlm.use_cpp_postpred_precompute = FALSE,  # precompute noise draws (for A/B)
-    # new (v0.5 line):
     exdqlm.parallel          = FALSE,  # CRAN-friendly default
     exdqlm.workers           = NULL,
     exdqlm.progress          = TRUE

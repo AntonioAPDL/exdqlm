@@ -1,0 +1,88 @@
+> devtools::test()
+ℹ Testing exdqlm
+✔ | F W  S  OK | Context
+
+⠏ |          0 | builders-parity                                                
+⠋ |          1 | builders-parity                                                
+⠦ |          7 | builders-parity                                                
+⠹ |         13 | builders-parity                                                
+✔ |         20 | builders-parity
+
+⠏ |          0 | exal                                                           
+✔ |          8 | exal
+
+⠏ |          0 | ffbs-indexing-parity                                           
+⠋ |          1 | ffbs-indexing-parity                                           
+✔ |          2 | ffbs-indexing-parity [2.5s]
+
+⠏ |          0 | gamma-bounds                                                   
+⠹ |          3 | gamma-bounds                                                   
+⠇ |         19 | gamma-bounds                                                   
+⠋ |         31 | gamma-bounds                                                   
+⠴ |         46 | gamma-bounds                                                   
+⠇ |         59 | gamma-bounds                                                   
+⠴ |         76 | gamma-bounds                                                   
+⠹ |         93 | gamma-bounds                                                   
+⠏ |        110 | gamma-bounds                                                   
+⠼ |        125 | gamma-bounds                                                   
+⠴ |        136 | gamma-bounds                                                   
+⠸ |        154 | gamma-bounds                                                   
+⠋ |        171 | gamma-bounds                                                   
+⠇ |        189 | gamma-bounds                                                   
+⠼ |        205 | gamma-bounds                                                   
+⠇ |        219 | gamma-bounds                                                   
+⠹ |        233 | gamma-bounds                                                   
+⠇ |        249 | gamma-bounds                                                   
+⠹ |        263 | gamma-bounds                                                   
+⠼ |        275 | gamma-bounds                                                   
+⠋ |        291 | gamma-bounds                                                   
+⠼ |        305 | gamma-bounds                                                   
+⠏ |        320 | gamma-bounds                                                   
+⠴ |        336 | gamma-bounds                                                   
+⠸ |        354 | gamma-bounds                                                   
+⠏ |        370 | gamma-bounds                                                   
+⠹ |        383 | gamma-bounds                                                   
+⠇ |        399 | gamma-bounds                                                   
+⠦ |        407 | gamma-bounds                                                   
+⠙ |        422 | gamma-bounds                                                   
+⠼ |        435 | gamma-bounds                                                   
+⠇ |        449 | gamma-bounds                                                   
+⠼ |        465 | gamma-bounds                                                   
+⠇ |        479 | gamma-bounds                                                   
+⠼ |        495 | gamma-bounds                                                   
+⠇ |        509 | gamma-bounds                                                   
+⠼ |        525 | gamma-bounds                                                   
+⠇ |        539 | gamma-bounds                                                   
+⠋ |        551 | gamma-bounds                                                   
+⠦ |        567 | gamma-bounds                                                   
+⠏ |        580 | gamma-bounds                                                   
+⠹ |        593 | gamma-bounds                                                   
+⠧ |        608 | gamma-bounds                                                   
+⠋ |        621 | gamma-bounds                                                   
+⠹ |        633 | gamma-bounds                                                   
+⠙ |        652 | gamma-bounds                                                   
+⠇ |        669 | gamma-bounds                                                   
+⠧ |        688 | gamma-bounds                                                   
+⠼ |        705 | gamma-bounds                                                   
+⠼ |        725 | gamma-bounds                                                   
+⠼ |        745 | gamma-bounds                                                   
+⠼ |        765 | gamma-bounds                                                   
+⠼ |        785 | gamma-bounds                                                   
+⠼ |        805 | gamma-bounds                                                   
+⠦ |        827 | gamma-bounds                                                   
+⠹ |        833 | gamma-bounds                                                   
+✔ |        833 | gamma-bounds [5.9s]
+
+⠏ |          0 | smoke                                                          
+✔ |          4 | smoke
+
+⠏ |          0 | synthesize-from-draws                                          
+⠋ |          1 | synthesize-from-draws                                          
+✔ |          4 | synthesize-from-draws
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 871 ]
+> 
+> 

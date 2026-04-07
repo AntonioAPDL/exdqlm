@@ -7,10 +7,47 @@
 #' @param joint.sample Logical value indicating whether or not to recompute `Sig.mh` based off the initial burn-in samples of gamma and sigma. Default is `FALSE`.
 #' @param n.burn Number of MCMC iterations to burn. Default is `n.burn = 2000`.
 #' @param n.mcmc Number of MCMC iterations to sample. Default is `n.mcmc = 1500`.
-#' @param init.from.isvb Logical value indicating whether or not to initialize the MCMC using the ISVB algorithm. Default is `TRUE`.
+#' @param init.from.isvb Logical value indicating whether to use the legacy ISVB
+#'   warm start when `init.from.vb = TRUE`. Default is `FALSE`, which favors
+#'   `LDVB` as the default VB warm start.
+#' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization
+#'   step (`LDVB` by default, or `ISVB` when `init.from.isvb = TRUE`) and
+#'   initialize MCMC from converged VB moments. Default is `TRUE`.
+#' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
+#'   `method` (`"isvb"` or `"ldvb"`), `tol`, `n.IS`, `n.samp`, `max_iter`, `verbose`.
+#' @param vb_init_fit Optional precomputed VB fit object. If supplied, warm start
+#'   uses this object directly and does not rerun VB internally.
+#' @param mh.proposal Character; proposal kernel for the exDQLM scale/skew block.
+#'   `"laplace_rw"` (default) uses a Laplace-informed covariance then RW;
+#'   `"rw"` uses joint random-walk MH on `(log sigma, logit gamma)`;
+#'   `"slice"` uses
+#'   an exact sigma GIG update plus a bounded univariate slice sampler directly
+#'   on `gamma`.
+#' @param mh.adapt Logical; adapt MH proposal scale during burn-in.
+#' @param mh.adapt.interval Integer; adaptation interval (iterations).
+#' @param mh.target.accept Numeric length-2 vector with lower/upper target acceptance rates.
+#' @param mh.scale.bounds Numeric length-2 vector with min/max global scaling for MH covariance.
+#' @param mh.max_scale.step Numeric in (0,1); maximum fractional scale change per adaptation step.
+#' @param mh.min_burn_adapt Minimum burn-in iterations required to enable adaptation.
+#' @param slice.width Positive numeric width for the bounded slice sampler when
+#'   `mh.proposal = "slice"`. Default `0.1` for parity with `bqrgal`.
+#' @param slice.max.steps Positive integer or `Inf`; maximum stepping-out
+#'   expansions for the slice sampler.
+#' @param trace.diagnostics Logical; if `TRUE`, retain per-iteration
+#'   sigma/gamma/s/u diagnostics under `mh.diagnostics$trace`. Set `FALSE` for
+#'   lighter-weight runs.
+#' @param trace.every Positive integer; when `trace.diagnostics = TRUE`, record
+#'   one diagnostics row every `trace.every` iterations.
+#' @param verbose.every Positive integer controlling how often console progress
+#'   is printed when `verbose = TRUE`. Default `50`, independent of
+#'   `trace.every`.
+#' @param progress_callback Optional callback invoked with a named list at MCMC
+#'   start, at each progress checkpoint, and on completion. Intended for
+#'   workflow-level progress logging.
 #'
-#' @return A list of the following is returned:
+#' @return A object of class "\code{exdqlmMCMC}" containing the following:
 #'  \itemize{
+#'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `model` - List of the state-space model including `GG`, `FF`, prior parameters `m0` and `C0`.
 #'   \item `p0` - The quantile which was estimated.
@@ -22,39 +59,56 @@
 #'   \item `samp.sigma` - Posterior sample of scale parameter sigma.
 #'   \item `samp.vts` - Posterior sample of latent parameters, v_t.
 #'   \item `theta.out` - List containing the distributions of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
-#'   \item `backend` - Backend tags for critical samplers; `backend$gig` reports the required C++ GIG backend.
+#'   \item `n.burn` Number of MCMC iterations that were burned.
+#'   \item `n.mcmc` Number of MCMC iterations that were sampled.
 #' }
-#' If `dqlm.ind=FALSE`, the list also contains the following:
+#' If `dqlm.ind=FALSE`, the object also contains the following:
 #' \itemize{
 #'   \item `samp.gamma` - Posterior sample of skewness parameter gamma.
 #'   \item `samp.sts` - Posterior sample of latent parameters, s_t.
 #'   \item `init.log.sigma` - Burned samples of log sigma from the random walk MH joint sampling of sigma and gamma.
 #'   \item `init.logit.gamma` - Burned samples of logit gamma from the random walk MH joint sampling of sigma and gamma.
 #'   \item `accept.rate` - Acceptance rate of the MH step.
+#'   \item `accept.rate.burn` - MH acceptance rate during burn-in.
+#'   \item `accept.rate.keep` - MH acceptance rate in kept MCMC samples.
 #'   \item `Sig.mh` - Covariance matrix used in MH step to jointly sample sigma and gamma.
+#'   \item `mh.diagnostics` - MH tuning diagnostics (proposal mode, scaling path, adaptation summary).
+#'   \item `diagnostics` - ESS and chain-ready summaries for sigma/gamma.
 #' }
 #' @export
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
-#' trend.comp = polytrendMod(1,mean(y),10)
-#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-#' model = combineMods(trend.comp,seas.comp)
-#' M2 = exdqlmMCMC(y,p0=0.85,model,df=c(1,1),dim.df = c(1,6),
-#'                 gam.init=-3.5,sig.init=15,
-#'                 n.burn=100,n.mcmc=150)
+#' trend.comp = polytrendMod(order = 1, m0 = stats::quantile(y, 0.85), C0 = 10)
+#' seas.comp = seasMod(p = 365, h = c(1,2,4), C0 = 10*diag(6))
+#' model = trend.comp + seas.comp
+#' M2 = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,6),
+#'                 gam.init = -3.5, sig.init = 15,
+#'                 n.burn = 100, n.mcmc = 150)
+#'
+#' M2_al = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,6),
+#'                    dqlm.ind = TRUE, sig.init = 15,
+#'                    n.burn = 80, n.mcmc = 120)
 #' }
 #'
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
-                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=TRUE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE){
+                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
+                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,
+                    mh.proposal=c("laplace_rw","rw","slice"),mh.adapt=TRUE,mh.adapt.interval=50L,
+                    mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
+                    mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
+                    slice.width=0.1,slice.max.steps=Inf,
+                    trace.diagnostics=TRUE,trace.every=1L,verbose.every=50L,
+                    progress_callback=NULL){
 
   # check inputs
   y = check_ts(y)
   model = check_mod(model)
   rv = check_logics(gam.init,sig.init,fix.gamma,fix.sigma,dqlm.ind)
   gam.init = rv$gam.init
-  dqlm.int = rv$dqlm.ind
+  dqlm.ind = rv$dqlm.ind
   fix.gamma = rv$fix.gamma
 
   ### MCMC iterations
@@ -62,13 +116,100 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     stop("number of mcmc samples must be positive")
     }
   if(verbose & n.burn<=0){
-    warning("mcmc will be sampled without burn-in, a burn-in is recommended even if initializing using the isvb algorithm")
+    warning("mcmc will be sampled without burn-in; a burn-in is still recommended, including when using a VB warm start")
     n.burn=0
     }
   I = n.mcmc + n.burn
+  mh.proposal <- match.arg(mh.proposal)
+
+  if (is.null(init.from.vb)) {
+    init.from.vb <- TRUE
+  }
+  if (!is.null(vb_init_fit)) {
+    init.from.vb <- TRUE
+  }
+  init.from.vb <- isTRUE(init.from.vb)
+
+  vb.ctrl.default <- list(
+    method = if (isTRUE(init.from.isvb)) "isvb" else "ldvb",
+    tol = 0.5,
+    n.IS = 200L,
+    n.samp = 200L,
+    max_iter = getOption("exdqlm.max_iter", 200L),
+    verbose = FALSE
+  )
+  if (is.null(vb_init_controls)) vb_init_controls <- list()
+  vb.ctrl <- utils::modifyList(vb.ctrl.default, vb_init_controls)
+  vb.ctrl$method <- tolower(as.character(vb.ctrl$method)[1])
+  if (!(vb.ctrl$method %in% c("isvb", "ldvb"))) vb.ctrl$method <- "isvb"
+  vb.ctrl$tol <- as.numeric(vb.ctrl$tol)[1]
+  if (!is.finite(vb.ctrl$tol) || vb.ctrl$tol <= 0) vb.ctrl$tol <- 0.5
+  vb.ctrl$n.IS <- suppressWarnings(as.integer(vb.ctrl$n.IS)[1])
+  if (!is.finite(vb.ctrl$n.IS) || vb.ctrl$n.IS < 20L) vb.ctrl$n.IS <- 200L
+  vb.ctrl$n.samp <- suppressWarnings(as.integer(vb.ctrl$n.samp)[1])
+  if (!is.finite(vb.ctrl$n.samp) || vb.ctrl$n.samp < 20L) vb.ctrl$n.samp <- 200L
+  vb.ctrl$max_iter <- suppressWarnings(as.integer(vb.ctrl$max_iter)[1])
+  if (!is.finite(vb.ctrl$max_iter) || vb.ctrl$max_iter < 5L) vb.ctrl$max_iter <- 200L
+  vb.ctrl$verbose <- isTRUE(vb.ctrl$verbose)
+
+  mh.adapt <- isTRUE(mh.adapt)
+  mh.adapt.interval <- suppressWarnings(as.integer(mh.adapt.interval)[1])
+  if (!is.finite(mh.adapt.interval) || mh.adapt.interval < 5L) mh.adapt.interval <- 50L
+  mh.min_burn_adapt <- suppressWarnings(as.integer(mh.min_burn_adapt)[1])
+  if (!is.finite(mh.min_burn_adapt) || mh.min_burn_adapt < 20L) mh.min_burn_adapt <- 50L
+  if (length(mh.target.accept) != 2L) mh.target.accept <- c(0.20, 0.45)
+  mh.target.accept <- as.numeric(mh.target.accept)
+  mh.target.accept <- sort(pmin(pmax(mh.target.accept, 0.01), 0.99))
+  if (length(mh.scale.bounds) != 2L) mh.scale.bounds <- c(0.1, 10)
+  mh.scale.bounds <- sort(as.numeric(mh.scale.bounds))
+  if (!all(is.finite(mh.scale.bounds)) || mh.scale.bounds[1] <= 0 || mh.scale.bounds[2] <= mh.scale.bounds[1]) {
+    mh.scale.bounds <- c(0.1, 10)
+  }
+  mh.max_scale.step <- as.numeric(mh.max_scale.step)[1]
+  if (!is.finite(mh.max_scale.step) || mh.max_scale.step <= 0 || mh.max_scale.step >= 1) {
+    mh.max_scale.step <- 0.35
+  }
+  mh.laplace.refresh.interval <- suppressWarnings(as.integer(getOption("exdqlm.mcmc.laplace_refresh_interval", mh.adapt.interval))[1])
+  if (!is.finite(mh.laplace.refresh.interval) || mh.laplace.refresh.interval < 5L) {
+    mh.laplace.refresh.interval <- mh.adapt.interval
+  }
+  mh.laplace.refresh.start <- suppressWarnings(as.integer(getOption("exdqlm.mcmc.laplace_refresh_start", mh.min_burn_adapt))[1])
+  if (!is.finite(mh.laplace.refresh.start) || mh.laplace.refresh.start < 1L) {
+    mh.laplace.refresh.start <- mh.min_burn_adapt
+  }
+  mh.laplace.refresh.weight <- as.numeric(getOption("exdqlm.mcmc.laplace_refresh_weight", 0.60))[1]
+  if (!is.finite(mh.laplace.refresh.weight) || mh.laplace.refresh.weight <= 0 || mh.laplace.refresh.weight > 1) {
+    mh.laplace.refresh.weight <- 0.60
+  }
+  slice.width <- as.numeric(slice.width)[1]
+  if (!is.finite(slice.width) || slice.width <= 0) slice.width <- 0.1
+  slice.max.steps <- as.numeric(slice.max.steps)[1]
+  if (!(is.infinite(slice.max.steps) || (is.finite(slice.max.steps) && slice.max.steps >= 1 && floor(slice.max.steps) == slice.max.steps))) {
+    slice.max.steps <- Inf
+  }
+  trace.diagnostics <- isTRUE(trace.diagnostics)
+  trace.every <- suppressWarnings(as.integer(trace.every)[1])
+  if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
+  verbose.every <- suppressWarnings(as.integer(verbose.every)[1])
+  if (!is.finite(verbose.every) || verbose.every < 1L) verbose.every <- 50L
+  verbose_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+  if (is.finite(verbose_every_env) && !is.na(verbose_every_env) && verbose_every_env >= 1L) {
+    verbose.every <- verbose_every_env
+  }
+  safe_progress_callback <- function(info) {
+    if (!is.function(progress_callback)) return(invisible(NULL))
+    try(progress_callback(info), silent = TRUE)
+    invisible(NULL)
+  }
+
+  state_signal <- function(FF_local, theta_mat) {
+    drop(colSums(FF_local * theta_mat))
+  }
+  if (n.burn < mh.min_burn_adapt) mh.adapt <- FALSE
 
   ### Define L and U
-  L = L.fn(p0); U = U.fn(p0)
+  bounds = .gamma_bounds(p0)
+  L = bounds["L"]; U = bounds["U"]
   if(!is.na(gam.init)){
     if(gam.init < L | gam.init > U){
       stop(sprintf("gam.init must be between %s and %s for %s quantile",round(L,3),round(U,3),p0))
@@ -89,16 +230,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   }
   PriorSigmaDens<-function(sigma){ LaplacesDemon::dinvgamma(sigma,shape=PriorSigma$a_sig,scale=PriorSigma$b_sig)  }
   # gamma ~ truncated student t on L,U
-  if(is.null(PriorGamma)){
-    PriorGamma$m_gam = 0
-    PriorGamma$s_gam = 1
-    PriorGamma$df_gam = 1
-  }else{
-    if(!is.list(PriorGamma) | any( is.na( match(c("m_gam", "s_gam", "df_gam"),names(PriorGamma)) ) )){
-      stop("`PriorGamma` must be a list containing `m_gam`,`s_gam`, and `df_gam`")
-    }
+  PriorGamma <- .normalize_gamma_prior_trunc_t(PriorGamma)
+  PriorGammaDens <- function(gamma) {
+    .gamma_prior_density_trunc_t(gamma, bounds = c(L, U), PriorGamma = PriorGamma, log = FALSE)
   }
-  PriorGammaDens<-function(gamma){ crch::dtt(gamma,location = PriorGamma$m_gam, scale = PriorGamma$s_gam, df = PriorGamma$df_gam, left = L, right = U, log = FALSE) }
 
   ### state-space model
   ## prior, theta ~ N(m0,C0)
@@ -123,6 +258,62 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     dim.df = p
   }
   df.mat = make_df_mat(df,dim.df,p)
+
+  ### backend controls (MCMC-specific)
+  use_cpp_mcmc_opt <- isTRUE(getOption("exdqlm.use_cpp_mcmc", FALSE))
+  cpp_mcmc_mode <- tolower(as.character(getOption("exdqlm.cpp_mcmc_mode", "strict")))
+  if (!(cpp_mcmc_mode %in% c("strict", "fast"))) {
+    warning("Invalid exdqlm.cpp_mcmc_mode; using 'strict'.")
+    cpp_mcmc_mode <- "strict"
+  }
+  has_cpp_mcmc <- exists("mcmc_ffbs_smooth_cpp", mode = "function") &&
+                  exists("mcmc_ffbs_sample_cpp", mode = "function")
+  if (use_cpp_mcmc_opt && !has_cpp_mcmc) {
+    warning("exdqlm.use_cpp_mcmc=TRUE but C++ MCMC FFBS kernels not available; using R backend.")
+  }
+  # strict mode keeps R kernels to preserve exact legacy path; fast enables C++ FFBS.
+  use_cpp_mcmc <- isTRUE(use_cpp_mcmc_opt && has_cpp_mcmc && identical(cpp_mcmc_mode, "fast"))
+  mcmc_backend <- if (use_cpp_mcmc) "C++" else "R"
+  if (verbose) {
+    cat(sprintf("MCMC backend: %s (mode=%s)\n", mcmc_backend, cpp_mcmc_mode))
+  }
+
+  cpp_ffbs_smooth <- function(ex.f, ex.q) {
+    out <- mcmc_ffbs_smooth_cpp(
+      GG = GG,
+      m0 = as.numeric(m0),
+      C0 = C0,
+      FF = FF,
+      y = as.numeric(y),
+      ex_f = as.numeric(ex.f),
+      ex_q = as.numeric(ex.q),
+      df_mat = df.mat
+    )
+    out$standard.forecast.errors <- as.numeric(out$standard.forecast.errors)
+    out$sm <- as.matrix(out$sm)
+    out$fm <- as.matrix(out$fm)
+    out$sC <- array(out$sC, dim = c(p, p, TT))
+    out$fC <- array(out$fC, dim = c(p, p, TT))
+    out
+  }
+
+  cpp_ffbs_sample <- function(ex.f, ex.q) {
+    out <- mcmc_ffbs_sample_cpp(
+      GG = GG,
+      m0 = as.numeric(m0),
+      C0 = C0,
+      FF = FF,
+      y = as.numeric(y),
+      ex_f = as.numeric(ex.f),
+      ex_q = as.numeric(ex.q),
+      df_mat = df.mat
+    )
+    out$standard.forecast.errors <- as.numeric(out$standard.forecast.errors)
+    out$sam.theta <- as.matrix(out$sam.theta)
+    out$fm <- as.matrix(out$fm)
+    out$fC <- array(out$fC, dim = c(p, p, TT))
+    out
+  }
 
   # function to produce smoothed estimates for return value
   smoothed_theta<-function(ex.f,ex.q){
@@ -165,12 +356,15 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       R = (R + t(R))/2
       svd.R = svd(R)
       inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,t])%*%inv.R
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
       sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
       sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
     }
     return(list(standard.forecast.errors=standard.forecast.errors,sm=sm,sC=sC,fm=m,fC=C))
+  }
+  if (use_cpp_mcmc) {
+    smoothed_theta <- function(ex.f, ex.q) cpp_ffbs_smooth(ex.f, ex.q)
   }
 
   ### Initialize MCMC
@@ -179,6 +373,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   save.Ut <- save.st <- matrix(NA,TT,n.mcmc)
   save.theta <- array(NA,c(p,TT,n.mcmc))
   save.post.pred <- matrix(NA,TT,n.mcmc)
+  vb.out <- NULL
   gig_backend <- "cpp_devroye_required"
   gig_eps <- 1e-12
   current_iter <- NA_integer_
@@ -222,22 +417,56 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     pmax(draws, gig_eps)
   }
 
-  if(verbose){
-    cat("GIG backend: C++ Devroye (required)\n")
-  }
-  # Set initial values
-  if(init.from.isvb){
-    if(verbose){
-      cat("running isvb algorithm to initialize mcmc","\n")
+  run_vb_init <- function() {
+    old_opt <- options(exdqlm.max_iter = vb.ctrl$max_iter)
+    on.exit(options(old_opt), add = TRUE)
+    if (vb.ctrl$method == "ldvb") {
+      exdqlmLDVB(
+        y = y, p0 = p0, model = model, df = df, dim.df = dim.df,
+        fix.gamma = fix.gamma, gam.init = gam.init,
+        fix.sigma = fix.sigma, sig.init = sig.init,
+        dqlm.ind = dqlm.ind,
+        tol = vb.ctrl$tol, n.samp = vb.ctrl$n.samp,
+        PriorSigma = PriorSigma, PriorGamma = PriorGamma,
+        verbose = vb.ctrl$verbose
+      )
+    } else {
+      exdqlmISVB(
+        y = y, p0 = p0, model = model, df = df, dim.df = dim.df,
+        fix.gamma = fix.gamma, gam.init = gam.init,
+        fix.sigma = fix.sigma, sig.init = sig.init,
+        dqlm.ind = dqlm.ind,
+        tol = vb.ctrl$tol, n.IS = vb.ctrl$n.IS, n.samp = vb.ctrl$n.samp,
+        PriorSigma = PriorSigma, PriorGamma = PriorGamma,
+        verbose = vb.ctrl$verbose
+      )
     }
-    isvb.out <- exdqlmISVB(y,p0,model,df,dim.df,fix.gamma,gam.init,fix.sigma,sig.init,dqlm.ind,tol=0.5,n.IS=200,PriorSigma=PriorSigma,PriorGamma=PriorGamma,verbose=verbose)
-    cursam.sigma <- ifelse(fix.sigma,sig.init,ifelse(dqlm.ind,isvb.out$sig.out$E.sigma,isvb.out$gammasig.out$E.sigma))
-    cursam.Ut <- isvb.out$vts.out$E.uts
-    cursam.theta <- isvb.out$theta.out$sm
+  }
+
+  # Set initial values
+  if(init.from.vb){
+    if(verbose){
+      cat(sprintf("MCMC init: running %s warm start\n", toupper(vb.ctrl$method)))
+    }
+    if (!is.null(vb_init_fit)) {
+      vb.out <- vb_init_fit
+      if (verbose) {
+        cat("MCMC init: using provided vb_init_fit object\n")
+      }
+    } else {
+      vb.out <- run_vb_init()
+    }
+    cursam.sigma <- ifelse(fix.sigma,sig.init,ifelse(dqlm.ind,vb.out$sig.out$E.sigma,vb.out$gammasig.out$E.sigma))
+    cursam.Ut <- vb.out$vts.out$E.uts
+    cursam.theta <- vb.out$theta.out$sm
   }else{
     cursam.sigma <- m_sigma
     cursam.Ut <- rep(1/m_sigma,TT)
     cursam.theta <- matrix(m0,p,TT)
+  }
+
+  if (verbose) {
+    cat("GIG backend: C++ Devroye (required)\n")
   }
 
   ######## exDQLM
@@ -246,11 +475,14 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     ### Define logit and inverse logit functions
     logit = function(x){log((x-L)/(U-x))}
     inv.logit = function(x){(U*exp(x)+L)/(exp(x)+1)}
+    log_prior_gamma <- function(gamma) {
+      .gamma_log_prior_trunc_t(gamma, bounds = c(L, U), PriorGamma = PriorGamma)
+    }
 
     ### Additional initial values
-    if(init.from.isvb){
-      cursam.st <- isvb.out$sts.out$E.sts
-      cursam.gamma <- ifelse(fix.gamma,gam.init,isvb.out$gammasig.out$E.gam)
+    if(!is.null(vb.out)){
+      cursam.st <- vb.out$sts.out$E.sts
+      cursam.gamma <- ifelse(fix.gamma,gam.init,vb.out$gammasig.out$E.gam)
       cursam.logit.gamma <- logit(cursam.gamma)
       cursam.log.sigma <- log(cursam.sigma)
     }else{
@@ -262,29 +494,89 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     ### Initialize MH
     n.accept = 0
+    n.accept.burn = 0L
+    n.accept.keep = 0L
+    n.trial.burn = 0L
+    n.trial.keep = 0L
+    adapt.history <- data.frame(
+      iter = integer(0),
+      window_accept = numeric(0),
+      mh_scale = numeric(0),
+      sig11 = numeric(0),
+      sig22 = numeric(0),
+      laplace_refreshed = logical(0),
+      stringsAsFactors = FALSE
+    )
+    trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
+    trace_idx <- 0L
+    mh.scale <- 1
+    window.accept <- 0L
+    window.total <- 0L
+    laplace_refresh_attempts <- 0L
+    laplace_refresh_success <- 0L
+
+    prep_Sig_mh <- function(S) {
+      S <- suppressWarnings(as.matrix(S))
+      if (!all(dim(S) == c(2L, 2L))) {
+        S <- diag(c(ifelse(fix.sigma, 0, 0.005), ifelse(fix.gamma, 0, 0.005)))
+      }
+      S[!is.finite(S)] <- 0
+      S <- (S + t(S)) / 2
+      if (fix.sigma) {
+        S[1, ] <- 0
+        S[, 1] <- 0
+      }
+      if (fix.gamma) {
+        S[2, ] <- 0
+        S[, 2] <- 0
+      }
+      for (j in 1:2) {
+        if (!is.finite(S[j, j]) || S[j, j] < 0) S[j, j] <- 0
+      }
+      if (!fix.sigma && S[1, 1] <= 0) S[1, 1] <- 0.005
+      if (!fix.gamma && S[2, 2] <= 0) S[2, 2] <- 0.005
+      S
+    }
+    build_chol <- function(S) {
+      S <- prep_Sig_mh(S)
+      if (fix.gamma || fix.sigma) {
+        sqrt(S)
+      } else {
+        out <- tryCatch(t(chol(S)), error = function(e) NULL)
+        if (is.null(out)) {
+          eig <- eigen(S, symmetric = TRUE)
+          vals <- pmax(eig$values, 1e-8)
+          out <- eig$vectors %*% diag(sqrt(vals), 2, 2) %*% t(eig$vectors)
+        }
+        out
+      }
+    }
+
     if(!methods::hasArg(Sig.mh)){
-      if(init.from.isvb){
-        Sig.mh <- stats::cov(cbind(log(isvb.out$gammasig.out$sigma.samples),logit(isvb.out$gammasig.out$gamma.samples)))
+      if(!is.null(vb.out)){
+        sig.samples <- NULL
+        gam.samples <- NULL
+        if (!is.null(vb.out$gammasig.out$sigma.samples) && !is.null(vb.out$gammasig.out$gamma.samples)) {
+          sig.samples <- as.numeric(vb.out$gammasig.out$sigma.samples)
+          gam.samples <- as.numeric(vb.out$gammasig.out$gamma.samples)
+        } else if (!is.null(vb.out$samp.sigma) && !is.null(vb.out$samp.gamma)) {
+          sig.samples <- as.numeric(vb.out$samp.sigma)
+          gam.samples <- as.numeric(vb.out$samp.gamma)
+        }
+        if (!is.null(sig.samples) && !is.null(gam.samples) &&
+            all(is.finite(sig.samples)) && all(sig.samples > 0) &&
+            all(is.finite(gam.samples)) && all(gam.samples > L) && all(gam.samples < U)) {
+          Sig.mh <- stats::cov(cbind(log(sig.samples), logit(gam.samples)))
+        } else {
+          Sig.mh <- diag(c(ifelse(fix.sigma,0,0.005),ifelse(fix.gamma,0,0.005)))
+        }
       }else{
         Sig.mh = diag(c(ifelse(fix.sigma,0,0.005),ifelse(fix.gamma,0,0.005)))
       }
-    }else{
-      new.Sig.mh = Sig.mh
-      if(fix.sigma){
-        new.Sig.mh = matrix(0,2,2)
-        new.Sig.mh[2,2] = Sig.mh[2,2]
-      }
-      if(fix.gamma){
-        new.Sig.mh = matrix(0,2,2)
-        new.Sig.mh[1,1] = Sig.mh[1,1]
-      }
-      Sig.mh = new.Sig.mh
     }
-    if(fix.gamma | fix.sigma){
-      chol_Sig.mh = sqrt(Sig.mh)
-    }else{
-      chol_Sig.mh=t(chol(Sig.mh))
-    }
+    Sig.mh <- prep_Sig_mh(Sig.mh)
+    Sig.mh.initial <- Sig.mh
+    chol_Sig.mh <- build_chol(Sig.mh)
 
     # exdqlm function sample theta ffbs
     ex_samp_theta<-function(ex.f,ex.q,gamma,sigma,sts,tau,c_tau){
@@ -321,21 +613,43 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## backwards sample
       svd.sC = svd(C[,,TT])
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-      post.pred[TT] = brms::rasym_laplace(1,t(FF[,TT])%*%sam.theta[,TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,tau)
+      reg_theta <- numeric(TT)
+      reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
+      post.pred[TT] = rexal(1,tau,reg_theta[TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,0)
       for(t in (TT-1):1){
         P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
         R = P + df.mat*P
         R = (R + t(R))/2
         svd.R = svd(R)
         inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,t])%*%inv.R
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,t]%*%C[,,t]
+        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        post.pred[t] = brms::rasym_laplace(1,t(FF[,t])%*%sam.theta[,t]+c_tau*sigma*abs(gamma)*sts[t],sigma,tau)
+        reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
+        post.pred[t] = rexal(1,tau,reg_theta[t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
+    }
+    if (use_cpp_mcmc) {
+      ex_samp_theta <- function(ex.f, ex.q, gamma, sigma, sts, tau, c_tau) {
+        out <- cpp_ffbs_sample(ex.f, ex.q)
+        sam.theta <- out$sam.theta
+        reg_theta <- state_signal(FF, sam.theta)
+        post.pred <- vapply(seq_len(TT), function(t) {
+          rexal(1, tau,
+                reg_theta[t] + c_tau * sigma * abs(gamma) * sts[t],
+                sigma, 0)
+        }, numeric(1))
+        list(
+          standard.forecast.errors = out$standard.forecast.errors,
+          post.pred = post.pred,
+          sam.theta = sam.theta,
+          fm = out$fm,
+          fC = out$fC
+        )
+      }
     }
 
     # exdqlm function sample uts
@@ -348,11 +662,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     # exdqlm function sample sts
     ex_samp_sts<-function(reg1,gamma,sigma,uts,a_tau,b_tau,c_tau){
       s.sig2<-1/(1+c_tau^2*abs(gamma)^2*sigma/(b_tau*uts))
+      s.sig2<-pmax(s.sig2, 1e-12)
       s.mu<-s.sig2*c_tau*abs(gamma)*(y-(reg1+a_tau*uts))/(b_tau*uts)
       truncnorm::rtruncnorm(TT,rep(0,TT),rep(Inf,TT),s.mu,sqrt(s.sig2))
     }
 
-    # exdqlm function sample sigma and gamma - MH
+    # exdqlm function sample sigma and gamma
     logL<-function(reg1,log.sigma,logit.gamma,sts,uts){
       sigma=exp(log.sigma); gamma=inv.logit(logit.gamma)
       temp.p = p.fn(p0,gamma)
@@ -366,6 +681,89 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         sum(stats::dexp(uts,rate = 1/sigma,log=TRUE)) +
         log(PriorSigma) + log(PriorGamma) + logJ
     }
+    make_logpost_gamma <- function(reg1, sigma, sts, uts) {
+      sigma <- as.numeric(sigma)[1]
+      reg1 <- as.numeric(reg1)
+      sts <- as.numeric(sts)
+      uts <- as.numeric(uts)
+      valid_inputs <- is.finite(sigma) && sigma > 0 &&
+        all(is.finite(reg1)) && all(is.finite(sts)) && all(is.finite(uts)) &&
+        all(uts > 0)
+      if (!valid_inputs) {
+        return(function(gamma) -Inf)
+      }
+
+      y_center <- y - reg1
+      sigma_sts <- sigma * sts
+      sqrt_sigma_uts <- sqrt(sigma * uts)
+
+      function(gamma) {
+        gamma <- as.numeric(gamma)[1]
+        if (!is.finite(gamma) || gamma <= L || gamma >= U) return(-Inf)
+
+        temp.p <- p.fn(p0, gamma)
+        a <- (1 - 2 * temp.p) / (temp.p * (1 - temp.p))
+        b <- 2 / (temp.p * (1 - temp.p))
+        c <- (as.numeric(gamma > 0) - temp.p)^(-1)
+        if (!all(is.finite(c(a, b, c))) || b <= 0) return(-Inf)
+
+        mu_shift <- c * abs(gamma) * sigma_sts + a * uts
+        ll <- sum(stats::dnorm(
+          y_center,
+          mean = mu_shift,
+          sd = sqrt(b) * sqrt_sigma_uts,
+          log = TRUE
+        ))
+        lp <- log_prior_gamma(gamma)
+        if (!is.finite(ll) || !is.finite(lp)) return(-Inf)
+        ll + lp
+      }
+    }
+    samp_sigma_exact <- function(reg1, sigma, gamma, sts, uts) {
+      temp.p <- p.fn(p0, gamma)
+      a <- (1 - 2 * temp.p) / (temp.p * (1 - temp.p))
+      b <- 2 / (temp.p * (1 - temp.p))
+      c <- (as.numeric(gamma > 0) - temp.p)^(-1)
+
+      r <- y - reg1 - a * uts
+      chi_sigma <- sum((r * r) / (b * uts)) + 2 * sum(uts) + 2 * PriorSigma$b_sig
+      psi_sigma <- ((c * abs(gamma))^2 / b) * sum((sts * sts) / uts)
+      k_sigma <- -(PriorSigma$a_sig + 1.5 * TT)
+      sigma_new <- as.numeric(sample_gig_devroye_vector(
+        1L, p = k_sigma, a = psi_sigma, b_vec = chi_sigma
+      )[1, 1])
+      if (is.finite(sigma_new) && sigma_new > 0) sigma_new else sigma
+    }
+    laplace_cov_init <- function(reg1, log.sigma, logit.gamma, sts, uts) {
+      fn <- function(z) {
+        val <- logL(reg1, z[1], z[2], sts, uts)
+        if (is.finite(val)) -val else 1e12
+      }
+      opt <- tryCatch(
+        stats::optim(c(log.sigma, logit.gamma), fn = fn, method = "BFGS",
+                     control = list(maxit = 100), hessian = TRUE),
+        error = function(e) NULL
+      )
+      H <- if (!is.null(opt) && !is.null(opt$hessian)) opt$hessian else NULL
+      if (is.null(H) || any(!is.finite(H))) {
+        H <- tryCatch(numDeriv::hessian(fn, x = c(log.sigma, logit.gamma)), error = function(e) NULL)
+      }
+      if (is.null(H) || any(!is.finite(H))) return(NULL)
+      H <- (H + t(H)) / 2
+      eig <- eigen(H, symmetric = TRUE)
+      vals <- pmax(eig$values, 1e-6)
+      cov <- eig$vectors %*% diag(1 / vals, 2, 2) %*% t(eig$vectors)
+      cov
+    }
+    if (identical(mh.proposal, "laplace_rw") && !fix.gamma && !fix.sigma) {
+      reg1.init <- state_signal(FF, cursam.theta)
+      cov.lap <- laplace_cov_init(reg1.init, cursam.log.sigma, cursam.logit.gamma, cursam.st, cursam.Ut)
+      if (!is.null(cov.lap)) {
+        Sig.mh <- prep_Sig_mh(cov.lap)
+      }
+    }
+    chol_Sig.mh <- build_chol(Sig.mh * (mh.scale^2))
+
     ex_samp_lsiglgam<-function(reg1,log.sigma,logit.gamma,sts,uts,chol_Sig){
       prop<-c(log.sigma,logit.gamma)+chol_Sig%*%stats::rnorm(2)
       if(inv.logit(prop[2]) < U && inv.logit(prop[2]) > L){
@@ -379,14 +777,51 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       return(list(log.sigma=log.sigma.new,logit.gamma=logit.gamma.new,accept=accept))
     }
 
+    callback.every <- if (trace.diagnostics) {
+      trace.every
+    } else {
+      100L
+    }
+    callback.every <- max(1L, as.integer(callback.every)[1])
+
     # Sample from exdqlm posterior
     tictoc::tic()
+    safe_progress_callback(list(
+      event = "start",
+      iter = 0L,
+      total_iter = as.integer(I),
+      phase = "burn",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = cursam.gamma,
+      kernel = mh.proposal,
+      accept = if (identical(mh.proposal, "slice")) NA_real_ else 0
+    ))
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose & i%%500==0){
-        cat(sprintf("%s iteration %s, acceptance rate %s: %s", ifelse(i<=n.burn,"burn-in","MCMC"), i , round(n.accept/i,4), Sys.time()),"\n")
-        }
+      if(verbose && i %% verbose.every == 0L){
+        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
+        acc_msg <- if (identical(mh.proposal, "slice")) "NA" else sprintf("%.4f", n.accept / i)
+        cat(sprintf("%s %d/%d | accept=%s | %s", phase_label, i, I, acc_msg, Sys.time()), "\n")
+        utils::flush.console()
+        try(flush(stdout()), silent = TRUE)
+      }
+      if (i %% callback.every == 0L) {
+        safe_progress_callback(list(
+          event = "progress",
+          iter = as.integer(i),
+          total_iter = as.integer(I),
+          phase = if (i <= n.burn) "burn" else "keep",
+          n_burn = as.integer(n.burn),
+          n_mcmc = as.integer(n.mcmc),
+          sigma = cursam.sigma,
+          gamma = cursam.gamma,
+          kernel = mh.proposal,
+          accept = if (identical(mh.proposal, "slice")) NA_real_ else n.accept / i
+        ))
+      }
 
       # exAL parameters
       tau = p.fn(p0,cursam.gamma)
@@ -401,31 +836,141 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       cursam.theta = theta.out$sam.theta
 
       # sample uts, sts
-      reg1 = apply(FF*cursam.theta,2,sum)
+      reg1 = state_signal(FF, cursam.theta)
       cursam.Ut<-ex_samp_uts(reg1,cursam.gamma,cursam.sigma,cursam.st,a_tau,b_tau,c_tau)
       cursam.st<-ex_samp_sts(reg1,cursam.gamma,cursam.sigma,cursam.Ut,a_tau,b_tau,c_tau)
 
-      # sample sigma and gamma - MH
-      lsiglgam.out<-ex_samp_lsiglgam(reg1,cursam.log.sigma,cursam.logit.gamma,cursam.st,cursam.Ut,chol_Sig.mh)
-      cursam.gamma<-inv.logit(lsiglgam.out$logit.gamma)
-      cursam.logit.gamma<-lsiglgam.out$logit.gamma
-      cursam.sigma<-exp(lsiglgam.out$log.sigma)
-      cursam.log.sigma<-lsiglgam.out$log.sigma
-      n.accept = n.accept + lsiglgam.out$accept
+      # sample sigma and gamma
+      if (identical(mh.proposal, "slice")) {
+        if (!fix.sigma) {
+          cursam.sigma <- samp_sigma_exact(reg1, cursam.sigma, cursam.gamma, cursam.st, cursam.Ut)
+          cursam.log.sigma <- log(cursam.sigma)
+        }
+        gamma_log_density <- make_logpost_gamma(reg1, cursam.sigma, cursam.st, cursam.Ut)
+        slice_evals <- NA_integer_
+        if (!fix.gamma) {
+          current_lp <- gamma_log_density(cursam.gamma)
+          if (!is.finite(current_lp)) {
+            cursam.gamma <- min(max(cursam.gamma, L + 1e-8), U - 1e-8)
+            current_lp <- gamma_log_density(cursam.gamma)
+          }
+          if (!is.finite(current_lp)) {
+            cursam.gamma <- min(max(0, L + 1e-8), U - 1e-8)
+          }
+          slice_out <- .exdqlm_uni_slice_bounded(
+            x0 = cursam.gamma,
+            log_density = gamma_log_density,
+            w = slice.width,
+            m = slice.max.steps,
+            lower = L + 1e-10,
+            upper = U - 1e-10
+          )
+          cursam.gamma <- as.numeric(slice_out$value)[1]
+          slice_evals <- as.integer(slice_out$evals)
+        }
+        cursam.logit.gamma <- logit(cursam.gamma)
+        lsiglgam.out <- list(
+          log.sigma = cursam.log.sigma,
+          logit.gamma = cursam.logit.gamma,
+          accept = NA,
+          slice_evals = slice_evals
+        )
+      } else {
+        lsiglgam.out<-ex_samp_lsiglgam(reg1,cursam.log.sigma,cursam.logit.gamma,cursam.st,cursam.Ut,chol_Sig.mh)
+        cursam.gamma<-inv.logit(lsiglgam.out$logit.gamma)
+        cursam.logit.gamma<-lsiglgam.out$logit.gamma
+        cursam.sigma<-exp(lsiglgam.out$log.sigma)
+        cursam.log.sigma<-lsiglgam.out$log.sigma
+        n.accept = n.accept + lsiglgam.out$accept
+      }
+      if (trace.diagnostics && (i %% trace.every == 0L)) {
+        s_stats <- .exdqlm_trace_summary(cursam.st)
+        u_stats <- .exdqlm_trace_summary(cursam.Ut)
+        trace_idx <- trace_idx + 1L
+        trace_rows[[trace_idx]] <- data.frame(
+          iter = i,
+          phase = if (i <= n.burn) "burn" else "keep",
+          sigma = cursam.sigma,
+          gamma = cursam.gamma,
+          accepted = if (identical(mh.proposal, "slice")) NA else isTRUE(lsiglgam.out$accept),
+          mh_scale = if (identical(mh.proposal, "slice")) NA_real_ else mh.scale,
+          slice_evals = if (!is.null(lsiglgam.out$slice_evals)) lsiglgam.out$slice_evals else NA_integer_,
+          s_mean = s_stats[["mean"]],
+          s_sd = s_stats[["sd"]],
+          s_q05 = s_stats[["q05"]],
+          s_q50 = s_stats[["median"]],
+          s_q95 = s_stats[["q95"]],
+          s_min = s_stats[["min"]],
+          s_max = s_stats[["max"]],
+          u_mean = u_stats[["mean"]],
+          u_sd = u_stats[["sd"]],
+          u_q05 = u_stats[["q05"]],
+          u_q50 = u_stats[["median"]],
+          u_q95 = u_stats[["q95"]],
+          u_min = u_stats[["min"]],
+          u_max = u_stats[["max"]],
+          stringsAsFactors = FALSE
+        )
+      }
 
       # save samples after burn
       if(i <= n.burn){
+        if (!identical(mh.proposal, "slice")) {
+          n.trial.burn <- n.trial.burn + 1L
+          n.accept.burn <- n.accept.burn + as.integer(isTRUE(lsiglgam.out$accept))
+          window.accept <- window.accept + as.integer(isTRUE(lsiglgam.out$accept))
+          window.total <- window.total + 1L
+        }
         init.log.sigma[i] = cursam.log.sigma
         init.logit.gamma[i] = cursam.logit.gamma
-        if(i==n.burn && joint.sample){
-          Sig.mh = stats::cov(cbind(init.log.sigma[1:n.burn],init.logit.gamma[1:n.burn]))
-          if(fix.gamma | fix.sigma){
-            chol_Sig.mh = sqrt(Sig.mh)
-          }else{
-            chol_Sig.mh=t(chol(Sig.mh))
+        laplace_refreshed <- FALSE
+        if (identical(mh.proposal, "laplace_rw") && !fix.gamma && !fix.sigma &&
+            i >= mh.laplace.refresh.start && i < n.burn &&
+            (i %% mh.laplace.refresh.interval == 0)) {
+          laplace_refresh_attempts <- laplace_refresh_attempts + 1L
+          cov.lap.step <- laplace_cov_init(reg1, cursam.log.sigma, cursam.logit.gamma, cursam.st, cursam.Ut)
+          if (!is.null(cov.lap.step) && all(is.finite(cov.lap.step))) {
+            cov.lap.step <- prep_Sig_mh(cov.lap.step)
+            Sig.mh <- prep_Sig_mh((1 - mh.laplace.refresh.weight) * Sig.mh + mh.laplace.refresh.weight * cov.lap.step)
+            laplace_refreshed <- TRUE
+            laplace_refresh_success <- laplace_refresh_success + 1L
           }
+        }
+        if (!identical(mh.proposal, "slice") && mh.adapt && i >= mh.min_burn_adapt && i < n.burn && (i %% mh.adapt.interval == 0)) {
+          acc.win <- window.accept / pmax(window.total, 1L)
+          if (acc.win < mh.target.accept[1]) {
+            mh.scale <- mh.scale * (1 - mh.max_scale.step)
+          } else if (acc.win > mh.target.accept[2]) {
+            mh.scale <- mh.scale * (1 + mh.max_scale.step)
+          }
+          mh.scale <- min(max(mh.scale, mh.scale.bounds[1]), mh.scale.bounds[2])
+          Sig.scaled <- prep_Sig_mh(Sig.mh * (mh.scale^2))
+          chol_Sig.mh <- build_chol(Sig.scaled)
+          adapt.history <- rbind(
+            adapt.history,
+            data.frame(
+              iter = i,
+              window_accept = acc.win,
+              mh_scale = mh.scale,
+              sig11 = Sig.scaled[1, 1],
+              sig22 = Sig.scaled[2, 2],
+              laplace_refreshed = isTRUE(laplace_refreshed),
+              stringsAsFactors = FALSE
+            )
+          )
+          window.accept <- 0L
+          window.total <- 0L
+        }
+        if(!identical(mh.proposal, "slice") && i==n.burn && joint.sample){
+          Sig.mh = stats::cov(cbind(init.log.sigma[1:n.burn],init.logit.gamma[1:n.burn]))
+          Sig.mh <- prep_Sig_mh(Sig.mh)
+          chol_Sig.mh <- build_chol(Sig.mh * (mh.scale^2))
           }
       }else{
+        if (!identical(mh.proposal, "slice")) {
+          n.trial.keep <- n.trial.keep + 1L
+          n.accept.keep <- n.accept.keep + as.integer(isTRUE(lsiglgam.out$accept))
+        }
         save.sigma[(i-n.burn)] = cursam.sigma
         save.gamma[(i-n.burn)] = cursam.gamma
         save.theta[,,(i-n.burn)] = cursam.theta
@@ -439,6 +984,19 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     if(verbose){
       cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
     }
+    safe_progress_callback(list(
+      event = "complete",
+      iter = as.integer(I),
+      total_iter = as.integer(I),
+      phase = "done",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = cursam.gamma,
+      kernel = mh.proposal,
+      accept = if (identical(mh.proposal, "slice")) NA_real_ else n.accept / I,
+      runtime_sec = as.numeric(run.time$toc - run.time$tic)
+    ))
 
     # exdqlm MAP standard forecast errors
     map.gam = mean(save.gamma)
@@ -452,14 +1010,101 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     theta.out <- smoothed_theta(map.sig*c_tau*abs(map.gam)*map.st+map.Ut*a_tau,b_tau*map.Ut*map.sig)
     map.standard.forecast.errors = theta.out$standard.forecast.errors
 
+    Sig.mh.final <- prep_Sig_mh(Sig.mh * (mh.scale^2))
+    ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
+    ess_gamma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.gamma))), error = function(e) NA_real_)
+    chain_health_sigma <- .exdqlm_chain_health_metrics(save.sigma, n_keep = n.mcmc)
+    chain_health_gamma <- .exdqlm_chain_health_metrics(save.gamma, n_keep = n.mcmc)
+    accept_total <- if (identical(mh.proposal, "slice")) NA_real_ else n.accept / I
+    accept_burn <- if (identical(mh.proposal, "slice")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
+    accept_keep <- if (identical(mh.proposal, "slice")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+    kernel_exact <- mh.proposal %in% c("rw", "laplace_rw", "slice")
+    mh.diag <- list(
+      proposal = mh.proposal,
+      adapt = if (identical(mh.proposal, "slice")) FALSE else mh.adapt,
+      joint_sample = isTRUE(joint.sample),
+      adapt_interval = if (identical(mh.proposal, "slice")) NA_integer_ else mh.adapt.interval,
+      target_accept = if (identical(mh.proposal, "slice")) c(NA_real_, NA_real_) else mh.target.accept,
+      scale_bounds = if (identical(mh.proposal, "slice")) c(NA_real_, NA_real_) else mh.scale.bounds,
+      scale_final = if (identical(mh.proposal, "slice")) NA_real_ else mh.scale,
+      joint_sigma_gamma = mh.proposal %in% c("rw", "laplace_rw"),
+      transformed_state = if (mh.proposal %in% c("rw", "laplace_rw")) c("log_sigma", "logit_gamma") else c("gamma"),
+      # Backward-compatible aliases used by some diagnostics scripts.
+      final_scale = if (identical(mh.proposal, "slice")) NA_real_ else mh.scale,
+      slice_width = if (identical(mh.proposal, "slice")) slice.width else NA_real_,
+      slice_max_steps = if (identical(mh.proposal, "slice")) slice.max.steps else NA_real_,
+      laplace_refresh = list(
+        enabled = identical(mh.proposal, "laplace_rw"),
+        interval = if (identical(mh.proposal, "laplace_rw")) as.integer(mh.laplace.refresh.interval) else NA_integer_,
+        start = if (identical(mh.proposal, "laplace_rw")) as.integer(mh.laplace.refresh.start) else NA_integer_,
+        weight = if (identical(mh.proposal, "laplace_rw")) as.numeric(mh.laplace.refresh.weight) else NA_real_,
+        attempts = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_attempts) else NA_integer_,
+        success = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_success) else NA_integer_
+      ),
+      kernel_exact = kernel_exact,
+      signoff_ready = kernel_exact,
+      approximation_note = NA_character_,
+      accept = list(
+        total = accept_total,
+        burn = accept_burn,
+        kept = accept_keep,
+        n_accept = if (identical(mh.proposal, "slice")) NA_integer_ else n.accept,
+        n_total = if (identical(mh.proposal, "slice")) NA_integer_ else I
+      ),
+      Sig.mh.initial = if (identical(mh.proposal, "slice")) matrix(NA_real_, 2, 2) else Sig.mh.initial,
+      Sig.mh.final = if (identical(mh.proposal, "slice")) matrix(NA_real_, 2, 2) else Sig.mh.final,
+      adaptation = if (identical(mh.proposal, "slice")) data.frame() else adapt.history,
+      adapt_trace = if (identical(mh.proposal, "slice")) data.frame() else adapt.history,
+      trace_enabled = trace.diagnostics,
+      trace_every = if (trace.diagnostics) trace.every else NA_integer_,
+      verbose_every = as.integer(verbose.every),
+      callback_every = as.integer(callback.every),
+      trace = if (trace.diagnostics && trace_idx > 0L) {
+        do.call(rbind, trace_rows[seq_len(trace_idx)])
+      } else {
+        data.frame()
+      }
+    )
+
     # exdqlm results
-    retlist = list(run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma), samp.gamma = coda::as.mcmc(save.gamma),
                 init.log.sigma = coda::as.mcmc(init.log.sigma), init.logit.gamma = coda::as.mcmc(init.logit.gamma),
                 samp.vts = coda::as.mcmc(save.Ut), samp.sts = coda::as.mcmc(save.st),
-                accept.rate = n.accept/I, Sig.mh=Sig.mh)
+                accept.rate = accept_total,
+                accept.rate.burn = accept_burn,
+                accept.rate.keep = accept_keep,
+                Sig.mh = if (identical(mh.proposal, "slice")) matrix(NA_real_, 2, 2) else Sig.mh.final,
+                init.from.vb = init.from.vb,
+                vb.init.method = if (init.from.vb) vb.ctrl$method else NA_character_,
+                mh.diagnostics = mh.diag,
+                diagnostics = list(
+                  mh = mh.diag,
+                  progress = list(
+                    verbose_every = as.integer(verbose.every),
+                    callback_every = as.integer(callback.every)
+                  ),
+                  ess = list(sigma = ess_sigma, gamma = ess_gamma),
+                  chain_health = list(
+                    sigma = chain_health_sigma,
+                    gamma = chain_health_gamma
+                  ),
+                  s_block = list(
+                    trace = mh.diag$trace,
+                    final = if (is.data.frame(mh.diag$trace) && nrow(mh.diag$trace)) {
+                      as.list(mh.diag$trace[nrow(mh.diag$trace), , drop = FALSE])
+                    } else {
+                      list()
+                    }
+                  ),
+                  rhat_ready = list(
+                    sigma = as.numeric(save.sigma),
+                    gamma = as.numeric(save.gamma)
+                  )
+                ),
+                n.burn=n.burn,n.mcmc=n.mcmc)
 
   }else{
     ######## DQLM
@@ -503,21 +1148,41 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## backwards sample
       svd.sC = svd(C[,,TT])
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-      post.pred[TT] = brms::rasym_laplace(1,t(FF[,TT])%*%sam.theta[,TT],sigma,p0)
-      for(t in (TT-1):1){
+        reg_theta <- numeric(TT)
+        reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
+        post.pred[TT] = rexal(1,p0,reg_theta[TT],sigma,0)
+        for(t in (TT-1):1){
         P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
         R = P + df.mat*P
         R = (R + t(R))/2
         svd.R = svd(R)
         inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,t])%*%inv.R
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,t]%*%C[,,t]
+        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
         svd.sC = svd((sC+t(sC))/2)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        post.pred[t] = brms::rasym_laplace(1,t(FF[,t])%*%sam.theta[,t],sigma,p0)
+        reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
+        post.pred[t] = rexal(1,p0,reg_theta[t],sigma,0)
       }
       return(list(standard.forecast.errors=standard.forecast.errors,post.pred=post.pred,sam.theta=sam.theta,fm=m,fC=C))
+    }
+    if (use_cpp_mcmc) {
+      samp_theta <- function(ex.f, ex.q, sigma) {
+        out <- cpp_ffbs_sample(ex.f, ex.q)
+        sam.theta <- out$sam.theta
+        reg_theta <- state_signal(FF, sam.theta)
+        post.pred <- vapply(seq_len(TT), function(t) {
+          rexal(1, p0, reg_theta[t], sigma, 0)
+        }, numeric(1))
+        list(
+          standard.forecast.errors = out$standard.forecast.errors,
+          post.pred = post.pred,
+          sam.theta = sam.theta,
+          fm = out$fm,
+          fC = out$fC
+        )
+      }
     }
 
     # dqlm function sample uts
@@ -533,14 +1198,50 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                rate = PriorSigma$b_sig + 0.5*sum( ((as.vector(y) - reg1 - a_tau*uts)^2)/(b_tau*uts) ) + sum(uts) )
     }
 
+    callback.every <- if (trace.diagnostics) {
+      trace.every
+    } else {
+      100L
+    }
+    callback.every <- max(1L, as.integer(callback.every)[1])
+
     # Sample from dqlm posterior
     tictoc::tic()
+    safe_progress_callback(list(
+      event = "start",
+      iter = 0L,
+      total_iter = as.integer(I),
+      phase = "burn",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_
+    ))
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose & i%%500==0){
-        cat(sprintf("%s iteration %s: %s ", ifelse(i<=n.burn,"burn-in","MCMC"), i, Sys.time()), "\n")
-        }
+      if(verbose && i %% verbose.every == 0L){
+        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
+        cat(sprintf("%s %d/%d | %s", phase_label, i, I, Sys.time()), "\n")
+        utils::flush.console()
+        try(flush(stdout()), silent = TRUE)
+      }
+      if (i %% callback.every == 0L) {
+        safe_progress_callback(list(
+          event = "progress",
+          iter = as.integer(i),
+          total_iter = as.integer(I),
+          phase = if (i <= n.burn) "burn" else "keep",
+          n_burn = as.integer(n.burn),
+          n_mcmc = as.integer(n.mcmc),
+          sigma = cursam.sigma,
+          gamma = NA_real_,
+          kernel = "conjugate",
+          accept = NA_real_
+        ))
+      }
 
       # sample theta
       ex.f = cursam.Ut*a_tau
@@ -549,7 +1250,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       cursam.theta = theta.out$sam.theta
 
       # sample uts
-      reg1 = apply(FF*cursam.theta,2,sum)
+      reg1 = state_signal(FF, cursam.theta)
       cursam.Ut<-samp_uts(reg1,cursam.sigma)
 
       # sample sigma
@@ -570,23 +1271,105 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     if(verbose){
       cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
     }
+    safe_progress_callback(list(
+      event = "complete",
+      iter = as.integer(I),
+      total_iter = as.integer(I),
+      phase = "done",
+      n_burn = as.integer(n.burn),
+      n_mcmc = as.integer(n.mcmc),
+      sigma = cursam.sigma,
+      gamma = NA_real_,
+      kernel = "conjugate",
+      accept = NA_real_,
+      runtime_sec = as.numeric(run.time$toc - run.time$tic)
+    ))
 
     # dqlm MAP standard forecast errors
     map.sig = mean(save.sigma)
     map.Ut = rowMeans(save.Ut)
     theta.out <- smoothed_theta(map.Ut*a_tau,b_tau*map.Ut*map.sig)
     map.standard.forecast.errors = theta.out$standard.forecast.errors
+    ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
 
     # dqlm results
-    retlist = list(run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma),
-                samp.vts = coda::as.mcmc(save.Ut))
+                samp.vts = coda::as.mcmc(save.Ut),
+                init.from.vb = init.from.vb,
+                vb.init.method = if (init.from.vb) vb.ctrl$method else NA_character_,
+                diagnostics = list(
+                  progress = list(
+                    verbose_every = as.integer(verbose.every),
+                    callback_every = as.integer(callback.every)
+                  ),
+                  ess = list(sigma = ess_sigma, gamma = NA_real_),
+                  rhat_ready = list(
+                    sigma = as.numeric(save.sigma),
+                    gamma = numeric(0)
+                  )
+                ),
+                n.burn=n.burn,n.mcmc=n.mcmc)
   }
 
+  retlist$backend <- list(mcmc = mcmc_backend, mode = cpp_mcmc_mode, gig = gig_backend)
+
   # return results
-  retlist$backend <- list(gig = gig_backend)
-  class(retlist) <- "exdqlm"
+  class(retlist) <- "exdqlmMCMC"
   return(retlist)
+}
+
+# Internal helper for diagnostics-only multichain validation.
+.exdqlm_mcmc_multichain_diag <- function(n.chains = 4L, seeds = NULL, mcmc_args = list()) {
+  n.chains <- suppressWarnings(as.integer(n.chains)[1])
+  if (!is.finite(n.chains) || n.chains < 2L) {
+    stop("n.chains must be >= 2 for multichain diagnostics.")
+  }
+
+  if (is.null(seeds)) {
+    seeds <- seq_len(n.chains) + 20260300L
+  }
+  seeds <- as.integer(seeds)
+  if (length(seeds) != n.chains) {
+    stop("Length of seeds must match n.chains.")
+  }
+
+  fits <- vector("list", n.chains)
+  for (i in seq_len(n.chains)) {
+    set.seed(seeds[i])
+    args_i <- utils::modifyList(mcmc_args, list(verbose = FALSE))
+    fits[[i]] <- do.call(exdqlmMCMC, args_i)
+  }
+
+  sigma_list <- coda::mcmc.list(lapply(fits, function(f) coda::as.mcmc(as.numeric(f$samp.sigma))))
+  sigma_rhat <- tryCatch(
+    as.numeric(coda::gelman.diag(sigma_list, autoburnin = FALSE)$psrf[1, "Point est."]),
+    error = function(e) NA_real_
+  )
+  sigma_ess <- tryCatch(as.numeric(coda::effectiveSize(sigma_list))[1], error = function(e) NA_real_)
+
+  has_gamma <- !isTRUE(fits[[1]]$dqlm.ind) && !is.null(fits[[1]]$samp.gamma)
+  if (has_gamma) {
+    gamma_list <- coda::mcmc.list(lapply(fits, function(f) coda::as.mcmc(as.numeric(f$samp.gamma))))
+    gamma_rhat <- tryCatch(
+      as.numeric(coda::gelman.diag(gamma_list, autoburnin = FALSE)$psrf[1, "Point est."]),
+      error = function(e) NA_real_
+    )
+    gamma_ess <- tryCatch(as.numeric(coda::effectiveSize(gamma_list))[1], error = function(e) NA_real_)
+  } else {
+    gamma_list <- NULL
+    gamma_rhat <- NA_real_
+    gamma_ess <- NA_real_
+  }
+
+  list(
+    fits = fits,
+    seeds = seeds,
+    diagnostics = list(
+      sigma = list(rhat = sigma_rhat, ess = sigma_ess, chains = sigma_list),
+      gamma = list(rhat = gamma_rhat, ess = gamma_ess, chains = gamma_list)
+    )
+  )
 }

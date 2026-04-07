@@ -9,7 +9,7 @@
 #' @param tf.m0 Prior mean of the transfer function component.
 #' @param tf.C0 Prior covariance of the transfer function component.
 #'
-#' @return A list of the following is returned:
+#' @return A object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `iter` - Number of iterations until convergence was reached.
@@ -30,32 +30,48 @@
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
 #'   \item `median.kt` - Median number of time steps until the effect of X_t is less than or equal to 1e-3.
 #' }
-#' If `dqlm.ind=FALSE`, the list also contains:
+#' If `dqlm.ind=FALSE`, the object also contains:
 #' \itemize{
 #'   \item `gam.init` - Initial value for gamma, or value at which gamma was fixed if `fix.gamma=TRUE`.
 #'   \item `seq.gamma` - Sequence of gamma estimated by the algorithm until convergence.
 #'   \item `samp.gamma` - Posterior sample of skewness parameter gamma variational distribution.
 #'   \item `samp.sts` - Posterior sample of latent parameters, s_t, variational distributions.
-#'   \item `gammasig.out` - List containing the IS estimate of the variational distribution of sigma and gamma.
+#'   \item `gammasig.out` - List containing the IS estimate of the variational distribution of `sigma` and `gamma`.
 #'   \item `sts.out` - List containing the variational distributions of latent parameters s_t.
 #' }
-#' Or if `dqlm.ind=TRUE`, the list also contains:
+#' Or if `dqlm.ind=TRUE`, the object also contains:
 #' \itemize{
-#'   \item `sig.out` - List containing the IS estimate of the variational distribution of sigma.
+#'   \item `sig.out` - As above but for the DQLM case (`gamma = 0`); list containing the IS estimate of the variational distribution of sigma.
 #'  }
 #' @export
+#' 
+#' @importFrom stats median
+#'
+#' @details
+#' Advanced options (set via \code{options()}):
+#' \itemize{
+#'   \item \code{exdqlm.use_cpp_kf}: use the C++ Kalman filter bridge (default TRUE).
+#'   \item \code{exdqlm.compute_elbo}: compute ELBO every iteration (default TRUE).
+#'   \item \code{exdqlm.tol_elbo}: ELBO convergence tolerance (default 1e-6).
+#'   \item \code{exdqlm.use_cpp_samplers}: use C++ samplers for s_t, u_t, theta (default FALSE).
+#'         The GIG-based u_t sampler always uses the package C++ Devroye implementation;
+#'         when FALSE, the remaining samplers fall back to R implementations.
+#'   \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+#' }
 #'
 #' @examples
 #' \donttest{
+#' data("scIVTmag", package = "exdqlm")
+#' data("ELIanoms", package = "exdqlm")
 #' y = scIVTmag[1:1095]
 #' X = ELIanoms[1:1095]
-#' trend.comp = polytrendMod(1,mean(y),10)
-#' seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-#' model = combineMods(trend.comp,seas.comp)
-#' M1 = transfn_exdqlmISVB(y,p0=0.85,model=model,
-#'                           X,df=c(1,1),dim.df = c(1,6),
-#'                           gam.init=-3.5,sig.init=15,
-#'                           lam=0.38,tf.df=c(0.97,0.97))
+#' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+#' model = trend.comp + seas.comp
+#' M1 = transfn_exdqlmISVB(y, p0 = 0.85, model = model,
+#'                           X, df = c(1,1), dim.df = c(1,6),
+#'                           gam.init = -3.5, sig.init = 15,
+#'                           lam = 0.38, tf.df = c(0.97,0.97))
 #' }
 #'
 transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=TRUE,sig.init=NA,dqlm.ind=FALSE,
@@ -65,6 +81,7 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
   X = check_ts(X)
   if(length(X) != length(y)){stop("y and X must be time-series of the same length")}
   model = check_mod(model)
+  p = length(model$m0)
   if(length(lam) != 1 | lam >= 1 | lam <= 0){stop("lam must be a single value between 0 and 1")}
   if(!methods::hasArg(dim.df)){
     if(length(df)!=1){
@@ -116,12 +133,21 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
   tf.model$FF = FF
   tf.model$m0 = c(model$m0,tf.m0)
   tf.model$C0 = magic::adiag(model$C0,tf.C0)
+  tf.model = as.exdqlm(tf.model)
   tf.model.df = c(df,matrix(tf.df,1,2))
   tf.model.dim.df = c(dim.df,rep(1,2))
 
   # fit transfer function exdqlm
-  tf.return = exdqlmISVB(y,p0,tf.model,tf.model.df,tf.model.dim.df,fix.gamma,gam.init,fix.sigma,sig.init,dqlm.ind,
-                         exps0,tol,n.IS,n.samp,PriorSigma,PriorGamma,verbose)
+  tf.return = exdqlmISVB(
+    y = y, p0 = p0, model = tf.model,
+    df = tf.model.df, dim.df = tf.model.dim.df,
+    fix.gamma = fix.gamma, gam.init = gam.init,
+    fix.sigma = fix.sigma, sig.init = sig.init,
+    dqlm.ind = dqlm.ind, exps0 = exps0, tol = tol,
+    n.IS = n.IS, n.samp = n.samp,
+    PriorSigma = PriorSigma, PriorGamma = PriorGamma,
+    verbose = verbose
+  )
   tf.return$lam = lam
 
   k_seq = (log(1e-3)-log(abs(c(tf.model$m0[1],tf.return$theta.out$sm[(dim(tf.return$theta.out$sm)[1]-1),-TT])*c(X))))/(log(lam))

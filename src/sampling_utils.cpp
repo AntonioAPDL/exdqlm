@@ -35,9 +35,18 @@ double g(double x, double sd, double td, double f1, double f2) {
 }
 
 double sample_gig_devroye(double p, double a, double b) {
+    if (!std::isfinite(p) || !std::isfinite(a) || !std::isfinite(b) || a <= 0.0 || b <= 0.0) {
+        return NA_REAL;
+    }
     double lambda = p;
     double omega = sqrt(a * b);
+    if (!std::isfinite(omega) || omega <= 0.0) {
+        return NA_REAL;
+    }
     double alpha = sqrt(omega * omega + lambda * lambda) - lambda;
+    if (!std::isfinite(alpha) || alpha <= 0.0) {
+        return NA_REAL;
+    }
     double t, s;
 
     // Find t
@@ -73,6 +82,7 @@ double sample_gig_devroye(double p, double a, double b) {
 
     double X, U, V, W;
     bool done = false;
+    int guard = 0;
     while (!done) {
         U = R::runif(0.0, 1.0);
         V = R::runif(0.0, 1.0);
@@ -87,12 +97,23 @@ double sample_gig_devroye(double p, double a, double b) {
 
         double f1 = exp(-eta - zeta * (X - t));
         double f2 = exp(-theta + xi * (X + s));
-        if ((W * g(X, sd, td, f1, f2)) <= exp(psi(X, alpha, lambda))) {
+        double rhs = exp(psi(X, alpha, lambda));
+        if (!std::isfinite(f1) || !std::isfinite(f2) || !std::isfinite(rhs)) {
+            return NA_REAL;
+        }
+        if ((W * g(X, sd, td, f1, f2)) <= rhs) {
             done = true;
+        }
+        if (++guard > 10000000) {
+            return NA_REAL;
         }
     }
 
-    return exp(X) * (lambda / omega + sqrt(1.0 + (lambda / omega) * (lambda / omega))) / sqrt(a / b);
+    double out = exp(X) * (lambda / omega + sqrt(1.0 + (lambda / omega) * (lambda / omega))) / sqrt(a / b);
+    if (!std::isfinite(out) || out <= 0.0) {
+        return NA_REAL;
+    }
+    return out;
 }
 
 // [[Rcpp::export]]
@@ -100,6 +121,22 @@ Rcpp::NumericMatrix sample_gig_devroye_vector(int n_samples, double p, double a,
                                               Rcpp::NumericVector b_vec) {
     int TT = b_vec.size();
     Rcpp::NumericMatrix samples(n_samples, TT);
+
+    if (!std::isfinite(p) || !std::isfinite(a) || a <= 0.0) {
+        Rcpp::stop("sample_gig_devroye_vector: p and a must be finite, and a must be > 0");
+    }
+    int bad_idx = -1;
+    double bad_val = NA_REAL;
+    for (int t = 0; t < TT; ++t) {
+        if (!std::isfinite(b_vec[t]) || b_vec[t] <= 0.0) {
+            bad_idx = t;
+            bad_val = b_vec[t];
+            break;
+        }
+    }
+    if (bad_idx >= 0) {
+        Rcpp::stop("sample_gig_devroye_vector: b_vec must be finite and > 0 (first bad index=%d, value=%g)", bad_idx + 1, bad_val);
+    }
 
 #ifdef _OPENMP
     #pragma omp parallel for collapse(2)
@@ -496,4 +533,51 @@ Rcpp::List generate_samples_ext(int n_samp, int TT, int p, int J, arma::cube FF,
     arma::cube samp_post_pred_result = samp_post_pred_extended(n_samp, TT, p, J, samp_theta, FF, samp_sigma, p0, samp_gamma, samp_sts, samp_uts);
     
     return Rcpp::List::create(Rcpp::Named("samp_theta") = samp_theta, Rcpp::Named("samp_post_pred") = samp_post_pred_result);
+}
+
+// [[Rcpp::export]]
+arma::cube DISC_sample_multivariate_normal(int n_samp, int TT,
+                                           arma::cube sC, arma::mat sm, int n) {
+    arma::cube out(n, TT, n_samp, arma::fill::zeros);
+
+#ifdef _OPENMP
+    #pragma omp parallel
+    {
+        boost::random::mt19937 gen(omp_get_thread_num());
+        boost::random::normal_distribution<> normal_dist(0.0, 1.0);
+
+        #pragma omp for
+        for (int t = 0; t < TT; ++t) {
+            arma::mat LL = arma::trans(chol(sC.slice(t)));
+            for (int i = 0; i < n_samp; ++i) {
+                arma::vec z(n, arma::fill::zeros);
+                for (int j = 0; j < n; ++j) z[j] = normal_dist(gen);
+                out.slice(i).col(t) = sm.col(t) + LL * z;
+            }
+        }
+    }
+#else
+    {
+        boost::random::mt19937 gen(0);
+        boost::random::normal_distribution<> normal_dist(0.0, 1.0);
+
+        for (int t = 0; t < TT; ++t) {
+            arma::mat LL = arma::trans(chol(sC.slice(t)));
+            for (int i = 0; i < n_samp; ++i) {
+                arma::vec z(n, arma::fill::zeros);
+                for (int j = 0; j < n; ++j) z[j] = normal_dist(gen);
+                out.slice(i).col(t) = sm.col(t) + LL * z;
+            }
+        }
+    }
+#endif
+
+    return out;
+}
+
+
+// [[Rcpp::export]]
+Rcpp::List DISC_generate_synth_samples_retro_part(int n_samp, int TT, int n, arma::cube sC, arma::mat sm) {
+    arma::cube samp_theta = DISC_sample_multivariate_normal(n_samp, TT, sC, sm, n);
+    return Rcpp::List::create(Rcpp::Named("samp_theta") = samp_theta); 
 }

@@ -1,5 +1,15 @@
 #!/usr/bin/env Rscript
 
+# Pre-CRAN orchestration script for local and optional remote checks.
+# Usage:
+#   Rscript scripts/precran_all.R [--rhub] [--skip-rhub] [--pat <token>] [--pat-file <path>]
+# Behavior:
+# - Runs local devtools::check(cran = TRUE) and writes logs under check-logs/<timestamp>/.
+# - Optionally submits R-hub checks when --rhub is supplied and auth/repo checks pass.
+# - Submits Win-builder release/devel checks with retry on transient upload failures.
+# Exit status:
+# - Non-zero if local CRAN-like check fails.
+
 cat("=== Pre-CRAN all-checks starting ===\n")
 
 # ----- small helpers ---------------------------------------------------------
@@ -12,8 +22,8 @@ ensure_pkg <- function(pkg, repo = "https://cloud.r-project.org") {
 }
 
 # Core deps
-invisible(lapply(c("devtools","gh","curl","gitcreds"), ensure_pkg))
-# Try both rhub flavors; OK if rhubv2 isn’t on your R
+invisible(lapply(c("devtools", "gh", "curl", "gitcreds"), ensure_pkg))
+# Try both rhub flavors; OK if rhubv2 isn't on your R
 have_rhub  <- requireNamespace("rhub",   quietly = TRUE)
 have_rhub2 <- requireNamespace("rhubv2", quietly = TRUE)
 if (have_rhub)  suppressPackageStartupMessages(library(rhub))
@@ -23,12 +33,12 @@ if (have_rhub2) suppressPackageStartupMessages(library(rhubv2))
 args <- commandArgs(trailingOnly = TRUE)
 arg_val <- function(flag) {
   i <- which(args == flag)
-  if (length(i) && i < length(args)) args[i+1] else ""
+  if (length(i) && i < length(args)) args[i + 1] else ""
 }
 pat_arg      <- arg_val("--pat")
 pat_file_arg <- arg_val("--pat-file")
 
-# Detect WSL & map Windows path → /mnt/…
+# Detect WSL & map Windows path -> /mnt/...
 is_wsl <- function() {
   txt <- try(readLines("/proc/version", warn = FALSE), silent = TRUE)
   if (inherits(txt, "try-error")) return(FALSE)
@@ -45,9 +55,28 @@ wsl_path <- function(p) {
   p
 }
 mask <- function(x) if (!nzchar(x)) "<empty>" else {
-  if (nchar(x) <= 8) paste0(substr(x,1,2), "…")
-  else paste0(substr(x,1,4), "…", substr(x, nchar(x)-3, nchar(x)))
+  if (nchar(x) <= 8) paste0(substr(x, 1, 2), "...")
+  else paste0(substr(x, 1, 4), "...", substr(x, nchar(x) - 3, nchar(x)))
 }
+
+has_flag <- function(flag) flag %in% args
+
+git_cmd <- function(...) {
+  out <- try(system2("git", c(...), stdout = TRUE, stderr = TRUE), silent = TRUE)
+  if (inherits(out, "try-error")) return(character())
+  trimws(out)
+}
+git_is_detached <- function() {
+  b <- git_cmd("rev-parse", "--abbrev-ref", "HEAD")
+  length(b) == 0 || identical(b[[1]], "HEAD")
+}
+git_is_dirty <- function() {
+  s <- git_cmd("status", "--porcelain")
+  length(s) > 0
+}
+
+skip_rhub  <- has_flag("--skip-rhub")
+force_rhub <- has_flag("--rhub")
 
 # Logging wrapper
 ts <- format(Sys.time(), "%Y%m%d-%H%M%S")
@@ -73,7 +102,10 @@ need_ignore <- c("^scripts$", "^check-logs$")
 if (file.exists(rbi)) {
   lines <- readLines(rbi)
   add <- setdiff(need_ignore, lines)
-  if (length(add)) { writeLines(c(lines, add), rbi); message("Updated .Rbuildignore with: ", paste(add, collapse = ", ")) }
+  if (length(add)) {
+    writeLines(c(lines, add), rbi)
+    message("Updated .Rbuildignore with: ", paste(add, collapse = ", "))
+  }
 } else {
   writeLines(need_ignore, rbi)
   message("Created .Rbuildignore with: ", paste(need_ignore, collapse = ", "))
@@ -85,7 +117,7 @@ has_vignettes <- dir.exists("vignettes") &&
   length(list.files("vignettes", pattern = "\\.(R?nw|Rmd|qmd)$")) > 0
 has_vb <- FALSE
 if (file.exists(desc_path)) has_vb <- any(grepl("^\\s*VignetteBuilder\\s*:", readLines(desc_path)))
-if (has_vb && !has_vignettes) warning("DESCRIPTION has VignetteBuilder but no vignettes/. Consider removing VignetteBuilder.")
+if (has_vb && !has_vignettes) warning("DESCRIPTION has VignetteBuilder but no vignettes. Consider removing VignetteBuilder.")
 
 # ----- GitHub PAT loading + reachability --------------------------------------
 load_and_check_pat <- function() {
@@ -101,7 +133,7 @@ load_and_check_pat <- function() {
     pf <- pat_file_arg
     # 2) env var
     if (!nzchar(pf)) pf <- Sys.getenv("GITHUB_PAT_FILE", "")
-    # 3) Antonio’s Windows default (mapped to WSL as needed)
+    # 3) Antonio's Windows default (mapped to WSL as needed)
     if (!nzchar(pf)) pf <- "C:/Users/anton/OneDrive/Desktop/github_token.txt"
     pf <- wsl_path(pf)
     if (nzchar(pf) && file.exists(pf)) {
@@ -128,9 +160,9 @@ load_and_check_pat <- function() {
   have_pat <- nzchar(pat)
   if (have_pat) {
     Sys.setenv(GITHUB_PAT = pat, GITHUB_TOKEN = pat)
-    message("✓ Loaded PAT from: ", src, " (", mask(pat), ")")
+    message("Loaded PAT from: ", src, " (", mask(pat), ")")
   } else {
-    message("✖ No GITHUB_PAT found. Provide via env, --pat, --pat-file, GITHUB_PAT_FILE, a default file, or gitcreds.")
+    message("No GITHUB_PAT found. Provide via env, --pat, --pat-file, GITHUB_PAT_FILE, a default file, or gitcreds.")
   }
 
   net_ok <- TRUE
@@ -161,7 +193,11 @@ if (local_notes > 0) message("Local check has notes (review carefully).")
 rhub_started <- FALSE
 log_section("rhub-checks", {
   status <- load_and_check_pat()
-  run_rhub <- status$have_pat && status$net_ok && status$api_ok
+
+  git_ok <- !git_is_detached() && !git_is_dirty()
+  if (!git_ok) cat("Git repo not in a pushed state (detached HEAD and/or dirty). Skipping R-hub.\n")
+
+  run_rhub <- !skip_rhub && force_rhub && status$have_pat && status$net_ok && status$api_ok && git_ok
 
   if (!status$have_pat) cat("No GITHUB_PAT available. Skipping R-hub.\n")
   if (status$have_pat && (!status$net_ok || !status$api_ok)) cat("GitHub API not reachable (network/firewall). Skipping R-hub.\n")
@@ -176,7 +212,7 @@ log_section("rhub-checks", {
       if (have_rhub2 && "rhub_check" %in% getNamespaceExports("rhubv2")) {
         f <- rhubv2::rhub_check
         fml <- names(formals(f))
-        a <- list(platforms = c("linux","windows","macos-arm64"))
+        a <- list(platforms = c("linux", "windows", "macos-arm64"))
         if ("path" %in% fml) a$path <- "."
         return(do.call(f, a))
       }
@@ -184,7 +220,7 @@ log_section("rhub-checks", {
       if (have_rhub && "rhub_check" %in% getNamespaceExports("rhub")) {
         f <- rhub::rhub_check
         fml <- names(formals(f))
-        a <- list(platforms = c("linux","windows","macos-arm64"))
+        a <- list(platforms = c("linux", "windows", "macos-arm64"))
         if ("path" %in% fml) a$path <- "."
         return(do.call(f, a))
       }
@@ -197,7 +233,7 @@ log_section("rhub-checks", {
 
     if (!ok) {
       cat("rhub_check() did not start. Details:\n")
-      cat("  → ", conditionMessage(err), "\n", sep = "")
+      cat("  -> ", conditionMessage(err), "\n", sep = "")
     } else {
       rhub_started <<- TRUE
       if (!is.null(runs)) print(runs)
@@ -213,7 +249,7 @@ log_section("rhub-checks", {
         cat("\nR-hub runs started. Track in Actions or rhub_status().\n")
         print(st)
       } else {
-        cat("\nR-hub runs **submitted**. Watch your repo’s Actions tab.\n")
+        cat("\nR-hub runs submitted. Watch your repo's Actions tab.\n")
       }
     }
   }

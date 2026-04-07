@@ -5,7 +5,6 @@
 \title{Plot a component of an exDQLM}
 \usage{
 compPlot(
-  y,
   m1,
   index,
   add = FALSE,
@@ -15,19 +14,18 @@ compPlot(
 )
 }
 \arguments{
-\item{y}{A univariate time-series.}
+\item{m1}{An object of class "\code{exdqlmMCMC}", "\code{exdqlmLDVB}",  or "\code{exdqlmISVB}".}
 
-\item{m1}{An object of class "\code{exdqlm}".}
+\item{index}{Vector of consecutive integers in \eqn{\{1,\dots,q\}} indicating the component or element of the state vector to be plotted.}
 
-\item{index}{Index of the component or element of the state vector to be plotted.}
+\item{add}{Logical value indicating whether the dynamic component will be added to existing plot. Default is \code{FALSE}.}
 
-\item{add}{If \code{TRUE}, the dynamic component will be added to existing plot.}
+\item{col}{Character vector of length 1 giving color of the dynamic component to be plotted. Default is \code{purple}.}
 
-\item{col}{Color of dynamic component to be plotted. Default is \code{purple}.}
+\item{just.theta}{Logical; if \code{TRUE}, the function plots the dynamic distribution of the \code{index} element of the state vector. If \code{just.theta=TRUE}, \code{index} must have length 1.}
 
-\item{just.theta}{If \code{TRUE}, the function plots the dynamic distribution of the \code{index} element of the state vector. If \code{just.theta=TRUE}, \code{index} must have length 1.}
-
-\item{cr.percent}{Percentage used in the calculation of the credible intervals.}
+\item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
+intervals (e.g., \code{0.95}). Default \code{0.95}.}
 }
 \value{
 A list of the following is returned:
@@ -42,14 +40,15 @@ The function plots the dynamic MAP estimates and 95\% credible intervals (CrIs) 
 }
 \examples{
 \donttest{
+data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:365]
-trend.comp = polytrendMod(2,rep(0,2),10*diag(2))
-seas.comp = seasMod(365,c(1,2,4),C0=10*diag(6))
-model = combineMods(trend.comp,seas.comp)
-M0 = exdqlmISVB(y,p0=0.85,model,df=c(0.98,1),dim.df = c(2,6),
-                   gam.init=-3.5,sig.init=15,tol=0.05)
+trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
+seas.comp = seasMod(365, c(1, 2, 4), C0 = 10*diag(6))
+model = trend.comp + seas.comp
+M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 6),
+                   gam.init = -3.5, sig.init = 15, tol = 0.05)
 # plot first harmonic component
-compPlot(y,M0,index=c(3,4),col="blue")
+compPlot(M0, index = c(3, 4), col = "blue")
 }
 
 }
