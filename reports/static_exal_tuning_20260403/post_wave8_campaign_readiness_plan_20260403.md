@@ -198,6 +198,31 @@ Important refinement after the completed tail-7 geometry closeout:
   - `3` TT5000 longer joint follow-ups
   - `14` total
 
+Important refinement after the completed tail-7 `rw` closeout:
+
+- tail-7 `rw` completed with:
+  - `0 PASS`
+  - `1 WARN`
+  - `13 FAIL`
+- one new original dynamic case was promoted:
+  - `dynamic::gausmix::0p05::500::default::exdqlm::mcmc`
+  - upgraded from `FAIL` to `WARN`
+- corrected recovered state is now:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+  - residual debt remains dynamic-only
+- dynamic recovered state is now:
+  - `66 / 72` healthy
+  - `6 / 72` unresolved
+- the `TT5000` long `laplace_rw` lane did not rescue any long-horizon row
+- the remaining unresolved cases are:
+  - `dynamic::gausmix::0p25::500::default::exdqlm::mcmc`
+  - `dynamic::laplace::0p05::500::default::exdqlm::mcmc`
+  - `dynamic::normal::0p05::500::default::exdqlm::mcmc`
+  - `dynamic::gausmix::0p05::5000::default::exdqlm::mcmc`
+  - `dynamic::laplace::0p05::5000::default::exdqlm::mcmc`
+  - `dynamic::normal::0p05::5000::default::exdqlm::mcmc`
+
 ## Historical Baseline Promotion
 
 The latest completed results do improve the previous exact-runner baseline.

@@ -8,8 +8,8 @@ the corrected original-`288` carry-forward rebuild.
 ## Current Corrected State
 
 - original publication-target cells: `288`
-- healthy now: `281`
-- unresolved now: `7`
+- healthy now: `282`
+- unresolved now: `6`
 - unresolved block: dynamic only
 - static paper: `72 / 72` healthy
 - static shrink: `144 / 144` healthy
@@ -30,16 +30,16 @@ Authoritative references:
 
 ### By method
 
-- `7` `mcmc::exdqlm`
+- `6` `mcmc::exdqlm`
 
 ### By horizon
 
-- `4` at `TT500`
+- `3` at `TT500`
 - `3` at `TT5000`
 
 ### By quantile
 
-- `6` at `tau = 0p05`
+- `5` at `tau = 0p05`
 - `1` at `tau = 0p25`
 
 ## What Improved
@@ -51,16 +51,19 @@ Authoritative references:
 - tail-8 promoted one additional original dynamic case:
   - `dynamic::gausmix::0p95::500::default::exdqlm::mcmc`
   - upgraded from `FAIL` to `PASS`
-- dynamic healthy coverage is now `65 / 72`
-- the residual queue is now explicit, machine-readable, and down to `7` cases
+- tail-7 `rw` promoted one additional original dynamic case:
+  - `dynamic::gausmix::0p05::500::default::exdqlm::mcmc`
+  - upgraded from `FAIL` to `WARN`
+- dynamic healthy coverage is now `66 / 72`
+- the residual queue is now explicit, machine-readable, and down to `6` cases
 - all unresolved `dqlm::mcmc` and `exdqlm::vb` cells were cleared in the
   archive stage
 
 ## What Still Fails
 
-- `7` original dynamic cells remain unresolved
-- all `7` are `exdqlm::mcmc`
-- none of those `7` should be promoted until a residual candidate yields
+- `6` original dynamic cells remain unresolved
+- all `6` are `exdqlm::mcmc`
+- none of those `6` should be promoted until a residual candidate yields
   `PASS` or `WARN`
 
 ## What Worked Best
@@ -93,7 +96,7 @@ Authoritative references:
 
 - keep the corrected original-`288` carry-forward table as the only
   publication-target baseline
-- keep the current accepted dynamic baseline at `281 / 288` healthy and
+- keep the current accepted dynamic baseline at `282 / 288` healthy and
   promote only strict same-case improvements
 - stop expanding slice geometry on the surviving tail
 - shift the residual search to a narrow `laplace_rw` corridor with:
@@ -171,10 +174,9 @@ Tail-7 outcome:
 - the slice-geometry expansion family is now screened out on the surviving
   dynamic tail
 
-## Tail-7 RW-Joint Follow-Up Status
+## Tail-7 RW-Joint Closeout
 
-The next residual phase should now switch kernel family and stay strictly
-tail-only.
+Tail-7 `rw` completed cleanly and produced one promotable improvement.
 
 | phase | rows | intent |
 |---|---:|---|
@@ -182,6 +184,28 @@ tail-only.
 | `tt500_rw_refresh4` | `4` | short-horizon refresh-focused follow-up |
 | `tt5000_rw_joint_long3` | `3` | long-horizon joint/length follow-up |
 | `total` | `14` | dynamic-only `laplace_rw` residual program |
+
+Tail-7 `rw` outcome:
+
+- `1` promoted rescue
+- `13` non-promotable failures
+- corrected original-`288` baseline moved from:
+  - `281 / 288` healthy
+  - `7 / 288` unresolved
+- to:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+- the promoted case is:
+  - `dynamic::gausmix::0p05::500::default::exdqlm::mcmc`
+  - upgraded from `FAIL` to `WARN`
+- the `TT5000` long lane produced `0` rescues
+- remaining unresolved cases are:
+  - `dynamic::gausmix::0p25::500::default::exdqlm::mcmc`
+  - `dynamic::laplace::0p05::500::default::exdqlm::mcmc`
+  - `dynamic::normal::0p05::500::default::exdqlm::mcmc`
+  - `dynamic::gausmix::0p05::5000::default::exdqlm::mcmc`
+  - `dynamic::laplace::0p05::5000::default::exdqlm::mcmc`
+  - `dynamic::normal::0p05::5000::default::exdqlm::mcmc`
 
 Operational rules carried into the follow-up:
 
@@ -226,11 +250,13 @@ Tie-breaking among non-`FAIL` candidates:
 - [x] reduced tail-8 manifest and helper stack implemented
 - [x] prepare/evaluate/select and shell validation completed
 - [x] reduced tail-8 overnight run completed and promoted back to carry-forward
-- [x] corrected original-288 baseline moved to `281 / 288` healthy
-- [x] remaining unresolved tail shrank to `7`
+- [x] corrected original-288 baseline moved to `282 / 288` healthy
+- [x] remaining unresolved tail shrank to `6`
 - [x] tail-7 geometry-band manifest and helper stack implemented
 - [x] tail-7 prepare/evaluate/select and shell validation completed
 - [x] tail-7 overnight geometry-band run completed and reviewed
 - [x] tail-7 rw-joint manifest and helper stack implemented
 - [x] tail-7 rw-joint prepare/evaluate/select and shell validation completed
 - [x] tail-7 rw-joint overnight run launched from clean pushed branch
+- [x] tail-7 rw-joint overnight run completed and reviewed
+- [x] tail-7 rw-joint promotion applied to carry-forward `v4`
