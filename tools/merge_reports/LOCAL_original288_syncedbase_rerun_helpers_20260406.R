@@ -479,6 +479,13 @@ read_original288_syncedbase_rerun_status <- function(manifest_path = paths_origi
     merged$runtime_sec <- ifelse(!is.na(merged$runtime_sec_row), merged$runtime_sec_row, merged$runtime_sec)
   }
 
+  for (nm in c("inference", "model", "root_kind", "family", "tau_label", "baseline_fit_path", "candidate_fit_path")) {
+    manifest_nm <- paste0(nm, "_manifest")
+    if (!(nm %in% names(merged)) && manifest_nm %in% names(merged)) {
+      merged[[nm]] <- merged[[manifest_nm]]
+    }
+  }
+
   merged$state <- ifelse(is.na(merged$status) | !nzchar(merged$status), "pending", merged$status)
   merged$gate_current <- ifelse(
     merged$state %in% c("done", "skipped_existing", "failed_runtime", "input_missing"),

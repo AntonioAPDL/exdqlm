@@ -67,3 +67,23 @@ and writes fresh rerun outputs into the synced integration worktree:
 
 That keeps the predecessor worktree as read-only evidence and makes the rerun a
 true synced-base validation campaign.
+
+## Early Launch Repair Note
+
+The first launch attempt exposed a synced-branch compatibility gap:
+
+- `LOCAL_full288_case_runner_20260327.R` still depended on
+  `tools/merge_reports/LOCAL_validation_health_gate_common_20260321.R`
+- that shared helper was present in the predecessor worktree but had not yet
+  been carried into the synced integration branch
+
+That gap has now been repaired on this branch, along with a small evaluator
+merge-suffix normalization fix needed once the first rerun rows started
+writing.
+
+Smoke-test result after the repair:
+
+- row `1` reran successfully on the synced base
+- result:
+  - `dynamic::gausmix::0p05::500::default::dqlm::vb`
+  - `PASS`
