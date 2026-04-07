@@ -5,6 +5,38 @@ Date: 2026-04-05
 Purpose: operational tracker for the residual dynamic-only recovery phase after
 the corrected original-`288` carry-forward rebuild.
 
+## Synced Integration Continuation Note (2026-04-06)
+
+This tracker now lives on the synced continuation branch and should be read in
+that context.
+
+Predecessor validation worktree and branch:
+
+- worktree:
+  `/home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs`
+- branch:
+  `validation/rerun-after-0.4.0-sync`
+
+Current active synced continuation point:
+
+- worktree:
+  `/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration`
+- branch:
+  `validation/rerun-after-0.4.0-sync-0p4p0-integration`
+
+Canonical synced-branch status note:
+
+- `reports/static_exal_tuning_20260406/integration_branch_validation_status_20260406.md`
+
+Important distinction carried forward on this branch:
+
+- accepted publication-target state under `v4` is current:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+- but the accepted selected fit paths still point to the predecessor worktree
+- therefore the accepted carry-forward status and the rerun-on-synced-base
+  status must be treated separately in planning and reporting
+
 ## Current Corrected State
 
 - original publication-target cells: `288`
@@ -25,6 +57,7 @@ Authoritative references:
 - `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_geometry_execution_20260406.md`
 - `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_rw_joint_program_20260406.md`
 - `reports/static_exal_tuning_20260406/original_288_dynamic_tail7_rw_joint_execution_20260406.md`
+- `reports/static_exal_tuning_20260406/integration_branch_validation_status_20260406.md`
 
 ## Residual Inventory Shape
 

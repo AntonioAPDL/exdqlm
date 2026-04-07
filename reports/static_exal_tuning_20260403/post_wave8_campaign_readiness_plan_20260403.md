@@ -16,6 +16,29 @@ Current tracked context:
 This is the active planning document after wave-8 closeout and the fail-only
 bridge repair.
 
+Synced continuation note for the current branch/worktree:
+
+- predecessor validation worktree:
+  `/home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs`
+- predecessor branch:
+  `validation/rerun-after-0.4.0-sync`
+- current active synced worktree:
+  `/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration`
+- current active synced branch:
+  `validation/rerun-after-0.4.0-sync-0p4p0-integration`
+- synced-branch status note:
+  `reports/static_exal_tuning_20260406/integration_branch_validation_status_20260406.md`
+
+Important distinction on the synced continuation branch:
+
+- accepted publication-target carry-forward state is now:
+  - `282 / 288` healthy
+  - `6 / 288` unresolved
+- but those accepted `v4` selections still point to predecessor-worktree fit
+  paths
+- so accepted carry-forward status and rerun-on-updated-`0.4.0` status should
+  be treated as separate questions
+
 It replaces the earlier question of "which tuning family should we trust next?"
 with the current operational question: "what is the minimum remaining work to
 reach a comparison-ready full validation campaign?"

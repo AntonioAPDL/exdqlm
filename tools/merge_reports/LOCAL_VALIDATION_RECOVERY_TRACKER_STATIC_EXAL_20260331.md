@@ -9,6 +9,39 @@ the validation branch organized and scientifically defensible.
 This is a local tracker intended for operational use. It is not a signoff
 document and should not be treated as final scientific reporting.
 
+## 0. Synced Integration Continuation Note (2026-04-06)
+
+The active continuation point for the exdqlm validation study is now the
+synced integration branch/worktree:
+
+- worktree:
+  `/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration`
+- branch:
+  `validation/rerun-after-0.4.0-sync-0p4p0-integration`
+
+Predecessor validation run history remains in:
+
+- worktree:
+  `/home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs`
+- branch:
+  `validation/rerun-after-0.4.0-sync`
+
+Canonical synced-branch status note:
+
+- `reports/static_exal_tuning_20260406/integration_branch_validation_status_20260406.md`
+
+Accepted publication-target carry-forward state on the synced branch:
+
+- `282 / 288` healthy
+- `6 / 288` unresolved
+
+Important caveat:
+
+- the accepted `v4` selection is current and valid as the planning baseline
+- but the selected fit paths still point to predecessor-worktree outputs
+- synced-base rerun status should therefore be treated as pending rather than
+  conflated with accepted carry-forward status
+
 ## 0. Dynamic-Only Residual Recovery Checkpoint (2026-04-05)
 
 The next repair phase after the corrected original-`288` carry-forward rebuild
