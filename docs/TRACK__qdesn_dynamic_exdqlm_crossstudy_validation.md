@@ -125,6 +125,12 @@ Integration-branch continuation rule:
     - `42/42` fail rows
   - preflight:
     - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
+- the detached overnight targeted-wave launch is now live on this branch:
+  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
+  - initial healthcheck:
+    - launcher live
+    - runner `RUNNING`
+    - `0/5` stages complete at launch-check time
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 

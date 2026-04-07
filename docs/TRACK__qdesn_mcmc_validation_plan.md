@@ -39,6 +39,8 @@ Decision:
   - stage sizes `5 / 5 / 6 / 4 / 8`
   - next action:
     - detached overnight launch
+- the detached overnight launch is now live as:
+  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
 
 ## Cross-Study Follow-On Correction (2026-04-06)
 

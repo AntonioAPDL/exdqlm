@@ -74,8 +74,8 @@ pct <- function(num, den) {
   sprintf("%.1f%%", 100 * (as.numeric(num) / as.numeric(den)))
 }
 
-total_stages <- as.integer(preflight_manifest$stage_plan$stage_id %||% character(0))
-total_stage_n <- length(total_stages)
+total_stage_ids <- as.character(preflight_manifest$stage_plan$stage_id %||% character(0))
+total_stage_n <- length(total_stage_ids)
 planned_profiles <- if (is.data.frame(preflight_manifest$stage_plan) && nrow(preflight_manifest$stage_plan)) {
   sum(as.integer(preflight_manifest$stage_plan$stage_profile_n), na.rm = TRUE)
 } else {

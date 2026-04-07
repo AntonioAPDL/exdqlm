@@ -339,6 +339,19 @@ Targeted fit-fail closure preflight is now validated on this branch:
 - preflight:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
 
+Targeted fit-fail closure overnight run is now live:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
+- detached session:
+  - `qdesn_dynxff_0407_000615`
+- initial healthcheck:
+  - launcher session live
+  - runner stop reason `RUNNING`
+  - `0/5` stages complete at launch-check time
+- launch metadata:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009/launch/launcher_session.json`
+
 ## 12) Working Rules
 
 - keep the study on the **dynamic** exdqlm-aligned surface

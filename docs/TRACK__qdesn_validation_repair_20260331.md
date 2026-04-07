@@ -29,6 +29,8 @@ Current repair decision:
 - targeted-wave prepare-only is now validated with corrected full coverage:
   - `28/28` fail-carrying roots
   - stage sizes `5 / 5 / 6 / 4 / 8`
+- targeted-wave detached overnight launch is now live:
+  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000615__git-54c5009`
 
 Primary assets:
 
