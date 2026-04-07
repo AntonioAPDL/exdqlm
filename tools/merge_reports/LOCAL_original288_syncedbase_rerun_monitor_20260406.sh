@@ -13,7 +13,7 @@ while true; do
   ts="$(date '+%Y-%m-%d %H:%M:%S %Z')"
   eval_out="$(Rscript "$OUT_DIR/LOCAL_original288_syncedbase_rerun_evaluate_20260406.R" --manifest="$MANIFEST" --tag="$TAG" 2>/dev/null || true)"
   summary_line="$(printf '%s\n' "$eval_out" | rg '^SUMMARY ' || true)"
-  active_runners="$(pgrep -af "LOCAL_full288_case_runner_20260327.R --manifest=$MANIFEST --tag=$TAG" | wc -l | tr -d ' ')"
+  active_runners="$( (pgrep -af "LOCAL_full288_case_runner_20260327.R.*--tag=$TAG" || true) | wc -l | tr -d ' ' )"
   echo "[$ts] active_runners=$active_runners ${summary_line:-SUMMARY unavailable}"
   if [[ "$summary_line" == *"missing=0"* ]] && [[ "$active_runners" == "0" ]]; then
     break
