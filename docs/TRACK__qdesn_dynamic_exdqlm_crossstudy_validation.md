@@ -1,8 +1,8 @@
 # TRACK: QDESN Dynamic exdqlm Cross-Study Validation
 
 Date: 2026-04-06
-Branch: `feature/qdesn-mcmc-alternative`
-Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
+Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`
+Repo: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 Reference repo: `/home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs`
 
 ## 1) Mission
@@ -37,9 +37,9 @@ Reason:
 
 ## 2) Current Status
 
-Status: **dynamic relaunch implementation completed; canonical grid recovered from the live
-reference surface; smoke and full prepare-only passed; real smoke completed successfully on the
-correct dynamic surface; broad supervised launch is now live under detached supervision**
+Status: **carry-forward dynamic relaunch implementation and broad dynamic run are completed on the
+predecessor QDESN branch; this integration branch now treats that result as the authoritative
+baseline and current rerun target**
 
 Scope correction summary:
 
@@ -73,21 +73,35 @@ Authoritative implementation report:
 
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
 
-Live broad-launch update:
+Carry-forward broad-launch closeout from predecessor branch/worktree:
 
 - implementation commit:
   - `85760fe`
+- predecessor branch/worktree closeout commit:
+  - `1591bd5`
 - run tag:
   - `qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe`
-- detached session:
-  - `qdesn_dynx_0406_163041`
-- early healthcheck snapshot:
-  - `launcher session live = TRUE`
-  - `selected roots = 36`
-  - `materialized roots = 6`
-  - `running roots = 6`
-  - `success roots = 0`
-  - `fail roots = 0`
+- final execution:
+  - `36/36 SUCCESS` roots
+  - `144/144` fit rows emitted
+  - `0` root execution failures
+- final fit signoff mix:
+  - `29 PASS`
+  - `69 WARN`
+  - `46 FAIL`
+- final root comparison readiness:
+  - `31/36` comparison-eligible-any
+  - `11/36` comparison-eligible-full
+- recommendation:
+  - `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`
+
+Integration-branch continuation rule:
+
+- use `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md` as the canonical day-to-day
+  status tracker on this branch;
+- treat this file as the detailed historical tracker for the dynamic relaunch program;
+- do not assume branch-level parity until the `0.4.0` integration branch reruns at least the
+  dynamic smoke contract.
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 
@@ -175,9 +189,12 @@ Validated campaign artifacts:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-155404__git-eb141cc/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
 - corrected smoke run:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-smoke-20260406-threadsfix__git-eb141cc/20260406-161217__git-eb141cc/summary/qdesn_dynamic_crossstudy_summary.md`
-- live full launch:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/launch/launcher_session.json`
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/launch/launcher_stdout.log`
+- full campaign summary:
+  - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/summary/qdesn_dynamic_crossstudy_summary.md`
+- full comparison summary:
+  - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/comparison_vs_reference/comparison_summary.md`
+- full campaign progress table:
+  - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/tables/campaign_progress.csv`
 
 ## 8) Move-Forward Rules
 
@@ -186,14 +203,19 @@ Validated campaign artifacts:
 3. run a narrow smoke batch before the broad batch launch if the external dynamic path is new;
 4. use prepare-only before any real launch batch;
 5. launch the broad dynamic analog before any local debt-only follow-up;
-6. only after the broad dynamic analog completes should local tuning be considered.
+6. only after the broad dynamic analog completes should local tuning be considered;
+7. on this integration branch, confirm parity with at least the dynamic smoke contract before
+   treating the predecessor-branch result as branch-local evidence.
 
 ## 9) Success Criteria
 
-This corrected dynamic study is ready for the broad launch only when:
+The predecessor-branch broad launch is already complete and usable as carry-forward evidence.
+
+This integration branch should treat the following as its immediate validation gates:
 
 1. the canonical dynamic reference grid is materialized and validated;
-2. the QDESN dynamic analog runner can consume those external dynamic inputs;
-3. prepare-only passes cleanly;
-4. the narrow real smoke batch closes successfully on the mirrored dynamic surface;
-5. the batch launch contract is documented and reproducible.
+2. the QDESN dynamic analog runner can still consume those external dynamic inputs on the `0.4.0`
+   integration base;
+3. prepare-only passes cleanly on this branch;
+4. the narrow real smoke batch closes successfully on this branch;
+5. only after that should any broad rerun or fail-band cleanup decision be taken.

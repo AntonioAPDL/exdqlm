@@ -60,17 +60,29 @@ Current dynamic relaunch update:
   - child BLAS oversubscription in the shared pipeline launcher path
 - authoritative implementation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
-- broad supervised dynamic launch is now live:
+- broad supervised dynamic launch completed cleanly on the predecessor branch/worktree:
   - commit:
     - `85760fe`
+  - predecessor closeout commit:
+    - `1591bd5`
   - run tag:
     - `qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe`
-  - detached session:
-    - `qdesn_dynx_0406_163041`
-  - early health:
-    - `launcher session live = TRUE`
-    - `6/36` roots materialized
-    - `0` root failures observed at launch time
+  - final execution:
+    - `36/36 SUCCESS` roots
+    - `144/144` fit rows emitted
+    - `0` root execution failures
+  - final fit signoff mix:
+    - `29 PASS`
+    - `69 WARN`
+    - `46 FAIL`
+  - final recommendation:
+    - `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`
+  - integration-branch continuation note:
+    - `feature/qdesn-mcmc-alternative-0p4p0-integration` is now the active synced base
+    - use `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md` as the canonical continuation
+      tracker on that branch
+    - branch-local smoke/parity validation should happen before any new broad rerun or debt-only
+      follow-up
 
 Key correction findings:
 

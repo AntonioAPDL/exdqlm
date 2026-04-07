@@ -41,17 +41,28 @@ Implementation status update:
   - child BLAS oversubscription in `run_esn_pipeline_from_cfg()`
 - authoritative implementation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
-- broad supervised dynamic launch is now live:
+- broad supervised dynamic launch completed cleanly on the predecessor branch/worktree:
   - commit:
     - `85760fe`
+  - predecessor closeout commit:
+    - `1591bd5`
   - run tag:
     - `qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe`
-  - detached session:
-    - `qdesn_dynx_0406_163041`
-  - early health:
-    - `launcher session live = TRUE`
-    - `6/36` roots materialized
-    - `0` root failures observed at launch time
+  - final execution:
+    - `36/36 SUCCESS` roots
+    - `144/144` fit rows emitted
+    - `0` root execution failures
+  - final fit signoff mix:
+    - `29 PASS`
+    - `69 WARN`
+    - `46 FAIL`
+  - final recommendation:
+    - `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`
+  - integration-branch continuation note:
+    - use `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md` as the canonical continuation
+      tracker on `feature/qdesn-mcmc-alternative-0p4p0-integration`
+    - the next required validation move here is branch-parity smoke validation, not assuming the
+      predecessor result automatically transfers unchanged to the `0.4.0`-synced base
 
 Cross-study assets:
 
