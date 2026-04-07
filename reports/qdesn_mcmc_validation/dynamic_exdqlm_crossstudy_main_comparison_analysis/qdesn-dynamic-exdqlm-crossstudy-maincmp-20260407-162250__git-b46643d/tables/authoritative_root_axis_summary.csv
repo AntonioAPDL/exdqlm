@@ -1,0 +1,5 @@
+"prior","fit_size","n_roots","n_success","n_fail","n_full_ready","n_usable_with_gap","n_noncomparable","root_success_rate","root_comparison_eligible_any_rate","root_comparison_eligible_full_rate","fail_fit_n_total","fail_fit_n_mean"
+"rhs_ns",500,9,9,0,8,1,0,1,1,0.888888888888889,1,0.111111111111111
+"rhs_ns",5000,9,9,0,8,1,0,1,1,0.888888888888889,1,0.111111111111111
+"ridge",500,9,9,0,9,0,0,1,1,1,0,0
+"ridge",5000,9,9,0,9,0,0,1,1,1,0,0

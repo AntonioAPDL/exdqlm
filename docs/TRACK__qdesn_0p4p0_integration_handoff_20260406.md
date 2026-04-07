@@ -496,3 +496,66 @@ The active next phase is now:
 - treat the final-wave results as useful targeted evidence, but **not** as promoted new defaults
 - keep the remaining `2 / 144` fit FAIL rows explicitly documented as a tiny residual gap
 - defer any additional micro-wave unless zero-fit-FAIL certification is required later
+
+## 15) Main Comparison Analysis Outputs (2026-04-07)
+
+The authoritative comparison-analysis pack has now been generated from the promoted residual-wave
+baseline, with no new compute-wave promotion applied beyond:
+
+- `R1 -> L640_gmix_long_split_diag`
+- `R2 -> L670_gmix_short_diag_mix`
+- `R3 -> L720_ridge_long_softgamma_plus`
+- `R4 -> L760_rhs_long_vbguard_deep`
+- `R5 -> L770_short_mixed_local_mcmc`
+
+Authoritative analysis run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+- report root:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+- summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/summary/qdesn_dynamic_main_comparison_analysis.md`
+- QDESN-vs-reference summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/comparison_vs_reference/comparison_summary.md`
+- implementation/interpretation report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
+
+Current authoritative study state, as rendered in the main comparison pack:
+
+- fit signoff mix:
+  - `77 PASS`
+  - `65 WARN`
+  - `2 FAIL`
+- root status:
+  - `0 / 36` root-status FAILs
+- root readiness:
+  - `36 / 36` comparison-eligible-any
+  - `34 / 36` comparison-eligible-full
+
+High-value comparison takeaways now documented in the pack:
+
+- `ridge` is the cleaner signoff prior on the current authoritative baseline:
+  - `53 PASS / 19 WARN / 0 FAIL`
+- `rhs_ns` still carries the only remaining fail rows:
+  - `24 PASS / 46 WARN / 2 FAIL`
+- `vb/al` is the healthiest and fastest broad method-model slice:
+  - `29 PASS / 7 WARN / 0 FAIL`
+  - mean runtime about `2.83 s`
+- `mcmc/exal` remains the only active fail source and the slowest slice:
+  - `1 PASS / 33 WARN / 2 FAIL`
+  - mean runtime about `30.50 s`
+- VB-to-MCMC runtime ratios range from about `2.18x` to `14.14x`, depending on
+  prior/model/horizon
+- direct QDESN-vs-reference signoff/readiness deltas are now computed with normalized model
+  labels:
+  - `al <-> dqlm`
+  - `exal <-> exdqlm`
+- reference runtime fields are currently blank on this mirrored surface, so runtime deltas versus
+  exdqlm remain unavailable even though QDESN runtime is fully summarized
+
+Current next move:
+
+- proceed with the main comparison interpretation and downstream comparison-facing reporting from
+  this authoritative pack
+- keep the `2 / 144` fit FAIL rows explicitly documented rather than hiding them

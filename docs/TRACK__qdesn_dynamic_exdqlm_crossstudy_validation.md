@@ -352,3 +352,58 @@ Move-forward rule:
 - do **not** launch another residual wave by default
 - proceed to main comparison analysis on the authoritative baseline above
 - keep the `2 / 144` fit FAIL rows explicitly documented as a tiny residual gap
+
+## 11) Main Comparison Analysis Pack (2026-04-07)
+
+The main comparison-analysis pack has now been generated from the authoritative merged residual-wave
+baseline on this branch.
+
+Analysis run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+- report root:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d`
+- summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/summary/qdesn_dynamic_main_comparison_analysis.md`
+- comparison summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/comparison_vs_reference/comparison_summary.md`
+- overview table:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/tables/analysis_overview.csv`
+- method/model table:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/tables/authoritative_fit_method_model_summary.csv`
+- QDESN-vs-reference axis deltas:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-162250__git-b46643d/tables/authoritative_qdesn_vs_reference_fit_axis_delta.csv`
+
+Pack-level findings:
+
+- authoritative full-study state is unchanged from the intended carry-forward baseline:
+  - `77 PASS`
+  - `65 WARN`
+  - `2 FAIL`
+  - `0 / 36` root-status FAILs
+  - `36 / 36` comparison-eligible-any roots
+  - `34 / 36` comparison-eligible-full roots
+- `ridge` remains the cleaner branch-local prior on signoff:
+  - `53 PASS / 19 WARN / 0 FAIL`
+- `rhs_ns` remains broader on local flexibility but still carries the residual fail band:
+  - `24 PASS / 46 WARN / 2 FAIL`
+- `vb/al` is the healthiest and fastest broad method-model combination:
+  - `29 PASS / 7 WARN / 0 FAIL`
+  - mean runtime about `2.83 s`
+- `mcmc/exal` is the only remaining fail source and the slowest broad combination:
+  - `1 PASS / 33 WARN / 2 FAIL`
+  - mean runtime about `30.50 s`
+- VB vs MCMC runtime ratios range from about `2.18x` to `14.14x` across prior/model/horizon
+  slices
+- direct QDESN-vs-reference signoff/readiness deltas are now computed with normalized model labels:
+  - `al <-> dqlm`
+  - `exal <-> exdqlm`
+- reference runtime remains unavailable in the mirrored reference summaries, so direct runtime
+  deltas versus exdqlm are still `NA`
+
+Recommended use:
+
+- use this pack as the authoritative branch-local source for downstream main comparison analysis
+- keep the remaining `2` fit FAIL rows explicit in any top-level comparison narrative
+- do not launch another tuning wave by default from this state

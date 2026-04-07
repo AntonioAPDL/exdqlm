@@ -1,0 +1,9 @@
+"prior","model","fit_size","n_rows","n_pass","n_warn","n_fail","pass_rate","warn_rate","fail_rate","comparison_eligible_rate","runtime_ratio_mcmc_vs_vb_mean","runtime_ratio_mcmc_vs_vb_median","runtime_ratio_mcmc_vs_vb_p90","mae_delta_mcmc_minus_vb_mean","mae_delta_mcmc_minus_vb_median","mae_delta_mcmc_minus_vb_p90","rmse_delta_mcmc_minus_vb_mean","rmse_delta_mcmc_minus_vb_median","rmse_delta_mcmc_minus_vb_p90","bias_delta_mcmc_minus_vb_mean","bias_delta_mcmc_minus_vb_median","bias_delta_mcmc_minus_vb_p90","corr_delta_mcmc_minus_vb_mean","corr_delta_mcmc_minus_vb_median","corr_delta_mcmc_minus_vb_p90"
+"rhs_ns","al",500,9,2,7,0,0.222222222222222,0.777777777777778,0,1,2.17650397399425,1.95380525091392,2.88853451246758,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rhs_ns","al",5000,9,1,8,0,0.111111111111111,0.888888888888889,0,1,4.67761899066011,4.18425883432767,6.27740710357609,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rhs_ns","exal",500,9,0,8,1,0,0.888888888888889,0.111111111111111,0.888888888888889,3.53197840660394,2.83377135348226,5.51686328176358,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rhs_ns","exal",5000,9,0,8,1,0,0.888888888888889,0.111111111111111,0.888888888888889,10.1690617485983,7.61291866028708,15.6512203749558,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","al",500,9,8,1,0,0.888888888888889,0.111111111111111,0,1,4.50504854818667,3.58210947930574,6.74712045905883,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","al",5000,9,8,1,0,0.888888888888889,0.111111111111111,0,1,6.0559735410221,5.40287081339713,8.14021902625676,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","exal",500,9,0,9,0,0,1,0,1,8.54918096474388,5.0627409744129,16.4466279020861,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","exal",5000,9,1,8,0,0.111111111111111,0.888888888888889,0,1,14.1429589511046,10.2258064516129,22.5717956657081,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

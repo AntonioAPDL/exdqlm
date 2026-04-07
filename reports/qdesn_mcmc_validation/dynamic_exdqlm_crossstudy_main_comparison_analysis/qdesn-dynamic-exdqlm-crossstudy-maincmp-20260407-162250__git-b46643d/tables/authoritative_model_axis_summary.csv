@@ -1,0 +1,9 @@
+"prior","inference","fit_size","n_rows","n_pass","n_warn","n_fail","pass_rate","warn_rate","fail_rate","comparison_eligible_rate","train_mae_delta_extended_minus_baseline_mean","train_mae_delta_extended_minus_baseline_median","train_mae_delta_extended_minus_baseline_p90","train_rmse_delta_extended_minus_baseline_mean","train_rmse_delta_extended_minus_baseline_median","train_rmse_delta_extended_minus_baseline_p90","train_corr_delta_extended_minus_baseline_mean","train_corr_delta_extended_minus_baseline_median","train_corr_delta_extended_minus_baseline_p90"
+"rhs_ns","mcmc",500,9,0,8,1,0,0.888888888888889,0.111111111111111,0.888888888888889,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rhs_ns","mcmc",5000,9,0,8,1,0,0.888888888888889,0.111111111111111,0.888888888888889,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rhs_ns","vb",500,9,2,7,0,0.222222222222222,0.777777777777778,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"rhs_ns","vb",5000,9,1,8,0,0.111111111111111,0.888888888888889,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","mcmc",500,9,0,9,0,0,1,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","mcmc",5000,9,1,8,0,0.111111111111111,0.888888888888889,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","vb",500,9,9,0,0,1,0,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"ridge","vb",5000,9,9,0,0,1,0,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
