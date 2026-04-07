@@ -486,15 +486,18 @@ The authoritative comparison-analysis pack has been regenerated from the reconci
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
 - summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/summary/qdesn_dynamic_main_comparison_analysis.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/comparison_vs_reference/comparison_summary.md`
 - root override map:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/authoritative_root_override_map.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_root_override_map.csv`
+- explicit q-true fit summaries:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_inference_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_model_summary.csv`
 - implementation/interpretation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
 
@@ -518,6 +521,9 @@ High-value comparison takeaways now documented in the pack:
   - `23 PASS / 49 WARN / 0 FAIL`
 - `vb/al` remains the healthiest and fastest broad method-model slice:
   - `29 PASS / 7 WARN / 0 FAIL`
+- the pack now states explicitly that the study’s fit-error metrics are `qhat`-vs-`q_true`
+  metrics, not generic holdout residuals
+- dedicated tables now summarize those `q_true` metrics by inference, model, and inference+model
   - mean runtime about `2.83 s`
 - `mcmc/exal` remains the softest area scientifically, but is now all non-fail:
   - `1 PASS / 35 WARN / 0 FAIL`

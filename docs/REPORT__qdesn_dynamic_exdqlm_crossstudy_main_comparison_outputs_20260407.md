@@ -29,9 +29,9 @@ staying faithful to the late-stage decision rule:
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
 
 Current authoritative state:
 
@@ -50,11 +50,11 @@ Current authoritative state:
 Primary outputs:
 
 - summary markdown:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/summary/qdesn_dynamic_main_comparison_analysis.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/comparison_vs_reference/comparison_summary.md`
 - overview table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/analysis_overview.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/analysis_overview.csv`
 - authoritative local baseline map:
   - `tables/authoritative_local_baseline_map.csv`
 - authoritative root override map:
@@ -63,6 +63,11 @@ Primary outputs:
   - `tables/authoritative_fit_prior_summary.csv`
   - `tables/authoritative_fit_method_model_summary.csv`
   - `tables/authoritative_fit_surface_summary.csv`
+- explicit q-true fit summaries:
+  - `tables/authoritative_fit_inference_summary.csv`
+  - `tables/authoritative_fit_model_summary.csv`
+  - `tables/authoritative_fit_fit_size_summary.csv`
+  - `tables/authoritative_fit_method_model_compact.csv`
 - root readiness summaries:
   - `tables/authoritative_root_inventory.csv`
   - `tables/authoritative_root_axis_summary.csv`
@@ -78,6 +83,13 @@ Primary outputs:
   - `tables/authoritative_fail_inventory.csv`
 
 ## 3) Main Comparison Findings
+
+This refreshed pack keeps the same authoritative zero-fail baseline, but it now makes the
+study’s fit-performance metrics explicit:
+
+- legacy `train_*` and `holdout_*` errors were already `qhat`-vs-`q_true`
+- the refreshed pack republishes them as explicit `*_qtrue_*` columns
+- this makes the goodness-of-fit interpretation much clearer for direct QDESN comparison work
 
 ### 3.1 Prior-Level Read
 
@@ -107,6 +119,21 @@ Interpretation:
 - `vb/al` remains the healthiest and fastest broad slice
 - `mcmc/exal` remains the softest area scientifically, but it is now all `WARN/PASS` rather than
   carrying hard `FAIL`s
+
+### 3.2b Explicit q-true Fit Read
+
+From the refreshed compact tables:
+
+- `authoritative_fit_inference_summary.csv`
+- `authoritative_fit_model_summary.csv`
+- `authoritative_fit_method_model_compact.csv`
+
+Current high-level read:
+
+- `vb` has the better signoff mix, but not uniformly better `qhat`-vs-`q_true` error on every
+  slice
+- `al` remains the cleaner broad model family on both signoff and `q_true` error
+- `mcmc/exal` remains the weakest signoff quadrant even though the hard FAIL band is now closed
 
 ### 3.3 Runtime Read
 
@@ -156,6 +183,9 @@ Important limitation remains unchanged:
 - so direct runtime deltas versus exdqlm remain unavailable
 - QDESN runtime is still fully summarized internally and is sufficient for compute-planning
   comparisons
+- the reference-side summary surface also does not expose matching `q_true` forecast-metric
+  columns, so those goodness-of-fit comparisons remain QDESN-internal rather than direct
+  QDESN-vs-exdqlm deltas
 
 ## 5) Residual Gap
 

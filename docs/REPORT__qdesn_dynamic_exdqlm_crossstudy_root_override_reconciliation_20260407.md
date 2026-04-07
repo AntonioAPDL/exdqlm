@@ -148,13 +148,16 @@ reruns, not unresolved scientific failure debt.
 Authoritative zero-fail comparison pack:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
 - summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/summary/qdesn_dynamic_main_comparison_analysis.md`
 - root override map:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/authoritative_root_override_map.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_root_override_map.csv`
 - fail inventory:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-172014__git-3a56f9e/tables/authoritative_fail_inventory.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fail_inventory.csv`
+- explicit q-true fit summaries:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_inference_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_model_summary.csv`
 
 Manifest and tooling:
 
