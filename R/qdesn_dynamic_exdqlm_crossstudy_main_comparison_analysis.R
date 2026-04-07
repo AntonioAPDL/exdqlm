@@ -286,16 +286,22 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   model_pair_signoff <- pair_tables$model_pair_signoff
   root_inventory <- qdesn_dynamic_maincmp_root_inventory(source_state$root_summary, source_state$fit_summary)
   fail_inventory <- source_state$fit_summary[as.character(source_state$fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
+  fit_numeric_cols <- c(
+    "runtime_sec", "fit_runtime_seconds",
+    "holdout_mae", "holdout_rmse", "holdout_bias", "holdout_corr",
+    "train_mae", "train_rmse", "train_bias", "train_corr",
+    "train_qtrue_mae", "train_qtrue_rmse", "train_qtrue_bias", "train_qtrue_corr",
+    "train_pinball_tau", "train_coverage", "train_coverage_error",
+    "holdout_qtrue_mae", "holdout_qtrue_rmse", "holdout_qtrue_bias", "holdout_qtrue_corr",
+    "holdout_pinball_tau", "holdout_coverage", "holdout_coverage_error"
+  )
 
   fit_surface_summary <- .qdesn_dynamic_maincmp_metric_summary(
     source_state$fit_summary,
     group_cols = c("scenario", "root_kind", "family", "tau", "fit_size", "prior", "inference", "model"),
     grade_col = "signoff_grade",
     eligible_col = "comparison_eligible",
-    numeric_cols = c(
-      "runtime_sec", "fit_runtime_seconds", "holdout_mae", "holdout_rmse", "holdout_bias", "holdout_corr",
-      "train_mae", "train_rmse", "train_bias", "train_corr"
-    )
+    numeric_cols = fit_numeric_cols
   )
   if (nrow(fit_surface_summary) && "model" %in% names(fit_surface_summary)) {
     fit_surface_summary$canonical_model <- .qdesn_dynamic_maincmp_canonical_model(fit_surface_summary$model)
@@ -305,27 +311,45 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     group_cols = c("prior", "inference", "model", "fit_size"),
     grade_col = "signoff_grade",
     eligible_col = "comparison_eligible",
-    numeric_cols = c(
-      "runtime_sec", "fit_runtime_seconds", "holdout_mae", "holdout_rmse", "holdout_bias", "holdout_corr",
-      "train_mae", "train_rmse", "train_bias", "train_corr"
-    )
+    numeric_cols = fit_numeric_cols
   )
   if (nrow(fit_axis_summary) && "model" %in% names(fit_axis_summary)) {
     fit_axis_summary$canonical_model <- .qdesn_dynamic_maincmp_canonical_model(fit_axis_summary$model)
   }
+  fit_inference_summary <- .qdesn_dynamic_maincmp_metric_summary(
+    source_state$fit_summary,
+    group_cols = c("inference"),
+    grade_col = "signoff_grade",
+    eligible_col = "comparison_eligible",
+    numeric_cols = fit_numeric_cols
+  )
+  fit_model_summary <- .qdesn_dynamic_maincmp_metric_summary(
+    source_state$fit_summary,
+    group_cols = c("model"),
+    grade_col = "signoff_grade",
+    eligible_col = "comparison_eligible",
+    numeric_cols = fit_numeric_cols
+  )
+  fit_fit_size_summary <- .qdesn_dynamic_maincmp_metric_summary(
+    source_state$fit_summary,
+    group_cols = c("fit_size"),
+    grade_col = "signoff_grade",
+    eligible_col = "comparison_eligible",
+    numeric_cols = fit_numeric_cols
+  )
   fit_prior_summary <- .qdesn_dynamic_maincmp_metric_summary(
     source_state$fit_summary,
     group_cols = c("prior"),
     grade_col = "signoff_grade",
     eligible_col = "comparison_eligible",
-    numeric_cols = c("runtime_sec", "holdout_mae", "holdout_rmse", "train_mae", "train_rmse")
+    numeric_cols = fit_numeric_cols
   )
   fit_method_model_summary <- .qdesn_dynamic_maincmp_metric_summary(
     source_state$fit_summary,
     group_cols = c("inference", "model"),
     grade_col = "signoff_grade",
     eligible_col = "comparison_eligible",
-    numeric_cols = c("runtime_sec", "holdout_mae", "holdout_rmse", "train_mae", "train_rmse")
+    numeric_cols = fit_numeric_cols
   )
 
   pair_surface_summary <- .qdesn_dynamic_maincmp_metric_summary(
@@ -333,21 +357,37 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     group_cols = c("scenario", "root_kind", "family", "tau", "fit_size", "prior", "model"),
     grade_col = "algorithm_pair_signoff_grade",
     eligible_col = "algorithm_pair_comparison_eligible",
-    numeric_cols = c("runtime_ratio_mcmc_vs_vb", "mae_delta_mcmc_minus_vb", "rmse_delta_mcmc_minus_vb", "bias_delta_mcmc_minus_vb", "corr_delta_mcmc_minus_vb")
+    numeric_cols = c(
+      "runtime_ratio_mcmc_vs_vb", "mae_delta_mcmc_minus_vb", "rmse_delta_mcmc_minus_vb",
+      "bias_delta_mcmc_minus_vb", "corr_delta_mcmc_minus_vb",
+      "holdout_qtrue_mae_delta_mcmc_minus_vb", "holdout_qtrue_rmse_delta_mcmc_minus_vb",
+      "holdout_pinball_tau_delta_mcmc_minus_vb", "holdout_coverage_delta_mcmc_minus_vb",
+      "holdout_coverage_error_delta_mcmc_minus_vb"
+    )
   )
   pair_axis_summary <- .qdesn_dynamic_maincmp_metric_summary(
     pairwise_vb_vs_mcmc,
     group_cols = c("prior", "model", "fit_size"),
     grade_col = "algorithm_pair_signoff_grade",
     eligible_col = "algorithm_pair_comparison_eligible",
-    numeric_cols = c("runtime_ratio_mcmc_vs_vb", "mae_delta_mcmc_minus_vb", "rmse_delta_mcmc_minus_vb", "bias_delta_mcmc_minus_vb", "corr_delta_mcmc_minus_vb")
+    numeric_cols = c(
+      "runtime_ratio_mcmc_vs_vb", "mae_delta_mcmc_minus_vb", "rmse_delta_mcmc_minus_vb",
+      "bias_delta_mcmc_minus_vb", "corr_delta_mcmc_minus_vb",
+      "holdout_qtrue_mae_delta_mcmc_minus_vb", "holdout_qtrue_rmse_delta_mcmc_minus_vb",
+      "holdout_pinball_tau_delta_mcmc_minus_vb", "holdout_coverage_delta_mcmc_minus_vb",
+      "holdout_coverage_error_delta_mcmc_minus_vb"
+    )
   )
   model_axis_summary <- .qdesn_dynamic_maincmp_metric_summary(
     model_pair_signoff,
     group_cols = c("prior", "inference", "fit_size"),
     grade_col = "pair_signoff_grade",
     eligible_col = "pair_comparison_eligible",
-    numeric_cols = c("train_mae_delta_extended_minus_baseline", "train_rmse_delta_extended_minus_baseline", "train_corr_delta_extended_minus_baseline")
+    numeric_cols = c(
+      "train_mae_delta_extended_minus_baseline", "train_rmse_delta_extended_minus_baseline", "train_corr_delta_extended_minus_baseline",
+      "holdout_qtrue_mae_delta_extended_minus_baseline", "holdout_qtrue_rmse_delta_extended_minus_baseline",
+      "holdout_pinball_tau_delta_extended_minus_baseline", "holdout_coverage_error_delta_extended_minus_baseline"
+    )
   )
 
   root_surface_summary <- .qdesn_dynamic_crossstudy_qdesn_root_group_summary(source_state$root_summary)
@@ -418,6 +458,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   .qdesn_validation_write_df(fail_inventory, file.path(output_root, "tables", "authoritative_fail_inventory.csv"))
   .qdesn_validation_write_df(fit_surface_summary, file.path(output_root, "tables", "authoritative_fit_surface_summary.csv"))
   .qdesn_validation_write_df(fit_axis_summary, file.path(output_root, "tables", "authoritative_fit_axis_summary.csv"))
+  .qdesn_validation_write_df(fit_inference_summary, file.path(output_root, "tables", "authoritative_fit_inference_summary.csv"))
+  .qdesn_validation_write_df(fit_model_summary, file.path(output_root, "tables", "authoritative_fit_model_summary.csv"))
+  .qdesn_validation_write_df(fit_fit_size_summary, file.path(output_root, "tables", "authoritative_fit_fit_size_summary.csv"))
   .qdesn_validation_write_df(fit_prior_summary, file.path(output_root, "tables", "authoritative_fit_prior_summary.csv"))
   .qdesn_validation_write_df(fit_method_model_summary, file.path(output_root, "tables", "authoritative_fit_method_model_summary.csv"))
   .qdesn_validation_write_df(pair_surface_summary, file.path(output_root, "tables", "authoritative_pair_surface_summary.csv"))
@@ -429,6 +472,43 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   .qdesn_validation_write_df(q_vs_ref_axis, file.path(output_root, "tables", "authoritative_qdesn_vs_reference_fit_axis_delta.csv"))
   .qdesn_validation_write_df(prior_head_to_head, file.path(output_root, "tables", "authoritative_prior_head_to_head.csv"))
   .qdesn_validation_write_df(prior_head_to_head_counts, file.path(output_root, "tables", "authoritative_prior_head_to_head_counts.csv"))
+
+  fit_inference_compact <- fit_inference_summary[, intersect(c(
+    "inference", "n_rows", "n_pass", "n_warn", "n_fail", "pass_rate",
+    "runtime_sec_mean", "runtime_sec_median",
+    "holdout_qtrue_mae_mean", "holdout_qtrue_rmse_mean",
+    "holdout_pinball_tau_mean", "holdout_coverage_mean", "holdout_coverage_error_mean"
+  ), names(fit_inference_summary)), drop = FALSE]
+  fit_model_compact <- fit_model_summary[, intersect(c(
+    "model", "n_rows", "n_pass", "n_warn", "n_fail", "pass_rate",
+    "runtime_sec_mean", "runtime_sec_median",
+    "holdout_qtrue_mae_mean", "holdout_qtrue_rmse_mean",
+    "holdout_pinball_tau_mean", "holdout_coverage_mean", "holdout_coverage_error_mean"
+  ), names(fit_model_summary)), drop = FALSE]
+  fit_prior_compact <- fit_prior_summary[, intersect(c(
+    "prior", "n_rows", "n_pass", "n_warn", "n_fail", "pass_rate",
+    "runtime_sec_mean", "runtime_sec_median",
+    "holdout_qtrue_mae_mean", "holdout_qtrue_rmse_mean",
+    "holdout_pinball_tau_mean", "holdout_coverage_mean", "holdout_coverage_error_mean"
+  ), names(fit_prior_summary)), drop = FALSE]
+  fit_method_model_compact <- fit_method_model_summary[, intersect(c(
+    "inference", "model", "n_rows", "n_pass", "n_warn", "n_fail", "pass_rate",
+    "runtime_sec_mean", "runtime_sec_median",
+    "holdout_qtrue_mae_mean", "holdout_qtrue_rmse_mean",
+    "holdout_pinball_tau_mean", "holdout_coverage_mean", "holdout_coverage_error_mean"
+  ), names(fit_method_model_summary)), drop = FALSE]
+  pair_axis_compact <- pair_axis_summary[, intersect(c(
+    "prior", "model", "fit_size", "n_rows", "n_pass", "n_warn", "n_fail",
+    "runtime_ratio_mcmc_vs_vb_mean", "runtime_ratio_mcmc_vs_vb_median",
+    "holdout_qtrue_mae_delta_mcmc_minus_vb_mean", "holdout_qtrue_rmse_delta_mcmc_minus_vb_mean",
+    "holdout_pinball_tau_delta_mcmc_minus_vb_mean", "holdout_coverage_error_delta_mcmc_minus_vb_mean"
+  ), names(pair_axis_summary)), drop = FALSE]
+
+  .qdesn_validation_write_df(fit_inference_compact, file.path(output_root, "tables", "authoritative_fit_inference_compact.csv"))
+  .qdesn_validation_write_df(fit_model_compact, file.path(output_root, "tables", "authoritative_fit_model_compact.csv"))
+  .qdesn_validation_write_df(fit_prior_compact, file.path(output_root, "tables", "authoritative_fit_prior_compact.csv"))
+  .qdesn_validation_write_df(fit_method_model_compact, file.path(output_root, "tables", "authoritative_fit_method_model_compact.csv"))
+  .qdesn_validation_write_df(pair_axis_compact, file.path(output_root, "tables", "authoritative_pair_axis_compact.csv"))
 
   overview <- data.frame(
     metric = c(
@@ -475,11 +555,20 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     "## Fit Signoff By Prior",
     .qdesn_validation_df_to_markdown(fit_prior_summary),
     "",
-    "## Fit Signoff / Runtime By Inference + Model",
-    .qdesn_validation_df_to_markdown(fit_method_model_summary),
+    "## Explicit Goodness-Of-Fit By Inference (`qhat` vs `q_true`, plus quantile calibration on `y`)",
+    .qdesn_validation_df_to_markdown(fit_inference_compact),
     "",
-    "## VB vs MCMC Pair Summary",
-    .qdesn_validation_df_to_markdown(pair_axis_summary),
+    "## Explicit Goodness-Of-Fit By Model (`qhat` vs `q_true`, plus quantile calibration on `y`)",
+    .qdesn_validation_df_to_markdown(fit_model_compact),
+    "",
+    "## Explicit Goodness-Of-Fit By Prior (`qhat` vs `q_true`, plus quantile calibration on `y`)",
+    .qdesn_validation_df_to_markdown(fit_prior_compact),
+    "",
+    "## Fit Signoff / Runtime By Inference + Model",
+    .qdesn_validation_df_to_markdown(fit_method_model_compact),
+    "",
+    "## VB vs MCMC Pair Summary (delta metrics are `mcmc - vb`; lower is better for MAE/RMSE/pinball/coverage error)",
+    .qdesn_validation_df_to_markdown(pair_axis_compact),
     "",
     "## QDESN vs Reference Runtime / Readiness Delta",
     .qdesn_validation_df_to_markdown(q_vs_ref_axis),
@@ -495,7 +584,8 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     "## Important Interpretation Notes",
     "- Signoff/readiness deltas are directly comparable against the exdqlm reference on the mirrored dynamic surface once the model labels are normalized (`al <-> dqlm`, `exal <-> exdqlm`).",
     "- Runtime is summarized in detail for QDESN. Reference-runtime deltas are only meaningful where the reference inventory has non-missing runtime values; some mirrored reference summaries leave runtime blank.",
-    "- Forecast fit-performance metrics (`train_*`, `holdout_*`) are summarized for the QDESN side only.",
+    "- Legacy `train_*` and `holdout_*` error columns on the QDESN side are already `qhat`-vs-`q_true` metrics; this pack now also exposes them explicitly as `*_qtrue_*` columns to make that interpretation obvious.",
+    "- Quantile calibration against the observed path is summarized via `*_pinball_tau`, `*_coverage`, and `*_coverage_error`.",
     "- The reference-side summary inventory on this surface does not expose matching forecast metric columns, so direct forecast-metric deltas vs exdqlm are not reported here.",
     "",
     sprintf("- comparison_root: `%s`", file.path(output_root, "comparison_vs_reference"))
@@ -524,6 +614,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     fail_inventory = fail_inventory,
     fit_surface_summary = fit_surface_summary,
     fit_axis_summary = fit_axis_summary,
+    fit_inference_summary = fit_inference_summary,
+    fit_model_summary = fit_model_summary,
+    fit_fit_size_summary = fit_fit_size_summary,
     fit_prior_summary = fit_prior_summary,
     fit_method_model_summary = fit_method_model_summary,
     pair_surface_summary = pair_surface_summary,

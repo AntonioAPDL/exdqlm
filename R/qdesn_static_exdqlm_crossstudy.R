@@ -606,12 +606,38 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   )
 }
 
+.qdesn_static_crossstudy_quantile_fit_metrics <- function(q_pred, y_obs, tau) {
+  q_pred <- as.numeric(q_pred)
+  y_obs <- as.numeric(y_obs)
+  tau <- as.numeric(tau)[1L]
+  keep <- is.finite(q_pred) & is.finite(y_obs) & is.finite(tau)
+  if (!any(keep)) {
+    return(list(
+      n_eval = 0L,
+      pinball_tau = NA_real_,
+      coverage = NA_real_,
+      coverage_error = NA_real_
+    ))
+  }
+  err <- y_obs[keep] - q_pred[keep]
+  pinball_tau <- mean((tau - as.numeric(err < 0)) * err)
+  coverage <- mean(y_obs[keep] <= q_pred[keep])
+  list(
+    n_eval = sum(keep),
+    pinball_tau = pinball_tau,
+    coverage = coverage,
+    coverage_error = abs(coverage - tau)
+  )
+}
+
 .qdesn_static_crossstudy_collect_metrics_from_summary <- function(summary_obj, q_true_full) {
   fits_fc <- summary_obj$forecast_objects$fits_fc %||% list()
   if (!length(fits_fc)) {
     return(list(
       train = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0)),
-      holdout = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0))
+      holdout = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0)),
+      train_quantile = .qdesn_static_crossstudy_quantile_fit_metrics(numeric(0), numeric(0), NA_real_),
+      holdout_quantile = .qdesn_static_crossstudy_quantile_fit_metrics(numeric(0), numeric(0), NA_real_)
     ))
   }
   fit_entry <- fits_fc[[1L]]
@@ -626,6 +652,12 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     q_true_tr <- rep(NA_real_, nrow(df_pred_tr))
   }
   train_metrics <- .qdesn_static_crossstudy_eval_metrics(df_pred_tr$q_pred %||% numeric(0), q_true_tr)
+  tau_train <- if ("p0" %in% names(df_pred_tr) && nrow(df_pred_tr)) as.numeric(df_pred_tr$p0[1L]) else NA_real_
+  train_quantile_metrics <- .qdesn_static_crossstudy_quantile_fit_metrics(
+    df_pred_tr$q_pred %||% numeric(0),
+    df_pred_tr$y %||% numeric(0),
+    tau_train
+  )
 
   holdout_idx <- if (is.finite(split_n) && nrow(df_pred_fc)) {
     seq.int(split_n + 1L, split_n + nrow(df_pred_fc))
@@ -639,10 +671,18 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     q_true_fc <- rep(NA_real_, nrow(df_pred_fc))
   }
   holdout_metrics <- .qdesn_static_crossstudy_eval_metrics(df_pred_fc$q_pred %||% numeric(0), q_true_fc)
+  tau_holdout <- if ("p0" %in% names(df_pred_fc) && nrow(df_pred_fc)) as.numeric(df_pred_fc$p0[1L]) else NA_real_
+  holdout_quantile_metrics <- .qdesn_static_crossstudy_quantile_fit_metrics(
+    df_pred_fc$q_pred %||% numeric(0),
+    df_pred_fc$y %||% numeric(0),
+    tau_holdout
+  )
 
   list(
     train = train_metrics,
-    holdout = holdout_metrics
+    holdout = holdout_metrics,
+    train_quantile = train_quantile_metrics,
+    holdout_quantile = holdout_quantile_metrics
   )
 }
 
@@ -729,11 +769,25 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     train_rmse = as.numeric(metrics$train$rmse),
     train_bias = as.numeric(metrics$train$bias),
     train_corr = as.numeric(metrics$train$corr),
+    train_qtrue_mae = as.numeric(metrics$train$mae),
+    train_qtrue_rmse = as.numeric(metrics$train$rmse),
+    train_qtrue_bias = as.numeric(metrics$train$bias),
+    train_qtrue_corr = as.numeric(metrics$train$corr),
+    train_pinball_tau = as.numeric(metrics$train_quantile$pinball_tau),
+    train_coverage = as.numeric(metrics$train_quantile$coverage),
+    train_coverage_error = as.numeric(metrics$train_quantile$coverage_error),
     holdout_n_eval = as.integer(metrics$holdout$n_eval),
     holdout_mae = as.numeric(metrics$holdout$mae),
     holdout_rmse = as.numeric(metrics$holdout$rmse),
     holdout_bias = as.numeric(metrics$holdout$bias),
     holdout_corr = as.numeric(metrics$holdout$corr),
+    holdout_qtrue_mae = as.numeric(metrics$holdout$mae),
+    holdout_qtrue_rmse = as.numeric(metrics$holdout$rmse),
+    holdout_qtrue_bias = as.numeric(metrics$holdout$bias),
+    holdout_qtrue_corr = as.numeric(metrics$holdout$corr),
+    holdout_pinball_tau = as.numeric(metrics$holdout_quantile$pinball_tau),
+    holdout_coverage = as.numeric(metrics$holdout_quantile$coverage),
+    holdout_coverage_error = as.numeric(metrics$holdout_quantile$coverage_error),
     stringsAsFactors = FALSE
   )
 }
@@ -796,6 +850,36 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       corr_vb = as.numeric(vb_row$train_corr[1L]),
       corr_mcmc = as.numeric(mcmc_row$train_corr[1L]),
       corr_delta_mcmc_minus_vb = as.numeric(mcmc_row$train_corr[1L] - vb_row$train_corr[1L]),
+      holdout_qtrue_mae_vb = as.numeric(vb_row$holdout_qtrue_mae[1L] %||% vb_row$holdout_mae[1L]),
+      holdout_qtrue_mae_mcmc = as.numeric(mcmc_row$holdout_qtrue_mae[1L] %||% mcmc_row$holdout_mae[1L]),
+      holdout_qtrue_mae_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$holdout_qtrue_mae[1L] %||% mcmc_row$holdout_mae[1L]) -
+          (vb_row$holdout_qtrue_mae[1L] %||% vb_row$holdout_mae[1L])
+      ),
+      holdout_qtrue_rmse_vb = as.numeric(vb_row$holdout_qtrue_rmse[1L] %||% vb_row$holdout_rmse[1L]),
+      holdout_qtrue_rmse_mcmc = as.numeric(mcmc_row$holdout_qtrue_rmse[1L] %||% mcmc_row$holdout_rmse[1L]),
+      holdout_qtrue_rmse_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$holdout_qtrue_rmse[1L] %||% mcmc_row$holdout_rmse[1L]) -
+          (vb_row$holdout_qtrue_rmse[1L] %||% vb_row$holdout_rmse[1L])
+      ),
+      holdout_pinball_tau_vb = as.numeric(vb_row$holdout_pinball_tau[1L] %||% NA_real_),
+      holdout_pinball_tau_mcmc = as.numeric(mcmc_row$holdout_pinball_tau[1L] %||% NA_real_),
+      holdout_pinball_tau_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$holdout_pinball_tau[1L] %||% NA_real_) -
+          (vb_row$holdout_pinball_tau[1L] %||% NA_real_)
+      ),
+      holdout_coverage_vb = as.numeric(vb_row$holdout_coverage[1L] %||% NA_real_),
+      holdout_coverage_mcmc = as.numeric(mcmc_row$holdout_coverage[1L] %||% NA_real_),
+      holdout_coverage_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$holdout_coverage[1L] %||% NA_real_) -
+          (vb_row$holdout_coverage[1L] %||% NA_real_)
+      ),
+      holdout_coverage_error_vb = as.numeric(vb_row$holdout_coverage_error[1L] %||% NA_real_),
+      holdout_coverage_error_mcmc = as.numeric(mcmc_row$holdout_coverage_error[1L] %||% NA_real_),
+      holdout_coverage_error_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$holdout_coverage_error[1L] %||% NA_real_) -
+          (vb_row$holdout_coverage_error[1L] %||% NA_real_)
+      ),
       gate_accuracy = isTRUE(vb_row$finite_ok[1L]) && isTRUE(mcmc_row$finite_ok[1L]) &&
         isTRUE(vb_row$domain_ok[1L]) && isTRUE(mcmc_row$domain_ok[1L]),
       overall_pass = identical(pair_grade, "PASS"),
@@ -999,6 +1083,22 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       train_mae_delta_extended_minus_baseline = as.numeric(exal_row$train_mae[1L] - al_row$train_mae[1L]),
       train_rmse_delta_extended_minus_baseline = as.numeric(exal_row$train_rmse[1L] - al_row$train_rmse[1L]),
       train_corr_delta_extended_minus_baseline = as.numeric(exal_row$train_corr[1L] - al_row$train_corr[1L]),
+      holdout_qtrue_mae_delta_extended_minus_baseline = as.numeric(
+        (exal_row$holdout_qtrue_mae[1L] %||% exal_row$holdout_mae[1L]) -
+          (al_row$holdout_qtrue_mae[1L] %||% al_row$holdout_mae[1L])
+      ),
+      holdout_qtrue_rmse_delta_extended_minus_baseline = as.numeric(
+        (exal_row$holdout_qtrue_rmse[1L] %||% exal_row$holdout_rmse[1L]) -
+          (al_row$holdout_qtrue_rmse[1L] %||% al_row$holdout_rmse[1L])
+      ),
+      holdout_pinball_tau_delta_extended_minus_baseline = as.numeric(
+        (exal_row$holdout_pinball_tau[1L] %||% NA_real_) -
+          (al_row$holdout_pinball_tau[1L] %||% NA_real_)
+      ),
+      holdout_coverage_error_delta_extended_minus_baseline = as.numeric(
+        (exal_row$holdout_coverage_error[1L] %||% NA_real_) -
+          (al_row$holdout_coverage_error[1L] %||% NA_real_)
+      ),
       stringsAsFactors = FALSE
     )
   }

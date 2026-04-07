@@ -289,6 +289,33 @@ qdesn_dynamic_crossstudy_fitfail_load_manifest <- function(path = file.path("con
   )
 }
 
+.qdesn_dynamic_crossstudy_fitfail_enrich_fit_summary_metrics <- function(fit_summary) {
+  fit_summary <- as.data.frame(fit_summary, stringsAsFactors = FALSE)
+  if (!nrow(fit_summary)) return(fit_summary)
+
+  need_cols <- c(
+    "train_qtrue_mae", "train_qtrue_rmse", "train_qtrue_bias", "train_qtrue_corr",
+    "holdout_qtrue_mae", "holdout_qtrue_rmse", "holdout_qtrue_bias", "holdout_qtrue_corr"
+  )
+  if (all(need_cols %in% names(fit_summary))) {
+    return(fit_summary)
+  }
+
+  for (nm in setdiff(need_cols, names(fit_summary))) fit_summary[[nm]] <- NA_real_
+  for (i in seq_len(nrow(fit_summary))) {
+    fit_summary$train_qtrue_mae[i] <- as.numeric(fit_summary$train_mae[i] %||% NA_real_)
+    fit_summary$train_qtrue_rmse[i] <- as.numeric(fit_summary$train_rmse[i] %||% NA_real_)
+    fit_summary$train_qtrue_bias[i] <- as.numeric(fit_summary$train_bias[i] %||% NA_real_)
+    fit_summary$train_qtrue_corr[i] <- as.numeric(fit_summary$train_corr[i] %||% NA_real_)
+    fit_summary$holdout_qtrue_mae[i] <- as.numeric(fit_summary$holdout_mae[i] %||% NA_real_)
+    fit_summary$holdout_qtrue_rmse[i] <- as.numeric(fit_summary$holdout_rmse[i] %||% NA_real_)
+    fit_summary$holdout_qtrue_bias[i] <- as.numeric(fit_summary$holdout_bias[i] %||% NA_real_)
+    fit_summary$holdout_qtrue_corr[i] <- as.numeric(fit_summary$holdout_corr[i] %||% NA_real_)
+  }
+
+  fit_summary
+}
+
 qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag,
                                                                   source_report_root = file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
                                                                   source_mode = c("dynamic_campaign", "prior_fitfail_wave"),
@@ -317,6 +344,7 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
       stop(sprintf("Source run '%s' is missing campaign fit/root summary tables.", source_run_tag), call. = FALSE)
     }
 
+    fit_summary <- .qdesn_dynamic_crossstudy_fitfail_enrich_fit_summary_metrics(fit_summary)
     fail_summary <- fit_summary[as.character(fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
     fail_root_ids <- sort(unique(as.character(fail_summary$root_id)))
     original_source_root_fail_ids <- sort(unique(as.character(root_summary$root_id[as.character(root_summary$root_status) == "FAIL"])))
@@ -375,6 +403,7 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
   )
   fit_summary <- root_applied$fit_summary
   root_summary <- root_applied$root_summary
+  fit_summary <- .qdesn_dynamic_crossstudy_fitfail_enrich_fit_summary_metrics(fit_summary)
   fail_summary <- fit_summary[as.character(fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
   fail_root_ids <- sort(unique(as.character(fail_summary$root_id)))
 
