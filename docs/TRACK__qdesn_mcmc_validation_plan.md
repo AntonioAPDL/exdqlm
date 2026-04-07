@@ -61,8 +61,12 @@ Implementation status update:
   - integration-branch continuation note:
     - use `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md` as the canonical continuation
       tracker on `feature/qdesn-mcmc-alternative-0p4p0-integration`
-    - the next required validation move here is branch-parity smoke validation, not assuming the
-      predecessor result automatically transfers unchanged to the `0.4.0`-synced base
+    - branch-parity smoke validation is now completed on the synced `0.4.0` base via:
+      - `qdesn-dynamic-exdqlm-crossstudy-smoke-rerun-20260406-214100__git-288390b`
+      - `4/4 SUCCESS` roots
+      - `16` fit rows
+      - `7 PASS / 8 WARN / 1 FAIL`
+    - the next required move here is the detached branch-local full rerun
 
 Cross-study assets:
 

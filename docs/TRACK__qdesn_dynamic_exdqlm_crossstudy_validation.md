@@ -100,8 +100,19 @@ Integration-branch continuation rule:
 - use `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md` as the canonical day-to-day
   status tracker on this branch;
 - treat this file as the detailed historical tracker for the dynamic relaunch program;
-- do not assume branch-level parity until the `0.4.0` integration branch reruns at least the
-  dynamic smoke contract.
+- branch-level smoke/parity is now confirmed on the `0.4.0` integration branch via:
+  - `qdesn-dynamic-exdqlm-crossstudy-smoke-rerun-20260406-214100__git-288390b`
+  - `4/4 SUCCESS` roots
+  - `16` fit rows
+  - `7 PASS / 8 WARN / 1 FAIL`
+- the detached supervised **full** rerun is now live on this branch via:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b`
+  - tmux session:
+    - `qdesn_dynx_rerun_0406_215700`
+  - launch metadata:
+    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b/launch/launcher_session.json`
+- the next branch-local validation milestone is therefore the **completed** full rerun, not
+  another smoke gate.
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 
@@ -206,6 +217,8 @@ Validated campaign artifacts:
 6. only after the broad dynamic analog completes should local tuning be considered;
 7. on this integration branch, confirm parity with at least the dynamic smoke contract before
    treating the predecessor-branch result as branch-local evidence.
+8. once the smoke contract is confirmed on this branch, launch the full rerun as one detached
+   supervised batch instead of splitting it into many manual sub-campaigns.
 
 ## 9) Success Criteria
 
@@ -218,4 +231,5 @@ This integration branch should treat the following as its immediate validation g
    integration base;
 3. prepare-only passes cleanly on this branch;
 4. the narrow real smoke batch closes successfully on this branch;
-5. only after that should any broad rerun or fail-band cleanup decision be taken.
+5. the detached broad rerun is launched on this branch after smoke closes cleanly;
+6. only after that full rerun completes should any fail-band cleanup decision be taken.

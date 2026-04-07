@@ -81,8 +81,12 @@ Current dynamic relaunch update:
     - `feature/qdesn-mcmc-alternative-0p4p0-integration` is now the active synced base
     - use `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md` as the canonical continuation
       tracker on that branch
-    - branch-local smoke/parity validation should happen before any new broad rerun or debt-only
-      follow-up
+    - branch-local smoke/parity validation is now completed there via:
+      - `qdesn-dynamic-exdqlm-crossstudy-smoke-rerun-20260406-214100__git-288390b`
+      - `4/4 SUCCESS` roots
+      - `16` fit rows
+      - `7 PASS / 8 WARN / 1 FAIL`
+    - the next branch-local step is the detached full rerun, not another smoke gate
 
 Key correction findings:
 

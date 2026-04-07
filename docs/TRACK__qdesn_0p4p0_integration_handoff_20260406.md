@@ -292,17 +292,63 @@ Fit-level comparison-health inventory:
 
 Branch-local rerun status on `feature/qdesn-mcmc-alternative-0p4p0-integration`:
 
+- completed branch-local smoke/parity rerun:
+  - `qdesn-dynamic-exdqlm-crossstudy-smoke-rerun-20260406-214100__git-288390b`
+  - `4/4 SUCCESS` roots
+  - `16` fit rows
+  - `7 PASS / 8 WARN / 1 FAIL`
 - rerun here:
-  - `0/36`
+  - `4/36`
 - pending rerun here:
-  - `36/36`
+  - `32/36`
+
+Confirmed branch-local smoke case status:
+
+- `PASS / healthy`:
+  - `3/4`
+- `WARN / needs review`:
+  - `1/4`
+- `FAIL / not comparison-ready`:
+  - `0/4`
+
+Exact rerun cases already confirmed on this branch:
+
+- `normal`, `tau=0.25`, `fit_size=500`, `ridge`
+- `normal`, `tau=0.25`, `fit_size=500`, `rhs_ns`
+- `normal`, `tau=0.25`, `fit_size=5000`, `ridge`
+- `normal`, `tau=0.25`, `fit_size=5000`, `rhs_ns`
 
 Interpretation:
 
-- all `36` root cases have carry-forward evidence from the predecessor branch;
-- none have yet been rerun on this synced `0.4.0` integration branch;
-- therefore every case is still `PENDING` for branch-local parity/revalidation, even though the
-  predecessor branch completed the full campaign successfully.
+- all `36` root cases still have carry-forward evidence from the predecessor branch;
+- the first `4` smoke/parity roots are now rerun and confirmed healthy enough to proceed on this
+  synced `0.4.0` integration branch;
+- `32/36` roots remain `PENDING` for branch-local rerun, but the dynamic runner stack is no
+  longer unproven on this branch.
+
+### 8.4 Current live rerun on this integration branch
+
+Detached full rerun launched from this branch:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b`
+- launch time:
+  - `2026-04-06 21:57 EDT`
+- batch:
+  - `full`
+- planned roots:
+  - `36`
+- worker cap:
+  - `6`
+- tmux session:
+  - `qdesn_dynx_rerun_0406_215700`
+- launcher status at launch verification:
+  - `Launcher session live: TRUE`
+
+Primary launch metadata:
+
+- `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b/launch/launcher_session.json`
+- `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b/launch/launcher_stdout.log`
 
 ## 9) Current Best Read Of Remaining Scientific Debt
 
@@ -333,27 +379,23 @@ Best high-level axis read from the completed run:
 
 Do **not** resume from the older branch by assumption alone.
 
-Because this branch includes the `0.4.0` shared-base integration, the next correct sequence is:
+Because this branch includes the `0.4.0` shared-base integration, the active sequence is now:
 
-1. confirm the dynamic helper stack still runs cleanly on this branch;
-2. reproduce the dynamic smoke contract first on this branch;
-3. only then decide whether the completed broad dynamic run should be:
-   - accepted as carry-forward evidence only, or
-   - rerun/revalidated on this branch;
-4. if the broad dynamic surface is rerun on this branch, treat the old result as the baseline
-   reference and focus follow-up only on the documented `46`-row fail band.
-5. keep the first rerun scope narrow:
-   - smoke/parity first
-   - then broad rerun only if branch-level parity is confirmed
-6. if rerun parity is good, prioritize debt cleanup on the `5` fail roots and the broader
-   long-horizon `ridge` fail band before reopening any broader search.
+1. treat the dynamic helper stack as branch-locally validated at the smoke/parity level;
+2. keep the detached supervised **full** rerun live until the mirrored `36`-root surface finishes
+   on this branch;
+3. keep the predecessor broad dynamic run as historical evidence only, not branch-local proof;
+4. after the full rerun completes here, rebuild the branch-local `PASS / WARN / FAIL / PENDING`
+   inventory from actual outputs;
+5. only after that branch-local full rerun should any fail-band cleanup or local retuning be
+   considered.
 
 ## 11) Working Rules
 
 - keep the study on the **dynamic** exdqlm-aligned surface;
 - do not reopen the static cross-study as the primary deliverable;
-- do not restart broad exploratory family search without first confirming integration-branch
-  parity on the dynamic smoke path;
+- do not restart broad exploratory family search now that the integration-branch smoke path is
+  already confirmed;
 - prefer concise branch-local carry-forward notes over reusing older branch-specific live-run
   trackers as the primary handoff surface.
 
@@ -370,8 +412,10 @@ Because this branch includes the `0.4.0` shared-base integration, the next corre
 For continued QDESN work on this branch, the immediate decision should be:
 
 - **update/validate the dynamic runner stack against the `0.4.0` integration branch first**
+- **monitor and then close out the detached full rerun on this integration branch**
+- **after completion, classify all `36` cases from branch-local evidence**
 
 not:
 
 - reopen the old static study, or
-- jump straight into another debt-only cleanup wave without branch-parity validation.
+- jump straight into another debt-only cleanup wave before the branch-local full rerun exists.
