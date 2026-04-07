@@ -26,7 +26,7 @@ This tracker is for the corrected dynamic comparison-facing program.
 
 Status: **dynamic relaunch implementation completed; canonical grid recovered from the live
 reference surface; smoke and full prepare-only passed; real smoke completed successfully on the
-correct dynamic surface; broad supervised launch is now live under detached supervision**
+correct dynamic surface; broad supervised launch completed cleanly on the mirrored dynamic surface**
 
 Scope correction summary:
 
@@ -60,21 +60,36 @@ Authoritative implementation report:
 
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
 
-Live broad-launch update:
+Broad-launch closeout:
 
 - implementation commit:
   - `85760fe`
 - run tag:
   - `qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe`
-- detached session:
-  - `qdesn_dynx_0406_163041`
-- early healthcheck snapshot:
-  - `launcher session live = TRUE`
-  - `selected roots = 36`
-  - `materialized roots = 6`
-  - `running roots = 6`
-  - `success roots = 0`
-  - `fail roots = 0`
+- campaign result:
+  - `36/36 SUCCESS` roots
+  - `144/144` fit rows emitted
+  - fit signoff mix:
+    - `29 PASS`
+    - `69 WARN`
+    - `46 FAIL`
+  - root comparison health:
+    - `31/36` roots comparison-eligible-any
+    - `11/36` roots comparison-eligible-full
+  - recommendation:
+    - `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`
+
+Current post-run read:
+
+- the corrected dynamic relaunch is now operationally complete and reproducible;
+- the intended mirrored dynamic surface was covered end to end without any root execution failures;
+- the remaining debt is no longer orchestration or scope correctness;
+- the remaining debt is a documented fit-level comparison-quality fail band concentrated in:
+  - `ridge` more than `rhs_ns`
+  - `exal` more than `al`
+  - `lastTT5000` more than `lastTT500`
+- the correct next move is a narrow debt-only cleanup pass on the remaining `46` fit `FAIL` rows,
+  not another broad rerun.
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 
@@ -162,9 +177,12 @@ Validated campaign artifacts:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-155404__git-eb141cc/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
 - corrected smoke run:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-smoke-20260406-threadsfix__git-eb141cc/20260406-161217__git-eb141cc/summary/qdesn_dynamic_crossstudy_summary.md`
-- live full launch:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/launch/launcher_session.json`
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/launch/launcher_stdout.log`
+- full campaign summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/summary/qdesn_dynamic_crossstudy_summary.md`
+- full comparison summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/comparison_vs_reference/comparison_summary.md`
+- full campaign progress table:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/tables/campaign_progress.csv`
 
 ## 8) Move-Forward Rules
 
@@ -173,14 +191,24 @@ Validated campaign artifacts:
 3. run a narrow smoke batch before the broad batch launch if the external dynamic path is new;
 4. use prepare-only before any real launch batch;
 5. launch the broad dynamic analog before any local debt-only follow-up;
-6. only after the broad dynamic analog completes should local tuning be considered.
+6. only after the broad dynamic analog completes should local tuning be considered;
+7. after broad completion, treat the remaining fail band as a targeted comparison-health program
+   rather than reopening the whole surface.
 
 ## 9) Success Criteria
 
-This corrected dynamic study is ready for the broad launch only when:
+Broad-launch readiness conditions are now all satisfied:
 
 1. the canonical dynamic reference grid is materialized and validated;
 2. the QDESN dynamic analog runner can consume those external dynamic inputs;
 3. prepare-only passes cleanly;
 4. the narrow real smoke batch closes successfully on the mirrored dynamic surface;
 5. the batch launch contract is documented and reproducible.
+
+Current scientific closeout state:
+
+1. broad dynamic analog execution completed successfully;
+2. all `36` roots reached `SUCCESS`;
+3. the study is comparison-usable with a documented fail band;
+4. the remaining blocker is fit-level comparison quality, not execution stability;
+5. the next phase, if pursued, should target only the residual `46` fit `FAIL` rows.

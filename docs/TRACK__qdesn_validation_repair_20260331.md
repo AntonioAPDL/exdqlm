@@ -60,17 +60,25 @@ Current dynamic relaunch update:
   - child BLAS oversubscription in the shared pipeline launcher path
 - authoritative implementation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
-- broad supervised dynamic launch is now live:
+- broad supervised dynamic launch completed cleanly:
   - commit:
     - `85760fe`
   - run tag:
     - `qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe`
-  - detached session:
-    - `qdesn_dynx_0406_163041`
-  - early health:
-    - `launcher session live = TRUE`
-    - `6/36` roots materialized
-    - `0` root failures observed at launch time
+  - final execution:
+    - `36/36 SUCCESS` roots
+    - `144/144` fit rows emitted
+    - `0` root execution failures
+  - final fit signoff mix:
+    - `29 PASS`
+    - `69 WARN`
+    - `46 FAIL`
+  - final recommendation:
+    - `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`
+  - current read:
+    - the scope-corrected dynamic comparison study is now complete
+    - the remaining blocker is fit-level comparison quality rather than operational failure
+    - any next step should be a narrow dynamic fail-band cleanup instead of a new broad launch
 
 Key correction findings:
 
