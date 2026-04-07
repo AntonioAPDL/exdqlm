@@ -5,6 +5,36 @@ Branch: `feature/qdesn-mcmc-alternative`
 Branch checkpoint at tracker creation: `7610696c9336a01860d57ae473d9e153b5fe6748`  
 Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
 
+## 0) Integration-Branch Residual Follow-Up Update (2026-04-06)
+
+The current comparison-facing continuation is now on:
+
+- branch:
+  - `feature/qdesn-mcmc-alternative-0p4p0-integration`
+- worktree:
+  - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
+
+Latest branch-local dynamic cross-study rerun:
+
+- `qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b`
+- `34/36 SUCCESS`
+- `2/36 FAIL`
+- `37 PASS / 65 WARN / 42 FAIL`
+
+Current repair decision:
+
+- no new broad baseline promotion yet
+- keep the current defaults as the source baseline
+- run a targeted dynamic fail-closure wave over the remaining `42` fail rows on `28` roots
+- targeted-wave prepare-only is now validated with corrected full coverage:
+  - `28/28` fail-carrying roots
+  - stage sizes `5 / 5 / 6 / 4 / 8`
+
+Primary assets:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_rerun_closeout_and_residual_inventory_20260406.md`
+- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_targeted_fail_closure_wave_20260406.md`
+
 ## 1) Purpose
 
 Turn the current QDESN validation situation into a disciplined repair program that:

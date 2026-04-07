@@ -187,235 +187,170 @@ Therefore:
 
 ## 7) Health Convention Used Here
 
-Preserved fit-level convention from the completed campaign:
+Preserved fit-level convention:
 
 - `PASS`
-  - fit signoff grade is healthy-comparable
+  - healthy-comparable
 - `WARN`
-  - fit is usable but still flagged for review
+  - usable with review
 - `FAIL`
-  - fit is not comparison-eligible under the current signoff rules
+  - not comparison-eligible under the current signoff rules
 
-Root/case-level status for this handoff is derived from the campaign root summary fields:
+Root/case-level status on this branch is derived from the completed branch-local rerun:
 
 - `PASS / healthy`
-  - `root_status = SUCCESS` and `root_comparison_eligible_full = TRUE`
+  - `root_status = SUCCESS`
+  - `root_comparison_eligible_full = TRUE`
 - `WARN / needs review`
-  - `root_status = SUCCESS`, `root_comparison_eligible_any = TRUE`, and
-    `root_comparison_eligible_full = FALSE`
-- `FAIL / broken or inconsistent for comparison`
+  - `root_status = SUCCESS`
+  - `root_comparison_eligible_any = TRUE`
+  - `root_comparison_eligible_full = FALSE`
+- `FAIL / broken or inconsistent`
   - `root_status = FAIL`, or
   - `root_status = SUCCESS` with `root_comparison_eligible_any = FALSE`
-- `PENDING / not yet rerun here`
-  - the case has carry-forward evidence from the predecessor branch, but has not yet been rerun on
-    `feature/qdesn-mcmc-alternative-0p4p0-integration`
 
-## 8) Current Case Inventory
+## 8) Current Branch-Local Validation State
 
-### 8.1 Carry-forward completed-state inventory from the predecessor branch
+Completed branch-local smoke/parity rerun:
 
-Root execution status:
+- `qdesn-dynamic-exdqlm-crossstudy-smoke-rerun-20260406-214100__git-288390b`
+- `4/4 SUCCESS` roots
+- `16` fit rows
+- `7 PASS / 8 WARN / 1 FAIL`
 
-- complete:
-  - `36/36`
-- execution healthy:
-  - `36/36 SUCCESS`
-- execution failures:
-  - `0/36`
+Completed branch-local broad rerun:
 
-Root comparison-health inventory:
+- `qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b`
+- `36/36` roots completed
+- `34/36 SUCCESS`
+- `2/36 FAIL`
+- `144/144` fit rows emitted
+- `37 PASS / 65 WARN / 42 FAIL`
+- `33/36` comparison-eligible-any
+- `8/36` comparison-eligible-full
+- recommendation:
+  - `HOLD_QDESN_DYNAMIC_EXDQLM_WITH_GAPS`
+
+Current branch-local root inventory:
 
 - `PASS / healthy`:
-  - `11/36`
+  - `8/36`
 - `WARN / needs review`:
-  - `20/36`
-- `FAIL / not comparison-ready`:
-  - `5/36`
+  - `24/36`
+- `FAIL / broken or inconsistent`:
+  - `4/36`
+    - `2` outright root failures
+    - `2` successful but noneligible roots
 
-Fit-level comparison-health inventory:
+Current branch-local fit inventory:
 
 - `PASS`:
-  - `29/144`
+  - `37/144`
 - `WARN`:
-  - `69/144`
+  - `65/144`
 - `FAIL`:
-  - `46/144`
+  - `42/144`
 
-### 8.2 Exact root cases by category
+## 9) Promotion Decision After The Broad Rerun
 
-#### PASS / healthy (`11`)
+No new **global** baseline promotion is justified yet.
 
-- `gausmix`, `tau=0.05`, `fit_size=500`, `rhs_ns`
-- `gausmix`, `tau=0.05`, `fit_size=5000`, `rhs_ns`
-- `gausmix`, `tau=0.25`, `fit_size=500`, `ridge`
-- `gausmix`, `tau=0.25`, `fit_size=5000`, `ridge`
-- `gausmix`, `tau=0.95`, `fit_size=500`, `rhs_ns`
-- `laplace`, `tau=0.25`, `fit_size=500`, `ridge`
-- `laplace`, `tau=0.25`, `fit_size=5000`, `ridge`
-- `normal`, `tau=0.05`, `fit_size=5000`, `rhs_ns`
-- `normal`, `tau=0.25`, `fit_size=500`, `ridge`
-- `normal`, `tau=0.25`, `fit_size=5000`, `ridge`
-- `normal`, `tau=0.95`, `fit_size=500`, `rhs_ns`
+Reason:
 
-#### WARN / needs review (`20`)
+- the branch-local rerun improved:
+  - fit FAIL rows:
+    - `46 -> 42`
+  - roots with any usable comparison:
+    - `31 -> 33`
+- but regressed on:
+  - outright root execution:
+    - `36/36 SUCCESS -> 34/36 SUCCESS`
+  - fully comparison-ready roots:
+    - `11 -> 8`
 
-- `gausmix`, `tau=0.05`, `fit_size=500`, `ridge`
-- `gausmix`, `tau=0.05`, `fit_size=5000`, `ridge`
-- `gausmix`, `tau=0.25`, `fit_size=500`, `rhs_ns`
-- `gausmix`, `tau=0.25`, `fit_size=5000`, `rhs_ns`
-- `gausmix`, `tau=0.95`, `fit_size=500`, `ridge`
-- `gausmix`, `tau=0.95`, `fit_size=5000`, `ridge`
-- `gausmix`, `tau=0.95`, `fit_size=5000`, `rhs_ns`
-- `laplace`, `tau=0.05`, `fit_size=500`, `ridge`
-- `laplace`, `tau=0.05`, `fit_size=500`, `rhs_ns`
-- `laplace`, `tau=0.05`, `fit_size=5000`, `rhs_ns`
-- `laplace`, `tau=0.25`, `fit_size=500`, `rhs_ns`
-- `laplace`, `tau=0.95`, `fit_size=500`, `ridge`
-- `laplace`, `tau=0.95`, `fit_size=500`, `rhs_ns`
-- `laplace`, `tau=0.95`, `fit_size=5000`, `rhs_ns`
-- `normal`, `tau=0.05`, `fit_size=500`, `ridge`
-- `normal`, `tau=0.05`, `fit_size=500`, `rhs_ns`
-- `normal`, `tau=0.25`, `fit_size=500`, `rhs_ns`
-- `normal`, `tau=0.25`, `fit_size=5000`, `rhs_ns`
-- `normal`, `tau=0.95`, `fit_size=500`, `ridge`
-- `normal`, `tau=0.95`, `fit_size=5000`, `rhs_ns`
+Working decision:
 
-#### FAIL / not comparison-ready (`5`)
+- keep the current dynamic cross-study defaults as the branch-local default baseline
+- allow only stage-local promotion when a challenger clearly improves the source baseline on its
+  targeted residual slice
 
-- `laplace`, `tau=0.05`, `fit_size=5000`, `ridge`
-- `laplace`, `tau=0.25`, `fit_size=5000`, `rhs_ns`
-- `laplace`, `tau=0.95`, `fit_size=5000`, `ridge`
-- `normal`, `tau=0.05`, `fit_size=5000`, `ridge`
-- `normal`, `tau=0.95`, `fit_size=5000`, `ridge`
+## 10) Remaining Scientific Debt
 
-### 8.3 Pending on this integration branch
+Current residual fail surface:
 
-Branch-local rerun status on `feature/qdesn-mcmc-alternative-0p4p0-integration`:
+- fit FAIL rows:
+  - `42`
+- fail-carrying roots:
+  - `28`
 
-- completed branch-local smoke/parity rerun:
-  - `qdesn-dynamic-exdqlm-crossstudy-smoke-rerun-20260406-214100__git-288390b`
-  - `4/4 SUCCESS` roots
-  - `16` fit rows
-  - `7 PASS / 8 WARN / 1 FAIL`
-- rerun here:
-  - `4/36`
-- pending rerun here:
-  - `32/36`
+Dominant remaining patterns:
 
-Confirmed branch-local smoke case status:
+- long-horizon `gausmix` MCMC `exal` crash and drift pockets
+- long-horizon `ridge` residual instability pockets on `laplace/normal`, mostly VB tail with a
+  small `mcmc exal` drift pocket
+- long-horizon `rhs_ns` residual fail pockets on `laplace/normal`
+- short-horizon mixed `laplace/normal` tail pockets
 
-- `PASS / healthy`:
-  - `3/4`
-- `WARN / needs review`:
-  - `1/4`
-- `FAIL / not comparison-ready`:
-  - `0/4`
-
-Exact rerun cases already confirmed on this branch:
-
-- `normal`, `tau=0.25`, `fit_size=500`, `ridge`
-- `normal`, `tau=0.25`, `fit_size=500`, `rhs_ns`
-- `normal`, `tau=0.25`, `fit_size=5000`, `ridge`
-- `normal`, `tau=0.25`, `fit_size=5000`, `rhs_ns`
-
-Interpretation:
-
-- all `36` root cases still have carry-forward evidence from the predecessor branch;
-- the first `4` smoke/parity roots are now rerun and confirmed healthy enough to proceed on this
-  synced `0.4.0` integration branch;
-- `32/36` roots remain `PENDING` for branch-local rerun, but the dynamic runner stack is no
-  longer unproven on this branch.
-
-### 8.4 Current live rerun on this integration branch
-
-Detached full rerun launched from this branch:
-
-- run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b`
-- launch time:
-  - `2026-04-06 21:57 EDT`
-- batch:
-  - `full`
-- planned roots:
-  - `36`
-- worker cap:
-  - `6`
-- tmux session:
-  - `qdesn_dynx_rerun_0406_215700`
-- launcher status at launch verification:
-  - `Launcher session live: TRUE`
-
-Primary launch metadata:
-
-- `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b/launch/launcher_session.json`
-- `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b/launch/launcher_stdout.log`
-
-## 9) Current Best Read Of Remaining Scientific Debt
-
-Carry-forward fail-band summary from the completed dynamic run:
-
-- total remaining fit `FAIL` rows:
-  - `46 / 144`
-- best high-level read:
-  - `rhs_ns` is healthier than `ridge`
-  - `al` is healthier than `exal`
-  - `lastTT500` is healthier than `lastTT5000`
-
-Most problematic carry-forward slices:
-
-- `normal`, `tau=0.95`, `lastTT5000`, `ridge`
-- `laplace`, `tau=0.05`, `lastTT5000`, `ridge`
-- `laplace`, `tau=0.95`, `lastTT5000`, `ridge`
-- `normal`, `tau=0.05`, `lastTT5000`, `ridge`
-
-Best high-level axis read from the completed run:
+Best high-level axis read remains:
 
 - `rhs_ns` is healthier than `ridge`
 - `al` is healthier than `exal`
-- `lastTT500` is healthier than `lastTT5000`
-- the hardest band is concentrated in long-horizon `ridge` cases
+- `fit_size=500` is healthier than `fit_size=5000`
 
-## 10) Recommended Move-Forward On This Branch
+## 11) Recommended Move-Forward On This Branch
 
-Do **not** resume from the older branch by assumption alone.
+The next move is no longer another full rerun.
 
-Because this branch includes the `0.4.0` shared-base integration, the active sequence is now:
+The next move is a targeted fail-closure wave that:
 
-1. treat the dynamic helper stack as branch-locally validated at the smoke/parity level;
-2. keep the detached supervised **full** rerun live until the mirrored `36`-root surface finishes
-   on this branch;
-3. keep the predecessor broad dynamic run as historical evidence only, not branch-local proof;
-4. after the full rerun completes here, rebuild the branch-local `PASS / WARN / FAIL / PENDING`
-   inventory from actual outputs;
-5. only after that branch-local full rerun should any fail-band cleanup or local retuning be
-   considered.
+1. starts from the completed branch-local broad rerun as the source baseline
+2. targets only the remaining fail and noneligible pockets
+3. uses challenger-only local profiles
+4. promotes only when a challenger beats the source baseline on that stage
 
-## 11) Working Rules
+Targeted fail-closure assets:
 
-- keep the study on the **dynamic** exdqlm-aligned surface;
-- do not reopen the static cross-study as the primary deliverable;
-- do not restart broad exploratory family search now that the integration-branch smoke path is
-  already confirmed;
-- prefer concise branch-local carry-forward notes over reusing older branch-specific live-run
-  trackers as the primary handoff surface.
+- report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_rerun_closeout_and_residual_inventory_20260406.md`
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_targeted_fail_closure_wave_20260406.md`
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave_manifest.yaml`
+- runner:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R`
+- detached launcher:
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R`
+- healthcheck:
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R`
 
-## 12) Read First On This Branch
+Targeted fit-fail closure preflight is now validated on this branch:
 
-1. `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
-2. `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
-3. `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_implementation_and_smoke_20260406.md`
-4. `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_validation_20260406.md`
-5. `docs/REPORT__qdesn_exdqlm_dynamic_scope_correction_20260406.md`
+- prepare-only run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87`
+- verified stage sizes:
+  - `S1=5`
+  - `S2=5`
+  - `S3=6`
+  - `S4=4`
+  - `S5=8`
+- verified coverage:
+  - `28/28` fail-carrying roots
+  - `42/42` fail rows
+- preflight:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
+
+## 12) Working Rules
+
+- keep the study on the **dynamic** exdqlm-aligned surface
+- keep the current defaults as the source baseline unless a local challenger clearly wins
+- do not reopen the static cross-study as the main deliverable
+- do not spend compute on another broad rerun right now
+- do not reopen generic tuning search for one universal rescue profile
 
 ## 13) Immediate Next Decision
 
-For continued QDESN work on this branch, the immediate decision should be:
+For continued QDESN work on this branch, the immediate decision is now:
 
-- **update/validate the dynamic runner stack against the `0.4.0` integration branch first**
-- **monitor and then close out the detached full rerun on this integration branch**
-- **after completion, classify all `36` cases from branch-local evidence**
-
-not:
-
-- reopen the old static study, or
-- jump straight into another debt-only cleanup wave before the branch-local full rerun exists.
+- **run the targeted fit-fail closure wave**
+- **summarize the resulting branch-local PASS / WARN / FAIL inventory after it completes**
+- **only then decide which local stage winners, if any, deserve promotion**

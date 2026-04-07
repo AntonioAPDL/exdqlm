@@ -7,6 +7,39 @@ Purpose: define the first robust, expandable validation framework for Q-DESN
 `vb` versus `mcmc` using a single toy scenario and a single-core root design
 that can scale later without changing the core contract
 
+## Dynamic Cross-Study Residual Update (2026-04-06)
+
+The active comparison-facing QDESN study is now the **dynamic** exdqlm-aligned cross-study on:
+
+- branch:
+  - `feature/qdesn-mcmc-alternative-0p4p0-integration`
+- worktree:
+  - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
+
+Current branch-local broad rerun status:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b`
+- execution:
+  - `34/36 SUCCESS`
+  - `2/36 FAIL`
+- fit signoff:
+  - `37 PASS`
+  - `65 WARN`
+  - `42 FAIL`
+
+Decision:
+
+- no new global baseline promotion yet
+- keep the current dynamic cross-study defaults as the source baseline
+- move next to the targeted fail-closure wave documented in:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_targeted_fail_closure_wave_20260406.md`
+- the targeted wave is now validated in prepare-only with:
+  - `28/28` fail-carrying roots covered
+  - stage sizes `5 / 5 / 6 / 4 / 8`
+  - next action:
+    - detached overnight launch
+
 ## Cross-Study Follow-On Correction (2026-04-06)
 
 The dynamic certification track is closed for this cycle, but the broader validation program still

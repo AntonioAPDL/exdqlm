@@ -37,9 +37,9 @@ Reason:
 
 ## 2) Current Status
 
-Status: **carry-forward dynamic relaunch implementation and broad dynamic run are completed on the
-predecessor QDESN branch; this integration branch now treats that result as the authoritative
-baseline and current rerun target**
+Status: **the branch-local smoke rerun and branch-local broad dynamic rerun are both complete on
+the synced `0.4.0` integration base; the current next move is a targeted residual fail-closure
+wave, not another broad rerun**
 
 Scope correction summary:
 
@@ -100,19 +100,31 @@ Integration-branch continuation rule:
 - use `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md` as the canonical day-to-day
   status tracker on this branch;
 - treat this file as the detailed historical tracker for the dynamic relaunch program;
-- branch-level smoke/parity is now confirmed on the `0.4.0` integration branch via:
+- branch-level smoke/parity was confirmed on the `0.4.0` integration branch via:
   - `qdesn-dynamic-exdqlm-crossstudy-smoke-rerun-20260406-214100__git-288390b`
   - `4/4 SUCCESS` roots
   - `16` fit rows
   - `7 PASS / 8 WARN / 1 FAIL`
-- the detached supervised **full** rerun is now live on this branch via:
+- the branch-local broad rerun also completed on this branch via:
   - `qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b`
-  - tmux session:
-    - `qdesn_dynx_rerun_0406_215700`
-  - launch metadata:
-    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-rerun-20260406-215700__git-288390b/launch/launcher_session.json`
-- the next branch-local validation milestone is therefore the **completed** full rerun, not
-  another smoke gate.
+  - `34/36 SUCCESS`
+  - `2/36 FAIL`
+  - `37 PASS / 65 WARN / 42 FAIL`
+  - `33/36` comparison-eligible-any
+  - `8/36` comparison-eligible-full
+  - recommendation:
+    - `HOLD_QDESN_DYNAMIC_EXDQLM_WITH_GAPS`
+- the next branch-local validation milestone is therefore a **targeted fail-closure wave**, not
+  another smoke gate and not another full rerun.
+- that targeted wave is now validated in prepare-only on this branch:
+  - `qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87`
+  - stage sizes:
+    - `5 / 5 / 6 / 4 / 8`
+  - verified coverage:
+    - `28/28` fail-carrying roots
+    - `42/42` fail rows
+  - preflight:
+    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_fit_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-fitfail-20260407-000441__git-0f80d87/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 
@@ -222,14 +234,15 @@ Validated campaign artifacts:
 
 ## 9) Success Criteria
 
-The predecessor-branch broad launch is already complete and usable as carry-forward evidence.
+The predecessor-branch broad launch remains valid as historical evidence, but this branch now has
+its own completed smoke and broad rerun evidence.
 
-This integration branch should treat the following as its immediate validation gates:
+This integration branch should therefore treat the following as the immediate validation gates:
 
-1. the canonical dynamic reference grid is materialized and validated;
-2. the QDESN dynamic analog runner can still consume those external dynamic inputs on the `0.4.0`
-   integration base;
-3. prepare-only passes cleanly on this branch;
-4. the narrow real smoke batch closes successfully on this branch;
-5. the detached broad rerun is launched on this branch after smoke closes cleanly;
-6. only after that full rerun completes should any fail-band cleanup decision be taken.
+1. preserve the completed branch-local broad rerun as the source baseline;
+2. update trackers and closeout docs to reflect the completed branch-local rerun state;
+3. run a targeted residual fail-closure wave over the remaining fail and noneligible pockets;
+4. promote a stage-local winner only if it clearly beats the completed branch-local source
+   baseline on that targeted slice;
+5. after the targeted wave completes, rebuild the branch-local `PASS / WARN / FAIL` inventory from
+   actual outputs and decide on any further cleanup.
