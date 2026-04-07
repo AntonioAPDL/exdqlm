@@ -4,6 +4,16 @@ Date: 2026-04-06
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`  
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
+## Status Note
+
+This report is the historical closeout for the first broad rerun on the integration branch.
+
+It is no longer the current validation status. The current authoritative branch state is the later
+zero-fail reconciled baseline documented in:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
+
 ## 1) Executive Read
 
 The branch-local broad dynamic rerun on the synced `0.4.0` base is complete and scientifically

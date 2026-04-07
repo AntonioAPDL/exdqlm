@@ -4,6 +4,17 @@ Date: 2026-04-07
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`  
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
+## Status Note
+
+This report is preserved as the historical closeout for targeted Wave 1.
+
+It is not the current branch-level status summary. For the current authoritative baseline and
+comparison-ready state, use:
+
+- `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
+
 ## 1) Executive Read
 
 The first targeted dynamic fit-fail closure wave completed cleanly and produced real local

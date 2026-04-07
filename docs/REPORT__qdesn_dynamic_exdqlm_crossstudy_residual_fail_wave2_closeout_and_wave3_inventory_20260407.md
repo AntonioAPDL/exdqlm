@@ -4,6 +4,22 @@ Date: 2026-04-07
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`  
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
+## Status Note
+
+This report remains the correct historical closeout for residual Wave 2.
+
+It is superseded as a statement of the **current** baseline by:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
+
+Current authoritative state after the later exact-root promotions:
+
+- `76 PASS`
+- `68 WARN`
+- `0 FAIL`
+- `36 / 36` comparison-eligible-full roots
+
 ## 1) Executive Read
 
 The second residual closure wave completed cleanly and produced the strongest validation-state

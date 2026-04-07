@@ -4,6 +4,25 @@ Date: 2026-04-07
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`  
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
+## Status Note
+
+This report is still the correct historical closeout for the **stage-wide** final-fail wave, but it
+is no longer the current source of truth for the branch-local baseline.
+
+For the current authoritative branch state, use:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
+- `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
+
+Current authoritative state after exact-root reconciliation:
+
+- `76 PASS`
+- `68 WARN`
+- `0 FAIL`
+- `0 / 36` root-status FAILs
+- `36 / 36` comparison-eligible-full roots
+
 ## 1) Executive Read
 
 The final rhs-only cleanup wave completed cleanly and produced useful stage-local evidence, but it
