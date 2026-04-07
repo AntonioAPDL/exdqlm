@@ -1,0 +1,6 @@
+"phase","rows"
+"phase1_vb_all",144
+"phase2_static_paper_mcmc",36
+"phase3_static_shrink_ridge_mcmc",36
+"phase4_static_shrink_rhsns_mcmc",36
+"phase5_dynamic_mcmc",30

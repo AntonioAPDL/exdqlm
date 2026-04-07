@@ -76,6 +76,8 @@
 #' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
 #'   \code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
 #'   \code{ld_controls} (passed through to \code{exal_static_LDVB()}).
+#' @param vb_init_fit Optional precomputed static VB fit object used as the
+#'   warm-start reference when \code{init.from.vb = TRUE}.
 #' @param mh.proposal Character string controlling the exAL nonconjugate update
 #'   kernel. \code{"laplace_rw"} (default) uses a Laplace-informed adaptive
 #'   random-walk MH update on the transformed joint block
@@ -189,6 +191,7 @@ exal_static_mcmc <- function(
   n.burn = 2000, n.mcmc = 1500, thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
+  vb_init_fit = NULL,
   mh.proposal = c("laplace_rw", "rw", "slice", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
@@ -390,22 +393,26 @@ exal_static_mcmc <- function(
       stop("vb_init_controls$ld_controls must be a list or NULL")
     }
 
-    vb.fit <- exal_static_LDVB(
-      y = y, X = X, p0 = p0,
-      max_iter = vb.ctrl$max_iter,
-      tol = vb.ctrl$tol,
-      b0 = b0, V0 = V0,
-      beta_prior = beta_prior,
-      beta_prior_controls = beta_prior_controls,
-      a_sigma = a_sigma, b_sigma = b_sigma,
-      gamma_bounds = gamma_bounds,
-      log_prior_gamma = log_prior_gamma,
-      init = init,
-      dqlm.ind = dqlm.ind,
-      n_samp_xi = vb.ctrl$n_samp_xi,
-      ld_controls = vb.ctrl$ld_controls,
-      verbose = vb.ctrl$verbose
-    )
+    if (!is.null(vb_init_fit)) {
+      vb.fit <- if (!is.null(vb_init_fit$fit)) vb_init_fit$fit else vb_init_fit
+    } else {
+      vb.fit <- exal_static_LDVB(
+        y = y, X = X, p0 = p0,
+        max_iter = vb.ctrl$max_iter,
+        tol = vb.ctrl$tol,
+        b0 = b0, V0 = V0,
+        beta_prior = beta_prior,
+        beta_prior_controls = beta_prior_controls,
+        a_sigma = a_sigma, b_sigma = b_sigma,
+        gamma_bounds = gamma_bounds,
+        log_prior_gamma = log_prior_gamma,
+        init = init,
+        dqlm.ind = dqlm.ind,
+        n_samp_xi = vb.ctrl$n_samp_xi,
+        ld_controls = vb.ctrl$ld_controls,
+        verbose = vb.ctrl$verbose
+      )
+    }
 
     if (isTRUE(dqlm.ind)) {
       if (is.null(init$beta)) init$beta <- as.numeric(vb.fit$qbeta$m)

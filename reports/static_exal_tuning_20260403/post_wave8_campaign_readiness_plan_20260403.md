@@ -39,6 +39,15 @@ Important distinction on the synced continuation branch:
 - so accepted carry-forward status and rerun-on-updated-`0.4.0` status should
   be treated as separate questions
 
+Latest supersession note on the synced continuation branch:
+
+- the first broad synced-base rerun from `2026-04-06` is now deprecated for
+  scientific comparison because its MCMC replay was not faithful enough to the
+  accepted historical reference map
+- the active replacement is the faithful replay program on the synced base:
+  - `reports/static_exal_tuning_20260407/original_288_syncedbase_faithful_replay_program_20260407.md`
+  - `reports/static_exal_tuning_20260407/original_288_syncedbase_faithful_replay_execution_20260407.md`
+
 It replaces the earlier question of "which tuning family should we trust next?"
 with the current operational question: "what is the minimum remaining work to
 reach a comparison-ready full validation campaign?"

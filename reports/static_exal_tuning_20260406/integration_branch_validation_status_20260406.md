@@ -213,45 +213,52 @@ Therefore:
 - accepted publication-target status: `282 healthy / 6 fail`
 - rerun-on-synced-base status: effectively **pending**
 
-## Prepared Synced-Base Rerun Program
+## Synced-Base Replay Status
 
-The next active validation phase on this branch is now defined and validated:
+The first broad synced-base rerun attempted on this branch is now deprecated.
 
-- program:
-  `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_program_20260406.md`
-- execution log:
-  `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_execution_20260406.md`
+Deprecated program:
 
-Validated rerun structure:
+- `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_program_20260406.md`
+- `reports/static_exal_tuning_20260406/original_288_syncedbase_rerun_execution_20260406.md`
+
+Deprecation reason:
+
+- static and dynamic MCMC replay were not faithful enough to the accepted
+  historical reference state
+- in particular, MCMC rows were not consistently inheriting accepted replay
+  controls, and original `static_shrink::rhs` rows were not uniformly replayed
+  under `rhs_ns`
+
+The active replacement program on this branch is now:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_faithful_replay_program_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_faithful_replay_execution_20260407.md`
+
+Validated faithful-replay structure:
 
 | phase | rows | purpose |
 |---|---:|---|
-| `phase1_vb_all` | `144` | rerun all accepted VB rows first |
-| `phase2_static_mcmc` | `108` | rerun accepted static MCMC rows |
-| `phase3_dynamic_mcmc` | `36` | rerun accepted dynamic MCMC rows last |
+| `phase1_vb_all` | `144` | replay all accepted healthy VB rows |
+| `phase2_static_paper_mcmc` | `36` | faithful replay of paper-static MCMC |
+| `phase3_static_shrink_ridge_mcmc` | `36` | faithful replay of shrink ridge MCMC |
+| `phase4_static_shrink_rhsns_mcmc` | `36` | faithful replay of shrink rhs rows under forced `rhs_ns` |
+| `phase5_dynamic_mcmc` | `30` | faithful replay of accepted healthy dynamic MCMC |
 
 Validated operational assumptions:
 
 - accepted reference state still checks out as:
   - `282 / 288` healthy
   - `6 / 288` unresolved
-- predecessor-worktree input files are readable for all `288` rows:
-  - `method_signoff_long.csv`
-  - `run_config.rds`
-  - `sim_output.rds`
-  - accepted selected fit path
-- fresh candidate fit paths are now mapped into the synced integration
-  worktree for all `288` rows
-- current prelaunch rerun state is:
-  - `0 / 288` done
-  - `288 / 288` pending
-
-Critical replay rule:
-
-- this rerun replays the **accepted per-case repaired configuration map**
-  rather than the obsolete raw broad-default baseline
-- that is necessary because part of the accepted `282 / 288` healthy state now
-  depends on promoted local repairs, including repaired static prior settings
+- this faithful replay intentionally scopes to the accepted healthy `282`
+  rows only
+- predecessor-worktree input files are readable for all reference rows
+- all MCMC replay rows have accepted companion VB reference fits
+- all original `static_shrink::rhs` replay rows now use
+  `prior_override = rhs_ns`
+- current prelaunch faithful-replay state is:
+  - `0 / 282` done
+  - `282 / 282` pending
 
 ## Interpretation
 
@@ -273,17 +280,11 @@ updated base. What exists here right now is:
 
 1. Freeze this branch as the active synced continuation point.
 2. Treat the accepted `v4` state as the working baseline for planning.
-3. Decide whether the next phase is:
-   - strict rerun/revalidation on the synced `0.4.0` base, or
-   - continued residual repair using the imported accepted state.
-4. This decision is now resolved:
-   - the next active phase is strict full rerun / revalidation of all `288`
-     accepted study cells on the synced `0.4.0` base
-5. After the rerun completes, summarize:
+3. Treat the deprecated `2026-04-06` synced-base rerun as invalid for
+   scientific comparison.
+4. Execute the faithful replay of the accepted healthy `282` rows first.
+5. After the faithful replay completes, summarize:
    - reproduced healthy rows
-   - reproduced unresolved rows
-   - any new regressions on the synced base
-5. If switching to synced-base rerun first, explicitly define whether that
-   rerun scope is:
-   - all `288`, or
-   - only the repaired / promoted / unresolved subsets.
+   - rows that regress on the synced base under faithful replay
+   - any residual static vs dynamic discrepancy patterns
+6. Only after that should the unresolved `6` dynamic repair tail be reopened.

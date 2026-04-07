@@ -40,6 +40,12 @@ safe_chr <- function(x, default = NA_character_) {
   if (!nzchar(y)) default else y
 }
 
+safe_num_vec <- function(x, default) {
+  v <- suppressWarnings(as.numeric(x))
+  if (!length(v) || any(!is.finite(v))) return(as.numeric(default))
+  v
+}
+
 ensure_dir <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
 
 resolve_fit <- function(obj) obj$fit %||% obj
@@ -248,12 +254,18 @@ pkgload::load_all(repo_root, quiet = TRUE)
 inference <- as.character(row$inference)
 model <- as.character(row$model)
 root_kind <- as.character(row$root_kind)
-seed <- safe_int(args[['seed-override']] %||% args$seed_override %||% row$seed, 2026032701L)
+seed_override <- safe_int(args[['seed-override']] %||% args$seed_override, NA_integer_)
 
 cfg <- readRDS(row$run_config_path)
 sim <- readRDS(row$sim_output_path)
 baseline <- readRDS(row$baseline_fit_path)
 bf <- resolve_fit(baseline)
+baseline_seed <- safe_int(baseline$meta$seed %||% baseline$seed %||% bf$seed, 2026032701L)
+seed <- if (is.finite(seed_override)) {
+  seed_override
+} else {
+  safe_int(row$seed, baseline_seed)
+}
 
 candidate_path <- as.character(row$candidate_fit_path)
 ensure_dir(dirname(candidate_path))
@@ -302,7 +314,7 @@ run_and_wrap <- function() {
 
     vb_cfg <- cfg$vb %||% list()
     prior <- as.character(row$prior_override)
-    if (!nzchar(prior) || identical(prior, 'default')) prior <- as.character(vb_cfg$beta_prior %||% 'ridge')
+    if (!nzchar(prior) || identical(prior, 'default')) prior <- as.character(vb_cfg$beta_prior %||% bf$beta_prior$type %||% bf$beta_prior %||% 'ridge')
 
     y <- as.numeric(sim$y)
     X <- as.matrix(sim$extras$X)
@@ -317,7 +329,7 @@ run_and_wrap <- function() {
       max_iter = safe_int(vb_cfg$max_iter %||% 300L, 300L),
       tol = safe_num(vb_cfg$tol %||% 0.03, 0.03),
       beta_prior = prior,
-      beta_prior_controls = vb_cfg$beta_prior_controls %||% NULL,
+      beta_prior_controls = bf$beta_prior$controls %||% vb_cfg$beta_prior_controls %||% NULL,
       dqlm.ind = identical(model, 'al'),
       n_samp_xi = safe_int(vb_cfg$n_samp_xi %||% 1000L, 1000L),
       ld_controls = vb_cfg$ld %||% NULL,
@@ -331,7 +343,13 @@ run_and_wrap <- function() {
     if (identical(root_kind, 'dynamic')) {
       mc_cfg <- cfg$mcmc %||% list()
       mh <- mc_cfg$mh %||% list()
+      accepted_mh <- bf$mh.diagnostics %||% list()
 
+      explicit_vb_reference_path <- if ('vb_reference_fit_path' %in% names(row)) {
+        safe_chr(row$vb_reference_fit_path, NA_character_)
+      } else {
+        NA_character_
+      }
       explicit_vb_candidate_path <- if ('vb_candidate_fit_path' %in% names(row)) {
         safe_chr(row$vb_candidate_fit_path, NA_character_)
       } else {
@@ -348,7 +366,9 @@ run_and_wrap <- function() {
         sprintf('vb_%s_tau_%s_fit.rds', model, row$tau_label)
       )
       vb_obj <- NULL
-      if (!is.na(explicit_vb_candidate_path) && file.exists(explicit_vb_candidate_path)) {
+      if (!is.na(explicit_vb_reference_path) && file.exists(explicit_vb_reference_path)) {
+        vb_obj <- resolve_fit(readRDS(explicit_vb_reference_path))
+      } else if (!is.na(explicit_vb_candidate_path) && file.exists(explicit_vb_candidate_path)) {
         vb_obj <- resolve_fit(readRDS(explicit_vb_candidate_path))
       } else if (file.exists(vb_candidate_path)) {
         vb_obj <- resolve_fit(readRDS(vb_candidate_path))
@@ -359,12 +379,13 @@ run_and_wrap <- function() {
       init_from_vb <- if (!is.null(mc_cfg$init_from_vb)) {
         as_flag(mc_cfg$init_from_vb, !is.null(vb_obj))
       } else {
-        !is.null(vb_obj)
+        as_flag(bf$init.from.vb, !is.null(vb_obj))
       }
 
-      refresh_interval <- safe_int(mh$laplace_refresh_interval %||% mc_cfg$laplace_refresh_interval, NA_integer_)
-      refresh_start <- safe_int(mh$laplace_refresh_start %||% mc_cfg$laplace_refresh_start, NA_integer_)
-      refresh_weight <- safe_num(mh$laplace_refresh_weight %||% mc_cfg$laplace_refresh_weight, NA_real_)
+      accepted_refresh <- accepted_mh$laplace_refresh %||% list()
+      refresh_interval <- safe_int(accepted_refresh$interval %||% mh$laplace_refresh_interval %||% mc_cfg$laplace_refresh_interval, NA_integer_)
+      refresh_start <- safe_int(accepted_refresh$start %||% mh$laplace_refresh_start %||% mc_cfg$laplace_refresh_start, NA_integer_)
+      refresh_weight <- safe_num(accepted_refresh$weight %||% mh$laplace_refresh_weight %||% mc_cfg$laplace_refresh_weight, NA_real_)
 
       refresh_opts <- list()
       if (is.finite(refresh_interval)) {
@@ -388,24 +409,25 @@ run_and_wrap <- function() {
         df = bf$df,
         dim.df = bf$dim.df,
         dqlm.ind = identical(model, 'dqlm'),
-        n.burn = safe_int(mc_cfg$burn %||% 2000L, 2000L),
-        n.mcmc = safe_int(mc_cfg$n %||% 1500L, 1500L),
+        n.burn = safe_int(bf$n.burn %||% mc_cfg$burn %||% 2000L, 2000L),
+        n.mcmc = safe_int(bf$n.mcmc %||% mc_cfg$n %||% 1500L, 1500L),
         init.from.vb = init_from_vb,
-        joint.sample = as_flag(mh$joint_sample %||% mh$primary_joint_sample, FALSE),
-        mh.proposal = as.character(mh$proposal %||% mh$primary_proposal %||% 'laplace_rw'),
-        mh.adapt = as_flag(mh$adapt, TRUE),
-        mh.adapt.interval = safe_int(mh$adapt_interval %||% 50L, 50L),
-        mh.target.accept = as.numeric(mh$target_accept %||% c(0.20, 0.45)),
-        mh.scale.bounds = as.numeric(mh$scale_bounds %||% c(0.1, 10)),
-        mh.max_scale.step = safe_num(mh$max_scale_step %||% 0.35, 0.35),
-        mh.min_burn_adapt = safe_int(mh$min_burn_adapt %||% 50L, 50L),
+        init.from.isvb = as_flag(identical(tolower(safe_chr(bf$vb.init.method, 'ldvb')), 'isvb') %||% mc_cfg$init_from_isvb, FALSE),
+        joint.sample = as_flag(accepted_mh$joint_sample %||% mh$joint_sample %||% mh$primary_joint_sample, FALSE),
+        mh.proposal = as.character(accepted_mh$proposal %||% mh$proposal %||% mh$primary_proposal %||% 'laplace_rw'),
+        mh.adapt = as_flag(accepted_mh$adapt %||% mh$adapt, TRUE),
+        mh.adapt.interval = safe_int(accepted_mh$adapt_interval %||% mh$adapt_interval %||% 50L, 50L),
+        mh.target.accept = safe_num_vec(accepted_mh$target_accept %||% mh$target_accept, c(0.20, 0.45)),
+        mh.scale.bounds = safe_num_vec(accepted_mh$scale_bounds %||% mh$scale_bounds, c(0.1, 10)),
+        mh.max_scale.step = safe_num(accepted_mh$max_scale_step %||% mh$max_scale_step %||% 0.35, 0.35),
+        mh.min_burn_adapt = safe_int(accepted_mh$min_burn_adapt %||% mh$min_burn_adapt %||% 50L, 50L),
         trace.diagnostics = TRUE,
-        trace.every = safe_int(mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
+        trace.every = safe_int(accepted_mh$trace_every %||% mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
         verbose = isTRUE(verbose_mcmc),
         progress_callback = progress_telemetry_callback
       )
-      slice_width <- safe_num(mh$slice_width, NA_real_)
-      slice_max_steps <- safe_int(mh$slice_max_steps, NA_integer_)
+      slice_width <- safe_num(accepted_mh$slice_width %||% mh$slice_width, NA_real_)
+      slice_max_steps <- safe_int(accepted_mh$slice_max_steps %||% mh$slice_max_steps, NA_integer_)
       if (is.finite(slice_width)) call_args$slice.width <- slice_width
       if (is.finite(slice_max_steps)) call_args$slice.max.steps <- slice_max_steps
       if (isTRUE(init_from_vb) && !is.null(vb_obj)) call_args$vb_init_fit <- vb_obj
@@ -425,9 +447,10 @@ run_and_wrap <- function() {
     mc_cfg <- cfg$mcmc %||% list()
     vb_cfg <- cfg$vb %||% list()
     mh <- mc_cfg$mh %||% list()
+    accepted_mh <- bf$mh.diagnostics %||% list()
 
     prior <- as.character(row$prior_override)
-    if (!nzchar(prior) || identical(prior, 'default')) prior <- as.character(mc_cfg$beta_prior %||% 'ridge')
+    if (!nzchar(prior) || identical(prior, 'default')) prior <- as.character(mc_cfg$beta_prior %||% bf$beta_prior$type %||% bf$beta_prior %||% 'ridge')
 
     y <- as.numeric(sim$y)
     X <- as.matrix(sim$extras$X)
@@ -436,7 +459,58 @@ run_and_wrap <- function() {
     static_init_from_vb <- if (!is.null(mc_cfg$init_from_vb)) {
       as_flag(mc_cfg$init_from_vb, TRUE)
     } else {
-      TRUE
+      as_flag(bf$init.from.vb, TRUE)
+    }
+
+    explicit_vb_reference_path <- if ('vb_reference_fit_path' %in% names(row)) {
+      safe_chr(row$vb_reference_fit_path, NA_character_)
+    } else {
+      NA_character_
+    }
+    explicit_vb_candidate_path <- if ('vb_candidate_fit_path' %in% names(row)) {
+      safe_chr(row$vb_candidate_fit_path, NA_character_)
+    } else {
+      NA_character_
+    }
+    vb_candidate_path <- file.path(
+      row$run_root,
+      'fits', 'vb',
+      sprintf('vb_%s_tau_%s_fit_%s.rds', model, row$tau_label, tag)
+    )
+    vb_baseline_path <- file.path(
+      row$run_root,
+      'fits', 'vb',
+      sprintf('vb_%s_tau_%s_fit.rds', model, row$tau_label)
+    )
+    vb_obj <- NULL
+    if (!is.na(explicit_vb_reference_path) && file.exists(explicit_vb_reference_path)) {
+      vb_obj <- resolve_fit(readRDS(explicit_vb_reference_path))
+    } else if (!is.na(explicit_vb_candidate_path) && file.exists(explicit_vb_candidate_path)) {
+      vb_obj <- resolve_fit(readRDS(explicit_vb_candidate_path))
+    } else if (file.exists(vb_candidate_path)) {
+      vb_obj <- resolve_fit(readRDS(vb_candidate_path))
+    } else if (file.exists(vb_baseline_path)) {
+      vb_obj <- resolve_fit(readRDS(vb_baseline_path))
+    }
+
+    accepted_refresh <- accepted_mh$laplace_refresh %||% list()
+    refresh_interval <- safe_int(accepted_refresh$interval %||% mh$laplace_refresh_interval %||% mc_cfg$laplace_refresh_interval, NA_integer_)
+    refresh_start <- safe_int(accepted_refresh$start %||% mh$laplace_refresh_start %||% mc_cfg$laplace_refresh_start, NA_integer_)
+    refresh_weight <- safe_num(accepted_refresh$weight %||% mh$laplace_refresh_weight %||% mc_cfg$laplace_refresh_weight, NA_real_)
+
+    refresh_opts <- list()
+    if (is.finite(refresh_interval)) {
+      refresh_opts$exdqlm.static.mcmc.laplace_refresh_interval <- refresh_interval
+    }
+    if (is.finite(refresh_start)) {
+      refresh_opts$exdqlm.static.mcmc.laplace_refresh_start <- refresh_start
+    }
+    if (is.finite(refresh_weight)) {
+      refresh_opts$exdqlm.static.mcmc.laplace_refresh_weight <- refresh_weight
+    }
+    if (length(refresh_opts)) {
+      old_static_refresh <- options(refresh_opts)
+      on.exit(options(old_static_refresh), add = TRUE)
     }
 
     call_args <- list(
@@ -444,11 +518,11 @@ run_and_wrap <- function() {
       X = X,
       p0 = safe_num(row$tau, safe_num(bf$p0, 0.5)),
       beta_prior = prior,
-      beta_prior_controls = mc_cfg$beta_prior_controls %||% vb_cfg$beta_prior_controls %||% NULL,
+      beta_prior_controls = bf$beta_prior$controls %||% mc_cfg$beta_prior_controls %||% vb_cfg$beta_prior_controls %||% NULL,
       dqlm.ind = identical(model, 'al'),
-      n.burn = safe_int(mc_cfg$burn %||% 3000L, 3000L),
-      n.mcmc = safe_int(mc_cfg$n %||% 8000L, 8000L),
-      thin = safe_int(mc_cfg$thin %||% 1L, 1L),
+      n.burn = safe_int(bf$n.burn %||% mc_cfg$burn %||% 3000L, 3000L),
+      n.mcmc = safe_int(bf$n.mcmc %||% mc_cfg$n %||% 8000L, 8000L),
+      thin = safe_int(bf$thin %||% mc_cfg$thin %||% 1L, 1L),
       init.from.vb = static_init_from_vb,
       vb_init_controls = list(
         max_iter = safe_int(vb_cfg$max_iter %||% 300L, 300L),
@@ -457,18 +531,27 @@ run_and_wrap <- function() {
         ld_controls = vb_cfg$ld %||% NULL,
         verbose = FALSE
       ),
-      mh.proposal = as.character(mh$proposal %||% mh$primary_proposal %||% 'laplace_rw'),
-      mh.adapt = as_flag(mh$adapt, TRUE),
-      mh.adapt.interval = safe_int(mh$adapt_interval %||% 50L, 50L),
-      mh.target.accept = as.numeric(mh$target_accept %||% c(0.20, 0.45)),
-      mh.scale.bounds = as.numeric(mh$scale_bounds %||% c(0.1, 10)),
-      mh.max_scale.step = safe_num(mh$max_scale_step %||% 0.35, 0.35),
-      mh.min_burn_adapt = safe_int(mh$min_burn_adapt %||% 50L, 50L),
-      trace.diagnostics = as_flag(mh$trace_diagnostics, TRUE),
-      trace.every = safe_int(mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
+      mh.proposal = as.character(accepted_mh$proposal %||% mh$proposal %||% mh$primary_proposal %||% 'laplace_rw'),
+      mh.adapt = as_flag(accepted_mh$adapt %||% mh$adapt, TRUE),
+      mh.adapt.interval = safe_int(accepted_mh$adapt_interval %||% mh$adapt_interval %||% 50L, 50L),
+      mh.target.accept = safe_num_vec(accepted_mh$target_accept %||% mh$target_accept, c(0.20, 0.45)),
+      mh.scale.bounds = safe_num_vec(accepted_mh$scale_bounds %||% mh$scale_bounds, c(0.1, 10)),
+      mh.max_scale.step = safe_num(accepted_mh$max_scale_step %||% mh$max_scale_step %||% 0.35, 0.35),
+      mh.min_burn_adapt = safe_int(accepted_mh$min_burn_adapt %||% mh$min_burn_adapt %||% 50L, 50L),
+      gamma.substeps = safe_int(accepted_mh$gamma_substeps %||% mh$gamma_substeps %||% 1L, 1L),
+      p.global.eta.jump = safe_num(accepted_mh$global_eta_jump$p %||% mh$p_global_eta_jump, 0),
+      global.eta.jump.scale = safe_num(accepted_mh$global_eta_jump$scale %||% mh$global_eta_jump_scale, 1),
+      trace.diagnostics = as_flag(accepted_mh$trace_enabled %||% mh$trace_diagnostics, TRUE),
+      trace.every = safe_int(accepted_mh$trace_every %||% mh$trace_every %||% mc_cfg$trace_every %||% 50L, 50L),
       verbose = isTRUE(verbose_mcmc),
       progress_callback = progress_telemetry_callback
     )
+
+    slice_width <- safe_num(accepted_mh$slice_width %||% mh$slice_width, NA_real_)
+    slice_max_steps <- safe_int(accepted_mh$slice_max_steps %||% mh$slice_max_steps, NA_integer_)
+    if (is.finite(slice_width)) call_args$slice.width <- slice_width
+    if (is.finite(slice_max_steps)) call_args$slice.max.steps <- slice_max_steps
+    if (isTRUE(static_init_from_vb) && !is.null(vb_obj)) call_args$vb_init_fit <- vb_obj
 
     set.seed(seed)
     t0 <- proc.time()[['elapsed']]
