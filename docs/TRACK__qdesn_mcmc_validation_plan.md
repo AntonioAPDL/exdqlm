@@ -303,6 +303,20 @@ Authoritative closeout outputs:
 
 ## Latest Operational Update (2026-03-20)
 
+## Integration-Branch Dynamic Update (2026-04-07)
+
+- the synced `0.4.0` integration branch is now the active QDESN validation base:
+  - `feature/qdesn-mcmc-alternative-0p4p0-integration`
+- the branch-local dynamic rerun completed, followed by two residual closure waves
+- current branch-local residual debt after the completed residual wave is:
+  - `2 / 144` fit FAIL rows
+  - `2 / 36` fail-carrying roots
+  - `0 / 36` root-status FAILs
+- next compute step is a final rhs-specific residual wave over those last `2` mcmc-exal rows, not
+  another broad rerun
+
+## Latest Operational Update (2026-03-20)
+
 - Added explicit operational tracker for current stepwise workflow:
   - `docs/TRACK__qdesn_mcmc_validation_guardrail_wave.md`
 - Added campaign metadata reconciliation utility:

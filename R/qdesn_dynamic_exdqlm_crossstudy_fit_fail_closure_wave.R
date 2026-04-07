@@ -304,6 +304,23 @@ qdesn_dynamic_crossstudy_fitfail_stage_root_ids <- function(source_state, grid_d
   selector <- stage_cfg$stage_selector %||% stage_cfg$target_selector %||% list()
   matched_fail_dt <- .qdesn_dynamic_crossstudy_fitfail_match_selector(source_state$fail_summary, selector)
   root_ids <- sort(unique(as.character(matched_fail_dt$root_id)))
+  include_root_ids <- unique(as.character(unlist(stage_cfg$include_root_ids %||% character(0), use.names = FALSE)))
+  include_root_ids <- include_root_ids[nzchar(include_root_ids)]
+  if (length(include_root_ids)) {
+    known_root_ids <- unique(as.character(grid_df$root_id))
+    unknown_root_ids <- setdiff(include_root_ids, known_root_ids)
+    if (length(unknown_root_ids)) {
+      stop(
+        sprintf(
+          "Stage '%s' include_root_ids contain unknown roots: %s",
+          as.character(stage_cfg$id %||% "UNKNOWN"),
+          paste(unknown_root_ids, collapse = ", ")
+        ),
+        call. = FALSE
+      )
+    }
+    root_ids <- sort(unique(c(root_ids, include_root_ids)))
+  }
   extra_root_fail_selector <- stage_cfg$include_source_root_status_fail_selector %||% list()
   if (length(extra_root_fail_selector) && nrow(source_state$original_source_root_fail_grid %||% data.frame(stringsAsFactors = FALSE))) {
     extra_fail_grid <- .qdesn_dynamic_crossstudy_fitfail_match_selector(

@@ -374,21 +374,40 @@ Wave-2 residual preflight is now validated on this branch:
 - preflight:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025317__git-2078ff9/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
 
-Wave-2 residual overnight run is now live:
+Wave-2 residual overnight run completed cleanly:
 
 - run tag:
   - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2`
-- detached session:
-  - `qdesn_dynxff_0407_025827`
-- initial healthcheck:
-  - launcher session live
-  - runner stop reason `RUNNING`
-  - current stage:
-    - `R1_gausmix_tt5000_residual`
-  - current profile:
-    - `L610_gmix_long_vbguard_local`
-- launch metadata:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2/launch/launcher_session.json`
+- stop reason:
+  - `completed_requested_scope`
+- execution:
+  - `5/5` stages complete
+  - `16/16` profiles complete
+  - `56/56` root-campaigns executed
+- stage-local promotions:
+  - `R1 -> L640_gmix_long_split_diag`
+  - `R2 -> L670_gmix_short_diag_mix`
+  - `R3 -> L720_ridge_long_softgamma_plus`
+  - `R4 -> L760_rhs_long_vbguard_deep`
+  - `R5 -> L770_short_mixed_local_mcmc`
+- remaining branch-local residual:
+  - `2` fit FAIL rows
+  - `2` fail-carrying roots
+  - `0` root-status FAILs
+- authoritative summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2/summary/qdesn_dynamic_crossstudy_fit_fail_closure_results.md`
+- promoted local baseline map:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2/tables/local_baseline_map.csv`
+
+Current effective local baseline map:
+
+| Residual Stage | Active Local Baseline |
+|---|---|
+| `R1_gausmix_tt5000_residual` | `L640_gmix_long_split_diag` |
+| `R2_gausmix_tt500_residual` | `L670_gmix_short_diag_mix` |
+| `R3_ridge_tt5000_singleton_residual` | `L720_ridge_long_softgamma_plus` |
+| `R4_rhs_tt5000_residual` | `L760_rhs_long_vbguard_deep` |
+| `R5_short_horizon_mixed_residual` | `L770_short_mixed_local_mcmc` |
 
 ## 12) Working Rules
 
@@ -403,6 +422,7 @@ Wave-2 residual overnight run is now live:
 
 For continued QDESN work on this branch, the immediate decision is now:
 
-- **launch the Wave-2 residual-only overnight run**
-- **recompute the branch-local residual inventory after that run completes**
-- **then decide whether any new local winners deserve promotion**
+- **run one final residual-only overnight wave**
+- target only the last `2` remaining rhs-specific `mcmc_exal` FAIL rows
+- keep the new merged local baseline map as the source state
+- rerun only the nearby guard roots needed to avoid fragile single-row overfitting

@@ -859,6 +859,38 @@ Exact remaining fail set under `R44`:
 
 Additional important read:
 
+## 12) Dynamic Integration Branch Update (2026-04-07)
+
+The synced integration branch is now operating on the correct dynamic exdqlm-aligned QDESN
+surface, and the residual closure path has nearly finished.
+
+Current branch-local state:
+
+- broad rerun completed on the integration branch
+- first targeted closure wave reduced the broad fail surface sharply
+- second residual closure wave promoted:
+  - `L640`
+  - `L670`
+  - `L720`
+  - `L760`
+  - `L770`
+- current remaining debt:
+  - `2 / 144` fit FAIL rows
+  - `2 / 36` fail-carrying roots
+  - `0 / 36` root-status FAILs
+
+Exact remaining branch-local rows:
+
+- `normal tau=0.05 fit_size=5000 rhs_ns mcmc_exal`
+  - reason: `geweke_drift; half_chain_drift`
+- `normal tau=0.95 fit_size=500 rhs_ns mcmc_exal`
+  - reason: `geweke_drift`
+
+Move-forward rule:
+
+- do not reopen cleared families or dominated local profiles
+- do one final rhs-specific cleanup wave over the last two rows plus nearby guard roots
+
 - `R44` preserved the repaired sentinel behavior;
 - `R51` showed that heavier combined tuning can fix both ridge roots, but it does so by destabilizing rhs and sentinel roots;
 - the Phase 6 rerun also showed that exact `R31` behavior is not perfectly stable across waves, so the next program should

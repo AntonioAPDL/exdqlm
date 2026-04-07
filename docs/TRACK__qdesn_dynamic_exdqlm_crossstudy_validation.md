@@ -282,3 +282,50 @@ This integration branch should therefore treat the following as the immediate va
    baseline on that targeted slice;
 5. after the targeted wave completes, rebuild the branch-local `PASS / WARN / FAIL` inventory from
    actual outputs and decide on any further cleanup.
+
+## 10) Latest Update (2026-04-07)
+
+Residual Wave 2 completed cleanly and materially improved the branch-local dynamic validation
+state.
+
+Completed run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2`
+- result:
+  - `5/5` stages complete
+  - `16/16` profiles complete
+  - `56/56` root-campaigns executed
+
+Promoted local winners:
+
+- `R1 -> L640_gmix_long_split_diag`
+- `R2 -> L670_gmix_short_diag_mix`
+- `R3 -> L720_ridge_long_softgamma_plus`
+- `R4 -> L760_rhs_long_vbguard_deep`
+- `R5 -> L770_short_mixed_local_mcmc`
+
+Current branch-local residual after those promotions:
+
+- fit FAIL rows:
+  - `2 / 144`
+- fail-carrying roots:
+  - `2 / 36`
+- root-status FAILs:
+  - `0 / 36`
+
+Exact remaining rows:
+
+- `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns`
+  - `mcmc_exal`
+  - `geweke_drift; half_chain_drift`
+- `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns`
+  - `mcmc_exal`
+  - `geweke_drift`
+
+Immediate move-forward rule:
+
+- do not reopen cleared gausmix or ridge pockets
+- do not rerun dominated `L740`, `L750`, `L780`, or `L790`
+- run one final rhs-specific residual closure wave over the last `2` failing rows plus their guard
+  roots
