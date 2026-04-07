@@ -22,6 +22,19 @@ dynamic dataset surface, using:
 
 This tracker is for the corrected dynamic comparison-facing program.
 
+## Integration-Branch Handoff Note (2026-04-06)
+
+On `feature/qdesn-mcmc-alternative-0p4p0-integration`, the preferred working handoff document is:
+
+- `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
+
+Reason:
+
+- this file is the long-form historical tracker for the original relaunch effort;
+- the new integration branch needs a concise branch-local continuation note that carries forward the
+  validated dynamic results from old-branch commit `1591bd5` without pretending this branch has
+  already rerun them.
+
 ## 2) Current Status
 
 Status: **dynamic relaunch implementation completed; canonical grid recovered from the live
