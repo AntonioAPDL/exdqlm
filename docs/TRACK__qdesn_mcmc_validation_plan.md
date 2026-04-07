@@ -55,6 +55,8 @@ Decision:
     - `16`
   - planned root-campaigns:
     - `56`
+- Wave 2 detached overnight launch is now live:
+  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2`
 
 ## Cross-Study Follow-On Correction (2026-04-06)
 

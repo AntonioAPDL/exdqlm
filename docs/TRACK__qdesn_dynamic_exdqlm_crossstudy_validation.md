@@ -152,6 +152,15 @@ Integration-branch continuation rule:
     - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_20260407.md`
   - manifest:
     - `config/validation/qdesn_dynamic_exdqlm_crossstudy_residual_fail_closure_wave_manifest.yaml`
+- the detached overnight residual-wave launch is now live on this branch:
+  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2`
+  - initial healthcheck:
+    - launcher live
+    - runner `RUNNING`
+    - current stage:
+      - `R1_gausmix_tt5000_residual`
+    - current profile:
+      - `L610_gmix_long_vbguard_local`
 
 ## 3) Current Best Read Of The Target Dynamic Surface
 

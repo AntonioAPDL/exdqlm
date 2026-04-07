@@ -374,6 +374,22 @@ Wave-2 residual preflight is now validated on this branch:
 - preflight:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025317__git-2078ff9/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
 
+Wave-2 residual overnight run is now live:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2`
+- detached session:
+  - `qdesn_dynxff_0407_025827`
+- initial healthcheck:
+  - launcher session live
+  - runner stop reason `RUNNING`
+  - current stage:
+    - `R1_gausmix_tt5000_residual`
+  - current profile:
+    - `L610_gmix_long_vbguard_local`
+- launch metadata:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2/launch/launcher_session.json`
+
 ## 12) Working Rules
 
 - keep the study on the **dynamic** exdqlm-aligned surface
