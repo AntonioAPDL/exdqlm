@@ -29,9 +29,9 @@ staying faithful to the late-stage decision rule:
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f`
 
 Current authoritative state:
 
@@ -50,11 +50,16 @@ Current authoritative state:
 Primary outputs:
 
 - summary markdown:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/summary/qdesn_dynamic_main_comparison_analysis.md`
+- full 144-row case-table markdown:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/summary/qdesn_dynamic_main_comparison_case_table.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/comparison_vs_reference/comparison_summary.md`
 - overview table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/analysis_overview.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/tables/analysis_overview.csv`
+- non-aggregated case tables:
+  - `tables/authoritative_fit_case_table.csv`
+  - `tables/authoritative_fit_case_table_readable.csv`
 - authoritative local baseline map:
   - `tables/authoritative_local_baseline_map.csv`
 - authoritative root override map:
@@ -112,6 +117,8 @@ fit-performance side of the study in a more academically standard way:
   - `coverage_minus_tau`
   - `coverage_error`
   - `runtime_sec_per_1k_eval`
+- it now also ships a non-aggregated `144`-row case table so every root/inference/model fit can be
+  inspected directly without pooling across cases
 
 ### 3.1 Prior-Level Read
 

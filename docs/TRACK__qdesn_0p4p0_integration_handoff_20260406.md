@@ -486,18 +486,22 @@ The authoritative comparison-analysis pack has been regenerated from the reconci
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f`
 - summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/summary/qdesn_dynamic_main_comparison_analysis.md`
+- 144-row case table:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/summary/qdesn_dynamic_main_comparison_case_table.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/comparison_vs_reference/comparison_summary.md`
 - root override map:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_root_override_map.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/tables/authoritative_root_override_map.csv`
 - explicit q-true fit summaries:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_inference_summary.csv`
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_model_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/tables/authoritative_fit_inference_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/tables/authoritative_fit_model_summary.csv`
+- direct per-fit case table csv:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-214041__git-5c3762f/tables/authoritative_fit_case_table.csv`
 - implementation/interpretation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
 
@@ -537,6 +541,7 @@ High-value comparison takeaways now documented in the pack:
   defaults still use `holdout_n = 1`
 - dedicated tables now summarize those metrics by inference, model, prior, family, tau, and
   inference+model
+- the pack now also includes a non-aggregated 144-row per-fit case table for case-by-case review
 - `mcmc/exal` remains the softest area scientifically, but is now all non-fail:
   - `1 PASS / 35 WARN / 0 FAIL`
   - mean runtime about `30.76 s`
