@@ -1446,7 +1446,13 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     }
     metrics <- list(
       train = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0)),
-      holdout = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0))
+      holdout = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0)),
+      train_quantile = .qdesn_static_crossstudy_quantile_fit_metrics(numeric(0), numeric(0), NA_real_),
+      holdout_quantile = .qdesn_static_crossstudy_quantile_fit_metrics(numeric(0), numeric(0), NA_real_),
+      train_point = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0)),
+      holdout_point = .qdesn_static_crossstudy_eval_metrics(numeric(0), numeric(0)),
+      train_quantile_point = .qdesn_static_crossstudy_quantile_fit_metrics(numeric(0), numeric(0), NA_real_),
+      holdout_quantile_point = .qdesn_static_crossstudy_quantile_fit_metrics(numeric(0), numeric(0), NA_real_)
     )
     fit_summary <- .qdesn_static_crossstudy_fit_summary_row(
       root_spec = root_spec,
@@ -1459,6 +1465,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     )
     .qdesn_validation_write_df(health_row, file.path(method_dir, "health_summary.csv"))
     .qdesn_validation_write_df(signoff_row, file.path(method_dir, "signoff_summary.csv"))
+    .qdesn_validation_write_df(fit_summary, file.path(method_dir, "fit_summary_row.csv"))
     return(list(
       method = method,
       likelihood_family = likelihood_family,

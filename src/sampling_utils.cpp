@@ -7,7 +7,8 @@
 #include "omp_compat.h"
 #include <cmath>
 #include <chrono>
-#include <algorithm>  
+#include <algorithm>
+#include <limits>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::depends(BH)]]
@@ -39,11 +40,11 @@ double sample_gig_devroye(double p, double a, double b) {
         return NA_REAL;
     }
     double lambda = p;
-    double omega = sqrt(a * b);
+    double omega = std::sqrt(a) * std::sqrt(b);
     if (!std::isfinite(omega) || omega <= 0.0) {
         return NA_REAL;
     }
-    double alpha = sqrt(omega * omega + lambda * lambda) - lambda;
+    double alpha = std::hypot(omega, lambda) - lambda;
     if (!std::isfinite(alpha) || alpha <= 0.0) {
         return NA_REAL;
     }
@@ -94,12 +95,21 @@ double sample_gig_devroye(double p, double a, double b) {
         } else {
             X = -sd + p_const * log(V);
         }
+        if (!std::isfinite(X)) {
+            if (++guard > 10000000) {
+                return NA_REAL;
+            }
+            continue;
+        }
 
         double f1 = exp(-eta - zeta * (X - t));
         double f2 = exp(-theta + xi * (X + s));
         double rhs = exp(psi(X, alpha, lambda));
         if (!std::isfinite(f1) || !std::isfinite(f2) || !std::isfinite(rhs)) {
-            return NA_REAL;
+            if (++guard > 10000000) {
+                return NA_REAL;
+            }
+            continue;
         }
         if ((W * g(X, sd, td, f1, f2)) <= rhs) {
             done = true;
@@ -109,7 +119,16 @@ double sample_gig_devroye(double p, double a, double b) {
         }
     }
 
-    double out = exp(X) * (lambda / omega + sqrt(1.0 + (lambda / omega) * (lambda / omega))) / sqrt(a / b);
+    double ratio = lambda / omega;
+    if (!std::isfinite(ratio)) {
+        return NA_REAL;
+    }
+    double log_scale = std::asinh(ratio) + 0.5 * (std::log(b) - std::log(a));
+    double log_out = X + log_scale;
+    if (!std::isfinite(log_out) || log_out > std::log(std::numeric_limits<double>::max())) {
+        return NA_REAL;
+    }
+    double out = std::exp(log_out);
     if (!std::isfinite(out) || out <= 0.0) {
         return NA_REAL;
     }

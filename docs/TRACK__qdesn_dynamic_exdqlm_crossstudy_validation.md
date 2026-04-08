@@ -46,6 +46,10 @@ contract:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
 - live relaunch queue:
   - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
+- failure investigation:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
+- failed-root relaunch plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
 - defaults:
   - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
 
@@ -76,18 +80,25 @@ Current validation state of this new rerun:
     - `500`
   - exact `X_train` size verified from live pipeline logs on the `5000` roots:
     - `5000`
-- detached full rerun now live from committed state:
+- completed full rerun from committed state:
   - commit:
     - `cdfd1a9`
   - run tag:
     - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
-  - tmux session:
-    - `qdesn_dynx_0407_233147`
-  - launcher session:
-    - live
-- current failed-root relaunch queue:
-  - `6` roots as of `2026-04-08 00:11:51 EDT`
-  - currently concentrated in long-horizon effective `5000` cases
+  - outcome:
+    - `30/36 SUCCESS`
+    - `6/36 FAIL`
+- failure investigation conclusion:
+  - failures are implementation / numerical failures, not merely weak-signoff cases
+  - primary cause:
+    - `mcmc_al` latent-`v` GIG invalid draws
+  - secondary cause:
+    - failed-fit summary rows not always written
+- relaunch readiness:
+  - exact failed-fit reproductions succeeded after the patch under:
+    - `ridge`
+    - `rhs_ns`
+  - failed-root-only subset-grid relaunch path is now implemented and prepare-only validated
 
 ## 2) Current Status
 
@@ -98,6 +109,8 @@ For the current branch-local active rerun, use the effective-w300 posterior-draw
 - `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
 - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
+- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
 
 The remainder of this section preserves the earlier integration-branch relaunch history.
 

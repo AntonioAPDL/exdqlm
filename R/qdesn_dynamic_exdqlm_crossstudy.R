@@ -625,7 +625,7 @@ qdesn_dynamic_crossstudy_build_grid <- function(defaults,
   qdesn_dynamic_crossstudy_build_grid_from_reference(defaults)
 }
 
-qdesn_dynamic_crossstudy_validate_grid <- function(grid_df, defaults) {
+qdesn_dynamic_crossstudy_validate_grid <- function(grid_df, defaults, allow_subset = FALSE) {
   contract <- defaults$reference_contract %||% list()
   problems <- character(0)
   enabled <- if ("enabled" %in% names(grid_df)) {
@@ -645,32 +645,32 @@ qdesn_dynamic_crossstudy_validate_grid <- function(grid_df, defaults) {
   priors <- sort(unique(as.character(grid_df$beta_prior_type)))
   unique_cells <- unique(as.character(grid_df$dataset_cell_id))
 
-  if (!identical(scenarios, sort(as.character(contract$scenarios %||% scenarios)))) {
+  if (!isTRUE(allow_subset) && !identical(scenarios, sort(as.character(contract$scenarios %||% scenarios)))) {
     problems <- c(problems, sprintf("scenario set mismatch: %s", paste(scenarios, collapse = ", ")))
   }
-  if (!identical(families, sort(as.character(contract$families %||% families)))) {
+  if (!isTRUE(allow_subset) && !identical(families, sort(as.character(contract$families %||% families)))) {
     problems <- c(problems, sprintf("family set mismatch: %s", paste(families, collapse = ", ")))
   }
-  if (!identical(as.numeric(taus), sort(as.numeric(contract$taus %||% taus)))) {
+  if (!isTRUE(allow_subset) && !identical(as.numeric(taus), sort(as.numeric(contract$taus %||% taus)))) {
     problems <- c(problems, sprintf("tau set mismatch: %s", paste(taus, collapse = ", ")))
   }
-  if (!identical(as.integer(fit_sizes), sort(as.integer(contract$fit_sizes %||% fit_sizes)))) {
+  if (!isTRUE(allow_subset) && !identical(as.integer(fit_sizes), sort(as.integer(contract$fit_sizes %||% fit_sizes)))) {
     problems <- c(problems, sprintf("fit_size set mismatch: %s", paste(fit_sizes, collapse = ", ")))
   }
-  if (!identical(root_kinds, sort(as.character(contract$root_kind %||% root_kinds)))) {
+  if (!isTRUE(allow_subset) && !identical(root_kinds, sort(as.character(contract$root_kind %||% root_kinds)))) {
     problems <- c(problems, sprintf("root_kind set mismatch: %s", paste(root_kinds, collapse = ", ")))
   }
-  if (!identical(priors, sort(as.character(contract$expected_priors %||% priors)))) {
+  if (!isTRUE(allow_subset) && !identical(priors, sort(as.character(contract$expected_priors %||% priors)))) {
     problems <- c(problems, sprintf("beta_prior_type set mismatch: %s", paste(priors, collapse = ", ")))
   }
-  if (!is.null(contract$expected_unique_dataset_cells) &&
+  if (!isTRUE(allow_subset) && !is.null(contract$expected_unique_dataset_cells) &&
       !identical(length(unique_cells), as.integer(contract$expected_unique_dataset_cells))) {
     problems <- c(problems, sprintf(
       "expected %d unique dataset cells, found %d",
       as.integer(contract$expected_unique_dataset_cells), length(unique_cells)
     ))
   }
-  if (!is.null(contract$expected_qdesn_roots) &&
+  if (!isTRUE(allow_subset) && !is.null(contract$expected_qdesn_roots) &&
       !identical(nrow(grid_df), as.integer(contract$expected_qdesn_roots))) {
     problems <- c(problems, sprintf(
       "expected %d QDESN roots, found %d",

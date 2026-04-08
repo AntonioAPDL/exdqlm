@@ -58,11 +58,31 @@ grid_equivalent <- function(a, b) {
     out <- df[, cols, drop = FALSE]
     if ("tau" %in% names(out)) out$tau <- as.numeric(out$tau)
     if ("fit_size" %in% names(out)) out$fit_size <- as.integer(out$fit_size)
+    if ("effective_fit_size" %in% names(out)) out$effective_fit_size <- as.integer(out$effective_fit_size)
+    if ("source_total_size" %in% names(out)) out$source_total_size <- as.integer(out$source_total_size)
     if ("seed" %in% names(out)) out$seed <- as.integer(out$seed)
     out[] <- lapply(out, function(x) if (is.logical(x)) as.character(x) else x)
     out[do.call(order, out), , drop = FALSE]
   }
   identical(normalize(a), normalize(b))
+}
+
+grid_subset_of <- function(a, b) {
+  cols <- intersect(names(a), names(b))
+  cols <- cols[!cols %in% c("enabled")]
+  if (!length(cols) || !nrow(a) || !nrow(b)) return(FALSE)
+  normalize <- function(df) {
+    out <- df[, cols, drop = FALSE]
+    if ("tau" %in% names(out)) out$tau <- as.numeric(out$tau)
+    if ("fit_size" %in% names(out)) out$fit_size <- as.integer(out$fit_size)
+    if ("effective_fit_size" %in% names(out)) out$effective_fit_size <- as.integer(out$effective_fit_size)
+    if ("source_total_size" %in% names(out)) out$source_total_size <- as.integer(out$source_total_size)
+    if ("seed" %in% names(out)) out$seed <- as.integer(out$seed)
+    out[] <- lapply(out, function(x) if (is.logical(x)) as.character(x) else x)
+    out
+  }
+  encode <- function(df) do.call(paste, c(df, sep = "\r"))
+  all(encode(normalize(a)) %in% encode(normalize(b)))
 }
 
 summary_md <- function(title, body_lines) {
@@ -98,6 +118,7 @@ defaults_path <- resolve_path(defaults_rel, must_work = TRUE)
 grid_path_raw <- resolve_path(grid_rel, must_work = FALSE)
 prepare_only <- has_flag("--prepare-only")
 refresh_grid <- has_flag("--refresh-grid")
+allow_grid_subset <- has_flag("--allow-grid-subset")
 verbose <- !has_flag("--quiet")
 create_plots <- !has_flag("--no-plots")
 batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smoke"))
@@ -116,13 +137,17 @@ if (isTRUE(refresh_grid) || !file.exists(grid_path_raw)) {
 }
 
 grid_df <- exdqlm:::qdesn_dynamic_crossstudy_load_grid(grid_path_raw)
-grid_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_grid(grid_df, defaults)
-if (!grid_equivalent(grid_df, canonical_grid)) {
+grid_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_grid(grid_df, defaults, allow_subset = allow_grid_subset)
+if (!(grid_equivalent(grid_df, canonical_grid) || (isTRUE(allow_grid_subset) && grid_subset_of(grid_df, canonical_grid)))) {
   stop(
     paste(
       c(
-        "The checked-in dynamic grid does not match the canonical grid recovered from the exdqlm dynamic reference roots.",
-        "Re-run with `--refresh-grid` or inspect config/validation/qdesn_dynamic_exdqlm_crossstudy_grid.csv."
+        if (isTRUE(allow_grid_subset)) {
+          "The supplied dynamic grid is neither the canonical grid nor a valid subset of the canonical grid recovered from the exdqlm dynamic reference roots."
+        } else {
+          "The checked-in dynamic grid does not match the canonical grid recovered from the exdqlm dynamic reference roots."
+        },
+        "Re-run with `--refresh-grid`, pass `--allow-grid-subset` for an auditable subset rerun, or inspect the dynamic grid CSV."
       ),
       collapse = "\n"
     ),
@@ -203,6 +228,7 @@ preflight_manifest <- list(
   selected_grid_path = selected_grid_path,
   prepare_only = prepare_only,
   refresh_grid = refresh_grid,
+  allow_grid_subset = allow_grid_subset,
   create_plots = create_plots,
   chosen_workers = workers,
   reference_summary = reference_summary,
@@ -256,6 +282,7 @@ preflight_lines <- c(
   sprintf("- outer_results_root: `%s`", run_results_root),
   sprintf("- chosen_workers: `%d`", as.integer(workers)),
   sprintf("- active_qdesn_processes_n: `%d`", as.integer(length(active_qdesn_processes))),
+  sprintf("- allow_grid_subset: `%s`", if (isTRUE(allow_grid_subset)) "TRUE" else "FALSE"),
   sprintf("- create_plots: `%s`", if (isTRUE(create_plots)) "TRUE" else "FALSE"),
   "",
   "## Scope Decision",

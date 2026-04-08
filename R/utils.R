@@ -49,8 +49,14 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   stop("Unable to compute valid gamma bounds for p0 = ", p0)
 }
 
-.sample_gig_devroye_required <- function(n_samples, p, a, b_vec, context = "gig") {
-  if (!exists("sample_gig_devroye_vector", mode = "function")) {
+.sample_gig_devroye_required <- function(n_samples,
+                                         p,
+                                         a,
+                                         b_vec,
+                                         context = "gig",
+                                         max_retry_batches = 12L,
+                                         sampler = sample_gig_devroye_vector) {
+  if (!is.function(sampler)) {
     stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
   }
 
@@ -66,25 +72,49 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   if (!is.finite(a) || a <= 0) a <- eps_gig
   b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
 
-  draws <- sample_gig_devroye_vector(
-    as.integer(n_samples)[1],
+  n_samples <- as.integer(n_samples)[1]
+  max_retry_batches <- max(as.integer(max_retry_batches)[1], 0L)
+
+  draws <- sampler(
+    n_samples,
     p = p,
     a = a,
     b_vec = b_vec
   )
 
   bad <- which(!is.finite(draws) | draws <= 0)
+  retry_batches <- 0L
+  while (length(bad) && retry_batches < max_retry_batches) {
+    bad_cols <- sort(unique(((bad - 1L) %% ncol(draws)) + 1L))
+    redraws <- sampler(
+      n_samples,
+      p = p,
+      a = a,
+      b_vec = b_vec[bad_cols]
+    )
+    draws[, bad_cols] <- redraws
+    bad <- which(!is.finite(draws) | draws <= 0)
+    retry_batches <- retry_batches + 1L
+  }
   if (length(bad)) {
     first <- bad[1]
-    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
-                 context, length(bad), first, draws[first]))
+    stop(sprintf(
+      "%s returned %d invalid draws after %d retry batches (first index=%d, value=%.6g)",
+      context, length(bad), retry_batches, first, draws[first]
+    ))
   }
 
   pmax(draws, eps_gig)
 }
 
-.sample_gig_devroye_pairs_required <- function(n_samples, p, a_vec, b_vec, context = "gig") {
-  if (!exists("sample_gig_devroye_pairs", mode = "function")) {
+.sample_gig_devroye_pairs_required <- function(n_samples,
+                                               p,
+                                               a_vec,
+                                               b_vec,
+                                               context = "gig",
+                                               max_retry_batches = 12L,
+                                               sampler = sample_gig_devroye_pairs) {
+  if (!is.function(sampler)) {
     stop(sprintf("%s requires sample_gig_devroye_pairs(), but it is not available", context))
   }
 
@@ -103,18 +133,36 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   a_vec[!is.finite(a_vec) | a_vec <= 0] <- eps_gig
   b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
 
-  draws <- sample_gig_devroye_pairs(
-    as.integer(n_samples)[1],
+  n_samples <- as.integer(n_samples)[1]
+  max_retry_batches <- max(as.integer(max_retry_batches)[1], 0L)
+
+  draws <- sampler(
+    n_samples,
     p = p,
     a_vec = a_vec,
     b_vec = b_vec
   )
 
   bad <- which(!is.finite(draws) | draws <= 0)
+  retry_batches <- 0L
+  while (length(bad) && retry_batches < max_retry_batches) {
+    bad_cols <- sort(unique(((bad - 1L) %% ncol(draws)) + 1L))
+    redraws <- sampler(
+      n_samples,
+      p = p,
+      a_vec = a_vec[bad_cols],
+      b_vec = b_vec[bad_cols]
+    )
+    draws[, bad_cols] <- redraws
+    bad <- which(!is.finite(draws) | draws <= 0)
+    retry_batches <- retry_batches + 1L
+  }
   if (length(bad)) {
     first <- bad[1]
-    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
-                 context, length(bad), first, draws[first]))
+    stop(sprintf(
+      "%s returned %d invalid draws after %d retry batches (first index=%d, value=%.6g)",
+      context, length(bad), retry_batches, first, draws[first]
+    ))
   }
 
   pmax(draws, eps_gig)
@@ -275,79 +323,6 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
     }
   }
 }
-#
-.sample_gig_devroye_required <- function(n_samples, p, a, b_vec, context = "gig") {
-  if (!exists("sample_gig_devroye_vector", mode = "function")) {
-    stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
-  }
-
-  eps_gig <- sqrt(.Machine$double.eps)
-  p <- as.numeric(p)[1]
-  a <- as.numeric(a)[1]
-  b_vec <- as.numeric(b_vec)
-
-  if (!is.finite(p)) {
-    stop(sprintf("%s requires a finite lambda; got %.6g", context, p))
-  }
-
-  if (!is.finite(a) || a <= 0) a <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
-
-  draws <- sample_gig_devroye_vector(
-    as.integer(n_samples)[1],
-    p = p,
-    a = a,
-    b_vec = b_vec
-  )
-
-  bad <- which(!is.finite(draws) | draws <= 0)
-  if (length(bad)) {
-    first <- bad[1]
-    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
-                 context, length(bad), first, draws[first]))
-  }
-
-  pmax(draws, eps_gig)
-}
-
-.sample_gig_devroye_pairs_required <- function(n_samples, p, a_vec, b_vec, context = "gig") {
-  if (!exists("sample_gig_devroye_pairs", mode = "function")) {
-    stop(sprintf("%s requires sample_gig_devroye_pairs(), but it is not available", context))
-  }
-
-  eps_gig <- sqrt(.Machine$double.eps)
-  p <- as.numeric(p)[1]
-  a_vec <- as.numeric(a_vec)
-  b_vec <- as.numeric(b_vec)
-
-  if (!is.finite(p)) {
-    stop(sprintf("%s requires a finite lambda; got %.6g", context, p))
-  }
-  if (length(a_vec) != length(b_vec)) {
-    stop(sprintf("%s requires a_vec and b_vec to have the same length", context))
-  }
-
-  a_vec[!is.finite(a_vec) | a_vec <= 0] <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
-
-  draws <- sample_gig_devroye_pairs(
-    as.integer(n_samples)[1],
-    p = p,
-    a_vec = a_vec,
-    b_vec = b_vec
-  )
-
-  bad <- which(!is.finite(draws) | draws <= 0)
-  if (length(bad)) {
-    first <- bad[1]
-    stop(sprintf("%s returned %d invalid draws (first index=%d, value=%.6g)",
-                 context, length(bad), first, draws[first]))
-  }
-
-  pmax(draws, eps_gig)
-}
-
-#
 CheckLossFn = function(p0,diff){diff*p0 - diff*as.numeric(diff<0)}
 #
 dlm_df = function(y, model, df, dim.df, s.priors = list(l0=1,S0=10), just.lik=FALSE){

@@ -30,6 +30,10 @@ The branch has a new active rerun program in addition to the already-certified z
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
 - live relaunch queue:
   - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
+- failure investigation:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
+- failed-root relaunch plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
 - defaults:
   - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
 
@@ -57,19 +61,25 @@ Current status:
   - exact effective train sizes confirmed:
     - `500`
     - `5000`
-- detached full rerun now live from committed state:
+- completed full rerun from committed state:
   - commit:
     - `cdfd1a9`
   - run tag:
     - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
-  - tmux session:
-    - `qdesn_dynx_0407_233147`
-  - launcher session:
-    - live
-- current failed-root relaunch queue:
-  - `6` roots as of `2026-04-08 00:11:51 EDT`
-  - tracked in:
-    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
+  - outcome:
+    - `30/36 SUCCESS`
+    - `6/36 FAIL`
+- current failure interpretation:
+  - implementation / numerical failure pocket, not just weak signoff
+  - primary issue:
+    - `mcmc_al` latent-`v` GIG invalid draws
+  - secondary issue:
+    - failed-fit summary rows not always written
+- relaunch readiness:
+  - exact failed-fit reproductions now succeed after the patch for:
+    - `ridge`
+    - `rhs_ns`
+  - failed-root-only relaunch path is prepare-only validated
 
 ## 3) Source Of Truth Hierarchy
 

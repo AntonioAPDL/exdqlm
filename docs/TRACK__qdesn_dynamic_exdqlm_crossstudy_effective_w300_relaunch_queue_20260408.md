@@ -6,8 +6,8 @@ Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
 ## 1) Purpose
 
-Maintain the live relaunch queue for the effective-w300 posterior-draw rerun while the full batch is
-still in progress.
+Maintain the authoritative relaunch queue for the effective-w300 posterior-draw rerun after the
+first full batch completed with a localized failure pocket.
 
 Queue rule:
 
@@ -18,21 +18,20 @@ Queue rule:
 - do not remove historical failures silently; mark them resolved only after a documented successful
   rerun
 
-Active full rerun:
+Source full rerun:
 
 - run tag:
   - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
 - tmux session:
   - `qdesn_dynx_0407_233147`
 
-Snapshot used for this queue:
+Final source snapshot used for this queue:
 
-- `2026-04-08 00:11:51 EDT`
+- `2026-04-08 00:47:53 EDT`
 
-Live root-status counts at this snapshot:
+Root-status counts at this final source snapshot:
 
-- `21` `SUCCESS`
-- `5` `RUNNING`
+- `30` `SUCCESS`
 - `6` `FAIL`
 
 ## 2) Current Failed-Root Queue
@@ -57,12 +56,25 @@ Current fail pocket characteristics:
 - the current root-level failure message is uniform across all queued roots:
   - `arguments imply differing number of rows: 1, 0`
 
+Confirmed root cause:
+
+- inner fit failure:
+  - `mcmc_al` latent-`v` GIG draw returning `NA` in `exal_mcmc_fit()`
+- outer aggregation symptom:
+  - failed-fit summary rows not always written on disk
+
+Current repair state:
+
+- numerical repair implemented
+- failed-fit artifact repair implemented
+- exact failing fit requests reproduced successfully after the patch
+- subset-grid failed-root relaunch path implemented
+
 ## 4) Operational Use
 
-After the full rerun completes:
+Next execution step:
 
-1. freeze the final fail queue from this file
-2. classify failures by shared mechanism vs isolated root
-3. build a targeted relaunch manifest only for queued roots
-4. keep this file as the authoritative relaunch source list until each failed root has a documented
-   recovery run
+1. use this file as the frozen failed-root source list
+2. run the failed-root-only relaunch once from the repaired code path
+3. mark roots resolved only after the rerun produces `PASS` or `WARN`
+4. reconcile repaired roots back into the authoritative effective-w300 state
