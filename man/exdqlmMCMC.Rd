@@ -135,6 +135,7 @@ A object of class "\code{exdqlmMCMC}" containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
+\item \code{dqlm.ind} - Logical value indicating whether gamma was fixed at \code{0}, reducing the exDQLM to the special case of the DQLM.
 \item \code{model} - List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.
 \item \code{p0} - The quantile which was estimated.
 \item \code{df} - Discount factors used for each block.

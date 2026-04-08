@@ -49,6 +49,7 @@
 #'  \itemize{
 #'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
+#'   \item `dqlm.ind` - Logical value indicating whether gamma was fixed at `0`, reducing the exDQLM to the special case of the DQLM.
 #'   \item `model` - List of the state-space model including `GG`, `FF`, prior parameters `m0` and `C0`.
 #'   \item `p0` - The quantile which was estimated.
 #'   \item `df` - Discount factors used for each block.
@@ -1067,7 +1068,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     )
 
     # exdqlm results
-    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,dqlm.ind=dqlm.ind,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma), samp.gamma = coda::as.mcmc(save.gamma),
@@ -1293,7 +1294,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
 
     # dqlm results
-    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,dqlm.ind=dqlm.ind,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma),

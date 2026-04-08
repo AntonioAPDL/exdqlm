@@ -206,12 +206,20 @@ is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
 #' }
 #'
 print.exdqlmMCMC <- function(x, ...) {
-  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  if(!x$dqlm.ind){
+    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  }else{
+    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
+  }
   cat("Number of Observations:", length(x$y), "\n")
   cat("State Dimension:", length(x$model$m0), "\n")  
   cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
   #
-  cat("exDQLM fitted using MCMC\n")
+  if(!x$dqlm.ind){
+    cat("exDQLM fitted using MCMC\n")
+  }else{
+    cat("DQLM fitted using MCMC\n")
+  }
   cat("Burn-in:", x$n.burn, ", MCMC samples:", x$n.mcmc , "\n")
   cat("Run-time:", x$run.time, "seconds\n")
 }
@@ -235,12 +243,20 @@ print.exdqlmMCMC <- function(x, ...) {
 #' }
 #'
 summary.exdqlmMCMC <- function(object, ...) {
-  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  if(!object$dqlm.ind){
+    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  }else{
+    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
+  }
   cat("Number of Observations:", length(object$y), "\n")
   cat("State Dimension:", length(object$model$m0), "\n")  
   cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
   #
-  cat("exDQLM fitted using MCMC\n")
+  if(!object$dqlm.ind){
+    cat("exDQLM fitted using MCMC\n")
+  }else{
+    cat("DQLM fitted using MCMC\n")
+  }  
   cat("Burn-in:", object$n.burn, ", MCMC samples:", object$n.mcmc , "\n")
   cat("Run-time:", object$run.time, "seconds\n")
 }
@@ -304,13 +320,21 @@ is.exdqlmISVB = function(m){ return(methods::is(m,"exdqlmISVB")) }
 #' }
 #'
 print.exdqlmISVB <- function(x, ...) {
-  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  if(!x$dqlm.ind){
+    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  }else{
+    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
+  }  
   cat("Number of Observations:", length(x$y), "\n")
   cat("State Dimension:", length(x$model$m0), "\n")  
   cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
   #
-  cat("exDQLM fitted using ISVB\n")
-  cat("Variational Parameters:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
+  if(!x$dqlm.ind){
+    cat("exDQLM fitted using ISVB\n")
+    cat("Parameters estimated with IS:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
+  }else{
+    cat("DQLM fitted using VB\n")
+  }
   cat("Iterations until convergence:", x$iter, "\n")
   cat("Run-time:", x$run.time, "seconds\n")
 }
@@ -333,13 +357,21 @@ print.exdqlmISVB <- function(x, ...) {
 #' }
 #'
 summary.exdqlmISVB <- function(object, ...) {
-  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  if(!object$dqlm.ind){
+    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  }else{
+    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
+  }  
   cat("Number of Observations:", length(object$y), "\n")
   cat("State Dimension:", length(object$model$m0), "\n")  
   cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
   #
-  cat("exDQLM fitted using ISVB\n")
-  cat("Variational Parameters:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
+  if(!object$dqlm.ind){
+    cat("exDQLM fitted using ISVB\n")
+    cat("Parameters estimated with IS:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
+  }else{
+    cat("DQLM fitted using VB\n")
+  }
   cat("Iterations until convergence:", object$iter, "\n")
   cat("Run-time:", object$run.time, "seconds\n")
 }
@@ -402,13 +434,21 @@ is.exdqlmLDVB = function(m){ return(methods::is(m,"exdqlmLDVB")) }
 #' }
 #'
 print.exdqlmLDVB <- function(x, ...) {
-  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  if(!x$dqlm.ind){
+    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  }else{
+    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
+  }  
   cat("Number of Observations:", length(x$y), "\n")
   cat("State Dimension:", length(x$model$m0), "\n")  
   cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
   #
-  cat("exDQLM fitted using LDVB\n")
-  cat("Variational Parameters:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
+  if(!x$dqlm.ind){
+    cat("exDQLM fitted using LDVB\n")
+    cat("Parameters estimated with LD:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
+  }else{
+    cat("DQLM fitted using VB\n")
+  }
   cat("Iterations until convergence:", x$iter, "\n")
   cat("Run-time:", x$run.time, "seconds\n")
 }
@@ -431,13 +471,21 @@ print.exdqlmLDVB <- function(x, ...) {
 #' }
 #'
 summary.exdqlmLDVB <- function(object, ...) {
-  cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  if(!object$dqlm.ind){
+    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
+  }else{
+    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
+  }  
   cat("Number of Observations:", length(object$y), "\n")
   cat("State Dimension:", length(object$model$m0), "\n")  
   cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
   #
-  cat("exDQLM fitted using LDVB\n")
-  cat("Variational Parameters:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
+  if(!object$dqlm.ind){
+    cat("exDQLM fitted using LDVB\n")
+    cat("Parameters estimated with LD:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
+  }else{
+    cat("DQLM fitted using VB\n")
+  }
   cat("Iterations until convergence:", object$iter, "\n")
   cat("Run-time:", object$run.time, "seconds\n")
 }
@@ -693,6 +741,7 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #' }
 #'
 print.exdqlmDiagnostic <- function(x, ...) {
+  options(scipen = 999)
   #
   M1 <- .exdqlm_diagnostic_vector(x, "m1.")
   #
@@ -702,6 +751,7 @@ print.exdqlmDiagnostic <- function(x, ...) {
     M2 <- .exdqlm_diagnostic_vector(x, "m2.")
     print(data.frame(Diagnostic=names(M1),M1=unname(M1),M2=unname(M2)), row.names = FALSE, digits = 3)
   }
+  options(scipen = 0)
 }
 
 #' Summary Method for \code{exdqlmDiagnostic} Objects
