@@ -37,6 +37,65 @@ Important distinction carried forward on this branch:
 - therefore the accepted carry-forward status and the rerun-on-synced-base
   status must be treated separately in planning and reporting
 
+## Dynamic Tail6 Refine Closeout and Localmix Relaunch (2026-04-08)
+
+The synced-base dynamic tail6 refine wave has now completed.
+
+Accepted publication-target state remains unchanged under `v7`:
+
+- `282 / 288` healthy
+- `230 PASS`
+- `52 WARN`
+- `6 FAIL`
+
+Tail6 refine closeout:
+
+- scope:
+  - `6` accepted unresolved dynamic rows
+- outcome:
+  - `0 PASS`
+  - `0 WARN`
+  - `6 FAIL`
+  - `0 / 6` healthy
+- accepted comparison:
+  - `6` matches accepted
+  - `0` better than accepted
+  - `0` worse than accepted
+- promotions:
+  - none
+
+Most important learning:
+
+- gamma remains the universal failing gate
+- but several rows are no longer failing because of gross drift alone
+- the strongest remaining blocker is now efficiency:
+  - ESS-per-1k
+  - autocorrelation
+  - especially on gamma
+
+Highest-value row-level reads:
+
+- `gausmix / 0p25 / TT500` is the clearest ESS-limited near-miss
+- `gausmix / 0p05 / TT5000` and `laplace / 0p05 / TT5000` improved under slice
+  but stayed too sticky
+- `normal / 0p05 / TT5000` improved under RW but still mixed too slowly
+- `normal / 0p05 / TT500` remains the weakest short-horizon row
+
+Current highest-value next move:
+
+- keep the launch accepted-tail only
+- do not reopen replay-repair rows
+- do not run another generic longer-budget wave
+- run a new compact localmix lane of `6` rows:
+  - `4` bug-delayed closure corridors that never truly ran at intended budgets
+  - `2` adaptive non-joint RW continuations on the normal rows
+
+Primary references:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_program_20260408.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
+
 ## Dynamic Closure Closeout and Tail6 Refine Relaunch (2026-04-07)
 
 The synced-base dynamic closure wave has now completed.

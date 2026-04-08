@@ -38,12 +38,12 @@ Integration-base merge commit:
 
 Current synced tracker checkpoint on this branch:
 
-- `2026-04-07` post-dynamic-closure closeout and tail6-refine relaunch
+- `2026-04-08` post-tail6-refine closeout and localmix relaunch
 - scope:
   - accepted `v7` remains the authoritative carry-forward baseline
-  - document the completed dynamic-closure outcome
-  - record the discovered MCMC override-precedence bug in the runner
-  - launch the corrected accepted-tail-only tail6 refine lane
+  - document the completed tail6-refine outcome
+  - keep the dynamic-closure runner-fix finding as established background
+  - launch the new accepted-tail-only localmix lane
 
 ## Canonical Status Files
 
@@ -66,12 +66,12 @@ Primary accepted carry-forward artifacts:
 
 Latest completed rerun execution report:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
 
 Active residual repair planning / execution notes:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_program_20260407.md`
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_program_20260408.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
 
 ## Case Universe In Scope
 
@@ -154,20 +154,20 @@ Method-level breakdown of the accepted state:
 
 The latest completed rerun campaign is now:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
 
 That campaign:
 
-- reran the `12`-row dynamic-only closure lane
+- reran the accepted-tail-only `6`-row dynamic tail6 refine lane
 - yielded:
   - `0 PASS`
   - `0 WARN`
-  - `12 FAIL`
-  - `0 / 12` healthy
+  - `6 FAIL`
+  - `0 / 6` healthy
 - comparison against accepted:
   - `0` better than accepted
-  - `9` matched accepted
-  - `3` were worse than accepted
+  - `6` matched accepted
+  - `0` were worse than accepted
 - strict improvements promoted:
   - none
 
@@ -176,15 +176,15 @@ That means the accepted publication-target state stays at:
 - `282 / 288` healthy
 - `6 / 288` unresolved
 
-Important implementation finding from this closeout:
+Important interpretation from this closeout:
 
-- the case runner was still prioritizing reference-fit MCMC settings ahead of
-  explicit manifest overrides for burn, kept draws, proposal, joint sampling,
-  slice controls, and Laplace refresh controls
-
-That precedence bug is now fixed in:
-
-- `tools/merge_reports/LOCAL_full288_case_runner_20260327.R`
+- the runner precedence bug discovered during dynamic closure is now fixed
+- tail6 refine therefore served as the first clean row-local post-fix wave
+- the main remaining blocker is now better understood as efficiency:
+  - ESS-per-1k
+  - autocorrelation
+  - especially on gamma
+  rather than raw lack of runtime alone
 
 ## Remaining Failing Cases
 
@@ -226,13 +226,12 @@ So the rerun-on-synced-base status is no longer pending in the broad sense:
 - faithful replay of the accepted healthy `282` rows is complete
 - first-pass residual repair of the replay failures is complete
 - targeted synced-base follow-up is complete
-- the active remaining synced-base work is now a dynamic-only closure lane of:
+- the active remaining synced-base work is now a dynamic-only localmix lane of:
   - `6` accepted unresolved dynamic-tail rows
-  - `3` synced-base dynamic replay-fail rows
-  - `12` total dynamic candidates across primary, alternate, and replay-repair phases
+  - `6` total dynamic candidates
 - deferred from this launch:
-  - `13` static replay-fail rows
-  - `4` PASS-to-WARN stability-review rows
+  - already screened closure and tail6-refine rows that looked weak or redundant
+  - any replay-repair debt outside the accepted publication tail
 
 Therefore:
 
@@ -242,7 +241,8 @@ Therefore:
   - residual repair complete
   - targeted follow-up complete
   - dynamic closure complete
-  - corrected tail6 refine now active
+  - corrected tail6 refine complete
+  - dynamic tail6 localmix now active
 
 ## Synced-Base Replay Status
 
@@ -269,6 +269,8 @@ The active replacement sequence on this branch is now:
 - `reports/static_exal_tuning_20260407/original_288_syncedbase_residual_repair_execution_20260407.md`
 - `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_program_20260407.md`
 - `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_program_20260408.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
 
 Validated faithful-replay structure:
 
@@ -333,27 +335,27 @@ because it contains:
 
 - the updated `0.4.0` base
 - the latest accepted validation-tracker state
-- the accepted `v5` carry-forward artifacts
+- the accepted `v7` carry-forward artifacts
 
 What exists here right now is:
 
 - a clean synced continuation branch
-- the accepted `v5` carry-forward state
+- the accepted `v7` carry-forward state
 - a completed faithful replay of the accepted healthy `282` rows
-- a fully enumerated residual repair queue for the replay regressions
+- completed synced-base residual, follow-up, closure, and tail6-refine evidence
+- a compact row-local dynamic localmix program for the remaining `6` accepted
+  failures
 
 ## Highest-Priority Next Validation Tasks
 
 1. Freeze this branch as the active synced continuation point.
-2. Treat accepted `v5` as the working publication-target baseline.
+2. Treat accepted `v7` as the working publication-target baseline.
 3. Treat the deprecated `2026-04-06` broad rerun as invalid for scientific
    comparison.
-4. Repair the `84` faithful-replay failures in the residual order:
-   - static `al :: mcmc` bug-fix replay
-   - static `exal :: mcmc` exact replay
-   - dynamic `exdqlm :: mcmc` exact replay
-5. After the residual repair completes, summarize:
-   - rows recovered to `PASS` / `WARN`
-   - rows still regressing on the synced base
-   - what remains before reopening the unresolved `6` dynamic tail
-6. Only after that should the unresolved `6` dynamic repair tail be reopened.
+4. Focus only on the unresolved `6` dynamic `exdqlm :: mcmc` publication-tail
+   rows.
+5. Use row-local efficiency tuning rather than generic longer chains:
+   - reopen bug-delayed closure corridors that never ran at intended budgets
+   - use adaptive non-joint RW where the historical RW family remained strongest
+6. Keep replay-confidence debt and static work out of the accepted-tail lane
+   unless new evidence makes them necessary again.

@@ -72,3 +72,56 @@ It is explicitly not intended to reopen:
   `phase1_dynamic_tail6_refine`
 - initial done count:
   `0 / 6`
+
+## Final Outcome
+
+The completed tail6 refine wave finished:
+
+- `6 / 6` complete
+- `0 PASS`
+- `0 WARN`
+- `6 FAIL`
+- `6` matched accepted
+- `0` better than accepted
+- `0` worse than accepted
+
+Promotion result:
+
+- none
+- accepted `v7` remains authoritative at:
+  - `282 / 288` healthy
+  - `230 PASS`
+  - `52 WARN`
+  - `6 FAIL`
+
+## What We Learned
+
+Most important read:
+
+- the remaining tail is no longer explained only by gross instability
+- several rows improved meaningfully on drift and Geweke, but still failed on
+  ESS-per-1k and autocorrelation
+
+Best row-level lessons:
+
+- `gausmix / 0p25 / TT500` is the clearest ESS-limited near-miss
+- `gausmix / 0p05 / TT5000` and `laplace / 0p05 / TT5000` both looked better
+  under slice, but the `0.18 / 320` deep geometry still left them too sticky
+- `normal / 0p05 / TT5000` improved under RW, but the joint-deep continuation
+  still did not solve the efficiency problem
+- `normal / 0p05 / TT500` remains the weakest short-horizon row in the tail
+
+The resulting next-step interpretation is:
+
+- do not run another generic longer-budget wave
+- reopen the strongest closure corridors whose intended budgets never truly ran
+  before the override-precedence fix
+- use adaptive non-joint RW on the normal rows rather than more joint
+  deepening
+
+## Successor Program
+
+The next active dynamic-only continuation after this closeout is:
+
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_program_20260408.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
