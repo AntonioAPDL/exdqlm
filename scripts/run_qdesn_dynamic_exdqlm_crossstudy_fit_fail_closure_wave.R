@@ -169,12 +169,14 @@ source_run_tag <- as.character(source_cfg$run_tag %||% "")[1L]
 if (!nzchar(source_run_tag)) stop("Fit-fail closure manifest must define source.run_tag.", call. = FALSE)
 source_mode <- as.character(source_cfg$mode %||% "dynamic_campaign")[1L]
 source_stage_profile_overrides <- source_cfg$stage_profile_overrides %||% list()
+source_root_profile_overrides <- source_cfg$source_root_profile_overrides %||% list()
 
 source_state <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_collect_source_state(
   source_run_tag = source_run_tag,
   source_report_root = source_cfg$report_root %||% file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
   source_mode = source_mode,
   source_stage_profile_overrides = source_stage_profile_overrides,
+  source_root_profile_overrides = source_root_profile_overrides,
   defaults = base_defaults,
   grid = grid_df,
   defaults_path = defaults_path,

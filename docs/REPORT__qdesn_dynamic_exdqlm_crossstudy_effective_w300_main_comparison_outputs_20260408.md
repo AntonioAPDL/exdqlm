@@ -132,10 +132,17 @@ Interpretation rule:
 
 ## 7) Recommended Next Move
 
-The next move on this branch is:
+The next move on this branch is now explicit:
 
-1. use this repaired effective-w300 pack as the authoritative comparison-analysis source,
-2. interpret the fit-quality and runtime tradeoffs from the generated tables,
-3. decide whether any remaining scientific `FAIL` pockets need additional targeted repair,
+1. keep this repaired effective-w300 pack as the authoritative source baseline,
+2. use the fail inventory to drive a targeted scientific fail-closure wave rather than another
+   broad rerun,
+3. treat the remaining fail surface as three local mechanism families:
+   - ridge VB tail instability,
+   - rhs_ns mcmc_exal drift,
+   - rhs_ns vb_exal rhs tail instability,
 4. avoid reopening the closed execution-failure repair loop unless a new implementation bug is
-   discovered.
+   discovered,
+5. use the following next-wave docs as the current continuation point:
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
+   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`

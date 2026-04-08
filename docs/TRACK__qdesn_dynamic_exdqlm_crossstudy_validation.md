@@ -121,6 +121,28 @@ Current validation state of this new rerun:
     - `0/36` root-status FAILs
     - `34/36` comparison-eligible-any
     - `16/36` comparison-eligible-full
+- remaining-fail analysis and next-wave plan:
+  - fail-surface report:
+    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
+  - scientific fail-closure plan:
+    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`
+  - fail-closure manifest:
+    - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_manifest.yaml`
+  - fail-closure wrappers:
+    - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave.R`
+    - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave.R`
+    - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave.R`
+  - current fail-mechanism summary:
+    - ridge VB tail instability:
+      - `24/35` FAIL rows
+    - rhs_ns mcmc_exal drift:
+      - `6/35`
+    - rhs_ns vb_exal rhs tail instability:
+      - `3/35`
+    - ridge mcmc_exal drift:
+      - `2/35`
+  - current active task:
+    - targeted scientific fail closure from the repaired effective-w300 source, not another broad rerun
 
 ## 2) Current Status
 
@@ -133,7 +155,9 @@ For the current branch-local effective-w300 comparison-analysis state, use the n
 - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
 - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
+- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`
 - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
 
 The remainder of this section preserves the earlier integration-branch relaunch history.

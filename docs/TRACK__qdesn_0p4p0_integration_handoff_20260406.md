@@ -20,8 +20,8 @@ main working document on this branch.
 
 ## 2) Current Branch-Local Active Study
 
-The current branch-local active study is now the **effective-w300 posterior-draw dynamic
-comparison program after repaired failed-root reconciliation**:
+The current branch-local active study is now the **effective-w300 scientific fail-closure wave**
+starting from the repaired effective-w300 posterior-draw comparison source:
 
 - study:
   - dynamic exdqlm cross-study effective-w300 posterior-draw validation and repaired comparison
@@ -38,8 +38,14 @@ comparison program after repaired failed-root reconciliation**:
   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
 - repaired comparison outputs report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
+- fail-surface and repair-directions report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
+- scientific fail-closure plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`
 - defaults:
   - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
+- fail-closure manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_manifest.yaml`
 
 Key contract:
 
@@ -110,8 +116,21 @@ Current status:
     - `16/36` comparison-eligible-full
 - current interpretation:
   - execution-failure debt is closed on the effective-w300 surface
-  - the active branch-local task is now comparison analysis and scientific interpretation, not more
-    repair compute
+  - the active branch-local task is now targeted scientific fail closure, not another broad rerun
+  - current remaining scientific debt:
+    - `35 FAIL`
+    - `20` fail-carrying roots
+  - dominant remaining mechanisms:
+    - ridge VB tail instability:
+      - `24` FAIL rows
+    - rhs_ns mcmc_exal drift:
+      - `6` FAIL rows
+    - rhs_ns vb_exal rhs tail instability:
+      - `3` FAIL rows
+    - ridge mcmc_exal drift:
+      - `2` FAIL rows
+  - overnight compute should therefore stay local to those pockets and preserve the repaired broad
+    effective-w300 source as the default baseline
 
 ## 3) Source Of Truth Hierarchy
 

@@ -96,3 +96,13 @@ Current queue state:
 3. use the repaired effective-w300 comparison pack as the current authoritative analysis source
 4. if future scientific follow-up is needed, start from the repaired pack rather than reopening this
    execution queue
+
+Current scientific follow-up direction:
+
+- fail-surface report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
+- fail-closure plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`
+- key rule:
+  - keep this queue frozen as an execution-history record;
+  - do not mix the closed execution-failure loop with the new scientific fail-closure loop.
