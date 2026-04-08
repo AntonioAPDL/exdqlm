@@ -670,6 +670,46 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   .qdesn_validation_write_df(prior_head_to_head, file.path(output_root, "tables", "authoritative_prior_head_to_head.csv"))
   .qdesn_validation_write_df(prior_head_to_head_counts, file.path(output_root, "tables", "authoritative_prior_head_to_head_counts.csv"))
 
+  case_table_cols <- intersect(c(
+    "dataset_cell_id", "root_id", "scenario", "root_kind", "family", "tau", "fit_size",
+    "prior", "inference", "model", "signoff_grade", "comparison_eligible",
+    "runtime_sec", "runtime_sec_per_1k_eval", "runtime_sec_per_1k_train_eval",
+    "train_n_eval",
+    "train_qtrue_mae", "train_qtrue_rmse", "train_qtrue_bias", "train_qtrue_corr",
+    "train_qtrue_median_ae", "train_qtrue_p90_ae",
+    "train_pinball_tau", "train_coverage", "train_coverage_minus_tau", "train_coverage_error",
+    "holdout_n_eval", "holdout_qtrue_mae", "holdout_qtrue_rmse", "holdout_qtrue_bias",
+    "holdout_qtrue_corr", "holdout_pinball_tau", "holdout_coverage",
+    "holdout_coverage_minus_tau", "holdout_coverage_error",
+    "status", "finite_ok", "domain_ok", "signoff_reason"
+  ), names(source_state$fit_summary))
+  case_table <- source_state$fit_summary[, case_table_cols, drop = FALSE]
+  if (nrow(case_table)) {
+    case_table <- case_table[order(
+      case_table$scenario,
+      case_table$family,
+      case_table$tau,
+      case_table$fit_size,
+      case_table$prior,
+      case_table$inference,
+      case_table$model
+    ), , drop = FALSE]
+    rownames(case_table) <- NULL
+  }
+  case_table_readable <- case_table
+  if (nrow(case_table_readable)) {
+    numeric_case_cols <- names(case_table_readable)[vapply(case_table_readable, is.numeric, logical(1))]
+    for (nm in numeric_case_cols) {
+      case_table_readable[[nm]] <- ifelse(
+        is.finite(case_table_readable[[nm]]),
+        round(case_table_readable[[nm]], digits = 6),
+        case_table_readable[[nm]]
+      )
+    }
+  }
+  .qdesn_validation_write_df(case_table, file.path(output_root, "tables", "authoritative_fit_case_table.csv"))
+  .qdesn_validation_write_df(case_table_readable, file.path(output_root, "tables", "authoritative_fit_case_table_readable.csv"))
+
   fit_inference_compact <- fit_inference_summary[, intersect(c(
     "inference", "n_rows", "n_pass", "n_warn", "n_fail", "pass_rate",
     "runtime_sec_mean", "runtime_sec_median", "runtime_sec_per_1k_eval_mean",
@@ -745,6 +785,19 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   .qdesn_validation_write_df(fit_method_model_compact, file.path(output_root, "tables", "authoritative_fit_method_model_compact.csv"))
   .qdesn_validation_write_df(pair_axis_compact, file.path(output_root, "tables", "authoritative_pair_axis_compact.csv"))
   .qdesn_validation_write_df(model_axis_compact, file.path(output_root, "tables", "authoritative_model_axis_compact.csv"))
+  .qdesn_validation_write_lines(
+    file.path(output_root, "summary", "qdesn_dynamic_main_comparison_case_table.md"),
+    c(
+      "# QDESN Dynamic Main Comparison Case Table",
+      "",
+      sprintf("- generated_at: `%s`", as.character(Sys.time())),
+      sprintf("- source_run_tag: `%s`", as.character(source_state$source_run_tag)),
+      sprintf("- case_rows: `%d`", nrow(case_table_readable)),
+      "",
+      "## 144-Row Case Table",
+      .qdesn_validation_df_to_markdown(case_table_readable)
+    )
+  )
 
   overview <- data.frame(
     metric = c(
