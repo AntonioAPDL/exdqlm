@@ -55,6 +55,15 @@ Current status:
   - exact effective train sizes confirmed:
     - `500`
     - `5000`
+- detached full rerun now live from committed state:
+  - commit:
+    - `cdfd1a9`
+  - run tag:
+    - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
+  - tmux session:
+    - `qdesn_dynx_0407_233147`
+  - launcher session:
+    - live
 
 ## 3) Source Of Truth Hierarchy
 

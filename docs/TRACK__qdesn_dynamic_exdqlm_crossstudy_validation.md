@@ -74,6 +74,15 @@ Current validation state of this new rerun:
     - `500`
   - exact `X_train` size verified from live pipeline logs on the `5000` roots:
     - `5000`
+- detached full rerun now live from committed state:
+  - commit:
+    - `cdfd1a9`
+  - run tag:
+    - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
+  - tmux session:
+    - `qdesn_dynx_0407_233147`
+  - launcher session:
+    - live
 
 ## 2) Current Status
 

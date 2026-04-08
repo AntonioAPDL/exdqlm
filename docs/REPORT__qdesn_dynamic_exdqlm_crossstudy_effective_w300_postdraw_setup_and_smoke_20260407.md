@@ -217,3 +217,28 @@ From a clean committed branch state:
 2. launch the full `36`-root / `144`-fit rerun using the new defaults
 3. rebuild the main comparison pack from the new rerun outputs only after that full campaign
    completes
+
+## 8) Live Full Launch
+
+This next move has now been executed from committed branch state:
+
+- implementation commit:
+  - `cdfd1a9`
+- full run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
+- batch:
+  - `full`
+- tmux session:
+  - `qdesn_dynx_0407_233147`
+- initial healthcheck:
+  - launcher session live
+  - `36` roots selected
+  - campaign created cleanly
+  - execution not yet far enough for root materialization at the first snapshot
+
+Launch artifacts:
+
+- launch metadata:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9/launch/launcher_session.json`
+- launcher log:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9/launch/launcher_stdout.log`
