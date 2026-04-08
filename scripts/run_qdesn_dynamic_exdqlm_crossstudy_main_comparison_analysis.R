@@ -134,6 +134,8 @@ source_state <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_collect_source_state(
   defaults_path = defaults_path,
   grid_path = grid_path
 )
+source_state$source_label <- as.character(source_cfg$source_label %||% source_state$source_label)[1L]
+source_state$source_rationale <- as.character(source_cfg$source_rationale %||% source_state$source_rationale)[1L]
 
 analysis_cfg <- manifest$analysis %||% list()
 report_root <- resolve_path(

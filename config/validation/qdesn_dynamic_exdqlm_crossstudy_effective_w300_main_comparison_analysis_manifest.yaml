@@ -1,0 +1,78 @@
+meta:
+  analysis_id: qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis
+  description: >
+    Rebuild the authoritative effective-w300 QDESN dynamic comparison surface from the
+    completed full rerun, then overlay the repaired failed-root relaunch results before
+    emitting the main comparison-analysis pack.
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp
+
+source:
+  mode: dynamic_campaign
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation
+  source_label: Effective-W300 Broad Campaign Reconciled With Failed-Root Repair Relaunch
+  source_rationale: >
+    Start from the completed effective-w300 full rerun, then replace the six original
+    implementation-failure roots with their repaired failed-root relaunch results before
+    generating the authoritative comparison pack.
+  root_profile_overrides:
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: >
+        Replace the original failed root with the repaired failed-root relaunch result from
+        commit bcdb438.
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_rhs_ns
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: >
+        Replace the original failed root with the repaired failed-root relaunch result from
+        commit bcdb438.
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: >
+        Replace the original failed root with the repaired failed-root relaunch result from
+        commit bcdb438.
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: >
+        Replace the original failed root with the repaired failed-root relaunch result from
+        commit bcdb438.
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: >
+        Replace the original failed root with the repaired failed-root relaunch result from
+        commit bcdb438.
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: >
+        Replace the original failed root with the repaired failed-root relaunch result from
+        commit bcdb438.
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis
+  repair_relaunch_run_tag: qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+  repair_relaunch_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation
+
+expected_state:
+  fit_rows: 144
+  fit_pass_rows: 40
+  fit_warn_rows: 69
+  fit_fail_rows: 35
+  root_rows: 36
+  root_status_fail_rows: 0
+  root_compare_any_rows: 34
+  root_compare_full_rows: 16
+  local_baseline_rows: 0
+  root_override_rows: 6
+
+notes:
+  authoritative_baseline_label: full_effective_w300_campaign_plus_repaired_failed_root_overlays
+  interpretation: >
+    Use the completed effective-w300 full rerun as the source state, then replace the six
+    original implementation-failure roots with their repaired failed-root relaunch results
+    before generating the comparison-facing pack.

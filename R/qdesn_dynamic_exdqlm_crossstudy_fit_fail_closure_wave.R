@@ -316,6 +316,14 @@ qdesn_dynamic_crossstudy_fitfail_load_manifest <- function(path = file.path("con
   fit_summary
 }
 
+.qdesn_dynamic_crossstudy_fitfail_original_fail_grid <- function(grid, root_ids) {
+  root_ids <- unique(as.character(root_ids))
+  if (!length(root_ids)) {
+    return(grid[0, , drop = FALSE])
+  }
+  qdesn_static_crossstudy_debt_subset_grid(grid, root_ids)
+}
+
 qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag,
                                                                   source_report_root = file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
                                                                   source_mode = c("dynamic_campaign", "prior_fitfail_wave"),
@@ -344,10 +352,18 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
       stop(sprintf("Source run '%s' is missing campaign fit/root summary tables.", source_run_tag), call. = FALSE)
     }
 
+    original_source_root_fail_ids <- sort(unique(as.character(root_summary$root_id[as.character(root_summary$root_status) == "FAIL"])))
+    fit_summary <- .qdesn_dynamic_crossstudy_fitfail_enrich_fit_summary_metrics(fit_summary)
+    root_applied <- .qdesn_dynamic_crossstudy_fitfail_apply_root_overrides(
+      fit_summary = fit_summary,
+      root_summary = root_summary,
+      root_profile_overrides = source_root_profile_overrides
+    )
+    fit_summary <- root_applied$fit_summary
+    root_summary <- root_applied$root_summary
     fit_summary <- .qdesn_dynamic_crossstudy_fitfail_enrich_fit_summary_metrics(fit_summary)
     fail_summary <- fit_summary[as.character(fit_summary$signoff_grade) == "FAIL", , drop = FALSE]
     fail_root_ids <- sort(unique(as.character(fail_summary$root_id)))
-    original_source_root_fail_ids <- sort(unique(as.character(root_summary$root_id[as.character(root_summary$root_status) == "FAIL"])))
 
     return(list(
       source_run_tag = source_run_tag,
@@ -363,11 +379,11 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
       fail_root_ids = fail_root_ids,
       local_baseline_map = data.frame(stringsAsFactors = FALSE),
       raw_local_baseline_map = data.frame(stringsAsFactors = FALSE),
-      root_override_map = data.frame(stringsAsFactors = FALSE),
+      root_override_map = root_applied$root_override_map,
       stage_status = data.frame(stringsAsFactors = FALSE),
       winner_inventory = data.frame(stringsAsFactors = FALSE),
       original_source_root_fail_ids = original_source_root_fail_ids,
-      original_source_root_fail_grid = qdesn_static_crossstudy_debt_subset_grid(grid, original_source_root_fail_ids),
+      original_source_root_fail_grid = .qdesn_dynamic_crossstudy_fitfail_original_fail_grid(grid, original_source_root_fail_ids),
       grid = grid,
       defaults = defaults
     ))
@@ -425,7 +441,7 @@ qdesn_dynamic_crossstudy_fitfail_collect_source_state <- function(source_run_tag
     stage_status = stage_status,
     winner_inventory = applied$winner_inventory,
     original_source_root_fail_ids = original_source_root_fail_ids,
-    original_source_root_fail_grid = qdesn_static_crossstudy_debt_subset_grid(grid, original_source_root_fail_ids),
+    original_source_root_fail_grid = .qdesn_dynamic_crossstudy_fitfail_original_fail_grid(grid, original_source_root_fail_ids),
     grid = grid,
     defaults = defaults
   )

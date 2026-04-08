@@ -673,6 +673,12 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   .qdesn_validation_write_df(prior_head_to_head, file.path(output_root, "tables", "authoritative_prior_head_to_head.csv"))
   .qdesn_validation_write_df(prior_head_to_head_counts, file.path(output_root, "tables", "authoritative_prior_head_to_head_counts.csv"))
 
+  source_totals <- suppressWarnings(as.numeric(source_state$fit_summary$source_total_size %||% NA_real_))
+  fit_sizes <- suppressWarnings(as.numeric(source_state$fit_summary$fit_size %||% NA_real_))
+  effective_source_window_contract <- length(source_totals) &&
+    length(fit_sizes) &&
+    any(is.finite(source_totals) & is.finite(fit_sizes) & source_totals > fit_sizes, na.rm = TRUE)
+
   case_table_cols <- intersect(c(
     "dataset_cell_id", "root_id", "scenario", "root_kind", "family", "tau", "fit_size",
     "effective_fit_size", "source_total_size", "source_window_label",
@@ -905,6 +911,11 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     "",
     "## Important Interpretation Notes",
     "- Signoff/readiness deltas are directly comparable against the exdqlm reference on the mirrored dynamic surface once the model labels are normalized (`al <-> dqlm`, `exal <-> exdqlm`).",
+    if (isTRUE(effective_source_window_contract)) {
+      "- This effective-w300 study uses longer source windows than the mirrored reference (`source_total_size > fit_size`), so QDESN-vs-reference deltas here should be read as descriptive context rather than strict like-for-like causal claims unless the reference is rerun under the same contract."
+    } else {
+      NULL
+    },
     "- Runtime is summarized in detail for QDESN. Reference-runtime deltas are only meaningful where the reference inventory has non-missing runtime values; some mirrored reference summaries leave runtime blank.",
     "- The primary validation window in this pack is the fitted/train path, because the dynamic validation defaults currently use `holdout_n = 1`; holdout metrics remain available in the detailed tables but are secondary for interpretation.",
     "- Oracle quantile-recovery metrics are recomputed directly against the known simulated `q_true` path from the source dynamic cell, rather than only carried forward from archived summaries.",
