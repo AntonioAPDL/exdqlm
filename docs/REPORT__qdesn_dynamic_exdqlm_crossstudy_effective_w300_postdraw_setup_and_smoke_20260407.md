@@ -242,3 +242,20 @@ Launch artifacts:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9/launch/launcher_session.json`
 - launcher log:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9/launch/launcher_stdout.log`
+
+## 9) Live Failed-Root Queue
+
+As the full rerun progresses, failed roots are being tracked explicitly in:
+
+- `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
+
+Current snapshot carried into that queue:
+
+- snapshot:
+  - `2026-04-08 00:11:51 EDT`
+- failed roots:
+  - `6`
+- current common failure message:
+  - `arguments imply differing number of rows: 1, 0`
+- current concentration:
+  - all queued failures are on the effective `5000` horizon band

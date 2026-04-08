@@ -44,6 +44,8 @@ contract:
   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
 - setup and smoke report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
+- live relaunch queue:
+  - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
 - defaults:
   - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
 
@@ -83,6 +85,9 @@ Current validation state of this new rerun:
     - `qdesn_dynx_0407_233147`
   - launcher session:
     - live
+- current failed-root relaunch queue:
+  - `6` roots as of `2026-04-08 00:11:51 EDT`
+  - currently concentrated in long-horizon effective `5000` cases
 
 ## 2) Current Status
 
