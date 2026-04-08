@@ -274,3 +274,29 @@ Preflight confirmed:
 - staged plan:
   - `R1` root count `3`, target FAIL rows `1`, challenger profiles `5`
   - `R2` root count `5`, target FAIL rows `3`, challenger profiles `5`
+
+## 12) Live Wave 2 Launch
+
+Launched from committed state:
+
+- launch commit:
+  - `5ed0d19`
+- live run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162642__git-5ed0d19`
+- tmux session:
+  - `qdesn_dynxff_0408_162642`
+- launcher session metadata:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave/qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162642__git-5ed0d19/launch/launcher_session.json`
+- launcher log:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave/qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162642__git-5ed0d19/launch/launcher_stdout.log`
+
+Healthcheck snapshot immediately after launch:
+
+- runner state:
+  - `RUNNING`
+- current stage:
+  - `R1_ridge_upper_tail_long_final`
+- current profile:
+  - `R810_ridge_combo192_soft2600`
+- launcher session live:
+  - `TRUE`

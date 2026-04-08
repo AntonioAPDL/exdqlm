@@ -222,3 +222,23 @@ Verified stage plan:
   - `5` guard roots
   - `3` targeted FAIL rows
   - `5` challenger profiles
+
+## 10) Live Launch
+
+This plan has now been launched from committed state:
+
+- commit:
+  - `5ed0d19`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162642__git-5ed0d19`
+- tmux session:
+  - `qdesn_dynxff_0408_162642`
+
+Immediate post-launch healthcheck:
+
+- runner state:
+  - `RUNNING`
+- current stage:
+  - `R1_ridge_upper_tail_long_final`
+- current profile:
+  - `R810_ridge_combo192_soft2600`

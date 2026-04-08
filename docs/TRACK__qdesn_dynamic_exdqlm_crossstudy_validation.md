@@ -169,6 +169,14 @@ Current validation state of this new rerun:
   - verified stage sizes:
     - `R1`: `3` roots, `1` targeted FAIL row, `5` profiles
     - `R2`: `5` roots, `3` targeted FAIL rows, `5` profiles
+  - live final residual-wave run:
+    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162642__git-5ed0d19`
+  - tmux session:
+    - `qdesn_dynxff_0408_162642`
+  - launch healthcheck:
+    - `RUNNING`
+    - `R1_ridge_upper_tail_long_final`
+    - `R810_ridge_combo192_soft2600`
 
 ## 2) Current Status
 
