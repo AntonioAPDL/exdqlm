@@ -29,9 +29,9 @@ staying faithful to the late-stage decision rule:
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
 
 Current authoritative state:
 
@@ -50,11 +50,11 @@ Current authoritative state:
 Primary outputs:
 
 - summary markdown:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/summary/qdesn_dynamic_main_comparison_analysis.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/comparison_vs_reference/comparison_summary.md`
 - overview table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/analysis_overview.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/analysis_overview.csv`
 - authoritative local baseline map:
   - `tables/authoritative_local_baseline_map.csv`
 - authoritative root override map:
@@ -66,8 +66,17 @@ Primary outputs:
 - explicit q-true fit summaries:
   - `tables/authoritative_fit_inference_summary.csv`
   - `tables/authoritative_fit_model_summary.csv`
+  - `tables/authoritative_fit_prior_summary.csv`
+  - `tables/authoritative_fit_family_summary.csv`
+  - `tables/authoritative_fit_tau_summary.csv`
   - `tables/authoritative_fit_fit_size_summary.csv`
   - `tables/authoritative_fit_method_model_compact.csv`
+- compact primary-metric summaries:
+  - `tables/authoritative_fit_inference_compact.csv`
+  - `tables/authoritative_fit_model_compact.csv`
+  - `tables/authoritative_fit_prior_compact.csv`
+  - `tables/authoritative_fit_family_compact.csv`
+  - `tables/authoritative_fit_tau_compact.csv`
 - root readiness summaries:
   - `tables/authoritative_root_inventory.csv`
   - `tables/authoritative_root_axis_summary.csv`
@@ -84,12 +93,25 @@ Primary outputs:
 
 ## 3) Main Comparison Findings
 
-This refreshed pack keeps the same authoritative zero-fail baseline, but it now makes the
-study’s fit-performance metrics explicit:
+This refreshed pack keeps the same authoritative zero-fail baseline, but it now strengthens the
+fit-performance side of the study in a more academically standard way:
 
-- legacy `train_*` and `holdout_*` errors were already `qhat`-vs-`q_true`
-- the refreshed pack republishes them as explicit `*_qtrue_*` columns
-- this makes the goodness-of-fit interpretation much clearer for direct QDESN comparison work
+- it recomputes oracle quantile-recovery metrics directly from saved fit artifacts and the source
+  simulation truth, rather than relying only on carried-forward summaries
+- it treats the fitted/train path as the primary validation window because `holdout_n = 1` on this
+  study surface
+- it now materializes:
+  - `qtrue_mae`
+  - `qtrue_rmse`
+  - `qtrue_bias`
+  - `qtrue_corr`
+  - `qtrue_median_ae`
+  - `qtrue_p90_ae`
+  - `pinball_tau`
+  - `coverage`
+  - `coverage_minus_tau`
+  - `coverage_error`
+  - `runtime_sec_per_1k_eval`
 
 ### 3.1 Prior-Level Read
 
@@ -103,6 +125,13 @@ Interpretation:
 - both priors are now fully comparison-eligible on the authoritative surface
 - `ridge` remains the cleaner signoff prior overall
 - `rhs_ns` remains more dependent on local tuning, but the residual fail band is now closed
+- on the fitted/train quantile-recovery metrics, `rhs_ns` is slightly more accurate:
+  - train `qtrue_mae`:
+    - `rhs_ns = 96.347`
+    - `ridge = 117.441`
+  - train `coverage_error`:
+    - `rhs_ns = 0.071`
+    - `ridge = 0.101`
 
 ### 3.2 Method / Likelihood Read
 
@@ -130,9 +159,27 @@ From the refreshed compact tables:
 
 Current high-level read:
 
-- `vb` has the better signoff mix, but not uniformly better `qhat`-vs-`q_true` error on every
-  slice
-- `al` remains the cleaner broad model family on both signoff and `q_true` error
+- `vb` has the better signoff mix and much lower normalized runtime:
+  - pass rate:
+    - `vb = 0.736`
+    - `mcmc = 0.319`
+  - runtime per 1k eval:
+    - `vb = 3.158`
+    - `mcmc = 13.287`
+- `mcmc` is actually better on train-path oracle recovery and pinball:
+  - train `qtrue_mae`:
+    - `mcmc = 43.440`
+    - `vb = 170.348`
+  - train `pinball_tau`:
+    - `mcmc = 3.610`
+    - `vb = 42.298`
+- `al` remains the cleaner broad model family on both signoff and train-path fit:
+  - train `qtrue_mae`:
+    - `al = 30.661`
+    - `exal = 183.127`
+  - train `coverage_error`:
+    - `al = 0.070`
+    - `exal = 0.102`
 - `mcmc/exal` remains the weakest signoff quadrant even though the hard FAIL band is now closed
 
 ### 3.3 Runtime Read
@@ -146,6 +193,15 @@ From `tables/authoritative_pair_axis_summary.csv`:
 - the next slowest remains:
   - `rhs_ns / exal / fit_size=5000`
   - mean `runtime_ratio_mcmc_vs_vb = 10.179`
+- normalized runtime tells the same story:
+  - `vb / al`:
+    - mean `runtime_sec_per_1k_eval = 2.522`
+  - `vb / exal`:
+    - `3.794`
+  - `mcmc / al`:
+    - `7.678`
+  - `mcmc / exal`:
+    - `18.897`
 
 Interpretation:
 

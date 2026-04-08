@@ -486,18 +486,18 @@ The authoritative comparison-analysis pack has been regenerated from the reconci
 Authoritative analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
 - summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/summary/qdesn_dynamic_main_comparison_analysis.md`
 - QDESN-vs-reference summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/comparison_vs_reference/comparison_summary.md`
 - root override map:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_root_override_map.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_root_override_map.csv`
 - explicit q-true fit summaries:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_inference_summary.csv`
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_model_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_inference_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_model_summary.csv`
 - implementation/interpretation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_main_comparison_outputs_20260407.md`
 
@@ -519,15 +519,31 @@ High-value comparison takeaways now documented in the pack:
   - `53 PASS / 19 WARN / 0 FAIL`
 - `rhs_ns` is now fully comparison-eligible as well:
   - `23 PASS / 49 WARN / 0 FAIL`
+- the refreshed committed-SHA pack now makes the primary fitted-path validation metrics explicit:
+  - `qtrue_mae`
+  - `qtrue_rmse`
+  - `qtrue_bias`
+  - `qtrue_corr`
+  - `qtrue_median_ae`
+  - `qtrue_p90_ae`
+  - `pinball_tau`
+  - `coverage`
+  - `coverage_minus_tau`
+  - `coverage_error`
+  - `runtime_sec_per_1k_eval`
 - `vb/al` remains the healthiest and fastest broad method-model slice:
   - `29 PASS / 7 WARN / 0 FAIL`
-- the pack now states explicitly that the study’s fit-error metrics are `qhat`-vs-`q_true`
-  metrics, not generic holdout residuals
-- dedicated tables now summarize those `q_true` metrics by inference, model, and inference+model
-  - mean runtime about `2.83 s`
+- the fitted/train path is now treated as the primary evaluation window because the dynamic
+  defaults still use `holdout_n = 1`
+- dedicated tables now summarize those metrics by inference, model, prior, family, tau, and
+  inference+model
 - `mcmc/exal` remains the softest area scientifically, but is now all non-fail:
   - `1 PASS / 35 WARN / 0 FAIL`
   - mean runtime about `30.76 s`
+- the new metric framing also clarifies an important tradeoff:
+  - `vb` is cleaner and faster overall
+  - `mcmc` is often better on train-path oracle recovery
+  - `al` is cleaner and better fit-performing than `exal`
 
 Current next move:
 

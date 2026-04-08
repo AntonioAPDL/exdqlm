@@ -348,25 +348,27 @@ baseline on this branch.
 Analysis run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
+  - `qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
 - report root:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98`
 - summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/summary/qdesn_dynamic_main_comparison_analysis.md`
 - comparison summary:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/comparison_vs_reference/comparison_summary.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/comparison_vs_reference/comparison_summary.md`
 - overview table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/analysis_overview.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/analysis_overview.csv`
 - method/model table:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_method_model_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_method_model_summary.csv`
 - explicit q-true fit tables:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_inference_summary.csv`
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_model_summary.csv`
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_fit_method_model_compact.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_inference_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_model_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_family_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_tau_summary.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_fit_method_model_compact.csv`
 - QDESN-vs-reference axis deltas:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_qdesn_vs_reference_fit_axis_delta.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_qdesn_vs_reference_fit_axis_delta.csv`
 - root override map:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-194527__git-14d63dd/tables/authoritative_root_override_map.csv`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-maincmp-20260407-211634__git-66d5d98/tables/authoritative_root_override_map.csv`
 - reconciliation report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
 
@@ -390,11 +392,22 @@ Pack-level findings:
   no longer carries FAIL rows:
   - `1 PASS / 35 WARN / 0 FAIL`
   - mean runtime about `30.76 s`
-- the refreshed pack now makes the `qhat`-vs-`q_true` goodness-of-fit metrics explicit:
-  - use `authoritative_fit_inference_summary.csv`, `authoritative_fit_model_summary.csv`, and
-    `authoritative_fit_method_model_compact.csv`
-  - legacy `train_*` and `holdout_*` error fields were already based on `q_true`; the new pack
-    exposes them again as explicit `*_qtrue_*` columns so that interpretation is clear
+- the refreshed committed-SHA pack now treats the fitted/train path as the primary validation
+  window because `holdout_n = 1`
+- the refreshed pack now makes the `qhat`-vs-`q_true` goodness-of-fit metrics explicit and
+  recomputes them from saved artifacts plus source truth:
+  - `qtrue_mae`
+  - `qtrue_rmse`
+  - `qtrue_bias`
+  - `qtrue_corr`
+  - `qtrue_median_ae`
+  - `qtrue_p90_ae`
+  - `pinball_tau`
+  - `coverage`
+  - `coverage_minus_tau`
+  - `coverage_error`
+  - `runtime_sec_per_1k_eval`
+- those metrics are now summarized by inference, model, prior, family, tau, and inference+model
 - VB vs MCMC runtime ratios range from about `2.18x` to `14.14x` across prior/model/horizon
   slices
 - direct QDESN-vs-reference signoff/readiness deltas are now computed with normalized model labels:
