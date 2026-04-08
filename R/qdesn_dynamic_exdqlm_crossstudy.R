@@ -438,22 +438,16 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   out
 }
 
-qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults) {
+.qdesn_dynamic_crossstudy_source_truth_bundle <- function(root_spec) {
   series_df <- utils::read.csv(root_spec$source_series_wide_path, stringsAsFactors = FALSE)
   if (!nrow(series_df)) {
     stop(sprintf("Dynamic source series_wide.csv is empty: %s", root_spec$source_series_wide_path), call. = FALSE)
   }
   y <- as.numeric(series_df$y %||% numeric(0))
-  if (length(y) != as.integer(root_spec$fit_size)) {
-    stop(sprintf(
-      "Dynamic source dataset length mismatch for %s: expected fit_size=%d, got y=%d.",
-      root_spec$root_id,
-      as.integer(root_spec$fit_size),
-      length(y)
-    ), call. = FALSE)
-  }
   q_true <- if ("q_target" %in% names(series_df)) {
     as.numeric(series_df$q_target)
+  } else if ("q_true" %in% names(series_df)) {
+    as.numeric(series_df$q_true)
   } else {
     sim_obj <- readRDS(root_spec$source_sim_path)
     q_mat <- as.matrix(sim_obj$q %||% matrix(numeric(0), 0L, 0L))
@@ -470,6 +464,29 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
     rep(NA_integer_, length(y))
   }
   mu <- if ("mu" %in% names(series_df)) as.numeric(series_df$mu) else rep(NA_real_, length(y))
+  list(
+    y = y,
+    q_true = q_true,
+    source_index = source_index,
+    mu = mu,
+    n_obs = length(y)
+  )
+}
+
+qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults) {
+  truth_bundle <- .qdesn_dynamic_crossstudy_source_truth_bundle(root_spec)
+  y <- truth_bundle$y
+  if (length(y) != as.integer(root_spec$fit_size)) {
+    stop(sprintf(
+      "Dynamic source dataset length mismatch for %s: expected fit_size=%d, got y=%d.",
+      root_spec$root_id,
+      as.integer(root_spec$fit_size),
+      length(y)
+    ), call. = FALSE)
+  }
+  q_true <- truth_bundle$q_true
+  source_index <- truth_bundle$source_index
+  mu <- truth_bundle$mu
 
   data_dir <- file.path(root_dir, "data")
   .qdesn_validation_dir_create(data_dir)

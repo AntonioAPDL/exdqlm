@@ -593,17 +593,45 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       mae = NA_real_,
       rmse = NA_real_,
       bias = NA_real_,
-      corr = NA_real_
+      corr = NA_real_,
+      median_ae = NA_real_,
+      p90_ae = NA_real_
     ))
   }
   err <- q_pred[keep] - q_true[keep]
+  abs_err <- abs(err)
+  finite_abs_err <- abs_err[is.finite(abs_err)]
+  finite_err <- err[is.finite(err)]
   list(
-    n_eval = sum(keep),
-    mae = mean(abs(err)),
-    rmse = sqrt(mean(err^2)),
-    bias = mean(err),
-    corr = .qdesn_static_crossstudy_safe_cor(q_pred, q_true)
+    n_eval = length(finite_err),
+    mae = if (length(finite_abs_err)) mean(finite_abs_err) else NA_real_,
+    rmse = if (length(finite_err)) sqrt(mean(finite_err^2)) else NA_real_,
+    bias = if (length(finite_err)) mean(finite_err) else NA_real_,
+    corr = .qdesn_static_crossstudy_safe_cor(q_pred, q_true),
+    median_ae = if (length(finite_abs_err)) stats::median(finite_abs_err) else NA_real_,
+    p90_ae = if (length(finite_abs_err)) {
+      as.numeric(stats::quantile(finite_abs_err, probs = 0.9, names = FALSE, type = 7, na.rm = TRUE))
+    } else {
+      NA_real_
+    }
   )
+}
+
+.qdesn_static_crossstudy_forecast_vector <- function(x) {
+  if (is.null(x)) return(numeric(0))
+  if (is.data.frame(x)) {
+    if (!ncol(x)) return(numeric(0))
+    return(.qdesn_static_crossstudy_forecast_vector(x[[1L]]))
+  }
+  if (is.matrix(x) || is.array(x)) {
+    d <- dim(x)
+    if (length(d) >= 2L) {
+      if (d[1L] > 1L && d[2L] >= 1L) return(as.numeric(x[, 1L]))
+      if (d[1L] == 1L && d[2L] >= 1L) return(as.numeric(x[1L, ]))
+    }
+    return(as.numeric(x))
+  }
+  as.numeric(x)
 }
 
 .qdesn_static_crossstudy_quantile_fit_metrics <- function(q_pred, y_obs, tau) {
@@ -616,6 +644,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       n_eval = 0L,
       pinball_tau = NA_real_,
       coverage = NA_real_,
+      coverage_minus_tau = NA_real_,
       coverage_error = NA_real_
     ))
   }
@@ -626,6 +655,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     n_eval = sum(keep),
     pinball_tau = pinball_tau,
     coverage = coverage,
+    coverage_minus_tau = coverage - tau,
     coverage_error = abs(coverage - tau)
   )
 }
@@ -643,38 +673,42 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   fit_entry <- fits_fc[[1L]]
   df_pred_tr <- as.data.frame(fit_entry$df_pred_tr %||% data.frame(stringsAsFactors = FALSE), stringsAsFactors = FALSE)
   df_pred_fc <- as.data.frame(fit_entry$df_pred_fc %||% data.frame(stringsAsFactors = FALSE), stringsAsFactors = FALSE)
+  q_pred_tr <- .qdesn_static_crossstudy_forecast_vector(df_pred_tr$q_pred %||% numeric(0))
+  y_pred_tr <- .qdesn_static_crossstudy_forecast_vector(df_pred_tr$y %||% numeric(0))
+  q_pred_fc <- .qdesn_static_crossstudy_forecast_vector(df_pred_fc$q_pred %||% numeric(0))
+  y_pred_fc <- .qdesn_static_crossstudy_forecast_vector(df_pred_fc$y %||% numeric(0))
   keep_idx <- as.integer((fit_entry$fit_train$meta %||% list())$keep_idx %||% integer(0))
   split_n <- as.integer((summary_obj$summary$n_train %||% NA_integer_)[1L])
 
-  if (nrow(df_pred_tr) && length(keep_idx) == nrow(df_pred_tr)) {
+  if (length(q_pred_tr) && length(keep_idx) == length(q_pred_tr)) {
     q_true_tr <- q_true_full[keep_idx]
   } else {
-    q_true_tr <- rep(NA_real_, nrow(df_pred_tr))
+    q_true_tr <- rep(NA_real_, length(q_pred_tr))
   }
-  train_metrics <- .qdesn_static_crossstudy_eval_metrics(df_pred_tr$q_pred %||% numeric(0), q_true_tr)
+  train_metrics <- .qdesn_static_crossstudy_eval_metrics(q_pred_tr, q_true_tr)
   tau_train <- if ("p0" %in% names(df_pred_tr) && nrow(df_pred_tr)) as.numeric(df_pred_tr$p0[1L]) else NA_real_
   train_quantile_metrics <- .qdesn_static_crossstudy_quantile_fit_metrics(
-    df_pred_tr$q_pred %||% numeric(0),
-    df_pred_tr$y %||% numeric(0),
+    q_pred_tr,
+    y_pred_tr,
     tau_train
   )
 
-  holdout_idx <- if (is.finite(split_n) && nrow(df_pred_fc)) {
-    seq.int(split_n + 1L, split_n + nrow(df_pred_fc))
+  holdout_idx <- if (is.finite(split_n) && length(q_pred_fc)) {
+    seq.int(split_n + 1L, split_n + length(q_pred_fc))
   } else {
     integer(0)
   }
   holdout_idx <- holdout_idx[holdout_idx >= 1L & holdout_idx <= length(q_true_full)]
-  if (length(holdout_idx) == nrow(df_pred_fc)) {
+  if (length(holdout_idx) == length(q_pred_fc)) {
     q_true_fc <- q_true_full[holdout_idx]
   } else {
-    q_true_fc <- rep(NA_real_, nrow(df_pred_fc))
+    q_true_fc <- rep(NA_real_, length(q_pred_fc))
   }
-  holdout_metrics <- .qdesn_static_crossstudy_eval_metrics(df_pred_fc$q_pred %||% numeric(0), q_true_fc)
+  holdout_metrics <- .qdesn_static_crossstudy_eval_metrics(q_pred_fc, q_true_fc)
   tau_holdout <- if ("p0" %in% names(df_pred_fc) && nrow(df_pred_fc)) as.numeric(df_pred_fc$p0[1L]) else NA_real_
   holdout_quantile_metrics <- .qdesn_static_crossstudy_quantile_fit_metrics(
-    df_pred_fc$q_pred %||% numeric(0),
-    df_pred_fc$y %||% numeric(0),
+    q_pred_fc,
+    y_pred_fc,
     tau_holdout
   )
 
@@ -773,8 +807,11 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     train_qtrue_rmse = as.numeric(metrics$train$rmse),
     train_qtrue_bias = as.numeric(metrics$train$bias),
     train_qtrue_corr = as.numeric(metrics$train$corr),
+    train_qtrue_median_ae = as.numeric(metrics$train$median_ae),
+    train_qtrue_p90_ae = as.numeric(metrics$train$p90_ae),
     train_pinball_tau = as.numeric(metrics$train_quantile$pinball_tau),
     train_coverage = as.numeric(metrics$train_quantile$coverage),
+    train_coverage_minus_tau = as.numeric(metrics$train_quantile$coverage_minus_tau),
     train_coverage_error = as.numeric(metrics$train_quantile$coverage_error),
     holdout_n_eval = as.integer(metrics$holdout$n_eval),
     holdout_mae = as.numeric(metrics$holdout$mae),
@@ -785,9 +822,27 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     holdout_qtrue_rmse = as.numeric(metrics$holdout$rmse),
     holdout_qtrue_bias = as.numeric(metrics$holdout$bias),
     holdout_qtrue_corr = as.numeric(metrics$holdout$corr),
+    holdout_qtrue_median_ae = as.numeric(metrics$holdout$median_ae),
+    holdout_qtrue_p90_ae = as.numeric(metrics$holdout$p90_ae),
     holdout_pinball_tau = as.numeric(metrics$holdout_quantile$pinball_tau),
     holdout_coverage = as.numeric(metrics$holdout_quantile$coverage),
+    holdout_coverage_minus_tau = as.numeric(metrics$holdout_quantile$coverage_minus_tau),
     holdout_coverage_error = as.numeric(metrics$holdout_quantile$coverage_error),
+    total_n_eval = as.integer((metrics$train$n_eval %||% 0L) + (metrics$holdout$n_eval %||% 0L)),
+    runtime_sec_per_1k_eval = if (is.finite(runtime_sec) &&
+      is.finite((metrics$train$n_eval %||% 0L) + (metrics$holdout$n_eval %||% 0L)) &&
+      ((metrics$train$n_eval %||% 0L) + (metrics$holdout$n_eval %||% 0L)) > 0) {
+      1000 * runtime_sec / ((metrics$train$n_eval %||% 0L) + (metrics$holdout$n_eval %||% 0L))
+    } else {
+      NA_real_
+    },
+    runtime_sec_per_1k_train_eval = if (is.finite(runtime_sec) &&
+      is.finite(metrics$train$n_eval %||% NA_real_) &&
+      (metrics$train$n_eval %||% 0L) > 0) {
+      1000 * runtime_sec / (metrics$train$n_eval %||% 0L)
+    } else {
+      NA_real_
+    },
     stringsAsFactors = FALSE
   )
 }
@@ -850,6 +905,73 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       corr_vb = as.numeric(vb_row$train_corr[1L]),
       corr_mcmc = as.numeric(mcmc_row$train_corr[1L]),
       corr_delta_mcmc_minus_vb = as.numeric(mcmc_row$train_corr[1L] - vb_row$train_corr[1L]),
+      train_qtrue_mae_vb = as.numeric(vb_row$train_qtrue_mae[1L] %||% vb_row$train_mae[1L]),
+      train_qtrue_mae_mcmc = as.numeric(mcmc_row$train_qtrue_mae[1L] %||% mcmc_row$train_mae[1L]),
+      train_qtrue_mae_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_qtrue_mae[1L] %||% mcmc_row$train_mae[1L]) -
+          (vb_row$train_qtrue_mae[1L] %||% vb_row$train_mae[1L])
+      ),
+      train_qtrue_rmse_vb = as.numeric(vb_row$train_qtrue_rmse[1L] %||% vb_row$train_rmse[1L]),
+      train_qtrue_rmse_mcmc = as.numeric(mcmc_row$train_qtrue_rmse[1L] %||% mcmc_row$train_rmse[1L]),
+      train_qtrue_rmse_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_qtrue_rmse[1L] %||% mcmc_row$train_rmse[1L]) -
+          (vb_row$train_qtrue_rmse[1L] %||% vb_row$train_rmse[1L])
+      ),
+      train_qtrue_bias_vb = as.numeric(vb_row$train_qtrue_bias[1L] %||% vb_row$train_bias[1L]),
+      train_qtrue_bias_mcmc = as.numeric(mcmc_row$train_qtrue_bias[1L] %||% mcmc_row$train_bias[1L]),
+      train_qtrue_bias_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_qtrue_bias[1L] %||% mcmc_row$train_bias[1L]) -
+          (vb_row$train_qtrue_bias[1L] %||% vb_row$train_bias[1L])
+      ),
+      train_qtrue_corr_vb = as.numeric(vb_row$train_qtrue_corr[1L] %||% vb_row$train_corr[1L]),
+      train_qtrue_corr_mcmc = as.numeric(mcmc_row$train_qtrue_corr[1L] %||% mcmc_row$train_corr[1L]),
+      train_qtrue_corr_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_qtrue_corr[1L] %||% mcmc_row$train_corr[1L]) -
+          (vb_row$train_qtrue_corr[1L] %||% vb_row$train_corr[1L])
+      ),
+      train_qtrue_median_ae_vb = as.numeric(vb_row$train_qtrue_median_ae[1L] %||% NA_real_),
+      train_qtrue_median_ae_mcmc = as.numeric(mcmc_row$train_qtrue_median_ae[1L] %||% NA_real_),
+      train_qtrue_median_ae_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_qtrue_median_ae[1L] %||% NA_real_) -
+          (vb_row$train_qtrue_median_ae[1L] %||% NA_real_)
+      ),
+      train_qtrue_p90_ae_vb = as.numeric(vb_row$train_qtrue_p90_ae[1L] %||% NA_real_),
+      train_qtrue_p90_ae_mcmc = as.numeric(mcmc_row$train_qtrue_p90_ae[1L] %||% NA_real_),
+      train_qtrue_p90_ae_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_qtrue_p90_ae[1L] %||% NA_real_) -
+          (vb_row$train_qtrue_p90_ae[1L] %||% NA_real_)
+      ),
+      train_pinball_tau_vb = as.numeric(vb_row$train_pinball_tau[1L] %||% NA_real_),
+      train_pinball_tau_mcmc = as.numeric(mcmc_row$train_pinball_tau[1L] %||% NA_real_),
+      train_pinball_tau_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_pinball_tau[1L] %||% NA_real_) -
+          (vb_row$train_pinball_tau[1L] %||% NA_real_)
+      ),
+      train_coverage_vb = as.numeric(vb_row$train_coverage[1L] %||% NA_real_),
+      train_coverage_mcmc = as.numeric(mcmc_row$train_coverage[1L] %||% NA_real_),
+      train_coverage_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_coverage[1L] %||% NA_real_) -
+          (vb_row$train_coverage[1L] %||% NA_real_)
+      ),
+      train_coverage_minus_tau_vb = as.numeric(vb_row$train_coverage_minus_tau[1L] %||% NA_real_),
+      train_coverage_minus_tau_mcmc = as.numeric(mcmc_row$train_coverage_minus_tau[1L] %||% NA_real_),
+      train_coverage_minus_tau_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_coverage_minus_tau[1L] %||% NA_real_) -
+          (vb_row$train_coverage_minus_tau[1L] %||% NA_real_)
+      ),
+      train_coverage_error_vb = as.numeric(vb_row$train_coverage_error[1L] %||% NA_real_),
+      train_coverage_error_mcmc = as.numeric(mcmc_row$train_coverage_error[1L] %||% NA_real_),
+      train_coverage_error_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$train_coverage_error[1L] %||% NA_real_) -
+          (vb_row$train_coverage_error[1L] %||% NA_real_)
+      ),
+      runtime_sec_per_1k_eval_vb = as.numeric(vb_row$runtime_sec_per_1k_eval[1L] %||% NA_real_),
+      runtime_sec_per_1k_eval_mcmc = as.numeric(mcmc_row$runtime_sec_per_1k_eval[1L] %||% NA_real_),
+      runtime_sec_per_1k_eval_ratio_mcmc_vs_vb = ifelse(
+        is.finite(as.numeric(vb_row$runtime_sec_per_1k_eval[1L])) && as.numeric(vb_row$runtime_sec_per_1k_eval[1L]) > 0,
+        as.numeric(mcmc_row$runtime_sec_per_1k_eval[1L]) / as.numeric(vb_row$runtime_sec_per_1k_eval[1L]),
+        NA_real_
+      ),
       holdout_qtrue_mae_vb = as.numeric(vb_row$holdout_qtrue_mae[1L] %||% vb_row$holdout_mae[1L]),
       holdout_qtrue_mae_mcmc = as.numeric(mcmc_row$holdout_qtrue_mae[1L] %||% mcmc_row$holdout_mae[1L]),
       holdout_qtrue_mae_delta_mcmc_minus_vb = as.numeric(
@@ -873,6 +995,12 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       holdout_coverage_delta_mcmc_minus_vb = as.numeric(
         (mcmc_row$holdout_coverage[1L] %||% NA_real_) -
           (vb_row$holdout_coverage[1L] %||% NA_real_)
+      ),
+      holdout_coverage_minus_tau_vb = as.numeric(vb_row$holdout_coverage_minus_tau[1L] %||% NA_real_),
+      holdout_coverage_minus_tau_mcmc = as.numeric(mcmc_row$holdout_coverage_minus_tau[1L] %||% NA_real_),
+      holdout_coverage_minus_tau_delta_mcmc_minus_vb = as.numeric(
+        (mcmc_row$holdout_coverage_minus_tau[1L] %||% NA_real_) -
+          (vb_row$holdout_coverage_minus_tau[1L] %||% NA_real_)
       ),
       holdout_coverage_error_vb = as.numeric(vb_row$holdout_coverage_error[1L] %||% NA_real_),
       holdout_coverage_error_mcmc = as.numeric(mcmc_row$holdout_coverage_error[1L] %||% NA_real_),
@@ -1080,9 +1208,56 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       extended_comparison_eligible = as.logical(exal_row$comparison_eligible[1L]),
       pair_signoff_grade = pair_grade,
       pair_comparison_eligible = as.logical(al_row$comparison_eligible[1L] & exal_row$comparison_eligible[1L]),
+      baseline_runtime_sec = as.numeric(al_row$runtime_sec[1L] %||% NA_real_),
+      extended_runtime_sec = as.numeric(exal_row$runtime_sec[1L] %||% NA_real_),
+      runtime_sec_delta_extended_minus_baseline = as.numeric(
+        (exal_row$runtime_sec[1L] %||% NA_real_) -
+          (al_row$runtime_sec[1L] %||% NA_real_)
+      ),
+      runtime_ratio_extended_vs_baseline = ifelse(
+        is.finite(as.numeric(al_row$runtime_sec[1L])) && as.numeric(al_row$runtime_sec[1L]) > 0,
+        as.numeric(exal_row$runtime_sec[1L]) / as.numeric(al_row$runtime_sec[1L]),
+        NA_real_
+      ),
       train_mae_delta_extended_minus_baseline = as.numeric(exal_row$train_mae[1L] - al_row$train_mae[1L]),
       train_rmse_delta_extended_minus_baseline = as.numeric(exal_row$train_rmse[1L] - al_row$train_rmse[1L]),
       train_corr_delta_extended_minus_baseline = as.numeric(exal_row$train_corr[1L] - al_row$train_corr[1L]),
+      train_qtrue_mae_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_qtrue_mae[1L] %||% exal_row$train_mae[1L]) -
+          (al_row$train_qtrue_mae[1L] %||% al_row$train_mae[1L])
+      ),
+      train_qtrue_rmse_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_qtrue_rmse[1L] %||% exal_row$train_rmse[1L]) -
+          (al_row$train_qtrue_rmse[1L] %||% al_row$train_rmse[1L])
+      ),
+      train_qtrue_bias_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_qtrue_bias[1L] %||% exal_row$train_bias[1L]) -
+          (al_row$train_qtrue_bias[1L] %||% al_row$train_bias[1L])
+      ),
+      train_qtrue_corr_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_qtrue_corr[1L] %||% exal_row$train_corr[1L]) -
+          (al_row$train_qtrue_corr[1L] %||% al_row$train_corr[1L])
+      ),
+      train_qtrue_median_ae_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_qtrue_median_ae[1L] %||% NA_real_) -
+          (al_row$train_qtrue_median_ae[1L] %||% NA_real_)
+      ),
+      train_qtrue_p90_ae_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_qtrue_p90_ae[1L] %||% NA_real_) -
+          (al_row$train_qtrue_p90_ae[1L] %||% NA_real_)
+      ),
+      train_pinball_tau_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_pinball_tau[1L] %||% NA_real_) -
+          (al_row$train_pinball_tau[1L] %||% NA_real_)
+      ),
+      train_coverage_minus_tau_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_coverage_minus_tau[1L] %||% NA_real_) -
+          (al_row$train_coverage_minus_tau[1L] %||% NA_real_)
+      ),
+      train_coverage_error_delta_extended_minus_baseline = as.numeric(
+        (exal_row$train_coverage_error[1L] %||% NA_real_) -
+          (al_row$train_coverage_error[1L] %||% NA_real_)
+      ),
       holdout_qtrue_mae_delta_extended_minus_baseline = as.numeric(
         (exal_row$holdout_qtrue_mae[1L] %||% exal_row$holdout_mae[1L]) -
           (al_row$holdout_qtrue_mae[1L] %||% al_row$holdout_mae[1L])
@@ -1094,6 +1269,10 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       holdout_pinball_tau_delta_extended_minus_baseline = as.numeric(
         (exal_row$holdout_pinball_tau[1L] %||% NA_real_) -
           (al_row$holdout_pinball_tau[1L] %||% NA_real_)
+      ),
+      holdout_coverage_minus_tau_delta_extended_minus_baseline = as.numeric(
+        (exal_row$holdout_coverage_minus_tau[1L] %||% NA_real_) -
+          (al_row$holdout_coverage_minus_tau[1L] %||% NA_real_)
       ),
       holdout_coverage_error_delta_extended_minus_baseline = as.numeric(
         (exal_row$holdout_coverage_error[1L] %||% NA_real_) -
