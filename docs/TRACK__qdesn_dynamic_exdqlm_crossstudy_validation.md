@@ -143,6 +143,15 @@ Current validation state of this new rerun:
       - `2/35`
   - current active task:
     - targeted scientific fail closure from the repaired effective-w300 source, not another broad rerun
+  - live fail-closure run:
+    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87`
+  - tmux session:
+    - `qdesn_dynxff_0408_040402`
+  - current runner state at launch verification:
+    - `RUNNING`
+  - current stage/profile:
+    - `W1_ridge_lower_tail_short`
+    - `N710_ridge_vb_guard160`
 
 ## 2) Current Status
 

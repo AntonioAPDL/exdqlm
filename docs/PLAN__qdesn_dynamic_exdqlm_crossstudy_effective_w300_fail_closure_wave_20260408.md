@@ -199,3 +199,19 @@ After the wave completes:
 3. update trackers and reports,
 4. regenerate the effective-w300 comparison-analysis pack from the merged repaired source,
 5. use that regenerated pack as the new authoritative branch-local comparison source.
+
+## 9) Current Execution State
+
+This plan is now live from committed state:
+
+- commit:
+  - `8005f87`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87`
+- tmux session:
+  - `qdesn_dynxff_0408_040402`
+- initial runner state:
+  - `RUNNING`
+- initial stage/profile:
+  - `W1_ridge_lower_tail_short`
+  - `N710_ridge_vb_guard160`

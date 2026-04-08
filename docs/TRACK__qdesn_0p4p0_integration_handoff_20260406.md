@@ -131,6 +131,15 @@ Current status:
       - `2` FAIL rows
   - overnight compute should therefore stay local to those pockets and preserve the repaired broad
     effective-w300 source as the default baseline
+  - live overnight fail-closure run:
+    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87`
+  - live tmux session:
+    - `qdesn_dynxff_0408_040402`
+  - current runner state at launch verification:
+    - `RUNNING`
+  - current stage/profile:
+    - `W1_ridge_lower_tail_short`
+    - `N710_ridge_vb_guard160`
 
 ## 3) Source Of Truth Hierarchy
 

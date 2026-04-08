@@ -247,9 +247,9 @@ Proceed with a targeted **effective-w300 scientific fail-closure wave** that:
 Validated from prepare-only:
 
 - preflight run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040208__git-75b9913`
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040331__git-8005f87`
 - preflight markdown:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040208__git-75b9913/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040331__git-8005f87/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
 
 Verified source state:
 
@@ -286,3 +286,31 @@ Interpretation:
 - the stage selectors hit the intended fail surface exactly,
 - the overnight program is broad enough to be informative while still local to the remaining
   scientific debt.
+
+## 11) Live Overnight Launch
+
+Committed launch state:
+
+- implementation commit:
+  - `8005f87`
+- live run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87`
+- tmux session:
+  - `qdesn_dynxff_0408_040402`
+- immediate healthcheck snapshot:
+  - `2026-04-08 04:04:23 EDT`
+- runner state:
+  - `RUNNING`
+- current stage:
+  - `W1_ridge_lower_tail_short`
+- current profile:
+  - `N710_ridge_vb_guard160`
+- launcher session live:
+  - `TRUE`
+
+Live files:
+
+- launch metadata:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87/launch/launcher_session.json`
+- launcher log:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87/launch/launcher_stdout.log`
