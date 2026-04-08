@@ -37,7 +37,7 @@ exdqlmMCMC(
   slice.max.steps = Inf,
   trace.diagnostics = TRUE,
   trace.every = 1L,
-  verbose.every = 50L,
+  verbose.every = 500L,
   progress_callback = NULL
 )
 }
@@ -123,7 +123,7 @@ lighter-weight runs.}
 one diagnostics row every \code{trace.every} iterations.}
 
 \item{verbose.every}{Positive integer controlling how often console progress
-is printed when \code{verbose = TRUE}. Default \code{50}, independent of
+is printed when \code{verbose = TRUE}. Default \code{500}, independent of
 \code{trace.every}.}
 
 \item{progress_callback}{Optional callback invoked with a named list at MCMC

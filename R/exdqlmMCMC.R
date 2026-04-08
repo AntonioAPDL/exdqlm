@@ -39,7 +39,7 @@
 #' @param trace.every Positive integer; when `trace.diagnostics = TRUE`, record
 #'   one diagnostics row every `trace.every` iterations.
 #' @param verbose.every Positive integer controlling how often console progress
-#'   is printed when `verbose = TRUE`. Default `50`, independent of
+#'   is printed when `verbose = TRUE`. Default `500`, independent of
 #'   `trace.every`.
 #' @param progress_callback Optional callback invoked with a named list at MCMC
 #'   start, at each progress checkpoint, and on completion. Intended for
@@ -101,7 +101,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,
-                    trace.diagnostics=TRUE,trace.every=1L,verbose.every=50L,
+                    trace.diagnostics=TRUE,trace.every=1L,verbose.every=500L,
                     progress_callback=NULL){
 
   # check inputs
