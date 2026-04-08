@@ -103,7 +103,11 @@ create_plots <- !has_flag("--no-plots")
 batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smoke"))
 
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
-canonical_grid <- exdqlm:::qdesn_dynamic_crossstudy_build_grid_from_reference(defaults)
+canonical_grid <- exdqlm:::qdesn_dynamic_crossstudy_build_grid(
+  defaults = defaults,
+  refresh_materialized = isTRUE(refresh_grid),
+  verbose = isTRUE(verbose)
+)
 canonical_grid_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_grid(canonical_grid, defaults)
 
 if (isTRUE(refresh_grid) || !file.exists(grid_path_raw)) {

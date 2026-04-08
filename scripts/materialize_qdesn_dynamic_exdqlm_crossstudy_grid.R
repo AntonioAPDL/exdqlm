@@ -38,7 +38,11 @@ output_path <- resolve_path(
 )
 
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
-grid_df <- exdqlm:::qdesn_dynamic_crossstudy_build_grid_from_reference(defaults)
+grid_df <- exdqlm:::qdesn_dynamic_crossstudy_build_grid(
+  defaults = defaults,
+  refresh_materialized = TRUE,
+  verbose = TRUE
+)
 validation <- exdqlm:::qdesn_dynamic_crossstudy_validate_grid(grid_df, defaults)
 
 dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)

@@ -35,11 +35,57 @@ Reason:
   validated dynamic results from old-branch commit `1591bd5` without pretending this branch has
   already rerun them.
 
+## Effective-W300 Posterior-Draw Rerun Note (2026-04-07)
+
+There is now a new branch-local rerun program for the same dynamic surface with a stronger metric
+contract:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
+- setup and smoke report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
+- defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
+
+Current contract:
+
+- effective fit sizes:
+  - `500`
+  - `5000`
+- enforced source totals:
+  - `813`
+  - `5313`
+- shared MCMC depth:
+  - burn-in `1000`
+  - kept iterations `2000`
+- posterior metric draws:
+  - `1000`
+
+Current validation state of this new rerun:
+
+- prepare-only passed for:
+  - smoke
+  - full
+- corrected smoke run:
+  - `qdesn-dynamic-exdqlm-crossstudy-smoke-20260407-231231__git-812cb58`
+  - `4/4 SUCCESS`
+  - `8 PASS / 6 WARN / 2 FAIL`
+  - exact `train_n_eval` verified on the completed `500` roots:
+    - `500`
+  - exact `X_train` size verified from live pipeline logs on the `5000` roots:
+    - `5000`
+
 ## 2) Current Status
 
-Status: **the branch-local smoke rerun, the broad dynamic rerun, and the first targeted
-fit-fail closure wave are all complete on the synced `0.4.0` integration base; the current next
-move is a second residual-only overnight wave, not another broad rerun**
+Status of this long-form tracker: **historical relaunch record**.
+
+For the current branch-local active rerun, use the effective-w300 posterior-draw note above plus:
+
+- `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
+- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
+
+The remainder of this section preserves the earlier integration-branch relaunch history.
 
 Scope correction summary:
 

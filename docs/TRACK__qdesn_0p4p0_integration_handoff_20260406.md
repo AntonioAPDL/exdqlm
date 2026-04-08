@@ -18,27 +18,68 @@ This branch already contains:
 This handoff exists so we do **not** have to treat the older branch-local validation tracker as the
 main working document on this branch.
 
-## 2) Source Of Truth Hierarchy
+## 2) Current Branch-Local Active Study
+
+The branch has a new active rerun program in addition to the already-certified zero-FAIL baseline:
+
+- study:
+  - dynamic exdqlm cross-study effective-w300 posterior-draw rerun
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
+- setup and smoke report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
+- defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
+
+Key contract:
+
+- reported fit sizes `500` and `5000` now mean **effective post-washout train size**
+- current enforced source totals:
+  - `813`
+  - `5313`
+- shared MCMC depth:
+  - burn-in `1000`
+  - kept iterations `2000`
+- posterior metric draw budget:
+  - `1000`
+
+Current status:
+
+- prepare-only passed for:
+  - smoke
+  - full
+- corrected smoke run:
+  - `qdesn-dynamic-exdqlm-crossstudy-smoke-20260407-231231__git-812cb58`
+  - `4/4 SUCCESS`
+  - `8 PASS / 6 WARN / 2 FAIL`
+  - exact effective train sizes confirmed:
+    - `500`
+    - `5000`
+
+## 3) Source Of Truth Hierarchy
 
 For continuation work on this integration branch, use the following evidence order:
 
 1. this handoff tracker:
    - `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
-2. the detailed historical dynamic relaunch tracker:
+2. the active effective-w300 posterior-draw rerun docs:
+   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
+3. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
-3. the completed dynamic campaign outputs on the predecessor branch/worktree:
+4. the completed dynamic campaign outputs on the predecessor branch/worktree:
    - campaign summary:
      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/summary/qdesn_dynamic_crossstudy_summary.md`
    - comparison summary:
      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/comparison_vs_reference/comparison_summary.md`
    - campaign progress table:
      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/tables/campaign_progress.csv`
-4. the checked-in dynamic grid and runner assets on this branch:
+5. the checked-in dynamic grid and runner assets on this branch:
    - `config/validation/qdesn_dynamic_exdqlm_crossstudy_grid.csv`
    - `R/qdesn_dynamic_exdqlm_crossstudy.R`
    - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R`
 
-## 3) Branch/Worktree Lineage
+## 4) Branch/Worktree Lineage
 
 Current active continuation point:
 
@@ -65,7 +106,7 @@ Important boundary:
 - it should be read for evidence, not modified;
 - this integration branch is now the active QDESN validation/development base.
 
-## 4) Authoritative Carry-Forward State
+## 5) Authoritative Carry-Forward State
 
 Authoritative prior branch:
 
@@ -116,7 +157,7 @@ Latest completed campaigns to carry forward:
   - `144` fit rows
   - `29 PASS / 69 WARN / 46 FAIL`
 
-## 5) What Is Settled
+## 6) What Is Settled
 
 These points should be treated as settled carry-forward knowledge unless the `0.4.0` integration
 branch disproves them:
@@ -141,7 +182,7 @@ branch disproves them:
 - the remaining blocker after the completed run is **fit-level comparison quality**, not basic
   execution stability.
 
-## 6) Current In-Scope Case Set
+## 7) Current In-Scope Case Set
 
 Canonical in-scope grid on this branch:
 
@@ -185,7 +226,7 @@ Therefore:
 - fit-level rows:
   - `36 x 4 = 144`
 
-## 7) Health Convention Used Here
+## 8) Health Convention Used Here
 
 Preserved fit-level convention:
 
@@ -209,7 +250,7 @@ Root/case-level status on this branch is derived from the completed branch-local
   - `root_status = FAIL`, or
   - `root_status = SUCCESS` with `root_comparison_eligible_any = FALSE`
 
-## 8) Current Branch-Local Validation State
+## 9) Current Branch-Local Validation State
 
 Completed branch-local smoke/parity rerun:
 
@@ -278,7 +319,7 @@ Primary closeout report for this decision:
 
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_fit_fail_wave1_closeout_and_wave2_inventory_20260407.md`
 
-## 9) Promotion Decision After Wave 1
+## 10) Promotion Decision After Wave 1
 
 No new **global** baseline promotion is justified yet.
 
@@ -291,7 +332,7 @@ Decision rule carried forward:
 - for ambiguous stages, keep source or carry forward only the safer local control for the next wave
   without calling it a scientific promotion
 
-## 10) Remaining Scientific Debt
+## 11) Remaining Scientific Debt
 
 Effective residual fail surface after the conservative carry-forward map:
 
@@ -327,7 +368,7 @@ Best high-level axis read remains:
 - `al` is healthier than `exal`
 - `fit_size=500` is healthier than `fit_size=5000`
 
-## 11) Recommended Move-Forward On This Branch
+## 12) Recommended Move-Forward On This Branch
 
 The next move is no longer another full rerun and no longer another first-wave targeted fit-fail
 screen.
@@ -409,7 +450,7 @@ Current effective local baseline map:
 | `R4_rhs_tt5000_residual` | `L760_rhs_long_vbguard_deep` |
 | `R5_short_horizon_mixed_residual` | `L770_short_mixed_local_mcmc` |
 
-## 12) Working Rules
+## 13) Working Rules
 
 - keep the study on the **dynamic** exdqlm-aligned surface
 - keep the current defaults as the source baseline unless a local challenger clearly wins
@@ -418,7 +459,7 @@ Current effective local baseline map:
 - do not spend compute on another broad rerun right now
 - do not reopen generic tuning search for one universal rescue profile
 
-## 13) Final-Wave Reconciliation And Authoritative Promotion Update
+## 14) Final-Wave Reconciliation And Authoritative Promotion Update
 
 The final rhs-only cleanup wave still should **not** be treated as a stage-wide global promotion.
 
@@ -452,7 +493,7 @@ Exact-root overrides:
 | `root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns` | `M850_rhs_long_burnheavy1300` | clears the remaining long-horizon rhs `mcmc_exal` fail row and restores full readiness on the exact target root |
 | `root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns` | `M940_short_rhs_narrow1200_diag5` | clears the remaining short-horizon rhs `mcmc_exal` fail row and is cleaner than `M950` on the target-root non-fail rows |
 
-## 14) Current Authoritative Validation State
+## 15) Current Authoritative Validation State
 
 Current authoritative branch-local comparison state is now:
 
@@ -479,7 +520,7 @@ Authoritative reconciliation report:
 
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_root_override_reconciliation_20260407.md`
 
-## 15) Main Comparison Analysis Outputs (2026-04-07)
+## 16) Main Comparison Analysis Outputs (2026-04-07)
 
 The authoritative comparison-analysis pack has been regenerated from the reconciled baseline above.
 

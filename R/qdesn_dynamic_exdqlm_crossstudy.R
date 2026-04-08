@@ -21,6 +21,15 @@ qdesn_dynamic_crossstudy_load_grid <- function(path = file.path("config", "valid
   out
 }
 
+.qdesn_dynamic_crossstudy_grid_source_mode <- function(defaults) {
+  grid_cfg <- defaults$grid %||% list()
+  mode <- tolower(as.character(grid_cfg$source_mode %||% "reference_inventory")[1L])
+  if (!mode %in% c("reference_inventory", "materialized_source_inputs")) {
+    stop(sprintf("Unsupported dynamic cross-study grid source_mode '%s'.", mode), call. = FALSE)
+  }
+  mode
+}
+
 .qdesn_dynamic_crossstudy_prob_label <- function(x) {
   gsub("\\.", "p", format(as.numeric(x)[1L], nsmall = 2, digits = 4, trim = TRUE))
 }
@@ -212,18 +221,325 @@ qdesn_dynamic_crossstudy_validate_reference_inventory <- function(reference_inve
     stop(paste(c("Dynamic reference inventory validation failed:", paste0("- ", problems)), collapse = "\n"), call. = FALSE)
   }
   list(
-    reference_root_dirs_n = length(reference_inventory$root_dirs),
-    reference_root_rows_n = nrow(root_summary),
-    reference_unique_dataset_cells = length(unique(paste(
-      root_summary$scenario, root_summary$family, root_summary$tau, root_summary$fit_size, sep = "||"
-    ))),
-    scenarios = sort(unique(as.character(root_summary$scenario))),
-    families = sort(unique(as.character(root_summary$family))),
-    taus = sort(unique(as.numeric(root_summary$tau))),
-    fit_sizes = sort(unique(as.integer(root_summary$fit_size)))
+    reference_root = reference_inventory$reference_root,
+    reference_roots = nrow(root_summary),
+    unique_dataset_cells = if (nrow(root_summary)) length(unique(paste(root_summary$scenario, root_summary$family, root_summary$tau, root_summary$fit_size, sep = "||"))) else 0L,
+    scenarios = if (nrow(root_summary)) sort(unique(as.character(root_summary$scenario))) else character(0),
+    families = if (nrow(root_summary)) sort(unique(as.character(root_summary$family))) else character(0),
+    taus = if (nrow(root_summary)) sort(unique(as.numeric(root_summary$tau))) else numeric(0),
+    fit_sizes = if (nrow(root_summary)) sort(unique(as.integer(root_summary$fit_size))) else integer(0),
+    root_kinds = if (nrow(root_summary)) sort(unique(as.character(root_summary$root_kind))) else character(0)
   )
 }
 
+.qdesn_dynamic_crossstudy_required_source_total_size <- function(defaults, effective_fit_size) {
+  external_cfg <- defaults$external_data %||% list()
+  holdout_n <- as.integer(external_cfg$holdout_n %||% 1L)[1L]
+  if (!is.finite(holdout_n) || holdout_n < 1L) holdout_n <- 1L
+
+  lags_cfg <- defaults$lags %||% list()
+  lags_y <- if (!is.null(lags_cfg$y)) {
+    as.integer(unlist(lags_cfg$y, use.names = FALSE))
+  } else {
+    m_y <- as.integer(lags_cfg$m_y %||% 0L)[1L]
+    if (is.finite(m_y) && m_y > 0L) seq_len(m_y) else integer(0)
+  }
+  lags_x <- if (!is.null(lags_cfg$x)) {
+    as.integer(unlist(lags_cfg$x, use.names = FALSE))
+  } else {
+    m_x <- as.integer(lags_cfg$m_x %||% 0L)[1L]
+    if (is.finite(m_x) && m_x > 0L) 0L:m_x else integer(0)
+  }
+  lag_max <- max(c(0L, lags_y, lags_x), na.rm = TRUE)
+
+  reservoir_name <- as.character((defaults$pilot %||% list())$reservoir_profile %||% "tiny_d1_n8")[1L]
+  washout <- as.integer((((defaults$reservoir_profiles %||% list())[[reservoir_name]] %||% list())$washout %||% 0L)[1L])
+  if (!is.finite(washout) || washout < 0L) washout <- 0L
+
+  as.integer(effective_fit_size) + holdout_n + lag_max + washout
+}
+
+.qdesn_dynamic_crossstudy_materialization_windows <- function(defaults) {
+  material_cfg <- defaults$source_materialization %||% list()
+  windows <- material_cfg$windows %||% list()
+  if (!length(windows)) {
+    stop("Dynamic source materialization requires a non-empty source_materialization.windows list.", call. = FALSE)
+  }
+  out <- lapply(seq_along(windows), function(i) {
+    win <- windows[[i]] %||% list()
+    effective_fit_size <- as.integer(win$effective_fit_size %||% win$fit_size %||% NA_integer_)[1L]
+    if (!is.finite(effective_fit_size) || effective_fit_size < 1L) {
+      stop(sprintf("Materialization window %d is missing a valid effective_fit_size.", i), call. = FALSE)
+    }
+    required_total_size <- .qdesn_dynamic_crossstudy_required_source_total_size(defaults, effective_fit_size)
+    source_total_size <- as.integer(win$source_total_size %||% win$total_size %||% required_total_size)[1L]
+    if (!is.finite(source_total_size) || source_total_size < effective_fit_size) {
+      stop(sprintf(
+        "Materialization window %d is missing a valid source_total_size >= effective_fit_size.",
+        i
+      ), call. = FALSE)
+    }
+    if (isTRUE(material_cfg$enforce_effective_train_size %||% TRUE) &&
+        !identical(as.integer(source_total_size), as.integer(required_total_size))) {
+      stop(sprintf(
+        paste0(
+          "Materialization window %d has source_total_size=%d, but the current split contract requires %d ",
+          "to preserve effective post-washout train size %d ",
+          "(holdout_n + lag_max + washout are part of the contract)."
+        ),
+        i, source_total_size, required_total_size, effective_fit_size
+      ), call. = FALSE)
+    }
+    list(
+      effective_fit_size = effective_fit_size,
+      source_total_size = source_total_size,
+      source_dir_name = as.character(
+        win$source_dir_name %||% sprintf("fit_input_effTT%d_totalTT%d", effective_fit_size, source_total_size)
+      )[1L],
+      label = as.character(
+        win$label %||% sprintf("effTT%d_totalTT%d", effective_fit_size, source_total_size)
+      )[1L]
+    )
+  })
+  names(out) <- vapply(out, `[[`, character(1), "label")
+  out
+}
+
+.qdesn_dynamic_crossstudy_slice_sim_output <- function(sim_obj,
+                                                       idx,
+                                                       source_root,
+                                                       target_n,
+                                                       effective_fit_size,
+                                                       washout) {
+  idx <- as.integer(idx)
+  y <- as.numeric(sim_obj$y %||% numeric(0))
+  q <- as.matrix(sim_obj$q %||% matrix(numeric(0), 0L, 0L))
+  if (!length(y) || !nrow(q)) {
+    stop("Materialized dynamic source requires sim_output.rds entries y and q.", call. = FALSE)
+  }
+  if (length(y) < max(idx) || nrow(q) < max(idx)) {
+    stop("Materialized dynamic source slice exceeds source sim_output length.", call. = FALSE)
+  }
+
+  info <- sim_obj$info %||% list()
+  params <- info$params %||% list()
+  params$TT <- as.integer(target_n)
+  params$TT_effective <- as.integer(effective_fit_size)
+  params$washout <- as.integer(washout)
+  params$TT_warmup <- as.integer(length(y) - target_n)
+  info$params <- params
+  info$subsample <- list(
+    source_root = as.character(source_root),
+    source_n = as.integer(length(y)),
+    target_n = as.integer(target_n),
+    effective_target_n = as.integer(effective_fit_size),
+    washout = as.integer(washout),
+    selection_method = "last_T",
+    sorted_by = "time"
+  )
+
+  list(
+    y = y[idx],
+    q = q[idx, , drop = FALSE],
+    p = sim_obj$p %||% NA_real_,
+    info = info,
+    extras = list(
+      source_index = idx,
+      materialized_for = "qdesn_dynamic_effective_fit_validation"
+    )
+  )
+}
+
+qdesn_dynamic_crossstudy_materialize_source_inputs <- function(defaults,
+                                                               refresh = FALSE,
+                                                               verbose = FALSE) {
+  material_cfg <- defaults$source_materialization %||% list()
+  source_root <- .qdesn_validation_resolve_path(material_cfg$dynamic_root, must_work = TRUE)
+  staged_root <- .qdesn_validation_resolve_path(material_cfg$staged_root, must_work = FALSE)
+  scenario_set <- as.character(material_cfg$scenarios %||% (defaults$reference_contract %||% list())$scenarios)
+  family_set <- as.character(material_cfg$families %||% (defaults$reference_contract %||% list())$families)
+  tau_set <- as.numeric(material_cfg$taus %||% (defaults$reference_contract %||% list())$taus)
+  windows <- .qdesn_dynamic_crossstudy_materialization_windows(defaults)
+  reservoir_name <- as.character((defaults$pilot %||% list())$reservoir_profile %||% "tiny_d1_n8")[1L]
+  washout <- as.integer((((defaults$reservoir_profiles %||% list())[[reservoir_name]] %||% list())$washout %||% 0L)[1L])
+
+  if (!length(scenario_set) || !length(family_set) || !length(tau_set)) {
+    stop("Dynamic source materialization requires non-empty scenarios, families, and taus.", call. = FALSE)
+  }
+
+  .qdesn_validation_dir_create(staged_root)
+  rows <- list()
+
+  for (scenario in sort(unique(scenario_set))) {
+    for (family in sort(unique(family_set))) {
+      for (tau in sort(unique(tau_set))) {
+        tau_dir <- sprintf("tau_%s", .qdesn_dynamic_crossstudy_prob_label(tau))
+        family_root <- file.path(source_root, scenario, family, tau_dir)
+        series_path <- file.path(family_root, "series_wide.csv")
+        sim_path <- file.path(family_root, "sim_output.rds")
+        if (!file.exists(series_path) || !file.exists(sim_path)) {
+          stop(sprintf("Missing full-source files for %s / %s / tau=%s.", scenario, family, as.character(tau)), call. = FALSE)
+        }
+
+        series_df <- utils::read.csv(series_path, stringsAsFactors = FALSE)
+        if (!nrow(series_df)) {
+          stop(sprintf("Full-source series_wide.csv is empty: %s", series_path), call. = FALSE)
+        }
+        sim_obj <- readRDS(sim_path)
+
+        for (win in windows) {
+          total_n <- as.integer(win$source_total_size)
+          effective_fit_size <- as.integer(win$effective_fit_size)
+          if (nrow(series_df) < total_n) {
+            stop(sprintf(
+              "Full-source length %d is smaller than requested source_total_size=%d for %s / %s / tau=%s.",
+              nrow(series_df), total_n, scenario, family, as.character(tau)
+            ), call. = FALSE)
+          }
+          idx <- seq.int(nrow(series_df) - total_n + 1L, nrow(series_df))
+          stage_dir <- file.path(staged_root, scenario, family, tau_dir, win$source_dir_name)
+          if (isTRUE(refresh) && dir.exists(stage_dir)) {
+            unlink(stage_dir, recursive = TRUE, force = TRUE)
+          }
+          .qdesn_validation_dir_create(stage_dir)
+
+          stage_series_path <- file.path(stage_dir, "series_wide.csv")
+          stage_selection_path <- file.path(stage_dir, "selection_indices.csv")
+          stage_sim_path <- file.path(stage_dir, "sim_output.rds")
+          stage_meta_path <- file.path(stage_dir, "materialization_metadata.json")
+
+          if (isTRUE(refresh) || !file.exists(stage_series_path) || !file.exists(stage_selection_path) || !file.exists(stage_sim_path)) {
+            sliced_df <- series_df[idx, , drop = FALSE]
+            source_index <- if ("t" %in% names(sliced_df)) as.integer(sliced_df$t) else idx
+            selection_df <- data.frame(
+              t = seq_len(nrow(sliced_df)),
+              source_index = source_index,
+              stringsAsFactors = FALSE
+            )
+            utils::write.csv(sliced_df, stage_series_path, row.names = FALSE)
+            utils::write.csv(selection_df, stage_selection_path, row.names = FALSE)
+            saveRDS(
+              .qdesn_dynamic_crossstudy_slice_sim_output(
+                sim_obj = sim_obj,
+                idx = idx,
+                source_root = family_root,
+                target_n = total_n,
+                effective_fit_size = effective_fit_size,
+                washout = washout
+              ),
+              stage_sim_path
+            )
+            .qdesn_validation_write_json(stage_meta_path, list(
+              generated_at = as.character(Sys.time()),
+              source_root = family_root,
+              scenario = scenario,
+              family = family,
+              tau = as.numeric(tau),
+              source_total_size = total_n,
+              effective_fit_size = effective_fit_size,
+              washout = washout,
+              source_dir_name = win$source_dir_name,
+              source_index_first = idx[1L],
+              source_index_last = idx[length(idx)]
+            ))
+          }
+
+          rows[[length(rows) + 1L]] <- data.frame(
+            source_scenario = scenario,
+            source_family = family,
+            tau = as.numeric(tau),
+            fit_size = effective_fit_size,
+            effective_fit_size = effective_fit_size,
+            source_total_size = total_n,
+            source_window_label = as.character(win$label),
+            source_fit_input_dir = normalizePath(stage_dir, winslash = "/", mustWork = TRUE),
+            source_report_root = normalizePath(stage_dir, winslash = "/", mustWork = TRUE),
+            source_series_wide_path = normalizePath(stage_series_path, winslash = "/", mustWork = TRUE),
+            source_selection_indices_path = normalizePath(stage_selection_path, winslash = "/", mustWork = TRUE),
+            source_sim_path = normalizePath(stage_sim_path, winslash = "/", mustWork = TRUE),
+            stringsAsFactors = FALSE
+          )
+
+          if (isTRUE(verbose)) {
+            message(sprintf(
+              "[dynamic-source-materialize] %s / %s / tau=%.2f / eff=%d / total=%d -> %s",
+              scenario, family, as.numeric(tau), effective_fit_size, total_n, stage_dir
+            ))
+          }
+        }
+      }
+    }
+  }
+
+  inventory <- .qdesn_validation_bind_rows(rows)
+  inventory <- inventory[order(inventory$source_scenario, inventory$source_family, inventory$tau, inventory$fit_size), , drop = FALSE]
+  .qdesn_validation_write_df(inventory, file.path(staged_root, "materialized_source_inventory.csv"))
+  .qdesn_validation_write_json(file.path(staged_root, "materialized_source_manifest.json"), list(
+    generated_at = as.character(Sys.time()),
+    source_root = source_root,
+    staged_root = staged_root,
+    scenarios = sort(unique(as.character(inventory$source_scenario))),
+    families = sort(unique(as.character(inventory$source_family))),
+    taus = sort(unique(as.numeric(inventory$tau))),
+    effective_fit_sizes = sort(unique(as.integer(inventory$fit_size))),
+    source_total_sizes = sort(unique(as.integer(inventory$source_total_size))),
+    n_materialized_cells = nrow(inventory)
+  ))
+  inventory
+}
+
+qdesn_dynamic_crossstudy_build_grid_from_materialized_sources <- function(defaults,
+                                                                          materialized_inventory = NULL) {
+  pilot_cfg <- defaults$pilot %||% list()
+  if (is.null(materialized_inventory)) {
+    materialized_inventory <- qdesn_dynamic_crossstudy_materialize_source_inputs(defaults, refresh = FALSE, verbose = FALSE)
+  }
+  if (!nrow(materialized_inventory)) {
+    stop("Materialized dynamic source inventory is empty.", call. = FALSE)
+  }
+
+  rows <- list()
+  for (i in seq_len(nrow(materialized_inventory))) {
+    cell <- materialized_inventory[i, , drop = FALSE]
+    dataset_cell_id <- sprintf(
+      "dynamic__%s__%s__tau_%s__efftt_%s",
+      as.character(cell$source_scenario[1L]),
+      as.character(cell$source_family[1L]),
+      .qdesn_dynamic_crossstudy_prob_label(cell$tau[1L]),
+      as.integer(cell$fit_size[1L])
+    )
+    for (beta_prior_type in c("ridge", "rhs_ns")) {
+      row <- data.frame(
+        enabled = TRUE,
+        dataset_cell_id = dataset_cell_id,
+        source_root_kind = "dynamic",
+        source_scenario = as.character(cell$source_scenario[1L]),
+        source_family = as.character(cell$source_family[1L]),
+        tau = as.numeric(cell$tau[1L]),
+        fit_size = as.integer(cell$fit_size[1L]),
+        effective_fit_size = as.integer(cell$effective_fit_size[1L] %||% cell$fit_size[1L]),
+        source_total_size = as.integer(cell$source_total_size[1L]),
+        source_window_label = as.character(cell$source_window_label[1L]),
+        beta_prior_type = beta_prior_type,
+        source_fit_input_dir = as.character(cell$source_fit_input_dir[1L]),
+        source_report_root = as.character(cell$source_report_root[1L]),
+        source_series_wide_path = as.character(cell$source_series_wide_path[1L]),
+        source_selection_indices_path = as.character(cell$source_selection_indices_path[1L]),
+        source_sim_path = as.character(cell$source_sim_path[1L]),
+        source_reference_root_count = 1L,
+        source_reference_priors = "default",
+        source_current_rhsns_member = FALSE,
+        source_legacy_rhs_member = FALSE,
+        reservoir_profile = as.character(pilot_cfg$reservoir_profile %||% "tiny_d1_n8"),
+        seed = as.integer(pilot_cfg$seed %||% 123L),
+        stringsAsFactors = FALSE
+      )
+      row$root_id <- qdesn_dynamic_crossstudy_build_root_id(row)
+      rows[[length(rows) + 1L]] <- row
+    }
+  }
+  .qdesn_validation_bind_rows(rows)
+}
 qdesn_dynamic_crossstudy_build_root_id <- function(root_spec) {
   sprintf(
     "root__dynamic__%s__%s__tau_%s__lasttt_%s__qdesn_%s",
@@ -267,6 +583,9 @@ qdesn_dynamic_crossstudy_build_grid_from_reference <- function(defaults) {
         source_family = as.character(cell$family[1L]),
         tau = as.numeric(cell$tau[1L]),
         fit_size = as.integer(cell$fit_size[1L]),
+        effective_fit_size = as.integer(cell$fit_size[1L]),
+        source_total_size = as.integer(cell$fit_size[1L]),
+        source_window_label = as.character(sprintf("lastTT%d", as.integer(cell$fit_size[1L]))),
         beta_prior_type = beta_prior_type,
         source_fit_input_dir = as.character(cell$fit_input_dir[1L]),
         source_report_root = as.character(cell$root_dir[1L]),
@@ -286,6 +605,24 @@ qdesn_dynamic_crossstudy_build_grid_from_reference <- function(defaults) {
     }
   }
   .qdesn_validation_bind_rows(rows)
+}
+
+qdesn_dynamic_crossstudy_build_grid <- function(defaults,
+                                                refresh_materialized = FALSE,
+                                                verbose = FALSE) {
+  mode <- .qdesn_dynamic_crossstudy_grid_source_mode(defaults)
+  if (identical(mode, "materialized_source_inputs")) {
+    materialized_inventory <- qdesn_dynamic_crossstudy_materialize_source_inputs(
+      defaults = defaults,
+      refresh = refresh_materialized,
+      verbose = verbose
+    )
+    return(qdesn_dynamic_crossstudy_build_grid_from_materialized_sources(
+      defaults = defaults,
+      materialized_inventory = materialized_inventory
+    ))
+  }
+  qdesn_dynamic_crossstudy_build_grid_from_reference(defaults)
 }
 
 qdesn_dynamic_crossstudy_validate_grid <- function(grid_df, defaults) {
@@ -366,6 +703,9 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   source_family <- as.character(root_spec$source_family %||% pilot_cfg$source_family %||% NA_character_)[1L]
   tau <- as.numeric(root_spec$tau %||% pilot_cfg$tau %||% NA_real_)[1L]
   fit_size <- as.integer(root_spec$fit_size %||% pilot_cfg$fit_size %||% NA_integer_)[1L]
+  effective_fit_size <- as.integer(root_spec$effective_fit_size %||% fit_size)[1L]
+  source_total_size <- as.integer(root_spec$source_total_size %||% effective_fit_size)[1L]
+  source_window_label <- as.character(root_spec$source_window_label %||% sprintf("lastTT%s", as.character(source_total_size)))[1L]
   beta_prior_type <- tolower(as.character(root_spec$beta_prior_type %||% pilot_cfg$beta_prior_type %||% "rhs_ns")[1L])
   source_fit_input_dir <- .qdesn_validation_resolve_path(root_spec$source_fit_input_dir %||% pilot_cfg$source_fit_input_dir, must_work = TRUE)
   source_report_root <- .qdesn_validation_resolve_path(root_spec$source_report_root %||% pilot_cfg$source_report_root, must_work = TRUE)
@@ -395,6 +735,9 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   if (!is.finite(fit_size) || !fit_size %in% as.integer(contract$fit_sizes %||% fit_size)) {
     problems <- c(problems, sprintf("unsupported fit_size '%s'", as.character(fit_size)))
   }
+  if (!is.finite(source_total_size) || source_total_size < fit_size) {
+    problems <- c(problems, sprintf("invalid source_total_size '%s'", as.character(source_total_size)))
+  }
   if (!beta_prior_type %in% c("ridge", "rhs_ns")) {
     problems <- c(problems, sprintf("unsupported beta_prior_type '%s'", beta_prior_type))
   }
@@ -411,6 +754,9 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
     source_family = source_family,
     tau = tau,
     fit_size = fit_size,
+    effective_fit_size = effective_fit_size,
+    source_total_size = source_total_size,
+    source_window_label = source_window_label,
     beta_prior_type = beta_prior_type,
     source_fit_input_dir = source_fit_input_dir,
     source_report_root = source_report_root,
@@ -476,11 +822,12 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
 qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults) {
   truth_bundle <- .qdesn_dynamic_crossstudy_source_truth_bundle(root_spec)
   y <- truth_bundle$y
-  if (length(y) != as.integer(root_spec$fit_size)) {
+  expected_source_n <- as.integer(root_spec$source_total_size %||% root_spec$fit_size)
+  if (length(y) != expected_source_n) {
     stop(sprintf(
-      "Dynamic source dataset length mismatch for %s: expected fit_size=%d, got y=%d.",
+      "Dynamic source dataset length mismatch for %s: expected source_total_size=%d, got y=%d.",
       root_spec$root_id,
-      as.integer(root_spec$fit_size),
+      expected_source_n,
       length(y)
     ), call. = FALSE)
   }
@@ -512,6 +859,9 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
     source_family = root_spec$source_family,
     tau = as.numeric(root_spec$tau),
     fit_size = as.integer(root_spec$fit_size),
+    effective_fit_size = as.integer(root_spec$effective_fit_size %||% root_spec$fit_size),
+    source_total_size = expected_source_n,
+    source_window_label = as.character(root_spec$source_window_label %||% NA_character_),
     source_fit_input_dir = root_spec$source_fit_input_dir,
     source_report_root = root_spec$source_report_root,
     source_series_wide_path = root_spec$source_series_wide_path,
