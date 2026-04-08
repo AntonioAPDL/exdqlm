@@ -70,11 +70,28 @@ Current repair state:
 - exact failing fit requests reproduced successfully after the patch
 - subset-grid failed-root relaunch path implemented
 
+Current relaunch execution state:
+
+- repaired commit:
+  - `bcdb438`
+- active relaunch run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438`
+- tmux session:
+  - `qdesn_dynx_0408_012451`
+- relaunch scope:
+  - `6` failed roots only
+- launch metadata:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/launcher_session.json`
+- preflight:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- relaunch summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/failed_root_relaunch_summary.md`
+
 ## 4) Operational Use
 
 Next execution step:
 
 1. use this file as the frozen failed-root source list
-2. run the failed-root-only relaunch once from the repaired code path
+2. monitor the active failed-root-only relaunch from the repaired code path
 3. mark roots resolved only after the rerun produces `PASS` or `WARN`
 4. reconcile repaired roots back into the authoritative effective-w300 state

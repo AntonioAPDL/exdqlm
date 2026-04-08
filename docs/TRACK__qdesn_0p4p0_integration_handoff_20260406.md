@@ -80,6 +80,17 @@ Current status:
     - `ridge`
     - `rhs_ns`
   - failed-root-only relaunch path is prepare-only validated
+- active failed-root relaunch:
+  - repaired commit:
+    - `bcdb438`
+  - run tag:
+    - `qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438`
+  - tmux session:
+    - `qdesn_dynx_0408_012451`
+  - selected failed roots:
+    - `6`
+  - launch metadata:
+    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/launcher_session.json`
 
 ## 3) Source Of Truth Hierarchy
 
