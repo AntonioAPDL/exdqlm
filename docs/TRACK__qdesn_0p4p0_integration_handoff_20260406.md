@@ -20,8 +20,8 @@ main working document on this branch.
 
 ## 2) Current Branch-Local Active Study
 
-The current branch-local active study is now the **effective-w300 scientific fail-closure wave**
-starting from the repaired effective-w300 posterior-draw comparison source:
+The current branch-local active study is now the **effective-w300 final residual scientific
+closure wave** starting from the completed Wave 1 local-baseline promotions:
 
 - study:
   - dynamic exdqlm cross-study effective-w300 posterior-draw validation and repaired comparison
@@ -42,10 +42,16 @@ starting from the repaired effective-w300 posterior-draw comparison source:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
 - scientific fail-closure plan:
   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`
+- Wave 1 closeout and Wave 2 inventory report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
+- final residual-wave plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
 - defaults:
   - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
 - fail-closure manifest:
   - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_manifest.yaml`
+- final residual-wave manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_manifest.yaml`
 
 Key contract:
 
@@ -114,32 +120,39 @@ Current status:
     - `0/36` root-status FAILs
     - `34/36` comparison-eligible-any
     - `16/36` comparison-eligible-full
-- current interpretation:
-  - execution-failure debt is closed on the effective-w300 surface
-  - the active branch-local task is now targeted scientific fail closure, not another broad rerun
-  - current remaining scientific debt:
-    - `35 FAIL`
-    - `20` fail-carrying roots
-  - dominant remaining mechanisms:
-    - ridge VB tail instability:
-      - `24` FAIL rows
-    - rhs_ns mcmc_exal drift:
-      - `6` FAIL rows
-    - rhs_ns vb_exal rhs tail instability:
-      - `3` FAIL rows
-    - ridge mcmc_exal drift:
-      - `2` FAIL rows
-  - overnight compute should therefore stay local to those pockets and preserve the repaired broad
-    effective-w300 source as the default baseline
-  - live overnight fail-closure run:
+  - completed Wave 1 fail-closure run:
     - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87`
-  - live tmux session:
-    - `qdesn_dynxff_0408_040402`
-  - current runner state at launch verification:
-    - `RUNNING`
-  - current stage/profile:
-    - `W1_ridge_lower_tail_short`
-    - `N710_ridge_vb_guard160`
+  - promoted Wave 1 local baselines:
+    - `W1 -> N720_ridge_vb_guard192`
+    - `W2 -> N740_ridge_vb_guard256`
+    - `W3 -> N750_ridge_tail_combo2200`
+    - `W4 -> N750_ridge_tail_combo2200`
+    - `W5 -> N810_rhs_short_drift2200`
+    - `W6 -> N930_rhs_long_guard224_burnheavy2600`
+  - current promoted working validation source:
+    - `4` fit FAIL rows
+    - `4` fail-carrying roots
+    - `0/36` root-status FAILs
+    - `36/36` comparison-eligible-any
+    - `32/36` comparison-eligible-full
+  - residual mechanisms:
+    - ridge long upper-tail `mcmc_exal` drift:
+      - `1` FAIL row
+    - rhs_ns long-horizon MCMC residual:
+      - `3` FAIL rows
+  - current branch-local task:
+    - final residual scientific closure from the promoted Wave 1 source, not another broad rerun
+  - final residual-wave prepare-only:
+    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162510__git-537a3cb`
+  - verified preflight state:
+    - `144` fit rows
+    - `4` FAIL rows
+    - `4` fail-carrying roots
+    - `36/36` comparison-eligible-any
+    - `32/36` comparison-eligible-full
+  - verified stage sizes:
+    - `R1`: `3` roots, `1` targeted FAIL row, `5` profiles
+    - `R2`: `5` roots, `3` targeted FAIL rows, `5` profiles
 
 ## 3) Source Of Truth Hierarchy
 
@@ -155,6 +168,8 @@ For continuation work on this integration branch, use the following evidence ord
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
+   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
 4. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
 5. the authoritative repaired effective-w300 comparison pack:

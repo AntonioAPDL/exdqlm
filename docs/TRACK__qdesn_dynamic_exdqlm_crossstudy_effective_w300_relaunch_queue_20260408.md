@@ -101,8 +101,10 @@ Current scientific follow-up direction:
 
 - fail-surface report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
-- fail-closure plan:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`
+- Wave 1 closeout and Wave 2 inventory:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
+- final residual-wave plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
 - key rule:
   - keep this queue frozen as an execution-history record;
-  - do not mix the closed execution-failure loop with the new scientific fail-closure loop.
+  - do not mix the closed execution-failure loop with the new scientific residual-closure loop.
