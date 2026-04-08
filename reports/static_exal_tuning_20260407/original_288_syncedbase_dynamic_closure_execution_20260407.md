@@ -74,3 +74,64 @@ It is not intended to reopen:
   `phase1_dynamic_tail_primary`
 - initial done count:
   `0 / 12`
+
+## Final Outcome
+
+The dynamic closure wave completed with:
+
+- `12 / 12` rows done
+- `0 PASS`
+- `0 WARN`
+- `12 FAIL`
+- `0` promotable gains
+
+Accepted-state effect:
+
+- none
+- accepted `v7` remains:
+  - `282 / 288` healthy
+  - `230 PASS`
+  - `52 WARN`
+  - `6 FAIL`
+
+Accepted comparison:
+
+- `9` matches accepted
+- `0` better than accepted
+- `3` worse than accepted
+
+## Key Finding
+
+This closeout surfaced a runner-precedence bug that materially affects how the
+wave should be interpreted.
+
+Observed issue:
+
+- the case runner still prioritized MCMC settings from the reference fit object
+  ahead of manifest overrides
+- intended deeper budgets and row-local kernel overrides therefore did not
+  fully propagate into the actual launched runs
+
+Implication:
+
+- the wave is still valid as directional evidence about which row-local
+  corridors looked softer or weaker
+- but it is not valid as a full negative test of the intended stronger local
+  schedules
+
+That precedence bug has now been fixed in:
+
+- `tools/merge_reports/LOCAL_full288_case_runner_20260327.R`
+
+## What We Learned
+
+- accepted-tail rows often failed less badly than the original baseline even
+  though none cleared the health gate
+- replay-repair rows were low-value and should be deferred
+- best current row-local directions are:
+  - `gausmix / 0p05 / TT5000`: slice
+  - `gausmix / 0p25 / TT500`: slice
+  - `laplace / 0p05 / TT500`: RW
+  - `laplace / 0p05 / TT5000`: slice
+  - `normal / 0p05 / TT500`: RW from historical `rhsns_full_relaunch_20260327`
+  - `normal / 0p05 / TT5000`: RW from historical `rhsns_full_relaunch_20260327`

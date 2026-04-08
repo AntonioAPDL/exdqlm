@@ -38,11 +38,12 @@ Integration-base merge commit:
 
 Current synced tracker checkpoint on this branch:
 
-- `2026-04-07` post-targeted-follow-up closeout and dynamic-closure launch
+- `2026-04-07` post-dynamic-closure closeout and tail6-refine relaunch
 - scope:
-  - apply strict targeted-follow-up improvements into accepted `v7`
-  - document the completed targeted follow-up outcome
-  - document and launch the new dynamic-only closure lane
+  - accepted `v7` remains the authoritative carry-forward baseline
+  - document the completed dynamic-closure outcome
+  - record the discovered MCMC override-precedence bug in the runner
+  - launch the corrected accepted-tail-only tail6 refine lane
 
 ## Canonical Status Files
 
@@ -65,12 +66,12 @@ Primary accepted carry-forward artifacts:
 
 Latest completed rerun execution report:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
 
 Active residual repair planning / execution notes:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_program_20260407.md`
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_program_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
 
 ## Case Universe In Scope
 
@@ -151,40 +152,39 @@ Method-level breakdown of the accepted state:
 
 ## Latest Completed Validation Campaign
 
-The latest completed rerun campaign is:
+The latest completed rerun campaign is now:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_targeted_followup_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
 
 That campaign:
 
-- reran the narrow synced-base follow-up queue only
-- completed with `29 / 29` rows done
+- reran the `12`-row dynamic-only closure lane
 - yielded:
-  - `3 PASS`
-  - `10 WARN`
-  - `16 FAIL`
-  - `13 / 29` healthy
+  - `0 PASS`
+  - `0 WARN`
+  - `12 FAIL`
+  - `0 / 12` healthy
 - comparison against accepted:
-  - `3` better than accepted
-  - `6` matched accepted
-  - `20` were worse than accepted
-- strict improvements promoted into accepted `v7`:
-  - `static_paper::gausmix::0p25::1000::paper::exal::mcmc`
-  - `static_shrink::laplace::0p05::100::ridge::exal::mcmc`
-  - `static_shrink::laplace::0p95::1000::ridge::exal::mcmc`
+  - `0` better than accepted
+  - `9` matched accepted
+  - `3` were worse than accepted
+- strict improvements promoted:
+  - none
 
-Those promotions keep the overall accepted publication-target state at:
+That means the accepted publication-target state stays at:
 
 - `282 / 288` healthy
 - `6 / 288` unresolved
 
-while improving the pass/warn split from:
+Important implementation finding from this closeout:
 
-- `227 PASS / 55 WARN / 6 FAIL`
+- the case runner was still prioritizing reference-fit MCMC settings ahead of
+  explicit manifest overrides for burn, kept draws, proposal, joint sampling,
+  slice controls, and Laplace refresh controls
 
-to:
+That precedence bug is now fixed in:
 
-- `230 PASS / 52 WARN / 6 FAIL`
+- `tools/merge_reports/LOCAL_full288_case_runner_20260327.R`
 
 ## Remaining Failing Cases
 
@@ -241,7 +241,8 @@ Therefore:
   - broad fidelity replay complete
   - residual repair complete
   - targeted follow-up complete
-  - dynamic closure now active
+  - dynamic closure complete
+  - corrected tail6 refine now active
 
 ## Synced-Base Replay Status
 

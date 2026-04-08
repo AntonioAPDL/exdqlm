@@ -1,4 +1,4 @@
 "phase","total","done","missing","pass","warn","fail","healthy","matches_accepted","better_than_accepted","worse_than_accepted","pending_compare"
-"phase1_dynamic_tail_primary",6,0,6,0,0,0,0,0,0,0,6
-"phase2_dynamic_tail_alternate",3,0,3,0,0,0,0,0,0,0,3
-"phase3_dynamic_replay_repair",3,0,3,0,0,0,0,0,0,0,3
+"phase1_dynamic_tail_primary",6,6,0,0,0,6,0,6,0,0,0
+"phase2_dynamic_tail_alternate",3,3,0,0,0,3,0,3,0,0,0
+"phase3_dynamic_replay_repair",3,3,0,0,0,3,0,0,0,3,0

@@ -37,10 +37,40 @@ Accepted publication-target carry-forward state on the synced branch:
 
 Important caveat:
 
-- the accepted `v4` selection is current and valid as the planning baseline
+- the accepted `v7` selection is current and valid as the planning baseline
 - but the selected fit paths still point to predecessor-worktree outputs
 - synced-base rerun status should therefore be treated as pending rather than
   conflated with accepted carry-forward status
+
+## 0. Dynamic Closure Closeout and Static Deferral Refresh (2026-04-07)
+
+The synced-base dynamic closure wave has now completed with no promotable gains
+and the accepted publication-target state remains:
+
+- `282 / 288` healthy
+- `230 PASS`
+- `52 WARN`
+- `6 FAIL`
+
+Static implication:
+
+- accepted static publication-target coverage is still fully healthy
+- the current active remaining publication-target debt is still entirely dynamic
+- static should remain deferred while the corrected dynamic tail6 refine lane
+  is running
+
+Important related implementation finding:
+
+- the case runner was still prioritizing reference-fit MCMC settings over
+  manifest overrides
+- that bug is now fixed in
+  `tools/merge_reports/LOCAL_full288_case_runner_20260327.R`
+
+This matters for static too from a reproducibility perspective, but it does not
+change the immediate queue priority:
+
+- dynamic accepted tail first
+- deferred static row-local work later only if still needed
 
 ## 0. Targeted Follow-Up Closeout and Static Deferral Checkpoint (2026-04-07)
 

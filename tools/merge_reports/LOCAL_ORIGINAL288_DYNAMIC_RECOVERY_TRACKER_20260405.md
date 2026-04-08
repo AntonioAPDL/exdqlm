@@ -30,12 +30,72 @@ Canonical synced-branch status note:
 
 Important distinction carried forward on this branch:
 
-- accepted publication-target state under `v4` is current:
+- accepted publication-target state under `v7` is current:
   - `282 / 288` healthy
   - `6 / 288` unresolved
 - but the accepted selected fit paths still point to the predecessor worktree
 - therefore the accepted carry-forward status and the rerun-on-synced-base
   status must be treated separately in planning and reporting
+
+## Dynamic Closure Closeout and Tail6 Refine Relaunch (2026-04-07)
+
+The synced-base dynamic closure wave has now completed.
+
+Accepted publication-target state remains unchanged under `v7`:
+
+- `282 / 288` healthy
+- `230 PASS`
+- `52 WARN`
+- `6 FAIL`
+
+Dynamic closure closeout:
+
+- scope:
+  - `12` rows
+- outcome:
+  - `0 PASS`
+  - `0 WARN`
+  - `12 FAIL`
+  - `0 / 12` healthy
+- accepted comparison:
+  - `9` matches accepted
+  - `0` better than accepted
+  - `3` worse than accepted
+- promotions:
+  - none
+
+Most important implementation finding:
+
+- the case runner was still prioritizing reference-fit MCMC settings over
+  manifest overrides
+- that meant the intended stronger dynamic local schedules were not actually
+  being honored in the completed closure wave
+
+This bug is now fixed in:
+
+- `tools/merge_reports/LOCAL_full288_case_runner_20260327.R`
+
+Current highest-value next move:
+
+- keep the launch accepted-tail only
+- defer replay-repair rows that already looked low-value or worse
+- relaunch only the `6` accepted unresolved dynamic rows
+- use the best current row-local corridor per case with real override-respecting
+  budgets
+
+Active immediate next step on this branch:
+
+- run the corrected dynamic tail6 refine lane:
+  - `6` rows
+  - one row-local continuation per accepted unresolved dynamic case
+  - no replay-repair rows
+  - no static reopening
+
+Primary references:
+
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_closure_execution_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_program_20260407.md`
+- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
 
 ## Targeted Follow-Up Closeout and Dynamic Closure Launch (2026-04-07)
 
