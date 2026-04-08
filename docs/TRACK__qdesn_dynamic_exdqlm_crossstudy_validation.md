@@ -94,36 +94,47 @@ Current validation state of this new rerun:
     - `mcmc_al` latent-`v` GIG invalid draws
   - secondary cause:
     - failed-fit summary rows not always written
-- relaunch readiness:
-  - exact failed-fit reproductions succeeded after the patch under:
-    - `ridge`
-    - `rhs_ns`
-  - failed-root-only subset-grid relaunch path is now implemented and prepare-only validated
-- active failed-root relaunch from repaired state:
+- failed-root relaunch from repaired state:
   - repaired commit:
     - `bcdb438`
   - run tag:
     - `qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438`
-  - tmux session:
-    - `qdesn_dynx_0408_012451`
-  - selected failed roots:
+  - scope:
     - `6`
-  - subset mode:
-    - `--allow-grid-subset`
-  - launcher metadata:
-    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/launcher_session.json`
+  - outcome:
+    - `6/6 SUCCESS`
+    - `24/24` fit summaries written
+    - `0` repeated root execution failures
+- authoritative repaired comparison pack:
+  - run tag:
+    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e`
+  - summary:
+    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - report:
+    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
+  - 144-row case table:
+    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/tables/authoritative_fit_case_table_readable.csv`
+  - current rolled state:
+    - `40 PASS`
+    - `69 WARN`
+    - `35 FAIL`
+    - `0/36` root-status FAILs
+    - `34/36` comparison-eligible-any
+    - `16/36` comparison-eligible-full
 
 ## 2) Current Status
 
 Status of this long-form tracker: **historical relaunch record**.
 
-For the current branch-local active rerun, use the effective-w300 posterior-draw note above plus:
+For the current branch-local effective-w300 comparison-analysis state, use the note above plus:
 
 - `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
 - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
 - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
+- `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
 
 The remainder of this section preserves the earlier integration-branch relaunch history.
 

@@ -9,6 +9,38 @@ that can scale later without changing the core contract
 
 ## Dynamic Cross-Study Residual Update (2026-04-06)
 
+## Effective-W300 Post-Repair Comparison Update (2026-04-08)
+
+The current branch-local comparison-facing source is now the repaired effective-w300 pack on:
+
+- branch:
+  - `feature/qdesn-mcmc-alternative-0p4p0-integration`
+- worktree:
+  - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
+
+Authoritative repaired pack:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e`
+- report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
+- rolled state:
+  - `40 PASS`
+  - `69 WARN`
+  - `35 FAIL`
+  - `0/36` root-status FAILs
+  - `34/36` comparison-eligible-any
+  - `16/36` comparison-eligible-full
+
+Interpretation:
+
+- the effective-w300 execution-failure pocket is closed after the repaired failed-root relaunch
+- the remaining debt is scientific fit-level signoff debt, not broken root execution
+- use the repaired effective-w300 comparison pack, not the original failed broad rerun, for current
+  comparison analysis on this branch
+
+## Dynamic Cross-Study Residual Update (2026-04-06)
+
 The active comparison-facing QDESN study is now the **dynamic** exdqlm-aligned cross-study on:
 
 - branch:

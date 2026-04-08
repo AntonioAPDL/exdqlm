@@ -7,6 +7,38 @@ Repo: `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline`
 
 ## 0) Integration-Branch Residual Follow-Up Update (2026-04-06)
 
+## 0.1) Effective-W300 Post-Repair Comparison Update (2026-04-08)
+
+The current branch-local continuation point is the repaired effective-w300 comparison pack:
+
+- branch:
+  - `feature/qdesn-mcmc-alternative-0p4p0-integration`
+- worktree:
+  - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
+- report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e`
+
+Current repaired state:
+
+- `144` fit rows
+- `40 PASS`
+- `69 WARN`
+- `35 FAIL`
+- `36/36` roots completed
+- `0/36` root-status FAILs
+- `34/36` comparison-eligible-any
+- `16/36` comparison-eligible-full
+
+Interpretation:
+
+- the original effective-w300 execution failures were repaired and relaunch-resolved
+- this tracker should now be read as historical background, not the current operational queue
+- use the repaired effective-w300 report and the integration handoff tracker for current work
+
+## 0) Integration-Branch Residual Follow-Up Update (2026-04-06)
+
 The current comparison-facing continuation is now on:
 
 - branch:

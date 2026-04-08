@@ -103,13 +103,24 @@ Exact failed-fit reproductions after the patch:
   - wrote `timing_summary.csv`
   - wrote `forecast_objects.rds`
 
-## 7) Next Action
+## 7) Completion Status And Next Action
 
-The next action is a single failed-root-only rerun using the repaired code path:
+The failed-root-only rerun is now complete and the original execution-failure pocket is closed:
 
-- plan:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
-- live queue:
+- relaunch run:
+  - `qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438`
+- relaunch outcome:
+  - `6/6 SUCCESS`
+  - `24/24` fit summaries written
+  - `0` repeated execution failures
+
+The next action is therefore no longer another implementation repair wave.
+
+The next branch-local step is the repaired effective-w300 comparison analysis:
+
+- report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
+- queue closeout:
   - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
-- relaunch driver:
+- relaunch driver retained for reproducibility:
   - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch.R`

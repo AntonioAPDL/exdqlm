@@ -34,16 +34,16 @@ Root-status counts at this final source snapshot:
 - `30` `SUCCESS`
 - `6` `FAIL`
 
-## 2) Current Failed-Root Queue
+## 2) Historical Failed-Root Queue
 
-| Family | Tau | Fit Size | Prior | Root ID | Current Status | Current Error |
-|---|---:|---:|---|---|---|---|
-| `gausmix` | `0.05` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` |
-| `gausmix` | `0.25` | `5000` | `rhs_ns` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_rhs_ns` | `FAIL` | `arguments imply differing number of rows: 1, 0` |
-| `gausmix` | `0.25` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` |
-| `gausmix` | `0.95` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` |
-| `laplace` | `0.05` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` |
-| `laplace` | `0.25` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` |
+| Family | Tau | Fit Size | Prior | Root ID | Original Status | Original Error | Relaunch Outcome | Current Queue Status |
+|---|---:|---:|---|---|---|---|---|---|
+| `gausmix` | `0.05` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` | `SUCCESS` | `RESOLVED_EXECUTION` |
+| `gausmix` | `0.25` | `5000` | `rhs_ns` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_rhs_ns` | `FAIL` | `arguments imply differing number of rows: 1, 0` | `SUCCESS` | `RESOLVED_EXECUTION` |
+| `gausmix` | `0.25` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` | `SUCCESS` | `RESOLVED_EXECUTION` |
+| `gausmix` | `0.95` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` | `SUCCESS` | `RESOLVED_EXECUTION` |
+| `laplace` | `0.05` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` | `SUCCESS` | `RESOLVED_EXECUTION` |
+| `laplace` | `0.25` | `5000` | `ridge` | `root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_5000__qdesn_ridge` | `FAIL` | `arguments imply differing number of rows: 1, 0` | `SUCCESS` | `RESOLVED_EXECUTION` |
 
 ## 3) Current Pattern
 
@@ -70,28 +70,29 @@ Current repair state:
 - exact failing fit requests reproduced successfully after the patch
 - subset-grid failed-root relaunch path implemented
 
-Current relaunch execution state:
+Completed relaunch execution state:
 
 - repaired commit:
   - `bcdb438`
-- active relaunch run tag:
+- relaunch run tag:
   - `qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438`
-- tmux session:
-  - `qdesn_dynx_0408_012451`
 - relaunch scope:
   - `6` failed roots only
-- launch metadata:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/launcher_session.json`
-- preflight:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- relaunch outcome:
+  - `6/6 SUCCESS`
+  - `24/24` fit summaries written
+  - `0` repeated `root_error.txt` files
 - relaunch summary:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/failed_root_relaunch_summary.md`
+- repaired comparison pack:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/summary/qdesn_dynamic_main_comparison_analysis.md`
 
 ## 4) Operational Use
 
-Next execution step:
+Current queue state:
 
-1. use this file as the frozen failed-root source list
-2. monitor the active failed-root-only relaunch from the repaired code path
-3. mark roots resolved only after the rerun produces `PASS` or `WARN`
-4. reconcile repaired roots back into the authoritative effective-w300 state
+1. treat this file as the frozen historical inventory of the original `6` execution failures
+2. treat the relaunch as **execution-resolved**
+3. use the repaired effective-w300 comparison pack as the current authoritative analysis source
+4. if future scientific follow-up is needed, start from the repaired pack rather than reopening this
+   execution queue
