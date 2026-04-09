@@ -13,7 +13,19 @@ qdesn_dynamic_crossstudy_fitfail_load_manifest <- function(path = file.path("con
 
 .qdesn_dynamic_crossstudy_fitfail_read_csv <- function(path) {
   if (!file.exists(path)) return(data.frame(stringsAsFactors = FALSE))
-  utils::read.csv(path, stringsAsFactors = FALSE)
+  info <- file.info(path)
+  if (!is.data.frame(info) || is.na(info$size[1L]) || info$size[1L] <= 0) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  tryCatch(
+    utils::read.csv(path, stringsAsFactors = FALSE),
+    error = function(e) {
+      if (grepl("no lines available in input", conditionMessage(e), fixed = TRUE)) {
+        return(data.frame(stringsAsFactors = FALSE))
+      }
+      stop(e)
+    }
+  )
 }
 
 .qdesn_dynamic_crossstudy_fitfail_pick_campaign_root <- function(outer_root, required_child = "tables") {

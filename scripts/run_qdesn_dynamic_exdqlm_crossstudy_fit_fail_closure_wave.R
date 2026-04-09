@@ -43,6 +43,13 @@ write_csv <- function(df, path) {
   invisible(path)
 }
 
+ensure_schema <- function(df, template) {
+  df <- as.data.frame(df, stringsAsFactors = FALSE)
+  template <- as.data.frame(template, stringsAsFactors = FALSE)
+  if (ncol(df)) return(df)
+  template[0, , drop = FALSE]
+}
+
 write_json <- function(x, path) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null")
@@ -551,10 +558,31 @@ for (stage_name in names(stage_plans)) {
       campaign_results_root = as.character(res$results_root)[1L],
       stringsAsFactors = FALSE
     )
-    write_csv(exdqlm:::.qdesn_validation_bind_rows(stage_metrics), file.path(stage_dir, "tables", "profile_metrics.csv"))
-    write_csv(exdqlm:::.qdesn_validation_bind_rows(profile_result_rows), file.path(stage_dir, "tables", "profile_run_roots.csv"))
+    write_csv(
+      ensure_schema(
+        exdqlm:::.qdesn_validation_bind_rows(stage_metrics),
+        source_metric[0, , drop = FALSE]
+      ),
+      file.path(stage_dir, "tables", "profile_metrics.csv")
+    )
+    write_csv(
+      ensure_schema(
+        exdqlm:::.qdesn_validation_bind_rows(profile_result_rows),
+        data.frame(
+          profile_id = character(),
+          execution_status = character(),
+          campaign_report_root = character(),
+          campaign_results_root = character(),
+          stringsAsFactors = FALSE
+        )
+      ),
+      file.path(stage_dir, "tables", "profile_run_roots.csv")
+    )
   }
-  stage_metrics_df <- exdqlm:::.qdesn_validation_bind_rows(stage_metrics)
+  stage_metrics_df <- ensure_schema(
+    exdqlm:::.qdesn_validation_bind_rows(stage_metrics),
+    source_metric[0, , drop = FALSE]
+  )
   stage_compare_df <- exdqlm:::.qdesn_validation_bind_rows(list(source_metric, stage_metrics_df))
   primary_metric <- as.character(stage_cfg$selection_metric %||% "target_fit_fail_n")[1L]
   stage_rank_df <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_rank_profiles(stage_metrics_df, primary_metric = primary_metric)
@@ -609,7 +637,15 @@ for (stage_name in names(stage_plans)) {
 
 stop_reason <- "completed_requested_scope"
 stage_results_df <- current_stage_results_df()
-local_baseline_df <- exdqlm:::.qdesn_validation_bind_rows(local_baseline_rows)
+local_baseline_df <- ensure_schema(
+  exdqlm:::.qdesn_validation_bind_rows(local_baseline_rows),
+  data.frame(
+    stage_id = character(),
+    local_baseline_profile = character(),
+    recommendation = character(),
+    stringsAsFactors = FALSE
+  )
+)
 write_csv(stage_results_df, file.path(tables_root, "stage_execution_status.csv"))
 write_csv(local_baseline_df, file.path(tables_root, "local_baseline_map.csv"))
 write_runner_state(file.path(status_root, "runner_state.json"), run_tag, NA_character_, NA_character_, stage_results_df, length(stage_plans), total_profiles, stop_reason)

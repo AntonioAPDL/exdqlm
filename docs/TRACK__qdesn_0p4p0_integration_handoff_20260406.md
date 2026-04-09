@@ -163,6 +163,59 @@ Active deep-DESN repair wave:
   - `0/18` profiles complete
   - detached session live
 
+Deep-DESN Wave 1 closeout and current residual continuation:
+
+- closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave1_closeout_and_wave2_inventory_20260409.md`
+- Wave 1 stage outcomes:
+  - `D1 -> D120_ridge_lower_vb384`
+  - `D2 -> D250_ridge_upper_combo512_diag3400`
+  - `D3 -> D330_rhs_short_balanced3000`
+  - `D4 -> SOURCE_BASELINE`
+- exact-root promotions already justified by completed evidence:
+  - `gausmix tau=0.05 fit_size=500 rhs_ns -> D310_rhs_short_drift2600`
+  - `gausmix tau=0.05 fit_size=5000 ridge -> D140_ridge_lower_vb512`
+  - `laplace tau=0.05 fit_size=5000 ridge -> D140_ridge_lower_vb512`
+- promoted deep-DESN working source:
+  - `59 PASS`
+  - `62 WARN`
+  - `23 FAIL`
+  - `35/36 SUCCESS`
+  - `1/36 FAIL`
+  - `34/36` comparison-eligible-any
+  - `26/36` comparison-eligible-full
+- residual concentration:
+  - `22/23` FAIL rows are in `rhs_ns`, `fit_size=5000`
+  - the only remaining non-`rhs_ns` row is:
+    - `normal tau=0.25 fit_size=500 ridge mcmc_exal`
+  - the only remaining root-status FAIL is:
+    - `gausmix tau=0.95 fit_size=5000 rhs_ns`
+- important gap fixed in branch code:
+  - zero-byte wave CSVs now read safely
+  - future fit-fail waves now preserve schema when writing empty local-baseline tables
+
+Validated deep-DESN final residual wave:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_20260409.md`
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_manifest.yaml`
+- wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave.R`
+- committed-state `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-preflight`
+  - passes
+- verified stage sizes:
+  - `E1: 3 roots / 10 target FAIL rows / 5 profiles`
+  - `E2: 6 roots / 12 target FAIL rows / 5 profiles`
+  - `E3: 1 root / 1 target FAIL row / 4 profiles`
+- planned challenger scope:
+  - `14` profiles
+  - `49` root-campaigns
+  - `196` fit executions
+
 ## 3) Source Of Truth Hierarchy
 
 For continuation work on this integration branch, use the following evidence order:

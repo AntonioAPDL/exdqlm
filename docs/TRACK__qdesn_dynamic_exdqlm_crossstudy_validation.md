@@ -259,6 +259,88 @@ Interpretation:
   wave;
 - promote only clear stage winners from that localized wave.
 
+## Effective-W300 Deep-DESN Wave 1 Closeout And Final Residual Note (2026-04-09)
+
+Wave 1 is now complete and should be treated as a **working deep-DESN challenger-source repair
+step**, not as a new authoritative branch baseline.
+
+Wave 1 closeout:
+
+- closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave1_closeout_and_wave2_inventory_20260409.md`
+- completed wave:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e`
+- stage outcomes:
+  - `D1 -> D120_ridge_lower_vb384`
+  - `D2 -> D250_ridge_upper_combo512_diag3400`
+  - `D3 -> D330_rhs_short_balanced3000`
+  - `D4 -> SOURCE_BASELINE`
+
+Important reproducibility note:
+
+- Wave 1 left a zero-byte `local_baseline_map.csv` and empty `D4` stage tables;
+- the branch-local generic dynamic fit-fail reader/runner has now been hardened so zero-byte CSVs
+  are treated safely and future waves preserve table schema when no local baseline rows are
+  written.
+
+Promoted deep-DESN working source before the next wave:
+
+- stage winners carried forward:
+  - `D120`
+  - `D250`
+  - `D330`
+- exact-root promotions already justified by completed evidence:
+  - `gausmix tau=0.05 fit_size=500 rhs_ns -> D310_rhs_short_drift2600`
+  - `gausmix tau=0.05 fit_size=5000 ridge -> D140_ridge_lower_vb512`
+  - `laplace tau=0.05 fit_size=5000 ridge -> D140_ridge_lower_vb512`
+
+Current working deep-DESN challenger state:
+
+- `59 PASS`
+- `62 WARN`
+- `23 FAIL`
+- `35/36 SUCCESS`
+- `1/36 FAIL`
+- `34/36` comparison-eligible-any
+- `26/36` comparison-eligible-full
+
+Residual concentration:
+
+- `22/23` FAIL rows are now in `rhs_ns`, `fit_size=5000`
+- the last non-`rhs_ns` debt is one uncovered:
+  - `normal tau=0.25 fit_size=500 ridge mcmc_exal`
+- the only remaining root-status FAIL is:
+  - `gausmix tau=0.95 fit_size=5000 rhs_ns`
+
+Validated next wave:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_20260409.md`
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_manifest.yaml`
+- wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave.R`
+- committed-state `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-preflight`
+  - passes
+- verified stage plan:
+  - `E1: 3 roots / 10 target FAIL rows / 5 profiles`
+  - `E2: 6 roots / 12 target FAIL rows / 5 profiles`
+  - `E3: 1 root / 1 target FAIL row / 4 profiles`
+- planned scope:
+  - `14` challenger profiles
+  - `49` root-campaigns
+  - `196` fit executions
+
+Interpretation:
+
+- do **not** reopen solved `D1`, `D2`, or `D3` neighborhoods;
+- do **not** reuse `D410`;
+- spend the next overnight batch only on the residual `rhs_ns fit_size=5000` pocket plus the one
+  uncovered ridge singleton.
+
 ## 2) Current Status
 
 Status of this long-form tracker: **historical relaunch record**.
