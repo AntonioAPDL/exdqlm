@@ -178,6 +178,72 @@ Interpretation rule:
 - the current zero-FAIL effective-w300 pack remains authoritative until the deep-DESN rerun
   completes and is judged against it.
 
+## Effective-W300 Deep-DESN Completed-State Repair Note (2026-04-09)
+
+The broad deep-DESN rerun is now complete and should be treated as a **challenger source**, not as
+the new authoritative branch baseline.
+
+Completed deep-DESN broad rerun:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a`
+- closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_closeout_and_fail_surface_20260409.md`
+- key rolled state:
+  - `27 PASS`
+  - `48 WARN`
+  - `69 FAIL`
+  - `34/36 SUCCESS`
+  - `2/36 FAIL`
+  - `30/36` comparison-eligible-any
+  - `5/36` comparison-eligible-full
+
+Promotion decision after the broad rerun:
+
+- whole-root promotions into the authoritative branch baseline:
+  - `0`
+- reason:
+  - there are localized fit-level metric wins, but no whole deep-DESN root currently dominates the
+    authoritative simple-DESN source cleanly enough to promote
+- localized upside observed:
+  - `18` fit rows on `11` roots improve both `train_qtrue_mae` and `train_pinball_tau` without
+    worsening signoff
+  - all of those wins are in `rhs_ns / vb`
+
+New active repair phase:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_20260409.md`
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_manifest.yaml`
+- wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
+
+Prepare-only validation:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-005949__git-f085e49`
+- result:
+  - pass
+- verified stage plan:
+  - `D1: 6 roots / 12 target FAIL rows / 4 profiles`
+  - `D2: 6 roots / 16 target FAIL rows / 5 profiles`
+  - `D3: 9 roots / 18 target FAIL rows / 4 profiles`
+  - `D4: 9 roots / 22 target FAIL rows / 5 profiles`
+- planned scope:
+  - `18` challenger profiles
+  - `135` root-campaigns
+  - `540` fit executions
+
+Interpretation:
+
+- keep the current simple-DESN zero-FAIL effective-w300 pack authoritative;
+- use the completed broad deep-DESN rerun as the source state for a localized deep-DESN repair
+  wave;
+- promote only clear stage winners from that localized wave.
+
 ## 2) Current Status
 
 Status of this long-form tracker: **historical relaunch record**.

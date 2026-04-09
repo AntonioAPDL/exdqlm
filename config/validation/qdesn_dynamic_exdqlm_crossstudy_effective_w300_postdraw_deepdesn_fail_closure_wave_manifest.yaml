@@ -1,0 +1,745 @@
+meta:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_20260409
+  display_name: QDESN Dynamic Effective-W300 Deep-DESN Scientific Fail Closure Wave
+  purpose: >
+    Continue from the completed deep-DESN full rerun and spend overnight compute only on the
+    remaining scientific FAIL surface. Keep the completed deep-DESN rerun as the default source,
+    do not search for a single generic rescue, and retune only inside the localized ridge-VB and
+    rhs_ns-MCMC neighborhoods that dominate the fail inventory.
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  safe_default: prepare_only
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail
+
+source:
+  mode: dynamic_campaign
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_validation
+
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+
+runtime:
+  default_workers: 6
+  active_job_workers: 4
+  hard_cap_workers: 6
+
+shared_patches:
+  width_adapt_1200: &width_adapt_1200
+    enabled: true
+    warmup_iters: 1200
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_1400: &width_adapt_1400
+    enabled: true
+    warmup_iters: 1400
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_1600: &width_adapt_1600
+    enabled: true
+    warmup_iters: 1600
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  ridge_vb_guard_320: &ridge_vb_guard_320
+    max_iter: 160
+    min_iter_elbo: 24
+    n_samp_xi: 320
+
+  ridge_vb_guard_384: &ridge_vb_guard_384
+    max_iter: 200
+    min_iter_elbo: 28
+    n_samp_xi: 384
+
+  ridge_vb_guard_448: &ridge_vb_guard_448
+    max_iter: 240
+    min_iter_elbo: 32
+    n_samp_xi: 448
+
+  ridge_vb_guard_512: &ridge_vb_guard_512
+    max_iter: 280
+    min_iter_elbo: 36
+    n_samp_xi: 512
+
+  ridge_softgamma_3000: &ridge_softgamma_3000
+    n_burn: 1600
+    n_mcmc: 3000
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.47
+      width_sigma: 0.17
+      core_extra_passes: 2
+      max_steps_out: 96
+      max_shrink: 360
+      max_steps_out_sigma: 180
+      max_shrink_sigma: 470
+
+  ridge_softgamma_3200: &ridge_softgamma_3200
+    n_burn: 1700
+    n_mcmc: 3200
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.46
+      width_sigma: 0.16
+      core_extra_passes: 2
+      max_steps_out: 100
+      max_shrink: 372
+      max_steps_out_sigma: 184
+      max_shrink_sigma: 482
+
+  ridge_diag_3200: &ridge_diag_3200
+    n_burn: 1700
+    n_mcmc: 3200
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.44
+      width_sigma: 0.14
+      core_extra_passes: 3
+      max_steps_out: 106
+      max_shrink: 395
+      max_steps_out_sigma: 190
+      max_shrink_sigma: 495
+
+  ridge_diag_3400: &ridge_diag_3400
+    n_burn: 1900
+    n_mcmc: 3400
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.43
+      width_sigma: 0.13
+      core_extra_passes: 3
+      max_steps_out: 112
+      max_shrink: 410
+      max_steps_out_sigma: 196
+      max_shrink_sigma: 510
+
+  rhs_vb_guard_256: &rhs_vb_guard_256
+    max_iter: 140
+    min_iter_elbo: 24
+    n_samp_xi: 256
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_320: &rhs_vb_guard_320
+    max_iter: 180
+    min_iter_elbo: 28
+    n_samp_xi: 320
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_short_drift_2600: &rhs_short_drift_2600
+    n_burn: 1300
+    n_mcmc: 2600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 150
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1200
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.38
+      width_sigma: 0.29
+      width_rhs_lambda: 0.15
+      width_rhs_tau: 0.09
+      width_rhs_c2: 0.060
+      width_rhs_tau_c2_block: 0.20
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.17
+      width_rhs_tau_c2_transformed_z2: 0.13
+      core_extra_passes: 2
+      max_steps_out: 86
+      max_shrink: 325
+      max_steps_out_sigma: 145
+      max_shrink_sigma: 400
+
+  rhs_short_narrow_2800: &rhs_short_narrow_2800
+    n_burn: 1400
+    n_mcmc: 2800
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 155
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1400
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.36
+      width_sigma: 0.27
+      width_rhs_lambda: 0.13
+      width_rhs_tau: 0.08
+      width_rhs_c2: 0.055
+      width_rhs_tau_c2_block: 0.18
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.15
+      width_rhs_tau_c2_transformed_z2: 0.11
+      core_extra_passes: 2
+      max_steps_out: 90
+      max_shrink: 340
+      max_steps_out_sigma: 150
+      max_shrink_sigma: 420
+
+  rhs_short_balanced_3000: &rhs_short_balanced_3000
+    n_burn: 1500
+    n_mcmc: 3000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 160
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1400
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.37
+      width_sigma: 0.28
+      width_rhs_lambda: 0.14
+      width_rhs_tau: 0.085
+      width_rhs_c2: 0.057
+      width_rhs_tau_c2_block: 0.19
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.16
+      width_rhs_tau_c2_transformed_z2: 0.12
+      core_extra_passes: 2
+      max_steps_out: 92
+      max_shrink: 350
+      max_steps_out_sigma: 152
+      max_shrink_sigma: 430
+
+  rhs_short_diag_3200: &rhs_short_diag_3200
+    n_burn: 1700
+    n_mcmc: 3200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 170
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1600
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.34
+      width_sigma: 0.25
+      width_rhs_lambda: 0.12
+      width_rhs_tau: 0.07
+      width_rhs_c2: 0.045
+      width_rhs_tau_c2_block: 0.16
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 6
+      width_rhs_tau_c2_transformed_z1: 0.14
+      width_rhs_tau_c2_transformed_z2: 0.10
+      core_extra_passes: 2
+      max_steps_out: 98
+      max_shrink: 372
+      max_steps_out_sigma: 158
+      max_shrink_sigma: 450
+
+  rhs_long_narrow_3000: &rhs_long_narrow_3000
+    n_burn: 1500
+    n_mcmc: 3000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 170
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1400
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.35
+      width_sigma: 0.26
+      width_rhs_lambda: 0.12
+      width_rhs_tau: 0.07
+      width_rhs_c2: 0.045
+      width_rhs_tau_c2_block: 0.16
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.145
+      width_rhs_tau_c2_transformed_z2: 0.105
+      core_extra_passes: 2
+      max_steps_out: 92
+      max_shrink: 350
+      max_steps_out_sigma: 152
+      max_shrink_sigma: 430
+
+  rhs_long_balanced_3200: &rhs_long_balanced_3200
+    n_burn: 1700
+    n_mcmc: 3200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 180
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1600
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.35
+      width_sigma: 0.26
+      width_rhs_lambda: 0.12
+      width_rhs_tau: 0.07
+      width_rhs_c2: 0.045
+      width_rhs_tau_c2_block: 0.16
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.145
+      width_rhs_tau_c2_transformed_z2: 0.105
+      core_extra_passes: 2
+      max_steps_out: 96
+      max_shrink: 365
+      max_steps_out_sigma: 156
+      max_shrink_sigma: 440
+
+  rhs_long_diag_3200: &rhs_long_diag_3200
+    n_burn: 1700
+    n_mcmc: 3200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 180
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1600
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.33
+      width_sigma: 0.24
+      width_rhs_lambda: 0.11
+      width_rhs_tau: 0.06
+      width_rhs_c2: 0.038
+      width_rhs_tau_c2_block: 0.14
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 6
+      width_rhs_tau_c2_transformed_z1: 0.125
+      width_rhs_tau_c2_transformed_z2: 0.09
+      core_extra_passes: 2
+      max_steps_out: 100
+      max_shrink: 380
+      max_steps_out_sigma: 160
+      max_shrink_sigma: 455
+
+  rhs_long_burnheavy_3400: &rhs_long_burnheavy_3400
+    n_burn: 1900
+    n_mcmc: 3400
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 190
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1600
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.36
+      width_sigma: 0.27
+      width_rhs_lambda: 0.125
+      width_rhs_tau: 0.075
+      width_rhs_c2: 0.050
+      width_rhs_tau_c2_block: 0.17
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.145
+      width_rhs_tau_c2_transformed_z2: 0.105
+      core_extra_passes: 2
+      max_steps_out: 98
+      max_shrink: 370
+      max_steps_out_sigma: 158
+      max_shrink_sigma: 445
+
+  rhs_long_diag_3600: &rhs_long_diag_3600
+    n_burn: 2000
+    n_mcmc: 3600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 200
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1600
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.32
+      width_sigma: 0.23
+      width_rhs_lambda: 0.105
+      width_rhs_tau: 0.055
+      width_rhs_c2: 0.035
+      width_rhs_tau_c2_block: 0.13
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 6
+      width_rhs_tau_c2_transformed_z1: 0.12
+      width_rhs_tau_c2_transformed_z2: 0.085
+      core_extra_passes: 2
+      max_steps_out: 104
+      max_shrink: 395
+      max_steps_out_sigma: 164
+      max_shrink_sigma: 465
+
+profiles:
+  - profile_id: D110_ridge_lower_vb320
+    label: Ridge Lower VB320
+    rationale: >
+      Cheapest deep-DESN ridge lower-tail rescue. Increase the ridge VB Monte Carlo budget and ELBO
+      horizon only, without touching healthy ridge MCMC rows.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_320
+
+  - profile_id: D120_ridge_lower_vb384
+    label: Ridge Lower VB384
+    rationale: >
+      Mid-intensity deep-DESN ridge lower-tail guard retained because the current fail band is
+      dominated by ridge VB core-tail instability rather than likelihood-specific behavior.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_384
+
+  - profile_id: D130_ridge_lower_vb448
+    label: Ridge Lower VB448
+    rationale: >
+      Stronger ridge lower-tail hedge for the long-horizon rows that remain unstable under the
+      default deep-DESN budget.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_448
+
+  - profile_id: D140_ridge_lower_vb512
+    label: Ridge Lower VB512
+    rationale: >
+      Highest-value ridge lower-tail stress test in this neighborhood. Included once to learn
+      whether the deep-DESN lower-tail ridge failures are still primarily under-iterated.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_512
+
+  - profile_id: D210_ridge_upper_combo320_soft3000
+    label: Ridge Upper Combo320 Soft3000
+    rationale: >
+      Smallest mixed ridge upper-tail candidate: strengthen ridge VB and modestly deepen the ridge
+      MCMC chain to address the coupled upper-tail `vb` plus `mcmc_exal` fail surface.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_320
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_3000
+
+  - profile_id: D220_ridge_upper_combo384_soft3200
+    label: Ridge Upper Combo384 Soft3200
+    rationale: >
+      Balanced ridge upper-tail candidate kept because the deep-DESN upper-tail rows show both VB
+      tail instability and MCMC diagnostic softness.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_384
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_3200
+
+  - profile_id: D230_ridge_upper_combo384_diag3200
+    label: Ridge Upper Combo384 Diag3200
+    rationale: >
+      Diagnostic ridge upper-tail candidate with narrower gamma/sigma geometry, aimed directly at
+      the surviving upper-tail MCMC diagnostic failures without abandoning the stronger VB guard.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_384
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_diag_3200
+
+  - profile_id: D240_ridge_upper_combo448_diag3400
+    label: Ridge Upper Combo448 Diag3400
+    rationale: >
+      Deeper ridge upper-tail hedge for the long-horizon rows in case the deep-DESN upper-tail
+      instability is still partly burn-limited under the softer profiles.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_448
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_diag_3400
+
+  - profile_id: D250_ridge_upper_combo512_diag3400
+    label: Ridge Upper Combo512 Diag3400
+    rationale: >
+      Strongest retained ridge upper-tail profile. Included once to test whether the worst
+      deep-DESN upper-tail ridge rows require both the heaviest VB guard and the deepest diagnostic
+      chain.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_512
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_diag_3400
+
+  - profile_id: D310_rhs_short_drift2600
+    label: RHS Short Drift2600
+    rationale: >
+      Cheapest short-horizon rhs_ns MCMC rescue. Lengthen burn and draws while keeping the
+      transformed-block geometry close to the current deep-DESN source.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_drift_2600
+
+  - profile_id: D320_rhs_short_narrow2800
+    label: RHS Short Narrow2800
+    rationale: >
+      Narrower short-horizon rhs_ns candidate aimed at the pervasive high-autocorrelation and drift
+      pattern without touching healthy VB rows.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_narrow_2800
+
+  - profile_id: D330_rhs_short_balanced3000
+    label: RHS Short Balanced3000
+    rationale: >
+      Balanced short-horizon rhs_ns hedge that increases both depth and warmup while staying less
+      aggressive than the full diagnostic schedule.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_balanced_3000
+
+  - profile_id: D340_rhs_short_diag3200
+    label: RHS Short Diag3200
+    rationale: >
+      Strongest retained short-horizon rhs_ns diagnostic profile, included because every
+      short-horizon rhs_ns MCMC row is currently failing under the default deep-DESN source.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_diag_3200
+
+  - profile_id: D410_rhs_long_guard256_narrow3000
+    label: RHS Long Guard256 Narrow3000
+    rationale: >
+      Cheapest mixed long-horizon rhs_ns candidate: moderate rhs VB guard plus a deeper narrower
+      chain for the combined long-horizon MCMC and gausmix-VB fail surface.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_narrow_3000
+
+  - profile_id: D420_rhs_long_guard256_balanced3200
+    label: RHS Long Guard256 Balanced3200
+    rationale: >
+      Balanced long-horizon rhs_ns hedge retained because the deep-DESN long band is broad but not
+      obviously driven by a single mechanism.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_balanced_3200
+
+  - profile_id: D430_rhs_long_guard256_diag3200
+    label: RHS Long Guard256 Diag3200
+    rationale: >
+      Diagnostics-oriented long-horizon rhs_ns candidate retained because the current source
+      includes both generic drift rows and `missing_chain_diagnostics` rows.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_diag_3200
+
+  - profile_id: D440_rhs_long_guard320_burnheavy3400
+    label: RHS Long Guard320 Burnheavy3400
+    rationale: >
+      Burn-heavy long-horizon rhs_ns hedge included because the current source still carries two
+      failed roots in the `gausmix tau=0.95 fit_size=5000` slice.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_burnheavy_3400
+
+  - profile_id: D450_rhs_long_guard320_diag3600
+    label: RHS Long Guard320 Diag3600
+    rationale: >
+      Strongest retained deep-DESN rhs long profile. Included once to test whether the remaining
+      long-horizon rhs_ns debt is still partially coupled to both VB guard stability and MCMC
+      diagnostics.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_diag_3600
+
+stages:
+  - id: D1_ridge_lower_tail_vb
+    label: Ridge Lower-Tail VB Stabilization
+    rationale: >
+      The deep-DESN lower-tail ridge debt is entirely a VB problem and appears in both short and
+      long horizons. Keep the guard set broad across families, but retune only the ridge VB budget.
+    profile_ids:
+      - D110_ridge_lower_vb320
+      - D120_ridge_lower_vb384
+      - D130_ridge_lower_vb448
+      - D140_ridge_lower_vb512
+    selection_metric: target_fit_fail_n
+    include_root_ids:
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_500__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_500__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_ridge
+    target_selector:
+      prior: [ridge]
+      inference: [vb]
+      tau: [0.05]
+      fit_size: [500, 5000]
+      signoff_grade: [FAIL]
+
+  - id: D2_ridge_upper_tail_mixed
+    label: Ridge Upper-Tail Mixed Stabilization
+    rationale: >
+      The deep-DESN upper-tail ridge debt is mixed: ridge VB fails broadly and ridge MCMC still
+      carries a small exAL/AL diagnostic pocket. Reuse the same upper-tail guard set and search
+      only inside a coupled ridge VB plus ridge MCMC neighborhood.
+    profile_ids:
+      - D210_ridge_upper_combo320_soft3000
+      - D220_ridge_upper_combo384_soft3200
+      - D230_ridge_upper_combo384_diag3200
+      - D240_ridge_upper_combo448_diag3400
+      - D250_ridge_upper_combo512_diag3400
+    selection_metric: target_fit_fail_n
+    include_root_ids:
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_500__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_500__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_5000__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_ridge
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_5000__qdesn_ridge
+    target_selector:
+      prior: [ridge]
+      tau: [0.95]
+      signoff_grade: [FAIL]
+
+  - id: D3_rhs_short_mcmc
+    label: RHS Short-Horizon MCMC Stabilization
+    rationale: >
+      Every short-horizon rhs_ns MCMC row currently fails under the deep-DESN source, while the
+      corresponding VB rows are already usable. Search only inside short-horizon rhs_ns MCMC
+      geometry and warmup schedules.
+    profile_ids:
+      - D310_rhs_short_drift2600
+      - D320_rhs_short_narrow2800
+      - D330_rhs_short_balanced3000
+      - D340_rhs_short_diag3200
+    selection_metric: target_fit_fail_n
+    include_root_ids:
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_500__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns
+    target_selector:
+      prior: [rhs_ns]
+      inference: [mcmc]
+      fit_size: [500]
+      signoff_grade: [FAIL]
+
+  - id: D4_rhs_long_mixed
+    label: RHS Long-Horizon Mixed Stabilization
+    rationale: >
+      The long-horizon rhs_ns deep-DESN debt includes both the broad MCMC fail surface and a small
+      gausmix VB tail pocket. Keep the long-horizon guard set broad, but search only inside the
+      retained rhs long neighborhood with moderate-to-strong guards.
+    profile_ids:
+      - D410_rhs_long_guard256_narrow3000
+      - D420_rhs_long_guard256_balanced3200
+      - D430_rhs_long_guard256_diag3200
+      - D440_rhs_long_guard320_burnheavy3400
+      - D450_rhs_long_guard320_diag3600
+    selection_metric: target_fit_fail_n
+    include_root_ids:
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_5000__qdesn_rhs_ns
+      - root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_5000__qdesn_rhs_ns
+    target_selector:
+      prior: [rhs_ns]
+      fit_size: [5000]
+      signoff_grade: [FAIL]

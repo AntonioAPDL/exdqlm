@@ -94,7 +94,7 @@ Current status:
     - `36/36` comparison-eligible-any
     - `36/36` comparison-eligible-full
 
-Active follow-on architecture rerun:
+Completed follow-on architecture rerun:
 
 - purpose:
   - evaluate a richer shared DESN architecture across the full effective-w300 case lattice without
@@ -116,11 +116,42 @@ Active follow-on architecture rerun:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_setup_and_launch_20260408.md`
 - live full run:
   - `qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a`
-- early health:
-  - `36` selected roots
-  - `6` materialized
-  - `6 RUNNING`
-  - `0 FAIL`
+- completed broad-state read:
+  - `27 PASS`
+  - `48 WARN`
+  - `69 FAIL`
+  - `34/36 SUCCESS`
+  - `2/36 FAIL`
+  - `30/36` comparison-eligible-any
+  - `5/36` comparison-eligible-full
+- completed-state report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_closeout_and_fail_surface_20260409.md`
+- promotion decision:
+  - no whole-root deep-DESN promotion into the authoritative branch baseline yet
+  - localized fit-level wins exist in `rhs_ns / vb`, but they are not yet whole-root promotable
+
+Active deep-DESN repair wave:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_20260409.md`
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_manifest.yaml`
+- wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
+- prepare-only:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-005949__git-f085e49`
+  - passes
+- verified stage sizes:
+  - `D1: 6 roots / 12 target FAIL rows / 4 profiles`
+  - `D2: 6 roots / 16 target FAIL rows / 5 profiles`
+  - `D3: 9 roots / 18 target FAIL rows / 4 profiles`
+  - `D4: 9 roots / 22 target FAIL rows / 5 profiles`
+- planned challenger scope:
+  - `18` profiles
+  - `135` root-campaigns
+  - `540` fit executions
 
 ## 3) Source Of Truth Hierarchy
 
@@ -142,6 +173,8 @@ For continuation work on this integration branch, use the following evidence ord
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_rerun_20260408.md`
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_setup_and_launch_20260408.md`
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_closeout_and_fail_surface_20260409.md`
+   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_20260409.md`
 5. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
 6. the authoritative effective-w300 zero-FAIL comparison pack:
