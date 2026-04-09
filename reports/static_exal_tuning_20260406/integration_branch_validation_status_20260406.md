@@ -74,6 +74,7 @@ Active residual repair planning / execution notes:
 - `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
 - `reports/static_exal_tuning_20260408/original_288_v7_comparison_analysis_plan_20260408.md`
 - `reports/static_exal_tuning_20260408/static_bqrgal_alignment_and_relaunch_plan_20260408.md`
+- `reports/static_exal_tuning_20260408/static_bqrgal_aligned_execution_20260408.md`
 
 Machine-readable freeze / planning artifacts:
 
@@ -234,6 +235,45 @@ Next relaunch direction:
 
 The broader validation workstreams remain tracked separately, especially the
 dynamic unresolved tail under the frozen `v7` baseline.
+
+## Implemented Paper-Aligned Static Benchmark
+
+The new paper-aligned static benchmark stack has now been implemented and
+validated as a separate workstream.
+
+Important implementation choice:
+
+- the benchmark uses the local `bqrgal` reference engine
+- it is therefore the closest practical apples-to-apples benchmark against the
+  local `bqrgal-examples` scripts
+- it should not be conflated with the broader exdqlm continuation study
+
+Implemented benchmark shape:
+
+- phases:
+  - `phase1_paper_matched_core`
+  - `phase2_extension_n1000`
+- total rows:
+  `3600`
+- phase split:
+  - `1800` core paper-matched rows
+  - `1800` extension rows
+- models:
+  `al`, `exal`
+- taus:
+  `0.05`, `0.25`, `0.50`
+- core training size:
+  `n = 100`
+- extension training size:
+  `n = 1000`
+- exAL gamma kernel:
+  `slice`
+- budget:
+  `150000 / 50000 / 20`
+
+The execution and reproducibility record for this benchmark is:
+
+- `reports/static_exal_tuning_20260408/static_bqrgal_aligned_execution_20260408.md`
 
 ## Remaining Failing Cases
 

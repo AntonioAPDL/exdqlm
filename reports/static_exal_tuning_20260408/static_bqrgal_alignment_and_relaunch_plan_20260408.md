@@ -133,6 +133,36 @@ For the paper-aligned relaunch, the compatibility target should therefore be:
 
 That gives the cleanest conceptual match to the local benchmark.
 
+## Implementation Decision
+
+During implementation, one extra compatibility issue became important:
+
+- the local `bqrgal-examples` benchmark fits AL and GAL with a Laplace / lasso
+  coefficient prior
+- the current local exdqlm static stack does not expose the same benchmark
+  path as a first-class paper-aligned configuration
+
+Because of that, the implemented paper-aligned benchmark uses the local
+`bqrgal` reference engine directly for the core and extension lanes.
+
+This is deliberate.
+
+It means:
+
+- the paper-aligned benchmark is genuinely aligned to the local benchmark where
+  possible
+- the broader `original288 / v7` validation remains a separate exdqlm
+  continuation study
+- the new benchmark should be described as:
+  - `al` vs `exal`
+  - engine:
+    `bqrgal_reference`
+  - metrics:
+    paper metrics plus local health gates and runtime
+
+This avoids claiming an apples-to-apples paper match for a local exdqlm static
+configuration that is not actually prior-matched.
+
 ## Workstream Split
 
 The next phase should be split into three workstreams.
@@ -310,10 +340,32 @@ confirmed:
 - the long-budget mapping is explicit and audited
 - the evaluation bundle reproduces the paper metrics and our health metrics
 
+## Implementation Status
+
+The benchmark stack has now been implemented and validated:
+
+- replicated static simulator
+- benchmark manifest builder
+- AL / exAL row runner using the local `bqrgal` reference engine
+- evaluation bundle for:
+  - CIE
+  - RMSE
+  - coverage
+  - interval score
+  - health gates
+  - runtime
+- launch / supervisor / monitor scripts
+- smoke validation through a real `exal` row
+
+The execution record for the implemented stack is maintained separately in:
+
+- `reports/static_exal_tuning_20260408/static_bqrgal_aligned_execution_20260408.md`
+
 ## Recommended Next Move
 
-The next move is not to launch immediately.
+The next move is to launch the implemented benchmark stack from the audited
+execution note, keeping:
 
-The next move is to implement the dedicated paper-aligned static benchmark
-stack, validate it on a small pilot, and only then launch the full core and
-extension lanes.
+- the core `n = 100` lane as the paper-matched comparison target
+- the `n = 1000` lane as an explicit extension
+- the broader `original288 / v7` validation frozen and tracked separately
