@@ -19,11 +19,11 @@
 #' @param vb_init_fit Optional precomputed VB fit object. If supplied, warm start
 #'   uses this object directly and does not rerun VB internally.
 #' @param mh.proposal Character; proposal kernel for the exDQLM scale/skew block.
-#'   `"laplace_rw"` (default) uses a Laplace-informed covariance then RW;
-#'   `"rw"` uses joint random-walk MH on `(log sigma, logit gamma)`;
-#'   `"slice"` uses
+#'   `"slice"` (default) uses
 #'   an exact sigma GIG update plus a bounded univariate slice sampler directly
-#'   on `gamma`. This choice is separate from the VB warm-start method.
+#'   on `gamma`; `"laplace_rw"` uses a Laplace-informed covariance then RW;
+#'   and `"rw"` uses joint random-walk MH on `(log sigma, logit gamma)`.
+#'   This choice is separate from the VB warm-start method.
 #' @param mh.adapt Logical; adapt MH proposal scale during burn-in.
 #' @param mh.adapt.interval Integer; adaptation interval (iterations).
 #' @param mh.target.accept Numeric length-2 vector with lower/upper target acceptance rates.
@@ -98,7 +98,7 @@
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
                     Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
                     init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,
-                    mh.proposal=c("laplace_rw","rw","slice"),mh.adapt=TRUE,mh.adapt.interval=50L,
+                    mh.proposal=c("slice","laplace_rw","rw"),mh.adapt=TRUE,mh.adapt.interval=50L,
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,

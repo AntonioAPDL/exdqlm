@@ -26,7 +26,7 @@ exdqlmMCMC(
   init.from.vb = TRUE,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
-  mh.proposal = c("laplace_rw", "rw", "slice"),
+  mh.proposal = c("slice", "laplace_rw", "rw"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
@@ -92,11 +92,11 @@ initialize MCMC from converged VB moments. Default is \code{TRUE}.}
 uses this object directly and does not rerun VB internally.}
 
 \item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew block.
-\code{"laplace_rw"} (default) uses a Laplace-informed covariance then RW;
-\code{"rw"} uses joint random-walk MH on \verb{(log sigma, logit gamma)};
-\code{"slice"} uses
+\code{"slice"} (default) uses
 an exact sigma GIG update plus a bounded univariate slice sampler directly
-on \code{gamma}. This choice is separate from the VB warm-start method.}
+on \code{gamma}; \code{"laplace_rw"} uses a Laplace-informed covariance then RW;
+and \code{"rw"} uses joint random-walk MH on \verb{(log sigma, logit gamma)}.
+This choice is separate from the VB warm-start method.}
 
 \item{mh.adapt}{Logical; adapt MH proposal scale during burn-in.}
 
