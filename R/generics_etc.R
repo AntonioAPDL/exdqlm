@@ -553,11 +553,11 @@ is.exal_mcmc <- function(m){ return(methods::is(m,"exal_mcmc")) }
 #'
 #' @export
 print.exal_mcmc <- function(x, ...) {
-  model_lab <- if (isTRUE(x$dqlm.ind)) "AL (DQLM)" else "exAL"
+  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
   n <- if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
   p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
 
-  cat("Bayesian Static Quantile Regression (exAL family)\n")
+  cat("Bayesian Linear Quantile Regression (exAL family)\n")
   cat("Model:", model_lab, "\n")
   cat("Method: MCMC\n")
   cat("Observations:", n, "\n")
@@ -625,12 +625,12 @@ is.exal_ldvb <- function(m){ return(methods::is(m,"exal_ldvb")) }
 #'
 #' @export
 print.exal_ldvb <- function(x, ...) {
-  model_lab <- if (isTRUE(x$dqlm.ind)) "AL (DQLM)" else "exAL"
+  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
   n <- if (!is.null(x$misc$n)) as.integer(x$misc$n) else if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
   p <- if (!is.null(x$misc$p)) as.integer(x$misc$p) else if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
   p0 <- if (!is.null(x$p0)) as.numeric(x$p0)[1] else if (!is.null(x$misc$p0)) as.numeric(x$misc$p0)[1] else NA_real_
 
-  cat("Bayesian Static Quantile Regression (exAL family)\n")
+  cat("Bayesian Linear Quantile Regression (exAL family)\n")
   cat("Model:", model_lab, "\n")
   cat("Method: LDVB\n")
   cat("Observations:", n, "\n")

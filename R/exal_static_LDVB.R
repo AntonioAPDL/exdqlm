@@ -647,16 +647,17 @@
   out
 }
 
-#' Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)
+#' Static exAL Regression - LDVB Approximation
 #'
-#' The function applies a coordinate-ascent variational inference (CAVI)
-#' algorithm to static Extended Asymmetric Laplace (exAL) regression, using a
-#' Laplace-Delta approximation for the joint \eqn{(\sigma,\gamma)} block.
+#' The function applies a mean-field variational approximation to static
+#' Extended Asymmetric Laplace (exAL) regression. Closed-form block updates are
+#' combined with a Laplace-Delta approximation for the joint
+#' \eqn{(\sigma,\gamma)} block, yielding the package's static LDVB routine.
 #'
 #' @param y Numeric vector (length n).
 #' @param X Numeric matrix (n x p).
 #' @param p0 Target quantile in (0,1).
-#' @param max_iter Integer; maximum CAVI iterations (default 1000).
+#' @param max_iter Integer; maximum LDVB iterations (default 1000).
 #' @param tol Numeric; convergence tolerance based on relative ELBO changes (default 1e-4).
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
 #' @param beta_prior Coefficient prior type: \code{"ridge"} (default),
@@ -699,8 +700,9 @@
 #'   support.
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}; if missing, reasonable defaults are used.
-#' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
-#'   using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.
+#' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model
+#'   (\code{gamma = 0}). In that special case the nonconjugate block drops out
+#'   and the remaining variational updates are available in closed form.
 #' @param n_samp_xi Integer; retained for backward compatibility in the
 #'   Laplace-Delta block. Under the current delta-only implementation this
 #'   value is ignored.
@@ -753,9 +755,13 @@
 #' @details
 #' Mean-field factorization:
 #' \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
-#' The LD block is parameterized in transformed coordinates
+#' This factorization induces a blockwise coordinate-ascent variational
+#' inference scheme. The \eqn{(\sigma,\gamma)} block is the only nonconjugate
+#' component, so LDVB approximates it in transformed coordinates
 #' \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
-#' The \code{xi} expectations used in CAVI updates can be computed either from a
+#' The \code{xi} expectations needed by the remaining block updates are then
+#' computed with a second-order Delta approximation. The \code{xi} expectations
+#' used in the updates can be computed either from a
 #' deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
 #' Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
 #' optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
@@ -1213,10 +1219,15 @@ exal_static_LDVB <- function(
 
   # --- main loop -------------------------------------------------------------
   t0 <- proc.time()[3]
-  if (verbose) {
-    cat(sprintf("Static exAL LDVB | n=%d, p=%d | max_iter=%d, tol=%.1e\n",
-                n, p, max_iter, tol))
-  }
+  .exdqlm_progress(
+    "LDVB start",
+    model = "Static exAL",
+    n = n,
+    p = p,
+    max_iter = max_iter,
+    tol = tol,
+    .verbose = verbose
+  )
 
   # Initial xi from the Delta approximation. The static exAL VB path is
   # intentionally deterministic; MC xi fallback is not part of the production
@@ -1639,17 +1650,6 @@ exal_static_LDVB <- function(
     eta_step_used <- as.numeric(eta_hat - eta_prev)
     ell_step_used <- as.numeric(ell_hat - ell_prev)
 
-    if (verbose && (iter %% 50 == 0)) {
-      ghat <- g_from_eta(eta_hat); shat <- exp(ell_hat)
-      cat(sprintf(
-        "iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f | ld(raw)=%.2e/%.2e used=%.2e/%.2e | stabilize=%s xi=%s bad_mode=%s\n",
-        iter, rel_mb, rel_xi, ghat, shat, eta_step_raw, ell_step_raw, eta_step_used, ell_step_used,
-        ifelse(ld_stabilized, ld_stabilize_reason, "none"),
-        "delta",
-        ifelse(ld_bad_mode_iter, "yes", "no")
-      ))
-    }
-
     if (isTRUE(do_ld_update)) {
       ld_update_good <- !isTRUE(stabilize_active) &&
         !isTRUE(ld_cycle_detected) &&
@@ -1957,11 +1957,23 @@ exal_static_LDVB <- function(
       timing_rows[[iter]]$ld_update_every_used <- ld_update_every_use
     }
 
-    if (verbose && (iter %% 50 == 0)) {
-      cat(sprintf(
-        "    ELBO=%.6f | d_beta=%.3e d_sigma=%.3e d_gamma=%.3e d_elbo=%.3e | cond=%.3e stable=%d/%d\n",
-        elbo_new, d_beta, d_sigma, d_gamma, d_elbo, ld$cov_condition, stable_count, conv_ctrl$patience
-      ))
+    if (iter %% 50 == 0) {
+      .exdqlm_progress(
+        "LDVB progress",
+        model = "Static exAL",
+        iter = iter,
+        d_beta = d_beta,
+        d_sigma = d_sigma,
+        d_gamma = d_gamma,
+        sigma = exp(ell_hat),
+        gamma = g_from_eta(eta_hat),
+        elbo = elbo_new,
+        d_elbo = d_elbo,
+        stable = sprintf("%d/%d", stable_count, conv_ctrl$patience),
+        ld_cond = ld$cov_condition,
+        ld_note = if (isTRUE(ld_stabilized)) ld_stabilize_reason else if (isTRUE(ld_bad_mode_iter)) "mode-check" else NULL,
+        .verbose = verbose
+      )
     }
 
     if (step$stop_now) {
@@ -2132,10 +2144,15 @@ exal_static_LDVB <- function(
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
   class(ret) <- c("exal_ldvb", "exal_vb")
-  if (verbose) {
-    cat(sprintf("LDVB %s in %d iters (%.2fs): gamma~%.3f, sigma~%.3f\n",
-                ifelse(converged, "converged", "stopped"),
-                iter, ret$run.time, ret$qsiggam$gamma_mean, ret$qsiggam$sigma_mean))
-  }
+  .exdqlm_progress(
+    "LDVB done",
+    model = "Static exAL",
+    status = if (isTRUE(converged)) "converged" else "stopped",
+    iter = iter,
+    runtime_sec = ret$run.time,
+    gamma = ret$qsiggam$gamma_mean,
+    sigma = ret$qsiggam$sigma_mean,
+    .verbose = verbose
+  )
   ret
 }

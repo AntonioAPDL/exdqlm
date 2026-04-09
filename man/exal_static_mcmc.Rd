@@ -101,8 +101,11 @@ parameterization \code{lambda2}, \code{tau2}, \code{zeta2}, and optional
 auxiliaries \code{nu}, \code{xi} are also accepted. Missing pieces are
 filled sensibly.}
 
-\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
-with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model
+(\code{gamma = 0}), corresponding to Bayesian linear quantile regression
+under the AL working likelihood. This removes the \code{\gamma}- and
+\code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
+\code{sigma}, and \code{v}.}
 
 \item{n.burn}{Number of burn-in iterations. Default \code{2000}.}
 

@@ -9,7 +9,8 @@
 #' @param n.mcmc Number of MCMC iterations to sample. Default is `n.mcmc = 1500`.
 #' @param init.from.isvb Logical value indicating whether to use the legacy ISVB
 #'   warm start when `init.from.vb = TRUE`. Default is `FALSE`, which favors
-#'   `LDVB` as the default VB warm start.
+#'   `LDVB` as the default VB warm start. This flag only chooses the
+#'   warm-start source; it does not change the subsequent MCMC proposal kernel.
 #' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization
 #'   step (`LDVB` by default, or `ISVB` when `init.from.isvb = TRUE`) and
 #'   initialize MCMC from converged VB moments. Default is `TRUE`.
@@ -22,7 +23,7 @@
 #'   `"rw"` uses joint random-walk MH on `(log sigma, logit gamma)`;
 #'   `"slice"` uses
 #'   an exact sigma GIG update plus a bounded univariate slice sampler directly
-#'   on `gamma`.
+#'   on `gamma`. This choice is separate from the VB warm-start method.
 #' @param mh.adapt Logical; adapt MH proposal scale during burn-in.
 #' @param mh.adapt.interval Integer; adaptation interval (iterations).
 #' @param mh.target.accept Numeric length-2 vector with lower/upper target acceptance rates.
@@ -787,6 +788,17 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # Sample from exdqlm posterior
     tictoc::tic()
+    .exdqlm_progress(
+      "MCMC start",
+      model = "exDQLM",
+      T = TT,
+      p = p,
+      burn = n.burn,
+      keep = n.mcmc,
+      kernel = mh.proposal,
+      warm_start = if (isTRUE(init.from.vb)) vb.ctrl$method else "none",
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "start",
       iter = 0L,
@@ -802,12 +814,18 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose && i %% verbose.every == 0L){
-        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
-        acc_msg <- if (identical(mh.proposal, "slice")) "NA" else sprintf("%.4f", n.accept / i)
-        cat(sprintf("%s %d/%d | accept=%s | %s", phase_label, i, I, acc_msg, Sys.time()), "\n")
-        utils::flush.console()
-        try(flush(stdout()), silent = TRUE)
+      if (i %% verbose.every == 0L) {
+        .exdqlm_progress(
+          "MCMC progress",
+          model = "exDQLM",
+          phase = if (i <= n.burn) "burn" else "keep",
+          iter = sprintf("%d/%d", i, I),
+          sigma = cursam.sigma,
+          gamma = cursam.gamma,
+          kernel = mh.proposal,
+          accept = if (identical(mh.proposal, "slice")) NULL else n.accept / i,
+          .verbose = verbose
+        )
       }
       if (i %% callback.every == 0L) {
         safe_progress_callback(list(
@@ -982,9 +1000,18 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     }
     run.time = tictoc::toc(quiet = TRUE)
-    if(verbose){
-      cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
-    }
+    .exdqlm_progress(
+      "MCMC done",
+      model = "exDQLM",
+      status = "complete",
+      iter = I,
+      runtime_sec = run.time$toc - run.time$tic,
+      sigma = cursam.sigma,
+      gamma = cursam.gamma,
+      kernel = mh.proposal,
+      accept = if (identical(mh.proposal, "slice")) NULL else n.accept / I,
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "complete",
       iter = as.integer(I),
@@ -1208,6 +1235,17 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     # Sample from dqlm posterior
     tictoc::tic()
+    .exdqlm_progress(
+      "MCMC start",
+      model = "DQLM",
+      T = TT,
+      p = p,
+      burn = n.burn,
+      keep = n.mcmc,
+      kernel = "conjugate",
+      warm_start = if (isTRUE(init.from.vb)) vb.ctrl$method else "none",
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "start",
       iter = 0L,
@@ -1223,11 +1261,15 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose && i %% verbose.every == 0L){
-        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
-        cat(sprintf("%s %d/%d | %s", phase_label, i, I, Sys.time()), "\n")
-        utils::flush.console()
-        try(flush(stdout()), silent = TRUE)
+      if (i %% verbose.every == 0L) {
+        .exdqlm_progress(
+          "MCMC progress",
+          model = "DQLM",
+          phase = if (i <= n.burn) "burn" else "keep",
+          iter = sprintf("%d/%d", i, I),
+          sigma = cursam.sigma,
+          .verbose = verbose
+        )
       }
       if (i %% callback.every == 0L) {
         safe_progress_callback(list(
@@ -1269,9 +1311,15 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     }
     run.time = tictoc::toc(quiet = TRUE)
-    if(verbose){
-      cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
-    }
+    .exdqlm_progress(
+      "MCMC done",
+      model = "DQLM",
+      status = "complete",
+      iter = I,
+      runtime_sec = run.time$toc - run.time$tic,
+      sigma = cursam.sigma,
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "complete",
       iter = as.integer(I),

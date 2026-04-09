@@ -72,7 +72,8 @@ exdqlmMCMC(
 
 \item{init.from.isvb}{Logical value indicating whether to use the legacy ISVB
 warm start when \code{init.from.vb = TRUE}. Default is \code{FALSE}, which favors
-\code{LDVB} as the default VB warm start.}
+\code{LDVB} as the default VB warm start. This flag only chooses the
+warm-start source; it does not change the subsequent MCMC proposal kernel.}
 
 \item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape \code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean 1 (or \code{sig.init} if provided) and variance 10.}
 
@@ -95,7 +96,7 @@ uses this object directly and does not rerun VB internally.}
 \code{"rw"} uses joint random-walk MH on \verb{(log sigma, logit gamma)};
 \code{"slice"} uses
 an exact sigma GIG update plus a bounded univariate slice sampler directly
-on \code{gamma}.}
+on \code{gamma}. This choice is separate from the VB warm-start method.}
 
 \item{mh.adapt}{Logical; adapt MH proposal scale during burn-in.}
 
