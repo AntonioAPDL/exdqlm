@@ -20,43 +20,30 @@ main working document on this branch.
 
 ## 2) Current Branch-Local Active Study
 
-The current branch-local active study is now the **effective-w300 final residual scientific
-closure wave** starting from the completed Wave 1 local-baseline promotions:
+The current branch-local active study is now the **effective-w300 zero-FAIL reconciled comparison
+baseline**.
 
-- study:
-  - dynamic exdqlm cross-study effective-w300 posterior-draw validation and repaired comparison
-    analysis
-- plan:
+Key branch-local docs:
+
+- rerun plan:
   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
-- setup and smoke report:
+- rerun setup and smoke report:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
-- live relaunch queue:
-  - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
 - failure investigation:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
-- failed-root relaunch plan:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failed_root_relaunch_20260408.md`
-- repaired comparison outputs report:
-  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
-- fail-surface and repair-directions report:
-  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
-- scientific fail-closure plan:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408.md`
-- Wave 1 closeout and Wave 2 inventory report:
+- historical execution relaunch queue:
+  - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
+- Wave 1 historical closeout:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
-- final residual-wave plan:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
-- defaults:
-  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
-- fail-closure manifest:
-  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_manifest.yaml`
-- final residual-wave manifest:
-  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_manifest.yaml`
+- final residual closeout and zero-FAIL reconciliation:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_closeout_and_zero_fail_reconciliation_20260408.md`
+- authoritative comparison outputs:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
 
 Key contract:
 
-- reported fit sizes `500` and `5000` now mean **effective post-washout train size**
-- current enforced source totals:
+- reported fit sizes `500` and `5000` mean **effective post-washout train size**
+- enforced source totals:
   - `813`
   - `5313`
 - shared MCMC depth:
@@ -67,100 +54,45 @@ Key contract:
 
 Current status:
 
-- prepare-only passed for:
-  - smoke
-  - full
-- corrected smoke run:
-  - `qdesn-dynamic-exdqlm-crossstudy-smoke-20260407-231231__git-812cb58`
-  - `4/4 SUCCESS`
-  - `8 PASS / 6 WARN / 2 FAIL`
-  - exact effective train sizes confirmed:
-    - `500`
-    - `5000`
-- completed full rerun from committed state:
-  - commit:
-    - `cdfd1a9`
-  - run tag:
-    - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
+- broad effective-w300 rerun:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9`
   - outcome:
     - `30/36 SUCCESS`
     - `6/36 FAIL`
-- original failure interpretation:
-  - implementation / numerical failure pocket, not just weak signoff
-  - primary issue:
-    - `mcmc_al` latent-`v` GIG invalid draws
-  - secondary issue:
-    - failed-fit summary rows not always written
-- repaired failed-root relaunch:
-  - repaired commit:
-    - `bcdb438`
-  - run tag:
-    - `qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438`
-  - scope:
-    - `6`
+- failed-root relaunch:
+  - `qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438`
   - outcome:
     - `6/6 SUCCESS`
-    - `24/24` fit summaries written
     - `0` repeated root execution failures
-- authoritative repaired comparison pack:
-  - analysis commit baseline:
-    - `554809e`
-  - run tag:
-    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e`
-  - report:
-    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
-  - summary:
-    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/summary/qdesn_dynamic_main_comparison_analysis.md`
-  - 144-row case table:
-    - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/tables/authoritative_fit_case_table_readable.csv`
-  - key rolled state:
-    - `40 PASS`
-    - `69 WARN`
-    - `35 FAIL`
-    - `0/36` root-status FAILs
-    - `34/36` comparison-eligible-any
-    - `16/36` comparison-eligible-full
-  - completed Wave 1 fail-closure run:
-    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87`
-  - promoted Wave 1 local baselines:
-    - `W1 -> N720_ridge_vb_guard192`
-    - `W2 -> N740_ridge_vb_guard256`
-    - `W3 -> N750_ridge_tail_combo2200`
-    - `W4 -> N750_ridge_tail_combo2200`
-    - `W5 -> N810_rhs_short_drift2200`
-    - `W6 -> N930_rhs_long_guard224_burnheavy2600`
-  - current promoted working validation source:
+- Wave 1 fail-closure:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail-20260408-040402__git-8005f87`
+  - promoted-source state:
     - `4` fit FAIL rows
-    - `4` fail-carrying roots
+    - `36/36` comparison-eligible-any
+    - `32/36` comparison-eligible-full
+- final residual wave:
+  - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162642__git-5ed0d19`
+  - selected stage winners:
+    - `R1 -> R820_ridge_combo224_soft2600`
+    - `R2 -> R950_rhs_long_guard256_diag3200`
+  - stage-winner state:
+    - `2` fit FAIL rows
+    - `1` root-status FAIL
+- exact-root reconciliation:
+  - `laplace tau=0.95 rhs_ns -> R910_rhs_long_guard224_narrow2800`
+  - `normal tau=0.25 rhs_ns -> R930_rhs_long_guard224_diag3000`
+- authoritative comparison pack:
+  - analysis commit:
+    - `cc6f0f5`
+  - run tag:
+    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-200857__git-cc6f0f5`
+  - key rolled state:
+    - `68 PASS`
+    - `76 WARN`
+    - `0 FAIL`
     - `0/36` root-status FAILs
     - `36/36` comparison-eligible-any
-    - `32/36` comparison-eligible-full
-  - residual mechanisms:
-    - ridge long upper-tail `mcmc_exal` drift:
-      - `1` FAIL row
-    - rhs_ns long-horizon MCMC residual:
-      - `3` FAIL rows
-  - current branch-local task:
-    - final residual scientific closure from the promoted Wave 1 source, not another broad rerun
-  - final residual-wave prepare-only:
-    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162510__git-537a3cb`
-  - verified preflight state:
-    - `144` fit rows
-    - `4` FAIL rows
-    - `4` fail-carrying roots
-    - `36/36` comparison-eligible-any
-    - `32/36` comparison-eligible-full
-  - verified stage sizes:
-    - `R1`: `3` roots, `1` targeted FAIL row, `5` profiles
-    - `R2`: `5` roots, `3` targeted FAIL rows, `5` profiles
-  - live final residual-wave run:
-    - `qdesn-dynamic-exdqlm-crossstudy-effectivew300-finalresid-20260408-162642__git-5ed0d19`
-  - live tmux session:
-    - `qdesn_dynxff_0408_162642`
-  - launch healthcheck:
-    - `RUNNING`
-    - `R1_ridge_upper_tail_long_final`
-    - `R810_ridge_combo192_soft2600`
+    - `36/36` comparison-eligible-full
 
 ## 3) Source Of Truth Hierarchy
 
@@ -168,9 +100,11 @@ For continuation work on this integration branch, use the following evidence ord
 
 1. this handoff tracker:
    - `docs/TRACK__qdesn_0p4p0_integration_handoff_20260406.md`
-2. the repaired effective-w300 comparison outputs report:
+2. the final residual closeout and zero-FAIL reconciliation report:
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_closeout_and_zero_fail_reconciliation_20260408.md`
+3. the authoritative effective-w300 comparison outputs report:
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
-3. the active effective-w300 posterior-draw rerun docs:
+4. the active effective-w300 posterior-draw rerun docs:
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_rerun_20260407.md`
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_setup_and_smoke_20260407.md`
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_failure_investigation_20260408.md`
@@ -178,23 +112,23 @@ For continuation work on this integration branch, use the following evidence ord
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
-4. the detailed historical dynamic relaunch tracker:
+5. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
-5. the authoritative repaired effective-w300 comparison pack:
+6. the authoritative effective-w300 zero-FAIL comparison pack:
    - summary:
-     - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/summary/qdesn_dynamic_main_comparison_analysis.md`
+     - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-200857__git-cc6f0f5/summary/qdesn_dynamic_main_comparison_analysis.md`
    - 144-row case table:
-     - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/tables/authoritative_fit_case_table_readable.csv`
+     - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-200857__git-cc6f0f5/tables/authoritative_fit_case_table_readable.csv`
    - QDESN-vs-reference summary:
-     - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/comparison_vs_reference/comparison_summary.md`
-6. the completed dynamic campaign outputs on the predecessor branch/worktree:
+     - `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-200857__git-cc6f0f5/comparison_vs_reference/comparison_summary.md`
+7. the completed dynamic campaign outputs on the predecessor branch/worktree:
    - campaign summary:
      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/summary/qdesn_dynamic_crossstudy_summary.md`
    - comparison summary:
      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/comparison_vs_reference/comparison_summary.md`
    - campaign progress table:
      - `/home/jaguir26/local/src/exdqlm__wt__feature-benchmark-data-pipeline/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260406-163041__git-85760fe/20260406-163050__git-85760fe/tables/campaign_progress.csv`
-7. the checked-in dynamic grid and runner assets on this branch:
+8. the checked-in dynamic grid and runner assets on this branch:
    - `config/validation/qdesn_dynamic_exdqlm_crossstudy_grid.csv`
    - `R/qdesn_dynamic_exdqlm_crossstudy.R`
    - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R`

@@ -85,7 +85,7 @@ Completed relaunch execution state:
 - relaunch summary:
   - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438/launch/failed_root_relaunch_summary.md`
 - repaired comparison pack:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-015614__git-554809e/summary/qdesn_dynamic_main_comparison_analysis.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-effectivew300-maincmp-20260408-200857__git-cc6f0f5/summary/qdesn_dynamic_main_comparison_analysis.md`
 
 ## 4) Operational Use
 
@@ -93,18 +93,15 @@ Current queue state:
 
 1. treat this file as the frozen historical inventory of the original `6` execution failures
 2. treat the relaunch as **execution-resolved**
-3. use the repaired effective-w300 comparison pack as the current authoritative analysis source
-4. if future scientific follow-up is needed, start from the repaired pack rather than reopening this
-   execution queue
+3. treat the scientific residual loop as **also closed** under the reconciled zero-FAIL baseline
+4. do not reopen this execution queue unless a new implementation failure is discovered later
 
 Current scientific follow-up direction:
 
-- fail-surface report:
-  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_surface_and_repair_plan_20260408.md`
-- Wave 1 closeout and Wave 2 inventory:
-  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
-- final residual-wave plan:
-  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
+- final residual closeout and zero-FAIL reconciliation:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_closeout_and_zero_fail_reconciliation_20260408.md`
+- authoritative effective-w300 comparison outputs:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
 - key rule:
   - keep this queue frozen as an execution-history record;
-  - do not mix the closed execution-failure loop with the new scientific residual-closure loop.
+  - do not mix the closed execution-failure loop with any future scientific sensitivity work.

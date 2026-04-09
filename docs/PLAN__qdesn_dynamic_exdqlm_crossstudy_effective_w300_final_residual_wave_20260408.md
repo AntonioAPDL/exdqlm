@@ -4,6 +4,11 @@ Date: 2026-04-08
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`  
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
+Historical note:
+
+- this plan was completed and is now superseded as the current branch-local state by:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_closeout_and_zero_fail_reconciliation_20260408.md`
+
 ## 1) Objective
 
 Run one final, tightly targeted scientific closure wave starting from the promoted Wave 1 local

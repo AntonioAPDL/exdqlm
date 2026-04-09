@@ -4,6 +4,13 @@ Date: 2026-04-08
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`  
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`
 
+Historical note:
+
+- this report remains the correct Wave 1 closeout record
+- the current branch-local state after the completed final residual wave and exact-root
+  reconciliation is now:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_closeout_and_zero_fail_reconciliation_20260408.md`
+
 ## 1) Purpose
 
 Record the completed effective-w300 scientific fail-closure wave, promote the clearly improved
