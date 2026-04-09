@@ -1,2 +1,2 @@
 "phase","total","done","missing","pass","warn","fail","healthy","matches_accepted","better_than_accepted","worse_than_accepted","pending_compare"
-"phase1_dynamic_tail6_localmix",6,0,6,0,0,0,0,0,0,0,6
+"phase1_dynamic_tail6_localmix",6,6,0,0,0,6,0,6,0,0,0

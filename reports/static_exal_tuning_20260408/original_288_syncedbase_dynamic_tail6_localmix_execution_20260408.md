@@ -87,3 +87,88 @@ as one compact phase:
 
 This keeps the run compact while still making each row answer a real
 decision-grade question.
+
+## Closeout Outcome
+
+The localmix lane has now completed.
+
+Outcome:
+
+- `6 / 6` complete
+- `0 PASS`
+- `0 WARN`
+- `6 FAIL`
+- `0 / 6` healthy
+
+Accepted comparison:
+
+- `6` matches accepted
+- `0` better than accepted
+- `0` worse than accepted
+
+Strict promotion result:
+
+- none
+- accepted `v7` remains authoritative:
+  - `282 / 288` healthy
+  - `230 PASS`
+  - `52 WARN`
+  - `6 FAIL`
+
+## What This Wave Taught Us
+
+The localmix wave was operationally negative, but it was still informative.
+
+Most important interpretation:
+
+- the manifest-override precedence bug was real and worth fixing
+- but faithfully rerunning the intended closure corridors still did not rescue
+  the accepted unresolved tail
+- the remaining problem is therefore not just “the right schedule never truly
+  ran”
+
+Highest-value row-level reads:
+
+- `gausmix / 0p25 / TT500`:
+  - the faithfully rerun `slice 0.16 / 240` closure corridor was weaker than
+    the later tail6-refine `slice 0.18 / 320` corridor
+  - current result still has clean drift and Geweke, but lower ESS-per-1k than
+    tail6-refine
+- `laplace / 0p05 / TT500`:
+  - the stronger `laplace_rw` refresh corridor improved ESS-per-1k over
+    tail6-refine
+  - but half-chain drift worsened materially, so the row still failed
+  - this now looks like an efficiency-versus-stationarity tradeoff inside the
+    `RW` family, not a simple “run longer” problem
+- `normal / 0p05 / TT500`:
+  - adaptive non-joint `RW` improved over the tail6-refine joint-deep attempt
+    on ACF, Geweke, and drift
+  - but both sigma and gamma still stayed far below the ESS-per-1k gate
+- `gausmix / 0p05 / TT5000`:
+  - the faithful `slice 0.16 / 240` rerun was essentially flat versus
+    tail6-refine
+  - no meaningful rescue signal emerged
+- `laplace / 0p05 / TT5000`:
+  - the reopened `slice 0.16 / 240` corridor was materially worse than the
+    tail6-refine deep-slice result
+  - this corridor should now be screened out
+- `normal / 0p05 / TT5000`:
+  - the adaptive non-joint long `RW` continuation was materially worse than the
+    tail6-refine long `RW` result
+  - this exact continuation should now be screened out
+
+## Meaningful Learning
+
+Yes, there was meaningful learning even without a rescue.
+
+What the localmix wave clarified:
+
+1. the closure-overrides bug is no longer a scientific explanation for the
+   surviving `6`-row tail
+2. the strongest long-row closure corridors (`slice 0.16 / 240`) are now
+   directly screened out for `laplace / 0p05 / TT5000` and effectively
+   exhausted for `gausmix / 0p05 / TT5000`
+3. adaptive non-joint `RW` is not enough by itself to rescue the normal rows,
+   though it helped the short normal row more than the earlier joint-deep path
+4. the remaining tail is now better understood as a narrow row-local mixing
+   problem, not a missing broad family-level schedule

@@ -38,12 +38,12 @@ Integration-base merge commit:
 
 Current synced tracker checkpoint on this branch:
 
-- `2026-04-08` post-tail6-refine closeout and localmix relaunch
+- `2026-04-08` post-localmix closeout
 - scope:
   - accepted `v7` remains the authoritative carry-forward baseline
-  - document the completed tail6-refine outcome
+  - document the completed tail6-refine and localmix outcomes
   - keep the dynamic-closure runner-fix finding as established background
-  - launch the new accepted-tail-only localmix lane
+  - record that the accepted unresolved tail remains `6 / 288`
 
 ## Canonical Status Files
 
@@ -66,7 +66,7 @@ Primary accepted carry-forward artifacts:
 
 Latest completed rerun execution report:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
 
 Active residual repair planning / execution notes:
 
@@ -154,11 +154,11 @@ Method-level breakdown of the accepted state:
 
 The latest completed rerun campaign is now:
 
-- `reports/static_exal_tuning_20260407/original_288_syncedbase_dynamic_tail6_refine_execution_20260407.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
 
 That campaign:
 
-- reran the accepted-tail-only `6`-row dynamic tail6 refine lane
+- reran the accepted-tail-only `6`-row dynamic localmix lane
 - yielded:
   - `0 PASS`
   - `0 WARN`
@@ -178,13 +178,15 @@ That means the accepted publication-target state stays at:
 
 Important interpretation from this closeout:
 
-- the runner precedence bug discovered during dynamic closure is now fixed
-- tail6 refine therefore served as the first clean row-local post-fix wave
-- the main remaining blocker is now better understood as efficiency:
+- the runner precedence bug discovered during dynamic closure is now fully
+  ruled out as the main explanation for the surviving accepted unresolved tail
+- faithfully rerunning the intended closure corridors still did not produce a
+  rescue
+- the remaining blocker is therefore narrower than before:
+  - row-local mixing efficiency
   - ESS-per-1k
   - autocorrelation
   - especially on gamma
-  rather than raw lack of runtime alone
 
 ## Remaining Failing Cases
 
@@ -242,7 +244,7 @@ Therefore:
   - targeted follow-up complete
   - dynamic closure complete
   - corrected tail6 refine complete
-  - dynamic tail6 localmix now active
+  - dynamic tail6 localmix complete with no promotions
 
 ## Synced-Base Replay Status
 
@@ -343,8 +345,8 @@ What exists here right now is:
 - the accepted `v7` carry-forward state
 - a completed faithful replay of the accepted healthy `282` rows
 - completed synced-base residual, follow-up, closure, and tail6-refine evidence
-- a compact row-local dynamic localmix program for the remaining `6` accepted
-  failures
+- completed compact row-local dynamic localmix evidence for the remaining `6`
+  accepted failures
 
 ## Highest-Priority Next Validation Tasks
 
@@ -354,8 +356,10 @@ What exists here right now is:
    comparison.
 4. Focus only on the unresolved `6` dynamic `exdqlm :: mcmc` publication-tail
    rows.
-5. Use row-local efficiency tuning rather than generic longer chains:
-   - reopen bug-delayed closure corridors that never ran at intended budgets
-   - use adaptive non-joint RW where the historical RW family remained strongest
-6. Keep replay-confidence debt and static work out of the accepted-tail lane
+5. Treat the current localmix closeout as informative but non-promotable:
+   - do not rerun the same `slice 0.16 / 240` long-row localmix profiles
+   - do not rerun the same adaptive non-joint long `RW` normal profile
+6. If the tail is reopened again, use a smaller row-specific micro-tuning lane
+   rather than another broad family band.
+7. Keep replay-confidence debt and static work out of the accepted-tail lane
    unless new evidence makes them necessary again.

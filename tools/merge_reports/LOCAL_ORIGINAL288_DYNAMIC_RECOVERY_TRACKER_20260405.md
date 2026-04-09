@@ -37,6 +37,82 @@ Important distinction carried forward on this branch:
 - therefore the accepted carry-forward status and the rerun-on-synced-base
   status must be treated separately in planning and reporting
 
+## Dynamic Tail6 Localmix Closeout (2026-04-08)
+
+The synced-base dynamic tail6 localmix wave has now completed.
+
+Accepted publication-target state remains unchanged under `v7`:
+
+- `282 / 288` healthy
+- `230 PASS`
+- `52 WARN`
+- `6 FAIL`
+
+Localmix closeout:
+
+- scope:
+  - `6` accepted unresolved dynamic rows
+- outcome:
+  - `0 PASS`
+  - `0 WARN`
+  - `6 FAIL`
+  - `0 / 6` healthy
+- accepted comparison:
+  - `6` matches accepted
+  - `0` better than accepted
+  - `0` worse than accepted
+- promotions:
+  - none
+
+Most important learning:
+
+- the manifest-override precedence bug was operationally real, but faithfully
+  rerunning the intended closure corridors still did not rescue the unresolved
+  accepted tail
+- that means the remaining tail is not being held back mainly by “the right
+  budget never really ran”
+- the surviving problem is narrower:
+  - row-local mixing efficiency
+  - especially ESS-per-1k and autocorrelation on gamma
+
+Highest-value row-level reads:
+
+- `gausmix / 0p25 / TT500`:
+  - the faithful `slice 0.16 / 240` closure corridor underperformed the later
+    tail6-refine `slice 0.18 / 320` near-miss
+- `laplace / 0p05 / TT500`:
+  - the stronger `RW` refresh corridor improved ESS-per-1k, but drift got
+    materially worse again
+- `normal / 0p05 / TT500`:
+  - adaptive non-joint `RW` was better than the earlier joint-deep path, but
+    still far from the ESS-per-1k gate
+- `laplace / 0p05 / TT5000`:
+  - the reopened `slice 0.16 / 240` corridor was materially worse than the
+    tail6-refine deep-slice result and should now be screened out
+- `normal / 0p05 / TT5000`:
+  - the adaptive non-joint long `RW` continuation was materially worse than the
+    tail6-refine long `RW` attempt and should also be screened out
+
+What the localmix wave meaningfully ruled out:
+
+- the bug-delayed closure corridors are not enough by themselves to close the
+  accepted unresolved tail
+- adaptive non-joint `RW` is not a general rescue for the normal rows
+- another replay of these exact localmix profiles is low value
+
+Current highest-value next move:
+
+- keep the baseline frozen at accepted `v7`
+- do not promote any fail-over-fail localmix outputs
+- screen out the weakest localmix long-row continuations
+- if the tail is reopened again, make it a smaller row-specific micro-tuning
+  lane rather than another broad dynamic band
+
+Primary references:
+
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_program_20260408.md`
+- `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
+
 ## Dynamic Tail6 Refine Closeout and Localmix Relaunch (2026-04-08)
 
 The synced-base dynamic tail6 refine wave has now completed.
