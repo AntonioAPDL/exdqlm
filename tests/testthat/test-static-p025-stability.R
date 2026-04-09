@@ -31,7 +31,7 @@ test_that("static LDVB p0=0.25 benchmark converges with finite state", {
       y = dat$y,
       X = dat$X,
       p0 = 0.25,
-      max_iter = 120,
+      max_iter = 160,
       tol = 1e-4,
       verbose = FALSE
     ),
@@ -47,6 +47,9 @@ test_that("static LDVB p0=0.25 benchmark converges with finite state", {
   expect_true(is.finite(fit$qsiggam$gamma_mean))
   expect_true(is.finite(fit$qsiggam$sigma_mean))
   expect_true(fit$diagnostics$ld_block$xi$stabilized_iter_count >= 0L)
+  expect_true(isTRUE(fit$diagnostics$ld_block$mode_quality$local_mode_pass))
+  expect_true(isTRUE(fit$diagnostics$convergence$ld_signoff_ready))
+  expect_false(isTRUE(fit$diagnostics$ld_block$stabilization$active_final))
 })
 
 test_that("static LDVB avoids the gamma=0 bad mode on the ex4 seed", {
@@ -74,6 +77,9 @@ test_that("static LDVB avoids the gamma=0 bad mode on the ex4 seed", {
   expect_lt(abs(fit$qbeta$m[1]), 10)
   expect_lt(abs(fit$qbeta$m[2]), 10)
   expect_gt(fit$qsiggam$gamma_mean, 0.1)
+  expect_true(isTRUE(fit$diagnostics$ld_block$mode_quality$local_mode_pass))
+  expect_true(isTRUE(fit$diagnostics$convergence$ld_signoff_ready))
+  expect_false(isTRUE(fit$diagnostics$ld_block$stabilization$active_final))
 })
 
 test_that("static MCMC slice warm start is clean on the p0=0.25 benchmark", {

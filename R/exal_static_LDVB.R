@@ -789,6 +789,12 @@
   out
 }
 
+.exal_static_ld_signoff_ready <- function(mode_quality, stabilize_active = FALSE) {
+  !isTRUE(stabilize_active) &&
+    !is.null(mode_quality) &&
+    isTRUE(mode_quality$local_mode_pass)
+}
+
 #' Static exAL Regression - LDVB Approximation
 #'
 #' The function applies a mean-field variational approximation to static
@@ -1426,6 +1432,7 @@ exal_static_LDVB <- function(
   candidate_mode_pass_last <- NA
   ld_good_streak <- 0L
   stable_count <- 0L
+  ld_signoff_ready <- FALSE
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   stop_reason <- "max_iter"
   converged <- FALSE
@@ -1954,6 +1961,21 @@ exal_static_LDVB <- function(
     delta_gamma <- c(delta_gamma, d_gamma)
     delta_s <- c(delta_s, d_s)
     delta_elbo <- c(delta_elbo, d_elbo)
+
+    if (step$stop_now) {
+      iter_mode_quality <- .exal_static_ld_mode_quality(
+        log_q_fn = log_qsiggam,
+        par = c(eta_hat, ell_hat),
+        grad_tol = ld_ctrl$mode_grad_tol,
+        min_eig = ld_ctrl$mode_min_eig,
+        hessian_backend = ld_ctrl$hessian_backend
+      )
+      ld_signoff_ready <- .exal_static_ld_signoff_ready(
+        mode_quality = iter_mode_quality,
+        stabilize_active = stabilize_active
+      )
+    }
+
     if (isTRUE(ld_ctrl$store_trace)) {
       trace_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
       s_stats <- .exdqlm_trace_summary(s_mom$Es)
@@ -2137,7 +2159,7 @@ exal_static_LDVB <- function(
       )
     }
 
-    if (step$stop_now) {
+    if (step$stop_now && isTRUE(ld_signoff_ready)) {
       converged <- TRUE
       stop_reason <- "joint_converged"
       break
@@ -2157,7 +2179,12 @@ exal_static_LDVB <- function(
     log_q_fn = log_qsiggam,
     par = c(eta_hat, ell_hat),
     grad_tol = ld_ctrl$mode_grad_tol,
-    min_eig = ld_ctrl$mode_min_eig
+    min_eig = ld_ctrl$mode_min_eig,
+    hessian_backend = ld_ctrl$hessian_backend
+  )
+  ld_signoff_ready <- .exal_static_ld_signoff_ready(
+    mode_quality = mode_quality,
+    stabilize_active = stabilize_active
   )
   ld_trace_df <- if (isTRUE(ld_ctrl$store_trace)) {
     keep <- Filter(Negate(is.null), ld_trace_rows[seq_len(iter)])
@@ -2201,9 +2228,15 @@ exal_static_LDVB <- function(
   } else {
     list()
   }
-  if (!converged && identical(stop_reason, "max_iter") && isTRUE(ld_signoff_summary$committed_stable)) {
+  if (!converged && identical(stop_reason, "max_iter") &&
+      isTRUE(ld_signoff_summary$committed_stable) &&
+      isTRUE(ld_signoff_ready)) {
     converged <- TRUE
     stop_reason <- "joint_converged_stabilized"
+  }
+  if (isTRUE(converged) && !isTRUE(ld_signoff_ready)) {
+    converged <- FALSE
+    stop_reason <- "ld_signoff_failed"
   }
   beta_prior_summary <- beta_prior_obj$summary_vb(beta_state)
 
@@ -2237,6 +2270,7 @@ exal_static_LDVB <- function(
         stop_reason = stop_reason,
         iter = iter,
         stable_count = stable_count,
+        ld_signoff_ready = ld_signoff_ready,
         criteria = conv_ctrl,
         final = list(
           delta_state = if (length(delta_beta)) utils::tail(delta_beta, 1L) else NA_real_,
@@ -2291,6 +2325,7 @@ exal_static_LDVB <- function(
           last_stabilization = if (exists("xis_eval_raw", inherits = FALSE)) xis_eval_raw$stabilization else list()
         ),
         mode_quality = mode_quality,
+        signoff_ready = ld_signoff_ready,
         signoff_summary = ld_signoff_summary,
         timing = if (isTRUE(ld_ctrl$profile_timing)) {
           list(

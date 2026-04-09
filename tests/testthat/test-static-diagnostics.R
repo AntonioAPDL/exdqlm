@@ -136,6 +136,9 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   expect_true(all(is.finite(fit_ldvb$qbeta$m)))
   expect_true(all(is.finite(fit_ldvb$qv$E_v)))
   expect_false(isTRUE(fit_ldvb$beta_prior$summary$collapse_flag))
+  expect_true(isTRUE(fit_ldvb$diagnostics$ld_block$mode_quality$local_mode_pass))
+  expect_true(isTRUE(fit_ldvb$diagnostics$convergence$ld_signoff_ready))
+  expect_false(isTRUE(fit_ldvb$diagnostics$ld_block$stabilization$active_final))
 
   expect_silent(
     fit_mcmc <- exal_static_mcmc(
