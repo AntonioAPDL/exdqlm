@@ -103,7 +103,7 @@ filled sensibly.}
 
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model
 (\code{gamma = 0}), corresponding to Bayesian linear quantile regression
-under the AL working likelihood. This removes the \code{\gamma}- and
+under the AL working likelihood. This removes the \code{gamma}- and
 \code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
 \code{sigma}, and \code{v}.}
 

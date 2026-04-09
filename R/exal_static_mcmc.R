@@ -67,7 +67,7 @@
 #'   filled sensibly.
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model
 #'   (\code{gamma = 0}), corresponding to Bayesian linear quantile regression
-#'   under the AL working likelihood. This removes the \code{\gamma}- and
+#'   under the AL working likelihood. This removes the \code{gamma}- and
 #'   \code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
 #'   \code{sigma}, and \code{v}.
 #' @param n.burn Number of burn-in iterations. Default \code{2000}.
@@ -240,7 +240,9 @@ exal_static_mcmc <- function(
   rhs_preflight <- NULL
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
-    .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_mcmc")
+    if (isTRUE(verbose) || isTRUE(beta_prior_obj$controls$verbose)) {
+      .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_mcmc")
+    }
   }
 
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
@@ -393,11 +395,13 @@ exal_static_mcmc <- function(
       stop("vb_init_controls$ld_controls must be a list or NULL")
     }
 
+    vb_b0 <- if (b0_missing) NULL else b0
+    vb_V0 <- if (V0_missing) NULL else V0
     vb.fit <- exal_static_LDVB(
       y = y, X = X, p0 = p0,
       max_iter = vb.ctrl$max_iter,
       tol = vb.ctrl$tol,
-      b0 = b0, V0 = V0,
+      b0 = vb_b0, V0 = vb_V0,
       beta_prior = beta_prior,
       beta_prior_controls = beta_prior_controls,
       a_sigma = a_sigma, b_sigma = b_sigma,

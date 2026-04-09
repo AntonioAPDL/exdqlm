@@ -93,3 +93,74 @@ test_that("static MCMC default proposal is slice", {
   expect_true(isTRUE(fit$mh.diagnostics$signoff_ready))
   expect_true(is.na(fit$accept.rate))
 })
+
+tiny_static_sparse_rhs_case <- function(n = 80L, p0 = 0.25) {
+  cov_mat <- 0.5 ^ as.matrix(stats::dist(seq_len(8L)))
+  beta_slopes <- c(2, 1, 0, 0, 1.5, 0, 0, 0)
+  X_raw <- MASS::mvrnorm(n, mu = rep(0, 8L), Sigma = cov_mat)
+  X <- cbind(1, X_raw)
+  y <- as.numeric(X_raw %*% beta_slopes) + 1.25 * (stats::rnorm(n) - stats::qnorm(p0))
+  list(
+    X = X,
+    y = y,
+    ref = as.numeric(X %*% c(0, beta_slopes)),
+    p0 = p0
+  )
+}
+
+test_that("static rhs_ns sparse benchmark is silent and finite with VB warm start", {
+  set.seed(20260411)
+  dat <- tiny_static_sparse_rhs_case(n = 80L, p0 = 0.25)
+  rhs_ctrl <- list(
+    tau0 = 0.15,
+    a_zeta = 2,
+    b_zeta = 9,
+    zeta2_fixed = 9,
+    shrink_intercept = FALSE
+  )
+
+  expect_silent(
+    fit_ldvb <- exal_static_LDVB(
+      y = dat$y,
+      X = dat$X,
+      p0 = dat$p0,
+      beta_prior = "rhs_ns",
+      beta_prior_controls = rhs_ctrl,
+      max_iter = 220,
+      tol = 1e-4,
+      n_samp_xi = 120,
+      verbose = FALSE
+    )
+  )
+  expect_true(isTRUE(fit_ldvb$converged))
+  expect_true(all(is.finite(fit_ldvb$qbeta$m)))
+  expect_true(all(is.finite(fit_ldvb$qv$E_v)))
+  expect_false(isTRUE(fit_ldvb$beta_prior$summary$collapse_flag))
+
+  expect_silent(
+    fit_mcmc <- exal_static_mcmc(
+      y = dat$y,
+      X = dat$X,
+      p0 = dat$p0,
+      beta_prior = "rhs_ns",
+      beta_prior_controls = rhs_ctrl,
+      n.burn = 60,
+      n.mcmc = 40,
+      thin = 1,
+      init.from.vb = TRUE,
+      verbose = FALSE
+    )
+  )
+  expect_identical(fit_mcmc$mh.diagnostics$proposal, "slice")
+  expect_true(all(is.finite(as.matrix(fit_mcmc$samp.beta))))
+  expect_false(isTRUE(fit_mcmc$beta_prior$summary$collapse_flag))
+
+  diag_out <- exalDiagnostics(
+    fit_ldvb,
+    fit_mcmc,
+    X = dat$X,
+    ref = dat$ref,
+    plot = FALSE
+  )
+  expect_true(all(is.finite(c(diag_out$m1.ref_rmse, diag_out$m2.ref_rmse))))
+})

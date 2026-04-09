@@ -985,7 +985,9 @@ exal_static_LDVB <- function(
   rhs_preflight <- NULL
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
-    .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_ldvb")
+    if (isTRUE(verbose) || isTRUE(beta_prior_obj$controls$verbose)) {
+      .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_ldvb")
+    }
   }
 
   # Reduced AL / DQLM branch: no gamma, no s, no LD block.
