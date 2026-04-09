@@ -215,6 +215,18 @@ Validated deep-DESN final residual wave:
   - `14` profiles
   - `49` root-campaigns
   - `196` fit executions
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_setup_and_launch_20260409.md`
+- live run:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-183058__git-26bdaad`
+- detached session:
+  - `qdesn_dynxff_0409_183058`
+- immediate launch-state read:
+  - `0/3` stages complete
+  - `0/14` profiles complete
+  - current stage/profile:
+    - `E1_rhs_long_gausmix_mixed / E410_rhs_long_gausmix_guard320_balanced3200`
+  - detached session live
 
 ## 3) Source Of Truth Hierarchy
 
@@ -239,6 +251,9 @@ For continuation work on this integration branch, use the following evidence ord
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_closeout_and_fail_surface_20260409.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_20260409.md`
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_setup_and_launch_20260409.md`
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave1_closeout_and_wave2_inventory_20260409.md`
+   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_20260409.md`
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_setup_and_launch_20260409.md`
 5. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
 6. the authoritative effective-w300 zero-FAIL comparison pack:

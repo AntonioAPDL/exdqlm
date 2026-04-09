@@ -333,6 +333,21 @@ Validated next wave:
   - `14` challenger profiles
   - `49` root-campaigns
   - `196` fit executions
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_setup_and_launch_20260409.md`
+
+Live overnight run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-183058__git-26bdaad`
+- detached session:
+  - `qdesn_dynxff_0409_183058`
+- immediate health:
+  - `0/3` stages complete
+  - `0/14` profiles complete
+  - current stage/profile:
+    - `E1_rhs_long_gausmix_mixed / E410_rhs_long_gausmix_guard320_balanced3200`
+  - detached session live
 
 Interpretation:
 
