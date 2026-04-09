@@ -94,6 +94,25 @@ Current status:
     - `36/36` comparison-eligible-any
     - `36/36` comparison-eligible-full
 
+Active follow-on architecture rerun:
+
+- purpose:
+  - evaluate a richer shared DESN architecture across the full effective-w300 case lattice without
+    changing the source-window or metric contract
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_rerun_20260408.md`
+- checked-in defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_defaults.yaml`
+- checked-in grid:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_grid.csv`
+- DESN profile:
+  - `deep_d3_n100x3_skip100_w300_m30`
+- expected size:
+  - `36` roots
+  - `144` fit rows
+- preflight:
+  - full-batch `prepare-only` passes under the new campaign namespace
+
 ## 3) Source Of Truth Hierarchy
 
 For continuation work on this integration branch, use the following evidence order:
@@ -112,6 +131,7 @@ For continuation work on this integration branch, use the following evidence ord
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_effective_w300_relaunch_queue_20260408.md`
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
+   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_rerun_20260408.md`
 5. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
 6. the authoritative effective-w300 zero-FAIL comparison pack:

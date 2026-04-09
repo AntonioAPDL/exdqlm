@@ -107,6 +107,61 @@ Effective-w300 completion chain:
     - `36/36` comparison-eligible-any
     - `36/36` comparison-eligible-full
 
+## Effective-W300 Deep-DESN Rerun Note (2026-04-08)
+
+A new full-rerun architecture experiment is now prepared on this integration branch using a richer
+shared DESN profile applied to every case.
+
+Purpose:
+
+- test whether a materially larger/deeper DESN improves the full effective-w300 validation surface
+  without changing the source-total contract or the posterior-metric evaluation layer.
+
+New shared DESN profile:
+
+- `deep_d3_n100x3_skip100_w300_m30`
+- `D = 3`
+- `n = [100, 100, 100]`
+- `n_tilde = [100, 100]`
+- `m = 30`
+- `alpha = [0.2, 0.2, 0.2]`
+- `rho = [0.95, 0.95, 0.95]`
+- `act_f = [tanh, tanh, tanh]`
+- `act_k = [identity, identity, identity]`
+- `pi_w = [0.1, 0.1, 0.1]`
+- `pi_in = [1.0, 1.0, 1.0]`
+- `washout = 300`
+
+Checked-in rerun assets:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_rerun_20260408.md`
+- defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_defaults.yaml`
+- grid:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_grid.csv`
+- materializer:
+  - `scripts/materialize_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_grid.R`
+- runner:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_validation.R`
+- launcher:
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_validation.R`
+- healthcheck:
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_validation.R`
+
+Checked-in setup state:
+
+- canonical deep-DESN grid materialized:
+  - `36` roots
+  - `18` unique dataset cells
+- full-batch `prepare-only`:
+  - passes
+
+Interpretation rule:
+
+- the current zero-FAIL effective-w300 pack remains authoritative until the deep-DESN rerun
+  completes and is judged against it.
+
 ## 2) Current Status
 
 Status of this long-form tracker: **historical relaunch record**.
