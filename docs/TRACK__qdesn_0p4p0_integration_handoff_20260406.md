@@ -134,6 +134,8 @@ Active deep-DESN repair wave:
 
 - plan:
   - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_20260409.md`
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_setup_and_launch_20260409.md`
 - manifest:
   - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_manifest.yaml`
 - wrappers:
@@ -141,7 +143,7 @@ Active deep-DESN repair wave:
   - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
   - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave.R`
 - prepare-only:
-  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-005949__git-f085e49`
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010359__git-36c7c9e`
   - passes
 - verified stage sizes:
   - `D1: 6 roots / 12 target FAIL rows / 4 profiles`
@@ -152,6 +154,14 @@ Active deep-DESN repair wave:
   - `18` profiles
   - `135` root-campaigns
   - `540` fit executions
+- live run:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e`
+- detached session:
+  - `qdesn_dynxff_0409_010421`
+- launch-state read:
+  - `0/4` stages complete
+  - `0/18` profiles complete
+  - detached session live
 
 ## 3) Source Of Truth Hierarchy
 
@@ -175,6 +185,7 @@ For continuation work on this integration branch, use the following evidence ord
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_setup_and_launch_20260408.md`
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_closeout_and_fail_surface_20260409.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_20260409.md`
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_setup_and_launch_20260409.md`
 5. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
 6. the authoritative effective-w300 zero-FAIL comparison pack:

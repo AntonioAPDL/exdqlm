@@ -224,7 +224,7 @@ New active repair phase:
 Prepare-only validation:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-005949__git-f085e49`
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010359__git-36c7c9e`
 - result:
   - pass
 - verified stage plan:
@@ -236,6 +236,21 @@ Prepare-only validation:
   - `18` challenger profiles
   - `135` root-campaigns
   - `540` fit executions
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_setup_and_launch_20260409.md`
+
+Live overnight run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e`
+- detached session:
+  - `qdesn_dynxff_0409_010421`
+- immediate health:
+  - `0/4` stages complete
+  - `0/18` profiles complete
+  - detached session live
+  - first active stage/profile:
+    - `D1_ridge_lower_tail_vb / D110_ridge_lower_vb320`
 
 Interpretation:
 

@@ -148,9 +148,9 @@ Why these are included:
 Preflight-verified prepare-only run:
 
 - run tag:
-  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-005949__git-f085e49`
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010359__git-36c7c9e`
 - preflight markdown:
-  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-005949__git-f085e49/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave/qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010359__git-36c7c9e/launch/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight.md`
 
 Verified stage plan:
 
@@ -169,6 +169,15 @@ Total planned scope:
   - `135`
 - planned fit executions:
   - `540`
+
+Committed-state launch:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e`
+- detached session:
+  - `qdesn_dynxff_0409_010421`
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_setup_and_launch_20260409.md`
 
 ## 7) Compute Design
 
