@@ -73,6 +73,12 @@ Active residual repair planning / execution notes:
 - `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_program_20260408.md`
 - `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
 - `reports/static_exal_tuning_20260408/original_288_v7_comparison_analysis_plan_20260408.md`
+- `reports/static_exal_tuning_20260408/static_bqrgal_alignment_and_relaunch_plan_20260408.md`
+
+Machine-readable freeze / planning artifacts:
+
+- `tools/merge_reports/LOCAL_static_bqrgal_aligned_relaunch_grid_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_validation_workstreams_v7_freeze_20260408.csv`
 
 ## Case Universe In Scope
 
@@ -188,6 +194,46 @@ Important interpretation from this closeout:
   - ESS-per-1k
   - autocorrelation
   - especially on gamma
+
+## Freeze And Next Relaunch Direction
+
+As of `2026-04-08`, the broader `original288 / v7` study is now treated as
+frozen.
+
+That means:
+
+- `original288 / v7` remains the accepted broader validation baseline
+- it is no longer treated as the paper-aligned static benchmark
+- new paper alignment work should proceed in a separate workstream
+
+Why the split is necessary:
+
+- the current accepted static grid uses `tau = 0p05 / 0p25 / 0p95`
+- the local `bqrgal-examples` benchmark uses `p0 = 0.05 / 0.25 / 0.50`
+- the current accepted static study uses subsampled fit-input slices from a
+  larger simulated master dataset
+- the local `bqrgal-examples` benchmark uses replicated train/test simulation
+- the current accepted static comparison is a mixed accepted carry-forward
+  state, not a direct long-budget MCMC AL-vs-GAL benchmark
+
+Next relaunch direction:
+
+- build a new static paper-aligned benchmark lane
+- core lane:
+  - `n = 100`
+  - `tau = 0.05 / 0.25 / 0.50`
+  - families: `normal`, `laplace`, `gausmix`
+  - models: `al`, `exal`
+  - MCMC only
+  - exAL uses `slice`
+  - long-budget target equivalent to `150000 / 50000 / 20`
+- extension lane:
+  - `n = 1000`
+  - same families / taus / metric bundle
+  - always labeled as not directly paper-matched
+
+The broader validation workstreams remain tracked separately, especially the
+dynamic unresolved tail under the frozen `v7` baseline.
 
 ## Remaining Failing Cases
 
