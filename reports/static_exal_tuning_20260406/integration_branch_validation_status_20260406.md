@@ -72,6 +72,7 @@ Active residual repair planning / execution notes:
 
 - `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_program_20260408.md`
 - `reports/static_exal_tuning_20260408/original_288_syncedbase_dynamic_tail6_localmix_execution_20260408.md`
+- `reports/static_exal_tuning_20260408/original_288_v7_comparison_analysis_plan_20260408.md`
 
 ## Case Universe In Scope
 
@@ -359,7 +360,9 @@ What exists here right now is:
 5. Treat the current localmix closeout as informative but non-promotable:
    - do not rerun the same `slice 0.16 / 240` long-row localmix profiles
    - do not rerun the same adaptive non-joint long `RW` normal profile
-6. If the tail is reopened again, use a smaller row-specific micro-tuning lane
+6. Build the full original-`288` comparison-analysis bundle from accepted `v7`
+   before deciding whether more residual tuning is still worth it.
+7. If the tail is reopened again, use a smaller row-specific micro-tuning lane
    rather than another broad family band.
-7. Keep replay-confidence debt and static work out of the accepted-tail lane
+8. Keep replay-confidence debt and static work out of the accepted-tail lane
    unless new evidence makes them necessary again.
