@@ -156,6 +156,22 @@ Checked-in setup state:
   - `18` unique dataset cells
 - full-batch `prepare-only`:
   - passes
+- setup/launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_setup_and_launch_20260408.md`
+
+Committed-state full launch:
+
+- setup commit:
+  - `8527b4a`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a`
+- detached session:
+  - `qdesn_dynx_0408_211621`
+- early health snapshot:
+  - `36` selected roots
+  - `6` materialized
+  - `6 RUNNING`
+  - `0 FAIL`
 
 Interpretation rule:
 

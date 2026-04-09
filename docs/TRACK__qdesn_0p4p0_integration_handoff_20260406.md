@@ -112,6 +112,15 @@ Active follow-on architecture rerun:
   - `144` fit rows
 - preflight:
   - full-batch `prepare-only` passes under the new campaign namespace
+- setup/launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_setup_and_launch_20260408.md`
+- live full run:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a`
+- early health:
+  - `36` selected roots
+  - `6` materialized
+  - `6 RUNNING`
+  - `0 FAIL`
 
 ## 3) Source Of Truth Hierarchy
 
@@ -132,6 +141,7 @@ For continuation work on this integration branch, use the following evidence ord
    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_wave1_closeout_and_wave2_inventory_20260408.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_wave_20260408.md`
    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_rerun_20260408.md`
+   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_deepdesn_setup_and_launch_20260408.md`
 5. the detailed historical dynamic relaunch tracker:
    - `docs/TRACK__qdesn_dynamic_exdqlm_crossstudy_validation.md`
 6. the authoritative effective-w300 zero-FAIL comparison pack:

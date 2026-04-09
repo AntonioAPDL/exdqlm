@@ -103,4 +103,39 @@ Live smoke snapshot before full launch:
 
 ## 5) Launch
 
-This section is updated after the committed-state full launch completes.
+Committed-state full launch:
+
+- setup commit:
+  - `8527b4a`
+- full run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a`
+- detached session:
+  - `qdesn_dynx_0408_211621`
+- launcher metadata:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a/launch/launcher_session.json`
+- launcher log:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_validation/qdesn-dynamic-exdqlm-crossstudy-full-20260408-211621__git-8527b4a/launch/launcher_stdout.log`
+
+Early health snapshot:
+
+- snapshot time:
+  - `2026-04-08 21:16:44 EDT`
+- selected roots:
+  - `36`
+- materialized roots:
+  - `6`
+- running roots:
+  - `6`
+- successful roots:
+  - `0`
+- failed roots:
+  - `0`
+- fit summaries on disk:
+  - `0`
+
+Interpretation:
+
+- the committed-state full rerun launched cleanly,
+- root materialization has started,
+- the first `6` roots are actively running, and
+- there is no early failure signal in the initial healthcheck.
