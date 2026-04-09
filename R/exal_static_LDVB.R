@@ -1962,16 +1962,10 @@ exal_static_LDVB <- function(
         "LDVB progress",
         model = "Static exAL",
         iter = iter,
-        d_beta = d_beta,
-        d_sigma = d_sigma,
-        d_gamma = d_gamma,
         sigma = exp(ell_hat),
         gamma = g_from_eta(eta_hat),
         elbo = elbo_new,
-        d_elbo = d_elbo,
-        stable = sprintf("%d/%d", stable_count, conv_ctrl$patience),
-        ld_cond = ld$cov_condition,
-        ld_note = if (isTRUE(ld_stabilized)) ld_stabilize_reason else if (isTRUE(ld_bad_mode_iter)) "mode-check" else NULL,
+        note = if (isTRUE(ld_stabilized)) ld_stabilize_reason else if (isTRUE(ld_bad_mode_iter)) "mode-check" else NULL,
         .verbose = verbose
       )
     }

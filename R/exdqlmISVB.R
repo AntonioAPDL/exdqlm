@@ -636,15 +636,9 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
         "ISVB progress",
         model = if (isTRUE(dqlm.ind)) "DQLM" else "exDQLM",
         iter = iter,
-        d_state = d.state,
-        d_sigma = d.sigma,
-        d_gamma = d.gamma,
         sigma = new.gamsig.out$E.sigma,
-        gamma = new.gamsig.out$E.gam,
+        gamma = if (!isTRUE(dqlm.ind)) new.gamsig.out$E.gam else NULL,
         elbo = if (compute.elbo) utils::tail(elbo.seq, 1) else NULL,
-        d_elbo = if (compute.elbo) d.elbo else NULL,
-        gs_logZ = new.gamsig.out$elbo_logZ,
-        stable = sprintf("%d/%d", stable.count, conv.ctrl$patience),
         .verbose = verbose
       )
     }

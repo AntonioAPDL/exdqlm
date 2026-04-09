@@ -1030,12 +1030,8 @@ check_ts = function(dat){
         "LDVB progress",
         model = "DQLM",
         iter = iter,
-        d_state = d_state,
-        d_sigma = d_sigma,
         sigma = E_sigma,
         elbo = elbo,
-        d_elbo = d_elbo,
-        stable = sprintf("%d/%d", stable_count, controls$patience),
         .verbose = verbose
       )
     }
@@ -1334,12 +1330,8 @@ check_ts = function(dat){
         "LDVB progress",
         model = "AL special case",
         iter = iter,
-        d_beta = d_beta,
-        d_sigma = d_sigma,
         sigma = E_sigma,
         elbo = elbo,
-        d_elbo = d_elbo,
-        stable = sprintf("%d/%d", stable_count, controls$patience),
         .verbose = verbose
       )
     }
