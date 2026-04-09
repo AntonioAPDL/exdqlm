@@ -70,6 +70,7 @@
     eta_hi = getOption("exdqlm.static.ldvb.eta_hi", 12),
     sigma_bounds = getOption("exdqlm.static.ldvb.sigma_bounds", NULL),
     sigma_init_mode = getOption("exdqlm.static.ldvb.sigma_init_mode", "data_scale"),
+    gamma_init_mode = getOption("exdqlm.static.ldvb.gamma_init_mode", "midpoint"),
     sigma_floor_abs = getOption("exdqlm.static.ldvb.sigma_floor_abs", 1e-6),
     sigma_min_mult = getOption("exdqlm.static.ldvb.sigma_min_mult", 1e-3),
     sigma_max_mult = getOption("exdqlm.static.ldvb.sigma_max_mult", 1e3),
@@ -173,6 +174,7 @@
     defaults$eta_hi <- 12
   }
   defaults$sigma_init_mode <- match.arg(as.character(defaults$sigma_init_mode)[1], c("data_scale", "fixed1"))
+  defaults$gamma_init_mode <- match.arg(as.character(defaults$gamma_init_mode)[1], c("midpoint", "zero"))
   defaults$sigma_floor_abs <- as.numeric(defaults$sigma_floor_abs)[1]
   if (!is.finite(defaults$sigma_floor_abs) || defaults$sigma_floor_abs <= 0) defaults$sigma_floor_abs <- 1e-6
   defaults$sigma_min_mult <- as.numeric(defaults$sigma_min_mult)[1]
@@ -284,7 +286,13 @@
   ell_lo <- log(sigma_min)
   ell_hi <- log(sigma_max)
 
-  gamma0 <- if (!is.null(init$gamma)) as.numeric(init$gamma)[1] else 0
+  gamma0 <- if (!is.null(init$gamma)) {
+    as.numeric(init$gamma)[1]
+  } else if (identical(ld_ctrl$gamma_init_mode, "midpoint")) {
+    (L + U) / 2
+  } else {
+    0
+  }
   pad <- ld_ctrl$gamma_init_pad_frac * (U - L)
   gamma0 <- min(max(gamma0, L + pad), U - pad)
 
@@ -846,7 +854,7 @@
 #'   \code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
 #'   \code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
 #'   \code{eta_lo}, \code{eta_hi}, \code{sigma_bounds},
-#'   \code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
+#'   \code{sigma_init_mode}, \code{gamma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
 #'   \code{sigma_max_mult}, \code{sigma_bound_ratio_min},
 #'   \code{gamma_init_pad_frac}, \code{logit_eps}, \code{init_cov_diag},
 #'   \code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig},
@@ -2198,6 +2206,10 @@ exal_static_LDVB <- function(
   beta_prior_summary <- beta_prior_obj$summary_vb(beta_state)
 
   ret <- list(
+    y = y,
+    X = X,
+    p0 = p0,
+    dqlm.ind = FALSE,
     qbeta = list(m = m_beta, V = V_beta),
     qv    = list(chi = chi, psi = psi, E_v = E_v, E_inv_v = E_inv_v),
     qs    = list(mu = qs_mu, tau2 = qs_tau2, E_s = E_s, E_s2 = E_s2),

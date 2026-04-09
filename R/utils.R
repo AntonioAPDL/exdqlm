@@ -1359,6 +1359,9 @@ check_ts = function(dat){
   t1 <- proc.time()[3]
 
   ret <- list(
+    y = y,
+    X = X,
+    p0 = p0,
     dqlm.ind = TRUE,
     qbeta = list(m = m_beta, V = V_beta),
     qv = list(

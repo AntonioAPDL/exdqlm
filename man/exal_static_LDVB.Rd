@@ -98,7 +98,7 @@ Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 \code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
 \code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
 \code{eta_lo}, \code{eta_hi}, \code{sigma_bounds},
-\code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
+\code{sigma_init_mode}, \code{gamma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
 \code{sigma_max_mult}, \code{sigma_bound_ratio_min},
 \code{gamma_init_pad_frac}, \code{logit_eps}, \code{init_cov_diag},
 \code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig},
