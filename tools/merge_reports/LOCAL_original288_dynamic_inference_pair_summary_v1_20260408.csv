@@ -1,0 +1,4 @@
+"block","model","total_pairs","mcmc_better","vb_better","tie","mcmc_faster","vb_faster","median_runtime_ratio_mcmc_over_vb"
+"overall","all",36,0,13,23,0,18,8.953858
+"dynamic","dqlm",18,0,1,17,0,6,11.164755
+"dynamic","exdqlm",18,0,12,6,0,12,8.953858

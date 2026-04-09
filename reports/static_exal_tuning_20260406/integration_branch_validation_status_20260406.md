@@ -362,7 +362,59 @@ What exists here right now is:
    - do not rerun the same adaptive non-joint long `RW` normal profile
 6. Build the full original-`288` comparison-analysis bundle from accepted `v7`
    before deciding whether more residual tuning is still worth it.
-7. If the tail is reopened again, use a smaller row-specific micro-tuning lane
+7. Review the completed original-`288` comparison bundle from accepted `v7`:
+   - use `reports/static_exal_tuning_20260408/original_288_v7_comparison_analysis_execution_20260408.md`
+   - use the audited outputs under `tools/merge_reports/LOCAL_original288_*_v1_20260408.csv`
+   - interpret the accepted `282 / 288` state as a whole before reopening any
+     more residual tuning
+8. If the tail is reopened again, use a smaller row-specific micro-tuning lane
    rather than another broad family band.
-8. Keep replay-confidence debt and static work out of the accepted-tail lane
+9. Keep replay-confidence debt and static work out of the accepted-tail lane
    unless new evidence makes them necessary again.
+
+## Original-288 Comparison Analysis Status
+
+The comparison-analysis bundle from accepted `v7` is now complete and audited.
+
+Completed comparison artifacts:
+
+- `tools/merge_reports/LOCAL_original288_comparison_long_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_broad_comparison_table_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_static_scenario_comparison_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_dynamic_scenario_comparison_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_static_model_pair_summary_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_static_inference_pair_summary_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_dynamic_model_pair_summary_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_dynamic_inference_pair_summary_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_warn_inventory_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_fail_inventory_v1_20260408.csv`
+- `tools/merge_reports/LOCAL_original288_comparison_audit_v1_20260408.csv`
+
+Comparison-analysis execution note:
+
+- `reports/static_exal_tuning_20260408/original_288_v7_comparison_analysis_execution_20260408.md`
+
+Audit outcome:
+
+- comparison-long rows: `288`
+- `WARN` rows: `52`
+- `FAIL` rows: `6`
+- total scenarios: `72`
+- pair tables:
+  - static model: `108`
+  - static inference: `108`
+  - dynamic model: `36`
+  - dynamic inference: `36`
+- accepted summary totals match `v7`
+- accepted method breakdown totals match `v7`
+- fail inventory matches the unresolved dynamic `v7` tail exactly
+
+High-level read from the audited bundle:
+
+- the accepted `v7` comparison baseline is fully usable as a study-level
+  comparison bundle
+- the unresolved tail remains exactly the known `6` dynamic
+  `exdqlm :: mcmc` rows
+- static comparison remains complete and interpretable
+- dynamic comparison remains interpretable, but it must be read with the
+  explicit unresolved tail in view

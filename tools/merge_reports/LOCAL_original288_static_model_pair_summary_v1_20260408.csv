@@ -1,0 +1,6 @@
+"block","inference","total_pairs","exal_better","al_better","tie","exal_faster","al_faster","median_runtime_ratio_exal_over_al"
+"overall","all",108,0,42,66,0,21,8.291317
+"static_paper","mcmc",18,0,9,9,0,5,8.500796
+"static_paper","vb",18,0,6,12,0,0,
+"static_shrink","mcmc",36,0,15,21,0,12,6.517955
+"static_shrink","vb",36,0,12,24,0,4,11.953665

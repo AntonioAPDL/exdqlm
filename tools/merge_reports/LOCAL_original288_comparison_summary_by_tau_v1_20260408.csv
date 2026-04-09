@@ -1,0 +1,4 @@
+"tau_label","total","pass","warn","fail","healthy_true","healthy_false","pct_pass","pct_warn","pct_fail","runtime_sec_total","runtime_sec_mean","runtime_sec_median"
+"0p05",96,81,10,5,91,5,84.4,10.4,5.2,35963.769,620.065,40.46
+"0p25",96,62,33,1,95,1,64.6,34.4,1,61416.954,1116.672,55.318
+"0p95",96,87,9,0,96,0,90.6,9.4,0,73021.468,1123.407,53.368

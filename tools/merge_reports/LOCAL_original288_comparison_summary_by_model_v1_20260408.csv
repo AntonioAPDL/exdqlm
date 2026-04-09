@@ -1,0 +1,5 @@
+"model","total","pass","warn","fail","healthy_true","healthy_false","pct_pass","pct_warn","pct_fail","runtime_sec_total","runtime_sec_mean","runtime_sec_median"
+"al",108,108,0,0,108,0,100,0,0,241.662,9.295,8.991
+"dqlm",36,35,1,0,36,0,97.2,2.8,0,69490.915,2895.455,869.852
+"exal",108,66,42,0,108,0,61.1,38.9,0,4701.613,47.491,16.641
+"exdqlm",36,21,9,6,30,6,58.3,25,16.7,95968.001,3309.241,741.185
