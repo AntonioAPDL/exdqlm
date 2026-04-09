@@ -403,6 +403,129 @@
   out
 }
 
+.exdqlm_delta_stabilize_expectations <- function(base,
+                                                 corr,
+                                                 positive_keys = character(),
+                                                 lower = NULL,
+                                                 upper = NULL,
+                                                 floor = 1e-12) {
+  base_num <- .exal_static_ld_named_numeric(base)
+  corr_num <- .exal_static_ld_named_numeric(corr)
+  nm <- union(names(base_num), names(corr_num))
+  base_full <- stats::setNames(rep(NA_real_, length(nm)), nm)
+  corr_full <- stats::setNames(rep(0, length(nm)), nm)
+  base_full[names(base_num)] <- base_num
+  corr_full[names(corr_num)] <- corr_num
+
+  lower_full <- stats::setNames(rep(-Inf, length(nm)), nm)
+  if (!is.null(lower)) {
+    lower_num <- .exal_static_ld_named_numeric(lower)
+    lower_full[names(lower_num)] <- lower_num
+  }
+  upper_full <- stats::setNames(rep(Inf, length(nm)), nm)
+  if (!is.null(upper)) {
+    upper_num <- .exal_static_ld_named_numeric(upper)
+    upper_full[names(upper_num)] <- upper_num
+  }
+
+  candidate <- base_full + corr_full
+  triggered <- character(0)
+
+  is_bad <- function(key, value) {
+    lo <- lower_full[[key]]
+    hi <- upper_full[[key]]
+    if (!is.finite(value)) return(TRUE)
+    if (key %in% positive_keys && value <= floor) return(TRUE)
+    value < lo || value > hi
+  }
+
+  for (key in nm) {
+    if (is_bad(key, candidate[[key]])) {
+      triggered <- c(triggered, key)
+    }
+  }
+
+  alpha <- 1
+  used_fallback <- character(0)
+  if (length(triggered)) {
+    alpha <- 0
+    alpha_ok <- FALSE
+    for (key in triggered) {
+      base_k <- base_full[[key]]
+      cand_k <- candidate[[key]]
+      corr_k <- corr_full[[key]]
+      lo <- lower_full[[key]]
+      hi <- upper_full[[key]]
+
+      alpha_k <- NA_real_
+      if (is.finite(base_k) && is.finite(corr_k) && corr_k != 0) {
+        if (key %in% positive_keys && is.finite(cand_k) && cand_k <= floor && base_k > floor) {
+          alpha_k <- (base_k - floor) / (base_k - cand_k)
+        } else if (is.finite(cand_k) && cand_k < lo && base_k > lo) {
+          alpha_k <- (base_k - lo) / (base_k - cand_k)
+        } else if (is.finite(cand_k) && cand_k > hi && base_k < hi) {
+          alpha_k <- (hi - base_k) / (cand_k - base_k)
+        } else if (!is.finite(cand_k)) {
+          alpha_k <- 0
+        }
+      }
+
+      if (is.finite(alpha_k)) {
+        alpha <- if (alpha_ok) min(alpha, alpha_k) else alpha_k
+        alpha_ok <- TRUE
+      }
+    }
+    if (!alpha_ok) {
+      alpha <- 0
+    }
+    alpha <- min(max(alpha, 0), 1)
+    candidate <- base_full + alpha * corr_full
+  }
+
+  for (key in nm) {
+    lo <- lower_full[[key]]
+    hi <- upper_full[[key]]
+    value <- candidate[[key]]
+    if (!is.finite(value) || value < lo || value > hi || (key %in% positive_keys && value <= floor)) {
+      base_k <- base_full[[key]]
+      if (is.finite(base_k)) {
+        value <- base_k
+      }
+      if (!is.finite(value)) {
+        if (key %in% positive_keys) {
+          value <- max(floor, if (is.finite(lo)) lo else floor)
+        } else if (is.finite(lo) && is.finite(hi)) {
+          value <- 0.5 * (lo + hi)
+        } else if (is.finite(lo)) {
+          value <- lo
+        } else if (is.finite(hi)) {
+          value <- hi
+        } else {
+          value <- 0
+        }
+      }
+      if (key %in% positive_keys) {
+        value <- max(value, floor)
+      }
+      value <- min(max(value, lo), hi)
+      candidate[[key]] <- value
+      used_fallback <- c(used_fallback, key)
+    }
+  }
+
+  list(
+    value = as.list(candidate),
+    stabilization = list(
+      stabilized = length(triggered) > 0 || length(used_fallback) > 0,
+      alpha = alpha,
+      triggered_keys = unique(triggered),
+      fallback_keys = unique(used_fallback),
+      positive_keys = intersect(nm, positive_keys),
+      floor = floor
+    )
+  )
+}
+
 .exal_static_ld_trust_step <- function(log_q_fn,
                                        par0,
                                        precision_prev,
@@ -475,6 +598,17 @@
   x <- as.numeric(x)
   x <- x[is.finite(x)]
   n <- length(x)
+  safe_cor <- function(a, b) {
+    a <- as.numeric(a)
+    b <- as.numeric(b)
+    keep <- is.finite(a) & is.finite(b)
+    a <- a[keep]
+    b <- b[keep]
+    if (length(a) < 2L || stats::sd(a) == 0 || stats::sd(b) == 0) {
+      return(NA_real_)
+    }
+    suppressWarnings(stats::cor(a, b))
+  }
   if (n < 4L || length(unique(x)) < 2L) {
     return(list(
       lag1 = NA_real_,
@@ -484,8 +618,8 @@
     ))
   }
   list(
-    lag1 = stats::cor(x[-1L], x[-n]),
-    lag2 = stats::cor(x[-(1:2)], x[-((n - 1L):n)]),
+    lag1 = safe_cor(x[-1L], x[-n]),
+    lag2 = safe_cor(x[-(1:2)], x[-((n - 1L):n)]),
     mean_abs_diff = mean(abs(diff(x))),
     range = diff(range(x))
   )
@@ -1010,7 +1144,13 @@ exal_static_LDVB <- function(
     H12 <- (f11 - f1_1 - f_11 + f_1_1) / (4 * h1 * h2)
 
     corr <- 0.5 * (H11 * Sigma[1, 1] + 2 * H12 * Sigma[1, 2] + H22 * Sigma[2, 2])
-    out <- f00 + corr
+    out_delta <- .exdqlm_delta_stabilize_expectations(
+      base = f00,
+      corr = corr,
+      positive_keys = c("xi1", "xi_lambda2", "xi_A2"),
+      floor = 1e-12
+    )
+    out <- unlist(out_delta$value, use.names = TRUE)
     out <- c(
       out,
       xi_siginv = exp(-ell_hat + 0.5 * Sigma[2, 2]),
@@ -1020,17 +1160,22 @@ exal_static_LDVB <- function(
     out_named <- as.list(out)
     out_named$zeta_logJ <- log(pmax(U - L, 1e-12)) + as.numeric(out_named$zeta_loghprime) + ell_hat
     out_named$zeta_loghprime <- NULL
-    out_named
+    list(
+      value = out_named,
+      stabilization = out_delta$stabilization
+    )
   }
 
   compute_xi <- function(eta_hat, ell_hat, Sigma) {
-    xi_val <- compute_xi_delta(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma)
+    xi_out <- compute_xi_delta(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma)
+    xi_val <- xi_out$value
     list(
       value = xi_val,
       mcse = as.list(stats::setNames(rep(NA_real_, length(xi_val)), names(xi_val))),
       replicate_count = 0L,
       mcse_mean = NA_real_,
-      mcse_max = NA_real_
+      mcse_max = NA_real_,
+      stabilization = xi_out$stabilization
     )
   }
 
@@ -1621,7 +1766,15 @@ exal_static_LDVB <- function(
         value = xis,
         mcse_mean = NA_real_,
         mcse_max = NA_real_,
-        replicate_count = 1L
+        replicate_count = 1L,
+        stabilization = list(
+          stabilized = FALSE,
+          alpha = 1,
+          triggered_keys = character(0),
+          fallback_keys = character(0),
+          positive_keys = c("xi1", "xi_lambda2", "xi_A2"),
+          floor = 1e-12
+        )
       )
       xis_raw <- xis
       xis_new <- xis
@@ -1827,6 +1980,10 @@ exal_static_LDVB <- function(
         xi_mcse_mean = as.numeric(xis_eval_raw$mcse_mean)[1],
         xi_mcse_max = as.numeric(xis_eval_raw$mcse_max)[1],
         xi_replicates = 0L,
+        xi_stabilized = isTRUE(xis_eval_raw$stabilization$stabilized),
+        xi_stabilize_alpha = as.numeric(xis_eval_raw$stabilization$alpha)[1],
+        xi_stabilize_triggered = paste(xis_eval_raw$stabilization$triggered_keys, collapse = ","),
+        xi_stabilize_fallback = paste(xis_eval_raw$stabilization$fallback_keys, collapse = ","),
         ld_objective_candidate = ld$objective,
         ld_objective_committed = ld_committed_objective,
         ld_objective_gap = ld_committed_objective - ld$objective,
@@ -2114,7 +2271,10 @@ exal_static_LDVB <- function(
           mode = "delta",
           replicates = 0L,
           reuse_draws = FALSE,
-          reuse_seed = NA_integer_
+          reuse_seed = NA_integer_,
+          stabilized_iter_count = if (nrow(ld_trace_df)) sum(ld_trace_df$xi_stabilized, na.rm = TRUE) else 0L,
+          stabilized_rate = if (nrow(ld_trace_df)) mean(ld_trace_df$xi_stabilized, na.rm = TRUE) else 0,
+          last_stabilization = if (exists("xis_eval_raw", inherits = FALSE)) xis_eval_raw$stabilization else list()
         ),
         mode_quality = mode_quality,
         signoff_summary = ld_signoff_summary,

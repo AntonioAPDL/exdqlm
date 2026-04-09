@@ -517,7 +517,20 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     H22 <- (f01 - 2 * f00 + f0_1) / (h2^2)
     H12 <- (f11 - f1_1 - f_11 + f_1_1) / (4 * h1 * h2)
     corr <- 0.5 * (H11 * Sigma[1, 1] + 2 * H12 * Sigma[1, 2] + H22 * Sigma[2, 2])
-    as.list(f00 + corr)
+    .exdqlm_delta_stabilize_expectations(
+      base = f00,
+      corr = corr,
+      positive_keys = c(
+        "E_sigma",
+        "E_inv_sigma",
+        "E_c2_invb_absgam2_sigma",
+        "E_a2_invb_inv_sigma",
+        "E_invb_inv_sigma"
+      ),
+      lower = c(E_gam = L),
+      upper = c(E_gam = U),
+      floor = 1e-12
+    )$value
   }
 
   find_mode_ld <- function(par_start, state) {

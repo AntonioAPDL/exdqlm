@@ -661,11 +661,24 @@ check_ts = function(dat){
   tau2 <- pmax(as.numeric(tau2), 1e-14)
   tau <- sqrt(tau2)
   alpha <- mu / tau
-  Phi <- pmax(stats::pnorm(alpha), 1e-12)
-  phi <- stats::dnorm(alpha)
-  Lambda <- phi / Phi
+  log_Phi <- stats::pnorm(alpha, log.p = TRUE)
+  log_phi <- stats::dnorm(alpha, log = TRUE)
+  Lambda <- exp(log_phi - log_Phi)
+  Phi <- exp(log_Phi)
   E_pos <- mu + tau * Lambda
   E2_pos <- tau2 + mu^2 + tau * mu * Lambda
+
+  extreme_left <- is.finite(alpha) & alpha < -8
+  if (any(extreme_left)) {
+    x <- -alpha[extreme_left]
+    mean_shift_std <- 1 / x - 2 / (x^3) + 10 / (x^5)
+    Lambda[extreme_left] <- x + mean_shift_std
+    E_pos[extreme_left] <- tau[extreme_left] * mean_shift_std
+    E2_std <- 1 - x * mean_shift_std
+    E2_pos[extreme_left] <- tau2[extreme_left] * pmax(E2_std, mean_shift_std^2)
+  }
+
+  E2_pos <- pmax(E2_pos, E_pos^2)
   list(
     mean = E_pos,
     second = E2_pos,

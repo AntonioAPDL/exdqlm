@@ -110,7 +110,7 @@ test_that("dynamic MCMC supports VB warm start and MH diagnostics", {
   expect_true(is.data.frame(fit$diagnostics$s_block$trace))
 })
 
-test_that("dynamic MCMC default proposal is joint laplace_rw", {
+test_that("dynamic MCMC default proposal is slice", {
   set.seed(1035)
   TT <- 18
   y <- stats::rnorm(TT, sd = 0.25)
@@ -133,8 +133,8 @@ test_that("dynamic MCMC default proposal is joint laplace_rw", {
     verbose = FALSE
   )
 
-  expect_identical(fit$mh.diagnostics$proposal, "laplace_rw")
-  expect_true(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
+  expect_identical(fit$mh.diagnostics$proposal, "slice")
+  expect_false(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
   expect_true(is.list(fit$mh.diagnostics$laplace_refresh))
 })
 
@@ -162,7 +162,7 @@ test_that("dynamic MCMC defaults to an LDVB warm start", {
 
   expect_true(isTRUE(fit$init.from.vb))
   expect_identical(fit$vb.init.method, "ldvb")
-  expect_identical(fit$mh.diagnostics$verbose_every, 50L)
+  expect_identical(fit$mh.diagnostics$verbose_every, 500L)
 })
 
 test_that("dynamic MCMC supports exact slice gamma kernel", {
