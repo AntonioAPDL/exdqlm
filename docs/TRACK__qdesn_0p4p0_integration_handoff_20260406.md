@@ -228,6 +228,27 @@ Validated deep-DESN final residual wave:
     - `E1_rhs_long_gausmix_mixed / E410_rhs_long_gausmix_guard320_balanced3200`
   - detached session live
 
+Relaunch after storage unblock:
+
+- relaunch reason:
+  - the first detached launch encountered `/home` storage exhaustion and should now be treated as
+    historical launch evidence only
+- relaunch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_relaunch_20260410.md`
+- current live run:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3`
+- current detached session:
+  - `qdesn_dynxff_0409_204957`
+- current live state:
+  - `1 / 3` stages complete
+  - `5 / 14` profiles complete
+  - current stage/profile:
+    - `E2_rhs_long_laplace_normal_mcmc / E510_rhs_long_general_balanced3200`
+  - completed stage:
+    - `E1_rhs_long_gausmix_mixed`
+  - selected stage-local winner:
+    - `E410_rhs_long_gausmix_guard320_balanced3200`
+
 ## 3) Source Of Truth Hierarchy
 
 For continuation work on this integration branch, use the following evidence order:

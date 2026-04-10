@@ -349,6 +349,29 @@ Live overnight run:
     - `E1_rhs_long_gausmix_mixed / E410_rhs_long_gausmix_guard320_balanced3200`
   - detached session live
 
+Relaunch after storage unblock:
+
+- relaunch reason:
+  - first detached launch hit `/home` storage exhaustion (`No space left on device`)
+- relaunch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_relaunch_20260410.md`
+- current live run:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3`
+- current detached session:
+  - `qdesn_dynxff_0409_204957`
+- current live health snapshot:
+  - `1 / 3` stages complete
+  - `5 / 14` profiles complete
+  - current stage/profile:
+    - `E2_rhs_long_laplace_normal_mcmc / E510_rhs_long_general_balanced3200`
+  - `E1_rhs_long_gausmix_mixed` completed and recommends:
+    - `PROMOTE_E410_rhs_long_gausmix_guard320_balanced3200_AS_E1_rhs_long_gausmix_mixed_LOCAL_BASELINE`
+
+Current monitoring convention:
+
+- treat `...183058__git-26bdaad` as the historical first launch;
+- treat `...204957__git-c116dc3` as the active live residual-wave source of truth.
+
 Interpretation:
 
 - do **not** reopen solved `D1`, `D2`, or `D3` neighborhoods;

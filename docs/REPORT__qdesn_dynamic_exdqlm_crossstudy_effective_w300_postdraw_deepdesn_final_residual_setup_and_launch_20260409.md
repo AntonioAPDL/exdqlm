@@ -13,6 +13,13 @@ This wave starts from the promoted **working deep-DESN challenger source** defin
 
 - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave1_closeout_and_wave2_inventory_20260409.md`
 
+Historical note:
+
+- this report records the original detached launch
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-183058__git-26bdaad`
+- after `/home` storage exhaustion interrupted that launch, the current live relaunch moved to:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_relaunch_20260410.md`
+
 Working source entering this wave:
 
 - `59 PASS`
