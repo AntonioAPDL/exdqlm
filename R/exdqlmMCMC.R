@@ -790,9 +790,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     tictoc::tic()
     .exdqlm_progress(
       "MCMC start",
-      model = "exDQLM",
-      T = TT,
-      p = p,
       burn = n.burn,
       keep = n.mcmc,
       kernel = mh.proposal,
@@ -1237,9 +1234,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     tictoc::tic()
     .exdqlm_progress(
       "MCMC start",
-      model = "DQLM",
-      T = TT,
-      p = p,
       burn = n.burn,
       keep = n.mcmc,
       kernel = "conjugate",

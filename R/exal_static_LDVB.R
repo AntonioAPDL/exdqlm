@@ -1382,9 +1382,6 @@ exal_static_LDVB <- function(
   t0 <- proc.time()[3]
   .exdqlm_progress(
     "LDVB start",
-    model = "Static exAL",
-    n = n,
-    p = p,
     max_iter = max_iter,
     tol = tol,
     .verbose = verbose

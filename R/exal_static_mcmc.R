@@ -564,9 +564,6 @@ exal_static_mcmc <- function(
     I <- n.burn + n.mcmc * thin
     .exdqlm_progress(
       "MCMC start",
-      model = "AL special case",
-      n = n,
-      p = p,
       burn = n.burn,
       keep = n.mcmc,
       thin = thin,
@@ -1071,9 +1068,6 @@ exal_static_mcmc <- function(
   ## --- main loop (burn + mcmc, prints like exdqlmMCMC) ---------------------
   .exdqlm_progress(
     "MCMC start",
-    model = "Static exAL",
-    n = n,
-    p = p,
     burn = n.burn,
     keep = n.mcmc,
     thin = thin,

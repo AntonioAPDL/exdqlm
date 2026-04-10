@@ -465,9 +465,6 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
   .exdqlm_progress(
     "ISVB start",
-    model = if (isTRUE(dqlm.ind)) "DQLM" else "exDQLM",
-    T = TT,
-    p = p,
     tol = tol,
     backend = if (isTRUE(getOption("exdqlm.use_cpp_kf", FALSE))) "C++" else "R",
     elbo = if (isTRUE(getOption("exdqlm.compute_elbo", TRUE))) "on" else "off",

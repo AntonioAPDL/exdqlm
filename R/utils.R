@@ -949,9 +949,6 @@ check_ts = function(dat){
 
   .exdqlm_progress(
     "LDVB start",
-    model = "DQLM",
-    T = TT,
-    p = p,
     tol = tol,
     .verbose = verbose
   )
@@ -1235,9 +1232,6 @@ check_ts = function(dat){
 
   .exdqlm_progress(
     "LDVB start",
-    model = "AL special case",
-    n = n,
-    p = p,
     max_iter = as.integer(max_iter),
     tol = tol,
     .verbose = verbose
