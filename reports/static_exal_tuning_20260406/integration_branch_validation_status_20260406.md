@@ -582,3 +582,51 @@ Validation summary before full launch:
   - row `1` `vb :: al`
   - row `37` `mcmc :: al`
   - row `38` `mcmc :: exal`
+
+Recent closeout summary:
+
+- the rebuild has now completed
+- overall outcome:
+  - `47` `PASS`
+  - `13` `WARN`
+  - `12` `FAIL`
+  - `60 / 72` healthy
+- status outcome:
+  - `63` `done`
+  - `6` `failed_runtime`
+  - `3` `skipped_existing`
+- block outcome:
+  - `vb :: al`: `18 / 18` healthy
+  - `vb :: exal`: `18 / 18` healthy
+  - `mcmc :: al`: `18 / 18` healthy
+  - `mcmc :: exal`: `6 / 18` healthy, `12 / 18` fail
+
+Failure concentration:
+
+- all `12` failures are in `static_shrink / rhs_ns / exal / mcmc`
+- family split:
+  - `6` `gausmix`
+  - `3` `laplace`
+  - `3` `normal`
+- tau split:
+  - `4` at `0p05`
+  - `6` at `0p25`
+  - `2` at `0p95`
+
+Operational interpretation:
+
+- this wave successfully created the explicit `rhs_ns` replacement branch
+- it does **not** directly replace accepted `v7`
+- the old accepted `static_shrink / rhs` branch therefore remains frozen as
+  legacy mixed-prior historical output
+- the rebuilt `rhs_ns` branch should instead be treated as the corrected
+  downstream input for metric comparison, cluster diagnosis, and propagation
+  planning
+
+Primary result artifacts:
+
+- `reports/static_exal_tuning_20260409/original_288_static_shrink_rhsns_rebuild_program_20260409.md`
+- `reports/static_exal_tuning_20260409/original_288_static_shrink_rhsns_rebuild_execution_20260409.md`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_phase_summary_20260409.csv`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_block_summary_20260409.csv`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_manifest_status_20260409.csv`

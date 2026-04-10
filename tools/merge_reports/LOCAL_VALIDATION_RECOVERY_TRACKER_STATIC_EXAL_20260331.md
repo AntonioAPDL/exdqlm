@@ -42,6 +42,67 @@ Important caveat:
 - synced-base rerun status should therefore be treated as pending rather than
   conflated with accepted carry-forward status
 
+## 0. Static Shrink RHS_NS Rebuild Closeout (2026-04-09)
+
+The recent `static_shrink_rhsns_rebuild_20260409` correction wave is now
+complete and should be treated as the durable closeout for the shrinkage
+mixed-prior audit.
+
+Purpose:
+
+- rebuild the full legacy `static_shrink / rhs` branch as explicit `rhs_ns`
+- create a scientifically clean replacement branch for downstream comparison
+  work
+
+Overall outcome:
+
+- total rows: `72`
+- overall gates:
+  - `47` `PASS`
+  - `13` `WARN`
+  - `12` `FAIL`
+- healthy total:
+  - `60 / 72`
+- status split:
+  - `63` `done`
+  - `6` `failed_runtime`
+  - `3` `skipped_existing`
+
+Model / inference split:
+
+- `vb :: al`: `18 / 18` healthy
+- `vb :: exal`: `18 / 18` healthy
+- `mcmc :: al`: `18 / 18` healthy
+- `mcmc :: exal`: `6 / 18` healthy, `12 / 18` fail
+
+Important concentration:
+
+- all `12` failing rows are `static_shrink / rhs_ns / exal / mcmc`
+- failure split:
+  - `6` `gausmix`
+  - `3` `laplace`
+  - `3` `normal`
+- tau split:
+  - `4` at `0p05`
+  - `6` at `0p25`
+  - `2` at `0p95`
+
+Operational interpretation:
+
+- the rebuild successfully established an explicit `rhs_ns` branch
+- it did **not** justify a direct accepted-baseline promotion over the frozen
+  mixed-prior carry-forward `static_shrink / rhs` branch
+- the corrected `rhs_ns` rebuild should instead be used as downstream input for
+  later metric comparison, cluster diagnosis, and propagation planning
+
+Primary references:
+
+- `reports/static_exal_tuning_20260409/original_288_static_shrink_rhsns_rebuild_program_20260409.md`
+- `reports/static_exal_tuning_20260409/original_288_static_shrink_rhsns_rebuild_execution_20260409.md`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_phase_summary_20260409.csv`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_block_summary_20260409.csv`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_manifest_status_20260409.csv`
+
 ## 0. Dynamic Closure Closeout and Static Deferral Refresh (2026-04-07)
 
 The synced-base dynamic closure wave has now completed with no promotable gains
