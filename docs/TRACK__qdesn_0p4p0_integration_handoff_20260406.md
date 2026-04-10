@@ -249,6 +249,42 @@ Relaunch after storage unblock:
   - selected stage-local winner:
     - `E410_rhs_long_gausmix_guard320_balanced3200`
 
+Wave 2 closeout and validated Wave 3 continuation:
+
+- closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave2_closeout_and_wave3_inventory_20260410.md`
+- completed relaunch:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3`
+- completed stage-local promotions:
+  - `E410_rhs_long_gausmix_guard320_balanced3200`
+  - `E520_rhs_long_general_diag3400`
+  - `E620_ridge_mid_diag3000`
+- exact-root promotion carried forward:
+  - `laplace tau=0.05 fit_size=5000 rhs_ns -> E530_rhs_long_general_guard320_burn3600`
+- promoted deep-DESN working source:
+  - `71 PASS / 59 WARN / 14 FAIL`
+  - `36 / 36` root execution `SUCCESS`
+  - `0 / 36` root execution `FAIL`
+  - `36 / 36` comparison-eligible-any
+  - `27 / 36` comparison-eligible-full
+- residual concentration:
+  - all remaining FAIL rows are long-horizon `rhs_ns` `mcmc` at `fit_size=5000`
+  - `gausmix = 6`, `laplace = 3`, `normal = 5`
+- validated next wave:
+  - plan:
+    - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_20260410.md`
+  - manifest:
+    - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_manifest.yaml`
+  - prepare-only run:
+    - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-162527__git-e6d4f78`
+  - verified stage sizes:
+    - `F1: 3 roots / 6 target FAIL rows / 4 profiles`
+    - `F2: 3 roots / 3 target FAIL rows / 4 profiles`
+    - `F3: 2 roots / 4 target FAIL rows / 4 profiles`
+    - `F4: 1 root / 1 target FAIL row / 3 profiles`
+  - planned scope:
+    - `15` profiles / `35` root-campaigns / `140` fit executions
+
 ## 3) Source Of Truth Hierarchy
 
 For continuation work on this integration branch, use the following evidence order:

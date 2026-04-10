@@ -12,6 +12,12 @@ launch hit a storage outage on `/home`.
 This note preserves the first launch as historical evidence while making the newer relaunch the
 current live source of truth for overnight monitoring.
 
+Historical note:
+
+- this relaunch is now completed;
+- the completion closeout and next-step residual inventory now live in:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave2_closeout_and_wave3_inventory_20260410.md`
+
 ## 2) Why The Relaunch Was Needed
 
 The first detached launch was:

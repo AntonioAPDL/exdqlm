@@ -379,6 +379,58 @@ Interpretation:
 - spend the next overnight batch only on the residual `rhs_ns fit_size=5000` pocket plus the one
   uncovered ridge singleton.
 
+Wave 2 closeout and Wave 3 inventory:
+
+- closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave2_closeout_and_wave3_inventory_20260410.md`
+- completed final-residual relaunch:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3`
+- completed stage-local promotions:
+  - `E1 -> E410_rhs_long_gausmix_guard320_balanced3200`
+  - `E2 -> E520_rhs_long_general_diag3400`
+  - `E3 -> E620_ridge_mid_diag3000`
+- justified exact-root promotion:
+  - `laplace tau=0.05 fit_size=5000 rhs_ns -> E530_rhs_long_general_guard320_burn3600`
+- promoted deep-DESN working source after these updates:
+  - `71 PASS`
+  - `59 WARN`
+  - `14 FAIL`
+  - `36 / 36` root execution `SUCCESS`
+  - `0 / 36` root execution `FAIL`
+  - `36 / 36` comparison-eligible-any
+  - `27 / 36` comparison-eligible-full
+- residual fail concentration:
+  - all `14` remaining FAIL rows are `rhs_ns`, `fit_size=5000`, `mcmc`
+  - family split:
+    - `gausmix = 6`
+    - `laplace = 3`
+    - `normal = 5`
+  - no remaining ridge fail lane
+  - no remaining short-horizon fail lane
+  - no remaining root-status FAIL
+
+Validated next wave:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_20260410.md`
+- manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_manifest.yaml`
+- wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave.R`
+- prepare-only validation run:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-162527__git-e6d4f78`
+- verified stage sizes:
+  - `F1_rhs_long_gausmix_mcmc: 3 roots / 6 target FAIL rows / 4 profiles`
+  - `F2_rhs_long_laplace_exal: 3 roots / 3 target FAIL rows / 4 profiles`
+  - `F3_rhs_long_normal_lower_mcmc: 2 roots / 4 target FAIL rows / 4 profiles`
+  - `F4_rhs_long_normal_upper_exal: 1 root / 1 target FAIL row / 3 profiles`
+- planned scope:
+  - `15` profiles
+  - `35` root-campaigns
+  - `140` fit executions
+
 ## 2) Current Status
 
 Status of this long-form tracker: **historical relaunch record**.
