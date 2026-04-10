@@ -819,6 +819,14 @@ Clean summary of the current state:
   - a separate non-compute recovery step for the `6` blocked dynamic rows so
     they become runnable again
 
+Working default note:
+
+- for future `vb` follow-up work, keep `slice` as the default gamma-kernel
+  starting point because it has generally behaved better than `laplace_rw`
+  across recent static comparisons
+- keep row-local exceptions allowed when a specific scenario already has
+  stronger evidence for `laplace_rw`
+
 New gausmix-only last-mile lane:
 
 - target:

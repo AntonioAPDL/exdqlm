@@ -2711,3 +2711,5 @@ Next-step handoff:
 2. keep the accepted `v8` branch fixed
 3. use the corrected working `v2` rhs_ns baseline as the source of truth for
    the remaining static repair work
+4. for future `vb` follow-up work, use `slice` as the default kernel and only
+   deviate to `laplace_rw` when a row-specific result clearly supports it
