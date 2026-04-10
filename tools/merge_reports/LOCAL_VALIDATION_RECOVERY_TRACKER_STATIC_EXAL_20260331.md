@@ -2564,3 +2564,54 @@ Operational rule carry-forward for the next phase:
 4. require tracker/reporting updates before any new launch
 5. require prepare-only validation, clean commit, and push before any overnight
    dynamic repair run
+
+## 12.17 Static shrink rhs_ns exAL MCMC repair planning checkpoint (2026-04-10)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260409/original_288_static_shrink_rhsns_rebuild_execution_20260409.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_repair_program_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_repair_execution_20260410.md`
+
+Checkpoint summary:
+
+1. the corrected full `72`-row `rhs_ns` rebuild is complete and durable
+2. the accepted branch is **not** promoted yet because the corrected branch is
+   still incomplete
+3. the remaining debt is exactly `12` rows, all in:
+   - `static_shrink / rhs_ns / exal / mcmc`
+
+Failure-class split:
+
+| class | rows | read |
+|---|---:|---|
+| `tau = 0p25` invalid-state crash band | `6` | iter-2 non-finite `chi`; primary next lever is `init_from_vb = FALSE` |
+| completed but unhealthy chain-quality rows | `6` | ESS / autocorrelation / half-drift failures; primary next levers are longer rw anchors and selective `slice` probes |
+
+Key planning decision:
+
+1. keep accepted `v7` as the branch baseline for now
+2. do not swap in the corrected `rhs_ns` branch wholesale yet
+3. launch a dedicated `rhs_ns` exAL/MCMC repair wave first
+4. rerun the corrected broader metric comparison only after this `12`-row hole
+   is reduced or closed
+
+Overnight repair-wave design:
+
+- total candidate runs: `38`
+- phase 1:
+  - `20` crash-removal candidates
+  - focus: `tau = 0p25` invalid-state rows
+- phase 2:
+  - `18` chain-quality candidates
+  - focus: the `0p05 / 0p95` rows that complete but still fail health gates
+
+Design rules carried into implementation:
+
+1. do not replay the rebuild defaults that already failed
+2. keep tuning row-local
+3. allow `slice` where justified by the new paper-aligned static evidence
+4. separate crash-removal from mixing repair
+5. compare each candidate both to:
+   - the accepted legacy branch gate
+   - the failed corrected rebuild gate

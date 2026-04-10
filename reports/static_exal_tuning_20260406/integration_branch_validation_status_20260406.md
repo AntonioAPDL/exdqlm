@@ -630,3 +630,67 @@ Primary result artifacts:
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_phase_summary_20260409.csv`
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_block_summary_20260409.csv`
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_manifest_status_20260409.csv`
+
+## Static Shrink RHS_NS exAL MCMC Repair Plan
+
+As of `2026-04-10`, the branch moves next into a dedicated repair wave for the
+remaining corrected shrinkage failures.
+
+Promotion decision before the repair wave:
+
+- accepted `v7` remains unchanged
+- no completed result is promoted yet
+- reason:
+  - the explicit `rhs_ns` rebuild is scientifically cleaner than the legacy
+    mixed-prior `rhs` branch
+  - but the corrected branch is still incomplete because `12` exAL/MCMC rows
+    remain `FAIL`
+
+Remaining unresolved corrected rows:
+
+- total: `12`
+- scope: `static_shrink / rhs_ns / exal / mcmc`
+- split:
+  - runtime invalid-state crash band at `tau = 0p25`: `6`
+  - completed-but-unhealthy chain-quality failures: `6`
+
+Current best read:
+
+- what improved:
+  - `60 / 72` corrected `rhs_ns` rows are already healthy
+  - `vb :: al`, `vb :: exal`, and `mcmc :: al` are fully healthy
+- what still fails:
+  - only the `12` corrected `rhs_ns` `exal :: mcmc` rows
+- what worked best:
+  - explicit `rhs_ns` regeneration
+  - row-local historical anchors
+  - selective transfer of strong static exAL ideas, including `slice`
+- what did not help:
+  - replaying the rebuild defaults unchanged
+  - keeping the VB warm-start path in the `tau = 0p25` crash band
+- highest expected-value directions:
+  - `init_from_vb = FALSE` crash-removal probes
+  - selective `slice` probes
+  - longer row-local rw anchors only on the completed-but-still-failing rows
+
+Planned overnight repair wave:
+
+- program note:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_repair_program_20260410.md`
+- execution note:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_repair_execution_20260410.md`
+- launch stack:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_helpers_20260410.R`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_prepare_20260410.R`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_run_row_20260410.R`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_evaluate_20260410.R`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_launch_20260410.sh`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_monitor_20260410.sh`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_supervisor_20260410.sh`
+
+Planned tracked artifacts:
+
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_schedule_20260410.csv`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_manifest_20260410.csv`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_stage_counts_20260410.csv`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_manifest_status_20260410.csv`
