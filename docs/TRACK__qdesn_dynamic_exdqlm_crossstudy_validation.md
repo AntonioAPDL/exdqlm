@@ -419,8 +419,8 @@ Validated next wave:
   - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave.R`
   - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave.R`
   - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave.R`
-- prepare-only validation run:
-  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-162527__git-e6d4f78`
+- committed-state prepare-only validation run:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163103__git-ceab523`
 - verified stage sizes:
   - `F1_rhs_long_gausmix_mcmc: 3 roots / 6 target FAIL rows / 4 profiles`
   - `F2_rhs_long_laplace_exal: 3 roots / 3 target FAIL rows / 4 profiles`
@@ -430,6 +430,19 @@ Validated next wave:
   - `15` profiles
   - `35` root-campaigns
   - `140` fit executions
+- live launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_setup_and_launch_20260410.md`
+- live run:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523`
+- detached session:
+  - `qdesn_dynxff_0410_163032`
+- immediate live health:
+  - `0 / 4` stages complete
+  - `0 / 15` profiles complete
+  - current stage/profile:
+    - `F1_rhs_long_gausmix_mcmc / F410_rhs_long_gausmix_guard320_recenter3600`
+  - detached session live
+  - `0` root execution error files
 
 ## 2) Current Status
 

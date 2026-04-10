@@ -275,8 +275,8 @@ Wave 2 closeout and validated Wave 3 continuation:
     - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_20260410.md`
   - manifest:
     - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_manifest.yaml`
-  - prepare-only run:
-    - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-162527__git-e6d4f78`
+  - committed-state prepare-only run:
+    - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163103__git-ceab523`
   - verified stage sizes:
     - `F1: 3 roots / 6 target FAIL rows / 4 profiles`
     - `F2: 3 roots / 3 target FAIL rows / 4 profiles`
@@ -284,6 +284,17 @@ Wave 2 closeout and validated Wave 3 continuation:
     - `F4: 1 root / 1 target FAIL row / 3 profiles`
   - planned scope:
     - `15` profiles / `35` root-campaigns / `140` fit executions
+  - live launch report:
+    - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_setup_and_launch_20260410.md`
+  - live run:
+    - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523`
+  - detached session:
+    - `qdesn_dynxff_0410_163032`
+  - immediate launch state:
+    - `0 / 4` stages complete
+    - `0 / 15` profiles complete
+    - current stage/profile:
+      - `F1_rhs_long_gausmix_mcmc / F410_rhs_long_gausmix_guard320_recenter3600`
 
 ## 3) Source Of Truth Hierarchy
 
