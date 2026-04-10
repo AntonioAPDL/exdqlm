@@ -694,3 +694,80 @@ Planned tracked artifacts:
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_manifest_20260410.csv`
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_stage_counts_20260410.csv`
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_repair_manifest_status_20260410.csv`
+
+## Static RHS_NS working-state update and final closure decision (2026-04-10)
+
+The `rhs_ns` exAL/MCMC repair wave has now completed and the accepted branch has
+been updated where justified.
+
+Accepted promotion result:
+
+- accepted branch advanced from `v7` to `v8`
+- accepted healthy count remains `282 / 288`
+- one accepted row improved:
+  - `static_shrink::gausmix::0p25::100::rhs::exal::mcmc`
+  - gate change: `WARN -> PASS`
+
+Current accepted `v8` block state:
+
+- overall: `282 / 288` healthy
+- dynamic: `66 / 72` healthy, `6` unresolved
+- static_paper: `72 / 72` healthy
+- static_shrink: `144 / 144` healthy
+
+Current corrected `static_shrink / rhs_ns` working state:
+
+- `70 / 72` healthy
+- `2` unresolved
+- unresolved rows:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+  - `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+
+Clean summary of the current state:
+
+- what improved:
+  - the `rhs_ns` repair wave reduced the corrected shrinkage hole from `12` rows
+    to `2`
+  - one accepted row was promotable and is now part of accepted `v8`
+- what still fails:
+  - the `2` corrected `rhs_ns` static rows above
+  - the `6` accepted dynamic `exdqlm :: mcmc` rows
+- which ideas worked best:
+  - row-local no-VB-init rw crash-removal probes
+  - selective transfer of `slice` where the exact-kernel hedge had real
+    historical support
+  - keeping the tuning scenario-specific rather than global
+- which ideas did not help:
+  - rerunning the corrected rebuild defaults unchanged
+  - broad reuse of weak dynamic faithful/localmix corridors
+- highest expected-value directions now:
+  - a final static closure lane for the last `2` corrected `rhs_ns` rows
+  - a separate dynamic closure lane only after the missing dynamic source
+    artifacts are restored or the rerunner is rewritten to avoid them
+
+Static final-closure lane:
+
+- program:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_final_closure_program_20260410.md`
+- execution:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_final_closure_execution_20260410.md`
+- schedule:
+  - `18` candidates across the final `2` corrected rows
+- validation:
+  - prepare passed
+  - `--prepare-only=1` passed
+  - `--dry-run=1 --skip-prepare=1` passed
+
+Dynamic final-closure lane:
+
+- program:
+  - `reports/static_exal_tuning_20260410/original_288_syncedbase_dynamic_final_closure_program_20260410.md`
+- execution:
+  - `reports/static_exal_tuning_20260410/original_288_syncedbase_dynamic_final_closure_execution_20260410.md`
+- important result:
+  - design is complete, but launch is deferred
+  - blocker:
+    - the required dynamic source `.rds` / `sim_output.rds` artifacts are
+      missing
+- blocker audit:
+  - `tools/merge_reports/LOCAL_original288_syncedbase_dynamic_final_closure_blocker_audit_20260410.csv`

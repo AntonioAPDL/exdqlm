@@ -2615,3 +2615,51 @@ Design rules carried into implementation:
 5. compare each candidate both to:
    - the accepted legacy branch gate
    - the failed corrected rebuild gate
+
+## 12.18 Static shrink rhs_ns exAL MCMC repair closeout and final-closure handoff (2026-04-10)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_repair_execution_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_final_closure_program_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_final_closure_execution_20260410.md`
+
+Closeout summary:
+
+1. the dedicated `rhs_ns` exAL/MCMC repair wave is complete
+2. one accepted row was promotable and the accepted branch is now `v8`
+3. accepted health remains `282 / 288`, but the accepted `PASS/WARN` mix
+   improved
+4. the corrected `static_shrink / rhs_ns` working branch now sits at:
+   - `70 / 72` healthy
+   - `2 / 72` unresolved
+
+Accepted promotion:
+
+- row:
+  - `static_shrink::gausmix::0p25::100::rhs::exal::mcmc`
+- change:
+  - `WARN -> PASS`
+- source:
+  - repair row `0003`
+  - profile `crash_rw_none_f085_s1025_long`
+
+Remaining corrected unresolved rows:
+
+1. `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+2. `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+
+Main technical read:
+
+1. no-VB-init rw crash-removal probes were the most productive idea
+2. selective `slice` remains worth keeping as the default exact-kernel hedge,
+   but it should remain row-local rather than universal
+3. the remaining debt is now concentrated enough for a true final-closure lane
+
+Next-step handoff:
+
+1. launch only the `18`-candidate final-closure lane for the last `2`
+   corrected rows
+2. keep the accepted `v8` branch as the default baseline
+3. keep the dynamic final-closure lane separate and deferred until its missing
+   source-artifact blocker is resolved

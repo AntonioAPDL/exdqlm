@@ -1,0 +1,2 @@
+"phase","total","done","missing","pass","warn","fail","healthy","better_than_accepted","matches_accepted","worse_than_accepted","better_than_rebuild","matches_rebuild","worse_than_rebuild","pending_compare"
+"phase1_static_shrink_rhsns_exal_mcmc_final_closure",18,0,18,0,0,0,0,0,0,0,0,0,0,18

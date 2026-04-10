@@ -55,3 +55,77 @@ Smoke validation before full launch:
   - prelaunch summary: `0 / 38` done
   - immediate live-process read after launch: `5` tagged row-runner processes
     visible on the host
+
+## Final Outcome
+
+The repair wave has now completed.
+
+Final wave outcome:
+
+- total candidates: `38`
+- healthy candidates: `15`
+- unhealthy candidates: `23`
+- gate split:
+  - `5` `PASS`
+  - `10` `WARN`
+  - `23` `FAIL`
+
+Comparison against the failed corrected rebuild baseline:
+
+- `15 / 38` candidates improved on the failed rebuild
+- `23 / 38` matched the failed rebuild
+- `0 / 38` were worse than the failed rebuild
+
+Comparison against the accepted branch at launch time:
+
+- `1 / 38` candidate improved the accepted branch
+- `6 / 38` matched the accepted branch
+- `31 / 38` remained worse than the accepted branch
+
+Accepted-promotion result after closeout:
+
+- one accepted row was promoted from `WARN` to `PASS`
+- accepted baseline advanced from `v7` to `v8`
+- accepted health remained `282 / 288`, but the accepted `PASS/WARN` mix improved
+
+Promoted accepted row:
+
+- scenario:
+  - `static_shrink::gausmix::0p25::100::rhs::exal::mcmc`
+- repair row:
+  - `row_0003`
+- profile:
+  - `crash_rw_none_f085_s1025_long`
+- accepted gate change:
+  - `WARN -> PASS`
+
+Corrected rhs_ns working-branch result after promotion:
+
+- `70 / 72` corrected `rhs_ns` rows are now healthy
+- only `2` corrected rows remain unresolved:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+  - `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+
+Main technical read:
+
+- what improved:
+  - the crash-repair phase found a promotable local fix for the `gausmix / 0p25 / 100`
+    row
+  - the working corrected `rhs_ns` branch moved from `60 / 72` to `70 / 72`
+  - the unresolved static shrinkage pocket shrank from `12` rows to `2`
+- what still fails:
+  - the two remaining failures are both `tt = 1000`, `tau = 0p25`,
+    `rhs_ns / exal / mcmc`
+- what worked best:
+  - no-VB-init rw crash-removal probes near the documented historical anchors
+  - separating crash removal from mixing repair
+- what did not help:
+  - broad reuse of the rebuild defaults on the hard `tt1000` rows
+  - assuming the same corrected corridor would rescue both hard rows without
+    deeper, row-specific exploration
+
+Follow-on decision:
+
+- promote the accepted branch to `v8`
+- treat the corrected `rhs_ns` working branch as `70 / 72` healthy
+- move next into a final-closure lane that targets only the remaining `2` rows

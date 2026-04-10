@@ -1,0 +1,3 @@
+"base_row_id","family","tau_label","fit_size","total","done","missing","pass","warn","fail","healthy","better_than_accepted","matches_accepted","worse_than_accepted","better_than_rebuild","matches_rebuild","worse_than_rebuild","pending_compare"
+44,"gausmix","0p25",1000,9,0,9,0,0,0,0,0,0,0,0,0,0,9
+68,"normal","0p25",1000,9,0,9,0,0,0,0,0,0,0,0,0,0,9
