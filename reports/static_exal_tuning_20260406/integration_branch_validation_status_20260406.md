@@ -892,3 +892,108 @@ Dynamic final-closure lane:
       missing
 - blocker audit:
   - `tools/merge_reports/LOCAL_original288_syncedbase_dynamic_final_closure_blocker_audit_20260410.csv`
+
+## Static RHS_NS gausmix last-mile closeout and stationarity-bridge relaunch (2026-04-10)
+
+The gausmix-only last-mile wave is now complete and did **not** produce a
+promotion.
+
+Accepted branch state remains:
+
+- accepted baseline: `v8`
+- accepted healthy count: `282 / 288`
+- accepted unresolved tail: `6 / 288`
+
+Corrected `static_shrink / rhs_ns` working state remains:
+
+- `71 / 72` healthy
+- `1 / 72` unresolved
+- remaining corrected unresolved row:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+
+Gausmix last-mile closeout:
+
+- total candidates: `28`
+- healthy candidates: `0`
+- better than failed corrected baseline: `0`
+- better than accepted baseline: `0`
+- phase read:
+  - `rw_length`: `0 / 8` healthy
+  - `rw_refresh`: `0 / 8` healthy
+  - `rw_scale`: `0 / 6` healthy
+  - `slice`: `0 / 6` healthy
+
+Clean summary of the current state:
+
+- what improved:
+  - the row-level diagnosis is now much sharper even though the lane was
+    negative
+  - the hard gausmix row is no longer a broad tuning mystery; the surviving
+    problem is concentrated in gamma stationarity / ESS
+- what still fails:
+  - corrected static row:
+    - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+  - accepted dynamic tail:
+    - the same `6` `dynamic / exdqlm / mcmc` rows
+- which ideas worked best:
+  - `laplace_rw` remained clearly stronger than `slice` on the hard gausmix row
+  - the most informative anchors were:
+    - long `F085 / s100`
+    - long `F0845 / s100`
+    - refresh-heavy `F085 / s100`
+- which ideas did not help:
+  - every plain slice hedge failed
+  - repeating the old RW map with only more keep or only wider exact-kernel
+    settings did not close the row
+- which directions now have the highest expected value:
+  - a stationarity-bridge lane for the single remaining static row
+  - later, a separate dynamic source-regeneration step because the blocked
+    dynamic directories still exist but the required fit `.rds`, `run_config`,
+    and `sim_output.rds` artifacts do not
+
+Stationarity-bridge lane:
+
+- target:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+- purpose:
+  - bridge the gap between the accepted legacy `rhs` `WARN` row and the
+    corrected `rhs_ns` failures by prioritizing late-chain stationarity over
+    generic breadth
+- search-space rules:
+  - keep row-local `laplace_rw` as the main line because it remains the best
+    observed kernel on this row
+  - use heavier burn with shorter retained windows instead of replaying longer
+    keep-only corridors
+  - add conservative VB warm-start bridges rather than broad VB experimentation
+  - include only a small exact-kernel hedge:
+    - `slice_eta`
+    - `slice`
+    - `laplace_local`
+
+Validated stationarity-bridge artifacts:
+
+- program:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_program_20260410.md`
+- execution:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_execution_20260410.md`
+- schedule:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_schedule_20260410.csv`
+- manifest:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_manifest_20260410.csv`
+- stage counts:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_stage_counts_20260410.csv`
+
+Validation summary:
+
+- prepare: `24` rows
+- missing inputs: `0`
+- `bash -n`: passed
+- `--prepare-only=1`: passed
+- `--dry-run=1 --skip-prepare=1`: passed
+
+Execution plan:
+
+- launch only the static stationarity-bridge lane tonight
+- keep the accepted `v8` branch fixed
+- keep the corrected `rhs_ns` working branch fixed until a candidate actually
+  reaches `WARN` or `PASS`

@@ -2713,3 +2713,56 @@ Next-step handoff:
    the remaining static repair work
 4. for future `vb` follow-up work, use `slice` as the default kernel and only
    deviate to `laplace_rw` when a row-specific result clearly supports it
+
+## 12.20 Static shrink rhs_ns exAL MCMC gausmix last-mile closeout and stationarity bridge (2026-04-10)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_execution_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_program_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_execution_20260410.md`
+
+Closeout summary:
+
+1. the gausmix-only last-mile wave is complete
+2. no accepted-branch promotion was justified
+3. no corrected-working promotion was justified
+4. the corrected `static_shrink / rhs_ns` working branch therefore remains:
+   - `71 / 72` healthy
+   - `1 / 72` unresolved
+
+Gausmix last-mile read:
+
+1. `28` candidates completed
+2. `0` candidates were healthy
+3. all `28` candidates matched the failed corrected baseline
+4. all `28` candidates remained worse than the accepted legacy `rhs` `WARN`
+   baseline
+
+Remaining corrected unresolved row:
+
+1. `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+
+Main technical read:
+
+1. the hard row is still blocked through `gamma = FAIL`
+2. `laplace_rw` remains clearly stronger than `slice` on this row
+3. the most informative failed anchors were:
+   - long `F085 / s100`
+   - long `F0845 / s100`
+   - refresh-heavy `F085 / s100`
+4. the old RW/slice length-and-width map now looks exhausted
+
+Next-step handoff:
+
+1. launch a stationarity-bridge lane for the single remaining gausmix row
+2. use heavier burn and shorter retained windows instead of replaying more
+   keep-only extensions
+3. add conservative VB warm-start bridges
+4. keep only a small exact-kernel hedge:
+   - `slice_eta`
+   - `slice`
+   - `laplace_local`
+5. keep `slice` as the default kernel for future true `vb` follow-up work, but
+   keep row-local `laplace_rw` exceptions whenever the row-specific evidence is
+   stronger

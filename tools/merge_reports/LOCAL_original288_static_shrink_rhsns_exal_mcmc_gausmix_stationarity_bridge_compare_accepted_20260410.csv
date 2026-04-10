@@ -1,2 +1,2 @@
 "accepted_compare","total","done","missing","pass","warn","fail","healthy","better_than_accepted","matches_accepted","worse_than_accepted","better_than_rebuild","matches_rebuild","worse_than_rebuild","pending_compare"
-"worse_than_accepted",28,28,0,0,0,28,0,0,0,28,0,28,0,0
+"pending",24,0,24,0,0,0,0,0,0,0,0,0,0,24

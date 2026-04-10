@@ -1,0 +1,4 @@
+"phase","rows"
+"phase1_static_shrink_rhsns_exal_mcmc_gausmix_burn_bridge",8
+"phase2_static_shrink_rhsns_exal_mcmc_gausmix_vb_bridge",8
+"phase3_static_shrink_rhsns_exal_mcmc_gausmix_newkernels",8
