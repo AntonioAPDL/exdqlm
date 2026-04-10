@@ -1,0 +1,5 @@
+"evidence_bucket","count","share_of_72"
+"rhsns_explicit",35,0.486111111111111
+"baseline_ambiguous",27,0.375
+"repaired_ambiguous_nonrhsns",7,0.0972222222222222
+"rhs_legacy_explicit",3,0.0416666666666667

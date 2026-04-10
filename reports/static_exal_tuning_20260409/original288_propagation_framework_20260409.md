@@ -19,6 +19,7 @@ This framework is built from:
 
 - [original288 metric comparison](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_metric_comparison_20260409.md)
 - [original288 metric cluster diagnosis](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_metric_cluster_diagnosis_20260409.md)
+- [static shrink rhs mixed-prior investigation](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_static_shrink_rhs_mixed_prior_investigation_20260409.md)
 - [propagation rules CSV](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_propagation_rules_20260409.csv)
 - [prepare script](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/tools/merge_reports/LOCAL_original288_propagation_prepare_20260409.R)
 
@@ -26,6 +27,8 @@ Generated artifacts:
 
 - [workstreams](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_propagation_workstreams_20260409.csv)
 - [schedule](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_propagation_schedule_20260409.csv)
+- [legacy freeze](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_propagation_legacy_freeze_20260409.csv)
+- [rebuild required](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_propagation_rebuild_required_20260409.csv)
 - [hold fixed](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_propagation_hold_fixed_20260409.csv)
 - [audit blockers](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_propagation_audit_blockers_20260409.csv)
 
@@ -61,6 +64,8 @@ relaunch setup.
 
 | Profile | Intended use | Meaning |
 |---|---|---|
+| `legacy_mixed_prior_freeze` | legacy governance | freeze a historical branch that should no longer drive propagation or scientific interpretation |
+| `static_rhsns_full_rebuild` | corrected shrinkage rhs branch | rebuild the entire old `rhs` branch as explicit `rhs_ns` only |
 | `static_exal_ref_slice_long` | `static_paper / mcmc` | propagate the paper-aligned exAL MCMC reference |
 | `static_exal_ref_slice_long_shrink` | `static_shrink / mcmc` | adapt the same static MCMC idea to shrinkage clusters |
 | `static_exal_vb_tau025_repair` | static VB weak pocket | investigate and repair the tau 0.25 VB failure mode |
@@ -69,6 +74,39 @@ relaunch setup.
 | `dynamic_exdqlm_tau095_ref_vb` | dynamic VB `tau=0.95` | reinforce the strongest dynamic VB tail cluster |
 | `dynamic_exdqlm_lowmid_repair` | dynamic MCMC `tau=0.05/0.25` | repair low/mid tau calibration and `q_rmse` |
 | `dynamic_exdqlm_lowmid_repair_vb` | dynamic VB `tau=0.05/0.25` | repair low/mid tau calibration collapse |
+
+## What Gets Frozen And Rebuilt
+
+### 1. Static shrink mixed-prior correction
+
+The `static_shrink / rhs` branch is no longer treated as an audit blocker. It
+is now treated as a **study-definition correction**.
+
+Governance decision:
+
+- freeze the current `static_shrink / rhs` accepted rows as **legacy
+  mixed-prior historical results**
+- do not use that branch for forward propagation
+- do not interpret it as a clean `rhs_ns` prior family
+- rebuild the entire branch as explicit `rhs_ns` only
+
+Scope:
+
+- `72` rows total
+- `36` MCMC
+- `36` VB
+- `25.0%` of the accepted `288`
+- `50.0%` of the `static_shrink` block
+
+This rebuild is full-branch by design because the accepted `rhs` bucket mixes:
+
+- explicit `rhs_ns` rows
+- explicit legacy `rhs` rows
+- ambiguous baseline carry-forward rows
+- repaired rows that are still not explicit `rhs_ns`
+
+That mixed state makes the historical branch useful only as a legacy record,
+not as a clean prior-family result.
 
 ## What Gets Propagated
 
@@ -82,17 +120,7 @@ These are the highest-confidence propagation targets:
 These are promoted because the metric diagnosis is already favorable to `exal`
 in a strong and broad way.
 
-### 2. Static MCMC audit-then-propagate
-
-- `static_shrink / rhs / mcmc`
-
-Important caution:
-- in the current accepted tables, the selected label is `rhs`
-- that bucket may contain `rhs_ns`-derived fits from earlier repair waves
-- so no default propagation should happen until the actual fit metadata is
-  audited and split if needed
-
-### 3. Dynamic reinforcement
+### 2. Dynamic reinforcement
 
 These are the strongest dynamic clusters and should be reinforced rather than
 treated as generic dynamic defaults:
@@ -109,7 +137,8 @@ region for `exdqlm`.
 
 The framework explicitly isolates:
 
-- `static / vb / tau = 0.25`
+- `static_paper / vb / tau = 0.25`
+- `static_shrink / ridge / vb / tau = 0.25`
 
 This is a repair lane, not a propagation lane, because it is the cleanest and
 most consistent static weak pocket for `exal`.
@@ -133,8 +162,10 @@ These clusters are weak because:
 
 The framework currently holds fixed:
 
-- `static / vb / tau = 0.05`
-- `static / vb / tau = 0.95`
+- `static_paper / vb / tau = 0.05`
+- `static_paper / vb / tau = 0.95`
+- `static_shrink / ridge / vb / tau = 0.05`
+- `static_shrink / ridge / vb / tau = 0.95`
 
 Reason:
 - these clusters are mixed-to-positive for `exal`
@@ -145,15 +176,17 @@ Reason:
 
 The generated workstream table converts the rules into four practical groups:
 
-1. `phase1_static`
+1. `phase0_static_prior_correction`
+   - freeze the legacy mixed-prior `static_shrink / rhs` branch
+   - rebuild all `72` rows as explicit `rhs_ns`
+2. `phase1_static`
    - propagate strong static MCMC clusters
-   - audit the `rhs` bucket before propagating that branch
-2. `phase2_static_vb`
-   - repair `tau = 0.25`
-   - hold/monitor the rest of static VB
-3. `phase3_dynamic`
+3. `phase2_static_vb`
+   - repair `tau = 0.25` only in clean paper/ridge VB clusters
+   - hold/monitor the rest of clean static VB
+4. `phase3_dynamic`
    - reinforce `tau = 0.95`
-4. `phase4_dynamic_repair`
+5. `phase4_dynamic_repair`
    - repair low/mid tau dynamic clusters
 
 ## Practical Launch Principle
@@ -177,7 +210,9 @@ This framework makes the next step clear:
 
 - propagate where the evidence is already strong
 - repair where the cluster diagnosis says performance is weak
-- audit `rhs` before assuming it is identical to `rhs_ns`
+- freeze the current `static_shrink / rhs` branch as legacy mixed-prior output
+- rebuild that full branch as explicit `rhs_ns` before using it again in
+  propagation or forward scientific interpretation
 - keep comparisons within inference class
 
 That is the version most likely to move dynamic performance toward the stronger

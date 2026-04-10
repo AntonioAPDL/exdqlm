@@ -504,3 +504,43 @@ High-level read from the audited bundle:
 - static comparison remains complete and interpretable
 - dynamic comparison remains interpretable, but it must be read with the
   explicit unresolved tail in view
+
+## Static Shrink RHS Governance Update
+
+As of `2026-04-09`, the accepted `static_shrink / rhs` branch is now frozen as
+**legacy mixed-prior historical output**.
+
+Why:
+
+- the scientific rule is now explicit: always use `rhs_ns`, never legacy `rhs`
+- the accepted `static_shrink / rhs` branch is mixed rather than cleanly
+  `rhs_ns`
+
+Audit summary:
+
+- total affected rows: `72`
+- share of accepted `288`: `25.0%`
+- share of `static_shrink`: `50.0%`
+- inference split:
+  - `36` MCMC
+  - `36` VB
+- evidence split:
+  - `35` explicit `rhsns`
+  - `27` baseline ambiguous
+  - `7` repaired ambiguous non-`rhsns`
+  - `3` explicit legacy `rhs`
+
+Operational decision:
+
+- keep the current branch as a reproducible legacy record
+- do not use `static_shrink / rhs` as a clean prior-family result
+- do not propagate from that branch
+- rebuild all `72` rows as explicit `rhs_ns`
+- rerun the broader metric comparison and cluster diagnosis after the corrected
+  `rhs_ns` branch is available
+
+Reference investigation and inventories:
+
+- `reports/static_exal_tuning_20260409/original288_static_shrink_rhs_mixed_prior_investigation_20260409.md`
+- `tools/merge_reports/original288_static_shrink_rhs_prior_audit_20260409/original288_static_shrink_rhs_row_audit_20260409.csv`
+- `tools/merge_reports/original288_static_shrink_rhs_prior_audit_20260409/original288_static_shrink_rhsns_rebuild_inventory_20260409.csv`

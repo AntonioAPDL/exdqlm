@@ -1,0 +1,10 @@
+"evidence_bucket","model","inference","count"
+"baseline_ambiguous","al","mcmc",11
+"baseline_ambiguous","exal","mcmc",2
+"baseline_ambiguous","al","vb",14
+"repaired_ambiguous_nonrhsns","exal","mcmc",7
+"rhs_legacy_explicit","exal","mcmc",3
+"rhsns_explicit","al","mcmc",7
+"rhsns_explicit","exal","mcmc",6
+"rhsns_explicit","al","vb",4
+"rhsns_explicit","exal","vb",18

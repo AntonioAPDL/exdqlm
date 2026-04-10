@@ -23,6 +23,13 @@ Cluster diagnosis outputs:
 - `tools/merge_reports/original288_metric_comparison_20260409/original288_dynamic_metric_cluster_by_tau_20260409.csv`
 - `tools/merge_reports/original288_metric_comparison_20260409/original288_dynamic_metric_cluster_detail_20260409.csv`
 
+Important interpretation update:
+
+- as of `2026-04-09`, the accepted `static_shrink / rhs` branch should be read
+  as a **legacy mixed-prior historical branch**, not as a clean `rhs_ns`
+  result:
+  [mixed-prior investigation](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_static_shrink_rhs_mixed_prior_investigation_20260409.md)
+
 ## Static Diagnosis
 
 ### Static MCMC
@@ -33,7 +40,7 @@ This is the clearest broader-study success regime for `exal`.
 |---|---:|---:|---:|---|
 | `static_paper / paper / mcmc` | `72` | `77.8%` | `+40` | strongest overall exAL cluster |
 | `static_shrink / ridge / mcmc` | `54` | `72.2%` | `+24` | clear exAL win beyond the paper block |
-| `static_shrink / rhs / mcmc` | `54` | `63.0%` | `+14` | still positive, but more modest |
+| `static_shrink / rhs / mcmc` | `54` | `63.0%` | `+14` | positive historical signal, but now frozen as legacy mixed-prior |
 
 Main MCMC takeaways:
 
@@ -43,7 +50,8 @@ Main MCMC takeaways:
    - `beta_rmse`: exAL better in `18 / 18`
    - coverage-gap: exAL better in `10 / 18`
 2. `static_shrink / ridge / mcmc` also looks clearly favorable to `exal`.
-3. `static_shrink / rhs / mcmc` is positive but less decisive.
+3. `static_shrink / rhs / mcmc` is positive historically, but it should now be
+   treated as a legacy mixed-prior branch pending full `rhs_ns` rebuild.
 
 MCMC tau pattern:
 
@@ -65,7 +73,7 @@ Static VB is much more mixed, but it is still not a simple loss for `exal`.
 |---|---:|---:|---:|---|
 | `static_paper / paper / vb` | `66` | `62.1%` | `+16` | positive overall, mainly because coverage improves a lot |
 | `static_shrink / ridge / vb` | `48` | `56.3%` | `+6` | mildly positive |
-| `static_shrink / rhs / vb` | `48` | `47.9%` | `-2` | weakest static cluster; near tie leaning slightly against exAL |
+| `static_shrink / rhs / vb` | `48` | `47.9%` | `-2` | weakest static cluster historically, but now frozen as legacy mixed-prior |
 
 VB tau pattern:
 
@@ -96,6 +104,9 @@ Most convincing static wins:
 3. `static_paper / mcmc / normal / tau 0.95 / TT100`
 4. `static_shrink / ridge / mcmc / laplace / tau 0.95 / TT100`
 5. `static_shrink / rhs / mcmc / laplace / tau 0.95 / TT100`
+
+The `static_shrink / rhs` entry above is a historical-only result until the
+full `rhs_ns` rebuild is completed.
 
 These are the rows where `exal` wins across essentially every available metric.
 

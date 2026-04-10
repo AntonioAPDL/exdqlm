@@ -134,11 +134,15 @@ workstream_summary$win_share <- ifelse(
 )
 workstream_summary$net_advantage <- workstream_summary$win_metric_slots - workstream_summary$loss_metric_slots
 
+legacy_freeze <- subset(schedule, action == "freeze_legacy")
+rebuild_required <- subset(schedule, action == "rebuild_required")
 hold_fixed <- subset(schedule, hold_fixed)
 audit_blockers <- subset(schedule, audit_required)
 
 utils::write.csv(schedule, file.path(reports_dir, "original288_propagation_schedule_20260409.csv"), row.names = FALSE)
 utils::write.csv(workstream_summary, file.path(reports_dir, "original288_propagation_workstreams_20260409.csv"), row.names = FALSE)
+utils::write.csv(legacy_freeze, file.path(reports_dir, "original288_propagation_legacy_freeze_20260409.csv"), row.names = FALSE)
+utils::write.csv(rebuild_required, file.path(reports_dir, "original288_propagation_rebuild_required_20260409.csv"), row.names = FALSE)
 utils::write.csv(hold_fixed, file.path(reports_dir, "original288_propagation_hold_fixed_20260409.csv"), row.names = FALSE)
 utils::write.csv(audit_blockers, file.path(reports_dir, "original288_propagation_audit_blockers_20260409.csv"), row.names = FALSE)
 

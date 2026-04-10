@@ -28,6 +28,10 @@ Important caveat for the static broader layer:
   blocks.
 - Some VB `q_rmse` comparisons are only partially available; the summary tables
   include explicit `*_available_n` counts for that reason.
+- As of `2026-04-09`, the accepted `static_shrink / rhs` branch should be read
+  as a **legacy mixed-prior historical branch**, not as a clean `rhs_ns`
+  scientific result:
+  [mixed-prior investigation](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260409/original288_static_shrink_rhs_mixed_prior_investigation_20260409.md)
 
 ## Broader Static Summary
 
@@ -59,8 +63,8 @@ By block / prior / inference:
 |---|---|---|---|
 | `static_paper` | `paper` | `mcmc` | strongest exAL win: better median `q_rmse`, `CIE`, `beta_rmse`, and coverage gap |
 | `static_paper` | `paper` | `vb` | mixed: coverage improves strongly, but `q_rmse` / `beta_rmse` are not uniformly better |
-| `static_shrink` | `rhs` | `mcmc` | exAL modestly better on `q_rmse`, `beta_rmse`, and coverage gap |
-| `static_shrink` | `rhs` | `vb` | near tie on `q_rmse`, slight loss on `beta_rmse`, small coverage improvement |
+| `static_shrink` | `rhs` | `mcmc` | legacy mixed-prior historical signal only; positive for exAL, but not a clean `rhs_ns` result |
+| `static_shrink` | `rhs` | `vb` | legacy mixed-prior historical signal only; near tie, but not a clean `rhs_ns` result |
 | `static_shrink` | `ridge` | `mcmc` | exAL clearly better on `q_rmse`, `beta_rmse`, and coverage gap |
 | `static_shrink` | `ridge` | `vb` | exAL better on `q_rmse` and coverage gap, roughly flat-to-worse on `beta_rmse` |
 
