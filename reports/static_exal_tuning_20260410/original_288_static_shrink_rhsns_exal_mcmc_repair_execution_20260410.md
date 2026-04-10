@@ -41,10 +41,17 @@ Smoke validation before full launch:
 
 ## Launch State
 
-To be filled after tmux launch:
-
-- commit:
-- branch:
+- commit: `9bf5c79`
+- branch: `validation/rerun-after-0.4.0-sync-0p4p0-integration`
 - supervisor session:
+  - `original288-static-shrink-rhsns-exal-mcmc-repair-20260410`
 - monitor session:
+  - `original288-static-shrink-rhsns-exal-mcmc-repair-monitor-20260410`
 - startup summary:
+  - launch mode: full overnight run
+  - worker cap: `4` MCMC workers
+  - active phase at startup:
+    `phase1_static_shrink_rhsns_exal_mcmc_crash_repair`
+  - prelaunch summary: `0 / 38` done
+  - immediate live-process read after launch: `5` tagged row-runner processes
+    visible on the host
