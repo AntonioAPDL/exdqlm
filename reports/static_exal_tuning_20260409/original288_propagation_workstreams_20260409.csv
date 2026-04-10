@@ -1,0 +1,10 @@
+"phase","priority","action","root_kind","target_profile","audit_required","hold_fixed","cluster_count","available_metric_slots","win_metric_slots","loss_metric_slots","win_share","net_advantage"
+"phase4_dynamic_repair",8,"repair","dynamic","dynamic_exdqlm_lowmid_repair",FALSE,FALSE,12,60,13,47,0.216666666666667,-34
+"phase4_dynamic_repair",9,"repair","dynamic","dynamic_exdqlm_lowmid_repair_vb",FALSE,FALSE,12,60,20,40,0.333333333333333,-20
+"phase3_dynamic",6,"reinforce","dynamic","dynamic_exdqlm_tau095_ref",FALSE,FALSE,6,30,27,3,0.9,24
+"phase3_dynamic",7,"reinforce","dynamic","dynamic_exdqlm_tau095_ref_vb",FALSE,FALSE,6,30,27,3,0.9,24
+"phase1_static",1,"propagate","static","static_exal_ref_slice_long",FALSE,FALSE,18,72,56,16,0.777777777777778,40
+"phase1_static",2,"propagate","static","static_exal_ref_slice_long_shrink",FALSE,FALSE,18,54,39,15,0.722222222222222,24
+"phase2_static_vb",4,"repair","static","static_exal_vb_tau025_repair",FALSE,FALSE,18,42,3,39,0.0714285714285714,-36
+"phase1_static",3,"audit_then_propagate","static","static_exal_ref_slice_long_shrink",TRUE,FALSE,18,54,34,20,0.62962962962963,14
+"phase2_static_vb",5,"hold_monitor","static","static_exal_vb_hold",FALSE,TRUE,36,120,88,32,0.733333333333333,56
