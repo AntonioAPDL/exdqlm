@@ -62,6 +62,76 @@ write_lines <- function(lines, path) {
   invisible(path)
 }
 
+read_json_safe <- function(path) {
+  if (!file.exists(path)) return(NULL)
+  info <- file.info(path)
+  if (!is.data.frame(info) || is.na(info$size[1L]) || info$size[1L] <= 0) return(NULL)
+  tryCatch(jsonlite::fromJSON(path), error = function(...) NULL)
+}
+
+reference_snapshot_table_names <- c(
+  "reference_fit_summary.csv",
+  "reference_pairwise_vb_vs_mcmc.csv",
+  "reference_model_pair_signoff.csv",
+  "reference_root_signoff_summary.csv"
+)
+
+has_reference_snapshot <- function(report_root) {
+  report_root <- resolve_path(report_root, must_work = FALSE)
+  if (is.null(report_root) || !dir.exists(report_root)) return(FALSE)
+  all(file.exists(file.path(report_root, "comparison_vs_reference", "tables", reference_snapshot_table_names)))
+}
+
+discover_reference_snapshot_root <- function(report_root, max_hops = 4L) {
+  current <- resolve_path(report_root, must_work = FALSE)
+  seen <- character(0)
+  for (i in seq_len(max_hops)) {
+    if (is.null(current) || !dir.exists(current) || current %in% seen) break
+    if (has_reference_snapshot(current)) return(current)
+    seen <- c(seen, current)
+
+    manifest_paths <- c(
+      file.path(current, "launch", "qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_preflight_manifest.json"),
+      file.path(current, "launch", "qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json")
+    )
+    next_root <- NULL
+    for (manifest_path in manifest_paths) {
+      manifest <- read_json_safe(manifest_path)
+      if (is.null(manifest)) next
+      for (field in c("source_campaign_report_root", "source_report_root")) {
+        candidate <- as.character(manifest[[field]] %||% "")[1L]
+        if (nzchar(trimws(candidate))) {
+          next_root <- candidate
+          break
+        }
+      }
+      if (!is.null(next_root)) break
+    }
+    if (is.null(next_root) || !nzchar(trimws(next_root))) break
+    current <- resolve_path(next_root, must_work = FALSE)
+  }
+  NULL
+}
+
+load_reference_snapshot_inventory <- function(report_root, reference_root = NULL) {
+  report_root <- resolve_path(report_root, must_work = TRUE)
+  table_root <- file.path(report_root, "comparison_vs_reference", "tables")
+  fit_summary <- utils::read.csv(file.path(table_root, "reference_fit_summary.csv"), stringsAsFactors = FALSE)
+  pairwise_vb_vs_mcmc <- utils::read.csv(file.path(table_root, "reference_pairwise_vb_vs_mcmc.csv"), stringsAsFactors = FALSE)
+  model_pair_signoff <- utils::read.csv(file.path(table_root, "reference_model_pair_signoff.csv"), stringsAsFactors = FALSE)
+  root_signoff_summary <- utils::read.csv(file.path(table_root, "reference_root_signoff_summary.csv"), stringsAsFactors = FALSE)
+
+  list(
+    reference_root = as.character(reference_root %||% report_root)[1L],
+    root_dirs = unique(as.character(root_signoff_summary$root_id %||% character(0))),
+    cell_inventory = data.frame(stringsAsFactors = FALSE),
+    fit_summary = fit_summary,
+    pairwise_vb_vs_mcmc = pairwise_vb_vs_mcmc,
+    model_pair_signoff = model_pair_signoff,
+    root_signoff_summary = root_signoff_summary
+  )
+}
+
 render_md_table <- function(df) {
   if (is.null(df) || !nrow(df) || !ncol(df)) return("(no rows)")
   df[] <- lapply(df, function(x) {
@@ -165,11 +235,6 @@ manifest <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_load_manifest(manifest_pat
 base_defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
 grid_df <- exdqlm:::qdesn_dynamic_crossstudy_load_grid(grid_path)
 grid_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_grid(grid_df, base_defaults)
-reference_cfg <- base_defaults$reference %||% list()
-reference_inventory <- exdqlm:::qdesn_dynamic_crossstudy_collect_reference_inventory(
-  reference_root = resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
-)
-reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, base_defaults)
 
 source_cfg <- manifest$source %||% list()
 source_run_tag <- as.character(source_cfg$run_tag %||% "")[1L]
@@ -189,6 +254,33 @@ source_state <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_collect_source_state(
   defaults_path = defaults_path,
   grid_path = grid_path
 )
+
+reference_cfg <- base_defaults$reference %||% list()
+grid_source_mode <- exdqlm:::.qdesn_dynamic_crossstudy_grid_source_mode(base_defaults)
+reference_snapshot_root <- NULL
+if (identical(grid_source_mode, "materialized_source_inputs")) {
+  for (candidate_root in unique(c(
+    as.character(source_state$campaign_report_root %||% NA_character_),
+    as.character(source_state$outer_report_root %||% NA_character_)
+  ))) {
+    if (!nzchar(candidate_root) || is.na(candidate_root)) next
+    reference_snapshot_root <- discover_reference_snapshot_root(candidate_root)
+    if (!is.null(reference_snapshot_root)) break
+  }
+}
+
+if (!is.null(reference_snapshot_root)) {
+  reference_inventory <- load_reference_snapshot_inventory(
+    report_root = reference_snapshot_root,
+    reference_root = reference_cfg$dynamic_root %||% reference_snapshot_root
+  )
+  reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, base_defaults)
+} else {
+  reference_inventory <- exdqlm:::qdesn_dynamic_crossstudy_collect_reference_inventory(
+    reference_root = resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
+  )
+  reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, base_defaults)
+}
 
 profile_cfgs <- manifest$profiles %||% list()
 if (!length(profile_cfgs)) stop("Fit-fail closure manifest has no profiles.", call. = FALSE)
