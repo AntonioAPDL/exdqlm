@@ -13,10 +13,26 @@ manifest_path <- file.path(
   "validation",
   "qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_manifest.yaml"
 )
+defaults_path <- file.path(
+  "config",
+  "validation",
+  "qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_defaults.yaml"
+)
+grid_path <- file.path(
+  "config",
+  "validation",
+  "qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_grid.csv"
+)
 
 status <- system2(
   "Rscript",
-  c(script_path, "--manifest", manifest_path, args),
+  c(
+    script_path,
+    "--manifest", manifest_path,
+    "--defaults", defaults_path,
+    "--grid", grid_path,
+    args
+  ),
   stdout = "",
   stderr = ""
 )
