@@ -544,3 +544,41 @@ Reference investigation and inventories:
 - `reports/static_exal_tuning_20260409/original288_static_shrink_rhs_mixed_prior_investigation_20260409.md`
 - `tools/merge_reports/original288_static_shrink_rhs_prior_audit_20260409/original288_static_shrink_rhs_row_audit_20260409.csv`
 - `tools/merge_reports/original288_static_shrink_rhs_prior_audit_20260409/original288_static_shrink_rhsns_rebuild_inventory_20260409.csv`
+
+## Static Shrink RHS_NS Rebuild Launch Stack
+
+As of `2026-04-09`, the correction wave for the mixed-prior shrinkage branch is
+implemented as a regeneration-based rebuild.
+
+Why regeneration instead of replay:
+
+- the old replay path depended on dead reference artifacts
+- the source shrinkage input CSVs still exist and are sufficient to rebuild the
+  branch cleanly
+
+Program and execution notes:
+
+- `reports/static_exal_tuning_20260409/original_288_static_shrink_rhsns_rebuild_program_20260409.md`
+- `reports/static_exal_tuning_20260409/original_288_static_shrink_rhsns_rebuild_execution_20260409.md`
+
+Validated launch stack:
+
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_helpers_20260409.R`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_prepare_20260409.R`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_run_row_20260409.R`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_evaluate_20260409.R`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_launch_20260409.sh`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_monitor_20260409.sh`
+- `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_rebuild_supervisor_20260409.sh`
+
+Validation summary before full launch:
+
+- prepare: `72` rows, `0` missing inputs
+- phase split: `36` VB + `36` MCMC
+- `bash -n` passed
+- launcher `--prepare-only=1` passed
+- launcher `--dry-run=1 --skip-prepare=1` passed
+- live smoke tests:
+  - row `1` `vb :: al`
+  - row `37` `mcmc :: al`
+  - row `38` `mcmc :: exal`
