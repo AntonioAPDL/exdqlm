@@ -46,3 +46,44 @@ Tracked artifacts:
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_final_closure_target_summary_20260410.csv`
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_final_closure_compare_working_20260410.csv`
 - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_final_closure_compare_accepted_20260410.csv`
+
+## Closeout
+
+Completed result:
+
+- total candidates: `18`
+- healthy candidates: `3`
+- `PASS`: `0`
+- `WARN`: `3`
+- `FAIL`: `15`
+
+Accepted-branch effect:
+
+- accepted baseline remains `v8`
+- no new accepted promotion from this lane
+
+Corrected-working-branch effect:
+
+- `1` corrected working-baseline promotion was justified
+- promoted row:
+  - `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+- chosen candidate:
+  - `row_0013`
+  - profile `final_rw_none_f0835_s1025_xlong`
+- corrected branch gate change:
+  - `FAIL -> WARN`
+
+Target-level read:
+
+- `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+  - `3 / 9` healthy
+  - rescue signal is real
+- `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+  - `0 / 9` healthy
+  - still unresolved
+
+Main lesson:
+
+- the last normal row was recoverable with a longer row-local rw band
+- the hard gausmix row now looks like a gamma-ESS last-mile problem rather than
+  a broad rhs_ns branch failure

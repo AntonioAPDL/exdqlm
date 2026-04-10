@@ -758,6 +758,119 @@ Static final-closure lane:
   - `--prepare-only=1` passed
   - `--dry-run=1 --skip-prepare=1` passed
 
+## Static RHS_NS final-closure closeout and gausmix last-mile relaunch (2026-04-10)
+
+The final-closure wave is now complete and the corrected `rhs_ns` branch has
+been updated again where justified.
+
+Accepted branch state remains:
+
+- accepted baseline: `v8`
+- accepted healthy count: `282 / 288`
+- accepted unresolved tail: `6 / 288`
+- no new accepted promotion from the final-closure wave
+
+Corrected `static_shrink / rhs_ns` working state now:
+
+- `71 / 72` healthy
+- `1 / 72` unresolved
+- promoted corrected row:
+  - `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+  - chosen final-closure profile:
+    - `final_rw_none_f0835_s1025_xlong`
+  - gate change on corrected branch:
+    - `FAIL -> WARN`
+- remaining corrected unresolved row:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+
+Final-closure wave read:
+
+- total candidates: `18`
+- healthy candidates: `3`
+- better than failed corrected baseline: `3`
+- better than accepted baseline: `0`
+- row-level outcome:
+  - `normal / 0p25 / 1000`: `3 / 9` healthy, credible `WARN` rescue
+  - `gausmix / 0p25 / 1000`: `0 / 9` healthy, still unresolved
+
+Clean summary of the current state:
+
+- what improved:
+  - corrected `rhs_ns` branch advanced from `70 / 72` to `71 / 72` healthy
+  - the `normal / 0p25 / 1000` row is no longer part of the corrected fail set
+- what still fails:
+  - corrected static row:
+    - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+  - accepted dynamic tail:
+    - `6` `dynamic / exdqlm / mcmc` rows
+- which ideas worked best:
+  - no-VB-init row-local `laplace_rw` corridors on the corrected rhs_ns branch
+  - on the normal row, the `F0835 / s1025 / xlong` rw band was the best late
+    closure profile
+  - on the hard gausmix row, the strongest anchors were still rw rather than
+    slice
+- which ideas did not help:
+  - simply widening slice on the hard gausmix row
+  - replaying the same short/medium rw bands without a real gamma-ESS plan
+  - another generic dynamic sweep without source artifacts
+- highest expected-value directions now:
+  - a gausmix-only `rhs_ns` last-mile lane focused on gamma ESS and refresh
+    tuning
+  - a separate non-compute recovery step for the `6` blocked dynamic rows so
+    they become runnable again
+
+New gausmix-only last-mile lane:
+
+- target:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+- purpose:
+  - close the last corrected static rhs_ns failure without reopening any solved
+    rows
+- search-space rules:
+  - keep no-VB-init as the default because it converts the old iter-2 crash
+    into a scored-but-unhealthy chain
+  - focus on the strongest rw anchors:
+    - `F085 / s100`
+    - `F0845 / s100`
+    - one softer `F0825 / s1025` hedge
+  - add longer chains, more gamma substeps, and earlier/heavier laplace refresh
+    before discarding rw
+  - keep slice as a disciplined exact-kernel hedge, but do not let it dominate
+    the schedule after repeated weak results
+
+Validated gausmix last-mile artifacts:
+
+- program:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_program_20260410.md`
+- execution:
+  - `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_execution_20260410.md`
+- schedule:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_schedule_20260410.csv`
+- manifest:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_manifest_20260410.csv`
+- stage counts:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_stage_counts_20260410.csv`
+- working baseline inputs:
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_working_baseline_v2_20260410.csv`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_working_summary_v2_20260410.csv`
+  - `tools/merge_reports/LOCAL_original288_static_shrink_rhsns_working_unresolved_v2_20260410.csv`
+
+Validation summary:
+
+- post-final-closure promotion script: passed
+- updated corrected working state: `71 / 72` healthy
+- prepare: `28` rows
+- missing inputs: `0`
+- `bash -n`: passed
+- `--prepare-only=1`: passed
+- `--dry-run=1 --skip-prepare=1`: passed
+
+Dynamic blocker remains unchanged:
+
+- the accepted unresolved dynamic tail is still the same `6` rows
+- the final dynamic closure lane remains deferred because its required source
+  `.rds` and `sim_output.rds` inputs are missing
+
 Dynamic final-closure lane:
 
 - program:

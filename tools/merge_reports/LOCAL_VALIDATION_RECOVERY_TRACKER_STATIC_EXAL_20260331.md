@@ -2663,3 +2663,51 @@ Next-step handoff:
 2. keep the accepted `v8` branch as the default baseline
 3. keep the dynamic final-closure lane separate and deferred until its missing
    source-artifact blocker is resolved
+
+## 12.19 Static shrink rhs_ns exAL MCMC final-closure closeout and gausmix-only last mile (2026-04-10)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_final_closure_execution_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_program_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_lastmile_execution_20260410.md`
+
+Closeout summary:
+
+1. the final-closure wave for the last `2` corrected rhs_ns rows is complete
+2. no additional accepted-branch promotion was justified
+3. one corrected working-baseline promotion was justified:
+   - `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+   - `FAIL -> WARN`
+   - chosen profile:
+     - `final_rw_none_f0835_s1025_xlong`
+4. the corrected `static_shrink / rhs_ns` working branch now sits at:
+   - `71 / 72` healthy
+   - `1 / 72` unresolved
+
+Final-closure wave read:
+
+1. `18` candidates completed
+2. `3` candidates were healthy
+3. all `3` healthy candidates belonged to the same underlying row:
+   - `static_shrink::normal::0p25::1000::rhs_ns::exal::mcmc`
+4. the hard gausmix row produced `0 / 9` healthy candidates
+
+Remaining corrected unresolved row:
+
+1. `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+
+Main technical read:
+
+1. the corrected branch no longer has a broad rhs_ns shrinkage problem
+2. the remaining debt is now a single hard gausmix row
+3. on that row, the best signals still come from `laplace_rw`, not `slice`
+4. the dominant remaining issue appears to be gamma ESS / gamma mixing, not the
+   original iter-2 crash
+
+Next-step handoff:
+
+1. launch only a gausmix-only last-mile lane
+2. keep the accepted `v8` branch fixed
+3. use the corrected working `v2` rhs_ns baseline as the source of truth for
+   the remaining static repair work
