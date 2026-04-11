@@ -3,6 +3,8 @@
 #' The function applies a Markov chain Monte Carlo (MCMC) algorithm to sample the posterior of an exDQLM.
 #'
 #' @inheritParams exdqlmISVB
+#' @param fix.sigma Logical value indicating whether to fix sigma at `sig.init`.
+#'   Default is `FALSE`.
 #' @param Sig.mh Covariance matrix used in the random walk MH step to jointly sample sigma and gamma.
 #' @param joint.sample Logical value indicating whether or not to recompute `Sig.mh` based off the initial burn-in samples of gamma and sigma. Default is `FALSE`.
 #' @param n.burn Number of MCMC iterations to burn. Default is `n.burn = 2000`.
@@ -398,8 +400,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     if (length(badneg)) {
       stop(sprintf("%s%s chi has %d negative values (first index=%d, value=%.6g)", context, iter_suffix, length(badneg), badneg[1], chi[badneg[1]]))
     }
-    if (!is.finite(psi) || psi <= 0) {
-      stop(sprintf("%s%s psi must be finite and > 0; got %.6g", context, iter_suffix, psi))
+    if (!is.finite(psi)) {
+      stop(sprintf("%s%s psi must be finite; got %.6g", context, iter_suffix, psi))
     }
     if (!is.finite(lambda)) {
       stop(sprintf("%s%s lambda must be finite; got %.6g", context, iter_suffix, lambda))
@@ -731,9 +733,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       chi_sigma <- sum((r * r) / (b * uts)) + 2 * sum(uts) + 2 * PriorSigma$b_sig
       psi_sigma <- ((c * abs(gamma))^2 / b) * sum((sts * sts) / uts)
       k_sigma <- -(PriorSigma$a_sig + 1.5 * TT)
-      sigma_new <- as.numeric(sample_gig_devroye_vector(
-        1L, p = k_sigma, a = psi_sigma, b_vec = chi_sigma
-      )[1, 1])
+      sigma_new <- sample_gig_cpp_required(
+        chi = chi_sigma,
+        psi = psi_sigma,
+        lambda = k_sigma,
+        context = "exdqlm_mcmc_sigma"
+      )[1]
       if (is.finite(sigma_new) && sigma_new > 0) sigma_new else sigma
     }
     laplace_cov_init <- function(reg1, log.sigma, logit.gamma, sts, uts) {

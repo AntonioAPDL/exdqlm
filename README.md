@@ -143,8 +143,10 @@ tail(fit$diagnostics$elbo, 3)
   `dqlm.ind = TRUE`.
 - **Static shrinkage priors** in both static LDVB/MCMC via
   `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
-- **LDVB transform helper** `transfn_exdqlmLDVB()` and expanded static
-  object generics (`exal_mcmc`, `exal_ldvb`).
+- **Transfer-function helpers** `transfn_exdqlmLDVB()` and
+  `transfn_exdqlmMCMC()`, with legacy `transfn_exdqlmISVB()` retained for
+  backward compatibility, plus expanded static object generics
+  (`exal_mcmc`, `exal_ldvb`).
 - **C++ backend controls** retained as optional: Kalman bridge default
   **TRUE**; builders, samplers, and post-predictive C++ paths default
   **FALSE**.

@@ -76,34 +76,26 @@
 #'
 transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=TRUE,sig.init=NA,dqlm.ind=FALSE,
                              exps0,tol=0.1,n.IS=500,n.samp=200,PriorSigma=NULL,PriorGamma=NULL,tf.m0=rep(0,2),tf.C0=diag(1,2),verbose=TRUE){
-  # check inputs
-  y = check_ts(y)
-  X = check_ts(X)
-  if(length(X) != length(y)){stop("y and X must be time-series of the same length")}
-  model = check_mod(model)
-  p = length(model$m0)
-  if(length(lam) != 1 | lam >= 1 | lam <= 0){stop("lam must be a single value between 0 and 1")}
-  if(!methods::hasArg(dim.df)){
-    if(length(df)!=1){
-      stop("length of component discount factors does not match length of component dimensions")
-    }
-    dim.df = p
-  }
-  if(length(tf.m0)!=2){
-    stop("tf.m0 should have length 2")
-  }
-  tf.C0 = as.matrix(tf.C0)
-  if(any(dim(tf.C0)!=2)){
-    stop("tf.C0 should be a 2 by 2 covariance matrix")
-  }
+  prep <- .prepare_transfer_inputs(
+    y = y, X = X, model = model, df = df, dim.df = dim.df,
+    lam = lam, tf.df = tf.df, tf.m0 = tf.m0, tf.C0 = tf.C0,
+    dim.df_missing = !methods::hasArg(dim.df)
+  )
+  y <- prep$y
+  X <- prep$X
+  model <- prep$model
+  df <- prep$df
+  dim.df <- prep$dim.df
+  tf.model <- prep$tf.model
+  tf.model.df <- prep$tf.model.df
+  tf.model.dim.df <- prep$tf.model.dim.df
+  TT <- prep$TT
+  p <- length(model$m0)
 
   # initialize quantile
   if(methods::hasArg(exps0)){
-    TT = length(y)
     if(length(exps0) != TT){stop("exp0 must have same length as y")}
   }else{
-    TT = length(y)
-    p = length(model$m0)
     if(!is.na(dim(model$GG)[3])){
       if(dim(model$GG)[3] != TT){stop("time-varying dimension of GG does not match length of y")}
     }
@@ -116,27 +108,6 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
     exps0 = apply(FF*t(init.dlm$m),2,sum) + stats::qnorm(p0,0,sqrt(init.dlm$s[TT]))
   }
 
-  # augment state-space model
-  temp.p = length(model$m0)
-  p = temp.p + 2
-  FF = matrix(0,p,TT)
-  FF[1:temp.p,] = model$FF
-  FF[seq(temp.p+1,temp.p+2,2),] = 1
-  GG = array(0,c(p,p,TT))
-  GG[1:temp.p,1:temp.p,] = model$GG
-  GG[(temp.p+2-1):(temp.p+2),(temp.p+2-1):(temp.p+2),] = matrix(c(lam,0,NA,1),2,2)
-  GG[(temp.p+2-1),(temp.p+2),] = X
-
-  # update model and dfs with transfer function component
-  tf.model <- NULL
-  tf.model$GG = GG
-  tf.model$FF = FF
-  tf.model$m0 = c(model$m0,tf.m0)
-  tf.model$C0 = magic::adiag(model$C0,tf.C0)
-  tf.model = as.exdqlm(tf.model)
-  tf.model.df = c(df,matrix(tf.df,1,2))
-  tf.model.dim.df = c(dim.df,rep(1,2))
-
   # fit transfer function exdqlm
   tf.return = exdqlmISVB(
     y = y, p0 = p0, model = tf.model,
@@ -148,10 +119,8 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
     PriorSigma = PriorSigma, PriorGamma = PriorGamma,
     verbose = verbose
   )
-  tf.return$lam = lam
-
-  k_seq = (log(1e-3)-log(abs(c(tf.model$m0[1],tf.return$theta.out$sm[(dim(tf.return$theta.out$sm)[1]-1),-TT])*c(X))))/(log(lam))
-  tf.return$median.kt = stats::median(k_seq)
+  tf.return$lam = prep$lam
+  tf.return$median.kt = .transfer_median_kt(tf.model = tf.model, theta.out = tf.return$theta.out, X = X, lam = prep$lam)
 
   # return results
   return(tf.return)

@@ -12,7 +12,9 @@
 #' @section Main workflows:
 #' \itemize{
 #'   \item Dynamic/state-space quantile modeling via
-#'         [exdqlmISVB()], [exdqlmLDVB()], and [exdqlmMCMC()].
+#'         [exdqlmISVB()], [exdqlmLDVB()], and [exdqlmMCMC()], with
+#'         transfer-function extensions through [transfn_exdqlmLDVB()],
+#'         [transfn_exdqlmMCMC()], and legacy [transfn_exdqlmISVB()].
 #'   \item Static Bayesian exAL regression via [exal_static_LDVB()] and
 #'         [exal_static_mcmc()].
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],

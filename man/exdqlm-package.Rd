@@ -20,7 +20,9 @@ for static coefficients, and post hoc synthesis of several fitted quantiles.
 
 \itemize{
 \item Dynamic/state-space quantile modeling via
-\code{\link[=exdqlmISVB]{exdqlmISVB()}}, \code{\link[=exdqlmLDVB]{exdqlmLDVB()}}, and \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}.
+\code{\link[=exdqlmISVB]{exdqlmISVB()}}, \code{\link[=exdqlmLDVB]{exdqlmLDVB()}}, and \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, with
+transfer-function extensions through \code{\link[=transfn_exdqlmLDVB]{transfn_exdqlmLDVB()}},
+\code{\link[=transfn_exdqlmMCMC]{transfn_exdqlmMCMC()}}, and legacy \code{\link[=transfn_exdqlmISVB]{transfn_exdqlmISVB()}}.
 \item Static Bayesian exAL regression via \code{\link[=exal_static_LDVB]{exal_static_LDVB()}} and
 \code{\link[=exal_static_mcmc]{exal_static_mcmc()}}.
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
