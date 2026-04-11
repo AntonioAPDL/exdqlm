@@ -81,12 +81,37 @@ launcher:
 
 ## Launch State
 
-At the moment this execution note is written, the implementation and launcher
-validation are complete. The next step is the actual staged tmux launch of:
+The staged tmux launch is now live.
 
-- `tools/merge_reports/LOCAL_original288_normalized_multiseed_launch_20260411.sh`
+Supervisor session:
 
-That launch should run:
+- `original288-normalized-multiseed-20260411`
+
+Monitor session:
+
+- `original288-normalized-multiseed-monitor-20260411`
+
+Console log:
+
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_launcher_console_20260411.log`
+
+Startup snapshot recorded after launch:
+
+- prepare reran successfully
+- pilot manifest rows: `48`
+- full manifest rows: `1152`
+- missing inputs:
+  - pilot: `0`
+  - full: `0`
+- pilot prelaunch evaluator:
+  - done: `0 / 48`
+  - missing: `48 / 48`
+- active first phase:
+  - `pilot_static_mcmc`
+- configured worker cap for the live first phase:
+  - `4`
+
+The live supervisor is responsible for:
 
 1. pilot
 2. pilot reduction
