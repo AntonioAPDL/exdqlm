@@ -851,6 +851,8 @@
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model
 #'   (\code{gamma = 0}). In that special case the nonconjugate block drops out
 #'   and the remaining variational updates are available in closed form.
+#' @param n.samp Number of samples to draw from the approximated posterior
+#'   distribution after convergence. Default is \code{n.samp = 200}.
 #' @param n_samp_xi Integer; retained for backward compatibility in the
 #'   Laplace-Delta block. Under the current delta-only implementation this
 #'   value is ignored.
@@ -875,6 +877,8 @@
 #' @return A object of class "\code{exal_ldvb}" containing:
 #' \itemize{
 #'   \item \code{qbeta}: list with \code{m}, \code{V}.
+#'   \item \code{samp.beta}: posterior sample from \code{q(\beta)} with
+#'         \code{n.samp} rows.
 #'   \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),
 #'         \code{E_v} and \code{E_inv_v} (moments).
 #'   \item \code{qs}: list with \code{mu} (length n), \code{tau2} (length n),
@@ -882,6 +886,10 @@
 #'   \item \code{qsiggam}: list with \code{eta_hat}, \code{ell_hat},
 #'         \code{Sigma} (2x2), approximate means
 #'         \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
+#'   \item \code{samp.sigma}, \code{samp.gamma}: posterior samples from the
+#'         variational approximation for the scale and skewness parameters. In
+#'         the AL special case (\code{dqlm.ind = TRUE}), \code{samp.gamma} is a
+#'         vector of zeros.
 #'   \item \code{converged}, \code{iter}, \code{run.time}, and
 #'         \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
 #'   \item \code{beta_prior}: prior metadata and, for RHS-family priors,
@@ -962,6 +970,7 @@ exal_static_LDVB <- function(
   log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
+  n.samp = 200,
   n_samp_xi = 200,
   ld_controls = NULL,
   verbose = TRUE
@@ -1010,6 +1019,7 @@ exal_static_LDVB <- function(
       a_sigma = a_sigma,
       b_sigma = b_sigma,
       init = init,
+      n.samp = n.samp,
       verbose = verbose
     )
     if (.static_is_rhs_family(beta_prior_obj$type)) {
@@ -2340,6 +2350,11 @@ exal_static_LDVB <- function(
       )
     )
   )
+  draws <- .exal_static_ldvb_sample_posterior(ret, n.samp)
+  if (!is.null(draws)) {
+    ret[names(draws)] <- draws
+  }
+  ret$run.time <- as.numeric(proc.time()[3] - t0)
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }

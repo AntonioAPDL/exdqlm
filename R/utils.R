@@ -690,6 +690,74 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_ldvb_sample_gaussian <- function(mu, Sigma, n_samp) {
+  ns <- suppressWarnings(as.integer(n_samp)[1])
+  if (!is.finite(ns) || ns < 1L) return(NULL)
+
+  mu <- as.numeric(mu)
+  p <- length(mu)
+  S <- as.matrix(Sigma)
+  if (!all(dim(S) == c(p, p))) {
+    stop("Sigma must be a square covariance matrix matching length(mu).", call. = FALSE)
+  }
+  S <- (S + t(S)) / 2
+
+  if (p == 1L) {
+    sd1 <- sqrt(max(S[1, 1], 0))
+    out <- matrix(mu[1] + stats::rnorm(ns, sd = sd1), ncol = 1L)
+    colnames(out) <- names(mu)
+    return(out)
+  }
+
+  L <- try(chol(S), silent = TRUE)
+  if (inherits(L, "try-error")) {
+    eig <- eigen(S, symmetric = TRUE)
+    vals <- pmax(eig$values, .Machine$double.eps)
+    L <- eig$vectors %*% diag(sqrt(vals), p) %*% t(eig$vectors)
+  }
+
+  Z <- matrix(stats::rnorm(ns * p), nrow = ns, ncol = p)
+  out <- sweep(Z %*% L, 2L, mu, `+`)
+  colnames(out) <- names(mu)
+  out
+}
+
+.exal_static_ldvb_sample_posterior <- function(fit, n_samp) {
+  ns <- suppressWarnings(as.integer(n_samp)[1])
+  if (!is.finite(ns) || ns < 1L) return(NULL)
+
+  beta_mu <- as.numeric(fit$qbeta$m)
+  names(beta_mu) <- colnames(fit$X)
+  beta_draws <- .exdqlm_ldvb_sample_gaussian(beta_mu, fit$qbeta$V, ns)
+  if (is.null(colnames(beta_draws))) {
+    colnames(beta_draws) <- colnames(fit$X)
+  }
+
+  out <- list(samp.beta = beta_draws)
+
+  if (isTRUE(fit$dqlm.ind)) {
+    a <- as.numeric(fit$qsig$a)[1]
+    b <- as.numeric(fit$qsig$b)[1]
+    out$samp.sigma <- 1 / stats::rgamma(ns, shape = a, rate = b)
+    out$samp.gamma <- rep(0, ns)
+    return(out)
+  }
+
+  ld_mu <- c(
+    eta = as.numeric(fit$qsiggam$eta_hat),
+    ell = as.numeric(fit$qsiggam$ell_hat)
+  )
+  ld_draws <- .exdqlm_ldvb_sample_gaussian(ld_mu, fit$qsiggam$Sigma, ns)
+  bounds <- fit$misc$bounds
+  L <- as.numeric(bounds["L"])
+  U <- as.numeric(bounds["U"])
+  if (!is.finite(L)) L <- as.numeric(bounds[1])
+  if (!is.finite(U)) U <- as.numeric(bounds[2])
+  out$samp.sigma <- exp(ld_draws[, 2L])
+  out$samp.gamma <- L + (U - L) * stats::plogis(ld_draws[, 1L])
+  out
+}
+
 .exdqlm_trace_summary <- function(x) {
   z <- as.numeric(x)
   z <- z[is.finite(z)]
@@ -1173,6 +1241,7 @@ check_ts = function(dat){
   a_sigma = 1,
   b_sigma = 1,
   init = NULL,
+  n.samp = 200L,
   verbose = TRUE
 ) {
   y <- as.numeric(y)
@@ -1412,6 +1481,11 @@ check_ts = function(dat){
       )
     )
   )
+  draws <- .exal_static_ldvb_sample_posterior(ret, n.samp)
+  if (!is.null(draws)) {
+    ret[names(draws)] <- draws
+  }
+  ret$run.time <- as.numeric(proc.time()[3] - t0)
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }

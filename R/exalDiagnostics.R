@@ -99,17 +99,28 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
       ub_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = upper, na.rm = TRUE))
       beta_mean <- as.numeric(colMeans(beta_draws))
     } else if (is.exal_ldvb(fit)) {
-      beta_mean <- as.numeric(fit$qbeta$m)
-      map_quant <- as.numeric(drop(X_use %*% beta_mean))
-      if (!is.null(fit$qbeta$V)) {
-        Vb <- as.matrix(fit$qbeta$V)
-        z <- stats::qnorm((1 + cr.percent) / 2)
-        sd_path <- sqrt(pmax(rowSums((X_use %*% Vb) * X_use), 0))
-        lb_quant <- map_quant - z * sd_path
-        ub_quant <- map_quant + z * sd_path
+      if (!is.null(fit$samp.beta)) {
+        beta_draws <- as.matrix(fit$samp.beta)
+        q_draws <- beta_draws %*% t(X_use)
+        map_quant <- as.numeric(colMeans(q_draws))
+        half.alpha <- (1 - cr.percent) / 2
+        upper <- 1 - half.alpha
+        lb_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
+        ub_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = upper, na.rm = TRUE))
+        beta_mean <- as.numeric(colMeans(beta_draws))
       } else {
-        lb_quant <- rep(NA_real_, length(map_quant))
-        ub_quant <- rep(NA_real_, length(map_quant))
+        beta_mean <- as.numeric(fit$qbeta$m)
+        map_quant <- as.numeric(drop(X_use %*% beta_mean))
+        if (!is.null(fit$qbeta$V)) {
+          Vb <- as.matrix(fit$qbeta$V)
+          z <- stats::qnorm((1 + cr.percent) / 2)
+          sd_path <- sqrt(pmax(rowSums((X_use %*% Vb) * X_use), 0))
+          lb_quant <- map_quant - z * sd_path
+          ub_quant <- map_quant + z * sd_path
+        } else {
+          lb_quant <- rep(NA_real_, length(map_quant))
+          ub_quant <- rep(NA_real_, length(map_quant))
+        }
       }
     } else {
       stop("Unsupported static fit supplied to exalDiagnostics().", call. = FALSE)
