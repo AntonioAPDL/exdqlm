@@ -17,6 +17,31 @@ Design the next deep-DESN relaunch so that it is:
 This plan intentionally stops **before** the big relaunch. The deliverable here is a tested,
 staged implementation plan and state freeze, not a blind immediate launch.
 
+## 1.1) Implementation Update (2026-04-11)
+
+The implementation path is now more concrete than the original investigation draft.
+
+Chosen architecture:
+
+- rerun the **full deep-DESN dynamic effective-w300 matrix**, not just another residual-only wave;
+- keep the current shared grid of `36` roots;
+- rerun VB once per likelihood family under the normalized posterior-draw contract;
+- rerun each MCMC model with `4` deterministic seed replicates;
+- select the winning seed by:
+  - `PASS > WARN > FAIL`
+  - then lower `forecast_CRPS_mean`
+  - then lower runtime
+  - then lower seed replicate id;
+- write seed-selection tables at the method, root, and campaign levels;
+- prune heavy non-winning seed artifacts after selection.
+
+The implementation also adds two smoothness fixes that became necessary during testing:
+
+- reuse the already-materialized effective-w300 source inventory when it exists instead of
+  requiring the original full-source `sim_output.rds` files on every preflight;
+- allow reference inventory parsing to proceed when raw reference `sim_output.rds` files have been
+  pruned, since the comparison-facing reference summaries do not require those raw files.
+
 ## 2) Current Starting Point
 
 Working deep-DESN challenger source after the completed `F` wave and justified `F630` promotion:
@@ -86,19 +111,20 @@ What this means:
 - naively rerunning the same root four times is not enough;
 - the dynamic wave path needs a real seed-replicate design.
 
-### 4.2 The Current Wave Harness Selects Profiles, Not Seed Winners
+### 4.2 The Current Dynamic Validation Surface Needed A New Root-Level Layer
 
-Current dynamic fit-fail waves already support:
+The implemented solution does **not** extend the old stage/profile residual-wave harness.
 
-- stage-local winners,
-- source stage overrides,
-- exact-root overrides.
+Instead it adds the multiseed layer directly inside the root-level dynamic validation runner:
 
-But they do **not** yet support:
+- VB still runs once per likelihood family;
+- each MCMC fit now runs through a seed-selection helper;
+- canonical `fits/mcmc_*` directories represent the selected winning seed;
+- seed-level artifacts live underneath `fits/mcmc_*/seeds/seed_##`.
 
-- running four seed replicates inside each candidate profile;
-- selecting the best seed first;
-- then comparing seed-selected profiles at the stage level.
+This matches the user-requested scope better than another residual-stage abstraction because the
+request is about **every current MCMC model** and the full current VB surface, not just one more
+repair wave.
 
 ### 4.3 `20000` Draws Needs A Clear Contract
 
@@ -189,26 +215,25 @@ That grading logic is directly reusable for the user-requested seed winner rule.
 
 Recommended architecture:
 
-- keep the **current stage/profile** concept;
-- add an explicit **seed replicate** layer under each profile;
-- write a new seed-selection table per profile;
-- then compare the **selected best seed** for each profile at the stage level.
+- run the shared deep-DESN grid directly through the dynamic cross-study runner;
+- add an explicit **seed replicate** layer inside each MCMC method directory;
+- write seed-selection tables per method, per root, and per campaign;
+- keep the reconciliation and promotion logic as a post-run reporting step.
 
 Why this is the best fit:
 
-- it preserves the current wave reporting structure;
-- it avoids treating seed as if it were a different scientific profile;
-- it cleanly separates:
-  - profile selection,
-  - seed selection,
-  - and stage-local promotion.
+- it matches the user-requested full-surface rerun;
+- it avoids inventing a new residual-wave wrapper when the real need is a normalized baseline
+  rerun;
+- it preserves comparability with the existing dynamic campaign summary structure.
 
 ### 6.2 Design Option Assessment
 
 | Option | Summary | Verdict |
 | --- | --- | --- |
-| Expand each seed replicate as a separate profile ID | quickest hack, but profile ranking and seed ranking get mixed together | reject as the main design |
-| Add seed-replicate execution inside each profile | cleanest and most faithful to the requested logic | **recommended** |
+| Expand each seed replicate as a separate profile ID | quickest hack, but seed ranking and scientific profile ranking get mixed together | reject |
+| Add seed-replicate execution inside each MCMC method directory | cleanest and most faithful to the requested logic | **implemented** |
+| Build another residual-wave harness just for multiseed replay | would preserve recent wave naming, but adds indirection without helping the full-matrix rerun | reject |
 | Treat this as a multichain confirmation problem | useful precedent, but wrong abstraction because the user wants best-seed selection, not chain aggregation | use only as a helper precedent |
 
 ## 7) Normalized Contract
@@ -319,6 +344,16 @@ The relaunch scope should be:
 This preserves the current full-study comparability while only multiplying the stochastic
 MCMC burden.
 
+Operational launch contract implemented for this relaunch:
+
+- outer dynamic campaign workers:
+  - `1`
+- inner MCMC seed workers:
+  - `4`
+
+This is the safest direct interpretation of “run 4 different random seeds in parallel if possible”
+without oversubscribing the server through nested outer and inner parallelism.
+
 ## 11) Deliverables And Stages
 
 ### D0: State Freeze And Documentation
@@ -341,6 +376,10 @@ Success criteria:
 - two nominally identical seed replicates produce distinct stored seed metadata;
 - seed bundles are deterministic across reruns.
 
+Status:
+
+- **implemented**
+
 ### D2: Seed-Selection Layer
 
 Deliverables:
@@ -353,6 +392,10 @@ Success criteria:
 
 - the winning seed for each profile is machine-readable;
 - selection is deterministic and reproducible.
+
+Status:
+
+- **implemented**
 
 ### D3: Normalized Config Layer
 
@@ -370,6 +413,10 @@ Success criteria:
 
 - prepare-only manifests show the normalized contract everywhere it should appear.
 
+Status:
+
+- **implemented**
+
 ### D4: Storage-Safe Output Contract
 
 Deliverables:
@@ -382,6 +429,10 @@ Success criteria:
 
 - expected storage footprint is measured before launch;
 - non-winning seeds do not recreate the recent disk-exhaustion problem.
+
+Status:
+
+- **implemented**
 
 ### D5: Canary
 
@@ -400,6 +451,10 @@ Success criteria:
 - normalized chain lengths and posterior-draw counts are verified;
 - artifact retention/pruning behaves as designed.
 
+Status:
+
+- **implemented at prepare-only level**
+
 ### D6: Full Manifest And Prepare-Only Validation
 
 Deliverables:
@@ -415,9 +470,17 @@ Success criteria:
 - no output collisions;
 - git state is clean before launch.
 
+Status:
+
+- **implemented at prepare-only level**
+
 ### D7: Big Relaunch
 
 Launch only after `D0` through `D6` are complete.
+
+Current status:
+
+- **not launched yet in this plan update**
 
 ## 12) Testing And Validation Gates
 

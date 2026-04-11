@@ -77,7 +77,7 @@ qdesn_dynamic_crossstudy_load_grid <- function(path = file.path("config", "valid
     fit_input_dir = normalizePath(fit_input_dir, winslash = "/", mustWork = TRUE),
     series_wide_path = normalizePath(file.path(fit_input_dir, "series_wide.csv"), winslash = "/", mustWork = TRUE),
     selection_indices_path = normalizePath(file.path(fit_input_dir, "selection_indices.csv"), winslash = "/", mustWork = TRUE),
-    sim_path = normalizePath(file.path(fit_input_dir, "sim_output.rds"), winslash = "/", mustWork = TRUE),
+    sim_path = normalizePath(file.path(fit_input_dir, "sim_output.rds"), winslash = "/", mustWork = FALSE),
     report_summary_path = normalizePath(file.path(root_dir, "tables", "report_summary.md"), winslash = "/", mustWork = TRUE),
     stringsAsFactors = FALSE
   )
@@ -356,12 +356,34 @@ qdesn_dynamic_crossstudy_materialize_source_inputs <- function(defaults,
   material_cfg <- defaults$source_materialization %||% list()
   source_root <- .qdesn_validation_resolve_path(material_cfg$dynamic_root, must_work = TRUE)
   staged_root <- .qdesn_validation_resolve_path(material_cfg$staged_root, must_work = FALSE)
+  inventory_path <- file.path(staged_root, "materialized_source_inventory.csv")
   scenario_set <- as.character(material_cfg$scenarios %||% (defaults$reference_contract %||% list())$scenarios)
   family_set <- as.character(material_cfg$families %||% (defaults$reference_contract %||% list())$families)
   tau_set <- as.numeric(material_cfg$taus %||% (defaults$reference_contract %||% list())$taus)
   windows <- .qdesn_dynamic_crossstudy_materialization_windows(defaults)
   reservoir_name <- as.character((defaults$pilot %||% list())$reservoir_profile %||% "tiny_d1_n8")[1L]
   washout <- as.integer((((defaults$reservoir_profiles %||% list())[[reservoir_name]] %||% list())$washout %||% 0L)[1L])
+
+  if (!isTRUE(refresh) && file.exists(inventory_path)) {
+    inventory <- utils::read.csv(inventory_path, stringsAsFactors = FALSE)
+    required_cols <- c(
+      "source_scenario",
+      "source_family",
+      "tau",
+      "fit_size",
+      "effective_fit_size",
+      "source_total_size",
+      "source_window_label",
+      "source_fit_input_dir",
+      "source_report_root",
+      "source_series_wide_path",
+      "source_selection_indices_path",
+      "source_sim_path"
+    )
+    if (nrow(inventory) && all(required_cols %in% names(inventory))) {
+      return(inventory)
+    }
+  }
 
   if (!length(scenario_set) || !length(family_set) || !length(tau_set)) {
     stop("Dynamic source materialization requires non-empty scenarios, families, and taus.", call. = FALSE)
@@ -473,7 +495,7 @@ qdesn_dynamic_crossstudy_materialize_source_inputs <- function(defaults,
 
   inventory <- .qdesn_validation_bind_rows(rows)
   inventory <- inventory[order(inventory$source_scenario, inventory$source_family, inventory$tau, inventory$fit_size), , drop = FALSE]
-  .qdesn_validation_write_df(inventory, file.path(staged_root, "materialized_source_inventory.csv"))
+  .qdesn_validation_write_df(inventory, inventory_path)
   .qdesn_validation_write_json(file.path(staged_root, "materialized_source_manifest.json"), list(
     generated_at = as.character(Sys.time()),
     source_root = source_root,
@@ -900,6 +922,293 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
   ), drop = FALSE]
 }
 
+.qdesn_dynamic_crossstudy_multiseed_cfg <- function(defaults) {
+  cfg <- defaults$multiseed %||% list()
+  list(
+    enabled = isTRUE(cfg$enabled),
+    mcmc_seed_reps = max(1L, as.integer(cfg$mcmc_seed_reps %||% 1L)[1L]),
+    parallel_seed_workers = max(1L, as.integer(cfg$parallel_seed_workers %||% 1L)[1L]),
+    selection_metric = as.character(cfg$selection_metric %||% "forecast_CRPS_mean")[1L],
+    prune_nonwinning_heavy_outputs = isTRUE(cfg$prune_nonwinning_heavy_outputs),
+    prune_rel_paths = as.character(unlist(
+      cfg$prune_rel_paths %||% c(
+        "models/forecast_objects.rds",
+        "models/rhs_trace.rds",
+        "models/timing_summary.rds"
+      ),
+      use.names = FALSE
+    )),
+    seed_base = as.integer(cfg$seed_base %||% 500000L)[1L],
+    model_offsets = cfg$model_offsets %||% list(al = 0L, exal = 5000L),
+    desn_offset = as.integer(cfg$desn_offset %||% 30000L)[1L],
+    mcmc_seed_offset = as.integer(cfg$mcmc_seed_offset %||% 0L)[1L],
+    mcmc_rng_offset = as.integer(cfg$mcmc_rng_offset %||% 0L)[1L],
+    vb_warm_start_offset = as.integer(cfg$vb_warm_start_offset %||% 10000L)[1L],
+    synthesis_offset = as.integer(cfg$synthesis_offset %||% 20000L)[1L]
+  )
+}
+
+.qdesn_dynamic_crossstudy_hash_int <- function(text, modulus = 50000L) {
+  raw <- utf8ToInt(enc2utf8(as.character(text %||% "")[1L]))
+  if (!length(raw)) return(0L)
+  acc <- 0
+  for (val in raw) {
+    acc <- (acc * 131 + as.numeric(val)) %% as.numeric(modulus)
+  }
+  as.integer(acc)
+}
+
+.qdesn_dynamic_crossstudy_seed_bundle <- function(root_spec,
+                                                  likelihood_family,
+                                                  seed_rep,
+                                                  multiseed_cfg) {
+  seed_rep <- as.integer(seed_rep)[1L]
+  root_hash <- .qdesn_dynamic_crossstudy_hash_int(root_spec$root_id, modulus = 50000L)
+  model_offset <- as.integer((multiseed_cfg$model_offsets %||% list())[[likelihood_family]] %||% 0L)[1L]
+  base_seed <- as.integer(
+    multiseed_cfg$seed_base +
+      100L * root_hash +
+      model_offset +
+      as.integer(root_spec$seed %||% 0L)
+  )[1L]
+  list(
+    seed_rep = seed_rep,
+    seed_base = base_seed,
+    model = as.character(likelihood_family)[1L],
+    desn_seed = as.integer(base_seed + multiseed_cfg$desn_offset + seed_rep)[1L],
+    mcmc_seed = as.integer(base_seed + multiseed_cfg$mcmc_seed_offset + seed_rep)[1L],
+    mcmc_rng_seed = as.integer(base_seed + multiseed_cfg$mcmc_rng_offset + seed_rep)[1L],
+    vb_warm_start_seed = as.integer(base_seed + multiseed_cfg$vb_warm_start_offset + seed_rep)[1L],
+    synthesis_seed = as.integer(base_seed + multiseed_cfg$synthesis_offset + seed_rep)[1L]
+  )
+}
+
+.qdesn_dynamic_crossstudy_safe_num <- function(x, default = Inf) {
+  out <- suppressWarnings(as.numeric(x)[1L])
+  if (!is.finite(out)) default else out
+}
+
+.qdesn_dynamic_crossstudy_seed_metric_row <- function(root_spec,
+                                                      likelihood_family,
+                                                      run_res,
+                                                      seed_bundle,
+                                                      selection_metric,
+                                                      seed_method_dir) {
+  fit_row <- run_res$fit_summary[1L, , drop = FALSE]
+  if (!nrow(fit_row)) {
+    fit_row <- data.frame(stringsAsFactors = FALSE)
+  }
+  fit_row$seed_rep <- as.integer(seed_bundle$seed_rep)
+  fit_row$seed_base <- as.integer(seed_bundle$seed_base)
+  fit_row$desn_seed <- as.integer(seed_bundle$desn_seed)
+  fit_row$mcmc_seed <- as.integer(seed_bundle$mcmc_seed)
+  fit_row$mcmc_rng_seed <- as.integer(seed_bundle$mcmc_rng_seed)
+  fit_row$vb_warm_start_seed <- as.integer(seed_bundle$vb_warm_start_seed)
+  fit_row$synthesis_seed <- as.integer(seed_bundle$synthesis_seed)
+  fit_row$selection_metric_name <- as.character(selection_metric)[1L]
+  fit_row$selection_metric_value <- .qdesn_dynamic_crossstudy_safe_num(
+    fit_row[[selection_metric]],
+    default = Inf
+  )
+  fit_row$selection_runtime_sec <- .qdesn_dynamic_crossstudy_safe_num(
+    fit_row$runtime_sec %||% fit_row$fit_runtime_seconds %||% run_res$health$wall_seconds,
+    default = Inf
+  )
+  grade_score <- .qdesn_validation_multichain_grade_score(fit_row$signoff_grade %||% NA_character_)
+  fit_row$seed_grade_score <- if (is.na(grade_score[1L])) -1 else as.numeric(grade_score[1L])
+  fit_row$seed_method_dir <- normalizePath(seed_method_dir, winslash = "/", mustWork = FALSE)
+  fit_row$selected_seed <- FALSE
+  fit_row$seed_selection_rank <- NA_integer_
+  fit_row$model <- as.character(fit_row$model[1L] %||% likelihood_family)[1L]
+  fit_row$root_id <- as.character(fit_row$root_id[1L] %||% root_spec$root_id)[1L]
+  fit_row
+}
+
+.qdesn_dynamic_crossstudy_rank_seed_metrics <- function(seed_metrics_df) {
+  seed_metrics_df <- as.data.frame(seed_metrics_df, stringsAsFactors = FALSE)
+  if (!nrow(seed_metrics_df)) return(seed_metrics_df)
+  ord <- order(
+    -as.numeric(seed_metrics_df$seed_grade_score %||% -1),
+    as.numeric(seed_metrics_df$selection_metric_value %||% Inf),
+    as.numeric(seed_metrics_df$selection_runtime_sec %||% Inf),
+    as.integer(seed_metrics_df$seed_rep %||% seq_len(nrow(seed_metrics_df)))
+  )
+  out <- seed_metrics_df[ord, , drop = FALSE]
+  out$seed_selection_rank <- seq_len(nrow(out))
+  out$selected_seed <- seq_len(nrow(out)) == 1L
+  out
+}
+
+.qdesn_dynamic_crossstudy_copy_selected_seed_artifacts <- function(selected_seed_dir,
+                                                                   canonical_method_dir) {
+  rel_paths <- c(
+    "fit_request.json",
+    "fit_summary_row.csv",
+    "health_summary.csv",
+    "signoff_summary.csv",
+    "progress_trace.csv",
+    "chain_summary.csv",
+    file.path("manifest", "manifest_real.json"),
+    file.path("logs", "pipeline_stdout.log"),
+    file.path("tables", "timing_breakdown.csv"),
+    file.path("tables", "timing_summary.csv")
+  )
+  for (rel_path in rel_paths) {
+    src <- file.path(selected_seed_dir, rel_path)
+    if (!file.exists(src)) next
+    dst <- file.path(canonical_method_dir, rel_path)
+    .qdesn_validation_dir_create(dirname(dst))
+    ok <- file.copy(src, dst, overwrite = TRUE)
+    if (!isTRUE(ok)) {
+      stop(sprintf("Failed to copy selected seed artifact '%s' to '%s'.", src, dst), call. = FALSE)
+    }
+  }
+}
+
+.qdesn_dynamic_crossstudy_prune_seed_artifacts <- function(seed_method_dir, rel_paths) {
+  rel_paths <- as.character(rel_paths)
+  for (rel_path in rel_paths[nzchar(rel_paths)]) {
+    target <- file.path(seed_method_dir, rel_path)
+    if (file.exists(target)) {
+      unlink(target, recursive = TRUE, force = TRUE)
+    }
+  }
+  invisible(seed_method_dir)
+}
+
+.qdesn_dynamic_crossstudy_run_selected_mcmc_fit <- function(root_spec,
+                                                            defaults,
+                                                            staged_data,
+                                                            root_dir,
+                                                            likelihood_family,
+                                                            verbose = TRUE) {
+  multiseed_cfg <- .qdesn_dynamic_crossstudy_multiseed_cfg(defaults)
+  canonical_method_dir <- file.path(root_dir, "fits", paste("mcmc", likelihood_family, sep = "_"))
+  .qdesn_validation_dir_create(canonical_method_dir)
+
+  if (!isTRUE(multiseed_cfg$enabled) || multiseed_cfg$mcmc_seed_reps <= 1L) {
+    res <- .qdesn_static_crossstudy_run_one_fit(
+      root_spec = root_spec,
+      defaults = defaults,
+      staged_data = staged_data,
+      root_dir = root_dir,
+      method = "mcmc",
+      method_dir = canonical_method_dir,
+      likelihood_family = likelihood_family
+    )
+    return(c(res, list(seed_selection = data.frame(stringsAsFactors = FALSE))))
+  }
+
+  run_seed_once <- function(seed_rep) {
+    bundle <- .qdesn_dynamic_crossstudy_seed_bundle(
+      root_spec = root_spec,
+      likelihood_family = likelihood_family,
+      seed_rep = seed_rep,
+      multiseed_cfg = multiseed_cfg
+    )
+    seed_root_spec <- modifyList(root_spec, list(
+      seed = bundle$desn_seed,
+      desn_seed = bundle$desn_seed,
+      mcmc_seed = bundle$mcmc_seed,
+      mcmc_rng_seed = bundle$mcmc_rng_seed,
+      vb_warm_start_seed = bundle$vb_warm_start_seed,
+      synthesis_seed = bundle$synthesis_seed
+    ))
+    seed_method_dir <- file.path(canonical_method_dir, "seeds", sprintf("seed_%02d", seed_rep))
+    if (isTRUE(verbose)) {
+      message(sprintf(
+        "[qdesn_dynamic_crossstudy_run_root] %s | %s | mcmc | seed_rep=%02d | desn_seed=%d | mcmc_rng_seed=%d",
+        root_spec$root_id,
+        likelihood_family,
+        seed_rep,
+        bundle$desn_seed,
+        bundle$mcmc_rng_seed
+      ))
+    }
+    res_i <- .qdesn_static_crossstudy_run_one_fit(
+      root_spec = seed_root_spec,
+      defaults = defaults,
+      staged_data = staged_data,
+      root_dir = root_dir,
+      method = "mcmc",
+      method_dir = seed_method_dir,
+      likelihood_family = likelihood_family
+    )
+    seed_metric <- .qdesn_dynamic_crossstudy_seed_metric_row(
+      root_spec = root_spec,
+      likelihood_family = likelihood_family,
+      run_res = res_i,
+      seed_bundle = bundle,
+      selection_metric = multiseed_cfg$selection_metric,
+      seed_method_dir = seed_method_dir
+    )
+    list(
+      result = res_i,
+      bundle = bundle,
+      seed_method_dir = seed_method_dir,
+      seed_metric = seed_metric
+    )
+  }
+
+  can_parallel <- multiseed_cfg$parallel_seed_workers > 1L &&
+    multiseed_cfg$mcmc_seed_reps > 1L &&
+    identical(.Platform$OS.type, "unix")
+  seed_results <- if (isTRUE(can_parallel)) {
+    parallel::mclapply(
+      X = seq_len(multiseed_cfg$mcmc_seed_reps),
+      FUN = run_seed_once,
+      mc.cores = min(multiseed_cfg$parallel_seed_workers, multiseed_cfg$mcmc_seed_reps),
+      mc.preschedule = FALSE
+    )
+  } else {
+    lapply(seq_len(multiseed_cfg$mcmc_seed_reps), run_seed_once)
+  }
+  seed_rows <- lapply(seed_results, function(x) x$seed_metric)
+  seed_runs <- stats::setNames(seed_results, sprintf("%d", seq_len(multiseed_cfg$mcmc_seed_reps)))
+
+  ranked_seed_df <- .qdesn_dynamic_crossstudy_rank_seed_metrics(
+    .qdesn_validation_bind_rows(seed_rows)
+  )
+  selected_seed_rep <- as.integer(ranked_seed_df$seed_rep[1L])
+  selected_seed <- seed_runs[[as.character(selected_seed_rep)]]
+  .qdesn_dynamic_crossstudy_copy_selected_seed_artifacts(
+    selected_seed_dir = selected_seed$seed_method_dir,
+    canonical_method_dir = canonical_method_dir
+  )
+  .qdesn_validation_write_df(
+    ranked_seed_df,
+    file.path(canonical_method_dir, "mcmc_seed_selection.csv")
+  )
+  .qdesn_validation_write_json(
+    file.path(canonical_method_dir, "manifest", "selected_seed_manifest.json"),
+    list(
+      generated_at = as.character(Sys.time()),
+      selection_rule = list(
+        grade_order = c("PASS", "WARN", "FAIL"),
+        primary_metric = multiseed_cfg$selection_metric,
+        tiebreakers = c("runtime_sec", "seed_rep")
+      ),
+      selected_seed_rep = selected_seed_rep,
+      selected_seed_dir = normalizePath(selected_seed$seed_method_dir, winslash = "/", mustWork = FALSE),
+      selected_seed_bundle = selected_seed$bundle,
+      prune_nonwinning_heavy_outputs = isTRUE(multiseed_cfg$prune_nonwinning_heavy_outputs),
+      prune_rel_paths = multiseed_cfg$prune_rel_paths
+    )
+  )
+
+  if (isTRUE(multiseed_cfg$prune_nonwinning_heavy_outputs)) {
+    losing_reps <- setdiff(as.integer(ranked_seed_df$seed_rep), selected_seed_rep)
+    for (seed_rep in losing_reps) {
+      .qdesn_dynamic_crossstudy_prune_seed_artifacts(
+        seed_method_dir = seed_runs[[as.character(seed_rep)]]$seed_method_dir,
+        rel_paths = multiseed_cfg$prune_rel_paths
+      )
+    }
+  }
+
+  c(selected_seed$result, list(seed_selection = ranked_seed_df))
+}
+
 qdesn_dynamic_crossstudy_run_root <- function(root_spec,
                                               defaults,
                                               output_root,
@@ -932,6 +1241,7 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
     source_reference_priors = root_spec$source_reference_priors,
     reservoir_profile = root_spec$reservoir_profile,
     seed = as.integer(root_spec$seed),
+    multiseed = defaults$multiseed %||% list(),
     git_sha = .qdesn_validation_git_sha(),
     started_at = as.character(Sys.time())
   ))
@@ -939,28 +1249,42 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
   staged_data <- qdesn_dynamic_crossstudy_stage_dataset(root_spec, root_dir, defaults)
   fit_rows <- list()
   progress_rows <- list()
+  seed_selection_rows <- list()
   for (likelihood_family in c("exal", "al")) {
-    for (method in c("vb", "mcmc")) {
-      if (isTRUE(verbose)) {
-        message(sprintf(
-          "[qdesn_dynamic_crossstudy_run_root] %s | %s | %s",
-          root_spec$root_id,
-          likelihood_family,
-          method
-        ))
-      }
-      res <- .qdesn_static_crossstudy_run_one_fit(
-        root_spec = root_spec,
-        defaults = defaults,
-        staged_data = staged_data,
-        root_dir = root_dir,
-        method = method,
-        likelihood_family = likelihood_family
-      )
-      fit_rows[[length(fit_rows) + 1L]] <- res$fit_summary
-      if (nrow(res$progress_trace)) {
-        progress_rows[[length(progress_rows) + 1L]] <- res$progress_trace
-      }
+    if (isTRUE(verbose)) {
+      message(sprintf(
+        "[qdesn_dynamic_crossstudy_run_root] %s | %s | vb",
+        root_spec$root_id,
+        likelihood_family
+      ))
+    }
+    vb_res <- .qdesn_static_crossstudy_run_one_fit(
+      root_spec = root_spec,
+      defaults = defaults,
+      staged_data = staged_data,
+      root_dir = root_dir,
+      method = "vb",
+      likelihood_family = likelihood_family
+    )
+    fit_rows[[length(fit_rows) + 1L]] <- vb_res$fit_summary
+    if (nrow(vb_res$progress_trace)) {
+      progress_rows[[length(progress_rows) + 1L]] <- vb_res$progress_trace
+    }
+
+    mcmc_res <- .qdesn_dynamic_crossstudy_run_selected_mcmc_fit(
+      root_spec = root_spec,
+      defaults = defaults,
+      staged_data = staged_data,
+      root_dir = root_dir,
+      likelihood_family = likelihood_family,
+      verbose = verbose
+    )
+    fit_rows[[length(fit_rows) + 1L]] <- mcmc_res$fit_summary
+    if (nrow(mcmc_res$progress_trace)) {
+      progress_rows[[length(progress_rows) + 1L]] <- mcmc_res$progress_trace
+    }
+    if (nrow(mcmc_res$seed_selection %||% data.frame(stringsAsFactors = FALSE))) {
+      seed_selection_rows[[length(seed_selection_rows) + 1L]] <- mcmc_res$seed_selection
     }
   }
 
@@ -982,6 +1306,12 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
   .qdesn_validation_write_df(pairwise_vb_vs_mcmc, file.path(root_dir, "tables", "pairwise_vb_vs_mcmc.csv"))
   .qdesn_validation_write_df(model_pair_summary, file.path(root_dir, "tables", "model_pair_signoff.csv"))
   .qdesn_validation_write_df(root_summary, file.path(root_dir, "tables", "root_signoff_summary.csv"))
+  if (length(seed_selection_rows)) {
+    .qdesn_validation_write_df(
+      .qdesn_validation_bind_rows(seed_selection_rows),
+      file.path(root_dir, "tables", "mcmc_seed_selection.csv")
+    )
+  }
   if (length(progress_rows)) {
     .qdesn_validation_write_df(.qdesn_validation_bind_rows(progress_rows), file.path(root_dir, "tables", "progress_trace_long.csv"))
   }
@@ -1170,6 +1500,7 @@ qdesn_dynamic_crossstudy_collect_campaign <- function(results_root,
   pairwise_vb_vs_mcmc <- .qdesn_static_crossstudy_collect_root_tables(root_dirs, "pairwise_vb_vs_mcmc.csv")
   model_pair_signoff <- .qdesn_static_crossstudy_collect_root_tables(root_dirs, "model_pair_signoff.csv")
   root_summary <- .qdesn_static_crossstudy_collect_root_tables(root_dirs, "root_signoff_summary.csv")
+  seed_selection <- .qdesn_static_crossstudy_collect_root_tables(root_dirs, "mcmc_seed_selection.csv")
   progress_rows <- .qdesn_static_crossstudy_collect_root_tables(root_dirs, "progress_trace_long.csv")
 
   .qdesn_validation_dir_create(file.path(report_root, "tables"))
@@ -1177,6 +1508,13 @@ qdesn_dynamic_crossstudy_collect_campaign <- function(results_root,
   .qdesn_validation_write_df(fit_summary, file.path(report_root, "tables", "campaign_fit_summary.csv"))
   .qdesn_validation_write_df(pairwise_vb_vs_mcmc, file.path(report_root, "tables", "campaign_pairwise_vb_vs_mcmc.csv"))
   .qdesn_validation_write_df(model_pair_signoff, file.path(report_root, "tables", "campaign_model_pair_signoff.csv"))
+  if (nrow(seed_selection)) {
+    .qdesn_validation_write_df(seed_selection, file.path(report_root, "tables", "campaign_mcmc_seed_selection.csv"))
+    .qdesn_validation_write_df(
+      seed_selection[as.logical(seed_selection$selected_seed), , drop = FALSE],
+      file.path(report_root, "tables", "campaign_mcmc_seed_winners.csv")
+    )
+  }
   if (nrow(progress_rows)) {
     .qdesn_validation_write_df(progress_rows, file.path(report_root, "tables", "campaign_progress_trace_long.csv"))
   }
@@ -1270,6 +1608,9 @@ qdesn_dynamic_crossstudy_collect_campaign <- function(results_root,
     "## Algorithm Pair Signoff Mix",
     .qdesn_validation_df_to_markdown(pair_signoff_mix),
     "",
+    if (nrow(seed_selection)) "## MCMC Seed Winners" else NULL,
+    if (nrow(seed_selection)) .qdesn_validation_df_to_markdown(seed_selection[as.logical(seed_selection$selected_seed), , drop = FALSE]) else NULL,
+    if (nrow(seed_selection)) "" else NULL,
     "## Fit Group Summary",
     .qdesn_validation_df_to_markdown(utils::head(fit_group, 24L)),
     "",
@@ -1296,6 +1637,7 @@ qdesn_dynamic_crossstudy_collect_campaign <- function(results_root,
     fit_summary = fit_summary,
     pairwise_vb_vs_mcmc = pairwise_vb_vs_mcmc,
     model_pair_signoff = model_pair_signoff,
+    mcmc_seed_selection = seed_selection,
     fit_group = fit_group,
     pair_group = pair_group,
     model_group = model_group,

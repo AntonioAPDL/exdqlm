@@ -494,6 +494,26 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
     cfg$inference$mcmc$priors$beta$type <- root_spec$beta_prior_type
   }
 
+  cfg$desn <- modifyList(list(), cfg$desn %||% list())
+  cfg$desn$seed <- as.integer(root_spec$desn_seed %||% root_spec$seed %||% cfg$desn$seed %||% 123L)[1L]
+  cfg$synthesis$seed <- as.integer(root_spec$synthesis_seed %||% cfg$synthesis$seed %||% 321L)[1L]
+  cfg$metrics <- modifyList(defaults$metrics %||% list(), cfg$metrics %||% list())
+  if (identical(method, "mcmc")) {
+    seed_patch <- list()
+    if (!is.null(root_spec$mcmc_rng_seed)) {
+      seed_patch$rng_seed <- as.integer(root_spec$mcmc_rng_seed)[1L]
+    }
+    if (!is.null(root_spec$mcmc_seed)) {
+      seed_patch$seed <- as.integer(root_spec$mcmc_seed)[1L]
+    }
+    if (length(seed_patch)) {
+      cfg$inference$mcmc$control <- modifyList(cfg$inference$mcmc$control %||% list(), seed_patch)
+    }
+    if (!is.null(root_spec$vb_warm_start_seed)) {
+      cfg$inference$mcmc$vb_warm_start_seed <- as.integer(root_spec$vb_warm_start_seed)[1L]
+    }
+  }
+
   cfg
 }
 
@@ -1050,6 +1070,16 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     fit_runtime_seconds = runtime_sec,
     wall_seconds = runtime_sec,
     total_stage_seconds = runtime_sec,
+    forecast_CRPS_mean = as.numeric(health_row$forecast_CRPS_mean[1L] %||% NA_real_),
+    forecast_PinballMean_mean = as.numeric(health_row$forecast_PinballMean_mean[1L] %||% NA_real_),
+    forecast_S_mean = as.numeric(health_row$forecast_S_mean[1L] %||% NA_real_),
+    forecast_qhat_mae = as.numeric(health_row$forecast_qhat_mae[1L] %||% NA_real_),
+    forecast_qhat_rmse = as.numeric(health_row$forecast_qhat_rmse[1L] %||% NA_real_),
+    forecast_pinball_tau = as.numeric(health_row$forecast_pinball_tau[1L] %||% NA_real_),
+    forecast_qhat_bias = as.numeric(health_row$forecast_qhat_bias[1L] %||% NA_real_),
+    signal_qhat_mae = as.numeric(health_row$signal_qhat_mae[1L] %||% NA_real_),
+    signal_qhat_rmse = as.numeric(health_row$signal_qhat_rmse[1L] %||% NA_real_),
+    signal_qhat_corr = as.numeric(health_row$signal_qhat_corr[1L] %||% NA_real_),
     iter_like = iter_like,
     converged = converged,
     stop_reason = as.character(signoff_row$signoff_reason[1L] %||% NA_character_),
@@ -1370,11 +1400,12 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
                                                  staged_data,
                                                  root_dir,
                                                  method = c("vb", "mcmc"),
+                                                 method_dir = NULL,
                                                  likelihood_family = c("exal", "al")) {
   method <- match.arg(method)
   likelihood_family <- match.arg(likelihood_family)
   root_spec_lik <- modifyList(root_spec, list(likelihood_family = likelihood_family))
-  method_dir <- file.path(root_dir, "fits", paste(method, likelihood_family, sep = "_"))
+  method_dir <- method_dir %||% file.path(root_dir, "fits", paste(method, likelihood_family, sep = "_"))
   .qdesn_validation_dir_create(method_dir)
   cfg <- qdesn_static_crossstudy_build_pipeline_cfg(
     root_spec = root_spec_lik,
@@ -1469,6 +1500,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     return(list(
       method = method,
       likelihood_family = likelihood_family,
+      method_dir = method_dir,
       status = status,
       error_message = error_message,
       health = health_row,
@@ -1523,6 +1555,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   list(
     method = method,
     likelihood_family = likelihood_family,
+    method_dir = method_dir,
     status = as.character(health_row$status[1L] %||% status),
     error_message = error_message,
     health = health_row,

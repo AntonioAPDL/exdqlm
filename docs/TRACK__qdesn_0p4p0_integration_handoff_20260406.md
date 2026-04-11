@@ -194,6 +194,43 @@ Deep-DESN Wave 1 closeout and current residual continuation:
   - zero-byte wave CSVs now read safely
   - future fit-fail waves now preserve schema when writing empty local-baseline tables
 
+Normalized multiseed relaunch implementation state:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_relaunch_20260411.md`
+- implementation report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_implementation_and_preflight_20260411.md`
+- post-`F630` promoted challenger source:
+  - `71 PASS`
+  - `60 WARN`
+  - `13 FAIL`
+  - `36/36` root `SUCCESS`
+  - `0/36` root `FAIL`
+- normalized contract:
+  - VB / posterior draws `20000`
+  - MCMC burn-in `5000`
+  - MCMC kept iterations `20000`
+  - `4` deterministic MCMC seed replicates with best-seed selection by grade then CRPS
+- checked-in launch assets:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_defaults.yaml`
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_grid.csv`
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_validation.R`
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_validation.R`
+- committed-state preflights:
+  - canary:
+    - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-normseed-canary-preflight-20260411`
+    - passes
+  - full:
+    - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-normseed-full-preflight-20260411`
+    - passes
+- current next step:
+  - commit/push the normalized multiseed implementation state and decide whether to launch a canary
+    execution run before the full relaunch
+
 Validated deep-DESN final residual wave:
 
 - plan:

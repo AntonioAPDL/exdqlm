@@ -915,3 +915,79 @@ Current rule:
 - freeze the deep-DESN challenger source at the post-`F630` state for planning purposes;
 - do not launch the big normalized multiseed rerun until seed plumbing, selection logic,
   posterior-draw semantics, and storage handling are explicitly implemented and canary-validated.
+
+## 13) Normalized Multiseed Implementation State (2026-04-11)
+
+The normalized multiseed relaunch infrastructure is now implemented on this branch and validated at
+the code-load and `prepare-only` levels.
+
+Implementation report:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_implementation_and_preflight_20260411.md`
+
+Implemented assets:
+
+- defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_defaults.yaml`
+- canary grid:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_grid.csv`
+- canary grid materializer:
+  - `scripts/materialize_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_grid.R`
+- full wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_validation.R`
+- canary wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_validation.R`
+
+Implementation highlights:
+
+- MCMC now supports `4` deterministic seed replicates per method with:
+  - DESN seed
+  - MCMC RNG seed
+  - VB warm-start seed
+  - synthesis seed
+- best-seed selection is now recorded by:
+  - signoff grade first
+  - then `forecast_CRPS_mean`
+  - then runtime
+  - then seed replicate id
+- root-level and campaign-level `mcmc_seed_selection.csv` outputs are now supported
+- non-winning heavy seed artifacts are now pruned
+- staged effective-w300 source inventory is now reused when already materialized
+- reference inventory parsing now tolerates missing raw reference `sim_output.rds` files
+
+Normalized contract now wired:
+
+- VB / posterior draws:
+  - `posterior_metric_draws = 20000`
+  - `sampling.nd_draws = 20000`
+  - `synthesis.n_samp = 20000`
+- MCMC:
+  - `n_burn = 5000`
+  - `n_mcmc = 20000`
+  - `thin = 1`
+- parallelism:
+  - outer workers `1`
+  - inner seed workers `4`
+
+Validated preflight state:
+
+- code load:
+  - passes
+- helper checks:
+  - passes
+- canary `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-normseed-canary-preflight-20260411`
+  - passes
+- full `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-normseed-full-preflight-20260411`
+  - passes
+
+Current launch rule:
+
+- the normalized multiseed relaunch surface is now implementation-ready;
+- no canary execution run or full relaunch has been started in this tracker update;
+- launch remains a deliberate next step after committing and pushing the implementation state.

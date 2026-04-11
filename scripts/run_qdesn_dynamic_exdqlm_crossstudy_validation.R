@@ -167,6 +167,11 @@ reference_inventory <- exdqlm:::qdesn_dynamic_crossstudy_collect_reference_inven
 reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, defaults)
 
 runtime_cfg <- defaults$runtime %||% list()
+multiseed_cfg <- defaults$multiseed %||% list()
+pipeline_cfg <- defaults$pipeline %||% list()
+pipeline_mcmc_cfg <- pipeline_cfg$inference$mcmc %||% list()
+pipeline_sampling_cfg <- pipeline_cfg$sampling %||% list()
+pipeline_synthesis_cfg <- pipeline_cfg$synthesis %||% list()
 active_qdesn_processes <- cmd_lines(
   "bash",
   c(
@@ -243,6 +248,21 @@ preflight_manifest <- list(
     fit_sizes = sort(unique(as.integer(selected_grid$fit_size))),
     priors = sort(unique(as.character(selected_grid$beta_prior_type)))
   ),
+  normalized_contract = list(
+    posterior_metric_draws = as.integer(defaults$metrics$posterior_metric_draws %||% NA_integer_)[1L],
+    vb_draws = as.integer(pipeline_sampling_cfg$nd_draws %||% NA_integer_)[1L],
+    synthesis_draws = as.integer(pipeline_synthesis_cfg$n_samp %||% NA_integer_)[1L],
+    mcmc_n_burn = as.integer(pipeline_mcmc_cfg$n_burn %||% NA_integer_)[1L],
+    mcmc_n_mcmc = as.integer(pipeline_mcmc_cfg$n_mcmc %||% NA_integer_)[1L],
+    mcmc_thin = as.integer(pipeline_mcmc_cfg$thin %||% NA_integer_)[1L]
+  ),
+  multiseed_summary = list(
+    enabled = isTRUE(multiseed_cfg$enabled),
+    mcmc_seed_reps = as.integer(multiseed_cfg$mcmc_seed_reps %||% 1L)[1L],
+    parallel_seed_workers = as.integer(multiseed_cfg$parallel_seed_workers %||% 1L)[1L],
+    selection_metric = as.character(multiseed_cfg$selection_metric %||% NA_character_)[1L],
+    prune_nonwinning_heavy_outputs = isTRUE(multiseed_cfg$prune_nonwinning_heavy_outputs)
+  ),
   resource_snapshot = resource_snapshot,
   output_roots = list(
     outer_results_root = run_results_root,
@@ -291,6 +311,21 @@ preflight_lines <- c(
   "- likelihoods_per_root: `exal, al`",
   "- methods_per_root: `vb, mcmc`",
   "- QDESN_priors: `ridge, rhs_ns`",
+  "",
+  "## Normalized Posterior Contract",
+  sprintf("- posterior_metric_draws: `%s`", as.character(preflight_manifest$normalized_contract$posterior_metric_draws)),
+  sprintf("- vb_draws: `%s`", as.character(preflight_manifest$normalized_contract$vb_draws)),
+  sprintf("- synthesis_draws: `%s`", as.character(preflight_manifest$normalized_contract$synthesis_draws)),
+  sprintf("- mcmc_n_burn: `%s`", as.character(preflight_manifest$normalized_contract$mcmc_n_burn)),
+  sprintf("- mcmc_n_mcmc: `%s`", as.character(preflight_manifest$normalized_contract$mcmc_n_mcmc)),
+  sprintf("- mcmc_thin: `%s`", as.character(preflight_manifest$normalized_contract$mcmc_thin)),
+  "",
+  "## Multiseed Policy",
+  sprintf("- enabled: `%s`", if (isTRUE(preflight_manifest$multiseed_summary$enabled)) "TRUE" else "FALSE"),
+  sprintf("- mcmc_seed_reps: `%s`", as.character(preflight_manifest$multiseed_summary$mcmc_seed_reps)),
+  sprintf("- parallel_seed_workers: `%s`", as.character(preflight_manifest$multiseed_summary$parallel_seed_workers)),
+  sprintf("- selection_metric: `%s`", as.character(preflight_manifest$multiseed_summary$selection_metric)),
+  sprintf("- prune_nonwinning_heavy_outputs: `%s`", if (isTRUE(preflight_manifest$multiseed_summary$prune_nonwinning_heavy_outputs)) "TRUE" else "FALSE"),
   "",
   "## Reference Inventory",
   sprintf("- reference_root_dirs: `%d`", as.integer(reference_summary$reference_root_dirs_n)),

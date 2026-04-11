@@ -93,6 +93,8 @@ pair_summary <- read_csv_safe(file.path(report_root, "tables", "campaign_pairwis
 root_summary <- read_csv_safe(file.path(report_root, "tables", "campaign_root_signoff_summary.csv"))
 fit_group <- read_csv_safe(file.path(report_root, "tables", "campaign_fit_group_summary.csv"))
 compare_delta <- read_csv_safe(file.path(report_root, "comparison_vs_reference", "tables", "qdesn_vs_reference_surface_delta.csv"))
+seed_selection <- read_csv_safe(file.path(report_root, "tables", "campaign_mcmc_seed_selection.csv"))
+seed_winners <- read_csv_safe(file.path(report_root, "tables", "campaign_mcmc_seed_winners.csv"))
 completed_manifest <- read_json_safe(file.path(report_root, "manifest", "campaign_completed.json"))
 
 selected_roots <- as.integer(preflight_manifest$selected_grid_summary$selected_roots %||% NA_integer_)[1L]
@@ -145,6 +147,8 @@ cat(sprintf("Pair summary rows: %d\n", nrow(pair_summary)))
 cat(sprintf("Root summary rows: %d\n", nrow(root_summary)))
 cat(sprintf("Fit group rows: %d\n", nrow(fit_group)))
 cat(sprintf("Surface delta rows: %d\n", nrow(compare_delta)))
+cat(sprintf("MCMC seed selection rows: %d\n", nrow(seed_selection)))
+cat(sprintf("MCMC seed winner rows: %d\n", nrow(seed_winners)))
 cat(sprintf("Campaign completed manifest present: %s\n", if (length(completed_manifest)) "TRUE" else "FALSE"))
 cat(sprintf("Launcher mode: %s\n", launcher_mode))
 cat(sprintf("Launcher session: %s\n", launcher_session))
