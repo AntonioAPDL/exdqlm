@@ -2,6 +2,26 @@
 
 Date: 2026-04-09
 
+## Status Update (2026-04-11)
+
+This framework remains valuable as a historical pre-launch planning document,
+but part of its setup has now been completed and superseded.
+
+Current interpretation rule:
+
+- the `phase0` static prior correction is complete
+- legacy mixed-prior `static_shrink / rhs` is now frozen as historical only
+- corrected `static_shrink / rhs_ns` is fully rebuilt and should be used in
+  current shrinkage comparisons
+- the current corrected scientific read should come from:
+  - [original288 table-backed cluster comparison 2026-04-11](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260411/original288_tablebacked_cluster_comparison_20260411.md)
+
+So this document should now be read as:
+
+- a useful record of the propagation logic and workstream design
+- not the final current-state source of truth for the corrected `rhs_ns`
+  comparison result
+
 This document converts the metric-comparison and cluster-diagnosis work into an
 explicit pre-launch propagation framework.
 

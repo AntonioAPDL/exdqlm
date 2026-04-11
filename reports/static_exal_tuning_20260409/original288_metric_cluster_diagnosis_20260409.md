@@ -2,6 +2,23 @@
 
 Date: 2026-04-09
 
+## Status Update (2026-04-11)
+
+This note remains useful as a historical cluster diagnosis for the old `v7`
+state, but it is now **superseded for the corrected `rhs_ns` cluster question**.
+
+Use this newer corrected comparison as the current durable source of truth:
+
+- [original288 table-backed cluster comparison 2026-04-11](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260411/original288_tablebacked_cluster_comparison_20260411.md)
+
+Reason for supersession:
+
+- this `2026-04-09` diagnosis still used legacy `static_shrink / rhs`
+  historical signal in several places
+- the corrected `2026-04-11` pass replaces that branch with explicit `rhs_ns`
+- the corrected pass also uses a table-backed extraction path with `288 / 288`
+  metric rows and `0` extraction errors
+
 This note turns the broader metric-comparison layer into a cluster-by-cluster
 diagnosis. The emphasis is on comparing:
 

@@ -2,6 +2,24 @@
 
 Date: 2026-04-09
 
+## Status Update (2026-04-11)
+
+This note remains useful as a historical `v7` metric-comparison snapshot, but
+it is now **superseded for the corrected `rhs_ns` question**.
+
+Use this newer report for the current corrected branch-level conclusion:
+
+- [original288 table-backed cluster comparison 2026-04-11](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260411/original288_tablebacked_cluster_comparison_20260411.md)
+
+Reason for supersession:
+
+- this `2026-04-09` note was built around accepted `v7`
+- it still treated `static_shrink / rhs` as a legacy mixed-prior historical
+  branch
+- the refreshed `2026-04-11` pass instead uses the corrected `rhs_ns`
+  replacement branch and a table-backed extraction path that no longer depends
+  on stale historical fit-RDS paths
+
 This note summarizes the broader metric-comparison layer for the accepted
 `original288 / v7` carryforward selection. Unlike the earlier comparison bundle,
 this layer focuses on fit/performance metrics rather than only the
