@@ -1181,3 +1181,29 @@ Superseded comparison outputs:
   as superseded for the corrected `rhs_ns` question
 - the new table-backed `20260411` comparison is the current durable source of
   truth
+
+## Next Major Relaunch Planning
+
+The next planned relaunch is the normalized multi-seed `0.4.0` rerun.
+
+Planning note:
+
+- `reports/static_exal_tuning_20260411/original288_normalized_multiseed_relaunch_plan_20260411.md`
+
+Current planning target:
+
+- normalize all active `mcmc` reruns to `n.burn = 5000`, `n.mcmc = 20000`
+- normalize exported posterior draws to `20000`
+- introduce a deterministic `4`-seed selection framework
+- rank seeds by:
+  - gate (`PASS > WARN > FAIL`)
+  - then lower `crps`
+  - then deterministic tie-breakers
+- stage the work through:
+  - seed-bank freeze
+  - normalized runner/output patch
+  - cross-path pilot
+  - full relaunch
+
+This planning note is now the live design reference for the next branch-wide
+normalization phase.
