@@ -1,0 +1,5 @@
+"slice","total","pass","warn","fail","healthy_true","healthy_false"
+"overall",288,232,53,3,285,3
+"dynamic",72,57,12,3,69,3
+"static_paper",72,57,15,0,72,0
+"static_shrink",144,118,26,0,144,0

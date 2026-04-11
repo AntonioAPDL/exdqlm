@@ -1,0 +1,8 @@
+"target_row_id","original_case_key","label","q_rmse","pplc","crps","interval_score_mean","coverage95","coverage95_gap","runtime_sec"
+11,"dynamic::gausmix::0p25::500::default::exdqlm::mcmc","final_gmix025_tt500_slice_deep320_long",9250.19738892023,1482085.57256141,2548.73326759395,39989.4925959894,1,0.05,1807.956
+11,"dynamic::gausmix::0p25::500::default::exdqlm::mcmc","final_gmix025_tt500_slice_deep400_xlong",9257.40906087397,1481310.30472369,2548.89739915515,39943.4268196314,1,0.05,2126.714
+51,"dynamic::normal::0p05::500::default::exdqlm::mcmc","final_norm005_tt500_rw_nonjoint_adapt_long",4765.207125521,508654.031951043,672.85125458305,12044.4041484636,1,0.05,1599.191
+11,"dynamic::gausmix::0p25::500::default::exdqlm::mcmc","final_gmix025_tt500_slice_wide360_balanced",9294.12151295449,1489110.33813005,2563.38948273589,40126.9663353152,1,0.05,1771.923
+27,"dynamic::laplace::0p05::500::default::exdqlm::mcmc","final_lap005_tt500_slice_deep320_hedge",10140.7709887746,1086664.16858396,1436.27219181492,25698.4700265308,1,0.05,1483.752
+51,"dynamic::normal::0p05::500::default::exdqlm::mcmc","final_norm005_tt500_slice_deep320_long",4756.75667049832,504071.431015056,668.123402529346,11962.1328792717,1,0.05,1650.83
+51,"dynamic::normal::0p05::500::default::exdqlm::mcmc","final_norm005_tt500_slice_wide360_long",4769.08913960629,509276.819357923,673.990855809043,12055.0178636791,1,0.05,1847.914

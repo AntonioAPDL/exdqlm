@@ -1,0 +1,5 @@
+"block","prior_semantics","total","pass","warn","fail","healthy_true","healthy_false"
+"dynamic","default",72,57,12,3,69,3
+"static_paper","paper",72,57,15,0,72,0
+"static_shrink","rhs_ns",72,51,21,0,72,0
+"static_shrink","ridge",72,57,15,0,72,0

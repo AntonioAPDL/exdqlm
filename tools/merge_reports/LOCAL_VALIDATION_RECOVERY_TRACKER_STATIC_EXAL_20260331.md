@@ -2821,3 +2821,79 @@ Next-step handoff:
 2. freeze corrected `rhs_ns` at `72 / 72` healthy
 3. launch the restored dynamic closure lane as the only remaining validation
    repair program from this branch state
+
+## 12.22 Corrected rhs_ns comparison refresh and current scientific read (2026-04-11)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260411/original288_tablebacked_cluster_comparison_20260411.md`
+- `tools/merge_reports/original288_tablebacked_comparison_20260411/original288_static_model_cluster_summary_20260411.csv`
+- `tools/merge_reports/original288_tablebacked_comparison_20260411/original288_dynamic_model_cluster_summary_20260411.csv`
+- `tools/merge_reports/original288_tablebacked_comparison_20260411/original288_static_algorithm_cluster_summary_20260411.csv`
+- `tools/merge_reports/original288_tablebacked_comparison_20260411/original288_dynamic_algorithm_cluster_summary_20260411.csv`
+
+State freeze:
+
+1. legacy mixed-prior `static_shrink / rhs` remains frozen as historical only
+2. corrected `static_shrink / rhs_ns` is now the comparison input for the full
+   `72`-row shrinkage branch
+3. the current accepted carry-forward baseline is `v9`:
+   - `285 / 288` healthy overall
+   - `69 / 72` healthy in `dynamic`
+   - `72 / 72` healthy in `static_paper`
+   - `144 / 144` healthy in `static_shrink`
+
+Method and model comparison refresh:
+
+1. the refreshed `2026-04-11` comparison is table-backed and reproducible:
+   - `288 / 288` metric rows
+   - `0` metric-extraction errors
+2. static model comparison within inference now reads:
+   - `mcmc`:
+     - `exal` better than `al` in `34 / 54` scenario pairs (`63.0%`)
+   - `vb`:
+     - `exal` better than `al` in `17 / 36` scenario pairs (`47.2%`)
+3. dynamic model comparison within inference now reads:
+   - `mcmc`:
+     - `exdqlm` better than `dqlm` in `3 / 18` scenario pairs (`16.7%`)
+   - `vb`:
+     - `exdqlm` better than `dqlm` in `9 / 18` scenario pairs (`50.0%`)
+
+Corrected static cluster read:
+
+1. `static_paper / paper / mcmc`:
+   - `exal` better in `12 / 18` pairs (`66.7%`)
+2. `static_shrink / rhs_ns / mcmc`:
+   - `exal` better in `11 / 18` pairs (`61.1%`)
+3. `static_shrink / ridge / mcmc`:
+   - `exal` better in `11 / 18` pairs (`61.1%`)
+
+Current scientific conclusion:
+
+1. after freezing legacy `rhs` and replacing it with explicit `rhs_ns`,
+   `exal` does perform better than `al` overall within static `mcmc`
+2. the static `vb` picture is mixed rather than broadly negative
+3. the dynamic side is still separate and more mixed; it should not be folded
+   into the static `exal` claim
+
+Within-model algorithm read:
+
+1. static:
+   - `mcmc` beats `vb` on the current primary-accuracy metric in:
+     - `15 / 18` `static_paper / al` pairs
+     - `12 / 12` available `static_paper / exal` pairs
+     - `15 / 18` `static_shrink / rhs_ns / al` pairs
+     - `11 / 12` available `static_shrink / rhs_ns / exal` pairs
+     - `13 / 18` `static_shrink / ridge / al` pairs
+     - `12 / 12` available `static_shrink / ridge / exal` pairs
+2. dynamic:
+   - `mcmc` beats `vb` in `16 / 18` `dqlm` pairs
+   - `mcmc` beats `vb` in only `2 / 18` `exdqlm` pairs
+
+Interpretation / supersession rule:
+
+1. for the corrected `rhs_ns` question, the new table-backed `2026-04-11`
+   comparison supersedes the older fit-RDS-based `2026-04-09` comparison
+   outputs
+2. the branch should now cite the `2026-04-11` table-backed comparison as the
+   current durable cluster-by-cluster read

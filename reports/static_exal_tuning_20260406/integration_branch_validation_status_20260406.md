@@ -1090,3 +1090,94 @@ Decision:
 - keep corrected static `rhs_ns` fixed at `72 / 72`
 - launch the restored dynamic closure lane as the only overnight compute from
   this branch state
+
+## Corrected RHS_NS freeze and table-backed comparison refresh (2026-04-11)
+
+The legacy mixed-prior `static_shrink / rhs` branch is now frozen as
+historical-only output. The corrected comparison path now uses the explicit
+`rhs_ns` replacement branch everywhere in shrinkage comparisons.
+
+Current accepted branch state:
+
+- accepted baseline: `v9`
+- overall healthy: `285 / 288`
+- unresolved accepted tail: `3 / 288`
+- dynamic healthy: `69 / 72`
+- static paper healthy: `72 / 72`
+- static shrink healthy: `144 / 144`
+
+Current corrected comparison-selection state:
+
+- source file:
+  - `tools/merge_reports/LOCAL_original288_comparison_selection_rhsns_v1_20260411.csv`
+- summary file:
+  - `tools/merge_reports/LOCAL_original288_comparison_selection_rhsns_summary_v1_20260411.csv`
+- corrected shrinkage split:
+  - `static_shrink / rhs_ns`: `72 / 72` healthy
+  - `static_shrink / ridge`: `72 / 72` healthy
+
+The refreshed comparison is now table-backed rather than fit-RDS-path-backed:
+
+- report:
+  - `reports/static_exal_tuning_20260411/original288_tablebacked_cluster_comparison_20260411.md`
+- output directory:
+  - `tools/merge_reports/original288_tablebacked_comparison_20260411/`
+- metric rows:
+  - `288 / 288`
+- metric errors:
+  - `0`
+
+Main current-state comparison results:
+
+- static model comparison within inference:
+  - `mcmc`:
+    - `exal` better than `al` in `34 / 54` scenario pairs (`63.0%`)
+  - `vb`:
+    - `exal` better than `al` in `17 / 36` scenario pairs (`47.2%`)
+- dynamic model comparison within inference:
+  - `mcmc`:
+    - `exdqlm` better than `dqlm` in `3 / 18` scenario pairs (`16.7%`)
+  - `vb`:
+    - `exdqlm` better than `dqlm` in `9 / 18` scenario pairs (`50.0%`)
+
+Static cluster-by-cluster read after the `rhs_ns` correction:
+
+- `static_paper / paper / mcmc`:
+  - `exal` better in `12 / 18` pairs (`66.7%`)
+- `static_shrink / rhs_ns / mcmc`:
+  - `exal` better in `11 / 18` pairs (`61.1%`)
+- `static_shrink / ridge / mcmc`:
+  - `exal` better in `11 / 18` pairs (`61.1%`)
+
+This is the main corrected scientific conclusion:
+
+- after freezing legacy `rhs` and replacing it with explicit `rhs_ns`,
+  `exal` does perform better than `al` overall within static `mcmc`
+  across the current scenario set
+
+Algorithm comparison within model:
+
+- static:
+  - `mcmc` beats `vb` on the current primary-accuracy metric in:
+    - `15 / 18` `static_paper / al` pairs
+    - `12 / 12` available `static_paper / exal` pairs
+    - `15 / 18` `static_shrink / rhs_ns / al` pairs
+    - `11 / 12` available `static_shrink / rhs_ns / exal` pairs
+    - `13 / 18` `static_shrink / ridge / al` pairs
+    - `12 / 12` available `static_shrink / ridge / exal` pairs
+- dynamic:
+  - `mcmc` beats `vb` in `16 / 18` `dqlm` pairs
+  - `mcmc` beats `vb` in only `2 / 18` `exdqlm` pairs
+
+Dynamic interpretation remains separate from the static claim:
+
+- `exdqlm` is still mixed overall
+- the main `exdqlm` win pocket remains `tau = 0p95`
+- lower dynamic taus remain unfavorable in `mcmc`
+
+Superseded comparison outputs:
+
+- the earlier fit-RDS-based `20260409` comparison notes should now be treated
+  as superseded for the corrected `rhs_ns` question
+- the new table-backed `20260411` comparison is the current durable source of
+  truth

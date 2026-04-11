@@ -1,0 +1,3 @@
+"inference","n","available_accuracy","better_accuracy","better_accuracy_share","healthier","healthier_share","delta_median","delta_mean","runtime_ratio_median"
+"mcmc",18,18,3,0.166666666666667,1,0.0555555555555556,61.652779268849,1282.34821575857,2.71144878507728
+"vb",18,18,9,0.5,0,0,2.22045003159551,-31.0856451268757,3.11605268520648

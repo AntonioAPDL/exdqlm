@@ -1,0 +1,3 @@
+"model","n","available_accuracy","better_accuracy","better_accuracy_share","healthier","healthier_share","delta_median","delta_mean","runtime_ratio_median"
+"dqlm",18,18,16,0.888888888888889,0,0,-2.91096987366444,-4.25129129146624,11.1647548891215
+"exdqlm",18,18,2,0.111111111111111,0,0,48.257547213317,1309.18256959398,7.39700258912567
