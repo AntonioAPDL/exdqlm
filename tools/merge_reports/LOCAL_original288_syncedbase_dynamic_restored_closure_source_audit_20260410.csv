@@ -1,0 +1,7 @@
+"row_id","original_case_key","family","tau_label","fit_size","source_series_exists","source_selection_exists","source_truth_grid_exists","materialized_source_exists","materialized_sim_exists","restored_sim_exists","synthetic_baseline_exists"
+7,"dynamic::gausmix::0p05::5000::default::exdqlm::mcmc","gausmix","0p05",5000,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+11,"dynamic::gausmix::0p25::500::default::exdqlm::mcmc","gausmix","0p25",500,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+27,"dynamic::laplace::0p05::500::default::exdqlm::mcmc","laplace","0p05",500,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+31,"dynamic::laplace::0p05::5000::default::exdqlm::mcmc","laplace","0p05",5000,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+51,"dynamic::normal::0p05::500::default::exdqlm::mcmc","normal","0p05",500,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+55,"dynamic::normal::0p05::5000::default::exdqlm::mcmc","normal","0p05",5000,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE

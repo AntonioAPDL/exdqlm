@@ -2766,3 +2766,58 @@ Next-step handoff:
 5. keep `slice` as the default kernel for future true `vb` follow-up work, but
    keep row-local `laplace_rw` exceptions whenever the row-specific evidence is
    stronger
+
+## 12.21 Static rhs_ns closure and restored dynamic handoff (2026-04-10)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260410/original_288_static_shrink_rhsns_exal_mcmc_gausmix_stationarity_bridge_execution_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_syncedbase_dynamic_restored_closure_program_20260410.md`
+- `reports/static_exal_tuning_20260410/original_288_syncedbase_dynamic_restored_closure_execution_20260410.md`
+
+Closeout summary:
+
+1. the stationarity-bridge lane is complete
+2. no accepted-branch promotion was justified
+3. one corrected-working promotion **was** justified
+4. the corrected `static_shrink / rhs_ns` working branch is now:
+   - `72 / 72` healthy
+   - `0 / 72` unresolved
+5. the accepted publication-target debt is now only:
+   - the `6` unresolved `dynamic / exdqlm / mcmc` rows
+
+Corrected-working promotion:
+
+1. row:
+   - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+2. promoted candidate:
+   - `bridge_rw_f0845_s100_b12000_k2000_sub2`
+3. gate change:
+   - `FAIL -> WARN`
+4. accepted comparison:
+   - `matches_accepted`
+5. interpretation:
+   - the corrected `rhs_ns` branch is now scientifically clean and fully
+     closed, but the accepted `v8` branch does not advance because the promoted
+     corrected row only matches the accepted legacy `rhs` gate
+
+Main technical read:
+
+1. the best rescue on the final static row came from a burn-heavy row-local
+   `laplace_rw` bridge
+2. the VB bridge phase and the new-kernel hedge were both fully negative on
+   that row
+3. the earlier dynamic closure blocker was real, but it is now resolved by
+   reconstructing the dynamic source state from the qdesn materialized source
+   windows plus synthetic baseline objects
+4. the restored dynamic closure lane now validates with:
+   - `24` candidates
+   - `6` target rows
+   - `0` missing inputs
+
+Next-step handoff:
+
+1. keep accepted `v8` fixed at `282 / 288` healthy
+2. freeze corrected `rhs_ns` at `72 / 72` healthy
+3. launch the restored dynamic closure lane as the only remaining validation
+   repair program from this branch state

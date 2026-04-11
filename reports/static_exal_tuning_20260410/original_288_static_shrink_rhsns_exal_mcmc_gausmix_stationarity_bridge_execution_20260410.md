@@ -74,3 +74,43 @@ The lane is intentionally broad, but still disciplined:
 This lane is ready and is the only overnight compute launch from this branch
 state. The deferred dynamic closure work remains blocked by missing source fit
 artifacts and is therefore not part of this run.
+
+## Outcome
+
+The stationarity-bridge lane completed with a partial but real corrected-working
+improvement.
+
+Final outcome:
+
+- total candidates: `24`
+- healthy candidates: `3`
+- `PASS`: `0`
+- `WARN`: `3`
+- `FAIL`: `21`
+
+Corrected-working promotion:
+
+- promoted row:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+- promoted candidate:
+  - `bridge_rw_f0845_s100_b12000_k2000_sub2`
+- gate change:
+  - `FAIL -> WARN`
+- accepted comparison:
+  - `matches_accepted`
+
+Post-run branch state:
+
+- accepted `v8`: `282 / 288` healthy
+- corrected `static_shrink / rhs_ns` working branch: `72 / 72` healthy
+- remaining static corrected unresolved rows: `0`
+- remaining accepted unresolved rows:
+  - the `6` `dynamic / exdqlm / mcmc` rows only
+
+Interpretation:
+
+- the burn-heavy RW bridge family was the only part of this lane with positive
+  signal
+- the result is strong enough to close the corrected `rhs_ns` branch
+- the result is **not** strong enough to improve the accepted `v8` branch
+- from this point onward, the remaining repair work is entirely dynamic

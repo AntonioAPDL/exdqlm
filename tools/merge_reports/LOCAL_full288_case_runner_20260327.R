@@ -356,6 +356,7 @@ run_and_wrap <- function() {
 
   if (identical(inference, 'mcmc')) {
     if (identical(root_kind, 'dynamic')) {
+      vb_cfg <- cfg$vb %||% list()
       mc_cfg <- cfg$mcmc %||% list()
       mh <- mc_cfg$mh %||% list()
       accepted_mh <- bf$mh.diagnostics %||% list()
@@ -447,6 +448,14 @@ run_and_wrap <- function() {
         n.mcmc = safe_int(mc_cfg$n %||% bf$n.mcmc %||% 1500L, 1500L),
         init.from.vb = init_from_vb,
         init.from.isvb = as_flag(identical(tolower(safe_chr(bf$vb.init.method, 'ldvb')), 'isvb') %||% mc_cfg$init_from_isvb, FALSE),
+        vb_init_controls = list(
+          method = safe_chr(vb_cfg$method %||% bf$vb.init.method %||% "ldvb", "ldvb"),
+          tol = safe_num(vb_cfg$tol %||% 0.1, 0.1),
+          n.IS = safe_int(vb_cfg$n_IS %||% vb_cfg$n_is %||% 200L, 200L),
+          n.samp = safe_int(vb_cfg$n_samp %||% 1000L, 1000L),
+          max_iter = safe_int(vb_cfg$max_iter %||% 300L, 300L),
+          verbose = FALSE
+        ),
         joint.sample = as_flag(first_present(mh$joint_sample, mh$primary_joint_sample, accepted_mh$joint_sample), FALSE),
         mh.proposal = safe_chr(first_present(mh$proposal, mh$primary_proposal, accepted_mh$proposal, 'laplace_rw'), 'laplace_rw'),
         mh.adapt = as_flag(first_present(mh$adapt, accepted_mh$adapt), TRUE),

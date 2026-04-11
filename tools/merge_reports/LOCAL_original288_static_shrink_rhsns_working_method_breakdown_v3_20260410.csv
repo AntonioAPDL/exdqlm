@@ -1,0 +1,5 @@
+"block","model","inference","total","pass","warn","fail","healthy_true","healthy_false"
+"static_shrink_rhsns_working","al","mcmc",18,16,2,0,18,0
+"static_shrink_rhsns_working","al","vb",18,18,0,0,18,0
+"static_shrink_rhsns_working","exal","mcmc",18,5,13,0,18,0
+"static_shrink_rhsns_working","exal","vb",18,12,6,0,18,0

@@ -997,3 +997,96 @@ Execution plan:
 - keep the accepted `v8` branch fixed
 - keep the corrected `rhs_ns` working branch fixed until a candidate actually
   reaches `WARN` or `PASS`
+
+## Static RHS_NS closure promotion and restored dynamic relaunch (2026-04-10)
+
+The stationarity-bridge lane is now complete, and while it still did not
+justify an accepted-branch promotion, it **did** justify one corrected-working
+promotion that closes the explicit `rhs_ns` shrinkage branch.
+
+Accepted branch state remains:
+
+- accepted baseline: `v8`
+- accepted healthy count: `282 / 288`
+- accepted unresolved tail: `6 / 288`
+- no new accepted promotion was justified because the best corrected static
+  candidate only matched the accepted legacy `rhs` gate
+
+Corrected `static_shrink / rhs_ns` working state is now:
+
+- `72 / 72` healthy
+- `0 / 72` unresolved
+- promoted corrected-working row:
+  - `static_shrink::gausmix::0p25::1000::rhs_ns::exal::mcmc`
+- promoted candidate:
+  - `bridge_rw_f0845_s100_b12000_k2000_sub2`
+- gate change:
+  - `FAIL -> WARN`
+
+Clean summary of the current state:
+
+- what improved:
+  - the corrected `rhs_ns` shrinkage branch is now fully closed at `72 / 72`
+    healthy
+  - the last static blocker was reduced from `FAIL` to `WARN` using a
+    burn-heavy row-local `laplace_rw` bridge
+  - the blocked dynamic closure work is now technically restored:
+    - all `6` unresolved accepted dynamic rows have reconstructed
+      `sim_output.rds`
+    - all `6` have synthetic baseline fits
+    - the new dynamic restored-closure manifest validates with `0` missing
+      inputs
+- what still fails:
+  - the accepted publication-target debt is now **only** the `6`
+    `dynamic / exdqlm / mcmc` rows
+- which ideas worked best:
+  - static:
+    - burn-heavy row-local `laplace_rw` on the hard gausmix `rhs_ns` row
+  - dynamic:
+    - restored-source replay using qdesn materialized source windows so the
+      generic row runner can operate again
+    - the strongest previously learned row-local corridors encoded in the
+      restored 24-row schedule
+- which ideas did not help:
+  - static `rhs_ns` VB bridges on the last gausmix row
+  - static exact-kernel hedges (`slice`, `slice_eta`, `laplace_local`) on that
+    same row
+  - the earlier generic dynamic closure lane before source restoration
+- which directions now have the highest expected value:
+  - launch the restored dynamic closure lane immediately
+  - keep static `rhs_ns` frozen at the corrected `72 / 72` working state
+  - evaluate the `6` remaining accepted dynamic failures with row-specific
+    reinforcement plus broader repair hedges rather than another generic sweep
+
+Restored dynamic closure lane:
+
+- program:
+  - `reports/static_exal_tuning_20260410/original_288_syncedbase_dynamic_restored_closure_program_20260410.md`
+- execution:
+  - `reports/static_exal_tuning_20260410/original_288_syncedbase_dynamic_restored_closure_execution_20260410.md`
+- schedule:
+  - `tools/merge_reports/LOCAL_original288_syncedbase_dynamic_restored_closure_schedule_20260410.csv`
+- manifest:
+  - `tools/merge_reports/LOCAL_original288_syncedbase_dynamic_restored_closure_manifest_20260410.csv`
+- stage counts:
+  - `tools/merge_reports/LOCAL_original288_syncedbase_dynamic_restored_closure_stage_counts_20260410.csv`
+- source audit:
+  - `tools/merge_reports/LOCAL_original288_syncedbase_dynamic_restored_closure_source_audit_20260410.csv`
+
+Validation summary:
+
+- prepare queue: `6` accepted unresolved rows
+- deferred inventory: `24` previously completed screened attempts
+- manifest rows: `24`
+- missing inputs: `0`
+- `bash -n`: passed
+- prelaunch evaluate: passed
+- `--prepare-only=1`: passed
+- `--dry-run=1 --skip-prepare=1`: passed
+
+Decision:
+
+- keep accepted `v8` fixed
+- keep corrected static `rhs_ns` fixed at `72 / 72`
+- launch the restored dynamic closure lane as the only overnight compute from
+  this branch state

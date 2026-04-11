@@ -1,4 +1,4 @@
 "phase","total","done","missing","pass","warn","fail","healthy","better_than_accepted","matches_accepted","worse_than_accepted","better_than_rebuild","matches_rebuild","worse_than_rebuild","pending_compare"
-"phase1_static_shrink_rhsns_exal_mcmc_gausmix_burn_bridge",8,0,8,0,0,0,0,0,0,0,0,0,0,8
-"phase2_static_shrink_rhsns_exal_mcmc_gausmix_vb_bridge",8,0,8,0,0,0,0,0,0,0,0,0,0,8
-"phase3_static_shrink_rhsns_exal_mcmc_gausmix_newkernels",8,0,8,0,0,0,0,0,0,0,0,0,0,8
+"phase1_static_shrink_rhsns_exal_mcmc_gausmix_burn_bridge",8,8,0,0,3,5,3,0,3,5,3,5,0,0
+"phase2_static_shrink_rhsns_exal_mcmc_gausmix_vb_bridge",8,8,0,0,0,8,0,0,0,8,0,8,0,0
+"phase3_static_shrink_rhsns_exal_mcmc_gausmix_newkernels",8,8,0,0,0,8,0,0,0,8,0,8,0,0
