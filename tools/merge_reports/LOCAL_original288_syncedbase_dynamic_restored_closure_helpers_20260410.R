@@ -282,11 +282,14 @@ build_dlm_constV_smallW_model_original288_syncedbase_dynamic_restored_closure <-
   GG[1:2, 1:2] <- G_trend
   GG[3:4, 3:4] <- R1
   GG[5:6, 5:6] <- R2
-  list(
-    m0 = rep(0, 6),
-    C0 = diag(25, 6),
-    GG = GG,
-    FF = matrix(c(1, 0, 1, 0, 1, 0), nrow = 6, ncol = 1)
+  structure(
+    list(
+      m0 = matrix(0, nrow = 6, ncol = 1),
+      C0 = diag(25, 6),
+      GG = GG,
+      FF = matrix(c(1, 0, 1, 0, 1, 0), nrow = 6, ncol = 1)
+    ),
+    class = "exdqlm"
   )
 }
 
