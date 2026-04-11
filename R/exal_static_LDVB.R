@@ -877,7 +877,7 @@
 #' @return A object of class "\code{exal_ldvb}" containing:
 #' \itemize{
 #'   \item \code{qbeta}: list with \code{m}, \code{V}.
-#'   \item \code{samp.beta}: posterior sample from \code{q(\beta)} with
+#'   \item \code{samp.beta}: posterior sample from \eqn{q(\beta)} with
 #'         \code{n.samp} rows.
 #'   \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),
 #'         \code{E_v} and \code{E_inv_v} (moments).

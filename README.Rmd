@@ -21,8 +21,28 @@ knitr::opts_chunk$set(
 
 <!-- badges: end -->
 
-`exdqlm` fits **dynamic quantile** state-space models using the **extended Asymmetric Laplace** (exAL) error family. It targets time-series applications where the goal is to model **conditional quantiles** (not only means) while keeping a familiar state-space specification (design/evolution matrices and a state vector).
-In **v0.4.0**, this CRAN update consolidates the internal 0.4/0.5/0.6 feature line: dynamic **LDVB** (`exdqlmLDVB()`), synthesis (`exdqlm_synthesize_from_draws()`), static regression/exAL routines (`regMod()`, `exal_static_LDVB()`, `exal_static_mcmc()`), reduced AL/DQLM modes (`dqlm.ind = TRUE`), and static shrinkage priors (`beta_prior = "ridge"` / `"rhs"` / `"rhs_ns"`), while keeping backend defaults conservative for CRAN stability.
+`exdqlm` is a **Bayesian quantile-regression** package that combines
+**dynamic state-space quantile models** with **static exAL regression** under
+one API family. It is built for problems where quantiles, rather than means,
+are the main object of interest, but the user still wants familiar
+state-space/model-matrix inputs and explicit posterior inference.
+
+In **v0.4.0**, the package brings together the strongest parts of the current
+development line:
+
+- dynamic exDQLM inference via **ISVB**, **LDVB**, and **MCMC**
+- static Bayesian exAL regression via **LDVB** and **MCMC**
+- modular model builders for **trend**, **seasonality**, and **regression**
+  components
+- reduced **AL/DQLM** paths through `dqlm.ind = TRUE`
+- static shrinkage priors `beta_prior = "ridge"`, `"rhs"`, and `"rhs_ns"`
+- posterior predictive **non-crossing synthesis** via
+  `exdqlm_synthesize_from_draws()`
+
+The most distinctive aspect of the package is the **feature bundle**: native
+Bayesian dynamic quantile state-space modeling, static Bayesian quantile
+regression, multiple inference engines, shrinkage priors for static
+coefficients, and in-package post hoc synthesis across quantiles.
 
 > **Terminology (exAL)**
 > We use **exAL** for the extended Asymmetric Laplace family throughout this package. It generalizes the standard AL by adding a skewness parameter, allowing for asymmetric tails. The standard AL is a special case with zero skewness. We refer to the generalized AL from Kotz et al. as **Kotz-GAL** to avoid confusion.
@@ -43,6 +63,44 @@ Development (GitHub):
 # install.packages("pak")
 pak::pak("AntonioAPDL/exdqlm")
 ```
+
+## Why `exdqlm` 0.4.0 is distinctive
+
+* **Dynamic Bayesian quantile state-space modeling** is the core use case:
+  `exdqlmISVB()`, `exdqlmLDVB()`, and `exdqlmMCMC()` all fit univariate
+  time-series quantile models with a familiar DLM/state-space specification.
+* **Static Bayesian quantile regression** is now part of the same package via
+  `exal_static_LDVB()` and `exal_static_mcmc()`, rather than living in a
+  separate code path or companion repository.
+* **Multiple inference engines** are available depending on the use case:
+  fast approximate dynamic VB (`ISVB`), deterministic Laplace-Delta VB
+  (`LDVB`), and posterior simulation (`MCMC`).
+* **Static shrinkage priors** go beyond ridge: `rhs` and `rhs_ns` provide a
+  horseshoe-family regularization story for sparse or weakly identified static
+  coefficient problems.
+* **Post hoc multi-quantile synthesis** is built in through
+  `exdqlm_synthesize_from_draws()`, which can enforce isotonicity and apply
+  monotone rearrangement after fitting quantiles separately.
+
+## Workflow map
+
+| Goal | Main functions | Inference engines | Notes |
+| --- | --- | --- | --- |
+| Dynamic quantile state-space model | `exdqlmISVB()`, `exdqlmLDVB()`, `exdqlmMCMC()` | ISVB, LDVB, MCMC | Main entry point for univariate time-series quantile modeling |
+| Build state-space components | `polytrendMod()`, `seasMod()`, `regMod()` | n/a | Compose trend, seasonal, and regression blocks with `+.exdqlm` |
+| Static Bayesian exAL regression | `exal_static_LDVB()`, `exal_static_mcmc()` | LDVB, MCMC | Supports `dqlm.ind = TRUE`, posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
+| Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
+| Combine several separately fitted quantiles | `exdqlm_synthesize_from_draws()` | post hoc synthesis | Isotonic correction plus optional rearrangement for non-crossing output |
+
+## Which engine should I use?
+
+| Setting | Recommended start | Use when | Alternatives |
+| --- | --- | --- | --- |
+| Dynamic exDQLM | `exdqlmISVB()` | You want a fast first fit or a stable working approximation | `exdqlmLDVB()` or `exdqlmMCMC()` |
+| Dynamic exDQLM with deterministic VB | `exdqlmLDVB()` | You want a variational fit without IS noise in the `(\sigma,\gamma)` block | `exdqlmISVB()` |
+| Dynamic exDQLM with posterior sampling | `exdqlmMCMC()` | You want retained posterior draws and full simulation-based summaries | warm-start from VB if needed |
+| Static exAL regression | `exal_static_LDVB()` | You want a fast Bayesian approximation, often useful before MCMC | `exal_static_mcmc()` |
+| Static exAL regression with posterior draws | `exal_static_LDVB()` or `exal_static_mcmc()` | Use `exal_static_LDVB()` for a fast approximate draw-based summary and `exal_static_mcmc()` for the simulation baseline | `init.from.vb = TRUE` can help the MCMC fit |
 
 ## Quick start (≤ 10 lines)
 
@@ -178,7 +236,7 @@ rexal(5, p0 = p0, mu = mu, sigma = sigma, gamma = gamma)
 
 > **CRAN-safety.** All examples set a seed, use tiny data, finish in a few seconds, and explicitly keep the pure-R path.
 
-### 3) Static reduced AL + RHS-family API sketch
+### 3) Static Bayesian regression with reduced AL and RHS-family priors
 
 ```{r static-api-sketch, eval=FALSE}
 set.seed(4)
@@ -224,6 +282,32 @@ fit_rhs_ns <- exal_static_mcmc(
 fit_al$dqlm.ind
 fit_rhs$beta_prior$type
 fit_rhs_ns$beta_prior$type
+```
+
+### 4) Multi-quantile synthesis (conceptual sketch)
+
+Fit several quantiles separately, then combine their posterior predictive draws
+into a single non-crossing predictive object.
+
+```{r synthesis-sketch, eval=FALSE}
+p_grid <- c(0.1, 0.5, 0.9)
+fits <- lapply(p_grid, function(tau) {
+  exdqlmLDVB(
+    y = y, p0 = tau, model = model,
+    df = df, dim.df = dim.df,
+    sig.init = 0.2, gam.init = 0
+  )
+})
+
+draws <- lapply(fits, function(m) m$samp.post.pred)
+
+syn <- exdqlm_synthesize_from_draws(
+  draws_list = draws,
+  p = p_grid,
+  T_expected = length(y)
+)
+
+names(syn)
 ```
 
 ## FAQ / Troubleshooting
