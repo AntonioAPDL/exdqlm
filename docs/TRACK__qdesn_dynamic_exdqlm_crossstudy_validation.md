@@ -851,3 +851,67 @@ Recommended use:
 - do not launch another tuning wave by default from this state
 - treat validation/tuning on this branch as effectively complete unless explicit confirmation reruns
   are later requested
+
+## 12) Deep-DESN Challenger Continuation And Normalized Multiseed Investigation (2026-04-11)
+
+This section records the later deep-DESN challenger continuation work on the integration branch.
+It does **not** replace the authoritative simple-DESN zero-FAIL branch-local baseline above.
+
+Completed deep-DESN rhs-long MCMC wave:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523`
+- closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave3_closeout_and_normalized_multiseed_inventory_20260411.md`
+- summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave/qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523/summary/qdesn_dynamic_crossstudy_fit_fail_closure_results.md`
+
+Completed `F`-wave stage decisions:
+
+- `F1_rhs_long_gausmix_mcmc -> KEEP_SOURCE_BASELINE`
+- `F2_rhs_long_laplace_exal -> KEEP_SOURCE_BASELINE`
+- `F3_rhs_long_normal_lower_mcmc -> PROMOTE_F630_rhs_long_normal_lower_guard320_recenter4000`
+- `F4_rhs_long_normal_upper_exal -> KEEP_SOURCE_BASELINE`
+
+Working deep-DESN challenger source after promoting `F630`:
+
+- `71 PASS`
+- `60 WARN`
+- `13 FAIL`
+- `36 / 36` root execution `SUCCESS`
+- `0 / 36` root execution `FAIL`
+- `36 / 36` comparison-eligible-any
+- `27 / 36` comparison-eligible-full
+
+Residual concentration after `F630`:
+
+- all `13` remaining FAIL rows are:
+  - `rhs_ns`
+  - `fit_size = 5000`
+  - `mcmc`
+- residual family/model split:
+  - `gausmix al = 3`
+  - `gausmix exal = 3`
+  - `laplace exal = 3`
+  - `normal al = 2`
+  - `normal exal = 2`
+- there are no remaining root-status FAILs
+
+Investigation result:
+
+- another geometry-only residual wave is **not** the default next move;
+- the higher-value continuation is now a **normalized multiseed relaunch investigation** built on
+  the post-`F630` source.
+
+New planning source of truth:
+
+- closeout/inventory report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave3_closeout_and_normalized_multiseed_inventory_20260411.md`
+- staged relaunch plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_relaunch_20260411.md`
+
+Current rule:
+
+- freeze the deep-DESN challenger source at the post-`F630` state for planning purposes;
+- do not launch the big normalized multiseed rerun until seed plumbing, selection logic,
+  posterior-draw semantics, and storage handling are explicitly implemented and canary-validated.

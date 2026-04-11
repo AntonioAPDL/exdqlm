@@ -860,3 +860,57 @@ Current next move:
 - proceed with the main comparison interpretation and downstream comparison-facing reporting from
   this authoritative zero-fail pack
 - do **not** launch another validation repair wave by default
+
+## 17) Deep-DESN Challenger Follow-On: F-Wave Closeout And Normalized Multiseed Planning (2026-04-11)
+
+The later deep-DESN exploratory continuation is now closed through the completed rhs-long MCMC
+wave and has been carried forward into a planning freeze.
+
+Completed rhs-long MCMC wave:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523`
+- stage status:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave/qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523/tables/stage_execution_status.csv`
+- closeout report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave3_closeout_and_normalized_multiseed_inventory_20260411.md`
+
+Completed stage decisions:
+
+- `F1 -> KEEP_SOURCE_BASELINE`
+- `F2 -> KEEP_SOURCE_BASELINE`
+- `F3 -> PROMOTE_F630_rhs_long_normal_lower_guard320_recenter4000`
+- `F4 -> KEEP_SOURCE_BASELINE`
+
+Working deep-DESN challenger source after the justified `F630` promotion:
+
+- `71 PASS / 60 WARN / 13 FAIL`
+- `36 / 36` root execution `SUCCESS`
+- `0 / 36` root execution `FAIL`
+- `36 / 36` comparison-eligible-any
+- `27 / 36` comparison-eligible-full
+
+Residual interpretation:
+
+- all remaining FAIL rows are long-horizon `rhs_ns` `mcmc` at `fit_size = 5000`
+- there is no remaining execution debt
+- there is no remaining ridge or short-horizon fail lane
+
+Decision from the investigation:
+
+- do **not** default to another geometry-only deep-DESN residual wave
+- instead, investigate and stage a normalized multiseed relaunch built on the post-`F630` source
+
+Current planning docs:
+
+- closeout/inventory:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_wave3_closeout_and_normalized_multiseed_inventory_20260411.md`
+- staged relaunch plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_relaunch_20260411.md`
+
+Important engineering note:
+
+- the current dynamic validation path does not yet have a first-class per-profile multiseed
+  selection layer;
+- the next implementation step is therefore seed plumbing plus canary validation, not the big
+  relaunch itself.
