@@ -991,3 +991,26 @@ Current launch rule:
 - the normalized multiseed relaunch surface is now implementation-ready;
 - no canary execution run or full relaunch has been started in this tracker update;
 - launch remains a deliberate next step after committing and pushing the implementation state.
+
+Live normalized multiseed canary launch:
+
+- setup/launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_setup_and_launch_20260411.md`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-normseed-canary-20260411-181806__git-fd274f0`
+- detached session:
+  - `qdesn_dynx_0411_181807`
+- launch state:
+  - `6` selected roots
+  - `1 / 6` materialized
+  - `1 RUNNING`
+  - `0 SUCCESS`
+  - `0 FAIL`
+  - `0` root execution errors
+- current opening root:
+  - `root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_ridge`
+- current opening method observed:
+  - `exal | vb`
+- canary purpose:
+  - validate live multiseed execution, winner selection, pruning, and normalized storage/runtime
+    behavior before any full relaunch

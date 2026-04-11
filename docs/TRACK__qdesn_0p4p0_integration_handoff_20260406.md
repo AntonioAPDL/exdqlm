@@ -231,6 +231,24 @@ Normalized multiseed relaunch implementation state:
   - commit/push the normalized multiseed implementation state and decide whether to launch a canary
     execution run before the full relaunch
 
+Live normalized multiseed canary:
+
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_normalized_multiseed_canary_setup_and_launch_20260411.md`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-normseed-canary-20260411-181806__git-fd274f0`
+- detached session:
+  - `qdesn_dynx_0411_181807`
+- opening health:
+  - `6` selected roots
+  - `1 / 6` materialized
+  - `1 RUNNING`
+  - `0 SUCCESS`
+  - `0 FAIL`
+  - `0` root execution errors
+- purpose:
+  - prove the normalized multiseed execution path end to end before any full relaunch
+
 Validated deep-DESN final residual wave:
 
 - plan:
