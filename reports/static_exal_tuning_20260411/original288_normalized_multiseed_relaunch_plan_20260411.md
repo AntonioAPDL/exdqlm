@@ -15,9 +15,42 @@ The goal is to normalize the active `0.4.0` validation machinery so that:
 4. seed selection is deterministic, documented, and metric-backed
 5. the full relaunch can be staged safely instead of launched ad hoc
 
-This is a planning note only. It does **not** authorize a full relaunch yet.
-The implementation and launch should only start after the staged deliverables
-and pilot checks below are complete.
+This is a living plan. As of the current `2026-04-11` implementation refresh:
+
+- Deliverable `1` is implemented
+- Deliverable `2` is implemented
+- Deliverable `3` is implemented
+- Deliverable `4` is implemented at the launcher-validation level
+- Deliverable `5` is implemented in the staged supervisor
+- Deliverable `6` is implemented as an automatic post-run refresh path
+
+The full relaunch is therefore no longer blocked on missing infrastructure.
+The remaining gating question is only execution progress once the staged
+supervisor is launched.
+
+## Current Progress
+
+Implemented artifacts now include:
+
+- normalized universe and control audit
+- frozen seed bank
+- pilot and full manifests
+- unified run-row wrapper
+- evaluator
+- seed reducer
+- normalized selection refresh
+- patched table-backed comparison that accepts explicit normalized outputs
+- staged launcher with pilot-first sequencing
+
+Validation already completed:
+
+- syntax parse checks for all new R scripts
+- `bash -n` for the launcher
+- successful prepare with `48` pilot rows and `1152` full rows
+- `0` missing inputs after path hardening
+- launcher `--prepare-only`
+- launcher `--dry-run`
+- one completed real static native pilot row with normalized metrics + draw export
 
 ## Requested Normalization Target
 

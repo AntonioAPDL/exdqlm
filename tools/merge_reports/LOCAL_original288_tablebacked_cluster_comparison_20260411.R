@@ -2,21 +2,35 @@
 
 options(stringsAsFactors = FALSE)
 
+parse_args_20260411 <- function(args) {
+  out <- list()
+  for (x in args) {
+    if (grepl("^--[^=]+=.*$", x)) {
+      key <- sub("^--([^=]+)=.*$", "\\1", x)
+      val <- sub("^--[^=]+=(.*)$", "\\1", x)
+      out[[key]] <- val
+    }
+  }
+  out
+}
+
 PRIMARY_ROOT <- "/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration"
 FALLBACK_ROOTS <- c(
   "/home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs"
 )
 ALL_ROOTS <- c(PRIMARY_ROOT, FALLBACK_ROOTS)
 
-selection_path <- file.path(
+`%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
+
+default_selection_path <- file.path(
   PRIMARY_ROOT,
   "tools/merge_reports/LOCAL_original288_comparison_selection_rhsns_v1_20260411.csv"
 )
-dynamic_update_path <- file.path(
+default_dynamic_update_path <- file.path(
   PRIMARY_ROOT,
   "tools/merge_reports/LOCAL_original288_dynamic_restored_selection_update_20260411.csv"
 )
-output_dir <- file.path(
+default_output_dir <- file.path(
   PRIMARY_ROOT,
   "tools/merge_reports/original288_tablebacked_comparison_20260411"
 )
@@ -24,15 +38,19 @@ report_dir <- file.path(
   PRIMARY_ROOT,
   "reports/static_exal_tuning_20260411"
 )
-report_path <- file.path(
+default_report_path <- file.path(
   report_dir,
   "original288_tablebacked_cluster_comparison_20260411.md"
 )
 
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-dir.create(report_dir, recursive = TRUE, showWarnings = FALSE)
+args <- parse_args_20260411(commandArgs(trailingOnly = TRUE))
+selection_path <- args$selection %||% default_selection_path
+dynamic_update_path <- args$dynamic_update %||% default_dynamic_update_path
+output_dir <- args$output_dir %||% default_output_dir
+report_path <- args$report %||% default_report_path
 
-`%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(dirname(report_path), recursive = TRUE, showWarnings = FALSE)
 
 gate_rank_20260411 <- function(x) {
   out <- rep(NA_integer_, length(x))
@@ -100,6 +118,50 @@ read_csv_safe_20260411 <- function(path) {
     return(NULL)
   }
   utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
+}
+
+safe_chr_20260411 <- function(x, default = NA_character_) {
+  if (is.null(x) || !length(x)) return(default)
+  y <- as.character(x)[1]
+  if (is.na(y) || !nzchar(trimws(y)) || identical(toupper(trimws(y)), "NA")) default else y
+}
+
+extract_direct_metrics_20260411 <- function(sel_row) {
+  metrics_path <- resolve_existing_path_20260411(as.character(sel_row$selected_summary_path[[1]] %||% ""))
+  if (is.na(metrics_path)) return(NULL)
+  metrics <- read_csv_safe_20260411(metrics_path)
+  if (is.null(metrics) || !nrow(metrics)) return(NULL)
+  metric_names <- names(metrics)
+  direct_hit <- any(c("crps_metric", "q_rmse_metric", "primary_accuracy_metric", "coverage95_metric", "beta_rmse_mean_metric") %in% metric_names)
+  if (!isTRUE(direct_hit)) return(NULL)
+  metrics <- metrics[1, , drop = FALSE]
+  data.frame(
+    block = sel_row$block[[1]],
+    root_kind = sel_row$root_kind[[1]],
+    family = sel_row$family[[1]],
+    tau_label = sel_row$tau[[1]],
+    fit_size = as.integer(sel_row$fit_size[[1]]),
+    prior_semantics = sel_row$prior_semantics[[1]],
+    model = sel_row$model[[1]],
+    inference = sel_row$inference[[1]],
+    original_case_key = sel_row$original_case_key[[1]],
+    original_scenario_key = sel_row$original_scenario_key[[1]],
+    gate_overall = sel_row$gate_overall[[1]],
+    healthy = isTRUE(sel_row$healthy[[1]]),
+    runtime_sec = suppressWarnings(as.numeric(sel_row$runtime_sec[[1]] %||% metrics$runtime_sec[[1]])),
+    primary_accuracy = suppressWarnings(as.numeric(metrics$primary_accuracy_metric[[1]] %||% metrics$q_rmse_metric[[1]] %||% metrics$rmse[[1]])),
+    coverage = suppressWarnings(as.numeric(metrics$coverage95_metric[[1]] %||% metrics$coverage[[1]])),
+    mean_ci_width = suppressWarnings(as.numeric(metrics$mean_ci_width_metric[[1]] %||% metrics$mean_ci_width[[1]])),
+    mae = if ("mae_metric" %in% metric_names) suppressWarnings(as.numeric(metrics$mae_metric[[1]])) else NA_real_,
+    bias = if ("bias_metric" %in% metric_names) suppressWarnings(as.numeric(metrics$bias_metric[[1]])) else NA_real_,
+    corr = if ("corr_metric" %in% metric_names) suppressWarnings(as.numeric(metrics$corr_metric[[1]])) else NA_real_,
+    cie = suppressWarnings(as.numeric(metrics$cie_metric[[1]] %||% metrics$cie[[1]])),
+    beta_rmse_mean = suppressWarnings(as.numeric(metrics$beta_rmse_mean_metric[[1]] %||% metrics$beta_rmse_mean[[1]])),
+    beta_coverage_gap = suppressWarnings(as.numeric(metrics$beta_coverage_gap_metric[[1]] %||% metrics$coverage95_gap_metric[[1]] %||% metrics$beta_coverage_gap[[1]])),
+    metric_source = safe_chr_20260411(metrics$metric_source[[1]] %||% "direct_metrics_csv", "direct_metrics_csv"),
+    metric_error = safe_chr_20260411(metrics$metric_error[[1]], NA_character_),
+    stringsAsFactors = FALSE
+  )
 }
 
 dynamic_mean_ci_width_20260411 <- function(fit_path, sim_path) {
@@ -315,12 +377,15 @@ build_metric_long_20260411 <- function(selection, dynamic_update) {
     sel_row <- selection[i, , drop = FALSE]
     rows[[i]] <- tryCatch(
       {
-        if (identical(sel_row$block[[1]], "static_shrink") && identical(sel_row$prior_semantics[[1]], "rhs_ns")) {
+        direct_metrics <- extract_direct_metrics_20260411(sel_row)
+        if (!is.null(direct_metrics)) {
+          direct_metrics
+        } else if (identical(sel_row$block[[1]], "static_shrink") && identical(sel_row$prior_semantics[[1]], "rhs_ns")) {
           extract_rhsns_metrics_20260411(sel_row)
         } else if (
           identical(sel_row$block[[1]], "dynamic") &&
-            identical(sel_row$model[[1]], "exdqlm") &&
-            identical(sel_row$inference[[1]], "mcmc") &&
+          identical(sel_row$model[[1]], "exdqlm") &&
+          identical(sel_row$inference[[1]], "mcmc") &&
             sel_row$original_case_key[[1]] %in% dynamic_update$original_case_key
         ) {
           extract_dynamic_restored_metrics_20260411(sel_row, dynamic_update)
@@ -522,7 +587,11 @@ markdown_table_20260411 <- function(df) {
 }
 
 selection <- read.csv(selection_path, stringsAsFactors = FALSE, check.names = FALSE)
-dynamic_update <- read.csv(dynamic_update_path, stringsAsFactors = FALSE, check.names = FALSE)
+dynamic_update <- if (!is.na(dynamic_update_path) && nzchar(dynamic_update_path) && file.exists(dynamic_update_path)) {
+  read.csv(dynamic_update_path, stringsAsFactors = FALSE, check.names = FALSE)
+} else {
+  data.frame(original_case_key = character(), stringsAsFactors = FALSE)
+}
 
 metric_long <- build_metric_long_20260411(selection, dynamic_update)
 metric_long <- metric_long[order(metric_long$block, metric_long$prior_semantics, metric_long$family, metric_long$tau_label, metric_long$fit_size, metric_long$inference, metric_long$model), , drop = FALSE]

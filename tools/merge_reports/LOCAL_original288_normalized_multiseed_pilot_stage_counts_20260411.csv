@@ -1,0 +1,5 @@
+"phase","rows"
+"pilot_static_mcmc",12
+"pilot_static_vb",12
+"pilot_dynamic_vb",8
+"pilot_dynamic_mcmc",16

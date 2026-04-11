@@ -241,6 +241,74 @@ dynamic unresolved tail under the frozen `v7` baseline.
 The new paper-aligned static benchmark stack has now been implemented and
 validated as a separate workstream.
 
+## Normalized Multi-Seed Relaunch (2026-04-11)
+
+The branch now also contains the full normalized multi-seed relaunch
+infrastructure for the corrected original-`288` study.
+
+Purpose:
+
+- normalize every rerun `mcmc` row to `5000 / 20000`
+- normalize every rerun row to a `4`-seed deterministic policy
+- normalize dynamic `vb` to `n.samp = 20000`
+- add a seed reducer using:
+  - gate first
+  - then `crps`
+  - then primary accuracy
+  - then runtime
+  - then seed
+
+Primary docs:
+
+- `reports/static_exal_tuning_20260411/original288_normalized_multiseed_relaunch_plan_20260411.md`
+- `reports/static_exal_tuning_20260411/original288_normalized_multiseed_relaunch_program_20260411.md`
+- `reports/static_exal_tuning_20260411/original288_normalized_multiseed_relaunch_execution_20260411.md`
+
+Primary machine-readable artifacts:
+
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_universe_20260411.csv`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_control_audit_20260411.csv`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_seedbank_20260411.csv`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_pilot_manifest_20260411.csv`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_full_manifest_20260411.csv`
+
+Implemented execution stack:
+
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_helpers_20260411.R`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_prepare_20260411.R`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_run_row_20260411.R`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_evaluate_20260411.R`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_reduce_20260411.R`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_refresh_comparison_20260411.R`
+- `tools/merge_reports/LOCAL_original288_normalized_multiseed_launch_20260411.sh`
+
+Validation completed before launch:
+
+- parser/syntax checks passed for the new R stack
+- `bash -n` passed for the launcher
+- prepare passed with:
+  - pilot rows: `48`
+  - full rows: `1152`
+  - missing inputs: `0`
+- launcher `--prepare-only=1` passed
+- launcher `--dry-run=1 --skip-prepare=1` passed
+- patched comparison backbone reran successfully and preserved the current
+  corrected branch-level result:
+  - `static_mcmc = 34 / 54`
+  - `static_vb = 17 / 36`
+  - `dynamic_mcmc = 3 / 18`
+  - `dynamic_vb = 9 / 18`
+
+Operational note:
+
+- the normalized relaunch is implemented as a staged supervisor:
+  - pilot first
+  - then full relaunch
+  - then automatic selected-seed comparison refresh
+- this keeps the new normalization work reproducible and lets the branch carry
+  both the current accepted `v9` state and the pending normalized relaunch
+  state without conflating them
+
 Important implementation choice:
 
 - the benchmark uses the local `bqrgal` reference engine
