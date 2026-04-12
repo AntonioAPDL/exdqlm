@@ -969,3 +969,49 @@ Important engineering note:
   selection layer;
 - the next implementation step is therefore seed plumbing plus canary validation, not the big
   relaunch itself.
+## 18) Corrected Row-Faithful Multiseed Replay (2026-04-12)
+
+The branch has now pivoted away from the withdrawn normalized canary and onto the corrected
+row-faithful replay path.
+
+What changed:
+
+- the normalized canary is no longer considered valid launch evidence
+- its run outputs were deleted
+- the branch now replays the current accepted deep-DESN source row by row, preserving local
+  accepted tuning and changing only burn / kept chain / posterior export size / 4-seed policy
+
+Current source of truth:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay_20260412.md`
+- implementation report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_implementation_and_preflight_20260412.md`
+
+Active implementation assets:
+
+- replay manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay_manifest.yaml`
+- resolved defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_defaults.yaml`
+- resolved inventory:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv`
+- materializer:
+  - `scripts/materialize_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay.R`
+- wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation.R`
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_validation.R`
+
+Validation status:
+
+- `pkgload::load_all(...)`: pass
+- accepted-chain replay assertions: pass
+- outside-repo materializer invocation: pass
+- committed-state canary preflight:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-canary-preflight-20260412`
+- committed-state full preflight:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-full-preflight-20260412`

@@ -1014,3 +1014,69 @@ Live normalized multiseed canary launch:
 - canary purpose:
   - validate live multiseed execution, winner selection, pruning, and normalized storage/runtime
     behavior before any full relaunch
+## 18) Corrected Row-Faithful Multiseed Replay (2026-04-12)
+
+The normalized multiseed canary from 2026-04-11 is now withdrawn.
+
+Reason:
+
+- the user clarified that the replay must preserve each row's accepted exact spec
+- the normalized canary instead imposed a generic normalized policy
+- that run's outputs were deleted and should not be used
+
+Corrected active docs:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay_20260412.md`
+- implementation / preflight report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_implementation_and_preflight_20260412.md`
+
+Corrected active assets:
+
+- replay manifest:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay_manifest.yaml`
+- resolved defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_defaults.yaml`
+- resolved inventory:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv`
+- canary grid:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_grid.csv`
+- materializer:
+  - `scripts/materialize_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay.R`
+- wrappers:
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation.R`
+  - `scripts/run_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_validation.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_validation.R`
+
+Corrected replay contract:
+
+- preserve row-local accepted tuning exactly
+- standardize only:
+  - `n.burn = 5000`
+  - `n.mcmc = 20000`
+  - stored posterior draws `= 20000`
+  - VB posterior draw export `= 20000`
+  - `4` deterministic MCMC seeds
+- seed winner rule:
+  - `PASS > WARN > FAIL`
+  - then lower `forecast_CRPS_mean`
+  - then deterministic tie-breakers
+
+Resolved replay state:
+
+- total roots: `36`
+- overridden roots: `31`
+- source-baseline roots: `5`
+
+Committed-state validation completed:
+
+- code load: passes
+- replay assertions: passes
+- materializer cwd proof: passes
+- canary `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-canary-preflight-20260412`
+- full `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-full-preflight-20260412`

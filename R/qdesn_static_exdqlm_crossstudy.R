@@ -359,6 +359,45 @@ qdesn_static_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   cfg
 }
 
+.qdesn_static_crossstudy_replay_root_patch <- function(defaults, root_id) {
+  replay_cfg <- defaults$replay %||% list()
+  row_overrides <- replay_cfg$row_overrides %||% list()
+  patch <- row_overrides[[as.character(root_id)[1L]]] %||% list()
+  if (!is.list(patch)) {
+    stop(sprintf("Replay override for root '%s' must be a list.", as.character(root_id)[1L]), call. = FALSE)
+  }
+  patch
+}
+
+.qdesn_static_crossstudy_apply_replay_contract <- function(cfg, defaults, method) {
+  replay_cfg <- defaults$replay %||% list()
+  contract <- replay_cfg$contract %||% list()
+  if (!length(contract)) return(cfg)
+
+  if (!is.null(contract$posterior_metric_draws)) {
+    cfg$metrics$posterior_metric_draws <- as.integer(contract$posterior_metric_draws)[1L]
+  }
+  if (!is.null(contract$vb_sampling_nd_draws)) {
+    cfg$sampling$nd_draws <- as.integer(contract$vb_sampling_nd_draws)[1L]
+  }
+  if (!is.null(contract$vb_synthesis_n_samp)) {
+    cfg$synthesis$n_samp <- as.integer(contract$vb_synthesis_n_samp)[1L]
+  }
+  if (identical(method, "mcmc")) {
+    if (!is.null(contract$mcmc_n_burn)) {
+      cfg$inference$mcmc$n_burn <- as.integer(contract$mcmc_n_burn)[1L]
+    }
+    if (!is.null(contract$mcmc_n_mcmc)) {
+      cfg$inference$mcmc$n_mcmc <- as.integer(contract$mcmc_n_mcmc)[1L]
+    }
+    if (!is.null(contract$mcmc_thin)) {
+      cfg$inference$mcmc$thin <- as.integer(contract$mcmc_thin)[1L]
+    }
+  }
+
+  cfg
+}
+
 qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
                                                        defaults,
                                                        method = c("vb", "mcmc"),
@@ -368,6 +407,10 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
   method <- match.arg(method)
   likelihood_family <- match.arg(likelihood_family)
   pipeline_cfg <- defaults$pipeline %||% list()
+  replay_root_patch <- .qdesn_static_crossstudy_replay_root_patch(defaults, root_spec$root_id)
+  if (length(replay_root_patch$pipeline %||% list())) {
+    pipeline_cfg <- utils::modifyList(pipeline_cfg, replay_root_patch$pipeline)
+  }
   .qdesn_validation_assert_non_dlm_input(pipeline_cfg)
   infer_cfg <- pipeline_cfg$inference %||% list()
   reservoir_cfg <- .qdesn_static_crossstudy_reservoir_cfg(defaults, root_spec$reservoir_profile)
@@ -514,6 +557,7 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
     }
   }
 
+  cfg <- .qdesn_static_crossstudy_apply_replay_contract(cfg, defaults, method)
   cfg
 }
 

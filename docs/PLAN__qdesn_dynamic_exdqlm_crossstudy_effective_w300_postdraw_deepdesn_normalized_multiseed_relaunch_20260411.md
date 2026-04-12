@@ -1,5 +1,12 @@
 # PLAN: QDESN Dynamic Effective-W300 Postdraw Deep-DESN Normalized Multiseed Relaunch
 
+Status note (2026-04-12):
+
+- this normalized replay plan is now **superseded**
+- the active replay contract is the row-faithful multiseed replay documented in:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay_20260412.md`
+- the live normalized canary outputs were deleted and should not be used as launch evidence
+
 Date: 2026-04-11
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`

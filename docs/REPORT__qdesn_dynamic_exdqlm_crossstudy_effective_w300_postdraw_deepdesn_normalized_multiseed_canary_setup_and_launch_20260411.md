@@ -1,5 +1,12 @@
 # REPORT: QDESN Dynamic Effective-W300 Postdraw Deep-DESN Normalized Multiseed Canary Setup And Launch
 
+Status note (2026-04-12):
+
+- this launch report is **withdrawn**
+- the normalized canary did not satisfy the corrected replay contract because it replaced
+  row-specific accepted specs with a generic normalized policy
+- its run outputs were deleted and should not be used
+
 Date: 2026-04-11
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`

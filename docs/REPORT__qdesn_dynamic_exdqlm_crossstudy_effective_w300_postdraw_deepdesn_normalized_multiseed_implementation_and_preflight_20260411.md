@@ -1,5 +1,13 @@
 # REPORT: QDESN Dynamic Effective-W300 Postdraw Deep-DESN Normalized Multiseed Implementation And Preflight
 
+Status note (2026-04-12):
+
+- this implementation report is now **historical but superseded**
+- the corrected active implementation is the row-faithful replay documented in:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_implementation_and_preflight_20260412.md`
+- the normalized live canary that followed this implementation was invalidated and its outputs were
+  deleted
+
 Date: 2026-04-11
 Branch: `feature/qdesn-mcmc-alternative-0p4p0-integration`
 Worktree: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration`

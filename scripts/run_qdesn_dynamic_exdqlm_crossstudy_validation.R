@@ -168,10 +168,19 @@ reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_invent
 
 runtime_cfg <- defaults$runtime %||% list()
 multiseed_cfg <- defaults$multiseed %||% list()
+replay_cfg <- defaults$replay %||% list()
 pipeline_cfg <- defaults$pipeline %||% list()
 pipeline_mcmc_cfg <- pipeline_cfg$inference$mcmc %||% list()
 pipeline_sampling_cfg <- pipeline_cfg$sampling %||% list()
 pipeline_synthesis_cfg <- pipeline_cfg$synthesis %||% list()
+replay_contract <- replay_cfg$contract %||% list(
+  posterior_metric_draws = defaults$metrics$posterior_metric_draws %||% NA_integer_,
+  vb_sampling_nd_draws = pipeline_sampling_cfg$nd_draws %||% NA_integer_,
+  vb_synthesis_n_samp = pipeline_synthesis_cfg$n_samp %||% NA_integer_,
+  mcmc_n_burn = pipeline_mcmc_cfg$n_burn %||% NA_integer_,
+  mcmc_n_mcmc = pipeline_mcmc_cfg$n_mcmc %||% NA_integer_,
+  mcmc_thin = pipeline_mcmc_cfg$thin %||% NA_integer_
+)
 active_qdesn_processes <- cmd_lines(
   "bash",
   c(
@@ -248,13 +257,18 @@ preflight_manifest <- list(
     fit_sizes = sort(unique(as.integer(selected_grid$fit_size))),
     priors = sort(unique(as.character(selected_grid$beta_prior_type)))
   ),
-  normalized_contract = list(
-    posterior_metric_draws = as.integer(defaults$metrics$posterior_metric_draws %||% NA_integer_)[1L],
-    vb_draws = as.integer(pipeline_sampling_cfg$nd_draws %||% NA_integer_)[1L],
-    synthesis_draws = as.integer(pipeline_synthesis_cfg$n_samp %||% NA_integer_)[1L],
-    mcmc_n_burn = as.integer(pipeline_mcmc_cfg$n_burn %||% NA_integer_)[1L],
-    mcmc_n_mcmc = as.integer(pipeline_mcmc_cfg$n_mcmc %||% NA_integer_)[1L],
-    mcmc_thin = as.integer(pipeline_mcmc_cfg$thin %||% NA_integer_)[1L]
+  replay_summary = list(
+    mode = as.character(replay_cfg$mode %||% "default")[1L],
+    row_override_roots = as.integer(length(replay_cfg$row_overrides %||% list())),
+    inventory_csv = as.character(replay_cfg$inventory_csv %||% NA_character_)[1L]
+  ),
+  replay_contract = list(
+    posterior_metric_draws = as.integer(replay_contract$posterior_metric_draws %||% NA_integer_)[1L],
+    vb_draws = as.integer(replay_contract$vb_sampling_nd_draws %||% NA_integer_)[1L],
+    synthesis_draws = as.integer(replay_contract$vb_synthesis_n_samp %||% NA_integer_)[1L],
+    mcmc_n_burn = as.integer(replay_contract$mcmc_n_burn %||% NA_integer_)[1L],
+    mcmc_n_mcmc = as.integer(replay_contract$mcmc_n_mcmc %||% NA_integer_)[1L],
+    mcmc_thin = as.integer(replay_contract$mcmc_thin %||% NA_integer_)[1L]
   ),
   multiseed_summary = list(
     enabled = isTRUE(multiseed_cfg$enabled),
@@ -312,13 +326,16 @@ preflight_lines <- c(
   "- methods_per_root: `vb, mcmc`",
   "- QDESN_priors: `ridge, rhs_ns`",
   "",
-  "## Normalized Posterior Contract",
-  sprintf("- posterior_metric_draws: `%s`", as.character(preflight_manifest$normalized_contract$posterior_metric_draws)),
-  sprintf("- vb_draws: `%s`", as.character(preflight_manifest$normalized_contract$vb_draws)),
-  sprintf("- synthesis_draws: `%s`", as.character(preflight_manifest$normalized_contract$synthesis_draws)),
-  sprintf("- mcmc_n_burn: `%s`", as.character(preflight_manifest$normalized_contract$mcmc_n_burn)),
-  sprintf("- mcmc_n_mcmc: `%s`", as.character(preflight_manifest$normalized_contract$mcmc_n_mcmc)),
-  sprintf("- mcmc_thin: `%s`", as.character(preflight_manifest$normalized_contract$mcmc_thin)),
+  "## Replay Contract",
+  sprintf("- replay_mode: `%s`", as.character(preflight_manifest$replay_summary$mode)),
+  sprintf("- row_override_roots: `%s`", as.character(preflight_manifest$replay_summary$row_override_roots)),
+  sprintf("- inventory_csv: `%s`", as.character(preflight_manifest$replay_summary$inventory_csv)),
+  sprintf("- posterior_metric_draws: `%s`", as.character(preflight_manifest$replay_contract$posterior_metric_draws)),
+  sprintf("- vb_draws: `%s`", as.character(preflight_manifest$replay_contract$vb_draws)),
+  sprintf("- synthesis_draws: `%s`", as.character(preflight_manifest$replay_contract$synthesis_draws)),
+  sprintf("- mcmc_n_burn: `%s`", as.character(preflight_manifest$replay_contract$mcmc_n_burn)),
+  sprintf("- mcmc_n_mcmc: `%s`", as.character(preflight_manifest$replay_contract$mcmc_n_mcmc)),
+  sprintf("- mcmc_thin: `%s`", as.character(preflight_manifest$replay_contract$mcmc_thin)),
   "",
   "## Multiseed Policy",
   sprintf("- enabled: `%s`", if (isTRUE(preflight_manifest$multiseed_summary$enabled)) "TRUE" else "FALSE"),
