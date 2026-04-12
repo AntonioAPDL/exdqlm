@@ -5,19 +5,29 @@
 #' component for a fixed transfer rate parameter `lam`.
 #'
 #' @inheritParams exdqlmMCMC
-#' @param X A univariate time-series which will be the input of the transfer
-#'   function component.
+#' @param X A numeric vector or matrix of transfer-function inputs. Vectors are
+#'   treated as a univariate input series. Matrices should have one row per time
+#'   point and one column per covariate.
 #' @param lam Transfer function rate parameter lambda, a value between 0 and 1.
-#' @param tf.df Discount factor(s) used for the transfer function component.
-#' @param tf.m0 Prior mean of the transfer function component.
-#' @param tf.C0 Prior covariance of the transfer function component.
+#' @param tf.df Discount factor specification for the transfer function
+#'   component. If \code{length(tf.df) = 1}, the value is shared by the
+#'   \eqn{\zeta_t} state and the whole \eqn{\psi_t} block. If
+#'   \code{length(tf.df) = 2}, it is interpreted as
+#'   \code{c(df_zeta, df_psi_shared)}. If \code{length(tf.df) = k + 1}, where
+#'   \eqn{k = ncol(X)}, the values are applied componentwise to
+#'   \eqn{(\zeta_t, \psi_{1,t}, \dots, \psi_{k,t})}.
+#' @param tf.m0 Prior mean of the transfer function component. Defaults to a
+#'   zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.
+#' @param tf.C0 Prior covariance of the transfer function component. Defaults to
+#'   the \eqn{(k+1)\times(k+1)} identity matrix.
 #'
 #' @return A object of class "\code{exdqlmMCMC}" containing the
 #'   \code{exdqlmMCMC()} output for the transfer-function-augmented model, plus:
 #' \itemize{
 #'   \item `lam` - Transfer function rate parameter lambda.
-#'   \item `median.kt` - Median number of time steps until the effect of `X_t`
-#'   is less than or equal to `1e-3`.
+#'   \item `median.kt` - Median number of time steps until the aggregated
+#'   transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to
+#'   `1e-3`.
 #' }
 #' @export
 #'
@@ -35,6 +45,14 @@
 #'   df = c(1,1), dim.df = c(1,6),
 #'   gam.init = -3.5, sig.init = 15,
 #'   lam = 0.38, tf.df = c(0.97,0.97),
+#'   n.burn = 100, n.mcmc = 150
+#' )
+#' X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
+#' M2 = transfn_exdqlmMCMC(
+#'   y, p0 = 0.85, model = model, X = X_multi,
+#'   df = c(1,1), dim.df = c(1,6),
+#'   gam.init = -3.5, sig.init = 15,
+#'   lam = 0.38, tf.df = c(0.97, 0.99),
 #'   n.burn = 100, n.mcmc = 150
 #' )
 #' }
@@ -56,7 +74,7 @@ transfn_exdqlmMCMC <- function(y, p0, model, X, df, dim.df, lam, tf.df,
                                slice.width = 0.1, slice.max.steps = Inf,
                                trace.diagnostics = TRUE, trace.every = 1L,
                                verbose.every = 500L, progress_callback = NULL,
-                               tf.m0 = rep(0, 2), tf.C0 = diag(1, 2)) {
+                               tf.m0 = NULL, tf.C0 = NULL) {
   prep <- .prepare_transfer_inputs(
     y = y, X = X, model = model, df = df, dim.df = dim.df,
     lam = lam, tf.df = tf.df, tf.m0 = tf.m0, tf.C0 = tf.C0,
@@ -94,6 +112,7 @@ transfn_exdqlmMCMC <- function(y, p0, model, X, df, dim.df, lam, tf.df,
     X = prep$X,
     lam = prep$lam
   )
+  tf.return$transfer_input_names <- prep$transfer_input_names
 
   tf.return
 }
