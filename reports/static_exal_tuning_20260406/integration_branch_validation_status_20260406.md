@@ -1267,28 +1267,70 @@ Superseded comparison outputs:
 - the new table-backed `20260411` comparison is the current durable source of
   truth
 
-## Next Major Relaunch Planning
+## Exact-Spec Multi-Seed Relaunch (2026-04-12)
 
-The next planned relaunch is the normalized multi-seed `0.4.0` rerun.
+The normalized relaunch is no longer the active next-step design.
 
-Planning note:
+It has now been replaced by the exact-spec replay implementation documented in:
 
-- `reports/static_exal_tuning_20260411/original288_normalized_multiseed_relaunch_plan_20260411.md`
+- `reports/static_exal_tuning_20260412/original288_exactspec_multiseed_relaunch_plan_20260412.md`
+- `reports/static_exal_tuning_20260412/original288_exactspec_multiseed_relaunch_program_20260412.md`
+- `reports/static_exal_tuning_20260412/original288_exactspec_multiseed_relaunch_execution_20260412.md`
 
-Current planning target:
+Correct replay rule:
 
-- normalize all active `mcmc` reruns to `n.burn = 5000`, `n.mcmc = 20000`
-- normalize exported posterior draws to `20000`
-- introduce a deterministic `4`-seed selection framework
-- rank seeds by:
-  - gate (`PASS > WARN > FAIL`)
-  - then lower `crps`
-  - then deterministic tie-breakers
-- stage the work through:
-  - seed-bank freeze
-  - normalized runner/output patch
-  - cross-path pilot
-  - full relaunch
+- keep each current corrected row on its exact accepted or selected historical
+  fit spec
+- preserve row-local kernel, proposal, adaptation, slice, refresh, init, and
+  prior settings
+- change only:
+  - `n.burn = 5000`
+  - `n.mcmc = 20000`
+  - stored posterior draws `= 20000`
+  - deterministic `4`-seed expansion and reduction
 
-This planning note is now the live design reference for the next branch-wide
-normalization phase.
+Implemented execution stack:
+
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_helpers_20260412.R`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_prepare_20260412.R`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_run_row_20260412.R`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_evaluate_20260412.R`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_reduce_20260412.R`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_refresh_comparison_20260412.R`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_launch_20260412.sh`
+
+Validation completed:
+
+- parser/syntax checks passed for the full exact-spec R stack
+- `bash -n` passed for the staged launcher
+- prepare passed with:
+  - `288` resolved rows
+  - `48` smoke rows
+  - `1152` full rows
+  - `0` missing inputs
+  - resolution minimum score `= 60`
+- launcher `--prepare-only=1` passed
+- launcher `--dry-run=1 --skip-prepare=1` passed
+
+Representative smoke evidence:
+
+- static `vb` representative replay completed `PASS`
+- static `mcmc` representative replay completed `PASS`
+- dynamic `vb` representative replay completed `PASS`
+- dynamic `mcmc` representative replay launched cleanly and sustained
+  long-running compute under the exact `5000 / 20000` replay budget before the
+  clean launcher re-prepare reset the run directory
+
+Current exact-spec machine-readable artifacts:
+
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_config_index_20260412.csv`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_resolution_audit_20260412.csv`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_control_audit_20260412.csv`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_seedbank_20260412.csv`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_smoke_manifest_20260412.csv`
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_full_manifest_20260412.csv`
+
+Interpretation:
+
+- the corrected branch is now ready for the first valid branch-wide relaunch of
+  the `4`-seed, `5000 / 20000`, exact-spec replay design

@@ -2897,3 +2897,62 @@ Interpretation / supersession rule:
    outputs
 2. the branch should now cite the `2026-04-11` table-backed comparison as the
    current durable cluster-by-cluster read
+
+## 12.23 Exact-spec multi-seed replay implementation checkpoint (2026-04-12)
+
+Primary references:
+
+- `reports/static_exal_tuning_20260412/original288_exactspec_multiseed_relaunch_plan_20260412.md`
+- `reports/static_exal_tuning_20260412/original288_exactspec_multiseed_relaunch_program_20260412.md`
+- `reports/static_exal_tuning_20260412/original288_exactspec_multiseed_relaunch_execution_20260412.md`
+
+State correction:
+
+1. the invalid normalized relaunch is no longer the live replay design
+2. the branch now carries the corrected exact-spec replay implementation
+3. exact replay means:
+   - preserve each corrected row's local winning spec
+   - preserve row-local kernel/proposal/adapt/slice/refresh/init controls
+   - change only:
+     - `n.burn = 5000`
+     - `n.mcmc = 20000`
+     - stored posterior draws `= 20000`
+     - deterministic `4`-seed replay and reduction
+
+Implementation state:
+
+1. exact-spec source-config recovery is now table-backed across both worktrees
+2. the relaunch stack is implemented:
+   - `LOCAL_original288_exactspec_multiseed_helpers_20260412.R`
+   - `LOCAL_original288_exactspec_multiseed_prepare_20260412.R`
+   - `LOCAL_original288_exactspec_multiseed_run_row_20260412.R`
+   - `LOCAL_original288_exactspec_multiseed_evaluate_20260412.R`
+   - `LOCAL_original288_exactspec_multiseed_reduce_20260412.R`
+   - `LOCAL_original288_exactspec_multiseed_refresh_comparison_20260412.R`
+   - `LOCAL_original288_exactspec_multiseed_launch_20260412.sh`
+3. prepare now completes with:
+   - `288` resolved rows
+   - `48` smoke rows
+   - `1152` full rows
+   - `0` missing inputs
+
+Validation state:
+
+1. parser/syntax checks passed for the full exact-spec stack
+2. `bash -n` passed for the launcher
+3. launcher `--prepare-only=1` passed
+4. launcher `--dry-run=1 --skip-prepare=1` passed
+5. representative replay smokes completed cleanly for:
+   - static `vb`
+   - static `mcmc`
+   - dynamic `vb`
+6. representative dynamic `mcmc` replay launched and sustained long-running
+   exact-budget compute without an early runtime crash before the clean
+   re-prepare reset
+
+Interpretation:
+
+1. the branch is now ready for the first valid branch-wide exact-spec
+   `4`-seed replay
+2. the next execution step is to launch the staged exact-spec relaunch rather
+   than revisit the invalid normalized policy experiment
