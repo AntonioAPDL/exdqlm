@@ -246,6 +246,23 @@ validated as a separate workstream.
 The branch now also contains the full normalized multi-seed relaunch
 infrastructure for the corrected original-`288` study.
 
+Important `2026-04-12` correction:
+
+- the implemented normalized relaunch was intentionally stopped and its
+  generated outputs were purged
+- reason:
+  - it did **not** preserve the exact accepted/best per-row specs
+  - it replaced important row-local tuning with generic normalized configs
+- interpretation:
+  - keep the implementation artifacts only as historical scaffolding
+  - do **not** use the run outputs for any scientific conclusion
+  - the correct next relaunch must be an exact-spec replay with only the
+    requested global changes:
+    - `n.burn = 5000`
+    - `n.mcmc = 20000`
+    - stored posterior draws `= 20000`
+    - deterministic `4`-seed replay and reduction
+
 Purpose:
 
 - normalize every rerun `mcmc` row to `5000 / 20000`

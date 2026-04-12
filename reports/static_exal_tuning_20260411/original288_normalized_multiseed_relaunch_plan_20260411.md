@@ -2,6 +2,25 @@
 
 Date: `2026-04-11`
 
+## Status
+
+As of `2026-04-12`, this plan is superseded for the main relaunch objective.
+
+It documents the normalized/generic relaunch design that was implemented and
+then intentionally invalidated. The reason is simple: the user requirement is a
+true exact-spec replay per row, not a generic normalized policy test.
+
+The correct target is:
+
+- keep each row's previously accepted/best spec exactly
+- preserve row-local kernels, proposals, adaptation, slice controls, refresh
+  cadence, initialization, and other local tuning choices
+- change only:
+  - `n.burn = 5000`
+  - `n.mcmc = 20000`
+  - stored posterior draws `= 20000`
+  - deterministic `4`-seed expansion and seed reduction
+
 ## Purpose
 
 This note defines the next major relaunch after the corrected `rhs_ns`

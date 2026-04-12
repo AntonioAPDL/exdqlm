@@ -2,6 +2,19 @@
 
 Date: `2026-04-11`
 
+## Status
+
+As of `2026-04-12`, this execution record is historical-only.
+
+The launched run was stopped intentionally and all generated run outputs were
+purged because this relaunch did **not** preserve the exact accepted/best
+row-level specs. It normalized burn/draw controls correctly, but it replaced
+important row-local tuning decisions with generic normalized configs in ways
+that do not match the intended experiment.
+
+Do **not** use this run for scientific conclusions, promotion decisions, or
+comparison refreshes.
+
 ## Execution Purpose
 
 This note records the implementation, validation, and launch state for the
