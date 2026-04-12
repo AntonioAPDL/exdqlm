@@ -1015,3 +1015,18 @@ Validation status:
   - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-canary-preflight-20260412`
 - committed-state full preflight:
   - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-full-preflight-20260412`
+
+Live corrected full launch:
+
+- setup / launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_setup_and_launch_20260412.md`
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-20260412-124648__git-7144048`
+- detached session:
+  - `qdesn_dynx_0412_124649`
+- initial launch read:
+  - detached session alive
+  - `1 / 36` roots materialized
+  - `1 RUNNING`
+  - `0 SUCCESS`
+  - `0 FAIL`
