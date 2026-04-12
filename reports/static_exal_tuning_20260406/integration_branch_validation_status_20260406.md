@@ -1334,3 +1334,13 @@ Interpretation:
 
 - the corrected branch is now ready for the first valid branch-wide relaunch of
   the `4`-seed, `5000 / 20000`, exact-spec replay design
+
+Live execution state:
+
+- staged tmux relaunch is now active:
+  - supervisor:
+    - `original288-exactspec-multiseed-20260412`
+  - monitor:
+    - `original288-exactspec-multiseed-monitor-20260412`
+- prepare reran cleanly at launch with `0` missing inputs
+- the live run is currently in the smoke-stage `full_static_mcmc` phase

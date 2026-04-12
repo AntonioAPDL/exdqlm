@@ -2956,3 +2956,9 @@ Interpretation:
    `4`-seed replay
 2. the next execution step is to launch the staged exact-spec relaunch rather
    than revisit the invalid normalized policy experiment
+3. that staged exact-spec relaunch is now live in tmux:
+   - supervisor:
+     - `original288-exactspec-multiseed-20260412`
+   - monitor:
+     - `original288-exactspec-multiseed-monitor-20260412`
+4. launch started cleanly and entered the smoke-stage `full_static_mcmc` phase

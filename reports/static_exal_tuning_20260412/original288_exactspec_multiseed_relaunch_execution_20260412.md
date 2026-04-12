@@ -76,6 +76,38 @@ pass completed with `0` missing inputs.
 
 ## Launch State
 
-The implementation is validated and ready for staged tmux launch.
+The staged exact-spec relaunch is now live in tmux.
 
-This section is updated again after the live exact-spec relaunch is started.
+Supervisor session:
+
+- `original288-exactspec-multiseed-20260412`
+
+Monitor session:
+
+- `original288-exactspec-multiseed-monitor-20260412`
+
+Console log:
+
+- `tools/merge_reports/LOCAL_original288_exactspec_multiseed_launcher_console_20260412.log`
+
+Startup snapshot captured after launch:
+
+- prepare reran successfully inside the tmux supervisor
+- prepare emitted:
+  - `288` resolved rows
+  - `48` smoke rows
+  - `1152` full rows
+  - `0` missing inputs
+- smoke prelaunch evaluator:
+  - `0 / 48` done
+  - `48 / 48` pending
+- first active phase:
+  - smoke `full_static_mcmc`
+- active worker cap at launch:
+  - `4`
+
+Operational note:
+
+- the smoke manifest intentionally reuses the same phase names as the full
+  replay, so the first live phase label is `full_static_mcmc` even though the
+  launcher is still in the smoke stage
