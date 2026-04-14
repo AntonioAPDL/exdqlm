@@ -1341,6 +1341,39 @@ Live execution state:
   - supervisor:
     - `original288-exactspec-multiseed-20260412`
   - monitor:
-    - `original288-exactspec-multiseed-monitor-20260412`
+  - `original288-exactspec-multiseed-monitor-20260412`
 - prepare reran cleanly at launch with `0` missing inputs
 - the live run is currently in the smoke-stage `full_static_mcmc` phase
+
+---
+
+## 2026-04-14 - Exact-Spec Replay Comparison Refresh
+
+The completed exact-spec multiseed replay has now been pushed back through the
+recent table-backed comparison pipeline.
+
+Primary comparison artifacts:
+
+- `reports/static_exal_tuning_20260412/original288_tablebacked_cluster_comparison_exactspec_multiseed_20260412.md`
+- `tools/merge_reports/original288_tablebacked_comparison_exactspec_multiseed_20260412/original288_tablebacked_metric_long_20260411.csv`
+- `tools/merge_reports/original288_tablebacked_comparison_exactspec_multiseed_20260412/original288_static_model_cluster_summary_20260411.csv`
+- `tools/merge_reports/original288_tablebacked_comparison_exactspec_multiseed_20260412/original288_dynamic_model_cluster_summary_20260411.csv`
+
+Main fit-performance read from the exact-spec replay winners:
+
+- static `mcmc`: `exal` better in `5 / 54` comparable pairs (`9.3%`)
+- static `vb`: `exal` better in `7 / 54` comparable pairs (`13.0%`)
+- dynamic `mcmc`: `exdqlm` better in `3 / 9` comparable pairs (`33.3%`)
+- dynamic `vb`: `exdqlm` better in `0 / 9` comparable pairs (`0.0%`)
+
+Important caveat:
+
+- `36 / 288` replay rows hit the same computationally singular metric-extraction
+  failure, all on the dynamic side, so dynamic pair coverage is partial
+
+Interpretation:
+
+- this exact-spec replay does **not** support the earlier accepted-state claim
+  that `exal` is better than `al` overall within static `mcmc`
+- the replay-based comparison should be interpreted separately from the older
+  accepted `v9` current-state comparison

@@ -2962,3 +2962,33 @@ Interpretation:
    - monitor:
      - `original288-exactspec-multiseed-monitor-20260412`
 4. launch started cleanly and entered the smoke-stage `full_static_mcmc` phase
+
+---
+
+## 2026-04-14 - Exact-Spec Replay Comparison Refresh
+
+The completed exact-spec multiseed replay has now been fed through a refreshed,
+table-backed cluster comparison using the replay-selected winners:
+
+- `reports/static_exal_tuning_20260412/original288_tablebacked_cluster_comparison_exactspec_multiseed_20260412.md`
+- `tools/merge_reports/original288_tablebacked_comparison_exactspec_multiseed_20260412/original288_static_model_cluster_summary_20260411.csv`
+- `tools/merge_reports/original288_tablebacked_comparison_exactspec_multiseed_20260412/original288_dynamic_model_cluster_summary_20260411.csv`
+
+Main replay-based fit-performance results:
+
+- static `mcmc`: `exal` better in `5 / 54` pairs (`9.3%`)
+- static `vb`: `exal` better in `7 / 54` pairs (`13.0%`)
+- dynamic `mcmc`: `exdqlm` better in `3 / 9` comparable pairs (`33.3%`)
+- dynamic `vb`: `exdqlm` better in `0 / 9` comparable pairs (`0.0%`)
+
+Important caveat:
+
+- `36` replay rows failed metric extraction with the same computationally
+  singular error, so the dynamic comparison is only partially comparable
+
+Interpretation:
+
+1. the exact-spec replay does **not** reproduce the earlier accepted-state
+   static claim that `exal` is better than `al` overall within `mcmc`
+2. the exact-spec replay should be treated as its own comparison layer rather
+   than folded into the older accepted `v9` current-state conclusion
