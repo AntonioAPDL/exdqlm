@@ -1450,3 +1450,14 @@ Current read:
 - it does **not** rerun the already-closed static branch
 - it is the right repair path before any new comparison refresh is treated as
   fully complete
+- the targeted repair relaunch is now live in tmux:
+  - supervisor:
+    - `original288-dynamic-tt5000-exactspec-repair-20260414`
+  - monitor:
+    - `original288-dynamic-tt5000-exactspec-repair-monitor-20260414`
+- launch startup read:
+  - `36` target rows
+  - `144` phase-1 rows
+  - `13` phase-2 historical candidates
+  - `0` missing phase-1 inputs
+  - phase `1` active with worker cap `= 3`

@@ -3057,3 +3057,13 @@ Interpretation:
 2. no full-study rerun is needed to close the remaining comparison hole
 3. the next durable comparison refresh should be taken from this targeted
    repair path rather than from another branch-wide replay
+4. the targeted repair relaunch is now live:
+   - supervisor:
+     - `original288-dynamic-tt5000-exactspec-repair-20260414`
+   - monitor:
+     - `original288-dynamic-tt5000-exactspec-repair-monitor-20260414`
+5. launch startup state:
+   - `36` target rows
+   - `144` phase-1 rows
+   - `13` historical repair candidates
+   - `0` missing phase-1 inputs

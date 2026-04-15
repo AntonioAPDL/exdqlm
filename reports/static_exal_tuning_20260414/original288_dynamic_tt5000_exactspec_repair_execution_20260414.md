@@ -120,9 +120,37 @@ Interpretation:
 
 ## Launch State
 
-The repair wave is ready for launch.
+The repair wave is now live in tmux.
 
-Expected live structure:
+Supervisor session:
+
+- `original288-dynamic-tt5000-exactspec-repair-20260414`
+
+Monitor session:
+
+- `original288-dynamic-tt5000-exactspec-repair-monitor-20260414`
+
+Console log:
+
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_launcher_console_20260414.log`
+
+Startup snapshot captured immediately after launch:
+
+- prepare reran successfully inside the supervisor
+- prepare emitted:
+  - `36` target rows
+  - `144` phase-1 rows
+  - `13` phase-2 historical candidates
+  - `0` missing phase-1 inputs
+- prelaunch evaluator at launch time:
+  - `0 / 144` done
+  - `144 / 144` pending
+- first active phase:
+  - `phase1_dynamic_tt5000_exact_replay`
+- active worker cap at launch:
+  - `3`
+
+Live structure:
 
 - phase 1 exact replay on all `36` unresolved `TT5000` rows with `4` seeds
 - phase 2 historical repairs only for rows still selecting to `FAIL`
