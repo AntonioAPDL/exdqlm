@@ -313,42 +313,43 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     ## forward filter
     # first iteration
     a = as.vector(GG[,,1]%*%m0)
-    P = GG[,,1]%*%C0%*%t(GG[,,1])
-    R = P + df.mat*P
-    R = (R + t(R))/2
+    P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "mcmc_smooth_P_t1")
+    R = .exdqlm_regularize_cov(P + df.mat*P, context = "mcmc_smooth_R_t1")
     f = t(FF[,1])%*%a + ex.f[1]
-    q = t(FF[,1])%*%R%*%FF[,1]  + ex.q[1]
+    q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1]  + ex.q[1], context = "mcmc_smooth_q_t1")
     m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-    C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-    C[,,1] = (C[,,1] + t(C[,,1]))/2
+    C[,,1] = .exdqlm_regularize_cov(
+      R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+      context = "mcmc_smooth_C_t1"
+    )
     standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
     # t = 2:TT
     for(t in 2:TT){
       a = as.vector(GG[,,t]%*%m[,(t-1)])
-      P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("mcmc_smooth_P_t%d", t))
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("mcmc_smooth_R_t%d", t))
       f = t(FF[,t])%*%a + ex.f[t]
       fB = t(FF[,t])%*%R
-      q = fB%*%FF[,t] + ex.q[t]
+      q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("mcmc_smooth_q_t%d", t))
       m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-      C[,,t] = R - t(fB)%*%fB/q[1]
-      C[,,t] = (C[,,t] + t(C[,,t]))/2
+      C[,,t] = .exdqlm_regularize_cov(
+        R - t(fB)%*%fB/q[1],
+        context = sprintf("mcmc_smooth_C_t%d", t)
+      )
       standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
     }
     ## backwards smoothing
     sC[,,TT] = C[,,TT]
     sm[,TT] = m[,TT]
     for(t in (TT-1):1){
-      P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-      R = P + df.mat*P
-      R = (R + t(R))/2
-      svd.R = svd(R)
-      inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+      P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("mcmc_smooth_back_P_t%d", t + 1L))
+      R.info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("mcmc_smooth_back_R_t%d", t + 1L))
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%R.info$inverse
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-      sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
-      sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
+      sC[,,t] = .exdqlm_regularize_cov(
+        C[,,t] + sB%*%(sC[,,(t+1)]-R.info$Sigma)%*%t(sB),
+        context = sprintf("mcmc_smooth_back_C_t%d", t)
+      )
     }
     return(list(standard.forecast.errors=standard.forecast.errors,sm=sm,sC=sC,fm=m,fC=C))
   }
@@ -576,45 +577,48 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## forward filter
       # first iteration
       a = as.vector(GG[,,1]%*%m0)
-      P = GG[,,1]%*%C0%*%t(GG[,,1])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "mcmc_dqlm_sample_P_t1")
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = "mcmc_dqlm_sample_R_t1")
       f = t(FF[,1])%*%a + ex.f[1]
-      q = t(FF[,1])%*%R%*%FF[,1] + ex.q[1]
+      q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1] + ex.q[1], context = "mcmc_dqlm_sample_q_t1")
       m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-      C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-      C[,,1] = (C[,,1] + t(C[,,1]))/2
+      C[,,1] = .exdqlm_regularize_cov(
+        R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+        context = "mcmc_dqlm_sample_C_t1"
+      )
       standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
       # t = 2:TT
       for(t in 2:TT){
         a = as.vector(GG[,,t]%*%m[,(t-1)])
-        P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-        R = P + df.mat*P
-        R = (R + t(R))/2
+        P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("mcmc_dqlm_sample_P_t%d", t))
+        R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("mcmc_dqlm_sample_R_t%d", t))
         f = t(FF[,t])%*%a + ex.f[t]
         fB = t(FF[,t])%*%R
-        q = fB%*%FF[,t] + ex.q[t]
+        q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("mcmc_dqlm_sample_q_t%d", t))
         m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-        C[,,t] = R - t(fB)%*%fB/q[1]
-        C[,,t] = (C[,,t] + t(C[,,t]))/2
+        C[,,t] = .exdqlm_regularize_cov(
+          R - t(fB)%*%fB/q[1],
+          context = sprintf("mcmc_dqlm_sample_C_t%d", t)
+        )
         standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
       }
       ## backwards sample
-      svd.sC = svd(C[,,TT])
+      sC_TT = .exdqlm_regularize_cov(C[,,TT], context = "mcmc_dqlm_sample_sC_TT")
+      svd.sC = svd(sC_TT)
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
       reg_theta <- numeric(TT)
       reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
       post.pred[TT] = rexal(1,tau,reg_theta[TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,0)
       for(t in (TT-1):1){
-        P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-        R = P + df.mat*P
-        R = (R + t(R))/2
-        svd.R = svd(R)
-        inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+        P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("mcmc_dqlm_back_P_t%d", t + 1L))
+        R.info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("mcmc_dqlm_back_R_t%d", t + 1L))
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%R.info$inverse
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
-        svd.sC = svd((sC+t(sC))/2)
+        sC = .exdqlm_regularize_cov(
+          C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t],
+          context = sprintf("mcmc_dqlm_back_sC_t%d", t)
+        )
+        svd.sC = svd(sC)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
         reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
         post.pred[t] = rexal(1,tau,reg_theta[t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
@@ -1107,45 +1111,48 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## forward filter
       # first iteration
       a = as.vector(GG[,,1]%*%m0)
-      P = GG[,,1]%*%C0%*%t(GG[,,1])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "mcmc_al_sample_P_t1")
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = "mcmc_al_sample_R_t1")
       f = t(FF[,1])%*%a + ex.f[1]
-      q = t(FF[,1])%*%R%*%FF[,1] + ex.q[1]
+      q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1] + ex.q[1], context = "mcmc_al_sample_q_t1")
       m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-      C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-      C[,,1] = (C[,,1] + t(C[,,1]))/2
+      C[,,1] = .exdqlm_regularize_cov(
+        R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+        context = "mcmc_al_sample_C_t1"
+      )
       standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
       # t = 2:TT
       for(t in 2:TT){
         a = as.vector(GG[,,t]%*%m[,(t-1)])
-        P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-        R = P + df.mat*P
-        R = (R + t(R))/2
+        P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("mcmc_al_sample_P_t%d", t))
+        R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("mcmc_al_sample_R_t%d", t))
         f = t(FF[,t])%*%a + ex.f[t]
         fB = t(FF[,t])%*%R
-        q = fB%*%FF[,t] + ex.q[t]
+        q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("mcmc_al_sample_q_t%d", t))
         m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-        C[,,t] = R - t(fB)%*%fB/q[1]
-        C[,,t] = (C[,,t] + t(C[,,t]))/2
+        C[,,t] = .exdqlm_regularize_cov(
+          R - t(fB)%*%fB/q[1],
+          context = sprintf("mcmc_al_sample_C_t%d", t)
+        )
         standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
       }
       ## backwards sample
-      svd.sC = svd(C[,,TT])
+      sC_TT = .exdqlm_regularize_cov(C[,,TT], context = "mcmc_al_sample_sC_TT")
+      svd.sC = svd(sC_TT)
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        reg_theta <- numeric(TT)
-        reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
-        post.pred[TT] = rexal(1,p0,reg_theta[TT],sigma,0)
-        for(t in (TT-1):1){
-        P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-        R = P + df.mat*P
-        R = (R + t(R))/2
-        svd.R = svd(R)
-        inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+      reg_theta <- numeric(TT)
+      reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
+      post.pred[TT] = rexal(1,p0,reg_theta[TT],sigma,0)
+      for(t in (TT-1):1){
+        P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("mcmc_al_back_P_t%d", t + 1L))
+        R.info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("mcmc_al_back_R_t%d", t + 1L))
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%R.info$inverse
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
-        svd.sC = svd((sC+t(sC))/2)
+        sC = .exdqlm_regularize_cov(
+          C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t],
+          context = sprintf("mcmc_al_back_sC_t%d", t)
+        )
+        svd.sC = svd(sC)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
         reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
         post.pred[t] = rexal(1,p0,reg_theta[t],sigma,0)
@@ -1238,6 +1245,16 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
       # sample uts
       reg1 = state_signal(FF, cursam.theta)
+      if (!is.finite(cursam.sigma) || cursam.sigma <= 0 || any(!is.finite(reg1))) {
+        stop(sprintf(
+          "dqlm_mcmc_pre_uts (iter=%d) invalid state before chi update: sigma=%s reg1_finite=%s max_abs_reg1=%s max_abs_theta=%s",
+          i,
+          format(cursam.sigma, digits = 6),
+          all(is.finite(reg1)),
+          if (all(is.finite(reg1))) format(max(abs(reg1), na.rm = TRUE), digits = 6) else "NA",
+          if (all(is.finite(cursam.theta))) format(max(abs(cursam.theta), na.rm = TRUE), digits = 6) else "NA"
+        ))
+      }
       cursam.Ut<-samp_uts(reg1,cursam.sigma)
 
       # sample sigma
