@@ -722,6 +722,24 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_crps_row <- function(y_true, draws_vec) {
+  z <- sort(as.numeric(draws_vec))
+  z <- z[is.finite(z)]
+  m <- length(z)
+  if (m < 2L || !is.finite(y_true)) {
+    return(NA_real_)
+  }
+  mean(abs(z - y_true)) - sum((2 * seq_len(m) - m - 1) * z) / (m^2)
+}
+
+.exdqlm_crps_vec <- function(y_true, draws_mat) {
+  draws_mat <- as.matrix(draws_mat)
+  stopifnot(length(y_true) == nrow(draws_mat))
+  vapply(seq_len(nrow(draws_mat)), function(i) {
+    .exdqlm_crps_row(y_true[[i]], draws_mat[i, ])
+  }, numeric(1))
+}
+
 .exdqlm_chain_health_metrics <- function(x, n_keep = length(x)) {
   z <- as.numeric(x)
   z <- z[is.finite(z)]
