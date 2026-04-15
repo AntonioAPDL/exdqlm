@@ -2992,3 +2992,68 @@ Interpretation:
    static claim that `exal` is better than `al` overall within `mcmc`
 2. the exact-spec replay should be treated as its own comparison layer rather
    than folded into the older accepted `v9` current-state conclusion
+
+## 12.24 Dynamic TT5000 exact-spec repair relaunch checkpoint (2026-04-14)
+
+The completed exact-spec replay left one scientifically important hole:
+
+- `36 / 288` replay-selected rows still fail on the `dynamic / TT5000` block
+- that makes the replay-based comparison only partially complete on dynamic
+
+The branch now carries the targeted repair implementation for that hole:
+
+- `reports/static_exal_tuning_20260414/original288_dynamic_tt5000_exactspec_repair_plan_20260414.md`
+- `reports/static_exal_tuning_20260414/original288_dynamic_tt5000_exactspec_repair_program_20260414.md`
+- `reports/static_exal_tuning_20260414/original288_dynamic_tt5000_exactspec_repair_execution_20260414.md`
+
+Design rule:
+
+1. phase 1 exact replay:
+   - keep the current unresolved row on its exact accepted-source config
+   - change only:
+     - `n.burn = 5000`
+     - `n.mcmc = 20000`
+     - stored posterior draws `= 20000`
+     - deterministic `4` seeds
+2. phase 2 historical repair:
+   - only for rows still failing after phase 1
+   - preserve row-local historical TT5000 repair controls when available
+   - do **not** replace them with generic policy tuning
+
+Prepared counts:
+
+- target rows: `36`
+- phase-1 rows: `144`
+- phase-2 historical candidates: `13`
+- historical-source mix:
+  - `10` checkpoint
+  - `2` matrix-manifest
+  - `1` targeted-manifest
+- phase-1 missing inputs: `0`
+
+Validation:
+
+1. parser/syntax checks passed for the full repair stack
+2. `bash -n` passed for the launcher
+3. launcher `--prepare-only=1` passed
+4. launcher `--dry-run=1 --skip-prepare=1` passed
+5. all `13 / 13` phase-2 historical candidates now resolve with populated
+   candidate-local control fields
+6. generated configs were inspected and confirmed to preserve recovered slice /
+   refresh / init settings while standardizing to `5000 / 20000 / 20000`
+
+Focused smoke read:
+
+1. representative phase-1 and phase-2 rows still fail immediately on the same
+   hard numerical issues seen in the unresolved block
+2. that is scientifically negative but operationally useful because it shows
+   the repair stack is now replaying the intended exact/historical specs rather
+   than drifting into a generic config
+
+Interpretation:
+
+1. this targeted repair relaunch is the safest next step because it is narrow
+   and provenance-preserving
+2. no full-study rerun is needed to close the remaining comparison hole
+3. the next durable comparison refresh should be taken from this targeted
+   repair path rather than from another branch-wide replay

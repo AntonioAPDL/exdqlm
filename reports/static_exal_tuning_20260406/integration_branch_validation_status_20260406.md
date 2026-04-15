@@ -1377,3 +1377,76 @@ Interpretation:
   that `exal` is better than `al` overall within static `mcmc`
 - the replay-based comparison should be interpreted separately from the older
   accepted `v9` current-state comparison
+
+## 2026-04-14 - Targeted Dynamic TT5000 Exact-Spec Repair Relaunch
+
+The exact-spec replay comparison is currently only partial on dynamic because
+`36 / 288` replay-selected rows still fail on the `dynamic / TT5000` block.
+
+Those unresolved rows span:
+
+- `3` families
+- `3` taus
+- `2` models
+- `2` inference methods
+
+The branch now carries the narrow repair implementation for that block:
+
+- `reports/static_exal_tuning_20260414/original288_dynamic_tt5000_exactspec_repair_plan_20260414.md`
+- `reports/static_exal_tuning_20260414/original288_dynamic_tt5000_exactspec_repair_program_20260414.md`
+- `reports/static_exal_tuning_20260414/original288_dynamic_tt5000_exactspec_repair_execution_20260414.md`
+
+Core repair stack:
+
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_helpers_20260414.R`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_prepare_20260414.R`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_build_phase2_20260414.R`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_run_row_20260414.R`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_evaluate_20260414.R`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_reduce_20260414.R`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_refresh_comparison_20260414.R`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_exactspec_repair_launch_20260414.sh`
+
+Correctness rule:
+
+1. phase 1 preserves the exact current selected source config per unresolved
+   row and changes only:
+   - `n.burn = 5000`
+   - `n.mcmc = 20000`
+   - stored posterior draws `= 20000`
+   - deterministic `4`-seed expansion
+2. phase 2 is only for phase-1 failures and preserves row-local historical
+   repair controls from prior TT5000 repair artifacts
+
+Prepared counts:
+
+- target rows: `36`
+- phase-1 rows: `144`
+- phase-2 historical candidates: `13`
+- phase-1 missing inputs: `0`
+
+Validation completed:
+
+- parser/syntax checks passed for the full repair stack
+- `bash -n` passed for the launcher
+- launcher `--prepare-only=1` passed
+- launcher `--dry-run=1 --skip-prepare=1` passed
+- `13 / 13` phase-2 historical candidates now source-resolve with candidate
+  control fields populated
+
+Focused smoke interpretation:
+
+- representative phase-1 and phase-2 rows still fail with the same hard
+  numerical issues that currently define this unresolved block
+- those smokes were still useful because they verified:
+  - exact-source phase-1 configs
+  - historical candidate-specific phase-2 configs
+  - clean row / health / metric failure-path writes
+
+Current read:
+
+- this is the safest next relaunch because it is narrow, exact-source, and
+  historically grounded
+- it does **not** rerun the already-closed static branch
+- it is the right repair path before any new comparison refresh is treated as
+  fully complete
