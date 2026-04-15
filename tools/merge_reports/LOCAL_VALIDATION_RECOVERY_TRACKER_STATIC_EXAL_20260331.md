@@ -3067,3 +3067,68 @@ Interpretation:
    - `144` phase-1 rows
    - `13` historical repair candidates
    - `0` missing phase-1 inputs
+
+## 12.25 Dynamic TT5000 repair closeout and storage cleanup checkpoint (2026-04-15)
+
+The targeted dynamic `TT5000` repair relaunch has now finished, and it was
+scientifically negative:
+
+1. phase 1 exact replay:
+   - `144 / 144` rows failed
+2. phase 2 historical repair:
+   - `52 / 52` rows failed
+3. selected repaired cases:
+   - `36 / 36` remain `FAIL`
+4. comparison impact:
+   - the dynamic replay hole remains
+   - replay-based dynamic pair coverage is still only partial
+
+The row-level failure investigation is now much clearer:
+
+1. the failure wave is concentrated into two signatures
+   - `116 / 196`: `system is computationally singular`
+   - `80 / 196`: `chi has non-finite values (iter=1)`
+2. this is not a comparison-script problem
+   - the selected replay winners themselves are runtime `FAIL`s
+3. phase 2 was structurally limited
+   - only `9 / 36` unresolved cases had any historical repair coverage
+   - all phase-2 coverage was `mcmc`
+   - no unresolved `vb` case had a historical rescue candidate
+
+So the branch is no longer stuck for a vague reason. The remaining hard pocket
+is specifically a dynamic `TT5000` numerical-stability problem under the
+exact-spec replay controls.
+
+Current durable investigation note:
+
+- `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_state_reset_20260415.md`
+
+Machine-readable investigation artifacts:
+
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_failure_signature_summary_20260415.csv`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_phase2_case_coverage_20260415.csv`
+- `tools/merge_reports/LOCAL_dynamic_storage_audit_20260415.csv`
+
+Safe storage cleanup completed:
+
+1. deleted category:
+   - older unselected `2026-04-10` restored-closure dynamic fit files
+2. reclaimed space:
+   - `5.58G`
+3. manifest:
+   - `tools/merge_reports/LOCAL_dynamic_safe_delete_manifest_20260415.txt`
+
+Current storage interpretation:
+
+1. the low-risk reclaim has already been taken
+2. the next large reclaim is the unselected exact-spec dynamic seed replicas
+   (`55.85G`)
+3. those files are still recent seed-level reproducibility evidence, so that
+   next cleanup should be treated as a separate explicit decision
+
+Recommended next move:
+
+1. stop broad TT5000 reruns on the same repair inventory
+2. root-cause debug representative dynamic `TT5000` failures in the main code
+   path
+3. relaunch the narrow `36`-row hole only after method-level stabilization

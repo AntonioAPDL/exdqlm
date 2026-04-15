@@ -156,3 +156,44 @@ Live structure:
 - phase 2 historical repairs only for rows still selecting to `FAIL`
 - automatic post-run selection refresh
 - automatic comparison refresh
+
+## Final Outcome
+
+The repair wave completed and was scientifically negative:
+
+| scope | total | pass | warn | fail | healthy |
+|---|---:|---:|---:|---:|---:|
+| full repair wave | `196` | `0` | `0` | `196` | `0` |
+| phase 1 exact replay | `144` | `0` | `0` | `144` | `0` |
+| phase 2 historical repair | `52` | `0` | `0` | `52` | `0` |
+
+Selected repaired cases:
+
+- selected cases: `36`
+- selected `PASS`: `0`
+- selected `WARN`: `0`
+- selected `FAIL`: `36`
+- better than pre-repair replay: `0`
+- matches pre-repair replay: `36`
+- worse than pre-repair replay: `0`
+
+Failure signatures were concentrated and repetitive rather than diffuse:
+
+- `116 / 196` rows:
+  - `system is computationally singular: reciprocal condition number = 1.73213e-50`
+- `80 / 196` rows:
+  - `chi has non-finite values (iter=1)`
+
+Coverage limitation:
+
+- phase 2 historical repair inventory only touched `9 / 36` unresolved cases
+- all phase-2 coverage was on `mcmc`
+- no `vb` unresolved case had a historical rescue candidate
+
+Interpretation:
+
+- the repair lane was the correct provenance-preserving experiment
+- it verified that the branch was replaying the intended exact-source and
+  historical configs
+- it also showed that this unresolved pocket is not fixable by simply replaying
+  the current exact specs or reusing the limited historical TT5000 rescue pool

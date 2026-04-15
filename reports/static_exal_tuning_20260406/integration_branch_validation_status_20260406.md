@@ -1461,3 +1461,69 @@ Current read:
   - `13` phase-2 historical candidates
   - `0` missing phase-1 inputs
   - phase `1` active with worker cap `= 3`
+
+## 2026-04-15 - Dynamic TT5000 repair closeout and state reset
+
+The targeted dynamic `TT5000` exact-spec repair relaunch is now complete and
+scientifically negative.
+
+Final repair outcome:
+
+- full repair wave: `196 / 196` done, `0 PASS`, `0 WARN`, `196 FAIL`
+- phase 1 exact replay: `144 / 144` failed
+- phase 2 historical repair: `52 / 52` failed
+- selected repaired cases: `36 / 36` still `FAIL`
+- improvement versus the pre-repair replay selection:
+  - better: `0`
+  - matches: `36`
+  - worse: `0`
+
+Failure signatures are concentrated rather than diffuse:
+
+- `116 / 196` rows:
+  - `system is computationally singular: reciprocal condition number = 1.73213e-50`
+- `80 / 196` rows:
+  - `chi has non-finite values (iter=1)`
+
+Important structural finding:
+
+- phase-2 historical repair coverage only existed for `9 / 36` unresolved cases
+- all phase-2 coverage was on `mcmc`
+- no unresolved `vb` case had a historical repair candidate
+
+That means the current unresolved pocket is no longer well described as
+“untried tuning space.” It is a concentrated dynamic `TT5000`
+numerical-stability problem under the exact-spec replay controls.
+
+Current durable state note:
+
+- `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_state_reset_20260415.md`
+
+Supporting investigation artifacts:
+
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_failure_signature_summary_20260415.csv`
+- `tools/merge_reports/LOCAL_original288_dynamic_tt5000_phase2_case_coverage_20260415.csv`
+- `tools/merge_reports/LOCAL_dynamic_storage_audit_20260415.csv`
+
+Safe disk cleanup completed:
+
+- deleted `9` older unselected restored-closure dynamic fit files
+- reclaimed `5.58G`
+- manifest:
+  - `tools/merge_reports/LOCAL_dynamic_safe_delete_manifest_20260415.txt`
+
+Current storage read:
+
+- current dynamic results subtree:
+  - `77G`
+- selected exact-spec dynamic replay files:
+  - `18.62G`
+- unselected exact-spec dynamic replay files:
+  - `55.85G`
+
+Recommended next step:
+
+- stop broad reruns on this `36`-row hole
+- move to root-cause debugging of the dynamic `TT5000` numerical failures in
+  the main code path
+- only relaunch the narrow `36`-row block after method-level stabilization
