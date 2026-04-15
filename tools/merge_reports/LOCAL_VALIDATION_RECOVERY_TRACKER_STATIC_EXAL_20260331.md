@@ -3132,3 +3132,44 @@ Recommended next move:
 2. root-cause debug representative dynamic `TT5000` failures in the main code
    path
 3. relaunch the narrow `36`-row hole only after method-level stabilization
+
+## 12.26 Dynamic TT5000 package root-cause stabilization checkpoint (2026-04-15)
+
+The main package debugging lane has now confirmed a second package-level root
+cause beyond the already-fixed `dlm_df()` smoother failure.
+
+New finding:
+
+1. the dynamic `dqlm.ind = TRUE` MCMC FFBS sampler inside `exdqlmMCMC()` still
+   used the old unregularized covariance and raw SVD inverse path
+2. that stale branch could generate non-finite sampled state trajectories
+   before the first `u_t` update
+3. that is the mechanism behind the earlier `chi_nonfinite` family on the hard
+   `TT5000` dQLM MCMC cases
+
+Local package changes now cover:
+
+- `R/utils.R`
+- `R/exdqlmISVB.R`
+- `R/exdqlmLDVB.R`
+- `R/exdqlmMCMC.R`
+- `tests/testthat/test-dlm-df-smoother-regression.R`
+- `tests/testthat/test-dynamic-dqlm-mcmc-regression.R`
+
+Current evidence:
+
+1. targeted package regression checks pass
+2. representative hard-case isolated probes now complete on:
+   - `full_row_1017` (`dqlm / mcmc / TT5000`)
+   - `full_row_1021` (`exdqlm / mcmc / TT5000`)
+3. bounded legacy-init / VB-side probes no longer reproduce the old immediate
+   singular crash
+
+Current recommendation:
+
+1. do one tiny post-fix smoke over representative dynamic `TT5000` rows
+2. if that smoke is stable, resume the narrow repair lane
+
+Durable note:
+
+- `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_rootcause_debug_20260415.md`

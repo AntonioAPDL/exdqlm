@@ -311,6 +311,17 @@ run_dynamic_original288_dynamic_tt5000_exactspec_repair <- function() {
           on.exit(options(old_refresh), add = TRUE)
         }
 
+        source_has_init_from_vb <- "init_from_vb" %in% names(mc_cfg) &&
+          !all(is.na(mc_cfg[["init_from_vb"]]))
+        source_has_init_from_isvb <- "init_from_isvb" %in% names(mc_cfg) &&
+          !all(is.na(mc_cfg[["init_from_isvb"]]))
+        legacy_isvb_default <- !source_has_init_from_vb && !source_has_init_from_isvb
+        default_isvb <- legacy_isvb_default ||
+          identical(
+            tolower(safe_chr_original288_dynamic_tt5000_exactspec_repair(bf$vb.init.method, "")),
+            "isvb"
+          )
+
         call_args <- list(
           y = as.numeric(sim_obj$y),
           p0 = bf$p0,
@@ -320,19 +331,12 @@ run_dynamic_original288_dynamic_tt5000_exactspec_repair <- function() {
           dqlm.ind = identical(row$model, "dqlm"),
           n.burn = safe_int_original288_dynamic_tt5000_exactspec_repair(mc_cfg$burn %||% 5000L, 5000L),
           n.mcmc = safe_int_original288_dynamic_tt5000_exactspec_repair(mc_cfg$n %||% 20000L, 20000L),
-          init.from.vb = as_flag_original288_dynamic_tt5000_exactspec_repair(mc_cfg$init_from_vb, !is.null(vb_obj)),
-          init.from.isvb = as_flag_original288_dynamic_tt5000_exactspec_repair(mc_cfg$init_from_isvb %||% identical(tolower(safe_chr_original288_dynamic_tt5000_exactspec_repair(bf$vb.init.method, "ldvb")), "isvb"), FALSE),
-          vb_init_controls = list(
-            method = safe_chr_original288_dynamic_tt5000_exactspec_repair(vb_cfg$method %||% bf$vb.init.method %||% "ldvb", "ldvb"),
-            tol = safe_num_original288_dynamic_tt5000_exactspec_repair(vb_cfg$tol %||% 0.03, 0.03),
-            n.IS = safe_int_original288_dynamic_tt5000_exactspec_repair(vb_cfg$n_IS %||% vb_cfg$n_is %||% 200L, 200L),
-            n.samp = safe_int_original288_dynamic_tt5000_exactspec_repair(vb_cfg$n_samp %||% 1000L, 1000L),
-            max_iter = safe_int_original288_dynamic_tt5000_exactspec_repair(vb_cfg$max_iter %||% 300L, 300L),
-            verbose = FALSE
+          init.from.isvb = as_flag_original288_dynamic_tt5000_exactspec_repair(
+            if (source_has_init_from_isvb) mc_cfg[["init_from_isvb"]] else default_isvb,
+            default_isvb
           ),
           joint.sample = as_flag_original288_dynamic_tt5000_exactspec_repair(mh$joint_sample %||% mh$primary_joint_sample %||% accepted_mh$joint_sample, FALSE),
           mh.proposal = safe_chr_original288_dynamic_tt5000_exactspec_repair(mh$proposal %||% mh$primary_proposal %||% accepted_mh$proposal %||% "laplace_rw", "laplace_rw"),
-          mh.adapt = as_flag_original288_dynamic_tt5000_exactspec_repair(mh$adapt %||% accepted_mh$adapt, TRUE),
           mh.adapt.interval = safe_int_original288_dynamic_tt5000_exactspec_repair(mh$adapt_interval %||% accepted_mh$adapt_interval %||% 50L, 50L),
           mh.target.accept = safe_num_vec_original288_dynamic_tt5000_exactspec_repair(mh$target_accept %||% accepted_mh$target_accept %||% c(0.20, 0.45), c(0.20, 0.45)),
           mh.scale.bounds = safe_num_vec_original288_dynamic_tt5000_exactspec_repair(mh$scale_bounds %||% accepted_mh$scale_bounds %||% c(0.1, 10), c(0.1, 10)),
@@ -342,6 +346,28 @@ run_dynamic_original288_dynamic_tt5000_exactspec_repair <- function() {
           trace.every = safe_int_original288_dynamic_tt5000_exactspec_repair(mh$trace_every %||% mc_cfg$trace_every %||% accepted_mh$trace_every %||% 50L, 50L),
           verbose = FALSE
         )
+        if (source_has_init_from_vb) {
+          call_args$init.from.vb <- as_flag_original288_dynamic_tt5000_exactspec_repair(mc_cfg[["init_from_vb"]], !is.null(vb_obj))
+        }
+        vb_init_controls <- list(
+          tol = safe_num_original288_dynamic_tt5000_exactspec_repair(vb_cfg$tol %||% 0.03, 0.03),
+          n.IS = safe_int_original288_dynamic_tt5000_exactspec_repair(vb_cfg$n_IS %||% vb_cfg$n_is %||% 200L, 200L),
+          n.samp = safe_int_original288_dynamic_tt5000_exactspec_repair(vb_cfg$n_samp %||% 1000L, 1000L),
+          max_iter = safe_int_original288_dynamic_tt5000_exactspec_repair(vb_cfg$max_iter %||% 300L, 300L),
+          verbose = FALSE
+        )
+        if (!legacy_isvb_default) {
+          vb_init_controls$method <- safe_chr_original288_dynamic_tt5000_exactspec_repair(
+            vb_cfg$method %||% bf$vb.init.method %||% "ldvb",
+            "ldvb"
+          )
+        }
+        call_args$vb_init_controls <- vb_init_controls
+        if ("adapt" %in% names(mh) && !all(is.na(mh[["adapt"]]))) {
+          call_args$mh.adapt <- as_flag_original288_dynamic_tt5000_exactspec_repair(mh[["adapt"]], TRUE)
+        } else if (!is.null(accepted_mh$adapt) && length(accepted_mh$adapt) && !all(is.na(accepted_mh$adapt))) {
+          call_args$mh.adapt <- as_flag_original288_dynamic_tt5000_exactspec_repair(accepted_mh$adapt, TRUE)
+        }
         slice_width <- safe_num_original288_dynamic_tt5000_exactspec_repair(mh$slice_width %||% accepted_mh$slice_width, NA_real_)
         slice_max_steps <- safe_int_original288_dynamic_tt5000_exactspec_repair(mh$slice_max_steps %||% accepted_mh$slice_max_steps, NA_integer_)
         if (is.finite(slice_width)) call_args$slice.width <- slice_width

@@ -1527,3 +1527,50 @@ Recommended next step:
 - move to root-cause debugging of the dynamic `TT5000` numerical failures in
   the main code path
 - only relaunch the narrow `36`-row block after method-level stabilization
+
+## 2026-04-15 - Dynamic TT5000 package root-cause stabilization checkpoint
+
+The code-first debugging lane in the main package has now identified and
+patched a second package-level numerical bug beyond the already-fixed
+`dlm_df()` singular smoother failure.
+
+New package-level finding:
+
+- the `dqlm.ind = TRUE` dynamic MCMC FFBS sampler inside `exdqlmMCMC()` still
+  used the old unregularized covariance propagation and raw SVD inverse path
+- that stale branch could generate a non-finite sampled state path before the
+  first `u_t` update, which is what surfaced as:
+  - `dqlm_mcmc_pre_uts ... invalid state before chi update`
+  - downstream `chi has non-finite values (iter=1)`
+
+That branch is now locally patched to use the same regularized covariance
+contract as the already-hardened dynamic smoother paths.
+
+Validation evidence from the package repo:
+
+- regression tests now pass for:
+  - `test-dlm-df-smoother-regression.R`
+  - `test-dynamic-dqlm-mcmc-regression.R`
+  - `test-dqlm-reduced-paths.R`
+  - `test-dqlm-vb-sim-smoke.R`
+  - `test-ffbs-indexing-parity.R`
+  - `test-mcmc-backend-routing.R`
+  - `test-mcmc-dynamic-strict-parity.R`
+- representative hard-case probes now behave materially better:
+  - isolated `TT5000` dQLM MCMC probe (`full_row_1017`) completes a short run
+    with finite `theta` and finite map forecast errors
+  - isolated `TT5000` exDQLM MCMC probe (`full_row_1021`) also completes a
+    short run with finite `theta` and finite map forecast errors
+  - bounded legacy-init / VB-side probes no longer reproduce the old immediate
+    singular crash, but they still require a small post-fix smoke before the
+    repair relaunch should resume
+
+Durable debug note:
+
+- `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_rootcause_debug_20260415.md`
+
+Current recommendation:
+
+- do **not** jump straight to a full dynamic `TT5000` rerun yet
+- run a tiny post-fix smoke across representative `TT5000` rows first
+- if that smoke is stable, resume the narrow dynamic `TT5000` repair lane

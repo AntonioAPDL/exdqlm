@@ -530,12 +530,28 @@ unified_flat_config_original288_exactspec_multiseed <- function(source_cfg,
     mh <- mc$mh %||% list()
     cfg$n_burn <- 5000L
     cfg$n_mcmc <- 20000L
-    cfg$init_from_vb <- as_flag_original288_exactspec_multiseed(mc$init_from_vb, TRUE)
-    cfg$init_from_isvb <- as_flag_original288_exactspec_multiseed(mc$init_from_isvb, FALSE)
+    cfg$source_has_init_from_vb <- "init_from_vb" %in% names(mc)
+    cfg$source_has_init_from_isvb <- "init_from_isvb" %in% names(mc)
+    cfg$legacy_mcmc_init_default <- !cfg$source_has_init_from_vb && !cfg$source_has_init_from_isvb
+    cfg$init_from_vb <- if (cfg$source_has_init_from_vb) {
+      as_flag_original288_exactspec_multiseed(mc[["init_from_vb"]], TRUE)
+    } else {
+      NA
+    }
+    cfg$init_from_isvb <- if (cfg$source_has_init_from_isvb) {
+      as_flag_original288_exactspec_multiseed(mc[["init_from_isvb"]], FALSE)
+    } else {
+      cfg$legacy_mcmc_init_default
+    }
     cfg$trace_every <- safe_int_original288_exactspec_multiseed(mc$trace_every %||% mh$trace_every, 50L)
     cfg$mh_proposal <- safe_chr_original288_exactspec_multiseed(mh$proposal %||% mh$primary_proposal, "laplace_rw")
     cfg$mh_joint_sample <- as_flag_original288_exactspec_multiseed(mh$joint_sample %||% mh$primary_joint_sample, FALSE)
-    cfg$mh_adapt <- as_flag_original288_exactspec_multiseed(mh$adapt, TRUE)
+    cfg$source_has_mh_adapt <- "adapt" %in% names(mh)
+    cfg$mh_adapt <- if (cfg$source_has_mh_adapt) {
+      as_flag_original288_exactspec_multiseed(mh[["adapt"]], TRUE)
+    } else {
+      NA
+    }
     cfg$mh_adapt_interval <- safe_int_original288_exactspec_multiseed(mh$adapt_interval, 50L)
     cfg$mh_target_accept <- as.numeric(mh$target_accept %||% c(0.20, 0.45))
     cfg$mh_scale_bounds <- as.numeric(mh$scale_bounds %||% c(0.1, 10))
@@ -577,7 +593,19 @@ unified_flat_config_original288_exactspec_multiseed <- function(source_cfg,
     cfg$n_burn <- 5000L
     cfg$n_mcmc <- 20000L
     cfg$thin <- safe_int_original288_exactspec_multiseed(mc$thin, 1L)
-    cfg$init_from_vb <- as_flag_original288_exactspec_multiseed(mc$init_from_vb, TRUE)
+    cfg$source_has_init_from_vb <- "init_from_vb" %in% names(mc)
+    cfg$source_has_init_from_isvb <- "init_from_isvb" %in% names(mc)
+    cfg$legacy_mcmc_init_default <- !cfg$source_has_init_from_vb && !cfg$source_has_init_from_isvb
+    cfg$init_from_vb <- if (cfg$source_has_init_from_vb) {
+      as_flag_original288_exactspec_multiseed(mc[["init_from_vb"]], TRUE)
+    } else {
+      NA
+    }
+    cfg$init_from_isvb <- if (cfg$source_has_init_from_isvb) {
+      as_flag_original288_exactspec_multiseed(mc[["init_from_isvb"]], FALSE)
+    } else {
+      cfg$legacy_mcmc_init_default
+    }
     cfg$vb_init_controls <- mc$vb_init_controls %||% list(
       max_iter = safe_int_original288_exactspec_multiseed(vb$max_iter, 300L),
       tol = safe_num_original288_exactspec_multiseed(vb$tol, 0.03),
@@ -586,7 +614,12 @@ unified_flat_config_original288_exactspec_multiseed <- function(source_cfg,
       verbose = FALSE
     )
     cfg$mh_proposal <- safe_chr_original288_exactspec_multiseed(mh$proposal %||% mh$primary_proposal, "laplace_rw")
-    cfg$mh_adapt <- as_flag_original288_exactspec_multiseed(mh$adapt, TRUE)
+    cfg$source_has_mh_adapt <- "adapt" %in% names(mh)
+    cfg$mh_adapt <- if (cfg$source_has_mh_adapt) {
+      as_flag_original288_exactspec_multiseed(mh[["adapt"]], TRUE)
+    } else {
+      NA
+    }
     cfg$mh_adapt_interval <- safe_int_original288_exactspec_multiseed(mh$adapt_interval, 50L)
     cfg$mh_target_accept <- as.numeric(mh$target_accept %||% c(0.20, 0.45))
     cfg$mh_scale_bounds <- as.numeric(mh$scale_bounds %||% c(0.1, 10))

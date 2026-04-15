@@ -300,19 +300,12 @@ run_dynamic_original288_exactspec_multiseed <- function() {
           dqlm.ind = isTRUE(cfg$dqlm_ind),
           n.burn = safe_int_original288_exactspec_multiseed(cfg$n_burn, 5000L),
           n.mcmc = safe_int_original288_exactspec_multiseed(cfg$n_mcmc, 20000L),
-          init.from.vb = as_flag_original288_exactspec_multiseed(cfg$init_from_vb, TRUE),
-          init.from.isvb = as_flag_original288_exactspec_multiseed(cfg$init_from_isvb, FALSE),
-          vb_init_controls = list(
-            method = safe_chr_original288_exactspec_multiseed(cfg$vb_method, "ldvb"),
-            tol = safe_num_original288_exactspec_multiseed(cfg$vb_tol, 0.03),
-            n.IS = safe_int_original288_exactspec_multiseed(cfg$vb_n_IS, 200L),
-            n.samp = safe_int_original288_exactspec_multiseed(cfg$vb_n_samp_internal, 1000L),
-            max_iter = safe_int_original288_exactspec_multiseed(cfg$vb_max_iter, 1200L),
-            verbose = FALSE
+          init.from.isvb = as_flag_original288_exactspec_multiseed(
+            cfg$init_from_isvb,
+            isTRUE(cfg$legacy_mcmc_init_default)
           ),
           joint.sample = as_flag_original288_exactspec_multiseed(cfg$mh_joint_sample, FALSE),
           mh.proposal = safe_chr_original288_exactspec_multiseed(cfg$mh_proposal, "laplace_rw"),
-          mh.adapt = as_flag_original288_exactspec_multiseed(cfg$mh_adapt, TRUE),
           mh.adapt.interval = safe_int_original288_exactspec_multiseed(cfg$mh_adapt_interval, 50L),
           mh.target.accept = safe_num_vec_original288_exactspec_multiseed(cfg$mh_target_accept, c(0.20, 0.45)),
           mh.scale.bounds = safe_num_vec_original288_exactspec_multiseed(cfg$mh_scale_bounds, c(0.1, 10)),
@@ -322,6 +315,23 @@ run_dynamic_original288_exactspec_multiseed <- function() {
           trace.every = safe_int_original288_exactspec_multiseed(cfg$trace_every, 50L),
           verbose = FALSE
         )
+        if (!all(is.na(cfg$init_from_vb))) {
+          call_args$init.from.vb <- as_flag_original288_exactspec_multiseed(cfg$init_from_vb, TRUE)
+        }
+        vb_init_controls <- list(
+          tol = safe_num_original288_exactspec_multiseed(cfg$vb_tol, 0.03),
+          n.IS = safe_int_original288_exactspec_multiseed(cfg$vb_n_IS, 200L),
+          n.samp = safe_int_original288_exactspec_multiseed(cfg$vb_n_samp_internal, 1000L),
+          max_iter = safe_int_original288_exactspec_multiseed(cfg$vb_max_iter, 1200L),
+          verbose = FALSE
+        )
+        if (!isTRUE(cfg$legacy_mcmc_init_default)) {
+          vb_init_controls$method <- safe_chr_original288_exactspec_multiseed(cfg$vb_method, "ldvb")
+        }
+        call_args$vb_init_controls <- vb_init_controls
+        if (!all(is.na(cfg$mh_adapt))) {
+          call_args$mh.adapt <- as_flag_original288_exactspec_multiseed(cfg$mh_adapt, TRUE)
+        }
         if (is.finite(safe_num_original288_exactspec_multiseed(cfg$slice_width, NA_real_))) {
           call_args$slice.width <- safe_num_original288_exactspec_multiseed(cfg$slice_width, NA_real_)
         }
