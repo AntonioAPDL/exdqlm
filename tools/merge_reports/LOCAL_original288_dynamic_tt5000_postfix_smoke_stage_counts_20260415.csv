@@ -1,0 +1,9 @@
+"family","tau_label","model","inference","rows"
+"gausmix","0p05","dqlm","mcmc",1
+"normal","0p25","dqlm","mcmc",1
+"gausmix","0p05","exdqlm","mcmc",1
+"normal","0p25","exdqlm","mcmc",1
+"gausmix","0p05","dqlm","vb",1
+"normal","0p25","dqlm","vb",1
+"gausmix","0p05","exdqlm","vb",1
+"normal","0p25","exdqlm","vb",1

@@ -7,12 +7,10 @@
 #' @param joint.sample Logical value indicating whether or not to recompute `Sig.mh` based off the initial burn-in samples of gamma and sigma. Default is `FALSE`.
 #' @param n.burn Number of MCMC iterations to burn. Default is `n.burn = 2000`.
 #' @param n.mcmc Number of MCMC iterations to sample. Default is `n.mcmc = 1500`.
-#' @param init.from.isvb Logical value indicating whether to use the legacy ISVB
-#'   warm start when `init.from.vb = TRUE`. Default is `FALSE`, which favors
-#'   `LDVB` as the default VB warm start.
-#' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization
-#'   step (`LDVB` by default, or `ISVB` when `init.from.isvb = TRUE`) and
-#'   initialize MCMC from converged VB moments. Default is `TRUE`.
+#' @param init.from.isvb Logical value indicating whether or not to initialize the MCMC using the ISVB algorithm. Default is `TRUE`.
+#' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization step
+#'   (`ISVB` or `LDVB`) and initialize MCMC from converged VB moments.
+#'   If `NULL`, falls back to `init.from.isvb` behavior.
 #' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
 #'   `method` (`"isvb"` or `"ldvb"`), `tol`, `n.IS`, `n.samp`, `max_iter`, `verbose`.
 #' @param vb_init_fit Optional precomputed VB fit object. If supplied, warm start
@@ -38,9 +36,6 @@
 #'   lighter-weight runs.
 #' @param trace.every Positive integer; when `trace.diagnostics = TRUE`, record
 #'   one diagnostics row every `trace.every` iterations.
-#' @param verbose.every Positive integer controlling how often console progress
-#'   is printed when `verbose = TRUE`. Default `50`, independent of
-#'   `trace.every`.
 #' @param progress_callback Optional callback invoked with a named list at MCMC
 #'   start, at each progress checkpoint, and on completion. Intended for
 #'   workflow-level progress logging.
@@ -94,13 +89,13 @@
 #' }
 #'
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
-                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
-                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,
+                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=TRUE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
+                    init.from.vb=NULL,vb_init_controls=NULL,vb_init_fit=NULL,
                     mh.proposal=c("laplace_rw","rw","slice"),mh.adapt=TRUE,mh.adapt.interval=50L,
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,
-                    trace.diagnostics=TRUE,trace.every=1L,verbose.every=50L,
+                    trace.diagnostics=TRUE,trace.every=1L,
                     progress_callback=NULL){
 
   # check inputs
@@ -116,14 +111,14 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     stop("number of mcmc samples must be positive")
     }
   if(verbose & n.burn<=0){
-    warning("mcmc will be sampled without burn-in; a burn-in is still recommended, including when using a VB warm start")
+    warning("mcmc will be sampled without burn-in, a burn-in is recommended even if initializing using the isvb algorithm")
     n.burn=0
     }
   I = n.mcmc + n.burn
   mh.proposal <- match.arg(mh.proposal)
 
   if (is.null(init.from.vb)) {
-    init.from.vb <- TRUE
+    init.from.vb <- isTRUE(init.from.isvb)
   }
   if (!is.null(vb_init_fit)) {
     init.from.vb <- TRUE
@@ -190,12 +185,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   trace.diagnostics <- isTRUE(trace.diagnostics)
   trace.every <- suppressWarnings(as.integer(trace.every)[1])
   if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
-  verbose.every <- suppressWarnings(as.integer(verbose.every)[1])
-  if (!is.finite(verbose.every) || verbose.every < 1L) verbose.every <- 50L
-  verbose_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
-  if (is.finite(verbose_every_env) && !is.na(verbose_every_env) && verbose_every_env >= 1L) {
-    verbose.every <- verbose_every_env
-  }
   safe_progress_callback <- function(info) {
     if (!is.function(progress_callback)) return(invisible(NULL))
     try(progress_callback(info), silent = TRUE)
@@ -324,42 +313,43 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     ## forward filter
     # first iteration
     a = as.vector(GG[,,1]%*%m0)
-    P = GG[,,1]%*%C0%*%t(GG[,,1])
-    R = P + df.mat*P
-    R = (R + t(R))/2
+    P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "mcmc_smooth_P_t1")
+    R = .exdqlm_regularize_cov(P + df.mat*P, context = "mcmc_smooth_R_t1")
     f = t(FF[,1])%*%a + ex.f[1]
-    q = t(FF[,1])%*%R%*%FF[,1]  + ex.q[1]
+    q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1]  + ex.q[1], context = "mcmc_smooth_q_t1")
     m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-    C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-    C[,,1] = (C[,,1] + t(C[,,1]))/2
+    C[,,1] = .exdqlm_regularize_cov(
+      R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+      context = "mcmc_smooth_C_t1"
+    )
     standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
     # t = 2:TT
     for(t in 2:TT){
       a = as.vector(GG[,,t]%*%m[,(t-1)])
-      P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("mcmc_smooth_P_t%d", t))
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("mcmc_smooth_R_t%d", t))
       f = t(FF[,t])%*%a + ex.f[t]
       fB = t(FF[,t])%*%R
-      q = fB%*%FF[,t] + ex.q[t]
+      q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("mcmc_smooth_q_t%d", t))
       m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-      C[,,t] = R - t(fB)%*%fB/q[1]
-      C[,,t] = (C[,,t] + t(C[,,t]))/2
+      C[,,t] = .exdqlm_regularize_cov(
+        R - t(fB)%*%fB/q[1],
+        context = sprintf("mcmc_smooth_C_t%d", t)
+      )
       standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
     }
     ## backwards smoothing
     sC[,,TT] = C[,,TT]
     sm[,TT] = m[,TT]
     for(t in (TT-1):1){
-      P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-      R = P + df.mat*P
-      R = (R + t(R))/2
-      svd.R = svd(R)
-      inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+      P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("mcmc_smooth_back_P_t%d", t + 1L))
+      R.info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("mcmc_smooth_back_R_t%d", t + 1L))
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%R.info$inverse
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-      sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
-      sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
+      sC[,,t] = .exdqlm_regularize_cov(
+        C[,,t] + sB%*%(sC[,,(t+1)]-R.info$Sigma)%*%t(sB),
+        context = sprintf("mcmc_smooth_back_C_t%d", t)
+      )
     }
     return(list(standard.forecast.errors=standard.forecast.errors,sm=sm,sC=sC,fm=m,fC=C))
   }
@@ -446,12 +436,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   # Set initial values
   if(init.from.vb){
     if(verbose){
-      cat(sprintf("MCMC init: running %s warm start\n", toupper(vb.ctrl$method)))
+      cat(sprintf("running %s algorithm to initialize mcmc\n", toupper(vb.ctrl$method)))
     }
     if (!is.null(vb_init_fit)) {
       vb.out <- vb_init_fit
       if (verbose) {
-        cat("MCMC init: using provided vb_init_fit object\n")
+        cat("using provided vb_init_fit object for MCMC initialization\n")
       }
     } else {
       vb.out <- run_vb_init()
@@ -587,45 +577,48 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## forward filter
       # first iteration
       a = as.vector(GG[,,1]%*%m0)
-      P = GG[,,1]%*%C0%*%t(GG[,,1])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "mcmc_dqlm_sample_P_t1")
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = "mcmc_dqlm_sample_R_t1")
       f = t(FF[,1])%*%a + ex.f[1]
-      q = t(FF[,1])%*%R%*%FF[,1] + ex.q[1]
+      q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1] + ex.q[1], context = "mcmc_dqlm_sample_q_t1")
       m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-      C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-      C[,,1] = (C[,,1] + t(C[,,1]))/2
+      C[,,1] = .exdqlm_regularize_cov(
+        R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+        context = "mcmc_dqlm_sample_C_t1"
+      )
       standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
       # t = 2:TT
       for(t in 2:TT){
         a = as.vector(GG[,,t]%*%m[,(t-1)])
-        P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-        R = P + df.mat*P
-        R = (R + t(R))/2
+        P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("mcmc_dqlm_sample_P_t%d", t))
+        R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("mcmc_dqlm_sample_R_t%d", t))
         f = t(FF[,t])%*%a + ex.f[t]
         fB = t(FF[,t])%*%R
-        q = fB%*%FF[,t] + ex.q[t]
+        q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("mcmc_dqlm_sample_q_t%d", t))
         m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-        C[,,t] = R - t(fB)%*%fB/q[1]
-        C[,,t] = (C[,,t] + t(C[,,t]))/2
+        C[,,t] = .exdqlm_regularize_cov(
+          R - t(fB)%*%fB/q[1],
+          context = sprintf("mcmc_dqlm_sample_C_t%d", t)
+        )
         standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
       }
       ## backwards sample
-      svd.sC = svd(C[,,TT])
+      sC_TT = .exdqlm_regularize_cov(C[,,TT], context = "mcmc_dqlm_sample_sC_TT")
+      svd.sC = svd(sC_TT)
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
       reg_theta <- numeric(TT)
       reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
       post.pred[TT] = rexal(1,tau,reg_theta[TT]+c_tau*sigma*abs(gamma)*sts[TT],sigma,0)
       for(t in (TT-1):1){
-        P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-        R = P + df.mat*P
-        R = (R + t(R))/2
-        svd.R = svd(R)
-        inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+        P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("mcmc_dqlm_back_P_t%d", t + 1L))
+        R.info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("mcmc_dqlm_back_R_t%d", t + 1L))
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%R.info$inverse
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
-        svd.sC = svd((sC+t(sC))/2)
+        sC = .exdqlm_regularize_cov(
+          C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t],
+          context = sprintf("mcmc_dqlm_back_sC_t%d", t)
+        )
+        svd.sC = svd(sC)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
         reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
         post.pred[t] = rexal(1,tau,reg_theta[t]+c_tau*sigma*abs(gamma)*sts[t],sigma,0)
@@ -777,12 +770,15 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       return(list(log.sigma=log.sigma.new,logit.gamma=logit.gamma.new,accept=accept))
     }
 
-    callback.every <- if (trace.diagnostics) {
+    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
+      progress_every_env
+    } else if (trace.diagnostics) {
       trace.every
     } else {
       100L
     }
-    callback.every <- max(1L, as.integer(callback.every)[1])
+    progress_every <- max(1L, as.integer(progress_every)[1])
 
     # Sample from exdqlm posterior
     tictoc::tic()
@@ -801,14 +797,13 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose && i %% verbose.every == 0L){
-        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
-        acc_msg <- if (identical(mh.proposal, "slice")) "NA" else sprintf("%.4f", n.accept / i)
-        cat(sprintf("%s %d/%d | accept=%s | %s", phase_label, i, I, acc_msg, Sys.time()), "\n")
+      if(verbose & i%%progress_every==0){
+        acc_msg <- if (identical(mh.proposal, "slice")) "NA" else round(n.accept / i, 4)
+        cat(sprintf("%s iteration %s, acceptance rate %s: %s", ifelse(i<=n.burn,"burn-in","MCMC"), i , acc_msg, Sys.time()),"\n")
         utils::flush.console()
         try(flush(stdout()), silent = TRUE)
-      }
-      if (i %% callback.every == 0L) {
+        }
+      if (i %% progress_every == 0L) {
         safe_progress_callback(list(
           event = "progress",
           iter = as.integer(i),
@@ -1057,8 +1052,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       adapt_trace = if (identical(mh.proposal, "slice")) data.frame() else adapt.history,
       trace_enabled = trace.diagnostics,
       trace_every = if (trace.diagnostics) trace.every else NA_integer_,
-      verbose_every = as.integer(verbose.every),
-      callback_every = as.integer(callback.every),
       trace = if (trace.diagnostics && trace_idx > 0L) {
         do.call(rbind, trace_rows[seq_len(trace_idx)])
       } else {
@@ -1082,10 +1075,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 mh.diagnostics = mh.diag,
                 diagnostics = list(
                   mh = mh.diag,
-                  progress = list(
-                    verbose_every = as.integer(verbose.every),
-                    callback_every = as.integer(callback.every)
-                  ),
                   ess = list(sigma = ess_sigma, gamma = ess_gamma),
                   chain_health = list(
                     sigma = chain_health_sigma,
@@ -1122,45 +1111,48 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       ## forward filter
       # first iteration
       a = as.vector(GG[,,1]%*%m0)
-      P = GG[,,1]%*%C0%*%t(GG[,,1])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "mcmc_al_sample_P_t1")
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = "mcmc_al_sample_R_t1")
       f = t(FF[,1])%*%a + ex.f[1]
-      q = t(FF[,1])%*%R%*%FF[,1] + ex.q[1]
+      q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1] + ex.q[1], context = "mcmc_al_sample_q_t1")
       m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-      C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-      C[,,1] = (C[,,1] + t(C[,,1]))/2
+      C[,,1] = .exdqlm_regularize_cov(
+        R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+        context = "mcmc_al_sample_C_t1"
+      )
       standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
       # t = 2:TT
       for(t in 2:TT){
         a = as.vector(GG[,,t]%*%m[,(t-1)])
-        P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-        R = P + df.mat*P
-        R = (R + t(R))/2
+        P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("mcmc_al_sample_P_t%d", t))
+        R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("mcmc_al_sample_R_t%d", t))
         f = t(FF[,t])%*%a + ex.f[t]
         fB = t(FF[,t])%*%R
-        q = fB%*%FF[,t] + ex.q[t]
+        q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("mcmc_al_sample_q_t%d", t))
         m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-        C[,,t] = R - t(fB)%*%fB/q[1]
-        C[,,t] = (C[,,t] + t(C[,,t]))/2
+        C[,,t] = .exdqlm_regularize_cov(
+          R - t(fB)%*%fB/q[1],
+          context = sprintf("mcmc_al_sample_C_t%d", t)
+        )
         standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
       }
       ## backwards sample
-      svd.sC = svd(C[,,TT])
+      sC_TT = .exdqlm_regularize_cov(C[,,TT], context = "mcmc_al_sample_sC_TT")
+      svd.sC = svd(sC_TT)
       sam.theta[,TT] = m[,TT] + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
-        reg_theta <- numeric(TT)
-        reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
-        post.pred[TT] = rexal(1,p0,reg_theta[TT],sigma,0)
-        for(t in (TT-1):1){
-        P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-        R = P + df.mat*P
-        R = (R + t(R))/2
-        svd.R = svd(R)
-        inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-        sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+      reg_theta <- numeric(TT)
+      reg_theta[TT] <- drop(crossprod(FF[,TT], sam.theta[,TT]))
+      post.pred[TT] = rexal(1,p0,reg_theta[TT],sigma,0)
+      for(t in (TT-1):1){
+        P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("mcmc_al_back_P_t%d", t + 1L))
+        R.info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("mcmc_al_back_R_t%d", t + 1L))
+        sB = C[,,t]%*%t(GG[,,(t+1)])%*%R.info$inverse
         sm = m[,t] + sB%*%(sam.theta[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-        sC = C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t]
-        svd.sC = svd((sC+t(sC))/2)
+        sC = .exdqlm_regularize_cov(
+          C[,,t] - sB%*%GG[,,(t+1)]%*%C[,,t],
+          context = sprintf("mcmc_al_back_sC_t%d", t)
+        )
+        svd.sC = svd(sC)
         sam.theta[,t] = sm + svd.sC$u%*%diag(sqrt(svd.sC$d),p)%*%stats::rnorm(p,0,1)
         reg_theta[t] <- drop(crossprod(FF[,t], sam.theta[,t]))
         post.pred[t] = rexal(1,p0,reg_theta[t],sigma,0)
@@ -1198,12 +1190,15 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                rate = PriorSigma$b_sig + 0.5*sum( ((as.vector(y) - reg1 - a_tau*uts)^2)/(b_tau*uts) ) + sum(uts) )
     }
 
-    callback.every <- if (trace.diagnostics) {
+    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
+      progress_every_env
+    } else if (trace.diagnostics) {
       trace.every
     } else {
       100L
     }
-    callback.every <- max(1L, as.integer(callback.every)[1])
+    progress_every <- max(1L, as.integer(progress_every)[1])
 
     # Sample from dqlm posterior
     tictoc::tic()
@@ -1222,13 +1217,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose && i %% verbose.every == 0L){
-        phase_label <- ifelse(i <= n.burn, "burn-in", "MCMC")
-        cat(sprintf("%s %d/%d | %s", phase_label, i, I, Sys.time()), "\n")
+      if(verbose & i%%progress_every==0){
+        cat(sprintf("%s iteration %s: %s ", ifelse(i<=n.burn,"burn-in","MCMC"), i, Sys.time()), "\n")
         utils::flush.console()
         try(flush(stdout()), silent = TRUE)
-      }
-      if (i %% callback.every == 0L) {
+        }
+      if (i %% progress_every == 0L) {
         safe_progress_callback(list(
           event = "progress",
           iter = as.integer(i),
@@ -1251,6 +1245,16 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
       # sample uts
       reg1 = state_signal(FF, cursam.theta)
+      if (!is.finite(cursam.sigma) || cursam.sigma <= 0 || any(!is.finite(reg1))) {
+        stop(sprintf(
+          "dqlm_mcmc_pre_uts (iter=%d) invalid state before chi update: sigma=%s reg1_finite=%s max_abs_reg1=%s max_abs_theta=%s",
+          i,
+          format(cursam.sigma, digits = 6),
+          all(is.finite(reg1)),
+          if (all(is.finite(reg1))) format(max(abs(reg1), na.rm = TRUE), digits = 6) else "NA",
+          if (all(is.finite(cursam.theta))) format(max(abs(cursam.theta), na.rm = TRUE), digits = 6) else "NA"
+        ))
+      }
       cursam.Ut<-samp_uts(reg1,cursam.sigma)
 
       # sample sigma
@@ -1301,10 +1305,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 init.from.vb = init.from.vb,
                 vb.init.method = if (init.from.vb) vb.ctrl$method else NA_character_,
                 diagnostics = list(
-                  progress = list(
-                    verbose_every = as.integer(verbose.every),
-                    callback_every = as.integer(callback.every)
-                  ),
                   ess = list(sigma = ess_sigma, gamma = NA_real_),
                   rhat_ready = list(
                     sigma = as.numeric(save.sigma),

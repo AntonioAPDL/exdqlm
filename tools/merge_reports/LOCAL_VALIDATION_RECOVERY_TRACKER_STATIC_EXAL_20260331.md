@@ -3173,3 +3173,40 @@ Current recommendation:
 Durable note:
 
 - `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_rootcause_debug_20260415.md`
+
+## 12.27 Dynamic TT5000 post-fix smoke and fresh rerun staging (2026-04-15)
+
+The validation checkout is now aligned with the package-side `TT5000`
+stabilization fixes, and the next dynamic repair step has been rebuilt as a
+fresh rerun rather than a continuation of the old failed lane.
+
+What was added:
+
+1. synced validation-checkout package code:
+   - `R/utils.R`
+   - `R/exdqlmISVB.R`
+   - `R/exdqlmLDVB.R`
+   - `R/exdqlmMCMC.R`
+2. added regression for the internal `CRPS` helper used by the dynamic metrics
+   path
+3. built isolated post-fix smoke tooling and docs
+4. built a fresh, separately tagged post-fix rerun stack for the narrow
+   `36`-row dynamic `TT5000` hole
+
+Smoke evidence captured:
+
+1. representative `dqlm / vb / TT5000` case
+   - `dynamic::gausmix::0p05::5000::default::dqlm::vb`
+   - completed with `status = done`
+   - `gate_overall = WARN`
+2. representative MCMC smoke rows no longer reproduced the old immediate
+   startup crashes while running through the validation runner
+3. the first smoke pass uncovered a separate missing-helper issue
+   (`.exdqlm_crps_vec`) rather than the old singular TT5000 failure
+
+Current guidance:
+
+1. treat the old `2026-04-14` negative dynamic repair lane as historical
+2. resume dynamic `TT5000` work only through the fresh post-fix rerun stack
+3. keep the dynamic comparison interpretation tied to the fresh rerun once it
+   completes

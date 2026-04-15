@@ -1574,3 +1574,41 @@ Current recommendation:
 - do **not** jump straight to a full dynamic `TT5000` rerun yet
 - run a tiny post-fix smoke across representative `TT5000` rows first
 - if that smoke is stable, resume the narrow dynamic `TT5000` repair lane
+
+## 2026-04-15 - Dynamic TT5000 post-fix smoke and fresh rerun staging
+
+The validation checkout now carries the package-side dynamic `TT5000`
+stabilization fixes, and the post-fix smoke/rerun stack has been wired on top
+of that corrected package state.
+
+What changed after the root-cause checkpoint:
+
+- synced package fixes into the validation checkout:
+  - `R/utils.R`
+  - `R/exdqlmISVB.R`
+  - `R/exdqlmLDVB.R`
+  - `R/exdqlmMCMC.R`
+- added a regression for the missing internal `CRPS` helper
+- built an isolated representative smoke lane:
+  - `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_postfix_smoke_program_20260415.md`
+  - `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_postfix_smoke_execution_20260415.md`
+- built a fresh, separately tagged narrow rerun lane:
+  - `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_postfix_repair_plan_20260415.md`
+  - `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_postfix_repair_program_20260415.md`
+  - `reports/static_exal_tuning_20260415/original288_dynamic_tt5000_postfix_repair_execution_20260415.md`
+
+Post-fix smoke evidence:
+
+- `dynamic::gausmix::0p05::5000::default::dqlm::vb`
+  completed cleanly with `status = done` and `gate_overall = WARN`
+- representative MCMC rows ran for extended wall-clock time at full CPU without
+  reproducing the old immediate singular/non-finite startup failures
+- the first smoke attempt exposed a separate metrics-layer hole
+  (`.exdqlm_crps_vec` missing), which was then fixed and regression-tested
+
+Current read:
+
+- the validation workflow has moved past the old immediate startup failure mode
+- the old `2026-04-14` negative repair lane should stay historical
+- any resumed dynamic `TT5000` work should use the fresh post-fix rerun lane,
+  not the stale output tree
