@@ -24,8 +24,8 @@ transfn_exdqlmISVB(
   n.samp = 200,
   PriorSigma = NULL,
   PriorGamma = NULL,
-  tf.m0 = rep(0, 2),
-  tf.C0 = diag(1, 2),
+  tf.m0 = NULL,
+  tf.C0 = NULL,
   verbose = TRUE
 )
 }
@@ -36,7 +36,9 @@ transfn_exdqlmISVB(
 
 \item{model}{List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.}
 
-\item{X}{A univariate time-series which will be the input of the transfer function component.}
+\item{X}{A numeric vector or matrix of transfer-function inputs. Vectors are
+treated as a univariate input series. Matrices should have one row per time
+point and one column per covariate.}
 
 \item{df}{Discount factors for each block.}
 
@@ -44,7 +46,13 @@ transfn_exdqlmISVB(
 
 \item{lam}{Transfer function rate parameter lambda, a value between 0 and 1.}
 
-\item{tf.df}{Discount factor(s) used for the transfer function component.}
+\item{tf.df}{Discount factor specification for the transfer function
+component. If \code{length(tf.df) = 1}, the value is shared by the
+\eqn{\zeta_t} state and the whole \eqn{\psi_t} block. If
+\code{length(tf.df) = 2}, it is interpreted as
+\code{c(df_zeta, df_psi_shared)}. If \code{length(tf.df) = k + 1}, where
+\eqn{k = ncol(X)}, the values are applied componentwise to
+\eqn{(\zeta_t, \psi_{1,t}, \dots, \psi_{k,t})}.}
 
 \item{fix.gamma}{Logical value indicating whether to fix gamma at \code{gam.init}. Default is \code{FALSE}.}
 
@@ -68,9 +76,11 @@ transfn_exdqlmISVB(
 
 \item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
 
-\item{tf.m0}{Prior mean of the transfer function component.}
+\item{tf.m0}{Prior mean of the transfer function component. Defaults to a
+zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 
-\item{tf.C0}{Prior covariance of the transfer function component.}
+\item{tf.C0}{Prior covariance of the transfer function component. Defaults to
+the \eqn{(k+1)\times(k+1)} identity matrix.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 }
@@ -94,7 +104,8 @@ A object of class "\code{exdqlmISVB}" containing the following:
 \item \code{samp.vts} - Posterior sample of latent parameters, v_t, variational distributions.
 \item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
-\item \code{median.kt} - Median number of time steps until the effect of X_t is less than or equal to 1e-3.
+\item \code{median.kt} - Median number of time steps until the aggregated
+transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to 1e-3.
 }
 If \code{dqlm.ind=FALSE}, the object also contains:
 \itemize{
@@ -138,6 +149,11 @@ M1 = transfn_exdqlmISVB(y, p0 = 0.85, model = model,
                           X, df = c(1,1), dim.df = c(1,6),
                           gam.init = -3.5, sig.init = 15,
                           lam = 0.38, tf.df = c(0.97,0.97))
+X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
+M2 = transfn_exdqlmISVB(y, p0 = 0.85, model = model,
+                          X_multi, df = c(1,1), dim.df = c(1,6),
+                          gam.init = -3.5, sig.init = 15,
+                          lam = 0.38, tf.df = c(0.97, 0.99))
 }
 
 }

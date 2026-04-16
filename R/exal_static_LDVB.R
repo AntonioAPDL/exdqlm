@@ -70,6 +70,7 @@
     eta_hi = getOption("exdqlm.static.ldvb.eta_hi", 12),
     sigma_bounds = getOption("exdqlm.static.ldvb.sigma_bounds", NULL),
     sigma_init_mode = getOption("exdqlm.static.ldvb.sigma_init_mode", "data_scale"),
+    gamma_init_mode = getOption("exdqlm.static.ldvb.gamma_init_mode", "midpoint"),
     sigma_floor_abs = getOption("exdqlm.static.ldvb.sigma_floor_abs", 1e-6),
     sigma_min_mult = getOption("exdqlm.static.ldvb.sigma_min_mult", 1e-3),
     sigma_max_mult = getOption("exdqlm.static.ldvb.sigma_max_mult", 1e3),
@@ -173,6 +174,7 @@
     defaults$eta_hi <- 12
   }
   defaults$sigma_init_mode <- match.arg(as.character(defaults$sigma_init_mode)[1], c("data_scale", "fixed1"))
+  defaults$gamma_init_mode <- match.arg(as.character(defaults$gamma_init_mode)[1], c("midpoint", "zero"))
   defaults$sigma_floor_abs <- as.numeric(defaults$sigma_floor_abs)[1]
   if (!is.finite(defaults$sigma_floor_abs) || defaults$sigma_floor_abs <= 0) defaults$sigma_floor_abs <- 1e-6
   defaults$sigma_min_mult <- as.numeric(defaults$sigma_min_mult)[1]
@@ -284,7 +286,13 @@
   ell_lo <- log(sigma_min)
   ell_hi <- log(sigma_max)
 
-  gamma0 <- if (!is.null(init$gamma)) as.numeric(init$gamma)[1] else 0
+  gamma0 <- if (!is.null(init$gamma)) {
+    as.numeric(init$gamma)[1]
+  } else if (identical(ld_ctrl$gamma_init_mode, "midpoint")) {
+    (L + U) / 2
+  } else {
+    0
+  }
   pad <- ld_ctrl$gamma_init_pad_frac * (U - L)
   gamma0 <- min(max(gamma0, L + pad), U - pad)
 
@@ -403,6 +411,129 @@
   out
 }
 
+.exdqlm_delta_stabilize_expectations <- function(base,
+                                                 corr,
+                                                 positive_keys = character(),
+                                                 lower = NULL,
+                                                 upper = NULL,
+                                                 floor = 1e-12) {
+  base_num <- .exal_static_ld_named_numeric(base)
+  corr_num <- .exal_static_ld_named_numeric(corr)
+  nm <- union(names(base_num), names(corr_num))
+  base_full <- stats::setNames(rep(NA_real_, length(nm)), nm)
+  corr_full <- stats::setNames(rep(0, length(nm)), nm)
+  base_full[names(base_num)] <- base_num
+  corr_full[names(corr_num)] <- corr_num
+
+  lower_full <- stats::setNames(rep(-Inf, length(nm)), nm)
+  if (!is.null(lower)) {
+    lower_num <- .exal_static_ld_named_numeric(lower)
+    lower_full[names(lower_num)] <- lower_num
+  }
+  upper_full <- stats::setNames(rep(Inf, length(nm)), nm)
+  if (!is.null(upper)) {
+    upper_num <- .exal_static_ld_named_numeric(upper)
+    upper_full[names(upper_num)] <- upper_num
+  }
+
+  candidate <- base_full + corr_full
+  triggered <- character(0)
+
+  is_bad <- function(key, value) {
+    lo <- lower_full[[key]]
+    hi <- upper_full[[key]]
+    if (!is.finite(value)) return(TRUE)
+    if (key %in% positive_keys && value <= floor) return(TRUE)
+    value < lo || value > hi
+  }
+
+  for (key in nm) {
+    if (is_bad(key, candidate[[key]])) {
+      triggered <- c(triggered, key)
+    }
+  }
+
+  alpha <- 1
+  used_fallback <- character(0)
+  if (length(triggered)) {
+    alpha <- 0
+    alpha_ok <- FALSE
+    for (key in triggered) {
+      base_k <- base_full[[key]]
+      cand_k <- candidate[[key]]
+      corr_k <- corr_full[[key]]
+      lo <- lower_full[[key]]
+      hi <- upper_full[[key]]
+
+      alpha_k <- NA_real_
+      if (is.finite(base_k) && is.finite(corr_k) && corr_k != 0) {
+        if (key %in% positive_keys && is.finite(cand_k) && cand_k <= floor && base_k > floor) {
+          alpha_k <- (base_k - floor) / (base_k - cand_k)
+        } else if (is.finite(cand_k) && cand_k < lo && base_k > lo) {
+          alpha_k <- (base_k - lo) / (base_k - cand_k)
+        } else if (is.finite(cand_k) && cand_k > hi && base_k < hi) {
+          alpha_k <- (hi - base_k) / (cand_k - base_k)
+        } else if (!is.finite(cand_k)) {
+          alpha_k <- 0
+        }
+      }
+
+      if (is.finite(alpha_k)) {
+        alpha <- if (alpha_ok) min(alpha, alpha_k) else alpha_k
+        alpha_ok <- TRUE
+      }
+    }
+    if (!alpha_ok) {
+      alpha <- 0
+    }
+    alpha <- min(max(alpha, 0), 1)
+    candidate <- base_full + alpha * corr_full
+  }
+
+  for (key in nm) {
+    lo <- lower_full[[key]]
+    hi <- upper_full[[key]]
+    value <- candidate[[key]]
+    if (!is.finite(value) || value < lo || value > hi || (key %in% positive_keys && value <= floor)) {
+      base_k <- base_full[[key]]
+      if (is.finite(base_k)) {
+        value <- base_k
+      }
+      if (!is.finite(value)) {
+        if (key %in% positive_keys) {
+          value <- max(floor, if (is.finite(lo)) lo else floor)
+        } else if (is.finite(lo) && is.finite(hi)) {
+          value <- 0.5 * (lo + hi)
+        } else if (is.finite(lo)) {
+          value <- lo
+        } else if (is.finite(hi)) {
+          value <- hi
+        } else {
+          value <- 0
+        }
+      }
+      if (key %in% positive_keys) {
+        value <- max(value, floor)
+      }
+      value <- min(max(value, lo), hi)
+      candidate[[key]] <- value
+      used_fallback <- c(used_fallback, key)
+    }
+  }
+
+  list(
+    value = as.list(candidate),
+    stabilization = list(
+      stabilized = length(triggered) > 0 || length(used_fallback) > 0,
+      alpha = alpha,
+      triggered_keys = unique(triggered),
+      fallback_keys = unique(used_fallback),
+      positive_keys = intersect(nm, positive_keys),
+      floor = floor
+    )
+  )
+}
+
 .exal_static_ld_trust_step <- function(log_q_fn,
                                        par0,
                                        precision_prev,
@@ -475,6 +606,17 @@
   x <- as.numeric(x)
   x <- x[is.finite(x)]
   n <- length(x)
+  safe_cor <- function(a, b) {
+    a <- as.numeric(a)
+    b <- as.numeric(b)
+    keep <- is.finite(a) & is.finite(b)
+    a <- a[keep]
+    b <- b[keep]
+    if (length(a) < 2L || stats::sd(a) == 0 || stats::sd(b) == 0) {
+      return(NA_real_)
+    }
+    suppressWarnings(stats::cor(a, b))
+  }
   if (n < 4L || length(unique(x)) < 2L) {
     return(list(
       lag1 = NA_real_,
@@ -484,8 +626,8 @@
     ))
   }
   list(
-    lag1 = stats::cor(x[-1L], x[-n]),
-    lag2 = stats::cor(x[-(1:2)], x[-((n - 1L):n)]),
+    lag1 = safe_cor(x[-1L], x[-n]),
+    lag2 = safe_cor(x[-(1:2)], x[-((n - 1L):n)]),
     mean_abs_diff = mean(abs(diff(x))),
     range = diff(range(x))
   )
@@ -647,16 +789,23 @@
   out
 }
 
-#' Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)
+.exal_static_ld_signoff_ready <- function(mode_quality, stabilize_active = FALSE) {
+  !isTRUE(stabilize_active) &&
+    !is.null(mode_quality) &&
+    isTRUE(mode_quality$local_mode_pass)
+}
+
+#' Static exAL Regression - LDVB Approximation
 #'
-#' The function applies a coordinate-ascent variational inference (CAVI)
-#' algorithm to static Extended Asymmetric Laplace (exAL) regression, using a
-#' Laplace-Delta approximation for the joint \eqn{(\sigma,\gamma)} block.
+#' The function applies a mean-field variational approximation to static
+#' Extended Asymmetric Laplace (exAL) regression. Closed-form block updates are
+#' combined with a Laplace-Delta approximation for the joint
+#' \eqn{(\sigma,\gamma)} block, yielding the package's static LDVB routine.
 #'
 #' @param y Numeric vector (length n).
 #' @param X Numeric matrix (n x p).
 #' @param p0 Target quantile in (0,1).
-#' @param max_iter Integer; maximum CAVI iterations (default 1000).
+#' @param max_iter Integer; maximum LDVB iterations (default 1000).
 #' @param tol Numeric; convergence tolerance based on relative ELBO changes (default 1e-4).
 #' @param b0,V0 Prior mean and covariance for \eqn{\beta \sim \mathcal{N}(b_0,V_0)}.
 #' @param beta_prior Coefficient prior type: \code{"ridge"} (default),
@@ -699,8 +848,11 @@
 #'   support.
 #' @param init Optional list with starting values: \code{beta}, \code{sigma},
 #'   \code{gamma}; if missing, reasonable defaults are used.
-#' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
-#'   using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.
+#' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model
+#'   (\code{gamma = 0}). In that special case the nonconjugate block drops out
+#'   and the remaining variational updates are available in closed form.
+#' @param n.samp Number of samples to draw from the approximated posterior
+#'   distribution after convergence. Default is \code{n.samp = 200}.
 #' @param n_samp_xi Integer; retained for backward compatibility in the
 #'   Laplace-Delta block. Under the current delta-only implementation this
 #'   value is ignored.
@@ -710,7 +862,7 @@
 #'   \code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
 #'   \code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
 #'   \code{eta_lo}, \code{eta_hi}, \code{sigma_bounds},
-#'   \code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
+#'   \code{sigma_init_mode}, \code{gamma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
 #'   \code{sigma_max_mult}, \code{sigma_bound_ratio_min},
 #'   \code{gamma_init_pad_frac}, \code{logit_eps}, \code{init_cov_diag},
 #'   \code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig},
@@ -725,6 +877,8 @@
 #' @return A object of class "\code{exal_ldvb}" containing:
 #' \itemize{
 #'   \item \code{qbeta}: list with \code{m}, \code{V}.
+#'   \item \code{samp.beta}: posterior sample from \eqn{q(\beta)} with
+#'         \code{n.samp} rows.
 #'   \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),
 #'         \code{E_v} and \code{E_inv_v} (moments).
 #'   \item \code{qs}: list with \code{mu} (length n), \code{tau2} (length n),
@@ -732,6 +886,10 @@
 #'   \item \code{qsiggam}: list with \code{eta_hat}, \code{ell_hat},
 #'         \code{Sigma} (2x2), approximate means
 #'         \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
+#'   \item \code{samp.sigma}, \code{samp.gamma}: posterior samples from the
+#'         variational approximation for the scale and skewness parameters. In
+#'         the AL special case (\code{dqlm.ind = TRUE}), \code{samp.gamma} is a
+#'         vector of zeros.
 #'   \item \code{converged}, \code{iter}, \code{run.time}, and
 #'         \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
 #'   \item \code{beta_prior}: prior metadata and, for RHS-family priors,
@@ -753,9 +911,13 @@
 #' @details
 #' Mean-field factorization:
 #' \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
-#' The LD block is parameterized in transformed coordinates
+#' This factorization induces a blockwise coordinate-ascent variational
+#' inference scheme. The \eqn{(\sigma,\gamma)} block is the only nonconjugate
+#' component, so LDVB approximates it in transformed coordinates
 #' \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
-#' The \code{xi} expectations used in CAVI updates can be computed either from a
+#' The \code{xi} expectations needed by the remaining block updates are then
+#' computed with a second-order Delta approximation. The \code{xi} expectations
+#' used in the updates can be computed either from a
 #' deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
 #' Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
 #' optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
@@ -808,6 +970,7 @@ exal_static_LDVB <- function(
   log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
+  n.samp = 200,
   n_samp_xi = 200,
   ld_controls = NULL,
   verbose = TRUE
@@ -837,7 +1000,9 @@ exal_static_LDVB <- function(
   rhs_preflight <- NULL
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
-    .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_ldvb")
+    if (isTRUE(verbose) || isTRUE(beta_prior_obj$controls$verbose)) {
+      .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_ldvb")
+    }
   }
 
   # Reduced AL / DQLM branch: no gamma, no s, no LD block.
@@ -854,6 +1019,7 @@ exal_static_LDVB <- function(
       a_sigma = a_sigma,
       b_sigma = b_sigma,
       init = init,
+      n.samp = n.samp,
       verbose = verbose
     )
     if (.static_is_rhs_family(beta_prior_obj$type)) {
@@ -1004,7 +1170,13 @@ exal_static_LDVB <- function(
     H12 <- (f11 - f1_1 - f_11 + f_1_1) / (4 * h1 * h2)
 
     corr <- 0.5 * (H11 * Sigma[1, 1] + 2 * H12 * Sigma[1, 2] + H22 * Sigma[2, 2])
-    out <- f00 + corr
+    out_delta <- .exdqlm_delta_stabilize_expectations(
+      base = f00,
+      corr = corr,
+      positive_keys = c("xi1", "xi_lambda2", "xi_A2"),
+      floor = 1e-12
+    )
+    out <- unlist(out_delta$value, use.names = TRUE)
     out <- c(
       out,
       xi_siginv = exp(-ell_hat + 0.5 * Sigma[2, 2]),
@@ -1014,17 +1186,22 @@ exal_static_LDVB <- function(
     out_named <- as.list(out)
     out_named$zeta_logJ <- log(pmax(U - L, 1e-12)) + as.numeric(out_named$zeta_loghprime) + ell_hat
     out_named$zeta_loghprime <- NULL
-    out_named
+    list(
+      value = out_named,
+      stabilization = out_delta$stabilization
+    )
   }
 
   compute_xi <- function(eta_hat, ell_hat, Sigma) {
-    xi_val <- compute_xi_delta(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma)
+    xi_out <- compute_xi_delta(eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sigma)
+    xi_val <- xi_out$value
     list(
       value = xi_val,
       mcse = as.list(stats::setNames(rep(NA_real_, length(xi_val)), names(xi_val))),
       replicate_count = 0L,
       mcse_mean = NA_real_,
-      mcse_max = NA_real_
+      mcse_max = NA_real_,
+      stabilization = xi_out$stabilization
     )
   }
 
@@ -1213,10 +1390,12 @@ exal_static_LDVB <- function(
 
   # --- main loop -------------------------------------------------------------
   t0 <- proc.time()[3]
-  if (verbose) {
-    cat(sprintf("Static exAL LDVB | n=%d, p=%d | max_iter=%d, tol=%.1e\n",
-                n, p, max_iter, tol))
-  }
+  .exdqlm_progress(
+    "LDVB start",
+    max_iter = max_iter,
+    tol = tol,
+    .verbose = verbose
+  )
 
   # Initial xi from the Delta approximation. The static exAL VB path is
   # intentionally deterministic; MC xi fallback is not part of the production
@@ -1260,6 +1439,7 @@ exal_static_LDVB <- function(
   candidate_mode_pass_last <- NA
   ld_good_streak <- 0L
   stable_count <- 0L
+  ld_signoff_ready <- FALSE
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   stop_reason <- "max_iter"
   converged <- FALSE
@@ -1610,7 +1790,15 @@ exal_static_LDVB <- function(
         value = xis,
         mcse_mean = NA_real_,
         mcse_max = NA_real_,
-        replicate_count = 1L
+        replicate_count = 1L,
+        stabilization = list(
+          stabilized = FALSE,
+          alpha = 1,
+          triggered_keys = character(0),
+          fallback_keys = character(0),
+          positive_keys = c("xi1", "xi_lambda2", "xi_A2"),
+          floor = 1e-12
+        )
       )
       xis_raw <- xis
       xis_new <- xis
@@ -1638,17 +1826,6 @@ exal_static_LDVB <- function(
     ell_step_raw <- as.numeric(ld$ell_hat - ell_prev)
     eta_step_used <- as.numeric(eta_hat - eta_prev)
     ell_step_used <- as.numeric(ell_hat - ell_prev)
-
-    if (verbose && (iter %% 50 == 0)) {
-      ghat <- g_from_eta(eta_hat); shat <- exp(ell_hat)
-      cat(sprintf(
-        "iter %4d | rel(mb)=%.2e rel(xi)=%.2e | gamma~%.3f sigma~%.3f | ld(raw)=%.2e/%.2e used=%.2e/%.2e | stabilize=%s xi=%s bad_mode=%s\n",
-        iter, rel_mb, rel_xi, ghat, shat, eta_step_raw, ell_step_raw, eta_step_used, ell_step_used,
-        ifelse(ld_stabilized, ld_stabilize_reason, "none"),
-        "delta",
-        ifelse(ld_bad_mode_iter, "yes", "no")
-      ))
-    }
 
     if (isTRUE(do_ld_update)) {
       ld_update_good <- !isTRUE(stabilize_active) &&
@@ -1791,6 +1968,21 @@ exal_static_LDVB <- function(
     delta_gamma <- c(delta_gamma, d_gamma)
     delta_s <- c(delta_s, d_s)
     delta_elbo <- c(delta_elbo, d_elbo)
+
+    if (step$stop_now) {
+      iter_mode_quality <- .exal_static_ld_mode_quality(
+        log_q_fn = log_qsiggam,
+        par = c(eta_hat, ell_hat),
+        grad_tol = ld_ctrl$mode_grad_tol,
+        min_eig = ld_ctrl$mode_min_eig,
+        hessian_backend = ld_ctrl$hessian_backend
+      )
+      ld_signoff_ready <- .exal_static_ld_signoff_ready(
+        mode_quality = iter_mode_quality,
+        stabilize_active = stabilize_active
+      )
+    }
+
     if (isTRUE(ld_ctrl$store_trace)) {
       trace_start <- if (isTRUE(ld_ctrl$profile_timing)) proc.time()[3] else NA_real_
       s_stats <- .exdqlm_trace_summary(s_mom$Es)
@@ -1827,6 +2019,10 @@ exal_static_LDVB <- function(
         xi_mcse_mean = as.numeric(xis_eval_raw$mcse_mean)[1],
         xi_mcse_max = as.numeric(xis_eval_raw$mcse_max)[1],
         xi_replicates = 0L,
+        xi_stabilized = isTRUE(xis_eval_raw$stabilization$stabilized),
+        xi_stabilize_alpha = as.numeric(xis_eval_raw$stabilization$alpha)[1],
+        xi_stabilize_triggered = paste(xis_eval_raw$stabilization$triggered_keys, collapse = ","),
+        xi_stabilize_fallback = paste(xis_eval_raw$stabilization$fallback_keys, collapse = ","),
         ld_objective_candidate = ld$objective,
         ld_objective_committed = ld_committed_objective,
         ld_objective_gap = ld_committed_objective - ld$objective,
@@ -1957,14 +2153,20 @@ exal_static_LDVB <- function(
       timing_rows[[iter]]$ld_update_every_used <- ld_update_every_use
     }
 
-    if (verbose && (iter %% 50 == 0)) {
-      cat(sprintf(
-        "    ELBO=%.6f | d_beta=%.3e d_sigma=%.3e d_gamma=%.3e d_elbo=%.3e | cond=%.3e stable=%d/%d\n",
-        elbo_new, d_beta, d_sigma, d_gamma, d_elbo, ld$cov_condition, stable_count, conv_ctrl$patience
-      ))
+    if (iter %% 50 == 0) {
+      .exdqlm_progress(
+        "LDVB progress",
+        model = "Static exAL",
+        iter = iter,
+        sigma = exp(ell_hat),
+        gamma = g_from_eta(eta_hat),
+        elbo = elbo_new,
+        note = if (isTRUE(ld_stabilized)) ld_stabilize_reason else if (isTRUE(ld_bad_mode_iter)) "mode-check" else NULL,
+        .verbose = verbose
+      )
     }
 
-    if (step$stop_now) {
+    if (step$stop_now && isTRUE(ld_signoff_ready)) {
       converged <- TRUE
       stop_reason <- "joint_converged"
       break
@@ -1984,7 +2186,12 @@ exal_static_LDVB <- function(
     log_q_fn = log_qsiggam,
     par = c(eta_hat, ell_hat),
     grad_tol = ld_ctrl$mode_grad_tol,
-    min_eig = ld_ctrl$mode_min_eig
+    min_eig = ld_ctrl$mode_min_eig,
+    hessian_backend = ld_ctrl$hessian_backend
+  )
+  ld_signoff_ready <- .exal_static_ld_signoff_ready(
+    mode_quality = mode_quality,
+    stabilize_active = stabilize_active
   )
   ld_trace_df <- if (isTRUE(ld_ctrl$store_trace)) {
     keep <- Filter(Negate(is.null), ld_trace_rows[seq_len(iter)])
@@ -2028,13 +2235,23 @@ exal_static_LDVB <- function(
   } else {
     list()
   }
-  if (!converged && identical(stop_reason, "max_iter") && isTRUE(ld_signoff_summary$committed_stable)) {
+  if (!converged && identical(stop_reason, "max_iter") &&
+      isTRUE(ld_signoff_summary$committed_stable) &&
+      isTRUE(ld_signoff_ready)) {
     converged <- TRUE
     stop_reason <- "joint_converged_stabilized"
+  }
+  if (isTRUE(converged) && !isTRUE(ld_signoff_ready)) {
+    converged <- FALSE
+    stop_reason <- "ld_signoff_failed"
   }
   beta_prior_summary <- beta_prior_obj$summary_vb(beta_state)
 
   ret <- list(
+    y = y,
+    X = X,
+    p0 = p0,
+    dqlm.ind = FALSE,
     qbeta = list(m = m_beta, V = V_beta),
     qv    = list(chi = chi, psi = psi, E_v = E_v, E_inv_v = E_inv_v),
     qs    = list(mu = qs_mu, tau2 = qs_tau2, E_s = E_s, E_s2 = E_s2),
@@ -2060,6 +2277,7 @@ exal_static_LDVB <- function(
         stop_reason = stop_reason,
         iter = iter,
         stable_count = stable_count,
+        ld_signoff_ready = ld_signoff_ready,
         criteria = conv_ctrl,
         final = list(
           delta_state = if (length(delta_beta)) utils::tail(delta_beta, 1L) else NA_real_,
@@ -2108,9 +2326,13 @@ exal_static_LDVB <- function(
           mode = "delta",
           replicates = 0L,
           reuse_draws = FALSE,
-          reuse_seed = NA_integer_
+          reuse_seed = NA_integer_,
+          stabilized_iter_count = if (nrow(ld_trace_df)) sum(ld_trace_df$xi_stabilized, na.rm = TRUE) else 0L,
+          stabilized_rate = if (nrow(ld_trace_df)) mean(ld_trace_df$xi_stabilized, na.rm = TRUE) else 0,
+          last_stabilization = if (exists("xis_eval_raw", inherits = FALSE)) xis_eval_raw$stabilization else list()
         ),
         mode_quality = mode_quality,
+        signoff_ready = ld_signoff_ready,
         signoff_summary = ld_signoff_summary,
         timing = if (isTRUE(ld_ctrl$profile_timing)) {
           list(
@@ -2128,14 +2350,24 @@ exal_static_LDVB <- function(
       )
     )
   )
+  draws <- .exal_static_ldvb_sample_posterior(ret, n.samp)
+  if (!is.null(draws)) {
+    ret[names(draws)] <- draws
+  }
+  ret$run.time <- as.numeric(proc.time()[3] - t0)
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
   class(ret) <- c("exal_ldvb", "exal_vb")
-  if (verbose) {
-    cat(sprintf("LDVB %s in %d iters (%.2fs): gamma~%.3f, sigma~%.3f\n",
-                ifelse(converged, "converged", "stopped"),
-                iter, ret$run.time, ret$qsiggam$gamma_mean, ret$qsiggam$sigma_mean))
-  }
+  .exdqlm_progress(
+    "LDVB done",
+    model = "Static exAL",
+    status = if (isTRUE(converged)) "converged" else "stopped",
+    iter = iter,
+    runtime_sec = ret$run.time,
+    gamma = ret$qsiggam$gamma_mean,
+    sigma = ret$qsiggam$sigma_mean,
+    .verbose = verbose
+  )
   ret
 }

@@ -145,6 +145,27 @@ pending inventory together with the not-yet-started rows.
 - the correct next move is branch/package stabilization first, then a clean
   rerun from scratch
 
+## Branch Sync Completion On The Frozen Checkpoint
+
+After the operator stop, this branch was resynced to the newer remote
+`origin/cransub/0.4.0` package line before any rerun restart.
+
+Package-side sync outcome on this branch:
+
+- merged the newer remote `0.4.0` line into the synced validation branch
+- incorporated the newer static LDVB/signoff, dynamic MCMC default/progress,
+  transfer-function wrapper, and diagnostics updates needed for package
+  compatibility with the current remote `0.4.0` state
+- preserved the validation-branch-specific warm-start and telemetry extensions
+  where they were still needed locally
+
+Focused verification completed successfully after the sync:
+
+- `tests/testthat/test-vb-mcmc-convergence-controls.R`
+- `tests/testthat/test-static-p025-stability.R`
+- `tests/testthat/test-static-diagnostics.R`
+- `tests/testthat/test-transfer-mcmc-wrapper.R`
+
 ## Restart Policy
 
 Before any fresh validation rerun:

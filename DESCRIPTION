@@ -13,16 +13,18 @@ Author: Raquel Barata [aut, cre],
   Bruno Sanso [ths],
   Antonio Aguirre [aut]
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
-Description: Routines for Bayesian estimation and analysis of dynamic quantile
-    linear models utilizing the extended asymmetric Laplace error distribution,
-    also known as extended dynamic quantile linear models (exDQLM).
-    Includes MCMC/ISVB/LDVB inference for dynamic and static exAL regression
-    models, reduced AL/DQLM paths via fixed skewness, optional ridge and
-    regularized horseshoe priors for static coefficients, optional C++ bridges
-    for state-space filtering and matrix builders, evidence lower bound
-    diagnostics, posterior predictive synthesis via
-    'exdqlm_synthesize_from_draws()', and static regression utilities.
-    Methods described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
+Description: Bayesian quantile-regression routines for both dynamic
+    state-space models and static regression under the extended asymmetric
+    Laplace error distribution, also known as extended dynamic quantile
+    linear models (exDQLM). The package combines dynamic exDQLM inference
+    via MCMC, ISVB, and LDVB with static exAL regression via LDVB and MCMC,
+    reduced AL/DQLM paths through fixed skewness, component builders for
+    trend/seasonality/regression blocks, static shrinkage priors including
+    ridge, regularized horseshoe, and 'rhs_ns', evidence lower bound
+    diagnostics, optional C++ accelerators, and posterior predictive
+    synthesis across separately fitted quantiles through
+    'exdqlm_synthesize_from_draws()'. Methods are described in Barata et al.
+    (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

@@ -1,7 +1,42 @@
 #' exdqlm: Extended Dynamic Quantile Linear Models
 #'
-#' Routines for Bayesian estimation and analysis of dynamic quantile linear models
-#' using the extended asymmetric Laplace error distribution (exDQLM).
+#' Bayesian quantile-regression tools for dynamic state-space models and static
+#' regression under the extended asymmetric Laplace error distribution (exAL).
+#'
+#' The package centers on native dynamic quantile state-space modeling for
+#' univariate time series, while `v0.4.0` also provides a static exAL
+#' regression workflow. Across these settings, `exdqlm` combines model
+#' construction helpers, multiple Bayesian inference engines, shrinkage priors
+#' for static coefficients, and post hoc synthesis of several fitted quantiles.
+#'
+#' @section Main workflows:
+#' \itemize{
+#'   \item Dynamic/state-space quantile modeling via
+#'         [exdqlmISVB()], [exdqlmLDVB()], and [exdqlmMCMC()], with
+#'         transfer-function extensions through [transfn_exdqlmLDVB()],
+#'         [transfn_exdqlmMCMC()], and legacy [transfn_exdqlmISVB()].
+#'   \item Static Bayesian exAL regression via [exal_static_LDVB()] and
+#'         [exal_static_mcmc()].
+#'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
+#'         and [regMod()].
+#'   \item Multi-quantile post-processing via
+#'         [exdqlm_synthesize_from_draws()] for non-crossing predictive
+#'         synthesis from separately fitted quantiles.
+#' }
+#'
+#' @section Distinctive features in 0.4.0:
+#' \itemize{
+#'   \item Dynamic Bayesian quantile state-space inference with three user-facing
+#'         engines: ISVB, LDVB, and MCMC.
+#'   \item A unified package covering both dynamic exDQLM models and static
+#'         exAL regression.
+#'   \item Static shrinkage priors including ridge, regularized horseshoe
+#'         (`"rhs"`), and `rhs_ns`.
+#'   \item Reduced AL/DQLM paths through `dqlm.ind = TRUE` in both dynamic and
+#'         static APIs.
+#'   \item ELBO diagnostics and optional C++ acceleration for selected
+#'         state-space computations.
+#' }
 #'
 #' @section Runtime options:
 #' \itemize{

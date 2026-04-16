@@ -3,11 +3,21 @@
 #' The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM with exponential decay transfer function component.
 #'
 #' @inheritParams exdqlmISVB
-#' @param X A univariate time-series which will be the input of the transfer function component.
+#' @param X A numeric vector or matrix of transfer-function inputs. Vectors are
+#'   treated as a univariate input series. Matrices should have one row per time
+#'   point and one column per covariate.
 #' @param lam Transfer function rate parameter lambda, a value between 0 and 1.
-#' @param tf.df Discount factor(s) used for the transfer function component.
-#' @param tf.m0 Prior mean of the transfer function component.
-#' @param tf.C0 Prior covariance of the transfer function component.
+#' @param tf.df Discount factor specification for the transfer function
+#'   component. If \code{length(tf.df) = 1}, the value is shared by the
+#'   \eqn{\zeta_t} state and the whole \eqn{\psi_t} block. If
+#'   \code{length(tf.df) = 2}, it is interpreted as
+#'   \code{c(df_zeta, df_psi_shared)}. If \code{length(tf.df) = k + 1}, where
+#'   \eqn{k = ncol(X)}, the values are applied componentwise to
+#'   \eqn{(\zeta_t, \psi_{1,t}, \dots, \psi_{k,t})}.
+#' @param tf.m0 Prior mean of the transfer function component. Defaults to a
+#'   zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.
+#' @param tf.C0 Prior covariance of the transfer function component. Defaults to
+#'   the \eqn{(k+1)\times(k+1)} identity matrix.
 #'
 #' @return A object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
@@ -28,7 +38,8 @@
 #'   \item `samp.vts` - Posterior sample of latent parameters, v_t, variational distributions.
 #'   \item `theta.out` - List containing the variational distribution of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
-#'   \item `median.kt` - Median number of time steps until the effect of X_t is less than or equal to 1e-3.
+#'   \item `median.kt` - Median number of time steps until the aggregated
+#'   transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to 1e-3.
 #' }
 #' If `dqlm.ind=FALSE`, the object also contains:
 #' \itemize{
@@ -72,38 +83,35 @@
 #'                           X, df = c(1,1), dim.df = c(1,6),
 #'                           gam.init = -3.5, sig.init = 15,
 #'                           lam = 0.38, tf.df = c(0.97,0.97))
+#' X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
+#' M2 = transfn_exdqlmISVB(y, p0 = 0.85, model = model,
+#'                           X_multi, df = c(1,1), dim.df = c(1,6),
+#'                           gam.init = -3.5, sig.init = 15,
+#'                           lam = 0.38, tf.df = c(0.97, 0.99))
 #' }
 #'
 transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=TRUE,sig.init=NA,dqlm.ind=FALSE,
-                             exps0,tol=0.1,n.IS=500,n.samp=200,PriorSigma=NULL,PriorGamma=NULL,tf.m0=rep(0,2),tf.C0=diag(1,2),verbose=TRUE){
-  # check inputs
-  y = check_ts(y)
-  X = check_ts(X)
-  if(length(X) != length(y)){stop("y and X must be time-series of the same length")}
-  model = check_mod(model)
-  p = length(model$m0)
-  if(length(lam) != 1 | lam >= 1 | lam <= 0){stop("lam must be a single value between 0 and 1")}
-  if(!methods::hasArg(dim.df)){
-    if(length(df)!=1){
-      stop("length of component discount factors does not match length of component dimensions")
-    }
-    dim.df = p
-  }
-  if(length(tf.m0)!=2){
-    stop("tf.m0 should have length 2")
-  }
-  tf.C0 = as.matrix(tf.C0)
-  if(any(dim(tf.C0)!=2)){
-    stop("tf.C0 should be a 2 by 2 covariance matrix")
-  }
+                             exps0,tol=0.1,n.IS=500,n.samp=200,PriorSigma=NULL,PriorGamma=NULL,tf.m0=NULL,tf.C0=NULL,verbose=TRUE){
+  prep <- .prepare_transfer_inputs(
+    y = y, X = X, model = model, df = df, dim.df = dim.df,
+    lam = lam, tf.df = tf.df, tf.m0 = tf.m0, tf.C0 = tf.C0,
+    dim.df_missing = !methods::hasArg(dim.df)
+  )
+  y <- prep$y
+  X <- prep$X
+  model <- prep$model
+  df <- prep$df
+  dim.df <- prep$dim.df
+  tf.model <- prep$tf.model
+  tf.model.df <- prep$tf.model.df
+  tf.model.dim.df <- prep$tf.model.dim.df
+  TT <- prep$TT
+  p <- length(model$m0)
 
   # initialize quantile
   if(methods::hasArg(exps0)){
-    TT = length(y)
     if(length(exps0) != TT){stop("exp0 must have same length as y")}
   }else{
-    TT = length(y)
-    p = length(model$m0)
     if(!is.na(dim(model$GG)[3])){
       if(dim(model$GG)[3] != TT){stop("time-varying dimension of GG does not match length of y")}
     }
@@ -116,27 +124,6 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
     exps0 = apply(FF*t(init.dlm$m),2,sum) + stats::qnorm(p0,0,sqrt(init.dlm$s[TT]))
   }
 
-  # augment state-space model
-  temp.p = length(model$m0)
-  p = temp.p + 2
-  FF = matrix(0,p,TT)
-  FF[1:temp.p,] = model$FF
-  FF[seq(temp.p+1,temp.p+2,2),] = 1
-  GG = array(0,c(p,p,TT))
-  GG[1:temp.p,1:temp.p,] = model$GG
-  GG[(temp.p+2-1):(temp.p+2),(temp.p+2-1):(temp.p+2),] = matrix(c(lam,0,NA,1),2,2)
-  GG[(temp.p+2-1),(temp.p+2),] = X
-
-  # update model and dfs with transfer function component
-  tf.model <- NULL
-  tf.model$GG = GG
-  tf.model$FF = FF
-  tf.model$m0 = c(model$m0,tf.m0)
-  tf.model$C0 = magic::adiag(model$C0,tf.C0)
-  tf.model = as.exdqlm(tf.model)
-  tf.model.df = c(df,matrix(tf.df,1,2))
-  tf.model.dim.df = c(dim.df,rep(1,2))
-
   # fit transfer function exdqlm
   tf.return = exdqlmISVB(
     y = y, p0 = p0, model = tf.model,
@@ -148,10 +135,9 @@ transfn_exdqlmISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,ga
     PriorSigma = PriorSigma, PriorGamma = PriorGamma,
     verbose = verbose
   )
-  tf.return$lam = lam
-
-  k_seq = (log(1e-3)-log(abs(c(tf.model$m0[1],tf.return$theta.out$sm[(dim(tf.return$theta.out$sm)[1]-1),-TT])*c(X))))/(log(lam))
-  tf.return$median.kt = stats::median(k_seq)
+  tf.return$lam = prep$lam
+  tf.return$median.kt = .transfer_median_kt(tf.model = tf.model, theta.out = tf.return$theta.out, X = X, lam = prep$lam)
+  tf.return$transfer_input_names = prep$transfer_input_names
 
   # return results
   return(tf.return)

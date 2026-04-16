@@ -126,6 +126,8 @@ Interpretation:
   `cransub/0.4.0` state before any new dynamic rerun
 - the next dynamic rerun should restart from scratch on the resynced branch
   rather than resume the interrupted phase-2 queue
+- that package resync has now been completed on this branch and verified
+  against the focused MCMC/VB and transfer-wrapper regression tests
 
 Primary stop note:
 

@@ -3,24 +3,31 @@
 #' The function applies a Markov chain Monte Carlo (MCMC) algorithm to sample the posterior of an exDQLM.
 #'
 #' @inheritParams exdqlmISVB
+#' @param fix.sigma Logical value indicating whether to fix sigma at `sig.init`.
+#'   Default is `FALSE`.
 #' @param Sig.mh Covariance matrix used in the random walk MH step to jointly sample sigma and gamma.
 #' @param joint.sample Logical value indicating whether or not to recompute `Sig.mh` based off the initial burn-in samples of gamma and sigma. Default is `FALSE`.
 #' @param n.burn Number of MCMC iterations to burn. Default is `n.burn = 2000`.
 #' @param n.mcmc Number of MCMC iterations to sample. Default is `n.mcmc = 1500`.
-#' @param init.from.isvb Logical value indicating whether or not to initialize the MCMC using the ISVB algorithm. Default is `TRUE`.
-#' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization step
-#'   (`ISVB` or `LDVB`) and initialize MCMC from converged VB moments.
-#'   If `NULL`, falls back to `init.from.isvb` behavior.
+#' @param init.from.isvb Logical value indicating whether to use the legacy ISVB
+#'   warm start when `init.from.vb = TRUE`. Default is `FALSE`, which favors
+#'   `LDVB` as the default VB warm start. This flag only chooses the
+#'   warm-start source; it does not change the subsequent MCMC proposal kernel.
+#' @param init.from.vb Optional logical. If `TRUE`, run a VB pre-initialization
+#'   step (`LDVB` by default, or `ISVB` when `init.from.isvb = TRUE`) and
+#'   initialize MCMC from converged VB moments. Default is `TRUE`. If
+#'   explicitly set to `NULL`, it falls back to `init.from.isvb` behavior for
+#'   backward compatibility.
 #' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
 #'   `method` (`"isvb"` or `"ldvb"`), `tol`, `n.IS`, `n.samp`, `max_iter`, `verbose`.
 #' @param vb_init_fit Optional precomputed VB fit object. If supplied, warm start
 #'   uses this object directly and does not rerun VB internally.
 #' @param mh.proposal Character; proposal kernel for the exDQLM scale/skew block.
-#'   `"laplace_rw"` (default) uses a Laplace-informed covariance then RW;
-#'   `"rw"` uses joint random-walk MH on `(log sigma, logit gamma)`;
-#'   `"slice"` uses
+#'   `"slice"` (default) uses
 #'   an exact sigma GIG update plus a bounded univariate slice sampler directly
-#'   on `gamma`.
+#'   on `gamma`; `"laplace_rw"` uses a Laplace-informed covariance then RW;
+#'   and `"rw"` uses joint random-walk MH on `(log sigma, logit gamma)`.
+#'   This choice is separate from the VB warm-start method.
 #' @param mh.adapt Logical; adapt MH proposal scale during burn-in.
 #' @param mh.adapt.interval Integer; adaptation interval (iterations).
 #' @param mh.target.accept Numeric length-2 vector with lower/upper target acceptance rates.
@@ -36,6 +43,9 @@
 #'   lighter-weight runs.
 #' @param trace.every Positive integer; when `trace.diagnostics = TRUE`, record
 #'   one diagnostics row every `trace.every` iterations.
+#' @param verbose.every Positive integer controlling how often console progress
+#'   is printed when `verbose = TRUE`. Default `500`, independent of
+#'   `trace.every`.
 #' @param progress_callback Optional callback invoked with a named list at MCMC
 #'   start, at each progress checkpoint, and on completion. Intended for
 #'   workflow-level progress logging.
@@ -44,6 +54,7 @@
 #'  \itemize{
 #'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
+#'   \item `dqlm.ind` - Logical value indicating whether gamma was fixed at `0`, reducing the exDQLM to the special case of the DQLM.
 #'   \item `model` - List of the state-space model including `GG`, `FF`, prior parameters `m0` and `C0`.
 #'   \item `p0` - The quantile which was estimated.
 #'   \item `df` - Discount factors used for each block.
@@ -89,13 +100,13 @@
 #' }
 #'
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
-                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=TRUE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
-                    init.from.vb=NULL,vb_init_controls=NULL,vb_init_fit=NULL,
-                    mh.proposal=c("laplace_rw","rw","slice"),mh.adapt=TRUE,mh.adapt.interval=50L,
+                    Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
+                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,
+                    mh.proposal=c("slice","laplace_rw","rw"),mh.adapt=TRUE,mh.adapt.interval=50L,
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,
-                    trace.diagnostics=TRUE,trace.every=1L,
+                    trace.diagnostics=TRUE,trace.every=1L,verbose.every=500L,
                     progress_callback=NULL){
 
   # check inputs
@@ -185,6 +196,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   trace.diagnostics <- isTRUE(trace.diagnostics)
   trace.every <- suppressWarnings(as.integer(trace.every)[1])
   if (!is.finite(trace.every) || trace.every < 1L) trace.every <- 1L
+  verbose.every <- suppressWarnings(as.integer(verbose.every)[1])
+  if (!is.finite(verbose.every) || verbose.every < 1L) verbose.every <- 500L
+  verbose_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
+  if (is.finite(verbose_every_env) && !is.na(verbose_every_env) && verbose_every_env >= 1L) {
+    verbose.every <- verbose_every_env
+  }
   safe_progress_callback <- function(info) {
     if (!is.function(progress_callback)) return(invisible(NULL))
     try(progress_callback(info), silent = TRUE)
@@ -386,8 +403,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     if (length(badneg)) {
       stop(sprintf("%s%s chi has %d negative values (first index=%d, value=%.6g)", context, iter_suffix, length(badneg), badneg[1], chi[badneg[1]]))
     }
-    if (!is.finite(psi) || psi <= 0) {
-      stop(sprintf("%s%s psi must be finite and > 0; got %.6g", context, iter_suffix, psi))
+    if (!is.finite(psi)) {
+      stop(sprintf("%s%s psi must be finite; got %.6g", context, iter_suffix, psi))
     }
     if (!is.finite(lambda)) {
       stop(sprintf("%s%s lambda must be finite; got %.6g", context, iter_suffix, lambda))
@@ -722,9 +739,12 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       chi_sigma <- sum((r * r) / (b * uts)) + 2 * sum(uts) + 2 * PriorSigma$b_sig
       psi_sigma <- ((c * abs(gamma))^2 / b) * sum((sts * sts) / uts)
       k_sigma <- -(PriorSigma$a_sig + 1.5 * TT)
-      sigma_new <- as.numeric(sample_gig_devroye_vector(
-        1L, p = k_sigma, a = psi_sigma, b_vec = chi_sigma
-      )[1, 1])
+      sigma_new <- sample_gig_cpp_required(
+        chi = chi_sigma,
+        psi = psi_sigma,
+        lambda = k_sigma,
+        context = "exdqlm_mcmc_sigma"
+      )[1]
       if (is.finite(sigma_new) && sigma_new > 0) sigma_new else sigma
     }
     laplace_cov_init <- function(reg1, log.sigma, logit.gamma, sts, uts) {
@@ -770,18 +790,23 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       return(list(log.sigma=log.sigma.new,logit.gamma=logit.gamma.new,accept=accept))
     }
 
-    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
-    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
-      progress_every_env
-    } else if (trace.diagnostics) {
+    callback.every <- if (trace.diagnostics) {
       trace.every
     } else {
       100L
     }
-    progress_every <- max(1L, as.integer(progress_every)[1])
+    callback.every <- max(1L, as.integer(callback.every)[1])
 
     # Sample from exdqlm posterior
     tictoc::tic()
+    .exdqlm_progress(
+      "MCMC start",
+      burn = n.burn,
+      keep = n.mcmc,
+      kernel = mh.proposal,
+      warm_start = if (isTRUE(init.from.vb)) vb.ctrl$method else "none",
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "start",
       iter = 0L,
@@ -797,13 +822,20 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose & i%%progress_every==0){
-        acc_msg <- if (identical(mh.proposal, "slice")) "NA" else round(n.accept / i, 4)
-        cat(sprintf("%s iteration %s, acceptance rate %s: %s", ifelse(i<=n.burn,"burn-in","MCMC"), i , acc_msg, Sys.time()),"\n")
-        utils::flush.console()
-        try(flush(stdout()), silent = TRUE)
-        }
-      if (i %% progress_every == 0L) {
+      if (i %% verbose.every == 0L) {
+        .exdqlm_progress(
+          "MCMC progress",
+          model = "exDQLM",
+          phase = if (i <= n.burn) "burn" else "keep",
+          iter = sprintf("%d/%d", i, I),
+          sigma = cursam.sigma,
+          gamma = cursam.gamma,
+          kernel = mh.proposal,
+          accept = if (identical(mh.proposal, "slice")) NULL else n.accept / i,
+          .verbose = verbose
+        )
+      }
+      if (i %% callback.every == 0L) {
         safe_progress_callback(list(
           event = "progress",
           iter = as.integer(i),
@@ -976,9 +1008,18 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     }
     run.time = tictoc::toc(quiet = TRUE)
-    if(verbose){
-      cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
-    }
+    .exdqlm_progress(
+      "MCMC done",
+      model = "exDQLM",
+      status = "complete",
+      iter = I,
+      runtime_sec = run.time$toc - run.time$tic,
+      sigma = cursam.sigma,
+      gamma = cursam.gamma,
+      kernel = mh.proposal,
+      accept = if (identical(mh.proposal, "slice")) NULL else n.accept / I,
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "complete",
       iter = as.integer(I),
@@ -1052,6 +1093,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       adapt_trace = if (identical(mh.proposal, "slice")) data.frame() else adapt.history,
       trace_enabled = trace.diagnostics,
       trace_every = if (trace.diagnostics) trace.every else NA_integer_,
+      verbose_every = as.integer(verbose.every),
+      callback_every = as.integer(callback.every),
       trace = if (trace.diagnostics && trace_idx > 0L) {
         do.call(rbind, trace_rows[seq_len(trace_idx)])
       } else {
@@ -1060,7 +1103,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     )
 
     # exdqlm results
-    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,dqlm.ind=dqlm.ind,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma), samp.gamma = coda::as.mcmc(save.gamma),
@@ -1075,6 +1118,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 mh.diagnostics = mh.diag,
                 diagnostics = list(
                   mh = mh.diag,
+                  progress = list(
+                    verbose_every = as.integer(verbose.every),
+                    callback_every = as.integer(callback.every)
+                  ),
                   ess = list(sigma = ess_sigma, gamma = ess_gamma),
                   chain_health = list(
                     sigma = chain_health_sigma,
@@ -1190,18 +1237,23 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                rate = PriorSigma$b_sig + 0.5*sum( ((as.vector(y) - reg1 - a_tau*uts)^2)/(b_tau*uts) ) + sum(uts) )
     }
 
-    progress_every_env <- suppressWarnings(as.integer(Sys.getenv("EXDQLM_MCMC_PROGRESS_EVERY", NA_character_))[1])
-    progress_every <- if (is.finite(progress_every_env) && !is.na(progress_every_env) && progress_every_env >= 1L) {
-      progress_every_env
-    } else if (trace.diagnostics) {
+    callback.every <- if (trace.diagnostics) {
       trace.every
     } else {
       100L
     }
-    progress_every <- max(1L, as.integer(progress_every)[1])
+    callback.every <- max(1L, as.integer(callback.every)[1])
 
     # Sample from dqlm posterior
     tictoc::tic()
+    .exdqlm_progress(
+      "MCMC start",
+      burn = n.burn,
+      keep = n.mcmc,
+      kernel = "conjugate",
+      warm_start = if (isTRUE(init.from.vb)) vb.ctrl$method else "none",
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "start",
       iter = 0L,
@@ -1217,12 +1269,17 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     for (i in 1:I){
       current_iter <- as.integer(i)
       # counter
-      if(verbose & i%%progress_every==0){
-        cat(sprintf("%s iteration %s: %s ", ifelse(i<=n.burn,"burn-in","MCMC"), i, Sys.time()), "\n")
-        utils::flush.console()
-        try(flush(stdout()), silent = TRUE)
-        }
-      if (i %% progress_every == 0L) {
+      if (i %% verbose.every == 0L) {
+        .exdqlm_progress(
+          "MCMC progress",
+          model = "DQLM",
+          phase = if (i <= n.burn) "burn" else "keep",
+          iter = sprintf("%d/%d", i, I),
+          sigma = cursam.sigma,
+          .verbose = verbose
+        )
+      }
+      if (i %% callback.every == 0L) {
         safe_progress_callback(list(
           event = "progress",
           iter = as.integer(i),
@@ -1272,9 +1329,15 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     }
     run.time = tictoc::toc(quiet = TRUE)
-    if(verbose){
-      cat(sprintf("MCMC complete: %s iterations, %s seconds",I,round(run.time$toc-run.time$tic,3)),"\n")
-    }
+    .exdqlm_progress(
+      "MCMC done",
+      model = "DQLM",
+      status = "complete",
+      iter = I,
+      runtime_sec = run.time$toc - run.time$tic,
+      sigma = cursam.sigma,
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "complete",
       iter = as.integer(I),
@@ -1297,7 +1360,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     ess_sigma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.sigma))), error = function(e) NA_real_)
 
     # dqlm results
-    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,
+    retlist = list(y=y,run.time=(run.time$toc-run.time$tic),model=model,p0=p0,df=df,dim.df=dim.df,dqlm.ind=dqlm.ind,
                 samp.theta = coda::as.mcmc(save.theta), theta.out = theta.out,
                 samp.post.pred = save.post.pred, map.standard.forecast.errors = map.standard.forecast.errors,
                 samp.sigma = coda::as.mcmc(save.sigma),
@@ -1305,6 +1368,10 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 init.from.vb = init.from.vb,
                 vb.init.method = if (init.from.vb) vb.ctrl$method else NA_character_,
                 diagnostics = list(
+                  progress = list(
+                    verbose_every = as.integer(verbose.every),
+                    callback_every = as.integer(callback.every)
+                  ),
                   ess = list(sigma = ess_sigma, gamma = NA_real_),
                   rhat_ready = list(
                     sigma = as.numeric(save.sigma),

@@ -38,7 +38,11 @@ compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, c
   y = m1$y
   TT = length(y)
   p = length(index)
-  n.samp = dim(m1$samp.theta)[3]
+  theta_samps = m1$samp.theta
+  if (methods::is(theta_samps, "mcmc")) {
+    theta_samps = array(as.numeric(theta_samps), dim = dim(m1$samp.theta))
+  }
+  n.samp = dim(theta_samps)[3]
   if(just.theta & p != 1){
     stop("when 'just.theta = TRUE', 'index' should have length 1")
   }
@@ -50,9 +54,9 @@ compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, c
   # 95% CrIs
   if(!just.theta){
       big_FF = array(m1$model$FF[index,],c(p,TT,n.samp))
-      quant.samps = colSums(big_FF*array(m1$samp.theta[index,,],c(p,TT,n.samp)))
+      quant.samps = colSums(big_FF*array(theta_samps[index,,],c(p,TT,n.samp)))
   }else{
-      quant.samps = matrix(m1$samp.theta[index,,],TT,n.samp)
+      quant.samps = matrix(theta_samps[index,,],TT,n.samp)
   }
   map.quant = rowMeans(quant.samps)
   lb.quant = matrixStats::rowQuantiles(quant.samps, probs = half.alpha)

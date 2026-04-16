@@ -464,12 +464,13 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     )
   }
 
-  # one-line header 
-  if (verbose) {
-    message(" Starting ISVB: TT=", TT, " p=", p,
-            " use_cpp=", isTRUE(getOption("exdqlm.use_cpp_kf", FALSE)))
-    utils::flush.console()
-  }
+  .exdqlm_progress(
+    "ISVB start",
+    tol = tol,
+    backend = if (isTRUE(getOption("exdqlm.use_cpp_kf", FALSE))) "C++" else "R",
+    elbo = if (isTRUE(getOption("exdqlm.compute_elbo", TRUE))) "on" else "off",
+    .verbose = verbose
+  )
 
   kf_step <- function(ex.f, ex.q) {
     use_cpp <- isTRUE(getOption("exdqlm.use_cpp_kf", FALSE))
@@ -544,11 +545,6 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
     # counter
     iter <- iter + 1L
-    if (verbose && iter %% 5 == 0) {
-      message(sprintf("ISVB iteration %d", iter))
-      utils::flush.console()
-    }
-
     # update distributions
     cur.uts.out = new.uts.out
     cur.sts.out = new.sts.out
@@ -633,25 +629,16 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     delta.gamma <- c(delta.gamma, d.gamma)
     delta.elbo <- c(delta.elbo, d.elbo)
 
-    if (verbose && iter %% 5 == 0) {
-      if (compute.elbo) {
-        msg <- sprintf(
-          "    d_state=%.3g d_sigma=%.3g d_gamma=%.3g | sigma=%.3g | gamma=%.3g | ELBO=%.6f (Delta=%.3e) | stable=%d/%d",
-          d.state, d.sigma, d.gamma, new.gamsig.out$E.sigma, new.gamsig.out$E.gam,
-          utils::tail(elbo.seq, 1), d.elbo, stable.count, conv.ctrl$patience
-        )
-      } else {
-        msg <- sprintf(
-          "    d_state=%.3g d_sigma=%.3g d_gamma=%.3g | sigma=%.3g | gamma=%.3g | stable=%d/%d",
-          d.state, d.sigma, d.gamma, new.gamsig.out$E.sigma, new.gamsig.out$E.gam,
-          stable.count, conv.ctrl$patience
-        )
-      }
-      if (!is.null(new.gamsig.out$elbo_logZ)) {
-        msg <- sprintf("%s | gs_logZ=%.6f", msg, new.gamsig.out$elbo_logZ)
-      }
-      message(msg)
-      utils::flush.console()
+    if (iter %% 5 == 0) {
+      .exdqlm_progress(
+        "ISVB progress",
+        model = if (isTRUE(dqlm.ind)) "DQLM" else "exDQLM",
+        iter = iter,
+        sigma = new.gamsig.out$E.sigma,
+        gamma = if (!isTRUE(dqlm.ind)) new.gamsig.out$E.gam else NULL,
+        elbo = if (compute.elbo) utils::tail(elbo.seq, 1) else NULL,
+        .verbose = verbose
+      )
     }
 
     if (conv.step$stop_now) {
@@ -661,11 +648,16 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
   }
   run.time <- tictoc::toc(quiet = TRUE)
-  if (verbose) {
-    cat(sprintf("ISVB %s: %s iterations, %s seconds",
-                ifelse(identical(stop.reason, "joint_converged"), "converged", "stopped"),
-                iter, round(run.time$toc - run.time$tic, 3)), "\n")
-  }
+  .exdqlm_progress(
+    "ISVB done",
+    model = if (isTRUE(dqlm.ind)) "DQLM" else "exDQLM",
+    status = if (identical(stop.reason, "joint_converged")) "converged" else "stopped",
+    iter = iter,
+    runtime_sec = run.time$toc - run.time$tic,
+    sigma = new.gamsig.out$E.sigma,
+    gamma = if (!isTRUE(dqlm.ind)) new.gamsig.out$E.gam else NULL,
+    .verbose = verbose
+  )
 
   ### posterior samples -------------------------------------------------
   # helper: coerce a 3D array/cube to (p, TT, ns) if it's a permutation

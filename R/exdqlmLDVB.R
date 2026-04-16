@@ -518,7 +518,20 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     H22 <- (f01 - 2 * f00 + f0_1) / (h2^2)
     H12 <- (f11 - f1_1 - f_11 + f_1_1) / (4 * h1 * h2)
     corr <- 0.5 * (H11 * Sigma[1, 1] + 2 * H12 * Sigma[1, 2] + H22 * Sigma[2, 2])
-    as.list(f00 + corr)
+    .exdqlm_delta_stabilize_expectations(
+      base = f00,
+      corr = corr,
+      positive_keys = c(
+        "E_sigma",
+        "E_inv_sigma",
+        "E_c2_invb_absgam2_sigma",
+        "E_a2_invb_inv_sigma",
+        "E_invb_inv_sigma"
+      ),
+      lower = c(E_gam = L),
+      upper = c(E_gam = U),
+      floor = 1e-12
+    )$value
   }
 
   find_mode_ld <- function(par_start, state) {
@@ -767,14 +780,13 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   }
 
 
-  # one-line header 
-  if (verbose) {
-    message(sprintf("LDVB start | T=%d, p=%d, tol=%.3g | KF:%s | ELBO:%s",
-                    TT, p, tol,
-                    if (isTRUE(getOption('exdqlm.use_cpp_kf', FALSE))) 'C++' else 'R',
-                    if (isTRUE(getOption('exdqlm.compute_elbo', TRUE))) 'on' else 'off'))
-    utils::flush.console()
-  }
+  .exdqlm_progress(
+    "LDVB start",
+    tol = tol,
+    backend = if (isTRUE(getOption("exdqlm.use_cpp_kf", FALSE))) "C++" else "R",
+    elbo = if (isTRUE(getOption("exdqlm.compute_elbo", TRUE))) "on" else "off",
+    .verbose = verbose
+  )
 
   kf_step <- function(ex.f, ex.q) {
     use_cpp <- isTRUE(getOption("exdqlm.use_cpp_kf", FALSE))
@@ -1026,22 +1038,16 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       )
     }
 
-    if (verbose && iter %% 5 == 0) {
-      if (compute.elbo) {
-        msg <- sprintf(
-          "iter %3d | d_state=%.3g d_sigma=%.3g d_gamma=%.3g | sigma=%.3g | gamma=%.3g | ELBO=%.6f (Delta=%.2e) | stable=%d/%d",
-          iter, d.state, d.sigma, d.gamma, new.gamsig.out$E.sigma, new.gamsig.out$E.gam,
-          utils::tail(elbo.seq, 1), d.elbo, stable.count, conv.ctrl$patience
-        )
-      } else {
-        msg <- sprintf(
-          "iter %3d | d_state=%.3g d_sigma=%.3g d_gamma=%.3g | sigma=%.3g | gamma=%.3g | stable=%d/%d",
-          iter, d.state, d.sigma, d.gamma, new.gamsig.out$E.sigma, new.gamsig.out$E.gam,
-          stable.count, conv.ctrl$patience
-        )
-      }
-      if (!is.null(new.gamsig.out$elbo_logZ)) msg <- sprintf("%s | gs_logZ=%.6f", msg, new.gamsig.out$elbo_logZ)
-      message(msg); utils::flush.console()
+    if (iter %% 5 == 0) {
+      .exdqlm_progress(
+        "LDVB progress",
+        model = "exDQLM",
+        iter = iter,
+        sigma = new.gamsig.out$E.sigma,
+        gamma = new.gamsig.out$E.gam,
+        elbo = if (compute.elbo) utils::tail(elbo.seq, 1) else NULL,
+        .verbose = verbose
+      )
     }
 
     if (conv.step$stop_now) {
@@ -1051,11 +1057,16 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   }
   run.time <- tictoc::toc(quiet = TRUE)
-  if (verbose) {
-    cat(sprintf("LDVB %s: %s iterations, %s seconds",
-                ifelse(identical(stop.reason, "joint_converged"), "converged", "stopped"),
-                iter, round(run.time$toc - run.time$tic, 3)), "\n")
-  }
+  .exdqlm_progress(
+    "LDVB done",
+    model = "exDQLM",
+    status = if (identical(stop.reason, "joint_converged")) "converged" else "stopped",
+    iter = iter,
+    runtime_sec = run.time$toc - run.time$tic,
+    sigma = new.gamsig.out$E.sigma,
+    gamma = new.gamsig.out$E.gam,
+    .verbose = verbose
+  )
   ld_trace_df <- if (isTRUE(ld_ctrl$store_trace)) {
     keep <- Filter(Negate(is.null), ld_trace_rows[seq_len(iter)])
     if (length(keep)) do.call(rbind, keep) else data.frame()
