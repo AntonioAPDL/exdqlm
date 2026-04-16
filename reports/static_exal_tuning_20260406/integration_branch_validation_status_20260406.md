@@ -45,6 +45,16 @@ Current synced tracker checkpoint on this branch:
   - keep the dynamic-closure runner-fix finding as established background
   - record that the accepted unresolved tail remains `6 / 288`
 
+Current operator-stop checkpoint:
+
+- `2026-04-16` partial postfix-lane freeze before branch/package resync
+- scope:
+  - accepted `v7` remains the authoritative carry-forward baseline
+  - freeze the partial `TT5000` postfix lane as diagnostic-only evidence
+  - stop the current live queue at a documented checkpoint
+  - resync this branch to the newer remote `cransub/0.4.0` package state
+  - require the next rerun to restart from scratch after the sync
+
 ## Canonical Status Files
 
 Primary operational tracker for the residual original-`288` study:
@@ -75,11 +85,51 @@ Active residual repair planning / execution notes:
 - `reports/static_exal_tuning_20260408/original_288_v7_comparison_analysis_plan_20260408.md`
 - `reports/static_exal_tuning_20260408/static_bqrgal_alignment_and_relaunch_plan_20260408.md`
 - `reports/static_exal_tuning_20260408/static_bqrgal_aligned_execution_20260408.md`
+- `reports/static_exal_tuning_20260416/original288_dynamic_tt5000_operator_stop_freeze_20260416.md`
 
 Machine-readable freeze / planning artifacts:
 
 - `tools/merge_reports/LOCAL_static_bqrgal_aligned_relaunch_grid_v1_20260408.csv`
 - `tools/merge_reports/LOCAL_validation_workstreams_v7_freeze_20260408.csv`
+
+## Operator Stop And Reset Decision (2026-04-16)
+
+The current partial `TT5000` postfix repair lane has now been explicitly
+operator-stopped and frozen.
+
+Accepted publication-target state remains unchanged:
+
+- `282 / 288` healthy
+- `6 / 288` unresolved
+
+Stop-state readout:
+
+- stop timestamp:
+  - `2026-04-16 19:43:06 EDT`
+- phase 1 exact replay:
+  - `144 / 144` complete
+  - `12 PASS`
+  - `60 WARN`
+  - `72 FAIL`
+- phase 2 historical repair:
+  - `42 / 52` complete
+  - `0 PASS`
+  - `0 WARN`
+  - `42 FAIL`
+  - pending rows:
+    - `187` through `196`
+
+Interpretation:
+
+- the partial postfix lane is now diagnostic-only and not promotion-eligible
+- the active branch package code must first be resynced to the latest remote
+  `cransub/0.4.0` state before any new dynamic rerun
+- the next dynamic rerun should restart from scratch on the resynced branch
+  rather than resume the interrupted phase-2 queue
+
+Primary stop note:
+
+- `reports/static_exal_tuning_20260416/original288_dynamic_tt5000_operator_stop_freeze_20260416.md`
 
 ## Case Universe In Scope
 

@@ -37,6 +37,49 @@ Important distinction carried forward on this branch:
 - therefore the accepted carry-forward status and the rerun-on-synced-base
   status must be treated separately in planning and reporting
 
+## Postfix TT5000 Operator Stop And Restart Reset (2026-04-16)
+
+The partial postfix `TT5000` repair lane has now been operator-stopped and
+frozen before any further continuation.
+
+Accepted publication-target state remains:
+
+- `282 / 288` healthy
+- `6 / 288` unresolved
+
+Stop-state readout:
+
+- stop timestamp:
+  - `2026-04-16 19:43:06 EDT`
+- phase 1 exact replay:
+  - `144 / 144` complete
+- phase 2 historical repair:
+  - `42 / 52` complete
+  - `42 / 42` completed rows `FAIL`
+  - pending rows:
+    - `187` through `196`
+
+Why the lane was stopped:
+
+- the live lane was still the legacy broader-validation dynamic corridor using
+  the `0p95` tail, which had become too easy to conflate with the separate
+  paper-aligned `0.50` discussion
+- this branch package code was behind the newer remote `cransub/0.4.0`
+  package-function updates
+- continuing the same live queue before syncing the package line would have
+  compounded interpretability debt
+
+Operational consequence:
+
+- the postfix lane is now diagnostic-only
+- it should not be promoted into the accepted baseline
+- the next dynamic rerun should restart from scratch after this branch is
+  resynced to the latest remote `cransub/0.4.0` package state
+
+Primary reference:
+
+- `reports/static_exal_tuning_20260416/original288_dynamic_tt5000_operator_stop_freeze_20260416.md`
+
 ## Dynamic Tail6 Localmix Closeout (2026-04-08)
 
 The synced-base dynamic tail6 localmix wave has now completed.
