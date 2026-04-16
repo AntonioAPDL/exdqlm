@@ -138,6 +138,7 @@ source_state$source_label <- as.character(source_cfg$source_label %||% source_st
 source_state$source_rationale <- as.character(source_cfg$source_rationale %||% source_state$source_rationale)[1L]
 
 analysis_cfg <- manifest$analysis %||% list()
+refresh_fit_metrics <- isTRUE(analysis_cfg$refresh_fit_metrics %||% TRUE)
 report_root <- resolve_path(
   analysis_cfg$report_root %||% file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_main_comparison_analysis"),
   must_work = FALSE
@@ -175,6 +176,7 @@ preflight_lines <- c(
   sprintf("- source_mode: `%s`", source_state$source_mode),
   sprintf("- source_label: `%s`", source_state$source_label),
   sprintf("- source_report_root: `%s`", source_state$campaign_report_root),
+  sprintf("- refresh_fit_metrics: `%s`", if (refresh_fit_metrics) "TRUE" else "FALSE"),
   "",
   "## Reference Surface",
   sprintf("- reference_root_dirs: `%d`", length(reference_inventory$root_dirs)),
@@ -211,7 +213,8 @@ write_json(list(
   grid_path = grid_path,
   output_root = normalizePath(output_root, winslash = "/", mustWork = FALSE),
   source_run_tag = source_state$source_run_tag,
-  source_mode = source_state$source_mode
+  source_mode = source_state$source_mode,
+  refresh_fit_metrics = refresh_fit_metrics
 ), file.path(launch_root, "run_metadata.json"))
 
 if (prepare_only) {
@@ -225,6 +228,7 @@ analysis_obj <- exdqlm:::qdesn_dynamic_maincmp_write_analysis(
   output_root = output_root,
   manifest = manifest,
   defaults = defaults,
+  refresh_fit_metrics = refresh_fit_metrics,
   final_wave_run_tag = analysis_cfg$final_wave_evidence_run_tag %||% NA_character_
 )
 

@@ -1158,3 +1158,93 @@ Final root-fail surface:
 - `laplace tau=0.05 fit_size=5000 ridge`
 - `normal tau=0.05/0.95 fit_size=5000 rhs_ns`
 - `normal tau=0.25 fit_size=5000 ridge`
+
+## 20) Deep-DESN Main Comparison Pack From The Row-Faithful Replay (2026-04-16)
+
+Comparison-outputs report:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_outputs_20260416.md`
+
+Completed comparison-analysis run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500`
+- report root:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500`
+- summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500/summary/qdesn_dynamic_main_comparison_analysis.md`
+- representative-case summary:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500/summary/qdesn_dynamic_main_comparison_representative_case_table.md`
+
+Key authoritative outputs:
+
+- 144-row fit table:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500/tables/authoritative_fit_case_table_readable.csv`
+- 36-row representative fit table:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500/tables/authoritative_representative_fit_case_table_readable.csv`
+- representative selection counts:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500/tables/authoritative_representative_fit_selection_counts.csv`
+- fail inventory:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500/tables/authoritative_fail_inventory.csv`
+
+Main pack rolled state:
+
+- fit signoff:
+  - `66 PASS`
+  - `44 WARN`
+  - `34 FAIL`
+- root readiness:
+  - `36 / 36` comparison-eligible-any
+  - `17 / 36` comparison-eligible-full
+- root-status FAILs:
+  - `10`
+
+Representative-case state:
+
+- representative rows:
+  - `26 PASS`
+  - `10 WARN`
+  - `0 FAIL`
+- all representative rows:
+  - `comparison_eligible = TRUE`
+- representative primary metric actually used on this replay:
+  - `holdout_qtrue_rmse` for `36 / 36` rows
+- reason:
+  - `forecast_CRPS_mean` is missing on this replay surface and therefore could not be used as the
+    primary selector
+
+Representative selection counts:
+
+- `PASS / mcmc / al = 3`
+- `PASS / vb / al = 11`
+- `WARN / vb / al = 7`
+- `PASS / vb / exal = 12`
+- `WARN / vb / exal = 3`
+
+Important representative interpretation:
+
+- the comparison-facing representatives are overwhelmingly `VB`;
+- only `3` roots select `MCMC`, and all `3` are `ridge / fit_size=500 / tau=0.25 / al`;
+- all `18` `ridge` representatives are `PASS`;
+- all `10` representative `WARN` rows are in `rhs_ns`;
+- `9 / 10` representative `WARN` rows are short `fit_size=500` `rhs_ns` roots.
+
+Remaining fail inventory:
+
+- all `34` fail rows are `MCMC`
+- fail reasons:
+  - `15` `missing_chain_diagnostics`
+  - `11` `high_autocorrelation`
+  - `6` `high_autocorrelation; geweke_drift`
+  - `2` `high_autocorrelation; geweke_drift; half_chain_drift`
+- fail clustering:
+  - `rhs_ns / 500 = 18`
+  - `rhs_ns / 5000 = 14`
+  - `ridge / 5000 = 2`
+
+Current read:
+
+- this pack is now the correct deep-DESN challenger comparison artifact from the finished
+  row-faithful replay;
+- it gives an explicit best representative row for every root;
+- the remaining blocker is still targeted `MCMC` debt, not replay orchestration.

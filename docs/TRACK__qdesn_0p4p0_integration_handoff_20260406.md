@@ -39,6 +39,10 @@ Key branch-local docs:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_final_residual_closeout_and_zero_fail_reconciliation_20260408.md`
 - authoritative comparison outputs:
   - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_main_comparison_outputs_20260408.md`
+- row-faithful replay closeout and failure audit:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_closeout_and_failure_audit_20260416.md`
+- deep-DESN comparison outputs from the completed row-faithful replay:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_outputs_20260416.md`
 
 Key contract:
 
@@ -1082,3 +1086,74 @@ Final root-fail pocket:
 - `laplace tau=0.05 fit_size=5000 ridge`
 - `normal tau=0.05/0.95 fit_size=5000 rhs_ns`
 - `normal tau=0.25 fit_size=5000 ridge`
+
+## 20) Deep-DESN Main Comparison Outputs From The Finished Replay (2026-04-16)
+
+New comparison-facing report:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_outputs_20260416.md`
+
+Completed pack:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500`
+- report root:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp-20260416-160500`
+- key outputs:
+  - 144-row fit table:
+    - `tables/authoritative_fit_case_table_readable.csv`
+  - 36-row representative table:
+    - `tables/authoritative_representative_fit_case_table_readable.csv`
+  - representative counts:
+    - `tables/authoritative_representative_fit_selection_counts.csv`
+  - fail inventory:
+    - `tables/authoritative_fail_inventory.csv`
+
+Rolled state:
+
+- full-study signoff:
+  - `66 PASS`
+  - `44 WARN`
+  - `34 FAIL`
+- root readiness:
+  - `36 / 36` comparison-eligible-any
+  - `17 / 36` comparison-eligible-full
+- root-status FAILs:
+  - `10`
+
+Representative-case state:
+
+- representative rows:
+  - `26 PASS`
+  - `10 WARN`
+  - `0 FAIL`
+- all representative rows are comparison-eligible
+- representative selector on this replay:
+  - `holdout_qtrue_rmse`
+- reason:
+  - replay-side `forecast_CRPS_mean` is missing and could not be used as the primary metric
+
+Representative selection pattern:
+
+- `PASS / mcmc / al = 3`
+- `PASS / vb / al = 11`
+- `WARN / vb / al = 7`
+- `PASS / vb / exal = 12`
+- `WARN / vb / exal = 3`
+
+Important read:
+
+- the per-case representatives are mostly `VB`, not `MCMC`;
+- all `18` `ridge` representatives are `PASS`;
+- all `10` representative `WARN` rows are `rhs_ns`;
+- the remaining fail inventory is still entirely `MCMC`, split between:
+  - mixing/drift failures on short `rhs_ns` rows
+  - `missing_chain_diagnostics` failures in the long-horizon `5000` pocket
+
+Current branch-local decision point:
+
+- the authoritative simple-DESN zero-FAIL pack remains the accepted branch baseline;
+- this new deep-DESN pack is now the comparison-facing challenger artifact from the completed
+  row-faithful replay;
+- any later promotion work should compare against the 36-row representative table, not against the
+  raw 144-row replay surface blindly.

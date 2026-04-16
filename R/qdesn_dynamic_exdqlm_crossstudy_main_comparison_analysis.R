@@ -175,6 +175,109 @@ qdesn_dynamic_maincmp_root_axis_summary <- function(root_inventory,
   out
 }
 
+.qdesn_dynamic_maincmp_representative_case_table <- function(fit_summary) {
+  fit_summary <- as.data.frame(fit_summary, stringsAsFactors = FALSE)
+  if (!nrow(fit_summary)) {
+    return(list(
+      representative_case_table = data.frame(stringsAsFactors = FALSE),
+      representative_selection_counts = data.frame(stringsAsFactors = FALSE)
+    ))
+  }
+
+  metric_priority <- c("forecast_CRPS_mean", "holdout_qtrue_rmse", "train_qtrue_rmse", "runtime_sec")
+  root_ids <- sort(unique(as.character(fit_summary$root_id)))
+
+  representative_rows <- lapply(root_ids, function(root_id) {
+    sub <- fit_summary[as.character(fit_summary$root_id) == root_id, , drop = FALSE]
+    if (!nrow(sub)) return(NULL)
+
+    grade_rank <- match(as.character(sub$signoff_grade), c("PASS", "WARN", "FAIL"))
+    grade_rank[!is.finite(grade_rank)] <- 99L
+
+    eligible_vals <- if ("comparison_eligible" %in% names(sub)) as.logical(sub$comparison_eligible) else rep(FALSE, nrow(sub))
+    eligible_rank <- ifelse(!is.na(eligible_vals) & eligible_vals, 0L, 1L)
+
+    status_rank <- ifelse(as.character(sub$status) == "SUCCESS", 0L, 1L)
+
+    available_metrics <- metric_priority[vapply(
+      metric_priority,
+      function(nm) nm %in% names(sub) && any(is.finite(suppressWarnings(as.numeric(sub[[nm]]))), na.rm = TRUE),
+      logical(1)
+    )]
+    primary_metric <- if (length(available_metrics)) available_metrics[1L] else "none"
+
+    metric_order_args <- lapply(available_metrics, function(nm) {
+      vals <- suppressWarnings(as.numeric(sub[[nm]]))
+      vals[!is.finite(vals)] <- Inf
+      vals
+    })
+
+    runtime_vals <- if ("runtime_sec" %in% names(sub)) suppressWarnings(as.numeric(sub$runtime_sec)) else rep(Inf, nrow(sub))
+    runtime_vals[!is.finite(runtime_vals)] <- Inf
+
+    inference_rank <- match(as.character(sub$inference), c("vb", "mcmc"))
+    inference_rank[!is.finite(inference_rank)] <- 99L
+    model_rank <- match(as.character(.qdesn_dynamic_maincmp_canonical_model(sub$model)), c("al", "exal"))
+    model_rank[!is.finite(model_rank)] <- 99L
+
+    ord <- do.call(order, c(
+      list(grade_rank, eligible_rank, status_rank),
+      metric_order_args,
+      list(runtime_vals, inference_rank, model_rank, as.character(sub$model))
+    ))
+    winner <- sub[ord[1L], , drop = FALSE]
+    winner$canonical_model <- .qdesn_dynamic_maincmp_canonical_model(winner$model)
+    winner$representative_selection_rule <- "signoff_grade -> comparison_eligible -> status -> best available metric -> runtime_sec -> deterministic tie"
+    winner$representative_primary_metric <- primary_metric
+    winner$representative_metric_chain <- if (length(available_metrics)) {
+      paste(available_metrics, collapse = " -> ")
+    } else {
+      "none"
+    }
+    winner$representative_primary_metric_value <- if (!identical(primary_metric, "none") && primary_metric %in% names(winner)) {
+      suppressWarnings(as.numeric(winner[[primary_metric]][1L]))
+    } else {
+      NA_real_
+    }
+    winner$representative_candidate_n <- nrow(sub)
+    grades <- as.character(sub$signoff_grade)
+    statuses <- as.character(sub$status)
+    winner$representative_n_pass <- sum(grades == "PASS", na.rm = TRUE)
+    winner$representative_n_warn <- sum(grades == "WARN", na.rm = TRUE)
+    winner$representative_n_fail <- sum(grades == "FAIL", na.rm = TRUE)
+    winner$representative_n_status_success <- sum(statuses == "SUCCESS", na.rm = TRUE)
+    winner$representative_n_status_fail <- sum(statuses == "FAIL", na.rm = TRUE)
+    winner
+  })
+
+  representative_case_table <- .qdesn_validation_bind_rows(representative_rows)
+  if (nrow(representative_case_table)) {
+    representative_case_table <- representative_case_table[order(
+      representative_case_table$scenario,
+      representative_case_table$family,
+      representative_case_table$tau,
+      representative_case_table$fit_size,
+      representative_case_table$prior
+    ), , drop = FALSE]
+    rownames(representative_case_table) <- NULL
+  }
+
+  representative_selection_counts <- if (nrow(representative_case_table)) {
+    stats::aggregate(
+      list(n_selected = rep(1L, nrow(representative_case_table))),
+      by = representative_case_table[, intersect(c("signoff_grade", "inference", "model", "canonical_model"), names(representative_case_table)), drop = FALSE],
+      FUN = sum
+    )
+  } else {
+    data.frame(stringsAsFactors = FALSE)
+  }
+
+  list(
+    representative_case_table = representative_case_table,
+    representative_selection_counts = representative_selection_counts
+  )
+}
+
 qdesn_dynamic_maincmp_prior_head_to_head <- function(fit_surface_summary) {
   if (!nrow(fit_surface_summary)) return(data.frame(stringsAsFactors = FALSE))
   required <- c("scenario", "root_kind", "family", "tau", "fit_size", "inference", "model", "prior")
@@ -423,17 +526,22 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
                                                  output_root,
                                                  manifest = list(),
                                                  defaults = NULL,
+                                                 refresh_fit_metrics = TRUE,
                                                  final_wave_run_tag = NA_character_) {
   .qdesn_validation_dir_create(output_root)
   .qdesn_validation_dir_create(file.path(output_root, "tables"))
   .qdesn_validation_dir_create(file.path(output_root, "summary"))
   .qdesn_validation_dir_create(file.path(output_root, "manifest"))
 
-  source_state$fit_summary <- qdesn_dynamic_maincmp_refresh_fit_metrics(
-    fit_summary = source_state$fit_summary,
-    grid = source_state$grid %||% NULL,
-    defaults = source_state$defaults %||% defaults
-  )
+  source_state$fit_summary <- if (isTRUE(refresh_fit_metrics)) {
+    qdesn_dynamic_maincmp_refresh_fit_metrics(
+      fit_summary = source_state$fit_summary,
+      grid = source_state$grid %||% NULL,
+      defaults = source_state$defaults %||% defaults
+    )
+  } else {
+    as.data.frame(source_state$fit_summary, stringsAsFactors = FALSE)
+  }
 
   pair_tables <- qdesn_dynamic_maincmp_rebuild_pair_tables(
     fit_summary = source_state$fit_summary,
@@ -631,6 +739,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   } else {
     data.frame(stringsAsFactors = FALSE)
   }
+  representative_selection <- .qdesn_dynamic_maincmp_representative_case_table(source_state$fit_summary)
+  representative_case_table <- representative_selection$representative_case_table
+  representative_selection_counts <- representative_selection$representative_selection_counts
 
   compare_obj <- qdesn_dynamic_crossstudy_write_reference_compare(
     reference_inventory = reference_inventory,
@@ -672,6 +783,8 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   .qdesn_validation_write_df(q_vs_ref_axis, file.path(output_root, "tables", "authoritative_qdesn_vs_reference_fit_axis_delta.csv"))
   .qdesn_validation_write_df(prior_head_to_head, file.path(output_root, "tables", "authoritative_prior_head_to_head.csv"))
   .qdesn_validation_write_df(prior_head_to_head_counts, file.path(output_root, "tables", "authoritative_prior_head_to_head_counts.csv"))
+  .qdesn_validation_write_df(representative_case_table, file.path(output_root, "tables", "authoritative_representative_fit_case_table.csv"))
+  .qdesn_validation_write_df(representative_selection_counts, file.path(output_root, "tables", "authoritative_representative_fit_selection_counts.csv"))
 
   source_totals <- suppressWarnings(as.numeric(source_state$fit_summary$source_total_size %||% NA_real_))
   fit_sizes <- suppressWarnings(as.numeric(source_state$fit_summary$fit_size %||% NA_real_))
@@ -739,6 +852,22 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
   }
   .qdesn_validation_write_df(case_table, file.path(output_root, "tables", "authoritative_fit_case_table.csv"))
   .qdesn_validation_write_df(case_table_readable, file.path(output_root, "tables", "authoritative_fit_case_table_readable.csv"))
+
+  representative_case_table_readable <- representative_case_table
+  if (nrow(representative_case_table_readable)) {
+    numeric_repr_cols <- names(representative_case_table_readable)[vapply(representative_case_table_readable, is.numeric, logical(1))]
+    for (nm in numeric_repr_cols) {
+      representative_case_table_readable[[nm]] <- ifelse(
+        is.finite(representative_case_table_readable[[nm]]),
+        round(representative_case_table_readable[[nm]], digits = 6),
+        representative_case_table_readable[[nm]]
+      )
+    }
+  }
+  .qdesn_validation_write_df(
+    representative_case_table_readable,
+    file.path(output_root, "tables", "authoritative_representative_fit_case_table_readable.csv")
+  )
 
   fit_inference_compact <- fit_inference_summary[, intersect(c(
     "inference", "n_rows", "n_pass", "n_warn", "n_fail", "pass_rate",
@@ -828,11 +957,40 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
       .qdesn_validation_df_to_markdown(case_table_readable)
     )
   )
+  .qdesn_validation_write_lines(
+    file.path(output_root, "summary", "qdesn_dynamic_main_comparison_representative_case_table.md"),
+    c(
+      "# QDESN Dynamic Main Comparison Representative Case Table",
+      "",
+      sprintf("- generated_at: `%s`", as.character(Sys.time())),
+      sprintf("- source_run_tag: `%s`", as.character(source_state$source_run_tag)),
+      sprintf("- representative_rows: `%d`", nrow(representative_case_table_readable)),
+      "",
+      "## Selection Rule",
+      "- `signoff_grade`: `PASS` > `WARN` > `FAIL`",
+      "- then `comparison_eligible = TRUE`",
+      "- then `status = SUCCESS`",
+      "- then best available metric in order:",
+      "  - `forecast_CRPS_mean` when present",
+      "  - otherwise `holdout_qtrue_rmse`",
+      "  - otherwise `train_qtrue_rmse`",
+      "  - otherwise `runtime_sec`",
+      "- then lower `runtime_sec`",
+      "- then deterministic tie-breaks",
+      "",
+      "## Representative Selection Counts",
+      .qdesn_validation_df_to_markdown(representative_selection_counts),
+      "",
+      "## 36-Row Representative Case Table",
+      .qdesn_validation_df_to_markdown(representative_case_table_readable)
+    )
+  )
 
   overview <- data.frame(
     metric = c(
       "fit_rows_total", "fit_pass_n", "fit_warn_n", "fit_fail_n",
-      "root_total", "root_status_fail_n", "root_compare_any_n", "root_compare_full_n"
+      "root_total", "root_status_fail_n", "root_compare_any_n", "root_compare_full_n",
+      "representative_case_rows", "representative_pass_n", "representative_warn_n", "representative_fail_n"
     ),
     value = c(
       nrow(source_state$fit_summary),
@@ -842,7 +1000,11 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
       nrow(source_state$root_summary),
       sum(as.character(source_state$root_summary$root_status) == "FAIL", na.rm = TRUE),
       sum(as.logical(source_state$root_summary$root_comparison_eligible_any), na.rm = TRUE),
-      sum(as.logical(source_state$root_summary$root_comparison_eligible_full), na.rm = TRUE)
+      sum(as.logical(source_state$root_summary$root_comparison_eligible_full), na.rm = TRUE),
+      nrow(representative_case_table),
+      sum(as.character(representative_case_table$signoff_grade) == "PASS", na.rm = TRUE),
+      sum(as.character(representative_case_table$signoff_grade) == "WARN", na.rm = TRUE),
+      sum(as.character(representative_case_table$signoff_grade) == "FAIL", na.rm = TRUE)
     ),
     stringsAsFactors = FALSE
   )
@@ -903,6 +1065,9 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     "",
     "## Prior Head-To-Head Winner Counts",
     .qdesn_validation_df_to_markdown(prior_head_to_head_counts),
+    "",
+    "## Representative Case Selection Counts",
+    .qdesn_validation_df_to_markdown(representative_selection_counts),
     "",
     "## Remaining Documented FAIL Rows",
     .qdesn_validation_df_to_markdown(fail_inventory[, c(
@@ -965,6 +1130,8 @@ qdesn_dynamic_maincmp_write_analysis <- function(source_state,
     q_vs_ref_axis = q_vs_ref_axis,
     prior_head_to_head = prior_head_to_head,
     prior_head_to_head_counts = prior_head_to_head_counts,
+    representative_case_table = representative_case_table,
+    representative_selection_counts = representative_selection_counts,
     compare = compare_obj
   ))
 }
