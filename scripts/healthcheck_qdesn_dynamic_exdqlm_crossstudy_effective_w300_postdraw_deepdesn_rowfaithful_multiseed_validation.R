@@ -29,7 +29,7 @@ defaults_path <- file.path(
 
 materialize_status <- system2(
   "Rscript",
-  c(materialize_script, "--manifest", manifest_path),
+  c(materialize_script, "--manifest", manifest_path, "--no-summary"),
   stdout = "",
   stderr = ""
 )

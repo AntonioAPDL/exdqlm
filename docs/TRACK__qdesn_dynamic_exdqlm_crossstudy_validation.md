@@ -1096,3 +1096,65 @@ Live corrected full launch:
   - `0 SUCCESS`
   - `0 FAIL`
   - `0` execution-error files observed at launch snapshot
+
+## 19) Completed Row-Faithful Replay (2026-04-16)
+
+Closeout / failure-audit report:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_closeout_and_failure_audit_20260416.md`
+
+Finished run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-20260412-124648__git-7144048`
+- completion:
+  - `36 / 36` roots materialized
+  - `36 / 36` roots terminal
+  - `26 SUCCESS`
+  - `10 FAIL`
+  - `0 RUNNING`
+- output completion:
+  - `144 / 144` fit summary rows
+  - `72 / 72` pair summary rows
+  - `36 / 36` root summary rows
+  - `288 / 288` MCMC seed selection rows
+  - `72 / 72` MCMC seed winner rows
+- root execution errors:
+  - `0` `root_error.txt`
+
+Final fit-level state:
+
+- signoff mix:
+  - `66 PASS`
+  - `44 WARN`
+  - `34 FAIL`
+- fit execution status:
+  - `129 SUCCESS`
+  - `15 FAIL`
+
+Important failure-audit conclusion:
+
+- the replay is operationally valid and completed cleanly;
+- remaining failures are **not** all purely mixing-only failures;
+- there are two classes:
+  - `19` MCMC signoff-only failures with `finite_ok = TRUE` and `domain_ok = TRUE`
+    driven by:
+    - `high_autocorrelation`
+    - `high_autocorrelation; geweke_drift`
+    - `high_autocorrelation; geweke_drift; half_chain_drift`
+  - `15` harder MCMC fit-status failures with:
+    - stop reason `missing_chain_diagnostics`
+    - `finite_ok = FALSE`
+    - `domain_ok = FALSE`
+- therefore:
+  - no root-level crashes were observed
+  - some failures are poor-mixing failures
+  - some failures are numerically/diagnostically invalid long-horizon MCMC rows
+
+Final root-fail surface:
+
+- `gausmix tau=0.05/0.25/0.95 fit_size=5000 rhs_ns`
+- `laplace tau=0.05/0.25/0.95 fit_size=5000 rhs_ns`
+- `laplace tau=0.05 fit_size=5000 ridge`
+- `normal tau=0.05/0.95 fit_size=5000 rhs_ns`
+- `normal tau=0.25 fit_size=5000 ridge`

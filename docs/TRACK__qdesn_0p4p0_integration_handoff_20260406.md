@@ -1030,3 +1030,55 @@ Live corrected full launch:
   - `1 RUNNING`
   - `0 SUCCESS`
   - `0 FAIL`
+
+## 19) Completed Row-Faithful Replay (2026-04-16)
+
+Closeout report:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_closeout_and_failure_audit_20260416.md`
+
+Completed run:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-20260412-124648__git-7144048`
+- final root state:
+  - `26 SUCCESS`
+  - `10 FAIL`
+  - `0 RUNNING`
+- final output completion:
+  - `144 / 144` fit summary rows
+  - `72 / 72` pair summary rows
+  - `36 / 36` root summary rows
+  - `288 / 288` MCMC seed selection rows
+  - `72 / 72` MCMC seed winner rows
+- root execution crashes:
+  - none observed
+  - `0` `root_error.txt`
+
+Most important interpretation:
+
+- the corrected row-faithful replay is valid launch evidence;
+- it completed cleanly and therefore remains the right branch-local replay experiment;
+- but the final failures are **not** purely poor-mixing failures.
+
+Failure taxonomy:
+
+- `19` MCMC signoff-only failures:
+  - `finite_ok = TRUE`
+  - `domain_ok = TRUE`
+  - causes:
+    - `high_autocorrelation`
+    - `high_autocorrelation; geweke_drift`
+    - `high_autocorrelation; geweke_drift; half_chain_drift`
+- `15` harder MCMC fit-status failures:
+  - stop reason `missing_chain_diagnostics`
+  - `finite_ok = FALSE`
+  - `domain_ok = FALSE`
+
+Final root-fail pocket:
+
+- `gausmix tau=0.05/0.25/0.95 fit_size=5000 rhs_ns`
+- `laplace tau=0.05/0.25/0.95 fit_size=5000 rhs_ns`
+- `laplace tau=0.05 fit_size=5000 ridge`
+- `normal tau=0.05/0.95 fit_size=5000 rhs_ns`
+- `normal tau=0.25 fit_size=5000 ridge`
