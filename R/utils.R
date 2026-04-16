@@ -444,6 +444,14 @@ make_df_mat = function(df,dim.df,n){
   M <- (M + t(M)) / 2
   if (any(!is.finite(M))) {
     bad <- which(!is.finite(M), arr.ind = TRUE)[1, ]
+    .exdqlm_debug_dump(
+      sprintf("%s_nonfinite_cov", context),
+      .exdqlm_debug_payload(
+        context = context,
+        bad_index = as.integer(bad),
+        Sigma = M
+      )
+    )
     stop(sprintf("%s has non-finite entry at (%d,%d)", context, bad[1], bad[2]))
   }
 
@@ -472,6 +480,13 @@ make_df_mat = function(df,dim.df,n){
   if (is.null(q_cap)) q_cap <- ctrl$q_cap
   qv <- as.numeric(q)[1]
   if (is.na(qv)) {
+    .exdqlm_debug_dump(
+      sprintf("%s_na_var", context),
+      .exdqlm_debug_payload(
+        context = context,
+        q = q
+      )
+    )
     stop(sprintf("%s is NA", context))
   }
   if (!is.finite(qv)) {
@@ -720,6 +735,64 @@ check_ts = function(dat){
     min = min(z),
     max = max(z)
   )
+}
+
+.exdqlm_debug_enabled <- function() {
+  nzchar(Sys.getenv("EXDQLM_DEBUG_DIR", ""))
+}
+
+.exdqlm_debug_dir <- function() {
+  out <- Sys.getenv("EXDQLM_DEBUG_DIR", "")
+  if (!nzchar(out)) return(NA_character_)
+  dir.create(out, recursive = TRUE, showWarnings = FALSE)
+  normalizePath(out, winslash = "/", mustWork = FALSE)
+}
+
+.exdqlm_debug_compact_numeric <- function(x, max_keep = 8L) {
+  z <- as.numeric(x)
+  out <- list(
+    length = length(z),
+    finite = sum(is.finite(z)),
+    nonfinite = sum(!is.finite(z))
+  )
+  if (length(z)) {
+    zf <- z[is.finite(z)]
+    out$head <- utils::head(z, max_keep)
+    if (length(z) > max_keep) out$tail <- utils::tail(z, max_keep)
+    if (length(zf)) {
+      out$min <- min(zf)
+      out$max <- max(zf)
+      out$mean <- mean(zf)
+      out$sd <- stats::sd(zf)
+      out$q <- stats::quantile(zf, probs = c(0, 0.05, 0.5, 0.95, 1), names = FALSE, type = 8)
+    }
+  }
+  out
+}
+
+.exdqlm_debug_payload <- function(..., .time = Sys.time()) {
+  payload <- list(...)
+  payload$debug_meta <- list(
+    time = as.character(.time),
+    pid = Sys.getpid(),
+    case = Sys.getenv("EXDQLM_DEBUG_CASE", ""),
+    label = Sys.getenv("EXDQLM_DEBUG_LABEL", "")
+  )
+  payload
+}
+
+.exdqlm_debug_dump <- function(tag, payload = list()) {
+  if (!.exdqlm_debug_enabled()) return(invisible(FALSE))
+  dir <- .exdqlm_debug_dir()
+  if (!nzchar(dir) || is.na(dir)) return(invisible(FALSE))
+  safe_tag <- gsub("[^A-Za-z0-9_.-]+", "_", as.character(tag)[1])
+  case_tag <- Sys.getenv("EXDQLM_DEBUG_CASE", "")
+  if (!nzchar(case_tag)) case_tag <- "uncased"
+  case_tag <- gsub("[^A-Za-z0-9_.-]+", "_", case_tag)
+  stamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  path <- file.path(dir, sprintf("%s__%s__pid%s__%s.rds", stamp, case_tag, Sys.getpid(), safe_tag))
+  saveRDS(payload, path)
+  invisible(path)
 }
 
 .exdqlm_crps_row <- function(y_true, draws_vec) {

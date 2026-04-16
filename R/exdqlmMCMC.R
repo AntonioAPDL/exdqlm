@@ -380,13 +380,43 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
     bad <- which(!is.finite(chi))
     if (length(bad)) {
+      .exdqlm_debug_dump(
+        sprintf("%s_nonfinite_chi", context),
+        .exdqlm_debug_payload(
+          context = context,
+          iter = current_iter,
+          lambda = lambda,
+          psi = psi,
+          chi = .exdqlm_debug_compact_numeric(chi)
+        )
+      )
       stop(sprintf("%s%s chi has %d non-finite values (first index=%d)", context, iter_suffix, length(bad), bad[1]))
     }
     badneg <- which(chi < 0)
     if (length(badneg)) {
+      .exdqlm_debug_dump(
+        sprintf("%s_negative_chi", context),
+        .exdqlm_debug_payload(
+          context = context,
+          iter = current_iter,
+          lambda = lambda,
+          psi = psi,
+          chi = .exdqlm_debug_compact_numeric(chi)
+        )
+      )
       stop(sprintf("%s%s chi has %d negative values (first index=%d, value=%.6g)", context, iter_suffix, length(badneg), badneg[1], chi[badneg[1]]))
     }
     if (!is.finite(psi) || psi <= 0) {
+      .exdqlm_debug_dump(
+        sprintf("%s_bad_psi", context),
+        .exdqlm_debug_payload(
+          context = context,
+          iter = current_iter,
+          lambda = lambda,
+          psi = psi,
+          chi = .exdqlm_debug_compact_numeric(chi)
+        )
+      )
       stop(sprintf("%s%s psi must be finite and > 0; got %.6g", context, iter_suffix, psi))
     }
     if (!is.finite(lambda)) {
@@ -401,6 +431,17 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     )[1, ])
     bad_draws <- which(!is.finite(draws) | draws <= 0)
     if (length(bad_draws)) {
+      .exdqlm_debug_dump(
+        sprintf("%s_bad_draws", context),
+        .exdqlm_debug_payload(
+          context = context,
+          iter = current_iter,
+          lambda = lambda,
+          psi = psi,
+          chi = .exdqlm_debug_compact_numeric(chi),
+          draws = .exdqlm_debug_compact_numeric(draws)
+        )
+      )
       stop(sprintf("%s%s sample_gig_devroye_vector returned %d invalid draws (first index=%d, value=%.6g)",
                    context, iter_suffix, length(bad_draws), bad_draws[1], draws[bad_draws[1]]))
     }
@@ -832,6 +873,31 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
       # sample uts, sts
       reg1 = state_signal(FF, cursam.theta)
+      if (!is.finite(cursam.sigma) || cursam.sigma <= 0 ||
+          any(!is.finite(reg1)) || any(!is.finite(cursam.st)) ||
+          any(!is.finite(cursam.theta)) || any(!is.finite(cursam.Ut))) {
+        .exdqlm_debug_dump(
+          "exdqlm_mcmc_pre_uts_invalid_state",
+          .exdqlm_debug_payload(
+            iter = i,
+            sigma = cursam.sigma,
+            gamma = cursam.gamma,
+            theta = .exdqlm_debug_compact_numeric(cursam.theta),
+            reg1 = .exdqlm_debug_compact_numeric(reg1),
+            sts = .exdqlm_debug_compact_numeric(cursam.st),
+            uts = .exdqlm_debug_compact_numeric(cursam.Ut)
+          )
+        )
+        stop(sprintf(
+          "exdqlm_mcmc_pre_uts (iter=%d) invalid state before chi update: sigma=%s theta_finite=%s reg1_finite=%s st_finite=%s Ut_finite=%s",
+          i,
+          format(cursam.sigma, digits = 6),
+          all(is.finite(cursam.theta)),
+          all(is.finite(reg1)),
+          all(is.finite(cursam.st)),
+          all(is.finite(cursam.Ut))
+        ))
+      }
       cursam.Ut<-ex_samp_uts(reg1,cursam.gamma,cursam.sigma,cursam.st,a_tau,b_tau,c_tau)
       cursam.st<-ex_samp_sts(reg1,cursam.gamma,cursam.sigma,cursam.Ut,a_tau,b_tau,c_tau)
 
@@ -1246,6 +1312,16 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       # sample uts
       reg1 = state_signal(FF, cursam.theta)
       if (!is.finite(cursam.sigma) || cursam.sigma <= 0 || any(!is.finite(reg1))) {
+        .exdqlm_debug_dump(
+          "dqlm_mcmc_pre_uts_invalid_state",
+          .exdqlm_debug_payload(
+            iter = i,
+            sigma = cursam.sigma,
+            theta = .exdqlm_debug_compact_numeric(cursam.theta),
+            reg1 = .exdqlm_debug_compact_numeric(reg1),
+            uts = .exdqlm_debug_compact_numeric(cursam.Ut)
+          )
+        )
         stop(sprintf(
           "dqlm_mcmc_pre_uts (iter=%d) invalid state before chi update: sigma=%s reg1_finite=%s max_abs_reg1=%s max_abs_theta=%s",
           i,
