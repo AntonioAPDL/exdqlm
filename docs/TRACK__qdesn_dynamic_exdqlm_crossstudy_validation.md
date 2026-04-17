@@ -85,6 +85,44 @@ Next branch-local step:
 - launch the refreshed tau-`0.50` dynamic-only study from committed state and freeze the resulting
   run tag in the branch-local docs.
 
+## Tau-0.50 Refreshed Main Live Relaunch Note (2026-04-16)
+
+The refreshed dynamic-only tau-`0.50` study is now live from committed state.
+
+Committed-state preflights:
+
+- smoke:
+  - `qdesn-dynamic-exdqlm-crossstudy-tau050-smoke-20260416-212634__git-15fe674`
+  - pass
+- full:
+  - `qdesn-dynamic-exdqlm-crossstudy-tau050-full-20260416-212633__git-15fe674`
+  - pass
+
+Authoritative launch:
+
+- run tag:
+  - `qdesn-dynamic-exdqlm-crossstudy-tau050-full-20260416-212700__git-15fe674`
+- detached session:
+  - `qdesn_dynx_0416_212700`
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_setup_and_launch_20260416.md`
+
+Opening health snapshot:
+
+- `36` selected roots
+- `3 / 36` materialized
+- `3 RUNNING`
+- `0 SUCCESS`
+- `0 FAIL`
+- `0` fit summary rows yet written
+- launcher session live
+
+Current branch-local read:
+
+- the refreshed tau-`0.50` relaunch is now the active dynamic QDESN study on this branch;
+- the run started cleanly from committed state;
+- the new canonical `LDVB + slice` contract is now under real live execution.
+
 ## Integration-Branch Handoff Note (2026-04-06)
 
 On `feature/qdesn-mcmc-alternative-0p4p0-integration`, the preferred working handoff document is:

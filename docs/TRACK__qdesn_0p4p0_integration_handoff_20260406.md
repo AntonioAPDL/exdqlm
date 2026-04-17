@@ -67,6 +67,43 @@ Immediate next action:
 - launch the refreshed study from committed state, then record the authoritative run tag and health
   story as the new branch-local continuation point.
 
+## Tau-0.50 Refreshed Relaunch Live State (2026-04-16)
+
+The refreshed dynamic-only tau-`0.50` relaunch is now live and should be treated as the current
+branch-local active execution state.
+
+Committed-state launch chain:
+
+- implementation commit:
+  - `15fe674`
+- smoke `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-tau050-smoke-20260416-212634__git-15fe674`
+  - pass
+- full `prepare-only`:
+  - `qdesn-dynamic-exdqlm-crossstudy-tau050-full-20260416-212633__git-15fe674`
+  - pass
+- live full run:
+  - `qdesn-dynamic-exdqlm-crossstudy-tau050-full-20260416-212700__git-15fe674`
+- detached session:
+  - `qdesn_dynx_0416_212700`
+- launch report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_setup_and_launch_20260416.md`
+
+Opening health:
+
+- `36` selected roots
+- `3 / 36` materialized
+- `3 RUNNING`
+- `0 SUCCESS`
+- `0 FAIL`
+
+Branch-local implication:
+
+- the refreshed tau-`0.50` relaunch replaces the older replay-preparation work as the active
+  operational validation state on this branch;
+- the next major branch-local task is monitoring, closeout, and post-run refreshed comparison
+  analysis.
+
 ## 2) Current Branch-Local Active Study
 
 The current branch-local active study is now the **effective-w300 zero-FAIL reconciled comparison
