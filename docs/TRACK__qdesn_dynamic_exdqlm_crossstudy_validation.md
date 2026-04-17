@@ -1337,3 +1337,40 @@ Validation completed:
   - `qdesn-dynamic-exdqlm-crossstudy-postdraw-tau050-preflight-20260416`
 - deep-DESN full preflight:
   - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-tau050-preflight-20260416`
+
+## 23) Refreshed Dynamic Main Relaunch Preparation (2026-04-16)
+
+Preparation plan:
+
+- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_relaunch_20260416.md`
+
+Current no-launch conclusion:
+
+- the refreshed main study should stay dynamic-only and target the corrected
+  `tau = 0.05 / 0.25 / 0.50` surface;
+- the QDESN backend should continue using the static `al` / `exal` fitting algorithms with priors
+  `ridge` and `rhs_ns`;
+- the core lane should move to:
+  - `VB = LDVB everywhere`
+  - `MCMC = slice everywhere`
+  - `MCMC warm start = LDVB`
+- the refreshed core lane should **not** use:
+  - `init_from_isvb`
+  - `rw`
+  - `laplace_rw`
+
+Evidence supporting that direction:
+
+- the synced branch and post-sync tests now treat slice as the canonical MCMC path;
+- the exercised VB path is the stabilized LDVB path;
+- the recent replay/failure audit showed the blocker was MCMC stability / diagnostics debt, not a
+  lack of custom kernels;
+- row-specific rescue settings should be preserved, but as explicit overlays rather than as the
+  main study default.
+
+Important open design choice still under review:
+
+- use a standardized explicit slice profile in the core lane rather than blindly applying the raw
+  paper-facing `slice.width = 0.01`, `slice.max.steps = Inf` rule everywhere.
+
+This section is a planning checkpoint only. No refreshed relaunch has been started yet.

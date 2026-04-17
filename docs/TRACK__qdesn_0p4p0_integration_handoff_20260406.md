@@ -1255,3 +1255,47 @@ Historical guardrail:
   mirrored upstream signoff inventory still only exists there
 - the new `0.50` relaunch surface is therefore correctly treated as a materialized-source relaunch
   contract rather than a direct mirrored-reference continuation
+
+## 23) Refreshed Dynamic Main Relaunch Prep Freeze (2026-04-16)
+
+Primary plan:
+
+- `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_relaunch_20260416.md`
+
+What is now frozen as the current relaunch direction:
+
+- dynamic datasets only
+- static `al` / `exal` backend for QDESN
+- priors:
+  - `ridge`
+  - `rhs_ns`
+- taus:
+  - `0.05`, `0.25`, `0.50`
+- families:
+  - `gausmix`, `laplace`, `normal`
+- fit sizes:
+  - `500`, `5000`
+- root count:
+  - `36`
+
+Recommended core-lane policy:
+
+- `VB = LDVB everywhere`
+- `MCMC = slice everywhere`
+- `MCMC warm start = LDVB`
+- keep row-specific rescue settings as explicit rescue overlays
+
+Explicitly out of the refreshed main lane:
+
+- legacy `init_from_isvb`
+- `rw`
+- `laplace_rw`
+
+Current interpretation:
+
+- the synced branch and tests support slice as the clean canonical MCMC path;
+- the exercised VB path is LDVB;
+- the recent replay evidence says the unresolved problem is MCMC stability / diagnostics debt, not
+  missing bespoke kernels in the core lane.
+
+This is a no-launch planning freeze only. The refreshed relaunch itself has not been started.
