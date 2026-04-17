@@ -598,6 +598,7 @@ qdesn_dynamic_crossstudy_materialize_source_inputs <- function(defaults,
 qdesn_dynamic_crossstudy_build_grid_from_materialized_sources <- function(defaults,
                                                                           materialized_inventory = NULL) {
   pilot_cfg <- defaults$pilot %||% list()
+  seed_policy_cfg <- ((defaults$execution %||% list())$seed_policy) %||% list()
   if (is.null(materialized_inventory)) {
     materialized_inventory <- qdesn_dynamic_crossstudy_materialize_source_inputs(defaults, refresh = FALSE, verbose = FALSE)
   }
@@ -616,6 +617,21 @@ qdesn_dynamic_crossstudy_build_grid_from_materialized_sources <- function(defaul
       as.integer(cell$fit_size[1L])
     )
     for (beta_prior_type in c("ridge", "rhs_ns")) {
+      root_seed <- as.integer(pilot_cfg$seed %||% 123L)[1L]
+      if (identical(tolower(as.character(seed_policy_cfg$mode %||% "shared")[1L]), "deterministic_per_root")) {
+        family_levels <- as.character((defaults$reference_contract %||% list())$families %||% sort(unique(as.character(materialized_inventory$source_family))))
+        tau_levels <- as.numeric((defaults$reference_contract %||% list())$taus %||% sort(unique(as.numeric(materialized_inventory$tau))))
+        fit_levels <- as.integer((defaults$reference_contract %||% list())$fit_sizes %||% sort(unique(as.integer(materialized_inventory$fit_size))))
+        family_idx <- match(as.character(cell$source_family[1L]), family_levels)
+        tau_idx <- match(as.numeric(cell$tau[1L]), tau_levels)
+        fit_idx <- match(as.integer(cell$fit_size[1L]), fit_levels)
+        prior_idx <- match(beta_prior_type, c("ridge", "rhs_ns"))
+        root_seed <- as.integer(seed_policy_cfg$base_seed %||% 41000L)[1L] +
+          10000L * (family_idx - 1L) +
+          1000L * (tau_idx - 1L) +
+          100L * (fit_idx - 1L) +
+          10L * (prior_idx - 1L)
+      }
       row <- data.frame(
         enabled = TRUE,
         dataset_cell_id = dataset_cell_id,
@@ -638,7 +654,7 @@ qdesn_dynamic_crossstudy_build_grid_from_materialized_sources <- function(defaul
         source_current_rhsns_member = FALSE,
         source_legacy_rhs_member = FALSE,
         reservoir_profile = as.character(pilot_cfg$reservoir_profile %||% "tiny_d1_n8"),
-        seed = as.integer(pilot_cfg$seed %||% 123L),
+        seed = root_seed,
         stringsAsFactors = FALSE
       )
       row$root_id <- qdesn_dynamic_crossstudy_build_root_id(row)
@@ -1304,6 +1320,9 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
     .qdesn_validation_dir_create(file.path(root_dir, d))
   }
   .qdesn_validation_write_lines(file.path(root_dir, "manifest", "root_status.txt"), "RUNNING")
+  execution_scope <- .qdesn_static_crossstudy_execution_scope(defaults)
+  rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
+  rescue_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
   .qdesn_validation_write_json(file.path(root_dir, "manifest", "root_manifest.json"), list(
     root_id = root_spec$root_id,
     dataset_cell_id = root_spec$dataset_cell_id,
@@ -1324,6 +1343,14 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
     reservoir_profile = root_spec$reservoir_profile,
     seed = as.integer(root_spec$seed),
     multiseed = defaults$multiseed %||% list(),
+    execution = execution_scope,
+    study_contract = .qdesn_static_crossstudy_study_contract(defaults),
+    rescue_overlay = list(
+      enabled = isTRUE(rescue_cfg$enabled %||% FALSE),
+      mode = as.character(rescue_cfg$mode %||% "none")[1L],
+      inventory_csv = as.character(rescue_cfg$inventory_csv %||% NA_character_)[1L],
+      root_override_applied = isTRUE(length(rescue_patch) > 0L)
+    ),
     git_sha = .qdesn_validation_git_sha(),
     started_at = as.character(Sys.time())
   ))
@@ -1332,41 +1359,46 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
   fit_rows <- list()
   progress_rows <- list()
   seed_selection_rows <- list()
-  for (likelihood_family in c("exal", "al")) {
-    if (isTRUE(verbose)) {
-      message(sprintf(
-        "[qdesn_dynamic_crossstudy_run_root] %s | %s | vb",
-        root_spec$root_id,
-        likelihood_family
-      ))
-    }
-    vb_res <- .qdesn_static_crossstudy_run_one_fit(
-      root_spec = root_spec,
-      defaults = defaults,
-      staged_data = staged_data,
-      root_dir = root_dir,
-      method = "vb",
-      likelihood_family = likelihood_family
-    )
-    fit_rows[[length(fit_rows) + 1L]] <- vb_res$fit_summary
-    if (nrow(vb_res$progress_trace)) {
-      progress_rows[[length(progress_rows) + 1L]] <- vb_res$progress_trace
-    }
-
-    mcmc_res <- .qdesn_dynamic_crossstudy_run_selected_mcmc_fit(
-      root_spec = root_spec,
-      defaults = defaults,
-      staged_data = staged_data,
-      root_dir = root_dir,
-      likelihood_family = likelihood_family,
-      verbose = verbose
-    )
-    fit_rows[[length(fit_rows) + 1L]] <- mcmc_res$fit_summary
-    if (nrow(mcmc_res$progress_trace)) {
-      progress_rows[[length(progress_rows) + 1L]] <- mcmc_res$progress_trace
-    }
-    if (nrow(mcmc_res$seed_selection %||% data.frame(stringsAsFactors = FALSE))) {
-      seed_selection_rows[[length(seed_selection_rows) + 1L]] <- mcmc_res$seed_selection
+  for (likelihood_family in execution_scope$likelihood_families) {
+    for (method in execution_scope$methods) {
+      if (isTRUE(verbose)) {
+        message(sprintf(
+          "[qdesn_dynamic_crossstudy_run_root] %s | %s | %s",
+          root_spec$root_id,
+          likelihood_family,
+          method
+        ))
+      }
+      if (identical(method, "vb")) {
+        vb_res <- .qdesn_static_crossstudy_run_one_fit(
+          root_spec = root_spec,
+          defaults = defaults,
+          staged_data = staged_data,
+          root_dir = root_dir,
+          method = "vb",
+          likelihood_family = likelihood_family
+        )
+        fit_rows[[length(fit_rows) + 1L]] <- vb_res$fit_summary
+        if (nrow(vb_res$progress_trace)) {
+          progress_rows[[length(progress_rows) + 1L]] <- vb_res$progress_trace
+        }
+      } else {
+        mcmc_res <- .qdesn_dynamic_crossstudy_run_selected_mcmc_fit(
+          root_spec = root_spec,
+          defaults = defaults,
+          staged_data = staged_data,
+          root_dir = root_dir,
+          likelihood_family = likelihood_family,
+          verbose = verbose
+        )
+        fit_rows[[length(fit_rows) + 1L]] <- mcmc_res$fit_summary
+        if (nrow(mcmc_res$progress_trace)) {
+          progress_rows[[length(progress_rows) + 1L]] <- mcmc_res$progress_trace
+        }
+        if (nrow(mcmc_res$seed_selection %||% data.frame(stringsAsFactors = FALSE))) {
+          seed_selection_rows[[length(seed_selection_rows) + 1L]] <- mcmc_res$seed_selection
+        }
+      }
     }
   }
 
@@ -1375,7 +1407,14 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
   model_pair_summary <- .qdesn_static_crossstudy_model_pair_summary(fit_summary, root_spec)
   status_vec <- if ("status" %in% names(fit_summary)) as.character(fit_summary$status) else character(0)
   status_vec[is.na(status_vec) | !nzchar(status_vec)] <- "FAIL"
-  root_status <- if (nrow(fit_summary) >= 4L && length(status_vec) >= 4L && all(status_vec == "SUCCESS")) "SUCCESS" else "FAIL"
+  expected_fits <- as.integer(execution_scope$requested_fits %||% 4L)[1L]
+  root_status <- if (nrow(fit_summary) >= expected_fits &&
+    length(status_vec) >= expected_fits &&
+    all(status_vec[seq_len(expected_fits)] == "SUCCESS")) {
+    "SUCCESS"
+  } else {
+    "FAIL"
+  }
   root_summary <- .qdesn_dynamic_crossstudy_root_summary(
     root_spec = root_spec,
     fit_summary = fit_summary,

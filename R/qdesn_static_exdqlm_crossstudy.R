@@ -359,39 +359,218 @@ qdesn_static_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   cfg
 }
 
-.qdesn_static_crossstudy_replay_root_patch <- function(defaults, root_id) {
-  replay_cfg <- defaults$replay %||% list()
-  row_overrides <- replay_cfg$row_overrides %||% list()
+.qdesn_static_crossstudy_execution_scope <- function(defaults) {
+  exec_cfg <- defaults$execution %||% list()
+  methods <- unique(tolower(as.character(unlist(exec_cfg$methods %||% c("vb", "mcmc"), use.names = FALSE))))
+  methods <- methods[nzchar(methods)]
+  if (!length(methods)) methods <- c("vb", "mcmc")
+  if (!all(methods %in% c("vb", "mcmc"))) {
+    stop(
+      sprintf(
+        "Unsupported execution methods: %s. Expected subset of vb,mcmc.",
+        paste(sort(unique(setdiff(methods, c("vb", "mcmc")))), collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+
+  likelihood_families <- unique(tolower(as.character(unlist(
+    exec_cfg$likelihood_families %||% exec_cfg$likelihoods %||% c("exal", "al"),
+    use.names = FALSE
+  ))))
+  likelihood_families <- likelihood_families[nzchar(likelihood_families)]
+  if (!length(likelihood_families)) likelihood_families <- c("exal", "al")
+  if (!all(likelihood_families %in% c("exal", "al"))) {
+    stop(
+      sprintf(
+        "Unsupported execution likelihoods: %s. Expected subset of exal,al.",
+        paste(sort(unique(setdiff(likelihood_families, c("exal", "al")))), collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+
+  list(
+    methods = methods,
+    likelihood_families = likelihood_families,
+    requested_fits = as.integer(length(methods) * length(likelihood_families))
+  )
+}
+
+.qdesn_static_crossstudy_study_contract <- function(defaults) {
+  study_contract <- defaults$study_contract %||% list()
+  if (!length(study_contract)) {
+    study_contract <- (defaults$replay %||% list())$contract %||% list()
+  }
+  if (!is.list(study_contract)) {
+    stop("study_contract must be a list.", call. = FALSE)
+  }
+  study_contract
+}
+
+.qdesn_static_crossstudy_rescue_overlays_cfg <- function(defaults) {
+  rescue_cfg <- defaults$rescue_overlays %||% list()
+  if (!length(rescue_cfg)) {
+    replay_cfg <- defaults$replay %||% list()
+    rescue_cfg <- list(
+      enabled = length(replay_cfg$row_overrides %||% list()) > 0L,
+      mode = replay_cfg$mode %||% "legacy_replay_row_overrides",
+      row_overrides = replay_cfg$row_overrides %||% list(),
+      inventory_csv = replay_cfg$inventory_csv %||% NULL
+    )
+  }
+  if (!is.list(rescue_cfg)) {
+    stop("rescue_overlays must be a list.", call. = FALSE)
+  }
+  rescue_cfg
+}
+
+.qdesn_static_crossstudy_rescue_root_overrides <- function(defaults) {
+  rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
+  if (!isTRUE(rescue_cfg$enabled %||% FALSE)) return(list())
+
+  root_overrides <- rescue_cfg$row_overrides %||% list()
+  if (!is.list(root_overrides)) {
+    stop("rescue_overlays$row_overrides must be a list.", call. = FALSE)
+  }
+
+  source_defaults_path <- rescue_cfg$row_overrides_source_defaults %||% rescue_cfg$source_defaults_path %||% NULL
+  if (!is.null(source_defaults_path)) {
+    .qdesn_validation_require_namespace("yaml")
+    source_yaml <- .qdesn_validation_resolve_path(source_defaults_path, must_work = TRUE)
+    source_defaults <- yaml::read_yaml(source_yaml)
+    source_overrides <- ((source_defaults$replay %||% list())$row_overrides) %||%
+      ((source_defaults$rescue_overlays %||% list())$row_overrides) %||%
+      list()
+    if (!is.list(source_overrides)) {
+      stop(sprintf("Rescue overlay source '%s' did not expose a list of row overrides.", source_yaml), call. = FALSE)
+    }
+    root_overrides <- utils::modifyList(source_overrides, root_overrides)
+  }
+
+  root_overrides
+}
+
+.qdesn_static_crossstudy_root_patch <- function(defaults, root_id) {
+  row_overrides <- .qdesn_static_crossstudy_rescue_root_overrides(defaults)
   patch <- row_overrides[[as.character(root_id)[1L]]] %||% list()
   if (!is.list(patch)) {
-    stop(sprintf("Replay override for root '%s' must be a list.", as.character(root_id)[1L]), call. = FALSE)
+    stop(sprintf("Rescue override for root '%s' must be a list.", as.character(root_id)[1L]), call. = FALSE)
   }
   patch
 }
 
-.qdesn_static_crossstudy_apply_replay_contract <- function(cfg, defaults, method) {
-  replay_cfg <- defaults$replay %||% list()
-  contract <- replay_cfg$contract %||% list()
+.qdesn_static_crossstudy_replay_root_patch <- function(defaults, root_id) {
+  .qdesn_static_crossstudy_root_patch(defaults, root_id)
+}
+
+.qdesn_static_crossstudy_apply_study_contract <- function(cfg, defaults, method) {
+  contract <- .qdesn_static_crossstudy_study_contract(defaults)
   if (!length(contract)) return(cfg)
 
-  if (!is.null(contract$posterior_metric_draws)) {
-    cfg$metrics$posterior_metric_draws <- as.integer(contract$posterior_metric_draws)[1L]
+  budget_cfg <- contract$budget %||% contract
+
+  if (!is.null(budget_cfg$posterior_metric_draws)) {
+    cfg$metrics$posterior_metric_draws <- as.integer(budget_cfg$posterior_metric_draws)[1L]
   }
-  if (!is.null(contract$vb_sampling_nd_draws)) {
-    cfg$sampling$nd_draws <- as.integer(contract$vb_sampling_nd_draws)[1L]
+  if (!is.null(budget_cfg$vb_sampling_nd_draws)) {
+    cfg$sampling$nd_draws <- as.integer(budget_cfg$vb_sampling_nd_draws)[1L]
   }
-  if (!is.null(contract$vb_synthesis_n_samp)) {
-    cfg$synthesis$n_samp <- as.integer(contract$vb_synthesis_n_samp)[1L]
+  if (!is.null(budget_cfg$vb_synthesis_n_samp)) {
+    cfg$synthesis$n_samp <- as.integer(budget_cfg$vb_synthesis_n_samp)[1L]
   }
   if (identical(method, "mcmc")) {
-    if (!is.null(contract$mcmc_n_burn)) {
-      cfg$inference$mcmc$n_burn <- as.integer(contract$mcmc_n_burn)[1L]
+    if (!is.null(budget_cfg$mcmc_n_burn)) {
+      cfg$inference$mcmc$n_burn <- as.integer(budget_cfg$mcmc_n_burn)[1L]
     }
-    if (!is.null(contract$mcmc_n_mcmc)) {
-      cfg$inference$mcmc$n_mcmc <- as.integer(contract$mcmc_n_mcmc)[1L]
+    if (!is.null(budget_cfg$mcmc_n_mcmc)) {
+      cfg$inference$mcmc$n_mcmc <- as.integer(budget_cfg$mcmc_n_mcmc)[1L]
     }
-    if (!is.null(contract$mcmc_thin)) {
-      cfg$inference$mcmc$thin <- as.integer(contract$mcmc_thin)[1L]
+    if (!is.null(budget_cfg$mcmc_thin)) {
+      cfg$inference$mcmc$thin <- as.integer(budget_cfg$mcmc_thin)[1L]
+    }
+  }
+
+  cfg
+}
+
+.qdesn_static_crossstudy_apply_replay_contract <- function(cfg, defaults, method) {
+  .qdesn_static_crossstudy_apply_study_contract(cfg, defaults, method)
+}
+
+.qdesn_static_crossstudy_validate_core_lane_cfg <- function(cfg, defaults, method, likelihood_family, root_spec) {
+  contract <- .qdesn_static_crossstudy_study_contract(defaults)
+  if (!isTRUE(contract$core_lane %||% FALSE)) return(cfg)
+
+  if (identical(method, "mcmc")) {
+    mcmc_contract <- contract$mcmc %||% list()
+    proposal <- tolower(as.character(
+      cfg$inference$mcmc$mh.proposal %||%
+        cfg$inference$mcmc$proposal %||%
+        "slice"
+    )[1L])
+
+    if (isTRUE(mcmc_contract$require_slice %||% FALSE) && !identical(proposal, "slice")) {
+      stop(
+        sprintf(
+          "Core-lane MCMC for root '%s' / '%s' must use slice, but resolved proposal was '%s'.",
+          as.character(root_spec$root_id)[1L],
+          as.character(likelihood_family)[1L],
+          proposal
+        ),
+        call. = FALSE
+      )
+    }
+
+    banned_proposals <- unique(tolower(as.character(unlist(mcmc_contract$banned_proposals %||% character(0), use.names = FALSE))))
+    if (length(banned_proposals) && proposal %in% banned_proposals) {
+      stop(
+        sprintf(
+          "Core-lane MCMC for root '%s' / '%s' resolved banned proposal '%s'.",
+          as.character(root_spec$root_id)[1L],
+          as.character(likelihood_family)[1L],
+          proposal
+        ),
+        call. = FALSE
+      )
+    }
+
+    if (isTRUE(mcmc_contract$require_init_from_vb %||% FALSE) &&
+        !isTRUE(cfg$inference$mcmc$init_from_vb %||% FALSE)) {
+      stop(
+        sprintf(
+          "Core-lane MCMC for root '%s' / '%s' must set init_from_vb=TRUE.",
+          as.character(root_spec$root_id)[1L],
+          as.character(likelihood_family)[1L]
+        ),
+        call. = FALSE
+      )
+    }
+
+    if (isTRUE(cfg$inference$mcmc$init_from_isvb %||% FALSE)) {
+      stop(
+        sprintf(
+          "Core-lane MCMC for root '%s' / '%s' cannot use init_from_isvb.",
+          as.character(root_spec$root_id)[1L],
+          as.character(likelihood_family)[1L]
+        ),
+        call. = FALSE
+      )
+    }
+
+    vb_init_contract <- mcmc_contract$vb_warm_start %||% list()
+    vb_warm_start_control <- cfg$inference$mcmc$vb_warm_start_control %||% list()
+    vb_init_method <- tolower(as.character(vb_warm_start_control$method %||% vb_init_contract$method %||% "ldvb")[1L])
+    if (!identical(vb_init_method, "ldvb")) {
+      stop(
+        sprintf(
+          "Core-lane MCMC for root '%s' / '%s' must warm start from LDVB, got '%s'.",
+          as.character(root_spec$root_id)[1L],
+          as.character(likelihood_family)[1L],
+          vb_init_method
+        ),
+        call. = FALSE
+      )
     }
   }
 
@@ -407,9 +586,9 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
   method <- match.arg(method)
   likelihood_family <- match.arg(likelihood_family)
   pipeline_cfg <- defaults$pipeline %||% list()
-  replay_root_patch <- .qdesn_static_crossstudy_replay_root_patch(defaults, root_spec$root_id)
-  if (length(replay_root_patch$pipeline %||% list())) {
-    pipeline_cfg <- utils::modifyList(pipeline_cfg, replay_root_patch$pipeline)
+  rescue_root_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
+  if (length(rescue_root_patch$pipeline %||% list())) {
+    pipeline_cfg <- utils::modifyList(pipeline_cfg, rescue_root_patch$pipeline)
   }
   .qdesn_validation_assert_non_dlm_input(pipeline_cfg)
   infer_cfg <- pipeline_cfg$inference %||% list()
@@ -557,7 +736,14 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
     }
   }
 
-  cfg <- .qdesn_static_crossstudy_apply_replay_contract(cfg, defaults, method)
+  cfg <- .qdesn_static_crossstudy_apply_study_contract(cfg, defaults, method)
+  cfg <- .qdesn_static_crossstudy_validate_core_lane_cfg(
+    cfg = cfg,
+    defaults = defaults,
+    method = method,
+    likelihood_family = likelihood_family,
+    root_spec = root_spec
+  )
   cfg
 }
 
@@ -1459,10 +1645,20 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     x_cols = staged_data$x_cols,
     T_use = staged_data$n_obs
   )
+  rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
+  rescue_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
   .qdesn_validation_write_json(file.path(method_dir, "fit_request.json"), list(
     root_spec = root_spec_lik,
     config = cfg,
-    observed_path = staged_data$observed_path
+    observed_path = staged_data$observed_path,
+    execution = .qdesn_static_crossstudy_execution_scope(defaults),
+    study_contract = .qdesn_static_crossstudy_study_contract(defaults),
+    rescue_overlay = list(
+      enabled = isTRUE(rescue_cfg$enabled %||% FALSE),
+      mode = as.character(rescue_cfg$mode %||% "none")[1L],
+      inventory_csv = as.character(rescue_cfg$inventory_csv %||% NA_character_)[1L],
+      root_override_applied = isTRUE(length(rescue_patch) > 0L)
+    )
   ))
 
   status <- "SUCCESS"
@@ -1779,6 +1975,9 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
     .qdesn_validation_dir_create(file.path(root_dir, d))
   }
   .qdesn_validation_write_lines(file.path(root_dir, "manifest", "root_status.txt"), "RUNNING")
+  execution_scope <- .qdesn_static_crossstudy_execution_scope(defaults)
+  rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
+  rescue_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
   .qdesn_validation_write_json(file.path(root_dir, "manifest", "root_manifest.json"), list(
     root_id = root_spec$root_id,
     dataset_cell_id = root_spec$dataset_cell_id,
@@ -1795,6 +1994,14 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
     source_legacy_rhs_member = isTRUE(root_spec$source_legacy_rhs_member),
     reservoir_profile = root_spec$reservoir_profile,
     seed = as.integer(root_spec$seed),
+    execution = execution_scope,
+    study_contract = .qdesn_static_crossstudy_study_contract(defaults),
+    rescue_overlay = list(
+      enabled = isTRUE(rescue_cfg$enabled %||% FALSE),
+      mode = as.character(rescue_cfg$mode %||% "none")[1L],
+      inventory_csv = as.character(rescue_cfg$inventory_csv %||% NA_character_)[1L],
+      root_override_applied = isTRUE(length(rescue_patch) > 0L)
+    ),
     git_sha = .qdesn_validation_git_sha(),
     started_at = as.character(Sys.time())
   ))
@@ -1803,8 +2010,8 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
   results <- list()
   fit_rows <- list()
   progress_rows <- list()
-  for (likelihood_family in c("exal", "al")) {
-    for (method in c("vb", "mcmc")) {
+  for (likelihood_family in execution_scope$likelihood_families) {
+    for (method in execution_scope$methods) {
       if (isTRUE(verbose)) {
         message(sprintf(
           "[qdesn_static_crossstudy_run_root] %s | %s | %s",
@@ -1835,7 +2042,14 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
   model_pair_summary <- .qdesn_static_crossstudy_model_pair_summary(fit_summary, root_spec)
   status_vec <- if ("status" %in% names(fit_summary)) as.character(fit_summary$status) else character(0)
   status_vec[is.na(status_vec) | !nzchar(status_vec)] <- "FAIL"
-  root_status <- if (nrow(fit_summary) >= 4L && length(status_vec) >= 4L && all(status_vec == "SUCCESS")) "SUCCESS" else "FAIL"
+  expected_fits <- as.integer(execution_scope$requested_fits %||% 4L)[1L]
+  root_status <- if (nrow(fit_summary) >= expected_fits &&
+    length(status_vec) >= expected_fits &&
+    all(status_vec[seq_len(expected_fits)] == "SUCCESS")) {
+    "SUCCESS"
+  } else {
+    "FAIL"
+  }
   root_summary <- .qdesn_static_crossstudy_root_summary(
     root_spec = root_spec,
     fit_summary = fit_summary,

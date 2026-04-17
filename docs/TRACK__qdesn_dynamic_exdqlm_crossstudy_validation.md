@@ -22,6 +22,69 @@ dynamic dataset surface, using:
 
 This tracker is for the corrected dynamic comparison-facing program.
 
+## Tau-0.50 Refreshed Main Implementation Note (2026-04-16)
+
+The refreshed dynamic-only relaunch machinery is now implemented on this branch.
+
+Canonical refreshed study scope:
+
+- scenario:
+  - `dlm_constV_smallW`
+- families:
+  - `gausmix`, `laplace`, `normal`
+- taus:
+  - `0.05`, `0.25`, `0.50`
+- fit sizes:
+  - `500`, `5000`
+- priors:
+  - `ridge`, `rhs_ns`
+
+Refreshed main-lane contract:
+
+- `VB = LDVB`
+- `MCMC = slice`
+- explicit `LDVB` warm start for `MCMC`
+- no `init_from_isvb`
+- no `rw`
+- no `laplace_rw`
+- rescue settings available only as explicit overlays, disabled by default
+
+Checked-in refreshed assets:
+
+- defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml`
+- full grid:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.csv`
+- phase grids:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_smoke_grid.csv`
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_ridge_grid.csv`
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_rhsns_tt500_grid.csv`
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_rhsns_tt5000_grid.csv`
+- wrappers:
+  - `scripts/materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation.R`
+- report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_implementation_and_preflight_20260416.md`
+
+Validation state:
+
+- refreshed contract test:
+  - `tests/testthat/test-qdesn-dynamic-tau050-refreshed-main-config.R`
+  - passes
+- canonical grid materialization:
+  - `36` roots / `18` dataset cells
+  - passes
+- smoke `prepare-only`:
+  - passes
+- full `prepare-only`:
+  - passes
+
+Next branch-local step:
+
+- launch the refreshed tau-`0.50` dynamic-only study from committed state and freeze the resulting
+  run tag in the branch-local docs.
+
 ## Integration-Branch Handoff Note (2026-04-06)
 
 On `feature/qdesn-mcmc-alternative-0p4p0-integration`, the preferred working handoff document is:

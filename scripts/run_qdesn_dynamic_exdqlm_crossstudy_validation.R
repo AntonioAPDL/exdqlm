@@ -124,6 +124,16 @@ create_plots <- !has_flag("--no-plots")
 batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smoke"))
 
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
+methods_arg <- as.character(get_arg("--methods", ""))[1L]
+likelihoods_arg <- as.character(get_arg("--likelihoods", ""))[1L]
+if (nzchar(trimws(methods_arg))) {
+  defaults$execution <- defaults$execution %||% list()
+  defaults$execution$methods <- trimws(strsplit(methods_arg, ",", fixed = TRUE)[[1L]])
+}
+if (nzchar(trimws(likelihoods_arg))) {
+  defaults$execution <- defaults$execution %||% list()
+  defaults$execution$likelihood_families <- trimws(strsplit(likelihoods_arg, ",", fixed = TRUE)[[1L]])
+}
 grid_source_mode <- exdqlm:::.qdesn_dynamic_crossstudy_grid_source_mode(defaults)
 canonical_grid <- exdqlm:::qdesn_dynamic_crossstudy_build_grid(
   defaults = defaults,
@@ -197,11 +207,16 @@ if (identical(grid_source_mode, "reference_inventory")) {
 runtime_cfg <- defaults$runtime %||% list()
 multiseed_cfg <- defaults$multiseed %||% list()
 replay_cfg <- defaults$replay %||% list()
+study_contract_cfg <- exdqlm:::.qdesn_static_crossstudy_study_contract(defaults)
+budget_contract_cfg <- study_contract_cfg$budget %||% study_contract_cfg
+execution_scope <- exdqlm:::.qdesn_static_crossstudy_execution_scope(defaults)
+rescue_cfg <- exdqlm:::.qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
+rescue_root_overrides <- exdqlm:::.qdesn_static_crossstudy_rescue_root_overrides(defaults)
 pipeline_cfg <- defaults$pipeline %||% list()
 pipeline_mcmc_cfg <- pipeline_cfg$inference$mcmc %||% list()
 pipeline_sampling_cfg <- pipeline_cfg$sampling %||% list()
 pipeline_synthesis_cfg <- pipeline_cfg$synthesis %||% list()
-replay_contract <- replay_cfg$contract %||% list(
+study_budget_contract <- budget_contract_cfg %||% list(
   posterior_metric_draws = defaults$metrics$posterior_metric_draws %||% NA_integer_,
   vb_sampling_nd_draws = pipeline_sampling_cfg$nd_draws %||% NA_integer_,
   vb_synthesis_n_samp = pipeline_synthesis_cfg$n_samp %||% NA_integer_,
@@ -286,18 +301,29 @@ preflight_manifest <- list(
     fit_sizes = sort(unique(as.integer(selected_grid$fit_size))),
     priors = sort(unique(as.character(selected_grid$beta_prior_type)))
   ),
-  replay_summary = list(
-    mode = as.character(replay_cfg$mode %||% "default")[1L],
-    row_override_roots = as.integer(length(replay_cfg$row_overrides %||% list())),
-    inventory_csv = as.character(replay_cfg$inventory_csv %||% NA_character_)[1L]
+  execution_scope = list(
+    methods = execution_scope$methods,
+    likelihood_families = execution_scope$likelihood_families,
+    requested_fits_per_root = as.integer(execution_scope$requested_fits %||% NA_integer_)[1L]
   ),
-  replay_contract = list(
-    posterior_metric_draws = as.integer(replay_contract$posterior_metric_draws %||% NA_integer_)[1L],
-    vb_draws = as.integer(replay_contract$vb_sampling_nd_draws %||% NA_integer_)[1L],
-    synthesis_draws = as.integer(replay_contract$vb_synthesis_n_samp %||% NA_integer_)[1L],
-    mcmc_n_burn = as.integer(replay_contract$mcmc_n_burn %||% NA_integer_)[1L],
-    mcmc_n_mcmc = as.integer(replay_contract$mcmc_n_mcmc %||% NA_integer_)[1L],
-    mcmc_thin = as.integer(replay_contract$mcmc_thin %||% NA_integer_)[1L]
+  rescue_overlay = list(
+    enabled = isTRUE(rescue_cfg$enabled %||% FALSE),
+    mode = as.character(rescue_cfg$mode %||% "none")[1L],
+    inventory_csv = as.character(rescue_cfg$inventory_csv %||% NA_character_)[1L],
+    root_override_roots = as.integer(length(rescue_root_overrides %||% list()))[1L],
+    source_defaults_path = as.character(rescue_cfg$row_overrides_source_defaults %||% rescue_cfg$source_defaults_path %||% NA_character_)[1L]
+  ),
+  study_contract = list(
+    core_lane = isTRUE(study_contract_cfg$core_lane %||% FALSE),
+    posterior_metric_draws = as.integer(study_budget_contract$posterior_metric_draws %||% NA_integer_)[1L],
+    vb_draws = as.integer(study_budget_contract$vb_sampling_nd_draws %||% NA_integer_)[1L],
+    synthesis_draws = as.integer(study_budget_contract$vb_synthesis_n_samp %||% NA_integer_)[1L],
+    mcmc_n_burn = as.integer(study_budget_contract$mcmc_n_burn %||% NA_integer_)[1L],
+    mcmc_n_mcmc = as.integer(study_budget_contract$mcmc_n_mcmc %||% NA_integer_)[1L],
+    mcmc_thin = as.integer(study_budget_contract$mcmc_thin %||% NA_integer_)[1L],
+    require_slice = isTRUE((study_contract_cfg$mcmc %||% list())$require_slice %||% FALSE),
+    require_init_from_vb = isTRUE((study_contract_cfg$mcmc %||% list())$require_init_from_vb %||% FALSE),
+    banned_proposals = as.character(unlist((study_contract_cfg$mcmc %||% list())$banned_proposals %||% character(0), use.names = FALSE))
   ),
   multiseed_summary = list(
     enabled = isTRUE(multiseed_cfg$enabled),
@@ -352,20 +378,29 @@ preflight_lines <- c(
   "## Scope Decision",
   "- study_surface: `dynamic exdqlm-aligned`",
   "- model: `QDESN`",
-  "- likelihoods_per_root: `exal, al`",
-  "- methods_per_root: `vb, mcmc`",
+  sprintf("- likelihoods_per_root: `%s`", paste(preflight_manifest$execution_scope$likelihood_families, collapse = ", ")),
+  sprintf("- methods_per_root: `%s`", paste(preflight_manifest$execution_scope$methods, collapse = ", ")),
+  sprintf("- requested_fits_per_root: `%s`", as.character(preflight_manifest$execution_scope$requested_fits_per_root)),
   "- QDESN_priors: `ridge, rhs_ns`",
   "",
-  "## Replay Contract",
-  sprintf("- replay_mode: `%s`", as.character(preflight_manifest$replay_summary$mode)),
-  sprintf("- row_override_roots: `%s`", as.character(preflight_manifest$replay_summary$row_override_roots)),
-  sprintf("- inventory_csv: `%s`", as.character(preflight_manifest$replay_summary$inventory_csv)),
-  sprintf("- posterior_metric_draws: `%s`", as.character(preflight_manifest$replay_contract$posterior_metric_draws)),
-  sprintf("- vb_draws: `%s`", as.character(preflight_manifest$replay_contract$vb_draws)),
-  sprintf("- synthesis_draws: `%s`", as.character(preflight_manifest$replay_contract$synthesis_draws)),
-  sprintf("- mcmc_n_burn: `%s`", as.character(preflight_manifest$replay_contract$mcmc_n_burn)),
-  sprintf("- mcmc_n_mcmc: `%s`", as.character(preflight_manifest$replay_contract$mcmc_n_mcmc)),
-  sprintf("- mcmc_thin: `%s`", as.character(preflight_manifest$replay_contract$mcmc_thin)),
+  "## Study Contract",
+  sprintf("- core_lane: `%s`", if (isTRUE(preflight_manifest$study_contract$core_lane)) "TRUE" else "FALSE"),
+  sprintf("- posterior_metric_draws: `%s`", as.character(preflight_manifest$study_contract$posterior_metric_draws)),
+  sprintf("- vb_draws: `%s`", as.character(preflight_manifest$study_contract$vb_draws)),
+  sprintf("- synthesis_draws: `%s`", as.character(preflight_manifest$study_contract$synthesis_draws)),
+  sprintf("- mcmc_n_burn: `%s`", as.character(preflight_manifest$study_contract$mcmc_n_burn)),
+  sprintf("- mcmc_n_mcmc: `%s`", as.character(preflight_manifest$study_contract$mcmc_n_mcmc)),
+  sprintf("- mcmc_thin: `%s`", as.character(preflight_manifest$study_contract$mcmc_thin)),
+  sprintf("- require_slice: `%s`", if (isTRUE(preflight_manifest$study_contract$require_slice)) "TRUE" else "FALSE"),
+  sprintf("- require_init_from_vb: `%s`", if (isTRUE(preflight_manifest$study_contract$require_init_from_vb)) "TRUE" else "FALSE"),
+  sprintf("- banned_proposals: `%s`", paste(preflight_manifest$study_contract$banned_proposals, collapse = ", ")),
+  "",
+  "## Rescue Overlay",
+  sprintf("- enabled: `%s`", if (isTRUE(preflight_manifest$rescue_overlay$enabled)) "TRUE" else "FALSE"),
+  sprintf("- mode: `%s`", as.character(preflight_manifest$rescue_overlay$mode)),
+  sprintf("- inventory_csv: `%s`", as.character(preflight_manifest$rescue_overlay$inventory_csv)),
+  sprintf("- root_override_roots: `%s`", as.character(preflight_manifest$rescue_overlay$root_override_roots)),
+  sprintf("- source_defaults_path: `%s`", as.character(preflight_manifest$rescue_overlay$source_defaults_path)),
   "",
   "## Multiseed Policy",
   sprintf("- enabled: `%s`", if (isTRUE(preflight_manifest$multiseed_summary$enabled)) "TRUE" else "FALSE"),

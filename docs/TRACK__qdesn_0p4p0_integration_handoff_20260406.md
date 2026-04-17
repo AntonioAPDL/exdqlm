@@ -18,6 +18,55 @@ This branch already contains:
 This handoff exists so we do **not** have to treat the older branch-local validation tracker as the
 main working document on this branch.
 
+## Tau-0.50 Refreshed Dynamic Relaunch Checkpoint (2026-04-16)
+
+The next branch-local active study has now been redefined and implemented as a refreshed
+dynamic-only tau-`0.50` relaunch surface.
+
+What changed:
+
+- the relaunch surface is dynamic-only;
+- the tau grid is now `0.05 / 0.25 / 0.50`;
+- the fitting backend remains the static `al / exal` package algorithm applied to dynamic data;
+- the canonical main lane now uses:
+  - `LDVB` for `VB`
+  - `slice` for `MCMC`
+  - explicit `LDVB` warm start for `MCMC`
+  - `ridge` and `rhs_ns`
+- the core lane explicitly excludes:
+  - `init_from_isvb`
+  - `rw`
+  - `laplace_rw`
+
+Checked-in refreshed relaunch assets:
+
+- plan:
+  - `docs/PLAN__qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_relaunch_20260416.md`
+- implementation report:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_implementation_and_preflight_20260416.md`
+- defaults:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml`
+- wrappers:
+  - `scripts/materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R`
+  - `scripts/launch_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation.R`
+  - `scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation.R`
+
+Current refreshed-study readiness:
+
+- focused refreshed-contract tests:
+  - pass
+- canonical grid materialization:
+  - pass
+- smoke `prepare-only`:
+  - pass
+- full `prepare-only`:
+  - pass
+
+Immediate next action:
+
+- launch the refreshed study from committed state, then record the authoritative run tag and health
+  story as the new branch-local continuation point.
+
 ## 2) Current Branch-Local Active Study
 
 The current branch-local active study is now the **effective-w300 zero-FAIL reconciled comparison
