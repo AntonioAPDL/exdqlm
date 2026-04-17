@@ -88,3 +88,40 @@ test_that("failed fit path still writes fit_summary_row for downstream aggregati
   expect_identical(as.character(fit_summary$status[[1L]]), "FAIL")
   expect_identical(as.character(fit_summary$signoff_grade[[1L]]), "FAIL")
 })
+
+test_that("dynamic source sim fallback reconstructs from truth grid when sim_output is absent", {
+  family_root <- withr::local_tempdir()
+
+  series_df <- data.frame(
+    t = 1:4,
+    y = c(10, 11, 12, 13),
+    q_target = c(9.5, 10.5, 11.5, 12.5),
+    stringsAsFactors = FALSE
+  )
+  truth_df <- data.frame(
+    t = 1:4,
+    tau = rep(0.50, 4),
+    q_true = c(9.5, 10.5, 11.5, 12.5),
+    stringsAsFactors = FALSE
+  )
+
+  utils::write.csv(series_df, file.path(family_root, "series_wide.csv"), row.names = FALSE)
+  utils::write.csv(truth_df, file.path(family_root, "true_quantile_grid.csv"), row.names = FALSE)
+
+  sim_obj <- exdqlm:::.qdesn_dynamic_crossstudy_load_source_sim_object(
+    family_root = family_root,
+    tau = 0.50
+  )
+
+  expect_equal(sim_obj$p, 0.50)
+  expect_equal(as.numeric(sim_obj$y), series_df$y)
+  expect_equal(as.numeric(sim_obj$q[, 1L]), truth_df$q_true)
+  expect_identical(
+    as.character(sim_obj$info$quantile_truth_method),
+    "true_quantile_grid_csv_fallback"
+  )
+  expect_identical(
+    as.character(sim_obj$extras$reconstructed_from),
+    "series_wide_and_true_quantile_grid"
+  )
+})

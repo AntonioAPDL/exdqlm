@@ -124,6 +124,7 @@ create_plots <- !has_flag("--no-plots")
 batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smoke"))
 
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
+grid_source_mode <- exdqlm:::.qdesn_dynamic_crossstudy_grid_source_mode(defaults)
 canonical_grid <- exdqlm:::qdesn_dynamic_crossstudy_build_grid(
   defaults = defaults,
   refresh_materialized = isTRUE(refresh_grid),
@@ -161,10 +162,37 @@ if (!nrow(selected_grid)) {
 }
 
 reference_cfg <- defaults$reference %||% list()
-reference_inventory <- exdqlm:::qdesn_dynamic_crossstudy_collect_reference_inventory(
-  reference_root = resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
-)
-reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, defaults)
+reference_inventory <- NULL
+reference_summary <- NULL
+if (identical(grid_source_mode, "reference_inventory")) {
+  reference_inventory <- exdqlm:::qdesn_dynamic_crossstudy_collect_reference_inventory(
+    reference_root = resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
+  )
+  reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, defaults)
+} else {
+  materialized_inventory <- exdqlm:::qdesn_dynamic_crossstudy_materialize_source_inputs(
+    defaults = defaults,
+    refresh = FALSE,
+    verbose = FALSE
+  )
+  reference_summary <- list(
+    mode = "materialized_source_inputs",
+    reference_root = resolve_path(reference_cfg$dynamic_root, must_work = TRUE),
+    reference_root_dirs_n = 0L,
+    reference_root_rows_n = 0L,
+    reference_unique_dataset_cells = length(unique(paste(
+      materialized_inventory$source_scenario,
+      materialized_inventory$source_family,
+      materialized_inventory$tau,
+      materialized_inventory$fit_size,
+      sep = "||"
+    ))),
+    scenarios = sort(unique(as.character(materialized_inventory$source_scenario))),
+    families = sort(unique(as.character(materialized_inventory$source_family))),
+    taus = sort(unique(as.numeric(materialized_inventory$tau))),
+    fit_sizes = sort(unique(as.integer(materialized_inventory$fit_size)))
+  )
+}
 
 runtime_cfg <- defaults$runtime %||% list()
 multiseed_cfg <- defaults$multiseed %||% list()
@@ -237,6 +265,7 @@ preflight_manifest <- list(
   git_sha = git_sha,
   run_tag = run_tag,
   batch = batch,
+  grid_source_mode = grid_source_mode,
   defaults_path = defaults_path,
   grid_path = grid_path_raw,
   selected_grid_path = selected_grid_path,
@@ -309,6 +338,7 @@ preflight_lines <- c(
   sprintf("- git_sha: `%s`", git_sha),
   sprintf("- run_tag: `%s`", run_tag),
   sprintf("- batch: `%s`", batch),
+  sprintf("- grid_source_mode: `%s`", grid_source_mode),
   sprintf("- defaults_path: `%s`", defaults_path),
   sprintf("- grid_path: `%s`", grid_path_raw),
   sprintf("- selected_grid_path: `%s`", selected_grid_path),
@@ -344,7 +374,8 @@ preflight_lines <- c(
   sprintf("- selection_metric: `%s`", as.character(preflight_manifest$multiseed_summary$selection_metric)),
   sprintf("- prune_nonwinning_heavy_outputs: `%s`", if (isTRUE(preflight_manifest$multiseed_summary$prune_nonwinning_heavy_outputs)) "TRUE" else "FALSE"),
   "",
-  "## Reference Inventory",
+  "## Reference Audit",
+  sprintf("- mode: `%s`", as.character(reference_summary$mode %||% "reference_inventory")),
   sprintf("- reference_root_dirs: `%d`", as.integer(reference_summary$reference_root_dirs_n)),
   sprintf("- reference_root_rows: `%d`", as.integer(reference_summary$reference_root_rows_n)),
   sprintf("- unique_dataset_cells: `%d`", as.integer(reference_summary$reference_unique_dataset_cells)),

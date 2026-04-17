@@ -1289,3 +1289,51 @@ Sync validation performed:
 - `test-pipeline-inference-validation.R`
 - `test-qdesn-dynamic-failure-repair.R`
 - `test-qdesn-validation-group-summary-robustness.R`
+
+## 22) Dynamic Tau-0.50 Materialized Surface Reset (2026-04-16)
+
+Reset report:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_tau050_materialized_surface_reset_20260416.md`
+
+What changed:
+
+- the active dynamic relaunch surfaces now use:
+  - `tau = 0.05`
+  - `tau = 0.25`
+  - `tau = 0.50`
+- this applies to the materialized-source dynamic campaigns only:
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
+  - `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_defaults.yaml`
+- the staged-source roots were refreshed from the upstream `tau_0p50` family directories and the
+  stale local `tau_0p95` staged caches were removed from the active relaunch stores
+
+Important scope guard:
+
+- the old base dynamic reference-inventory defaults remain on the historical `0.05 / 0.25 / 0.95`
+  contract because the mirrored upstream signoff inventory still only exists on that older surface
+- the new `0.50` relaunch is therefore a materialized-source contract, not a direct continuation of
+  the old mirrored `0.95` reference surface
+
+Current active dynamic relaunch surface:
+
+- scenario:
+  - `dlm_constV_smallW`
+- families:
+  - `gausmix`, `laplace`, `normal`
+- taus:
+  - `0.05`, `0.25`, `0.50`
+- fit sizes:
+  - `500`, `5000`
+- priors:
+  - `ridge`, `rhs_ns`
+- root count:
+  - `36`
+
+Validation completed:
+
+- `tests/testthat/test-qdesn-dynamic-failure-repair.R`
+- postdraw full preflight:
+  - `qdesn-dynamic-exdqlm-crossstudy-postdraw-tau050-preflight-20260416`
+- deep-DESN full preflight:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-tau050-preflight-20260416`

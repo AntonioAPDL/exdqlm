@@ -1196,3 +1196,62 @@ Focused validation run after the sync:
 - `test-pipeline-inference-validation.R`
 - `test-qdesn-dynamic-failure-repair.R`
 - `test-qdesn-validation-group-summary-robustness.R`
+
+## 22) Dynamic Tau-0.50 Relaunch Surface Reset (2026-04-16)
+
+Primary report:
+
+- `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_tau050_materialized_surface_reset_20260416.md`
+
+Why this matters:
+
+- the next dynamic-only QDESN relaunch should target `tau = 0.50`, not `tau = 0.95`
+- the active relaunch surface remains:
+  - dynamic datasets only
+  - static `al` / `exal` backend
+  - priors `ridge` and `rhs_ns`
+
+Changed relaunch-defining assets:
+
+- `R/qdesn_dynamic_exdqlm_crossstudy.R`
+- `scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R`
+- `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_defaults.yaml`
+- `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_defaults.yaml`
+- `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_grid.csv`
+- `config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_grid.csv`
+
+Active dynamic relaunch surface now:
+
+- scenario:
+  - `dlm_constV_smallW`
+- families:
+  - `gausmix`, `laplace`, `normal`
+- taus:
+  - `0.05`, `0.25`, `0.50`
+- fit sizes:
+  - `500`, `5000`
+- priors:
+  - `ridge`, `rhs_ns`
+- roots:
+  - `36`
+
+Key implementation note:
+
+- the active materializer now supports newer upstream dynamic source trees that provide
+  `series_wide.csv` plus `true_quantile_grid.csv` but no root-level `sim_output.rds`
+- this keeps the new `tau_0p50` upstream sources launchable without relying on stale local caches
+
+Validation completed:
+
+- `tests/testthat/test-qdesn-dynamic-failure-repair.R`
+- full postdraw preflight:
+  - `qdesn-dynamic-exdqlm-crossstudy-postdraw-tau050-preflight-20260416`
+- full deep-DESN preflight:
+  - `qdesn-dynamic-exdqlm-crossstudy-deepdesn-tau050-preflight-20260416`
+
+Historical guardrail:
+
+- the old base dynamic reference-inventory surface remains on `0.05 / 0.25 / 0.95` because the
+  mirrored upstream signoff inventory still only exists there
+- the new `0.50` relaunch surface is therefore correctly treated as a materialized-source relaunch
+  contract rather than a direct mirrored-reference continuation

@@ -12,7 +12,7 @@ source_materialization:
   enforce_effective_train_size: true
   scenarios: [dlm_constV_smallW]
   families: [gausmix, laplace, normal]
-  taus: [0.05, 0.25, 0.95]
+  taus: [0.05, 0.25, 0.50]
   windows:
     - effective_fit_size: 500
       source_total_size: 813
@@ -47,7 +47,7 @@ reference_contract:
   root_kind: dynamic
   scenarios: [dlm_constV_smallW]
   families: [gausmix, laplace, normal]
-  taus: [0.05, 0.25, 0.95]
+  taus: [0.05, 0.25, 0.50]
   fit_sizes: [500, 5000]
   expected_reference_roots: 18
   expected_unique_dataset_cells: 18

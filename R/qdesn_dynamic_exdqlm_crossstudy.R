@@ -222,7 +222,10 @@ qdesn_dynamic_crossstudy_validate_reference_inventory <- function(reference_inve
   }
   list(
     reference_root = reference_inventory$reference_root,
+    reference_root_dirs_n = length(reference_inventory$root_dirs %||% character(0)),
+    reference_root_rows_n = nrow(root_summary),
     reference_roots = nrow(root_summary),
+    reference_unique_dataset_cells = if (nrow(root_summary)) length(unique(paste(root_summary$scenario, root_summary$family, root_summary$tau, root_summary$fit_size, sep = "||"))) else 0L,
     unique_dataset_cells = if (nrow(root_summary)) length(unique(paste(root_summary$scenario, root_summary$family, root_summary$tau, root_summary$fit_size, sep = "||"))) else 0L,
     scenarios = if (nrow(root_summary)) sort(unique(as.character(root_summary$scenario))) else character(0),
     families = if (nrow(root_summary)) sort(unique(as.character(root_summary$family))) else character(0),
@@ -303,6 +306,85 @@ qdesn_dynamic_crossstudy_validate_reference_inventory <- function(reference_inve
   })
   names(out) <- vapply(out, `[[`, character(1), "label")
   out
+}
+
+.qdesn_dynamic_crossstudy_load_source_sim_object <- function(family_root,
+                                                             tau,
+                                                             series_df = NULL) {
+  family_root <- .qdesn_validation_resolve_path(family_root, must_work = TRUE)
+  if (is.null(series_df)) {
+    series_path <- file.path(family_root, "series_wide.csv")
+    if (!file.exists(series_path)) {
+      stop(sprintf("Missing full-source series_wide.csv for %s.", family_root), call. = FALSE)
+    }
+    series_df <- utils::read.csv(series_path, stringsAsFactors = FALSE)
+  }
+  if (!nrow(series_df)) {
+    stop(sprintf("Full-source series_wide.csv is empty: %s", family_root), call. = FALSE)
+  }
+
+  sim_path <- file.path(family_root, "sim_output.rds")
+  if (file.exists(sim_path)) {
+    sim_obj <- readRDS(sim_path)
+    q_mat <- as.matrix(sim_obj$q %||% matrix(numeric(0), 0L, 0L))
+    y_vec <- as.numeric(sim_obj$y %||% numeric(0))
+    if (length(y_vec) && nrow(q_mat)) {
+      return(sim_obj)
+    }
+  }
+
+  truth_path <- file.path(family_root, "true_quantile_grid.csv")
+  if (!file.exists(truth_path)) {
+    stop(sprintf(
+      "Missing both sim_output.rds and true_quantile_grid.csv for %s.",
+      family_root
+    ), call. = FALSE)
+  }
+  truth_df <- utils::read.csv(truth_path, stringsAsFactors = FALSE)
+  q_col <- if ("q_true" %in% names(truth_df)) {
+    "q_true"
+  } else if ("q_target" %in% names(truth_df)) {
+    "q_target"
+  } else {
+    NA_character_
+  }
+  if (!nzchar(q_col) || !nrow(truth_df)) {
+    stop(sprintf("Fallback truth grid is missing a usable quantile column for %s.", family_root), call. = FALSE)
+  }
+
+  q_true <- if ("t" %in% names(series_df) && "t" %in% names(truth_df)) {
+    idx <- match(series_df$t, truth_df$t)
+    if (anyNA(idx)) {
+      stop(sprintf("Fallback truth grid is missing t values needed for %s.", family_root), call. = FALSE)
+    }
+    as.numeric(truth_df[[q_col]][idx])
+  } else {
+    if (!identical(nrow(series_df), nrow(truth_df))) {
+      stop(sprintf(
+        "Fallback truth grid row count mismatch for %s: series=%d truth=%d.",
+        family_root,
+        nrow(series_df),
+        nrow(truth_df)
+      ), call. = FALSE)
+    }
+    as.numeric(truth_df[[q_col]])
+  }
+
+  list(
+    y = as.numeric(series_df$y %||% numeric(0)),
+    q = matrix(q_true, ncol = 1L),
+    p = as.numeric(tau)[1L],
+    info = list(
+      scenario = "dynamic_dlm_family_qspec",
+      quantile_target = as.numeric(tau)[1L],
+      quantile_truth_method = "true_quantile_grid_csv_fallback",
+      source_root = family_root
+    ),
+    extras = list(
+      source_index = if ("t" %in% names(series_df)) as.integer(series_df$t) else seq_len(nrow(series_df)),
+      reconstructed_from = "series_wide_and_true_quantile_grid"
+    )
+  )
 }
 
 .qdesn_dynamic_crossstudy_slice_sim_output <- function(sim_obj,
@@ -398,16 +480,19 @@ qdesn_dynamic_crossstudy_materialize_source_inputs <- function(defaults,
         tau_dir <- sprintf("tau_%s", .qdesn_dynamic_crossstudy_prob_label(tau))
         family_root <- file.path(source_root, scenario, family, tau_dir)
         series_path <- file.path(family_root, "series_wide.csv")
-        sim_path <- file.path(family_root, "sim_output.rds")
-        if (!file.exists(series_path) || !file.exists(sim_path)) {
-          stop(sprintf("Missing full-source files for %s / %s / tau=%s.", scenario, family, as.character(tau)), call. = FALSE)
+        if (!file.exists(series_path)) {
+          stop(sprintf("Missing full-source series_wide.csv for %s / %s / tau=%s.", scenario, family, as.character(tau)), call. = FALSE)
         }
 
         series_df <- utils::read.csv(series_path, stringsAsFactors = FALSE)
         if (!nrow(series_df)) {
           stop(sprintf("Full-source series_wide.csv is empty: %s", series_path), call. = FALSE)
         }
-        sim_obj <- readRDS(sim_path)
+        sim_obj <- .qdesn_dynamic_crossstudy_load_source_sim_object(
+          family_root = family_root,
+          tau = tau,
+          series_df = series_df
+        )
 
         for (win in windows) {
           total_n <- as.integer(win$source_total_size)
@@ -698,9 +783,6 @@ qdesn_dynamic_crossstudy_validate_grid <- function(grid_df, defaults, allow_subs
       "expected %d QDESN roots, found %d",
       as.integer(contract$expected_qdesn_roots), nrow(grid_df)
     ))
-  }
-  if (any(abs(as.numeric(grid_df$tau) - 0.50) < 1e-8, na.rm = TRUE)) {
-    problems <- c(problems, "grid unexpectedly includes tau=0.50 rows")
   }
   if (length(problems)) {
     stop(paste(c("Dynamic cross-study grid validation failed:", paste0("- ", problems)), collapse = "\n"), call. = FALSE)
@@ -1377,6 +1459,64 @@ qdesn_dynamic_crossstudy_write_reference_compare <- function(reference_inventory
   .qdesn_validation_dir_create(output_root)
   .qdesn_validation_dir_create(file.path(output_root, "tables"))
   .qdesn_validation_dir_create(file.path(output_root, "manifest"))
+
+  if (is.null(reference_inventory) ||
+      !is.list(reference_inventory) ||
+      !nrow(reference_inventory$fit_summary %||% data.frame(stringsAsFactors = FALSE))) {
+    q_fit_group <- .qdesn_static_crossstudy_group_summary(
+      qdesn_tables$fit_summary,
+      group_cols = c("scenario", "root_kind", "family", "tau", "fit_size", "prior", "inference", "model"),
+      grade_col = "signoff_grade",
+      eligible_col = "comparison_eligible",
+      extra_numeric = c("runtime_sec", "train_mae", "train_rmse", "holdout_mae", "holdout_rmse")
+    )
+    q_pair_group <- .qdesn_static_crossstudy_group_summary(
+      qdesn_tables$pairwise_vb_vs_mcmc,
+      group_cols = c("scenario", "root_kind", "family", "tau", "fit_size", "prior", "model"),
+      grade_col = "algorithm_pair_signoff_grade",
+      eligible_col = "algorithm_pair_comparison_eligible",
+      extra_numeric = c("runtime_ratio_mcmc_vs_vb", "mae_delta_mcmc_minus_vb")
+    )
+    q_root_group <- .qdesn_dynamic_crossstudy_qdesn_root_group_summary(qdesn_tables$root_summary)
+    .qdesn_validation_write_df(q_fit_group, file.path(output_root, "tables", "qdesn_fit_group_summary.csv"))
+    .qdesn_validation_write_df(q_pair_group, file.path(output_root, "tables", "qdesn_pair_group_summary.csv"))
+    .qdesn_validation_write_df(q_root_group, file.path(output_root, "tables", "qdesn_root_group_summary.csv"))
+    .qdesn_validation_write_lines(
+      file.path(output_root, "comparison_summary.md"),
+      c(
+        "# QDESN Dynamic Cross-Study vs exdqlm Reference",
+        "",
+        "- comparison_available: `FALSE`",
+        "- reason: the active relaunch surface is using materialized dynamic source inputs with",
+        "  `tau = 0.50`, but the legacy mirrored exdqlm reference signoff inventory is only available",
+        "  for the older `0.05 / 0.25 / 0.95` surface.",
+        "- action: use the staged-source contract and the QDESN campaign summaries for this relaunch;",
+        "  do not interpret this run as having a directly mirrored legacy reference compare yet.",
+        "",
+        "## QDESN Root Group Summary",
+        .qdesn_validation_df_to_markdown(q_root_group),
+        "",
+        "## QDESN Pair Group Summary",
+        .qdesn_validation_df_to_markdown(q_pair_group)
+      )
+    )
+    .qdesn_validation_write_json(file.path(output_root, "manifest", "comparison_manifest.json"), list(
+      generated_at = as.character(Sys.time()),
+      output_root = normalizePath(output_root, winslash = "/", mustWork = FALSE),
+      comparison_available = FALSE,
+      reason = "materialized_source_contract_without_mirrored_reference_inventory"
+    ))
+    return(invisible(list(
+      comparison_available = FALSE,
+      reference_fit_group = data.frame(stringsAsFactors = FALSE),
+      reference_pair_group = data.frame(stringsAsFactors = FALSE),
+      reference_root_group = data.frame(stringsAsFactors = FALSE),
+      qdesn_fit_group = q_fit_group,
+      qdesn_pair_group = q_pair_group,
+      qdesn_root_group = q_root_group,
+      surface_delta = data.frame(stringsAsFactors = FALSE)
+    )))
+  }
 
   ref_fit_group <- .qdesn_static_crossstudy_group_summary(
     reference_inventory$fit_summary,
