@@ -6,5 +6,6 @@ test_that("exdqlm loads and key symbols exist", {
   ns <- asNamespace("exdqlm")
   expect_true(exists("exdqlmISVB",  where = ns, inherits = FALSE))
   expect_true(exists("exdqlmMCMC",  where = ns, inherits = FALSE))
+  expect_true(exists("transfn_exdqlmMCMC", where = ns, inherits = FALSE))
   expect_true(exists("exdqlmForecast", where = ns, inherits = FALSE))
 })

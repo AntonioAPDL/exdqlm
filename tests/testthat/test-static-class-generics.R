@@ -21,8 +21,10 @@ test_that("exal_mcmc generics dispatch and return stable outputs", {
 
   expect_true(is.exal_mcmc(fit))
   expect_s3_class(fit, "exal_mcmc")
-  expect_output(print(fit), "Static Quantile Regression")
+  expect_output(print(fit), "Bayesian Linear Quantile Regression")
   expect_output(summary(fit), "Posterior mean sigma")
+  expect_true(!is.null(fit$X))
+  expect_true(!is.null(fit$y))
 
   tf <- tempfile(fileext = ".pdf")
   grDevices::pdf(tf)
@@ -46,12 +48,13 @@ test_that("exal_ldvb generics dispatch and enforce plot X contract", {
 
   expect_true(is.exal_ldvb(fit))
   expect_s3_class(fit, "exal_ldvb")
-  expect_output(print(fit), "Static Quantile Regression")
+  expect_output(print(fit), "Bayesian Linear Quantile Regression")
   expect_output(summary(fit), "Posterior mean sigma")
-  expect_error(plot(fit), "requires design matrix X")
+  expect_true(!is.null(fit$X))
+  expect_true(!is.null(fit$y))
 
   tf <- tempfile(fileext = ".pdf")
   grDevices::pdf(tf)
   on.exit(grDevices::dev.off(), add = TRUE)
-  expect_no_error(plot(fit, X = dat$X, cr.percent = 0.9))
+  expect_no_error(plot(fit, cr.percent = 0.9))
 })

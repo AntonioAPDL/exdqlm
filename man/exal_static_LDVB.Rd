@@ -2,7 +2,7 @@
 % Please edit documentation in R/exal_static_LDVB.R
 \name{exal_static_LDVB}
 \alias{exal_static_LDVB}
-\title{Static exAL Regression - CAVI with Laplace-Delta for (sigma, gamma)}
+\title{Static exAL Regression - LDVB Approximation}
 \usage{
 exal_static_LDVB(
   y,
@@ -20,6 +20,7 @@ exal_static_LDVB(
   log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
+  n.samp = 200,
   n_samp_xi = 200,
   ld_controls = NULL,
   verbose = TRUE
@@ -32,7 +33,7 @@ exal_static_LDVB(
 
 \item{p0}{Target quantile in (0,1).}
 
-\item{max_iter}{Integer; maximum CAVI iterations (default 1000).}
+\item{max_iter}{Integer; maximum LDVB iterations (default 1000).}
 
 \item{tol}{Numeric; convergence tolerance based on relative ELBO changes (default 1e-4).}
 
@@ -84,8 +85,12 @@ support.}
 \item{init}{Optional list with starting values: \code{beta}, \code{sigma},
 \code{gamma}; if missing, reasonable defaults are used.}
 
-\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
-using conjugate CAVI updates for \code{q(beta)}, \code{q(v)} and \code{q(sigma)}.}
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model
+(\code{gamma = 0}). In that special case the nonconjugate block drops out
+and the remaining variational updates are available in closed form.}
+
+\item{n.samp}{Number of samples to draw from the approximated posterior
+distribution after convergence. Default is \code{n.samp = 200}.}
 
 \item{n_samp_xi}{Integer; retained for backward compatibility in the
 Laplace-Delta block. Under the current delta-only implementation this
@@ -97,7 +102,7 @@ Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 \code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
 \code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
 \code{eta_lo}, \code{eta_hi}, \code{sigma_bounds},
-\code{sigma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
+\code{sigma_init_mode}, \code{gamma_init_mode}, \code{sigma_floor_abs}, \code{sigma_min_mult},
 \code{sigma_max_mult}, \code{sigma_bound_ratio_min},
 \code{gamma_init_pad_frac}, \code{logit_eps}, \code{init_cov_diag},
 \code{reuse_seed}, \code{mode_grad_tol}, \code{mode_min_eig},
@@ -114,6 +119,8 @@ Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 A object of class "\code{exal_ldvb}" containing:
 \itemize{
 \item \code{qbeta}: list with \code{m}, \code{V}.
+\item \code{samp.beta}: posterior sample from \eqn{q(\beta)} with
+\code{n.samp} rows.
 \item \code{qv}: list with \code{chi} (length n), \code{psi} (scalar),
 \code{E_v} and \code{E_inv_v} (moments).
 \item \code{qs}: list with \code{mu} (length n), \code{tau2} (length n),
@@ -121,6 +128,10 @@ A object of class "\code{exal_ldvb}" containing:
 \item \code{qsiggam}: list with \code{eta_hat}, \code{ell_hat},
 \code{Sigma} (2x2), approximate means
 \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
+\item \code{samp.sigma}, \code{samp.gamma}: posterior samples from the
+variational approximation for the scale and skewness parameters. In
+the AL special case (\code{dqlm.ind = TRUE}), \code{samp.gamma} is a
+vector of zeros.
 \item \code{converged}, \code{iter}, \code{run.time}, and
 \code{misc} (including \code{p0}, bounds \code{L,U}, dimensions, and ELBO trace).
 \item \code{beta_prior}: prior metadata and, for RHS-family priors,
@@ -140,16 +151,21 @@ collapse diagnostics.
 }
 }
 \description{
-The function applies a coordinate-ascent variational inference (CAVI)
-algorithm to static Extended Asymmetric Laplace (exAL) regression, using a
-Laplace-Delta approximation for the joint \eqn{(\sigma,\gamma)} block.
+The function applies a mean-field variational approximation to static
+Extended Asymmetric Laplace (exAL) regression. Closed-form block updates are
+combined with a Laplace-Delta approximation for the joint
+\eqn{(\sigma,\gamma)} block, yielding the package's static LDVB routine.
 }
 \details{
 Mean-field factorization:
 \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
-The LD block is parameterized in transformed coordinates
+This factorization induces a blockwise coordinate-ascent variational
+inference scheme. The \eqn{(\sigma,\gamma)} block is the only nonconjugate
+component, so LDVB approximates it in transformed coordinates
 \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
-The \code{xi} expectations used in CAVI updates can be computed either from a
+The \code{xi} expectations needed by the remaining block updates are then
+computed with a second-order Delta approximation. The \code{xi} expectations
+used in the updates can be computed either from a
 deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
 Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
 optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the

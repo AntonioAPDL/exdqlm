@@ -22,6 +22,8 @@
   `ridge` behavior.
 - Added `transfn_exdqlmLDVB()` for post-fit transformed summaries analogous to
   the ISVB path.
+- Added `transfn_exdqlmMCMC()` for fixed-`lam` transfer-function exDQLM
+  fitting under the dynamic MCMC workflow.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),
   return-value structure, and CRAN-safe examples aligned with existing package style.
 
@@ -42,6 +44,8 @@
   default `FALSE`); no backend default flip in this release.
 - Optional C++ post-predictive sampler remains opt-in
   (`exdqlm.use_cpp_postpred` default `FALSE`).
+- Transfer-function wrappers now share the same augmentation helper and accept
+  either one or two discount factors through `tf.df`.
 
 # exdqlm 0.3.0
 

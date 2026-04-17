@@ -168,6 +168,53 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   pmax(draws, eps_gig)
 }
 
+.exdqlm_format_progress_value <- function(x) {
+  if (is.null(x) || length(x) == 0L) return(NULL)
+  if (length(x) > 1L) {
+    return(paste(vapply(as.list(x), .exdqlm_format_progress_value, character(1)), collapse = ","))
+  }
+  if (is.logical(x)) {
+    if (is.na(x)) return("NA")
+    return(if (isTRUE(x)) "yes" else "no")
+  }
+  if (is.character(x)) {
+    return(as.character(x)[1])
+  }
+  if (is.numeric(x)) {
+    x <- as.numeric(x)[1]
+    if (!is.finite(x)) return("NA")
+    ax <- abs(x)
+    if (ax >= 1e4 || (ax > 0 && ax < 1e-3)) return(sprintf("%.3e", x))
+    if (ax >= 100) return(sprintf("%.2f", x))
+    if (ax >= 1) return(sprintf("%.3f", x))
+    return(sprintf("%.3g", x))
+  }
+  as.character(x)[1]
+}
+
+.exdqlm_progress <- function(label, ..., .verbose = TRUE) {
+  if (!isTRUE(.verbose)) return(invisible(NULL))
+  fields <- list(...)
+  pieces <- character(0)
+  for (nm in names(fields)) {
+    val <- .exdqlm_format_progress_value(fields[[nm]])
+    if (is.null(val)) next
+    if (nzchar(nm)) {
+      pieces <- c(pieces, sprintf("%s=%s", nm, val))
+    } else {
+      pieces <- c(pieces, val)
+    }
+  }
+  cat(paste(c(label, pieces), collapse = " | "), "\n")
+  utils::flush.console()
+  try(flush(stdout()), silent = TRUE)
+  invisible(NULL)
+}
+
+.exdqlm_static_model_label <- function(dqlm.ind) {
+  if (isTRUE(dqlm.ind)) "AL special case (gamma = 0)" else "exAL"
+}
+
 
 .exdqlm_unwrap_fit_bundle <- function(obj, max_depth = 32L) {
   depth <- 0L
@@ -661,11 +708,24 @@ check_ts = function(dat){
   tau2 <- pmax(as.numeric(tau2), 1e-14)
   tau <- sqrt(tau2)
   alpha <- mu / tau
-  Phi <- pmax(stats::pnorm(alpha), 1e-12)
-  phi <- stats::dnorm(alpha)
-  Lambda <- phi / Phi
+  log_Phi <- stats::pnorm(alpha, log.p = TRUE)
+  log_phi <- stats::dnorm(alpha, log = TRUE)
+  Lambda <- exp(log_phi - log_Phi)
+  Phi <- exp(log_Phi)
   E_pos <- mu + tau * Lambda
   E2_pos <- tau2 + mu^2 + tau * mu * Lambda
+
+  extreme_left <- is.finite(alpha) & alpha < -8
+  if (any(extreme_left)) {
+    x <- -alpha[extreme_left]
+    mean_shift_std <- 1 / x - 2 / (x^3) + 10 / (x^5)
+    Lambda[extreme_left] <- x + mean_shift_std
+    E_pos[extreme_left] <- tau[extreme_left] * mean_shift_std
+    E2_std <- 1 - x * mean_shift_std
+    E2_pos[extreme_left] <- tau2[extreme_left] * pmax(E2_std, mean_shift_std^2)
+  }
+
+  E2_pos <- pmax(E2_pos, E_pos^2)
   list(
     mean = E_pos,
     second = E2_pos,
@@ -675,6 +735,74 @@ check_ts = function(dat){
     Phi = Phi,
     Lambda = Lambda
   )
+}
+
+.exdqlm_ldvb_sample_gaussian <- function(mu, Sigma, n_samp) {
+  ns <- suppressWarnings(as.integer(n_samp)[1])
+  if (!is.finite(ns) || ns < 1L) return(NULL)
+
+  mu <- as.numeric(mu)
+  p <- length(mu)
+  S <- as.matrix(Sigma)
+  if (!all(dim(S) == c(p, p))) {
+    stop("Sigma must be a square covariance matrix matching length(mu).", call. = FALSE)
+  }
+  S <- (S + t(S)) / 2
+
+  if (p == 1L) {
+    sd1 <- sqrt(max(S[1, 1], 0))
+    out <- matrix(mu[1] + stats::rnorm(ns, sd = sd1), ncol = 1L)
+    colnames(out) <- names(mu)
+    return(out)
+  }
+
+  L <- try(chol(S), silent = TRUE)
+  if (inherits(L, "try-error")) {
+    eig <- eigen(S, symmetric = TRUE)
+    vals <- pmax(eig$values, .Machine$double.eps)
+    L <- eig$vectors %*% diag(sqrt(vals), p) %*% t(eig$vectors)
+  }
+
+  Z <- matrix(stats::rnorm(ns * p), nrow = ns, ncol = p)
+  out <- sweep(Z %*% L, 2L, mu, `+`)
+  colnames(out) <- names(mu)
+  out
+}
+
+.exal_static_ldvb_sample_posterior <- function(fit, n_samp) {
+  ns <- suppressWarnings(as.integer(n_samp)[1])
+  if (!is.finite(ns) || ns < 1L) return(NULL)
+
+  beta_mu <- as.numeric(fit$qbeta$m)
+  names(beta_mu) <- colnames(fit$X)
+  beta_draws <- .exdqlm_ldvb_sample_gaussian(beta_mu, fit$qbeta$V, ns)
+  if (is.null(colnames(beta_draws))) {
+    colnames(beta_draws) <- colnames(fit$X)
+  }
+
+  out <- list(samp.beta = beta_draws)
+
+  if (isTRUE(fit$dqlm.ind)) {
+    a <- as.numeric(fit$qsig$a)[1]
+    b <- as.numeric(fit$qsig$b)[1]
+    out$samp.sigma <- 1 / stats::rgamma(ns, shape = a, rate = b)
+    out$samp.gamma <- rep(0, ns)
+    return(out)
+  }
+
+  ld_mu <- c(
+    eta = as.numeric(fit$qsiggam$eta_hat),
+    ell = as.numeric(fit$qsiggam$ell_hat)
+  )
+  ld_draws <- .exdqlm_ldvb_sample_gaussian(ld_mu, fit$qsiggam$Sigma, ns)
+  bounds <- fit$misc$bounds
+  L <- as.numeric(bounds["L"])
+  U <- as.numeric(bounds["U"])
+  if (!is.finite(L)) L <- as.numeric(bounds[1])
+  if (!is.finite(U)) U <- as.numeric(bounds[2])
+  out$samp.sigma <- exp(ld_draws[, 2L])
+  out$samp.gamma <- L + (U - L) * stats::plogis(ld_draws[, 1L])
+  out
 }
 
 .exdqlm_trace_summary <- function(x) {
@@ -934,6 +1062,11 @@ check_ts = function(dat){
   controls <- .vb_joint_controls(tol_state = tol, has_gamma = FALSE)
   stop_reason <- "max_iter"
 
+  .exdqlm_progress(
+    "LDVB start",
+    tol = tol,
+    .verbose = verbose
+  )
   tictoc::tic("run time")
   while (iter < max_iter) {
     iter <- iter + 1L
@@ -1017,12 +1150,15 @@ check_ts = function(dat){
     prev_sigma <- E_sigma
     seq.sigma <- c(seq.sigma, E_sigma)
 
-    if (verbose && (iter %% 5L == 0L)) {
-      message(sprintf(
-        "DQLM-CAVI iter %3d | d_state=%.3g d_sigma=%.3g | sigma=%.4f | ELBO=%.6f (Delta=%.3e) | stable=%d/%d",
-        iter, d_state, d_sigma, E_sigma, elbo, d_elbo, stable_count, controls$patience
-      ))
-      utils::flush.console()
+    if (iter %% 5L == 0L) {
+      .exdqlm_progress(
+        "LDVB progress",
+        model = "DQLM",
+        iter = iter,
+        sigma = E_sigma,
+        elbo = elbo,
+        .verbose = verbose
+      )
     }
 
     if (step$stop_now) {
@@ -1031,6 +1167,15 @@ check_ts = function(dat){
     }
   }
   run.time <- tictoc::toc(quiet = TRUE)
+  .exdqlm_progress(
+    "LDVB done",
+    model = "DQLM",
+    status = if (identical(stop_reason, "joint_converged")) "converged" else "stopped",
+    iter = iter,
+    runtime_sec = run.time$toc - run.time$tic,
+    sigma = E_sigma,
+    .verbose = verbose
+  )
 
   # Posterior sampling from variational factors
   ns <- as.integer(n.samp)
@@ -1160,6 +1305,7 @@ check_X <- function(X, Tlen = NULL, name = "X") {
   a_sigma = 1,
   b_sigma = 1,
   init = NULL,
+  n.samp = 200L,
   verbose = TRUE
 ) {
   y <- as.numeric(y)
@@ -1217,10 +1363,12 @@ check_X <- function(X, Tlen = NULL, name = "X") {
   controls <- .vb_joint_controls(tol_state = tol, has_gamma = FALSE)
   stop_reason <- "max_iter"
 
-  if (verbose) {
-    cat(sprintf("Static DQLM CAVI | n=%d, p=%d | max_iter=%d, tol=%.1e\n",
-                n, p, as.integer(max_iter), tol))
-  }
+  .exdqlm_progress(
+    "LDVB start",
+    max_iter = as.integer(max_iter),
+    tol = tol,
+    .verbose = verbose
+  )
 
   t0 <- proc.time()[3]
   for (iter in seq_len(as.integer(max_iter))) {
@@ -1317,11 +1465,15 @@ check_X <- function(X, Tlen = NULL, name = "X") {
     delta_sigma <- c(delta_sigma, d_sigma)
     delta_elbo <- c(delta_elbo, d_elbo)
 
-    if (verbose && (iter %% 25L == 0L)) {
-      cat(sprintf(
-        "iter %4d | d_beta=%.3e d_sigma=%.3e | sigma=%.4f | ELBO=%.6f (Delta=%.3e) | stable=%d/%d\n",
-        iter, d_beta, d_sigma, E_sigma, elbo, d_elbo, stable_count, controls$patience
-      ))
+    if (iter %% 25L == 0L) {
+      .exdqlm_progress(
+        "LDVB progress",
+        model = "AL special case",
+        iter = iter,
+        sigma = E_sigma,
+        elbo = elbo,
+        .verbose = verbose
+      )
     }
 
     if (step$stop_now) {
@@ -1334,6 +1486,9 @@ check_X <- function(X, Tlen = NULL, name = "X") {
   t1 <- proc.time()[3]
 
   ret <- list(
+    y = y,
+    X = X,
+    p0 = p0,
     dqlm.ind = TRUE,
     qbeta = list(m = m_beta, V = V_beta),
     qv = list(
@@ -1390,8 +1545,22 @@ check_X <- function(X, Tlen = NULL, name = "X") {
       )
     )
   )
+  draws <- .exal_static_ldvb_sample_posterior(ret, n.samp)
+  if (!is.null(draws)) {
+    ret[names(draws)] <- draws
+  }
+  ret$run.time <- as.numeric(proc.time()[3] - t0)
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
+  .exdqlm_progress(
+    "LDVB done",
+    model = "AL special case",
+    status = if (isTRUE(converged)) "converged" else "stopped",
+    iter = iter,
+    runtime_sec = ret$run.time,
+    sigma = ret$qsig$E_sigma,
+    .verbose = verbose
+  )
   ret
 }

@@ -1248,3 +1248,44 @@ Current read:
   row-faithful replay;
 - it gives an explicit best representative row for every root;
 - the remaining blocker is still targeted `MCMC` debt, not replay orchestration.
+
+## 21) 0.4.0 Package-Core Sync Freeze Before The Next Validation Relaunch (2026-04-16)
+
+Freeze-and-sync report:
+
+- `docs/REPORT__qdesn_0p4p0_core_sync_and_validation_freeze_20260416.md`
+
+Meaning of this freeze:
+
+- the completed row-faithful replay and the finished deep-DESN comparison pack remain the correct
+  evidence for the pre-sync branch state;
+- they are frozen and retained as branch-local evidence;
+- but they should not be treated as the final post-sync answer because the active branch has now
+  been resynced against the newer package-core updates from `origin/cransub/0.4.0`.
+
+What changed in the sync:
+
+- the QDESN branch absorbed the newer `0.4.0` package-core changes for:
+  - static `al` / `exal`
+  - `VB` / `MCMC`
+  - transfer-function wrappers
+  - package diagnostics, docs, and tests
+- `origin/cransub/0.4.0` itself remains free of QDESN workflow scripts.
+
+Why the next relaunch must start from scratch:
+
+- the synced package-core changes touch shared inference code used underneath the QDESN validation
+  layer;
+- therefore the next deep-DESN validation relaunch should be treated as a fresh post-sync run, not
+  as a continuation of the pre-sync replay.
+
+Sync validation performed:
+
+- `test-transfer-mcmc-wrapper.R`
+- `test-static-diagnostics.R`
+- `test-static-p025-stability.R`
+- `test-vb-mcmc-convergence-controls.R`
+- `test-qdesn-prior-defaults.R`
+- `test-pipeline-inference-validation.R`
+- `test-qdesn-dynamic-failure-repair.R`
+- `test-qdesn-validation-group-summary-robustness.R`

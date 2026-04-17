@@ -23,7 +23,7 @@ exal_static_mcmc(
   thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
-  mh.proposal = c("laplace_rw", "rw", "slice", "slice_eta", "laplace_local"),
+  mh.proposal = c("slice", "laplace_rw", "rw", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
@@ -101,8 +101,11 @@ parameterization \code{lambda2}, \code{tau2}, \code{zeta2}, and optional
 auxiliaries \code{nu}, \code{xi} are also accepted. Missing pieces are
 filled sensibly.}
 
-\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
-with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.}
+\item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model
+(\code{gamma = 0}), corresponding to Bayesian linear quantile regression
+under the AL working likelihood. This removes the \code{gamma}- and
+\code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
+\code{sigma}, and \code{v}.}
 
 \item{n.burn}{Number of burn-in iterations. Default \code{2000}.}
 
@@ -119,13 +122,13 @@ posterior moments as MCMC initialization.}
 \code{ld_controls} (passed through to \code{exal_static_LDVB()}).}
 
 \item{mh.proposal}{Character string controlling the exAL nonconjugate update
-kernel. \code{"laplace_rw"} (default) uses a Laplace-informed adaptive
-random-walk MH update on the transformed joint block
+kernel. \code{"slice"} (default) uses an exact bounded univariate slice
+sampler on \code{gamma} (with \code{sigma} updated from its conditional),
+and \code{"slice_eta"} does the same on transformed \code{eta}.
+\code{"laplace_rw"} uses a Laplace-informed adaptive random-walk MH update
+on the transformed joint block
 \eqn{(\eta,\ell)=(\mathrm{logit}((\gamma-L)/(U-L)), \log\sigma)}.
 \code{"rw"} uses the same exact joint update with identity base covariance.
-\code{"slice"} uses an exact bounded univariate slice sampler on
-\code{gamma} (with \code{sigma} updated from its conditional), and
-\code{"slice_eta"} does the same on transformed \code{eta}.
 \code{"laplace_local"} reproduces the prior approximate local-Gaussian
 gamma draw (not signoff-ready).
 Only \code{"laplace_local"} is approximate.}

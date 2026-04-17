@@ -1157,3 +1157,42 @@ Current branch-local decision point:
   row-faithful replay;
 - any later promotion work should compare against the 36-row representative table, not against the
   raw 144-row replay surface blindly.
+
+## 21) 0.4.0 Core Sync And Validation Freeze (2026-04-16)
+
+Freeze-and-sync report:
+
+- `docs/REPORT__qdesn_0p4p0_core_sync_and_validation_freeze_20260416.md`
+
+Current state:
+
+- the active branch has now been resynced with the newer package-core updates from
+  `origin/cransub/0.4.0`;
+- the `0.4.0` branch stays package-only and does not absorb the QDESN workflow layer;
+- the QDESN integration branch now carries:
+  - the newer `0.4.0` package-core work
+  - the existing QDESN integration / validation machinery
+
+Frozen pre-sync evidence:
+
+- row-faithful replay closeout:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_closeout_and_failure_audit_20260416.md`
+- deep-DESN comparison pack:
+  - `docs/REPORT__qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_outputs_20260416.md`
+
+Important interpretation:
+
+- those artifacts remain valid as evidence for the pre-sync code state;
+- but the next deep-DESN validation run should be relaunched from scratch on top of the synced
+  package core rather than continuing from the old outputs.
+
+Focused validation run after the sync:
+
+- `test-transfer-mcmc-wrapper.R`
+- `test-static-diagnostics.R`
+- `test-static-p025-stability.R`
+- `test-vb-mcmc-convergence-controls.R`
+- `test-qdesn-prior-defaults.R`
+- `test-pipeline-inference-validation.R`
+- `test-qdesn-dynamic-failure-repair.R`
+- `test-qdesn-validation-group-summary-robustness.R`

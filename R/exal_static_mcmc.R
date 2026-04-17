@@ -65,8 +65,11 @@
 #'   parameterization \code{lambda2}, \code{tau2}, \code{zeta2}, and optional
 #'   auxiliaries \code{nu}, \code{xi} are also accepted. Missing pieces are
 #'   filled sensibly.
-#' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model (DQLM, \code{gamma=0})
-#'   with conjugate Gibbs updates for \code{beta}, \code{sigma}, and \code{v} only.
+#' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model
+#'   (\code{gamma = 0}), corresponding to Bayesian linear quantile regression
+#'   under the AL working likelihood. This removes the \code{gamma}- and
+#'   \code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
+#'   \code{sigma}, and \code{v}.
 #' @param n.burn Number of burn-in iterations. Default \code{2000}.
 #' @param n.mcmc Number of kept MCMC iterations (after burn). Default \code{1500}.
 #' @param thin Integer; save every \code{thin}-th iteration after burn. We internally run
@@ -77,13 +80,13 @@
 #'   \code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
 #'   \code{ld_controls} (passed through to \code{exal_static_LDVB()}).
 #' @param mh.proposal Character string controlling the exAL nonconjugate update
-#'   kernel. \code{"laplace_rw"} (default) uses a Laplace-informed adaptive
-#'   random-walk MH update on the transformed joint block
+#'   kernel. \code{"slice"} (default) uses an exact bounded univariate slice
+#'   sampler on \code{gamma} (with \code{sigma} updated from its conditional),
+#'   and \code{"slice_eta"} does the same on transformed \code{eta}.
+#'   \code{"laplace_rw"} uses a Laplace-informed adaptive random-walk MH update
+#'   on the transformed joint block
 #'   \eqn{(\eta,\ell)=(\mathrm{logit}((\gamma-L)/(U-L)), \log\sigma)}.
 #'   \code{"rw"} uses the same exact joint update with identity base covariance.
-#'   \code{"slice"} uses an exact bounded univariate slice sampler on
-#'   \code{gamma} (with \code{sigma} updated from its conditional), and
-#'   \code{"slice_eta"} does the same on transformed \code{eta}. 
 #'   \code{"laplace_local"} reproduces the prior approximate local-Gaussian
 #'   gamma draw (not signoff-ready).
 #'   Only \code{"laplace_local"} is approximate.
@@ -189,7 +192,7 @@ exal_static_mcmc <- function(
   n.burn = 2000, n.mcmc = 1500, thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
-  mh.proposal = c("laplace_rw", "rw", "slice", "slice_eta", "laplace_local"),
+  mh.proposal = c("slice", "laplace_rw", "rw", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.20, 0.45),
@@ -237,7 +240,9 @@ exal_static_mcmc <- function(
   rhs_preflight <- NULL
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
-    .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_mcmc")
+    if (isTRUE(verbose) || isTRUE(beta_prior_obj$controls$verbose)) {
+      .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_mcmc")
+    }
   }
 
   L <- gamma_bounds[1]; U <- gamma_bounds[2]
@@ -390,11 +395,13 @@ exal_static_mcmc <- function(
       stop("vb_init_controls$ld_controls must be a list or NULL")
     }
 
+    vb_b0 <- if (b0_missing) NULL else b0
+    vb_V0 <- if (V0_missing) NULL else V0
     vb.fit <- exal_static_LDVB(
       y = y, X = X, p0 = p0,
       max_iter = vb.ctrl$max_iter,
       tol = vb.ctrl$tol,
-      b0 = b0, V0 = V0,
+      b0 = vb_b0, V0 = vb_V0,
       beta_prior = beta_prior,
       beta_prior_controls = beta_prior_controls,
       a_sigma = a_sigma, b_sigma = b_sigma,
@@ -555,10 +562,15 @@ exal_static_mcmc <- function(
     v <- pmax(v, 1e-12)
 
     I <- n.burn + n.mcmc * thin
-    if (verbose) {
-      cat(sprintf("Static DQLM MCMC | n=%d, p=%d | burn=%d, keep=%d, thin=%d\n",
-                  n, p, n.burn, n.mcmc, thin))
-    }
+    .exdqlm_progress(
+      "MCMC start",
+      burn = n.burn,
+      keep = n.mcmc,
+      thin = thin,
+      kernel = "conjugate",
+      warm_start = if (isTRUE(init.from.vb)) "ldvb" else "none",
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "start",
       iter = 0L,
@@ -622,11 +634,16 @@ exal_static_mcmc <- function(
         }
       }
 
-      if (verbose && (i %% progress_every == 0)) {
-        cat(sprintf("%s iteration %d | sigma=%.3f\n",
-                    ifelse(i <= n.burn, "burn-in", "MCMC"), i, sigma))
-      }
       if (i %% progress_every == 0L) {
+        .exdqlm_progress(
+          "MCMC progress",
+          model = "AL special case",
+          phase = if (i <= n.burn) "burn" else "keep",
+          iter = sprintf("%d/%d", i, I),
+          sigma = sigma,
+          kept = sprintf("%d/%d", ksave, n.mcmc),
+          .verbose = verbose
+        )
         safe_progress_callback(list(
           event = "progress",
           iter = as.integer(i),
@@ -645,10 +662,15 @@ exal_static_mcmc <- function(
       }
     }
     run.time <- tictoc::toc(quiet = TRUE)
-    if (verbose) {
-      cat(sprintf("MCMC complete: %d iterations, %.3f seconds\n",
-                  I, run.time$toc - run.time$tic))
-    }
+    .exdqlm_progress(
+      "MCMC done",
+      model = "AL special case",
+      status = "complete",
+      iter = I,
+      runtime_sec = run.time$toc - run.time$tic,
+      sigma = sigma,
+      .verbose = verbose
+    )
     safe_progress_callback(list(
       event = "complete",
       iter = as.integer(I),
@@ -668,6 +690,7 @@ exal_static_mcmc <- function(
 
     ret <- list(
       run.time   = (run.time$toc - run.time$tic),
+      y          = y,
       X          = X,
       p0         = p0,
       dqlm.ind   = TRUE,
@@ -1043,10 +1066,15 @@ exal_static_mcmc <- function(
   }
 
   ## --- main loop (burn + mcmc, prints like exdqlmMCMC) ---------------------
-  if (verbose) {
-    cat(sprintf("Static exAL MCMC | n=%d, p=%d | burn=%d, keep=%d, thin=%d | mh=%s\n",
-                n, p, n.burn, n.mcmc, thin, mh.proposal))
-  }
+  .exdqlm_progress(
+    "MCMC start",
+    burn = n.burn,
+    keep = n.mcmc,
+    thin = thin,
+    kernel = mh.proposal,
+    warm_start = if (isTRUE(init.from.vb)) "ldvb" else "none",
+    .verbose = verbose
+  )
   safe_progress_callback(list(
     event = "start",
     iter = 0L,
@@ -1415,20 +1443,24 @@ exal_static_mcmc <- function(
       }
     }
 
-    if (verbose && (i %% progress_every == 0)) {
-      acc_msg <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) {
-        "NA"
-      } else {
-        format(round(n.accept / pmax(n.trial.burn + n.trial.keep, 1L), 4), nsmall = 4)
-      }
-      cat(sprintf(
-        "%s iteration %d | sigma=%.3f | gamma=%.3f | kernel=%s | acc=%s\n",
-        ifelse(i <= n.burn, "burn-in", "MCMC"), i, sigma, gamma, mh.proposal, acc_msg
-      ))
-      utils::flush.console()
-      try(flush(stdout()), silent = TRUE)
-    }
     if (i %% progress_every == 0L) {
+      accept_now <- if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) {
+        NA_real_
+      } else {
+        n.accept / pmax(n.trial.burn + n.trial.keep, 1L)
+      }
+      .exdqlm_progress(
+        "MCMC progress",
+        model = "Static exAL",
+        phase = if (i <= n.burn) "burn" else "keep",
+        iter = sprintf("%d/%d", i, I),
+        sigma = sigma,
+        gamma = gamma,
+        kernel = mh.proposal,
+        accept = accept_now,
+        kept = sprintf("%d/%d", ksave, n.mcmc),
+        .verbose = verbose
+      )
       safe_progress_callback(list(
         event = "progress",
         iter = as.integer(i),
@@ -1442,7 +1474,7 @@ exal_static_mcmc <- function(
         sigma = sigma,
         gamma = gamma,
         kernel = mh.proposal,
-        accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NA_real_ else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+        accept = accept_now,
         gamma_substeps = as.integer(gamma.substeps),
         p_global_eta_jump = p.global.eta.jump,
         global_jump_attempts_iter = as.integer(global_jump_attempts_iter),
@@ -1451,10 +1483,18 @@ exal_static_mcmc <- function(
     }
   }
   run.time <- tictoc::toc(quiet = TRUE)
-  if (verbose) {
-    cat(sprintf("MCMC complete: %d iterations, %.3f seconds\n",
-                I, run.time$toc - run.time$tic))
-  }
+  .exdqlm_progress(
+    "MCMC done",
+    model = "Static exAL",
+    status = "complete",
+    iter = I,
+    runtime_sec = run.time$toc - run.time$tic,
+    sigma = sigma,
+    gamma = gamma,
+    kernel = mh.proposal,
+    accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NULL else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
+    .verbose = verbose
+  )
   safe_progress_callback(list(
     event = "complete",
     iter = as.integer(I),
@@ -1544,6 +1584,7 @@ exal_static_mcmc <- function(
   ## --- return (match exdqlmMCMC style) -------------------------------------
   ret <- list(
     run.time   = (run.time$toc - run.time$tic),
+    y          = y,
     X          = X,
     p0         = p0,
     dqlm.ind   = FALSE,
