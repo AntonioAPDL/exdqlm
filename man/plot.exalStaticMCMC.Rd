@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{plot.exalStaticMCMC}
 \alias{plot.exalStaticMCMC}
-\alias{plot.exal_mcmc}
 \title{Plot Method for \code{exalStaticMCMC} Objects}
 \usage{
 \method{plot}{exalStaticMCMC}(x, add = FALSE, col = "purple", cr.percent = 0.95, ...)
-
-\method{plot}{exal_mcmc}(x, add = FALSE, col = "purple", cr.percent = 0.95, ...)
 }
 \arguments{
 \item{x}{An \code{exalStaticMCMC} object.}

@@ -2,7 +2,6 @@
 % Please edit documentation in R/exalStaticDiagnostics.R
 \name{exalStaticDiagnostics}
 \alias{exalStaticDiagnostics}
-\alias{exalDiagnostics}
 \title{exAL Diagnostics}
 \usage{
 exalStaticDiagnostics(
@@ -15,8 +14,6 @@ exalStaticDiagnostics(
   cols = c("red", "blue"),
   cr.percent = 0.95
 )
-
-exalDiagnostics(...)
 }
 \arguments{
 \item{m1}{An object of class \code{"exalStaticLDVB"} or \code{"exalStaticMCMC"}.}
@@ -39,9 +36,6 @@ diagnostics.}
 
 \item{cr.percent}{Credible-interval mass used when summarizing fitted
 quantiles.}
-
-\item{...}{Deprecated compatibility arguments passed through to
-\code{exalStaticDiagnostics()}.}
 }
 \value{
 An object of class \code{"exalStaticDiagnostic"} containing fitted-quantile

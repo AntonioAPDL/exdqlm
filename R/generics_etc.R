@@ -546,10 +546,6 @@ plot.exdqlmLDVB <- function(x, ...) {
 #' @export
 is.exalStaticMCMC <- function(m){ return(methods::is(m,"exalStaticMCMC")) }
 
-#' @rdname is.exalStaticMCMC
-#' @export
-is.exal_mcmc <- function(m){ return(is.exalStaticMCMC(m)) }
-
 #' Print Method for \code{exalStaticMCMC} Objects
 #'
 #' @param x An \code{exalStaticMCMC} object.
@@ -611,24 +607,6 @@ plot.exalStaticMCMC <- function(x, add = FALSE, col = "purple", cr.percent = 0.9
   .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
 }
 
-#' @rdname print.exalStaticMCMC
-#' @export
-print.exal_mcmc <- function(x, ...) {
-  print.exalStaticMCMC(x, ...)
-}
-
-#' @rdname summary.exalStaticMCMC
-#' @export
-summary.exal_mcmc <- function(object, ...) {
-  summary.exalStaticMCMC(object, ...)
-}
-
-#' @rdname plot.exalStaticMCMC
-#' @export
-plot.exal_mcmc <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
-  plot.exalStaticMCMC(x, add = add, col = col, cr.percent = cr.percent, ...)
-}
-
 #' \code{exalStaticLDVB} objects
 #'
 #' \code{is.exalStaticLDVB} tests if its argument is an \code{exalStaticLDVB} object.
@@ -639,10 +617,6 @@ plot.exal_mcmc <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ..
 #'
 #' @export
 is.exalStaticLDVB <- function(m){ return(methods::is(m,"exalStaticLDVB")) }
-
-#' @rdname is.exalStaticLDVB
-#' @export
-is.exal_ldvb <- function(m){ return(is.exalStaticLDVB(m)) }
 
 #' Print Method for \code{exalStaticLDVB} Objects
 #'
@@ -720,26 +694,6 @@ plot.exalStaticLDVB <- function(x, X = NULL, add = FALSE, col = "purple", cr.per
   }
   .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
 }
-
-#' @rdname print.exalStaticLDVB
-#' @export
-print.exal_ldvb <- function(x, ...) {
-  print.exalStaticLDVB(x, ...)
-}
-
-#' @rdname summary.exalStaticLDVB
-#' @export
-summary.exal_ldvb <- function(object, ...) {
-  summary.exalStaticLDVB(object, ...)
-}
-
-#' @rdname plot.exalStaticLDVB
-#' @export
-plot.exal_ldvb <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
-  plot.exalStaticLDVB(x, X = X, add = add, col = col, cr.percent = cr.percent, ...)
-}
-
-
 
 ##################################
 ### "exdqlmDiagnostic" objects ###

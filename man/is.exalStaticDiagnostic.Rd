@@ -2,12 +2,9 @@
 % Please edit documentation in R/exalStaticDiagnostics.R
 \name{is.exalStaticDiagnostic}
 \alias{is.exalStaticDiagnostic}
-\alias{is.exalDiagnostic}
 \title{\code{exalStaticDiagnostic} objects}
 \usage{
 is.exalStaticDiagnostic(x)
-
-is.exalDiagnostic(x)
 }
 \arguments{
 \item{x}{an \strong{R} object}

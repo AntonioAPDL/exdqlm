@@ -20,8 +20,6 @@
 #'   zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
-#' @param ... Deprecated compatibility arguments passed through to
-#'   \code{exdqlmTransferLDVB()}.
 #'
 #' @return A object of class "\code{exdqlmLDVB}" containing the exdqlmLDVB
 #'   output for the transfer-function-augmented model, plus:
@@ -117,11 +115,4 @@ exdqlmTransferLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
 
   # return results
   return(tf.return)
-}
-
-#' @rdname exdqlmTransferLDVB
-#' @export
-transfn_exdqlmLDVB <- function(...) {
-  .Deprecated("exdqlmTransferLDVB")
-  exdqlmTransferLDVB(...)
 }

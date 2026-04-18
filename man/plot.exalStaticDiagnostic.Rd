@@ -2,12 +2,9 @@
 % Please edit documentation in R/exalStaticDiagnostics.R
 \name{plot.exalStaticDiagnostic}
 \alias{plot.exalStaticDiagnostic}
-\alias{plot.exalDiagnostic}
 \title{Plot Method for \code{exalStaticDiagnostic} Objects}
 \usage{
 \method{plot}{exalStaticDiagnostic}(x, cols = c("red", "blue"), ...)
-
-\method{plot}{exalDiagnostic}(x, cols = c("red", "blue"), ...)
 }
 \arguments{
 \item{x}{An \code{exalStaticDiagnostic} object.}

@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{summary.exalStaticLDVB}
 \alias{summary.exalStaticLDVB}
-\alias{summary.exal_ldvb}
 \title{Summary Method for \code{exalStaticLDVB} Objects}
 \usage{
 \method{summary}{exalStaticLDVB}(object, ...)
-
-\method{summary}{exal_ldvb}(object, ...)
 }
 \arguments{
 \item{object}{An \code{exalStaticLDVB} object.}

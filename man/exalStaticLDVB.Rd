@@ -2,7 +2,6 @@
 % Please edit documentation in R/exalStaticLDVB.R
 \name{exalStaticLDVB}
 \alias{exalStaticLDVB}
-\alias{exal_static_LDVB}
 \title{Static exAL Regression - LDVB Approximation}
 \usage{
 exalStaticLDVB(
@@ -26,8 +25,6 @@ exalStaticLDVB(
   ld_controls = NULL,
   verbose = TRUE
 )
-
-exal_static_LDVB(...)
 }
 \arguments{
 \item{y}{Numeric vector (length n).}
@@ -117,9 +114,6 @@ Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 \code{stabilize_step_cap_ell}, and \code{store_trace}.}
 
 \item{verbose}{Logical; print progress.}
-
-\item{...}{Deprecated compatibility arguments passed through to
-\code{exalStaticLDVB()}.}
 }
 \value{
 A object of class "\code{exalStaticLDVB}" containing:

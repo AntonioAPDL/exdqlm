@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{is.exalStaticLDVB}
 \alias{is.exalStaticLDVB}
-\alias{is.exal_ldvb}
 \title{\code{exalStaticLDVB} objects}
 \usage{
 is.exalStaticLDVB(m)
-
-is.exal_ldvb(m)
 }
 \arguments{
 \item{m}{an \strong{R} object}

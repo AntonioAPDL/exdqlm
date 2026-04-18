@@ -119,8 +119,6 @@
 #' @param progress_callback Optional callback invoked with a named list at MCMC
 #'   start, at each progress checkpoint, and on completion. Intended for
 #'   workflow-level per-case progress logging.
-#' @param ... Deprecated compatibility arguments passed through to
-#'   \code{exalStaticMCMC()}.
 #'
 #' @return A object of class "\code{exalStaticMCMC}" containing:
 #' \itemize{
@@ -744,7 +742,7 @@ exalStaticMCMC <- function(
       } else NULL,
       last = list(beta = beta, sigma = sigma, v = v)
     )
-    class(ret) <- c("exalStaticMCMC", "exal_mcmc", "exal_static_mcmc")
+    class(ret) <- "exalStaticMCMC"
     return(ret)
   }
 
@@ -1643,16 +1641,9 @@ exalStaticMCMC <- function(
     n.mcmc = n.mcmc,
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)
   )
-  class(ret) <- c("exalStaticMCMC", "exal_mcmc", "exal_static_mcmc")
+  class(ret) <- "exalStaticMCMC"
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
   ret
-}
-
-#' @rdname exalStaticMCMC
-#' @export
-exal_static_mcmc <- function(...) {
-  .Deprecated("exalStaticMCMC")
-  exalStaticMCMC(...)
 }

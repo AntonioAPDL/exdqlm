@@ -23,8 +23,6 @@
 #' @param seed NULL or integer for reproducible synthesized draws. Default \code{NULL}.
 #' @param T_expected Optional integer; if provided, forces the time dimension to \code{T_expected}
 #'   when orienting each matrix to \code{T x ns}. This avoids accidental transposes.
-#' @param ... Deprecated compatibility arguments passed through to
-#'   \code{quantileSynthesis()}.
 #'
 #' @return A list containing:
 #' \itemize{
@@ -226,11 +224,4 @@ quantileSynthesis <- function(draws_list, p,
       T_inferred = Tt
     )
   )
-}
-
-#' @rdname quantileSynthesis
-#' @export
-exdqlm_synthesize_from_draws <- function(...) {
-  .Deprecated("quantileSynthesis")
-  quantileSynthesis(...)
 }

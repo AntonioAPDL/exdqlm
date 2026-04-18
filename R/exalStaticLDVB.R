@@ -873,8 +873,6 @@
 #'   \code{stabilize_xi_damping}, \code{stabilize_step_cap_eta},
 #'   \code{stabilize_step_cap_ell}, and \code{store_trace}.
 #' @param verbose Logical; print progress.
-#' @param ... Deprecated compatibility arguments passed through to
-#'   \code{exalStaticLDVB()}.
 #'
 #' @return A object of class "\code{exalStaticLDVB}" containing:
 #' \itemize{
@@ -1030,7 +1028,7 @@ exalStaticLDVB <- function(
         summary = ret$beta_prior$summary
       )
     }
-    class(ret) <- c("exalStaticLDVB", "exal_ldvb", "exal_vb")
+    class(ret) <- "exalStaticLDVB"
     return(ret)
   }
 
@@ -2360,7 +2358,7 @@ exalStaticLDVB <- function(
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
-  class(ret) <- c("exalStaticLDVB", "exal_ldvb", "exal_vb")
+  class(ret) <- "exalStaticLDVB"
   .exdqlm_progress(
     "LDVB done",
     model = "Static exAL",
@@ -2372,11 +2370,4 @@ exalStaticLDVB <- function(
     .verbose = verbose
   )
   ret
-}
-
-#' @rdname exalStaticLDVB
-#' @export
-exal_static_LDVB <- function(...) {
-  .Deprecated("exalStaticLDVB")
-  exalStaticLDVB(...)
 }

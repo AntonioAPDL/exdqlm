@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{is.exalStaticMCMC}
 \alias{is.exalStaticMCMC}
-\alias{is.exal_mcmc}
 \title{\code{exalStaticMCMC} objects}
 \usage{
 is.exalStaticMCMC(m)
-
-is.exal_mcmc(m)
 }
 \arguments{
 \item{m}{an \strong{R} object}

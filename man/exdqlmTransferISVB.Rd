@@ -2,7 +2,6 @@
 % Please edit documentation in R/exdqlmTransferISVB.R
 \name{exdqlmTransferISVB}
 \alias{exdqlmTransferISVB}
-\alias{transfn_exdqlmISVB}
 \title{Transfer Function exDQLM - ISVB algorithm}
 \usage{
 exdqlmTransferISVB(
@@ -29,8 +28,6 @@ exdqlmTransferISVB(
   tf.C0 = NULL,
   verbose = TRUE
 )
-
-transfn_exdqlmISVB(...)
 }
 \arguments{
 \item{y}{A univariate time-series.}
@@ -86,9 +83,6 @@ zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 the \eqn{(k+1)\times(k+1)} identity matrix.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
-
-\item{...}{Deprecated compatibility arguments passed through to
-\code{exdqlmTransferISVB()}.}
 }
 \value{
 A object of class "\code{exdqlmISVB}" containing the following:

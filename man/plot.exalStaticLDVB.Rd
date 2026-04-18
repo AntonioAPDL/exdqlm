@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{plot.exalStaticLDVB}
 \alias{plot.exalStaticLDVB}
-\alias{plot.exal_ldvb}
 \title{Plot Method for \code{exalStaticLDVB} Objects}
 \usage{
 \method{plot}{exalStaticLDVB}(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...)
-
-\method{plot}{exal_ldvb}(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...)
 }
 \arguments{
 \item{x}{An \code{exalStaticLDVB} object.}

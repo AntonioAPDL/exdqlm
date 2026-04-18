@@ -2,12 +2,9 @@
 % Please edit documentation in R/exalStaticDiagnostics.R
 \name{summary.exalStaticDiagnostic}
 \alias{summary.exalStaticDiagnostic}
-\alias{summary.exalDiagnostic}
 \title{Summary Method for \code{exalStaticDiagnostic} Objects}
 \usage{
 \method{summary}{exalStaticDiagnostic}(object, ...)
-
-\method{summary}{exalDiagnostic}(object, ...)
 }
 \arguments{
 \item{object}{An \code{exalStaticDiagnostic} object.}

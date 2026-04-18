@@ -2,7 +2,6 @@
 % Please edit documentation in R/exalStaticMCMC.R
 \name{exalStaticMCMC}
 \alias{exalStaticMCMC}
-\alias{exal_static_mcmc}
 \title{exAL (static) - MCMC algorithm}
 \usage{
 exalStaticMCMC(
@@ -41,8 +40,6 @@ exalStaticMCMC(
   verbose = TRUE,
   progress_callback = NULL
 )
-
-exal_static_mcmc(...)
 }
 \arguments{
 \item{y}{Numeric vector of length \eqn{n}.}
@@ -179,9 +176,6 @@ record one diagnostics row every \code{trace.every} iterations.}
 \item{progress_callback}{Optional callback invoked with a named list at MCMC
 start, at each progress checkpoint, and on completion. Intended for
 workflow-level per-case progress logging.}
-
-\item{...}{Deprecated compatibility arguments passed through to
-\code{exalStaticMCMC()}.}
 }
 \value{
 A object of class "\code{exalStaticMCMC}" containing:

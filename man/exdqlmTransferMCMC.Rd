@@ -2,7 +2,6 @@
 % Please edit documentation in R/exdqlmTransferMCMC.R
 \name{exdqlmTransferMCMC}
 \alias{exdqlmTransferMCMC}
-\alias{transfn_exdqlmMCMC}
 \title{Transfer Function exDQLM - MCMC algorithm}
 \usage{
 exdqlmTransferMCMC(
@@ -46,8 +45,6 @@ exdqlmTransferMCMC(
   tf.m0 = NULL,
   tf.C0 = NULL
 )
-
-transfn_exdqlmMCMC(...)
 }
 \arguments{
 \item{y}{A univariate time-series.}
@@ -159,9 +156,6 @@ zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 
 \item{tf.C0}{Prior covariance of the transfer function component. Defaults to
 the \eqn{(k+1)\times(k+1)} identity matrix.}
-
-\item{...}{Deprecated compatibility arguments passed through to
-\code{exdqlmTransferMCMC()}.}
 }
 \value{
 A object of class "\code{exdqlmMCMC}" containing the

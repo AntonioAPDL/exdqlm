@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{summary.exalStaticMCMC}
 \alias{summary.exalStaticMCMC}
-\alias{summary.exal_mcmc}
 \title{Summary Method for \code{exalStaticMCMC} Objects}
 \usage{
 \method{summary}{exalStaticMCMC}(object, ...)
-
-\method{summary}{exal_mcmc}(object, ...)
 }
 \arguments{
 \item{object}{An \code{exalStaticMCMC} object.}

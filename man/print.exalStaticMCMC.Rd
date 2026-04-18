@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{print.exalStaticMCMC}
 \alias{print.exalStaticMCMC}
-\alias{print.exal_mcmc}
 \title{Print Method for \code{exalStaticMCMC} Objects}
 \usage{
 \method{print}{exalStaticMCMC}(x, ...)
-
-\method{print}{exal_mcmc}(x, ...)
 }
 \arguments{
 \item{x}{An \code{exalStaticMCMC} object.}

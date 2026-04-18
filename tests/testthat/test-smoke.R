@@ -10,6 +10,5 @@ test_that("exdqlm loads and key symbols exist", {
   expect_true(exists("exalStaticMCMC", where = ns, inherits = FALSE))
   expect_true(exists("quantileSynthesis", where = ns, inherits = FALSE))
   expect_true(exists("exdqlmTransferMCMC", where = ns, inherits = FALSE))
-  expect_true(exists("transfn_exdqlmMCMC", where = ns, inherits = FALSE))
   expect_true(exists("exdqlmForecast", where = ns, inherits = FALSE))
 })

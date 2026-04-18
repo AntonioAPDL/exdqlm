@@ -2,7 +2,6 @@
 % Please edit documentation in R/exdqlmTransferLDVB.R
 \name{exdqlmTransferLDVB}
 \alias{exdqlmTransferLDVB}
-\alias{transfn_exdqlmLDVB}
 \title{Transfer Function exDQLM - LDVB algorithm}
 \usage{
 exdqlmTransferLDVB(
@@ -30,8 +29,6 @@ exdqlmTransferLDVB(
   debug_shapes = FALSE,
   debug_every = 5
 )
-
-transfn_exdqlmLDVB(...)
 }
 \arguments{
 \item{y}{A univariate time-series.}
@@ -89,9 +86,6 @@ the \eqn{(k+1)\times(k+1)} identity matrix.}
 \item{debug_shapes}{Logical; if TRUE, print KF input/output shapes every \code{debug_every} iterations.}
 
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
-
-\item{...}{Deprecated compatibility arguments passed through to
-\code{exdqlmTransferLDVB()}.}
 }
 \value{
 A object of class "\code{exdqlmLDVB}" containing the exdqlmLDVB

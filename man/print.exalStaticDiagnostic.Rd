@@ -2,12 +2,9 @@
 % Please edit documentation in R/exalStaticDiagnostics.R
 \name{print.exalStaticDiagnostic}
 \alias{print.exalStaticDiagnostic}
-\alias{print.exalDiagnostic}
 \title{Print Method for \code{exalStaticDiagnostic} Objects}
 \usage{
 \method{print}{exalStaticDiagnostic}(x, ...)
-
-\method{print}{exalDiagnostic}(x, ...)
 }
 \arguments{
 \item{x}{An \code{exalStaticDiagnostic} object.}

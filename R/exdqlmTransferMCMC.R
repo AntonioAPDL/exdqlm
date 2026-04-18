@@ -20,8 +20,6 @@
 #'   zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
-#' @param ... Deprecated compatibility arguments passed through to
-#'   \code{exdqlmTransferMCMC()}.
 #'
 #' @return A object of class "\code{exdqlmMCMC}" containing the
 #'   \code{exdqlmMCMC()} output for the transfer-function-augmented model, plus:
@@ -117,11 +115,4 @@ exdqlmTransferMCMC <- function(y, p0, model, X, df, dim.df, lam, tf.df,
   tf.return$transfer_input_names <- prep$transfer_input_names
 
   tf.return
-}
-
-#' @rdname exdqlmTransferMCMC
-#' @export
-transfn_exdqlmMCMC <- function(...) {
-  .Deprecated("exdqlmTransferMCMC")
-  exdqlmTransferMCMC(...)
 }

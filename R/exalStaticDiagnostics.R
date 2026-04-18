@@ -19,8 +19,6 @@
 #'   diagnostics.
 #' @param cr.percent Credible-interval mass used when summarizing fitted
 #'   quantiles.
-#' @param ... Deprecated compatibility arguments passed through to
-#'   \code{exalStaticDiagnostics()}.
 #'
 #' @details
 #' Unlike \code{\link{exdqlmDiagnostics}}, which is built around one-step-ahead
@@ -228,7 +226,7 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     ret$m2.rt <- m2_sum$rt
   }
 
-  class(ret) <- c("exalStaticDiagnostic", "exalDiagnostic")
+  class(ret) <- "exalStaticDiagnostic"
   if (isTRUE(plot)) plot(ret, cols = cols)
   invisible(ret)
 }
@@ -243,19 +241,6 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
 #' @export
 is.exalStaticDiagnostic <- function(x) {
   methods::is(x, "exalStaticDiagnostic")
-}
-
-#' @rdname exalStaticDiagnostics
-#' @export
-exalDiagnostics <- function(...) {
-  .Deprecated("exalStaticDiagnostics")
-  exalStaticDiagnostics(...)
-}
-
-#' @rdname is.exalStaticDiagnostic
-#' @export
-is.exalDiagnostic <- function(x) {
-  is.exalStaticDiagnostic(x)
 }
 
 .exal_diagnostic_vector <- function(x, prefix) {
@@ -404,22 +389,4 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"), ...) {
     graphics::plot.new()
     graphics::title("No residual/reference panel available")
   }
-}
-
-#' @rdname print.exalStaticDiagnostic
-#' @export
-print.exalDiagnostic <- function(x, ...) {
-  print.exalStaticDiagnostic(x, ...)
-}
-
-#' @rdname summary.exalStaticDiagnostic
-#' @export
-summary.exalDiagnostic <- function(object, ...) {
-  summary.exalStaticDiagnostic(object, ...)
-}
-
-#' @rdname plot.exalStaticDiagnostic
-#' @export
-plot.exalDiagnostic <- function(x, cols = c("red", "blue"), ...) {
-  plot.exalStaticDiagnostic(x, cols = cols, ...)
 }

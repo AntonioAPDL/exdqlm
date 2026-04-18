@@ -2,7 +2,6 @@
 % Please edit documentation in R/quantileSynthesis.R
 \name{quantileSynthesis}
 \alias{quantileSynthesis}
-\alias{exdqlm_synthesize_from_draws}
 \title{Synthesize posterior predictive from multiple quantile-model draws}
 \usage{
 quantileSynthesis(
@@ -15,8 +14,6 @@ quantileSynthesis(
   seed = NULL,
   T_expected = NULL
 )
-
-exdqlm_synthesize_from_draws(...)
 }
 \arguments{
 \item{draws_list}{List of length \code{L}; each element is a numeric matrix of posterior
@@ -41,9 +38,6 @@ Default \code{1001L}.}
 
 \item{T_expected}{Optional integer; if provided, forces the time dimension to \code{T_expected}
 when orienting each matrix to \code{T x ns}. This avoids accidental transposes.}
-
-\item{...}{Deprecated compatibility arguments passed through to
-\code{quantileSynthesis()}.}
 }
 \value{
 A list containing:

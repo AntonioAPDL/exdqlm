@@ -2,12 +2,9 @@
 % Please edit documentation in R/generics_etc.R
 \name{print.exalStaticLDVB}
 \alias{print.exalStaticLDVB}
-\alias{print.exal_ldvb}
 \title{Print Method for \code{exalStaticLDVB} Objects}
 \usage{
 \method{print}{exalStaticLDVB}(x, ...)
-
-\method{print}{exal_ldvb}(x, ...)
 }
 \arguments{
 \item{x}{An \code{exalStaticLDVB} object.}
