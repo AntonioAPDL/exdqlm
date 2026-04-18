@@ -513,7 +513,7 @@ plot.exdqlmLDVB <- function(x, ...) {
 
 
 ##################################
-#### "exal_mcmc" / "exal_ldvb" ###
+#### "exalStaticMCMC" / "exalStaticLDVB" ###
 ##################################
 
 .plot_exal_static_quantiles <- function(map.quant, lb.quant, ub.quant, add = FALSE, col = "purple",
@@ -535,24 +535,28 @@ plot.exdqlmLDVB <- function(x, ...) {
   invisible(list(map.quant = map.quant, lb.quant = lb.quant, ub.quant = ub.quant))
 }
 
-#' \code{exal_mcmc} objects
+#' \code{exalStaticMCMC} objects
 #'
-#' \code{is.exal_mcmc} tests if its argument is an \code{exal_mcmc} object.
+#' \code{is.exalStaticMCMC} tests if its argument is an \code{exalStaticMCMC} object.
 #'
-#' @usage is.exal_mcmc(m)
+#' @usage is.exalStaticMCMC(m)
 #'
 #' @param m an \strong{R} object
 #'
 #' @export
-is.exal_mcmc <- function(m){ return(methods::is(m,"exal_mcmc")) }
+is.exalStaticMCMC <- function(m){ return(methods::is(m,"exalStaticMCMC")) }
 
-#' Print Method for \code{exal_mcmc} Objects
+#' @rdname is.exalStaticMCMC
+#' @export
+is.exal_mcmc <- function(m){ return(is.exalStaticMCMC(m)) }
+
+#' Print Method for \code{exalStaticMCMC} Objects
 #'
-#' @param x An \code{exal_mcmc} object.
+#' @param x An \code{exalStaticMCMC} object.
 #' @param ... Additional arguments (unused).
 #'
 #' @export
-print.exal_mcmc <- function(x, ...) {
+print.exalStaticMCMC <- function(x, ...) {
   model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
   n <- if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
   p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
@@ -567,14 +571,14 @@ print.exal_mcmc <- function(x, ...) {
   cat("Run-time:", x$run.time, "seconds\n")
 }
 
-#' Summary Method for \code{exal_mcmc} Objects
+#' Summary Method for \code{exalStaticMCMC} Objects
 #'
-#' @param object An \code{exal_mcmc} object.
+#' @param object An \code{exalStaticMCMC} object.
 #' @param ... Additional arguments (unused).
 #'
 #' @export
-summary.exal_mcmc <- function(object, ...) {
-  print.exal_mcmc(object, ...)
+summary.exalStaticMCMC <- function(object, ...) {
+  print.exalStaticMCMC(object, ...)
   sigma_mean <- tryCatch(mean(as.numeric(object$samp.sigma)), error = function(e) NA_real_)
   cat("Posterior mean sigma:", sigma_mean, "\n")
   if (!isTRUE(object$dqlm.ind)) {
@@ -583,9 +587,9 @@ summary.exal_mcmc <- function(object, ...) {
   }
 }
 
-#' Plot Method for \code{exal_mcmc} Objects
+#' Plot Method for \code{exalStaticMCMC} Objects
 #'
-#' @param x An \code{exal_mcmc} object.
+#' @param x An \code{exalStaticMCMC} object.
 #' @param add Logical; add to an existing plot.
 #' @param col Character vector of length 1 giving color for fitted quantiles.
 #' @param cr.percent Numeric in \code{(0, 1)} for credible-interval mass.
@@ -595,7 +599,7 @@ summary.exal_mcmc <- function(object, ...) {
 #' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
 #'
 #' @export
-plot.exal_mcmc <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+plot.exalStaticMCMC <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
   if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
   X <- as.matrix(x$X)
   beta_draws <- as.matrix(x$samp.beta)
@@ -607,24 +611,46 @@ plot.exal_mcmc <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ..
   .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
 }
 
-#' \code{exal_ldvb} objects
+#' @rdname print.exalStaticMCMC
+#' @export
+print.exal_mcmc <- function(x, ...) {
+  print.exalStaticMCMC(x, ...)
+}
+
+#' @rdname summary.exalStaticMCMC
+#' @export
+summary.exal_mcmc <- function(object, ...) {
+  summary.exalStaticMCMC(object, ...)
+}
+
+#' @rdname plot.exalStaticMCMC
+#' @export
+plot.exal_mcmc <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+  plot.exalStaticMCMC(x, add = add, col = col, cr.percent = cr.percent, ...)
+}
+
+#' \code{exalStaticLDVB} objects
 #'
-#' \code{is.exal_ldvb} tests if its argument is an \code{exal_ldvb} object.
+#' \code{is.exalStaticLDVB} tests if its argument is an \code{exalStaticLDVB} object.
 #'
-#' @usage is.exal_ldvb(m)
+#' @usage is.exalStaticLDVB(m)
 #'
 #' @param m an \strong{R} object
 #'
 #' @export
-is.exal_ldvb <- function(m){ return(methods::is(m,"exal_ldvb")) }
+is.exalStaticLDVB <- function(m){ return(methods::is(m,"exalStaticLDVB")) }
 
-#' Print Method for \code{exal_ldvb} Objects
+#' @rdname is.exalStaticLDVB
+#' @export
+is.exal_ldvb <- function(m){ return(is.exalStaticLDVB(m)) }
+
+#' Print Method for \code{exalStaticLDVB} Objects
 #'
-#' @param x An \code{exal_ldvb} object.
+#' @param x An \code{exalStaticLDVB} object.
 #' @param ... Additional arguments (unused).
 #'
 #' @export
-print.exal_ldvb <- function(x, ...) {
+print.exalStaticLDVB <- function(x, ...) {
   model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
   n <- if (!is.null(x$misc$n)) as.integer(x$misc$n) else if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
   p <- if (!is.null(x$misc$p)) as.integer(x$misc$p) else if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
@@ -641,14 +667,14 @@ print.exal_ldvb <- function(x, ...) {
   cat("Run-time:", x$run.time, "seconds\n")
 }
 
-#' Summary Method for \code{exal_ldvb} Objects
+#' Summary Method for \code{exalStaticLDVB} Objects
 #'
-#' @param object An \code{exal_ldvb} object.
+#' @param object An \code{exalStaticLDVB} object.
 #' @param ... Additional arguments (unused).
 #'
 #' @export
-summary.exal_ldvb <- function(object, ...) {
-  print.exal_ldvb(object, ...)
+summary.exalStaticLDVB <- function(object, ...) {
+  print.exalStaticLDVB(object, ...)
   sigma_mean <- if (isTRUE(object$dqlm.ind)) {
     if (!is.null(object$qsig$E_sigma)) as.numeric(object$qsig$E_sigma)[1] else NA_real_
   } else {
@@ -661,9 +687,9 @@ summary.exal_ldvb <- function(object, ...) {
   }
 }
 
-#' Plot Method for \code{exal_ldvb} Objects
+#' Plot Method for \code{exalStaticLDVB} Objects
 #'
-#' @param x An \code{exal_ldvb} object.
+#' @param x An \code{exalStaticLDVB} object.
 #' @param X Optional design matrix used to compute fitted quantiles. If omitted,
 #'   the method uses \code{x$X} when available.
 #' @param add Logical; add to an existing plot.
@@ -675,10 +701,10 @@ summary.exal_ldvb <- function(object, ...) {
 #' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
 #'
 #' @export
-plot.exal_ldvb <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+plot.exalStaticLDVB <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
   if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
   if (is.null(X)) X <- x$X
-  if (is.null(X)) stop("plot.exal_ldvb requires design matrix X (missing in object and argument).")
+  if (is.null(X)) stop("plot.exalStaticLDVB requires design matrix X (missing in object and argument).")
   X <- as.matrix(X)
   beta_mean <- as.numeric(x$qbeta$m)
   map.quant <- as.numeric(drop(X %*% beta_mean))
@@ -693,6 +719,24 @@ plot.exal_ldvb <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent 
     ub.quant <- rep(NA_real_, length(map.quant))
   }
   .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
+}
+
+#' @rdname print.exalStaticLDVB
+#' @export
+print.exal_ldvb <- function(x, ...) {
+  print.exalStaticLDVB(x, ...)
+}
+
+#' @rdname summary.exalStaticLDVB
+#' @export
+summary.exal_ldvb <- function(object, ...) {
+  summary.exalStaticLDVB(object, ...)
+}
+
+#' @rdname plot.exalStaticLDVB
+#' @export
+plot.exal_ldvb <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+  plot.exalStaticLDVB(x, X = X, add = add, col = col, cr.percent = cr.percent, ...)
 }
 
 

@@ -20,6 +20,8 @@
 #'   zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
+#' @param ... Deprecated compatibility arguments passed through to
+#'   \code{exdqlmTransferLDVB()}.
 #'
 #' @return A object of class "\code{exdqlmLDVB}" containing the exdqlmLDVB
 #'   output for the transfer-function-augmented model, plus:
@@ -43,21 +45,21 @@
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
-#' M1 = transfn_exdqlmLDVB(
+#' M1 = exdqlmTransferLDVB(
 #'   y, p0 = 0.85, model = model, X = X,
 #'   df = c(1,1), dim.df = c(1,6),
 #'   gam.init = -3.5, sig.init = 15,
 #'   lam = 0.38, tf.df = c(0.97,0.97)
 #' )
 #' X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
-#' M2 = transfn_exdqlmLDVB(
+#' M2 = exdqlmTransferLDVB(
 #'   y, p0 = 0.85, model = model, X = X_multi,
 #'   df = c(1,1), dim.df = c(1,6),
 #'   gam.init = -3.5, sig.init = 15,
 #'   lam = 0.38, tf.df = c(0.97, 0.99)
 #' )
 #' }
-transfn_exdqlmLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
+exdqlmTransferLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
                                fix.gamma = FALSE, gam.init = NA,
                                fix.sigma = FALSE, sig.init = NA,
                                dqlm.ind = FALSE, exps0, tol = 0.1, n.samp = 200,
@@ -115,4 +117,11 @@ transfn_exdqlmLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
 
   # return results
   return(tf.return)
+}
+
+#' @rdname exdqlmTransferLDVB
+#' @export
+transfn_exdqlmLDVB <- function(...) {
+  .Deprecated("exdqlmTransferLDVB")
+  exdqlmTransferLDVB(...)
 }

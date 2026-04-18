@@ -1,4 +1,4 @@
-# R/exal_static_mcmc.R
+# R/exalStaticMCMC.R
 #
 # GIG parameterization used here:
 #   Math:  GIG(k, chi, psi) proportional to z^{k-1} exp( - (chi/z + psi z)/2 )
@@ -78,7 +78,7 @@
 #'   posterior moments as MCMC initialization.
 #' @param vb_init_controls Optional list controlling VB warm start. Supported keys:
 #'   \code{max_iter}, \code{tol}, \code{n_samp_xi}, \code{verbose}, and
-#'   \code{ld_controls} (passed through to \code{exal_static_LDVB()}).
+#'   \code{ld_controls} (passed through to \code{exalStaticLDVB()}).
 #' @param mh.proposal Character string controlling the exAL nonconjugate update
 #'   kernel. \code{"slice"} (default) uses an exact bounded univariate slice
 #'   sampler on \code{gamma} (with \code{sigma} updated from its conditional),
@@ -119,8 +119,10 @@
 #' @param progress_callback Optional callback invoked with a named list at MCMC
 #'   start, at each progress checkpoint, and on completion. Intended for
 #'   workflow-level per-case progress logging.
+#' @param ... Deprecated compatibility arguments passed through to
+#'   \code{exalStaticMCMC()}.
 #'
-#' @return A object of class "\code{exal_mcmc}" containing:
+#' @return A object of class "\code{exalStaticMCMC}" containing:
 #' \itemize{
 #'   \item \code{run.time} - total wall time in seconds.
 #'   \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).
@@ -151,12 +153,12 @@
 #' X <- cbind(1, rnorm(n), rnorm(n))
 #' beta0 <- c(0.5, -1, 0.8); sigma0 <- 1.2
 #' y <- as.numeric(X %*% beta0 + rnorm(n, 0, sigma0))
-#' fit <- exal_static_mcmc(
+#' fit <- exalStaticMCMC(
 #'   y, X, p0 = 0.5, n.burn = 200, n.mcmc = 200, thin = 1, verbose = FALSE
 #' )
 #' summary(fit$samp.beta)
 #'
-#' fit_rhs <- exal_static_mcmc(
+#' fit_rhs <- exalStaticMCMC(
 #'   y, X, p0 = 0.5,
 #'   beta_prior = "rhs",
 #'   beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
@@ -164,7 +166,7 @@
 #' )
 #' fit_rhs$beta_prior$type
 #'
-#' fit_rhs_ns <- exal_static_mcmc(
+#' fit_rhs_ns <- exalStaticMCMC(
 #'   y, X, p0 = 0.5,
 #'   beta_prior = "rhs_ns",
 #'   beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
@@ -172,14 +174,14 @@
 #' )
 #' fit_rhs_ns$beta_prior$type
 #'
-#' fit_al <- exal_static_mcmc(
+#' fit_al <- exalStaticMCMC(
 #'   y, X, p0 = 0.5,
 #'   dqlm.ind = TRUE,
 #'   n.burn = 120, n.mcmc = 120, thin = 1, verbose = FALSE
 #' )
 #' fit_al$dqlm.ind
 #' }
-exal_static_mcmc <- function(
+exalStaticMCMC <- function(
   y, X, p0,
   b0 = NULL, V0 = NULL,
   beta_prior = c("ridge", "rhs", "rhs_ns"),
@@ -241,7 +243,7 @@ exal_static_mcmc <- function(
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     rhs_preflight <- .static_rhs_preflight_config(beta_prior_obj$controls)
     if (isTRUE(verbose) || isTRUE(beta_prior_obj$controls$verbose)) {
-      .static_rhs_preflight_emit(rhs_preflight, context = "exal_static_mcmc")
+      .static_rhs_preflight_emit(rhs_preflight, context = "exalStaticMCMC")
     }
   }
 
@@ -397,7 +399,7 @@ exal_static_mcmc <- function(
 
     vb_b0 <- if (b0_missing) NULL else b0
     vb_V0 <- if (V0_missing) NULL else V0
-    vb.fit <- exal_static_LDVB(
+    vb.fit <- exalStaticLDVB(
       y = y, X = X, p0 = p0,
       max_iter = vb.ctrl$max_iter,
       tol = vb.ctrl$tol,
@@ -742,7 +744,7 @@ exal_static_mcmc <- function(
       } else NULL,
       last = list(beta = beta, sigma = sigma, v = v)
     )
-    class(ret) <- c("exal_mcmc", "exal_static_mcmc")
+    class(ret) <- c("exalStaticMCMC", "exal_mcmc", "exal_static_mcmc")
     return(ret)
   }
 
@@ -1641,9 +1643,16 @@ exal_static_mcmc <- function(
     n.mcmc = n.mcmc,
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)
   )
-  class(ret) <- c("exal_mcmc", "exal_static_mcmc")
+  class(ret) <- c("exalStaticMCMC", "exal_mcmc", "exal_static_mcmc")
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
   ret
+}
+
+#' @rdname exalStaticMCMC
+#' @export
+exal_static_mcmc <- function(...) {
+  .Deprecated("exalStaticMCMC")
+  exalStaticMCMC(...)
 }

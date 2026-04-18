@@ -10,7 +10,7 @@
 #'
 #' @param draws_list List of length \code{L}; each element is a numeric matrix of posterior
 #'   predictive draws from a fitted quantile model at level \code{p[i]}. Each matrix
-#'   may be \code{T × ns} or \code{ns × T}; rows will be coerced to time.
+#'   may be \code{T x ns} or \code{ns x T}; rows will be coerced to time.
 #' @param p Numeric vector of target quantile levels in \code{(0,1)} of length \code{L}
 #'   (same order as \code{draws_list}, not necessarily sorted). Duplicate levels are not allowed.
 #' @param enforce_isotonic Logical; apply isotonic regression (PAVA) over the grid \code{p}
@@ -22,13 +22,15 @@
 #' @param n_samp Integer; number of synthesized draws per time. Default \code{1000L}.
 #' @param seed NULL or integer for reproducible synthesized draws. Default \code{NULL}.
 #' @param T_expected Optional integer; if provided, forces the time dimension to \code{T_expected}
-#'   when orienting each matrix to \code{T × ns}. This avoids accidental transposes.
+#'   when orienting each matrix to \code{T x ns}. This avoids accidental transposes.
+#' @param ... Deprecated compatibility arguments passed through to
+#'   \code{quantileSynthesis()}.
 #'
 #' @return A list containing:
 #' \itemize{
-#'   \item \code{draws} - Numeric matrix \code{T × n_samp} of synthesized draws.
+#'   \item \code{draws} - Numeric matrix \code{T x n_samp} of synthesized draws.
 #'   \item \code{levels} - Sorted copy of \code{p} (length \code{L}).
-#'   \item \code{quantiles} - Numeric matrix \code{T × L} of isotone anchors \code{m^*_{i,t}}.
+#'   \item \code{quantiles} - Numeric matrix \code{T x L} of isotone anchors \code{m^*_{i,t}}.
 #'   \item \code{summary} - List with row-wise summaries of \code{draws}
 #'   (\code{mean}, \code{q025}, \code{q250}, \code{q500}, \code{q750}, \code{q975}).
 #'   \item \code{method} - List of synthesis settings used
@@ -57,12 +59,12 @@
 #' }
 #' 
 #' # synthesize posterior predictive from all quantiles
-#' syn = exdqlm_synthesize_from_draws(
+#' syn = quantileSynthesis(
 #'   draws_list = draws,
 #'   p = p0s,
 #'   T_expected = TT)
 #' }
-exdqlm_synthesize_from_draws <- function(draws_list, p,
+quantileSynthesis <- function(draws_list, p,
                                          enforce_isotonic = TRUE,
                                          rearrange = TRUE,
                                          grid_M = 1001L,
@@ -224,4 +226,11 @@ exdqlm_synthesize_from_draws <- function(draws_list, p,
       T_inferred = Tt
     )
   )
+}
+
+#' @rdname quantileSynthesis
+#' @export
+exdqlm_synthesize_from_draws <- function(...) {
+  .Deprecated("quantileSynthesis")
+  quantileSynthesis(...)
 }

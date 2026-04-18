@@ -1,12 +1,12 @@
 #' exAL Diagnostics
 #'
-#' Static diagnostics companion for \code{exal_static_LDVB()} and
-#' \code{exal_static_mcmc()}. The function summarizes fitted quantiles on a
+#' Static diagnostics companion for \code{exalStaticLDVB()} and
+#' \code{exalStaticMCMC()}. The function summarizes fitted quantiles on a
 #' shared design matrix, reports mean check loss against observed responses when
 #' available, and can optionally compare the fitted quantile curve against a
 #' known reference quantile function.
 #'
-#' @param m1 An object of class \code{"exal_ldvb"} or \code{"exal_mcmc"}.
+#' @param m1 An object of class \code{"exalStaticLDVB"} or \code{"exalStaticMCMC"}.
 #' @param m2 Optional second fitted static model to compare against \code{m1}.
 #' @param X Optional design matrix. If omitted, the function uses \code{m1$X}
 #'   when available.
@@ -19,15 +19,17 @@
 #'   diagnostics.
 #' @param cr.percent Credible-interval mass used when summarizing fitted
 #'   quantiles.
+#' @param ... Deprecated compatibility arguments passed through to
+#'   \code{exalStaticDiagnostics()}.
 #'
 #' @details
 #' Unlike \code{\link{exdqlmDiagnostics}}, which is built around one-step-ahead
-#' dynamic forecast diagnostics, \code{exalDiagnostics()} is designed for the
+#' dynamic forecast diagnostics, \code{exalStaticDiagnostics()} is designed for the
 #' static regression setting. It reports fitted quantile summaries on a common
 #' design matrix, optional mean check loss against observed responses, optional
 #' truth/reference errors, and compact comparison plots.
 #'
-#' @return An object of class \code{"exalDiagnostic"} containing fitted-quantile
+#' @return An object of class \code{"exalStaticDiagnostic"} containing fitted-quantile
 #'   summaries, residual summaries (when \code{y} is provided), optional
 #'   reference-curve error metrics, and run-time metadata for \code{m1} and
 #'   \code{m2} (if supplied).
@@ -40,26 +42,26 @@
 #' y <- 0.5 * x + (1.2 + 0.35 * x) * stats::rnorm(length(x))
 #' q_true <- 0.5 * x + (1.2 + 0.35 * x) * stats::qnorm(0.25)
 #'
-#' fit_ldvb <- exal_static_LDVB(
+#' fit_ldvb <- exalStaticLDVB(
 #'   y = y, X = X, p0 = 0.25,
 #'   max_iter = 150, tol = 1e-3,
 #'   verbose = FALSE
 #' )
-#' fit_mcmc <- exal_static_mcmc(
+#' fit_mcmc <- exalStaticMCMC(
 #'   y = y, X = X, p0 = 0.25,
 #'   n.burn = 200, n.mcmc = 150,
 #'   mh.proposal = "slice",
 #'   verbose = FALSE
 #' )
-#' out <- exalDiagnostics(fit_ldvb, fit_mcmc, ref = q_true, plot = FALSE)
+#' out <- exalStaticDiagnostics(fit_ldvb, fit_mcmc, ref = q_true, plot = FALSE)
 #' print(out)
 #' }
 #' @export
-exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
+exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
                             plot = TRUE, cols = c("red", "blue"),
                             cr.percent = 0.95) {
   is_static_fit <- function(m) {
-    is.exal_ldvb(m) || is.exal_mcmc(m)
+    is.exalStaticLDVB(m) || is.exalStaticMCMC(m)
   }
 
   resolve_X <- function(fit, X_arg) {
@@ -89,7 +91,7 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
       stop("X must have at least one row.", call. = FALSE)
     }
 
-    if (is.exal_mcmc(fit)) {
+    if (is.exalStaticMCMC(fit)) {
       beta_draws <- as.matrix(fit$samp.beta)
       q_draws <- beta_draws %*% t(X_use)
       map_quant <- as.numeric(colMeans(q_draws))
@@ -98,7 +100,7 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
       lb_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
       ub_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = upper, na.rm = TRUE))
       beta_mean <- as.numeric(colMeans(beta_draws))
-    } else if (is.exal_ldvb(fit)) {
+    } else if (is.exalStaticLDVB(fit)) {
       if (!is.null(fit$samp.beta)) {
         beta_draws <- as.matrix(fit$samp.beta)
         q_draws <- beta_draws %*% t(X_use)
@@ -123,7 +125,7 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
         }
       }
     } else {
-      stop("Unsupported static fit supplied to exalDiagnostics().", call. = FALSE)
+      stop("Unsupported static fit supplied to exalStaticDiagnostics().", call. = FALSE)
     }
 
     if (!is.null(y_use) && length(y_use) != length(map_quant)) {
@@ -155,10 +157,10 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
   }
 
   if (!is_static_fit(m1)) {
-    stop("m1 must be an output from exal_static_LDVB() or exal_static_mcmc().", call. = FALSE)
+    stop("m1 must be an output from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
   }
   if (!is.null(m2) && !is_static_fit(m2)) {
-    stop("m2 must be an output from exal_static_LDVB() or exal_static_mcmc().", call. = FALSE)
+    stop("m2 must be an output from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
   }
 
   X_use <- resolve_X(m1, X)
@@ -226,21 +228,34 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     ret$m2.rt <- m2_sum$rt
   }
 
-  class(ret) <- "exalDiagnostic"
+  class(ret) <- c("exalStaticDiagnostic", "exalDiagnostic")
   if (isTRUE(plot)) plot(ret, cols = cols)
   invisible(ret)
 }
 
-#' \code{exalDiagnostic} objects
+#' \code{exalStaticDiagnostic} objects
 #'
-#' \code{is.exalDiagnostic} tests if its argument is an \code{exalDiagnostic}
+#' \code{is.exalStaticDiagnostic} tests if its argument is an \code{exalStaticDiagnostic}
 #' object.
 #'
-#' @usage is.exalDiagnostic(x)
+#' @usage is.exalStaticDiagnostic(x)
 #' @param x an \strong{R} object
 #' @export
+is.exalStaticDiagnostic <- function(x) {
+  methods::is(x, "exalStaticDiagnostic")
+}
+
+#' @rdname exalStaticDiagnostics
+#' @export
+exalDiagnostics <- function(...) {
+  .Deprecated("exalStaticDiagnostics")
+  exalStaticDiagnostics(...)
+}
+
+#' @rdname is.exalStaticDiagnostic
+#' @export
 is.exalDiagnostic <- function(x) {
-  methods::is(x, "exalDiagnostic")
+  is.exalStaticDiagnostic(x)
 }
 
 .exal_diagnostic_vector <- function(x, prefix) {
@@ -253,12 +268,12 @@ is.exalDiagnostic <- function(x) {
   )
 }
 
-#' Print Method for \code{exalDiagnostic} Objects
+#' Print Method for \code{exalStaticDiagnostic} Objects
 #'
-#' @param x An \code{exalDiagnostic} object.
+#' @param x An \code{exalStaticDiagnostic} object.
 #' @param ... Additional arguments (unused).
 #' @export
-print.exalDiagnostic <- function(x, ...) {
+print.exalStaticDiagnostic <- function(x, ...) {
   cat("Static exAL diagnostics\n")
   cat("Quantile level (p0):", x$p0, "\n")
   m1 <- .exal_diagnostic_vector(x, "m1.")
@@ -274,23 +289,23 @@ print.exalDiagnostic <- function(x, ...) {
   }
 }
 
-#' Summary Method for \code{exalDiagnostic} Objects
+#' Summary Method for \code{exalStaticDiagnostic} Objects
 #'
-#' @param object An \code{exalDiagnostic} object.
+#' @param object An \code{exalStaticDiagnostic} object.
 #' @param ... Additional arguments (unused).
 #' @export
-summary.exalDiagnostic <- function(object, ...) {
-  print.exalDiagnostic(object, ...)
+summary.exalStaticDiagnostic <- function(object, ...) {
+  print.exalStaticDiagnostic(object, ...)
 }
 
-#' Plot Method for \code{exalDiagnostic} Objects
+#' Plot Method for \code{exalStaticDiagnostic} Objects
 #'
-#' @param x An \code{exalDiagnostic} object.
+#' @param x An \code{exalStaticDiagnostic} object.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot
 #'   diagnostics.
 #' @param ... Additional arguments passed to plotting functions.
 #' @export
-plot.exalDiagnostic <- function(x, cols = c("red", "blue"), ...) {
+plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"), ...) {
   cols <- rep(cols, length.out = 2L)
   op <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(op), add = TRUE)
@@ -389,4 +404,22 @@ plot.exalDiagnostic <- function(x, cols = c("red", "blue"), ...) {
     graphics::plot.new()
     graphics::title("No residual/reference panel available")
   }
+}
+
+#' @rdname print.exalStaticDiagnostic
+#' @export
+print.exalDiagnostic <- function(x, ...) {
+  print.exalStaticDiagnostic(x, ...)
+}
+
+#' @rdname summary.exalStaticDiagnostic
+#' @export
+summary.exalDiagnostic <- function(object, ...) {
+  summary.exalStaticDiagnostic(object, ...)
+}
+
+#' @rdname plot.exalStaticDiagnostic
+#' @export
+plot.exalDiagnostic <- function(x, cols = c("red", "blue"), ...) {
+  plot.exalStaticDiagnostic(x, cols = cols, ...)
 }

@@ -26,7 +26,7 @@ test_that("static exAL accepts a tight gamma band around zero", {
   y <- as.numeric(0.3 + 0.8 * X[, 2] + stats::rnorm(n, sd = 0.15))
   band <- 1e-6
 
-  vb_fit <- exal_static_LDVB(
+  vb_fit <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,
@@ -57,7 +57,7 @@ test_that("static exAL accepts a tight gamma band around zero", {
     s = as.numeric(vb_fit$qs$E_s)
   )
 
-  m_fit <- exal_static_mcmc(
+  m_fit <- exalStaticMCMC(
     y = y,
     X = X,
     p0 = 0.5,

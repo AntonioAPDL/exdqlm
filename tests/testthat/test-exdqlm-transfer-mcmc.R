@@ -103,7 +103,7 @@ test_that("transfer-function MCMC wrapper matches direct augmented model contrac
   on.exit(options(old_opts), add = TRUE)
 
   set.seed(20260412)
-  fit_wrap <- exdqlm::transfn_exdqlmMCMC(
+  fit_wrap <- exdqlm::exdqlmTransferMCMC(
     y = y, p0 = 0.5, model = model, X = X,
     df = 1, dim.df = 1,
     lam = lam, tf.df = 0.98,
@@ -164,7 +164,7 @@ test_that("transfer-function wrappers support multivariate X with block tf.df se
   on.exit(options(old_opts), add = TRUE)
 
   set.seed(20260421)
-  fit_wrap <- exdqlm::transfn_exdqlmMCMC(
+  fit_wrap <- exdqlm::exdqlmTransferMCMC(
     y = y, p0 = 0.5, model = model, X = X,
     df = 1, dim.df = 1,
     lam = lam, tf.df = c(0.97, 0.95),
@@ -215,7 +215,7 @@ test_that("transfer-function wrappers support componentwise tf.df and full exDQL
   on.exit(options(old_opts), add = TRUE)
 
   set.seed(20260422)
-  fit_mcmc <- exdqlm::transfn_exdqlmMCMC(
+  fit_mcmc <- exdqlm::exdqlmTransferMCMC(
     y = y, p0 = 0.5, model = model, X = X,
     df = 1, dim.df = 1,
     lam = 0.5, tf.df = c(0.97, 0.96, 0.95),
@@ -234,7 +234,7 @@ test_that("transfer-function wrappers support componentwise tf.df and full exDQL
   expect_true(is.finite(fit_mcmc$median.kt))
 
   set.seed(20260423)
-  fit_ldvb <- exdqlm::transfn_exdqlmLDVB(
+  fit_ldvb <- exdqlm::exdqlmTransferLDVB(
     y = y, p0 = 0.5, model = model, X = X,
     df = 1, dim.df = 1,
     lam = 0.5, tf.df = c(0.97, 0.96, 0.95),
@@ -249,7 +249,7 @@ test_that("transfer-function wrappers support componentwise tf.df and full exDQL
   expect_equal(fit_ldvb$transfer_input_names, c("rain", "soil"))
 
   set.seed(20260424)
-  fit_isvb <- exdqlm::transfn_exdqlmISVB(
+  fit_isvb <- exdqlm::exdqlmTransferISVB(
     y = y, p0 = 0.5, model = model, X = X,
     df = 1, dim.df = 1,
     lam = 0.5, tf.df = c(0.97, 0.96, 0.95),
@@ -282,7 +282,7 @@ test_that("transfer-function MCMC output with multivariate X works with downstre
   on.exit(options(old_opts), add = TRUE)
 
   set.seed(20260425)
-  fit <- exdqlm::transfn_exdqlmMCMC(
+  fit <- exdqlm::exdqlmTransferMCMC(
     y = y, p0 = 0.5, model = model, X = X,
     df = 1, dim.df = 1,
     lam = 0.55, tf.df = c(0.97, 0.95),

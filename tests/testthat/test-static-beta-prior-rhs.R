@@ -10,7 +10,7 @@ test_that("static VB RHS warns about ignored Gaussian prior inputs and returns R
   dat <- tiny_rhs_xy(18)
 
   expect_warning(
-    fit <- exal_static_LDVB(
+    fit <- exalStaticLDVB(
       y = dat$y,
       X = dat$X,
       p0 = 0.5,
@@ -65,7 +65,7 @@ test_that("static AL VB reduced path supports RHS prior", {
   set.seed(602)
   dat <- tiny_rhs_xy(16)
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -89,7 +89,7 @@ test_that("static MCMC RHS warns, stores latent draws, and normalizes cleanly", 
   dat <- tiny_rhs_xy(18)
 
   expect_warning(
-    fit <- exal_static_mcmc(
+    fit <- exalStaticMCMC(
       y = dat$y,
       X = dat$X,
       p0 = 0.5,
@@ -125,7 +125,7 @@ test_that("static AL MCMC reduced path supports RHS prior", {
   set.seed(604)
   dat <- tiny_rhs_xy(18)
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -281,7 +281,7 @@ test_that("static VB RHS_NS supports fixed zeta2 via zeta2_fixed", {
   dat <- tiny_rhs_xy(16)
   zeta2_fixed <- 0.75
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -320,7 +320,7 @@ test_that("static MCMC RHS_NS fixed zeta2 keeps c2 draws constant", {
   dat <- tiny_rhs_xy(16)
   zeta2_fixed <- 0.9
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,

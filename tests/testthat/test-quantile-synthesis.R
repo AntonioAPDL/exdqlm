@@ -10,7 +10,7 @@ test_that("synthesis handles draw orientation consistently", {
   )
   draws_high <- draws_low + 0.25
 
-  out_rows <- exdqlm_synthesize_from_draws(
+  out_rows <- quantileSynthesis(
     draws_list = list(draws_low, draws_high),
     p = c(0.2, 0.8),
     grid_M = 31L,
@@ -19,7 +19,7 @@ test_that("synthesis handles draw orientation consistently", {
     T_expected = 3L
   )
 
-  out_cols <- exdqlm_synthesize_from_draws(
+  out_cols <- quantileSynthesis(
     draws_list = list(t(draws_low), t(draws_high)),
     p = c(0.2, 0.8),
     grid_M = 31L,
@@ -43,7 +43,7 @@ test_that("synthesis smoke output is finite and monotone over levels", {
   draws_p10 <- draws_p90 - 1.0
   draws_p50 <- draws_p90 - 0.5
 
-  out <- exdqlm_synthesize_from_draws(
+  out <- quantileSynthesis(
     draws_list = list(draws_p90, draws_p10, draws_p50),
     p = c(0.9, 0.1, 0.5),
     grid_M = 41L,

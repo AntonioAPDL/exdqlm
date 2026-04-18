@@ -5,11 +5,11 @@ tiny_static_xy_generics <- function(n = 16L) {
   list(X = X, y = y)
 }
 
-test_that("exal_mcmc generics dispatch and return stable outputs", {
+test_that("exalStaticMCMC generics dispatch and return stable outputs", {
   set.seed(601)
   dat <- tiny_static_xy_generics(16)
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -19,8 +19,8 @@ test_that("exal_mcmc generics dispatch and return stable outputs", {
     verbose = FALSE
   )
 
-  expect_true(is.exal_mcmc(fit))
-  expect_s3_class(fit, "exal_mcmc")
+  expect_true(is.exalStaticMCMC(fit))
+  expect_s3_class(fit, "exalStaticMCMC")
   expect_output(print(fit), "Bayesian Linear Quantile Regression")
   expect_output(summary(fit), "Posterior mean sigma")
   expect_true(!is.null(fit$X))
@@ -32,11 +32,11 @@ test_that("exal_mcmc generics dispatch and return stable outputs", {
   expect_no_error(plot(fit, cr.percent = 0.9))
 })
 
-test_that("exal_ldvb generics dispatch and enforce plot X contract", {
+test_that("exalStaticLDVB generics dispatch and enforce plot X contract", {
   set.seed(602)
   dat <- tiny_static_xy_generics(18)
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -46,8 +46,8 @@ test_that("exal_ldvb generics dispatch and enforce plot X contract", {
     verbose = FALSE
   )
 
-  expect_true(is.exal_ldvb(fit))
-  expect_s3_class(fit, "exal_ldvb")
+  expect_true(is.exalStaticLDVB(fit))
+  expect_s3_class(fit, "exalStaticLDVB")
   expect_output(print(fit), "Bayesian Linear Quantile Regression")
   expect_output(summary(fit), "Posterior mean sigma")
   expect_true(!is.null(fit$X))

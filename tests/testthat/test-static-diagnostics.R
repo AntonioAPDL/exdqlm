@@ -8,11 +8,11 @@ tiny_static_truth_case <- function(n = 36L, p0 = 0.25) {
   list(X = X, y = y, ref = ref, p0 = p0)
 }
 
-test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
+test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
   set.seed(20260409)
   dat <- tiny_static_truth_case(n = 36L, p0 = 0.25)
 
-  fit_ldvb <- exal_static_LDVB(
+  fit_ldvb <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
@@ -21,7 +21,7 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
     n_samp_xi = 80,
     verbose = FALSE
   )
-  fit_mcmc <- exal_static_mcmc(
+  fit_mcmc <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
@@ -36,7 +36,7 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
   X_eval <- cbind(1, x_eval)
   ref_eval <- 0.5 * x_eval + (1.2 + 0.35 * x_eval) * stats::qnorm(dat$p0)
   expect_no_error(
-    exalDiagnostics(
+    exalStaticDiagnostics(
       fit_ldvb, fit_mcmc,
       X = X_eval,
       ref = ref_eval,
@@ -44,7 +44,7 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
     )
   )
 
-  diags <- exalDiagnostics(
+  diags <- exalStaticDiagnostics(
     fit_ldvb, fit_mcmc,
     X = dat$X,
     y = dat$y,
@@ -52,8 +52,8 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
     plot = FALSE
   )
 
-  expect_s3_class(diags, "exalDiagnostic")
-  expect_true(is.exalDiagnostic(diags))
+  expect_s3_class(diags, "exalStaticDiagnostic")
+  expect_true(is.exalStaticDiagnostic(diags))
   expect_true(all(c(
     "m1.check_loss", "m2.check_loss",
     "m1.ref_rmse", "m2.ref_rmse",
@@ -78,7 +78,7 @@ test_that("static MCMC default proposal is slice", {
   set.seed(20260410)
   dat <- tiny_static_truth_case(n = 24L, p0 = 0.25)
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
@@ -120,7 +120,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   )
 
   expect_silent(
-    fit_ldvb <- exal_static_LDVB(
+    fit_ldvb <- exalStaticLDVB(
       y = dat$y,
       X = dat$X,
       p0 = dat$p0,
@@ -141,7 +141,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   expect_false(isTRUE(fit_ldvb$diagnostics$ld_block$stabilization$active_final))
 
   expect_silent(
-    fit_mcmc <- exal_static_mcmc(
+    fit_mcmc <- exalStaticMCMC(
       y = dat$y,
       X = dat$X,
       p0 = dat$p0,
@@ -158,7 +158,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   expect_true(all(is.finite(as.matrix(fit_mcmc$samp.beta))))
   expect_false(isTRUE(fit_mcmc$beta_prior$summary$collapse_flag))
 
-  diag_out <- exalDiagnostics(
+  diag_out <- exalStaticDiagnostics(
     fit_ldvb,
     fit_mcmc,
     X = dat$X,

@@ -27,7 +27,7 @@ test_that("static LDVB p0=0.25 benchmark converges with finite state", {
   dat <- static_p025_benchmark()
 
   expect_warning(
-    fit <- exdqlm::exal_static_LDVB(
+    fit <- exdqlm::exalStaticLDVB(
       y = dat$y,
       X = dat$X,
       p0 = 0.25,
@@ -61,7 +61,7 @@ test_that("static LDVB avoids the gamma=0 bad mode on the ex4 seed", {
   y <- mu + sigma * stats::rnorm(length(x))
 
   expect_warning(
-    fit <- exdqlm::exal_static_LDVB(
+    fit <- exdqlm::exalStaticLDVB(
       y = y,
       X = X,
       p0 = 0.25,
@@ -86,7 +86,7 @@ test_that("static MCMC slice warm start is clean on the p0=0.25 benchmark", {
   dat <- static_p025_benchmark()
 
   expect_warning(
-    fit <- exdqlm::exal_static_mcmc(
+    fit <- exdqlm::exalStaticMCMC(
       y = dat$y,
       X = dat$X,
       p0 = 0.25,

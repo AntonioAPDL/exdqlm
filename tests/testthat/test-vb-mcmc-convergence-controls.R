@@ -236,7 +236,7 @@ test_that("static MCMC supports VB warm start", {
   X <- cbind(1, seq(-1, 1, length.out = n))
   y <- as.numeric(X %*% c(0.2, -0.1) + stats::rnorm(n, sd = 0.2))
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = y, X = X, p0 = 0.5,
     n.burn = 20, n.mcmc = 20, thin = 1,
     init.from.vb = TRUE,
@@ -283,7 +283,7 @@ test_that("static MCMC supports eta-space slice gamma kernel", {
   X <- cbind(1, seq(-1, 1, length.out = n))
   y <- as.numeric(X %*% c(0.2, -0.1) + stats::rnorm(n, sd = 0.2))
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = y, X = X, p0 = 0.5,
     n.burn = 12, n.mcmc = 12, thin = 1,
     mh.proposal = "slice_eta",
