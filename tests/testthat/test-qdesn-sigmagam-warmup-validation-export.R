@@ -168,3 +168,75 @@ test_that("MCMC validation health carries sigmagam warmup summaries", {
   expect_equal(health$mcmc_sigmagam_updates_keep, 7L)
   expect_equal(health$mcmc_sigmagam_frozen_burn_rate, 3 / 5, tolerance = 1e-12)
 })
+
+test_that("MCMC validation export carries latent-s warmup summaries and trace columns", {
+  withr::local_seed(20260420)
+
+  n <- 18L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.20, -0.12, 0.09) + stats::rnorm(n, sd = 0.22))
+
+  fit <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 5L,
+      n_mcmc = 7L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      latent_s = list(
+        enabled = TRUE,
+        freeze_burnin_iters = 3L,
+        freeze_only_during_burn = TRUE,
+        sparse_update_every = 2L,
+        sparse_update_until_iter = 5L,
+        force_first_postwarmup_update = TRUE,
+        trace = TRUE
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  summary_obj <- make_sigmagam_summary_obj(fit)
+  latent_trace <- exdqlm:::.qdesn_validation_method_latent_v_trace("mcmc", summary_obj)
+  health <- exdqlm:::.qdesn_validation_method_health("mcmc", make_sigmagam_root_spec("mcmc"), summary_obj)
+
+  expect_true(all(c(
+    "phase",
+    "latent_s_warmup_active",
+    "latent_s_hard_freeze",
+    "latent_s_sparse_window",
+    "latent_s_force_update",
+    "latent_s_update_performed",
+    "latent_s_update_reason",
+    "latent_s_update_count"
+  ) %in% names(latent_trace)))
+  expect_true(all(latent_trace$phase[1:5] == "burn"))
+  expect_true(all(latent_trace$phase[6:nrow(latent_trace)] == "keep"))
+  expect_true(all(latent_trace$latent_s_hard_freeze[1:3]))
+  expect_false(isTRUE(latent_trace$latent_s_hard_freeze[4L]))
+  expect_identical(latent_trace$latent_s_update_reason[[4L]], "force_after_warmup")
+  expect_identical(latent_trace$latent_s_update_reason[[5L]], "sparse_hold")
+  expect_true(isTRUE(latent_trace$latent_s_force_update[[4L]]))
+  expect_false(isTRUE(latent_trace$latent_s_update_performed[[5L]]))
+  expect_true(all(diff(latent_trace$latent_s_update_count) >= 0))
+
+  expect_equal(health$mcmc_latent_s_warmup_iters, 3L)
+  expect_equal(health$mcmc_latent_s_sparse_update_every, 2L)
+  expect_equal(health$mcmc_latent_s_sparse_update_until_iter, 5L)
+  expect_equal(health$mcmc_latent_s_first_postwarmup_update_iter, 4L)
+  expect_equal(health$mcmc_latent_s_updates_burn, 1L)
+  expect_equal(health$mcmc_latent_s_updates_keep, 7L)
+  expect_equal(health$mcmc_latent_s_frozen_burn_rate, 3 / 5, tolerance = 1e-12)
+  expect_equal(health$mcmc_latent_s_sparse_hold_burn_rate, 1 / 5, tolerance = 1e-12)
+})

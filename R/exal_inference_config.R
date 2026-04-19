@@ -120,6 +120,15 @@
       record_rescue_trace = TRUE,
       trace = TRUE
     ),
+    latent_s = list(
+      enabled = FALSE,
+      freeze_burnin_iters = 0L,
+      freeze_only_during_burn = TRUE,
+      sparse_update_every = 1L,
+      sparse_update_until_iter = 0L,
+      force_first_postwarmup_update = TRUE,
+      trace = TRUE
+    ),
     store_latent_draws = FALSE,
     store_rhs_draws = FALSE,
     transforms = list(
@@ -325,6 +334,51 @@
       isTRUE(latent_v_cfg$record_rescue_trace)
     },
     trace = if (is.null(latent_v_cfg$trace)) TRUE else isTRUE(latent_v_cfg$trace)
+  )
+}
+
+.exal_normalize_mcmc_latent_s_cfg <- function(latent_s_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  latent_s_cfg <- .exal_list_or_empty(latent_s_cfg)
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    latent_s_cfg$freeze_burnin_iters %||%
+      latent_s_cfg$freeze_latent_s_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  sparse_update_every <- suppressWarnings(as.integer(
+    latent_s_cfg$sparse_update_every %||%
+      latent_s_cfg$update_every_warmup %||%
+      1L
+  )[1L])
+  if (!is.finite(sparse_update_every) || sparse_update_every < 1L) sparse_update_every <- 1L
+
+  sparse_update_until_iter <- suppressWarnings(as.integer(
+    latent_s_cfg$sparse_update_until_iter %||%
+      latent_s_cfg$update_every_warmup_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(sparse_update_until_iter) || sparse_update_until_iter < 0L) {
+    sparse_update_until_iter <- 0L
+  }
+  if (sparse_update_every <= 1L) sparse_update_until_iter <- max(0L, sparse_update_until_iter)
+
+  enabled <- if (is.null(latent_s_cfg$enabled)) {
+    freeze_burnin_iters > 0L || (sparse_update_every > 1L && sparse_update_until_iter > 0L)
+  } else {
+    isTRUE(latent_s_cfg$enabled)
+  }
+
+  list(
+    enabled = isTRUE(enabled),
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(latent_s_cfg$freeze_only_during_burn)) TRUE else isTRUE(latent_s_cfg$freeze_only_during_burn),
+    sparse_update_every = sparse_update_every,
+    sparse_update_until_iter = sparse_update_until_iter,
+    force_first_postwarmup_update = if (is.null(latent_s_cfg$force_first_postwarmup_update)) TRUE else isTRUE(latent_s_cfg$force_first_postwarmup_update),
+    trace = if (is.null(latent_s_cfg$trace)) TRUE else isTRUE(latent_s_cfg$trace)
   )
 }
 
@@ -729,6 +783,7 @@
   }
   control$sigmagam <- .exal_normalize_mcmc_sigmagam_cfg(mcmc_cfg$sigmagam %||% control$sigmagam %||% list())
   control$latent_v <- .exal_normalize_mcmc_latent_v_cfg(mcmc_cfg$latent_v %||% control$latent_v %||% list())
+  control$latent_s <- .exal_normalize_mcmc_latent_s_cfg(mcmc_cfg$latent_s %||% control$latent_s %||% list())
   control$vb_warm_start_control <- .exal_list_or_empty(control$vb_warm_start_control)
   control$vb_warm_start_control$sigmagam <- .exal_normalize_vb_sigmagam_cfg(
     control$vb_warm_start_control$sigmagam %||% list()

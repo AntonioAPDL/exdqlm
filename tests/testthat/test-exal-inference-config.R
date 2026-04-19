@@ -253,6 +253,15 @@ test_that("sigmagam warmup controls resolve for VB, MCMC warm start, and MCMC co
           record_rescue_trace = FALSE,
           trace = FALSE
         ),
+        latent_s = list(
+          enabled = TRUE,
+          freeze_burnin_iters = 11L,
+          freeze_only_during_burn = FALSE,
+          sparse_update_every = 4L,
+          sparse_update_until_iter = 55L,
+          force_first_postwarmup_update = FALSE,
+          trace = FALSE
+        ),
         priors = list(
           beta = list(type = "ridge", tau2 = 5)
         )
@@ -293,4 +302,11 @@ test_that("sigmagam warmup controls resolve for VB, MCMC warm start, and MCMC co
   expect_false(isTRUE(inf$mcmc$control_base$latent_v$rescue_force_retry_next_iter))
   expect_false(isTRUE(inf$mcmc$control_base$latent_v$record_rescue_trace))
   expect_false(isTRUE(inf$mcmc$control_base$latent_v$trace))
+  expect_true(isTRUE(inf$mcmc$control_base$latent_s$enabled))
+  expect_equal(inf$mcmc$control_base$latent_s$freeze_burnin_iters, 11L)
+  expect_false(isTRUE(inf$mcmc$control_base$latent_s$freeze_only_during_burn))
+  expect_equal(inf$mcmc$control_base$latent_s$sparse_update_every, 4L)
+  expect_equal(inf$mcmc$control_base$latent_s$sparse_update_until_iter, 55L)
+  expect_false(isTRUE(inf$mcmc$control_base$latent_s$force_first_postwarmup_update))
+  expect_false(isTRUE(inf$mcmc$control_base$latent_s$trace))
 })

@@ -1017,6 +1017,14 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$mcmc_latent_v_rescues_keep <- as.integer((fit$diagnostics$latent_v %||% list())$rescues_keep %||% NA_integer_)
     base$mcmc_latent_v_rescue_burn_rate <- as.numeric((fit$diagnostics$latent_v %||% list())$rescue_burn_rate %||% NA_real_)
     base$mcmc_latent_v_rescue_max_streak <- as.integer((fit$diagnostics$latent_v %||% list())$rescue_max_streak %||% NA_integer_)
+    base$mcmc_latent_s_warmup_iters <- as.integer((fit$diagnostics$latent_s %||% list())$freeze_burnin_iters %||% NA_integer_)
+    base$mcmc_latent_s_sparse_update_every <- as.integer((fit$diagnostics$latent_s %||% list())$sparse_update_every %||% NA_integer_)
+    base$mcmc_latent_s_sparse_update_until_iter <- as.integer((fit$diagnostics$latent_s %||% list())$sparse_update_until_iter %||% NA_integer_)
+    base$mcmc_latent_s_first_postwarmup_update_iter <- as.integer((fit$diagnostics$latent_s %||% list())$first_postwarmup_update_iter %||% NA_integer_)
+    base$mcmc_latent_s_updates_burn <- as.integer((fit$diagnostics$latent_s %||% list())$updates_burn %||% NA_integer_)
+    base$mcmc_latent_s_updates_keep <- as.integer((fit$diagnostics$latent_s %||% list())$updates_keep %||% NA_integer_)
+    base$mcmc_latent_s_frozen_burn_rate <- as.numeric((fit$diagnostics$latent_s %||% list())$frozen_burn_rate %||% NA_real_)
+    base$mcmc_latent_s_sparse_hold_burn_rate <- as.numeric((fit$diagnostics$latent_s %||% list())$sparse_hold_burn_rate %||% NA_real_)
     base$mcmc_sigmagam_warmup_iters <- as.integer((fit$diagnostics$sigmagam %||% list())$freeze_burnin_iters %||% NA_integer_)
     base$mcmc_sigmagam_first_active_iter <- as.integer((fit$diagnostics$sigmagam %||% list())$first_active_iter %||% NA_integer_)
     base$mcmc_sigmagam_updates_burn <- as.integer((fit$diagnostics$sigmagam %||% list())$updates_burn %||% NA_integer_)
@@ -1406,6 +1414,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   rescue_strategy <- as.character(fit$misc$latent_v_rescue_strategy_trace %||% character(0))
   rescue_count <- as.integer(fit$misc$latent_v_rescue_count_trace %||% integer(0))
   rescue_consecutive <- as.integer(fit$misc$latent_v_rescue_consecutive_trace %||% integer(0))
+  latent_s_warmup_active <- as.logical(fit$misc$latent_s_warmup_active_trace %||% logical(0))
+  latent_s_hard_freeze <- as.logical(fit$misc$latent_s_hard_freeze_trace %||% logical(0))
+  latent_s_sparse_window <- as.logical(fit$misc$latent_s_sparse_window_trace %||% logical(0))
+  latent_s_force_update <- as.logical(fit$misc$latent_s_force_update_trace %||% logical(0))
+  latent_s_update_performed <- as.logical(fit$misc$latent_s_update_performed_trace %||% logical(0))
+  latent_s_reason <- as.character(fit$misc$latent_s_update_reason_trace %||% character(0))
+  latent_s_update_count <- as.integer(fit$misc$latent_s_update_count_trace %||% integer(0))
 
   if (length(warmup_active) == n_iter) out$latent_v_warmup_active <- warmup_active
   if (length(hard_freeze) == n_iter) out$latent_v_hard_freeze <- hard_freeze
@@ -1418,6 +1433,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   if (length(rescue_strategy) == n_iter) out$latent_v_rescue_strategy <- rescue_strategy
   if (length(rescue_count) == n_iter) out$latent_v_rescue_count <- rescue_count
   if (length(rescue_consecutive) == n_iter) out$latent_v_rescue_consecutive <- rescue_consecutive
+  if (length(latent_s_warmup_active) == n_iter) out$latent_s_warmup_active <- latent_s_warmup_active
+  if (length(latent_s_hard_freeze) == n_iter) out$latent_s_hard_freeze <- latent_s_hard_freeze
+  if (length(latent_s_sparse_window) == n_iter) out$latent_s_sparse_window <- latent_s_sparse_window
+  if (length(latent_s_force_update) == n_iter) out$latent_s_force_update <- latent_s_force_update
+  if (length(latent_s_update_performed) == n_iter) out$latent_s_update_performed <- latent_s_update_performed
+  if (length(latent_s_reason) == n_iter) out$latent_s_update_reason <- latent_s_reason
+  if (length(latent_s_update_count) == n_iter) out$latent_s_update_count <- latent_s_update_count
   out
 }
 
