@@ -6,7 +6,6 @@
 - rerun scope: `20` frozen numerical/runtime crash rows only
 - excluded rows: `27` static MCMC gate/mixing failures
 - exdqlm init change: explicit `s_t` warmup/freeze in LDVB init path
-- dynamic MCMC change: explicit `theta` warmup/freeze plus legacy R backend
 - binary retention policy: keep candidate fit, vb-init, and draws `.rds` for manual review
 
 ## Phase Plan
@@ -22,9 +21,8 @@
 | lever | setting |
 |---|---|
 | exdqlm VB / VB-init | s_t warmup 50, min_postwarmup_updates 5, sigmagam warmup 50 |
-| exdqlm MCMC | VB init max_iter 800 / min_iter 80 / n.samp 5000; latent pair warmup 100; theta warmup 100; sigmagam warmup 500; use R backend |
-| dqlm MCMC | VB init max_iter 800 / min_iter 80 / n.samp 5000; U_t warmup 100; theta warmup 100; sigma warmup 500; use R backend |
-| GIG guard | floor `b_vec / chi` to `1e-10` before sampling |
+| exdqlm MCMC | VB init max_iter 800 / min_iter 80 / n.samp 5000; latent pair warmup 100; sigmagam warmup 500 |
+| dqlm MCMC | VB init max_iter 800 / min_iter 80 / n.samp 5000; U_t warmup 100; sigma warmup 500 |
 | retention | preserve all fit / vb_init / draws binaries until manual cleanup |
 
 ## Row Allocation
@@ -51,3 +49,4 @@
 | 54 | numerical_dqlm_mcmc | normal | 0p05 | 5000 | dqlm | mcmc | invalid_pre_chi |
 | 62 | numerical_dqlm_mcmc | normal | 0p25 | 5000 | dqlm | mcmc | invalid_pre_chi |
 | 70 | numerical_dqlm_mcmc | normal | 0p50 | 5000 | dqlm | mcmc | invalid_pre_chi |
+

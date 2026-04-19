@@ -327,7 +327,7 @@ runtime_dqlm_sigma_controls_refreshed288 <- function() {
 
 runtime_mcmc_backend_controls_refreshed288 <- function() {
   list(
-    mcmc_use_cpp = FALSE,
+    mcmc_use_cpp = TRUE,
     mcmc_cpp_mode = "strict"
   )
 }
@@ -407,7 +407,7 @@ runtime_failure_method_profiles_refreshed288 <- function() {
       df_value = 0.98,
       dim_df = c(2L, 4L),
       stored_posterior_draws = 20000L,
-      notes = "runtime-failure DQLM MCMC rerun with stronger init, theta warmup, Ut warmup, sigma warmup, and legacy R MCMC backend",
+      notes = "runtime-failure DQLM MCMC rerun with stronger init, theta warmup, Ut warmup, sigma warmup, and C++ strict MCMC backend",
       init_from_vb = TRUE,
       vb_init_method = "ldvb",
       vb_init_profile_id = "runtime_dynamic_ldvb_init",
@@ -417,7 +417,7 @@ runtime_failure_method_profiles_refreshed288 <- function() {
       theta_state_controls = runtime_theta_state_controls_refreshed288(),
       latent_state_controls = runtime_latent_state_controls_refreshed288("dqlm"),
       dqlm_sigma_controls = runtime_dqlm_sigma_controls_refreshed288(),
-      mcmc_use_cpp = FALSE,
+      mcmc_use_cpp = TRUE,
       mcmc_cpp_mode = "strict",
       n_burn = 5000L,
       n_mcmc = 20000L,
@@ -448,7 +448,7 @@ runtime_failure_method_profiles_refreshed288 <- function() {
       df_value = 0.98,
       dim_df = c(2L, 4L),
       stored_posterior_draws = 20000L,
-      notes = "runtime-failure exDQLM MCMC rerun with stronger init, theta warmup, latent-pair warmup, exdqlm s_t VB-init warmup, larger sigmagam warmup, and legacy R MCMC backend",
+      notes = "runtime-failure exDQLM MCMC rerun with stronger init, theta warmup, latent-pair warmup, exdqlm s_t VB-init warmup, larger sigmagam warmup, and C++ strict MCMC backend",
       init_from_vb = TRUE,
       vb_init_method = "ldvb",
       vb_init_profile_id = "runtime_dynamic_ldvb_init",
@@ -458,7 +458,7 @@ runtime_failure_method_profiles_refreshed288 <- function() {
       theta_state_controls = runtime_theta_state_controls_refreshed288(),
       latent_state_controls = runtime_latent_state_controls_refreshed288("exdqlm"),
       sigmagam_controls = runtime_sigmagam_mcmc_controls_refreshed288(),
-      mcmc_use_cpp = FALSE,
+      mcmc_use_cpp = TRUE,
       mcmc_cpp_mode = "strict",
       n_burn = 5000L,
       n_mcmc = 20000L,

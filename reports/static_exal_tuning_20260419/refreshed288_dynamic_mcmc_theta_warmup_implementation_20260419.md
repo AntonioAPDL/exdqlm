@@ -85,7 +85,7 @@ The fit now records theta warmup in the same style as the existing warmup blocks
 The refreshed numerical-crash relaunch tooling now uses:
 
 - theta warmup for both dynamic MCMC branches
-- the legacy R MCMC backend for this crash-recovery lane
+- the C++ MCMC backend in `strict` mode for this crash-recovery lane
 
 This wiring lives in:
 
@@ -107,7 +107,7 @@ For the next numerical-crash relaunch surface:
 | `sigmagam.freeze_burnin_iters` | `500` |
 | `dqlm_sigma.freeze_burnin_iters` | `500` |
 | `gig_b_vec_floor` | `1e-10` |
-| `mcmc_use_cpp` | `FALSE` |
+| `mcmc_use_cpp` | `TRUE` |
 | `mcmc_cpp_mode` | `"strict"` |
 
 ## Validation

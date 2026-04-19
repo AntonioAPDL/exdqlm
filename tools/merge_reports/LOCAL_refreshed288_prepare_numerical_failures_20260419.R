@@ -254,7 +254,7 @@ run_contract <- data.frame(
   theta_state_warmup_iters = 100L,
   latent_state_warmup_iters = 100L,
   dqlm_sigma_warmup_iters = 500L,
-  mcmc_use_cpp = FALSE,
+  mcmc_use_cpp = TRUE,
   mcmc_cpp_mode = "strict",
   validation_repo_branch = current_git_branch_refreshed288(repo_root),
   validation_repo_sha = current_git_sha_refreshed288(repo_root),
