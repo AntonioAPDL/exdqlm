@@ -1,0 +1,8 @@
+"arm_id","arm_order","target_row","backend_family","mcmc_cpp_mode","theta_warmup_iters","latent_mode","latent_warmup_iters","sigmagam_mcmc_warmup_iters","intended_use"
+"A",1,8,"cpp","fast",0,"u_st_pair",0,0,"reproduction_anchor"
+"B",2,8,"cpp","strict",0,"u_st_pair",0,0,"mode_only"
+"C",3,8,"cpp","strict",100,"u_st_pair",0,0,"theta_only"
+"D",4,8,"cpp","strict",100,"u_st_pair",100,0,"theta_plus_latent"
+"E",5,8,"cpp","strict",100,"u_st_pair",100,500,"current_best_integrated"
+"F",6,8,"cpp","strict",200,"u_st_pair",200,750,"escalation_if_E_fails"
+"G",7,8,"cpp","fast",100,"u_st_pair",100,500,"fast_recovery_challenge_if_strict_wins"
