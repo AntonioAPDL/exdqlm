@@ -240,3 +240,75 @@ test_that("MCMC validation export carries latent-s warmup summaries and trace co
   expect_equal(health$mcmc_latent_s_frozen_burn_rate, 3 / 5, tolerance = 1e-12)
   expect_equal(health$mcmc_latent_s_sparse_hold_burn_rate, 1 / 5, tolerance = 1e-12)
 })
+
+test_that("MCMC validation export carries theta warmup summaries and trace columns", {
+  withr::local_seed(20260420)
+
+  n <- 18L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.20, -0.12, 0.09) + stats::rnorm(n, sd = 0.22))
+
+  fit <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 5L,
+      n_mcmc = 7L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      theta = list(
+        enabled = TRUE,
+        freeze_burnin_iters = 3L,
+        freeze_only_during_burn = TRUE,
+        sparse_update_every = 2L,
+        sparse_update_until_iter = 5L,
+        force_first_postwarmup_update = TRUE,
+        trace = TRUE
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  summary_obj <- make_sigmagam_summary_obj(fit)
+  latent_trace <- exdqlm:::.qdesn_validation_method_latent_v_trace("mcmc", summary_obj)
+  theta_trace <- exdqlm:::.qdesn_validation_method_theta_trace("mcmc", summary_obj)
+  health <- exdqlm:::.qdesn_validation_method_health("mcmc", make_sigmagam_root_spec("mcmc"), summary_obj)
+
+  expect_true(all(c(
+    "theta_warmup_active",
+    "theta_hard_freeze",
+    "theta_sparse_window",
+    "theta_force_update",
+    "theta_update_performed",
+    "theta_update_reason",
+    "theta_update_count"
+  ) %in% names(latent_trace)))
+  expect_true(all(theta_trace$phase[1:5] == "burn"))
+  expect_true(all(theta_trace$phase[6:nrow(theta_trace)] == "keep"))
+  expect_true(all(theta_trace$theta_hard_freeze[1:3]))
+  expect_false(isTRUE(theta_trace$theta_hard_freeze[4L]))
+  expect_identical(theta_trace$theta_update_reason[[4L]], "force_after_warmup")
+  expect_identical(theta_trace$theta_update_reason[[5L]], "sparse_hold")
+  expect_true(isTRUE(theta_trace$theta_force_update[[4L]]))
+  expect_false(isTRUE(theta_trace$theta_update_performed[[5L]]))
+  expect_true(all(diff(theta_trace$theta_update_count) >= 0))
+
+  expect_equal(health$mcmc_theta_warmup_iters, 3L)
+  expect_equal(health$mcmc_theta_sparse_update_every, 2L)
+  expect_equal(health$mcmc_theta_sparse_update_until_iter, 5L)
+  expect_equal(health$mcmc_theta_first_postwarmup_update_iter, 4L)
+  expect_equal(health$mcmc_theta_updates_burn, 1L)
+  expect_equal(health$mcmc_theta_updates_keep, 7L)
+  expect_equal(health$mcmc_theta_frozen_burn_rate, 3 / 5, tolerance = 1e-12)
+  expect_equal(health$mcmc_theta_sparse_hold_burn_rate, 1 / 5, tolerance = 1e-12)
+})

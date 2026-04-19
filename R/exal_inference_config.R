@@ -105,6 +105,15 @@
       delay_adapt_until_after_warmup = TRUE,
       delay_laplace_refresh_until_after_warmup = TRUE
     ),
+    theta = list(
+      enabled = FALSE,
+      freeze_burnin_iters = 0L,
+      freeze_only_during_burn = TRUE,
+      sparse_update_every = 1L,
+      sparse_update_until_iter = 0L,
+      force_first_postwarmup_update = TRUE,
+      trace = TRUE
+    ),
     latent_v = list(
       enabled = FALSE,
       freeze_burnin_iters = 0L,
@@ -379,6 +388,52 @@
     sparse_update_until_iter = sparse_update_until_iter,
     force_first_postwarmup_update = if (is.null(latent_s_cfg$force_first_postwarmup_update)) TRUE else isTRUE(latent_s_cfg$force_first_postwarmup_update),
     trace = if (is.null(latent_s_cfg$trace)) TRUE else isTRUE(latent_s_cfg$trace)
+  )
+}
+
+.exal_normalize_mcmc_theta_cfg <- function(theta_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  theta_cfg <- .exal_list_or_empty(theta_cfg)
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    theta_cfg$freeze_burnin_iters %||%
+      theta_cfg$freeze_theta_burnin_iters %||%
+      theta_cfg$freeze_beta_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  sparse_update_every <- suppressWarnings(as.integer(
+    theta_cfg$sparse_update_every %||%
+      theta_cfg$update_every_warmup %||%
+      1L
+  )[1L])
+  if (!is.finite(sparse_update_every) || sparse_update_every < 1L) sparse_update_every <- 1L
+
+  sparse_update_until_iter <- suppressWarnings(as.integer(
+    theta_cfg$sparse_update_until_iter %||%
+      theta_cfg$update_every_warmup_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(sparse_update_until_iter) || sparse_update_until_iter < 0L) {
+    sparse_update_until_iter <- 0L
+  }
+  if (sparse_update_every <= 1L) sparse_update_until_iter <- max(0L, sparse_update_until_iter)
+
+  enabled <- if (is.null(theta_cfg$enabled)) {
+    freeze_burnin_iters > 0L || (sparse_update_every > 1L && sparse_update_until_iter > 0L)
+  } else {
+    isTRUE(theta_cfg$enabled)
+  }
+
+  list(
+    enabled = isTRUE(enabled),
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(theta_cfg$freeze_only_during_burn)) TRUE else isTRUE(theta_cfg$freeze_only_during_burn),
+    sparse_update_every = sparse_update_every,
+    sparse_update_until_iter = sparse_update_until_iter,
+    force_first_postwarmup_update = if (is.null(theta_cfg$force_first_postwarmup_update)) TRUE else isTRUE(theta_cfg$force_first_postwarmup_update),
+    trace = if (is.null(theta_cfg$trace)) TRUE else isTRUE(theta_cfg$trace)
   )
 }
 
@@ -782,6 +837,7 @@
     control$vb_warm_start_control <- modifyList(control$vb_warm_start_control %||% list(), mcmc_cfg$vb_warm_start_control)
   }
   control$sigmagam <- .exal_normalize_mcmc_sigmagam_cfg(mcmc_cfg$sigmagam %||% control$sigmagam %||% list())
+  control$theta <- .exal_normalize_mcmc_theta_cfg(mcmc_cfg$theta %||% mcmc_cfg$beta %||% control$theta %||% list())
   control$latent_v <- .exal_normalize_mcmc_latent_v_cfg(mcmc_cfg$latent_v %||% control$latent_v %||% list())
   control$latent_s <- .exal_normalize_mcmc_latent_s_cfg(mcmc_cfg$latent_s %||% control$latent_s %||% list())
   control$vb_warm_start_control <- .exal_list_or_empty(control$vb_warm_start_control)

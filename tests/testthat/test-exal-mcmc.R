@@ -759,6 +759,69 @@ test_that("MCMC latent-s warmup records freeze, sparse-hold, and forced thaw tra
   expect_true(all(diff(as.integer(fit$misc$latent_s_update_count_trace)) >= 0L))
 })
 
+test_that("MCMC theta warmup records freeze, sparse-hold, and forced thaw traces", {
+  withr::local_seed(20260419)
+
+  n <- 18L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.22, -0.14, 0.10) + stats::rnorm(n, sd = 0.24))
+
+  fit <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 6L,
+      n_mcmc = 8L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      theta = list(
+        enabled = TRUE,
+        freeze_burnin_iters = 3L,
+        freeze_only_during_burn = TRUE,
+        sparse_update_every = 2L,
+        sparse_update_until_iter = 6L,
+        force_first_postwarmup_update = TRUE,
+        trace = TRUE
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  expect_s3_class(fit, "exal_mcmc")
+  expect_true(isTRUE(fit$control$theta$enabled))
+  expect_equal(fit$control$theta$freeze_burnin_iters, 3L)
+  expect_equal(fit$control$theta$sparse_update_every, 2L)
+  expect_equal(fit$control$theta$sparse_update_until_iter, 6L)
+  expect_true(all(fit$misc$theta_hard_freeze_trace[1:3]))
+  expect_false(isTRUE(fit$misc$theta_hard_freeze_trace[4L]))
+  expect_true(all(fit$misc$theta_warmup_active_trace[1:6]))
+  expect_true(isTRUE(fit$misc$theta_force_update_trace[4L]))
+  expect_identical(fit$misc$theta_update_reason_trace[[4L]], "force_after_warmup")
+  expect_identical(fit$misc$theta_update_reason_trace[[5L]], "sparse_hold")
+  expect_identical(fit$misc$theta_update_reason_trace[[6L]], "sparse_update")
+  expect_false(isTRUE(fit$misc$theta_update_performed_trace[5L]))
+  expect_true(isTRUE(fit$misc$theta_update_performed_trace[6L]))
+  expect_equal(fit$misc$theta_first_postwarmup_update_iter, 4L)
+  expect_equal(fit$diagnostics$theta$freeze_burnin_iters, 3L)
+  expect_equal(fit$diagnostics$theta$sparse_update_every, 2L)
+  expect_equal(fit$diagnostics$theta$sparse_update_until_iter, 6L)
+  expect_equal(fit$diagnostics$theta$updates_burn, 2L)
+  expect_equal(fit$diagnostics$theta$updates_keep, 8L)
+  expect_equal(fit$diagnostics$theta$frozen_burn_rate, 3 / 6, tolerance = 1e-12)
+  expect_equal(fit$diagnostics$theta$sparse_hold_burn_rate, 1 / 6, tolerance = 1e-12)
+  expect_true(all(diff(as.integer(fit$misc$theta_update_count_trace)) >= 0L))
+})
+
 test_that("latent-v numerical failure is rethrown with structured diagnostics", {
   withr::local_seed(20260418)
 
@@ -824,6 +887,10 @@ test_that("latent-v numerical failure is rethrown with structured diagnostics", 
   expect_false(isTRUE(err$latent_v_failure$latent_s_warmup_active))
   expect_false(isTRUE(err$latent_v_failure$latent_s_hard_freeze_active))
   expect_false(isTRUE(err$latent_v_failure$latent_s_sparse_window_active))
+  expect_identical(err$latent_v_failure$theta_update_reason, "scheduled")
+  expect_false(isTRUE(err$latent_v_failure$theta_warmup_active))
+  expect_false(isTRUE(err$latent_v_failure$theta_hard_freeze_active))
+  expect_false(isTRUE(err$latent_v_failure$theta_sparse_window_active))
   expect_true(is.list(err$latent_v_failure$chi_v))
   expect_true(is.list(err$latent_v_failure$psi_v))
   expect_true(is.finite(err$latent_v_failure$beta_norm))

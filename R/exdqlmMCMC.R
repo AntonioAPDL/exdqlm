@@ -379,7 +379,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   save.post.pred <- matrix(NA,TT,n.mcmc)
   vb.out <- NULL
   gig_backend <- "cpp_devroye_required"
-  gig_eps <- 1e-12
+  gig_eps <- 1e-10
   current_iter <- NA_integer_
 
   sample_gig_cpp_required <- function(chi, psi, lambda = 0.5, context = "gig") {

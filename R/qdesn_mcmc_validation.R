@@ -733,6 +733,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   base$mcmc_failure_latent_v_rescue_strategy <- as.character(failure$latent_v_rescue_strategy %||% NA_character_)[1L]
   base$mcmc_failure_latent_v_rescue_count <- as.integer(failure$latent_v_rescue_count %||% NA_integer_)[1L]
   base$mcmc_failure_latent_v_rescue_consecutive <- as.integer(failure$latent_v_rescue_consecutive %||% NA_integer_)[1L]
+  base$mcmc_failure_theta_warmup_active <- if (is.null(failure$theta_warmup_active)) NA else isTRUE(failure$theta_warmup_active)
+  base$mcmc_failure_theta_update_reason <- as.character(failure$theta_update_reason %||% NA_character_)[1L]
   base$mcmc_failure_chi_v_min <- as.numeric(chi_v$min %||% NA_real_)[1L]
   base$mcmc_failure_chi_v_max <- as.numeric(chi_v$max %||% NA_real_)[1L]
   base$mcmc_failure_chi_v_mean <- as.numeric(chi_v$mean %||% NA_real_)[1L]
@@ -814,6 +816,14 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     mcmc_latent_v_rescues_keep = NA_integer_,
     mcmc_latent_v_rescue_burn_rate = NA_real_,
     mcmc_latent_v_rescue_max_streak = NA_integer_,
+    mcmc_theta_warmup_iters = NA_integer_,
+    mcmc_theta_sparse_update_every = NA_integer_,
+    mcmc_theta_sparse_update_until_iter = NA_integer_,
+    mcmc_theta_first_postwarmup_update_iter = NA_integer_,
+    mcmc_theta_updates_burn = NA_integer_,
+    mcmc_theta_updates_keep = NA_integer_,
+    mcmc_theta_frozen_burn_rate = NA_real_,
+    mcmc_theta_sparse_hold_burn_rate = NA_real_,
     stringsAsFactors = FALSE
   )
   .qdesn_validation_append_latent_v_failure_fields(base, (error_payload %||% list())$latent_v_failure %||% NULL)
@@ -907,6 +917,14 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     mcmc_latent_v_rescues_keep = NA_integer_,
     mcmc_latent_v_rescue_burn_rate = NA_real_,
     mcmc_latent_v_rescue_max_streak = NA_integer_,
+    mcmc_theta_warmup_iters = NA_integer_,
+    mcmc_theta_sparse_update_every = NA_integer_,
+    mcmc_theta_sparse_update_until_iter = NA_integer_,
+    mcmc_theta_first_postwarmup_update_iter = NA_integer_,
+    mcmc_theta_updates_burn = NA_integer_,
+    mcmc_theta_updates_keep = NA_integer_,
+    mcmc_theta_frozen_burn_rate = NA_real_,
+    mcmc_theta_sparse_hold_burn_rate = NA_real_,
     stringsAsFactors = FALSE
   )
   base <- .qdesn_validation_append_latent_v_failure_fields(base, NULL)
@@ -1025,6 +1043,14 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$mcmc_latent_s_updates_keep <- as.integer((fit$diagnostics$latent_s %||% list())$updates_keep %||% NA_integer_)
     base$mcmc_latent_s_frozen_burn_rate <- as.numeric((fit$diagnostics$latent_s %||% list())$frozen_burn_rate %||% NA_real_)
     base$mcmc_latent_s_sparse_hold_burn_rate <- as.numeric((fit$diagnostics$latent_s %||% list())$sparse_hold_burn_rate %||% NA_real_)
+    base$mcmc_theta_warmup_iters <- as.integer((fit$diagnostics$theta %||% list())$freeze_burnin_iters %||% NA_integer_)
+    base$mcmc_theta_sparse_update_every <- as.integer((fit$diagnostics$theta %||% list())$sparse_update_every %||% NA_integer_)
+    base$mcmc_theta_sparse_update_until_iter <- as.integer((fit$diagnostics$theta %||% list())$sparse_update_until_iter %||% NA_integer_)
+    base$mcmc_theta_first_postwarmup_update_iter <- as.integer((fit$diagnostics$theta %||% list())$first_postwarmup_update_iter %||% NA_integer_)
+    base$mcmc_theta_updates_burn <- as.integer((fit$diagnostics$theta %||% list())$updates_burn %||% NA_integer_)
+    base$mcmc_theta_updates_keep <- as.integer((fit$diagnostics$theta %||% list())$updates_keep %||% NA_integer_)
+    base$mcmc_theta_frozen_burn_rate <- as.numeric((fit$diagnostics$theta %||% list())$frozen_burn_rate %||% NA_real_)
+    base$mcmc_theta_sparse_hold_burn_rate <- as.numeric((fit$diagnostics$theta %||% list())$sparse_hold_burn_rate %||% NA_real_)
     base$mcmc_sigmagam_warmup_iters <- as.integer((fit$diagnostics$sigmagam %||% list())$freeze_burnin_iters %||% NA_integer_)
     base$mcmc_sigmagam_first_active_iter <- as.integer((fit$diagnostics$sigmagam %||% list())$first_active_iter %||% NA_integer_)
     base$mcmc_sigmagam_updates_burn <- as.integer((fit$diagnostics$sigmagam %||% list())$updates_burn %||% NA_integer_)
@@ -1421,6 +1447,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   latent_s_update_performed <- as.logical(fit$misc$latent_s_update_performed_trace %||% logical(0))
   latent_s_reason <- as.character(fit$misc$latent_s_update_reason_trace %||% character(0))
   latent_s_update_count <- as.integer(fit$misc$latent_s_update_count_trace %||% integer(0))
+  theta_warmup_active <- as.logical(fit$misc$theta_warmup_active_trace %||% logical(0))
+  theta_hard_freeze <- as.logical(fit$misc$theta_hard_freeze_trace %||% logical(0))
+  theta_sparse_window <- as.logical(fit$misc$theta_sparse_window_trace %||% logical(0))
+  theta_force_update <- as.logical(fit$misc$theta_force_update_trace %||% logical(0))
+  theta_update_performed <- as.logical(fit$misc$theta_update_performed_trace %||% logical(0))
+  theta_reason <- as.character(fit$misc$theta_update_reason_trace %||% character(0))
+  theta_update_count <- as.integer(fit$misc$theta_update_count_trace %||% integer(0))
 
   if (length(warmup_active) == n_iter) out$latent_v_warmup_active <- warmup_active
   if (length(hard_freeze) == n_iter) out$latent_v_hard_freeze <- hard_freeze
@@ -1440,6 +1473,61 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   if (length(latent_s_update_performed) == n_iter) out$latent_s_update_performed <- latent_s_update_performed
   if (length(latent_s_reason) == n_iter) out$latent_s_update_reason <- latent_s_reason
   if (length(latent_s_update_count) == n_iter) out$latent_s_update_count <- latent_s_update_count
+  if (length(theta_warmup_active) == n_iter) out$theta_warmup_active <- theta_warmup_active
+  if (length(theta_hard_freeze) == n_iter) out$theta_hard_freeze <- theta_hard_freeze
+  if (length(theta_sparse_window) == n_iter) out$theta_sparse_window <- theta_sparse_window
+  if (length(theta_force_update) == n_iter) out$theta_force_update <- theta_force_update
+  if (length(theta_update_performed) == n_iter) out$theta_update_performed <- theta_update_performed
+  if (length(theta_reason) == n_iter) out$theta_update_reason <- theta_reason
+  if (length(theta_update_count) == n_iter) out$theta_update_count <- theta_update_count
+  out
+}
+
+.qdesn_validation_method_theta_trace <- function(method, summary_obj) {
+  fit <- .qdesn_validation_extract_fit(summary_obj)
+  if (is.null(fit) || !inherits(fit, "exal_mcmc")) return(data.frame(stringsAsFactors = FALSE))
+
+  gamma_trace <- as.numeric(fit$misc$gamma_trace %||% numeric(0))
+  sigma_trace <- as.numeric(fit$misc$sigma_trace %||% numeric(0))
+  n_iter <- length(gamma_trace)
+  if (n_iter <= 0L || length(sigma_trace) != n_iter) return(data.frame(stringsAsFactors = FALSE))
+
+  n_burn <- as.integer(fit$control$n_burn %||% NA_integer_)
+  out <- data.frame(
+    method = method,
+    step = seq_len(n_iter),
+    phase = if (!is.na(n_burn)) ifelse(seq_len(n_iter) <= n_burn, "burn", "keep") else NA_character_,
+    gamma = gamma_trace,
+    sigma = sigma_trace,
+    stringsAsFactors = FALSE
+  )
+
+  warmup_active <- as.logical(fit$misc$theta_warmup_active_trace %||% logical(0))
+  hard_freeze <- as.logical(fit$misc$theta_hard_freeze_trace %||% logical(0))
+  sparse_window <- as.logical(fit$misc$theta_sparse_window_trace %||% logical(0))
+  force_update <- as.logical(fit$misc$theta_force_update_trace %||% logical(0))
+  update_performed <- as.logical(fit$misc$theta_update_performed_trace %||% logical(0))
+  reason <- as.character(fit$misc$theta_update_reason_trace %||% character(0))
+  update_count <- as.integer(fit$misc$theta_update_count_trace %||% integer(0))
+  if (!any(c(
+    length(warmup_active) == n_iter,
+    length(hard_freeze) == n_iter,
+    length(sparse_window) == n_iter,
+    length(force_update) == n_iter,
+    length(update_performed) == n_iter,
+    length(reason) == n_iter,
+    length(update_count) == n_iter
+  ))) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+
+  if (length(warmup_active) == n_iter) out$theta_warmup_active <- warmup_active
+  if (length(hard_freeze) == n_iter) out$theta_hard_freeze <- hard_freeze
+  if (length(sparse_window) == n_iter) out$theta_sparse_window <- sparse_window
+  if (length(force_update) == n_iter) out$theta_force_update <- force_update
+  if (length(update_performed) == n_iter) out$theta_update_performed <- update_performed
+  if (length(reason) == n_iter) out$theta_update_reason <- reason
+  if (length(update_count) == n_iter) out$theta_update_count <- update_count
   out
 }
 
@@ -1814,6 +1902,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   if (nrow(sigmagam_trace)) {
     .qdesn_validation_write_df(sigmagam_trace, file.path(method_dir, "sigmagam_trace.csv"))
   }
+  theta_trace <- if (!is.null(summary_obj)) .qdesn_validation_method_theta_trace(method, summary_obj) else data.frame(stringsAsFactors = FALSE)
+  if (nrow(theta_trace)) {
+    .qdesn_validation_write_df(theta_trace, file.path(method_dir, "theta_trace.csv"))
+  }
   if (identical(method, "mcmc") && !is.null(summary_obj)) {
     chain_summary <- .qdesn_validation_mcmc_chain_summary(summary_obj)
     if (nrow(chain_summary)) {
@@ -1836,6 +1928,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     progress_trace = progress_trace,
     latent_v_trace = latent_v_trace,
     sigmagam_trace = sigmagam_trace,
+    theta_trace = theta_trace,
     forecast_df = if (!is.null(summary_obj)) .qdesn_validation_extract_forecast_df(summary_obj) else data.frame(stringsAsFactors = FALSE)
   )
 }

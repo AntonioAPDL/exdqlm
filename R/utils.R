@@ -49,6 +49,10 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   stop("Unable to compute valid gamma bounds for p0 = ", p0)
 }
 
+.exal_gig_floor <- function() {
+  1e-10
+}
+
 .sample_gig_devroye_required <- function(n_samples,
                                          p,
                                          a,
@@ -60,7 +64,7 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
     stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
   }
 
-  eps_gig <- sqrt(.Machine$double.eps)
+  eps_gig <- .exal_gig_floor()
   p <- as.numeric(p)[1]
   a <- as.numeric(a)[1]
   b_vec <- as.numeric(b_vec)
@@ -69,8 +73,9 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
     stop(sprintf("%s requires a finite lambda; got %.6g", context, p))
   }
 
-  if (!is.finite(a) || a <= 0) a <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+  a <- if (is.finite(a)) max(a, eps_gig) else eps_gig
+  b_vec[!is.finite(b_vec)] <- eps_gig
+  b_vec <- pmax(b_vec, eps_gig)
 
   n_samples <- as.integer(n_samples)[1]
   max_retry_batches <- max(as.integer(max_retry_batches)[1], 0L)
@@ -118,7 +123,7 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
     stop(sprintf("%s requires sample_gig_devroye_pairs(), but it is not available", context))
   }
 
-  eps_gig <- sqrt(.Machine$double.eps)
+  eps_gig <- .exal_gig_floor()
   p <- as.numeric(p)[1]
   a_vec <- as.numeric(a_vec)
   b_vec <- as.numeric(b_vec)
@@ -130,8 +135,10 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
     stop(sprintf("%s requires a_vec and b_vec to have the same length", context))
   }
 
-  a_vec[!is.finite(a_vec) | a_vec <= 0] <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+  a_vec[!is.finite(a_vec)] <- eps_gig
+  b_vec[!is.finite(b_vec)] <- eps_gig
+  a_vec <- pmax(a_vec, eps_gig)
+  b_vec <- pmax(b_vec, eps_gig)
 
   n_samples <- as.integer(n_samples)[1]
   max_retry_batches <- max(as.integer(max_retry_batches)[1], 0L)

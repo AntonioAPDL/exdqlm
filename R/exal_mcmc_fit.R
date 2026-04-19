@@ -278,6 +278,10 @@
                                            latent_s_warmup_active,
                                            latent_s_hard_freeze_active,
                                            latent_s_sparse_window_active,
+                                           theta_reason,
+                                           theta_warmup_active,
+                                           theta_hard_freeze_active,
+                                           theta_sparse_window_active,
                                            chi_v,
                                            psi_v,
                                            z_v) {
@@ -306,6 +310,10 @@
     latent_s_warmup_active = isTRUE(latent_s_warmup_active),
     latent_s_hard_freeze_active = isTRUE(latent_s_hard_freeze_active),
     latent_s_sparse_window_active = isTRUE(latent_s_sparse_window_active),
+    theta_update_reason = as.character(theta_reason %||% NA_character_)[1L],
+    theta_warmup_active = isTRUE(theta_warmup_active),
+    theta_hard_freeze_active = isTRUE(theta_hard_freeze_active),
+    theta_sparse_window_active = isTRUE(theta_sparse_window_active),
     chi_v = .exal_mcmc_numeric_summary(chi_v),
     psi_v = .exal_mcmc_numeric_summary(psi_v),
     z_v = .exal_mcmc_numeric_summary(z_v),
@@ -1027,6 +1035,36 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   sigmagam_force_after_warmup <- if (is.null(sigmagam_warm_cfg$force_after_warmup)) TRUE else isTRUE(sigmagam_warm_cfg$force_after_warmup)
   sigmagam_delay_adapt_until_after_warmup <- if (is.null(sigmagam_warm_cfg$delay_adapt_until_after_warmup)) TRUE else isTRUE(sigmagam_warm_cfg$delay_adapt_until_after_warmup)
   sigmagam_delay_laplace_refresh_until_after_warmup <- if (is.null(sigmagam_warm_cfg$delay_laplace_refresh_until_after_warmup)) TRUE else isTRUE(sigmagam_warm_cfg$delay_laplace_refresh_until_after_warmup)
+  theta_cfg <- mcmc_control$theta %||% mcmc_control$beta %||% list()
+  theta_enabled <- isTRUE(
+    theta_cfg$enabled %||%
+      (
+        as.integer(theta_cfg$freeze_burnin_iters %||% 0L) > 0L ||
+          (
+            as.integer(theta_cfg$sparse_update_every %||% 1L) > 1L &&
+              as.integer(theta_cfg$sparse_update_until_iter %||% 0L) > 0L
+          )
+      )
+  )
+  theta_freeze_burnin_iters <- max(0L, as.integer(
+    theta_cfg$freeze_burnin_iters %||%
+      theta_cfg$freeze_theta_burnin_iters %||%
+      theta_cfg$freeze_beta_burnin_iters %||%
+      0L
+  ))
+  theta_freeze_only_during_burn <- if (is.null(theta_cfg$freeze_only_during_burn)) TRUE else isTRUE(theta_cfg$freeze_only_during_burn)
+  theta_sparse_update_every <- max(1L, as.integer(
+    theta_cfg$sparse_update_every %||%
+      theta_cfg$update_every_warmup %||%
+      1L
+  ))
+  theta_sparse_update_until_iter <- max(0L, as.integer(
+    theta_cfg$sparse_update_until_iter %||%
+      theta_cfg$update_every_warmup_iters %||%
+      0L
+  ))
+  theta_force_first_postwarmup_update <- if (is.null(theta_cfg$force_first_postwarmup_update)) TRUE else isTRUE(theta_cfg$force_first_postwarmup_update)
+  theta_trace_enabled <- if (is.null(theta_cfg$trace)) TRUE else isTRUE(theta_cfg$trace)
   latent_v_cfg <- mcmc_control$latent_v %||% list()
   latent_v_enabled <- isTRUE(
     latent_v_cfg$enabled %||%
@@ -1835,6 +1873,18 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   sigmagam_postwarmup_update_count <- 0L
   sigmagam_updates_burn <- 0L
   sigmagam_updates_keep <- 0L
+  theta_warmup_active_trace <- rep(FALSE, n_total)
+  theta_hard_freeze_trace <- rep(FALSE, n_total)
+  theta_sparse_window_trace <- rep(FALSE, n_total)
+  theta_force_update_trace <- rep(FALSE, n_total)
+  theta_update_performed_trace <- rep(FALSE, n_total)
+  theta_update_reason_trace <- rep(NA_character_, n_total)
+  theta_update_count_trace <- integer(n_total)
+  theta_first_postwarmup_update_iter <- NA_integer_
+  theta_update_count <- 0L
+  theta_updates_burn <- 0L
+  theta_updates_keep <- 0L
+  theta_force_pending <- isTRUE(theta_enabled && theta_freeze_burnin_iters > 0L && theta_force_first_postwarmup_update)
   latent_v_warmup_active_trace <- rep(FALSE, n_total)
   latent_v_hard_freeze_trace <- rep(FALSE, n_total)
   latent_v_sparse_window_trace <- rep(FALSE, n_total)
@@ -1975,6 +2025,43 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     B <- as.numeric(B_of(gamma))[1L]
     Cabs <- as.numeric(Cabs_of(gamma))[1L]
 
+    theta_hard_freeze_active <- isTRUE(
+      theta_enabled &&
+        theta_freeze_burnin_iters > 0L &&
+        iter <= theta_freeze_burnin_iters &&
+        (!theta_freeze_only_during_burn || iter <= n_burn)
+    )
+    theta_sparse_window_active <- isTRUE(
+      theta_enabled &&
+        !theta_hard_freeze_active &&
+        theta_sparse_update_every > 1L &&
+        iter <= theta_sparse_update_until_iter &&
+        (!theta_freeze_only_during_burn || iter <= n_burn)
+    )
+    theta_sparse_update_now <- isTRUE(
+      theta_sparse_window_active &&
+        ((iter - theta_freeze_burnin_iters - 1L) %% theta_sparse_update_every == 0L)
+    )
+    theta_force_now <- isTRUE(!theta_hard_freeze_active && theta_force_pending)
+    theta_update_reason <- if (isTRUE(theta_hard_freeze_active)) {
+      "warmup_freeze"
+    } else if (isTRUE(theta_force_now)) {
+      "force_after_warmup"
+    } else if (isTRUE(theta_sparse_window_active) && !isTRUE(theta_sparse_update_now)) {
+      "sparse_hold"
+    } else if (isTRUE(theta_sparse_window_active)) {
+      "sparse_update"
+    } else {
+      "scheduled"
+    }
+    theta_update_now <- !isTRUE(theta_hard_freeze_active) &&
+      (isTRUE(theta_force_now) || !isTRUE(theta_sparse_window_active) || isTRUE(theta_sparse_update_now))
+    theta_warmup_active_trace[iter] <- isTRUE(theta_hard_freeze_active || theta_sparse_window_active)
+    theta_hard_freeze_trace[iter] <- isTRUE(theta_hard_freeze_active)
+    theta_sparse_window_trace[iter] <- isTRUE(theta_sparse_window_active)
+    theta_force_update_trace[iter] <- isTRUE(theta_force_now)
+    theta_update_reason_trace[iter] <- theta_update_reason
+
     latent_s_hard_freeze_active <- isTRUE(
       latent_s_enabled &&
         latent_s_freeze_burnin_iters > 0L &&
@@ -2110,6 +2197,10 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
             latent_s_warmup_active = latent_s_warmup_active_trace[iter],
             latent_s_hard_freeze_active = latent_s_hard_freeze_trace[iter],
             latent_s_sparse_window_active = latent_s_sparse_window_trace[iter],
+            theta_reason = theta_update_reason,
+            theta_warmup_active = theta_warmup_active_trace[iter],
+            theta_hard_freeze_active = theta_hard_freeze_trace[iter],
+            theta_sparse_window_active = theta_sparse_window_trace[iter],
             chi_v = chi_v,
             psi_v = psi_v,
             z_v = z_v
@@ -2162,12 +2253,26 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
 
     W_diag <- 1 / (B * sigma * v)
     y_star <- y - Cabs * sigma * s - A * v
-    beta_prec_diag_work <- sweep(beta_draw_transform_inv, 1L, beta_prec_diag, `*`)
-    prior_prec_work <- crossprod(beta_draw_transform_inv, beta_prec_diag_work)
-    Prec_beta <- crossprod(beta_draw_design * sqrt(W_diag)) + prior_prec_work
-    rhs_beta <- crossprod(beta_draw_design, W_diag * y_star)
-    beta_work <- .exal_mcmc_sample_mvnorm_prec(rhs_beta, Prec_beta)
-    beta <- as.numeric(beta_draw_transform_inv %*% beta_work)
+    if (isTRUE(theta_update_now)) {
+      beta_prec_diag_work <- sweep(beta_draw_transform_inv, 1L, beta_prec_diag, `*`)
+      prior_prec_work <- crossprod(beta_draw_transform_inv, beta_prec_diag_work)
+      Prec_beta <- crossprod(beta_draw_design * sqrt(W_diag)) + prior_prec_work
+      rhs_beta <- crossprod(beta_draw_design, W_diag * y_star)
+      beta_work <- .exal_mcmc_sample_mvnorm_prec(rhs_beta, Prec_beta)
+      beta <- as.numeric(beta_draw_transform_inv %*% beta_work)
+      theta_update_performed_trace[iter] <- TRUE
+      theta_update_count <- theta_update_count + 1L
+      if (iter > n_burn) {
+        theta_updates_keep <- theta_updates_keep + 1L
+      } else {
+        theta_updates_burn <- theta_updates_burn + 1L
+      }
+      if (isTRUE(theta_force_now) && is.na(theta_first_postwarmup_update_iter)) {
+        theta_first_postwarmup_update_iter <- as.integer(iter)
+      }
+      if (isTRUE(theta_force_now)) theta_force_pending <- FALSE
+    }
+    theta_update_count_trace[iter] <- theta_update_count
 
     rhs_stats <- NULL
     if (is_rhs_family) {
@@ -2391,7 +2496,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     sigma_mean = sigma_mean,
     gamma_mean = gamma_mean
   )
-  diagnostics_out <- list(
+    diagnostics_out <- list(
     core_update_mode = core_update_mode,
     core_sigma_gamma_passes_per_iter = as.integer(core_passes_total),
     core_gamma_refreshes_per_iter = as.integer(
@@ -2447,6 +2552,25 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       frozen_burn_rate = if (n_burn > 0L) mean(latent_s_hard_freeze_trace[seq_len(n_burn)]) else NA_real_,
       sparse_hold_burn_rate = if (n_burn > 0L) {
         mean(latent_s_sparse_window_trace[seq_len(n_burn)] & !latent_s_update_performed_trace[seq_len(n_burn)])
+      } else {
+        NA_real_
+      }
+    ),
+    theta = list(
+      enabled = isTRUE(theta_enabled),
+      target = "beta",
+      freeze_burnin_iters = as.integer(theta_freeze_burnin_iters),
+      freeze_only_during_burn = isTRUE(theta_freeze_only_during_burn),
+      sparse_update_every = as.integer(theta_sparse_update_every),
+      sparse_update_until_iter = as.integer(theta_sparse_update_until_iter),
+      force_first_postwarmup_update = isTRUE(theta_force_first_postwarmup_update),
+      first_postwarmup_update_iter = if (is.na(theta_first_postwarmup_update_iter)) NA_integer_ else as.integer(theta_first_postwarmup_update_iter),
+      updates_burn = as.integer(theta_updates_burn),
+      updates_keep = as.integer(theta_updates_keep),
+      update_count = as.integer(theta_update_count),
+      frozen_burn_rate = if (n_burn > 0L) mean(theta_hard_freeze_trace[seq_len(n_burn)]) else NA_real_,
+      sparse_hold_burn_rate = if (n_burn > 0L) {
+        mean(theta_sparse_window_trace[seq_len(n_burn)] & !theta_update_performed_trace[seq_len(n_burn)])
       } else {
         NA_real_
       }
@@ -2551,6 +2675,16 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       init_from_vb = init_from_vb,
       vb_warm_start_seed = if (is.null(vb_warm_start_seed)) NA_integer_ else vb_warm_start_seed,
       vb_warm_start_control = mcmc_control$vb_warm_start_control %||% list(),
+      theta = list(
+        enabled = isTRUE(theta_enabled),
+        target = "beta",
+        freeze_burnin_iters = as.integer(theta_freeze_burnin_iters),
+        freeze_only_during_burn = isTRUE(theta_freeze_only_during_burn),
+        sparse_update_every = as.integer(theta_sparse_update_every),
+        sparse_update_until_iter = as.integer(theta_sparse_update_until_iter),
+        force_first_postwarmup_update = isTRUE(theta_force_first_postwarmup_update),
+        trace = isTRUE(theta_trace_enabled)
+      ),
       latent_v = list(
         enabled = isTRUE(latent_v_enabled),
         freeze_burnin_iters = as.integer(latent_v_freeze_burnin_iters),
@@ -2666,6 +2800,17 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       method = "mcmc",
       gamma_trace = gamma_trace,
       sigma_trace = sigma_trace,
+      theta_warmup_active_trace = if (isTRUE(theta_trace_enabled)) theta_warmup_active_trace else NULL,
+      theta_hard_freeze_trace = if (isTRUE(theta_trace_enabled)) theta_hard_freeze_trace else NULL,
+      theta_sparse_window_trace = if (isTRUE(theta_trace_enabled)) theta_sparse_window_trace else NULL,
+      theta_force_update_trace = if (isTRUE(theta_trace_enabled)) theta_force_update_trace else NULL,
+      theta_update_performed_trace = if (isTRUE(theta_trace_enabled)) theta_update_performed_trace else NULL,
+      theta_update_reason_trace = if (isTRUE(theta_trace_enabled)) theta_update_reason_trace else NULL,
+      theta_update_count_trace = if (isTRUE(theta_trace_enabled)) theta_update_count_trace else NULL,
+      theta_first_postwarmup_update_iter = if (is.na(theta_first_postwarmup_update_iter)) NA_integer_ else as.integer(theta_first_postwarmup_update_iter),
+      theta_update_count = as.integer(theta_update_count),
+      theta_updates_burn = as.integer(theta_updates_burn),
+      theta_updates_keep = as.integer(theta_updates_keep),
       latent_v_warmup_active_trace = if (isTRUE(latent_v_trace_enabled)) latent_v_warmup_active_trace else NULL,
       latent_v_hard_freeze_trace = if (isTRUE(latent_v_trace_enabled)) latent_v_hard_freeze_trace else NULL,
       latent_v_sparse_window_trace = if (isTRUE(latent_v_trace_enabled)) latent_v_sparse_window_trace else NULL,

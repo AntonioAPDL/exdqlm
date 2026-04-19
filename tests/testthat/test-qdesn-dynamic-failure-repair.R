@@ -24,6 +24,27 @@ test_that("GIG helper retries invalid draws and repairs the batch", {
   expect_true(all(draws > 0))
 })
 
+test_that("GIG helper floors tiny positive b_vec values at 1e-10 before sampling", {
+  observed_b <- NULL
+  sampler <- function(n_samples, p, a, b_vec) {
+    observed_b <<- as.numeric(b_vec)
+    matrix(rep(1, as.integer(n_samples) * length(b_vec)), nrow = as.integer(n_samples))
+  }
+
+  draws <- exdqlm:::.sample_gig_devroye_required(
+    1L,
+    p = 0.5,
+    a = 1,
+    b_vec = c(1e-24, 1e-12, 1e-8),
+    context = "test_floor",
+    sampler = sampler
+  )
+
+  expect_equal(observed_b, c(1e-10, 1e-10, 1e-8))
+  expect_true(all(is.finite(draws)))
+  expect_true(all(draws > 0))
+})
+
 test_that("failed fit path still writes fit_summary_row for downstream aggregation", {
   repo_root <- normalizePath(pkgload::pkg_path(), winslash = "/", mustWork = TRUE)
   defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(
