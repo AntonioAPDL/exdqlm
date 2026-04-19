@@ -345,6 +345,7 @@ exal_static_mcmc <- function(
     val
   }
   validate_gig_inputs <- function(chi, psi, iter, label) {
+    b_floor <- .gig_b_floor()
     chi <- as.numeric(chi)
     bad <- which(!is.finite(chi))
     if (length(bad)) {
@@ -357,7 +358,7 @@ exal_static_mcmc <- function(
     if (!is.finite(psi) || psi <= 0) {
       fail_state(sprintf("%s psi must be finite and > 0; got %.6g", label, psi), iter = iter)
     }
-    list(chi = pmax(chi, 1e-12), psi = max(as.numeric(psi)[1], 1e-12))
+    list(chi = pmax(chi, b_floor), psi = max(as.numeric(psi)[1], 1e-12))
   }
 
   if (is.null(init)) init <- list()

@@ -49,12 +49,17 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   stop("Unable to compute valid gamma bounds for p0 = ", p0)
 }
 
+.gig_b_floor <- function() {
+  1e-10
+}
+
 .sample_gig_devroye_required <- function(n_samples, p, a, b_vec, context = "gig") {
   if (!exists("sample_gig_devroye_vector", mode = "function")) {
     stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
   }
 
   eps_gig <- sqrt(.Machine$double.eps)
+  b_floor <- .gig_b_floor()
   p <- as.numeric(p)[1]
   a <- as.numeric(a)[1]
   b_vec <- as.numeric(b_vec)
@@ -64,7 +69,8 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   }
 
   if (!is.finite(a) || a <= 0) a <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+  b_vec[!is.finite(b_vec)] <- b_floor
+  b_vec <- pmax(b_vec, b_floor)
 
   draws <- sample_gig_devroye_vector(
     as.integer(n_samples)[1],
@@ -89,6 +95,7 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   }
 
   eps_gig <- sqrt(.Machine$double.eps)
+  b_floor <- .gig_b_floor()
   p <- as.numeric(p)[1]
   a_vec <- as.numeric(a_vec)
   b_vec <- as.numeric(b_vec)
@@ -101,7 +108,8 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   }
 
   a_vec[!is.finite(a_vec) | a_vec <= 0] <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+  b_vec[!is.finite(b_vec)] <- b_floor
+  b_vec <- pmax(b_vec, b_floor)
 
   draws <- sample_gig_devroye_pairs(
     as.integer(n_samples)[1],

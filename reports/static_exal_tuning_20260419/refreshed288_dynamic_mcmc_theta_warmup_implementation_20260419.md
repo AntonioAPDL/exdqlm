@@ -47,6 +47,18 @@ After warmup:
 - the theta update resumes,
 - the first post-warmup active iteration is explicitly recorded.
 
+### Additional GIG guard
+
+The package now also applies an explicit lower bound of `1e-10` to
+`b_vec` / `chi` inputs before GIG sampling. This does not change the
+root-cause diagnosis for the dynamic crash lane, but it removes one
+avoidable source of near-zero instability and makes the guard behavior
+consistent across:
+
+- shared required GIG wrappers in [R/utils.R](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/R/utils.R)
+- dynamic MCMC in [R/exdqlmMCMC.R](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/R/exdqlmMCMC.R)
+- static MCMC validation in [R/exal_static_mcmc.R](/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/R/exal_static_mcmc.R)
+
 ## Diagnostics Added
 
 The fit now records theta warmup in the same style as the existing warmup blocks.
@@ -94,6 +106,7 @@ For the next numerical-crash relaunch surface:
 | `latent_state.freeze_burnin_iters` | `100` |
 | `sigmagam.freeze_burnin_iters` | `500` |
 | `dqlm_sigma.freeze_burnin_iters` | `500` |
+| `gig_b_vec_floor` | `1e-10` |
 | `mcmc_use_cpp` | `FALSE` |
 | `mcmc_cpp_mode` | `"strict"` |
 

@@ -443,6 +443,43 @@ test_that("dynamic MCMC can disable per-iteration diagnostics trace", {
   expect_true(is.na(fit$mh.diagnostics$trace_every))
 })
 
+test_that("GIG wrappers floor near-zero b_vec inputs at 1e-10", {
+  seen_vec <- NULL
+  seen_pairs <- NULL
+
+  local_mocked_bindings(
+    sample_gig_devroye_vector = function(n_samples, p, a, b_vec) {
+      seen_vec <<- b_vec
+      matrix(1, nrow = as.integer(n_samples)[1], ncol = length(b_vec))
+    },
+    sample_gig_devroye_pairs = function(n_samples, p, a_vec, b_vec) {
+      seen_pairs <<- b_vec
+      matrix(1, nrow = as.integer(n_samples)[1], ncol = length(b_vec))
+    },
+    .package = "exdqlm"
+  )
+
+  vec_draws <- exdqlm:::.sample_gig_devroye_required(
+    n_samples = 1L,
+    p = 0.5,
+    a = 1,
+    b_vec = c(0, 1e-14, 1e-10, 1e-8),
+    context = "test_vec"
+  )
+  pair_draws <- exdqlm:::.sample_gig_devroye_pairs_required(
+    n_samples = 1L,
+    p = 0.5,
+    a_vec = c(1, 1, 1, 1),
+    b_vec = c(0, 1e-14, 1e-10, 1e-8),
+    context = "test_pairs"
+  )
+
+  expect_equal(seen_vec, c(1e-10, 1e-10, 1e-10, 1e-8))
+  expect_equal(seen_pairs, c(1e-10, 1e-10, 1e-10, 1e-8))
+  expect_true(all(vec_draws > 0))
+  expect_true(all(pair_draws > 0))
+})
+
 test_that("static MCMC supports VB warm start", {
   set.seed(104)
   n <- 40

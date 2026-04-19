@@ -24,6 +24,7 @@
 | exdqlm VB / VB-init | s_t warmup 50, min_postwarmup_updates 5, sigmagam warmup 50 |
 | exdqlm MCMC | VB init max_iter 800 / min_iter 80 / n.samp 5000; latent pair warmup 100; theta warmup 100; sigmagam warmup 500; use R backend |
 | dqlm MCMC | VB init max_iter 800 / min_iter 80 / n.samp 5000; U_t warmup 100; theta warmup 100; sigma warmup 500; use R backend |
+| GIG guard | floor `b_vec / chi` to `1e-10` before sampling |
 | retention | preserve all fit / vb_init / draws binaries until manual cleanup |
 
 ## Row Allocation
