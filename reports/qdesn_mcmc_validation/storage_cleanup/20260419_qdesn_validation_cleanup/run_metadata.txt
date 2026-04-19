@@ -1,0 +1,6 @@
+timestamp=2026-04-19T02:37:30-04:00
+pwd=/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration
+git_head=ee6542f226e51a49763e9f58e0e318eb28c65b1e
+git_branch=feature/qdesn-mcmc-alternative-0p4p0-integration
+mode=execute
+run_label=20260419_qdesn_validation_cleanup

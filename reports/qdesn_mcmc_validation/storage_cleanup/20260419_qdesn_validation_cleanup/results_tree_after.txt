@@ -1,0 +1,11 @@
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/md0        916G  441G  429G  51% /home
+/dev/md127      280G  132G  149G  48% /
+
+--- du -sh results/qdesn_mcmc_validation/* ---
+235M	results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation
+42M	results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_validation
+9.0M	results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_sources
+5.8M	results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_matrix_validation
+5.5M	results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_sources
+5.5M	results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_sources
