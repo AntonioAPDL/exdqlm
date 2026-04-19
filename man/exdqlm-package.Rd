@@ -28,8 +28,9 @@ transfer-function extensions through \code{\link[=exdqlmTransferLDVB]{exdqlmTran
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
 and \code{\link[=regMod]{regMod()}}.
 \item Multi-quantile post-processing via
-\code{\link[=quantileSynthesis]{quantileSynthesis()}} for non-crossing predictive
-synthesis from separately fitted quantiles.
+\code{\link[=quantileSynthesis]{quantileSynthesis()}} for post hoc posterior-predictive
+synthesis from separately fitted quantiles into a unified
+predictive distribution.
 }
 }
 

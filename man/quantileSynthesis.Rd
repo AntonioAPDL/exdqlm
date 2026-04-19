@@ -2,7 +2,8 @@
 % Please edit documentation in R/quantileSynthesis.R
 \name{quantileSynthesis}
 \alias{quantileSynthesis}
-\title{Synthesize posterior predictive from multiple quantile-model draws}
+\title{Synthesize a unified posterior predictive distribution from multiple
+quantile-model draws}
 \usage{
 quantileSynthesis(
   draws_list,
@@ -53,10 +54,11 @@ A list containing:
 }
 \description{
 The function synthesizes posterior predictive draws from multiple fitted
-quantile models using a two-step correction:
-(i) isotonic regression at the grid of target quantiles to enforce non-crossing,
-(ii) distributional alignment (shift each model's draws so its tau-quantile matches the isotone anchor),
-then builds a single predictive quantile function per time by
+quantile models into a single posterior predictive distribution. It uses a
+two-step correction: (i) isotonic regression at the grid of target quantiles
+to align the fitted quantile levels, and (ii) distributional alignment
+(shift each model's draws so its tau-quantile matches the isotone anchor).
+It then builds a single predictive quantile function per time by
 piecewise-linear blending across adjacent quantile models with optional
 global monotone rearrangement.
 }

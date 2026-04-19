@@ -24,7 +24,7 @@ current development line:
 - reduced **AL/DQLM** paths through `dqlm.ind = TRUE`
 - static shrinkage priors `beta_prior = "ridge"`, `"rhs"`, and
   `"rhs_ns"`
-- posterior predictive **non-crossing synthesis** via
+- post hoc **posterior-predictive synthesis** via
   `quantileSynthesis()`
 
 The most distinctive aspect of the package is the **feature bundle**:
@@ -69,8 +69,9 @@ pak::pak("AntonioAPDL/exdqlm")
   provide a horseshoe-family regularization story for sparse or weakly
   identified static coefficient problems.
 - **Post hoc multi-quantile synthesis** is built in through
-  `quantileSynthesis()`, which can enforce isotonicity and
-  apply monotone rearrangement after fitting quantiles separately.
+  `quantileSynthesis()`, which combines separately fitted quantile
+  models into a unified posterior predictive distribution using
+  isotonic correction and optional monotone rearrangement.
 
 ## Workflow map
 
@@ -80,7 +81,7 @@ pak::pak("AntonioAPDL/exdqlm")
 | Build state-space components | `polytrendMod()`, `seasMod()`, `regMod()` | n/a | Compose trend, seasonal, and regression blocks with `+.exdqlm` |
 | Static Bayesian exAL regression | `exalStaticLDVB()`, `exalStaticMCMC()` | LDVB, MCMC | Supports `dqlm.ind = TRUE`, posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
 | Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
-| Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Isotonic correction plus optional rearrangement for non-crossing output |
+| Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Builds a unified posterior predictive distribution using isotonic correction and optional rearrangement |
 
 ## Which engine should I use?
 
@@ -136,7 +137,7 @@ tail(fit$diagnostics$elbo, 3)
 
 - **Dynamic LDVB algorithm** via `exdqlmLDVB()` for exDQLM fitting.
 - **Synthesis helper** `quantileSynthesis()` to combine
-  posterior quantile-draw objects.
+  posterior predictive draws from separately fitted quantile models.
 - **Static regression support** via `regMod()`, `exalStaticLDVB()`,
   and `exalStaticMCMC()`.
 - **Reduced AL/DQLM paths** across dynamic and static APIs via
@@ -311,7 +312,8 @@ fit_rhs_ns$beta_prior$type
 ### 4) Multi-quantile synthesis (conceptual sketch)
 
 Fit several quantiles separately, then combine their posterior
-predictive draws into a single non-crossing predictive object.
+predictive draws into a single unified posterior predictive
+distribution.
 
 ``` r
 p_grid <- c(0.1, 0.5, 0.9)

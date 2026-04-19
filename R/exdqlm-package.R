@@ -20,8 +20,9 @@
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
 #'         and [regMod()].
 #'   \item Multi-quantile post-processing via
-#'         [quantileSynthesis()] for non-crossing predictive
-#'         synthesis from separately fitted quantiles.
+#'         [quantileSynthesis()] for post hoc posterior-predictive
+#'         synthesis from separately fitted quantiles into a unified
+#'         predictive distribution.
 #' }
 #'
 #' @section Distinctive features in 0.4.0:
