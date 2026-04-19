@@ -269,6 +269,10 @@
                                            latent_v_warmup_active,
                                            latent_v_hard_freeze_active,
                                            latent_v_sparse_window_active,
+                                           latent_v_rescue_enabled,
+                                           latent_v_rescue_strategy,
+                                           latent_v_rescue_count,
+                                           latent_v_rescue_consecutive,
                                            chi_v,
                                            psi_v,
                                            z_v) {
@@ -288,11 +292,22 @@
     latent_v_warmup_active = isTRUE(latent_v_warmup_active),
     latent_v_hard_freeze_active = isTRUE(latent_v_hard_freeze_active),
     latent_v_sparse_window_active = isTRUE(latent_v_sparse_window_active),
+    latent_v_rescue_enabled = isTRUE(latent_v_rescue_enabled),
+    latent_v_rescue_strategy = as.character(latent_v_rescue_strategy %||% NA_character_)[1L],
+    latent_v_rescue_count = as.integer(latent_v_rescue_count %||% NA_integer_)[1L],
+    latent_v_rescue_consecutive = as.integer(latent_v_rescue_consecutive %||% NA_integer_)[1L],
     chi_v = .exal_mcmc_numeric_summary(chi_v),
     psi_v = .exal_mcmc_numeric_summary(psi_v),
     z_v = .exal_mcmc_numeric_summary(z_v),
     error_message = conditionMessage(parent)
   )
+  failure_json <- tryCatch(
+    jsonlite::toJSON(failure_state, auto_unbox = TRUE, null = "null"),
+    error = function(...) NULL
+  )
+  if (!is.null(failure_json)) {
+    message(sprintf("QDESN_LATENT_V_FAILURE_JSON=%s", as.character(failure_json)[1L]))
+  }
   cond <- structure(
     list(
       message = conditionMessage(parent),
@@ -1030,6 +1045,18 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       0L
   ))
   latent_v_force_first_postwarmup_update <- if (is.null(latent_v_cfg$force_first_postwarmup_update)) TRUE else isTRUE(latent_v_cfg$force_first_postwarmup_update)
+  latent_v_rescue_on_invalid <- if (is.null(latent_v_cfg$rescue_on_invalid)) FALSE else isTRUE(latent_v_cfg$rescue_on_invalid)
+  latent_v_rescue_strategy <- tolower(trimws(as.character(latent_v_cfg$rescue_strategy %||% "previous_state")))[1L]
+  if (!latent_v_rescue_strategy %in% c("previous_state")) {
+    .stopf(
+      "Unsupported mcmc_control$latent_v$rescue_strategy '%s'. Expected 'previous_state'.",
+      latent_v_rescue_strategy
+    )
+  }
+  latent_v_rescue_max_consecutive <- max(0L, as.integer(latent_v_cfg$rescue_max_consecutive %||% 0L))
+  latent_v_rescue_burn_only <- if (is.null(latent_v_cfg$rescue_burn_only)) FALSE else isTRUE(latent_v_cfg$rescue_burn_only)
+  latent_v_rescue_force_retry_next_iter <- if (is.null(latent_v_cfg$rescue_force_retry_next_iter)) TRUE else isTRUE(latent_v_cfg$rescue_force_retry_next_iter)
+  latent_v_record_rescue_trace <- if (is.null(latent_v_cfg$record_rescue_trace)) TRUE else isTRUE(latent_v_cfg$record_rescue_trace)
   latent_v_trace_enabled <- if (is.null(latent_v_cfg$trace)) TRUE else isTRUE(latent_v_cfg$trace)
   rhs_warm_cfg <- mcmc_control$rhs %||% list()
   rhs_freeze_tau_iters <- max(0L, as.integer(rhs_warm_cfg$freeze_tau_burnin_iters %||% rhs_warm_cfg$freeze_tau_iters %||% 0L))
@@ -1776,10 +1803,19 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   latent_v_update_performed_trace <- rep(FALSE, n_total)
   latent_v_update_reason_trace <- rep(NA_character_, n_total)
   latent_v_update_count_trace <- integer(n_total)
+  latent_v_rescue_applied_trace <- rep(FALSE, n_total)
+  latent_v_rescue_strategy_trace <- rep(NA_character_, n_total)
+  latent_v_rescue_count_trace <- integer(n_total)
+  latent_v_rescue_consecutive_trace <- integer(n_total)
   latent_v_first_postwarmup_update_iter <- NA_integer_
   latent_v_update_count <- 0L
   latent_v_updates_burn <- 0L
   latent_v_updates_keep <- 0L
+  latent_v_rescue_count <- 0L
+  latent_v_rescue_consecutive <- 0L
+  latent_v_rescues_burn <- 0L
+  latent_v_rescues_keep <- 0L
+  latent_v_rescue_max_streak <- 0L
   latent_v_force_pending <- isTRUE(latent_v_enabled && latent_v_freeze_burnin_iters > 0L && latent_v_force_first_postwarmup_update)
   if (store_latent_draws) {
     v_draws <- matrix(NA_real_, nrow = n_keep, ncol = n)
@@ -1929,14 +1965,42 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     chi_v <- (z_v * z_v) / (B * sigma)
     psi_v <- (A * A) / (B * sigma) + (2 / sigma)
     if (isTRUE(latent_v_update_now)) {
-      v <- tryCatch(
+      prev_v <- as.numeric(v)
+      sampled_v <- tryCatch(
         as.numeric(.sample_gig_devroye_required(
           1L, p = 0.5, a = psi_v, b_vec = chi_v,
           context = "exal_mcmc_fit::latent_v"
         )[1L, ]),
-        error = function(e) {
+        error = function(e) e
+      )
+      if (inherits(sampled_v, "error")) {
+        latent_v_rescue_allowed_now <- isTRUE(
+          latent_v_rescue_on_invalid &&
+            latent_v_rescue_strategy %in% c("previous_state") &&
+            (!latent_v_rescue_burn_only || iter <= n_burn) &&
+            latent_v_rescue_max_consecutive > 0L &&
+            latent_v_rescue_consecutive < latent_v_rescue_max_consecutive &&
+            length(prev_v) == n &&
+            all(is.finite(prev_v))
+        )
+        if (isTRUE(latent_v_rescue_allowed_now)) {
+          v <- pmax(prev_v, 1e-12)
+          latent_v_rescue_applied_trace[iter] <- TRUE
+          latent_v_rescue_strategy_trace[iter] <- latent_v_rescue_strategy
+          latent_v_rescue_count <- latent_v_rescue_count + 1L
+          latent_v_rescue_consecutive <- latent_v_rescue_consecutive + 1L
+          latent_v_rescue_max_streak <- max(latent_v_rescue_max_streak, latent_v_rescue_consecutive)
+          latent_v_rescue_count_trace[iter] <- latent_v_rescue_count
+          latent_v_rescue_consecutive_trace[iter] <- latent_v_rescue_consecutive
+          if (iter > n_burn) {
+            latent_v_rescues_keep <- latent_v_rescues_keep + 1L
+          } else {
+            latent_v_rescues_burn <- latent_v_rescues_burn + 1L
+          }
+          if (isTRUE(latent_v_rescue_force_retry_next_iter)) latent_v_force_pending <- TRUE
+        } else {
           .exal_mcmc_stop_latent_v_error(
-            parent = e,
+            parent = sampled_v,
             iter = iter,
             n_burn = n_burn,
             likelihood_family = likelihood_family,
@@ -1949,27 +2013,37 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
             latent_v_warmup_active = latent_v_warmup_active_trace[iter],
             latent_v_hard_freeze_active = latent_v_hard_freeze_trace[iter],
             latent_v_sparse_window_active = latent_v_sparse_window_trace[iter],
+            latent_v_rescue_enabled = latent_v_rescue_on_invalid,
+            latent_v_rescue_strategy = latent_v_rescue_strategy,
+            latent_v_rescue_count = latent_v_rescue_count,
+            latent_v_rescue_consecutive = latent_v_rescue_consecutive,
             chi_v = chi_v,
             psi_v = psi_v,
             z_v = z_v
           )
         }
-      )
-      v <- pmax(v, 1e-12)
-      latent_v_update_performed_trace[iter] <- TRUE
-      latent_v_update_count <- latent_v_update_count + 1L
-      latent_v_update_count_trace[iter] <- latent_v_update_count
-      if (iter > n_burn) {
-        latent_v_updates_keep <- latent_v_updates_keep + 1L
       } else {
-        latent_v_updates_burn <- latent_v_updates_burn + 1L
+        v <- pmax(sampled_v, 1e-12)
+        latent_v_update_performed_trace[iter] <- TRUE
+        latent_v_update_count <- latent_v_update_count + 1L
+        latent_v_rescue_consecutive <- 0L
+        if (iter > n_burn) {
+          latent_v_updates_keep <- latent_v_updates_keep + 1L
+        } else {
+          latent_v_updates_burn <- latent_v_updates_burn + 1L
+        }
+        if (isTRUE(latent_v_force_now) && is.na(latent_v_first_postwarmup_update_iter)) {
+          latent_v_first_postwarmup_update_iter <- as.integer(iter)
+        }
+        if (isTRUE(latent_v_force_now)) latent_v_force_pending <- FALSE
       }
-      if (isTRUE(latent_v_force_now) && is.na(latent_v_first_postwarmup_update_iter)) {
-        latent_v_first_postwarmup_update_iter <- as.integer(iter)
-      }
-      if (isTRUE(latent_v_force_now)) latent_v_force_pending <- FALSE
+      latent_v_update_count_trace[iter] <- latent_v_update_count
+      latent_v_rescue_count_trace[iter] <- latent_v_rescue_count
+      latent_v_rescue_consecutive_trace[iter] <- latent_v_rescue_consecutive
     } else {
       latent_v_update_count_trace[iter] <- latent_v_update_count
+      latent_v_rescue_count_trace[iter] <- latent_v_rescue_count
+      latent_v_rescue_consecutive_trace[iter] <- latent_v_rescue_consecutive
     }
 
     r_s <- y - drop(X %*% beta) - A * v
@@ -2227,13 +2301,27 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       sparse_update_every = as.integer(latent_v_sparse_update_every),
       sparse_update_until_iter = as.integer(latent_v_sparse_update_until_iter),
       force_first_postwarmup_update = isTRUE(latent_v_force_first_postwarmup_update),
+      rescue_on_invalid = isTRUE(latent_v_rescue_on_invalid),
+      rescue_strategy = latent_v_rescue_strategy,
+      rescue_max_consecutive = as.integer(latent_v_rescue_max_consecutive),
+      rescue_burn_only = isTRUE(latent_v_rescue_burn_only),
+      rescue_force_retry_next_iter = isTRUE(latent_v_rescue_force_retry_next_iter),
       first_postwarmup_update_iter = if (is.na(latent_v_first_postwarmup_update_iter)) NA_integer_ else as.integer(latent_v_first_postwarmup_update_iter),
       updates_burn = as.integer(latent_v_updates_burn),
       updates_keep = as.integer(latent_v_updates_keep),
       update_count = as.integer(latent_v_update_count),
+      rescues_burn = as.integer(latent_v_rescues_burn),
+      rescues_keep = as.integer(latent_v_rescues_keep),
+      rescue_count = as.integer(latent_v_rescue_count),
+      rescue_max_streak = as.integer(latent_v_rescue_max_streak),
       frozen_burn_rate = if (n_burn > 0L) mean(latent_v_hard_freeze_trace[seq_len(n_burn)]) else NA_real_,
       sparse_hold_burn_rate = if (n_burn > 0L) {
         mean(latent_v_sparse_window_trace[seq_len(n_burn)] & !latent_v_update_performed_trace[seq_len(n_burn)])
+      } else {
+        NA_real_
+      },
+      rescue_burn_rate = if (n_burn > 0L) {
+        mean(latent_v_rescue_applied_trace[seq_len(n_burn)])
       } else {
         NA_real_
       }
@@ -2345,6 +2433,12 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         sparse_update_every = as.integer(latent_v_sparse_update_every),
         sparse_update_until_iter = as.integer(latent_v_sparse_update_until_iter),
         force_first_postwarmup_update = isTRUE(latent_v_force_first_postwarmup_update),
+        rescue_on_invalid = isTRUE(latent_v_rescue_on_invalid),
+        rescue_strategy = latent_v_rescue_strategy,
+        rescue_max_consecutive = as.integer(latent_v_rescue_max_consecutive),
+        rescue_burn_only = isTRUE(latent_v_rescue_burn_only),
+        rescue_force_retry_next_iter = isTRUE(latent_v_rescue_force_retry_next_iter),
+        record_rescue_trace = isTRUE(latent_v_record_rescue_trace),
         trace = isTRUE(latent_v_trace_enabled)
       ),
       sigmagam = list(
@@ -2445,10 +2539,18 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       latent_v_update_performed_trace = if (isTRUE(latent_v_trace_enabled)) latent_v_update_performed_trace else NULL,
       latent_v_update_reason_trace = if (isTRUE(latent_v_trace_enabled)) latent_v_update_reason_trace else NULL,
       latent_v_update_count_trace = if (isTRUE(latent_v_trace_enabled)) latent_v_update_count_trace else NULL,
+      latent_v_rescue_applied_trace = if (isTRUE(latent_v_trace_enabled) && isTRUE(latent_v_record_rescue_trace)) latent_v_rescue_applied_trace else NULL,
+      latent_v_rescue_strategy_trace = if (isTRUE(latent_v_trace_enabled) && isTRUE(latent_v_record_rescue_trace)) latent_v_rescue_strategy_trace else NULL,
+      latent_v_rescue_count_trace = if (isTRUE(latent_v_trace_enabled) && isTRUE(latent_v_record_rescue_trace)) latent_v_rescue_count_trace else NULL,
+      latent_v_rescue_consecutive_trace = if (isTRUE(latent_v_trace_enabled) && isTRUE(latent_v_record_rescue_trace)) latent_v_rescue_consecutive_trace else NULL,
       latent_v_first_postwarmup_update_iter = if (is.na(latent_v_first_postwarmup_update_iter)) NA_integer_ else as.integer(latent_v_first_postwarmup_update_iter),
       latent_v_update_count = as.integer(latent_v_update_count),
       latent_v_updates_burn = as.integer(latent_v_updates_burn),
       latent_v_updates_keep = as.integer(latent_v_updates_keep),
+      latent_v_rescue_count = as.integer(latent_v_rescue_count),
+      latent_v_rescues_burn = as.integer(latent_v_rescues_burn),
+      latent_v_rescues_keep = as.integer(latent_v_rescues_keep),
+      latent_v_rescue_max_streak = as.integer(latent_v_rescue_max_streak),
       sigmagam_frozen_trace = sigmagam_frozen_trace,
       sigmagam_update_reason_trace = sigmagam_update_reason_trace,
       sigmagam_forced_postwarmup_trace = sigmagam_forced_postwarmup_trace,

@@ -94,7 +94,11 @@ test_that("MCMC validation export carries latent-v warmup traces and health summ
     "latent_v_force_update",
     "latent_v_update_performed",
     "latent_v_update_reason",
-    "latent_v_update_count"
+    "latent_v_update_count",
+    "latent_v_rescue_applied",
+    "latent_v_rescue_strategy",
+    "latent_v_rescue_count",
+    "latent_v_rescue_consecutive"
   ) %in% names(latent_v_trace)))
   expect_true(all(latent_v_trace$phase[1:5] == "burn"))
   expect_true(all(latent_v_trace$phase[6:nrow(latent_v_trace)] == "keep"))
@@ -114,6 +118,7 @@ test_that("MCMC validation export carries latent-v warmup traces and health summ
   expect_equal(health$mcmc_latent_v_updates_keep, 7L)
   expect_equal(health$mcmc_latent_v_frozen_burn_rate, 3 / 5, tolerance = 1e-12)
   expect_equal(health$mcmc_latent_v_sparse_hold_burn_rate, 1 / 5, tolerance = 1e-12)
+  expect_false(isTRUE(health$mcmc_latent_v_rescue_on_invalid))
 })
 
 test_that("failure health rows persist latent-v failure summaries without a fit object", {
@@ -129,6 +134,10 @@ test_that("failure health rows persist latent-v failure summaries without a fit 
       beta_norm = 2.3,
       latent_v_warmup_active = FALSE,
       latent_v_update_reason = "scheduled",
+      latent_v_rescue_enabled = TRUE,
+      latent_v_rescue_strategy = "previous_state",
+      latent_v_rescue_count = 2L,
+      latent_v_rescue_consecutive = 1L,
       chi_v = list(min = 0.1, max = 4.2, mean = 1.7, n_nonfinite = 0L),
       psi_v = list(min = 0.2, max = 6.8, mean = 2.6, n_nonfinite = 1L)
     )
@@ -152,6 +161,49 @@ test_that("failure health rows persist latent-v failure summaries without a fit 
   expect_equal(health$mcmc_failure_beta_norm, 2.3, tolerance = 1e-12)
   expect_false(isTRUE(health$mcmc_failure_latent_v_warmup_active))
   expect_identical(as.character(health$mcmc_failure_latent_v_update_reason[[1L]]), "scheduled")
+  expect_true(isTRUE(health$mcmc_failure_latent_v_rescue_enabled))
+  expect_identical(as.character(health$mcmc_failure_latent_v_rescue_strategy[[1L]]), "previous_state")
+  expect_equal(health$mcmc_failure_latent_v_rescue_count, 2L)
+  expect_equal(health$mcmc_failure_latent_v_rescue_consecutive, 1L)
   expect_equal(health$mcmc_failure_chi_v_max, 4.2, tolerance = 1e-12)
   expect_equal(health$mcmc_failure_psi_v_nonfinite_n, 1L)
+})
+
+test_that("error payload parser recovers latent-v failure marker from pipeline logs", {
+  payload_json <- jsonlite::toJSON(
+    list(
+      failure_family = "latent_v_invalid_draws",
+      iteration = 5500L,
+      phase = "keep",
+      sigma = 0.18,
+      gamma = 1.1,
+      tau = 0.03,
+      c2 = 0.6,
+      beta_norm = 1.9,
+      latent_v_update_reason = "scheduled",
+      latent_v_warmup_active = FALSE,
+      latent_v_rescue_enabled = TRUE,
+      latent_v_rescue_strategy = "previous_state",
+      latent_v_rescue_count = 2L,
+      latent_v_rescue_consecutive = 1L,
+      chi_v = list(min = 0.2, max = 9.1, mean = 2.4, n_nonfinite = 0L),
+      psi_v = list(min = 0.3, max = 7.4, mean = 2.9, n_nonfinite = 0L)
+    ),
+    auto_unbox = TRUE,
+    null = "null"
+  )
+
+  payload <- exdqlm:::.qdesn_validation_extract_error_payload(
+    log_lines = c(
+      "[pipeline_stdout] burn-in iteration 5000",
+      sprintf("QDESN_LATENT_V_FAILURE_JSON=%s", payload_json),
+      "Error: exal_mcmc_fit::latent_v returned 1 invalid draws after 12 retry batches"
+    )
+  )
+
+  expect_identical(payload$latent_v_failure$failure_family, "latent_v_invalid_draws")
+  expect_equal(payload$latent_v_failure$iteration, 5500L)
+  expect_true(isTRUE(payload$latent_v_failure$latent_v_rescue_enabled))
+  expect_identical(payload$latent_v_failure$latent_v_rescue_strategy, "previous_state")
+  expect_equal(payload$latent_v_failure$chi_v$max, 9.1, tolerance = 1e-12)
 })

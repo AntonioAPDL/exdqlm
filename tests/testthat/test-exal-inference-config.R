@@ -245,6 +245,12 @@ test_that("sigmagam warmup controls resolve for VB, MCMC warm start, and MCMC co
           sparse_update_every = 5L,
           sparse_update_until_iter = 40L,
           force_first_postwarmup_update = FALSE,
+          rescue_on_invalid = TRUE,
+          rescue_strategy = "previous_state",
+          rescue_max_consecutive = 4L,
+          rescue_burn_only = TRUE,
+          rescue_force_retry_next_iter = FALSE,
+          record_rescue_trace = FALSE,
           trace = FALSE
         ),
         priors = list(
@@ -280,5 +286,11 @@ test_that("sigmagam warmup controls resolve for VB, MCMC warm start, and MCMC co
   expect_equal(inf$mcmc$control_base$latent_v$sparse_update_every, 5L)
   expect_equal(inf$mcmc$control_base$latent_v$sparse_update_until_iter, 40L)
   expect_false(isTRUE(inf$mcmc$control_base$latent_v$force_first_postwarmup_update))
+  expect_true(isTRUE(inf$mcmc$control_base$latent_v$rescue_on_invalid))
+  expect_identical(inf$mcmc$control_base$latent_v$rescue_strategy, "previous_state")
+  expect_equal(inf$mcmc$control_base$latent_v$rescue_max_consecutive, 4L)
+  expect_true(isTRUE(inf$mcmc$control_base$latent_v$rescue_burn_only))
+  expect_false(isTRUE(inf$mcmc$control_base$latent_v$rescue_force_retry_next_iter))
+  expect_false(isTRUE(inf$mcmc$control_base$latent_v$record_rescue_trace))
   expect_false(isTRUE(inf$mcmc$control_base$latent_v$trace))
 })

@@ -729,6 +729,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   base$mcmc_failure_beta_norm <- as.numeric(failure$beta_norm %||% NA_real_)[1L]
   base$mcmc_failure_latent_v_warmup_active <- if (is.null(failure$latent_v_warmup_active)) NA else isTRUE(failure$latent_v_warmup_active)
   base$mcmc_failure_latent_v_update_reason <- as.character(failure$latent_v_update_reason %||% NA_character_)[1L]
+  base$mcmc_failure_latent_v_rescue_enabled <- if (is.null(failure$latent_v_rescue_enabled)) NA else isTRUE(failure$latent_v_rescue_enabled)
+  base$mcmc_failure_latent_v_rescue_strategy <- as.character(failure$latent_v_rescue_strategy %||% NA_character_)[1L]
+  base$mcmc_failure_latent_v_rescue_count <- as.integer(failure$latent_v_rescue_count %||% NA_integer_)[1L]
+  base$mcmc_failure_latent_v_rescue_consecutive <- as.integer(failure$latent_v_rescue_consecutive %||% NA_integer_)[1L]
   base$mcmc_failure_chi_v_min <- as.numeric(chi_v$min %||% NA_real_)[1L]
   base$mcmc_failure_chi_v_max <- as.numeric(chi_v$max %||% NA_real_)[1L]
   base$mcmc_failure_chi_v_mean <- as.numeric(chi_v$mean %||% NA_real_)[1L]
@@ -740,11 +744,19 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   base
 }
 
-.qdesn_validation_extract_error_payload <- function(err) {
-  if (is.null(err)) return(list())
+.qdesn_validation_extract_error_payload <- function(err = NULL, log_lines = NULL) {
   out <- list()
-  if (!is.null(err$latent_v_failure)) {
+  if (!is.null(err) && !is.null(err$latent_v_failure)) {
     out$latent_v_failure <- err$latent_v_failure
+  }
+  if (!length(out)) {
+    lines <- as.character(log_lines %||% character(0))
+    marker_idx <- grep("^QDESN_LATENT_V_FAILURE_JSON=", lines)
+    if (length(marker_idx)) {
+      json_line <- sub("^QDESN_LATENT_V_FAILURE_JSON=", "", lines[max(marker_idx)])
+      parsed <- tryCatch(jsonlite::fromJSON(json_line, simplifyVector = FALSE), error = function(...) NULL)
+      if (is.list(parsed)) out$latent_v_failure <- parsed
+    }
   }
   out
 }
@@ -795,6 +807,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     mcmc_latent_v_updates_keep = NA_integer_,
     mcmc_latent_v_frozen_burn_rate = NA_real_,
     mcmc_latent_v_sparse_hold_burn_rate = NA_real_,
+    mcmc_latent_v_rescue_on_invalid = NA,
+    mcmc_latent_v_rescue_strategy = NA_character_,
+    mcmc_latent_v_rescue_max_consecutive = NA_integer_,
+    mcmc_latent_v_rescues_burn = NA_integer_,
+    mcmc_latent_v_rescues_keep = NA_integer_,
+    mcmc_latent_v_rescue_burn_rate = NA_real_,
+    mcmc_latent_v_rescue_max_streak = NA_integer_,
     stringsAsFactors = FALSE
   )
   .qdesn_validation_append_latent_v_failure_fields(base, (error_payload %||% list())$latent_v_failure %||% NULL)
@@ -881,6 +900,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     mcmc_latent_v_updates_keep = NA_integer_,
     mcmc_latent_v_frozen_burn_rate = NA_real_,
     mcmc_latent_v_sparse_hold_burn_rate = NA_real_,
+    mcmc_latent_v_rescue_on_invalid = NA,
+    mcmc_latent_v_rescue_strategy = NA_character_,
+    mcmc_latent_v_rescue_max_consecutive = NA_integer_,
+    mcmc_latent_v_rescues_burn = NA_integer_,
+    mcmc_latent_v_rescues_keep = NA_integer_,
+    mcmc_latent_v_rescue_burn_rate = NA_real_,
+    mcmc_latent_v_rescue_max_streak = NA_integer_,
     stringsAsFactors = FALSE
   )
   base <- .qdesn_validation_append_latent_v_failure_fields(base, NULL)
@@ -984,6 +1010,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$mcmc_latent_v_updates_keep <- as.integer((fit$diagnostics$latent_v %||% list())$updates_keep %||% NA_integer_)
     base$mcmc_latent_v_frozen_burn_rate <- as.numeric((fit$diagnostics$latent_v %||% list())$frozen_burn_rate %||% NA_real_)
     base$mcmc_latent_v_sparse_hold_burn_rate <- as.numeric((fit$diagnostics$latent_v %||% list())$sparse_hold_burn_rate %||% NA_real_)
+    base$mcmc_latent_v_rescue_on_invalid <- isTRUE((fit$diagnostics$latent_v %||% list())$rescue_on_invalid %||% FALSE)
+    base$mcmc_latent_v_rescue_strategy <- as.character((fit$diagnostics$latent_v %||% list())$rescue_strategy %||% NA_character_)
+    base$mcmc_latent_v_rescue_max_consecutive <- as.integer((fit$diagnostics$latent_v %||% list())$rescue_max_consecutive %||% NA_integer_)
+    base$mcmc_latent_v_rescues_burn <- as.integer((fit$diagnostics$latent_v %||% list())$rescues_burn %||% NA_integer_)
+    base$mcmc_latent_v_rescues_keep <- as.integer((fit$diagnostics$latent_v %||% list())$rescues_keep %||% NA_integer_)
+    base$mcmc_latent_v_rescue_burn_rate <- as.numeric((fit$diagnostics$latent_v %||% list())$rescue_burn_rate %||% NA_real_)
+    base$mcmc_latent_v_rescue_max_streak <- as.integer((fit$diagnostics$latent_v %||% list())$rescue_max_streak %||% NA_integer_)
     base$mcmc_sigmagam_warmup_iters <- as.integer((fit$diagnostics$sigmagam %||% list())$freeze_burnin_iters %||% NA_integer_)
     base$mcmc_sigmagam_first_active_iter <- as.integer((fit$diagnostics$sigmagam %||% list())$first_active_iter %||% NA_integer_)
     base$mcmc_sigmagam_updates_burn <- as.integer((fit$diagnostics$sigmagam %||% list())$updates_burn %||% NA_integer_)
@@ -1369,6 +1402,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   update_performed <- as.logical(fit$misc$latent_v_update_performed_trace %||% logical(0))
   reason <- as.character(fit$misc$latent_v_update_reason_trace %||% character(0))
   update_count <- as.integer(fit$misc$latent_v_update_count_trace %||% integer(0))
+  rescue_applied <- as.logical(fit$misc$latent_v_rescue_applied_trace %||% logical(0))
+  rescue_strategy <- as.character(fit$misc$latent_v_rescue_strategy_trace %||% character(0))
+  rescue_count <- as.integer(fit$misc$latent_v_rescue_count_trace %||% integer(0))
+  rescue_consecutive <- as.integer(fit$misc$latent_v_rescue_consecutive_trace %||% integer(0))
 
   if (length(warmup_active) == n_iter) out$latent_v_warmup_active <- warmup_active
   if (length(hard_freeze) == n_iter) out$latent_v_hard_freeze <- hard_freeze
@@ -1377,6 +1414,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   if (length(update_performed) == n_iter) out$latent_v_update_performed <- update_performed
   if (length(reason) == n_iter) out$latent_v_update_reason <- reason
   if (length(update_count) == n_iter) out$latent_v_update_count <- update_count
+  if (length(rescue_applied) == n_iter) out$latent_v_rescue_applied <- rescue_applied
+  if (length(rescue_strategy) == n_iter) out$latent_v_rescue_strategy <- rescue_strategy
+  if (length(rescue_count) == n_iter) out$latent_v_rescue_count <- rescue_count
+  if (length(rescue_consecutive) == n_iter) out$latent_v_rescue_consecutive <- rescue_consecutive
   out
 }
 
@@ -1680,6 +1721,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   log_lines <- if (!is.null(run_res)) run_res$stdout else error_message
   if (length(log_lines)) {
     .qdesn_validation_write_lines(file.path(method_dir, "logs", "pipeline_stdout.log"), log_lines)
+  }
+  if (!length(error_payload)) {
+    error_payload <- .qdesn_validation_extract_error_payload(log_lines = log_lines)
   }
 
   summary_obj <- NULL

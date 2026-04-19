@@ -753,9 +753,82 @@ test_that("latent-v numerical failure is rethrown with structured diagnostics", 
   expect_identical(err$latent_v_failure$latent_v_update_reason, "sparse_update")
   expect_false(isTRUE(err$latent_v_failure$latent_v_hard_freeze_active))
   expect_true(isTRUE(err$latent_v_failure$latent_v_warmup_active))
+  expect_false(isTRUE(err$latent_v_failure$latent_v_rescue_enabled))
+  expect_identical(err$latent_v_failure$latent_v_rescue_strategy, "previous_state")
+  expect_equal(err$latent_v_failure$latent_v_rescue_count, 0L)
   expect_true(is.list(err$latent_v_failure$chi_v))
   expect_true(is.list(err$latent_v_failure$psi_v))
   expect_true(is.finite(err$latent_v_failure$beta_norm))
+})
+
+test_that("latent-v rescue can keep a chain alive through transient invalid draws", {
+  withr::local_seed(20260419)
+
+  n <- 12L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.2, -0.1, 0.15) + stats::rnorm(n, sd = 0.2))
+  latent_v_fail_count <- 0L
+
+  testthat::local_mocked_bindings(
+    .sample_gig_devroye_required = function(n_draw, p, a, b_vec, context = NULL) {
+      if (identical(as.character(context), "exal_mcmc_fit::latent_v")) {
+        latent_v_fail_count <<- latent_v_fail_count + 1L
+        if (latent_v_fail_count <= 2L) stop("synthetic transient latent-v failure")
+      }
+      matrix(1, nrow = 1L, ncol = length(b_vec))
+    },
+    .package = "exdqlm"
+  )
+
+  fit <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 4L,
+      n_mcmc = 6L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      latent_v = list(
+        enabled = TRUE,
+        freeze_burnin_iters = 0L,
+        sparse_update_every = 1L,
+        sparse_update_until_iter = 0L,
+        force_first_postwarmup_update = FALSE,
+        rescue_on_invalid = TRUE,
+        rescue_strategy = "previous_state",
+        rescue_max_consecutive = 3L,
+        rescue_burn_only = FALSE,
+        rescue_force_retry_next_iter = TRUE,
+        record_rescue_trace = TRUE,
+        trace = TRUE
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  expect_s3_class(fit, "exal_mcmc")
+  expect_equal(fit$control$latent_v$rescue_max_consecutive, 3L)
+  expect_true(isTRUE(fit$control$latent_v$rescue_on_invalid))
+  expect_true(all(fit$misc$latent_v_rescue_applied_trace[1:2]))
+  expect_identical(fit$misc$latent_v_rescue_strategy_trace[[1L]], "previous_state")
+  expect_equal(fit$misc$latent_v_rescue_count, 2L)
+  expect_equal(fit$misc$latent_v_rescues_burn, 2L)
+  expect_equal(fit$misc$latent_v_rescues_keep, 0L)
+  expect_equal(fit$misc$latent_v_rescue_max_streak, 2L)
+  expect_equal(fit$diagnostics$latent_v$rescue_count, 2L)
+  expect_equal(fit$diagnostics$latent_v$rescues_burn, 2L)
+  expect_equal(fit$diagnostics$latent_v$rescue_max_streak, 2L)
+  expect_true(all(diff(as.integer(fit$misc$latent_v_rescue_count_trace)) >= 0L))
 })
 
 test_that("RHS MCMC supports joint directional tau/c2 block updates", {

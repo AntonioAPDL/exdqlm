@@ -112,6 +112,12 @@
       sparse_update_every = 1L,
       sparse_update_until_iter = 0L,
       force_first_postwarmup_update = TRUE,
+      rescue_on_invalid = FALSE,
+      rescue_strategy = "previous_state",
+      rescue_max_consecutive = 0L,
+      rescue_burn_only = FALSE,
+      rescue_force_retry_next_iter = TRUE,
+      record_rescue_trace = TRUE,
       trace = TRUE
     ),
     store_latent_draws = FALSE,
@@ -288,6 +294,36 @@
     sparse_update_every = sparse_update_every,
     sparse_update_until_iter = sparse_update_until_iter,
     force_first_postwarmup_update = if (is.null(latent_v_cfg$force_first_postwarmup_update)) TRUE else isTRUE(latent_v_cfg$force_first_postwarmup_update),
+    rescue_on_invalid = if (is.null(latent_v_cfg$rescue_on_invalid)) {
+      isTRUE(latent_v_cfg$rescue_enabled)
+    } else {
+      isTRUE(latent_v_cfg$rescue_on_invalid)
+    },
+    rescue_strategy = {
+      strategy <- tolower(trimws(as.character(
+        latent_v_cfg$rescue_strategy %||%
+          latent_v_cfg$invalid_draw_strategy %||%
+          "previous_state"
+      )[1L]))
+      if (!strategy %in% c("previous_state")) strategy <- "previous_state"
+      strategy
+    },
+    rescue_max_consecutive = {
+      max_consecutive <- suppressWarnings(as.integer(
+        latent_v_cfg$rescue_max_consecutive %||%
+          latent_v_cfg$max_consecutive_rescues %||%
+          0L
+      )[1L])
+      if (!is.finite(max_consecutive) || max_consecutive < 0L) max_consecutive <- 0L
+      max_consecutive
+    },
+    rescue_burn_only = if (is.null(latent_v_cfg$rescue_burn_only)) FALSE else isTRUE(latent_v_cfg$rescue_burn_only),
+    rescue_force_retry_next_iter = if (is.null(latent_v_cfg$rescue_force_retry_next_iter)) TRUE else isTRUE(latent_v_cfg$rescue_force_retry_next_iter),
+    record_rescue_trace = if (is.null(latent_v_cfg$record_rescue_trace)) {
+      if (is.null(latent_v_cfg$rescue_trace)) TRUE else isTRUE(latent_v_cfg$rescue_trace)
+    } else {
+      isTRUE(latent_v_cfg$record_rescue_trace)
+    },
     trace = if (is.null(latent_v_cfg$trace)) TRUE else isTRUE(latent_v_cfg$trace)
   )
 }
