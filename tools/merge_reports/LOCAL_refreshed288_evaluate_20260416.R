@@ -99,7 +99,11 @@ status_df <- status_df[order(status_df$phase_order, status_df$row_id), , drop = 
 utils::write.csv(status_df, status_out, row.names = FALSE)
 
 phase_summary <- summarize_status_refreshed288(status_df, "phase")
-phase_summary$phase_order <- unname(phase_order_refreshed288[phase_summary$phase])
+phase_order_lookup <- stats::aggregate(phase_order ~ phase, data = manifest[, c("phase", "phase_order"), drop = FALSE], FUN = min)
+phase_summary <- merge(phase_summary, phase_order_lookup, by = "phase", all.x = TRUE, sort = FALSE)
+if (any(!is.finite(phase_summary$phase_order))) {
+  phase_summary$phase_order[!is.finite(phase_summary$phase_order)] <- seq_len(sum(!is.finite(phase_summary$phase_order))) + max(c(0, phase_summary$phase_order[is.finite(phase_summary$phase_order)]))
+}
 phase_summary <- phase_summary[order(phase_summary$phase_order), , drop = FALSE]
 utils::write.csv(phase_summary[, c("phase", "total", "completed", "running", "not_started", "pass", "warn", "fail", "healthy", "pct_completed", "pct_active_or_done")], phase_out, row.names = FALSE)
 

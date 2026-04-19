@@ -80,6 +80,23 @@ The relaunch requires explicit VB initialization for MCMC.
 - the init fit is passed via `vb_init_fit`
 - the init artifact is stored separately under `vb_init/`
 
+### RHS-NS Tau Warmup Policy
+
+For refreshed static shrinkage rows, plain `rhs` is forbidden and the
+`rhs_ns` global-shrinkage `tau` warmup is now an explicit part of the study
+definition.
+
+| lane | prior | explicit `tau` warmup |
+|---|---|---|
+| static shrink VB | `rhs_ns` | `freeze_tau_warmup_iters = 50` |
+| static shrink VB | `rhs_ns` | `min_iter = 80` |
+| static shrink MCMC main fit | `rhs_ns` | `freeze_tau_warmup_iters = 500` |
+| static shrink MCMC VB init | `rhs_ns` | `freeze_tau_warmup_iters = 50` |
+| static shrink MCMC VB init | `rhs_ns` | `min_iter = 80` |
+
+This policy is encoded in the refreshed tool stack rather than relying on
+package defaults.
+
 ### Slice Profiles
 
 | lane | `mh.proposal` | `slice.width` | `slice.max.steps` |
@@ -141,6 +158,9 @@ The smoke manifest is a targeted subset that covers:
 
 - no `0.95` rows in the refreshed study
 - no `qdesn` inputs in the refreshed study
+- no plain `rhs` rows anywhere in the refreshed study; the shrinkage lane uses `rhs_ns` only
+- `rhs_ns` tau warmup must be explicit in refreshed configs: `50` for static VB
+  and static VB init, `500` for the main static MCMC fit
 - no hidden legacy `ISVB` init behavior in the canonical lane
 - no row-local repair knobs in the core study definition
 - static VB stored posterior draws come from an explicit export adapter rather

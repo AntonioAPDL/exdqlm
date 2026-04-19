@@ -54,12 +54,8 @@ Sys.setenv(
 
 resolve_wrapped_fit_refreshed288 <- function(obj) obj$fit %||% obj
 
-build_dynamic_ldvb_fit_refreshed288 <- function(sim_obj, model_obj, controls, ld_controls, save_path = NA_character_, role = c("main_vb", "vb_init")) {
-  role <- match.arg(role)
-  old_ld <- set_dynamic_ld_options_refreshed288(ld_controls %||% list())
-  on.exit(if (length(old_ld)) options(old_ld), add = TRUE)
-  old_opt <- options(list(
-    exdqlm.max_iter = safe_int_refreshed288(controls$max_iter, 300L),
+set_vb_joint_options_refreshed288 <- function(controls) {
+  options(list(
     exdqlm.tol_sigma = safe_num_refreshed288(controls$tol_sigma %||% controls$tol, 0.03),
     exdqlm.tol_gamma = safe_num_refreshed288(controls$tol_gamma %||% controls$tol, 0.03),
     exdqlm.tol_elbo = safe_num_refreshed288(controls$tol_elbo, 1e-6),
@@ -67,6 +63,27 @@ build_dynamic_ldvb_fit_refreshed288 <- function(sim_obj, model_obj, controls, ld
     exdqlm.vb.patience = safe_int_refreshed288(controls$patience, 3L),
     exdqlm.vb.allow_elbo_drop = safe_num_refreshed288(controls$allow_elbo_drop, 1e-5)
   ))
+}
+
+set_dynamic_mcmc_options_refreshed288 <- function(cfg) {
+  opt <- list()
+  if (!is.null(cfg$mcmc_use_cpp)) {
+    opt$exdqlm.use_cpp_mcmc <- as_flag_refreshed288(cfg$mcmc_use_cpp, TRUE)
+  }
+  if (!is.null(cfg$mcmc_cpp_mode) && nzchar(safe_chr_refreshed288(cfg$mcmc_cpp_mode, ""))) {
+    opt$exdqlm.cpp_mcmc_mode <- safe_chr_refreshed288(cfg$mcmc_cpp_mode, "strict")
+  }
+  if (!length(opt)) return(list())
+  options(opt)
+}
+
+build_dynamic_ldvb_fit_refreshed288 <- function(sim_obj, model_obj, controls, ld_controls, save_path = NA_character_, role = c("main_vb", "vb_init")) {
+  role <- match.arg(role)
+  old_ld <- set_dynamic_ld_options_refreshed288(ld_controls %||% list())
+  on.exit(if (length(old_ld)) options(old_ld), add = TRUE)
+  old_opt <- options(list(exdqlm.max_iter = safe_int_refreshed288(controls$max_iter, 300L)))
+  old_joint <- set_vb_joint_options_refreshed288(controls)
+  on.exit(options(old_joint), add = TRUE)
   on.exit(options(old_opt), add = TRUE)
 
   runtime_obj <- system.time({
@@ -98,8 +115,10 @@ build_dynamic_ldvb_fit_refreshed288 <- function(sim_obj, model_obj, controls, ld
   wrapped
 }
 
-build_static_ldvb_fit_refreshed288 <- function(design, controls, ld_controls, save_path = NA_character_, role = c("main_vb", "vb_init")) {
+build_static_ldvb_fit_refreshed288 <- function(design, controls, ld_controls, beta_prior_controls = NULL, save_path = NA_character_, role = c("main_vb", "vb_init")) {
   role <- match.arg(role)
+  old_opt <- set_vb_joint_options_refreshed288(controls)
+  on.exit(options(old_opt), add = TRUE)
   runtime_obj <- system.time({
     fit_obj <- exal_static_LDVB(
       y = design$y,
@@ -108,7 +127,7 @@ build_static_ldvb_fit_refreshed288 <- function(design, controls, ld_controls, sa
       max_iter = safe_int_refreshed288(controls$max_iter, 300L),
       tol = safe_num_refreshed288(controls$tol, 0.03),
       beta_prior = cfg$beta_prior,
-      beta_prior_controls = cfg$beta_prior_controls %||% NULL,
+      beta_prior_controls = beta_prior_controls %||% NULL,
       dqlm.ind = isTRUE(cfg$dqlm_ind),
       n_samp_xi = safe_int_refreshed288(controls$n_samp_xi, 1000L),
       ld_controls = ld_controls %||% list(store_trace = TRUE),
@@ -127,6 +146,39 @@ build_static_ldvb_fit_refreshed288 <- function(design, controls, ld_controls, sa
   )
   if (!is.na(save_path) && nzchar(save_path)) saveRDS(wrapped, save_path)
   wrapped
+}
+
+validate_dynamic_vb_init_fit_refreshed288 <- function(fit_obj, validation) {
+  validation <- validation %||% list()
+  if (!length(validation)) return(invisible(TRUE))
+
+  failures <- character(0)
+  check_required <- function(flag, ok, label) {
+    if (as_flag_refreshed288(flag, FALSE) && !isTRUE(ok)) {
+      failures <<- c(failures, label)
+    }
+  }
+
+  theta_vals <- suppressWarnings(as.numeric(fit_obj$samp.theta))
+  post_pred_vals <- suppressWarnings(as.numeric(fit_obj$samp.post.pred))
+  sfe_vals <- suppressWarnings(as.numeric(fit_obj$map.standard.forecast.errors))
+  sigma_vals <- suppressWarnings(as.numeric(fit_obj$samp.sigma))
+  gamma_vals <- if (!is.null(fit_obj$samp.gamma)) suppressWarnings(as.numeric(fit_obj$samp.gamma)) else numeric(0)
+
+  check_required(validation$require_theta_finite, length(theta_vals) > 0L && all(is.finite(theta_vals)), "theta_nonfinite")
+  check_required(validation$require_post_pred_finite, length(post_pred_vals) > 0L && all(is.finite(post_pred_vals)), "post_pred_nonfinite")
+  check_required(validation$require_sfe_finite, length(sfe_vals) > 0L && all(is.finite(sfe_vals)), "sfe_nonfinite")
+  check_required(validation$require_sigma_finite, length(sigma_vals) > 0L && all(is.finite(sigma_vals)) && all(sigma_vals > 0), "sigma_invalid")
+  check_required(validation$require_gamma_finite, length(gamma_vals) > 0L && all(is.finite(gamma_vals)), "gamma_invalid")
+
+  if (length(failures)) {
+    stop(
+      sprintf("vb_init_validation_fail: %s", paste(unique(failures), collapse = "; ")),
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
 }
 
 run_dynamic_refreshed288 <- function() {
@@ -159,6 +211,7 @@ run_dynamic_refreshed288 <- function() {
           model_obj = model_obj,
           controls = list(
             max_iter = cfg$vb_max_iter,
+            min_iter = cfg$vb_min_iter,
             tol = cfg$vb_tol,
             n.samp = cfg$vb_n_samp_internal
           ),
@@ -181,6 +234,7 @@ run_dynamic_refreshed288 <- function() {
             )
             vb_init_fit <- resolve_wrapped_fit_refreshed288(vb_wrapped)
           }
+          validate_dynamic_vb_init_fit_refreshed288(vb_init_fit, cfg$vb_init_validation %||% NULL)
         }
 
         call_args <- list(
@@ -195,6 +249,10 @@ run_dynamic_refreshed288 <- function() {
           init.from.vb = as_flag_refreshed288(cfg$init_from_vb, TRUE),
           init.from.isvb = FALSE,
           vb_init_controls = cfg$vb_init_controls %||% NULL,
+          sigmagam_controls = cfg$sigmagam_controls %||% NULL,
+          latent_state_controls = cfg$latent_state_controls %||% NULL,
+          theta_state_controls = cfg$theta_state_controls %||% NULL,
+          dqlm_sigma_controls = cfg$dqlm_sigma_controls %||% NULL,
           mh.proposal = safe_chr_refreshed288(cfg$mh_proposal, "slice"),
           mh.adapt = as_flag_refreshed288(cfg$mh_adapt, TRUE),
           mh.adapt.interval = safe_int_refreshed288(cfg$mh_adapt_interval, 50L),
@@ -214,6 +272,8 @@ run_dynamic_refreshed288 <- function() {
           call_args$slice.max.steps <- as.numeric(cfg$slice_max_steps)
         }
 
+        old_mcmc_opt <- set_dynamic_mcmc_options_refreshed288(cfg)
+        on.exit(if (length(old_mcmc_opt)) options(old_mcmc_opt), add = TRUE)
         runtime_obj <- system.time({
           fit_obj <- do.call(exdqlmMCMC, call_args)
         })
@@ -335,10 +395,12 @@ run_static_refreshed288 <- function() {
           design = design,
           controls = list(
             max_iter = cfg$max_iter,
+            min_iter = cfg$min_iter,
             tol = cfg$tol,
             n_samp_xi = cfg$n_samp_xi
           ),
           ld_controls = cfg$ld_controls,
+          beta_prior_controls = cfg$beta_prior_controls %||% NULL,
           role = "main_vb"
         )
       } else {
@@ -351,6 +413,7 @@ run_static_refreshed288 <- function() {
               design = design,
               controls = cfg$vb_init_controls,
               ld_controls = cfg$vb_init_controls$ld_controls %||% canonical_static_ld_controls_refreshed288(store_trace = FALSE),
+              beta_prior_controls = cfg$vb_init_beta_prior_controls %||% cfg$beta_prior_controls %||% NULL,
               save_path = cfg$vb_init_fit_path,
               role = "vb_init"
             )
@@ -370,6 +433,7 @@ run_static_refreshed288 <- function() {
           thin = safe_int_refreshed288(cfg$thin, 1L),
           init.from.vb = as_flag_refreshed288(cfg$init_from_vb, TRUE),
           vb_init_controls = cfg$vb_init_controls %||% NULL,
+          sigmagam_controls = cfg$sigmagam_controls %||% NULL,
           mh.proposal = safe_chr_refreshed288(cfg$mh_proposal, "slice"),
           mh.adapt = as_flag_refreshed288(cfg$mh_adapt, TRUE),
           mh.adapt.interval = safe_int_refreshed288(cfg$mh_adapt_interval, 50L),

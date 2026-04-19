@@ -1,0 +1,9 @@
+"snapshot_time","summary_group","key","value"
+"2026-04-18 19:14:14 EDT","runtime_fail_by_mode","invalid_pre_chi",9
+"2026-04-18 19:14:14 EDT","runtime_fail_by_mode","ldvb_q_t1_na",2
+"2026-04-18 19:14:14 EDT","runtime_fail_by_mode","nonfinite_chi",9
+"2026-04-18 19:14:14 EDT","runtime_fail_by_phase","full_dynamic_mcmc",19
+"2026-04-18 19:14:14 EDT","runtime_fail_by_phase","full_dynamic_vb",1
+"2026-04-18 19:14:14 EDT","runtime_fail_by_status","done",246
+"2026-04-18 19:14:14 EDT","runtime_fail_by_status","failed_runtime",20
+"2026-04-18 19:14:14 EDT","runtime_fail_by_status","skipped_existing",22

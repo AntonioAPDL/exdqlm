@@ -195,6 +195,7 @@ exal_static_mcmc <- function(
   init.from.vb = FALSE,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
+  sigmagam_controls = NULL,
   mh.proposal = c("slice", "laplace_rw", "rw", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
@@ -288,6 +289,7 @@ exal_static_mcmc <- function(
   if (!is.finite(mh_laplace_refresh_weight) || mh_laplace_refresh_weight <= 0 || mh_laplace_refresh_weight > 1) {
     mh_laplace_refresh_weight <- 0.60
   }
+  sigmagam_ctrl <- .exal_sigmagam_mcmc_controls(sigmagam_controls)
   slice.width <- as.numeric(slice.width)[1]
   if (!is.finite(slice.width) || slice.width <= 0) slice.width <- 0.1
   slice.max.steps <- as.numeric(slice.max.steps)[1]
@@ -1055,6 +1057,16 @@ exal_static_mcmc <- function(
   )
   trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
   trace_idx <- 0L
+  sigmagam_frozen_trace <- rep(FALSE, I)
+  sigmagam_forced_postwarmup_trace <- rep(FALSE, I)
+  sigmagam_update_performed_trace <- rep(FALSE, I)
+  sigmagam_update_reason_trace <- rep(NA_character_, I)
+  sigmagam_update_count_trace <- integer(I)
+  sigmagam_first_active_iter <- NA_integer_
+  sigmagam_update_count <- 0L
+  sigmagam_postwarmup_update_count <- 0L
+  sigmagam_updates_burn <- 0L
+  sigmagam_updates_keep <- 0L
   if (mh.proposal %in% c("rw", "laplace_rw")) {
     mode0 <- find_mode_eta_ell(c(eta, ell), xb, v, s)
     proposal_cov <- if (identical(mh.proposal, "laplace_rw")) {
@@ -1136,10 +1148,29 @@ exal_static_mcmc <- function(
     xb     <- drop(X %*% beta)
     beta_state <- beta_prior_obj$update_mcmc(beta_state, beta)
 
+    sigmagam_warmup_active <- isTRUE(
+      sigmagam_ctrl$freeze_burnin_iters > 0L &&
+        i <= sigmagam_ctrl$freeze_burnin_iters &&
+        (!sigmagam_ctrl$freeze_only_during_burn || i <= n.burn)
+    )
+    sigmagam_force_now <- isTRUE(
+      !sigmagam_warmup_active &&
+        sigmagam_ctrl$freeze_burnin_iters > 0L &&
+        sigmagam_ctrl$force_after_warmup &&
+        sigmagam_postwarmup_update_count <= 0L
+    )
+    sigmagam_update_reason <- if (isTRUE(sigmagam_warmup_active)) {
+      "warmup"
+    } else if (isTRUE(sigmagam_force_now)) {
+      "force_after_warmup"
+    } else {
+      "scheduled"
+    }
+
     ## (4) sigma update:
     ## for slice/laplace_local kernels keep exact conditional sigma update;
     ## for rw/laplace_rw update sigma jointly with gamma in transformed space.
-    if (!(mh.proposal %in% c("rw", "laplace_rw"))) {
+    if (!isTRUE(sigmagam_warmup_active) && !(mh.proposal %in% c("rw", "laplace_rw"))) {
       r          <- y - xb - A * v
       chi_sigma  <- sum((r * r) / (B * v)) + 2 * sum(v) + 2 * b_sigma
       psi_sigma  <- (lambda * lambda / B) * sum((s * s) / v)
@@ -1170,7 +1201,7 @@ exal_static_mcmc <- function(
     global_kernel_steps_iter <- 0L
     adapted_this_iter <- FALSE
 
-    for (g_step in seq_len(gamma.substeps)) {
+    if (!isTRUE(sigmagam_warmup_active)) for (g_step in seq_len(gamma.substeps)) {
       use_global_jump <- (p.global.eta.jump > 0) && (stats::runif(1) < p.global.eta.jump)
 
       if (isTRUE(use_global_jump)) {
@@ -1299,18 +1330,22 @@ exal_static_mcmc <- function(
         gamma <- g_from_eta(eta)
         proposal_sd_used <- proposal_scale
 
-        if (i <= n.burn) {
+        if (i <= n.burn && !isTRUE(sigmagam_warmup_active)) {
           n.trial.burn <- n.trial.burn + 1L
           n.accept.burn <- n.accept.burn + as.integer(isTRUE(accepted))
           window.accept <- window.accept + as.integer(isTRUE(accepted))
           window.total <- window.total + 1L
+        }
+        if (i <= n.burn) {
           if (
+            (!isTRUE(sigmagam_ctrl$delay_adapt_until_after_warmup) || !isTRUE(sigmagam_warmup_active)) &&
             mh.adapt && !adapted_this_iter &&
             i >= mh.min_burn_adapt && i < n.burn &&
             (i %% mh.adapt.interval == 0)
           ) {
             laplace_refreshed <- FALSE
             if (identical(mh.proposal, "laplace_rw") &&
+                (!isTRUE(sigmagam_ctrl$delay_laplace_refresh_until_after_warmup) || !isTRUE(sigmagam_warmup_active)) &&
                 i >= mh_laplace_refresh_start &&
                 (i %% mh_laplace_refresh_interval == 0)) {
               laplace_refresh_attempts <- laplace_refresh_attempts + 1L
@@ -1350,11 +1385,13 @@ exal_static_mcmc <- function(
             window.total <- 0L
             adapted_this_iter <- TRUE
           }
-        } else {
+        } else if (!isTRUE(sigmagam_warmup_active)) {
           n.trial.keep <- n.trial.keep + 1L
           n.accept.keep <- n.accept.keep + as.integer(isTRUE(accepted))
         }
-        n.accept <- n.accept + as.integer(isTRUE(accepted))
+        if (!isTRUE(sigmagam_warmup_active)) {
+          n.accept <- n.accept + as.integer(isTRUE(accepted))
+        }
       } else {
         local_kernel_steps_iter <- local_kernel_steps_iter + 1L
         mode_out <- find_mode_eta(eta, xb, sigma, v, s)
@@ -1373,6 +1410,26 @@ exal_static_mcmc <- function(
         gamma <- g_from_eta(eta)
         ell <- log(sigma)
       }
+    }
+    sigmagam_frozen_trace[i] <- isTRUE(sigmagam_warmup_active)
+    sigmagam_update_reason_trace[i] <- sigmagam_update_reason
+    if (!isTRUE(sigmagam_warmup_active)) {
+      sigmagam_update_performed_trace[i] <- TRUE
+      sigmagam_update_count <- sigmagam_update_count + 1L
+      sigmagam_update_count_trace[i] <- sigmagam_update_count
+      if (is.na(sigmagam_first_active_iter)) sigmagam_first_active_iter <- as.integer(i)
+      if (i <= n.burn) {
+        sigmagam_updates_burn <- sigmagam_updates_burn + 1L
+      } else {
+        sigmagam_updates_keep <- sigmagam_updates_keep + 1L
+      }
+      if (sigmagam_ctrl$freeze_burnin_iters > 0L) {
+        sigmagam_postwarmup_update_count <- sigmagam_postwarmup_update_count + 1L
+      }
+      sigmagam_forced_postwarmup_trace[i] <- isTRUE(sigmagam_force_now)
+    } else {
+      sigmagam_update_count_trace[i] <- sigmagam_update_count
+      sigmagam_forced_postwarmup_trace[i] <- FALSE
     }
     A <- A_of(gamma); B <- B_of(gamma); lambda <- lam_of(gamma)
     rhs_summary <- if (.static_is_rhs_family(beta_prior_obj$type)) beta_prior_obj$summary_mcmc(beta_state, beta = beta) else NULL
@@ -1404,6 +1461,11 @@ exal_static_mcmc <- function(
         gamma_global_jump_accepts = as.integer(global_jump_accepts_iter),
         p_global_eta_jump = p.global.eta.jump,
         global_eta_jump_scale = global.eta.jump.scale,
+        sigmagam_frozen = isTRUE(sigmagam_warmup_active),
+        sigmagam_update_reason = sigmagam_update_reason,
+        sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup_trace[i]),
+        sigmagam_update_performed = isTRUE(sigmagam_update_performed_trace[i]),
+        sigmagam_update_count = as.integer(sigmagam_update_count_trace[i]),
         slice_evals = slice_evals,
         s_mean = s_stats[["mean"]],
         s_sd = s_stats[["sd"]],
@@ -1566,6 +1628,19 @@ exal_static_mcmc <- function(
       attempts = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_attempts) else NA_integer_,
       success = if (identical(mh.proposal, "laplace_rw")) as.integer(laplace_refresh_success) else NA_integer_
     ),
+    sigmagam = list(
+      freeze_burnin_iters = as.integer(sigmagam_ctrl$freeze_burnin_iters),
+      freeze_only_during_burn = isTRUE(sigmagam_ctrl$freeze_only_during_burn),
+      force_after_warmup = isTRUE(sigmagam_ctrl$force_after_warmup),
+      delay_adapt_until_after_warmup = isTRUE(sigmagam_ctrl$delay_adapt_until_after_warmup),
+      delay_laplace_refresh_until_after_warmup = isTRUE(sigmagam_ctrl$delay_laplace_refresh_until_after_warmup),
+      first_active_iter = if (is.na(sigmagam_first_active_iter)) NA_integer_ else as.integer(sigmagam_first_active_iter),
+      updates_burn = as.integer(sigmagam_updates_burn),
+      updates_keep = as.integer(sigmagam_updates_keep),
+      update_count = as.integer(sigmagam_update_count),
+      postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
+      frozen_burn_rate = if (n.burn > 0L) mean(sigmagam_frozen_trace[seq_len(n.burn)]) else NA_real_
+    ),
     approx_local_draws = as.integer(n.approx_local_draw),
     kernel_exact = kernel_exact,
     signoff_ready = kernel_exact,
@@ -1632,6 +1707,7 @@ exal_static_mcmc <- function(
         sigma = chain_health_sigma,
         gamma = chain_health_gamma
       ),
+      sigmagam = mh_diag$sigmagam,
       acceptance = list(total = accept_total, burn = accept_burn, keep = accept_keep),
       rhat_ready = list(sigma = as.numeric(save.sigma), gamma = as.numeric(save.gamma)),
       rhs = if (.static_is_rhs_family(beta_prior_obj$type)) {
@@ -1640,7 +1716,14 @@ exal_static_mcmc <- function(
           c2 = as.numeric(save.c2),
           lambda = save.lambda
         )
-      } else NULL
+      } else NULL,
+      sigmagam_trace = list(
+        frozen = sigmagam_frozen_trace,
+        update_reason = sigmagam_update_reason_trace,
+        forced_postwarmup = sigmagam_forced_postwarmup_trace,
+        update_performed = sigmagam_update_performed_trace,
+        update_count = sigmagam_update_count_trace
+      )
     ),
     init.from.vb = isTRUE(init.from.vb),
     vb.init.controls = if (isTRUE(init.from.vb)) vb.ctrl else NULL,

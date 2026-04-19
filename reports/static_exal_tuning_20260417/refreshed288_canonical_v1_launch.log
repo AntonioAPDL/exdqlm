@@ -1,0 +1,1101 @@
+dataset_rows=54
+method_profiles=16
+full_rows=288
+smoke_rows=24
+dataset_missing_inputs=0
+run_tag=refreshed288_paperaligned_20260417_canonical_v1
+run_contract=tools/merge_reports/LOCAL_refreshed288_run_contract_20260417_canonical_v1.csv
+full_phase_counts:
+             phase rows
+    full_static_vb  108
+   full_dynamic_vb   36
+  full_static_mcmc  108
+ full_dynamic_mcmc   36
+smoke_phase_counts:
+              phase rows
+    smoke_static_vb    8
+   smoke_dynamic_vb    4
+  smoke_static_mcmc    8
+ smoke_dynamic_mcmc    4
+SUMMARY total=24 completed=0 running=0 not_started=24 pass=0 warn=0 fail=0 healthy=0 pct_completed=0.0 pct_active_or_done=0.0
+report=reports/static_exal_tuning_20260417/refreshed288_smoke_status_20260417_canonical_v1.md
+phase=smoke_static_vb workers=8 rows=8
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2820736 150.7    5912431 315.8  5912431 315.8
+Vcells 7134557  54.5   18963717 144.7 18191103 138.8
+[refreshed288 row 277] phase=smoke_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819154 150.6    5912491 315.8  5912491 315.8
+Vcells 7119592  54.4   15718157 120.0 15718157 120.0
+[refreshed288 row 273] phase=smoke_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819131 150.6    5912577 315.8  5912577 315.8
+Vcells 6995737  53.4   18720429 142.9 17871399 136.4
+[refreshed288 row 137] phase=smoke_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2830743 151.2    5912577 315.8  5912577 315.8
+Vcells 7052781  53.9   18999264 145.0 17778176 135.7
+[refreshed288 row 139] phase=smoke_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2830763 151.2    5912494 315.8  5912494 315.8
+Vcells 7176664  54.8   19215064 146.6 19094599 145.7
+[refreshed288 row 275] phase=smoke_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832522 151.3    5912431 315.8  5912431 315.8
+Vcells 7194146  54.9   19245635 146.9 17980227 137.2
+[refreshed288 row 279] phase=smoke_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2819131 150.6    5913551 315.9  5913551 315.9
+Vcells 25034014 191.0   67707411 516.6 67704175 516.6
+[refreshed288 row 141] phase=smoke_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2830744 151.2    5913551 315.9  5913551 315.9
+Vcells 25095027 191.5   67946650 518.4 67946650 518.4
+[refreshed288 row 143] phase=smoke_static_vb model=exal inference=vb done
+SUMMARY total=24 completed=8 running=0 not_started=16 pass=8 warn=0 fail=0 healthy=8 pct_completed=33.3 pct_active_or_done=33.3
+report=reports/static_exal_tuning_20260417/refreshed288_smoke_status_20260417_canonical_v1.md
+phase=smoke_dynamic_vb workers=6 rows=4
+[refreshed288 row 65] phase=smoke_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 67] phase=smoke_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 69] phase=smoke_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 71] phase=smoke_dynamic_vb model=exdqlm inference=vb done
+SUMMARY total=24 completed=12 running=0 not_started=12 pass=9 warn=3 fail=0 healthy=12 pct_completed=50.0 pct_active_or_done=50.0
+report=reports/static_exal_tuning_20260417/refreshed288_smoke_status_20260417_canonical_v1.md
+phase=smoke_static_mcmc workers=4 rows=8
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2841078 151.8    5912895 315.8  5912895 315.8
+Vcells 7255035  55.4   18418635 140.6 18201598 138.9
+[refreshed288 row 138] phase=smoke_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2841100 151.8    5912435 315.8  5912435 315.8
+Vcells 7499494  57.3   18599838 142.0 18593610 141.9
+[refreshed288 row 274] phase=smoke_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2841082 151.8    5913067 315.8  5913067 315.8
+Vcells 25302312 193.1   80139147 611.5 80139147 611.5
+[refreshed288 row 142] phase=smoke_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2850191 152.3    5912207 315.8  5912207 315.8
+Vcells 7457986  56.9   15727903 120.0 15727903 120.0
+[refreshed288 row 140] phase=smoke_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2844764 152.0    5912217 315.8  5912217 315.8
+Vcells 7874637  60.1   19123937 146.0 19123899 146.0
+[refreshed288 row 278] phase=smoke_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2850228 152.3    5912435 315.8  5912435 315.8
+Vcells 7702473  58.8   19372400 147.8 19372400 147.8
+[refreshed288 row 276] phase=smoke_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2849969 152.3    5913070 315.8  5913070 315.8
+Vcells 25508355 194.7   83584311 637.7 86885331 662.9
+[refreshed288 row 144] phase=smoke_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2854110 152.5    5912545 315.8  5912545 315.8
+Vcells 8417910  64.3   19804881 151.1 19804846 151.1
+[refreshed288 row 280] phase=smoke_static_mcmc model=exal inference=mcmc done
+SUMMARY total=24 completed=20 running=0 not_started=4 pass=16 warn=3 fail=1 healthy=19 pct_completed=83.3 pct_active_or_done=83.3
+report=reports/static_exal_tuning_20260417/refreshed288_smoke_status_20260417_canonical_v1.md
+phase=smoke_dynamic_mcmc workers=3 rows=4
+[refreshed288 row 66] phase=smoke_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.362 0.571 1.942
+[refreshed288 row 70] phase=smoke_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 68] phase=smoke_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.348 0.933 2.294
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 72] phase=smoke_dynamic_mcmc model=exdqlm inference=mcmc done
+SUMMARY total=24 completed=24 running=0 not_started=0 pass=17 warn=4 fail=3 healthy=21 pct_completed=100.0 pct_active_or_done=100.0
+report=reports/static_exal_tuning_20260417/refreshed288_smoke_status_20260417_canonical_v1.md
+SUMMARY total=288 completed=24 running=0 not_started=264 pass=17 warn=4 fail=3 healthy=21 pct_completed=8.3 pct_active_or_done=8.3
+report=reports/static_exal_tuning_20260417/refreshed288_full_status_20260417_canonical_v1.md
+phase=full_static_vb workers=8 rows=108
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821276 150.7    5929268 316.7  5929268 316.7
+Vcells 7034573  53.7   18787540 143.4 17900236 136.6
+[refreshed288 row 81] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821276 150.7    5929268 316.7  5929268 316.7
+Vcells 7034953  53.7   18788010 143.4 17910617 136.7
+[refreshed288 row 73] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832798 151.3    5929268 316.7  5929268 316.7
+Vcells 7100204  54.2   15835016 120.9 15832423 120.8
+[refreshed288 row 83] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832888 151.3    5929268 316.7  5929268 316.7
+Vcells 7111261  54.3   15850270 121.0 15850148 121.0
+[refreshed288 row 75] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821264 150.7    5929268 316.7  5929268 316.7
+Vcells 7034518  53.7   18787443 143.4 17910180 136.7
+[refreshed288 row 89] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832876 151.3    5929268 316.7  5929268 316.7
+Vcells 7090988  54.1   19064582 145.5 17746259 135.4
+[refreshed288 row 91] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821276 150.7    5929268 316.7  5929268 316.7
+Vcells 7034813  53.7   18787959 143.4 17900474 136.6
+[refreshed288 row 97] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832889 151.3    5929268 316.7  5929268 316.7
+Vcells 7111262  54.3   15849609 121.0 15849448 121.0
+[refreshed288 row 99] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821266 150.7    5929217 316.7  5929217 316.7
+Vcells 25072890 191.3   67763393 517.0 67763000 517.0
+[refreshed288 row 85] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821266 150.7    5929217 316.7  5929217 316.7
+Vcells 25073105 191.3   67763703 517.0 67763283 517.0
+[refreshed288 row 77] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832896 151.3    5929217 316.7  5929217 316.7
+Vcells 25145230 191.9   68018170 519.0 68017154 519.0
+[refreshed288 row 87] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821276 150.7    5929268 316.7  5929268 316.7
+Vcells 7034548  53.7   18787504 143.4 17910210 136.7
+[refreshed288 row 105] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832896 151.3    5929217 316.7  5929217 316.7
+Vcells 25152213 191.9   68028226 519.1 68027340 519.1
+[refreshed288 row 79] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832892 151.3    5929268 316.7  5929268 316.7
+Vcells 7099619  54.2   15832841 120.8 15831838 120.8
+[refreshed288 row 107] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821276 150.7    5929217 316.7  5929217 316.7
+Vcells 25072805 191.3   67763271 517.0 67762915 517.0
+[refreshed288 row 93] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821276 150.7    5929268 316.7  5929268 316.7
+Vcells 7034513  53.7   18787443 143.4 17900174 136.6
+[refreshed288 row 113] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832889 151.3    5929217 316.7  5929217 316.7
+Vcells 25136856 191.8   68006105 518.9 68004974 518.9
+[refreshed288 row 95] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832888 151.3    5929268 316.7  5929268 316.7
+Vcells 7088794  54.1   15817916 120.7 15816332 120.7
+[refreshed288 row 115] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821276 150.7    5929268 316.7  5929268 316.7
+Vcells 7034826  53.7   18787983 143.4 17900487 136.6
+[refreshed288 row 121] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821276 150.7    5929217 316.7  5929217 316.7
+Vcells 25073270 191.3   67763940 517.0 67763461 517.0
+[refreshed288 row 101] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832884 151.3    5929268 316.7  5929268 316.7
+Vcells 7111259  54.3   15850258 121.0 15849445 121.0
+[refreshed288 row 123] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832898 151.3    5929217 316.7  5929217 316.7
+Vcells 25152218 191.9   68028233 519.1 68027345 519.1
+[refreshed288 row 103] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821276 150.7    5929268 316.7  5929268 316.7
+Vcells 7034556  53.7   18787515 143.4 17910218 136.7
+[refreshed288 row 129] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832885 151.3    5929268 316.7  5929268 316.7
+Vcells 7098615  54.2   15831912 120.8 15830834 120.8
+[refreshed288 row 131] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821276 150.7    5929205 316.7  5929205 316.7
+Vcells 25072840 191.3   67763321 517.0 67762950 517.0
+[refreshed288 row 109] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832897 151.3    5929217 316.7  5929217 316.7
+Vcells 25143962 191.9   68016338 519.0 68015886 519.0
+[refreshed288 row 111] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819394 150.6    5927754 316.6  5927754 316.6
+Vcells 7027857  53.7   15583347 118.9 15583347 118.9
+[refreshed288 row 137] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821276 150.7    5929217 316.7  5929217 316.7
+Vcells 25072805 191.3   67763271 517.0 67762915 517.0
+[refreshed288 row 117] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819730 150.6    5928811 316.7  5928811 316.7
+Vcells 7040156  53.8   18968915 144.8 17768209 135.6
+[refreshed288 row 139] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832882 151.3    5929205 316.7  5929205 316.7
+Vcells 25127115 191.8   67993634 518.8 67993634 518.8
+[refreshed288 row 119] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821299 150.7    5929822 316.7  5929822 316.7
+Vcells 7158996  54.7   19003841 145.0 17975146 137.2
+[refreshed288 row 145] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821276 150.7    5929217 316.7  5929217 316.7
+Vcells 25073338 191.3   67764038 517.0 67763447 517.0
+[refreshed288 row 125] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832682 151.3    5929822 316.7  5929822 316.7
+Vcells 7234634  55.2   16029666 122.3 16029600 122.3
+[refreshed288 row 147] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822881 150.8    5929802 316.7  5929802 316.7
+Vcells 7173581  54.8   15803188 120.6 15803188 120.6
+[refreshed288 row 149] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832896 151.3    5929205 316.7  5929205 316.7
+Vcells 25152211 191.9   68028216 519.1 68027338 519.1
+[refreshed288 row 127] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834661 151.4    5929803 316.7  5929803 316.7
+Vcells 7251979  55.4   16054485 122.5 16051874 122.5
+[refreshed288 row 151] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821273 150.7    5929205 316.7  5929205 316.7
+Vcells 25072818 191.3   67763289 517.0 67762928 517.0
+[refreshed288 row 133] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821281 150.7    5929825 316.7  5929825 316.7
+Vcells 7158426  54.7   19003461 145.0 17974576 137.2
+[refreshed288 row 161] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832896 151.3    5929217 316.7  5929217 316.7
+Vcells 25147786 191.9   68029629 519.1 68029629 519.1
+[refreshed288 row 135] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832919 151.3    5929825 316.7  5929825 316.7
+Vcells 7222444  55.2   16016365 122.2 16016365 122.2
+[refreshed288 row 163] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822881 150.8    5929802 316.7  5929802 316.7
+Vcells 7173526  54.8   19030971 145.2 19011483 145.1
+[refreshed288 row 165] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834675 151.4    5929805 316.7  5929805 316.7
+Vcells 7241425  55.3   16039443 122.4 16035841 122.4
+[refreshed288 row 167] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2819394 150.6    5927345 316.6  5927345 316.6
+Vcells 25067039 191.3   67760422 517.0 67760422 517.0
+[refreshed288 row 141] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2819731 150.6    5928422 316.7  5928422 316.7
+Vcells 25083700 191.4   67921241 518.2 67921236 518.2
+[refreshed288 row 143] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218596 192.5   81883042 624.8 81881820 624.8
+[refreshed288 row 153] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822881 150.8    5927485 316.6  5927485 316.6
+Vcells 25233471 192.6   81912888 625.0 81906784 624.9
+[refreshed288 row 157] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832903 151.3    5927457 316.6  5927457 316.6
+Vcells 25297674 193.1   82197695 627.2 82191424 627.1
+[refreshed288 row 155] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821299 150.7    5929822 316.7  5929822 316.7
+Vcells 7158391  54.7   19003578 145.0 17974541 137.2
+[refreshed288 row 177] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834673 151.4    5927488 316.6  5927488 316.6
+Vcells 25314530 193.2   82230024 627.4 82228447 627.4
+[refreshed288 row 159] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832910 151.3    5929825 316.7  5929825 316.7
+Vcells 7217428  55.1   16014241 122.2 16014241 122.2
+[refreshed288 row 179] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822881 150.8    5929802 316.7  5929802 316.7
+Vcells 7173641  54.8   19031964 145.3 17959722 137.1
+[refreshed288 row 181] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834663 151.4    5929802 316.7  5929802 316.7
+Vcells 7241414  55.3   16039431 122.4 16035830 122.4
+[refreshed288 row 183] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218341 192.5   68162933 520.1 68162544 520.1
+[refreshed288 row 169] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821299 150.7    5929825 316.7  5929825 316.7
+Vcells 7158786  54.7   19004082 145.0 17974936 137.2
+[refreshed288 row 193] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832919 151.3    5927457 316.6  5927457 316.6
+Vcells 25293242 193.0   82185670 627.1 82185580 627.1
+[refreshed288 row 171] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832912 151.3    5929825 316.7  5929825 316.7
+Vcells 7235125  55.2   16030373 122.4 16030259 122.4
+[refreshed288 row 195] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822877 150.8    5929802 316.7  5929802 316.7
+Vcells 7173666  54.8   15803272 120.6 15803272 120.6
+[refreshed288 row 197] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822877 150.8    5927485 316.6  5927485 316.6
+Vcells 25233241 192.6   81906604 624.9 81906550 624.9
+[refreshed288 row 173] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834517 151.4    5929802 316.7  5929802 316.7
+Vcells 7251364  55.4   19344502 147.6 18808705 143.5
+[refreshed288 row 199] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834519 151.4    5927485 316.6  5927485 316.6
+Vcells 25309453 193.1   82223925 627.4 82222397 627.4
+[refreshed288 row 175] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218266 192.5   68162825 520.1 68162416 520.1
+[refreshed288 row 185] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832908 151.3    5927457 316.6  5927457 316.6
+Vcells 25275189 192.9   82154475 626.8 82147573 626.8
+[refreshed288 row 187] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822881 150.8    5927485 316.6  5927485 316.6
+Vcells 25233231 192.6   81906592 624.9 81906540 624.9
+[refreshed288 row 189] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821299 150.7    5929825 316.7  5929825 316.7
+Vcells 7158451  54.7   19003504 145.0 17974601 137.2
+[refreshed288 row 209] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834662 151.4    5927482 316.6  5927482 316.6
+Vcells 25293593 193.0   82192806 627.1 82187254 627.1
+[refreshed288 row 191] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832916 151.3    5929825 316.7  5929825 316.7
+Vcells 7221496  55.1   19292187 147.2 18658639 142.4
+[refreshed288 row 211] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822877 150.8    5929848 316.7  5929848 316.7
+Vcells 7173436  54.8   19031072 145.2 19011393 145.1
+[refreshed288 row 213] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834672 151.4    5929802 316.7  5929802 316.7
+Vcells 7237454  55.3   19320110 147.5 18624525 142.1
+[refreshed288 row 215] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218981 192.5   81876626 624.7 81872292 624.7
+[refreshed288 row 201] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821296 150.7    5929822 316.7  5929822 316.7
+Vcells 7158381  54.7   19003562 145.0 17974533 137.2
+[refreshed288 row 225] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822877 150.8    5927485 316.6  5927485 316.6
+Vcells 25233436 192.6   81906838 624.9 81906745 624.9
+[refreshed288 row 205] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832919 151.3    5927457 316.6  5927457 316.6
+Vcells 25297674 193.1   82193338 627.1 82191522 627.1
+[refreshed288 row 203] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832228 151.3    5929822 316.7  5929822 316.7
+Vcells 7207889  55.0   15991150 122.1 15990346 122.0
+[refreshed288 row 227] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822868 150.8    5929802 316.7  5929802 316.7
+Vcells 7173356  54.8   19031282 145.2 19021436 145.2
+[refreshed288 row 229] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834667 151.4    5929802 316.7  5929802 316.7
+Vcells 7232290  55.2   19311358 147.4 19030027 145.2
+[refreshed288 row 231] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834523 151.4    5927480 316.6  5927480 316.6
+Vcells 25313927 193.2   82221413 627.3 82216873 627.3
+[refreshed288 row 207] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218366 192.5   68162969 520.1 68162569 520.1
+[refreshed288 row 217] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822876 150.8    5927488 316.6  5927488 316.6
+Vcells 25233336 192.6   81906718 624.9 81906645 624.9
+[refreshed288 row 221] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821299 150.7    5929825 316.7  5929825 316.7
+Vcells 7158866  54.7   19004048 145.0 17975016 137.2
+[refreshed288 row 241] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832915 151.3    5927457 316.6  5927457 316.6
+Vcells 25291877 193.0   82183319 627.1 82183242 627.1
+[refreshed288 row 219] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834448 151.4    5927485 316.6  5927485 316.6
+Vcells 25305759 193.1   82207308 627.2 82207124 627.2
+[refreshed288 row 223] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832911 151.3    5929825 316.7  5929825 316.7
+Vcells 7235027  55.2   16039026 122.4 16039026 122.4
+[refreshed288 row 243] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822876 150.8    5929802 316.7  5929802 316.7
+Vcells 7173886  54.8   15803601 120.6 15803601 120.6
+[refreshed288 row 245] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834667 151.4    5929802 316.7  5929802 316.7
+Vcells 7250340  55.4   16054336 122.5 16054336 122.5
+[refreshed288 row 247] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927505 316.6  5927505 316.6
+Vcells 25218251 192.4   68162804 520.1 68162401 520.1
+[refreshed288 row 233] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832906 151.3    5927260 316.6  5927260 316.6
+Vcells 25273841 192.9   82157099 626.9 82156181 626.9
+[refreshed288 row 235] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822871 150.8    5927485 316.6  5927485 316.6
+Vcells 25233231 192.6   81906592 624.9 81906540 624.9
+[refreshed288 row 237] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2821299 150.7    5929825 316.7  5929825 316.7
+Vcells 7158421  54.7   19003452 145.0 17974573 137.2
+[refreshed288 row 257] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2822877 150.8    5929802 316.7  5929802 316.7
+Vcells 7173366  54.8   19031126 145.2 19021449 145.2
+[refreshed288 row 261] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2832503 151.3    5929825 316.7  5929825 316.7
+Vcells 7220116  55.1   16014037 122.2 16014037 122.2
+[refreshed288 row 259] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834662 151.4    5927485 316.6  5927485 316.6
+Vcells 25293629 193.0   82192850 627.1 82187481 627.1
+[refreshed288 row 239] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2834675 151.4    5929848 316.7  5929848 316.7
+Vcells 7242538  55.3   16040890 122.4 16036954 122.4
+[refreshed288 row 263] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218576 192.5   68163272 520.1 68162779 520.1
+[refreshed288 row 249] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819417 150.6    5928502 316.7  5928502 316.7
+Vcells 7151710  54.6   18991223 144.9 17980516 137.2
+[refreshed288 row 273] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822881 150.8    5927488 316.6  5927488 316.6
+Vcells 25233291 192.6   81906664 624.9 81906600 624.9
+[refreshed288 row 253] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832919 151.3    5927457 316.6  5927457 316.6
+Vcells 25297674 193.1   82197695 627.2 82191424 627.1
+[refreshed288 row 251] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834674 151.4    5927485 316.6  5927485 316.6
+Vcells 25314529 193.2   82230023 627.4 82228446 627.4
+[refreshed288 row 255] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819753 150.6    5929528 316.7  5929528 316.7
+Vcells 7164232  54.7   15922665 121.5 15922665 121.5
+[refreshed288 row 275] phase=full_static_vb model=exal inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819649 150.6    5929168 316.7  5929168 316.7
+Vcells 7152941  54.6   18994052 145.0 17981747 137.2
+[refreshed288 row 277] phase=full_static_vb model=al inference=vb done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2819985 150.7    5929834 316.7  5929834 316.7
+Vcells 7165736  54.7   15924268 121.5 15924268 121.5
+[refreshed288 row 279] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218341 192.5   68162933 520.1 68162544 520.1
+[refreshed288 row 265] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822881 150.8    5927485 316.6  5927485 316.6
+Vcells 25233236 192.6   81906598 624.9 81906545 624.9
+[refreshed288 row 269] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832915 151.3    5927457 316.6  5927457 316.6
+Vcells 25297582 193.1   82197756 627.2 82191245 627.1
+[refreshed288 row 267] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834675 151.4    5927485 316.6  5927485 316.6
+Vcells 25312926 193.2   82219692 627.3 82216583 627.3
+[refreshed288 row 271] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2821299 150.7    5927457 316.6  5927457 316.6
+Vcells 25218256 192.5   68162811 520.1 68162406 520.1
+[refreshed288 row 281] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2822881 150.8    5927485 316.6  5927485 316.6
+Vcells 25233231 192.6   81906592 624.9 81906540 624.9
+[refreshed288 row 285] phase=full_static_vb model=al inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2832908 151.3    5927457 316.6  5927457 316.6
+Vcells 25277365 192.9   82158243 626.9 82150298 626.8
+[refreshed288 row 283] phase=full_static_vb model=exal inference=vb done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2834665 151.4    5927480 316.6  5927480 316.6
+Vcells 25296838 193.0   82196592 627.2 82190501 627.1
+[refreshed288 row 287] phase=full_static_vb model=exal inference=vb done
+SUMMARY total=288 completed=124 running=0 not_started=164 pass=108 warn=13 fail=3 healthy=121 pct_completed=43.1 pct_active_or_done=43.1
+report=reports/static_exal_tuning_20260417/refreshed288_full_status_20260417_canonical_v1.md
+phase=full_dynamic_vb workers=6 rows=36
+Timing stopped at: 112.1 1.299 114.5
+Warning message:
+In value[[3L]](cond) :
+  C++ KF failed, falling back to R: matrix multiplication: incompatible matrix dimensions: 6x1 and 0x0
+[refreshed288 row 11] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 9] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 1] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 3] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 17] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 19] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 21] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 25] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 5] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 13] phase=full_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 7] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 27] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 33] phase=full_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 15] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 35] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 41] phase=full_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 23] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 43] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 29] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 49] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 45] phase=full_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 31] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 37] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 51] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 57] phase=full_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 39] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 59] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 65] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 67] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 69] phase=full_dynamic_vb model=dqlm inference=vb done
+[refreshed288 row 71] phase=full_dynamic_vb model=exdqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 47] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 53] phase=full_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 55] phase=full_dynamic_vb model=exdqlm inference=vb done
+[refreshed288 row 61] phase=full_dynamic_vb model=dqlm inference=vb done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 63] phase=full_dynamic_vb model=exdqlm inference=vb done
+SUMMARY total=288 completed=156 running=0 not_started=132 pass=118 warn=34 fail=4 healthy=152 pct_completed=54.2 pct_active_or_done=54.2
+report=reports/static_exal_tuning_20260417/refreshed288_full_status_20260417_canonical_v1.md
+phase=full_static_mcmc workers=4 rows=108
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843227 151.9    5929338 316.7  5929338 316.7
+Vcells 7294251  55.7   18477586 141.0 18230816 139.1
+[refreshed288 row 74] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843227 151.9    5929338 316.7  5929338 316.7
+Vcells 7293871  55.7   18477258 141.0 18230434 139.1
+[refreshed288 row 82] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843227 151.9    5929278 316.7  5929278 316.7
+Vcells 25341403 193.4   80180184 611.8 80180153 611.8
+[refreshed288 row 78] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852328 152.4    5929340 316.7  5929340 316.7
+Vcells 7498512  57.3   19013468 145.1 19012847 145.1
+[refreshed288 row 76] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852354 152.4    5929339 316.7  5929339 316.7
+Vcells 7497551  57.3   19016655 145.1 19014708 145.1
+[refreshed288 row 84] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852339 152.4    5929279 316.7  5929279 316.7
+Vcells 25549364 195.0   83617146 638.0 86925719 663.2
+[refreshed288 row 80] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843223 151.9    5929281 316.7  5929281 316.7
+Vcells 25341188 193.4   80179926 611.8 80179889 611.8
+[refreshed288 row 86] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843223 151.9    5929338 316.7  5929338 316.7
+Vcells 7293816  55.7   18477186 141.0 18230379 139.1
+[refreshed288 row 90] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843227 151.9    5929278 316.7  5929278 316.7
+Vcells 25341103 193.4   80179824 611.8 80179804 611.8
+[refreshed288 row 94] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852346 152.4    5929339 316.7  5929339 316.7
+Vcells 7496766  57.2   19010453 145.1 19009069 145.1
+[refreshed288 row 92] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852351 152.4    5929278 316.7  5929278 316.7
+Vcells 25548763 195.0   83620489 638.0 86925123 663.2
+[refreshed288 row 88] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843226 151.9    5929338 316.7  5929338 316.7
+Vcells 7294111  55.7   18477546 141.0 18230676 139.1
+[refreshed288 row 98] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852335 152.4    5929274 316.7  5929274 316.7
+Vcells 25548025 195.0   83621892 638.0 86924374 663.2
+[refreshed288 row 96] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843222 151.9    5929272 316.7  5929272 316.7
+Vcells 25341568 193.4   80180382 611.8 80180381 611.8
+[refreshed288 row 102] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843227 151.9    5929341 316.7  5929341 316.7
+Vcells 7293846  55.7   18476369 141.0 18475101 141.0
+[refreshed288 row 106] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852240 152.4    5929341 316.7  5929341 316.7
+Vcells 7498045  57.3   19024559 145.2 19005197 145.0
+[refreshed288 row 100] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852351 152.4    5929273 316.7  5929273 316.7
+Vcells 25549369 195.0   83615807 638.0 86925724 663.2
+[refreshed288 row 104] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843223 151.9    5929281 316.7  5929281 316.7
+Vcells 25341138 193.4   80179866 611.8 80179839 611.8
+[refreshed288 row 110] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843227 151.9    5929338 316.7  5929338 316.7
+Vcells 7293811  55.7   18477186 141.0 18230376 139.1
+[refreshed288 row 114] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852346 152.4    5929327 316.7  5929327 316.7
+Vcells 7497450  57.3   15776381 120.4 15776184 120.4
+[refreshed288 row 108] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2851946 152.4    5929339 316.7  5929339 316.7
+Vcells 7494179  57.2   15771509 120.4 15766753 120.3
+[refreshed288 row 116] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843227 151.9    5929281 316.7  5929281 316.7
+Vcells 25341103 193.4   80179824 611.8 80179804 611.8
+[refreshed288 row 118] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852125 152.4    5929281 316.7  5929281 316.7
+Vcells 25547618 195.0   83614510 638.0 86924992 663.2
+[refreshed288 row 112] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843220 151.9    5929332 316.7  5929332 316.7
+Vcells 7294124  55.7   18477575 141.0 18230687 139.1
+[refreshed288 row 122] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852336 152.4    5929278 316.7  5929278 316.7
+Vcells 25547186 195.0   83613117 638.0 86923535 663.2
+[refreshed288 row 120] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843227 151.9    5929278 316.7  5929278 316.7
+Vcells 25341636 193.4   80180464 611.8 80180454 611.8
+[refreshed288 row 126] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843227 151.9    5929332 316.7  5929332 316.7
+Vcells 7293854  55.7   18477119 141.0 18230417 139.1
+[refreshed288 row 130] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852332 152.4    5929338 316.7  5929338 316.7
+Vcells 7498510  57.3   15777886 120.4 15777886 120.4
+[refreshed288 row 124] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852349 152.4    5929281 316.7  5929281 316.7
+Vcells 25549362 195.0   83615206 638.0 86925717 663.2
+[refreshed288 row 128] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2836954 151.6    5927364 316.6  5927364 316.6
+Vcells 7267418  55.5   19521006 149.0 16406946 125.2
+[refreshed288 row 138] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2818039 150.5    5928221 316.7  5928221 316.7
+Vcells 7381592  56.4   16368053 124.9 16368053 124.9
+[refreshed288 row 140] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852344 152.4    5929333 316.7  5929333 316.7
+Vcells 7497405  57.3   15776295 120.4 15774157 120.4
+[refreshed288 row 132] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843227 151.9    5929278 316.7  5929278 316.7
+Vcells 25341116 193.4   80179840 611.8 80179817 611.8
+[refreshed288 row 134] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843255 151.9    5929881 316.7  5929881 316.7
+Vcells 7538898  57.6   18646926 142.3 18643341 142.3
+[refreshed288 row 146] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2836954 151.6    5927372 316.6  5927372 316.6
+Vcells 25303870 193.1   68370160 521.7 68369440 521.7
+[refreshed288 row 142] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852350 152.4    5929278 316.7  5929278 316.7
+Vcells 25548948 195.0   83618710 638.0 86925301 663.2
+[refreshed288 row 136] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2818039 150.5    5928050 316.6  5928050 316.6
+Vcells 25418944 194.0   68537450 522.9 68537450 522.9
+[refreshed288 row 144] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846899 152.1    5929717 316.7  5929717 316.7
+Vcells 7913661  60.4   19180131 146.4 19180131 146.4
+[refreshed288 row 150] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2851966 152.4    5929888 316.7  5929888 316.7
+Vcells 7740597  59.1   19228169 146.7 19215490 146.7
+[refreshed288 row 148] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2855843 152.6    5929717 316.7  5929717 316.7
+Vcells 8455980  64.6   19973553 152.4 19973553 152.4
+[refreshed288 row 152] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843255 151.9    5927601 316.6  5927601 316.6
+Vcells 25612898 195.5   80371599 613.2 80371599 613.2
+[refreshed288 row 154] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846905 152.1    5928474 316.7  5928474 316.7
+Vcells 25987951 198.3   80816738 616.6 80816738 616.6
+[refreshed288 row 158] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843245 151.9    5929887 316.7  5929887 316.7
+Vcells 7538328  57.6   18646106 142.3 18642771 142.3
+[refreshed288 row 162] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846899 152.1    5929717 316.7  5929717 316.7
+Vcells 7913606  60.4   19180052 146.4 19179748 146.4
+[refreshed288 row 166] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852382 152.4    5927605 316.6  5927605 316.6
+Vcells 25820829 197.0   83766921 639.1 87635927 668.7
+[refreshed288 row 156] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852372 152.4    5929887 316.7  5929887 316.7
+Vcells 7741838  59.1   19228884 146.8 19226734 146.7
+[refreshed288 row 164] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2856257 152.6    5929717 316.7  5929717 316.7
+Vcells 8457437  64.6   19864750 151.6 19864378 151.6
+[refreshed288 row 168] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856262 152.6    5928474 316.7  5928474 316.7
+Vcells 26536213 202.5   84133557 641.9 91757286 700.1
+[refreshed288 row 160] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843247 151.9    5927601 316.6  5927601 316.6
+Vcells 25612643 195.5   80371344 613.2 80371344 613.2
+[refreshed288 row 170] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843251 151.9    5929887 316.7  5929887 316.7
+Vcells 7538293  57.6   18646055 142.3 18642736 142.3
+[refreshed288 row 178] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846909 152.1    5928475 316.7  5928475 316.7
+Vcells 25987721 198.3   80816508 616.6 80816508 616.6
+[refreshed288 row 174] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852378 152.4    5927603 316.6  5927603 316.6
+Vcells 25820408 197.0   83766517 639.1 87635510 668.7
+[refreshed288 row 172] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852367 152.4    5929881 316.7  5929881 316.7
+Vcells 7741406  59.1   19228020 146.7 19226502 146.7
+[refreshed288 row 180] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846895 152.1    5929718 316.7  5929718 316.7
+Vcells 7913721  60.4   19440119 148.4 19440119 148.4
+[refreshed288 row 182] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856249 152.6    5928522 316.7  5928522 316.7
+Vcells 26535755 202.5   84133117 641.9 91506679 698.2
+[refreshed288 row 176] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2855846 152.6    5929720 316.7  5929720 316.7
+Vcells 8455044  64.6   19860622 151.6 19860603 151.6
+[refreshed288 row 184] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843255 151.9    5927604 316.6  5927604 316.6
+Vcells 25612568 195.5   80371269 613.2 80371269 613.2
+[refreshed288 row 186] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843255 151.9    5929887 316.7  5929887 316.7
+Vcells 7538688  57.6   18646624 142.3 18643131 142.3
+[refreshed288 row 194] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852366 152.4    5927598 316.6  5927598 316.6
+Vcells 25818860 197.0   83765031 639.1 87633952 668.6
+[refreshed288 row 188] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846901 152.1    5928475 316.7  5928475 316.7
+Vcells 25987711 198.3   80816498 616.6 80816498 616.6
+[refreshed288 row 190] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846896 152.1    5929691 316.7  5929691 316.7
+Vcells 7913731  60.4   19359666 147.8 19359666 147.8
+[refreshed288 row 198] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852230 152.4    5929887 316.7  5929887 316.7
+Vcells 7742372  59.1   19230299 146.8 19217265 146.7
+[refreshed288 row 196] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2856248 152.6    5929691 316.7  5929691 316.7
+Vcells 8458354  64.6   19866312 151.6 19853253 151.5
+[refreshed288 row 200] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856251 152.6    5928474 316.7  5928474 316.7
+Vcells 26534376 202.5   84131793 641.9 91605342 698.9
+[refreshed288 row 192] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843251 151.9    5927595 316.6  5927595 316.6
+Vcells 25613283 195.5   80371984 613.2 80371984 613.2
+[refreshed288 row 202] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843251 151.9    5929887 316.7  5929887 316.7
+Vcells 7538353  57.6   18646142 142.3 18642796 142.3
+[refreshed288 row 210] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846901 152.1    5928474 316.7  5928474 316.7
+Vcells 25987916 198.3   80816703 616.6 80816703 616.6
+[refreshed288 row 206] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852379 152.4    5927595 316.6  5927595 316.6
+Vcells 25820829 197.0   83766921 639.1 87635927 668.7
+[refreshed288 row 204] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2851857 152.4    5929887 316.7  5929887 316.7
+Vcells 7740252  59.1   19227755 146.7 19225290 146.7
+[refreshed288 row 212] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846901 152.1    5929714 316.7  5929714 316.7
+Vcells 7913516  60.4   19179922 146.4 19179375 146.4
+[refreshed288 row 214] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856248 152.6    5928479 316.7  5928479 316.7
+Vcells 26536218 202.5   84133562 641.9 91236862 696.1
+[refreshed288 row 208] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2856258 152.6    5929715 316.7  5929715 316.7
+Vcells 8457095  64.6   19875764 151.7 19871997 151.7
+[refreshed288 row 216] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843255 151.9    5927601 316.6  5927601 316.6
+Vcells 25612668 195.5   80371369 613.2 80371369 613.2
+[refreshed288 row 218] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843255 151.9    5929887 316.7  5929887 316.7
+Vcells 7538283  57.6   18646041 142.3 18642726 142.3
+[refreshed288 row 226] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846890 152.1    5928474 316.7  5928474 316.7
+Vcells 25987816 198.3   80816603 616.6 80816603 616.6
+[refreshed288 row 222] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852378 152.4    5927602 316.6  5927602 316.6
+Vcells 25820264 197.0   83769824 639.2 87635358 668.7
+[refreshed288 row 220] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846904 152.1    5929717 316.7  5929717 316.7
+Vcells 7913436  60.4   19179807 146.4 19179295 146.4
+[refreshed288 row 230] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852370 152.4    5929887 316.7  5929887 316.7
+Vcells 7740974  59.1   19226969 146.7 19224668 146.7
+[refreshed288 row 228] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856263 152.6    5928477 316.7  5928477 316.7
+Vcells 26535456 202.5   84132830 641.9 91706675 699.7
+[refreshed288 row 224] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2855578 152.6    5929717 316.7  5929717 316.7
+Vcells 8452407  64.5   19862623 151.6 19862623 151.6
+[refreshed288 row 232] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843255 151.9    5927601 316.6  5927601 316.6
+Vcells 25612553 195.5   80371254 613.2 80371254 613.2
+[refreshed288 row 234] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843255 151.9    5929887 316.7  5929887 316.7
+Vcells 7538768  57.6   18646739 142.3 18643211 142.3
+[refreshed288 row 242] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846909 152.1    5928475 316.7  5928475 316.7
+Vcells 25987711 198.3   80816498 616.6 80816498 616.6
+[refreshed288 row 238] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852374 152.4    5927601 316.6  5927601 316.6
+Vcells 25818770 197.0   83764944 639.1 87633862 668.6
+[refreshed288 row 236] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846905 152.1    5929718 316.7  5929718 316.7
+Vcells 7913966  60.4   19390447 148.0 19390447 148.0
+[refreshed288 row 246] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852371 152.4    5929888 316.7  5929888 316.7
+Vcells 7742882  59.1   15959100 121.8 15959100 121.8
+[refreshed288 row 244] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856241 152.6    5928475 316.7  5928475 316.7
+Vcells 26534412 202.5   84131828 641.9 91285086 696.5
+[refreshed288 row 240] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2856252 152.6    5929717 316.7  5929717 316.7
+Vcells 8458139  64.6   19865960 151.6 19865806 151.6
+[refreshed288 row 248] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843246 151.9    5927595 316.6  5927595 316.6
+Vcells 25612878 195.5   80371579 613.2 80371579 613.2
+[refreshed288 row 250] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2843251 151.9    5929838 316.7  5929838 316.7
+Vcells 7538323  57.6   18646098 142.3 18642766 142.3
+[refreshed288 row 258] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846905 152.1    5928474 316.7  5928474 316.7
+Vcells 25987771 198.3   80816558 616.6 80816558 616.6
+[refreshed288 row 254] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852372 152.4    5927601 316.6  5927601 316.6
+Vcells 25820829 197.0   83766921 639.1 87635927 668.7
+[refreshed288 row 252] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2846900 152.1    5929717 316.7  5929717 316.7
+Vcells 7913446  60.4   19179821 146.4 19178981 146.4
+[refreshed288 row 262] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2852284 152.4    5929887 316.7  5929887 316.7
+Vcells 7741425  59.1   19229163 146.8 19226463 146.7
+[refreshed288 row 260] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856258 152.6    5928476 316.7  5928476 316.7
+Vcells 26536212 202.5   84133556 641.9 91336939 696.9
+[refreshed288 row 256] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2856259 152.6    5929718 316.7  5929718 316.7
+Vcells 8457516  64.6   19864983 151.6 19864934 151.6
+[refreshed288 row 264] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843255 151.9    5927601 316.6  5927601 316.6
+Vcells 25612643 195.5   80371344 613.2 80371344 613.2
+[refreshed288 row 266] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2836982 151.6    5927527 316.6  5927527 316.6
+Vcells 7509943  57.3   20149730 153.8 16840553 128.5
+[refreshed288 row 274] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2818068 150.6    5928398 316.7  5928398 316.7
+Vcells 7624119  58.2   17311245 132.1 17306026 132.1
+[refreshed288 row 276] phase=full_static_mcmc model=exal inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2837226 151.6    5928454 316.7  5928454 316.7
+Vcells 7850799  59.9   17651594 134.7 17651594 134.7
+[refreshed288 row 278] phase=full_static_mcmc model=al inference=mcmc done
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2818321 150.6    5929314 316.7  5929314 316.7
+Vcells 8305004  63.4   18291719 139.6 18287221 139.6
+[refreshed288 row 280] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846901 152.1    5928474 316.7  5928474 316.7
+Vcells 25987716 198.3   80820911 616.7 80820911 616.7
+[refreshed288 row 270] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852383 152.4    5927601 316.6  5927601 316.6
+Vcells 25820733 197.0   83776389 639.2 87635828 668.7
+[refreshed288 row 268] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856263 152.6    5928475 316.7  5928475 316.7
+Vcells 26536025 202.5   84133376 641.9 91436921 697.7
+[refreshed288 row 272] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2843255 151.9    5927601 316.6  5927601 316.6
+Vcells 25612558 195.5   80371259 613.2 80371259 613.2
+[refreshed288 row 282] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2846902 152.1    5928475 316.7  5928475 316.7
+Vcells 25987711 198.3   80816498 616.6 80816498 616.6
+[refreshed288 row 286] phase=full_static_mcmc model=al inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2852369 152.4    5927604 316.6  5927604 316.6
+Vcells 25819047 197.0   83765211 639.1 87634139 668.6
+[refreshed288 row 284] phase=full_static_mcmc model=exal inference=mcmc done
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2856247 152.6    5928475 316.7  5928475 316.7
+Vcells 26534640 202.5   84132047 641.9 91085174 695.0
+[refreshed288 row 288] phase=full_static_mcmc model=exal inference=mcmc done
+SUMMARY total=288 completed=256 running=0 not_started=32 pass=180 warn=46 fail=30 healthy=226 pct_completed=88.9 pct_active_or_done=88.9
+report=reports/static_exal_tuning_20260417/refreshed288_full_status_20260417_canonical_v1.md
+phase=full_dynamic_mcmc workers=3 rows=36
+[refreshed288 row 2] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.341 0.574 1.925
+[refreshed288 row 6] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 4] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 106.7 0.607 107.7
+Warning message:
+In value[[3L]](cond) :
+  C++ KF failed, falling back to R: matrix multiplication: incompatible matrix dimensions: 6x1 and 0x0
+[refreshed288 row 12] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 10] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.291 0.566 1.868
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 8] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.304 0.572 1.886
+[refreshed288 row 14] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 18] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.453 0.944 2.409
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 16] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 20] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.44 0.969 2.417
+[refreshed288 row 22] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 26] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.352 0.621 1.981
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 24] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 28] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.398 0.79 2.199
+[refreshed288 row 30] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 34] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.558 1.078 2.642
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 32] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 36] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.471 0.929 2.408
+[refreshed288 row 38] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.403 0.57 1.982
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 40] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 42] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.41 0.9 2.317
+[refreshed288 row 46] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 44] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 50] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.61 1.604 3.232
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 48] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 52] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.315 0.567 1.893
+[refreshed288 row 54] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 58] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.611 1.38 3.002
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 56] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 60] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 row 66] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 row 68] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.473 1.185 2.666
+[refreshed288 row 70] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.309 0.61 1.928
+[refreshed288 row 72] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.333 0.599 1.939
+[refreshed288 row 62] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.356 0.597 1.964
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 64] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+SUMMARY total=288 completed=288 running=0 not_started=0 pass=188 warn=53 fail=47 healthy=241 pct_completed=100.0 pct_active_or_done=100.0
+report=reports/static_exal_tuning_20260417/refreshed288_full_status_20260417_canonical_v1.md

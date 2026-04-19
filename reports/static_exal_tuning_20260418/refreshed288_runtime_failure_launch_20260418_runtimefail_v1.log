@@ -1,0 +1,51 @@
+SUMMARY total=20 completed=0 running=0 not_started=20 pass=0 warn=0 fail=0 healthy=0 pct_completed=0.0 pct_active_or_done=0.0
+report=/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260418/refreshed288_runtime_failure_status_20260418_runtimefail_v1.md
+phase=runtime_vb_primary workers=1 rows=1
+Timing stopped at: 127.4 0.768 128.8
+Warning message:
+In value[[3L]](cond) :
+  C++ KF failed, falling back to R: matrix multiplication: incompatible matrix dimensions: 6x1 and 0x0
+[refreshed288 row 11] phase=runtime_vb_primary model=exdqlm inference=vb done
+SUMMARY total=20 completed=1 running=0 not_started=19 pass=0 warn=0 fail=1 healthy=0 pct_completed=5.0 pct_active_or_done=5.0
+report=/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260418/refreshed288_runtime_failure_status_20260418_runtimefail_v1.md
+phase=runtime_mcmc_pilot workers=2 rows=3
+Timing stopped at: 1.386 1.166 2.56
+[refreshed288 row 6] phase=runtime_mcmc_pilot model=dqlm inference=mcmc done
+Timing stopped at: 120.4 0.763 121.7
+Warning message:
+In value[[3L]](cond) :
+  C++ KF failed, falling back to R: matrix multiplication: incompatible matrix dimensions: 6x1 and 0x0
+[refreshed288 row 12] phase=runtime_mcmc_pilot model=exdqlm inference=mcmc done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 8] phase=runtime_mcmc_pilot model=exdqlm inference=mcmc done
+SUMMARY total=20 completed=4 running=0 not_started=16 pass=0 warn=0 fail=4 healthy=0 pct_completed=20.0 pct_active_or_done=20.0
+report=/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260418/refreshed288_runtime_failure_status_20260418_runtimefail_v1.md
+phase=runtime_mcmc_full workers=2 rows=16
+Timing stopped at: 1.13 0.576 1.714
+[refreshed288 row 14] phase=runtime_mcmc_full model=dqlm inference=mcmc done
+Timing stopped at: 1.308 1.487 2.81
+[refreshed288 row 22] phase=runtime_mcmc_full model=dqlm inference=mcmc done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 16] phase=runtime_mcmc_full model=exdqlm inference=mcmc done
+Timing stopped at: 1.569 2.017 3.612
+[refreshed288 row 30] phase=runtime_mcmc_full model=dqlm inference=mcmc done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 24] phase=runtime_mcmc_full model=exdqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 row 38] phase=runtime_mcmc_full model=dqlm inference=mcmc done
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 32] phase=runtime_mcmc_full model=exdqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+4: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 row 46] phase=runtime_mcmc_full model=dqlm inference=mcmc done

@@ -94,6 +94,80 @@ test_that("static MCMC default proposal is slice", {
   expect_true(is.na(fit$accept.rate))
 })
 
+test_that("static LDVB records sigmagam warmup scheduling", {
+  set.seed(202604101)
+  dat <- tiny_static_truth_case(n = 30L, p0 = 0.25)
+
+  fit <- exal_static_LDVB(
+    y = dat$y,
+    X = dat$X,
+    p0 = dat$p0,
+    max_iter = 120,
+    tol = 1e-3,
+    n_samp_xi = 80,
+    ld_controls = list(
+      sigmagam = list(
+        freeze_warmup_iters = 3L,
+        force_after_warmup = TRUE,
+        min_postwarmup_updates = 1L
+      )
+    ),
+    verbose = FALSE
+  )
+
+  expect_identical(fit$misc$sigmagam$freeze_warmup_iters, 3L)
+  expect_gte(length(fit$misc$sigmagam_frozen_trace), 3L)
+  expect_true(all(fit$misc$sigmagam_frozen_trace[1:3]))
+  expect_true(is.logical(fit$diagnostics$convergence$sigmagam_min_updates_ok))
+  expect_gte(fit$diagnostics$ld_block$sigmagam$update_count, 1L)
+})
+
+test_that("static MCMC records sigmagam warmup diagnostics", {
+  set.seed(202604102)
+  dat <- tiny_static_truth_case(n = 28L, p0 = 0.25)
+
+  fit <- exal_static_mcmc(
+    y = dat$y,
+    X = dat$X,
+    p0 = dat$p0,
+    n.burn = 12,
+    n.mcmc = 10,
+    thin = 1,
+    init.from.vb = TRUE,
+    vb_init_controls = list(
+      max_iter = 30,
+      tol = 1e-3,
+      n_samp_xi = 80,
+      verbose = FALSE,
+      ld_controls = list(
+        sigmagam = list(
+          freeze_warmup_iters = 2L,
+          force_after_warmup = TRUE,
+          min_postwarmup_updates = 1L
+        )
+      )
+    ),
+    sigmagam_controls = list(
+      freeze_burnin_iters = 4L,
+      freeze_only_during_burn = TRUE,
+      force_after_warmup = TRUE,
+      delay_adapt_until_after_warmup = TRUE,
+      delay_laplace_refresh_until_after_warmup = TRUE
+    ),
+    mh.proposal = "slice",
+    trace.diagnostics = TRUE,
+    trace.every = 1L,
+    verbose = FALSE
+  )
+
+  expect_identical(fit$diagnostics$sigmagam$freeze_burnin_iters, 4L)
+  expect_gte(length(fit$diagnostics$sigmagam_trace$frozen), 4L)
+  expect_true(all(fit$diagnostics$sigmagam_trace$frozen[1:4]))
+  expect_gte(fit$diagnostics$sigmagam$first_active_iter, 5L)
+  expect_gt(fit$diagnostics$sigmagam$update_count, 0L)
+  expect_true(all(c("sigmagam_frozen", "sigmagam_update_reason") %in% names(fit$mh.diagnostics$trace)))
+})
+
 tiny_static_sparse_rhs_case <- function(n = 80L, p0 = 0.25) {
   cov_mat <- 0.5 ^ as.matrix(stats::dist(seq_len(8L)))
   beta_slopes <- c(2, 1, 0, 0, 1.5, 0, 0, 0)

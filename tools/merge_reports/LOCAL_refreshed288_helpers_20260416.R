@@ -2,12 +2,45 @@ source("tools/merge_reports/LOCAL_original288_normalized_multiseed_helpers_20260
 
 `%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
 
+default_run_tag_refreshed288 <- function() {
+  "20260416"
+}
+
+sanitize_tag_refreshed288 <- function(x, default = default_run_tag_refreshed288()) {
+  x <- safe_chr_original288_normalized_multiseed(x, default = default)
+  x <- gsub("[^A-Za-z0-9_\\-]", "_", x)
+  if (!nzchar(x)) default else x
+}
+
 run_tag_refreshed288 <- function() {
-  "refreshed288_paperaligned_20260416"
+  tag_raw <- getOption(
+    "refreshed288.run_tag",
+    Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())
+  )
+  sprintf("refreshed288_paperaligned_%s", sanitize_tag_refreshed288(tag_raw))
 }
 
 variant_tag_refreshed288 <- function() {
-  "refreshed288_0p50_ldvb_slice_20260416"
+  variant_raw <- getOption(
+    "refreshed288.variant_tag",
+    Sys.getenv("REFRESHED288_VARIANT_TAG", unset = sprintf("0p50_ldvb_slice_%s", sanitize_tag_refreshed288(getOption(
+      "refreshed288.run_tag",
+      Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())
+    ))))
+  )
+  sprintf("refreshed288_%s", sanitize_tag_refreshed288(variant_raw, default = sprintf("0p50_ldvb_slice_%s", default_run_tag_refreshed288())))
+}
+
+report_stamp_refreshed288 <- function() {
+  tag_raw <- sanitize_tag_refreshed288(getOption(
+    "refreshed288.run_tag",
+    Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())
+  ))
+  if (grepl("^[0-9]{8}([_-].*)?$", tag_raw)) {
+    sub("^([0-9]{8}).*$", "\\1", tag_raw)
+  } else {
+    tag_raw
+  }
 }
 
 phase_order_refreshed288 <- c(
@@ -39,23 +72,25 @@ refreshed288_static_sizes <- function() c(100L, 1000L)
 
 paths_refreshed288 <- function() {
   tag <- run_tag_refreshed288()
+  report_stamp <- report_stamp_refreshed288()
   run_dir <- file.path("tools", "merge_reports", sprintf("full288_%s", tag))
   list(
-    dataset_registry = "tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260416.csv",
-    method_registry = "tools/merge_reports/LOCAL_refreshed288_method_registry_20260416.csv",
-    smoke_manifest = "tools/merge_reports/LOCAL_refreshed288_smoke_manifest_20260416.csv",
-    full_manifest = "tools/merge_reports/LOCAL_refreshed288_full_manifest_20260416.csv",
-    smoke_stage_counts = "tools/merge_reports/LOCAL_refreshed288_smoke_stage_counts_20260416.csv",
-    full_stage_counts = "tools/merge_reports/LOCAL_refreshed288_full_stage_counts_20260416.csv",
-    smoke_manifest_status = "tools/merge_reports/LOCAL_refreshed288_smoke_manifest_status_20260416.csv",
-    full_manifest_status = "tools/merge_reports/LOCAL_refreshed288_full_manifest_status_20260416.csv",
-    smoke_phase_summary = "tools/merge_reports/LOCAL_refreshed288_smoke_phase_summary_20260416.csv",
-    full_phase_summary = "tools/merge_reports/LOCAL_refreshed288_full_phase_summary_20260416.csv",
-    smoke_method_summary = "tools/merge_reports/LOCAL_refreshed288_smoke_method_summary_20260416.csv",
-    full_method_summary = "tools/merge_reports/LOCAL_refreshed288_full_method_summary_20260416.csv",
-    smoke_report = "reports/static_exal_tuning_20260416/refreshed288_smoke_status_20260416.md",
-    full_report = "reports/static_exal_tuning_20260416/refreshed288_full_status_20260416.md",
-    spec_doc = "reports/static_exal_tuning_20260416/refreshed288_relaunch_spec_20260416.md",
+    dataset_registry = sprintf("tools/merge_reports/LOCAL_refreshed288_dataset_registry_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    method_registry = sprintf("tools/merge_reports/LOCAL_refreshed288_method_registry_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    smoke_manifest = sprintf("tools/merge_reports/LOCAL_refreshed288_smoke_manifest_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    full_manifest = sprintf("tools/merge_reports/LOCAL_refreshed288_full_manifest_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    smoke_stage_counts = sprintf("tools/merge_reports/LOCAL_refreshed288_smoke_stage_counts_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    full_stage_counts = sprintf("tools/merge_reports/LOCAL_refreshed288_full_stage_counts_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    smoke_manifest_status = sprintf("tools/merge_reports/LOCAL_refreshed288_smoke_manifest_status_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    full_manifest_status = sprintf("tools/merge_reports/LOCAL_refreshed288_full_manifest_status_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    smoke_phase_summary = sprintf("tools/merge_reports/LOCAL_refreshed288_smoke_phase_summary_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    full_phase_summary = sprintf("tools/merge_reports/LOCAL_refreshed288_full_phase_summary_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    smoke_method_summary = sprintf("tools/merge_reports/LOCAL_refreshed288_smoke_method_summary_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    full_method_summary = sprintf("tools/merge_reports/LOCAL_refreshed288_full_method_summary_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    smoke_report = sprintf("reports/static_exal_tuning_%s/refreshed288_smoke_status_%s.md", report_stamp, sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    full_report = sprintf("reports/static_exal_tuning_%s/refreshed288_full_status_%s.md", report_stamp, sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    spec_doc = sprintf("reports/static_exal_tuning_%s/refreshed288_relaunch_spec_%s.md", report_stamp, sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
+    run_contract = sprintf("tools/merge_reports/LOCAL_refreshed288_run_contract_%s.csv", sanitize_tag_refreshed288(getOption("refreshed288.run_tag", Sys.getenv("REFRESHED288_RUN_TAG", unset = default_run_tag_refreshed288())))),
     run_root = run_dir,
     config_dir = file.path(run_dir, "configs"),
     rows_dir = file.path(run_dir, "rows"),
@@ -66,6 +101,47 @@ paths_refreshed288 <- function() {
     fits_dir = file.path(run_dir, "fits"),
     vb_init_dir = file.path(run_dir, "vb_init")
   )
+}
+
+current_git_sha_refreshed288 <- function(repo_root = ".") {
+  out <- tryCatch(system2("git", c("-C", normalizePath(repo_root, winslash = "/", mustWork = TRUE), "rev-parse", "--short", "HEAD"), stdout = TRUE, stderr = FALSE), error = function(...) character(0))
+  if (!length(out)) NA_character_ else safe_chr_refreshed288(out[[1]], NA_character_)
+}
+
+current_git_branch_refreshed288 <- function(repo_root = ".") {
+  out <- tryCatch(system2("git", c("-C", normalizePath(repo_root, winslash = "/", mustWork = TRUE), "rev-parse", "--abbrev-ref", "HEAD"), stdout = TRUE, stderr = FALSE), error = function(...) character(0))
+  if (!length(out)) NA_character_ else safe_chr_refreshed288(out[[1]], NA_character_)
+}
+
+write_run_contract_refreshed288 <- function(paths, repo_root = ".") {
+  contract <- data.frame(
+    run_tag = run_tag_refreshed288(),
+    variant_tag = variant_tag_refreshed288(),
+    canonical_status = "planned_canonical_rerun",
+    predecessor_run_tag = "refreshed288_paperaligned_20260416",
+    predecessor_run_root = "tools/merge_reports/full288_refreshed288_paperaligned_20260416",
+    predecessor_role = "interrupted_pilot_non_canonical",
+    tau_grid = "0.05,0.25,0.50",
+    static_shrink_priors = "ridge,rhs_ns",
+    rhs_plain_forbidden = TRUE,
+    rhsns_tau_warmup_vb = 50L,
+    rhsns_tau_warmup_mcmc = 500L,
+    rhsns_tau_warmup_vb_init = 50L,
+    rhsns_vb_min_iter = 80L,
+    sigmagam_vb_warmup_plan = "10_enabled",
+    sigmagam_mcmc_warmup_plan = "50_enabled",
+    sigmagam_status = "validation_repo_sigmagam_enabled",
+    source_repo_root = refreshed288_source_repo_root(),
+    validation_repo_branch = current_git_branch_refreshed288(repo_root),
+    validation_repo_sha = current_git_sha_refreshed288(repo_root),
+    run_root = paths$run_root,
+    spec_doc = paths$spec_doc,
+    full_manifest = paths$full_manifest,
+    method_registry = paths$method_registry,
+    stringsAsFactors = FALSE
+  )
+  utils::write.csv(contract, paths$run_contract, row.names = FALSE)
+  invisible(contract)
 }
 
 ensure_dir_refreshed288 <- function(path) {
@@ -146,6 +222,8 @@ canonical_dynamic_ld_controls_refreshed288 <- function(store_trace = TRUE) {
     eta_hi = 12,
     sigma_init_mode = "data_scale",
     reject_bad_mode_commit = TRUE,
+    sts = canonical_sts_vb_controls_refreshed288(0L),
+    sigmagam = canonical_sigmagam_vb_controls_refreshed288(),
     store_trace = isTRUE(store_trace)
   )
 }
@@ -161,8 +239,285 @@ canonical_static_ld_controls_refreshed288 <- function(store_trace = TRUE) {
     sigma_init_mode = "data_scale",
     gamma_init_mode = "midpoint",
     reject_bad_mode_commit = TRUE,
+    sigmagam = canonical_sigmagam_vb_controls_refreshed288(),
     store_trace = isTRUE(store_trace)
   )
+}
+
+canonical_sigmagam_vb_controls_refreshed288 <- function(warmup_iters = 10L) {
+  warmup_iters <- safe_int_refreshed288(warmup_iters, 10L)
+  if (!is.finite(warmup_iters) || warmup_iters < 0L) warmup_iters <- 10L
+  list(
+    freeze_warmup_iters = as.integer(warmup_iters),
+    force_after_warmup = TRUE,
+    postwarmup_damping = 1.0,
+    postwarmup_damping_iters = 0L,
+    min_postwarmup_updates = 1L
+  )
+}
+
+canonical_sigmagam_mcmc_controls_refreshed288 <- function(warmup_iters = 50L) {
+  warmup_iters <- safe_int_refreshed288(warmup_iters, 50L)
+  if (!is.finite(warmup_iters) || warmup_iters < 0L) warmup_iters <- 50L
+  list(
+    freeze_burnin_iters = as.integer(warmup_iters),
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE,
+    delay_adapt_until_after_warmup = TRUE,
+    delay_laplace_refresh_until_after_warmup = TRUE
+  )
+}
+
+canonical_sts_vb_controls_refreshed288 <- function(warmup_iters = 0L) {
+  warmup_iters <- safe_int_refreshed288(warmup_iters, 0L)
+  if (!is.finite(warmup_iters) || warmup_iters < 0L) warmup_iters <- 0L
+  list(
+    freeze_warmup_iters = as.integer(warmup_iters),
+    force_after_warmup = TRUE,
+    min_postwarmup_updates = if (warmup_iters > 0L) 1L else 0L
+  )
+}
+
+runtime_sigmagam_vb_controls_refreshed288 <- function() {
+  list(
+    freeze_warmup_iters = 50L,
+    force_after_warmup = TRUE,
+    postwarmup_damping = 0.5,
+    postwarmup_damping_iters = 5L,
+    min_postwarmup_updates = 5L
+  )
+}
+
+runtime_sts_vb_controls_refreshed288 <- function() {
+  list(
+    freeze_warmup_iters = 50L,
+    force_after_warmup = TRUE,
+    min_postwarmup_updates = 5L
+  )
+}
+
+runtime_sigmagam_mcmc_controls_refreshed288 <- function() {
+  canonical_sigmagam_mcmc_controls_refreshed288(500L)
+}
+
+runtime_latent_state_controls_refreshed288 <- function(model) {
+  list(
+    mode = if (identical(model, "dqlm")) "u_only" else "u_st_pair",
+    freeze_burnin_iters = 100L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE
+  )
+}
+
+runtime_theta_state_controls_refreshed288 <- function() {
+  list(
+    freeze_burnin_iters = 100L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE
+  )
+}
+
+runtime_dqlm_sigma_controls_refreshed288 <- function() {
+  list(
+    freeze_burnin_iters = 500L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE
+  )
+}
+
+runtime_mcmc_backend_controls_refreshed288 <- function() {
+  list(
+    mcmc_use_cpp = FALSE,
+    mcmc_cpp_mode = "strict"
+  )
+}
+
+runtime_dynamic_ld_controls_refreshed288 <- function(store_trace = TRUE) {
+  base <- canonical_dynamic_ld_controls_refreshed288(store_trace = store_trace)
+  base$sts <- runtime_sts_vb_controls_refreshed288()
+  base$sigmagam <- runtime_sigmagam_vb_controls_refreshed288()
+  base
+}
+
+runtime_dynamic_vb_controls_refreshed288 <- function(store_trace = TRUE) {
+  list(
+    vb_method = "ldvb",
+    vb_max_iter = 800L,
+    vb_min_iter = 80L,
+    vb_tol = 0.01,
+    vb_n_samp_internal = 20000L,
+    ld_controls = runtime_dynamic_ld_controls_refreshed288(store_trace = store_trace)
+  )
+}
+
+runtime_dynamic_vb_init_controls_refreshed288 <- function() {
+  list(
+    method = "ldvb",
+    tol = 0.01,
+    n.IS = 200L,
+    n.samp = 5000L,
+    max_iter = 800L,
+    min_iter = 80L,
+    verbose = FALSE,
+    ld_controls = runtime_dynamic_ld_controls_refreshed288(store_trace = FALSE)
+  )
+}
+
+runtime_vb_init_validation_refreshed288 <- function(model) {
+  list(
+    require_theta_finite = TRUE,
+    require_post_pred_finite = TRUE,
+    require_sfe_finite = TRUE,
+    require_sigma_finite = TRUE,
+    require_gamma_finite = identical(model, "exdqlm")
+  )
+}
+
+runtime_failure_method_profiles_refreshed288 <- function() {
+  list(
+    runtime_dynamic__exdqlm__vb__primary = list(
+      method_profile_id = "runtime_dynamic__exdqlm__vb__primary",
+      block = "dynamic",
+      root_kind = "dynamic",
+      prior_semantics = "default",
+      model = "exdqlm",
+      inference = "vb",
+      fit_engine = "exdqlmLDVB",
+      dqlm_ind = FALSE,
+      df_value = 0.98,
+      dim_df = c(2L, 4L),
+      stored_posterior_draws = 20000L,
+      notes = "runtime-failure direct VB rerun with stronger LDVB stabilization and exdqlm s_t warmup",
+      vb_method = "ldvb",
+      vb_max_iter = 800L,
+      vb_min_iter = 80L,
+      vb_tol = 0.01,
+      vb_n_samp_internal = 20000L,
+      ld_controls = runtime_dynamic_ld_controls_refreshed288(store_trace = TRUE)
+    ),
+    runtime_dynamic__dqlm__mcmc__primary = list(
+      method_profile_id = "runtime_dynamic__dqlm__mcmc__primary",
+      block = "dynamic",
+      root_kind = "dynamic",
+      prior_semantics = "default",
+      model = "dqlm",
+      inference = "mcmc",
+      fit_engine = "exdqlmMCMC",
+      dqlm_ind = TRUE,
+      df_value = 0.98,
+      dim_df = c(2L, 4L),
+      stored_posterior_draws = 20000L,
+      notes = "runtime-failure DQLM MCMC rerun with stronger init, theta warmup, Ut warmup, sigma warmup, and legacy R MCMC backend",
+      init_from_vb = TRUE,
+      vb_init_method = "ldvb",
+      vb_init_profile_id = "runtime_dynamic_ldvb_init",
+      vb_init_controls = runtime_dynamic_vb_init_controls_refreshed288(),
+      vb_init_ld_controls = runtime_dynamic_ld_controls_refreshed288(store_trace = FALSE),
+      vb_init_validation = runtime_vb_init_validation_refreshed288("dqlm"),
+      theta_state_controls = runtime_theta_state_controls_refreshed288(),
+      latent_state_controls = runtime_latent_state_controls_refreshed288("dqlm"),
+      dqlm_sigma_controls = runtime_dqlm_sigma_controls_refreshed288(),
+      mcmc_use_cpp = FALSE,
+      mcmc_cpp_mode = "strict",
+      n_burn = 5000L,
+      n_mcmc = 20000L,
+      thin = 1L,
+      mh_proposal = "slice",
+      mh_adapt = TRUE,
+      mh_adapt_interval = 50L,
+      mh_target_accept_lo = 0.20,
+      mh_target_accept_hi = 0.45,
+      mh_scale_lo = 0.10,
+      mh_scale_hi = 10.0,
+      mh_max_scale_step = 0.35,
+      mh_min_burn_adapt = 50L,
+      trace_diagnostics = TRUE,
+      trace_every = 50L,
+      slice_width = 0.10,
+      slice_max_steps = Inf
+    ),
+    runtime_dynamic__exdqlm__mcmc__primary = list(
+      method_profile_id = "runtime_dynamic__exdqlm__mcmc__primary",
+      block = "dynamic",
+      root_kind = "dynamic",
+      prior_semantics = "default",
+      model = "exdqlm",
+      inference = "mcmc",
+      fit_engine = "exdqlmMCMC",
+      dqlm_ind = FALSE,
+      df_value = 0.98,
+      dim_df = c(2L, 4L),
+      stored_posterior_draws = 20000L,
+      notes = "runtime-failure exDQLM MCMC rerun with stronger init, theta warmup, latent-pair warmup, exdqlm s_t VB-init warmup, larger sigmagam warmup, and legacy R MCMC backend",
+      init_from_vb = TRUE,
+      vb_init_method = "ldvb",
+      vb_init_profile_id = "runtime_dynamic_ldvb_init",
+      vb_init_controls = runtime_dynamic_vb_init_controls_refreshed288(),
+      vb_init_ld_controls = runtime_dynamic_ld_controls_refreshed288(store_trace = FALSE),
+      vb_init_validation = runtime_vb_init_validation_refreshed288("exdqlm"),
+      theta_state_controls = runtime_theta_state_controls_refreshed288(),
+      latent_state_controls = runtime_latent_state_controls_refreshed288("exdqlm"),
+      sigmagam_controls = runtime_sigmagam_mcmc_controls_refreshed288(),
+      mcmc_use_cpp = FALSE,
+      mcmc_cpp_mode = "strict",
+      n_burn = 5000L,
+      n_mcmc = 20000L,
+      thin = 1L,
+      mh_proposal = "slice",
+      mh_adapt = TRUE,
+      mh_adapt_interval = 50L,
+      mh_target_accept_lo = 0.20,
+      mh_target_accept_hi = 0.45,
+      mh_scale_lo = 0.10,
+      mh_scale_hi = 10.0,
+      mh_max_scale_step = 0.35,
+      mh_min_burn_adapt = 50L,
+      trace_diagnostics = TRUE,
+      trace_every = 50L,
+      slice_width = 0.10,
+      slice_max_steps = Inf
+    )
+  )
+}
+
+rhs_ns_tau_controls_refreshed288 <- function(warmup_iters) {
+  warmup_iters <- safe_int_refreshed288(warmup_iters, 50L)
+  if (!is.finite(warmup_iters) || warmup_iters < 0L) warmup_iters <- 50L
+  list(
+    freeze_tau_iters = as.integer(warmup_iters),
+    freeze_tau_warmup_iters = as.integer(warmup_iters),
+    update_every = 1L,
+    update_every_warmup = 1L,
+    update_every_warmup_iters = 0L,
+    force_tau_after_warmup = TRUE
+  )
+}
+
+assert_no_plain_rhs_refreshed288 <- function(x, context = "refreshed288") {
+  rhs_fields <- intersect(
+    c("prior_semantics", "beta_prior", "prior", "static_prior", "shrink_prior"),
+    names(x)
+  )
+  if (!length(rhs_fields) || !nrow(x)) return(invisible(x))
+
+  bad_rows <- rep(FALSE, nrow(x))
+  for (field in rhs_fields) {
+    vals <- trimws(tolower(as.character(x[[field]])))
+    bad_rows <- bad_rows | (!is.na(vals) & vals == "rhs")
+  }
+  if (any(bad_rows)) {
+    row_ids <- if ("row_id" %in% names(x)) x$row_id[bad_rows] else which(bad_rows)
+    stop(
+      sprintf(
+        "[%s] plain rhs detected in rows: %s. The refreshed relaunch only allows ridge and rhs_ns.",
+        context,
+        paste(row_ids, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+
+  invisible(x)
 }
 
 method_profile_id_refreshed288 <- function(root_kind, prior_semantics, model, inference) {
@@ -212,9 +567,11 @@ method_profiles_refreshed288 <- local({
         n.IS = 200L,
         n.samp = 1000L,
         max_iter = 300L,
-        verbose = FALSE
+        verbose = FALSE,
+        ld_controls = canonical_dynamic_ld_controls_refreshed288(store_trace = FALSE)
       ),
       vb_init_ld_controls = canonical_dynamic_ld_controls_refreshed288(store_trace = FALSE),
+      sigmagam_controls = canonical_sigmagam_mcmc_controls_refreshed288(50L),
       n_burn = 5000L,
       n_mcmc = 20000L,
       thin = 1L,
@@ -236,7 +593,21 @@ method_profiles_refreshed288 <- local({
 
   build_static_profile <- function(root_kind, prior_semantics, model, inference) {
     dqlm_ind <- identical(model, "al")
+    if (identical(root_kind, "static_shrink") && !(prior_semantics %in% c("ridge", "rhs_ns"))) {
+      stop(
+        sprintf(
+          "refreshed288 static_shrink only supports prior_semantics in {ridge, rhs_ns}; got '%s'",
+          prior_semantics
+        ),
+        call. = FALSE
+      )
+    }
     beta_prior <- if (identical(prior_semantics, "rhs_ns")) "rhs_ns" else "ridge"
+    beta_prior_controls <- if (identical(root_kind, "static_shrink") && identical(prior_semantics, "rhs_ns")) {
+      rhs_ns_tau_controls_refreshed288(if (identical(inference, "vb")) 50L else 500L)
+    } else {
+      NULL
+    }
     base <- list(
       method_profile_id = method_profile_id_refreshed288(root_kind, prior_semantics, model, inference),
       block = "static",
@@ -247,7 +618,7 @@ method_profiles_refreshed288 <- local({
       fit_engine = if (identical(inference, "vb")) "exal_static_LDVB" else "exal_static_mcmc",
       dqlm_ind = dqlm_ind,
       beta_prior = beta_prior,
-      beta_prior_controls = NULL,
+      beta_prior_controls = beta_prior_controls,
       stored_posterior_draws = 20000L,
       notes = if (identical(root_kind, "static_paper")) {
         "static paper-aligned refreshed study; paper-facing slice MCMC profile"
@@ -260,6 +631,7 @@ method_profiles_refreshed288 <- local({
       return(c(base, list(
         vb_method = "ldvb",
         max_iter = 300L,
+        min_iter = if (identical(root_kind, "static_shrink") && identical(prior_semantics, "rhs_ns")) 80L else NA_integer_,
         tol = 0.03,
         n_samp_xi = 1000L,
         ld_controls = canonical_static_ld_controls_refreshed288(store_trace = TRUE)
@@ -273,13 +645,20 @@ method_profiles_refreshed288 <- local({
       init_from_vb = TRUE,
       vb_init_method = "ldvb",
       vb_init_profile_id = "static_ldvb_init",
+      vb_init_beta_prior_controls = if (identical(root_kind, "static_shrink") && identical(prior_semantics, "rhs_ns")) {
+        rhs_ns_tau_controls_refreshed288(50L)
+      } else {
+        NULL
+      },
       vb_init_controls = list(
         max_iter = 300L,
+        min_iter = if (identical(root_kind, "static_shrink") && identical(prior_semantics, "rhs_ns")) 80L else NA_integer_,
         tol = 0.03,
         n_samp_xi = 1000L,
         ld_controls = canonical_static_ld_controls_refreshed288(store_trace = FALSE),
         verbose = FALSE
       ),
+      sigmagam_controls = canonical_sigmagam_mcmc_controls_refreshed288(50L),
       n_burn = 5000L,
       n_mcmc = 20000L,
       thin = 1L,
@@ -345,22 +724,55 @@ flatten_method_profiles_refreshed288 <- function(profiles = method_profiles_refr
       dim_df = if (!is.null(x$dim_df)) paste(as.integer(x$dim_df), collapse = ",") else NA_character_,
       vb_method = safe_chr_refreshed288(x$vb_method, safe_chr_refreshed288(x$vb_init_method, NA_character_)),
       vb_max_iter = safe_int_refreshed288(x$vb_max_iter %||% x$max_iter, NA_integer_),
+      vb_min_iter = safe_int_refreshed288(x$vb_min_iter %||% x$min_iter, NA_integer_),
       vb_tol = safe_num_refreshed288(x$vb_tol %||% x$tol, NA_real_),
       vb_n_samp_internal = safe_int_refreshed288(x$vb_n_samp_internal, NA_integer_),
       n_samp_xi = safe_int_refreshed288(x$n_samp_xi, NA_integer_),
+      rhs_tau_warmup_iters = safe_int_refreshed288(x$beta_prior_controls$freeze_tau_warmup_iters, NA_integer_),
+      sts_vb_warmup_iters = safe_int_refreshed288(x$ld_controls$sts$freeze_warmup_iters, NA_integer_),
+      sts_vb_min_postwarmup_updates = safe_int_refreshed288(x$ld_controls$sts$min_postwarmup_updates, NA_integer_),
+      sigmagam_vb_warmup_iters = safe_int_refreshed288(x$ld_controls$sigmagam$freeze_warmup_iters, NA_integer_),
+      sigmagam_vb_min_postwarmup_updates = safe_int_refreshed288(x$ld_controls$sigmagam$min_postwarmup_updates, NA_integer_),
+      sigmagam_vb_postwarmup_damping = safe_num_refreshed288(x$ld_controls$sigmagam$postwarmup_damping, NA_real_),
+      sigmagam_vb_postwarmup_damping_iters = safe_int_refreshed288(x$ld_controls$sigmagam$postwarmup_damping_iters, NA_integer_),
       init_from_vb = as_flag_refreshed288(x$init_from_vb, FALSE),
       vb_init_profile_id = safe_chr_refreshed288(x$vb_init_profile_id, NA_character_),
       vb_init_method = safe_chr_refreshed288(x$vb_init_method, NA_character_),
       vb_init_max_iter = safe_int_refreshed288(x$vb_init_controls$max_iter, NA_integer_),
+      vb_init_min_iter = safe_int_refreshed288(x$vb_init_controls$min_iter, NA_integer_),
       vb_init_tol = safe_num_refreshed288(x$vb_init_controls$tol, NA_real_),
       vb_init_n_samp = safe_int_refreshed288(x$vb_init_controls$n.samp, NA_integer_),
       vb_init_n_samp_xi = safe_int_refreshed288(x$vb_init_controls$n_samp_xi, NA_integer_),
+      vb_init_rhs_tau_warmup_iters = safe_int_refreshed288(x$vb_init_beta_prior_controls$freeze_tau_warmup_iters, NA_integer_),
+      vb_init_sts_warmup_iters = safe_int_refreshed288((x$vb_init_ld_controls %||% x$vb_init_controls$ld_controls)$sts$freeze_warmup_iters, NA_integer_),
+      vb_init_sts_min_postwarmup_updates = safe_int_refreshed288((x$vb_init_ld_controls %||% x$vb_init_controls$ld_controls)$sts$min_postwarmup_updates, NA_integer_),
+      vb_init_sigmagam_warmup_iters = safe_int_refreshed288((x$vb_init_ld_controls %||% x$vb_init_controls$ld_controls)$sigmagam$freeze_warmup_iters, NA_integer_),
+      vb_init_sigmagam_min_postwarmup_updates = safe_int_refreshed288((x$vb_init_ld_controls %||% x$vb_init_controls$ld_controls)$sigmagam$min_postwarmup_updates, NA_integer_),
+      vb_init_sigmagam_postwarmup_damping = safe_num_refreshed288((x$vb_init_ld_controls %||% x$vb_init_controls$ld_controls)$sigmagam$postwarmup_damping, NA_real_),
+      vb_init_sigmagam_postwarmup_damping_iters = safe_int_refreshed288((x$vb_init_ld_controls %||% x$vb_init_controls$ld_controls)$sigmagam$postwarmup_damping_iters, NA_integer_),
+      vb_init_require_theta_finite = as_flag_refreshed288(x$vb_init_validation$require_theta_finite, FALSE),
+      vb_init_require_post_pred_finite = as_flag_refreshed288(x$vb_init_validation$require_post_pred_finite, FALSE),
+      vb_init_require_sfe_finite = as_flag_refreshed288(x$vb_init_validation$require_sfe_finite, FALSE),
+      vb_init_require_sigma_finite = as_flag_refreshed288(x$vb_init_validation$require_sigma_finite, FALSE),
+      vb_init_require_gamma_finite = as_flag_refreshed288(x$vb_init_validation$require_gamma_finite, FALSE),
       n_burn = safe_int_refreshed288(x$n_burn, NA_integer_),
       n_mcmc = safe_int_refreshed288(x$n_mcmc, NA_integer_),
       thin = safe_int_refreshed288(x$thin, NA_integer_),
+      theta_state_warmup_iters = safe_int_refreshed288(x$theta_state_controls$freeze_burnin_iters, NA_integer_),
+      theta_state_force_after_warmup = as_flag_refreshed288(x$theta_state_controls$force_after_warmup, FALSE),
+      latent_state_mode = safe_chr_refreshed288(x$latent_state_controls$mode, NA_character_),
+      latent_state_warmup_iters = safe_int_refreshed288(x$latent_state_controls$freeze_burnin_iters, NA_integer_),
+      latent_state_force_after_warmup = as_flag_refreshed288(x$latent_state_controls$force_after_warmup, FALSE),
+      dqlm_sigma_warmup_iters = safe_int_refreshed288(x$dqlm_sigma_controls$freeze_burnin_iters, NA_integer_),
+      dqlm_sigma_force_after_warmup = as_flag_refreshed288(x$dqlm_sigma_controls$force_after_warmup, FALSE),
+      sigmagam_mcmc_warmup_iters = safe_int_refreshed288(x$sigmagam_controls$freeze_burnin_iters, NA_integer_),
+      sigmagam_mcmc_delay_adapt = as_flag_refreshed288(x$sigmagam_controls$delay_adapt_until_after_warmup, FALSE),
+      sigmagam_mcmc_delay_laplace_refresh = as_flag_refreshed288(x$sigmagam_controls$delay_laplace_refresh_until_after_warmup, FALSE),
       mh_proposal = safe_chr_refreshed288(x$mh_proposal, NA_character_),
       slice_width = safe_num_refreshed288(x$slice_width, NA_real_),
       slice_max_steps = if (is.null(x$slice_max_steps)) NA_real_ else as.numeric(x$slice_max_steps),
+      mcmc_use_cpp = as_flag_refreshed288(x$mcmc_use_cpp, NA),
+      mcmc_cpp_mode = safe_chr_refreshed288(x$mcmc_cpp_mode, NA_character_),
       mh_adapt = as_flag_refreshed288(x$mh_adapt, FALSE),
       trace_diagnostics = as_flag_refreshed288(x$trace_diagnostics, FALSE),
       trace_every = safe_int_refreshed288(x$trace_every, NA_integer_),
@@ -375,7 +787,9 @@ flatten_method_profiles_refreshed288 <- function(profiles = method_profiles_refr
   })
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
-  out[order(out$root_kind, out$prior_semantics, out$model, out$inference), , drop = FALSE]
+  out <- out[order(out$root_kind, out$prior_semantics, out$model, out$inference), , drop = FALSE]
+  assert_no_plain_rhs_refreshed288(out, context = "method_registry")
+  out
 }
 
 build_dataset_registry_refreshed288 <- function() {
@@ -694,6 +1108,9 @@ write_row_status_refreshed288 <- function(row, status, ts_start, ts_end = as.cha
     health_csv = row$health_path,
     metrics_csv = row$metrics_path,
     draws_rds = row$draws_path,
+    retain_candidate_fit_binaries = as_flag_refreshed288(row$retain_candidate_fit_binaries, FALSE),
+    retain_vb_init_binaries = as_flag_refreshed288(row$retain_vb_init_binaries, FALSE),
+    retain_draw_binaries = as_flag_refreshed288(row$retain_draw_binaries, FALSE),
     stringsAsFactors = FALSE
   )
   utils::write.csv(out, row$row_status_path, row.names = FALSE)
@@ -915,5 +1332,7 @@ build_manifest_refreshed288 <- function(dataset_registry, repo_root) {
 
   manifest <- do.call(rbind, rows)
   rownames(manifest) <- NULL
-  manifest[order(manifest$row_id), , drop = FALSE]
+  manifest <- manifest[order(manifest$row_id), , drop = FALSE]
+  assert_no_plain_rhs_refreshed288(manifest, context = "full_manifest")
+  manifest
 }

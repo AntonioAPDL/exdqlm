@@ -1,0 +1,58 @@
+SUMMARY total=20 completed=0 running=0 not_started=20 pass=0 warn=0 fail=0 healthy=0 pct_completed=0.0 pct_active_or_done=0.0
+report=/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260419/refreshed288_numerical_runtime_failure_status_20260419_numcrash_stsfreeze_v1.md
+phase=numerical_vb_primary workers=1 rows=1
+[refreshed288 row 11] phase=numerical_vb_primary model=exdqlm inference=vb done
+SUMMARY total=20 completed=1 running=0 not_started=19 pass=0 warn=1 fail=0 healthy=1 pct_completed=5.0 pct_active_or_done=5.0
+report=/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260419/refreshed288_numerical_runtime_failure_status_20260419_numcrash_stsfreeze_v1.md
+phase=numerical_exdqlm_mcmc workers=2 rows=10
+[refreshed288 row 12] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.153 0.603 1.768
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 8] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.116 0.583 1.705
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 16] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.126 0.563 1.695
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 24] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.125 0.697 1.829
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 32] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.117 0.557 1.68
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 40] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.166 0.556 1.728
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 48] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.141 0.571 1.718
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 56] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.133 0.798 1.938
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 64] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+Timing stopped at: 1.136 0.57 1.714
+There were 50 or more warnings (use warnings() to see the first 50)
+[refreshed288 row 72] phase=numerical_exdqlm_mcmc model=exdqlm inference=mcmc done
+SUMMARY total=20 completed=11 running=0 not_started=9 pass=0 warn=2 fail=9 healthy=2 pct_completed=55.0 pct_active_or_done=55.0
+report=/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260419/refreshed288_numerical_runtime_failure_status_20260419_numcrash_stsfreeze_v1.md
+phase=numerical_dqlm_mcmc workers=2 rows=9
+Timing stopped at: 1.098 0.567 1.671
+[refreshed288 row 14] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.088 0.566 1.659
+[refreshed288 row 6] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.106 0.55 1.662
+[refreshed288 row 22] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.096 0.565 1.669
+[refreshed288 row 30] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.113 0.558 1.68
+[refreshed288 row 38] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.104 0.571 1.683
+[refreshed288 row 46] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.097 0.555 1.659
+[refreshed288 row 54] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.093 0.575 1.676
+[refreshed288 row 62] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+Timing stopped at: 1.084 0.572 1.665
+[refreshed288 row 70] phase=numerical_dqlm_mcmc model=dqlm inference=mcmc done
+SUMMARY total=20 completed=20 running=0 not_started=0 pass=0 warn=2 fail=18 healthy=2 pct_completed=100.0 pct_active_or_done=100.0
+report=/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/reports/static_exal_tuning_20260419/refreshed288_numerical_runtime_failure_status_20260419_numcrash_stsfreeze_v1.md

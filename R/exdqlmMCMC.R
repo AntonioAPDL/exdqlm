@@ -22,6 +22,19 @@
 #'   `method` (`"isvb"` or `"ldvb"`), `tol`, `n.IS`, `n.samp`, `max_iter`, `verbose`.
 #' @param vb_init_fit Optional precomputed VB fit object. If supplied, warm start
 #'   uses this object directly and does not rerun VB internally.
+#' @param sigmagam_controls Optional list controlling warmup/freeze for the
+#'   exDQLM sigma/gamma block during MCMC.
+#' @param latent_state_controls Optional list controlling early latent-state
+#'   warmup/freeze in dynamic MCMC. Supported keys include
+#'   `freeze_burnin_iters`, `freeze_only_during_burn`, `force_after_warmup`,
+#'   and `mode` (`"u_only"` or `"u_st_pair"`).
+#' @param theta_state_controls Optional list controlling early theta-state
+#'   warmup/freeze in dynamic MCMC. Supported keys include
+#'   `freeze_burnin_iters`, `freeze_only_during_burn`, and
+#'   `force_after_warmup`.
+#' @param dqlm_sigma_controls Optional list controlling sigma-only
+#'   warmup/freeze in the DQLM branch. Supported keys mirror
+#'   `sigmagam_controls`.
 #' @param mh.proposal Character; proposal kernel for the exDQLM scale/skew block.
 #'   `"slice"` (default) uses
 #'   an exact sigma GIG update plus a bounded univariate slice sampler directly
@@ -99,9 +112,96 @@
 #'                    n.burn = 80, n.mcmc = 120)
 #' }
 #'
+.exdqlm_latent_state_mcmc_controls <- function(latent_cfg = NULL, default_mode = c("u_only", "u_st_pair")) {
+  default_mode <- match.arg(default_mode)
+  latent_cfg <- latent_cfg %||% list()
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    latent_cfg$freeze_burnin_iters %||%
+      latent_cfg$freeze_latent_burnin_iters %||%
+      latent_cfg$freeze_ust_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  mode <- tolower(as.character(
+    latent_cfg$mode %||%
+      latent_cfg$latent_mode %||%
+      latent_cfg$freeze_mode %||%
+      default_mode
+  )[1L])
+  if (!(mode %in% c("u_only", "u_st_pair"))) mode <- default_mode
+
+  list(
+    mode = mode,
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(latent_cfg$freeze_only_during_burn)) TRUE else isTRUE(latent_cfg$freeze_only_during_burn),
+    force_after_warmup = if (is.null(latent_cfg$force_after_warmup)) TRUE else isTRUE(latent_cfg$force_after_warmup)
+  )
+}
+
+.exdqlm_dqlm_sigma_mcmc_controls <- function(sigma_cfg = NULL) {
+  sigma_cfg <- sigma_cfg %||% list()
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    sigma_cfg$freeze_burnin_iters %||%
+      sigma_cfg$freeze_sigma_burnin_iters %||%
+      sigma_cfg$freeze_dqlm_sigma_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  list(
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(sigma_cfg$freeze_only_during_burn)) TRUE else isTRUE(sigma_cfg$freeze_only_during_burn),
+    force_after_warmup = if (is.null(sigma_cfg$force_after_warmup)) TRUE else isTRUE(sigma_cfg$force_after_warmup)
+  )
+}
+
+.exdqlm_theta_state_mcmc_controls <- function(theta_cfg = NULL) {
+  theta_cfg <- theta_cfg %||% list()
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    theta_cfg$freeze_burnin_iters %||%
+      theta_cfg$freeze_theta_burnin_iters %||%
+      theta_cfg$freeze_theta_state_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  list(
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(theta_cfg$freeze_only_during_burn)) TRUE else isTRUE(theta_cfg$freeze_only_during_burn),
+    force_after_warmup = if (is.null(theta_cfg$force_after_warmup)) TRUE else isTRUE(theta_cfg$force_after_warmup)
+  )
+}
+
+.exdqlm_mcmc_warmup_state <- function(iter, ctrl, postwarmup_update_count, n_burn) {
+  active <- isTRUE(
+    ctrl$freeze_burnin_iters > 0L &&
+      iter <= ctrl$freeze_burnin_iters &&
+      (!ctrl$freeze_only_during_burn || iter <= n_burn)
+  )
+  force_now <- isTRUE(
+    !active &&
+      ctrl$freeze_burnin_iters > 0L &&
+      ctrl$force_after_warmup &&
+      postwarmup_update_count <= 0L
+  )
+  reason <- if (isTRUE(active)) {
+    "warmup"
+  } else if (isTRUE(force_now)) {
+    "force_after_warmup"
+  } else {
+    "scheduled"
+  }
+
+  list(active = active, force_now = force_now, reason = reason)
+}
+
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
                     Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
-                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,
+                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,sigmagam_controls=NULL,latent_state_controls=NULL,theta_state_controls=NULL,dqlm_sigma_controls=NULL,
                     mh.proposal=c("slice","laplace_rw","rw"),mh.adapt=TRUE,mh.adapt.interval=50L,
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
@@ -142,7 +242,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     n.IS = 200L,
     n.samp = 200L,
     max_iter = getOption("exdqlm.max_iter", 200L),
-    verbose = FALSE
+    verbose = FALSE,
+    ld_controls = NULL
   )
   if (is.null(vb_init_controls)) vb_init_controls <- list()
   vb.ctrl <- utils::modifyList(vb.ctrl.default, vb_init_controls)
@@ -157,6 +258,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   vb.ctrl$max_iter <- suppressWarnings(as.integer(vb.ctrl$max_iter)[1])
   if (!is.finite(vb.ctrl$max_iter) || vb.ctrl$max_iter < 5L) vb.ctrl$max_iter <- 200L
   vb.ctrl$verbose <- isTRUE(vb.ctrl$verbose)
+  if (!is.null(vb.ctrl$ld_controls) && !is.list(vb.ctrl$ld_controls)) {
+    stop("vb_init_controls$ld_controls must be a list or NULL")
+  }
 
   mh.adapt <- isTRUE(mh.adapt)
   mh.adapt.interval <- suppressWarnings(as.integer(mh.adapt.interval)[1])
@@ -187,6 +291,13 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   if (!is.finite(mh.laplace.refresh.weight) || mh.laplace.refresh.weight <= 0 || mh.laplace.refresh.weight > 1) {
     mh.laplace.refresh.weight <- 0.60
   }
+  sigmagam_ctrl <- .exal_sigmagam_mcmc_controls(sigmagam_controls)
+  latent_ctrl <- .exdqlm_latent_state_mcmc_controls(
+    latent_state_controls,
+    default_mode = if (isTRUE(dqlm.ind)) "u_only" else "u_st_pair"
+  )
+  theta_ctrl <- .exdqlm_theta_state_mcmc_controls(theta_state_controls)
+  dqlm_sigma_ctrl <- .exdqlm_dqlm_sigma_mcmc_controls(dqlm_sigma_controls)
   slice.width <- as.numeric(slice.width)[1]
   if (!is.finite(slice.width) || slice.width <= 0) slice.width <- 0.1
   slice.max.steps <- as.numeric(slice.max.steps)[1]
@@ -210,6 +321,26 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
   state_signal <- function(FF_local, theta_mat) {
     drop(colSums(FF_local * theta_mat))
+  }
+  warmup_state <- function(iter, ctrl, postwarmup_update_count) {
+    .exdqlm_mcmc_warmup_state(
+      iter = iter,
+      ctrl = ctrl,
+      postwarmup_update_count = postwarmup_update_count,
+      n_burn = n.burn
+    )
+  }
+  max_abs_finite <- function(x) {
+    x <- as.numeric(x)
+    if (!length(x) || any(!is.finite(x))) return("NA")
+    format(max(abs(x), na.rm = TRUE), digits = 6)
+  }
+  count_nonfinite <- function(x) {
+    sum(!is.finite(as.numeric(x)))
+  }
+  count_nonpositive <- function(x) {
+    x <- as.numeric(x)
+    sum(is.finite(x) & x <= 0)
   }
   if (n.burn < mh.min_burn_adapt) mh.adapt <- FALSE
 
@@ -428,6 +559,11 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     old_opt <- options(exdqlm.max_iter = vb.ctrl$max_iter)
     on.exit(options(old_opt), add = TRUE)
     if (vb.ctrl$method == "ldvb") {
+      if (is.list(vb.ctrl$ld_controls) && length(vb.ctrl$ld_controls)) {
+        ld_opt_names <- paste0("exdqlm.dynamic.ldvb.", names(vb.ctrl$ld_controls))
+        old_ld_opt <- options(stats::setNames(vb.ctrl$ld_controls, ld_opt_names))
+        on.exit(options(old_ld_opt), add = TRUE)
+      }
       exdqlmLDVB(
         y = y, p0 = p0, model = model, df = df, dim.df = dim.df,
         fix.gamma = fix.gamma, gam.init = gam.init,
@@ -796,6 +932,36 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       100L
     }
     callback.every <- max(1L, as.integer(callback.every)[1])
+    sigmagam_frozen_trace <- rep(FALSE, I)
+    sigmagam_forced_postwarmup_trace <- rep(FALSE, I)
+    sigmagam_update_performed_trace <- rep(FALSE, I)
+    sigmagam_update_reason_trace <- rep(NA_character_, I)
+    sigmagam_update_count_trace <- integer(I)
+    sigmagam_first_active_iter <- NA_integer_
+    sigmagam_update_count <- 0L
+    sigmagam_postwarmup_update_count <- 0L
+    sigmagam_updates_burn <- 0L
+    sigmagam_updates_keep <- 0L
+    latent_frozen_trace <- rep(FALSE, I)
+    latent_forced_postwarmup_trace <- rep(FALSE, I)
+    latent_update_performed_trace <- rep(FALSE, I)
+    latent_update_reason_trace <- rep(NA_character_, I)
+    latent_update_count_trace <- integer(I)
+    latent_first_active_iter <- NA_integer_
+    latent_update_count <- 0L
+    latent_postwarmup_update_count <- 0L
+    latent_updates_burn <- 0L
+    latent_updates_keep <- 0L
+    theta_frozen_trace <- rep(FALSE, I)
+    theta_forced_postwarmup_trace <- rep(FALSE, I)
+    theta_update_performed_trace <- rep(FALSE, I)
+    theta_update_reason_trace <- rep(NA_character_, I)
+    theta_update_count_trace <- integer(I)
+    theta_first_active_iter <- NA_integer_
+    theta_update_count <- 0L
+    theta_postwarmup_update_count <- 0L
+    theta_updates_burn <- 0L
+    theta_updates_keep <- 0L
 
     # Sample from exdqlm posterior
     tictoc::tic()
@@ -859,16 +1025,151 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       # sample theta
       ex.f = cursam.sigma*c_tau*abs(cursam.gamma)*cursam.st + cursam.Ut*a_tau
       ex.q = b_tau*cursam.Ut*cursam.sigma
-      theta.out <- ex_samp_theta(ex.f,ex.q,cursam.gamma,cursam.sigma,cursam.st,tau,c_tau)
-      cursam.theta = theta.out$sam.theta
+      theta_state_sched <- warmup_state(i, theta_ctrl, theta_postwarmup_update_count)
+      if (isTRUE(theta_state_sched$active)) {
+        if (any(!is.finite(cursam.theta))) {
+          stop(sprintf(
+            "exdqlm_mcmc_theta_warmup_state (iter=%d) invalid warmup theta state: nonfinite=%d",
+            i, sum(!is.finite(cursam.theta))
+          ))
+        }
+        reg_theta_hold <- state_signal(FF, cursam.theta)
+        theta.out <- list(
+          standard.forecast.errors = rep(NA_real_, TT),
+          post.pred = vapply(seq_len(TT), function(t) {
+            rexal(
+              1, tau,
+              reg_theta_hold[t] + c_tau * cursam.sigma * abs(cursam.gamma) * cursam.st[t],
+              cursam.sigma, 0
+            )
+          }, numeric(1)),
+          sam.theta = cursam.theta,
+          fm = matrix(NA_real_, p, TT),
+          fC = array(NA_real_, c(p, p, TT))
+        )
+      } else {
+        theta.out <- ex_samp_theta(ex.f,ex.q,cursam.gamma,cursam.sigma,cursam.st,tau,c_tau)
+        cursam.theta = theta.out$sam.theta
+      }
+      theta_frozen_trace[i] <- isTRUE(theta_state_sched$active)
+      theta_update_reason_trace[i] <- theta_state_sched$reason
+      if (!isTRUE(theta_state_sched$active)) {
+        theta_update_performed_trace[i] <- TRUE
+        theta_update_count <- theta_update_count + 1L
+        theta_update_count_trace[i] <- theta_update_count
+        if (is.na(theta_first_active_iter)) theta_first_active_iter <- as.integer(i)
+        if (i <= n.burn) {
+          theta_updates_burn <- theta_updates_burn + 1L
+        } else {
+          theta_updates_keep <- theta_updates_keep + 1L
+        }
+        if (theta_ctrl$freeze_burnin_iters > 0L) {
+          theta_postwarmup_update_count <- theta_postwarmup_update_count + 1L
+        }
+        theta_forced_postwarmup_trace[i] <- isTRUE(theta_state_sched$force_now)
+      } else {
+        theta_update_count_trace[i] <- theta_update_count
+        theta_forced_postwarmup_trace[i] <- FALSE
+      }
 
       # sample uts, sts
       reg1 = state_signal(FF, cursam.theta)
-      cursam.Ut<-ex_samp_uts(reg1,cursam.gamma,cursam.sigma,cursam.st,a_tau,b_tau,c_tau)
-      cursam.st<-ex_samp_sts(reg1,cursam.gamma,cursam.sigma,cursam.Ut,a_tau,b_tau,c_tau)
+      latent_state_sched <- warmup_state(i, latent_ctrl, latent_postwarmup_update_count)
+      if (!is.finite(cursam.sigma) || cursam.sigma <= 0 || !is.finite(cursam.gamma) ||
+          cursam.gamma <= L || cursam.gamma >= U || any(!is.finite(reg1)) || any(!is.finite(cursam.theta))) {
+        stop(sprintf(
+          paste(
+            "exdqlm_mcmc_pre_latent (iter=%d mode=%s reason=%s) invalid state before Ut/st update:",
+            "sigma=%s gamma=%s reg1_finite=%s theta_finite=%s st_finite=%s ut_finite=%s",
+            "max_abs_reg1=%s max_abs_theta=%s"
+          ),
+          i,
+          latent_ctrl$mode,
+          latent_state_sched$reason,
+          format(cursam.sigma, digits = 6),
+          format(cursam.gamma, digits = 6),
+          all(is.finite(reg1)),
+          all(is.finite(cursam.theta)),
+          all(is.finite(cursam.st)),
+          all(is.finite(cursam.Ut)),
+          max_abs_finite(reg1),
+          max_abs_finite(cursam.theta)
+        ))
+      }
+      if (isTRUE(latent_state_sched$active)) {
+        if (count_nonfinite(cursam.Ut) > 0L || count_nonpositive(cursam.Ut) > 0L) {
+          stop(sprintf(
+            "exdqlm_mcmc_latent_warmup_state (iter=%d mode=%s) invalid warmup Ut state: nonfinite=%d nonpositive=%d",
+            i, latent_ctrl$mode, count_nonfinite(cursam.Ut), count_nonpositive(cursam.Ut)
+          ))
+        }
+        if (identical(latent_ctrl$mode, "u_only")) {
+          cursam.st <- ex_samp_sts(reg1, cursam.gamma, cursam.sigma, cursam.Ut, a_tau, b_tau, c_tau)
+          if (count_nonfinite(cursam.st) > 0L || count_nonpositive(cursam.st) > 0L) {
+            stop(sprintf(
+              "exdqlm_mcmc_post_sts (iter=%d mode=%s) invalid st draws after Ut warmup: nonfinite=%d nonpositive=%d",
+              i, latent_ctrl$mode, count_nonfinite(cursam.st), count_nonpositive(cursam.st)
+            ))
+          }
+        } else if (count_nonfinite(cursam.st) > 0L || count_nonpositive(cursam.st) > 0L) {
+          stop(sprintf(
+            "exdqlm_mcmc_latent_warmup_state (iter=%d mode=%s) invalid warmup st state: nonfinite=%d nonpositive=%d",
+            i, latent_ctrl$mode, count_nonfinite(cursam.st), count_nonpositive(cursam.st)
+          ))
+        }
+      } else {
+        cursam.Ut <- ex_samp_uts(reg1, cursam.gamma, cursam.sigma, cursam.st, a_tau, b_tau, c_tau)
+        if (count_nonfinite(cursam.Ut) > 0L || count_nonpositive(cursam.Ut) > 0L) {
+          stop(sprintf(
+            "exdqlm_mcmc_post_uts (iter=%d mode=%s) invalid Ut draws: nonfinite=%d nonpositive=%d sigma=%s gamma=%s max_abs_reg1=%s",
+            i, latent_ctrl$mode, count_nonfinite(cursam.Ut), count_nonpositive(cursam.Ut),
+            format(cursam.sigma, digits = 6), format(cursam.gamma, digits = 6), max_abs_finite(reg1)
+          ))
+        }
+        cursam.st <- ex_samp_sts(reg1, cursam.gamma, cursam.sigma, cursam.Ut, a_tau, b_tau, c_tau)
+        if (count_nonfinite(cursam.st) > 0L || count_nonpositive(cursam.st) > 0L) {
+          stop(sprintf(
+            "exdqlm_mcmc_post_sts (iter=%d mode=%s) invalid st draws: nonfinite=%d nonpositive=%d sigma=%s gamma=%s max_abs_reg1=%s",
+            i, latent_ctrl$mode, count_nonfinite(cursam.st), count_nonpositive(cursam.st),
+            format(cursam.sigma, digits = 6), format(cursam.gamma, digits = 6), max_abs_finite(reg1)
+          ))
+        }
+      }
+      latent_frozen_trace[i] <- isTRUE(latent_state_sched$active)
+      latent_update_reason_trace[i] <- latent_state_sched$reason
+      if (!isTRUE(latent_state_sched$active)) {
+        latent_update_performed_trace[i] <- TRUE
+        latent_update_count <- latent_update_count + 1L
+        latent_update_count_trace[i] <- latent_update_count
+        if (is.na(latent_first_active_iter)) latent_first_active_iter <- as.integer(i)
+        if (i <= n.burn) {
+          latent_updates_burn <- latent_updates_burn + 1L
+        } else {
+          latent_updates_keep <- latent_updates_keep + 1L
+        }
+        if (latent_ctrl$freeze_burnin_iters > 0L) {
+          latent_postwarmup_update_count <- latent_postwarmup_update_count + 1L
+        }
+        latent_forced_postwarmup_trace[i] <- isTRUE(latent_state_sched$force_now)
+      } else {
+        latent_update_count_trace[i] <- latent_update_count
+        latent_forced_postwarmup_trace[i] <- FALSE
+      }
 
       # sample sigma and gamma
-      if (identical(mh.proposal, "slice")) {
+      sigmagam_sched <- warmup_state(i, sigmagam_ctrl, sigmagam_postwarmup_update_count)
+      sigmagam_warmup_active <- isTRUE(sigmagam_sched$active)
+      sigmagam_force_now <- isTRUE(sigmagam_sched$force_now)
+      sigmagam_update_reason <- sigmagam_sched$reason
+
+      if (isTRUE(sigmagam_warmup_active)) {
+        lsiglgam.out <- list(
+          log.sigma = cursam.log.sigma,
+          logit.gamma = cursam.logit.gamma,
+          accept = NA,
+          slice_evals = NA_integer_
+        )
+      } else if (identical(mh.proposal, "slice")) {
         if (!fix.sigma) {
           cursam.sigma <- samp_sigma_exact(reg1, cursam.sigma, cursam.gamma, cursam.st, cursam.Ut)
           cursam.log.sigma <- log(cursam.sigma)
@@ -903,12 +1204,32 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           slice_evals = slice_evals
         )
       } else {
-        lsiglgam.out<-ex_samp_lsiglgam(reg1,cursam.log.sigma,cursam.logit.gamma,cursam.st,cursam.Ut,chol_Sig.mh)
-        cursam.gamma<-inv.logit(lsiglgam.out$logit.gamma)
-        cursam.logit.gamma<-lsiglgam.out$logit.gamma
-        cursam.sigma<-exp(lsiglgam.out$log.sigma)
-        cursam.log.sigma<-lsiglgam.out$log.sigma
-        n.accept = n.accept + lsiglgam.out$accept
+        lsiglgam.out <- ex_samp_lsiglgam(reg1, cursam.log.sigma, cursam.logit.gamma, cursam.st, cursam.Ut, chol_Sig.mh)
+        cursam.gamma <- inv.logit(lsiglgam.out$logit.gamma)
+        cursam.logit.gamma <- lsiglgam.out$logit.gamma
+        cursam.sigma <- exp(lsiglgam.out$log.sigma)
+        cursam.log.sigma <- lsiglgam.out$log.sigma
+        n.accept <- n.accept + lsiglgam.out$accept
+      }
+      sigmagam_frozen_trace[i] <- isTRUE(sigmagam_warmup_active)
+      sigmagam_update_reason_trace[i] <- sigmagam_update_reason
+      if (!isTRUE(sigmagam_warmup_active)) {
+        sigmagam_update_performed_trace[i] <- TRUE
+        sigmagam_update_count <- sigmagam_update_count + 1L
+        sigmagam_update_count_trace[i] <- sigmagam_update_count
+        if (is.na(sigmagam_first_active_iter)) sigmagam_first_active_iter <- as.integer(i)
+        if (i <= n.burn) {
+          sigmagam_updates_burn <- sigmagam_updates_burn + 1L
+        } else {
+          sigmagam_updates_keep <- sigmagam_updates_keep + 1L
+        }
+        if (sigmagam_ctrl$freeze_burnin_iters > 0L) {
+          sigmagam_postwarmup_update_count <- sigmagam_postwarmup_update_count + 1L
+        }
+        sigmagam_forced_postwarmup_trace[i] <- isTRUE(sigmagam_force_now)
+      } else {
+        sigmagam_update_count_trace[i] <- sigmagam_update_count
+        sigmagam_forced_postwarmup_trace[i] <- FALSE
       }
       if (trace.diagnostics && (i %% trace.every == 0L)) {
         s_stats <- .exdqlm_trace_summary(cursam.st)
@@ -921,6 +1242,22 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           gamma = cursam.gamma,
           accepted = if (identical(mh.proposal, "slice")) NA else isTRUE(lsiglgam.out$accept),
           mh_scale = if (identical(mh.proposal, "slice")) NA_real_ else mh.scale,
+          latent_frozen = isTRUE(latent_state_sched$active),
+          latent_mode = latent_ctrl$mode,
+          latent_update_reason = latent_state_sched$reason,
+          latent_forced_postwarmup = isTRUE(latent_forced_postwarmup_trace[i]),
+          latent_update_performed = isTRUE(latent_update_performed_trace[i]),
+          latent_update_count = as.integer(latent_update_count_trace[i]),
+          theta_frozen = isTRUE(theta_state_sched$active),
+          theta_update_reason = theta_state_sched$reason,
+          theta_forced_postwarmup = isTRUE(theta_forced_postwarmup_trace[i]),
+          theta_update_performed = isTRUE(theta_update_performed_trace[i]),
+          theta_update_count = as.integer(theta_update_count_trace[i]),
+          sigmagam_frozen = isTRUE(sigmagam_warmup_active),
+          sigmagam_update_reason = sigmagam_update_reason,
+          sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup_trace[i]),
+          sigmagam_update_performed = isTRUE(sigmagam_update_performed_trace[i]),
+          sigmagam_update_count = as.integer(sigmagam_update_count_trace[i]),
           slice_evals = if (!is.null(lsiglgam.out$slice_evals)) lsiglgam.out$slice_evals else NA_integer_,
           s_mean = s_stats[["mean"]],
           s_sd = s_stats[["sd"]],
@@ -942,7 +1279,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
       # save samples after burn
       if(i <= n.burn){
-        if (!identical(mh.proposal, "slice")) {
+        if (!identical(mh.proposal, "slice") && !isTRUE(sigmagam_warmup_active)) {
           n.trial.burn <- n.trial.burn + 1L
           n.accept.burn <- n.accept.burn + as.integer(isTRUE(lsiglgam.out$accept))
           window.accept <- window.accept + as.integer(isTRUE(lsiglgam.out$accept))
@@ -952,6 +1289,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         init.logit.gamma[i] = cursam.logit.gamma
         laplace_refreshed <- FALSE
         if (identical(mh.proposal, "laplace_rw") && !fix.gamma && !fix.sigma &&
+            (!isTRUE(sigmagam_ctrl$delay_laplace_refresh_until_after_warmup) || !isTRUE(sigmagam_warmup_active)) &&
             i >= mh.laplace.refresh.start && i < n.burn &&
             (i %% mh.laplace.refresh.interval == 0)) {
           laplace_refresh_attempts <- laplace_refresh_attempts + 1L
@@ -963,7 +1301,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
             laplace_refresh_success <- laplace_refresh_success + 1L
           }
         }
-        if (!identical(mh.proposal, "slice") && mh.adapt && i >= mh.min_burn_adapt && i < n.burn && (i %% mh.adapt.interval == 0)) {
+        if (!identical(mh.proposal, "slice") &&
+            (!isTRUE(sigmagam_ctrl$delay_adapt_until_after_warmup) || !isTRUE(sigmagam_warmup_active)) &&
+            mh.adapt && i >= mh.min_burn_adapt && i < n.burn && (i %% mh.adapt.interval == 0)) {
           acc.win <- window.accept / pmax(window.total, 1L)
           if (acc.win < mh.target.accept[1]) {
             mh.scale <- mh.scale * (1 - mh.max_scale.step)
@@ -988,13 +1328,13 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           window.accept <- 0L
           window.total <- 0L
         }
-        if(!identical(mh.proposal, "slice") && i==n.burn && joint.sample){
+        if(!identical(mh.proposal, "slice") && i==n.burn && joint.sample && !isTRUE(sigmagam_warmup_active)){
           Sig.mh = stats::cov(cbind(init.log.sigma[1:n.burn],init.logit.gamma[1:n.burn]))
           Sig.mh <- prep_Sig_mh(Sig.mh)
           chol_Sig.mh <- build_chol(Sig.mh * (mh.scale^2))
           }
       }else{
-        if (!identical(mh.proposal, "slice")) {
+        if (!identical(mh.proposal, "slice") && !isTRUE(sigmagam_warmup_active)) {
           n.trial.keep <- n.trial.keep + 1L
           n.accept.keep <- n.accept.keep + as.integer(isTRUE(lsiglgam.out$accept))
         }
@@ -1095,6 +1435,42 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       trace_every = if (trace.diagnostics) trace.every else NA_integer_,
       verbose_every = as.integer(verbose.every),
       callback_every = as.integer(callback.every),
+      sigmagam = list(
+        freeze_burnin_iters = as.integer(sigmagam_ctrl$freeze_burnin_iters),
+        freeze_only_during_burn = isTRUE(sigmagam_ctrl$freeze_only_during_burn),
+        force_after_warmup = isTRUE(sigmagam_ctrl$force_after_warmup),
+        delay_adapt_until_after_warmup = isTRUE(sigmagam_ctrl$delay_adapt_until_after_warmup),
+        delay_laplace_refresh_until_after_warmup = isTRUE(sigmagam_ctrl$delay_laplace_refresh_until_after_warmup),
+        first_active_iter = if (is.na(sigmagam_first_active_iter)) NA_integer_ else as.integer(sigmagam_first_active_iter),
+        updates_burn = as.integer(sigmagam_updates_burn),
+        updates_keep = as.integer(sigmagam_updates_keep),
+        update_count = as.integer(sigmagam_update_count),
+        postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
+        frozen_burn_rate = if (n.burn > 0L) mean(sigmagam_frozen_trace[seq_len(n.burn)]) else NA_real_
+      ),
+      latent_state = list(
+        mode = latent_ctrl$mode,
+        freeze_burnin_iters = as.integer(latent_ctrl$freeze_burnin_iters),
+        freeze_only_during_burn = isTRUE(latent_ctrl$freeze_only_during_burn),
+        force_after_warmup = isTRUE(latent_ctrl$force_after_warmup),
+        first_active_iter = if (is.na(latent_first_active_iter)) NA_integer_ else as.integer(latent_first_active_iter),
+        updates_burn = as.integer(latent_updates_burn),
+        updates_keep = as.integer(latent_updates_keep),
+        update_count = as.integer(latent_update_count),
+        postwarmup_update_count = as.integer(latent_postwarmup_update_count),
+        frozen_burn_rate = if (n.burn > 0L) mean(latent_frozen_trace[seq_len(n.burn)]) else NA_real_
+      ),
+      theta_state = list(
+        freeze_burnin_iters = as.integer(theta_ctrl$freeze_burnin_iters),
+        freeze_only_during_burn = isTRUE(theta_ctrl$freeze_only_during_burn),
+        force_after_warmup = isTRUE(theta_ctrl$force_after_warmup),
+        first_active_iter = if (is.na(theta_first_active_iter)) NA_integer_ else as.integer(theta_first_active_iter),
+        updates_burn = as.integer(theta_updates_burn),
+        updates_keep = as.integer(theta_updates_keep),
+        update_count = as.integer(theta_update_count),
+        postwarmup_update_count = as.integer(theta_postwarmup_update_count),
+        frozen_burn_rate = if (n.burn > 0L) mean(theta_frozen_trace[seq_len(n.burn)]) else NA_real_
+      ),
       trace = if (trace.diagnostics && trace_idx > 0L) {
         do.call(rbind, trace_rows[seq_len(trace_idx)])
       } else {
@@ -1127,6 +1503,9 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                     sigma = chain_health_sigma,
                     gamma = chain_health_gamma
                   ),
+                  latent_state = mh.diag$latent_state,
+                  theta_state = mh.diag$theta_state,
+                  sigmagam = mh.diag$sigmagam,
                   s_block = list(
                     trace = mh.diag$trace,
                     final = if (is.data.frame(mh.diag$trace) && nrow(mh.diag$trace)) {
@@ -1138,6 +1517,27 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                   rhat_ready = list(
                     sigma = as.numeric(save.sigma),
                     gamma = as.numeric(save.gamma)
+                  ),
+                  sigmagam_trace = list(
+                    frozen = sigmagam_frozen_trace,
+                    update_reason = sigmagam_update_reason_trace,
+                    forced_postwarmup = sigmagam_forced_postwarmup_trace,
+                    update_performed = sigmagam_update_performed_trace,
+                    update_count = sigmagam_update_count_trace
+                  ),
+                  latent_state_trace = list(
+                    frozen = latent_frozen_trace,
+                    update_reason = latent_update_reason_trace,
+                    forced_postwarmup = latent_forced_postwarmup_trace,
+                    update_performed = latent_update_performed_trace,
+                    update_count = latent_update_count_trace
+                  ),
+                  theta_state_trace = list(
+                    frozen = theta_frozen_trace,
+                    update_reason = theta_update_reason_trace,
+                    forced_postwarmup = theta_forced_postwarmup_trace,
+                    update_performed = theta_update_performed_trace,
+                    update_count = theta_update_count_trace
                   )
                 ),
                 n.burn=n.burn,n.mcmc=n.mcmc)
@@ -1243,6 +1643,38 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       100L
     }
     callback.every <- max(1L, as.integer(callback.every)[1])
+    trace_rows <- if (trace.diagnostics) vector("list", ceiling(I / trace.every)) else NULL
+    trace_idx <- 0L
+    latent_frozen_trace <- rep(FALSE, I)
+    latent_forced_postwarmup_trace <- rep(FALSE, I)
+    latent_update_performed_trace <- rep(FALSE, I)
+    latent_update_reason_trace <- rep(NA_character_, I)
+    latent_update_count_trace <- integer(I)
+    latent_first_active_iter <- NA_integer_
+    latent_update_count <- 0L
+    latent_postwarmup_update_count <- 0L
+    latent_updates_burn <- 0L
+    latent_updates_keep <- 0L
+    theta_frozen_trace <- rep(FALSE, I)
+    theta_forced_postwarmup_trace <- rep(FALSE, I)
+    theta_update_performed_trace <- rep(FALSE, I)
+    theta_update_reason_trace <- rep(NA_character_, I)
+    theta_update_count_trace <- integer(I)
+    theta_first_active_iter <- NA_integer_
+    theta_update_count <- 0L
+    theta_postwarmup_update_count <- 0L
+    theta_updates_burn <- 0L
+    theta_updates_keep <- 0L
+    dqlm_sigma_frozen_trace <- rep(FALSE, I)
+    dqlm_sigma_forced_postwarmup_trace <- rep(FALSE, I)
+    dqlm_sigma_update_performed_trace <- rep(FALSE, I)
+    dqlm_sigma_update_reason_trace <- rep(NA_character_, I)
+    dqlm_sigma_update_count_trace <- integer(I)
+    dqlm_sigma_first_active_iter <- NA_integer_
+    dqlm_sigma_update_count <- 0L
+    dqlm_sigma_postwarmup_update_count <- 0L
+    dqlm_sigma_updates_burn <- 0L
+    dqlm_sigma_updates_keep <- 0L
 
     # Sample from dqlm posterior
     tictoc::tic()
@@ -1297,26 +1729,166 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       # sample theta
       ex.f = cursam.Ut*a_tau
       ex.q = b_tau*cursam.Ut*cursam.sigma
-      theta.out <- samp_theta(ex.f,ex.q,cursam.sigma)
-      cursam.theta = theta.out$sam.theta
+      theta_state_sched <- warmup_state(i, theta_ctrl, theta_postwarmup_update_count)
+      if (isTRUE(theta_state_sched$active)) {
+        if (any(!is.finite(cursam.theta))) {
+          stop(sprintf(
+            "dqlm_mcmc_theta_warmup_state (iter=%d) invalid warmup theta state: nonfinite=%d",
+            i, sum(!is.finite(cursam.theta))
+          ))
+        }
+        reg_theta_hold <- state_signal(FF, cursam.theta)
+        theta.out <- list(
+          standard.forecast.errors = rep(NA_real_, TT),
+          post.pred = vapply(seq_len(TT), function(t) {
+            rexal(1, p0, reg_theta_hold[t], cursam.sigma, 0)
+          }, numeric(1)),
+          sam.theta = cursam.theta,
+          fm = matrix(NA_real_, p, TT),
+          fC = array(NA_real_, c(p, p, TT))
+        )
+      } else {
+        theta.out <- samp_theta(ex.f,ex.q,cursam.sigma)
+        cursam.theta = theta.out$sam.theta
+      }
+      theta_frozen_trace[i] <- isTRUE(theta_state_sched$active)
+      theta_update_reason_trace[i] <- theta_state_sched$reason
+      if (!isTRUE(theta_state_sched$active)) {
+        theta_update_performed_trace[i] <- TRUE
+        theta_update_count <- theta_update_count + 1L
+        theta_update_count_trace[i] <- theta_update_count
+        if (is.na(theta_first_active_iter)) theta_first_active_iter <- as.integer(i)
+        if (i <= n.burn) {
+          theta_updates_burn <- theta_updates_burn + 1L
+        } else {
+          theta_updates_keep <- theta_updates_keep + 1L
+        }
+        if (theta_ctrl$freeze_burnin_iters > 0L) {
+          theta_postwarmup_update_count <- theta_postwarmup_update_count + 1L
+        }
+        theta_forced_postwarmup_trace[i] <- isTRUE(theta_state_sched$force_now)
+      } else {
+        theta_update_count_trace[i] <- theta_update_count
+        theta_forced_postwarmup_trace[i] <- FALSE
+      }
 
       # sample uts
       reg1 = state_signal(FF, cursam.theta)
+      latent_state_sched <- warmup_state(i, latent_ctrl, latent_postwarmup_update_count)
       if (!is.finite(cursam.sigma) || cursam.sigma <= 0 || any(!is.finite(reg1))) {
         stop(sprintf(
-          "dqlm_mcmc_pre_uts (iter=%d) invalid state before chi update: sigma=%s reg1_finite=%s max_abs_reg1=%s max_abs_theta=%s",
+          "dqlm_mcmc_pre_uts (iter=%d reason=%s) invalid state before chi update: sigma=%s reg1_finite=%s max_abs_reg1=%s max_abs_theta=%s",
           i,
+          latent_state_sched$reason,
           format(cursam.sigma, digits = 6),
           all(is.finite(reg1)),
           if (all(is.finite(reg1))) format(max(abs(reg1), na.rm = TRUE), digits = 6) else "NA",
           if (all(is.finite(cursam.theta))) format(max(abs(cursam.theta), na.rm = TRUE), digits = 6) else "NA"
         ))
       }
-      cursam.Ut<-samp_uts(reg1,cursam.sigma)
+      if (isTRUE(latent_state_sched$active)) {
+        if (count_nonfinite(cursam.Ut) > 0L || count_nonpositive(cursam.Ut) > 0L) {
+          stop(sprintf(
+            "dqlm_mcmc_latent_warmup_state (iter=%d) invalid warmup Ut state: nonfinite=%d nonpositive=%d",
+            i, count_nonfinite(cursam.Ut), count_nonpositive(cursam.Ut)
+          ))
+        }
+      } else {
+        cursam.Ut <- samp_uts(reg1,cursam.sigma)
+        if (count_nonfinite(cursam.Ut) > 0L || count_nonpositive(cursam.Ut) > 0L) {
+          stop(sprintf(
+            "dqlm_mcmc_post_uts (iter=%d) invalid Ut draws: nonfinite=%d nonpositive=%d sigma=%s max_abs_reg1=%s",
+            i, count_nonfinite(cursam.Ut), count_nonpositive(cursam.Ut),
+            format(cursam.sigma, digits = 6), max_abs_finite(reg1)
+          ))
+        }
+      }
+      latent_frozen_trace[i] <- isTRUE(latent_state_sched$active)
+      latent_update_reason_trace[i] <- latent_state_sched$reason
+      if (!isTRUE(latent_state_sched$active)) {
+        latent_update_performed_trace[i] <- TRUE
+        latent_update_count <- latent_update_count + 1L
+        latent_update_count_trace[i] <- latent_update_count
+        if (is.na(latent_first_active_iter)) latent_first_active_iter <- as.integer(i)
+        if (i <= n.burn) {
+          latent_updates_burn <- latent_updates_burn + 1L
+        } else {
+          latent_updates_keep <- latent_updates_keep + 1L
+        }
+        if (latent_ctrl$freeze_burnin_iters > 0L) {
+          latent_postwarmup_update_count <- latent_postwarmup_update_count + 1L
+        }
+        latent_forced_postwarmup_trace[i] <- isTRUE(latent_state_sched$force_now)
+      } else {
+        latent_update_count_trace[i] <- latent_update_count
+        latent_forced_postwarmup_trace[i] <- FALSE
+      }
 
       # sample sigma
+      dqlm_sigma_sched <- warmup_state(i, dqlm_sigma_ctrl, dqlm_sigma_postwarmup_update_count)
       if(!fix.sigma){
-        cursam.sigma <- samp_sigma(reg1,cursam.Ut)
+        if (!isTRUE(dqlm_sigma_sched$active)) {
+          cursam.sigma <- samp_sigma(reg1,cursam.Ut)
+        }
+        if (!is.finite(cursam.sigma) || cursam.sigma <= 0) {
+          stop(sprintf(
+            "dqlm_mcmc_post_sigma (iter=%d reason=%s) invalid sigma draw: sigma=%s max_abs_reg1=%s max_abs_ut=%s",
+            i, dqlm_sigma_sched$reason, format(cursam.sigma, digits = 6), max_abs_finite(reg1), max_abs_finite(cursam.Ut)
+          ))
+        }
+      }
+      dqlm_sigma_frozen_trace[i] <- isTRUE(dqlm_sigma_sched$active)
+      dqlm_sigma_update_reason_trace[i] <- dqlm_sigma_sched$reason
+      if (!isTRUE(dqlm_sigma_sched$active)) {
+        dqlm_sigma_update_performed_trace[i] <- TRUE
+        dqlm_sigma_update_count <- dqlm_sigma_update_count + 1L
+        dqlm_sigma_update_count_trace[i] <- dqlm_sigma_update_count
+        if (is.na(dqlm_sigma_first_active_iter)) dqlm_sigma_first_active_iter <- as.integer(i)
+        if (i <= n.burn) {
+          dqlm_sigma_updates_burn <- dqlm_sigma_updates_burn + 1L
+        } else {
+          dqlm_sigma_updates_keep <- dqlm_sigma_updates_keep + 1L
+        }
+        if (dqlm_sigma_ctrl$freeze_burnin_iters > 0L) {
+          dqlm_sigma_postwarmup_update_count <- dqlm_sigma_postwarmup_update_count + 1L
+        }
+        dqlm_sigma_forced_postwarmup_trace[i] <- isTRUE(dqlm_sigma_sched$force_now)
+      } else {
+        dqlm_sigma_update_count_trace[i] <- dqlm_sigma_update_count
+        dqlm_sigma_forced_postwarmup_trace[i] <- FALSE
+      }
+      if (trace.diagnostics && (i %% trace.every == 0L)) {
+        u_stats <- .exdqlm_trace_summary(cursam.Ut)
+        trace_idx <- trace_idx + 1L
+        trace_rows[[trace_idx]] <- data.frame(
+          iter = i,
+          phase = if (i <= n.burn) "burn" else "keep",
+          sigma = cursam.sigma,
+          latent_frozen = isTRUE(latent_state_sched$active),
+          latent_mode = latent_ctrl$mode,
+          latent_update_reason = latent_state_sched$reason,
+          latent_forced_postwarmup = isTRUE(latent_forced_postwarmup_trace[i]),
+          latent_update_performed = isTRUE(latent_update_performed_trace[i]),
+          latent_update_count = as.integer(latent_update_count_trace[i]),
+          theta_frozen = isTRUE(theta_state_sched$active),
+          theta_update_reason = theta_state_sched$reason,
+          theta_forced_postwarmup = isTRUE(theta_forced_postwarmup_trace[i]),
+          theta_update_performed = isTRUE(theta_update_performed_trace[i]),
+          theta_update_count = as.integer(theta_update_count_trace[i]),
+          dqlm_sigma_frozen = isTRUE(dqlm_sigma_sched$active),
+          dqlm_sigma_update_reason = dqlm_sigma_sched$reason,
+          dqlm_sigma_forced_postwarmup = isTRUE(dqlm_sigma_forced_postwarmup_trace[i]),
+          dqlm_sigma_update_performed = isTRUE(dqlm_sigma_update_performed_trace[i]),
+          dqlm_sigma_update_count = as.integer(dqlm_sigma_update_count_trace[i]),
+          u_mean = u_stats[["mean"]],
+          u_sd = u_stats[["sd"]],
+          u_q05 = u_stats[["q05"]],
+          u_q50 = u_stats[["median"]],
+          u_q95 = u_stats[["q95"]],
+          u_min = u_stats[["min"]],
+          u_max = u_stats[["max"]],
+          stringsAsFactors = FALSE
+        )
       }
 
       # save samples after burn
@@ -1372,6 +1944,66 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                     verbose_every = as.integer(verbose.every),
                     callback_every = as.integer(callback.every)
                   ),
+                  latent_state = list(
+                    mode = latent_ctrl$mode,
+                    freeze_burnin_iters = as.integer(latent_ctrl$freeze_burnin_iters),
+                    freeze_only_during_burn = isTRUE(latent_ctrl$freeze_only_during_burn),
+                    force_after_warmup = isTRUE(latent_ctrl$force_after_warmup),
+                    first_active_iter = if (is.na(latent_first_active_iter)) NA_integer_ else as.integer(latent_first_active_iter),
+                    updates_burn = as.integer(latent_updates_burn),
+                    updates_keep = as.integer(latent_updates_keep),
+                    update_count = as.integer(latent_update_count),
+                    postwarmup_update_count = as.integer(latent_postwarmup_update_count),
+                    frozen_burn_rate = if (n.burn > 0L) mean(latent_frozen_trace[seq_len(n.burn)]) else NA_real_
+                  ),
+                  theta_state = list(
+                    freeze_burnin_iters = as.integer(theta_ctrl$freeze_burnin_iters),
+                    freeze_only_during_burn = isTRUE(theta_ctrl$freeze_only_during_burn),
+                    force_after_warmup = isTRUE(theta_ctrl$force_after_warmup),
+                    first_active_iter = if (is.na(theta_first_active_iter)) NA_integer_ else as.integer(theta_first_active_iter),
+                    updates_burn = as.integer(theta_updates_burn),
+                    updates_keep = as.integer(theta_updates_keep),
+                    update_count = as.integer(theta_update_count),
+                    postwarmup_update_count = as.integer(theta_postwarmup_update_count),
+                    frozen_burn_rate = if (n.burn > 0L) mean(theta_frozen_trace[seq_len(n.burn)]) else NA_real_
+                  ),
+                  dqlm_sigma = list(
+                    freeze_burnin_iters = as.integer(dqlm_sigma_ctrl$freeze_burnin_iters),
+                    freeze_only_during_burn = isTRUE(dqlm_sigma_ctrl$freeze_only_during_burn),
+                    force_after_warmup = isTRUE(dqlm_sigma_ctrl$force_after_warmup),
+                    first_active_iter = if (is.na(dqlm_sigma_first_active_iter)) NA_integer_ else as.integer(dqlm_sigma_first_active_iter),
+                    updates_burn = as.integer(dqlm_sigma_updates_burn),
+                    updates_keep = as.integer(dqlm_sigma_updates_keep),
+                    update_count = as.integer(dqlm_sigma_update_count),
+                    postwarmup_update_count = as.integer(dqlm_sigma_postwarmup_update_count),
+                    frozen_burn_rate = if (n.burn > 0L) mean(dqlm_sigma_frozen_trace[seq_len(n.burn)]) else NA_real_
+                  ),
+                  latent_state_trace = list(
+                    frozen = latent_frozen_trace,
+                    update_reason = latent_update_reason_trace,
+                    forced_postwarmup = latent_forced_postwarmup_trace,
+                    update_performed = latent_update_performed_trace,
+                    update_count = latent_update_count_trace
+                  ),
+                  theta_state_trace = list(
+                    frozen = theta_frozen_trace,
+                    update_reason = theta_update_reason_trace,
+                    forced_postwarmup = theta_forced_postwarmup_trace,
+                    update_performed = theta_update_performed_trace,
+                    update_count = theta_update_count_trace
+                  ),
+                  dqlm_sigma_trace = list(
+                    frozen = dqlm_sigma_frozen_trace,
+                    update_reason = dqlm_sigma_update_reason_trace,
+                    forced_postwarmup = dqlm_sigma_forced_postwarmup_trace,
+                    update_performed = dqlm_sigma_update_performed_trace,
+                    update_count = dqlm_sigma_update_count_trace
+                  ),
+                  trace = if (trace.diagnostics && trace_idx > 0L) {
+                    do.call(rbind, trace_rows[seq_len(trace_idx)])
+                  } else {
+                    data.frame()
+                  },
                   ess = list(sigma = ess_sigma, gamma = NA_real_),
                   rhat_ready = list(
                     sigma = as.numeric(save.sigma),

@@ -7,26 +7,17 @@ if [[ $# -gt 0 && "${1#--}" == "$1" ]]; then
   shift
 fi
 
-manifest_kind="smoke"
 dry_run=0
 prepare_first=1
 force_flag=()
-workers_static_vb=8
-workers_dynamic_vb=6
-workers_static_mcmc=4
-workers_dynamic_mcmc=3
+workers_runtime_vb=1
+workers_runtime_mcmc=2
 run_tag_override=""
 variant_tag_override=""
+source_run_tag="20260417_canonical_v1"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --manifest-kind=*)
-      manifest_kind="${1#*=}"
-      ;;
-    --manifest-kind)
-      manifest_kind="$2"
-      shift
-      ;;
     --dry-run)
       dry_run=1
       ;;
@@ -36,23 +27,20 @@ while [[ $# -gt 0 ]]; do
     --force)
       force_flag=(--force)
       ;;
-    --workers-static-vb=*)
-      workers_static_vb="${1#*=}"
+    --workers-runtime-vb=*)
+      workers_runtime_vb="${1#*=}"
       ;;
-    --workers-dynamic-vb=*)
-      workers_dynamic_vb="${1#*=}"
-      ;;
-    --workers-static-mcmc=*)
-      workers_static_mcmc="${1#*=}"
-      ;;
-    --workers-dynamic-mcmc=*)
-      workers_dynamic_mcmc="${1#*=}"
+    --workers-runtime-mcmc=*)
+      workers_runtime_mcmc="${1#*=}"
       ;;
     --run-tag=*)
       run_tag_override="${1#*=}"
       ;;
     --variant-tag=*)
       variant_tag_override="${1#*=}"
+      ;;
+    --source-run-tag=*)
+      source_run_tag="${1#*=}"
       ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -62,11 +50,6 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ "$manifest_kind" != "smoke" && "$manifest_kind" != "full" ]]; then
-  echo "manifest kind must be smoke or full" >&2
-  exit 1
-fi
-
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/../.." && pwd)"
 if [[ -n "$run_tag_override" ]]; then
@@ -75,29 +58,42 @@ fi
 if [[ -n "$variant_tag_override" ]]; then
   export REFRESHED288_VARIANT_TAG="$variant_tag_override"
 fi
-prepare_script="$script_dir/LOCAL_refreshed288_prepare_20260416.R"
+
+resolved_tag="${REFRESHED288_RUN_TAG:-20260418_runtimefail_v1}"
+resolved_tag="${resolved_tag//[^A-Za-z0-9_-]/_}"
+
+prepare_script="$script_dir/LOCAL_refreshed288_prepare_runtime_failures_20260418.R"
 evaluate_script="$script_dir/LOCAL_refreshed288_evaluate_20260416.R"
 report_script="$script_dir/LOCAL_refreshed288_refresh_comparison_20260416.R"
 run_row_script="$script_dir/LOCAL_refreshed288_run_row_20260416.R"
-resolved_tag="${REFRESHED288_RUN_TAG:-20260416}"
-resolved_tag="${resolved_tag//[^A-Za-z0-9_-]/_}"
-manifest_path="$repo_root/tools/merge_reports/LOCAL_refreshed288_${manifest_kind}_manifest_${resolved_tag}.csv"
+manifest_path="$repo_root/tools/merge_reports/LOCAL_refreshed288_full_manifest_${resolved_tag}.csv"
+status_path="$repo_root/tools/merge_reports/LOCAL_refreshed288_runtime_failure_manifest_status_${resolved_tag}.csv"
+phase_path="$repo_root/tools/merge_reports/LOCAL_refreshed288_runtime_failure_phase_summary_${resolved_tag}.csv"
+method_path="$repo_root/tools/merge_reports/LOCAL_refreshed288_runtime_failure_method_summary_${resolved_tag}.csv"
+report_path="$repo_root/reports/static_exal_tuning_${resolved_tag:0:8}/refreshed288_runtime_failure_status_${resolved_tag}.md"
 
 run_prepare() {
-  (cd "$repo_root" && Rscript "$prepare_script")
+  (cd "$repo_root" && Rscript "$prepare_script" --source_run_tag="$source_run_tag")
 }
 
 run_eval_and_report() {
-  (cd "$repo_root" && Rscript "$evaluate_script" --manifest="$manifest_path")
-  (cd "$repo_root" && Rscript "$report_script" --manifest="$manifest_path")
+  (cd "$repo_root" && Rscript "$evaluate_script" \
+    --manifest="$manifest_path" \
+    --status_out="$status_path" \
+    --phase_out="$phase_path" \
+    --method_out="$method_path")
+  (cd "$repo_root" && Rscript "$report_script" \
+    --manifest="$manifest_path" \
+    --status="$status_path" \
+    --phase="$phase_path" \
+    --method="$method_path" \
+    --report="$report_path")
 }
 
 worker_count_for_phase() {
   case "$1" in
-    *_static_vb) echo "$workers_static_vb" ;;
-    *_dynamic_vb) echo "$workers_dynamic_vb" ;;
-    *_static_mcmc) echo "$workers_static_mcmc" ;;
-    *_dynamic_mcmc) echo "$workers_dynamic_mcmc" ;;
+    runtime_vb_primary) echo "$workers_runtime_vb" ;;
+    runtime_mcmc_pilot|runtime_mcmc_full) echo "$workers_runtime_mcmc" ;;
     *) echo "1" ;;
   esac
 }
@@ -134,16 +130,13 @@ case "$action" in
   evaluate)
     run_eval_and_report
     ;;
-  report)
-    (cd "$repo_root" && Rscript "$report_script" --manifest="$manifest_path")
-    ;;
   dry-run)
     dry_run=1
     if [[ "$prepare_first" -eq 1 ]]; then
       run_prepare
     fi
     run_eval_and_report
-    for phase in "${manifest_kind}_static_vb" "${manifest_kind}_dynamic_vb" "${manifest_kind}_static_mcmc" "${manifest_kind}_dynamic_mcmc"; do
+    for phase in runtime_vb_primary runtime_mcmc_pilot runtime_mcmc_full; do
       launch_phase "$phase"
     done
     ;;
@@ -152,7 +145,7 @@ case "$action" in
       run_prepare
     fi
     run_eval_and_report
-    for phase in "${manifest_kind}_static_vb" "${manifest_kind}_dynamic_vb" "${manifest_kind}_static_mcmc" "${manifest_kind}_dynamic_mcmc"; do
+    for phase in runtime_vb_primary runtime_mcmc_pilot runtime_mcmc_full; do
       launch_phase "$phase"
     done
     ;;
