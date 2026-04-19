@@ -226,6 +226,13 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   cfg <- list(
     vb = list(
       max_iter = 99L,
+      sigmagam = list(
+        freeze_warmup_iters = 6L,
+        force_after_warmup = TRUE,
+        postwarmup_damping = 0.7,
+        postwarmup_damping_iters = 2L,
+        min_postwarmup_updates = 1L
+      ),
       online = list(enabled = TRUE, M = 5L)
     ),
     inference = list(
@@ -237,7 +244,20 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
         thin = 2L,
         init_from_vb = FALSE,
         vb_warm_start_seed = 12345L,
-        vb_warm_start_control = list(max_iter = 33L),
+        vb_warm_start_control = list(
+          max_iter = 33L,
+          sigmagam = list(
+            freeze_warmup_iters = 4L,
+            postwarmup_damping = 0.5,
+            postwarmup_damping_iters = 1L,
+            min_postwarmup_updates = 1L
+          )
+        ),
+        sigmagam = list(
+          freeze_burnin_iters = 9L,
+          freeze_only_during_burn = TRUE,
+          force_after_warmup = TRUE
+        ),
         rhs = list(
           freeze_tau_burnin_iters = 7L,
           width_adapt = list(
@@ -297,6 +317,12 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_equal(inf$mcmc$control_base$conditioning$intercept_column, 1L)
   expect_false(isTRUE(inf$mcmc$control_base$init_from_vb))
   expect_equal(inf$mcmc$control_base$vb_warm_start_control$max_iter, 33L)
+  expect_equal(inf$mcmc$control_base$vb_warm_start_control$sigmagam$freeze_warmup_iters, 4L)
+  expect_equal(inf$mcmc$control_base$vb_warm_start_control$sigmagam$postwarmup_damping, 0.5, tolerance = 1e-12)
+  expect_equal(inf$mcmc$control_base$vb_warm_start_control$sigmagam$postwarmup_damping_iters, 1L)
+  expect_equal(inf$mcmc$control_base$vb_warm_start_control$sigmagam$min_postwarmup_updates, 1L)
+  expect_equal(inf$mcmc$control_base$sigmagam$freeze_burnin_iters, 9L)
+  expect_true(isTRUE(inf$mcmc$control_base$sigmagam$freeze_only_during_burn))
   expect_equal(inf$mcmc$control_base$rhs$freeze_tau_burnin_iters, 7L)
   expect_true(isTRUE(inf$mcmc$control_base$rhs$width_adapt$enabled))
   expect_equal(inf$mcmc$control_base$rhs$width_adapt$warmup_iters, 12L)
@@ -310,6 +336,10 @@ test_that("inference config resolver supports explicit mcmc mode with backward-c
   expect_true(isTRUE(inf$mcmc$control_base$multi_start$enabled))
   expect_equal(inf$mcmc$control_base$multi_start$n_starts, 3L)
   expect_identical(inf$beta_prior_type, "rhs")
+  expect_equal(inf$vb$args_base$sigmagam$freeze_warmup_iters, 6L)
+  expect_equal(inf$vb$args_base$sigmagam$postwarmup_damping, 0.7, tolerance = 1e-12)
+  expect_equal(inf$vb$args_base$sigmagam$postwarmup_damping_iters, 2L)
+  expect_equal(inf$vb$args_base$sigmagam$min_postwarmup_updates, 1L)
   expect_equal(inf$prior_gamma_mu0, c(-0.2, 0.3))
   expect_equal(inf$prior_gamma_s20, c(4, 4))
   expect_equal(inf$prior_sigma_a, c(2, 2))
@@ -513,6 +543,219 @@ test_that("RHS MCMC can freeze tau during burn-in warmup", {
   expect_true(all(fit_rhs$misc$rhs_tau_frozen_trace[1:4]))
   expect_true(!any(fit_rhs$misc$rhs_tau_frozen_trace[7:length(fit_rhs$misc$rhs_tau_frozen_trace)]))
   expect_equal(length(unique(round(fit_rhs$misc$rhs_tau_trace[1:4], 12L))), 1L)
+})
+
+test_that("VB sigmagam warmup records freeze traces and first active update", {
+  withr::local_seed(20260417)
+
+  n <- 28L
+  X <- cbind(1, base::scale(stats::rnorm(n))[, 1L], base::scale(stats::rnorm(n))[, 1L])
+  y <- as.numeric(X %*% c(0.2, -0.3, 0.15) + stats::rnorm(n, sd = 0.25))
+
+  fit_vb <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "vb",
+    vb_control = list(
+      max_iter = 18L,
+      min_iter_elbo = 6L,
+      tol = 1e-4,
+      tol_par = 1e-4,
+      n_samp_xi = 40L,
+      verbose = FALSE,
+      sigmagam = list(
+        freeze_warmup_iters = 3L,
+        force_after_warmup = TRUE,
+        min_postwarmup_updates = 1L
+      )
+    )
+  )
+
+  expect_s3_class(fit_vb, "exal_vb")
+  expect_equal(fit_vb$misc$sigmagam$freeze_warmup_iters, 3L)
+  expect_equal(fit_vb$misc$sigmagam_required_postwarmup_updates, 1L)
+  expect_true(all(fit_vb$misc$sigmagam_frozen_trace[1:3]))
+  expect_false(isTRUE(fit_vb$misc$sigmagam_frozen_trace[4L]))
+  expect_identical(fit_vb$misc$sigmagam_update_reason_trace[[4L]], "force_after_warmup")
+  expect_true(isTRUE(fit_vb$misc$sigmagam_forced_postwarmup_trace[[4L]]))
+  expect_equal(fit_vb$misc$sigmagam_first_active_iter, 4L)
+  expect_true(all(diff(as.integer(fit_vb$misc$sigmagam_update_count_trace)) >= 0L))
+  expect_equal(as.integer(tail(fit_vb$misc$sigmagam_update_count_trace, 1L)), fit_vb$misc$sigmagam_update_count)
+})
+
+test_that("MCMC sigmagam warmup records freeze traces and update summaries", {
+  withr::local_seed(20260418)
+
+  n <- 20L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.3, -0.2, 0.1) + stats::rnorm(n, sd = 0.3))
+
+  fit <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 6L,
+      n_mcmc = 8L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      sigmagam = list(
+        freeze_burnin_iters = 4L,
+        freeze_only_during_burn = TRUE,
+        force_after_warmup = TRUE
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  expect_s3_class(fit, "exal_mcmc")
+  expect_equal(fit$control$sigmagam$freeze_burnin_iters, 4L)
+  expect_true(all(fit$misc$sigmagam_frozen_trace[1:4]))
+  expect_false(isTRUE(fit$misc$sigmagam_frozen_trace[5L]))
+  expect_identical(fit$misc$sigmagam_update_reason_trace[[5L]], "force_after_warmup")
+  expect_true(isTRUE(fit$misc$sigmagam_forced_postwarmup_trace[[5L]]))
+  expect_equal(fit$misc$sigmagam_first_active_iter, 5L)
+  expect_equal(fit$diagnostics$sigmagam$freeze_burnin_iters, 4L)
+  expect_equal(fit$diagnostics$sigmagam$updates_burn, 2L)
+  expect_equal(fit$diagnostics$sigmagam$updates_keep, 8L)
+  expect_equal(fit$misc$sigmagam_postwarmup_update_count, 10L)
+  expect_equal(fit$diagnostics$sigmagam$frozen_burn_rate, 4 / 6, tolerance = 1e-12)
+})
+
+test_that("MCMC latent-v warmup records freeze, sparse-hold, and forced thaw traces", {
+  withr::local_seed(20260418)
+
+  n <- 18L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.25, -0.15, 0.12) + stats::rnorm(n, sd = 0.28))
+
+  fit <- exdqlm::exal_fit(
+    y = y,
+    X = X,
+    p0 = 0.5,
+    gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+    method = "mcmc",
+    mcmc_control = list(
+      n_burn = 6L,
+      n_mcmc = 8L,
+      thin = 1L,
+      verbose = FALSE,
+      init_from_vb = FALSE,
+      latent_v = list(
+        enabled = TRUE,
+        freeze_burnin_iters = 3L,
+        freeze_only_during_burn = TRUE,
+        sparse_update_every = 2L,
+        sparse_update_until_iter = 6L,
+        force_first_postwarmup_update = TRUE,
+        trace = TRUE
+      )
+    ),
+    init = list(
+      beta = rep(0, ncol(X)),
+      sigma = 1,
+      gamma = 0.5,
+      v = rep(1, n),
+      s = rep(0.1, n)
+    )
+  )
+
+  expect_s3_class(fit, "exal_mcmc")
+  expect_true(isTRUE(fit$control$latent_v$enabled))
+  expect_equal(fit$control$latent_v$freeze_burnin_iters, 3L)
+  expect_equal(fit$control$latent_v$sparse_update_every, 2L)
+  expect_equal(fit$control$latent_v$sparse_update_until_iter, 6L)
+  expect_true(all(fit$misc$latent_v_hard_freeze_trace[1:3]))
+  expect_false(isTRUE(fit$misc$latent_v_hard_freeze_trace[4L]))
+  expect_true(all(fit$misc$latent_v_warmup_active_trace[1:6]))
+  expect_true(isTRUE(fit$misc$latent_v_force_update_trace[4L]))
+  expect_identical(fit$misc$latent_v_update_reason_trace[[4L]], "force_after_warmup")
+  expect_identical(fit$misc$latent_v_update_reason_trace[[5L]], "sparse_hold")
+  expect_identical(fit$misc$latent_v_update_reason_trace[[6L]], "sparse_update")
+  expect_false(isTRUE(fit$misc$latent_v_update_performed_trace[5L]))
+  expect_true(isTRUE(fit$misc$latent_v_update_performed_trace[6L]))
+  expect_equal(fit$misc$latent_v_first_postwarmup_update_iter, 4L)
+  expect_equal(fit$diagnostics$latent_v$freeze_burnin_iters, 3L)
+  expect_equal(fit$diagnostics$latent_v$sparse_update_every, 2L)
+  expect_equal(fit$diagnostics$latent_v$sparse_update_until_iter, 6L)
+  expect_equal(fit$diagnostics$latent_v$updates_burn, 2L)
+  expect_equal(fit$diagnostics$latent_v$updates_keep, 8L)
+  expect_equal(fit$diagnostics$latent_v$frozen_burn_rate, 3 / 6, tolerance = 1e-12)
+  expect_equal(fit$diagnostics$latent_v$sparse_hold_burn_rate, 1 / 6, tolerance = 1e-12)
+  expect_true(all(diff(as.integer(fit$misc$latent_v_update_count_trace)) >= 0L))
+})
+
+test_that("latent-v numerical failure is rethrown with structured diagnostics", {
+  withr::local_seed(20260418)
+
+  n <- 12L
+  X <- cbind(1, stats::rnorm(n), stats::rnorm(n))
+  y <- as.numeric(X %*% c(0.2, -0.1, 0.15) + stats::rnorm(n, sd = 0.2))
+
+  testthat::local_mocked_bindings(
+    .sample_gig_devroye_required = function(...) {
+      stop("synthetic latent-v failure")
+    },
+    .package = "exdqlm"
+  )
+
+  err <- tryCatch(
+    exdqlm::exal_fit(
+      y = y,
+      X = X,
+      p0 = 0.5,
+      gamma_bounds = c(exdqlm::get_gamma_bounds(0.5)),
+      method = "mcmc",
+      mcmc_control = list(
+        n_burn = 4L,
+        n_mcmc = 6L,
+        thin = 1L,
+        verbose = FALSE,
+        init_from_vb = FALSE,
+        transforms = list(
+          use_log_sigma = TRUE,
+          sigma_eta_bounds = c(-8, 8)
+        ),
+        latent_v = list(
+          enabled = TRUE,
+          freeze_burnin_iters = 0L,
+          sparse_update_every = 2L,
+          sparse_update_until_iter = 4L,
+          force_first_postwarmup_update = TRUE
+        )
+      ),
+      init = list(
+        beta = rep(0, ncol(X)),
+        sigma = 1,
+        gamma = 0.5,
+        v = rep(1, n),
+        s = rep(0.1, n)
+      )
+    ),
+    qdesn_latent_v_error = function(e) e
+  )
+
+  expect_s3_class(err, "qdesn_latent_v_error")
+  expect_identical(err$latent_v_failure$failure_family, "latent_v_invalid_draws")
+  expect_equal(err$latent_v_failure$iteration, 1L)
+  expect_identical(err$latent_v_failure$phase, "burn")
+  expect_identical(err$latent_v_failure$latent_v_update_reason, "sparse_update")
+  expect_false(isTRUE(err$latent_v_failure$latent_v_hard_freeze_active))
+  expect_true(isTRUE(err$latent_v_failure$latent_v_warmup_active))
+  expect_true(is.list(err$latent_v_failure$chi_v))
+  expect_true(is.list(err$latent_v_failure$psi_v))
+  expect_true(is.finite(err$latent_v_failure$beta_norm))
 })
 
 test_that("RHS MCMC supports joint directional tau/c2 block updates", {

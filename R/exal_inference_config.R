@@ -58,7 +58,14 @@
     min_iter_elbo = 10L,
     tol = 1e-4,
     n_samp_xi = 500L,
-    verbose = TRUE
+    verbose = TRUE,
+    sigmagam = list(
+      freeze_warmup_iters = 0L,
+      force_after_warmup = TRUE,
+      postwarmup_damping = 1.0,
+      postwarmup_damping_iters = 0L,
+      min_postwarmup_updates = 0L
+    )
   )
 }
 
@@ -91,6 +98,22 @@
     init_from_vb = TRUE,
     vb_warm_start_seed = NULL,
     vb_warm_start_control = list(),
+    sigmagam = list(
+      freeze_burnin_iters = 0L,
+      freeze_only_during_burn = TRUE,
+      force_after_warmup = TRUE,
+      delay_adapt_until_after_warmup = TRUE,
+      delay_laplace_refresh_until_after_warmup = TRUE
+    ),
+    latent_v = list(
+      enabled = FALSE,
+      freeze_burnin_iters = 0L,
+      freeze_only_during_burn = TRUE,
+      sparse_update_every = 1L,
+      sparse_update_until_iter = 0L,
+      force_first_postwarmup_update = TRUE,
+      trace = TRUE
+    ),
     store_latent_draws = FALSE,
     store_rhs_draws = FALSE,
     transforms = list(
@@ -156,6 +179,117 @@
 
 .exal_list_or_empty <- function(x) {
   if (is.list(x)) x else list()
+}
+
+.exal_normalize_vb_sigmagam_cfg <- function(sigmagam_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  sigmagam_cfg <- .exal_list_or_empty(sigmagam_cfg)
+
+  freeze_warmup_iters <- suppressWarnings(as.integer(
+    sigmagam_cfg$freeze_warmup_iters %||%
+      sigmagam_cfg$freeze_sigmagam_warmup_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_warmup_iters) || freeze_warmup_iters < 0L) freeze_warmup_iters <- 0L
+
+  postwarmup_damping <- as.numeric(
+    sigmagam_cfg$postwarmup_damping %||%
+      sigmagam_cfg$sigmagam_postwarmup_damping %||%
+      1.0
+  )[1L]
+  if (!is.finite(postwarmup_damping) || postwarmup_damping <= 0 || postwarmup_damping > 1) {
+    postwarmup_damping <- 1.0
+  }
+
+  postwarmup_damping_iters <- suppressWarnings(as.integer(
+    sigmagam_cfg$postwarmup_damping_iters %||%
+      sigmagam_cfg$sigmagam_postwarmup_damping_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(postwarmup_damping_iters) || postwarmup_damping_iters < 0L) {
+    postwarmup_damping_iters <- 0L
+  }
+
+  min_postwarmup_updates <- suppressWarnings(as.integer(
+    sigmagam_cfg$min_postwarmup_updates %||%
+      sigmagam_cfg$sigmagam_min_postwarmup_updates %||%
+      0L
+  )[1L])
+  if (!is.finite(min_postwarmup_updates) || min_postwarmup_updates < 0L) {
+    min_postwarmup_updates <- 0L
+  }
+
+  list(
+    freeze_warmup_iters = freeze_warmup_iters,
+    force_after_warmup = if (is.null(sigmagam_cfg$force_after_warmup)) TRUE else isTRUE(sigmagam_cfg$force_after_warmup),
+    postwarmup_damping = postwarmup_damping,
+    postwarmup_damping_iters = postwarmup_damping_iters,
+    min_postwarmup_updates = min_postwarmup_updates
+  )
+}
+
+.exal_normalize_mcmc_sigmagam_cfg <- function(sigmagam_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  sigmagam_cfg <- .exal_list_or_empty(sigmagam_cfg)
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    sigmagam_cfg$freeze_burnin_iters %||%
+      sigmagam_cfg$freeze_sigmagam_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  list(
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(sigmagam_cfg$freeze_only_during_burn)) TRUE else isTRUE(sigmagam_cfg$freeze_only_during_burn),
+    force_after_warmup = if (is.null(sigmagam_cfg$force_after_warmup)) TRUE else isTRUE(sigmagam_cfg$force_after_warmup),
+    delay_adapt_until_after_warmup = if (is.null(sigmagam_cfg$delay_adapt_until_after_warmup)) TRUE else isTRUE(sigmagam_cfg$delay_adapt_until_after_warmup),
+    delay_laplace_refresh_until_after_warmup = if (is.null(sigmagam_cfg$delay_laplace_refresh_until_after_warmup)) TRUE else isTRUE(sigmagam_cfg$delay_laplace_refresh_until_after_warmup)
+  )
+}
+
+.exal_normalize_mcmc_latent_v_cfg <- function(latent_v_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  latent_v_cfg <- .exal_list_or_empty(latent_v_cfg)
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    latent_v_cfg$freeze_burnin_iters %||%
+      latent_v_cfg$freeze_latent_v_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  sparse_update_every <- suppressWarnings(as.integer(
+    latent_v_cfg$sparse_update_every %||%
+      latent_v_cfg$update_every_warmup %||%
+      1L
+  )[1L])
+  if (!is.finite(sparse_update_every) || sparse_update_every < 1L) sparse_update_every <- 1L
+
+  sparse_update_until_iter <- suppressWarnings(as.integer(
+    latent_v_cfg$sparse_update_until_iter %||%
+      latent_v_cfg$update_every_warmup_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(sparse_update_until_iter) || sparse_update_until_iter < 0L) {
+    sparse_update_until_iter <- 0L
+  }
+  if (sparse_update_every <= 1L) sparse_update_until_iter <- max(0L, sparse_update_until_iter)
+  enabled <- if (is.null(latent_v_cfg$enabled)) {
+    freeze_burnin_iters > 0L || (sparse_update_every > 1L && sparse_update_until_iter > 0L)
+  } else {
+    isTRUE(latent_v_cfg$enabled)
+  }
+
+  list(
+    enabled = isTRUE(enabled),
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(latent_v_cfg$freeze_only_during_burn)) TRUE else isTRUE(latent_v_cfg$freeze_only_during_burn),
+    sparse_update_every = sparse_update_every,
+    sparse_update_until_iter = sparse_update_until_iter,
+    force_first_postwarmup_update = if (is.null(latent_v_cfg$force_first_postwarmup_update)) TRUE else isTRUE(latent_v_cfg$force_first_postwarmup_update),
+    trace = if (is.null(latent_v_cfg$trace)) TRUE else isTRUE(latent_v_cfg$trace)
+  )
 }
 
 .exal_recycle_quantile_param <- function(x, len_p, nm, verbose = FALSE, method = NULL) {
@@ -484,6 +618,7 @@
   if (!is.null(vb_cfg$online) && is.list(vb_cfg$online)) {
     vb_online_cfg <- modifyList(vb_online_cfg, vb_cfg$online)
   }
+  vb_args_base$sigmagam <- .exal_normalize_vb_sigmagam_cfg(vb_cfg$sigmagam %||% vb_args_base$sigmagam %||% list())
   vb_online_cfg$enabled <- isTRUE(vb_online_cfg$enabled)
   vb_online_cfg$strict <- isTRUE(vb_online_cfg$strict)
   vb_online_cfg$M <- max(0L, as.integer(vb_online_cfg$M %||% 10L))
@@ -506,6 +641,13 @@
   init_cfg <- .exal_list_or_empty(vb_cfg$init)
   priors_cfg <- .exal_list_or_empty(vb_cfg$priors)
   beta_prior <- .exal_resolve_beta_prior_settings(priors_cfg$beta, default_rhs_cfg, default_rhs_ns_cfg)
+  if (identical(beta_prior$type, "rhs_ns") && !is.null(vb_cfg$rhs) && is.list(vb_cfg$rhs)) {
+    for (nm in c("freeze_tau_iters", "freeze_tau_warmup_iters", "force_tau_after_warmup")) {
+      if (is.null(beta_prior$rhs[[nm]]) && !is.null(vb_cfg$rhs[[nm]])) {
+        beta_prior$rhs[[nm]] <- vb_cfg$rhs[[nm]]
+      }
+    }
+  }
 
   list(
     args_base = vb_args_base,
@@ -549,6 +691,12 @@
   if (!is.null(mcmc_cfg$vb_warm_start_control) && is.list(mcmc_cfg$vb_warm_start_control)) {
     control$vb_warm_start_control <- modifyList(control$vb_warm_start_control %||% list(), mcmc_cfg$vb_warm_start_control)
   }
+  control$sigmagam <- .exal_normalize_mcmc_sigmagam_cfg(mcmc_cfg$sigmagam %||% control$sigmagam %||% list())
+  control$latent_v <- .exal_normalize_mcmc_latent_v_cfg(mcmc_cfg$latent_v %||% control$latent_v %||% list())
+  control$vb_warm_start_control <- .exal_list_or_empty(control$vb_warm_start_control)
+  control$vb_warm_start_control$sigmagam <- .exal_normalize_vb_sigmagam_cfg(
+    control$vb_warm_start_control$sigmagam %||% list()
+  )
   if (!is.null(mcmc_cfg$store_latent_draws)) control$store_latent_draws <- isTRUE(mcmc_cfg$store_latent_draws)
   if (!is.null(mcmc_cfg$store_rhs_draws)) control$store_rhs_draws <- isTRUE(mcmc_cfg$store_rhs_draws)
   if (!is.null(mcmc_cfg$rhs) && is.list(mcmc_cfg$rhs)) {
@@ -602,6 +750,13 @@ resolve_exal_inference_config <- function(cfg, p_vec, verbose = FALSE) {
 
   vb_cfg <- modifyList(legacy_vb_cfg, .exal_list_or_empty(inference_cfg$vb))
   mcmc_cfg <- modifyList(legacy_mcmc_cfg, .exal_list_or_empty(inference_cfg$mcmc))
+  if (is.null((.exal_list_or_empty(mcmc_cfg$vb_warm_start_control))$sigmagam) &&
+      !is.null(vb_cfg$sigmagam)) {
+    mcmc_cfg$vb_warm_start_control <- modifyList(
+      .exal_list_or_empty(mcmc_cfg$vb_warm_start_control),
+      list(sigmagam = vb_cfg$sigmagam)
+    )
+  }
 
   vb_out <- .exal_resolve_vb_config(vb_cfg, p_vec = p_vec, verbose = verbose)
   mcmc_out <- .exal_resolve_mcmc_config(mcmc_cfg, p_vec = p_vec, verbose = verbose)

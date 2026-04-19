@@ -713,6 +713,93 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   c(header, rule, body)
 }
 
+.qdesn_validation_append_latent_v_failure_fields <- function(base, latent_v_failure = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  failure <- latent_v_failure %||% list()
+  chi_v <- failure$chi_v %||% list()
+  psi_v <- failure$psi_v %||% list()
+
+  base$mcmc_failure_family <- as.character(failure$failure_family %||% NA_character_)[1L]
+  base$mcmc_failure_iteration <- as.integer(failure$iteration %||% NA_integer_)[1L]
+  base$mcmc_failure_phase <- as.character(failure$phase %||% NA_character_)[1L]
+  base$mcmc_failure_sigma <- as.numeric(failure$sigma %||% NA_real_)[1L]
+  base$mcmc_failure_gamma <- as.numeric(failure$gamma %||% NA_real_)[1L]
+  base$mcmc_failure_tau <- as.numeric(failure$tau %||% NA_real_)[1L]
+  base$mcmc_failure_c2 <- as.numeric(failure$c2 %||% NA_real_)[1L]
+  base$mcmc_failure_beta_norm <- as.numeric(failure$beta_norm %||% NA_real_)[1L]
+  base$mcmc_failure_latent_v_warmup_active <- if (is.null(failure$latent_v_warmup_active)) NA else isTRUE(failure$latent_v_warmup_active)
+  base$mcmc_failure_latent_v_update_reason <- as.character(failure$latent_v_update_reason %||% NA_character_)[1L]
+  base$mcmc_failure_chi_v_min <- as.numeric(chi_v$min %||% NA_real_)[1L]
+  base$mcmc_failure_chi_v_max <- as.numeric(chi_v$max %||% NA_real_)[1L]
+  base$mcmc_failure_chi_v_mean <- as.numeric(chi_v$mean %||% NA_real_)[1L]
+  base$mcmc_failure_chi_v_nonfinite_n <- as.integer(chi_v$n_nonfinite %||% NA_integer_)[1L]
+  base$mcmc_failure_psi_v_min <- as.numeric(psi_v$min %||% NA_real_)[1L]
+  base$mcmc_failure_psi_v_max <- as.numeric(psi_v$max %||% NA_real_)[1L]
+  base$mcmc_failure_psi_v_mean <- as.numeric(psi_v$mean %||% NA_real_)[1L]
+  base$mcmc_failure_psi_v_nonfinite_n <- as.integer(psi_v$n_nonfinite %||% NA_integer_)[1L]
+  base
+}
+
+.qdesn_validation_extract_error_payload <- function(err) {
+  if (is.null(err)) return(list())
+  out <- list()
+  if (!is.null(err$latent_v_failure)) {
+    out$latent_v_failure <- err$latent_v_failure
+  }
+  out
+}
+
+.qdesn_validation_failure_health_row <- function(method, root_spec, status, error_payload = NULL) {
+  base <- data.frame(
+    root_id = root_spec$root_id,
+    scenario = root_spec$scenario,
+    tau = as.numeric(root_spec$tau),
+    likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
+    beta_prior_type = root_spec$beta_prior_type,
+    seed = as.integer(root_spec$seed),
+    reservoir_profile = root_spec$reservoir_profile,
+    method = method,
+    status = as.character(status %||% NA_character_)[1L],
+    wall_seconds = NA_real_,
+    total_stage_seconds = NA_real_,
+    forecast_CRPS_mean = NA_real_,
+    forecast_PinballMean_mean = NA_real_,
+    forecast_S_mean = NA_real_,
+    forecast_qhat_mae = NA_real_,
+    forecast_qhat_rmse = NA_real_,
+    forecast_pinball_tau = NA_real_,
+    forecast_qhat_bias = NA_real_,
+    signal_qhat_mae = NA_real_,
+    signal_qhat_rmse = NA_real_,
+    signal_qhat_corr = NA_real_,
+    rhs_diag_available = NA,
+    rhs_collapse_flag = NA,
+    rhs_collapse_flag_bound = NA,
+    rhs_collapse_flag_shrink = NA,
+    rhs_diag_tau_last = NA_real_,
+    rhs_diag_E_invV_med_last = NA_real_,
+    rhs_diag_beta_l2_last = NA_real_,
+    rhs_diag_beta_small_frac_1e4_last = NA_real_,
+    rhs_root_cause_context = NA_character_,
+    unhealthy = FALSE,
+    unhealthy_reason = "",
+    fit_class = NA_character_,
+    fit_runtime_seconds = NA_real_,
+    finite_ok = FALSE,
+    domain_ok = FALSE,
+    mcmc_latent_v_warmup_iters = NA_integer_,
+    mcmc_latent_v_sparse_update_every = NA_integer_,
+    mcmc_latent_v_sparse_update_until_iter = NA_integer_,
+    mcmc_latent_v_first_postwarmup_update_iter = NA_integer_,
+    mcmc_latent_v_updates_burn = NA_integer_,
+    mcmc_latent_v_updates_keep = NA_integer_,
+    mcmc_latent_v_frozen_burn_rate = NA_real_,
+    mcmc_latent_v_sparse_hold_burn_rate = NA_real_,
+    stringsAsFactors = FALSE
+  )
+  .qdesn_validation_append_latent_v_failure_fields(base, (error_payload %||% list())$latent_v_failure %||% NULL)
+}
+
 .qdesn_validation_method_health <- function(method, root_spec, summary_obj) {
   fit <- .qdesn_validation_extract_fit(summary_obj)
   summary_row <- summary_obj$summary
@@ -786,8 +873,17 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     rhs_root_cause_context = rhs_root_cause_context,
     unhealthy = FALSE,
     unhealthy_reason = "",
+    mcmc_latent_v_warmup_iters = NA_integer_,
+    mcmc_latent_v_sparse_update_every = NA_integer_,
+    mcmc_latent_v_sparse_update_until_iter = NA_integer_,
+    mcmc_latent_v_first_postwarmup_update_iter = NA_integer_,
+    mcmc_latent_v_updates_burn = NA_integer_,
+    mcmc_latent_v_updates_keep = NA_integer_,
+    mcmc_latent_v_frozen_burn_rate = NA_real_,
+    mcmc_latent_v_sparse_hold_burn_rate = NA_real_,
     stringsAsFactors = FALSE
   )
+  base <- .qdesn_validation_append_latent_v_failure_fields(base, NULL)
   if (isTRUE(rhs_unhealthy_any)) {
     base$unhealthy <- TRUE
     base$unhealthy_reason <- add_reason(base$unhealthy_reason, rhs_unhealthy_reason %||% "rhs_unhealthy")
@@ -830,6 +926,11 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$vb_sigma_last <- if (length(sigma_trace)) utils::tail(sigma_trace, 1L) else as.numeric(fit$qsiggam$sigma_mean %||% NA_real_)
     base$vb_elbo_last <- if (length(elbo_trace)) utils::tail(elbo_trace, 1L) else as.numeric(fit$misc$elbo %||% NA_real_)
     base$vb_beta_norm <- sqrt(sum(beta_mean * beta_mean))
+    base$vb_sigmagam_warmup_iters <- as.integer((fit$misc$sigmagam %||% list())$freeze_warmup_iters %||% NA_integer_)
+    base$vb_sigmagam_required_postwarmup_updates <- as.integer(fit$misc$sigmagam_required_postwarmup_updates %||% NA_integer_)
+    base$vb_sigmagam_first_active_iter <- as.integer(fit$misc$sigmagam_first_active_iter %||% NA_integer_)
+    base$vb_sigmagam_update_count <- as.integer(fit$misc$sigmagam_update_count %||% NA_integer_)
+    base$vb_sigmagam_postwarmup_update_count <- as.integer(fit$misc$sigmagam_postwarmup_update_count %||% NA_integer_)
     base$rhs_tau_last <- if (length(rhs_tau_trace)) utils::tail(rhs_tau_trace, 1L) else NA_real_
     base$rhs_c2_last <- if (length(rhs_c2_trace)) utils::tail(rhs_c2_trace, 1L) else NA_real_
     base$finite_ok <- all(is.finite(c(base$vb_gamma_last, base$vb_sigma_last, base$vb_beta_norm)))
@@ -875,6 +976,19 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$mcmc_conditioning_work_kappa <- as.numeric((fit$diagnostics$conditioning %||% list())$conditioned_condition_kappa %||% NA_real_)
     base$mcmc_conditioning_gain_ratio <- as.numeric((fit$diagnostics$conditioning %||% list())$condition_gain_ratio %||% NA_real_)
     base$mcmc_conditioning_scaled_columns_n <- as.integer((fit$diagnostics$conditioning %||% list())$scaled_columns_n %||% NA_integer_)
+    base$mcmc_latent_v_warmup_iters <- as.integer((fit$diagnostics$latent_v %||% list())$freeze_burnin_iters %||% NA_integer_)
+    base$mcmc_latent_v_sparse_update_every <- as.integer((fit$diagnostics$latent_v %||% list())$sparse_update_every %||% NA_integer_)
+    base$mcmc_latent_v_sparse_update_until_iter <- as.integer((fit$diagnostics$latent_v %||% list())$sparse_update_until_iter %||% NA_integer_)
+    base$mcmc_latent_v_first_postwarmup_update_iter <- as.integer((fit$diagnostics$latent_v %||% list())$first_postwarmup_update_iter %||% NA_integer_)
+    base$mcmc_latent_v_updates_burn <- as.integer((fit$diagnostics$latent_v %||% list())$updates_burn %||% NA_integer_)
+    base$mcmc_latent_v_updates_keep <- as.integer((fit$diagnostics$latent_v %||% list())$updates_keep %||% NA_integer_)
+    base$mcmc_latent_v_frozen_burn_rate <- as.numeric((fit$diagnostics$latent_v %||% list())$frozen_burn_rate %||% NA_real_)
+    base$mcmc_latent_v_sparse_hold_burn_rate <- as.numeric((fit$diagnostics$latent_v %||% list())$sparse_hold_burn_rate %||% NA_real_)
+    base$mcmc_sigmagam_warmup_iters <- as.integer((fit$diagnostics$sigmagam %||% list())$freeze_burnin_iters %||% NA_integer_)
+    base$mcmc_sigmagam_first_active_iter <- as.integer((fit$diagnostics$sigmagam %||% list())$first_active_iter %||% NA_integer_)
+    base$mcmc_sigmagam_updates_burn <- as.integer((fit$diagnostics$sigmagam %||% list())$updates_burn %||% NA_integer_)
+    base$mcmc_sigmagam_updates_keep <- as.integer((fit$diagnostics$sigmagam %||% list())$updates_keep %||% NA_integer_)
+    base$mcmc_sigmagam_frozen_burn_rate <- as.numeric((fit$diagnostics$sigmagam %||% list())$frozen_burn_rate %||% NA_real_)
     base$rhs_tau_mean <- if (length(tau_draws)) mean(tau_draws) else NA_real_
     base$rhs_c2_mean <- if (length(c2_draws)) mean(c2_draws) else NA_real_
     base$rhs_lambda_mean <- if (length(lambda_mean_draws)) mean(lambda_mean_draws) else NA_real_
@@ -1189,9 +1303,20 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     rhs_tau <- as.numeric(fit$misc$rhs_tau_trace %||% numeric(0))
     rhs_c2 <- as.numeric(fit$misc$rhs_c2_trace %||% numeric(0))
     rhs_lambda_mean <- as.numeric(fit$misc$rhs_lambda_mean_trace %||% numeric(0))
+    sigmagam_frozen <- as.logical(fit$misc$sigmagam_frozen_trace %||% logical(0))
+    sigmagam_update_reason <- as.character(fit$misc$sigmagam_update_reason_trace %||% character(0))
+    sigmagam_forced <- as.logical(fit$misc$sigmagam_forced_postwarmup_trace %||% logical(0))
+    sigmagam_update_count <- as.integer(
+      fit$misc$sigmagam_update_count_trace %||%
+        cumsum(as.integer(fit$misc$sigmagam_update_performed_trace %||% logical(0)))
+    )
     if (length(rhs_tau) == n_iter) out$rhs_tau <- rhs_tau
     if (length(rhs_c2) == n_iter) out$rhs_c2 <- rhs_c2
     if (length(rhs_lambda_mean) == n_iter) out$rhs_lambda_mean <- rhs_lambda_mean
+    if (length(sigmagam_frozen) == n_iter) out$sigmagam_frozen <- sigmagam_frozen
+    if (length(sigmagam_update_reason) == n_iter) out$sigmagam_update_reason <- sigmagam_update_reason
+    if (length(sigmagam_update_count) == n_iter) out$sigmagam_update_count <- sigmagam_update_count
+    if (length(sigmagam_forced) == n_iter) out$sigmagam_forced_postwarmup <- sigmagam_forced
     return(out)
   }
 
@@ -1212,6 +1337,100 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     if (length(rhs_tau) == nrow(out)) out$rhs_tau <- rhs_tau
     if (length(rhs_c2) == nrow(out)) out$rhs_c2 <- rhs_c2
     if (length(rhs_lambda_mean) == nrow(out)) out$rhs_lambda_mean <- rhs_lambda_mean
+    return(out)
+  }
+
+  data.frame(stringsAsFactors = FALSE)
+}
+
+.qdesn_validation_method_latent_v_trace <- function(method, summary_obj) {
+  fit <- .qdesn_validation_extract_fit(summary_obj)
+  if (is.null(fit) || !inherits(fit, "exal_mcmc")) return(data.frame(stringsAsFactors = FALSE))
+
+  gamma_trace <- as.numeric(fit$misc$gamma_trace %||% numeric(0))
+  sigma_trace <- as.numeric(fit$misc$sigma_trace %||% numeric(0))
+  n_iter <- length(gamma_trace)
+  if (n_iter <= 0L || length(sigma_trace) != n_iter) return(data.frame(stringsAsFactors = FALSE))
+
+  n_burn <- as.integer(fit$control$n_burn %||% NA_integer_)
+  out <- data.frame(
+    method = method,
+    step = seq_len(n_iter),
+    phase = if (!is.na(n_burn)) ifelse(seq_len(n_iter) <= n_burn, "burn", "keep") else NA_character_,
+    gamma = gamma_trace,
+    sigma = sigma_trace,
+    stringsAsFactors = FALSE
+  )
+
+  warmup_active <- as.logical(fit$misc$latent_v_warmup_active_trace %||% logical(0))
+  hard_freeze <- as.logical(fit$misc$latent_v_hard_freeze_trace %||% logical(0))
+  sparse_window <- as.logical(fit$misc$latent_v_sparse_window_trace %||% logical(0))
+  force_update <- as.logical(fit$misc$latent_v_force_update_trace %||% logical(0))
+  update_performed <- as.logical(fit$misc$latent_v_update_performed_trace %||% logical(0))
+  reason <- as.character(fit$misc$latent_v_update_reason_trace %||% character(0))
+  update_count <- as.integer(fit$misc$latent_v_update_count_trace %||% integer(0))
+
+  if (length(warmup_active) == n_iter) out$latent_v_warmup_active <- warmup_active
+  if (length(hard_freeze) == n_iter) out$latent_v_hard_freeze <- hard_freeze
+  if (length(sparse_window) == n_iter) out$latent_v_sparse_window <- sparse_window
+  if (length(force_update) == n_iter) out$latent_v_force_update <- force_update
+  if (length(update_performed) == n_iter) out$latent_v_update_performed <- update_performed
+  if (length(reason) == n_iter) out$latent_v_update_reason <- reason
+  if (length(update_count) == n_iter) out$latent_v_update_count <- update_count
+  out
+}
+
+.qdesn_validation_method_sigmagam_trace <- function(method, summary_obj) {
+  fit <- .qdesn_validation_extract_fit(summary_obj)
+  if (is.null(fit)) return(data.frame(stringsAsFactors = FALSE))
+
+  if (inherits(fit, "exal_vb")) {
+    n_iter <- length(fit$misc$gamma_trace %||% numeric(0))
+    if (n_iter <= 0L) return(data.frame(stringsAsFactors = FALSE))
+    out <- data.frame(
+      method = method,
+      step = seq_len(n_iter),
+      phase = rep("vb", n_iter),
+      gamma = as.numeric(fit$misc$gamma_trace %||% rep(NA_real_, n_iter)),
+      sigma = as.numeric(fit$misc$sigma_trace %||% rep(NA_real_, n_iter)),
+      elbo = as.numeric(fit$misc$elbo_trace %||% rep(NA_real_, n_iter)),
+      stringsAsFactors = FALSE
+    )
+    frozen <- as.logical(fit$misc$sigmagam_frozen_trace %||% logical(0))
+    reason <- as.character(fit$misc$sigmagam_update_reason_trace %||% character(0))
+    forced <- as.logical(fit$misc$sigmagam_forced_postwarmup_trace %||% logical(0))
+    if (length(frozen) == n_iter) out$sigmagam_frozen <- frozen
+    if (length(reason) == n_iter) out$sigmagam_update_reason <- reason
+    if (length(forced) == n_iter) out$sigmagam_forced_postwarmup <- forced
+    return(out)
+  }
+
+  if (inherits(fit, "exal_mcmc")) {
+    gamma_trace <- as.numeric(fit$misc$gamma_trace %||% numeric(0))
+    sigma_trace <- as.numeric(fit$misc$sigma_trace %||% numeric(0))
+    n_iter <- length(gamma_trace)
+    if (n_iter <= 0L || length(sigma_trace) != n_iter) return(data.frame(stringsAsFactors = FALSE))
+    n_burn <- as.integer(fit$control$n_burn %||% NA_integer_)
+    out <- data.frame(
+      method = method,
+      step = seq_len(n_iter),
+      phase = if (!is.na(n_burn)) ifelse(seq_len(n_iter) <= n_burn, "burn", "keep") else NA_character_,
+      gamma = gamma_trace,
+      sigma = sigma_trace,
+      stringsAsFactors = FALSE
+    )
+    frozen <- as.logical(fit$misc$sigmagam_frozen_trace %||% logical(0))
+    reason <- as.character(fit$misc$sigmagam_update_reason_trace %||% character(0))
+    forced <- as.logical(fit$misc$sigmagam_forced_postwarmup_trace %||% logical(0))
+    update_count <- as.integer(fit$misc$sigmagam_update_count_trace %||% integer(0))
+    gamma_steps <- as.numeric(fit$misc$gamma_slice_steps_out %||% numeric(0))
+    gamma_shrink <- as.numeric(fit$misc$gamma_slice_shrink %||% numeric(0))
+    if (length(frozen) == n_iter) out$sigmagam_frozen <- frozen
+    if (length(reason) == n_iter) out$sigmagam_update_reason <- reason
+    if (length(forced) == n_iter) out$sigmagam_forced_postwarmup <- forced
+    if (length(update_count) == n_iter) out$sigmagam_update_count <- update_count
+    if (length(gamma_steps) == n_iter) out$gamma_slice_steps_out <- gamma_steps
+    if (length(gamma_shrink) == n_iter) out$gamma_slice_shrink <- gamma_shrink
     return(out)
   }
 
@@ -1428,6 +1647,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   start_time <- Sys.time()
   status <- "SUCCESS"
   error_message <- NA_character_
+  error_payload <- list()
 
   .qdesn_validation_dir_create(file.path(method_dir, "logs"))
   .qdesn_validation_write_json(file.path(method_dir, "fit_request.json"), list(root_spec = root_spec, method = method, config = cfg))
@@ -1443,6 +1663,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     error = function(e) {
       status <<- "FAIL"
       error_message <<- conditionMessage(e)
+      error_payload <<- .qdesn_validation_extract_error_payload(e)
       NULL
     }
   )
@@ -1468,6 +1689,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       error = function(e) {
         status <<- "FAIL"
         error_message <<- conditionMessage(e)
+        error_payload <<- .qdesn_validation_extract_error_payload(e)
         NULL
       }
     )
@@ -1480,21 +1702,11 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   health_row <- if (!is.null(summary_obj)) {
     .qdesn_validation_method_health(method, root_spec, summary_obj)
   } else {
-    data.frame(
-      root_id = root_spec$root_id,
-      scenario = root_spec$scenario,
-      tau = as.numeric(root_spec$tau),
-      likelihood_family = as.character(root_spec$likelihood_family %||% "exal")[1L],
-      beta_prior_type = root_spec$beta_prior_type,
-      seed = as.integer(root_spec$seed),
-      reservoir_profile = root_spec$reservoir_profile,
+    .qdesn_validation_failure_health_row(
       method = method,
+      root_spec = root_spec,
       status = status,
-      fit_class = NA_character_,
-      fit_runtime_seconds = NA_real_,
-      finite_ok = FALSE,
-      domain_ok = FALSE,
-      stringsAsFactors = FALSE
+      error_payload = error_payload
     )
   }
   if (!("status" %in% names(health_row)) || is.na(health_row$status[[1L]]) || !nzchar(as.character(health_row$status[[1L]]))) {
@@ -1515,7 +1727,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       method = method,
       status = status,
       error_message = if (is.na(error_message)) NULL else error_message,
-      config = cfg
+      config = cfg,
+      summary = as.list(health_row[1L, , drop = FALSE]),
+      error_payload = error_payload
     )
   }
 
@@ -1525,6 +1739,14 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   progress_trace <- if (!is.null(summary_obj)) .qdesn_validation_method_progress_trace(method, summary_obj) else data.frame(stringsAsFactors = FALSE)
   if (nrow(progress_trace)) {
     .qdesn_validation_write_df(progress_trace, file.path(method_dir, "progress_trace.csv"))
+  }
+  latent_v_trace <- if (!is.null(summary_obj)) .qdesn_validation_method_latent_v_trace(method, summary_obj) else data.frame(stringsAsFactors = FALSE)
+  if (nrow(latent_v_trace)) {
+    .qdesn_validation_write_df(latent_v_trace, file.path(method_dir, "latent_v_trace.csv"))
+  }
+  sigmagam_trace <- if (!is.null(summary_obj)) .qdesn_validation_method_sigmagam_trace(method, summary_obj) else data.frame(stringsAsFactors = FALSE)
+  if (nrow(sigmagam_trace)) {
+    .qdesn_validation_write_df(sigmagam_trace, file.path(method_dir, "sigmagam_trace.csv"))
   }
   if (identical(method, "mcmc") && !is.null(summary_obj)) {
     chain_summary <- .qdesn_validation_mcmc_chain_summary(summary_obj)
@@ -1546,6 +1768,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     summary = summary_obj,
     health = health_row,
     progress_trace = progress_trace,
+    latent_v_trace = latent_v_trace,
+    sigmagam_trace = sigmagam_trace,
     forecast_df = if (!is.null(summary_obj)) .qdesn_validation_extract_forecast_df(summary_obj) else data.frame(stringsAsFactors = FALSE)
   )
 }

@@ -232,6 +232,13 @@ beta_prior_rhs_ns <- function(rhs) {
 
   init_nu <- rhs$init_nu %||% 1.0
   init_xi <- rhs$init_xi %||% 1.0
+  freeze_tau_iters <- suppressWarnings(as.integer(rhs$freeze_tau_iters %||% rhs$freeze_tau_warmup_iters %||% 0L))[1L]
+  if (!is.finite(freeze_tau_iters) || freeze_tau_iters < 0L) freeze_tau_iters <- 0L
+  freeze_tau_warmup_iters <- suppressWarnings(as.integer(rhs$freeze_tau_warmup_iters %||% freeze_tau_iters))[1L]
+  if (!is.finite(freeze_tau_warmup_iters) || freeze_tau_warmup_iters < 0L) {
+    freeze_tau_warmup_iters <- freeze_tau_iters
+  }
+  force_tau_after_warmup <- if (is.null(rhs$force_tau_after_warmup)) TRUE else isTRUE(rhs$force_tau_after_warmup)
 
   hypers <- list(
     tau0 = tau0,
@@ -258,7 +265,10 @@ beta_prior_rhs_ns <- function(rhs) {
   control <- list(
     n_inner = as.integer(rhs$n_inner %||% rhs$rhs_maxit %||% 2L),
     var_floor = as.numeric(rhs$var_floor %||% 1e-16)[1L],
-    verbose = isTRUE(rhs$verbose %||% FALSE)
+    verbose = isTRUE(rhs$verbose %||% FALSE),
+    freeze_tau_iters = freeze_tau_iters,
+    freeze_tau_warmup_iters = freeze_tau_warmup_iters,
+    force_tau_after_warmup = force_tau_after_warmup
   )
 
   obj <- .call_with_supported_args(

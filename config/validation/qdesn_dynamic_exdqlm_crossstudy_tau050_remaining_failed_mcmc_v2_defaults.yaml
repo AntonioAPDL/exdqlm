@@ -1,7 +1,7 @@
 campaign:
-  name: qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation
-  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation
-  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation
+  name: qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_validation
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_validation
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_validation
 
 grid:
   source_mode: materialized_source_inputs
@@ -14,14 +14,14 @@ execution:
     base_seed: 41000
 
 study_contract:
-  core_lane: true
-  id: tau050_refreshed_main
+  core_lane: false
+  id: tau050_remaining_failed_mcmc_v2
   description: |
-    Canonical refreshed dynamic-only QDESN relaunch on the synced 0.4.0 branch.
-    The core lane uses LDVB everywhere for VB, slice everywhere for MCMC, and
-    an explicit LDVB warm start for every MCMC fit. Legacy init semantics and
-    historical row-local repair kernels remain available only through explicit
-    rescue overlays, not as defaults in the main lane.
+    Remaining-failed MCMC v2 recovery lane for the dynamic-only QDESN tau050
+    study. This lane targets only the 18 repeat-failure MCMC fits left after
+    the first failed-only relaunch, keeps the stronger tau warmup contract,
+    strengthens the VB and sigma/gamma warmup schedule, and adds an explicit
+    MCMC latent-v warmup package plus persisted latent-v failure diagnostics.
   budget:
     posterior_metric_draws: 20000
     vb_sampling_nd_draws: 20000
@@ -31,35 +31,43 @@ study_contract:
     mcmc_thin: 1
   vb:
     method: LDVB
-    profile_id: qdesn_ldvb_canonical_v1
+    profile_id: qdesn_ldvb_remaining_failed_mcmc_v2
     sigmagam:
-      freeze_warmup_iters: 10
+      freeze_warmup_iters: 20
       force_after_warmup: true
-      postwarmup_damping: 0.5
-      postwarmup_damping_iters: 3
-      min_postwarmup_updates: 1
+      postwarmup_damping: 0.35
+      postwarmup_damping_iters: 10
+      min_postwarmup_updates: 3
   mcmc:
     kernel: slice
     require_slice: true
     require_init_from_vb: true
     banned_proposals: [rw, laplace_rw]
     sigmagam:
-      freeze_burnin_iters: 50
+      freeze_burnin_iters: 500
       freeze_only_during_burn: true
       force_after_warmup: true
       delay_adapt_until_after_warmup: true
       delay_laplace_refresh_until_after_warmup: true
+    latent_v:
+      enabled: true
+      freeze_burnin_iters: 50
+      freeze_only_during_burn: true
+      sparse_update_every: 10
+      sparse_update_until_iter: 500
+      force_first_postwarmup_update: true
+      trace: true
     vb_warm_start:
       method: LDVB
-      max_iter: 300
+      max_iter: 500
       min_iter_elbo: 80
       n_samp_xi: 1000
       sigmagam:
-        freeze_warmup_iters: 10
+        freeze_warmup_iters: 20
         force_after_warmup: true
-        postwarmup_damping: 0.5
-        postwarmup_damping_iters: 3
-        min_postwarmup_updates: 1
+        postwarmup_damping: 0.35
+        postwarmup_damping_iters: 10
+        min_postwarmup_updates: 3
 
 rescue_overlays:
   enabled: false
@@ -230,16 +238,16 @@ pipeline:
     likelihood_family: exal
     readout_scale: true
     vb:
-      max_iter: 300
+      max_iter: 500
       min_iter_elbo: 80
       n_samp_xi: 1000
       verbose: true
       sigmagam:
-        freeze_warmup_iters: 10
+        freeze_warmup_iters: 20
         force_after_warmup: true
-        postwarmup_damping: 0.5
-        postwarmup_damping_iters: 3
-        min_postwarmup_updates: 1
+        postwarmup_damping: 0.35
+        postwarmup_damping_iters: 10
+        min_postwarmup_updates: 3
       diagnostics:
         rhs_trace: true
         rhs_deep: false
@@ -251,11 +259,11 @@ pipeline:
         force_tau_after_warmup: true
       prior_overrides:
         ridge:
-          max_iter: 300
+          max_iter: 500
           min_iter_elbo: 80
           n_samp_xi: 1000
         rhs_ns:
-          max_iter: 300
+          max_iter: 500
           min_iter_elbo: 80
           n_samp_xi: 1000
           rhs:
@@ -295,16 +303,16 @@ pipeline:
       init_from_vb: true
       vb_warm_start_control:
         method: ldvb
-        max_iter: 300
+        max_iter: 500
         min_iter_elbo: 80
         n_samp_xi: 1000
         verbose: false
         sigmagam:
-          freeze_warmup_iters: 10
+          freeze_warmup_iters: 20
           force_after_warmup: true
-          postwarmup_damping: 0.5
-          postwarmup_damping_iters: 3
-          min_postwarmup_updates: 1
+          postwarmup_damping: 0.35
+          postwarmup_damping_iters: 10
+          min_postwarmup_updates: 3
         rhs_trace: true
         rhs_deep: false
         rhs:
@@ -331,11 +339,19 @@ pipeline:
           width_min: 0.02
           width_max: 1.8
       sigmagam:
-        freeze_burnin_iters: 50
+        freeze_burnin_iters: 500
         freeze_only_during_burn: true
         force_after_warmup: true
         delay_adapt_until_after_warmup: true
         delay_laplace_refresh_until_after_warmup: true
+      latent_v:
+        enabled: true
+        freeze_burnin_iters: 50
+        freeze_only_during_burn: true
+        sparse_update_every: 10
+        sparse_update_until_iter: 500
+        force_first_postwarmup_update: true
+        trace: true
       slice:
         core_update_mode: sigma_then_gamma
         width_gamma: 0.45

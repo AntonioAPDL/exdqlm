@@ -23,13 +23,39 @@ setwd(repo_root)
 
 phase <- match.arg(
   as.character(get_arg("--phase", "smoke"))[1L],
-  c("smoke", "vb", "mcmc_ridge", "mcmc_rhsns_tt500", "mcmc_rhsns_tt5000", "full")
+  c(
+    "smoke",
+    "vb",
+    "mcmc_ridge",
+    "mcmc_rhsns_tt500",
+    "mcmc_rhsns_tt5000",
+    "failed_mcmc_al",
+    "failed_mcmc_exal",
+    "remaining_failed_mcmc_al_v2_canary",
+    "remaining_failed_mcmc_exal_v2_canary",
+    "remaining_failed_mcmc_al_v2_residual",
+    "remaining_failed_mcmc_exal_v2_residual",
+    "remaining_failed_mcmc_al_v2",
+    "remaining_failed_mcmc_exal_v2",
+    "full"
+  )
 )
 
-defaults_path <- file.path(
-  "config",
-  "validation",
-  "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"
+phase_defaults_map <- list(
+  smoke = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  vb = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  mcmc_ridge = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  mcmc_rhsns_tt500 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  mcmc_rhsns_tt5000 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  failed_mcmc_al = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  failed_mcmc_exal = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  remaining_failed_mcmc_al_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_exal_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_al_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_exal_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_al_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_exal_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  full = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml")
 )
 phase_grid_map <- list(
   smoke = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_smoke_grid.csv"),
@@ -37,6 +63,14 @@ phase_grid_map <- list(
   mcmc_ridge = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_ridge_grid.csv"),
   mcmc_rhsns_tt500 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_rhsns_tt500_grid.csv"),
   mcmc_rhsns_tt5000 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_rhsns_tt5000_grid.csv"),
+  failed_mcmc_al = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_al_grid.csv"),
+  failed_mcmc_exal = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_exal_grid.csv"),
+  remaining_failed_mcmc_al_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v2_canary_grid.csv"),
+  remaining_failed_mcmc_exal_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v2_canary_grid.csv"),
+  remaining_failed_mcmc_al_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v2_residual_grid.csv"),
+  remaining_failed_mcmc_exal_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v2_residual_grid.csv"),
+  remaining_failed_mcmc_al_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v2_grid.csv"),
+  remaining_failed_mcmc_exal_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v2_grid.csv"),
   full = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.csv")
 )
 phase_methods_map <- list(
@@ -45,7 +79,31 @@ phase_methods_map <- list(
   mcmc_ridge = "mcmc",
   mcmc_rhsns_tt500 = "mcmc",
   mcmc_rhsns_tt5000 = "mcmc",
+  failed_mcmc_al = "mcmc",
+  failed_mcmc_exal = "mcmc",
+  remaining_failed_mcmc_al_v2_canary = "mcmc",
+  remaining_failed_mcmc_exal_v2_canary = "mcmc",
+  remaining_failed_mcmc_al_v2_residual = "mcmc",
+  remaining_failed_mcmc_exal_v2_residual = "mcmc",
+  remaining_failed_mcmc_al_v2 = "mcmc",
+  remaining_failed_mcmc_exal_v2 = "mcmc",
   full = "vb,mcmc"
+)
+phase_likelihoods_map <- list(
+  smoke = NULL,
+  vb = NULL,
+  mcmc_ridge = NULL,
+  mcmc_rhsns_tt500 = NULL,
+  mcmc_rhsns_tt5000 = NULL,
+  failed_mcmc_al = "al",
+  failed_mcmc_exal = "exal",
+  remaining_failed_mcmc_al_v2_canary = "al",
+  remaining_failed_mcmc_exal_v2_canary = "exal",
+  remaining_failed_mcmc_al_v2_residual = "al",
+  remaining_failed_mcmc_exal_v2_residual = "exal",
+  remaining_failed_mcmc_al_v2 = "al",
+  remaining_failed_mcmc_exal_v2 = "exal",
+  full = NULL
 )
 phase_workers_map <- list(
   smoke = 2L,
@@ -53,13 +111,51 @@ phase_workers_map <- list(
   mcmc_ridge = 3L,
   mcmc_rhsns_tt500 = 3L,
   mcmc_rhsns_tt5000 = 2L,
+  failed_mcmc_al = 3L,
+  failed_mcmc_exal = 3L,
+  remaining_failed_mcmc_al_v2_canary = 2L,
+  remaining_failed_mcmc_exal_v2_canary = 2L,
+  remaining_failed_mcmc_al_v2_residual = 3L,
+  remaining_failed_mcmc_exal_v2_residual = 3L,
+  remaining_failed_mcmc_al_v2 = 3L,
+  remaining_failed_mcmc_exal_v2 = 3L,
   full = 3L
 )
-phase_is_subset <- phase %in% c("smoke", "mcmc_ridge", "mcmc_rhsns_tt500", "mcmc_rhsns_tt5000")
+phase_is_subset <- phase %in% c(
+  "smoke",
+  "mcmc_ridge",
+  "mcmc_rhsns_tt500",
+  "mcmc_rhsns_tt5000",
+  "failed_mcmc_al",
+  "failed_mcmc_exal",
+  "remaining_failed_mcmc_al_v2_canary",
+  "remaining_failed_mcmc_exal_v2_canary",
+  "remaining_failed_mcmc_al_v2_residual",
+  "remaining_failed_mcmc_exal_v2_residual",
+  "remaining_failed_mcmc_al_v2",
+  "remaining_failed_mcmc_exal_v2"
+)
+phase_materializer_map <- list(
+  smoke = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  vb = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  mcmc_ridge = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  mcmc_rhsns_tt500 = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  mcmc_rhsns_tt5000 = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  failed_mcmc_al = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  failed_mcmc_exal = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  remaining_failed_mcmc_al_v2_canary = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_grids.R"),
+  remaining_failed_mcmc_exal_v2_canary = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_grids.R"),
+  remaining_failed_mcmc_al_v2_residual = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_grids.R"),
+  remaining_failed_mcmc_exal_v2_residual = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_grids.R"),
+  remaining_failed_mcmc_al_v2 = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_grids.R"),
+  remaining_failed_mcmc_exal_v2 = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_grids.R"),
+  full = file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R")
+)
 
+defaults_path <- phase_defaults_map[[phase]]
 materialize_status <- system2(
   "Rscript",
-  file.path("scripts", "materialize_qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.R"),
+  phase_materializer_map[[phase]],
   stdout = "",
   stderr = ""
 )
@@ -74,6 +170,7 @@ if (!is.finite(workers) || workers < 1L) {
 
 grid_path <- phase_grid_map[[phase]]
 methods_arg <- phase_methods_map[[phase]]
+likelihoods_arg <- phase_likelihoods_map[[phase]]
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 run_tag <- as.character(get_arg(
   "--run-tag",
@@ -88,6 +185,9 @@ child_args <- c(
   "--batch", "full",
   "--run-tag", run_tag
 )
+if (nzchar(trimws(as.character(likelihoods_arg %||% "")[1L]))) {
+  child_args <- c(child_args, "--likelihoods", as.character(likelihoods_arg)[1L])
+}
 if (has_flag("--prepare-only")) child_args <- c(child_args, "--prepare-only")
 if (has_flag("--refresh-grid")) child_args <- c(child_args, "--refresh-grid")
 if (isTRUE(phase_is_subset) || has_flag("--allow-grid-subset")) child_args <- c(child_args, "--allow-grid-subset")

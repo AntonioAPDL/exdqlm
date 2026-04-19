@@ -38,7 +38,10 @@ qdesn_rhs_ns_prior_obj <- function(
   control = list(
     n_inner = 2L,
     var_floor = 1e-16,
-    verbose = FALSE
+    verbose = FALSE,
+    freeze_tau_iters = 0L,
+    freeze_tau_warmup_iters = NULL,
+    force_tau_after_warmup = TRUE
   )
 ) {
   tau0 <- as.numeric(hypers$tau0 %||% 1.0)[1L]
@@ -69,6 +72,15 @@ qdesn_rhs_ns_prior_obj <- function(
   var_floor <- as.numeric(control$var_floor %||% 1e-16)[1L]
   if (!is.finite(var_floor) || var_floor <= 0) var_floor <- 1e-16
   verbose <- isTRUE(control$verbose %||% FALSE)
+  freeze_tau_iters <- suppressWarnings(as.integer(control$freeze_tau_iters %||% 0L))[1L]
+  if (!is.finite(freeze_tau_iters) || freeze_tau_iters < 0L) freeze_tau_iters <- 0L
+  freeze_tau_warmup_iters <- suppressWarnings(as.integer(
+    control$freeze_tau_warmup_iters %||% freeze_tau_iters
+  ))[1L]
+  if (!is.finite(freeze_tau_warmup_iters) || freeze_tau_warmup_iters < 0L) {
+    freeze_tau_warmup_iters <- freeze_tau_iters
+  }
+  force_tau_after_warmup <- if (is.null(control$force_tau_after_warmup)) TRUE else isTRUE(control$force_tau_after_warmup)
 
   list(
     type = "rhs_ns",
@@ -84,7 +96,10 @@ qdesn_rhs_ns_prior_obj <- function(
     control = list(
       n_inner = n_inner,
       var_floor = var_floor,
-      verbose = verbose
+      verbose = verbose,
+      freeze_tau_iters = freeze_tau_iters,
+      freeze_tau_warmup_iters = freeze_tau_warmup_iters,
+      force_tau_after_warmup = force_tau_after_warmup
     ),
 
     init = function(p) {
@@ -173,7 +188,14 @@ qdesn_rhs_ns_prior_obj <- function(
         E_inv_nu = e_inv_nu,
         E_inv_tau2 = e_inv_tau,
         E_inv_xi = e_inv_xi,
-        E_inv_zeta2 = e_inv_zeta
+        E_inv_zeta2 = e_inv_zeta,
+
+        iter = 0L,
+        freeze_tau = FALSE,
+        update_tau_only = FALSE,
+        tau_update_count = 0L,
+        has_post_warmup_tau_update = FALSE,
+        last_schedule = list()
       )
     },
 
@@ -210,6 +232,13 @@ qdesn_rhs_ns_prior_obj <- function(
       beta2 <- as.numeric(qbeta$m)^2 + diag(qbeta$V)
       active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept)
       m_active <- length(active_idx)
+      iter_now <- as.integer(state$iter %||% 0L) + 1L
+      tau_warmup <- isTRUE(freeze_tau_warmup_iters > 0L && iter_now <= freeze_tau_warmup_iters)
+      force_tau_now <- !tau_warmup &&
+        isTRUE(force_tau_after_warmup) &&
+        isTRUE(freeze_tau_warmup_iters > 0L) &&
+        !isTRUE(state$has_post_warmup_tau_update %||% FALSE)
+      tau_updated <- FALSE
 
       a_lambda <- as.numeric(state$a_lambda %||% rep(1.0, p))
       b_lambda <- pmax(as.numeric(state$b_lambda %||% rep(1.0, p)), var_floor)
@@ -237,11 +266,14 @@ qdesn_rhs_ns_prior_obj <- function(
           b_nu[active_idx] <- pmax(1.0 + e_inv_lambda[active_idx], var_floor)
           e_inv_nu <- a_nu / b_nu
 
-          e_inv_xi <- a_xi / b_xi
-          b_tau <- pmax(0.5 * sum(beta2[active_idx] * e_inv_lambda[active_idx]) + e_inv_xi, var_floor)
+          if (!isTRUE(tau_warmup)) {
+            e_inv_xi <- a_xi / b_xi
+            b_tau <- pmax(0.5 * sum(beta2[active_idx] * e_inv_lambda[active_idx]) + e_inv_xi, var_floor)
 
-          e_inv_tau <- a_tau / b_tau
-          b_xi <- pmax((1.0 / (tau0^2)) + e_inv_tau, var_floor)
+            e_inv_tau <- a_tau / b_tau
+            b_xi <- pmax((1.0 / (tau0^2)) + e_inv_tau, var_floor)
+            tau_updated <- TRUE
+          }
         }
       }
 
@@ -288,6 +320,20 @@ qdesn_rhs_ns_prior_obj <- function(
       state$E_inv_tau2 <- e_inv_tau
       state$E_inv_xi <- e_inv_xi
       state$E_inv_zeta2 <- e_inv_zeta
+      state$iter <- iter_now
+      state$freeze_tau <- isTRUE(tau_warmup)
+      state$update_tau_only <- FALSE
+      state$tau_update_count <- as.integer(state$tau_update_count %||% 0L) + if (tau_updated) 1L else 0L
+      state$has_post_warmup_tau_update <- isTRUE(
+        state$has_post_warmup_tau_update %||% FALSE
+      ) || isTRUE(tau_updated)
+      state$last_schedule <- list(
+        iter = iter_now,
+        tau_warmup = tau_warmup,
+        reason = if (tau_warmup) "warmup" else if (force_tau_now) "force_after_warmup" else "scheduled",
+        tau_updated = tau_updated,
+        tau_update_count = state$tau_update_count
+      )
 
       if (isTRUE(verbose)) {
         cat(sprintf(
