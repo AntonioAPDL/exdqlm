@@ -33,6 +33,8 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   theta_tau_defaults_path <- tempfile("theta_tau_", fileext = ".yaml")
   stau_defaults_path <- tempfile("stau_", fileext = ".yaml")
   theta_tau_rescue_defaults_path <- tempfile("theta_tau_rescue_", fileext = ".yaml")
+  triad_tau_only_defaults_path <- tempfile("triad_tau_only_", fileext = ".yaml")
+  triad_theta_tau_defaults_path <- tempfile("triad_theta_tau_", fileext = ".yaml")
 
   output <- system2(
     "Rscript",
@@ -47,7 +49,9 @@ test_that("single-root probe materializer writes reproducible grids and defaults
       "--tau-only-defaults-output", tau_only_defaults_path,
       "--theta-tau-defaults-output", theta_tau_defaults_path,
       "--stau-defaults-output", stau_defaults_path,
-      "--theta-tau-rescue-defaults-output", theta_tau_rescue_defaults_path
+      "--theta-tau-rescue-defaults-output", theta_tau_rescue_defaults_path,
+      "--triad-tau-only-defaults-output", triad_tau_only_defaults_path,
+      "--triad-theta-tau-defaults-output", triad_theta_tau_defaults_path
     ),
     stdout = TRUE,
     stderr = TRUE
@@ -77,6 +81,10 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   theta_tau <- build_single_root_probe_cfg(theta_tau_defaults_path, primary_exal_grid_path)
   stau <- build_single_root_probe_cfg(stau_defaults_path, primary_exal_grid_path)
   theta_tau_rescue <- build_single_root_probe_cfg(theta_tau_rescue_defaults_path, primary_exal_grid_path)
+  triad_tau_only_exal <- build_single_root_probe_cfg(triad_tau_only_defaults_path, triad_exal_grid_path)
+  triad_tau_only_al <- build_single_root_probe_cfg(triad_tau_only_defaults_path, triad_al_grid_path, likelihood_family = "al")
+  triad_theta_tau_exal <- build_single_root_probe_cfg(triad_theta_tau_defaults_path, triad_exal_grid_path)
+  triad_theta_tau_al <- build_single_root_probe_cfg(triad_theta_tau_defaults_path, triad_al_grid_path, likelihood_family = "al")
 
   expect_identical(as.integer(tau_only$defaults$pipeline$inference$vb$rhs$freeze_tau_iters), 50L)
   expect_identical(as.integer(tau_only$defaults$pipeline$inference$vb$rhs$freeze_tau_warmup_iters), 50L)
@@ -105,4 +113,24 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   expect_identical(as.character(theta_tau_rescue$cfg$inference$mcmc$latent_v$rescue_strategy), "previous_state")
   expect_identical(as.integer(theta_tau_rescue$cfg$inference$mcmc$latent_v$rescue_max_consecutive), 1L)
   expect_false(isTRUE(theta_tau_rescue$cfg$inference$mcmc$latent_v$rescue_burn_only))
+
+  expect_identical(as.integer(nrow(triad_tau_only_exal$grid)), 2L)
+  expect_identical(as.integer(nrow(triad_tau_only_al$grid)), 1L)
+  expect_identical(
+    as.character(triad_tau_only_exal$defaults$campaign$name),
+    "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_tau_only_validation"
+  )
+  expect_false(isTRUE(triad_tau_only_exal$cfg$inference$mcmc$theta$enabled))
+  expect_identical(as.integer(triad_tau_only_exal$cfg$inference$mcmc$rhs$freeze_tau_burnin_iters), 500L)
+  expect_false(isTRUE(triad_tau_only_al$cfg$inference$mcmc$theta$enabled))
+
+  expect_identical(as.integer(nrow(triad_theta_tau_exal$grid)), 2L)
+  expect_identical(as.integer(nrow(triad_theta_tau_al$grid)), 1L)
+  expect_identical(
+    as.character(triad_theta_tau_exal$defaults$campaign$name),
+    "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_theta_tau_validation"
+  )
+  expect_true(isTRUE(triad_theta_tau_exal$cfg$inference$mcmc$theta$enabled))
+  expect_identical(as.integer(triad_theta_tau_exal$cfg$inference$mcmc$theta$freeze_burnin_iters), 50L)
+  expect_true(isTRUE(triad_theta_tau_al$cfg$inference$mcmc$theta$enabled))
 })

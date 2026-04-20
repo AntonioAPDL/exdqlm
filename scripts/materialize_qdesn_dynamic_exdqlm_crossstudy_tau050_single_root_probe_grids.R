@@ -139,6 +139,20 @@ theta_tau_rescue_defaults_output_path <- resolve_path(
   ),
   must_work = FALSE
 )
+triad_tau_only_defaults_output_path <- resolve_path(
+  get_arg(
+    "--triad-tau-only-defaults-output",
+    file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_tau_only_defaults.yaml")
+  ),
+  must_work = FALSE
+)
+triad_theta_tau_defaults_output_path <- resolve_path(
+  get_arg(
+    "--triad-theta-tau-defaults-output",
+    file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_theta_tau_defaults.yaml")
+  ),
+  must_work = FALSE
+)
 
 al_grid <- utils::read.csv(al_source_path, stringsAsFactors = FALSE)
 exal_grid <- utils::read.csv(exal_source_path, stringsAsFactors = FALSE)
@@ -342,6 +356,35 @@ write_yaml_doc(theta_tau_doc, theta_tau_defaults_output_path)
 write_yaml_doc(stau_doc, stau_defaults_output_path)
 write_yaml_doc(theta_tau_rescue_doc, theta_tau_rescue_defaults_output_path)
 
+triad_tau_only_doc <- tau_only_doc
+triad_tau_only_doc <- set_campaign_common(
+  triad_tau_only_doc,
+  campaign_name = "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_tau_only_validation",
+  study_id = "tau050_representative_triad_tau_only",
+  description = paste(
+    "Representative-triad promotion lane for the tau050 crash-recovery program.",
+    "This arm promotes the tau-only stabilization baseline onto the EXAL prior",
+    "comparator pair plus the AL rhs_ns comparator."
+  ),
+  vb_profile_id = "qdesn_ldvb_representative_triad_tau_only"
+)
+
+triad_theta_tau_doc <- theta_tau_doc
+triad_theta_tau_doc <- set_campaign_common(
+  triad_theta_tau_doc,
+  campaign_name = "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_theta_tau_validation",
+  study_id = "tau050_representative_triad_theta_tau",
+  description = paste(
+    "Representative-triad promotion lane for the tau050 crash-recovery program.",
+    "This arm promotes the theta-plus-tau stabilization candidate onto the",
+    "EXAL prior comparator pair plus the AL rhs_ns comparator."
+  ),
+  vb_profile_id = "qdesn_ldvb_representative_triad_theta_tau"
+)
+
+write_yaml_doc(triad_tau_only_doc, triad_tau_only_defaults_output_path)
+write_yaml_doc(triad_theta_tau_doc, triad_theta_tau_defaults_output_path)
+
 cat(sprintf("source_al_grid=%s\n", al_source_path))
 cat(sprintf("source_exal_grid=%s\n", exal_source_path))
 cat(sprintf("primary_exal_output=%s\n", primary_exal_output_path))
@@ -360,3 +403,5 @@ cat(sprintf("tau_only_defaults_output=%s\n", tau_only_defaults_output_path))
 cat(sprintf("theta_tau_defaults_output=%s\n", theta_tau_defaults_output_path))
 cat(sprintf("stau_defaults_output=%s\n", stau_defaults_output_path))
 cat(sprintf("theta_tau_rescue_defaults_output=%s\n", theta_tau_rescue_defaults_output_path))
+cat(sprintf("triad_tau_only_defaults_output=%s\n", triad_tau_only_defaults_output_path))
+cat(sprintf("triad_theta_tau_defaults_output=%s\n", triad_theta_tau_defaults_output_path))
