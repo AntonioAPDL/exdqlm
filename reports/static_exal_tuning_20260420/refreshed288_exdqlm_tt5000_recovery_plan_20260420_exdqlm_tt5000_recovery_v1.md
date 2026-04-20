@@ -48,3 +48,9 @@
 3. The remaining seven exdqlm TT5000 rows only inherit `arm D` after both confirmatory checks stay acceptable.
 4. This relaunch does not reopen the `dqlm` TT5000 or init-blocked `11,12` tracks.
 
+## Operational Launch Profile
+
+1. `row 8 / arm D` runs first by itself.
+2. The two `row 16` confirmatory arms then run in parallel.
+3. The remaining seven spread rows use a larger worker pool only after the confirmations finish.
+
