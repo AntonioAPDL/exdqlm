@@ -27,6 +27,25 @@ resolve_path <- function(path, must_work = TRUE) {
   normalizePath(raw, winslash = "/", mustWork = isTRUE(must_work))
 }
 
+tmux_session_exists <- function(session_name) {
+  identical(
+    suppressWarnings(system2("tmux", c("has-session", "-t", session_name), stdout = NULL, stderr = NULL)),
+    0L
+  )
+}
+
+make_tmux_session_name <- function(prefix = "qdesn_dynx", max_attempts = 100L) {
+  stamp <- gsub("[^0-9]", "", format(Sys.time(), "%m%d_%H%M%OS3"))
+  pid_part <- as.integer(Sys.getpid()) %% 100000L
+  base <- sprintf("%s_%s_%05d", prefix, stamp, pid_part)
+  if (!tmux_session_exists(base)) return(base)
+  for (idx in seq_len(max_attempts)) {
+    candidate <- sprintf("%s_%02d", base, idx)
+    if (!tmux_session_exists(candidate)) return(candidate)
+  }
+  stop("Unable to allocate a unique tmux session name for the detached dynamic cross-study launcher.", call. = FALSE)
+}
+
 if (!nzchar(Sys.which("tmux"))) {
   stop("tmux is required for the detached dynamic cross-study launcher.", call. = FALSE)
 }
@@ -56,10 +75,12 @@ run_report_root <- file.path(base_report_root, run_tag)
 launch_root <- file.path(run_report_root, "launch")
 dir.create(launch_root, recursive = TRUE, showWarnings = FALSE)
 
-session_name <- as.character(get_arg(
-  "--tmux-session",
-  sprintf("qdesn_dynx_%s", format(Sys.time(), "%m%d_%H%M%S"))
-))[1L]
+requested_session_name <- as.character(get_arg("--tmux-session", ""))[1L]
+session_name <- if (nzchar(trimws(requested_session_name))) {
+  requested_session_name
+} else {
+  make_tmux_session_name()
+}
 launcher_log <- file.path(launch_root, "launcher_stdout.log")
 launcher_pid_path <- file.path(launch_root, "launcher_shell.pid")
 launcher_meta_path <- file.path(launch_root, "launcher_session.json")
@@ -93,7 +114,7 @@ if (!identical(as.integer(launch_status), 0L)) {
 }
 
 Sys.sleep(1)
-session_ok <- identical(suppressWarnings(system2("tmux", c("has-session", "-t", session_name))), 0L)
+session_ok <- tmux_session_exists(session_name)
 if (!isTRUE(session_ok)) {
   stop(sprintf("Detached tmux session '%s' did not remain alive after launch.", session_name), call. = FALSE)
 }
