@@ -662,6 +662,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
 .qdesn_validation_write_df <- function(df, path) {
   .qdesn_validation_dir_create(dirname(path))
+  if (!ncol(df)) {
+    invisible(file.create(path))
+    return(invisible(path))
+  }
   utils::write.csv(df, path, row.names = FALSE)
   invisible(path)
 }

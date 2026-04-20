@@ -2080,12 +2080,28 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
   )
 }
 
+.qdesn_static_crossstudy_read_table_safe <- function(path) {
+  if (!file.exists(path)) return(NULL)
+  info <- file.info(path)
+  if (!is.finite(info$size) || info$size <= 0) return(NULL)
+  preview <- readLines(path, n = 5L, warn = FALSE)
+  preview <- trimws(preview)
+  preview <- preview[nzchar(preview)]
+  if (!length(preview) || all(preview == "\"\"")) return(NULL)
+  tryCatch(
+    utils::read.csv(path, stringsAsFactors = FALSE),
+    error = function(err) {
+      if (grepl("first five rows are empty", conditionMessage(err), fixed = TRUE)) return(NULL)
+      stop(err)
+    }
+  )
+}
+
 .qdesn_static_crossstudy_collect_root_tables <- function(root_dirs, file_name) {
   rows <- list()
   for (root_dir in root_dirs) {
     path <- file.path(root_dir, "tables", file_name)
-    if (!file.exists(path)) next
-    rows[[length(rows) + 1L]] <- utils::read.csv(path, stringsAsFactors = FALSE)
+    rows[[length(rows) + 1L]] <- .qdesn_static_crossstudy_read_table_safe(path)
   }
   .qdesn_validation_bind_rows(rows)
 }

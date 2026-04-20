@@ -29,12 +29,15 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   al_ridge_grid_path <- tempfile("al_ridge_", fileext = ".csv")
   triad_exal_grid_path <- tempfile("triad_exal_", fileext = ".csv")
   triad_al_grid_path <- tempfile("triad_al_", fileext = ".csv")
+  completion_exal_grid_path <- tempfile("completion_exal_", fileext = ".csv")
   tau_only_defaults_path <- tempfile("tau_only_", fileext = ".yaml")
   theta_tau_defaults_path <- tempfile("theta_tau_", fileext = ".yaml")
   stau_defaults_path <- tempfile("stau_", fileext = ".yaml")
   theta_tau_rescue_defaults_path <- tempfile("theta_tau_rescue_", fileext = ".yaml")
   triad_tau_only_defaults_path <- tempfile("triad_tau_only_", fileext = ".yaml")
   triad_theta_tau_defaults_path <- tempfile("triad_theta_tau_", fileext = ".yaml")
+  completion_tau_only_defaults_path <- tempfile("completion_tau_only_", fileext = ".yaml")
+  completion_theta_tau_defaults_path <- tempfile("completion_theta_tau_", fileext = ".yaml")
 
   output <- system2(
     "Rscript",
@@ -46,12 +49,15 @@ test_that("single-root probe materializer writes reproducible grids and defaults
       "--al-ridge-output", al_ridge_grid_path,
       "--triad-exal-output", triad_exal_grid_path,
       "--triad-al-output", triad_al_grid_path,
+      "--completion-exal-output", completion_exal_grid_path,
       "--tau-only-defaults-output", tau_only_defaults_path,
       "--theta-tau-defaults-output", theta_tau_defaults_path,
       "--stau-defaults-output", stau_defaults_path,
       "--theta-tau-rescue-defaults-output", theta_tau_rescue_defaults_path,
       "--triad-tau-only-defaults-output", triad_tau_only_defaults_path,
-      "--triad-theta-tau-defaults-output", triad_theta_tau_defaults_path
+      "--triad-theta-tau-defaults-output", triad_theta_tau_defaults_path,
+      "--completion-tau-only-defaults-output", completion_tau_only_defaults_path,
+      "--completion-theta-tau-defaults-output", completion_theta_tau_defaults_path
     ),
     stdout = TRUE,
     stderr = TRUE
@@ -65,6 +71,7 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   al_ridge_grid <- utils::read.csv(al_ridge_grid_path, stringsAsFactors = FALSE)
   triad_exal_grid <- utils::read.csv(triad_exal_grid_path, stringsAsFactors = FALSE)
   triad_al_grid <- utils::read.csv(triad_al_grid_path, stringsAsFactors = FALSE)
+  completion_exal_grid <- utils::read.csv(completion_exal_grid_path, stringsAsFactors = FALSE)
 
   expect_identical(nrow(primary_exal_grid), 1L)
   expect_identical(nrow(exal_ridge_grid), 1L)
@@ -72,6 +79,7 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   expect_identical(nrow(al_ridge_grid), 1L)
   expect_identical(nrow(triad_exal_grid), 2L)
   expect_identical(nrow(triad_al_grid), 1L)
+  expect_identical(nrow(completion_exal_grid), 1L)
   expect_identical(
     as.character(primary_exal_grid$root_id[[1L]]),
     "root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_rhs_ns"
@@ -85,6 +93,8 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   triad_tau_only_al <- build_single_root_probe_cfg(triad_tau_only_defaults_path, triad_al_grid_path, likelihood_family = "al")
   triad_theta_tau_exal <- build_single_root_probe_cfg(triad_theta_tau_defaults_path, triad_exal_grid_path)
   triad_theta_tau_al <- build_single_root_probe_cfg(triad_theta_tau_defaults_path, triad_al_grid_path, likelihood_family = "al")
+  completion_tau_only_exal <- build_single_root_probe_cfg(completion_tau_only_defaults_path, completion_exal_grid_path)
+  completion_theta_tau_exal <- build_single_root_probe_cfg(completion_theta_tau_defaults_path, completion_exal_grid_path)
 
   expect_identical(as.integer(tau_only$defaults$pipeline$inference$vb$rhs$freeze_tau_iters), 50L)
   expect_identical(as.integer(tau_only$defaults$pipeline$inference$vb$rhs$freeze_tau_warmup_iters), 50L)
@@ -133,4 +143,15 @@ test_that("single-root probe materializer writes reproducible grids and defaults
   expect_true(isTRUE(triad_theta_tau_exal$cfg$inference$mcmc$theta$enabled))
   expect_identical(as.integer(triad_theta_tau_exal$cfg$inference$mcmc$theta$freeze_burnin_iters), 50L)
   expect_true(isTRUE(triad_theta_tau_al$cfg$inference$mcmc$theta$enabled))
+
+  expect_identical(
+    as.character(completion_tau_only_exal$defaults$campaign$name),
+    "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_tau_only_validation"
+  )
+  expect_false(isTRUE(completion_tau_only_exal$cfg$inference$mcmc$theta$enabled))
+  expect_identical(
+    as.character(completion_theta_tau_exal$defaults$campaign$name),
+    "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_theta_tau_validation"
+  )
+  expect_true(isTRUE(completion_theta_tau_exal$cfg$inference$mcmc$theta$enabled))
 })

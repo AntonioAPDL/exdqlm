@@ -111,6 +111,13 @@ triad_al_output_path <- resolve_path(
   ),
   must_work = FALSE
 )
+completion_exal_output_path <- resolve_path(
+  get_arg(
+    "--completion-exal-output",
+    file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_ridge_grid.csv")
+  ),
+  must_work = FALSE
+)
 tau_only_defaults_output_path <- resolve_path(
   get_arg(
     "--tau-only-defaults-output",
@@ -150,6 +157,20 @@ triad_theta_tau_defaults_output_path <- resolve_path(
   get_arg(
     "--triad-theta-tau-defaults-output",
     file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_theta_tau_defaults.yaml")
+  ),
+  must_work = FALSE
+)
+completion_tau_only_defaults_output_path <- resolve_path(
+  get_arg(
+    "--completion-tau-only-defaults-output",
+    file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_tau_only_defaults.yaml")
+  ),
+  must_work = FALSE
+)
+completion_theta_tau_defaults_output_path <- resolve_path(
+  get_arg(
+    "--completion-theta-tau-defaults-output",
+    file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_theta_tau_defaults.yaml")
   ),
   must_work = FALSE
 )
@@ -197,6 +218,12 @@ triad_al_grid <- subset_and_write(
   comparator_al_rhsns_root_id,
   triad_al_output_path,
   "AL triad"
+)
+completion_exal_grid <- subset_and_write(
+  exal_grid,
+  comparator_exal_ridge_root_id,
+  completion_exal_output_path,
+  "EXAL completion"
 )
 
 theta_base_path <- resolve_path(
@@ -385,6 +412,37 @@ triad_theta_tau_doc <- set_campaign_common(
 write_yaml_doc(triad_tau_only_doc, triad_tau_only_defaults_output_path)
 write_yaml_doc(triad_theta_tau_doc, triad_theta_tau_defaults_output_path)
 
+completion_tau_only_doc <- tau_only_doc
+completion_tau_only_doc <- set_campaign_common(
+  completion_tau_only_doc,
+  campaign_name = "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_tau_only_validation",
+  study_id = "tau050_representative_completion_exal_tau_only",
+  description = paste(
+    "Representative completion lane for the tau050 crash-recovery program.",
+    "This arm resumes the missing EXAL ridge comparison under the tau-only",
+    "stabilization baseline after the triad wave was interrupted by the",
+    "campaign collector bug."
+  ),
+  vb_profile_id = "qdesn_ldvb_representative_completion_exal_tau_only"
+)
+
+completion_theta_tau_doc <- theta_tau_doc
+completion_theta_tau_doc <- set_campaign_common(
+  completion_theta_tau_doc,
+  campaign_name = "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_theta_tau_validation",
+  study_id = "tau050_representative_completion_exal_theta_tau",
+  description = paste(
+    "Representative completion lane for the tau050 crash-recovery program.",
+    "This arm resumes the missing EXAL ridge comparison under the theta-plus-",
+    "tau stabilization candidate after the triad wave was interrupted by the",
+    "campaign collector bug."
+  ),
+  vb_profile_id = "qdesn_ldvb_representative_completion_exal_theta_tau"
+)
+
+write_yaml_doc(completion_tau_only_doc, completion_tau_only_defaults_output_path)
+write_yaml_doc(completion_theta_tau_doc, completion_theta_tau_defaults_output_path)
+
 cat(sprintf("source_al_grid=%s\n", al_source_path))
 cat(sprintf("source_exal_grid=%s\n", exal_source_path))
 cat(sprintf("primary_exal_output=%s\n", primary_exal_output_path))
@@ -399,9 +457,13 @@ cat(sprintf("triad_exal_output=%s\n", triad_exal_output_path))
 cat(sprintf("triad_exal_roots=%d\n", nrow(triad_exal_grid)))
 cat(sprintf("triad_al_output=%s\n", triad_al_output_path))
 cat(sprintf("triad_al_roots=%d\n", nrow(triad_al_grid)))
+cat(sprintf("completion_exal_output=%s\n", completion_exal_output_path))
+cat(sprintf("completion_exal_roots=%d\n", nrow(completion_exal_grid)))
 cat(sprintf("tau_only_defaults_output=%s\n", tau_only_defaults_output_path))
 cat(sprintf("theta_tau_defaults_output=%s\n", theta_tau_defaults_output_path))
 cat(sprintf("stau_defaults_output=%s\n", stau_defaults_output_path))
 cat(sprintf("theta_tau_rescue_defaults_output=%s\n", theta_tau_rescue_defaults_output_path))
 cat(sprintf("triad_tau_only_defaults_output=%s\n", triad_tau_only_defaults_output_path))
 cat(sprintf("triad_theta_tau_defaults_output=%s\n", triad_theta_tau_defaults_output_path))
+cat(sprintf("completion_tau_only_defaults_output=%s\n", completion_tau_only_defaults_output_path))
+cat(sprintf("completion_theta_tau_defaults_output=%s\n", completion_theta_tau_defaults_output_path))
