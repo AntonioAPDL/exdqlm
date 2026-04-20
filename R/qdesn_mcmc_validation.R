@@ -750,10 +750,43 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   base
 }
 
+.qdesn_validation_append_precision_beta_failure_fields <- function(base, precision_beta_failure = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  failure <- precision_beta_failure %||% list()
+
+  base$mcmc_failure_family <- as.character(failure$failure_family %||% base$mcmc_failure_family %||% NA_character_)[1L]
+  base$mcmc_failure_iteration <- as.integer(failure$iteration %||% base$mcmc_failure_iteration %||% NA_integer_)[1L]
+  base$mcmc_failure_phase <- as.character(failure$phase %||% base$mcmc_failure_phase %||% NA_character_)[1L]
+  base$mcmc_failure_sigma <- as.numeric(failure$sigma %||% base$mcmc_failure_sigma %||% NA_real_)[1L]
+  base$mcmc_failure_gamma <- as.numeric(failure$gamma %||% base$mcmc_failure_gamma %||% NA_real_)[1L]
+  base$mcmc_failure_tau <- as.numeric(failure$tau %||% base$mcmc_failure_tau %||% NA_real_)[1L]
+  base$mcmc_failure_c2 <- as.numeric(failure$c2 %||% base$mcmc_failure_c2 %||% NA_real_)[1L]
+  base$mcmc_failure_beta_norm <- as.numeric(failure$beta_norm %||% base$mcmc_failure_beta_norm %||% NA_real_)[1L]
+  base$mcmc_failure_theta_update_reason <- as.character(failure$theta_update_reason %||% base$mcmc_failure_theta_update_reason %||% NA_character_)[1L]
+  base$mcmc_failure_precision_strategy <- as.character(failure$precision_strategy %||% NA_character_)[1L]
+  base$mcmc_failure_precision_attempt_count <- as.integer(failure$precision_attempt_count %||% NA_integer_)[1L]
+  base$mcmc_failure_precision_jitter_used <- as.numeric(failure$precision_jitter_used %||% NA_real_)[1L]
+  base$mcmc_failure_precision_max_jitter_tried <- as.numeric(failure$precision_max_jitter_tried %||% NA_real_)[1L]
+  base$mcmc_failure_precision_eigen_attempted <- if (is.null(failure$precision_eigen_attempted)) NA else isTRUE(failure$precision_eigen_attempted)
+  base$mcmc_failure_precision_eigen_floor <- as.numeric(failure$precision_eigen_floor %||% NA_real_)[1L]
+  base$mcmc_failure_precision_min_eigen <- as.numeric(failure$precision_min_eigen %||% NA_real_)[1L]
+  base$mcmc_failure_precision_matrix_dim <- as.integer(failure$precision_matrix_dim %||% NA_integer_)[1L]
+  base$mcmc_failure_precision_diag_min <- as.numeric(failure$precision_diag_min %||% NA_real_)[1L]
+  base$mcmc_failure_precision_diag_mean <- as.numeric(failure$precision_diag_mean %||% NA_real_)[1L]
+  base$mcmc_failure_precision_diag_max <- as.numeric(failure$precision_diag_max %||% NA_real_)[1L]
+  base$mcmc_failure_precision_symmetry_max_abs_diff <- as.numeric(failure$precision_symmetry_max_abs_diff %||% NA_real_)[1L]
+  base$mcmc_failure_conditioning_mode <- as.character(failure$conditioning_mode %||% NA_character_)[1L]
+  base$mcmc_failure_core_update_mode <- as.character(failure$core_update_mode %||% NA_character_)[1L]
+  base
+}
+
 .qdesn_validation_extract_error_payload <- function(err = NULL, log_lines = NULL) {
   out <- list()
   if (!is.null(err) && !is.null(err$latent_v_failure)) {
     out$latent_v_failure <- err$latent_v_failure
+  }
+  if (!is.null(err) && !is.null(err$precision_beta_failure)) {
+    out$precision_beta_failure <- err$precision_beta_failure
   }
   if (!length(out)) {
     lines <- as.character(log_lines %||% character(0))
@@ -762,6 +795,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       json_line <- sub("^QDESN_LATENT_V_FAILURE_JSON=", "", lines[max(marker_idx)])
       parsed <- tryCatch(jsonlite::fromJSON(json_line, simplifyVector = FALSE), error = function(...) NULL)
       if (is.list(parsed)) out$latent_v_failure <- parsed
+    }
+    marker_idx <- grep("^QDESN_PRECISION_BETA_FAILURE_JSON=", lines)
+    if (length(marker_idx)) {
+      json_line <- sub("^QDESN_PRECISION_BETA_FAILURE_JSON=", "", lines[max(marker_idx)])
+      parsed <- tryCatch(jsonlite::fromJSON(json_line, simplifyVector = FALSE), error = function(...) NULL)
+      if (is.list(parsed)) out$precision_beta_failure <- parsed
     }
   }
   out
@@ -830,7 +869,8 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     mcmc_theta_sparse_hold_burn_rate = NA_real_,
     stringsAsFactors = FALSE
   )
-  .qdesn_validation_append_latent_v_failure_fields(base, (error_payload %||% list())$latent_v_failure %||% NULL)
+  base <- .qdesn_validation_append_latent_v_failure_fields(base, (error_payload %||% list())$latent_v_failure %||% NULL)
+  .qdesn_validation_append_precision_beta_failure_fields(base, (error_payload %||% list())$precision_beta_failure %||% NULL)
 }
 
 .qdesn_validation_method_health <- function(method, root_spec, summary_obj) {
@@ -1024,6 +1064,17 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$mcmc_conditioning_work_kappa <- as.numeric((fit$diagnostics$conditioning %||% list())$conditioned_condition_kappa %||% NA_real_)
     base$mcmc_conditioning_gain_ratio <- as.numeric((fit$diagnostics$conditioning %||% list())$condition_gain_ratio %||% NA_real_)
     base$mcmc_conditioning_scaled_columns_n <- as.integer((fit$diagnostics$conditioning %||% list())$scaled_columns_n %||% NA_integer_)
+    base$mcmc_precision_beta_enabled <- isTRUE((fit$diagnostics$precision_beta %||% list())$enabled %||% FALSE)
+    base$mcmc_precision_beta_symmetrize <- isTRUE((fit$diagnostics$precision_beta %||% list())$symmetrize %||% FALSE)
+    base$mcmc_precision_beta_eigen_fallback <- isTRUE((fit$diagnostics$precision_beta %||% list())$eigen_fallback %||% FALSE)
+    base$mcmc_precision_beta_jitter_ladder_max <- suppressWarnings(max(as.numeric((fit$diagnostics$precision_beta %||% list())$jitter_ladder %||% NA_real_), na.rm = TRUE))
+    if (!is.finite(base$mcmc_precision_beta_jitter_ladder_max)) base$mcmc_precision_beta_jitter_ladder_max <- NA_real_
+    base$mcmc_precision_beta_direct_successes <- as.integer((fit$diagnostics$precision_beta %||% list())$direct_successes %||% NA_integer_)
+    base$mcmc_precision_beta_jitter_successes <- as.integer((fit$diagnostics$precision_beta %||% list())$jitter_successes %||% NA_integer_)
+    base$mcmc_precision_beta_eigen_successes <- as.integer((fit$diagnostics$precision_beta %||% list())$eigen_successes %||% NA_integer_)
+    base$mcmc_precision_beta_rescue_count <- as.integer((fit$diagnostics$precision_beta %||% list())$rescue_count %||% NA_integer_)
+    base$mcmc_precision_beta_first_rescue_iter <- as.integer((fit$diagnostics$precision_beta %||% list())$first_rescue_iter %||% NA_integer_)
+    base$mcmc_precision_beta_max_jitter_used <- as.numeric((fit$diagnostics$precision_beta %||% list())$max_jitter_used %||% NA_real_)
     base$mcmc_latent_v_warmup_iters <- as.integer((fit$diagnostics$latent_v %||% list())$freeze_burnin_iters %||% NA_integer_)
     base$mcmc_latent_v_sparse_update_every <- as.integer((fit$diagnostics$latent_v %||% list())$sparse_update_every %||% NA_integer_)
     base$mcmc_latent_v_sparse_update_until_iter <- as.integer((fit$diagnostics$latent_v %||% list())$sparse_update_until_iter %||% NA_integer_)

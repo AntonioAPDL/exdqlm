@@ -151,6 +151,15 @@
       intercept_column = 1L,
       constant_tol = 1e-12
     ),
+    precision_beta = list(
+      enabled = FALSE,
+      symmetrize = TRUE,
+      jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4),
+      eigen_fallback = FALSE,
+      eigen_floor_abs = 1e-6,
+      eigen_floor_rel = 1e-8,
+      trace = TRUE
+    ),
     rhs = list(
       freeze_tau_burnin_iters = 0L,
       freeze_tau_only_during_burn = TRUE,
@@ -434,6 +443,49 @@
     sparse_update_until_iter = sparse_update_until_iter,
     force_first_postwarmup_update = if (is.null(theta_cfg$force_first_postwarmup_update)) TRUE else isTRUE(theta_cfg$force_first_postwarmup_update),
     trace = if (is.null(theta_cfg$trace)) TRUE else isTRUE(theta_cfg$trace)
+  )
+}
+
+.exal_normalize_mcmc_precision_beta_cfg <- function(precision_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  precision_cfg <- .exal_list_or_empty(precision_cfg)
+
+  enabled <- if (is.null(precision_cfg$enabled)) {
+    isTRUE(precision_cfg$repair) || isTRUE(precision_cfg$eigen_fallback)
+  } else {
+    isTRUE(precision_cfg$enabled)
+  }
+
+  jitter_ladder <- precision_cfg$jitter_ladder %||%
+    precision_cfg$ridge_ladder %||%
+    c(0, 1e-10, 1e-8, 1e-6, 1e-4)
+  jitter_ladder <- suppressWarnings(as.numeric(jitter_ladder))
+  jitter_ladder <- jitter_ladder[is.finite(jitter_ladder) & jitter_ladder >= 0]
+  if (!length(jitter_ladder)) jitter_ladder <- c(0, 1e-10, 1e-8, 1e-6, 1e-4)
+  jitter_ladder <- unique(jitter_ladder)
+
+  eigen_floor_abs <- as.numeric(
+    precision_cfg$eigen_floor_abs %||%
+      precision_cfg$eigen_floor %||%
+      1e-6
+  )[1L]
+  if (!is.finite(eigen_floor_abs) || eigen_floor_abs <= 0) eigen_floor_abs <- 1e-6
+
+  eigen_floor_rel <- as.numeric(
+    precision_cfg$eigen_floor_rel %||%
+      precision_cfg$relative_eigen_floor %||%
+      1e-8
+  )[1L]
+  if (!is.finite(eigen_floor_rel) || eigen_floor_rel <= 0) eigen_floor_rel <- 1e-8
+
+  list(
+    enabled = isTRUE(enabled),
+    symmetrize = if (is.null(precision_cfg$symmetrize)) TRUE else isTRUE(precision_cfg$symmetrize),
+    jitter_ladder = as.numeric(jitter_ladder),
+    eigen_fallback = if (is.null(precision_cfg$eigen_fallback)) FALSE else isTRUE(precision_cfg$eigen_fallback),
+    eigen_floor_abs = eigen_floor_abs,
+    eigen_floor_rel = eigen_floor_rel,
+    trace = if (is.null(precision_cfg$trace)) TRUE else isTRUE(precision_cfg$trace)
   )
 }
 
@@ -861,6 +913,9 @@
   if (!is.null(mcmc_cfg$conditioning) && is.list(mcmc_cfg$conditioning)) {
     control$conditioning <- modifyList(control$conditioning %||% list(), mcmc_cfg$conditioning)
   }
+  control$precision_beta <- .exal_normalize_mcmc_precision_beta_cfg(
+    mcmc_cfg$precision_beta %||% mcmc_cfg$precision %||% control$precision_beta %||% list()
+  )
   if (!is.null(mcmc_cfg$multi_start) && is.list(mcmc_cfg$multi_start)) {
     control$multi_start <- modifyList(control$multi_start %||% list(), mcmc_cfg$multi_start)
   }

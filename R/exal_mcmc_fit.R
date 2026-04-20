@@ -14,11 +14,48 @@
 #' beta block; the delta-method approximation remains a VB-only moment device.
 #'
 #' @keywords internal
-.exal_mcmc_sample_mvnorm_prec <- function(rhs, Prec) {
-  Uc <- tryCatch(chol(Prec), error = function(e) NULL)
-  if (is.null(Uc)) Uc <- chol(Prec + 1e-10 * diag(nrow(Prec)))
+.exal_mcmc_sample_mvnorm_prec <- function(rhs, Prec, precision_beta_cfg = list(), context = list()) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  rhs <- as.numeric(rhs)
+  Prec <- as.matrix(Prec)
+  storage.mode(Prec) <- "double"
+  p <- nrow(Prec)
+
+  precision_beta_cfg <- precision_beta_cfg %||% list()
+  enabled <- isTRUE(precision_beta_cfg$enabled %||% FALSE)
+  symmetrize <- if (enabled) isTRUE(precision_beta_cfg$symmetrize %||% TRUE) else FALSE
+  jitter_ladder <- as.numeric(precision_beta_cfg$jitter_ladder %||% c(0, 1e-10))
+  jitter_ladder <- jitter_ladder[is.finite(jitter_ladder) & jitter_ladder >= 0]
+  if (!length(jitter_ladder)) jitter_ladder <- c(0, 1e-10)
+  jitter_ladder <- unique(jitter_ladder)
+  eigen_fallback <- if (enabled) isTRUE(precision_beta_cfg$eigen_fallback %||% FALSE) else FALSE
+  eigen_floor_abs <- as.numeric(precision_beta_cfg$eigen_floor_abs %||% 1e-6)[1L]
+  if (!is.finite(eigen_floor_abs) || eigen_floor_abs <= 0) eigen_floor_abs <- 1e-6
+  eigen_floor_rel <- as.numeric(precision_beta_cfg$eigen_floor_rel %||% 1e-8)[1L]
+  if (!is.finite(eigen_floor_rel) || eigen_floor_rel <= 0) eigen_floor_rel <- 1e-8
+
+  chol_fit <- .exal_mcmc_precision_beta_repair(
+    Prec = Prec,
+    symmetrize = symmetrize,
+    jitter_ladder = jitter_ladder,
+    eigen_fallback = eigen_fallback,
+    eigen_floor_abs = eigen_floor_abs,
+    eigen_floor_rel = eigen_floor_rel
+  )
+  if (is.null(chol_fit$Uc)) {
+    .exal_mcmc_stop_precision_beta_error(
+      parent = simpleError(chol_fit$info$error_message %||% "precision beta factorization failed"),
+      context = context,
+      failure_info = chol_fit$info
+    )
+  }
+
+  Uc <- chol_fit$Uc
   mu <- backsolve(Uc, forwardsolve(t(Uc), rhs))
-  as.numeric(mu + backsolve(Uc, stats::rnorm(length(mu))))
+  list(
+    draw = as.numeric(mu + backsolve(Uc, stats::rnorm(length(mu)))),
+    info = chol_fit$info
+  )
 }
 
 #' @keywords internal
@@ -237,6 +274,131 @@
 }
 
 #' @keywords internal
+.exal_mcmc_symmetry_max_abs_diff <- function(mat) {
+  mat <- as.matrix(mat)
+  if (!nrow(mat) || !ncol(mat)) return(NA_real_)
+  as.numeric(max(abs(mat - t(mat))))
+}
+
+#' @keywords internal
+.exal_mcmc_precision_beta_repair <- function(Prec,
+                                             symmetrize = FALSE,
+                                             jitter_ladder = c(0, 1e-10),
+                                             eigen_fallback = FALSE,
+                                             eigen_floor_abs = 1e-6,
+                                             eigen_floor_rel = 1e-8) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  Prec <- as.matrix(Prec)
+  storage.mode(Prec) <- "double"
+  p <- nrow(Prec)
+  if (!p || ncol(Prec) != p) {
+    return(list(
+      Uc = NULL,
+      info = list(
+        strategy = "invalid_matrix",
+        matrix_dim = as.integer(p),
+        error_message = "precision beta matrix must be square"
+      )
+    ))
+  }
+
+  Prec_work <- if (isTRUE(symmetrize)) (Prec + t(Prec)) / 2 else Prec
+  diag_summary <- .exal_mcmc_numeric_summary(diag(Prec_work))
+  symmetry_max_abs_diff <- .exal_mcmc_symmetry_max_abs_diff(Prec)
+  jitter_ladder <- as.numeric(jitter_ladder)
+  jitter_ladder <- jitter_ladder[is.finite(jitter_ladder) & jitter_ladder >= 0]
+  if (!length(jitter_ladder)) jitter_ladder <- c(0, 1e-10)
+  jitter_ladder <- unique(jitter_ladder)
+
+  attempt_count <- 0L
+  last_err <- NULL
+  max_jitter_tried <- max(jitter_ladder)
+
+  attempt_chol <- function(mat, jitter, strategy, min_eigen = NA_real_, eigen_attempted = FALSE, eigen_floor = NA_real_) {
+    attempt_count <<- attempt_count + 1L
+    cand <- tryCatch(chol(mat + diag(jitter, p)), error = function(e) {
+      last_err <<- e
+      NULL
+    })
+    if (is.null(cand)) return(NULL)
+    list(
+      Uc = cand,
+      info = list(
+        strategy = strategy,
+        matrix_dim = as.integer(p),
+        attempt_count = as.integer(attempt_count),
+        jitter_used = as.numeric(jitter),
+        max_jitter_tried = as.numeric(max_jitter_tried),
+        eigen_attempted = isTRUE(eigen_attempted),
+        eigen_floor = as.numeric(eigen_floor),
+        min_eigen = as.numeric(min_eigen),
+        diag_min = as.numeric(diag_summary$min),
+        diag_mean = as.numeric(diag_summary$mean),
+        diag_max = as.numeric(diag_summary$max),
+        symmetry_max_abs_diff = as.numeric(symmetry_max_abs_diff),
+        error_message = NA_character_
+      )
+    )
+  }
+
+  for (jitter in jitter_ladder) {
+    strategy <- if (jitter <= 0) "direct" else "jitter"
+    out <- attempt_chol(Prec_work, jitter, strategy = strategy)
+    if (!is.null(out)) return(out)
+  }
+
+  min_eigen <- tryCatch({
+    vals <- eigen(Prec_work, symmetric = TRUE, only.values = TRUE)$values
+    as.numeric(min(vals))
+  }, error = function(...) NA_real_)
+
+  if (isTRUE(eigen_fallback)) {
+    eig <- tryCatch(eigen(Prec_work, symmetric = TRUE), error = function(e) {
+      last_err <<- e
+      NULL
+    })
+    if (!is.null(eig) && length(eig$values) == p) {
+      scale_ref <- max(1.0, max(abs(eig$values), na.rm = TRUE))
+      floor_target <- max(as.numeric(eigen_floor_abs), as.numeric(eigen_floor_rel) * scale_ref)
+      vals_repaired <- pmax(as.numeric(eig$values), floor_target)
+      Prec_eig <- eig$vectors %*% (vals_repaired * t(eig$vectors))
+      Prec_eig <- (Prec_eig + t(Prec_eig)) / 2
+      for (jitter in jitter_ladder) {
+        strategy <- if (jitter <= 0) "eigen_floor" else "eigen_floor_jitter"
+        out <- attempt_chol(
+          Prec_eig,
+          jitter,
+          strategy = strategy,
+          min_eigen = min_eigen,
+          eigen_attempted = TRUE,
+          eigen_floor = floor_target
+        )
+        if (!is.null(out)) return(out)
+      }
+    }
+  }
+
+  list(
+    Uc = NULL,
+    info = list(
+      strategy = "failure",
+      matrix_dim = as.integer(p),
+      attempt_count = as.integer(attempt_count),
+      jitter_used = NA_real_,
+      max_jitter_tried = as.numeric(max_jitter_tried),
+      eigen_attempted = isTRUE(eigen_fallback),
+      eigen_floor = if (isTRUE(eigen_fallback)) as.numeric(max(eigen_floor_abs, eigen_floor_rel)) else NA_real_,
+      min_eigen = as.numeric(min_eigen),
+      diag_min = as.numeric(diag_summary$min),
+      diag_mean = as.numeric(diag_summary$mean),
+      diag_max = as.numeric(diag_summary$max),
+      symmetry_max_abs_diff = as.numeric(symmetry_max_abs_diff),
+      error_message = conditionMessage(last_err %||% simpleError("precision beta factorization failed"))
+    )
+  )
+}
+
+#' @keywords internal
 .exal_mcmc_rhs_current_hypers <- function(beta_prior_type, rhs_state) {
   out <- list(tau = NA_real_, c2 = NA_real_)
   if (is.null(rhs_state)) return(out)
@@ -253,6 +415,67 @@
     out$c2 <- as.numeric(rhs_state$zeta2 %||% NA_real_)[1L]
   }
   out
+}
+
+#' @keywords internal
+.exal_mcmc_stop_precision_beta_error <- function(parent, context = list(), failure_info = list()) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  rhs_hypers <- .exal_mcmc_rhs_current_hypers(
+    context$beta_prior_type %||% NA_character_,
+    context$rhs_state %||% NULL
+  )
+  failure_state <- list(
+    failure_family = "precision_beta_chol_failure",
+    iteration = as.integer(context$iter %||% NA_integer_)[1L],
+    phase = if (!is.null(context$iter) && !is.null(context$n_burn)) {
+      if (as.integer(context$iter)[1L] <= as.integer(context$n_burn)[1L]) "burn" else "keep"
+    } else {
+      NA_character_
+    },
+    likelihood_family = as.character(context$likelihood_family %||% NA_character_)[1L],
+    beta_prior_type = as.character(context$beta_prior_type %||% NA_character_)[1L],
+    sigma = as.numeric(context$sigma %||% NA_real_)[1L],
+    gamma = as.numeric(context$gamma %||% NA_real_)[1L],
+    tau = as.numeric(rhs_hypers$tau %||% NA_real_)[1L],
+    c2 = as.numeric(rhs_hypers$c2 %||% NA_real_)[1L],
+    beta_norm = sqrt(sum(as.numeric(context$beta %||% 0) * as.numeric(context$beta %||% 0))),
+    latent_v_update_reason = as.character(context$latent_v_reason %||% NA_character_)[1L],
+    latent_v_warmup_active = isTRUE(context$latent_v_warmup_active),
+    theta_update_reason = as.character(context$theta_reason %||% NA_character_)[1L],
+    theta_warmup_active = isTRUE(context$theta_warmup_active),
+    conditioning_mode = as.character(context$conditioning_mode %||% NA_character_)[1L],
+    core_update_mode = as.character(context$core_update_mode %||% NA_character_)[1L],
+    precision_strategy = as.character(failure_info$strategy %||% NA_character_)[1L],
+    precision_attempt_count = as.integer(failure_info$attempt_count %||% NA_integer_)[1L],
+    precision_jitter_used = as.numeric(failure_info$jitter_used %||% NA_real_)[1L],
+    precision_max_jitter_tried = as.numeric(failure_info$max_jitter_tried %||% NA_real_)[1L],
+    precision_eigen_attempted = isTRUE(failure_info$eigen_attempted),
+    precision_eigen_floor = as.numeric(failure_info$eigen_floor %||% NA_real_)[1L],
+    precision_min_eigen = as.numeric(failure_info$min_eigen %||% NA_real_)[1L],
+    precision_matrix_dim = as.integer(failure_info$matrix_dim %||% NA_integer_)[1L],
+    precision_diag_min = as.numeric(failure_info$diag_min %||% NA_real_)[1L],
+    precision_diag_mean = as.numeric(failure_info$diag_mean %||% NA_real_)[1L],
+    precision_diag_max = as.numeric(failure_info$diag_max %||% NA_real_)[1L],
+    precision_symmetry_max_abs_diff = as.numeric(failure_info$symmetry_max_abs_diff %||% NA_real_)[1L],
+    error_message = conditionMessage(parent)
+  )
+  failure_json <- tryCatch(
+    jsonlite::toJSON(failure_state, auto_unbox = TRUE, null = "null"),
+    error = function(...) NULL
+  )
+  if (!is.null(failure_json)) {
+    message(sprintf("QDESN_PRECISION_BETA_FAILURE_JSON=%s", as.character(failure_json)[1L]))
+  }
+  cond <- structure(
+    list(
+      message = conditionMessage(parent),
+      call = NULL,
+      precision_beta_failure = failure_state,
+      parent = parent
+    ),
+    class = c("qdesn_precision_beta_error", "error", "condition")
+  )
+  stop(cond)
 }
 
 #' @keywords internal
@@ -1181,6 +1404,25 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   conditioning_intercept_column <- suppressWarnings(as.integer(conditioning_cfg$intercept_column %||% 1L))[1L]
   conditioning_constant_tol <- as.numeric(conditioning_cfg$constant_tol %||% 1e-12)[1L]
   conditioning_gram_ridge <- as.numeric(conditioning_cfg$gram_ridge %||% 1e-8)[1L]
+  precision_beta_cfg <- mcmc_control$precision_beta %||% list()
+  precision_beta_enabled <- isTRUE(precision_beta_cfg$enabled %||% FALSE)
+  precision_beta_symmetrize <- isTRUE(precision_beta_cfg$symmetrize %||% TRUE)
+  precision_beta_jitter_ladder <- as.numeric(precision_beta_cfg$jitter_ladder %||% c(0, 1e-10, 1e-8, 1e-6, 1e-4))
+  precision_beta_jitter_ladder <- precision_beta_jitter_ladder[
+    is.finite(precision_beta_jitter_ladder) & precision_beta_jitter_ladder >= 0
+  ]
+  if (!length(precision_beta_jitter_ladder)) precision_beta_jitter_ladder <- c(0, 1e-10)
+  precision_beta_jitter_ladder <- unique(precision_beta_jitter_ladder)
+  precision_beta_eigen_fallback <- isTRUE(precision_beta_cfg$eigen_fallback %||% FALSE)
+  precision_beta_eigen_floor_abs <- as.numeric(precision_beta_cfg$eigen_floor_abs %||% 1e-6)[1L]
+  if (!is.finite(precision_beta_eigen_floor_abs) || precision_beta_eigen_floor_abs <= 0) {
+    precision_beta_eigen_floor_abs <- 1e-6
+  }
+  precision_beta_eigen_floor_rel <- as.numeric(precision_beta_cfg$eigen_floor_rel %||% 1e-8)[1L]
+  if (!is.finite(precision_beta_eigen_floor_rel) || precision_beta_eigen_floor_rel <= 0) {
+    precision_beta_eigen_floor_rel <- 1e-8
+  }
+  precision_beta_trace_enabled <- isTRUE(precision_beta_cfg$trace %||% TRUE)
 
   if (!is.finite(gamma_slice_width) || gamma_slice_width <= 0) {
     .stopf("mcmc_control$slice$width_gamma must be positive.")
@@ -1884,6 +2126,12 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   theta_update_count <- 0L
   theta_updates_burn <- 0L
   theta_updates_keep <- 0L
+  precision_beta_direct_successes <- 0L
+  precision_beta_jitter_successes <- 0L
+  precision_beta_eigen_successes <- 0L
+  precision_beta_rescue_count <- 0L
+  precision_beta_first_rescue_iter <- NA_integer_
+  precision_beta_max_jitter_used <- 0
   theta_force_pending <- isTRUE(theta_enabled && theta_freeze_burnin_iters > 0L && theta_force_first_postwarmup_update)
   latent_v_warmup_active_trace <- rep(FALSE, n_total)
   latent_v_hard_freeze_trace <- rep(FALSE, n_total)
@@ -2258,8 +2506,55 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       prior_prec_work <- crossprod(beta_draw_transform_inv, beta_prec_diag_work)
       Prec_beta <- crossprod(beta_draw_design * sqrt(W_diag)) + prior_prec_work
       rhs_beta <- crossprod(beta_draw_design, W_diag * y_star)
-      beta_work <- .exal_mcmc_sample_mvnorm_prec(rhs_beta, Prec_beta)
+      beta_draw <- .exal_mcmc_sample_mvnorm_prec(
+        rhs_beta,
+        Prec_beta,
+        precision_beta_cfg = list(
+          enabled = precision_beta_enabled,
+          symmetrize = precision_beta_symmetrize,
+          jitter_ladder = precision_beta_jitter_ladder,
+          eigen_fallback = precision_beta_eigen_fallback,
+          eigen_floor_abs = precision_beta_eigen_floor_abs,
+          eigen_floor_rel = precision_beta_eigen_floor_rel,
+          trace = precision_beta_trace_enabled
+        ),
+        context = list(
+          iter = iter,
+          n_burn = n_burn,
+          likelihood_family = likelihood_family,
+          beta_prior_type = beta_prior_type,
+          rhs_state = rhs_state,
+          sigma = sigma,
+          gamma = gamma,
+          beta = beta,
+          latent_v_reason = latent_v_update_reason,
+          latent_v_warmup_active = latent_v_warmup_active_trace[iter],
+          theta_reason = theta_update_reason,
+          theta_warmup_active = theta_warmup_active_trace[iter],
+          conditioning_mode = conditioning_mode,
+          core_update_mode = core_update_mode
+        )
+      )
+      beta_work <- beta_draw$draw
       beta <- as.numeric(beta_draw_transform_inv %*% beta_work)
+      beta_draw_info <- beta_draw$info %||% list()
+      strategy <- as.character(beta_draw_info$strategy %||% "direct")[1L]
+      jitter_used <- as.numeric(beta_draw_info$jitter_used %||% 0)[1L]
+      if (identical(strategy, "direct")) {
+        precision_beta_direct_successes <- precision_beta_direct_successes + 1L
+      } else if (grepl("^eigen", strategy)) {
+        precision_beta_eigen_successes <- precision_beta_eigen_successes + 1L
+        precision_beta_rescue_count <- precision_beta_rescue_count + 1L
+      } else {
+        precision_beta_jitter_successes <- precision_beta_jitter_successes + 1L
+        precision_beta_rescue_count <- precision_beta_rescue_count + 1L
+      }
+      if (!identical(strategy, "direct") && is.na(precision_beta_first_rescue_iter)) {
+        precision_beta_first_rescue_iter <- as.integer(iter)
+      }
+      if (is.finite(jitter_used)) {
+        precision_beta_max_jitter_used <- max(precision_beta_max_jitter_used, jitter_used)
+      }
       theta_update_performed_trace[iter] <- TRUE
       theta_update_count <- theta_update_count + 1L
       if (iter > n_burn) {
@@ -2602,6 +2897,20 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       condition_gain_ratio = as.numeric(conditioning_state$gain_ratio),
       scale_min = as.numeric(conditioning_state$scale_min),
       scale_max = as.numeric(conditioning_state$scale_max)
+    ),
+    precision_beta = list(
+      enabled = isTRUE(precision_beta_enabled),
+      symmetrize = isTRUE(precision_beta_symmetrize),
+      jitter_ladder = as.numeric(precision_beta_jitter_ladder),
+      eigen_fallback = isTRUE(precision_beta_eigen_fallback),
+      eigen_floor_abs = as.numeric(precision_beta_eigen_floor_abs),
+      eigen_floor_rel = as.numeric(precision_beta_eigen_floor_rel),
+      direct_successes = as.integer(precision_beta_direct_successes),
+      jitter_successes = as.integer(precision_beta_jitter_successes),
+      eigen_successes = as.integer(precision_beta_eigen_successes),
+      rescue_count = as.integer(precision_beta_rescue_count),
+      first_rescue_iter = if (is.na(precision_beta_first_rescue_iter)) NA_integer_ else as.integer(precision_beta_first_rescue_iter),
+      max_jitter_used = as.numeric(precision_beta_max_jitter_used)
     )
   )
   beta_prior_out <- list(type = beta_prior_obj$type, hypers = beta_prior_obj$hypers)
@@ -2737,6 +3046,15 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         constant_tol = as.numeric(conditioning_state$constant_tol),
         intercept_column = as.integer(conditioning_state$intercept_column),
         gram_ridge = as.numeric(conditioning_gram_ridge)
+      ),
+      precision_beta = list(
+        enabled = isTRUE(precision_beta_enabled),
+        symmetrize = isTRUE(precision_beta_symmetrize),
+        jitter_ladder = as.numeric(precision_beta_jitter_ladder),
+        eigen_fallback = isTRUE(precision_beta_eigen_fallback),
+        eigen_floor_abs = as.numeric(precision_beta_eigen_floor_abs),
+        eigen_floor_rel = as.numeric(precision_beta_eigen_floor_rel),
+        trace = isTRUE(precision_beta_trace_enabled)
       ),
       rhs = list(
         freeze_tau_burnin_iters = rhs_freeze_tau_iters,
