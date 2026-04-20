@@ -1,5 +1,12 @@
 #!/usr/bin/env Rscript
 
+suppressPackageStartupMessages({
+  req <- c("yaml")
+  need <- setdiff(req, rownames(installed.packages()))
+  if (length(need)) install.packages(need, repos = "https://cloud.r-project.org")
+  invisible(lapply(req, require, character.only = TRUE))
+})
+
 args <- commandArgs(trailingOnly = TRUE)
 get_arg <- function(flag, default = NULL) {
   idx <- which(args == flag)
@@ -15,6 +22,13 @@ repo_root <- tryCatch(
   error = function(...) normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
 )
 setwd(repo_root)
+
+resolve_path <- function(path, must_work = TRUE) {
+  raw <- as.character(path %||% "")[1L]
+  if (!nzchar(trimws(raw))) return(NULL)
+  if (!grepl("^(/|~)", raw)) raw <- file.path(repo_root, raw)
+  normalizePath(raw, winslash = "/", mustWork = isTRUE(must_work))
+}
 
 phase <- match.arg(
   as.character(get_arg("--phase", "full"))[1L],
@@ -308,6 +322,21 @@ has_arg <- function(flag, values) {
 likelihoods_arg <- phase_likelihoods_map[[phase]]
 if (nzchar(trimws(as.character(likelihoods_arg %||% "")[1L])) && !has_arg("--likelihoods", pass_args)) {
   pass_args <- c(pass_args, "--likelihoods", as.character(likelihoods_arg)[1L])
+}
+if (!has_arg("--run-tag", pass_args)) {
+  defaults_path <- phase_defaults_map[[phase]]
+  defaults <- tryCatch(yaml::read_yaml(defaults_path), error = function(...) list())
+  base_report_root <- resolve_path(
+    (defaults$campaign %||% list())$reports_root %||%
+      file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
+    must_work = FALSE
+  )
+  candidates <- list.dirs(base_report_root, full.names = TRUE, recursive = FALSE)
+  candidates <- candidates[grepl("^qdesn-dynamic-exdqlm-crossstudy-", basename(candidates))]
+  if (length(candidates)) {
+    latest_idx <- order(file.info(candidates)$mtime, decreasing = TRUE)[1L]
+    pass_args <- c(pass_args, "--run-tag", basename(candidates[[latest_idx]]))
+  }
 }
 
 status <- system2(
