@@ -1,0 +1,8 @@
+"phase","lane","root_id","conditioning_mode","gram_ridge","scale_metric","use_log_sigma","width_gamma","width_sigma","core_update_mode","core_extra_passes"
+"remaining_precision_matrix_al_qr_v1","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","qr_whiten",1e-04,"sd",TRUE,0.53,0.22,"sigma_then_gamma",1
+"remaining_precision_matrix_al_qr_v2","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","qr_whiten",0.01,"sd",TRUE,0.53,0.2,"sigma_then_gamma",2
+"remaining_precision_matrix_al_diag_v1","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","diag_scale",1e-08,"rms",TRUE,0.53,0.22,"sigma_then_gamma",1
+"remaining_precision_matrix_exal_qr_v1","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","qr_whiten",0.001,"sd",TRUE,0.53,0.22,"gamma_sigma_gamma",1
+"remaining_precision_matrix_exal_qr_v2","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","qr_whiten",0.01,"sd",TRUE,0.53,0.2,"gamma_sigma_gamma",2
+"remaining_precision_matrix_exal_qr_sig_v1","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","qr_whiten",0.01,"sd",TRUE,0.53,0.2,"sigma_then_gamma",2
+"remaining_precision_matrix_exal_diag_v1","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","diag_scale",1e-08,"rms",TRUE,0.53,0.22,"gamma_sigma_gamma",1
