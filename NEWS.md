@@ -24,6 +24,9 @@
   the ISVB path.
 - Added `exdqlmTransferMCMC()` for fixed-`lam` transfer-function exDQLM
   fitting under the dynamic MCMC workflow.
+- Added `BTflowUSGS`, a monthly streamflow dataset aggregated from the staged
+  daily USGS Big Tree flow series, while keeping the legacy `BTflow` dataset
+  unchanged.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),
   return-value structure, and CRAN-safe examples aligned with existing package style.
 - Standardized the main user-facing naming scheme around `exalStatic...`,
