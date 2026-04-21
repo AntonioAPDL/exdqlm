@@ -35,8 +35,10 @@
 #'         (`"rhs"`), and `rhs_ns`.
 #'   \item Reduced AL/DQLM paths through `dqlm.ind = TRUE` in both dynamic and
 #'         static APIs.
-#'   \item ELBO diagnostics and optional C++ acceleration for selected
-#'         state-space computations.
+#'   \item Standardized VB diagnostics traces via
+#'         `fit$diagnostics$vb_trace` for ELBO, `sigma`, `gamma`, and
+#'         convergence deltas across VB engines.
+#'   \item Optional C++ acceleration for selected state-space computations.
 #' }
 #'
 #' @section Runtime options:

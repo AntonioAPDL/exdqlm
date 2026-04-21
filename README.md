@@ -22,6 +22,8 @@ current development line:
 - modular model builders for **trend**, **seasonality**, and
   **regression** components
 - reduced **AL/DQLM** paths through `dqlm.ind = TRUE`
+- standardized **VB trace diagnostics** at `fit$diagnostics$vb_trace`
+  for ELBO, `sigma`, `gamma`, and convergence deltas
 - static shrinkage priors `beta_prior = "ridge"`, `"rhs"`, and
   `"rhs_ns"`
 - post hoc **posterior-predictive synthesis** via
@@ -65,6 +67,9 @@ pak::pak("AntonioAPDL/exdqlm")
 - **Multiple inference engines** are available depending on the use
   case: fast approximate dynamic VB (`ISVB`), deterministic
   Laplace-Delta VB (`LDVB`), and posterior simulation (`MCMC`).
+- **User-facing VB diagnostics are standardized** through
+  `fit$diagnostics$vb_trace`, so plotting and monitoring code can use
+  the same iteration-wise API across VB engines.
 - **Static shrinkage priors** go beyond ridge: `rhs` and `rhs_ns`
   provide a horseshoe-family regularization story for sparse or weakly
   identified static coefficient problems.
@@ -121,6 +126,13 @@ tail(fit$diagnostics$elbo, 3)
 #> [1] -113.62048  -67.45699
 ```
 
+For plotting or monitoring VB convergence, use the standardized trace
+table:
+
+``` r
+head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
+```
+
 ## Core concepts (at a glance)
 
 - **State-space skeleton**: *design* (`FF`) and *evolution* (`GG`)
@@ -130,7 +142,11 @@ tail(fit$diagnostics$elbo, 3)
   often stabilizes small examples.
 - **Discount factors**: `df` and `dim.df` control evolution per block
   (e.g., trend vs seasonality).
-- **ELBO**: recorded at `fit$diagnostics$elbo` (weakly monotone up to
+- **VB traces**: `fit$diagnostics$vb_trace` provides a standardized
+  iteration-by-iteration table for ELBO, `sigma`, `gamma`, and
+  convergence deltas across VB engines.
+- **ELBO**: retained at `fit$diagnostics$elbo` and mirrored in
+  `fit$diagnostics$vb_trace$elbo` (weakly monotone up to
   importance-sampling noise).
 
 ## What’s new in v0.4.0
@@ -155,7 +171,9 @@ tail(fit$diagnostics$elbo, 3)
 - **C++ backend controls** retained as optional: Kalman bridge default
   **TRUE**; builders, samplers, and post-predictive C++ paths default
   **FALSE**.
-- **ELBO diagnostics** retained for iterative monitoring.
+- **Standardized VB trace diagnostics** via `fit$diagnostics$vb_trace`,
+  giving plot-ready iteration histories for ELBO, `sigma`, `gamma`, and
+  convergence deltas across VB fits.
 
 > For CI/CRAN-style runs, keep optional C++ builders/samplers/post-pred
 > **FALSE** and set `exdqlm.use_cpp_kf = FALSE` for strict R-path
@@ -343,9 +361,15 @@ names(syn)
   (≈ 0.96–0.99). Enable C++ bridges only if your toolchain supports
   them.
 
-- **ELBO dips slightly—bug?** Small downward blips are expected from
-  importance-sampling noise. Look for an overall upward trend; if not,
-  simplify the model or adjust variance/discounts.
+- **Which VB diagnostic object should I plot?** Start with
+  `fit$diagnostics$vb_trace`. It provides one iteration-wise table
+  across VB engines; use engine-specific internals only when you need
+  lower-level block traces.
+
+- **ELBO dips slightly—bug?** Small downward blips in
+  `fit$diagnostics$vb_trace$elbo` are expected from importance-sampling
+  noise. Look for an overall upward trend; if not, simplify the model or
+  adjust variance/discounts.
 
 - **OpenMP not available.** That’s fine. It is optional. Everything runs
   serially; examples here use the pure-R path.

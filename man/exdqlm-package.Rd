@@ -45,8 +45,10 @@ exAL regression.
 (\code{"rhs"}), and \code{rhs_ns}.
 \item Reduced AL/DQLM paths through \code{dqlm.ind = TRUE} in both dynamic and
 static APIs.
-\item ELBO diagnostics and optional C++ acceleration for selected
-state-space computations.
+\item Standardized VB diagnostics traces via
+\code{fit$diagnostics$vb_trace} for ELBO, \code{sigma}, \code{gamma}, and
+convergence deltas across VB engines.
+\item Optional C++ acceleration for selected state-space computations.
 }
 }
 

@@ -29,6 +29,10 @@
   unchanged.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),
   return-value structure, and CRAN-safe examples aligned with existing package style.
+- Standardized VB diagnostics traces across VB fits via
+  `fit$diagnostics$vb_trace`, exposing iteration-wise ELBO, `sigma`,
+  `gamma`, and convergence deltas in a plot-ready table while preserving the
+  existing engine-specific diagnostics.
 - Standardized the main user-facing naming scheme around `exalStatic...`,
   `exdqlmTransfer...`, and `quantileSynthesis()`, while keeping the earlier
   static/transfer/synthesis entry points as deprecated compatibility aliases.
