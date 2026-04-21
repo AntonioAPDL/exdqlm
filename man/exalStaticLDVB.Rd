@@ -142,12 +142,14 @@ and \code{warning} when triggered). For \code{"rhs_ns"}, the state
 also tracks \code{lambda2}, \code{nu}, \code{tau2}, \code{xi}, and
 \code{zeta2} with the corresponding inverse moments.
 \item \code{diagnostics}: ELBO and joint-convergence diagnostics
-(state/sigma/gamma/ELBO deltas, stopping reason, and
-Laplace-Delta block trace diagnostics, including replicated-\code{xi}
-controls, automatic stabilization / cycle-detection fields, and
-final local-mode quality checks). For RHS fits this also includes
-\code{diagnostics$rhs} with the resolved preflight configuration and
-collapse diagnostics.
+including a standardized VB iteration trace at
+\code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
+convergence deltas), state/sigma/gamma/ELBO deltas, stopping reason,
+and Laplace-Delta block trace diagnostics, including
+replicated-\code{xi} controls, automatic stabilization /
+cycle-detection fields, and final local-mode quality checks. For RHS
+fits this also includes \code{diagnostics$rhs} with the resolved
+preflight configuration and collapse diagnostics.
 }
 }
 \description{
@@ -182,6 +184,7 @@ X <- cbind(1, seq(-1, 1, length.out = n))
 y <- as.numeric(X \%*\% c(0.2, -0.1) + rnorm(n, sd = 0.15))
 fit <- exalStaticLDVB(y = y, X = X, p0 = 0.5, max_iter = 100, tol = 1e-3, verbose = FALSE)
 fit$converged
+head(fit$diagnostics$vb_trace)
 
 fit_rhs <- exalStaticLDVB(
   y = y, X = X, p0 = 0.5,

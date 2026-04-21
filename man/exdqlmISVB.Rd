@@ -86,8 +86,10 @@ A object of class "\code{exdqlmISVB}" containing the following:
 \item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
 \item \code{fix.sigma} Logical value indicating whether sigma was fixed at \code{sig.init}.
-\item \code{diagnostics} - List containing ELBO trace and convergence diagnostics
-(joint stopping status, deltas for state/sigma/gamma/ELBO, and criteria used).
+\item \code{diagnostics} - List containing ELBO trace, standardized VB iteration
+trace \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
+convergence deltas), and convergence diagnostics (joint stopping status,
+deltas for state/sigma/gamma/ELBO, and criteria used).
 }
 If \code{dqlm.ind=FALSE}, the object also contains:
 \itemize{
@@ -132,9 +134,11 @@ seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 model = trend.comp + seas.comp
 M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
                  gam.init = -3.5, sig.init = 15, tol = 0.05)
+head(M0$diagnostics$vb_trace)
 
 M0_al = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
                    dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
+tail(M0_al$diagnostics$vb_trace$elbo, 2)
 }
 
 }

@@ -900,12 +900,14 @@
 #'         also tracks \code{lambda2}, \code{nu}, \code{tau2}, \code{xi}, and
 #'         \code{zeta2} with the corresponding inverse moments.
 #'   \item \code{diagnostics}: ELBO and joint-convergence diagnostics
-#'         (state/sigma/gamma/ELBO deltas, stopping reason, and
-#'         Laplace-Delta block trace diagnostics, including replicated-\code{xi}
-#'         controls, automatic stabilization / cycle-detection fields, and
-#'         final local-mode quality checks). For RHS fits this also includes
-#'         \code{diagnostics$rhs} with the resolved preflight configuration and
-#'         collapse diagnostics.
+#'         including a standardized VB iteration trace at
+#'         \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
+#'         convergence deltas), state/sigma/gamma/ELBO deltas, stopping reason,
+#'         and Laplace-Delta block trace diagnostics, including
+#'         replicated-\code{xi} controls, automatic stabilization /
+#'         cycle-detection fields, and final local-mode quality checks. For RHS
+#'         fits this also includes \code{diagnostics$rhs} with the resolved
+#'         preflight configuration and collapse diagnostics.
 #' }
 #'
 #' @details
@@ -934,6 +936,7 @@
 #' y <- as.numeric(X %*% c(0.2, -0.1) + rnorm(n, sd = 0.15))
 #' fit <- exalStaticLDVB(y = y, X = X, p0 = 0.5, max_iter = 100, tol = 1e-3, verbose = FALSE)
 #' fit$converged
+#' head(fit$diagnostics$vb_trace)
 #'
 #' fit_rhs <- exalStaticLDVB(
 #'   y = y, X = X, p0 = 0.5,
@@ -2272,6 +2275,19 @@ exalStaticLDVB <- function(
     misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace),
     diagnostics = list(
       elbo = elbo_trace,
+      vb_trace = .exdqlm_make_vb_trace(
+        iter = iter,
+        engine = "LDVB",
+        dqlm.ind = FALSE,
+        elbo = elbo_trace,
+        sigma = sigma_hist,
+        gamma = gamma_hist,
+        delta_state = delta_beta,
+        delta_sigma = delta_sigma,
+        delta_gamma = delta_gamma,
+        delta_s = delta_s,
+        delta_elbo = delta_elbo
+      ),
       convergence = list(
         converged = converged,
         stop_reason = stop_reason,
