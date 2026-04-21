@@ -11,6 +11,40 @@ qdesn_dynamic_maincmp_load_manifest <- function(path = file.path("config", "vali
   out
 }
 
+qdesn_dynamic_maincmp_load_root_profile_overrides_csv <- function(path,
+                                                                  repo_root = NULL) {
+  csv_path <- .qdesn_validation_resolve_path(path, repo_root = repo_root, must_work = TRUE)
+  out <- utils::read.csv(csv_path, stringsAsFactors = FALSE)
+  if (!nrow(out)) {
+    return(list())
+  }
+  required_cols <- c("root_id", "fit_summary_path", "root_summary_path")
+  missing_cols <- setdiff(required_cols, names(out))
+  if (length(missing_cols)) {
+    stop(
+      sprintf(
+        "Root override CSV is missing required columns: %s",
+        paste(missing_cols, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+
+  rows <- lapply(seq_len(nrow(out)), function(i) {
+    row <- out[i, , drop = FALSE]
+    list(
+      root_id = as.character(row$root_id[1L]),
+      fit_summary_path = as.character(row$fit_summary_path[1L]),
+      root_summary_path = as.character(row$root_summary_path[1L]),
+      rationale = as.character(row$rationale[1L] %||% NA_character_),
+      profile_id = as.character(row$profile_id[1L] %||% NA_character_),
+      stage_id = as.character(row$stage_id[1L] %||% NA_character_),
+      run_tag = as.character(row$run_tag[1L] %||% NA_character_)
+    )
+  })
+  rows
+}
+
 .qdesn_dynamic_maincmp_root_spec_from_row <- function(row) {
   list(
     root_id = as.character(row$root_id[1L]),

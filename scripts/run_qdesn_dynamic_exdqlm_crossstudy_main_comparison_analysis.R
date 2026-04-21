@@ -115,20 +115,36 @@ grid_df <- exdqlm:::qdesn_dynamic_crossstudy_load_grid(grid_path)
 grid_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_grid(grid_df, defaults)
 
 reference_cfg <- defaults$reference %||% list()
+reference_validation_defaults <- defaults
+reference_contract_override <- manifest$reference_contract_override %||% list()
+if (is.list(reference_contract_override) && length(reference_contract_override)) {
+  reference_validation_defaults$reference_contract <- utils::modifyList(
+    defaults$reference_contract %||% list(),
+    reference_contract_override
+  )
+}
 reference_inventory <- exdqlm:::qdesn_dynamic_crossstudy_collect_reference_inventory(
   reference_root = resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
 )
-invisible(exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, defaults))
+invisible(exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, reference_validation_defaults))
 
 source_cfg <- manifest$source %||% list()
 source_run_tag <- as.character(source_cfg$run_tag %||% "")[1L]
 if (!nzchar(source_run_tag)) stop("Main comparison manifest must define source.run_tag.", call. = FALSE)
+source_root_profile_overrides <- source_cfg[["root_profile_overrides"]] %||% list()
+root_override_csv <- as.character(source_cfg[["root_profile_overrides_csv"]] %||% "")[1L]
+if (nzchar(trimws(root_override_csv))) {
+  source_root_profile_overrides <- c(
+    source_root_profile_overrides,
+    exdqlm:::qdesn_dynamic_maincmp_load_root_profile_overrides_csv(root_override_csv, repo_root = repo_root)
+  )
+}
 source_state <- exdqlm:::qdesn_dynamic_crossstudy_fitfail_collect_source_state(
   source_run_tag = source_run_tag,
   source_report_root = source_cfg$report_root %||% file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_residual_fail_closure_wave"),
   source_mode = source_cfg$mode %||% "prior_fitfail_wave",
   source_stage_profile_overrides = source_cfg$stage_profile_overrides %||% list(),
-  source_root_profile_overrides = source_cfg$root_profile_overrides %||% list(),
+  source_root_profile_overrides = source_root_profile_overrides,
   defaults = defaults,
   grid = grid_df,
   defaults_path = defaults_path,
@@ -176,6 +192,7 @@ preflight_lines <- c(
   sprintf("- source_mode: `%s`", source_state$source_mode),
   sprintf("- source_label: `%s`", source_state$source_label),
   sprintf("- source_report_root: `%s`", source_state$campaign_report_root),
+  sprintf("- source_root_profile_overrides: `%d`", length(source_root_profile_overrides)),
   sprintf("- refresh_fit_metrics: `%s`", if (refresh_fit_metrics) "TRUE" else "FALSE"),
   "",
   "## Reference Surface",
@@ -183,6 +200,7 @@ preflight_lines <- c(
   sprintf("- reference_fit_rows: `%d`", nrow(reference_inventory$fit_summary)),
   sprintf("- reference_pair_rows: `%d`", nrow(reference_inventory$pairwise_vb_vs_mcmc)),
   sprintf("- reference_root_rows: `%d`", nrow(reference_inventory$root_signoff_summary)),
+  sprintf("- reference_contract_override: `%s`", if (length(reference_contract_override)) "TRUE" else "FALSE"),
   "",
   "## Grid",
   sprintf("- qdesn_root_rows: `%d`", nrow(grid_df)),

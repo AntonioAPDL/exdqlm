@@ -1,0 +1,46 @@
+meta:
+  analysis_id: qdesn_dynamic_exdqlm_crossstudy_tau050_recovered_main_comparison_analysis
+  description: >
+    Build the authoritative 144-fit tau050 comparison pack from the refreshed main source campaign
+    after layering in the successful targeted failed-run recoveries. This pack is the comparison-
+    facing recovered source of truth after the 23/23 hard MCMC crash closeout.
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-tau050-recovered-maincmp
+
+source:
+  mode: dynamic_campaign
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-tau050-full-20260416-212700__git-15fe674
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation
+  root_profile_overrides_csv: config/validation/qdesn_dynamic_exdqlm_crossstudy_tau050_recovered_main_comparison_root_override_map.csv
+  source_label: Tau050 Refreshed Main Recovered Surface
+  source_rationale: >
+    Start from the authoritative 144-fit tau050 refreshed main campaign, then layer in the
+    successful targeted failed-run recoveries from the sfreeze, run-specific, and canonical
+    precision-closeout waves so the main comparison reflects the fully recovered branch-local
+    source surface.
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_recovered_main_comparison_analysis
+  final_wave_evidence_run_tag: qdesn-dynamic-exdqlm-crossstudy-tau050-remaining_precision_closeout_exal_ladder_v2-20260421-000540__git-2c7e975
+  refresh_fit_metrics: false
+
+reference_contract_override:
+  taus: [0.05, 0.25, 0.95]
+
+expected_state:
+  fit_rows: 144
+  fit_pass_rows: 77
+  fit_warn_rows: 27
+  fit_fail_rows: 40
+  root_rows: 36
+  root_status_fail_rows: 0
+  root_compare_any_rows: 33
+  root_compare_full_rows: 15
+  local_baseline_rows: 0
+  root_override_rows: 23
+
+notes:
+  authoritative_baseline_label: tau050_refreshed_main_recovered_source
+  interpretation: >
+    This pack is the recovered comparison-facing tau050 source state after the full failed-run
+    recovery closeout. It should replace the earlier crash-contaminated tau050 source run for
+    downstream comparison interpretation on this branch.
