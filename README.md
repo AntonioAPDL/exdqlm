@@ -92,6 +92,36 @@ pak::pak("AntonioAPDL/exdqlm")
 | Static exAL regression | `exal_static_LDVB()` | You want a fast Bayesian approximation, often useful before MCMC | `exal_static_mcmc()` |
 | Static exAL regression with posterior draws | `exal_static_LDVB()` or `exal_static_mcmc()` | Use `exal_static_LDVB()` for a fast approximate draw-based summary and `exal_static_mcmc()` for the simulation baseline | `init.from.vb = TRUE` can help the MCMC fit |
 
+## Precision-stabilized MCMC readouts
+
+For hard ridge-style MCMC readouts, the package now supports a user-facing
+`precision_beta` control block for the Gaussian beta draw:
+
+- `"ladder_v2"` is the recommended repair preset.
+- `"eigen_v1"` is the stronger fallback when the ladder alone is not enough.
+- full custom control is still available through
+  `exal_make_precision_beta_control()`.
+
+```r
+fit <- qdesn_fit_mcmc(
+  y = y,
+  p0 = 0.5,
+  mcmc_args = list(
+    likelihood_family = "exal",
+    precision_beta = "ladder_v2"
+  )
+)
+
+fit_hard <- qdesn_fit_mcmc(
+  y = y,
+  p0 = 0.5,
+  mcmc_args = list(
+    likelihood_family = "exal",
+    precision_beta = exal_make_precision_beta_control("eigen_v1")
+  )
+)
+```
+
 ## Quick start (≤ 10 lines)
 
 Local-level model at a **single quantile** (the median). We fix

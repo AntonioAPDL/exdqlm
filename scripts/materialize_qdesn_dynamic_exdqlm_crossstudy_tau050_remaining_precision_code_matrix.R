@@ -65,12 +65,7 @@ set_lane_defaults <- function(doc, lane, workers, pilot_grid) {
 
 apply_precision_code_patch <- function(doc, spec) {
   doc$pipeline$inference$mcmc$precision_beta <- list(
-    enabled = TRUE,
-    symmetrize = isTRUE(spec$symmetrize),
-    jitter_ladder = as.numeric(spec$jitter_ladder),
-    eigen_fallback = isTRUE(spec$eigen_fallback),
-    eigen_floor_abs = as.numeric(spec$eigen_floor_abs),
-    eigen_floor_rel = as.numeric(spec$eigen_floor_rel),
+    preset = as.character(spec$precision_beta_preset),
     trace = TRUE
   )
   doc
@@ -126,6 +121,7 @@ specs <- list(
     description = "AL code-level precision rescue with symmetric adaptive jitter ladder up to 1e-4 on top of the validated AL precision-pair baseline.",
     vb_profile_id = "qdesn_ldvb_remaining_precision_code_al_ladder_v1",
     defaults_file = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_ladder_v1_defaults.yaml"),
+    precision_beta_preset = "ladder_v1",
     symmetrize = TRUE,
     jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4),
     eigen_fallback = FALSE,
@@ -140,6 +136,7 @@ specs <- list(
     description = "AL code-level precision rescue with stronger symmetric adaptive jitter ladder up to 1e-2 on the validated AL precision-pair baseline.",
     vb_profile_id = "qdesn_ldvb_remaining_precision_code_al_ladder_v2",
     defaults_file = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_ladder_v2_defaults.yaml"),
+    precision_beta_preset = "ladder_v2",
     symmetrize = TRUE,
     jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2),
     eigen_fallback = FALSE,
@@ -154,6 +151,7 @@ specs <- list(
     description = "AL code-level precision rescue with symmetric ladder plus eigenvalue-floored SPD fallback on the validated AL precision-pair baseline.",
     vb_profile_id = "qdesn_ldvb_remaining_precision_code_al_eigen_v1",
     defaults_file = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_eigen_v1_defaults.yaml"),
+    precision_beta_preset = "eigen_v1",
     symmetrize = TRUE,
     jitter_ladder = c(0, 1e-10, 1e-8, 1e-6),
     eigen_fallback = TRUE,
@@ -168,6 +166,7 @@ specs <- list(
     description = "EXAL code-level precision rescue with symmetric adaptive jitter ladder up to 1e-4 on top of the validated EXAL precision-pair baseline.",
     vb_profile_id = "qdesn_ldvb_remaining_precision_code_exal_ladder_v1",
     defaults_file = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_exal_ladder_v1_defaults.yaml"),
+    precision_beta_preset = "ladder_v1",
     symmetrize = TRUE,
     jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4),
     eigen_fallback = FALSE,
@@ -182,6 +181,7 @@ specs <- list(
     description = "EXAL code-level precision rescue with stronger symmetric adaptive jitter ladder up to 1e-2 on the validated EXAL precision-pair baseline.",
     vb_profile_id = "qdesn_ldvb_remaining_precision_code_exal_ladder_v2",
     defaults_file = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_exal_ladder_v2_defaults.yaml"),
+    precision_beta_preset = "ladder_v2",
     symmetrize = TRUE,
     jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2),
     eigen_fallback = FALSE,
@@ -196,6 +196,7 @@ specs <- list(
     description = "EXAL code-level precision rescue with symmetric ladder plus eigenvalue-floored SPD fallback on the validated EXAL precision-pair baseline.",
     vb_profile_id = "qdesn_ldvb_remaining_precision_code_exal_eigen_v1",
     defaults_file = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_exal_eigen_v1_defaults.yaml"),
+    precision_beta_preset = "eigen_v1",
     symmetrize = TRUE,
     jitter_ladder = c(0, 1e-10, 1e-8, 1e-6),
     eigen_fallback = TRUE,

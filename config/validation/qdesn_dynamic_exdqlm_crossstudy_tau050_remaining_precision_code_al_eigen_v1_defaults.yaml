@@ -389,15 +389,6 @@ pipeline:
       slice:
         core_update_mode: sigma_then_gamma
       precision_beta:
-        enabled: yes
-        symmetrize: yes
-        jitter_ladder:
-        - 0.0
-        - 1.0e-10
-        - 1.0e-08
-        - 1.0e-06
-        eigen_fallback: yes
-        eigen_floor_abs: 1.0e-06
-        eigen_floor_rel: 1.0e-08
+        preset: eigen_v1
         trace: yes
 

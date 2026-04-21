@@ -12,7 +12,12 @@ build_remaining_precision_code_cfg <- function(defaults_path, grid_path, likelih
     x_cols = character(0),
     T_use = root_spec$fit_size
   )
-  list(defaults = defaults, grid = grid, cfg = cfg)
+  resolved <- exdqlm:::resolve_exal_inference_config(
+    cfg,
+    p_vec = c(as.numeric(root_spec$tau[[1L]])),
+    verbose = FALSE
+  )
+  list(defaults = defaults, grid = grid, cfg = cfg, resolved = resolved)
 }
 
 test_that("remaining precision code matrix materializer writes the pair-only code-rescue experiment suite", {
@@ -51,13 +56,15 @@ test_that("remaining precision code matrix materializer writes the pair-only cod
     likelihood_family = "exal"
   )
 
-  expect_true(isTRUE(al_ladder_v2$cfg$inference$mcmc$precision_beta$enabled))
-  expect_true(isTRUE(al_ladder_v2$cfg$inference$mcmc$precision_beta$symmetrize))
-  expect_false(isTRUE(al_ladder_v2$cfg$inference$mcmc$precision_beta$eigen_fallback))
-  expect_equal(max(as.numeric(al_ladder_v2$cfg$inference$mcmc$precision_beta$jitter_ladder)), 1e-2, tolerance = 1e-12)
+  expect_true(isTRUE(al_ladder_v2$resolved$mcmc$control_base$precision_beta$enabled))
+  expect_identical(as.character(al_ladder_v2$resolved$mcmc$control_base$precision_beta$preset), "ladder_v2")
+  expect_true(isTRUE(al_ladder_v2$resolved$mcmc$control_base$precision_beta$symmetrize))
+  expect_false(isTRUE(al_ladder_v2$resolved$mcmc$control_base$precision_beta$eigen_fallback))
+  expect_equal(max(as.numeric(al_ladder_v2$resolved$mcmc$control_base$precision_beta$jitter_ladder)), 1e-2, tolerance = 1e-12)
 
-  expect_true(isTRUE(exal_eigen_v1$cfg$inference$mcmc$precision_beta$enabled))
-  expect_true(isTRUE(exal_eigen_v1$cfg$inference$mcmc$precision_beta$eigen_fallback))
-  expect_equal(as.numeric(exal_eigen_v1$cfg$inference$mcmc$precision_beta$eigen_floor_abs), 1e-6, tolerance = 1e-12)
-  expect_equal(as.numeric(exal_eigen_v1$cfg$inference$mcmc$precision_beta$eigen_floor_rel), 1e-8, tolerance = 1e-12)
+  expect_true(isTRUE(exal_eigen_v1$resolved$mcmc$control_base$precision_beta$enabled))
+  expect_identical(as.character(exal_eigen_v1$resolved$mcmc$control_base$precision_beta$preset), "eigen_v1")
+  expect_true(isTRUE(exal_eigen_v1$resolved$mcmc$control_base$precision_beta$eigen_fallback))
+  expect_equal(as.numeric(exal_eigen_v1$resolved$mcmc$control_base$precision_beta$eigen_floor_abs), 1e-6, tolerance = 1e-12)
+  expect_equal(as.numeric(exal_eigen_v1$resolved$mcmc$control_base$precision_beta$eigen_floor_rel), 1e-8, tolerance = 1e-12)
 })

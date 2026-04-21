@@ -326,3 +326,55 @@ test_that("sigmagam warmup controls resolve for VB, MCMC warm start, and MCMC co
   expect_false(isTRUE(inf$mcmc$control_base$theta$force_first_postwarmup_update))
   expect_false(isTRUE(inf$mcmc$control_base$theta$trace))
 })
+
+test_that("precision-beta presets normalize to the validated recovery profiles", {
+  recommended <- exdqlm::exal_make_precision_beta_control()
+  eigen <- exdqlm::exal_make_precision_beta_control("eigen_v1")
+
+  expect_identical(as.character(recommended$preset), "ladder_v2")
+  expect_true(isTRUE(recommended$enabled))
+  expect_false(isTRUE(recommended$eigen_fallback))
+  expect_equal(max(as.numeric(recommended$jitter_ladder)), 1e-2, tolerance = 1e-12)
+
+  expect_identical(as.character(eigen$preset), "eigen_v1")
+  expect_true(isTRUE(eigen$enabled))
+  expect_true(isTRUE(eigen$eigen_fallback))
+  expect_equal(max(as.numeric(eigen$jitter_ladder)), 1e-6, tolerance = 1e-12)
+})
+
+test_that("precision-beta config resolves preset aliases and explicit overrides", {
+  cfg <- list(
+    inference = list(
+      method = "mcmc",
+      mcmc = list(
+        precision_beta = "recommended",
+        priors = list(beta = list(type = "ridge", tau2 = 5))
+      )
+    )
+  )
+
+  inf <- exdqlm:::resolve_exal_inference_config(cfg, p_vec = c(0.5), verbose = FALSE)
+  expect_identical(as.character(inf$mcmc$control_base$precision_beta$preset), "ladder_v2")
+  expect_true(isTRUE(inf$mcmc$control_base$precision_beta$enabled))
+  expect_equal(max(as.numeric(inf$mcmc$control_base$precision_beta$jitter_ladder)), 1e-2, tolerance = 1e-12)
+
+  cfg_override <- list(
+    inference = list(
+      method = "mcmc",
+      mcmc = list(
+        precision_beta = list(
+          preset = "eigen_v1",
+          eigen_floor_abs = 1e-5,
+          trace = FALSE
+        ),
+        priors = list(beta = list(type = "ridge", tau2 = 5))
+      )
+    )
+  )
+
+  inf_override <- exdqlm:::resolve_exal_inference_config(cfg_override, p_vec = c(0.5), verbose = FALSE)
+  expect_identical(as.character(inf_override$mcmc$control_base$precision_beta$preset), "eigen_v1")
+  expect_true(isTRUE(inf_override$mcmc$control_base$precision_beta$eigen_fallback))
+  expect_equal(as.numeric(inf_override$mcmc$control_base$precision_beta$eigen_floor_abs), 1e-5, tolerance = 1e-12)
+  expect_false(isTRUE(inf_override$mcmc$control_base$precision_beta$trace))
+})

@@ -28,7 +28,9 @@ qdesn_fit <- function(..., method = c("vb", "mcmc"), vb_args = list(), mcmc_args
 #'
 #' @param mcmc_args Named list forwarded to [exal_mcmc_fit()]. If
 #'   \code{mcmc_args$beta_prior_type} is omitted, Q-DESN defaults to
-#'   \code{"rhs_ns"}.
+#'   \code{"rhs_ns"}. `mcmc_args$precision_beta` may be either a preset string
+#'   such as \code{"ladder_v2"} or \code{"eigen_v1"}, or a full control list
+#'   from [exal_make_precision_beta_control()].
 #' @param fit_readout Logical; if `FALSE`, return the shared design-only object.
 #' @param ... Additional arguments forwarded to the Q-DESN design builder.
 #' @export
@@ -75,6 +77,15 @@ qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
     slice = get_exact(mcmc_args, "slice", list()),
     conditioning = get_exact(mcmc_args, "conditioning", list())
   ), get_exact(mcmc_args, "mcmc_control", list()))
+
+  precision_beta_arg <- get_exact(
+    mcmc_args,
+    "precision_beta",
+    get_exact(mcmc_args, "precision", NULL)
+  )
+  if (!is.null(precision_beta_arg)) {
+    mcmc_control$precision_beta <- .exal_normalize_mcmc_precision_beta_cfg(precision_beta_arg)
+  }
 
   fit <- exal_mcmc_fit(
     y = design_fit$y_fit,

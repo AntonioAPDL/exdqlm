@@ -4,7 +4,12 @@
 \alias{.exal_mcmc_sample_mvnorm_prec}
 \title{Fit exAL readout with MCMC and pluggable beta prior}
 \usage{
-.exal_mcmc_sample_mvnorm_prec(rhs, Prec)
+.exal_mcmc_sample_mvnorm_prec(
+  rhs,
+  Prec,
+  precision_beta_cfg = list(),
+  context = list()
+)
 }
 \description{
 This is the MCMC counterpart to \code{\link[=exal_ldvb_fit]{exal_ldvb_fit()}}. The initial implementation

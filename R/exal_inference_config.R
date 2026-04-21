@@ -154,7 +154,8 @@
     precision_beta = list(
       enabled = FALSE,
       symmetrize = TRUE,
-      jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4),
+      preset = "ladder_v2",
+      jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2),
       eigen_fallback = FALSE,
       eigen_floor_abs = 1e-6,
       eigen_floor_rel = 1e-8,
@@ -212,6 +213,83 @@
 
 .exal_list_or_empty <- function(x) {
   if (is.list(x)) x else list()
+}
+
+.exal_precision_beta_preset_catalog <- function() {
+  list(
+    off = list(
+      preset = "off",
+      enabled = FALSE,
+      symmetrize = TRUE,
+      jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2),
+      eigen_fallback = FALSE,
+      eigen_floor_abs = 1e-6,
+      eigen_floor_rel = 1e-8,
+      trace = TRUE
+    ),
+    ladder_v1 = list(
+      preset = "ladder_v1",
+      enabled = TRUE,
+      symmetrize = TRUE,
+      jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4),
+      eigen_fallback = FALSE,
+      eigen_floor_abs = 1e-6,
+      eigen_floor_rel = 1e-8,
+      trace = TRUE
+    ),
+    ladder_v2 = list(
+      preset = "ladder_v2",
+      enabled = TRUE,
+      symmetrize = TRUE,
+      jitter_ladder = c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2),
+      eigen_fallback = FALSE,
+      eigen_floor_abs = 1e-6,
+      eigen_floor_rel = 1e-8,
+      trace = TRUE
+    ),
+    eigen_v1 = list(
+      preset = "eigen_v1",
+      enabled = TRUE,
+      symmetrize = TRUE,
+      jitter_ladder = c(0, 1e-10, 1e-8, 1e-6),
+      eigen_fallback = TRUE,
+      eigen_floor_abs = 1e-6,
+      eigen_floor_rel = 1e-8,
+      trace = TRUE
+    )
+  )
+}
+
+.exal_resolve_precision_beta_preset_name <- function(preset = NULL) {
+  if (is.null(preset) || !length(preset)) return(NULL)
+  preset_name <- tolower(trimws(as.character(preset)[1L]))
+  if (!nzchar(preset_name)) return(NULL)
+
+  alias_map <- c(
+    none = "off",
+    disabled = "off",
+    false = "off",
+    repair = "ladder_v2",
+    default = "ladder_v2",
+    recommended = "ladder_v2",
+    stable = "ladder_v2"
+  )
+  if (preset_name %in% names(alias_map)) preset_name <- unname(alias_map[[preset_name]])
+  preset_name
+}
+
+.exal_get_precision_beta_preset <- function(preset = NULL) {
+  preset_name <- .exal_resolve_precision_beta_preset_name(preset)
+  if (is.null(preset_name)) return(NULL)
+  presets <- .exal_precision_beta_preset_catalog()
+  preset_cfg <- presets[[preset_name]]
+  if (is.null(preset_cfg)) {
+    .stopf(
+      "Unsupported mcmc precision_beta preset '%s'. Expected one of: off, ladder_v1, ladder_v2, eigen_v1.",
+      as.character(preset)[1L]
+    )
+  }
+  preset_cfg
 }
 
 .exal_normalize_vb_sigmagam_cfg <- function(sigmagam_cfg = NULL) {
@@ -448,25 +526,45 @@
 
 .exal_normalize_mcmc_precision_beta_cfg <- function(precision_cfg = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
-  precision_cfg <- .exal_list_or_empty(precision_cfg)
+  if (is.character(precision_cfg) && length(precision_cfg) == 1L) {
+    precision_cfg <- list(preset = precision_cfg)
+  } else {
+    precision_cfg <- .exal_list_or_empty(precision_cfg)
+  }
+
+  preset_cfg <- .exal_get_precision_beta_preset(
+    precision_cfg$preset %||%
+      precision_cfg$profile %||%
+      precision_cfg$policy %||%
+      precision_cfg$strategy %||%
+      precision_cfg$mode %||%
+      NULL
+  )
+  preset_name <- preset_cfg$preset %||% NULL
 
   enabled <- if (is.null(precision_cfg$enabled)) {
-    isTRUE(precision_cfg$repair) || isTRUE(precision_cfg$eigen_fallback)
+    if (!is.null(preset_cfg)) {
+      isTRUE(preset_cfg$enabled)
+    } else {
+      isTRUE(precision_cfg$repair) || isTRUE(precision_cfg$eigen_fallback)
+    }
   } else {
     isTRUE(precision_cfg$enabled)
   }
 
   jitter_ladder <- precision_cfg$jitter_ladder %||%
     precision_cfg$ridge_ladder %||%
-    c(0, 1e-10, 1e-8, 1e-6, 1e-4)
+    preset_cfg$jitter_ladder %||%
+    c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2)
   jitter_ladder <- suppressWarnings(as.numeric(jitter_ladder))
   jitter_ladder <- jitter_ladder[is.finite(jitter_ladder) & jitter_ladder >= 0]
-  if (!length(jitter_ladder)) jitter_ladder <- c(0, 1e-10, 1e-8, 1e-6, 1e-4)
+  if (!length(jitter_ladder)) jitter_ladder <- c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2)
   jitter_ladder <- unique(jitter_ladder)
 
   eigen_floor_abs <- as.numeric(
     precision_cfg$eigen_floor_abs %||%
       precision_cfg$eigen_floor %||%
+      preset_cfg$eigen_floor_abs %||%
       1e-6
   )[1L]
   if (!is.finite(eigen_floor_abs) || eigen_floor_abs <= 0) eigen_floor_abs <- 1e-6
@@ -474,18 +572,32 @@
   eigen_floor_rel <- as.numeric(
     precision_cfg$eigen_floor_rel %||%
       precision_cfg$relative_eigen_floor %||%
+      preset_cfg$eigen_floor_rel %||%
       1e-8
   )[1L]
   if (!is.finite(eigen_floor_rel) || eigen_floor_rel <= 0) eigen_floor_rel <- 1e-8
 
   list(
+    preset = if (isTRUE(enabled)) preset_name %||% "custom" else "off",
     enabled = isTRUE(enabled),
-    symmetrize = if (is.null(precision_cfg$symmetrize)) TRUE else isTRUE(precision_cfg$symmetrize),
+    symmetrize = if (is.null(precision_cfg$symmetrize)) {
+      isTRUE(preset_cfg$symmetrize %||% TRUE)
+    } else {
+      isTRUE(precision_cfg$symmetrize)
+    },
     jitter_ladder = as.numeric(jitter_ladder),
-    eigen_fallback = if (is.null(precision_cfg$eigen_fallback)) FALSE else isTRUE(precision_cfg$eigen_fallback),
+    eigen_fallback = if (is.null(precision_cfg$eigen_fallback)) {
+      isTRUE(preset_cfg$eigen_fallback %||% FALSE)
+    } else {
+      isTRUE(precision_cfg$eigen_fallback)
+    },
     eigen_floor_abs = eigen_floor_abs,
     eigen_floor_rel = eigen_floor_rel,
-    trace = if (is.null(precision_cfg$trace)) TRUE else isTRUE(precision_cfg$trace)
+    trace = if (is.null(precision_cfg$trace)) {
+      isTRUE(preset_cfg$trace %||% TRUE)
+    } else {
+      isTRUE(precision_cfg$trace)
+    }
   )
 }
 
@@ -1003,6 +1115,59 @@ exal_make_beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), tau2 = NULL
   tau2 <- as.numeric(tau2 %||% 1e4)[1L]
   if (!is.finite(tau2) || tau2 <= 0) .stopf("ridge tau2 must be positive.")
   beta_prior("ridge", ridge = list(tau2 = tau2))
+}
+
+#' Build precision-beta MCMC stabilization control
+#'
+#' Returns a normalized `mcmc_control$precision_beta` block for
+#' [exal_mcmc_fit()] and [qdesn_fit_mcmc()]. Use a named preset for the common
+#' recovery policies that were validated on the hardest Q-DESN ridge failures,
+#' or pass explicit numeric overrides when you need a custom policy.
+#'
+#' `preset = "ladder_v2"` is the recommended default: it uses symmetric
+#' jittered Cholesky repair with a stronger ladder up to `1e-2`.
+#'
+#' `preset = "eigen_v1"` keeps a lighter jitter ladder and enables the
+#' eigenvalue-floored SPD fallback for the hardest residual precision failures.
+#'
+#' @param preset One of `"recommended"`, `"off"`, `"ladder_v1"`,
+#'   `"ladder_v2"`, or `"eigen_v1"`. `"recommended"` resolves to
+#'   `"ladder_v2"`.
+#' @param enabled Optional logical override.
+#' @param symmetrize Optional logical override.
+#' @param jitter_ladder Optional numeric jitter ladder override.
+#' @param eigen_fallback Optional logical override.
+#' @param eigen_floor_abs,eigen_floor_rel Optional positive numeric overrides
+#'   for the eigen fallback floor.
+#' @param trace Optional logical override.
+#'
+#' @return A normalized list suitable for `mcmc_control$precision_beta`.
+#' @export
+#'
+#' @examples
+#' exal_make_precision_beta_control()
+#' exal_make_precision_beta_control("eigen_v1")
+#' exal_make_precision_beta_control("ladder_v2", jitter_ladder = c(0, 1e-8, 1e-4, 1e-2))
+exal_make_precision_beta_control <- function(
+    preset = c("recommended", "off", "ladder_v1", "ladder_v2", "eigen_v1"),
+    enabled = NULL,
+    symmetrize = NULL,
+    jitter_ladder = NULL,
+    eigen_fallback = NULL,
+    eigen_floor_abs = NULL,
+    eigen_floor_rel = NULL,
+    trace = NULL) {
+  preset <- match.arg(preset)
+  .exal_normalize_mcmc_precision_beta_cfg(list(
+    preset = preset,
+    enabled = enabled,
+    symmetrize = symmetrize,
+    jitter_ladder = jitter_ladder,
+    eigen_fallback = eigen_fallback,
+    eigen_floor_abs = eigen_floor_abs,
+    eigen_floor_rel = eigen_floor_rel,
+    trace = trace
+  ))
 }
 
 resolve_exal_quantile_fit_spec <- function(inference_cfg, idx_p, p0) {

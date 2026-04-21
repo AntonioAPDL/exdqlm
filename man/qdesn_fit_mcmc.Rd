@@ -11,7 +11,9 @@ qdesn_fit_mcmc(..., mcmc_args = list(), fit_readout = TRUE)
 
 \item{mcmc_args}{Named list forwarded to \code{\link[=exal_mcmc_fit]{exal_mcmc_fit()}}. If
 \code{mcmc_args$beta_prior_type} is omitted, Q-DESN defaults to
-\code{"rhs_ns"}.}
+\code{"rhs_ns"}. \code{mcmc_args$precision_beta} may be either a preset string
+such as \code{"ladder_v2"} or \code{"eigen_v1"}, or a full control list
+from \code{\link[=exal_make_precision_beta_control]{exal_make_precision_beta_control()}}.}
 
 \item{fit_readout}{Logical; if \code{FALSE}, return the shared design-only object.}
 }

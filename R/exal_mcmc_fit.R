@@ -1184,6 +1184,38 @@
   )
 }
 
+#' Fit exAL regression with MCMC
+#'
+#' `mcmc_control$precision_beta` optionally enables code-level repair for the
+#' Gaussian beta precision draw. The recommended preset is
+#' `exal_make_precision_beta_control("ladder_v2")`; the stronger fallback is
+#' `exal_make_precision_beta_control("eigen_v1")`.
+#'
+#' @param y Response vector.
+#' @param X Design matrix.
+#' @param p0 Target quantile.
+#' @param gamma_bounds Length-2 numeric vector with lower/upper bounds for
+#'   `gamma`.
+#' @param mcmc_control Named list of MCMC controls. `mcmc_control$precision_beta`
+#'   accepts either a preset string such as `"ladder_v2"` / `"eigen_v1"` or a
+#'   fully specified list produced by [exal_make_precision_beta_control()].
+#' @param n_burn,n_mcmc,thin Optional scalar overrides for the retained MCMC
+#'   control counts.
+#' @param verbose Optional logical override for verbose progress output.
+#' @param likelihood_family One of `"exal"` or `"al"`.
+#' @param al_fixed_gamma Optional fixed gamma value for the AL special case.
+#' @param init Initial values list.
+#' @param prior_gamma Optional normal prior control list for `gamma`.
+#' @param prior_gamma_mu0,prior_gamma_s20 Optional scalar shorthands for
+#'   `prior_gamma`.
+#' @param log_prior_gamma Optional custom log prior for `gamma`.
+#' @param prior_sigma Optional inverse-gamma prior control list for `sigma`.
+#' @param a_sigma,b_sigma Optional scalar shorthands for `prior_sigma`.
+#' @param beta_prior_obj Beta prior object, typically created with the package's
+#'   beta-prior constructors such as `exal_make_beta_prior()`.
+#' @param ... Reserved for forward compatibility.
+#'
+#' @return An `exal_mcmc` fit object.
 #' @export
 exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
                           mcmc_control = NULL,
@@ -1404,14 +1436,17 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   conditioning_intercept_column <- suppressWarnings(as.integer(conditioning_cfg$intercept_column %||% 1L))[1L]
   conditioning_constant_tol <- as.numeric(conditioning_cfg$constant_tol %||% 1e-12)[1L]
   conditioning_gram_ridge <- as.numeric(conditioning_cfg$gram_ridge %||% 1e-8)[1L]
-  precision_beta_cfg <- mcmc_control$precision_beta %||% list()
+  precision_beta_cfg <- .exal_normalize_mcmc_precision_beta_cfg(
+    mcmc_control$precision_beta %||% mcmc_control$precision %||% list()
+  )
+  precision_beta_preset <- as.character(precision_beta_cfg$preset %||% "off")[1L]
   precision_beta_enabled <- isTRUE(precision_beta_cfg$enabled %||% FALSE)
   precision_beta_symmetrize <- isTRUE(precision_beta_cfg$symmetrize %||% TRUE)
-  precision_beta_jitter_ladder <- as.numeric(precision_beta_cfg$jitter_ladder %||% c(0, 1e-10, 1e-8, 1e-6, 1e-4))
+  precision_beta_jitter_ladder <- as.numeric(precision_beta_cfg$jitter_ladder %||% c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2))
   precision_beta_jitter_ladder <- precision_beta_jitter_ladder[
     is.finite(precision_beta_jitter_ladder) & precision_beta_jitter_ladder >= 0
   ]
-  if (!length(precision_beta_jitter_ladder)) precision_beta_jitter_ladder <- c(0, 1e-10)
+  if (!length(precision_beta_jitter_ladder)) precision_beta_jitter_ladder <- c(0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2)
   precision_beta_jitter_ladder <- unique(precision_beta_jitter_ladder)
   precision_beta_eigen_fallback <- isTRUE(precision_beta_cfg$eigen_fallback %||% FALSE)
   precision_beta_eigen_floor_abs <- as.numeric(precision_beta_cfg$eigen_floor_abs %||% 1e-6)[1L]
@@ -2899,6 +2934,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       scale_max = as.numeric(conditioning_state$scale_max)
     ),
     precision_beta = list(
+      preset = as.character(precision_beta_preset),
       enabled = isTRUE(precision_beta_enabled),
       symmetrize = isTRUE(precision_beta_symmetrize),
       jitter_ladder = as.numeric(precision_beta_jitter_ladder),
@@ -3048,6 +3084,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         gram_ridge = as.numeric(conditioning_gram_ridge)
       ),
       precision_beta = list(
+        preset = as.character(precision_beta_preset),
         enabled = isTRUE(precision_beta_enabled),
         symmetrize = isTRUE(precision_beta_symmetrize),
         jitter_ladder = as.numeric(precision_beta_jitter_ladder),

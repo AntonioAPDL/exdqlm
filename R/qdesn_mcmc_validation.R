@@ -1065,6 +1065,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     base$mcmc_conditioning_gain_ratio <- as.numeric((fit$diagnostics$conditioning %||% list())$condition_gain_ratio %||% NA_real_)
     base$mcmc_conditioning_scaled_columns_n <- as.integer((fit$diagnostics$conditioning %||% list())$scaled_columns_n %||% NA_integer_)
     base$mcmc_precision_beta_enabled <- isTRUE((fit$diagnostics$precision_beta %||% list())$enabled %||% FALSE)
+    base$mcmc_precision_beta_preset <- as.character((fit$diagnostics$precision_beta %||% list())$preset %||% NA_character_)[1L]
     base$mcmc_precision_beta_symmetrize <- isTRUE((fit$diagnostics$precision_beta %||% list())$symmetrize %||% FALSE)
     base$mcmc_precision_beta_eigen_fallback <- isTRUE((fit$diagnostics$precision_beta %||% list())$eigen_fallback %||% FALSE)
     base$mcmc_precision_beta_jitter_ladder_max <- suppressWarnings(max(as.numeric((fit$diagnostics$precision_beta %||% list())$jitter_ladder %||% NA_real_), na.rm = TRUE))
