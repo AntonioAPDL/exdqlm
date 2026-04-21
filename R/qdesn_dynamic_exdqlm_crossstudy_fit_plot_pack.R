@@ -301,7 +301,14 @@ qdesn_dynamic_fitplotpack_run_jobs <- function(jobs,
   max_workers <- max(1L, min(as.integer(max_workers)[1L], length(jobs)))
   runner <- function(job) .qdesn_dynamic_fitplotpack_run_job(job)
   if (.Platform$OS.type == "unix" && max_workers > 1L) {
-    rows <- parallel::mclapply(jobs, runner, mc.cores = max_workers)
+    # Use dynamic pickup so short VB jobs do not leave workers idle while
+    # longer MCMC jobs monopolize early chunks.
+    rows <- parallel::mclapply(
+      jobs,
+      runner,
+      mc.cores = max_workers,
+      mc.preschedule = FALSE
+    )
   } else {
     rows <- lapply(jobs, runner)
   }
