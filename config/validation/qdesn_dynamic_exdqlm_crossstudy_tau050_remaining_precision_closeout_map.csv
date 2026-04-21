@@ -1,0 +1,5 @@
+"phase","lane","root_id","precision_beta_preset","role","launch_policy"
+"remaining_precision_closeout_al_ladder_v2","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","ladder_v2","canonical_live","launch"
+"remaining_precision_closeout_exal_ladder_v2","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","ladder_v2","canonical_live","launch"
+"remaining_precision_closeout_al_eigen_v1","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","eigen_v1","fallback_prepared","prepare_only"
+"remaining_precision_closeout_exal_eigen_v1","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge","eigen_v1","fallback_prepared","prepare_only"
