@@ -37,6 +37,7 @@ write_json <- function(x, path) {
 
 manifest_rel <- get_arg("--manifest", file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_fit_plot_pack_manifest.yaml"))
 prepare_only <- has_flag("--prepare-only")
+assemble_only <- has_flag("--assemble-only")
 workers_override <- suppressWarnings(as.integer(get_arg("--max-workers", NA)))
 
 manifest_path <- resolve_path(manifest_rel, must_work = TRUE)
@@ -79,6 +80,7 @@ preflight_lines <- c(
   sprintf("- generated_at: `%s`", as.character(Sys.time())),
   sprintf("- run_tag: `%s`", run_tag),
   sprintf("- prepare_only: `%s`", if (prepare_only) "TRUE" else "FALSE"),
+  sprintf("- assemble_only: `%s`", if (assemble_only) "TRUE" else "FALSE"),
   sprintf("- manifest: `%s`", manifest_path),
   sprintf("- source_run_root: `%s`", source_state$source_run_root),
   sprintf("- comparison_root: `%s`", source_state$comparison_root),
@@ -100,6 +102,7 @@ write_json(list(
   generated_at = as.character(Sys.time()),
   run_tag = run_tag,
   prepare_only = prepare_only,
+  assemble_only = assemble_only,
   manifest_path = manifest_path,
   source_run_root = source_state$source_run_root,
   comparison_root = source_state$comparison_root,
@@ -112,10 +115,14 @@ if (prepare_only) {
   quit(save = "no", status = 0L)
 }
 
-rerun_status <- exdqlm:::qdesn_dynamic_fitplotpack_run_jobs(
-  jobs = job_list,
-  max_workers = max_workers
-)
+rerun_status <- if (assemble_only) {
+  exdqlm:::qdesn_dynamic_fitplotpack_collect_jobs(job_list)
+} else {
+  exdqlm:::qdesn_dynamic_fitplotpack_run_jobs(
+    jobs = job_list,
+    max_workers = max_workers
+  )
+}
 analysis_obj <- exdqlm:::qdesn_dynamic_fitplotpack_write_analysis(
   source_state = source_state,
   case_table = case_table,
@@ -127,6 +134,7 @@ analysis_obj <- exdqlm:::qdesn_dynamic_fitplotpack_write_analysis(
 
 write_json(list(
   completed_at = as.character(Sys.time()),
+  assemble_only = assemble_only,
   rerun_success_n = sum(as.integer(rerun_status$pipeline_status) == 0L & rerun_status$train_plot_exists, na.rm = TRUE),
   rerun_total_n = nrow(rerun_status),
   figure_paths = analysis_obj$figure_index$rel_plot_path

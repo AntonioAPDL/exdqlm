@@ -249,6 +249,68 @@ qdesn_dynamic_fitplotpack_load_manifest <- function(path = file.path("config", "
   jobs
 }
 
+.qdesn_dynamic_fitplotpack_error_row <- function(job,
+                                                 message = NA_character_,
+                                                 pipeline_status = 1L) {
+  data.frame(
+    case_id = job$case_id,
+    case_label = job$case_label,
+    root_id = job$root_id,
+    fit_key = job$fit_key,
+    panel_label = job$panel_label,
+    method = job$method,
+    model = job$model,
+    source_fit_dir = job$source_fit_dir,
+    rerun_fit_dir = normalizePath(job$output_dir, winslash = "/", mustWork = FALSE),
+    pipeline_status = as.integer(pipeline_status)[1L],
+    summary_status = as.character(message %||% NA_character_),
+    rerun_wall_seconds = NA_real_,
+    rerun_total_stage_seconds = NA_real_,
+    train_plot_exists = FALSE,
+    train_plot_path = NA_character_,
+    forecast_plot_exists = FALSE,
+    forecast_plot_path = NA_character_,
+    stringsAsFactors = FALSE
+  )
+}
+
+.qdesn_dynamic_fitplotpack_collect_job <- function(job,
+                                                   pipeline_status = NA_integer_,
+                                                   summary_status = NULL) {
+  summary_obj <- collect_pipeline_run_summary(job$output_dir)
+  train_plot <- file.path(job$output_dir, "figs", "train_mu_band.png")
+  forecast_plot <- file.path(job$output_dir, "figs", "forecast_mu_band.png")
+  train_exists <- file.exists(train_plot)
+  forecast_exists <- file.exists(forecast_plot)
+  summary_status <- as.character(summary_status %||% summary_obj$status %||% NA_character_)
+  pipeline_status <- suppressWarnings(as.integer(pipeline_status)[1L])
+  if (!is.finite(pipeline_status)) {
+    pipeline_status <- if (train_exists || forecast_exists) 0L else 1L
+  }
+  data.frame(
+    case_id = job$case_id,
+    case_label = job$case_label,
+    root_id = job$root_id,
+    fit_key = job$fit_key,
+    panel_label = job$panel_label,
+    method = job$method,
+    model = job$model,
+    source_fit_dir = job$source_fit_dir,
+    rerun_fit_dir = normalizePath(job$output_dir, winslash = "/", mustWork = FALSE),
+    pipeline_status = as.integer(pipeline_status),
+    summary_status = summary_status,
+    rerun_wall_seconds = suppressWarnings(as.numeric(summary_obj$summary$wall_seconds[1L] %||%
+                                                       summary_obj$summary$total_stage_seconds[1L] %||%
+                                                       NA_real_)),
+    rerun_total_stage_seconds = suppressWarnings(as.numeric(summary_obj$summary$total_stage_seconds[1L] %||% NA_real_)),
+    train_plot_exists = train_exists,
+    train_plot_path = if (train_exists) normalizePath(train_plot, winslash = "/", mustWork = TRUE) else NA_character_,
+    forecast_plot_exists = forecast_exists,
+    forecast_plot_path = if (forecast_exists) normalizePath(forecast_plot, winslash = "/", mustWork = TRUE) else NA_character_,
+    stringsAsFactors = FALSE
+  )
+}
+
 .qdesn_dynamic_fitplotpack_run_job <- function(job) {
   dir.create(job$output_dir, recursive = TRUE, showWarnings = FALSE)
   res <- tryCatch(
@@ -266,40 +328,32 @@ qdesn_dynamic_fitplotpack_load_manifest <- function(path = file.path("config", "
   )
   if (!is.null(res$stdout)) {
     .qdesn_validation_write_lines(
-      as.character(res$stdout),
-      file.path(job$output_dir, "logs", "fit_plot_pack_stdout.log")
+      file.path(job$output_dir, "logs", "fit_plot_pack_stdout.log"),
+      as.character(res$stdout)
     )
   }
-  summary_obj <- collect_pipeline_run_summary(job$output_dir)
-  train_plot <- file.path(job$output_dir, "figs", "train_mu_band.png")
-  forecast_plot <- file.path(job$output_dir, "figs", "forecast_mu_band.png")
-  data.frame(
-    case_id = job$case_id,
-    case_label = job$case_label,
-    root_id = job$root_id,
-    fit_key = job$fit_key,
-    panel_label = job$panel_label,
-    method = job$method,
-    model = job$model,
-    source_fit_dir = job$source_fit_dir,
-    rerun_fit_dir = normalizePath(job$output_dir, winslash = "/", mustWork = FALSE),
-    pipeline_status = as.integer(res$status %||% 1L),
-    summary_status = as.character(summary_obj$status %||% NA_character_),
-    rerun_wall_seconds = suppressWarnings(as.numeric(summary_obj$summary$wall_seconds[1L] %||% res$elapsed_seconds %||% NA_real_)),
-    rerun_total_stage_seconds = suppressWarnings(as.numeric(summary_obj$summary$total_stage_seconds[1L] %||% NA_real_)),
-    train_plot_exists = file.exists(train_plot),
-    train_plot_path = if (file.exists(train_plot)) normalizePath(train_plot, winslash = "/", mustWork = TRUE) else NA_character_,
-    forecast_plot_exists = file.exists(forecast_plot),
-    forecast_plot_path = if (file.exists(forecast_plot)) normalizePath(forecast_plot, winslash = "/", mustWork = TRUE) else NA_character_,
-    stringsAsFactors = FALSE
+  out <- .qdesn_dynamic_fitplotpack_collect_job(
+    job,
+    pipeline_status = as.integer(res$status %||% 1L)
   )
+  if (!is.null(res$elapsed_seconds) &&
+      nrow(out) &&
+      (!is.finite(out$rerun_wall_seconds[1L]) || is.na(out$rerun_wall_seconds[1L]))) {
+    out$rerun_wall_seconds[1L] <- as.numeric(res$elapsed_seconds)
+  }
+  out
 }
 
 qdesn_dynamic_fitplotpack_run_jobs <- function(jobs,
                                                max_workers = 1L) {
   if (!length(jobs)) return(data.frame(stringsAsFactors = FALSE))
   max_workers <- max(1L, min(as.integer(max_workers)[1L], length(jobs)))
-  runner <- function(job) .qdesn_dynamic_fitplotpack_run_job(job)
+  runner <- function(job) {
+    tryCatch(
+      .qdesn_dynamic_fitplotpack_run_job(job),
+      error = function(e) .qdesn_dynamic_fitplotpack_error_row(job, conditionMessage(e), pipeline_status = 1L)
+    )
+  }
   if (.Platform$OS.type == "unix" && max_workers > 1L) {
     # Use dynamic pickup so short VB jobs do not leave workers idle while
     # longer MCMC jobs monopolize early chunks.
@@ -312,6 +366,17 @@ qdesn_dynamic_fitplotpack_run_jobs <- function(jobs,
   } else {
     rows <- lapply(jobs, runner)
   }
+  .qdesn_validation_bind_rows(rows)
+}
+
+qdesn_dynamic_fitplotpack_collect_jobs <- function(jobs) {
+  if (!length(jobs)) return(data.frame(stringsAsFactors = FALSE))
+  rows <- lapply(jobs, function(job) {
+    tryCatch(
+      .qdesn_dynamic_fitplotpack_collect_job(job),
+      error = function(e) .qdesn_dynamic_fitplotpack_error_row(job, conditionMessage(e), pipeline_status = 1L)
+    )
+  })
   .qdesn_validation_bind_rows(rows)
 }
 
@@ -470,16 +535,16 @@ qdesn_dynamic_fitplotpack_write_analysis <- function(source_state,
   }
 
   .qdesn_validation_write_lines(
-    headline_lines,
-    file.path(output_root, "summary", "qdesn_tau050_fit_plot_comparison_pack.md")
+    file.path(output_root, "summary", "qdesn_tau050_fit_plot_comparison_pack.md"),
+    headline_lines
   )
-  .qdesn_validation_write_json(list(
+  .qdesn_validation_write_json(file.path(output_root, "manifest", "analysis_manifest.json"), list(
     generated_at = as.character(Sys.time()),
     source_run_root = source_state$source_run_root,
     comparison_root = source_state$comparison_root,
     selected_cases_n = nrow(case_table),
     selected_fits_n = nrow(source_fit_table)
-  ), file.path(output_root, "manifest", "analysis_manifest.json"))
+  ))
 
   list(
     case_table = case_table,

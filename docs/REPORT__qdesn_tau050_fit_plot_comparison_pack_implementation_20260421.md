@@ -99,3 +99,23 @@ SHA:
 - implementation commit: `686b741`
 
 The canonical fit-plot pack was then launched from that clean implementation state.
+
+## Post-Launch Hardening
+
+During report assembly, the first run exposed two lightweight framework issues:
+
+- the fit-plot pack logger called `.qdesn_validation_write_lines()` with reversed
+  arguments
+- the final summary/manifest writer also called the shared write helpers with
+  reversed arguments
+
+The fit reruns themselves completed and produced the expected plot artifacts, but
+the markdown closeout did not. The module was then hardened to:
+
+- fix the shared write-helper call order
+- add safer per-job error rows during parallel collection
+- add an `--assemble-only` runner path so an existing rerun root can be finalized
+  without paying the fit compute again
+
+That hardening lets the fit-plot pack behave like the rest of the repo’s
+reproducible report layers: compute once, then reassemble cleanly if needed.
