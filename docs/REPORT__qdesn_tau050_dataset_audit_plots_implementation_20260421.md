@@ -12,6 +12,7 @@ The implementation is intentionally lightweight:
 - no refitting
 - one combined PNG per dataset
 - a single temp-root output folder with no dataset subfolders
+- raw observations only in both panels; no fitted or smoothed overlay
 
 ## What Was Added
 
@@ -31,6 +32,9 @@ Main responsibilities:
 - render one flat PNG per dataset with:
   - full-series panel
   - last-100 zoom panel
+- keep the figure purely observational:
+  - no model fit
+  - no smoothing overlay in the zoom panel
 - write flat output metadata and summary files into the same folder
 
 ### Runners

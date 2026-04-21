@@ -41,6 +41,7 @@ Each figure shows:
 
 - the full series
 - the last 100 observations
+- raw observations only in both panels
 - dataset metadata in the title/subtitle
 - recovered readiness context where available
 

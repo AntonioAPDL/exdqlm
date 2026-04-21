@@ -189,7 +189,7 @@ qdesn_dynamic_datasetaudit_build_inventory <- function(manifest,
   graphics::lines(tail_idx, y_tail, col = accent_col, lwd = 2.8)
   graphics::abline(v = tail_start, col = accent_col, lwd = 1.5, lty = 2)
   graphics::legend("topleft",
-                   legend = c("observed", sprintf("last %d region", length(tail_idx))),
+                   legend = c("observed", sprintf("last %d obs (raw highlight)", length(tail_idx))),
                    col = c(line_col, accent_col), lwd = c(2.4, 2.8),
                    bty = "n", cex = 0.92)
   graphics::mtext(sprintf("n=%d | min=%.1f | max=%.1f | sd=%.1f", length(y), min(y), max(y), stats::sd(y)),
@@ -202,7 +202,6 @@ qdesn_dynamic_datasetaudit_build_inventory <- function(manifest,
                  ylab = "observed value", main = sprintf("Zoom: last %d points", length(tail_idx)),
                  cex.main = 1.1, font.main = 2)
   .qdesn_dynamic_datasetaudit_plot_grid(x_ticks_tail, y_ticks_tail)
-  graphics::lines(stats::lowess(tail_idx, y_tail, f = 0.2), col = accent_col, lwd = 2.2)
   graphics::mtext(sprintf("tail range=%.1f | delta=%.1f", diff(range(y_tail)), y_tail[length(y_tail)] - y_tail[1L]),
                   side = 3, line = 0.25, cex = 0.86, col = "#475569")
 
