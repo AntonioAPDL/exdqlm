@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a flat, temp-root dataset audit pack for the **generated tau050 source datasets**
+Build a flat, repo-local dataset audit pack for the **generated tau050 source datasets**
 so the raw observed series can be visually inspected before drawing more conclusions
 from the downstream fit comparisons.
 
@@ -31,7 +31,14 @@ layer over the already generated source datasets.
 
 ## Deliverable Shape
 
-The output should be a single temp folder under `/tmp` containing:
+The output should be a single run folder under:
+
+- `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_dataset_audit_local/`
+
+That parent is already ignored by git as part of the local validation-report tree, so
+the rendered PNGs stay untracked while still living inside the repo workspace.
+
+Each run folder should contain:
 
 - `000__run_metadata.json`
 - `000__preflight.md`
@@ -109,4 +116,3 @@ This pack is meant to answer a simple question cleanly:
 > trusting as the basis for the tau050 study comparisons?
 
 It is an audit surface, not a replacement for the study-facing comparison pack.
-

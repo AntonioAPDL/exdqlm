@@ -5,7 +5,7 @@ meta:
 analysis:
   source_run_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation/qdesn-dynamic-exdqlm-crossstudy-tau050-full-20260416-212700__git-15fe674/20260416-212707__git-15fe674
   comparison_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_recovered_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-tau050-recovered-maincmp-20260421-024204__git-86be927
-  output_parent: /tmp
+  output_parent: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_dataset_audit_local
 
 selection: {}
 
@@ -21,4 +21,3 @@ plotting:
 
 execution:
   max_workers: 6
-

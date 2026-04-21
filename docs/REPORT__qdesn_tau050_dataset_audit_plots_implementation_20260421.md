@@ -41,7 +41,8 @@ Main responsibilities:
 These follow the repo’s manifest-driven pattern while adapting the output layout to
 the user-review need:
 
-- default output parent is `/tmp`
+- default output parent is:
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_dataset_audit_local`
 - `--prepare-only` support
 - `--output-root` override
 - `--max-workers` override
@@ -60,7 +61,7 @@ Pinned choices:
 - plotting window:
   - `n_last = 100`
 - output parent:
-  - `/tmp`
+  - `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_dataset_audit_local`
 - execution:
   - `max_workers = 6`
 
@@ -101,10 +102,10 @@ Rscript scripts/run_qdesn_dynamic_exdqlm_crossstudy_tau050_dataset_audit_plots.R
 
 ## Expected Deliverable
 
-The canonical output is a temp-root folder under `/tmp` containing:
+The canonical output is a repo-local run folder under the ignored validation-report
+tree containing:
 
 - numbered flat PNGs for all 36 datasets
 - a flat CSV index
 - manifest/summary metadata
 - no dataset subfolders
-

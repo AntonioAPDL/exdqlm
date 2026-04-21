@@ -7,7 +7,7 @@ run into a single flat temp folder for one-by-one review.
 
 The output root is:
 
-- `/tmp/qdesn-dynamic-exdqlm-crossstudy-tau050-datasetaudit-20260421-180700__git-d77edc7`
+- `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_dataset_audit_local/qdesn-dynamic-exdqlm-crossstudy-tau050-datasetaudit-20260421-180700__git-d77edc7`
 
 Rendered counts:
 
@@ -28,6 +28,10 @@ Rendered counts:
 
 All dataset figures are flat in the top-level folder so they can be browsed in lexical
 order without drilling into subfolders.
+
+The folder lives under the repo-local validation-report tree, which is already
+gitignored, so the full visual audit pack stays untracked while remaining easy to
+inspect from the current workspace.
 
 ## Review Guidance
 
