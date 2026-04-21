@@ -29,7 +29,28 @@ resolve_path <- function(path, must_work = TRUE) {
 
 read_csv_safe <- function(path) {
   if (!file.exists(path)) return(data.frame(stringsAsFactors = FALSE))
-  utils::read.csv(path, stringsAsFactors = FALSE)
+  info <- file.info(path)
+  if (!nrow(info) || is.na(info$size[[1L]]) || info$size[[1L]] <= 0) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  preview <- trimws(readLines(path, warn = FALSE, n = 5L))
+  preview <- preview[nzchar(preview)]
+  if (!length(preview)) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  if (all(preview %in% c('""', "''"))) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  tryCatch(
+    utils::read.csv(path, stringsAsFactors = FALSE),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (grepl("no lines available in input", msg, fixed = TRUE)) {
+        return(data.frame(stringsAsFactors = FALSE))
+      }
+      stop(e)
+    }
+  )
 }
 
 read_json_safe <- function(path) {
