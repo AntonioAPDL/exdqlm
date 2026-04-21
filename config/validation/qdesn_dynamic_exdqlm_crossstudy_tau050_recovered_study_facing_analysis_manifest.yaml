@@ -1,0 +1,23 @@
+meta:
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-tau050-studyfacing
+
+source:
+  source_label: Tau050 Recovered Representative Surface
+  comparison_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_recovered_main_comparison_analysis
+  comparison_run_tag: qdesn-dynamic-exdqlm-crossstudy-tau050-recovered-maincmp-20260421-024204__git-86be927
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_recovered_study_facing_analysis
+
+expected_state:
+  source_fit_rows_total: 144
+  source_runtime_fail_n: 0
+  source_signoff_fail_n: 40
+  source_root_total: 36
+  source_root_status_fail_n: 0
+  source_root_compare_any_n: 33
+  source_root_compare_full_n: 15
+  representative_case_rows: 36
+  representative_pass_n: 33
+  representative_warn_n: 3
+  representative_fail_n: 0
