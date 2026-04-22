@@ -9,7 +9,7 @@ test_that("static VB normalization and init extraction work for AL (dqlm.ind=TRU
   set.seed(501)
   dat <- tiny_static_xy(20)
 
-  vb_fit <- exal_static_LDVB(
+  vb_fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -36,7 +36,7 @@ test_that("static VB normalization and init extraction work for exAL", {
   set.seed(502)
   dat <- tiny_static_xy(18)
 
-  vb_fit <- exal_static_LDVB(
+  vb_fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -72,7 +72,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
   set.seed(503)
   dat <- tiny_static_xy(16)
 
-  fit_al <- exal_static_mcmc(
+  fit_al <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -88,7 +88,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
   expect_true(is.finite(norm_al$diagnostics$ess$sigma) || is.na(norm_al$diagnostics$ess$sigma))
   expect_true(is.na(norm_al$diagnostics$ess$gamma))
 
-  fit_exal <- exal_static_mcmc(
+  fit_exal <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -116,7 +116,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
   expect_true(all(c("s_mean", "s_sd") %in% names(norm_exal$diagnostics$mh$trace)))
   expect_true(is.data.frame(norm_exal$diagnostics$s_block$trace))
 
-  fit_exal_local <- exal_static_mcmc(
+  fit_exal_local <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -133,7 +133,7 @@ test_that("static MCMC normalization reports ESS and acceptance fields", {
   expect_false(norm_exal_local$diagnostics$mh$signoff_ready)
   expect_match(norm_exal_local$diagnostics$mh$approximation_note, "without MH correction")
 
-  fit_exal_slice <- exal_static_mcmc(
+  fit_exal_slice <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -156,7 +156,7 @@ test_that("static MCMC can disable per-iteration diagnostics trace", {
   set.seed(5031)
   dat <- tiny_static_xy(16)
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -179,7 +179,7 @@ test_that("static quantile path extractor returns aligned vectors", {
   set.seed(504)
   dat <- tiny_static_xy(14)
 
-  vb_fit <- exal_static_LDVB(
+  vb_fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -189,7 +189,7 @@ test_that("static quantile path extractor returns aligned vectors", {
     verbose = FALSE
   )
 
-  mcmc_fit <- exal_static_mcmc(
+  mcmc_fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -217,7 +217,7 @@ test_that("static normalization marks RHS collapse runs as unhealthy", {
   set.seed(505)
   dat <- tiny_static_xy(16)
 
-  vb_fit <- exal_static_LDVB(
+  vb_fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,
@@ -238,7 +238,7 @@ test_that("static normalization marks RHS collapse runs as unhealthy", {
   expect_true(isTRUE(norm_vb$diagnostics$rhs$collapse_flag))
   expect_true(is.list(norm_vb$diagnostics$rhs$preflight))
 
-  mc_fit <- exal_static_mcmc(
+  mc_fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = 0.5,

@@ -13,15 +13,16 @@
 #' \itemize{
 #'   \item Dynamic/state-space quantile modeling via
 #'         [exdqlmISVB()], [exdqlmLDVB()], and [exdqlmMCMC()], with
-#'         transfer-function extensions through [transfn_exdqlmLDVB()],
-#'         [transfn_exdqlmMCMC()], and legacy [transfn_exdqlmISVB()].
-#'   \item Static Bayesian exAL regression via [exal_static_LDVB()] and
-#'         [exal_static_mcmc()].
+#'         transfer-function extensions through [exdqlmTransferLDVB()],
+#'         [exdqlmTransferMCMC()], and legacy [exdqlmTransferISVB()].
+#'   \item Static Bayesian exAL regression via [exalStaticLDVB()] and
+#'         [exalStaticMCMC()].
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
 #'         and [regMod()].
 #'   \item Multi-quantile post-processing via
-#'         [exdqlm_synthesize_from_draws()] for non-crossing predictive
-#'         synthesis from separately fitted quantiles.
+#'         [quantileSynthesis()] for post hoc posterior-predictive
+#'         synthesis from separately fitted quantiles into a unified
+#'         predictive distribution.
 #' }
 #'
 #' @section Distinctive features in 0.4.0:
@@ -34,8 +35,10 @@
 #'         (`"rhs"`), and `rhs_ns`.
 #'   \item Reduced AL/DQLM paths through `dqlm.ind = TRUE` in both dynamic and
 #'         static APIs.
-#'   \item ELBO diagnostics and optional C++ acceleration for selected
-#'         state-space computations.
+#'   \item Standardized VB diagnostics traces via
+#'         `fit$diagnostics$vb_trace` for ELBO, `sigma`, `gamma`, and
+#'         convergence deltas across VB engines.
+#'   \item Optional C++ acceleration for selected state-space computations.
 #' }
 #'
 #' @section Runtime options:

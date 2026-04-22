@@ -21,15 +21,16 @@ for static coefficients, and post hoc synthesis of several fitted quantiles.
 \itemize{
 \item Dynamic/state-space quantile modeling via
 \code{\link[=exdqlmISVB]{exdqlmISVB()}}, \code{\link[=exdqlmLDVB]{exdqlmLDVB()}}, and \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, with
-transfer-function extensions through \code{\link[=transfn_exdqlmLDVB]{transfn_exdqlmLDVB()}},
-\code{\link[=transfn_exdqlmMCMC]{transfn_exdqlmMCMC()}}, and legacy \code{\link[=transfn_exdqlmISVB]{transfn_exdqlmISVB()}}.
-\item Static Bayesian exAL regression via \code{\link[=exal_static_LDVB]{exal_static_LDVB()}} and
-\code{\link[=exal_static_mcmc]{exal_static_mcmc()}}.
+transfer-function extensions through \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}},
+\code{\link[=exdqlmTransferMCMC]{exdqlmTransferMCMC()}}, and legacy \code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}.
+\item Static Bayesian exAL regression via \code{\link[=exalStaticLDVB]{exalStaticLDVB()}} and
+\code{\link[=exalStaticMCMC]{exalStaticMCMC()}}.
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
 and \code{\link[=regMod]{regMod()}}.
 \item Multi-quantile post-processing via
-\code{\link[=exdqlm_synthesize_from_draws]{exdqlm_synthesize_from_draws()}} for non-crossing predictive
-synthesis from separately fitted quantiles.
+\code{\link[=quantileSynthesis]{quantileSynthesis()}} for post hoc posterior-predictive
+synthesis from separately fitted quantiles into a unified
+predictive distribution.
 }
 }
 
@@ -44,8 +45,10 @@ exAL regression.
 (\code{"rhs"}), and \code{rhs_ns}.
 \item Reduced AL/DQLM paths through \code{dqlm.ind = TRUE} in both dynamic and
 static APIs.
-\item ELBO diagnostics and optional C++ acceleration for selected
-state-space computations.
+\item Standardized VB diagnostics traces via
+\code{fit$diagnostics$vb_trace} for ELBO, \code{sigma}, \code{gamma}, and
+convergence deltas across VB engines.
+\item Optional C++ acceleration for selected state-space computations.
 }
 }
 

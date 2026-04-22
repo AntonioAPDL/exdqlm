@@ -876,6 +876,77 @@ check_ts = function(dat){
   }, numeric(1))
 }
 
+.exdqlm_normalize_vb_trace_vector <- function(x, n_iter, name, drop_init = FALSE, fill = NA_real_) {
+  n_iter <- suppressWarnings(as.integer(n_iter)[1])
+  if (!is.finite(n_iter) || n_iter < 0L) {
+    stop("`n_iter` must be a non-negative integer.", call. = FALSE)
+  }
+  if (!n_iter) {
+    return(rep(fill, 0L))
+  }
+  if (is.null(x) || !length(x)) {
+    return(rep(fill, n_iter))
+  }
+
+  x <- as.numeric(x)
+  if (isTRUE(drop_init) && length(x) == (n_iter + 1L)) {
+    return(x[-1L])
+  }
+  if (length(x) == n_iter) {
+    return(x)
+  }
+
+  expected <- if (isTRUE(drop_init)) {
+    sprintf("%d or %d (including initialization)", n_iter, n_iter + 1L)
+  } else {
+    as.character(n_iter)
+  }
+  stop(
+    sprintf("`%s` trace must have length %s; got %d.", name, expected, length(x)),
+    call. = FALSE
+  )
+}
+
+.exdqlm_make_vb_trace <- function(
+  iter,
+  engine = "VB",
+  dqlm.ind = FALSE,
+  elbo = NULL,
+  sigma = NULL,
+  gamma = NULL,
+  delta_state = NULL,
+  delta_sigma = NULL,
+  delta_gamma = NULL,
+  delta_s = NULL,
+  delta_elbo = NULL,
+  sigma_has_init = FALSE,
+  gamma_has_init = FALSE
+) {
+  n_iter <- suppressWarnings(as.integer(iter)[1])
+  if (!is.finite(n_iter) || n_iter < 0L) {
+    stop("`iter` must be a non-negative integer.", call. = FALSE)
+  }
+
+  data.frame(
+    iter = seq_len(n_iter),
+    engine = rep(as.character(engine)[1], n_iter),
+    dqlm.ind = rep(isTRUE(dqlm.ind), n_iter),
+    elbo = .exdqlm_normalize_vb_trace_vector(elbo, n_iter, "elbo"),
+    sigma = .exdqlm_normalize_vb_trace_vector(
+      sigma, n_iter, "sigma", drop_init = sigma_has_init
+    ),
+    gamma = .exdqlm_normalize_vb_trace_vector(
+      gamma, n_iter, "gamma", drop_init = gamma_has_init
+    ),
+    delta_state = .exdqlm_normalize_vb_trace_vector(delta_state, n_iter, "delta_state"),
+    delta_sigma = .exdqlm_normalize_vb_trace_vector(delta_sigma, n_iter, "delta_sigma"),
+    delta_gamma = .exdqlm_normalize_vb_trace_vector(delta_gamma, n_iter, "delta_gamma"),
+    delta_s = .exdqlm_normalize_vb_trace_vector(delta_s, n_iter, "delta_s"),
+    delta_elbo = .exdqlm_normalize_vb_trace_vector(delta_elbo, n_iter, "delta_elbo"),
+    stringsAsFactors = FALSE
+  )
+}
+
 .exdqlm_chain_health_metrics <- function(x, n_keep = length(x)) {
   z <- as.numeric(x)
   z <- z[is.finite(z)]
@@ -932,7 +1003,8 @@ check_ts = function(dat){
   PriorSigma = NULL,
   verbose = TRUE,
   exps0 = NULL,
-  max_iter = 200L
+  max_iter = 200L,
+  engine = "VB"
 ) {
   y <- as.numeric(y)
   TT <- length(y)
@@ -1280,6 +1352,20 @@ check_ts = function(dat){
     fix.gamma = TRUE,
     diagnostics = list(
       elbo = elbo.seq,
+      vb_trace = .exdqlm_make_vb_trace(
+        iter = iter,
+        engine = engine,
+        dqlm.ind = TRUE,
+        elbo = elbo.seq,
+        sigma = seq.sigma,
+        gamma = NULL,
+        delta_state = delta_state,
+        delta_sigma = delta_sigma,
+        delta_gamma = NULL,
+        delta_s = NULL,
+        delta_elbo = delta_elbo,
+        sigma_has_init = TRUE
+      ),
       convergence = list(
         converged = identical(stop_reason, "joint_converged"),
         stop_reason = stop_reason,
@@ -1367,6 +1453,7 @@ check_ts = function(dat){
   elbo_trace <- numeric(0)
   iter <- 0L
   stable_count <- 0L
+  seq.sigma <- sigma0
   delta_beta <- numeric(0)
   delta_sigma <- numeric(0)
   delta_elbo <- numeric(0)
@@ -1471,6 +1558,7 @@ check_ts = function(dat){
       stable_count = stable_count
     )
     stable_count <- step$stable_count
+    seq.sigma <- c(seq.sigma, E_sigma)
     delta_beta <- c(delta_beta, d_beta)
     delta_sigma <- c(delta_sigma, d_sigma)
     delta_elbo <- c(delta_elbo, d_elbo)
@@ -1534,6 +1622,20 @@ check_ts = function(dat){
     ),
     diagnostics = list(
       elbo = elbo_trace,
+      vb_trace = .exdqlm_make_vb_trace(
+        iter = iter,
+        engine = "LDVB",
+        dqlm.ind = TRUE,
+        elbo = elbo_trace,
+        sigma = seq.sigma,
+        gamma = NULL,
+        delta_state = delta_beta,
+        delta_sigma = delta_sigma,
+        delta_gamma = NULL,
+        delta_s = NULL,
+        delta_elbo = delta_elbo,
+        sigma_has_init = TRUE
+      ),
       convergence = list(
         converged = converged,
         stop_reason = stop_reason,

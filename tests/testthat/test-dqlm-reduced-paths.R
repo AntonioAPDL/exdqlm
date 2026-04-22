@@ -72,14 +72,14 @@ test_that("static MCMC reduced DQLM path excludes gamma/s latent block", {
   X <- cbind(1, seq(-1, 1, length.out = n))
   y <- as.numeric(X %*% c(0.2, -0.1) + rnorm(n, sd = 0.1))
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = y, X = X, p0 = 0.5,
     dqlm.ind = TRUE,
     n.burn = 6, n.mcmc = 10, thin = 1,
     verbose = FALSE
   )
 
-  expect_s3_class(fit, "exal_static_mcmc")
+  expect_s3_class(fit, "exalStaticMCMC")
   expect_true(isTRUE(fit$dqlm.ind))
   expect_false("samp.gamma" %in% names(fit))
   expect_false("samp.s" %in% names(fit))
@@ -94,14 +94,14 @@ test_that("static LDVB reduced DQLM path returns q(beta) q(v) q(sigma)", {
   X <- cbind(1, seq(-1, 1, length.out = n))
   y <- as.numeric(X %*% c(0.3, 0.2) + rnorm(n, sd = 0.12))
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = y, X = X, p0 = 0.5,
     dqlm.ind = TRUE,
     max_iter = 80, tol = 1e-3,
     verbose = FALSE
   )
 
-  expect_s3_class(fit, "exal_vb")
+  expect_s3_class(fit, "exalStaticLDVB")
   expect_true(isTRUE(fit$dqlm.ind))
   expect_true(is.list(fit$qbeta))
   expect_true(is.list(fit$qv))

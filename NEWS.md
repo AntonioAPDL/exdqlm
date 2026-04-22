@@ -8,24 +8,34 @@
 - Reduced-model controls for dynamic routines (`exdqlmISVB()`,
   `exdqlmLDVB()`, `exdqlmMCMC()`) through `dqlm.ind = TRUE`, fixing `gamma = 0`
   for AL/DQLM inference when desired.
-- Added synthesis helper `exdqlm_synthesize_from_draws()` for combining
+- Added synthesis helper `quantileSynthesis()` for combining
   posterior quantile-draw objects.
 - Added static regression support with `regMod()` plus static exAL inference
   routines for VB/LDVB and MCMC workflows.
 - Added static reduced AL support (`dqlm.ind = TRUE`) in
-  `exal_static_LDVB()` and `exal_static_mcmc()`.
+  `exalStaticLDVB()` and `exalStaticMCMC()`.
 - Added static coefficient prior options for ridge and regularized horseshoe
   (`beta_prior = "ridge"` / `"rhs"`) in both static LDVB and static MCMC.
 - Added additive static `rhs_ns` prior support for both static LDVB and static
   MCMC (`beta_prior = "rhs_ns"`), including slab-control aliases
   (`a_zeta`, `b_zeta`, `zeta2_fixed`) while preserving existing `rhs` and
   `ridge` behavior.
-- Added `transfn_exdqlmLDVB()` for post-fit transformed summaries analogous to
+- Added `exdqlmTransferLDVB()` for post-fit transformed summaries analogous to
   the ISVB path.
-- Added `transfn_exdqlmMCMC()` for fixed-`lam` transfer-function exDQLM
+- Added `exdqlmTransferMCMC()` for fixed-`lam` transfer-function exDQLM
   fitting under the dynamic MCMC workflow.
+- Added `BTflowUSGS`, a monthly streamflow dataset aggregated from the staged
+  daily USGS Big Tree flow series, while keeping the legacy `BTflow` dataset
+  unchanged.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),
   return-value structure, and CRAN-safe examples aligned with existing package style.
+- Standardized VB diagnostics traces across VB fits via
+  `fit$diagnostics$vb_trace`, exposing iteration-wise ELBO, `sigma`,
+  `gamma`, and convergence deltas in a plot-ready table while preserving the
+  existing engine-specific diagnostics.
+- Standardized the main user-facing naming scheme around `exalStatic...`,
+  `exdqlmTransfer...`, and `quantileSynthesis()`, while keeping the earlier
+  static/transfer/synthesis entry points as deprecated compatibility aliases.
 
 ## Fixes and clarifications
 - Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for parity
@@ -36,7 +46,7 @@
   with the Jacobian contract used in the static theory reference.
 - Clarified that C++ `elbo.part` in `kalman.cpp` is an internal diagnostic;
   package-level ELBO reporting remains R-level contract output.
-- Added dedicated static-fit object generics for `exal_mcmc` and `exal_ldvb`
+- Added dedicated static-fit object generics for `exalStaticMCMC` and `exalStaticLDVB`
   and aligned post-fit compatibility for exdqlm classes.
 - Replaced deprecated `arma::is_finite(...)` usage in FFBS C++ with
   `std::isfinite(...)` to eliminate compiler deprecation warnings.
@@ -82,11 +92,11 @@
 - Improved the performance of plotting functions exdqlmPlot() and compPlot()
 - Return changes
   - functions polytrendMod(), and seasMod() now return objects of class 'exdqlm'
-  - function exdqlmISVB() and (inherently) transfn_exdqlmISVB() now return objects of class 'exdqlmISVB'
+  - function exdqlmISVB() and (inherently) exdqlmTransferISVB() now return objects of class 'exdqlmISVB'
   - function exdqlmMCMC() now returns objects of class 'exdqlmMCMC'
   - function exdqlmDiagnostics() now returns objects of class 'exdqlmDiagnostic'
   - function exdqlmForecast() now returns objects of class 'exdqlmForecast'
-  - returns from exdqlmMCMC(), exdqlmISVB(), and transfn_exdqlmISVB() now include data (y)
+  - returns from exdqlmMCMC(), exdqlmISVB(), and exdqlmTransferISVB() now include data (y)
 - Input changes
   - y removed from the inputs of exdqlmDiagnostics(), exdqlmForecast(), compPlot(), and exdqlmPlot()
 - Added generics_etc.R which includes generics & other functions for the objects of class 'exdqlm', 'exdqlmISVB','exdqlmMCMC', 'exdqlmDiagnostic', & 'exdqlmForecast'
@@ -124,7 +134,7 @@
 - Input changes
   - added parameter to specify the percentage of the CrIs in compPlot, exdqlmPlot and exdqlmForecast
 - Return changes
-  - kt added to transfn_exdqlmISVB return
+  - kt added to exdqlmTransferISVB return
 - Dataset changes
   - Niño 3.4 dataset added
   - BTflow dataset updated

@@ -42,8 +42,10 @@
 #'   \item `theta.out` - List containing the variational distribution of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
 #'   \item `fix.sigma` Logical value indicating whether sigma was fixed at `sig.init`.
-#'   \item `diagnostics` - List containing ELBO trace and convergence diagnostics
-#'   (joint stopping status, deltas for state/sigma/gamma/ELBO, and criteria used).
+#'   \item `diagnostics` - List containing ELBO trace, standardized VB iteration
+#'   trace \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
+#'   convergence deltas), and convergence diagnostics (joint stopping status,
+#'   deltas for state/sigma/gamma/ELBO, and criteria used).
 #' }
 #' If `dqlm.ind=FALSE`, the object also contains:
 #' \itemize{
@@ -88,9 +90,11 @@
 #' model = trend.comp + seas.comp
 #' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
 #'                  gam.init = -3.5, sig.init = 15, tol = 0.05)
+#' head(M0$diagnostics$vb_trace)
 #'
 #' M0_al = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
 #'                    dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
+#' tail(M0_al$diagnostics$vb_trace$elbo, 2)
 #' }
 #'
 exdqlmISVB <- function(y, p0, model, df, dim.df,
@@ -184,7 +188,8 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       PriorSigma = PriorSigma,
       verbose = verbose,
       exps0 = exps0_user,
-      max_iter = max_iter
+      max_iter = max_iter,
+      engine = "ISVB"
     )
     class(retlist) <- "exdqlmISVB"
     return(retlist)
@@ -798,6 +803,21 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
   retlist$diagnostics <- list(
     elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL,
+    vb_trace = .exdqlm_make_vb_trace(
+      iter = iter,
+      engine = "ISVB",
+      dqlm.ind = dqlm.ind,
+      elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL,
+      sigma = seq.sigma,
+      gamma = if (!isTRUE(dqlm.ind)) seq.gamma else NULL,
+      delta_state = delta.state,
+      delta_sigma = delta.sigma,
+      delta_gamma = if (!isTRUE(dqlm.ind)) delta.gamma else NULL,
+      delta_s = NULL,
+      delta_elbo = delta.elbo,
+      sigma_has_init = TRUE,
+      gamma_has_init = !isTRUE(dqlm.ind)
+    ),
     convergence = list(
       converged = identical(stop.reason, "joint_converged"),
       stop_reason = stop.reason,
