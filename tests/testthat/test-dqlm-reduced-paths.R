@@ -101,7 +101,7 @@ test_that("static LDVB reduced DQLM path returns q(beta) q(v) q(sigma)", {
     verbose = FALSE
   )
 
-  expect_s3_class(fit, "exal_vb")
+  expect_s3_class(fit, "exalStaticLDVB")
   expect_true(isTRUE(fit$dqlm.ind))
   expect_true(is.list(fit$qbeta))
   expect_true(is.list(fit$qv))
