@@ -123,11 +123,9 @@ lighter-weight runs.}
 
 \item{trace.every}{Positive integer; when \code{trace.diagnostics = TRUE}, record
 one diagnostics row every \code{trace.every} iterations.}
-
 \item{verbose.every}{Positive integer controlling how often console progress
 is printed when \code{verbose = TRUE}. Default \code{500}, independent of
 \code{trace.every}.}
-
 \item{progress_callback}{Optional callback invoked with a named list at MCMC
 start, at each progress checkpoint, and on completion. Intended for
 workflow-level progress logging.}

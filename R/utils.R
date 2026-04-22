@@ -49,12 +49,17 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   stop("Unable to compute valid gamma bounds for p0 = ", p0)
 }
 
+.gig_b_floor <- function() {
+  1e-10
+}
+
 .sample_gig_devroye_required <- function(n_samples, p, a, b_vec, context = "gig") {
   if (!exists("sample_gig_devroye_vector", mode = "function")) {
     stop(sprintf("%s requires sample_gig_devroye_vector(), but it is not available", context))
   }
 
   eps_gig <- sqrt(.Machine$double.eps)
+  b_floor <- .gig_b_floor()
   p <- as.numeric(p)[1]
   a <- as.numeric(a)[1]
   b_vec <- as.numeric(b_vec)
@@ -64,7 +69,8 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   }
 
   if (!is.finite(a) || a <= 0) a <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+  b_vec[!is.finite(b_vec)] <- b_floor
+  b_vec <- pmax(b_vec, b_floor)
 
   draws <- sample_gig_devroye_vector(
     as.integer(n_samples)[1],
@@ -89,6 +95,7 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   }
 
   eps_gig <- sqrt(.Machine$double.eps)
+  b_floor <- .gig_b_floor()
   p <- as.numeric(p)[1]
   a_vec <- as.numeric(a_vec)
   b_vec <- as.numeric(b_vec)
@@ -101,7 +108,8 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   }
 
   a_vec[!is.finite(a_vec) | a_vec <= 0] <- eps_gig
-  b_vec[!is.finite(b_vec) | b_vec <= 0] <- eps_gig
+  b_vec[!is.finite(b_vec)] <- b_floor
+  b_vec <- pmax(b_vec, b_floor)
 
   draws <- sample_gig_devroye_pairs(
     as.integer(n_samples)[1],
@@ -360,20 +368,20 @@ dlm_df = function(y, model, df, dim.df, s.priors = list(l0=1,S0=10), just.lik=FA
 
   # Prior Dim Check
   m0 = matrix(m0,n,1)
-  C0 = matrix(C0,n,n)
+  C0 = .exdqlm_regularize_cov(matrix(C0,n,n), context = "dlm_df_C0")
   ### Discount Factor Blocking
   df.mat = make_df_mat(df,dim.df,n)
 
   ### First Update
   ### One-step state forecast
   a[1,]  = GG[,,1] %*% m0
-  P[1,,] = GG[,,1] %*% C0 %*% t(GG[,,1])
+  P[1,,] = .exdqlm_regularize_cov(GG[,,1] %*% C0 %*% t(GG[,,1]), context = "dlm_df_P_t1")
   W[1,,] = df.mat * P[1,,]
-  R[1,,] = P[1,,] + W[1,,]
+  R[1,,] = .exdqlm_regularize_cov(P[1,,] + W[1,,], context = "dlm_df_R_t1")
   ### One-step ahead forecast
   f[1,] = t(FF[,1]) %*% a[1,]
-  Q[1,,] = as.matrix(1 + t(FF[,1]) %*% R[1,,] %*% FF[,1],1,1)
-  inv.Q[1,,] = chol2inv(chol(Q[1,,]))
+  Q[1,,] = matrix(.exdqlm_regularize_var(1 + t(FF[,1]) %*% R[1,,] %*% FF[,1], context = "dlm_df_Q_t1"),1,1)
+  inv.Q[1,,] = matrix(1 / Q[1,,], 1, 1)
   ### Auxilary Variables
   e[1,]  = as.matrix(y[1,] - f[1,],1,1)
   A[1,,] = R[1,,] %*% FF[,1] %*% inv.Q[1,,]
@@ -382,19 +390,21 @@ dlm_df = function(y, model, df, dim.df, s.priors = list(l0=1,S0=10), just.lik=FA
   S[1] = l0 * S0 / l[1] + (t(e[1,]) %*% inv.Q[1,,] %*% e[1,] / l[1])
   ### Posterior Distribution
   m[1,]  = a[1,] + as.matrix(A[1,,],n,1) %*% e[1,]
-  C[1,,] = R[1,,] - as.matrix(A[1,,],n,1) %*% Q[1,,] %*% t(A[1,,])
-  C[1,,] = (C[1,,] + t(C[1,,]))/2
+  C[1,,] = .exdqlm_regularize_cov(
+    R[1,,] - as.matrix(A[1,,],n,1) %*% Q[1,,] %*% t(A[1,,]),
+    context = "dlm_df_C_t1"
+  )
 
   for(i in 2:TT){
     ### One-step state forecast
     a[i,]  = GG[,,i] %*% m[i-1,]
-    P[i,,] = GG[,,i] %*% C[i-1,,] %*% t(GG[,,i])
+    P[i,,] = .exdqlm_regularize_cov(GG[,,i] %*% C[i-1,,] %*% t(GG[,,i]), context = sprintf("dlm_df_P_t%d", i))
     W[i,,] = df.mat * P[i,,]
-    R[i,,] = P[i,,] + W[i,,]
+    R[i,,] = .exdqlm_regularize_cov(P[i,,] + W[i,,], context = sprintf("dlm_df_R_t%d", i))
     ### One-step ahead forecast
     f[i,] = t(FF[,i]) %*% a[i,]
-    Q[i,,] = matrix(1 + t(FF[,i])%*% R[i,,]%*% FF[,i],1,1)
-    inv.Q[i,,] = chol2inv(chol(Q[i,,]))
+    Q[i,,] = matrix(.exdqlm_regularize_var(1 + t(FF[,i])%*% R[i,,]%*% FF[,i], context = sprintf("dlm_df_Q_t%d", i)),1,1)
+    inv.Q[i,,] = matrix(1 / Q[i,,], 1, 1)
     ### Auxilary Variables
     e[i,]  = as.matrix(y[i,] - f[i,],1,1)
     A[i,,] = as.matrix(R[i,,] %*% FF[,i] %*% inv.Q[i,,],n,1)
@@ -403,8 +413,10 @@ dlm_df = function(y, model, df, dim.df, s.priors = list(l0=1,S0=10), just.lik=FA
     S[i] = l[i-1] * S[i-1] / l[i] + (t(e[i,]) %*% inv.Q[i,,] %*% e[i,] / l[i])
     ### Posterior Distribution
     m[i,]  = a[i,] + as.matrix(A[i,,],n,1) %*% e[i,]
-    C[i,,] = R[i,,] - as.matrix(A[i,,],n,1) %*% Q[i,,] %*% t(as.matrix(A[i,,],n,1))
-    C[i,,] = (C[i,,] + t(C[i,,]))/2
+    C[i,,] = .exdqlm_regularize_cov(
+      R[i,,] - as.matrix(A[i,,],n,1) %*% Q[i,,] %*% t(as.matrix(A[i,,],n,1)),
+      context = sprintf("dlm_df_C_t%d", i)
+    )
   }
 
   ### Adjust By Variance
@@ -436,9 +448,14 @@ dlm_df = function(y, model, df, dim.df, s.priors = list(l0=1,S0=10), just.lik=FA
   sR[TT,,] = C[TT,,]
   for(k in 1:(TT-1)){
   ### Computes the Auxilary recursion Variable B
-    B = C[TT-k,,] %*% t(GG[,,i]) %*% solve(R[TT-k+1,,])
+    t_next <- TT - k + 1L
+    R_next_info <- .exdqlm_cov_inverse(R[t_next,,], context = sprintf("dlm_df_smoother_R_t%d", t_next))
+    B = C[TT-k,,] %*% t(GG[,,t_next]) %*% R_next_info$inverse
     sa[TT-k,] = m[TT-k,] + B %*% (sa[TT-k+1,] - a[TT-k+1,])
-    sR[TT-k,,] = C[TT-k,,] + B %*% (sR[TT-k+1,,] - R[TT-k+1,,]) %*% t(B)
+    sR[TT-k,,] = .exdqlm_regularize_cov(
+      C[TT-k,,] + B %*% (sR[TT-k+1,,] - R_next_info$Sigma) %*% t(B),
+      context = sprintf("dlm_df_smoother_sR_t%d", TT - k)
+    )
   }
   ### Adjusts the variance update
   for(k in 1:TT){
@@ -458,6 +475,65 @@ make_df_mat = function(df,dim.df,n){
     df.mat[(ind.dfs[j]+1):ind.dfs[(j+1)],(ind.dfs[j]+1):ind.dfs[(j+1)]] = (1-dfs[ind.dfs[(j+1)]])/dfs[ind.dfs[(j+1)]]
   }
   return(df.mat)
+}
+
+.exdqlm_dynamic_cov_controls <- function() {
+  eig_floor <- as.numeric(getOption("exdqlm.dynamic.cov_eig_floor", 1e-10))[1]
+  if (!is.finite(eig_floor) || eig_floor <= 0) eig_floor <- 1e-10
+  eig_cap <- as.numeric(getOption("exdqlm.dynamic.cov_eig_cap", 1e8))[1]
+  if (!is.finite(eig_cap) || eig_cap <= eig_floor) eig_cap <- 1e8
+  q_floor <- as.numeric(getOption("exdqlm.dynamic.q_floor", 1e-10))[1]
+  if (!is.finite(q_floor) || q_floor <= 0) q_floor <- 1e-10
+  q_cap <- as.numeric(getOption("exdqlm.dynamic.q_cap", 1e12))[1]
+  if (!is.finite(q_cap) || q_cap <= q_floor) q_cap <- 1e12
+  list(eig_floor = eig_floor, eig_cap = eig_cap, q_floor = q_floor, q_cap = q_cap)
+}
+
+.exdqlm_regularize_cov <- function(Sigma, context = "dynamic_covariance",
+                                   eig_floor = NULL, eig_cap = NULL) {
+  ctrl <- .exdqlm_dynamic_cov_controls()
+  if (is.null(eig_floor)) eig_floor <- ctrl$eig_floor
+  if (is.null(eig_cap)) eig_cap <- ctrl$eig_cap
+
+  M <- as.matrix(Sigma)
+  M <- (M + t(M)) / 2
+  if (any(!is.finite(M))) {
+    bad <- which(!is.finite(M), arr.ind = TRUE)[1, ]
+    stop(sprintf("%s has non-finite entry at (%d,%d)", context, bad[1], bad[2]))
+  }
+
+  sv <- svd(M)
+  vals <- pmin(pmax(sv$d, eig_floor), eig_cap)
+  M_reg <- sv$u %*% diag(vals, nrow(M)) %*% t(sv$u)
+  M_reg <- (M_reg + t(M_reg)) / 2
+  attr(M_reg, "svd_u") <- sv$u
+  attr(M_reg, "svd_d") <- vals
+  M_reg
+}
+
+.exdqlm_cov_inverse <- function(Sigma, context = "dynamic_covariance",
+                                eig_floor = NULL, eig_cap = NULL) {
+  M_reg <- .exdqlm_regularize_cov(Sigma, context = context, eig_floor = eig_floor, eig_cap = eig_cap)
+  u <- attr(M_reg, "svd_u")
+  d <- attr(M_reg, "svd_d")
+  inv <- u %*% diag(1 / d, nrow(M_reg)) %*% t(u)
+  list(Sigma = M_reg, inverse = inv, values = d)
+}
+
+.exdqlm_regularize_var <- function(q, context = "dynamic_q",
+                                   q_floor = NULL, q_cap = NULL) {
+  ctrl <- .exdqlm_dynamic_cov_controls()
+  if (is.null(q_floor)) q_floor <- ctrl$q_floor
+  if (is.null(q_cap)) q_cap <- ctrl$q_cap
+  qv <- as.numeric(q)[1]
+  if (is.na(qv)) {
+    stop(sprintf("%s is NA", context))
+  }
+  if (!is.finite(qv)) {
+    qv <- sign(qv) * q_cap
+  }
+  qv <- min(max(qv, q_floor), q_cap)
+  qv
 }
 #
 check_mod = function(model){
@@ -535,10 +611,8 @@ check_logics = function(gam.init,sig.init,fix.gamma,fix.sigma,dqlm.ind){
 }
 #
 check_ts = function(dat){
-  if(is.null(dim(dat))){
-    dim(dat) <- c(length(dat),1)
-  }
-  if(all(dim(dat)>1) || all(dim(dat)==1)){
+  dat = as.matrix(dat)
+  if(all(dim(dat)>1)){
     stop("data must be univariate time-series")
   }
   if(dim(dat)[1]<dim(dat)[2]){
@@ -784,6 +858,24 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_crps_row <- function(y_true, draws_vec) {
+  z <- sort(as.numeric(draws_vec))
+  z <- z[is.finite(z)]
+  m <- length(z)
+  if (m < 2L || !is.finite(y_true)) {
+    return(NA_real_)
+  }
+  mean(abs(z - y_true)) - sum((2 * seq_len(m) - m - 1) * z) / (m^2)
+}
+
+.exdqlm_crps_vec <- function(y_true, draws_mat) {
+  draws_mat <- as.matrix(draws_mat)
+  stopifnot(length(y_true) == nrow(draws_mat))
+  vapply(seq_len(nrow(draws_mat)), function(i) {
+    .exdqlm_crps_row(y_true[[i]], draws_mat[i, ])
+  }, numeric(1))
+}
+
 .exdqlm_normalize_vb_trace_vector <- function(x, n_iter, name, drop_init = FALSE, fill = NA_real_) {
   n_iter <- suppressWarnings(as.integer(n_iter)[1])
   if (!is.finite(n_iter) || n_iter < 0L) {
@@ -803,11 +895,14 @@ check_ts = function(dat){
   if (length(x) == n_iter) {
     return(x)
   }
+  if (length(x) < n_iter) {
+    return(c(rep(fill, n_iter - length(x)), x))
+  }
 
   expected <- if (isTRUE(drop_init)) {
     sprintf("%d or %d (including initialization)", n_iter, n_iter + 1L)
   } else {
-    as.character(n_iter)
+    sprintf("at most %d", n_iter)
   }
   stop(
     sprintf("`%s` trace must have length %s; got %d.", name, expected, length(x)),
@@ -903,28 +998,10 @@ check_ts = function(dat){
   )
 }
 
-.exdqlm_crps_row <- function(y_true, draws_vec) {
-  z <- sort(as.numeric(draws_vec))
-  z <- z[is.finite(z)]
-  m <- length(z)
-  if (m < 2L || !is.finite(y_true)) {
-    return(NA_real_)
-  }
-  mean(abs(z - y_true)) - sum((2 * seq_len(m) - m - 1) * z) / (m^2)
-}
-
-.exdqlm_crps_vec <- function(y_true, draws_mat) {
-  draws_mat <- as.matrix(draws_mat)
-  stopifnot(length(y_true) == nrow(draws_mat))
-  vapply(seq_len(nrow(draws_mat)), function(i) {
-    .exdqlm_crps_row(y_true[[i]], draws_mat[i, ])
-  }, numeric(1))
-}
-
 # Reduced dynamic DQLM CAVI core (no gamma / no s_t block).
 .run_dynamic_dqlm_cavi <- function(
   y, p0, model, df, dim.df,
-  fix.sigma = FALSE, sig.init = NA_real_,
+  fix.sigma = TRUE, sig.init = NA_real_,
   tol = 0.1, n.samp = 200L,
   PriorSigma = NULL,
   verbose = TRUE,
@@ -932,7 +1009,7 @@ check_ts = function(dat){
   max_iter = 200L,
   engine = "VB"
 ) {
-  # y <- as.numeric(y)
+  y <- as.numeric(y)
   TT <- length(y)
   p <- length(model$m0)
 
@@ -963,7 +1040,7 @@ check_ts = function(dat){
   sig0 <- if (!is.na(sig.init)) as.numeric(sig.init)[1] else 1
   if (!is.finite(sig0) || sig0 <= 0) sig0 <- 1
   if (isTRUE(fix.sigma) && is.na(sig.init)) {
-    stop("fix.sigma=TRUE requires a finite sig.init in reduced DQLM VB.")
+    stop("fix.sigma=TRUE requires a finite sig.init in reduced DQLM CAVI.")
   }
 
   # Initialize q(v) moments and q(sigma) moments.
@@ -989,15 +1066,15 @@ check_ts = function(dat){
 
     # Forward filter
     a <- as.vector(GG[, , 1] %*% m0)
-    P <- GG[, , 1] %*% C0 %*% t(GG[, , 1])
-    R <- P + df.mat * P
-    R <- (R + t(R)) / 2
+    P <- .exdqlm_regularize_cov(GG[, , 1] %*% C0 %*% t(GG[, , 1]), context = "dqlm_cavi_P_t1")
+    R <- .exdqlm_regularize_cov(P + df.mat * P, context = "dqlm_cavi_R_t1")
     f <- as.numeric(t(FF[, 1]) %*% a + ex.f[1])
-    q <- as.numeric(t(FF[, 1]) %*% R %*% FF[, 1] + ex.q[1])
-    q <- pmax(q, 1e-12)
+    q <- .exdqlm_regularize_var(t(FF[, 1]) %*% R %*% FF[, 1] + ex.q[1], context = "dqlm_cavi_q_t1")
     m[, 1] <- a + as.vector(t(R) %*% FF[, 1]) * (y[1] - f) / q
-    C[, , 1] <- R - (t(R) %*% FF[, 1] %*% t(FF[, 1]) %*% R) / q
-    C[, , 1] <- (C[, , 1] + t(C[, , 1])) / 2
+    C[, , 1] <- .exdqlm_regularize_cov(
+      R - (t(R) %*% FF[, 1] %*% t(FF[, 1]) %*% R) / q,
+      context = "dqlm_cavi_C_t1"
+    )
     a_store[, 1] <- a
     P_store[, , 1] <- R
     f_vec[1] <- f
@@ -1007,17 +1084,17 @@ check_ts = function(dat){
     if (TT >= 2) {
       for (t in 2:TT) {
         a <- as.vector(GG[, , t] %*% m[, (t - 1)])
-        P <- GG[, , t] %*% C[, , (t - 1)] %*% t(GG[, , t])
-        R <- P + df.mat * P
-        R <- (R + t(R)) / 2
+        P <- .exdqlm_regularize_cov(GG[, , t] %*% C[, , (t - 1)] %*% t(GG[, , t]), context = sprintf("dqlm_cavi_P_t%d", t))
+        R <- .exdqlm_regularize_cov(P + df.mat * P, context = sprintf("dqlm_cavi_R_t%d", t))
         f <- as.numeric(t(FF[, t]) %*% a + ex.f[t])
         # Keep matrix shape (1 x p) so covariance update uses a p x p outer product.
         fB <- t(FF[, t]) %*% R
-        q <- as.numeric(fB %*% FF[, t] + ex.q[t])
-        q <- pmax(q, 1e-12)
+        q <- .exdqlm_regularize_var(fB %*% FF[, t] + ex.q[t], context = sprintf("dqlm_cavi_q_t%d", t))
         m[, t] <- a + as.vector(t(fB)) * (y[t] - f) / q
-        C[, , t] <- R - (t(fB) %*% fB) / q
-        C[, , t] <- (C[, , t] + t(C[, , t])) / 2
+        C[, , t] <- .exdqlm_regularize_cov(
+          R - (t(fB) %*% fB) / q,
+          context = sprintf("dqlm_cavi_C_t%d", t)
+        )
         a_store[, t] <- a
         P_store[, , t] <- R
         f_vec[t] <- f
@@ -1031,13 +1108,13 @@ check_ts = function(dat){
     sm[, TT] <- m[, TT]
     if (TT >= 2) {
       for (t in (TT - 1):1) {
-        Pn <- P_store[, , (t + 1)]
-        svd_P <- svd(Pn)
-        inv_P <- svd_P$u %*% diag(1 / pmax(svd_P$d, 1e-12), p) %*% t(svd_P$u)
-        J <- C[, , t] %*% t(GG[, , (t + 1)]) %*% inv_P
+        Pn_info <- .exdqlm_cov_inverse(P_store[, , (t + 1)], context = sprintf("dqlm_cavi_smoother_R_t%d", t + 1L))
+        J <- C[, , t] %*% t(GG[, , (t + 1)]) %*% Pn_info$inverse
         sm[, t] <- m[, t] + J %*% (sm[, (t + 1)] - a_store[, (t + 1)])
-        sC[, , t] <- C[, , t] + J %*% (sC[, , (t + 1)] - Pn) %*% t(J)
-        sC[, , t] <- (sC[, , t] + t(sC[, , t])) / 2
+        sC[, , t] <- .exdqlm_regularize_cov(
+          C[, , t] + J %*% (sC[, , (t + 1)] - Pn_info$Sigma) %*% t(J),
+          context = sprintf("dqlm_cavi_smoother_C_t%d", t)
+        )
       }
     }
 

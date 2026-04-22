@@ -83,6 +83,10 @@
 #'         The GIG-based u_t sampler always uses the package C++ Devroye implementation;
 #'         when FALSE, the remaining samplers fall back to R implementations.
 #'   \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+#'   \item \code{exdqlm.dynamic.ldvb.sts}: optional warmup/freeze controls for the
+#'         exDQLM latent \eqn{s_t} VB block. Supported fields are
+#'         `freeze_warmup_iters`, `force_after_warmup`, and
+#'         `min_postwarmup_updates`.
 #' }
 #'
 #' @examples
@@ -99,9 +103,38 @@
 #'                    dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
 #' }
 #'
+.exdqlm_sts_vb_controls <- function(sts_cfg = NULL) {
+  sts_cfg <- sts_cfg %||% list()
+
+  freeze_warmup_iters <- suppressWarnings(as.integer(
+    sts_cfg$freeze_warmup_iters %||%
+      sts_cfg$freeze_sts_warmup_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_warmup_iters) || freeze_warmup_iters < 0L) {
+    freeze_warmup_iters <- 0L
+  }
+
+  min_postwarmup_updates <- suppressWarnings(as.integer(
+    sts_cfg$min_postwarmup_updates %||%
+      sts_cfg$sts_min_postwarmup_updates %||%
+      0L
+  )[1L])
+  if (!is.finite(min_postwarmup_updates) || min_postwarmup_updates < 0L) {
+    min_postwarmup_updates <- 0L
+  }
+
+  list(
+    freeze_warmup_iters = freeze_warmup_iters,
+    force_after_warmup = if (is.null(sts_cfg$force_after_warmup)) TRUE else isTRUE(sts_cfg$force_after_warmup),
+    min_postwarmup_updates = min_postwarmup_updates,
+    freeze_mode = "hold_previous"
+  )
+}
+
 exdqlmLDVB <- function(y, p0, model, df, dim.df,
                        fix.gamma = FALSE, gam.init = NA,
-                       fix.sigma = FALSE, sig.init = NA,
+                       fix.sigma = TRUE, sig.init = NA,
                        dqlm.ind = FALSE,
                        exps0,
                        tol = 0.1,
@@ -175,7 +208,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   if (isTRUE(dqlm.ind)) {
     exps0_user <- if (methods::hasArg(exps0)) exps0 else NULL
     retlist <- .run_dynamic_dqlm_cavi(
-      y = y, # as.numeric(y),
+      y = as.numeric(y),
       p0 = p0,
       model = model,
       df = df,
@@ -190,7 +223,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       max_iter = max_iter,
       engine = "LDVB"
     )
-    class(retlist) <- "exdqlmLDVB"
+    class(retlist) <- c("exdqlmLDVB", "exdqlm")
     return(retlist)
   }
 
@@ -229,7 +262,9 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     reuse_seed = getOption("exdqlm.dynamic.ldvb.reuse_seed", getOption("exdqlm.static.ldvb.reuse_seed", NA_integer_)),
     mode_grad_tol = getOption("exdqlm.dynamic.ldvb.mode_grad_tol", getOption("exdqlm.static.ldvb.mode_grad_tol", 5e-3)),
     mode_min_eig = getOption("exdqlm.dynamic.ldvb.mode_min_eig", getOption("exdqlm.static.ldvb.mode_min_eig", 1e-8)),
-    store_trace = getOption("exdqlm.dynamic.ldvb.store_trace", TRUE)
+    store_trace = getOption("exdqlm.dynamic.ldvb.store_trace", TRUE),
+    sigmagam = getOption("exdqlm.dynamic.ldvb.sigmagam", getOption("exdqlm.static.ldvb.sigmagam", NULL)),
+    sts = getOption("exdqlm.dynamic.ldvb.sts", NULL)
   ))
 
   ### Initialize VB
@@ -283,6 +318,32 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   delta.elbo = numeric(0)
   compute.elbo <- isTRUE(getOption("exdqlm.compute_elbo", TRUE))
   conv.ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
+  sigmagam_cfg <- ld_ctrl$sigmagam %||% .exal_sigmagam_vb_controls(NULL)
+  sts_cfg <- ld_ctrl$sts %||% .exdqlm_sts_vb_controls(NULL)
+  sigmagam_required_postwarmup_updates <- if (sigmagam_cfg$freeze_warmup_iters > 0L) {
+    max(1L, sigmagam_cfg$min_postwarmup_updates)
+  } else {
+    sigmagam_cfg$min_postwarmup_updates
+  }
+  sts_required_postwarmup_updates <- if (sts_cfg$freeze_warmup_iters > 0L) {
+    max(1L, sts_cfg$min_postwarmup_updates)
+  } else {
+    sts_cfg$min_postwarmup_updates
+  }
+  sts_frozen_trace <- logical(0)
+  sts_update_reason_trace <- character(0)
+  sts_forced_postwarmup_trace <- logical(0)
+  sts_update_performed_trace <- logical(0)
+  sts_update_count <- 0L
+  sts_postwarmup_update_count <- 0L
+  sts_first_active_iter <- NA_integer_
+  sigmagam_frozen_trace <- logical(0)
+  sigmagam_update_reason_trace <- character(0)
+  sigmagam_forced_postwarmup_trace <- logical(0)
+  sigmagam_update_performed_trace <- logical(0)
+  sigmagam_update_count <- 0L
+  sigmagam_postwarmup_update_count <- 0L
+  sigmagam_first_active_iter <- NA_integer_
   stop.reason <- "max_iter"
   ld_trace_rows <- vector("list", max_iter)
   s_trace_rows <- vector("list", max_iter)
@@ -294,6 +355,57 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   stabilize_since_iter <- NA_integer_
   stabilize_reason_active <- NA_character_
   stabilize_xi_method_active <- "delta"
+  state_trace_rows <- vector("list", max_iter)
+  state_component_order <- c(
+    "sts_sig2", "sts_mu", "E_sts", "E_sts2",
+    "ex_f", "ex_q_raw", "ex_q",
+    "theta_exps", "theta_exps2", "theta_sm", "theta_sC", "sfe"
+  )
+  state_nonfinite_iter_count <- stats::setNames(integer(length(state_component_order)), state_component_order)
+  state_first_nonfinite <- stats::setNames(
+    lapply(state_component_order, function(name) {
+      list(
+        component = name,
+        iter = NA_integer_,
+        stage = NA_character_,
+        len = 0L,
+        finite = 0L,
+        nonfinite = 0L,
+        min_finite = NA_real_,
+        max_finite = NA_real_,
+        max_abs_finite = NA_real_
+      )
+    }),
+    state_component_order
+  )
+
+  .state_monitor_summary <- function(values) {
+    vv <- suppressWarnings(as.numeric(values))
+    finite_idx <- is.finite(vv)
+    finite_vals <- vv[finite_idx]
+    list(
+      len = length(vv),
+      finite = sum(finite_idx),
+      nonfinite = sum(!finite_idx),
+      min_finite = if (length(finite_vals)) min(finite_vals) else NA_real_,
+      max_finite = if (length(finite_vals)) max(finite_vals) else NA_real_,
+      max_abs_finite = if (length(finite_vals)) max(abs(finite_vals)) else NA_real_
+    )
+  }
+
+  .record_state_monitor <- function(name, iter_now, stage_now, values) {
+    info <- .state_monitor_summary(values)
+    if (isTRUE(info$nonfinite > 0L)) {
+      state_nonfinite_iter_count[[name]] <<- state_nonfinite_iter_count[[name]] + 1L
+      if (is.na(state_first_nonfinite[[name]]$iter)) {
+        state_first_nonfinite[[name]] <<- c(
+          list(component = name, iter = as.integer(iter_now), stage = as.character(stage_now)),
+          info
+        )
+      }
+    }
+    info
+  }
 
   # function update q(st)  (trunc-normal on (0, \\infty))
   update_sts <- function(exps, inv.uts, c2.invb.absgam2.sigma, c.invb.absgam, c.a.invb.absgam) {
@@ -368,42 +480,43 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     ## forward filter
     # first iteration
     a = as.vector(GG[,,1]%*%m0)
-    P = GG[,,1]%*%C0%*%t(GG[,,1])
-    R = P + df.mat*P
-    R = (R + t(R))/2
+    P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "ldvb_P_t1")
+    R = .exdqlm_regularize_cov(P + df.mat*P, context = "ldvb_R_t1")
     f = t(FF[,1])%*%a + ex.f[1]
-    q = t(FF[,1])%*%R%*%FF[,1]  + ex.q[1]
+    q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1]  + ex.q[1], context = "ldvb_q_t1")
     m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-    C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-    C[,,1] = (C[,,1] + t(C[,,1]))/2
+    C[,,1] = .exdqlm_regularize_cov(
+      R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+      context = "ldvb_C_t1"
+    )
     standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
     # t = 2:TT
     for(t in 2:TT){
       a = as.vector(GG[,,t]%*%m[,(t-1)])
-      P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("ldvb_P_t%d", t))
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("ldvb_R_t%d", t))
       f = t(FF[,t])%*%a + ex.f[t]
       fB = t(FF[,t])%*%R
-      q = fB%*%FF[,t] + ex.q[t]
+      q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("ldvb_q_t%d", t))
       m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-      C[,,t] = R - t(fB)%*%fB/q[1]
-      C[,,t] = (C[,,t] + t(C[,,t]))/2
+      C[,,t] = .exdqlm_regularize_cov(
+        R - t(fB)%*%fB/q[1],
+        context = sprintf("ldvb_C_t%d", t)
+      )
       standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
     }
     ## backwards smoothing
     sC[,,TT] = C[,,TT]
     sm[,TT] = m[,TT]
     for(t in (TT-1):1){
-      P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-      R = P + df.mat*P
-      R = (R + t(R))/2
-      svd.R = svd(R)
-      inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+      P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("ldvb_smoother_P_t%d", t + 1L))
+      R_info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("ldvb_smoother_R_t%d", t + 1L))
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%R_info$inverse
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-      sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
-      sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
+      sC[,,t] = .exdqlm_regularize_cov(
+        C[,,t] + sB%*%(sC[,,(t+1)]-R_info$Sigma)%*%t(sB),
+        context = sprintf("ldvb_smoother_C_t%d", t)
+      )
     }
     exps =  apply(FF*sm,2,sum)
     vars = c(apply(matrix(1:TT,TT,1),1,function(x){t(FF[,x])%*%sC[,,x]%*%FF[,x]}))
@@ -609,7 +722,9 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   }
 
   update_gamma_sigma <- function(gamma, var.gam, sigma, var.sig,
-                                exps, exps2, sts, sts2, uts, inv.uts) {
+                                exps, exps2, sts, sts2, uts, inv.uts,
+                                postwarmup_damping_active = FALSE,
+                                postwarmup_damping = 1.0) {
     y_vec <- as.numeric(y)
     exps_vec <- as.numeric(exps)
     theta_var_vec <- pmax(as.numeric(exps2) - exps_vec^2, 0)
@@ -697,6 +812,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       }
     }
     use_direct_commit <- isTRUE(ld_ctrl$direct_commit) &&
+      !isTRUE(postwarmup_damping_active) &&
       !isTRUE(ld_stabilized) &&
       !(isTRUE(ld_ctrl$reject_bad_mode_commit) && isTRUE(ld_bad_mode_iter))
     ld_commit_mode <- if (use_direct_commit) "direct" else "damped"
@@ -705,7 +821,13 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       ell_hat <<- as.numeric(ld$ell_hat)
       Sig_eta_ell <<- .exal_static_ld_regularize_cov(ld$Sigma, eig_floor = ld_ctrl$eig_floor, eig_cap = ld_ctrl$eig_cap)$Sigma
     } else {
-      damping_use <- if (isTRUE(ld_stabilized)) ld_ctrl$stabilize_damping else ld_ctrl$damping
+      damping_use <- if (isTRUE(postwarmup_damping_active)) {
+        postwarmup_damping
+      } else if (isTRUE(ld_stabilized)) {
+        ld_ctrl$stabilize_damping
+      } else {
+        ld_ctrl$damping
+      }
       step_cap_eta_use <- if (isTRUE(ld_stabilized)) min(ld_ctrl$step_cap_eta, ld_ctrl$stabilize_step_cap_eta) else ld_ctrl$step_cap_eta
       step_cap_ell_use <- if (isTRUE(ld_stabilized)) min(ld_ctrl$step_cap_ell, ld_ctrl$stabilize_step_cap_ell) else ld_ctrl$step_cap_ell
       eta_hat <<- .exal_static_ld_mix_step(eta_prev, ld$eta_hat, damping = damping_use, step_cap = step_cap_eta_use)
@@ -876,9 +998,51 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     cur.theta.out = new.theta.out
     cur.gamsig.out = new.gamsig.out
 
+    sts_warmup_active <- isTRUE(
+      sts_cfg$freeze_warmup_iters > 0L &&
+        iter <= sts_cfg$freeze_warmup_iters
+    )
+    sts_force_now <- isTRUE(
+      !sts_warmup_active &&
+        sts_cfg$freeze_warmup_iters > 0L &&
+        sts_cfg$force_after_warmup &&
+        sts_postwarmup_update_count <= 0L
+    )
+    sts_update_reason <- if (isTRUE(sts_warmup_active)) {
+      "warmup"
+    } else if (isTRUE(sts_force_now)) {
+      "force_after_warmup"
+    } else {
+      "scheduled"
+    }
+    sts_forced_postwarmup <- FALSE
+    sts_update_performed <- FALSE
+
     # update q(st)
-    new.sts.out <- update_sts(cur.theta.out$exps,cur.uts.out$E.inv.uts,
-                              cur.gamsig.out$E.c2.invb.absgam2.sigma,cur.gamsig.out$E.c.invb.absgam,cur.gamsig.out$E.c.a.invb.absgam)
+    if (isTRUE(sts_warmup_active)) {
+      new.sts.out <- cur.sts.out
+    } else {
+      new.sts.out <- update_sts(cur.theta.out$exps,cur.uts.out$E.inv.uts,
+                                cur.gamsig.out$E.c2.invb.absgam2.sigma,cur.gamsig.out$E.c.invb.absgam,cur.gamsig.out$E.c.a.invb.absgam)
+      sts_update_performed <- TRUE
+      sts_update_count <- sts_update_count + 1L
+      if (is.na(sts_first_active_iter)) sts_first_active_iter <- as.integer(iter)
+      if (iter > sts_cfg$freeze_warmup_iters) {
+        sts_postwarmup_update_count <- sts_postwarmup_update_count + 1L
+      }
+      sts_forced_postwarmup <- isTRUE(sts_force_now)
+    }
+    sts_frozen_trace <- c(sts_frozen_trace, isTRUE(sts_warmup_active))
+    sts_update_reason_trace <- c(sts_update_reason_trace, sts_update_reason)
+    sts_forced_postwarmup_trace <- c(sts_forced_postwarmup_trace, isTRUE(sts_forced_postwarmup))
+    sts_update_performed_trace <- c(sts_update_performed_trace, isTRUE(sts_update_performed))
+
+    state_stats <- list(
+      sts_sig2 = .record_state_monitor("sts_sig2", iter, "sts", new.sts.out$sts.sig2),
+      sts_mu = .record_state_monitor("sts_mu", iter, "sts", new.sts.out$sts.mu),
+      E_sts = .record_state_monitor("E_sts", iter, "sts", new.sts.out$E.sts),
+      E_sts2 = .record_state_monitor("E_sts2", iter, "sts", new.sts.out$E.sts2)
+    )
 
     # update q(ut)
     new.uts.out <- update_uts(cur.theta.out$exps,cur.theta.out$exps2,
@@ -889,7 +1053,9 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     # compute ex.f / ex.q 
     ex.f <- cur.gamsig.out$E.c.invb.absgam*new.sts.out$E.sts/cur.gamsig.out$E.invb.inv.sigma +
             cur.gamsig.out$E.a.invb.inv.sigma/(new.uts.out$E.inv.uts*cur.gamsig.out$E.invb.inv.sigma)
+    state_stats$ex_f <- .record_state_monitor("ex_f", iter, "driver_raw", ex.f)
     ex.q <- (cur.gamsig.out$E.invb.inv.sigma*new.uts.out$E.inv.uts)^(-1)
+    state_stats$ex_q_raw <- .record_state_monitor("ex_q_raw", iter, "driver_raw", ex.q)
 
     # tiny optional debug probe
     if (debug_shapes && (iter == 1 || iter %% debug_every == 0))
@@ -904,21 +1070,70 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     stopifnot(length(ex.f) == TT)                # sanity
     ex.q <- as.numeric(ex.q)                     # ensure plain numeric vector
     stopifnot(length(ex.q) == TT)                # sanity
+    state_stats$ex_q <- .record_state_monitor("ex_q", iter, "driver_guarded", ex.q)
 
     # update q(theta)
     new.theta.out <- kf_step(ex.f, ex.q)
+    state_stats$theta_exps <- .record_state_monitor("theta_exps", iter, "theta", new.theta.out$exps)
+    state_stats$theta_exps2 <- .record_state_monitor("theta_exps2", iter, "theta", new.theta.out$exps2)
+    state_stats$theta_sm <- .record_state_monitor("theta_sm", iter, "theta", new.theta.out$sm)
+    state_stats$theta_sC <- .record_state_monitor("theta_sC", iter, "theta", new.theta.out$sC)
+    state_stats$sfe <- .record_state_monitor("sfe", iter, "theta", new.theta.out$standard.forecast.errors)
 
     if (debug_shapes && (iter == 1 || iter %% debug_every == 0))
       .post(new.theta.out)
 
-    # update q(gamma,sigma)
-    new.gamsig.out <- update_gamma_sigma(
-      cur.gamsig.out$E.gam, cur.gamsig.out$V.gam,
-      cur.gamsig.out$E.sigma, cur.gamsig.out$V.sigma,
-      new.theta.out$exps, new.theta.out$exps2,
-      new.sts.out$E.sts, new.sts.out$E.sts2,
-      new.uts.out$E.uts, new.uts.out$E.inv.uts
+    sigmagam_warmup_active <- isTRUE(
+      sigmagam_cfg$freeze_warmup_iters > 0L &&
+        iter <= sigmagam_cfg$freeze_warmup_iters
     )
+    sigmagam_force_now <- isTRUE(
+      !sigmagam_warmup_active &&
+        sigmagam_cfg$freeze_warmup_iters > 0L &&
+        sigmagam_cfg$force_after_warmup &&
+        sigmagam_postwarmup_update_count <= 0L
+    )
+    sigmagam_update_reason <- if (isTRUE(sigmagam_warmup_active)) {
+      "warmup"
+    } else if (isTRUE(sigmagam_force_now)) {
+      "force_after_warmup"
+    } else {
+      "scheduled"
+    }
+    sigmagam_forced_postwarmup <- FALSE
+    sigmagam_update_performed <- FALSE
+    postwarmup_damping_active <- isTRUE(
+      sigmagam_cfg$postwarmup_damping < 1 &&
+        sigmagam_cfg$postwarmup_damping_iters > 0L &&
+        iter > sigmagam_cfg$freeze_warmup_iters &&
+        (iter - sigmagam_cfg$freeze_warmup_iters) <= sigmagam_cfg$postwarmup_damping_iters
+    )
+
+    # update q(gamma,sigma)
+    if (isTRUE(sigmagam_warmup_active)) {
+      new.gamsig.out <- cur.gamsig.out
+    } else {
+      new.gamsig.out <- update_gamma_sigma(
+        cur.gamsig.out$E.gam, cur.gamsig.out$V.gam,
+        cur.gamsig.out$E.sigma, cur.gamsig.out$V.sigma,
+        new.theta.out$exps, new.theta.out$exps2,
+        new.sts.out$E.sts, new.sts.out$E.sts2,
+        new.uts.out$E.uts, new.uts.out$E.inv.uts,
+        postwarmup_damping_active = postwarmup_damping_active,
+        postwarmup_damping = sigmagam_cfg$postwarmup_damping
+      )
+      sigmagam_update_performed <- TRUE
+      sigmagam_update_count <- sigmagam_update_count + 1L
+      if (is.na(sigmagam_first_active_iter)) sigmagam_first_active_iter <- as.integer(iter)
+      if (iter > sigmagam_cfg$freeze_warmup_iters) {
+        sigmagam_postwarmup_update_count <- sigmagam_postwarmup_update_count + 1L
+      }
+      sigmagam_forced_postwarmup <- isTRUE(sigmagam_force_now)
+    }
+    sigmagam_frozen_trace <- c(sigmagam_frozen_trace, isTRUE(sigmagam_warmup_active))
+    sigmagam_update_reason_trace <- c(sigmagam_update_reason_trace, sigmagam_update_reason)
+    sigmagam_forced_postwarmup_trace <- c(sigmagam_forced_postwarmup_trace, isTRUE(sigmagam_forced_postwarmup))
+    sigmagam_update_performed_trace <- c(sigmagam_update_performed_trace, isTRUE(sigmagam_update_performed))
 
     # ELBO (now uses gs$elbo_logZ if available)
     if (compute.elbo) {
@@ -958,52 +1173,114 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     delta.s <- c(delta.s, d.s)
     delta.elbo <- c(delta.elbo, d.elbo)
 
+    state_trace_rows[[iter]] <- data.frame(
+      iter = iter,
+      sts_sig2_all_finite = state_stats$sts_sig2$nonfinite <= 0L,
+      sts_mu_all_finite = state_stats$sts_mu$nonfinite <= 0L,
+      E_sts_all_finite = state_stats$E_sts$nonfinite <= 0L,
+      E_sts2_all_finite = state_stats$E_sts2$nonfinite <= 0L,
+      ex_f_all_finite = state_stats$ex_f$nonfinite <= 0L,
+      ex_q_raw_all_finite = state_stats$ex_q_raw$nonfinite <= 0L,
+      ex_q_all_finite = state_stats$ex_q$nonfinite <= 0L,
+      theta_exps_all_finite = state_stats$theta_exps$nonfinite <= 0L,
+      theta_exps2_all_finite = state_stats$theta_exps2$nonfinite <= 0L,
+      theta_sm_all_finite = state_stats$theta_sm$nonfinite <= 0L,
+      theta_sC_all_finite = state_stats$theta_sC$nonfinite <= 0L,
+      sfe_all_finite = state_stats$sfe$nonfinite <= 0L,
+      sts_mu_nonfinite = as.integer(state_stats$sts_mu$nonfinite),
+      E_sts_nonfinite = as.integer(state_stats$E_sts$nonfinite),
+      E_sts2_nonfinite = as.integer(state_stats$E_sts2$nonfinite),
+      ex_f_nonfinite = as.integer(state_stats$ex_f$nonfinite),
+      ex_q_raw_nonfinite = as.integer(state_stats$ex_q_raw$nonfinite),
+      ex_q_nonfinite = as.integer(state_stats$ex_q$nonfinite),
+      theta_exps_nonfinite = as.integer(state_stats$theta_exps$nonfinite),
+      theta_exps2_nonfinite = as.integer(state_stats$theta_exps2$nonfinite),
+      theta_sm_nonfinite = as.integer(state_stats$theta_sm$nonfinite),
+      theta_sC_nonfinite = as.integer(state_stats$theta_sC$nonfinite),
+      sfe_nonfinite = as.integer(state_stats$sfe$nonfinite),
+      sts_sig2_min_finite = state_stats$sts_sig2$min_finite,
+      sts_sig2_max_finite = state_stats$sts_sig2$max_finite,
+      ex_f_max_abs_finite = state_stats$ex_f$max_abs_finite,
+      ex_q_raw_min_finite = state_stats$ex_q_raw$min_finite,
+      ex_q_raw_max_finite = state_stats$ex_q_raw$max_finite,
+      ex_q_min_finite = state_stats$ex_q$min_finite,
+      ex_q_max_finite = state_stats$ex_q$max_finite,
+      theta_sm_max_abs_finite = state_stats$theta_sm$max_abs_finite,
+      theta_sC_max_abs_finite = state_stats$theta_sC$max_abs_finite,
+      sfe_max_abs_finite = state_stats$sfe$max_abs_finite,
+      sts_frozen = isTRUE(sts_warmup_active),
+      sts_update_reason = sts_update_reason,
+      sts_forced_postwarmup = isTRUE(sts_forced_postwarmup),
+      sts_update_performed = isTRUE(sts_update_performed),
+      sigmagam_frozen = isTRUE(sigmagam_warmup_active),
+      sigmagam_update_reason = sigmagam_update_reason,
+      sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup),
+      sigmagam_update_performed = isTRUE(sigmagam_update_performed),
+      stringsAsFactors = FALSE
+    )
+
     if (isTRUE(ld_ctrl$store_trace)) {
       s_stats <- .exdqlm_trace_summary(new.sts.out$E.sts)
       tau2_stats <- .exdqlm_trace_summary(new.sts.out$sts.sig2)
       ld_info <- if (!is.null(new.gamsig.out$ld)) new.gamsig.out$ld else list()
+      ld_num1 <- function(x) if (is.null(x) || !length(x)) NA_real_ else as.numeric(x)[1]
+      ld_int1 <- function(x) if (is.null(x) || !length(x)) NA_integer_ else as.integer(x)[1]
+      ld_chr1 <- function(x) if (is.null(x) || !length(x)) NA_character_ else as.character(x)[1]
+      ld_lgl1 <- function(x) if (is.null(x) || !length(x)) NA else isTRUE(x[[1]])
       ld_trace_rows[[iter]] <- data.frame(
         iter = iter,
-        eta = as.numeric(new.gamsig.out$E.theta[1]),
-        ell = as.numeric(new.gamsig.out$E.theta[2]),
-        gamma = new.gamsig.out$E.gam,
-        sigma = new.gamsig.out$E.sigma,
-        eta_raw = if (!is.null(ld_info$eta_raw)) ld_info$eta_raw else NA_real_,
-        ell_raw = if (!is.null(ld_info$ell_raw)) ld_info$ell_raw else NA_real_,
-        eta_step_raw = if (!is.null(ld_info$eta_raw) && !is.null(ld_info$eta_prev)) ld_info$eta_raw - ld_info$eta_prev else NA_real_,
-        ell_step_raw = if (!is.null(ld_info$ell_raw) && !is.null(ld_info$ell_prev)) ld_info$ell_raw - ld_info$ell_prev else NA_real_,
-        eta_step_used = if (!is.null(ld_info$eta) && !is.null(ld_info$eta_prev)) ld_info$eta - ld_info$eta_prev else NA_real_,
-        ell_step_used = if (!is.null(ld_info$ell) && !is.null(ld_info$ell_prev)) ld_info$ell - ld_info$ell_prev else NA_real_,
+        eta = ld_num1(new.gamsig.out$E.theta[1]),
+        ell = ld_num1(new.gamsig.out$E.theta[2]),
+        gamma = ld_num1(new.gamsig.out$E.gam),
+        sigma = ld_num1(new.gamsig.out$E.sigma),
+        eta_raw = ld_num1(ld_info$eta_raw),
+        ell_raw = ld_num1(ld_info$ell_raw),
+        eta_step_raw = if (!is.null(ld_info$eta_raw) && length(ld_info$eta_raw) && !is.null(ld_info$eta_prev) && length(ld_info$eta_prev)) ld_num1(ld_info$eta_raw) - ld_num1(ld_info$eta_prev) else NA_real_,
+        ell_step_raw = if (!is.null(ld_info$ell_raw) && length(ld_info$ell_raw) && !is.null(ld_info$ell_prev) && length(ld_info$ell_prev)) ld_num1(ld_info$ell_raw) - ld_num1(ld_info$ell_prev) else NA_real_,
+        eta_step_used = if (!is.null(ld_info$eta) && length(ld_info$eta) && !is.null(ld_info$eta_prev) && length(ld_info$eta_prev)) ld_num1(ld_info$eta) - ld_num1(ld_info$eta_prev) else NA_real_,
+        ell_step_used = if (!is.null(ld_info$ell) && length(ld_info$ell) && !is.null(ld_info$ell_prev) && length(ld_info$ell_prev)) ld_num1(ld_info$ell) - ld_num1(ld_info$ell_prev) else NA_real_,
         xi_method = "delta",
         xi_mcse_mean = NA_real_,
         xi_mcse_max = NA_real_,
         xi_replicates = 0L,
-        ld_objective = if (!is.null(ld_info$objective_committed)) ld_info$objective_committed else if (!is.null(ld_info$objective)) ld_info$objective else NA_real_,
-        ld_objective_candidate = if (!is.null(ld_info$objective_candidate)) ld_info$objective_candidate else if (!is.null(ld_info$objective)) ld_info$objective else NA_real_,
-        ld_objective_committed = if (!is.null(ld_info$objective_committed)) ld_info$objective_committed else if (!is.null(ld_info$objective)) ld_info$objective else NA_real_,
-        ld_objective_gap = if (!is.null(ld_info$objective_gap)) ld_info$objective_gap else NA_real_,
-        ld_optim_convergence = if (!is.null(ld_info$optim_convergence)) ld_info$optim_convergence else NA_integer_,
-        ld_optimizer_method = if (!is.null(ld_info$optimizer_method)) ld_info$optimizer_method else NA_character_,
-        ld_used_fallback = if (!is.null(ld_info$used_fallback)) isTRUE(ld_info$used_fallback) else NA,
-        ld_used_optim_fallback = if (!is.null(ld_info$used_optim_fallback)) isTRUE(ld_info$used_optim_fallback) else NA,
-        ld_used_numeric_hessian = if (!is.null(ld_info$used_numeric_hessian)) isTRUE(ld_info$used_numeric_hessian) else NA,
-        ld_used_identity_hessian = if (!is.null(ld_info$used_identity_hessian)) isTRUE(ld_info$used_identity_hessian) else NA,
-        ld_used_cov_floor = if (!is.null(ld_info$used_cov_floor)) isTRUE(ld_info$used_cov_floor) else NA,
-        ld_commit_mode = if (!is.null(ld_info$commit_mode)) ld_info$commit_mode else NA_character_,
-        ld_bad_mode = if (!is.null(ld_info$bad_mode)) isTRUE(ld_info$bad_mode) else NA,
-        ld_cycle_detected = if (!is.null(ld_info$cycle_detected)) isTRUE(ld_info$cycle_detected) else NA,
-        ld_stabilized = if (!is.null(ld_info$stabilized)) isTRUE(ld_info$stabilized) else NA,
-        ld_stabilize_reason = if (!is.null(ld_info$stabilize_reason)) ld_info$stabilize_reason else NA_character_,
-        ld_hess_condition = if (!is.null(ld_info$hess_condition)) ld_info$hess_condition else NA_real_,
-        ld_cov_condition = if (!is.null(ld_info$cov_condition)) ld_info$cov_condition else NA_real_,
-        ld_cov_eig_min = if (!is.null(ld_info$cov_eig_min)) ld_info$cov_eig_min else NA_real_,
-        ld_cov_eig_max = if (!is.null(ld_info$cov_eig_max)) ld_info$cov_eig_max else NA_real_,
-        ld_mode_grad_inf_norm_candidate = if (!is.null(ld_info$candidate_mode_quality$grad_inf_norm)) ld_info$candidate_mode_quality$grad_inf_norm else NA_real_,
-        ld_mode_neg_hess_min_eig_candidate = if (!is.null(ld_info$candidate_mode_quality$neg_hess_min_eig)) ld_info$candidate_mode_quality$neg_hess_min_eig else NA_real_,
-        ld_mode_local_pass_candidate = if (!is.null(ld_info$candidate_mode_quality$local_mode_pass)) isTRUE(ld_info$candidate_mode_quality$local_mode_pass) else NA,
-        ld_mode_grad_inf_norm_committed = if (!is.null(ld_info$committed_mode_quality$grad_inf_norm)) ld_info$committed_mode_quality$grad_inf_norm else if (!is.null(ld_info$mode_quality$grad_inf_norm)) ld_info$mode_quality$grad_inf_norm else NA_real_,
-        ld_mode_neg_hess_min_eig_committed = if (!is.null(ld_info$committed_mode_quality$neg_hess_min_eig)) ld_info$committed_mode_quality$neg_hess_min_eig else if (!is.null(ld_info$mode_quality$neg_hess_min_eig)) ld_info$mode_quality$neg_hess_min_eig else NA_real_,
-        ld_mode_local_pass_committed = if (!is.null(ld_info$committed_mode_quality$local_mode_pass)) isTRUE(ld_info$committed_mode_quality$local_mode_pass) else if (!is.null(ld_info$mode_quality$local_mode_pass)) isTRUE(ld_info$mode_quality$local_mode_pass) else NA,
+        ld_objective = if (!is.null(ld_info$objective_committed) && length(ld_info$objective_committed)) ld_num1(ld_info$objective_committed) else if (!is.null(ld_info$objective) && length(ld_info$objective)) ld_num1(ld_info$objective) else NA_real_,
+        ld_objective_candidate = if (!is.null(ld_info$objective_candidate) && length(ld_info$objective_candidate)) ld_num1(ld_info$objective_candidate) else if (!is.null(ld_info$objective) && length(ld_info$objective)) ld_num1(ld_info$objective) else NA_real_,
+        ld_objective_committed = if (!is.null(ld_info$objective_committed) && length(ld_info$objective_committed)) ld_num1(ld_info$objective_committed) else if (!is.null(ld_info$objective) && length(ld_info$objective)) ld_num1(ld_info$objective) else NA_real_,
+        ld_objective_gap = ld_num1(ld_info$objective_gap),
+        ld_optim_convergence = ld_int1(ld_info$optim_convergence),
+        ld_optimizer_method = ld_chr1(ld_info$optimizer_method),
+        ld_used_fallback = ld_lgl1(ld_info$used_fallback),
+        ld_used_optim_fallback = ld_lgl1(ld_info$used_optim_fallback),
+        ld_used_numeric_hessian = ld_lgl1(ld_info$used_numeric_hessian),
+        ld_used_identity_hessian = ld_lgl1(ld_info$used_identity_hessian),
+        ld_used_cov_floor = ld_lgl1(ld_info$used_cov_floor),
+        ld_commit_mode = ld_chr1(ld_info$commit_mode),
+        ld_bad_mode = ld_lgl1(ld_info$bad_mode),
+        ld_cycle_detected = ld_lgl1(ld_info$cycle_detected),
+        ld_stabilized = ld_lgl1(ld_info$stabilized),
+        ld_stabilize_reason = ld_chr1(ld_info$stabilize_reason),
+        ld_hess_condition = ld_num1(ld_info$hess_condition),
+        ld_cov_condition = ld_num1(ld_info$cov_condition),
+        ld_cov_eig_min = ld_num1(ld_info$cov_eig_min),
+        ld_cov_eig_max = ld_num1(ld_info$cov_eig_max),
+        sts_frozen = isTRUE(sts_warmup_active),
+        sts_update_reason = sts_update_reason,
+        sts_forced_postwarmup = isTRUE(sts_forced_postwarmup),
+        sts_update_performed = isTRUE(sts_update_performed),
+        sts_update_count = as.integer(sts_update_count),
+        sts_postwarmup_update_count = as.integer(sts_postwarmup_update_count),
+        sigmagam_frozen = isTRUE(sigmagam_warmup_active),
+        sigmagam_update_reason = sigmagam_update_reason,
+        sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup),
+        sigmagam_update_performed = isTRUE(sigmagam_update_performed),
+        sigmagam_update_count = as.integer(sigmagam_update_count),
+        sigmagam_postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
+        ld_mode_grad_inf_norm_candidate = ld_num1(ld_info$candidate_mode_quality$grad_inf_norm),
+        ld_mode_neg_hess_min_eig_candidate = ld_num1(ld_info$candidate_mode_quality$neg_hess_min_eig),
+        ld_mode_local_pass_candidate = ld_lgl1(ld_info$candidate_mode_quality$local_mode_pass),
+        ld_mode_grad_inf_norm_committed = if (!is.null(ld_info$committed_mode_quality$grad_inf_norm) && length(ld_info$committed_mode_quality$grad_inf_norm)) ld_num1(ld_info$committed_mode_quality$grad_inf_norm) else ld_num1(ld_info$mode_quality$grad_inf_norm),
+        ld_mode_neg_hess_min_eig_committed = if (!is.null(ld_info$committed_mode_quality$neg_hess_min_eig) && length(ld_info$committed_mode_quality$neg_hess_min_eig)) ld_num1(ld_info$committed_mode_quality$neg_hess_min_eig) else ld_num1(ld_info$mode_quality$neg_hess_min_eig),
+        ld_mode_local_pass_committed = if (!is.null(ld_info$committed_mode_quality$local_mode_pass) && length(ld_info$committed_mode_quality$local_mode_pass)) ld_lgl1(ld_info$committed_mode_quality$local_mode_pass) else ld_lgl1(ld_info$mode_quality$local_mode_pass),
         delta_state = d.state,
         delta_sigma = d.sigma,
         delta_gamma = d.gamma,
@@ -1035,7 +1312,15 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
         tau2_q95 = tau2_stats[["q95"]],
         tau2_min = tau2_stats[["min"]],
         tau2_max = tau2_stats[["max"]],
+        sts_frozen = isTRUE(sts_warmup_active),
+        sts_update_reason = sts_update_reason,
+        sts_forced_postwarmup = isTRUE(sts_forced_postwarmup),
+        sts_update_performed = isTRUE(sts_update_performed),
         delta_s = d.s,
+        sigmagam_frozen = isTRUE(sigmagam_warmup_active),
+        sigmagam_update_reason = sigmagam_update_reason,
+        sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup),
+        sigmagam_update_performed = isTRUE(sigmagam_update_performed),
         stringsAsFactors = FALSE
       )
     }
@@ -1052,7 +1337,9 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       )
     }
 
-    if (conv.step$stop_now) {
+    sts_min_updates_ok <- (sts_postwarmup_update_count >= sts_required_postwarmup_updates)
+    sigmagam_min_updates_ok <- (sigmagam_postwarmup_update_count >= sigmagam_required_postwarmup_updates)
+    if (conv.step$stop_now && isTRUE(sigmagam_min_updates_ok) && isTRUE(sts_min_updates_ok)) {
       stop.reason <- "joint_converged"
       break
     }
@@ -1080,6 +1367,23 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     if (length(keep)) do.call(rbind, keep) else data.frame()
   } else {
     data.frame()
+  }
+  state_trace_df <- {
+    keep <- Filter(Negate(is.null), state_trace_rows[seq_len(iter)])
+    if (length(keep)) do.call(rbind, keep) else data.frame()
+  }
+  state_first_iters <- vapply(state_first_nonfinite, function(x) {
+    if (is.list(x) && length(x$iter) && is.finite(x$iter)) as.integer(x$iter) else NA_integer_
+  }, integer(1))
+  state_first_problem_iter <- if (any(is.finite(state_first_iters))) {
+    as.integer(min(state_first_iters[is.finite(state_first_iters)]))
+  } else {
+    NA_integer_
+  }
+  state_first_problem_components <- if (is.finite(state_first_problem_iter)) {
+    names(state_first_iters)[state_first_iters == state_first_problem_iter]
+  } else {
+    character(0)
   }
   ld_mode_quality <- if (!is.null(new.gamsig.out$ld$mode_quality)) new.gamsig.out$ld$mode_quality else list()
   ld_signoff_summary <- if (nrow(ld_trace_df)) {
@@ -1261,6 +1565,8 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       iter = iter,
       stable_count = stable.count,
       criteria = conv.ctrl,
+      sts_min_updates_ok = (sts_postwarmup_update_count >= sts_required_postwarmup_updates),
+      sigmagam_min_updates_ok = (sigmagam_postwarmup_update_count >= sigmagam_required_postwarmup_updates),
       final = list(
         delta_state = if (length(delta.state)) utils::tail(delta.state, 1L) else NA_real_,
         delta_sigma = if (length(delta.sigma)) utils::tail(delta.sigma, 1L) else NA_real_,
@@ -1280,10 +1586,35 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       trace = s_trace_df,
       final = if (nrow(s_trace_df)) as.list(s_trace_df[nrow(s_trace_df), , drop = FALSE]) else list()
     ),
+    state_path = list(
+      trace = state_trace_df,
+      first_nonfinite = state_first_nonfinite,
+      summary = list(
+        monitored_components = state_component_order,
+        first_problem_iter = state_first_problem_iter,
+        first_problem_components = state_first_problem_components,
+        nonfinite_iter_count = as.list(as.integer(state_nonfinite_iter_count))
+      ),
+      final = if (nrow(state_trace_df)) as.list(state_trace_df[nrow(state_trace_df), , drop = FALSE]) else list()
+    ),
     ld_block = list(
       controls = ld_ctrl,
       setup = ld_setup,
       trace = ld_trace_df,
+      sts = list(
+        config = sts_cfg,
+        required_postwarmup_updates = as.integer(sts_required_postwarmup_updates),
+        update_count = as.integer(sts_update_count),
+        postwarmup_update_count = as.integer(sts_postwarmup_update_count),
+        first_active_iter = if (is.na(sts_first_active_iter)) NA_integer_ else as.integer(sts_first_active_iter)
+      ),
+      sigmagam = list(
+        config = sigmagam_cfg,
+        required_postwarmup_updates = as.integer(sigmagam_required_postwarmup_updates),
+        update_count = as.integer(sigmagam_update_count),
+        postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
+        first_active_iter = if (is.na(sigmagam_first_active_iter)) NA_integer_ else as.integer(sigmagam_first_active_iter)
+      ),
       final = if (nrow(ld_trace_df)) as.list(ld_trace_df[nrow(ld_trace_df), , drop = FALSE]) else list(),
       stabilization = list(
         active_final = stabilize_active,
@@ -1296,6 +1627,28 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       mode_quality = ld_mode_quality,
       signoff_summary = ld_signoff_summary
     )
+  )
+  retlist$misc <- list(
+    sts = sts_cfg,
+    sts_required_postwarmup_updates = as.integer(sts_required_postwarmup_updates),
+    sts_update_count = as.integer(sts_update_count),
+    sts_postwarmup_update_count = as.integer(sts_postwarmup_update_count),
+    sts_first_active_iter = if (is.na(sts_first_active_iter)) NA_integer_ else as.integer(sts_first_active_iter),
+    sts_frozen_trace = sts_frozen_trace,
+    sts_update_reason_trace = sts_update_reason_trace,
+    sts_forced_postwarmup_trace = sts_forced_postwarmup_trace,
+    sts_update_performed_trace = sts_update_performed_trace,
+    sts_update_count_trace = cumsum(as.integer(sts_update_performed_trace)),
+    sigmagam = sigmagam_cfg,
+    sigmagam_required_postwarmup_updates = as.integer(sigmagam_required_postwarmup_updates),
+    sigmagam_update_count = as.integer(sigmagam_update_count),
+    sigmagam_postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
+    sigmagam_first_active_iter = if (is.na(sigmagam_first_active_iter)) NA_integer_ else as.integer(sigmagam_first_active_iter),
+    sigmagam_frozen_trace = sigmagam_frozen_trace,
+    sigmagam_update_reason_trace = sigmagam_update_reason_trace,
+    sigmagam_forced_postwarmup_trace = sigmagam_forced_postwarmup_trace,
+    sigmagam_update_performed_trace = sigmagam_update_performed_trace,
+    sigmagam_update_count_trace = cumsum(as.integer(sigmagam_update_performed_trace))
   )
   retlist$converged <- isTRUE(retlist$diagnostics$convergence$converged)
 
