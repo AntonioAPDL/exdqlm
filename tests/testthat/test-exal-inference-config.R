@@ -107,6 +107,44 @@ test_that("public builder helpers normalize package warmup blocks", {
   expect_equal(mcmc_control$dqlm_sigma$freeze_burnin_iters, 9L)
 })
 
+test_that("builder helpers preserve existing control lists and fill only missing defaults", {
+  vb_control <- exal_make_vb_control(control = list(
+    max_iter = 80L,
+    sigmagam = list(freeze_warmup_iters = 3L)
+  ))
+  expect_equal(vb_control$max_iter, 80L)
+  expect_equal(vb_control$tol, 1e-4, tolerance = 1e-12)
+  expect_equal(vb_control$n_samp_xi, 200L)
+  expect_equal(vb_control$sigmagam$freeze_warmup_iters, 3L)
+
+  vb_control_override <- exal_make_vb_control(
+    control = list(max_iter = 80L),
+    max_iter = 60L,
+    verbose = TRUE
+  )
+  expect_equal(vb_control_override$max_iter, 60L)
+  expect_true(isTRUE(vb_control_override$verbose))
+
+  mcmc_control <- exal_make_mcmc_control(control = list(
+    n_burn = 40L,
+    sigmagam = list(freeze_burnin_iters = 4L),
+    theta = list(enabled = TRUE, freeze_burnin_iters = 7L)
+  ))
+  expect_equal(mcmc_control$n_burn, 40L)
+  expect_equal(mcmc_control$n_mcmc, 1500L)
+  expect_equal(mcmc_control$sigmagam$freeze_burnin_iters, 4L)
+  expect_true(isTRUE(mcmc_control$theta$enabled))
+  expect_equal(mcmc_control$theta$freeze_burnin_iters, 7L)
+
+  mcmc_control_override <- exal_make_mcmc_control(
+    control = list(n_burn = 40L, init_from_vb = FALSE),
+    n_burn = 25L,
+    init_from_vb = TRUE
+  )
+  expect_equal(mcmc_control_override$n_burn, 25L)
+  expect_true(isTRUE(mcmc_control_override$init_from_vb))
+})
+
 test_that("static entrypoints accept normalized control builders", {
   set.seed(1801)
   dat <- tiny_static_xy_builder()
