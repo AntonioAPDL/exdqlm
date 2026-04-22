@@ -513,7 +513,7 @@ plot.exdqlmLDVB <- function(x, ...) {
 
 
 ##################################
-#### "exal_mcmc" / "exal_ldvb" ###
+#### "exalStaticMCMC" / "exalStaticLDVB" ###
 ##################################
 
 .plot_exal_static_quantiles <- function(map.quant, lb.quant, ub.quant, add = FALSE, col = "purple",
@@ -535,6 +535,166 @@ plot.exdqlmLDVB <- function(x, ...) {
   invisible(list(map.quant = map.quant, lb.quant = lb.quant, ub.quant = ub.quant))
 }
 
+#' \code{exalStaticMCMC} objects
+#'
+#' \code{is.exalStaticMCMC} tests if its argument is an \code{exalStaticMCMC} object.
+#'
+#' @usage is.exalStaticMCMC(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exalStaticMCMC <- function(m){ return(methods::is(m,"exalStaticMCMC")) }
+
+#' Print Method for \code{exalStaticMCMC} Objects
+#'
+#' @param x An \code{exalStaticMCMC} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+print.exalStaticMCMC <- function(x, ...) {
+  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
+  n <- if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
+  p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
+
+  cat("Bayesian Linear Quantile Regression (exAL family)\n")
+  cat("Model:", model_lab, "\n")
+  cat("Method: MCMC\n")
+  cat("Observations:", n, "\n")
+  cat("Predictors:", p, "\n")
+  cat("Quantile level (p0):", x$p0, "\n")
+  cat("Burn-in:", x$n.burn, ", MCMC samples:", x$n.mcmc, "\n")
+  cat("Run-time:", x$run.time, "seconds\n")
+}
+
+#' Summary Method for \code{exalStaticMCMC} Objects
+#'
+#' @param object An \code{exalStaticMCMC} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+summary.exalStaticMCMC <- function(object, ...) {
+  print.exalStaticMCMC(object, ...)
+  sigma_mean <- tryCatch(mean(as.numeric(object$samp.sigma)), error = function(e) NA_real_)
+  cat("Posterior mean sigma:", sigma_mean, "\n")
+  if (!isTRUE(object$dqlm.ind)) {
+    gamma_mean <- tryCatch(mean(as.numeric(object$samp.gamma)), error = function(e) NA_real_)
+    cat("Posterior mean gamma:", gamma_mean, "\n")
+  }
+}
+
+#' Plot Method for \code{exalStaticMCMC} Objects
+#'
+#' @param x An \code{exalStaticMCMC} object.
+#' @param add Logical; add to an existing plot.
+#' @param col Character vector of length 1 giving color for fitted quantiles.
+#' @param cr.percent Numeric in \code{(0, 1)} for credible-interval mass.
+#' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
+#'   \code{add = FALSE}.
+#'
+#' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
+#'
+#' @export
+plot.exalStaticMCMC <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+  if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
+  X <- as.matrix(x$X)
+  beta_draws <- as.matrix(x$samp.beta)
+  q_draws <- beta_draws %*% t(X)
+  half.alpha <- (1 - cr.percent) / 2
+  map.quant <- as.numeric(colMeans(q_draws))
+  lb.quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
+  ub.quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = cr.percent + half.alpha, na.rm = TRUE))
+  .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
+}
+
+#' \code{exalStaticLDVB} objects
+#'
+#' \code{is.exalStaticLDVB} tests if its argument is an \code{exalStaticLDVB} object.
+#'
+#' @usage is.exalStaticLDVB(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exalStaticLDVB <- function(m){ return(methods::is(m,"exalStaticLDVB")) }
+
+#' Print Method for \code{exalStaticLDVB} Objects
+#'
+#' @param x An \code{exalStaticLDVB} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+print.exalStaticLDVB <- function(x, ...) {
+  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
+  n <- if (!is.null(x$misc$n)) as.integer(x$misc$n) else if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
+  p <- if (!is.null(x$misc$p)) as.integer(x$misc$p) else if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
+  p0 <- if (!is.null(x$p0)) as.numeric(x$p0)[1] else if (!is.null(x$misc$p0)) as.numeric(x$misc$p0)[1] else NA_real_
+
+  cat("Bayesian Linear Quantile Regression (exAL family)\n")
+  cat("Model:", model_lab, "\n")
+  cat("Method: LDVB\n")
+  cat("Observations:", n, "\n")
+  cat("Predictors:", p, "\n")
+  cat("Quantile level (p0):", p0, "\n")
+  cat("Converged:", isTRUE(x$converged), "\n")
+  cat("Iterations:", x$iter, "\n")
+  cat("Run-time:", x$run.time, "seconds\n")
+}
+
+#' Summary Method for \code{exalStaticLDVB} Objects
+#'
+#' @param object An \code{exalStaticLDVB} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+summary.exalStaticLDVB <- function(object, ...) {
+  print.exalStaticLDVB(object, ...)
+  sigma_mean <- if (isTRUE(object$dqlm.ind)) {
+    if (!is.null(object$qsig$E_sigma)) as.numeric(object$qsig$E_sigma)[1] else NA_real_
+  } else {
+    if (!is.null(object$qsiggam$sigma_mean)) as.numeric(object$qsiggam$sigma_mean)[1] else NA_real_
+  }
+  cat("Posterior mean sigma:", sigma_mean, "\n")
+  if (!isTRUE(object$dqlm.ind)) {
+    gamma_mean <- if (!is.null(object$qsiggam$gamma_mean)) as.numeric(object$qsiggam$gamma_mean)[1] else NA_real_
+    cat("Posterior mean gamma:", gamma_mean, "\n")
+  }
+}
+
+#' Plot Method for \code{exalStaticLDVB} Objects
+#'
+#' @param x An \code{exalStaticLDVB} object.
+#' @param X Optional design matrix used to compute fitted quantiles. If omitted,
+#'   the method uses \code{x$X} when available.
+#' @param add Logical; add to an existing plot.
+#' @param col Character vector of length 1 giving color for fitted quantiles.
+#' @param cr.percent Numeric in \code{(0, 1)} for credible-interval mass.
+#' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
+#'   \code{add = FALSE}.
+#'
+#' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
+#'
+#' @export
+plot.exalStaticLDVB <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+  if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
+  if (is.null(X)) X <- x$X
+  if (is.null(X)) stop("plot.exalStaticLDVB requires design matrix X (missing in object and argument).")
+  X <- as.matrix(X)
+  beta_mean <- as.numeric(x$qbeta$m)
+  map.quant <- as.numeric(drop(X %*% beta_mean))
+  if (!is.null(x$qbeta$V)) {
+    Vb <- as.matrix(x$qbeta$V)
+    z <- stats::qnorm((1 + cr.percent) / 2)
+    sd_path <- sqrt(pmax(rowSums((X %*% Vb) * X), 0))
+    lb.quant <- map.quant - z * sd_path
+    ub.quant <- map.quant + z * sd_path
+  } else {
+    lb.quant <- rep(NA_real_, length(map.quant))
+    ub.quant <- rep(NA_real_, length(map.quant))
+  }
+  .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
+}
+
 #' \code{exal_mcmc} objects
 #'
 #' \code{is.exal_mcmc} tests if its argument is an \code{exal_mcmc} object.
@@ -553,18 +713,7 @@ is.exal_mcmc <- function(m){ return(methods::is(m,"exal_mcmc")) }
 #'
 #' @export
 print.exal_mcmc <- function(x, ...) {
-  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
-  n <- if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
-  p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
-
-  cat("Bayesian Linear Quantile Regression (exAL family)\n")
-  cat("Model:", model_lab, "\n")
-  cat("Method: MCMC\n")
-  cat("Observations:", n, "\n")
-  cat("Predictors:", p, "\n")
-  cat("Quantile level (p0):", x$p0, "\n")
-  cat("Burn-in:", x$n.burn, ", MCMC samples:", x$n.mcmc, "\n")
-  cat("Run-time:", x$run.time, "seconds\n")
+  print.exalStaticMCMC(x, ...)
 }
 
 #' Summary Method for \code{exal_mcmc} Objects
@@ -574,13 +723,7 @@ print.exal_mcmc <- function(x, ...) {
 #'
 #' @export
 summary.exal_mcmc <- function(object, ...) {
-  print.exal_mcmc(object, ...)
-  sigma_mean <- tryCatch(mean(as.numeric(object$samp.sigma)), error = function(e) NA_real_)
-  cat("Posterior mean sigma:", sigma_mean, "\n")
-  if (!isTRUE(object$dqlm.ind)) {
-    gamma_mean <- tryCatch(mean(as.numeric(object$samp.gamma)), error = function(e) NA_real_)
-    cat("Posterior mean gamma:", gamma_mean, "\n")
-  }
+  summary.exalStaticMCMC(object, ...)
 }
 
 #' Plot Method for \code{exal_mcmc} Objects
@@ -596,15 +739,7 @@ summary.exal_mcmc <- function(object, ...) {
 #'
 #' @export
 plot.exal_mcmc <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
-  if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
-  X <- as.matrix(x$X)
-  beta_draws <- as.matrix(x$samp.beta)
-  q_draws <- beta_draws %*% t(X)
-  half.alpha <- (1 - cr.percent) / 2
-  map.quant <- as.numeric(colMeans(q_draws))
-  lb.quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
-  ub.quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = cr.percent + half.alpha, na.rm = TRUE))
-  .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
+  plot.exalStaticMCMC(x, add = add, col = col, cr.percent = cr.percent, ...)
 }
 
 #' \code{exal_ldvb} objects
@@ -625,20 +760,7 @@ is.exal_ldvb <- function(m){ return(methods::is(m,"exal_ldvb")) }
 #'
 #' @export
 print.exal_ldvb <- function(x, ...) {
-  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
-  n <- if (!is.null(x$misc$n)) as.integer(x$misc$n) else if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
-  p <- if (!is.null(x$misc$p)) as.integer(x$misc$p) else if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
-  p0 <- if (!is.null(x$p0)) as.numeric(x$p0)[1] else if (!is.null(x$misc$p0)) as.numeric(x$misc$p0)[1] else NA_real_
-
-  cat("Bayesian Linear Quantile Regression (exAL family)\n")
-  cat("Model:", model_lab, "\n")
-  cat("Method: LDVB\n")
-  cat("Observations:", n, "\n")
-  cat("Predictors:", p, "\n")
-  cat("Quantile level (p0):", p0, "\n")
-  cat("Converged:", isTRUE(x$converged), "\n")
-  cat("Iterations:", x$iter, "\n")
-  cat("Run-time:", x$run.time, "seconds\n")
+  print.exalStaticLDVB(x, ...)
 }
 
 #' Summary Method for \code{exal_ldvb} Objects
@@ -648,17 +770,7 @@ print.exal_ldvb <- function(x, ...) {
 #'
 #' @export
 summary.exal_ldvb <- function(object, ...) {
-  print.exal_ldvb(object, ...)
-  sigma_mean <- if (isTRUE(object$dqlm.ind)) {
-    if (!is.null(object$qsig$E_sigma)) as.numeric(object$qsig$E_sigma)[1] else NA_real_
-  } else {
-    if (!is.null(object$qsiggam$sigma_mean)) as.numeric(object$qsiggam$sigma_mean)[1] else NA_real_
-  }
-  cat("Posterior mean sigma:", sigma_mean, "\n")
-  if (!isTRUE(object$dqlm.ind)) {
-    gamma_mean <- if (!is.null(object$qsiggam$gamma_mean)) as.numeric(object$qsiggam$gamma_mean)[1] else NA_real_
-    cat("Posterior mean gamma:", gamma_mean, "\n")
-  }
+  summary.exalStaticLDVB(object, ...)
 }
 
 #' Plot Method for \code{exal_ldvb} Objects
@@ -676,23 +788,7 @@ summary.exal_ldvb <- function(object, ...) {
 #'
 #' @export
 plot.exal_ldvb <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
-  if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
-  if (is.null(X)) X <- x$X
-  if (is.null(X)) stop("plot.exal_ldvb requires design matrix X (missing in object and argument).")
-  X <- as.matrix(X)
-  beta_mean <- as.numeric(x$qbeta$m)
-  map.quant <- as.numeric(drop(X %*% beta_mean))
-  if (!is.null(x$qbeta$V)) {
-    Vb <- as.matrix(x$qbeta$V)
-    z <- stats::qnorm((1 + cr.percent) / 2)
-    sd_path <- sqrt(pmax(rowSums((X %*% Vb) * X), 0))
-    lb.quant <- map.quant - z * sd_path
-    ub.quant <- map.quant + z * sd_path
-  } else {
-    lb.quant <- rep(NA_real_, length(map.quant))
-    ub.quant <- rep(NA_real_, length(map.quant))
-  }
-  .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
+  plot.exalStaticLDVB(x, X = X, add = add, col = col, cr.percent = cr.percent, ...)
 }
 
 

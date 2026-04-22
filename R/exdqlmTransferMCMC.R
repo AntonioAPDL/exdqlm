@@ -40,7 +40,7 @@
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
-#' M1 = transfn_exdqlmMCMC(
+#' M1 = exdqlmTransferMCMC(
 #'   y, p0 = 0.85, model = model, X = X,
 #'   df = c(1,1), dim.df = c(1,6),
 #'   gam.init = -3.5, sig.init = 15,
@@ -48,7 +48,7 @@
 #'   n.burn = 100, n.mcmc = 150
 #' )
 #' X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
-#' M2 = transfn_exdqlmMCMC(
+#' M2 = exdqlmTransferMCMC(
 #'   y, p0 = 0.85, model = model, X = X_multi,
 #'   df = c(1,1), dim.df = c(1,6),
 #'   gam.init = -3.5, sig.init = 15,
@@ -56,7 +56,7 @@
 #'   n.burn = 100, n.mcmc = 150
 #' )
 #' }
-transfn_exdqlmMCMC <- function(y, p0, model, X, df, dim.df, lam, tf.df,
+exdqlmTransferMCMC <- function(y, p0, model, X, df, dim.df, lam, tf.df,
                                fix.gamma = FALSE, gam.init = NA,
                                fix.sigma = FALSE, sig.init = NA,
                                dqlm.ind = FALSE,

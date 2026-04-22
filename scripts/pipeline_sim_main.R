@@ -1158,7 +1158,7 @@ synthesize_fan_by_origin <- function(yrep_by_origin_list, p_vec, origins, horizo
     if (is.finite(horizon) && horizon >= 1L) h_i <- min(h_i, as.integer(horizon))
     draws_list <- lapply(draws_list, function(mat) mat[seq_len(h_i), , drop = FALSE])
 
-    synth_i <- exdqlm_synthesize_from_draws(
+    synth_i <- quantileSynthesis(
       draws_list = draws_list,
       p = p_vec,
       enforce_isotonic = synth_isotonic,
@@ -3681,7 +3681,7 @@ if (!synth_enabled) {
   draws_list_fc <- lapply(fits_fc, function(obj) obj$yrep_fc)
   synth_fc <- timed(sprintf("synthesize_forecast_draws(T=%d,nd=%d,grid_M=%d,n_samp=%d)",
                             H_forecast, nd_draws, synth_grid_M, synth_nsamp),
-    exdqlm_synthesize_from_draws(
+    quantileSynthesis(
       draws_list = draws_list_fc, p = p_vec,
       enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
       grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed, T_expected = H_forecast
@@ -3745,7 +3745,7 @@ if (!synth_enabled) {
   keep_train    <- fits_fc[[1]]$fit_train$meta$keep_idx
   synth_tr <- timed(sprintf("synthesize_train_draws(T=%d,grid_M=%d,n_samp=%d)",
                             T_train_keep, synth_grid_M, synth_nsamp),
-    exdqlm_synthesize_from_draws(
+    quantileSynthesis(
       draws_list = draws_list_tr, p = p_vec,
       enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
       grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed, T_expected = T_train_keep
@@ -3824,7 +3824,7 @@ if (isTRUE(lead_eval_enabled)) {
           })
           if (any(vapply(draws_list, is.null, logical(1)))) next
 
-          synth <- exdqlm_synthesize_from_draws(
+          synth <- quantileSynthesis(
             draws_list = draws_list, p = p_vec,
             enforce_isotonic = synth_isotonic, rearrange = synth_rearrange,
             grid_M = synth_grid_M, n_samp = synth_nsamp,

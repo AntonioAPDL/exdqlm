@@ -5,7 +5,7 @@ tiny_static_xy_0p4p0 <- function(n = 18L) {
   list(X = X, y = y)
 }
 
-test_that("restored 0.4.0 API symbols are exported", {
+test_that("native 0.4.0 API symbols are exported and legacy wrappers are not", {
   ns <- asNamespace("exdqlm")
 
   expect_true(exists("exalStaticLDVB", where = ns, inherits = FALSE))
@@ -15,9 +15,16 @@ test_that("restored 0.4.0 API symbols are exported", {
   expect_true(exists("exdqlmTransferLDVB", where = ns, inherits = FALSE))
   expect_true(exists("exdqlmTransferMCMC", where = ns, inherits = FALSE))
   expect_true(exists("quantileSynthesis", where = ns, inherits = FALSE))
+
+  expect_false(exists("exal_static_LDVB", where = ns, inherits = FALSE))
+  expect_false(exists("exal_static_mcmc", where = ns, inherits = FALSE))
+  expect_false(exists("transfn_exdqlmISVB", where = ns, inherits = FALSE))
+  expect_false(exists("transfn_exdqlmLDVB", where = ns, inherits = FALSE))
+  expect_false(exists("transfn_exdqlmMCMC", where = ns, inherits = FALSE))
+  expect_false(exists("exdqlm_synthesize_from_draws", where = ns, inherits = FALSE))
 })
 
-test_that("restored 0.4.0 static wrappers preserve alias classes and predicates", {
+test_that("native 0.4.0 static fits lead with canonical classes and predicates", {
   set.seed(1401)
   dat <- tiny_static_xy_0p4p0()
 
@@ -31,7 +38,7 @@ test_that("restored 0.4.0 static wrappers preserve alias classes and predicates"
     verbose = FALSE
   )
 
-  expect_s3_class(fit_vb, "exal_ldvb")
+  expect_s3_class(fit_vb, "exalStaticLDVB")
   expect_true(inherits(fit_vb, "exalStaticLDVB"))
   expect_true(is.exalStaticLDVB(fit_vb))
 
@@ -45,22 +52,22 @@ test_that("restored 0.4.0 static wrappers preserve alias classes and predicates"
     verbose = FALSE
   )
 
-  expect_s3_class(fit_mcmc, "exal_mcmc")
+  expect_s3_class(fit_mcmc, "exalStaticMCMC")
   expect_true(inherits(fit_mcmc, "exalStaticMCMC"))
   expect_true(is.exalStaticMCMC(fit_mcmc))
 
   diag_out <- exalStaticDiagnostics(fit_vb, fit_mcmc, plot = FALSE)
-  expect_true(inherits(diag_out, "exalStaticDiagnostic"))
+  expect_s3_class(diag_out, "exalStaticDiagnostic")
   expect_true(is.exalStaticDiagnostic(diag_out))
 })
 
-test_that("quantileSynthesis remains a clean wrapper", {
+test_that("quantileSynthesis remains stable under the normalized surface", {
   draws <- list(
     matrix(seq(1, 12), nrow = 4, ncol = 3),
     matrix(seq(2, 13), nrow = 4, ncol = 3)
   )
 
-  syn_old <- exdqlm_synthesize_from_draws(
+  syn_ref <- quantileSynthesis(
     draws_list = draws,
     p = c(0.25, 0.75),
     rearrange = FALSE,
@@ -78,7 +85,7 @@ test_that("quantileSynthesis remains a clean wrapper", {
     T_expected = 4L
   )
 
-  expect_equal(syn_new$draws, syn_old$draws)
-  expect_equal(syn_new$levels, syn_old$levels)
-  expect_equal(syn_new$quantiles, syn_old$quantiles)
+  expect_equal(syn_new$draws, syn_ref$draws)
+  expect_equal(syn_new$levels, syn_ref$levels)
+  expect_equal(syn_new$quantiles, syn_ref$quantiles)
 })

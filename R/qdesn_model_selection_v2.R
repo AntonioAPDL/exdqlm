@@ -445,7 +445,7 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
   }
 
   draws_list <- lapply(fits_fc, function(x) x$yrep_fc)
-  synth_fc <- exdqlm_synthesize_from_draws(
+  synth_fc <- quantileSynthesis(
     draws_list,
     p_vec,
     enforce_isotonic = isTRUE(cfg$synthesis$isotonic %||% TRUE),

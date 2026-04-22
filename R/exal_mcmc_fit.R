@@ -3267,7 +3267,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       beta_prec_diag = beta_prec_diag,
       beta_prior_state = rhs_state
     )
-  ), class = c("exal_mcmc", "exal_static_mcmc", "exalStaticMCMC"))
+  ), class = c("exal_mcmc", "exalStaticMCMC"))
 }
 
 #' Draw posterior samples from an exAL fit

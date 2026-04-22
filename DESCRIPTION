@@ -19,7 +19,7 @@ Description: Bayesian quantile-regression routines for both dynamic
     ridge, regularized horseshoe, and 'rhs_ns', evidence lower bound
     diagnostics, optional C++ accelerators, and posterior predictive
     synthesis across separately fitted quantiles through
-    'exdqlm_synthesize_from_draws()'. Methods are described in Barata et al.
+    'quantileSynthesis()'. Methods are described in Barata et al.
     (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8

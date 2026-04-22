@@ -420,7 +420,7 @@ model_selection_distribution_first <- function(
 
       p_res_cols <- ncol(X_res)  
 
-      fit_readout <- exal_static_LDVB(
+      fit_readout <- exalStaticLDVB(
         y=y_fit, X=X_aug, p0=p0,
         max_iter=vb_args$max_iter, tol=vb_args$tol,
         b0=rep(0, ncol(X_aug)),
@@ -524,7 +524,7 @@ model_selection_distribution_first <- function(
     y_aligned <- y_aligned[idx_tail]
     T_common  <- nrow(pp_draws[[1]])
 
-    synth <- exdqlm_synthesize_from_draws(
+    synth <- quantileSynthesis(
       draws_list = pp_draws,
       p          = p_vec,
       enforce_isotonic = synth_isotonic,
@@ -1095,7 +1095,7 @@ model_selection_optionA <- function(
       )
       X_aug <- cbind(X_res, X_cov)
 
-      fit_readout <- exal_static_LDVB(
+      fit_readout <- exalStaticLDVB(
         y = y_fit, X = X_aug, p0 = p0,
         max_iter = vb_args$max_iter, tol = vb_args$tol,
         b0 = rep(0, ncol(X_aug)), V0 = diag(1e4, ncol(X_aug)),
@@ -1190,7 +1190,7 @@ model_selection_optionA <- function(
     )
 
     # synthesize per horizon and score CRPS by lead
-    synth <- exdqlm_synthesize_from_draws(
+    synth <- quantileSynthesis(
       draws_list = yrep_list,
       p = p_vec,
       enforce_isotonic = synth_isotonic,
@@ -1351,7 +1351,7 @@ model_selection_optionA <- function(
       )$yrep
     )
 
-    synth_test <- exdqlm_synthesize_from_draws(
+    synth_test <- quantileSynthesis(
       draws_list = yrep_list_test,
       p = p_vec,
       enforce_isotonic = synth_isotonic,

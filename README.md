@@ -174,13 +174,8 @@ tail(fit$diagnostics$elbo, 3)
 - **Static shrinkage priors** in both static LDVB/MCMC via
   `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
 - **Transfer-function helpers** `exdqlmTransferLDVB()`,
-  `exdqlmTransferMCMC()`, and `exdqlmTransferISVB()`, with the
-  validation-branch `transfn_exdqlm*` names retained as compatibility
-  aliases.
-- **Compatibility note**: this branch preserves `exal_static_*`,
-  `transfn_exdqlm*`, and `exdqlm_synthesize_from_draws()` as aliases so
-  existing validation scripts keep working, but package-facing usage
-  should prefer the restored `0.4.0` names.
+  `exdqlmTransferMCMC()`, and `exdqlmTransferISVB()`, plus native static
+  object generics (`exalStaticMCMC`, `exalStaticLDVB`).
 - **C++ backend controls** retained as optional: Kalman bridge default
   **TRUE**; builders, samplers, and post-predictive C++ paths default
   **FALSE**.

@@ -53,7 +53,7 @@ test_that("static LDVB xi includes finite Jacobian expectation", {
   beta <- c(0.25, -0.1)
   y <- as.numeric(X %*% beta + rnorm(n, sd = 0.05))
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,

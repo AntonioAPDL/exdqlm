@@ -57,12 +57,12 @@
 #' }
 #' 
 #' # synthesize posterior predictive from all quantiles
-#' syn = exdqlm_synthesize_from_draws(
+#' syn = quantileSynthesis(
 #'   draws_list = draws,
 #'   p = p0s,
 #'   T_expected = TT)
 #' }
-exdqlm_synthesize_from_draws <- function(draws_list, p,
+quantileSynthesis <- function(draws_list, p,
                                          enforce_isotonic = TRUE,
                                          rearrange = TRUE,
                                          grid_M = 1001L,

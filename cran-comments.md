@@ -6,7 +6,7 @@ This submission updates CRAN 0.3.0 to exdqlm 0.4.0 and consolidates
 previously staged internal work into one CRAN submission:
 
 - 0.4.0 line: LDVB integration and stability/diagnostic cleanup.
-- 0.5.0 line: synthesis API (`exdqlm_synthesize_from_draws`).
+- 0.5.0 line: synthesis API (`quantileSynthesis`).
 - 0.6.0 internal line: static regression/regMod integration, reduced AL/DQLM
   paths, static RHS prior support, and targeted correctness fixes validated
   during consolidation.

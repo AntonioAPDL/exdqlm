@@ -941,7 +941,7 @@
 #'   \code{stabilize_step_cap_ell}, and \code{store_trace}.
 #' @param verbose Logical; print progress.
 #'
-#' @return A object of class "\code{exal_static_LDVB}" containing:
+#' @return A object of class "\code{exalStaticLDVB}" containing:
 #' \itemize{
 #'   \item \code{qbeta}: list with \code{m}, \code{V}.
 #'   \item \code{samp.beta}: posterior sample from \eqn{q(\beta)} with
@@ -1001,11 +1001,11 @@
 #' n <- 60
 #' X <- cbind(1, seq(-1, 1, length.out = n))
 #' y <- as.numeric(X %*% c(0.2, -0.1) + rnorm(n, sd = 0.15))
-#' fit <- exal_static_LDVB(y = y, X = X, p0 = 0.5, max_iter = 100, tol = 1e-3, verbose = FALSE)
+#' fit <- exalStaticLDVB(y = y, X = X, p0 = 0.5, max_iter = 100, tol = 1e-3, verbose = FALSE)
 #' fit$converged
 #' head(fit$diagnostics$vb_trace)
 #'
-#' fit_rhs <- exal_static_LDVB(
+#' fit_rhs <- exalStaticLDVB(
 #'   y = y, X = X, p0 = 0.5,
 #'   beta_prior = "rhs",
 #'   beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
@@ -1013,7 +1013,7 @@
 #' )
 #' fit_rhs$beta_prior$type
 #'
-#' fit_rhs_ns <- exal_static_LDVB(
+#' fit_rhs_ns <- exalStaticLDVB(
 #'   y = y, X = X, p0 = 0.5,
 #'   beta_prior = "rhs_ns",
 #'   beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
@@ -1021,7 +1021,7 @@
 #' )
 #' fit_rhs_ns$beta_prior$type
 #'
-#' fit_al <- exal_static_LDVB(
+#' fit_al <- exalStaticLDVB(
 #'   y = y, X = X, p0 = 0.5,
 #'   dqlm.ind = TRUE,
 #'   max_iter = 80, tol = 5e-3, verbose = FALSE
@@ -1029,7 +1029,7 @@
 #' fit_al$dqlm.ind
 #' }
 #' @export
-exal_static_LDVB <- function(
+exalStaticLDVB <- function(
   y, X, p0,
   max_iter = 1000, tol = 1e-4,
   b0 = NULL, V0 = NULL,
@@ -1098,7 +1098,7 @@ exal_static_LDVB <- function(
         summary = ret$beta_prior$summary
       )
     }
-    class(ret) <- c("exal_ldvb", "exal_vb", "exalStaticLDVB")
+    class(ret) <- c("exalStaticLDVB", "exal_ldvb", "exal_vb")
     return(ret)
   }
 
@@ -2540,7 +2540,7 @@ exal_static_LDVB <- function(
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
-  class(ret) <- c("exal_ldvb", "exal_vb", "exalStaticLDVB")
+  class(ret) <- c("exalStaticLDVB", "exal_ldvb", "exal_vb")
   .exdqlm_progress(
     "LDVB done",
     model = "Static exAL",

@@ -15,14 +15,14 @@ test_that("regMod returns exdqlm-compatible structure", {
   expect_s3_class(checked, "exdqlm")
 })
 
-test_that("exal_static_LDVB runs on tiny deterministic input", {
+test_that("exalStaticLDVB runs on tiny deterministic input", {
   set.seed(123)
   n <- 12
   X <- cbind(1, seq(-1, 1, length.out = n))
   beta <- c(0.25, -0.15)
   y <- as.numeric(X %*% beta + rnorm(n, sd = 0.1))
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,
@@ -71,7 +71,7 @@ test_that("static LDVB qdesn-style delta xi path is deterministic", {
     store_trace = TRUE
   )
 
-  fit1 <- exal_static_LDVB(
+  fit1 <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,
@@ -81,7 +81,7 @@ test_that("static LDVB qdesn-style delta xi path is deterministic", {
     ld_controls = ctrl,
     verbose = FALSE
   )
-  fit2 <- exal_static_LDVB(
+  fit2 <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,
@@ -117,7 +117,7 @@ test_that("static LDVB ignores stale MC xi controls and stays deterministic Delt
     store_trace = TRUE
   )
 
-  fit1 <- exal_static_LDVB(
+  fit1 <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,
@@ -127,7 +127,7 @@ test_that("static LDVB ignores stale MC xi controls and stays deterministic Delt
     ld_controls = ctrl,
     verbose = FALSE
   )
-  fit2 <- exal_static_LDVB(
+  fit2 <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,
@@ -222,7 +222,7 @@ test_that("static LDVB records stabilization diagnostics", {
   beta <- c(0.2, -0.1)
   y <- as.numeric(X %*% beta + rnorm(n, sd = 0.08))
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = y,
     X = X,
     p0 = 0.5,
@@ -261,14 +261,14 @@ test_that("static LDVB records stabilization diagnostics", {
     names(fit$diagnostics$s_block$trace)))
 })
 
-test_that("exal_static_mcmc runs on tiny deterministic input", {
+test_that("exalStaticMCMC runs on tiny deterministic input", {
   set.seed(321)
   n <- 10
   X <- cbind(1, seq(-0.5, 0.5, length.out = n))
   beta <- c(0.1, 0.2)
   y <- as.numeric(X %*% beta + rnorm(n, sd = 0.15))
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = y,
     X = X,
     p0 = 0.5,
@@ -284,14 +284,14 @@ test_that("exal_static_mcmc runs on tiny deterministic input", {
   expect_true(all(is.finite(as.numeric(fit$samp.gamma))))
 })
 
-test_that("exal_static_mcmc supports gamma substeps and global eta jump controls", {
+test_that("exalStaticMCMC supports gamma substeps and global eta jump controls", {
   set.seed(777)
   n <- 10
   X <- cbind(1, seq(-0.4, 0.4, length.out = n))
   beta <- c(0.05, -0.2)
   y <- as.numeric(X %*% beta + rnorm(n, sd = 0.1))
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = y,
     X = X,
     p0 = 0.5,

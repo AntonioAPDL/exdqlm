@@ -674,7 +674,7 @@ bench_qdesn_run_qdesn_draws <- function(y_fit, h, candidate_cfg, seed_tag, keep_
       )
     }
 
-    synth_scaled <- exdqlm_synthesize_from_draws(
+    synth_scaled <- quantileSynthesis(
       draws_list = draws_list,
       p = candidate_cfg$p_vec,
       enforce_isotonic = candidate_cfg$synthesis$isotonic,

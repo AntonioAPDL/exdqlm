@@ -821,7 +821,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   }
 
   # --------------------------------------------------------------------------
-  # Helpers for LD on (eta, ell) and delta-method xis (matches exal_static_LDVB)
+  # Helpers for LD on (eta, ell) and delta-method xis (matches exalStaticLDVB)
   # --------------------------------------------------------------------------
 
   # prior on gamma: prefer user-supplied log_prior if present, else Normal(mu0,s20), else flat
@@ -1651,7 +1651,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # ------------------------------------------------------------------------
     gamma_hat <- cur_gamma_hat()
     sigma_hat <- cur_sigma_hat()
-    # ---- parameter-change safeguard (match exal_static_LDVB_core logic) ----
+  # ---- parameter-change safeguard (match exalStaticLDVB core logic) ----
     new_term <- if (iter == 1L) {
       Inf
     } else {
