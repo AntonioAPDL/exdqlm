@@ -63,6 +63,7 @@ status <- system2(
   "Rscript",
   c(
     file.path("scripts", "launch_qdesn_dynamic_exdqlm_crossstudy_validation.R"),
+    "--runner", runner_rel,
     "--defaults", file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_defaults.yaml"),
     "--tmux-session", session_name,
     child_args

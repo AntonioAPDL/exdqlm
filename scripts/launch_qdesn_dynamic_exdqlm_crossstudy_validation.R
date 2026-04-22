@@ -53,7 +53,7 @@ if (!nzchar(Sys.which("tmux"))) {
   stop("tmux is required for the detached dynamic cross-study launcher.", call. = FALSE)
 }
 
-runner_rel <- file.path("scripts", "run_qdesn_dynamic_exdqlm_crossstudy_validation.R")
+runner_rel <- get_arg("--runner", file.path("scripts", "run_qdesn_dynamic_exdqlm_crossstudy_validation.R"))
 runner_path <- resolve_path(runner_rel, must_work = TRUE)
 defaults_rel <- get_arg("--defaults", file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_defaults.yaml"))
 defaults_path <- resolve_path(defaults_rel, must_work = TRUE)
@@ -90,6 +90,12 @@ launcher_meta_path <- file.path(launch_root, "launcher_session.json")
 launcher_script_path <- file.path(launch_root, "launch_detached.sh")
 
 child_args <- args
+runner_arg_idx <- which(child_args == "--runner")
+if (length(runner_arg_idx)) {
+  drop_idx <- sort(c(runner_arg_idx, runner_arg_idx + 1L))
+  drop_idx <- drop_idx[drop_idx <= length(child_args)]
+  child_args <- child_args[-drop_idx]
+}
 if (!any(child_args == "--run-tag")) {
   child_args <- c(child_args, "--run-tag", run_tag)
 }
