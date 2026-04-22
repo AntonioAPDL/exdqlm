@@ -895,11 +895,14 @@ check_ts = function(dat){
   if (length(x) == n_iter) {
     return(x)
   }
+  if (length(x) < n_iter) {
+    return(c(rep(fill, n_iter - length(x)), x))
+  }
 
   expected <- if (isTRUE(drop_init)) {
     sprintf("%d or %d (including initialization)", n_iter, n_iter + 1L)
   } else {
-    as.character(n_iter)
+    sprintf("at most %d", n_iter)
   }
   stop(
     sprintf("`%s` trace must have length %s; got %d.", name, expected, length(x)),
