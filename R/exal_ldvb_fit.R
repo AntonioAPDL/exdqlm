@@ -5,6 +5,10 @@
 #'   - prior_gamma = list(mu0, s20)
 #'   - prior_sigma = list(a, b)
 #'
+#' The recommended public builder for the advanced VB warmup surface is
+#' [exal_make_vb_control()], together with
+#' [exal_make_vb_sigmagam_control()] for the `(sigma, gamma)` block.
+#'
 #' And it also supports the "flat" arguments used by pipeline_sim_main.R:
 #'   - max_iter, tol, tol_par, n_samp_xi, verbose
 #'   - prior_gamma_mu0, prior_gamma_s20, log_prior_gamma

@@ -40,7 +40,8 @@ exal_mcmc_fit(
 
 \item{mcmc_control}{Named list of MCMC controls. \code{mcmc_control$precision_beta}
 accepts either a preset string such as \code{"ladder_v2"} / \code{"eigen_v1"} or a
-fully specified list produced by \code{\link[=exal_make_precision_beta_control]{exal_make_precision_beta_control()}}.}
+fully specified list produced by \code{\link[=exal_make_precision_beta_control]{exal_make_precision_beta_control()}}.
+For the full advanced block surface, prefer \code{\link[=exal_make_mcmc_control]{exal_make_mcmc_control()}}.}
 
 \item{n_burn, n_mcmc, thin}{Optional scalar overrides for the retained MCMC
 control counts.}
@@ -77,4 +78,9 @@ An \code{exal_mcmc} fit object.
 Gaussian beta precision draw. The recommended preset is
 \code{exal_make_precision_beta_control("ladder_v2")}; the stronger fallback is
 \code{exal_make_precision_beta_control("eigen_v1")}.
+The rest of the advanced warmup blocks can be built with
+\code{\link[=exal_make_mcmc_control]{exal_make_mcmc_control()}}, \code{\link[=exal_make_mcmc_sigmagam_control]{exal_make_mcmc_sigmagam_control()}},
+\code{\link[=exal_make_mcmc_theta_control]{exal_make_mcmc_theta_control()}}, \code{\link[=exal_make_mcmc_latent_v_control]{exal_make_mcmc_latent_v_control()}},
+\code{\link[=exal_make_mcmc_latent_s_control]{exal_make_mcmc_latent_s_control()}}, and
+\code{\link[=exal_make_mcmc_rhs_control]{exal_make_mcmc_rhs_control()}}.
 }

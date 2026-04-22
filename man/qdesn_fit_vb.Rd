@@ -75,7 +75,10 @@ used only by decomposition mode when regression/transfer blocks are enabled.}
 a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...). If
 \code{vb_args$beta_prior_type} is omitted, Q-DESN defaults to
 \code{"rhs_ns"}. For RHS-family priors, \code{shrink_intercept} is
-enforced as \code{FALSE}.}
+enforced as \code{FALSE}. Advanced VB controls may be supplied directly as
+\code{vb_args$vb_control}, or more explicitly via
+\code{\link[=exal_make_vb_control]{exal_make_vb_control()}} together with
+\code{\link[=exal_make_vb_sigmagam_control]{exal_make_vb_sigmagam_control()}}.}
 }
 \value{
 A list with:

@@ -122,6 +122,93 @@ fit_hard <- qdesn_fit_mcmc(
 )
 ```
 
+## Advanced warmup/control builders
+
+The package now exposes the validated warmup and rescue blocks as public helper
+builders, so you can configure the hard numerical cases without relying on ad
+hoc nested lists:
+
+- VB sigmagam warmup: `exal_make_vb_sigmagam_control()`
+- Dynamic VB latent-state warmup: `exal_make_vb_sts_control()`
+- Batch VB control: `exal_make_vb_control()`
+- Package-native dynamic MCMC warmup:
+  `exal_make_mcmc_sigmagam_control()`,
+  `exal_make_mcmc_theta_control()`,
+  `exal_make_mcmc_latent_state_control()`,
+  `exal_make_mcmc_dqlm_sigma_control()`
+- QDESN readout MCMC warmup and rescue:
+  `exal_make_mcmc_sigmagam_control()`,
+  `exal_make_mcmc_theta_control()`,
+  `exal_make_mcmc_latent_v_control()`,
+  `exal_make_mcmc_latent_s_control()`,
+  `exal_make_mcmc_rhs_control()`
+- Full normalized MCMC control: `exal_make_mcmc_control()`
+- Precision rescue: `exal_make_precision_beta_control()`
+
+```r
+vb_ctrl <- exal_make_vb_control(
+  max_iter = 200L,
+  sigmagam = exal_make_vb_sigmagam_control(
+    freeze_warmup_iters = 20L,
+    postwarmup_damping = 0.6,
+    postwarmup_damping_iters = 6L
+  ),
+  sts = exal_make_vb_sts_control(
+    freeze_warmup_iters = 15L,
+    min_postwarmup_updates = 2L
+  ),
+  rhs = list(
+    freeze_tau_warmup_iters = 30L,
+    update_every_warmup = 4L
+  )
+)
+
+fit_vb <- qdesn_fit_vb(
+  y = y,
+  p0 = 0.5,
+  vb_args = list(
+    beta_prior_type = "rhs_ns",
+    vb_control = vb_ctrl
+  )
+)
+
+mcmc_ctrl <- exal_make_mcmc_control(
+  sigmagam = exal_make_mcmc_sigmagam_control(
+    freeze_burnin_iters = 30L
+  ),
+  theta = exal_make_mcmc_theta_control(
+    freeze_burnin_iters = 25L,
+    sparse_update_every = 4L,
+    sparse_update_until_iter = 100L
+  ),
+  latent_state = exal_make_mcmc_latent_state_control(
+    mode = "u_st_pair",
+    freeze_burnin_iters = 30L
+  ),
+  dqlm_sigma = exal_make_mcmc_dqlm_sigma_control(
+    freeze_burnin_iters = 20L
+  ),
+  latent_v = exal_make_mcmc_latent_v_control(
+    freeze_burnin_iters = 40L,
+    rescue_on_invalid = TRUE,
+    rescue_max_consecutive = 3L
+  ),
+  rhs = exal_make_mcmc_rhs_control(
+    freeze_tau_burnin_iters = 20L
+  ),
+  precision_beta = exal_make_precision_beta_control("ladder_v2")
+)
+
+fit_mcmc <- qdesn_fit_mcmc(
+  y = y,
+  p0 = 0.5,
+  mcmc_args = list(
+    likelihood_family = "exal",
+    mcmc_control = mcmc_ctrl
+  )
+)
+```
+
 ## Quick start (≤ 10 lines)
 
 Local-level model at a **single quantile** (the median). We fix

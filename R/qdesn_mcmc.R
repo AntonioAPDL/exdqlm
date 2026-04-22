@@ -28,9 +28,15 @@ qdesn_fit <- function(..., method = c("vb", "mcmc"), vb_args = list(), mcmc_args
 #'
 #' @param mcmc_args Named list forwarded to [exal_mcmc_fit()]. If
 #'   \code{mcmc_args$beta_prior_type} is omitted, Q-DESN defaults to
-#'   \code{"rhs_ns"}. `mcmc_args$precision_beta` may be either a preset string
-#'   such as \code{"ladder_v2"} or \code{"eigen_v1"}, or a full control list
-#'   from [exal_make_precision_beta_control()].
+#'   \code{"rhs_ns"}. Advanced control blocks may be supplied either inside
+#'   \code{mcmc_args$mcmc_control} or directly at the top level via
+#'   \code{sigmagam}, \code{theta}, \code{latent_v}, \code{latent_s},
+#'   \code{rhs}, \code{conditioning}, \code{slice}, \code{multi_start}, and
+#'   \code{precision_beta}. The recommended way to build these blocks is with
+#'   [exal_make_mcmc_control()], [exal_make_mcmc_sigmagam_control()],
+#'   [exal_make_mcmc_theta_control()], [exal_make_mcmc_latent_v_control()],
+#'   [exal_make_mcmc_latent_s_control()], [exal_make_mcmc_rhs_control()], and
+#'   [exal_make_precision_beta_control()].
 #' @param fit_readout Logical; if `FALSE`, return the shared design-only object.
 #' @param ... Additional arguments forwarded to the Q-DESN design builder.
 #' @export
@@ -65,27 +71,38 @@ qdesn_fit_mcmc <- function(..., mcmc_args = list(), fit_readout = TRUE) {
     .qdesn_assert_rhs_prior_obj_intercept_policy(beta_prior_obj, context = "qdesn_fit_mcmc")
   }
 
-  mcmc_control <- modifyList(list(
-    n_burn = get_exact(mcmc_args, "n_burn", 2000L),
-    n_mcmc = get_exact(mcmc_args, "n_mcmc", 1500L),
-    thin = get_exact(mcmc_args, "thin", 1L),
-    verbose = isTRUE(get_exact(mcmc_args, "verbose", FALSE)),
-    progress_every = get_exact(mcmc_args, "progress_every", 100L),
-    init_from_vb = isTRUE(get_exact(mcmc_args, "init_from_vb", FALSE)),
-    store_latent_draws = isTRUE(get_exact(mcmc_args, "store_latent_draws", FALSE)),
-    store_rhs_draws = isTRUE(get_exact(mcmc_args, "store_rhs_draws", FALSE)),
-    slice = get_exact(mcmc_args, "slice", list()),
-    conditioning = get_exact(mcmc_args, "conditioning", list())
-  ), get_exact(mcmc_args, "mcmc_control", list()))
-
   precision_beta_arg <- get_exact(
     mcmc_args,
     "precision_beta",
     get_exact(mcmc_args, "precision", NULL)
   )
-  if (!is.null(precision_beta_arg)) {
-    mcmc_control$precision_beta <- .exal_normalize_mcmc_precision_beta_cfg(precision_beta_arg)
-  }
+
+  mcmc_control <- do.call(
+    exal_make_mcmc_control,
+    list(
+      n_burn = get_exact(mcmc_args, "n_burn", 2000L),
+      n_mcmc = get_exact(mcmc_args, "n_mcmc", 1500L),
+      thin = get_exact(mcmc_args, "thin", 1L),
+      verbose = isTRUE(get_exact(mcmc_args, "verbose", FALSE)),
+      progress_every = get_exact(mcmc_args, "progress_every", 100L),
+      init_from_vb = isTRUE(get_exact(mcmc_args, "init_from_vb", FALSE)),
+      vb_warm_start_seed = get_exact(mcmc_args, "vb_warm_start_seed", NULL),
+      vb_warm_start_control = get_exact(mcmc_args, "vb_warm_start_control", NULL),
+      sigmagam = get_exact(mcmc_args, "sigmagam", NULL),
+      theta = get_exact(mcmc_args, "theta", NULL),
+      latent_v = get_exact(mcmc_args, "latent_v", NULL),
+      latent_s = get_exact(mcmc_args, "latent_s", NULL),
+      store_latent_draws = isTRUE(get_exact(mcmc_args, "store_latent_draws", FALSE)),
+      store_rhs_draws = isTRUE(get_exact(mcmc_args, "store_rhs_draws", FALSE)),
+      transforms = get_exact(mcmc_args, "transforms", get_exact(mcmc_args, "transform", NULL)),
+      conditioning = get_exact(mcmc_args, "conditioning", NULL),
+      precision_beta = precision_beta_arg,
+      rhs = get_exact(mcmc_args, "rhs", NULL),
+      slice = get_exact(mcmc_args, "slice", NULL),
+      multi_start = get_exact(mcmc_args, "multi_start", NULL),
+      control = get_exact(mcmc_args, "mcmc_control", list())
+    )
+  )
 
   fit <- exal_mcmc_fit(
     y = design_fit$y_fit,

@@ -11,9 +11,15 @@ qdesn_fit_mcmc(..., mcmc_args = list(), fit_readout = TRUE)
 
 \item{mcmc_args}{Named list forwarded to \code{\link[=exal_mcmc_fit]{exal_mcmc_fit()}}. If
 \code{mcmc_args$beta_prior_type} is omitted, Q-DESN defaults to
-\code{"rhs_ns"}. \code{mcmc_args$precision_beta} may be either a preset string
-such as \code{"ladder_v2"} or \code{"eigen_v1"}, or a full control list
-from \code{\link[=exal_make_precision_beta_control]{exal_make_precision_beta_control()}}.}
+\code{"rhs_ns"}. Advanced control blocks may be supplied either inside
+\code{mcmc_args$mcmc_control} or directly at the top level via
+\code{sigmagam}, \code{theta}, \code{latent_v}, \code{latent_s},
+\code{rhs}, \code{conditioning}, \code{slice}, \code{multi_start}, and
+\code{precision_beta}. The recommended way to build these blocks is with
+\code{\link[=exal_make_mcmc_control]{exal_make_mcmc_control()}}, \code{\link[=exal_make_mcmc_sigmagam_control]{exal_make_mcmc_sigmagam_control()}},
+\code{\link[=exal_make_mcmc_theta_control]{exal_make_mcmc_theta_control()}}, \code{\link[=exal_make_mcmc_latent_v_control]{exal_make_mcmc_latent_v_control()}},
+\code{\link[=exal_make_mcmc_latent_s_control]{exal_make_mcmc_latent_s_control()}}, \code{\link[=exal_make_mcmc_rhs_control]{exal_make_mcmc_rhs_control()}}, and
+\code{\link[=exal_make_precision_beta_control]{exal_make_precision_beta_control()}}.}
 
 \item{fit_readout}{Logical; if \code{FALSE}, return the shared design-only object.}
 }

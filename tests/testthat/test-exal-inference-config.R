@@ -378,3 +378,148 @@ test_that("precision-beta config resolves preset aliases and explicit overrides"
   expect_equal(as.numeric(inf_override$mcmc$control_base$precision_beta$eigen_floor_abs), 1e-5, tolerance = 1e-12)
   expect_false(isTRUE(inf_override$mcmc$control_base$precision_beta$trace))
 })
+
+test_that("public control builders expose the normalized advanced warmup surface", {
+  vb_sigmagam <- exdqlm::exal_make_vb_sigmagam_control(
+    freeze_warmup_iters = 12L,
+    force_after_warmup = FALSE,
+    postwarmup_damping = 0.5,
+    postwarmup_damping_iters = 3L,
+    min_postwarmup_updates = 2L
+  )
+  expect_equal(vb_sigmagam$freeze_warmup_iters, 12L)
+  expect_false(isTRUE(vb_sigmagam$force_after_warmup))
+  expect_equal(vb_sigmagam$postwarmup_damping, 0.5, tolerance = 1e-12)
+  expect_equal(vb_sigmagam$postwarmup_damping_iters, 3L)
+  expect_equal(vb_sigmagam$min_postwarmup_updates, 2L)
+
+  vb_sts <- exdqlm::exal_make_vb_sts_control(
+    freeze_warmup_iters = 10L,
+    force_after_warmup = FALSE,
+    min_postwarmup_updates = 3L
+  )
+  expect_equal(vb_sts$freeze_warmup_iters, 10L)
+  expect_false(isTRUE(vb_sts$force_after_warmup))
+  expect_equal(vb_sts$min_postwarmup_updates, 3L)
+
+  vb_control <- exdqlm::exal_make_vb_control(
+    max_iter = 180L,
+    min_iter_elbo = 14L,
+    tol = 2e-4,
+    tol_par = 3e-4,
+    n_samp_xi = 600L,
+    verbose = TRUE,
+    sigmagam = vb_sigmagam,
+    sts = vb_sts,
+    rhs = list(
+      freeze_tau_warmup_iters = 15L,
+      update_every_warmup = 4L,
+      force_tau_after_warmup = FALSE
+    ),
+    diagnostics = list(rhs_trace = TRUE)
+  )
+  expect_equal(vb_control$max_iter, 180L)
+  expect_equal(vb_control$min_iter_elbo, 14L)
+  expect_equal(vb_control$tol, 2e-4, tolerance = 1e-12)
+  expect_equal(vb_control$tol_par, 3e-4, tolerance = 1e-12)
+  expect_true(isTRUE(vb_control$rhs_trace))
+  expect_equal(vb_control$rhs_freeze_tau_warmup_iters, 15L)
+  expect_equal(vb_control$rhs_update_every_warmup, 4L)
+  expect_false(isTRUE(vb_control$rhs_force_tau_after_warmup))
+  expect_equal(vb_control$sigmagam$freeze_warmup_iters, 12L)
+  expect_equal(vb_control$sts$freeze_warmup_iters, 10L)
+  expect_false(isTRUE(vb_control$sts$force_after_warmup))
+
+  latent_state <- exdqlm::exal_make_mcmc_latent_state_control(
+    mode = "u_st_pair",
+    freeze_burnin_iters = 22L,
+    freeze_only_during_burn = FALSE,
+    force_after_warmup = FALSE,
+    min_postwarmup_updates = 2L,
+    trace = FALSE
+  )
+  expect_identical(latent_state$mode, "u_st_pair")
+  expect_equal(latent_state$freeze_burnin_iters, 22L)
+  expect_false(isTRUE(latent_state$freeze_only_during_burn))
+  expect_false(isTRUE(latent_state$force_after_warmup))
+  expect_equal(latent_state$min_postwarmup_updates, 2L)
+  expect_false(isTRUE(latent_state$trace))
+
+  dqlm_sigma <- exdqlm::exal_make_mcmc_dqlm_sigma_control(
+    freeze_burnin_iters = 14L,
+    freeze_only_during_burn = FALSE,
+    force_after_warmup = FALSE,
+    trace = FALSE
+  )
+  expect_equal(dqlm_sigma$freeze_burnin_iters, 14L)
+  expect_false(isTRUE(dqlm_sigma$freeze_only_during_burn))
+  expect_false(isTRUE(dqlm_sigma$force_after_warmup))
+  expect_false(isTRUE(dqlm_sigma$trace))
+
+  rhs_control <- exdqlm::exal_make_mcmc_rhs_control(
+    freeze_tau_burnin_iters = 40L,
+    width_adapt_enabled = TRUE,
+    width_adapt_warmup_iters = 50L,
+    step_size = 0.08
+  )
+  expect_equal(rhs_control$freeze_tau_burnin_iters, 40L)
+  expect_true(isTRUE(rhs_control$width_adapt$enabled))
+  expect_equal(rhs_control$width_adapt$warmup_iters, 50L)
+  expect_equal(rhs_control$width_adapt$step_size, 0.08, tolerance = 1e-12)
+
+  mcmc_control <- exdqlm::exal_make_mcmc_control(
+    n_burn = 600L,
+    n_mcmc = 200L,
+    thin = 2L,
+    sigmagam = exdqlm::exal_make_mcmc_sigmagam_control(
+      freeze_burnin_iters = 30L,
+      force_after_warmup = FALSE
+    ),
+    theta = exdqlm::exal_make_mcmc_theta_control(
+      freeze_burnin_iters = 20L,
+      sparse_update_every = 3L,
+      sparse_update_until_iter = 50L,
+      force_first_postwarmup_update = FALSE
+    ),
+    latent_state = latent_state,
+    dqlm_sigma = dqlm_sigma,
+    latent_v = exdqlm::exal_make_mcmc_latent_v_control(
+      freeze_burnin_iters = 25L,
+      sparse_update_every = 4L,
+      sparse_update_until_iter = 60L,
+      rescue_on_invalid = TRUE,
+      rescue_max_consecutive = 5L,
+      trace = FALSE
+    ),
+    latent_s = exdqlm::exal_make_mcmc_latent_s_control(
+      freeze_burnin_iters = 18L,
+      sparse_update_every = 5L,
+      sparse_update_until_iter = 45L,
+      trace = FALSE
+    ),
+    rhs = rhs_control,
+    precision_beta = exdqlm::exal_make_precision_beta_control("eigen_v1")
+  )
+  expect_equal(mcmc_control$n_burn, 600L)
+  expect_equal(mcmc_control$n_mcmc, 200L)
+  expect_equal(mcmc_control$thin, 2L)
+  expect_equal(mcmc_control$sigmagam$freeze_burnin_iters, 30L)
+  expect_false(isTRUE(mcmc_control$sigmagam$force_after_warmup))
+  expect_equal(mcmc_control$theta$freeze_burnin_iters, 20L)
+  expect_equal(mcmc_control$theta$sparse_update_every, 3L)
+  expect_false(isTRUE(mcmc_control$theta$force_first_postwarmup_update))
+  expect_identical(mcmc_control$latent_state$mode, "u_st_pair")
+  expect_equal(mcmc_control$latent_state$freeze_burnin_iters, 22L)
+  expect_false(isTRUE(mcmc_control$latent_state$trace))
+  expect_equal(mcmc_control$dqlm_sigma$freeze_burnin_iters, 14L)
+  expect_false(isTRUE(mcmc_control$dqlm_sigma$trace))
+  expect_equal(mcmc_control$latent_v$freeze_burnin_iters, 25L)
+  expect_true(isTRUE(mcmc_control$latent_v$rescue_on_invalid))
+  expect_equal(mcmc_control$latent_v$rescue_max_consecutive, 5L)
+  expect_false(isTRUE(mcmc_control$latent_v$trace))
+  expect_equal(mcmc_control$latent_s$freeze_burnin_iters, 18L)
+  expect_false(isTRUE(mcmc_control$latent_s$trace))
+  expect_equal(mcmc_control$rhs$freeze_tau_burnin_iters, 40L)
+  expect_true(isTRUE(mcmc_control$rhs$width_adapt$enabled))
+  expect_identical(as.character(mcmc_control$precision_beta$preset), "eigen_v1")
+})

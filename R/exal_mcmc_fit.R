@@ -1190,6 +1190,11 @@
 #' Gaussian beta precision draw. The recommended preset is
 #' `exal_make_precision_beta_control("ladder_v2")`; the stronger fallback is
 #' `exal_make_precision_beta_control("eigen_v1")`.
+#' The rest of the advanced warmup blocks can be built with
+#' [exal_make_mcmc_control()], [exal_make_mcmc_sigmagam_control()],
+#' [exal_make_mcmc_theta_control()], [exal_make_mcmc_latent_v_control()],
+#' [exal_make_mcmc_latent_s_control()], and
+#' [exal_make_mcmc_rhs_control()].
 #'
 #' @param y Response vector.
 #' @param X Design matrix.
@@ -1199,6 +1204,7 @@
 #' @param mcmc_control Named list of MCMC controls. `mcmc_control$precision_beta`
 #'   accepts either a preset string such as `"ladder_v2"` / `"eigen_v1"` or a
 #'   fully specified list produced by [exal_make_precision_beta_control()].
+#'   For the full advanced block surface, prefer [exal_make_mcmc_control()].
 #' @param n_burn,n_mcmc,thin Optional scalar overrides for the retained MCMC
 #'   control counts.
 #' @param verbose Optional logical override for verbose progress output.

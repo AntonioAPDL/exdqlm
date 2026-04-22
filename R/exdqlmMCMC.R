@@ -134,11 +134,22 @@ NULL
   )[1L])
   if (!(mode %in% c("u_only", "u_st_pair"))) mode <- default_mode
 
+  min_postwarmup_updates <- suppressWarnings(as.integer(
+    latent_cfg$min_postwarmup_updates %||%
+      latent_cfg$latent_min_postwarmup_updates %||%
+      0L
+  )[1L])
+  if (!is.finite(min_postwarmup_updates) || min_postwarmup_updates < 0L) {
+    min_postwarmup_updates <- 0L
+  }
+
   list(
     mode = mode,
     freeze_burnin_iters = freeze_burnin_iters,
     freeze_only_during_burn = if (is.null(latent_cfg$freeze_only_during_burn)) TRUE else isTRUE(latent_cfg$freeze_only_during_burn),
-    force_after_warmup = if (is.null(latent_cfg$force_after_warmup)) TRUE else isTRUE(latent_cfg$force_after_warmup)
+    force_after_warmup = if (is.null(latent_cfg$force_after_warmup)) TRUE else isTRUE(latent_cfg$force_after_warmup),
+    min_postwarmup_updates = min_postwarmup_updates,
+    trace = if (is.null(latent_cfg$trace)) TRUE else isTRUE(latent_cfg$trace)
   )
 }
 
@@ -156,7 +167,8 @@ NULL
   list(
     freeze_burnin_iters = freeze_burnin_iters,
     freeze_only_during_burn = if (is.null(sigma_cfg$freeze_only_during_burn)) TRUE else isTRUE(sigma_cfg$freeze_only_during_burn),
-    force_after_warmup = if (is.null(sigma_cfg$force_after_warmup)) TRUE else isTRUE(sigma_cfg$force_after_warmup)
+    force_after_warmup = if (is.null(sigma_cfg$force_after_warmup)) TRUE else isTRUE(sigma_cfg$force_after_warmup),
+    trace = if (is.null(sigma_cfg$trace)) TRUE else isTRUE(sigma_cfg$trace)
   )
 }
 

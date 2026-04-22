@@ -37,6 +37,10 @@ This wrapper is backward compatible with the "list-style" API:
 }
 }
 \details{
+The recommended public builder for the advanced VB warmup surface is
+\code{\link[=exal_make_vb_control]{exal_make_vb_control()}}, together with
+\code{\link[=exal_make_vb_sigmagam_control]{exal_make_vb_sigmagam_control()}} for the \verb{(sigma, gamma)} block.
+
 And it also supports the "flat" arguments used by pipeline_sim_main.R:
 \itemize{
 \item max_iter, tol, tol_par, n_samp_xi, verbose

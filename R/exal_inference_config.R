@@ -65,6 +65,11 @@
       postwarmup_damping = 1.0,
       postwarmup_damping_iters = 0L,
       min_postwarmup_updates = 0L
+    ),
+    sts = list(
+      freeze_warmup_iters = 0L,
+      force_after_warmup = TRUE,
+      min_postwarmup_updates = 0L
     )
   )
 }
@@ -112,6 +117,20 @@
       sparse_update_every = 1L,
       sparse_update_until_iter = 0L,
       force_first_postwarmup_update = TRUE,
+      trace = TRUE
+    ),
+    latent_state = list(
+      mode = "u_only",
+      freeze_burnin_iters = 0L,
+      freeze_only_during_burn = TRUE,
+      force_after_warmup = TRUE,
+      min_postwarmup_updates = 0L,
+      trace = TRUE
+    ),
+    dqlm_sigma = list(
+      freeze_burnin_iters = 0L,
+      freeze_only_during_burn = TRUE,
+      force_after_warmup = TRUE,
       trace = TRUE
     ),
     latent_v = list(
@@ -337,6 +356,30 @@
     postwarmup_damping_iters = postwarmup_damping_iters,
     min_postwarmup_updates = min_postwarmup_updates
   )
+}
+
+.exal_normalize_vb_online_cfg <- function(online_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  online_cfg <- modifyList(.exal_default_vb_online_cfg(), .exal_list_or_empty(online_cfg))
+  online_cfg$enabled <- isTRUE(online_cfg$enabled)
+  online_cfg$strict <- isTRUE(online_cfg$strict)
+  online_cfg$M <- max(0L, as.integer(online_cfg$M %||% 10L))
+  online_cfg$K <- max(0L, as.integer(online_cfg$K %||% 40L))
+  online_cfg$W <- max(0L, as.integer(online_cfg$W %||% 100L))
+  online_cfg$L_loc <- max(1L, as.integer(online_cfg$L_loc %||% 2L))
+  online_cfg$window_passes <- max(0L, as.integer(online_cfg$window_passes %||% 1L))
+  online_cfg$maxit_sigmagam <- max(50L, as.integer(online_cfg$maxit_sigmagam %||% 500L))
+  online_cfg$jitter <- as.numeric(online_cfg$jitter %||% 1e-10)
+  if (!is.finite(online_cfg$jitter) || online_cfg$jitter <= 0) online_cfg$jitter <- 1e-10
+  online_cfg$warm_start_n <- if (is.null(online_cfg$warm_start_n)) NULL else as.integer(online_cfg$warm_start_n)
+  online_cfg$warm_start_frac <- as.numeric(online_cfg$warm_start_frac %||% 0.7)
+  if (!is.finite(online_cfg$warm_start_frac)) online_cfg$warm_start_frac <- 0.7
+  online_cfg$keep_trace <- isTRUE(online_cfg$keep_trace)
+  online_cfg$update_rhs <- if (is.null(online_cfg$update_rhs)) TRUE else isTRUE(online_cfg$update_rhs)
+  online_cfg$update_sigmagam <- if (is.null(online_cfg$update_sigmagam)) TRUE else isTRUE(online_cfg$update_sigmagam)
+  if (online_cfg$K < online_cfg$M) online_cfg$K <- online_cfg$M
+  if (isTRUE(online_cfg$strict)) online_cfg$W <- 0L
+  online_cfg
 }
 
 .exal_normalize_mcmc_sigmagam_cfg <- function(sigmagam_cfg = NULL) {
@@ -601,6 +644,61 @@
   )
 }
 
+.exal_normalize_mcmc_rhs_cfg <- function(rhs_cfg = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  rhs_cfg <- .exal_list_or_empty(rhs_cfg)
+  width_adapt_cfg <- .exal_list_or_empty(rhs_cfg$width_adapt)
+
+  freeze_tau_burnin_iters <- suppressWarnings(as.integer(
+    rhs_cfg$freeze_tau_burnin_iters %||%
+      rhs_cfg$freeze_tau_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_tau_burnin_iters) || freeze_tau_burnin_iters < 0L) {
+    freeze_tau_burnin_iters <- 0L
+  }
+
+  warmup_iters <- suppressWarnings(as.integer(
+    width_adapt_cfg$warmup_iters %||%
+      width_adapt_cfg$freeze_width_adapt_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(warmup_iters) || warmup_iters < 0L) warmup_iters <- 0L
+
+  target_score_low <- as.numeric(width_adapt_cfg$target_score_low %||% -1.5)[1L]
+  if (!is.finite(target_score_low)) target_score_low <- -1.5
+  target_score_high <- as.numeric(width_adapt_cfg$target_score_high %||% 1.5)[1L]
+  if (!is.finite(target_score_high)) target_score_high <- 1.5
+  if (target_score_low > target_score_high) {
+    tmp <- target_score_low
+    target_score_low <- target_score_high
+    target_score_high <- tmp
+  }
+
+  step_size <- as.numeric(width_adapt_cfg$step_size %||% 0.05)[1L]
+  if (!is.finite(step_size) || step_size <= 0) step_size <- 0.05
+  width_min <- as.numeric(width_adapt_cfg$width_min %||% 0.02)[1L]
+  if (!is.finite(width_min) || width_min <= 0) width_min <- 0.02
+  width_max <- as.numeric(width_adapt_cfg$width_max %||% 2.5)[1L]
+  if (!is.finite(width_max) || width_max <= 0) width_max <- 2.5
+  if (width_max < width_min) width_max <- width_min
+
+  list(
+    freeze_tau_burnin_iters = freeze_tau_burnin_iters,
+    freeze_tau_only_during_burn = if (is.null(rhs_cfg$freeze_tau_only_during_burn)) TRUE else isTRUE(rhs_cfg$freeze_tau_only_during_burn),
+    width_adapt = list(
+      enabled = if (is.null(width_adapt_cfg$enabled)) FALSE else isTRUE(width_adapt_cfg$enabled),
+      warmup_iters = warmup_iters,
+      only_during_burn = if (is.null(width_adapt_cfg$only_during_burn)) TRUE else isTRUE(width_adapt_cfg$only_during_burn),
+      target_score_low = target_score_low,
+      target_score_high = target_score_high,
+      step_size = step_size,
+      width_min = width_min,
+      width_max = width_max
+    )
+  )
+}
+
 .exal_recycle_quantile_param <- function(x, len_p, nm, verbose = FALSE, method = NULL) {
   if (is.null(x)) return(NULL)
   x <- as.numeric(x)
@@ -855,6 +953,7 @@
 
   if (!is.null(vb_cfg$max_iter)) vb_args_base$max_iter <- as.integer(vb_cfg$max_iter)[1L]
   if (!is.null(vb_cfg$min_iter_elbo)) vb_args_base$min_iter_elbo <- as.integer(vb_cfg$min_iter_elbo)[1L]
+  if (!is.null(vb_cfg$tol)) vb_args_base$tol <- as.numeric(vb_cfg$tol)[1L]
   if (!is.null(vb_cfg$n_samp_xi)) vb_args_base$n_samp_xi <- as.integer(vb_cfg$n_samp_xi)[1L]
   if (!is.null(vb_cfg$verbose)) vb_args_base$verbose <- isTRUE(vb_cfg$verbose)
 
@@ -924,28 +1023,9 @@
   vb_args_base$rhs_force_tau_after_warmup <- rhs_force_tau_after_warmup
   vb_args_base$rhs_recompute_elbo_after_tau_update <- rhs_recompute_elbo_after_tau_update
 
-  if (!is.null(vb_cfg$online) && is.list(vb_cfg$online)) {
-    vb_online_cfg <- modifyList(vb_online_cfg, vb_cfg$online)
-  }
+  vb_online_cfg <- .exal_normalize_vb_online_cfg(vb_cfg$online %||% vb_online_cfg)
   vb_args_base$sigmagam <- .exal_normalize_vb_sigmagam_cfg(vb_cfg$sigmagam %||% vb_args_base$sigmagam %||% list())
-  vb_online_cfg$enabled <- isTRUE(vb_online_cfg$enabled)
-  vb_online_cfg$strict <- isTRUE(vb_online_cfg$strict)
-  vb_online_cfg$M <- max(0L, as.integer(vb_online_cfg$M %||% 10L))
-  vb_online_cfg$K <- max(0L, as.integer(vb_online_cfg$K %||% 40L))
-  vb_online_cfg$W <- max(0L, as.integer(vb_online_cfg$W %||% 100L))
-  vb_online_cfg$L_loc <- max(1L, as.integer(vb_online_cfg$L_loc %||% 2L))
-  vb_online_cfg$window_passes <- max(0L, as.integer(vb_online_cfg$window_passes %||% 1L))
-  vb_online_cfg$maxit_sigmagam <- max(50L, as.integer(vb_online_cfg$maxit_sigmagam %||% 500L))
-  vb_online_cfg$jitter <- as.numeric(vb_online_cfg$jitter %||% 1e-10)
-  if (!is.finite(vb_online_cfg$jitter) || vb_online_cfg$jitter <= 0) vb_online_cfg$jitter <- 1e-10
-  vb_online_cfg$warm_start_n <- if (is.null(vb_online_cfg$warm_start_n)) NULL else as.integer(vb_online_cfg$warm_start_n)
-  vb_online_cfg$warm_start_frac <- as.numeric(vb_online_cfg$warm_start_frac %||% 0.7)
-  if (!is.finite(vb_online_cfg$warm_start_frac)) vb_online_cfg$warm_start_frac <- 0.7
-  vb_online_cfg$keep_trace <- isTRUE(vb_online_cfg$keep_trace)
-  vb_online_cfg$update_rhs <- if (is.null(vb_online_cfg$update_rhs)) TRUE else isTRUE(vb_online_cfg$update_rhs)
-  vb_online_cfg$update_sigmagam <- if (is.null(vb_online_cfg$update_sigmagam)) TRUE else isTRUE(vb_online_cfg$update_sigmagam)
-  if (vb_online_cfg$K < vb_online_cfg$M) vb_online_cfg$K <- vb_online_cfg$M
-  if (isTRUE(vb_online_cfg$strict)) vb_online_cfg$W <- 0L
+  vb_args_base$sts <- .exdqlm_sts_vb_controls(vb_cfg$sts %||% vb_args_base$sts %||% list())
 
   init_cfg <- .exal_list_or_empty(vb_cfg$init)
   priors_cfg <- .exal_list_or_empty(vb_cfg$priors)
@@ -1002,6 +1082,12 @@
   }
   control$sigmagam <- .exal_normalize_mcmc_sigmagam_cfg(mcmc_cfg$sigmagam %||% control$sigmagam %||% list())
   control$theta <- .exal_normalize_mcmc_theta_cfg(mcmc_cfg$theta %||% mcmc_cfg$beta %||% control$theta %||% list())
+  control$latent_state <- .exdqlm_latent_state_mcmc_controls(
+    mcmc_cfg$latent_state %||% control$latent_state %||% list()
+  )
+  control$dqlm_sigma <- .exdqlm_dqlm_sigma_mcmc_controls(
+    mcmc_cfg$dqlm_sigma %||% control$dqlm_sigma %||% list()
+  )
   control$latent_v <- .exal_normalize_mcmc_latent_v_cfg(mcmc_cfg$latent_v %||% control$latent_v %||% list())
   control$latent_s <- .exal_normalize_mcmc_latent_s_cfg(mcmc_cfg$latent_s %||% control$latent_s %||% list())
   control$vb_warm_start_control <- .exal_list_or_empty(control$vb_warm_start_control)
@@ -1010,9 +1096,7 @@
   )
   if (!is.null(mcmc_cfg$store_latent_draws)) control$store_latent_draws <- isTRUE(mcmc_cfg$store_latent_draws)
   if (!is.null(mcmc_cfg$store_rhs_draws)) control$store_rhs_draws <- isTRUE(mcmc_cfg$store_rhs_draws)
-  if (!is.null(mcmc_cfg$rhs) && is.list(mcmc_cfg$rhs)) {
-    control$rhs <- modifyList(control$rhs %||% list(), mcmc_cfg$rhs)
-  }
+  control$rhs <- .exal_normalize_mcmc_rhs_cfg(mcmc_cfg$rhs %||% control$rhs %||% list())
   if (!is.null(mcmc_cfg$slice) && is.list(mcmc_cfg$slice)) {
     control$slice <- modifyList(control$slice %||% list(), mcmc_cfg$slice)
   }
@@ -1117,6 +1201,468 @@ exal_make_beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), tau2 = NULL
   beta_prior("ridge", ridge = list(tau2 = tau2))
 }
 
+#' Build VB sigmagam warmup control
+#'
+#' Returns a normalized `sigmagam` block for `vb_control` lists used by
+#' [exal_ldvb_fit()], [qdesn_fit_vb()], and the VB warm-start path in
+#' [exal_mcmc_fit()].
+#'
+#' @param freeze_warmup_iters Non-negative integer; number of early VB iterations
+#'   during which the `(sigma, gamma)` block is held fixed.
+#' @param force_after_warmup Logical; force one immediate post-warmup update.
+#' @param postwarmup_damping Numeric in `(0, 1]`; damping applied after warmup.
+#' @param postwarmup_damping_iters Non-negative integer; number of damped
+#'   post-warmup iterations.
+#' @param min_postwarmup_updates Non-negative integer; minimum number of
+#'   post-warmup updates required before signoff-style convergence gates can
+#'   fire.
+#'
+#' @return A normalized list suitable for `vb_control$sigmagam`.
+#' @export
+#'
+#' @examples
+#' exal_make_vb_sigmagam_control()
+#' exal_make_vb_sigmagam_control(
+#'   freeze_warmup_iters = 20L,
+#'   postwarmup_damping = 0.5,
+#'   postwarmup_damping_iters = 6L
+#' )
+exal_make_vb_sigmagam_control <- function(
+    freeze_warmup_iters = 0L,
+    force_after_warmup = TRUE,
+    postwarmup_damping = 1.0,
+    postwarmup_damping_iters = 0L,
+    min_postwarmup_updates = 0L) {
+  .exal_normalize_vb_sigmagam_cfg(list(
+    freeze_warmup_iters = freeze_warmup_iters,
+    force_after_warmup = force_after_warmup,
+    postwarmup_damping = postwarmup_damping,
+    postwarmup_damping_iters = postwarmup_damping_iters,
+    min_postwarmup_updates = min_postwarmup_updates
+  ))
+}
+
+#' Build dynamic VB latent-state warmup control
+#'
+#' Returns a normalized `sts` block for `vb_control` lists used by
+#' [exdqlmLDVB()]. This controls the warmup/freeze schedule for the dynamic
+#' latent `s_t` state updates.
+#'
+#' @param freeze_warmup_iters Non-negative integer; number of early VB iterations
+#'   during which the latent `s_t` block is held fixed.
+#' @param force_after_warmup Logical; force one immediate post-warmup update.
+#' @param min_postwarmup_updates Non-negative integer; minimum number of
+#'   post-warmup latent-state updates required before convergence-style gates can
+#'   fire.
+#'
+#' @return A normalized list suitable for `vb_control$sts`.
+#' @export
+#'
+#' @examples
+#' exal_make_vb_sts_control()
+#' exal_make_vb_sts_control(
+#'   freeze_warmup_iters = 15L,
+#'   min_postwarmup_updates = 2L
+#' )
+exal_make_vb_sts_control <- function(
+    freeze_warmup_iters = 0L,
+    force_after_warmup = TRUE,
+    min_postwarmup_updates = 0L) {
+  .exdqlm_sts_vb_controls(list(
+    freeze_warmup_iters = freeze_warmup_iters,
+    force_after_warmup = force_after_warmup,
+    min_postwarmup_updates = min_postwarmup_updates
+  ))
+}
+
+#' Build online VB/LDVB refresh control
+#'
+#' Returns a normalized `online` block for the online VB/LDVB helpers and the
+#' config-driven inference layer.
+#'
+#' @inheritParams exal_online_run
+#' @return A normalized list suitable for `vb$online`.
+#' @export
+#'
+#' @examples
+#' exal_make_vb_online_control()
+#' exal_make_vb_online_control(enabled = TRUE, strict = TRUE, M = 12L, K = 48L)
+exal_make_vb_online_control <- function(
+    enabled = FALSE,
+    strict = FALSE,
+    M = 10L,
+    K = 40L,
+    W = 100L,
+    L_loc = 2L,
+    window_passes = 1L,
+    maxit_sigmagam = 500L,
+    jitter = 1e-10,
+    warm_start_n = NULL,
+    warm_start_frac = 0.7,
+    keep_trace = FALSE,
+    update_rhs = TRUE,
+    update_sigmagam = TRUE) {
+  .exal_normalize_vb_online_cfg(list(
+    enabled = enabled,
+    strict = strict,
+    M = M,
+    K = K,
+    W = W,
+    L_loc = L_loc,
+    window_passes = window_passes,
+    maxit_sigmagam = maxit_sigmagam,
+    jitter = jitter,
+    warm_start_n = warm_start_n,
+    warm_start_frac = warm_start_frac,
+    keep_trace = keep_trace,
+    update_rhs = update_rhs,
+    update_sigmagam = update_sigmagam
+  ))
+}
+
+#' Build advanced VB control
+#'
+#' Returns a normalized `vb_control` list suitable for [exal_ldvb_fit()] and
+#' `vb_args$vb_control` in [qdesn_fit_vb()]. This collects the main advanced
+#' warmup and RHS scheduling options in one readable builder.
+#'
+#' @param max_iter,min_iter_elbo,tol,tol_par,n_samp_xi,verbose Core VB controls.
+#' @param sigmagam Optional list, usually from [exal_make_vb_sigmagam_control()].
+#' @param sts Optional list, usually from [exal_make_vb_sts_control()], for the
+#'   dynamic latent `s_t` warmup block used by [exdqlmLDVB()].
+#' @param rhs Optional nested RHS warmup block. Supported keys include
+#'   `freeze_tau_iters`, `freeze_tau_warmup_iters`, `update_every`,
+#'   `update_every_warmup`, `update_every_warmup_iters`, `beta_presteps`,
+#'   `beta_presteps_iters`, `gradcheck`, `gradcheck_iters`, `gradcheck_h`,
+#'   `tau_local_tol`, `min_tau_updates`, `max_tau_updates`,
+#'   `force_tau_after_warmup`, and `recompute_elbo_after_tau_update`.
+#' @param diagnostics Optional diagnostics block. Supported keys include
+#'   `rhs_trace`, `rhs_deep`, `rhs_trace_thresholds`, `rhs_trace_top_k`, and
+#'   `rhs_trace_eps`.
+#'
+#' @return A normalized list suitable for `vb_control`.
+#' @export
+#'
+#' @examples
+#' exal_make_vb_control()
+#' exal_make_vb_control(
+#'   max_iter = 200L,
+#'   sigmagam = exal_make_vb_sigmagam_control(freeze_warmup_iters = 15L),
+#'   sts = exal_make_vb_sts_control(freeze_warmup_iters = 10L),
+#'   rhs = list(
+#'     freeze_tau_warmup_iters = 20L,
+#'     update_every_warmup = 4L,
+#'     force_tau_after_warmup = TRUE
+#'   )
+#' )
+exal_make_vb_control <- function(
+    max_iter = 150L,
+    min_iter_elbo = 10L,
+    tol = 1e-4,
+    tol_par = NULL,
+    n_samp_xi = 500L,
+    verbose = FALSE,
+    sigmagam = NULL,
+    sts = NULL,
+    rhs = NULL,
+    diagnostics = NULL) {
+  vb_cfg <- list(
+    max_iter = max_iter,
+    min_iter_elbo = min_iter_elbo,
+    tol = tol,
+    tol_par_50 = tol_par,
+    tol_par_extreme = tol_par,
+    n_samp_xi = n_samp_xi,
+    verbose = verbose,
+    sigmagam = sigmagam,
+    sts = sts,
+    rhs = rhs,
+    diagnostics = diagnostics
+  )
+  resolved <- .exal_resolve_vb_config(vb_cfg, p_vec = c(0.5), verbose = FALSE)
+  out <- resolved$args_base
+  out$tol_par <- as.numeric(resolved$tol_par_for(0.5))[1L]
+  out
+}
+
+#' Build MCMC sigmagam warmup control
+#'
+#' Returns a normalized `mcmc_control$sigmagam` block for [exal_mcmc_fit()],
+#' [qdesn_fit_mcmc()], [exalStaticMCMC()], and [exdqlmMCMC()].
+#'
+#' @param freeze_burnin_iters Non-negative integer; number of burn-in iterations
+#'   to hold the `(sigma, gamma)` block fixed.
+#' @param freeze_only_during_burn Logical; if `TRUE`, warmup only applies during
+#'   burn-in.
+#' @param force_after_warmup Logical; force one post-warmup update.
+#' @param delay_adapt_until_after_warmup Logical; keep proposal adaptation off
+#'   until warmup ends.
+#' @param delay_laplace_refresh_until_after_warmup Logical; keep Laplace refresh
+#'   off until warmup ends.
+#'
+#' @return A normalized list suitable for `mcmc_control$sigmagam`.
+#' @export
+exal_make_mcmc_sigmagam_control <- function(
+    freeze_burnin_iters = 0L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE,
+    delay_adapt_until_after_warmup = TRUE,
+    delay_laplace_refresh_until_after_warmup = TRUE) {
+  .exal_normalize_mcmc_sigmagam_cfg(list(
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = freeze_only_during_burn,
+    force_after_warmup = force_after_warmup,
+    delay_adapt_until_after_warmup = delay_adapt_until_after_warmup,
+    delay_laplace_refresh_until_after_warmup = delay_laplace_refresh_until_after_warmup
+  ))
+}
+
+#' Build MCMC theta warmup control
+#'
+#' Returns a normalized `mcmc_control$theta` block for [exal_mcmc_fit()] and
+#' [qdesn_fit_mcmc()].
+#'
+#' @param enabled Logical; explicit on/off switch.
+#' @param freeze_burnin_iters Non-negative integer; number of burn-in iterations
+#'   to hold the theta / coefficient block fixed.
+#' @param freeze_only_during_burn Logical; if `TRUE`, hard freeze only applies
+#'   during burn-in.
+#' @param sparse_update_every Positive integer; sparse-update period during the
+#'   warmup window.
+#' @param sparse_update_until_iter Non-negative integer; last iteration where the
+#'   sparse schedule is active.
+#' @param force_first_postwarmup_update Logical; force one update immediately
+#'   after the hard freeze / sparse schedule ends.
+#' @param trace Logical; record diagnostics traces.
+#'
+#' @return A normalized list suitable for `mcmc_control$theta`.
+#' @export
+exal_make_mcmc_theta_control <- function(
+    enabled = FALSE,
+    freeze_burnin_iters = 0L,
+    freeze_only_during_burn = TRUE,
+    sparse_update_every = 1L,
+    sparse_update_until_iter = 0L,
+    force_first_postwarmup_update = TRUE,
+    trace = TRUE) {
+  .exal_normalize_mcmc_theta_cfg(list(
+    enabled = enabled,
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = freeze_only_during_burn,
+    sparse_update_every = sparse_update_every,
+    sparse_update_until_iter = sparse_update_until_iter,
+    force_first_postwarmup_update = force_first_postwarmup_update,
+    trace = trace
+  ))
+}
+
+#' Build dynamic MCMC latent-state warmup control
+#'
+#' Returns a normalized `mcmc_control$latent_state` block for [exdqlmMCMC()].
+#' This is the package-native dynamic control surface for the latent
+#' `u_t`/`s_t` state updates.
+#'
+#' @param mode One of `"u_only"` or `"u_st_pair"`.
+#' @param freeze_burnin_iters Non-negative integer; number of burn-in iterations
+#'   to hold the latent-state block fixed.
+#' @param freeze_only_during_burn Logical; if `TRUE`, hard freeze only applies
+#'   during burn-in.
+#' @param force_after_warmup Logical; force one immediate post-warmup update.
+#' @param min_postwarmup_updates Non-negative integer; minimum number of
+#'   post-warmup updates required before chain-health style gates can fire.
+#' @param trace Logical; record diagnostics traces.
+#'
+#' @return A normalized list suitable for `mcmc_control$latent_state`.
+#' @export
+#'
+#' @examples
+#' exal_make_mcmc_latent_state_control()
+#' exal_make_mcmc_latent_state_control(
+#'   mode = "u_st_pair",
+#'   freeze_burnin_iters = 30L,
+#'   min_postwarmup_updates = 2L
+#' )
+exal_make_mcmc_latent_state_control <- function(
+    mode = c("u_only", "u_st_pair"),
+    freeze_burnin_iters = 0L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE,
+    min_postwarmup_updates = 0L,
+    trace = TRUE) {
+  mode <- match.arg(mode)
+  .exdqlm_latent_state_mcmc_controls(list(
+    mode = mode,
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = freeze_only_during_burn,
+    force_after_warmup = force_after_warmup,
+    min_postwarmup_updates = min_postwarmup_updates,
+    trace = trace
+  ), default_mode = mode)
+}
+
+#' Build DQLM sigma-only MCMC warmup control
+#'
+#' Returns a normalized `mcmc_control$dqlm_sigma` block for [exdqlmMCMC()] in
+#' the reduced AL / DQLM branch.
+#'
+#' @param freeze_burnin_iters Non-negative integer; number of burn-in iterations
+#'   to hold the sigma-only block fixed.
+#' @param freeze_only_during_burn Logical; if `TRUE`, hard freeze only applies
+#'   during burn-in.
+#' @param force_after_warmup Logical; force one immediate post-warmup update.
+#' @param trace Logical; record diagnostics traces.
+#'
+#' @return A normalized list suitable for `mcmc_control$dqlm_sigma`.
+#' @export
+#'
+#' @examples
+#' exal_make_mcmc_dqlm_sigma_control()
+#' exal_make_mcmc_dqlm_sigma_control(freeze_burnin_iters = 25L)
+exal_make_mcmc_dqlm_sigma_control <- function(
+    freeze_burnin_iters = 0L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE,
+    trace = TRUE) {
+  .exdqlm_dqlm_sigma_mcmc_controls(list(
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = freeze_only_during_burn,
+    force_after_warmup = force_after_warmup,
+    trace = trace
+  ))
+}
+
+#' Build MCMC latent-v warmup and rescue control
+#'
+#' Returns a normalized `mcmc_control$latent_v` block for [exal_mcmc_fit()] and
+#' [qdesn_fit_mcmc()].
+#'
+#' @param enabled Logical; explicit on/off switch.
+#' @param freeze_burnin_iters Non-negative integer; number of burn-in iterations
+#'   to hold the latent-`v` block fixed.
+#' @param freeze_only_during_burn Logical; if `TRUE`, hard freeze only applies
+#'   during burn-in.
+#' @param sparse_update_every Positive integer; sparse-update period during the
+#'   warmup window.
+#' @param sparse_update_until_iter Non-negative integer; last iteration where the
+#'   sparse schedule is active.
+#' @param force_first_postwarmup_update Logical; force one update immediately
+#'   after the hard freeze / sparse schedule ends.
+#' @param rescue_on_invalid Logical; enable invalid-draw rescue.
+#' @param rescue_strategy Currently only `"previous_state"` is supported.
+#' @param rescue_max_consecutive Non-negative integer; maximum consecutive
+#'   rescues before escalation.
+#' @param rescue_burn_only Logical; restrict rescue to burn-in.
+#' @param rescue_force_retry_next_iter Logical; force an immediate retry on the
+#'   next iteration after rescue.
+#' @param record_rescue_trace,trace Logical tracing flags.
+#'
+#' @return A normalized list suitable for `mcmc_control$latent_v`.
+#' @export
+exal_make_mcmc_latent_v_control <- function(
+    enabled = FALSE,
+    freeze_burnin_iters = 0L,
+    freeze_only_during_burn = TRUE,
+    sparse_update_every = 1L,
+    sparse_update_until_iter = 0L,
+    force_first_postwarmup_update = TRUE,
+    rescue_on_invalid = FALSE,
+    rescue_strategy = "previous_state",
+    rescue_max_consecutive = 0L,
+    rescue_burn_only = FALSE,
+    rescue_force_retry_next_iter = TRUE,
+    record_rescue_trace = TRUE,
+    trace = TRUE) {
+  .exal_normalize_mcmc_latent_v_cfg(list(
+    enabled = enabled,
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = freeze_only_during_burn,
+    sparse_update_every = sparse_update_every,
+    sparse_update_until_iter = sparse_update_until_iter,
+    force_first_postwarmup_update = force_first_postwarmup_update,
+    rescue_on_invalid = rescue_on_invalid,
+    rescue_strategy = rescue_strategy,
+    rescue_max_consecutive = rescue_max_consecutive,
+    rescue_burn_only = rescue_burn_only,
+    rescue_force_retry_next_iter = rescue_force_retry_next_iter,
+    record_rescue_trace = record_rescue_trace,
+    trace = trace
+  ))
+}
+
+#' Build MCMC latent-s warmup control
+#'
+#' Returns a normalized `mcmc_control$latent_s` block for [exal_mcmc_fit()] and
+#' [qdesn_fit_mcmc()].
+#'
+#' @inheritParams exal_make_mcmc_theta_control
+#' @return A normalized list suitable for `mcmc_control$latent_s`.
+#' @export
+exal_make_mcmc_latent_s_control <- function(
+    enabled = FALSE,
+    freeze_burnin_iters = 0L,
+    freeze_only_during_burn = TRUE,
+    sparse_update_every = 1L,
+    sparse_update_until_iter = 0L,
+    force_first_postwarmup_update = TRUE,
+    trace = TRUE) {
+  .exal_normalize_mcmc_latent_s_cfg(list(
+    enabled = enabled,
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = freeze_only_during_burn,
+    sparse_update_every = sparse_update_every,
+    sparse_update_until_iter = sparse_update_until_iter,
+    force_first_postwarmup_update = force_first_postwarmup_update,
+    trace = trace
+  ))
+}
+
+#' Build MCMC RHS tau warmup control
+#'
+#' Returns a normalized `mcmc_control$rhs` block for [exal_mcmc_fit()] and
+#' [qdesn_fit_mcmc()].
+#'
+#' @param freeze_tau_burnin_iters Non-negative integer; number of burn-in
+#'   iterations where RHS tau updates are frozen.
+#' @param freeze_tau_only_during_burn Logical; if `TRUE`, tau freeze applies only
+#'   during burn-in.
+#' @param width_adapt_enabled Logical; enable slice-width adaptation.
+#' @param width_adapt_warmup_iters Non-negative integer; warmup length for width
+#'   adaptation.
+#' @param width_adapt_only_during_burn Logical; if `TRUE`, width adaptation runs
+#'   only during burn-in.
+#' @param target_score_low,target_score_high Numeric adaptation target band.
+#' @param step_size Positive numeric adaptation step size.
+#' @param width_min,width_max Positive numeric adaptation bounds.
+#'
+#' @return A normalized list suitable for `mcmc_control$rhs`.
+#' @export
+exal_make_mcmc_rhs_control <- function(
+    freeze_tau_burnin_iters = 0L,
+    freeze_tau_only_during_burn = TRUE,
+    width_adapt_enabled = FALSE,
+    width_adapt_warmup_iters = 0L,
+    width_adapt_only_during_burn = TRUE,
+    target_score_low = -1.5,
+    target_score_high = 1.5,
+    step_size = 0.05,
+    width_min = 0.02,
+    width_max = 2.5) {
+  .exal_normalize_mcmc_rhs_cfg(list(
+    freeze_tau_burnin_iters = freeze_tau_burnin_iters,
+    freeze_tau_only_during_burn = freeze_tau_only_during_burn,
+    width_adapt = list(
+      enabled = width_adapt_enabled,
+      warmup_iters = width_adapt_warmup_iters,
+      only_during_burn = width_adapt_only_during_burn,
+      target_score_low = target_score_low,
+      target_score_high = target_score_high,
+      step_size = step_size,
+      width_min = width_min,
+      width_max = width_max
+    )
+  ))
+}
+
 #' Build precision-beta MCMC stabilization control
 #'
 #' Returns a normalized `mcmc_control$precision_beta` block for
@@ -1168,6 +1714,114 @@ exal_make_precision_beta_control <- function(
     eigen_floor_rel = eigen_floor_rel,
     trace = trace
   ))
+}
+
+#' Build advanced MCMC control
+#'
+#' Returns a normalized `mcmc_control` list suitable for [exal_mcmc_fit()] and
+#' `mcmc_args$mcmc_control` in [qdesn_fit_mcmc()]. Use the block builders in
+#' this file to keep the control surface readable and consistent.
+#'
+#' @param n_burn,n_mcmc,thin,verbose,progress_every Core MCMC controls.
+#' @param init_from_vb Logical; initialize from a VB warm start.
+#' @param vb_warm_start_seed Optional integer seed for the VB warm start.
+#' @param vb_warm_start_control Optional VB warm-start control list, often from
+#'   [exal_make_vb_control()].
+#' @param sigmagam Optional list, usually from
+#'   [exal_make_mcmc_sigmagam_control()].
+#' @param theta Optional list, usually from [exal_make_mcmc_theta_control()].
+#' @param latent_state Optional list, usually from
+#'   [exal_make_mcmc_latent_state_control()], for package-native dynamic MCMC
+#'   warmup in [exdqlmMCMC()].
+#' @param dqlm_sigma Optional list, usually from
+#'   [exal_make_mcmc_dqlm_sigma_control()], for the reduced AL / DQLM branch in
+#'   [exdqlmMCMC()].
+#' @param latent_v Optional list, usually from
+#'   [exal_make_mcmc_latent_v_control()].
+#' @param latent_s Optional list, usually from
+#'   [exal_make_mcmc_latent_s_control()].
+#' @param store_latent_draws,store_rhs_draws Logical storage flags.
+#' @param transforms,conditioning,slice,multi_start Optional nested control
+#'   blocks passed through to the existing MCMC engine.
+#' @param precision_beta Optional list or preset string, usually from
+#'   [exal_make_precision_beta_control()].
+#' @param rhs Optional list, usually from [exal_make_mcmc_rhs_control()].
+#' @param control Optional existing control list to update and normalize.
+#'
+#' @return A normalized list suitable for `mcmc_control`.
+#' @export
+#'
+#' @examples
+#' exal_make_mcmc_control()
+#' exal_make_mcmc_control(
+#'   sigmagam = exal_make_mcmc_sigmagam_control(freeze_burnin_iters = 25L),
+#'   theta = exal_make_mcmc_theta_control(
+#'     freeze_burnin_iters = 25L,
+#'     sparse_update_every = 4L,
+#'     sparse_update_until_iter = 80L
+#'   ),
+#'   latent_state = exal_make_mcmc_latent_state_control(
+#'     mode = "u_st_pair",
+#'     freeze_burnin_iters = 30L
+#'   ),
+#'   latent_v = exal_make_mcmc_latent_v_control(
+#'     freeze_burnin_iters = 40L,
+#'     rescue_on_invalid = TRUE,
+#'     rescue_max_consecutive = 3L
+#'   ),
+#'   rhs = exal_make_mcmc_rhs_control(freeze_tau_burnin_iters = 20L),
+#'   precision_beta = exal_make_precision_beta_control("ladder_v2")
+#' )
+exal_make_mcmc_control <- function(
+    n_burn = 2000L,
+    n_mcmc = 1500L,
+    thin = 1L,
+    verbose = FALSE,
+    progress_every = 100L,
+    init_from_vb = TRUE,
+    vb_warm_start_seed = NULL,
+    vb_warm_start_control = NULL,
+    sigmagam = NULL,
+    theta = NULL,
+    latent_state = NULL,
+    dqlm_sigma = NULL,
+    latent_v = NULL,
+    latent_s = NULL,
+    store_latent_draws = FALSE,
+    store_rhs_draws = FALSE,
+    transforms = NULL,
+    conditioning = NULL,
+    precision_beta = NULL,
+    rhs = NULL,
+    slice = NULL,
+    multi_start = NULL,
+    control = NULL) {
+  cfg <- list(
+    n_burn = n_burn,
+    n_mcmc = n_mcmc,
+    thin = thin,
+    verbose = verbose,
+    progress_every = progress_every,
+    init_from_vb = init_from_vb,
+    vb_warm_start_seed = vb_warm_start_seed,
+    vb_warm_start_control = vb_warm_start_control,
+    sigmagam = sigmagam,
+    theta = theta,
+    latent_state = latent_state,
+    dqlm_sigma = dqlm_sigma,
+    latent_v = latent_v,
+    latent_s = latent_s,
+    store_latent_draws = store_latent_draws,
+    store_rhs_draws = store_rhs_draws,
+    transforms = transforms,
+    conditioning = conditioning,
+    precision_beta = precision_beta,
+    rhs = rhs,
+    slice = slice,
+    multi_start = multi_start,
+    control = control
+  )
+  .exal_resolve_mcmc_config(cfg, p_vec = c(0.5), verbose = FALSE)$control_base
 }
 
 resolve_exal_quantile_fit_spec <- function(inference_cfg, idx_p, p0) {

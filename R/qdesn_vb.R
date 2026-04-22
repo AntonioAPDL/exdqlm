@@ -507,7 +507,10 @@
 #'   a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...). If
 #'   \code{vb_args$beta_prior_type} is omitted, Q-DESN defaults to
 #'   \code{"rhs_ns"}. For RHS-family priors, \code{shrink_intercept} is
-#'   enforced as \code{FALSE}.
+#'   enforced as \code{FALSE}. Advanced VB controls may be supplied directly as
+#'   \code{vb_args$vb_control}, or more explicitly via
+#'   [exal_make_vb_control()] together with
+#'   [exal_make_vb_sigmagam_control()].
 #'
 #' @return A list with:
 #' \itemize{
@@ -909,15 +912,11 @@ qdesn_fit_vb <- function(
   if (isTRUE(fit_readout)) {
 
     `%||%` <- function(a, b) if (!is.null(a)) a else b
-
-    # --- VB controls expected by exal_ldvb_fit/exal_ldvb_engine ---
-    vb_control <- list(
-      max_iter = as.integer(vb_args$max_iter %||% 150L),
-      min_iter_elbo = as.integer(vb_args$min_iter_elbo %||% 10L),
-      tol      = as.numeric(vb_args$tol %||% 1e-4),
-      tol_par  = as.numeric(vb_args$tol_par %||% (vb_args$tol %||% 1e-4)),
-      verbose  = isTRUE(vb_args$verbose %||% TRUE)
-    )
+    get_exact <- function(x, name, default = NULL) {
+      if (!is.list(x)) return(default)
+      out <- x[[name, exact = TRUE]]
+      if (is.null(out)) default else out
+    }
 
     # --- gamma bounds ---
     gamma_bounds <- vb_args$gamma_bounds %||% c(L.fn(p0), U.fn(p0))
@@ -949,12 +948,21 @@ qdesn_fit_vb <- function(
 	      beta_prior_obj <- exal_make_beta_prior(type = beta_type, tau2 = tau2, rhs = rhs_list)
 	    }
 
-    vb_control <- vb_args$vb_control %||% list(
-      max_iter = vb_args$max_iter %||% 1000L,
-      tol      = vb_args$tol      %||% 1e-4,
-      tol_par  = vb_args$tol_par  %||% (vb_args$tol %||% 1e-4),
-      verbose  = isTRUE(vb_args$verbose %||% FALSE)
+    vb_control <- do.call(
+      exal_make_vb_control,
+      list(
+        max_iter = get_exact(vb_args, "max_iter", 1000L),
+        min_iter_elbo = get_exact(vb_args, "min_iter_elbo", 10L),
+        tol = get_exact(vb_args, "tol", 1e-4),
+        tol_par = get_exact(vb_args, "tol_par", get_exact(vb_args, "tol", 1e-4)),
+        n_samp_xi = get_exact(vb_args, "n_samp_xi", 500L),
+        verbose = isTRUE(get_exact(vb_args, "verbose", FALSE)),
+        sigmagam = get_exact(vb_args, "sigmagam", get_exact(get_exact(vb_args, "vb_control", list()), "sigmagam", NULL)),
+        rhs = get_exact(vb_args, "rhs", get_exact(get_exact(vb_args, "vb_control", list()), "rhs", NULL)),
+        diagnostics = get_exact(vb_args, "diagnostics", NULL)
+      )
     )
+    vb_control <- modifyList(vb_control, get_exact(vb_args, "vb_control", list()))
 
     fit <- exal_ldvb_fit(
       y = y_fit, X = X,
