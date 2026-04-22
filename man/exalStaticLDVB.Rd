@@ -23,6 +23,7 @@ exalStaticLDVB(
   n.samp = 200,
   n_samp_xi = 200,
   ld_controls = NULL,
+  vb_control = NULL,
   verbose = TRUE
 )
 }
@@ -112,6 +113,11 @@ Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 \code{cycle_tau2_min_amp}, \code{stabilize_damping},
 \code{stabilize_xi_damping}, \code{stabilize_step_cap_eta},
 \code{stabilize_step_cap_ell}, and \code{store_trace}.}
+
+\item{vb_control}{Optional normalized VB control list, usually from
+\code{\link[=exal_make_vb_control]{exal_make_vb_control()}}. When supplied, the core VB arguments and warmup
+blocks are read from \code{vb_control} first and then merged with the explicit
+function arguments.}
 
 \item{verbose}{Logical; print progress.}
 }
