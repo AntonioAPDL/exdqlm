@@ -11,7 +11,10 @@ args <- commandArgs(trailingOnly = TRUE)
 has_flag <- function(flag) any(args == flag)
 get_arg <- function(flag, default = NULL) {
   idx <- which(args == flag)
-  if (length(idx) && idx < length(args)) args[idx + 1L] else default
+  if (!length(idx)) return(default)
+  idx <- idx[1L]
+  if (is.na(idx) || idx >= length(args)) return(default)
+  args[idx + 1L]
 }
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
