@@ -3,28 +3,6 @@
 \name{exdqlmLDVB}
 \alias{exdqlmLDVB}
 \title{exDQLM - LDVB algorithm (Laplace-Delta)}
-\usage{
-exdqlmLDVB(
-  y,
-  p0,
-  model,
-  df,
-  dim.df,
-  fix.gamma = FALSE,
-  gam.init = NA,
-  fix.sigma = FALSE,
-  sig.init = NA,
-  dqlm.ind = FALSE,
-  exps0,
-  tol = 0.1,
-  n.samp = 200,
-  PriorSigma = NULL,
-  PriorGamma = NULL,
-  verbose = TRUE,
-  debug_shapes = FALSE,
-  debug_every = 5
-)
-}
 \arguments{
 \item{y}{A univariate time-series.}
 
@@ -55,6 +33,11 @@ exdqlmLDVB(
 \item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape \code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean 1 (or \code{sig.init} if provided) and variance 10.}
 
 \item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
+
+\item{vb_control}{Optional normalized VB control list, usually from
+\code{\link[=exal_make_vb_control]{exal_make_vb_control()}}. When supplied, the core VB arguments and warmup
+blocks are read from \code{vb_control} first and then merged with the explicit
+function arguments.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 
@@ -122,6 +105,10 @@ Advanced options (set via \code{options()}):
 The GIG-based u_t sampler always uses the package C++ Devroye implementation;
 when FALSE, the remaining samplers fall back to R implementations.
 \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+\item \code{exdqlm.dynamic.ldvb.sts}: optional warmup/freeze controls for the
+exDQLM latent \eqn{s_t} VB block. Supported fields are
+\code{freeze_warmup_iters}, \code{force_after_warmup}, and
+\code{min_postwarmup_updates}.
 }
 }
 \examples{

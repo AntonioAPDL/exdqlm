@@ -939,6 +939,10 @@
 #'   \code{cycle_tau2_min_amp}, \code{stabilize_damping},
 #'   \code{stabilize_xi_damping}, \code{stabilize_step_cap_eta},
 #'   \code{stabilize_step_cap_ell}, and \code{store_trace}.
+#' @param vb_control Optional normalized VB control list, usually from
+#'   [exal_make_vb_control()]. When supplied, the core VB arguments and warmup
+#'   blocks are read from `vb_control` first and then merged with the explicit
+#'   function arguments.
 #' @param verbose Logical; print progress.
 #'
 #' @return A object of class "\code{exalStaticLDVB}" containing:
@@ -1043,8 +1047,20 @@ exalStaticLDVB <- function(
   n.samp = 200,
   n_samp_xi = 200,
   ld_controls = NULL,
+  vb_control = NULL,
   verbose = TRUE
 ){
+  if (!is.null(vb_control)) {
+    vb_control <- exal_make_vb_control(control = vb_control)
+    if (!is.null(vb_control$max_iter)) max_iter <- as.integer(vb_control$max_iter)[1L]
+    if (!is.null(vb_control$tol)) tol <- as.numeric(vb_control$tol)[1L]
+    if (!is.null(vb_control$n_samp_xi)) n_samp_xi <- as.integer(vb_control$n_samp_xi)[1L]
+    if (!is.null(vb_control$verbose)) verbose <- isTRUE(vb_control$verbose)
+    if (!is.null(vb_control$sigmagam)) {
+      ld_controls <- utils::modifyList(ld_controls %||% list(), list(sigmagam = vb_control$sigmagam))
+    }
+  }
+
   # --- checks ---------------------------------------------------------------
   y <- as.numeric(y)
   X <- as.matrix(X); storage.mode(X) <- "double"

@@ -47,19 +47,9 @@ exdqlmTransferMCMC(
 )
 }
 \arguments{
-\item{y}{A univariate time-series.}
-
-\item{p0}{The quantile of interest, a value between 0 and 1.}
-
-\item{model}{List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.}
-
 \item{X}{A numeric vector or matrix of transfer-function inputs. Vectors are
 treated as a univariate input series. Matrices should have one row per time
 point and one column per covariate.}
-
-\item{df}{Discount factors for each block.}
-
-\item{dim.df}{Dimension of each block of discount factors.}
 
 \item{lam}{Transfer function rate parameter lambda, a value between 0 and 1.}
 
@@ -71,16 +61,8 @@ component. If \code{length(tf.df) = 1}, the value is shared by the
 \eqn{k = ncol(X)}, the values are applied componentwise to
 \eqn{(\zeta_t, \psi_{1,t}, \dots, \psi_{k,t})}.}
 
-\item{fix.gamma}{Logical value indicating whether to fix gamma at \code{gam.init}. Default is \code{FALSE}.}
-
-\item{gam.init}{Initial value for gamma (skewness parameter), or value at which gamma will be fixed if \code{fix.gamma=TRUE}.}
-
 \item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}.
 Default is \code{FALSE}.}
-
-\item{sig.init}{Initial value for sigma (scale parameter), or value at which sigma will be fixed if \code{fix.sigma=TRUE}.}
-
-\item{dqlm.ind}{Logical value indicating whether to fix gamma at \code{0}, reducing the exDQLM to the special case of the DQLM. Default is \code{FALSE}.}
 
 \item{Sig.mh}{Covariance matrix used in the random walk MH step to jointly sample sigma and gamma.}
 
@@ -95,15 +77,11 @@ warm start when \code{init.from.vb = TRUE}. Default is \code{FALSE}, which favor
 \code{LDVB} as the default VB warm start. This flag only chooses the
 warm-start source; it does not change the subsequent MCMC proposal kernel.}
 
-\item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape \code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean 1 (or \code{sig.init} if provided) and variance 10.}
-
-\item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
-
-\item{verbose}{Logical value indicating whether progress should be displayed.}
-
 \item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization
 step (\code{LDVB} by default, or \code{ISVB} when \code{init.from.isvb = TRUE}) and
-initialize MCMC from converged VB moments. Default is \code{TRUE}.}
+initialize MCMC from converged VB moments. Default is \code{TRUE}. If
+explicitly set to \code{NULL}, it falls back to \code{init.from.isvb} behavior for
+backward compatibility.}
 
 \item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
 \code{method} (\code{"isvb"} or \code{"ldvb"}), \code{tol}, \code{n.IS}, \code{n.samp}, \code{max_iter}, \code{verbose}.}

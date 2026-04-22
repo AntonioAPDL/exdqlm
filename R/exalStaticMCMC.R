@@ -81,6 +81,10 @@
 #'   \code{ld_controls} (passed through to \code{exalStaticLDVB()}).
 #' @param vb_init_fit Optional precomputed static VB fit object used as the
 #'   warm-start reference when \code{init.from.vb = TRUE}.
+#' @param mcmc_control Optional normalized MCMC control list, usually from
+#'   [exal_make_mcmc_control()]. When supplied, the core MCMC arguments and
+#'   warmup blocks are read from `mcmc_control` first and then merged with the
+#'   explicit function arguments.
 #' @param mh.proposal Character string controlling the exAL nonconjugate update
 #'   kernel. \code{"slice"} (default) uses an exact bounded univariate slice
 #'   sampler on \code{gamma} (with \code{sigma} updated from its conditional),
@@ -195,6 +199,7 @@ exalStaticMCMC <- function(
   init.from.vb = FALSE,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
+  mcmc_control = NULL,
   sigmagam_controls = NULL,
   mh.proposal = c("slice", "laplace_rw", "rw", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
@@ -213,6 +218,21 @@ exalStaticMCMC <- function(
   verbose = TRUE,
   progress_callback = NULL
 ){
+  if (!is.null(mcmc_control)) {
+    mcmc_control <- exal_make_mcmc_control(control = mcmc_control)
+    if (!is.null(mcmc_control$n_burn)) n.burn <- as.integer(mcmc_control$n_burn)[1L]
+    if (!is.null(mcmc_control$n_mcmc)) n.mcmc <- as.integer(mcmc_control$n_mcmc)[1L]
+    if (!is.null(mcmc_control$thin)) thin <- as.integer(mcmc_control$thin)[1L]
+    if (!is.null(mcmc_control$verbose)) verbose <- isTRUE(mcmc_control$verbose)
+    if (!is.null(mcmc_control$init_from_vb)) init.from.vb <- isTRUE(mcmc_control$init_from_vb)
+    if (!is.null(mcmc_control$vb_warm_start_control)) {
+      vb_init_controls <- utils::modifyList(vb_init_controls %||% list(), mcmc_control$vb_warm_start_control)
+    }
+    if (!is.null(mcmc_control$sigmagam)) {
+      sigmagam_controls <- utils::modifyList(sigmagam_controls %||% list(), mcmc_control$sigmagam)
+    }
+  }
+
   ## --- checks (mirror exdqlmMCMC style) ------------------------------------
   y <- as.numeric(y)
   X <- as.matrix(X); storage.mode(X) <- "double"

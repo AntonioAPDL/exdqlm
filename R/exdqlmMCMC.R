@@ -22,6 +22,10 @@
 #'   `method` (`"isvb"` or `"ldvb"`), `tol`, `n.IS`, `n.samp`, `max_iter`, `verbose`.
 #' @param vb_init_fit Optional precomputed VB fit object. If supplied, warm start
 #'   uses this object directly and does not rerun VB internally.
+#' @param mcmc_control Optional normalized MCMC control list, usually from
+#'   [exal_make_mcmc_control()]. When supplied, the core MCMC arguments and
+#'   warmup blocks are read from `mcmc_control` first and then merged with the
+#'   explicit function arguments.
 #' @param sigmagam_controls Optional list controlling warmup/freeze for the
 #'   exDQLM sigma/gamma block during MCMC.
 #' @param latent_state_controls Optional list controlling early latent-state
@@ -112,6 +116,9 @@
 #'                    n.burn = 80, n.mcmc = 120)
 #' }
 #'
+#' @name exdqlmMCMC
+NULL
+
 .exdqlm_latent_state_mcmc_controls <- function(latent_cfg = NULL, default_mode = c("u_only", "u_st_pair")) {
   default_mode <- match.arg(default_mode)
   latent_cfg <- latent_cfg %||% list()
@@ -201,13 +208,28 @@
 
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
                     Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
-                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,sigmagam_controls=NULL,latent_state_controls=NULL,theta_state_controls=NULL,dqlm_sigma_controls=NULL,
+                    init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,mcmc_control=NULL,sigmagam_controls=NULL,latent_state_controls=NULL,theta_state_controls=NULL,dqlm_sigma_controls=NULL,
                     mh.proposal=c("slice","laplace_rw","rw"),mh.adapt=TRUE,mh.adapt.interval=50L,
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,
                     trace.diagnostics=TRUE,trace.every=1L,verbose.every=500L,
                     progress_callback=NULL){
+  if (!is.null(mcmc_control)) {
+    mcmc_control <- exal_make_mcmc_control(control = mcmc_control)
+    if (!is.null(mcmc_control$n_burn)) n.burn <- as.integer(mcmc_control$n_burn)[1L]
+    if (!is.null(mcmc_control$n_mcmc)) n.mcmc <- as.integer(mcmc_control$n_mcmc)[1L]
+    if (!is.null(mcmc_control$verbose)) verbose <- isTRUE(mcmc_control$verbose)
+    if (!is.null(mcmc_control$progress_every)) verbose.every <- as.integer(mcmc_control$progress_every)[1L]
+    if (!is.null(mcmc_control$init_from_vb)) init.from.vb <- isTRUE(mcmc_control$init_from_vb)
+    if (!is.null(mcmc_control$vb_warm_start_control)) {
+      vb_init_controls <- utils::modifyList(vb_init_controls %||% list(), mcmc_control$vb_warm_start_control)
+    }
+    if (!is.null(mcmc_control$sigmagam)) sigmagam_controls <- utils::modifyList(sigmagam_controls %||% list(), mcmc_control$sigmagam)
+    if (!is.null(mcmc_control$latent_state)) latent_state_controls <- utils::modifyList(latent_state_controls %||% list(), mcmc_control$latent_state)
+    if (!is.null(mcmc_control$theta)) theta_state_controls <- utils::modifyList(theta_state_controls %||% list(), mcmc_control$theta)
+    if (!is.null(mcmc_control$dqlm_sigma)) dqlm_sigma_controls <- utils::modifyList(dqlm_sigma_controls %||% list(), mcmc_control$dqlm_sigma)
+  }
 
   # check inputs
   y = check_ts(y)
