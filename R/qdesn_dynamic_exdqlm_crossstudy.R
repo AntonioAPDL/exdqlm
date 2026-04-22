@@ -1869,10 +1869,13 @@ qdesn_dynamic_crossstudy_run_campaign <- function(grid = NULL,
   ))
 
   if (is.null(reference_inventory)) {
-    reference_cfg <- defaults$reference %||% list()
-    reference_inventory <- qdesn_dynamic_crossstudy_collect_reference_inventory(
-      reference_root = .qdesn_validation_resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
-    )
+    grid_source_mode <- .qdesn_dynamic_crossstudy_grid_source_mode(defaults)
+    if (identical(grid_source_mode, "reference_inventory")) {
+      reference_cfg <- defaults$reference %||% list()
+      reference_inventory <- qdesn_dynamic_crossstudy_collect_reference_inventory(
+        reference_root = .qdesn_validation_resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
+      )
+    }
   }
 
   targets <- list()

@@ -73,11 +73,11 @@ campaign_cfg <- defaults$campaign %||% list()
 
 base_results_root <- resolve_path(
   get_arg("--results-root", campaign_cfg$results_root %||% file.path("results", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation")),
-  must_work = TRUE
+  must_work = FALSE
 )
 base_report_root <- resolve_path(
   get_arg("--report-root", campaign_cfg$reports_root %||% file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation")),
-  must_work = TRUE
+  must_work = FALSE
 )
 
 outer_results_root <- file.path(base_results_root, run_tag)

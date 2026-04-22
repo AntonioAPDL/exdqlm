@@ -43,6 +43,7 @@ runner_rel <- file.path("scripts", "run_qdesn_dynamic_exdqlm_crossstudy_p90_stee
 runner_path <- normalizePath(file.path(repo_root, runner_rel), winslash = "/", mustWork = TRUE)
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 phase_tag <- gsub("_", "-", phase, fixed = TRUE)
+batch <- if (identical(phase, "smoke")) "smoke" else "full"
 run_tag <- as.character(get_arg(
   "--run-tag",
   sprintf("qdesn-dynamic-p90-steepertrend-%s-%s__git-%s", phase_tag, format(Sys.time(), "%Y%m%d-%H%M%S"), git_sha)
@@ -65,6 +66,7 @@ status <- system2(
     file.path("scripts", "launch_qdesn_dynamic_exdqlm_crossstudy_validation.R"),
     "--runner", runner_rel,
     "--defaults", file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_defaults.yaml"),
+    "--batch", batch,
     "--tmux-session", session_name,
     child_args
   ),
