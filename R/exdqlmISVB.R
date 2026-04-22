@@ -314,42 +314,43 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     ## forward filter
     # first iteration
     a = as.vector(GG[,,1]%*%m0)
-    P = GG[,,1]%*%C0%*%t(GG[,,1])
-    R = P + df.mat*P
-    R = (R + t(R))/2
+    P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "isvb_P_t1")
+    R = .exdqlm_regularize_cov(P + df.mat*P, context = "isvb_R_t1")
     f = t(FF[,1])%*%a + ex.f[1]
-    q = t(FF[,1])%*%R%*%FF[,1]  + ex.q[1]
+    q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1]  + ex.q[1], context = "isvb_q_t1")
     m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-    C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-    C[,,1] = (C[,,1] + t(C[,,1]))/2
+    C[,,1] = .exdqlm_regularize_cov(
+      R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+      context = "isvb_C_t1"
+    )
     standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
     # t = 2:TT
     for(t in 2:TT){
       a = as.vector(GG[,,t]%*%m[,(t-1)])
-      P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("isvb_P_t%d", t))
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("isvb_R_t%d", t))
       f = t(FF[,t])%*%a + ex.f[t]
       fB = t(FF[,t])%*%R
-      q = fB%*%FF[,t] + ex.q[t]
+      q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("isvb_q_t%d", t))
       m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-      C[,,t] = R - t(fB)%*%fB/q[1]
-      C[,,t] = (C[,,t] + t(C[,,t]))/2
+      C[,,t] = .exdqlm_regularize_cov(
+        R - t(fB)%*%fB/q[1],
+        context = sprintf("isvb_C_t%d", t)
+      )
       standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
     }
     ## backwards smoothing
     sC[,,TT] = C[,,TT]
     sm[,TT] = m[,TT]
     for(t in (TT-1):1){
-      P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-      R = P + df.mat*P
-      R = (R + t(R))/2
-      svd.R = svd(R)
-      inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+      P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("isvb_smoother_P_t%d", t + 1L))
+      R_info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("isvb_smoother_R_t%d", t + 1L))
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%R_info$inverse
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-      sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
-      sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
+      sC[,,t] = .exdqlm_regularize_cov(
+        C[,,t] + sB%*%(sC[,,(t+1)]-R_info$Sigma)%*%t(sB),
+        context = sprintf("isvb_smoother_C_t%d", t)
+      )
     }
     exps =  apply(FF*sm,2,sum)
     vars = c(apply(matrix(1:TT,TT,1),1,function(x){t(FF[,x])%*%sC[,,x]%*%FF[,x]}))

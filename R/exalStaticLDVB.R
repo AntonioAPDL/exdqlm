@@ -50,6 +50,71 @@
   val
 }
 
+.exal_sigmagam_vb_controls <- function(sigmagam_cfg = NULL) {
+  sigmagam_cfg <- sigmagam_cfg %||% list()
+
+  freeze_warmup_iters <- suppressWarnings(as.integer(
+    sigmagam_cfg$freeze_warmup_iters %||%
+      sigmagam_cfg$freeze_sigmagam_warmup_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_warmup_iters) || freeze_warmup_iters < 0L) freeze_warmup_iters <- 0L
+
+  postwarmup_damping <- as.numeric(
+    sigmagam_cfg$postwarmup_damping %||%
+      sigmagam_cfg$sigmagam_postwarmup_damping %||%
+      1.0
+  )[1L]
+  if (!is.finite(postwarmup_damping) || postwarmup_damping <= 0 || postwarmup_damping > 1) {
+    postwarmup_damping <- 1.0
+  }
+
+  postwarmup_damping_iters <- suppressWarnings(as.integer(
+    sigmagam_cfg$postwarmup_damping_iters %||%
+      sigmagam_cfg$sigmagam_postwarmup_damping_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(postwarmup_damping_iters) || postwarmup_damping_iters < 0L) {
+    postwarmup_damping_iters <- 0L
+  }
+
+  min_postwarmup_updates <- suppressWarnings(as.integer(
+    sigmagam_cfg$min_postwarmup_updates %||%
+      sigmagam_cfg$sigmagam_min_postwarmup_updates %||%
+      0L
+  )[1L])
+  if (!is.finite(min_postwarmup_updates) || min_postwarmup_updates < 0L) {
+    min_postwarmup_updates <- 0L
+  }
+
+  list(
+    freeze_warmup_iters = freeze_warmup_iters,
+    force_after_warmup = if (is.null(sigmagam_cfg$force_after_warmup)) TRUE else isTRUE(sigmagam_cfg$force_after_warmup),
+    postwarmup_damping = postwarmup_damping,
+    postwarmup_damping_iters = postwarmup_damping_iters,
+    min_postwarmup_updates = min_postwarmup_updates
+  )
+}
+
+.exal_sigmagam_mcmc_controls <- function(sigmagam_cfg = NULL) {
+  sigmagam_cfg <- sigmagam_cfg %||% list()
+
+  freeze_burnin_iters <- suppressWarnings(as.integer(
+    sigmagam_cfg$freeze_burnin_iters %||%
+      sigmagam_cfg$freeze_sigmagam_burnin_iters %||%
+      0L
+  )[1L])
+  if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
+
+  list(
+    freeze_burnin_iters = freeze_burnin_iters,
+    freeze_only_during_burn = if (is.null(sigmagam_cfg$freeze_only_during_burn)) TRUE else isTRUE(sigmagam_cfg$freeze_only_during_burn),
+    force_after_warmup = if (is.null(sigmagam_cfg$force_after_warmup)) TRUE else isTRUE(sigmagam_cfg$force_after_warmup),
+    delay_adapt_until_after_warmup = if (is.null(sigmagam_cfg$delay_adapt_until_after_warmup)) TRUE else isTRUE(sigmagam_cfg$delay_adapt_until_after_warmup),
+    delay_laplace_refresh_until_after_warmup = if (is.null(sigmagam_cfg$delay_laplace_refresh_until_after_warmup)) TRUE else isTRUE(sigmagam_cfg$delay_laplace_refresh_until_after_warmup)
+  )
+}
+
 .exal_static_ld_controls <- function(ld_controls = NULL) {
   defaults <- list(
     xi_method = "delta",
@@ -116,7 +181,8 @@
     stabilize_relax_elbo_gate_delta = getOption("exdqlm.static.ldvb.stabilize_relax_elbo_gate_delta", TRUE),
     store_trace = getOption("exdqlm.static.ldvb.store_trace", TRUE),
     profile_timing = getOption("exdqlm.static.ldvb.profile_timing", FALSE),
-    profile_iter_trace = getOption("exdqlm.static.ldvb.profile_iter_trace", FALSE)
+    profile_iter_trace = getOption("exdqlm.static.ldvb.profile_iter_trace", FALSE),
+    sigmagam = getOption("exdqlm.static.ldvb.sigmagam", NULL)
   )
   if (!is.null(ld_controls)) {
     defaults <- utils::modifyList(defaults, ld_controls)
@@ -268,6 +334,7 @@
   defaults$store_trace <- isTRUE(defaults$store_trace)
   defaults$profile_timing <- isTRUE(defaults$profile_timing)
   defaults$profile_iter_trace <- isTRUE(defaults$profile_iter_trace) && isTRUE(defaults$profile_timing)
+  defaults$sigmagam <- .exal_sigmagam_vb_controls(defaults$sigmagam)
   defaults
 }
 
@@ -1444,6 +1511,19 @@ exalStaticLDVB <- function(
   stable_count <- 0L
   ld_signoff_ready <- FALSE
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
+  sigmagam_cfg <- ld_ctrl$sigmagam %||% .exal_sigmagam_vb_controls(NULL)
+  sigmagam_required_postwarmup_updates <- if (sigmagam_cfg$freeze_warmup_iters > 0L) {
+    max(1L, sigmagam_cfg$min_postwarmup_updates)
+  } else {
+    sigmagam_cfg$min_postwarmup_updates
+  }
+  sigmagam_frozen_trace <- logical(0)
+  sigmagam_update_reason_trace <- character(0)
+  sigmagam_forced_postwarmup_trace <- logical(0)
+  sigmagam_update_performed_trace <- logical(0)
+  sigmagam_update_count <- 0L
+  sigmagam_postwarmup_update_count <- 0L
+  sigmagam_first_active_iter <- NA_integer_
   stop_reason <- "max_iter"
   converged <- FALSE
   timing_totals["init_xi"] <- proc.time()[3] - t0
@@ -1538,9 +1618,33 @@ exalStaticLDVB <- function(
     } else {
       ld_ctrl$ld_update_every
     }
+    sigmagam_warmup_active <- isTRUE(
+      sigmagam_cfg$freeze_warmup_iters > 0L &&
+        iter <= sigmagam_cfg$freeze_warmup_iters
+    )
+    sigmagam_force_now <- isTRUE(
+      !sigmagam_warmup_active &&
+        sigmagam_cfg$freeze_warmup_iters > 0L &&
+        sigmagam_cfg$force_after_warmup &&
+        sigmagam_postwarmup_update_count <= 0L
+    )
+    sigmagam_update_reason <- if (isTRUE(sigmagam_warmup_active)) {
+      "warmup"
+    } else if (isTRUE(sigmagam_force_now)) {
+      "force_after_warmup"
+    } else {
+      "scheduled"
+    }
+    sigmagam_forced_postwarmup <- FALSE
+    sigmagam_update_performed <- FALSE
     do_ld_update <- iter == 1L ||
       ld_update_every_use <= 1L ||
       ((iter - 1L) %% ld_update_every_use) == 0L
+    if (isTRUE(sigmagam_warmup_active)) {
+      do_ld_update <- FALSE
+    } else if (isTRUE(sigmagam_force_now)) {
+      do_ld_update <- TRUE
+    }
     ld_mode_start <- if (isTRUE(ld_ctrl$profile_timing) && isTRUE(do_ld_update)) proc.time()[3] else NA_real_
     if (isTRUE(do_ld_update)) {
       hessian_refresh_every_use <- if (isTRUE(stabilize_active)) {
@@ -1685,7 +1789,14 @@ exalStaticLDVB <- function(
     }
     xi_damping_use <- if (isTRUE(ld_stabilized)) ld_ctrl$stabilize_xi_damping else ld_ctrl$xi_damping
     active_xi_method <- "delta"
+    postwarmup_damping_active <- isTRUE(
+      sigmagam_cfg$postwarmup_damping < 1 &&
+        sigmagam_cfg$postwarmup_damping_iters > 0L &&
+        iter > sigmagam_cfg$freeze_warmup_iters &&
+        (iter - sigmagam_cfg$freeze_warmup_iters) <= sigmagam_cfg$postwarmup_damping_iters
+    )
     use_direct_commit <- isTRUE(do_ld_update) && isTRUE(ld_ctrl$direct_commit) && !isTRUE(ld_stabilized) &&
+      !isTRUE(postwarmup_damping_active) &&
       !(isTRUE(ld_ctrl$reject_bad_mode_commit) && isTRUE(ld_bad_mode_iter))
     ld_commit_mode <- if (!isTRUE(do_ld_update)) {
       "hold"
@@ -1708,7 +1819,13 @@ exalStaticLDVB <- function(
         eig_cap = ld_ctrl$eig_cap
       )$Sigma
     } else {
-      damping_use <- if (isTRUE(ld_stabilized)) ld_ctrl$stabilize_damping else ld_ctrl$damping
+      damping_use <- if (isTRUE(postwarmup_damping_active)) {
+        sigmagam_cfg$postwarmup_damping
+      } else if (isTRUE(ld_stabilized)) {
+        ld_ctrl$stabilize_damping
+      } else {
+        ld_ctrl$damping
+      }
       step_cap_eta_use <- if (isTRUE(ld_stabilized)) min(ld_ctrl$step_cap_eta, ld_ctrl$stabilize_step_cap_eta) else ld_ctrl$step_cap_eta
       step_cap_ell_use <- if (isTRUE(ld_stabilized)) min(ld_ctrl$step_cap_ell, ld_ctrl$stabilize_step_cap_ell) else ld_ctrl$step_cap_ell
       eta_hat <- .exal_static_ld_mix_step(
@@ -1730,6 +1847,19 @@ exalStaticLDVB <- function(
         eig_cap = ld_ctrl$eig_cap
       )$Sigma
     }
+    if (isTRUE(do_ld_update)) {
+      sigmagam_update_performed <- TRUE
+      sigmagam_update_count <- sigmagam_update_count + 1L
+      if (is.na(sigmagam_first_active_iter)) sigmagam_first_active_iter <- as.integer(iter)
+      if (iter > sigmagam_cfg$freeze_warmup_iters) {
+        sigmagam_postwarmup_update_count <- sigmagam_postwarmup_update_count + 1L
+      }
+      sigmagam_forced_postwarmup <- isTRUE(sigmagam_force_now)
+    }
+    sigmagam_frozen_trace <- c(sigmagam_frozen_trace, isTRUE(sigmagam_warmup_active))
+    sigmagam_update_reason_trace <- c(sigmagam_update_reason_trace, sigmagam_update_reason)
+    sigmagam_forced_postwarmup_trace <- c(sigmagam_forced_postwarmup_trace, isTRUE(sigmagam_forced_postwarmup))
+    sigmagam_update_performed_trace <- c(sigmagam_update_performed_trace, isTRUE(sigmagam_update_performed))
     if (isTRUE(ld_ctrl$profile_timing)) {
       ld_commit_elapsed <- proc.time()[3] - ld_commit_start
       timing_totals["ld_commit"] <- timing_totals["ld_commit"] + ld_commit_elapsed
@@ -2067,6 +2197,12 @@ exalStaticLDVB <- function(
         ld_cov_condition = ld$cov_condition,
         ld_cov_eig_min = ld$cov_eig_min,
         ld_cov_eig_max = ld$cov_eig_max,
+        sigmagam_frozen = isTRUE(sigmagam_warmup_active),
+        sigmagam_update_reason = sigmagam_update_reason,
+        sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup),
+        sigmagam_update_performed = isTRUE(sigmagam_update_performed),
+        sigmagam_update_count = as.integer(sigmagam_update_count),
+        sigmagam_postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
         delta_state = d_beta,
         delta_sigma = d_sigma,
         delta_gamma = d_gamma,
@@ -2109,6 +2245,10 @@ exalStaticLDVB <- function(
         ld_stabilized = ld_stabilized,
         ld_stabilize_reason = if (!is.na(ld_stabilize_reason)) ld_stabilize_reason else "",
         xi_method = "delta",
+        sigmagam_frozen = isTRUE(sigmagam_warmup_active),
+        sigmagam_update_reason = sigmagam_update_reason,
+        sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup),
+        sigmagam_update_performed = isTRUE(sigmagam_update_performed),
         stringsAsFactors = FALSE
       )
       if (isTRUE(ld_ctrl$profile_timing)) {
@@ -2169,7 +2309,8 @@ exalStaticLDVB <- function(
       )
     }
 
-    if (step$stop_now && isTRUE(ld_signoff_ready)) {
+    sigmagam_min_updates_ok <- (sigmagam_postwarmup_update_count >= sigmagam_required_postwarmup_updates)
+    if (step$stop_now && isTRUE(ld_signoff_ready) && isTRUE(sigmagam_min_updates_ok)) {
       converged <- TRUE
       stop_reason <- "joint_converged"
       break
@@ -2240,6 +2381,7 @@ exalStaticLDVB <- function(
   }
   if (!converged && identical(stop_reason, "max_iter") &&
       isTRUE(ld_signoff_summary$committed_stable) &&
+      isTRUE(sigmagam_postwarmup_update_count >= sigmagam_required_postwarmup_updates) &&
       isTRUE(ld_signoff_ready)) {
     converged <- TRUE
     stop_reason <- "joint_converged_stabilized"
@@ -2272,7 +2414,23 @@ exalStaticLDVB <- function(
       summary = beta_prior_summary,
       state = if (.static_is_rhs_family(beta_prior_obj$type)) beta_state else NULL
     ),
-    misc = list(p0 = p0, bounds = c(L = L, U = U), n = n, p = p, elbo = elbo_trace),
+    misc = list(
+      p0 = p0,
+      bounds = c(L = L, U = U),
+      n = n,
+      p = p,
+      elbo = elbo_trace,
+      sigmagam = sigmagam_cfg,
+      sigmagam_required_postwarmup_updates = as.integer(sigmagam_required_postwarmup_updates),
+      sigmagam_update_count = as.integer(sigmagam_update_count),
+      sigmagam_postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
+      sigmagam_first_active_iter = if (is.na(sigmagam_first_active_iter)) NA_integer_ else as.integer(sigmagam_first_active_iter),
+      sigmagam_frozen_trace = sigmagam_frozen_trace,
+      sigmagam_update_reason_trace = sigmagam_update_reason_trace,
+      sigmagam_forced_postwarmup_trace = sigmagam_forced_postwarmup_trace,
+      sigmagam_update_performed_trace = sigmagam_update_performed_trace,
+      sigmagam_update_count_trace = cumsum(as.integer(sigmagam_update_performed_trace))
+    ),
     diagnostics = list(
       elbo = elbo_trace,
       vb_trace = .exdqlm_make_vb_trace(
@@ -2295,6 +2453,7 @@ exalStaticLDVB <- function(
         stable_count = stable_count,
         ld_signoff_ready = ld_signoff_ready,
         criteria = conv_ctrl,
+        sigmagam_min_updates_ok = (sigmagam_postwarmup_update_count >= sigmagam_required_postwarmup_updates),
         final = list(
           delta_state = if (length(delta_beta)) utils::tail(delta_beta, 1L) else NA_real_,
           delta_sigma = if (length(delta_sigma)) utils::tail(delta_sigma, 1L) else NA_real_,
@@ -2330,6 +2489,13 @@ exalStaticLDVB <- function(
         controls = ld_ctrl,
         setup = ld_setup,
         trace = ld_trace_df,
+        sigmagam = list(
+          config = sigmagam_cfg,
+          required_postwarmup_updates = as.integer(sigmagam_required_postwarmup_updates),
+          update_count = as.integer(sigmagam_update_count),
+          postwarmup_update_count = as.integer(sigmagam_postwarmup_update_count),
+          first_active_iter = if (is.na(sigmagam_first_active_iter)) NA_integer_ else as.integer(sigmagam_first_active_iter)
+        ),
         stabilization = list(
           active_final = stabilize_active,
           since_iter = stabilize_since_iter,
