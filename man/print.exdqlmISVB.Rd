@@ -19,6 +19,7 @@ Print Method for \code{exdqlmISVB} Objects
 data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:100]
 model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+# Legacy ISVB object retained for backward-compatible inspection methods
 M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                    gam.init = -3.5, sig.init = 15)
 print(M0)

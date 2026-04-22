@@ -2,7 +2,7 @@
 % Please edit documentation in R/exdqlmISVB.R
 \name{exdqlmISVB}
 \alias{exdqlmISVB}
-\title{exDQLM - ISVB algorithm}
+\title{exDQLM - legacy ISVB algorithm}
 \usage{
 exdqlmISVB(
   y,
@@ -12,7 +12,7 @@ exdqlmISVB(
   dim.df,
   fix.gamma = FALSE,
   gam.init = NA,
-  fix.sigma = TRUE,
+  fix.sigma = FALSE,
   sig.init = NA,
   dqlm.ind = FALSE,
   exps0,
@@ -41,7 +41,7 @@ exdqlmISVB(
 
 \item{gam.init}{Initial value for gamma (skewness parameter), or value at which gamma will be fixed if \code{fix.gamma=TRUE}.}
 
-\item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}. Default is \code{TRUE}.}
+\item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}. Default is \code{FALSE}.}
 
 \item{sig.init}{Initial value for sigma (scale parameter), or value at which sigma will be fixed if \code{fix.sigma=TRUE}.}
 
@@ -107,7 +107,10 @@ Or if \code{dqlm.ind=TRUE}, the object also contains:
 }
 }
 \description{
-The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM.
+The function applies an Importance Sampling Variational Bayes (ISVB)
+algorithm to estimate the posterior of an exDQLM. This legacy VB engine is
+retained for backward compatibility and historical comparisons; for standard
+exDQLM VB fits, \code{\link[=exdqlmLDVB]{exdqlmLDVB()}} is the main default technique.
 }
 \details{
 Advanced options (set via \code{options()}):
@@ -132,6 +135,7 @@ y = scIVTmag[1:1095]
 trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
 seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 model = trend.comp + seas.comp
+# Legacy ISVB fit retained for backward-compatible comparisons
 M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
                  gam.init = -3.5, sig.init = 15, tol = 0.05)
 head(M0$diagnostics$vb_trace)

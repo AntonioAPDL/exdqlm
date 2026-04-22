@@ -20,9 +20,10 @@ for static coefficients, and post hoc synthesis of several fitted quantiles.
 
 \itemize{
 \item Dynamic/state-space quantile modeling via
-\code{\link[=exdqlmISVB]{exdqlmISVB()}}, \code{\link[=exdqlmLDVB]{exdqlmLDVB()}}, and \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, with
-transfer-function extensions through \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}},
-\code{\link[=exdqlmTransferMCMC]{exdqlmTransferMCMC()}}, and legacy \code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}.
+\code{\link[=exdqlmLDVB]{exdqlmLDVB()}} and \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, with legacy \code{\link[=exdqlmISVB]{exdqlmISVB()}}
+retained for backward compatibility and transfer-function extensions
+through \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}}, \code{\link[=exdqlmTransferMCMC]{exdqlmTransferMCMC()}}, and legacy
+\code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}.
 \item Static Bayesian exAL regression via \code{\link[=exalStaticLDVB]{exalStaticLDVB()}} and
 \code{\link[=exalStaticMCMC]{exalStaticMCMC()}}.
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
@@ -37,8 +38,9 @@ predictive distribution.
 \section{Distinctive features in 0.4.0}{
 
 \itemize{
-\item Dynamic Bayesian quantile state-space inference with three user-facing
-engines: ISVB, LDVB, and MCMC.
+\item Dynamic Bayesian quantile state-space inference with LDVB as the
+main VB engine, MCMC for posterior simulation, and legacy ISVB
+retained for compatibility and historical comparisons.
 \item A unified package covering both dynamic exDQLM models and static
 exAL regression.
 \item Static shrinkage priors including ridge, regularized horseshoe

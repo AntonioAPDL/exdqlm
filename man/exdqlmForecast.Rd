@@ -21,7 +21,8 @@ exdqlmForecast(
 
 \item{k}{Integer number of steps ahead to forecast.}
 
-\item{m1}{A fitted exDQLM model object, returned by \code{\link[=exdqlmISVB]{exdqlmISVB()}}, \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, or \code{\link[=exdqlmLDVB]{exdqlmLDVB()}}.}
+\item{m1}{A fitted exDQLM model object, returned by \code{\link[=exdqlmLDVB]{exdqlmLDVB()}},
+\code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, or legacy \code{\link[=exdqlmISVB]{exdqlmISVB()}}.}
 
 \item{fFF}{Optional state vector(s) for the forecast steps. A numeric matrix with
 \eqn{q} rows and either 1 column (non–time-varying) or \code{k} columns (time-varying).
@@ -67,7 +68,7 @@ dynamic quantile model and optionally adds them to an existing plot.
  data("scIVTmag", package = "exdqlm")
  y = scIVTmag[1:100]
  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
- M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+ M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15)
  exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 }

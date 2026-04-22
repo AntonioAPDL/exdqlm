@@ -17,7 +17,9 @@ inference.
 In **v0.4.0**, the package brings together the strongest parts of the
 current development line:
 
-- dynamic exDQLM inference via **ISVB**, **LDVB**, and **MCMC**
+- dynamic exDQLM inference via **LDVB** and **MCMC**, with legacy
+  **ISVB** retained for backward compatibility and historical
+  comparisons
 - static Bayesian exAL regression via **LDVB** and **MCMC**
 - modular model builders for **trend**, **seasonality**, and
   **regression** components
@@ -58,15 +60,16 @@ pak::pak("AntonioAPDL/exdqlm")
 ## Why `exdqlm` 0.4.0 is distinctive
 
 - **Dynamic Bayesian quantile state-space modeling** is the core use
-  case: `exdqlmISVB()`, `exdqlmLDVB()`, and `exdqlmMCMC()` all fit
-  univariate time-series quantile models with a familiar DLM/state-space
-  specification.
+  case: `exdqlmLDVB()` is the main VB path, `exdqlmMCMC()` provides
+  posterior simulation, and legacy `exdqlmISVB()` remains available for
+  backward compatibility and historical comparisons.
 - **Static Bayesian quantile regression** is now part of the same
   package via `exalStaticLDVB()` and `exalStaticMCMC()`, rather than
   living in a separate code path or companion repository.
 - **Multiple inference engines** are available depending on the use
-  case: fast approximate dynamic VB (`ISVB`), deterministic
-  Laplace-Delta VB (`LDVB`), and posterior simulation (`MCMC`).
+  case: deterministic Laplace-Delta VB (`LDVB`) as the main dynamic VB
+  engine, posterior simulation (`MCMC`), and legacy fast approximate
+  dynamic VB (`ISVB`) when older workflows need to be reproduced.
 - **User-facing VB diagnostics are standardized** through
   `fit$diagnostics$vb_trace`, so plotting and monitoring code can use
   the same iteration-wise API across VB engines.
@@ -82,7 +85,7 @@ pak::pak("AntonioAPDL/exdqlm")
 
 | Goal | Main functions | Inference engines | Notes |
 |---|---|---|---|
-| Dynamic quantile state-space model | `exdqlmISVB()`, `exdqlmLDVB()`, `exdqlmMCMC()` | ISVB, LDVB, MCMC | Main entry point for univariate time-series quantile modeling |
+| Dynamic quantile state-space model | `exdqlmLDVB()`, `exdqlmMCMC()`, `exdqlmISVB()` | LDVB, MCMC, legacy ISVB | Main entry point for univariate time-series quantile modeling |
 | Build state-space components | `polytrendMod()`, `seasMod()`, `regMod()` | n/a | Compose trend, seasonal, and regression blocks with `+.exdqlm` |
 | Static Bayesian exAL regression | `exalStaticLDVB()`, `exalStaticMCMC()` | LDVB, MCMC | Supports `dqlm.ind = TRUE`, posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
 | Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
@@ -92,9 +95,9 @@ pak::pak("AntonioAPDL/exdqlm")
 
 | Setting | Recommended start | Use when | Alternatives |
 |---|---|---|---|
-| Dynamic exDQLM | `exdqlmISVB()` | You want a fast first fit or a stable working approximation | `exdqlmLDVB()` or `exdqlmMCMC()` |
-| Dynamic exDQLM with deterministic VB | `exdqlmLDVB()` | You want a variational fit without IS noise in the `(\sigma,\gamma)` block | `exdqlmISVB()` |
+| Dynamic exDQLM | `exdqlmLDVB()` | You want the standard variational fit for dynamic exDQLM | `exdqlmMCMC()` or legacy `exdqlmISVB()` |
 | Dynamic exDQLM with posterior sampling | `exdqlmMCMC()` | You want retained posterior draws and full simulation-based summaries | warm-start from VB if needed |
+| Legacy dynamic exDQLM VB | `exdqlmISVB()` | You need backward-compatible behavior or historical comparisons | `exdqlmLDVB()` |
 | Static exAL regression | `exalStaticLDVB()` | You want a fast Bayesian approximation, often useful before MCMC | `exalStaticMCMC()` |
 | Static exAL regression with posterior draws | `exalStaticLDVB()` or `exalStaticMCMC()` | Use `exalStaticLDVB()` for a fast approximate draw-based summary and `exalStaticMCMC()` for the simulation baseline | `init.from.vb = TRUE` can help the MCMC fit |
 
@@ -123,9 +126,10 @@ In practice, the recommended workflow is:
 
 ## Quick start (≤ 10 lines)
 
-Local-level model at a **single quantile** (the median). We fix
-**scale** and **skewness** to keep it fast and stable for CRAN; we keep
-the **pure-R** path.
+Local-level model at a **single quantile** (the median) using the
+package's main dynamic VB engine. We keep the **pure-R** path for
+CRAN-style reproducibility and use the reduced DQLM path to keep the
+example small.
 
 ``` r
 set.seed(1)
@@ -138,15 +142,12 @@ y      <- state + rnorm(T, sd = 1.0)
 model  <- list(FF = matrix(1), GG = matrix(1), m0 = 0, C0 = 100)
 options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
 
-fit <- exdqlmISVB(
+fit <- exdqlmLDVB(
   y = y, p0 = 0.5, model = model, df = 0.98, dim.df = 1,
-  fix.sigma = TRUE, sig.init = 1.0,
-  fix.gamma = TRUE, gam.init = 0.0
+  dqlm.ind = TRUE, sig.init = 1.0
 )
-#> ISVB converged: 2 iterations, 0.514 seconds
 
 tail(fit$diagnostics$elbo, 3)
-#> [1] -113.62048  -67.45699
 ```
 
 For plotting or monitoring VB convergence, use the standardized trace
@@ -161,8 +162,10 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 - **State-space skeleton**: *design* (`FF`) and *evolution* (`GG`)
   matrices with a prior for the **state vector** (`m0`, `C0`).
 - **Quantile of interest**: `p0` (e.g., `0.1`, `0.5`, `0.9`).
-- **exAL errors**: controlled by **scale** and **skewness**; fixing them
-  often stabilizes small examples.
+- **exAL errors**: controlled by **scale** and **skewness**; ordinary
+  workflows should usually let LDVB/MCMC update them, while
+  fixed-parameter paths remain available for explicit baseline or
+  compatibility runs.
 - **Discount factors**: `df` and `dim.df` control evolution per block
   (e.g., trend vs seasonality).
 - **VB traces**: `fit$diagnostics$vb_trace` provides a standardized
@@ -174,7 +177,9 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 
 ## What’s new in v0.4.0
 
-- **Dynamic LDVB algorithm** via `exdqlmLDVB()` for exDQLM fitting.
+- **Dynamic LDVB algorithm** via `exdqlmLDVB()` as the main VB routine
+  for exDQLM fitting, with legacy `exdqlmISVB()` retained for backward
+  compatibility.
 - **Synthesis helper** `quantileSynthesis()` to combine
   posterior predictive draws from separately fitted quantile models.
 - **Static regression support** via `regMod()`, `exalStaticLDVB()`,
@@ -257,19 +262,15 @@ dim.df <- c(1,       2,   1)
 
 options(exdqlm.use_cpp_kf = FALSE, exdqlm.use_cpp_samplers = FALSE)
 
-fit <- exdqlmISVB(
+fit <- exdqlmLDVB(
   y = y, p0 = 0.5, model = model,
   df = df, dim.df = dim.df,
-  fix.sigma = TRUE, sig.init = 0.2,
-  fix.gamma = TRUE, gam.init = 0.0
+  dqlm.ind = TRUE, sig.init = 0.2
 )
-#> ISVB converged: 2 iterations, 0.547 seconds
 
 # quick checks
 tail(fit$diagnostics$elbo, 2)
-#> [1] -1078.8072  -934.9032
 dim(fit$theta.out$sm)  # state-dimension x time
-#> [1]   4 150
 ```
 
 ### 2) exAL helper sanity check (CDF ↔ quantile)

@@ -314,6 +314,7 @@ is.exdqlmISVB = function(m){ return(methods::is(m,"exdqlmISVB")) }
 #' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' # Legacy ISVB object retained for backward-compatible inspection methods
 #' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                    gam.init = -3.5, sig.init = 15)
 #' print(M0)
@@ -330,10 +331,10 @@ print.exdqlmISVB <- function(x, ...) {
   cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!x$dqlm.ind){
-    cat("exDQLM fitted using ISVB\n")
+    cat("exDQLM fitted using legacy ISVB\n")
     cat("Parameters estimated with IS:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
   }else{
-    cat("DQLM fitted using VB\n")
+    cat("DQLM fitted using legacy ISVB\n")
   }
   cat("Iterations until convergence:", x$iter, "\n")
   cat("Run-time:", x$run.time, "seconds\n")
@@ -351,6 +352,7 @@ print.exdqlmISVB <- function(x, ...) {
 #' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' # Legacy ISVB object retained for backward-compatible inspection methods
 #' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                    gam.init = -3.5, sig.init = 15)
 #' summary(M0)
@@ -367,10 +369,10 @@ summary.exdqlmISVB <- function(object, ...) {
   cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!object$dqlm.ind){
-    cat("exDQLM fitted using ISVB\n")
+    cat("exDQLM fitted using legacy ISVB\n")
     cat("Parameters estimated with IS:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
   }else{
-    cat("DQLM fitted using VB\n")
+    cat("DQLM fitted using legacy ISVB\n")
   }
   cat("Iterations until convergence:", object$iter, "\n")
   cat("Run-time:", object$run.time, "seconds\n")
@@ -388,6 +390,7 @@ summary.exdqlmISVB <- function(object, ...) {
 #' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+#' # Legacy ISVB object retained for backward-compatible plotting methods
 #' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                    gam.init = -3.5, sig.init = 15)
 #' plot(M0)
@@ -830,7 +833,7 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #' M0.diags = exdqlmDiagnostics(M0, plot=FALSE)
 #' print(M0.diags)
@@ -862,7 +865,7 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
 #' summary(M0.diags)
@@ -892,7 +895,7 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 #' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
 #' plot(M0.diags)
@@ -966,7 +969,7 @@ is.exdqlmForecast = function(x){ return(methods::is(x,"exdqlmForecast")) }
 #'  data("scIVTmag", package = "exdqlm")
 #'  y = scIVTmag[1:100]
 #'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#'  M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 #'  print(M0.forecast)
@@ -993,7 +996,7 @@ print.exdqlmForecast <- function(x, ...) {
 #'  data("scIVTmag", package = "exdqlm")
 #'  y = scIVTmag[1:100]
 #'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#'  M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 #'  summary(M0.forecast)
@@ -1020,7 +1023,7 @@ summary.exdqlmForecast <- function(object, ...) {
 #'  data("scIVTmag", package = "exdqlm")
 #'  y = scIVTmag[1:100]
 #'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#'  M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 #'  plot(M0.forecast)
