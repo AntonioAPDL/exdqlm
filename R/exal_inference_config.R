@@ -155,15 +155,34 @@ exal_make_vb_control <- function(
     sigmagam = NULL,
     sts = NULL,
     control = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
   out <- control %||% list()
   if (!is.list(out)) out <- list()
 
-  if (!is.null(max_iter)) out$max_iter <- as.integer(max_iter)[1L]
-  if (!is.null(tol)) out$tol <- as.numeric(tol)[1L]
-  if (!is.null(n_samp_xi)) out$n_samp_xi <- as.integer(n_samp_xi)[1L]
-  if (!is.null(verbose)) out$verbose <- isTRUE(verbose)
-  if (!is.null(sigmagam)) out$sigmagam <- .exal_sigmagam_vb_controls(sigmagam)
-  if (!is.null(sts)) out$sts <- .exdqlm_sts_vb_controls(sts)
+  if (missing(max_iter)) {
+    out$max_iter <- as.integer(out$max_iter %||% 150L)[1L]
+  } else {
+    out$max_iter <- as.integer(max_iter)[1L]
+  }
+  if (missing(tol)) {
+    out$tol <- as.numeric(out$tol %||% 1e-4)[1L]
+  } else {
+    out$tol <- as.numeric(tol)[1L]
+  }
+  if (missing(n_samp_xi)) {
+    out$n_samp_xi <- as.integer(out$n_samp_xi %||% 200L)[1L]
+  } else {
+    out$n_samp_xi <- as.integer(n_samp_xi)[1L]
+  }
+  if (missing(verbose)) {
+    out$verbose <- isTRUE(out$verbose %||% FALSE)
+  } else {
+    out$verbose <- isTRUE(verbose)
+  }
+  if (!missing(sigmagam)) out$sigmagam <- sigmagam
+  if (!missing(sts)) out$sts <- sts
+  if (!is.null(out$sigmagam)) out$sigmagam <- .exal_sigmagam_vb_controls(out$sigmagam)
+  if (!is.null(out$sts)) out$sts <- .exdqlm_sts_vb_controls(out$sts)
 
   out
 }
@@ -345,36 +364,70 @@ exal_make_mcmc_control <- function(
     latent_state = NULL,
     dqlm_sigma = NULL,
     control = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
   out <- control %||% list()
   if (!is.list(out)) out <- list()
 
-  if (!is.null(n_burn)) out$n_burn <- as.integer(n_burn)[1L]
-  if (!is.null(n_mcmc)) out$n_mcmc <- as.integer(n_mcmc)[1L]
-  if (!is.null(thin)) out$thin <- as.integer(thin)[1L]
-  if (!is.null(verbose)) out$verbose <- isTRUE(verbose)
-  if (!is.null(progress_every)) out$progress_every <- as.integer(progress_every)[1L]
-  if (!is.null(init_from_vb)) out$init_from_vb <- isTRUE(init_from_vb)
-  if (!is.null(vb_warm_start_control)) {
+  if (missing(n_burn)) {
+    out$n_burn <- as.integer(out$n_burn %||% 2000L)[1L]
+  } else {
+    out$n_burn <- as.integer(n_burn)[1L]
+  }
+  if (missing(n_mcmc)) {
+    out$n_mcmc <- as.integer(out$n_mcmc %||% 1500L)[1L]
+  } else {
+    out$n_mcmc <- as.integer(n_mcmc)[1L]
+  }
+  if (missing(thin)) {
+    out$thin <- as.integer(out$thin %||% 1L)[1L]
+  } else {
+    out$thin <- as.integer(thin)[1L]
+  }
+  if (missing(verbose)) {
+    out$verbose <- isTRUE(out$verbose %||% FALSE)
+  } else {
+    out$verbose <- isTRUE(verbose)
+  }
+  if (missing(progress_every)) {
+    if (!is.null(out$progress_every)) {
+      out$progress_every <- as.integer(out$progress_every)[1L]
+    }
+  } else {
+    out$progress_every <- as.integer(progress_every)[1L]
+  }
+  if (missing(init_from_vb)) {
+    out$init_from_vb <- isTRUE(out$init_from_vb %||% TRUE)
+  } else {
+    out$init_from_vb <- isTRUE(init_from_vb)
+  }
+  if (!missing(vb_warm_start_control) && !is.null(vb_warm_start_control)) {
     out$vb_warm_start_control <- utils::modifyList(
       out$vb_warm_start_control %||% list(),
       vb_warm_start_control
     )
   }
-  if (!is.null(sigmagam)) out$sigmagam <- .exal_sigmagam_mcmc_controls(sigmagam)
-  if (!is.null(theta)) out$theta <- exal_make_mcmc_theta_control(
-    enabled = isTRUE((theta %||% list())$enabled),
-    freeze_burnin_iters = (theta %||% list())$freeze_burnin_iters %||% (theta %||% list())$freeze_theta_burnin_iters %||% 0L,
-    freeze_only_during_burn = if (is.null((theta %||% list())$freeze_only_during_burn)) TRUE else isTRUE((theta %||% list())$freeze_only_during_burn),
-    sparse_update_every = (theta %||% list())$sparse_update_every %||% 1L,
-    sparse_update_until_iter = (theta %||% list())$sparse_update_until_iter %||% 0L,
-    force_first_postwarmup_update = if (is.null((theta %||% list())$force_first_postwarmup_update)) TRUE else isTRUE((theta %||% list())$force_first_postwarmup_update),
-    trace = if (is.null((theta %||% list())$trace)) TRUE else isTRUE((theta %||% list())$trace)
-  )
-  if (!is.null(latent_state)) {
-    latent_mode <- (latent_state %||% list())$mode %||% "u_only"
-    out$latent_state <- .exdqlm_latent_state_mcmc_controls(latent_state, default_mode = latent_mode)
+  if (!missing(sigmagam)) out$sigmagam <- sigmagam
+  if (!missing(theta)) out$theta <- theta
+  if (!missing(latent_state)) out$latent_state <- latent_state
+  if (!missing(dqlm_sigma)) out$dqlm_sigma <- dqlm_sigma
+  if (!is.null(out$sigmagam)) out$sigmagam <- .exal_sigmagam_mcmc_controls(out$sigmagam)
+  if (!is.null(out$theta)) {
+    theta_cfg <- out$theta %||% list()
+    out$theta <- exal_make_mcmc_theta_control(
+      enabled = isTRUE(theta_cfg$enabled),
+      freeze_burnin_iters = theta_cfg$freeze_burnin_iters %||% theta_cfg$freeze_theta_burnin_iters %||% 0L,
+      freeze_only_during_burn = if (is.null(theta_cfg$freeze_only_during_burn)) TRUE else isTRUE(theta_cfg$freeze_only_during_burn),
+      sparse_update_every = theta_cfg$sparse_update_every %||% 1L,
+      sparse_update_until_iter = theta_cfg$sparse_update_until_iter %||% 0L,
+      force_first_postwarmup_update = if (is.null(theta_cfg$force_first_postwarmup_update)) TRUE else isTRUE(theta_cfg$force_first_postwarmup_update),
+      trace = if (is.null(theta_cfg$trace)) TRUE else isTRUE(theta_cfg$trace)
+    )
   }
-  if (!is.null(dqlm_sigma)) out$dqlm_sigma <- .exdqlm_dqlm_sigma_mcmc_controls(dqlm_sigma)
+  if (!is.null(out$latent_state)) {
+    latent_mode <- (out$latent_state %||% list())$mode %||% "u_only"
+    out$latent_state <- .exdqlm_latent_state_mcmc_controls(out$latent_state, default_mode = latent_mode)
+  }
+  if (!is.null(out$dqlm_sigma)) out$dqlm_sigma <- .exdqlm_dqlm_sigma_mcmc_controls(out$dqlm_sigma)
 
   out
 }
