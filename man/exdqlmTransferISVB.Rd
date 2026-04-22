@@ -2,7 +2,7 @@
 % Please edit documentation in R/exdqlmTransferISVB.R
 \name{exdqlmTransferISVB}
 \alias{exdqlmTransferISVB}
-\title{Transfer Function exDQLM - ISVB algorithm}
+\title{Transfer Function exDQLM - legacy ISVB algorithm}
 \usage{
 exdqlmTransferISVB(
   y,
@@ -15,7 +15,7 @@ exdqlmTransferISVB(
   tf.df,
   fix.gamma = FALSE,
   gam.init = NA,
-  fix.sigma = TRUE,
+  fix.sigma = FALSE,
   sig.init = NA,
   dqlm.ind = FALSE,
   exps0,
@@ -58,7 +58,7 @@ component. If \code{length(tf.df) = 1}, the value is shared by the
 
 \item{gam.init}{Initial value for gamma (skewness parameter), or value at which gamma will be fixed if \code{fix.gamma=TRUE}.}
 
-\item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}. Default is \code{TRUE}.}
+\item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}. Default is \code{FALSE}.}
 
 \item{sig.init}{Initial value for sigma (scale parameter), or value at which sigma will be fixed if \code{fix.sigma=TRUE}.}
 
@@ -122,7 +122,10 @@ Or if \code{dqlm.ind=TRUE}, the object also contains:
 }
 }
 \description{
-The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM with exponential decay transfer function component.
+The function applies an Importance Sampling Variational Bayes (ISVB)
+algorithm to estimate the posterior of an exDQLM with exponential-decay
+transfer function component. This transfer wrapper is retained as a legacy
+path; \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}} is the main VB transfer entry point.
 }
 \details{
 Advanced options (set via \code{options()}):
@@ -145,6 +148,7 @@ X = ELIanoms[1:1095]
 trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
 seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 model = trend.comp + seas.comp
+# Legacy ISVB transfer fit retained for backward-compatible comparisons
 M1 = exdqlmTransferISVB(y, p0 = 0.85, model = model,
                           X, df = c(1,1), dim.df = c(1,6),
                           gam.init = -3.5, sig.init = 15,

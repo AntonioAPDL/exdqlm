@@ -9,7 +9,8 @@
 #' errors.
 #'
 #' @inheritParams exdqlmPlot
-#' @param m2 An optional additional object of class "\code{exdqlmMCMC}", "\code{exdqlmISVB}", "\code{exdqlmLDVB}" to compare with `m1`.
+#' @param m2 An optional additional object of class "\code{exdqlmLDVB}",
+#'   "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with `m1`.
 #' @param plot Logical value indicating whether the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.Default is `TRUE`.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.
 #' @param ref Optional reference sample of size `length(m1$y)` from a standard
@@ -37,7 +38,7 @@
 #' data("scIVTmag", package = "exdqlm")
 #' y = scIVTmag[1:100]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15)
 #' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
 #' }
@@ -53,7 +54,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   y = m1$y
   TT = length(y)
   if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
-    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
+    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
   }
   cols = c(matrix(cols,2,1))
 
@@ -89,7 +90,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   if(!is.null(m2)){
     # check inputs
     if(!is.exdqlmMCMC(m2) && !is.exdqlmISVB(m2) && !is.exdqlmLDVB(m2)){
-      stop("m2 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
+      stop("m2 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
     }
     if(dim(m1$samp.theta)[2] != TT){
       stop("length of dynamic quantile in m2 does not match data")

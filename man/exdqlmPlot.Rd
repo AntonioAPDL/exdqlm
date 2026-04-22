@@ -7,7 +7,8 @@
 exdqlmPlot(m1, add = FALSE, col = "purple", cr.percent = 0.95)
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmMCMC}", "\code{exdqlmLDVB}",  or "\code{exdqlmISVB}".}
+\item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
+legacy "\code{exdqlmISVB}".}
 
 \item{add}{Logical value indicating whether the dynamic quantile will be added to existing plot. Default is \code{FALSE}.}
 
@@ -32,7 +33,7 @@ The function plots the MAP estimates and 95\% credible intervals (CrIs) of the d
 data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:100]
 model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                    gam.init = -3.5, sig.init = 15)
 exdqlmPlot(M0, col = "blue")
 }

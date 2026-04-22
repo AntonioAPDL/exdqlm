@@ -1,6 +1,9 @@
-#' exDQLM - ISVB algorithm
+#' exDQLM - legacy ISVB algorithm
 #'
-#' The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM.
+#' The function applies an Importance Sampling Variational Bayes (ISVB)
+#' algorithm to estimate the posterior of an exDQLM. This legacy VB engine is
+#' retained for backward compatibility and historical comparisons; for standard
+#' exDQLM VB fits, [exdqlmLDVB()] is the main default technique.
 #'
 #' @param y A univariate time-series.
 #' @param p0 The quantile of interest, a value between 0 and 1.
@@ -9,7 +12,7 @@
 #' @param dim.df Dimension of each block of discount factors.
 #' @param fix.gamma Logical value indicating whether to fix gamma at `gam.init`. Default is `FALSE`.
 #' @param gam.init Initial value for gamma (skewness parameter), or value at which gamma will be fixed if `fix.gamma=TRUE`.
-#' @param fix.sigma Logical value indicating whether to fix sigma at `sig.init`. Default is `TRUE`.
+#' @param fix.sigma Logical value indicating whether to fix sigma at `sig.init`. Default is `FALSE`.
 #' @param sig.init Initial value for sigma (scale parameter), or value at which sigma will be fixed if `fix.sigma=TRUE`.
 #' @param dqlm.ind Logical value indicating whether to fix gamma at `0`, reducing the exDQLM to the special case of the DQLM. Default is `FALSE`.
 #' @param exps0 Initial value for dynamic quantile. If `exps0` is not specified, it is set to the DLM estimate of the `p0` quantile.
@@ -88,6 +91,7 @@
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
+#' # Legacy ISVB fit retained for backward-compatible comparisons
 #' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
 #'                  gam.init = -3.5, sig.init = 15, tol = 0.05)
 #' head(M0$diagnostics$vb_trace)
@@ -99,7 +103,7 @@
 #'
 exdqlmISVB <- function(y, p0, model, df, dim.df,
                        fix.gamma = FALSE, gam.init = NA,
-                       fix.sigma = TRUE, sig.init = NA,
+                       fix.sigma = FALSE, sig.init = NA,
                        dqlm.ind = FALSE,
                        exps0,
                        tol = 0.1,

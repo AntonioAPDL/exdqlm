@@ -1001,7 +1001,7 @@ check_ts = function(dat){
 # Reduced dynamic DQLM CAVI core (no gamma / no s_t block).
 .run_dynamic_dqlm_cavi <- function(
   y, p0, model, df, dim.df,
-  fix.sigma = TRUE, sig.init = NA_real_,
+  fix.sigma = FALSE, sig.init = NA_real_,
   tol = 0.1, n.samp = 200L,
   PriorSigma = NULL,
   verbose = TRUE,

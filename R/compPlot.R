@@ -23,7 +23,7 @@
 #' trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
 #' seas.comp = seasMod(365, c(1, 2, 4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
-#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 6),
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 6),
 #'                    gam.init = -3.5, sig.init = 15, tol = 0.05)
 #' # plot first harmonic component
 #' compPlot(M0, index = c(3, 4), col = "blue")
@@ -33,7 +33,7 @@ compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, c
 
   # check input
   if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
-    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmISVB()', or 'exdqlmMCMC()'")
+    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
   }
   y = m1$y
   TT = length(y)

@@ -10,7 +10,7 @@
 #' @param dim.df Dimension of each block of discount factors.
 #' @param fix.gamma Logical value indicating whether to fix gamma at `gam.init`. Default is `FALSE`.
 #' @param gam.init Initial value for gamma (skewness parameter), or value at which gamma will be fixed if `fix.gamma=TRUE`.
-#' @param fix.sigma Logical value indicating whether to fix sigma at `sig.init`. Default is `TRUE`.
+#' @param fix.sigma Logical value indicating whether to fix sigma at `sig.init`. Default is `FALSE`.
 #' @param sig.init Initial value for sigma (scale parameter), or value at which sigma will be fixed if `fix.sigma=TRUE`.
 #' @param dqlm.ind Logical value indicating whether to fix gamma at `0`, reducing the exDQLM to the special case of the DQLM. Default is `FALSE`.
 #' @param exps0 Initial value for dynamic quantile. If `exps0` is not specified, it is set to the DLM estimate of the `p0` quantile.
@@ -143,7 +143,7 @@ NULL
 
 exdqlmLDVB <- function(y, p0, model, df, dim.df,
                        fix.gamma = FALSE, gam.init = NA,
-                       fix.sigma = TRUE, sig.init = NA,
+                       fix.sigma = FALSE, sig.init = NA,
                        dqlm.ind = FALSE,
                        exps0,
                        tol = 0.1,
@@ -1562,13 +1562,19 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
                    fix.sigma=fix.sigma)
   }
 
+  elbo.trace <- if (exists("elbo.seq", inherits = FALSE)) {
+    .exdqlm_normalize_vb_trace_vector(elbo.seq, iter, "elbo")
+  } else {
+    NULL
+  }
+
   retlist$diagnostics <- list(
-    elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL,
+    elbo = elbo.trace,
     vb_trace = .exdqlm_make_vb_trace(
       iter = iter,
       engine = "LDVB",
       dqlm.ind = dqlm.ind,
-      elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL,
+      elbo = elbo.trace,
       sigma = seq.sigma,
       gamma = if (!isTRUE(dqlm.ind)) seq.gamma else NULL,
       delta_state = delta.state,
