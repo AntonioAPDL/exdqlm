@@ -117,7 +117,9 @@ Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 \item{vb_control}{Optional normalized VB control list, usually from
 \code{\link[=exal_make_vb_control]{exal_make_vb_control()}}. When supplied, the core VB arguments and warmup
 blocks are read from \code{vb_control} first and then merged with the explicit
-function arguments.}
+function arguments. When omitted, the package applies its conservative
+default warmup profile for exAL \verb{(sigma, gamma)} updates while retaining
+the built-in RHS-family \code{tau} warmup defaults.}
 
 \item{verbose}{Logical; print progress.}
 }

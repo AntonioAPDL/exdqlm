@@ -24,9 +24,6 @@
   the ISVB path.
 - Added `exdqlmTransferMCMC()` for fixed-`lam` transfer-function exDQLM
   fitting under the dynamic MCMC workflow.
-- Added `BTflowUSGS`, a monthly streamflow dataset aggregated from the staged
-  daily USGS Big Tree flow series, while keeping the legacy `BTflow` dataset
-  unchanged.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),
   return-value structure, and CRAN-safe examples aligned with existing package style.
 - Standardized VB diagnostics traces across VB fits via
@@ -56,6 +53,11 @@
   (`exdqlm.use_cpp_postpred` default `FALSE`).
 - Transfer-function wrappers now share the same augmentation helper and accept
   either one or two discount factors through `tf.df`.
+- Shared entry points now apply a conservative automatic warmup baseline for
+  the most failure-prone common blocks: RHS-family `tau` scheduling remains on
+  by default, while exAL VB/MCMC entry points apply a light `(sigma, gamma)`
+  warmup unless users explicitly override it through `vb_control` or
+  `mcmc_control`.
 
 # exdqlm 0.3.0
 

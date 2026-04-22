@@ -1,3 +1,78 @@
+# Internal shared defaults for the package-native warmup baseline.
+.exal_default_vb_sigmagam_profile <- function() {
+  list(
+    freeze_warmup_iters = 10L,
+    force_after_warmup = TRUE,
+    postwarmup_damping = 0.6,
+    postwarmup_damping_iters = 5L,
+    min_postwarmup_updates = 1L
+  )
+}
+
+.exal_default_mcmc_sigmagam_profile <- function() {
+  list(
+    freeze_burnin_iters = 25L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE,
+    delay_adapt_until_after_warmup = TRUE,
+    delay_laplace_refresh_until_after_warmup = TRUE
+  )
+}
+
+.exal_list_with_defaults <- function(defaults, overrides = NULL) {
+  overrides <- overrides %||% list()
+  if (!is.list(overrides)) overrides <- list()
+  utils::modifyList(defaults, overrides)
+}
+
+.exal_clamp_nonnegative_iters <- function(x, upper) {
+  x <- suppressWarnings(as.integer(x)[1L])
+  upper <- suppressWarnings(as.integer(upper)[1L])
+  if (!is.finite(x) || x < 0L) x <- 0L
+  if (!is.finite(upper) || upper < 0L) return(as.integer(x))
+  as.integer(min(x, upper))
+}
+
+.exal_clamp_vb_sigmagam_control <- function(sigmagam_cfg, max_iter, min_active_iters = 10L) {
+  sigmagam_cfg <- sigmagam_cfg %||% .exal_sigmagam_vb_controls(NULL)
+  max_iter <- suppressWarnings(as.integer(max_iter)[1L])
+  min_active_iters <- suppressWarnings(as.integer(min_active_iters)[1L])
+  if (!is.finite(max_iter) || max_iter < 1L) return(sigmagam_cfg)
+  if (!is.finite(min_active_iters) || min_active_iters < 0L) min_active_iters <- 10L
+
+  warmup_budget <- max(0L, max_iter - min_active_iters)
+  sigmagam_cfg$freeze_warmup_iters <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$freeze_warmup_iters,
+    warmup_budget
+  )
+
+  postwarmup_budget <- max(0L, max_iter - sigmagam_cfg$freeze_warmup_iters)
+  sigmagam_cfg$postwarmup_damping_iters <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$postwarmup_damping_iters,
+    postwarmup_budget
+  )
+  sigmagam_cfg$min_postwarmup_updates <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$min_postwarmup_updates,
+    postwarmup_budget
+  )
+  sigmagam_cfg
+}
+
+.exal_clamp_mcmc_sigmagam_control <- function(sigmagam_cfg, n_burn, min_active_burn_iters = 5L) {
+  sigmagam_cfg <- sigmagam_cfg %||% .exal_sigmagam_mcmc_controls(NULL)
+  n_burn <- suppressWarnings(as.integer(n_burn)[1L])
+  min_active_burn_iters <- suppressWarnings(as.integer(min_active_burn_iters)[1L])
+  if (!is.finite(n_burn) || n_burn < 0L) return(sigmagam_cfg)
+  if (!is.finite(min_active_burn_iters) || min_active_burn_iters < 0L) min_active_burn_iters <- 5L
+
+  warmup_budget <- max(0L, n_burn - min_active_burn_iters)
+  sigmagam_cfg$freeze_burnin_iters <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$freeze_burnin_iters,
+    warmup_budget
+  )
+  sigmagam_cfg
+}
+
 #' Build VB sigmagam warmup control
 #'
 #' Returns a normalized `sigmagam` block for `vb_control` lists used by
@@ -14,20 +89,23 @@
 #'   post-warmup updates required before convergence-style gates can fire.
 #'
 #' @return A normalized list suitable for `vb_control$sigmagam`.
+#'
+#' When called with no arguments, this returns the package's conservative
+#' default exAL `(sigma, gamma)` warmup profile.
 #' @export
 exal_make_vb_sigmagam_control <- function(
-    freeze_warmup_iters = 0L,
-    force_after_warmup = TRUE,
-    postwarmup_damping = 1.0,
-    postwarmup_damping_iters = 0L,
-    min_postwarmup_updates = 0L) {
-  .exal_sigmagam_vb_controls(list(
-    freeze_warmup_iters = freeze_warmup_iters,
-    force_after_warmup = force_after_warmup,
-    postwarmup_damping = postwarmup_damping,
-    postwarmup_damping_iters = postwarmup_damping_iters,
-    min_postwarmup_updates = min_postwarmup_updates
-  ))
+    freeze_warmup_iters = NULL,
+    force_after_warmup = NULL,
+    postwarmup_damping = NULL,
+    postwarmup_damping_iters = NULL,
+    min_postwarmup_updates = NULL) {
+  cfg <- list()
+  if (!is.null(freeze_warmup_iters)) cfg$freeze_warmup_iters <- freeze_warmup_iters
+  if (!is.null(force_after_warmup)) cfg$force_after_warmup <- force_after_warmup
+  if (!is.null(postwarmup_damping)) cfg$postwarmup_damping <- postwarmup_damping
+  if (!is.null(postwarmup_damping_iters)) cfg$postwarmup_damping_iters <- postwarmup_damping_iters
+  if (!is.null(min_postwarmup_updates)) cfg$min_postwarmup_updates <- min_postwarmup_updates
+  .exal_sigmagam_vb_controls(cfg)
 }
 
 #' Build dynamic VB latent-state warmup control
@@ -106,20 +184,25 @@ exal_make_vb_control <- function(
 #'   off until warmup ends.
 #'
 #' @return A normalized list suitable for `mcmc_control$sigmagam`.
+#'
+#' When called with no arguments, this returns the package's conservative
+#' default exAL `(sigma, gamma)` MCMC warmup profile.
 #' @export
 exal_make_mcmc_sigmagam_control <- function(
-    freeze_burnin_iters = 0L,
-    freeze_only_during_burn = TRUE,
-    force_after_warmup = TRUE,
-    delay_adapt_until_after_warmup = TRUE,
-    delay_laplace_refresh_until_after_warmup = TRUE) {
-  .exal_sigmagam_mcmc_controls(list(
-    freeze_burnin_iters = freeze_burnin_iters,
-    freeze_only_during_burn = freeze_only_during_burn,
-    force_after_warmup = force_after_warmup,
-    delay_adapt_until_after_warmup = delay_adapt_until_after_warmup,
-    delay_laplace_refresh_until_after_warmup = delay_laplace_refresh_until_after_warmup
-  ))
+    freeze_burnin_iters = NULL,
+    freeze_only_during_burn = NULL,
+    force_after_warmup = NULL,
+    delay_adapt_until_after_warmup = NULL,
+    delay_laplace_refresh_until_after_warmup = NULL) {
+  cfg <- list()
+  if (!is.null(freeze_burnin_iters)) cfg$freeze_burnin_iters <- freeze_burnin_iters
+  if (!is.null(freeze_only_during_burn)) cfg$freeze_only_during_burn <- freeze_only_during_burn
+  if (!is.null(force_after_warmup)) cfg$force_after_warmup <- force_after_warmup
+  if (!is.null(delay_adapt_until_after_warmup)) cfg$delay_adapt_until_after_warmup <- delay_adapt_until_after_warmup
+  if (!is.null(delay_laplace_refresh_until_after_warmup)) {
+    cfg$delay_laplace_refresh_until_after_warmup <- delay_laplace_refresh_until_after_warmup
+  }
+  .exal_sigmagam_mcmc_controls(cfg)
 }
 
 #' Build MCMC theta warmup control

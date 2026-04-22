@@ -181,6 +181,19 @@ test_that("static RHS VB warmup freezes tau before the forced post-warmup update
   expect_identical(state$tau_update_count, 1L)
 })
 
+test_that("static RHS-family priors keep the package default tau warmup", {
+  rhs_ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(), prior_type = "rhs")
+  rhs_ns_ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(), prior_type = "rhs_ns")
+
+  expect_identical(rhs_ctrl$freeze_tau_iters, 50L)
+  expect_identical(rhs_ctrl$freeze_tau_warmup_iters, 50L)
+  expect_true(isTRUE(rhs_ctrl$force_tau_after_warmup))
+
+  expect_identical(rhs_ns_ctrl$freeze_tau_iters, 50L)
+  expect_identical(rhs_ns_ctrl$freeze_tau_warmup_iters, 50L)
+  expect_true(isTRUE(rhs_ns_ctrl$force_tau_after_warmup))
+})
+
 test_that("static RHS collapse diagnostic flags tau collapse and zeroed slopes", {
   ctrl <- exdqlm:::.static_parse_beta_prior_controls(list(
     tau0 = 1,

@@ -21,7 +21,9 @@
 #' @param vb_control Optional normalized VB control list, usually from
 #'   [exal_make_vb_control()]. When supplied, the core VB arguments and warmup
 #'   blocks are read from `vb_control` first and then merged with the explicit
-#'   function arguments.
+#'   function arguments. When omitted, exAL-style VB fits use the package's
+#'   conservative default `(sigma, gamma)` warmup profile automatically;
+#'   explicit controls remain the advanced override path.
 #' @param verbose Logical value indicating whether progress should be displayed.
 #' @param debug_shapes Logical; if TRUE, print KF input/output shapes every `debug_every` iterations.
 #' @param debug_every  Integer; frequency (in iterations) for shape prints when `debug_shapes=TRUE`.
@@ -336,6 +338,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   compute.elbo <- isTRUE(getOption("exdqlm.compute_elbo", TRUE))
   conv.ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   sigmagam_cfg <- ld_ctrl$sigmagam %||% .exal_sigmagam_vb_controls(NULL)
+  sigmagam_cfg <- .exal_clamp_vb_sigmagam_control(sigmagam_cfg, max_iter = max_iter)
   sts_cfg <- ld_ctrl$sts %||% .exdqlm_sts_vb_controls(NULL)
   sigmagam_required_postwarmup_updates <- if (sigmagam_cfg$freeze_warmup_iters > 0L) {
     max(1L, sigmagam_cfg$min_postwarmup_updates)

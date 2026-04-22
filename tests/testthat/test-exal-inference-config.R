@@ -15,6 +15,13 @@ tiny_dyn_model_builder <- function(TT) {
 }
 
 test_that("public builder helpers normalize package warmup blocks", {
+  vb_sigmagam_default <- exal_make_vb_sigmagam_control()
+  expect_equal(vb_sigmagam_default$freeze_warmup_iters, 10L)
+  expect_true(isTRUE(vb_sigmagam_default$force_after_warmup))
+  expect_equal(vb_sigmagam_default$postwarmup_damping, 0.6, tolerance = 1e-12)
+  expect_equal(vb_sigmagam_default$postwarmup_damping_iters, 5L)
+  expect_equal(vb_sigmagam_default$min_postwarmup_updates, 1L)
+
   vb_sigmagam <- exal_make_vb_sigmagam_control(
     freeze_warmup_iters = 10L,
     force_after_warmup = FALSE,
@@ -70,6 +77,13 @@ test_that("public builder helpers normalize package warmup blocks", {
   expect_equal(dqlm_sigma$freeze_burnin_iters, 9L)
   expect_false(isTRUE(dqlm_sigma$trace))
 
+  mcmc_sigmagam_default <- exal_make_mcmc_sigmagam_control()
+  expect_equal(mcmc_sigmagam_default$freeze_burnin_iters, 25L)
+  expect_true(isTRUE(mcmc_sigmagam_default$freeze_only_during_burn))
+  expect_true(isTRUE(mcmc_sigmagam_default$force_after_warmup))
+  expect_true(isTRUE(mcmc_sigmagam_default$delay_adapt_until_after_warmup))
+  expect_true(isTRUE(mcmc_sigmagam_default$delay_laplace_refresh_until_after_warmup))
+
   mcmc_control <- exal_make_mcmc_control(
     n_burn = 25L,
     n_mcmc = 10L,
@@ -124,7 +138,92 @@ test_that("static entrypoints accept normalized control builders", {
     thin = 1L,
     verbose = FALSE
   )
-  expect_equal(mcmc_fit$misc$sigmagam$freeze_burnin_iters, 3L)
+  expect_equal(mcmc_fit$diagnostics$sigmagam$freeze_burnin_iters, 3L)
+})
+
+test_that("entrypoints apply the default warmup profile and allow explicit opt-out", {
+  set.seed(1803)
+  dat <- tiny_static_xy_builder()
+
+  vb_fit_default <- exalStaticLDVB(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    max_iter = 40L,
+    n_samp_xi = 30L,
+    verbose = FALSE
+  )
+  expect_equal(vb_fit_default$misc$sigmagam$freeze_warmup_iters, 10L)
+  expect_equal(vb_fit_default$misc$sigmagam$postwarmup_damping, 0.6, tolerance = 1e-12)
+
+  vb_fit_none <- exalStaticLDVB(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    max_iter = 40L,
+    vb_control = exal_make_vb_control(
+      n_samp_xi = 30L,
+      sigmagam = exal_make_vb_sigmagam_control(
+        freeze_warmup_iters = 0L,
+        postwarmup_damping = 1.0,
+        postwarmup_damping_iters = 0L,
+        min_postwarmup_updates = 0L
+      )
+    ),
+    verbose = FALSE
+  )
+  expect_equal(vb_fit_none$misc$sigmagam$freeze_warmup_iters, 0L)
+
+  mcmc_fit_default <- exalStaticMCMC(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    n.burn = 30L,
+    n.mcmc = 12L,
+    thin = 1L,
+    verbose = FALSE
+  )
+  expect_equal(mcmc_fit_default$diagnostics$sigmagam$freeze_burnin_iters, 25L)
+
+  mcmc_fit_none <- exalStaticMCMC(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    n.burn = 30L,
+    n.mcmc = 12L,
+    thin = 1L,
+    mcmc_control = exal_make_mcmc_control(
+      sigmagam = exal_make_mcmc_sigmagam_control(freeze_burnin_iters = 0L)
+    ),
+    verbose = FALSE
+  )
+  expect_equal(mcmc_fit_none$diagnostics$sigmagam$freeze_burnin_iters, 0L)
+})
+
+test_that("default sigmagam warmup clamps to the available iteration budget", {
+  set.seed(1804)
+  dat <- tiny_static_xy_builder()
+
+  vb_fit <- exalStaticLDVB(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    max_iter = 12L,
+    n_samp_xi = 30L,
+    verbose = FALSE
+  )
+  expect_equal(vb_fit$misc$sigmagam$freeze_warmup_iters, 2L)
+
+  mcmc_fit <- exalStaticMCMC(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    n.burn = 6L,
+    n.mcmc = 8L,
+    thin = 1L,
+    verbose = FALSE
+  )
+  expect_equal(mcmc_fit$diagnostics$sigmagam$freeze_burnin_iters, 1L)
 })
 
 test_that("dynamic entrypoints accept normalized control builders", {
@@ -176,4 +275,38 @@ test_that("dynamic entrypoints accept normalized control builders", {
   )
   expect_equal(mcmc_fit$diagnostics$latent_state$freeze_burnin_iters, 2L)
   expect_identical(mcmc_fit$diagnostics$latent_state$mode, "u_st_pair")
+})
+
+test_that("dynamic entrypoints use the default sigmagam warmup profile", {
+  set.seed(1805)
+  TT <- 18L
+  y <- cumsum(stats::rnorm(TT, sd = 0.15))
+  model <- tiny_dyn_model_builder(TT)
+
+  old_opts <- options(
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.use_cpp_mcmc = FALSE,
+    exdqlm.compute_elbo = TRUE,
+    exdqlm.max_iter = 30L,
+    exdqlm.vb.min_iter = 5L,
+    exdqlm.vb.patience = 2L
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  vb_fit <- exdqlmLDVB(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    fix.sigma = FALSE,
+    n.samp = 10,
+    verbose = FALSE
+  )
+  expect_equal(vb_fit$misc$sigmagam$freeze_warmup_iters, 10L)
+
+  mcmc_fit <- exdqlmMCMC(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    fix.sigma = FALSE,
+    n.burn = 30L,
+    n.mcmc = 10L,
+    verbose = FALSE
+  )
+  expect_equal(mcmc_fit$diagnostics$sigmagam$freeze_burnin_iters, 25L)
 })

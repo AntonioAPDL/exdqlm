@@ -108,6 +108,29 @@ pak::pak("AntonioAPDL/exdqlm")
 | Static exAL regression | `exalStaticLDVB()` | You want a fast Bayesian approximation, often useful before MCMC | `exalStaticMCMC()` |
 | Static exAL regression with posterior draws | `exalStaticLDVB()` or `exalStaticMCMC()` | Use `exalStaticLDVB()` for a fast approximate draw-based summary and `exalStaticMCMC()` for the simulation baseline | `init.from.vb = TRUE` can help the MCMC fit |
 
+## Default warmup behavior
+
+The package now applies a **conservative automatic warmup profile** for the
+most numerically delicate shared blocks, so ordinary users do not have to
+assemble nested warmup lists just to get a stable first fit.
+
+- `beta_prior = "rhs"` and `beta_prior = "rhs_ns"` keep the package's shared
+  `tau` warmup schedule on by default.
+- exAL VB entry points (`exalStaticLDVB()`, `exdqlmLDVB()`) apply a light
+  automatic warmup for the `(sigma, gamma)` block.
+- exAL MCMC entry points (`exalStaticMCMC()`, `exdqlmMCMC()`) apply a light
+  automatic `(sigma, gamma)` warmup and keep VB warm starts available for the
+  harder cases where they help.
+- Advanced warmup control remains available through `vb_control` and
+  `mcmc_control`, but those controls are now intended as the **override path**,
+  not the default user workflow.
+
+In practice, the recommended workflow is:
+
+1. fit the model with the default API;
+2. inspect diagnostics if the fit still looks unstable;
+3. only then override the warmup controls explicitly.
+
 ## Quick start (≤ 10 lines)
 
 Local-level model at a **single quantile** (the median). We fix **scale** and **skewness** to keep it fast and stable for CRAN; we keep the **pure-R** path.

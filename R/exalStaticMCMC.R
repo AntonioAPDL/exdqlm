@@ -84,7 +84,9 @@
 #' @param mcmc_control Optional normalized MCMC control list, usually from
 #'   [exal_make_mcmc_control()]. When supplied, the core MCMC arguments and
 #'   warmup blocks are read from `mcmc_control` first and then merged with the
-#'   explicit function arguments.
+#'   explicit function arguments. When omitted, the package applies its
+#'   conservative default exAL `(sigma, gamma)` warmup profile and keeps the
+#'   RHS-family `tau` warmup defaults active through the shared prior layer.
 #' @param mh.proposal Character string controlling the exAL nonconjugate update
 #'   kernel. \code{"slice"} (default) uses an exact bounded univariate slice
 #'   sampler on \code{gamma} (with \code{sigma} updated from its conditional),
@@ -310,6 +312,7 @@ exalStaticMCMC <- function(
     mh_laplace_refresh_weight <- 0.60
   }
   sigmagam_ctrl <- .exal_sigmagam_mcmc_controls(sigmagam_controls)
+  sigmagam_ctrl <- .exal_clamp_mcmc_sigmagam_control(sigmagam_ctrl, n_burn = n.burn)
   slice.width <- as.numeric(slice.width)[1]
   if (!is.finite(slice.width) || slice.width <= 0) slice.width <- 0.1
   slice.max.steps <- as.numeric(slice.max.steps)[1]
