@@ -24,6 +24,7 @@ exalStaticMCMC(
   init.from.vb = FALSE,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
+  mcmc_control = NULL,
   sigmagam_controls = NULL,
   mh.proposal = c("slice", "laplace_rw", "rw", "slice_eta", "laplace_local"),
   mh.adapt = TRUE,
@@ -125,6 +126,13 @@ posterior moments as MCMC initialization.}
 
 \item{vb_init_fit}{Optional precomputed static VB fit object used as the
 warm-start reference when \code{init.from.vb = TRUE}.}
+
+\item{mcmc_control}{Optional normalized MCMC control list, usually from
+\code{\link[=exal_make_mcmc_control]{exal_make_mcmc_control()}}. When supplied, the core MCMC arguments and
+warmup blocks are read from \code{mcmc_control} first and then merged with the
+explicit function arguments. When omitted, the package applies its
+conservative default exAL \verb{(sigma, gamma)} warmup profile and keeps the
+RHS-family \code{tau} warmup defaults active through the shared prior layer.}
 
 \item{mh.proposal}{Character string controlling the exAL nonconjugate update
 kernel. \code{"slice"} (default) uses an exact bounded univariate slice

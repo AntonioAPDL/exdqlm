@@ -26,6 +26,13 @@
   fitting under the dynamic MCMC workflow.
 - Documentation updates for new APIs: explicit argument contracts (types/dims),
   return-value structure, and CRAN-safe examples aligned with existing package style.
+- Standardized VB diagnostics traces across VB fits via
+  `fit$diagnostics$vb_trace`, exposing iteration-wise ELBO, `sigma`,
+  `gamma`, and convergence deltas in a plot-ready table while preserving the
+  existing engine-specific diagnostics.
+- Standardized the main user-facing naming scheme around `exalStatic...`,
+  `exdqlmTransfer...`, and `quantileSynthesis()`, while keeping the earlier
+  static/transfer/synthesis entry points as deprecated compatibility aliases.
 
 ## Fixes and clarifications
 - Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for parity
@@ -36,9 +43,8 @@
   with the Jacobian contract used in the static theory reference.
 - Clarified that C++ `elbo.part` in `kalman.cpp` is an internal diagnostic;
   package-level ELBO reporting remains R-level contract output.
-- Added dedicated static-fit object generics for `exalStaticMCMC` and
-  `exalStaticLDVB`, while keeping qdesn low-level exAL fit classes available
-  where needed.
+- Added dedicated static-fit object generics for `exalStaticMCMC` and `exalStaticLDVB`
+  and aligned post-fit compatibility for exdqlm classes.
 - Replaced deprecated `arma::is_finite(...)` usage in FFBS C++ with
   `std::isfinite(...)` to eliminate compiler deprecation warnings.
 - Optional C++ builder acceleration remains opt-in (`exdqlm.use_cpp_builders`
@@ -47,6 +53,11 @@
   (`exdqlm.use_cpp_postpred` default `FALSE`).
 - Transfer-function wrappers now share the same augmentation helper and accept
   either one or two discount factors through `tf.df`.
+- Shared entry points now apply a conservative automatic warmup baseline for
+  the most failure-prone common blocks: RHS-family `tau` scheduling remains on
+  by default, while exAL VB/MCMC entry points apply a light `(sigma, gamma)`
+  warmup unless users explicitly override it through `vb_control` or
+  `mcmc_control`.
 
 # exdqlm 0.3.0
 

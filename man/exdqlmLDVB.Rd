@@ -3,28 +3,6 @@
 \name{exdqlmLDVB}
 \alias{exdqlmLDVB}
 \title{exDQLM - LDVB algorithm (Laplace-Delta)}
-\usage{
-exdqlmLDVB(
-  y,
-  p0,
-  model,
-  df,
-  dim.df,
-  fix.gamma = FALSE,
-  gam.init = NA,
-  fix.sigma = TRUE,
-  sig.init = NA,
-  dqlm.ind = FALSE,
-  exps0,
-  tol = 0.1,
-  n.samp = 200,
-  PriorSigma = NULL,
-  PriorGamma = NULL,
-  verbose = TRUE,
-  debug_shapes = FALSE,
-  debug_every = 5
-)
-}
 \arguments{
 \item{y}{A univariate time-series.}
 
@@ -55,6 +33,13 @@ exdqlmLDVB(
 \item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape \code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean 1 (or \code{sig.init} if provided) and variance 10.}
 
 \item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
+
+\item{vb_control}{Optional normalized VB control list, usually from
+\code{\link[=exal_make_vb_control]{exal_make_vb_control()}}. When supplied, the core VB arguments and warmup
+blocks are read from \code{vb_control} first and then merged with the explicit
+function arguments. When omitted, exAL-style VB fits use the package's
+conservative default \verb{(sigma, gamma)} warmup profile automatically;
+explicit controls remain the advanced override path.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 

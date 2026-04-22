@@ -14,7 +14,8 @@ exal_make_vb_control(
   sigmagam = NULL,
   sts = NULL,
   rhs = NULL,
-  diagnostics = NULL
+  diagnostics = NULL,
+  control = NULL
 )
 }
 \arguments{
@@ -35,6 +36,8 @@ dynamic latent \code{s_t} warmup block used by \code{\link[=exdqlmLDVB]{exdqlmLD
 \item{diagnostics}{Optional diagnostics block. Supported keys include
 \code{rhs_trace}, \code{rhs_deep}, \code{rhs_trace_thresholds}, \code{rhs_trace_top_k}, and
 \code{rhs_trace_eps}.}
+
+\item{control}{Optional existing control list to update and normalize.}
 }
 \value{
 A normalized list suitable for \code{vb_control}.

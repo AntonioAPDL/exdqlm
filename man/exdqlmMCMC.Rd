@@ -3,69 +3,9 @@
 \name{exdqlmMCMC}
 \alias{exdqlmMCMC}
 \title{exDQLM - MCMC algorithm}
-\usage{
-exdqlmMCMC(
-  y,
-  p0,
-  model,
-  df,
-  dim.df,
-  fix.gamma = FALSE,
-  gam.init = NA,
-  fix.sigma = FALSE,
-  sig.init = NA,
-  dqlm.ind = FALSE,
-  Sig.mh,
-  joint.sample = FALSE,
-  n.burn = 2000,
-  n.mcmc = 1500,
-  init.from.isvb = FALSE,
-  PriorSigma = NULL,
-  PriorGamma = NULL,
-  verbose = TRUE,
-  init.from.vb = TRUE,
-  vb_init_controls = NULL,
-  vb_init_fit = NULL,
-  sigmagam_controls = NULL,
-  latent_state_controls = NULL,
-  theta_state_controls = NULL,
-  dqlm_sigma_controls = NULL,
-  mh.proposal = c("slice", "laplace_rw", "rw"),
-  mh.adapt = TRUE,
-  mh.adapt.interval = 50L,
-  mh.target.accept = c(0.2, 0.45),
-  mh.scale.bounds = c(0.1, 10),
-  mh.max_scale.step = 0.35,
-  mh.min_burn_adapt = 50L,
-  slice.width = 0.1,
-  slice.max.steps = Inf,
-  trace.diagnostics = TRUE,
-  trace.every = 1L,
-  verbose.every = 500L,
-  progress_callback = NULL
-)
-}
 \arguments{
-\item{y}{A univariate time-series.}
-
-\item{p0}{The quantile of interest, a value between 0 and 1.}
-
-\item{model}{List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.}
-
-\item{df}{Discount factors for each block.}
-
-\item{dim.df}{Dimension of each block of discount factors.}
-
-\item{fix.gamma}{Logical value indicating whether to fix gamma at \code{gam.init}. Default is \code{FALSE}.}
-
-\item{gam.init}{Initial value for gamma (skewness parameter), or value at which gamma will be fixed if \code{fix.gamma=TRUE}.}
-
 \item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}.
 Default is \code{FALSE}.}
-
-\item{sig.init}{Initial value for sigma (scale parameter), or value at which sigma will be fixed if \code{fix.sigma=TRUE}.}
-
-\item{dqlm.ind}{Logical value indicating whether to fix gamma at \code{0}, reducing the exDQLM to the special case of the DQLM. Default is \code{FALSE}.}
 
 \item{Sig.mh}{Covariance matrix used in the random walk MH step to jointly sample sigma and gamma.}
 
@@ -80,12 +20,6 @@ warm start when \code{init.from.vb = TRUE}. Default is \code{FALSE}, which favor
 \code{LDVB} as the default VB warm start. This flag only chooses the
 warm-start source; it does not change the subsequent MCMC proposal kernel.}
 
-\item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape \code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean 1 (or \code{sig.init} if provided) and variance 10.}
-
-\item{PriorGamma}{List of parameters for truncated student-t prior on gamma; center \code{m_gam}, scale \code{s_gam} and degrees of freedom \code{df_gam}. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.}
-
-\item{verbose}{Logical value indicating whether progress should be displayed.}
-
 \item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization
 step (\code{LDVB} by default, or \code{ISVB} when \code{init.from.isvb = TRUE}) and
 initialize MCMC from converged VB moments. Default is \code{TRUE}. If
@@ -97,6 +31,13 @@ backward compatibility.}
 
 \item{vb_init_fit}{Optional precomputed VB fit object. If supplied, warm start
 uses this object directly and does not rerun VB internally.}
+
+\item{mcmc_control}{Optional normalized MCMC control list, usually from
+\code{\link[=exal_make_mcmc_control]{exal_make_mcmc_control()}}. When supplied, the core MCMC arguments and
+warmup blocks are read from \code{mcmc_control} first and then merged with the
+explicit function arguments. When omitted, exAL-style dynamic MCMC uses the
+package's conservative default \verb{(sigma, gamma)} warmup profile
+automatically; explicit controls remain the advanced override path.}
 
 \item{sigmagam_controls}{Optional list controlling warmup/freeze for the
 exDQLM sigma/gamma block during MCMC.}

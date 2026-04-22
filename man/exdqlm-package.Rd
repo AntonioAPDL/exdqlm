@@ -28,8 +28,9 @@ transfer-function extensions through \code{\link[=exdqlmTransferLDVB]{exdqlmTran
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
 and \code{\link[=regMod]{regMod()}}.
 \item Multi-quantile post-processing via
-\code{\link[=quantileSynthesis]{quantileSynthesis()}} for non-crossing predictive
-synthesis from separately fitted quantiles.
+\code{\link[=quantileSynthesis]{quantileSynthesis()}} for post hoc posterior-predictive
+synthesis from separately fitted quantiles into a unified
+predictive distribution.
 }
 }
 
@@ -44,8 +45,14 @@ exAL regression.
 (\code{"rhs"}), and \code{rhs_ns}.
 \item Reduced AL/DQLM paths through \code{dqlm.ind = TRUE} in both dynamic and
 static APIs.
-\item ELBO diagnostics and optional C++ acceleration for selected
-state-space computations.
+\item Standardized VB diagnostics traces via
+\code{fit$diagnostics$vb_trace} for ELBO, \code{sigma}, \code{gamma}, and
+convergence deltas across VB engines.
+\item Conservative automatic warmup defaults for the most failure-prone
+shared blocks: RHS-family \code{tau} scheduling plus exAL
+\verb{(sigma, gamma)} warmup in VB and MCMC entry points, with explicit
+controls available only when users need to override the defaults.
+\item Optional C++ acceleration for selected state-space computations.
 }
 }
 

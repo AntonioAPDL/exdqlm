@@ -5,16 +5,16 @@
 \title{Build MCMC RHS tau warmup control}
 \usage{
 exal_make_mcmc_rhs_control(
-  freeze_tau_burnin_iters = 0L,
-  freeze_tau_only_during_burn = TRUE,
-  width_adapt_enabled = FALSE,
-  width_adapt_warmup_iters = 0L,
-  width_adapt_only_during_burn = TRUE,
-  target_score_low = -1.5,
-  target_score_high = 1.5,
-  step_size = 0.05,
-  width_min = 0.02,
-  width_max = 2.5
+  freeze_tau_burnin_iters = NULL,
+  freeze_tau_only_during_burn = NULL,
+  width_adapt_enabled = NULL,
+  width_adapt_warmup_iters = NULL,
+  width_adapt_only_during_burn = NULL,
+  target_score_low = NULL,
+  target_score_high = NULL,
+  step_size = NULL,
+  width_min = NULL,
+  width_max = NULL
 )
 }
 \arguments{
@@ -40,6 +40,9 @@ only during burn-in.}
 }
 \value{
 A normalized list suitable for \code{mcmc_control$rhs}.
+
+When called with no arguments, this returns the package's conservative
+default RHS tau warmup profile for QDESN-style readout MCMC.
 }
 \description{
 Returns a normalized \code{mcmc_control$rhs} block for \code{\link[=exal_mcmc_fit]{exal_mcmc_fit()}} and

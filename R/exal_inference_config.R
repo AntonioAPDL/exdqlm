@@ -42,6 +42,118 @@
   )
 }
 
+.exal_default_vb_sigmagam_profile <- function() {
+  list(
+    freeze_warmup_iters = 10L,
+    force_after_warmup = TRUE,
+    postwarmup_damping = 0.6,
+    postwarmup_damping_iters = 5L,
+    min_postwarmup_updates = 1L
+  )
+}
+
+.exal_default_mcmc_sigmagam_profile <- function() {
+  list(
+    freeze_burnin_iters = 25L,
+    freeze_only_during_burn = TRUE,
+    force_after_warmup = TRUE,
+    delay_adapt_until_after_warmup = TRUE,
+    delay_laplace_refresh_until_after_warmup = TRUE
+  )
+}
+
+.exal_default_mcmc_rhs_profile <- function() {
+  list(
+    freeze_tau_burnin_iters = 50L,
+    freeze_tau_only_during_burn = TRUE,
+    width_adapt = list(
+      enabled = FALSE,
+      warmup_iters = 0L,
+      only_during_burn = TRUE,
+      target_score_low = -1.5,
+      target_score_high = 1.5,
+      step_size = 0.05,
+      width_min = 0.02,
+      width_max = 2.5
+    )
+  )
+}
+
+.exal_list_with_defaults <- function(defaults, overrides = NULL) {
+  overrides <- overrides %||% list()
+  if (!is.list(overrides)) overrides <- list()
+  utils::modifyList(defaults, overrides)
+}
+
+.exal_clamp_nonnegative_iters <- function(x, upper) {
+  x <- suppressWarnings(as.integer(x)[1L])
+  upper <- suppressWarnings(as.integer(upper)[1L])
+  if (!is.finite(x) || x < 0L) x <- 0L
+  if (!is.finite(upper) || upper < 0L) return(as.integer(x))
+  as.integer(min(x, upper))
+}
+
+.exal_clamp_vb_sigmagam_control <- function(sigmagam_cfg, max_iter, min_active_iters = 10L) {
+  sigmagam_cfg <- sigmagam_cfg %||% .exal_normalize_vb_sigmagam_cfg(NULL)
+  max_iter <- suppressWarnings(as.integer(max_iter)[1L])
+  min_active_iters <- suppressWarnings(as.integer(min_active_iters)[1L])
+  if (!is.finite(max_iter) || max_iter < 1L) return(sigmagam_cfg)
+  if (!is.finite(min_active_iters) || min_active_iters < 0L) min_active_iters <- 10L
+
+  warmup_budget <- max(0L, max_iter - min_active_iters)
+  sigmagam_cfg$freeze_warmup_iters <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$freeze_warmup_iters,
+    warmup_budget
+  )
+
+  postwarmup_budget <- max(0L, max_iter - sigmagam_cfg$freeze_warmup_iters)
+  sigmagam_cfg$postwarmup_damping_iters <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$postwarmup_damping_iters,
+    postwarmup_budget
+  )
+  sigmagam_cfg$min_postwarmup_updates <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$min_postwarmup_updates,
+    postwarmup_budget
+  )
+  sigmagam_cfg
+}
+
+.exal_clamp_mcmc_sigmagam_control <- function(sigmagam_cfg, n_burn, min_active_burn_iters = 5L) {
+  sigmagam_cfg <- sigmagam_cfg %||% .exal_normalize_mcmc_sigmagam_cfg(NULL)
+  n_burn <- suppressWarnings(as.integer(n_burn)[1L])
+  min_active_burn_iters <- suppressWarnings(as.integer(min_active_burn_iters)[1L])
+  if (!is.finite(n_burn) || n_burn < 0L) return(sigmagam_cfg)
+  if (!is.finite(min_active_burn_iters) || min_active_burn_iters < 0L) min_active_burn_iters <- 5L
+
+  warmup_budget <- max(0L, n_burn - min_active_burn_iters)
+  sigmagam_cfg$freeze_burnin_iters <- .exal_clamp_nonnegative_iters(
+    sigmagam_cfg$freeze_burnin_iters,
+    warmup_budget
+  )
+  sigmagam_cfg
+}
+
+.exal_clamp_mcmc_rhs_control <- function(rhs_cfg, n_burn, min_active_burn_iters = 5L) {
+  rhs_cfg <- rhs_cfg %||% .exal_normalize_mcmc_rhs_cfg(NULL)
+  n_burn <- suppressWarnings(as.integer(n_burn)[1L])
+  min_active_burn_iters <- suppressWarnings(as.integer(min_active_burn_iters)[1L])
+  if (!is.finite(n_burn) || n_burn < 0L) return(rhs_cfg)
+  if (!is.finite(min_active_burn_iters) || min_active_burn_iters < 0L) min_active_burn_iters <- 5L
+
+  warmup_budget <- max(0L, n_burn - min_active_burn_iters)
+  rhs_cfg$freeze_tau_burnin_iters <- .exal_clamp_nonnegative_iters(
+    rhs_cfg$freeze_tau_burnin_iters,
+    warmup_budget
+  )
+  if (!is.null(rhs_cfg$width_adapt) && is.list(rhs_cfg$width_adapt)) {
+    rhs_cfg$width_adapt$warmup_iters <- .exal_clamp_nonnegative_iters(
+      rhs_cfg$width_adapt$warmup_iters,
+      warmup_budget
+    )
+  }
+  rhs_cfg
+}
+
 .exal_enforce_rhs_no_intercept_shrink <- function(rhs_cfg, context = "inference") {
   `%||%` <- function(a, b) if (is.null(a)) b else a
   rhs_cfg <- rhs_cfg %||% list()
@@ -59,13 +171,7 @@
     tol = 1e-4,
     n_samp_xi = 500L,
     verbose = TRUE,
-    sigmagam = list(
-      freeze_warmup_iters = 0L,
-      force_after_warmup = TRUE,
-      postwarmup_damping = 1.0,
-      postwarmup_damping_iters = 0L,
-      min_postwarmup_updates = 0L
-    ),
+    sigmagam = .exal_default_vb_sigmagam_profile(),
     sts = list(
       freeze_warmup_iters = 0L,
       force_after_warmup = TRUE,
@@ -103,13 +209,7 @@
     init_from_vb = TRUE,
     vb_warm_start_seed = NULL,
     vb_warm_start_control = list(),
-    sigmagam = list(
-      freeze_burnin_iters = 0L,
-      freeze_only_during_burn = TRUE,
-      force_after_warmup = TRUE,
-      delay_adapt_until_after_warmup = TRUE,
-      delay_laplace_refresh_until_after_warmup = TRUE
-    ),
+    sigmagam = .exal_default_mcmc_sigmagam_profile(),
     theta = list(
       enabled = FALSE,
       freeze_burnin_iters = 0L,
@@ -180,20 +280,7 @@
       eigen_floor_rel = 1e-8,
       trace = TRUE
     ),
-    rhs = list(
-      freeze_tau_burnin_iters = 0L,
-      freeze_tau_only_during_burn = TRUE,
-      width_adapt = list(
-        enabled = FALSE,
-        warmup_iters = 0L,
-        only_during_burn = TRUE,
-        target_score_low = -1.5,
-        target_score_high = 1.5,
-        step_size = 0.05,
-        width_min = 0.02,
-        width_max = 2.5
-      )
-    ),
+    rhs = .exal_default_mcmc_rhs_profile(),
     slice = list(
       core_update_mode = "sigma_then_gamma",
       width_gamma = 1.0,
@@ -313,19 +400,19 @@
 
 .exal_normalize_vb_sigmagam_cfg <- function(sigmagam_cfg = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
-  sigmagam_cfg <- .exal_list_or_empty(sigmagam_cfg)
+  sigmagam_cfg <- .exal_list_with_defaults(.exal_default_vb_sigmagam_profile(), sigmagam_cfg)
 
   freeze_warmup_iters <- suppressWarnings(as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
       sigmagam_cfg$freeze_sigmagam_warmup_iters %||%
-      0L
+      .exal_default_vb_sigmagam_profile()$freeze_warmup_iters
   )[1L])
   if (!is.finite(freeze_warmup_iters) || freeze_warmup_iters < 0L) freeze_warmup_iters <- 0L
 
   postwarmup_damping <- as.numeric(
     sigmagam_cfg$postwarmup_damping %||%
       sigmagam_cfg$sigmagam_postwarmup_damping %||%
-      1.0
+      .exal_default_vb_sigmagam_profile()$postwarmup_damping
   )[1L]
   if (!is.finite(postwarmup_damping) || postwarmup_damping <= 0 || postwarmup_damping > 1) {
     postwarmup_damping <- 1.0
@@ -334,7 +421,7 @@
   postwarmup_damping_iters <- suppressWarnings(as.integer(
     sigmagam_cfg$postwarmup_damping_iters %||%
       sigmagam_cfg$sigmagam_postwarmup_damping_iters %||%
-      0L
+      .exal_default_vb_sigmagam_profile()$postwarmup_damping_iters
   )[1L])
   if (!is.finite(postwarmup_damping_iters) || postwarmup_damping_iters < 0L) {
     postwarmup_damping_iters <- 0L
@@ -343,7 +430,7 @@
   min_postwarmup_updates <- suppressWarnings(as.integer(
     sigmagam_cfg$min_postwarmup_updates %||%
       sigmagam_cfg$sigmagam_min_postwarmup_updates %||%
-      0L
+      .exal_default_vb_sigmagam_profile()$min_postwarmup_updates
   )[1L])
   if (!is.finite(min_postwarmup_updates) || min_postwarmup_updates < 0L) {
     min_postwarmup_updates <- 0L
@@ -384,12 +471,12 @@
 
 .exal_normalize_mcmc_sigmagam_cfg <- function(sigmagam_cfg = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
-  sigmagam_cfg <- .exal_list_or_empty(sigmagam_cfg)
+  sigmagam_cfg <- .exal_list_with_defaults(.exal_default_mcmc_sigmagam_profile(), sigmagam_cfg)
 
   freeze_burnin_iters <- suppressWarnings(as.integer(
     sigmagam_cfg$freeze_burnin_iters %||%
       sigmagam_cfg$freeze_sigmagam_burnin_iters %||%
-      0L
+      .exal_default_mcmc_sigmagam_profile()$freeze_burnin_iters
   )[1L])
   if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
 
@@ -646,13 +733,13 @@
 
 .exal_normalize_mcmc_rhs_cfg <- function(rhs_cfg = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
-  rhs_cfg <- .exal_list_or_empty(rhs_cfg)
+  rhs_cfg <- .exal_list_with_defaults(.exal_default_mcmc_rhs_profile(), rhs_cfg)
   width_adapt_cfg <- .exal_list_or_empty(rhs_cfg$width_adapt)
 
   freeze_tau_burnin_iters <- suppressWarnings(as.integer(
     rhs_cfg$freeze_tau_burnin_iters %||%
       rhs_cfg$freeze_tau_iters %||%
-      0L
+      .exal_default_mcmc_rhs_profile()$freeze_tau_burnin_iters
   )[1L])
   if (!is.finite(freeze_tau_burnin_iters) || freeze_tau_burnin_iters < 0L) {
     freeze_tau_burnin_iters <- 0L
@@ -1025,6 +1112,10 @@
 
   vb_online_cfg <- .exal_normalize_vb_online_cfg(vb_cfg$online %||% vb_online_cfg)
   vb_args_base$sigmagam <- .exal_normalize_vb_sigmagam_cfg(vb_cfg$sigmagam %||% vb_args_base$sigmagam %||% list())
+  vb_args_base$sigmagam <- .exal_clamp_vb_sigmagam_control(
+    vb_args_base$sigmagam,
+    max_iter = vb_args_base$max_iter
+  )
   vb_args_base$sts <- .exdqlm_sts_vb_controls(vb_cfg$sts %||% vb_args_base$sts %||% list())
 
   init_cfg <- .exal_list_or_empty(vb_cfg$init)
@@ -1081,6 +1172,7 @@
     control$vb_warm_start_control <- modifyList(control$vb_warm_start_control %||% list(), mcmc_cfg$vb_warm_start_control)
   }
   control$sigmagam <- .exal_normalize_mcmc_sigmagam_cfg(mcmc_cfg$sigmagam %||% control$sigmagam %||% list())
+  control$sigmagam <- .exal_clamp_mcmc_sigmagam_control(control$sigmagam, n_burn = control$n_burn)
   control$theta <- .exal_normalize_mcmc_theta_cfg(mcmc_cfg$theta %||% mcmc_cfg$beta %||% control$theta %||% list())
   control$latent_state <- .exdqlm_latent_state_mcmc_controls(
     mcmc_cfg$latent_state %||% control$latent_state %||% list()
@@ -1094,9 +1186,14 @@
   control$vb_warm_start_control$sigmagam <- .exal_normalize_vb_sigmagam_cfg(
     control$vb_warm_start_control$sigmagam %||% list()
   )
+  control$vb_warm_start_control$sigmagam <- .exal_clamp_vb_sigmagam_control(
+    control$vb_warm_start_control$sigmagam,
+    max_iter = control$vb_warm_start_control$max_iter %||% .exal_default_vb_args_base()$max_iter
+  )
   if (!is.null(mcmc_cfg$store_latent_draws)) control$store_latent_draws <- isTRUE(mcmc_cfg$store_latent_draws)
   if (!is.null(mcmc_cfg$store_rhs_draws)) control$store_rhs_draws <- isTRUE(mcmc_cfg$store_rhs_draws)
   control$rhs <- .exal_normalize_mcmc_rhs_cfg(mcmc_cfg$rhs %||% control$rhs %||% list())
+  control$rhs <- .exal_clamp_mcmc_rhs_control(control$rhs, n_burn = control$n_burn)
   if (!is.null(mcmc_cfg$slice) && is.list(mcmc_cfg$slice)) {
     control$slice <- modifyList(control$slice %||% list(), mcmc_cfg$slice)
   }
@@ -1218,6 +1315,9 @@ exal_make_beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), tau2 = NULL
 #'   fire.
 #'
 #' @return A normalized list suitable for `vb_control$sigmagam`.
+#'
+#' When called with no arguments, this returns the package's conservative
+#' default exAL `(sigma, gamma)` warmup profile.
 #' @export
 #'
 #' @examples
@@ -1228,18 +1328,18 @@ exal_make_beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), tau2 = NULL
 #'   postwarmup_damping_iters = 6L
 #' )
 exal_make_vb_sigmagam_control <- function(
-    freeze_warmup_iters = 0L,
-    force_after_warmup = TRUE,
-    postwarmup_damping = 1.0,
-    postwarmup_damping_iters = 0L,
-    min_postwarmup_updates = 0L) {
-  .exal_normalize_vb_sigmagam_cfg(list(
-    freeze_warmup_iters = freeze_warmup_iters,
-    force_after_warmup = force_after_warmup,
-    postwarmup_damping = postwarmup_damping,
-    postwarmup_damping_iters = postwarmup_damping_iters,
-    min_postwarmup_updates = min_postwarmup_updates
-  ))
+    freeze_warmup_iters = NULL,
+    force_after_warmup = NULL,
+    postwarmup_damping = NULL,
+    postwarmup_damping_iters = NULL,
+    min_postwarmup_updates = NULL) {
+  cfg <- list()
+  if (!is.null(freeze_warmup_iters)) cfg$freeze_warmup_iters <- freeze_warmup_iters
+  if (!is.null(force_after_warmup)) cfg$force_after_warmup <- force_after_warmup
+  if (!is.null(postwarmup_damping)) cfg$postwarmup_damping <- postwarmup_damping
+  if (!is.null(postwarmup_damping_iters)) cfg$postwarmup_damping_iters <- postwarmup_damping_iters
+  if (!is.null(min_postwarmup_updates)) cfg$min_postwarmup_updates <- min_postwarmup_updates
+  .exal_normalize_vb_sigmagam_cfg(cfg)
 }
 
 #' Build dynamic VB latent-state warmup control
@@ -1339,6 +1439,7 @@ exal_make_vb_online_control <- function(
 #' @param diagnostics Optional diagnostics block. Supported keys include
 #'   `rhs_trace`, `rhs_deep`, `rhs_trace_thresholds`, `rhs_trace_top_k`, and
 #'   `rhs_trace_eps`.
+#' @param control Optional existing control list to update and normalize.
 #'
 #' @return A normalized list suitable for `vb_control`.
 #' @export
@@ -1365,20 +1466,23 @@ exal_make_vb_control <- function(
     sigmagam = NULL,
     sts = NULL,
     rhs = NULL,
-    diagnostics = NULL) {
-  vb_cfg <- list(
-    max_iter = max_iter,
-    min_iter_elbo = min_iter_elbo,
-    tol = tol,
-    tol_par_50 = tol_par,
-    tol_par_extreme = tol_par,
-    n_samp_xi = n_samp_xi,
-    verbose = verbose,
-    sigmagam = sigmagam,
-    sts = sts,
-    rhs = rhs,
-    diagnostics = diagnostics
-  )
+    diagnostics = NULL,
+    control = NULL) {
+  vb_cfg <- .exal_list_or_empty(control)
+  if (!missing(max_iter)) vb_cfg$max_iter <- max_iter
+  if (!missing(min_iter_elbo)) vb_cfg$min_iter_elbo <- min_iter_elbo
+  if (!missing(tol)) vb_cfg$tol <- tol
+  if (!missing(tol_par)) {
+    vb_cfg$tol_par_50 <- tol_par
+    vb_cfg$tol_par_extreme <- tol_par
+  }
+  if (!missing(n_samp_xi)) vb_cfg$n_samp_xi <- n_samp_xi
+  if (!missing(verbose)) vb_cfg$verbose <- verbose
+  if (!missing(sigmagam)) vb_cfg$sigmagam <- sigmagam
+  if (!missing(sts)) vb_cfg$sts <- sts
+  if (!missing(rhs)) vb_cfg$rhs <- rhs
+  if (!missing(diagnostics)) vb_cfg$diagnostics <- diagnostics
+
   resolved <- .exal_resolve_vb_config(vb_cfg, p_vec = c(0.5), verbose = FALSE)
   out <- resolved$args_base
   out$tol_par <- as.numeric(resolved$tol_par_for(0.5))[1L]
@@ -1401,20 +1505,25 @@ exal_make_vb_control <- function(
 #'   off until warmup ends.
 #'
 #' @return A normalized list suitable for `mcmc_control$sigmagam`.
+#'
+#' When called with no arguments, this returns the package's conservative
+#' default exAL `(sigma, gamma)` MCMC warmup profile.
 #' @export
 exal_make_mcmc_sigmagam_control <- function(
-    freeze_burnin_iters = 0L,
-    freeze_only_during_burn = TRUE,
-    force_after_warmup = TRUE,
-    delay_adapt_until_after_warmup = TRUE,
-    delay_laplace_refresh_until_after_warmup = TRUE) {
-  .exal_normalize_mcmc_sigmagam_cfg(list(
-    freeze_burnin_iters = freeze_burnin_iters,
-    freeze_only_during_burn = freeze_only_during_burn,
-    force_after_warmup = force_after_warmup,
-    delay_adapt_until_after_warmup = delay_adapt_until_after_warmup,
-    delay_laplace_refresh_until_after_warmup = delay_laplace_refresh_until_after_warmup
-  ))
+    freeze_burnin_iters = NULL,
+    freeze_only_during_burn = NULL,
+    force_after_warmup = NULL,
+    delay_adapt_until_after_warmup = NULL,
+    delay_laplace_refresh_until_after_warmup = NULL) {
+  cfg <- list()
+  if (!is.null(freeze_burnin_iters)) cfg$freeze_burnin_iters <- freeze_burnin_iters
+  if (!is.null(freeze_only_during_burn)) cfg$freeze_only_during_burn <- freeze_only_during_burn
+  if (!is.null(force_after_warmup)) cfg$force_after_warmup <- force_after_warmup
+  if (!is.null(delay_adapt_until_after_warmup)) cfg$delay_adapt_until_after_warmup <- delay_adapt_until_after_warmup
+  if (!is.null(delay_laplace_refresh_until_after_warmup)) {
+    cfg$delay_laplace_refresh_until_after_warmup <- delay_laplace_refresh_until_after_warmup
+  }
+  .exal_normalize_mcmc_sigmagam_cfg(cfg)
 }
 
 #' Build MCMC theta warmup control
@@ -1635,32 +1744,37 @@ exal_make_mcmc_latent_s_control <- function(
 #' @param width_min,width_max Positive numeric adaptation bounds.
 #'
 #' @return A normalized list suitable for `mcmc_control$rhs`.
+#'
+#' When called with no arguments, this returns the package's conservative
+#' default RHS tau warmup profile for QDESN-style readout MCMC.
 #' @export
 exal_make_mcmc_rhs_control <- function(
-    freeze_tau_burnin_iters = 0L,
-    freeze_tau_only_during_burn = TRUE,
-    width_adapt_enabled = FALSE,
-    width_adapt_warmup_iters = 0L,
-    width_adapt_only_during_burn = TRUE,
-    target_score_low = -1.5,
-    target_score_high = 1.5,
-    step_size = 0.05,
-    width_min = 0.02,
-    width_max = 2.5) {
-  .exal_normalize_mcmc_rhs_cfg(list(
-    freeze_tau_burnin_iters = freeze_tau_burnin_iters,
-    freeze_tau_only_during_burn = freeze_tau_only_during_burn,
-    width_adapt = list(
-      enabled = width_adapt_enabled,
-      warmup_iters = width_adapt_warmup_iters,
-      only_during_burn = width_adapt_only_during_burn,
-      target_score_low = target_score_low,
-      target_score_high = target_score_high,
-      step_size = step_size,
-      width_min = width_min,
-      width_max = width_max
-    )
-  ))
+    freeze_tau_burnin_iters = NULL,
+    freeze_tau_only_during_burn = NULL,
+    width_adapt_enabled = NULL,
+    width_adapt_warmup_iters = NULL,
+    width_adapt_only_during_burn = NULL,
+    target_score_low = NULL,
+    target_score_high = NULL,
+    step_size = NULL,
+    width_min = NULL,
+    width_max = NULL) {
+  cfg <- list()
+  if (!is.null(freeze_tau_burnin_iters)) cfg$freeze_tau_burnin_iters <- freeze_tau_burnin_iters
+  if (!is.null(freeze_tau_only_during_burn)) cfg$freeze_tau_only_during_burn <- freeze_tau_only_during_burn
+
+  width_adapt_cfg <- list()
+  if (!is.null(width_adapt_enabled)) width_adapt_cfg$enabled <- width_adapt_enabled
+  if (!is.null(width_adapt_warmup_iters)) width_adapt_cfg$warmup_iters <- width_adapt_warmup_iters
+  if (!is.null(width_adapt_only_during_burn)) width_adapt_cfg$only_during_burn <- width_adapt_only_during_burn
+  if (!is.null(target_score_low)) width_adapt_cfg$target_score_low <- target_score_low
+  if (!is.null(target_score_high)) width_adapt_cfg$target_score_high <- target_score_high
+  if (!is.null(step_size)) width_adapt_cfg$step_size <- step_size
+  if (!is.null(width_min)) width_adapt_cfg$width_min <- width_min
+  if (!is.null(width_max)) width_adapt_cfg$width_max <- width_max
+  if (length(width_adapt_cfg) > 0L) cfg$width_adapt <- width_adapt_cfg
+
+  .exal_normalize_mcmc_rhs_cfg(cfg)
 }
 
 #' Build precision-beta MCMC stabilization control
@@ -1796,31 +1910,38 @@ exal_make_mcmc_control <- function(
     slice = NULL,
     multi_start = NULL,
     control = NULL) {
-  cfg <- list(
-    n_burn = n_burn,
-    n_mcmc = n_mcmc,
-    thin = thin,
-    verbose = verbose,
-    progress_every = progress_every,
-    init_from_vb = init_from_vb,
-    vb_warm_start_seed = vb_warm_start_seed,
-    vb_warm_start_control = vb_warm_start_control,
-    sigmagam = sigmagam,
-    theta = theta,
-    latent_state = latent_state,
-    dqlm_sigma = dqlm_sigma,
-    latent_v = latent_v,
-    latent_s = latent_s,
-    store_latent_draws = store_latent_draws,
-    store_rhs_draws = store_rhs_draws,
-    transforms = transforms,
-    conditioning = conditioning,
-    precision_beta = precision_beta,
-    rhs = rhs,
-    slice = slice,
-    multi_start = multi_start,
-    control = control
-  )
+  cfg <- .exal_list_or_empty(control)
+  if (!missing(n_burn)) cfg$n_burn <- n_burn
+  if (!missing(n_mcmc)) cfg$n_mcmc <- n_mcmc
+  if (!missing(thin)) cfg$thin <- thin
+  if (!missing(verbose)) cfg$verbose <- verbose
+  if (!missing(progress_every)) cfg$progress_every <- progress_every
+  if (!missing(init_from_vb)) cfg$init_from_vb <- init_from_vb
+  if (!missing(vb_warm_start_seed)) cfg$vb_warm_start_seed <- vb_warm_start_seed
+  if (!missing(vb_warm_start_control)) {
+    if (is.list(vb_warm_start_control)) {
+      cfg$vb_warm_start_control <- utils::modifyList(
+        .exal_list_or_empty(cfg$vb_warm_start_control),
+        vb_warm_start_control
+      )
+    } else {
+      cfg$vb_warm_start_control <- vb_warm_start_control
+    }
+  }
+  if (!missing(sigmagam)) cfg$sigmagam <- sigmagam
+  if (!missing(theta)) cfg$theta <- theta
+  if (!missing(latent_state)) cfg$latent_state <- latent_state
+  if (!missing(dqlm_sigma)) cfg$dqlm_sigma <- dqlm_sigma
+  if (!missing(latent_v)) cfg$latent_v <- latent_v
+  if (!missing(latent_s)) cfg$latent_s <- latent_s
+  if (!missing(store_latent_draws)) cfg$store_latent_draws <- store_latent_draws
+  if (!missing(store_rhs_draws)) cfg$store_rhs_draws <- store_rhs_draws
+  if (!missing(transforms)) cfg$transforms <- transforms
+  if (!missing(conditioning)) cfg$conditioning <- conditioning
+  if (!missing(precision_beta)) cfg$precision_beta <- precision_beta
+  if (!missing(rhs)) cfg$rhs <- rhs
+  if (!missing(slice)) cfg$slice <- slice
+  if (!missing(multi_start)) cfg$multi_start <- multi_start
   .exal_resolve_mcmc_config(cfg, p_vec = c(0.5), verbose = FALSE)$control_base
 }
 

@@ -5,11 +5,11 @@
 \title{Build VB sigmagam warmup control}
 \usage{
 exal_make_vb_sigmagam_control(
-  freeze_warmup_iters = 0L,
-  force_after_warmup = TRUE,
-  postwarmup_damping = 1,
-  postwarmup_damping_iters = 0L,
-  min_postwarmup_updates = 0L
+  freeze_warmup_iters = NULL,
+  force_after_warmup = NULL,
+  postwarmup_damping = NULL,
+  postwarmup_damping_iters = NULL,
+  min_postwarmup_updates = NULL
 )
 }
 \arguments{
@@ -29,6 +29,9 @@ fire.}
 }
 \value{
 A normalized list suitable for \code{vb_control$sigmagam}.
+
+When called with no arguments, this returns the package's conservative
+default exAL \verb{(sigma, gamma)} warmup profile.
 }
 \description{
 Returns a normalized \code{sigmagam} block for \code{vb_control} lists used by

@@ -18,6 +18,12 @@
 #' @param n.samp Number of samples to draw from the approximated posterior distribution. Default is `n.samp=200`.
 #' @param PriorSigma List of parameters for inverse gamma prior on sigma; shape `a_sig` and scale `b_sig`. Default is an inverse gamma with mean 1 (or `sig.init` if provided) and variance 10.
 #' @param PriorGamma List of parameters for truncated student-t prior on gamma; center `m_gam`, scale `s_gam` and degrees of freedom `df_gam`. Default is a standard student-t with 1 degree of freedom, truncated to the support of gamma.
+#' @param vb_control Optional normalized VB control list, usually from
+#'   [exal_make_vb_control()]. When supplied, the core VB arguments and warmup
+#'   blocks are read from `vb_control` first and then merged with the explicit
+#'   function arguments. When omitted, exAL-style VB fits use the package's
+#'   conservative default `(sigma, gamma)` warmup profile automatically;
+#'   explicit controls remain the advanced override path.
 #' @param verbose Logical value indicating whether progress should be displayed.
 #' @param debug_shapes Logical; if TRUE, print KF input/output shapes every `debug_every` iterations.
 #' @param debug_every  Integer; frequency (in iterations) for shape prints when `debug_shapes=TRUE`.
@@ -63,7 +69,7 @@
 #' \itemize{
 #'   \item `sig.out` - As above but for the DQLM case (`gamma = 0`), the LD approximation for `sigma`.
 #' }
-#' @name exdqlmLDVB
+#' @export
 #'
 #' @importFrom stats median
 #' @importFrom nimble dinvgamma
@@ -103,6 +109,7 @@
 #'                    dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
 #' }
 #'
+#' @name exdqlmLDVB
 NULL
 
 .exdqlm_sts_vb_controls <- function(sts_cfg = NULL) {
@@ -134,8 +141,6 @@ NULL
   )
 }
 
-#' @rdname exdqlmLDVB
-#' @export
 exdqlmLDVB <- function(y, p0, model, df, dim.df,
                        fix.gamma = FALSE, gam.init = NA,
                        fix.sigma = TRUE, sig.init = NA,
@@ -145,9 +150,15 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
                        n.samp = 200,
                        PriorSigma = NULL,
                        PriorGamma = NULL,
+                       vb_control = NULL,
                        verbose = TRUE,
                        debug_shapes = FALSE,    
                        debug_every = 5) {       
+  if (!is.null(vb_control)) {
+    vb_control <- exal_make_vb_control(control = vb_control)
+    if (!is.null(vb_control$tol)) tol <- as.numeric(vb_control$tol)[1L]
+    if (!is.null(vb_control$verbose)) verbose <- isTRUE(vb_control$verbose)
+  }
 
   # check inputs
   y = check_ts(y)
@@ -231,7 +242,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     return(retlist)
   }
 
-  ld_ctrl <- .exal_static_ld_controls(list(
+  ld_ctrl_input <- list(
     optimizer_method = getOption("exdqlm.dynamic.ldvb.optimizer_method", getOption("exdqlm.static.ldvb.optimizer_method", "lbfgsb")),
     direct_commit = getOption("exdqlm.dynamic.ldvb.direct_commit", getOption("exdqlm.static.ldvb.direct_commit", NULL)),
     damping = getOption("exdqlm.dynamic.ldvb.damping", getOption("exdqlm.static.ldvb.damping", NULL)),
@@ -269,7 +280,11 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     store_trace = getOption("exdqlm.dynamic.ldvb.store_trace", TRUE),
     sigmagam = getOption("exdqlm.dynamic.ldvb.sigmagam", getOption("exdqlm.static.ldvb.sigmagam", NULL)),
     sts = getOption("exdqlm.dynamic.ldvb.sts", NULL)
-  ))
+  )
+  if (!is.null(vb_control$max_iter)) max_iter <- as.integer(vb_control$max_iter)[1L]
+  if (!is.null(vb_control$sigmagam)) ld_ctrl_input$sigmagam <- vb_control$sigmagam
+  if (!is.null(vb_control$sts)) ld_ctrl_input$sts <- vb_control$sts
+  ld_ctrl <- .exal_static_ld_controls(ld_ctrl_input)
 
   ### Initialize VB
   init_ld <- list(
@@ -323,6 +338,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   compute.elbo <- isTRUE(getOption("exdqlm.compute_elbo", TRUE))
   conv.ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   sigmagam_cfg <- ld_ctrl$sigmagam %||% .exal_sigmagam_vb_controls(NULL)
+  sigmagam_cfg <- .exal_clamp_vb_sigmagam_control(sigmagam_cfg, max_iter = max_iter)
   sts_cfg <- ld_ctrl$sts %||% .exdqlm_sts_vb_controls(NULL)
   sigmagam_required_postwarmup_updates <- if (sigmagam_cfg$freeze_warmup_iters > 0L) {
     max(1L, sigmagam_cfg$min_postwarmup_updates)

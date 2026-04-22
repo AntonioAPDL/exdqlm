@@ -20,8 +20,9 @@
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
 #'         and [regMod()].
 #'   \item Multi-quantile post-processing via
-#'         [quantileSynthesis()] for non-crossing predictive
-#'         synthesis from separately fitted quantiles.
+#'         [quantileSynthesis()] for post hoc posterior-predictive
+#'         synthesis from separately fitted quantiles into a unified
+#'         predictive distribution.
 #' }
 #'
 #' @section Distinctive features in 0.4.0:
@@ -34,8 +35,14 @@
 #'         (`"rhs"`), and `rhs_ns`.
 #'   \item Reduced AL/DQLM paths through `dqlm.ind = TRUE` in both dynamic and
 #'         static APIs.
-#'   \item ELBO diagnostics and optional C++ acceleration for selected
-#'         state-space computations.
+#'   \item Standardized VB diagnostics traces via
+#'         `fit$diagnostics$vb_trace` for ELBO, `sigma`, `gamma`, and
+#'         convergence deltas across VB engines.
+#'   \item Conservative automatic warmup defaults for the most failure-prone
+#'         shared blocks: RHS-family `tau` scheduling plus exAL
+#'         `(sigma, gamma)` warmup in VB and MCMC entry points, with explicit
+#'         controls available only when users need to override the defaults.
+#'   \item Optional C++ acceleration for selected state-space computations.
 #' }
 #'
 #' @section Runtime options:
@@ -55,7 +62,6 @@
 #' }
 #'
 #' @useDynLib exdqlm, .registration = TRUE
-#' @import data.table
 #' @import Rcpp
 #' @docType package
 #' @name exdqlm-package

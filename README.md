@@ -22,9 +22,11 @@ current development line:
 - modular model builders for **trend**, **seasonality**, and
   **regression** components
 - reduced **AL/DQLM** paths through `dqlm.ind = TRUE`
+- standardized **VB trace diagnostics** at `fit$diagnostics$vb_trace`
+  for ELBO, `sigma`, `gamma`, and convergence deltas
 - static shrinkage priors `beta_prior = "ridge"`, `"rhs"`, and
   `"rhs_ns"`
-- posterior predictive **non-crossing synthesis** via
+- post hoc **posterior-predictive synthesis** via
   `quantileSynthesis()`
 
 The most distinctive aspect of the package is the **feature bundle**:
@@ -65,12 +67,16 @@ pak::pak("AntonioAPDL/exdqlm")
 - **Multiple inference engines** are available depending on the use
   case: fast approximate dynamic VB (`ISVB`), deterministic
   Laplace-Delta VB (`LDVB`), and posterior simulation (`MCMC`).
+- **User-facing VB diagnostics are standardized** through
+  `fit$diagnostics$vb_trace`, so plotting and monitoring code can use
+  the same iteration-wise API across VB engines.
 - **Static shrinkage priors** go beyond ridge: `rhs` and `rhs_ns`
   provide a horseshoe-family regularization story for sparse or weakly
   identified static coefficient problems.
 - **Post hoc multi-quantile synthesis** is built in through
-  `quantileSynthesis()`, which can enforce isotonicity and apply
-  monotone rearrangement after fitting quantiles separately.
+  `quantileSynthesis()`, which combines separately fitted quantile
+  models into a unified posterior predictive distribution using
+  isotonic correction and optional monotone rearrangement.
 
 ## Workflow map
 
@@ -80,7 +86,7 @@ pak::pak("AntonioAPDL/exdqlm")
 | Build state-space components | `polytrendMod()`, `seasMod()`, `regMod()` | n/a | Compose trend, seasonal, and regression blocks with `+.exdqlm` |
 | Static Bayesian exAL regression | `exalStaticLDVB()`, `exalStaticMCMC()` | LDVB, MCMC | Supports `dqlm.ind = TRUE`, posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
 | Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
-| Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Isotonic correction plus optional rearrangement for non-crossing output |
+| Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Builds a unified posterior predictive distribution using isotonic correction and optional rearrangement |
 
 ## Which engine should I use?
 
@@ -92,122 +98,28 @@ pak::pak("AntonioAPDL/exdqlm")
 | Static exAL regression | `exalStaticLDVB()` | You want a fast Bayesian approximation, often useful before MCMC | `exalStaticMCMC()` |
 | Static exAL regression with posterior draws | `exalStaticLDVB()` or `exalStaticMCMC()` | Use `exalStaticLDVB()` for a fast approximate draw-based summary and `exalStaticMCMC()` for the simulation baseline | `init.from.vb = TRUE` can help the MCMC fit |
 
-## Precision-stabilized MCMC readouts
+## Default warmup behavior
 
-For hard ridge-style MCMC readouts, the package now supports a user-facing
-`precision_beta` control block for the Gaussian beta draw:
+The package now applies a **conservative automatic warmup profile** for
+the most numerically delicate shared blocks, so ordinary users do not
+have to assemble nested warmup lists just to get a stable first fit.
 
-- `"ladder_v2"` is the recommended repair preset.
-- `"eigen_v1"` is the stronger fallback when the ladder alone is not enough.
-- full custom control is still available through
-  `exal_make_precision_beta_control()`.
+- `beta_prior = "rhs"` and `beta_prior = "rhs_ns"` keep the package's
+  shared `tau` warmup schedule on by default.
+- exAL VB entry points (`exalStaticLDVB()`, `exdqlmLDVB()`) apply a
+  light automatic warmup for the `(sigma, gamma)` block.
+- exAL MCMC entry points (`exalStaticMCMC()`, `exdqlmMCMC()`) apply a
+  light automatic `(sigma, gamma)` warmup and keep VB warm starts
+  available for the harder cases where they help.
+- Advanced warmup control remains available through `vb_control` and
+  `mcmc_control`, but those controls are now intended as the
+  **override path**, not the default user workflow.
 
-```r
-fit <- qdesn_fit_mcmc(
-  y = y,
-  p0 = 0.5,
-  mcmc_args = list(
-    likelihood_family = "exal",
-    precision_beta = "ladder_v2"
-  )
-)
+In practice, the recommended workflow is:
 
-fit_hard <- qdesn_fit_mcmc(
-  y = y,
-  p0 = 0.5,
-  mcmc_args = list(
-    likelihood_family = "exal",
-    precision_beta = exal_make_precision_beta_control("eigen_v1")
-  )
-)
-```
-
-## Advanced warmup/control builders
-
-The package now exposes the validated warmup and rescue blocks as public helper
-builders, so you can configure the hard numerical cases without relying on ad
-hoc nested lists:
-
-- VB sigmagam warmup: `exal_make_vb_sigmagam_control()`
-- Dynamic VB latent-state warmup: `exal_make_vb_sts_control()`
-- Batch VB control: `exal_make_vb_control()`
-- Package-native dynamic MCMC warmup:
-  `exal_make_mcmc_sigmagam_control()`,
-  `exal_make_mcmc_theta_control()`,
-  `exal_make_mcmc_latent_state_control()`,
-  `exal_make_mcmc_dqlm_sigma_control()`
-- QDESN readout MCMC warmup and rescue:
-  `exal_make_mcmc_sigmagam_control()`,
-  `exal_make_mcmc_theta_control()`,
-  `exal_make_mcmc_latent_v_control()`,
-  `exal_make_mcmc_latent_s_control()`,
-  `exal_make_mcmc_rhs_control()`
-- Full normalized MCMC control: `exal_make_mcmc_control()`
-- Precision rescue: `exal_make_precision_beta_control()`
-
-```r
-vb_ctrl <- exal_make_vb_control(
-  max_iter = 200L,
-  sigmagam = exal_make_vb_sigmagam_control(
-    freeze_warmup_iters = 20L,
-    postwarmup_damping = 0.6,
-    postwarmup_damping_iters = 6L
-  ),
-  sts = exal_make_vb_sts_control(
-    freeze_warmup_iters = 15L,
-    min_postwarmup_updates = 2L
-  ),
-  rhs = list(
-    freeze_tau_warmup_iters = 30L,
-    update_every_warmup = 4L
-  )
-)
-
-fit_vb <- qdesn_fit_vb(
-  y = y,
-  p0 = 0.5,
-  vb_args = list(
-    beta_prior_type = "rhs_ns",
-    vb_control = vb_ctrl
-  )
-)
-
-mcmc_ctrl <- exal_make_mcmc_control(
-  sigmagam = exal_make_mcmc_sigmagam_control(
-    freeze_burnin_iters = 30L
-  ),
-  theta = exal_make_mcmc_theta_control(
-    freeze_burnin_iters = 25L,
-    sparse_update_every = 4L,
-    sparse_update_until_iter = 100L
-  ),
-  latent_state = exal_make_mcmc_latent_state_control(
-    mode = "u_st_pair",
-    freeze_burnin_iters = 30L
-  ),
-  dqlm_sigma = exal_make_mcmc_dqlm_sigma_control(
-    freeze_burnin_iters = 20L
-  ),
-  latent_v = exal_make_mcmc_latent_v_control(
-    freeze_burnin_iters = 40L,
-    rescue_on_invalid = TRUE,
-    rescue_max_consecutive = 3L
-  ),
-  rhs = exal_make_mcmc_rhs_control(
-    freeze_tau_burnin_iters = 20L
-  ),
-  precision_beta = exal_make_precision_beta_control("ladder_v2")
-)
-
-fit_mcmc <- qdesn_fit_mcmc(
-  y = y,
-  p0 = 0.5,
-  mcmc_args = list(
-    likelihood_family = "exal",
-    mcmc_control = mcmc_ctrl
-  )
-)
-```
+1. fit the model with the default API;
+2. inspect diagnostics if the fit still looks unstable;
+3. only then override the warmup controls explicitly.
 
 ## Quick start (≤ 10 lines)
 
@@ -237,6 +149,13 @@ tail(fit$diagnostics$elbo, 3)
 #> [1] -113.62048  -67.45699
 ```
 
+For plotting or monitoring VB convergence, use the standardized trace
+table:
+
+``` r
+head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
+```
+
 ## Core concepts (at a glance)
 
 - **State-space skeleton**: *design* (`FF`) and *evolution* (`GG`)
@@ -246,27 +165,38 @@ tail(fit$diagnostics$elbo, 3)
   often stabilizes small examples.
 - **Discount factors**: `df` and `dim.df` control evolution per block
   (e.g., trend vs seasonality).
-- **ELBO**: recorded at `fit$diagnostics$elbo` (weakly monotone up to
+- **VB traces**: `fit$diagnostics$vb_trace` provides a standardized
+  iteration-by-iteration table for ELBO, `sigma`, `gamma`, and
+  convergence deltas across VB engines.
+- **ELBO**: retained at `fit$diagnostics$elbo` and mirrored in
+  `fit$diagnostics$vb_trace$elbo` (weakly monotone up to
   importance-sampling noise).
 
 ## What’s new in v0.4.0
 
 - **Dynamic LDVB algorithm** via `exdqlmLDVB()` for exDQLM fitting.
-- **Synthesis helper** `quantileSynthesis()` to combine posterior
-  quantile-draw objects.
-- **Static regression support** via `regMod()`, `exalStaticLDVB()`, and
-  `exalStaticMCMC()`.
+- **Synthesis helper** `quantileSynthesis()` to combine
+  posterior predictive draws from separately fitted quantile models.
+- **Static regression support** via `regMod()`, `exalStaticLDVB()`,
+  and `exalStaticMCMC()`.
 - **Reduced AL/DQLM paths** across dynamic and static APIs via
   `dqlm.ind = TRUE`.
 - **Static shrinkage priors** in both static LDVB/MCMC via
   `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
-- **Transfer-function helpers** `exdqlmTransferLDVB()`,
-  `exdqlmTransferMCMC()`, and `exdqlmTransferISVB()`, plus native static
-  object generics (`exalStaticMCMC`, `exalStaticLDVB`).
+- **Transfer-function helpers** `exdqlmTransferLDVB()` and
+  `exdqlmTransferMCMC()`, with legacy `exdqlmTransferISVB()` retained for
+  backward compatibility, plus expanded static object generics
+  (`exalStaticMCMC`, `exalStaticLDVB`).
+- **Standardized user-facing naming**: the primary API now uses
+  `exalStatic...`, `exdqlmTransfer...`, and `quantileSynthesis()`,
+  while legacy names remain available as deprecated aliases during the
+  transition.
 - **C++ backend controls** retained as optional: Kalman bridge default
   **TRUE**; builders, samplers, and post-predictive C++ paths default
   **FALSE**.
-- **ELBO diagnostics** retained for iterative monitoring.
+- **Standardized VB trace diagnostics** via `fit$diagnostics$vb_trace`,
+  giving plot-ready iteration histories for ELBO, `sigma`, `gamma`, and
+  convergence deltas across VB fits.
 
 > For CI/CRAN-style runs, keep optional C++ builders/samplers/post-pred
 > **FALSE** and set `exdqlm.use_cpp_kf = FALSE` for strict R-path
@@ -423,7 +353,8 @@ fit_rhs_ns$beta_prior$type
 ### 4) Multi-quantile synthesis (conceptual sketch)
 
 Fit several quantiles separately, then combine their posterior
-predictive draws into a single non-crossing predictive object.
+predictive draws into a single unified posterior predictive
+distribution.
 
 ``` r
 p_grid <- c(0.1, 0.5, 0.9)
@@ -453,9 +384,15 @@ names(syn)
   (≈ 0.96–0.99). Enable C++ bridges only if your toolchain supports
   them.
 
-- **ELBO dips slightly—bug?** Small downward blips are expected from
-  importance-sampling noise. Look for an overall upward trend; if not,
-  simplify the model or adjust variance/discounts.
+- **Which VB diagnostic object should I plot?** Start with
+  `fit$diagnostics$vb_trace`. It provides one iteration-wise table
+  across VB engines; use engine-specific internals only when you need
+  lower-level block traces.
+
+- **ELBO dips slightly—bug?** Small downward blips in
+  `fit$diagnostics$vb_trace$elbo` are expected from importance-sampling
+  noise. Look for an overall upward trend; if not, simplify the model or
+  adjust variance/discounts.
 
 - **OpenMP not available.** That’s fine. It is optional. Everything runs
   serially; examples here use the pure-R path.
