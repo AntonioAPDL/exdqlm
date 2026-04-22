@@ -3,7 +3,10 @@
 args <- commandArgs(trailingOnly = TRUE)
 get_arg <- function(flag, default = NULL) {
   idx <- which(args == flag)
-  if (length(idx) && idx < length(args)) args[idx + 1L] else default
+  if (!length(idx)) return(default)
+  idx <- idx[1L]
+  if (is.na(idx) || idx >= length(args)) return(default)
+  args[idx + 1L]
 }
 
 repo_root <- tryCatch(
@@ -28,4 +31,3 @@ status <- system2(
   stderr = ""
 )
 quit(status = as.integer(status), save = "no")
-
