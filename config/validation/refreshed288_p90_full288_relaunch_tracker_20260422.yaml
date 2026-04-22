@@ -1,0 +1,141 @@
+meta:
+  tracker_id: refreshed288_p90_full288_relaunch_tracker_20260422
+  relaunch_id: refreshed288_p90_full288_baseline_v1
+  created_on: '2026-04-22'
+  branch: validation/rerun-after-0.4.0-sync-0p4p0-integration
+  base_commit: d5ae8b8ce83892b610ea32d2dcf4a7c9e0153c6a
+  status: planned
+  notes:
+    - Full refreshed288 relaunch planned against the synchronized p90 dynamic source surface.
+    - Uses current shared 0.4.0 package models plus normalized package-default warmups.
+    - Q-DESN-only functions and washout-source windows remain out of scope for this branch.
+
+sources:
+  dynamic_dataset_registry: tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260422_dynamic_p90_steepertrend_v1.csv
+  historical_method_registry: tools/merge_reports/LOCAL_refreshed288_method_registry_20260417_canonical_v1.csv
+  historical_full_manifest: tools/merge_reports/LOCAL_refreshed288_full_manifest_20260417_canonical_v1.csv
+  dynamic_dataset_sync_report: reports/static_exal_tuning_20260422/refreshed288_dynamic_p90_steepertrend_dataset_sync_implementation_20260422.md
+  plan_doc: reports/static_exal_tuning_20260422/refreshed288_p90_full288_relaunch_plan_20260422.md
+  method_profile_matrix: config/validation/refreshed288_p90_full288_method_profiles_20260422.csv
+
+study_contract:
+  total_runs: 288
+  dataset_entries_total: 54
+  method_profiles_total: 16
+  block_counts:
+    dynamic: 72
+    static_paper: 72
+    static_shrink: 144
+  dataset_counts:
+    dynamic_entries: 18
+    static_paper_entries: 18
+    static_shrink_entries: 18
+  dynamic_geometry:
+    active_scenario_id: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+    full_roots: 9
+    canonical_windows: 18
+    fit_sizes: [500, 5000]
+  static_geometry:
+    static_paper_fit_sizes: [100, 1000]
+    static_shrink_fit_sizes: [100, 1000]
+    static_shrink_priors: [ridge, rhs_ns]
+
+runtime_contract:
+  posterior_metric_draws: 20000
+  vb_sampling_nd_draws: 20000
+  vb_synthesis_n_samp: 20000
+  vb:
+    method: ldvb
+    max_iter: 300
+    min_iter_elbo: 80
+    tol: 0.03
+    dynamic_n_samp: 20000
+    static_n_samp_xi: 1000
+  vb_init:
+    method: ldvb
+    max_iter: 300
+    min_iter_elbo: 80
+    tol: 0.03
+    dynamic_n_samp: 1000
+    static_n_samp_xi: 1000
+  mcmc:
+    proposal: slice
+    init_from_vb: true
+    n_burn: 5000
+    n_mcmc: 20000
+    thin: 1
+  slice_profiles:
+    dynamic: {slice_width: 0.1, slice_max_steps: Inf}
+    static_paper: {slice_width: 0.01, slice_max_steps: Inf}
+    static_shrink: {slice_width: 0.1, slice_max_steps: Inf}
+
+package_default_warmup_expected:
+  exal_vb_sigmagam:
+    freeze_warmup_iters: 10
+    force_after_warmup: true
+    postwarmup_damping: 0.6
+    postwarmup_damping_iters: 5
+    min_postwarmup_updates: 1
+  exal_mcmc_sigmagam:
+    freeze_burnin_iters: 25
+    freeze_only_during_burn: true
+    force_after_warmup: true
+    delay_adapt_until_after_warmup: true
+    delay_laplace_refresh_until_after_warmup: true
+  rhs_tau:
+    freeze_tau_warmup_iters: 50
+    force_tau_after_warmup: true
+
+phase_plan:
+  stage0_prepare_only:
+    goal: regenerate fresh relaunch manifests and run contract from committed state
+  stage1_smoke:
+    target_rows: 48
+    coverage:
+      dynamic: 24
+      static_paper: 8
+      static_shrink_ridge: 8
+      static_shrink_rhs_ns: 8
+  stage2_full_static_vb:
+    target_rows: 108
+  stage3_full_dynamic_vb:
+    target_rows: 36
+  stage4_full_static_mcmc:
+    target_rows: 108
+  stage5_full_dynamic_mcmc:
+    target_rows: 36
+
+baseline_policy:
+  use_shared_0p4p0_models_only: true
+  use_qdesn_only_functions: false
+  use_qdesn_only_dynamic_washout_windows: false
+  start_from_package_default_warmups: true
+  preload_theta_or_latent_rescue: false
+  preload_precision_rescue: false
+  plain_rhs_allowed: false
+
+escalation_overlays:
+  dynamic_exdqlm_mcmc_tt5000_first_retry:
+    theta_state_controls:
+      freeze_burnin_iters: 100
+      freeze_only_during_burn: true
+      force_after_warmup: true
+    latent_state_controls:
+      freeze_burnin_iters: 100
+      freeze_only_during_burn: true
+      force_after_warmup: true
+      mode: u_st_pair
+  dynamic_dqlm_mcmc_tt5000_first_retry:
+    dqlm_sigma_controls:
+      freeze_burnin_iters: 50
+      freeze_only_during_burn: true
+      force_after_warmup: true
+  dynamic_exdqlm_vb_first_retry:
+    sts:
+      freeze_warmup_iters: 20
+      force_after_warmup: true
+      min_postwarmup_updates: 0
+  static_rhs_ns_retry_policy:
+    notes:
+      - extend tau warmup only after baseline failure is confirmed
+      - do not preload legacy heavy tau-freeze settings into the baseline
