@@ -98,7 +98,7 @@ test_that("static LDVB records sigmagam warmup scheduling", {
   set.seed(202604101)
   dat <- tiny_static_truth_case(n = 30L, p0 = 0.25)
 
-  fit <- exal_static_LDVB(
+  fit <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
@@ -126,7 +126,7 @@ test_that("static MCMC records sigmagam warmup diagnostics", {
   set.seed(202604102)
   dat <- tiny_static_truth_case(n = 28L, p0 = 0.25)
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
