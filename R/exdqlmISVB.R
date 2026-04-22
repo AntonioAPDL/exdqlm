@@ -42,8 +42,10 @@
 #'   \item `theta.out` - List containing the variational distribution of the state vector including filtered distribution parameters (`fm` and `fC`) and smoothed distribution parameters (`sm` and `sC`).
 #'   \item `vts.out` - List containing the variational distributions of latent parameters v_t.
 #'   \item `fix.sigma` Logical value indicating whether sigma was fixed at `sig.init`.
-#'   \item `diagnostics` - List containing ELBO trace and convergence diagnostics
-#'   (joint stopping status, deltas for state/sigma/gamma/ELBO, and criteria used).
+#'   \item `diagnostics` - List containing ELBO trace, standardized VB iteration
+#'   trace \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
+#'   convergence deltas), and convergence diagnostics (joint stopping status,
+#'   deltas for state/sigma/gamma/ELBO, and criteria used).
 #' }
 #' If `dqlm.ind=FALSE`, the object also contains:
 #' \itemize{
@@ -88,9 +90,11 @@
 #' model = trend.comp + seas.comp
 #' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
 #'                  gam.init = -3.5, sig.init = 15, tol = 0.05)
+#' head(M0$diagnostics$vb_trace)
 #'
 #' M0_al = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
 #'                    dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
+#' tail(M0_al$diagnostics$vb_trace$elbo, 2)
 #' }
 #'
 exdqlmISVB <- function(y, p0, model, df, dim.df,
@@ -184,7 +188,8 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       PriorSigma = PriorSigma,
       verbose = verbose,
       exps0 = exps0_user,
-      max_iter = max_iter
+      max_iter = max_iter,
+      engine = "ISVB"
     )
     class(retlist) <- "exdqlmISVB"
     return(retlist)
@@ -309,42 +314,43 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
     ## forward filter
     # first iteration
     a = as.vector(GG[,,1]%*%m0)
-    P = GG[,,1]%*%C0%*%t(GG[,,1])
-    R = P + df.mat*P
-    R = (R + t(R))/2
+    P = .exdqlm_regularize_cov(GG[,,1]%*%C0%*%t(GG[,,1]), context = "isvb_P_t1")
+    R = .exdqlm_regularize_cov(P + df.mat*P, context = "isvb_R_t1")
     f = t(FF[,1])%*%a + ex.f[1]
-    q = t(FF[,1])%*%R%*%FF[,1]  + ex.q[1]
+    q = .exdqlm_regularize_var(t(FF[,1])%*%R%*%FF[,1]  + ex.q[1], context = "isvb_q_t1")
     m[,1] = a + t(R)%*%FF[,1]%*%(y[1]-f)/q[1]
-    C[,,1] = R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1]
-    C[,,1] = (C[,,1] + t(C[,,1]))/2
+    C[,,1] = .exdqlm_regularize_cov(
+      R - t(R)%*%FF[,1]%*%t(FF[,1])%*%R/q[1],
+      context = "isvb_C_t1"
+    )
     standard.forecast.errors[1] = (y[1]-f)/sqrt(q)
     # t = 2:TT
     for(t in 2:TT){
       a = as.vector(GG[,,t]%*%m[,(t-1)])
-      P = GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t])
-      R = P + df.mat*P
-      R = (R + t(R))/2
+      P = .exdqlm_regularize_cov(GG[,,t]%*%C[,,(t-1)]%*%t(GG[,,t]), context = sprintf("isvb_P_t%d", t))
+      R = .exdqlm_regularize_cov(P + df.mat*P, context = sprintf("isvb_R_t%d", t))
       f = t(FF[,t])%*%a + ex.f[t]
       fB = t(FF[,t])%*%R
-      q = fB%*%FF[,t] + ex.q[t]
+      q = .exdqlm_regularize_var(fB%*%FF[,t] + ex.q[t], context = sprintf("isvb_q_t%d", t))
       m[,t] = a + t(fB)%*%(y[t]-f)/q[1]
-      C[,,t] = R - t(fB)%*%fB/q[1]
-      C[,,t] = (C[,,t] + t(C[,,t]))/2
+      C[,,t] = .exdqlm_regularize_cov(
+        R - t(fB)%*%fB/q[1],
+        context = sprintf("isvb_C_t%d", t)
+      )
       standard.forecast.errors[t] = (y[t]-f)/sqrt(q)
     }
     ## backwards smoothing
     sC[,,TT] = C[,,TT]
     sm[,TT] = m[,TT]
     for(t in (TT-1):1){
-      P = GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)])
-      R = P + df.mat*P
-      R = (R + t(R))/2
-      svd.R = svd(R)
-      inv.R = svd.R$u%*%diag(1/svd.R$d,p)%*%t(svd.R$u)
-      sB = C[,,t]%*%t(GG[,,(t+1)])%*%inv.R
+      P = .exdqlm_regularize_cov(GG[,,(t+1)]%*%C[,,(t)]%*%t(GG[,,(t+1)]), context = sprintf("isvb_smoother_P_t%d", t + 1L))
+      R_info = .exdqlm_cov_inverse(P + df.mat*P, context = sprintf("isvb_smoother_R_t%d", t + 1L))
+      sB = C[,,t]%*%t(GG[,,(t+1)])%*%R_info$inverse
       sm[,t] = m[,t] + sB%*%(sm[,(t+1)]-as.vector(GG[,,(t+1)]%*%m[,(t)]))
-      sC[,,t] = C[,,t] + sB%*%(sC[,,(t+1)]-R)%*%t(sB)
-      sC[,,t] = (sC[,,t]+t(sC[,,t]))/2
+      sC[,,t] = .exdqlm_regularize_cov(
+        C[,,t] + sB%*%(sC[,,(t+1)]-R_info$Sigma)%*%t(sB),
+        context = sprintf("isvb_smoother_C_t%d", t)
+      )
     }
     exps =  apply(FF*sm,2,sum)
     vars = c(apply(matrix(1:TT,TT,1),1,function(x){t(FF[,x])%*%sC[,,x]%*%FF[,x]}))
@@ -797,6 +803,21 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
 
   retlist$diagnostics <- list(
     elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL,
+    vb_trace = .exdqlm_make_vb_trace(
+      iter = iter,
+      engine = "ISVB",
+      dqlm.ind = dqlm.ind,
+      elbo = if (exists("elbo.seq", inherits = FALSE)) elbo.seq else NULL,
+      sigma = seq.sigma,
+      gamma = if (!isTRUE(dqlm.ind)) seq.gamma else NULL,
+      delta_state = delta.state,
+      delta_sigma = delta.sigma,
+      delta_gamma = if (!isTRUE(dqlm.ind)) delta.gamma else NULL,
+      delta_s = NULL,
+      delta_elbo = delta.elbo,
+      sigma_has_init = TRUE,
+      gamma_has_init = !isTRUE(dqlm.ind)
+    ),
     convergence = list(
       converged = identical(stop.reason, "joint_converged"),
       stop_reason = stop.reason,

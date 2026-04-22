@@ -71,7 +71,7 @@ used only by decomposition mode when regression/transfer blocks are enabled.}
 
 \item{seed}{Optional integer to make the reservoir repeatable.}
 
-\item{vb_args}{Named list forwarded to \code{exal_static_LDVB} (e.g. b0, V0,
+\item{vb_args}{Named list forwarded to \code{exalStaticLDVB} (e.g. b0, V0,
 a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...). If
 \code{vb_args$beta_prior_type} is omitted, Q-DESN defaults to
 \code{"rhs_ns"}. For RHS-family priors, \code{shrink_intercept} is
@@ -80,7 +80,7 @@ enforced as \code{FALSE}.}
 \value{
 A list with:
 \itemize{
-\item \code{fit}: return of \code{exal_static_LDVB}.
+\item \code{fit}: return of \code{exalStaticLDVB}.
 \item \code{X}: design matrix used in the VB fit (post-washout).
 \item \code{y_fit}: response vector aligned with \code{X}.
 \item \code{mu_hat}: fitted \eqn{\hat \mu_t = x_t' \hat \beta} (in-sample, post-washout).
@@ -92,7 +92,7 @@ A list with:
 \description{
 Implements the model in your LaTeX: a deep, leaky reservoir with spectral
 normalization produces features X_t; a linear readout \eqn{\mu_t = x_t' \beta}
-is fitted under \eqn{exAL_{p0}} noise using your \code{exal_static_LDVB()}.
+is fitted under \eqn{exAL_{p0}} noise using your \code{exalStaticLDVB()}.
 }
 \section{Pipeline}{
 
@@ -101,7 +101,7 @@ is fitted under \eqn{exAL_{p0}} noise using your \code{exal_static_LDVB()}.
 \item Roll deterministic states \eqn{h_{t,d}} from the observed series.\cr
 \item Stack features \eqn{x_t = [h_{t,D}; k(\tilde h_{t,1}); ...; k(\tilde h_{t,D-1})]}\cr
 \item Drop the first \code{max(m, washout)} points (lags and state transient).\cr
-\item Fit \eqn{\beta,\sigma,\gamma} with \code{exal_static_LDVB()} for a single p0.\cr
+\item Fit \eqn{\beta,\sigma,\gamma} with \code{exalStaticLDVB()} for a single p0.\cr
 }
 }
 

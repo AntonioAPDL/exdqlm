@@ -75,6 +75,6 @@ grid extracted from synthesized draws).
 \details{
 This function uses internal helpers only and \strong{does not} attach or install any packages.
 It relies on objects in this package namespace: \code{qdesn_fit_vb()},
-\code{posterior_predict.qdesn_fit()}, \code{exal_static_LDVB()},
-and \code{exdqlm_synthesize_from_draws()}.
+\code{posterior_predict.qdesn_fit()}, \code{exalStaticLDVB()},
+and \code{quantileSynthesis()}.
 }

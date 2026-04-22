@@ -1,10 +1,10 @@
 #' VB diagnostics for exAL LDVB fits (skeleton)
 #'
-#' Build a per-iteration diagnostics table from an \code{exal_static_LDVB()}
+#' Build a per-iteration diagnostics table from an \code{exalStaticLDVB()}
 #' fit. The intent is to expose ELBO, parameter traces, and safeguard
 #' quantities in a tidy format for plotting and global stopping rules.
 #'
-#' @param fit_exal An object returned by \code{exal_static_LDVB()}.
+#' @param fit_exal An object returned by \code{exalStaticLDVB()}.
 #' @return A data.frame with one row per VB iteration and columns such as:
 #'   \itemize{
 #'     \item \code{iter}: iteration index.

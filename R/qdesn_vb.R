@@ -477,14 +477,14 @@
 #'
 #' Implements the model in your LaTeX: a deep, leaky reservoir with spectral
 #' normalization produces features X_t; a linear readout \eqn{\mu_t = x_t' \beta}
-#' is fitted under \eqn{exAL_{p0}} noise using your \code{exal_static_LDVB()}.
+#' is fitted under \eqn{exAL_{p0}} noise using your \code{exalStaticLDVB()}.
 #'
 #' @section Pipeline:
 #' 1) Build (or accept) a DESN reservoir with fixed random sparse weights.\cr
 #' 2) Roll deterministic states \eqn{h_{t,d}} from the observed series.\cr
 #' 3) Stack features \eqn{x_t = [h_{t,D}; k(\tilde h_{t,1}); ...; k(\tilde h_{t,D-1})]}\cr
 #' 4) Drop the first \code{max(m, washout)} points (lags and state transient).\cr
-#' 5) Fit \eqn{\beta,\sigma,\gamma} with \code{exal_static_LDVB()} for a single p0.\cr
+#' 5) Fit \eqn{\beta,\sigma,\gamma} with \code{exalStaticLDVB()} for a single p0.\cr
 #'
 #' @param y Numeric vector, length T (univariate series).
 #' @param p0 Target quantile in (0,1).
@@ -503,7 +503,7 @@
 #' @param washout Integer >=0; additional initial samples to drop after lag m to allow state settling.
 #' @param add_bias Logical; if TRUE, appends a constant 1 column to the readout design X.
 #' @param seed Optional integer to make the reservoir repeatable.
-#' @param vb_args Named list forwarded to \code{exal_static_LDVB} (e.g. b0, V0,
+#' @param vb_args Named list forwarded to \code{exalStaticLDVB} (e.g. b0, V0,
 #'   a_sigma, b_sigma, max_iter, tol, n_samp_xi, ...). If
 #'   \code{vb_args$beta_prior_type} is omitted, Q-DESN defaults to
 #'   \code{"rhs_ns"}. For RHS-family priors, \code{shrink_intercept} is
@@ -511,7 +511,7 @@
 #'
 #' @return A list with:
 #' \itemize{
-#'   \item \code{fit}: return of \code{exal_static_LDVB}.
+#'   \item \code{fit}: return of \code{exalStaticLDVB}.
 #'   \item \code{X}: design matrix used in the VB fit (post-washout).
 #'   \item \code{y_fit}: response vector aligned with \code{X}.
 #'   \item \code{mu_hat}: fitted \eqn{\hat \mu_t = x_t' \hat \beta} (in-sample, post-washout).
@@ -1045,7 +1045,7 @@ predict_mu.qdesn_fit <- function(object) {
 }
 
 #' Draw posterior samples of (beta, sigma, gamma) from an exal_vb fit
-#' @param fit_exal Object returned by exal_static_LDVB()
+#' @param fit_exal Object returned by exalStaticLDVB()
 #' @param nd Number of draws
 #' @return list(beta=nd x p, sigma=nd, gamma=nd)
 #' @export

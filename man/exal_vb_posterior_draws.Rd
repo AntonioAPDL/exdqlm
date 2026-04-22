@@ -7,7 +7,7 @@
 exal_vb_posterior_draws(fit_exal, nd = 1000L)
 }
 \arguments{
-\item{fit_exal}{Object returned by exal_static_LDVB()}
+\item{fit_exal}{Object returned by exalStaticLDVB()}
 
 \item{nd}{Number of draws}
 }

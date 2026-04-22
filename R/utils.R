@@ -53,6 +53,69 @@ C.fn<-function(p0,gam){ temp.p = p.fn(p0,gam); return((as.numeric(gam>0)-temp.p)
   1e-10
 }
 
+.gig_b_floor <- function() {
+  .exal_gig_floor()
+}
+
+.exdqlm_dynamic_cov_controls <- function() {
+  eig_floor <- as.numeric(getOption("exdqlm.dynamic.cov_eig_floor", 1e-10))[1]
+  if (!is.finite(eig_floor) || eig_floor <= 0) eig_floor <- 1e-10
+  eig_cap <- as.numeric(getOption("exdqlm.dynamic.cov_eig_cap", 1e8))[1]
+  if (!is.finite(eig_cap) || eig_cap <= eig_floor) eig_cap <- 1e8
+  q_floor <- as.numeric(getOption("exdqlm.dynamic.q_floor", 1e-10))[1]
+  if (!is.finite(q_floor) || q_floor <= 0) q_floor <- 1e-10
+  q_cap <- as.numeric(getOption("exdqlm.dynamic.q_cap", 1e12))[1]
+  if (!is.finite(q_cap) || q_cap <= q_floor) q_cap <- 1e12
+  list(eig_floor = eig_floor, eig_cap = eig_cap, q_floor = q_floor, q_cap = q_cap)
+}
+
+.exdqlm_regularize_cov <- function(Sigma, context = "dynamic_covariance",
+                                   eig_floor = NULL, eig_cap = NULL) {
+  ctrl <- .exdqlm_dynamic_cov_controls()
+  if (is.null(eig_floor)) eig_floor <- ctrl$eig_floor
+  if (is.null(eig_cap)) eig_cap <- ctrl$eig_cap
+
+  M <- as.matrix(Sigma)
+  M <- (M + t(M)) / 2
+  if (any(!is.finite(M))) {
+    bad <- which(!is.finite(M), arr.ind = TRUE)[1, ]
+    stop(sprintf("%s has non-finite entry at (%d,%d)", context, bad[1], bad[2]))
+  }
+
+  sv <- svd(M)
+  vals <- pmin(pmax(sv$d, eig_floor), eig_cap)
+  M_reg <- sv$u %*% diag(vals, nrow(M)) %*% t(sv$u)
+  M_reg <- (M_reg + t(M_reg)) / 2
+  attr(M_reg, "svd_u") <- sv$u
+  attr(M_reg, "svd_d") <- vals
+  M_reg
+}
+
+.exdqlm_cov_inverse <- function(Sigma, context = "dynamic_covariance",
+                                eig_floor = NULL, eig_cap = NULL) {
+  M_reg <- .exdqlm_regularize_cov(Sigma, context = context, eig_floor = eig_floor, eig_cap = eig_cap)
+  u <- attr(M_reg, "svd_u")
+  d <- attr(M_reg, "svd_d")
+  inv <- u %*% diag(1 / d, nrow(M_reg)) %*% t(u)
+  list(Sigma = M_reg, inverse = inv, values = d)
+}
+
+.exdqlm_regularize_var <- function(q, context = "dynamic_q",
+                                   q_floor = NULL, q_cap = NULL) {
+  ctrl <- .exdqlm_dynamic_cov_controls()
+  if (is.null(q_floor)) q_floor <- ctrl$q_floor
+  if (is.null(q_cap)) q_cap <- ctrl$q_cap
+  qv <- as.numeric(q)[1]
+  if (is.na(qv)) {
+    stop(sprintf("%s is NA", context))
+  }
+  if (!is.finite(qv)) {
+    qv <- sign(qv) * q_cap
+  }
+  qv <- min(max(qv, q_floor), q_cap)
+  qv
+}
+
 .sample_gig_devroye_required <- function(n_samples,
                                          p,
                                          a,
@@ -838,6 +901,80 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_normalize_vb_trace_vector <- function(x, n_iter, name, drop_init = FALSE, fill = NA_real_) {
+  n_iter <- suppressWarnings(as.integer(n_iter)[1])
+  if (!is.finite(n_iter) || n_iter < 0L) {
+    stop("`n_iter` must be a non-negative integer.", call. = FALSE)
+  }
+  if (!n_iter) {
+    return(rep(fill, 0L))
+  }
+  if (is.null(x) || !length(x)) {
+    return(rep(fill, n_iter))
+  }
+
+  x <- as.numeric(x)
+  if (isTRUE(drop_init) && length(x) == (n_iter + 1L)) {
+    return(x[-1L])
+  }
+  if (length(x) == n_iter) {
+    return(x)
+  }
+  if (length(x) < n_iter) {
+    return(c(rep(fill, n_iter - length(x)), x))
+  }
+
+  expected <- if (isTRUE(drop_init)) {
+    sprintf("%d or %d (including initialization)", n_iter, n_iter + 1L)
+  } else {
+    sprintf("at most %d", n_iter)
+  }
+  stop(
+    sprintf("`%s` trace must have length %s; got %d.", name, expected, length(x)),
+    call. = FALSE
+  )
+}
+
+.exdqlm_make_vb_trace <- function(
+  iter,
+  engine = "VB",
+  dqlm.ind = FALSE,
+  elbo = NULL,
+  sigma = NULL,
+  gamma = NULL,
+  delta_state = NULL,
+  delta_sigma = NULL,
+  delta_gamma = NULL,
+  delta_s = NULL,
+  delta_elbo = NULL,
+  sigma_has_init = FALSE,
+  gamma_has_init = FALSE
+) {
+  n_iter <- suppressWarnings(as.integer(iter)[1])
+  if (!is.finite(n_iter) || n_iter < 0L) {
+    stop("`iter` must be a non-negative integer.", call. = FALSE)
+  }
+
+  data.frame(
+    iter = seq_len(n_iter),
+    engine = rep(as.character(engine)[1], n_iter),
+    dqlm.ind = rep(isTRUE(dqlm.ind), n_iter),
+    elbo = .exdqlm_normalize_vb_trace_vector(elbo, n_iter, "elbo"),
+    sigma = .exdqlm_normalize_vb_trace_vector(
+      sigma, n_iter, "sigma", drop_init = sigma_has_init
+    ),
+    gamma = .exdqlm_normalize_vb_trace_vector(
+      gamma, n_iter, "gamma", drop_init = gamma_has_init
+    ),
+    delta_state = .exdqlm_normalize_vb_trace_vector(delta_state, n_iter, "delta_state"),
+    delta_sigma = .exdqlm_normalize_vb_trace_vector(delta_sigma, n_iter, "delta_sigma"),
+    delta_gamma = .exdqlm_normalize_vb_trace_vector(delta_gamma, n_iter, "delta_gamma"),
+    delta_s = .exdqlm_normalize_vb_trace_vector(delta_s, n_iter, "delta_s"),
+    delta_elbo = .exdqlm_normalize_vb_trace_vector(delta_elbo, n_iter, "delta_elbo"),
+    stringsAsFactors = FALSE
+  )
+}
+
 .exdqlm_chain_health_metrics <- function(x, n_keep = length(x)) {
   z <- as.numeric(x)
   z <- z[is.finite(z)]
@@ -912,7 +1049,8 @@ check_ts = function(dat){
   PriorSigma = NULL,
   verbose = TRUE,
   exps0 = NULL,
-  max_iter = 200L
+  max_iter = 200L,
+  engine = "VB"
 ) {
   # y <- as.numeric(y)
   TT <- length(y)
@@ -1260,6 +1398,20 @@ check_ts = function(dat){
     fix.gamma = TRUE,
     diagnostics = list(
       elbo = elbo.seq,
+      vb_trace = .exdqlm_make_vb_trace(
+        iter = iter,
+        engine = engine,
+        dqlm.ind = TRUE,
+        elbo = elbo.seq,
+        sigma = seq.sigma,
+        gamma = NULL,
+        delta_state = delta_state,
+        delta_sigma = delta_sigma,
+        delta_gamma = NULL,
+        delta_s = NULL,
+        delta_elbo = delta_elbo,
+        sigma_has_init = TRUE
+      ),
       convergence = list(
         converged = identical(stop_reason, "joint_converged"),
         stop_reason = stop_reason,

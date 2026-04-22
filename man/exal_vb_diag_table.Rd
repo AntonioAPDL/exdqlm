@@ -7,7 +7,7 @@
 exal_vb_diag_table(fit_exal)
 }
 \arguments{
-\item{fit_exal}{An object returned by \code{exal_static_LDVB()}.}
+\item{fit_exal}{An object returned by \code{exalStaticLDVB()}.}
 }
 \value{
 A data.frame with one row per VB iteration and columns such as:
@@ -25,7 +25,7 @@ For now this is just a skeleton returning an empty table with the
 intended columns. Fill in the body once you are ready to use it.
 }
 \description{
-Build a per-iteration diagnostics table from an \code{exal_static_LDVB()}
+Build a per-iteration diagnostics table from an \code{exalStaticLDVB()}
 fit. The intent is to expose ELBO, parameter traces, and safeguard
 quantities in a tidy format for plotting and global stopping rules.
 }

@@ -1,7 +1,7 @@
 #' exAL Diagnostics
 #'
-#' Static diagnostics companion for \code{exal_static_LDVB()} and
-#' \code{exal_static_mcmc()}. The function summarizes fitted quantiles on a
+#' Static diagnostics companion for \code{exalStaticLDVB()} and
+#' \code{exalStaticMCMC()}. The function summarizes fitted quantiles on a
 #' shared design matrix, reports mean check loss against observed responses when
 #' available, and can optionally compare the fitted quantile curve against a
 #' known reference quantile function.
@@ -40,12 +40,12 @@
 #' y <- 0.5 * x + (1.2 + 0.35 * x) * stats::rnorm(length(x))
 #' q_true <- 0.5 * x + (1.2 + 0.35 * x) * stats::qnorm(0.25)
 #'
-#' fit_ldvb <- exal_static_LDVB(
+#' fit_ldvb <- exalStaticLDVB(
 #'   y = y, X = X, p0 = 0.25,
 #'   max_iter = 150, tol = 1e-3,
 #'   verbose = FALSE
 #' )
-#' fit_mcmc <- exal_static_mcmc(
+#' fit_mcmc <- exalStaticMCMC(
 #'   y = y, X = X, p0 = 0.25,
 #'   n.burn = 200, n.mcmc = 150,
 #'   mh.proposal = "slice",
@@ -155,10 +155,10 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
   }
 
   if (!is_static_fit(m1)) {
-    stop("m1 must be an output from exal_static_LDVB() or exal_static_mcmc().", call. = FALSE)
+    stop("m1 must be an output from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
   }
   if (!is.null(m2) && !is_static_fit(m2)) {
-    stop("m2 must be an output from exal_static_LDVB() or exal_static_mcmc().", call. = FALSE)
+    stop("m2 must be an output from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
   }
 
   X_use <- resolve_X(m1, X)
@@ -226,7 +226,7 @@ exalDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     ret$m2.rt <- m2_sum$rt
   }
 
-  class(ret) <- "exalDiagnostic"
+  class(ret) <- c("exalDiagnostic", "exalStaticDiagnostic")
   if (isTRUE(plot)) plot(ret, cols = cols)
   invisible(ret)
 }

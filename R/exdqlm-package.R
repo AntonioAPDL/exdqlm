@@ -13,14 +13,14 @@
 #' \itemize{
 #'   \item Dynamic/state-space quantile modeling via
 #'         [exdqlmISVB()], [exdqlmLDVB()], and [exdqlmMCMC()], with
-#'         transfer-function extensions through [transfn_exdqlmLDVB()],
-#'         [transfn_exdqlmMCMC()], and legacy [transfn_exdqlmISVB()].
-#'   \item Static Bayesian exAL regression via [exal_static_LDVB()] and
-#'         [exal_static_mcmc()].
+#'         transfer-function extensions through [exdqlmTransferLDVB()],
+#'         [exdqlmTransferMCMC()], and legacy [exdqlmTransferISVB()].
+#'   \item Static Bayesian exAL regression via [exalStaticLDVB()] and
+#'         [exalStaticMCMC()].
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
 #'         and [regMod()].
 #'   \item Multi-quantile post-processing via
-#'         [exdqlm_synthesize_from_draws()] for non-crossing predictive
+#'         [quantileSynthesis()] for non-crossing predictive
 #'         synthesis from separately fitted quantiles.
 #' }
 #'

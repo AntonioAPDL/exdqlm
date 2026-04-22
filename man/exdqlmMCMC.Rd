@@ -26,6 +26,10 @@ exdqlmMCMC(
   init.from.vb = TRUE,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
+  sigmagam_controls = NULL,
+  latent_state_controls = NULL,
+  theta_state_controls = NULL,
+  dqlm_sigma_controls = NULL,
   mh.proposal = c("slice", "laplace_rw", "rw"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
@@ -84,13 +88,32 @@ warm-start source; it does not change the subsequent MCMC proposal kernel.}
 
 \item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization
 step (\code{LDVB} by default, or \code{ISVB} when \code{init.from.isvb = TRUE}) and
-initialize MCMC from converged VB moments. Default is \code{TRUE}.}
+initialize MCMC from converged VB moments. Default is \code{TRUE}. If
+explicitly set to \code{NULL}, it falls back to \code{init.from.isvb} behavior for
+backward compatibility.}
 
 \item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
 \code{method} (\code{"isvb"} or \code{"ldvb"}), \code{tol}, \code{n.IS}, \code{n.samp}, \code{max_iter}, \code{verbose}.}
 
 \item{vb_init_fit}{Optional precomputed VB fit object. If supplied, warm start
 uses this object directly and does not rerun VB internally.}
+
+\item{sigmagam_controls}{Optional list controlling warmup/freeze for the
+exDQLM sigma/gamma block during MCMC.}
+
+\item{latent_state_controls}{Optional list controlling early latent-state
+warmup/freeze in dynamic MCMC. Supported keys include
+\code{freeze_burnin_iters}, \code{freeze_only_during_burn}, \code{force_after_warmup},
+and \code{mode} (\code{"u_only"} or \code{"u_st_pair"}).}
+
+\item{theta_state_controls}{Optional list controlling early theta-state
+warmup/freeze in dynamic MCMC. Supported keys include
+\code{freeze_burnin_iters}, \code{freeze_only_during_burn}, and
+\code{force_after_warmup}.}
+
+\item{dqlm_sigma_controls}{Optional list controlling sigma-only
+warmup/freeze in the DQLM branch. Supported keys mirror
+\code{sigmagam_controls}.}
 
 \item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew block.
 \code{"slice"} (default) uses

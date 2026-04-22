@@ -12,7 +12,7 @@ exdqlmLDVB(
   dim.df,
   fix.gamma = FALSE,
   gam.init = NA,
-  fix.sigma = FALSE,
+  fix.sigma = TRUE,
   sig.init = NA,
   dqlm.ind = FALSE,
   exps0,
@@ -83,8 +83,10 @@ A object of class "\code{exdqlmLDVB}" containing the following:
 \item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
 \item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
 \item \code{fix.sigma} Logical value indicating whether sigma was fixed at \code{sig.init}.
-\item \code{diagnostics} - List containing ELBO trace and convergence diagnostics
-(joint stopping status, deltas for state/sigma/gamma/ELBO, and criteria used).
+\item \code{diagnostics} - List containing ELBO trace, standardized VB iteration
+trace \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
+convergence deltas), and convergence diagnostics (joint stopping status,
+deltas for state/sigma/gamma/ELBO, and criteria used).
 }
 If \code{dqlm.ind=FALSE}, the list also contains:
 \itemize{
@@ -120,6 +122,10 @@ Advanced options (set via \code{options()}):
 The GIG-based u_t sampler always uses the package C++ Devroye implementation;
 when FALSE, the remaining samplers fall back to R implementations.
 \item \code{exdqlm.use_cpp_postpred}: use C++ posterior predictive sampler (default FALSE).
+\item \code{exdqlm.dynamic.ldvb.sts}: optional warmup/freeze controls for the
+exDQLM latent \eqn{s_t} VB block. Supported fields are
+\code{freeze_warmup_iters}, \code{force_after_warmup}, and
+\code{min_postwarmup_updates}.
 }
 }
 \examples{

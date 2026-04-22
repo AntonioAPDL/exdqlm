@@ -8,11 +8,11 @@ tiny_static_truth_case <- function(n = 36L, p0 = 0.25) {
   list(X = X, y = y, ref = ref, p0 = p0)
 }
 
-test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
+test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
   set.seed(20260409)
   dat <- tiny_static_truth_case(n = 36L, p0 = 0.25)
 
-  fit_ldvb <- exal_static_LDVB(
+  fit_ldvb <- exalStaticLDVB(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
@@ -21,7 +21,7 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
     n_samp_xi = 80,
     verbose = FALSE
   )
-  fit_mcmc <- exal_static_mcmc(
+  fit_mcmc <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
@@ -36,7 +36,7 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
   X_eval <- cbind(1, x_eval)
   ref_eval <- 0.5 * x_eval + (1.2 + 0.35 * x_eval) * stats::qnorm(dat$p0)
   expect_no_error(
-    exalDiagnostics(
+    exalStaticDiagnostics(
       fit_ldvb, fit_mcmc,
       X = X_eval,
       ref = ref_eval,
@@ -44,7 +44,7 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
     )
   )
 
-  diags <- exalDiagnostics(
+  diags <- exalStaticDiagnostics(
     fit_ldvb, fit_mcmc,
     X = dat$X,
     y = dat$y,
@@ -52,8 +52,8 @@ test_that("exalDiagnostics compares LDVB and MCMC on a shared design", {
     plot = FALSE
   )
 
-  expect_s3_class(diags, "exalDiagnostic")
-  expect_true(is.exalDiagnostic(diags))
+  expect_s3_class(diags, "exalStaticDiagnostic")
+  expect_true(is.exalStaticDiagnostic(diags))
   expect_true(all(c(
     "m1.check_loss", "m2.check_loss",
     "m1.ref_rmse", "m2.ref_rmse",
@@ -78,7 +78,7 @@ test_that("static MCMC default proposal is slice", {
   set.seed(20260410)
   dat <- tiny_static_truth_case(n = 24L, p0 = 0.25)
 
-  fit <- exal_static_mcmc(
+  fit <- exalStaticMCMC(
     y = dat$y,
     X = dat$X,
     p0 = dat$p0,
@@ -92,6 +92,80 @@ test_that("static MCMC default proposal is slice", {
   expect_true(isTRUE(fit$mh.diagnostics$kernel_exact))
   expect_true(isTRUE(fit$mh.diagnostics$signoff_ready))
   expect_true(is.na(fit$accept.rate))
+})
+
+test_that("static LDVB records sigmagam warmup scheduling", {
+  set.seed(202604101)
+  dat <- tiny_static_truth_case(n = 30L, p0 = 0.25)
+
+  fit <- exalStaticLDVB(
+    y = dat$y,
+    X = dat$X,
+    p0 = dat$p0,
+    max_iter = 120,
+    tol = 1e-3,
+    n_samp_xi = 80,
+    ld_controls = list(
+      sigmagam = list(
+        freeze_warmup_iters = 3L,
+        force_after_warmup = TRUE,
+        min_postwarmup_updates = 1L
+      )
+    ),
+    verbose = FALSE
+  )
+
+  expect_identical(fit$misc$sigmagam$freeze_warmup_iters, 3L)
+  expect_gte(length(fit$misc$sigmagam_frozen_trace), 3L)
+  expect_true(all(fit$misc$sigmagam_frozen_trace[1:3]))
+  expect_true(is.logical(fit$diagnostics$convergence$sigmagam_min_updates_ok))
+  expect_gte(fit$diagnostics$ld_block$sigmagam$update_count, 1L)
+})
+
+test_that("static MCMC records sigmagam warmup diagnostics", {
+  set.seed(202604102)
+  dat <- tiny_static_truth_case(n = 28L, p0 = 0.25)
+
+  fit <- exalStaticMCMC(
+    y = dat$y,
+    X = dat$X,
+    p0 = dat$p0,
+    n.burn = 12,
+    n.mcmc = 10,
+    thin = 1,
+    init.from.vb = TRUE,
+    vb_init_controls = list(
+      max_iter = 30,
+      tol = 1e-3,
+      n_samp_xi = 80,
+      verbose = FALSE,
+      ld_controls = list(
+        sigmagam = list(
+          freeze_warmup_iters = 2L,
+          force_after_warmup = TRUE,
+          min_postwarmup_updates = 1L
+        )
+      )
+    ),
+    sigmagam_controls = list(
+      freeze_burnin_iters = 4L,
+      freeze_only_during_burn = TRUE,
+      force_after_warmup = TRUE,
+      delay_adapt_until_after_warmup = TRUE,
+      delay_laplace_refresh_until_after_warmup = TRUE
+    ),
+    mh.proposal = "slice",
+    trace.diagnostics = TRUE,
+    trace.every = 1L,
+    verbose = FALSE
+  )
+
+  expect_identical(fit$diagnostics$sigmagam$freeze_burnin_iters, 4L)
+  expect_gte(length(fit$diagnostics$sigmagam_trace$frozen), 4L)
+  expect_true(all(fit$diagnostics$sigmagam_trace$frozen[1:4]))
+  expect_gte(fit$diagnostics$sigmagam$first_active_iter, 5L)
+  expect_gt(fit$diagnostics$sigmagam$update_count, 0L)
+  expect_true(all(c("sigmagam_frozen", "sigmagam_update_reason") %in% names(fit$mh.diagnostics$trace)))
 })
 
 tiny_static_sparse_rhs_case <- function(n = 80L, p0 = 0.25) {
@@ -120,7 +194,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   )
 
   expect_silent(
-    fit_ldvb <- exal_static_LDVB(
+    fit_ldvb <- exalStaticLDVB(
       y = dat$y,
       X = dat$X,
       p0 = dat$p0,
@@ -141,7 +215,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   expect_false(isTRUE(fit_ldvb$diagnostics$ld_block$stabilization$active_final))
 
   expect_silent(
-    fit_mcmc <- exal_static_mcmc(
+    fit_mcmc <- exalStaticMCMC(
       y = dat$y,
       X = dat$X,
       p0 = dat$p0,
@@ -158,7 +232,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   expect_true(all(is.finite(as.matrix(fit_mcmc$samp.beta))))
   expect_false(isTRUE(fit_mcmc$beta_prior$summary$collapse_flag))
 
-  diag_out <- exalDiagnostics(
+  diag_out <- exalStaticDiagnostics(
     fit_ldvb,
     fit_mcmc,
     X = dat$X,

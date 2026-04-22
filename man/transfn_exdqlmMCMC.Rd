@@ -103,7 +103,9 @@ warm-start source; it does not change the subsequent MCMC proposal kernel.}
 
 \item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization
 step (\code{LDVB} by default, or \code{ISVB} when \code{init.from.isvb = TRUE}) and
-initialize MCMC from converged VB moments. Default is \code{TRUE}.}
+initialize MCMC from converged VB moments. Default is \code{TRUE}. If
+explicitly set to \code{NULL}, it falls back to \code{init.from.isvb} behavior for
+backward compatibility.}
 
 \item{vb_init_controls}{Optional list controlling VB warm start. Supported keys:
 \code{method} (\code{"isvb"} or \code{"ldvb"}), \code{tol}, \code{n.IS}, \code{n.samp}, \code{max_iter}, \code{verbose}.}

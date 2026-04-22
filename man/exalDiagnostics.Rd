@@ -44,8 +44,8 @@ reference-curve error metrics, and run-time metadata for \code{m1} and
 \code{m2} (if supplied).
 }
 \description{
-Static diagnostics companion for \code{exal_static_LDVB()} and
-\code{exal_static_mcmc()}. The function summarizes fitted quantiles on a
+Static diagnostics companion for \code{exalStaticLDVB()} and
+\code{exalStaticMCMC()}. The function summarizes fitted quantiles on a
 shared design matrix, reports mean check loss against observed responses when
 available, and can optionally compare the fitted quantile curve against a
 known reference quantile function.
@@ -65,12 +65,12 @@ X <- cbind(1, x)
 y <- 0.5 * x + (1.2 + 0.35 * x) * stats::rnorm(length(x))
 q_true <- 0.5 * x + (1.2 + 0.35 * x) * stats::qnorm(0.25)
 
-fit_ldvb <- exal_static_LDVB(
+fit_ldvb <- exalStaticLDVB(
   y = y, X = X, p0 = 0.25,
   max_iter = 150, tol = 1e-3,
   verbose = FALSE
 )
-fit_mcmc <- exal_static_mcmc(
+fit_mcmc <- exalStaticMCMC(
   y = y, X = X, p0 = 0.25,
   n.burn = 200, n.mcmc = 150,
   mh.proposal = "slice",
