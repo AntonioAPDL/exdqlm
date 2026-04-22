@@ -1,0 +1,93 @@
+meta:
+  study_id: refreshed288_dynamic_canonical_dataset_bundle
+  scenario_id: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  notes: >
+    Validation-study canonical dynamic dataset surface synced from the promoted
+    Q-DESN source scenario. This repo reproduces only the 9 canonical full
+    roots and the 18 canonical lastTT500/lastTT5000 validation windows; the
+    Q-DESN-only washout materialization is intentionally excluded.
+
+source_of_truth:
+  repo_root: /home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  commit: a4ecc815534679afde037569ae18d1e4b64025f0
+  canonical_source_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  outputs_report: docs/REPORT__qdesn_dynamic_candidate_dataset_refresh_outputs_20260422.md
+  selection_report: docs/REPORT__qdesn_dynamic_p90_steepertrend_main_dataset_selection_20260422.md
+  relaunch_plan: docs/PLAN__qdesn_dynamic_p90_steepertrend_72case_relaunch_prep_20260422.md
+
+generation:
+  output_parent: results/function_testing_20260309_dynamic_dlm_family_qspec
+  TT_total: 9000
+  TT_warmup: 2000
+  TT_main: 7000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  tail_fit_sizes: [500, 5000]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1:
+          amplitude: 24
+          phase: 0.35
+        harmonic2:
+          amplitude: 8
+          phase: -0.8
+      observation:
+        normal_sigma: 10
+      seeds:
+        latent: 12011
+        noise: 12012
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1:
+          amplitude: 28
+          phase: -0.15
+        harmonic2:
+          amplitude: 10
+          phase: 0.75
+      observation:
+        laplace_scale: 10
+      seeds:
+        latent: 22011
+        noise: 22012
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1:
+          amplitude: 32
+          phase: 0.85
+        harmonic2:
+          amplitude: 12
+          phase: -1.25
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+      seeds:
+        latent: 32011
+        noise: 32012
+
+registry:
+  historical_dataset_registry: tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260417_canonical_v1.csv
+  output_dataset_registry: tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260422_dynamic_p90_steepertrend_v1.csv
+
+selection:
+  output_manifest: config/validation/refreshed288_dynamic_exdqlm_crossstudy_active_dataset_selection.yaml
+  single_prior_fit_count: 72
+  dual_prior_fit_count: 144
+
+reports:
+  implementation_report: reports/static_exal_tuning_20260422/refreshed288_dynamic_p90_steepertrend_dataset_sync_implementation_20260422.md
+  verification_report: reports/static_exal_tuning_20260422/refreshed288_dynamic_p90_steepertrend_dataset_sync_verification_20260422.md
+  verification_csv: reports/static_exal_tuning_20260422/refreshed288_dynamic_p90_steepertrend_dataset_sync_verification_20260422.csv

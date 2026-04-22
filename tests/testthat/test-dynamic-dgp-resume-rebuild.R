@@ -23,11 +23,11 @@ test_that("dynamic DGP helper reconstructs lean family-qspec schema defaults", {
   model <- build_dynamic_dgp_matched_model(params, TT = 24L)
 
   expect_s3_class(model, "exdqlm")
-  expect_equal(dim(model$FF), c(6L, 24L))
-  expect_equal(dim(model$GG), c(6L, 6L, 24L))
+  expect_equal(dim(model$FF), c(6L, 1L))
+  expect_equal(dim(model$GG), c(6L, 6L))
   expect_equal(as.numeric(model$m0), rep(0, 6L))
   expect_equal(model$C0, diag(25, 6L))
-  expect_equal(model$GG[1:2, 1:2, 1], matrix(c(1, 1, 0, 1), nrow = 2, byrow = TRUE))
+  expect_equal(model$GG[1:2, 1:2], matrix(c(1, 1, 0, 1), nrow = 2, byrow = TRUE))
 })
 
 test_that("dynamic DGP helper honors explicit prior metadata and no-trend structure", {
@@ -42,7 +42,7 @@ test_that("dynamic DGP helper honors explicit prior metadata and no-trend struct
 
   expect_equal(as.numeric(model$m0), seq_len(6))
   expect_equal(model$C0, diag(4, 6L))
-  expect_equal(model$GG[1:2, 1:2, 1], diag(2))
+  expect_equal(model$GG[1:2, 1:2], diag(2))
 })
 
 test_that("dynamic DGP helper fails loudly for malformed supplied prior fields", {

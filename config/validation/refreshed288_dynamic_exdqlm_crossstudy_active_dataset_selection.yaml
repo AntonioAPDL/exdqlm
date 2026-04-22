@@ -1,0 +1,35 @@
+meta:
+  selection_id: refreshed288_dynamic_exdqlm_crossstudy_active_dataset
+  selected_on: '2026-04-22'
+  selected_scenario_id: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  notes: Local validation-study canonical dynamic dataset synchronized to the promoted
+    Q-DESN canonical source bundle. Q-DESN-only washout windows are intentionally
+    excluded.
+source_of_truth:
+  repo_root: /home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  commit: a4ecc815534679afde037569ae18d1e4b64025f0
+  canonical_source_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+local_validation_surface:
+  repo_root: /home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration
+  branch: validation/rerun-after-0.4.0-sync-0p4p0-integration
+  commit: 0d219d906358bda973291589a9792971ace34095
+  canonical_source_root: /home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/results/function_testing_20260309_dynamic_dlm_family_qspec/dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  dataset_registry: /home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260422_dynamic_p90_steepertrend_v1.csv
+study_contract:
+  full_root_count: 9
+  canonical_window_count: 18
+  families:
+  - gausmix
+  - laplace
+  - normal
+  taus:
+  - 0.05
+  - 0.25
+  - 0.5
+  canonical_fit_sizes:
+  - 500
+  - 5000
+relaunch_mapping:
+  single_prior_fit_count: 72
+  dual_prior_fit_count: 144
