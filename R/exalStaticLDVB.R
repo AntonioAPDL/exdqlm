@@ -51,19 +51,19 @@
 }
 
 .exal_sigmagam_vb_controls <- function(sigmagam_cfg = NULL) {
-  sigmagam_cfg <- sigmagam_cfg %||% list()
+  sigmagam_cfg <- .exal_list_with_defaults(.exal_default_vb_sigmagam_profile(), sigmagam_cfg)
 
   freeze_warmup_iters <- suppressWarnings(as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
       sigmagam_cfg$freeze_sigmagam_warmup_iters %||%
-      0L
+      .exal_default_vb_sigmagam_profile()$freeze_warmup_iters
   )[1L])
   if (!is.finite(freeze_warmup_iters) || freeze_warmup_iters < 0L) freeze_warmup_iters <- 0L
 
   postwarmup_damping <- as.numeric(
     sigmagam_cfg$postwarmup_damping %||%
       sigmagam_cfg$sigmagam_postwarmup_damping %||%
-      1.0
+      .exal_default_vb_sigmagam_profile()$postwarmup_damping
   )[1L]
   if (!is.finite(postwarmup_damping) || postwarmup_damping <= 0 || postwarmup_damping > 1) {
     postwarmup_damping <- 1.0
@@ -72,7 +72,7 @@
   postwarmup_damping_iters <- suppressWarnings(as.integer(
     sigmagam_cfg$postwarmup_damping_iters %||%
       sigmagam_cfg$sigmagam_postwarmup_damping_iters %||%
-      0L
+      .exal_default_vb_sigmagam_profile()$postwarmup_damping_iters
   )[1L])
   if (!is.finite(postwarmup_damping_iters) || postwarmup_damping_iters < 0L) {
     postwarmup_damping_iters <- 0L
@@ -81,7 +81,7 @@
   min_postwarmup_updates <- suppressWarnings(as.integer(
     sigmagam_cfg$min_postwarmup_updates %||%
       sigmagam_cfg$sigmagam_min_postwarmup_updates %||%
-      0L
+      .exal_default_vb_sigmagam_profile()$min_postwarmup_updates
   )[1L])
   if (!is.finite(min_postwarmup_updates) || min_postwarmup_updates < 0L) {
     min_postwarmup_updates <- 0L
@@ -97,12 +97,12 @@
 }
 
 .exal_sigmagam_mcmc_controls <- function(sigmagam_cfg = NULL) {
-  sigmagam_cfg <- sigmagam_cfg %||% list()
+  sigmagam_cfg <- .exal_list_with_defaults(.exal_default_mcmc_sigmagam_profile(), sigmagam_cfg)
 
   freeze_burnin_iters <- suppressWarnings(as.integer(
     sigmagam_cfg$freeze_burnin_iters %||%
       sigmagam_cfg$freeze_sigmagam_burnin_iters %||%
-      0L
+      .exal_default_mcmc_sigmagam_profile()$freeze_burnin_iters
   )[1L])
   if (!is.finite(freeze_burnin_iters) || freeze_burnin_iters < 0L) freeze_burnin_iters <- 0L
 
@@ -942,7 +942,9 @@
 #' @param vb_control Optional normalized VB control list, usually from
 #'   [exal_make_vb_control()]. When supplied, the core VB arguments and warmup
 #'   blocks are read from `vb_control` first and then merged with the explicit
-#'   function arguments.
+#'   function arguments. When omitted, the package applies its conservative
+#'   default warmup profile for exAL `(sigma, gamma)` updates while retaining
+#'   the built-in RHS-family `tau` warmup defaults.
 #' @param verbose Logical; print progress.
 #'
 #' @return A object of class "\code{exalStaticLDVB}" containing:
@@ -1528,6 +1530,7 @@ exalStaticLDVB <- function(
   ld_signoff_ready <- FALSE
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   sigmagam_cfg <- ld_ctrl$sigmagam %||% .exal_sigmagam_vb_controls(NULL)
+  sigmagam_cfg <- .exal_clamp_vb_sigmagam_control(sigmagam_cfg, max_iter = max_iter)
   sigmagam_required_postwarmup_updates <- if (sigmagam_cfg$freeze_warmup_iters > 0L) {
     max(1L, sigmagam_cfg$min_postwarmup_updates)
   } else {

@@ -130,7 +130,9 @@ warm-start reference when \code{init.from.vb = TRUE}.}
 \item{mcmc_control}{Optional normalized MCMC control list, usually from
 \code{\link[=exal_make_mcmc_control]{exal_make_mcmc_control()}}. When supplied, the core MCMC arguments and
 warmup blocks are read from \code{mcmc_control} first and then merged with the
-explicit function arguments.}
+explicit function arguments. When omitted, the package applies its
+conservative default exAL \verb{(sigma, gamma)} warmup profile and keeps the
+RHS-family \code{tau} warmup defaults active through the shared prior layer.}
 
 \item{mh.proposal}{Character string controlling the exAL nonconjugate update
 kernel. \code{"slice"} (default) uses an exact bounded univariate slice

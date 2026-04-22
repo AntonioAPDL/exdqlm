@@ -35,7 +35,9 @@ uses this object directly and does not rerun VB internally.}
 \item{mcmc_control}{Optional normalized MCMC control list, usually from
 \code{\link[=exal_make_mcmc_control]{exal_make_mcmc_control()}}. When supplied, the core MCMC arguments and
 warmup blocks are read from \code{mcmc_control} first and then merged with the
-explicit function arguments.}
+explicit function arguments. When omitted, exAL-style dynamic MCMC uses the
+package's conservative default \verb{(sigma, gamma)} warmup profile
+automatically; explicit controls remain the advanced override path.}
 
 \item{sigmagam_controls}{Optional list controlling warmup/freeze for the
 exDQLM sigma/gamma block during MCMC.}

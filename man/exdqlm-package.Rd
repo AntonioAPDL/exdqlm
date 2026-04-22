@@ -48,6 +48,10 @@ static APIs.
 \item Standardized VB diagnostics traces via
 \code{fit$diagnostics$vb_trace} for ELBO, \code{sigma}, \code{gamma}, and
 convergence deltas across VB engines.
+\item Conservative automatic warmup defaults for the most failure-prone
+shared blocks: RHS-family \code{tau} scheduling plus exAL
+\verb{(sigma, gamma)} warmup in VB and MCMC entry points, with explicit
+controls available only when users need to override the defaults.
 \item Optional C++ acceleration for selected state-space computations.
 }
 }

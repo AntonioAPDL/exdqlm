@@ -25,7 +25,9 @@
 #' @param mcmc_control Optional normalized MCMC control list, usually from
 #'   [exal_make_mcmc_control()]. When supplied, the core MCMC arguments and
 #'   warmup blocks are read from `mcmc_control` first and then merged with the
-#'   explicit function arguments.
+#'   explicit function arguments. When omitted, exAL-style dynamic MCMC uses the
+#'   package's conservative default `(sigma, gamma)` warmup profile
+#'   automatically; explicit controls remain the advanced override path.
 #' @param sigmagam_controls Optional list controlling warmup/freeze for the
 #'   exDQLM sigma/gamma block during MCMC.
 #' @param latent_state_controls Optional list controlling early latent-state
@@ -326,6 +328,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     mh.laplace.refresh.weight <- 0.60
   }
   sigmagam_ctrl <- .exal_sigmagam_mcmc_controls(sigmagam_controls)
+  sigmagam_ctrl <- .exal_clamp_mcmc_sigmagam_control(sigmagam_ctrl, n_burn = n.burn)
   latent_ctrl <- .exdqlm_latent_state_mcmc_controls(
     latent_state_controls,
     default_mode = if (isTRUE(dqlm.ind)) "u_only" else "u_st_pair"

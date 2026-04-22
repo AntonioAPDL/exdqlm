@@ -5,11 +5,11 @@
 \title{Build MCMC sigmagam warmup control}
 \usage{
 exal_make_mcmc_sigmagam_control(
-  freeze_burnin_iters = 0L,
-  freeze_only_during_burn = TRUE,
-  force_after_warmup = TRUE,
-  delay_adapt_until_after_warmup = TRUE,
-  delay_laplace_refresh_until_after_warmup = TRUE
+  freeze_burnin_iters = NULL,
+  freeze_only_during_burn = NULL,
+  force_after_warmup = NULL,
+  delay_adapt_until_after_warmup = NULL,
+  delay_laplace_refresh_until_after_warmup = NULL
 )
 }
 \arguments{
@@ -29,6 +29,9 @@ off until warmup ends.}
 }
 \value{
 A normalized list suitable for \code{mcmc_control$sigmagam}.
+
+When called with no arguments, this returns the package's conservative
+default exAL \verb{(sigma, gamma)} MCMC warmup profile.
 }
 \description{
 Returns a normalized \code{mcmc_control$sigmagam} block for \code{\link[=exalStaticMCMC]{exalStaticMCMC()}} and
