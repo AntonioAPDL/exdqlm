@@ -13,9 +13,11 @@ exdqlmDiagnostics(
 )
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmMCMC}", "\code{exdqlmLDVB}",  or "\code{exdqlmISVB}".}
+\item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
+legacy "\code{exdqlmISVB}".}
 
-\item{m2}{An optional additional object of class "\code{exdqlmMCMC}", "\code{exdqlmISVB}", "\code{exdqlmLDVB}" to compare with \code{m1}.}
+\item{m2}{An optional additional object of class "\code{exdqlmLDVB}",
+"\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with \code{m1}.}
 
 \item{plot}{Logical value indicating whether the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.Default is \code{TRUE}.}
 
@@ -55,7 +57,7 @@ errors.
 data("scIVTmag", package = "exdqlm")
 y = scIVTmag[1:100]
 model = polytrendMod(1, stats::quantile(y, 0.85), 10)
-M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15)
 M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
 }

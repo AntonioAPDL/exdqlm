@@ -59,7 +59,7 @@ component. If \code{length(tf.df) = 1}, the value is shared by the
 
 \item{gam.init}{Initial value for gamma (skewness parameter), or value at which gamma will be fixed if \code{fix.gamma=TRUE}.}
 
-\item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}. Default is \code{TRUE}.}
+\item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}. Default is \code{FALSE}.}
 
 \item{sig.init}{Initial value for sigma (scale parameter), or value at which sigma will be fixed if \code{fix.sigma=TRUE}.}
 

@@ -1,6 +1,9 @@
-#' Transfer Function exDQLM - ISVB algorithm
+#' Transfer Function exDQLM - legacy ISVB algorithm
 #'
-#' The function applies an Importance Sampling Variational Bayes (ISVB) algorithm to estimate the posterior of an exDQLM with exponential decay transfer function component.
+#' The function applies an Importance Sampling Variational Bayes (ISVB)
+#' algorithm to estimate the posterior of an exDQLM with exponential-decay
+#' transfer function component. This transfer wrapper is retained as a legacy
+#' path; [exdqlmTransferLDVB()] is the main VB transfer entry point.
 #'
 #' @inheritParams exdqlmISVB
 #' @param X A numeric vector or matrix of transfer-function inputs. Vectors are
@@ -79,6 +82,7 @@
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
 #' model = trend.comp + seas.comp
+#' # Legacy ISVB transfer fit retained for backward-compatible comparisons
 #' M1 = exdqlmTransferISVB(y, p0 = 0.85, model = model,
 #'                           X, df = c(1,1), dim.df = c(1,6),
 #'                           gam.init = -3.5, sig.init = 15,
@@ -90,7 +94,7 @@
 #'                           lam = 0.38, tf.df = c(0.97, 0.99))
 #' }
 #'
-exdqlmTransferISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=TRUE,sig.init=NA,dqlm.ind=FALSE,
+exdqlmTransferISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
                              exps0,tol=0.1,n.IS=500,n.samp=200,PriorSigma=NULL,PriorGamma=NULL,tf.m0=NULL,tf.C0=NULL,verbose=TRUE){
   prep <- .prepare_transfer_inputs(
     y = y, X = X, model = model, df = df, dim.df = dim.df,

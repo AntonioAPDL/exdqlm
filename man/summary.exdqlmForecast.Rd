@@ -19,7 +19,7 @@ Summary Method for \code{exdqlmForecast} Objects
  data("scIVTmag", package = "exdqlm")
  y = scIVTmag[1:100]
  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
- M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+ M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15)
  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0)
  summary(M0.forecast)

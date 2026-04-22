@@ -12,9 +12,10 @@
 #' @section Main workflows:
 #' \itemize{
 #'   \item Dynamic/state-space quantile modeling via
-#'         [exdqlmISVB()], [exdqlmLDVB()], and [exdqlmMCMC()], with
-#'         transfer-function extensions through [exdqlmTransferLDVB()],
-#'         [exdqlmTransferMCMC()], and legacy [exdqlmTransferISVB()].
+#'         [exdqlmLDVB()] and [exdqlmMCMC()], with legacy [exdqlmISVB()]
+#'         retained for backward compatibility and transfer-function extensions
+#'         through [exdqlmTransferLDVB()], [exdqlmTransferMCMC()], and legacy
+#'         [exdqlmTransferISVB()].
 #'   \item Static Bayesian exAL regression via [exalStaticLDVB()] and
 #'         [exalStaticMCMC()].
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
@@ -27,8 +28,9 @@
 #'
 #' @section Distinctive features in 0.4.0:
 #' \itemize{
-#'   \item Dynamic Bayesian quantile state-space inference with three user-facing
-#'         engines: ISVB, LDVB, and MCMC.
+#'   \item Dynamic Bayesian quantile state-space inference with LDVB as the
+#'         main VB engine, MCMC for posterior simulation, and legacy ISVB
+#'         retained for compatibility and historical comparisons.
 #'   \item A unified package covering both dynamic exDQLM models and static
 #'         exAL regression.
 #'   \item Static shrinkage priors including ridge, regularized horseshoe

@@ -35,6 +35,13 @@
   static/transfer/synthesis entry points as deprecated compatibility aliases.
 
 ## Fixes and clarifications
+- Normalized the shared dynamic exDQLM VB policy around LDVB: `exdqlmLDVB()`
+  and `exdqlmTransferLDVB()` are now the main VB entry points, while
+  `exdqlmISVB()` and `exdqlmTransferISVB()` are documented as legacy
+  compatibility paths.
+- Changed `fix.sigma` defaults from `TRUE` to `FALSE` for the shared dynamic
+  exDQLM VB entry points and the reduced dynamic DQLM CAVI helper, while
+  preserving explicit fixed-sigma workflows when users request them.
 - Fixed R-path FFBS backward transition indexing to use `G_{t+1}` for parity
   with the C++ bridge and theory derivations.
 - Fixed static MCMC `psi = 0` boundary behavior in exAL sigma updates to avoid
