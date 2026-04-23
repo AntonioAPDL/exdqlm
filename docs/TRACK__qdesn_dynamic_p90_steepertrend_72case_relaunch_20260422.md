@@ -151,6 +151,14 @@ These totals are required because:
 - [x] committed-state `rhs_ns_full` launch started
 - [x] live healthcheck captured for full `rhs_ns`
 
+### H. Interruption recovery
+
+- [x] interrupted full `rhs_ns` run reconciled
+- [x] unresolved-root continuation grid generated
+- [ ] committed-state continuation preflight passed
+- [ ] continuation wave launched
+- [ ] initial continuation healthcheck captured
+
 ## 6) Recommended Launch Order
 
 1. implement the new relaunch assets on top of the promoted dataset
@@ -318,3 +326,50 @@ Initial interpretation:
 - no hard numerical/runtime failure evidence was present at launch time
 - the next checkpoints should focus on first materialized roots and first
   completed fit summaries
+
+## 11) Full RHS-NS Interruption And Continuation Decision
+
+Interrupted run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-full-20260423-143900__git-20c5e35`
+
+Observed stop condition:
+
+- the tmux launcher session exited unexpectedly after partial progress
+- the campaign reached:
+  - `3` successful roots
+  - `3` failed roots
+  - `12` pending roots
+- the failed roots were all:
+  - `tau = 0.05`
+  - `fit_size = 5000`
+  - one each for `normal`, `laplace`, `gausmix`
+
+Failure evidence:
+
+- launcher-level error:
+  - `3 nodes produced errors; first error: cannot open the connection`
+- warning during failure handling:
+  - could not open `pipeline_stdout.log`
+- user-reported environment event:
+  - disk filled during execution and additional space was freed afterward
+
+Interpretation:
+
+- this interruption is consistent with an abrupt I/O / storage exhaustion event
+  during the live run
+- it is **not** presently evidenced as a clean model-level numerical failure in
+  the completed fits
+- the correct recovery path is a continuation wave on the unresolved roots
+  rather than discarding the three already-successful roots
+
+Continuation policy:
+
+- preserve the interrupted run as an audit artifact
+- reuse the `3` successful roots
+- rerun only the unresolved `15` roots:
+  - `3` failed
+  - `12` pending
+- keep the same normalized baseline defaults for the continuation wave
+- launch the continuation from a new committed-state run tag with a checked-in
+  unresolved-root subset grid
