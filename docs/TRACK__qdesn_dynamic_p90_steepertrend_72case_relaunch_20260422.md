@@ -136,12 +136,20 @@ These totals are required because:
 - [x] committed-state launch tag frozen
 - [x] full baseline launch started from committed state
 - [x] live healthcheck captured
+- [x] `rhs_ns` smoke gate executed from committed state
+- [x] `rhs_ns` smoke numerical gate reviewed
 
 ### F. Post-run decision
 
 - [x] baseline result summarized
 - [x] decision made on second-prior expansion
 - [x] decision made on whether any rescue overlays are needed
+
+### G. Second-prior expansion
+
+- [ ] committed-state `rhs_ns_full` preflight passed
+- [ ] committed-state `rhs_ns_full` launch started
+- [ ] live healthcheck captured for full `rhs_ns`
 
 ## 6) Recommended Launch Order
 
@@ -224,3 +232,47 @@ Rescue-overlay policy:
   `rhs_ns` pass before seeing the `rhs_ns` smoke behavior
 - if `rhs_ns` shows hard numerical problems, re-enter with a targeted rescue
   overlay plan afterward
+
+## 9) RHS-NS Smoke Completion And Expansion Decision
+
+Committed-state smoke run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-smoke-20260422-211800__git-b8f8f06`
+
+RHS-NS smoke final operational outcome:
+
+- `2 / 2` roots completed successfully
+- `8 / 8` fits completed with `status = SUCCESS`
+- hard numerical/runtime failures:
+  - `0`
+- root-level runtime failures:
+  - `0`
+
+RHS-NS smoke final fit-quality mix:
+
+- `PASS: 4` (`50.0%`)
+- `WARN: 1` (`12.5%`)
+- `FAIL: 3` (`37.5%`)
+- comparison-eligible:
+  - `5 / 8` (`62.5%`)
+
+Dominant diagnostic issues:
+
+- `high_autocorrelation`
+- `chain_marginal_but_usable`
+
+Interpretation:
+
+- the normalized baseline defaults remained operationally stable on the staged
+  `rhs_ns` smoke surface
+- the smoke gate showed diagnostic weakness, but **not** hard numerical/runtime
+  breakdown
+- the next stage should therefore be the committed-state full `rhs_ns`
+  expansion, still without promoting rescue overlays into the baseline
+
+Decision:
+
+- proceed to the full `rhs_ns` `72`-fit stage
+- keep the same normalized baseline defaults
+- continue to hold theta/latent/precision rescue layers in reserve unless the
+  full `rhs_ns` surface shows hard failure or materially worse degradation
