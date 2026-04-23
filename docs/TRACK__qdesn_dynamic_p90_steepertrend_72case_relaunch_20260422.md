@@ -132,16 +132,16 @@ These totals are required because:
 
 ### E. Execution gates
 
-- [ ] smoke execution passed
-- [ ] committed-state launch tag frozen
-- [ ] full baseline launch started from committed state
-- [ ] live healthcheck captured
+- [x] smoke execution passed
+- [x] committed-state launch tag frozen
+- [x] full baseline launch started from committed state
+- [x] live healthcheck captured
 
 ### F. Post-run decision
 
-- [ ] baseline result summarized
-- [ ] decision made on second-prior expansion
-- [ ] decision made on whether any rescue overlays are needed
+- [x] baseline result summarized
+- [x] decision made on second-prior expansion
+- [x] decision made on whether any rescue overlays are needed
 
 ## 6) Recommended Launch Order
 
@@ -169,11 +169,58 @@ the new baseline.
 
 ## 8) Current Read
 
-As of this checkpoint:
+Committed-state launch tags used:
 
-- the promoted dataset is ready
-- the relaunch design is now documented
-- the new relaunch assets and preflight gates are ready
-- the first prior for execution is frozen as `ridge`
-- the next step is committed-state smoke execution, then the `72`-fit ridge baseline
-- no new relaunch has been launched yet on the promoted dataset
+- smoke:
+  - `qdesn-dynamic-p90-steepertrend-smoke-20260422-044129__git-6438b52`
+- ridge baseline:
+  - `qdesn-dynamic-p90-steepertrend-ridge-full-20260422-044241__git-6438b52`
+
+Ridge baseline final operational outcome:
+
+- `18 / 18` roots completed successfully
+- `72 / 72` fits completed with `status = SUCCESS`
+- hard numerical/runtime failures:
+  - `0`
+- root-level runtime failures:
+  - `0`
+
+Ridge baseline final fit-quality mix:
+
+- `PASS: 42` (`58.3%`)
+- `WARN: 15` (`20.8%`)
+- `FAIL: 15` (`20.8%`)
+- comparison-eligible:
+  - `57 / 72` (`79.2%`)
+
+Dominant diagnostic issues:
+
+- `high_autocorrelation`
+- `high_autocorrelation; half_chain_drift`
+- `low_ess; high_autocorrelation; half_chain_drift`
+- `vb_converged_false`
+- `chain_marginal_but_usable`
+
+Interpretation:
+
+- the promoted dataset surface and the updated Q-DESN launch stack passed the
+  first operational baseline gate
+- the baseline did **not** show hard numerical breakdown
+- the main remaining weakness is mixing/diagnostic quality, especially on
+  `exal + mcmc`
+
+Decision:
+
+- proceed to the second prior surface, but **not** as a blind full launch
+- next step should be a committed-state `rhs_ns` smoke gate using the same
+  normalized baseline defaults
+- only if that smoke gate remains free of hard numerical/runtime failures
+  should the full `72`-fit `rhs_ns` expansion be launched
+
+Rescue-overlay policy:
+
+- do **not** change the baseline defaults yet
+- do **not** promote theta/latent/precision rescue overlays into the default
+  `rhs_ns` pass before seeing the `rhs_ns` smoke behavior
+- if `rhs_ns` shows hard numerical problems, re-enter with a targeted rescue
+  overlay plan afterward
