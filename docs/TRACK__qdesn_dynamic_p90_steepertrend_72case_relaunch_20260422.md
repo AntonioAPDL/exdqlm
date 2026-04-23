@@ -147,9 +147,9 @@ These totals are required because:
 
 ### G. Second-prior expansion
 
-- [ ] committed-state `rhs_ns_full` preflight passed
-- [ ] committed-state `rhs_ns_full` launch started
-- [ ] live healthcheck captured for full `rhs_ns`
+- [x] committed-state `rhs_ns_full` preflight passed
+- [x] committed-state `rhs_ns_full` launch started
+- [x] live healthcheck captured for full `rhs_ns`
 
 ## 6) Recommended Launch Order
 
@@ -276,3 +276,45 @@ Decision:
 - keep the same normalized baseline defaults
 - continue to hold theta/latent/precision rescue layers in reserve unless the
   full `rhs_ns` surface shows hard failure or materially worse degradation
+
+## 10) Full RHS-NS Launch Start
+
+Committed-state preflight run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-full-preflight-20260423-143700__git-20c5e35`
+
+Committed-state full launch run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-full-20260423-143900__git-20c5e35`
+
+Preflight status:
+
+- focused config test passed
+- `rhsns_full` prepare-only gate passed
+
+Initial live health snapshot:
+
+- snapshot time:
+  - `2026-04-23 14:39 EDT`
+- selected roots:
+  - `18`
+- materialized roots:
+  - `0`
+- successful roots:
+  - `0`
+- running roots:
+  - `0` in summaries yet
+- failed roots:
+  - `0`
+- launcher session:
+  - `qdesn_p90_rhsns_full`
+- launcher session live:
+  - `TRUE`
+
+Initial interpretation:
+
+- the full `rhs_ns` launch opened cleanly from the frozen committed state
+- workers started successfully
+- no hard numerical/runtime failure evidence was present at launch time
+- the next checkpoints should focus on first materialized roots and first
+  completed fit summaries
