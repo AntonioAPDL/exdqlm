@@ -155,9 +155,9 @@ These totals are required because:
 
 - [x] interrupted full `rhs_ns` run reconciled
 - [x] unresolved-root continuation grid generated
-- [ ] committed-state continuation preflight passed
-- [ ] continuation wave launched
-- [ ] initial continuation healthcheck captured
+- [x] committed-state continuation preflight passed
+- [x] continuation wave launched
+- [x] initial continuation healthcheck captured
 
 ## 6) Recommended Launch Order
 
@@ -373,3 +373,51 @@ Continuation policy:
 - keep the same normalized baseline defaults for the continuation wave
 - launch the continuation from a new committed-state run tag with a checked-in
   unresolved-root subset grid
+
+## 12) RHS-NS Continuation Wave Start
+
+Committed-state continuation preflight run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-resume-preflight-20260423-192200__git-ae49a50`
+
+Committed-state continuation launch run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-resume-full-20260423-192400__git-ae49a50`
+
+Continuation scope:
+
+- unresolved roots only:
+  - `15`
+- preserved successful roots from interrupted parent run:
+  - `3`
+
+Preflight status:
+
+- focused config test passed
+- continuation-grid prepare-only gate passed
+
+Initial live health snapshot:
+
+- snapshot time:
+  - `2026-04-23 19:19 EDT`
+- selected roots:
+  - `15`
+- materialized roots:
+  - `0`
+- successful roots:
+  - `0`
+- running roots:
+  - `0` in summaries yet
+- failed roots:
+  - `0`
+- launcher session:
+  - `qdesn_p90_rhsns_resume`
+- launcher session live:
+  - `TRUE`
+
+Initial interpretation:
+
+- the continuation wave opened cleanly from the frozen committed state
+- the unresolved-root subset grid was accepted as an auditable continuation
+  surface
+- no hard numerical/runtime failure evidence was present at launch time
