@@ -104,3 +104,44 @@ Required gates:
 - focused config test passes
 - full `prepare-only` preflight passes
 - branch committed before detached launch
+
+## Launch Record
+
+Committed launch SHA:
+
+- `366ca13`
+
+Full preflight:
+
+- run tag: `qdesn-dynamic-p90-steepertrend-n300m50-full-preflight-20260424-172935__git-366ca13`
+- selected roots: `36`
+- expanded fits: `144`
+- workers: `16`
+- scheduler: `load_balanced`
+- result: passed
+
+Full launch:
+
+- run tag: `qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13`
+- tmux session: `qdesn_p90_n300m50_full`
+- launcher log: `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13/launch/launcher_stdout.log`
+- outer report root: `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13`
+- outer results root: `results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13`
+
+Initial health snapshot:
+
+- snapshot time: `2026-04-24 17:30:20 EDT`
+- selected roots: `36`
+- materialized roots: `16` (`44.4%`)
+- running roots: `16` (`44.4%`)
+- successful roots: `0`
+- failed roots: `0`
+- fit summary rows: `0`
+- campaign completed manifest present: `FALSE`
+- launcher session live: `TRUE`
+
+Initial interpretation:
+
+- the full n300/m50 launch opened cleanly
+- workers started and materialized the first concurrency wave
+- no hard numerical/runtime failures were visible at the initial healthcheck
