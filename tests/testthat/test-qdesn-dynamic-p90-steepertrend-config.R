@@ -104,3 +104,48 @@ test_that("p90 steepertrend full and subset grids stay coherent", {
     expect_true(all(as.integer(subset_grid$source_total_size) %in% c(813L, 5313L)))
   }
 })
+
+test_that("p90 steepertrend n300m50 relaunch spec encodes the larger DESN", {
+  repo_root <- normalizePath(pkgload::pkg_path(), winslash = "/", mustWork = TRUE)
+  defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(
+    repo_root,
+    "config",
+    "validation",
+    "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_defaults.yaml"
+  ))
+  full_grid <- exdqlm:::qdesn_dynamic_crossstudy_load_grid(file.path(
+    repo_root,
+    "config",
+    "validation",
+    "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_full_grid.csv"
+  ))
+
+  profile_id <- "deep_d3_n300x3_skip100_w300_m50"
+  profile <- defaults$reservoir_profiles[[profile_id]]
+  validation <- exdqlm:::qdesn_dynamic_crossstudy_validate_grid(full_grid, defaults)
+
+  expect_identical(defaults$campaign$name, "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation")
+  expect_identical(defaults$pilot$reservoir_profile, profile_id)
+  expect_identical(unique(as.character(full_grid$reservoir_profile)), profile_id)
+  expect_identical(as.integer(validation$enabled_roots), 36L)
+  expect_identical(as.integer(validation$unique_dataset_cells), 18L)
+  expect_identical(as.integer(nrow(full_grid) * 4L), 144L)
+
+  expect_identical(as.integer(profile$D), 3L)
+  expect_identical(as.integer(profile$n), c(300L, 300L, 300L))
+  expect_identical(as.integer(profile$n_tilde), c(300L, 300L))
+  expect_identical(as.integer(profile$m), 50L)
+  expect_equal(as.numeric(profile$alpha), c(0.25, 0.25, 0.25))
+  expect_equal(as.numeric(profile$rho), c(0.95, 0.95, 0.95))
+  expect_identical(as.character(profile$act_f), c("tanh", "tanh", "tanh"))
+  expect_identical(as.character(profile$act_k), c("identity", "identity", "identity"))
+  expect_equal(as.numeric(profile$pi_w), c(0.1, 0.1, 0.1))
+  expect_equal(as.numeric(profile$pi_in), c(1.0, 1.0, 1.0))
+  expect_identical(as.integer(profile$washout), 300L)
+  expect_true(isTRUE(profile$add_bias))
+  expect_identical(as.integer(profile$seed), 123L)
+  expect_true(isTRUE(defaults$pipeline$inference$mcmc$init_from_vb))
+  expect_false(isTRUE(defaults$pipeline$outputs$keep_mcmc_vb_init))
+  expect_identical(as.integer(defaults$runtime$workers), 16L)
+  expect_identical(as.character(defaults$runtime$root_scheduler), "load_balanced")
+})
