@@ -21,6 +21,38 @@
   hit[[1L]]
 }
 
+qdesn_prune_mcmc_vb_init_artifacts <- function(x) {
+  prune_names <- c(
+    "vb_init",
+    "vb_init_fit",
+    "vb_init_output",
+    "vb_init_outputs",
+    "vb_warm",
+    "vb_warm_fit",
+    "vb_warm_start_fit",
+    "vb_warm_start_output",
+    "vb_warm_start_outputs",
+    "mcmc_vb_init",
+    "mcmc_vb_init_fit",
+    "mcmc_vb_warm_start_fit"
+  )
+
+  prune_one <- function(obj) {
+    if (!is.list(obj) || is.data.frame(obj)) return(obj)
+    nms <- names(obj)
+    if (!is.null(nms) && length(nms)) {
+      keep <- !tolower(nms) %in% prune_names
+      obj <- obj[keep]
+    }
+    if (length(obj)) {
+      obj[] <- lapply(obj, prune_one)
+    }
+    obj
+  }
+
+  prune_one(x)
+}
+
 .pipeline_parse_prob_from_trace_name <- function(x) {
   x <- as.character(x %||% NA_character_)[1L]
   if (is.na(x) || !nzchar(x)) return(NA_real_)

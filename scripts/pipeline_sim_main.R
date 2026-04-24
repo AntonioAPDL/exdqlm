@@ -116,6 +116,7 @@ save_outputs <- if (!is.na(val) && nzchar(val)) (as.integer(val) == 1L) else TRU
 # Output control flags (can be overridden by YAML cfg$outputs)
 keep_draws    <- FALSE
 thesis_subset <- FALSE
+keep_mcmc_vb_init <- FALSE
 
 if (is.na(file_long) || !file.exists(file_long)) {
   stop("EXDQLM_FILE_LONG not set or file missing: ", file_long)
@@ -761,6 +762,9 @@ log_msg(
     if (!is.null(cfg$outputs$thesis_subset)) {
       thesis_subset <- isTRUE(cfg$outputs$thesis_subset)
     }
+    if (!is.null(cfg$outputs$keep_mcmc_vb_init)) {
+      keep_mcmc_vb_init <- isTRUE(cfg$outputs$keep_mcmc_vb_init)
+    }
   }
 }
 
@@ -911,8 +915,8 @@ if (isTRUE(is_model_selection)) {
 
 if (isTRUE(VERBOSE)) {
   message(sprintf(
-    "[esn_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s",
-    out_dir, save_outputs, keep_draws, thesis_subset
+    "[esn_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s | keep_mcmc_vb_init=%s",
+    out_dir, save_outputs, keep_draws, thesis_subset, keep_mcmc_vb_init
   ))
 }
 
@@ -3886,9 +3890,14 @@ if (isTRUE(lead_eval_enabled)) {
 
 # --- 7) Save core objects
 if (isTRUE(save_outputs)) {
+  fits_fc_to_save <- if (isTRUE(keep_mcmc_vb_init)) {
+    fits_fc
+  } else {
+    qdesn_prune_mcmc_vb_init_artifacts(fits_fc)
+  }
   saveRDS(
     list(
-	      fits_fc = fits_fc, synth_fc = synth_fc, compare_fc = compare_fc,
+	      fits_fc = fits_fc_to_save, synth_fc = synth_fc, compare_fc = compare_fc,
 	            cfg = list(
 	        p_vec = p_vec, desn_args = desn_args, vb_args_base = vb_args_base,
 	        inference = list(
@@ -3935,7 +3944,8 @@ if (isTRUE(save_outputs)) {
         outputs = list(
           save          = save_outputs,
           keep_draws    = keep_draws,
-          thesis_subset = thesis_subset
+          thesis_subset = thesis_subset,
+          keep_mcmc_vb_init = keep_mcmc_vb_init
         ),
         diagnostics = list(
           lead_eval  = do_lead_eval,

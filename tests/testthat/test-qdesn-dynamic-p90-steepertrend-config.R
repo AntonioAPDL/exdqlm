@@ -20,8 +20,43 @@ test_that("p90 steepertrend defaults encode the promoted dynamic surface", {
   expect_identical(as.integer(defaults$pipeline$inference$vb$rhs$freeze_tau_iters), 50L)
   expect_identical(as.integer(defaults$pipeline$inference$mcmc$rhs$freeze_tau_burnin_iters), 500L)
   expect_true(isTRUE(defaults$pipeline$inference$mcmc$init_from_vb))
+  expect_false(isTRUE(defaults$pipeline$outputs$keep_mcmc_vb_init))
   expect_identical(as.integer(defaults$source_materialization$windows[[1L]]$source_total_size), 813L)
   expect_identical(as.integer(defaults$source_materialization$windows[[2L]]$source_total_size), 5313L)
+})
+
+test_that("MCMC VB warm-start artifacts can be pruned without dropping metadata", {
+  obj <- list(
+    fits_fc = list(
+      list(
+        fit_train = list(
+          fit = list(
+            control = list(
+              init_from_vb = TRUE,
+              vb_warm_start_seed = 1777L,
+              vb_warm_start_control = list(max_iter = 20L)
+            ),
+            diagnostics = list(warm_start = "ldvb"),
+            misc = list(
+              vb_warm = list(heavy = stats::rnorm(4)),
+              nested = list(vb_init_fit = list(heavy = stats::rnorm(3)))
+            )
+          )
+        )
+      )
+    ),
+    cfg = list(outputs = list(keep_mcmc_vb_init = FALSE))
+  )
+
+  pruned <- exdqlm:::qdesn_prune_mcmc_vb_init_artifacts(obj)
+  fit <- pruned$fits_fc[[1L]]$fit_train$fit
+
+  expect_true(isTRUE(fit$control$init_from_vb))
+  expect_equal(fit$control$vb_warm_start_seed, 1777L)
+  expect_equal(fit$control$vb_warm_start_control$max_iter, 20L)
+  expect_identical(fit$diagnostics$warm_start, "ldvb")
+  expect_null(fit$misc$vb_warm)
+  expect_null(fit$misc$nested$vb_init_fit)
 })
 
 test_that("p90 steepertrend full and subset grids stay coherent", {

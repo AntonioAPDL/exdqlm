@@ -164,6 +164,7 @@ if (!is.null(cfg$pipeline) && !is.null(cfg$pipeline$verbose)) {
 
 keep_draws    <- FALSE
 thesis_subset <- FALSE
+keep_mcmc_vb_init <- FALSE
 if (!is.null(cfg$outputs)) {
   if (!is.null(cfg$outputs$save)) {
     save_outputs <- isTRUE(cfg$outputs$save)
@@ -173,6 +174,9 @@ if (!is.null(cfg$outputs)) {
   }
   if (!is.null(cfg$outputs$thesis_subset)) {
     thesis_subset <- isTRUE(cfg$outputs$thesis_subset)
+  }
+  if (!is.null(cfg$outputs$keep_mcmc_vb_init)) {
+    keep_mcmc_vb_init <- isTRUE(cfg$outputs$keep_mcmc_vb_init)
   }
 }
 
@@ -279,7 +283,14 @@ TABLES <- file.path(out_dir, "tables");  dir.create(TABLES, recursive = TRUE, sh
 MODELS <- file.path(out_dir, "models");  dir.create(MODELS, recursive = TRUE, showWarnings = FALSE)
 MANI   <- file.path(out_dir, "manifest");dir.create(MANI,   recursive = TRUE, showWarnings = FALSE)
 
-log_msg("[real_main] out_dir=%s | save_outputs=%s", out_dir, as.character(save_outputs))
+log_msg(
+  "[real_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s | keep_mcmc_vb_init=%s",
+  out_dir,
+  as.character(save_outputs),
+  as.character(keep_draws),
+  as.character(thesis_subset),
+  as.character(keep_mcmc_vb_init)
+)
 
 # --- Theme & small plot helpers (parity with sim) -----------------------------
 ACCENT_ORANGE <- "#ff9c11fc"
@@ -3927,9 +3938,15 @@ if (isTRUE(save_outputs)) {
     compare_tr <- NULL
   }
 
+  fits_fc_to_save <- if (isTRUE(keep_mcmc_vb_init)) {
+    fits_fc
+  } else {
+    qdesn_prune_mcmc_vb_init_artifacts(fits_fc)
+  }
+
   saveRDS(
     list(
-      fits_fc = fits_fc,
+      fits_fc = fits_fc_to_save,
       synth_fc = synth_fc,
 	      compare_fc = compare_fc,
 	      compare_tr = compare_tr,
@@ -3960,7 +3977,12 @@ if (isTRUE(save_outputs)) {
                      grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed),
         split = list(T_use = T_use, n_train = n_train, H_forecast = H_forecast),
         ij = list(use_ij_correction = use_ij_correction, nd_draws = ij_nd_draws),
-        outputs = list(save = save_outputs, keep_draws = keep_draws, thesis_subset = thesis_subset),
+        outputs = list(
+          save = save_outputs,
+          keep_draws = keep_draws,
+          thesis_subset = thesis_subset,
+          keep_mcmc_vb_init = keep_mcmc_vb_init
+        ),
         diagnostics = list(
           lead_eval  = do_lead_eval,
           fan_charts = do_fan_charts,

@@ -224,6 +224,7 @@ pipeline:
   outputs:
     save: true
     keep_draws: false
+    keep_mcmc_vb_init: false
     thesis_subset: false
   inference:
     likelihood_family: exal
@@ -414,4 +415,3 @@ pipeline:
             intercept_prec: 1.0e-10
             n_inner: 2
             var_floor: 1.0e-8
-

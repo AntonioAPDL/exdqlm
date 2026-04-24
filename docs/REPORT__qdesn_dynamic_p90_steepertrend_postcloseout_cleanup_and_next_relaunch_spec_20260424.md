@@ -208,6 +208,7 @@ Pipeline/output contract:
 | Diagnostics | scores enabled; calibration, PIT, lead eval, fan charts, plots disabled |
 | C++ postpred | disabled |
 | Output saving | `save = true`, `keep_draws = false` |
+| MCMC VB-init storage | `keep_mcmc_vb_init = false`; MCMC still uses `init_from_vb = true`, but saved forecast objects should not persist warm-start VB fit artifacts |
 
 ## 4) Next Relaunch Recommendation
 

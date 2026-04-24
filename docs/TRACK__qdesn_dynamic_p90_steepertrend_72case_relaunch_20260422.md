@@ -581,3 +581,10 @@ Post-cleanup read:
 - remaining `.rds`/`.RData` footprint: `0.021 GiB`
 - remaining files are tiny source-surface or simulation-suite `sim_output.rds`
   artifacts, not validation model payloads
+
+Next relaunch storage policy:
+
+- MCMC runs continue to require `init_from_vb = TRUE`
+- saved pipeline artifacts set `outputs.keep_mcmc_vb_init = FALSE`
+- this keeps VB warm-start use for numerical stability while avoiding
+  persisted VB-init fit artifacts inside MCMC forecast objects
