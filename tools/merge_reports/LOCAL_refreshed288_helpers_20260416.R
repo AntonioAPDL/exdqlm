@@ -148,6 +148,36 @@ ensure_dir_refreshed288 <- function(path) {
   ensure_dir_original288_normalized_multiseed(path)
 }
 
+write_csv_atomic_refreshed288 <- function(x, path, row.names = FALSE) {
+  ensure_dir_refreshed288(dirname(path))
+  tmp <- tempfile(
+    pattern = sprintf(".%s_tmp_", basename(path)),
+    tmpdir = dirname(path),
+    fileext = ".csv"
+  )
+  on.exit(if (file.exists(tmp)) unlink(tmp, force = TRUE), add = TRUE)
+  utils::write.csv(x, tmp, row.names = row.names)
+  if (!file.rename(tmp, path)) {
+    stop(sprintf("failed to atomically replace csv: %s", path), call. = FALSE)
+  }
+  invisible(path)
+}
+
+safe_read_csv_refreshed288 <- function(path, stringsAsFactors = FALSE, check.names = FALSE) {
+  if (is.null(path) || !nzchar(path) || !file.exists(path)) return(NULL)
+  info <- suppressWarnings(file.info(path))
+  if (!is.data.frame(info) || !is.finite(info$size[1]) || info$size[1] <= 0) return(NULL)
+  tryCatch(
+    utils::read.csv(path, stringsAsFactors = stringsAsFactors, check.names = check.names),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (grepl("no lines available in input", msg, fixed = TRUE)) return(NULL)
+      if (grepl("cannot open the connection", msg, fixed = TRUE)) return(NULL)
+      stop(e)
+    }
+  )
+}
+
 safe_chr_refreshed288 <- function(x, default = NA_character_) {
   safe_chr_original288_normalized_multiseed(x, default = default)
 }
@@ -1113,7 +1143,7 @@ write_row_status_refreshed288 <- function(row, status, ts_start, ts_end = as.cha
     retain_draw_binaries = as_flag_refreshed288(row$retain_draw_binaries, FALSE),
     stringsAsFactors = FALSE
   )
-  utils::write.csv(out, row$row_status_path, row.names = FALSE)
+  write_csv_atomic_refreshed288(out, row$row_status_path, row.names = FALSE)
 }
 
 write_row_failure_refreshed288 <- function(row, reason) {
@@ -1159,8 +1189,8 @@ write_row_failure_refreshed288 <- function(row, reason) {
     metric_error = reason,
     stringsAsFactors = FALSE
   )
-  utils::write.csv(health_row, row$health_path, row.names = FALSE)
-  utils::write.csv(metrics_row, row$metrics_path, row.names = FALSE)
+  write_csv_atomic_refreshed288(health_row, row$health_path, row.names = FALSE)
+  write_csv_atomic_refreshed288(metrics_row, row$metrics_path, row.names = FALSE)
   write_row_status_refreshed288(
     row = row,
     status = "failed_runtime",

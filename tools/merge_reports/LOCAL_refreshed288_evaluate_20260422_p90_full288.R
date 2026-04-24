@@ -20,12 +20,8 @@ manifest <- utils::read.csv(manifest_path, stringsAsFactors = FALSE, check.names
 status_rows <- vector("list", nrow(manifest))
 for (i in seq_len(nrow(manifest))) {
   row <- manifest[i, , drop = FALSE]
-  row_csv <- if (file.exists(row$row_status_path)) {
-    utils::read.csv(row$row_status_path, stringsAsFactors = FALSE, check.names = FALSE)
-  } else NULL
-  metrics_csv <- if (file.exists(row$metrics_path)) {
-    utils::read.csv(row$metrics_path, stringsAsFactors = FALSE, check.names = FALSE)
-  } else NULL
+  row_csv <- safe_read_csv_refreshed288(row$row_status_path, stringsAsFactors = FALSE, check.names = FALSE)
+  metrics_csv <- safe_read_csv_refreshed288(row$metrics_path, stringsAsFactors = FALSE, check.names = FALSE)
 
   status_current <- if (!is.null(row_csv) && nrow(row_csv)) {
     safe_chr_refreshed288(row_csv$status[1], "not_started")
@@ -96,7 +92,7 @@ for (i in seq_len(nrow(manifest))) {
 
 status_df <- do.call(rbind, status_rows)
 status_df <- status_df[order(status_df$phase_order, status_df$row_id), , drop = FALSE]
-utils::write.csv(status_df, status_out, row.names = FALSE)
+write_csv_atomic_refreshed288(status_df, status_out, row.names = FALSE)
 
 phase_summary <- summarize_status_refreshed288(status_df, "phase")
 phase_order_lookup <- stats::aggregate(phase_order ~ phase, data = manifest[, c("phase", "phase_order"), drop = FALSE], FUN = min)
@@ -105,14 +101,18 @@ if (any(!is.finite(phase_summary$phase_order))) {
   phase_summary$phase_order[!is.finite(phase_summary$phase_order)] <- seq_len(sum(!is.finite(phase_summary$phase_order))) + max(c(0, phase_summary$phase_order[is.finite(phase_summary$phase_order)]))
 }
 phase_summary <- phase_summary[order(phase_summary$phase_order), , drop = FALSE]
-utils::write.csv(phase_summary[, c("phase", "total", "completed", "running", "not_started", "pass", "warn", "fail", "healthy", "pct_completed", "pct_active_or_done")], phase_out, row.names = FALSE)
+write_csv_atomic_refreshed288(
+  phase_summary[, c("phase", "total", "completed", "running", "not_started", "pass", "warn", "fail", "healthy", "pct_completed", "pct_active_or_done")],
+  phase_out,
+  row.names = FALSE
+)
 
 method_summary <- summarize_status_refreshed288(
   status_df,
   c("root_kind", "prior_semantics", "model", "inference")
 )
 method_summary <- method_summary[order(method_summary$root_kind, method_summary$prior_semantics, method_summary$model, method_summary$inference), , drop = FALSE]
-utils::write.csv(method_summary, method_out, row.names = FALSE)
+write_csv_atomic_refreshed288(method_summary, method_out, row.names = FALSE)
 
 cat(sprintf(
   "SUMMARY total=%d completed=%d running=%d not_started=%d pass=%d warn=%d fail=%d healthy=%d pct_completed=%.1f pct_active_or_done=%.1f\n",

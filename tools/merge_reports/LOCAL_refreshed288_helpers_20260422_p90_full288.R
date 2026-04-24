@@ -96,6 +96,65 @@ paths_refreshed288 <- function() {
   )
 }
 
+parse_csv_tokens_refreshed288 <- function(x) {
+  if (is.null(x) || !length(x)) return(character(0))
+  raw <- unlist(strsplit(paste(x, collapse = ","), ",", fixed = TRUE), use.names = FALSE)
+  vals <- trimws(raw)
+  vals[nzchar(vals)]
+}
+
+manifest_kind_from_path_refreshed288 <- function(manifest_path) {
+  if (grepl("smoke_manifest", basename(manifest_path), fixed = TRUE)) "smoke" else "full"
+}
+
+status_path_for_manifest_refreshed288 <- function(manifest_path) {
+  paths <- paths_refreshed288()
+  if (identical(manifest_kind_from_path_refreshed288(manifest_path), "smoke")) {
+    paths$smoke_manifest_status
+  } else {
+    paths$full_manifest_status
+  }
+}
+
+select_row_ids_for_launch_refreshed288 <- function(manifest_path, phase_filter = NULL, status_filter = NULL, status_path = NULL) {
+  manifest <- utils::read.csv(manifest_path, stringsAsFactors = FALSE, check.names = FALSE)
+  phase_vals <- parse_csv_tokens_refreshed288(phase_filter)
+  if (length(phase_vals)) {
+    manifest <- manifest[manifest$phase %in% phase_vals, , drop = FALSE]
+  }
+  if (!nrow(manifest)) return(integer(0))
+
+  status_vals <- parse_csv_tokens_refreshed288(status_filter)
+  if (!length(status_vals)) {
+    return(as.integer(manifest$row_id))
+  }
+
+  status_path <- safe_chr_refreshed288(status_path, status_path_for_manifest_refreshed288(manifest_path))
+  status_df <- safe_read_csv_refreshed288(status_path, stringsAsFactors = FALSE, check.names = FALSE)
+  if (is.null(status_df) || !nrow(status_df)) {
+    status_lookup <- data.frame(
+      row_id = manifest$row_id,
+      status_current = rep("not_started", nrow(manifest)),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    status_lookup <- status_df[, c("row_id", "status_current"), drop = FALSE]
+  }
+
+  merged <- merge(
+    manifest[, c("row_id", "phase", "phase_order"), drop = FALSE],
+    status_lookup,
+    by = "row_id",
+    all.x = TRUE,
+    sort = FALSE
+  )
+  merged$status_current[!nzchar(merged$status_current) | is.na(merged$status_current)] <- "not_started"
+  merged <- merged[merged$status_current %in% status_vals, , drop = FALSE]
+  if (!nrow(merged)) return(integer(0))
+  merged <- merged[order(merged$phase_order, merged$row_id), , drop = FALSE]
+  as.integer(merged$row_id)
+}
+
 tracker_refreshed288_p90 <- local({
   cache <- NULL
   function(force = FALSE) {

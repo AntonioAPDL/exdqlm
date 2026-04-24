@@ -17,6 +17,8 @@ workers_static_mcmc=4
 workers_dynamic_mcmc=3
 run_tag_override=""
 variant_tag_override=""
+phase_filter=""
+status_filter=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -53,6 +55,20 @@ while [[ $# -gt 0 ]]; do
       ;;
     --variant-tag=*)
       variant_tag_override="${1#*=}"
+      ;;
+    --phase-filter=*)
+      phase_filter="${1#*=}"
+      ;;
+    --phase-filter)
+      phase_filter="$2"
+      shift
+      ;;
+    --status-filter=*)
+      status_filter="${1#*=}"
+      ;;
+    --status-filter)
+      status_filter="$2"
+      shift
       ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -104,7 +120,20 @@ worker_count_for_phase() {
 
 row_ids_for_phase() {
   local phase="$1"
-  (cd "$repo_root" && Rscript -e "m <- read.csv('$manifest_path', stringsAsFactors = FALSE, check.names = FALSE); x <- m\$row_id[m\$phase == '$phase']; if (length(x)) cat(x, sep = '\n')")
+  local status_arg="$status_filter"
+  (cd "$repo_root" && Rscript -e "source('tools/merge_reports/LOCAL_refreshed288_helpers_20260422_p90_full288.R'); ids <- select_row_ids_for_launch_refreshed288('$manifest_path', phase_filter = '$phase', status_filter = '$status_arg'); if (length(ids)) cat(ids, sep = '\n')")
+}
+
+selected_phases() {
+  if [[ -n "$phase_filter" ]]; then
+    tr ',' '\n' <<< "$phase_filter" | sed '/^[[:space:]]*$/d'
+  else
+    printf '%s\n' \
+      "${manifest_kind}_static_vb" \
+      "${manifest_kind}_dynamic_vb" \
+      "${manifest_kind}_static_mcmc" \
+      "${manifest_kind}_dynamic_mcmc"
+  fi
 }
 
 launch_phase() {
@@ -116,7 +145,7 @@ launch_phase() {
     return 0
   fi
 
-  echo "phase=$phase workers=$workers rows=${#row_ids[@]}"
+  echo "phase=$phase workers=$workers rows=${#row_ids[@]} status_filter=${status_filter:-all}"
   if [[ "$dry_run" -eq 1 ]]; then
     printf 'Rscript %s --manifest=%s --row_id=<row_id> %s\n' "$run_row_script" "$manifest_path" "${force_flag[*]-}"
     return 0
@@ -143,18 +172,18 @@ case "$action" in
       run_prepare
     fi
     run_eval_and_report
-    for phase in "${manifest_kind}_static_vb" "${manifest_kind}_dynamic_vb" "${manifest_kind}_static_mcmc" "${manifest_kind}_dynamic_mcmc"; do
+    while IFS= read -r phase; do
       launch_phase "$phase"
-    done
+    done < <(selected_phases)
     ;;
   launch)
     if [[ "$prepare_first" -eq 1 ]]; then
       run_prepare
     fi
     run_eval_and_report
-    for phase in "${manifest_kind}_static_vb" "${manifest_kind}_dynamic_vb" "${manifest_kind}_static_mcmc" "${manifest_kind}_dynamic_mcmc"; do
+    while IFS= read -r phase; do
       launch_phase "$phase"
-    done
+    done < <(selected_phases)
     ;;
   *)
     echo "Unknown action: $action" >&2
