@@ -1,0 +1,48 @@
+analysis:
+  id: qdesn_dynamic_p90_steepertrend_closeout_analysis
+  output_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_closeout_analysis
+  scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  description: >
+    Closeout and main comparison analysis for the completed QDESN dynamic
+    p90 steeper-trend relaunch.
+
+runs:
+  ridge:
+    run_tag: qdesn-dynamic-p90-steepertrend-ridge-full-20260422-044241__git-6438b52
+    campaign_fit_summary: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_validation/qdesn-dynamic-p90-steepertrend-ridge-full-20260422-044241__git-6438b52/20260422-044250__git-6438b52/tables/campaign_fit_summary.csv
+  rhs_ns_parent:
+    run_tag: qdesn-dynamic-p90-steepertrend-rhsns-full-20260423-143900__git-20c5e35
+    root_fit_summary_glob: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_validation/qdesn-dynamic-p90-steepertrend-rhsns-full-20260423-143900__git-20c5e35/20260423-143922__git-20c5e35/roots/*/tables/fit_summary.csv
+  rhs_ns_resume:
+    run_tag: qdesn-dynamic-p90-steepertrend-rhsns-resume-opt-full-20260423-203600__git-f3c46a3
+    campaign_fit_summary: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_validation/qdesn-dynamic-p90-steepertrend-rhsns-resume-opt-full-20260423-203600__git-f3c46a3/20260423-202121__git-f3c46a3/tables/campaign_fit_summary.csv
+
+expected:
+  roots_per_prior: 18
+  fits_per_prior: 72
+  priors:
+    - ridge
+    - rhs_ns
+  methods:
+    - vb
+    - mcmc
+  models:
+    - al
+    - exal
+
+plots:
+  uncertainty_fit_size: 500
+  uncertainty_families:
+    - normal
+    - laplace
+    - gausmix
+  uncertainty_tau: 0.25
+  uncertainty_priors:
+    - ridge
+    - rhs_ns
+  uncertainty_inferences:
+    - vb
+  uncertainty_models:
+    - al
+    - exal
+  uncertainty_last_n: 500

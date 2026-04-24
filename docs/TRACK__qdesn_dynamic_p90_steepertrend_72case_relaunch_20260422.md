@@ -479,3 +479,68 @@ Decision:
   roots
 - use the same baseline inference policy
 - use higher root-level concurrency and load-balanced worker scheduling
+
+## 14) Final Closeout And Main Comparison
+
+Final optimized continuation run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-resume-opt-full-20260423-203600__git-f3c46a3`
+
+Final qdesn p90 relaunch status:
+
+- ridge full:
+  - `18 / 18` roots complete
+  - `72 / 72` fits complete
+- RHS-NS full:
+  - `18 / 18` roots complete
+  - `72 / 72` fits complete
+  - combines the `3` preserved parent roots with the `15` optimized
+    continuation roots
+- full main program:
+  - `36 / 36` roots complete
+  - `144 / 144` fits complete
+
+Numerical/runtime failure status:
+
+- root-level runtime failures:
+  - `0`
+- completed fits with `status != SUCCESS`:
+  - `0`
+- confirmed numerical/runtime crashes:
+  - `0`
+- remaining failures are diagnostic signoff failures, mainly MCMC
+  autocorrelation and related chain-quality flags
+
+Closeout implementation:
+
+- closeout manifest:
+  - `config/validation/qdesn_dynamic_p90_steepertrend_closeout_analysis_manifest.yaml`
+- closeout runner:
+  - `scripts/run_qdesn_dynamic_p90_steepertrend_closeout_analysis.R`
+- closeout analysis module:
+  - `R/qdesn_dynamic_p90_steepertrend_closeout_analysis.R`
+- focused test:
+  - `tests/testthat/test-qdesn-dynamic-p90-closeout-analysis.R`
+
+Main closeout output:
+
+- `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_closeout_analysis/qdesn-dynamic-p90-steepertrend-closeout-20260424-045352__git-f3c46a3`
+
+Documentation:
+
+- `docs/REPORT__qdesn_dynamic_p90_steepertrend_closeout_and_main_comparison_20260424.md`
+
+Main comparison products:
+
+- authoritative combined fit table
+- signoff summaries by prior, inference, and model
+- metric summaries by family, tau, fit size, prior, inference, and model
+- pairwise deltas:
+  - MCMC minus VB
+  - EXAL minus AL
+  - RHS-NS minus ridge
+- figures:
+  - signoff mix by prior and fit type
+  - metric distributions by prior and fit type
+  - pairwise delta plots
+  - representative TT500 quantile-fit uncertainty figures for ridge and RHS-NS
