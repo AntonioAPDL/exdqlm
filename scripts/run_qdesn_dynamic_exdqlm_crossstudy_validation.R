@@ -129,6 +129,7 @@ batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smok
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
 methods_arg <- as.character(get_arg("--methods", ""))[1L]
 likelihoods_arg <- as.character(get_arg("--likelihoods", ""))[1L]
+scheduler_arg <- tolower(as.character(get_arg("--scheduler", ""))[1L])
 if (nzchar(trimws(methods_arg))) {
   defaults$execution <- defaults$execution %||% list()
   defaults$execution$methods <- trimws(strsplit(methods_arg, ",", fixed = TRUE)[[1L]])
@@ -136,6 +137,10 @@ if (nzchar(trimws(methods_arg))) {
 if (nzchar(trimws(likelihoods_arg))) {
   defaults$execution <- defaults$execution %||% list()
   defaults$execution$likelihood_families <- trimws(strsplit(likelihoods_arg, ",", fixed = TRUE)[[1L]])
+}
+if (nzchar(trimws(scheduler_arg))) {
+  defaults$runtime <- defaults$runtime %||% list()
+  defaults$runtime$root_scheduler <- scheduler_arg
 }
 grid_source_mode <- exdqlm:::.qdesn_dynamic_crossstudy_grid_source_mode(defaults)
 canonical_grid <- exdqlm:::qdesn_dynamic_crossstudy_build_grid(

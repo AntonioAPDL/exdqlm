@@ -1841,6 +1841,8 @@ qdesn_dynamic_crossstudy_run_campaign <- function(grid = NULL,
   runtime_cfg <- defaults$runtime %||% list()
   workers <- as.integer(workers %||% runtime_cfg$campaign_workers %||% runtime_cfg$workers %||% 1L)[1L]
   if (!is.finite(workers) || workers < 1L) workers <- 1L
+  root_scheduler <- tolower(as.character(runtime_cfg$root_scheduler %||% runtime_cfg$scheduler %||% "static")[1L])
+  if (!root_scheduler %in% c("static", "load_balanced")) root_scheduler <- "static"
 
   results_root <- results_root %||% .qdesn_validation_resolve_path(
     campaign_cfg$results_root %||% file.path("results", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
@@ -1865,7 +1867,8 @@ qdesn_dynamic_crossstudy_run_campaign <- function(grid = NULL,
     grid_path = grid_path,
     defaults_path = defaults_path,
     git_sha = .qdesn_validation_git_sha(),
-    workers = workers
+    workers = workers,
+    root_scheduler = root_scheduler
   ))
 
   if (is.null(reference_inventory)) {
@@ -1885,6 +1888,7 @@ qdesn_dynamic_crossstudy_run_campaign <- function(grid = NULL,
     targets[[length(targets) + 1L]] <- root_spec
   }
   n_targets <- length(targets)
+  if (n_targets >= 1L) workers <- min(workers, n_targets)
   run_one <- function(root_spec, seq_id, n_total) {
     if (isTRUE(verbose)) {
       message(sprintf("[qdesn_dynamic_crossstudy_run_campaign] root %d/%d | %s", seq_id, n_total, root_spec$root_id))
@@ -1948,7 +1952,8 @@ qdesn_dynamic_crossstudy_run_campaign <- function(grid = NULL,
       pkgload::load_all(repo_root, quiet = TRUE)
       NULL
     })
-    status_rows <- parallel::parLapply(
+    apply_fun <- if (identical(root_scheduler, "load_balanced")) parallel::parLapplyLB else parallel::parLapply
+    status_rows <- apply_fun(
       cl,
       X = seq_len(n_targets),
       fun = function(j) {

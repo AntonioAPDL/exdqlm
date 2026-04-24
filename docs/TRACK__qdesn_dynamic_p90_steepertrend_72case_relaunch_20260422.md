@@ -159,6 +159,14 @@ These totals are required because:
 - [x] continuation wave launched
 - [x] initial continuation healthcheck captured
 
+### I. Throughput optimization
+
+- [x] under-parallelized continuation wave stopped cleanly
+- [x] runner updated for load-balanced root scheduling
+- [x] optimized continuation preflight passed
+- [ ] optimized continuation wave launched
+- [ ] initial optimized healthcheck captured
+
 ## 6) Recommended Launch Order
 
 1. implement the new relaunch assets on top of the promoted dataset
@@ -421,3 +429,53 @@ Initial interpretation:
 - the unresolved-root subset grid was accepted as an auditable continuation
   surface
 - no hard numerical/runtime failure evidence was present at launch time
+
+## 13) Continuation Throughput Re-Optimization
+
+Stopped continuation run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-resume-full-20260423-192400__git-ae49a50`
+
+Why it was stopped:
+
+- the continuation wave was operationally healthy but under-parallelized
+- it used only `3` campaign workers on a host with substantial spare capacity
+- the unresolved set contained `15` roots, but only `3` replay roots were
+  active at once
+
+Host-capacity read at stop time:
+
+- logical CPUs:
+  - `64`
+- free memory:
+  - more than `400 GiB` available
+- free disk:
+  - more than `240 GiB` available
+
+Optimization changes:
+
+- runner updated to support root-level scheduler selection
+- new optimized scheduler:
+  - `load_balanced`
+- optimized worker count for continuation:
+  - `15`
+- unresolved-root continuation grid kept unchanged
+- model defaults and warmup policy kept unchanged
+
+Committed-state optimized preflight run tag:
+
+- `qdesn-dynamic-p90-steepertrend-rhsns-resume-opt-preflight-20260423-202500__git-0775b5d`
+
+Optimized preflight result:
+
+- focused config test passed
+- unresolved-root continuation preflight passed with:
+  - `--workers 15`
+  - `--scheduler load_balanced`
+
+Decision:
+
+- proceed to an optimized continuation relaunch on the same unresolved `15`
+  roots
+- use the same baseline inference policy
+- use higher root-level concurrency and load-balanced worker scheduling
