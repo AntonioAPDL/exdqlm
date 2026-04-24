@@ -116,7 +116,13 @@ status_path_for_manifest_refreshed288 <- function(manifest_path) {
   }
 }
 
-select_row_ids_for_launch_refreshed288 <- function(manifest_path, phase_filter = NULL, status_filter = NULL, status_path = NULL) {
+select_row_ids_for_launch_refreshed288 <- function(manifest_path,
+                                                   phase_filter = NULL,
+                                                   status_filter = NULL,
+                                                   outcome_filter = NULL,
+                                                   filter_mode = c("all", "any"),
+                                                   status_path = NULL) {
+  filter_mode <- match.arg(filter_mode)
   manifest <- utils::read.csv(manifest_path, stringsAsFactors = FALSE, check.names = FALSE)
   phase_vals <- parse_csv_tokens_refreshed288(phase_filter)
   if (length(phase_vals)) {
@@ -125,7 +131,8 @@ select_row_ids_for_launch_refreshed288 <- function(manifest_path, phase_filter =
   if (!nrow(manifest)) return(integer(0))
 
   status_vals <- parse_csv_tokens_refreshed288(status_filter)
-  if (!length(status_vals)) {
+  outcome_vals <- parse_csv_tokens_refreshed288(outcome_filter)
+  if (!length(status_vals) && !length(outcome_vals)) {
     return(as.integer(manifest$row_id))
   }
 
@@ -135,10 +142,17 @@ select_row_ids_for_launch_refreshed288 <- function(manifest_path, phase_filter =
     status_lookup <- data.frame(
       row_id = manifest$row_id,
       status_current = rep("not_started", nrow(manifest)),
+      gate_current = rep("", nrow(manifest)),
       stringsAsFactors = FALSE
     )
   } else {
-    status_lookup <- status_df[, c("row_id", "status_current"), drop = FALSE]
+    gate_col <- intersect(c("gate_current", "gate_overall_current", "gate_overall"), names(status_df))
+    if (!length(gate_col)) {
+      status_df$gate_current <- ""
+      gate_col <- "gate_current"
+    }
+    status_lookup <- status_df[, c("row_id", "status_current", gate_col[1]), drop = FALSE]
+    names(status_lookup) <- c("row_id", "status_current", "gate_current")
   }
 
   merged <- merge(
@@ -149,7 +163,22 @@ select_row_ids_for_launch_refreshed288 <- function(manifest_path, phase_filter =
     sort = FALSE
   )
   merged$status_current[!nzchar(merged$status_current) | is.na(merged$status_current)] <- "not_started"
-  merged <- merged[merged$status_current %in% status_vals, , drop = FALSE]
+  merged$gate_current[!nzchar(merged$gate_current) | is.na(merged$gate_current)] <- ""
+
+  status_match <- if (length(status_vals)) merged$status_current %in% status_vals else rep(FALSE, nrow(merged))
+  outcome_match <- if (length(outcome_vals)) merged$gate_current %in% outcome_vals else rep(FALSE, nrow(merged))
+  keep <- if (identical(filter_mode, "any")) {
+    status_match | outcome_match
+  } else {
+    if (length(status_vals) && length(outcome_vals)) {
+      status_match & outcome_match
+    } else if (length(status_vals)) {
+      status_match
+    } else {
+      outcome_match
+    }
+  }
+  merged <- merged[keep, , drop = FALSE]
   if (!nrow(merged)) return(integer(0))
   merged <- merged[order(merged$phase_order, merged$row_id), , drop = FALSE]
   as.integer(merged$row_id)

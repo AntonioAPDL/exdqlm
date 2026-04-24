@@ -237,6 +237,11 @@ validate_dynamic_vb_init_fit_refreshed288 <- function(fit_obj, validation) {
   invisible(TRUE)
 }
 
+mcmc_vb_init_cache_enabled_refreshed288 <- function() {
+  mode <- tolower(trimws(Sys.getenv("REFRESHED288_MCMC_VB_INIT_CACHE", unset = "readwrite")))
+  !mode %in% c("0", "false", "no", "none", "off", "disable", "disabled")
+}
+
 run_dynamic_refreshed288 <- function() {
   sim_obj <- build_dynamic_sim_object_refreshed288_p90(cfg)
   model_obj <- build_dynamic_model_refreshed288_p90(cfg, TT = length(sim_obj$y))
@@ -263,14 +268,15 @@ run_dynamic_refreshed288 <- function() {
       } else {
         vb_init_fit <- NULL
         if (isTRUE(cfg$init_from_vb)) {
-          if (file.exists(cfg$vb_init_fit_path) && !force) {
+          cache_vb_init <- mcmc_vb_init_cache_enabled_refreshed288()
+          if (cache_vb_init && file.exists(cfg$vb_init_fit_path) && !force) {
             vb_init_fit <- resolve_wrapped_fit_refreshed288(readRDS(cfg$vb_init_fit_path))
           } else {
             vb_wrapped <- build_dynamic_ldvb_fit_refreshed288(
               sim_obj = sim_obj,
               model_obj = model_obj,
               cfg = c(cfg, cfg$vb_init_controls %||% list()),
-              save_path = cfg$vb_init_fit_path,
+              save_path = if (cache_vb_init) cfg$vb_init_fit_path else NA_character_,
               role = "vb_init"
             )
             vb_init_fit <- resolve_wrapped_fit_refreshed288(vb_wrapped)
@@ -442,13 +448,14 @@ run_static_refreshed288 <- function() {
       } else {
         vb_init_fit <- NULL
         if (isTRUE(cfg$init_from_vb)) {
-          if (file.exists(cfg$vb_init_fit_path) && !force) {
+          cache_vb_init <- mcmc_vb_init_cache_enabled_refreshed288()
+          if (cache_vb_init && file.exists(cfg$vb_init_fit_path) && !force) {
             vb_init_fit <- resolve_wrapped_fit_refreshed288(readRDS(cfg$vb_init_fit_path))
           } else {
             vb_wrapped <- build_static_ldvb_fit_refreshed288(
               design = design,
               cfg = c(cfg, cfg$vb_init_controls %||% list()),
-              save_path = cfg$vb_init_fit_path,
+              save_path = if (cache_vb_init) cfg$vb_init_fit_path else NA_character_,
               role = "vb_init"
             )
             vb_init_fit <- resolve_wrapped_fit_refreshed288(vb_wrapped)

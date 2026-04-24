@@ -19,6 +19,8 @@ run_tag_override=""
 variant_tag_override=""
 phase_filter=""
 status_filter=""
+outcome_filter=""
+filter_mode="all"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -68,6 +70,20 @@ while [[ $# -gt 0 ]]; do
       ;;
     --status-filter)
       status_filter="$2"
+      shift
+      ;;
+    --outcome-filter=*)
+      outcome_filter="${1#*=}"
+      ;;
+    --outcome-filter)
+      outcome_filter="$2"
+      shift
+      ;;
+    --filter-mode=*)
+      filter_mode="${1#*=}"
+      ;;
+    --filter-mode)
+      filter_mode="$2"
       shift
       ;;
     *)
@@ -121,7 +137,9 @@ worker_count_for_phase() {
 row_ids_for_phase() {
   local phase="$1"
   local status_arg="$status_filter"
-  (cd "$repo_root" && Rscript -e "source('tools/merge_reports/LOCAL_refreshed288_helpers_20260422_p90_full288.R'); ids <- select_row_ids_for_launch_refreshed288('$manifest_path', phase_filter = '$phase', status_filter = '$status_arg'); if (length(ids)) cat(ids, sep = '\n')")
+  local outcome_arg="$outcome_filter"
+  local filter_mode_arg="$filter_mode"
+  (cd "$repo_root" && Rscript -e "source('tools/merge_reports/LOCAL_refreshed288_helpers_20260422_p90_full288.R'); ids <- select_row_ids_for_launch_refreshed288('$manifest_path', phase_filter = '$phase', status_filter = '$status_arg', outcome_filter = '$outcome_arg', filter_mode = '$filter_mode_arg'); if (length(ids)) cat(ids, sep = '\n')")
 }
 
 selected_phases() {
@@ -145,7 +163,7 @@ launch_phase() {
     return 0
   fi
 
-  echo "phase=$phase workers=$workers rows=${#row_ids[@]} status_filter=${status_filter:-all}"
+  echo "phase=$phase workers=$workers rows=${#row_ids[@]} status_filter=${status_filter:-all} outcome_filter=${outcome_filter:-all} filter_mode=$filter_mode"
   if [[ "$dry_run" -eq 1 ]]; then
     printf 'Rscript %s --manifest=%s --row_id=<row_id> %s\n' "$run_row_script" "$manifest_path" "${force_flag[*]-}"
     return 0
