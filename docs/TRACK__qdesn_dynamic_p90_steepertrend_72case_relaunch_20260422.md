@@ -164,8 +164,8 @@ These totals are required because:
 - [x] under-parallelized continuation wave stopped cleanly
 - [x] runner updated for load-balanced root scheduling
 - [x] optimized continuation preflight passed
-- [ ] optimized continuation wave launched
-- [ ] initial optimized healthcheck captured
+- [x] optimized continuation wave launched
+- [x] initial optimized healthcheck captured
 
 ## 6) Recommended Launch Order
 
@@ -544,3 +544,40 @@ Main comparison products:
   - metric distributions by prior and fit type
   - pairwise delta plots
   - representative TT500 quantile-fit uncertainty figures for ridge and RHS-NS
+
+## 15) Post-Closeout Storage Cleanup
+
+Cleanup objective:
+
+- close the finished p90 steeper-trend campaign as an auditable validation
+  artifact
+- remove heavy fit-object payloads that are reproducible from checked-in
+  configs, source datasets, seeds, and runners
+- keep essential summaries, logs, figures, manifests, configs, source
+  datasets, and package data
+
+Cleanup script:
+
+- `scripts/cleanup_qdesn_validation_rds_payloads.sh`
+
+Executed cleanup manifests:
+
+- `reports/qdesn_mcmc_validation/storage_cleanup/20260424_post_p90_payload_cleanup_execute`
+- `reports/qdesn_mcmc_validation/storage_cleanup/20260424_post_p90_report_payload_cleanup_execute`
+
+Cleanup outcome:
+
+- deleted `707` validation fit-payload files
+- freed `208.43 GiB` on `/home`
+- removed all `models/forecast_objects.rds`, `models/rhs_trace.rds`, and
+  `models/timing_summary.rds` under QDESN validation `results/` and `reports/`
+- found `0` `.RData/.rdata` files requiring manual review
+- preserved source-surface `sim_output.rds` files and tracked package `.rda`
+  files
+
+Post-cleanup read:
+
+- remaining `.rds`/`.RData`-style files: `222`
+- remaining `.rds`/`.RData` footprint: `0.021 GiB`
+- remaining files are tiny source-surface or simulation-suite `sim_output.rds`
+  artifacts, not validation model payloads
