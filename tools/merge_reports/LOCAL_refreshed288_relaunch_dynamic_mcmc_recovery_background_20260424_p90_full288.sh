@@ -9,8 +9,8 @@ phase_filter="full_dynamic_mcmc"
 status_filter="running,not_started,failed_runtime"
 outcome_filter="FAIL"
 filter_mode="any"
-log_label="relaunch_dynamic_mcmc_recovery_nocache_20260424"
-vb_init_cache_mode="none"
+log_label="relaunch_dynamic_mcmc_recovery_memory_only_vbinit_20260424"
+vb_init_cache_mode="memory_only"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -54,7 +54,7 @@ done
 
 run_tag="${run_tag//[^A-Za-z0-9_-]/_}"
 if [[ -z "$session" ]]; then
-  session="refreshed288_${run_tag}_dynamic_mcmc_recovery_nocache"
+  session="refreshed288_${run_tag}_dynamic_mcmc_recovery_memory_only_vbinit"
 fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -81,5 +81,6 @@ echo "workers_dynamic_mcmc=$workers_dynamic_mcmc"
 echo "status_filter=$status_filter"
 echo "outcome_filter=$outcome_filter"
 echo "filter_mode=$filter_mode"
+echo "vb_init_for_mcmc=true"
 echo "vb_init_cache=$vb_init_cache_mode"
 echo "log_path=$log_path"

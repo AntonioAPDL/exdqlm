@@ -239,7 +239,11 @@ validate_dynamic_vb_init_fit_refreshed288 <- function(fit_obj, validation) {
 
 mcmc_vb_init_cache_enabled_refreshed288 <- function() {
   mode <- tolower(trimws(Sys.getenv("REFRESHED288_MCMC_VB_INIT_CACHE", unset = "readwrite")))
-  !mode %in% c("0", "false", "no", "none", "off", "disable", "disabled")
+  memory_only_modes <- c(
+    "0", "false", "no", "none", "off", "disable", "disabled",
+    "memory_only", "memory-only", "no_cache", "nocache"
+  )
+  !mode %in% memory_only_modes
 }
 
 run_dynamic_refreshed288 <- function() {

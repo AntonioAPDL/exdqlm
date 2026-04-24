@@ -51,19 +51,29 @@ That selects `28` rows:
 
 Healthy completed dynamic MCMC rows are not relaunched.
 
-## Important implementation change
+## Important implementation clarification
 
-For this recovery, MCMC VB warm starts are still used, but the temporary VB-init
-fit is kept in memory and is not read from or written to the `vb_init/` cache.
+For this recovery, MCMC VB warm starts are still used. Each MCMC row still
+builds or receives an LDVB `vb_init_fit`, validates it, and passes it into
+`exdqlmMCMC()` for chain initialization.
+
+The storage change is only about persistence: the temporary VB-init fit is kept
+in memory and is not read from or written to the `vb_init/` cache. The final
+saved artifact remains the MCMC fit/output, not a separate persisted VB-init
+fit.
 
 Environment setting:
 
 ```bash
-REFRESHED288_MCMC_VB_INIT_CACHE=none
+REFRESHED288_MCMC_VB_INIT_CACHE=memory_only
 ```
 
-This avoids reusing corrupt zero-byte or partial VB-init artifacts and avoids
-creating new multi-GB VB-init cache files during the recovery.
+The already-launched recovery session used the older spelling
+`REFRESHED288_MCMC_VB_INIT_CACHE=none`; this is behaviorally equivalent to
+`memory_only`. Both mean "use VB initialization for MCMC, but do not persist or
+reuse the temporary VB-init cache artifact." This avoids reusing corrupt
+zero-byte or partial VB-init artifacts and avoids creating new multi-GB VB-init
+cache files during the recovery.
 
 ## Launch command
 
@@ -82,7 +92,7 @@ The wrapper launches with:
 --outcome-filter=FAIL
 --filter-mode=any
 --force
-REFRESHED288_MCMC_VB_INIT_CACHE=none
+REFRESHED288_MCMC_VB_INIT_CACHE=memory_only
 ```
 
 ## Tracking artifacts
