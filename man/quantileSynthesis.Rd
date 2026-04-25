@@ -17,9 +17,12 @@ quantileSynthesis(
 )
 }
 \arguments{
-\item{draws_list}{List of length \code{L}; each element is a numeric matrix of posterior
-predictive draws from a fitted quantile model at level \code{p[i]}. Each matrix
-may be \code{T x ns} or \code{ns x T}; rows will be coerced to time.}
+\item{draws_list}{List of length \code{L}; each element is either:
+(i) a numeric matrix of posterior predictive draws (\code{T x ns} or
+\code{ns x T}), (ii) a dynamic fit object (\code{exdqlmMCMC},
+\code{exdqlmLDVB}, or legacy \code{exdqlmISVB}) with
+\code{samp.post.pred}, or (iii) an \code{exdqlmForecast} object with
+\code{samp.fore}. Rows are coerced to time.}
 
 \item{p}{Numeric vector of target quantile levels in \code{(0,1)} of length \code{L}
 (same order as \code{draws_list}, not necessarily sorted). Duplicate levels are not allowed.}
@@ -85,6 +88,12 @@ for(i in 1:length(p0s)){
 # synthesize posterior predictive from all quantiles
 syn = quantileSynthesis(
   draws_list = draws,
+  p = p0s,
+  T_expected = TT)
+
+# alternatively, pass fitted dynamic objects directly
+syn2 = quantileSynthesis(
+  draws_list = fits,
   p = p0s,
   T_expected = TT)
 }

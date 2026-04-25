@@ -56,3 +56,47 @@ test_that("synthesis smoke output is finite and monotone over levels", {
   expect_true(all(is.finite(out$draws)) && all(is.finite(out$quantiles)))
   expect_true(monotone_levels)
 })
+
+test_that("synthesis accepts dynamic fit objects and forecast objects", {
+  draws_low <- matrix(
+    c(0.10, 0.12, 0.14, 0.16,
+      0.20, 0.22, 0.24, 0.26),
+    nrow = 2,
+    byrow = TRUE
+  )
+  draws_high <- draws_low + 0.3
+
+  fit_low <- structure(list(samp.post.pred = draws_low), class = "exdqlmLDVB")
+  fit_high <- structure(list(samp.post.pred = draws_high), class = "exdqlmMCMC")
+  out_fit <- quantileSynthesis(
+    draws_list = list(fit_low, fit_high),
+    p = c(0.2, 0.8),
+    n_samp = 20L,
+    seed = 42L,
+    T_expected = 2L
+  )
+  expect_equal(dim(out_fit$draws), c(2L, 20L))
+  expect_true(all(is.finite(out_fit$draws)))
+
+  fc_low <- structure(list(samp.fore = draws_low), class = "exdqlmForecast")
+  fc_high <- structure(list(samp.fore = draws_high), class = "exdqlmForecast")
+  out_fc <- quantileSynthesis(
+    draws_list = list(fc_low, fc_high),
+    p = c(0.2, 0.8),
+    n_samp = 20L,
+    seed = 42L,
+    T_expected = 2L
+  )
+  expect_equal(dim(out_fc$draws), c(2L, 20L))
+  expect_true(all(is.finite(out_fc$draws)))
+})
+
+test_that("synthesis errors clearly when forecast draws are missing", {
+  fc_bad <- structure(list(k = 2), class = "exdqlmForecast")
+  fc_ok <- structure(list(samp.fore = matrix(1:8, nrow = 2)), class = "exdqlmForecast")
+  expect_error(
+    quantileSynthesis(draws_list = list(fc_bad, fc_ok), p = c(0.2, 0.8), T_expected = 2L),
+    "return.draws = TRUE",
+    fixed = TRUE
+  )
+})

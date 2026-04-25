@@ -10,9 +10,12 @@
 #' piecewise-linear blending across adjacent quantile models with optional
 #' global monotone rearrangement.
 #'
-#' @param draws_list List of length \code{L}; each element is a numeric matrix of posterior
-#'   predictive draws from a fitted quantile model at level \code{p[i]}. Each matrix
-#'   may be \code{T x ns} or \code{ns x T}; rows will be coerced to time.
+#' @param draws_list List of length \code{L}; each element is either:
+#'   (i) a numeric matrix of posterior predictive draws (\code{T x ns} or
+#'   \code{ns x T}), (ii) a dynamic fit object (\code{exdqlmMCMC},
+#'   \code{exdqlmLDVB}, or legacy \code{exdqlmISVB}) with
+#'   \code{samp.post.pred}, or (iii) an \code{exdqlmForecast} object with
+#'   \code{samp.fore}. Rows are coerced to time.
 #' @param p Numeric vector of target quantile levels in \code{(0,1)} of length \code{L}
 #'   (same order as \code{draws_list}, not necessarily sorted). Duplicate levels are not allowed.
 #' @param enforce_isotonic Logical; apply isotonic regression (PAVA) over the grid \code{p}
@@ -63,6 +66,12 @@
 #'   draws_list = draws,
 #'   p = p0s,
 #'   T_expected = TT)
+#'
+#' # alternatively, pass fitted dynamic objects directly
+#' syn2 = quantileSynthesis(
+#'   draws_list = fits,
+#'   p = p0s,
+#'   T_expected = TT)
 #' }
 quantileSynthesis <- function(draws_list, p,
                                          enforce_isotonic = TRUE,
@@ -75,6 +84,32 @@ quantileSynthesis <- function(draws_list, p,
   stopifnot(is.list(draws_list), is.numeric(p), length(draws_list) == length(p))
   L <- length(p)
   if (L < 2L) stop("Need at least two quantile models to synthesize.")
+
+  as_draw_matrix <- function(x, idx){
+    if(is.matrix(x) || is.data.frame(x)){
+      return(as.matrix(x))
+    }
+    if(is.exdqlmMCMC(x) || is.exdqlmLDVB(x) || is.exdqlmISVB(x)){
+      if(is.null(x$samp.post.pred)){
+        stop(sprintf("draws_list[[%d]] is a dynamic fit object without 'samp.post.pred'.", idx))
+      }
+      return(as.matrix(x$samp.post.pred))
+    }
+    if(is.exdqlmForecast(x)){
+      if(is.null(x$samp.fore)){
+        stop(sprintf(
+          "draws_list[[%d]] is an exdqlmForecast object without 'samp.fore'. Call exdqlmForecast(..., return.draws = TRUE) first.",
+          idx
+        ))
+      }
+      return(as.matrix(x$samp.fore))
+    }
+    stop(sprintf(
+      "Unsupported draws_list[[%d]] input. Provide a draw matrix/data.frame, a dynamic fit object, or an exdqlmForecast object with samp.fore.",
+      idx
+    ))
+  }
+  draws_list <- lapply(seq_along(draws_list), function(i) as_draw_matrix(draws_list[[i]], i))
 
   # ---- Robust orientation to T × ns ----
   dims_r <- vapply(draws_list, function(M) nrow(as.matrix(M)), 1L)

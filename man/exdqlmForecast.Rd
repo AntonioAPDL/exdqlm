@@ -13,7 +13,10 @@ exdqlmForecast(
   plot = TRUE,
   add = FALSE,
   cols = c("purple", "magenta"),
-  cr.percent = 0.95
+  cr.percent = 0.95,
+  return.draws = FALSE,
+  n.samp = NULL,
+  seed = NULL
 )
 }
 \arguments{
@@ -43,6 +46,18 @@ quantiles respectively. Default \code{c("purple","magenta")}.}
 
 \item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
 intervals (e.g., \code{0.95}). Default \code{0.95}.}
+
+\item{return.draws}{Logical; if \code{TRUE}, the function also returns a
+matrix of posterior predictive forecast draws in \code{samp.fore}. Default
+is \code{FALSE}.}
+
+\item{n.samp}{Optional positive integer specifying how many forecast draws to
+return when \code{return.draws = TRUE}. If omitted, all available posterior
+\eqn{(\sigma,\gamma)} draws from \code{m1} are used.}
+
+\item{seed}{Optional integer random seed used only for forecast-draw
+generation when \code{return.draws = TRUE}. If provided, the previous
+\proglang{R} RNG state is restored on exit.}
 }
 \value{
 A object of class "\code{exdqlmForecast}" containing the following:
@@ -56,6 +71,8 @@ intervals (e.g., \code{0.95}).
 \item \code{fR} Forecast state covariance matrices (\eqn{q \times q \times k} array).
 \item \code{ff} Forecast quantile means (length-\code{k} numeric).
 \item \code{fQ} Forecast quantile variances (length-\code{k} numeric).
+\item \code{samp.fore} Optional posterior predictive forecast draws
+(\code{k x n.samp}) returned when \code{return.draws = TRUE}.
 }
 }
 \description{
@@ -71,6 +88,9 @@ dynamic quantile model and optionally adds them to an existing plot.
  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15)
  exdqlmForecast(start.t = 90, k = 10, m1 = M0)
+ M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0,
+                              return.draws = TRUE, n.samp = 50, seed = 123)
+ dim(M0.forecast$samp.fore)
 }
 
 }

@@ -883,6 +883,9 @@ print.exdqlmForecast <- function(x, ...) {
   cat("Number of Observations:", length(x$m1$y), "\n")
   cat("State Dimension:", length(x$m1$model$m0), "\n")  
   cat("Forecasts start at time index", x$start.t, "and forecast k =", x$k, "steps ahead\n")
+  if(!is.null(x$samp.fore)){
+    cat("Posterior forecast draws stored:", ncol(as.matrix(x$samp.fore)), "\n")
+  }
   #
 }
 
@@ -910,6 +913,9 @@ summary.exdqlmForecast <- function(object, ...) {
   cat("Number of Observations:", length(object$m1$y), "\n")
   cat("State Dimension:", length(object$m1$model$m0), "\n")  
   cat("Forecasts start at time index", object$start.t, "and forecast k =", object$k, "steps ahead\n")
+  if(!is.null(object$samp.fore)){
+    cat("Posterior forecast draws stored:", ncol(as.matrix(object$samp.fore)), "\n")
+  }
   #
 }
 

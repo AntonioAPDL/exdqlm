@@ -64,6 +64,13 @@ test_that("dynamic LDVB reduced DQLM path skips LD gamma-sigma block", {
   fc <- exdqlmForecast(start.t = 3, k = 1, m1 = fit, plot = FALSE)
   expect_s3_class(fc, "exdqlmForecast")
   expect_true(all(is.finite(fc$ff)))
+  fc_draws_1 <- exdqlmForecast(start.t = 3, k = 1, m1 = fit, plot = FALSE,
+                               return.draws = TRUE, n.samp = 5, seed = 123)
+  fc_draws_2 <- exdqlmForecast(start.t = 3, k = 1, m1 = fit, plot = FALSE,
+                               return.draws = TRUE, n.samp = 5, seed = 123)
+  expect_equal(dim(fc_draws_1$samp.fore), c(1L, 5L))
+  expect_true(all(is.finite(fc_draws_1$samp.fore)))
+  expect_equal(fc_draws_1$samp.fore, fc_draws_2$samp.fore, tolerance = 1e-12)
 })
 
 test_that("static MCMC reduced DQLM path excludes gamma/s latent block", {
