@@ -918,6 +918,9 @@
 #' @param dqlm.ind Logical; if \code{TRUE}, fit the reduced AL model
 #'   (\code{gamma = 0}). In that special case the nonconjugate block drops out
 #'   and the remaining variational updates are available in closed form.
+#' @param al.ind Optional static-model alias for \code{dqlm.ind}. When
+#'   supplied, this flag maps directly to \code{dqlm.ind}. If both are given,
+#'   they must agree.
 #' @param n.samp Number of samples to draw from the approximated posterior
 #'   distribution after convergence. Default is \code{n.samp = 200}.
 #' @param n_samp_xi Integer; retained for backward compatibility in the
@@ -1029,7 +1032,7 @@
 #'
 #' fit_al <- exalStaticLDVB(
 #'   y = y, X = X, p0 = 0.5,
-#'   dqlm.ind = TRUE,
+#'   al.ind = TRUE,
 #'   max_iter = 80, tol = 5e-3, verbose = FALSE
 #' )
 #' fit_al$dqlm.ind
@@ -1046,12 +1049,15 @@ exalStaticLDVB <- function(
   log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
+  al.ind = NULL,
   n.samp = 200,
   n_samp_xi = 200,
   ld_controls = NULL,
   vb_control = NULL,
   verbose = TRUE
 ){
+  dqlm_supplied <- !missing(dqlm.ind)
+
   if (!is.null(vb_control)) {
     vb_control <- exal_make_vb_control(control = vb_control)
     if (!is.null(vb_control$max_iter)) max_iter <- as.integer(vb_control$max_iter)[1L]
@@ -1062,6 +1068,13 @@ exalStaticLDVB <- function(
       ld_controls <- utils::modifyList(ld_controls %||% list(), list(sigmagam = vb_control$sigmagam))
     }
   }
+
+  dqlm.ind <- .resolve_static_al_alias(
+    dqlm.ind = dqlm.ind,
+    al.ind = al.ind,
+    dqlm_supplied = dqlm_supplied,
+    where = "exalStaticLDVB()"
+  )
 
   # --- checks ---------------------------------------------------------------
   y <- as.numeric(y)

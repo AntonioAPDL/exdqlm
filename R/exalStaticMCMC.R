@@ -70,6 +70,9 @@
 #'   under the AL working likelihood. This removes the \code{gamma}- and
 #'   \code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
 #'   \code{sigma}, and \code{v}.
+#' @param al.ind Optional static-model alias for \code{dqlm.ind}. When
+#'   supplied, this flag maps directly to \code{dqlm.ind}. If both are given,
+#'   they must agree.
 #' @param n.burn Number of burn-in iterations. Default \code{2000}.
 #' @param n.mcmc Number of kept MCMC iterations (after burn). Default \code{1500}.
 #' @param thin Integer; save every \code{thin}-th iteration after burn. We internally run
@@ -182,7 +185,7 @@
 #'
 #' fit_al <- exalStaticMCMC(
 #'   y, X, p0 = 0.5,
-#'   dqlm.ind = TRUE,
+#'   al.ind = TRUE,
 #'   n.burn = 120, n.mcmc = 120, thin = 1, verbose = FALSE
 #' )
 #' fit_al$dqlm.ind
@@ -197,6 +200,7 @@ exalStaticMCMC <- function(
   log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
+  al.ind = NULL,
   n.burn = 2000, n.mcmc = 1500, thin = 1,
   init.from.vb = FALSE,
   vb_init_controls = NULL,
@@ -220,6 +224,8 @@ exalStaticMCMC <- function(
   verbose = TRUE,
   progress_callback = NULL
 ){
+  dqlm_supplied <- !missing(dqlm.ind)
+
   if (!is.null(mcmc_control)) {
     mcmc_control <- exal_make_mcmc_control(control = mcmc_control)
     if (!is.null(mcmc_control$n_burn)) n.burn <- as.integer(mcmc_control$n_burn)[1L]
@@ -234,6 +240,13 @@ exalStaticMCMC <- function(
       sigmagam_controls <- utils::modifyList(sigmagam_controls %||% list(), mcmc_control$sigmagam)
     }
   }
+
+  dqlm.ind <- .resolve_static_al_alias(
+    dqlm.ind = dqlm.ind,
+    al.ind = al.ind,
+    dqlm_supplied = dqlm_supplied,
+    where = "exalStaticMCMC()"
+  )
 
   ## --- checks (mirror exdqlmMCMC style) ------------------------------------
   y <- as.numeric(y)

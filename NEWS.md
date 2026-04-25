@@ -39,6 +39,9 @@
   and `exdqlmTransferLDVB()` are now the main VB entry points, while
   `exdqlmISVB()` and `exdqlmTransferISVB()` are documented as legacy
   compatibility paths.
+- Added `al.ind` as a static-model convenience alias for `dqlm.ind` in
+  `exalStaticLDVB()` and `exalStaticMCMC()`, with conflict checks when both
+  flags are provided.
 - Changed `fix.sigma` defaults from `TRUE` to `FALSE` for the shared dynamic
   exDQLM VB entry points and the reduced dynamic DQLM CAVI helper, while
   preserving explicit fixed-sigma workflows when users request them.

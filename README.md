@@ -23,7 +23,8 @@ current development line:
 - static Bayesian exAL regression via **LDVB** and **MCMC**
 - modular model builders for **trend**, **seasonality**, and
   **regression** components
-- reduced **AL/DQLM** paths through `dqlm.ind = TRUE`
+- reduced **AL/DQLM** paths through `dqlm.ind = TRUE` (dynamic and static),
+  with a static convenience alias `al.ind = TRUE`
 - standardized **VB trace diagnostics** at `fit$diagnostics$vb_trace`
   for ELBO, `sigma`, `gamma`, and convergence deltas
 - static shrinkage priors `beta_prior = "ridge"`, `"rhs"`, and
@@ -87,7 +88,7 @@ pak::pak("AntonioAPDL/exdqlm")
 |---|---|---|---|
 | Dynamic quantile state-space model | `exdqlmLDVB()`, `exdqlmMCMC()`, `exdqlmISVB()` | LDVB, MCMC, legacy ISVB | Main entry point for univariate time-series quantile modeling |
 | Build state-space components | `polytrendMod()`, `seasMod()`, `regMod()` | n/a | Compose trend, seasonal, and regression blocks with `+.exdqlm` |
-| Static Bayesian exAL regression | `exalStaticLDVB()`, `exalStaticMCMC()` | LDVB, MCMC | Supports `dqlm.ind = TRUE`, posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
+| Static Bayesian exAL regression | `exalStaticLDVB()`, `exalStaticMCMC()` | LDVB, MCMC | Supports `al.ind = TRUE` (alias of `dqlm.ind = TRUE`), posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
 | Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
 | Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Builds a unified posterior predictive distribution using isotonic correction and optional rearrangement |
 
@@ -185,7 +186,7 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 - **Static regression support** via `regMod()`, `exalStaticLDVB()`,
   and `exalStaticMCMC()`.
 - **Reduced AL/DQLM paths** across dynamic and static APIs via
-  `dqlm.ind = TRUE`.
+  `dqlm.ind = TRUE`, with `al.ind = TRUE` available as a static convenience alias.
 - **Static shrinkage priors** in both static LDVB/MCMC via
   `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
 - **Transfer-function helpers** `exdqlmTransferLDVB()` and
@@ -316,7 +317,7 @@ y <- as.numeric(X %*% beta + rnorm(n))
 # Reduced AL fit (gamma fixed at zero)
 fit_al <- exalStaticLDVB(
   y = y, X = X, p0 = 0.5,
-  dqlm.ind = TRUE,
+  al.ind = TRUE,
   max_iter = 150, tol = 1e-4, verbose = FALSE
 )
 

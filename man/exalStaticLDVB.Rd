@@ -20,6 +20,7 @@ exalStaticLDVB(
   log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
+  al.ind = NULL,
   n.samp = 200,
   n_samp_xi = 200,
   ld_controls = NULL,
@@ -89,6 +90,10 @@ support.}
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model
 (\code{gamma = 0}). In that special case the nonconjugate block drops out
 and the remaining variational updates are available in closed form.}
+
+\item{al.ind}{Optional static-model alias for \code{dqlm.ind}. When
+supplied, this flag maps directly to \code{dqlm.ind}. If both are given,
+they must agree.}
 
 \item{n.samp}{Number of samples to draw from the approximated posterior
 distribution after convergence. Default is \code{n.samp = 200}.}
@@ -212,7 +217,7 @@ fit_rhs_ns$beta_prior$type
 
 fit_al <- exalStaticLDVB(
   y = y, X = X, p0 = 0.5,
-  dqlm.ind = TRUE,
+  al.ind = TRUE,
   max_iter = 80, tol = 5e-3, verbose = FALSE
 )
 fit_al$dqlm.ind

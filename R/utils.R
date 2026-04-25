@@ -609,6 +609,29 @@ check_logics = function(gam.init,sig.init,fix.gamma,fix.sigma,dqlm.ind){
   if(fix.sigma & is.na(sig.init)){ stop("when fix.sigma = TRUE, sig.init must be specified") }
   return(retval)
 }
+
+.resolve_static_al_alias <- function(dqlm.ind, al.ind, dqlm_supplied, where) {
+  if (!is.logical(dqlm.ind) || length(dqlm.ind) != 1L || is.na(dqlm.ind)) {
+    stop("dqlm.ind must be a single non-missing logical.")
+  }
+  if (!is.null(al.ind)) {
+    if (!is.logical(al.ind) || length(al.ind) != 1L || is.na(al.ind)) {
+      stop("al.ind must be NULL or a single non-missing logical.")
+    }
+    if (isTRUE(dqlm_supplied) && !identical(isTRUE(dqlm.ind), isTRUE(al.ind))) {
+      stop(
+        sprintf(
+          "%s received conflicting inputs: dqlm.ind = %s and al.ind = %s. Use one flag or set both equal.",
+          where,
+          as.character(dqlm.ind),
+          as.character(al.ind)
+        )
+      )
+    }
+    dqlm.ind <- isTRUE(al.ind)
+  }
+  dqlm.ind
+}
 #
 check_ts = function(dat){
   if(is.null(dim(dat))){

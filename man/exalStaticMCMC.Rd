@@ -18,6 +18,7 @@ exalStaticMCMC(
   log_prior_gamma = NULL,
   init = NULL,
   dqlm.ind = FALSE,
+  al.ind = NULL,
   n.burn = 2000,
   n.mcmc = 1500,
   thin = 1,
@@ -109,6 +110,10 @@ filled sensibly.}
 under the AL working likelihood. This removes the \code{gamma}- and
 \code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
 \code{sigma}, and \code{v}.}
+
+\item{al.ind}{Optional static-model alias for \code{dqlm.ind}. When
+supplied, this flag maps directly to \code{dqlm.ind}. If both are given,
+they must agree.}
 
 \item{n.burn}{Number of burn-in iterations. Default \code{2000}.}
 
@@ -254,7 +259,7 @@ fit_rhs_ns$beta_prior$type
 
 fit_al <- exalStaticMCMC(
   y, X, p0 = 0.5,
-  dqlm.ind = TRUE,
+  al.ind = TRUE,
   n.burn = 120, n.mcmc = 120, thin = 1, verbose = FALSE
 )
 fit_al$dqlm.ind
