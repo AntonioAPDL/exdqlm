@@ -223,7 +223,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   if (isTRUE(dqlm.ind)) {
     exps0_user <- if (methods::hasArg(exps0)) exps0 else NULL
     retlist <- .run_dynamic_dqlm_cavi(
-      y = as.numeric(y),
+      y = y,
       p0 = p0,
       model = model,
       df = df,

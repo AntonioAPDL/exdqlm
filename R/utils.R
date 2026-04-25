@@ -1034,7 +1034,7 @@ check_ts = function(dat){
   max_iter = 200L,
   engine = "VB"
 ) {
-  y <- as.numeric(y)
+  y <- y
   TT <- length(y)
   p <- length(model$m0)
 
