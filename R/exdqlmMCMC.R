@@ -1027,15 +1027,14 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       current_iter <- as.integer(i)
       # counter
       if (i %% verbose.every == 0L) {
+        kept_now <- if (i <= n.burn) 0L else (i - n.burn)
         .exdqlm_progress(
           "MCMC progress",
           model = "exDQLM",
           phase = if (i <= n.burn) "burn" else "keep",
           iter = sprintf("%d/%d", i, I),
-          sigma = cursam.sigma,
-          gamma = cursam.gamma,
-          kernel = mh.proposal,
           accept = if (identical(mh.proposal, "slice")) NULL else n.accept / i,
+          kept = sprintf("%d/%d", kept_now, n.mcmc),
           .verbose = verbose
         )
       }
@@ -1392,9 +1391,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       status = "complete",
       iter = I,
       runtime_sec = run.time$toc - run.time$tic,
-      sigma = cursam.sigma,
-      gamma = cursam.gamma,
-      kernel = mh.proposal,
       accept = if (identical(mh.proposal, "slice")) NULL else n.accept / I,
       .verbose = verbose
     )
@@ -1740,12 +1736,13 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       current_iter <- as.integer(i)
       # counter
       if (i %% verbose.every == 0L) {
+        kept_now <- if (i <= n.burn) 0L else (i - n.burn)
         .exdqlm_progress(
           "MCMC progress",
           model = "DQLM",
           phase = if (i <= n.burn) "burn" else "keep",
           iter = sprintf("%d/%d", i, I),
-          sigma = cursam.sigma,
+          kept = sprintf("%d/%d", kept_now, n.mcmc),
           .verbose = verbose
         )
       }
@@ -1945,7 +1942,6 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       status = "complete",
       iter = I,
       runtime_sec = run.time$toc - run.time$tic,
-      sigma = cursam.sigma,
       .verbose = verbose
     )
     safe_progress_callback(list(

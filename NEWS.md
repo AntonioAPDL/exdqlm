@@ -68,6 +68,9 @@
   by default, while exAL VB/MCMC entry points apply a light `(sigma, gamma)`
   warmup unless users explicitly override it through `vb_control` or
   `mcmc_control`.
+- Streamlined default LDVB/MCMC console progress lines to prioritize run phase,
+  iteration, keep counters, acceptance summaries, and runtime while leaving
+  full `sigma`/`gamma` histories in diagnostics objects and callbacks.
 
 # exdqlm 0.3.0
 

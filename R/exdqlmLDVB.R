@@ -1350,8 +1350,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
         "LDVB progress",
         model = "exDQLM",
         iter = iter,
-        sigma = new.gamsig.out$E.sigma,
-        gamma = new.gamsig.out$E.gam,
         elbo = if (compute.elbo) utils::tail(elbo.seq, 1) else NULL,
         .verbose = verbose
       )
@@ -1372,8 +1370,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     status = if (identical(stop.reason, "joint_converged")) "converged" else "stopped",
     iter = iter,
     runtime_sec = run.time$toc - run.time$tic,
-    sigma = new.gamsig.out$E.sigma,
-    gamma = new.gamsig.out$E.gam,
     .verbose = verbose
   )
   ld_trace_df <- if (isTRUE(ld_ctrl$store_trace)) {

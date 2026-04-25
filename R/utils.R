@@ -1282,7 +1282,6 @@ check_ts = function(dat){
         "LDVB progress",
         model = "DQLM",
         iter = iter,
-        sigma = E_sigma,
         elbo = elbo,
         .verbose = verbose
       )
@@ -1300,7 +1299,6 @@ check_ts = function(dat){
     status = if (identical(stop_reason, "joint_converged")) "converged" else "stopped",
     iter = iter,
     runtime_sec = run.time$toc - run.time$tic,
-    sigma = E_sigma,
     .verbose = verbose
   )
 
@@ -1596,7 +1594,6 @@ check_ts = function(dat){
         "LDVB progress",
         model = "AL special case",
         iter = iter,
-        sigma = E_sigma,
         elbo = elbo,
         .verbose = verbose
       )
@@ -1699,7 +1696,6 @@ check_ts = function(dat){
     status = if (isTRUE(converged)) "converged" else "stopped",
     iter = iter,
     runtime_sec = ret$run.time,
-    sigma = ret$qsig$E_sigma,
     .verbose = verbose
   )
   ret

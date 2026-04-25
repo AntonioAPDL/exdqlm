@@ -2333,8 +2333,6 @@ exalStaticLDVB <- function(
         "LDVB progress",
         model = "Static exAL",
         iter = iter,
-        sigma = exp(ell_hat),
-        gamma = g_from_eta(eta_hat),
         elbo = elbo_new,
         note = if (isTRUE(ld_stabilized)) ld_stabilize_reason else if (isTRUE(ld_bad_mode_iter)) "mode-check" else NULL,
         .verbose = verbose
@@ -2579,8 +2577,6 @@ exalStaticLDVB <- function(
     status = if (isTRUE(converged)) "converged" else "stopped",
     iter = iter,
     runtime_sec = ret$run.time,
-    gamma = ret$qsiggam$gamma_mean,
-    sigma = ret$qsiggam$sigma_mean,
     .verbose = verbose
   )
   ret

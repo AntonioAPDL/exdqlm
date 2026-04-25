@@ -686,7 +686,6 @@ exalStaticMCMC <- function(
           model = "AL special case",
           phase = if (i <= n.burn) "burn" else "keep",
           iter = sprintf("%d/%d", i, I),
-          sigma = sigma,
           kept = sprintf("%d/%d", ksave, n.mcmc),
           .verbose = verbose
         )
@@ -714,7 +713,6 @@ exalStaticMCMC <- function(
       status = "complete",
       iter = I,
       runtime_sec = run.time$toc - run.time$tic,
-      sigma = sigma,
       .verbose = verbose
     )
     safe_progress_callback(list(
@@ -1560,9 +1558,6 @@ exalStaticMCMC <- function(
         model = "Static exAL",
         phase = if (i <= n.burn) "burn" else "keep",
         iter = sprintf("%d/%d", i, I),
-        sigma = sigma,
-        gamma = gamma,
-        kernel = mh.proposal,
         accept = accept_now,
         kept = sprintf("%d/%d", ksave, n.mcmc),
         .verbose = verbose
@@ -1595,9 +1590,6 @@ exalStaticMCMC <- function(
     status = "complete",
     iter = I,
     runtime_sec = run.time$toc - run.time$tic,
-    sigma = sigma,
-    gamma = gamma,
-    kernel = mh.proposal,
     accept = if (mh.proposal %in% c("laplace_local", "slice", "slice_eta")) NULL else n.accept / pmax(n.trial.burn + n.trial.keep, 1L),
     .verbose = verbose
   )
