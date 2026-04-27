@@ -19,7 +19,7 @@ legacy "\code{exdqlmISVB}".}
 \item{m2}{An optional additional object of class "\code{exdqlmLDVB}",
 "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with \code{m1}.}
 
-\item{plot}{Logical value indicating whether the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.Default is \code{TRUE}.}
+\item{plot}{Logical value indicating whether the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors. Default is \code{TRUE}.}
 
 \item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
 
@@ -27,7 +27,7 @@ legacy "\code{exdqlmISVB}".}
 normal distribution. Used to compute the KL divergences.}
 }
 \value{
-A object of class "\code{exdqlmDiagnostics}" containing the following:
+An object of class "\code{exdqlmDiagnostic}" containing the following:
 \itemize{
 \item \code{m1.uts} - The one-step-ahead distribution sequence of \code{m1}.
 \item \code{m1.KL} - The KL divergence of \code{m1.uts} and a standard normal.

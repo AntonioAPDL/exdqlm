@@ -28,4 +28,13 @@ test_that("dynamic diagnostics expose flipped KL and CRPS metrics", {
     diags$m1.KL, diags$m1.KL.flip, diags$m1.CRPS,
     diags$m2.KL, diags$m2.KL.flip, diags$m2.CRPS
   ))))
+
+  old_opts <- options(scipen = 123)
+  on.exit(options(old_opts), add = TRUE)
+  expect_output(print(diags), "KL \\(flipped\\)")
+  expect_identical(getOption("scipen"), 123)
+
+  expect_output(diag_summary <- summary(diags), "Diagnostic")
+  expect_s3_class(diag_summary, "data.frame")
+  expect_true(all(c("Diagnostic", "M1", "M2") %in% names(diag_summary)))
 })

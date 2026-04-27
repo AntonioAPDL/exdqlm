@@ -723,6 +723,16 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
   )
 }
 
+.exdqlm_diagnostic_table <- function(x) {
+  M1 <- .exdqlm_diagnostic_vector(x, "m1.")
+  if (is.null(x$m2.KL)) {
+    data.frame(Diagnostic = names(M1), M1 = unname(M1), check.names = FALSE)
+  } else {
+    M2 <- .exdqlm_diagnostic_vector(x, "m2.")
+    data.frame(Diagnostic = names(M1), M1 = unname(M1), M2 = unname(M2), check.names = FALSE)
+  }
+}
+
 #' Print Method for \code{exdqlmDiagnostic} Objects
 #'
 #' @param x An \code{exdqlmDiagnostic} object.
@@ -742,17 +752,10 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #' }
 #'
 print.exdqlmDiagnostic <- function(x, ...) {
-  options(scipen = 999)
-  #
-  M1 <- .exdqlm_diagnostic_vector(x, "m1.")
-  #
-  if(is.null(x$m2.KL)){
-    print(data.frame(Diagnostic=names(M1),M1=unname(M1)), row.names = FALSE, digits = 3)
-  }else{
-    M2 <- .exdqlm_diagnostic_vector(x, "m2.")
-    print(data.frame(Diagnostic=names(M1),M1=unname(M1),M2=unname(M2)), row.names = FALSE, digits = 3)
-  }
-  options(scipen = 0)
+  old_opts <- options(scipen = 999)
+  on.exit(options(old_opts), add = TRUE)
+  print(.exdqlm_diagnostic_table(x), row.names = FALSE, digits = 3)
+  invisible(x)
 }
 
 #' Summary Method for \code{exdqlmDiagnostic} Objects
@@ -774,15 +777,9 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #' }
 #'
 summary.exdqlmDiagnostic <- function(object, ...) {
-  #
-  M1 <- .exdqlm_diagnostic_vector(object, "m1.")
-  #
-  if(is.null(object$m2.KL)){
-    print(data.frame(Diagnostic=names(M1),M1=unname(M1)), row.names = FALSE, digits = 3)
-  }else{
-    M2 <- .exdqlm_diagnostic_vector(object, "m2.")
-    print(data.frame(Diagnostic=names(M1),M1=unname(M1),M2=unname(M2)), row.names = FALSE, digits = 3)
-  }
+  out <- .exdqlm_diagnostic_table(object)
+  print(out, row.names = FALSE, digits = 3)
+  invisible(out)
 }
 
 #' Plot Method for \code{exdqlmDiagnostic} Objects

@@ -11,12 +11,12 @@
 #' @inheritParams exdqlmPlot
 #' @param m2 An optional additional object of class "\code{exdqlmLDVB}",
 #'   "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with `m1`.
-#' @param plot Logical value indicating whether the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors.Default is `TRUE`.
+#' @param plot Logical value indicating whether the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors. Default is `TRUE`.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.
 #' @param ref Optional reference sample of size `length(m1$y)` from a standard
 #'   normal distribution. Used to compute the KL divergences.
 #'
-#' @return A object of class "\code{exdqlmDiagnostics}" containing the following:
+#' @return An object of class "\code{exdqlmDiagnostic}" containing the following:
 #'  \itemize{
 #'  \item `m1.uts` - The one-step-ahead distribution sequence of `m1`.
 #'  \item `m1.KL` - The KL divergence of `m1.uts` and a standard normal.
