@@ -28,6 +28,8 @@ test_that("synthesis handles draw orientation consistently", {
     T_expected = 3L
   )
 
+  expect_s3_class(out_rows, "exdqlmSynthesis")
+  expect_true(is.exdqlmSynthesis(out_rows))
   expect_equal(dim(out_rows$draws), c(3L, 24L))
   expect_true(isTRUE(all.equal(out_rows$draws, out_cols$draws, tolerance = 1e-12)))
 })
@@ -52,6 +54,7 @@ test_that("synthesis smoke output is finite and monotone over levels", {
     T_expected = 3L
   )
 
+  expect_s3_class(out, "exdqlmSynthesis")
   monotone_levels <- all(apply(out$quantiles, 1L, function(row) all(diff(row) >= -1e-10)))
   expect_true(all(is.finite(out$draws)) && all(is.finite(out$quantiles)))
   expect_true(monotone_levels)
@@ -75,6 +78,7 @@ test_that("synthesis accepts dynamic fit objects and forecast objects", {
     seed = 42L,
     T_expected = 2L
   )
+  expect_s3_class(out_fit, "exdqlmSynthesis")
   expect_equal(dim(out_fit$draws), c(2L, 20L))
   expect_true(all(is.finite(out_fit$draws)))
 
@@ -87,6 +91,7 @@ test_that("synthesis accepts dynamic fit objects and forecast objects", {
     seed = 42L,
     T_expected = 2L
   )
+  expect_s3_class(out_fc, "exdqlmSynthesis")
   expect_equal(dim(out_fc$draws), c(2L, 20L))
   expect_true(all(is.finite(out_fc$draws)))
 })
@@ -99,4 +104,43 @@ test_that("synthesis errors clearly when forecast draws are missing", {
     "return.draws = TRUE",
     fixed = TRUE
   )
+})
+
+test_that("synthesis print, summary, and plot methods are usable", {
+  draws_low <- matrix(
+    c(0.10, 0.12, 0.14, 0.16,
+      0.20, 0.22, 0.24, 0.26,
+      0.30, 0.32, 0.34, 0.36),
+    nrow = 3,
+    byrow = TRUE
+  )
+  draws_high <- draws_low + 0.3
+
+  out <- quantileSynthesis(
+    draws_list = list(draws_low, draws_high),
+    p = c(0.2, 0.8),
+    n_samp = 20L,
+    seed = 42L,
+    T_expected = 3L
+  )
+
+  expect_output(print(out), "Posterior predictive synthesis")
+
+  smry <- summary(out, time = c(2001, 2002, 2003))
+  expect_s3_class(smry, "data.frame")
+  expect_equal(names(smry), c("time", "mean", "q025", "q250", "q500", "q750", "q975"))
+  expect_equal(smry$time, c(2001, 2002, 2003))
+  expect_error(summary(out, time = 1:2), "time must have length")
+
+  plot_file <- tempfile(fileext = ".pdf")
+  grDevices::pdf(plot_file)
+  on.exit({
+    grDevices::dev.off()
+    unlink(plot_file)
+  }, add = TRUE)
+
+  expect_silent(plot(out, y = ts(c(0.11, 0.21, 0.31), start = 2001), time = c(2001, 2002, 2003)))
+  expect_silent(plot(out, add = TRUE, time = c(2001, 2002, 2003), interval = 0.50))
+  expect_error(plot(out, time = 1:2), "time must have length")
+  expect_error(plot(out, interval = 0.80), "interval must be either")
 })

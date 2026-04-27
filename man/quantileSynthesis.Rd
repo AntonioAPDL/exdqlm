@@ -44,7 +44,7 @@ Default \code{1001L}.}
 when orienting each matrix to \code{T x ns}. This avoids accidental transposes.}
 }
 \value{
-A list containing:
+An object of class "\code{exdqlmSynthesis}", which is a list containing:
 \itemize{
 \item \code{draws} - Numeric matrix \code{T x n_samp} of synthesized draws.
 \item \code{levels} - Sorted copy of \code{p} (length \code{L}).
@@ -96,5 +96,8 @@ syn2 = quantileSynthesis(
   draws_list = fits,
   p = p0s,
   T_expected = TT)
+
+# plot the synthesized 95\% posterior predictive interval
+plot(syn2, y = y)
 }
 }

@@ -29,7 +29,7 @@
 #' @param T_expected Optional integer; if provided, forces the time dimension to \code{T_expected}
 #'   when orienting each matrix to \code{T x ns}. This avoids accidental transposes.
 #'
-#' @return A list containing:
+#' @return An object of class "\code{exdqlmSynthesis}", which is a list containing:
 #' \itemize{
 #'   \item \code{draws} - Numeric matrix \code{T x n_samp} of synthesized draws.
 #'   \item \code{levels} - Sorted copy of \code{p} (length \code{L}).
@@ -72,6 +72,9 @@
 #'   draws_list = fits,
 #'   p = p0s,
 #'   T_expected = TT)
+#'
+#' # plot the synthesized 95% posterior predictive interval
+#' plot(syn2, y = y)
 #' }
 quantileSynthesis <- function(draws_list, p,
                                          enforce_isotonic = TRUE,
@@ -248,7 +251,7 @@ quantileSynthesis <- function(draws_list, p,
     q975 = apply(draws, 1L, function(z) stats::quantile(z, 0.975))
   )
 
-  list(
+  out <- list(
     draws     = draws,      # T × n_samp
     levels    = taus,       # sorted p
     quantiles = m_adj,      # T × L after isotone
@@ -261,4 +264,7 @@ quantileSynthesis <- function(draws_list, p,
       T_inferred = Tt
     )
   )
+
+  class(out) <- "exdqlmSynthesis"
+  out
 }
