@@ -30,11 +30,11 @@ monthly <- monthly[order(monthly$date), ]
 
 start_year <- as.integer(format(monthly$date[1], "%Y"))
 start_month <- as.integer(format(monthly$date[1], "%m"))
-BTflowUSGS <- ts(monthly$x, start = c(start_year, start_month), frequency = 12)
+BTflow <- ts(monthly$x, start = c(start_year, start_month), frequency = 12)
 
-output_path <- file.path(repo_root, "data", "BTflowUSGS.rda")
-save(BTflowUSGS, file = output_path, compress = "bzip2")
+output_path <- file.path(repo_root, "data", "BTflow.rda")
+save(BTflow, file = output_path, compress = "bzip2")
 
 cat("Saved", output_path, "\n")
 cat("Range:", format(monthly$date[1]), "to", format(monthly$date[nrow(monthly)]), "\n")
-cat("Length:", length(BTflowUSGS), "\n")
+cat("Length:", length(BTflow), "\n")

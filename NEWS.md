@@ -33,6 +33,8 @@
 - Standardized the main user-facing naming scheme around `exalStatic...`,
   `exdqlmTransfer...`, and `quantileSynthesis()`, while keeping the earlier
   static/transfer/synthesis entry points as deprecated compatibility aliases.
+- Added `climateIndices`, a documented monthly climate-index panel used for
+  reproducible external-regressor examples.
 
 ## Fixes and clarifications
 - Normalized the shared dynamic exDQLM VB policy around LDVB: `exdqlmLDVB()`
@@ -71,6 +73,8 @@
 - Streamlined default LDVB/MCMC console progress lines to prioritize run phase,
   iteration, keep counters, acceptance summaries, and runtime while leaving
   full `sigma`/`gamma` histories in diagnostics objects and callbacks.
+- Clarified the `BTflow` dataset provenance as observed monthly USGS
+  streamflow and removed the unused `BTprec` dataset from the package data API.
 
 # exdqlm 0.3.0
 
