@@ -1,0 +1,39 @@
+SUMMARY total=288 completed=267 running=4 not_started=17 pass=205 warn=32 fail=30 healthy=237 pct_completed=92.7 pct_active_or_done=94.1
+report=reports/static_exal_tuning_20260422/refreshed288_p90_full_status_20260422_p90_full288_baseline_v1.md
+phase=full_dynamic_mcmc workers=4 rows=28 status_filter=running,not_started,failed_runtime outcome_filter=FAIL filter_mode=any
+[refreshed288 p90 row 10] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Error: unexpected SPECIAL in "e=%s model=%"
+Execution halted
+[refreshed288 p90 row 4] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Error: unexpected SPECIAL in "e=%s model=%"
+Execution halted
+[refreshed288 p90 row 12] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Error: unexpected SPECIAL in "e=%s model=%"
+Execution halted
+[refreshed288 p90 row 8] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Error: unexpected SPECIAL in "e=%s model=%"
+Execution halted
+[refreshed288 p90 row 14] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 32] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 16] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 28] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 34] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 38] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 36] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 40] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 42] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 44] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 46] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 48] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 50] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 54] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 52] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 56] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 58] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 60] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 62] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 64] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 66] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 70] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 68] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 72] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done

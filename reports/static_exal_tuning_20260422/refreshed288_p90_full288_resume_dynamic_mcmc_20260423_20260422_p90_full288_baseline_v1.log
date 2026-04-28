@@ -1,0 +1,104 @@
+SUMMARY total=288 completed=258 running=0 not_started=30 pass=199 warn=32 fail=27 healthy=231 pct_completed=89.6 pct_active_or_done=89.6
+report=reports/static_exal_tuning_20260422/refreshed288_p90_full_status_20260422_p90_full288_baseline_v1.md
+phase=full_dynamic_mcmc workers=8 rows=30 status_filter=running,not_started
+[refreshed288 p90 row 14] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 18] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 20] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 16] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 22] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 26] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 30] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[refreshed288 p90 row 24] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[refreshed288 p90 row 28] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 40] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 46] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 44] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 48] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+4: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 50] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+4: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 52] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+4: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 54] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on deviWarning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In close.connection(file) :
+  Problem closing connection:  No space left on device
+3: In close.connection(file) :
+  Problem closing connection:  No space left on device
+[refreshed288 p90 row 38] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: run_dynamic_refreshed288 ... <Anonymous> -> eval.parent -> eval -> eval -> <Anonymous> -> file
+In addition: Warning messages:
+1: In close.connection(file) :
+  Problem closing connection:  No space left on device
+2: In file(file, ifelse(append, "a", "w")) :
+  cannot open file 'tools/merge_reports/full288_refreshed288_20260422_p90_full288_baseline_v1/health/.row_0072_health.csv_tmp_3fdd16676f25ec.csv': No space left on device
+Execution halted
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: run_dynamic_refreshed288 ... <Anonymous> -> eval.parent -> eval -> eval -> <Anonymous> -> file
+In addition: Warning message:
+In file(file, ifelse(append, "a", "w")) :
+  cannot open file 'tools/merge_reports/full288_refreshed288_20260422_p90_full288_baseline_v1/health/.row_0042_health.csv_tmp_3fa9e43cbc1645.csv': No space left on device
+Execution halted
