@@ -67,34 +67,92 @@
   manifest
 }
 
+.qdesn_p90_closeout_run_tables <- function(run_name, run_cfg, repo_root) {
+  if (!is.list(run_cfg)) {
+    stop(sprintf("Closeout run `%s` must be a mapping/list.", run_name), call. = FALSE)
+  }
+
+  out <- list()
+  if (!is.null(run_cfg$campaign_fit_summary)) {
+    campaign_path <- .qdesn_p90_closeout_resolve(run_cfg$campaign_fit_summary, repo_root, must_work = TRUE)
+    campaign <- .qdesn_p90_closeout_read_csv(campaign_path)
+    campaign$source_run_tag <- as.character(run_cfg$run_tag %||% run_name)
+    campaign$source_run_part <- as.character(run_cfg$source_run_part %||% paste0(run_name, "_campaign"))
+    out[[length(out) + 1L]] <- campaign
+  }
+
+  if (!is.null(run_cfg$root_fit_summary_glob)) {
+    root_glob <- .qdesn_p90_closeout_resolve(run_cfg$root_fit_summary_glob, repo_root, must_work = FALSE)
+    root_files <- Sys.glob(root_glob)
+    if (!length(root_files)) {
+      stop(sprintf("No root fit summaries matched closeout manifest glob for `%s`: %s", run_name, root_glob), call. = FALSE)
+    }
+    root_tables <- lapply(root_files, .qdesn_p90_closeout_read_csv)
+    roots <- .qdesn_validation_bind_rows(root_tables)
+    roots$source_run_tag <- as.character(run_cfg$run_tag %||% run_name)
+    roots$source_run_part <- as.character(run_cfg$source_run_part %||% paste0(run_name, "_root_summaries"))
+    out[[length(out) + 1L]] <- roots
+  }
+
+  if (!length(out)) {
+    stop(sprintf(
+      "Closeout run `%s` must define `campaign_fit_summary` and/or `root_fit_summary_glob`.",
+      run_name
+    ), call. = FALSE)
+  }
+  .qdesn_validation_bind_rows(out)
+}
+
+.qdesn_p90_closeout_fill_compact_path_cols <- function(fit_summary) {
+  if (!nrow(fit_summary)) return(fit_summary)
+  if (!("fit_quantile_path_train_file" %in% names(fit_summary))) {
+    fit_summary$fit_quantile_path_train_file <- NA_character_
+  }
+  if (!("fit_quantile_path_holdout_file" %in% names(fit_summary))) {
+    fit_summary$fit_quantile_path_holdout_file <- NA_character_
+  }
+  if ("fit_file" %in% names(fit_summary)) {
+    fit_file <- as.character(fit_summary$fit_file)
+    has_fit_file <- !is.na(fit_file) & nzchar(fit_file)
+    method_dir <- dirname(dirname(fit_file))
+    derived_train <- file.path(method_dir, "tables", "fit_quantile_path_train.csv")
+    derived_holdout <- file.path(method_dir, "tables", "fit_quantile_path_holdout.csv")
+    missing_train <- is.na(fit_summary$fit_quantile_path_train_file) | !nzchar(as.character(fit_summary$fit_quantile_path_train_file))
+    missing_holdout <- is.na(fit_summary$fit_quantile_path_holdout_file) | !nzchar(as.character(fit_summary$fit_quantile_path_holdout_file))
+    fit_summary$fit_quantile_path_train_file[has_fit_file & missing_train] <- derived_train[has_fit_file & missing_train]
+    fit_summary$fit_quantile_path_holdout_file[has_fit_file & missing_holdout] <- derived_holdout[has_fit_file & missing_holdout]
+  }
+  fit_summary
+}
+
 .qdesn_p90_closeout_load_fit_summary <- function(manifest, repo_root) {
   runs <- manifest$runs %||% list()
-  ridge_path <- .qdesn_p90_closeout_resolve(runs$ridge$campaign_fit_summary, repo_root, must_work = TRUE)
-  rhs_resume_path <- .qdesn_p90_closeout_resolve(runs$rhs_ns_resume$campaign_fit_summary, repo_root, must_work = TRUE)
-  rhs_parent_glob <- .qdesn_p90_closeout_resolve(runs$rhs_ns_parent$root_fit_summary_glob, repo_root, must_work = FALSE)
-
-  ridge <- .qdesn_p90_closeout_read_csv(ridge_path)
-  ridge$source_run_tag <- as.character(runs$ridge$run_tag %||% "ridge")
-  ridge$source_run_part <- "ridge_full"
-
-  rhs_resume <- .qdesn_p90_closeout_read_csv(rhs_resume_path)
-  rhs_resume$source_run_tag <- as.character(runs$rhs_ns_resume$run_tag %||% "rhs_ns_resume")
-  rhs_resume$source_run_part <- "rhs_ns_resume"
-
-  rhs_parent_files <- Sys.glob(rhs_parent_glob)
-  if (!length(rhs_parent_files)) {
-    stop("No parent rhs_ns root fit summaries matched the closeout manifest glob.", call. = FALSE)
+  if (!length(runs)) {
+    stop("Closeout manifest must define at least one run under `runs`.", call. = FALSE)
   }
-  rhs_parent <- do.call(rbind, lapply(rhs_parent_files, .qdesn_p90_closeout_read_csv))
-  rhs_parent$source_run_tag <- as.character(runs$rhs_ns_parent$run_tag %||% "rhs_ns_parent")
-  rhs_parent$source_run_part <- "rhs_ns_parent_preserved"
-
-  out <- .qdesn_validation_bind_rows(list(ridge, rhs_parent, rhs_resume))
+  run_names <- names(runs)
+  if (is.null(run_names) || any(!nzchar(run_names))) {
+    run_names <- paste0("run_", seq_along(runs))
+  }
+  out <- .qdesn_validation_bind_rows(Map(
+    function(run_name, run_cfg) .qdesn_p90_closeout_run_tables(run_name, run_cfg, repo_root),
+    run_names,
+    runs
+  ))
   key_cols <- intersect(c("root_id", "prior", "inference", "model", "fit_file"), names(out))
   if (length(key_cols)) {
     out <- out[!duplicated(out[, key_cols, drop = FALSE]), , drop = FALSE]
   }
-  out$canonical_model <- ifelse(tolower(out$model) %in% c("exdqlm", "exal"), "exal", "al")
+  out <- .qdesn_p90_closeout_fill_compact_path_cols(out)
+  required_cols <- c("scenario", "family", "tau", "fit_size", "prior", "inference", "model")
+  missing_cols <- setdiff(required_cols, names(out))
+  if (length(missing_cols)) {
+    stop(sprintf(
+      "Combined closeout fit summary is missing required column(s): %s",
+      paste(missing_cols, collapse = ", ")
+    ), call. = FALSE)
+  }
+  out$canonical_model <- ifelse(tolower(as.character(out$model)) %in% c("exdqlm", "exal"), "exal", "al")
   out$method_model <- paste(out$inference, out$canonical_model, sep = "_")
   out$fit_case_id <- paste(out$scenario, out$family, out$tau, out$fit_size, out$prior, out$inference, out$canonical_model, sep = "__")
   rownames(out) <- NULL
@@ -273,8 +331,39 @@
   file.path(dirname(dirname(as.character(fit_file)[1L])), "fit_request.json")
 }
 
+.qdesn_p90_closeout_compact_train_path <- function(fit_row, fit_file = NULL) {
+  direct <- as.character(fit_row$fit_quantile_path_train_file[1L] %||% NA_character_)
+  if (!is.na(direct) && nzchar(direct)) return(direct)
+  if (!is.null(fit_file) && length(fit_file) && !is.na(fit_file[[1L]]) && nzchar(fit_file[[1L]])) {
+    return(file.path(dirname(dirname(as.character(fit_file)[1L])), "tables", "fit_quantile_path_train.csv"))
+  }
+  NA_character_
+}
+
+.qdesn_p90_closeout_read_compact_fit_plot_df <- function(fit_row, last_n = 500L) {
+  fit_file <- as.character(fit_row$fit_file[1L] %||% NA_character_)
+  compact_path <- .qdesn_p90_closeout_compact_train_path(fit_row, fit_file)
+  if (is.na(compact_path) || !nzchar(compact_path) || !file.exists(compact_path)) return(NULL)
+  df <- utils::read.csv(compact_path, stringsAsFactors = FALSE)
+  if (!nrow(df)) return(NULL)
+  if (!("source_t" %in% names(df)) || !any(is.finite(as.numeric(df$source_t)))) {
+    df$source_t <- if ("source_index" %in% names(df)) as.numeric(df$source_index) else as.numeric(df$h %||% seq_len(nrow(df)))
+  }
+  if (!("q_true" %in% names(df))) df$q_true <- NA_real_
+  if (!("mu" %in% names(df))) df$mu <- df$q_pred %||% NA_real_
+  if (!("lo" %in% names(df))) df$lo <- NA_real_
+  if (!("hi" %in% names(df))) df$hi <- NA_real_
+  if (!("y" %in% names(df))) df$y <- NA_real_
+  df$panel <- sprintf("%s / %s", toupper(as.character(fit_row$inference[1L])), toupper(as.character(fit_row$canonical_model[1L])))
+  df$signoff_grade <- as.character(fit_row$signoff_grade[1L])
+  df$signoff_reason <- as.character(fit_row$signoff_reason[1L])
+  utils::tail(df, min(nrow(df), as.integer(last_n)))
+}
+
 .qdesn_p90_closeout_fit_plot_df <- function(fit_row, last_n = 500L) {
   fit_file <- as.character(fit_row$fit_file[1L])
+  compact_df <- .qdesn_p90_closeout_read_compact_fit_plot_df(fit_row, last_n = last_n)
+  if (!is.null(compact_df) && nrow(compact_df)) return(compact_df)
   if (!file.exists(fit_file)) return(NULL)
   obj <- readRDS(fit_file)
   fit_obj <- obj$fits_fc[[1L]]
@@ -399,7 +488,10 @@ qdesn_dynamic_p90_steepertrend_closeout_analysis <- function(manifest_path = fil
   manifest <- .qdesn_p90_closeout_load_manifest(manifest_path, repo_root)
   output_base <- .qdesn_p90_closeout_resolve(manifest$analysis$output_root, repo_root, must_work = FALSE)
   git_sha <- .qdesn_p90_closeout_git_sha(repo_root)
-  run_tag <- sprintf("qdesn-dynamic-p90-steepertrend-closeout-%s__git-%s", format(Sys.time(), "%Y%m%d-%H%M%S"), git_sha)
+  analysis_id <- as.character(manifest$analysis$id %||% "qdesn_dynamic_p90_steepertrend_closeout_analysis")
+  run_tag_prefix <- gsub("[^A-Za-z0-9]+", "-", analysis_id)
+  run_tag_prefix <- gsub("(^-+|-+$)", "", tolower(run_tag_prefix))
+  run_tag <- sprintf("%s-%s__git-%s", run_tag_prefix, format(Sys.time(), "%Y%m%d-%H%M%S"), git_sha)
   output_root <- file.path(output_base, run_tag)
   table_dir <- file.path(output_root, "tables")
   fig_dir <- file.path(output_root, "figures")
@@ -413,6 +505,8 @@ qdesn_dynamic_p90_steepertrend_closeout_analysis <- function(manifest_path = fil
   if (nrow(fit_summary) != expected_fits) {
     stop(sprintf("Combined fit summary has %d rows; expected %d.", nrow(fit_summary), expected_fits), call. = FALSE)
   }
+  expected_roots <- as.integer((manifest$expected$roots_per_prior %||% 18L)[1L]) * length(manifest$expected$priors %||% c("ridge", "rhs_ns"))
+  observed_roots <- length(unique(as.character(fit_summary$root_id)))
 
   signoff_overall <- .qdesn_p90_closeout_group_summary(fit_summary, character(0))
   signoff_by_prior <- .qdesn_p90_closeout_group_summary(fit_summary, "prior")
@@ -450,21 +544,44 @@ qdesn_dynamic_p90_steepertrend_closeout_analysis <- function(manifest_path = fil
   figure_index <- .qdesn_validation_bind_rows(figure_rows)
   .qdesn_p90_closeout_write_df(figure_index, file.path(table_dir, "figure_index.csv"))
 
-  numerical_failure_n <- sum(as.character(fit_summary$status) != "SUCCESS", na.rm = TRUE)
+  status_not_success_n <- if ("status" %in% names(fit_summary)) {
+    sum(as.character(fit_summary$status) != "SUCCESS", na.rm = TRUE)
+  } else {
+    NA_integer_
+  }
+  finite_failure_n <- if ("finite_ok" %in% names(fit_summary)) {
+    sum(!as.logical(fit_summary$finite_ok), na.rm = TRUE)
+  } else {
+    NA_integer_
+  }
+  domain_failure_n <- if ("domain_ok" %in% names(fit_summary)) {
+    sum(!as.logical(fit_summary$domain_ok), na.rm = TRUE)
+  } else {
+    NA_integer_
+  }
+  confirmed_nonfinite_or_domain_n <- sum(c(finite_failure_n, domain_failure_n), na.rm = TRUE)
   hard_fail_lines <- c(
-    sprintf("- root_level_failures: `%d`", 0L),
-    sprintf("- completed_fits_status_not_success: `%d`", numerical_failure_n),
+    sprintf("- observed_roots: `%d / %d`", observed_roots, expected_roots),
+    sprintf("- observed_fits: `%d / %d`", nrow(fit_summary), expected_fits),
+    sprintf("- completed_fits_status_not_success: `%s`", as.character(status_not_success_n)),
+    sprintf("- finite_check_failures: `%s`", as.character(finite_failure_n)),
+    sprintf("- domain_check_failures: `%s`", as.character(domain_failure_n)),
+    sprintf("- confirmed_nonfinite_or_domain_failures: `%s`", as.character(confirmed_nonfinite_or_domain_n)),
     "- error_or_crash_files_found: `0`",
     "- confirmed_numerical_runtime_crashes: `0`"
   )
+  report_title <- as.character(manifest$analysis$title %||% "QDESN Dynamic P90 Steeper-Trend Relaunch Closeout")
+  report_description <- as.character(manifest$analysis$description %||% "")
 
   closeout_lines <- c(
-    "# QDESN Dynamic P90 Steeper-Trend Relaunch Closeout",
+    paste0("# ", report_title),
     "",
     sprintf("- generated_at: `%s`", as.character(Sys.time())),
     sprintf("- git_sha: `%s`", git_sha),
+    sprintf("- manifest: `%s`", manifest$manifest_path),
     sprintf("- scenario: `%s`", as.character(manifest$analysis$scenario %||% NA_character_)),
     sprintf("- output_root: `%s`", output_root),
+    if (nzchar(report_description)) c("", "## Analysis Scope", report_description) else character(0),
     "",
     "## Completed Launch Surfaces",
     .qdesn_p90_closeout_md_table(signoff_by_prior[, intersect(c("prior", "n", "status_success_n", "pass_n", "warn_n", "fail_n", "pass_rate", "warn_rate", "fail_rate", "comparison_eligible_rate"), names(signoff_by_prior)), drop = FALSE]),
@@ -483,25 +600,32 @@ qdesn_dynamic_p90_steepertrend_closeout_analysis <- function(manifest_path = fil
     .qdesn_p90_closeout_md_table(figure_index[, intersect(c("figure_type", "family", "tau", "fit_size", "prior", "path"), names(figure_index)), drop = FALSE]),
     "",
     "## Interpretation Notes",
-    "- All roots completed successfully for both ridge and RHS-NS surfaces.",
+    sprintf("- The closeout input contains `%d / %d` expected roots and `%d / %d` expected fits.", observed_roots, expected_roots, nrow(fit_summary), expected_fits),
     "- The completed-fit failures are diagnostic signoff failures, dominated by MCMC autocorrelation and chain-quality flags.",
-    "- No hard numerical failures, runtime crashes, or non-SUCCESS fit statuses are present in the completed campaign summaries.",
+    "- The explicit numerical failure section distinguishes runtime/status failures from finite/domain failures.",
     "- The quantile uncertainty figures use the TT500 windows for visual clarity and compare fitted quantile bands against the known simulated target quantile path."
   )
   .qdesn_p90_closeout_write_lines(closeout_lines, file.path(summary_dir, "qdesn_dynamic_p90_steepertrend_closeout.md"))
 
-  docs_report <- file.path(repo_root, "docs", "REPORT__qdesn_dynamic_p90_steepertrend_closeout_and_main_comparison_20260424.md")
+  docs_report <- .qdesn_p90_closeout_resolve(
+    manifest$analysis$docs_report %||% file.path("docs", "REPORT__qdesn_dynamic_p90_steepertrend_closeout_and_main_comparison_20260424.md"),
+    repo_root,
+    must_work = FALSE
+  )
   .qdesn_p90_closeout_write_lines(c(
-    "# QDESN Dynamic P90 Steeper-Trend Closeout And Main Comparison",
+    paste0("# ", report_title),
     "",
     sprintf("- generated_at: `%s`", as.character(Sys.time())),
     sprintf("- git_sha: `%s`", git_sha),
+    sprintf("- manifest: `%s`", manifest$manifest_path),
     sprintf("- closeout_output_root: `%s`", output_root),
     "",
     "## Final Launch State",
-    "- Ridge full: `18 / 18` roots and `72 / 72` fits completed.",
-    "- RHS-NS full: `18 / 18` roots and `72 / 72` fits completed, combining the preserved parent roots with the optimized continuation wave.",
-    "- Full main program: `36 / 36` roots and `144 / 144` fits completed.",
+    sprintf("- Observed roots: `%d / %d`.", observed_roots, expected_roots),
+    sprintf("- Observed fits: `%d / %d`.", nrow(fit_summary), expected_fits),
+    sprintf("- Priors: `%s`.", paste(as.character(manifest$expected$priors %||% sort(unique(fit_summary$prior))), collapse = "`, `")),
+    sprintf("- Inference engines: `%s`.", paste(as.character(manifest$expected$methods %||% sort(unique(fit_summary$inference))), collapse = "`, `")),
+    sprintf("- Likelihood/readout families: `%s`.", paste(as.character(manifest$expected$models %||% sort(unique(fit_summary$canonical_model))), collapse = "`, `")),
     "",
     "## Numerical Failure Check",
     hard_fail_lines,

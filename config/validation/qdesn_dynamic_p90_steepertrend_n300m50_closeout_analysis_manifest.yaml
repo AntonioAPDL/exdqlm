@@ -1,0 +1,49 @@
+analysis:
+  id: qdesn_dynamic_p90_steepertrend_n300m50_closeout_analysis
+  title: QDESN Dynamic P90 Steeper-Trend N300/M50 Closeout And Main Comparison
+  output_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis
+  docs_report: docs/REPORT__qdesn_dynamic_p90_steepertrend_n300m50_closeout_and_main_comparison_20260427.md
+  scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  description: >
+    Final closeout and main comparison analysis for the full 144-fit QDESN
+    dynamic p90 steeper-trend relaunch using the larger
+    deep_d3_n300x3_skip100_w300_m50 reservoir profile. The analysis is designed
+    to be run only after the launch has completed, the saved-output signoff
+    repair has been applied, and campaign tables have been recollected.
+
+runs:
+  n300m50_full:
+    run_tag: qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13
+    source_run_part: n300m50_full_root_summaries
+    root_fit_summary_glob: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13/20260424-172958__git-366ca13/roots/*/tables/fit_summary.csv
+
+expected:
+  roots_per_prior: 18
+  fits_per_prior: 72
+  priors:
+    - ridge
+    - rhs_ns
+  methods:
+    - vb
+    - mcmc
+  models:
+    - al
+    - exal
+
+plots:
+  uncertainty_fit_size: 500
+  uncertainty_families:
+    - normal
+    - laplace
+    - gausmix
+  uncertainty_tau: 0.25
+  uncertainty_priors:
+    - ridge
+    - rhs_ns
+  uncertainty_inferences:
+    - vb
+    - mcmc
+  uncertainty_models:
+    - al
+    - exal
+  uncertainty_last_n: 500

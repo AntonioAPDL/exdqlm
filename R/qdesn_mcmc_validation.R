@@ -542,6 +542,24 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   fit_entry$fit_train$fit
 }
 
+.qdesn_validation_is_vb_fit <- function(fit) {
+  inherits(fit, "exal_vb") ||
+    (is.list(fit) &&
+       is.list(fit$qbeta %||% NULL) &&
+       is.list(fit$qsiggam %||% NULL) &&
+       is.list(fit$misc %||% NULL) &&
+       !is.null(fit$qbeta$m))
+}
+
+.qdesn_validation_is_mcmc_fit <- function(fit) {
+  inherits(fit, "exal_mcmc") ||
+    (is.list(fit) &&
+       !is.null(fit$samp.beta) &&
+       !is.null(fit$samp.sigma) &&
+       !is.null(fit$samp.gamma) &&
+       !is.null(fit$bounds))
+}
+
 .qdesn_validation_extract_forecast_df <- function(summary_obj) {
   if (is.null(summary_obj$forecast_objects)) return(NULL)
   fits_fc <- summary_obj$forecast_objects$fits_fc %||% list()
@@ -549,6 +567,263 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   out <- fits_fc[[1L]]$df_pred_fc %||% NULL
   if (is.null(out)) return(NULL)
   as.data.frame(out, stringsAsFactors = FALSE)
+}
+
+.qdesn_validation_compact_fit_path_file <- function(method_dir, split = c("train", "holdout")) {
+  split <- match.arg(split)
+  file.path(method_dir, "tables", sprintf("fit_quantile_path_%s.csv", split))
+}
+
+.qdesn_validation_adjust_vector <- function(x, n, default = NA) {
+  n <- as.integer(n)[1L]
+  if (!is.finite(n) || n <= 0L) return(x[0L])
+  if (is.null(x) || !length(x)) {
+    if (length(default) == n) return(default)
+    return(rep(default[1L], n))
+  }
+  out <- x
+  if (length(out) >= n) {
+    return(out[seq_len(n)])
+  }
+  c(out, rep(default[1L], n - length(out)))
+}
+
+.qdesn_validation_df_col <- function(df, candidates, n, default = NA, numeric = FALSE) {
+  if (is.null(df)) df <- data.frame(stringsAsFactors = FALSE)
+  for (nm in as.character(candidates)) {
+    if (nm %in% names(df)) {
+      out <- .qdesn_validation_adjust_vector(df[[nm]], n, default = default)
+      if (isTRUE(numeric)) out <- as.numeric(out)
+      return(out)
+    }
+  }
+  out <- if (length(default) == as.integer(n)[1L]) default else rep(default[1L], as.integer(n)[1L])
+  if (isTRUE(numeric)) out <- as.numeric(out)
+  out
+}
+
+.qdesn_validation_source_path_from_root_spec <- function(root_spec) {
+  path <- root_spec$source_series_wide_path %||% root_spec$series_wide_path %||% NULL
+  if (is.null(path) || !length(path)) return(NULL)
+  path <- as.character(path)[1L]
+  if (is.na(path) || !nzchar(trimws(path))) return(NULL)
+  tryCatch(.qdesn_validation_resolve_path(path, must_work = FALSE), error = function(...) path)
+}
+
+.qdesn_validation_read_source_series <- function(root_spec) {
+  path <- .qdesn_validation_source_path_from_root_spec(root_spec)
+  if (is.null(path) || !file.exists(path)) return(NULL)
+  tryCatch(utils::read.csv(path, stringsAsFactors = FALSE), error = function(...) NULL)
+}
+
+.qdesn_validation_source_values <- function(source_df, idx, candidates, default = NA_real_) {
+  idx <- as.integer(idx)
+  n <- length(idx)
+  if (is.null(source_df) || !nrow(source_df) || !length(candidates)) {
+    return(rep(default, n))
+  }
+  for (nm in as.character(candidates)) {
+    if (nm %in% names(source_df)) {
+      out <- rep(default, n)
+      ok <- is.finite(idx) & idx >= 1L & idx <= nrow(source_df)
+      out[ok] <- source_df[[nm]][idx[ok]]
+      return(out)
+    }
+  }
+  rep(default, n)
+}
+
+.qdesn_validation_compact_fit_path_df <- function(summary_obj,
+                                                  root_spec,
+                                                  split = c("train", "holdout")) {
+  split <- match.arg(split)
+  fits_fc <- (summary_obj$forecast_objects %||% list())$fits_fc %||% list()
+  if (!length(fits_fc)) return(data.frame(stringsAsFactors = FALSE))
+  fit_entry <- fits_fc[[1L]]
+  df_mu <- as.data.frame(
+    if (identical(split, "train")) fit_entry$df_mu_tr %||% data.frame(stringsAsFactors = FALSE) else fit_entry$df_mu_fc %||% data.frame(stringsAsFactors = FALSE),
+    stringsAsFactors = FALSE
+  )
+  df_pred <- as.data.frame(
+    if (identical(split, "train")) fit_entry$df_pred_tr %||% data.frame(stringsAsFactors = FALSE) else fit_entry$df_pred_fc %||% data.frame(stringsAsFactors = FALSE),
+    stringsAsFactors = FALSE
+  )
+  n <- max(nrow(df_mu), nrow(df_pred))
+  if (!is.finite(n) || n <= 0L) return(data.frame(stringsAsFactors = FALSE))
+
+  source_df <- .qdesn_validation_read_source_series(root_spec)
+  if (identical(split, "train")) {
+    keep_idx <- as.integer(((fit_entry$fit_train %||% list())$meta %||% list())$keep_idx %||% seq_len(n))
+    keep_idx <- .qdesn_validation_adjust_vector(keep_idx, n, default = NA_integer_)
+  } else {
+    split_n <- as.integer((summary_obj$summary$n_train %||% NA_integer_)[1L])
+    keep_idx <- if (is.finite(split_n)) seq.int(split_n + 1L, length.out = n) else seq_len(n)
+  }
+
+  source_t <- .qdesn_validation_source_values(source_df, keep_idx, c("t", "time", "source_t"), default = NA_real_)
+  source_index <- .qdesn_validation_source_values(source_df, keep_idx, c("source_index", "t"), default = NA_real_)
+  q_true <- .qdesn_validation_df_col(df_mu, c("q_true", "q_target"), n, default = NA_real_, numeric = TRUE)
+  if (!any(is.finite(q_true))) {
+    q_true <- .qdesn_validation_df_col(df_pred, c("q_true", "q_target"), n, default = NA_real_, numeric = TRUE)
+  }
+  source_q_true <- .qdesn_validation_source_values(source_df, keep_idx, c("q_target", "q_true", "mu"), default = NA_real_)
+  replace_q <- !is.finite(q_true) & is.finite(as.numeric(source_q_true))
+  q_true[replace_q] <- as.numeric(source_q_true)[replace_q]
+
+  y <- .qdesn_validation_df_col(df_mu, c("y"), n, default = NA_real_, numeric = TRUE)
+  if (!any(is.finite(y))) {
+    y <- .qdesn_validation_df_col(df_pred, c("y"), n, default = NA_real_, numeric = TRUE)
+  }
+  source_y <- .qdesn_validation_source_values(source_df, keep_idx, c("y"), default = NA_real_)
+  replace_y <- !is.finite(y) & is.finite(as.numeric(source_y))
+  y[replace_y] <- as.numeric(source_y)[replace_y]
+
+  method <- as.character(
+    (summary_obj$summary$inference_method %||% root_spec$method %||% root_spec$inference %||% NA_character_)[1L]
+  )
+  likelihood_family <- as.character(
+    (root_spec$likelihood_family %||% summary_obj$summary$likelihood_family %||% root_spec$model %||% NA_character_)[1L]
+  )
+  out <- data.frame(
+    root_id = as.character(root_spec$root_id %||% NA_character_)[1L],
+    dataset_cell_id = as.character(root_spec$dataset_cell_id %||% NA_character_)[1L],
+    scenario = as.character(root_spec$scenario %||% root_spec$source_scenario %||% NA_character_)[1L],
+    family = as.character(root_spec$source_family %||% root_spec$family %||% NA_character_)[1L],
+    tau = as.numeric(root_spec$tau %||% NA_real_)[1L],
+    fit_size = as.integer(root_spec$effective_fit_size %||% root_spec$fit_size %||% NA_integer_)[1L],
+    source_total_size = as.integer(root_spec$source_total_size %||% NA_integer_)[1L],
+    prior = as.character(root_spec$beta_prior_type %||% root_spec$prior %||% NA_character_)[1L],
+    inference = method,
+    method = method,
+    likelihood_family = likelihood_family,
+    model = likelihood_family,
+    split = split,
+    h = as.integer(.qdesn_validation_df_col(df_mu, c("h", "step", "t"), n, default = seq_len(n), numeric = TRUE)),
+    source_t = as.numeric(source_t),
+    source_index = as.integer(source_index),
+    p0 = as.numeric(.qdesn_validation_df_col(df_mu, c("p0", "p", "tau"), n, default = as.numeric(root_spec$tau %||% NA_real_), numeric = TRUE)),
+    y = as.numeric(y),
+    q_true = as.numeric(q_true),
+    q_pred = as.numeric(.qdesn_validation_df_col(df_pred, c("q_pred", "qhat", "mu"), n, default = NA_real_, numeric = TRUE)),
+    mu = as.numeric(.qdesn_validation_df_col(df_mu, c("mu", "q_pred", "qhat"), n, default = NA_real_, numeric = TRUE)),
+    lo = as.numeric(.qdesn_validation_df_col(df_mu, c("lo", "lower", "lwr", "q05", "q025"), n, default = NA_real_, numeric = TRUE)),
+    hi = as.numeric(.qdesn_validation_df_col(df_mu, c("hi", "upper", "upr", "q95", "q975"), n, default = NA_real_, numeric = TRUE)),
+    band_type = as.character(.qdesn_validation_df_col(df_mu, c("band_type", "interval_type"), n, default = "posterior_quantile_band")),
+    stringsAsFactors = FALSE
+  )
+  out
+}
+
+.qdesn_validation_write_compact_fit_paths <- function(summary_obj, root_spec, method_dir) {
+  if (is.null(summary_obj) || is.null(summary_obj$forecast_objects)) {
+    return(list(train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L))
+  }
+  train_path <- .qdesn_validation_compact_fit_path_file(method_dir, "train")
+  holdout_path <- .qdesn_validation_compact_fit_path_file(method_dir, "holdout")
+  train_df <- .qdesn_validation_compact_fit_path_df(summary_obj, root_spec, "train")
+  holdout_df <- .qdesn_validation_compact_fit_path_df(summary_obj, root_spec, "holdout")
+  if (nrow(train_df)) .qdesn_validation_write_df(train_df, train_path)
+  if (nrow(holdout_df)) .qdesn_validation_write_df(holdout_df, holdout_path)
+  list(
+    train = if (nrow(train_df)) normalizePath(train_path, winslash = "/", mustWork = FALSE) else NA_character_,
+    holdout = if (nrow(holdout_df)) normalizePath(holdout_path, winslash = "/", mustWork = FALSE) else NA_character_,
+    train_rows = as.integer(nrow(train_df)),
+    holdout_rows = as.integer(nrow(holdout_df))
+  )
+}
+
+.qdesn_validation_output_retention_cfg <- function(defaults = NULL) {
+  outputs <- (((defaults %||% list())$pipeline %||% list())$outputs) %||% list()
+  profile <- tolower(trimws(as.character(outputs$retention_profile %||% "full_debug")[1L]))
+  if (is.na(profile) || !nzchar(profile)) profile <- "full_debug"
+  analysis_like <- profile %in% c("analysis", "compact", "lean", "minimal", "minimal_archive", "summary", "summary_only")
+  save_forecast_objects <- outputs$save_forecast_objects
+  if (is.null(save_forecast_objects) || length(save_forecast_objects) == 0L || is.na(save_forecast_objects[[1L]])) {
+    save_forecast_objects <- !analysis_like
+  } else {
+    save_forecast_objects <- isTRUE(save_forecast_objects)
+  }
+  save_compact_fit_paths <- outputs$save_compact_fit_paths
+  if (is.null(save_compact_fit_paths) || length(save_compact_fit_paths) == 0L || is.na(save_compact_fit_paths[[1L]])) {
+    save_compact_fit_paths <- analysis_like
+  } else {
+    save_compact_fit_paths <- isTRUE(save_compact_fit_paths)
+  }
+  retain_full_rds_on_failure <- outputs$retain_full_rds_on_failure
+  if (is.null(retain_full_rds_on_failure)) {
+    retain_cfg <- outputs$retain_full_rds %||% list()
+    retain_full_rds_on_failure <- retain_cfg$failures %||% TRUE
+  }
+  list(
+    retention_profile = profile,
+    save_forecast_objects = isTRUE(save_forecast_objects),
+    save_compact_fit_paths = isTRUE(save_compact_fit_paths),
+    retain_full_rds_on_failure = isTRUE(retain_full_rds_on_failure)
+  )
+}
+
+.qdesn_validation_apply_output_retention <- function(method_dir,
+                                                     status,
+                                                     defaults = NULL,
+                                                     root_spec = list(),
+                                                     summary_obj = NULL) {
+  cfg <- .qdesn_validation_output_retention_cfg(defaults)
+  forecast_path <- file.path(method_dir, "models", "forecast_objects.rds")
+  forecast_bytes_before <- if (file.exists(forecast_path)) file.info(forecast_path)$size[[1L]] else 0
+  compact_paths <- list(train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L)
+  compact_error <- NA_character_
+  if (isTRUE(cfg$save_compact_fit_paths) && !is.null(summary_obj)) {
+    compact_paths <- tryCatch(
+      .qdesn_validation_write_compact_fit_paths(summary_obj, root_spec, method_dir),
+      error = function(e) {
+        compact_error <<- conditionMessage(e)
+        list(train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L)
+      }
+    )
+  }
+
+  status_chr <- toupper(as.character(status %||% NA_character_)[1L])
+  success_like <- identical(status_chr, "SUCCESS")
+  compact_ready <- !isTRUE(cfg$save_compact_fit_paths) ||
+    (is.na(compact_error) && as.integer(compact_paths$train_rows %||% 0L) > 0L)
+  should_prune_forecast <- !isTRUE(cfg$save_forecast_objects) &&
+    file.exists(forecast_path) &&
+    isTRUE(compact_ready) &&
+    (success_like || !isTRUE(cfg$retain_full_rds_on_failure))
+  pruned <- FALSE
+  prune_error <- NA_character_
+  if (isTRUE(should_prune_forecast)) {
+    pruned <- tryCatch({
+      unlink(forecast_path)
+      !file.exists(forecast_path)
+    }, error = function(e) {
+      prune_error <<- conditionMessage(e)
+      FALSE
+    })
+  }
+  manifest <- list(
+    generated_at = as.character(Sys.time()),
+    method_dir = normalizePath(method_dir, winslash = "/", mustWork = FALSE),
+    status = as.character(status %||% NA_character_)[1L],
+    retention_profile = cfg$retention_profile,
+    save_forecast_objects = isTRUE(cfg$save_forecast_objects),
+    save_compact_fit_paths = isTRUE(cfg$save_compact_fit_paths),
+    retain_full_rds_on_failure = isTRUE(cfg$retain_full_rds_on_failure),
+    compact_train_path = compact_paths$train,
+    compact_holdout_path = compact_paths$holdout,
+    compact_train_rows = as.integer(compact_paths$train_rows),
+    compact_holdout_rows = as.integer(compact_paths$holdout_rows),
+    compact_ready_for_pruning = isTRUE(compact_ready),
+    compact_error = compact_error,
+    forecast_objects_path = normalizePath(forecast_path, winslash = "/", mustWork = FALSE),
+    forecast_objects_bytes_before = as.numeric(forecast_bytes_before),
+    forecast_objects_prune_requested = isTRUE(should_prune_forecast),
+    forecast_objects_pruned = isTRUE(pruned),
+    forecast_objects_prune_error = prune_error,
+    forecast_objects_exists_after = file.exists(forecast_path)
+  )
+  .qdesn_validation_write_json(file.path(method_dir, "manifest", "output_retention.json"), manifest)
+  invisible(manifest)
 }
 
 .qdesn_validation_safe_acf1 <- function(x) {
@@ -998,7 +1273,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     return(base)
   }
 
-  if (inherits(fit, "exal_vb")) {
+  if (.qdesn_validation_is_vb_fit(fit)) {
     gamma_trace <- as.numeric(fit$misc$gamma_trace %||% numeric(0))
     sigma_trace <- as.numeric(fit$misc$sigma_trace %||% numeric(0))
     elbo_trace <- as.numeric(fit$misc$elbo_trace %||% numeric(0))
@@ -1026,7 +1301,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     return(base)
   }
 
-  if (inherits(fit, "exal_mcmc")) {
+  if (.qdesn_validation_is_mcmc_fit(fit)) {
     beta_draws <- as.matrix(fit$samp.beta)
     gamma_draws <- as.numeric(fit$samp.gamma)
     sigma_draws <- as.numeric(fit$samp.sigma)
@@ -1411,7 +1686,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   fit <- .qdesn_validation_extract_fit(summary_obj)
   if (is.null(fit)) return(data.frame(stringsAsFactors = FALSE))
 
-  if (inherits(fit, "exal_vb")) {
+  if (.qdesn_validation_is_vb_fit(fit)) {
     n_iter <- length(fit$misc$gamma_trace %||% numeric(0))
     if (n_iter <= 0L) return(data.frame(stringsAsFactors = FALSE))
     out <- data.frame(
@@ -1443,7 +1718,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     return(out)
   }
 
-  if (inherits(fit, "exal_mcmc")) {
+  if (.qdesn_validation_is_mcmc_fit(fit)) {
     beta_draws <- as.matrix(fit$samp.beta)
     out <- data.frame(
       method = method,
@@ -1468,7 +1743,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
 .qdesn_validation_method_latent_v_trace <- function(method, summary_obj) {
   fit <- .qdesn_validation_extract_fit(summary_obj)
-  if (is.null(fit) || !inherits(fit, "exal_mcmc")) return(data.frame(stringsAsFactors = FALSE))
+  if (is.null(fit) || !.qdesn_validation_is_mcmc_fit(fit)) return(data.frame(stringsAsFactors = FALSE))
 
   gamma_trace <- as.numeric(fit$misc$gamma_trace %||% numeric(0))
   sigma_trace <- as.numeric(fit$misc$sigma_trace %||% numeric(0))
@@ -1541,7 +1816,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
 .qdesn_validation_method_theta_trace <- function(method, summary_obj) {
   fit <- .qdesn_validation_extract_fit(summary_obj)
-  if (is.null(fit) || !inherits(fit, "exal_mcmc")) return(data.frame(stringsAsFactors = FALSE))
+  if (is.null(fit) || !.qdesn_validation_is_mcmc_fit(fit)) return(data.frame(stringsAsFactors = FALSE))
 
   gamma_trace <- as.numeric(fit$misc$gamma_trace %||% numeric(0))
   sigma_trace <- as.numeric(fit$misc$sigma_trace %||% numeric(0))
@@ -1591,7 +1866,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   fit <- .qdesn_validation_extract_fit(summary_obj)
   if (is.null(fit)) return(data.frame(stringsAsFactors = FALSE))
 
-  if (inherits(fit, "exal_vb")) {
+  if (.qdesn_validation_is_vb_fit(fit)) {
     n_iter <- length(fit$misc$gamma_trace %||% numeric(0))
     if (n_iter <= 0L) return(data.frame(stringsAsFactors = FALSE))
     out <- data.frame(
@@ -1612,7 +1887,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     return(out)
   }
 
-  if (inherits(fit, "exal_mcmc")) {
+  if (.qdesn_validation_is_mcmc_fit(fit)) {
     gamma_trace <- as.numeric(fit$misc$gamma_trace %||% numeric(0))
     sigma_trace <- as.numeric(fit$misc$sigma_trace %||% numeric(0))
     n_iter <- length(gamma_trace)
@@ -1646,7 +1921,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
 .qdesn_validation_mcmc_chain_summary <- function(summary_obj) {
   fit <- .qdesn_validation_extract_fit(summary_obj)
-  if (is.null(fit) || !inherits(fit, "exal_mcmc")) return(data.frame(stringsAsFactors = FALSE))
+  if (is.null(fit) || !.qdesn_validation_is_mcmc_fit(fit)) return(data.frame(stringsAsFactors = FALSE))
 
   draws <- list(
     gamma = as.numeric(fit$samp.gamma),
@@ -1968,6 +2243,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       .qdesn_validation_write_df(chain_summary, file.path(method_dir, "chain_summary.csv"))
     }
   }
+  retention_manifest <- .qdesn_validation_apply_output_retention(
+    method_dir = method_dir,
+    status = status,
+    defaults = defaults,
+    root_spec = root_spec,
+    summary_obj = summary_obj
+  )
 
   end_time <- Sys.time()
   list(
@@ -1985,6 +2267,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     latent_v_trace = latent_v_trace,
     sigmagam_trace = sigmagam_trace,
     theta_trace = theta_trace,
+    output_retention = retention_manifest,
     forecast_df = if (!is.null(summary_obj)) .qdesn_validation_extract_forecast_df(summary_obj) else data.frame(stringsAsFactors = FALSE)
   )
 }

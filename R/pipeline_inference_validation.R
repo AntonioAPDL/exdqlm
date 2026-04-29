@@ -39,6 +39,7 @@ qdesn_prune_mcmc_vb_init_artifacts <- function(x) {
 
   prune_one <- function(obj) {
     if (!is.list(obj) || is.data.frame(obj)) return(obj)
+    obj_class <- class(obj)
     nms <- names(obj)
     if (!is.null(nms) && length(nms)) {
       keep <- !tolower(nms) %in% prune_names
@@ -46,6 +47,9 @@ qdesn_prune_mcmc_vb_init_artifacts <- function(x) {
     }
     if (length(obj)) {
       obj[] <- lapply(obj, prune_one)
+    }
+    if (!is.null(obj_class) && !identical(obj_class, "list")) {
+      class(obj) <- obj_class
     }
     obj
   }
@@ -306,6 +310,12 @@ collect_pipeline_run_summary <- function(out_dir) {
   timing_rds <- if (file.exists(timing_rds_path)) readRDS(timing_rds_path) else NULL
   forecast_objects <- if (file.exists(forecast_objects_path)) readRDS(forecast_objects_path) else NULL
   rhs_run_summary <- .pipeline_read_csv_if_exists(rhs_run_summary_path)
+  if (is.na(status) || !nzchar(status)) {
+    status <- as.character(.pipeline_as_scalar(runtime_info$status, NA_character_))
+  }
+  if ((is.na(status) || !nzchar(status)) && !is.null(forecast_objects)) {
+    status <- "SUCCESS"
+  }
   if (is.null(rhs_run_summary)) {
     rhs_run_summary <- .pipeline_recover_rhs_run_summary_from_artifacts(out_dir)
   }

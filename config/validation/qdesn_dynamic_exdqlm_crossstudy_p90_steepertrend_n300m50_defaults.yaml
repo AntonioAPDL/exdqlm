@@ -17,11 +17,14 @@ execution:
 study_contract:
   core_lane: yes
   id: p90_steepertrend_n300m50_main
-  description: Canonical QDESN dynamic relaunch on the promoted period-90 steeper-trend
+  description: >-
+    Canonical QDESN dynamic relaunch on the promoted period-90 steeper-trend
     dataset surface using the larger n300/m50 deep reservoir profile. The main lane
     keeps LDVB everywhere for VB, slice everywhere for MCMC, explicit LDVB warm starts
     for every MCMC fit, normalized warmup defaults, and does not persist MCMC VB-init
-    fit artifacts in saved forecast objects.
+    fit artifacts in saved forecast objects. Future launches use analysis retention:
+    scalar metrics and compact quantile-path bands are kept, while full successful
+    forecast object payloads are pruned after summaries are written.
   budget:
     posterior_metric_draws: 20000
     vb_sampling_nd_draws: 20000
@@ -268,6 +271,11 @@ pipeline:
     save: yes
     keep_draws: no
     keep_mcmc_vb_init: no
+    retention_profile: analysis
+    save_forecast_objects: no
+    save_compact_fit_paths: yes
+    save_metric_summaries: yes
+    retain_full_rds_on_failure: yes
     thesis_subset: no
   inference:
     likelihood_family: exal

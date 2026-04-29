@@ -1318,6 +1318,9 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     rhs_collapse_flag = as.logical(health_row$rhs_collapse_flag[1L] %||% NA),
     rhs_collapse_warning = collapse_warning,
     fit_file = normalizePath(fit_file, winslash = "/", mustWork = FALSE),
+    fit_quantile_path_train_file = normalizePath(.qdesn_validation_compact_fit_path_file(method_dir, "train"), winslash = "/", mustWork = FALSE),
+    fit_quantile_path_holdout_file = normalizePath(.qdesn_validation_compact_fit_path_file(method_dir, "holdout"), winslash = "/", mustWork = FALSE),
+    fit_artifact_retention_file = normalizePath(file.path(method_dir, "manifest", "output_retention.json"), winslash = "/", mustWork = FALSE),
     status = as.character(health_row$status[1L] %||% NA_character_),
     finite_ok = as.logical(health_row$finite_ok[1L] %||% NA),
     domain_ok = as.logical(health_row$domain_ok[1L] %||% NA),
@@ -1737,6 +1740,13 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     .qdesn_validation_write_df(health_row, file.path(method_dir, "health_summary.csv"))
     .qdesn_validation_write_df(signoff_row, file.path(method_dir, "signoff_summary.csv"))
     .qdesn_validation_write_df(fit_summary, file.path(method_dir, "fit_summary_row.csv"))
+    retention_manifest <- .qdesn_validation_apply_output_retention(
+      method_dir = method_dir,
+      status = status,
+      defaults = defaults,
+      root_spec = root_spec_lik,
+      summary_obj = NULL
+    )
     return(list(
       method = method,
       likelihood_family = likelihood_family,
@@ -1746,6 +1756,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       health = health_row,
       signoff = signoff_row,
       progress_trace = progress_trace,
+      output_retention = retention_manifest,
       fit_summary = fit_summary
     ))
   }
@@ -1792,6 +1803,13 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     }
   }
   .qdesn_validation_write_df(fit_summary, file.path(method_dir, "fit_summary_row.csv"))
+  retention_manifest <- .qdesn_validation_apply_output_retention(
+    method_dir = method_dir,
+    status = as.character(health_row$status[1L] %||% status),
+    defaults = defaults,
+    root_spec = root_spec_lik,
+    summary_obj = summary_obj
+  )
   list(
     method = method,
     likelihood_family = likelihood_family,
@@ -1801,6 +1819,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     health = health_row,
     signoff = signoff_row,
     progress_trace = progress_trace,
+    output_retention = retention_manifest,
     fit_summary = fit_summary
   )
 }
