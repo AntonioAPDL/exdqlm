@@ -12,6 +12,25 @@ out_md <- file.path(out_dir, "refreshed288_heavy_binary_cleanup_manifest_summary
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
+`%||%` <- function(x, y) {
+  if (is.null(x) || !length(x)) y else x
+}
+
+parse_args <- function(args) {
+  out <- list()
+  for (x in args) {
+    if (grepl("^--[^=]+=.*$", x)) {
+      key <- sub("^--([^=]+)=.*$", "\\1", x)
+      val <- sub("^--[^=]+=(.*)$", "\\1", x)
+      out[[key]] <- val
+    } else if (grepl("^--", x)) {
+      key <- sub("^--", "", x)
+      out[[key]] <- "TRUE"
+    }
+  }
+  out
+}
+
 read_csv_if_exists <- function(path) {
   if (!file.exists(path)) return(NULL)
   utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
@@ -21,6 +40,15 @@ bytes_to_gb <- function(x) round(as.numeric(x) / 1024^3, 6)
 truthy <- function(x) {
   if (is.logical(x)) return(x & !is.na(x))
   tolower(as.character(x)) %in% c("true", "t", "1", "yes", "y")
+}
+
+args <- parse_args(commandArgs(trailingOnly = TRUE))
+delete_confirm <- args[["delete-confirm"]] %||% ""
+delete_candidate_fits <- truthy(args[["delete-candidate-fits"]] %||% FALSE)
+delete_draw_exports <- truthy(args[["delete-draw-exports"]] %||% FALSE)
+delete_enabled <- identical(delete_confirm, run_tag)
+if ((delete_candidate_fits || delete_draw_exports) && !delete_enabled) {
+  stop(sprintf("Deletion requested but --delete-confirm=%s was not supplied", run_tag), call. = FALSE)
 }
 
 manifest <- read_csv_if_exists(manifest_path)
@@ -55,11 +83,22 @@ add_artifact <- function(kind, path_col, default_action, can_delete_for_comparis
     "plot_summaries",
     sprintf("row_%04d_plot_summary.csv", rows$row_id[idx])
   )
+  if ("plot_summary_path" %in% names(rows)) {
+    manifest_plot <- rows$plot_summary_path[idx]
+    plot_summary_path[!is.na(manifest_plot) & nzchar(manifest_plot)] <- manifest_plot[!is.na(manifest_plot) & nzchar(manifest_plot)]
+  }
   parameter_summary_path <- file.path(
     run_root,
     "parameter_summaries",
     sprintf("row_%04d_parameter_summary.csv", rows$row_id[idx])
   )
+  if ("parameter_summary_path" %in% names(rows)) {
+    manifest_param <- rows$parameter_summary_path[idx]
+    parameter_summary_path[!is.na(manifest_param) & nzchar(manifest_param)] <- manifest_param[!is.na(manifest_param) & nzchar(manifest_param)]
+  }
+  plot_exists <- file.exists(plot_summary_path)
+  parameter_exists <- file.exists(parameter_summary_path)
+  needs_summary <- needs_plot_summary_before_delete & (!plot_exists | (rows$block[idx] == "static" & !parameter_exists))
 
   path_rows[[length(path_rows) + 1L]] <<- data.frame(
     row_id = rows$row_id[idx],
@@ -80,15 +119,19 @@ add_artifact <- function(kind, path_col, default_action, can_delete_for_comparis
     size_gb = bytes_to_gb(info$size),
     can_delete_for_comparison = can_delete_for_comparison,
     plot_summary_path = plot_summary_path,
-    plot_summary_exists = file.exists(plot_summary_path),
+    plot_summary_exists = plot_exists,
     parameter_summary_path = parameter_summary_path,
-    parameter_summary_exists = file.exists(parameter_summary_path),
-    needs_plot_summary_before_delete = needs_plot_summary_before_delete,
+    parameter_summary_exists = parameter_exists,
+    needs_plot_summary_before_delete = needs_plot_summary_before_delete & !plot_exists,
+    needs_parameter_summary_before_delete = needs_plot_summary_before_delete & rows$block[idx] == "static" & !parameter_exists,
     recommended_action = ifelse(
-      needs_plot_summary_before_delete & !file.exists(plot_summary_path),
-      "extract_plot_summary_before_delete",
+      needs_summary,
+      "extract_lightweight_summary_before_delete",
       default_action
     ),
+    delete_eligible = ifelse(kind == "candidate_fit", !needs_summary, ifelse(kind == "draw_export", TRUE, FALSE)),
+    deleted = FALSE,
+    post_delete_exists = NA,
     stringsAsFactors = FALSE
   )
 }
@@ -124,6 +167,22 @@ add_artifact(
 
 cleanup <- if (length(path_rows)) do.call(rbind, path_rows) else data.frame()
 cleanup <- cleanup[order(-cleanup$size_bytes, cleanup$artifact_kind, cleanup$row_id), , drop = FALSE]
+
+if (nrow(cleanup) && delete_enabled) {
+  delete_idx <- rep(FALSE, nrow(cleanup))
+  if (delete_candidate_fits) {
+    delete_idx <- delete_idx | (cleanup$artifact_kind == "candidate_fit" & cleanup$delete_eligible)
+  }
+  if (delete_draw_exports) {
+    delete_idx <- delete_idx | (cleanup$artifact_kind == "draw_export" & cleanup$delete_eligible)
+  }
+  if (any(delete_idx)) {
+    deleted <- file.exists(cleanup$path[delete_idx]) & unlink(cleanup$path[delete_idx], force = TRUE) == 0L
+    cleanup$deleted[delete_idx] <- deleted
+  }
+  cleanup$post_delete_exists <- file.exists(cleanup$path)
+}
+
 utils::write.csv(cleanup, out_csv, row.names = FALSE)
 
 summ <- aggregate(
@@ -177,11 +236,23 @@ md <- c(
   "- `draw_export` artifacts are optional for the current comparison tables. Static draw exports are useful only if we want posterior parameter samples beyond compact summaries.",
   "- `config` artifacts are intentionally marked `keep` because they are small and carry reproducibility metadata.",
   "",
-  "No files were deleted by this manifest script."
+  if (delete_enabled) {
+    sprintf("Deletion mode was enabled with `--delete-confirm=%s`; deleted candidate fits: `%d`; deleted draw exports: `%d`.",
+            run_tag,
+            sum(cleanup$deleted & cleanup$artifact_kind == "candidate_fit", na.rm = TRUE),
+            sum(cleanup$deleted & cleanup$artifact_kind == "draw_export", na.rm = TRUE))
+  } else {
+    "No files were deleted by this manifest script."
+  }
 )
 writeLines(md, out_md)
 
 cat(sprintf("Wrote cleanup manifest: %s\n", out_csv))
 cat(sprintf("Wrote cleanup summary: %s\n", out_md))
 cat(sprintf("Candidate fit GB: %.3f\n", sum(cleanup$size_gb[cleanup$artifact_kind == "candidate_fit"], na.rm = TRUE)))
-cat("No files were deleted.\n")
+if (delete_enabled) {
+  cat(sprintf("Deleted candidate fits: %d\n", sum(cleanup$deleted & cleanup$artifact_kind == "candidate_fit", na.rm = TRUE)))
+  cat(sprintf("Deleted draw exports: %d\n", sum(cleanup$deleted & cleanup$artifact_kind == "draw_export", na.rm = TRUE)))
+} else {
+  cat("No files were deleted.\n")
+}

@@ -33,6 +33,9 @@ for (path in c(
   dirname(cfg$health_path),
   dirname(cfg$metrics_path),
   dirname(cfg$draws_path),
+  dirname(cfg$plot_summary_path %||% plot_summary_path_refreshed288(row)),
+  dirname(cfg$parameter_summary_path %||% parameter_summary_path_refreshed288(row)),
+  dirname(cfg$predictive_quantile_grid_path %||% predictive_quantile_grid_path_refreshed288(row)),
   dirname(cfg$vb_init_fit_path %||% "")
 )) {
   if (nzchar(path)) ensure_dir_refreshed288(path)
@@ -77,19 +80,28 @@ set_dynamic_mcmc_options_refreshed288 <- function(cfg) {
 }
 
 build_dynamic_sim_object_refreshed288_p90 <- function(cfg) {
-  if (!is.null(cfg$sim_output_path) && nzchar(cfg$sim_output_path) && file.exists(cfg$sim_output_path)) {
-    sim_obj <- readRDS(cfg$sim_output_path)
-    if (file.exists(cfg$series_wide_path)) {
-      sim_obj$source_series_wide <- utils::read.csv(cfg$series_wide_path, stringsAsFactors = FALSE, check.names = FALSE)
-    }
-    return(sim_obj)
+  use_full_root <- as_flag_refreshed288(
+    cfg$dynamic_use_full_root %||% Sys.getenv("REFRESHED288_DYNAMIC_USE_FULL_ROOT", unset = "false"),
+    FALSE
+  )
+  if (isTRUE(use_full_root) && !is.null(cfg$sim_output_path) && nzchar(cfg$sim_output_path) && file.exists(cfg$sim_output_path)) {
+    return(readRDS(cfg$sim_output_path))
   }
-  build_dynamic_sim_object_refreshed288(
+
+  sim_obj <- build_dynamic_sim_object_refreshed288(
     series_wide_path = cfg$series_wide_path,
     true_quantile_grid_path = cfg$true_quantile_grid_path,
     tau = cfg$tau,
     period = cfg$period
   )
+  expected_n <- safe_int_refreshed288(cfg$fit_size, safe_int_refreshed288(row$fit_size, NA_integer_))
+  if (is.finite(expected_n) && length(sim_obj$y) != expected_n) {
+    stop(
+      sprintf("dynamic_window_length_mismatch: expected fit_size=%d but got n=%d from %s", expected_n, length(sim_obj$y), cfg$series_wide_path),
+      call. = FALSE
+    )
+  }
+  sim_obj
 }
 
 build_dynamic_model_refreshed288_p90 <- function(cfg, TT) {
@@ -238,7 +250,7 @@ validate_dynamic_vb_init_fit_refreshed288 <- function(fit_obj, validation) {
 }
 
 mcmc_vb_init_cache_enabled_refreshed288 <- function() {
-  mode <- tolower(trimws(Sys.getenv("REFRESHED288_MCMC_VB_INIT_CACHE", unset = "readwrite")))
+  mode <- tolower(trimws(Sys.getenv("REFRESHED288_MCMC_VB_INIT_CACHE", unset = "memory_only")))
   memory_only_modes <- c(
     "0", "false", "no", "none", "off", "disable", "disabled",
     "memory_only", "memory-only", "no_cache", "nocache"
@@ -247,6 +259,11 @@ mcmc_vb_init_cache_enabled_refreshed288 <- function() {
 }
 
 run_dynamic_refreshed288 <- function() {
+  if (!force && row_completed_lightweight_artifacts_ready_refreshed288(row, cfg)) {
+    cat(sprintf("[refreshed288 p90 row %d] lightweight artifacts already complete; skipping\n", row_id))
+    return(invisible(TRUE))
+  }
+
   sim_obj <- build_dynamic_sim_object_refreshed288_p90(cfg)
   model_obj <- build_dynamic_model_refreshed288_p90(cfg, TT = length(sim_obj$y))
 
@@ -272,7 +289,8 @@ run_dynamic_refreshed288 <- function() {
       } else {
         vb_init_fit <- NULL
         if (isTRUE(cfg$init_from_vb)) {
-          cache_vb_init <- mcmc_vb_init_cache_enabled_refreshed288()
+          cache_vb_init <- mcmc_vb_init_cache_enabled_refreshed288() &&
+            isTRUE(retention_policy_refreshed288(cfg$retention_mode %||% default_retention_mode_refreshed288())$retain_vb_init_binaries)
           if (cache_vb_init && file.exists(cfg$vb_init_fit_path) && !force) {
             vb_init_fit <- resolve_wrapped_fit_refreshed288(readRDS(cfg$vb_init_fit_path))
           } else {
@@ -339,8 +357,6 @@ run_dynamic_refreshed288 <- function() {
           )
         )
       }
-
-      saveRDS(wrapped, cfg$candidate_fit_path)
       status <- "done"
     }
 
@@ -364,18 +380,6 @@ run_dynamic_refreshed288 <- function() {
     selected_indices <- select_draw_indices_refreshed288(source_draw_count, cfg$stored_posterior_draws, cfg$fit_seed)
     draw_keep <- as.matrix(fit_obj$samp.post.pred)[, selected_indices, drop = FALSE]
     metric_core <- dynamic_metrics_refreshed288(row, sim_obj, draw_keep)
-
-    saveRDS(
-      list(
-        kind = "dynamic_predictive_draw_contract",
-        source_fit_path = cfg$candidate_fit_path,
-        source_draw_count = source_draw_count,
-        selected_indices = selected_indices,
-        n_posterior_draws = cfg$stored_posterior_draws,
-        seed = cfg$fit_seed
-      ),
-      cfg$draws_path
-    )
 
     metrics_row <- data.frame(
       row_id = row_id,
@@ -409,6 +413,46 @@ run_dynamic_refreshed288 <- function() {
       stringsAsFactors = FALSE
     )
 
+    policy <- retention_policy_refreshed288(cfg$retention_mode %||% default_retention_mode_refreshed288(), metrics_row$gate_overall[1])
+    if (isTRUE(policy$write_plot_summary)) {
+      source_index <- if (!is.null(sim_obj$source_series_wide) && "t" %in% names(sim_obj$source_series_wide)) sim_obj$source_series_wide$t else seq_along(sim_obj$y)
+      q_true <- if (!is.null(sim_obj$q) && nrow(as.matrix(sim_obj$q)) == length(sim_obj$y)) as.numeric(as.matrix(sim_obj$q)[, 1L]) else rep(NA_real_, length(sim_obj$y))
+      write_plot_summary_refreshed288(
+        row = row,
+        y = as.numeric(sim_obj$y),
+        q_true = q_true,
+        draw_mat = draw_keep,
+        source_index = source_index,
+        path = cfg$plot_summary_path %||% plot_summary_path_refreshed288(row),
+        artifact_note = "generated_in_runner"
+      )
+      if (isTRUE(policy$write_predictive_quantile_grid)) {
+        write_predictive_quantile_grid_refreshed288(
+          row = row,
+          draw_mat = draw_keep,
+          source_index = source_index,
+          path = cfg$predictive_quantile_grid_path %||% predictive_quantile_grid_path_refreshed288(row)
+        )
+      }
+    }
+
+    if (isTRUE(policy$retain_draw_binaries)) {
+      saveRDS(
+        list(
+          kind = "dynamic_predictive_draw_contract",
+          source_fit_path = cfg$candidate_fit_path,
+          source_draw_count = source_draw_count,
+          selected_indices = selected_indices,
+          n_posterior_draws = cfg$stored_posterior_draws,
+          seed = cfg$fit_seed
+        ),
+        cfg$draws_path
+      )
+    }
+    if (isTRUE(policy$retain_candidate_fit_binaries)) {
+      saveRDS(wrapped, cfg$candidate_fit_path)
+    }
+
     utils::write.csv(health_row, cfg$health_path, row.names = FALSE)
     utils::write.csv(metrics_row, cfg$metrics_path, row.names = FALSE)
     write_row_status_refreshed288(
@@ -419,7 +463,13 @@ run_dynamic_refreshed288 <- function() {
       error = NA_character_,
       gate_overall = metrics_row$gate_overall[1],
       healthy = isTRUE(metrics_row$healthy[1]),
-      runtime_sec = metrics_row$runtime_sec[1]
+      runtime_sec = metrics_row$runtime_sec[1],
+      retention_mode = policy$mode,
+      fit_retained = file.exists(cfg$candidate_fit_path),
+      draws_retained = file.exists(cfg$draws_path),
+      vb_init_retained = file.exists(cfg$vb_init_fit_path),
+      plot_summary_retained = file.exists(cfg$plot_summary_path %||% plot_summary_path_refreshed288(row)),
+      parameter_summary_retained = NA
     )
   }, error = function(e) {
     write_row_failure_refreshed288(row, conditionMessage(e))
@@ -427,6 +477,11 @@ run_dynamic_refreshed288 <- function() {
 }
 
 run_static_refreshed288 <- function() {
+  if (!force && row_completed_lightweight_artifacts_ready_refreshed288(row, cfg)) {
+    cat(sprintf("[refreshed288 p90 row %d] lightweight artifacts already complete; skipping\n", row_id))
+    return(invisible(TRUE))
+  }
+
   series_wide <- utils::read.csv(cfg$series_wide_path, stringsAsFactors = FALSE, check.names = FALSE)
   coef_truth <- utils::read.csv(cfg$coef_truth_path, stringsAsFactors = FALSE, check.names = FALSE)
   design <- static_build_design_refreshed288(series_wide)
@@ -452,7 +507,8 @@ run_static_refreshed288 <- function() {
       } else {
         vb_init_fit <- NULL
         if (isTRUE(cfg$init_from_vb)) {
-          cache_vb_init <- mcmc_vb_init_cache_enabled_refreshed288()
+          cache_vb_init <- mcmc_vb_init_cache_enabled_refreshed288() &&
+            isTRUE(retention_policy_refreshed288(cfg$retention_mode %||% default_retention_mode_refreshed288())$retain_vb_init_binaries)
           if (cache_vb_init && file.exists(cfg$vb_init_fit_path) && !force) {
             vb_init_fit <- resolve_wrapped_fit_refreshed288(readRDS(cfg$vb_init_fit_path))
           } else {
@@ -514,8 +570,6 @@ run_static_refreshed288 <- function() {
           )
         )
       }
-
-      saveRDS(wrapped, cfg$candidate_fit_path)
       status <- "done"
     }
 
@@ -543,19 +597,6 @@ run_static_refreshed288 <- function() {
       seed = cfg$fit_seed
     )
     metric_core <- static_metrics_refreshed288(row, fit_obj, series_wide, coef_truth, draw_bundle)
-
-    saveRDS(
-      list(
-        kind = "static_parameter_draw_export",
-        source_fit_path = cfg$candidate_fit_path,
-        n_posterior_draws = cfg$stored_posterior_draws,
-        seed = cfg$fit_seed,
-        beta_draws = draw_bundle$beta_draws,
-        sigma_draws = draw_bundle$sigma_draws,
-        gamma_draws = draw_bundle$gamma_draws
-      ),
-      cfg$draws_path
-    )
 
     metrics_row <- data.frame(
       row_id = row_id,
@@ -589,6 +630,55 @@ run_static_refreshed288 <- function() {
       stringsAsFactors = FALSE
     )
 
+    policy <- retention_policy_refreshed288(cfg$retention_mode %||% default_retention_mode_refreshed288(), metrics_row$gate_overall[1])
+    if (isTRUE(policy$write_plot_summary)) {
+      write_plot_summary_refreshed288(
+        row = row,
+        y = design$y,
+        q_true = design$q_truth,
+        draw_mat = draw_bundle$draws,
+        source_index = if ("row_id" %in% names(series_wide)) series_wide$row_id else seq_along(design$y),
+        path = cfg$plot_summary_path %||% plot_summary_path_refreshed288(row),
+        artifact_note = "generated_in_runner"
+      )
+      if (isTRUE(policy$write_predictive_quantile_grid)) {
+        write_predictive_quantile_grid_refreshed288(
+          row = row,
+          draw_mat = draw_bundle$draws,
+          source_index = if ("row_id" %in% names(series_wide)) series_wide$row_id else seq_along(design$y),
+          path = cfg$predictive_quantile_grid_path %||% predictive_quantile_grid_path_refreshed288(row)
+        )
+      }
+    }
+    if (isTRUE(policy$write_parameter_summary)) {
+      write_parameter_summary_refreshed288(
+        row = row,
+        beta_draws = draw_bundle$beta_draws,
+        sigma_draws = draw_bundle$sigma_draws,
+        gamma_draws = draw_bundle$gamma_draws,
+        coef_truth = coef_truth,
+        design = design,
+        path = cfg$parameter_summary_path %||% parameter_summary_path_refreshed288(row)
+      )
+    }
+    if (isTRUE(policy$retain_draw_binaries)) {
+      saveRDS(
+        list(
+          kind = "static_parameter_draw_export",
+          source_fit_path = cfg$candidate_fit_path,
+          n_posterior_draws = cfg$stored_posterior_draws,
+          seed = cfg$fit_seed,
+          beta_draws = draw_bundle$beta_draws,
+          sigma_draws = draw_bundle$sigma_draws,
+          gamma_draws = draw_bundle$gamma_draws
+        ),
+        cfg$draws_path
+      )
+    }
+    if (isTRUE(policy$retain_candidate_fit_binaries)) {
+      saveRDS(wrapped, cfg$candidate_fit_path)
+    }
+
     utils::write.csv(health_row, cfg$health_path, row.names = FALSE)
     utils::write.csv(metrics_row, cfg$metrics_path, row.names = FALSE)
     write_row_status_refreshed288(
@@ -599,7 +689,13 @@ run_static_refreshed288 <- function() {
       error = NA_character_,
       gate_overall = metrics_row$gate_overall[1],
       healthy = isTRUE(metrics_row$healthy[1]),
-      runtime_sec = metrics_row$runtime_sec[1]
+      runtime_sec = metrics_row$runtime_sec[1],
+      retention_mode = policy$mode,
+      fit_retained = file.exists(cfg$candidate_fit_path),
+      draws_retained = file.exists(cfg$draws_path),
+      vb_init_retained = file.exists(cfg$vb_init_fit_path),
+      plot_summary_retained = file.exists(cfg$plot_summary_path %||% plot_summary_path_refreshed288(row)),
+      parameter_summary_retained = file.exists(cfg$parameter_summary_path %||% parameter_summary_path_refreshed288(row))
     )
     gc()
   }, error = function(e) {

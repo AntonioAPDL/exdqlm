@@ -90,10 +90,311 @@ paths_refreshed288 <- function() {
     health_dir = file.path(run_dir, "health"),
     metrics_dir = file.path(run_dir, "metrics"),
     draws_dir = file.path(run_dir, "draws"),
+    plot_summaries_dir = file.path(run_dir, "plot_summaries"),
+    parameter_summaries_dir = file.path(run_dir, "parameter_summaries"),
+    predictive_quantile_grid_dir = file.path(run_dir, "predictive_quantile_grid"),
+    retention_audit_dir = file.path(run_dir, "retention_audit"),
     logs_dir = file.path(run_dir, "logs"),
     fits_dir = file.path(run_dir, "fits"),
     vb_init_dir = file.path(run_dir, "vb_init")
   )
+}
+
+default_retention_mode_refreshed288 <- function() {
+  mode <- getOption(
+    "refreshed288.retention_mode",
+    Sys.getenv("REFRESHED288_RETENTION_MODE", unset = "comparison_plus_plot")
+  )
+  mode <- tolower(trimws(as.character(mode)[1L]))
+  if (!nzchar(mode) || is.na(mode)) "comparison_plus_plot" else mode
+}
+
+retention_policy_refreshed288 <- function(mode = default_retention_mode_refreshed288(),
+                                          gate_overall = NA_character_) {
+  mode <- tolower(trimws(as.character(mode)[1L]))
+  if (!mode %in% c("comparison_only", "comparison_plus_plot", "comparison_plus_draws", "debug_failures", "archive_full")) {
+    stop(sprintf("Unknown refreshed288 retention mode: %s", mode), call. = FALSE)
+  }
+  gate <- toupper(safe_chr_refreshed288(gate_overall, ""))
+  debug_retain <- mode == "debug_failures" && gate %in% c("WARN", "FAIL")
+
+  list(
+    mode = mode,
+    write_plot_summary = mode %in% c("comparison_plus_plot", "comparison_plus_draws", "debug_failures", "archive_full"),
+    write_parameter_summary = mode %in% c("comparison_plus_plot", "comparison_plus_draws", "debug_failures", "archive_full"),
+    write_predictive_quantile_grid = as_flag_refreshed288(Sys.getenv("REFRESHED288_WRITE_PREDICTIVE_QUANTILE_GRID", unset = "false"), FALSE),
+    retain_candidate_fit_binaries = mode == "archive_full" || debug_retain,
+    retain_draw_binaries = mode %in% c("comparison_plus_draws", "archive_full") || debug_retain,
+    retain_vb_init_binaries = mode == "archive_full"
+  )
+}
+
+plot_summary_path_refreshed288 <- function(row, paths = paths_refreshed288()) {
+  if ("plot_summary_path" %in% names(row) && nzchar(safe_chr_refreshed288(row$plot_summary_path, ""))) {
+    return(safe_chr_refreshed288(row$plot_summary_path))
+  }
+  file.path(paths$plot_summaries_dir, sprintf("row_%04d_plot_summary.csv", as.integer(row$row_id[[1]])))
+}
+
+parameter_summary_path_refreshed288 <- function(row, paths = paths_refreshed288()) {
+  if ("parameter_summary_path" %in% names(row) && nzchar(safe_chr_refreshed288(row$parameter_summary_path, ""))) {
+    return(safe_chr_refreshed288(row$parameter_summary_path))
+  }
+  file.path(paths$parameter_summaries_dir, sprintf("row_%04d_parameter_summary.csv", as.integer(row$row_id[[1]])))
+}
+
+predictive_quantile_grid_path_refreshed288 <- function(row, paths = paths_refreshed288()) {
+  if ("predictive_quantile_grid_path" %in% names(row) && nzchar(safe_chr_refreshed288(row$predictive_quantile_grid_path, ""))) {
+    return(safe_chr_refreshed288(row$predictive_quantile_grid_path))
+  }
+  file.path(paths$predictive_quantile_grid_dir, sprintf("row_%04d_predictive_quantile_grid.csv", as.integer(row$row_id[[1]])))
+}
+
+row_completed_lightweight_artifacts_ready_refreshed288 <- function(row, cfg = NULL) {
+  status_csv <- safe_read_csv_refreshed288(row$row_status_path, stringsAsFactors = FALSE, check.names = FALSE)
+  if (is.null(status_csv) || !nrow(status_csv)) return(FALSE)
+  status <- safe_chr_refreshed288(status_csv$status[1], "")
+  if (!status %in% c("done", "skipped_existing")) return(FALSE)
+  if (!file.exists(row$health_path) || !file.exists(row$metrics_path)) return(FALSE)
+
+  mode <- safe_chr_refreshed288(cfg$retention_mode %||% row$retention_mode %||% default_retention_mode_refreshed288(), default_retention_mode_refreshed288())
+  policy <- retention_policy_refreshed288(mode = mode, gate_overall = status_csv$gate_overall[1] %||% NA_character_)
+  if (isTRUE(policy$write_plot_summary) && !file.exists(plot_summary_path_refreshed288(row))) return(FALSE)
+  if (isTRUE(policy$write_parameter_summary) && identical(row$block[[1]], "static") && !file.exists(parameter_summary_path_refreshed288(row))) return(FALSE)
+  TRUE
+}
+
+row_identity_refreshed288 <- function(row, n) {
+  data.frame(
+    row_id = rep(as.integer(row$row_id[[1]]), n),
+    case_key = rep(safe_chr_refreshed288(row$original_case_key[[1]], NA_character_), n),
+    block = rep(safe_chr_refreshed288(row$block[[1]], NA_character_), n),
+    root_kind = rep(safe_chr_refreshed288(row$root_kind[[1]], NA_character_), n),
+    family = rep(safe_chr_refreshed288(row$family[[1]], NA_character_), n),
+    tau = rep(safe_num_refreshed288(row$tau[[1]], NA_real_), n),
+    tau_label = rep(safe_chr_refreshed288(row$tau_label[[1]], NA_character_), n),
+    fit_size = rep(safe_int_refreshed288(row$fit_size[[1]], NA_integer_), n),
+    prior_semantics = rep(safe_chr_refreshed288(row$prior_semantics[[1]], NA_character_), n),
+    model = rep(safe_chr_refreshed288(row$model[[1]], NA_character_), n),
+    inference = rep(safe_chr_refreshed288(row$inference[[1]], NA_character_), n),
+    stringsAsFactors = FALSE
+  )
+}
+
+row_quantiles_refreshed288 <- function(draw_mat, probs) {
+  draw_mat <- as.matrix(draw_mat)
+  if (requireNamespace("matrixStats", quietly = TRUE)) {
+    out <- matrixStats::rowQuantiles(draw_mat, probs = probs, na.rm = TRUE)
+    if (is.null(dim(out))) out <- matrix(out, ncol = length(probs))
+    dimnames(out) <- list(NULL, paste0("q", probs))
+    return(out)
+  }
+  t(apply(draw_mat, 1L, stats::quantile, probs = probs, na.rm = TRUE, names = FALSE))
+}
+
+plot_summary_from_draws_refreshed288 <- function(row,
+                                                 y,
+                                                 q_true,
+                                                 draw_mat,
+                                                 source_index = NULL,
+                                                 artifact_note = NA_character_) {
+  draw_mat <- as.matrix(draw_mat)
+  n <- nrow(draw_mat)
+  if (length(y) != n) stop(sprintf("plot summary y length mismatch: y=%d draws=%d", length(y), n), call. = FALSE)
+  if (length(q_true) != n) q_true <- rep(NA_real_, n)
+  if (is.null(source_index) || length(source_index) != n) source_index <- seq_len(n)
+
+  probs <- c(0.025, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.975)
+  qq <- row_quantiles_refreshed288(draw_mat, probs)
+  tau <- safe_num_refreshed288(row$tau[[1]], 0.5)
+  q_fit_tau <- as.numeric(row_quantiles_refreshed288(draw_mat, tau)[, 1L])
+
+  out <- cbind(
+    row_identity_refreshed288(row, n),
+    data.frame(
+      obs_index = seq_len(n),
+      source_index = source_index,
+      y = as.numeric(y),
+      q_true = as.numeric(q_true),
+      q_fit_tau = q_fit_tau,
+      pred_mean = rowMeans(draw_mat, na.rm = TRUE),
+      pred_q025 = qq[, 1L],
+      pred_q050 = qq[, 2L],
+      pred_q100 = qq[, 3L],
+      pred_q250 = qq[, 4L],
+      pred_q500 = qq[, 5L],
+      pred_q750 = qq[, 6L],
+      pred_q900 = qq[, 7L],
+      pred_q950 = qq[, 8L],
+      pred_q975 = qq[, 9L],
+      ci_width95 = qq[, 9L] - qq[, 1L],
+      covered95 = as.numeric(y) >= qq[, 1L] & as.numeric(y) <= qq[, 9L],
+      abs_q_error = abs(q_fit_tau - as.numeric(q_true)),
+      n_draws = ncol(draw_mat),
+      artifact_note = artifact_note,
+      stringsAsFactors = FALSE
+    )
+  )
+  rownames(out) <- NULL
+  out
+}
+
+write_plot_summary_refreshed288 <- function(row,
+                                            y,
+                                            q_true,
+                                            draw_mat,
+                                            source_index = NULL,
+                                            path = plot_summary_path_refreshed288(row),
+                                            artifact_note = NA_character_) {
+  out <- plot_summary_from_draws_refreshed288(
+    row = row,
+    y = y,
+    q_true = q_true,
+    draw_mat = draw_mat,
+    source_index = source_index,
+    artifact_note = artifact_note
+  )
+  write_csv_atomic_refreshed288(out, path, row.names = FALSE)
+  invisible(out)
+}
+
+parameter_draw_summary_refreshed288 <- function(row,
+                                                group,
+                                                term,
+                                                draws,
+                                                truth = NA_real_,
+                                                is_signal = NA,
+                                                scale_multiplier = NA_real_) {
+  draws <- as.numeric(draws)
+  finite_draws <- draws[is.finite(draws)]
+  if (!length(finite_draws)) finite_draws <- NA_real_
+  qs <- stats::quantile(finite_draws, probs = c(0.025, 0.5, 0.975), na.rm = TRUE, names = FALSE)
+  std_draws <- if (is.finite(scale_multiplier)) draws * scale_multiplier else rep(NA_real_, length(draws))
+  data.frame(
+    row_identity_refreshed288(row, 1L),
+    parameter_group = group,
+    term = term,
+    truth = truth,
+    is_signal = is_signal,
+    mean = mean(finite_draws, na.rm = TRUE),
+    median = stats::median(finite_draws, na.rm = TRUE),
+    sd = stats::sd(finite_draws, na.rm = TRUE),
+    q025 = qs[1L],
+    q500 = qs[2L],
+    q975 = qs[3L],
+    covered95 = if (is.finite(truth)) truth >= qs[1L] && truth <= qs[3L] else NA,
+    p_gt_0 = mean(draws > 0, na.rm = TRUE),
+    p_lt_0 = mean(draws < 0, na.rm = TRUE),
+    p_abs_standardized_gt_0p1 = if (any(is.finite(std_draws))) mean(abs(std_draws) > 0.1, na.rm = TRUE) else NA_real_,
+    n_draws = sum(is.finite(draws)),
+    stringsAsFactors = FALSE
+  )
+}
+
+parameter_summary_from_static_draws_refreshed288 <- function(row,
+                                                             beta_draws,
+                                                             sigma_draws,
+                                                             gamma_draws,
+                                                             coef_truth = NULL,
+                                                             design = NULL) {
+  beta_draws <- as.matrix(beta_draws)
+  if (is.null(colnames(beta_draws))) {
+    slope_terms <- if (!is.null(coef_truth) && "term" %in% names(coef_truth)) coef_truth$term[grepl("^x[0-9]+$", coef_truth$term)] else character(0)
+    expected <- c("(Intercept)", slope_terms)
+    if (length(expected) == ncol(beta_draws)) colnames(beta_draws) <- expected
+  }
+  coef_names <- colnames(beta_draws)
+  if (is.null(coef_names)) coef_names <- sprintf("beta_%02d", seq_len(ncol(beta_draws)))
+
+  sd_y <- if (!is.null(design) && length(design$y) > 1L) stats::sd(design$y) else NA_real_
+  sd_x_lookup <- numeric(0)
+  if (!is.null(design) && !is.null(design$X_slopes) && is.matrix(design$X_slopes)) {
+    sd_x_lookup <- apply(design$X_slopes, 2, stats::sd)
+  }
+
+  truth_for <- function(term) {
+    if (is.null(coef_truth) || !"term" %in% names(coef_truth) || !"beta_truth" %in% names(coef_truth)) return(NA_real_)
+    hit <- match(term, coef_truth$term)
+    if (!is.finite(hit)) NA_real_ else safe_num_refreshed288(coef_truth$beta_truth[hit], NA_real_)
+  }
+  signal_for <- function(term) {
+    if (is.null(coef_truth) || !"term" %in% names(coef_truth) || !"is_signal" %in% names(coef_truth)) return(NA)
+    hit <- match(term, coef_truth$term)
+    if (!is.finite(hit)) NA else as_flag_refreshed288(coef_truth$is_signal[hit], FALSE)
+  }
+  scale_for <- function(term) {
+    if (!is.finite(sd_y) || sd_y <= 0 || !term %in% names(sd_x_lookup)) return(NA_real_)
+    sd_x_lookup[[term]] / sd_y
+  }
+
+  rows <- lapply(seq_len(ncol(beta_draws)), function(j) {
+    term <- coef_names[[j]]
+    parameter_draw_summary_refreshed288(
+      row = row,
+      group = "beta",
+      term = term,
+      draws = beta_draws[, j],
+      truth = if (identical(term, "(Intercept)")) NA_real_ else truth_for(term),
+      is_signal = if (identical(term, "(Intercept)")) NA else signal_for(term),
+      scale_multiplier = if (identical(term, "(Intercept)")) NA_real_ else scale_for(term)
+    )
+  })
+  if (length(sigma_draws)) {
+    rows[[length(rows) + 1L]] <- parameter_draw_summary_refreshed288(row, "sigma", "sigma", sigma_draws)
+  }
+  if (length(gamma_draws)) {
+    gamma_truth <- if (safe_chr_refreshed288(row$model[[1]], "") %in% c("al", "dqlm")) 0 else NA_real_
+    rows[[length(rows) + 1L]] <- parameter_draw_summary_refreshed288(row, "gamma", "gamma", gamma_draws, truth = gamma_truth)
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+write_parameter_summary_refreshed288 <- function(row,
+                                                 beta_draws,
+                                                 sigma_draws,
+                                                 gamma_draws,
+                                                 coef_truth = NULL,
+                                                 design = NULL,
+                                                 path = parameter_summary_path_refreshed288(row)) {
+  out <- parameter_summary_from_static_draws_refreshed288(
+    row = row,
+    beta_draws = beta_draws,
+    sigma_draws = sigma_draws,
+    gamma_draws = gamma_draws,
+    coef_truth = coef_truth,
+    design = design
+  )
+  write_csv_atomic_refreshed288(out, path, row.names = FALSE)
+  invisible(out)
+}
+
+write_predictive_quantile_grid_refreshed288 <- function(row,
+                                                        draw_mat,
+                                                        source_index = NULL,
+                                                        path = predictive_quantile_grid_path_refreshed288(row)) {
+  draw_mat <- as.matrix(draw_mat)
+  base_probs <- c(0.005, 0.01, 0.025, 0.05, 0.10, 0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.70, 0.75, 0.80, 0.90, 0.95, 0.975, 0.99, 0.995)
+  tau <- safe_num_refreshed288(row$tau[[1]], NA_real_)
+  probs <- sort(unique(c(base_probs, tau[is.finite(tau)])))
+  qq <- row_quantiles_refreshed288(draw_mat, probs)
+  if (is.null(source_index) || length(source_index) != nrow(draw_mat)) source_index <- seq_len(nrow(draw_mat))
+  out <- do.call(rbind, lapply(seq_along(probs), function(j) {
+    cbind(
+      row_identity_refreshed288(row, nrow(draw_mat)),
+      data.frame(
+        obs_index = seq_len(nrow(draw_mat)),
+        source_index = source_index,
+        prob = probs[[j]],
+        value = qq[, j],
+        stringsAsFactors = FALSE
+      )
+    )
+  }))
+  rownames(out) <- NULL
+  write_csv_atomic_refreshed288(out, path, row.names = FALSE)
+  invisible(out)
 }
 
 parse_csv_tokens_refreshed288 <- function(x) {
@@ -474,6 +775,10 @@ build_manifest_refreshed288 <- function(dataset_registry, repo_root) {
     paths$health_dir,
     paths$metrics_dir,
     paths$draws_dir,
+    paths$plot_summaries_dir,
+    paths$parameter_summaries_dir,
+    paths$predictive_quantile_grid_dir,
+    paths$retention_audit_dir,
     paths$logs_dir,
     file.path(paths$fits_dir, "vb"),
     file.path(paths$fits_dir, "mcmc"),
@@ -508,7 +813,11 @@ build_manifest_refreshed288 <- function(dataset_registry, repo_root) {
           health_path <- file.path(paths$health_dir, sprintf("row_%04d_health.csv", row_id))
           metrics_path <- file.path(paths$metrics_dir, sprintf("row_%04d_metrics.csv", row_id))
           draws_path <- file.path(paths$draws_dir, sprintf("row_%04d_draws.rds", row_id))
+          plot_summary_path <- file.path(paths$plot_summaries_dir, sprintf("row_%04d_plot_summary.csv", row_id))
+          parameter_summary_path <- file.path(paths$parameter_summaries_dir, sprintf("row_%04d_parameter_summary.csv", row_id))
+          predictive_quantile_grid_path <- file.path(paths$predictive_quantile_grid_dir, sprintf("row_%04d_predictive_quantile_grid.csv", row_id))
           fit_seed <- hash_seed_refreshed288(original_case_key)
+          retention_policy <- retention_policy_refreshed288(default_retention_mode_refreshed288())
 
           cfg <- c(
             list(
@@ -551,6 +860,13 @@ build_manifest_refreshed288 <- function(dataset_registry, repo_root) {
               health_path = health_path,
               metrics_path = metrics_path,
               draws_path = draws_path,
+              plot_summary_path = plot_summary_path,
+              parameter_summary_path = parameter_summary_path,
+              predictive_quantile_grid_path = predictive_quantile_grid_path,
+              retention_mode = retention_policy$mode,
+              retain_candidate_fit_binaries = isTRUE(retention_policy$retain_candidate_fit_binaries),
+              retain_draw_binaries = isTRUE(retention_policy$retain_draw_binaries),
+              retain_vb_init_binaries = isTRUE(retention_policy$retain_vb_init_binaries),
               vb_init_fit_path = vb_init_fit_path,
               series_long_path = ds$series_long_path,
               series_wide_path = ds$series_wide_path,
@@ -593,6 +909,13 @@ build_manifest_refreshed288 <- function(dataset_registry, repo_root) {
             health_path = health_path,
             metrics_path = metrics_path,
             draws_path = draws_path,
+            plot_summary_path = plot_summary_path,
+            parameter_summary_path = parameter_summary_path,
+            predictive_quantile_grid_path = predictive_quantile_grid_path,
+            retention_mode = retention_policy$mode,
+            retain_candidate_fit_binaries = isTRUE(retention_policy$retain_candidate_fit_binaries),
+            retain_draw_binaries = isTRUE(retention_policy$retain_draw_binaries),
+            retain_vb_init_binaries = isTRUE(retention_policy$retain_vb_init_binaries),
             stored_posterior_draws = safe_int_refreshed288(profile$stored_posterior_draws, 20000L),
             stringsAsFactors = FALSE
           )
@@ -634,6 +957,12 @@ write_run_contract_refreshed288 <- function(paths, repo_root = ".") {
     mcmc_n_burn = tracker$runtime_contract$mcmc$n_burn,
     mcmc_n_mcmc = tracker$runtime_contract$mcmc$n_mcmc,
     mcmc_thin = tracker$runtime_contract$mcmc$thin,
+    default_retention_mode = default_retention_mode_refreshed288(),
+    write_plot_summaries = isTRUE(retention_policy_refreshed288(default_retention_mode_refreshed288())$write_plot_summary),
+    write_parameter_summaries = isTRUE(retention_policy_refreshed288(default_retention_mode_refreshed288())$write_parameter_summary),
+    retain_candidate_fit_binaries = isTRUE(retention_policy_refreshed288(default_retention_mode_refreshed288())$retain_candidate_fit_binaries),
+    retain_draw_binaries = isTRUE(retention_policy_refreshed288(default_retention_mode_refreshed288())$retain_draw_binaries),
+    retain_vb_init_binaries = isTRUE(retention_policy_refreshed288(default_retention_mode_refreshed288())$retain_vb_init_binaries),
     rhs_plain_forbidden = isTRUE(tracker$baseline_policy$plain_rhs_allowed == FALSE),
     use_shared_0p4p0_models_only = isTRUE(tracker$baseline_policy$use_shared_0p4p0_models_only),
     use_qdesn_only_functions = isTRUE(tracker$baseline_policy$use_qdesn_only_functions),

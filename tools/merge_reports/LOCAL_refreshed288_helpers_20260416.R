@@ -1110,7 +1110,20 @@ collect_vb_health_refreshed288 <- function(wrapped,
   )
 }
 
-write_row_status_refreshed288 <- function(row, status, ts_start, ts_end = as.character(Sys.time()), error = NA_character_, gate_overall = NA_character_, healthy = FALSE, runtime_sec = NA_real_) {
+write_row_status_refreshed288 <- function(row,
+                                          status,
+                                          ts_start,
+                                          ts_end = as.character(Sys.time()),
+                                          error = NA_character_,
+                                          gate_overall = NA_character_,
+                                          healthy = FALSE,
+                                          runtime_sec = NA_real_,
+                                          retention_mode = NULL,
+                                          fit_retained = NA,
+                                          draws_retained = NA,
+                                          vb_init_retained = NA,
+                                          plot_summary_retained = NA,
+                                          parameter_summary_retained = NA) {
   out <- data.frame(
     row_id = row$row_id,
     base_row_id = row$base_row_id,
@@ -1138,9 +1151,17 @@ write_row_status_refreshed288 <- function(row, status, ts_start, ts_end = as.cha
     health_csv = row$health_path,
     metrics_csv = row$metrics_path,
     draws_rds = row$draws_path,
+    plot_summary_csv = row$plot_summary_path %||% NA_character_,
+    parameter_summary_csv = row$parameter_summary_path %||% NA_character_,
+    retention_mode = retention_mode %||% row$retention_mode %||% NA_character_,
     retain_candidate_fit_binaries = as_flag_refreshed288(row$retain_candidate_fit_binaries, FALSE),
     retain_vb_init_binaries = as_flag_refreshed288(row$retain_vb_init_binaries, FALSE),
     retain_draw_binaries = as_flag_refreshed288(row$retain_draw_binaries, FALSE),
+    fit_retained = fit_retained,
+    draws_retained = draws_retained,
+    vb_init_retained = vb_init_retained,
+    plot_summary_retained = plot_summary_retained,
+    parameter_summary_retained = parameter_summary_retained,
     stringsAsFactors = FALSE
   )
   write_csv_atomic_refreshed288(out, row$row_status_path, row.names = FALSE)

@@ -52,6 +52,10 @@ for (i in seq_len(nrow(manifest))) {
   } else {
     NA_real_
   }
+  plot_summary_path <- plot_summary_path_refreshed288(row)
+  parameter_summary_path <- parameter_summary_path_refreshed288(row)
+  plot_summary_exists <- file.exists(plot_summary_path)
+  parameter_summary_exists <- if (identical(row$block[[1]], "static")) file.exists(parameter_summary_path) else NA
 
   status_rows[[i]] <- data.frame(
     row_id = row$row_id,
@@ -75,6 +79,15 @@ for (i in seq_len(nrow(manifest))) {
     gate_current = gate_current,
     healthy_current = healthy_current,
     runtime_sec_current = runtime_sec_current,
+    retention_mode = if (!is.null(row_csv) && nrow(row_csv) && "retention_mode" %in% names(row_csv)) safe_chr_refreshed288(row_csv$retention_mode[1], row$retention_mode %||% NA_character_) else row$retention_mode %||% NA_character_,
+    fit_retained = file.exists(row$candidate_fit_path),
+    draws_retained = file.exists(row$draws_path),
+    vb_init_retained = if (!is.na(row$vb_init_fit_path) && nzchar(row$vb_init_fit_path)) file.exists(row$vb_init_fit_path) else FALSE,
+    plot_summary_path = plot_summary_path,
+    plot_summary_exists = plot_summary_exists,
+    parameter_summary_path = parameter_summary_path,
+    parameter_summary_exists = parameter_summary_exists,
+    lightweight_ready = file.exists(row$health_path) && file.exists(row$metrics_path) && plot_summary_exists && (!identical(row$block[[1]], "static") || isTRUE(parameter_summary_exists)),
     crps_metric = if (!is.null(metrics_csv) && nrow(metrics_csv)) safe_num_refreshed288(metrics_csv$crps_metric[1], NA_real_) else NA_real_,
     primary_accuracy_metric = if (!is.null(metrics_csv) && nrow(metrics_csv)) safe_num_refreshed288(metrics_csv$primary_accuracy_metric[1], NA_real_) else NA_real_,
     q_rmse_metric = if (!is.null(metrics_csv) && nrow(metrics_csv)) safe_num_refreshed288(metrics_csv$q_rmse_metric[1], NA_real_) else NA_real_,
@@ -115,7 +128,7 @@ method_summary <- method_summary[order(method_summary$root_kind, method_summary$
 write_csv_atomic_refreshed288(method_summary, method_out, row.names = FALSE)
 
 cat(sprintf(
-  "SUMMARY total=%d completed=%d running=%d not_started=%d pass=%d warn=%d fail=%d healthy=%d pct_completed=%.1f pct_active_or_done=%.1f\n",
+  "SUMMARY total=%d completed=%d running=%d not_started=%d pass=%d warn=%d fail=%d healthy=%d lightweight_ready=%d missing_plot_summary=%d missing_parameter_summary=%d fits_retained=%d draws_retained=%d pct_completed=%.1f pct_active_or_done=%.1f\n",
   nrow(status_df),
   sum(status_df$status_current %in% c("done", "skipped_existing", "failed_runtime")),
   sum(status_df$status_current == "running"),
@@ -124,6 +137,11 @@ cat(sprintf(
   sum(status_df$gate_current == "WARN"),
   sum(status_df$gate_current == "FAIL"),
   sum(status_df$healthy_current),
+  sum(status_df$lightweight_ready, na.rm = TRUE),
+  sum(status_df$status_current %in% c("done", "skipped_existing") & !status_df$plot_summary_exists, na.rm = TRUE),
+  sum(status_df$status_current %in% c("done", "skipped_existing") & status_df$block == "static" & !status_df$parameter_summary_exists, na.rm = TRUE),
+  sum(status_df$fit_retained, na.rm = TRUE),
+  sum(status_df$draws_retained, na.rm = TRUE),
   100 * sum(status_df$status_current %in% c("done", "skipped_existing", "failed_runtime")) / nrow(status_df),
   100 * sum(status_df$status_current != "not_started") / nrow(status_df)
 ))
