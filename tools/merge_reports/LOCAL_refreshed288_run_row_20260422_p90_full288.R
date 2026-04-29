@@ -104,12 +104,24 @@ build_dynamic_sim_object_refreshed288_p90 <- function(cfg) {
   sim_obj
 }
 
-build_dynamic_model_refreshed288_p90 <- function(cfg, TT) {
+dynamic_source_index_start_refreshed288_p90 <- function(sim_obj) {
+  series <- sim_obj$source_series_wide %||% NULL
+  if (is.null(series) || !"t" %in% names(series) || !nrow(series)) return(1L)
+  start_index <- suppressWarnings(as.integer(series$t[1L]))
+  if (!is.finite(start_index) || start_index < 1L) 1L else start_index
+}
+
+build_dynamic_model_refreshed288_p90 <- function(cfg, TT, source_index_start = 1L) {
   params <- cfg$dynamic_model_params %||% list(period = cfg$period, harmonics = c(1L, 2L))
   if (is.character(params$harmonics)) {
     params$harmonics <- suppressWarnings(as.integer(trimws(strsplit(params$harmonics, ",", fixed = TRUE)[[1L]])))
   }
-  build_dynamic_dgp_matched_model(params = params, TT = TT, backend = "R")
+  build_dynamic_dgp_matched_model(
+    params = params,
+    TT = TT,
+    backend = "R",
+    start_index = source_index_start
+  )
 }
 
 build_dynamic_vb_control_refreshed288_p90 <- function(cfg, verbose = FALSE) {
@@ -265,7 +277,12 @@ run_dynamic_refreshed288 <- function() {
   }
 
   sim_obj <- build_dynamic_sim_object_refreshed288_p90(cfg)
-  model_obj <- build_dynamic_model_refreshed288_p90(cfg, TT = length(sim_obj$y))
+  source_index_start <- dynamic_source_index_start_refreshed288_p90(sim_obj)
+  model_obj <- build_dynamic_model_refreshed288_p90(
+    cfg,
+    TT = length(sim_obj$y),
+    source_index_start = source_index_start
+  )
 
   start_ts <- as.character(Sys.time())
   write_row_status_refreshed288(row, status = "running", ts_start = start_ts)

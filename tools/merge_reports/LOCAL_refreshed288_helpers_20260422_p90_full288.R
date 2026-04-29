@@ -835,6 +835,8 @@ build_manifest_refreshed288 <- function(dataset_registry, repo_root) {
               harmonics = parse_chr_na_refreshed288_p90(ds$harmonics, "1,2"),
               scenario_id = parse_chr_na_refreshed288_p90(ds$scenario_id, NA_character_),
               sim_output_path = parse_chr_na_refreshed288_p90(ds$sim_output_path, NA_character_),
+              dynamic_model_time_origin = if (identical(ds$block, "dynamic")) "source_index" else NA_character_,
+              dynamic_model_time_origin_column = if (identical(ds$block, "dynamic")) "t" else NA_character_,
               dynamic_model_params = if (identical(ds$block, "dynamic")) list(
                 period = safe_int_refreshed288(ds$period, 90L),
                 harmonics = {

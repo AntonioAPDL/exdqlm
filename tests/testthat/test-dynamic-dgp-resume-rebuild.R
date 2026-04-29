@@ -45,6 +45,26 @@ test_that("dynamic DGP helper honors explicit prior metadata and no-trend struct
   expect_equal(model$GG[1:2, 1:2], diag(2))
 })
 
+test_that("dynamic DGP helper aligns m0 to late source windows without changing C0", {
+  params <- list(
+    period = 12L,
+    m0 = c(10, 2, 0, 0, 0, 0),
+    C0_scale = 0.01
+  )
+
+  local_model <- build_dynamic_dgp_matched_model(params, TT = 5L, start_index = 1L)
+  aligned_model <- build_dynamic_dgp_matched_model(params, TT = 5L, start_index = 4L)
+
+  expect_null(local_model$source_index_start)
+  expect_equal(aligned_model$source_index_start, 4L)
+  expect_equal(as.numeric(aligned_model$m0)[1:2], c(16, 2))
+  expect_equal(aligned_model$C0, local_model$C0)
+  expect_error(
+    build_dynamic_dgp_matched_model(params, TT = 5L, start_index = 0L),
+    "start_index must be a positive integer"
+  )
+})
+
 test_that("dynamic DGP helper fails loudly for malformed supplied prior fields", {
   expect_error(
     build_dynamic_dgp_matched_model(list(period = 12L, m0 = c(1, 2)), TT = 10L),

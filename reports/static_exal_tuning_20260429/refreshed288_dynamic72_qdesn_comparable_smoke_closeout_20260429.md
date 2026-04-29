@@ -107,10 +107,16 @@ The compact/resource-efficient retention policy worked as intended. The blocker 
 
 Do not launch the full 72 dynamic grid from this baseline smoke result.
 
+Post-smoke forensic update:
+
+- The primary blocker was traced to a dynamic time-origin mismatch, not to corrupted datasets or a storage failure.
+- The v1 smoke used the correct Q-DESN-comparable tail windows, but the DQLM/exDQLM model prior restarted at source index `1` instead of the first retained source index (`6501` for `TT500`, `2001` for `TT5000`).
+- The fix is documented in `reports/static_exal_tuning_20260429/refreshed288_dynamic72_qdesn_comparable_failure_forensics_and_time_origin_fix_20260429.md`.
+
 Recommended next pass:
 
-- Create an explicit MCMC repair overlay for dynamic TT5000 and exDQLM TT500 rows.
-- Keep VB baseline unchanged because dynamic VB smoke passed 12/12.
-- Treat row 44 as the first concrete repair target.
-- Re-smoke MCMC with a smaller, targeted repair set before full launch.
+- Use `tools/merge_reports/LOCAL_refreshed288_launch_20260429_dynamic72_qdesn_comparable_timeorigin_v2.sh` for the localized v2 relaunch.
+- Keep the baseline warmup policy unchanged for v2 so the time-origin fix is isolated.
+- Treat row 44 as the first concrete repair target only if it still fails after the source-origin fix.
+- Re-smoke dynamic rows before any full dynamic relaunch.
 - Consider separating dynamic VB full launch from MCMC full launch so successful VB rows are not blocked by MCMC tuning.

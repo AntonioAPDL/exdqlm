@@ -62,7 +62,29 @@ dynamic_dgp_make_m0 <- function(level0,
   diag(C0_scale, 6L)
 }
 
-build_dynamic_dgp_matched_model <- function(params, TT = NULL, backend = c("auto", "R", "cpp")) {
+dynamic_dgp_propagate_model_m0 <- function(model, start_index = 1L) {
+  start_index <- suppressWarnings(as.integer(start_index)[1L])
+  if (!is.finite(start_index) || start_index < 1L) {
+    stop("start_index must be a positive integer.", call. = FALSE)
+  }
+  if (start_index == 1L) {
+    return(model)
+  }
+
+  GG <- as.matrix(model$GG)
+  m0 <- as.numeric(model$m0)
+  for (step in seq_len(start_index - 1L)) {
+    m0 <- as.numeric(GG %*% m0)
+  }
+  model$m0 <- if (is.matrix(model$m0)) matrix(m0, ncol = 1L) else m0
+  model$source_index_start <- start_index
+  model
+}
+
+build_dynamic_dgp_matched_model <- function(params,
+                                            TT = NULL,
+                                            backend = c("auto", "R", "cpp"),
+                                            start_index = 1L) {
   backend <- match.arg(backend)
   period <- as.integer(params[["period", exact = TRUE]] %||% 50L)[1L]
   harmonics <- as.integer(unlist(params[["harmonics", exact = TRUE]] %||% c(1L, 2L), use.names = FALSE))
@@ -97,7 +119,7 @@ build_dynamic_dgp_matched_model <- function(params, TT = NULL, backend = c("auto
   )
 
   model <- trend_mod + seas_mod
-  model
+  dynamic_dgp_propagate_model_m0(model, start_index = start_index)
 }
 
 simulate_dynamic_dgp_latent_path <- function(model,

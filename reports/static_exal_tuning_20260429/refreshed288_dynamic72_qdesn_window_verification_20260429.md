@@ -1,9 +1,9 @@
 # Dynamic 72 Q-DESN Window Verification
 
-- Timestamp: `2026-04-29 07:02:32 EDT`
-- Run tag: `20260429_p90_dynamic72_qdesn_comparable_v1`
+- Timestamp: `2026-04-29 19:29:57 EDT`
+- Run tag: `20260429_p90_dynamic72_qdesn_comparable_v2_timeorigin`
 - Branch: `validation/rerun-after-0.4.0-sync-0p4p0-integration`
-- Git SHA: `c86a84999dc0`
+- Git SHA: `65ecd871d619`
 - Scenario: `dlm_constV_p90_m0amp_highnoise_steepertrend_v1`
 - Validation registry: `/home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration/tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260422_dynamic_p90_steepertrend_v1.csv`
 - Q-DESN staged source root: `/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_main_sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v1`
