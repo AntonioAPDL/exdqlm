@@ -1,0 +1,5 @@
+"phase","total","completed","running","not_started","pass","warn","fail","healthy","pct_completed","pct_active_or_done"
+"smoke_static_vb",12,0,0,12,0,0,0,0,0,0
+"smoke_dynamic_vb",12,12,0,0,12,0,0,12,100,100
+"smoke_static_mcmc",12,0,0,12,0,0,0,0,0,0
+"smoke_dynamic_mcmc",12,12,0,0,3,2,7,5,100,100

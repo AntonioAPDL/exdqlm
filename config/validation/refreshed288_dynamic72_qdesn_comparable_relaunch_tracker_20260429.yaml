@@ -1,0 +1,90 @@
+run:
+  run_tag: "20260429_p90_dynamic72_qdesn_comparable_v1"
+  variant_tag: "p90_dynamic72_qdesn_comparable_v1"
+  branch: "validation/rerun-after-0.4.0-sync-0p4p0-integration"
+  scope: "dynamic_only"
+  preserve_baseline_run_tag: "20260422_p90_full288_baseline_v1"
+
+dataset_contract:
+  scenario_id: "dlm_constV_p90_m0amp_highnoise_steepertrend_v1"
+  validation_registry: "tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260422_dynamic_p90_steepertrend_v1.csv"
+  validation_dynamic_root: "results/function_testing_20260309_dynamic_dlm_family_qspec/dlm_constV_p90_m0amp_highnoise_steepertrend_v1"
+  qdesn_staged_source_root: "/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_main_sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v1"
+  fairness_rule: "Use canonical fit_input_lastTT500/fit_input_lastTT5000 for DQLM/exDQLM; compare against the final effective tail of Q-DESN effTT500_totalTT813/effTT5000_totalTT5313."
+  verification_script: "tools/merge_reports/LOCAL_refreshed288_verify_qdesn_dynamic_windows_20260429.R"
+  verification_report: "reports/static_exal_tuning_20260429/refreshed288_dynamic72_qdesn_window_verification_20260429.md"
+
+grid:
+  families: ["normal", "laplace", "gausmix"]
+  taus: [0.05, 0.25, 0.50]
+  fit_sizes: [500, 5000]
+  models: ["dqlm", "exdqlm"]
+  inference: ["vb", "mcmc"]
+  expected_dataset_cells: 18
+  expected_fit_rows: 72
+
+vb:
+  engine: "exdqlmLDVB"
+  method: "LDVB"
+  max_iter: 300
+  min_iter_elbo: 80
+  tol: 0.03
+  dynamic_n_samp: 20000
+  posterior_metric_draws: 20000
+
+mcmc:
+  engine: "exdqlmMCMC"
+  proposal: "slice"
+  slice_width: 0.1
+  slice_max_steps: "Inf"
+  init_from_vb: true
+  vb_init_method: "LDVB"
+  vb_init_max_iter: 300
+  vb_init_min_iter_elbo: 80
+  vb_init_tol: 0.03
+  vb_init_dynamic_n_samp: 1000
+  n_burn: 5000
+  n_mcmc: 20000
+  thin: 1
+
+warmup_policy:
+  baseline: "current_0.4.0_package_defaults"
+  exdqlm: "package-default light sigma/gamma warmup"
+  dqlm: "no exAL gamma warmup"
+  rescue_overlays: "not preloaded; document separate repair pass if needed"
+
+retention_policy:
+  profile: "comparison_plus_plot"
+  save_full_fit_objects: false
+  keep_metrics: true
+  keep_fitted_quantile_summaries: true
+  keep_runtime_metadata: true
+  keep_mcmc_vb_init_artifacts: false
+
+launch:
+  wrapper: "tools/merge_reports/LOCAL_refreshed288_launch_20260429_dynamic72_qdesn_comparable_v1.sh"
+  prepare_command: "tools/merge_reports/LOCAL_refreshed288_launch_20260422_p90_full288.sh prepare --run-tag=20260429_p90_dynamic72_qdesn_comparable_v1 --variant-tag=p90_dynamic72_qdesn_comparable_v1"
+  smoke_command: "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 tools/merge_reports/LOCAL_refreshed288_launch_20260422_p90_full288.sh launch --manifest-kind=smoke --no-prepare --run-tag=20260429_p90_dynamic72_qdesn_comparable_v1 --variant-tag=p90_dynamic72_qdesn_comparable_v1 --phase-filter=smoke_dynamic_vb,smoke_dynamic_mcmc --workers-dynamic-vb=12 --workers-dynamic-mcmc=8"
+  full_command: "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 tools/merge_reports/LOCAL_refreshed288_launch_20260422_p90_full288.sh launch --manifest-kind=full --no-prepare --run-tag=20260429_p90_dynamic72_qdesn_comparable_v1 --variant-tag=p90_dynamic72_qdesn_comparable_v1 --phase-filter=full_dynamic_vb,full_dynamic_mcmc --workers-dynamic-vb=16 --workers-dynamic-mcmc=8"
+  wrapper_prepare_command: "tools/merge_reports/LOCAL_refreshed288_launch_20260429_dynamic72_qdesn_comparable_v1.sh prepare"
+  wrapper_smoke_command: "tools/merge_reports/LOCAL_refreshed288_launch_20260429_dynamic72_qdesn_comparable_v1.sh smoke"
+  wrapper_full_command: "tools/merge_reports/LOCAL_refreshed288_launch_20260429_dynamic72_qdesn_comparable_v1.sh full"
+  wrapper_health_smoke_command: "tools/merge_reports/LOCAL_refreshed288_launch_20260429_dynamic72_qdesn_comparable_v1.sh health-smoke"
+  wrapper_health_full_command: "tools/merge_reports/LOCAL_refreshed288_launch_20260429_dynamic72_qdesn_comparable_v1.sh health-full"
+  static_rows: "excluded by phase filter"
+
+smoke_outcome_20260429:
+  status: "blocked_full_launch"
+  dynamic_vb: "12 attempted, 12 done, 12 PASS"
+  dynamic_mcmc: "12 attempted, 6 done, 6 manually stopped after smoke gate failure and long TT5000 runtime"
+  completed_mcmc_gates: "3 PASS, 2 WARN, 1 FAIL"
+  blocking_row: "row 44 dynamic::laplace::0p50::500::default::exdqlm::mcmc failed sigma/gamma ESS gate"
+  manually_stopped_rows: [22, 24, 46, 48, 70, 72]
+  full_launch_started: false
+  closeout_report: "reports/static_exal_tuning_20260429/refreshed288_dynamic72_qdesn_comparable_smoke_closeout_20260429.md"
+
+article_context:
+  article_repo: "/home/jaguir26/local/src/Article-Q-DESN"
+  article_commit: "c26c5f1 Fold DQLM benchmarks into simulation tables"
+  qdesn_official_baseline: "/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/config/validation/qdesn_dynamic_p90_steepertrend_n300m50_official_baseline.yaml"
+  qdesn_authoritative_fit_summary: "/home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/authoritative_fit_summary.csv"

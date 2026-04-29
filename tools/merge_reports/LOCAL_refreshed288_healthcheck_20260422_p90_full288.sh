@@ -25,6 +25,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 run_tag="${run_tag//[^A-Za-z0-9_-]/_}"
+export REFRESHED288_RUN_TAG="$run_tag"
 if [[ -z "$session" ]]; then
   session="refreshed288_${run_tag}"
 fi
