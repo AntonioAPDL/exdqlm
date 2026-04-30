@@ -75,6 +75,15 @@ set_dynamic_mcmc_options_refreshed288 <- function(cfg) {
   if (!is.null(cfg$mcmc_cpp_mode) && nzchar(safe_chr_refreshed288(cfg$mcmc_cpp_mode, ""))) {
     opt$exdqlm.cpp_mcmc_mode <- safe_chr_refreshed288(cfg$mcmc_cpp_mode, "strict")
   }
+  if (!is.null(cfg$mh_laplace_refresh_interval)) {
+    opt$exdqlm.mcmc.laplace_refresh_interval <- safe_int_refreshed288(cfg$mh_laplace_refresh_interval, 50L)
+  }
+  if (!is.null(cfg$mh_laplace_refresh_start)) {
+    opt$exdqlm.mcmc.laplace_refresh_start <- safe_int_refreshed288(cfg$mh_laplace_refresh_start, 50L)
+  }
+  if (!is.null(cfg$mh_laplace_refresh_weight)) {
+    opt$exdqlm.mcmc.laplace_refresh_weight <- safe_num_refreshed288(cfg$mh_laplace_refresh_weight, 0.6)
+  }
   if (!length(opt)) return(list())
   options(opt)
 }
@@ -335,6 +344,7 @@ run_dynamic_refreshed288 <- function() {
           n.mcmc = safe_int_refreshed288(cfg$n_mcmc, 20000L),
           init.from.vb = as_flag_refreshed288(cfg$init_from_vb, TRUE),
           init.from.isvb = FALSE,
+          joint.sample = as_flag_refreshed288(cfg$joint_sample, FALSE),
           vb_init_controls = cfg$vb_init_controls %||% NULL,
           vb_init_fit = vb_init_fit,
           mcmc_control = build_dynamic_mcmc_control_refreshed288_p90(cfg),
