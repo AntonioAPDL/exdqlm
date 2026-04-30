@@ -45,19 +45,22 @@
 #' \donttest{
 #' # short example
 #' data("scIVTmag", package = "exdqlm")
-#' TT = 100
+#' old = options(exdqlm.max_iter = 10L)
+#' TT = 50
 #' y = scIVTmag[1:TT]
 #' 
-#' # create trend & seasonal model
+#' # create a compact trend model
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
-#' model = trend.comp + seas.comp
+#' model = trend.comp
 #' 
-#' # fit five quantiles using LDVB algorithm & save individual posterior predictive samples
+#' # fit quantiles using LDVB and save posterior predictive samples
 #' fits <- draws <- NULL
-#' p0s = c(0.05, 0.25, 0.50, 0.75, 0.95)
+#' p0s = c(0.10, 0.50, 0.90)
 #' for(i in 1:length(p0s)){
-#'   fits[[i]] = exdqlmLDVB(y, p0=p0s[i], model, df=c(1,1), dim.df = c(1,6), sig.init=15, tol=0.05)
+#'   fits[[i]] = exdqlmLDVB(
+#'     y, p0 = p0s[i], model, df = 0.98, dim.df = 1,
+#'     sig.init = 15, n.samp = 20, tol = 0.2, verbose = FALSE
+#'   )
 #'   draws[[i]] = fits[[i]]$samp.post.pred
 #' }
 #' 
@@ -75,6 +78,7 @@
 #'
 #' # plot the synthesized 95% posterior predictive interval
 #' plot(syn2, y = y)
+#' options(old)
 #' }
 quantileSynthesis <- function(draws_list, p,
                                          enforce_isotonic = TRUE,

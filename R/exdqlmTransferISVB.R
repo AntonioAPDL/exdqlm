@@ -22,7 +22,7 @@
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
 #'
-#' @return A object of class "\code{exdqlmISVB}" containing the following:
+#' @return An object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `iter` - Number of iterations until convergence was reached.
@@ -77,21 +77,27 @@
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
 #' data("ELIanoms", package = "exdqlm")
-#' y = scIVTmag[1:1095]
-#' X = ELIanoms[1:1095]
+#' old = options(exdqlm.max_iter = 20L)
+#' y = scIVTmag[1:120]
+#' X = ELIanoms[1:120]
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+#' seas.comp = seasMod(365, c(1,2), C0 = 10*diag(4))
 #' model = trend.comp + seas.comp
 #' # Legacy ISVB transfer fit retained for backward-compatible comparisons
 #' M1 = exdqlmTransferISVB(y, p0 = 0.85, model = model,
-#'                           X, df = c(1,1), dim.df = c(1,6),
+#'                           X, df = c(1,1), dim.df = c(1,4),
 #'                           gam.init = -3.5, sig.init = 15,
-#'                           lam = 0.38, tf.df = c(0.97,0.97))
-#' X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
+#'                           lam = 0.38, tf.df = c(0.97,0.97),
+#'                           n.IS = 20, n.samp = 20, tol = 0.2,
+#'                           verbose = FALSE)
+#' X_multi = cbind(ELIanoms[1:120], scale(scIVTmag[1:120])[, 1])
 #' M2 = exdqlmTransferISVB(y, p0 = 0.85, model = model,
-#'                           X_multi, df = c(1,1), dim.df = c(1,6),
+#'                           X_multi, df = c(1,1), dim.df = c(1,4),
 #'                           gam.init = -3.5, sig.init = 15,
-#'                           lam = 0.38, tf.df = c(0.97, 0.99))
+#'                           lam = 0.38, tf.df = c(0.97, 0.99),
+#'                           n.IS = 20, n.samp = 20, tol = 0.2,
+#'                           verbose = FALSE)
+#' options(old)
 #' }
 #'
 exdqlmTransferISVB<-function(y,p0,model,X,df,dim.df,lam,tf.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,

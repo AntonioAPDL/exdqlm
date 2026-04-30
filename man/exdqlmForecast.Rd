@@ -60,7 +60,7 @@ generation when \code{return.draws = TRUE}. If provided, the previous
 \proglang{R} RNG state is restored on exit.}
 }
 \value{
-A object of class "\code{exdqlmForecast}" containing the following:
+An object of class "\code{exdqlmForecast}" containing the following:
 \itemize{
 \item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{m1}).
 \item \code{k} Integer number of steps ahead forecasted.
@@ -83,14 +83,17 @@ dynamic quantile model and optionally adds them to an existing plot.
 \donttest{
  # Toy example
  data("scIVTmag", package = "exdqlm")
+ old = options(exdqlm.max_iter = 20L)
  y = scIVTmag[1:100]
  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-                  gam.init = -3.5, sig.init = 15)
+                  gam.init = -3.5, sig.init = 15, n.samp = 30,
+                  verbose = FALSE)
  exdqlmForecast(start.t = 90, k = 10, m1 = M0)
  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0,
                               return.draws = TRUE, n.samp = 50, seed = 123)
  dim(M0.forecast$samp.fore)
+ options(old)
 }
 
 }

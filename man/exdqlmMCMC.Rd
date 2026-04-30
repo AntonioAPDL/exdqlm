@@ -4,8 +4,31 @@
 \alias{exdqlmMCMC}
 \title{exDQLM - MCMC algorithm}
 \arguments{
+\item{y}{A univariate time-series.}
+
+\item{p0}{The quantile of interest, a value between 0 and 1.}
+
+\item{model}{List of the state-space model including \code{GG}, \code{FF},
+prior parameters \code{m0} and \code{C0}.}
+
+\item{df}{Discount factors for each block.}
+
+\item{dim.df}{Dimension of each block of discount factors.}
+
+\item{fix.gamma}{Logical value indicating whether to fix gamma at
+\code{gam.init}. Default is \code{FALSE}.}
+
+\item{gam.init}{Initial value for gamma (skewness parameter), or value at
+which gamma will be fixed if \code{fix.gamma = TRUE}.}
+
 \item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}.
 Default is \code{FALSE}.}
+
+\item{sig.init}{Initial value for sigma (scale parameter), or value at which
+sigma will be fixed if \code{fix.sigma = TRUE}.}
+
+\item{dqlm.ind}{Logical value indicating whether to fix gamma at \code{0},
+reducing the exDQLM to the AL/DQLM special case. Default is \code{FALSE}.}
 
 \item{Sig.mh}{Covariance matrix used in the random walk MH step to jointly sample sigma and gamma.}
 
@@ -95,9 +118,20 @@ is printed when \code{verbose = TRUE}. Default \code{500}, independent of
 \item{progress_callback}{Optional callback invoked with a named list at MCMC
 start, at each progress checkpoint, and on completion. Intended for
 workflow-level progress logging.}
+
+\item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape
+\code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean
+1, or \code{sig.init} when supplied, and variance 10.}
+
+\item{PriorGamma}{List of parameters for truncated Student-t prior on gamma;
+center \code{m_gam}, scale \code{s_gam}, and degrees of freedom
+\code{df_gam}. Default is a standard Student-t with 1 degree of freedom,
+truncated to the support of gamma.}
+
+\item{verbose}{Logical value indicating whether progress should be displayed.}
 }
 \value{
-A object of class "\code{exdqlmMCMC}" containing the following:
+An object of class "\code{exdqlmMCMC}" containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
@@ -135,17 +169,19 @@ The function applies a Markov chain Monte Carlo (MCMC) algorithm to sample the p
 \examples{
 \donttest{
 data("scIVTmag", package = "exdqlm")
-y = scIVTmag[1:100]
+y = scIVTmag[1:80]
 trend.comp = polytrendMod(order = 1, m0 = stats::quantile(y, 0.85), C0 = 10)
-seas.comp = seasMod(p = 365, h = c(1,2,4), C0 = 10*diag(6))
+seas.comp = seasMod(p = 365, h = c(1,2), C0 = 10*diag(4))
 model = trend.comp + seas.comp
-M2 = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,6),
+M2 = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,4),
                 gam.init = -3.5, sig.init = 15,
-                n.burn = 100, n.mcmc = 150)
+                n.burn = 40, n.mcmc = 40,
+                init.from.vb = FALSE, verbose = FALSE)
 
-M2_al = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,6),
+M2_al = exdqlmMCMC(y, p0=0.85, model, df = c(1,1), dim.df = c(1,4),
                    dqlm.ind = TRUE, sig.init = 15,
-                   n.burn = 80, n.mcmc = 120)
+                   n.burn = 30, n.mcmc = 30,
+                   init.from.vb = FALSE, verbose = FALSE)
 }
 
 }

@@ -17,7 +17,7 @@ polytrendMod(order, m0, C0, backend = c("auto", "R", "cpp"))
 \code{"auto"} (default), \code{"R"}, or \code{"cpp"}.}
 }
 \value{
-A object of class "\code{exdqlm}" containing the following:
+An object of class "\code{exdqlm}" containing the following:
 \itemize{
 \item \code{FF} - \eqn{n \times 1} observational vector.
 \item \code{GG} - \eqn{n \times n} evolution matrix.

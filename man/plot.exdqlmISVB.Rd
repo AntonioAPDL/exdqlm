@@ -17,12 +17,16 @@ Plot Method for \code{exdqlmISVB} Objects
 \examples{
 \donttest{
 data("scIVTmag", package = "exdqlm")
-y = scIVTmag[1:100]
+old = options(exdqlm.max_iter = 15L)
+y = scIVTmag[1:60]
 model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 # Legacy ISVB object retained for backward-compatible plotting methods
 M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-                   gam.init = -3.5, sig.init = 15)
+                   gam.init = -3.5, sig.init = 15,
+                   n.IS = 20, n.samp = 20, tol = 0.2,
+                   verbose = FALSE)
 plot(M0)
+options(old)
 }
 
 }

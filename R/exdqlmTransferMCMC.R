@@ -21,7 +21,7 @@
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
 #'
-#' @return A object of class "\code{exdqlmMCMC}" containing the
+#' @return An object of class "\code{exdqlmMCMC}" containing the
 #'   \code{exdqlmMCMC()} output for the transfer-function-augmented model, plus:
 #' \itemize{
 #'   \item `lam` - Transfer function rate parameter lambda.
@@ -35,25 +35,27 @@
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
 #' data("ELIanoms", package = "exdqlm")
-#' y = scIVTmag[1:365]
-#' X = ELIanoms[1:365]
+#' y = scIVTmag[1:120]
+#' X = ELIanoms[1:120]
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+#' seas.comp = seasMod(365, c(1,2), C0 = 10*diag(4))
 #' model = trend.comp + seas.comp
 #' M1 = exdqlmTransferMCMC(
 #'   y, p0 = 0.85, model = model, X = X,
-#'   df = c(1,1), dim.df = c(1,6),
+#'   df = c(1,1), dim.df = c(1,4),
 #'   gam.init = -3.5, sig.init = 15,
 #'   lam = 0.38, tf.df = c(0.97,0.97),
-#'   n.burn = 100, n.mcmc = 150
+#'   n.burn = 40, n.mcmc = 40,
+#'   init.from.vb = FALSE, verbose = FALSE
 #' )
-#' X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
+#' X_multi = cbind(ELIanoms[1:120], scale(scIVTmag[1:120])[, 1])
 #' M2 = exdqlmTransferMCMC(
 #'   y, p0 = 0.85, model = model, X = X_multi,
-#'   df = c(1,1), dim.df = c(1,6),
+#'   df = c(1,1), dim.df = c(1,4),
 #'   gam.init = -3.5, sig.init = 15,
 #'   lam = 0.38, tf.df = c(0.97, 0.99),
-#'   n.burn = 100, n.mcmc = 150
+#'   n.burn = 40, n.mcmc = 40,
+#'   init.from.vb = FALSE, verbose = FALSE
 #' )
 #' }
 exdqlmTransferMCMC <- function(y, p0, model, X, df, dim.df, lam, tf.df,

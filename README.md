@@ -183,8 +183,8 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
   compatibility.
 - **Synthesis helper** `quantileSynthesis()` to combine
   posterior predictive draws from separately fitted quantile models.
-- **Static regression support** via `regMod()`, `exalStaticLDVB()`,
-  and `exalStaticMCMC()`.
+- **Dynamic regression blocks** via `regMod()` and **static exAL regression**
+  via `exalStaticLDVB()` and `exalStaticMCMC()`.
 - **Reduced AL/DQLM paths** across dynamic and static APIs via
   `dqlm.ind = TRUE`, with `al.ind = TRUE` available as a static convenience alias.
 - **Static shrinkage priors** in both static LDVB/MCMC via
@@ -195,8 +195,8 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
   (`exalStaticMCMC`, `exalStaticLDVB`).
 - **Standardized user-facing naming**: the primary API now uses
   `exalStatic...`, `exdqlmTransfer...`, and `quantileSynthesis()`,
-  while legacy names remain available as deprecated aliases during the
-  transition.
+  while documented legacy ISVB entry points remain available for
+  backward-compatible workflows.
 - **C++ backend controls** retained as optional: Kalman bridge default
   **TRUE**; builders, samplers, and post-predictive C++ paths default
   **FALSE**.

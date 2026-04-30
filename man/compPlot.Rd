@@ -42,14 +42,17 @@ The function plots the dynamic MAP estimates and 95\% credible intervals (CrIs) 
 \examples{
 \donttest{
 data("scIVTmag", package = "exdqlm")
-y = scIVTmag[1:365]
+old = options(exdqlm.max_iter = 15L)
+y = scIVTmag[1:80]
 trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
-seas.comp = seasMod(365, c(1, 2, 4), C0 = 10*diag(6))
+seas.comp = seasMod(365, c(1, 2), C0 = 10*diag(4))
 model = trend.comp + seas.comp
-M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 6),
-                   gam.init = -3.5, sig.init = 15, tol = 0.05)
+M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 4),
+                   gam.init = -3.5, sig.init = 15,
+                   n.samp = 20, tol = 0.2, verbose = FALSE)
 # plot first harmonic component
 compPlot(M0, index = c(3, 4), col = "blue")
+options(old)
 }
 
 }

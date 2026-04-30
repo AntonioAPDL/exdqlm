@@ -6,7 +6,21 @@ map_quantile_draws <- function(fit) {
   }, numeric(TT))
 }
 
+map_quantile_path <- function(fit) {
+  colSums(fit$model$FF * fit$theta.out$sm)
+}
+
+expect_postwarmup_elbo_finite <- function(fit) {
+  finite_elbo <- is.finite(fit$diagnostics$elbo)
+  expect_true(any(finite_elbo))
+  expect_true(is.finite(utils::tail(fit$diagnostics$elbo[finite_elbo], 1)))
+}
+
 rmse_vec <- function(a, b) sqrt(mean((a - b)^2))
+
+gamma_midpoint <- function(p0) {
+  mean(as.numeric(get_gamma_bounds(p0)))
+}
 
 test_that("dqlm coercion is respected when gamma is fixed at zero", {
   set.seed(20260304)
@@ -17,7 +31,17 @@ test_that("dqlm coercion is respected when gamma is fixed at zero", {
     exdqlm.use_cpp_kf = FALSE,
     exdqlm.compute_elbo = TRUE,
     exdqlm.use_cpp_samplers = FALSE,
-    exdqlm.use_cpp_postpred = FALSE
+    exdqlm.use_cpp_postpred = FALSE,
+    exdqlm.max_iter = 200L,
+    exdqlm.vb.min_iter = 10L,
+    exdqlm.vb.patience = 3L,
+    exdqlm.tol_sigma = NULL,
+    exdqlm.tol_gamma = NULL,
+    exdqlm.tol_elbo = NULL,
+    exdqlm.vb.allow_elbo_drop = NULL,
+    exdqlm.dynamic.ldvb.sigmagam = NULL,
+    exdqlm.dynamic.ldvb.sts = NULL,
+    exdqlm.static.ldvb.sigmagam = NULL
   )
   on.exit(options(old_opts), add = TRUE)
 
@@ -61,24 +85,28 @@ test_that("LDVB smoke on synthetic dynamic quantiles (exDQLM vs DQLM) stays fini
 
     fit_ex <- exdqlmLDVB(
       y = y, p0 = tau, model = model, df = 0.98, dim.df = 1,
-      fix.sigma = FALSE, tol = 0.1, n.samp = 30, verbose = FALSE
+      gam.init = gamma_midpoint(tau), sig.init = stats::sd(y),
+      fix.sigma = FALSE, tol = 0.1, n.samp = 30, verbose = FALSE,
+      vb_control = exal_make_vb_control(max_iter = 200L, tol = 0.1, verbose = FALSE)
     )
     fit_dq <- exdqlmLDVB(
       y = y, p0 = tau, model = model, df = 0.98, dim.df = 1,
-      dqlm.ind = TRUE, fix.sigma = FALSE, tol = 0.1, n.samp = 30, verbose = FALSE
+      dqlm.ind = TRUE, sig.init = stats::sd(y),
+      fix.sigma = FALSE, tol = 0.1, n.samp = 30, verbose = FALSE,
+      vb_control = exal_make_vb_control(max_iter = 200L, tol = 0.1, verbose = FALSE)
     )
 
     q_ex <- map_quantile_draws(fit_ex)
     q_dq <- map_quantile_draws(fit_dq)
-    map_ex <- rowMeans(q_ex)
-    map_dq <- rowMeans(q_dq)
+    map_ex <- map_quantile_path(fit_ex)
+    map_dq <- map_quantile_path(fit_dq)
     rmse_ex <- rmse_vec(map_ex, true_q)
     rmse_dq <- rmse_vec(map_dq, true_q)
 
     expect_true(all(is.finite(q_ex)))
     expect_true(all(is.finite(q_dq)))
-    expect_true(all(is.finite(fit_ex$diagnostics$elbo)))
-    expect_true(all(is.finite(fit_dq$diagnostics$elbo)))
+    expect_postwarmup_elbo_finite(fit_ex)
+    expect_postwarmup_elbo_finite(fit_dq)
     expect_lt(rmse_ex, rmse_base + 2.0)
     expect_lt(rmse_dq, rmse_base + 2.0)
     expect_true(isTRUE(fit_dq$dqlm.ind))

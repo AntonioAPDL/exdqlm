@@ -67,12 +67,12 @@ q_true <- 0.5 * x + (1.2 + 0.35 * x) * stats::qnorm(0.25)
 
 fit_ldvb <- exalStaticLDVB(
   y = y, X = X, p0 = 0.25,
-  max_iter = 150, tol = 1e-3,
+  max_iter = 60, tol = 1e-3,
   verbose = FALSE
 )
 fit_mcmc <- exalStaticMCMC(
   y = y, X = X, p0 = 0.25,
-  n.burn = 200, n.mcmc = 150,
+  n.burn = 60, n.mcmc = 60,
   mh.proposal = "slice",
   verbose = FALSE
 )

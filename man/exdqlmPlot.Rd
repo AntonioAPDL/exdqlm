@@ -31,11 +31,14 @@ The function plots the MAP estimates and 95\% credible intervals (CrIs) of the d
 \examples{
 \donttest{
 data("scIVTmag", package = "exdqlm")
-y = scIVTmag[1:100]
+old = options(exdqlm.max_iter = 15L)
+y = scIVTmag[1:60]
 model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-                   gam.init = -3.5, sig.init = 15)
+                   gam.init = -3.5, sig.init = 15,
+                   n.samp = 20, tol = 0.2, verbose = FALSE)
 exdqlmPlot(M0, col = "blue")
+options(old)
 }
 
 }

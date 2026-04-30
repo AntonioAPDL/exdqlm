@@ -48,7 +48,7 @@ explicit controls remain the advanced override path.}
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
-A object of class "\code{exdqlmLDVB}" containing the following:
+An object of class "\code{exdqlmLDVB}" containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
@@ -116,15 +116,19 @@ exDQLM latent \eqn{s_t} VB block. Supported fields are
 \examples{
 \donttest{
 data("scIVTmag", package = "exdqlm")
-y = scIVTmag[1:100]
+old = options(exdqlm.max_iter = 20L)
+y = scIVTmag[1:80]
 trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
 seas.comp = seasMod(365, c(1,2), C0 = 10*diag(4))
 model = trend.comp + seas.comp
 M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,4),
-                 gam.init = -3.5, sig.init = 15, tol = 0.05)
+                 gam.init = -3.5, sig.init = 15, tol = 0.2,
+                 n.samp = 20, verbose = FALSE)
 
 M0_al = exdqlmLDVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,4),
-                   dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
+                   dqlm.ind = TRUE, sig.init = 15, tol = 0.2,
+                   n.samp = 20, verbose = FALSE)
+options(old)
 }
 
 }

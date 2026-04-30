@@ -47,9 +47,20 @@ exdqlmTransferMCMC(
 )
 }
 \arguments{
+\item{y}{A univariate time-series.}
+
+\item{p0}{The quantile of interest, a value between 0 and 1.}
+
+\item{model}{List of the state-space model including \code{GG}, \code{FF},
+prior parameters \code{m0} and \code{C0}.}
+
 \item{X}{A numeric vector or matrix of transfer-function inputs. Vectors are
 treated as a univariate input series. Matrices should have one row per time
 point and one column per covariate.}
+
+\item{df}{Discount factors for each block.}
+
+\item{dim.df}{Dimension of each block of discount factors.}
 
 \item{lam}{Transfer function rate parameter lambda, a value between 0 and 1.}
 
@@ -61,8 +72,20 @@ component. If \code{length(tf.df) = 1}, the value is shared by the
 \eqn{k = ncol(X)}, the values are applied componentwise to
 \eqn{(\zeta_t, \psi_{1,t}, \dots, \psi_{k,t})}.}
 
+\item{fix.gamma}{Logical value indicating whether to fix gamma at
+\code{gam.init}. Default is \code{FALSE}.}
+
+\item{gam.init}{Initial value for gamma (skewness parameter), or value at
+which gamma will be fixed if \code{fix.gamma = TRUE}.}
+
 \item{fix.sigma}{Logical value indicating whether to fix sigma at \code{sig.init}.
 Default is \code{FALSE}.}
+
+\item{sig.init}{Initial value for sigma (scale parameter), or value at which
+sigma will be fixed if \code{fix.sigma = TRUE}.}
+
+\item{dqlm.ind}{Logical value indicating whether to fix gamma at \code{0},
+reducing the exDQLM to the AL/DQLM special case. Default is \code{FALSE}.}
 
 \item{Sig.mh}{Covariance matrix used in the random walk MH step to jointly sample sigma and gamma.}
 
@@ -76,6 +99,17 @@ Default is \code{FALSE}.}
 warm start when \code{init.from.vb = TRUE}. Default is \code{FALSE}, which favors
 \code{LDVB} as the default VB warm start. This flag only chooses the
 warm-start source; it does not change the subsequent MCMC proposal kernel.}
+
+\item{PriorSigma}{List of parameters for inverse gamma prior on sigma; shape
+\code{a_sig} and scale \code{b_sig}. Default is an inverse gamma with mean
+1, or \code{sig.init} when supplied, and variance 10.}
+
+\item{PriorGamma}{List of parameters for truncated Student-t prior on gamma;
+center \code{m_gam}, scale \code{s_gam}, and degrees of freedom
+\code{df_gam}. Default is a standard Student-t with 1 degree of freedom,
+truncated to the support of gamma.}
+
+\item{verbose}{Logical value indicating whether progress should be displayed.}
 
 \item{init.from.vb}{Optional logical. If \code{TRUE}, run a VB pre-initialization
 step (\code{LDVB} by default, or \code{ISVB} when \code{init.from.isvb = TRUE}) and
@@ -136,7 +170,7 @@ zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 the \eqn{(k+1)\times(k+1)} identity matrix.}
 }
 \value{
-A object of class "\code{exdqlmMCMC}" containing the
+An object of class "\code{exdqlmMCMC}" containing the
 \code{exdqlmMCMC()} output for the transfer-function-augmented model, plus:
 \itemize{
 \item \code{lam} - Transfer function rate parameter lambda.
@@ -154,25 +188,27 @@ component for a fixed transfer rate parameter \code{lam}.
 \donttest{
 data("scIVTmag", package = "exdqlm")
 data("ELIanoms", package = "exdqlm")
-y = scIVTmag[1:365]
-X = ELIanoms[1:365]
+y = scIVTmag[1:120]
+X = ELIanoms[1:120]
 trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
-seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+seas.comp = seasMod(365, c(1,2), C0 = 10*diag(4))
 model = trend.comp + seas.comp
 M1 = exdqlmTransferMCMC(
   y, p0 = 0.85, model = model, X = X,
-  df = c(1,1), dim.df = c(1,6),
+  df = c(1,1), dim.df = c(1,4),
   gam.init = -3.5, sig.init = 15,
   lam = 0.38, tf.df = c(0.97,0.97),
-  n.burn = 100, n.mcmc = 150
+  n.burn = 40, n.mcmc = 40,
+  init.from.vb = FALSE, verbose = FALSE
 )
-X_multi = cbind(ELIanoms[1:365], scale(scIVTmag[1:365])[, 1])
+X_multi = cbind(ELIanoms[1:120], scale(scIVTmag[1:120])[, 1])
 M2 = exdqlmTransferMCMC(
   y, p0 = 0.85, model = model, X = X_multi,
-  df = c(1,1), dim.df = c(1,6),
+  df = c(1,1), dim.df = c(1,4),
   gam.init = -3.5, sig.init = 15,
   lam = 0.38, tf.df = c(0.97, 0.99),
-  n.burn = 100, n.mcmc = 150
+  n.burn = 40, n.mcmc = 40,
+  init.from.vb = FALSE, verbose = FALSE
 )
 }
 }

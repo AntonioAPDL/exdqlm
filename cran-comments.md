@@ -23,19 +23,37 @@ No default backend flip was introduced in this consolidated 0.4.0 release:
 
 - Local: AlmaLinux 8.10 (x86_64), R 4.4.0 (2024-04-24).
 - Local commands used:
-  - `Rscript -e 'testthat::test_local()'`
-  - `R CMD check --no-manual exdqlm_0.4.0.tar.gz`
+  - `Rscript -e 'Sys.setenv(NOT_CRAN="true"); testthat::test_local(reporter = "summary")'`
+  - `Rscript -e 'rcmdcheck::rcmdcheck(args = "--as-cran", error_on = "never")'`
 
 ### R CMD check results
 
-- `0 errors | 0 warnings | 1 note`.
+- `0 errors | 0 warnings | 4 notes`.
 
 ### Notes for CRAN
 
 1) Installed size note
 
-- Installed size is approximately `30.1 MB`, with `libs/` approximately `29.0 MB`.
+- Installed size is approximately `30.8 MB`, with `libs/` approximately `29.0 MB`.
 - This package includes compiled C++ backends (Rcpp/RcppArmadillo), and the shared library is the dominant contributor.
+
+2) Future timestamp note
+
+- The local AlmaLinux check reported `unable to verify current time`.
+- This appears to be a local system-time verification limitation rather than a package timestamp issue.
+
+3) README/NEWS pandoc note
+
+- The local check host does not have `pandoc`, so `README.md` and `NEWS.md`
+  could not be checked locally by `R CMD check`.
+- The package does not include built vignettes in this release.
+
+4) Compiler hardening flag note
+
+- The local AlmaLinux toolchain reported non-portable compiler hardening flags
+  (`-Werror=format-security`, `_FORTIFY_SOURCE`, and `_GLIBCXX_ASSERTIONS`).
+- These flags are injected by the platform compiler configuration, not by the
+  package Makevars.
 
 ### Win-builder / additional platform checks
 

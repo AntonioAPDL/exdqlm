@@ -12,7 +12,7 @@
 \item{m2}{object of class "\code{exdqlm}" containing the second model to be combined.}
 }
 \value{
-A object of class "\code{exdqlm}" containing the new combined state space model components:
+An object of class "\code{exdqlm}" containing the new combined state space model components:
 \itemize{
 \item FF - Observational vector.
 \item GG - Evolution matrix.

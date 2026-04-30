@@ -13,18 +13,18 @@ Author: Raquel Barata [aut, cre],
   Bruno Sanso [ths],
   Antonio Aguirre [aut]
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
-Description: Bayesian quantile-regression routines for both dynamic
-    state-space models and static regression under the extended asymmetric
-    Laplace error distribution, also known as extended dynamic quantile
-    linear models (exDQLM). The package combines dynamic exDQLM inference
-    via MCMC, ISVB, and LDVB with static exAL regression via LDVB and MCMC,
-    reduced AL/DQLM paths through fixed skewness, component builders for
-    trend/seasonality/regression blocks, static shrinkage priors including
-    ridge, regularized horseshoe, and 'rhs_ns', evidence lower bound
-    diagnostics, optional C++ accelerators, and posterior predictive
-    synthesis across separately fitted quantiles through
-    'quantileSynthesis()'. Methods are described in Barata et al.
-    (2020) <doi:10.1214/21-AOAS1497>.
+Description: Bayesian quantile-regression routines for dynamic state-space
+    models and static regression under the extended asymmetric Laplace
+    (exAL) error distribution. The dynamic state-space models are extended
+    dynamic quantile linear models (exDQLMs). The package combines dynamic
+    exDQLM inference via LDVB, MCMC, and legacy ISVB with static exAL
+    regression via LDVB and MCMC, reduced AL/DQLM paths through fixed
+    skewness, component builders for trend/seasonality/regression blocks,
+    static shrinkage priors including ridge, regularized horseshoe, and
+    'rhs_ns', evidence lower bound diagnostics, optional C++ accelerators,
+    and posterior predictive synthesis across separately fitted quantiles
+    through 'quantileSynthesis()'. Dynamic exDQLM methods are described in
+    Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -51,7 +51,8 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
     ggplot2,
-    pkgload
+    pkgload,
+    MASS
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 LinkingTo:

@@ -10,8 +10,8 @@
   for AL/DQLM inference when desired.
 - Added synthesis helper `quantileSynthesis()` for combining
   posterior quantile-draw objects.
-- Added static regression support with `regMod()` plus static exAL inference
-  routines for VB/LDVB and MCMC workflows.
+- Added dynamic regression-block construction with `regMod()` and static exAL
+  inference routines for VB/LDVB and MCMC workflows.
 - Added static reduced AL support (`dqlm.ind = TRUE`) in
   `exalStaticLDVB()` and `exalStaticMCMC()`.
 - Added static coefficient prior options for ridge and regularized horseshoe
@@ -31,8 +31,8 @@
   `gamma`, and convergence deltas in a plot-ready table while preserving the
   existing engine-specific diagnostics.
 - Standardized the main user-facing naming scheme around `exalStatic...`,
-  `exdqlmTransfer...`, and `quantileSynthesis()`, while keeping the earlier
-  static/transfer/synthesis entry points as deprecated compatibility aliases.
+  `exdqlmTransfer...`, and `quantileSynthesis()`, while retaining documented
+  legacy ISVB entry points where needed for backward-compatible workflows.
 - Added `climateIndices`, a documented monthly climate-index panel used for
   reproducible external-regressor examples.
 

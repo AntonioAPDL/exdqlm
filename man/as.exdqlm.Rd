@@ -10,7 +10,7 @@ as.exdqlm(m)
 \item{m}{a list containing named elements m0, C0, FF and GG.}
 }
 \value{
-A object of class "\code{exdqlm}" containing the state space model components:
+An object of class "\code{exdqlm}" containing the state space model components:
 \itemize{
 \item FF - Observational vector.
 \item GG - Evolution matrix.

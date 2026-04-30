@@ -25,7 +25,7 @@
 #' @param debug_shapes Logical; if TRUE, print KF input/output shapes every `debug_every` iterations.
 #' @param debug_every  Integer; frequency (in iterations) for shape prints when `debug_shapes=TRUE`.
 #'
-#' @return A object of class "\code{exdqlmISVB}" containing the following:
+#' @return An object of class "\code{exdqlmISVB}" containing the following:
 #' \itemize{
 #'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
@@ -87,18 +87,22 @@
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
-#' y = scIVTmag[1:1095]
+#' old = options(exdqlm.max_iter = 20L)
+#' y = scIVTmag[1:120]
 #' trend.comp = polytrendMod(1, stats::quantile(y, 0.85), 10)
-#' seas.comp = seasMod(365, c(1,2,4), C0 = 10*diag(6))
+#' seas.comp = seasMod(365, c(1,2), C0 = 10*diag(4))
 #' model = trend.comp + seas.comp
 #' # Legacy ISVB fit retained for backward-compatible comparisons
-#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
-#'                  gam.init = -3.5, sig.init = 15, tol = 0.05)
+#' M0 = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,4),
+#'                  gam.init = -3.5, sig.init = 15, tol = 0.2,
+#'                  n.IS = 20, n.samp = 20, verbose = FALSE)
 #' head(M0$diagnostics$vb_trace)
 #'
-#' M0_al = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,6),
-#'                    dqlm.ind = TRUE, sig.init = 15, tol = 0.05)
+#' M0_al = exdqlmISVB(y, p0 = 0.85, model, df = c(1,1), dim.df = c(1,4),
+#'                    dqlm.ind = TRUE, sig.init = 15, tol = 0.2,
+#'                    n.IS = 20, n.samp = 20, verbose = FALSE)
 #' tail(M0_al$diagnostics$vb_trace$elbo, 2)
+#' options(old)
 #' }
 #'
 exdqlmISVB <- function(y, p0, model, df, dim.df,

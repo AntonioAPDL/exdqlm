@@ -8,7 +8,7 @@
 #' @param backend Backend selection for matrix construction:
 #'   `"auto"` (default), `"R"`, or `"cpp"`.
 #'
-#' @return A object of class "\code{exdqlm}" containing the following:
+#' @return An object of class "\code{exdqlm}" containing the following:
 #' \itemize{
 #'   \item \code{FF} - \eqn{n \times 1} observational vector.
 #'   \item \code{GG} - \eqn{n \times n} evolution matrix.

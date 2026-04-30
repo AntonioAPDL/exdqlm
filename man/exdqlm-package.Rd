@@ -11,7 +11,7 @@ regression under the extended asymmetric Laplace error distribution (exAL).
 }
 \details{
 The package centers on native dynamic quantile state-space modeling for
-univariate time series, while \code{v0.4.0} also provides a static exAL
+univariate time series, while version 0.4.0 also provides a static exAL
 regression workflow. Across these settings, \code{exdqlm} combines model
 construction helpers, multiple Bayesian inference engines, shrinkage priors
 for static coefficients, and post hoc synthesis of several fitted quantiles.

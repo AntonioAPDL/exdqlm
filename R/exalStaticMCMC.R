@@ -11,7 +11,7 @@
 #' (exAL). We update \eqn{\beta, v, s} from their full conditionals, then update
 #' \eqn{(\sigma,\gamma)} either jointly on transformed coordinates
 #' \eqn{(\ell,\eta)=(\log \sigma,\mathrm{logit}((\gamma-L)/(U-L)))} (for
-#' \code{"rw"} and \code{"laplace_rw"}) or with the legacy gamma-only kernels
+#' \code{"rw"} and \code{"laplace_rw"}) or with univariate gamma kernels
 #' (\code{"slice"}, \code{"slice_eta"}, \code{"laplace_local"}).
 #' Optional multi-refresh and global-jump controls are available to improve
 #' exAL mixing in hard cases.
@@ -27,7 +27,7 @@
 #'   inverse-gamma hierarchy for static inference).
 #' @param beta_prior_controls Optional list of prior-specific controls. For
 #'   RHS-family priors (that is, when \code{beta_prior} is \code{"rhs"} or
-#'   \code{"rhs_ns"}), supported keys follow the qdesn-style static interface:
+#'   \code{"rhs_ns"}), supported keys include:
 #'   \code{tau0}, \code{nu}, \code{s} or \code{s2},
 #'   \code{shrink_intercept}, \code{intercept_prec}, \code{n_inner},
 #'   \code{eta_bounds}, \code{var_floor}, \code{h_curv}, \code{verbose},
@@ -90,6 +90,11 @@
 #'   explicit function arguments. When omitted, the package applies its
 #'   conservative default exAL `(sigma, gamma)` warmup profile and keeps the
 #'   RHS-family `tau` warmup defaults active through the shared prior layer.
+#' @param sigmagam_controls Optional list controlling warmup/freeze behavior
+#'   for the nonconjugate \code{(sigma, gamma)} block. Prefer
+#'   [exal_make_mcmc_sigmagam_control()] or the \code{sigmagam} block of
+#'   [exal_make_mcmc_control()] for new code; this argument remains available
+#'   as a direct advanced override.
 #' @param mh.proposal Character string controlling the exAL nonconjugate update
 #'   kernel. \code{"slice"} (default) uses an exact bounded univariate slice
 #'   sampler on \code{gamma} (with \code{sigma} updated from its conditional),
@@ -99,7 +104,7 @@
 #'   \eqn{(\eta,\ell)=(\mathrm{logit}((\gamma-L)/(U-L)), \log\sigma)}.
 #'   \code{"rw"} uses the same exact joint update with identity base covariance.
 #'   \code{"laplace_local"} reproduces the prior approximate local-Gaussian
-#'   gamma draw (not signoff-ready).
+#'   gamma draw retained for compatibility and not recommended for routine use.
 #'   Only \code{"laplace_local"} is approximate.
 #' @param mh.adapt Logical; adapt the random-walk proposal scale during burn-in
 #'   for \code{"rw"} and \code{"laplace_rw"}. Ignored for
@@ -131,7 +136,7 @@
 #'   start, at each progress checkpoint, and on completion. Intended for
 #'   workflow-level per-case progress logging.
 #'
-#' @return A object of class "\code{exalStaticMCMC}" containing:
+#' @return An object of class "\code{exalStaticMCMC}" containing:
 #' \itemize{
 #'   \item \code{run.time} - total wall time in seconds.
 #'   \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).
@@ -158,12 +163,12 @@
 #' @examples
 #' \donttest{
 #' set.seed(123)
-#' n <- 80; p <- 3
+#' n <- 60; p <- 3
 #' X <- cbind(1, rnorm(n), rnorm(n))
 #' beta0 <- c(0.5, -1, 0.8); sigma0 <- 1.2
 #' y <- as.numeric(X %*% beta0 + rnorm(n, 0, sigma0))
 #' fit <- exalStaticMCMC(
-#'   y, X, p0 = 0.5, n.burn = 200, n.mcmc = 200, thin = 1, verbose = FALSE
+#'   y, X, p0 = 0.5, n.burn = 60, n.mcmc = 60, thin = 1, verbose = FALSE
 #' )
 #' summary(fit$samp.beta)
 #'
@@ -171,7 +176,7 @@
 #'   y, X, p0 = 0.5,
 #'   beta_prior = "rhs",
 #'   beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
-#'   n.burn = 120, n.mcmc = 120, thin = 1, mh.proposal = "slice", verbose = FALSE
+#'   n.burn = 50, n.mcmc = 50, thin = 1, mh.proposal = "slice", verbose = FALSE
 #' )
 #' fit_rhs$beta_prior$type
 #'
@@ -179,14 +184,14 @@
 #'   y, X, p0 = 0.5,
 #'   beta_prior = "rhs_ns",
 #'   beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
-#'   n.burn = 80, n.mcmc = 80, thin = 1, mh.proposal = "slice", verbose = FALSE
+#'   n.burn = 40, n.mcmc = 40, thin = 1, mh.proposal = "slice", verbose = FALSE
 #' )
 #' fit_rhs_ns$beta_prior$type
 #'
 #' fit_al <- exalStaticMCMC(
 #'   y, X, p0 = 0.5,
 #'   al.ind = TRUE,
-#'   n.burn = 120, n.mcmc = 120, thin = 1, verbose = FALSE
+#'   n.burn = 50, n.mcmc = 50, thin = 1, verbose = FALSE
 #' )
 #' fit_al$dqlm.ind
 #' }
