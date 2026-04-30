@@ -2,11 +2,15 @@
 
 # Pre-CRAN orchestration script for local and optional remote checks.
 # Usage:
-#   Rscript scripts/precran_all.R [--rhub] [--skip-rhub] [--pat <token>] [--pat-file <path>]
+#   Rscript scripts/precran_all.R [--rhub] [--skip-rhub] [--skip-winbuilder]
+#                                  [--pat <token>] [--pat-file <path>]
 # Behavior:
-# - Runs local devtools::check(cran = TRUE) and writes logs under check-logs/<timestamp>/.
+# - Runs a local CRAN-like check and writes logs under check-logs/<timestamp>/.
+#   Uses devtools::check(cran = TRUE) when devtools is already available, and
+#   falls back to rcmdcheck::rcmdcheck(args = "--as-cran") otherwise.
 # - Optionally submits R-hub checks when --rhub is supplied and auth/repo checks pass.
-# - Submits Win-builder release/devel checks with retry on transient upload failures.
+# - Submits Win-builder release/devel checks with retry on transient upload
+#   failures when devtools is available, unless --skip-winbuilder is supplied.
 # Exit status:
 # - Non-zero if local CRAN-like check fails.
 
@@ -18,11 +22,20 @@ ensure_pkg <- function(pkg, repo = "https://cloud.r-project.org") {
     message("Installing missing package: ", pkg)
     install.packages(pkg, repos = repo)
   }
-  suppressPackageStartupMessages(require(pkg, character.only = TRUE))
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop("Required package is unavailable after installation attempt: ", pkg)
+  }
+  invisible(TRUE)
 }
 
 # Core deps
-invisible(lapply(c("devtools", "gh", "curl", "gitcreds"), ensure_pkg))
+invisible(lapply(c("rcmdcheck", "gh", "curl", "gitcreds"), ensure_pkg))
+have_devtools <- requireNamespace("devtools", quietly = TRUE)
+if (have_devtools) {
+  suppressPackageStartupMessages(library(devtools))
+} else {
+  message("devtools is not installed; using rcmdcheck for the local check and skipping Win-builder submission.")
+}
 # Try both rhub flavors; OK if rhubv2 isn't on your R
 have_rhub  <- requireNamespace("rhub",   quietly = TRUE)
 have_rhub2 <- requireNamespace("rhubv2", quietly = TRUE)
@@ -77,6 +90,7 @@ git_is_dirty <- function() {
 
 skip_rhub  <- has_flag("--skip-rhub")
 force_rhub <- has_flag("--rhub")
+skip_winbuilder <- has_flag("--skip-winbuilder")
 
 # Logging wrapper
 ts <- format(Sys.time(), "%Y%m%d-%H%M%S")
@@ -175,8 +189,13 @@ load_and_check_pat <- function() {
 
 # ----- 1) Local CRAN-like check ----------------------------------------------
 local_errs <- local_warns <- local_notes <- 0L
-log_section("local-devtools-check", {
-  res <- devtools::check(".", cran = TRUE)
+local_log_name <- if (have_devtools) "local-devtools-check" else "local-rcmdcheck"
+log_section(local_log_name, {
+  if (have_devtools) {
+    res <- devtools::check(".", cran = TRUE)
+  } else {
+    res <- rcmdcheck::rcmdcheck(args = "--as-cran", error_on = "never")
+  }
   local_errs  <<- length(res$errors)
   local_warns <<- length(res$warnings)
   local_notes <<- length(res$notes)
@@ -256,6 +275,7 @@ log_section("rhub-checks", {
 })
 
 # ----- 3) Win-builder (release + devel) with retry ----------------------------
+winbuilder_submitted <- FALSE
 win_upload <- function(which) {
   fn <- switch(which,
                release = devtools::check_win_release,
@@ -271,12 +291,21 @@ win_upload <- function(which) {
   invisible(out)
 }
 
-log_section("winbuilder-release", { win_upload("release") })
-log_section("winbuilder-devel",   { win_upload("devel")   })
+if (skip_winbuilder) {
+  log_section("winbuilder-release", { cat("Skipped by --skip-winbuilder.\n") })
+  log_section("winbuilder-devel",   { cat("Skipped by --skip-winbuilder.\n") })
+} else if (!have_devtools) {
+  log_section("winbuilder-release", { cat("Skipped because devtools is not installed.\n") })
+  log_section("winbuilder-devel",   { cat("Skipped because devtools is not installed.\n") })
+} else {
+  log_section("winbuilder-release", { win_upload("release") })
+  log_section("winbuilder-devel",   { win_upload("devel")   })
+  winbuilder_submitted <- TRUE
+}
 
 # ----- summary ---------------------------------------------------------------
 cat("\n=== Pre-CRAN all-checks finished ===\n")
 cat(sprintf("Local check: OK (%d errors, %d warnings, %d notes)\n", local_errs, local_warns, local_notes))
 cat(if (rhub_started) "R-hub: started/submitted.\n" else "R-hub: not started (no PAT or GitHub unreachable).\n")
-cat("Win-builder: submitted (watch maintainer email for results).\n")
+cat(if (winbuilder_submitted) "Win-builder: submitted (watch maintainer email for results).\n" else "Win-builder: not submitted (skipped or devtools unavailable).\n")
 cat("Logs: ", normalizePath(log_root), "\n", sep = "")
