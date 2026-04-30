@@ -33,8 +33,8 @@
 - Standardized the main user-facing naming scheme around `exalStatic...`,
   `exdqlmTransfer...`, and `quantileSynthesis()`, while retaining documented
   legacy ISVB entry points where needed for backward-compatible workflows.
-- Added `climateIndices`, a documented monthly climate-index panel used for
-  reproducible external-regressor examples.
+- Added `climateIndices`, a documented monthly NOI/AMO climate-index data frame
+  used for reproducible external-regressor examples.
 
 ## Fixes and clarifications
 - Normalized the shared dynamic exDQLM VB policy around LDVB: `exdqlmLDVB()`
@@ -75,6 +75,8 @@
   full `sigma`/`gamma` histories in diagnostics objects and callbacks.
 - Clarified the `BTflow` dataset provenance as observed monthly USGS
   streamflow and removed the unused `BTprec` dataset from the package data API.
+- Slimmed the shipped climate-index data API to the two manuscript predictors
+  used in the Big Trees example.
 
 # exdqlm 0.3.0
 
@@ -155,7 +157,6 @@
 - Return changes
   - kt added to exdqlmTransferISVB return
 - Dataset changes
-  - Niño 3.4 dataset added
   - BTflow dataset updated
   - monELI dataset removed
 

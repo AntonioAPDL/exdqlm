@@ -25,7 +25,6 @@ No default backend flip was introduced in this consolidated 0.4.0 release:
 - Local commands used:
   - `Rscript -e 'Sys.setenv(NOT_CRAN="true"); testthat::test_local(reporter = "summary")'`
   - `Rscript -e 'rcmdcheck::rcmdcheck(args = "--as-cran", error_on = "never")'`
-  - `Rscript scripts/precran_all.R --skip-rhub`
 
 ### R CMD check results
 
@@ -60,8 +59,7 @@ No default backend flip was introduced in this consolidated 0.4.0 release:
 
 Win-builder should be run by the submitting maintainer before final CRAN upload.
 It was not submitted from this local AlmaLinux host because `devtools` is not
-available here; the local pre-CRAN script fell back to `rcmdcheck` and logged
-the skipped Win-builder step.
+available here.
 
 Recommended commands:
 

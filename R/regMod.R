@@ -24,12 +24,16 @@
 #' @export
 #'
 #' @examples
-#' data("BTflow", package = "exdqlm")
-#' data("nino34", package = "exdqlm")
+#' data("climateIndices", package = "exdqlm")
+#'
+#' T <- 150
+#' bt_dates <- seq(as.Date("1987-01-01"), by = "month", length.out = T)
+#' idx <- match(bt_dates, climateIndices$date)
+#' X <- scale(climateIndices[idx, c("noi", "amo")])
+#'
 #' # Single regressor (T x 1)
-#' reg1 = regMod(nino34)
+#' reg1 = regMod(X[, "noi"])
 #' # Multiple regressors (T x n)
-#' X = cbind(nino34, scale(BTflow)[,1])
 #' reg2 = regMod(X)
 #'
 #' # Combine with trend/seasonal components

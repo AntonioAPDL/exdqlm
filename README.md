@@ -238,14 +238,19 @@ Backend control (minimal):
 
 ### 1) Single-quantile fit on built-in data (tiny slice)
 
-Trend + seasonality + one regressor (`nino34`). **Note**: `FF` for the
-regressor is `1 × T`. Combine components **pairwise**.
+Trend + seasonality + one climate-index regressor. **Note**: `FF` for
+the regressor is `1 × T`. Combine components **pairwise**.
 
 ``` r
+data("BTflow", package = "exdqlm")
+data("climateIndices", package = "exdqlm")
+
 set.seed(2)
 T <- 150
 y <- log(BTflow[seq_len(T)])
-x <- nino34[seq_len(T)]
+bt_dates <- seq(as.Date("1987-01-01"), by = "month", length.out = T)
+idx <- match(bt_dates, climateIndices$date)
+x <- scale(climateIndices$noi[idx])[, 1]
 
 trend.comp <- polytrendMod(order = 1, m0 = 0, C0 = 1)
 seas.comp  <- seasMod(p = 12, h = 1, C0 = diag(1, 2))

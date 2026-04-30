@@ -10,17 +10,11 @@ test_that("BTflow is the observed monthly USGS streamflow series", {
   expect_gt(min(as.numeric(BTflow)), 0)
 })
 
-test_that("climateIndices exposes a complete monthly climate-index panel", {
+test_that("climateIndices exposes the manuscript climate indices", {
   data("climateIndices", package = "exdqlm", envir = environment())
 
-  expected_names <- c(
-    "date", "nino3", "nao", "nino12", "whwp", "gmt", "oni", "pna",
-    "noi", "wp", "nino34", "solar_flux", "amo", "espi", "tsa",
-    "nino4", "tna", "soi"
-  )
-
   expect_s3_class(climateIndices, "data.frame")
-  expect_named(climateIndices, expected_names)
+  expect_named(climateIndices, c("date", "noi", "amo"))
   expect_s3_class(climateIndices$date, "Date")
   expect_equal(nrow(climateIndices), 516)
   expect_equal(min(climateIndices$date), as.Date("1980-01-01"))
@@ -28,7 +22,6 @@ test_that("climateIndices exposes a complete monthly climate-index panel", {
   expect_identical(climateIndices$date, seq(min(climateIndices$date), max(climateIndices$date), by = "month"))
   expect_true(all(stats::complete.cases(climateIndices)))
   expect_true(all(vapply(climateIndices[-1], is.numeric, logical(1))))
-  expect_true(all(c("noi", "soi", "espi", "pna", "whwp", "amo") %in% names(climateIndices)))
 })
 
 test_that("BTprec is not shipped in the cleaned package data API", {
