@@ -789,6 +789,19 @@ check_ts = function(dat){
   )
 }
 
+.exdqlm_pos_truncnorm_entropy <- function(mu, tau2, moments = NULL, total = TRUE) {
+  mu <- as.numeric(mu)
+  tau2 <- pmax(as.numeric(tau2), 1e-14)
+  tau <- sqrt(tau2)
+  if (is.null(moments)) {
+    moments <- .exdqlm_pos_truncnorm_moments(mu, tau2)
+  }
+  alpha <- mu / tau
+  H <- 0.5 * log(2 * pi * tau2) + log(pmax(moments$Phi, 1e-12)) +
+    0.5 * (1 - alpha * moments$Lambda)
+  if (isTRUE(total)) sum(H) else H
+}
+
 .exdqlm_ldvb_sample_gaussian <- function(mu, Sigma, n_samp) {
   ns <- suppressWarnings(as.integer(n_samp)[1])
   if (!is.finite(ns) || ns < 1L) return(NULL)
