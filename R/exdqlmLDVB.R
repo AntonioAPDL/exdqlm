@@ -313,7 +313,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     E.sts2 = s0_mom$second,
     sts.mu = rep(0, TT),
     sts.sig2 = rep(1, TT),
-    entropy = sum(0.5 * log(2 * pi * rep(1, TT)) + log(pmax(s0_mom$Phi, 1e-12)) + 0.5 * (1 + (-0) * s0_mom$Lambda))
+    entropy = .exdqlm_pos_truncnorm_entropy(rep(0, TT), rep(1, TT), moments = s0_mom)
   )
   new.uts.out = list(E.uts=rep(1/sig0,TT),
                      E.inv.uts=rep(sig0,TT))
@@ -437,9 +437,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     moms <- .exdqlm_pos_truncnorm_moments(s.mu, s.sig2)
     E.sts <- moms$mean
     E.sts2 <- moms$second
-    H_sts_t <- 0.5 * log(2 * pi * s.sig2) + log(pmax(moms$Phi, 1e-12)) +
-      0.5 * (1 + (s.mu / s.sig) * moms$Lambda)
-    H_sts    <- sum(H_sts_t)
+    H_sts <- .exdqlm_pos_truncnorm_entropy(s.mu, s.sig2, moments = moms)
 
     list(sts.sig2 = s.sig2, sts.mu = s.mu,
         E.sts = E.sts, E.sts2 = E.sts2,

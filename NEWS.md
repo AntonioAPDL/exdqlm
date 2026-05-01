@@ -51,6 +51,8 @@
   unstable scale draws in reduced/near-reduced settings.
 - Aligned static LDVB `(sigma, gamma)` transformed objective/entropy handling
   with the Jacobian contract used in the static theory reference.
+- Corrected the positive-truncated-normal entropy sign used in exAL LDVB
+  monitored ELBO diagnostics and centralized the shared entropy calculation.
 - Clarified that C++ `elbo.part` in `kalman.cpp` is an internal diagnostic;
   package-level ELBO reporting remains R-level contract output.
 - Added dedicated static-fit object generics for `exalStaticMCMC` and `exalStaticLDVB`

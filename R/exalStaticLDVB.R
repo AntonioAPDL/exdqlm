@@ -2080,11 +2080,7 @@ exalStaticLDVB <- function(
     H_qv   <- sum( -logC - (k_gig - 1) * mlogv + 0.5 * (chi * E_inv_v + psi * E_v) )
 
     # (11) Entropy H(q(s)) for TN(mu, tau^2) on (0, Inf)
-    tau    <- sqrt(pmax(qs_tau2, 1e-14))
-    alpha  <- qs_mu / tau
-    Phi    <- pmax(stats::pnorm(alpha), 1e-12)
-    Lambda <- stats::dnorm(alpha) / Phi
-    H_qs   <- sum( 0.5 * log(2*pi * qs_tau2) + log(Phi) + 0.5 * (1 + alpha * Lambda) )
+    H_qs <- .exdqlm_pos_truncnorm_entropy(qs_mu, qs_tau2)
 
     # (12) H(q(sigma,gamma)) = H(q(eta,ell)) + E_q[log|J(eta,ell)|]
     # for sigma=exp(ell), gamma=L+(U-L)logit^{-1}(eta).
