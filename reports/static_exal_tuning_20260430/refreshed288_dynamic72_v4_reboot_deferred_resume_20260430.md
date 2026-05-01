@@ -66,7 +66,7 @@ tmux new-session -d -s refreshed288_v4_laplace_repair_resume_20260430 \
   "cd /home/jaguir26/local/src/exdqlm__wt__validation_rerun_after_0p4p0_integration && \
    OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 SMOKE_DYNAMIC_MCMC_WORKERS=3 \
    tools/merge_reports/LOCAL_refreshed288_launch_20260430_dynamic72_qdesn_comparable_laplace_repair_v4.sh smoke-repair \
-   > reports/static_exal_tuning_20260430/refreshed288_dynamic72_v4_reboot_deferred_resume_20260430.log 2>&1"
+   > tools/merge_reports/full288_refreshed288_20260430_p90_dynamic72_qdesn_comparable_v4_laplace_repair/logs/reboot_deferred_resume_20260430.log 2>&1"
 ```
 
 ## Monitoring Commands
@@ -74,7 +74,7 @@ tmux new-session -d -s refreshed288_v4_laplace_repair_resume_20260430 \
 ```bash
 tmux ls
 tmux attach -t refreshed288_v4_laplace_repair_resume_20260430
-tail -f reports/static_exal_tuning_20260430/refreshed288_dynamic72_v4_reboot_deferred_resume_20260430.log
+tail -f tools/merge_reports/full288_refreshed288_20260430_p90_dynamic72_qdesn_comparable_v4_laplace_repair/logs/reboot_deferred_resume_20260430.log
 tools/merge_reports/LOCAL_refreshed288_launch_20260430_dynamic72_qdesn_comparable_laplace_repair_v4.sh health-smoke
 ```
 
