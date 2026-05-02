@@ -89,11 +89,14 @@ support.}
 
 \item{dqlm.ind}{Logical; if \code{TRUE}, fit the reduced AL model
 (\code{gamma = 0}). In that special case the nonconjugate block drops out
-and the remaining variational updates are available in closed form.}
+and the remaining variational updates are available in closed form. This
+argument is retained for consistency with the dynamic exDQLM API; in static
+examples, \code{al.ind = TRUE} is the clearer spelling for this AL special
+case.}
 
-\item{al.ind}{Optional static-model alias for \code{dqlm.ind}. When
-supplied, this flag maps directly to \code{dqlm.ind}. If both are given,
-they must agree.}
+\item{al.ind}{Optional static-model alias for \code{dqlm.ind}. Prefer this
+argument when requesting the static AL special case. When supplied, this
+flag maps directly to \code{dqlm.ind}. If both are given, they must agree.}
 
 \item{n.samp}{Number of samples to draw from the approximated posterior
 distribution after convergence. Default is \code{n.samp = 200}.}

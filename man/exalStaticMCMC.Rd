@@ -109,11 +109,13 @@ filled sensibly.}
 (\code{gamma = 0}), corresponding to Bayesian linear quantile regression
 under the AL working likelihood. This removes the \code{gamma}- and
 \code{s}-blocks and leaves conjugate Gibbs updates for \code{beta},
-\code{sigma}, and \code{v}.}
+\code{sigma}, and \code{v}. This argument is retained for consistency with
+the dynamic exDQLM API; in static examples, \code{al.ind = TRUE} is the
+clearer spelling for this AL special case.}
 
-\item{al.ind}{Optional static-model alias for \code{dqlm.ind}. When
-supplied, this flag maps directly to \code{dqlm.ind}. If both are given,
-they must agree.}
+\item{al.ind}{Optional static-model alias for \code{dqlm.ind}. Prefer this
+argument when requesting the static AL special case. When supplied, this
+flag maps directly to \code{dqlm.ind}. If both are given, they must agree.}
 
 \item{n.burn}{Number of burn-in iterations. Default \code{2000}.}
 

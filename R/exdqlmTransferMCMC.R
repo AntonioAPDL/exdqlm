@@ -2,15 +2,22 @@
 #'
 #' The function applies a Markov chain Monte Carlo (MCMC) algorithm to sample
 #' the posterior of an exDQLM with an exponential-decay transfer function
-#' component for a fixed transfer rate parameter `lam`.
+#' component for a fixed transfer rate parameter \code{lam}. For multivariate
+#' transfer inputs, each column of \code{X} has its own instantaneous coefficient
+#' state in \eqn{\psi_t}, while a single scalar decay rate \code{lam} controls
+#' persistence of the accumulated transfer effect \eqn{\zeta_t}.
 #'
 #' @inheritParams exdqlmMCMC
 #' @param X A numeric vector or matrix of transfer-function inputs. Vectors are
 #'   treated as a univariate input series. Matrices should have one row per time
 #'   point and one column per covariate.
-#' @param lam Transfer function rate parameter lambda, a value between 0 and 1.
+#' @param lam Single transfer-function decay-rate parameter \eqn{\lambda}, a
+#'   value between 0 and 1. This scalar is shared across all transfer inputs and
+#'   controls propagation of the accumulated transfer effect \eqn{\zeta_t}.
 #' @param tf.df Discount factor specification for the transfer function
-#'   component. If \code{length(tf.df) = 1}, the value is shared by the
+#'   component. These discount factors control the evolution variances of the
+#'   transfer states, separately from the deterministic decay rate
+#'   \code{lam}. If \code{length(tf.df) = 1}, the value is shared by the
 #'   \eqn{\zeta_t} state and the whole \eqn{\psi_t} block. If
 #'   \code{length(tf.df) = 2}, it is interpreted as
 #'   \code{c(df_zeta, df_psi_shared)}. If \code{length(tf.df) = k + 1}, where
@@ -21,13 +28,21 @@
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
 #'
-#' @return An object of class "\code{exdqlmMCMC}" containing the
-#'   \code{exdqlmMCMC()} output for the transfer-function-augmented model, plus:
+#' @inherit exdqlmMCMC return
+#'
+#' @section Transfer-function return fields:
+#' In addition to the standard \code{exdqlmMCMC()} return values, the returned
+#' \code{model}, \code{df}, and \code{dim.df} entries correspond to the
+#' transfer-function-augmented state-space model, with appended \eqn{\zeta_t}
+#' and \eqn{\psi_t} states. The object also contains:
 #' \itemize{
-#'   \item `lam` - Transfer function rate parameter lambda.
-#'   \item `median.kt` - Median number of time steps until the aggregated
+#'   \item \code{lam} - Single transfer-function decay-rate parameter
+#'   \eqn{\lambda}.
+#'   \item \code{median.kt} - Median number of time steps until the aggregated
 #'   transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to
-#'   `1e-3`.
+#'   \code{1e-3}.
+#'   \item \code{transfer_input_names} - Column names of the transfer inputs
+#'   after normalization of \code{X}.
 #' }
 #' @export
 #'

@@ -62,10 +62,14 @@ point and one column per covariate.}
 
 \item{dim.df}{Dimension of each block of discount factors.}
 
-\item{lam}{Transfer function rate parameter lambda, a value between 0 and 1.}
+\item{lam}{Single transfer-function decay-rate parameter \eqn{\lambda}, a
+value between 0 and 1. This scalar is shared across all transfer inputs and
+controls propagation of the accumulated transfer effect \eqn{\zeta_t}.}
 
 \item{tf.df}{Discount factor specification for the transfer function
-component. If \code{length(tf.df) = 1}, the value is shared by the
+component. These discount factors control the evolution variances of the
+transfer states, separately from the deterministic decay rate
+\code{lam}. If \code{length(tf.df) = 1}, the value is shared by the
 \eqn{\zeta_t} state and the whole \eqn{\psi_t} block. If
 \code{length(tf.df) = 2}, it is interpreted as
 \code{c(df_zeta, df_psi_shared)}. If \code{length(tf.df) = k + 1}, where
@@ -170,20 +174,63 @@ zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 the \eqn{(k+1)\times(k+1)} identity matrix.}
 }
 \value{
-An object of class "\code{exdqlmMCMC}" containing the
-\code{exdqlmMCMC()} output for the transfer-function-augmented model, plus:
+An object of class "\code{exdqlmMCMC}" containing the following:
 \itemize{
-\item \code{lam} - Transfer function rate parameter lambda.
-\item \code{median.kt} - Median number of time steps until the aggregated
-transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to
-\code{1e-3}.
+\item \code{y} - Time-series data used to fit the model.
+\item \code{run.time} - Algorithm run time in seconds.
+\item \code{dqlm.ind} - Logical value indicating whether gamma was fixed at \code{0}, reducing the exDQLM to the special case of the DQLM.
+\item \code{model} - List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.
+\item \code{p0} - The quantile which was estimated.
+\item \code{df} - Discount factors used for each block.
+\item \code{dim.df} - Dimension used for each block of discount factors.
+\item \code{samp.theta} - Posterior sample of the state vector.
+\item \code{samp.post.pred} - Sample of the posterior predictive distributions.
+\item \code{map.standard.forecast.errors} - MAP standardized one-step-ahead forecast errors.
+\item \code{samp.sigma} - Posterior sample of scale parameter sigma.
+\item \code{samp.vts} - Posterior sample of latent parameters, v_t.
+\item \code{theta.out} - List containing the distributions of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
+\item \code{n.burn} Number of MCMC iterations that were burned.
+\item \code{n.mcmc} Number of MCMC iterations that were sampled.
+}
+If \code{dqlm.ind=FALSE}, the object also contains the following:
+\itemize{
+\item \code{samp.gamma} - Posterior sample of skewness parameter gamma.
+\item \code{samp.sts} - Posterior sample of latent parameters, s_t.
+\item \code{init.log.sigma} - Burned samples of log sigma from the random walk MH joint sampling of sigma and gamma.
+\item \code{init.logit.gamma} - Burned samples of logit gamma from the random walk MH joint sampling of sigma and gamma.
+\item \code{accept.rate} - Acceptance rate of the MH step.
+\item \code{accept.rate.burn} - MH acceptance rate during burn-in.
+\item \code{accept.rate.keep} - MH acceptance rate in kept MCMC samples.
+\item \code{Sig.mh} - Covariance matrix used in MH step to jointly sample sigma and gamma.
+\item \code{mh.diagnostics} - MH tuning diagnostics (proposal mode, scaling path, adaptation summary).
+\item \code{diagnostics} - ESS and chain-ready summaries for sigma/gamma.
 }
 }
 \description{
 The function applies a Markov chain Monte Carlo (MCMC) algorithm to sample
 the posterior of an exDQLM with an exponential-decay transfer function
-component for a fixed transfer rate parameter \code{lam}.
+component for a fixed transfer rate parameter \code{lam}. For multivariate
+transfer inputs, each column of \code{X} has its own instantaneous coefficient
+state in \eqn{\psi_t}, while a single scalar decay rate \code{lam} controls
+persistence of the accumulated transfer effect \eqn{\zeta_t}.
 }
+\section{Transfer-function return fields}{
+
+In addition to the standard \code{exdqlmMCMC()} return values, the returned
+\code{model}, \code{df}, and \code{dim.df} entries correspond to the
+transfer-function-augmented state-space model, with appended \eqn{\zeta_t}
+and \eqn{\psi_t} states. The object also contains:
+\itemize{
+\item \code{lam} - Single transfer-function decay-rate parameter
+\eqn{\lambda}.
+\item \code{median.kt} - Median number of time steps until the aggregated
+transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to
+\code{1e-3}.
+\item \code{transfer_input_names} - Column names of the transfer inputs
+after normalization of \code{X}.
+}
+}
+
 \examples{
 \donttest{
 data("scIVTmag", package = "exdqlm")

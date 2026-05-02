@@ -45,10 +45,14 @@ point and one column per covariate.}
 
 \item{dim.df}{Dimension of each block of discount factors.}
 
-\item{lam}{Transfer function rate parameter lambda, a value between 0 and 1.}
+\item{lam}{Single transfer-function decay-rate parameter \eqn{\lambda}, a
+value between 0 and 1. This scalar is shared across all transfer inputs and
+controls propagation of the accumulated transfer effect \eqn{\zeta_t}.}
 
 \item{tf.df}{Discount factor specification for the transfer function
-component. If \code{length(tf.df) = 1}, the value is shared by the
+component. These discount factors control the evolution variances of the
+transfer states, separately from the deterministic decay rate
+\code{lam}. If \code{length(tf.df) = 1}, the value is shared by the
 \eqn{\zeta_t} state and the whole \eqn{\psi_t} block. If
 \code{length(tf.df) = 2}, it is interpreted as
 \code{c(df_zeta, df_psi_shared)}. If \code{length(tf.df) = k + 1}, where
@@ -88,20 +92,72 @@ the \eqn{(k+1)\times(k+1)} identity matrix.}
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
-An object of class "\code{exdqlmLDVB}" containing the exdqlmLDVB
-output for the transfer-function-augmented model, plus:
+An object of class "\code{exdqlmLDVB}" containing the following:
 \itemize{
-\item \code{lam} - Transfer function rate parameter lambda.
-\item \code{median.kt} - Median number of time steps until the aggregated
-transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to
-\code{1e-3}.
+\item \code{y} - Time-series data used to fit the model.
+\item \code{run.time} - Algorithm run time in seconds.
+\item \code{iter} - Number of iterations until convergence was reached.
+\item \code{dqlm.ind} - Logical value indicating whether gamma was fixed at \code{0}, reducing the exDQLM to the special case of the DQLM.
+\item \code{model} - List of the state-space model including \code{GG}, \code{FF}, prior parameters \code{m0} and \code{C0}.
+\item \code{p0} - The quantile which was estimated.
+\item \code{df} - Discount factors used for each block.
+\item \code{dim.df} - Dimension used for each block of discount factors.
+\item \code{sig.init} - Initial value for sigma, or value at which sigma was fixed if \code{fix.sigma=TRUE}.
+\item \code{seq.sigma} - Sequence of sigma estimated by the algorithm until convergence.
+\item \code{samp.theta} - Posterior sample of the state vector variational distribution.
+\item \code{samp.post.pred} - Sample of the posterior predictive distributions.
+\item \code{map.standard.forecast.errors} - MAP standardized one-step-ahead forecast errors.
+\item \code{samp.sigma} - Posterior sample of scale parameter sigma variational distribution.
+\item \code{samp.vts} - Posterior sample of latent parameters, v_t, variational distributions.
+\item \code{theta.out} - List containing the variational distribution of the state vector including filtered distribution parameters (\code{fm} and \code{fC}) and smoothed distribution parameters (\code{sm} and \code{sC}).
+\item \code{vts.out} - List containing the variational distributions of latent parameters v_t.
+\item \code{fix.sigma} Logical value indicating whether sigma was fixed at \code{sig.init}.
+\item \code{diagnostics} - List containing ELBO trace, standardized VB iteration
+trace \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
+convergence deltas), and convergence diagnostics (joint stopping status,
+deltas for state/sigma/gamma/ELBO, and criteria used).
+}
+If \code{dqlm.ind=FALSE}, the list also contains:
+\itemize{
+\item \code{gam.init} - Initial value for gamma, or value at which gamma was fixed if \code{fix.gamma=TRUE}.
+\item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
+\item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
+\item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
+\item \code{gammasig.out} - List containing the LD (Laplace-Delta) approximation for the
+variational distribution of \code{sigma} and \code{gamma} (means, transformed Hessian, and ELBO components).
+\item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
+\item \code{fix.gamma} Logical value indicating whether gamma was fixed at \code{gam.init}.
+}
+Or if \code{dqlm.ind=TRUE}, the list also contains:
+\itemize{
+\item \code{sig.out} - As above but for the DQLM case (\code{gamma = 0}), the LD approximation for \code{sigma}.
 }
 }
 \description{
 The function applies a Laplace-Delta Variational Bayes (LDVB) algorithm to
 estimate the posterior of an exDQLM with an exponential-decay transfer
-function component.
+function component. For multivariate transfer inputs, each column of
+\code{X} has its own instantaneous coefficient state in \eqn{\psi_t}, while a
+single scalar decay rate \code{lam} controls persistence of the accumulated
+transfer effect \eqn{\zeta_t}.
 }
+\section{Transfer-function return fields}{
+
+In addition to the standard \code{exdqlmLDVB()} return values, the returned
+\code{model}, \code{df}, and \code{dim.df} entries correspond to the
+transfer-function-augmented state-space model, with appended \eqn{\zeta_t}
+and \eqn{\psi_t} states. The object also contains:
+\itemize{
+\item \code{lam} - Single transfer-function decay-rate parameter
+\eqn{\lambda}.
+\item \code{median.kt} - Median number of time steps until the aggregated
+transfer effect \eqn{|x_t^\top \psi_{t-1}|} is less than or equal to
+\code{1e-3}.
+\item \code{transfer_input_names} - Column names of the transfer inputs
+after normalization of \code{X}.
+}
+}
+
 \examples{
 \donttest{
 data("scIVTmag", package = "exdqlm")

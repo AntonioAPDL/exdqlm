@@ -9,12 +9,12 @@ test_that("dynamic diagnostics expose flipped KL and CRPS metrics", {
     GG = array(1, dim = c(1, 1, TT))
   ))
 
-  old_opts <- options(
+  old_exdqlm_opts <- options(
     exdqlm.use_cpp_kf = FALSE,
     exdqlm.compute_elbo = TRUE,
     exdqlm.max_iter = 20L
   )
-  on.exit(options(old_opts), add = TRUE)
+  on.exit(options(old_exdqlm_opts), add = TRUE)
 
   fit <- exdqlmLDVB(
     y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
@@ -29,10 +29,11 @@ test_that("dynamic diagnostics expose flipped KL and CRPS metrics", {
     diags$m2.KL, diags$m2.KL.flip, diags$m2.CRPS
   ))))
 
-  old_opts <- options(scipen = 123)
-  on.exit(options(old_opts), add = TRUE)
+  old_scipen_opts <- options(scipen = 123L)
+  on.exit(options(old_scipen_opts), add = TRUE)
+  expected_scipen <- getOption("scipen")
   expect_output(print(diags), "KL \\(flipped\\)")
-  expect_identical(getOption("scipen"), 123)
+  expect_identical(getOption("scipen"), expected_scipen)
 
   expect_output(diag_summary <- summary(diags), "Diagnostic")
   expect_s3_class(diag_summary, "data.frame")
