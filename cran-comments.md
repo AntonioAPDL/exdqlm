@@ -57,17 +57,12 @@ No default backend flip was introduced in this consolidated 0.4.0 release:
 
 ### Win-builder / additional platform checks
 
-Win-builder should be run by the submitting maintainer before final CRAN upload.
-It was not submitted from this local AlmaLinux host because `devtools` is not
-available here.
-
-Recommended commands:
-
-- `devtools::check_win_release()`
-- `devtools::check_win_devel()`
-
-Fill in prior to submission:
-
-- win-builder r-release: `[PENDING / PASS / FAIL]`
-- win-builder r-devel: `[PENDING / PASS / FAIL]`
-- Additional notes (if any): `[ ... ]`
+- win-builder r-release: `0 errors | 0 warnings | 1 note`
+- win-builder r-devel: `0 errors | 0 warnings | 1 note`
+- Note: `Possibly misspelled words in DESCRIPTION: 
+  DQLM (21:46)
+  ISVB (20:49)
+  LDVB (20:26, 21:20)
+  exAL (18:6, 20:66)
+  exDQLMs (19:37)` 
+  All acronyms listed are specific to the models implemented in our package. Spelling was double checked and is correct.
