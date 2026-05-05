@@ -21,13 +21,27 @@ test_that("dynamic diagnostics expose flipped KL and CRPS metrics", {
     dqlm.ind = TRUE, fix.sigma = FALSE,
     tol = 0.05, n.samp = 12, verbose = FALSE
   )
-  diags <- exdqlmDiagnostics(fit, fit, plot = FALSE, ref = stats::rnorm(TT))
+  diags <- exdqlmDiagnostics(
+    fit, fit,
+    plot = FALSE,
+    ref = stats::rnorm(TT),
+    crps_probs = c(0.25, 0.5, 0.75),
+    crps_weights = c(1, 2, 1)
+  )
 
   expect_true(all(c("m1.KL.flip", "m1.CRPS", "m2.KL.flip", "m2.CRPS") %in% names(diags)))
+  expect_equal(diags$crps.method, "integrated_quantile_score")
+  expect_equal(diags$crps.probs, c(0.25, 0.5, 0.75))
+  expect_equal(diags$crps.weights, c(0.25, 0.5, 0.25))
   expect_true(all(is.finite(c(
     diags$m1.KL, diags$m1.KL.flip, diags$m1.CRPS,
     diags$m2.KL, diags$m2.KL.flip, diags$m2.CRPS
   ))))
+
+  expect_error(
+    exdqlmDiagnostics(fit, plot = FALSE, crps_probs = c(0.1, 1)),
+    "strictly between"
+  )
 
   old_scipen_opts <- options(scipen = 123L)
   on.exit(options(old_scipen_opts), add = TRUE)

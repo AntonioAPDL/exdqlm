@@ -1,3 +1,11 @@
+# exdqlm 0.5.0
+
+## Development
+- Changed the dynamic diagnostics CRPS calculation to use a finite integrated
+  quantile-score approximation over posterior predictive empirical quantiles.
+  The default grid is `seq(0.01, 0.99, by = 0.01)`, with optional user-supplied
+  quantile levels and weights through `exdqlmDiagnostics()`.
+
 # exdqlm 0.4.0
 
 ## New

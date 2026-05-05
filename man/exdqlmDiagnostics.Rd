@@ -9,7 +9,9 @@ exdqlmDiagnostics(
   m2 = NULL,
   plot = TRUE,
   cols = c("red", "blue"),
-  ref = NULL
+  ref = NULL,
+  crps_probs = seq(0.01, 0.99, by = 0.01),
+  crps_weights = NULL
 )
 }
 \arguments{
@@ -25,6 +27,14 @@ legacy "\code{exdqlmISVB}".}
 
 \item{ref}{Optional reference sample of size \code{length(m1$y)} from a standard
 normal distribution. Used to compute the KL divergences.}
+
+\item{crps_probs}{Numeric vector of quantile levels used to approximate CRPS
+through the integrated quantile-score identity. Values must be strictly
+between 0 and 1. Default is \code{seq(0.01, 0.99, by = 0.01)}.}
+
+\item{crps_weights}{Optional non-negative numeric weights for \code{crps_probs}.
+When \code{NULL}, equal weights are used. When provided, weights are normalized
+to sum to 1.}
 }
 \value{
 An object of class "\code{exdqlmDiagnostic}" containing the following:
@@ -33,21 +43,26 @@ An object of class "\code{exdqlmDiagnostic}" containing the following:
 \item \code{m1.KL} - The KL divergence of \code{m1.uts} and a standard normal.
 \item \code{m1.KL.flip} - The reversed ("flipped") KL divergence of \code{m1.uts}
 and a standard normal.
-\item \code{m1.CRPS} - The mean CRPS computed from posterior predictive draws.
+\item \code{m1.CRPS} - The mean CRPS approximated by a finite integrated
+quantile score over posterior predictive empirical quantiles.
 \item \code{m1.pplc} - The posterior predictive loss criterion of \code{m1} based off the check loss function.
 \item \code{m1.qq} - The ordered pairs of the qq-plot comparing \code{m1.uts} with a standard normal distribution.
 \item \code{m1.acf} - The autocorrelations of \code{m1.uts} by lag.
 \item \code{m1.rt} - Run-time of the original model \code{m1} in seconds.
 \item \code{m1.msfe} - MAP standardized one-step-ahead forecast errors from the original model \code{m1}.
 \item \code{y} - The original time-series used to fit \code{m1}.
+\item \code{crps.method} - The CRPS approximation method.
+\item \code{crps.probs} - The quantile levels used for the CRPS approximation.
+\item \code{crps.weights} - The normalized weights used for the CRPS approximation.
 }
 If \code{m2} is provided, analogous results for \code{m2} are also included in the list.
 }
 \description{
 The function computes the following for the model(s) provided: the posterior
-predictive loss criterion based off the check loss, the CRPS from posterior
-predictive draws, the one-step-ahead distribution sequence, and both the
-forward and reversed KL divergences from normality. The function also plots
+predictive loss criterion based off the check loss, the CRPS approximated as
+a finite integrated quantile score over posterior predictive empirical
+quantiles, the one-step-ahead distribution sequence, and both the forward and
+reversed KL divergences from normality. The function also plots
 the following: the qq-plot and ACF plot corresponding to the one-step-ahead
 distribution sequence, and a time series plot of the MAP standard forecast
 errors.

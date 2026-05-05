@@ -47,6 +47,14 @@
 #'   \item Optional C++ acceleration for selected state-space computations.
 #' }
 #'
+#' @section Development changes in 0.5.0:
+#' \itemize{
+#'   \item Dynamic diagnostics report CRPS through a finite integrated
+#'         quantile-score approximation over posterior predictive empirical
+#'         quantiles, with user-configurable quantile levels and weights in
+#'         [exdqlmDiagnostics()].
+#' }
+#'
 #' @section Runtime options:
 #' \itemize{
 #'   \item `options(exdqlm.use_cpp_kf = TRUE|FALSE)` – C++ Kalman bridge (optional; default TRUE).

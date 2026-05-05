@@ -58,6 +58,16 @@ controls available only when users need to override the defaults.
 }
 }
 
+\section{Development changes in 0.5.0}{
+
+\itemize{
+\item Dynamic diagnostics report CRPS through a finite integrated
+quantile-score approximation over posterior predictive empirical
+quantiles, with user-configurable quantile levels and weights in
+\code{\link[=exdqlmDiagnostics]{exdqlmDiagnostics()}}.
+}
+}
+
 \section{Runtime options}{
 
 \itemize{
@@ -89,6 +99,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Raquel Barata \email{raquel.a.barata@gmail.com}
   \item Antonio Aguirre
 }
 

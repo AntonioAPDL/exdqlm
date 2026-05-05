@@ -896,7 +896,47 @@ check_ts = function(dat){
   )
 }
 
-.exdqlm_crps_row <- function(y_true, draws_vec) {
+.exdqlm_validate_crps_probs <- function(crps_probs) {
+  crps_probs <- as.numeric(crps_probs)
+  if (!length(crps_probs) ||
+      any(!is.finite(crps_probs)) ||
+      any(crps_probs <= 0 | crps_probs >= 1)) {
+    stop("`crps_probs` must be a non-empty numeric vector with values strictly between 0 and 1.", call. = FALSE)
+  }
+  if (anyDuplicated(crps_probs)) {
+    stop("`crps_probs` must not contain duplicate values.", call. = FALSE)
+  }
+  sort(crps_probs)
+}
+
+.exdqlm_validate_crps_weights <- function(crps_weights, n_probs) {
+  if (is.null(crps_weights)) {
+    return(rep(1 / n_probs, n_probs))
+  }
+  crps_weights <- as.numeric(crps_weights)
+  if (length(crps_weights) != n_probs ||
+      any(!is.finite(crps_weights)) ||
+      any(crps_weights < 0) ||
+      sum(crps_weights) <= 0) {
+    stop("`crps_weights` must be a non-negative numeric vector with length equal to `crps_probs` and positive sum.", call. = FALSE)
+  }
+  crps_weights / sum(crps_weights)
+}
+
+.exdqlm_empirical_quantile_type7 <- function(z, probs) {
+  z <- sort(as.numeric(z))
+  z <- z[is.finite(z)]
+  m <- length(z)
+  if (!m) {
+    return(rep(NA_real_, length(probs)))
+  }
+  h <- 1 + (m - 1) * probs
+  lo <- floor(h)
+  hi <- ceiling(h)
+  z[lo] + (h - lo) * (z[hi] - z[lo])
+}
+
+.exdqlm_crps_sample_row <- function(y_true, draws_vec) {
   z <- sort(as.numeric(draws_vec))
   z <- z[is.finite(z)]
   m <- length(z)
@@ -906,11 +946,43 @@ check_ts = function(dat){
   mean(abs(z - y_true)) - sum((2 * seq_len(m) - m - 1) * z) / (m^2)
 }
 
-.exdqlm_crps_vec <- function(y_true, draws_mat) {
+.exdqlm_crps_sample_vec <- function(y_true, draws_mat) {
   draws_mat <- as.matrix(draws_mat)
   stopifnot(length(y_true) == nrow(draws_mat))
   vapply(seq_len(nrow(draws_mat)), function(i) {
-    .exdqlm_crps_row(y_true[[i]], draws_mat[i, ])
+    .exdqlm_crps_sample_row(y_true[[i]], draws_mat[i, ])
+  }, numeric(1))
+}
+
+.exdqlm_crps_row_validated <- function(y_true, draws_vec, probs, weights) {
+  if (!is.finite(y_true)) {
+    return(NA_real_)
+  }
+  qhat <- .exdqlm_empirical_quantile_type7(draws_vec, probs)
+  if (!any(is.finite(qhat))) {
+    return(NA_real_)
+  }
+  loss <- CheckLossFn(probs, y_true - qhat)
+  2 * sum(weights * loss)
+}
+
+.exdqlm_crps_row <- function(y_true, draws_vec,
+                             probs = seq(0.01, 0.99, by = 0.01),
+                             weights = NULL) {
+  probs <- .exdqlm_validate_crps_probs(probs)
+  weights <- .exdqlm_validate_crps_weights(weights, length(probs))
+  .exdqlm_crps_row_validated(y_true, draws_vec, probs, weights)
+}
+
+.exdqlm_crps_vec <- function(y_true, draws_mat,
+                             probs = seq(0.01, 0.99, by = 0.01),
+                             weights = NULL) {
+  probs <- .exdqlm_validate_crps_probs(probs)
+  weights <- .exdqlm_validate_crps_weights(weights, length(probs))
+  draws_mat <- as.matrix(draws_mat)
+  stopifnot(length(y_true) == nrow(draws_mat))
+  vapply(seq_len(nrow(draws_mat)), function(i) {
+    .exdqlm_crps_row_validated(y_true[[i]], draws_mat[i, ], probs, weights)
   }, numeric(1))
 }
 
