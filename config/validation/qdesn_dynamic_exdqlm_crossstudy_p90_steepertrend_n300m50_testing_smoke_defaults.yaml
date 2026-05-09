@@ -16,20 +16,20 @@ execution:
     base_seed: 41000
 study_contract:
   core_lane: yes
-  id: p90_steepertrend_n300m50_testing_smoke_reduced_mcmc_budget
+  id: p90_steepertrend_n300m50_testing_smoke_fast_infrastructure_budget
   description: >-
     Testing/smoke-only QDESN dynamic relaunch scaffold on the promoted period-90
     steeper-trend dataset surface using the active n400/m60 deep reservoir
     profile. It keeps the pathing, retention, LDVB warm-start, and compact-output
-    contract while reducing MCMC posterior samples and posterior summary draws so
-    dry/smoke validation can exercise the machinery without spending the full
-    canonical compute budget.
+    contract while sharply reducing VB/MCMC smoke budgets so dry/smoke
+    validation can exercise the machinery without spending the full canonical
+    compute budget. MCMC quality is not evaluated from this profile.
   budget:
     posterior_metric_draws: 2000
     vb_sampling_nd_draws: 2000
     vb_synthesis_n_samp: 2000
-    mcmc_n_burn: 1000
-    mcmc_n_mcmc: 2000
+    mcmc_n_burn: 100
+    mcmc_n_mcmc: 200
     mcmc_thin: 1
   vb:
     method: LDVB
@@ -55,9 +55,9 @@ study_contract:
       delay_laplace_refresh_until_after_warmup: yes
     vb_warm_start:
       method: LDVB
-      max_iter: 300
-      min_iter_elbo: 80
-      n_samp_xi: 1000
+      max_iter: 80
+      min_iter_elbo: 20
+      n_samp_xi: 300
       sigmagam:
         freeze_warmup_iters: 10
         force_after_warmup: yes
@@ -173,10 +173,10 @@ signoff:
     rhs_rel_range_warn: 0.2
     require_converged_for_pass: yes
   mcmc:
-    min_keep_pass: 300
-    min_keep_warn: 180
-    ess_pass: 30
-    ess_warn: 10
+    min_keep_pass: 120
+    min_keep_warn: 60
+    ess_pass: 8
+    ess_warn: 3
     acf1_pass: 0.9
     acf1_warn: 0.98
     geweke_absz_pass: 2.0
@@ -280,9 +280,9 @@ pipeline:
     likelihood_family: exal
     readout_scale: yes
     vb:
-      max_iter: 300
-      min_iter_elbo: 80
-      n_samp_xi: 1000
+      max_iter: 80
+      min_iter_elbo: 20
+      n_samp_xi: 300
       verbose: yes
       sigmagam:
         freeze_warmup_iters: 10
@@ -301,13 +301,13 @@ pipeline:
         force_tau_after_warmup: yes
       prior_overrides:
         ridge:
-          max_iter: 300
-          min_iter_elbo: 80
-          n_samp_xi: 1000
+          max_iter: 80
+          min_iter_elbo: 20
+          n_samp_xi: 300
         rhs_ns:
-          max_iter: 300
-          min_iter_elbo: 80
-          n_samp_xi: 1000
+          max_iter: 80
+          min_iter_elbo: 20
+          n_samp_xi: 300
           rhs:
             freeze_tau_iters: 50
             freeze_tau_warmup_iters: 50
@@ -337,17 +337,17 @@ pipeline:
             init_log_lambda: 0.0
             init_log_c2: 0.0
     mcmc:
-      n_burn: 1000
-      n_mcmc: 2000
+      n_burn: 100
+      n_mcmc: 200
       thin: 1
       verbose: yes
-      progress_every: 250
+      progress_every: 50
       init_from_vb: yes
       vb_warm_start_control:
         method: ldvb
-        max_iter: 300
-        min_iter_elbo: 80
-        n_samp_xi: 1000
+        max_iter: 80
+        min_iter_elbo: 20
+        n_samp_xi: 300
         verbose: no
         sigmagam:
           freeze_warmup_iters: 10
@@ -371,7 +371,7 @@ pipeline:
         - -20
         - 20
       rhs:
-        freeze_tau_burnin_iters: 500
+        freeze_tau_burnin_iters: 50
         freeze_tau_only_during_burn: yes
         width_adapt:
           enabled: no
@@ -405,9 +405,9 @@ pipeline:
         max_shrink_sigma: 400
       prior_overrides:
         ridge:
-          n_burn: 1000
-          n_mcmc: 2000
-          progress_every: 250
+          n_burn: 100
+          n_mcmc: 200
+          progress_every: 50
           slice:
             core_update_mode: sigma_then_gamma
             width_gamma: 0.45
@@ -418,11 +418,11 @@ pipeline:
             max_steps_out_sigma: 150
             max_shrink_sigma: 400
         rhs_ns:
-          n_burn: 1000
-          n_mcmc: 2000
-          progress_every: 250
+          n_burn: 100
+          n_mcmc: 200
+          progress_every: 50
           rhs:
-            freeze_tau_burnin_iters: 500
+            freeze_tau_burnin_iters: 50
             freeze_tau_only_during_burn: yes
             width_adapt:
               enabled: no

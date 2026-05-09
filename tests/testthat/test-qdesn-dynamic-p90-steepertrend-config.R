@@ -315,6 +315,56 @@ test_that("dynamic cross-study keeps explicit DESN seed separate from root metad
   expect_identical(as.integer(enriched$desn_seed), 123L)
 })
 
+test_that("n400m60 testing smoke uses a fast infrastructure-only MCMC budget", {
+  repo_root <- normalizePath(pkgload::pkg_path(), winslash = "/", mustWork = TRUE)
+  defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(
+    repo_root,
+    "config",
+    "validation",
+    "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_testing_smoke_defaults.yaml"
+  ))
+  grid <- exdqlm:::qdesn_dynamic_crossstudy_load_grid(file.path(
+    repo_root,
+    "config",
+    "validation",
+    "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_fresh_micro_smoke_grid.csv"
+  ))
+  root_spec <- as.list(grid[1L, , drop = FALSE])
+  root_spec <- lapply(root_spec, function(x) x[[1L]])
+
+  expect_identical(as.integer(defaults$study_contract$budget$mcmc_n_burn), 100L)
+  expect_identical(as.integer(defaults$study_contract$budget$mcmc_n_mcmc), 200L)
+  expect_identical(as.integer(defaults$pipeline$inference$vb$max_iter), 80L)
+  expect_identical(as.integer(defaults$pipeline$inference$vb$n_samp_xi), 300L)
+  expect_identical(as.integer(defaults$signoff$mcmc$min_keep_pass), 120L)
+
+  vb_cfg <- exdqlm:::qdesn_static_crossstudy_build_pipeline_cfg(
+    root_spec = root_spec,
+    defaults = defaults,
+    method = "vb",
+    likelihood_family = "exal",
+    x_cols = character(),
+    T_use = as.integer(root_spec$source_total_size)
+  )
+  mcmc_cfg <- exdqlm:::qdesn_static_crossstudy_build_pipeline_cfg(
+    root_spec = root_spec,
+    defaults = defaults,
+    method = "mcmc",
+    likelihood_family = "exal",
+    x_cols = character(),
+    T_use = as.integer(root_spec$source_total_size)
+  )
+
+  expect_identical(as.integer(vb_cfg$desn$seed), 123L)
+  expect_identical(as.integer(vb_cfg$inference$vb$max_iter), 80L)
+  expect_identical(as.integer(vb_cfg$inference$vb$n_samp_xi), 300L)
+  expect_identical(as.integer(mcmc_cfg$desn$seed), 123L)
+  expect_identical(as.integer(mcmc_cfg$inference$mcmc$n_burn), 100L)
+  expect_identical(as.integer(mcmc_cfg$inference$mcmc$n_mcmc), 200L)
+  expect_identical(as.integer(mcmc_cfg$inference$mcmc$progress_every), 50L)
+  expect_identical(as.integer(mcmc_cfg$inference$mcmc$vb_warm_start_control$max_iter), 80L)
+})
+
 test_that("analysis retention writes compact fit paths before pruning full forecast objects", {
   tmp <- tempfile("qdesn-retention-")
   source_path <- file.path(tmp, "series_wide.csv")

@@ -135,11 +135,15 @@ Testing/smoke budget:
   - `posterior_metric_draws: 2000`
   - `vb_sampling_nd_draws: 2000`
   - `vb_synthesis_n_samp: 2000`
-  - `mcmc_n_burn: 1000`
-  - `mcmc_n_mcmc: 2000`
+  - `vb.max_iter: 80`
+  - `vb.n_samp_xi: 300`
+  - `mcmc_n_burn: 100`
+  - `mcmc_n_mcmc: 200`
   - `mcmc_thin: 1`
 - The reduced MCMC settings are present in the study contract, base
   `pipeline.inference.mcmc`, and both `ridge` and `rhs_ns` prior overrides.
+- The smoke MCMC signoff thresholds are intentionally relaxed because this lane
+  is an infrastructure/storage gate, not an MCMC-quality gate.
 
 ## Generated Local Evidence
 
@@ -164,12 +168,22 @@ artifacts:
 - Aborted active-DESN active-RHS micro-smoke that exposed the dynamic
   `desn_seed` propagation bug:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-smoke-20260509-173753__git-b46bdee`
+- Stopped corrected active-DESN active-RHS micro-smoke that verified seed/storage
+  but exposed an overly heavy smoke budget:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-smoke-20260509-fixseed__git-ccb7fd0`
 
 The aborted micro-smoke is not valid active-spec evidence because its
 `fit_request.json` files showed `config.desn.seed` equal to the root metadata
 seed, for example `62010`, instead of the requested DESN seed `123`. It was
 stopped immediately after this was detected and must not be used for article
 tables or launch approval.
+
+The stopped `fixseed` micro-smoke is valid evidence for corrected DESN seed
+propagation and compact retention on completed fits, but it is not a completed
+smoke. Its live `fit_request.json` files showed `cfg_desn_seed=123`; completed
+VB fits pruned full `forecast_objects.rds` after compact path export. It was
+stopped because the smoke-only VB/MCMC budget was still too expensive for the
+n400/m60 profile.
 
 The shared cross-chat tracker is outside this git repository:
 
@@ -258,12 +272,17 @@ Active-DESN wiring checks:
 - Targeted regression verification after the fix:
   `pkgload::load_all(".", quiet = TRUE); testthat::test_file("tests/testthat/test-qdesn-dynamic-p90-steepertrend-config.R", reporter = "summary")`
   completed successfully.
+- The first corrected micro-smoke using `ccb7fd0` was stopped at `2026-05-09
+  18:24 EDT` with `3` completed fits and `3` retention manifests. It confirmed
+  DESN seed `123` in live fit logs, but it showed that the previous smoke
+  budget (`vb.max_iter=300`, `mcmc_n_burn=1000`, `mcmc_n_mcmc=2000`) was too
+  slow for infrastructure smoke on the n400/m60 profile.
 
 Observed result:
 
-- `ridge`: `n_burn=1000`, `n_mcmc=2000`, `thin=1`, `nd_draws=2000`,
+- `ridge`: `n_burn=100`, `n_mcmc=200`, `thin=1`, `nd_draws=2000`,
   `synthesis_n=2000`, `posterior_metric_draws=2000`.
-- `rhs_ns`: `n_burn=1000`, `n_mcmc=2000`, `thin=1`, `nd_draws=2000`,
+- `rhs_ns`: `n_burn=100`, `n_mcmc=200`, `thin=1`, `nd_draws=2000`,
   `synthesis_n=2000`, `posterior_metric_draws=2000`.
 
 Reduced-budget standard-smoke prepare-only preflight:
