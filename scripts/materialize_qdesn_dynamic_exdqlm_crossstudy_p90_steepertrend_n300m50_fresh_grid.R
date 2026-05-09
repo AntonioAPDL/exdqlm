@@ -34,6 +34,8 @@ manifest_path <- file.path(
 historical_reservoir_profile <- "deep_d3_n300x3_skip100_w300_m50"
 fresh_reservoir_profile <- "deep_d3_n400x3_skip100_w300_m60"
 fresh_desn_seed <- 123L
+fresh_rhs_tau0 <- "1.0e-5"
+fresh_rhs_s2 <- "1.0"
 fresh_reservoir_profile_lines <- c(
   "reservoir_profiles:",
   "  deep_d3_n400x3_skip100_w300_m60:",
@@ -128,6 +130,8 @@ fresh_lines <- gsub(
   fixed = TRUE
 )
 fresh_lines <- gsub(historical_reservoir_profile, fresh_reservoir_profile, fresh_lines, fixed = TRUE)
+fresh_lines <- gsub("            tau0: 0.01", sprintf("            tau0: %s", fresh_rhs_tau0), fresh_lines, fixed = TRUE)
+fresh_lines <- gsub("            s2: 0.5", sprintf("            s2: %s", fresh_rhs_s2), fresh_lines, fixed = TRUE)
 fresh_lines <- replace_yaml_section(
   fresh_lines,
   "^reservoir_profiles:",
@@ -249,6 +253,7 @@ manifest_lines <- c(
   sprintf("active_reservoir_profile=%s", fresh_reservoir_profile),
   sprintf("active_desn_seed=%d", fresh_desn_seed),
   "active_reservoir_spec=D=3;n=400,400,400;n_tilde=400,400;m=60;alpha=0.3,0.3,0.3;rho=0.95,0.95,0.95;act_f=tanh,tanh,tanh;act_k=identity,identity,identity;pi_w=0.1,0.1,0.1;pi_in=1.0,1.0,1.0;washout=300;add_bias=yes;seed=123",
+  sprintf("active_rhs_ns_prior=tau0=%s;a_zeta=2.0;b_zeta=1.0;s2=%s;shrink_intercept=no;intercept_prec=1.0e-10;n_inner=2;var_floor=1.0e-08", fresh_rhs_tau0, fresh_rhs_s2),
   "",
   "storage_light_outputs:",
   "retention_profile=analysis",

@@ -23,8 +23,8 @@ period-90 steeper-trend validation scaffold.
 The inherited file and run-tag stem still contains `n300m50` because the scaffold
 was derived from the previous n300/m50 campaign. The active DESN candidate for
 new dry/smoke/full validation is now the user-proposed n400/m60 profile below.
-The final 144-fit article-facing campaign remains blocked until the RHS prior
-change is specified, wired, and revalidated through the same gates.
+The final 144-fit article-facing campaign remains blocked until the active DESN
+and RHS prior are revalidated through the same gates.
 
 ## Active DESN Candidate
 
@@ -56,13 +56,33 @@ Effective seed handling:
   run identity, but it no longer overrides the DESN reservoir seed for these
   fresh grids.
 
+## Active RHS-NS Prior
+
+The active `rhs_ns` prior for both VB and MCMC is:
+
+- `tau0: 1.0e-5`
+- `a_zeta: 2.0`
+- `b_zeta: 1.0`
+- `s2: 1.0`
+- `shrink_intercept: no`
+- `intercept_prec: 1.0e-10`
+- `n_inner: 2`
+- `var_floor: 1.0e-08`
+
+For VB, the existing initialization settings remain:
+
+- `init_log_tau: ~`
+- `init_log_lambda: 0.0`
+- `init_log_c2: 0.0`
+
 Wired into:
 
 - fresh storage-light defaults;
 - reduced-budget testing/smoke defaults;
 - fresh full, smoke, and micro-smoke grids;
 - the materializer script, so regenerated fresh grids keep the active n400/m60
-  profile rather than reverting to the historical n300/m50 profile.
+  profile and active RHS prior rather than reverting to the historical n300/m50
+  profile or old RHS prior.
 
 ## Tracked Files Added Or Updated
 
@@ -135,6 +155,10 @@ artifacts:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-current-micro-preflight-20260509__git-f7e1c87-dirty/launch/qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json`
 - Active-DESN current-RHS selected micro grid:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-current-micro-preflight-20260509__git-f7e1c87-dirty/launch/selected_grid_full.csv`
+- Active-DESN active-RHS micro prepare-only preflight manifest:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-preflight-20260509__git-8253ed3-dirty/launch/qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json`
+- Active-DESN active-RHS selected micro grid:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-preflight-20260509__git-8253ed3-dirty/launch/selected_grid_full.csv`
 
 The shared cross-chat tracker is outside this git repository:
 
@@ -205,11 +229,16 @@ Active-DESN wiring checks:
 - Package-level config build verified that both `ridge` and `rhs_ns`, for both
   `vb` and `mcmc`, resolve to `D=3`, `n=400,400,400`, `n_tilde=400,400`,
   `m=60`, `alpha=0.3,0.3,0.3`, `washout=300`, and effective DESN seed `123`.
-- Prepare-only runner preflight on the active-DESN/current-RHS micro grid wrote a
+- YAML parsing verified that both fresh defaults resolve `rhs_ns` to
+  `tau0=1.0e-5` and `s2=1.0` for both VB and MCMC.
+- Package-level config build verified that active `rhs_ns` resolves to
+  `tau0=1.0e-5`, `a_zeta=2.0`, `b_zeta=1.0`, `s2=1.0`,
+  `shrink_intercept=FALSE`, `intercept_prec=1.0e-10`, `n_inner=2`, and
+  `var_floor=1.0e-08` for both VB and MCMC.
+- Prepare-only runner preflight on the active-DESN/active-RHS micro grid wrote a
   selected grid with `4` roots, `2` dataset cells, `4` requested fits per root,
   active reservoir `deep_d3_n400x3_skip100_w300_m60`, `desn_seed=123`, and no
-  `/home/.../local/src` hits. This is a wiring check only; it must be repeated
-  after the RHS prior change is specified and wired.
+  `/home/.../local/src` hits.
 
 Observed result:
 
@@ -300,13 +329,12 @@ Rscript scripts/launch_qdesn_dynamic_exdqlm_crossstudy_validation.R \
 
 Before any final 144-fit article-facing campaign:
 
-1. Specify and wire the intended RHS prior change.
-2. Re-run the path hygiene and source-window audits.
-3. Re-run prepare-only manifests for micro, smoke, and full surfaces.
-4. Run a micro-smoke using the active DESN/RHS-prior spec.
-5. Close out the micro-smoke with storage audit and compact-output evidence.
-6. Run the standard smoke only after the new-spec micro-smoke passes.
-7. Launch the full 144-fit campaign only after explicit approval.
+1. Re-run the path hygiene and source-window audits.
+2. Re-run prepare-only manifests for micro, smoke, and full surfaces.
+3. Run a micro-smoke using the active DESN/RHS-prior spec.
+4. Close out the micro-smoke with storage audit and compact-output evidence.
+5. Run the standard smoke only after the new-spec micro-smoke passes.
+6. Launch the full 144-fit campaign only after explicit approval.
 
 Do not switch Article-Q-DESN to any current scaffold output. The current
 micro-smoke and reduced-budget smoke preflight are infrastructure evidence only;
