@@ -11,9 +11,8 @@ Branch:
 Base commit during initial wiring:
 `197ffdf999ed873cc490adeef22d3b3f3853cf37`
 
-Active DESN wiring commit:
-`validation: wire qdesn fresh n400m60 reservoir` (current local `HEAD` when this
-note is committed).
+Current local active-spec commit after seed and smoke-budget fixes:
+`ca06a81` (`validation: tighten qdesn n400 smoke budget`).
 
 ## Purpose
 
@@ -171,6 +170,14 @@ artifacts:
 - Stopped corrected active-DESN active-RHS micro-smoke that verified seed/storage
   but exposed an overly heavy smoke budget:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-smoke-20260509-fixseed__git-ccb7fd0`
+- Completed active-DESN active-RHS fast micro-smoke:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-fast-micro-smoke-20260509__git-ca06a81`
+- Active-DESN active-RHS fast micro-smoke closeout:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-fast-micro-smoke-20260509__git-ca06a81/20260509-182711__git-ca06a81/summary/qdesn_dynamic_p90_steepertrend_n400m60_rhs_tau1em5_fast_micro_smoke_closeout.md`
+- Active-DESN active-RHS fast smoke prepare-only preflight:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-fast-smoke-preflight-20260509__git-ca06a81/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- Active-DESN active-RHS full prepare-only preflight:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-full-preflight-20260509__git-ca06a81/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
 
 The aborted micro-smoke is not valid active-spec evidence because its
 `fit_request.json` files showed `config.desn.seed` equal to the root metadata
@@ -184,6 +191,15 @@ smoke. Its live `fit_request.json` files showed `cfg_desn_seed=123`; completed
 VB fits pruned full `forecast_objects.rds` after compact path export. It was
 stopped because the smoke-only VB/MCMC budget was still too expensive for the
 n400/m60 profile.
+
+The completed `fast-micro-smoke` is the current active-spec infrastructure and
+storage gate. It used commit `ca06a81`, active DESN seed `123`, the active
+RHS-NS prior, and a deliberately small smoke-only MCMC budget
+(`n_burn=100`, `n_mcmc=200`, `thin=1`). It completed all `4` roots and all `16`
+fits with runner status `SUCCESS`, produced compact train/holdout CSVs for all
+fits, and retained zero full `forecast_objects.rds` payloads. Its MCMC signoff
+failures are expected for this tiny budget and must not be treated as scientific
+quality approval.
 
 The shared cross-chat tracker is outside this git repository:
 
@@ -203,6 +219,32 @@ Micro-smoke closeout:
 - Compact holdout path CSVs: `16`.
 - Diagnostic signoff mix was `PASS=6`, `WARN=4`, `FAIL=6`; these grades were
   documented but not used as a blocker for the infrastructure/storage gate.
+
+Active n400/m60 fast micro-smoke closeout:
+
+- Run tag:
+  `qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-fast-micro-smoke-20260509__git-ca06a81`
+- Inner run tag: `20260509-182711__git-ca06a81`
+- Completed `4 / 4` roots and `16 / 16` fits with runner status `SUCCESS`.
+- Results footprint was about `22M`; reports footprint was about `468K`.
+- Retained broad `forecast_objects.rds`: `0`.
+- Retained `.rda` / `.RData`: `0`.
+- Retained small diagnostic `.rds` files: `8` `rhs_trace.rds` files
+  (`80,624` bytes total) and `16` `timing_summary.rds` files
+  (`10,132` bytes total).
+- Compact train path CSVs: `16`.
+- Compact holdout path CSVs: `16`.
+- Recorded pre-prune `forecast_objects.rds` bytes across `16` fits:
+  `3,975,511,479`; recorded post-prune bytes: `0`.
+- Train compact source-index range: `2000:6999`; holdout source-index:
+  `7000`.
+- Recursive path hygiene search of the completed run found zero
+  `/home/jaguir26/local/src` hits.
+- Diagnostic signoff mix was MCMC `FAIL=7`, MCMC `WARN=1`, VB `PASS=4`,
+  VB `WARN=3`, VB `FAIL=1`. These are expected under the fast smoke MCMC budget
+  and are not an MCMC-quality approval.
+- Campaign summary recommendation:
+  `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`.
 
 Reduced-budget effective config check:
 
@@ -334,7 +376,7 @@ Regenerate fresh grids and storage-light defaults:
 Rscript scripts/materialize_qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_fresh_grid.R
 ```
 
-Dry preflight the reduced-budget smoke scaffold:
+Dry preflight the active fast smoke scaffold:
 
 ```bash
 Rscript scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R \
@@ -344,23 +386,22 @@ Rscript scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R \
   --prepare-only \
   --allow-grid-subset \
   --no-plots \
-  --workers 2 \
-  --run-tag qdesn-dynamic-p90-steepertrend-n300m50-testing-smoke-preflight-YYYYMMDD__git-SHA
+  --workers 1 \
+  --run-tag qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-fast-smoke-preflight-YYYYMMDD__git-SHA
 ```
 
-Launch a reduced-budget smoke only after explicit compute approval:
+Launch a standard smoke only after explicit compute approval:
 
 ```bash
 Rscript scripts/launch_qdesn_dynamic_exdqlm_crossstudy_validation.R \
-  --runner scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R \
   --defaults config/validation/qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_testing_smoke_defaults.yaml \
   --grid config/validation/qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_fresh_smoke_grid.csv \
   --batch full \
   --allow-grid-subset \
   --no-plots \
-  --workers 2 \
-  --tmux-session qdesn_p90_n300m50_testing_smoke \
-  --run-tag qdesn-dynamic-p90-steepertrend-n300m50-testing-smoke-YYYYMMDD-HHMMSS__git-SHA
+  --workers 4 \
+  --tmux-session qdesn_p90_n400m60_rhs_tau1em5_smoke_YYYYMMDD \
+  --run-tag qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-smoke-YYYYMMDD-HHMMSS__git-SHA
 ```
 
 ## Gate For The Final Article-Facing Launch
@@ -369,12 +410,14 @@ Before any final 144-fit article-facing campaign:
 
 1. Re-run the path hygiene and source-window audits.
 2. Re-run prepare-only manifests for micro, smoke, and full surfaces.
-3. Run a micro-smoke using the active DESN/RHS-prior spec.
-4. Close out the micro-smoke with storage audit and compact-output evidence.
-5. Run the standard smoke only after the new-spec micro-smoke passes.
+3. Treat the completed active-spec fast micro-smoke as the current
+   infrastructure/storage gate, not as MCMC-quality approval.
+4. Decide whether standard smoke should use the fast MCMC budget, a staged
+   VB-first / MCMC-subset design, or a larger MCMC budget.
+5. Run the standard smoke only after that design is explicitly approved.
 6. Launch the full 144-fit campaign only after explicit approval.
 
 Do not switch Article-Q-DESN to any current scaffold output. The current
-micro-smoke and reduced-budget smoke preflight are infrastructure evidence only;
-they used the earlier n300/m50 reservoir and are superseded for final validation
-planning by the n400/m60 candidate wiring.
+micro-smoke evidence is infrastructure/storage evidence only. Article-Q-DESN
+should stay on the previous authoritative full closeout until a full 36-root /
+144-fit n400/m60 run is completed and closed out.
