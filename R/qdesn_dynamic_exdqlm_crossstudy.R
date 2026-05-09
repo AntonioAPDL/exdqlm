@@ -11,6 +11,79 @@ qdesn_dynamic_crossstudy_load_defaults <- function(path = file.path("config", "v
   out
 }
 
+.qdesn_dynamic_crossstudy_path_rewrites <- function(defaults) {
+  path_cfg <- (defaults %||% list())$paths %||% list()
+  rewrites <- path_cfg$rewrites %||% (defaults %||% list())$path_rewrites %||% list()
+  auto_local_src <- isTRUE(path_cfg$rewrite_home_local_src_to_repo_root %||% FALSE)
+
+  if (!length(rewrites)) {
+    out <- data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
+  } else if (is.data.frame(rewrites)) {
+    out <- rewrites
+  } else if (is.list(rewrites) && all(vapply(rewrites, is.list, logical(1)))) {
+    out <- .qdesn_validation_bind_rows(lapply(rewrites, function(x) {
+      data.frame(
+        from = as.character(x$from %||% x$old %||% "")[1L],
+        to = as.character(x$to %||% x$new %||% "")[1L],
+        stringsAsFactors = FALSE
+      )
+    }))
+  } else {
+    out <- data.frame(
+      from = names(rewrites) %||% character(0),
+      to = as.character(unlist(rewrites, use.names = FALSE)),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  if (isTRUE(auto_local_src)) {
+    repo_root <- .qdesn_validation_repo_root()
+    home_root <- Sys.getenv("HOME", unset = "")
+    if (nzchar(home_root)) {
+      out <- rbind(
+        out,
+        data.frame(
+          from = file.path(home_root, "local", "src", basename(repo_root)),
+          to = repo_root,
+          stringsAsFactors = FALSE
+        )
+      )
+    }
+  }
+
+  if (!nrow(out)) return(data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE))
+  out$from <- as.character(out$from)
+  out$to <- as.character(out$to)
+  out <- out[nzchar(out$from) & nzchar(out$to), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.qdesn_dynamic_crossstudy_rewrite_paths <- function(x, defaults) {
+  rewrites <- .qdesn_dynamic_crossstudy_path_rewrites(defaults)
+  if (!nrow(rewrites)) return(x)
+
+  rewrite_chr <- function(value) {
+    out <- as.character(value)
+    for (i in seq_len(nrow(rewrites))) {
+      out <- sub(
+        paste0("^", gsub("([][{}()+*^$|\\\\.?])", "\\\\\\1", rewrites$from[[i]])),
+        rewrites$to[[i]],
+        out
+      )
+    }
+    out
+  }
+
+  if (is.data.frame(x)) {
+    char_cols <- names(x)[vapply(x, is.character, logical(1))]
+    for (nm in char_cols) x[[nm]] <- rewrite_chr(x[[nm]])
+    return(x)
+  }
+  if (is.character(x)) return(rewrite_chr(x))
+  x
+}
+
 qdesn_dynamic_crossstudy_load_grid <- function(path = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_grid.csv"),
                                                repo_root = NULL) {
   grid_path <- .qdesn_validation_resolve_path(path, repo_root = repo_root, must_work = TRUE)
@@ -463,7 +536,7 @@ qdesn_dynamic_crossstudy_materialize_source_inputs <- function(defaults,
       "source_sim_path"
     )
     if (nrow(inventory) && all(required_cols %in% names(inventory))) {
-      return(inventory)
+      return(.qdesn_dynamic_crossstudy_rewrite_paths(inventory, defaults))
     }
   }
 

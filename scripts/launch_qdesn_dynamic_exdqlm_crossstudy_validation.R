@@ -103,9 +103,15 @@ if (!any(child_args == "--batch")) {
   child_args <- c(child_args, "--batch", batch)
 }
 child_args_quoted <- paste(shQuote(child_args), collapse = " ")
+env_export_lines <- unlist(lapply(c("R_LIBS", "R_LIBS_USER", "R_LIBS_SITE"), function(nm) {
+  value <- Sys.getenv(nm, unset = "")
+  if (!nzchar(value)) return(character(0))
+  sprintf("export %s=%s", nm, shQuote(value))
+}), use.names = FALSE)
 script_lines <- c(
   "#!/usr/bin/env bash",
   sprintf("cd %s", shQuote(repo_root)),
+  env_export_lines,
   sprintf("printf '%%s\\n' $$ > %s", shQuote(launcher_pid_path)),
   sprintf("exec Rscript %s %s >> %s 2>&1", shQuote(runner_path), child_args_quoted, shQuote(launcher_log))
 )
@@ -141,6 +147,13 @@ jsonlite::write_json(
     launcher_log = launcher_log,
     launcher_shell_pid_path = launcher_pid_path,
     launcher_script_path = launcher_script_path,
+    r_environment = list(
+      R_version = R.version.string,
+      R_LIBS = Sys.getenv("R_LIBS", unset = ""),
+      R_LIBS_USER = Sys.getenv("R_LIBS_USER", unset = ""),
+      R_LIBS_SITE = Sys.getenv("R_LIBS_SITE", unset = ""),
+      lib_paths = as.list(.libPaths())
+    ),
     child_args = child_args
   ),
   launcher_meta_path,

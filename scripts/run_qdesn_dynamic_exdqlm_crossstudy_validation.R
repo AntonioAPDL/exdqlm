@@ -283,6 +283,16 @@ resource_snapshot <- list(
   active_qdesn_processes = as.list(active_qdesn_processes)
 )
 
+r_environment <- list(
+  version = R.version.string,
+  lib_paths = as.list(.libPaths()),
+  env = list(
+    R_LIBS = Sys.getenv("R_LIBS", unset = ""),
+    R_LIBS_USER = Sys.getenv("R_LIBS_USER", unset = ""),
+    R_LIBS_SITE = Sys.getenv("R_LIBS_SITE", unset = "")
+  )
+)
+
 preflight_manifest <- list(
   generated_at = as.character(Sys.time()),
   git_sha = git_sha,
@@ -340,6 +350,7 @@ preflight_manifest <- list(
     selection_metric = as.character(multiseed_cfg$selection_metric %||% NA_character_)[1L],
     prune_nonwinning_heavy_outputs = isTRUE(multiseed_cfg$prune_nonwinning_heavy_outputs)
   ),
+  r_environment = r_environment,
   resource_snapshot = resource_snapshot,
   output_roots = list(
     outer_results_root = run_results_root,
@@ -382,6 +393,9 @@ preflight_lines <- c(
   sprintf("- active_qdesn_processes_n: `%d`", as.integer(length(active_qdesn_processes))),
   sprintf("- allow_grid_subset: `%s`", if (isTRUE(allow_grid_subset)) "TRUE" else "FALSE"),
   sprintf("- create_plots: `%s`", if (isTRUE(create_plots)) "TRUE" else "FALSE"),
+  sprintf("- R_version: `%s`", R.version.string),
+  sprintf("- R_LIBS: `%s`", Sys.getenv("R_LIBS", unset = "")),
+  sprintf("- R_lib_paths: `%s`", paste(.libPaths(), collapse = " | ")),
   "",
   "## Scope Decision",
   "- study_surface: `dynamic exdqlm-aligned`",
