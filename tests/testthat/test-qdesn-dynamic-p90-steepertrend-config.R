@@ -290,6 +290,31 @@ test_that("p90 steepertrend n300m50 relaunch spec encodes the larger DESN", {
   expect_identical(as.character(defaults$runtime$root_scheduler), "load_balanced")
 })
 
+test_that("dynamic cross-study keeps explicit DESN seed separate from root metadata seed", {
+  repo_root <- normalizePath(pkgload::pkg_path(), winslash = "/", mustWork = TRUE)
+  defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(
+    repo_root,
+    "config",
+    "validation",
+    "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_storage_light_defaults.yaml"
+  ))
+  grid <- exdqlm:::qdesn_dynamic_crossstudy_load_grid(file.path(
+    repo_root,
+    "config",
+    "validation",
+    "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_fresh_micro_smoke_grid.csv"
+  ))
+  root_spec <- as.list(grid[1L, , drop = FALSE])
+  root_spec <- lapply(root_spec, function(x) x[[1L]])
+
+  enriched <- exdqlm:::qdesn_dynamic_crossstudy_enrich_root_spec(root_spec, defaults)
+
+  expect_identical(as.integer(root_spec$seed), 62000L)
+  expect_identical(as.integer(root_spec$desn_seed), 123L)
+  expect_identical(as.integer(enriched$seed), 62000L)
+  expect_identical(as.integer(enriched$desn_seed), 123L)
+})
+
 test_that("analysis retention writes compact fit paths before pruning full forecast objects", {
   tmp <- tempfile("qdesn-retention-")
   source_path <- file.path(tmp, "series_wide.csv")

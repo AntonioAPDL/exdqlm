@@ -972,7 +972,9 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
       fit_size
     ))[1L]
   out$scenario <- source_scenario
-  out$seed <- as.integer(root_spec$seed %||% ((defaults$reservoir_profiles %||% list())[[reservoir_profile]]$seed %||% 123L))[1L]
+  profile_seed <- ((defaults$reservoir_profiles %||% list())[[reservoir_profile]]$seed %||% 123L)
+  out$seed <- as.integer(root_spec$seed %||% profile_seed)[1L]
+  out$desn_seed <- as.integer(root_spec$desn_seed %||% profile_seed)[1L]
   out$root_id <- as.character(root_spec$root_id %||% qdesn_dynamic_crossstudy_build_root_id(out))[1L]
   out
 }

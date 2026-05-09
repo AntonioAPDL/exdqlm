@@ -55,6 +55,8 @@ Effective seed handling:
 - the existing deterministic root `seed` column is retained as root metadata and
   run identity, but it no longer overrides the DESN reservoir seed for these
   fresh grids.
+- this behavior is guarded by a regression test in
+  `tests/testthat/test-qdesn-dynamic-p90-steepertrend-config.R`.
 
 ## Active RHS-NS Prior
 
@@ -159,6 +161,15 @@ artifacts:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-preflight-20260509__git-8253ed3-dirty/launch/qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json`
 - Active-DESN active-RHS selected micro grid:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-preflight-20260509__git-8253ed3-dirty/launch/selected_grid_full.csv`
+- Aborted active-DESN active-RHS micro-smoke that exposed the dynamic
+  `desn_seed` propagation bug:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-micro-smoke-20260509-173753__git-b46bdee`
+
+The aborted micro-smoke is not valid active-spec evidence because its
+`fit_request.json` files showed `config.desn.seed` equal to the root metadata
+seed, for example `62010`, instead of the requested DESN seed `123`. It was
+stopped immediately after this was detected and must not be used for article
+tables or launch approval.
 
 The shared cross-chat tracker is outside this git repository:
 
@@ -239,6 +250,14 @@ Active-DESN wiring checks:
   selected grid with `4` roots, `2` dataset cells, `4` requested fits per root,
   active reservoir `deep_d3_n400x3_skip100_w300_m60`, `desn_seed=123`, and no
   `/home/.../local/src` hits.
+- The first active-DESN active-RHS micro-smoke launch was intentionally stopped
+  after its live `fit_request.json` showed the dynamic root normalizer had
+  dropped `desn_seed`. The fix is in `R/qdesn_dynamic_exdqlm_crossstudy.R`,
+  where enriched dynamic root specs now retain `out$desn_seed` separately from
+  `out$seed`.
+- Targeted regression verification after the fix:
+  `pkgload::load_all(".", quiet = TRUE); testthat::test_file("tests/testthat/test-qdesn-dynamic-p90-steepertrend-config.R", reporter = "summary")`
+  completed successfully.
 
 Observed result:
 
