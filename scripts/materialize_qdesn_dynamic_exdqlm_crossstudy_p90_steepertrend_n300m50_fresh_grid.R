@@ -31,6 +31,67 @@ manifest_path <- file.path(
   "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_fresh_materialization_manifest.txt"
 )
 
+historical_reservoir_profile <- "deep_d3_n300x3_skip100_w300_m50"
+fresh_reservoir_profile <- "deep_d3_n400x3_skip100_w300_m60"
+fresh_desn_seed <- 123L
+fresh_reservoir_profile_lines <- c(
+  "reservoir_profiles:",
+  "  deep_d3_n400x3_skip100_w300_m60:",
+  "    D: 3",
+  "    'n':",
+  "    - 400",
+  "    - 400",
+  "    - 400",
+  "    n_tilde:",
+  "    - 400",
+  "    - 400",
+  "    m: 60",
+  "    alpha:",
+  "    - 0.3",
+  "    - 0.3",
+  "    - 0.3",
+  "    rho:",
+  "    - 0.95",
+  "    - 0.95",
+  "    - 0.95",
+  "    act_f:",
+  "    - tanh",
+  "    - tanh",
+  "    - tanh",
+  "    act_k:",
+  "    - identity",
+  "    - identity",
+  "    - identity",
+  "    pi_w:",
+  "    - 0.1",
+  "    - 0.1",
+  "    - 0.1",
+  "    pi_in:",
+  "    - 1.0",
+  "    - 1.0",
+  "    - 1.0",
+  "    washout: 300",
+  "    add_bias: yes",
+  "    seed: 123"
+)
+
+replace_yaml_section <- function(lines, start_pattern, end_pattern, replacement) {
+  start <- grep(start_pattern, lines)
+  if (!length(start)) {
+    stop(sprintf("Could not find YAML section start matching: %s", start_pattern), call. = FALSE)
+  }
+  start <- start[1L]
+  end <- grep(end_pattern, lines)
+  end <- end[end > start]
+  if (!length(end)) {
+    stop(sprintf("Could not find YAML section end matching: %s", end_pattern), call. = FALSE)
+  }
+  end <- end[1L]
+  prefix <- if (start > 1L) lines[seq_len(start - 1L)] else character()
+  suffix <- lines[seq.int(end, length(lines))]
+  c(prefix, replacement, suffix)
+}
+
 rewrite_local_src_paths <- function(x) {
   if (!is.character(x)) return(x)
   home_root <- Sys.getenv("HOME", unset = "")
@@ -49,8 +110,30 @@ write_csv <- function(df, path) {
   normalizePath(path, winslash = "/", mustWork = TRUE)
 }
 
+move_column_after <- function(df, column, after) {
+  if (!all(c(column, after) %in% names(df))) return(df)
+  cols <- names(df)
+  cols <- cols[cols != column]
+  after_idx <- match(after, cols)
+  cols <- append(cols, column, after = after_idx)
+  df[, cols, drop = FALSE]
+}
+
 base_lines <- readLines(base_defaults_path, warn = FALSE)
 fresh_lines <- base_lines
+fresh_lines <- gsub(
+  "larger n300/m50 deep reservoir profile",
+  "active n400/m60 deep reservoir profile",
+  fresh_lines,
+  fixed = TRUE
+)
+fresh_lines <- gsub(historical_reservoir_profile, fresh_reservoir_profile, fresh_lines, fixed = TRUE)
+fresh_lines <- replace_yaml_section(
+  fresh_lines,
+  "^reservoir_profiles:",
+  "^external_data:",
+  fresh_reservoir_profile_lines
+)
 replace_once <- function(lines, pattern, replacement) {
   hits <- grep(pattern, lines)
   if (!length(hits)) {
@@ -81,6 +164,9 @@ if (!nrow(full_grid)) {
 }
 char_cols <- names(full_grid)[vapply(full_grid, is.character, logical(1))]
 for (nm in char_cols) full_grid[[nm]] <- rewrite_local_src_paths(full_grid[[nm]])
+full_grid$reservoir_profile <- fresh_reservoir_profile
+full_grid$desn_seed <- fresh_desn_seed
+full_grid <- move_column_after(full_grid, "desn_seed", "seed")
 
 required_cols <- c(
   "enabled", "dataset_cell_id", "source_scenario", "source_family", "tau",
@@ -148,7 +234,7 @@ grid_summary <- function(df) {
 
 dir.create(dirname(manifest_path), recursive = TRUE, showWarnings = FALSE)
 manifest_lines <- c(
-  "QDESN n300/m50 fresh prelaunch materialization manifest",
+  "QDESN fresh prelaunch materialization manifest",
   sprintf("generated_at=%s", as.character(Sys.time())),
   sprintf("repo_root=%s", repo_root),
   sprintf("git_sha=%s", trimws(system("git rev-parse --short HEAD", intern = TRUE))),
@@ -159,6 +245,10 @@ manifest_lines <- c(
   sprintf("fresh_full_grid_path=%s", fresh_full_grid_abs),
   sprintf("fresh_micro_grid_path=%s", fresh_micro_grid_abs),
   sprintf("fresh_smoke_grid_path=%s", fresh_smoke_grid_abs),
+  sprintf("historical_reservoir_profile=%s", historical_reservoir_profile),
+  sprintf("active_reservoir_profile=%s", fresh_reservoir_profile),
+  sprintf("active_desn_seed=%d", fresh_desn_seed),
+  "active_reservoir_spec=D=3;n=400,400,400;n_tilde=400,400;m=60;alpha=0.3,0.3,0.3;rho=0.95,0.95,0.95;act_f=tanh,tanh,tanh;act_k=identity,identity,identity;pi_w=0.1,0.1,0.1;pi_in=1.0,1.0,1.0;washout=300;add_bias=yes;seed=123",
   "",
   "storage_light_outputs:",
   "retention_profile=analysis",

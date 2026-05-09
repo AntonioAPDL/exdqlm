@@ -1,4 +1,4 @@
-# QDESN Dynamic P90 Steeper-Trend n300/m50 Fresh Relaunch Wiring
+# QDESN Dynamic P90 Steeper-Trend Fresh Relaunch Wiring
 
 Date: 2026-05-09
 
@@ -8,18 +8,61 @@ Worktree:
 Branch:
 `feature/qdesn-mcmc-alternative-0p4p0-integration`
 
-Base commit during wiring:
+Base commit during initial wiring:
 `197ffdf999ed873cc490adeef22d3b3f3853cf37`
+
+Active DESN wiring commit:
+`validation: wire qdesn fresh n400m60 reservoir` (current local `HEAD` when this
+note is committed).
 
 ## Purpose
 
 This note records the reproducible wiring for the fresh dynamic-only QDESN
-period-90 steeper-trend n300/m50 validation scaffold.
+period-90 steeper-trend validation scaffold.
 
-The current n300/m50 DESN specification is approved only for dry tests and smoke
-tests. It is not the final article-facing DESN specification. The final 144-fit
-article-facing campaign remains blocked until the new DESN spec is wired into a
-fresh defaults/grid manifest and revalidated through the same gates.
+The inherited file and run-tag stem still contains `n300m50` because the scaffold
+was derived from the previous n300/m50 campaign. The active DESN candidate for
+new dry/smoke/full validation is now the user-proposed n400/m60 profile below.
+The final 144-fit article-facing campaign remains blocked until the RHS prior
+change is specified, wired, and revalidated through the same gates.
+
+## Active DESN Candidate
+
+Profile id:
+`deep_d3_n400x3_skip100_w300_m60`
+
+Specification:
+
+- `D: 3`
+- `n: [400, 400, 400]`
+- `n_tilde: [400, 400]`
+- `m: 60`
+- `alpha: [0.3, 0.3, 0.3]`
+- `rho: [0.95, 0.95, 0.95]`
+- `act_f: [tanh, tanh, tanh]`
+- `act_k: [identity, identity, identity]`
+- `pi_w: [0.1, 0.1, 0.1]`
+- `pi_in: [1.0, 1.0, 1.0]`
+- `washout: 300`
+- `add_bias: yes`
+- `seed: 123`
+
+Effective seed handling:
+
+- the reservoir profile keeps `seed: 123`;
+- fresh grids now include `desn_seed: 123`, because the pipeline builder gives
+  `desn_seed` precedence over the root-level grid `seed`;
+- the existing deterministic root `seed` column is retained as root metadata and
+  run identity, but it no longer overrides the DESN reservoir seed for these
+  fresh grids.
+
+Wired into:
+
+- fresh storage-light defaults;
+- reduced-budget testing/smoke defaults;
+- fresh full, smoke, and micro-smoke grids;
+- the materializer script, so regenerated fresh grids keep the active n400/m60
+  profile rather than reverting to the historical n300/m50 profile.
 
 ## Tracked Files Added Or Updated
 
@@ -88,6 +131,10 @@ artifacts:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-testing-smoke-preflight-20260509__git-197ffdf/launch/qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json`
 - Reduced-budget smoke preflight markdown:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-testing-smoke-preflight-20260509__git-197ffdf/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- Active-DESN current-RHS micro prepare-only preflight manifest:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-current-micro-preflight-20260509__git-f7e1c87-dirty/launch/qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json`
+- Active-DESN current-RHS selected micro grid:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-current-micro-preflight-20260509__git-f7e1c87-dirty/launch/selected_grid_full.csv`
 
 The shared cross-chat tracker is outside this git repository:
 
@@ -143,6 +190,26 @@ for (prior in unique(grid$beta_prior_type)) {
 }
 EOF
 ```
+
+Active-DESN wiring checks:
+
+- Fresh full grid: `36` roots, `18` dataset cells, active reservoir
+  `deep_d3_n400x3_skip100_w300_m60`, `desn_seed=123`, no
+  `/home/.../local/src` hits.
+- Fresh smoke grid: `12` roots, `6` dataset cells, active reservoir
+  `deep_d3_n400x3_skip100_w300_m60`, `desn_seed=123`, no
+  `/home/.../local/src` hits.
+- Fresh micro grid: `4` roots, `2` dataset cells, active reservoir
+  `deep_d3_n400x3_skip100_w300_m60`, `desn_seed=123`, no
+  `/home/.../local/src` hits.
+- Package-level config build verified that both `ridge` and `rhs_ns`, for both
+  `vb` and `mcmc`, resolve to `D=3`, `n=400,400,400`, `n_tilde=400,400`,
+  `m=60`, `alpha=0.3,0.3,0.3`, `washout=300`, and effective DESN seed `123`.
+- Prepare-only runner preflight on the active-DESN/current-RHS micro grid wrote a
+  selected grid with `4` roots, `2` dataset cells, `4` requested fits per root,
+  active reservoir `deep_d3_n400x3_skip100_w300_m60`, `desn_seed=123`, and no
+  `/home/.../local/src` hits. This is a wiring check only; it must be repeated
+  after the RHS prior change is specified and wired.
 
 Observed result:
 
@@ -233,14 +300,15 @@ Rscript scripts/launch_qdesn_dynamic_exdqlm_crossstudy_validation.R \
 
 Before any final 144-fit article-facing campaign:
 
-1. Wire the new DESN specification into fresh defaults and, if needed, fresh
-   grids.
+1. Specify and wire the intended RHS prior change.
 2. Re-run the path hygiene and source-window audits.
 3. Re-run prepare-only manifests for micro, smoke, and full surfaces.
-4. Run a micro-smoke using the new DESN spec.
+4. Run a micro-smoke using the active DESN/RHS-prior spec.
 5. Close out the micro-smoke with storage audit and compact-output evidence.
 6. Run the standard smoke only after the new-spec micro-smoke passes.
 7. Launch the full 144-fit campaign only after explicit approval.
 
 Do not switch Article-Q-DESN to any current scaffold output. The current
-micro-smoke and reduced-budget smoke preflight are infrastructure evidence only.
+micro-smoke and reduced-budget smoke preflight are infrastructure evidence only;
+they used the earlier n300/m50 reservoir and are superseded for final validation
+planning by the n400/m60 candidate wiring.

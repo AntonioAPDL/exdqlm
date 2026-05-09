@@ -19,7 +19,7 @@ study_contract:
   id: p90_steepertrend_n300m50_main
   description: >-
     Canonical QDESN dynamic relaunch on the promoted period-90 steeper-trend
-    dataset surface using the larger n300/m50 deep reservoir profile. The main lane
+    dataset surface using the active n400/m60 deep reservoir profile. The main lane
     keeps LDVB everywhere for VB, slice everywhere for MCMC, explicit LDVB warm starts
     for every MCMC fit, normalized warmup defaults, and does not persist MCMC VB-init
     fit artifacts in saved forecast objects. Future launches use analysis retention:
@@ -103,7 +103,7 @@ pilot:
   source_window_label: effTT5000_totalTT5313
   beta_prior_type: ridge
   seed: 123
-  reservoir_profile: deep_d3_n300x3_skip100_w300_m50
+  reservoir_profile: deep_d3_n400x3_skip100_w300_m60
   enabled: yes
   source_reference_priors: default
   source_current_rhsns_member: no
@@ -185,20 +185,20 @@ signoff:
     half_drift_pass: 0.25
     half_drift_warn: 0.5
 reservoir_profiles:
-  deep_d3_n300x3_skip100_w300_m50:
+  deep_d3_n400x3_skip100_w300_m60:
     D: 3
     'n':
-    - 300
-    - 300
-    - 300
+    - 400
+    - 400
+    - 400
     n_tilde:
-    - 300
-    - 300
-    m: 50
+    - 400
+    - 400
+    m: 60
     alpha:
-    - 0.25
-    - 0.25
-    - 0.25
+    - 0.3
+    - 0.3
+    - 0.3
     rho:
     - 0.95
     - 0.95
