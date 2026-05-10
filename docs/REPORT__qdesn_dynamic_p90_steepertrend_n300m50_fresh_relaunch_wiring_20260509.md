@@ -176,6 +176,12 @@ artifacts:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-fast-micro-smoke-20260509__git-ca06a81/20260509-182711__git-ca06a81/summary/qdesn_dynamic_p90_steepertrend_n400m60_rhs_tau1em5_fast_micro_smoke_closeout.md`
 - Active-DESN active-RHS fast smoke prepare-only preflight:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-fast-smoke-preflight-20260509__git-ca06a81/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- Active-DESN active-RHS standard smoke prepare-only preflight at pushed HEAD:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-standard-smoke-preflight-20260510__git-36875fb/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- Completed active-DESN active-RHS standard smoke:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-standard-smoke-20260510-150201__git-36875fb`
+- Active-DESN active-RHS standard smoke closeout:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-standard-smoke-20260510-150201__git-36875fb/20260510-150209__git-36875fb/summary/qdesn_dynamic_p90_steepertrend_n400m60_rhs_tau1em5_standard_smoke_closeout.md`
 - Active-DESN active-RHS full prepare-only preflight:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-full-preflight-20260509__git-ca06a81/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
 
@@ -243,6 +249,34 @@ Active n400/m60 fast micro-smoke closeout:
 - Diagnostic signoff mix was MCMC `FAIL=7`, MCMC `WARN=1`, VB `PASS=4`,
   VB `WARN=3`, VB `FAIL=1`. These are expected under the fast smoke MCMC budget
   and are not an MCMC-quality approval.
+- Campaign summary recommendation:
+  `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`.
+
+Active n400/m60 standard smoke closeout:
+
+- Run tag:
+  `qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-standard-smoke-20260510-150201__git-36875fb`
+- Inner run tag: `20260510-150209__git-36875fb`
+- Preflight run tag:
+  `qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-standard-smoke-preflight-20260510__git-36875fb`
+- Completed `12 / 12` roots and `48 / 48` fits with runner status `SUCCESS`.
+- Finished at `2026-05-10 18:50:20.521414` after about `3h 48m`.
+- Results footprint was about `65M`; reports footprint was about `1.1M`.
+- Retained broad `forecast_objects.rds`: `0`.
+- Retained `.rda` / `.RData`: `0`.
+- Retained small diagnostic `.rds` files: `72`, `266134` bytes total
+  (`24` `rhs_trace.rds` files and `48` `timing_summary.rds` files).
+- Compact train path CSVs: `48`.
+- Compact holdout path CSVs: `48`.
+- Recorded pre-prune `forecast_objects.rds` bytes across `48` fits:
+  `11960573082`; recorded post-prune broad `forecast_objects.rds` count: `0`.
+- Recursive path hygiene search of the completed run found no stale
+  `/home/.../local/src` hits in launch-critical artifacts. The only hits were in
+  the local launch note text that describes the stale-path audit itself.
+- Diagnostic signoff mix was MCMC `al` `FAIL=9` / `WARN=3`, MCMC `exal`
+  `FAIL=12`, VB `al` `PASS=9` / `WARN=3`, and VB `exal` `PASS=3` /
+  `WARN=6` / `FAIL=3`. These are expected under the fast smoke MCMC budget and
+  are not MCMC-quality approval.
 - Campaign summary recommendation:
   `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`.
 
@@ -410,14 +444,13 @@ Before any final 144-fit article-facing campaign:
 
 1. Re-run the path hygiene and source-window audits.
 2. Re-run prepare-only manifests for micro, smoke, and full surfaces.
-3. Treat the completed active-spec fast micro-smoke as the current
-   infrastructure/storage gate, not as MCMC-quality approval.
-4. Decide whether standard smoke should use the fast MCMC budget, a staged
-   VB-first / MCMC-subset design, or a larger MCMC budget.
-5. Run the standard smoke only after that design is explicitly approved.
-6. Launch the full 144-fit campaign only after explicit approval.
+3. Treat the completed active-spec fast micro-smoke and standard smoke as
+   infrastructure/storage/runtime gates, not as MCMC-quality approval.
+4. Decide the full-campaign execution strategy: single full run versus staged
+   shards; full MCMC budget; worker count; pause thresholds; and failure policy.
+5. Launch the full 144-fit campaign only after explicit approval.
 
 Do not switch Article-Q-DESN to any current scaffold output. The current
-micro-smoke evidence is infrastructure/storage evidence only. Article-Q-DESN
-should stay on the previous authoritative full closeout until a full 36-root /
-144-fit n400/m60 run is completed and closed out.
+micro-smoke and standard-smoke evidence is infrastructure/storage/runtime
+evidence only. Article-Q-DESN should stay on the previous authoritative full
+closeout until a full 36-root / 144-fit n400/m60 run is completed and closed out.
