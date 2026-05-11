@@ -315,6 +315,20 @@ test_that("dynamic cross-study keeps explicit DESN seed separate from root metad
   expect_identical(as.integer(enriched$desn_seed), 123L)
 })
 
+test_that("storage-light full relaunch defaults encode the approved worker topology", {
+  repo_root <- normalizePath(pkgload::pkg_path(), winslash = "/", mustWork = TRUE)
+  defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(
+    repo_root,
+    "config",
+    "validation",
+    "qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_storage_light_defaults.yaml"
+  ))
+
+  expect_identical(as.integer(defaults$runtime$campaign_workers), 30L)
+  expect_identical(as.integer(defaults$runtime$workers), 30L)
+  expect_identical(as.character(defaults$runtime$root_scheduler), "load_balanced")
+})
+
 test_that("n400m60 testing smoke uses a fast infrastructure-only MCMC budget", {
   repo_root <- normalizePath(pkgload::pkg_path(), winslash = "/", mustWork = TRUE)
   defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(

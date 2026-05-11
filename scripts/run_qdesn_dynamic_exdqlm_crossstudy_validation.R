@@ -247,15 +247,16 @@ active_qdesn_processes <- cmd_lines(
 active_qdesn_processes <- active_qdesn_processes[nzchar(trimws(active_qdesn_processes))]
 
 workers_arg <- suppressWarnings(as.integer(get_arg("--workers", NA_character_))[1L])
+max_campaign_workers <- 30L
 workers <- if (is.finite(workers_arg) && workers_arg >= 1L) {
-  min(16L, workers_arg)
+  min(max_campaign_workers, workers_arg)
 } else if (length(active_qdesn_processes)) {
   4L
 } else {
   as.integer(runtime_cfg$campaign_workers %||% runtime_cfg$workers %||% 6L)[1L]
 }
 if (!is.finite(workers) || workers < 1L) workers <- 1L
-workers <- min(16L, workers)
+workers <- min(max_campaign_workers, workers)
 
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 run_tag <- as.character(get_arg(

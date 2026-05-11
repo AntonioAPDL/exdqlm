@@ -8,15 +8,19 @@ Worktree:
 Branch:
 `feature/qdesn-mcmc-alternative-0p4p0-integration`
 
-Current HEAD during this readiness pass:
+Initial HEAD during this readiness pass:
 `ac7ff7e` (`docs: close qdesn n400 standard smoke`)
+
+The final full launch should use the current clean HEAD at launch time; the
+run tag and launch metadata record that exact SHA.
 
 ## Purpose
 
 This note prepares the QDESN dynamic-only p90 steeper-trend n400/m60 validation
 for the main 36-root / 144-fit relaunch. It confirms the scientific MCMC budget,
 records the current-HEAD full preflight, and lists the final items that must be
-accepted before launching the expensive campaign.
+accepted before launching the expensive campaign. The May 10 launch approval
+uses a 30-worker campaign topology.
 
 This note does not start the full validation run.
 
@@ -140,7 +144,8 @@ R_LIBS=/home/jaguir26/R/x86_64-redhat-linux-gnu-library/4.5:/data/jaguir26/R/x86
 Rscript -e "pkgload::load_all('.', quiet = TRUE); testthat::test_file('tests/testthat/test-qdesn-dynamic-p90-steepertrend-config.R')"
 ```
 
-Result: `136` passes, `0` failures, `0` warnings, `0` skips.
+Result after the 30-worker topology update: `139` passes, `0` failures,
+`0` warnings, `0` skips.
 
 ## Required Decisions Before Launch
 
@@ -151,11 +156,13 @@ Result: `136` passes, `0` failures, `0` warnings, `0` skips.
    plan before Article-Q-DESN can consume the result.
 
 2. **Confirm worker count.**
-   The full defaults set `campaign_workers: 16`. The standard smoke used
-   `workers=4` and took about `3h 48m` with tiny MCMC. The full MCMC budget is
-   much larger, so runtime should be expected to be long. A lower worker count
-   may be gentler on the server; a higher count may finish sooner but increases
-   concurrent memory and I/O pressure.
+   The full storage-light defaults now set `campaign_workers: 30` and
+   `workers: 30`. The dynamic cross-study runner cap was raised to `30`, so an
+   explicit `--workers 30` launch is honored instead of being silently reduced
+   to `16`. The standard smoke used `workers=4` and took about `3h 48m` with
+   tiny MCMC. The full MCMC budget is much larger, so runtime should be expected
+   to be long and the first healthcheck should watch memory, I/O, and output
+   footprint closely.
 
 3. **Confirm storage pause threshold.**
    The current tracker suggests pausing and inspecting if the full output root
@@ -187,9 +194,9 @@ Rscript scripts/launch_qdesn_dynamic_exdqlm_crossstudy_validation.R \
   --batch full \
   --allow-grid-subset \
   --no-plots \
-  --workers 16 \
-  --tmux-session qdesn_p90_n400m60_rhs_tau1em5_full_YYYYMMDD \
-  --run-tag qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-full-YYYYMMDD-HHMMSS__git-ac7ff7e
+  --workers 30 \
+  --tmux-session qdesn_p90_n400m60_rhs_tau1em5_full_YYYYMMDD_w30 \
+  --run-tag qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-full-YYYYMMDD-HHMMSS-w30__git-GITSHA
 ```
 
 ## First Safe Commands Before Launch
@@ -227,8 +234,9 @@ Rscript scripts/healthcheck_qdesn_dynamic_exdqlm_crossstudy_validation.R \
 
 ## Recommendation
 
-The validation worktree is ready for a full-launch approval decision. The
-strongest default path is a single full campaign using the storage-light defaults
-and `workers=16`, because that keeps the closeout and article handoff simple.
-If server load or runtime risk is a concern, create explicit shard grids and a
-merge/closeout plan before launching any shard.
+The validation worktree is ready for the approved full launch. The strongest
+default path is a single full campaign using the storage-light defaults and
+`workers=30`, because that keeps the closeout and article handoff simple while
+using the requested higher concurrency. If server load or runtime risk becomes a
+concern during healthchecks, pause the campaign deliberately and preserve the
+run evidence before considering explicit shard grids and a merge/closeout plan.

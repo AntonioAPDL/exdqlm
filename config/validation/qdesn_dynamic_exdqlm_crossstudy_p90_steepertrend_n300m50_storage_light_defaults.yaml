@@ -159,8 +159,8 @@ metrics:
   - runtime_sec_per_1k_train_eval
 runtime:
   threads: 1
-  campaign_workers: 16
-  workers: 16
+  campaign_workers: 30
+  workers: 30
   root_scheduler: load_balanced
 signoff:
   vb:
