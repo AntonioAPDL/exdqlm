@@ -184,6 +184,10 @@ artifacts:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-standard-smoke-20260510-150201__git-36875fb/20260510-150209__git-36875fb/summary/qdesn_dynamic_p90_steepertrend_n400m60_rhs_tau1em5_standard_smoke_closeout.md`
 - Active-DESN active-RHS full prepare-only preflight:
   `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-full-preflight-20260509__git-ca06a81/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- Current-HEAD active-DESN active-RHS full prepare-only preflight:
+  `reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-full-preflight-20260510-currenthead__git-ac7ff7e/launch/qdesn_dynamic_exdqlm_crossstudy_preflight.md`
+- Current-HEAD full relaunch readiness note:
+  `docs/REPORT__qdesn_dynamic_p90_steepertrend_n400m60_full_relaunch_readiness_20260510.md`
 
 The aborted micro-smoke is not valid active-spec evidence because its
 `fit_request.json` files showed `config.desn.seed` equal to the root metadata
@@ -279,6 +283,26 @@ Active n400/m60 standard smoke closeout:
   are not MCMC-quality approval.
 - Campaign summary recommendation:
   `COMPARISON_READY_WITH_DOCUMENTED_DYNAMIC_FAIL_BAND`.
+
+Current-HEAD full relaunch readiness:
+
+- Readiness note:
+  `docs/REPORT__qdesn_dynamic_p90_steepertrend_n400m60_full_relaunch_readiness_20260510.md`
+- Current-HEAD full preflight run tag:
+  `qdesn-dynamic-p90-steepertrend-n400m60-rhs-tau1em5-full-preflight-20260510-currenthead__git-ac7ff7e`
+- Confirmed full MCMC budget:
+  `mcmc_n_burn=5000`, `mcmc_n_mcmc=20000`, `mcmc_thin=1`.
+- Confirmed full metric/synthesis draws:
+  `posterior_metric_draws=20000`, `vb_sampling_nd_draws=20000`,
+  `vb_synthesis_n_samp=20000`.
+- Confirmed full selected grid: `36` roots, `18` dataset cells, `144`
+  requested fits, families `gausmix,laplace,normal`, taus
+  `0.05,0.25,0.5`, fit sizes `500,5000`, priors `rhs_ns,ridge`, active
+  reservoir `deep_d3_n400x3_skip100_w300_m60`, and `desn_seed=123`.
+- Stale path audit of the current-HEAD preflight artifact tree found zero
+  `/home/.../local/src` hits.
+- Targeted config regression test passed after loading the package namespace:
+  `136` passes, `0` failures.
 
 Reduced-budget effective config check:
 
@@ -454,3 +478,8 @@ Do not switch Article-Q-DESN to any current scaffold output. The current
 micro-smoke and standard-smoke evidence is infrastructure/storage/runtime
 evidence only. Article-Q-DESN should stay on the previous authoritative full
 closeout until a full 36-root / 144-fit n400/m60 run is completed and closed out.
+
+The current full relaunch readiness note recommends the simplest closeout path:
+a single full campaign using storage-light defaults and `workers=16`, unless
+server-load concerns justify creating explicit shard grids and a merge/closeout
+plan before launching any shard.
