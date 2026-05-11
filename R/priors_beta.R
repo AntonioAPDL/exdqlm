@@ -216,6 +216,7 @@ beta_prior_rhs_ns <- function(rhs) {
   if (!is.finite(slab_s) || slab_s <= 0) slab_s <- sqrt(slab_s2)
 
   shrink_intercept <- FALSE
+  intercept_index <- rhs$intercept_index %||% NULL
   intercept_prec <- as.numeric(rhs$intercept_prec %||% 1e-16)[1L]
 
   init_lambda2 <- rhs$init_lambda2
@@ -251,6 +252,7 @@ beta_prior_rhs_ns <- function(rhs) {
     s_provided = s_provided,
     s2_provided = s2_provided,
     shrink_intercept = shrink_intercept,
+    intercept_index = intercept_index,
     intercept_prec = intercept_prec
   )
 

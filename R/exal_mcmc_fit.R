@@ -1034,7 +1034,10 @@
   prec <- 1.0 / (tau2 * lambda2) + 1.0 / zeta2
   prec <- pmax(as.numeric(prec), 1e-16)
   if (!isTRUE(state$shrink_intercept)) {
-    prec[1L] <- as.numeric(state$intercept_prec %||% 1e-16)[1L]
+    intercept_idx <- .rhs_ns_intercept_idx(p, state$shrink_intercept, state$intercept_index)
+    prec_int <- .rhs_ns_intercept_prec_vec(p, intercept_idx, state$intercept_prec %||% 1e-16)
+    use <- intercept_idx[is.finite(prec_int[intercept_idx])]
+    if (length(use)) prec[use] <- prec_int[use]
   }
   prec
 }
@@ -1093,13 +1096,8 @@
     max(as.numeric(state$zeta2)[1L], 1e-16)
   }
 
-  active_idx <- if (isTRUE(state$shrink_intercept)) {
-    seq_len(p)
-  } else if (p >= 2L) {
-    seq.int(2L, p)
-  } else {
-    integer(0)
-  }
+  intercept_idx <- .rhs_ns_intercept_idx(p, state$shrink_intercept, state$intercept_index)
+  active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept, intercept_idx)
   beta2 <- beta^2
 
   if (length(active_idx)) {

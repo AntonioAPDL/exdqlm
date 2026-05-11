@@ -5,11 +5,32 @@ if (!exists(".stopf", mode = "function")) {
   .stopf <- function(fmt, ...) stop(sprintf(fmt, ...), call. = FALSE)
 }
 
-.rhs_ns_active_idx <- function(p, shrink_intercept) {
+.rhs_ns_intercept_idx <- function(p, shrink_intercept, intercept_index = NULL) {
   if (isTRUE(shrink_intercept)) {
-    return(seq_len(p))
+    return(integer(0))
   }
-  if (p >= 2L) seq.int(2L, p) else integer(0)
+  idx <- suppressWarnings(as.integer(intercept_index %||% 1L))
+  idx <- idx[is.finite(idx) & idx >= 1L & idx <= p]
+  idx <- sort(unique(idx))
+  if (length(idx)) idx else if (p >= 1L) 1L else integer(0)
+}
+
+.rhs_ns_active_idx <- function(p, shrink_intercept, intercept_index = NULL) {
+  if (isTRUE(shrink_intercept)) return(seq_len(p))
+  intercept_idx <- .rhs_ns_intercept_idx(p, shrink_intercept, intercept_index)
+  setdiff(seq_len(p), intercept_idx)
+}
+
+.rhs_ns_intercept_prec_vec <- function(p, intercept_idx, intercept_prec) {
+  prec <- rep(NA_real_, p)
+  if (!length(intercept_idx)) return(prec)
+  vals <- as.numeric(intercept_prec %||% 1e-16)
+  vals <- vals[is.finite(vals) & vals > 0]
+  if (!length(vals)) vals <- 1e-16
+  if (length(vals) == 1L) vals <- rep(vals, length(intercept_idx))
+  if (length(vals) != length(intercept_idx)) vals <- rep(vals[[1L]], length(intercept_idx))
+  prec[intercept_idx] <- vals
+  prec
 }
 
 .rhs_ns_ig_entropy <- function(a, b) {
@@ -65,8 +86,12 @@ qdesn_rhs_ns_prior_obj <- function(
     hypers$shrink_intercept %||% FALSE,
     context = "qdesn_rhs_ns_prior_obj"
   )
-  intercept_prec <- as.numeric(hypers$intercept_prec %||% 1e-16)[1L]
-  if (!is.finite(intercept_prec) || intercept_prec <= 0) intercept_prec <- 1e-16
+  intercept_index_raw <- hypers$intercept_index %||% NULL
+  intercept_index <- if (is.null(intercept_index_raw)) NULL else suppressWarnings(as.integer(intercept_index_raw))
+  intercept_index <- intercept_index[is.finite(intercept_index) & intercept_index >= 1L]
+  intercept_prec <- as.numeric(hypers$intercept_prec %||% 1e-16)
+  intercept_prec <- intercept_prec[is.finite(intercept_prec) & intercept_prec > 0]
+  if (!length(intercept_prec)) intercept_prec <- 1e-16
 
   n_inner <- max(1L, as.integer(control$n_inner %||% 2L))
   var_floor <- as.numeric(control$var_floor %||% 1e-16)[1L]
@@ -91,6 +116,7 @@ qdesn_rhs_ns_prior_obj <- function(
       zeta2_fixed = zeta2_fixed,
       s2 = slab_s2,
       shrink_intercept = shrink_intercept,
+      intercept_index = intercept_index,
       intercept_prec = intercept_prec
     ),
     control = list(
@@ -106,7 +132,8 @@ qdesn_rhs_ns_prior_obj <- function(
       p <- as.integer(p)[1L]
       if (!is.finite(p) || p <= 0) .stopf("rhs_ns_prior$init: p must be a positive integer.")
 
-      active_idx <- .rhs_ns_active_idx(p, shrink_intercept)
+      intercept_idx <- .rhs_ns_intercept_idx(p, shrink_intercept, intercept_index)
+      active_idx <- .rhs_ns_active_idx(p, shrink_intercept, intercept_idx)
       m_active <- length(active_idx)
 
       lambda2 <- as.numeric(init$lambda2 %||% init$init_lambda2 %||% 1.0)
@@ -160,6 +187,7 @@ qdesn_rhs_ns_prior_obj <- function(
       list(
         p = p,
         shrink_intercept = shrink_intercept,
+        intercept_index = intercept_idx,
         intercept_prec = intercept_prec,
         zeta2_is_fixed = !is.na(zeta2_fixed),
         zeta2_fixed = zeta2_fixed,
@@ -212,8 +240,10 @@ qdesn_rhs_ns_prior_obj <- function(
       e_inv_zeta <- if (is.finite(e_inv_zeta) && e_inv_zeta > 0) e_inv_zeta else 1.0 / pmax(as.numeric(state$zeta2 %||% 1.0)[1L], var_floor)
       e_inv_lambda[!is.finite(e_inv_lambda) | e_inv_lambda <= 0] <- 1.0 / pmax(as.numeric(state$lambda2 %||% rep(1.0, p))[!is.finite(e_inv_lambda) | e_inv_lambda <= 0], var_floor)
 
-      active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept)
-      prec <- rep(as.numeric(state$intercept_prec %||% intercept_prec)[1L], p)
+      intercept_idx <- .rhs_ns_intercept_idx(p, state$shrink_intercept, state$intercept_index)
+      active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept, intercept_idx)
+      prec <- .rhs_ns_intercept_prec_vec(p, intercept_idx, state$intercept_prec %||% intercept_prec)
+      prec[is.na(prec)] <- 1e-16
       if (length(active_idx)) {
         prec[active_idx] <- e_inv_tau * e_inv_lambda[active_idx] + e_inv_zeta
       } else if (isTRUE(state$shrink_intercept) && p > 0L) {
@@ -230,7 +260,8 @@ qdesn_rhs_ns_prior_obj <- function(
       if (!all(dim(qbeta$V) == c(p, p))) .stopf("rhs_ns_prior$update: qbeta$V dim mismatch.")
 
       beta2 <- as.numeric(qbeta$m)^2 + diag(qbeta$V)
-      active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept)
+      intercept_idx <- .rhs_ns_intercept_idx(p, state$shrink_intercept, state$intercept_index)
+      active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept, intercept_idx)
       m_active <- length(active_idx)
       iter_now <- as.integer(state$iter %||% 0L) + 1L
       tau_warmup <- isTRUE(freeze_tau_warmup_iters > 0L && iter_now <= freeze_tau_warmup_iters)
@@ -353,7 +384,8 @@ qdesn_rhs_ns_prior_obj <- function(
       if (!all(dim(qbeta$V) == c(p, p))) .stopf("rhs_ns_prior$elbo: qbeta$V dim mismatch.")
 
       beta2 <- as.numeric(qbeta$m)^2 + diag(qbeta$V)
-      active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept)
+      intercept_idx <- .rhs_ns_intercept_idx(p, state$shrink_intercept, state$intercept_index)
+      active_idx <- .rhs_ns_active_idx(p, state$shrink_intercept, intercept_idx)
 
       a_lambda <- as.numeric(state$a_lambda %||% rep(1.0, p))
       b_lambda <- pmax(as.numeric(state$b_lambda %||% rep(1.0, p)), var_floor)
@@ -449,10 +481,11 @@ qdesn_rhs_ns_prior_obj <- function(
       }
 
       e_log_intercept <- 0.0
-      if (!isTRUE(state$shrink_intercept) && p >= 1L) {
-        prec0 <- as.numeric(state$intercept_prec %||% intercept_prec)[1L]
-        prec0 <- if (is.finite(prec0) && prec0 > 0) prec0 else 1e-16
-        e_log_intercept <- 0.5 * (log(prec0) - log(2 * pi)) - 0.5 * prec0 * beta2[1L]
+      if (length(intercept_idx)) {
+        prec_int <- .rhs_ns_intercept_prec_vec(p, intercept_idx, state$intercept_prec %||% intercept_prec)
+        prec_int <- prec_int[intercept_idx]
+        prec_int[!is.finite(prec_int) | prec_int <= 0] <- 1e-16
+        e_log_intercept <- sum(0.5 * (log(prec_int) - log(2 * pi)) - 0.5 * prec_int * beta2[intercept_idx])
       }
 
       list(elbo = as.numeric(e_log_joint + h_latent + e_log_intercept))
