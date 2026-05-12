@@ -33,6 +33,14 @@ test_that("RHS_NS supports more than one unshrunk intercept", {
   expect_true(all(prec[c(2L, 4L)] > 1e-9))
 })
 
+test_that("qdesn discrepancy capabilities expose supported and gated kernels", {
+  caps <- exdqlm::qdesn_discrepancy_capabilities()
+  expect_true(all(c("method", "likelihood_family", "fit_supported") %in% names(caps)))
+  expect_true(any(caps$method == "mcmc" & caps$likelihood_family == "al" & caps$fit_supported))
+  expect_true(any(caps$method == "vb" & caps$likelihood_family == "al" & caps$fit_supported))
+  expect_false(any(caps$likelihood_family == "exal" & caps$fit_supported))
+})
+
 test_that("qdesn_fit_discrepancy AL MCMC returns finite source-indexed summaries", {
   set.seed(20260511)
   dat <- make_discrepancy_design(n = 30L)
@@ -73,6 +81,53 @@ test_that("qdesn_fit_discrepancy AL MCMC returns finite source-indexed summaries
   expect_length(fit$summary$fitted_mean, length(dat$z))
 })
 
+test_that("qdesn_fit_discrepancy AL VB returns posterior draws and diagnostics", {
+  set.seed(20260512)
+  dat <- make_discrepancy_design(n = 32L)
+  fit <- exdqlm::qdesn_fit_discrepancy(
+    z = dat$z,
+    H = dat$H,
+    source = dat$source,
+    p0 = 0.5,
+    method = "vb",
+    likelihood_family = "al",
+    beta_prior_type = "rhs_ns",
+    intercept_index = c(1L, 3L),
+    vb_args = list(
+      max_iter = 80L,
+      min_iter_elbo = 5L,
+      tol = 1.0e-5,
+      tol_par = 1.0e-5,
+      n_draws = 70L,
+      seed = 20260512L,
+      beta_rhs = list(
+        tau0 = 1.0,
+        s2 = 4.0,
+        a_zeta = 2.0,
+        b_zeta = 4.0,
+        intercept_prec = 1e-9,
+        n_inner = 1L
+      ),
+      prior_sigma = list(a = 2, b = 1)
+    )
+  )
+
+  expect_s3_class(fit, "qdesn_discrepancy_fit")
+  expect_identical(fit$method, "vb")
+  expect_identical(fit$likelihood_family, "al")
+  expect_identical(fit$beta_prior$type, "rhs_ns")
+  expect_equal(fit$beta_prior$state$intercept_index, c(1L, 3L))
+  expect_equal(dim(fit$draws$theta), c(70L, ncol(dat$H)))
+  expect_equal(dim(fit$draws$sigma), c(70L, 2L))
+  expect_true(all(is.finite(fit$draws$theta)))
+  expect_true(all(is.finite(fit$draws$sigma)))
+  expect_true(all(fit$draws$sigma > 0))
+  expect_true(is.logical(fit$vb_diagnostics$converged))
+  expect_true(is.finite(fit$vb_diagnostics$runtime_seconds))
+  expect_true(is.finite(fit$vb_diagnostics$elbo_final))
+  expect_false(isTRUE(fit$vb_diagnostics$ld_block_active))
+})
+
 test_that("qdesn_fit_discrepancy recovers simple reference and discrepancy paths", {
   set.seed(2201)
   dat <- make_discrepancy_design(n = 36L)
@@ -109,4 +164,111 @@ test_that("qdesn_fit_discrepancy recovers simple reference and discrepancy paths
   rmse_g <- sqrt(mean((q_g_hat - dat$q_g)^2))
   expect_lt(rmse_y, 0.35)
   expect_lt(rmse_g, 0.35)
+})
+
+test_that("qdesn_fit_discrepancy AL VB recovers simple reference and discrepancy paths", {
+  set.seed(20260512)
+  dat <- make_discrepancy_design(n = 48L)
+  fit <- exdqlm::qdesn_fit_discrepancy(
+    z = dat$z,
+    H = dat$H,
+    source = dat$source,
+    p0 = 0.5,
+    method = "vb",
+    likelihood_family = "al",
+    beta_prior_type = "rhs_ns",
+    intercept_index = c(1L, 3L),
+    vb_args = list(
+      max_iter = 120L,
+      min_iter_elbo = 5L,
+      tol = 1.0e-6,
+      tol_par = 1.0e-6,
+      n_draws = 80L,
+      seed = 20260512L,
+      beta_rhs = list(
+        tau0 = 1.5,
+        s2 = 6.0,
+        a_zeta = 2.0,
+        b_zeta = 6.0,
+        intercept_prec = 1e-9,
+        n_inner = 1L
+      ),
+      prior_sigma = list(a = 4, b = 0.4)
+    )
+  )
+
+  n <- length(dat$q_y)
+  q_y_hat <- fit$summary$fitted_mean[seq_len(n)]
+  q_g_hat <- fit$summary$fitted_mean[n + seq_len(n)]
+  rmse_y <- sqrt(mean((q_y_hat - dat$q_y)^2))
+  rmse_g <- sqrt(mean((q_g_hat - dat$q_g)^2))
+  expect_lt(rmse_y, 0.25)
+  expect_lt(rmse_g, 0.25)
+})
+
+test_that("qdesn_fit_discrepancy AL VB posterior draws satisfy the discrepancy identity", {
+  dat <- make_discrepancy_design(n = 16L)
+  fit <- exdqlm::qdesn_fit_discrepancy(
+    z = dat$z,
+    H = dat$H,
+    source = dat$source,
+    p0 = 0.5,
+    method = "vb",
+    likelihood_family = "al",
+    beta_prior_type = "ridge",
+    intercept_index = c(1L, 3L),
+    vb_args = list(
+      max_iter = 50L,
+      min_iter_elbo = 5L,
+      tol = 1.0e-5,
+      tol_par = 1.0e-5,
+      n_draws = 20L,
+      seed = 11L,
+      tau2 = 1.0e4,
+      prior_sigma = list(a = 2, b = 1)
+    )
+  )
+
+  theta <- fit$draws$theta
+  beta_draws <- theta[, 1:2, drop = FALSE]
+  alpha_draws <- theta[, 3:4, drop = FALSE]
+  q_y <- beta_draws %*% t(dat$X)
+  d_g <- alpha_draws %*% t(dat$X)
+  q_g <- (beta_draws + alpha_draws) %*% t(dat$X)
+  expect_equal(q_y + d_g, q_g, tolerance = 1.0e-10)
+})
+
+test_that("qdesn_fit_discrepancy AL VB forwards RHS schedule controls", {
+  dat <- make_discrepancy_design(n = 12L)
+  fit <- exdqlm::qdesn_fit_discrepancy(
+    z = dat$z,
+    H = dat$H,
+    source = dat$source,
+    p0 = 0.5,
+    method = "vb",
+    likelihood_family = "al",
+    beta_prior_type = "rhs_ns",
+    intercept_index = c(1L, 3L),
+    vb_args = list(
+      max_iter = 2L,
+      min_iter_elbo = 10L,
+      n_draws = 5L,
+      seed = 12L,
+      beta_rhs = list(
+        tau0 = 1.0,
+        s2 = 4.0,
+        a_zeta = 2.0,
+        b_zeta = 4.0,
+        intercept_prec = 1e-9
+      ),
+      rhs = list(
+        freeze_tau_warmup_iters = 5L,
+        n_inner = 1L
+      ),
+      prior_sigma = list(a = 2, b = 1)
+    )
+  )
+
+  expect_true(isTRUE(fit$beta_prior$state$freeze_tau))
+  expect_identical(fit$beta_prior$state$last_schedule$reason, "warmup")
 })
