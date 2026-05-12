@@ -272,3 +272,127 @@ test_that("qdesn_fit_discrepancy AL VB forwards RHS schedule controls", {
   expect_true(isTRUE(fit$beta_prior$state$freeze_tau))
   expect_identical(fit$beta_prior$state$last_schedule$reason, "warmup")
 })
+
+test_that("qdesn_fit_discrepancy AL VB reproduces one-source ridge readout behavior", {
+  x <- seq(-1, 1, length.out = 30L)
+  H <- cbind(1, x)
+  colnames(H) <- c("beta_1", "beta_2")
+  theta <- c(0.2, -0.4)
+  z <- as.numeric(H %*% theta)
+  source <- factor(rep("Y", length(z)), levels = "Y")
+
+  fit <- exdqlm::qdesn_fit_discrepancy(
+    z = z,
+    H = H,
+    source = source,
+    source_levels = "Y",
+    p0 = 0.5,
+    method = "vb",
+    likelihood_family = "al",
+    beta_prior_type = "ridge",
+    intercept_index = 1L,
+    vb_args = list(
+      max_iter = 80L,
+      min_iter_elbo = 5L,
+      tol = 1.0e-6,
+      tol_par = 1.0e-6,
+      n_draws = 30L,
+      seed = 20260512L,
+      tau2 = 1.0e6,
+      prior_sigma = list(a = 4, b = 0.2)
+    )
+  )
+
+  expect_identical(fit$method, "vb")
+  expect_equal(ncol(fit$draws$sigma), 1L)
+  expect_lt(sqrt(mean((fit$summary$fitted_mean - z)^2)), 0.05)
+  expect_lt(max(abs(fit$summary$theta_mean - theta)), 0.08)
+})
+
+test_that("qdesn_fit_discrepancy AL VB is stable to stacked-row permutation", {
+  dat <- make_discrepancy_design(n = 30L)
+  set.seed(117)
+  perm <- sample(seq_along(dat$z))
+  args <- list(
+    p0 = 0.5,
+    method = "vb",
+    likelihood_family = "al",
+    beta_prior_type = "ridge",
+    intercept_index = c(1L, 3L),
+    vb_args = list(
+      max_iter = 80L,
+      min_iter_elbo = 5L,
+      tol = 1.0e-6,
+      tol_par = 1.0e-6,
+      n_draws = 20L,
+      seed = 117L,
+      tau2 = 1.0e6,
+      prior_sigma = list(a = 4, b = 0.2)
+    )
+  )
+
+  fit_a <- do.call(exdqlm::qdesn_fit_discrepancy, c(
+    list(z = dat$z, H = dat$H, source = dat$source),
+    args
+  ))
+  fit_b <- do.call(exdqlm::qdesn_fit_discrepancy, c(
+    list(z = dat$z[perm], H = dat$H[perm, , drop = FALSE], source = dat$source[perm]),
+    args
+  ))
+
+  expect_equal(fit_a$summary$theta_mean, fit_b$summary$theta_mean, tolerance = 1.0e-5)
+  expect_equal(fit_a$summary$sigma_mean, fit_b$summary$sigma_mean, tolerance = 1.0e-5)
+})
+
+test_that("qdesn_fit_discrepancy AL VB agrees with small MCMC within diagnostic tolerance", {
+  set.seed(20260513)
+  dat <- make_discrepancy_design(n = 28L)
+  common <- list(
+    z = dat$z,
+    H = dat$H,
+    source = dat$source,
+    p0 = 0.5,
+    likelihood_family = "al",
+    beta_prior_type = "ridge",
+    intercept_index = c(1L, 3L)
+  )
+  fit_vb <- do.call(exdqlm::qdesn_fit_discrepancy, c(
+    common,
+    list(
+      method = "vb",
+      vb_args = list(
+        max_iter = 100L,
+        min_iter_elbo = 5L,
+        tol = 1.0e-5,
+        tol_par = 1.0e-5,
+        n_draws = 80L,
+        seed = 20260513L,
+        tau2 = 1.0e5,
+        prior_sigma = list(a = 4, b = 0.3)
+      )
+    )
+  ))
+  fit_mcmc <- do.call(exdqlm::qdesn_fit_discrepancy, c(
+    common,
+    list(
+      method = "mcmc",
+      mcmc_args = list(
+        n_burn = 80L,
+        n_mcmc = 120L,
+        thin = 1L,
+        seed = 20260513L,
+        tau2 = 1.0e5,
+        prior_sigma = list(a = 4, b = 0.3)
+      )
+    )
+  ))
+
+  n <- length(dat$q_y)
+  vb_rmse <- sqrt(mean((fit_vb$summary$fitted_mean - dat$z)^2))
+  mcmc_rmse <- sqrt(mean((fit_mcmc$summary$fitted_mean - dat$z)^2))
+  vb_y <- fit_vb$summary$fitted_mean[seq_len(n)]
+  mcmc_y <- fit_mcmc$summary$fitted_mean[seq_len(n)]
+  expect_lt(vb_rmse, 0.20)
+  expect_lt(mcmc_rmse, 0.40)
+  expect_lt(sqrt(mean((vb_y - mcmc_y)^2)), 0.45)
+})
