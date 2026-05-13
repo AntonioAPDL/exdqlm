@@ -1,0 +1,45 @@
+[stage-mcmc-tt5000] starting row_id=8 at 2026-05-09 21:26:57 EDT
+[refreshed288 p90 row 8] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=8 at 2026-05-10 02:17:05 EDT
+[stage-mcmc-tt5000] starting row_id=14 at 2026-05-10 02:17:05 EDT
+[refreshed288 p90 row 14] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=14 at 2026-05-10 06:45:32 EDT
+[stage-mcmc-tt5000] starting row_id=16 at 2026-05-10 06:45:32 EDT
+[refreshed288 p90 row 16] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=16 at 2026-05-10 11:33:41 EDT
+[stage-mcmc-tt5000] starting row_id=22 at 2026-05-10 11:33:41 EDT
+[refreshed288 p90 row 22] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=22 at 2026-05-10 16:06:43 EDT
+[stage-mcmc-tt5000] starting row_id=24 at 2026-05-10 16:06:43 EDT
+[refreshed288 p90 row 24] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=24 at 2026-05-10 20:53:42 EDT
+[stage-mcmc-tt5000] starting row_id=30 at 2026-05-10 20:53:42 EDT
+[refreshed288 p90 row 30] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=30 at 2026-05-11 02:32:49 EDT
+[stage-mcmc-tt5000] starting row_id=32 at 2026-05-11 02:32:49 EDT
+[refreshed288 p90 row 32] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=32 at 2026-05-11 08:34:47 EDT
+[stage-mcmc-tt5000] starting row_id=38 at 2026-05-11 08:34:47 EDT
+[refreshed288 p90 row 38] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=38 at 2026-05-11 14:06:47 EDT
+[stage-mcmc-tt5000] starting row_id=40 at 2026-05-11 14:06:47 EDT
+[refreshed288 p90 row 40] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=40 at 2026-05-11 19:55:29 EDT
+[stage-mcmc-tt5000] starting row_id=54 at 2026-05-11 19:55:29 EDT
+[refreshed288 p90 row 54] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=54 at 2026-05-12 01:35:37 EDT
+[stage-mcmc-tt5000] starting row_id=56 at 2026-05-12 01:35:37 EDT
+[refreshed288 p90 row 56] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=56 at 2026-05-12 07:33:27 EDT
+[stage-mcmc-tt5000] starting row_id=62 at 2026-05-12 07:33:27 EDT
+[refreshed288 p90 row 62] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=62 at 2026-05-12 12:48:30 EDT
+[stage-mcmc-tt5000] starting row_id=64 at 2026-05-12 12:48:30 EDT
+[refreshed288 p90 row 64] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=64 at 2026-05-12 19:10:43 EDT
+[stage-mcmc-tt5000] starting row_id=70 at 2026-05-12 19:10:43 EDT
+[refreshed288 p90 row 70] phase=full_dynamic_mcmc model=dqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=70 at 2026-05-13 00:39:03 EDT
+[stage-mcmc-tt5000] starting row_id=72 at 2026-05-13 00:39:03 EDT
+[refreshed288 p90 row 72] phase=full_dynamic_mcmc model=exdqlm inference=mcmc done
+[stage-mcmc-tt5000] finished row_id=72 at 2026-05-13 06:08:34 EDT

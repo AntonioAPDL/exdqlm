@@ -106,3 +106,22 @@ test_that("refreshed288 retention policy defaults to comparison plus plot", {
   expect_false(policy$retain_draw_binaries)
   expect_false(policy$retain_vb_init_binaries)
 })
+
+test_that("refreshed288 path rewrite remaps stale source roots", {
+  source_refreshed288_helpers_for_test()
+
+  rules <- data.frame(
+    from = "/home/jaguir26/local/src",
+    to = "/data/jaguir26/local/src",
+    stringsAsFactors = FALSE
+  )
+  input <- data.frame(
+    series_wide_path = "/home/jaguir26/local/src/example/series_wide.csv",
+    note = "not a path",
+    stringsAsFactors = FALSE
+  )
+
+  out <- rewrite_paths_refreshed288(input, rules = rules)
+  expect_equal(out$series_wide_path, "/data/jaguir26/local/src/example/series_wide.csv")
+  expect_equal(out$note, "not a path")
+})

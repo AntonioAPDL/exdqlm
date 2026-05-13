@@ -13,6 +13,77 @@ refreshed288_p90_dynamic_registry_source_path <- function() {
   "tools/merge_reports/LOCAL_refreshed288_dataset_registry_20260422_dynamic_p90_steepertrend_v1.csv"
 }
 
+path_rewrite_rules_refreshed288 <- function() {
+  from <- Sys.getenv("REFRESHED288_PATH_REWRITE_FROM", unset = "")
+  to <- Sys.getenv("REFRESHED288_PATH_REWRITE_TO", unset = "")
+  if (!nzchar(from) || !nzchar(to)) {
+    return(data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE))
+  }
+  from_vals <- trimws(strsplit(from, ";;", fixed = TRUE)[[1L]])
+  to_vals <- trimws(strsplit(to, ";;", fixed = TRUE)[[1L]])
+  from_vals <- from_vals[nzchar(from_vals)]
+  to_vals <- to_vals[nzchar(to_vals)]
+  if (length(from_vals) != length(to_vals)) {
+    stop("REFRESHED288_PATH_REWRITE_FROM and REFRESHED288_PATH_REWRITE_TO must have the same number of ';;'-separated entries", call. = FALSE)
+  }
+  data.frame(from = from_vals, to = to_vals, stringsAsFactors = FALSE)
+}
+
+rewrite_paths_refreshed288 <- function(df, rules = path_rewrite_rules_refreshed288()) {
+  if (!nrow(rules)) return(df)
+  chr_cols <- names(df)[vapply(df, is.character, logical(1))]
+  for (col in chr_cols) {
+    vals <- df[[col]]
+    for (i in seq_len(nrow(rules))) {
+      hit <- !is.na(vals) & startsWith(vals, rules$from[i])
+      vals[hit] <- paste0(rules$to[i], substring(vals[hit], nchar(rules$from[i]) + 1L))
+    }
+    df[[col]] <- vals
+  }
+  df
+}
+
+refresh_missing_inputs_refreshed288 <- function(df) {
+  path_cols <- intersect(
+    c(
+      "input_dir",
+      "series_long_path",
+      "series_wide_path",
+      "selection_indices_path",
+      "true_quantile_grid_path",
+      "coef_truth_path",
+      "meta_path",
+      "validation_path",
+      "sim_output_path"
+    ),
+    names(df)
+  )
+  if (!length(path_cols)) return(df)
+
+  required_for_row <- function(row) {
+    cols <- path_cols
+    if (identical(as.character(row[["block"]]), "dynamic")) {
+      cols <- setdiff(cols, "coef_truth_path")
+    }
+    cols
+  }
+
+  missing_paths <- vapply(seq_len(nrow(df)), function(i) {
+    row <- df[i, , drop = FALSE]
+    vals <- vapply(required_for_row(row), function(col) {
+      val <- as.character(row[[col]][1L])
+      if (is.na(val) || !nzchar(val) || identical(val, "NA")) return(NA_character_)
+      if (file.exists(val)) NA_character_ else val
+    }, character(1))
+    vals <- vals[!is.na(vals)]
+    if (!length(vals)) NA_character_ else paste(vals, collapse = ";")
+  }, character(1))
+
+  df$missing_paths <- missing_paths
+  df$missing_inputs <- !is.na(missing_paths) & nzchar(missing_paths)
+  df
+}
+
 default_run_tag_refreshed288 <- function() {
   "20260422_p90_full288_baseline_v1"
 }
@@ -608,6 +679,8 @@ build_dataset_registry_refreshed288 <- function() {
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+  out <- rewrite_paths_refreshed288(out)
+  out <- refresh_missing_inputs_refreshed288(out)
   dynamic <- out[out$block == "dynamic", , drop = FALSE]
   static <- out[out$block == "static", , drop = FALSE]
   meta_map <- dynamic_meta_map_refreshed288_p90(dynamic)

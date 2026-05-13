@@ -1,0 +1,5 @@
+"phase","total","completed","running","not_started","pass","warn","fail","healthy","pct_completed","pct_active_or_done"
+"full_static_vb",108,0,0,108,0,0,0,0,0,0
+"full_dynamic_vb",36,36,0,0,26,10,0,36,100,100
+"full_static_mcmc",108,0,0,108,0,0,0,0,0,0
+"full_dynamic_mcmc",36,36,0,0,20,4,12,24,100,100
