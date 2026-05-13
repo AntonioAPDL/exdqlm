@@ -3,32 +3,55 @@
 #' The function computes the following for the model(s) provided: the posterior
 #' predictive loss criterion based off the check loss, the CRPS approximated as
 #' a finite integrated quantile score over posterior predictive empirical
-#' quantiles, the one-step-ahead distribution sequence, and both the forward and
-#' reversed KL divergences from normality. The function also plots
-#' the following: the qq-plot and ACF plot corresponding to the one-step-ahead
-#' distribution sequence, and a time series plot of the MAP standard forecast
-#' errors.
+#' quantiles, the one-step-ahead distribution sequence, and deterministic
+#' semiclosed KL normality diagnostics for the MAP standardized forecast errors.
+#' The function also plots the following: the qq-plot and ACF plot corresponding
+#' to the one-step-ahead distribution sequence, and a time series plot of the MAP
+#' standard forecast errors.
 #'
 #' @inheritParams exdqlmPlot
 #' @param m2 An optional additional object of class "\code{exdqlmLDVB}",
 #'   "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with `m1`.
 #' @param plot Logical value indicating whether the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors. Default is `TRUE`.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.
-#' @param ref Optional reference sample of size `length(m1$y)` from a standard
-#'   normal distribution. Used to compute the KL divergences.
+#' @param ref Optional finite reference sample of size `length(m1$y)` from a
+#'   standard normal distribution. Used for the reversed KL diagnostic. When
+#'   `NULL`, a deterministic standard-normal quantile grid is used.
 #' @param crps_probs Numeric vector of quantile levels used to approximate CRPS
 #'   through the integrated quantile-score identity. Values must be strictly
 #'   between 0 and 1. Default is `seq(0.01, 0.99, by = 0.01)`.
 #' @param crps_weights Optional non-negative numeric weights for `crps_probs`.
 #'   When `NULL`, equal weights are used. When provided, weights are normalized
 #'   to sum to 1.
+#' @param kl_k Optional positive integer vector of nearest-neighbor values used
+#'   for the KL entropy and cross-entropy estimates. When `NULL`, the default
+#'   grid `c(3, 5, 10, 20, 30)` is filtered to values supported by the finite
+#'   standardized-error sample size, falling back to `1` for very small samples.
+#'
+#' @details
+#' The KL summaries are computed from the MAP standardized one-step-ahead
+#' forecast errors `map.standard.forecast.errors`. The reported `KL` estimates
+#' \eqn{KL(P_e || N(0,1))}, where \eqn{P_e} is the continuous diagnostic-error
+#' law represented by the standardized errors. It uses the semiclosed identity
+#' \eqn{KL(P_e || N(0,1)) = CE(P_e, N(0,1)) - H(P_e)}, with the normal
+#' cross-entropy term evaluated analytically and the entropy estimated by a
+#' one-dimensional k-nearest-neighbor estimator. The reported `KL.flip`
+#' estimates the reversed diagnostic \eqn{KL(N(0,1) || P_e)} using kNN
+#' cross-entropy. The reversed direction is more sensitive and should be read as
+#' a secondary smoothed diagnostic. Negative finite-sample estimates are not
+#' clamped; they indicate estimator bias or instability for the current sample.
 #'
 #' @return An object of class "\code{exdqlmDiagnostic}" containing the following:
 #'  \itemize{
 #'  \item `m1.uts` - The one-step-ahead distribution sequence of `m1`.
-#'  \item `m1.KL` - The KL divergence of `m1.uts` and a standard normal.
-#'  \item `m1.KL.flip` - The reversed ("flipped") KL divergence of `m1.uts`
-#'  and a standard normal.
+#'  \item `m1.KL` - The forward KL normality diagnostic
+#'  `KL(P_error || N(0,1))` for the MAP standardized forecast errors.
+#'  \item `m1.KL.flip` - The reversed ("flipped") KL diagnostic
+#'  `KL(N(0,1) || P_error)` for the MAP standardized forecast errors.
+#'  \item `m1.KL.by_k` - Forward KL sensitivity by nearest-neighbor value.
+#'  \item `m1.KL.flip.by_k` - Reversed KL sensitivity by nearest-neighbor value.
+#'  \item `m1.KL.gaussian` - Gaussian plug-in forward KL check.
+#'  \item `m1.KL.flip.gaussian` - Gaussian plug-in reversed KL check.
 #'  \item `m1.CRPS` - The mean CRPS approximated by a finite integrated
 #'  quantile score over posterior predictive empirical quantiles.
 #'  \item `m1.pplc` - The posterior predictive loss criterion of `m1` based off the check loss function.
@@ -40,6 +63,10 @@
 #'  \item `crps.method` - The CRPS approximation method.
 #'  \item `crps.probs` - The quantile levels used for the CRPS approximation.
 #'  \item `crps.weights` - The normalized weights used for the CRPS approximation.
+#'  \item `kl.method`, `kl.k`, `kl.aggregate`, and `kl.reference` - KL estimator
+#'  metadata.
+#'  \item `kl.n_finite`, `kl.n_ref`, and `kl.zero_distance_count` - KL diagnostic
+#'  sample-size and distance-floor metadata.
 #'  }
 #'  If `m2` is provided, analogous results for `m2` are also included in the list.
 #' @export
@@ -59,7 +86,8 @@
 #'
 exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL,
                               crps_probs = seq(0.01, 0.99, by = 0.01),
-                              crps_weights = NULL){
+                              crps_weights = NULL,
+                              kl_k = NULL){
   safe_metric_mean <- function(x) {
     x <- as.numeric(x)
     x <- x[is.finite(x)]
@@ -81,16 +109,9 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   m1.uts = stats::pnorm(m1$map.standard.forecast.errors)
   # m1 KL divergence
   TT = length(m1$map.standard.forecast.errors)
-  if(is.null(ref)){
-    ref = stats::rnorm(TT)
-  }else{
-    ref = c(ref)
-    if(length(ref)!=TT){
-      stop("ref should be a sample of size 'length(y)' from a standard normal distribution")
-    }
-  }
-  m1.KL = safe_metric_mean(FNN::KL.divergence(ref,m1$map.standard.forecast.errors))
-  m1.KL.flip = safe_metric_mean(FNN::KL.divergence(m1$map.standard.forecast.errors, ref))
+  m1.kl = .exdqlm_kl_normality_1d(m1$map.standard.forecast.errors, ref = ref, kl_k = kl_k)
+  m1.KL = m1.kl$KL
+  m1.KL.flip = m1.kl$KL.flip
   # m1 pplc
   m1.loss = matrix(NA,TT,dim(m1$samp.post.pred)[2])
   for(t in 1:TT){m1.loss[t,] = CheckLossFn(m1$p0,y[t]-m1$samp.post.pred[t,])}
@@ -103,9 +124,20 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   #
   retlist = list(m1.uts=m1.uts,m1.KL=m1.KL,m1.KL.flip=m1.KL.flip,m1.CRPS=m1.CRPS,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf,
                  m1.rt=m1$run.time,m1.msfe=m1$map.standard.forecast.errors,y=y,
+                 m1.KL.by_k = m1.kl$KL.by_k,
+                 m1.KL.flip.by_k = m1.kl$KL.flip.by_k,
+                 m1.KL.gaussian = m1.kl$KL.gaussian,
+                 m1.KL.flip.gaussian = m1.kl$KL.flip.gaussian,
                  crps.method = "integrated_quantile_score",
                  crps.probs = crps_probs,
-                 crps.weights = crps_weights)
+                 crps.weights = crps_weights,
+                 kl.method = m1.kl$method,
+                 kl.k = m1.kl$k,
+                 kl.aggregate = m1.kl$aggregate,
+                 kl.reference = m1.kl$reference,
+                 kl.n_finite = c(m1 = m1.kl$n_finite),
+                 kl.n_ref = c(m1 = m1.kl$n_ref),
+                 kl.zero_distance_count = c(m1 = m1.kl$zero_distance_count))
 
   ### m2
   if(!is.null(m2)){
@@ -127,8 +159,17 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
     retlist[["m2.msfe"]] = m2$map.standard.forecast.errors
     retlist[["m2.uts"]] = m2.uts
     # m2 KL divergence
-    retlist[["m2.KL"]] = safe_metric_mean(FNN::KL.divergence(ref,m2$map.standard.forecast.errors))
-    retlist[["m2.KL.flip"]] = safe_metric_mean(FNN::KL.divergence(m2$map.standard.forecast.errors, ref))
+    kl_k_m2 = if (length(retlist$kl.k)) retlist$kl.k else NULL
+    m2.kl = .exdqlm_kl_normality_1d(m2$map.standard.forecast.errors, ref = ref, kl_k = kl_k_m2)
+    retlist[["m2.KL"]] = m2.kl$KL
+    retlist[["m2.KL.flip"]] = m2.kl$KL.flip
+    retlist[["m2.KL.by_k"]] = m2.kl$KL.by_k
+    retlist[["m2.KL.flip.by_k"]] = m2.kl$KL.flip.by_k
+    retlist[["m2.KL.gaussian"]] = m2.kl$KL.gaussian
+    retlist[["m2.KL.flip.gaussian"]] = m2.kl$KL.flip.gaussian
+    retlist[["kl.n_finite"]] = c(retlist[["kl.n_finite"]], m2 = m2.kl$n_finite)
+    retlist[["kl.n_ref"]] = c(retlist[["kl.n_ref"]], m2 = m2.kl$n_ref)
+    retlist[["kl.zero_distance_count"]] = c(retlist[["kl.zero_distance_count"]], m2 = m2.kl$zero_distance_count)
     # m2 pplc
     m2.loss = matrix(NA,TT,dim(m2$samp.post.pred)[2])
     for(t in 1:TT){m2.loss[t,] = CheckLossFn(m2$p0,y[t]-m2$samp.post.pred[t,])}

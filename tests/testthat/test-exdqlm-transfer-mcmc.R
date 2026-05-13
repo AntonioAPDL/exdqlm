@@ -297,7 +297,7 @@ test_that("transfer-function MCMC output with multivariate X works with downstre
   expect_identical(fc$k, 3)
   expect_equal(dim(fc$fa), c(length(fit$model$m0), 3))
 
-  di <- exdqlm::exdqlmDiagnostics(fit, plot = FALSE, ref = stats::rnorm(TT))
+  di <- exdqlm::exdqlmDiagnostics(fit, plot = FALSE, kl_k = 3L)
   expect_true(is.finite(di$m1.KL))
   expect_true(is.finite(di$m1.CRPS))
   expect_true(is.finite(di$m1.pplc))

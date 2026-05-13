@@ -11,7 +11,8 @@ exdqlmDiagnostics(
   cols = c("red", "blue"),
   ref = NULL,
   crps_probs = seq(0.01, 0.99, by = 0.01),
-  crps_weights = NULL
+  crps_weights = NULL,
+  kl_k = NULL
 )
 }
 \arguments{
@@ -25,8 +26,9 @@ legacy "\code{exdqlmISVB}".}
 
 \item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
 
-\item{ref}{Optional reference sample of size \code{length(m1$y)} from a standard
-normal distribution. Used to compute the KL divergences.}
+\item{ref}{Optional finite reference sample of size \code{length(m1$y)} from a
+standard normal distribution. Used for the reversed KL diagnostic. When
+\code{NULL}, a deterministic standard-normal quantile grid is used.}
 
 \item{crps_probs}{Numeric vector of quantile levels used to approximate CRPS
 through the integrated quantile-score identity. Values must be strictly
@@ -35,14 +37,24 @@ between 0 and 1. Default is \code{seq(0.01, 0.99, by = 0.01)}.}
 \item{crps_weights}{Optional non-negative numeric weights for \code{crps_probs}.
 When \code{NULL}, equal weights are used. When provided, weights are normalized
 to sum to 1.}
+
+\item{kl_k}{Optional positive integer vector of nearest-neighbor values used
+for the KL entropy and cross-entropy estimates. When \code{NULL}, the default
+grid \code{c(3, 5, 10, 20, 30)} is filtered to values supported by the finite
+standardized-error sample size, falling back to \code{1} for very small samples.}
 }
 \value{
 An object of class "\code{exdqlmDiagnostic}" containing the following:
 \itemize{
 \item \code{m1.uts} - The one-step-ahead distribution sequence of \code{m1}.
-\item \code{m1.KL} - The KL divergence of \code{m1.uts} and a standard normal.
-\item \code{m1.KL.flip} - The reversed ("flipped") KL divergence of \code{m1.uts}
-and a standard normal.
+\item \code{m1.KL} - The forward KL normality diagnostic
+\code{KL(P_error || N(0,1))} for the MAP standardized forecast errors.
+\item \code{m1.KL.flip} - The reversed ("flipped") KL diagnostic
+\code{KL(N(0,1) || P_error)} for the MAP standardized forecast errors.
+\item \code{m1.KL.by_k} - Forward KL sensitivity by nearest-neighbor value.
+\item \code{m1.KL.flip.by_k} - Reversed KL sensitivity by nearest-neighbor value.
+\item \code{m1.KL.gaussian} - Gaussian plug-in forward KL check.
+\item \code{m1.KL.flip.gaussian} - Gaussian plug-in reversed KL check.
 \item \code{m1.CRPS} - The mean CRPS approximated by a finite integrated
 quantile score over posterior predictive empirical quantiles.
 \item \code{m1.pplc} - The posterior predictive loss criterion of \code{m1} based off the check loss function.
@@ -54,6 +66,10 @@ quantile score over posterior predictive empirical quantiles.
 \item \code{crps.method} - The CRPS approximation method.
 \item \code{crps.probs} - The quantile levels used for the CRPS approximation.
 \item \code{crps.weights} - The normalized weights used for the CRPS approximation.
+\item \code{kl.method}, \code{kl.k}, \code{kl.aggregate}, and \code{kl.reference} - KL estimator
+metadata.
+\item \code{kl.n_finite}, \code{kl.n_ref}, and \code{kl.zero_distance_count} - KL diagnostic
+sample-size and distance-floor metadata.
 }
 If \code{m2} is provided, analogous results for \code{m2} are also included in the list.
 }
@@ -61,11 +77,24 @@ If \code{m2} is provided, analogous results for \code{m2} are also included in t
 The function computes the following for the model(s) provided: the posterior
 predictive loss criterion based off the check loss, the CRPS approximated as
 a finite integrated quantile score over posterior predictive empirical
-quantiles, the one-step-ahead distribution sequence, and both the forward and
-reversed KL divergences from normality. The function also plots
-the following: the qq-plot and ACF plot corresponding to the one-step-ahead
-distribution sequence, and a time series plot of the MAP standard forecast
-errors.
+quantiles, the one-step-ahead distribution sequence, and deterministic
+semiclosed KL normality diagnostics for the MAP standardized forecast errors.
+The function also plots the following: the qq-plot and ACF plot corresponding
+to the one-step-ahead distribution sequence, and a time series plot of the MAP
+standard forecast errors.
+}
+\details{
+The KL summaries are computed from the MAP standardized one-step-ahead
+forecast errors \code{map.standard.forecast.errors}. The reported \code{KL} estimates
+\eqn{KL(P_e || N(0,1))}, where \eqn{P_e} is the continuous diagnostic-error
+law represented by the standardized errors. It uses the semiclosed identity
+\eqn{KL(P_e || N(0,1)) = CE(P_e, N(0,1)) - H(P_e)}, with the normal
+cross-entropy term evaluated analytically and the entropy estimated by a
+one-dimensional k-nearest-neighbor estimator. The reported \code{KL.flip}
+estimates the reversed diagnostic \eqn{KL(N(0,1) || P_e)} using kNN
+cross-entropy. The reversed direction is more sensitive and should be read as
+a secondary smoothed diagnostic. Negative finite-sample estimates are not
+clamped; they indicate estimator bias or instability for the current sample.
 }
 \examples{
 \donttest{

@@ -24,19 +24,65 @@ test_that("dynamic diagnostics expose flipped KL and CRPS metrics", {
   diags <- exdqlmDiagnostics(
     fit, fit,
     plot = FALSE,
-    ref = stats::rnorm(TT),
     crps_probs = c(0.25, 0.5, 0.75),
-    crps_weights = c(1, 2, 1)
+    crps_weights = c(1, 2, 1),
+    kl_k = c(1, 3)
+  )
+  diags_repeat <- exdqlmDiagnostics(
+    fit, fit,
+    plot = FALSE,
+    crps_probs = c(0.25, 0.5, 0.75),
+    crps_weights = c(1, 2, 1),
+    kl_k = c(1, 3)
   )
 
   expect_true(all(c("m1.KL.flip", "m1.CRPS", "m2.KL.flip", "m2.CRPS") %in% names(diags)))
   expect_equal(diags$crps.method, "integrated_quantile_score")
   expect_equal(diags$crps.probs, c(0.25, 0.5, 0.75))
   expect_equal(diags$crps.weights, c(0.25, 0.5, 0.25))
+  expect_equal(diags$kl.method, "semiclosed_knn_1d")
+  expect_equal(diags$kl.k, c(1L, 3L))
+  expect_equal(diags$kl.aggregate, "median")
+  expect_equal(diags$kl.reference, "normal_quantile_grid")
+  expect_equal(diags$m1.KL, diags_repeat$m1.KL)
+  expect_equal(diags$m1.KL.flip, diags_repeat$m1.KL.flip)
+  expect_equal(diags$m2.KL, diags_repeat$m2.KL)
+  expect_equal(diags$m2.KL.flip, diags_repeat$m2.KL.flip)
+  expect_s3_class(diags$m1.KL.by_k, "data.frame")
+  expect_s3_class(diags$m1.KL.flip.by_k, "data.frame")
+  expect_equal(diags$m1.KL.by_k$k, c(1L, 3L))
+  expect_equal(diags$m1.KL.flip.by_k$k, c(1L, 3L))
+  expect_true(all(is.finite(c(
+    diags$m1.KL.gaussian, diags$m1.KL.flip.gaussian,
+    diags$m2.KL.gaussian, diags$m2.KL.flip.gaussian
+  ))))
   expect_true(all(is.finite(c(
     diags$m1.KL, diags$m1.KL.flip, diags$m1.CRPS,
     diags$m2.KL, diags$m2.KL.flip, diags$m2.CRPS
   ))))
+
+  ref_grid <- stats::qnorm((seq_len(TT) - 0.5) / TT)
+  diags_ref <- exdqlmDiagnostics(fit, plot = FALSE, ref = ref_grid, kl_k = c(1, 3))
+  diags_no_ref <- exdqlmDiagnostics(fit, plot = FALSE, kl_k = c(1, 3))
+  expect_equal(diags_ref$kl.reference, "user_ref")
+  expect_equal(diags_ref$m1.KL, diags_no_ref$m1.KL)
+
+  expect_error(
+    exdqlmDiagnostics(fit, plot = FALSE, ref = ref_grid[-1]),
+    "ref should be"
+  )
+  expect_error(
+    exdqlmDiagnostics(fit, plot = FALSE, kl_k = c(1, 1)),
+    "duplicate"
+  )
+  expect_error(
+    exdqlmDiagnostics(fit, plot = FALSE, kl_k = 1.5),
+    "integer"
+  )
+  expect_error(
+    exdqlmDiagnostics(fit, plot = FALSE, kl_k = TT),
+    "no larger"
+  )
 
   expect_error(
     exdqlmDiagnostics(fit, plot = FALSE, crps_probs = c(0.1, 1)),
