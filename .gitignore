@@ -41,6 +41,7 @@ notebooks/
 # local execution tracker (do not commit)
 Plan.txt
 RHS_NS_STAGE9_SUBMISSION_MEMO.md
+state/
 
 # local tooling/work logs (not shipped)
 tools/
