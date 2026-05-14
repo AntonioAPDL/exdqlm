@@ -5,6 +5,9 @@
   quantile-score approximation over posterior predictive empirical quantiles.
   The default grid is `seq(0.01, 0.99, by = 0.01)`, with optional user-supplied
   quantile levels and weights through `exdqlmDiagnostics()`.
+- Added `exdqlmForecastDiagnostics()` for held-out `exdqlmForecast()` objects,
+  reporting target-quantile check loss and CRPS from posterior predictive
+  forecast draws without redefining article-side scoring helpers.
 - Replaced the stochastic `FNN::KL.divergence()` dynamic diagnostic with a
   deterministic one-dimensional semiclosed KL normality diagnostic for MAP
   standardized forecast errors. The scalar `KL` and `KL (flipped)` summaries are

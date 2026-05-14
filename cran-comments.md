@@ -7,6 +7,9 @@ focuses on dynamic diagnostic reproducibility:
 
 - `exdqlmDiagnostics()` now computes CRPS through a finite integrated
   quantile-score approximation over posterior predictive empirical quantiles.
+- `exdqlmForecastDiagnostics()` adds package-level held-out forecast scoring for
+  `exdqlmForecast()` objects, using target-quantile check loss and CRPS from
+  posterior predictive forecast draws.
 - `exdqlmDiagnostics()` now uses a deterministic one-dimensional semiclosed KL
   normality diagnostic for MAP standardized forecast errors.
 - The reported `KL` direction is aligned with the documented diagnostic target
