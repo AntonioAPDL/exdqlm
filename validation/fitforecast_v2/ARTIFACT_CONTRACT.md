@@ -14,6 +14,18 @@ Each completed row should retain:
 - `logs/row_XXXX.log`
 - `configs/row_XXXX_config.json`
 
+## Article-Facing Interface
+
+Both Q-DESN and exDQLM/DQLM export the same article-facing schema:
+
+- `validation/fitforecast_v2/schema/shared_fitforecast_interface_schema.csv`
+- `interfaces/exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv`
+- `interfaces/qdesn_dynamic_fitforecast_v2_shared_interface.csv`
+
+Article-Q-DESN should consume only these exported interfaces plus their
+manifests after a completed smoke or staged run. Native internal fit summaries,
+old fit-only outputs, and aborted run tags are not article-facing artifacts.
+
 ## Forbidden For Successful Rows
 
 Successful rows must not retain:
@@ -74,4 +86,3 @@ Fit and forecast path summaries include:
 - `pred_q975`
 - `pinball_tau`
 - `hit`
-

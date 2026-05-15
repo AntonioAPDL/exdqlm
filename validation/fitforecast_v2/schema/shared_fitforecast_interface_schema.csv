@@ -1,0 +1,63 @@
+column,required,description
+validation_contract_id,true,Stable contract identifier for Q-DESN plus exDQLM/DQLM dynamic fit and forecast validation v2.
+study_id,true,Validation study identifier.
+run_tag,true,Versioned run tag for the producing validation run.
+model_family,true,Top-level family such as qdesn or exdqlm_dqlm.
+model_variant,true,Model variant such as qdesn_ridge qdesn_rhs_ns dqlm or exdqlm.
+inference,true,Inference method such as vb or mcmc.
+phase,true,Staged launch phase.
+status,true,Explicit row status.
+failure_reason,true,Explicit failure reason or NA for successful rows.
+health_gate,true,Health/signoff gate status.
+signoff_grade,false,Human/study-facing signoff grade where available.
+source_registry_root,true,Frozen shared source registry root.
+source_registry_hash_name,true,Name of the registry hash being enforced.
+source_registry_hash_value,true,Expected registry hash value.
+source_cell_id,true,Source cell identifier.
+scenario_id,true,Simulation scenario identifier.
+family,true,Observation family.
+tau,true,Quantile level.
+tau_label,false,Filesystem-safe quantile label.
+fit_size,true,Nominal fit window size.
+effective_fit_size,true,Effective fit window size used by the model.
+TT_warmup,true,Warmup length in the frozen source design.
+TT_main,true,Main source length in the frozen source design.
+TT_total,true,Total generated source length.
+train_start_source_index,true,Training source start index.
+train_end_source_index,true,Training source end index.
+forecast_origin_source_index,true,Forecast origin source index.
+forecast_start_source_index,true,Forecast block start source index.
+forecast_end_source_index,true,Forecast block end source index.
+forecast_h100_start_source_index,true,H=100 summary start source index.
+forecast_h100_end_source_index,true,H=100 summary end source index.
+forecast_h100_n,true,H=100 metric sample size.
+forecast_h100_q_mae,true,H=100 quantile MAE.
+forecast_h100_q_rmse,true,H=100 quantile RMSE.
+forecast_h100_pinball_mean,true,H=100 mean pinball loss.
+forecast_h1000_start_source_index,true,H=1000 summary start source index.
+forecast_h1000_end_source_index,true,H=1000 summary end source index.
+forecast_h1000_n,true,H=1000 metric sample size.
+forecast_h1000_q_mae,true,H=1000 quantile MAE.
+forecast_h1000_q_rmse,true,H=1000 quantile RMSE.
+forecast_h1000_pinball_mean,true,H=1000 mean pinball loss.
+fit_n,true,Fit metric sample size.
+fit_q_mae,true,Fit quantile MAE.
+fit_q_rmse,true,Fit quantile RMSE.
+fit_pinball_mean,true,Fit mean pinball loss.
+runtime_sec_fit,false,Fit runtime in seconds where separated.
+runtime_sec_forecast,false,Forecast runtime in seconds where separated.
+runtime_sec_total,true,Total runtime in seconds.
+runtime_sec,false,Legacy total runtime alias.
+row_config_path,true,Row config artifact path.
+row_status_path,true,Row status artifact path.
+row_health_path,true,Row health artifact path.
+row_metrics_path,true,Row metrics artifact path.
+fit_path_summary_path,true,Compact fit path summary artifact path.
+forecast_path_summary_path,true,Compact forecast path summary artifact path.
+log_path,true,Row log artifact path.
+artifact_manifest_path,false,Artifact manifest path where available.
+package_version,true,exdqlm package version.
+branch,true,Producing git branch.
+commit,true,Producing git commit.
+run_started_at,false,Run start timestamp.
+run_finished_at,false,Run finish timestamp.

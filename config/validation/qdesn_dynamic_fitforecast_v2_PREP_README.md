@@ -73,7 +73,10 @@ Rscript scripts/verify_qdesn_dynamic_fitforecast_v2_source_windows.R
 Launch a wiring smoke only after the source registry is frozen:
 
 ```sh
-Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --prepare-only
+QDESN_FFV2_LAUNCH_APPROVED=true \
+  Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke
 ```
 
 Run a read-only health check:
@@ -133,11 +136,21 @@ Rscript scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R --defaults conf
 The next explicit-approval sequence is:
 
 ```sh
-Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --prepare-only
+QDESN_FFV2_LAUNCH_APPROVED=true \
+  Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke
 Rscript scripts/healthcheck_qdesn_dynamic_fitforecast_v2_validation.R
+Rscript scripts/export_qdesn_dynamic_fitforecast_v2_shared_interface.R --campaign-report-root <campaign-report-root>
 ```
 
 Treat the smoke as wiring, runtime, storage, and source-index evidence only. It is not MCMC-quality evidence.
+
+Real Q-DESN compute is now approval-gated. Any non-prepare launch refuses to
+start unless `QDESN_FFV2_LAUNCH_APPROVED=true` is set. TT5000/full additionally
+requires `QDESN_FFV2_TT5000_APPROVED=true`. The aborted partial smoke tag
+`qdesn-dynamic-fitforecast-v2-smoke-20260515-184752__git-5de7a28` is invalid
+and must not be used by Article-Q-DESN.
 
 ## Canonical Implementation Plan
 

@@ -26,6 +26,44 @@ qdesn_dynamic_fitforecast_phase_plan <- function(phase = c("smoke", "vb_full", "
   )
 }
 
+qdesn_dynamic_fitforecast_approval_state <- function(phase,
+                                                     launch_env = Sys.getenv("QDESN_FFV2_LAUNCH_APPROVED", "false"),
+                                                     tt5000_env = Sys.getenv("QDESN_FFV2_TT5000_APPROVED", "false")) {
+  phase <- match.arg(as.character(phase)[1L], c("smoke", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full"))
+  truthy <- function(x) {
+    tolower(trimws(as.character(x)[1L])) %in% c("1", "true", "yes", "y")
+  }
+  list(
+    phase = phase,
+    launch_approved = truthy(launch_env),
+    tt5000_approved = truthy(tt5000_env),
+    requires_tt5000_approval = phase %in% c("mcmc_tt5000", "full")
+  )
+}
+
+qdesn_dynamic_fitforecast_assert_launch_approved <- function(phase) {
+  state <- qdesn_dynamic_fitforecast_approval_state(phase)
+  if (!isTRUE(state$launch_approved)) {
+    stop(
+      paste(
+        "Refusing to launch Q-DESN fit+forecast v2 compute.",
+        "Set QDESN_FFV2_LAUNCH_APPROVED=true for an approved staged run."
+      ),
+      call. = FALSE
+    )
+  }
+  if (isTRUE(state$requires_tt5000_approval) && !isTRUE(state$tt5000_approved)) {
+    stop(
+      paste(
+        "Refusing to launch Q-DESN TT5000/full fit+forecast v2 compute.",
+        "Set QDESN_FFV2_TT5000_APPROVED=true after fresh human approval."
+      ),
+      call. = FALSE
+    )
+  }
+  invisible(state)
+}
+
 qdesn_validation_filter_dynamic_grid <- function(grid_df,
                                                  fit_sizes = integer(0),
                                                  families = character(0),

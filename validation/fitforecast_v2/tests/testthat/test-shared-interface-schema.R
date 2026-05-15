@@ -28,4 +28,16 @@ test_that("shared interface exports article-mergeable metric rows", {
 
   expect_equal(nrow(out), 1L)
   expect_true(all(ffv2_shared_interface_columns() %in% names(out)))
+  expect_identical(out$validation_contract_id[[1L]], "qdesn_exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface")
+  expect_identical(out$source_registry_hash_value[[1L]], ffv2_shared_source_registry_hash_value())
+  expect_equal(out$forecast_h100_end_source_index[[1L]], 9100L)
+})
+
+test_that("shared interface schema artifact matches exporter columns", {
+  schema <- utils::read.csv(
+    file.path(ffv2_harness_root(), "schema", "shared_fitforecast_interface_schema.csv"),
+    stringsAsFactors = FALSE
+  )
+  expect_setequal(schema$column, ffv2_shared_interface_columns())
+  expect_true(all(schema$required %in% c("true", "false", TRUE, FALSE)))
 })

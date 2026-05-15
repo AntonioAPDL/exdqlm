@@ -16,6 +16,12 @@ Stop before the next stage if any of these occur:
 - missing compact row artifact
 - forbidden binary payload retained after a successful row
 - stage filtering selects the wrong method or fit size
+- Q-DESN launcher is invoked for real compute without
+  `QDESN_FFV2_LAUNCH_APPROVED=true`
+- Q-DESN `mcmc_tt5000` or `full` is invoked without the additional
+  `QDESN_FFV2_TT5000_APPROVED=true`
+- article-facing interface is missing source hash, forecast-origin/window,
+  H=100, or H=1000 fields
 
 ## Preserve As Completed Diagnostic Result
 
@@ -29,4 +35,3 @@ Do not automatically repair or rerun only because of:
 - poor calibration
 
 The comparison table should carry the status and diagnostic grade.
-

@@ -33,6 +33,8 @@ Rscript validation/fitforecast_v2/scripts/healthcheck_exdqlm_dynamic_fitforecast
 
 ```sh
 Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --prepare-only
 ```
 
 ## 6. Smoke Compute
@@ -40,6 +42,9 @@ Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_v
 ```sh
 EXDQLM_FFV2_LAUNCH_APPROVED=true \
 Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase smoke
+
+QDESN_FFV2_LAUNCH_APPROVED=true \
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke
 ```
 
 ## 7. Staged Full Compute
@@ -60,11 +65,20 @@ Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_v
 
 Do not run TT5000 MCMC without a fresh approval.
 
+TT5000 requires the ordinary launch approval plus the TT5000-specific approval:
+
+```sh
+QDESN_FFV2_LAUNCH_APPROVED=true QDESN_FFV2_TT5000_APPROVED=true \
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase mcmc_tt5000
+```
+
 ## 8. Closeout After Each Stage
 
 ```sh
 Rscript validation/fitforecast_v2/scripts/healthcheck_exdqlm_dynamic_fitforecast_v2_validation.R
 Rscript validation/fitforecast_v2/scripts/export_exdqlm_dynamic_fitforecast_v2_shared_interface.R
+Rscript scripts/healthcheck_qdesn_dynamic_fitforecast_v2_validation.R
+Rscript scripts/export_qdesn_dynamic_fitforecast_v2_shared_interface.R --campaign-report-root <campaign-report-root>
 ```
 
 Required closeout evidence:
@@ -74,3 +88,7 @@ Required closeout evidence:
 - storage audit with zero forbidden successful run payloads;
 - shared-interface row count and path;
 - explicit decision to continue, retry, repair, or stop.
+
+The invalid partial Q-DESN smoke tag
+`qdesn-dynamic-fitforecast-v2-smoke-20260515-184752__git-5de7a28`
+was aborted during launcher verification and is not article-consumable.

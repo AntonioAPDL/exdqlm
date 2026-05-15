@@ -40,3 +40,58 @@ test_that("dynamic grid filters are generic and composable", {
   expect_true(all(out$source_family == "laplace"))
   expect_true(all(out$beta_prior_type == "rhs_ns"))
 })
+
+test_that("fit+forecast launch approval gates separate routine and TT5000 approval", {
+  smoke <- exdqlm:::qdesn_dynamic_fitforecast_approval_state(
+    "smoke",
+    launch_env = "true",
+    tt5000_env = "false"
+  )
+  expect_true(isTRUE(smoke$launch_approved))
+  expect_false(isTRUE(smoke$requires_tt5000_approval))
+
+  tt5000 <- exdqlm:::qdesn_dynamic_fitforecast_approval_state(
+    "mcmc_tt5000",
+    launch_env = "true",
+    tt5000_env = "false"
+  )
+  expect_true(isTRUE(tt5000$launch_approved))
+  expect_true(isTRUE(tt5000$requires_tt5000_approval))
+  expect_false(isTRUE(tt5000$tt5000_approved))
+
+  withr::local_envvar(
+    QDESN_FFV2_LAUNCH_APPROVED = "false",
+    QDESN_FFV2_TT5000_APPROVED = "false"
+  )
+  expect_error(
+    exdqlm:::qdesn_dynamic_fitforecast_assert_launch_approved("smoke"),
+    "Refusing to launch Q-DESN fit\\+forecast v2 compute"
+  )
+
+  withr::local_envvar(
+    QDESN_FFV2_LAUNCH_APPROVED = "true",
+    QDESN_FFV2_TT5000_APPROVED = "false"
+  )
+  expect_error(
+    exdqlm:::qdesn_dynamic_fitforecast_assert_launch_approved("mcmc_tt5000"),
+    "Refusing to launch Q-DESN TT5000/full fit\\+forecast v2 compute"
+  )
+})
+
+test_that("Q-DESN fit+forecast wrapper refuses unapproved real smoke before tmux launch", {
+  withr::local_envvar(
+    QDESN_FFV2_LAUNCH_APPROVED = "false",
+    QDESN_FFV2_TT5000_APPROVED = "false"
+  )
+  repo_root <- normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
+  out <- suppressWarnings(system2(
+    Sys.which("Rscript"),
+    c(file.path(repo_root, "scripts", "launch_qdesn_dynamic_fitforecast_v2_validation.R"), "--phase", "smoke"),
+    stdout = TRUE,
+    stderr = TRUE
+  ))
+  status <- attr(out, "status")
+  if (is.null(status)) status <- 0L
+  expect_false(identical(as.integer(status), 0L))
+  expect_true(any(grepl("Refusing to launch Q-DESN", out)))
+})
