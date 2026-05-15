@@ -58,6 +58,8 @@ run_esn_pipeline_from_cfg <- function(
       error = function(...) normalizePath(".", mustWork = TRUE)
     )
   }
+  runtime_snapshot <- qdesn_validation_assert_runtime(repo_root = repo_root, rscript = rscript)
+  rscript <- runtime_snapshot$rscript
   mode <- tolower(as.character((cfg$pipeline %||% list())$mode %||% "sim")[1L])
   if (!mode %in% c("sim", "simulation", "real", "observed", "data")) {
     stop("run_esn_pipeline_from_cfg(): unsupported pipeline mode: ", mode)

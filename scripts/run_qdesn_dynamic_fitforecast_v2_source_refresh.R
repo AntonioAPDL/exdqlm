@@ -31,9 +31,12 @@ refresh <- arg_flag("--refresh")
 skip_generate <- arg_flag("--skip-generate")
 
 suppressPackageStartupMessages(pkgload::load_all(repo_root, quiet = TRUE))
+runtime <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
 
 cat("Q-DESN dynamic fit+forecast v2 source refresh\n")
 cat(sprintf("repo_root: %s\n", repo_root))
+cat(sprintf("Rscript: %s\n", runtime$rscript))
+cat(sprintf("R version: %s\n", runtime$r_version))
 cat(sprintf("manifest: %s\n", manifest_path))
 cat(sprintf("defaults: %s\n", defaults_path))
 cat(sprintf("grid_out: %s\n", grid_out))
@@ -47,12 +50,14 @@ if (!execute) {
 
 manifest <- exdqlm:::qdesn_dynamic_candidate_load_manifest(manifest_path, repo_root = repo_root)
 if (!skip_generate) {
-  exdqlm:::qdesn_dynamic_candidate_generate_bundle(
+  candidate_bundle <- exdqlm:::qdesn_dynamic_candidate_generate_bundle(
     manifest = manifest,
     repo_root = repo_root,
     refresh = refresh,
     verbose = TRUE
   )
+  cat(sprintf("candidate_full_roots: %d\n", nrow(candidate_bundle$root_inventory)))
+  cat(sprintf("candidate_tail_slices: %d\n", nrow(candidate_bundle$slice_inventory)))
 }
 
 defaults <- exdqlm:::qdesn_validation_load_defaults(defaults_path, repo_root = repo_root)

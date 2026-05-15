@@ -53,6 +53,18 @@ count_table_df <- function(x, name) {
   out[order(out[[name]]), , drop = FALSE]
 }
 
+split_csv_arg <- function(x) {
+  x <- as.character(x %||% "")[1L]
+  if (!nzchar(trimws(x))) return(character(0))
+  trimws(strsplit(x, ",", fixed = TRUE)[[1L]])
+}
+
+split_int_arg <- function(x) {
+  vals <- split_csv_arg(x)
+  vals <- suppressWarnings(as.integer(vals))
+  vals[is.finite(vals)]
+}
+
 grid_equivalent <- function(a, b) {
   cols <- intersect(names(a), names(b))
   cols <- cols[!cols %in% c("enabled")]
@@ -127,9 +139,17 @@ create_plots <- !has_flag("--no-plots")
 batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smoke"))
 
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
+runtime_snapshot <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
+git_snapshot <- exdqlm:::qdesn_validation_git_snapshot(repo_root = repo_root)
 methods_arg <- as.character(get_arg("--methods", ""))[1L]
 likelihoods_arg <- as.character(get_arg("--likelihoods", ""))[1L]
 scheduler_arg <- tolower(as.character(get_arg("--scheduler", ""))[1L])
+fit_sizes_filter <- split_int_arg(get_arg("--fit-sizes", ""))
+families_filter <- split_csv_arg(get_arg("--families", ""))
+taus_filter <- suppressWarnings(as.numeric(split_csv_arg(get_arg("--taus", ""))))
+taus_filter <- taus_filter[is.finite(taus_filter)]
+priors_filter <- split_csv_arg(get_arg("--priors", ""))
+root_ids_filter <- split_csv_arg(get_arg("--root-ids", ""))
 if (nzchar(trimws(methods_arg))) {
   defaults$execution <- defaults$execution %||% list()
   defaults$execution$methods <- trimws(strsplit(methods_arg, ",", fixed = TRUE)[[1L]])
@@ -175,6 +195,14 @@ if (!(grid_equivalent(grid_df, canonical_grid) || (isTRUE(allow_grid_subset) && 
 }
 
 selected_grid <- select_batch_grid(grid_df, defaults, batch = batch)
+selected_grid <- exdqlm:::qdesn_validation_filter_dynamic_grid(
+  selected_grid,
+  fit_sizes = fit_sizes_filter,
+  families = families_filter,
+  taus = taus_filter,
+  priors = priors_filter,
+  root_ids = root_ids_filter
+)
 if (!nrow(selected_grid)) {
   stop(sprintf("Selected batch '%s' has no enabled roots after filtering.", batch), call. = FALSE)
 }
@@ -187,11 +215,16 @@ if (identical(grid_source_mode, "reference_inventory")) {
     reference_root = resolve_path(reference_cfg$dynamic_root, must_work = TRUE)
   )
   reference_summary <- exdqlm:::qdesn_dynamic_crossstudy_validate_reference_inventory(reference_inventory, defaults)
+  source_inventory_path <- NA_character_
 } else {
   materialized_inventory <- exdqlm:::qdesn_dynamic_crossstudy_materialize_source_inputs(
     defaults = defaults,
     refresh = FALSE,
     verbose = FALSE
+  )
+  source_inventory_path <- file.path(
+    resolve_path((defaults$source_materialization %||% list())$staged_root, must_work = FALSE),
+    "materialized_source_inventory.csv"
   )
   reference_summary <- list(
     mode = "materialized_source_inputs",
@@ -285,6 +318,9 @@ resource_snapshot <- list(
 )
 
 r_environment <- list(
+  rscript = runtime_snapshot$rscript,
+  rscript_sys_which = runtime_snapshot$rscript_sys_which,
+  r_home = runtime_snapshot$r_home,
   version = R.version.string,
   lib_paths = as.list(.libPaths()),
   env = list(
@@ -308,6 +344,22 @@ preflight_manifest <- list(
   allow_grid_subset = allow_grid_subset,
   create_plots = create_plots,
   chosen_workers = workers,
+  git_snapshot = git_snapshot,
+  runtime_snapshot = runtime_snapshot,
+  file_manifest = exdqlm:::qdesn_validation_file_manifest(
+    c(defaults_path, grid_path_raw, selected_grid_path, source_inventory_path),
+    repo_root = repo_root
+  ),
+  active_filters = list(
+    methods = as.list(defaults$execution$methods %||% character(0)),
+    likelihoods = as.list(defaults$execution$likelihood_families %||% character(0)),
+    fit_sizes = as.list(as.integer(fit_sizes_filter)),
+    families = as.list(as.character(families_filter)),
+    taus = as.list(as.numeric(taus_filter)),
+    priors = as.list(as.character(priors_filter)),
+    root_ids = as.list(as.character(root_ids_filter)),
+    scheduler = scheduler_arg
+  ),
   reference_summary = reference_summary,
   grid_summary = grid_summary,
   canonical_grid_summary = canonical_grid_summary,
@@ -394,9 +446,18 @@ preflight_lines <- c(
   sprintf("- active_qdesn_processes_n: `%d`", as.integer(length(active_qdesn_processes))),
   sprintf("- allow_grid_subset: `%s`", if (isTRUE(allow_grid_subset)) "TRUE" else "FALSE"),
   sprintf("- create_plots: `%s`", if (isTRUE(create_plots)) "TRUE" else "FALSE"),
+  sprintf("- branch: `%s`", as.character(git_snapshot$branch)),
+  sprintf("- upstream: `%s`", as.character(git_snapshot$upstream)),
+  sprintf("- git_dirty: `%s`", if (isTRUE(git_snapshot$dirty)) "TRUE" else "FALSE"),
+  sprintf("- Rscript: `%s`", as.character(runtime_snapshot$rscript)),
+  sprintf("- R_HOME: `%s`", as.character(runtime_snapshot$r_home)),
   sprintf("- R_version: `%s`", R.version.string),
   sprintf("- R_LIBS: `%s`", Sys.getenv("R_LIBS", unset = "")),
   sprintf("- R_lib_paths: `%s`", paste(.libPaths(), collapse = " | ")),
+  sprintf("- filter_methods: `%s`", paste(defaults$execution$methods %||% character(0), collapse = ", ")),
+  sprintf("- filter_likelihoods: `%s`", paste(defaults$execution$likelihood_families %||% character(0), collapse = ", ")),
+  sprintf("- filter_fit_sizes: `%s`", paste(fit_sizes_filter, collapse = ", ")),
+  sprintf("- filter_priors: `%s`", paste(priors_filter, collapse = ", ")),
   "",
   "## Scope Decision",
   "- study_surface: `dynamic exdqlm-aligned`",

@@ -63,7 +63,32 @@ qdesn_dynamic_candidate_load_manifest <- function(path = file.path("config", "va
   tail_start <- max(1L, length(y) - 99L)
   tail_idx <- tail_start:length(y)
   shade_col <- grDevices::adjustcolor(accent_col, alpha.f = 0.12)
-  grDevices::png(out_path, width = 2200L, height = 1200L, res = 150L, bg = bg)
+  png_args <- list(
+    filename = out_path,
+    width = 2200L,
+    height = 1200L,
+    res = 150L,
+    bg = bg
+  )
+  if (isTRUE(capabilities("cairo"))) {
+    png_args$type <- "cairo"
+  }
+  opened <- tryCatch({
+    do.call(grDevices::png, png_args)
+    TRUE
+  }, error = function(e) {
+    warning(
+      sprintf(
+        "Skipping candidate root plot because no usable PNG graphics device is available: %s",
+        conditionMessage(e)
+      ),
+      call. = FALSE
+    )
+    FALSE
+  })
+  if (!isTRUE(opened)) {
+    return(NA_character_)
+  }
   on.exit(grDevices::dev.off(), add = TRUE)
   old_par <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(old_par), add = TRUE)
@@ -219,12 +244,16 @@ qdesn_dynamic_candidate_load_manifest <- function(path = file.path("config", "va
     sprintf("latent_seed: %d", as.integer(latent_seed)),
     sprintf("noise_seed: %d", as.integer(noise_seed))
   ))
-  .qdesn_dynamic_candidate_root_plot(
+  plot_path <- .qdesn_dynamic_candidate_root_plot(
     y = y,
     out_path = root_png,
     title_line1 = sprintf("%s | %s | tau=%.2f | full root", scenario_id, family, as.numeric(tau)),
     title_line2 = sprintf("n=%d | q_true=mu | quantile shift=%.3f", TT_main, as.numeric(q_shift))
   )
+  plot_manifest_path <- as.character(plot_path)[1L]
+  if (is.na(plot_manifest_path) || !nzchar(plot_manifest_path)) {
+    plot_manifest_path <- root_png
+  }
 
   tail_sizes <- as.integer(unlist(gen_cfg$tail_fit_sizes %||% c(500L, 5000L), use.names = FALSE))
   slice_rows <- vector("list", length(tail_sizes))
@@ -259,7 +288,12 @@ qdesn_dynamic_candidate_load_manifest <- function(path = file.path("config", "va
     .qdesn_validation_write_df(slice_long, file.path(slice_dir, "series_long.csv"))
     .qdesn_validation_write_df(slice_truth, file.path(slice_dir, "true_quantile_grid.csv"))
     .qdesn_validation_write_df(selection_df, file.path(slice_dir, "selection_indices.csv"))
-    saveRDS(slice_sim, file.path(slice_dir, "sim_output.rds"))
+    slice_series_wide_path <- file.path(slice_dir, "series_wide.csv")
+    slice_series_long_path <- file.path(slice_dir, "series_long.csv")
+    slice_truth_path <- file.path(slice_dir, "true_quantile_grid.csv")
+    slice_selection_path <- file.path(slice_dir, "selection_indices.csv")
+    slice_sim_path <- file.path(slice_dir, "sim_output.rds")
+    saveRDS(slice_sim, slice_sim_path)
     slice_rows[[ii]] <- data.frame(
       scenario = scenario_id,
       family = family,
@@ -268,11 +302,16 @@ qdesn_dynamic_candidate_load_manifest <- function(path = file.path("config", "va
       window_label = sprintf("lastTT%d", fit_size),
       root_dir = normalizePath(root_dir, winslash = "/", mustWork = TRUE),
       slice_dir = normalizePath(slice_dir, winslash = "/", mustWork = TRUE),
-      series_wide_path = normalizePath(file.path(slice_dir, "series_wide.csv"), winslash = "/", mustWork = TRUE),
-      series_long_path = normalizePath(file.path(slice_dir, "series_long.csv"), winslash = "/", mustWork = TRUE),
-      true_quantile_grid_path = normalizePath(file.path(slice_dir, "true_quantile_grid.csv"), winslash = "/", mustWork = TRUE),
-      selection_indices_path = normalizePath(file.path(slice_dir, "selection_indices.csv"), winslash = "/", mustWork = TRUE),
-      sim_output_path = normalizePath(file.path(slice_dir, "sim_output.rds"), winslash = "/", mustWork = TRUE),
+      series_wide_path = normalizePath(slice_series_wide_path, winslash = "/", mustWork = TRUE),
+      series_wide_sha256 = .qdesn_validation_sha256(slice_series_wide_path),
+      series_long_path = normalizePath(slice_series_long_path, winslash = "/", mustWork = TRUE),
+      series_long_sha256 = .qdesn_validation_sha256(slice_series_long_path),
+      true_quantile_grid_path = normalizePath(slice_truth_path, winslash = "/", mustWork = TRUE),
+      true_quantile_grid_sha256 = .qdesn_validation_sha256(slice_truth_path),
+      selection_indices_path = normalizePath(slice_selection_path, winslash = "/", mustWork = TRUE),
+      selection_indices_sha256 = .qdesn_validation_sha256(slice_selection_path),
+      sim_output_path = normalizePath(slice_sim_path, winslash = "/", mustWork = TRUE),
+      sim_output_sha256 = .qdesn_validation_sha256(slice_sim_path),
       source_index_first = idx[1L],
       source_index_last = idx[length(idx)],
       n_obs = fit_size,
@@ -288,10 +327,15 @@ qdesn_dynamic_candidate_load_manifest <- function(path = file.path("config", "va
       tau_label = tau_label,
       root_dir = normalizePath(root_dir, winslash = "/", mustWork = TRUE),
       series_wide_path = normalizePath(file.path(root_dir, "series_wide.csv"), winslash = "/", mustWork = TRUE),
+      series_wide_sha256 = .qdesn_validation_sha256(file.path(root_dir, "series_wide.csv")),
       series_long_path = normalizePath(file.path(root_dir, "series_long.csv"), winslash = "/", mustWork = TRUE),
+      series_long_sha256 = .qdesn_validation_sha256(file.path(root_dir, "series_long.csv")),
       true_quantile_grid_path = normalizePath(file.path(root_dir, "true_quantile_grid.csv"), winslash = "/", mustWork = TRUE),
+      true_quantile_grid_sha256 = .qdesn_validation_sha256(file.path(root_dir, "true_quantile_grid.csv")),
       sim_output_path = normalizePath(file.path(root_dir, "sim_output.rds"), winslash = "/", mustWork = TRUE),
-      plot_path = normalizePath(root_png, winslash = "/", mustWork = TRUE),
+      sim_output_sha256 = .qdesn_validation_sha256(file.path(root_dir, "sim_output.rds")),
+      plot_path = normalizePath(plot_manifest_path, winslash = "/", mustWork = FALSE),
+      plot_sha256 = .qdesn_validation_sha256(plot_manifest_path),
       latent_seed = as.integer(latent_seed),
       noise_seed = as.integer(noise_seed),
       quantile_shift = as.numeric(q_shift),
