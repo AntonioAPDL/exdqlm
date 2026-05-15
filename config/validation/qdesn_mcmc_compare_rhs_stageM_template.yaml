@@ -1,0 +1,284 @@
+campaign:
+  name: qdesn_mcmc_rhs_stageM_template
+  results_root: results/qdesn_mcmc_validation/rhs_stageM_template
+  reports_root: reports/qdesn_mcmc_validation/rhs_stageM_template
+pilot:
+  scenario: toy_sine_small
+  tau: 0.25
+  seed: 123
+  reservoir_profile: tiny_d1_n8
+  enabled: yes
+runtime:
+  threads: 1
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.1
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.2
+    require_converged_for_pass: yes
+  mcmc:
+    min_keep_pass: 160
+    min_keep_warn: 100
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.9
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.5
+toy:
+  scenarios:
+    toy_sine_small:
+      T_use: 96
+      n_train: 78
+      amplitude: 0.7
+      period: 12
+      noise_sd: 0.12
+      phase: 0.0
+    const_small:
+      T_use: 96
+      n_train: 78
+      level: 0.4
+      noise_sd: 0.08
+    sin_asym_small:
+      T_use: 96
+      n_train: 78
+      amplitude: 0.6
+      period: 12
+      phase: 0.0
+      meanlog: -0.35
+      sdlog: 0.45
+      noise_scale: 0.35
+    level_shift_small:
+      T_use: 96
+      n_train: 78
+      break_1: 32
+      break_2: 64
+      level_1: 0.15
+      level_2: 0.75
+      level_3: -0.05
+      noise_sd: 0.1
+reservoir_profiles:
+  tiny_d1_n8:
+    D: 1
+    'n': 8
+    n_tilde: []
+    m: 4
+    alpha: 0.2
+    rho: 0.9
+    act_f: tanh
+    act_k: identity
+    pi_w: 0.15
+    pi_in: 1.0
+    washout: 4
+    add_bias: yes
+    seed: 123
+pipeline:
+  verbose: yes
+  readout:
+    include_input: yes
+    reservoir_lags: 1
+    input_position: after_reservoir
+    input_mode: raw_y_lags
+  sampling:
+    nd_draws: 96
+    chunk: 48
+  forecast:
+    mode: origin
+    train_last_window: 18
+    fore_last_window: 18
+  synthesis:
+    isotonic: yes
+    rearrange: yes
+    grid_M: 151
+    n_samp: 96
+    seed: 321
+  diagnostics:
+    calibration: no
+    pit: no
+    scores: yes
+    lead_eval: no
+    fan_charts: no
+    plots: no
+  cpp:
+    use_postpred: no
+    postpred_omp: no
+    postpred_precompute: no
+    postpred_threads: 1
+  outputs:
+    save: yes
+    keep_draws: no
+    thesis_subset: no
+  inference:
+    readout_scale: yes
+    vb:
+      max_iter: 35
+      min_iter_elbo: 10
+      n_samp_xi: 64
+      verbose: yes
+      diagnostics:
+        rhs_trace: yes
+        rhs_deep: no
+      rhs:
+        freeze_tau_iters: 10
+        freeze_tau_warmup_iters: 10
+        tau_local_tol: 0.0005
+        min_tau_updates: 2
+        force_tau_after_warmup: yes
+      prior_overrides:
+        ridge:
+          max_iter: 35
+          min_iter_elbo: 10
+          n_samp_xi: 64
+        rhs:
+          max_iter: 60
+          min_iter_elbo: 12
+          n_samp_xi: 128
+          rhs:
+            freeze_tau_iters: 10
+            freeze_tau_warmup_iters: 10
+            tau_local_tol: 0.0005
+            min_tau_updates: 2
+            force_tau_after_warmup: yes
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs:
+            tau0: 0.01
+            nu: 4
+            s2: 0.5
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            eta_bounds:
+              lambda:
+              - -8
+              - 8
+              tau:
+              - -8
+              - 8
+              c2:
+              - -8
+              - 8
+            h_curv: 1.0e-08
+            var_floor: 1.0e-08
+            init_log_tau: 0.0
+            init_log_c2: 0.0
+    mcmc:
+      n_burn: 300
+      n_mcmc: 600
+      thin: 1
+      verbose: yes
+      progress_every: 50
+      init_from_vb: yes
+      store_latent_draws: no
+      store_rhs_draws: no
+      transforms:
+        use_log_sigma: yes
+        sigma_eta_bounds:
+        - -10
+        - 10
+      slice:
+        width_gamma: 0.6
+        width_sigma: 0.35
+        width_rhs_lambda: 0.6
+        width_rhs_tau: 0.6
+        width_rhs_c2: 0.6
+        max_steps_out: 40
+        max_shrink: 150
+      prior_overrides:
+        ridge:
+          n_burn: 300
+          n_mcmc: 600
+          progress_every: 50
+          slice:
+            width_gamma: 0.6
+            width_sigma: 0.35
+            max_steps_out: 40
+            max_shrink: 150
+        rhs:
+          n_burn: 2200
+          n_mcmc: 4400
+          progress_every: 440
+          vb_warm_start_control:
+            max_iter: 70
+            min_iter_elbo: 12
+            n_samp_xi: 160
+            verbose: no
+            rhs:
+              freeze_tau_iters: 20
+              freeze_tau_warmup_iters: 20
+              tau_local_tol: 0.0005
+              min_tau_updates: 2
+              force_tau_after_warmup: yes
+          rhs:
+            freeze_tau_burnin_iters: 50
+            freeze_tau_only_during_burn: yes
+            width_adapt:
+              enabled: yes
+              warmup_iters: 320
+              only_during_burn: yes
+              target_score_low: -1.0
+              target_score_high: 1.0
+              step_size: 0.045
+              width_min: 0.05
+              width_max: 1.2
+          slice:
+            width_gamma: 0.55
+            width_sigma: 0.35
+            width_rhs_lambda: 0.24
+            width_rhs_tau: 0.18
+            width_rhs_c2: 0.11
+            width_rhs_tau_c2_block: 0.4
+            rhs_global_block_update: transformed_tau_c2_block
+            max_steps_out: 70
+            max_shrink: 300
+            rhs_transformed_block_passes: 2
+            core_extra_passes: 1
+            width_rhs_tau_c2_transformed_z1: 0.34
+            width_rhs_tau_c2_transformed_z2: 0.26
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs:
+            tau0: 0.01
+            nu: 4
+            s2: 0.5
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            eta_bounds:
+              lambda:
+              - -8
+              - 8
+              tau:
+              - -8
+              - 8
+              c2:
+              - -8
+              - 8
+            h_curv: 1.0e-08
+            var_floor: 1.0e-08
+      rhs:
+        freeze_tau_burnin_iters: 25
+        freeze_tau_only_during_burn: yes
+  decomposition:
+    enabled: no

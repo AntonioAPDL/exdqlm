@@ -4,8 +4,8 @@
 
 #' \code{exdqlm} objects
 #'
-#' \code{is.exdqlm} tests if its argument is a \code{exdqlm} object. 
-#' 
+#' \code{is.exdqlm} tests if its argument is a \code{exdqlm} object.
+#'
 #' @usage is.exdqlm(m)
 #'
 #' @param m an \strong{R} object
@@ -15,8 +15,8 @@ is.exdqlm = function(m){ return(methods::is(m,"exdqlm")) }
 
 #' \code{exdqlm} objects
 #'
-#' \code{as.exdqlm} attempts to turn a list into an \code{exdqlm} object. Works for time-invariant \code{dlm} objects created using the \pkg{dlm} package. 
-#' 
+#' \code{as.exdqlm} attempts to turn a list into an \code{exdqlm} object. Works for time-invariant \code{dlm} objects created using the \pkg{dlm} package.
+#'
 #' @usage as.exdqlm(m)
 #'
 #' @param m a list containing named elements m0, C0, FF and GG.
@@ -43,7 +43,7 @@ as.exdqlm <- function(m){
     }
     m$FF = t(m$FF)
   }
-  
+
   # check for required components & remove extras
   refnn <- c("m0","C0","FF","GG")
   nn <- names(m)
@@ -54,17 +54,17 @@ as.exdqlm <- function(m){
   }
   final.ind = match(nn[ind][check[ind]],nn)
   model = m[final.ind]
-  
+
   class(model) <- "exdqlm"
   model = check_mod(model)
-  
+
   return(model)
 }
 
 #' Addition for \code{exdqlm} objects
 #'
 #' Combines two state space blocks into a single state space model for an exDQLM.
-#' 
+#'
 #' @method + exdqlm
 #' @rdname plus-exdqlm
 #'
@@ -112,7 +112,7 @@ as.exdqlm <- function(m){
   }
   model$m0 = matrix(c(m1$m0,m2$m0),n,1)
   model$C0 = magic::adiag(m1$C0,m2$C0)
-  
+
   class(model) <- "exdqlm"
   return(model)
 }
@@ -122,11 +122,11 @@ as.exdqlm <- function(m){
 #' Print the details of the exDQLM model.
 #' @param x a \code{exdqlm} object.
 #' @param ... further arguments (unused).
-#' 
+#'
 #' @export
 print.exdqlm <- function(x,...){
   refnn <- c("m0","C0","FF","GG")
-  descrip = c("Prior mean of the state vector:", 
+  descrip = c("Prior mean of the state vector:",
               "Prior covariance of the state vector:",
               "Observational vector:",
               "Evolution matrix:")
@@ -148,11 +148,11 @@ print.exdqlm <- function(x,...){
 #' Print the details of the exDQLM model.
 #' @param object a \code{exdqlm} object.
 #' @param ... further arguments (unused).
-#' 
+#'
 #' @export
 summary.exdqlm <- function(object,...){
   refnn <- c("m0","C0","FF","GG")
-  descrip = c("Prior mean of the state vector:", 
+  descrip = c("Prior mean of the state vector:",
               "Prior covariance of the state vector:",
               "Observational vector:",
               "Evolution matrix:")
@@ -177,8 +177,8 @@ summary.exdqlm <- function(object,...){
 
 #' \code{exdqlmMCMC} objects
 #'
-#' \code{is.exdqlmMCMC} tests if its argument is a \code{exdqlmMCMC} object. 
-#' 
+#' \code{is.exdqlmMCMC} tests if its argument is a \code{exdqlmMCMC} object.
+#'
 #' @usage is.exdqlmMCMC(m)
 #'
 #' @param m an \strong{R} object
@@ -191,7 +191,7 @@ is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
 #'
 #' @param x An \code{exdqlmMCMC} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
 #'
 #' @examples
@@ -203,7 +203,7 @@ is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
 #'                 gam.init = -3.5, sig.init = 15,
 #'                 n.burn = 20, n.mcmc = 20,
 #'                 init.from.vb = FALSE, verbose = FALSE)
-#' print(M2)                
+#' print(M2)
 #' }
 #'
 print.exdqlmMCMC <- function(x, ...) {
@@ -213,7 +213,7 @@ print.exdqlmMCMC <- function(x, ...) {
     cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
   }
   cat("Number of Observations:", length(x$y), "\n")
-  cat("State Dimension:", length(x$model$m0), "\n")  
+  cat("State Dimension:", length(x$model$m0), "\n")
   cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!x$dqlm.ind){
@@ -229,7 +229,7 @@ print.exdqlmMCMC <- function(x, ...) {
 #'
 #' @param object An \code{exdqlmMCMC} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
 #'
 #' @examples
@@ -241,7 +241,7 @@ print.exdqlmMCMC <- function(x, ...) {
 #'                 gam.init = -3.5, sig.init = 15,
 #'                 n.burn = 20, n.mcmc = 20,
 #'                 init.from.vb = FALSE, verbose = FALSE)
-#' summary(M2)                
+#' summary(M2)
 #' }
 #'
 summary.exdqlmMCMC <- function(object, ...) {
@@ -251,14 +251,14 @@ summary.exdqlmMCMC <- function(object, ...) {
     cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
   }
   cat("Number of Observations:", length(object$y), "\n")
-  cat("State Dimension:", length(object$model$m0), "\n")  
+  cat("State Dimension:", length(object$model$m0), "\n")
   cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!object$dqlm.ind){
     cat("exDQLM fitted using MCMC\n")
   }else{
     cat("DQLM fitted using MCMC\n")
-  }  
+  }
   cat("Burn-in:", object$n.burn, ", MCMC samples:", object$n.mcmc , "\n")
   cat("Run-time:", object$run.time, "seconds\n")
 }
@@ -267,7 +267,7 @@ summary.exdqlmMCMC <- function(object, ...) {
 #'
 #' @param x An \code{exdqlmMCMC} object.
 #' @param ... Additional arguments.
-#' 
+#'
 #' @export
 #'
 #' @examples
@@ -279,7 +279,7 @@ summary.exdqlmMCMC <- function(object, ...) {
 #'                 gam.init = -3.5, sig.init = 15,
 #'                 n.burn = 20, n.mcmc = 20,
 #'                 init.from.vb = FALSE, verbose = FALSE)
-#' plot(M2)                
+#' plot(M2)
 #' }
 #'
 plot.exdqlmMCMC<- function(x, ...) {
@@ -294,24 +294,24 @@ plot.exdqlmMCMC<- function(x, ...) {
 
 #' \code{exdqlmISVB} objects
 #'
-#' \code{is.exdqlmISVB} tests if its argument is a \code{exdqlmISVB} object. 
-#' 
+#' \code{is.exdqlmISVB} tests if its argument is a \code{exdqlmISVB} object.
+#'
 #' @usage is.exdqlmISVB(m)
 #'
 #' @param m an \strong{R} object
 #'
 #' @export
-#' 
-#' 
+#'
+#'
 is.exdqlmISVB = function(m){ return(methods::is(m,"exdqlmISVB")) }
 
 #' Print Method for \code{exdqlmISVB} Objects
 #'
 #' @param x An \code{exdqlmISVB} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -332,9 +332,9 @@ print.exdqlmISVB <- function(x, ...) {
     cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
   }else{
     cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
+  }
   cat("Number of Observations:", length(x$y), "\n")
-  cat("State Dimension:", length(x$model$m0), "\n")  
+  cat("State Dimension:", length(x$model$m0), "\n")
   cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!x$dqlm.ind){
@@ -351,9 +351,9 @@ print.exdqlmISVB <- function(x, ...) {
 #'
 #' @param object An \code{exdqlmISVB} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -374,9 +374,9 @@ summary.exdqlmISVB <- function(object, ...) {
     cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
   }else{
     cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
+  }
   cat("Number of Observations:", length(object$y), "\n")
-  cat("State Dimension:", length(object$model$m0), "\n")  
+  cat("State Dimension:", length(object$model$m0), "\n")
   cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!object$dqlm.ind){
@@ -392,10 +392,10 @@ summary.exdqlmISVB <- function(object, ...) {
 #' Plot Method for \code{exdqlmISVB} Objects
 #'
 #' @param x An \code{exdqlmISVB} object.
-#' @param ... Additional arguments. 
-#' 
+#' @param ... Additional arguments.
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -423,24 +423,24 @@ plot.exdqlmISVB <- function(x, ...) {
 
 #' \code{exdqlmLDVB} objects
 #'
-#' \code{is.exdqlmLDVB} tests if its argument is a \code{exdqlmLDVB} object. 
-#' 
+#' \code{is.exdqlmLDVB} tests if its argument is a \code{exdqlmLDVB} object.
+#'
 #' @usage is.exdqlmLDVB(m)
 #'
 #' @param m an \strong{R} object
 #'
 #' @export
-#' 
-#' 
+#'
+#'
 is.exdqlmLDVB = function(m){ return(methods::is(m,"exdqlmLDVB")) }
 
 #' Print Method for \code{exdqlmLDVB} Objects
 #'
 #' @param x An \code{exdqlmLDVB} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -459,9 +459,9 @@ print.exdqlmLDVB <- function(x, ...) {
     cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
   }else{
     cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
+  }
   cat("Number of Observations:", length(x$y), "\n")
-  cat("State Dimension:", length(x$model$m0), "\n")  
+  cat("State Dimension:", length(x$model$m0), "\n")
   cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!x$dqlm.ind){
@@ -478,9 +478,9 @@ print.exdqlmLDVB <- function(x, ...) {
 #'
 #' @param object An \code{exdqlmLDVB} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -499,9 +499,9 @@ summary.exdqlmLDVB <- function(object, ...) {
     cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
   }else{
     cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
+  }
   cat("Number of Observations:", length(object$y), "\n")
-  cat("State Dimension:", length(object$model$m0), "\n")  
+  cat("State Dimension:", length(object$model$m0), "\n")
   cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
   #
   if(!object$dqlm.ind){
@@ -517,10 +517,10 @@ summary.exdqlmLDVB <- function(object, ...) {
 #' Plot Method for \code{exdqlmLDVB} Objects
 #'
 #' @param x An \code{exdqlmLDVB} object.
-#' @param ... Additional arguments. 
-#' 
+#' @param ... Additional arguments.
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -722,14 +722,110 @@ plot.exalStaticLDVB <- function(x, X = NULL, add = FALSE, col = "purple", cr.per
   .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
 }
 
+#' \code{exal_mcmc} objects
+#'
+#' \code{is.exal_mcmc} tests if its argument is an \code{exal_mcmc} object.
+#'
+#' @usage is.exal_mcmc(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exal_mcmc <- function(m){ return(methods::is(m,"exal_mcmc")) }
+
+#' Print Method for \code{exal_mcmc} Objects
+#'
+#' @param x An \code{exal_mcmc} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+print.exal_mcmc <- function(x, ...) {
+  print.exalStaticMCMC(x, ...)
+}
+
+#' Summary Method for \code{exal_mcmc} Objects
+#'
+#' @param object An \code{exal_mcmc} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+summary.exal_mcmc <- function(object, ...) {
+  summary.exalStaticMCMC(object, ...)
+}
+
+#' Plot Method for \code{exal_mcmc} Objects
+#'
+#' @param x An \code{exal_mcmc} object.
+#' @param add Logical; add to an existing plot.
+#' @param col Character vector of length 1 giving color for fitted quantiles.
+#' @param cr.percent Numeric in \code{(0, 1)} for credible-interval mass.
+#' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
+#'   \code{add = FALSE}.
+#'
+#' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
+#'
+#' @export
+plot.exal_mcmc <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+  plot.exalStaticMCMC(x, add = add, col = col, cr.percent = cr.percent, ...)
+}
+
+#' \code{exal_ldvb} objects
+#'
+#' \code{is.exal_ldvb} tests if its argument is an \code{exal_ldvb} object.
+#'
+#' @usage is.exal_ldvb(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exal_ldvb <- function(m){ return(methods::is(m,"exal_ldvb")) }
+
+#' Print Method for \code{exal_ldvb} Objects
+#'
+#' @param x An \code{exal_ldvb} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+print.exal_ldvb <- function(x, ...) {
+  print.exalStaticLDVB(x, ...)
+}
+
+#' Summary Method for \code{exal_ldvb} Objects
+#'
+#' @param object An \code{exal_ldvb} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+summary.exal_ldvb <- function(object, ...) {
+  summary.exalStaticLDVB(object, ...)
+}
+
+#' Plot Method for \code{exal_ldvb} Objects
+#'
+#' @param x An \code{exal_ldvb} object.
+#' @param X Optional design matrix used to compute fitted quantiles. If omitted,
+#'   the method uses \code{x$X} when available.
+#' @param add Logical; add to an existing plot.
+#' @param col Character vector of length 1 giving color for fitted quantiles.
+#' @param cr.percent Numeric in \code{(0, 1)} for credible-interval mass.
+#' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
+#'   \code{add = FALSE}.
+#'
+#' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
+#'
+#' @export
+plot.exal_ldvb <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
+  plot.exalStaticLDVB(x, X = X, add = add, col = col, cr.percent = cr.percent, ...)
+}
+
 ##################################
 ### "exdqlmDiagnostic" objects ###
 ##################################
 
 #' \code{exdqlmDiagnostic} objects
 #'
-#' \code{is.exdqlmDiagnostic} tests if its argument is a \code{exdqlmDiagnostic} object. 
-#' 
+#' \code{is.exdqlmDiagnostic} tests if its argument is a \code{exdqlmDiagnostic} object.
+#'
 #' @usage is.exdqlmDiagnostic(x)
 #'
 #' @param x an \strong{R} object
@@ -761,9 +857,9 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #'
 #' @param x An \code{exdqlmDiagnostic} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -789,9 +885,9 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #'
 #' @param object An \code{exdqlmDiagnostic} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -816,9 +912,9 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 #'
 #' @param x An \code{exdqlmDiagnostic} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #' data("scIVTmag", package = "exdqlm")
@@ -836,7 +932,7 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 plot.exdqlmDiagnostic <- function(x, ...) {
   aa = list(...)
   if(is.null(aa$cols)){cols=c("red","blue")}else{cols = aa$cols}
-  
+
   # get ranges
   if(is.null(x$m2.KL)){
     qq.x.range = range(x$m1.qq$x)
@@ -880,8 +976,8 @@ plot.exdqlmDiagnostic <- function(x, ...) {
 
 #' \code{exdqlmForecast} objects
 #'
-#' \code{is.exdqlmForecast} tests if its argument is a \code{exdqlmForecast} object. 
-#' 
+#' \code{is.exdqlmForecast} tests if its argument is a \code{exdqlmForecast} object.
+#'
 #' @usage is.exdqlmForecast(x)
 #'
 #' @param x an \strong{R} object
@@ -893,9 +989,9 @@ is.exdqlmForecast = function(x){ return(methods::is(x,"exdqlmForecast")) }
 #'
 #' @param x An \code{exdqlmForecast} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #'  data("scIVTmag", package = "exdqlm")
@@ -914,7 +1010,7 @@ print.exdqlmForecast <- function(x, ...) {
   #
   cat("k-step-ahead Quantile Forecasts of an exDQLM\n")
   cat("Number of Observations:", length(x$m1$y), "\n")
-  cat("State Dimension:", length(x$m1$model$m0), "\n")  
+  cat("State Dimension:", length(x$m1$model$m0), "\n")
   cat("Forecasts start at time index", x$start.t, "and forecast k =", x$k, "steps ahead\n")
   if(!is.null(x$samp.fore)){
     cat("Posterior forecast draws stored:", ncol(as.matrix(x$samp.fore)), "\n")
@@ -926,9 +1022,9 @@ print.exdqlmForecast <- function(x, ...) {
 #'
 #' @param object An \code{exdqlmForecast} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #'  data("scIVTmag", package = "exdqlm")
@@ -947,7 +1043,7 @@ summary.exdqlmForecast <- function(object, ...) {
   #
   cat("k-step-ahead Quantile Forecasts of an exDQLM\n")
   cat("Number of Observations:", length(object$m1$y), "\n")
-  cat("State Dimension:", length(object$m1$model$m0), "\n")  
+  cat("State Dimension:", length(object$m1$model$m0), "\n")
   cat("Forecasts start at time index", object$start.t, "and forecast k =", object$k, "steps ahead\n")
   if(!is.null(object$samp.fore)){
     cat("Posterior forecast draws stored:", ncol(as.matrix(object$samp.fore)), "\n")
@@ -959,9 +1055,9 @@ summary.exdqlmForecast <- function(object, ...) {
 #'
 #' @param x An \code{exdqlmForecast} object.
 #' @param ... Additional arguments (unused).
-#' 
+#'
 #' @export
-#' 
+#'
 #' @examples
 #' \donttest{
 #'  data("scIVTmag", package = "exdqlm")
@@ -980,12 +1076,12 @@ plot.exdqlmForecast <- function(x, ...) {
   aa = list(...)
   if(is.null(aa$cols)){cols=c("purple","magenta")}else{cols = aa$cols}
   if(is.null(aa$add)){add=FALSE}else{add=aa$add}
-  
+
   y = x$m1$y
   p = dim(x$m1$model$GG)[1]
   TT = dim(x$m1$model$GG)[3]
   half.alpha = (1 - x$cr.percent)/2
-  
+
   # filtered estimate for reference
   FF.start.t = matrix(x$m1$model$FF[,1:x$start.t], p, x$start.t)
   fm.start.t = matrix(x$m1$theta.out$fm[,1:x$start.t], p, x$start.t)
@@ -1013,7 +1109,7 @@ plot.exdqlmForecast <- function(x, ...) {
   graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qmap[x$start.t],x$ff),col=cols[2])
   graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qub[x$start.t],fqub),col=cols[2],lty=3)
   graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qlb[x$start.t],fqlb),col=cols[2],lty=3)
-  
+
 }
 
 #### "exdqlmSynthesis" objects ####

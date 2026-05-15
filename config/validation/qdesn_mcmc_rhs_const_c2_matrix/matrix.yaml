@@ -1,0 +1,33 @@
+matrix:
+  name: qdesn_rhs_const_c2_micro_matrix
+  base_defaults: ../qdesn_mcmc_compare_rhs_structural_reparam_gateB_tauwarm25.yaml
+  grid: ../qdesn_mcmc_multichain_rhs_const_fail_grid.csv
+  n_chains: 4
+  chain_seed_base: 810000
+  selection:
+    phase_keep_top: 2
+
+phases:
+  - id: phase_const_c2_micro
+    description: isolate rhs_c2 split-rhat failure on const_small tau=0.05 rhs
+    experiments:
+      - id: B0
+        label: control_e07_e11
+        description: current failing control based on E07 widths and E11 chain length
+        patch: patches/B0_control_current_failed.yaml
+      - id: B1
+        label: narrow_c2_block
+        description: narrow c2 width and tau-c2 block width while keeping long-chain budget
+        patch: patches/B1_narrow_c2_block.yaml
+      - id: B2
+        label: strong_narrow_c2_block
+        description: stronger c2 narrowing for difficult rhs_c2 geometry
+        patch: patches/B2_strong_narrow_c2_block.yaml
+      - id: B3
+        label: coordinate_global_update
+        description: coordinate tau/c2 global update with narrowed c2 width
+        patch: patches/B3_coordinate_global_c2.yaml
+      - id: B4
+        label: long_chain_strong_narrow
+        description: long-chain stress run with strong c2 narrowing
+        patch: patches/B4_long_chain_strong_narrow.yaml

@@ -1,0 +1,29 @@
+inputs:
+  base_defaults: config/validation/qdesn_mcmc_compare_rhs_stageF_const005_rescue.yaml
+  profiles: config/validation/qdesn_rhs_stageG_profiles.yaml
+  target_grid: config/validation/qdesn_rhs_stageG_target_grid.csv
+  broader_grid: config/validation/qdesn_mcmc_multichain_rhs_broader_confirmation_grid.csv
+  drift_e_report_root: reports/qdesn_mcmc_validation/rhs_drift_rescue_wave/20260321-195253__git-88c0369
+  stage_f_report_root: reports/qdesn_mcmc_validation/rhs_guardrail_steps_1_to_5/stageF-const005-20260322-204144__git-88c0369
+
+stage_g:
+  baseline_profile_id: G0_baseline
+  strict_gate:
+    require_zero_fail: yes
+    require_eligible_true: yes
+    require_non_degraded_finite_domain: yes
+    require_improved_geweke_half_drift: yes
+    min_geweke_improve: 0.05
+    min_half_drift_improve: 0.02
+    fallback_geweke_cap: 3.0
+    fallback_half_drift_cap: 0.50
+
+stage_h:
+  require_zero_fail: yes
+  require_all_eligible: yes
+  require_all_finite_domain: yes
+
+outputs:
+  promotion_defaults: config/validation/qdesn_mcmc_compare_rhs_stageGH_candidate.yaml
+  tracker_doc: docs/TRACK__qdesn_rhs_stageG_stageH_wave.md
+  escalation_note: docs/TRACK__qdesn_rhs_stageG_stageH_wave_escalation.md

@@ -1,0 +1,9 @@
+experiment:
+  id: E01
+  description: isolate dependence on VB initialization by disabling init_from_vb
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        init_from_vb: false

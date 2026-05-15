@@ -1,0 +1,494 @@
+meta:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_20260410
+  display_name: QDESN Dynamic Effective-W300 Postdraw Deep-DESN RHS Long MCMC Wave
+  purpose: >
+    Continue from the completed deep-DESN final residual wave after promoting the selected stage
+    winners plus the completed E530 exact-root improvement. Spend new compute only on the remaining
+    long-horizon rhs_ns MCMC residual surface, split by family and normal tau regime.
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  safe_default: prepare_only
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc
+
+source:
+  mode: prior_fitfail_wave
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave
+  source_root_profile_overrides:
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_rhs_ns
+      report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3
+      stage_id: E2_rhs_long_laplace_normal_mcmc
+      profile_id: E530_rhs_long_general_guard320_burn3600
+      rationale: >
+        Carry forward the completed E530 exact-root win because it reduces the laplace tau=0.05
+        rhs_ns long-horizon root from 2 FAIL rows to 1 without root-status damage.
+
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave
+
+runtime:
+  default_workers: 6
+  active_job_workers: 4
+  hard_cap_workers: 6
+
+shared_patches:
+  width_adapt_1800: &width_adapt_1800
+    enabled: true
+    warmup_iters: 1800
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_2000: &width_adapt_2000
+    enabled: true
+    warmup_iters: 2000
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_2200: &width_adapt_2200
+    enabled: true
+    warmup_iters: 2200
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  rhs_vb_guard_256: &rhs_vb_guard_256
+    max_iter: 140
+    min_iter_elbo: 24
+    n_samp_xi: 256
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_320: &rhs_vb_guard_320
+    max_iter: 180
+    min_iter_elbo: 28
+    n_samp_xi: 320
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_384: &rhs_vb_guard_384
+    max_iter: 220
+    min_iter_elbo: 32
+    n_samp_xi: 384
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_long_recenter_3600: &rhs_long_recenter_3600
+    n_burn: 1900
+    n_mcmc: 3600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 200
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1800
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.30
+      width_sigma: 0.21
+      width_rhs_lambda: 0.095
+      width_rhs_tau: 0.050
+      width_rhs_c2: 0.032
+      width_rhs_tau_c2_block: 0.11
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 7
+      width_rhs_tau_c2_transformed_z1: 0.115
+      width_rhs_tau_c2_transformed_z2: 0.080
+      core_extra_passes: 3
+      max_steps_out: 108
+      max_shrink: 410
+      max_steps_out_sigma: 168
+      max_shrink_sigma: 475
+
+  rhs_long_burndiag_3600: &rhs_long_burndiag_3600
+    n_burn: 2050
+    n_mcmc: 3600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 210
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_2000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.31
+      width_sigma: 0.22
+      width_rhs_lambda: 0.100
+      width_rhs_tau: 0.052
+      width_rhs_c2: 0.033
+      width_rhs_tau_c2_block: 0.112
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 7
+      width_rhs_tau_c2_transformed_z1: 0.120
+      width_rhs_tau_c2_transformed_z2: 0.082
+      core_extra_passes: 3
+      max_steps_out: 110
+      max_shrink: 420
+      max_steps_out_sigma: 172
+      max_shrink_sigma: 485
+
+  rhs_long_recenter_4000: &rhs_long_recenter_4000
+    n_burn: 2150
+    n_mcmc: 4000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 220
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_2000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.29
+      width_sigma: 0.20
+      width_rhs_lambda: 0.090
+      width_rhs_tau: 0.048
+      width_rhs_c2: 0.030
+      width_rhs_tau_c2_block: 0.10
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 8
+      width_rhs_tau_c2_transformed_z1: 0.110
+      width_rhs_tau_c2_transformed_z2: 0.075
+      core_extra_passes: 3
+      max_steps_out: 112
+      max_shrink: 430
+      max_steps_out_sigma: 176
+      max_shrink_sigma: 490
+
+  rhs_long_guard384_diag_4200: &rhs_long_guard384_diag_4200
+    n_burn: 2300
+    n_mcmc: 4200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 230
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_2200
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.28
+      width_sigma: 0.19
+      width_rhs_lambda: 0.085
+      width_rhs_tau: 0.045
+      width_rhs_c2: 0.028
+      width_rhs_tau_c2_block: 0.095
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 8
+      width_rhs_tau_c2_transformed_z1: 0.105
+      width_rhs_tau_c2_transformed_z2: 0.070
+      core_extra_passes: 3
+      max_steps_out: 116
+      max_shrink: 440
+      max_steps_out_sigma: 180
+      max_shrink_sigma: 500
+
+profiles:
+  - profile_id: F410_rhs_long_gausmix_guard320_recenter3600
+    label: RHS Long Gausmix Guard320 Recenter3600
+    rationale: >
+      First new gausmix direction after the tied E-stage ladder. Recenter the long-horizon MCMC
+      geometry while keeping the safer guard320 VB protection.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_recenter_3600
+
+  - profile_id: F420_rhs_long_gausmix_guard320_burndiag3600
+    label: RHS Long Gausmix Guard320 BurnDiag3600
+    rationale: >
+      Burn-plus-diagnostics hybrid for the gausmix long-horizon pocket. Intended to move away from
+      the tied balanced-vs-diagnostics E-stage surface.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_burndiag_3600
+
+  - profile_id: F430_rhs_long_gausmix_guard384_recenter4000
+    label: RHS Long Gausmix Guard384 Recenter4000
+    rationale: >
+      Stronger gausmix guard plus deeper recentered MCMC geometry. Included because the completed
+      gausmix stage suggested the current limitation is geometric rather than purely burn-limited.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_recenter_4000
+
+  - profile_id: F440_rhs_long_gausmix_guard384_diag4200
+    label: RHS Long Gausmix Guard384 Diag4200
+    rationale: >
+      Highest-intensity retained gausmix profile in the new geometry family. Included once so the
+      next wave can still learn whether the remaining gausmix debt needs both deeper diagnostics and
+      stronger guard support.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_diag_4200
+
+  - profile_id: F510_rhs_long_laplace_guard256_recenter3600
+    label: RHS Long Laplace Guard256 Recenter3600
+    rationale: >
+      Minimal-guard laplace continuation. Included because the residual laplace debt is now pure
+      MCMC exAL diagnostics and may not need stronger VB intervention.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_recenter_3600
+
+  - profile_id: F520_rhs_long_laplace_guard320_burndiag3600
+    label: RHS Long Laplace Guard320 BurnDiag3600
+    rationale: >
+      Laplace-specific follow-on to the completed E530 exact-root win. Keep the stronger guard320
+      support but move into the new burn-plus-diagnostics geometry family.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_burndiag_3600
+
+  - profile_id: F530_rhs_long_laplace_guard320_recenter4000
+    label: RHS Long Laplace Guard320 Recenter4000
+    rationale: >
+      Deeper recentered laplace profile. Included because the remaining laplace rows are all exAL
+      and may benefit from geometry changes more than from another generic diagnostics repeat.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_recenter_4000
+
+  - profile_id: F540_rhs_long_laplace_guard384_diag4200
+    label: RHS Long Laplace Guard384 Diag4200
+    rationale: >
+      Highest-intensity laplace profile retained once. Included to test whether the remaining exAL
+      laplace pocket still has a guard-limited component after E530.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_diag_4200
+
+  - profile_id: F610_rhs_long_normal_lower_guard256_recenter3600
+    label: RHS Long Normal Lower Guard256 Recenter3600
+    rationale: >
+      First lower-tau normal profile. Keep the lighter guard because the lower-tau normal residual is
+      now pure MCMC debt.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_recenter_3600
+
+  - profile_id: F620_rhs_long_normal_lower_guard256_burndiag3600
+    label: RHS Long Normal Lower Guard256 BurnDiag3600
+    rationale: >
+      Lower-tau normal burn-plus-diagnostics profile. Included because the lower-tau normal residual
+      still carries repeated high-autocorrelation plus drift signatures.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_burndiag_3600
+
+  - profile_id: F630_rhs_long_normal_lower_guard320_recenter4000
+    label: RHS Long Normal Lower Guard320 Recenter4000
+    rationale: >
+      Stronger-guard lower-tau normal profile. Included once to see whether the repeated
+      autocorrelation-plus-drift pattern still benefits from a modest guard increase.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_recenter_4000
+
+  - profile_id: F640_rhs_long_normal_lower_guard384_diag4200
+    label: RHS Long Normal Lower Guard384 Diag4200
+    rationale: >
+      Highest-intensity lower-tau normal profile retained once. Included only because the lower-tau
+      band is still the densest remaining normal sub-surface.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_diag_4200
+
+  - profile_id: F710_rhs_long_normal_upper_guard256_burndiag3600
+    label: RHS Long Normal Upper Guard256 BurnDiag3600
+    rationale: >
+      Cheap upper-tail singleton profile for the last `normal tau=0.95` residual row.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_burndiag_3600
+
+  - profile_id: F720_rhs_long_normal_upper_guard320_recenter4000
+    label: RHS Long Normal Upper Guard320 Recenter4000
+    rationale: >
+      Upper-tail normal singleton hedge with stronger guard plus deeper recentered geometry.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_recenter_4000
+
+  - profile_id: F730_rhs_long_normal_upper_guard384_diag4200
+    label: RHS Long Normal Upper Guard384 Diag4200
+    rationale: >
+      Highest-intensity upper-tail singleton profile. Included once to test whether the last upper
+      normal residual is still partly guard-limited.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_diag_4200
+
+stages:
+  - id: F1_rhs_long_gausmix_mcmc
+    label: RHS Long Gausmix MCMC
+    rationale: >
+      Remaining gausmix long-horizon rhs_ns MCMC residual pocket after promoting E410.
+    stage_selector:
+      prior: [rhs_ns]
+      family: [gausmix]
+      method: [mcmc]
+      fit_size: [5000]
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F410_rhs_long_gausmix_guard320_recenter3600
+      - F420_rhs_long_gausmix_guard320_burndiag3600
+      - F430_rhs_long_gausmix_guard384_recenter4000
+      - F440_rhs_long_gausmix_guard384_diag4200
+
+  - id: F2_rhs_long_laplace_exal
+    label: RHS Long Laplace ExAL
+    rationale: >
+      Remaining laplace long-horizon rhs_ns residual pocket after carrying forward the E530
+      exact-root win. The residual is now exAL-only.
+    stage_selector:
+      prior: [rhs_ns]
+      family: [laplace]
+      method: [mcmc]
+      fit_size: [5000]
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F510_rhs_long_laplace_guard256_recenter3600
+      - F520_rhs_long_laplace_guard320_burndiag3600
+      - F530_rhs_long_laplace_guard320_recenter4000
+      - F540_rhs_long_laplace_guard384_diag4200
+
+  - id: F3_rhs_long_normal_lower_mcmc
+    label: RHS Long Normal Lower-Tau MCMC
+    rationale: >
+      Remaining normal lower-tau long-horizon rhs_ns MCMC pocket for `tau in {0.05, 0.25}`.
+    stage_selector:
+      prior: [rhs_ns]
+      family: [normal]
+      tau: [0.05, 0.25]
+      method: [mcmc]
+      fit_size: [5000]
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F610_rhs_long_normal_lower_guard256_recenter3600
+      - F620_rhs_long_normal_lower_guard256_burndiag3600
+      - F630_rhs_long_normal_lower_guard320_recenter4000
+      - F640_rhs_long_normal_lower_guard384_diag4200
+
+  - id: F4_rhs_long_normal_upper_exal
+    label: RHS Long Normal Upper-Tau ExAL
+    rationale: >
+      Remaining normal upper-tail singleton at `tau = 0.95`.
+    stage_selector:
+      prior: [rhs_ns]
+      family: [normal]
+      tau: [0.95]
+      method: [mcmc]
+      fit_size: [5000]
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F710_rhs_long_normal_upper_guard256_burndiag3600
+      - F720_rhs_long_normal_upper_guard320_recenter4000
+      - F730_rhs_long_normal_upper_guard384_diag4200

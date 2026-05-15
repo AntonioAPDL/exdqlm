@@ -1,0 +1,520 @@
+campaign:
+  name: qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave
+  results_root: results/qdesn_mcmc_validation/static_exdqlm_crossstudy_residual_mcmc_closure_wave
+  reports_root: reports/qdesn_mcmc_validation/static_exdqlm_crossstudy_residual_mcmc_closure_wave
+
+source:
+  run_tag: qdesn-static-exdqlm-crossstudy-fitfail-20260404b__git-2aa809c
+  prior_wave_report_root: reports/qdesn_mcmc_validation/static_exdqlm_crossstudy_fit_fail_closure_wave
+  interpretation: wave3_promoted_local_baseline_map_plus_unvalidated_wave1_root_fails
+
+runtime:
+  default_workers: 8
+  active_job_workers: 6
+  hard_cap_workers: 8
+
+stages:
+  - id: S1_ridge_tt100_residual_drift
+    description: >
+      Residual ridge exal/mcmc closure on the short-horizon slice. Wave 3
+      already showed that the F510 ridge geometry is the right local baseline
+      and that chain-only inflation does not help. This stage therefore keeps
+      F510 as control and tests tighter drift-focused geometry with only modest
+      extra keep length.
+    control_profile_id: G510_ridge_local_baseline
+    stage_selector:
+      prior: ridge
+      method: mcmc
+      model: exal
+      signoff_grade: FAIL
+      fit_size: 100
+    target_selector:
+      prior: ridge
+      method: mcmc
+      model: exal
+      signoff_grade: FAIL
+      fit_size: 100
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - G510_ridge_local_baseline
+      - G520_ridge_tt100_drift_guard
+      - G530_ridge_tt100_drift_guard_chain1300
+
+  - id: S2_ridge_tt1000_residual_ess_plus_hardroots
+    description: >
+      Residual ridge exal/mcmc closure on the longer-horizon slice. The
+      promoted F510 baseline still leaves mostly gausmix/normal tt=1000 ESS and
+      autocorrelation debt, while the original static_shrink x laplace x tt1000
+      ridge hard-root FAIL band was never revalidated in Wave 3. This stage
+      therefore combines the promoted residual roots with the unresolved source
+      hard-root FAIL triad.
+    control_profile_id: G510_ridge_local_baseline
+    stage_selector:
+      prior: ridge
+      method: mcmc
+      model: exal
+      signoff_grade: FAIL
+      fit_size: 1000
+    include_source_root_status_fail_selector:
+      prior: ridge
+      root_kind: static_shrink
+      family: laplace
+      fit_size: 1000
+    target_selector:
+      prior: ridge
+      method: mcmc
+      model: exal
+      signoff_grade: FAIL
+      fit_size: 1000
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - G510_ridge_local_baseline
+      - G540_ridge_tt1000_hybrid_chain1400
+      - G550_ridge_tt1000_hybrid_chain1600
+
+  - id: S3_rhs_tt100_residual_mcmc
+    description: >
+      Residual rhs_ns MCMC closure on the short-horizon slice. Wave 3 showed
+      that conservative transformed-block geometry beats chain-only inflation,
+      so this stage keeps F610 as control and tests two geometry-first drift
+      guards with only modest extra keep length.
+    control_profile_id: G610_rhs_tt100_local_baseline
+    stage_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 100
+    target_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 100
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - G610_rhs_tt100_local_baseline
+      - G620_rhs_tt100_hybrid_chain1250
+      - G630_rhs_tt100_drift_guard_plus
+
+  - id: S4_rhs_tt1000_residual_mcmc_plus_hardroots
+    description: >
+      Residual rhs_ns MCMC closure on the longer-horizon slice. Wave 3 showed
+      that chain extension helps more than geometry-only tightening here, but
+      the original static_shrink x laplace x tt1000 rhs_ns hard-root FAIL band
+      was not revalidated inside the promoted map. This stage carries both the
+      promoted residual roots and that unresolved hard-root triad.
+    control_profile_id: G640_rhs_tt1000_local_baseline
+    stage_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 1000
+    include_source_root_status_fail_selector:
+      prior: rhs_ns
+      root_kind: static_shrink
+      family: laplace
+      fit_size: 1000
+    target_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+      fit_size: 1000
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - G640_rhs_tt1000_local_baseline
+      - G650_rhs_tt1000_hybrid_block_chain1400
+      - G660_rhs_tt1000_chain1600_focus
+
+profiles:
+  - profile_id: G510_ridge_local_baseline
+    label: Ridge Local Baseline
+    rationale: >
+      The promoted Wave-3 ridge-local winner. This remains the control for both
+      ridge residual stages unless a narrower challenger clearly improves it.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 550
+                n_mcmc: 1100
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.53
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 400
+
+  - profile_id: G520_ridge_tt100_drift_guard
+    label: Ridge tt100 Drift Guard
+    rationale: >
+      Tighter F510-derived ridge geometry with a small burn extension. Included
+      because the remaining ridge tt=100 roots are drift-heavy and did not
+      respond to broader chain-only inflation.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 650
+                n_mcmc: 1150
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.49
+                  width_sigma: 0.18
+                  core_extra_passes: 3
+                  max_steps_out: 60
+                  max_shrink: 240
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - profile_id: G530_ridge_tt100_drift_guard_chain1300
+    label: Ridge tt100 Drift+Chain1300
+    rationale: >
+      Drift-focused ridge guard with modest keep-length inflation. Included to
+      test whether the short-horizon ridge outliers need slightly more settling
+      once the geometry is tightened.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 700
+                n_mcmc: 1300
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.50
+                  width_sigma: 0.19
+                  core_extra_passes: 3
+                  max_steps_out: 62
+                  max_shrink: 250
+                  max_steps_out_sigma: 135
+                  max_shrink_sigma: 370
+
+  - profile_id: G540_ridge_tt1000_hybrid_chain1400
+    label: Ridge tt1000 Hybrid Chain1400
+    rationale: >
+      F510 ridge geometry plus moderate chain extension for the longer-horizon
+      ESS/autocorrelation slice. Included because residual ridge tt=1000 FAILs
+      are now concentrated in exal MCMC persistence diagnostics.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 650
+                n_mcmc: 1400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.54
+                  width_sigma: 0.21
+                  core_extra_passes: 2
+                  max_steps_out: 75
+                  max_shrink: 320
+                  max_steps_out_sigma: 160
+                  max_shrink_sigma: 430
+
+  - profile_id: G550_ridge_tt1000_hybrid_chain1600
+    label: Ridge tt1000 Hybrid Chain1600
+    rationale: >
+      Heavier F510-derived persistence hedge for the long-horizon ridge slice.
+      Included only on the residual tt=1000 roots because the remaining ridge
+      debt is now mostly ESS/autocorrelation rather than broad geometry failure.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 750
+                n_mcmc: 1600
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.56
+                  width_sigma: 0.22
+                  core_extra_passes: 2
+                  max_steps_out: 80
+                  max_shrink: 340
+                  max_steps_out_sigma: 170
+                  max_shrink_sigma: 450
+
+  - profile_id: G610_rhs_tt100_local_baseline
+    label: RHS tt100 Local Baseline
+    rationale: >
+      The promoted Wave-3 rhs_ns short-horizon winner. This remains the control
+      for residual rhs tt=100 closure unless a tighter drift guard clearly
+      improves it.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 575
+                n_mcmc: 1050
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 380
+                    only_during_burn: true
+                    target_score_low: -0.60
+                    target_score_high: 0.60
+                    step_size: 0.012
+                    width_min: 0.02
+                    width_max: 1.40
+                slice:
+                  width_gamma: 0.40
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.09
+                  width_rhs_c2: 0.06
+                  width_rhs_tau_c2_block: 0.22
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.18
+                  width_rhs_tau_c2_transformed_z2: 0.14
+                  max_steps_out: 65
+                  max_shrink: 240
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 120
+                  max_shrink_sigma: 340
+
+  - profile_id: G620_rhs_tt100_hybrid_chain1250
+    label: RHS tt100 Hybrid Chain1250
+    rationale: >
+      F610-style short-horizon rhs geometry with modest chain extension and one
+      extra transformed-block pass. Included because the residual tt=100 debt
+      remains drift-heavy, but pure chain extension alone already proved weak.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 675
+                n_mcmc: 1250
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 140
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 420
+                    only_during_burn: true
+                    target_score_low: -0.55
+                    target_score_high: 0.55
+                    step_size: 0.010
+                    width_min: 0.02
+                    width_max: 1.30
+                slice:
+                  width_gamma: 0.38
+                  width_sigma: 0.26
+                  width_rhs_lambda: 0.13
+                  width_rhs_tau: 0.08
+                  width_rhs_c2: 0.05
+                  width_rhs_tau_c2_block: 0.20
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 6
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  max_steps_out: 60
+                  max_shrink: 220
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 320
+
+  - profile_id: G630_rhs_tt100_drift_guard_plus
+    label: RHS tt100 Drift Guard Plus
+    rationale: >
+      Stronger short-horizon rhs drift guard with tighter transformed-block
+      widths and a longer burn but without the looser chain-only pattern that
+      already failed in Wave 3.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 725
+                n_mcmc: 1150
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.50
+                    target_score_high: 0.50
+                    step_size: 0.010
+                    width_min: 0.02
+                    width_max: 1.20
+                slice:
+                  width_gamma: 0.36
+                  width_sigma: 0.24
+                  width_rhs_lambda: 0.12
+                  width_rhs_tau: 0.07
+                  width_rhs_c2: 0.05
+                  width_rhs_tau_c2_block: 0.18
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 6
+                  width_rhs_tau_c2_transformed_z1: 0.15
+                  width_rhs_tau_c2_transformed_z2: 0.11
+                  max_steps_out: 58
+                  max_shrink: 210
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 300
+
+  - profile_id: G640_rhs_tt1000_local_baseline
+    label: RHS tt1000 Local Baseline
+    rationale: >
+      The promoted Wave-3 rhs_ns long-horizon winner. This remains the control
+      for residual rhs tt=1000 closure unless a hybrid or deeper-chain variant
+      clearly improves it.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 650
+                n_mcmc: 1200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 400
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.80
+                slice:
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  max_steps_out: 70
+                  max_shrink: 260
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - profile_id: G650_rhs_tt1000_hybrid_block_chain1400
+    label: RHS tt1000 Hybrid Block+Chain1400
+    rationale: >
+      Long-horizon rhs hybrid that keeps the F640 chain gain but reintroduces
+      the tighter transformed-block geometry that was directionally useful even
+      when geometry-only lost to chain-only.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 725
+                n_mcmc: 1400
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 140
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 450
+                    only_during_burn: true
+                    target_score_low: -0.60
+                    target_score_high: 0.60
+                    step_size: 0.012
+                    width_min: 0.02
+                    width_max: 1.50
+                slice:
+                  width_gamma: 0.40
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.15
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.23
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.19
+                  width_rhs_tau_c2_transformed_z2: 0.15
+                  max_steps_out: 68
+                  max_shrink: 245
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 125
+                  max_shrink_sigma: 350
+
+  - profile_id: G660_rhs_tt1000_chain1600_focus
+    label: RHS tt1000 Chain1600 Focus
+    rationale: >
+      Deeper long-horizon rhs persistence hedge that keeps the F640 geometry
+      but pushes keep length further, because the remaining tt=1000 debt is
+      dominated by low ESS and autocorrelation rather than vb diagnostics.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 800
+                n_mcmc: 1600
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 500
+                    only_during_burn: true
+                    target_score_low: -0.70
+                    target_score_high: 0.70
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.90
+                slice:
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  max_steps_out: 70
+                  max_shrink: 260
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360

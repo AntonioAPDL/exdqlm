@@ -1,0 +1,41 @@
+meta:
+  analysis_id: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis
+  description: >
+    Build the comparison-facing deep-DESN pack directly from the completed row-faithful multiseed
+    replay, then emit the same authoritative-style comparison outputs used in past effective-w300
+    analyses, plus an explicit per-root representative-fit selection table.
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-deepdesn-maincmp
+
+source:
+  mode: dynamic_campaign
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-20260412-124648__git-7144048
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation
+  source_label: Completed Deep-DESN Row-Faithful Multiseed Replay
+  source_rationale: >
+    Use the completed row-faithful multiseed replay as the direct deep-DESN comparison source.
+    This keeps the replay contract intact and evaluates the finished replayed branch state against
+    the mirrored exdqlm dynamic reference without adding any new promotion overlays.
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_main_comparison_analysis
+  final_wave_evidence_run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed-20260412-124648__git-7144048
+  refresh_fit_metrics: false
+
+expected_state:
+  fit_rows: 144
+  fit_pass_rows: 66
+  fit_warn_rows: 44
+  fit_fail_rows: 34
+  root_rows: 36
+  root_status_fail_rows: 10
+  root_compare_any_rows: 36
+  root_compare_full_rows: 17
+  local_baseline_rows: 0
+  root_override_rows: 0
+
+notes:
+  authoritative_baseline_label: rowfaithful_multiseed_replay_direct_source
+  interpretation: >
+    This pack is descriptive and comparison-facing. It does not assert that the replay should be
+    promoted wholesale. Instead, it exposes the finished replay surface, the remaining fail
+    inventory, and the best representative fit per root under the completed replay outputs.

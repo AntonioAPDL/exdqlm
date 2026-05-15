@@ -1,0 +1,125 @@
+evaluation:
+  experiment_name: qdesn_synth_quick
+  result_root: results/benchmarks/qdesn_synth
+  datasets:
+    - tourism_monthly
+    - m4_monthly
+  max_series_per_dataset: 1
+  parallel:
+    workers: 1
+  series_overrides:
+    evaluation:
+      tourism_monthly: [T1]
+      m4_monthly: [M6336]
+    audit:
+      tourism_monthly: [T1]
+      m4_monthly: [M6336]
+  selection:
+    enabled: false
+    subset_size: 0
+    min_train_points: 24
+    metric: crps_mean
+  routing:
+    enabled: true
+    breaks: [96, 480]
+    labels: [short, medium, long]
+    fallback: dataset
+  quantile_eval:
+    enabled: true
+    tail_threshold: 0.10
+  m4_comparability:
+    enabled: true
+  baselines:
+    models: [naive, seasonal_naive, naive2, drift, theta, auto_arima]
+    n_draws: 60
+  audit:
+    subset_size: 1
+    save_draws: true
+
+models:
+  qdesn_synth:
+    base:
+      candidate_id: quick_d1_memory
+      p_vec: [0.05, 0.25, 0.50, 0.75, 0.95]
+      fit:
+        D: 1
+        "n": [128]
+        m: 24
+        alpha: [0.10]
+        rho: [0.95]
+        act_f: tanh
+        act_k: identity
+        pi_w: [0.05]
+        pi_in: [0.50]
+        washout: 48
+        add_bias: true
+        standardize_inputs: true
+        input_bound: tanh
+        seed: 20260306
+        seed_set:
+          - [101]
+      vb_args:
+        max_iter: 40
+        min_iter_elbo: 10
+        tol: 1.0e-4
+        tol_par: 1.0e-4
+        n_samp_xi: 200
+        verbose: false
+        readout_scale: true
+        diagnostics:
+          rhs_trace: true
+          rhs_deep: false
+          rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
+          rhs_trace_top_k: 20
+          rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
+        rhs:
+          freeze_tau_iters: 20
+          freeze_tau_warmup_iters: 20
+          update_every: 1
+          update_every_warmup: 1
+          update_every_warmup_iters: 0
+          beta_presteps: 1
+          beta_presteps_iters: 0
+          gradcheck: false
+          gradcheck_iters: [1, 5]
+          gradcheck_h: 1.0e-5
+          tau_local_tol: 1.0e-3
+          min_tau_updates: 1
+          max_tau_updates: null
+          force_tau_after_warmup: true
+          recompute_elbo_after_tau_update: true
+        beta_prior_type: rhs
+        beta_rhs:
+          tau0: 0.001
+          nu: 4.0
+          s2: 0.1
+          shrink_intercept: false
+          intercept_prec: 1.0e-16
+          n_inner: 1
+          eta_bounds:
+            lambda: [-20, 20]
+            tau: [-20, 20]
+            c2: [-20, 20]
+          h_curv: 1.0e-8
+          var_floor: 1.0e-8
+          verbose: false
+          init_log_lambda: 0.0
+          init_log_tau: null
+          init_log_c2: 0.0
+      sampling:
+        nd_draws: 60
+        chunk: 32
+      synthesis:
+        n_samp: 120
+        grid_M: 201
+        isotonic: true
+        rearrange: true
+        seed: 20260306
+      preproc:
+        scale_y: true
+      calibration:
+        mode: bias
+        tail_h: 12
+        min_points: 6
+      metrics:
+        probs: [0.05, 0.10, 0.50, 0.90, 0.95]

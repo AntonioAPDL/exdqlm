@@ -1,0 +1,77 @@
+inputs:
+  base_defaults: config/validation/qdesn_mcmc_compare_rhs_stageF_const005_rescue.yaml
+  blocker_grid: config/validation/qdesn_rhs_stageI_blocker_grid.csv
+  stageh_analysis_root: reports/qdesn_mcmc_validation/rhs_stageG_stageH_wave/stageG-stageH-20260323-1200__git-88c0369-gatefix-replay
+
+baseline_patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 1200
+            n_mcmc: 2400
+            progress_every: 240
+            vb_warm_start_control:
+              max_iter: 70
+              min_iter_elbo: 12
+              n_samp_xi: 160
+              verbose: no
+              rhs:
+                freeze_tau_iters: 20
+                freeze_tau_warmup_iters: 20
+                tau_local_tol: 5.0e-4
+                min_tau_updates: 2
+                force_tau_after_warmup: yes
+            rhs:
+              freeze_tau_burnin_iters: 35
+              freeze_tau_only_during_burn: yes
+              width_adapt:
+                enabled: yes
+                warmup_iters: 220
+                only_during_burn: yes
+                target_score_low: -1.0
+                target_score_high: 1.0
+                step_size: 0.06
+                width_min: 0.05
+                width_max: 1.2
+            slice:
+              width_gamma: 0.55
+              width_sigma: 0.35
+              width_rhs_lambda: 0.24
+              width_rhs_tau: 0.18
+              width_rhs_c2: 0.11
+              width_rhs_tau_c2_block: 0.40
+              rhs_global_block_update: directional_tau_c2
+              rhs_transformed_block_passes: 1
+              core_extra_passes: 0
+              max_steps_out: 70
+              max_shrink: 300
+
+phase1:
+  baseline_profile_id: P1_baseline
+  profiles: config/validation/qdesn_rhs_stageI_phase1_profiles.yaml
+  strict_gate:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+    require_improved_vs_baseline: no
+
+phase2:
+  baseline_profile_id: P2_baseline_from_phase1
+  profiles: config/validation/qdesn_rhs_stageI_phase2_profiles.yaml
+  strict_gate:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+    require_improved_vs_baseline: yes
+    min_geweke_improve: 0.05
+    min_half_drift_improve: 0.02
+    fallback_geweke_cap: 3.0
+    fallback_half_drift_cap: 0.50
+
+outputs:
+  promotion_defaults: config/validation/qdesn_mcmc_compare_rhs_stageI_candidate.yaml
+  tracker_doc: docs/TRACK__qdesn_rhs_stageI_phase1_phase2_wave.md

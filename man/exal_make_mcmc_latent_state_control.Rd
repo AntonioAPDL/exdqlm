@@ -34,4 +34,14 @@ A normalized list suitable for \code{mcmc_control$latent_state}.
 }
 \description{
 Returns a normalized \code{mcmc_control$latent_state} block for \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}.
+This is the package-native dynamic control surface for the latent
+\code{u_t}/\code{s_t} state updates.
+}
+\examples{
+exal_make_mcmc_latent_state_control()
+exal_make_mcmc_latent_state_control(
+  mode = "u_st_pair",
+  freeze_burnin_iters = 30L,
+  min_postwarmup_updates = 2L
+)
 }

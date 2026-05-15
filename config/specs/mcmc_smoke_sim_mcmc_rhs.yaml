@@ -1,0 +1,109 @@
+# Local smoke profile for inference validation.
+# This is intentionally small and reproducible; it is not a benchmark profile.
+
+suite_name: mcmc_inference_smoke
+
+pipeline:
+  mode: sim
+  verbose: false
+
+split:
+  use_last: true
+  T_use: 120
+  train_prop: 0.85
+
+p_vec: [0.25, 0.50, 0.75]
+
+desn:
+  D: 1
+  'n': [16]
+  n_tilde: []
+  m: 6
+  alpha: [0.2]
+  rho: [0.9]
+  act_f: tanh
+  act_k: identity
+  pi_w: [0.15]
+  pi_in: [1.0]
+  washout: 6
+  add_bias: true
+  seed: 101
+
+readout:
+  include_input: true
+  reservoir_lags: 1
+  input_position: after_reservoir
+
+inference:
+  method: mcmc
+  readout_scale: true
+  mcmc:
+    n_burn: 30
+    n_mcmc: 40
+    thin: 1
+    verbose: false
+    init_from_vb: true
+    store_latent_draws: false
+    store_rhs_draws: false
+    slice:
+      width_gamma: 0.8
+      width_rhs_lambda: 0.6
+      width_rhs_tau: 0.6
+      width_rhs_c2: 0.6
+      max_steps_out: 50
+      max_shrink: 200
+    priors:
+      beta:
+        type: rhs
+        rhs:
+          tau0: 0.01
+          nu: 4.0
+          s2: 0.5
+          shrink_intercept: false
+          intercept_prec: 1.0e-10
+          eta_bounds:
+            lambda: [-8, 8]
+            tau: [-8, 8]
+            c2: [-8, 8]
+          h_curv: 1.0e-8
+          var_floor: 1.0e-8
+          verbose: false
+          init_log_lambda: 0.0
+          init_log_tau: null
+          init_log_c2: 0.0
+
+sampling:
+  nd_draws: 48
+  chunk: 24
+
+forecast:
+  mode: origin
+  horizon: 4
+  train_last_window: 20
+  fore_last_window: 20
+
+synthesis:
+  isotonic: true
+  rearrange: true
+  grid_M: 301
+  n_samp: 48
+  seed: 123
+
+diagnostics:
+  calibration: false
+  pit: false
+  scores: true
+  lead_eval: false
+  fan_charts: false
+  plots: false
+
+cpp:
+  use_postpred: false
+  postpred_omp: false
+  postpred_precompute: false
+  postpred_threads: 1
+
+outputs:
+  save: true
+  keep_draws: false
+  thesis_subset: false

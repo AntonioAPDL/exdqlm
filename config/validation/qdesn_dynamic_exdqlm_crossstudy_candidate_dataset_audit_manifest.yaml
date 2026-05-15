@@ -1,0 +1,26 @@
+meta:
+  study_id: qdesn_dynamic_candidate_dataset_audit
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-candidate-datasetaudit
+
+analysis:
+  source_root_parent: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources
+  scenario_id: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  qdesn_materialized_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_qdesn_sources
+  output_parent: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_dataset_audit_local
+
+selection:
+  scopes: [canonical_tail, qdesn_window]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  fit_sizes: [500, 5000]
+
+plotting:
+  width_px: 2600
+  height_px: 1300
+  res_dpi: 150
+  background: "#ffffff"
+  line_color: "#334155"
+  accent_color: "#ea580c"
+
+execution:
+  max_workers: 4

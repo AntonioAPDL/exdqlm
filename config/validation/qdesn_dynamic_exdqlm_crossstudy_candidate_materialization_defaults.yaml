@@ -1,0 +1,70 @@
+source_materialization:
+  dynamic_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources
+  staged_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_qdesn_sources
+  enforce_effective_train_size: true
+  scenarios: [dlm_constV_p90_m0amp_highnoise_steepertrend_v1]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  windows:
+    - effective_fit_size: 500
+      source_total_size: 813
+      source_dir_name: fit_input_effTT500_totalTT813
+      label: effTT500_totalTT813
+    - effective_fit_size: 5000
+      source_total_size: 5313
+      source_dir_name: fit_input_effTT5000_totalTT5313
+      label: effTT5000_totalTT5313
+
+pilot:
+  source_root_kind: dynamic
+  source_scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  source_family: normal
+  tau: 0.25
+  fit_size: 5000
+  effective_fit_size: 5000
+  source_total_size: 5313
+  source_window_label: effTT5000_totalTT5313
+  beta_prior_type: rhs_ns
+  seed: 123
+  reservoir_profile: deep_d3_n100x3_skip100_w300_m30
+  enabled: true
+  source_reference_priors: default
+  source_current_rhsns_member: false
+  source_legacy_rhs_member: false
+
+reference_contract:
+  root_kind: dynamic
+  scenarios: [dlm_constV_p90_m0amp_highnoise_steepertrend_v1]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  fit_sizes: [500, 5000]
+  expected_reference_roots: 18
+  expected_unique_dataset_cells: 18
+  expected_qdesn_roots: 36
+  expected_priors: [ridge, rhs_ns]
+
+reservoir_profiles:
+  deep_d3_n100x3_skip100_w300_m30:
+    D: 3
+    "n": [100, 100, 100]
+    n_tilde: [100, 100]
+    m: 30
+    alpha: [0.2, 0.2, 0.2]
+    rho: [0.95, 0.95, 0.95]
+    act_f: [tanh, tanh, tanh]
+    act_k: [identity, identity, identity]
+    pi_w: [0.1, 0.1, 0.1]
+    pi_in: [1.0, 1.0, 1.0]
+    washout: 300
+    add_bias: true
+    seed: 123
+
+external_data:
+  holdout_n: 1
+  y_column: "y"
+  q_true_column: "q_true"
+  source_index_column: "source_index"
+
+lags:
+  m_y: 12
+  m_x: 0

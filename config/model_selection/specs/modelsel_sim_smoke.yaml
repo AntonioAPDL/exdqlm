@@ -1,0 +1,33 @@
+base_cfg_overrides:
+  pipeline:
+    mode: sim
+  forecast:
+    horizon: 5
+  sampling:
+    nd_draws: 50
+  synthesis:
+    n_samp: 50
+
+model_selection:
+  calcrps:
+    enabled: false
+  stages:
+    - name: smoke
+      seeds: [1]
+      p_vec: [0.05, 0.50, 0.95]
+      nd_draws: 50
+      synth_n_samp: 50
+      origins:
+        policy: subsample
+        frac: 0.1
+        seed: 1
+      horizon: 5
+      candidate_grid:
+        D: [1]
+        n1: [50]
+        m: [5]
+        alpha: [0.2]
+        rho: [0.9]
+      budget:
+        max_candidates: 1
+        strategy: full_grid

@@ -1,0 +1,323 @@
+# Global, conservative defaults for Q-DESN + exAL VB pipelines.
+# Lowest precedence: any spec YAML can override these.
+
+suite_name: sim_suite_dlm
+results_root: results
+
+# --------------------------------------------------------------------
+# Orchestration (tmux batch runner defaults)
+# -------------- ------------------------------------------------------
+orchestrate:
+  concurrency: 3       # max concurrent tmux sessions
+  threads_per_proc: 4  # used by batch runners for OMP caps
+  skip_if_success: true
+  resume_failed: false
+
+tmux:
+  session_prefix: esn-
+
+# --------------------------------------------------------------------
+# Data split: how much of the series to use and how to split train/forecast
+# (Mode-specific defaults live under mode_overrides below.)
+# --------------------------------------------------------------------
+split:
+  use_prop: null     # optional fraction of T_full to use instead of T_use
+  use_last: true     # if true, take last T_use points; else first T_use
+  train_n: null      # fixed training length (overrides train_prop if non-null)
+  # T_use and train_prop are set per mode in mode_overrides.
+
+# --------------------------------------------------------------------
+# Quantile levels fitted independently by VB
+# --------------------------------------------------------------------
+p_vec: [0.05, 0.50, 0.95]
+
+# --------------------------------------------------------------------
+# Pipeline-level defaults
+# --------------------------------------------------------------------
+pipeline:
+  mode: sim          # "sim" or "real"
+  profile: full      # "full" or "ms" (model_selection)
+  verbose: true      # global verbosity flag
+
+# --------------------------------------------------------------------
+# Mode-specific defaults (merged on top of the base config by pipeline_run.R)
+# These are the only parameters duplicated across modes:
+# split.T_use, split.train_prop, columns, preproc, lags.
+# --------------------------------------------------------------------
+mode_overrides:
+  sim:
+    split:
+      T_use: 5000
+      train_prop: 0.94
+  real:
+    split:
+      T_use: 10000
+      train_prop: 0.96
+    columns:
+      y: USGS
+      x: [ppt, soil]
+    preproc:
+      scale_y: true
+      scale_x: true
+    lags:
+      m_y: 180
+      m_x: 180
+
+# --------------------------------------------------------------------
+# DESN (reservoir) defaults
+# --------------------------------------------------------------------
+desn:
+  # Deep Echo State Network (reservoir) defaults.
+  D: 3                       # number of reservoir layers
+  'n': [300, 300, 300]      # units per layer (length D)
+  n_tilde: [300, 300]        # skip/reducer sizes (length D-1 when D>1)
+  m: 30                   # raw_y_lags only; ignored by decomposition mode unless decomposition.input_lags_mode=inherit_m
+  alpha: [0.1, 0.1, 0.1]     # leak per layer (length D)
+  rho: [0.95, 0.95, 0.95]    # spectral scales per layer (length D)
+  act_f: ["tanh", "tanh", "tanh"]            # state nonlinearity per layer
+  act_k: ["identity", "identity", "identity"] # output activation per layer
+  pi_w: [0.1, 0.1, 0.1]      # sparsity of recurrent weights per layer
+  pi_in: [1.0, 1.0, 1.0]     # sparsity of input weights per layer
+  washout: 500               # initial time steps discarded
+  add_bias: true             # include bias column in readout
+  seed: [12345, 12344, 12343] # per-layer seeds (or use a scalar if your code expands it)
+
+# --------------------------------------------------------------------
+# Variational Bayes (exAL LDVB) defaults
+# These match what pipeline_sim_main.R expects in cfg$vb
+# --------------------------------------------------------------------
+vb:
+  max_iter: 300
+  min_iter_elbo: 50        # minimum VB iterations before ELBO/tol stopping
+  readout_scale: true       # z-score readout design matrix (excluding intercept)
+  diagnostics:
+    rhs_trace: true
+    rhs_deep: false
+    rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
+    rhs_trace_top_k: 20
+    rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
+  rhs:
+    freeze_tau_iters: 50
+    freeze_tau_warmup_iters: 50
+    update_every: 1
+    update_every_warmup: 1
+    update_every_warmup_iters: 0
+    beta_presteps: 1
+    beta_presteps_iters: 0
+    gradcheck: false
+    gradcheck_iters: [1, 5]
+    gradcheck_h: 1.0e-5
+    tau_local_tol: 1.0e-3          # local ELBO tol for tau updates; null disables gating
+    min_tau_updates: 1
+    max_tau_updates: null
+    force_tau_after_warmup: true
+    recompute_elbo_after_tau_update: true
+  priors:
+    beta:
+      type: rhs
+      ridge:
+        tau2: 10000
+      rhs:
+        # Repo-wide base RHS defaults. Benchmark research/debug profiles may
+        # override these explicitly in their own YAMLs.
+        tau0: 0.001
+        nu: 4.0
+        s2: 0.1
+        shrink_intercept: false
+        intercept_prec: 1.0e-16
+        n_inner: 1
+        eta_bounds:
+          lambda: [-20, 20]
+          tau:    [-20, 20]
+          c2:     [-20, 20]
+        h_curv: 1.0e-8
+        var_floor: 1.0e-8
+        verbose: false
+        init_log_lambda: 0.0
+        init_log_tau: null
+        init_log_c2: 0.0
+  online:
+    enabled: false              # keep offline behavior by default
+    strict: false               # windowed fallback if online is enabled
+    M: 10                       # RHS refresh period (post-iteration2 online fallback)
+    K: 40                       # (sigma,gamma) refresh period (kept >= M)
+    W: 100                      # rolling window size (0 => strict streaming)
+    L_loc: 2                    # local CAVI alternations per new datum
+    window_passes: 1            # local backfit passes during window refresh
+    jitter: 1.0e-10             # SPD solve jitter
+    baseline:
+      out_dir: results/online_vbld/stage0_baseline
+      seed: 20260223
+      'n': 72
+      k: 5
+      t0: 48
+      p0: 0.5
+      ridge_tau2: 5
+      max_iter: 35
+      tol: 1.0e-4
+      tol_par: 1.0e-4
+      check_repro: true
+      write_trace: true
+
+# --------------------------------------------------------------------
+# Readout feature composition
+# --------------------------------------------------------------------
+readout:
+  include_input: true       # append raw input-lag block to readout
+  reservoir_lags: 1         # number of reservoir-feature lags to append
+  input_position: after_reservoir  # ordering for input block (reserved)
+  input_mode: raw_y_lags    # raw_y_lags | dlm_decomp_lags
+
+# --------------------------------------------------------------------
+# Optional decomposition-informed reservoir input mode
+# --------------------------------------------------------------------
+decomposition:
+  enabled: false            # when true with input_mode=raw_y_lags, mode is promoted to dlm_decomp_lags
+  backend: cpp                # r | cpp (cpp backend implemented with NDLM parity tests)
+  state_estimate: smoothed  # filtered | smoothed (forecast-valid path should use filtered)
+  input_lags_mode: component # component | inherit_m ; component uses decomposition.input_lags.* as the single source of truth
+  components: [trend, seasonal, residual]
+  trend:
+    degree: 0               # 0=level, 1=linear, 2=quadratic, ...
+  seasonal:
+    period: null            # e.g. 12 for monthly
+    harmonics: []           # e.g. [1, 2, 3]
+    auto:
+      enabled: false        # if true and harmonics is empty (or prefer_manual=false), select harmonics automatically from spectral scores
+      top_k: 5              # number of dominant harmonics to keep
+      min_harmonic: 1       # lower harmonic index bound (>=1)
+      max_harmonic: null    # null => floor(period/2)
+      use_log_score: true   # rank by log spectral power at candidate harmonic frequencies
+      center: true          # mean-center y before spectral scoring
+      prefer_manual: true   # if harmonics is explicitly provided, keep it and skip auto selection
+  regression:
+    enabled: false          # include regression block in decomposition state-space model
+    x_cols: []              # empty => use all decomposition covariates passed from pipeline
+    dynamic: false          # reserved flag; current NDLM uses identity evolution with discount-controlled drift
+    features:
+      include_raw: true
+      lags: [0]             # decomposition-regression feature lags built from selected x_cols
+      include_squares: false
+      include_interactions: false
+      interaction_pairs: [] # optional list of [col_a, col_b]; empty + include_interactions=true => all pairs
+      same_lag_only: true
+  transfer:
+    enabled: false          # include transfer-function block in decomposition state-space model
+    x_cols: []              # empty => use all decomposition covariates passed from pipeline
+    lambda: 0.9             # scalar or length-T vector in direct API usage
+    features:
+      include_raw: true
+      lags: [0]             # decomposition-transfer feature lags built from selected x_cols
+      include_squares: false
+      include_interactions: false
+      interaction_pairs: [] # optional list of [col_a, col_b]; empty + include_interactions=true => all pairs
+      same_lag_only: true
+  input_lags:
+    # Internal warmup/drop for decomposition mode uses max over active component lags for index validity.
+    trend: 30               # used directly when input_lags_mode=component
+    seasonal: 30            # used directly when input_lags_mode=component
+    regression: 0           # lagged regression-component inputs for reservoir (0 disables)
+    transfer: 0             # lagged transfer-component inputs for reservoir (0 disables)
+    residual: 30            # used directly when input_lags_mode=component
+  discount:
+    trend: 0.999999
+    seasonal: 0.999999
+    regression: 1.0
+    transfer_zeta: 0.99
+    transfer_psi: 1.0
+  variance:
+    mode: unknown_constant  # current target: NDLM with unknown constant variance
+    l0: 1
+    S0: 1
+  forecast:
+    residual_recursion: sampled_path  # sampled_path | deterministic_plugin
+  sim_xreg:
+    enabled: false          # sim-mode helper to construct decomposition covariates from available sim columns
+    include_mu: true
+    include_y: false
+    include_t: false
+    include_t_scaled: true
+    x_cols: []              # optional explicit subset among [mu, y, t, t_scaled]
+
+# --------------------------------------------------------------------
+# Sampling defaults (posterior / predictive)
+# --------------------------------------------------------------------
+sampling:
+  nd_draws: 3000             # parameter + predictive draws (also mixture draws)
+  chunk: 250                 # chunk size for memory-friendly sampling
+
+# --------------------------------------------------------------------
+# IJ correction defaults
+# --------------------------------------------------------------------
+ij:
+  use_ij_correction: false    # TRUE = IJ-corrected μ bands; FALSE = posterior-only bands
+  nd_draws: 3000             # draws used in IJ computation
+  beta_mode: replace        # additive | replace (how IJ inflates beta draws)
+
+# --------------------------------------------------------------------
+# Forecasting defaults
+# --------------------------------------------------------------------
+forecast:
+  last_window: 300           # legacy sbase window
+  horizon: 60                 # multi-step horizon for lattice forecasts
+  mode: origin               # origin (lead-1) | mixture | lattice
+  lead_weight_power: 10      # base weights w_r ∝ 1 / r^power (mixture only; power=0 => uniform)
+  # mixture draws per target time = sampling.nd_draws
+  eval_leads: all           # null | "all" | list of leads to evaluate
+
+  # Optional separate windows (if null, fallback to last_window)
+  train_last_window: null
+  fore_last_window: 300
+
+  # How to report coverage in plot subtitles:
+  # "global" = coverage over full span
+  # "window" = coverage on last N window points
+  # "both" = both metrics
+  coverage_report: global
+
+# --------------------------------------------------------------------
+# C++ backend toggles (optional)
+# --------------------------------------------------------------------
+cpp:
+  use_postpred: true        # C++ posterior predictive sampler (FALSE = R path)
+  postpred_omp: true        # optional OpenMP in post-pred
+  postpred_precompute: true # precompute noise draws (for A/B)
+  postpred_threads: 4       # cap OpenMP threads to avoid oversubscription
+
+# --------------------------------------------------------------------
+# Quantile synthesis defaults (across p_vec)
+# --------------------------------------------------------------------
+synthesis:
+  isotonic: true             # isotonic regression for monotonicity
+  rearrange: true            # rearrangement for monotone quantile curves
+  grid_M: 1001               # grid size for synthesis
+  n_samp: 1000               # draws for synthesized predictive bands
+  seed: 123                  # seed for synthesis
+
+# --------------------------------------------------------------------
+# Diagnostics and plotting defaults
+# --------------------------------------------------------------------
+diagnostics:
+  calibration: true          # probability integral transform / calibration
+  pit: true                  # PIT diagnostics
+  pit_scope: all+synth       # median | all | synth | all+synth
+  scores: true               # CRPS / interval scores, etc.
+  lead_eval: true            # synthesized lead-specific CRPS diagnostics
+  fan_charts: true           # overlapping forecast fan charts
+  fan_stride: 60             # plot every k-th origin (1 = all)
+  cov_window: 365            # rolling-coverage window length
+  cov_show_last: 300         # rolling-coverage plot tail length
+  plots: true                # master gate for ggplot-based outputs
+
+# --------------------------------------------------------------------
+# Naming overrides (optional)
+# --------------------------------------------------------------------
+naming: {}
+
+# --------------------------------------------------------------------
+# Outputs (saving heavy artifacts)
+# --------------------------------------------------------------------
+outputs:
+  save: true                 # save outputs to disk
+  keep_draws: false          # whether to save posterior draws
+  thesis_subset: false       # subset of plots/tables for thesis use

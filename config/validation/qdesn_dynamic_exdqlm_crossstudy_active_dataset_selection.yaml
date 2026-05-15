@@ -1,0 +1,62 @@
+meta:
+  selection_id: qdesn_dynamic_exdqlm_crossstudy_active_dataset
+  status: promoted_main_pending_relaunch_grid_rewrite
+  promoted_on: 2026-04-22
+  selected_scenario_id: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  notes: >
+    This manifest records the promoted main dynamic dataset for the next
+    Q-DESN dynamic relaunch. It does not rewrite the historical tau050 launch
+    grids in place; instead it provides the active source-of-truth paths and
+    the relaunch sizing contract that future grid/materialization work should
+    consume.
+
+source_of_truth:
+  repo_root: /home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  commit: a4ecc815534679afde037569ae18d1e4b64025f0
+  generator_manifest: config/validation/qdesn_dynamic_exdqlm_crossstudy_candidate_dataset_manifest.yaml
+  generator_script: scripts/run_qdesn_dynamic_exdqlm_crossstudy_candidate_dataset_refresh.R
+  canonical_helper_script: tools/merge_reports/20260305_dynamic_dgp_model_helpers.R
+
+paths:
+  canonical_source_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  qdesn_materialized_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_qdesn_sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  flat_audit_pack: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_dataset_audit_local/qdesn-dynamic-exdqlm-crossstudy-candidate-datasetaudit-20260422-035737__git-a4ecc81
+  paired_audit_pack: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_last5000_last500_audit_local/qdesn-dynamic-candidate-last5000-last500-audit-20260422-035753__git-a4ecc81
+  outputs_report: docs/REPORT__qdesn_dynamic_candidate_dataset_refresh_outputs_20260422.md
+  selection_report: docs/REPORT__qdesn_dynamic_p90_steepertrend_main_dataset_selection_20260422.md
+  relaunch_plan: docs/PLAN__qdesn_dynamic_p90_steepertrend_72case_relaunch_prep_20260422.md
+  relaunch_tracker: docs/TRACK__qdesn_dynamic_p90_steepertrend_72case_relaunch_20260422.md
+  sync_prompt: docs/PROMPT__0p4p0_validation_dynamic_dataset_sync_20260422.md
+
+study_contract:
+  full_root_count: 9
+  canonical_window_count: 18
+  qdesn_window_count: 18
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  canonical_fit_sizes: [500, 5000]
+  qdesn_effective_fit_sizes: [500, 5000]
+  qdesn_total_sizes: [813, 5313]
+  qdesn_holdout_n: 1
+  qdesn_lag_max: 12
+  qdesn_washout: 300
+
+relaunch_mapping:
+  single_prior_fit_count: 72
+  dual_prior_fit_count: 144
+  note: >
+    The 72-case relaunch corresponds to the 18 effective source windows crossed
+    with {vb, mcmc} and {al, exal} on one prior surface. Including both ridge
+    and rhs_ns expands the same source contract to 144 total fits.
+
+recommended_baseline:
+  shared_package_default_warmup: true
+  recommended_first_prior_surface: ridge
+  recommended_second_prior_surface: rhs_ns
+  rhs_tau_warmup_iters: 50
+  rhs_ns_tau_warmup_iters: 50
+  exal_vb_sigmagam_default: true
+  exal_mcmc_sigmagam_default: true
+  mcmc_init_from_vb: true
+  keep_rescue_overlays_off_in_baseline: true

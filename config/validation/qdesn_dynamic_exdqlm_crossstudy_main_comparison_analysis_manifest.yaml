@@ -1,0 +1,54 @@
+meta:
+  analysis_id: qdesn_dynamic_exdqlm_crossstudy_main_comparison_analysis
+  description: >
+    Rebuild the authoritative branch-local QDESN dynamic comparison surface from the
+    promoted residual-wave baseline and emit the main comparison-analysis pack.
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-maincmp
+
+source:
+  mode: prior_fitfail_wave
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-residualfail-20260407-025827__git-eed98f2
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_residual_fail_closure_wave
+  root_profile_overrides:
+    - root_id: root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns
+      report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_final_fail_closure_wave
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982
+      stage_id: F1_rhs_long_normal_tail_final
+      profile_id: M850_rhs_long_burnheavy1300
+      rationale: >
+        Root-specific promotion only. This candidate clears the remaining long-horizon normal
+        rhs_ns mcmc_exal fail row and restores full comparison eligibility for the exact target
+        root, while the broader 4-root stage swap was globally neutral.
+    - root_id: root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns
+      report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_final_fail_closure_wave
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982
+      stage_id: F2_rhs_short_normal_tail_final
+      profile_id: M940_short_rhs_narrow1200_diag5
+      rationale: >
+        Root-specific promotion only. This candidate clears the remaining short-horizon normal
+        rhs_ns mcmc_exal fail row and restores full comparison eligibility for the exact target
+        root; it is preferred over M950 because the target-root non-fail rows remain cleaner.
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_main_comparison_analysis
+  final_wave_evidence_run_tag: qdesn-dynamic-exdqlm-crossstudy-finalfail-20260407-133928__git-512e982
+  final_wave_evidence_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_final_fail_closure_wave
+
+expected_state:
+  fit_rows: 144
+  fit_pass_rows: 76
+  fit_warn_rows: 68
+  fit_fail_rows: 0
+  root_rows: 36
+  root_status_fail_rows: 0
+  root_compare_any_rows: 36
+  root_compare_full_rows: 36
+  local_baseline_rows: 5
+  root_override_rows: 2
+
+notes:
+  authoritative_baseline_label: merged_local_baseline_plus_root_specific_final_wave_promotions
+  interpretation: >
+    Use the prior residual-wave promoted local baseline map as the authoritative
+    base, then apply the two exact-root final-wave promotions where they clearly
+    improve the previously failing scenarios without stage-wide promotion.

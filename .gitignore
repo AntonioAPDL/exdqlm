@@ -43,5 +43,9 @@ Plan.txt
 RHS_NS_STAGE9_SUBMISSION_MEMO.md
 
 # local tooling/work logs (not shipped)
-tools/
-scripts/
+tools/*.out
+tools/*.txt
+tools/addr2line_*.sh
+tools/locate_*.sh
+tools/merge_reports/*.log
+tools/merge_reports/LOCAL_*.md

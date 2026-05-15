@@ -1,0 +1,34 @@
+meta:
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-tau050-finalpack
+
+source:
+  source_label: Tau050 Recovered Study-Facing Pack
+  study_facing_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_recovered_study_facing_analysis
+  study_facing_run_tag: qdesn-dynamic-exdqlm-crossstudy-tau050-studyfacing-20260421-030134__git-2a9c078
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_final_analysis_pack
+
+decision:
+  strict_reference_alignment_required: false
+  launch_reference_rerun_now: false
+  launch_trigger: Only if a manuscript or external comparison deliverable requires like-for-like mirrored-reference tau 0.50 deltas.
+  primary_surface: representative
+  appendix_surface: full_recovered_fit_inventory
+  preferred_primary_prior: ridge
+  preferred_stress_prior: rhs_ns
+
+expected_state:
+  source_fit_rows_total: 144
+  source_runtime_fail_n: 0
+  source_signoff_fail_n: 40
+  source_root_total: 36
+  source_root_status_fail_n: 0
+  source_root_compare_any_n: 33
+  source_root_compare_full_n: 15
+  representative_case_rows: 36
+  representative_pass_n: 33
+  representative_warn_n: 3
+  representative_fail_n: 0
+  representative_reference_aligned_n: 24
+  representative_reference_gap_n: 12

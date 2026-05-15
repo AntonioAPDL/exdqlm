@@ -1,0 +1,174 @@
+base_patch: {}
+
+profiles:
+  - id: O2_A_baseline_replay
+    description: "Baseline Stage-N winner replay on blocker root."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                mcmc_control:
+                  rng_seed: 3101
+                  vb_warm_start_seed: 4101
+
+  - id: O2_B_adapt_heavier
+    description: "Heavier RHS warmup adaptation with modestly longer freeze."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 5600
+                n_mcmc: 11200
+                progress_every: 1120
+                mcmc_control:
+                  rng_seed: 3201
+                  vb_warm_start_seed: 4201
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.9
+                    target_score_high: 0.9
+                    step_size: 0.015
+                    width_min: 0.04
+                    width_max: 0.8
+
+  - id: O2_C_block_conservative
+    description: "Conservative transformed RHS block geometry."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 5600
+                n_mcmc: 11200
+                progress_every: 1120
+                mcmc_control:
+                  rng_seed: 3301
+                  vb_warm_start_seed: 4301
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1200
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.015
+                    width_min: 0.04
+                    width_max: 0.8
+                slice:
+                  width_rhs_lambda: 0.16
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.22
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  core_extra_passes: 1
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.15
+                  max_steps_out: 100
+                  max_shrink: 360
+
+  - id: O2_D_long_chain_fallback
+    description: "Long-chain fallback with conservative transformed RHS block."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 7600
+                n_mcmc: 15200
+                progress_every: 1520
+                mcmc_control:
+                  rng_seed: 3401
+                  vb_warm_start_seed: 4401
+                rhs:
+                  freeze_tau_burnin_iters: 140
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1600
+                    only_during_burn: yes
+                    target_score_low: -0.9
+                    target_score_high: 0.9
+                    step_size: 0.012
+                    width_min: 0.04
+                    width_max: 0.8
+                slice:
+                  width_rhs_lambda: 0.16
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.22
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  core_extra_passes: 1
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.15
+                  max_steps_out: 120
+                  max_shrink: 420
+
+  - id: O2_E_multistart_plus_C
+    description: "Conservative transformed block with internal RHS multistart pilots."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 5600
+                n_mcmc: 11200
+                progress_every: 1120
+                mcmc_control:
+                  rng_seed: 3501
+                  vb_warm_start_seed: 4501
+                multi_start:
+                  enabled: yes
+                  n_starts: 4
+                  pilot_n_burn: 180
+                  pilot_n_mcmc: 240
+                  pilot_seed: 5501
+                  perturb_sd_log_tau: 0.28
+                  perturb_sd_log_c2: 0.28
+                  perturb_sd_log_lambda: 0.16
+                  perturb_sd_beta: 0.04
+                  diagnostics:
+                    ess_min: 30
+                    geweke_max: 2.8
+                    half_drift_max: 0.45
+                    collapse_tau_floor: 1.0e-07
+                    collapse_beta_norm_floor: 1.0e-04
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1200
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.015
+                    width_min: 0.04
+                    width_max: 0.8
+                slice:
+                  width_rhs_lambda: 0.16
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.22
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  core_extra_passes: 1
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.15
+                  max_steps_out: 100
+                  max_shrink: 360

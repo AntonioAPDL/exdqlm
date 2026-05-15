@@ -1,0 +1,264 @@
+campaign:
+  name: qdesn_dynamic_family_prior_rerun
+  results_root: results/qdesn_mcmc_validation/dynamic_family_prior_rerun
+  reports_root: reports/qdesn_mcmc_validation/dynamic_family_prior_rerun
+
+pilot:
+  scenario: dlm_constV_smallW
+  tau: 0.5
+  likelihood_family: exal
+  beta_prior_type: rhs_ns
+  seed: 123
+  reservoir_profile: tiny_d1_n8
+  enabled: true
+
+runtime:
+  threads: 1
+  campaign_workers: 8
+  workers: 8
+
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.10
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.20
+    require_converged_for_pass: true
+  mcmc:
+    min_keep_pass: 160
+    min_keep_warn: 100
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.90
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.50
+
+toy:
+  scenarios:
+    dlm_constV_smallW:
+      T_use: 240
+      n_train: 180
+      burnin: 700
+      R_mc: 3000
+      params:
+        period: 50
+        V: 0.25
+        alpha: 0.0001
+        no_trend: true
+    dlm_constV_bigW:
+      T_use: 240
+      n_train: 180
+      burnin: 700
+      R_mc: 3000
+      params:
+        period: 50
+        V: 0.25
+        alpha: 0.005
+        no_trend: true
+    dlm_ar1V:
+      T_use: 240
+      n_train: 180
+      burnin: 700
+      R_mc: 3000
+      params:
+        period: 50
+        V: 0.25
+        alpha: 0.0001
+        no_trend: true
+        mu_v: -1.386294361
+        phi_v: 0.95
+        s_v: 0.25
+
+reservoir_profiles:
+  tiny_d1_n8:
+    D: 1
+    "n": [8]
+    n_tilde: []
+    m: 4
+    alpha: 0.2
+    rho: 0.9
+    act_f: tanh
+    act_k: identity
+    pi_w: 0.15
+    pi_in: 1.0
+    washout: 4
+    add_bias: true
+    seed: 123
+
+pipeline:
+  verbose: true
+  # Intentionally omitted to mirror dynamic reference workflow (no synthesis):
+  # each root fits its own single tau.
+  readout:
+    include_input: true
+    reservoir_lags: 1
+    input_position: after_reservoir
+    input_mode: raw_y_lags
+  decomposition:
+    enabled: false
+  sampling:
+    nd_draws: 96
+    chunk: 48
+  forecast:
+    mode: origin
+    train_last_window: 18
+    fore_last_window: 18
+  synthesis:
+    isotonic: false
+    rearrange: false
+    grid_M: 151
+    n_samp: 96
+    seed: 321
+  diagnostics:
+    calibration: false
+    pit: false
+    scores: true
+    lead_eval: false
+    fan_charts: false
+    plots: false
+  cpp:
+    use_postpred: false
+    postpred_omp: false
+    postpred_precompute: false
+    postpred_threads: 1
+  outputs:
+    save: true
+    keep_draws: false
+    thesis_subset: false
+  inference:
+    likelihood_family: exal
+    readout_scale: true
+    vb:
+      max_iter: 40
+      min_iter_elbo: 10
+      n_samp_xi: 80
+      verbose: true
+      diagnostics:
+        rhs_trace: true
+        rhs_deep: false
+      rhs:
+        freeze_tau_iters: 10
+        freeze_tau_warmup_iters: 10
+        tau_local_tol: 5.0e-4
+        min_tau_updates: 2
+        force_tau_after_warmup: true
+      prior_overrides:
+        ridge:
+          max_iter: 40
+          min_iter_elbo: 10
+          n_samp_xi: 80
+        rhs_ns:
+          max_iter: 60
+          min_iter_elbo: 12
+          n_samp_xi: 128
+          rhs:
+            freeze_tau_iters: 10
+            freeze_tau_warmup_iters: 10
+            tau_local_tol: 5.0e-4
+            min_tau_updates: 2
+            force_tau_after_warmup: true
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-8
+            init_log_tau: null
+            init_log_lambda: 0.0
+            init_log_c2: 0.0
+    mcmc:
+      n_burn: 300
+      n_mcmc: 600
+      thin: 1
+      verbose: true
+      progress_every: 50
+      init_from_vb: true
+      store_latent_draws: false
+      store_rhs_draws: false
+      transforms:
+        use_log_sigma: true
+        sigma_eta_bounds: [-10, 10]
+      slice:
+        width_gamma: 0.6
+        width_sigma: 0.35
+        width_rhs_lambda: 0.6
+        width_rhs_tau: 0.6
+        width_rhs_c2: 0.6
+        max_steps_out: 40
+        max_shrink: 150
+      prior_overrides:
+        ridge:
+          n_burn: 300
+          n_mcmc: 600
+          progress_every: 50
+        rhs_ns:
+          n_burn: 500
+          n_mcmc: 1000
+          progress_every: 100
+          rhs:
+            freeze_tau_burnin_iters: 40
+            freeze_tau_only_during_burn: true
+            width_adapt:
+              enabled: true
+              warmup_iters: 250
+              only_during_burn: true
+              target_score_low: -1.0
+              target_score_high: 1.0
+              step_size: 0.02
+              width_min: 0.02
+              width_max: 2.0
+          slice:
+            width_gamma: 0.6
+            width_sigma: 0.35
+            width_rhs_lambda: 0.2
+            width_rhs_tau: 0.14
+            width_rhs_c2: 0.09
+            width_rhs_tau_c2_block: 0.3
+            rhs_global_block_update: transformed_tau_c2_block
+            rhs_transformed_block_passes: 3
+            width_rhs_tau_c2_transformed_z1: 0.26
+            width_rhs_tau_c2_transformed_z2: 0.2
+            max_steps_out: 50
+            max_shrink: 200
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-8
+            init_log_tau: null
+            init_log_lambda: 0.0
+            init_log_c2: 0.0

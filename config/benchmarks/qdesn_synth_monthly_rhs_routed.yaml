@@ -1,0 +1,183 @@
+evaluation:
+  experiment_name: qdesn_synth_monthly_rhs_routed
+  result_root: results/benchmarks/qdesn_synth
+  datasets:
+    - tourism_monthly
+    - cif_2016_monthly
+    - m4_monthly
+  max_series_per_dataset: 4
+  parallel:
+    workers: 1
+  series_overrides:
+    selection:
+      tourism_monthly: [T146, T100, T187, T1]
+      cif_2016_monthly: [T55, T52, T31, T1]
+      m4_monthly: [M47853, M10334, M15558, M17144]
+    evaluation:
+      tourism_monthly: [T146, T100, T187, T1]
+      cif_2016_monthly: [T55, T52, T31, T1]
+      m4_monthly: [M47853, M10334, M15558, M17144]
+    audit:
+      tourism_monthly: [T146, T1]
+      cif_2016_monthly: [T55, T1]
+      m4_monthly: [M47853, M17144]
+  selection:
+    enabled: true
+    subset_size: 4
+    min_train_points: 24
+    metric: crps_mean
+    tie_breakers:
+      - rhs_collapse_n
+      - rhs_near_bound_n
+      - shoulder_pinball_ratio
+      - shoulder_qhat_ratio
+      - tail_pinball_mean
+      - quantile_abs_coverage_dev_mean
+      - runtime_sec
+      - candidate_id
+    quantile_guard:
+      enabled: true
+      max_abs_coverage_dev: 0.35
+      max_abs_tail_coverage_dev: 0.40
+      max_abs_pit_dev_mean: 0.25
+      max_shoulder_pinball_ratio: 100
+      max_shoulder_qhat_ratio: 100
+      forbid_rhs_collapse: true
+      forbid_rhs_near_bound: true
+      relax_if_no_eligible_candidates: false
+  routing:
+    enabled: true
+    breaks: [96, 480]
+    labels: [short, medium, long]
+    fallback: dataset
+  quantile_eval:
+    enabled: true
+    tail_threshold: 0.10
+  m4_comparability:
+    enabled: true
+  baselines:
+    models: [naive, seasonal_naive, naive2, drift, theta, auto_arima]
+    n_draws: 80
+  audit:
+    subset_size: 2
+    save_draws: true
+
+models:
+  qdesn_synth:
+    base:
+      readout_approximation: laplace_delta
+      p_vec: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+      fit:
+        D: 1
+        "n": [128]
+        m: 36
+        alpha: [0.05]
+        rho: [0.90]
+        act_f: tanh
+        act_k: identity
+        pi_w: [0.005]
+        pi_in: [0.02]
+        washout: 96
+        add_bias: true
+        standardize_inputs: true
+        input_bound: tanh
+        seed: 20260309
+        seed_set:
+          - [101]
+      vb_args:
+        max_iter: 1000
+        min_iter_elbo: 20
+        tol: 1.0e-4
+        tol_par: 1.0e-4
+        n_samp_xi: 500
+        verbose: false
+        readout_scale: true
+        diagnostics:
+          rhs_trace: true
+          rhs_deep: false
+          rhs_trace_thresholds: [1.0e3, 1.0e6, 1.0e9]
+          rhs_trace_top_k: 20
+          rhs_trace_eps: [1.0e-6, 1.0e-4, 1.0e-2]
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          update_every: 1
+          update_every_warmup: 1
+          update_every_warmup_iters: 0
+          beta_presteps: 1
+          beta_presteps_iters: 0
+          gradcheck: false
+          gradcheck_iters: [1, 5]
+          gradcheck_h: 1.0e-5
+          tau_local_tol: 1.0e-3
+          min_tau_updates: 1
+          max_tau_updates: null
+          force_tau_after_warmup: true
+          recompute_elbo_after_tau_update: true
+        beta_prior_type: rhs
+        beta_rhs:
+          tau0: 100.0
+          nu: 4.0
+          s2: 1.0
+          shrink_intercept: false
+          intercept_prec: 1.0e-16
+          n_inner: 1
+          eta_bounds:
+            lambda: [-20, 20]
+            tau: [-20, 20]
+            c2: [-20, 20]
+          h_curv: 1.0e-8
+          var_floor: 1.0e-8
+          verbose: false
+          init_log_lambda: 0.0
+          init_log_c2: 0.0
+      sampling:
+        nd_draws: 80
+        chunk: 64
+      synthesis:
+        n_samp: 200
+        grid_M: 201
+        isotonic: true
+        rearrange: true
+        seed: 20260309
+      preproc:
+        scale_y: true
+      calibration:
+        mode: none
+      metrics:
+        probs: [0.05, 0.10, 0.50, 0.90, 0.95]
+    candidates:
+      - candidate_id: monthly_rhs_medium_tau100_n128
+        seed_group_id: medium_rhs_scale_soft_n128_m36_w96
+        applicability:
+          route_keys: [medium, long]
+      - candidate_id: monthly_rhs_medium_tau100_n256
+        seed_group_id: medium_rhs_scale_soft_n256_m36_w96
+        applicability:
+          route_keys: [medium, long]
+        fit:
+          "n": [256]
+      - candidate_id: monthly_rhs_short_tau100_n32
+        seed_group_id: short_rhs_compact_n32_m12_w18
+        applicability:
+          route_keys: [short]
+        fit:
+          "n": [32]
+          m: 12
+          rho: [0.90]
+          alpha: [0.05]
+          pi_in: [0.02]
+          pi_w: [0.005]
+          washout: 18
+      - candidate_id: monthly_rhs_short_tau100_n64
+        seed_group_id: short_rhs_compact_n64_m18_w24
+        applicability:
+          route_keys: [short]
+        fit:
+          "n": [64]
+          m: 18
+          rho: [0.90]
+          alpha: [0.05]
+          pi_in: [0.02]
+          pi_w: [0.005]
+          washout: 24

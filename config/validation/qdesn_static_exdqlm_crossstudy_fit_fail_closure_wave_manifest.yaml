@@ -1,0 +1,329 @@
+campaign:
+  name: qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave
+  results_root: results/qdesn_mcmc_validation/static_exdqlm_crossstudy_fit_fail_closure_wave
+  reports_root: reports/qdesn_mcmc_validation/static_exdqlm_crossstudy_fit_fail_closure_wave
+
+source:
+  run_tag: qdesn-static-exdqlm-crossstudy-20260404b__git-06ac1c0
+  wave2_stage1_probe_run_tag: qdesn-static-exdqlm-crossstudy-debt-20260404a__git-e2677d0
+  interpretation: wave1_source_baseline_plus_wave2_stage1_probe
+
+runtime:
+  default_workers: 8
+  active_job_workers: 6
+  hard_cap_workers: 8
+
+stages:
+  - id: S1_rhs_vb_diagnostics_closure
+    description: >
+      Recheck the full rhs_ns VB diagnostics bucket under the patched
+      rhs-family diagnostics path. This stage uses the shared baseline only
+      because the likely failure mode is code-path debt, not tuning debt.
+    bucket: rhs_ns_vb_diagnostics
+    target_selector:
+      prior: rhs_ns
+      method: vb
+      signoff_grade: FAIL
+      signoff_reason: rhs_diagnostics_missing
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F500_anchor_patched
+
+  - id: S2_ridge_exal_mcmc_closure
+    description: >
+      Local rescue stage for the remaining ridge exal/mcmc FAIL slice. The
+      shared baseline remains the control, while the D410-style ridge rescue
+      and one slightly heavier laplace-aware chain extension compete as local
+      ridge remedies.
+    bucket: ridge_exal_mcmc_fail
+    target_selector:
+      prior: ridge
+      method: mcmc
+      model: exal
+      signoff_grade: FAIL
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F500_anchor_patched
+      - F510_ridge_rescue_reference
+      - F520_ridge_chain1200_laplace_focus
+
+  - id: S3_rhs_mcmc_tt100_closure
+    description: >
+      Local rhs_ns mcmc rescue on the short-horizon fail slice. This stage
+      avoids a generic rhs profile and instead tests two tighter local
+      schedules tailored to the more failure-prone tt=100 roots.
+    bucket: rhs_ns_mcmc_fail
+    filters:
+      fit_size: 100
+    target_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F500_anchor_patched
+      - F610_rhs_tt100_conservative_block
+      - F620_rhs_tt100_chain1200
+
+  - id: S4_rhs_mcmc_tt1000_closure
+    description: >
+      Local rhs_ns mcmc rescue on the tt=1000 fail slice. This keeps the shared
+      baseline as control and tests one tighter transformed-block schedule plus
+      one longer-chain variant.
+    bucket: rhs_ns_mcmc_fail
+    filters:
+      fit_size: 1000
+    target_selector:
+      prior: rhs_ns
+      method: mcmc
+      signoff_grade: FAIL
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - F500_anchor_patched
+      - F630_rhs_tt1000_conservative_block
+      - F640_rhs_tt1000_chain1200
+
+profiles:
+  - profile_id: F500_anchor_patched
+    label: Anchor Patched
+    anchor_control: true
+    rationale: >
+      Shared static cross-study defaults after the rhs_ns diagnostics-path fix.
+      This remains the default baseline everywhere unless a local stage clearly
+      beats it.
+    overrides: {}
+
+  - profile_id: F510_ridge_rescue_reference
+    label: Ridge Rescue Reference
+    anchor_control: false
+    rationale: >
+      Best Stage-1 local ridge rescue from the stopped debt-wave probe. Carried
+      forward as the main local candidate for the ridge exal/mcmc FAIL slice.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 550
+                n_mcmc: 1100
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.53
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 400
+
+  - profile_id: F520_ridge_chain1200_laplace_focus
+    label: Ridge Chain-1200 Laplace Focus
+    anchor_control: false
+    rationale: >
+      Local ridge hedge for the hard static_shrink x laplace x tt=1000 band.
+      It keeps the D410 ridge geometry but adds a modest chain extension so the
+      still-hard tt=1000 laplace ridge rows get a dedicated local alternative.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 600
+                n_mcmc: 1200
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.53
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 75
+                  max_shrink: 300
+                  max_steps_out_sigma: 160
+                  max_shrink_sigma: 420
+
+  - profile_id: F610_rhs_tt100_conservative_block
+    label: RHS tt100 Conservative Block
+    anchor_control: false
+    rationale: >
+      Short-horizon rhs_ns local rescue with tighter transformed-block widths
+      and a slightly longer burn. Included because the tt=100 rhs fail slice is
+      the densest and prior rhs-soft probes were too loose to help.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 575
+                n_mcmc: 1050
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 380
+                    only_during_burn: true
+                    target_score_low: -0.60
+                    target_score_high: 0.60
+                    step_size: 0.012
+                    width_min: 0.02
+                    width_max: 1.40
+                slice:
+                  width_gamma: 0.40
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.09
+                  width_rhs_c2: 0.06
+                  width_rhs_tau_c2_block: 0.22
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.18
+                  width_rhs_tau_c2_transformed_z2: 0.14
+                  max_steps_out: 65
+                  max_shrink: 240
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 120
+                  max_shrink_sigma: 340
+
+  - profile_id: F620_rhs_tt100_chain1200
+    label: RHS tt100 Chain-1200
+    anchor_control: false
+    rationale: >
+      Short-horizon rhs_ns local rescue that isolates chain and burn extension
+      more than geometry. Included to test whether the tt=100 rhs failures are
+      primarily a keep-length problem rather than a width problem.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 650
+                n_mcmc: 1200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 400
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.80
+                slice:
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  max_steps_out: 70
+                  max_shrink: 260
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - profile_id: F630_rhs_tt1000_conservative_block
+    label: RHS tt1000 Conservative Block
+    anchor_control: false
+    rationale: >
+      Longer-horizon rhs_ns local rescue with tighter transformed-block widths
+      but without the heaviest chain inflation. Included because the tt=1000
+      rhs slice is smaller and may respond to geometry alone.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 525
+                n_mcmc: 1050
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 380
+                    only_during_burn: true
+                    target_score_low: -0.60
+                    target_score_high: 0.60
+                    step_size: 0.012
+                    width_min: 0.02
+                    width_max: 1.50
+                slice:
+                  width_gamma: 0.40
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.15
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.23
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.19
+                  width_rhs_tau_c2_transformed_z2: 0.15
+                  max_steps_out: 68
+                  max_shrink: 245
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 125
+                  max_shrink_sigma: 350
+
+  - profile_id: F640_rhs_tt1000_chain1200
+    label: RHS tt1000 Chain-1200
+    anchor_control: false
+    rationale: >
+      Longer-horizon rhs_ns local rescue that isolates chain extension more
+      than geometry. Included to test whether the tt=1000 rhs failures are
+      mainly persistence/ESS issues once the rhs_ns diagnostics bug is removed.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 650
+                n_mcmc: 1200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 400
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.80
+                slice:
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  max_steps_out: 70
+                  max_shrink: 260
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360

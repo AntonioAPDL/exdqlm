@@ -1,0 +1,158 @@
+inputs:
+  base_defaults: config/validation/qdesn_mcmc_compare_rhs_guardrail_rescue_v1.yaml
+  failing_root_grid: config/validation/qdesn_rhs_guardrail_failing_root_grid.csv
+  broader_grid: config/validation/qdesn_mcmc_multichain_rhs_broader_confirmation_grid.csv
+
+outputs:
+  promotion_defaults: config/validation/qdesn_mcmc_compare_rhs_drift_rescue_candidate.yaml
+
+baseline_patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 1200
+            n_mcmc: 2400
+            progress_every: 240
+            vb_warm_start_control:
+              max_iter: 70
+              min_iter_elbo: 12
+              n_samp_xi: 160
+              verbose: no
+              rhs:
+                freeze_tau_iters: 20
+                freeze_tau_warmup_iters: 20
+                tau_local_tol: 5.0e-4
+                min_tau_updates: 2
+                force_tau_after_warmup: yes
+            rhs:
+              freeze_tau_burnin_iters: 35
+              freeze_tau_only_during_burn: yes
+            slice:
+              width_gamma: 0.55
+              width_sigma: 0.35
+              width_rhs_lambda: 0.24
+              width_rhs_tau: 0.18
+              width_rhs_c2: 0.11
+              width_rhs_tau_c2_block: 0.40
+              rhs_global_block_update: directional_tau_c2
+              max_steps_out: 70
+              max_shrink: 300
+
+stages:
+  A:
+    description: "Chain-length ladder on the single failing root."
+    profiles:
+      - id: A0_t2_control
+        description: "T2 control."
+        patch: {}
+      - id: A1_length_2200_4400
+        description: "Longer chain."
+        patch:
+          pipeline:
+            inference:
+              mcmc:
+                prior_overrides:
+                  rhs:
+                    n_burn: 2200
+                    n_mcmc: 4400
+                    progress_every: 440
+      - id: A2_length_3500_7000
+        description: "Longest practical chain for this targeted study."
+        patch:
+          pipeline:
+            inference:
+              mcmc:
+                prior_overrides:
+                  rhs:
+                    n_burn: 3500
+                    n_mcmc: 7000
+                    progress_every: 700
+
+  B:
+    description: "RHS geometry sweep at Stage-A winner chain length."
+    profiles:
+      - id: B0_geometry_control
+        description: "Stage-A winner geometry unchanged."
+        patch: {}
+      - id: B1_geometry_moderate_narrow
+        description: "Moderately narrower RHS local widths."
+        patch:
+          pipeline:
+            inference:
+              mcmc:
+                prior_overrides:
+                  rhs:
+                    slice:
+                      width_rhs_lambda: 0.22
+                      width_rhs_tau: 0.16
+                      width_rhs_c2: 0.10
+                      width_rhs_tau_c2_block: 0.35
+                      rhs_global_block_update: directional_tau_c2
+                      max_steps_out: 70
+                      max_shrink: 300
+      - id: B2_geometry_conservative
+        description: "Conservative RHS widths and stronger shrink safety."
+        patch:
+          pipeline:
+            inference:
+              mcmc:
+                prior_overrides:
+                  rhs:
+                    slice:
+                      width_rhs_lambda: 0.20
+                      width_rhs_tau: 0.14
+                      width_rhs_c2: 0.09
+                      width_rhs_tau_c2_block: 0.30
+                      rhs_global_block_update: directional_tau_c2
+                      max_steps_out: 80
+                      max_shrink: 350
+
+  C:
+    description: "RHS global-block mode sweep at Stage-B winner."
+    profiles:
+      - id: C0_block_directional
+        description: "Directional tau/c2 global block."
+        patch:
+          pipeline:
+            inference:
+              mcmc:
+                prior_overrides:
+                  rhs:
+                    slice:
+                      rhs_global_block_update: directional_tau_c2
+      - id: C1_block_coordinate
+        description: "Coordinate global block updates."
+        patch:
+          pipeline:
+            inference:
+              mcmc:
+                prior_overrides:
+                  rhs:
+                    slice:
+                      rhs_global_block_update: coordinate
+      - id: C2_block_directional_wider
+        description: "Directional block with wider tau/c2 block width."
+        patch:
+          pipeline:
+            inference:
+              mcmc:
+                prior_overrides:
+                  rhs:
+                    slice:
+                      rhs_global_block_update: directional_tau_c2
+                      width_rhs_tau_c2_block: 0.50
+
+replicate:
+  seeds:
+    - 123
+    - 231
+    - 321
+
+gates:
+  require_zero_fail_stageD: yes
+  require_all_eligible_stageD: yes
+  require_zero_fail_stageE: yes
+  require_all_eligible_stageE: yes
+  require_zero_trace_unavailable_stageE: yes

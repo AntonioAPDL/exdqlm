@@ -1,0 +1,187 @@
+baseline:
+  id: qdesn_dynamic_p90_steepertrend_n300m50_official_baseline_v1
+  established_date: "2026-04-28"
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  purpose: >-
+    Official QDESN dynamic validation baseline for future 144-fit relaunches
+    on the period-90 steeper-trend dynamic surface with the n300/m50 deep DESN
+    profile. Use this baseline as the primary comparison target when testing
+    new QDESN specifications.
+
+generated_outputs:
+  launch_git_sha: "366ca13"
+  closeout_git_sha: "f282f63"
+  run_tag: qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13
+  run_stub: 20260424-172958__git-366ca13
+  results_root: >-
+    results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13/20260424-172958__git-366ca13
+  campaign_report_root: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_validation/qdesn-dynamic-p90-steepertrend-n300m50-full-20260424-172949__git-366ca13/20260424-172958__git-366ca13
+  closeout_root: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63
+  fit_overlay_postcleanup_root: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_fit_overlay_pack/qdesn-p90-n300m50-fit-overlay-postcleanup-20260428
+
+authoritative_tables:
+  fit_summary: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/authoritative_fit_summary.csv
+  metrics_by_prior_inference_model_fit_size: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/metrics_by_prior_inference_model_fit_size.csv
+  metrics_by_prior_family_tau_fit_size: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/metrics_by_prior_family_tau_fit_size.csv
+  pairwise_delta_summary: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/pairwise_delta_summary.csv
+  pairwise_vb_vs_mcmc: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/pairwise_vb_vs_mcmc.csv
+  pairwise_exal_vs_al: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/pairwise_exal_vs_al.csv
+  pairwise_rhsns_vs_ridge: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/pairwise_rhsns_vs_ridge.csv
+  figure_index: >-
+    reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_n300m50_closeout_analysis/qdesn-dynamic-p90-steepertrend-n300m50-closeout-analysis-20260428-201418__git-f282f63/tables/figure_index.csv
+
+validation_surface:
+  scenarios:
+    - dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  families:
+    - gausmix
+    - laplace
+    - normal
+  taus:
+    - 0.05
+    - 0.25
+    - 0.5
+  effective_fit_sizes:
+    - 500
+    - 5000
+  source_total_sizes:
+    - 813
+    - 5313
+  priors:
+    - ridge
+    - rhs_ns
+  inference_engines:
+    - vb
+    - mcmc
+  likelihood_families:
+    - al
+    - exal
+  expected_roots: 36
+  expected_fits: 144
+
+dynamic_dataset_contract:
+  source_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources
+  staged_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_main_sources
+  period: 90
+  design: local_linear_trend_with_two_harmonics
+  seasonal_amplitude_source: nonzero_m0
+  washout: 300
+  effective_windows:
+    - label: effTT500_totalTT813
+      effective_fit_size: 500
+      source_total_size: 813
+    - label: effTT5000_totalTT5313
+      effective_fit_size: 5000
+      source_total_size: 5313
+
+desn_profile:
+  id: deep_d3_n300x3_skip100_w300_m50
+  D: 3
+  'n':
+    - 300
+    - 300
+    - 300
+  n_tilde:
+    - 300
+    - 300
+  m: 50
+  alpha:
+    - 0.25
+    - 0.25
+    - 0.25
+  rho:
+    - 0.95
+    - 0.95
+    - 0.95
+  act_f:
+    - tanh
+    - tanh
+    - tanh
+  act_k:
+    - identity
+    - identity
+    - identity
+  pi_w:
+    - 0.1
+    - 0.1
+    - 0.1
+  pi_in:
+    - 1.0
+    - 1.0
+    - 1.0
+  add_bias: true
+  seed: 123
+
+inference_contract:
+  posterior_metric_draws: 20000
+  vb_sampling_nd_draws: 20000
+  vb_synthesis_n_samp: 20000
+  vb_max_iter: 300
+  vb_min_iter_elbo: 80
+  mcmc_n_burn: 5000
+  mcmc_n_mcmc: 20000
+  mcmc_thin: 1
+  mcmc_kernel: slice
+  mcmc_init_from_vb: true
+  keep_mcmc_vb_init_artifacts: false
+  warmups:
+    vb_sigmagam_freeze_warmup_iters: 10
+    vb_rhs_freeze_tau_warmup_iters: 50
+    mcmc_sigmagam_freeze_burnin_iters: 50
+    mcmc_rhs_freeze_tau_burnin_iters: 500
+    mcmc_vb_warm_start_max_iter: 300
+
+retention_contract:
+  profile: analysis
+  save_forecast_objects_for_success: false
+  save_compact_fit_paths: true
+  retain_full_rds_on_failure: true
+  compact_train_path_tables: 144
+  compact_holdout_path_tables: 144
+  successful_forecast_objects_remaining: 0
+  current_results_root_size_after_cleanup: about_430_MiB
+  campaign_report_root_size: about_134_MiB
+  closeout_root_size: about_4p3_MiB
+  scoped_binary_cleanup_freed: 149.69_GiB
+  old_progress_trace_cleanup_freed: 0.39_GiB
+
+cleanup_manifests:
+  scoped_binary_cleanup: >-
+    reports/qdesn_mcmc_validation/storage_cleanup/qdesn_p90_n300m50_scoped_payload_cleanup_execute_20260428/cleanup_summary.md
+  postcleanup_zero_binary_verification: >-
+    reports/qdesn_mcmc_validation/storage_cleanup/qdesn_p90_n300m50_postcleanup_zero_verification_20260428/cleanup_summary.md
+  global_binary_dryrun: >-
+    reports/qdesn_mcmc_validation/storage_cleanup/qdesn_validation_global_payload_cleanup_dryrun_20260428/cleanup_summary.md
+  old_progress_trace_cleanup: >-
+    reports/qdesn_mcmc_validation/storage_cleanup/qdesn_validation_old_progress_trace_cleanup_20260428/cleanup_summary.md
+
+status:
+  roots_observed: 36
+  fits_observed: 144
+  completed_fits_status_not_success: 0
+  runtime_crash_files_found: 0
+  confirmed_runtime_crashes: 0
+  signoff_pass: 49
+  signoff_warn: 26
+  signoff_fail: 69
+  note: >-
+    Signoff failures are diagnostic-quality failures in completed fits, not
+    missing roots or runtime crashes. The baseline is meant to compare future
+    QDESN specs against this complete, reproducible 144-fit run.
+
+future_launch_rules:
+  compare_against_authoritative_tables: true
+  preserve_this_baseline_outputs: true
+  use_analysis_retention_by_default: true
+  do_not_depend_on_full_forecast_objects_for_successful_fits: true
+  keep_full_outputs_for_failures_or_debug_runs: true

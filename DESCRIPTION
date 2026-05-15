@@ -28,7 +28,7 @@ Description: Bayesian quantile-regression routines for dynamic state-space
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Depends: 
+Depends:
     R (>= 3.5)
 Imports:
     stats,
@@ -39,6 +39,8 @@ Imports:
     magic,
     crch,
     truncnorm,
+    dlm,
+    FNN,
     LaplacesDemon,
     grDevices,
     Rcpp,
@@ -46,11 +48,19 @@ Imports:
     nimble,
     numDeriv
 Suggests:
+    brms,
+    data.table,
+    digest,
+    forecast,
     rmarkdown,
     testthat (>= 3.0.0),
     ggplot2,
+    jsonlite,
     pkgload,
-    MASS
+    MASS,
+    scales,
+    withr,
+    yaml
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 LinkingTo:

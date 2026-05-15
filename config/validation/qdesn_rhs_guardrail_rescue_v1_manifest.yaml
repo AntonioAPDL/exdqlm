@@ -1,0 +1,11 @@
+profile:
+  id: rescue_v1
+  frozen_on: 2026-03-21
+  description: >
+    Frozen RHS guardrail rescue profile based on const-c2 v1 defaults plus
+    non-DLM and RHS tau-init guardrail lock. This profile is the baseline for
+    balanced sweeps and broader confirmation.
+  base_defaults: config/validation/qdesn_mcmc_compare_rhs_structural_reparam_constc2_v1.yaml
+  guardrail_lock: config/validation/qdesn_rhs_guardrail_lock.yaml
+  materialized_defaults: config/validation/qdesn_mcmc_compare_rhs_guardrail_rescue_v1.yaml
+  source_report_root: reports/qdesn_mcmc_validation/targeted_rhs_guardrail_wave/20260320-213747__git-56b401c

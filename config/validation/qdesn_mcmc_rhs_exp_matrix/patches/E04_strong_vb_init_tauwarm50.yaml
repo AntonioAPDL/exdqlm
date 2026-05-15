@@ -1,0 +1,24 @@
+experiment:
+  id: E04
+  description: strong VB warm start with longer MCMC tau freeze (50 burnin iterations)
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            vb_warm_start_control:
+              max_iter: 120
+              min_iter_elbo: 15
+              n_samp_xi: 256
+              verbose: false
+              rhs:
+                freeze_tau_iters: 50
+                freeze_tau_warmup_iters: 50
+                tau_local_tol: 5.0e-4
+                min_tau_updates: 3
+                force_tau_after_warmup: true
+            rhs:
+              freeze_tau_burnin_iters: 50
+              freeze_tau_only_during_burn: true

@@ -31,6 +31,10 @@
 ^exdqlm_.*\.tar\.gz$
 ^\.vscode$
 ^logs$
+^bin($|/)
+^build($|/)
+^analysis-data($|/)
+^model_selection_outputs($|/)
 ^scripts$
 ^dump_exdqlm_files_to_txt\.sh$
 ^check-logs$

@@ -1,0 +1,3 @@
+scenario,tau,beta_prior_type,seed,reservoir_profile,enabled
+toy_sine_small,0.5,rhs,123,tiny_d1_n8,TRUE
+toy_sine_small,0.5,rhs_ns,123,tiny_d1_n8,TRUE

@@ -1,0 +1,12 @@
+experiment:
+  id: E05
+  description: switch RHS global tau-c2 update from directional block to coordinate mode
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            slice:
+              rhs_global_block_update: coordinate

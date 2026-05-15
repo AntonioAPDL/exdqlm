@@ -1,0 +1,45 @@
+# Refined pragmatic run (SIM) for dlm_constV_smallW.
+# Informed by 20260212-142722 pragmatic results:
+# - Top candidates were dominated by D=1.
+# - Best settings clustered around n=500, m in {30, 90}, alpha in {0.2, 0.3}, rho in {0.90, 0.95}.
+# This spec narrows the grid to spend more budget near that region.
+
+base_cfg_overrides:
+  pipeline:
+    mode: sim
+
+model_selection:
+  calcrps:
+    enabled: true
+  stages:
+    - name: coarse_refined
+      seeds: [1, 2]
+      p_vec: [0.05, 0.50, 0.95]
+      nd_draws: 1200
+      synth_n_samp: 700
+      origins:
+        policy: subsample
+        frac: 0.25
+        seed: 123
+      horizon: 60
+      candidate_grid:
+        D: [1]
+        n1: [400, 500, 650, 800, 950]
+        m: [20, 30, 45, 60, 75, 90]
+        alpha: [0.15, 0.20, 0.25, 0.30, 0.35]
+        rho: [0.88, 0.90, 0.92, 0.95]
+      budget:
+        max_candidates: 40
+        strategy: random_subset
+
+    - name: final_refined
+      seeds: [1, 2, 3, 4]
+      p_vec: use_default
+      nd_draws: 2400
+      synth_n_samp: 1200
+      origins:
+        policy: stride
+        stride_k: 2
+      horizon: 60
+      candidate_refine:
+        top_k_from_previous: 6

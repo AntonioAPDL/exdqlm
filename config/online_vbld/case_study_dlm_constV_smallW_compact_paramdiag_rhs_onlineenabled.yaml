@@ -1,0 +1,58 @@
+case_study:
+  dataset_slug: dlm_constV_smallW
+  datasets_file: config/datasets.yaml
+  model_selection_records: docs/model_selection_optimal_records.md
+  optimal_spec_file: config/model_selection/specs/modelsel_sim_big_pragmatic.yaml
+  optimal_candidate_id: 113d66b36bd458787b07151663b8dcc1
+  p0: 0.50
+
+  split:
+    T_use: 5000
+    train_prop: 0.80
+    use_last: true
+
+  desn:
+    D: 3
+    'n': [50, 50, 50]
+    n_tilde: [50, 50]
+    m: 30
+    alpha: [0.2, 0.2, 0.2]
+    rho: [0.95, 0.95, 0.95]
+    act_f: [tanh, tanh, tanh]
+    act_k: [identity, identity, identity]
+    pi_w: [0.1, 0.1, 0.1]
+    pi_in: [1.0, 1.0, 1.0]
+    washout: 500
+    add_bias: true
+    seed: [12345, 12344, 12343]
+
+  vb:
+    max_iter: 60
+    min_iter_elbo: 15
+    tol: 1.0e-4
+    tol_par: 1.0e-4
+    n_samp_xi: 100
+    beta_prior_type: rhs
+
+  smoke:
+    enabled: false
+
+  rolling_window: 40
+
+selection:
+  coverage_error_max: 0.08
+  near_best_tol: 0.05
+  jitter_eps_cap: 1.0e50
+  max_jitter_eps_for_stability: 1.0e50
+  acceptance:
+    enabled: true
+    max_check_loss_increase: 0.02
+    max_coverage_error_increase: 0.02
+
+diagnostics:
+  keep_trace: true
+
+schedules:
+  default_candidate: C5_W100
+  grid:
+    C5_W100: {M: 10, K: 40, W: 100, L_loc: 2}
