@@ -4,7 +4,7 @@ Date: 2026-05-15
 
 Branch:
 
-`validation/fit-forecast-shared-dynamic-0.5.0`
+`validation/shared-fitforecast-v2-1.0.0`
 
 ## Purpose
 

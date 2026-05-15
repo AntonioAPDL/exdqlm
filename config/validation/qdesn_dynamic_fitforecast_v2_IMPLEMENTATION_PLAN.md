@@ -6,15 +6,15 @@ Revision: v2.1
 
 Worktree:
 
-`/data/jaguir26/local/src/exdqlm__wt__qdesn_fitforecast_0p5p0`
+`/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0`
 
 Branch:
 
-`feature/qdesn-fitforecast-validation-0p5p0`
+`validation/shared-fitforecast-v2-1.0.0`
 
 Purpose:
 
-Prepare the Q-DESN fit+forecast validation study for a clean, reproducible, storage-light launch on the shared exDQLM 0.5.0 dynamic fit+forecast API.
+Prepare the Q-DESN fit+forecast validation study for a clean, reproducible, storage-light launch on the shared exDQLM 1.0.0 dynamic fit+forecast API.
 
 This plan supersedes the earlier rough launch-readiness list. It keeps the same safety posture, but sharpens the engineering strategy around documentation, reproducibility, compatibility, testing, and launch gates.
 
@@ -207,7 +207,7 @@ Use three levels of change:
 
 1. Compatibility repair:
    - restore missing entrypoints;
-   - adapt paths and API calls to exDQLM 0.5.0;
+   - adapt paths and API calls to exDQLM 1.0.0;
    - preserve output names and artifact schemas.
 2. Contract hardening:
    - add tests, manifests, and healthcheck gates;
@@ -219,7 +219,7 @@ Use three levels of change:
 
 Only levels 1 and 2 are pre-launch work. Level 3 requires exact artifact parity tests before it can replace the launch path.
 
-Pre-launch rewiring means making existing intended components connect correctly under the exDQLM 0.5.0 API: runtime guards, entrypoint scripts, CLI filters, source registries, compact summaries, healthchecks, and manifests. It should not change the scientific meaning of the Q-DESN model, priors, training window, forecast window, or table metrics unless that change is explicitly documented, tested, and approved.
+Pre-launch rewiring means making existing intended components connect correctly under the exDQLM 1.0.0 API: runtime guards, entrypoint scripts, CLI filters, source registries, compact summaries, healthchecks, and manifests. It should not change the scientific meaning of the Q-DESN model, priors, training window, forecast window, or table metrics unless that change is explicitly documented, tested, and approved.
 
 Minimum parity requirements for any replacement pipeline:
 
@@ -346,7 +346,7 @@ Tasks:
    - `scripts/pipeline_real_main.R`
    - `scripts/pipeline_sim_main.R`
 2. Record their source commit/worktree in a compatibility note.
-3. Adapt only what is needed for the 0.5.0 API.
+3. Adapt only what is needed for the 1.0.0 API.
 4. Add a tiny generated fixture so pipeline tests do not skip.
 5. Add an entrypoint-presence test.
 6. Confirm outputs include:

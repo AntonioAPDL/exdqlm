@@ -13,8 +13,8 @@ it does not retain full successful model objects.
 
 ## Contract
 
-- Package branch: `validation/fit-forecast-shared-dynamic-0.5.0`
-- Package version: `0.5.0.9000`
+- Package branch: `validation/shared-fitforecast-v2-1.0.0`
+- Package version: `1.0.0`
 - Required R runtime: R 4.6.0 or newer
 - Shared source root:
   `/data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources`

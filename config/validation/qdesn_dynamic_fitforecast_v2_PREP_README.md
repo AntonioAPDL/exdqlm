@@ -2,16 +2,16 @@
 
 Date: 2026-05-15
 
-This branch prepares the Q-DESN validation layer on top of the exdqlm 0.5.0 fit+forecast baseline. It is intended for the next shared dynamic validation study, not for consuming old fit-only outputs.
+This branch prepares the Q-DESN validation layer on top of the exdqlm 1.0.0 fit+forecast baseline. It is intended for the next shared dynamic validation study, not for consuming old fit-only outputs.
 
 ## Branch Contract
 
-- Worktree: `/data/jaguir26/local/src/exdqlm__wt__qdesn_fitforecast_0p5p0`
-- Branch: `feature/qdesn-fitforecast-validation-0p5p0`
-- Base: `origin/validation/fit-forecast-shared-dynamic-0.5.0`
+- Worktree: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0`
+- Branch: `validation/shared-fitforecast-v2-1.0.0`
+- Base: `d8aa14f105730d16f6e77b5f19dbdcac145c9581`
 - Source study id: `dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast`
 
-The branch keeps the 0.5.0 exDQLM forecast validation baseline and layers the Q-DESN validation code, RHS/RHS-NS readout controls, storage-light launchers, and source-window verification on top.
+The branch keeps the exDQLM 1.0.0 package baseline and layers the Q-DESN validation code, RHS/RHS-NS readout controls, storage-light launchers, and source-window verification on top.
 
 ## Data Contract
 
