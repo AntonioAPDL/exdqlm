@@ -40,6 +40,7 @@
 ^check-logs$
 ^Plan\.txt$
 ^tools$
+^validation$
 ^.*\.Rproj$
 ^exdqlm\.Rproj$
 ^RHS_NS_STAGE9_SUBMISSION_MEMO\.md$
