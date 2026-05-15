@@ -26,6 +26,7 @@ logs/
 outputs/
 reports/
 results/
+validation/fitforecast_v2/runs/
 dump_exdqlm_files_to_txt.sh
 
 # tools scratch + outputs (keep only tools/diag_abort_printf.sh tracked)
