@@ -1,9 +1,9 @@
-## exdqlm 0.5.0
+## exdqlm 1.0.0
 
 ### Release context
 
-This development update builds on the consolidated 0.4.0 package line and
-focuses on dynamic diagnostic reproducibility:
+This release builds on the consolidated 0.4.0 CRAN package line and focuses on
+dynamic diagnostic reproducibility:
 
 - `exdqlmDiagnostics()` now computes CRPS through a finite integrated
   quantile-score approximation over posterior predictive empirical quantiles.
@@ -24,7 +24,7 @@ No default backend flip is introduced in this update:
 - `exdqlm.use_cpp_builders` remains opt-in (`FALSE` by default).
 - Existing R fallbacks remain available.
 
-This update intentionally excludes branch-local simulation/validation-study
+This release intentionally excludes branch-local simulation/validation-study
 artifacts; only package-facing API, documentation, and tests are included.
 
 ### Test environments
@@ -38,7 +38,7 @@ artifacts; only package-facing API, documentation, and tests are included.
   - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-exdqlm-transfer-mcmc.R")'`
   - `Rscript -e 'testthat::test_local(reporter = "summary")'`
   - `R CMD build --no-build-vignettes .`
-  - `R CMD check --no-manual --run-donttest exdqlm_0.5.0.9000.tar.gz`
+  - `R CMD check --no-manual --run-donttest exdqlm_1.0.0.tar.gz`
 
 ### R CMD check results
 
@@ -65,10 +65,10 @@ artifacts; only package-facing API, documentation, and tests are included.
 - The current local check host has `pandoc` 3.9.0.2 available, and the
   top-level README/NEWS checks completed successfully.
 
-4) Development-version note
+4) Version numbering
 
-- The current development branch uses version `0.5.0.9000`; this should be
-  changed to the final release version before CRAN submission.
+- This release intentionally moves from CRAN version 0.4.0 to 1.0.0 to mark the
+  stabilized package/API line used by the accompanying software article.
 
 5) Compiler hardening flag note
 

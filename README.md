@@ -14,8 +14,8 @@ than means, are the main object of interest, but the user still wants
 familiar state-space/model-matrix inputs and explicit posterior
 inference.
 
-In **v0.4.0**, the package brings together the strongest parts of the
-current development line:
+In **v1.0.0**, the package brings together the stabilized software-article
+feature line:
 
 - dynamic exDQLM inference via **LDVB** and **MCMC**, with legacy
   **ISVB** retained for backward compatibility and historical
@@ -58,7 +58,7 @@ Development (GitHub):
 pak::pak("AntonioAPDL/exdqlm")
 ```
 
-## Why `exdqlm` 0.4.0 is distinctive
+## Why `exdqlm` is distinctive
 
 - **Dynamic Bayesian quantile state-space modeling** is the core use
   case: `exdqlmLDVB()` is the main VB path, `exdqlmMCMC()` provides
@@ -176,7 +176,7 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
   `fit$diagnostics$vb_trace$elbo` (weakly monotone up to
   importance-sampling noise).
 
-## What’s new in v0.4.0
+## Current release highlights
 
 - **Dynamic LDVB algorithm** via `exdqlmLDVB()` as the main VB routine
   for exDQLM fitting, with legacy `exdqlmISVB()` retained for backward
@@ -203,6 +203,9 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 - **Standardized VB trace diagnostics** via `fit$diagnostics$vb_trace`,
   giving plot-ready iteration histories for ELBO, `sigma`, `gamma`, and
   convergence deltas across VB fits.
+- **Deterministic dynamic diagnostics** using stable KL normality diagnostics,
+  CRPS through an integrated quantile-score approximation, and held-out forecast
+  scoring through `exdqlmForecastDiagnostics()`.
 
 > For CI/CRAN-style runs, keep optional C++ builders/samplers/post-pred
 > **FALSE** and set `exdqlm.use_cpp_kf = FALSE` for strict R-path

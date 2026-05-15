@@ -4,8 +4,8 @@
 #' regression under the extended asymmetric Laplace error distribution (exAL).
 #'
 #' The package centers on native dynamic quantile state-space modeling for
-#' univariate time series, while version 0.4.0 also provides a static exAL
-#' regression workflow. Across these settings, `exdqlm` combines model
+#' univariate time series and also provides a static exAL regression workflow.
+#' Across these settings, `exdqlm` combines model
 #' construction helpers, multiple Bayesian inference engines, shrinkage priors
 #' for static coefficients, and post hoc synthesis of several fitted quantiles.
 #'
@@ -26,7 +26,7 @@
 #'         predictive distribution.
 #' }
 #'
-#' @section Distinctive features in 0.4.0:
+#' @section Distinctive features:
 #' \itemize{
 #'   \item Dynamic Bayesian quantile state-space inference with LDVB as the
 #'         main VB engine, MCMC for posterior simulation, and legacy ISVB
@@ -47,12 +47,16 @@
 #'   \item Optional C++ acceleration for selected state-space computations.
 #' }
 #'
-#' @section Development changes in 0.5.0:
+#' @section Release changes in 1.0.0:
 #' \itemize{
 #'   \item Dynamic diagnostics report CRPS through a finite integrated
 #'         quantile-score approximation over posterior predictive empirical
 #'         quantiles, with user-configurable quantile levels and weights in
 #'         [exdqlmDiagnostics()].
+#'   \item Held-out forecast diagnostics are available for forecast objects
+#'         through [exdqlmForecastDiagnostics()].
+#'   \item Dynamic KL normality diagnostics are deterministic for fixed fitted
+#'         objects and no longer depend on stochastic reference samples.
 #' }
 #'
 #' @section Runtime options:

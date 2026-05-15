@@ -1,6 +1,6 @@
-# exdqlm 0.5.0
+# exdqlm 1.0.0
 
-## Development
+## New and changed
 - Changed the dynamic diagnostics CRPS calculation to use a finite integrated
   quantile-score approximation over posterior predictive empirical quantiles.
   The default grid is `seq(0.01, 0.99, by = 0.01)`, with optional user-supplied
@@ -23,8 +23,8 @@
 # exdqlm 0.4.0
 
 ## New
-- Consolidated CRAN release (updating CRAN 0.3.0) that bundles the internal
-  0.4.0/0.5.0/0.6.0 feature line in one submission.
+- Consolidated CRAN release (updating CRAN 0.3.0) that bundles several internal
+  development branches in one submission.
 - `exdqlmLDVB`: Laplace-Delta variational Bayes routine for dynamic quantile
   state-space fitting under the extended asymmetric Laplace error distribution.
 - Reduced-model controls for dynamic routines (`exdqlmISVB()`,
