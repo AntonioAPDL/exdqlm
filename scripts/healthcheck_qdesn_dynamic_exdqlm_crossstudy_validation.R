@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  req <- c("yaml", "jsonlite")
+  req <- c("yaml", "jsonlite", "pkgload")
   need <- setdiff(req, rownames(installed.packages()))
   if (length(need)) install.packages(need, repos = "https://cloud.r-project.org")
   invisible(lapply(req, require, character.only = TRUE))
@@ -22,6 +22,8 @@ repo_root <- tryCatch(
   error = function(...) normalizePath(".", winslash = "/", mustWork = TRUE)
 )
 setwd(repo_root)
+pkgload::load_all(repo_root, quiet = TRUE)
+runtime_snapshot <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
 
 resolve_path <- function(path, must_work = TRUE) {
   raw <- as.character(path %||% "")[1L]
@@ -59,6 +61,21 @@ read_csv_safe <- function(path) {
 read_json_safe <- function(path) {
   if (!file.exists(path)) return(list())
   jsonlite::fromJSON(path)
+}
+
+file_inventory <- function(root, pattern) {
+  if (!dir.exists(root)) return(data.frame(path = character(), bytes = numeric(), stringsAsFactors = FALSE))
+  files <- list.files(root, pattern = pattern, recursive = TRUE, full.names = TRUE)
+  files <- files[file.exists(files)]
+  if (!length(files)) return(data.frame(path = character(), bytes = numeric(), stringsAsFactors = FALSE))
+  info <- file.info(files)
+  data.frame(path = normalizePath(files, winslash = "/", mustWork = FALSE), bytes = as.numeric(info$size), stringsAsFactors = FALSE)
+}
+
+read_first_line_safe <- function(path) {
+  if (!file.exists(path)) return(NA_character_)
+  out <- readLines(path, warn = FALSE, n = 1L)
+  if (length(out)) trimws(out[[1L]]) else NA_character_
 }
 
 run_tag <- as.character(get_arg("--run-tag", ""))[1L]
@@ -111,6 +128,50 @@ root_status_vals <- vapply(file.path(root_dirs, "manifest", "root_status.txt"), 
   trimws(readLines(path, warn = FALSE, n = 1L))
 }, character(1))
 root_status_tab <- if (length(root_status_vals)) sort(table(root_status_vals), decreasing = TRUE) else integer(0)
+
+index_alignment_files <- file.path(
+  list.dirs(file.path(results_root, "roots"), recursive = TRUE, full.names = TRUE),
+  "manifest",
+  "index_alignment.json"
+)
+index_alignment_files <- index_alignment_files[file.exists(index_alignment_files)]
+index_alignment_status <- vapply(index_alignment_files, function(path) {
+  as.character((read_json_safe(path)$status %||% NA_character_)[1L])
+}, character(1))
+index_alignment_tab <- if (length(index_alignment_status)) sort(table(index_alignment_status), decreasing = TRUE) else integer(0)
+
+horizon_summary_files <- list.files(
+  file.path(results_root, "roots"),
+  pattern = "^forecast_horizon_summary\\.csv$",
+  recursive = TRUE,
+  full.names = TRUE
+)
+horizon_summary_rows <- sum(vapply(horizon_summary_files, function(path) nrow(read_csv_safe(path)), integer(1)), na.rm = TRUE)
+
+heavy_results <- rbind(
+  file_inventory(results_root, "forecast_objects\\.rds$"),
+  file_inventory(results_root, "\\.rda$"),
+  file_inventory(results_root, "\\.RData$"),
+  file_inventory(results_root, "rhs_trace\\.rds$"),
+  file_inventory(results_root, "timing_summary\\.rds$")
+)
+heavy_reports <- rbind(
+  file_inventory(report_root, "forecast_objects\\.rds$"),
+  file_inventory(report_root, "\\.rda$"),
+  file_inventory(report_root, "\\.RData$"),
+  file_inventory(report_root, "rhs_trace\\.rds$"),
+  file_inventory(report_root, "timing_summary\\.rds$")
+)
+heavy_all <- rbind(heavy_results, heavy_reports)
+heavy_bytes <- sum(as.numeric(heavy_all$bytes), na.rm = TRUE)
+
+du_line <- function(path) {
+  if (!dir.exists(path)) return("missing")
+  out <- tryCatch(system2("du", c("-sh", path), stdout = TRUE, stderr = TRUE), error = function(e) sprintf("ERROR: %s", conditionMessage(e)))
+  if (length(out)) out[[1L]] else NA_character_
+}
+df_line <- tryCatch(system2("df", c("-h", dirname(results_root)), stdout = TRUE, stderr = TRUE), error = function(e) sprintf("ERROR: %s", conditionMessage(e)))
+free_line <- tryCatch(system2("free", "-h", stdout = TRUE, stderr = TRUE), error = function(e) sprintf("ERROR: %s", conditionMessage(e)))
 
 fit_summary <- read_csv_safe(file.path(report_root, "tables", "campaign_fit_summary.csv"))
 pair_summary <- read_csv_safe(file.path(report_root, "tables", "campaign_pairwise_vb_vs_mcmc.csv"))
@@ -174,6 +235,13 @@ cat(sprintf("Surface delta rows: %d\n", nrow(compare_delta)))
 cat(sprintf("MCMC seed selection rows: %d\n", nrow(seed_selection)))
 cat(sprintf("MCMC seed winner rows: %d\n", nrow(seed_winners)))
 cat(sprintf("Campaign completed manifest present: %s\n", if (length(completed_manifest)) "TRUE" else "FALSE"))
+cat(sprintf("Index alignment manifests: %d\n", length(index_alignment_files)))
+cat(sprintf("Forecast horizon summary files: %d\n", length(horizon_summary_files)))
+cat(sprintf("Forecast horizon summary rows: %d\n", as.integer(horizon_summary_rows)))
+cat(sprintf("Retained heavy artifact files: %d\n", nrow(heavy_all)))
+cat(sprintf("Retained heavy artifact bytes: %.0f\n", heavy_bytes))
+cat(sprintf("Results footprint: %s\n", du_line(results_root)))
+cat(sprintf("Reports footprint: %s\n", du_line(report_root)))
 cat(sprintf("Launcher mode: %s\n", launcher_mode))
 cat(sprintf("Launcher session: %s\n", launcher_session))
 cat(sprintf("Launcher session live: %s\n", as.character(launcher_session_live)))
@@ -195,3 +263,23 @@ if (length(root_status_tab)) {
   cat(paste(sprintf("- %s: %d", names(root_status_tab), as.integer(root_status_tab)), collapse = "\n"))
   cat("\n")
 }
+
+if (length(index_alignment_tab)) {
+  cat("\nindex_alignment_distribution:\n")
+  cat(paste(sprintf("- %s: %d", names(index_alignment_tab), as.integer(index_alignment_tab)), collapse = "\n"))
+  cat("\n")
+}
+
+if (nrow(heavy_all)) {
+  cat("\nretained_heavy_artifacts_by_name:\n")
+  heavy_name <- basename(heavy_all$path)
+  heavy_tab <- sort(tapply(heavy_all$bytes, heavy_name, length), decreasing = TRUE)
+  cat(paste(sprintf("- %s: %d", names(heavy_tab), as.integer(heavy_tab)), collapse = "\n"))
+  cat("\n")
+}
+
+cat("\ndisk_available:\n")
+cat(paste(df_line, collapse = "\n"))
+cat("\n\nmemory_available:\n")
+cat(paste(free_line, collapse = "\n"))
+cat("\n")

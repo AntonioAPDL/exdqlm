@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  req <- c("jsonlite", "yaml")
+  req <- c("jsonlite", "yaml", "pkgload")
   need <- setdiff(req, rownames(installed.packages()))
   if (length(need)) install.packages(need, repos = "https://cloud.r-project.org")
   invisible(lapply(req, require, character.only = TRUE))
@@ -22,6 +22,7 @@ repo_root <- tryCatch(
   error = function(...) normalizePath(".", winslash = "/", mustWork = TRUE)
 )
 setwd(repo_root)
+pkgload::load_all(repo_root, quiet = TRUE)
 
 resolve_path <- function(path, must_work = TRUE) {
   raw <- as.character(path %||% "")[1L]
@@ -57,6 +58,8 @@ runner_rel <- get_arg("--runner", file.path("scripts", "run_qdesn_dynamic_exdqlm
 runner_path <- resolve_path(runner_rel, must_work = TRUE)
 defaults_rel <- get_arg("--defaults", file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_defaults.yaml"))
 defaults_path <- resolve_path(defaults_rel, must_work = TRUE)
+runtime_snapshot <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
+git_snapshot <- exdqlm:::qdesn_validation_git_snapshot(repo_root = repo_root)
 defaults <- yaml::read_yaml(defaults_path)
 if (!is.list(defaults)) {
   stop("Dynamic cross-study defaults YAML must parse to a list.", call. = FALSE)
@@ -113,7 +116,7 @@ script_lines <- c(
   sprintf("cd %s", shQuote(repo_root)),
   env_export_lines,
   sprintf("printf '%%s\\n' $$ > %s", shQuote(launcher_pid_path)),
-  sprintf("exec Rscript %s %s >> %s 2>&1", shQuote(runner_path), child_args_quoted, shQuote(launcher_log))
+  sprintf("exec %s %s %s >> %s 2>&1", shQuote(runtime_snapshot$rscript), shQuote(runner_path), child_args_quoted, shQuote(launcher_log))
 )
 writeLines(script_lines, launcher_script_path)
 Sys.chmod(launcher_script_path, mode = "0755")
@@ -147,7 +150,11 @@ jsonlite::write_json(
     launcher_log = launcher_log,
     launcher_shell_pid_path = launcher_pid_path,
     launcher_script_path = launcher_script_path,
+    runtime_snapshot = runtime_snapshot,
+    git_snapshot = git_snapshot,
     r_environment = list(
+      Rscript = runtime_snapshot$rscript,
+      R_HOME = runtime_snapshot$r_home,
       R_version = R.version.string,
       R_LIBS = Sys.getenv("R_LIBS", unset = ""),
       R_LIBS_USER = Sys.getenv("R_LIBS_USER", unset = ""),

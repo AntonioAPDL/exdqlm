@@ -68,6 +68,9 @@ test_that("fit+forecast materialization anchors Q-DESN train and forecast source
   expect_equal(inventory$train_end_source_index, 9000L)
   expect_equal(inventory$forecast_start_source_index, 9001L)
   expect_equal(inventory$forecast_end_source_index, 10000L)
+  expect_match(inventory$source_series_wide_sha256, "^[[:xdigit:]]{64}$")
+  expect_match(inventory$source_selection_indices_sha256, "^[[:xdigit:]]{64}$")
+  expect_match(inventory$source_sim_sha256, "^[[:xdigit:]]{64}$")
 
   selection <- utils::read.csv(inventory$source_selection_indices_path, stringsAsFactors = FALSE)
   expect_equal(nrow(selection), 1812L)
@@ -85,4 +88,13 @@ test_that("fit+forecast materialization anchors Q-DESN train and forecast source
   expect_equal(verification$status, "PASS")
   expect_equal(verification$train_n, 500L)
   expect_equal(verification$forecast_n, 1000L)
+
+  grid <- exdqlm:::qdesn_dynamic_crossstudy_build_grid_from_materialized_sources(
+    defaults = defaults,
+    materialized_inventory = inventory
+  )
+  expect_equal(nrow(grid), 2L)
+  expect_true(all(grid$source_series_wide_sha256 == inventory$source_series_wide_sha256))
+  expect_true(all(grid$source_selection_indices_sha256 == inventory$source_selection_indices_sha256))
+  expect_true(all(grid$source_sim_sha256 == inventory$source_sim_sha256))
 })

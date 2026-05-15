@@ -24,6 +24,7 @@ exdqlm_*.tar.gz
 check-logs/
 logs/
 outputs/
+reports/
 results/
 dump_exdqlm_files_to_txt.sh
 

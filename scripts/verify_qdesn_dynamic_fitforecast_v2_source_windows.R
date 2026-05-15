@@ -25,6 +25,7 @@ out_path <- arg_value(
 )
 
 suppressPackageStartupMessages(pkgload::load_all(repo_root, quiet = TRUE))
+runtime <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
 
 defaults <- exdqlm:::qdesn_validation_load_defaults(defaults_path, repo_root = repo_root)
 if (is.null(inventory_path)) {
@@ -45,6 +46,8 @@ verification <- exdqlm:::qdesn_dynamic_fitforecast_verify_source_windows(
 exdqlm:::.qdesn_validation_write_df(verification, out_path)
 
 cat(sprintf("inventory: %s\n", inventory_path))
+cat(sprintf("Rscript: %s\n", runtime$rscript))
+cat(sprintf("R version: %s\n", runtime$r_version))
 cat(sprintf("verification_rows: %d\n", nrow(verification)))
 cat(sprintf("verification: %s\n", out_path))
 print(table(verification$status, useNA = "ifany"))

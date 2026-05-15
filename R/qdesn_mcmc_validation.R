@@ -714,21 +714,178 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   out
 }
 
-.qdesn_validation_write_compact_fit_paths <- function(summary_obj, root_spec, method_dir) {
+.qdesn_validation_first_finite_int <- function(x) {
+  x <- suppressWarnings(as.integer(x %||% NA_integer_))
+  x <- x[is.finite(x)]
+  if (length(x)) x[[1L]] else NA_integer_
+}
+
+.qdesn_validation_split_alignment_row <- function(df, root_spec, split = c("train", "holdout")) {
+  split <- match.arg(split)
+  df <- as.data.frame(df %||% data.frame(stringsAsFactors = FALSE), stringsAsFactors = FALSE)
+  source_index <- if ("source_index" %in% names(df)) suppressWarnings(as.integer(df$source_index)) else integer(0)
+  source_index <- source_index[is.finite(source_index)]
+
+  expected_first <- if (identical(split, "train")) {
+    .qdesn_validation_first_finite_int(root_spec$train_start_source_index)
+  } else {
+    .qdesn_validation_first_finite_int(root_spec$forecast_start_source_index)
+  }
+  expected_last <- if (identical(split, "train")) {
+    .qdesn_validation_first_finite_int(root_spec$train_end_source_index)
+  } else {
+    .qdesn_validation_first_finite_int(root_spec$forecast_end_source_index)
+  }
+  expected_n <- if (is.finite(expected_first) && is.finite(expected_last) && expected_last >= expected_first) {
+    as.integer(expected_last - expected_first + 1L)
+  } else if (identical(split, "train")) {
+    .qdesn_validation_first_finite_int(root_spec$effective_fit_size %||% root_spec$fit_size)
+  } else {
+    NA_integer_
+  }
+
+  realized_n <- as.integer(nrow(df))
+  realized_first <- if (length(source_index)) min(source_index, na.rm = TRUE) else NA_integer_
+  realized_last <- if (length(source_index)) max(source_index, na.rm = TRUE) else NA_integer_
+  contiguous <- if (length(source_index) > 1L) {
+    identical(source_index, seq.int(source_index[[1L]], source_index[[1L]] + length(source_index) - 1L))
+  } else {
+    length(source_index) == 1L
+  }
+
+  problems <- character(0)
+  if (is.finite(expected_n) && !identical(realized_n, as.integer(expected_n))) {
+    problems <- c(problems, sprintf("n_%d_expected_%d", realized_n, expected_n))
+  }
+  if (is.finite(expected_first) && !identical(as.integer(realized_first), as.integer(expected_first))) {
+    problems <- c(problems, sprintf("first_%s_expected_%s", as.character(realized_first), as.character(expected_first)))
+  }
+  if (is.finite(expected_last) && !identical(as.integer(realized_last), as.integer(expected_last))) {
+    problems <- c(problems, sprintf("last_%s_expected_%s", as.character(realized_last), as.character(expected_last)))
+  }
+  if (length(source_index) && !isTRUE(contiguous)) {
+    problems <- c(problems, "source_index_not_contiguous")
+  }
+  if (!length(source_index) && nrow(df)) {
+    problems <- c(problems, "missing_source_index")
+  }
+  data.frame(
+    root_id = as.character(root_spec$root_id %||% NA_character_)[1L],
+    dataset_cell_id = as.character(root_spec$dataset_cell_id %||% NA_character_)[1L],
+    split = if (identical(split, "holdout")) "forecast" else "train",
+    realized_n = realized_n,
+    expected_n = as.integer(expected_n),
+    realized_source_index_first = as.integer(realized_first),
+    realized_source_index_last = as.integer(realized_last),
+    expected_source_index_first = as.integer(expected_first),
+    expected_source_index_last = as.integer(expected_last),
+    contiguous_source_index = isTRUE(contiguous),
+    status = if (length(problems)) "FAIL" else "PASS",
+    reason = if (length(problems)) paste(unique(problems), collapse = ";") else "ok",
+    stringsAsFactors = FALSE
+  )
+}
+
+.qdesn_validation_pinball <- function(y, q, tau) {
+  y <- as.numeric(y)
+  q <- as.numeric(q)
+  tau <- as.numeric(tau)[1L]
+  ok <- is.finite(y) & is.finite(q) & is.finite(tau)
+  if (!any(ok)) return(NA_real_)
+  e <- y[ok] - q[ok]
+  mean((tau - as.numeric(e < 0)) * e)
+}
+
+.qdesn_validation_horizon_summary_df <- function(holdout_df,
+                                                 root_spec,
+                                                 horizons = c(100L, 1000L)) {
+  holdout_df <- as.data.frame(holdout_df %||% data.frame(stringsAsFactors = FALSE), stringsAsFactors = FALSE)
+  if (!nrow(holdout_df)) return(data.frame(stringsAsFactors = FALSE))
+  horizons <- unique(as.integer(horizons))
+  horizons <- horizons[is.finite(horizons) & horizons > 0L]
+  horizons <- horizons[horizons <= nrow(holdout_df)]
+  if (!length(horizons)) return(data.frame(stringsAsFactors = FALSE))
+
+  rows <- lapply(horizons, function(horizon) {
+    sub <- holdout_df[seq_len(horizon), , drop = FALSE]
+    q_pred <- as.numeric(sub$q_pred %||% sub$mu %||% NA_real_)
+    q_true <- as.numeric(sub$q_true %||% NA_real_)
+    y <- as.numeric(sub$y %||% NA_real_)
+    tau <- as.numeric(root_spec$tau %||% sub$p0[1L] %||% NA_real_)[1L]
+    err <- q_pred - q_true
+    ok <- is.finite(err)
+    corr <- if (sum(ok) >= 2L) suppressWarnings(stats::cor(q_pred[ok], q_true[ok])) else NA_real_
+    data.frame(
+      root_id = as.character(root_spec$root_id %||% NA_character_)[1L],
+      dataset_cell_id = as.character(root_spec$dataset_cell_id %||% NA_character_)[1L],
+      scenario = as.character(root_spec$scenario %||% root_spec$source_scenario %||% NA_character_)[1L],
+      family = as.character(root_spec$source_family %||% root_spec$family %||% NA_character_)[1L],
+      tau = tau,
+      fit_size = as.integer(root_spec$effective_fit_size %||% root_spec$fit_size %||% NA_integer_)[1L],
+      prior = as.character(root_spec$beta_prior_type %||% root_spec$prior %||% NA_character_)[1L],
+      inference = as.character(sub$inference[1L] %||% sub$method[1L] %||% NA_character_),
+      model = as.character(sub$model[1L] %||% sub$likelihood_family[1L] %||% NA_character_),
+      window = sprintf("forecast_H%d", horizon),
+      horizon = as.integer(horizon),
+      n_eval = as.integer(sum(ok)),
+      source_index_first = if ("source_index" %in% names(sub)) as.integer(sub$source_index[1L]) else NA_integer_,
+      source_index_last = if ("source_index" %in% names(sub)) as.integer(sub$source_index[nrow(sub)]) else NA_integer_,
+      qtrue_mae = if (any(ok)) mean(abs(err[ok])) else NA_real_,
+      qtrue_rmse = if (any(ok)) sqrt(mean(err[ok]^2)) else NA_real_,
+      qtrue_bias = if (any(ok)) mean(err[ok]) else NA_real_,
+      qtrue_corr = as.numeric(corr),
+      pinball_tau = .qdesn_validation_pinball(y, q_pred, tau),
+      coverage = if (any(is.finite(y) & is.finite(q_pred))) mean(y <= q_pred, na.rm = TRUE) else NA_real_,
+      coverage_minus_tau = if (any(is.finite(y) & is.finite(q_pred)) && is.finite(tau)) mean(y <= q_pred, na.rm = TRUE) - tau else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  })
+  .qdesn_validation_bind_rows(rows)
+}
+
+.qdesn_validation_write_compact_fit_paths <- function(summary_obj, root_spec, method_dir, defaults = NULL) {
   if (is.null(summary_obj) || is.null(summary_obj$forecast_objects)) {
-    return(list(train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L))
+    return(list(
+      train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L,
+      index_alignment = NA_character_, index_alignment_status = "MISSING",
+      forecast_horizon_summary = NA_character_, forecast_horizon_rows = 0L
+    ))
   }
   train_path <- .qdesn_validation_compact_fit_path_file(method_dir, "train")
   holdout_path <- .qdesn_validation_compact_fit_path_file(method_dir, "holdout")
+  index_alignment_path <- file.path(method_dir, "tables", "index_alignment.csv")
+  forecast_horizon_path <- file.path(method_dir, "tables", "forecast_horizon_summary.csv")
   train_df <- .qdesn_validation_compact_fit_path_df(summary_obj, root_spec, "train")
   holdout_df <- .qdesn_validation_compact_fit_path_df(summary_obj, root_spec, "holdout")
   if (nrow(train_df)) .qdesn_validation_write_df(train_df, train_path)
   if (nrow(holdout_df)) .qdesn_validation_write_df(holdout_df, holdout_path)
+  alignment_df <- .qdesn_validation_bind_rows(list(
+    .qdesn_validation_split_alignment_row(train_df, root_spec, "train"),
+    .qdesn_validation_split_alignment_row(holdout_df, root_spec, "holdout")
+  ))
+  if (nrow(alignment_df)) .qdesn_validation_write_df(alignment_df, index_alignment_path)
+  horizon_summary <- .qdesn_validation_horizon_summary_df(
+    holdout_df,
+    root_spec,
+    horizons = ((defaults %||% list())$metrics %||% list())$forecast_horizons %||% c(100L, 1000L)
+  )
+  if (nrow(horizon_summary)) .qdesn_validation_write_df(horizon_summary, forecast_horizon_path)
+  alignment_status <- if (nrow(alignment_df) && all(as.character(alignment_df$status) == "PASS")) "PASS" else "FAIL"
+  .qdesn_validation_write_json(file.path(method_dir, "manifest", "index_alignment.json"), list(
+    generated_at = as.character(Sys.time()),
+    index_alignment_file = normalizePath(index_alignment_path, winslash = "/", mustWork = FALSE),
+    status = alignment_status,
+    rows = as.integer(nrow(alignment_df))
+  ))
   list(
     train = if (nrow(train_df)) normalizePath(train_path, winslash = "/", mustWork = FALSE) else NA_character_,
     holdout = if (nrow(holdout_df)) normalizePath(holdout_path, winslash = "/", mustWork = FALSE) else NA_character_,
     train_rows = as.integer(nrow(train_df)),
-    holdout_rows = as.integer(nrow(holdout_df))
+    holdout_rows = as.integer(nrow(holdout_df)),
+    index_alignment = if (nrow(alignment_df)) normalizePath(index_alignment_path, winslash = "/", mustWork = FALSE) else NA_character_,
+    index_alignment_status = alignment_status,
+    forecast_horizon_summary = if (nrow(horizon_summary)) normalizePath(forecast_horizon_path, winslash = "/", mustWork = FALSE) else NA_character_,
+    forecast_horizon_rows = as.integer(nrow(horizon_summary))
   )
 }
 
@@ -774,7 +931,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   compact_error <- NA_character_
   if (isTRUE(cfg$save_compact_fit_paths) && !is.null(summary_obj)) {
     compact_paths <- tryCatch(
-      .qdesn_validation_write_compact_fit_paths(summary_obj, root_spec, method_dir),
+      .qdesn_validation_write_compact_fit_paths(summary_obj, root_spec, method_dir, defaults = defaults),
       error = function(e) {
         compact_error <<- conditionMessage(e)
         list(train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L)
@@ -784,8 +941,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
   status_chr <- toupper(as.character(status %||% NA_character_)[1L])
   success_like <- identical(status_chr, "SUCCESS")
+  alignment_ready <- !isTRUE(cfg$save_compact_fit_paths) ||
+    identical(as.character(compact_paths$index_alignment_status %||% NA_character_)[1L], "PASS")
   compact_ready <- !isTRUE(cfg$save_compact_fit_paths) ||
-    (is.na(compact_error) && as.integer(compact_paths$train_rows %||% 0L) > 0L)
+    (is.na(compact_error) && as.integer(compact_paths$train_rows %||% 0L) > 0L && isTRUE(alignment_ready))
   should_prune_forecast <- !isTRUE(cfg$save_forecast_objects) &&
     file.exists(forecast_path) &&
     isTRUE(compact_ready) &&
@@ -813,6 +972,11 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     compact_holdout_path = compact_paths$holdout,
     compact_train_rows = as.integer(compact_paths$train_rows),
     compact_holdout_rows = as.integer(compact_paths$holdout_rows),
+    index_alignment_path = compact_paths$index_alignment,
+    index_alignment_status = compact_paths$index_alignment_status,
+    forecast_horizon_summary_path = compact_paths$forecast_horizon_summary,
+    forecast_horizon_summary_rows = as.integer(compact_paths$forecast_horizon_rows %||% 0L),
+    index_alignment_ready = isTRUE(alignment_ready),
     compact_ready_for_pruning = isTRUE(compact_ready),
     compact_error = compact_error,
     forecast_objects_path = normalizePath(forecast_path, winslash = "/", mustWork = FALSE),

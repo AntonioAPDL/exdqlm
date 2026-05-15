@@ -1,5 +1,12 @@
 #!/usr/bin/env Rscript
 
+suppressPackageStartupMessages({
+  req <- c("pkgload")
+  need <- setdiff(req, rownames(installed.packages()))
+  if (length(need)) install.packages(need, repos = "https://cloud.r-project.org")
+  invisible(lapply(req, require, character.only = TRUE))
+})
+
 args <- commandArgs(trailingOnly = TRUE)
 
 repo_root <- tryCatch(
@@ -7,6 +14,8 @@ repo_root <- tryCatch(
   error = function(...) normalizePath(".", winslash = "/", mustWork = TRUE)
 )
 setwd(repo_root)
+pkgload::load_all(repo_root, quiet = TRUE)
+runtime_snapshot <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
 
 child_args <- args
 if (!any(child_args == "--defaults")) {
@@ -18,7 +27,7 @@ if (!any(child_args == "--defaults")) {
 }
 
 status <- system2(
-  "Rscript",
+  runtime_snapshot$rscript,
   c(file.path("scripts", "healthcheck_qdesn_dynamic_exdqlm_crossstudy_validation.R"), child_args),
   stdout = "",
   stderr = ""

@@ -141,8 +141,26 @@ smoke:
   - 5000
   priors: ridge
 metrics:
-  primary_window: train
-  holdout_role: secondary_single_point
+  primary_windows:
+  - train_effective
+  - forecast_H100
+  - forecast_H1000
+  fit_window_role: effective_train_post_lag_washout
+  forecast_window_role: contiguous_forecast_block_after_train_origin
+  train_effective_source_indices:
+    TT500:
+    - 8501
+    - 9000
+    TT5000:
+    - 4001
+    - 9000
+  forecast_source_indices:
+  - 9001
+  - 10000
+  forecast_horizons:
+  - 100
+  - 1000
+  backward_compatible_holdout_alias: forecast_H1000
   posterior_metric_draws: 20000
   qtrue_metrics:
   - mae
