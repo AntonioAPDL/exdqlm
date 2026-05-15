@@ -10,6 +10,8 @@ focuses on dynamic diagnostic reproducibility:
 - `exdqlmForecastDiagnostics()` adds package-level held-out forecast scoring for
   `exdqlmForecast()` objects, using target-quantile check loss and CRPS from
   posterior predictive forecast draws.
+- `exdqlmForecast()` now validates future time-varying `fGG` arrays against the
+  forecast horizon and safely expands constant future `fGG` matrices.
 - `exdqlmDiagnostics()` now uses a deterministic one-dimensional semiclosed KL
   normality diagnostic for MAP standardized forecast errors.
 - The reported `KL` direction is aligned with the documented diagnostic target
@@ -27,7 +29,7 @@ artifacts; only package-facing API, documentation, and tests are included.
 
 ### Test environments
 
-- Local: AlmaLinux/Rocky-compatible Linux (x86_64), R 4.5.3 (2026-03-11).
+- Local: AlmaLinux/Rocky-compatible Linux (x86_64), R 4.6.0 (2026-04-24).
 - Local development tools available for this check included `pandoc` 3.9.0.2
   and the R package `V8`, so README/NEWS and HTML math rendering checks ran.
 - Local commands used:
@@ -35,12 +37,12 @@ artifacts; only package-facing API, documentation, and tests are included.
   - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-diagnostics-metrics.R")'`
   - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-exdqlm-transfer-mcmc.R")'`
   - `Rscript -e 'testthat::test_local(reporter = "summary")'`
-  - `R CMD build .`
-  - `Rscript -e 'rcmdcheck::rcmdcheck("exdqlm_0.5.0.9000.tar.gz", args = "--as-cran", error_on = "never")'`
+  - `R CMD build --no-build-vignettes .`
+  - `R CMD check --no-manual --run-donttest exdqlm_0.5.0.9000.tar.gz`
 
 ### R CMD check results
 
-- `0 errors | 0 warnings | 3 notes`.
+- `0 errors | 0 warnings | 0 notes`.
 
 ### Notes for CRAN
 
@@ -68,13 +70,7 @@ artifacts; only package-facing API, documentation, and tests are included.
 - The current development branch uses version `0.5.0.9000`; this should be
   changed to the final release version before CRAN submission.
 
-5) Future timestamp note
-
-- The local Linux check reported `unable to verify current time`.
-- This appears to be a local system-time verification limitation rather than a
-  package timestamp issue.
-
-6) Compiler hardening flag note
+5) Compiler hardening flag note
 
 - Some local Linux toolchains inject non-portable compiler hardening flags such
   as `-Werror=format-security`, `_FORTIFY_SOURCE`, and `_GLIBCXX_ASSERTIONS`.

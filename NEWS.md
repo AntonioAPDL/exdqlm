@@ -8,6 +8,9 @@
 - Added `exdqlmForecastDiagnostics()` for held-out `exdqlmForecast()` objects,
   reporting target-quantile check loss and CRPS from posterior predictive
   forecast draws without redefining article-side scoring helpers.
+- Fixed `exdqlmForecast()` handling of future evolution matrices so constant
+  `fGG` matrices expand across the forecast horizon and time-varying `fGG`
+  arrays are validated against horizon `k`.
 - Replaced the stochastic `FNN::KL.divergence()` dynamic diagnostic with a
   deterministic one-dimensional semiclosed KL normality diagnostic for MAP
   standardized forecast errors. The scalar `KL` and `KL (flipped)` summaries are

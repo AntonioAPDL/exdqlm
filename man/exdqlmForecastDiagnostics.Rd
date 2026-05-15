@@ -77,7 +77,10 @@ model = polytrendMod(1, stats::quantile(y_train, 0.85), 10)
 M0 = exdqlmLDVB(y_train, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                  gam.init = -3.5, sig.init = 15,
                  n.samp = 20, tol = 0.2, verbose = FALSE)
+fFF = model$FF[, 1, drop = FALSE]
+fGG = model$GG
 M0.forecast = exdqlmForecast(start.t = 60, k = 5, m1 = M0,
+                             fFF = fFF, fGG = fGG,
                              return.draws = TRUE, n.samp = 20, seed = 123,
                              plot = FALSE)
 exdqlmForecastDiagnostics(M0.forecast, y = y_holdout)
