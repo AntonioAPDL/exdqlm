@@ -1,0 +1,625 @@
+meta:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave_20260408
+  display_name: QDESN Dynamic Effective-W300 Scientific Fail Closure Wave
+  purpose: >
+    Continue from the repaired effective-w300 posterior-draw broad rerun and spend overnight
+    compute only on the remaining scientific FAIL surface. Keep the repaired broad baseline as the
+    default source, overlay the 6 repaired execution-failure roots, and search only inside the
+    highest-value local tuning neighborhoods for ridge VB tail stabilization and rhs_ns exal rescue.
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  safe_default: prepare_only
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-effectivew300-fitfail
+
+source:
+  mode: dynamic_campaign
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-full-20260407-233147__git-cdfd1a9
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation
+  source_root_profile_overrides:
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: Carry forward the repaired execution-success rerun for this root before scientific retuning.
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_rhs_ns
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: Carry forward the repaired execution-success rerun for this root before scientific retuning.
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: Carry forward the repaired execution-success rerun for this root before scientific retuning.
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: Carry forward the repaired execution-success rerun for this root before scientific retuning.
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: Carry forward the repaired execution-success rerun for this root before scientific retuning.
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_5000__qdesn_ridge
+      profile_report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_validation/qdesn-dynamic-exdqlm-crossstudy-failedrelaunch-20260408-012443__git-bcdb438
+      rationale: Carry forward the repaired execution-success rerun for this root before scientific retuning.
+
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_fail_closure_wave
+
+runtime:
+  default_workers: 6
+  active_job_workers: 4
+  hard_cap_workers: 6
+
+shared_patches:
+  width_adapt_900: &width_adapt_900
+    enabled: true
+    warmup_iters: 900
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_1000: &width_adapt_1000
+    enabled: true
+    warmup_iters: 1000
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  ridge_vb_guard_160: &ridge_vb_guard_160
+    max_iter: 80
+    min_iter_elbo: 15
+    n_samp_xi: 160
+
+  ridge_vb_guard_192: &ridge_vb_guard_192
+    max_iter: 100
+    min_iter_elbo: 18
+    n_samp_xi: 192
+
+  ridge_vb_guard_224: &ridge_vb_guard_224
+    max_iter: 120
+    min_iter_elbo: 20
+    n_samp_xi: 224
+
+  ridge_vb_guard_256: &ridge_vb_guard_256
+    max_iter: 140
+    min_iter_elbo: 24
+    n_samp_xi: 256
+
+  ridge_softgamma_2200: &ridge_softgamma_2200
+    n_burn: 1100
+    n_mcmc: 2200
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.50
+      width_sigma: 0.19
+      core_extra_passes: 2
+      max_steps_out: 80
+      max_shrink: 300
+      max_steps_out_sigma: 155
+      max_shrink_sigma: 420
+
+  ridge_softgamma_2400: &ridge_softgamma_2400
+    n_burn: 1200
+    n_mcmc: 2400
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.49
+      width_sigma: 0.18
+      core_extra_passes: 2
+      max_steps_out: 85
+      max_shrink: 325
+      max_steps_out_sigma: 160
+      max_shrink_sigma: 435
+
+  rhs_vb_guard_160: &rhs_vb_guard_160
+    max_iter: 80
+    min_iter_elbo: 15
+    n_samp_xi: 160
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_192: &rhs_vb_guard_192
+    max_iter: 100
+    min_iter_elbo: 18
+    n_samp_xi: 192
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_224: &rhs_vb_guard_224
+    max_iter: 120
+    min_iter_elbo: 20
+    n_samp_xi: 224
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_short_drift_2200: &rhs_short_drift_2200
+    n_burn: 1100
+    n_mcmc: 2200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 135
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_900
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.39
+      width_sigma: 0.30
+      width_rhs_lambda: 0.15
+      width_rhs_tau: 0.10
+      width_rhs_c2: 0.07
+      width_rhs_tau_c2_block: 0.23
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.19
+      width_rhs_tau_c2_transformed_z2: 0.15
+      core_extra_passes: 2
+      max_steps_out: 80
+      max_shrink: 300
+      max_steps_out_sigma: 138
+      max_shrink_sigma: 380
+
+  rhs_short_freeze145_2400: &rhs_short_freeze145_2400
+    n_burn: 1200
+    n_mcmc: 2400
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 145
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.38
+      width_sigma: 0.29
+      width_rhs_lambda: 0.15
+      width_rhs_tau: 0.09
+      width_rhs_c2: 0.065
+      width_rhs_tau_c2_block: 0.22
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.18
+      width_rhs_tau_c2_transformed_z2: 0.14
+      core_extra_passes: 2
+      max_steps_out: 84
+      max_shrink: 315
+      max_steps_out_sigma: 142
+      max_shrink_sigma: 390
+
+  rhs_short_narrow_2400: &rhs_short_narrow_2400
+    n_burn: 1200
+    n_mcmc: 2400
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 145
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.37
+      width_sigma: 0.28
+      width_rhs_lambda: 0.14
+      width_rhs_tau: 0.085
+      width_rhs_c2: 0.06
+      width_rhs_tau_c2_block: 0.20
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.16
+      width_rhs_tau_c2_transformed_z2: 0.12
+      core_extra_passes: 2
+      max_steps_out: 86
+      max_shrink: 325
+      max_steps_out_sigma: 145
+      max_shrink_sigma: 400
+
+  rhs_short_burnheavy_2600: &rhs_short_burnheavy_2600
+    n_burn: 1400
+    n_mcmc: 2600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 150
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.38
+      width_sigma: 0.29
+      width_rhs_lambda: 0.14
+      width_rhs_tau: 0.09
+      width_rhs_c2: 0.06
+      width_rhs_tau_c2_block: 0.20
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.17
+      width_rhs_tau_c2_transformed_z2: 0.13
+      core_extra_passes: 2
+      max_steps_out: 82
+      max_shrink: 310
+      max_steps_out_sigma: 142
+      max_shrink_sigma: 388
+
+  rhs_long_drift_2200: &rhs_long_drift_2200
+    n_burn: 1100
+    n_mcmc: 2200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 145
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_900
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.38
+      width_sigma: 0.29
+      width_rhs_lambda: 0.14
+      width_rhs_tau: 0.09
+      width_rhs_c2: 0.06
+      width_rhs_tau_c2_block: 0.20
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.17
+      width_rhs_tau_c2_transformed_z2: 0.13
+      core_extra_passes: 2
+      max_steps_out: 82
+      max_shrink: 305
+      max_steps_out_sigma: 142
+      max_shrink_sigma: 390
+
+  rhs_long_narrow_2400: &rhs_long_narrow_2400
+    n_burn: 1200
+    n_mcmc: 2400
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 150
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.36
+      width_sigma: 0.27
+      width_rhs_lambda: 0.13
+      width_rhs_tau: 0.08
+      width_rhs_c2: 0.055
+      width_rhs_tau_c2_block: 0.18
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.15
+      width_rhs_tau_c2_transformed_z2: 0.11
+      core_extra_passes: 2
+      max_steps_out: 86
+      max_shrink: 325
+      max_steps_out_sigma: 146
+      max_shrink_sigma: 405
+
+  rhs_long_burnheavy_2600: &rhs_long_burnheavy_2600
+    n_burn: 1400
+    n_mcmc: 2600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 160
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.37
+      width_sigma: 0.28
+      width_rhs_lambda: 0.14
+      width_rhs_tau: 0.085
+      width_rhs_c2: 0.055
+      width_rhs_tau_c2_block: 0.19
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 4
+      width_rhs_tau_c2_transformed_z1: 0.16
+      width_rhs_tau_c2_transformed_z2: 0.12
+      core_extra_passes: 2
+      max_steps_out: 84
+      max_shrink: 315
+      max_steps_out_sigma: 144
+      max_shrink_sigma: 395
+
+  rhs_long_diag_2600: &rhs_long_diag_2600
+    n_burn: 1300
+    n_mcmc: 2600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 155
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.35
+      width_sigma: 0.26
+      width_rhs_lambda: 0.125
+      width_rhs_tau: 0.075
+      width_rhs_c2: 0.05
+      width_rhs_tau_c2_block: 0.17
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.14
+      width_rhs_tau_c2_transformed_z2: 0.10
+      core_extra_passes: 2
+      max_steps_out: 88
+      max_shrink: 330
+      max_steps_out_sigma: 148
+      max_shrink_sigma: 410
+
+profiles:
+  - profile_id: N710_ridge_vb_guard160
+    label: Ridge VB Guard160
+    rationale: >
+      Cheapest ridge-only VB stabilization step: double the VB Monte Carlo budget and lengthen the
+      ELBO window without changing MCMC.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_160
+
+  - profile_id: N720_ridge_vb_guard192
+    label: Ridge VB Guard192
+    rationale: >
+      Mid-intensity ridge-only VB stabilization candidate retained because the repaired fail
+      surface is dominated by ridge VB tail instability rather than MCMC execution debt.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_192
+
+  - profile_id: N730_ridge_vb_guard224
+    label: Ridge VB Guard224
+    rationale: >
+      Strong ridge-only VB guard for tails where both al and exal fail together, suggesting the
+      main weakness is posterior-tail stabilization rather than likelihood-specific behavior.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_224
+
+  - profile_id: N740_ridge_vb_guard256
+    label: Ridge VB Guard256
+    rationale: >
+      Highest-value ridge-only hedge kept for long-horizon tail rows in case the remaining fail
+      band is simply under-iterated under the stronger effective-w300 contract.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_256
+
+  - profile_id: N750_ridge_tail_combo2200
+    label: Ridge Tail Combo2200
+    rationale: >
+      Upper-tail ridge combo candidate: strengthen ridge VB and modestly deepen/soften ridge MCMC
+      to address the coupled laplace tau=0.95 mcmc_exal drift pocket without retuning healthy
+      methods.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_192
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_2200
+
+  - profile_id: N760_ridge_tail_combo2400
+    label: Ridge Tail Combo2400
+    rationale: >
+      Strongest ridge upper-tail combo candidate: stronger VB plus a deeper softer ridge chain for
+      the two surviving ridge mcmc_exal drift rows.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge: *ridge_vb_guard_224
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_softgamma_2400
+
+  - profile_id: N810_rhs_short_drift2200
+    label: RHS Short Drift2200
+    rationale: >
+      Cheapest short-horizon rhs_ns exal drift rescue: lengthen burn and keep draws while narrowing
+      the rhs block modestly.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_drift_2200
+
+  - profile_id: N820_rhs_short_freeze145_2400
+    label: RHS Short Freeze145 2400
+    rationale: >
+      Freeze-focused short-horizon rhs_ns hedge retained because the surviving short drift rows are
+      small and may respond more to warmup stabilization than to aggressive geometry changes alone.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_freeze145_2400
+
+  - profile_id: N830_rhs_short_narrow2400
+    label: RHS Short Narrow2400
+    rationale: >
+      Narrower short-horizon rhs_ns transformed-block profile aimed at Geweke and half-chain drift
+      without forcing unnecessary VB changes.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_narrow_2400
+
+  - profile_id: N840_rhs_short_burnheavy2600
+    label: RHS Short Burnheavy2600
+    rationale: >
+      Burn-heavy short-horizon rhs_ns hedge kept for overnight learning value in case the drift
+      pocket is primarily warmup-limited rather than geometry-limited.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_short_burnheavy_2600
+
+  - profile_id: N910_rhs_long_guard160_drift2200
+    label: RHS Long Guard160 Drift2200
+    rationale: >
+      Cheapest mixed long-horizon rhs_ns rescue: mild rhs VB guard plus a deeper chain for the
+      overlapping vb_exal and mcmc_exal fail rows.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_160
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_drift_2200
+
+  - profile_id: N920_rhs_long_guard192_narrow2400
+    label: RHS Long Guard192 Narrow2400
+    rationale: >
+      Mid-intensity long-horizon rhs_ns candidate: stronger rhs VB guard plus narrower MCMC
+      transformed-block geometry for the mixed long exal fail surface.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_192
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_narrow_2400
+
+  - profile_id: N930_rhs_long_guard224_burnheavy2600
+    label: RHS Long Guard224 Burnheavy2600
+    rationale: >
+      Burn-heavy long-horizon rhs_ns hedge retained because the remaining long exal rows include
+      both half-chain drift and rhs VB tail instability.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_224
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_burnheavy_2600
+
+  - profile_id: N940_rhs_long_guard224_diag2600
+    label: RHS Long Guard224 Diag2600
+    rationale: >
+      Strongest long-horizon rhs_ns hedge: strongest rhs VB guard plus the narrowest/deepest
+      transformed-block MCMC geometry kept within the already-promising rhs local neighborhood.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_224
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_diag_2600
+
+stages:
+  - id: W1_ridge_lower_tail_short
+    label: Ridge VB Lower-Tail Short-Horizon Band
+    rationale: >
+      Three short-horizon ridge roots with only ridge VB fail rows. This is the cleanest place to
+      test whether stronger ridge VB guards alone close the lower-tail short-horizon gap.
+    profile_ids: [N710_ridge_vb_guard160, N720_ridge_vb_guard192, N730_ridge_vb_guard224, N740_ridge_vb_guard256]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      prior: [ridge]
+      inference: [vb]
+      tau: [0.05]
+      fit_size: [500]
+      signoff_grade: [FAIL]
+
+  - id: W2_ridge_lower_tail_long
+    label: Ridge VB Lower-Tail Long-Horizon Band
+    rationale: >
+      Three long-horizon ridge lower-tail roots with the same ridge-VB-only failure mode under the
+      stronger effective-w300 contract.
+    profile_ids: [N710_ridge_vb_guard160, N720_ridge_vb_guard192, N730_ridge_vb_guard224, N740_ridge_vb_guard256]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      prior: [ridge]
+      inference: [vb]
+      tau: [0.05]
+      fit_size: [5000]
+      signoff_grade: [FAIL]
+
+  - id: W3_ridge_upper_tail_short
+    label: Ridge Upper-Tail Short-Horizon Band
+    rationale: >
+      Three short-horizon ridge upper-tail roots. These retain the dominant ridge VB fail pattern
+      plus one ridge mcmc_exal drift row, so combo profiles are included here.
+    profile_ids: [N720_ridge_vb_guard192, N730_ridge_vb_guard224, N750_ridge_tail_combo2200, N760_ridge_tail_combo2400]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      prior: [ridge]
+      tau: [0.95]
+      fit_size: [500]
+      signoff_grade: [FAIL]
+
+  - id: W4_ridge_upper_tail_long
+    label: Ridge Upper-Tail Long-Horizon Band
+    rationale: >
+      Three long-horizon ridge upper-tail roots. This is the highest-value ridge stage because it
+      combines the pervasive ridge VB fail mode with one of the two surviving ridge mcmc_exal
+      drift rows.
+    profile_ids: [N720_ridge_vb_guard192, N730_ridge_vb_guard224, N750_ridge_tail_combo2200, N760_ridge_tail_combo2400]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      prior: [ridge]
+      tau: [0.95]
+      fit_size: [5000]
+      signoff_grade: [FAIL]
+
+  - id: W5_rhs_short_exal_drift
+    label: RHS Short-Horizon exAL Drift Band
+    rationale: >
+      Three short-horizon rhs_ns roots with only mcmc_exal drift failures. Healthy VB branches are
+      left untouched so this stage spends compute only on short rhs MCMC geometry and depth.
+    profile_ids: [N810_rhs_short_drift2200, N820_rhs_short_freeze145_2400, N830_rhs_short_narrow2400, N840_rhs_short_burnheavy2600]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      prior: [rhs_ns]
+      model: [exal]
+      fit_size: [500]
+      signoff_grade: [FAIL]
+
+  - id: W6_rhs_long_exal_residual
+    label: RHS Long-Horizon exAL Residual Band
+    rationale: >
+      Five long-horizon rhs_ns roots carrying the remaining mixed exal fail band: three vb_exal
+      tail-instability rows and three mcmc_exal drift rows on overlapping roots.
+    profile_ids: [N910_rhs_long_guard160_drift2200, N920_rhs_long_guard192_narrow2400, N930_rhs_long_guard224_burnheavy2600, N940_rhs_long_guard224_diag2600]
+    selection_metric: target_fit_fail_n
+    target_selector:
+      prior: [rhs_ns]
+      model: [exal]
+      fit_size: [5000]
+      signoff_grade: [FAIL]

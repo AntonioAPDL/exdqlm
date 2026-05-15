@@ -1,0 +1,142 @@
+registry_version: 1
+
+monash:
+  main_pool_name: monash_main
+  default_selection:
+    - tourism_monthly
+    - cif_2016_monthly
+    - pedestrian_counts_hourly
+  duplicate_exclusions:
+    - dataset: monash_m4_yearly
+      reason: duplicate_of_official_m4
+    - dataset: monash_m4_quarterly
+      reason: duplicate_of_official_m4
+    - dataset: monash_m4_monthly
+      reason: duplicate_of_official_m4
+    - dataset: monash_m4_weekly
+      reason: duplicate_of_official_m4
+    - dataset: monash_m4_daily
+      reason: duplicate_of_official_m4
+    - dataset: monash_m4_hourly
+      reason: duplicate_of_official_m4
+  datasets:
+    tourism_monthly:
+      dataset: tourism_monthly
+      dataset_label: Tourism Monthly
+      source_family: monash
+      benchmark_pool: monash_main
+      include_in_default: true
+      domain: Tourism
+      frequency_label: monthly
+      seasonal_period: 12
+      provider_dataset_name: Tourism
+      record_id: 4656096
+      record_url: https://zenodo.org/record/4656096
+      file_name: tourism_monthly_dataset.zip
+      archive_member: tourism_monthly_dataset.tsf
+      notes: Tourism monthly benchmark from the Monash Forecasting Archive.
+    cif_2016_monthly:
+      dataset: cif_2016_monthly
+      dataset_label: CIF 2016 Monthly
+      source_family: monash
+      benchmark_pool: monash_main
+      include_in_default: true
+      domain: Banking
+      frequency_label: monthly
+      seasonal_period: 12
+      provider_dataset_name: CIF 2016
+      record_id: 4656042
+      record_url: https://zenodo.org/record/4656042
+      file_name: cif_2016_dataset.zip
+      archive_member: cif_2016_dataset.tsf
+      notes: CIF 2016 monthly benchmark from the Monash Forecasting Archive.
+    pedestrian_counts_hourly:
+      dataset: pedestrian_counts_hourly
+      dataset_label: Pedestrian Counts Hourly
+      source_family: monash
+      benchmark_pool: monash_main
+      include_in_default: true
+      domain: Transport
+      frequency_label: hourly
+      seasonal_period: 24
+      forecast_horizon: 576
+      provider_dataset_name: Pedestrian Counts
+      record_id: 4656626
+      record_url: https://zenodo.org/record/4656626
+      file_name: pedestrian_counts_dataset.zip
+      archive_member: pedestrian_counts_dataset.tsf
+      notes: Hourly pedestrian counts from the Monash Forecasting Archive.
+
+m4:
+  benchmark_pool_name: m4_official
+  default_selection:
+    - yearly
+    - quarterly
+    - monthly
+    - weekly
+    - daily
+    - hourly
+  info:
+    file_name: M4-info.csv
+    source_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/M4-info.csv
+  frequencies:
+    yearly:
+      dataset: m4_yearly
+      dataset_label: M4 Yearly
+      source_family: m4
+      benchmark_pool: m4_official
+      frequency_label: yearly
+      seasonal_period: 1
+      horizon: 6
+      train_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Train/Yearly-train.csv
+      test_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Test/Yearly-test.csv
+    quarterly:
+      dataset: m4_quarterly
+      dataset_label: M4 Quarterly
+      source_family: m4
+      benchmark_pool: m4_official
+      frequency_label: quarterly
+      seasonal_period: 4
+      horizon: 8
+      train_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Train/Quarterly-train.csv
+      test_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Test/Quarterly-test.csv
+    monthly:
+      dataset: m4_monthly
+      dataset_label: M4 Monthly
+      source_family: m4
+      benchmark_pool: m4_official
+      frequency_label: monthly
+      seasonal_period: 12
+      horizon: 18
+      train_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Train/Monthly-train.csv
+      test_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Test/Monthly-test.csv
+    weekly:
+      dataset: m4_weekly
+      dataset_label: M4 Weekly
+      source_family: m4
+      benchmark_pool: m4_official
+      frequency_label: weekly
+      seasonal_period: 52
+      horizon: 13
+      train_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Train/Weekly-train.csv
+      test_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Test/Weekly-test.csv
+    daily:
+      dataset: m4_daily
+      dataset_label: M4 Daily
+      source_family: m4
+      benchmark_pool: m4_official
+      frequency_label: daily
+      seasonal_period: 7
+      horizon: 14
+      train_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Train/Daily-train.csv
+      test_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Test/Daily-test.csv
+    hourly:
+      dataset: m4_hourly
+      dataset_label: M4 Hourly
+      source_family: m4
+      benchmark_pool: m4_official
+      frequency_label: hourly
+      seasonal_period: 24
+      horizon: 48
+      train_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Train/Hourly-train.csv
+      test_url: https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/Test/Hourly-test.csv

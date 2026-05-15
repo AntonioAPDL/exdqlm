@@ -1,0 +1,502 @@
+meta:
+  name: qdesn_validation_phase5_core_triad_screen_20260331
+  display_name: QDESN Phase 5 Core-Triad Screen
+  purpose: >
+    Narrow, stage-gated follow-up that keeps the successful R18 rhs_ns overlay and searches only the
+    remaining core-mixing space on the three unresolved roots before spending any more full-6 compute.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_phase5_core_triad_screen
+
+controls:
+  anchor_profile_id: R30_r18_baseline
+  resume_completed_stages: true
+  create_plots: false
+  profile_verbose: true
+  campaign_workers: 3
+  threads_per_worker: 1
+  profile_timeout_minutes: 120
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 3
+  max_error_profiles: 3
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_baseline
+    description: R18 carry-forward baseline.
+  - id: B1_rhsns_core
+    description: rhs_ns-focused descendants of R18 that only alter the remaining rhs_ns core-mixing controls.
+  - id: B2_ridge_core
+    description: Ridge-focused descendants of R18 that only alter the remaining ridge core-mixing controls.
+  - id: B3_combined_core
+    description: Combined descendants of R18 that adjust both the rhs_ns and ridge core-mixing levers.
+
+profiles:
+  - id: R30_r18_baseline
+    batch: B0_baseline
+    family: r18_baseline
+    description: Exact R18 profile from Phase 4, reused as the local baseline for the unresolved core triad.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 50
+                  max_shrink: 210
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 340
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 1
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R31_r18_rhsns_pass2
+    batch: B1_rhsns_core
+    family: r18_rhsns_pass2
+    description: Keep ridge fixed at R18 and add one more rhs_ns core pass to target the remaining smallW exal rhs_ns FAIL.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 50
+                  max_shrink: 210
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 340
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R32_r18_rhsns_softpass2
+    batch: B1_rhsns_core
+    family: r18_rhsns_softpass2
+    description: Keep ridge fixed at R18 and use a softer two-pass rhs_ns core to trade drift down while trying to recover ESS.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 50
+                  max_shrink: 210
+                  max_steps_out_sigma: 110
+                  max_shrink_sigma: 340
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.38
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 75
+                  max_shrink: 280
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+
+  - id: R33_r18_ridge_pass1_balanced
+    batch: B2_ridge_core
+    family: r18_ridge_pass1_balanced
+    description: Keep rhs_ns fixed at R18 and give ridge one balanced extra pass to target the two unresolved ridge roots.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.52
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 55
+                  max_shrink: 230
+                  max_steps_out_sigma: 120
+                  max_shrink_sigma: 360
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 1
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R34_r18_ridge_pass2_soft
+    batch: B2_ridge_core
+    family: r18_ridge_pass2_soft
+    description: Keep rhs_ns fixed at R18 and give ridge two softer passes to target the persistent ridge drift and ESS failures together.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.48
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 60
+                  max_shrink: 250
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 1
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R35_r18_combined_balanced
+    batch: B3_combined_core
+    family: r18_combined_balanced
+    description: Combine the rhs_ns extra-pass repair from R31 with the ridge balanced extra-pass repair from R33.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.52
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 55
+                  max_shrink: 230
+                  max_steps_out_sigma: 120
+                  max_shrink_sigma: 360
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R36_r18_combined_soft
+    batch: B3_combined_core
+    family: r18_combined_soft
+    description: Combine the softer rhs_ns two-pass profile from R32 with the softer ridge two-pass profile from R34.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 300
+                n_mcmc: 600
+                progress_every: 50
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.48
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 60
+                  max_shrink: 250
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.38
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 75
+                  max_shrink: 280
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+
+stages:
+  - id: S1_core_triad_broad
+    description: Broad screen on the exact 3-root unresolved core triad using R18 as the local baseline.
+    profile_source: all_candidates
+    selector:
+      mode: explicit_roots
+      roots:
+        - scenario: dlm_constV_bigW
+          tau: 0.05
+          likelihood_family: exal
+          beta_prior_type: ridge
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: ridge
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+    advance:
+      type: rank_filter_top_n
+      top_n: 2
+      max_severe_fail_n: 2
+      max_total_fail_n: 2
+      max_runtime_inflation: 0.60
+      min_fail_reduction: 0.34
+      min_severe_improved_n: 1
+
+  - id: S2_full_six_confirmation
+    description: Full fixed 6-root confirmation for the top core-triad survivors.
+    profile_source: selected_from_previous
+    selector:
+      mode: all
+    advance:
+      type: rank_filter_top_n
+      top_n: 1
+      max_total_fail_n: 4
+      max_sentinel_fail_n: 1
+      max_runtime_inflation: 0.50
+      min_fail_reduction: 0.20
+      min_severe_improved_n: 1

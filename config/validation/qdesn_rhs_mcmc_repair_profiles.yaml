@@ -1,0 +1,38 @@
+root_sets:
+  primary_hard_rhs: config/validation/qdesn_rhs_primary_hard_grid.csv
+  persistent_failed_rhs: config/validation/qdesn_rhs_structural_failed_grid.csv
+
+vb_warm_start_profiles:
+  phase1_tuned_vb_rhs:
+    max_iter: 60
+    min_iter_elbo: 12
+    n_samp_xi: 128
+    verbose: false
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+  vb_rhs_stronger_tau20:
+    max_iter: 80
+    min_iter_elbo: 12
+    n_samp_xi: 200
+    verbose: false
+    rhs:
+      freeze_tau_iters: 20
+      freeze_tau_warmup_iters: 20
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+  vb_rhs_stronger_tau40:
+    max_iter: 80
+    min_iter_elbo: 12
+    n_samp_xi: 200
+    verbose: false
+    rhs:
+      freeze_tau_iters: 40
+      freeze_tau_warmup_iters: 40
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true

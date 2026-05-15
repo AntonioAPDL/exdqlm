@@ -1,0 +1,45 @@
+# Pragmatic big run (SIM) for dlm_constV_smallW:
+# significantly reduced search/eval budget vs modelsel_sim_big
+# while keeping multi-stage selection and CalCRPS enabled.
+
+base_cfg_overrides:
+  pipeline:
+    mode: sim
+
+model_selection:
+  calcrps:
+    enabled: true
+  stages:
+    - name: coarse
+      seeds: [1]
+      p_vec: [0.05, 0.50, 0.95]
+      nd_draws: 900
+      synth_n_samp: 500
+      origins:
+        policy: subsample
+        frac: 0.20
+        seed: 123
+      horizon: 60
+      candidate_grid:
+        D: [1, 2, 3]
+        n1: [500, 800, 1100]
+        r2: [0.6, 1.0]
+        r3: [0.6, 1.0]
+        m: [30, 60, 90]
+        alpha: [0.1, 0.2, 0.3]
+        rho: [0.90, 0.95]
+      budget:
+        max_candidates: 24
+        strategy: random_subset
+
+    - name: final
+      seeds: [1, 2, 3]
+      p_vec: use_default
+      nd_draws: 1800
+      synth_n_samp: 900
+      origins:
+        policy: stride
+        stride_k: 2
+      horizon: 60
+      candidate_refine:
+        top_k_from_previous: 4

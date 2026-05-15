@@ -1,0 +1,76 @@
+base_patch: {}
+
+profiles:
+  - id: NR1_base_replay
+    description: "Replay Stage-M winner on Stage-N blocker roots."
+    patch: {}
+
+  - id: NR1_longer_chain
+    description: "Longer burn/keep on blocker roots."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 4800
+                n_mcmc: 9600
+                progress_every: 960
+
+  - id: NR1_longer_chain_plus_adapt
+    description: "Longer chain with longer RHS width adaptation warmup."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 5200
+                n_mcmc: 10400
+                progress_every: 1040
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 900
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.02
+                    width_min: 0.04
+                    width_max: 0.9
+
+  - id: NR1_longer_chain_plus_adapt_blocktight
+    description: "Longer chain + adaptation + tighter transformed RHS global block."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 5200
+                n_mcmc: 10400
+                progress_every: 1040
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 900
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.02
+                    width_min: 0.04
+                    width_max: 0.9
+                slice:
+                  width_rhs_lambda: 0.16
+                  width_rhs_tau: 0.11
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.17
+                  max_steps_out: 90
+                  max_shrink: 320

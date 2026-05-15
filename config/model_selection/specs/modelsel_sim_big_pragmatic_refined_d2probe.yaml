@@ -1,0 +1,44 @@
+# Refined pragmatic run (SIM) with a controlled D=2 probe for dlm_constV_smallW.
+# Keeps the same high-performing region as the refined D=1 spec, but allows D=2
+# so we can verify whether a shallow deep-reservoir variant can beat D=1.
+
+base_cfg_overrides:
+  pipeline:
+    mode: sim
+
+model_selection:
+  calcrps:
+    enabled: true
+  stages:
+    - name: coarse_refined_d2probe
+      seeds: [1, 2]
+      p_vec: [0.05, 0.50, 0.95]
+      nd_draws: 1200
+      synth_n_samp: 700
+      origins:
+        policy: subsample
+        frac: 0.25
+        seed: 123
+      horizon: 60
+      candidate_grid:
+        D: [1, 2]
+        n1: [400, 500, 650, 800, 950]
+        r2: [0.8, 1.0]
+        m: [20, 30, 45, 60, 75, 90]
+        alpha: [0.15, 0.20, 0.25, 0.30, 0.35]
+        rho: [0.88, 0.90, 0.92, 0.95]
+      budget:
+        max_candidates: 48
+        strategy: random_subset
+
+    - name: final_refined_d2probe
+      seeds: [1, 2, 3, 4]
+      p_vec: use_default
+      nd_draws: 2400
+      synth_n_samp: 1200
+      origins:
+        policy: stride
+        stride_k: 2
+      horizon: 60
+      candidate_refine:
+        top_k_from_previous: 8

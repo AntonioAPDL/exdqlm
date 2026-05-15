@@ -1,0 +1,29 @@
+inputs:
+  promoted_defaults: config/validation/qdesn_mcmc_compare_rhs_stageJKL_promoted.yaml
+  guardrail_lock: config/validation/qdesn_rhs_guardrail_lock.yaml
+  failed_grid: config/validation/qdesn_rhs_stageM_failed_roots_seed123.csv
+  canary_grid: config/validation/qdesn_rhs_stageM_seed123_grid.csv
+  full_grid: config/validation/qdesn_rhs_stageM_expansion_grid.csv
+  mr1_profiles: config/validation/qdesn_rhs_stageM_repair_profiles.yaml
+
+gates:
+  mr1:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  mr2:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+  mr3:
+    require_zero_fail: yes
+    require_all_eligible: yes
+    require_all_finite_domain: yes
+    require_zero_trace_unavailable: yes
+
+outputs:
+  winner_defaults: config/validation/qdesn_mcmc_compare_rhs_stageM_repair_winner.yaml
+  promoted_defaults: config/validation/qdesn_mcmc_compare_rhs_stageM_repair_promoted.yaml
+  tracker_doc: docs/TRACK__qdesn_rhs_stageM_repair_wave.md

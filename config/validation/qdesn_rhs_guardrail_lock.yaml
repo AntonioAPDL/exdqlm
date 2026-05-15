@@ -1,0 +1,37 @@
+guardrails:
+  name: qdesn_rhs_guardrail_lock_non_dlm
+  notes:
+    - enforce_raw_input_mode
+    - enforce_decomposition_disabled
+    - enforce_rhs_init_log_tau_numeric_zero
+    - enforce_rhs_tau_warmup_controls
+
+pipeline:
+  readout:
+    input_mode: raw_y_lags
+  decomposition:
+    enabled: false
+  inference:
+    vb:
+      diagnostics:
+        rhs_trace: true
+      rhs:
+        freeze_tau_iters: 10
+        freeze_tau_warmup_iters: 10
+        tau_local_tol: 5.0e-4
+        min_tau_updates: 2
+        force_tau_after_warmup: true
+      priors:
+        beta:
+          rhs:
+            init_log_tau: 0.0
+          rhs_ns:
+            init_log_tau: 0.0
+            init_log_c2: 0.0
+    mcmc:
+      init_from_vb: true
+      transforms:
+        use_log_sigma: true
+      rhs:
+        freeze_tau_burnin_iters: 25
+        freeze_tau_only_during_burn: true

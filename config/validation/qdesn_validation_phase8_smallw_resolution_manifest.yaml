@@ -1,0 +1,942 @@
+meta:
+  name: qdesn_validation_phase8_smallw_resolution_20260401
+  display_name: QDESN Phase 8 SmallW Resolution Screen
+  purpose: >
+    Three-stage overnight program built around the stable R61/R44 baseline. Stage 1 searches the two
+    remaining smallW fail roots plus the key exal guard rails; Stage 2 confirms the strongest survivors
+    on the full fixed 6-root harness; Stage 3 reruns the best confirmation survivors to measure stability.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_phase8_smallw_resolution
+
+controls:
+  anchor_profile_id: R80_r61_stable_anchor
+  resume_completed_stages: true
+  create_plots: false
+  profile_verbose: true
+  campaign_workers: 4
+  threads_per_worker: 1
+  profile_timeout_minutes: 180
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 4
+  max_error_profiles: 4
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_controls
+    description: Stable baseline and exact signal controls from Phase 7.
+  - id: B1_rhs_local
+    description: Focused rhs-side cleanup descendants centered on the remaining smallW rhs_ns fail root.
+  - id: B2_ridge_local
+    description: Focused ridge-side cleanup descendants centered on the remaining smallW ridge fail root.
+  - id: B3_combined_local
+    description: Disciplined combined descendants that only reuse the strongest surviving local ideas.
+
+profiles:
+  - id: R80_r61_stable_anchor
+    batch: B0_controls
+    family: r61_stable_anchor
+    description: Exact Stage-2-stable R61/R44 baseline.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R81_r63_rhs_signal_control
+    batch: B0_controls
+    family: r63_rhs_signal_control
+    description: Exact Phase-7 rhs-side signal control.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 600
+                n_mcmc: 1200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 420
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R82_r68_ridge_signal_control
+    batch: B0_controls
+    family: r68_ridge_signal_control
+    description: Exact Phase-7 ridge-side signal control.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R83_r61_rhs_freeze100_softblock
+    batch: B1_rhs_local
+    family: r61_rhs_freeze100_softblock
+    description: R61 with a slightly softer rhs transformed block and a modest tau freeze increase.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 550
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 380
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R84_r61_rhs_freeze100_blockpass5
+    batch: B1_rhs_local
+    family: r61_rhs_freeze100_blockpass5
+    description: R83 plus one extra rhs transformed-block pass.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 550
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 380
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R85_r61_rhs_chain1100_freeze100_softblock
+    batch: B1_rhs_local
+    family: r61_rhs_chain1100_freeze100_softblock
+    description: R83 plus a modest rhs chain increase.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 550
+                n_mcmc: 1100
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 400
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R86_r61_rhs_freeze120_blockpass5
+    batch: B1_rhs_local
+    family: r61_rhs_freeze120_blockpass5
+    description: Strongest disciplined rhs-local candidate without reopening the heavier Phase-7 chain family.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 600
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 120
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 400
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R87_r61_ridge_pass1_softsigma
+    batch: B2_ridge_local
+    family: r61_ridge_pass1_softsigma
+    description: R68-style ridge pass with slightly softer ridge movement.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.53
+                  width_sigma: 0.20
+                  core_extra_passes: 1
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R88_r61_ridge_pass1_chain1000
+    batch: B2_ridge_local
+    family: r61_ridge_pass1_chain1000
+    description: R68-style ridge pass with a modest ridge chain increase.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R89_r61_ridge_steps70_chain900
+    batch: B2_ridge_local
+    family: r61_ridge_steps70_chain900
+    description: Mild step-out expansion from the stable baseline without reintroducing a ridge extra pass.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 0
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 400
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R90_r61_ridge_pass1_steps70_chain900
+    batch: B2_ridge_local
+    family: r61_ridge_pass1_steps70_chain900
+    description: R68-style ridge pass with a small step-out expansion.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 400
+              rhs_ns:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 80
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 350
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R91_r61_rhssoftblock_ridgepass1
+    batch: B3_combined_local
+    family: r61_rhssoftblock_ridgepass1
+    description: Low-risk joint candidate combining the softer rhs block with the lighter ridge pass profile.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.53
+                  width_sigma: 0.20
+                  core_extra_passes: 1
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 550
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 380
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R92_r61_blockpass5_ridgepass1chain1000
+    batch: B3_combined_local
+    family: r61_blockpass5_ridgepass1chain1000
+    description: Strongest disciplined dual candidate combining extra rhs block refresh with the moderate ridge pass-plus-chain profile.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 550
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 380
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - id: R93_r61_r63rhs_r68ridge
+    batch: B3_combined_local
+    family: r61_r63rhs_r68ridge
+    description: Exact best-of-signals hybrid using the Phase-7 rhs and ridge signal controls together.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            transforms:
+              use_log_sigma: true
+              sigma_eta_bounds: [-10, 10]
+            prior_overrides:
+              ridge:
+                n_burn: 450
+                n_mcmc: 900
+                progress_every: 75
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.55
+                  width_sigma: 0.22
+                  core_extra_passes: 1
+                  max_steps_out: 65
+                  max_shrink: 260
+                  max_steps_out_sigma: 140
+                  max_shrink_sigma: 380
+              rhs_ns:
+                n_burn: 600
+                n_mcmc: 1200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 100
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 420
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.42
+                  width_sigma: 0.32
+                  width_rhs_lambda: 0.18
+                  width_rhs_tau: 0.12
+                  width_rhs_c2: 0.08
+                  width_rhs_tau_c2_block: 0.26
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.22
+                  width_rhs_tau_c2_transformed_z2: 0.18
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 260
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+stages:
+  - id: S1_smallw_resolution_screen
+    description: Broad screen on the two remaining smallW fail roots plus the key exal guard rails.
+    profile_source: all_candidates
+    selector:
+      mode: explicit_roots
+      roots:
+        - scenario: dlm_ar1V
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_bigW
+          tau: 0.05
+          likelihood_family: exal
+          beta_prior_type: ridge
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.50
+          likelihood_family: exal
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: rhs_ns
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+        - scenario: dlm_constV_smallW
+          tau: 0.95
+          likelihood_family: exal
+          beta_prior_type: ridge
+          seed: 123
+          reservoir_profile: tiny_d1_n8
+    advance:
+      type: rank_filter_top_n
+      top_n: 5
+      max_total_fail_n: 3
+      max_sentinel_fail_n: 0
+      max_runtime_inflation: 1.20
+      min_fail_reduction: 0.45
+      min_severe_improved_n: 1
+
+  - id: S2_full_six_confirmation
+    description: Full fixed 6-root confirmation for the best smallW-resolution survivors.
+    profile_source: selected_from_previous
+    selector:
+      mode: all
+    advance:
+      type: rank_filter_top_n
+      top_n: 3
+      max_total_fail_n: 3
+      max_sentinel_fail_n: 0
+      max_runtime_inflation: 1.10
+      min_fail_reduction: 0.50
+      min_severe_improved_n: 1
+
+  - id: S3_stability_confirmation
+    description: Exact rerun of the strongest full-6 survivors to separate real wins from noise.
+    profile_source: selected_from_previous
+    selector:
+      mode: all
+    advance:
+      type: rank_filter_top_n
+      top_n: 1
+      max_total_fail_n: 2
+      max_sentinel_fail_n: 0
+      max_runtime_inflation: 1.05
+      min_fail_reduction: 0.60
+      min_severe_improved_n: 2

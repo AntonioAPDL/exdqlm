@@ -1,0 +1,574 @@
+meta:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_20260409
+  display_name: QDESN Dynamic Effective-W300 Postdraw Deep-DESN Final Residual Wave
+  purpose: >
+    Continue from the completed deep-DESN fail-closure wave using only clearly improved stage-local
+    winners plus three exact-root promotions that are already justified by completed evidence.
+    Spend overnight compute only on the unresolved long-horizon rhs_ns pocket and the single
+    uncovered ridge mcmc_exal diagnostics row.
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  safe_default: prepare_only
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid
+
+source:
+  mode: prior_fitfail_wave
+  run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+  stage_profile_overrides:
+    D1_ridge_lower_tail_vb: D120_ridge_lower_vb384
+    D2_ridge_upper_tail_mixed: D250_ridge_upper_combo512_diag3400
+    D3_rhs_short_mcmc: D330_rhs_short_balanced3000
+    D4_rhs_long_mixed: SOURCE_BASELINE
+  source_root_profile_overrides:
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_rhs_ns
+      report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e
+      stage_id: D3_rhs_short_mcmc
+      profile_id: D310_rhs_short_drift2600
+      rationale: >
+        Carry forward the completed D310 exact-root win because it clears the only residual D3
+        fail on this root while leaving the full root SUCCESS and full-ready.
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge
+      report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e
+      stage_id: D1_ridge_lower_tail_vb
+      profile_id: D140_ridge_lower_vb512
+      rationale: >
+        Carry forward the completed D140 exact-root win because it clears the last residual D1
+        fail on this root without root-status damage.
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge
+      report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+      run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e
+      stage_id: D1_ridge_lower_tail_vb
+      profile_id: D140_ridge_lower_vb512
+      rationale: >
+        Carry forward the completed D140 exact-root win because it clears the last residual D1
+        fail on this root without root-status damage.
+
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave
+
+runtime:
+  default_workers: 6
+  active_job_workers: 4
+  hard_cap_workers: 6
+
+shared_patches:
+  width_adapt_1600: &width_adapt_1600
+    enabled: true
+    warmup_iters: 1600
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_1800: &width_adapt_1800
+    enabled: true
+    warmup_iters: 1800
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  width_adapt_2000: &width_adapt_2000
+    enabled: true
+    warmup_iters: 2000
+    only_during_burn: true
+    target_score_low: -0.75
+    target_score_high: 0.75
+    step_size: 0.015
+    width_min: 0.02
+    width_max: 1.8
+
+  rhs_vb_guard_256: &rhs_vb_guard_256
+    max_iter: 140
+    min_iter_elbo: 24
+    n_samp_xi: 256
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_320: &rhs_vb_guard_320
+    max_iter: 180
+    min_iter_elbo: 28
+    n_samp_xi: 320
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_384: &rhs_vb_guard_384
+    max_iter: 220
+    min_iter_elbo: 32
+    n_samp_xi: 384
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_vb_guard_448: &rhs_vb_guard_448
+    max_iter: 260
+    min_iter_elbo: 36
+    n_samp_xi: 448
+    rhs:
+      freeze_tau_iters: 10
+      freeze_tau_warmup_iters: 10
+      tau_local_tol: 5.0e-4
+      min_tau_updates: 2
+      force_tau_after_warmup: true
+
+  rhs_long_balanced_3200: &rhs_long_balanced_3200
+    n_burn: 1700
+    n_mcmc: 3200
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 180
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1600
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.35
+      width_sigma: 0.26
+      width_rhs_lambda: 0.12
+      width_rhs_tau: 0.07
+      width_rhs_c2: 0.045
+      width_rhs_tau_c2_block: 0.16
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.145
+      width_rhs_tau_c2_transformed_z2: 0.105
+      core_extra_passes: 2
+      max_steps_out: 96
+      max_shrink: 365
+      max_steps_out_sigma: 156
+      max_shrink_sigma: 440
+
+  rhs_long_diag_3400: &rhs_long_diag_3400
+    n_burn: 1800
+    n_mcmc: 3400
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 190
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1800
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.34
+      width_sigma: 0.25
+      width_rhs_lambda: 0.115
+      width_rhs_tau: 0.065
+      width_rhs_c2: 0.040
+      width_rhs_tau_c2_block: 0.15
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 6
+      width_rhs_tau_c2_transformed_z1: 0.130
+      width_rhs_tau_c2_transformed_z2: 0.095
+      core_extra_passes: 2
+      max_steps_out: 100
+      max_shrink: 380
+      max_steps_out_sigma: 160
+      max_shrink_sigma: 455
+
+  rhs_long_guard384_diag_3600: &rhs_long_guard384_diag_3600
+    n_burn: 1900
+    n_mcmc: 3600
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 195
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_1800
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.33
+      width_sigma: 0.24
+      width_rhs_lambda: 0.110
+      width_rhs_tau: 0.060
+      width_rhs_c2: 0.038
+      width_rhs_tau_c2_block: 0.14
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 6
+      width_rhs_tau_c2_transformed_z1: 0.125
+      width_rhs_tau_c2_transformed_z2: 0.090
+      core_extra_passes: 2
+      max_steps_out: 102
+      max_shrink: 390
+      max_steps_out_sigma: 162
+      max_shrink_sigma: 460
+
+  rhs_long_guard384_burn_3800: &rhs_long_guard384_burn_3800
+    n_burn: 2100
+    n_mcmc: 3800
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 205
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_2000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.35
+      width_sigma: 0.26
+      width_rhs_lambda: 0.120
+      width_rhs_tau: 0.070
+      width_rhs_c2: 0.045
+      width_rhs_tau_c2_block: 0.16
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 5
+      width_rhs_tau_c2_transformed_z1: 0.145
+      width_rhs_tau_c2_transformed_z2: 0.105
+      core_extra_passes: 2
+      max_steps_out: 104
+      max_shrink: 395
+      max_steps_out_sigma: 165
+      max_shrink_sigma: 465
+
+  rhs_long_guard448_diag_4000: &rhs_long_guard448_diag_4000
+    n_burn: 2200
+    n_mcmc: 4000
+    progress_every: 100
+    rhs:
+      freeze_tau_burnin_iters: 215
+      freeze_tau_only_during_burn: true
+      width_adapt: *width_adapt_2000
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.32
+      width_sigma: 0.23
+      width_rhs_lambda: 0.100
+      width_rhs_tau: 0.055
+      width_rhs_c2: 0.035
+      width_rhs_tau_c2_block: 0.13
+      rhs_global_block_update: transformed_tau_c2_block
+      rhs_transformed_block_passes: 6
+      width_rhs_tau_c2_transformed_z1: 0.120
+      width_rhs_tau_c2_transformed_z2: 0.085
+      core_extra_passes: 2
+      max_steps_out: 108
+      max_shrink: 405
+      max_steps_out_sigma: 168
+      max_shrink_sigma: 475
+
+  ridge_soft_2800: &ridge_soft_2800
+    n_burn: 1500
+    n_mcmc: 2800
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.48
+      width_sigma: 0.17
+      core_extra_passes: 2
+      max_steps_out: 92
+      max_shrink: 350
+      max_steps_out_sigma: 172
+      max_shrink_sigma: 455
+
+  ridge_diag_3000: &ridge_diag_3000
+    n_burn: 1600
+    n_mcmc: 3000
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.45
+      width_sigma: 0.15
+      core_extra_passes: 3
+      max_steps_out: 102
+      max_shrink: 390
+      max_steps_out_sigma: 185
+      max_shrink_sigma: 485
+
+  ridge_diag_3200: &ridge_diag_3200
+    n_burn: 1700
+    n_mcmc: 3200
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.44
+      width_sigma: 0.14
+      core_extra_passes: 3
+      max_steps_out: 106
+      max_shrink: 395
+      max_steps_out_sigma: 190
+      max_shrink_sigma: 495
+
+  ridge_diag_3400: &ridge_diag_3400
+    n_burn: 1900
+    n_mcmc: 3400
+    progress_every: 100
+    slice:
+      core_update_mode: sigma_then_gamma
+      width_gamma: 0.43
+      width_sigma: 0.13
+      core_extra_passes: 3
+      max_steps_out: 112
+      max_shrink: 410
+      max_steps_out_sigma: 196
+      max_shrink_sigma: 510
+
+profiles:
+  - profile_id: E410_rhs_long_gausmix_guard320_balanced3200
+    label: RHS Long Gausmix Guard320 Balanced3200
+    rationale: >
+      First safe replacement for the rejected D410 profile. Strengthen the rhs VB guard and move to
+      a balanced long-horizon chain without the narrow-first geometry that caused root errors.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_balanced_3200
+
+  - profile_id: E420_rhs_long_gausmix_guard320_diag3400
+    label: RHS Long Gausmix Guard320 Diag3400
+    rationale: >
+      Gausmix-specific diagnostics profile. Keep the same guard strength as E410 but use a narrower
+      diagnostic chain to attack the remaining long-horizon drift and missing-diagnostics pocket.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_diag_3400
+
+  - profile_id: E430_rhs_long_gausmix_guard384_diag3600
+    label: RHS Long Gausmix Guard384 Diag3600
+    rationale: >
+      Stronger rhs guard for the gausmix upper-tail and lower-tail residuals. Included because the
+      remaining gausmix band still mixes VB tail failures with MCMC diagnostics debt.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_diag_3600
+
+  - profile_id: E440_rhs_long_gausmix_guard384_burn3800
+    label: RHS Long Gausmix Guard384 Burn3800
+    rationale: >
+      Burn-heavy gausmix profile retained because the remaining gausmix source includes the only
+      root-status FAIL and one missing-diagnostics row.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_burn_3800
+
+  - profile_id: E450_rhs_long_gausmix_guard448_diag4000
+    label: RHS Long Gausmix Guard448 Diag4000
+    rationale: >
+      Highest-intensity retained gausmix profile. Included once to test whether the remaining
+      gausmix rhs debt needs both the strongest VB guard and the deepest diagnostic chain.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_448
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard448_diag_4000
+
+  - profile_id: E510_rhs_long_general_balanced3200
+    label: RHS Long General Balanced3200
+    rationale: >
+      Cheapest retained long-horizon rhs profile for the laplace/normal band. Emphasize safer MCMC
+      mixing while keeping only a modest rhs VB guard.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_balanced_3200
+
+  - profile_id: E520_rhs_long_general_diag3400
+    label: RHS Long General Diag3400
+    rationale: >
+      Diagnostics-focused long-horizon rhs profile for the laplace/normal residual band.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_256
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_diag_3400
+
+  - profile_id: E530_rhs_long_general_guard320_burn3600
+    label: RHS Long General Guard320 Burn3600
+    rationale: >
+      Stronger rhs guard plus heavier burn. Included because the laplace/normal long-horizon debt
+      is mostly MCMC drift, but a small amount of extra VB stabilization may still help.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_burn_3800
+
+  - profile_id: E540_rhs_long_general_guard320_diag3800
+    label: RHS Long General Guard320 Diag3800
+    rationale: >
+      Stronger rhs guard plus deeper diagnostics chain for the general long-horizon rhs band.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_320
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard384_diag_3600
+
+  - profile_id: E550_rhs_long_general_guard384_diag4000
+    label: RHS Long General Guard384 Diag4000
+    rationale: >
+      Highest-intensity retained general rhs profile. Included once in case the remaining
+      laplace/normal band is still partly guard-limited.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns: *rhs_vb_guard_384
+          mcmc:
+            prior_overrides:
+              rhs_ns: *rhs_long_guard448_diag_4000
+
+  - profile_id: E610_ridge_mid_soft2800
+    label: Ridge Mid Soft2800
+    rationale: >
+      Cheapest retained ridge singleton profile. Target only the uncovered short-horizon ridge
+      mcmc_exal diagnostics row without perturbing VB.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_soft_2800
+
+  - profile_id: E620_ridge_mid_diag3000
+    label: Ridge Mid Diag3000
+    rationale: >
+      Diagnostics-oriented ridge singleton profile for the uncovered normal tau=0.25 fit_size=500
+      ridge row.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_diag_3000
+
+  - profile_id: E630_ridge_mid_diag3200
+    label: Ridge Mid Diag3200
+    rationale: >
+      Slightly deeper diagnostics ridge singleton profile retained because the residual is an
+      MCMC-only diagnostics row.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_diag_3200
+
+  - profile_id: E640_ridge_mid_diag3400
+    label: Ridge Mid Diag3400
+    rationale: >
+      Strongest retained ridge singleton profile. Included once to learn whether the last uncovered
+      ridge row is still simply under-burned.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge: *ridge_diag_3400
+
+stages:
+  - id: E1_rhs_long_gausmix_mixed
+    label: RHS Long Gausmix Mixed
+    rationale: >
+      Remaining gausmix long-horizon rhs residual pocket, including the only remaining root-status
+      FAIL.
+    stage_selector:
+      prior: [rhs_ns]
+      fit_size: [5000]
+      family: [gausmix]
+    target_selector:
+      prior: [rhs_ns]
+      fit_size: [5000]
+      family: [gausmix]
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - E410_rhs_long_gausmix_guard320_balanced3200
+      - E420_rhs_long_gausmix_guard320_diag3400
+      - E430_rhs_long_gausmix_guard384_diag3600
+      - E440_rhs_long_gausmix_guard384_burn3800
+      - E450_rhs_long_gausmix_guard448_diag4000
+
+  - id: E2_rhs_long_laplace_normal_mcmc
+    label: RHS Long Laplace Normal MCMC
+    rationale: >
+      Remaining laplace/normal long-horizon rhs residual pocket. This stage is primarily an MCMC
+      stabilization search.
+    stage_selector:
+      prior: [rhs_ns]
+      fit_size: [5000]
+      family: [laplace, normal]
+    target_selector:
+      prior: [rhs_ns]
+      fit_size: [5000]
+      family: [laplace, normal]
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - E510_rhs_long_general_balanced3200
+      - E520_rhs_long_general_diag3400
+      - E530_rhs_long_general_guard320_burn3600
+      - E540_rhs_long_general_guard320_diag3800
+      - E550_rhs_long_general_guard384_diag4000
+
+  - id: E3_ridge_mid_singleton_mcmc_exal
+    label: Ridge Mid Singleton MCMC ExAL
+    rationale: >
+      Single uncovered short-horizon ridge diagnostics row. Small singleton stage only.
+    stage_selector:
+      root_id:
+        - root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_500__qdesn_ridge
+    target_selector:
+      root_id:
+        - root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_500__qdesn_ridge
+    selection_metric: target_fit_fail_n
+    profile_ids:
+      - E610_ridge_mid_soft2800
+      - E620_ridge_mid_diag3000
+      - E630_ridge_mid_diag3200
+      - E640_ridge_mid_diag3400

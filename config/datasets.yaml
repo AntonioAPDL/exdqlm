@@ -1,0 +1,29 @@
+# Registry: one source of truth for dataset paths only
+datasets:
+  - slug: dlm_ar1V
+    mode: sim
+    input_path: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/series/dlm_ar1V/series_long.csv
+
+  - slug: dlm_constV_bigW
+    mode: sim
+    input_path: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/series/dlm_constV_bigW/series_long.csv
+
+  - slug: dlm_constV_smallW
+    mode: sim
+    input_path: /data/muscat_data/jaguir26/exdqlm/results/sim_suite_dlm/series/dlm_constV_smallW/series_long.csv
+
+  - slug: san_lorenzo_daily
+    mode: real
+    # Canonical local path populated by scripts/fetch_san_lorenzo_usgs_csv.sh
+    input_path: data-raw/external/data_USGS_ppt_soil.csv
+
+  # Local smoke fixtures committed in the repo. These keep inference validation
+  # runs reproducible even when the environment-specific absolute paths above are
+  # unavailable.
+  - slug: dlm_constV_smallW_local_sim
+    mode: sim
+    input_path: results/sim_suite_dlm/series/dlm_constV_smallW/series_long.csv
+
+  - slug: dlm_constV_smallW_local_real
+    mode: real
+    input_path: results/sim_suite_dlm/series/dlm_constV_smallW/series_wide.csv

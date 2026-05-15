@@ -1,0 +1,417 @@
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_p90_steepertrend_validation
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_validation
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_validation
+
+grid:
+  source_mode: materialized_source_inputs
+
+execution:
+  methods: [vb, mcmc]
+  likelihood_families: [exal, al]
+  seed_policy:
+    mode: deterministic_per_root
+    base_seed: 41000
+
+study_contract:
+  core_lane: true
+  id: p90_steepertrend_main
+  description: |
+    Canonical QDESN dynamic relaunch on the promoted period-90 steeper-trend
+    dataset surface. The main lane uses LDVB everywhere for VB, slice
+    everywhere for MCMC, an explicit LDVB warm start for every MCMC fit, and
+    the normalized shared warmup defaults. Historical hard-rescue overlays are
+    retained only as optional later escalation paths, not as baseline policy.
+  budget:
+    posterior_metric_draws: 20000
+    vb_sampling_nd_draws: 20000
+    vb_synthesis_n_samp: 20000
+    mcmc_n_burn: 5000
+    mcmc_n_mcmc: 20000
+    mcmc_thin: 1
+  vb:
+    method: LDVB
+    profile_id: qdesn_ldvb_canonical_v1
+    sigmagam:
+      freeze_warmup_iters: 10
+      force_after_warmup: true
+      postwarmup_damping: 0.5
+      postwarmup_damping_iters: 3
+      min_postwarmup_updates: 1
+  mcmc:
+    kernel: slice
+    require_slice: true
+    require_init_from_vb: true
+    banned_proposals: [rw, laplace_rw]
+    sigmagam:
+      freeze_burnin_iters: 50
+      freeze_only_during_burn: true
+      force_after_warmup: true
+      delay_adapt_until_after_warmup: true
+      delay_laplace_refresh_until_after_warmup: true
+    vb_warm_start:
+      method: LDVB
+      max_iter: 300
+      min_iter_elbo: 80
+      n_samp_xi: 1000
+      sigmagam:
+        freeze_warmup_iters: 10
+        force_after_warmup: true
+        postwarmup_damping: 0.5
+        postwarmup_damping_iters: 3
+        min_postwarmup_updates: 1
+
+rescue_overlays:
+  enabled: false
+  mode: explicit_optional
+  inventory_csv: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv
+  row_overrides_source_defaults: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_defaults.yaml
+
+source_materialization:
+  dynamic_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources
+  staged_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_p90_steepertrend_main_sources
+  enforce_effective_train_size: true
+  scenarios: [dlm_constV_p90_m0amp_highnoise_steepertrend_v1]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  windows:
+    - effective_fit_size: 500
+      source_total_size: 813
+      source_dir_name: fit_input_effTT500_totalTT813
+      label: effTT500_totalTT813
+    - effective_fit_size: 5000
+      source_total_size: 5313
+      source_dir_name: fit_input_effTT5000_totalTT5313
+      label: effTT5000_totalTT5313
+
+pilot:
+  source_root_kind: dynamic
+  source_scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  source_family: normal
+  tau: 0.25
+  fit_size: 5000
+  effective_fit_size: 5000
+  source_total_size: 5313
+  source_window_label: effTT5000_totalTT5313
+  beta_prior_type: ridge
+  seed: 123
+  reservoir_profile: deep_d3_n100x3_skip100_w300_m30
+  enabled: true
+  source_reference_priors: default
+  source_current_rhsns_member: false
+  source_legacy_rhs_member: false
+
+reference:
+  dynamic_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_candidate_sources
+
+reference_contract:
+  root_kind: dynamic
+  scenarios: [dlm_constV_p90_m0amp_highnoise_steepertrend_v1]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  fit_sizes: [500, 5000]
+  expected_unique_dataset_cells: 18
+  expected_qdesn_roots: 36
+  expected_priors: [ridge, rhs_ns]
+
+smoke:
+  scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v1
+  family: normal
+  tau: 0.25
+  fit_sizes: [500, 5000]
+  priors: [ridge]
+
+metrics:
+  primary_window: train
+  holdout_role: secondary_single_point
+  posterior_metric_draws: 20000
+  qtrue_metrics: [mae, rmse, bias, corr, median_ae, p90_ae]
+  quantile_calibration_metrics: [pinball_tau, coverage, coverage_minus_tau, coverage_error]
+  runtime_metrics: [runtime_sec, runtime_sec_per_1k_eval, runtime_sec_per_1k_train_eval]
+
+runtime:
+  threads: 1
+  campaign_workers: 3
+  workers: 3
+
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.10
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.20
+    require_converged_for_pass: true
+  mcmc:
+    min_keep_pass: 300
+    min_keep_warn: 180
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.90
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.50
+
+reservoir_profiles:
+  deep_d3_n100x3_skip100_w300_m30:
+    D: 3
+    "n": [100, 100, 100]
+    n_tilde: [100, 100]
+    m: 30
+    alpha: [0.2, 0.2, 0.2]
+    rho: [0.95, 0.95, 0.95]
+    act_f: [tanh, tanh, tanh]
+    act_k: [identity, identity, identity]
+    pi_w: [0.1, 0.1, 0.1]
+    pi_in: [1.0, 1.0, 1.0]
+    washout: 300
+    add_bias: true
+    seed: 123
+
+external_data:
+  holdout_n: 1
+  y_column: "y"
+  q_true_column: "q_true"
+  source_index_column: "source_index"
+
+preproc:
+  scale_y: true
+  scale_x: true
+
+lags:
+  m_y: 12
+  m_x: 0
+
+pipeline:
+  verbose: true
+  readout:
+    include_input: true
+    reservoir_lags: 1
+    input_position: after_reservoir
+    input_mode: raw_y_lags
+  decomposition:
+    enabled: false
+  sampling:
+    nd_draws: 20000
+    chunk: 160
+  forecast:
+    mode: origin
+    train_last_window: 18
+    fore_last_window: 18
+  synthesis:
+    isotonic: false
+    rearrange: false
+    grid_M: 151
+    n_samp: 20000
+    seed: 321
+  diagnostics:
+    calibration: false
+    pit: false
+    scores: true
+    lead_eval: false
+    fan_charts: false
+    plots: false
+  cpp:
+    use_postpred: false
+    postpred_omp: false
+    postpred_precompute: false
+    postpred_threads: 1
+  outputs:
+    save: true
+    keep_draws: false
+    keep_mcmc_vb_init: false
+    thesis_subset: false
+  inference:
+    likelihood_family: exal
+    readout_scale: true
+    vb:
+      max_iter: 300
+      min_iter_elbo: 80
+      n_samp_xi: 1000
+      verbose: true
+      sigmagam:
+        freeze_warmup_iters: 10
+        force_after_warmup: true
+        postwarmup_damping: 0.5
+        postwarmup_damping_iters: 3
+        min_postwarmup_updates: 1
+      diagnostics:
+        rhs_trace: true
+        rhs_deep: false
+      rhs:
+        freeze_tau_iters: 50
+        freeze_tau_warmup_iters: 50
+        tau_local_tol: 5.0e-4
+        min_tau_updates: 2
+        force_tau_after_warmup: true
+      prior_overrides:
+        ridge:
+          max_iter: 300
+          min_iter_elbo: 80
+          n_samp_xi: 1000
+        rhs_ns:
+          max_iter: 300
+          min_iter_elbo: 80
+          n_samp_xi: 1000
+          rhs:
+            freeze_tau_iters: 50
+            freeze_tau_warmup_iters: 50
+            tau_local_tol: 5.0e-4
+            min_tau_updates: 2
+            force_tau_after_warmup: true
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-8
+            init_log_tau: null
+            init_log_lambda: 0.0
+            init_log_c2: 0.0
+    mcmc:
+      n_burn: 5000
+      n_mcmc: 20000
+      thin: 1
+      verbose: true
+      progress_every: 500
+      init_from_vb: true
+      vb_warm_start_control:
+        method: ldvb
+        max_iter: 300
+        min_iter_elbo: 80
+        n_samp_xi: 1000
+        verbose: false
+        sigmagam:
+          freeze_warmup_iters: 10
+          force_after_warmup: true
+          postwarmup_damping: 0.5
+          postwarmup_damping_iters: 3
+          min_postwarmup_updates: 1
+        rhs_trace: true
+        rhs_deep: false
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          tau_local_tol: 5.0e-4
+          min_tau_updates: 2
+          force_tau_after_warmup: true
+      store_latent_draws: false
+      store_rhs_draws: false
+      transforms:
+        use_log_sigma: true
+        sigma_eta_bounds: [-20, 20]
+      rhs:
+        freeze_tau_burnin_iters: 500
+        freeze_tau_only_during_burn: true
+        width_adapt:
+          enabled: false
+          warmup_iters: 0
+          only_during_burn: true
+          target_score_low: -0.75
+          target_score_high: 0.75
+          step_size: 0.015
+          width_min: 0.02
+          width_max: 1.8
+      sigmagam:
+        freeze_burnin_iters: 50
+        freeze_only_during_burn: true
+        force_after_warmup: true
+        delay_adapt_until_after_warmup: true
+        delay_laplace_refresh_until_after_warmup: true
+      slice:
+        core_update_mode: sigma_then_gamma
+        width_gamma: 0.45
+        width_sigma: 0.28
+        width_rhs_lambda: 0.20
+        width_rhs_tau: 0.12
+        width_rhs_c2: 0.08
+        width_rhs_tau_c2_block: 0.24
+        rhs_global_block_update: transformed_tau_c2_block
+        rhs_transformed_block_passes: 3
+        core_extra_passes: 2
+        max_steps_out: 90
+        max_shrink: 320
+        max_steps_out_sigma: 150
+        max_shrink_sigma: 400
+      prior_overrides:
+        ridge:
+          n_burn: 5000
+          n_mcmc: 20000
+          progress_every: 500
+          slice:
+            core_update_mode: sigma_then_gamma
+            width_gamma: 0.45
+            width_sigma: 0.25
+            core_extra_passes: 2
+            max_steps_out: 90
+            max_shrink: 320
+            max_steps_out_sigma: 150
+            max_shrink_sigma: 400
+        rhs_ns:
+          n_burn: 5000
+          n_mcmc: 20000
+          progress_every: 500
+          rhs:
+            freeze_tau_burnin_iters: 500
+            freeze_tau_only_during_burn: true
+            width_adapt:
+              enabled: false
+              warmup_iters: 0
+              only_during_burn: true
+              target_score_low: -0.75
+              target_score_high: 0.75
+              step_size: 0.015
+              width_min: 0.02
+              width_max: 1.8
+          slice:
+            core_update_mode: sigma_then_gamma
+            width_gamma: 0.42
+            width_sigma: 0.30
+            width_rhs_lambda: 0.18
+            width_rhs_tau: 0.10
+            width_rhs_c2: 0.07
+            width_rhs_tau_c2_block: 0.22
+            rhs_global_block_update: transformed_tau_c2_block
+            rhs_transformed_block_passes: 3
+            core_extra_passes: 2
+            max_steps_out: 100
+            max_shrink: 360
+            max_steps_out_sigma: 160
+            max_shrink_sigma: 420
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: false
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-8

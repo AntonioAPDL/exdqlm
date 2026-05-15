@@ -1,0 +1,72 @@
+profiles:
+  - id: balanced_v1
+    description: "Shorter balanced profile with moderate chain length and narrower RHS slices."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 1200
+                n_mcmc: 2400
+                progress_every: 240
+                vb_warm_start_control:
+                  max_iter: 70
+                  min_iter_elbo: 12
+                  n_samp_xi: 160
+                  verbose: no
+                  rhs:
+                    freeze_tau_iters: 20
+                    freeze_tau_warmup_iters: 20
+                    tau_local_tol: 5.0e-4
+                    min_tau_updates: 2
+                    force_tau_after_warmup: yes
+                rhs:
+                  freeze_tau_burnin_iters: 20
+                  freeze_tau_only_during_burn: yes
+                slice:
+                  width_gamma: 0.55
+                  width_sigma: 0.35
+                  width_rhs_lambda: 0.24
+                  width_rhs_tau: 0.18
+                  width_rhs_c2: 0.11
+                  width_rhs_tau_c2_block: 0.40
+                  rhs_global_block_update: directional_tau_c2
+                  max_steps_out: 70
+                  max_shrink: 300
+
+  - id: balanced_v2
+    description: "Conservative balanced profile with medium chain length near rescue geometry."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 1800
+                n_mcmc: 3600
+                progress_every: 360
+                vb_warm_start_control:
+                  max_iter: 80
+                  min_iter_elbo: 12
+                  n_samp_xi: 200
+                  verbose: no
+                  rhs:
+                    freeze_tau_iters: 25
+                    freeze_tau_warmup_iters: 25
+                    tau_local_tol: 5.0e-4
+                    min_tau_updates: 2
+                    force_tau_after_warmup: yes
+                rhs:
+                  freeze_tau_burnin_iters: 25
+                  freeze_tau_only_during_burn: yes
+                slice:
+                  width_gamma: 0.55
+                  width_sigma: 0.35
+                  width_rhs_lambda: 0.26
+                  width_rhs_tau: 0.20
+                  width_rhs_c2: 0.12
+                  width_rhs_tau_c2_block: 0.45
+                  rhs_global_block_update: directional_tau_c2
+                  max_steps_out: 70
+                  max_shrink: 300

@@ -1,0 +1,393 @@
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_ladder_v1_validation
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_ladder_v1_validation
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_ladder_v1_validation
+grid:
+  source_mode: materialized_source_inputs
+execution:
+  methods:
+  - vb
+  - mcmc
+  likelihood_families:
+  - al
+  seed_policy:
+    mode: deterministic_per_root
+    base_seed: 41000
+study_contract:
+  core_lane: no
+  id: tau050_remaining_precision_code_al_ladder_v1
+  description: AL code-level precision rescue with symmetric adaptive jitter ladder
+    up to 1e-4 on top of the validated AL precision-pair baseline.
+  budget:
+    posterior_metric_draws: 20000
+    vb_sampling_nd_draws: 20000
+    vb_synthesis_n_samp: 20000
+    mcmc_n_burn: 5000
+    mcmc_n_mcmc: 20000
+    mcmc_thin: 1
+  vb:
+    method: LDVB
+    profile_id: qdesn_ldvb_remaining_precision_code_al_ladder_v1
+    sigmagam:
+      freeze_warmup_iters: 20
+      force_after_warmup: yes
+      postwarmup_damping: 0.35
+      postwarmup_damping_iters: 10
+      min_postwarmup_updates: 3
+  mcmc:
+    kernel: slice
+    require_slice: yes
+    require_init_from_vb: yes
+    banned_proposals:
+    - rw
+    - laplace_rw
+    sigmagam:
+      freeze_burnin_iters: 0
+      freeze_only_during_burn: yes
+      force_after_warmup: no
+      delay_adapt_until_after_warmup: no
+      delay_laplace_refresh_until_after_warmup: no
+    theta:
+      enabled: yes
+      freeze_burnin_iters: 50
+      freeze_only_during_burn: yes
+      sparse_update_every: 10
+      sparse_update_until_iter: 500
+      force_first_postwarmup_update: yes
+      trace: yes
+    latent_v:
+      enabled: no
+      freeze_burnin_iters: 0
+      freeze_only_during_burn: yes
+      sparse_update_every: 1
+      sparse_update_until_iter: 0
+      force_first_postwarmup_update: no
+      rescue_on_invalid: yes
+      trace: yes
+      rescue_strategy: previous_state
+      rescue_max_consecutive: 1
+      rescue_burn_only: no
+    latent_s:
+      enabled: no
+      freeze_burnin_iters: 0
+      freeze_only_during_burn: yes
+      sparse_update_every: 1
+      sparse_update_until_iter: 0
+      force_first_postwarmup_update: no
+      trace: yes
+    vb_warm_start:
+      method: LDVB
+      max_iter: 500
+      min_iter_elbo: 80
+      n_samp_xi: 1000
+      sigmagam:
+        freeze_warmup_iters: 20
+        force_after_warmup: yes
+        postwarmup_damping: 0.35
+        postwarmup_damping_iters: 10
+        min_postwarmup_updates: 3
+rescue_overlays:
+  enabled: no
+  mode: explicit_optional
+  inventory_csv: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv
+  row_overrides_source_defaults: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_defaults.yaml
+source_materialization:
+  dynamic_root: /home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs/results/function_testing_20260309_dynamic_dlm_family_qspec
+  staged_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_sources
+  enforce_effective_train_size: yes
+  scenarios: dlm_constV_smallW
+  families:
+  - gausmix
+  - laplace
+  - normal
+  taus:
+  - 0.05
+  - 0.25
+  - 0.5
+  windows:
+  - effective_fit_size: 500
+    source_total_size: 813
+    source_dir_name: fit_input_effTT500_totalTT813
+    label: effTT500_totalTT813
+  - effective_fit_size: 5000
+    source_total_size: 5313
+    source_dir_name: fit_input_effTT5000_totalTT5313
+    label: effTT5000_totalTT5313
+pilot:
+  source_root_kind: dynamic
+  source_scenario: dlm_constV_smallW
+  source_family: laplace
+  tau: 0.5
+  fit_size: 5000
+  effective_fit_size: 5000
+  source_total_size: 5313
+  source_window_label: effTT5000_totalTT5313
+  beta_prior_type: ridge
+  seed: 53100
+  reservoir_profile: deep_d3_n100x3_skip100_w300_m30
+  enabled: yes
+  source_reference_priors: default
+  source_current_rhsns_member: no
+  source_legacy_rhs_member: no
+reference:
+  dynamic_root: /home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs/results/function_testing_20260309_dynamic_dlm_family_qspec
+reference_contract:
+  root_kind: dynamic
+  scenarios: dlm_constV_smallW
+  families:
+  - gausmix
+  - laplace
+  - normal
+  taus:
+  - 0.05
+  - 0.25
+  - 0.5
+  fit_sizes:
+  - 500
+  - 5000
+  expected_reference_roots: 18
+  expected_unique_dataset_cells: 18
+  expected_qdesn_roots: 36
+  expected_priors:
+  - ridge
+  - rhs_ns
+smoke:
+  scenario: dlm_constV_smallW
+  family: laplace
+  tau: 0.5
+  fit_sizes:
+  - 5000
+  priors:
+  - ridge
+metrics:
+  primary_window: train
+  holdout_role: secondary_single_point
+  posterior_metric_draws: 20000
+  qtrue_metrics:
+  - mae
+  - rmse
+  - bias
+  - corr
+  - median_ae
+  - p90_ae
+  quantile_calibration_metrics:
+  - pinball_tau
+  - coverage
+  - coverage_minus_tau
+  - coverage_error
+  runtime_metrics:
+  - runtime_sec
+  - runtime_sec_per_1k_eval
+  - runtime_sec_per_1k_train_eval
+runtime:
+  threads: 1
+  campaign_workers: 1
+  workers: 1
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.1
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.2
+    require_converged_for_pass: yes
+  mcmc:
+    min_keep_pass: 300
+    min_keep_warn: 180
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.9
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.5
+reservoir_profiles:
+  deep_d3_n100x3_skip100_w300_m30:
+    D: 3
+    'n':
+    - 100
+    - 100
+    - 100
+    n_tilde:
+    - 100
+    - 100
+    m: 30
+    alpha:
+    - 0.2
+    - 0.2
+    - 0.2
+    rho:
+    - 0.95
+    - 0.95
+    - 0.95
+    act_f:
+    - tanh
+    - tanh
+    - tanh
+    act_k:
+    - identity
+    - identity
+    - identity
+    pi_w:
+    - 0.1
+    - 0.1
+    - 0.1
+    pi_in:
+    - 1.0
+    - 1.0
+    - 1.0
+    washout: 300
+    add_bias: yes
+    seed: 123
+external_data:
+  holdout_n: 1
+  y_column: 'y'
+  q_true_column: q_true
+  source_index_column: source_index
+preproc:
+  scale_y: yes
+  scale_x: yes
+lags:
+  m_y: 12
+  m_x: 0
+pipeline:
+  verbose: yes
+  readout:
+    include_input: yes
+    reservoir_lags: 1
+    input_position: after_reservoir
+    input_mode: raw_y_lags
+  decomposition:
+    enabled: no
+  sampling:
+    nd_draws: 20000
+    chunk: 160
+  forecast:
+    mode: origin
+    train_last_window: 18
+    fore_last_window: 18
+  synthesis:
+    isotonic: no
+    rearrange: no
+    grid_M: 151
+    n_samp: 20000
+    seed: 321
+  diagnostics:
+    calibration: no
+    pit: no
+    scores: yes
+    lead_eval: no
+    fan_charts: no
+    plots: no
+  cpp:
+    use_postpred: no
+    postpred_omp: no
+    postpred_precompute: no
+    postpred_threads: 1
+  outputs:
+    save: yes
+    keep_draws: no
+    thesis_subset: no
+  inference:
+    likelihood_family: exal
+    readout_scale: yes
+    vb:
+      max_iter: 500
+      min_iter_elbo: 80
+      n_samp_xi: 1000
+      verbose: yes
+      sigmagam:
+        freeze_warmup_iters: 20
+        force_after_warmup: yes
+        postwarmup_damping: 0.35
+        postwarmup_damping_iters: 10
+        min_postwarmup_updates: 3
+      diagnostics:
+        rhs_trace: yes
+      rhs:
+        freeze_tau_iters: 50
+        freeze_tau_warmup_iters: 50
+        tau_local_tol: 0.0005
+        min_tau_updates: 2
+        force_tau_after_warmup: yes
+      prior_overrides:
+        rhs_ns:
+          rhs:
+            freeze_tau_iters: 50
+            freeze_tau_warmup_iters: 50
+            tau_local_tol: 0.0005
+            min_tau_updates: 2
+            force_tau_after_warmup: yes
+    mcmc:
+      n_burn: 5000
+      n_mcmc: 20000
+      thin: 1
+      verbose: yes
+      init_from_vb: yes
+      rhs:
+        freeze_tau_burnin_iters: 500
+        freeze_tau_only_during_burn: yes
+      sigmagam:
+        freeze_burnin_iters: 0
+        freeze_only_during_burn: yes
+        force_after_warmup: no
+        delay_adapt_until_after_warmup: no
+        delay_laplace_refresh_until_after_warmup: no
+      theta:
+        enabled: yes
+        freeze_burnin_iters: 50
+        freeze_only_during_burn: yes
+        sparse_update_every: 10
+        sparse_update_until_iter: 500
+        force_first_postwarmup_update: yes
+        trace: yes
+      latent_v:
+        enabled: no
+        freeze_burnin_iters: 0
+        freeze_only_during_burn: yes
+        sparse_update_every: 1
+        sparse_update_until_iter: 0
+        force_first_postwarmup_update: no
+        rescue_on_invalid: yes
+        trace: yes
+        rescue_strategy: previous_state
+        rescue_max_consecutive: 1
+        rescue_burn_only: no
+      latent_s:
+        enabled: no
+        freeze_burnin_iters: 0
+        freeze_only_during_burn: yes
+        sparse_update_every: 1
+        sparse_update_until_iter: 0
+        force_first_postwarmup_update: no
+        trace: yes
+      vb_warm_start_control:
+        max_iter: 500
+        min_iter_elbo: 80
+        n_samp_xi: 1000
+        sigmagam:
+          freeze_warmup_iters: 20
+          force_after_warmup: yes
+          postwarmup_damping: 0.35
+          postwarmup_damping_iters: 10
+          min_postwarmup_updates: 3
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          tau_local_tol: 0.0005
+          min_tau_updates: 2
+          force_tau_after_warmup: yes
+      conditioning:
+        mode: qr_whiten
+        gram_ridge: 1.0e-06
+        scale_metric: sd
+        scale_floor: 1.0e-08
+      slice:
+        core_update_mode: sigma_then_gamma
+      precision_beta:
+        preset: ladder_v1
+        trace: yes

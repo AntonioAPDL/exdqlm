@@ -1,0 +1,3 @@
+"scenario","tau","beta_prior_type","seed","reservoir_profile","enabled"
+"level_shift_small",0.25,"rhs",123,"tiny_d1_n8",TRUE
+"sin_asym_small",0.50,"rhs",123,"tiny_d1_n8",TRUE

@@ -1,0 +1,156 @@
+meta:
+  name: qdesn_validation_repair_wave3_20260331
+  purpose: >
+    Stage-gated Phase 3 repair wave for the first geometry-aware exAL conditioning candidate.
+    Reuses the fixed closeout micro-pilot roots and advances only on explicit canary/severe/full gates.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_repair_wave3
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_repair_wave3
+
+controls:
+  resume_completed_stages: true
+  create_plots: false
+  profile_verbose: true
+  campaign_workers: 1
+  threads_per_worker: 1
+  profile_timeout_minutes: 45
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 2
+  max_error_profiles: 3
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_repair_wave3
+    description: Legacy anchor versus an exact diagonal beta-draw preconditioning candidate.
+
+profiles:
+  - id: R0_legacy_anchor
+    batch: B0_repair_wave3
+    family: anchor
+    description: Preserve the historical pre-repair validation controls for an apples-to-apples anchor on current code.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_update_mode: sigma_then_gamma
+              width_gamma: 0.60
+              width_sigma: 0.35
+              core_extra_passes: 0
+              max_steps_out: 40
+              max_shrink: 150
+            prior_overrides:
+              ridge:
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 40
+                  max_shrink: 150
+              rhs_ns:
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 50
+                  max_shrink: 200
+
+  - id: R5_diag_scale_precondition
+    batch: B0_repair_wave3
+    family: conditioning
+    description: >
+      Shared exAL conditioning candidate: exact diagonal beta-draw preconditioning with original-scale
+      beta outputs preserved. Keeps the historical anchor slice controls so the main changed lever is
+      the readout geometry seen by the beta update.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            conditioning:
+              mode: diag_scale
+              scale_metric: sd
+              scale_floor: 1.0e-08
+              intercept_column: 1
+              constant_tol: 1.0e-12
+            slice:
+              core_update_mode: sigma_then_gamma
+              width_gamma: 0.60
+              width_sigma: 0.35
+              core_extra_passes: 0
+              max_steps_out: 40
+              max_shrink: 150
+            prior_overrides:
+              ridge:
+                conditioning:
+                  mode: diag_scale
+                  scale_metric: sd
+                  scale_floor: 1.0e-08
+                  intercept_column: 1
+                  constant_tol: 1.0e-12
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 40
+                  max_shrink: 150
+              rhs_ns:
+                conditioning:
+                  mode: diag_scale
+                  scale_metric: sd
+                  scale_floor: 1.0e-08
+                  intercept_column: 1
+                  constant_tol: 1.0e-12
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 50
+                  max_shrink: 200
+
+stages:
+  - id: S1_canary
+    description: Single hard-root canary on the persistent ridge blocker.
+    selector:
+      mode: exact_root
+      scenario: dlm_constV_bigW
+      tau: 0.05
+      likelihood_family: exal
+      beta_prior_type: ridge
+      seed: 123
+      reservoir_profile: tiny_d1_n8
+    gate:
+      type: canary_material_improvement
+      candidate_profile: R5_diag_scale_precondition
+      min_delta_ess_core: 1.0
+      max_delta_half_drift_increase: 0.05
+      max_delta_geweke_absz_increase: 0.50
+
+  - id: S2_severe_quartet
+    description: Severe quartet confirmation on the four all-four roots.
+    selector:
+      mode: failure_cluster
+      failure_clusters: [all_four]
+    gate:
+      type: rank_table_threshold
+      candidate_profile: R5_diag_scale_precondition
+      max_severe_fail_n: 3
+      max_runtime_inflation: 0.60
+
+  - id: S3_full_six
+    description: Full fixed 6-root repair harness once the candidate clears the severe gate.
+    selector:
+      mode: all
+    gate:
+      type: rank_table_threshold
+      candidate_profile: R5_diag_scale_precondition
+      max_total_fail_n: 4
+      max_sentinel_fail_n: 1
+      max_runtime_inflation: 0.60

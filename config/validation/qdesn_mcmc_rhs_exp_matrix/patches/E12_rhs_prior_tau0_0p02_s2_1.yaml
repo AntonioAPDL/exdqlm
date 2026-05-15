@@ -1,0 +1,21 @@
+experiment:
+  id: E12
+  description: broaden RHS prior geometry with tau0=0.02 and s2=1.0
+
+patch:
+  pipeline:
+    inference:
+      vb:
+        priors:
+          beta:
+            rhs:
+              tau0: 0.02
+              s2: 1.0
+              nu: 4
+      mcmc:
+        priors:
+          beta:
+            rhs:
+              tau0: 0.02
+              s2: 1.0
+              nu: 4

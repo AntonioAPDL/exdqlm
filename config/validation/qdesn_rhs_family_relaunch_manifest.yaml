@@ -1,0 +1,54 @@
+meta:
+  name: qdesn_rhs_family_relaunch_20260329
+  purpose: Refresh all stale Q-DESN RHS-family validation evidence after the final rhs_ns and intercept-policy fix on current HEAD.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/rhs_family_relaunch
+
+stages:
+  t0:
+    enabled: true
+    label: focused_rhs_vs_rhsns_smoke
+    defaults: config/validation/qdesn_rhs_vs_rhs_ns_median_defaults.yaml
+    grid: config/validation/qdesn_rhs_vs_rhs_ns_median_grid.csv
+    results_root: results/qdesn_mcmc_validation/rhs_vs_rhs_ns_median
+    reports_root: reports/qdesn_mcmc_validation/rhs_vs_rhs_ns_median
+    create_plots: false
+  stageP:
+    enabled: true
+    label: static_rhsns_stageP_refresh
+    defaults: config/validation/qdesn_mcmc_compare_rhsns_stageP_defaults.yaml
+    full_grid: config/validation/qdesn_rhsns_stageP_expansion_grid.csv
+    ridge_grid: config/validation/qdesn_ridge_stageP_anchor_grid.csv
+    workers_full: 12
+    workers_ridge: 8
+    skip_ridge: true
+    create_plots: false
+  stageQ:
+    enabled: true
+    label: static_rhsns_stageQ_refresh
+    defaults: config/validation/qdesn_mcmc_compare_rhsns_stageQ_defaults.yaml
+    grid: config/validation/qdesn_rhsns_stageQ_grid.csv
+    workers: 12
+    create_plots: false
+  dynamic:
+    enabled: true
+    label: dynamic_family_prior_refresh
+    defaults: config/validation/qdesn_dynamic_family_prior_defaults.yaml
+    grid: config/validation/qdesn_dynamic_family_prior_grid.csv
+    workers: 8
+    create_plots: false
+  closeout:
+    enabled: true
+    label: fresh_closeout
+    micro_size: 6
+    phase35_workers: 1
+    create_plots: false
+
+optional:
+  stage8_historical:
+    enabled: false
+    artifact: reports/rhs_ns_stage8_matrix_20260327_v4.csv
+    note: Historical comparability only; not wired into the main relaunch supervisor because no canonical rerun runner was recovered during this refresh pass.

@@ -1,0 +1,117 @@
+meta:
+  name: qdesn_validation_repair_wave1_20260331
+  purpose: Narrow repair wave on the fixed 6-root harness, with an explicit legacy anchor and promoted shared-core candidate comparisons.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_repair_wave1
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_repair_wave1
+
+controls:
+  resume_completed_profiles: true
+  campaign_workers: 1
+  threads_per_worker: 1
+  create_plots: false
+  profile_verbose: true
+  profile_timeout_minutes: 45
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 2
+  max_error_profiles: 3
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_repair_wave1
+    description: Explicit legacy anchor plus promoted shared-core and residual-layer candidates.
+
+profiles:
+  - id: R0_legacy_anchor
+    batch: B0_repair_wave1
+    family: anchor
+    description: Preserve the historical pre-repair validation controls for an apples-to-apples anchor on current code.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              width_gamma: 0.60
+              width_sigma: 0.35
+              core_extra_passes: 0
+              max_steps_out: 40
+              max_shrink: 150
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 40
+                  max_shrink: 150
+              rhs_ns:
+                slice:
+                  width_gamma: 0.60
+                  width_sigma: 0.35
+                  max_steps_out: 50
+                  max_shrink: 200
+
+  - id: R1_promoted_x10_core
+    batch: B0_repair_wave1
+    family: core_screen
+    description: Promoted shared exAL core defaults based on the winning X10 screen profile.
+    patch: {}
+
+  - id: R2_x3_alternate
+    batch: B0_repair_wave1
+    family: core_screen
+    description: Immediate same-family alternate if the promoted X10-style core misses the wrong severe roots.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 1
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 60
+                  max_shrink: 220
+              rhs_ns:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 70
+                  max_shrink: 240
+
+  - id: R3_x10_plus_x8_rhsns_overlay
+    batch: B0_repair_wave1
+    family: rhsns_overlay
+    description: Best residual-layer guess on top of the promoted shared-core defaults.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                rhs:
+                  freeze_tau_burnin_iters: 60
+                multi_start:
+                  enabled: true
+                  n_starts: 3
+                  pilot_n_burn: 120
+                  pilot_n_mcmc: 180
+                  perturb_sd_log_tau: 0.30
+                  perturb_sd_log_c2: 0.30
+                  perturb_sd_log_lambda: 0.18
+                  perturb_sd_beta: 0.04
+                  diagnostics:
+                    ess_min: 20
+                    geweke_max: 3.0
+                    half_drift_max: 0.50
+                    collapse_tau_floor: 1.0e-7
+                    collapse_beta_norm_floor: 1.0e-4

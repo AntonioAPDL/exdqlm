@@ -1,0 +1,16 @@
+experiment:
+  id: E11
+  description: very long chain with alternate chain seed base for seed-robustness check
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 4000
+            n_mcmc: 8000
+            progress_every: 800
+
+run_overrides:
+  chain_seed_base: 700000

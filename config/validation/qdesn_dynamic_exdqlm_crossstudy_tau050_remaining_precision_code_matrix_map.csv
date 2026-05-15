@@ -1,0 +1,7 @@
+"phase","lane","root_id","symmetrize","jitter_ladder_max","eigen_fallback","eigen_floor_abs","eigen_floor_rel"
+"remaining_precision_code_al_ladder_v1","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge",TRUE,1e-04,FALSE,1e-06,1e-08
+"remaining_precision_code_al_ladder_v2","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge",TRUE,0.01,FALSE,1e-06,1e-08
+"remaining_precision_code_al_eigen_v1","al","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge",TRUE,1e-06,TRUE,1e-06,1e-08
+"remaining_precision_code_exal_ladder_v1","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge",TRUE,1e-04,FALSE,1e-06,1e-08
+"remaining_precision_code_exal_ladder_v2","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge",TRUE,0.01,FALSE,1e-06,1e-08
+"remaining_precision_code_exal_eigen_v1","exal","root__dynamic__dlm_constV_smallW__laplace__tau_0p50__lasttt_5000__qdesn_ridge",TRUE,1e-06,TRUE,1e-06,1e-08

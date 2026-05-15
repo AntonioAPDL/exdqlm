@@ -1,0 +1,264 @@
+campaign:
+  name: qdesn_static_exdqlm_crossstudy_debt_wave
+  results_root: results/qdesn_mcmc_validation/static_exdqlm_crossstudy_debt_wave
+  reports_root: reports/qdesn_mcmc_validation/static_exdqlm_crossstudy_debt_wave
+
+source:
+  run_tag: qdesn-static-exdqlm-crossstudy-20260404b__git-06ac1c0
+  interpretation: source_broad_shared_setup_baseline
+
+runtime:
+  default_workers: 6
+  active_job_workers: 4
+  hard_cap_workers: 6
+
+stage1:
+  id: S1_failband_and_rhs_probe
+  description: >
+    Focused pilot on the six hard-fail roots plus three representative rhs_ns
+    comparison-debt roots. This stage is intentionally small and is used to
+    distinguish execution-path recovery from true scientific improvement.
+  rhs_probe_root_ids:
+    - root__static_paper__gausmix__tau_0p25__tt_100__qdesn_rhs_ns
+    - root__static_shrink__gausmix__tau_0p95__tt_1000__qdesn_rhs_ns
+    - root__static_paper__normal__tau_0p95__tt_1000__qdesn_rhs_ns
+  select_top_experimental_n: 1
+
+stage2:
+  id: S2_full_debt_confirmation
+  description: >
+    Full debt-set confirmation on the anchor replay plus the best experimental
+    survivor from Stage 1. The debt set is defined from the source run only:
+    the six hard-fail roots and every rhs_ns root with
+    root_comparison_eligible_any == FALSE.
+
+profiles:
+  - profile_id: D400_anchor_replay
+    label: Anchor Replay
+    anchor_control: true
+    rationale: >
+      Exact replay of the shared static cross-study defaults under the patched
+      PSOCK campaign runner. This is the main control for testing whether the
+      six hard root FAIL labels were broad-launch execution debt rather than
+      structural model failure.
+    overrides: {}
+
+  - profile_id: D410_ridge_rescue_reference
+    label: Ridge Rescue Reference
+    anchor_control: false
+    rationale: >
+      Stronger ridge MCMC chain length and core slice schedule adapted from the
+      rerun-confirmed ridge rescue line. Highest-value targeted rescue for the
+      static_shrink x laplace x tt1000 ridge hard-fail band and exal-MCMC drift.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 550
+                n_mcmc: 1100
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.53
+                  width_sigma: 0.20
+                  core_extra_passes: 2
+                  max_steps_out: 70
+                  max_shrink: 280
+                  max_steps_out_sigma: 150
+                  max_shrink_sigma: 400
+
+  - profile_id: D420_softgamma_geometry
+    label: Softgamma Geometry
+    anchor_control: false
+    rationale: >
+      Mild ridge geometry and soft-gamma step-out changes from the strongest
+      dynamic geometry clue. Included to test whether the static hard-fail band
+      is partly driven by the same exal-core geometry issue.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.51
+                  width_sigma: 0.19
+                  core_extra_passes: 2
+                  max_steps_out: 80
+                  max_shrink: 320
+                  max_steps_out_sigma: 160
+                  max_shrink_sigma: 420
+
+  - profile_id: D430_rhssoft_freeze90
+    label: RHS Soft Freeze-90
+    anchor_control: false
+    rationale: >
+      Strongest rhs-local hedge from the dynamic crossover sequence. Included to
+      test whether a softer rhs block schedule can convert some rhs_ns
+      comparison-debt roots without reopening the whole rhs family.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 525
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 90
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 360
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  width_gamma: 0.40
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.16
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  max_steps_out: 70
+                  max_shrink: 260
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - profile_id: D440_crossover_softgamma_rhssoft
+    label: Crossover Softgamma + RHS Soft
+    anchor_control: false
+    rationale: >
+      Narrow crossover profile combining the best ridge geometry clue with the
+      best rhs-soft hedge. Included because the dynamic QDESN program repeatedly
+      showed that crossover survivors can dominate one-axis tweaks even when the
+      individual ingredients only look modest in isolation.
+    overrides:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 500
+                n_mcmc: 1000
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.51
+                  width_sigma: 0.19
+                  core_extra_passes: 2
+                  max_steps_out: 75
+                  max_shrink: 300
+                  max_steps_out_sigma: 155
+                  max_shrink_sigma: 410
+              rhs_ns:
+                n_burn: 525
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 90
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 360
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  width_gamma: 0.40
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.16
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  max_steps_out: 70
+                  max_shrink: 260
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360
+
+  - profile_id: D450_rhs_diagnostics_probe
+    label: RHS Diagnostics Probe
+    anchor_control: false
+    rationale: >
+      Static-specific probe for the broad rhs_ns comparison debt. It adds deeper
+      rhs VB tracing and a slightly heavier rhs_ns VB schedule while keeping the
+      strongest rhs-local MCMC hedge. This is intentionally included as a probe,
+      not as a family reopening.
+    overrides:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 80
+                min_iter_elbo: 15
+                n_samp_xi: 192
+                diagnostics:
+                  rhs_trace: true
+                  rhs_deep: true
+                rhs:
+                  freeze_tau_iters: 12
+                  freeze_tau_warmup_iters: 12
+                  tau_local_tol: 2.5e-4
+                  min_tau_updates: 4
+                  force_tau_after_warmup: true
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 525
+                n_mcmc: 1000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 90
+                  freeze_tau_only_during_burn: true
+                  width_adapt:
+                    enabled: true
+                    warmup_iters: 360
+                    only_during_burn: true
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  width_gamma: 0.40
+                  width_sigma: 0.30
+                  width_rhs_lambda: 0.16
+                  width_rhs_tau: 0.10
+                  width_rhs_c2: 0.07
+                  width_rhs_tau_c2_block: 0.24
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.20
+                  width_rhs_tau_c2_transformed_z2: 0.16
+                  max_steps_out: 70
+                  max_shrink: 260
+                  core_update_mode: sigma_then_gamma
+                  core_extra_passes: 2
+                  max_steps_out_sigma: 130
+                  max_shrink_sigma: 360

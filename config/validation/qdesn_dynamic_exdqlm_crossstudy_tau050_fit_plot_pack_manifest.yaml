@@ -1,0 +1,28 @@
+meta:
+  study_id: qdesn_tau050_fit_plot_pack
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-tau050-fitplotpack
+
+source:
+  source_run_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_refreshed_main_validation/qdesn-dynamic-exdqlm-crossstudy-tau050-full-20260416-212700__git-15fe674/20260416-212707__git-15fe674
+  comparison_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_recovered_main_comparison_analysis/qdesn-dynamic-exdqlm-crossstudy-tau050-recovered-maincmp-20260421-024019__git-ebc67ec
+
+analysis:
+  report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_tau050_fit_plot_pack
+
+plotting:
+  train_last_window: 100
+  forecast_last_window: 100
+
+execution:
+  max_workers: 4
+  threads_per_proc: 1
+
+cases:
+  - case_id: clean_ridge_short
+    label: Clean ridge benchmark
+    root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_500__qdesn_ridge
+    rationale: Clean, runtime-successful ridge case used to compare AL vs EXAL and VB vs MCMC on a stable surface.
+  - case_id: stress_rhs_short
+    label: Stress rhs_ns benchmark
+    root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns
+    rationale: Harder rhs_ns case where VB remains usable but MCMC becomes diagnostically weak, making the contrast visually informative.

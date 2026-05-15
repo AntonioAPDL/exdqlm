@@ -1,0 +1,126 @@
+meta:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay_20260412
+  display_name: QDESN Dynamic Effective-W300 Postdraw Deep-DESN Row-Faithful Multiseed Replay
+  purpose: >
+    Replay the current accepted deep-DESN branch state row by row. Preserve each row's exact
+    accepted local tuning, stage winner, and exact-root carry-forward, and change only the global
+    replay controls: n.burn=5000, n.mcmc=20000, posterior export draws=20000, and four
+    deterministic MCMC seeds with deterministic seed reduction.
+  branch: feature/qdesn-mcmc-alternative-0p4p0-integration
+  safe_default: prepare_only
+  run_tag_prefix: qdesn-dynamic-exdqlm-crossstudy-deepdesn-rowfaithseed
+
+base:
+  defaults_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_defaults.yaml
+  grid_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_grid.csv
+
+resolved_outputs:
+  defaults_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_defaults.yaml
+  inventory_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv
+  summary_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_materialization_summary.md
+  canary_grid_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_grid.csv
+
+source_summary:
+  pass: 71
+  warn: 60
+  fail: 13
+  root_success: 36
+  root_fail: 0
+  compare_any_ready: 36
+  compare_full_ready: 27
+
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation
+
+metrics:
+  posterior_metric_draws: 20000
+
+runtime:
+  threads: 1
+  campaign_workers: 1
+  workers: 1
+
+multiseed:
+  enabled: true
+  mcmc_seed_reps: 4
+  parallel_seed_workers: 4
+  selection_metric: forecast_CRPS_mean
+  prune_nonwinning_heavy_outputs: true
+  prune_rel_paths:
+    - models/forecast_objects.rds
+    - models/rhs_trace.rds
+    - models/timing_summary.rds
+  seed_base: 500000
+  model_offsets:
+    al: 0
+    exal: 5000
+  desn_offset: 30000
+  mcmc_seed_offset: 0
+  mcmc_rng_offset: 0
+  vb_warm_start_offset: 10000
+  synthesis_offset: 20000
+
+global_replay_contract:
+  posterior_metric_draws: 20000
+  vb_sampling_nd_draws: 20000
+  vb_synthesis_n_samp: 20000
+  mcmc_n_burn: 5000
+  mcmc_n_mcmc: 20000
+  mcmc_thin: 1
+
+replay:
+  mode: rowfaithful_current_best_multiseed
+
+accepted_chain:
+  - wave_id: D
+    label: Deep-DESN Fail-Closure Wave
+    manifest_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_manifest.yaml
+    report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+    run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e
+    selected_stage_profiles:
+      D1_ridge_lower_tail_vb: D120_ridge_lower_vb384
+      D2_ridge_upper_tail_mixed: D250_ridge_upper_combo512_diag3400
+      D3_rhs_short_mcmc: D330_rhs_short_balanced3000
+      D4_rhs_long_mixed: SOURCE_BASELINE
+    selected_root_profile_overrides:
+      - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_rhs_ns
+        profile_id: D310_rhs_short_drift2600
+      - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge
+        profile_id: D140_ridge_lower_vb512
+      - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge
+        profile_id: D140_ridge_lower_vb512
+
+  - wave_id: E
+    label: Deep-DESN Final Residual Wave
+    manifest_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_manifest.yaml
+    report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave
+    run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3
+    selected_stage_profiles:
+      E1_rhs_long_gausmix_mixed: E410_rhs_long_gausmix_guard320_balanced3200
+      E2_rhs_long_laplace_normal_mcmc: E520_rhs_long_general_diag3400
+      E3_ridge_mid_singleton_mcmc_exal: E620_ridge_mid_diag3000
+    selected_root_profile_overrides:
+      - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_rhs_ns
+        profile_id: E530_rhs_long_general_guard320_burn3600
+
+  - wave_id: F
+    label: Deep-DESN RHS Long MCMC Wave
+    manifest_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_manifest.yaml
+    report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave
+    run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523
+    selected_stage_profiles:
+      F1_rhs_long_gausmix_mcmc: SOURCE_BASELINE
+      F2_rhs_long_laplace_exal: SOURCE_BASELINE
+      F3_rhs_long_normal_lower_mcmc: F630_rhs_long_normal_lower_guard320_recenter4000
+      F4_rhs_long_normal_upper_exal: SOURCE_BASELINE
+
+canary:
+  root_ids:
+    - root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_ridge
+    - root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_500__qdesn_rhs_ns
+    - root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_5000__qdesn_ridge
+    - root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_rhs_ns
+    - root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_5000__qdesn_rhs_ns
+    - root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns

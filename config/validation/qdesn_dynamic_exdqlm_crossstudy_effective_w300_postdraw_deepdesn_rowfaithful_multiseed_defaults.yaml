@@ -1,0 +1,1446 @@
+campaign:
+  name: qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation
+  results_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation
+  reports_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_validation
+grid:
+  source_mode: materialized_source_inputs
+source_materialization:
+  dynamic_root: /home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs/results/function_testing_20260309_dynamic_dlm_family_qspec
+  staged_root: results/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_sources
+  enforce_effective_train_size: yes
+  scenarios: dlm_constV_smallW
+  families:
+  - gausmix
+  - laplace
+  - normal
+  taus:
+  - 0.05
+  - 0.25
+  - 0.95
+  windows:
+  - effective_fit_size: 500
+    source_total_size: 813
+    source_dir_name: fit_input_effTT500_totalTT813
+    label: effTT500_totalTT813
+  - effective_fit_size: 5000
+    source_total_size: 5313
+    source_dir_name: fit_input_effTT5000_totalTT5313
+    label: effTT5000_totalTT5313
+pilot:
+  source_root_kind: dynamic
+  source_scenario: dlm_constV_smallW
+  source_family: normal
+  tau: 0.25
+  fit_size: 5000
+  effective_fit_size: 5000
+  source_total_size: 5313
+  source_window_label: effTT5000_totalTT5313
+  beta_prior_type: rhs_ns
+  seed: 123
+  reservoir_profile: deep_d3_n100x3_skip100_w300_m30
+  enabled: yes
+  source_reference_priors: default
+  source_current_rhsns_member: no
+  source_legacy_rhs_member: no
+reference:
+  dynamic_root: /home/jaguir26/local/src/exdqlm__wt__dqlm-conjugacy-cavi-gibbs/results/function_testing_20260309_dynamic_dlm_family_qspec
+reference_contract:
+  root_kind: dynamic
+  scenarios: dlm_constV_smallW
+  families:
+  - gausmix
+  - laplace
+  - normal
+  taus:
+  - 0.05
+  - 0.25
+  - 0.95
+  fit_sizes:
+  - 500
+  - 5000
+  expected_reference_roots: 18
+  expected_unique_dataset_cells: 18
+  expected_qdesn_roots: 36
+  expected_priors:
+  - ridge
+  - rhs_ns
+smoke:
+  scenario: dlm_constV_smallW
+  family: normal
+  tau: 0.25
+  fit_sizes:
+  - 500
+  - 5000
+  priors:
+  - ridge
+  - rhs_ns
+metrics:
+  primary_window: train
+  holdout_role: secondary_single_point
+  posterior_metric_draws: 20000
+  qtrue_metrics:
+  - mae
+  - rmse
+  - bias
+  - corr
+  - median_ae
+  - p90_ae
+  quantile_calibration_metrics:
+  - pinball_tau
+  - coverage
+  - coverage_minus_tau
+  - coverage_error
+  runtime_metrics:
+  - runtime_sec
+  - runtime_sec_per_1k_eval
+  - runtime_sec_per_1k_train_eval
+runtime:
+  threads: 1
+  campaign_workers: 1
+  workers: 1
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.1
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.2
+    require_converged_for_pass: yes
+  mcmc:
+    min_keep_pass: 300
+    min_keep_warn: 180
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.9
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.5
+reservoir_profiles:
+  deep_d3_n100x3_skip100_w300_m30:
+    D: 3
+    'n':
+    - 100
+    - 100
+    - 100
+    n_tilde:
+    - 100
+    - 100
+    m: 30
+    alpha:
+    - 0.2
+    - 0.2
+    - 0.2
+    rho:
+    - 0.95
+    - 0.95
+    - 0.95
+    act_f:
+    - tanh
+    - tanh
+    - tanh
+    act_k:
+    - identity
+    - identity
+    - identity
+    pi_w:
+    - 0.1
+    - 0.1
+    - 0.1
+    pi_in:
+    - 1.0
+    - 1.0
+    - 1.0
+    washout: 300
+    add_bias: yes
+    seed: 123
+external_data:
+  holdout_n: 1
+  y_column: 'y'
+  q_true_column: q_true
+  source_index_column: source_index
+preproc:
+  scale_y: yes
+  scale_x: yes
+lags:
+  m_y: 12
+  m_x: 0
+pipeline:
+  verbose: yes
+  readout:
+    include_input: yes
+    reservoir_lags: 1
+    input_position: after_reservoir
+    input_mode: raw_y_lags
+  decomposition:
+    enabled: no
+  sampling:
+    nd_draws: 1000
+    chunk: 80
+  forecast:
+    mode: origin
+    train_last_window: 18
+    fore_last_window: 18
+  synthesis:
+    isotonic: no
+    rearrange: no
+    grid_M: 151
+    n_samp: 1000
+    seed: 321
+  diagnostics:
+    calibration: no
+    pit: no
+    scores: yes
+    lead_eval: no
+    fan_charts: no
+    plots: no
+  cpp:
+    use_postpred: no
+    postpred_omp: no
+    postpred_precompute: no
+    postpred_threads: 1
+  outputs:
+    save: yes
+    keep_draws: no
+    thesis_subset: no
+  inference:
+    likelihood_family: exal
+    readout_scale: yes
+    vb:
+      max_iter: 40
+      min_iter_elbo: 10
+      n_samp_xi: 80
+      verbose: yes
+      diagnostics:
+        rhs_trace: yes
+        rhs_deep: no
+      rhs:
+        freeze_tau_iters: 10
+        freeze_tau_warmup_iters: 10
+        tau_local_tol: 0.0005
+        min_tau_updates: 2
+        force_tau_after_warmup: yes
+      prior_overrides:
+        ridge:
+          max_iter: 40
+          min_iter_elbo: 10
+          n_samp_xi: 80
+        rhs_ns:
+          max_iter: 60
+          min_iter_elbo: 12
+          n_samp_xi: 128
+          rhs:
+            freeze_tau_iters: 10
+            freeze_tau_warmup_iters: 10
+            tau_local_tol: 0.0005
+            min_tau_updates: 2
+            force_tau_after_warmup: yes
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-08
+            init_log_tau: ~
+            init_log_lambda: 0.0
+            init_log_c2: 0.0
+    mcmc:
+      n_burn: 1000
+      n_mcmc: 2000
+      thin: 1
+      verbose: yes
+      progress_every: 100
+      init_from_vb: yes
+      store_latent_draws: no
+      store_rhs_draws: no
+      transforms:
+        use_log_sigma: yes
+        sigma_eta_bounds:
+        - -10
+        - 10
+      slice:
+        width_gamma: 0.45
+        width_sigma: 0.35
+        width_rhs_lambda: 0.6
+        width_rhs_tau: 0.6
+        width_rhs_c2: 0.6
+        core_extra_passes: 1
+        max_steps_out: 55
+        max_shrink: 210
+      prior_overrides:
+        ridge:
+          n_burn: 1000
+          n_mcmc: 2000
+          progress_every: 100
+          slice:
+            core_update_mode: sigma_then_gamma
+            width_gamma: 0.53
+            width_sigma: 0.2
+            core_extra_passes: 2
+            max_steps_out: 70
+            max_shrink: 280
+            max_steps_out_sigma: 150
+            max_shrink_sigma: 400
+        rhs_ns:
+          n_burn: 1000
+          n_mcmc: 2000
+          progress_every: 100
+          rhs:
+            freeze_tau_burnin_iters: 120
+            freeze_tau_only_during_burn: yes
+            width_adapt:
+              enabled: yes
+              warmup_iters: 700
+              only_during_burn: yes
+              target_score_low: -0.75
+              target_score_high: 0.75
+              step_size: 0.015
+              width_min: 0.02
+              width_max: 1.8
+          slice:
+            width_gamma: 0.42
+            width_sigma: 0.32
+            width_rhs_lambda: 0.18
+            width_rhs_tau: 0.12
+            width_rhs_c2: 0.08
+            width_rhs_tau_c2_block: 0.26
+            rhs_global_block_update: transformed_tau_c2_block
+            rhs_transformed_block_passes: 4
+            width_rhs_tau_c2_transformed_z1: 0.22
+            width_rhs_tau_c2_transformed_z2: 0.18
+            max_steps_out: 70
+            max_shrink: 260
+            core_update_mode: sigma_then_gamma
+            core_extra_passes: 2
+            max_steps_out_sigma: 130
+            max_shrink_sigma: 360
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 0.01
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 0.5
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-08
+multiseed:
+  enabled: yes
+  mcmc_seed_reps: 4
+  parallel_seed_workers: 4
+  selection_metric: forecast_CRPS_mean
+  prune_nonwinning_heavy_outputs: yes
+  prune_rel_paths:
+  - models/forecast_objects.rds
+  - models/rhs_trace.rds
+  - models/timing_summary.rds
+  seed_base: 500000
+  model_offsets:
+    al: 0
+    exal: 5000
+  desn_offset: 30000
+  mcmc_seed_offset: 0
+  mcmc_rng_offset: 0
+  vb_warm_start_offset: 10000
+  synthesis_offset: 20000
+replay:
+  mode: rowfaithful_current_best_multiseed
+  description: |
+    Replay the current accepted deep-DESN branch state row by row. Preserve each row's exact accepted local tuning, stage winner, and exact-root carry-forward, and change only the global replay controls: n.burn=5000, n.mcmc=20000, posterior export draws=20000, and four deterministic MCMC seeds with deterministic seed reduction.
+  contract:
+    posterior_metric_draws: 20000
+    vb_sampling_nd_draws: 20000
+    vb_synthesis_n_samp: 20000
+    mcmc_n_burn: 5000
+    mcmc_n_mcmc: 20000
+    mcmc_thin: 1
+  row_overrides:
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 200
+                min_iter_elbo: 28
+                n_samp_xi: 384
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1300
+                n_mcmc: 2600
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 150
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1200
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.38
+                  width_sigma: 0.29
+                  width_rhs_lambda: 0.15
+                  width_rhs_tau: 0.09
+                  width_rhs_c2: 0.06
+                  width_rhs_tau_c2_block: 0.2
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 4
+                  width_rhs_tau_c2_transformed_z1: 0.17
+                  width_rhs_tau_c2_transformed_z2: 0.13
+                  core_extra_passes: 2
+                  max_steps_out: 86
+                  max_shrink: 325
+                  max_steps_out_sigma: 145
+                  max_shrink_sigma: 400
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 180
+                min_iter_elbo: 28
+                n_samp_xi: 320
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1700
+                n_mcmc: 3200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 180
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1600
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.35
+                  width_sigma: 0.26
+                  width_rhs_lambda: 0.12
+                  width_rhs_tau: 0.07
+                  width_rhs_c2: 0.045
+                  width_rhs_tau_c2_block: 0.16
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.145
+                  width_rhs_tau_c2_transformed_z2: 0.105
+                  core_extra_passes: 2
+                  max_steps_out: 96
+                  max_shrink: 365
+                  max_steps_out_sigma: 156
+                  max_shrink_sigma: 440
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p25__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 180
+                min_iter_elbo: 28
+                n_samp_xi: 320
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1700
+                n_mcmc: 3200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 180
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1600
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.35
+                  width_sigma: 0.26
+                  width_rhs_lambda: 0.12
+                  width_rhs_tau: 0.07
+                  width_rhs_c2: 0.045
+                  width_rhs_tau_c2_block: 0.16
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.145
+                  width_rhs_tau_c2_transformed_z2: 0.105
+                  core_extra_passes: 2
+                  max_steps_out: 96
+                  max_shrink: 365
+                  max_steps_out_sigma: 156
+                  max_shrink_sigma: 440
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_500__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 1900
+                n_mcmc: 3400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.43
+                  width_sigma: 0.13
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 410
+                  max_steps_out_sigma: 196
+                  max_shrink_sigma: 510
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 1900
+                n_mcmc: 3400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.43
+                  width_sigma: 0.13
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 410
+                  max_steps_out_sigma: 196
+                  max_shrink_sigma: 510
+    root__dynamic__dlm_constV_smallW__gausmix__tau_0p95__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 180
+                min_iter_elbo: 28
+                n_samp_xi: 320
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1700
+                n_mcmc: 3200
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 180
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1600
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.35
+                  width_sigma: 0.26
+                  width_rhs_lambda: 0.12
+                  width_rhs_tau: 0.07
+                  width_rhs_c2: 0.045
+                  width_rhs_tau_c2_block: 0.16
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.145
+                  width_rhs_tau_c2_transformed_z2: 0.105
+                  core_extra_passes: 2
+                  max_steps_out: 96
+                  max_shrink: 365
+                  max_steps_out_sigma: 156
+                  max_shrink_sigma: 440
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_500__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 200
+                min_iter_elbo: 28
+                n_samp_xi: 384
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 180
+                min_iter_elbo: 28
+                n_samp_xi: 320
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 2100
+                n_mcmc: 3800
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 205
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 2000
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.35
+                  width_sigma: 0.26
+                  width_rhs_lambda: 0.12
+                  width_rhs_tau: 0.07
+                  width_rhs_c2: 0.045
+                  width_rhs_tau_c2_block: 0.16
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.145
+                  width_rhs_tau_c2_transformed_z2: 0.105
+                  core_extra_passes: 2
+                  max_steps_out: 104
+                  max_shrink: 395
+                  max_steps_out_sigma: 165
+                  max_shrink_sigma: 465
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p25__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 140
+                min_iter_elbo: 24
+                n_samp_xi: 256
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1800
+                n_mcmc: 3400
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 190
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1800
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.34
+                  width_sigma: 0.25
+                  width_rhs_lambda: 0.115
+                  width_rhs_tau: 0.065
+                  width_rhs_c2: 0.04
+                  width_rhs_tau_c2_block: 0.15
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 6
+                  width_rhs_tau_c2_transformed_z1: 0.13
+                  width_rhs_tau_c2_transformed_z2: 0.095
+                  core_extra_passes: 2
+                  max_steps_out: 100
+                  max_shrink: 380
+                  max_steps_out_sigma: 160
+                  max_shrink_sigma: 455
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_500__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 1900
+                n_mcmc: 3400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.43
+                  width_sigma: 0.13
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 410
+                  max_steps_out_sigma: 196
+                  max_shrink_sigma: 510
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_5000__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 1900
+                n_mcmc: 3400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.43
+                  width_sigma: 0.13
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 410
+                  max_steps_out_sigma: 196
+                  max_shrink_sigma: 510
+    root__dynamic__dlm_constV_smallW__laplace__tau_0p95__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 140
+                min_iter_elbo: 24
+                n_samp_xi: 256
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1800
+                n_mcmc: 3400
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 190
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1800
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.34
+                  width_sigma: 0.25
+                  width_rhs_lambda: 0.115
+                  width_rhs_tau: 0.065
+                  width_rhs_c2: 0.04
+                  width_rhs_tau_c2_block: 0.15
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 6
+                  width_rhs_tau_c2_transformed_z1: 0.13
+                  width_rhs_tau_c2_transformed_z2: 0.095
+                  core_extra_passes: 2
+                  max_steps_out: 100
+                  max_shrink: 380
+                  max_steps_out_sigma: 160
+                  max_shrink_sigma: 455
+    root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_500__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 200
+                min_iter_elbo: 28
+                n_samp_xi: 384
+    root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 200
+                min_iter_elbo: 28
+                n_samp_xi: 384
+    root__dynamic__dlm_constV_smallW__normal__tau_0p05__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 180
+                min_iter_elbo: 28
+                n_samp_xi: 320
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 2150
+                n_mcmc: 4000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 220
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 2000
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.29
+                  width_sigma: 0.2
+                  width_rhs_lambda: 0.09
+                  width_rhs_tau: 0.048
+                  width_rhs_c2: 0.03
+                  width_rhs_tau_c2_block: 0.1
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 8
+                  width_rhs_tau_c2_transformed_z1: 0.11
+                  width_rhs_tau_c2_transformed_z2: 0.075
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 430
+                  max_steps_out_sigma: 176
+                  max_shrink_sigma: 490
+    root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_500__qdesn_ridge:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 1600
+                n_mcmc: 3000
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.45
+                  width_sigma: 0.15
+                  core_extra_passes: 3
+                  max_steps_out: 102
+                  max_shrink: 390
+                  max_steps_out_sigma: 185
+                  max_shrink_sigma: 485
+    root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__normal__tau_0p25__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 180
+                min_iter_elbo: 28
+                n_samp_xi: 320
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 2150
+                n_mcmc: 4000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 220
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 2000
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.29
+                  width_sigma: 0.2
+                  width_rhs_lambda: 0.09
+                  width_rhs_tau: 0.048
+                  width_rhs_c2: 0.03
+                  width_rhs_tau_c2_block: 0.1
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 8
+                  width_rhs_tau_c2_transformed_z1: 0.11
+                  width_rhs_tau_c2_transformed_z2: 0.075
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 430
+                  max_steps_out_sigma: 176
+                  max_shrink_sigma: 490
+    root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 1900
+                n_mcmc: 3400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.43
+                  width_sigma: 0.13
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 410
+                  max_steps_out_sigma: 196
+                  max_shrink_sigma: 510
+    root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_500__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1500
+                n_mcmc: 3000
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 160
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1400
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.37
+                  width_sigma: 0.28
+                  width_rhs_lambda: 0.14
+                  width_rhs_tau: 0.085
+                  width_rhs_c2: 0.057
+                  width_rhs_tau_c2_block: 0.19
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 5
+                  width_rhs_tau_c2_transformed_z1: 0.16
+                  width_rhs_tau_c2_transformed_z2: 0.12
+                  core_extra_passes: 2
+                  max_steps_out: 92
+                  max_shrink: 350
+                  max_steps_out_sigma: 152
+                  max_shrink_sigma: 430
+    root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_5000__qdesn_ridge:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              ridge:
+                max_iter: 280
+                min_iter_elbo: 36
+                n_samp_xi: 512
+          mcmc:
+            prior_overrides:
+              ridge:
+                n_burn: 1900
+                n_mcmc: 3400
+                progress_every: 100
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.43
+                  width_sigma: 0.13
+                  core_extra_passes: 3
+                  max_steps_out: 112
+                  max_shrink: 410
+                  max_steps_out_sigma: 196
+                  max_shrink_sigma: 510
+    root__dynamic__dlm_constV_smallW__normal__tau_0p95__lasttt_5000__qdesn_rhs_ns:
+      pipeline:
+        inference:
+          vb:
+            prior_overrides:
+              rhs_ns:
+                max_iter: 140
+                min_iter_elbo: 24
+                n_samp_xi: 256
+                rhs:
+                  freeze_tau_iters: 10
+                  freeze_tau_warmup_iters: 10
+                  tau_local_tol: 0.0005
+                  min_tau_updates: 2
+                  force_tau_after_warmup: yes
+          mcmc:
+            prior_overrides:
+              rhs_ns:
+                n_burn: 1800
+                n_mcmc: 3400
+                progress_every: 100
+                rhs:
+                  freeze_tau_burnin_iters: 190
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 1800
+                    only_during_burn: yes
+                    target_score_low: -0.75
+                    target_score_high: 0.75
+                    step_size: 0.015
+                    width_min: 0.02
+                    width_max: 1.8
+                slice:
+                  core_update_mode: sigma_then_gamma
+                  width_gamma: 0.34
+                  width_sigma: 0.25
+                  width_rhs_lambda: 0.115
+                  width_rhs_tau: 0.065
+                  width_rhs_c2: 0.04
+                  width_rhs_tau_c2_block: 0.15
+                  rhs_global_block_update: transformed_tau_c2_block
+                  rhs_transformed_block_passes: 6
+                  width_rhs_tau_c2_transformed_z1: 0.13
+                  width_rhs_tau_c2_transformed_z2: 0.095
+                  core_extra_passes: 2
+                  max_steps_out: 100
+                  max_shrink: 380
+                  max_steps_out_sigma: 160
+                  max_shrink_sigma: 455
+  accepted_chain:
+  - wave_id: D
+    label: Deep-DESN Fail-Closure Wave
+    manifest_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave_manifest.yaml
+    report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_fail_closure_wave
+    run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-fitfail-20260409-010419__git-36c7c9e
+    selected_stage_profiles:
+      D1_ridge_lower_tail_vb: D120_ridge_lower_vb384
+      D2_ridge_upper_tail_mixed: D250_ridge_upper_combo512_diag3400
+      D3_rhs_short_mcmc: D330_rhs_short_balanced3000
+      D4_rhs_long_mixed: SOURCE_BASELINE
+    selected_root_profile_overrides:
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_500__qdesn_rhs_ns
+      profile_id: D310_rhs_short_drift2600
+    - root_id: root__dynamic__dlm_constV_smallW__gausmix__tau_0p05__lasttt_5000__qdesn_ridge
+      profile_id: D140_ridge_lower_vb512
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_ridge
+      profile_id: D140_ridge_lower_vb512
+  - wave_id: E
+    label: Deep-DESN Final Residual Wave
+    manifest_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave_manifest.yaml
+    report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_final_residual_wave
+    run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-finalresid-20260409-204957__git-c116dc3
+    selected_stage_profiles:
+      E1_rhs_long_gausmix_mixed: E410_rhs_long_gausmix_guard320_balanced3200
+      E2_rhs_long_laplace_normal_mcmc: E520_rhs_long_general_diag3400
+      E3_ridge_mid_singleton_mcmc_exal: E620_ridge_mid_diag3000
+    selected_root_profile_overrides:
+    - root_id: root__dynamic__dlm_constV_smallW__laplace__tau_0p05__lasttt_5000__qdesn_rhs_ns
+      profile_id: E530_rhs_long_general_guard320_burn3600
+  - wave_id: F
+    label: Deep-DESN RHS Long MCMC Wave
+    manifest_path: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave_manifest.yaml
+    report_root: reports/qdesn_mcmc_validation/dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rhs_long_mcmc_wave
+    run_tag: qdesn-dynamic-exdqlm-crossstudy-deepdesn-rhslongmcmc-20260410-163031__git-ceab523
+    selected_stage_profiles:
+      F1_rhs_long_gausmix_mcmc: SOURCE_BASELINE
+      F2_rhs_long_laplace_exal: SOURCE_BASELINE
+      F3_rhs_long_normal_lower_mcmc: F630_rhs_long_normal_lower_guard320_recenter4000
+      F4_rhs_long_normal_upper_exal: SOURCE_BASELINE
+  source_summary:
+    pass: 71
+    warn: 60
+    fail: 13
+    root_success: 36
+    root_fail: 0
+    compare_any_ready: 36
+    compare_full_ready: 27
+  inventory_summary:
+    total_roots: 36
+    overridden_roots: 31
+    source_baseline_roots: 5
+  inventory_csv: /home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv
+  canary_grid_csv: /home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_canary_grid.csv
+  manifest_path: /home/jaguir26/local/src/exdqlm__wt__qdesn_0p4p0_integration/config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_replay_manifest.yaml

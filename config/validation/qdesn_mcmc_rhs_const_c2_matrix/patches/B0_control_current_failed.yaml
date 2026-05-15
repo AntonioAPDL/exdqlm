@@ -1,0 +1,21 @@
+experiment:
+  id: B0
+  description: current failing control profile
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 4000
+            n_mcmc: 8000
+            progress_every: 800
+            slice:
+              width_rhs_lambda: 0.26
+              width_rhs_tau: 0.20
+              width_rhs_c2: 0.22
+              width_rhs_tau_c2_block: 0.80
+              rhs_global_block_update: directional_tau_c2
+              max_steps_out: 70
+              max_shrink: 300

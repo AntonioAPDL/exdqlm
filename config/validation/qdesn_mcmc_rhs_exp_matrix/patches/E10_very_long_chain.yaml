@@ -1,0 +1,13 @@
+experiment:
+  id: E10
+  description: very long chain stress run for persistent mixing failures
+
+patch:
+  pipeline:
+    inference:
+      mcmc:
+        prior_overrides:
+          rhs:
+            n_burn: 4000
+            n_mcmc: 8000
+            progress_every: 800

@@ -1,0 +1,70 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_candidate_dataset_bundle
+  scenario_id: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  notes: >
+    Fresh fit+forecast dynamic source surface for the shared Q-DESN and
+    exDQLM/DQLM validation study. This is not an append/splice of the old
+    7000-row fit-only source. The scientific contract is train through source
+    index 9000 and forecast source indices 9001:10000.
+
+generation:
+  output_parent: /data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  tail_fit_sizes: [500, 5000]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1:
+          amplitude: 24
+          phase: 0.35
+        harmonic2:
+          amplitude: 8
+          phase: -0.8
+      observation:
+        normal_sigma: 10
+      seeds:
+        latent: 12011
+        noise: 12012
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1:
+          amplitude: 28
+          phase: -0.15
+        harmonic2:
+          amplitude: 10
+          phase: 0.75
+      observation:
+        laplace_scale: 10
+      seeds:
+        latent: 22011
+        noise: 22012
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1:
+          amplitude: 32
+          phase: 0.85
+        harmonic2:
+          amplitude: 12
+          phase: -1.25
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+      seeds:
+        latent: 32011
+        noise: 32012

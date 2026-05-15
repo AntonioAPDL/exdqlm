@@ -1,0 +1,217 @@
+meta:
+  name: qdesn_exal_kernel_screen_core_serial_20260330
+  purpose: Fallback serial core-only relaunch for the highest-value shared exAL controls.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/exal_kernel_screen
+  results_root: results/qdesn_mcmc_validation/exal_kernel_screen
+
+controls:
+  resume_completed_profiles: true
+  campaign_workers: 1
+  threads_per_worker: 1
+  create_plots: false
+  profile_verbose: true
+  profile_timeout_minutes: 45
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 2
+  max_error_profiles: 3
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_anchor_core
+    description: Anchor plus shared exAL core stabilization screen.
+
+profiles:
+  - id: X0_anchor_baseline
+    batch: B0_anchor_core
+    family: anchor
+    description: Fresh anchor on the 6-root harness to confirm the runner and benchmark reproducibility.
+    patch: {}
+
+  - id: X1_core_pass1_soft
+    batch: B0_anchor_core
+    family: core_screen
+    description: One extra exAL core pass with moderately tighter gamma and sigma widths.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 1
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.50
+                  width_sigma: 0.30
+                  max_steps_out: 50
+                  max_shrink: 200
+              rhs_ns:
+                slice:
+                  width_gamma: 0.50
+                  width_sigma: 0.30
+                  max_steps_out: 60
+                  max_shrink: 220
+
+  - id: X10_core_gamma_focus_pass1
+    batch: B0_anchor_core
+    family: core_screen
+    description: Gamma-focused sharpening to target the shared exAL low-ESS and high-ACF gamma failures.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 1
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.35
+                  max_steps_out: 55
+                  max_shrink: 210
+              rhs_ns:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.35
+                  max_steps_out: 65
+                  max_shrink: 230
+
+  - id: X11_core_sigma_focus_pass1
+    batch: B0_anchor_core
+    family: core_screen
+    description: Sigma-focused sharpening with wider sigma step-out budget to probe the half-drift residuals.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 1
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.55
+                  width_sigma: 0.25
+                  max_steps_out: 50
+                  max_shrink: 200
+                  max_steps_out_sigma: 80
+                  max_shrink_sigma: 260
+              rhs_ns:
+                slice:
+                  width_gamma: 0.55
+                  width_sigma: 0.25
+                  max_steps_out: 60
+                  max_shrink: 220
+                  max_steps_out_sigma: 90
+                  max_shrink_sigma: 280
+
+  - id: X3_core_pass1_sharp
+    batch: B0_anchor_core
+    family: core_screen
+    description: One extra exAL core pass with sharper gamma and sigma widths.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 1
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 60
+                  max_shrink: 220
+              rhs_ns:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 70
+                  max_shrink: 240
+
+  - id: X2_core_pass2_soft
+    batch: B0_anchor_core
+    family: core_screen
+    description: Two extra exAL core passes with moderately tighter gamma and sigma widths.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 2
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.50
+                  width_sigma: 0.30
+                  max_steps_out: 50
+                  max_shrink: 200
+              rhs_ns:
+                slice:
+                  width_gamma: 0.50
+                  width_sigma: 0.30
+                  max_steps_out: 60
+                  max_shrink: 220
+
+  - id: X4_core_pass2_sharp
+    batch: B0_anchor_core
+    family: core_screen
+    description: Two extra exAL core passes with sharper gamma and sigma widths.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 2
+            prior_overrides:
+              ridge:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 60
+                  max_shrink: 220
+              rhs_ns:
+                slice:
+                  width_gamma: 0.45
+                  width_sigma: 0.25
+                  max_steps_out: 70
+                  max_shrink: 240
+
+  - id: X9_moderate_chain_core1
+    batch: B0_anchor_core
+    family: confirmation
+    description: Modest chain extension plus the softer core refresh as a cost-aware confirmation profile.
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            slice:
+              core_extra_passes: 1
+            prior_overrides:
+              ridge:
+                n_burn: 400
+                n_mcmc: 800
+                progress_every: 80
+                slice:
+                  width_gamma: 0.50
+                  width_sigma: 0.30
+                  max_steps_out: 50
+                  max_shrink: 200
+              rhs_ns:
+                n_burn: 650
+                n_mcmc: 1300
+                progress_every: 130
+                rhs:
+                  freeze_tau_burnin_iters: 60
+                slice:
+                  width_gamma: 0.50
+                  width_sigma: 0.30
+                  max_steps_out: 60
+                  max_shrink: 220

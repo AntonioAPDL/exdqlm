@@ -1,0 +1,327 @@
+meta:
+  name: qdesn_validation_phase9_replication_audit_20260401
+  display_name: QDESN Phase 9 Family Replication Audit
+  purpose: >
+    Full-6 replication-first overnight audit on the still-plausible recipe families after Phase 8.
+    Repeats the exact R61, R84, R68, and R65 settings three times each so the next decision can be
+    made from family-level replicated evidence rather than one-off profile rankings.
+  branch: feature/qdesn-mcmc-alternative
+  safe_default: prepare_only
+
+inputs:
+  phase01_manifest: reports/qdesn_mcmc_validation/finalization_closeout-rhsfixrelaunch-20260329b__git-6ac4727/summary/phase01_manifest.json
+  base_defaults: config/validation/qdesn_dynamic_family_prior_repair_defaults.yaml
+
+outputs:
+  report_root: reports/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit
+  results_root: results/qdesn_mcmc_validation/qdesn_validation_phase9_replication_audit
+
+controls:
+  anchor_profile_id: R100_r61_rep1
+  resume_completed_profiles: true
+  create_plots: false
+  profile_verbose: true
+  campaign_workers: 4
+  threads_per_worker: 1
+  profile_timeout_minutes: 180
+  timeout_kill_after_seconds: 30
+  continue_on_profile_error: true
+  max_timeout_profiles: 6
+  max_error_profiles: 6
+  stop_on_anchor_operational_failure: true
+
+batches:
+  - id: B0_r61_reference
+    description: Exact repeated reruns of the current reference R61/R44 recipe.
+  - id: B1_r84_rhs_local
+    description: Exact repeated reruns of the best Phase-8 rhs-local winner family.
+  - id: B2_r68_ridge_clean
+    description: Exact repeated reruns of the clean ridge-signal family from Phase 7.
+  - id: B3_r65_ridge_chain
+    description: Exact repeated reruns of the stronger ridge chain-plus-stepout family from Phase 7.
+
+shared_patches:
+  r61_patch: &r61_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms:
+            use_log_sigma: true
+            sigma_eta_bounds: [-10, 10]
+          prior_overrides:
+            ridge:
+              n_burn: 450
+              n_mcmc: 900
+              progress_every: 75
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.55
+                width_sigma: 0.22
+                core_extra_passes: 0
+                max_steps_out: 65
+                max_shrink: 260
+                max_steps_out_sigma: 140
+                max_shrink_sigma: 380
+            rhs_ns:
+              n_burn: 500
+              n_mcmc: 1000
+              progress_every: 100
+              rhs:
+                freeze_tau_burnin_iters: 80
+                freeze_tau_only_during_burn: true
+                width_adapt:
+                  enabled: true
+                  warmup_iters: 350
+                  only_during_burn: true
+                  target_score_low: -0.75
+                  target_score_high: 0.75
+                  step_size: 0.015
+                  width_min: 0.02
+                  width_max: 1.8
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.42
+                width_sigma: 0.32
+                width_rhs_lambda: 0.18
+                width_rhs_tau: 0.12
+                width_rhs_c2: 0.08
+                width_rhs_tau_c2_block: 0.26
+                rhs_global_block_update: transformed_tau_c2_block
+                rhs_transformed_block_passes: 4
+                width_rhs_tau_c2_transformed_z1: 0.22
+                width_rhs_tau_c2_transformed_z2: 0.18
+                core_extra_passes: 2
+                max_steps_out: 70
+                max_shrink: 260
+                max_steps_out_sigma: 130
+                max_shrink_sigma: 360
+
+  r84_patch: &r84_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms:
+            use_log_sigma: true
+            sigma_eta_bounds: [-10, 10]
+          prior_overrides:
+            ridge:
+              n_burn: 450
+              n_mcmc: 900
+              progress_every: 75
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.55
+                width_sigma: 0.22
+                core_extra_passes: 0
+                max_steps_out: 65
+                max_shrink: 260
+                max_steps_out_sigma: 140
+                max_shrink_sigma: 380
+            rhs_ns:
+              n_burn: 550
+              n_mcmc: 1000
+              progress_every: 100
+              rhs:
+                freeze_tau_burnin_iters: 100
+                freeze_tau_only_during_burn: true
+                width_adapt:
+                  enabled: true
+                  warmup_iters: 380
+                  only_during_burn: true
+                  target_score_low: -0.75
+                  target_score_high: 0.75
+                  step_size: 0.015
+                  width_min: 0.02
+                  width_max: 1.8
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.42
+                width_sigma: 0.32
+                width_rhs_lambda: 0.18
+                width_rhs_tau: 0.12
+                width_rhs_c2: 0.08
+                width_rhs_tau_c2_block: 0.24
+                rhs_global_block_update: transformed_tau_c2_block
+                rhs_transformed_block_passes: 5
+                width_rhs_tau_c2_transformed_z1: 0.20
+                width_rhs_tau_c2_transformed_z2: 0.16
+                core_extra_passes: 2
+                max_steps_out: 70
+                max_shrink: 260
+                max_steps_out_sigma: 130
+                max_shrink_sigma: 360
+
+  r68_patch: &r68_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms:
+            use_log_sigma: true
+            sigma_eta_bounds: [-10, 10]
+          prior_overrides:
+            ridge:
+              n_burn: 450
+              n_mcmc: 900
+              progress_every: 75
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.55
+                width_sigma: 0.22
+                core_extra_passes: 1
+                max_steps_out: 65
+                max_shrink: 260
+                max_steps_out_sigma: 140
+                max_shrink_sigma: 380
+            rhs_ns:
+              n_burn: 500
+              n_mcmc: 1000
+              progress_every: 100
+              rhs:
+                freeze_tau_burnin_iters: 80
+                freeze_tau_only_during_burn: true
+                width_adapt:
+                  enabled: true
+                  warmup_iters: 350
+                  only_during_burn: true
+                  target_score_low: -0.75
+                  target_score_high: 0.75
+                  step_size: 0.015
+                  width_min: 0.02
+                  width_max: 1.8
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.42
+                width_sigma: 0.32
+                width_rhs_lambda: 0.18
+                width_rhs_tau: 0.12
+                width_rhs_c2: 0.08
+                width_rhs_tau_c2_block: 0.26
+                rhs_global_block_update: transformed_tau_c2_block
+                rhs_transformed_block_passes: 4
+                width_rhs_tau_c2_transformed_z1: 0.22
+                width_rhs_tau_c2_transformed_z2: 0.18
+                core_extra_passes: 2
+                max_steps_out: 70
+                max_shrink: 260
+                max_steps_out_sigma: 130
+                max_shrink_sigma: 360
+
+  r65_patch: &r65_patch
+    pipeline:
+      inference:
+        mcmc:
+          transforms:
+            use_log_sigma: true
+            sigma_eta_bounds: [-10, 10]
+          prior_overrides:
+            ridge:
+              n_burn: 500
+              n_mcmc: 1200
+              progress_every: 100
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.55
+                width_sigma: 0.22
+                core_extra_passes: 0
+                max_steps_out: 70
+                max_shrink: 280
+                max_steps_out_sigma: 150
+                max_shrink_sigma: 420
+            rhs_ns:
+              n_burn: 500
+              n_mcmc: 1000
+              progress_every: 100
+              rhs:
+                freeze_tau_burnin_iters: 80
+                freeze_tau_only_during_burn: true
+                width_adapt:
+                  enabled: true
+                  warmup_iters: 350
+                  only_during_burn: true
+                  target_score_low: -0.75
+                  target_score_high: 0.75
+                  step_size: 0.015
+                  width_min: 0.02
+                  width_max: 1.8
+              slice:
+                core_update_mode: sigma_then_gamma
+                width_gamma: 0.42
+                width_sigma: 0.32
+                width_rhs_lambda: 0.18
+                width_rhs_tau: 0.12
+                width_rhs_c2: 0.08
+                width_rhs_tau_c2_block: 0.26
+                rhs_global_block_update: transformed_tau_c2_block
+                rhs_transformed_block_passes: 4
+                width_rhs_tau_c2_transformed_z1: 0.22
+                width_rhs_tau_c2_transformed_z2: 0.18
+                core_extra_passes: 2
+                max_steps_out: 70
+                max_shrink: 260
+                max_steps_out_sigma: 130
+                max_shrink_sigma: 360
+
+profiles:
+  - id: R100_r61_rep1
+    batch: B0_r61_reference
+    family: r61_stable_anchor
+    description: Exact full-6 replication 1 of the R61 reference family.
+    patch: *r61_patch
+  - id: R101_r61_rep2
+    batch: B0_r61_reference
+    family: r61_stable_anchor
+    description: Exact full-6 replication 2 of the R61 reference family.
+    patch: *r61_patch
+  - id: R102_r61_rep3
+    batch: B0_r61_reference
+    family: r61_stable_anchor
+    description: Exact full-6 replication 3 of the R61 reference family.
+    patch: *r61_patch
+
+  - id: R110_r84_rep1
+    batch: B1_r84_rhs_local
+    family: r84_rhs_blockpass5
+    description: Exact full-6 replication 1 of the Phase-8 R84 rhs-local family.
+    patch: *r84_patch
+  - id: R111_r84_rep2
+    batch: B1_r84_rhs_local
+    family: r84_rhs_blockpass5
+    description: Exact full-6 replication 2 of the Phase-8 R84 rhs-local family.
+    patch: *r84_patch
+  - id: R112_r84_rep3
+    batch: B1_r84_rhs_local
+    family: r84_rhs_blockpass5
+    description: Exact full-6 replication 3 of the Phase-8 R84 rhs-local family.
+    patch: *r84_patch
+
+  - id: R120_r68_rep1
+    batch: B2_r68_ridge_clean
+    family: r68_ridge_signal
+    description: Exact full-6 replication 1 of the Phase-7 R68 ridge-signal family.
+    patch: *r68_patch
+  - id: R121_r68_rep2
+    batch: B2_r68_ridge_clean
+    family: r68_ridge_signal
+    description: Exact full-6 replication 2 of the Phase-7 R68 ridge-signal family.
+    patch: *r68_patch
+  - id: R122_r68_rep3
+    batch: B2_r68_ridge_clean
+    family: r68_ridge_signal
+    description: Exact full-6 replication 3 of the Phase-7 R68 ridge-signal family.
+    patch: *r68_patch
+
+  - id: R130_r65_rep1
+    batch: B3_r65_ridge_chain
+    family: r65_ridge_chain_stepsout
+    description: Exact full-6 replication 1 of the Phase-7 R65 ridge-chain family.
+    patch: *r65_patch
+  - id: R131_r65_rep2
+    batch: B3_r65_ridge_chain
+    family: r65_ridge_chain_stepsout
+    description: Exact full-6 replication 2 of the Phase-7 R65 ridge-chain family.
+    patch: *r65_patch
+  - id: R132_r65_rep3
+    batch: B3_r65_ridge_chain
+    family: r65_ridge_chain_stepsout
+    description: Exact full-6 replication 3 of the Phase-7 R65 ridge-chain family.
+    patch: *r65_patch

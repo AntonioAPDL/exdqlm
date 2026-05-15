@@ -1,0 +1,99 @@
+campaign:
+  name: qdesn_dynamic_fitforecast_v2_validation
+  results_root: results/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation
+  reports_root: reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation
+
+grid:
+  source_mode: materialized_source_inputs
+
+source_materialization:
+  dynamic_root: /data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources
+  staged_root: results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources
+  enforce_effective_train_size: yes
+  train_end_source_index: 9000
+  forecast_origin_source_index: 9000
+  forecast_horizon: 1000
+  scenarios:
+  - dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  families:
+  - gausmix
+  - laplace
+  - normal
+  taus:
+  - 0.05
+  - 0.25
+  - 0.50
+  windows:
+  - effective_fit_size: 500
+    source_total_size: 1812
+    source_dir_name: fit_input_effTT500_totalTT1812_trainEnd9000_H1000
+    label: effTT500_totalTT1812_trainEnd9000_H1000
+  - effective_fit_size: 5000
+    source_total_size: 6312
+    source_dir_name: fit_input_effTT5000_totalTT6312_trainEnd9000_H1000
+    label: effTT5000_totalTT6312_trainEnd9000_H1000
+
+pilot:
+  source_root_kind: dynamic
+  source_scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  source_family: normal
+  tau: 0.25
+  fit_size: 5000
+  effective_fit_size: 5000
+  source_total_size: 6312
+  source_window_label: effTT5000_totalTT6312_trainEnd9000_H1000
+  beta_prior_type: rhs_ns
+  seed: 123
+  reservoir_profile: deep_d3_n400x3_skip100_w300_m60
+  enabled: yes
+  source_reference_priors: default
+  source_current_rhsns_member: no
+  source_legacy_rhs_member: no
+
+reference_contract:
+  root_kind: dynamic
+  scenarios:
+  - dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  families:
+  - gausmix
+  - laplace
+  - normal
+  taus:
+  - 0.05
+  - 0.25
+  - 0.50
+  fit_sizes:
+  - 500
+  - 5000
+  expected_reference_roots: 18
+  expected_unique_dataset_cells: 18
+  expected_qdesn_roots: 36
+  expected_priors:
+  - ridge
+  - rhs_ns
+
+reservoir_profiles:
+  deep_d3_n400x3_skip100_w300_m60:
+    D: 3
+    "n": [400, 400, 400]
+    n_tilde: [400, 400]
+    m: 60
+    alpha: [0.3, 0.3, 0.3]
+    rho: [0.95, 0.95, 0.95]
+    act_f: [tanh, tanh, tanh]
+    act_k: [identity, identity, identity]
+    pi_w: [0.1, 0.1, 0.1]
+    pi_in: [1.0, 1.0, 1.0]
+    washout: 300
+    add_bias: yes
+    seed: 123
+
+external_data:
+  holdout_n: 1000
+  y_column: "y"
+  q_true_column: "q_true"
+  source_index_column: "source_index"
+
+lags:
+  m_y: 12
+  m_x: 0

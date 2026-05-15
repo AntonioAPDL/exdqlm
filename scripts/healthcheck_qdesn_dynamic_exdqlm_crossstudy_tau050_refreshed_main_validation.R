@@ -1,0 +1,371 @@
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages({
+  req <- c("yaml")
+  need <- setdiff(req, rownames(installed.packages()))
+  if (length(need)) install.packages(need, repos = "https://cloud.r-project.org")
+  invisible(lapply(req, require, character.only = TRUE))
+})
+
+args <- commandArgs(trailingOnly = TRUE)
+get_arg <- function(flag, default = NULL) {
+  idx <- which(args == flag)
+  if (length(idx) && idx < length(args)) args[idx + 1L] else default
+}
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+repo_root <- tryCatch(
+  {
+    script_file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])
+    normalizePath(file.path(dirname(normalizePath(script_file, winslash = "/", mustWork = TRUE)), ".."), winslash = "/", mustWork = TRUE)
+  },
+  error = function(...) normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
+)
+setwd(repo_root)
+
+resolve_path <- function(path, must_work = TRUE) {
+  raw <- as.character(path %||% "")[1L]
+  if (!nzchar(trimws(raw))) return(NULL)
+  if (!grepl("^(/|~)", raw)) raw <- file.path(repo_root, raw)
+  normalizePath(raw, winslash = "/", mustWork = isTRUE(must_work))
+}
+
+phase <- match.arg(
+  as.character(get_arg("--phase", "full"))[1L],
+  c(
+    "smoke",
+    "vb",
+    "mcmc_ridge",
+    "mcmc_rhsns_tt500",
+    "mcmc_rhsns_tt5000",
+    "failed_mcmc_al",
+    "failed_mcmc_exal",
+    "failed_mcmc_al_sfreeze",
+    "failed_mcmc_exal_sfreeze",
+    "failed_mcmc_al_thetafreeze",
+    "failed_mcmc_exal_thetafreeze",
+    "single_root_probe_exal_tau_only",
+    "single_root_probe_exal_theta_tau",
+    "single_root_probe_exal_stau",
+    "single_root_probe_exal_theta_tau_rescue",
+    "representative_triad_exal_tau_only",
+    "representative_triad_exal_theta_tau",
+    "representative_triad_al_tau_only",
+    "representative_triad_al_theta_tau",
+    "representative_completion_exal_tau_only",
+    "representative_completion_exal_theta_tau",
+    "remaining_precision_pair_al_v1",
+    "remaining_precision_pair_exal_v2",
+    "remaining_precision_matrix_al_qr_v1",
+    "remaining_precision_matrix_al_qr_v2",
+    "remaining_precision_matrix_al_diag_v1",
+    "remaining_precision_matrix_exal_qr_v1",
+    "remaining_precision_matrix_exal_qr_v2",
+    "remaining_precision_matrix_exal_qr_sig_v1",
+    "remaining_precision_matrix_exal_diag_v1",
+    "remaining_precision_code_al_ladder_v1",
+    "remaining_precision_code_al_ladder_v2",
+    "remaining_precision_code_al_eigen_v1",
+    "remaining_precision_code_exal_ladder_v1",
+    "remaining_precision_code_exal_ladder_v2",
+    "remaining_precision_code_exal_eigen_v1",
+    "remaining_precision_closeout_al_ladder_v2",
+    "remaining_precision_closeout_exal_ladder_v2",
+    "remaining_precision_closeout_al_eigen_v1",
+    "remaining_precision_closeout_exal_eigen_v1",
+    "remaining_hard_fail_latent_v_al",
+    "remaining_hard_fail_latent_v_exal",
+    "remaining_hard_fail_exal_ridge_precision_v1",
+    "remaining_hard_fail_exal_ridge_precision_v2",
+    "remaining_failed_mcmc_al_v2_canary",
+    "remaining_failed_mcmc_exal_v2_canary",
+    "remaining_failed_mcmc_al_v2_residual",
+    "remaining_failed_mcmc_exal_v2_residual",
+    "remaining_failed_mcmc_al_v2",
+    "remaining_failed_mcmc_exal_v2",
+    "remaining_failed_mcmc_al_v3_rescue_canary",
+    "remaining_failed_mcmc_exal_v3_rescue_canary",
+    "remaining_failed_mcmc_al_v3_rescue_residual",
+    "remaining_failed_mcmc_exal_v3_rescue_residual",
+    "remaining_failed_mcmc_al_v3_rescue",
+    "remaining_failed_mcmc_exal_v3_rescue",
+    "remaining_failed_mcmc_al_v3_rescue_extended_canary",
+    "remaining_failed_mcmc_exal_v3_rescue_extended_canary",
+    "remaining_failed_mcmc_al_v3_rescue_extended_residual",
+    "remaining_failed_mcmc_exal_v3_rescue_extended_residual",
+    "remaining_failed_mcmc_al_v3_rescue_extended",
+    "remaining_failed_mcmc_exal_v3_rescue_extended",
+    "remaining_failed_mcmc_exal_v3_qr_tightslice_canary",
+    "remaining_failed_mcmc_exal_v3_qr_tightslice_residual",
+    "remaining_failed_mcmc_exal_v3_qr_tightslice",
+    "remaining_failed_mcmc_exal_v3_altcore_canary",
+    "remaining_failed_mcmc_exal_v3_altcore_residual",
+    "remaining_failed_mcmc_exal_v3_altcore",
+    "full"
+  )
+)
+
+phase_defaults_map <- list(
+  smoke = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  vb = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  mcmc_ridge = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  mcmc_rhsns_tt500 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  mcmc_rhsns_tt5000 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  failed_mcmc_al = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  failed_mcmc_exal = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml"),
+  failed_mcmc_al_sfreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_failed_mcmc_sfreeze_defaults.yaml"),
+  failed_mcmc_exal_sfreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_failed_mcmc_sfreeze_defaults.yaml"),
+  failed_mcmc_al_thetafreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_failed_mcmc_thetafreeze_defaults.yaml"),
+  failed_mcmc_exal_thetafreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_failed_mcmc_thetafreeze_defaults.yaml"),
+  single_root_probe_exal_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_tau_only_defaults.yaml"),
+  single_root_probe_exal_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_theta_tau_defaults.yaml"),
+  single_root_probe_exal_stau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_stau_defaults.yaml"),
+  single_root_probe_exal_theta_tau_rescue = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_theta_tau_rescue_defaults.yaml"),
+  representative_triad_exal_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_tau_only_defaults.yaml"),
+  representative_triad_exal_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_theta_tau_defaults.yaml"),
+  representative_triad_al_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_tau_only_defaults.yaml"),
+  representative_triad_al_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_triad_theta_tau_defaults.yaml"),
+  representative_completion_exal_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_tau_only_defaults.yaml"),
+  representative_completion_exal_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_theta_tau_defaults.yaml"),
+  remaining_precision_pair_al_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_v1_defaults.yaml"),
+  remaining_precision_pair_exal_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_v2_defaults.yaml"),
+  remaining_precision_matrix_al_qr_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_matrix_al_qr_v1_defaults.yaml"),
+  remaining_precision_matrix_al_qr_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_matrix_al_qr_v2_defaults.yaml"),
+  remaining_precision_matrix_al_diag_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_matrix_al_diag_v1_defaults.yaml"),
+  remaining_precision_matrix_exal_qr_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_matrix_exal_qr_v1_defaults.yaml"),
+  remaining_precision_matrix_exal_qr_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_matrix_exal_qr_v2_defaults.yaml"),
+  remaining_precision_matrix_exal_qr_sig_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_matrix_exal_qr_sig_v1_defaults.yaml"),
+  remaining_precision_matrix_exal_diag_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_matrix_exal_diag_v1_defaults.yaml"),
+  remaining_precision_code_al_ladder_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_ladder_v1_defaults.yaml"),
+  remaining_precision_code_al_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_ladder_v2_defaults.yaml"),
+  remaining_precision_code_al_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_al_eigen_v1_defaults.yaml"),
+  remaining_precision_code_exal_ladder_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_exal_ladder_v1_defaults.yaml"),
+  remaining_precision_code_exal_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_exal_ladder_v2_defaults.yaml"),
+  remaining_precision_code_exal_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_code_exal_eigen_v1_defaults.yaml"),
+  remaining_precision_closeout_al_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_al_ladder_v2_defaults.yaml"),
+  remaining_precision_closeout_exal_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_exal_ladder_v2_defaults.yaml"),
+  remaining_precision_closeout_al_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_al_eigen_v1_defaults.yaml"),
+  remaining_precision_closeout_exal_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_exal_eigen_v1_defaults.yaml"),
+  remaining_hard_fail_latent_v_al = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_latent_v_al_defaults.yaml"),
+  remaining_hard_fail_latent_v_exal = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_latent_v_exal_defaults.yaml"),
+  remaining_hard_fail_exal_ridge_precision_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_exal_ridge_precision_v1_defaults.yaml"),
+  remaining_hard_fail_exal_ridge_precision_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_exal_ridge_precision_v2_defaults.yaml"),
+  remaining_failed_mcmc_al_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_exal_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_al_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_exal_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_al_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_exal_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v2_defaults.yaml"),
+  remaining_failed_mcmc_al_v3_rescue_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_rescue_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_defaults.yaml"),
+  remaining_failed_mcmc_al_v3_rescue_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_rescue_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_defaults.yaml"),
+  remaining_failed_mcmc_al_v3_rescue = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_rescue = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_defaults.yaml"),
+  remaining_failed_mcmc_al_v3_rescue_extended_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_extended_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_rescue_extended_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_extended_defaults.yaml"),
+  remaining_failed_mcmc_al_v3_rescue_extended_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_extended_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_rescue_extended_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_extended_defaults.yaml"),
+  remaining_failed_mcmc_al_v3_rescue_extended = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_extended_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_rescue_extended = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_rescue_extended_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_qr_tightslice_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_exal_qr_tightslice_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_qr_tightslice_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_exal_qr_tightslice_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_qr_tightslice = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_exal_qr_tightslice_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_altcore_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_exal_altcore_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_altcore_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_exal_altcore_defaults.yaml"),
+  remaining_failed_mcmc_exal_v3_altcore = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_v3_exal_altcore_defaults.yaml"),
+  full = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_defaults.yaml")
+)
+phase_grid_map <- list(
+  smoke = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_smoke_grid.csv"),
+  vb = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.csv"),
+  mcmc_ridge = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_ridge_grid.csv"),
+  mcmc_rhsns_tt500 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_rhsns_tt500_grid.csv"),
+  mcmc_rhsns_tt5000 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_mcmc_rhsns_tt5000_grid.csv"),
+  failed_mcmc_al = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_al_grid.csv"),
+  failed_mcmc_exal = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_exal_grid.csv"),
+  failed_mcmc_al_sfreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_al_grid.csv"),
+  failed_mcmc_exal_sfreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_exal_grid.csv"),
+  failed_mcmc_al_thetafreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_al_grid.csv"),
+  failed_mcmc_exal_thetafreeze = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_failed_mcmc_exal_grid.csv"),
+  single_root_probe_exal_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_primary_exal_rhsns_grid.csv"),
+  single_root_probe_exal_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_primary_exal_rhsns_grid.csv"),
+  single_root_probe_exal_stau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_primary_exal_rhsns_grid.csv"),
+  single_root_probe_exal_theta_tau_rescue = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_primary_exal_rhsns_grid.csv"),
+  representative_triad_exal_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_triad_exal_grid.csv"),
+  representative_triad_exal_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_triad_exal_grid.csv"),
+  representative_triad_al_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_triad_al_grid.csv"),
+  representative_triad_al_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_single_root_probe_triad_al_grid.csv"),
+  representative_completion_exal_tau_only = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_ridge_grid.csv"),
+  representative_completion_exal_theta_tau = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_representative_completion_exal_ridge_grid.csv"),
+  remaining_precision_pair_al_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_grid.csv"),
+  remaining_precision_pair_exal_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_matrix_al_qr_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_grid.csv"),
+  remaining_precision_matrix_al_qr_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_grid.csv"),
+  remaining_precision_matrix_al_diag_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_grid.csv"),
+  remaining_precision_matrix_exal_qr_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_matrix_exal_qr_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_matrix_exal_qr_sig_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_matrix_exal_diag_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_code_al_ladder_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_grid.csv"),
+  remaining_precision_code_al_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_grid.csv"),
+  remaining_precision_code_al_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_al_grid.csv"),
+  remaining_precision_code_exal_ladder_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_code_exal_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_code_exal_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_pair_exal_grid.csv"),
+  remaining_precision_closeout_al_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_al_grid.csv"),
+  remaining_precision_closeout_exal_ladder_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_exal_grid.csv"),
+  remaining_precision_closeout_al_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_al_grid.csv"),
+  remaining_precision_closeout_exal_eigen_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_precision_closeout_exal_grid.csv"),
+  remaining_hard_fail_latent_v_al = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_latent_v_al_grid.csv"),
+  remaining_hard_fail_latent_v_exal = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_latent_v_exal_grid.csv"),
+  remaining_hard_fail_exal_ridge_precision_v1 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_exal_ridge_precision_grid.csv"),
+  remaining_hard_fail_exal_ridge_precision_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_hard_fail_exal_ridge_precision_grid.csv"),
+  remaining_failed_mcmc_al_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v2_canary_grid.csv"),
+  remaining_failed_mcmc_exal_v2_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v2_canary_grid.csv"),
+  remaining_failed_mcmc_al_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v2_residual_grid.csv"),
+  remaining_failed_mcmc_exal_v2_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v2_residual_grid.csv"),
+  remaining_failed_mcmc_al_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v2_grid.csv"),
+  remaining_failed_mcmc_exal_v2 = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v2_grid.csv"),
+  remaining_failed_mcmc_al_v3_rescue_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v3_canary_grid.csv"),
+  remaining_failed_mcmc_exal_v3_rescue_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_canary_grid.csv"),
+  remaining_failed_mcmc_al_v3_rescue_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v3_residual_grid.csv"),
+  remaining_failed_mcmc_exal_v3_rescue_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_residual_grid.csv"),
+  remaining_failed_mcmc_al_v3_rescue = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v3_grid.csv"),
+  remaining_failed_mcmc_exal_v3_rescue = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_grid.csv"),
+  remaining_failed_mcmc_al_v3_rescue_extended_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v3_canary_grid.csv"),
+  remaining_failed_mcmc_exal_v3_rescue_extended_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_canary_grid.csv"),
+  remaining_failed_mcmc_al_v3_rescue_extended_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v3_residual_grid.csv"),
+  remaining_failed_mcmc_exal_v3_rescue_extended_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_residual_grid.csv"),
+  remaining_failed_mcmc_al_v3_rescue_extended = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_al_v3_grid.csv"),
+  remaining_failed_mcmc_exal_v3_rescue_extended = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_grid.csv"),
+  remaining_failed_mcmc_exal_v3_qr_tightslice_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_canary_grid.csv"),
+  remaining_failed_mcmc_exal_v3_qr_tightslice_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_residual_grid.csv"),
+  remaining_failed_mcmc_exal_v3_qr_tightslice = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_grid.csv"),
+  remaining_failed_mcmc_exal_v3_altcore_canary = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_canary_grid.csv"),
+  remaining_failed_mcmc_exal_v3_altcore_residual = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_residual_grid.csv"),
+  remaining_failed_mcmc_exal_v3_altcore = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_remaining_failed_mcmc_exal_v3_grid.csv"),
+  full = file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_tau050_refreshed_main_grid.csv")
+)
+phase_likelihoods_map <- list(
+  smoke = NULL,
+  vb = NULL,
+  mcmc_ridge = NULL,
+  mcmc_rhsns_tt500 = NULL,
+  mcmc_rhsns_tt5000 = NULL,
+  failed_mcmc_al = "al",
+  failed_mcmc_exal = "exal",
+  failed_mcmc_al_sfreeze = "al",
+  failed_mcmc_exal_sfreeze = "exal",
+  failed_mcmc_al_thetafreeze = "al",
+  failed_mcmc_exal_thetafreeze = "exal",
+  single_root_probe_exal_tau_only = "exal",
+  single_root_probe_exal_theta_tau = "exal",
+  single_root_probe_exal_stau = "exal",
+  single_root_probe_exal_theta_tau_rescue = "exal",
+  representative_triad_exal_tau_only = "exal",
+  representative_triad_exal_theta_tau = "exal",
+  representative_triad_al_tau_only = "al",
+  representative_triad_al_theta_tau = "al",
+  representative_completion_exal_tau_only = "exal",
+  representative_completion_exal_theta_tau = "exal",
+  remaining_precision_pair_al_v1 = "al",
+  remaining_precision_pair_exal_v2 = "exal",
+  remaining_precision_matrix_al_qr_v1 = "al",
+  remaining_precision_matrix_al_qr_v2 = "al",
+  remaining_precision_matrix_al_diag_v1 = "al",
+  remaining_precision_matrix_exal_qr_v1 = "exal",
+  remaining_precision_matrix_exal_qr_v2 = "exal",
+  remaining_precision_matrix_exal_qr_sig_v1 = "exal",
+  remaining_precision_matrix_exal_diag_v1 = "exal",
+  remaining_precision_code_al_ladder_v1 = "al",
+  remaining_precision_code_al_ladder_v2 = "al",
+  remaining_precision_code_al_eigen_v1 = "al",
+  remaining_precision_code_exal_ladder_v1 = "exal",
+  remaining_precision_code_exal_ladder_v2 = "exal",
+  remaining_precision_code_exal_eigen_v1 = "exal",
+  remaining_precision_closeout_al_ladder_v2 = "al",
+  remaining_precision_closeout_exal_ladder_v2 = "exal",
+  remaining_precision_closeout_al_eigen_v1 = "al",
+  remaining_precision_closeout_exal_eigen_v1 = "exal",
+  remaining_hard_fail_latent_v_al = "al",
+  remaining_hard_fail_latent_v_exal = "exal",
+  remaining_hard_fail_exal_ridge_precision_v1 = "exal",
+  remaining_hard_fail_exal_ridge_precision_v2 = "exal",
+  remaining_failed_mcmc_al_v2_canary = "al",
+  remaining_failed_mcmc_exal_v2_canary = "exal",
+  remaining_failed_mcmc_al_v2_residual = "al",
+  remaining_failed_mcmc_exal_v2_residual = "exal",
+  remaining_failed_mcmc_al_v2 = "al",
+  remaining_failed_mcmc_exal_v2 = "exal",
+  remaining_failed_mcmc_al_v3_rescue_canary = "al",
+  remaining_failed_mcmc_exal_v3_rescue_canary = "exal",
+  remaining_failed_mcmc_al_v3_rescue_residual = "al",
+  remaining_failed_mcmc_exal_v3_rescue_residual = "exal",
+  remaining_failed_mcmc_al_v3_rescue = "al",
+  remaining_failed_mcmc_exal_v3_rescue = "exal",
+  remaining_failed_mcmc_al_v3_rescue_extended_canary = "al",
+  remaining_failed_mcmc_exal_v3_rescue_extended_canary = "exal",
+  remaining_failed_mcmc_al_v3_rescue_extended_residual = "al",
+  remaining_failed_mcmc_exal_v3_rescue_extended_residual = "exal",
+  remaining_failed_mcmc_al_v3_rescue_extended = "al",
+  remaining_failed_mcmc_exal_v3_rescue_extended = "exal",
+  remaining_failed_mcmc_exal_v3_qr_tightslice_canary = "exal",
+  remaining_failed_mcmc_exal_v3_qr_tightslice_residual = "exal",
+  remaining_failed_mcmc_exal_v3_qr_tightslice = "exal",
+  remaining_failed_mcmc_exal_v3_altcore_canary = "exal",
+  remaining_failed_mcmc_exal_v3_altcore_residual = "exal",
+  remaining_failed_mcmc_exal_v3_altcore = "exal",
+  full = NULL
+)
+
+pass_args <- character(0)
+skip_next <- FALSE
+for (i in seq_along(args)) {
+  if (isTRUE(skip_next)) {
+    skip_next <- FALSE
+    next
+  }
+  if (identical(args[[i]], "--phase")) {
+    skip_next <- TRUE
+    next
+  }
+  pass_args <- c(pass_args, args[[i]])
+}
+has_arg <- function(flag, values) {
+  any(values == flag)
+}
+likelihoods_arg <- phase_likelihoods_map[[phase]]
+if (nzchar(trimws(as.character(likelihoods_arg %||% "")[1L])) && !has_arg("--likelihoods", pass_args)) {
+  pass_args <- c(pass_args, "--likelihoods", as.character(likelihoods_arg)[1L])
+}
+if (!has_arg("--run-tag", pass_args)) {
+  defaults_path <- phase_defaults_map[[phase]]
+  defaults <- tryCatch(yaml::read_yaml(defaults_path), error = function(...) list())
+  base_report_root <- resolve_path(
+    (defaults$campaign %||% list())$reports_root %||%
+      file.path("reports", "qdesn_mcmc_validation", "dynamic_exdqlm_crossstudy_validation"),
+    must_work = FALSE
+  )
+  candidates <- list.dirs(base_report_root, full.names = TRUE, recursive = FALSE)
+  candidates <- candidates[grepl("^qdesn-dynamic-exdqlm-crossstudy-", basename(candidates))]
+  if (length(candidates)) {
+    latest_idx <- order(file.info(candidates)$mtime, decreasing = TRUE)[1L]
+    pass_args <- c(pass_args, "--run-tag", basename(candidates[[latest_idx]]))
+  }
+}
+
+status <- system2(
+  "Rscript",
+  c(
+    file.path("scripts", "healthcheck_qdesn_dynamic_exdqlm_crossstudy_validation.R"),
+    "--defaults",
+    phase_defaults_map[[phase]],
+    "--grid",
+    phase_grid_map[[phase]],
+    pass_args
+  ),
+  stdout = "",
+  stderr = ""
+)
+quit(status = as.integer(status), save = "no")

@@ -1,0 +1,70 @@
+base_patch: {}
+
+profiles:
+  - id: K0_failed_roots_baseline
+    description: "Failed-root replay with Stage-I winner defaults."
+    patch: {}
+
+  - id: K1_failed_roots_longer_chain
+    description: "Increase chain length for failed roots only."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 3000
+                n_mcmc: 6000
+                progress_every: 600
+
+  - id: K2_failed_roots_taufreeze_extended
+    description: "Extend RHS tau freeze during burn-in for failed roots."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                rhs:
+                  freeze_tau_burnin_iters: 50
+                  freeze_tau_only_during_burn: yes
+
+  - id: K3_failed_roots_adapt_longer
+    description: "Longer width-adaptation warmup with smaller adaptation step."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                rhs:
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 320
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.045
+                    width_min: 0.05
+                    width_max: 1.2
+
+  - id: K4_failed_roots_taufreeze_plus_adapt
+    description: "Combine extended tau freeze and longer adaptation warmup."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                rhs:
+                  freeze_tau_burnin_iters: 50
+                  freeze_tau_only_during_burn: yes
+                  width_adapt:
+                    enabled: yes
+                    warmup_iters: 320
+                    only_during_burn: yes
+                    target_score_low: -1.0
+                    target_score_high: 1.0
+                    step_size: 0.045
+                    width_min: 0.05
+                    width_max: 1.2

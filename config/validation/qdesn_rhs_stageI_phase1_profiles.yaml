@@ -1,0 +1,36 @@
+base_patch: {}
+
+profiles:
+  - id: P1_baseline
+    description: "Stage-H winner baseline replay (chain and kernel unchanged)."
+    patch: {}
+
+  - id: P1_chain_2200_4400
+    description: "Longer chain to isolate burn-in/mixing limits without kernel changes."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 2200
+                n_mcmc: 4400
+                progress_every: 440
+                rhs:
+                  freeze_tau_burnin_iters: 35
+                  freeze_tau_only_during_burn: yes
+
+  - id: P1_chain_3200_6400_burn45
+    description: "Longer chain + moderate RHS tau warmup freeze during burn-in."
+    patch:
+      pipeline:
+        inference:
+          mcmc:
+            prior_overrides:
+              rhs:
+                n_burn: 3200
+                n_mcmc: 6400
+                progress_every: 640
+                rhs:
+                  freeze_tau_burnin_iters: 45
+                  freeze_tau_only_during_burn: yes
