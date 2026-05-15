@@ -48,9 +48,16 @@ This contradicted the documented contract:
 
 ## Verification
 
+Use R 4.6.0 or newer for package validation and the shared fit+forecast study.
+On Muscat as of 2026-05-15, plain `R` and `Rscript` should resolve through
+`~/.local/bin` to `/data/jaguir26/local/opt/R/4.6.0/bin/{R,Rscript}`. Do not
+invoke `/usr/bin/Rscript` for this validation work, because it resolves to older
+system R 4.5.3 on this server.
+
 Focused checks run:
 
 ```sh
+Rscript -e 'cat(R.version.string, "\n"); stopifnot(getRversion() >= "4.6.0")'
 Rscript -e 'parse("R/exdqlmForecast.R"); parse("tests/testthat/test-dqlm-reduced-paths.R"); cat("parse_ok\n")'
 Rscript -e 'pkgload::load_all(".", quiet=TRUE); testthat::test_file("tests/testthat/test-dqlm-reduced-paths.R")'
 Rscript -e 'pkgload::load_all(".", quiet=TRUE); testthat::test_file("tests/testthat/test-forecast-diagnostics.R")'

@@ -1,0 +1,76 @@
+study:
+  id: exdqlm_dqlm_dynamic_fitforecast_v2
+  run_tag: 20260515_exdqlm_dqlm_dynamic_fitforecast_v2
+  results_root: validation/fitforecast_v2/runs
+  scenario_id: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+
+source:
+  root: /data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  fit_sizes: [500, 5000]
+  forecast_origin_source_index: 9000
+  forecast_start_source_index: 9001
+  forecast_end_source_index: 10000
+  forecast_horizons: [100, 1000]
+
+models:
+  model_variants: [dqlm, exdqlm]
+  inference_methods: [vb, mcmc]
+  df_value: 0.98
+  dim_df: [2, 4]
+
+runtime:
+  r_min_version: "4.6.0"
+  threads: 1
+  workers:
+    smoke: 1
+    vb_full: 4
+    mcmc_tt500: 2
+    mcmc_tt5000: 1
+
+budget:
+  stored_draws: 2000
+  forecast_draws: 2000
+  vb:
+    max_iter: 300
+    tol: 0.03
+    n_samp: 20000
+  mcmc:
+    n_burn: 5000
+    n_mcmc: 20000
+    thin: 1
+    init_from_vb: true
+
+smoke:
+  rows:
+    - family: laplace
+      tau: 0.50
+      fit_size: 500
+      model_variant: exdqlm
+      inference: mcmc
+    - family: laplace
+      tau: 0.50
+      fit_size: 5000
+      model_variant: exdqlm
+      inference: vb
+    - family: normal
+      tau: 0.25
+      fit_size: 500
+      model_variant: dqlm
+      inference: vb
+    - family: gausmix
+      tau: 0.05
+      fit_size: 500
+      model_variant: dqlm
+      inference: mcmc
+
+retention:
+  mode: compact_success_only
+  allow_success_binary_payloads: false
+  debug_heavy_subset: []
+  forbidden_extensions: [".rds", ".rda", ".RData"]
+

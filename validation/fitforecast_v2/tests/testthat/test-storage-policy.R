@@ -1,0 +1,10 @@
+test_that("storage audit flags forbidden binary payloads", {
+  root <- tempfile("ffv2_storage_")
+  dir.create(root)
+  writeLines("ok", file.path(root, "metrics.csv"))
+  expect_equal(ffv2_storage_audit(root)$status, "PASS")
+  writeLines("forbidden", file.path(root, "fit_payload.rds"))
+  audit <- ffv2_storage_audit(root)
+  expect_equal(audit$status, "FAIL")
+  expect_equal(audit$forbidden_payloads, 1L)
+})
