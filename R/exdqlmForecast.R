@@ -96,22 +96,39 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   half.alpha = (1 - cr.percent)/2
   if(is.null(fFF)){
      if(TT-start.t < k){ stop("fFF and fGG must be provided for forecasts extending past the length of the estimated exdqlm")}
-     fFF = m1$model$FF[,(start.t+1):(start.t+k)]
-     fGG = m1$model$GG[,,(start.t+1):(start.t+k)]
+     fFF = m1$model$FF[,(start.t+1):(start.t+k),drop=FALSE]
+     fGG = m1$model$GG[,,(start.t+1):(start.t+k),drop=FALSE]
   }else{
-    fFF = as.matrix(fFF)
+    if(is.null(fGG)){ stop("fGG must be provided when fFF is provided") }
+    if(is.null(dim(fFF))){
+      fFF = matrix(fFF,nrow=p)
+    }else{
+      fFF = as.matrix(fFF)
+    }
     if(nrow(fFF) != p){ stop("dimension of fFF must match the estimated exdqlm") }
     if(!any(ncol(fFF) == c(1,k))){ stop("fFF must have either 1 (non-time-varying) or k (time-varying) columns")}
-    fGG = as.array(fGG)
-    if(any(dim(fGG)[1:2] != p)){ stop("dimension of fGG must match the estimated exdqlm") }
-    if(!is.na(dim(fGG)[3])){
-      if(dim(fGG)[3] != k){
-        stop("fGG must be either a matrix (non-time-varying) or an array of depth k (time-varying)")
-        }
-      }
   }
-  fFF = matrix(fFF,p,k)
-  fGG = array(fGG,c(p,p,TT))
+  if(ncol(fFF) == 1 && k > 1){
+    fFF = matrix(rep(fFF[,1],k),p,k)
+  }else{
+    fFF = matrix(fFF,p,k)
+  }
+  fGG.dim = dim(fGG)
+  if(is.null(fGG.dim)){
+    stop("fGG must be either a matrix (non-time-varying) or an array of depth k (time-varying)")
+  }
+  if(length(fGG.dim) == 2){
+    if(any(fGG.dim != c(p,p))){ stop("dimension of fGG must match the estimated exdqlm") }
+    fGG = array(rep(as.matrix(fGG),k),c(p,p,k))
+  }else if(length(fGG.dim) == 3){
+    if(any(fGG.dim[1:2] != c(p,p))){ stop("dimension of fGG must match the estimated exdqlm") }
+    if(fGG.dim[3] != k){
+      stop("fGG must be either a matrix (non-time-varying) or an array of depth k (time-varying)")
+    }
+    fGG = array(fGG,c(p,p,k))
+  }else{
+    stop("fGG must be either a matrix (non-time-varying) or an array of depth k (time-varying)")
+  }
 
   #### forecast k steps
   df.mat = make_df_mat(m1$df,m1$dim.df,p)
@@ -119,8 +136,8 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   fC = m1$theta.out$fC[,,start.t]
   fa = matrix(NA,p,k)
   fR = array(NA,c(p,p,k))
-  ff = rep(NA,p)
-  fQ = rep(NA,p)
+  ff = rep(NA,k)
+  fQ = rep(NA,k)
   for(i in 1:k){
     if(i == 1){
       fa[,1] = fGG[,,i]%*%fm

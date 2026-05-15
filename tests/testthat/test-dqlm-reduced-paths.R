@@ -71,6 +71,38 @@ test_that("dynamic LDVB reduced DQLM path skips LD gamma-sigma block", {
   expect_equal(dim(fc_draws_1$samp.fore), c(1L, 5L))
   expect_true(all(is.finite(fc_draws_1$samp.fore)))
   expect_equal(fc_draws_1$samp.fore, fc_draws_2$samp.fore, tolerance = 1e-12)
+
+  future_k <- 6L
+  future_FF <- matrix(1, nrow = 1L, ncol = future_k)
+  future_GG <- array(1, dim = c(1L, 1L, future_k))
+  fc_future <- exdqlmForecast(
+    start.t = length(y), k = future_k, m1 = fit,
+    fFF = future_FF, fGG = future_GG, plot = FALSE,
+    return.draws = TRUE, n.samp = 5, seed = 123
+  )
+  expect_s3_class(fc_future, "exdqlmForecast")
+  expect_equal(dim(fc_future$fR), c(1L, 1L, future_k))
+  expect_equal(length(fc_future$ff), future_k)
+  expect_equal(length(fc_future$fQ), future_k)
+  expect_equal(dim(fc_future$samp.fore), c(future_k, 5L))
+  expect_true(all(is.finite(fc_future$ff)))
+  expect_true(all(is.finite(fc_future$fQ)))
+  expect_true(all(is.finite(fc_future$samp.fore)))
+
+  fc_constant_GG <- exdqlmForecast(
+    start.t = length(y), k = future_k, m1 = fit,
+    fFF = future_FF, fGG = matrix(1, 1L, 1L), plot = FALSE
+  )
+  expect_equal(dim(fc_constant_GG$fR), c(1L, 1L, future_k))
+  expect_equal(length(fc_constant_GG$ff), future_k)
+  expect_error(
+    exdqlmForecast(
+      start.t = length(y), k = future_k, m1 = fit,
+      fFF = future_FF, fGG = array(1, dim = c(1L, 1L, future_k - 1L)),
+      plot = FALSE
+    ),
+    "depth k"
+  )
 })
 
 test_that("static MCMC reduced DQLM path excludes gamma/s latent block", {
