@@ -347,6 +347,12 @@ ffv2_prepare_manifest <- function(defaults,
       cfg$defaults_path <- defaults$.__defaults_path__ %||% ffv2_default_defaults_path()
       cfg$runtime <- defaults$runtime
       cfg$budget <- defaults$budget
+      if (isTRUE(as.logical(r$smoke[[1L]]))) {
+        cfg$budget <- utils::modifyList(
+          cfg$budget %||% list(),
+          (defaults$smoke %||% list())$budget %||% list()
+        )
+      }
       cfg$models <- defaults$models
       cfg$retention <- defaults$retention
       ffv2_write_json(cfg, r$row_config_path)

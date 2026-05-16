@@ -8,15 +8,23 @@ qdesn_dynamic_fitforecast_phase_plan <- function(phase = c("smoke", "vb_full", "
     batch = if (identical(phase, "smoke")) "smoke" else "full",
     methods = switch(
       phase,
-      smoke = "vb,mcmc",
+      smoke = "vb",
       vb_full = "vb",
       mcmc_tt500 = "mcmc",
       mcmc_tt5000 = "mcmc",
       full = "vb,mcmc"
     ),
+    likelihoods = switch(
+      phase,
+      smoke = "exal",
+      vb_full = "",
+      mcmc_tt500 = "",
+      mcmc_tt5000 = "",
+      full = ""
+    ),
     fit_sizes = switch(
       phase,
-      smoke = integer(0),
+      smoke = 500L,
       vb_full = integer(0),
       mcmc_tt500 = 500L,
       mcmc_tt5000 = 5000L,
@@ -62,6 +70,31 @@ qdesn_dynamic_fitforecast_assert_launch_approved <- function(phase) {
     )
   }
   invisible(state)
+}
+
+qdesn_dynamic_fitforecast_required_packages <- function() {
+  unique(c(
+    "pkgload", "jsonlite", "yaml",
+    "ggplot2", "dplyr", "tidyr", "tibble", "scales",
+    "MASS", "numDeriv", "matrixStats", "purrr", "readr",
+    "patchwork", "stringr", "truncnorm"
+  ))
+}
+
+qdesn_dynamic_fitforecast_assert_required_packages <- function(packages = qdesn_dynamic_fitforecast_required_packages()) {
+  packages <- unique(as.character(packages))
+  packages <- packages[nzchar(packages)]
+  missing <- packages[!vapply(packages, requireNamespace, logical(1L), quietly = TRUE)]
+  if (length(missing)) {
+    stop(
+      sprintf(
+        "Missing required Q-DESN fit+forecast v2 packages: %s. Install them once before launching; validation smoke/full runs must not auto-install packages.",
+        paste(missing, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+  invisible(packages)
 }
 
 qdesn_validation_filter_dynamic_grid <- function(grid_df,

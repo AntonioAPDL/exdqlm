@@ -12,8 +12,49 @@ test_that("fit+forecast phase plan separates MCMC TT500 and TT5000", {
   expect_identical(tt5000$fit_sizes, 5000L)
   expect_identical(tt5000$batch, "full")
 
+  smoke <- exdqlm:::qdesn_dynamic_fitforecast_phase_plan("smoke")
+  expect_identical(smoke$methods, "vb")
+  expect_identical(smoke$likelihoods, "exal")
+  expect_identical(smoke$fit_sizes, 500L)
+  expect_identical(smoke$batch, "smoke")
+
   expect_identical(vb$methods, "vb")
   expect_length(vb$fit_sizes, 0L)
+})
+
+test_that("Q-DESN fit+forecast dependency preflight reports missing packages explicitly", {
+  expect_identical(
+    exdqlm:::qdesn_dynamic_fitforecast_required_packages(),
+    unique(exdqlm:::qdesn_dynamic_fitforecast_required_packages())
+  )
+  expect_error(
+    exdqlm:::qdesn_dynamic_fitforecast_assert_required_packages(c("base", "definitely_missing_qdesn_ffv2_pkg")),
+    "Missing required Q-DESN fit\\+forecast v2 packages"
+  )
+})
+
+test_that("Q-DESN fit+forecast pipeline config carries IJ switch explicitly", {
+  repo_root <- normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
+  defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(
+    repo_root,
+    "config", "validation", "qdesn_dynamic_fitforecast_v2_storage_light_defaults.yaml"
+  ))
+  grid <- utils::read.csv(file.path(
+    repo_root,
+    "config", "validation", "qdesn_dynamic_fitforecast_v2_full_grid.csv"
+  ), stringsAsFactors = FALSE)
+  root_spec <- exdqlm:::qdesn_dynamic_crossstudy_enrich_root_spec(grid[1L, , drop = FALSE], defaults)
+  cfg <- exdqlm:::qdesn_static_crossstudy_build_pipeline_cfg(
+    root_spec = root_spec,
+    defaults = defaults,
+    method = "vb",
+    likelihood_family = "exal",
+    T_use = root_spec$source_total_size
+  )
+
+  expect_true("ij" %in% names(cfg))
+  expect_false(isTRUE(cfg$ij$use_ij_correction))
+  expect_equal(as.integer(cfg$ij$nd_draws), 0L)
 })
 
 test_that("dynamic grid filters are generic and composable", {

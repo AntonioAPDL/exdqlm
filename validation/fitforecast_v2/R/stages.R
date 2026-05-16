@@ -18,7 +18,7 @@ ffv2_stage_rows <- function(manifest,
       if (file.exists(status_path)) {
         st <- tryCatch(ffv2_read_csv(status_path), error = function(e) NULL)
         if (!is.null(st) && nrow(st)) {
-          completed[[i]] <- tail(st$status, 1L) %in% c("done", "failed_runtime", "running")
+          completed[[i]] <- tail(st$status, 1L) %in% c("done", "running")
         }
       }
     }

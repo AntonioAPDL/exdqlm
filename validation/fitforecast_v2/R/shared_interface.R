@@ -48,6 +48,19 @@ ffv2_git_value <- function(args) {
   tryCatch(trimws(system2("git", args, stdout = TRUE, stderr = FALSE)[[1L]]), error = function(e) NA_character_)
 }
 
+ffv2_package_version_value <- function() {
+  installed <- tryCatch(as.character(utils::packageVersion("exdqlm")), error = function(e) NA_character_)
+  if (!is.na(installed) && nzchar(installed)) return(installed)
+  repo_root <- tryCatch(
+    normalizePath(system2("git", c("rev-parse", "--show-toplevel"), stdout = TRUE)[[1L]], winslash = "/", mustWork = TRUE),
+    error = function(e) NA_character_
+  )
+  desc_path <- if (!is.na(repo_root) && nzchar(repo_root)) file.path(repo_root, "DESCRIPTION") else "DESCRIPTION"
+  desc <- tryCatch(utils::read.dcf(desc_path), error = function(e) NULL)
+  if (!is.null(desc) && "Version" %in% colnames(desc)) return(as.character(desc[1L, "Version"]))
+  NA_character_
+}
+
 ffv2_export_shared_interface <- function(manifest, out_csv) {
   rows <- list()
   for (i in seq_len(nrow(manifest))) {
@@ -85,7 +98,7 @@ ffv2_export_shared_interface <- function(manifest, out_csv) {
     row$forecast_h1000_start_source_index <- ffv2_first_nonempty(row$forecast_h1000_start_source_index, row$forecast_start_source_index)
     row$forecast_h1000_end_source_index <- ffv2_first_nonempty(row$forecast_h1000_end_source_index, row$forecast_end_source_index)
     row$runtime_sec_total <- ffv2_first_nonempty(row$runtime_sec_total, row$runtime_sec)
-    row$package_version <- ffv2_first_nonempty(row$package_version, utils::packageDescription("exdqlm")$Version)
+    row$package_version <- ffv2_first_nonempty(row$package_version, ffv2_package_version_value())
     row$branch <- ffv2_first_nonempty(row$branch, ffv2_git_value(c("rev-parse", "--abbrev-ref", "HEAD")))
     row$commit <- ffv2_first_nonempty(row$commit, ffv2_git_value(c("rev-parse", "HEAD")))
     rows[[length(rows) + 1L]] <- row

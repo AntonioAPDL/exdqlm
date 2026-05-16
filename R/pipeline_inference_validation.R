@@ -274,7 +274,8 @@ write_pipeline_timing_outputs <- function(timing_rows,
   utils::write.csv(rows, file.path(tables_dir, "timing_breakdown.csv"), row.names = FALSE)
   utils::write.csv(summary_df, file.path(tables_dir, "timing_summary.csv"), row.names = FALSE)
 
-  if (!is.null(models_dir)) {
+  write_timing_rds <- isTRUE(.pipeline_as_scalar(context$write_timing_rds, FALSE))
+  if (!is.null(models_dir) && isTRUE(write_timing_rds)) {
     dir.create(models_dir, recursive = TRUE, showWarnings = FALSE)
     saveRDS(
       list(rows = rows, summary = summary_df, context = context),

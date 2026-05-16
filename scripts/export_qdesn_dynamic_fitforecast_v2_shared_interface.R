@@ -83,7 +83,10 @@ out_path <- resolve_path(
 
 branch <- trimws(system("git rev-parse --abbrev-ref HEAD", intern = TRUE))
 commit <- trimws(system("git rev-parse HEAD", intern = TRUE))
-pkg_version <- utils::packageDescription("exdqlm")$Version
+pkg_version <- tryCatch(as.character(utils::packageVersion("exdqlm")), error = function(e) {
+  desc <- tryCatch(utils::read.dcf(file.path(repo_root, "DESCRIPTION")), error = function(e) NULL)
+  if (!is.null(desc) && "Version" %in% colnames(desc)) as.character(desc[1L, "Version"]) else NA_character_
+})
 registry_root <- "/data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast"
 registry_hash <- "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275"
 
@@ -97,8 +100,10 @@ for (i in seq_len(nrow(fit_summary))) {
   }
   if (nrow(grid_row) > 1L) grid_row <- grid_row[1L, , drop = FALSE]
 
-  row <- data.frame(stringsAsFactors = FALSE)
-  for (nm in columns) row[[nm]] <- NA
+  row <- as.data.frame(
+    as.list(stats::setNames(rep(NA_character_, length(columns)), columns)),
+    stringsAsFactors = FALSE
+  )
   row$validation_contract_id <- "qdesn_exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface"
   row$study_id <- "qdesn_dynamic_fitforecast_v2"
   row$run_tag <- first_nonempty(preflight$run_tag, get_col(fit_summary, i, "run_tag"))

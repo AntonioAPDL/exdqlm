@@ -30,6 +30,12 @@ ffv2_fit_row <- function(config, data, model) {
   dqlm_ind <- isTRUE(config$dqlm_ind) || identical(as.character(config$dqlm_ind), "TRUE")
   df <- as.numeric((config$models %||% list())$df_value %||% 0.98)
   dim_df <- as.integer(unlist((config$models %||% list())$dim_df %||% c(2L, 4L), use.names = FALSE))
+  if (length(df) == 1L && length(dim_df) > 1L) {
+    df <- rep(df, length(dim_df))
+  }
+  if (length(df) != length(dim_df)) {
+    stop("Dynamic fit discount factors must have one value per dim.df block.", call. = FALSE)
+  }
   budget <- config$budget %||% list()
   vb_budget <- budget$vb %||% list()
   mcmc_budget <- budget$mcmc %||% list()

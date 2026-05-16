@@ -46,31 +46,32 @@ budget:
     init_from_vb: true
 
 smoke:
+  budget:
+    stored_draws: 100
+    forecast_draws: 100
+    vb:
+      max_iter: 15
+      tol: 0.2
+      n_samp: 200
+    mcmc:
+      n_burn: 20
+      n_mcmc: 40
+      thin: 1
+      init_from_vb: false
   rows:
-    - family: laplace
-      tau: 0.50
-      fit_size: 500
-      model_variant: exdqlm
-      inference: mcmc
-    - family: laplace
-      tau: 0.50
-      fit_size: 5000
-      model_variant: exdqlm
-      inference: vb
     - family: normal
       tau: 0.25
       fit_size: 500
       model_variant: dqlm
       inference: vb
-    - family: gausmix
-      tau: 0.05
+    - family: laplace
+      tau: 0.50
       fit_size: 500
-      model_variant: dqlm
-      inference: mcmc
+      model_variant: exdqlm
+      inference: vb
 
 retention:
   mode: compact_success_only
   allow_success_binary_payloads: false
   debug_heavy_subset: []
   forbidden_extensions: [".rds", ".rda", ".RData"]
-

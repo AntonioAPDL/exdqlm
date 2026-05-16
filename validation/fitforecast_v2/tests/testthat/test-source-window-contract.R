@@ -19,7 +19,7 @@ test_that("prepare manifest creates the 72-row model/inference grid", {
   manifest <- ffv2_prepare_manifest(defaults, registry, dry_run = TRUE)
 
   expect_equal(nrow(manifest), 72L)
-  expect_equal(sum(manifest$smoke %in% c(TRUE, "TRUE", "true", "1")), 4L)
+  expect_equal(sum(manifest$smoke %in% c(TRUE, "TRUE", "true", "1")), 2L)
   expect_equal(as.integer(table(manifest$phase)[["vb_full"]]), 36L)
   expect_equal(as.integer(table(manifest$phase)[["mcmc_tt500"]]), 18L)
   expect_equal(as.integer(table(manifest$phase)[["mcmc_tt5000"]]), 18L)

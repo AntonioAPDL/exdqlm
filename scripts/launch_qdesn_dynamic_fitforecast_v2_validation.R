@@ -16,6 +16,7 @@ get_arg <- function(flag, default = NULL) {
   if (is.na(idx) || idx >= length(args)) return(default)
   args[idx + 1L]
 }
+`%||%` <- function(a, b) if (is.null(a)) b else a
 
 repo_root <- tryCatch(
   normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE),
@@ -24,6 +25,8 @@ repo_root <- tryCatch(
 setwd(repo_root)
 pkgload::load_all(repo_root, quiet = TRUE)
 runtime_snapshot <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
+exdqlm:::qdesn_dynamic_fitforecast_assert_required_packages()
+Sys.setenv(EXDQLM_REQUIRE_PACKAGES_ONLY = "1")
 
 phase <- match.arg(
   as.character(get_arg("--phase", "smoke"))[1L],
@@ -52,6 +55,7 @@ session_name <- if (nzchar(trimws(requested_session_name))) {
 }
 
 methods <- phase_plan$methods
+likelihoods <- as.character(phase_plan$likelihoods %||% "")[1L]
 fit_sizes <- paste(as.integer(phase_plan$fit_sizes), collapse = ",")
 
 child_args <- args
@@ -70,9 +74,12 @@ child_args <- drop_bare_flags(child_args, "--dry-run")
 if (!any(child_args == "--defaults")) child_args <- c(child_args, "--defaults", defaults_rel)
 if (!any(child_args == "--grid")) child_args <- c(child_args, "--grid", grid_rel)
 if (!any(child_args == "--methods")) child_args <- c(child_args, "--methods", methods)
+if (nzchar(likelihoods) && !any(child_args == "--likelihoods")) child_args <- c(child_args, "--likelihoods", likelihoods)
 if (nzchar(fit_sizes) && !any(child_args == "--fit-sizes")) child_args <- c(child_args, "--fit-sizes", fit_sizes)
 if (!any(child_args == "--batch")) child_args <- c(child_args, "--batch", batch)
 if (!any(child_args == "--run-tag")) child_args <- c(child_args, "--run-tag", run_tag)
+if (identical(phase, "smoke") && !any(child_args == "--workers")) child_args <- c(child_args, "--workers", "1")
+if (identical(phase, "smoke") && !any(child_args == "--scheduler")) child_args <- c(child_args, "--scheduler", "static")
 if (!any(child_args == "--allow-grid-subset") && isTRUE(phase_plan$allow_grid_subset_default)) child_args <- c(child_args, "--allow-grid-subset")
 
 approval_state <- exdqlm:::qdesn_dynamic_fitforecast_approval_state(phase)

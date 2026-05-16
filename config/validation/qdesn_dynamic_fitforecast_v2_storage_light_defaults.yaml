@@ -140,6 +140,51 @@ smoke:
   - 500
   - 5000
   priors: ridge
+  budget:
+    posterior_metric_draws: 50
+    vb_sampling_nd_draws: 50
+    vb_synthesis_n_samp: 50
+    mcmc_n_burn: 20
+    mcmc_n_mcmc: 40
+    mcmc_thin: 1
+  pipeline:
+    sampling:
+      nd_draws: 50
+      chunk: 50
+    ij:
+      use_ij_correction: no
+      nd_draws: 0
+    synthesis:
+      grid_M: 51
+      n_samp: 50
+    inference:
+      vb:
+        max_iter: 5
+        min_iter_elbo: 2
+        n_samp_xi: 20
+        verbose: no
+        prior_overrides:
+          ridge:
+            max_iter: 5
+            min_iter_elbo: 2
+            n_samp_xi: 20
+          rhs_ns:
+            max_iter: 5
+            min_iter_elbo: 2
+            n_samp_xi: 20
+        diagnostics:
+          rhs_trace: no
+      mcmc:
+        n_burn: 20
+        n_mcmc: 40
+        thin: 1
+        verbose: no
+        progress_every: 20
+        init_from_vb: no
+        vb_warm_start_control:
+          max_iter: 5
+          min_iter_elbo: 2
+          n_samp_xi: 20
 metrics:
   primary_windows:
   - train_effective
@@ -270,6 +315,9 @@ pipeline:
     mode: origin
     train_last_window: 18
     fore_last_window: 18
+  ij:
+    use_ij_correction: no
+    nd_draws: 0
   synthesis:
     isotonic: no
     rearrange: no

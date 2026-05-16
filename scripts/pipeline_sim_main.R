@@ -69,6 +69,12 @@ suppressPackageStartupMessages({
          "MASS","numDeriv","matrixStats","purrr","readr","patchwork","jsonlite",
          "truncnorm")
   need <- setdiff(req, rownames(installed.packages()))
+  if (length(need) && identical(Sys.getenv("EXDQLM_REQUIRE_PACKAGES_ONLY", "0"), "1")) {
+    stop(
+      sprintf("Missing required packages: %s. Install packages before validation launch; auto-install is disabled.", paste(need, collapse = ", ")),
+      call. = FALSE
+    )
+  }
   if (length(need)) install.packages(need, repos="https://cloud.r-project.org", dependencies = TRUE)
   invisible(lapply(req, require, character.only = TRUE))
 })

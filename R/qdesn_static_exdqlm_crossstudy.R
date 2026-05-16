@@ -669,6 +669,10 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
       train_last_window = 1L,
       fore_last_window = 1L
     ), pipeline_cfg$forecast %||% list()),
+    ij = modifyList(list(
+      use_ij_correction = FALSE,
+      nd_draws = 0L
+    ), pipeline_cfg$ij %||% list()),
     synthesis = modifyList(list(
       isotonic = FALSE,
       rearrange = FALSE,

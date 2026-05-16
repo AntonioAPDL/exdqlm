@@ -139,6 +139,26 @@ create_plots <- !has_flag("--no-plots")
 batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smoke"))
 
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
+if (identical(batch, "smoke")) {
+  smoke_cfg <- defaults$smoke %||% list()
+  if (!is.null(smoke_cfg$budget)) {
+    defaults$study_contract <- defaults$study_contract %||% list()
+    defaults$study_contract$budget <- utils::modifyList(
+      defaults$study_contract$budget %||% list(),
+      smoke_cfg$budget
+    )
+    defaults$metrics <- defaults$metrics %||% list()
+    if (!is.null(smoke_cfg$budget$posterior_metric_draws)) {
+      defaults$metrics$posterior_metric_draws <- smoke_cfg$budget$posterior_metric_draws
+    }
+  }
+  if (!is.null(smoke_cfg$pipeline)) {
+    defaults$pipeline <- utils::modifyList(
+      defaults$pipeline %||% list(),
+      smoke_cfg$pipeline
+    )
+  }
+}
 runtime_snapshot <- exdqlm:::qdesn_validation_assert_runtime(repo_root = repo_root)
 git_snapshot <- exdqlm:::qdesn_validation_git_snapshot(repo_root = repo_root)
 methods_arg <- as.character(get_arg("--methods", ""))[1L]
