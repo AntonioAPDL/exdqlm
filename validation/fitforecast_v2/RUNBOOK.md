@@ -49,7 +49,45 @@ Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke
 
 ## 7. Staged Full Compute
 
-After smoke closeout:
+Preferred launch path after smoke closeout is the shared orchestrator. It
+performs the runtime/source/path/process preflight, writes an auditable launch
+plan, uses explicit worker caps, launches each approved stage in tmux, polls
+healthchecks, and stops before TT5000 unless the TT5000 gate is explicitly
+enabled.
+
+Plan only:
+
+```sh
+Rscript scripts/orchestrate_shared_fitforecast_v2_validation.R \
+  --mode plan \
+  --plan vb-and-tt500 \
+  --max-active-workers 48 \
+  --exdqlm-vb-workers 16 \
+  --qdesn-vb-workers 24 \
+  --exdqlm-mcmc-tt500-workers 8 \
+  --qdesn-mcmc-tt500-workers 16
+```
+
+Execute through VB and TT500 MCMC, still pausing before TT5000:
+
+```sh
+SHARED_FFV2_ORCHESTRATOR_APPROVED=true \
+Rscript scripts/orchestrate_shared_fitforecast_v2_validation.R \
+  --mode execute \
+  --plan vb-and-tt500 \
+  --max-active-workers 48 \
+  --exdqlm-vb-workers 16 \
+  --qdesn-vb-workers 24 \
+  --exdqlm-mcmc-tt500-workers 8 \
+  --qdesn-mcmc-tt500-workers 16 \
+  --poll-minutes 10
+```
+
+The orchestrator exports one thread per process for BLAS/OpenMP hygiene:
+`OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`, `MKL_NUM_THREADS=1`,
+`VECLIB_MAXIMUM_THREADS=1`, and `NUMEXPR_NUM_THREADS=1`.
+
+Manual fallback after smoke closeout:
 
 ```sh
 EXDQLM_FFV2_LAUNCH_APPROVED=true \

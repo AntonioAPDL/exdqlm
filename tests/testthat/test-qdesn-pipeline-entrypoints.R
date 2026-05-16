@@ -2,11 +2,17 @@ test_that("Q-DESN compatibility pipeline entrypoints are present", {
   repo <- normalizePath(test_path("..", ".."), winslash = "/", mustWork = TRUE)
   sim_path <- file.path(repo, "scripts", "pipeline_sim_main.R")
   real_path <- file.path(repo, "scripts", "pipeline_real_main.R")
+  orchestrator_path <- file.path(repo, "scripts", "orchestrate_shared_fitforecast_v2_validation.R")
 
   expect_true(file.exists(sim_path))
   expect_true(file.exists(real_path))
+  expect_true(file.exists(orchestrator_path))
   expect_match(paste(readLines(sim_path, n = 6L, warn = FALSE), collapse = "\n"), "Compatibility source note")
   expect_match(paste(readLines(real_path, n = 6L, warn = FALSE), collapse = "\n"), "Compatibility source note")
+  expect_silent(parse(orchestrator_path))
+  orchestrator <- paste(readLines(orchestrator_path, warn = FALSE), collapse = "\n")
+  expect_match(orchestrator, "SHARED_FFV2_ORCHESTRATOR_APPROVED")
+  expect_match(orchestrator, "SHARED_FFV2_TT5000_APPROVED")
 })
 
 test_that("run_esn_pipeline_from_cfg chooses entrypoint by pipeline mode", {
