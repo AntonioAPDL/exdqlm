@@ -128,7 +128,7 @@ preflight <- function() {
 
   active_cmd <- paste(
     "TERM=xterm tmux ls 2>&1 | rg '^(qdesn_ff_v2|ffv2_|shared_fitforecast|exdqlm_ffv2)' || true;",
-    "ps -ef | rg 'qdesn_ff_v2|pipeline_real_main|pipeline_sim_main|launch_exdqlm_dynamic_fitforecast|run_exdqlm_dynamic_fitforecast|run_qdesn_dynamic_exdqlm_crossstudy'",
+    "ps -ef | rg 'qdesn_ff_v2|launch_qdesn_dynamic_fitforecast|run_qdesn_dynamic_exdqlm_crossstudy|launch_exdqlm_dynamic_fitforecast|run_exdqlm_dynamic_fitforecast'",
     "| rg -v 'rg|bash -lc' || true"
   )
   active <- cmd_lines("bash", c("-lc", shQuote(active_cmd)))
