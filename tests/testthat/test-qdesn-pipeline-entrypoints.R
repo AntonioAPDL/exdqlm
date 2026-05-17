@@ -13,6 +13,9 @@ test_that("Q-DESN compatibility pipeline entrypoints are present", {
   orchestrator <- paste(readLines(orchestrator_path, warn = FALSE), collapse = "\n")
   expect_match(orchestrator, "SHARED_FFV2_ORCHESTRATOR_APPROVED")
   expect_match(orchestrator, "SHARED_FFV2_TT5000_APPROVED")
+  expect_match(orchestrator, "qdesn_inner_session")
+  expect_match(orchestrator, "stage_live")
+  expect_false(grepl("pipeline_real_main|pipeline_sim_main", orchestrator, fixed = TRUE))
 })
 
 test_that("run_esn_pipeline_from_cfg chooses entrypoint by pipeline mode", {

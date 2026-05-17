@@ -279,6 +279,26 @@ session_live <- function(session) {
   identical(system2("tmux", c("has-session", "-t", session), env = "TERM=xterm", stdout = FALSE, stderr = FALSE), 0L)
 }
 
+qdesn_inner_session <- function(stage) {
+  if (!identical(stage$family, "qdesn")) return(NA_character_)
+  meta_path <- file.path(
+    repo_root,
+    "reports", "qdesn_mcmc_validation", "dynamic_fitforecast_v2_validation",
+    stage$run_tag, "launch", "launcher_session.json"
+  )
+  if (!file.exists(meta_path)) return(NA_character_)
+  meta <- tryCatch(jsonlite::read_json(meta_path, simplifyVector = TRUE), error = function(e) NULL)
+  session <- as.character(meta$session_name %||% NA_character_)[1L]
+  if (!nzchar(session) || identical(session, "NA")) NA_character_ else session
+}
+
+stage_live <- function(stage) {
+  if (session_live(stage$session)) return(TRUE)
+  inner <- qdesn_inner_session(stage)
+  if (!is.na(inner) && session_live(inner)) return(TRUE)
+  FALSE
+}
+
 run_health <- function(stage) {
   res <- cmd_lines(stage$health_cmd[[1L]], stage$health_cmd[-1L], env = thread_env)
   path <- file.path(logs_root, sprintf("%s_health_%s.log", stage$id, format(Sys.time(), "%Y%m%d_%H%M%S")))
@@ -413,7 +433,7 @@ execute_plan <- function(stages) {
     launch_tmux(stage)
     repeat {
       Sys.sleep(max(60, poll_minutes * 60))
-      if (!session_live(stage$session)) break
+      if (!stage_live(stage)) break
       cat(sprintf("[%s] still running at %s\n", stage$id, Sys.time()))
       run_health(stage)
     }
