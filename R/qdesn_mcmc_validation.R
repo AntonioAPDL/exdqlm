@@ -843,12 +843,330 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   .qdesn_validation_bind_rows(rows)
 }
 
+.qdesn_validation_qdesn_state_update_method <- function() {
+  "forecast_lattice_observed_lag_state_update_no_refit"
+}
+
+.qdesn_validation_rolling_origin_cfg <- function(defaults = NULL) {
+  metrics <- (defaults %||% list())$metrics %||% list()
+  rolling <- metrics$rolling_origin %||% list()
+  if (!length(rolling)) {
+    source <- (defaults %||% list())$source %||% list()
+    rolling <- list(
+      enabled = FALSE,
+      forecast_protocol = source$forecast_protocol %||% metrics$forecast_protocol %||% "rolling_origin_no_refit_state_update",
+      max_lead_configured = source$rolling_hmax %||% metrics$rolling_hmax %||% 30L,
+      origin_stride = source$origin_stride %||% metrics$origin_stride %||% source$rolling_hmax %||% 30L,
+      require_lead_export = FALSE
+    )
+  }
+  hmax <- as.integer(
+    rolling$max_lead_configured %||% rolling$hmax %||% rolling$rolling_hmax %||% 30L
+  )[1L]
+  stride <- as.integer(
+    rolling$origin_stride %||% rolling$stride %||% hmax
+  )[1L]
+  if (!is.finite(hmax) || hmax < 1L) hmax <- 30L
+  if (!is.finite(stride) || stride < 1L) stride <- hmax
+  list(
+    enabled = isTRUE(rolling$enabled %||% FALSE),
+    require_lead_export = isTRUE(rolling$require_lead_export %||% rolling$required %||% FALSE),
+    forecast_protocol = as.character(rolling$forecast_protocol %||% "rolling_origin_no_refit_state_update")[1L],
+    state_update_method = as.character(rolling$state_update_method %||% .qdesn_validation_qdesn_state_update_method())[1L],
+    refit_per_origin = isTRUE(rolling$refit_per_origin %||% FALSE),
+    max_lead_configured = hmax,
+    origin_stride = stride
+  )
+}
+
+.qdesn_validation_rolling_grid <- function(train_end_source_index,
+                                           forecast_start_source_index,
+                                           forecast_end_source_index,
+                                           hmax,
+                                           origin_stride,
+                                           forecast_protocol = "rolling_origin_no_refit_state_update") {
+  train_end_source_index <- as.integer(train_end_source_index)[1L]
+  forecast_start_source_index <- as.integer(forecast_start_source_index)[1L]
+  forecast_end_source_index <- as.integer(forecast_end_source_index)[1L]
+  hmax <- as.integer(hmax)[1L]
+  origin_stride <- as.integer(origin_stride)[1L]
+  if (!all(is.finite(c(train_end_source_index, forecast_start_source_index, forecast_end_source_index, hmax, origin_stride)))) {
+    stop("Rolling-origin grid inputs must be finite integers.", call. = FALSE)
+  }
+  if (forecast_start_source_index != train_end_source_index + 1L) {
+    stop("forecast_start_source_index must equal train_end_source_index + 1.", call. = FALSE)
+  }
+  if (forecast_end_source_index < forecast_start_source_index) {
+    stop("forecast_end_source_index must be >= forecast_start_source_index.", call. = FALSE)
+  }
+  if (hmax < 1L || origin_stride < 1L) {
+    stop("hmax and origin_stride must be >= 1.", call. = FALSE)
+  }
+  forecast_block_size <- forecast_end_source_index - forecast_start_source_index + 1L
+  if (hmax > forecast_block_size) {
+    stop("hmax must be <= forecast block size.", call. = FALSE)
+  }
+  origins <- seq.int(train_end_source_index, forecast_end_source_index - 1L, by = origin_stride)
+  raw <- expand.grid(
+    forecast_origin_source_index = origins,
+    forecast_lead = seq_len(hmax),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  raw$target_source_index <- as.integer(raw$forecast_origin_source_index + raw$forecast_lead)
+  raw <- raw[
+    raw$target_source_index >= forecast_start_source_index &
+      raw$target_source_index <= forecast_end_source_index,
+    ,
+    drop = FALSE
+  ]
+  raw <- raw[order(raw$forecast_origin_source_index, raw$forecast_lead), , drop = FALSE]
+  rownames(raw) <- NULL
+  lead_counts <- table(raw$forecast_lead)
+  data.frame(
+    forecast_protocol = as.character(forecast_protocol)[1L],
+    forecast_block_start_source_index = forecast_start_source_index,
+    forecast_block_end_source_index = forecast_end_source_index,
+    forecast_block_size = forecast_block_size,
+    max_lead_configured = hmax,
+    origin_stride = origin_stride,
+    origin_sequence_id = as.integer(match(raw$forecast_origin_source_index, origins)),
+    forecast_origin_source_index = as.integer(raw$forecast_origin_source_index),
+    forecast_lead = as.integer(raw$forecast_lead),
+    target_source_index = as.integer(raw$target_source_index),
+    n_origins_for_lead = as.integer(lead_counts[as.character(raw$forecast_lead)]),
+    stringsAsFactors = FALSE
+  )
+}
+
+.qdesn_validation_quantile_columns <- function(draws,
+                                               probs = c(0.025, 0.25, 0.5, 0.75, 0.975)) {
+  draws <- as.matrix(draws)
+  qs <- t(apply(draws, 1L, stats::quantile, probs = probs, na.rm = TRUE, names = FALSE))
+  colnames(qs) <- paste0("qhat_p", gsub("\\.", "", sprintf("%.3f", probs)))
+  as.data.frame(qs, check.names = FALSE)
+}
+
+.qdesn_validation_rolling_lead_path_file <- function(method_dir) {
+  file.path(method_dir, "tables", "forecast_rolling_origin_paths.csv")
+}
+
+.qdesn_validation_rolling_lead_metrics_file <- function(method_dir) {
+  file.path(method_dir, "tables", "forecast_lead_metrics.csv")
+}
+
+.qdesn_validation_qdesn_lead_path_df <- function(summary_obj,
+                                                 root_spec,
+                                                 defaults = NULL) {
+  cfg <- .qdesn_validation_rolling_origin_cfg(defaults)
+  if (!isTRUE(cfg$enabled)) return(data.frame(stringsAsFactors = FALSE))
+  if (!identical(cfg$forecast_protocol, "rolling_origin_no_refit_state_update")) {
+    stop(sprintf("Unsupported Q-DESN forecast_protocol: %s", cfg$forecast_protocol), call. = FALSE)
+  }
+  fits_fc <- (summary_obj$forecast_objects %||% list())$fits_fc %||% list()
+  if (!length(fits_fc)) {
+    if (isTRUE(cfg$require_lead_export)) stop("Q-DESN rolling lead export requires forecast_objects$fits_fc.", call. = FALSE)
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  fit_entry <- fits_fc[[1L]]
+  forecast_full <- fit_entry$forecast_full %||% list()
+  origins_local <- as.integer(forecast_full$origins %||% integer(0))
+  mu_by_origin <- forecast_full$mu_by_origin %||% NULL
+  yrep_by_origin <- forecast_full$yrep_by_origin %||% NULL
+  missing_origin_draws <- !length(origins_local) ||
+    is.null(mu_by_origin) || !length(mu_by_origin) ||
+    is.null(yrep_by_origin) || !length(yrep_by_origin)
+  if (isTRUE(missing_origin_draws)) {
+    msg <- paste(
+      "Q-DESN rolling lead export requires forecast_full$origins,",
+      "forecast_full$mu_by_origin, and forecast_full$yrep_by_origin.",
+      "Set pipeline.outputs.keep_draws=yes or write compact rolling lead rows before pruning."
+    )
+    if (isTRUE(cfg$require_lead_export)) stop(msg, call. = FALSE)
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  if (length(mu_by_origin) != length(origins_local) ||
+      length(yrep_by_origin) != length(origins_local)) {
+    stop("Q-DESN rolling origin draw list lengths do not match forecast_full$origins.", call. = FALSE)
+  }
+
+  source_df <- .qdesn_validation_read_source_series(root_spec)
+  if (is.null(source_df) || !nrow(source_df)) {
+    stop("Q-DESN rolling lead export requires root_spec$source_series_wide_path.", call. = FALSE)
+  }
+  source_index <- if ("source_index" %in% names(source_df)) {
+    as.integer(source_df$source_index)
+  } else if ("t" %in% names(source_df)) {
+    as.integer(source_df$t)
+  } else {
+    seq_len(nrow(source_df))
+  }
+  y <- as.numeric(source_df$y %||% rep(NA_real_, nrow(source_df)))
+  q_true <- if ("q_target" %in% names(source_df)) {
+    as.numeric(source_df$q_target)
+  } else if ("q_true" %in% names(source_df)) {
+    as.numeric(source_df$q_true)
+  } else if ("mu" %in% names(source_df)) {
+    as.numeric(source_df$mu)
+  } else {
+    rep(NA_real_, nrow(source_df))
+  }
+
+  grid <- .qdesn_validation_rolling_grid(
+    train_end_source_index = root_spec$train_end_source_index,
+    forecast_start_source_index = root_spec$forecast_start_source_index,
+    forecast_end_source_index = root_spec$forecast_end_source_index,
+    hmax = cfg$max_lead_configured,
+    origin_stride = cfg$origin_stride,
+    forecast_protocol = cfg$forecast_protocol
+  )
+  local_origin_for_source <- match(as.integer(grid$forecast_origin_source_index), source_index)
+  local_target_for_source <- match(as.integer(grid$target_source_index), source_index)
+  if (any(is.na(local_origin_for_source)) || any(is.na(local_target_for_source))) {
+    stop("Q-DESN rolling lead grid could not be mapped to staged source rows.", call. = FALSE)
+  }
+
+  rows <- vector("list", nrow(grid))
+  tau <- as.numeric(root_spec$tau %||% NA_real_)[1L]
+  for (i in seq_len(nrow(grid))) {
+    origin_local <- as.integer(local_origin_for_source[[i]])
+    target_local <- as.integer(local_target_for_source[[i]])
+    lead <- as.integer(grid$forecast_lead[[i]])
+    origin_pos <- match(origin_local, origins_local)
+    if (is.na(origin_pos)) {
+      stop(sprintf(
+        "Q-DESN rolling lead export is missing local origin %d for source index %d.",
+        origin_local,
+        as.integer(grid$forecast_origin_source_index[[i]])
+      ), call. = FALSE)
+    }
+    mu_mat <- as.matrix(mu_by_origin[[origin_pos]])
+    yrep_mat <- as.matrix(yrep_by_origin[[origin_pos]])
+    if (nrow(mu_mat) < lead || nrow(yrep_mat) < lead) {
+      stop(sprintf(
+        "Q-DESN rolling lead export origin %d has only %d mu rows and %d yrep rows; need lead %d.",
+        as.integer(grid$forecast_origin_source_index[[i]]),
+        nrow(mu_mat),
+        nrow(yrep_mat),
+        lead
+      ), call. = FALSE)
+    }
+    draw_row <- matrix(mu_mat[lead, ], nrow = 1L)
+    qhat <- stats::median(as.numeric(draw_row), na.rm = TRUE)
+    qs <- .qdesn_validation_quantile_columns(draw_row)
+    y_i <- as.numeric(y[[target_local]])
+    q_true_i <- as.numeric(q_true[[target_local]])
+    rows[[i]] <- cbind(
+      data.frame(
+        split_role = "rolling_forecast",
+        source_index = as.integer(grid$target_source_index[[i]]),
+        y = y_i,
+        q_true = q_true_i,
+        qhat = qhat,
+        q_error = qhat - q_true_i,
+        abs_q_error = abs(qhat - q_true_i),
+        squared_q_error = (qhat - q_true_i)^2,
+        pinball_tau = .qdesn_validation_pinball(y_i, qhat, tau),
+        hit = as.integer(y_i <= qhat),
+        coverage_minus_tau = as.integer(y_i <= qhat) - tau,
+        horizon = lead,
+        forecast_protocol = cfg$forecast_protocol,
+        state_update_method = cfg$state_update_method,
+        refit_per_origin = isTRUE(cfg$refit_per_origin),
+        forecast_origin_source_index = as.integer(grid$forecast_origin_source_index[[i]]),
+        forecast_lead = lead,
+        target_source_index = as.integer(grid$target_source_index[[i]]),
+        origin_sequence_id = as.integer(grid$origin_sequence_id[[i]]),
+        origin_stride = as.integer(grid$origin_stride[[i]]),
+        max_lead_configured = as.integer(grid$max_lead_configured[[i]]),
+        n_origins_for_lead = as.integer(grid$n_origins_for_lead[[i]]),
+        local_origin_t = origin_local,
+        local_target_t = target_local,
+        qdesn_forecast_engine = "forecast_lattice.qdesn_fit",
+        posterior_draw_source = "mu_by_origin",
+        predictive_draws_used_for_primary = FALSE,
+        synthesis_enabled = FALSE,
+        stringsAsFactors = FALSE
+      ),
+      qs
+    )
+  }
+  out <- .qdesn_validation_bind_rows(rows)
+  out[order(as.integer(out$forecast_origin_source_index), as.integer(out$forecast_lead)), , drop = FALSE]
+}
+
+.qdesn_validation_qdesn_lead_metrics_df <- function(path_df, root_spec) {
+  path_df <- as.data.frame(path_df %||% data.frame(stringsAsFactors = FALSE), stringsAsFactors = FALSE)
+  if (!nrow(path_df)) return(data.frame(stringsAsFactors = FALSE))
+  rows <- lapply(split(path_df, path_df$forecast_lead), function(x) {
+    data.frame(
+      root_id = as.character(root_spec$root_id %||% NA_character_)[1L],
+      dataset_cell_id = as.character(root_spec$dataset_cell_id %||% NA_character_)[1L],
+      scenario = as.character(root_spec$scenario %||% root_spec$source_scenario %||% NA_character_)[1L],
+      family = as.character(root_spec$source_family %||% root_spec$family %||% NA_character_)[1L],
+      tau = as.numeric(root_spec$tau %||% NA_real_)[1L],
+      fit_size = as.integer(root_spec$effective_fit_size %||% root_spec$fit_size %||% NA_integer_)[1L],
+      forecast_protocol = as.character(x$forecast_protocol[[1L]]),
+      state_update_method = as.character(x$state_update_method[[1L]]),
+      refit_per_origin = isTRUE(x$refit_per_origin[[1L]]),
+      forecast_lead = as.integer(x$forecast_lead[[1L]]),
+      origin_stride = as.integer(x$origin_stride[[1L]]),
+      max_lead_configured = as.integer(x$max_lead_configured[[1L]]),
+      n_origins_scored = nrow(x),
+      origin_start_source_index = min(as.integer(x$forecast_origin_source_index), na.rm = TRUE),
+      origin_end_source_index = max(as.integer(x$forecast_origin_source_index), na.rm = TRUE),
+      target_start_source_index = min(as.integer(x$target_source_index), na.rm = TRUE),
+      target_end_source_index = max(as.integer(x$target_source_index), na.rm = TRUE),
+      forecast_qtrue_mae = mean(as.numeric(x$abs_q_error), na.rm = TRUE),
+      forecast_qtrue_rmse = sqrt(mean(as.numeric(x$squared_q_error), na.rm = TRUE)),
+      forecast_qtrue_bias = mean(as.numeric(x$q_error), na.rm = TRUE),
+      forecast_pinball_mean = mean(as.numeric(x$pinball_tau), na.rm = TRUE),
+      forecast_coverage = mean(as.numeric(x$hit), na.rm = TRUE),
+      forecast_coverage_error = mean(as.numeric(x$coverage_minus_tau), na.rm = TRUE),
+      synthesis_enabled = FALSE,
+      posterior_draw_source = "mu_by_origin",
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- .qdesn_validation_bind_rows(rows)
+  out[order(as.integer(out$forecast_lead)), , drop = FALSE]
+}
+
+.qdesn_validation_write_qdesn_rolling_lead_paths <- function(summary_obj,
+                                                            root_spec,
+                                                            method_dir,
+                                                            defaults = NULL) {
+  cfg <- .qdesn_validation_rolling_origin_cfg(defaults)
+  if (!isTRUE(cfg$enabled)) {
+    return(list(
+      path = NA_character_, rows = 0L,
+      metrics = NA_character_, metrics_rows = 0L,
+      status = "DISABLED"
+    ))
+  }
+  path_df <- .qdesn_validation_qdesn_lead_path_df(summary_obj, root_spec, defaults = defaults)
+  metrics_df <- .qdesn_validation_qdesn_lead_metrics_df(path_df, root_spec)
+  path_file <- .qdesn_validation_rolling_lead_path_file(method_dir)
+  metrics_file <- .qdesn_validation_rolling_lead_metrics_file(method_dir)
+  if (nrow(path_df)) .qdesn_validation_write_df(path_df, path_file)
+  if (nrow(metrics_df)) .qdesn_validation_write_df(metrics_df, metrics_file)
+  list(
+    path = if (nrow(path_df)) normalizePath(path_file, winslash = "/", mustWork = FALSE) else NA_character_,
+    rows = as.integer(nrow(path_df)),
+    metrics = if (nrow(metrics_df)) normalizePath(metrics_file, winslash = "/", mustWork = FALSE) else NA_character_,
+    metrics_rows = as.integer(nrow(metrics_df)),
+    status = if (nrow(path_df) && nrow(metrics_df)) "PASS" else "EMPTY"
+  )
+}
+
 .qdesn_validation_write_compact_fit_paths <- function(summary_obj, root_spec, method_dir, defaults = NULL) {
   if (is.null(summary_obj) || is.null(summary_obj$forecast_objects)) {
     return(list(
       train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L,
       index_alignment = NA_character_, index_alignment_status = "MISSING",
-      forecast_horizon_summary = NA_character_, forecast_horizon_rows = 0L
+      forecast_horizon_summary = NA_character_, forecast_horizon_rows = 0L,
+      forecast_rolling_origin_path = NA_character_, forecast_rolling_origin_rows = 0L,
+      forecast_lead_metrics = NA_character_, forecast_lead_metrics_rows = 0L,
+      forecast_rolling_origin_status = "MISSING"
     ))
   }
   train_path <- .qdesn_validation_compact_fit_path_file(method_dir, "train")
@@ -870,6 +1188,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     horizons = ((defaults %||% list())$metrics %||% list())$forecast_horizons %||% c(100L, 1000L)
   )
   if (nrow(horizon_summary)) .qdesn_validation_write_df(horizon_summary, forecast_horizon_path)
+  rolling_leads <- .qdesn_validation_write_qdesn_rolling_lead_paths(
+    summary_obj = summary_obj,
+    root_spec = root_spec,
+    method_dir = method_dir,
+    defaults = defaults
+  )
   alignment_status <- if (nrow(alignment_df) && all(as.character(alignment_df$status) == "PASS")) "PASS" else "FAIL"
   .qdesn_validation_write_json(file.path(method_dir, "manifest", "index_alignment.json"), list(
     generated_at = as.character(Sys.time()),
@@ -885,7 +1209,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     index_alignment = if (nrow(alignment_df)) normalizePath(index_alignment_path, winslash = "/", mustWork = FALSE) else NA_character_,
     index_alignment_status = alignment_status,
     forecast_horizon_summary = if (nrow(horizon_summary)) normalizePath(forecast_horizon_path, winslash = "/", mustWork = FALSE) else NA_character_,
-    forecast_horizon_rows = as.integer(nrow(horizon_summary))
+    forecast_horizon_rows = as.integer(nrow(horizon_summary)),
+    forecast_rolling_origin_path = rolling_leads$path,
+    forecast_rolling_origin_rows = as.integer(rolling_leads$rows),
+    forecast_lead_metrics = rolling_leads$metrics,
+    forecast_lead_metrics_rows = as.integer(rolling_leads$metrics_rows),
+    forecast_rolling_origin_status = rolling_leads$status
   )
 }
 
@@ -976,6 +1305,11 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     index_alignment_status = compact_paths$index_alignment_status,
     forecast_horizon_summary_path = compact_paths$forecast_horizon_summary,
     forecast_horizon_summary_rows = as.integer(compact_paths$forecast_horizon_rows %||% 0L),
+    forecast_rolling_origin_path = compact_paths$forecast_rolling_origin_path,
+    forecast_rolling_origin_rows = as.integer(compact_paths$forecast_rolling_origin_rows %||% 0L),
+    forecast_lead_metrics_path = compact_paths$forecast_lead_metrics,
+    forecast_lead_metrics_rows = as.integer(compact_paths$forecast_lead_metrics_rows %||% 0L),
+    forecast_rolling_origin_status = compact_paths$forecast_rolling_origin_status,
     index_alignment_ready = isTRUE(alignment_ready),
     compact_ready_for_pruning = isTRUE(compact_ready),
     compact_error = compact_error,

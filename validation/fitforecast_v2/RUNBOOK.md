@@ -124,6 +124,7 @@ Required closeout evidence:
 - status counts;
 - health gate counts;
 - storage audit with zero forbidden successful run payloads;
+- rolling lead metrics path and nonzero row count for primary fit+forecast rows;
 - shared-interface row count and path;
 - explicit decision to continue, retry, repair, or stop.
 

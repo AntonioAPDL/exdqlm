@@ -24,7 +24,11 @@ it does not retain full successful model objects.
 - Forecast block: source indices `9001:10000`
 - TT500 train window: source indices `8501:9000`
 - TT5000 train window: source indices `4001:9000`
-- Reported forecast horizons: `H=100` and `H=1000`
+- Primary forecast protocol: rolling origin, no refit, state/lag update through
+  each origin.
+- Primary lead grid: `Hmax=30`, `origin_stride=30`.
+- Legacy aggregate forecast windows retained for compatibility:
+  `9001:9100` and `9001:10000`.
 
 ## Main Commands
 
@@ -89,9 +93,9 @@ MCMC rows were the dominant runtime risk.
   budgets, staged worker policy, smoke rows, and retention policy.
 - `R/source_registry.R`: source discovery, source hashing, window verification,
   and 72-row manifest construction.
-- `R/row_runner.R`: one-row fit + H=1000 forecast execution, compact artifact
-  writing, and runtime failure capture.
-- `R/metrics.R`: fit and forecast scalar metrics for `H=100` and `H=1000`.
+- `R/row_runner.R`: one-row fit plus rolling-origin forecast execution, compact
+  artifact writing, and runtime failure capture.
+- `R/metrics.R`: fit, rolling-lead, and compatibility window scalar metrics.
 - `R/storage_audit.R`: storage-light retention gate for forbidden binary
   payloads under run roots.
 - `R/shared_interface.R`: article/Q-DESN merge-facing metric export.

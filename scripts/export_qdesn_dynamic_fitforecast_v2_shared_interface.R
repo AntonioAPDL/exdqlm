@@ -130,6 +130,9 @@ for (i in seq_len(nrow(fit_summary))) {
   row$TT_total <- 12000L
   row$train_start_source_index <- first_nonempty(get_col(grid_row, 1L, "train_start_source_index"))
   row$train_end_source_index <- first_nonempty(get_col(grid_row, 1L, "train_end_source_index"))
+  row$forecast_protocol <- "rolling_origin_no_refit_state_update"
+  row$state_update_method <- "forecast_lattice_observed_lag_state_update_no_refit"
+  row$refit_per_origin <- FALSE
   row$forecast_origin_source_index <- 9000L
   row$forecast_start_source_index <- first_nonempty(get_col(grid_row, 1L, "forecast_start_source_index"), 9001L)
   row$forecast_end_source_index <- first_nonempty(get_col(grid_row, 1L, "forecast_end_source_index"), 10000L)
@@ -146,6 +149,7 @@ for (i in seq_len(nrow(fit_summary))) {
   row$row_metrics_path <- first_nonempty(fit_summary_path)
   row$fit_path_summary_path <- first_nonempty(get_col(fit_summary, i, "fit_quantile_path_train_file"))
   row$forecast_path_summary_path <- first_nonempty(get_col(fit_summary, i, "fit_quantile_path_holdout_file"))
+  row$forecast_lead_metrics_path <- first_nonempty(get_col(fit_summary, i, "forecast_lead_metrics_path"))
   row$package_version <- pkg_version
   row$branch <- branch
   row$commit <- commit

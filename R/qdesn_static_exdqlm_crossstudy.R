@@ -1324,6 +1324,8 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     fit_file = normalizePath(fit_file, winslash = "/", mustWork = FALSE),
     fit_quantile_path_train_file = normalizePath(.qdesn_validation_compact_fit_path_file(method_dir, "train"), winslash = "/", mustWork = FALSE),
     fit_quantile_path_holdout_file = normalizePath(.qdesn_validation_compact_fit_path_file(method_dir, "holdout"), winslash = "/", mustWork = FALSE),
+    forecast_rolling_origin_path_file = normalizePath(.qdesn_validation_rolling_lead_path_file(method_dir), winslash = "/", mustWork = FALSE),
+    forecast_lead_metrics_path = normalizePath(.qdesn_validation_rolling_lead_metrics_file(method_dir), winslash = "/", mustWork = FALSE),
     fit_artifact_retention_file = normalizePath(file.path(method_dir, "manifest", "output_retention.json"), winslash = "/", mustWork = FALSE),
     status = as.character(health_row$status[1L] %||% NA_character_),
     finite_ok = as.logical(health_row$finite_ok[1L] %||% NA),

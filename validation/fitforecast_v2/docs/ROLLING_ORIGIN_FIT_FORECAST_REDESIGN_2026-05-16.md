@@ -1407,3 +1407,153 @@ validation harness.
 Next implementation stage:
 
 `build-05-qdesn-lead-export`.
+
+## 26. Build-05 Q-DESN Lead Export Implementation Evidence
+
+Implementation timestamp:
+
+`2026-05-16 22:20:38 EDT`
+
+Implemented stage:
+
+| Build stage | Status | Evidence |
+|---|---|---|
+| `build-05-qdesn-lead-export` | implemented and tested | `R/qdesn_mcmc_validation.R`; `scripts/pipeline_real_main.R`; `tests/testthat/test-qdesn-dynamic-fitforecast-lead-export.R` |
+
+Design decision:
+
+- The primary Q-DESN forecast export uses `forecast_lattice.qdesn_fit()` per-origin `mu_by_origin`
+  draws.
+- The Q-DESN mixture output (`forecast_full$mix`) is not used as the primary lead-level validation
+  estimate.
+- Quantile synthesis remains disabled for the primary single-quantile validation path.
+- The point forecast used for true-quantile recovery is the median of the per-origin `mu_by_origin`
+  draw row at each `(origin, lead)`.
+- The retained row fields match the exDQLM/DQLM rolling-origin convention:
+  `forecast_origin_source_index`, `forecast_lead`, `target_source_index`, `origin_stride`,
+  `max_lead_configured`, `n_origins_for_lead`, `state_update_method`, and `refit_per_origin`.
+
+Active Q-DESN config now records:
+
+```text
+metrics.rolling_origin.enabled = true
+metrics.rolling_origin.require_lead_export = true
+metrics.rolling_origin.max_lead_configured = 30
+metrics.rolling_origin.origin_stride = 30
+pipeline.forecast.horizon = 30
+pipeline.forecast.origin_stride = 30
+pipeline.forecast.primary_lead_export = true
+pipeline.outputs.keep_draws = true
+```
+
+Storage-light handling:
+
+- `forecast_objects.rds` may transiently contain per-origin draws so the retention hook can write
+  compact lead-level CSV artifacts.
+- Successful `forecast_objects.rds` remains pruned after compact fit paths, compatibility horizon
+  summaries, rolling-origin path rows, and rolling lead metrics are written.
+- The output retention manifest now records:
+  `forecast_rolling_origin_path`, `forecast_rolling_origin_rows`,
+  `forecast_lead_metrics_path`, `forecast_lead_metrics_rows`, and
+  `forecast_rolling_origin_status`.
+
+Q-DESN config/launcher dry-run evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+```
+
+Observed result:
+
+```text
+phase: smoke
+batch: smoke
+dry_run: TRUE
+run_tag: qdesn-dynamic-fitforecast-v2-smoke-20260516-222038__git-fe05baf
+branch: validation/shared-fitforecast-v2-1.0.0
+Rscript: /data/jaguir26/local/opt/R/4.6.0/bin/Rscript
+QDESN_FFV2_LAUNCH_APPROVED: FALSE
+QDESN_FFV2_TT5000_APPROVED: FALSE
+```
+
+Focused Q-DESN lead-export test evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'pkgload::load_all(".", quiet=TRUE); testthat::test_file("tests/testthat/test-qdesn-dynamic-fitforecast-lead-export.R", reporter="summary")'
+```
+
+Observed result:
+
+```text
+qdesn-dynamic-fitforecast-lead-export: ......................
+
+DONE
+```
+
+Adjacent Q-DESN fit+forecast test evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'pkgload::load_all(".", quiet=TRUE); files <- c("test-qdesn-dynamic-fitforecast-horizon-summaries.R", "test-qdesn-dynamic-fitforecast-storage-light.R", "test-qdesn-dynamic-fitforecast-no-leakage.R", "test-qdesn-dynamic-fitforecast-interface-schema.R", "test-qdesn-dynamic-fitforecast-launcher-filters.R", "test-qdesn-dynamic-fitforecast-source-windows.R"); for (f in files) testthat::test_file(file.path("tests/testthat", f), reporter="summary")'
+```
+
+Observed result:
+
+```text
+qdesn-dynamic-fitforecast-horizon-summaries: ........
+qdesn-dynamic-fitforecast-storage-light: ......
+qdesn-dynamic-fitforecast-no-leakage: .......
+qdesn-dynamic-fitforecast-interface-schema: ...
+qdesn-dynamic-fitforecast-launcher-filters: ................................
+qdesn-dynamic-fitforecast-source-windows: .....................
+
+DONE
+```
+
+Full shared harness test evidence after build-05:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_dir("validation/fitforecast_v2/tests/testthat", reporter="summary")'
+```
+
+Observed result:
+
+```text
+artifact-schema: ...
+exdqlm-rolling-state: ........................
+forecast-horizon-api: ...
+protocol-freeze: ............
+rolling-grid: ...........................
+row-runner-discounts: ..
+shared-interface-schema: .......
+source-registry-schema: .....
+source-window-contract: ...........
+stage-filtering: ...........
+storage-policy: ...
+telemetry: .............................
+
+DONE
+Ran 4/4 deferred expressions
+```
+
+Script parse evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'parse("scripts/pipeline_real_main.R"); parse("scripts/export_qdesn_dynamic_fitforecast_v2_shared_interface.R"); parse("R/qdesn_mcmc_validation.R"); parse("R/qdesn_static_exdqlm_crossstudy.R"); cat("parse_ok\n")'
+```
+
+Observed result:
+
+```text
+parse_ok
+```
+
+Remaining caveat:
+
+The Q-DESN primary export still relies on the current `forecast_lattice.qdesn_fit()` machinery. It
+does not refit per origin and does not perform multi-quantile synthesis. The real-mode pipeline now
+honors `forecast.origin_stride` for the retained full-horizon lattice, while the separate lead-1
+path remains available only for backward-compatible compact holdout summaries.
+
+Next implementation stage:
+
+`build-06-schema-interface`.

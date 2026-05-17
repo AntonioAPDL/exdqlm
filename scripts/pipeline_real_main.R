@@ -946,6 +946,11 @@ if (!is.null(cfg$forecast$horizon)) {
   forecast_horizon <- cfg$forecast$forecast %||% forecast_horizon
 }
 forecast_horizon <- as.integer(forecast_horizon)
+forecast_origin_stride <- as.integer(cfg$forecast$origin_stride %||% 1L)
+if (!is.finite(forecast_origin_stride) || forecast_origin_stride < 1L) {
+  message(sprintf("[forecast] invalid origin_stride=%s; using 1.", as.character(forecast_origin_stride)))
+  forecast_origin_stride <- 1L
+}
 lead_weight_power   <- cfg$forecast$lead_weight_power %||% 1
 lead_weights        <- NULL
 mix_nd              <- NULL
@@ -1030,7 +1035,7 @@ if (length(x_names)) {
   names(xreg_all_lead1) <- colnames(X_future_1)
 
 }
-origins_full <- seq.int(n_train, origins_full_max)
+origins_full <- seq.int(n_train, origins_full_max, by = forecast_origin_stride)
 origins_tail <- integer(0)
 if (origins_lead1_max > origins_full_max) {
   origins_tail <- seq.int(origins_full_max + 1L, origins_lead1_max)
@@ -2045,8 +2050,10 @@ fit_and_forecast_p <- function(p0) {
   )
   class(fit_q) <- "qdesn_fit"
 
+  primary_lead_export_enabled <- isTRUE((cfg$forecast %||% list())$primary_lead_export %||% FALSE) ||
+    isTRUE(((cfg$diagnostics %||% list())$primary_lead_export) %||% FALSE)
   need_origin_draws_full <- isTRUE(keep_draws) || isTRUE(lead_eval_enabled) ||
-    isTRUE(do_fan_charts)
+    isTRUE(do_fan_charts) || isTRUE(primary_lead_export_enabled)
   need_var_horizon <- isTRUE(lead_eval_enabled) || isTRUE(do_fan_charts)
   truncate_origin_draws <- function(draws_list, origins_vec, max_t, H) {
     if (is.null(draws_list)) return(NULL)
@@ -2119,7 +2126,7 @@ fit_and_forecast_p <- function(p0) {
       yrep_by_origin_var <- truncate_origin_draws(yrep_by_origin_var, origins_var, T_use, forecast_horizon)
       mu_by_origin_var <- truncate_origin_draws(mu_by_origin_var, origins_var, T_use, forecast_horizon)
     }
-  } else if (isTRUE(keep_draws)) {
+  } else if (isTRUE(keep_draws) || isTRUE(primary_lead_export_enabled)) {
     yrep_by_origin_var <- fore_full$yrep_by_origin
     mu_by_origin_var <- fore_full$mu_by_origin
     origins_var <- fore_full$origins
@@ -2207,13 +2214,16 @@ fit_and_forecast_p <- function(p0) {
     mu_draws_mix = mu_draws_fc_full,
     mode         = forecast_mode,
     mix_source   = if (forecast_mode == "mixture") "mixture" else "lead1",
-    targets_full = targets_full
+    targets_full = targets_full,
+    forecast_protocol = cfg$forecast$protocol %||% "rolling_origin_no_refit_state_update",
+    origin_stride = forecast_origin_stride,
+    primary_lead_export = isTRUE(primary_lead_export_enabled)
   )
   forecast_full$origins <- if (!is.null(origins_var)) origins_var else fore_full$origins
   if (!is.null(yrep_by_origin_var)) {
     forecast_full$yrep_by_origin <- yrep_by_origin_var
   }
-  if (isTRUE(keep_draws) && !is.null(mu_by_origin_var)) {
+  if ((isTRUE(keep_draws) || isTRUE(primary_lead_export_enabled)) && !is.null(mu_by_origin_var)) {
     forecast_full$mu_by_origin <- mu_by_origin_var
   }
 

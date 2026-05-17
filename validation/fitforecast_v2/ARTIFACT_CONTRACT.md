@@ -11,6 +11,7 @@ Each completed row should retain:
 - `metrics/row_XXXX_metrics.csv`
 - `fit_path_summaries/row_XXXX_fit_path.csv`
 - `forecast_path_summaries/row_XXXX_forecast_path.csv`
+- `forecast_lead_metrics/row_XXXX_forecast_lead_metrics.csv`
 - `logs/row_XXXX.log`
 - `configs/row_XXXX_config.json`
 
@@ -54,7 +55,15 @@ manifest and byte cap. That mode is not the default.
 
 ## Forecast Metrics
 
-Forecast metrics are reported for both `H=100` and `H=1000`:
+Primary forecast metrics are rolling-origin lead-level metrics with:
+
+- `forecast_protocol = rolling_origin_no_refit_state_update`
+- `max_lead_configured = 30`
+- `origin_stride = 30`
+- `refit_per_origin = false`
+
+Compatibility window summaries may still report `9001:9100` and `9001:10000`,
+but article-facing primary comparison should use the rolling lead metrics.
 
 - `forecast_qtrue_mae`
 - `forecast_qtrue_rmse`
@@ -86,3 +95,14 @@ Fit and forecast path summaries include:
 - `pred_q975`
 - `pinball_tau`
 - `hit`
+
+Rolling forecast path summaries additionally include:
+
+- `forecast_origin_source_index`
+- `forecast_lead`
+- `target_source_index`
+- `origin_stride`
+- `max_lead_configured`
+- `n_origins_for_lead`
+- `state_update_method`
+- `refit_per_origin`

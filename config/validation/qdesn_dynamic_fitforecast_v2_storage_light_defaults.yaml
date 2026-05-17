@@ -188,8 +188,7 @@ smoke:
 metrics:
   primary_windows:
   - train_effective
-  - forecast_H100
-  - forecast_H1000
+  - rolling_forecast_leads
   fit_window_role: effective_train_post_lag_washout
   forecast_window_role: contiguous_forecast_block_after_train_origin
   train_effective_source_indices:
@@ -205,6 +204,14 @@ metrics:
   forecast_horizons:
   - 100
   - 1000
+  rolling_origin:
+    enabled: yes
+    require_lead_export: yes
+    forecast_protocol: rolling_origin_no_refit_state_update
+    state_update_method: forecast_lattice_observed_lag_state_update_no_refit
+    refit_per_origin: no
+    max_lead_configured: 30
+    origin_stride: 30
   backward_compatible_holdout_alias: forecast_H1000
   posterior_metric_draws: 20000
   qtrue_metrics:
@@ -313,6 +320,10 @@ pipeline:
     chunk: 160
   forecast:
     mode: origin
+    protocol: rolling_origin_no_refit_state_update
+    horizon: 30
+    origin_stride: 30
+    primary_lead_export: yes
     train_last_window: 18
     fore_last_window: 18
   ij:
@@ -338,7 +349,7 @@ pipeline:
     postpred_threads: 1
   outputs:
     save: yes
-    keep_draws: no
+    keep_draws: yes
     keep_mcmc_vb_init: no
     retention_profile: analysis
     save_forecast_objects: no
