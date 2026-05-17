@@ -1,6 +1,7 @@
 # Shared Fit + Forecast v3 Primary Launch Plan
 
-Status: prepared, not launched.
+Status: dry-run, smoke, and micro-pilot gates passed on 2026-05-17; primary
+VB + TT500 launch is ready for explicit human approval. TT5000 remains blocked.
 
 This plan is for the rolling-origin v3 validation benchmark on the exdqlm 1.0.0
 baseline. The article-facing protocol is `rolling_origin_no_refit_state_update`
@@ -102,6 +103,28 @@ warm-start reuse, rolling-origin lead metrics, healthchecks, and storage pruning
 all work before primary compute.
 
 ## Primary VB + TT500 Plan
+
+Pre-launch gate evidence on commit
+`9f86cda8981604cf19a99f532a8ddfe6c0dce191`:
+
+- dry-run:
+  `reports/shared_fitforecast_v2_orchestration/shared-fitforecast-v3-dryrun-final-20260517-0154__git-9f86cda/dryrun_preflight_summary.md`
+  (`PASS`)
+- smoke:
+  `reports/shared_fitforecast_v2_orchestration/shared-fitforecast-v3-smoke-20260517-0128__git-9f86cda/`
+  (`exDQLM/DQLM done=2`, `Q-DESN SUCCESS=1`)
+- micro-pilot:
+  `reports/shared_fitforecast_v2_orchestration/shared-fitforecast-v3-pilot-20260517-0137__git-9f86cda/`
+  (`exDQLM/DQLM done=4`, `Q-DESN SUCCESS=1`)
+- final Q-DESN pilot interface:
+  `reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation/qdesn-dynamic-fitforecast-v2-pilot-20260517-013739__git-9f86cda/20260517-014114__git-9f86cda/interfaces/qdesn_dynamic_fitforecast_v2_shared_interface.csv`
+- final exDQLM/DQLM pilot interface:
+  `validation/fitforecast_v2/runs/20260515_exdqlm_dqlm_dynamic_fitforecast_v2_orchestrated_3202605170137986/interfaces/exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv`
+
+The Q-DESN smoke/pilot signoff grades are expected to be `FAIL` because those
+gates use deliberately tiny VB/MCMC budgets. The launch gate is infrastructure:
+terminal root status, source/index alignment, storage policy, rolling-origin
+lead export, VB warm-started MCMC execution, and shared interface schema.
 
 Plan only:
 
