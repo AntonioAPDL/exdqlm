@@ -37,6 +37,12 @@ test_that("Q-DESN smoke/pilot MCMC override still honors core-lane VB warm start
 
   expect_true(isTRUE(defaults$study_contract$mcmc$require_init_from_vb))
   expect_true(isTRUE(defaults$smoke$pipeline$inference$mcmc$init_from_vb))
+  expect_identical(as.integer(defaults$smoke$budget$mcmc_n_burn), 2L)
+  expect_identical(as.integer(defaults$smoke$budget$mcmc_n_mcmc), 4L)
+  expect_identical(as.integer(defaults$smoke$pipeline$inference$mcmc$n_burn), 2L)
+  expect_identical(as.integer(defaults$smoke$pipeline$inference$mcmc$n_mcmc), 4L)
+  expect_identical(as.integer(defaults$smoke$pipeline$inference$mcmc$progress_every), 1L)
+  expect_true(isTRUE(defaults$smoke$pipeline$inference$mcmc$verbose))
 })
 
 test_that("Q-DESN fit+forecast dependency preflight reports missing packages explicitly", {
