@@ -43,6 +43,39 @@ test_that("Q-DESN smoke/pilot MCMC override still honors core-lane VB warm start
   expect_identical(as.integer(defaults$smoke$pipeline$inference$mcmc$n_mcmc), 4L)
   expect_identical(as.integer(defaults$smoke$pipeline$inference$mcmc$progress_every), 1L)
   expect_true(isTRUE(defaults$smoke$pipeline$inference$mcmc$verbose))
+
+  smoke_defaults <- defaults
+  smoke_defaults$study_contract$budget <- utils::modifyList(
+    if (is.null(smoke_defaults$study_contract$budget)) list() else smoke_defaults$study_contract$budget,
+    smoke_defaults$smoke$budget
+  )
+  smoke_defaults$pipeline <- utils::modifyList(
+    if (is.null(smoke_defaults$pipeline)) list() else smoke_defaults$pipeline,
+    smoke_defaults$smoke$pipeline
+  )
+  grid <- utils::read.csv(file.path(
+    repo_root,
+    "config", "validation", "qdesn_dynamic_fitforecast_v2_full_grid.csv"
+  ), stringsAsFactors = FALSE)
+  grid <- subset(
+    grid,
+    source_family == "normal" &
+      abs(as.numeric(tau) - 0.25) < 1e-8 &
+      as.integer(fit_size) == 500L &
+      beta_prior_type == "ridge"
+  )
+  root_spec <- exdqlm:::qdesn_dynamic_crossstudy_enrich_root_spec(grid[1L, , drop = FALSE], smoke_defaults)
+  cfg <- exdqlm:::qdesn_static_crossstudy_build_pipeline_cfg(
+    root_spec = root_spec,
+    defaults = smoke_defaults,
+    method = "mcmc",
+    likelihood_family = "exal",
+    T_use = root_spec$source_total_size
+  )
+  expect_true(isTRUE(cfg$inference$mcmc$init_from_vb))
+  expect_identical(as.integer(cfg$inference$mcmc$n_burn), 2L)
+  expect_identical(as.integer(cfg$inference$mcmc$n_mcmc), 4L)
+  expect_identical(as.integer(cfg$inference$mcmc$progress_every), 1L)
 })
 
 test_that("Q-DESN fit+forecast dependency preflight reports missing packages explicitly", {

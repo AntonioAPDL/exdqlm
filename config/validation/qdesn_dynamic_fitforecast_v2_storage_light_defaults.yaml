@@ -185,6 +185,15 @@ smoke:
           max_iter: 5
           min_iter_elbo: 2
           n_samp_xi: 20
+        prior_overrides:
+          ridge:
+            n_burn: 2
+            n_mcmc: 4
+            progress_every: 1
+          rhs_ns:
+            n_burn: 2
+            n_mcmc: 4
+            progress_every: 1
 metrics:
   primary_windows:
   - train_effective

@@ -1898,10 +1898,12 @@ fit_and_forecast_p <- function(p0) {
 
   # ---- Parameter draws for IJ + diagnostics -------------------------------
   gamma_bounds_here <- c(L.fn(p0), U.fn(p0))
+  param_draw_nd <- if (isTRUE(use_ij_correction)) ij_nd_draws else nd_draws
+  param_draw_nd <- max(1L, as.integer(param_draw_nd)[1L])
   param_draws <- get_exal_param_draws(
     fit_exal,
     p            = ncol(X_train),
-    nd           = ij_nd_draws,
+    nd           = param_draw_nd,
     gamma_bounds = gamma_bounds_here,
     seed         = synth_seed + round(1000 * p0)
   )
