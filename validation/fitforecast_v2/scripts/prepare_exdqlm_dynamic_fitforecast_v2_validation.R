@@ -15,6 +15,10 @@ allow_missing_source <- ffv2_truthy(args$`allow-missing-source` %||% dry_run)
 
 defaults <- ffv2_load_defaults(defaults_path)
 if (!is.null(args$`run-tag`)) defaults$study$run_tag <- as.character(args$`run-tag`)
+if (!is.null(args$`run-overrides`)) {
+  defaults$run_overrides <- defaults$run_overrides %||% list()
+  defaults$run_overrides$path <- as.character(args$`run-overrides`)
+}
 run_root <- args$`run-root` %||% NULL
 
 ffv2_assert_runtime(defaults$runtime$r_min_version %||% "4.6.0")
@@ -44,7 +48,8 @@ print(table(verification$status, useNA = "ifany"))
 cat("phase_counts:\n")
 print(table(manifest$phase, useNA = "ifany"))
 cat("smoke_rows:\n")
-print(manifest[manifest$smoke %in% c(TRUE, "TRUE", "true", "1"), c("row_id", "family", "tau", "fit_size", "model_variant", "inference")])
+print(manifest[manifest$smoke %in% c(TRUE, "TRUE", "true", "1"),
+               intersect(c("row_id", "spec_id", "family", "tau", "fit_size", "model_variant", "inference"), names(manifest))])
 if (!dry_run) {
   cat(sprintf("run_root: %s\n", unique(manifest$run_root)[[1L]]))
   cat(sprintf("row_manifest: %s\n", file.path(unique(manifest$run_root)[[1L]], "manifests", "row_manifest.csv")))

@@ -1557,3 +1557,115 @@ path remains available only for backward-compatible compact holdout summaries.
 Next implementation stage:
 
 `build-06-schema-interface`.
+
+## 27. Build-05.5 Atomic Run Specs And Resumability Contract
+
+Implementation timestamp:
+
+`2026-05-16 22:58 EDT`
+
+Purpose:
+
+After build-05, the validation workflow could launch staged grids, but it still needed a more surgical
+rerun contract. A single bad fit, bad forecast, or convergence/mixing repair should not require
+relaunching a full phase. Build-05.5 adds atomic run identities and staged resumability controls.
+
+Implemented six-point contract:
+
+| Point | Status | Implementation |
+|---|---|---|
+| Stable `spec_id` for every atomic run | implemented | exDQLM/DQLM row manifests now include `spec_id`; Q-DESN fit summaries now include method/likelihood-level `spec_id` |
+| Run-specific override registry | implemented for exDQLM/DQLM | `--run-overrides` YAML/JSON can patch runtime, budget, model, retention, and metadata by `spec_id` or `row_key` |
+| Shared selectors | implemented | exDQLM launcher accepts `--spec-ids`, `--row-ids`, `--row-keys`, `--families`, `--taus`, `--fit-sizes`, `--model-variants`, and `--inferences`; Q-DESN direct runner accepts `--spec-ids` and skips nonmatching method/likelihood combinations |
+| Separate stages | implemented for exDQLM/DQLM | row runner supports `--validation-stage all`, `fit-only`, `forecast-only`, and `metrics-only` |
+| Transient fit handoff | implemented for exDQLM/DQLM | fit objects are written as `.ffv2handoff` stage handoffs, hash-manifested, and pruned after successful non-fit-only completion |
+| VB warm-start reuse | implemented for exDQLM/DQLM | MCMC rows look for matching completed VB `vb_init` handoffs and pass them through the existing package `vb_init_fit` hook |
+
+Important boundary:
+
+- exDQLM/DQLM fit/forecast split is now implemented in the validation harness without modifying the
+  exdqlm 1.0.0 package internals.
+- Q-DESN now has exact atomic `spec_id` targeting across dataset, prior, method, and likelihood.
+- Q-DESN fit and forecast are still executed by the existing monolithic pipeline for real compute.
+  The Q-DESN side is therefore targetable by atomic run, but full `fit-only` / `forecast-only`
+  execution split remains a future pipeline refactor if a failed forecast must be resumed from a
+  previously persisted Q-DESN fit object.
+
+Active schema update:
+
+- `validation/fitforecast_v2/schema/shared_fitforecast_interface_schema.csv` now includes
+  `spec_id`, `validation_stage`, `max_lead_configured`, and `origin_stride`.
+
+Validation evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-atomic-specs.R", reporter="summary")'
+```
+
+Observed result:
+
+```text
+atomic-specs: .................
+DONE
+```
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'pkgload::load_all(".", quiet=TRUE); testthat::test_file("tests/testthat/test-qdesn-dynamic-fitforecast-launcher-filters.R", reporter="summary")'
+```
+
+Observed result:
+
+```text
+qdesn-dynamic-fitforecast-launcher-filters: ...................................
+DONE
+```
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-stage-filtering.R", reporter="summary"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-shared-interface-schema.R", reporter="summary")'
+```
+
+Observed result:
+
+```text
+stage-filtering: ...........
+shared-interface-schema: .......
+DONE
+```
+
+Dry-run / prepare-only evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript validation/fitforecast_v2/scripts/prepare_exdqlm_dynamic_fitforecast_v2_validation.R --dry-run --allow-missing-source
+```
+
+Observed result includes 72 manifest rows and smoke rows with `spec_id`.
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run --validation-stage fit-only
+```
+
+Observed result includes row commands with `--validation-stage 'fit-only'`.
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R --batch smoke --prepare-only --allow-grid-subset --methods vb --likelihoods exal --fit-sizes 500 --workers 1 --scheduler static --run-tag qdesn-build055-spec-prepare-check
+```
+
+Observed result:
+
+```text
+Preflight manifest: reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation/qdesn-build055-spec-prepare-check/launch/qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json
+Selected grid: reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation/qdesn-build055-spec-prepare-check/launch/selected_grid_smoke.csv
+```
+
+Stale path fix:
+
+- The direct Q-DESN dynamic runner now defaults to
+  `config/validation/qdesn_dynamic_fitforecast_v2_storage_light_defaults.yaml` and
+  `config/validation/qdesn_dynamic_fitforecast_v2_full_grid.csv`.
+- This avoids accidentally using the historical
+  `config/validation/qdesn_dynamic_exdqlm_crossstudy_defaults.yaml`, which still documents old
+  `/home/jaguir26/local/src` reference paths for historical runs.
+
+Next implementation stage:
+
+`build-06-schema-interface`.

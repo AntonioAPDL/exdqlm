@@ -1,13 +1,14 @@
 ffv2_shared_interface_columns <- function() {
   c(
-    "validation_contract_id", "study_id", "run_tag", "model_family",
-    "model_variant", "inference", "phase", "status", "failure_reason",
+    "validation_contract_id", "study_id", "run_tag", "spec_id", "model_family",
+    "model_variant", "inference", "phase", "validation_stage", "status", "failure_reason",
     "health_gate", "signoff_grade", "source_registry_root",
     "source_registry_hash_name", "source_registry_hash_value",
     "source_cell_id", "scenario_id", "family", "tau", "tau_label",
     "fit_size", "effective_fit_size", "TT_warmup", "TT_main", "TT_total",
     "train_start_source_index", "train_end_source_index",
     "forecast_protocol", "state_update_method", "refit_per_origin",
+    "max_lead_configured", "origin_stride",
     "forecast_origin_source_index", "forecast_start_source_index",
     "forecast_end_source_index", "forecast_h100_start_source_index",
     "forecast_h100_end_source_index", "forecast_h100_n",
@@ -79,6 +80,7 @@ ffv2_export_shared_interface <- function(manifest, out_csv) {
       row$validation_contract_id,
       "qdesn_exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface"
     )
+    row$validation_stage <- ffv2_first_nonempty(row$validation_stage, "all")
     row$model_family <- ffv2_first_nonempty(row$model_family, "exdqlm_dqlm")
     row$failure_reason <- ffv2_first_nonempty(row$failure_reason, row$error_message)
     row$source_registry_root <- ffv2_first_nonempty(
@@ -104,6 +106,8 @@ ffv2_export_shared_interface <- function(manifest, out_csv) {
       ffv2_exdqlm_plugin_state_update_method()
     )
     row$refit_per_origin <- ffv2_first_nonempty(row$refit_per_origin, FALSE)
+    row$max_lead_configured <- ffv2_first_nonempty(row$max_lead_configured, 30L)
+    row$origin_stride <- ffv2_first_nonempty(row$origin_stride, 30L)
     row$forecast_h100_start_source_index <- ffv2_first_nonempty(row$forecast_h100_start_source_index, row$forecast_start_source_index)
     row$forecast_h100_end_source_index <- ffv2_first_nonempty(row$forecast_h100_end_source_index, 9100L)
     row$forecast_h1000_start_source_index <- ffv2_first_nonempty(row$forecast_h1000_start_source_index, row$forecast_start_source_index)

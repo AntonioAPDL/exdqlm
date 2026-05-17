@@ -2,10 +2,12 @@ column,required,description
 validation_contract_id,true,Stable contract identifier for Q-DESN plus exDQLM/DQLM dynamic fit and forecast validation v2.
 study_id,true,Validation study identifier.
 run_tag,true,Versioned run tag for the producing validation run.
+spec_id,true,Stable atomic run specification identifier for targeted reruns and provenance.
 model_family,true,Top-level family such as qdesn or exdqlm_dqlm.
 model_variant,true,Model variant such as qdesn_ridge qdesn_rhs_ns dqlm or exdqlm.
 inference,true,Inference method such as vb or mcmc.
 phase,true,Staged launch phase.
+validation_stage,true,Atomic execution stage such as all fit-only forecast-only or metrics-only.
 status,true,Explicit row status.
 failure_reason,true,Explicit failure reason or NA for successful rows.
 health_gate,true,Health/signoff gate status.
@@ -28,6 +30,8 @@ train_end_source_index,true,Training source end index.
 forecast_protocol,true,Forecast protocol identifier.
 state_update_method,true,State update method used for rolling-origin forecasts.
 refit_per_origin,true,Whether the model was refit at each forecast origin.
+max_lead_configured,true,Maximum rolling-origin forecast lead configured for the run.
+origin_stride,true,Rolling-origin source-index stride used for the run.
 forecast_origin_source_index,true,Forecast origin source index.
 forecast_start_source_index,true,Forecast block start source index.
 forecast_end_source_index,true,Forecast block end source index.

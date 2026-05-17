@@ -101,18 +101,64 @@ ffv2_fit_row <- function(config, data, model, started_at = Sys.time()) {
   }
   vb_init <- NULL
   if (isTRUE(mcmc_budget$init_from_vb %||% TRUE)) {
-    vb_init <- exdqlmLDVB(
-      y = data$train$y,
-      p0 = tau,
-      model = model,
-      df = df,
-      dim.df = dim_df,
-      dqlm.ind = dqlm_ind,
-      fix.sigma = FALSE,
-      n.samp = max(200L, min(2000L, as.integer(vb_budget$n_samp %||% 20000L))),
-      vb_control = vb_control,
-      verbose = isTRUE(runtime$verbose)
-    )
+    handoff <- if (isTRUE((config$handoff %||% list())$reuse_vb_init %||% TRUE)) {
+      ffv2_find_vb_init_handoff(config)
+    } else {
+      NULL
+    }
+    if (!is.null(handoff) && file.exists(handoff$path)) {
+      vb_init <- ffv2_read_handoff(
+        handoff$path,
+        manifest_path = handoff$manifest_path,
+        expected_role = "vb_init"
+      )
+      ffv2_record_progress(
+        config,
+        stage = "fit",
+        substage = "mcmc_vb_init",
+        event = "reuse",
+        phase = "mcmc",
+        current_iter = 0L,
+        total_iter = 0L,
+        elapsed_seconds = ffv2_seconds(started_at),
+        message = sprintf("MCMC reused VB initialization handoff from %s", handoff$source)
+      )
+    } else {
+      ffv2_record_progress(
+        config,
+        stage = "fit",
+        substage = "mcmc_vb_init",
+        event = "start",
+        phase = "mcmc",
+        current_iter = 0L,
+        total_iter = as.integer(vb_budget$max_iter %||% 300L),
+        elapsed_seconds = ffv2_seconds(started_at),
+        message = "MCMC computing inline VB initialization handoff"
+      )
+      vb_init <- exdqlmLDVB(
+        y = data$train$y,
+        p0 = tau,
+        model = model,
+        df = df,
+        dim.df = dim_df,
+        dqlm.ind = dqlm_ind,
+        fix.sigma = FALSE,
+        n.samp = max(200L, min(2000L, as.integer(vb_budget$n_samp %||% 20000L))),
+        vb_control = vb_control,
+        verbose = isTRUE(runtime$verbose)
+      )
+      ffv2_record_progress(
+        config,
+        stage = "fit",
+        substage = "mcmc_vb_init",
+        event = "complete",
+        phase = "mcmc",
+        current_iter = ffv2_as_int1(vb_init$iter, as.integer(vb_budget$max_iter %||% 300L)),
+        total_iter = as.integer(vb_budget$max_iter %||% 300L),
+        elapsed_seconds = ffv2_seconds(started_at),
+        message = "MCMC inline VB initialization completed"
+      )
+    }
   }
   mcmc_control <- exal_make_mcmc_control(
     n_burn = as.integer(mcmc_budget$n_burn %||% 5000L),
@@ -157,8 +203,13 @@ ffv2_fit_row <- function(config, data, model, started_at = Sys.time()) {
   )
 }
 
-ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
+ffv2_run_row <- function(config_path,
+                         force = FALSE,
+                         runtime_overrides = NULL,
+                         validation_stage = "all") {
   config <- ffv2_read_json(config_path)
+  validation_stage <- ffv2_validation_stage(validation_stage %||% config$validation_stage %||% "all")
+  config$validation_stage <- validation_stage
   if (!is.null(runtime_overrides) && length(runtime_overrides)) {
     config$runtime <- utils::modifyList(config$runtime %||% list(), runtime_overrides)
   }
@@ -167,8 +218,15 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
   ffv2_assert_runtime((config$runtime %||% list())$r_min_version %||% "4.6.0")
   if (file.exists(config$row_status_path) && !isTRUE(force)) {
     st <- tryCatch(ffv2_read_csv(config$row_status_path), error = function(e) NULL)
-    if (!is.null(st) && nrow(st) && tail(st$status, 1L) == "done") {
-      message(sprintf("Skipping completed row %s", config$row_key))
+    skip_status <- switch(
+      validation_stage,
+      "fit-only" = c("fit_done", "done", "running"),
+      "forecast-only" = c("done", "running"),
+      "metrics-only" = c("done", "running"),
+      all = c("done", "running")
+    )
+    if (!is.null(st) && nrow(st) && tail(st$status, 1L) %in% skip_status) {
+      message(sprintf("Skipping row %s with status %s", config$row_key, tail(st$status, 1L)))
       return(invisible(st))
     }
   }
@@ -187,72 +245,71 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
   ffv2_record_progress(
     config,
     stage = "row",
-    substage = "start",
-    event = "start",
-    elapsed_seconds = 0,
-    message = sprintf("Row started with progress_every=%d trace_every=%d heartbeat_seconds=%d",
-                      runtime$progress_every, runtime$trace_every, runtime$heartbeat_seconds)
+      substage = "start",
+      event = "start",
+      elapsed_seconds = 0,
+      message = sprintf("Row started validation_stage=%s progress_every=%d trace_every=%d heartbeat_seconds=%d",
+                      validation_stage, runtime$progress_every, runtime$trace_every, runtime$heartbeat_seconds)
   )
   out <- tryCatch({
     suppressPackageStartupMessages(pkgload::load_all(config$repo_root, quiet = TRUE))
-    ffv2_record_progress(
-      config,
-      stage = "prepare",
-      substage = "data",
-      event = "start",
-      elapsed_seconds = ffv2_seconds(started),
-      message = "Loading row data"
-    )
-    data <- ffv2_load_row_data(config)
-    ffv2_record_progress(
-      config,
-      stage = "prepare",
-      substage = "model",
-      event = "start",
-      elapsed_seconds = ffv2_seconds(started),
-      message = "Building dynamic model"
-    )
-    model <- ffv2_build_dynamic_model(config, train_n = nrow(data$train))
-    fit <- ffv2_fit_row(config, data, model, started_at = started)
     stored_draws <- as.integer((config$budget %||% list())$stored_draws %||% 2000L)
-    seed <- 100000L + as.integer(config$row_id)
-    ffv2_record_progress(
-      config,
-      stage = "metrics",
-      substage = "fit",
-      event = "start",
-      elapsed_seconds = ffv2_seconds(started),
-      message = "Computing fit summaries"
-    )
-    fit_draws <- ffv2_post_pred_draws(fit, nrow(data$train), seed = seed, n_draws = stored_draws)
-    fit_qhat <- ffv2_fit_qhat(fit)
-    if (is.null(fit_qhat)) fit_qhat <- apply(fit_draws, 1L, stats::median, na.rm = TRUE)
     forecast_draws_n <- as.integer((config$budget %||% list())$forecast_draws %||% 2000L)
-    forecast_protocol <- as.character(config$forecast_protocol %||% "rolling_origin_no_refit_state_update")[1L]
-    fit_summary <- ffv2_path_summary(
-      row_df = data$train,
-      draws = fit_draws,
-      tau = config$tau,
-      split_role = "fit_train",
-      qhat_override = fit_qhat
-    )
-    if (identical(forecast_protocol, "rolling_origin_no_refit_state_update")) {
-      forecast_summary <- ffv2_rolling_exdqlm_forecast_summary(
-        fit = fit,
-        config = config,
-        data = data,
-        hmax = as.integer(config$max_lead_configured %||% 30L),
-        origin_stride = as.integer(config$origin_stride %||% config$max_lead_configured %||% 30L),
-        n_draws = forecast_draws_n,
-        seed = seed + 1L,
-        started_at = started
-      )
-      lead_metrics <- ffv2_rolling_lead_metrics(config, forecast_summary)
-      if (!is.null(config$forecast_lead_metrics_path) && nrow(lead_metrics)) {
-        ffv2_write_csv(lead_metrics, config$forecast_lead_metrics_path)
+    seed <- 100000L + as.integer(config$row_id)
+
+    read_existing_summary <- function(path, role) {
+      if (is.null(path) || !file.exists(path)) {
+        stop(sprintf("%s summary is required for validation_stage=%s but is missing: %s",
+                     role, validation_stage, as.character(path %||% NA_character_)[1L]),
+             call. = FALSE)
       }
-    } else {
-      future <- ffv2_make_future_model_arrays(model, as.integer(config$forecast_horizon_max))
+      out <- ffv2_read_csv(path)
+      ffv2_validate_path_schema(out)
+      out
+    }
+
+    compute_fit_summary <- function(fit, data) {
+      ffv2_record_progress(
+        config,
+        stage = "metrics",
+        substage = "fit",
+        event = "start",
+        elapsed_seconds = ffv2_seconds(started),
+        message = "Computing fit summaries"
+      )
+      fit_draws <- ffv2_post_pred_draws(fit, nrow(data$train), seed = seed, n_draws = stored_draws)
+      fit_qhat <- ffv2_fit_qhat(fit)
+      if (is.null(fit_qhat)) fit_qhat <- apply(fit_draws, 1L, stats::median, na.rm = TRUE)
+      ffv2_path_summary(
+        row_df = data$train,
+        draws = fit_draws,
+        tau = config$tau,
+        split_role = "fit_train",
+        qhat_override = fit_qhat
+      )
+    }
+
+    compute_forecast_summary <- function(fit, data) {
+      forecast_protocol <- as.character(config$forecast_protocol %||% "rolling_origin_no_refit_state_update")[1L]
+      if (identical(forecast_protocol, "rolling_origin_no_refit_state_update")) {
+        forecast_summary <- ffv2_rolling_exdqlm_forecast_summary(
+          fit = fit,
+          config = config,
+          data = data,
+          hmax = as.integer(config$max_lead_configured %||% 30L),
+          origin_stride = as.integer(config$origin_stride %||% config$max_lead_configured %||% 30L),
+          n_draws = forecast_draws_n,
+          seed = seed + 1L,
+          started_at = started
+        )
+        lead_metrics <- ffv2_rolling_lead_metrics(config, forecast_summary)
+        if (!is.null(config$forecast_lead_metrics_path) && nrow(lead_metrics)) {
+          ffv2_write_csv(lead_metrics, config$forecast_lead_metrics_path)
+        }
+        return(forecast_summary)
+      }
+
+      future <- ffv2_make_future_model_arrays(fit$model, as.integer(config$forecast_horizon_max))
       ffv2_record_progress(
         config,
         stage = "forecast",
@@ -289,7 +346,7 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
         message = "Fixed-origin v2 forecast path completed"
       )
       forecast_draws <- ffv2_select_draws(forecast$samp.fore, n_draws = stored_draws, seed = seed + 2L)
-      forecast_summary <- ffv2_path_summary(
+      ffv2_path_summary(
         row_df = data$forecast,
         draws = forecast_draws,
         tau = config$tau,
@@ -297,6 +354,108 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
         qhat_override = as.numeric(forecast$ff)
       )
     }
+
+    if (identical(validation_stage, "metrics-only")) {
+      fit_summary <- read_existing_summary(config$fit_path_summary_path, "fit")
+      forecast_summary <- read_existing_summary(config$forecast_path_summary_path, "forecast")
+    } else {
+      ffv2_record_progress(
+        config,
+        stage = "prepare",
+        substage = "data",
+        event = "start",
+        elapsed_seconds = ffv2_seconds(started),
+        message = "Loading row data"
+      )
+      data <- ffv2_load_row_data(config)
+
+      if (identical(validation_stage, "forecast-only")) {
+        fit <- ffv2_read_handoff(
+          config$fit_handoff_path,
+          manifest_path = config$fit_handoff_manifest_path,
+          expected_role = "fit"
+        )
+        fit_summary <- if (file.exists(config$fit_path_summary_path)) {
+          read_existing_summary(config$fit_path_summary_path, "fit")
+        } else {
+          compute_fit_summary(fit, data)
+        }
+      } else {
+        ffv2_record_progress(
+          config,
+          stage = "prepare",
+          substage = "model",
+          event = "start",
+          elapsed_seconds = ffv2_seconds(started),
+          message = "Building dynamic model"
+        )
+        model <- ffv2_build_dynamic_model(config, train_n = nrow(data$train))
+        fit <- ffv2_fit_row(config, data, model, started_at = started)
+        if (ffv2_handoff_enabled(config, "fit")) {
+          ffv2_save_handoff(
+            fit,
+            config$fit_handoff_path,
+            config$fit_handoff_manifest_path,
+            role = "fit",
+            config = config,
+            transient = TRUE
+          )
+        }
+        if (identical(as.character(config$inference), "vb") && ffv2_handoff_enabled(config, "vb_init")) {
+          ffv2_save_handoff(
+            ffv2_minimal_exdqlm_vb_init(fit),
+            config$vb_init_handoff_path,
+            config$vb_init_handoff_manifest_path,
+            role = "vb_init",
+            config = config,
+            transient = TRUE
+          )
+        }
+        fit_summary <- compute_fit_summary(fit, data)
+      }
+
+      if (identical(validation_stage, "fit-only")) {
+        forecast_summary <- ffv2_empty_path_summary("forecast")
+        finished <- Sys.time()
+        runtime <- ffv2_seconds(started, finished)
+        health <- ffv2_health_from_outputs(config, fit_summary = fit_summary, runtime_sec = runtime)
+        metrics <- ffv2_row_metrics(
+          config = config,
+          fit_summary = fit_summary,
+          forecast_summary = forecast_summary,
+          runtime_sec = runtime,
+          status = "fit_done",
+          health_gate = health$gate[[1L]]
+        )
+        status <- ffv2_status_row(
+          config, "fit_done", started_at = started, finished_at = finished,
+          runtime_sec = runtime, health_gate = health$gate[[1L]]
+        )
+        ffv2_write_row_artifacts(config, health, metrics, fit_summary, forecast_summary, status)
+        ffv2_record_progress(
+          config,
+          stage = "row",
+          substage = "fit_done",
+          event = "complete",
+          elapsed_seconds = runtime,
+          message = "Row fit stage completed",
+          status = "fit_done",
+          timestamp = finished
+        )
+        return(status)
+      }
+
+      forecast_summary <- compute_forecast_summary(fit, data)
+    }
+
+    ffv2_record_progress(
+      config,
+      stage = "metrics",
+      substage = "row",
+      event = "start",
+      elapsed_seconds = ffv2_seconds(started),
+      message = "Writing row metrics and status"
+    )
     finished <- Sys.time()
     runtime <- ffv2_seconds(started, finished)
     health <- ffv2_health_from_outputs(config, fit_summary, forecast_summary, runtime_sec = runtime)
@@ -313,6 +472,10 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
       runtime_sec = runtime, health_gate = health$gate[[1L]]
     )
     ffv2_write_row_artifacts(config, health, metrics, fit_summary, forecast_summary, status)
+    if (isTRUE((config$handoff %||% list())$prune_fit_on_success %||% TRUE) &&
+        !identical(validation_stage, "fit-only")) {
+      ffv2_prune_handoff(config$fit_handoff_path, config$fit_handoff_manifest_path)
+    }
     ffv2_record_progress(
       config,
       stage = "row",
@@ -323,7 +486,7 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
       status = "done",
       timestamp = finished
     )
-    rm(fit, fit_draws)
+    if (exists("fit", inherits = FALSE)) rm(fit)
     if (exists("forecast", inherits = FALSE)) rm(forecast)
     if (exists("forecast_draws", inherits = FALSE)) rm(forecast_draws)
     gc()

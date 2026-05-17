@@ -82,6 +82,68 @@ test_that("dynamic grid filters are generic and composable", {
   expect_true(all(out$beta_prior_type == "rhs_ns"))
 })
 
+test_that("Q-DESN dynamic fit+forecast atomic spec ids target one method-likelihood fit", {
+  root <- tempfile("qdesn-atomic-spec-")
+  dir.create(root)
+  source_fit_input_dir <- file.path(root, "fit-inputs")
+  source_report_root <- file.path(root, "reports")
+  dir.create(source_fit_input_dir)
+  dir.create(source_report_root)
+  series_path <- file.path(root, "series_wide.csv")
+  selection_path <- file.path(root, "selection_indices.csv")
+  sim_path <- file.path(root, "sim_output.rds")
+  utils::write.csv(data.frame(source_index = 1:3, y = 1:3, q_target = 1:3), series_path, row.names = FALSE)
+  utils::write.csv(data.frame(source_index = 1:3), selection_path, row.names = FALSE)
+  saveRDS(list(q = matrix(1:3, ncol = 1)), sim_path)
+
+  grid <- data.frame(
+    root_id = "root-a",
+    dataset_cell_id = "cell-a",
+    source_root_kind = "dynamic",
+    source_scenario = "scenario-a",
+    scenario = "scenario-a",
+    source_family = "normal",
+    tau = 0.25,
+    fit_size = 500L,
+    effective_fit_size = 500L,
+    source_total_size = 10000L,
+    beta_prior_type = "ridge",
+    source_fit_input_dir = source_fit_input_dir,
+    source_report_root = source_report_root,
+    source_series_wide_path = series_path,
+    source_selection_indices_path = selection_path,
+    source_sim_path = sim_path,
+    source_reference_root_count = 1L,
+    seed = 123L,
+    reservoir_profile = "tiny",
+    enabled = TRUE,
+    stringsAsFactors = FALSE
+  )
+  defaults <- list(
+    execution = list(methods = c("vb", "mcmc"), likelihood_families = c("exal", "al")),
+    pipeline = list(validation_p_vec = 0.25),
+    reference_contract = list(
+      root_kind = "dynamic",
+      scenarios = "scenario-a",
+      families = "normal",
+      taus = 0.25,
+      fit_sizes = 500L
+    ),
+    reservoir_profiles = list(tiny = list(seed = 123L))
+  )
+
+  spec_grid <- exdqlm:::qdesn_dynamic_fitforecast_atomic_spec_grid(grid, defaults)
+  expect_equal(nrow(spec_grid), 4L)
+  expect_equal(length(unique(spec_grid$spec_id)), 4L)
+
+  one <- spec_grid[spec_grid$method == "mcmc" & spec_grid$likelihood_family == "exal", , drop = FALSE]
+  root_spec <- exdqlm:::qdesn_dynamic_crossstudy_enrich_root_spec(as.list(grid[1L, , drop = FALSE]), defaults)
+  expect_identical(
+    one$spec_id,
+    exdqlm:::qdesn_dynamic_fitforecast_atomic_spec_id(root_spec, "mcmc", "exal")
+  )
+})
+
 test_that("fit+forecast launch approval gates separate routine and TT5000 approval", {
   smoke <- exdqlm:::qdesn_dynamic_fitforecast_approval_state(
     "smoke",

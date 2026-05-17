@@ -301,7 +301,7 @@ ffv2_prepare_manifest <- function(defaults,
   subdirs <- c(
     "configs", "rows", "health", "metrics", "fit_path_summaries",
     "forecast_path_summaries", "forecast_lead_metrics", "logs", "progress", "heartbeats",
-    "manifests", "interfaces", "storage"
+    "manifests", "interfaces", "storage", "handoff"
   )
   if (!isTRUE(dry_run)) {
     ffv2_ensure_dir(run_root)
@@ -310,6 +310,7 @@ ffv2_prepare_manifest <- function(defaults,
 
   rows <- list()
   row_id <- 0L
+  row_manifest_path <- file.path(run_root, "manifests", "row_manifest.csv")
   for (i in seq_len(nrow(registry))) {
     cell <- registry[i, , drop = FALSE]
     for (model_variant in as.character(defaults$models$model_variants)) {
@@ -333,7 +334,9 @@ ffv2_prepare_manifest <- function(defaults,
           dqlm_ind = identical(model_variant, "dqlm"),
           smoke = FALSE,
           status = "pending",
+          validation_stage = "all",
           run_root = run_root,
+          row_manifest_path = row_manifest_path,
           row_config_path = file.path(run_root, "configs", sprintf("%s_config.json", row_key)),
           row_status_path = file.path(run_root, "rows", sprintf("%s_status.csv", row_key)),
           row_health_path = file.path(run_root, "health", sprintf("%s_health.csv", row_key)),
@@ -343,10 +346,15 @@ ffv2_prepare_manifest <- function(defaults,
           row_progress_path = file.path(run_root, "progress", sprintf("%s_progress.csv", row_key)),
           row_heartbeat_path = file.path(run_root, "heartbeats", sprintf("%s_heartbeat.json", row_key)),
           forecast_lead_metrics_path = file.path(run_root, "forecast_lead_metrics", sprintf("%s_forecast_lead_metrics.csv", row_key)),
+          fit_handoff_path = file.path(run_root, "handoff", sprintf("%s_fit_object.ffv2handoff", row_key)),
+          fit_handoff_manifest_path = file.path(run_root, "handoff", sprintf("%s_fit_object_manifest.json", row_key)),
+          vb_init_handoff_path = file.path(run_root, "handoff", sprintf("%s_vb_init.ffv2handoff", row_key)),
+          vb_init_handoff_manifest_path = file.path(run_root, "handoff", sprintf("%s_vb_init_manifest.json", row_key)),
           log_path = file.path(run_root, "logs", sprintf("%s.log", row_key)),
           stringsAsFactors = FALSE
         )
         row$smoke <- ffv2_smoke_flag(row, defaults)
+        row$spec_id <- ffv2_make_spec_id(cbind(row, cell, stringsAsFactors = FALSE), model_family = "exdqlm_dqlm")
         rows[[length(rows) + 1L]] <- cbind(row, cell, stringsAsFactors = FALSE)
       }
     }
@@ -357,6 +365,14 @@ ffv2_prepare_manifest <- function(defaults,
   ffv2_stop_stale_paths(manifest)
 
   if (!isTRUE(dry_run)) {
+    overrides_path <- defaults$run_overrides_path %||% (defaults$run_overrides %||% list())$path %||% NULL
+    if (!is.null(overrides_path) && nzchar(as.character(overrides_path)[1L]) && !startsWith(as.character(overrides_path)[1L], "/")) {
+      overrides_path <- ffv2_resolve_path(overrides_path, repo_root = repo_root, must_work = TRUE)
+    }
+    overrides <- ffv2_load_run_overrides(overrides_path)
+    manifest$run_override_applied <- FALSE
+    manifest$run_override_id <- ""
+    manifest$run_override_reason <- ""
     for (i in seq_len(nrow(manifest))) {
       r <- manifest[i, , drop = FALSE]
       cfg <- as.list(r)
@@ -377,12 +393,23 @@ ffv2_prepare_manifest <- function(defaults,
       }
       cfg$models <- defaults$models
       cfg$retention <- defaults$retention
+      cfg$handoff <- defaults$handoff %||% list(
+        fit = TRUE,
+        vb_init = TRUE,
+        prune_fit_on_success = TRUE,
+        reuse_vb_init = TRUE
+      )
+      override <- ffv2_override_for_spec(overrides, cfg$spec_id, r)
+      cfg <- ffv2_apply_row_override(cfg, override)
+      manifest$run_override_applied[[i]] <- isTRUE(cfg$run_override_applied)
+      manifest$run_override_id[[i]] <- as.character(cfg$run_override_id %||% "")
+      manifest$run_override_reason[[i]] <- as.character(cfg$run_override_reason %||% "")
       ffv2_write_json(cfg, r$row_config_path)
     }
     ffv2_write_csv(registry, file.path(run_root, "manifests", "source_registry.csv"))
     verification <- ffv2_verify_source_windows(registry, stop_on_fail = TRUE)
     ffv2_write_csv(verification, file.path(run_root, "manifests", "source_window_verification.csv"))
-    ffv2_write_csv(manifest, file.path(run_root, "manifests", "row_manifest.csv"))
+    ffv2_write_csv(manifest, row_manifest_path)
     ffv2_write_json(ffv2_runtime_metadata(repo_root), file.path(run_root, "manifests", "runtime_metadata.json"))
   }
   manifest

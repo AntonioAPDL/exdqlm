@@ -94,6 +94,36 @@ EXDQLM_FFV2_LAUNCH_APPROVED=true \
 Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase vb_full
 ```
 
+Target a single exDQLM/DQLM row by atomic spec:
+
+```sh
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --phase all \
+  --validation-stage fit-only \
+  --spec-ids <spec_id> \
+  --dry-run
+```
+
+After a successful `fit-only` row, reuse its fit handoff for forecast repair:
+
+```sh
+EXDQLM_FFV2_LAUNCH_APPROVED=true \
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --phase all \
+  --validation-stage forecast-only \
+  --spec-ids <spec_id>
+```
+
+Q-DESN atomic repair targets one dataset/prior/method/likelihood combination by
+`spec_id`; the current Q-DESN fit engine remains monolithic for fit+forecast compute:
+
+```sh
+Rscript scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R \
+  --batch smoke \
+  --prepare-only \
+  --spec-ids <qdesn_spec_id>
+```
+
 Then TT500 MCMC:
 
 ```sh

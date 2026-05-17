@@ -1235,8 +1235,11 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
     source_fit_input_dir = source_fit_input_dir,
     source_report_root = source_report_root,
     source_series_wide_path = source_series_wide_path,
+    source_series_wide_sha256 = as.character(root_spec$source_series_wide_sha256 %||% NA_character_)[1L],
     source_selection_indices_path = source_selection_indices_path,
+    source_selection_indices_sha256 = as.character(root_spec$source_selection_indices_sha256 %||% NA_character_)[1L],
     source_sim_path = source_sim_path,
+    source_sim_sha256 = as.character(root_spec$source_sim_sha256 %||% NA_character_)[1L],
     source_reference_root_count = reference_root_count,
     source_reference_priors = reference_priors,
     source_current_rhsns_member = current_member,
@@ -1535,10 +1538,12 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
                                                             staged_data,
                                                             root_dir,
                                                             likelihood_family,
-                                                            verbose = TRUE) {
+                                                            verbose = TRUE,
+                                                            fit_spec_id = NULL) {
   multiseed_cfg <- .qdesn_dynamic_crossstudy_multiseed_cfg(defaults)
   canonical_method_dir <- file.path(root_dir, "fits", paste("mcmc", likelihood_family, sep = "_"))
   .qdesn_validation_dir_create(canonical_method_dir)
+  fit_spec_id <- as.character(fit_spec_id %||% qdesn_dynamic_fitforecast_atomic_spec_id(root_spec, "mcmc", likelihood_family))[1L]
 
   if (!isTRUE(multiseed_cfg$enabled) || multiseed_cfg$mcmc_seed_reps <= 1L) {
     res <- .qdesn_static_crossstudy_run_one_fit(
@@ -1548,7 +1553,8 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
       root_dir = root_dir,
       method = "mcmc",
       method_dir = canonical_method_dir,
-      likelihood_family = likelihood_family
+      likelihood_family = likelihood_family,
+      fit_spec_id = fit_spec_id
     )
     return(c(res, list(seed_selection = data.frame(stringsAsFactors = FALSE))))
   }
@@ -1586,7 +1592,8 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
       root_dir = root_dir,
       method = "mcmc",
       method_dir = seed_method_dir,
-      likelihood_family = likelihood_family
+      likelihood_family = likelihood_family,
+      fit_spec_id = fit_spec_id
     )
     seed_metric <- .qdesn_dynamic_crossstudy_seed_metric_row(
       root_spec = root_spec,
@@ -1677,6 +1684,8 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
   }
   .qdesn_validation_write_lines(file.path(root_dir, "manifest", "root_status.txt"), "RUNNING")
   execution_scope <- .qdesn_static_crossstudy_execution_scope(defaults)
+  allowed_fit_spec_ids <- unique(as.character((defaults$execution %||% list())$allowed_fit_spec_ids %||% character(0)))
+  allowed_fit_spec_ids <- allowed_fit_spec_ids[nzchar(allowed_fit_spec_ids)]
   rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
   rescue_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
   .qdesn_validation_write_json(file.path(root_dir, "manifest", "root_manifest.json"), list(
@@ -1708,6 +1717,7 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
     seed = as.integer(root_spec$seed),
     multiseed = defaults$multiseed %||% list(),
     execution = execution_scope,
+    allowed_fit_spec_ids = as.list(allowed_fit_spec_ids),
     study_contract = .qdesn_static_crossstudy_study_contract(defaults),
     rescue_overlay = list(
       enabled = isTRUE(rescue_cfg$enabled %||% FALSE),
@@ -1723,14 +1733,30 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
   fit_rows <- list()
   progress_rows <- list()
   seed_selection_rows <- list()
+  attempted_fits <- 0L
   for (likelihood_family in execution_scope$likelihood_families) {
     for (method in execution_scope$methods) {
+      fit_spec_id <- qdesn_dynamic_fitforecast_atomic_spec_id(root_spec, method, likelihood_family)
+      if (length(allowed_fit_spec_ids) && !fit_spec_id %in% allowed_fit_spec_ids) {
+        if (isTRUE(verbose)) {
+          message(sprintf(
+            "[qdesn_dynamic_crossstudy_run_root] skip spec %s | %s | %s | %s",
+            fit_spec_id,
+            root_spec$root_id,
+            likelihood_family,
+            method
+          ))
+        }
+        next
+      }
+      attempted_fits <- attempted_fits + 1L
       if (isTRUE(verbose)) {
         message(sprintf(
-          "[qdesn_dynamic_crossstudy_run_root] %s | %s | %s",
+          "[qdesn_dynamic_crossstudy_run_root] %s | %s | %s | spec=%s",
           root_spec$root_id,
           likelihood_family,
-          method
+          method,
+          fit_spec_id
         ))
       }
       if (identical(method, "vb")) {
@@ -1740,7 +1766,8 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
           staged_data = staged_data,
           root_dir = root_dir,
           method = "vb",
-          likelihood_family = likelihood_family
+          likelihood_family = likelihood_family,
+          fit_spec_id = fit_spec_id
         )
         fit_rows[[length(fit_rows) + 1L]] <- vb_res$fit_summary
         if (nrow(vb_res$progress_trace)) {
@@ -1753,7 +1780,8 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
           staged_data = staged_data,
           root_dir = root_dir,
           likelihood_family = likelihood_family,
-          verbose = verbose
+          verbose = verbose,
+          fit_spec_id = fit_spec_id
         )
         fit_rows[[length(fit_rows) + 1L]] <- mcmc_res$fit_summary
         if (nrow(mcmc_res$progress_trace)) {
@@ -1771,8 +1799,13 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
   model_pair_summary <- .qdesn_static_crossstudy_model_pair_summary(fit_summary, root_spec)
   status_vec <- if ("status" %in% names(fit_summary)) as.character(fit_summary$status) else character(0)
   status_vec[is.na(status_vec) | !nzchar(status_vec)] <- "FAIL"
-  expected_fits <- as.integer(execution_scope$requested_fits %||% 4L)[1L]
+  expected_fits <- if (length(allowed_fit_spec_ids)) {
+    as.integer(attempted_fits)
+  } else {
+    as.integer(execution_scope$requested_fits %||% 4L)[1L]
+  }
   root_status <- if (nrow(fit_summary) >= expected_fits &&
+    expected_fits > 0L &&
     length(status_vec) >= expected_fits &&
     all(status_vec[seq_len(expected_fits)] == "SUCCESS")) {
     "SUCCESS"

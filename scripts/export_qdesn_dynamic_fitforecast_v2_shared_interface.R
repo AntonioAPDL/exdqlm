@@ -107,10 +107,12 @@ for (i in seq_len(nrow(fit_summary))) {
   row$validation_contract_id <- "qdesn_exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface"
   row$study_id <- "qdesn_dynamic_fitforecast_v2"
   row$run_tag <- first_nonempty(preflight$run_tag, get_col(fit_summary, i, "run_tag"))
+  row$spec_id <- first_nonempty(get_col(fit_summary, i, "spec_id"))
   row$model_family <- "qdesn"
   row$model_variant <- first_nonempty(get_col(fit_summary, i, "canonical_model"), get_col(grid_row, 1L, "beta_prior_type"))
   row$inference <- first_nonempty(get_col(fit_summary, i, "inference"))
   row$phase <- first_nonempty(preflight$batch, get_col(fit_summary, i, "phase"))
+  row$validation_stage <- first_nonempty(get_col(fit_summary, i, "validation_stage"), "all")
   row$status <- first_nonempty(get_col(fit_summary, i, "status"), get_col(fit_summary, i, "root_status"))
   row$failure_reason <- first_nonempty(get_col(fit_summary, i, "failure_reason"), get_col(fit_summary, i, "error_message"))
   row$health_gate <- first_nonempty(get_col(fit_summary, i, "health_gate"), get_col(fit_summary, i, "finite_ok"))
@@ -133,6 +135,8 @@ for (i in seq_len(nrow(fit_summary))) {
   row$forecast_protocol <- "rolling_origin_no_refit_state_update"
   row$state_update_method <- "forecast_lattice_observed_lag_state_update_no_refit"
   row$refit_per_origin <- FALSE
+  row$max_lead_configured <- 30L
+  row$origin_stride <- 30L
   row$forecast_origin_source_index <- 9000L
   row$forecast_start_source_index <- first_nonempty(get_col(grid_row, 1L, "forecast_start_source_index"), 9001L)
   row$forecast_end_source_index <- first_nonempty(get_col(grid_row, 1L, "forecast_end_source_index"), 10000L)

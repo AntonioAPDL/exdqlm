@@ -58,6 +58,12 @@ budget:
     thin: 1
     init_from_vb: true
 
+handoff:
+  fit: true
+  vb_init: true
+  reuse_vb_init: true
+  prune_fit_on_success: true
+
 smoke:
   runtime:
     progress_every: 1

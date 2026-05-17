@@ -127,8 +127,8 @@ select_batch_grid <- function(grid_df, defaults, batch = c("full", "smoke")) {
   out
 }
 
-defaults_rel <- get_arg("--defaults", file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_defaults.yaml"))
-grid_rel <- get_arg("--grid", file.path("config", "validation", "qdesn_dynamic_exdqlm_crossstudy_grid.csv"))
+defaults_rel <- get_arg("--defaults", file.path("config", "validation", "qdesn_dynamic_fitforecast_v2_storage_light_defaults.yaml"))
+grid_rel <- get_arg("--grid", file.path("config", "validation", "qdesn_dynamic_fitforecast_v2_full_grid.csv"))
 defaults_path <- resolve_path(defaults_rel, must_work = TRUE)
 grid_path_raw <- resolve_path(grid_rel, must_work = FALSE)
 prepare_only <- has_flag("--prepare-only")
@@ -170,6 +170,7 @@ taus_filter <- suppressWarnings(as.numeric(split_csv_arg(get_arg("--taus", "")))
 taus_filter <- taus_filter[is.finite(taus_filter)]
 priors_filter <- split_csv_arg(get_arg("--priors", ""))
 root_ids_filter <- split_csv_arg(get_arg("--root-ids", ""))
+spec_ids_filter <- split_csv_arg(get_arg("--spec-ids", get_arg("--spec-id", "")))
 if (nzchar(trimws(methods_arg))) {
   defaults$execution <- defaults$execution %||% list()
   defaults$execution$methods <- trimws(strsplit(methods_arg, ",", fixed = TRUE)[[1L]])
@@ -225,6 +226,35 @@ selected_grid <- exdqlm:::qdesn_validation_filter_dynamic_grid(
 )
 if (!nrow(selected_grid)) {
   stop(sprintf("Selected batch '%s' has no enabled roots after filtering.", batch), call. = FALSE)
+}
+
+atomic_spec_grid <- exdqlm:::qdesn_dynamic_fitforecast_atomic_spec_grid(
+  selected_grid,
+  defaults = defaults,
+  methods = defaults$execution$methods %||% character(0),
+  likelihood_families = defaults$execution$likelihood_families %||% character(0)
+)
+selected_atomic_spec_grid <- atomic_spec_grid
+if (length(spec_ids_filter)) {
+  selected_atomic_spec_grid <- atomic_spec_grid[
+    as.character(atomic_spec_grid$spec_id) %in% as.character(spec_ids_filter),
+    ,
+    drop = FALSE
+  ]
+  missing_spec_ids <- setdiff(as.character(spec_ids_filter), as.character(selected_atomic_spec_grid$spec_id))
+  if (length(missing_spec_ids)) {
+    stop(sprintf(
+      "Requested Q-DESN atomic spec_id(s) are not in the selected grid/scope: %s",
+      paste(missing_spec_ids, collapse = ", ")
+    ), call. = FALSE)
+  }
+  selected_grid <- selected_grid[
+    as.character(selected_grid$root_id) %in% as.character(selected_atomic_spec_grid$root_id),
+    ,
+    drop = FALSE
+  ]
+  defaults$execution <- defaults$execution %||% list()
+  defaults$execution$allowed_fit_spec_ids <- as.character(selected_atomic_spec_grid$spec_id)
 }
 
 reference_cfg <- defaults$reference %||% list()
@@ -327,6 +357,8 @@ dir.create(launch_root, recursive = TRUE, showWarnings = FALSE)
 
 selected_grid_path <- file.path(launch_root, sprintf("selected_grid_%s.csv", batch))
 write_csv(selected_grid, selected_grid_path)
+selected_atomic_specs_path <- file.path(launch_root, sprintf("selected_atomic_specs_%s.csv", batch))
+write_csv(selected_atomic_spec_grid, selected_atomic_specs_path)
 
 resource_snapshot <- list(
   generated_at = as.character(Sys.time()),
@@ -359,6 +391,7 @@ preflight_manifest <- list(
   defaults_path = defaults_path,
   grid_path = grid_path_raw,
   selected_grid_path = selected_grid_path,
+  selected_atomic_specs_path = selected_atomic_specs_path,
   prepare_only = prepare_only,
   refresh_grid = refresh_grid,
   allow_grid_subset = allow_grid_subset,
@@ -378,6 +411,7 @@ preflight_manifest <- list(
     taus = as.list(as.numeric(taus_filter)),
     priors = as.list(as.character(priors_filter)),
     root_ids = as.list(as.character(root_ids_filter)),
+    spec_ids = as.list(as.character(spec_ids_filter)),
     scheduler = scheduler_arg
   ),
   reference_summary = reference_summary,
@@ -395,7 +429,8 @@ preflight_manifest <- list(
   execution_scope = list(
     methods = execution_scope$methods,
     likelihood_families = execution_scope$likelihood_families,
-    requested_fits_per_root = as.integer(execution_scope$requested_fits %||% NA_integer_)[1L]
+    requested_fits_per_root = as.integer(execution_scope$requested_fits %||% NA_integer_)[1L],
+    allowed_fit_spec_ids = as.list(as.character((defaults$execution %||% list())$allowed_fit_spec_ids %||% character(0)))
   ),
   rescue_overlay = list(
     enabled = isTRUE(rescue_cfg$enabled %||% FALSE),
@@ -460,6 +495,7 @@ preflight_lines <- c(
   sprintf("- defaults_path: `%s`", defaults_path),
   sprintf("- grid_path: `%s`", grid_path_raw),
   sprintf("- selected_grid_path: `%s`", selected_grid_path),
+  sprintf("- selected_atomic_specs_path: `%s`", selected_atomic_specs_path),
   sprintf("- outer_report_root: `%s`", run_report_root),
   sprintf("- outer_results_root: `%s`", run_results_root),
   sprintf("- chosen_workers: `%d`", as.integer(workers)),
@@ -478,6 +514,7 @@ preflight_lines <- c(
   sprintf("- filter_likelihoods: `%s`", paste(defaults$execution$likelihood_families %||% character(0), collapse = ", ")),
   sprintf("- filter_fit_sizes: `%s`", paste(fit_sizes_filter, collapse = ", ")),
   sprintf("- filter_priors: `%s`", paste(priors_filter, collapse = ", ")),
+  sprintf("- filter_spec_ids: `%s`", paste(spec_ids_filter, collapse = ", ")),
   "",
   "## Scope Decision",
   "- study_surface: `dynamic exdqlm-aligned`",
@@ -485,6 +522,7 @@ preflight_lines <- c(
   sprintf("- likelihoods_per_root: `%s`", paste(preflight_manifest$execution_scope$likelihood_families, collapse = ", ")),
   sprintf("- methods_per_root: `%s`", paste(preflight_manifest$execution_scope$methods, collapse = ", ")),
   sprintf("- requested_fits_per_root: `%s`", as.character(preflight_manifest$execution_scope$requested_fits_per_root)),
+  sprintf("- selected_atomic_specs: `%d`", as.integer(nrow(selected_atomic_spec_grid))),
   "- QDESN_priors: `ridge, rhs_ns`",
   "",
   "## Study Contract",

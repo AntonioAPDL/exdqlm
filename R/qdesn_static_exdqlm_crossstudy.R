@@ -1280,6 +1280,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   }
   data.frame(
     root_id = root_spec$root_id,
+    spec_id = qdesn_dynamic_fitforecast_atomic_spec_id(root_spec, method, likelihood_family),
     dataset_cell_id = root_spec$dataset_cell_id,
     scenario = root_spec$scenario,
     root_kind = root_spec$source_root_kind,
@@ -1300,6 +1301,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     inference = method,
     likelihood_family = likelihood_family,
     model = likelihood_family,
+    validation_stage = "all",
     runtime_sec = runtime_sec,
     fit_runtime_seconds = runtime_sec,
     wall_seconds = runtime_sec,
@@ -1640,9 +1642,11 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
                                                  root_dir,
                                                  method = c("vb", "mcmc"),
                                                  method_dir = NULL,
-                                                 likelihood_family = c("exal", "al")) {
+                                                 likelihood_family = c("exal", "al"),
+                                                 fit_spec_id = NULL) {
   method <- match.arg(method)
   likelihood_family <- match.arg(likelihood_family)
+  fit_spec_id <- as.character(fit_spec_id %||% qdesn_dynamic_fitforecast_atomic_spec_id(root_spec, method, likelihood_family))[1L]
   root_spec_lik <- modifyList(root_spec, list(likelihood_family = likelihood_family))
   method_dir <- method_dir %||% file.path(root_dir, "fits", paste(method, likelihood_family, sep = "_"))
   .qdesn_validation_dir_create(method_dir)
@@ -1654,9 +1658,12 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     x_cols = staged_data$x_cols,
     T_use = staged_data$n_obs
   )
+  cfg$validation_spec_id <- fit_spec_id
+  cfg$validation_stage <- as.character((defaults$execution %||% list())$validation_stage %||% "all")[1L]
   rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
   rescue_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
   .qdesn_validation_write_json(file.path(method_dir, "fit_request.json"), list(
+    spec_id = fit_spec_id,
     root_spec = root_spec_lik,
     config = cfg,
     observed_path = staged_data$observed_path,
@@ -1699,6 +1706,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   if (identical(status, "FAIL")) {
     health_row <- data.frame(
       root_id = root_spec$root_id,
+      spec_id = fit_spec_id,
       scenario = root_spec$scenario,
       tau = as.numeric(root_spec$tau),
       likelihood_family = likelihood_family,
@@ -2001,6 +2009,8 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
   }
   .qdesn_validation_write_lines(file.path(root_dir, "manifest", "root_status.txt"), "RUNNING")
   execution_scope <- .qdesn_static_crossstudy_execution_scope(defaults)
+  allowed_fit_spec_ids <- unique(as.character((defaults$execution %||% list())$allowed_fit_spec_ids %||% character(0)))
+  allowed_fit_spec_ids <- allowed_fit_spec_ids[nzchar(allowed_fit_spec_ids)]
   rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
   rescue_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
   .qdesn_validation_write_json(file.path(root_dir, "manifest", "root_manifest.json"), list(
@@ -2020,6 +2030,7 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
     reservoir_profile = root_spec$reservoir_profile,
     seed = as.integer(root_spec$seed),
     execution = execution_scope,
+    allowed_fit_spec_ids = as.list(allowed_fit_spec_ids),
     study_contract = .qdesn_static_crossstudy_study_contract(defaults),
     rescue_overlay = list(
       enabled = isTRUE(rescue_cfg$enabled %||% FALSE),
@@ -2035,14 +2046,30 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
   results <- list()
   fit_rows <- list()
   progress_rows <- list()
+  attempted_fits <- 0L
   for (likelihood_family in execution_scope$likelihood_families) {
     for (method in execution_scope$methods) {
+      fit_spec_id <- qdesn_dynamic_fitforecast_atomic_spec_id(root_spec, method, likelihood_family)
+      if (length(allowed_fit_spec_ids) && !fit_spec_id %in% allowed_fit_spec_ids) {
+        if (isTRUE(verbose)) {
+          message(sprintf(
+            "[qdesn_static_crossstudy_run_root] skip spec %s | %s | %s | %s",
+            fit_spec_id,
+            root_spec$root_id,
+            likelihood_family,
+            method
+          ))
+        }
+        next
+      }
+      attempted_fits <- attempted_fits + 1L
       if (isTRUE(verbose)) {
         message(sprintf(
-          "[qdesn_static_crossstudy_run_root] %s | %s | %s",
+          "[qdesn_static_crossstudy_run_root] %s | %s | %s | spec=%s",
           root_spec$root_id,
           likelihood_family,
-          method
+          method,
+          fit_spec_id
         ))
       }
       res <- .qdesn_static_crossstudy_run_one_fit(
@@ -2051,7 +2078,8 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
         staged_data = staged_data,
         root_dir = root_dir,
         method = method,
-        likelihood_family = likelihood_family
+        likelihood_family = likelihood_family,
+        fit_spec_id = fit_spec_id
       )
       key <- paste(method, likelihood_family, sep = "__")
       results[[key]] <- res
@@ -2067,8 +2095,13 @@ qdesn_static_crossstudy_run_root <- function(root_spec,
   model_pair_summary <- .qdesn_static_crossstudy_model_pair_summary(fit_summary, root_spec)
   status_vec <- if ("status" %in% names(fit_summary)) as.character(fit_summary$status) else character(0)
   status_vec[is.na(status_vec) | !nzchar(status_vec)] <- "FAIL"
-  expected_fits <- as.integer(execution_scope$requested_fits %||% 4L)[1L]
+  expected_fits <- if (length(allowed_fit_spec_ids)) {
+    as.integer(attempted_fits)
+  } else {
+    as.integer(execution_scope$requested_fits %||% 4L)[1L]
+  }
   root_status <- if (nrow(fit_summary) >= expected_fits &&
+    expected_fits > 0L &&
     length(status_vec) >= expected_fits &&
     all(status_vec[seq_len(expected_fits)] == "SUCCESS")) {
     "SUCCESS"

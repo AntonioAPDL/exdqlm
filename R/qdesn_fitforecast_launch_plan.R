@@ -97,6 +97,99 @@ qdesn_dynamic_fitforecast_assert_required_packages <- function(packages = qdesn_
   invisible(packages)
 }
 
+qdesn_dynamic_fitforecast_hash_string <- function(x, n = 14L) {
+  tmp <- tempfile("qdesn_ffv2_spec_")
+  on.exit(unlink(tmp), add = TRUE)
+  writeLines(enc2utf8(as.character(x)), tmp, useBytes = TRUE)
+  exe <- Sys.which("sha256sum")
+  if (nzchar(exe)) {
+    hash <- strsplit(system2(exe, shQuote(tmp), stdout = TRUE)[[1L]], "\\s+")[[1L]][[1L]]
+  } else {
+    hash <- unname(tools::md5sum(tmp))
+  }
+  substr(hash, 1L, as.integer(n)[1L])
+}
+
+qdesn_dynamic_fitforecast_clean_token <- function(x, fallback = "na") {
+  x <- as.character(x %||% fallback)[1L]
+  if (is.na(x) || !nzchar(trimws(x))) x <- fallback
+  x <- tolower(trimws(x))
+  x <- gsub("[^a-z0-9]+", "_", x)
+  x <- gsub("^_+|_+$", "", x)
+  if (!nzchar(x)) fallback else x
+}
+
+qdesn_dynamic_fitforecast_atomic_spec_id <- function(root_spec,
+                                                     method = c("vb", "mcmc"),
+                                                     likelihood_family = c("exal", "al")) {
+  method <- match.arg(tolower(as.character(method)[1L]), c("vb", "mcmc"))
+  likelihood_family <- match.arg(tolower(as.character(likelihood_family)[1L]), c("exal", "al"))
+  root_spec <- as.list(root_spec)
+  fields <- c(
+    model_family = "qdesn",
+    method = method,
+    likelihood_family = likelihood_family,
+    scenario_id = as.character(root_spec$scenario %||% root_spec$source_scenario %||% ""),
+    family = as.character(root_spec$source_family %||% root_spec$family %||% ""),
+    tau = as.character(root_spec$tau %||% ""),
+    fit_size = as.character(root_spec$fit_size %||% root_spec$effective_fit_size %||% ""),
+    effective_fit_size = as.character(root_spec$effective_fit_size %||% root_spec$fit_size %||% ""),
+    beta_prior_type = as.character(root_spec$beta_prior_type %||% root_spec$prior %||% ""),
+    root_id = as.character(root_spec$root_id %||% ""),
+    dataset_cell_id = as.character(root_spec$dataset_cell_id %||% ""),
+    source_hash = as.character(root_spec$source_sim_sha256 %||% root_spec$series_wide_sha256 %||% ""),
+    forecast_protocol = as.character(root_spec$forecast_protocol %||% "rolling_origin_no_refit_state_update"),
+    max_lead_configured = as.character(root_spec$max_lead_configured %||% root_spec$rolling_hmax %||% 30L),
+    origin_stride = as.character(root_spec$origin_stride %||% root_spec$max_lead_configured %||% 30L)
+  )
+  digest <- qdesn_dynamic_fitforecast_hash_string(paste(names(fields), fields, sep = "=", collapse = "\n"))
+  tau_label <- gsub("\\.", "p", format(as.numeric(root_spec$tau %||% NA_real_), nsmall = 2L, digits = 4L, trim = TRUE))
+  paste(
+    "qdesn",
+    qdesn_dynamic_fitforecast_clean_token(root_spec$source_family %||% root_spec$family, "family"),
+    qdesn_dynamic_fitforecast_clean_token(tau_label, "tau"),
+    paste0("tt", qdesn_dynamic_fitforecast_clean_token(root_spec$fit_size %||% root_spec$effective_fit_size, "fit")),
+    qdesn_dynamic_fitforecast_clean_token(root_spec$beta_prior_type %||% root_spec$prior, "prior"),
+    method,
+    likelihood_family,
+    digest,
+    sep = "__"
+  )
+}
+
+qdesn_dynamic_fitforecast_atomic_spec_grid <- function(grid_df,
+                                                       defaults,
+                                                       methods = NULL,
+                                                       likelihood_families = NULL) {
+  scope <- .qdesn_static_crossstudy_execution_scope(defaults)
+  methods <- methods %||% scope$methods
+  likelihood_families <- likelihood_families %||% scope$likelihood_families
+  rows <- list()
+  for (i in seq_len(nrow(grid_df))) {
+    root_spec <- qdesn_dynamic_crossstudy_enrich_root_spec(as.list(grid_df[i, , drop = FALSE]), defaults)
+    for (likelihood_family in as.character(likelihood_families)) {
+      for (method in as.character(methods)) {
+        rows[[length(rows) + 1L]] <- data.frame(
+          spec_id = qdesn_dynamic_fitforecast_atomic_spec_id(root_spec, method, likelihood_family),
+          root_id = as.character(root_spec$root_id),
+          dataset_cell_id = as.character(root_spec$dataset_cell_id %||% NA_character_),
+          family = as.character(root_spec$source_family %||% NA_character_),
+          tau = as.numeric(root_spec$tau),
+          fit_size = as.integer(root_spec$fit_size),
+          prior = as.character(root_spec$beta_prior_type %||% NA_character_),
+          method = as.character(method),
+          inference = as.character(method),
+          likelihood_family = as.character(likelihood_family),
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
 qdesn_validation_filter_dynamic_grid <- function(grid_df,
                                                  fit_sizes = integer(0),
                                                  families = character(0),
