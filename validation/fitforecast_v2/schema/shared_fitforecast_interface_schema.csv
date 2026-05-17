@@ -1,23 +1,36 @@
 column,required,description
-validation_contract_id,true,Stable contract identifier for Q-DESN plus exDQLM/DQLM dynamic fit and forecast validation v2.
+validation_contract_id,true,Stable contract identifier for Q-DESN plus exDQLM/DQLM dynamic fit and forecast validation.
+interface_schema_version,true,Article-facing schema version. Active value is rolling_origin_v3_lead_interface_v1.
 study_id,true,Validation study identifier.
 run_tag,true,Versioned run tag for the producing validation run.
 spec_id,true,Stable atomic run specification identifier for targeted reruns and provenance.
-model_family,true,Top-level family such as qdesn or exdqlm_dqlm.
+model_family,true,Top-level model family such as qdesn or exdqlm_dqlm.
 model_variant,true,Model variant such as qdesn_ridge qdesn_rhs_ns dqlm or exdqlm.
-inference,true,Inference method such as vb or mcmc.
+inference,true,Inference method alias such as vb or mcmc.
+inference_method,true,Inference method such as vb or mcmc.
 phase,true,Staged launch phase.
 validation_stage,true,Atomic execution stage such as all fit-only forecast-only or metrics-only.
 status,true,Explicit row status.
-failure_reason,true,Explicit failure reason or NA for successful rows.
-health_gate,true,Health/signoff gate status.
+failure_stage,false,Stage or terminal failure class for failed rows.
+failure_reason,true,Explicit failure reason or empty for successful rows.
+warning_count,false,Number of warnings attached to the row when available.
+diagnostic_flags,false,Compact semicolon-delimited diagnostic flags.
+health_gate,true,Health or signoff gate status.
 signoff_grade,false,Human/study-facing signoff grade where available.
+source_registry_id,true,Frozen shared source registry identifier.
 source_registry_root,true,Frozen shared source registry root.
+source_registry_path,true,Frozen shared source registry path alias.
 source_registry_hash_name,true,Name of the registry hash being enforced.
 source_registry_hash_value,true,Expected registry hash value.
+source_registry_hash,true,Expected registry hash alias.
 source_cell_id,true,Source cell identifier.
 scenario_id,true,Simulation scenario identifier.
+source_path,false,Path to the source series file when available.
+source_hash,false,Hash for the source series file when available.
+true_quantile_path,false,Path to the true quantile grid when available.
+true_quantile_hash,false,Hash for the true quantile grid when available.
 family,true,Observation family.
+dynamic_family,true,Observation family alias used by article guards.
 tau,true,Quantile level.
 tau_label,false,Filesystem-safe quantile label.
 fit_size,true,Nominal fit window size.
@@ -25,34 +38,62 @@ effective_fit_size,true,Effective fit window size used by the model.
 TT_warmup,true,Warmup length in the frozen source design.
 TT_main,true,Main source length in the frozen source design.
 TT_total,true,Total generated source length.
+fit_size_label,true,Human-readable fit size label such as TT500 or TT5000.
+initial_forecast_origin_source_index,true,Initial forecast origin source index.
 train_start_source_index,true,Training source start index.
 train_end_source_index,true,Training source end index.
 forecast_protocol,true,Forecast protocol identifier.
 state_update_method,true,State update method used for rolling-origin forecasts.
 refit_per_origin,true,Whether the model was refit at each forecast origin.
+uses_future_observed_y_for_state,true,Whether observed y values through the current origin are used to update state or lags.
+uses_true_quantile_for_training,true,Whether true quantiles were used in model fitting. Must be false for primary runs.
 max_lead_configured,true,Maximum rolling-origin forecast lead configured for the run.
 origin_stride,true,Rolling-origin source-index stride used for the run.
-forecast_origin_source_index,true,Forecast origin source index.
-forecast_start_source_index,true,Forecast block start source index.
-forecast_end_source_index,true,Forecast block end source index.
-forecast_h100_start_source_index,true,H=100 summary start source index.
-forecast_h100_end_source_index,true,H=100 summary end source index.
-forecast_h100_n,true,H=100 metric sample size.
-forecast_h100_q_mae,true,H=100 quantile MAE.
-forecast_h100_q_rmse,true,H=100 quantile RMSE.
-forecast_h100_pinball_mean,true,H=100 mean pinball loss.
-forecast_h1000_start_source_index,true,H=1000 summary start source index.
-forecast_h1000_end_source_index,true,H=1000 summary end source index.
-forecast_h1000_n,true,H=1000 metric sample size.
-forecast_h1000_q_mae,true,H=1000 quantile MAE.
-forecast_h1000_q_rmse,true,H=1000 quantile RMSE.
-forecast_h1000_pinball_mean,true,H=1000 mean pinball loss.
+forecast_origin_source_index,true,Initial forecast origin source index compatibility alias.
+forecast_start_source_index,true,Forecast block start source index compatibility alias.
+forecast_end_source_index,true,Forecast block end source index compatibility alias.
+forecast_block_start_source_index,true,Forecast block start source index.
+forecast_block_end_source_index,true,Forecast block end source index.
+forecast_block_size,true,Forecast block length.
+rolling_origin_start_source_index,true,First rolling forecast origin contributing to this lead row.
+rolling_origin_end_source_index,true,Last rolling forecast origin contributing to this lead row.
+forecast_lead,true,Lead r for the lead-level rolling-origin row.
+target_start_source_index,true,First scored target source index for this lead.
+target_end_source_index,true,Last scored target source index for this lead.
+n_origins_scored,true,Number of rolling origins scored for this lead.
+forecast_h100_start_source_index,false,H=100 compatibility summary start source index.
+forecast_h100_end_source_index,false,H=100 compatibility summary end source index.
+forecast_h100_n,false,H=100 compatibility metric sample size.
+forecast_h100_q_mae,false,H=100 compatibility quantile MAE.
+forecast_h100_q_rmse,false,H=100 compatibility quantile RMSE.
+forecast_h100_pinball_mean,false,H=100 compatibility mean pinball loss.
+forecast_h1000_start_source_index,false,H=1000 compatibility summary start source index.
+forecast_h1000_end_source_index,false,H=1000 compatibility summary end source index.
+forecast_h1000_n,false,H=1000 compatibility metric sample size.
+forecast_h1000_q_mae,false,H=1000 compatibility quantile MAE.
+forecast_h1000_q_rmse,false,H=1000 compatibility quantile RMSE.
+forecast_h1000_pinball_mean,false,H=1000 compatibility mean pinball loss.
 fit_n,true,Fit metric sample size.
-fit_q_mae,true,Fit quantile MAE.
-fit_q_rmse,true,Fit quantile RMSE.
+fit_q_mae,false,Legacy fit quantile MAE alias.
+fit_q_rmse,false,Legacy fit quantile RMSE alias.
 fit_pinball_mean,true,Fit mean pinball loss.
+fit_qtrue_mae,true,Fit true-quantile MAE.
+fit_qtrue_rmse,true,Fit true-quantile RMSE.
+fit_qtrue_bias,false,Fit true-quantile bias.
+fit_coverage,false,Fit empirical coverage mean(y <= qhat).
+fit_coverage_error,false,Fit coverage minus tau.
+fit_interval_width_mean,false,Mean fit interval width where retained.
+forecast_qtrue_mae,true,Lead-level forecast true-quantile MAE.
+forecast_qtrue_rmse,true,Lead-level forecast true-quantile RMSE.
+forecast_qtrue_bias,false,Lead-level forecast true-quantile bias.
+forecast_pinball_mean,true,Lead-level forecast mean pinball loss.
+forecast_coverage,false,Lead-level empirical coverage mean(y <= qhat).
+forecast_coverage_error,false,Lead-level coverage minus tau.
+forecast_interval_width_mean,false,Mean forecast interval width where retained.
 runtime_sec_fit,false,Fit runtime in seconds where separated.
 runtime_sec_forecast,false,Forecast runtime in seconds where separated.
+fit_runtime_seconds,false,Fit runtime alias for article guards.
+forecast_runtime_seconds,false,Forecast runtime alias for article guards.
 runtime_sec_total,true,Total runtime in seconds.
 runtime_sec,false,Legacy total runtime alias.
 row_config_path,true,Row config artifact path.
@@ -61,13 +102,27 @@ row_health_path,true,Row health artifact path.
 row_metrics_path,true,Row metrics artifact path.
 fit_path_summary_path,true,Compact fit path summary artifact path.
 forecast_path_summary_path,true,Compact forecast path summary artifact path.
-forecast_lead_metrics_path,false,Lead-level rolling-origin forecast metrics path.
+forecast_lead_metrics_path,true,Lead-level rolling-origin forecast metrics path.
+storage_policy,true,Storage policy applied to the row.
+artifact_manifest_path,false,Artifact manifest path where available.
+artifact_manifest_hash,false,SHA256 hash for artifact manifest where available.
+compact_path_summary_path,false,Primary compact path or lead metrics artifact path.
+compact_path_summary_hash,false,SHA256 hash for primary compact path or lead metrics artifact.
 log_path,true,Row log artifact path.
 row_progress_path,true,Machine-readable row progress trace path.
 row_heartbeat_path,true,Machine-readable row heartbeat JSON path.
-artifact_manifest_path,false,Artifact manifest path where available.
+progress_path,true,Progress path alias for article guards.
+heartbeat_path,true,Heartbeat path alias for article guards.
+last_heartbeat_at,false,Last heartbeat timestamp when available.
+last_progress_stage,false,Last progress stage when available.
+last_progress_iter,false,Last progress iteration when available.
+last_progress_total_iter,false,Last progress total iteration when available.
+config_path,true,Config path alias for article guards.
+config_hash,false,SHA256 hash of config path where available.
 package_version,true,exdqlm package version.
 branch,true,Producing git branch.
+validation_branch,true,Producing validation branch alias.
 commit,true,Producing git commit.
+validation_commit,true,Producing validation commit alias.
 run_started_at,false,Run start timestamp.
 run_finished_at,false,Run finish timestamp.

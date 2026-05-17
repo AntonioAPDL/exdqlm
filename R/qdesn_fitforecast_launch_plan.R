@@ -1,14 +1,15 @@
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
-qdesn_dynamic_fitforecast_phase_plan <- function(phase = c("smoke", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full")) {
-  phase <- match.arg(as.character(phase)[1L], c("smoke", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full"))
+qdesn_dynamic_fitforecast_phase_plan <- function(phase = c("smoke", "pilot", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full")) {
+  phase <- match.arg(as.character(phase)[1L], c("smoke", "pilot", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full"))
   list(
     phase = phase,
     phase_tag = gsub("_", "-", phase, fixed = TRUE),
-    batch = if (identical(phase, "smoke")) "smoke" else "full",
+    batch = if (phase %in% c("smoke", "pilot")) "smoke" else "full",
     methods = switch(
       phase,
       smoke = "vb",
+      pilot = "vb,mcmc",
       vb_full = "vb",
       mcmc_tt500 = "mcmc",
       mcmc_tt5000 = "mcmc",
@@ -17,6 +18,7 @@ qdesn_dynamic_fitforecast_phase_plan <- function(phase = c("smoke", "vb_full", "
     likelihoods = switch(
       phase,
       smoke = "exal",
+      pilot = "exal",
       vb_full = "",
       mcmc_tt500 = "",
       mcmc_tt5000 = "",
@@ -25,6 +27,7 @@ qdesn_dynamic_fitforecast_phase_plan <- function(phase = c("smoke", "vb_full", "
     fit_sizes = switch(
       phase,
       smoke = 500L,
+      pilot = 500L,
       vb_full = integer(0),
       mcmc_tt500 = 500L,
       mcmc_tt5000 = 5000L,
@@ -37,7 +40,7 @@ qdesn_dynamic_fitforecast_phase_plan <- function(phase = c("smoke", "vb_full", "
 qdesn_dynamic_fitforecast_approval_state <- function(phase,
                                                      launch_env = Sys.getenv("QDESN_FFV2_LAUNCH_APPROVED", "false"),
                                                      tt5000_env = Sys.getenv("QDESN_FFV2_TT5000_APPROVED", "false")) {
-  phase <- match.arg(as.character(phase)[1L], c("smoke", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full"))
+  phase <- match.arg(as.character(phase)[1L], c("smoke", "pilot", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full"))
   truthy <- function(x) {
     tolower(trimws(as.character(x)[1L])) %in% c("1", "true", "yes", "y")
   }

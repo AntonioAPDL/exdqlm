@@ -41,6 +41,7 @@ runtime:
   telemetry_sidecar_poll_seconds: 5
   workers:
     smoke: 1
+    pilot: 2
     vb_full: 4
     mcmc_tt500: 2
     mcmc_tt5000: 1
@@ -95,6 +96,48 @@ smoke:
       fit_size: 500
       model_variant: exdqlm
       inference: vb
+
+pilot:
+  runtime:
+    progress_every: 10
+    trace_every: 10
+    heartbeat_seconds: 300
+    healthcheck_stale_seconds: 600
+    progress_retention_mode: dense
+    telemetry_sidecar_poll_seconds: 2
+  budget:
+    stored_draws: 200
+    forecast_draws: 200
+    vb:
+      max_iter: 30
+      tol: 0.1
+      n_samp: 500
+    mcmc:
+      n_burn: 50
+      n_mcmc: 100
+      thin: 1
+      init_from_vb: true
+  rows:
+    - family: normal
+      tau: 0.25
+      fit_size: 500
+      model_variant: dqlm
+      inference: vb
+    - family: normal
+      tau: 0.25
+      fit_size: 500
+      model_variant: dqlm
+      inference: mcmc
+    - family: laplace
+      tau: 0.50
+      fit_size: 500
+      model_variant: exdqlm
+      inference: vb
+    - family: laplace
+      tau: 0.50
+      fit_size: 500
+      model_variant: exdqlm
+      inference: mcmc
 
 retention:
   mode: compact_success_only

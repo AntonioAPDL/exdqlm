@@ -27,6 +27,8 @@ it does not retain full successful model objects.
 - Primary forecast protocol: rolling origin, no refit, state/lag update through
   each origin.
 - Primary lead grid: `Hmax=30`, `origin_stride=30`.
+- Primary article-facing interface: one row per atomic run and forecast lead,
+  with repeated fit metrics plus lead-level forecast metrics.
 - Legacy aggregate forecast windows retained for compatibility:
   `9001:9100` and `9001:10000`.
 
@@ -59,7 +61,9 @@ Rscript validation/fitforecast_v2/scripts/verify_exdqlm_dynamic_fitforecast_v2_s
 Dry-run the smoke launch:
 
 ```sh
+Rscript scripts/run_shared_fitforecast_v2_dryrun_preflight.R
 Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase pilot --dry-run
 ```
 
 Run the validation-harness tests:
@@ -79,9 +83,10 @@ EXDQLM_FFV2_LAUNCH_APPROVED=true
 The full study is staged:
 
 1. `smoke`
-2. `vb_full`
-3. `mcmc_tt500`
-4. `mcmc_tt5000`
+2. `pilot`
+3. `vb_full`
+4. `mcmc_tt500`
+5. `mcmc_tt5000`
 
 The final TT5000 MCMC stage is intentionally gated because previous TT5000
 MCMC rows were the dominant runtime risk.

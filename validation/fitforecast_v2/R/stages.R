@@ -1,10 +1,11 @@
 ffv2_stage_rows <- function(manifest,
-                            phase = c("smoke", "vb_full", "mcmc_tt500", "mcmc_tt5000", "all"),
+                            phase = c("smoke", "pilot", "vb_full", "mcmc_tt500", "mcmc_tt5000", "all"),
                             include_completed = FALSE) {
   phase <- match.arg(phase)
   keep <- switch(
     phase,
     smoke = isTRUE(manifest$smoke) | manifest$smoke %in% c("TRUE", "true", "1"),
+    pilot = isTRUE(manifest$pilot) | manifest$pilot %in% c("TRUE", "true", "1"),
     vb_full = manifest$inference == "vb",
     mcmc_tt500 = manifest$inference == "mcmc" & as.integer(manifest$fit_size) == 500L,
     mcmc_tt5000 = manifest$inference == "mcmc" & as.integer(manifest$fit_size) == 5000L,

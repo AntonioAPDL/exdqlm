@@ -19,4 +19,12 @@ test_that("Q-DESN shared interface exporter writes the common schema header with
   )
   expect_equal(nrow(exported), 0L)
   expect_setequal(names(exported), schema$column)
+  expect_true(all(c(
+    "interface_schema_version",
+    "forecast_lead",
+    "n_origins_scored",
+    "source_registry_hash",
+    "validation_branch",
+    "validation_commit"
+  ) %in% names(exported)))
 })

@@ -66,13 +66,20 @@ if (!file.exists(rscript)) rscript <- Sys.which("Rscript")
 if (!nzchar(rscript)) stop("No Rscript found.", call. = FALSE)
 
 mode <- match.arg(as.character(get_arg("--mode", "plan"))[1L], c("plan", "preflight", "execute"))
-plan <- match.arg(as.character(get_arg("--plan", "vb-and-tt500"))[1L], c("vb-only", "vb-and-tt500", "all-approved"))
+plan <- match.arg(
+  as.character(get_arg("--plan", "vb-and-tt500"))[1L],
+  c("smoke", "pilot", "vb-only", "vb-and-tt500", "all-approved")
+)
 run_label <- as.character(get_arg("--run-label", sprintf("shared-fitforecast-v2-%s__git-%s", now_stamp(), git_short)))[1L]
 poll_minutes <- as.numeric(get_arg("--poll-minutes", "10"))[1L]
 max_active_workers <- as.integer(get_arg("--max-active-workers", "48"))[1L]
 allow_dirty <- has_flag("--allow-dirty")
 prune_success_binaries <- !has_flag("--no-prune-success-binaries")
 workers <- list(
+  exdqlm_smoke = as.integer(get_arg("--exdqlm-smoke-workers", "1"))[1L],
+  qdesn_smoke = as.integer(get_arg("--qdesn-smoke-workers", "1"))[1L],
+  exdqlm_pilot = as.integer(get_arg("--exdqlm-pilot-workers", "2"))[1L],
+  qdesn_pilot = as.integer(get_arg("--qdesn-pilot-workers", "2"))[1L],
   exdqlm_vb = as.integer(get_arg("--exdqlm-vb-workers", "16"))[1L],
   qdesn_vb = as.integer(get_arg("--qdesn-vb-workers", "24"))[1L],
   exdqlm_mcmc_tt500 = as.integer(get_arg("--exdqlm-mcmc-tt500-workers", "8"))[1L],
@@ -120,7 +127,7 @@ preflight <- function() {
   cat(paste(rver$lines, collapse = "\n"), "\n", sep = "")
 
   active_cmd <- paste(
-    "TERM=xterm tmux ls 2>&1 || true;",
+    "TERM=xterm tmux ls 2>&1 | rg '^(qdesn_ff_v2|ffv2_|shared_fitforecast|exdqlm_ffv2)' || true;",
     "ps -ef | rg 'qdesn_ff_v2|pipeline_real_main|pipeline_sim_main|launch_exdqlm_dynamic_fitforecast|run_exdqlm_dynamic_fitforecast|run_qdesn_dynamic_exdqlm_crossstudy'",
     "| rg -v 'rg|bash -lc' || true"
   )
@@ -203,6 +210,18 @@ stage_defs <- function(exd_manifest) {
     )
   }
 
+  if (identical(plan, "smoke")) {
+    return(list(
+      exd("exdqlm_smoke", "smoke", workers$exdqlm_smoke),
+      qd("qdesn_smoke", "smoke", workers$qdesn_smoke)
+    ))
+  }
+  if (identical(plan, "pilot")) {
+    return(list(
+      exd("exdqlm_pilot", "pilot", workers$exdqlm_pilot),
+      qd("qdesn_pilot", "pilot", workers$qdesn_pilot)
+    ))
+  }
   stages <- list(
     exd("exdqlm_vb_full", "vb_full", workers$exdqlm_vb),
     qd("qdesn_vb_full", "vb_full", workers$qdesn_vb)

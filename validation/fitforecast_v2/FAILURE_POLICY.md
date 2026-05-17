@@ -20,8 +20,8 @@ Stop before the next stage if any of these occur:
   `QDESN_FFV2_LAUNCH_APPROVED=true`
 - Q-DESN `mcmc_tt5000` or `full` is invoked without the additional
   `QDESN_FFV2_TT5000_APPROVED=true`
-- article-facing interface is missing source hash, forecast-origin/window,
-  H=100, or H=1000 fields
+- article-facing interface is missing source hash, rolling-origin lead/window
+  fields, or compatibility H=100/H=1000 provenance fields
 
 ## Preserve As Completed Diagnostic Result
 

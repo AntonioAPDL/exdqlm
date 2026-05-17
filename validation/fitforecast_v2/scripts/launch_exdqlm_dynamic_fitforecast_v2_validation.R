@@ -9,7 +9,7 @@ ffv2_source_all(harness_root)
 
 args <- ffv2_parse_args()
 phase <- args$phase %||% "smoke"
-allowed <- c("smoke", "vb_full", "mcmc_tt500", "mcmc_tt5000", "all")
+allowed <- c("smoke", "pilot", "vb_full", "mcmc_tt500", "mcmc_tt5000", "all")
 if (!phase %in% allowed) stop(sprintf("--phase must be one of: %s", paste(allowed, collapse = ", ")), call. = FALSE)
 dry_run <- ffv2_truthy(args$`dry-run` %||% FALSE)
 include_completed <- ffv2_truthy(args$`include-completed` %||% FALSE)

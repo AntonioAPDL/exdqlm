@@ -30,7 +30,7 @@ Sys.setenv(EXDQLM_REQUIRE_PACKAGES_ONLY = "1")
 
 phase <- match.arg(
   as.character(get_arg("--phase", "smoke"))[1L],
-  c("smoke", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full")
+  c("smoke", "pilot", "vb_full", "mcmc_tt500", "mcmc_tt5000", "full")
 )
 dry_run <- has_flag("--dry-run")
 prepare_only <- has_flag("--prepare-only")
@@ -80,6 +80,8 @@ if (!any(child_args == "--batch")) child_args <- c(child_args, "--batch", batch)
 if (!any(child_args == "--run-tag")) child_args <- c(child_args, "--run-tag", run_tag)
 if (identical(phase, "smoke") && !any(child_args == "--workers")) child_args <- c(child_args, "--workers", "1")
 if (identical(phase, "smoke") && !any(child_args == "--scheduler")) child_args <- c(child_args, "--scheduler", "static")
+if (identical(phase, "pilot") && !any(child_args == "--workers")) child_args <- c(child_args, "--workers", "2")
+if (identical(phase, "pilot") && !any(child_args == "--scheduler")) child_args <- c(child_args, "--scheduler", "static")
 if (!any(child_args == "--allow-grid-subset") && isTRUE(phase_plan$allow_grid_subset_default)) child_args <- c(child_args, "--allow-grid-subset")
 
 approval_state <- exdqlm:::qdesn_dynamic_fitforecast_approval_state(phase)

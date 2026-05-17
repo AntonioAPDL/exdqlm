@@ -32,9 +32,13 @@ Rscript validation/fitforecast_v2/scripts/healthcheck_exdqlm_dynamic_fitforecast
 ## 5. Smoke Dry Run
 
 ```sh
+Rscript scripts/run_shared_fitforecast_v2_dryrun_preflight.R
 Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase pilot --dry-run
 Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --dry-run
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase pilot --dry-run
 Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke --prepare-only
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase pilot --prepare-only
 ```
 
 ## 6. Smoke Compute
@@ -47,7 +51,30 @@ QDESN_FFV2_LAUNCH_APPROVED=true \
 Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase smoke
 ```
 
-## 7. Staged Full Compute
+## 7. Micro-Pilot Compute
+
+Only after smoke closeout:
+
+```sh
+EXDQLM_FFV2_LAUNCH_APPROVED=true \
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --phase pilot
+
+QDESN_FFV2_LAUNCH_APPROVED=true \
+Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase pilot
+```
+
+The preferred paired route is the orchestrator:
+
+```sh
+Rscript scripts/orchestrate_shared_fitforecast_v2_validation.R --mode plan --plan pilot
+```
+
+```sh
+SHARED_FFV2_ORCHESTRATOR_APPROVED=true \
+Rscript scripts/orchestrate_shared_fitforecast_v2_validation.R --mode execute --plan pilot
+```
+
+## 8. Staged Full Compute
 
 Preferred launch path after smoke closeout is the shared orchestrator. It
 performs the runtime/source/path/process preflight, writes an auditable launch
@@ -140,7 +167,7 @@ QDESN_FFV2_LAUNCH_APPROVED=true QDESN_FFV2_TT5000_APPROVED=true \
 Rscript scripts/launch_qdesn_dynamic_fitforecast_v2_validation.R --phase mcmc_tt5000
 ```
 
-## 8. Closeout After Each Stage
+## 9. Closeout After Each Stage
 
 ```sh
 Rscript validation/fitforecast_v2/scripts/healthcheck_exdqlm_dynamic_fitforecast_v2_validation.R

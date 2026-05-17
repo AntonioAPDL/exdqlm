@@ -1669,3 +1669,187 @@ Stale path fix:
 Next implementation stage:
 
 `build-06-schema-interface`.
+
+## 28. Build-06 Through Build-11 Implementation Evidence
+
+Implementation timestamp:
+
+`2026-05-16 23:28:53 EDT`
+
+Implemented stages:
+
+| Build stage | Status | Evidence |
+|---|---|---|
+| `build-06-schema-interface` | implemented and tested | `validation/fitforecast_v2/schema/shared_fitforecast_interface_schema.csv`; `validation/fitforecast_v2/R/shared_interface.R`; `scripts/export_qdesn_dynamic_fitforecast_v2_shared_interface.R` |
+| `build-07-tests` | implemented and tested | expanded shared harness tests plus focused Q-DESN fit+forecast tests |
+| `build-08-dryrun` | implemented and run | `scripts/run_shared_fitforecast_v2_dryrun_preflight.R`; dry-run summary below |
+| `build-09-smoke` | launch plan implemented, not executed | orchestrator `--plan smoke`; smoke compute intentionally not launched in this build checkpoint |
+| `build-10-pilot` | launch plan implemented, not executed | orchestrator `--plan pilot`; micro-pilot compute intentionally not launched in this build checkpoint |
+| `build-11-primary-launch-plan` | implemented | `validation/fitforecast_v2/docs/PRIMARY_LAUNCH_PLAN_2026-05-16.md`; orchestrator supports `smoke`, `pilot`, `vb-only`, `vb-and-tt500`, and `all-approved` plans |
+
+Build-06 schema/interface changes:
+
+- Active schema version is now `rolling_origin_v3_lead_interface_v1`.
+- `validation/fitforecast_v2/schema/shared_fitforecast_interface_schema.csv` is now a lead-level
+  rolling-origin schema with one row per atomic run and forecast lead when
+  `forecast_lead_metrics_path` exists.
+- Legacy `forecast_h100_*` and `forecast_h1000_*` fields remain in the same interface as compatibility
+  provenance fields, not as the primary scientific comparison.
+- Both exDQLM/DQLM and Q-DESN shared-interface exporters now use the same schema columns.
+- The interface includes article guard fields for protocol, source registry hash, source/truth hashes,
+  train/forecast windows, rolling-origin lead metadata, state-update method, no-refit flag, no true
+  quantile training flag, telemetry paths, config hashes, artifact manifest hashes, branch, commit,
+  package version, and run tag.
+- exDQLM/DQLM row execution now writes a per-row artifact manifest at
+  `artifact_manifests/row_XXXX_artifacts.json` when row artifacts are written.
+
+Build-09 and Build-10 staging changes:
+
+- exDQLM/DQLM launcher accepts `--phase pilot`.
+- exDQLM/DQLM manifests now mark `pilot` rows separately from `smoke` rows.
+- exDQLM/DQLM default pilot rows cover a TT500 VB/MCMC micro-pilot surface with small budgets and
+  denser telemetry.
+- Q-DESN launcher accepts `--phase pilot`.
+- Q-DESN pilot selects the smoke source grid with both VB and MCMC for TT500/exAL, using explicit
+  `--allow-grid-subset`, static scheduling, and two workers by default.
+- The shared orchestrator can write and execute smoke and pilot plans, but compute still requires
+  `SHARED_FFV2_ORCHESTRATOR_APPROVED=true`.
+- The orchestrator preflight now ignores unrelated Article-Q-DESN application tmux sessions and only
+  blocks validation-named sessions/processes.
+
+Zero-compute dry-run evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/run_shared_fitforecast_v2_dryrun_preflight.R
+```
+
+Observed result:
+
+```text
+dryrun_status: PASS
+dryrun_summary_json: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/shared-fitforecast-v3-dryrun-20260516-232624__git-a96c899/dryrun_preflight_summary.json
+dryrun_summary_md: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/shared-fitforecast-v3-dryrun-20260516-232624__git-a96c899/dryrun_preflight_summary.md
+```
+
+Dry-run run tags:
+
+```text
+exdqlm_run_tag = exdqlm-dqlm-rolling-origin-v3-dryrun-20260516-232624__git-a96c899
+qdesn_smoke_run_tag = qdesn-rolling-origin-v3-smoke-dryrun-20260516-232624__git-a96c899
+qdesn_pilot_run_tag = qdesn-rolling-origin-v3-pilot-dryrun-20260516-232624__git-a96c899
+```
+
+Dry-run artifact policy check:
+
+```text
+No .rds, .rda, or .RData files were produced under the exDQLM/DQLM dry-run root
+or Q-DESN smoke/pilot prepare-only roots.
+```
+
+Source verification evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript validation/fitforecast_v2/scripts/verify_exdqlm_dynamic_fitforecast_v2_source_windows.R
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/verify_qdesn_dynamic_fitforecast_v2_source_windows.R
+```
+
+Observed result:
+
+```text
+exDQLM/DQLM verification_rows: 18, PASS: 18
+Q-DESN verification_rows: 18, PASS: 18
+```
+
+Smoke and pilot plan evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/orchestrate_shared_fitforecast_v2_validation.R --mode plan --plan smoke --allow-dirty --run-label shared-fitforecast-v3-smoke-plan-check
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/orchestrate_shared_fitforecast_v2_validation.R --mode plan --plan pilot --allow-dirty --run-label shared-fitforecast-v3-pilot-plan-check
+```
+
+Observed plan outputs:
+
+```text
+reports/shared_fitforecast_v2_orchestration/shared-fitforecast-v3-smoke-plan-check/orchestration_plan.json
+reports/shared_fitforecast_v2_orchestration/shared-fitforecast-v3-pilot-plan-check/orchestration_plan.json
+```
+
+Focused verification evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-shared-interface-schema.R", reporter="summary")'
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-stage-filtering.R", reporter="summary")'
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-artifact-schema.R", reporter="summary")'
+```
+
+Observed result:
+
+```text
+shared-interface-schema: PASS
+stage-filtering: PASS
+artifact-schema: PASS
+```
+
+Full shared harness test evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_dir("validation/fitforecast_v2/tests/testthat", reporter="summary")'
+```
+
+Observed result:
+
+```text
+artifact-schema: .......
+atomic-specs: .................
+exdqlm-rolling-state: ........................
+forecast-horizon-api: ...
+protocol-freeze: ............
+rolling-grid: ...........................
+row-runner-discounts: ..
+shared-interface-schema: ..............
+source-registry-schema: .....
+source-window-contract: ...........
+stage-filtering: ..................
+storage-policy: ...
+telemetry: .............................
+
+DONE
+Ran 4/4 deferred expressions
+```
+
+Focused Q-DESN fit+forecast test evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'pkgload::load_all(".", quiet=TRUE); files <- c("test-qdesn-dynamic-fitforecast-horizon-summaries.R", "test-qdesn-dynamic-fitforecast-storage-light.R", "test-qdesn-dynamic-fitforecast-no-leakage.R", "test-qdesn-dynamic-fitforecast-interface-schema.R", "test-qdesn-dynamic-fitforecast-launcher-filters.R", "test-qdesn-dynamic-fitforecast-source-windows.R", "test-qdesn-dynamic-fitforecast-lead-export.R"); for (f in files) testthat::test_file(file.path("tests/testthat", f), reporter="summary")'
+```
+
+Observed result:
+
+```text
+qdesn-dynamic-fitforecast-horizon-summaries: PASS
+qdesn-dynamic-fitforecast-storage-light: PASS
+qdesn-dynamic-fitforecast-no-leakage: PASS
+qdesn-dynamic-fitforecast-interface-schema: PASS
+qdesn-dynamic-fitforecast-launcher-filters: PASS
+qdesn-dynamic-fitforecast-source-windows: PASS
+qdesn-dynamic-fitforecast-lead-export: PASS
+```
+
+Package load evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'pkgload::load_all(".", quiet=TRUE); cat(as.character(packageVersion("exdqlm")), "\n")'
+```
+
+Observed result:
+
+```text
+1.0.0
+```
+
+Remaining launch boundary:
+
+- Smoke compute was not launched in this build checkpoint.
+- Micro-pilot compute was not launched in this build checkpoint.
+- Full VB, TT500 MCMC, and TT5000 MCMC were not launched.
+- TT5000 MCMC remains blocked behind explicit human approval.

@@ -23,9 +23,10 @@ Both Q-DESN and exDQLM/DQLM export the same article-facing schema:
 - `interfaces/exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv`
 - `interfaces/qdesn_dynamic_fitforecast_v2_shared_interface.csv`
 
-Article-Q-DESN should consume only these exported interfaces plus their
-manifests after a completed smoke or staged run. Native internal fit summaries,
-old fit-only outputs, and aborted run tags are not article-facing artifacts.
+The active schema version is `rolling_origin_v3_lead_interface_v1`. Article-Q-DESN
+should consume only these exported interfaces plus their manifests after a
+completed smoke, micro-pilot, or staged run. Native internal fit summaries, old
+fit-only outputs, and aborted run tags are not article-facing artifacts.
 
 ## Forbidden For Successful Rows
 
@@ -86,15 +87,15 @@ Fit and forecast path summaries include:
 - `split_role`
 - `y`
 - `q_true`
-- `qhat_tau`
-- `pred_mean`
-- `pred_q025`
-- `pred_q050`
-- `pred_q500`
-- `pred_q950`
-- `pred_q975`
+- `qhat`
+- `q_error`
+- `abs_q_error`
+- `squared_q_error`
+- posterior quantile summaries such as `qhat_p0025`, `qhat_p0250`,
+  `qhat_p0500`, `qhat_p0750`, and `qhat_p0975`
 - `pinball_tau`
 - `hit`
+- `coverage_minus_tau`
 
 Rolling forecast path summaries additionally include:
 

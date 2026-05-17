@@ -18,6 +18,12 @@ test_that("fit+forecast phase plan separates MCMC TT500 and TT5000", {
   expect_identical(smoke$fit_sizes, 500L)
   expect_identical(smoke$batch, "smoke")
 
+  pilot <- exdqlm:::qdesn_dynamic_fitforecast_phase_plan("pilot")
+  expect_identical(pilot$methods, "vb,mcmc")
+  expect_identical(pilot$likelihoods, "exal")
+  expect_identical(pilot$fit_sizes, 500L)
+  expect_identical(pilot$batch, "smoke")
+
   expect_identical(vb$methods, "vb")
   expect_length(vb$fit_sizes, 0L)
 })

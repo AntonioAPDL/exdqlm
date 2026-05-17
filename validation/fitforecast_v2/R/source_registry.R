@@ -273,6 +273,17 @@ ffv2_smoke_flag <- function(row, defaults) {
   }, logical(1)))
 }
 
+ffv2_pilot_flag <- function(row, defaults) {
+  pilot <- defaults$pilot$rows %||% list()
+  any(vapply(pilot, function(x) {
+    identical(as.character(x$family), as.character(row$family)) &&
+      abs(as.numeric(x$tau) - as.numeric(row$tau)) < 1e-8 &&
+      identical(as.integer(x$fit_size), as.integer(row$fit_size)) &&
+      identical(as.character(x$model_variant), as.character(row$model_variant)) &&
+      identical(as.character(x$inference), as.character(row$inference))
+  }, logical(1)))
+}
+
 ffv2_manifest_phase <- function(inference, fit_size) {
   if (identical(as.character(inference), "vb")) return("vb_full")
   if (as.integer(fit_size)[1L] == 500L) return("mcmc_tt500")
@@ -301,7 +312,7 @@ ffv2_prepare_manifest <- function(defaults,
   subdirs <- c(
     "configs", "rows", "health", "metrics", "fit_path_summaries",
     "forecast_path_summaries", "forecast_lead_metrics", "logs", "progress", "heartbeats",
-    "manifests", "interfaces", "storage", "handoff"
+    "artifact_manifests", "manifests", "interfaces", "storage", "handoff"
   )
   if (!isTRUE(dry_run)) {
     ffv2_ensure_dir(run_root)
@@ -333,6 +344,7 @@ ffv2_prepare_manifest <- function(defaults,
           phase = ffv2_manifest_phase(inference, cell$fit_size),
           dqlm_ind = identical(model_variant, "dqlm"),
           smoke = FALSE,
+          pilot = FALSE,
           status = "pending",
           validation_stage = "all",
           run_root = run_root,
@@ -346,6 +358,7 @@ ffv2_prepare_manifest <- function(defaults,
           row_progress_path = file.path(run_root, "progress", sprintf("%s_progress.csv", row_key)),
           row_heartbeat_path = file.path(run_root, "heartbeats", sprintf("%s_heartbeat.json", row_key)),
           forecast_lead_metrics_path = file.path(run_root, "forecast_lead_metrics", sprintf("%s_forecast_lead_metrics.csv", row_key)),
+          artifact_manifest_path = file.path(run_root, "artifact_manifests", sprintf("%s_artifacts.json", row_key)),
           fit_handoff_path = file.path(run_root, "handoff", sprintf("%s_fit_object.ffv2handoff", row_key)),
           fit_handoff_manifest_path = file.path(run_root, "handoff", sprintf("%s_fit_object_manifest.json", row_key)),
           vb_init_handoff_path = file.path(run_root, "handoff", sprintf("%s_vb_init.ffv2handoff", row_key)),
@@ -354,6 +367,7 @@ ffv2_prepare_manifest <- function(defaults,
           stringsAsFactors = FALSE
         )
         row$smoke <- ffv2_smoke_flag(row, defaults)
+        row$pilot <- ffv2_pilot_flag(row, defaults)
         row$spec_id <- ffv2_make_spec_id(cbind(row, cell, stringsAsFactors = FALSE), model_family = "exdqlm_dqlm")
         rows[[length(rows) + 1L]] <- cbind(row, cell, stringsAsFactors = FALSE)
       }
@@ -382,6 +396,16 @@ ffv2_prepare_manifest <- function(defaults,
       smoke_row <- isTRUE(as.logical(r$smoke[[1L]]))
       cfg$runtime <- ffv2_apply_runtime_phase_defaults(defaults$runtime, smoke = smoke_row)
       cfg$budget <- defaults$budget
+      pilot_row <- isTRUE(as.logical(r$pilot[[1L]]))
+      if (isTRUE(pilot_row)) {
+        cfg$budget <- utils::modifyList(
+          cfg$budget %||% list(),
+          (defaults$pilot %||% list())$budget %||% list()
+        )
+        if (!is.null((defaults$pilot %||% list())$runtime)) {
+          cfg$runtime <- utils::modifyList(cfg$runtime, defaults$pilot$runtime)
+        }
+      }
       if (isTRUE(smoke_row)) {
         cfg$budget <- utils::modifyList(
           cfg$budget %||% list(),
