@@ -67,6 +67,13 @@ ffv2_expected_source_cells <- function(defaults) {
           forecast_origin_source_index = as.integer(defaults$source$forecast_origin_source_index)[1L],
           forecast_start_source_index = as.integer(defaults$source$forecast_start_source_index)[1L],
           forecast_end_source_index = as.integer(defaults$source$forecast_end_source_index)[1L],
+          forecast_protocol = as.character(
+            defaults$source$forecast_protocol %||% "rolling_origin_no_refit_state_update"
+          )[1L],
+          state_update_method = ffv2_exdqlm_plugin_state_update_method(),
+          refit_per_origin = FALSE,
+          max_lead_configured = as.integer(defaults$source$rolling_hmax %||% 30L)[1L],
+          origin_stride = as.integer(defaults$source$origin_stride %||% defaults$source$rolling_hmax %||% 30L)[1L],
           stringsAsFactors = FALSE
         )
       }
@@ -133,6 +140,11 @@ ffv2_collect_source_registry <- function(defaults, require_sources = TRUE) {
       forecast_start_source_index = cell$forecast_start_source_index,
       forecast_end_source_index = cell$forecast_end_source_index,
       forecast_horizon_max = cell$forecast_end_source_index - cell$forecast_origin_source_index,
+      forecast_protocol = cell$forecast_protocol,
+      state_update_method = cell$state_update_method,
+      refit_per_origin = cell$refit_per_origin,
+      max_lead_configured = cell$max_lead_configured,
+      origin_stride = cell$origin_stride,
       period = as.integer(meta$period %||% NA_character_),
       harmonics = meta$harmonics %||% NA_character_,
       C0_scale = as.numeric(meta$C0_scale %||% NA_character_),
@@ -288,7 +300,7 @@ ffv2_prepare_manifest <- function(defaults,
 
   subdirs <- c(
     "configs", "rows", "health", "metrics", "fit_path_summaries",
-    "forecast_path_summaries", "logs", "progress", "heartbeats",
+    "forecast_path_summaries", "forecast_lead_metrics", "logs", "progress", "heartbeats",
     "manifests", "interfaces", "storage"
   )
   if (!isTRUE(dry_run)) {
@@ -330,6 +342,7 @@ ffv2_prepare_manifest <- function(defaults,
           forecast_path_summary_path = file.path(run_root, "forecast_path_summaries", sprintf("%s_forecast_path_summary.csv", row_key)),
           row_progress_path = file.path(run_root, "progress", sprintf("%s_progress.csv", row_key)),
           row_heartbeat_path = file.path(run_root, "heartbeats", sprintf("%s_heartbeat.json", row_key)),
+          forecast_lead_metrics_path = file.path(run_root, "forecast_lead_metrics", sprintf("%s_forecast_lead_metrics.csv", row_key)),
           log_path = file.path(run_root, "logs", sprintf("%s.log", row_key)),
           stringsAsFactors = FALSE
         )

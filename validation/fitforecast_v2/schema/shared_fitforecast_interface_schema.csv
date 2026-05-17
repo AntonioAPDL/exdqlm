@@ -25,6 +25,9 @@ TT_main,true,Main source length in the frozen source design.
 TT_total,true,Total generated source length.
 train_start_source_index,true,Training source start index.
 train_end_source_index,true,Training source end index.
+forecast_protocol,true,Forecast protocol identifier.
+state_update_method,true,State update method used for rolling-origin forecasts.
+refit_per_origin,true,Whether the model was refit at each forecast origin.
 forecast_origin_source_index,true,Forecast origin source index.
 forecast_start_source_index,true,Forecast block start source index.
 forecast_end_source_index,true,Forecast block end source index.
@@ -54,6 +57,7 @@ row_health_path,true,Row health artifact path.
 row_metrics_path,true,Row metrics artifact path.
 fit_path_summary_path,true,Compact fit path summary artifact path.
 forecast_path_summary_path,true,Compact forecast path summary artifact path.
+forecast_lead_metrics_path,false,Lead-level rolling-origin forecast metrics path.
 log_path,true,Row log artifact path.
 row_progress_path,true,Machine-readable row progress trace path.
 row_heartbeat_path,true,Machine-readable row heartbeat JSON path.

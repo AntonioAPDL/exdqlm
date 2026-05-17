@@ -15,6 +15,9 @@ source:
   forecast_origin_source_index: 9000
   forecast_start_source_index: 9001
   forecast_end_source_index: 10000
+  forecast_protocol: rolling_origin_no_refit_state_update
+  rolling_hmax: 30
+  origin_stride: 30
   forecast_horizons: [100, 1000]
 
 models:

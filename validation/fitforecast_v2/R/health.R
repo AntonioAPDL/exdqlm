@@ -20,7 +20,17 @@ ffv2_health_from_outputs <- function(config,
       gate <- "FAIL"
       notes <- c(notes, "non-finite forecast qhat or q_true")
     }
-    if ("horizon" %in% names(forecast_summary)) {
+    protocol <- as.character(config$forecast_protocol %||% "")[1L]
+    if (identical(protocol, "rolling_origin_no_refit_state_update")) {
+      if (!all(c("forecast_origin_source_index", "forecast_lead", "target_source_index") %in% names(forecast_summary))) {
+        gate <- "FAIL"
+        notes <- c(notes, "rolling forecast summary missing origin/lead/target metadata")
+      }
+      if (!nrow(forecast_summary)) {
+        gate <- "FAIL"
+        notes <- c(notes, "rolling forecast summary has zero rows")
+      }
+    } else if ("horizon" %in% names(forecast_summary)) {
       if (max(as.integer(forecast_summary$horizon), na.rm = TRUE) < 1000L) {
         gate <- "FAIL"
         notes <- c(notes, "forecast summary does not cover H=1000")

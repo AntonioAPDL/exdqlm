@@ -227,44 +227,8 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
     fit_draws <- ffv2_post_pred_draws(fit, nrow(data$train), seed = seed, n_draws = stored_draws)
     fit_qhat <- ffv2_fit_qhat(fit)
     if (is.null(fit_qhat)) fit_qhat <- apply(fit_draws, 1L, stats::median, na.rm = TRUE)
-    future <- ffv2_make_future_model_arrays(model, as.integer(config$forecast_horizon_max))
     forecast_draws_n <- as.integer((config$budget %||% list())$forecast_draws %||% 2000L)
-    ffv2_record_progress(
-      config,
-      stage = "forecast",
-      substage = "fixed_origin",
-      event = "start",
-      forecast_origin_current = as.integer(config$forecast_origin_source_index),
-      forecast_origin_total = 1L,
-      forecast_lead_current = 0L,
-      forecast_lead_total = as.integer(config$forecast_horizon_max),
-      elapsed_seconds = ffv2_seconds(started),
-      message = "Running fixed-origin v2 forecast path"
-    )
-    forecast <- exdqlmForecast(
-      start.t = nrow(data$train),
-      k = as.integer(config$forecast_horizon_max),
-      m1 = fit,
-      fFF = future$fFF,
-      fGG = future$fGG,
-      plot = FALSE,
-      return.draws = TRUE,
-      n.samp = forecast_draws_n,
-      seed = seed + 1L
-    )
-    ffv2_record_progress(
-      config,
-      stage = "forecast",
-      substage = "fixed_origin",
-      event = "complete",
-      forecast_origin_current = as.integer(config$forecast_origin_source_index),
-      forecast_origin_total = 1L,
-      forecast_lead_current = as.integer(config$forecast_horizon_max),
-      forecast_lead_total = as.integer(config$forecast_horizon_max),
-      elapsed_seconds = ffv2_seconds(started),
-      message = "Fixed-origin v2 forecast path completed"
-    )
-    forecast_draws <- ffv2_select_draws(forecast$samp.fore, n_draws = stored_draws, seed = seed + 2L)
+    forecast_protocol <- as.character(config$forecast_protocol %||% "rolling_origin_no_refit_state_update")[1L]
     fit_summary <- ffv2_path_summary(
       row_df = data$train,
       draws = fit_draws,
@@ -272,13 +236,67 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
       split_role = "fit_train",
       qhat_override = fit_qhat
     )
-    forecast_summary <- ffv2_path_summary(
-      row_df = data$forecast,
-      draws = forecast_draws,
-      tau = config$tau,
-      split_role = "forecast",
-      qhat_override = as.numeric(forecast$ff)
-    )
+    if (identical(forecast_protocol, "rolling_origin_no_refit_state_update")) {
+      forecast_summary <- ffv2_rolling_exdqlm_forecast_summary(
+        fit = fit,
+        config = config,
+        data = data,
+        hmax = as.integer(config$max_lead_configured %||% 30L),
+        origin_stride = as.integer(config$origin_stride %||% config$max_lead_configured %||% 30L),
+        n_draws = forecast_draws_n,
+        seed = seed + 1L,
+        started_at = started
+      )
+      lead_metrics <- ffv2_rolling_lead_metrics(config, forecast_summary)
+      if (!is.null(config$forecast_lead_metrics_path) && nrow(lead_metrics)) {
+        ffv2_write_csv(lead_metrics, config$forecast_lead_metrics_path)
+      }
+    } else {
+      future <- ffv2_make_future_model_arrays(model, as.integer(config$forecast_horizon_max))
+      ffv2_record_progress(
+        config,
+        stage = "forecast",
+        substage = "fixed_origin",
+        event = "start",
+        forecast_origin_current = as.integer(config$forecast_origin_source_index),
+        forecast_origin_total = 1L,
+        forecast_lead_current = 0L,
+        forecast_lead_total = as.integer(config$forecast_horizon_max),
+        elapsed_seconds = ffv2_seconds(started),
+        message = "Running fixed-origin v2 forecast path"
+      )
+      forecast <- exdqlmForecast(
+        start.t = nrow(data$train),
+        k = as.integer(config$forecast_horizon_max),
+        m1 = fit,
+        fFF = future$fFF,
+        fGG = future$fGG,
+        plot = FALSE,
+        return.draws = TRUE,
+        n.samp = forecast_draws_n,
+        seed = seed + 1L
+      )
+      ffv2_record_progress(
+        config,
+        stage = "forecast",
+        substage = "fixed_origin",
+        event = "complete",
+        forecast_origin_current = as.integer(config$forecast_origin_source_index),
+        forecast_origin_total = 1L,
+        forecast_lead_current = as.integer(config$forecast_horizon_max),
+        forecast_lead_total = as.integer(config$forecast_horizon_max),
+        elapsed_seconds = ffv2_seconds(started),
+        message = "Fixed-origin v2 forecast path completed"
+      )
+      forecast_draws <- ffv2_select_draws(forecast$samp.fore, n_draws = stored_draws, seed = seed + 2L)
+      forecast_summary <- ffv2_path_summary(
+        row_df = data$forecast,
+        draws = forecast_draws,
+        tau = config$tau,
+        split_role = "forecast",
+        qhat_override = as.numeric(forecast$ff)
+      )
+    }
     finished <- Sys.time()
     runtime <- ffv2_seconds(started, finished)
     health <- ffv2_health_from_outputs(config, fit_summary, forecast_summary, runtime_sec = runtime)
@@ -305,7 +323,9 @@ ffv2_run_row <- function(config_path, force = FALSE, runtime_overrides = NULL) {
       status = "done",
       timestamp = finished
     )
-    rm(fit, forecast, fit_draws, forecast_draws)
+    rm(fit, fit_draws)
+    if (exists("forecast", inherits = FALSE)) rm(forecast)
+    if (exists("forecast_draws", inherits = FALSE)) rm(forecast_draws)
     gc()
     status
   }, error = function(e) {

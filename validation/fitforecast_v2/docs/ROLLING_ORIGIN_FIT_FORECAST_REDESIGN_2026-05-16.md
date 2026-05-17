@@ -1259,3 +1259,151 @@ Ran 4/4 deferred expressions
 Next implementation stage:
 
 `build-04-exdqlm-rolling-state`.
+
+## 25. Build-04 exDQLM/DQLM Rolling-State Implementation Evidence
+
+Implementation timestamp:
+
+`2026-05-16 22:05:04 EDT`
+
+Implemented stage:
+
+| Build stage | Status | Evidence |
+|---|---|---|
+| `build-04-exdqlm-rolling-state` | implemented and tested | `validation/fitforecast_v2/R/exdqlm_rolling_state.R`; `validation/fitforecast_v2/tests/testthat/test-exdqlm-rolling-state.R` |
+
+Feasibility audit result:
+
+- The exdqlm 1.0.0 package already exposes `exdqlmForecast()`, which forecasts from the filtered
+  state stored in `m1$theta.out$fm` and `m1$theta.out$fC`.
+- The package does not expose a stable public API that performs exact posterior-draw-specific
+  filtering of new held-out observations after fitting.
+- Therefore build-04 implements the predeclared documented approximation class:
+
+```text
+state_update_method = deterministic_plugin_filter_train_median_latent_moments
+refit_per_origin = false
+forecast_protocol = rolling_origin_no_refit_state_update
+```
+
+This method keeps fitted posterior/inference parameters fixed, extends only the filtered dynamic state
+through observations available up to each rolling origin, and then delegates the k-step forecast from
+that origin to the existing package function `exdqlmForecast()`.
+
+Implementation details:
+
+- For each origin, the harness clones the fitted exDQLM/DQLM object.
+- It extends `m1$y`, `m1$model$FF`, `m1$model$GG`, `m1$theta.out$fm`, and `m1$theta.out$fC` through
+  observed forecast-block values available at that origin.
+- It does not rerun `exdqlmLDVB()` or `exdqlmMCMC()` after the initial fit.
+- It does not modify package algorithm files such as `R/exdqlmForecast.R`, `R/exdqlmLDVB.R`, or
+  `R/exdqlmMCMC.R`.
+- It uses the current package forecast API unchanged by calling `exdqlmForecast()` at each rolling
+  origin with `start.t = length(fit_origin$y)`.
+- Future pseudo-observation moments are fixed using train-window median fitted latent moments:
+  `vts.out` for DQLM, and `vts.out` / `sts.out` plus `gammasig.out` for exDQLM.
+- The forecast summary is now lead-level and includes:
+  `forecast_origin_source_index`, `forecast_lead`, `target_source_index`, `origin_stride`,
+  `max_lead_configured`, `n_origins_for_lead`, `state_update_method`, and `refit_per_origin`.
+
+The exDQLM/DQLM default config now records:
+
+```text
+source.forecast_protocol = rolling_origin_no_refit_state_update
+source.rolling_hmax = 30
+source.origin_stride = 30
+```
+
+The source registry and row manifest now propagate:
+
+```text
+forecast_protocol
+state_update_method
+refit_per_origin
+max_lead_configured
+origin_stride
+forecast_lead_metrics_path
+```
+
+The shared interface schema now includes:
+
+```text
+forecast_protocol
+state_update_method
+refit_per_origin
+forecast_lead_metrics_path
+```
+
+Focused rolling-state test evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-exdqlm-rolling-state.R", reporter="summary")'
+```
+
+Observed result:
+
+```text
+exdqlm-rolling-state: ........................
+
+DONE
+```
+
+Full shared harness test evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_dir("validation/fitforecast_v2/tests/testthat", reporter="summary")'
+```
+
+Observed result:
+
+```text
+artifact-schema: ...
+exdqlm-rolling-state: ........................
+forecast-horizon-api: ...
+protocol-freeze: ............
+rolling-grid: ...........................
+row-runner-discounts: ..
+shared-interface-schema: .......
+source-registry-schema: .....
+source-window-contract: ...........
+stage-filtering: ...........
+storage-policy: ...
+telemetry: .............................
+
+DONE
+Ran 4/4 deferred expressions
+```
+
+Dry-run/source registry evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript validation/fitforecast_v2/scripts/prepare_exdqlm_dynamic_fitforecast_v2_validation.R --dry-run
+```
+
+Observed result:
+
+```text
+source_rows: 18
+manifest_rows: 72
+source_window_status: PASS 18
+phase_counts: mcmc_tt500=18, mcmc_tt5000=18, vb_full=36
+smoke_rows: 2
+```
+
+Registry protocol check:
+
+```text
+rolling_origin_no_refit_state_update 30 30
+```
+
+Remaining caveat:
+
+This build does not claim exact posterior-draw-specific filtering of held-out observations. It claims
+deterministic plug-in filtering with fixed fitted posterior summaries, explicitly identified by
+`state_update_method`. If exact draw-specific filtering becomes scientifically required, that should
+be a separate package-level API addition on a future branch, not an unlabelled change to this
+validation harness.
+
+Next implementation stage:
+
+`build-05-qdesn-lead-export`.

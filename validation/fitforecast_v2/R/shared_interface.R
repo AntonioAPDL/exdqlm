@@ -7,6 +7,7 @@ ffv2_shared_interface_columns <- function() {
     "source_cell_id", "scenario_id", "family", "tau", "tau_label",
     "fit_size", "effective_fit_size", "TT_warmup", "TT_main", "TT_total",
     "train_start_source_index", "train_end_source_index",
+    "forecast_protocol", "state_update_method", "refit_per_origin",
     "forecast_origin_source_index", "forecast_start_source_index",
     "forecast_end_source_index", "forecast_h100_start_source_index",
     "forecast_h100_end_source_index", "forecast_h100_n",
@@ -18,7 +19,7 @@ ffv2_shared_interface_columns <- function() {
     "fit_pinball_mean", "runtime_sec_fit", "runtime_sec_forecast",
     "runtime_sec_total", "runtime_sec", "row_config_path",
     "row_status_path", "row_health_path", "row_metrics_path",
-    "fit_path_summary_path", "forecast_path_summary_path", "log_path",
+    "fit_path_summary_path", "forecast_path_summary_path", "forecast_lead_metrics_path", "log_path",
     "row_progress_path", "row_heartbeat_path",
     "artifact_manifest_path", "package_version", "branch", "commit",
     "run_started_at", "run_finished_at"
@@ -94,6 +95,15 @@ ffv2_export_shared_interface <- function(manifest, out_csv) {
       ffv2_shared_source_registry_hash_value()
     )
     row$effective_fit_size <- ffv2_first_nonempty(row$effective_fit_size, row$fit_size)
+    row$forecast_protocol <- ffv2_first_nonempty(
+      row$forecast_protocol,
+      "rolling_origin_no_refit_state_update"
+    )
+    row$state_update_method <- ffv2_first_nonempty(
+      row$state_update_method,
+      ffv2_exdqlm_plugin_state_update_method()
+    )
+    row$refit_per_origin <- ffv2_first_nonempty(row$refit_per_origin, FALSE)
     row$forecast_h100_start_source_index <- ffv2_first_nonempty(row$forecast_h100_start_source_index, row$forecast_start_source_index)
     row$forecast_h100_end_source_index <- ffv2_first_nonempty(row$forecast_h100_end_source_index, 9100L)
     row$forecast_h1000_start_source_index <- ffv2_first_nonempty(row$forecast_h1000_start_source_index, row$forecast_start_source_index)
