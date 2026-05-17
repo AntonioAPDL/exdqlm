@@ -28,6 +28,17 @@ test_that("fit+forecast phase plan separates MCMC TT500 and TT5000", {
   expect_length(vb$fit_sizes, 0L)
 })
 
+test_that("Q-DESN smoke/pilot MCMC override still honors core-lane VB warm start", {
+  repo_root <- normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
+  defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(file.path(
+    repo_root,
+    "config", "validation", "qdesn_dynamic_fitforecast_v2_storage_light_defaults.yaml"
+  ))
+
+  expect_true(isTRUE(defaults$study_contract$mcmc$require_init_from_vb))
+  expect_true(isTRUE(defaults$smoke$pipeline$inference$mcmc$init_from_vb))
+})
+
 test_that("Q-DESN fit+forecast dependency preflight reports missing packages explicitly", {
   expect_identical(
     exdqlm:::qdesn_dynamic_fitforecast_required_packages(),

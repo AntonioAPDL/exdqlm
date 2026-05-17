@@ -180,7 +180,7 @@ smoke:
         thin: 1
         verbose: no
         progress_every: 20
-        init_from_vb: no
+        init_from_vb: yes
         vb_warm_start_control:
           max_iter: 5
           min_iter_elbo: 2
