@@ -19,6 +19,7 @@ ffv2_shared_interface_columns <- function() {
     "runtime_sec_total", "runtime_sec", "row_config_path",
     "row_status_path", "row_health_path", "row_metrics_path",
     "fit_path_summary_path", "forecast_path_summary_path", "log_path",
+    "row_progress_path", "row_heartbeat_path",
     "artifact_manifest_path", "package_version", "branch", "commit",
     "run_started_at", "run_finished_at"
   )

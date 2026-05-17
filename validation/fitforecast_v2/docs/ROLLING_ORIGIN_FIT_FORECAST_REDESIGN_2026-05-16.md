@@ -1163,3 +1163,99 @@ Ran 4/4 deferred expressions
 Next implementation stage:
 
 `build-03-telemetry`.
+
+## 24. Build-03 Telemetry Implementation Evidence
+
+Implementation timestamp:
+
+`2026-05-16 21:54:51 EDT`
+
+Implemented stage:
+
+| Build stage | Status | Evidence |
+|---|---|---|
+| `build-03-telemetry` | implemented and tested | `validation/fitforecast_v2/R/telemetry.R`; `validation/fitforecast_v2/tests/testthat/test-telemetry.R` |
+
+Build-03 added the shared validation-harness telemetry layer without modifying the exdqlm 1.0.0
+package algorithms. The implementation provides:
+
+- stable `row_progress.csv` schema via `ffv2_required_progress_columns()`
+- stable `row_heartbeat.json` schema via `ffv2_required_heartbeat_fields()`
+- append-only progress writer and atomic heartbeat writer
+- exDQLM/DQLM MCMC `progress_callback` adapter
+- verbose LDVB/DQLM log parser for `LDVB start`, `LDVB progress`, and `LDVB done` lines
+- optional validation-harness sidecar that tails row logs and writes normalized VB progress/heartbeat
+  rows without changing package internals
+- healthcheck telemetry summary with `progressing`, `stalled`, `interrupted`, `completed`, and
+  `failed` row states
+- launcher/runtime flags:
+  `--verbose`, `--quiet`, `--progress-every`, `--trace-every`, `--heartbeat-seconds`,
+  `--healthcheck-stale-seconds`, `--log-level`, and `--telemetry-sidecar-poll-seconds`
+
+The exDQLM/DQLM manifest now records:
+
+```text
+row_progress_path
+row_heartbeat_path
+```
+
+The exDQLM/DQLM runtime defaults now record the approved full-run cadence:
+
+```text
+runtime.progress_every = 50
+runtime.trace_every = 50
+runtime.heartbeat_seconds = 1800
+runtime.healthcheck_stale_seconds = 1800
+```
+
+Smoke rows retain denser telemetry:
+
+```text
+smoke.runtime.progress_every = 1
+smoke.runtime.trace_every = 1
+smoke.runtime.heartbeat_seconds = 30
+smoke.runtime.healthcheck_stale_seconds = 180
+```
+
+Focused telemetry test evidence:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_file("validation/fitforecast_v2/tests/testthat/test-telemetry.R", reporter="summary")'
+```
+
+Observed result:
+
+```text
+telemetry: .............................
+
+DONE
+```
+
+Full shared harness test evidence after telemetry wiring:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript -e 'source("validation/fitforecast_v2/R/utils.R"); ffv2_source_all("validation/fitforecast_v2"); testthat::test_dir("validation/fitforecast_v2/tests/testthat", reporter="summary")'
+```
+
+Observed result:
+
+```text
+artifact-schema: ...
+forecast-horizon-api: ...
+protocol-freeze: ............
+rolling-grid: ...........................
+row-runner-discounts: ..
+shared-interface-schema: .......
+source-registry-schema: .....
+source-window-contract: ...........
+stage-filtering: ...........
+storage-policy: ...
+telemetry: .............................
+
+DONE
+Ran 4/4 deferred expressions
+```
+
+Next implementation stage:
+
+`build-04-exdqlm-rolling-state`.

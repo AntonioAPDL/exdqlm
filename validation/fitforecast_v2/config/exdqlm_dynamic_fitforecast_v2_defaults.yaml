@@ -26,6 +26,16 @@ models:
 runtime:
   r_min_version: "4.6.0"
   threads: 1
+  verbose: true
+  log_level: info
+  progress_every: 50
+  trace_every: 50
+  heartbeat_seconds: 1800
+  healthcheck_stale_seconds: 1800
+  progress_retention_mode: compact
+  progress_retention_max_rows_per_unit: 5000
+  telemetry_sidecar: true
+  telemetry_sidecar_poll_seconds: 5
   workers:
     smoke: 1
     vb_full: 4
@@ -46,6 +56,13 @@ budget:
     init_from_vb: true
 
 smoke:
+  runtime:
+    progress_every: 1
+    trace_every: 1
+    heartbeat_seconds: 30
+    healthcheck_stale_seconds: 180
+    progress_retention_mode: dense
+    telemetry_sidecar_poll_seconds: 1
   budget:
     stored_draws: 100
     forecast_draws: 100

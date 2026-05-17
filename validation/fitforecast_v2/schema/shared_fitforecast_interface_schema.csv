@@ -55,6 +55,8 @@ row_metrics_path,true,Row metrics artifact path.
 fit_path_summary_path,true,Compact fit path summary artifact path.
 forecast_path_summary_path,true,Compact forecast path summary artifact path.
 log_path,true,Row log artifact path.
+row_progress_path,true,Machine-readable row progress trace path.
+row_heartbeat_path,true,Machine-readable row heartbeat JSON path.
 artifact_manifest_path,false,Artifact manifest path where available.
 package_version,true,exdqlm package version.
 branch,true,Producing git branch.

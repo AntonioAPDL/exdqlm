@@ -11,4 +11,5 @@ args <- ffv2_parse_args()
 row_config <- args$`row-config`
 if (is.null(row_config)) stop("--row-config is required.", call. = FALSE)
 force <- ffv2_truthy(args$force %||% FALSE)
-ffv2_run_row(row_config, force = force)
+runtime_overrides <- ffv2_runtime_overrides_from_args(args)
+ffv2_run_row(row_config, force = force, runtime_overrides = runtime_overrides)

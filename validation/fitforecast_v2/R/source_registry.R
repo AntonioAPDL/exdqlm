@@ -286,8 +286,11 @@ ffv2_prepare_manifest <- function(defaults,
     stop(sprintf("Run root already exists; refusing to overwrite: %s", run_root), call. = FALSE)
   }
 
-  subdirs <- c("configs", "rows", "health", "metrics", "fit_path_summaries",
-               "forecast_path_summaries", "logs", "manifests", "interfaces", "storage")
+  subdirs <- c(
+    "configs", "rows", "health", "metrics", "fit_path_summaries",
+    "forecast_path_summaries", "logs", "progress", "heartbeats",
+    "manifests", "interfaces", "storage"
+  )
   if (!isTRUE(dry_run)) {
     ffv2_ensure_dir(run_root)
     invisible(lapply(file.path(run_root, subdirs), ffv2_ensure_dir))
@@ -325,6 +328,8 @@ ffv2_prepare_manifest <- function(defaults,
           row_metrics_path = file.path(run_root, "metrics", sprintf("%s_metrics.csv", row_key)),
           fit_path_summary_path = file.path(run_root, "fit_path_summaries", sprintf("%s_fit_path_summary.csv", row_key)),
           forecast_path_summary_path = file.path(run_root, "forecast_path_summaries", sprintf("%s_forecast_path_summary.csv", row_key)),
+          row_progress_path = file.path(run_root, "progress", sprintf("%s_progress.csv", row_key)),
+          row_heartbeat_path = file.path(run_root, "heartbeats", sprintf("%s_heartbeat.json", row_key)),
           log_path = file.path(run_root, "logs", sprintf("%s.log", row_key)),
           stringsAsFactors = FALSE
         )
@@ -345,13 +350,17 @@ ffv2_prepare_manifest <- function(defaults,
       cfg$repo_root <- repo_root
       cfg$harness_root <- ffv2_harness_root()
       cfg$defaults_path <- defaults$.__defaults_path__ %||% ffv2_default_defaults_path()
-      cfg$runtime <- defaults$runtime
+      smoke_row <- isTRUE(as.logical(r$smoke[[1L]]))
+      cfg$runtime <- ffv2_apply_runtime_phase_defaults(defaults$runtime, smoke = smoke_row)
       cfg$budget <- defaults$budget
-      if (isTRUE(as.logical(r$smoke[[1L]]))) {
+      if (isTRUE(smoke_row)) {
         cfg$budget <- utils::modifyList(
           cfg$budget %||% list(),
           (defaults$smoke %||% list())$budget %||% list()
         )
+        if (!is.null((defaults$smoke %||% list())$runtime)) {
+          cfg$runtime <- utils::modifyList(cfg$runtime, defaults$smoke$runtime)
+        }
       }
       cfg$models <- defaults$models
       cfg$retention <- defaults$retention
