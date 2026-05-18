@@ -29,8 +29,9 @@
 #'   standardized-error sample size, falling back to `1` for very small samples.
 #'
 #' @details
-#' The KL summaries are computed from the MAP standardized one-step-ahead
-#' forecast errors `map.standard.forecast.errors`. The reported `KL` estimates
+#' The primary KL summary is computed from the MAP standardized one-step-ahead
+#' forecast errors `map.standard.forecast.errors`. The reported `KL` value is
+#' the user-facing calibration diagnostic and estimates
 #' \eqn{KL(P_e || N(0,1))}, where \eqn{P_e} is the continuous diagnostic-error
 #' law represented by the standardized errors. It uses the semiclosed identity
 #' \eqn{KL(P_e || N(0,1)) = CE(P_e, N(0,1)) - H(P_e)}, with the normal
@@ -38,8 +39,11 @@
 #' one-dimensional k-nearest-neighbor estimator. The reported `KL.flip`
 #' estimates the reversed diagnostic \eqn{KL(N(0,1) || P_e)} using kNN
 #' cross-entropy. The reversed direction is more sensitive and should be read as
-#' a secondary smoothed diagnostic. Negative finite-sample estimates are not
-#' clamped; they indicate estimator bias or instability for the current sample.
+#' a secondary sensitivity diagnostic, not as a replacement for `KL`. Advanced
+#' by-`k` sensitivity tables and Gaussian plug-in checks are stored under
+#' `kl.details` so the top-level diagnostic object exposes a single primary KL
+#' value. Negative finite-sample estimates are not clamped; they indicate
+#' estimator bias or instability for the current sample.
 #'
 #' @return An object of class "\code{exdqlmDiagnostic}" containing the following:
 #'  \itemize{
@@ -47,11 +51,8 @@
 #'  \item `m1.KL` - The forward KL normality diagnostic
 #'  `KL(P_error || N(0,1))` for the MAP standardized forecast errors.
 #'  \item `m1.KL.flip` - The reversed ("flipped") KL diagnostic
-#'  `KL(N(0,1) || P_error)` for the MAP standardized forecast errors.
-#'  \item `m1.KL.by_k` - Forward KL sensitivity by nearest-neighbor value.
-#'  \item `m1.KL.flip.by_k` - Reversed KL sensitivity by nearest-neighbor value.
-#'  \item `m1.KL.gaussian` - Gaussian plug-in forward KL check.
-#'  \item `m1.KL.flip.gaussian` - Gaussian plug-in reversed KL check.
+#'  `KL(N(0,1) || P_error)` for the MAP standardized forecast errors; this is a
+#'  secondary sensitivity diagnostic.
 #'  \item `m1.CRPS` - The mean CRPS approximated by a finite integrated
 #'  quantile score over posterior predictive empirical quantiles.
 #'  \item `m1.pplc` - The posterior predictive loss criterion of `m1` based off the check loss function.
@@ -67,6 +68,9 @@
 #'  metadata.
 #'  \item `kl.n_finite`, `kl.n_ref`, and `kl.zero_distance_count` - KL diagnostic
 #'  sample-size and distance-floor metadata.
+#'  \item `kl.details` - Advanced KL estimator details by model. For each model
+#'  this includes primary/flipped definitions, by-`k` sensitivity tables, a
+#'  Gaussian plug-in check, and estimator metadata.
 #'  }
 #'  If `m2` is provided, analogous results for `m2` are also included in the list.
 #' @export
@@ -124,10 +128,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   #
   retlist = list(m1.uts=m1.uts,m1.KL=m1.KL,m1.KL.flip=m1.KL.flip,m1.CRPS=m1.CRPS,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf,
                  m1.rt=m1$run.time,m1.msfe=m1$map.standard.forecast.errors,y=y,
-                 m1.KL.by_k = m1.kl$KL.by_k,
-                 m1.KL.flip.by_k = m1.kl$KL.flip.by_k,
-                 m1.KL.gaussian = m1.kl$KL.gaussian,
-                 m1.KL.flip.gaussian = m1.kl$KL.flip.gaussian,
+                 kl.details = list(m1 = .exdqlm_kl_details(m1.kl)),
                  crps.method = "integrated_quantile_score",
                  crps.probs = crps_probs,
                  crps.weights = crps_weights,
@@ -163,10 +164,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
     m2.kl = .exdqlm_kl_normality_1d(m2$map.standard.forecast.errors, ref = ref, kl_k = kl_k_m2)
     retlist[["m2.KL"]] = m2.kl$KL
     retlist[["m2.KL.flip"]] = m2.kl$KL.flip
-    retlist[["m2.KL.by_k"]] = m2.kl$KL.by_k
-    retlist[["m2.KL.flip.by_k"]] = m2.kl$KL.flip.by_k
-    retlist[["m2.KL.gaussian"]] = m2.kl$KL.gaussian
-    retlist[["m2.KL.flip.gaussian"]] = m2.kl$KL.flip.gaussian
+    retlist[["kl.details"]][["m2"]] = .exdqlm_kl_details(m2.kl)
     retlist[["kl.n_finite"]] = c(retlist[["kl.n_finite"]], m2 = m2.kl$n_finite)
     retlist[["kl.n_ref"]] = c(retlist[["kl.n_ref"]], m2 = m2.kl$n_ref)
     retlist[["kl.zero_distance_count"]] = c(retlist[["kl.zero_distance_count"]], m2 = m2.kl$zero_distance_count)

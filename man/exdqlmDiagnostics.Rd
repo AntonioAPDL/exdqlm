@@ -50,11 +50,8 @@ An object of class "\code{exdqlmDiagnostic}" containing the following:
 \item \code{m1.KL} - The forward KL normality diagnostic
 \code{KL(P_error || N(0,1))} for the MAP standardized forecast errors.
 \item \code{m1.KL.flip} - The reversed ("flipped") KL diagnostic
-\code{KL(N(0,1) || P_error)} for the MAP standardized forecast errors.
-\item \code{m1.KL.by_k} - Forward KL sensitivity by nearest-neighbor value.
-\item \code{m1.KL.flip.by_k} - Reversed KL sensitivity by nearest-neighbor value.
-\item \code{m1.KL.gaussian} - Gaussian plug-in forward KL check.
-\item \code{m1.KL.flip.gaussian} - Gaussian plug-in reversed KL check.
+\code{KL(N(0,1) || P_error)} for the MAP standardized forecast errors; this is a
+secondary sensitivity diagnostic.
 \item \code{m1.CRPS} - The mean CRPS approximated by a finite integrated
 quantile score over posterior predictive empirical quantiles.
 \item \code{m1.pplc} - The posterior predictive loss criterion of \code{m1} based off the check loss function.
@@ -70,6 +67,9 @@ quantile score over posterior predictive empirical quantiles.
 metadata.
 \item \code{kl.n_finite}, \code{kl.n_ref}, and \code{kl.zero_distance_count} - KL diagnostic
 sample-size and distance-floor metadata.
+\item \code{kl.details} - Advanced KL estimator details by model. For each model
+this includes primary/flipped definitions, by-\code{k} sensitivity tables, a
+Gaussian plug-in check, and estimator metadata.
 }
 If \code{m2} is provided, analogous results for \code{m2} are also included in the list.
 }
@@ -84,8 +84,9 @@ to the one-step-ahead distribution sequence, and a time series plot of the MAP
 standard forecast errors.
 }
 \details{
-The KL summaries are computed from the MAP standardized one-step-ahead
-forecast errors \code{map.standard.forecast.errors}. The reported \code{KL} estimates
+The primary KL summary is computed from the MAP standardized one-step-ahead
+forecast errors \code{map.standard.forecast.errors}. The reported \code{KL} value is
+the user-facing calibration diagnostic and estimates
 \eqn{KL(P_e || N(0,1))}, where \eqn{P_e} is the continuous diagnostic-error
 law represented by the standardized errors. It uses the semiclosed identity
 \eqn{KL(P_e || N(0,1)) = CE(P_e, N(0,1)) - H(P_e)}, with the normal
@@ -93,8 +94,11 @@ cross-entropy term evaluated analytically and the entropy estimated by a
 one-dimensional k-nearest-neighbor estimator. The reported \code{KL.flip}
 estimates the reversed diagnostic \eqn{KL(N(0,1) || P_e)} using kNN
 cross-entropy. The reversed direction is more sensitive and should be read as
-a secondary smoothed diagnostic. Negative finite-sample estimates are not
-clamped; they indicate estimator bias or instability for the current sample.
+a secondary sensitivity diagnostic, not as a replacement for \code{KL}. Advanced
+by-\code{k} sensitivity tables and Gaussian plug-in checks are stored under
+\code{kl.details} so the top-level diagnostic object exposes a single primary KL
+value. Negative finite-sample estimates are not clamped; they indicate
+estimator bias or instability for the current sample.
 }
 \examples{
 \donttest{

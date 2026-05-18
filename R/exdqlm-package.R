@@ -56,7 +56,10 @@
 #'   \item Held-out forecast diagnostics are available for forecast objects
 #'         through [exdqlmForecastDiagnostics()].
 #'   \item Dynamic KL normality diagnostics are deterministic for fixed fitted
-#'         objects and no longer depend on stochastic reference samples.
+#'         objects and no longer depend on stochastic reference samples. The
+#'         top-level diagnostic object exposes `KL` as the primary calibration
+#'         diagnostic and keeps advanced KL sensitivity details under
+#'         `kl.details`.
 #' }
 #'
 #' @section Runtime options:

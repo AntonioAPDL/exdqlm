@@ -16,6 +16,10 @@ dynamic diagnostic reproducibility:
   normality diagnostic for MAP standardized forecast errors.
 - The reported `KL` direction is aligned with the documented diagnostic target
   `KL(P_error || N(0,1))`; `KL (flipped)` reports the reverse direction.
+- The public diagnostic surface emphasizes `KL` as the primary calibration
+  diagnostic. By-`k` sensitivity tables and Gaussian plug-in checks are retained
+  under `kl.details` for advanced audit use rather than returned as competing
+  top-level KL fields.
 - The stochastic default `FNN::KL.divergence()` path was removed, so `FNN` is no
   longer required as an imported package dependency.
 

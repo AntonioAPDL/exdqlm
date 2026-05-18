@@ -48,13 +48,23 @@ test_that("dynamic diagnostics expose flipped KL and CRPS metrics", {
   expect_equal(diags$m1.KL.flip, diags_repeat$m1.KL.flip)
   expect_equal(diags$m2.KL, diags_repeat$m2.KL)
   expect_equal(diags$m2.KL.flip, diags_repeat$m2.KL.flip)
-  expect_s3_class(diags$m1.KL.by_k, "data.frame")
-  expect_s3_class(diags$m1.KL.flip.by_k, "data.frame")
-  expect_equal(diags$m1.KL.by_k$k, c(1L, 3L))
-  expect_equal(diags$m1.KL.flip.by_k$k, c(1L, 3L))
+  expect_false(any(c("m1.KL.by_k", "m1.KL.gaussian", "m2.KL.by_k", "m2.KL.gaussian") %in% names(diags)))
+  expect_named(diags$kl.details, c("m1", "m2"))
+  expect_equal(diags$kl.details$m1$primary$name, "KL")
+  expect_equal(diags$kl.details$m1$primary$estimate, diags$m1.KL)
+  expect_equal(diags$kl.details$m1$flipped$name, "KL.flip")
+  expect_equal(diags$kl.details$m1$flipped$estimate, diags$m1.KL.flip)
+  expect_equal(diags$kl.details$m1$primary$role, "primary calibration diagnostic")
+  expect_equal(diags$kl.details$m1$flipped$role, "secondary sensitivity diagnostic")
+  expect_s3_class(diags$kl.details$m1$sensitivity$forward_by_k, "data.frame")
+  expect_s3_class(diags$kl.details$m1$sensitivity$flipped_by_k, "data.frame")
+  expect_equal(diags$kl.details$m1$sensitivity$forward_by_k$k, c(1L, 3L))
+  expect_equal(diags$kl.details$m1$sensitivity$flipped_by_k$k, c(1L, 3L))
+  expect_equal(diags$kl.details$m1$metadata$method, diags$kl.method)
+  expect_equal(diags$kl.details$m1$metadata$k, diags$kl.k)
   expect_true(all(is.finite(c(
-    diags$m1.KL.gaussian, diags$m1.KL.flip.gaussian,
-    diags$m2.KL.gaussian, diags$m2.KL.flip.gaussian
+    diags$kl.details$m1$sensitivity$gaussian_plugin,
+    diags$kl.details$m2$sensitivity$gaussian_plugin
   ))))
   expect_true(all(is.finite(c(
     diags$m1.KL, diags$m1.KL.flip, diags$m1.CRPS,

@@ -203,9 +203,10 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 - **Standardized VB trace diagnostics** via `fit$diagnostics$vb_trace`,
   giving plot-ready iteration histories for ELBO, `sigma`, `gamma`, and
   convergence deltas across VB fits.
-- **Deterministic dynamic diagnostics** using stable KL normality diagnostics,
-  CRPS through an integrated quantile-score approximation, and held-out forecast
-  scoring through `exdqlmForecastDiagnostics()`.
+- **Deterministic dynamic diagnostics** using a single primary KL normality
+  diagnostic, CRPS through an integrated quantile-score approximation, and
+  held-out forecast scoring through `exdqlmForecastDiagnostics()`. Advanced KL
+  sensitivity details are available under `diagnostics$kl.details`.
 
 > For CI/CRAN-style runs, keep optional C++ builders/samplers/post-pred
 > **FALSE** and set `exdqlm.use_cpp_kf = FALSE` for strict R-path

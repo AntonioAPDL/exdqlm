@@ -137,6 +137,37 @@
   }
 }
 
+.exdqlm_kl_details <- function(x) {
+  list(
+    primary = list(
+      name = "KL",
+      estimate = x$KL,
+      direction = "KL(P_error || N(0,1))",
+      role = "primary calibration diagnostic"
+    ),
+    flipped = list(
+      name = "KL.flip",
+      estimate = x$KL.flip,
+      direction = "KL(N(0,1) || P_error)",
+      role = "secondary sensitivity diagnostic"
+    ),
+    sensitivity = list(
+      forward_by_k = x$KL.by_k,
+      flipped_by_k = x$KL.flip.by_k,
+      gaussian_plugin = c(KL = x$KL.gaussian, KL.flip = x$KL.flip.gaussian)
+    ),
+    metadata = list(
+      method = x$method,
+      k = x$k,
+      aggregate = x$aggregate,
+      reference = x$reference,
+      n_finite = x$n_finite,
+      n_ref = x$n_ref,
+      zero_distance_count = x$zero_distance_count
+    )
+  )
+}
+
 .exdqlm_kl_normality_1d <- function(x, ref = NULL, kl_k = NULL) {
   x <- as.numeric(x)
   n_total <- length(x)

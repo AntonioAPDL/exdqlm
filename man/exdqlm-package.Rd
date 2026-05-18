@@ -68,7 +68,10 @@ quantiles, with user-configurable quantile levels and weights in
 \item Held-out forecast diagnostics are available for forecast objects
 through \code{\link[=exdqlmForecastDiagnostics]{exdqlmForecastDiagnostics()}}.
 \item Dynamic KL normality diagnostics are deterministic for fixed fitted
-objects and no longer depend on stochastic reference samples.
+objects and no longer depend on stochastic reference samples. The
+top-level diagnostic object exposes \code{KL} as the primary calibration
+diagnostic and keeps advanced KL sensitivity details under
+\code{kl.details}.
 }
 }
 

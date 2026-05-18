@@ -13,9 +13,10 @@
   arrays are validated against horizon `k`.
 - Replaced the stochastic `FNN::KL.divergence()` dynamic diagnostic with a
   deterministic one-dimensional semiclosed KL normality diagnostic for MAP
-  standardized forecast errors. The scalar `KL` and `KL (flipped)` summaries are
-  preserved, with by-`k` sensitivity and Gaussian plug-in checks returned as
-  metadata.
+  standardized forecast errors. The scalar `KL` is the primary user-facing
+  calibration diagnostic, `KL (flipped)` is a secondary sensitivity diagnostic,
+  and by-`k` sensitivity/Gaussian plug-in checks are stored under `kl.details`
+  rather than as competing top-level KL fields.
 - Corrected the dynamic diagnostic KL direction so `KL` now corresponds to the
   documented forecast-error-to-standard-normal diagnostic
   `KL(P_error || N(0,1))`; `KL (flipped)` reports the reverse direction.
