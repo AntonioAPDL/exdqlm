@@ -43,6 +43,8 @@ test_that("Q-DESN smoke/pilot MCMC override still honors core-lane VB warm start
   expect_identical(as.integer(defaults$smoke$pipeline$inference$mcmc$n_mcmc), 4L)
   expect_identical(as.integer(defaults$smoke$pipeline$inference$mcmc$progress_every), 1L)
   expect_true(isTRUE(defaults$smoke$pipeline$inference$mcmc$verbose))
+  expect_identical(as.integer(defaults$pipeline$inference$vb$progress_every), 50L)
+  expect_identical(as.integer(defaults$pipeline$inference$mcmc$vb_warm_start_control$progress_every), 50L)
 
   smoke_defaults <- defaults
   smoke_defaults$study_contract$budget <- utils::modifyList(
@@ -76,6 +78,15 @@ test_that("Q-DESN smoke/pilot MCMC override still honors core-lane VB warm start
   expect_identical(as.integer(cfg$inference$mcmc$n_burn), 2L)
   expect_identical(as.integer(cfg$inference$mcmc$n_mcmc), 4L)
   expect_identical(as.integer(cfg$inference$mcmc$progress_every), 1L)
+
+  vb_cfg <- exdqlm:::qdesn_static_crossstudy_build_pipeline_cfg(
+    root_spec = root_spec,
+    defaults = defaults,
+    method = "vb",
+    likelihood_family = "exal",
+    T_use = root_spec$source_total_size
+  )
+  expect_identical(as.integer(vb_cfg$inference$vb$progress_every), 50L)
 })
 
 test_that("Q-DESN fit+forecast dependency preflight reports missing packages explicitly", {

@@ -1650,6 +1650,33 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   root_spec_lik <- modifyList(root_spec, list(likelihood_family = likelihood_family))
   method_dir <- method_dir %||% file.path(root_dir, "fits", paste(method, likelihood_family, sep = "_"))
   .qdesn_validation_dir_create(method_dir)
+  .qdesn_validation_dir_create(file.path(method_dir, "manifest"))
+  .qdesn_validation_dir_create(file.path(method_dir, "logs"))
+  debug_event_path <- file.path(method_dir, "logs", "fit_debug_events.csv")
+  append_debug_event <- function(event, detail = "") {
+    row <- data.frame(
+      timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+      root_id = as.character(root_spec$root_id),
+      spec_id = as.character(fit_spec_id),
+      method = as.character(method),
+      likelihood_family = as.character(likelihood_family),
+      event = as.character(event),
+      detail = as.character(detail),
+      stringsAsFactors = FALSE
+    )
+    utils::write.table(
+      row,
+      file = debug_event_path,
+      sep = ",",
+      row.names = FALSE,
+      col.names = !file.exists(debug_event_path),
+      append = file.exists(debug_event_path),
+      qmethod = "double"
+    )
+    invisible(row)
+  }
+  .qdesn_validation_write_lines(file.path(method_dir, "manifest", "fit_status.txt"), "RUNNING")
+  append_debug_event("fit_start")
   cfg <- qdesn_static_crossstudy_build_pipeline_cfg(
     root_spec = root_spec_lik,
     defaults = defaults,
@@ -1660,6 +1687,15 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   )
   cfg$validation_spec_id <- fit_spec_id
   cfg$validation_stage <- as.character((defaults$execution %||% list())$validation_stage %||% "all")[1L]
+  diagnostics_cfg <- (defaults$diagnostics %||% list())$fit_runtime %||% list()
+  if (isTRUE(diagnostics_cfg$stream_child_stdout %||% FALSE) ||
+      !is.null(diagnostics_cfg$timeout_seconds)) {
+    cfg$validation <- modifyList(cfg$validation %||% list(), list(
+      stream_child_stdout = isTRUE(diagnostics_cfg$stream_child_stdout %||% FALSE),
+      timeout_seconds = diagnostics_cfg$timeout_seconds %||% NULL,
+      timeout_kill_after_seconds = diagnostics_cfg$timeout_kill_after_seconds %||% 30L
+    ))
+  }
   rescue_cfg <- .qdesn_static_crossstudy_rescue_overlays_cfg(defaults)
   rescue_patch <- .qdesn_static_crossstudy_root_patch(defaults, root_spec$root_id)
   .qdesn_validation_write_json(file.path(method_dir, "fit_request.json"), list(
@@ -1676,21 +1712,28 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
       root_override_applied = isTRUE(length(rescue_patch) > 0L)
     )
   ))
+  append_debug_event("fit_request_written")
 
   status <- "SUCCESS"
   error_message <- NA_character_
   run_res <- tryCatch(
-    run_esn_pipeline_from_cfg(
-      cfg = cfg,
-      file_long = staged_data$observed_path,
-      file_obs = staged_data$observed_path,
-      out_dir = method_dir,
-      save_outputs = TRUE,
-      verbose = FALSE
-    ),
+    {
+      append_debug_event("pipeline_child_start")
+      res <- run_esn_pipeline_from_cfg(
+        cfg = cfg,
+        file_long = staged_data$observed_path,
+        file_obs = staged_data$observed_path,
+        out_dir = method_dir,
+        save_outputs = TRUE,
+        verbose = FALSE
+      )
+      append_debug_event("pipeline_child_return", sprintf("status=%s elapsed=%.3f", res$status, res$elapsed_seconds))
+      res
+    },
     error = function(e) {
       status <<- "FAIL"
       error_message <<- conditionMessage(e)
+      append_debug_event("pipeline_child_error", error_message)
       NULL
     }
   )
@@ -1704,6 +1747,7 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     .qdesn_validation_write_lines(file.path(method_dir, "logs", "pipeline_stdout.log"), run_res$stdout)
   }
   if (identical(status, "FAIL")) {
+    .qdesn_validation_write_lines(file.path(method_dir, "manifest", "fit_status.txt"), "FAIL")
     health_row <- data.frame(
       root_id = root_spec$root_id,
       spec_id = fit_spec_id,
@@ -1817,6 +1861,8 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     }
   }
   .qdesn_validation_write_df(fit_summary, file.path(method_dir, "fit_summary_row.csv"))
+  .qdesn_validation_write_lines(file.path(method_dir, "manifest", "fit_status.txt"), as.character(health_row$status[1L] %||% status))
+  append_debug_event("fit_summary_written", sprintf("status=%s", as.character(health_row$status[1L] %||% status)))
   retention_manifest <- .qdesn_validation_apply_output_retention(
     method_dir = method_dir,
     status = as.character(health_row$status[1L] %||% status),

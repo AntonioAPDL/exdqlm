@@ -97,6 +97,19 @@ run_esn_pipeline_from_cfg <- function(
   )
 
   # Env vars for the child R process
+  validation_cfg <- cfg$validation %||% list()
+  stream_stdout <- isTRUE(validation_cfg$stream_child_stdout %||% FALSE)
+  timeout_seconds <- suppressWarnings(as.integer(validation_cfg$timeout_seconds %||% NA_integer_)[1L])
+  timeout_kill_after_seconds <- suppressWarnings(as.integer(validation_cfg$timeout_kill_after_seconds %||% 30L)[1L])
+  if (!is.finite(timeout_kill_after_seconds) || timeout_kill_after_seconds < 1L) {
+    timeout_kill_after_seconds <- 30L
+  }
+  child_log_path <- NULL
+  if (isTRUE(stream_stdout)) {
+    log_dir <- file.path(out_dir, "logs")
+    dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
+    child_log_path <- file.path(log_dir, "pipeline_child_live.log")
+  }
   env_vars <- c(
     EXDQLM_FILE_LONG    = normalizePath(file_long),
     EXDQLM_FILE_OBS     = if (!is.null(file_obs) && nzchar(file_obs)) normalizePath(file_obs) else "",
@@ -114,6 +127,21 @@ run_esn_pipeline_from_cfg <- function(
 
   # Build command
   cmd <- c(pipeline_path)
+  command <- rscript
+  args <- cmd
+  if (is.finite(timeout_seconds) && timeout_seconds > 0L) {
+    timeout_bin <- Sys.which("timeout")
+    if (!nzchar(timeout_bin)) {
+      stop("run_esn_pipeline_from_cfg(): cfg$validation$timeout_seconds requested but `timeout` is not available.")
+    }
+    command <- timeout_bin
+    args <- c(
+      sprintf("--kill-after=%ss", timeout_kill_after_seconds),
+      sprintf("%ss", timeout_seconds),
+      rscript,
+      cmd
+    )
+  }
 
   if (isTRUE(verbose)) {
     message("[run_esn_pipeline_from_cfg] Running pipeline script:")
@@ -123,18 +151,36 @@ run_esn_pipeline_from_cfg <- function(
     message("  out_dir  : ", out_dir)
   }
 
-  # Execute Rscript with the given environment
-  # Use stdout capture to return logs to the caller
+  # Execute Rscript with the given environment. For long validation fits, write
+  # child output directly to disk so health checks can distinguish progress from
+  # a CPU-active silent stall before the child process exits.
   t0 <- proc.time()[["elapsed"]]
   res <- tryCatch(
     {
       out <- withr::with_envvar(env_vars, {
-        suppressWarnings(system2(
-          command = rscript,
-          args    = cmd,
-          stdout  = TRUE,
-          stderr  = TRUE
-        ))
+        if (isTRUE(stream_stdout)) {
+          status <- suppressWarnings(system2(
+            command = command,
+            args    = args,
+            stdout  = child_log_path,
+            stderr  = child_log_path
+          ))
+          if (is.null(status)) status <- 0L
+          stdout <- if (!is.null(child_log_path) && file.exists(child_log_path)) {
+            readLines(child_log_path, warn = FALSE)
+          } else {
+            character(0)
+          }
+          attr(stdout, "status") <- status
+          stdout
+        } else {
+          suppressWarnings(system2(
+            command = command,
+            args    = args,
+            stdout  = TRUE,
+            stderr  = TRUE
+          ))
+        }
       })
       status <- attr(out, "status")
       if (is.null(status)) status <- 0L

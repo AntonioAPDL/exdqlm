@@ -1042,6 +1042,7 @@
   if (!is.null(vb_cfg$min_iter_elbo)) vb_args_base$min_iter_elbo <- as.integer(vb_cfg$min_iter_elbo)[1L]
   if (!is.null(vb_cfg$tol)) vb_args_base$tol <- as.numeric(vb_cfg$tol)[1L]
   if (!is.null(vb_cfg$n_samp_xi)) vb_args_base$n_samp_xi <- as.integer(vb_cfg$n_samp_xi)[1L]
+  if (!is.null(vb_cfg$progress_every)) vb_args_base$progress_every <- as.integer(vb_cfg$progress_every)[1L]
   if (!is.null(vb_cfg$verbose)) vb_args_base$verbose <- isTRUE(vb_cfg$verbose)
 
   if (!is.null(vb_cfg$diagnostics)) {
@@ -1426,7 +1427,7 @@ exal_make_vb_online_control <- function(
 #' `vb_args$vb_control` in [qdesn_fit_vb()]. This collects the main advanced
 #' warmup and RHS scheduling options in one readable builder.
 #'
-#' @param max_iter,min_iter_elbo,tol,tol_par,n_samp_xi,verbose Core VB controls.
+#' @param max_iter,min_iter_elbo,tol,tol_par,n_samp_xi,progress_every,verbose Core VB controls.
 #' @param sigmagam Optional list, usually from [exal_make_vb_sigmagam_control()].
 #' @param sts Optional list, usually from [exal_make_vb_sts_control()], for the
 #'   dynamic latent `s_t` warmup block used by [exdqlmLDVB()].
@@ -1462,6 +1463,7 @@ exal_make_vb_control <- function(
     tol = 1e-4,
     tol_par = NULL,
     n_samp_xi = 500L,
+    progress_every = NULL,
     verbose = FALSE,
     sigmagam = NULL,
     sts = NULL,
@@ -1477,6 +1479,7 @@ exal_make_vb_control <- function(
     vb_cfg$tol_par_extreme <- tol_par
   }
   if (!missing(n_samp_xi)) vb_cfg$n_samp_xi <- n_samp_xi
+  if (!missing(progress_every)) vb_cfg$progress_every <- progress_every
   if (!missing(verbose)) vb_cfg$verbose <- verbose
   if (!missing(sigmagam)) vb_cfg$sigmagam <- sigmagam
   if (!missing(sts)) vb_cfg$sts <- sts

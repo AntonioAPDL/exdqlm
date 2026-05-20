@@ -33,6 +33,10 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   vb_control$max_iter <- as.integer(vb_control$max_iter %||% 150L)
   vb_control$tol      <- as.numeric(vb_control$tol      %||% 1e-4)
   vb_control$tol_par  <- as.numeric(vb_control$tol_par  %||% vb_control$tol)
+  vb_control$progress_every <- as.integer(vb_control$progress_every %||% 50L)
+  if (!is.finite(vb_control$progress_every) || vb_control$progress_every < 1L) {
+    vb_control$progress_every <- 50L
+  }
   vb_control$verbose  <- isTRUE(vb_control$verbose %||% FALSE)
   vb_control$rhs_trace <- isTRUE(vb_control$rhs_trace %||% FALSE)
   vb_control$rhs_deep <- isTRUE(vb_control$rhs_deep %||% FALSE)
@@ -1686,7 +1690,8 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     gamma_old <- gamma_hat
     sigma_old <- sigma_hat
 
-    if (isTRUE(vb_control$verbose) && (iter %% 25L == 0L)) {
+    if (isTRUE(vb_control$verbose) &&
+        (iter == 1L || iter %% vb_control$progress_every == 0L || iter == vb_control$max_iter)) {
       if (identical(beta_prior_obj$type, "rhs")) {
         eta_tau_now <- as.numeric(beta_state$eta_tau_hat %||% NA_real_)
         tau_now <- exp_safe(eta_tau_now)

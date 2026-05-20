@@ -139,6 +139,22 @@ create_plots <- !has_flag("--no-plots")
 batch <- match.arg(as.character(get_arg("--batch", "full"))[1L], c("full", "smoke"))
 
 defaults <- exdqlm:::qdesn_dynamic_crossstudy_load_defaults(defaults_path)
+fit_timeout_arg <- suppressWarnings(as.integer(get_arg("--fit-timeout-seconds", NA_character_))[1L])
+fit_timeout_kill_after_arg <- suppressWarnings(as.integer(get_arg("--fit-timeout-kill-after-seconds", NA_character_))[1L])
+stream_child_stdout_arg <- has_flag("--stream-child-stdout")
+if (is.finite(fit_timeout_arg) || is.finite(fit_timeout_kill_after_arg) || isTRUE(stream_child_stdout_arg)) {
+  defaults$diagnostics <- defaults$diagnostics %||% list()
+  defaults$diagnostics$fit_runtime <- defaults$diagnostics$fit_runtime %||% list()
+  if (isTRUE(stream_child_stdout_arg)) {
+    defaults$diagnostics$fit_runtime$stream_child_stdout <- TRUE
+  }
+  if (is.finite(fit_timeout_arg) && fit_timeout_arg > 0L) {
+    defaults$diagnostics$fit_runtime$timeout_seconds <- as.integer(fit_timeout_arg)
+  }
+  if (is.finite(fit_timeout_kill_after_arg) && fit_timeout_kill_after_arg > 0L) {
+    defaults$diagnostics$fit_runtime$timeout_kill_after_seconds <- as.integer(fit_timeout_kill_after_arg)
+  }
+}
 if (identical(batch, "smoke")) {
   smoke_cfg <- defaults$smoke %||% list()
   if (!is.null(smoke_cfg$budget)) {
@@ -412,7 +428,10 @@ preflight_manifest <- list(
     priors = as.list(as.character(priors_filter)),
     root_ids = as.list(as.character(root_ids_filter)),
     spec_ids = as.list(as.character(spec_ids_filter)),
-    scheduler = scheduler_arg
+    scheduler = scheduler_arg,
+    fit_timeout_seconds = if (is.finite(fit_timeout_arg)) as.integer(fit_timeout_arg) else NA_integer_,
+    fit_timeout_kill_after_seconds = if (is.finite(fit_timeout_kill_after_arg)) as.integer(fit_timeout_kill_after_arg) else NA_integer_,
+    stream_child_stdout = isTRUE((defaults$diagnostics %||% list())$fit_runtime$stream_child_stdout %||% FALSE)
   ),
   reference_summary = reference_summary,
   grid_summary = grid_summary,
@@ -515,6 +534,9 @@ preflight_lines <- c(
   sprintf("- filter_fit_sizes: `%s`", paste(fit_sizes_filter, collapse = ", ")),
   sprintf("- filter_priors: `%s`", paste(priors_filter, collapse = ", ")),
   sprintf("- filter_spec_ids: `%s`", paste(spec_ids_filter, collapse = ", ")),
+  sprintf("- stream_child_stdout: `%s`", if (isTRUE((defaults$diagnostics %||% list())$fit_runtime$stream_child_stdout %||% FALSE)) "TRUE" else "FALSE"),
+  sprintf("- fit_timeout_seconds: `%s`", as.character((defaults$diagnostics %||% list())$fit_runtime$timeout_seconds %||% NA_character_)),
+  sprintf("- fit_timeout_kill_after_seconds: `%s`", as.character((defaults$diagnostics %||% list())$fit_runtime$timeout_kill_after_seconds %||% NA_character_)),
   "",
   "## Scope Decision",
   "- study_surface: `dynamic exdqlm-aligned`",

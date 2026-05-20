@@ -244,6 +244,11 @@ runtime:
   campaign_workers: 30
   workers: 30
   root_scheduler: load_balanced
+diagnostics:
+  fit_runtime:
+    stream_child_stdout: yes
+    timeout_seconds: ~
+    timeout_kill_after_seconds: 30
 signoff:
   vb:
     tail_window: 5
@@ -373,6 +378,7 @@ pipeline:
       max_iter: 300
       min_iter_elbo: 80
       n_samp_xi: 1000
+      progress_every: 50
       verbose: yes
       sigmagam:
         freeze_warmup_iters: 10
@@ -438,6 +444,7 @@ pipeline:
         max_iter: 300
         min_iter_elbo: 80
         n_samp_xi: 1000
+        progress_every: 50
         verbose: no
         sigmagam:
           freeze_warmup_iters: 10

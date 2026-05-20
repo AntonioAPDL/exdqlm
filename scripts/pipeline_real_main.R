@@ -1134,6 +1134,7 @@ if (!is.null(cfg$vb)) {
   vb_args_base$max_iter      <- cfg$vb$max_iter      %nz% vb_args_base$max_iter
   vb_args_base$min_iter_elbo <- cfg$vb$min_iter_elbo %nz% vb_args_base$min_iter_elbo
   vb_args_base$n_samp_xi     <- cfg$vb$n_samp_xi     %nz% vb_args_base$n_samp_xi
+  vb_args_base$progress_every <- cfg$vb$progress_every %nz% vb_args_base$progress_every
   if (!is.null(cfg$vb$verbose)) vb_args_base$verbose <- isTRUE(cfg$vb$verbose)
 
     if (!is.null(cfg$vb$diagnostics)) {
@@ -1882,7 +1883,13 @@ fit_and_forecast_p <- function(p0) {
       c(fit_args, list(mcmc_control = qfit_spec$mcmc_control, method = "mcmc"))
     }
     timed(
-      sprintf("fit_exAL_on_X_train(p=%s, method=%s, prior=%s)", fmt_p(p0), qfit_spec$method, beta_type),
+      sprintf(
+        "fit_%s_on_X_train(p=%s, method=%s, prior=%s)",
+        as.character(qfit_spec$likelihood_family %||% "exal"),
+        fmt_p(p0),
+        qfit_spec$method,
+        beta_type
+      ),
       do.call(exal_fit, method_fit_args)
     )
   }

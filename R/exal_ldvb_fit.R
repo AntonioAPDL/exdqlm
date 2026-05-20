@@ -1,7 +1,7 @@
 #' Fit exAL readout with LDVB and pluggable beta prior
 #'
 #' This wrapper is backward compatible with the "list-style" API:
-#'   - vb_control = list(max_iter, tol, tol_par, n_samp_xi, verbose)
+#'   - vb_control = list(max_iter, tol, tol_par, n_samp_xi, progress_every, verbose)
 #'   - prior_gamma = list(mu0, s20)
 #'   - prior_sigma = list(a, b)
 #'

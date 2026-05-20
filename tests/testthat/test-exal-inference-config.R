@@ -431,6 +431,7 @@ test_that("public control builders expose the normalized advanced warmup surface
     tol = 2e-4,
     tol_par = 3e-4,
     n_samp_xi = 600L,
+    progress_every = 50L,
     verbose = TRUE,
     sigmagam = vb_sigmagam,
     sts = vb_sts,
@@ -445,6 +446,7 @@ test_that("public control builders expose the normalized advanced warmup surface
   expect_equal(vb_control$min_iter_elbo, 14L)
   expect_equal(vb_control$tol, 2e-4, tolerance = 1e-12)
   expect_equal(vb_control$tol_par, 3e-4, tolerance = 1e-12)
+  expect_equal(vb_control$progress_every, 50L)
   expect_true(isTRUE(vb_control$rhs_trace))
   expect_equal(vb_control$rhs_freeze_tau_warmup_iters, 15L)
   expect_equal(vb_control$rhs_update_every_warmup, 4L)
@@ -566,6 +568,7 @@ test_that("builder helpers preserve existing control lists and fill only missing
   expect_equal(vb_control$max_iter, 80L)
   expect_equal(vb_control$tol, 1e-4, tolerance = 1e-12)
   expect_equal(vb_control$n_samp_xi, 500L)
+  expect_null(vb_control$progress_every)
   expect_equal(vb_control$sigmagam$freeze_warmup_iters, 3L)
 
   vb_control_override <- exal_make_vb_control(
