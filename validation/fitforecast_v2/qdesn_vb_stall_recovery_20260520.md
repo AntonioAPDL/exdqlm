@@ -80,6 +80,9 @@ Both probes reached the LDVB loop and emitted iteration-25 progress lines in
 not a confirmed deadlock; it was a CPU-active LDVB phase with insufficient live
 telemetry.
 
+The probes were then stopped manually after the progress evidence was captured so
+the real orchestrator preflight would not be blocked by diagnostic sessions.
+
 The probes are diagnostic only and must not be consumed as final validation
 outputs. Their evidence roots are:
 
