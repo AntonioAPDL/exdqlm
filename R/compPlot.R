@@ -7,12 +7,20 @@
 #' @param add Logical value indicating whether the dynamic component will be added to existing plot. Default is \code{FALSE}.
 #' @param col Character vector of length 1 giving color of the dynamic component to be plotted. Default is `purple`.
 #' @param just.theta Logical; if `TRUE`, the function plots the dynamic distribution of the `index` element of the state vector. If `just.theta=TRUE`, `index` must have length 1.
+#' @param plot Logical value indicating whether to draw the plot. If \code{FALSE}, the
+#'   function only returns the plotted summaries. Default is \code{TRUE}.
+#' @param xlim,ylim Optional limits passed to the base plotting call when \code{plot = TRUE}.
+#' @param xlab,ylab Optional axis labels passed to the base plotting call when \code{plot = TRUE}.
+#' @param lwd,lwd.interval Line widths for the dynamic component and credible interval
+#'   bounds, respectively.
+#' @param lty.interval Line type for the credible interval bounds.
 #'
 #' @return A list of the following is returned:
 #'  \itemize{
 #'   \item `map.comp` - MAP estimate of the dynamic component (or element of the state vector).
 #'   \item `lb.comp` - Lower bound of the 95% CrIs of the dynamic component (or element of the state vector).
 #'   \item `ub.comp` - Upper bound of the 95% CrIs of the dynamic component (or element of the state vector).
+#'   \item `x` - Time/index values used for plotting.
 #' }
 #' @export
 #'
@@ -29,10 +37,14 @@
 #'                    n.samp = 20, tol = 0.2, verbose = FALSE)
 #' # plot first harmonic component
 #' compPlot(M0, index = c(3, 4), col = "blue")
+#' c.summary = compPlot(M0, index = c(3, 4), plot = FALSE)
 #' options(old)
 #' }
 #'
-compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, cr.percent = 0.95){
+compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE,
+                     cr.percent = 0.95, plot = TRUE, xlim = NULL, ylim = NULL,
+                     xlab = "time", ylab = NULL, lwd = 1.5,
+                     lwd.interval = 0.75, lty.interval = 2){
 
   # check input
   if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
@@ -65,15 +77,28 @@ compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE, c
   lb.quant = matrixStats::rowQuantiles(quant.samps, probs = half.alpha)
   ub.quant = matrixStats::rowQuantiles(quant.samps, probs = cr.percent + half.alpha)
 
-  # plot
-  if(!add){
-    stats::plot.ts(y,xlab="time",ylab=sprintf("%s%% CrIs",100*cr.percent),ylim=range(c(lb.quant,ub.quant)),col="white")
-  }
   ts.xy = grDevices::xy.coords(y)
-  graphics::lines(ts.xy$x,map.quant,col=col,lwd=1.5)
-  graphics::lines(ts.xy$x,lb.quant,col=col,lwd=0.75,lty=2)
-  graphics::lines(ts.xy$x,ub.quant,col=col,lwd=0.75,lty=2)
+  if(is.null(ylab)){
+    ylab = sprintf("%s%% CrIs",100*cr.percent)
+  }
+  if(is.null(ylim)){
+    ylim = range(c(lb.quant,ub.quant))
+  }
 
-  ret = list(map.comp=map.quant,lb.comp=lb.quant,ub.comp=ub.quant)
+  # plot
+  if(plot){
+    if(!add){
+      plot.args = list(x = y, xlab = xlab, ylab = ylab, ylim = ylim, col = "white")
+      if(!is.null(xlim)){
+        plot.args$xlim = xlim
+      }
+      do.call(stats::plot.ts, plot.args)
+    }
+    graphics::lines(ts.xy$x,map.quant,col=col,lwd=lwd)
+    graphics::lines(ts.xy$x,lb.quant,col=col,lwd=lwd.interval,lty=lty.interval)
+    graphics::lines(ts.xy$x,ub.quant,col=col,lwd=lwd.interval,lty=lty.interval)
+  }
+
+  ret = list(map.comp=map.quant,lb.comp=lb.quant,ub.comp=ub.quant,x=ts.xy$x)
   return(invisible(ret))
 }

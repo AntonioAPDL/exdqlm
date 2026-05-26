@@ -313,4 +313,26 @@ test_that("transfer-function MCMC output with multivariate X works with downstre
   cplot <- exdqlm::compPlot(fit, index = 1, add = FALSE, col = "red", just.theta = TRUE)
   expect_length(qplot$map.quant, TT)
   expect_length(cplot$map.comp, TT)
+  expect_length(qplot$x, TT)
+  expect_length(cplot$x, TT)
+
+  qsummary <- exdqlm::exdqlmPlot(fit, plot = FALSE)
+  csummary <- exdqlm::compPlot(fit, index = 1, just.theta = TRUE, plot = FALSE)
+  expect_named(qsummary, c("map.quant", "lb.quant", "ub.quant", "x"))
+  expect_named(csummary, c("map.comp", "lb.comp", "ub.comp", "x"))
+  expect_equal(qsummary$map.quant, qplot$map.quant)
+  expect_equal(csummary$map.comp, cplot$map.comp)
+
+  graphics::plot(qsummary$x, qsummary$map.quant, type = "n",
+                 xlim = range(qsummary$x), ylim = range(qsummary$lb.quant, qsummary$ub.quant))
+  expect_silent(exdqlm::exdqlmPlot(fit, add = TRUE, col = "black",
+                                   xlim = range(qsummary$x),
+                                   ylim = range(qsummary$lb.quant, qsummary$ub.quant),
+                                   xlab = "custom x", ylab = "custom y",
+                                   lwd = 1, lwd.interval = 0.5))
+  expect_silent(exdqlm::compPlot(fit, index = 1, add = TRUE, col = "orange",
+                                 just.theta = TRUE, xlim = range(csummary$x),
+                                 ylim = range(csummary$lb.comp, csummary$ub.comp),
+                                 xlab = "custom x", ylab = "custom y",
+                                 lwd = 1, lwd.interval = 0.5))
 })

@@ -8,6 +8,9 @@
 - Added `exdqlmForecastDiagnostics()` for held-out `exdqlmForecast()` objects,
   reporting target-quantile check loss and CRPS from posterior predictive
   forecast draws without redefining article-side scoring helpers.
+- Added optional plotting controls to `exdqlmPlot()` and `compPlot()`, including
+  `plot = FALSE` summary extraction and user-supplied axis limits/labels, while
+  preserving the existing plotting defaults.
 - Fixed `exdqlmForecast()` handling of future evolution matrices so constant
   `fGG` matrices expand across the forecast horizon and time-varying `fGG`
   arrays are validated against horizon `k`.

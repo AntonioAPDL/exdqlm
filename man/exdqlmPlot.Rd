@@ -4,7 +4,20 @@
 \alias{exdqlmPlot}
 \title{Plot exDQLM}
 \usage{
-exdqlmPlot(m1, add = FALSE, col = "purple", cr.percent = 0.95)
+exdqlmPlot(
+  m1,
+  add = FALSE,
+  col = "purple",
+  cr.percent = 0.95,
+  plot = TRUE,
+  xlim = NULL,
+  ylim = NULL,
+  xlab = "time",
+  ylab = NULL,
+  lwd = 1.5,
+  lwd.interval = 0.75,
+  lty.interval = 2
+)
 }
 \arguments{
 \item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
@@ -16,6 +29,18 @@ legacy "\code{exdqlmISVB}".}
 
 \item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
 intervals (e.g., \code{0.95}). Default \code{0.95}.}
+
+\item{plot}{Logical value indicating whether to draw the plot. If \code{FALSE}, the
+function only returns the plotted summaries. Default is \code{TRUE}.}
+
+\item{xlim, ylim}{Optional limits passed to the base plotting call when \code{plot = TRUE}.}
+
+\item{xlab, ylab}{Optional axis labels passed to the base plotting call when \code{plot = TRUE}.}
+
+\item{lwd, lwd.interval}{Line widths for the dynamic quantile and credible interval
+bounds, respectively.}
+
+\item{lty.interval}{Line type for the credible interval bounds.}
 }
 \value{
 A list of the following is returned:
@@ -23,6 +48,7 @@ A list of the following is returned:
 \item \code{map.quant} - MAP estimate of the dynamic quantile.
 \item \code{lb.quant} - Lower bound of the 95\% CrIs of the dynamic quantile.
 \item \code{ub.quant} - Upper bound of the 95\% CrIs of the dynamic quantile.
+\item \code{x} - Time/index values used for plotting.
 }
 }
 \description{
@@ -38,6 +64,7 @@ M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                    gam.init = -3.5, sig.init = 15,
                    n.samp = 20, tol = 0.2, verbose = FALSE)
 exdqlmPlot(M0, col = "blue")
+q.summary = exdqlmPlot(M0, plot = FALSE)
 options(old)
 }
 
