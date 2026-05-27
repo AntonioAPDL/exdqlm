@@ -959,7 +959,8 @@ qdesn_fit_vb <- function(
         verbose = isTRUE(get_exact(vb_args, "verbose", FALSE)),
         sigmagam = get_exact(vb_args, "sigmagam", get_exact(get_exact(vb_args, "vb_control", list()), "sigmagam", NULL)),
         rhs = get_exact(vb_args, "rhs", get_exact(get_exact(vb_args, "vb_control", list()), "rhs", NULL)),
-        diagnostics = get_exact(vb_args, "diagnostics", NULL)
+        diagnostics = get_exact(vb_args, "diagnostics", NULL),
+        chunking = get_exact(vb_args, "chunking", get_exact(get_exact(vb_args, "vb_control", list()), "chunking", NULL))
       )
     )
     vb_control <- modifyList(vb_control, get_exact(vb_args, "vb_control", list()))
