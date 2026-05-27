@@ -972,7 +972,9 @@ qdesn_fit_vb <- function(
       init = vb_args$init %||% list(),
       prior_gamma = vb_args$prior_gamma %||% list(mu0 = 0, s20 = 10),
       prior_sigma = vb_args$prior_sigma %||% list(a = 1, b = 1),
-      beta_prior_obj = beta_prior_obj
+      beta_prior_obj = beta_prior_obj,
+      likelihood_family = get_exact(vb_args, "likelihood_family", "exal"),
+      al_fixed_gamma = get_exact(vb_args, "al_fixed_gamma", NULL)
       # beta_prior_obj = vb_args$beta_prior_obj %||% beta_prior("ridge", ridge = list(tau2 = 1e4))
     )
 

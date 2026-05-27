@@ -223,6 +223,39 @@ test_that("likelihood family defaults to exal and supports explicit al routing",
   expect_identical(spec_al$likelihood_family, "al")
 })
 
+test_that("VB exact chunking config resolves without changing absent defaults", {
+  cfg_default <- list(
+    inference = list(
+      method = "vb",
+      vb = list(priors = list(beta = list(type = "ridge", tau2 = 1e4)))
+    )
+  )
+  inf_default <- exdqlm:::resolve_exal_inference_config(cfg_default, p_vec = c(0.5), verbose = FALSE)
+  expect_false("chunking" %in% names(inf_default$vb$args_base))
+
+  cfg_chunked <- list(
+    inference = list(
+      method = "vb",
+      vb = list(
+        chunking = list(
+          enabled = TRUE,
+          mode = "exact",
+          chunk_size = 64L,
+          order = "sequential",
+          trace = TRUE
+        ),
+        priors = list(beta = list(type = "ridge", tau2 = 1e4))
+      )
+    )
+  )
+  inf_chunked <- exdqlm:::resolve_exal_inference_config(cfg_chunked, p_vec = c(0.5), verbose = FALSE)
+  expect_true(isTRUE(inf_chunked$vb$args_base$chunking$enabled))
+  expect_identical(inf_chunked$vb$args_base$chunking$mode, "exact")
+  expect_equal(inf_chunked$vb$args_base$chunking$chunk_size, 64L)
+  expect_identical(inf_chunked$vb$args_base$chunking$order, "sequential")
+  expect_true(isTRUE(inf_chunked$vb$args_base$chunking$trace))
+})
+
 test_that("sigmagam warmup controls resolve for VB, MCMC warm start, and MCMC core", {
   cfg <- list(
     inference = list(
@@ -454,6 +487,27 @@ test_that("public control builders expose the normalized advanced warmup surface
   expect_equal(vb_control$sigmagam$freeze_warmup_iters, 12L)
   expect_equal(vb_control$sts$freeze_warmup_iters, 10L)
   expect_false(isTRUE(vb_control$sts$force_after_warmup))
+
+  vb_control_chunked <- exdqlm::exal_make_vb_control(
+    chunking = list(
+      enabled = TRUE,
+      mode = "exact",
+      chunk_size = 128L,
+      order = "sequential",
+      trace = TRUE
+    )
+  )
+  expect_true(isTRUE(vb_control_chunked$chunking$enabled))
+  expect_identical(vb_control_chunked$chunking$mode, "exact")
+  expect_equal(vb_control_chunked$chunking$chunk_size, 128L)
+  expect_identical(vb_control_chunked$chunking$order, "sequential")
+  expect_true(isTRUE(vb_control_chunked$chunking$trace))
+
+  expect_false("chunking" %in% names(exdqlm::exal_make_vb_control()))
+  expect_error(
+    exdqlm::exal_make_vb_control(chunking = list(enabled = TRUE, mode = "stochastic")),
+    "mode must be 'exact'"
+  )
 
   latent_state <- exdqlm::exal_make_mcmc_latent_state_control(
     mode = "u_st_pair",

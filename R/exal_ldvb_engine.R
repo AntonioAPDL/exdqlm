@@ -62,6 +62,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   vb_control$rhs_recompute_elbo_after_tau_update <- isTRUE(
     vb_control$rhs_recompute_elbo_after_tau_update %||% TRUE
   )
+  vb_control$chunking <- .exal_normalize_vb_chunking_cfg(vb_control$chunking %||% NULL)
   sigmagam_cfg <- vb_control$sigmagam %||% list()
   sigmagam_freeze_warmup_iters <- max(0L, as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
@@ -104,6 +105,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   n <- length(y)
   p <- ncol(X)
+  row_chunks <- if (isTRUE(vb_control$chunking$enabled)) {
+    .exal_make_row_chunks(n, vb_control$chunking$chunk_size)
+  } else {
+    NULL
+  }
+  use_exact_chunking <- isTRUE(vb_control$chunking$enabled)
 
   L <- as.numeric(gamma_bounds[1])
   U <- as.numeric(gamma_bounds[2])
@@ -806,19 +813,28 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     if (length(prec_diag) != p) .stopf("beta prior expected_prec must return length p=%d.", p)
     if (any(!is.finite(prec_diag)) || any(prec_diag <= 0)) .stopf("beta prior expected_prec must be finite and > 0.")
 
-    nat <- .exal_beta_natural_stats(
-      X = X,
-      y = y,
-      xis = xis,
-      qv_m_inv = qv$m_inv,
-      qs_m = qs$m,
-      prec_diag = prec_diag
-    )
-    W <<- as.numeric(nat$barw)
-    Prec <- as.matrix(nat$P)
-    rhs <- as.numeric(nat$h)
+    data_stats <- if (isTRUE(use_exact_chunking)) {
+      .exal_beta_data_stats_chunks(
+        X = X,
+        y = y,
+        xis = xis,
+        qv_m_inv = qv$m_inv,
+        qs_m = qs$m,
+        chunks = row_chunks
+      )
+    } else {
+      .exal_beta_data_stats(
+        X = X,
+        y = y,
+        xis = xis,
+        qv_m_inv = qv$m_inv,
+        qs_m = qs$m
+      )
+    }
+    beta_solve <- .exal_beta_solve_from_data_stats(data_stats, prec_diag)
+    W <<- as.numeric(data_stats$barw)
 
-    sol <- .solve_sympd(Prec, rhs)
+    sol <- beta_solve$sol
     qbeta$V <<- sol$inv
     qbeta$m <<- as.numeric(sol$x)
     sol_chol <<- sol$chol %||% NULL
@@ -1096,18 +1112,34 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # ------------------------------------------------------------------------
     # (2.2) UPDATE q(v): GIG(1/2, chi_i, psi)
     # ------------------------------------------------------------------------
-    xb  <- as.numeric(X %*% qbeta$m)
-    t_i <- y - xb
-    q_i <- rowSums((X %*% qbeta$V) * X)
+    if (isTRUE(use_exact_chunking)) {
+      local_up <- .exal_local_updates_chunks(
+        X = X,
+        y = y,
+        qbeta = qbeta,
+        qv = qv,
+        qs = qs,
+        xis = xis,
+        chunks = row_chunks
+      )
+      xb <- local_up$xb
+      t_i <- local_up$t_i
+      q_i <- local_up$q_i
+      qv_up <- local_up$qv
+    } else {
+      xb  <- as.numeric(X %*% qbeta$m)
+      t_i <- y - xb
+      q_i <- rowSums((X %*% qbeta$V) * X)
 
-    qv_up <- .exal_local_qv_update(
-      y = y,
-      xb = xb,
-      q_i = q_i,
-      qs_m = qs$m,
-      qs_m2 = qs$m2,
-      xis = xis
-    )
+      qv_up <- .exal_local_qv_update(
+        y = y,
+        xb = xb,
+        q_i = q_i,
+        qs_m = qs$m,
+        qs_m2 = qs$m2,
+        xis = xis
+      )
+    }
     chi <- as.numeric(qv_up$chi)
     psi <- as.numeric(qv_up$psi)
     qv$m <- as.numeric(qv_up$m)
@@ -1117,12 +1149,16 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # ------------------------------------------------------------------------
     # (2.2) UPDATE q(s): TN(mu_s, tau2) on (0, inf)
     # ------------------------------------------------------------------------
-    qs_up <- .exal_local_qs_update(
-      y = y,
-      xb = xb,
-      qv_m_inv = qv$m_inv,
-      xis = xis
-    )
+    qs_up <- if (isTRUE(use_exact_chunking)) {
+      local_up$qs
+    } else {
+      .exal_local_qs_update(
+        y = y,
+        xb = xb,
+        qv_m_inv = qv$m_inv,
+        xis = xis
+      )
+    }
     tau2 <- as.numeric(qs_up$tau2)
     mu_s <- as.numeric(qs_up$mu)
     qs$m <- as.numeric(qs_up$m)
@@ -1160,21 +1196,43 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # (2.3) UPDATE q(sigma, gamma) jointly via Laplace–Delta on (eta, ell)
     # ------------------------------------------------------------------------
     # Precompute stats for LD optimization (depends on current qbeta,qv,qs only)
-    xb  <- as.numeric(X %*% qbeta$m)
-    t_i <- y - xb
-    q_i <- rowSums((X %*% qbeta$V) * X)
+    if (isTRUE(use_exact_chunking)) {
+      sigmagam_stats <- .exal_sigmagam_stats_chunks(
+        X = X,
+        y = y,
+        qbeta = qbeta,
+        qv = qv,
+        qs = qs,
+        chunks = row_chunks,
+        xb = xb,
+        q_i = q_i
+      )
+      xb <- sigmagam_stats$xb
+      t_i <- sigmagam_stats$t_i
+      q_i <- sigmagam_stats$q_i
+      S1 <- sigmagam_stats$S1
+      S2 <- sigmagam_stats$S2
+      S3 <- sigmagam_stats$S3
+      S4 <- sigmagam_stats$S4
+      S5 <- sigmagam_stats$S5
+      S6 <- sigmagam_stats$S6
+    } else {
+      xb  <- as.numeric(X %*% qbeta$m)
+      t_i <- y - xb
+      q_i <- rowSums((X %*% qbeta$V) * X)
 
-    mv_inv <- qv$m_inv
-    mv     <- qv$m
-    ms     <- qs$m
-    ms2    <- qs$m2
+      mv_inv <- qv$m_inv
+      mv     <- qv$m
+      ms     <- qs$m
+      ms2    <- qs$m2
 
-    S1 <- sum(mv_inv * (t_i^2 + q_i))          # sum E[1/v] * E[(y-xb)^2]
-    S2 <- sum(t_i)                             # sum (y-xb)
-    S3 <- sum(mv)                              # sum E[v]
-    S4 <- sum(ms * mv_inv * t_i)               # sum E[s]E[1/v](y-xb)
-    S5 <- sum(ms2 * mv_inv)                    # sum E[s^2]E[1/v]
-    S6 <- sum(ms)                              # sum E[s]
+      S1 <- sum(mv_inv * (t_i^2 + q_i))          # sum E[1/v] * E[(y-xb)^2]
+      S2 <- sum(t_i)                             # sum (y-xb)
+      S3 <- sum(mv)                              # sum E[v]
+      S4 <- sum(ms * mv_inv * t_i)               # sum E[s]E[1/v](y-xb)
+      S5 <- sum(ms2 * mv_inv)                    # sum E[s^2]E[1/v]
+      S6 <- sum(ms)                              # sum E[s]
+    }
 
     sigmagam_warmup_active <- isTRUE(
       sigmagam_freeze_warmup_iters > 0L &&

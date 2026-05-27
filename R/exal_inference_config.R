@@ -1044,6 +1044,9 @@
   if (!is.null(vb_cfg$n_samp_xi)) vb_args_base$n_samp_xi <- as.integer(vb_cfg$n_samp_xi)[1L]
   if (!is.null(vb_cfg$progress_every)) vb_args_base$progress_every <- as.integer(vb_cfg$progress_every)[1L]
   if (!is.null(vb_cfg$verbose)) vb_args_base$verbose <- isTRUE(vb_cfg$verbose)
+  if (!is.null(vb_cfg$chunking)) {
+    vb_args_base$chunking <- .exal_normalize_vb_chunking_cfg(vb_cfg$chunking)
+  }
 
   if (!is.null(vb_cfg$diagnostics)) {
     diag_cfg <- vb_cfg$diagnostics
@@ -1440,6 +1443,9 @@ exal_make_vb_online_control <- function(
 #' @param diagnostics Optional diagnostics block. Supported keys include
 #'   `rhs_trace`, `rhs_deep`, `rhs_trace_thresholds`, `rhs_trace_top_k`, and
 #'   `rhs_trace_eps`.
+#' @param chunking Optional exact row-chunking control block. Supported keys are
+#'   `enabled`, `mode`, `chunk_size`, `order`, and `trace`. Defaults preserve
+#'   the existing unchunked behavior.
 #' @param control Optional existing control list to update and normalize.
 #'
 #' @return A normalized list suitable for `vb_control`.
@@ -1469,6 +1475,7 @@ exal_make_vb_control <- function(
     sts = NULL,
     rhs = NULL,
     diagnostics = NULL,
+    chunking = NULL,
     control = NULL) {
   vb_cfg <- .exal_list_or_empty(control)
   if (!missing(max_iter)) vb_cfg$max_iter <- max_iter
@@ -1485,6 +1492,7 @@ exal_make_vb_control <- function(
   if (!missing(sts)) vb_cfg$sts <- sts
   if (!missing(rhs)) vb_cfg$rhs <- rhs
   if (!missing(diagnostics)) vb_cfg$diagnostics <- diagnostics
+  if (!missing(chunking)) vb_cfg$chunking <- chunking
 
   resolved <- .exal_resolve_vb_config(vb_cfg, p_vec = c(0.5), verbose = FALSE)
   out <- resolved$args_base

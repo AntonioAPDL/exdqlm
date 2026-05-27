@@ -64,6 +64,104 @@ test_that("AL VB path stays finite for ridge and rhs_ns priors", {
   }
 })
 
+test_that("AL exact chunking matches unchunked VB updates", {
+  dat <- make_al_test_data(seed = 789L, n = 28L)
+  prior <- exdqlm:::exal_make_beta_prior(type = "ridge", tau2 = 20)
+  ctrl <- list(
+    max_iter = 12L,
+    min_iter_elbo = 5L,
+    tol = 0,
+    tol_par = 0,
+    n_samp_xi = 40L,
+    verbose = FALSE
+  )
+
+  fit_full <- exdqlm:::exal_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    gamma_bounds = c(-3, 3),
+    method = "vb",
+    likelihood_family = "al",
+    al_fixed_gamma = 0,
+    vb_control = ctrl,
+    prior_gamma = list(mu0 = 0, s20 = 10),
+    prior_sigma = list(a = 1, b = 1),
+    beta_prior_obj = prior
+  )
+  fit_chunked <- exdqlm:::exal_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    gamma_bounds = c(-3, 3),
+    method = "vb",
+    likelihood_family = "al",
+    al_fixed_gamma = 0,
+    vb_control = modifyList(ctrl, list(chunking = list(enabled = TRUE, chunk_size = 7L))),
+    prior_gamma = list(mu0 = 0, s20 = 10),
+    prior_sigma = list(a = 1, b = 1),
+    beta_prior_obj = prior
+  )
+
+  expect_identical(as.character(fit_chunked$likelihood_family), "al")
+  expect_equal(fit_chunked$iter, fit_full$iter)
+  expect_equal(fit_chunked$qbeta$m, fit_full$qbeta$m, tolerance = 1e-8)
+  expect_equal(fit_chunked$qbeta$V, fit_full$qbeta$V, tolerance = 1e-8)
+  expect_equal(fit_chunked$qv$m, fit_full$qv$m, tolerance = 1e-8)
+  expect_equal(fit_chunked$qv$m_inv, fit_full$qv$m_inv, tolerance = 1e-8)
+  expect_equal(fit_chunked$qs$m, fit_full$qs$m, tolerance = 1e-8)
+  expect_equal(fit_chunked$qs$m2, fit_full$qs$m2, tolerance = 1e-8)
+  expect_equal(fit_chunked$misc$sigma_trace, fit_full$misc$sigma_trace, tolerance = 1e-8)
+  expect_equal(fit_chunked$misc$gamma_trace, fit_full$misc$gamma_trace, tolerance = 1e-12)
+  expect_equal(fit_chunked$misc$elbo_trace, fit_full$misc$elbo_trace, tolerance = 1e-8)
+})
+
+test_that("AL exact chunking leaves RHS updates global", {
+  dat <- make_al_test_data(seed = 790L, n = 24L)
+  ctrl <- list(
+    max_iter = 10L,
+    min_iter_elbo = 4L,
+    tol = 0,
+    tol_par = 0,
+    n_samp_xi = 32L,
+    verbose = FALSE,
+    rhs_freeze_tau_warmup_iters = 2L,
+    rhs_update_every = 1L
+  )
+
+  fit_full <- exdqlm:::exal_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    gamma_bounds = c(-3, 3),
+    method = "vb",
+    likelihood_family = "al",
+    al_fixed_gamma = 0,
+    vb_control = ctrl,
+    prior_gamma = list(mu0 = 0, s20 = 10),
+    prior_sigma = list(a = 1, b = 1),
+    beta_prior_obj = make_rhs_ns_prior_for_tests()
+  )
+  fit_chunked <- exdqlm:::exal_fit(
+    y = dat$y,
+    X = dat$X,
+    p0 = 0.5,
+    gamma_bounds = c(-3, 3),
+    method = "vb",
+    likelihood_family = "al",
+    al_fixed_gamma = 0,
+    vb_control = modifyList(ctrl, list(chunking = list(enabled = TRUE, chunk_size = 5L))),
+    prior_gamma = list(mu0 = 0, s20 = 10),
+    prior_sigma = list(a = 1, b = 1),
+    beta_prior_obj = make_rhs_ns_prior_for_tests()
+  )
+
+  expect_equal(fit_chunked$qbeta$m, fit_full$qbeta$m, tolerance = 1e-7)
+  expect_equal(fit_chunked$beta_prior$state$tau2, fit_full$beta_prior$state$tau2, tolerance = 1e-7)
+  expect_equal(fit_chunked$beta_prior$state$lambda2, fit_full$beta_prior$state$lambda2, tolerance = 1e-7)
+  expect_equal(fit_chunked$misc$rhs_tau_trace, fit_full$misc$rhs_tau_trace, tolerance = 1e-7)
+})
+
 test_that("AL MCMC path keeps gamma fixed and respects parameter domains", {
   dat <- make_al_test_data(seed = 456L)
   priors <- list(
