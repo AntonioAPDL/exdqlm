@@ -13,17 +13,22 @@ output_dir <- arg_value(
   "--output-dir",
   file.path(repo_root, "results", "qdesn_vb_simplification_ladder_20260528")
 )
+source_dir <- arg_value("--source-dir", NULL)
+if (!is.null(source_dir) && !nzchar(source_dir)) source_dir <- NULL
+if (!is.null(source_dir)) source_dir <- normalizePath(source_dir, mustWork = TRUE)
 seed <- as.integer(arg_value("--seed", "20260528"))
 series_length <- as.integer(arg_value("--series-length", "48"))
 reservoir_size <- as.integer(arg_value("--reservoir-size", "6"))
 washout <- as.integer(arg_value("--washout", "6"))
+chunk_size <- as.integer(arg_value("--chunk-size", "5"))
 max_iter <- as.integer(arg_value("--max-iter", "24"))
 stochastic_max_iter <- as.integer(arg_value("--stochastic-max-iter", "48"))
 exact_tolerance <- as.numeric(arg_value("--exact-tolerance", "1e-6"))
 stochastic_tolerance <- as.numeric(arg_value("--stochastic-tolerance", "0.10"))
+stochastic_pinball_tolerance <- as.numeric(arg_value("--stochastic-pinball-tolerance", "0.02"))
 
 if (!is.finite(seed)) stop("--seed must be a finite integer.", call. = FALSE)
-if (!is.finite(series_length) || series_length <= washout + 8L) {
+if (is.null(source_dir) && (!is.finite(series_length) || series_length <= washout + 8L)) {
   stop("--series-length must be finite and larger than washout + 8.", call. = FALSE)
 }
 if (!is.finite(reservoir_size) || reservoir_size < 2L) {
@@ -31,6 +36,9 @@ if (!is.finite(reservoir_size) || reservoir_size < 2L) {
 }
 if (!is.finite(washout) || washout < 1L) {
   stop("--washout must be a finite positive integer.", call. = FALSE)
+}
+if (!is.finite(chunk_size) || chunk_size < 1L) {
+  stop("--chunk-size must be a finite positive integer.", call. = FALSE)
 }
 if (!is.finite(max_iter) || max_iter < 5L) {
   stop("--max-iter must be a finite integer >= 5.", call. = FALSE)
@@ -43,6 +51,9 @@ if (!is.finite(exact_tolerance) || exact_tolerance <= 0) {
 }
 if (!is.finite(stochastic_tolerance) || stochastic_tolerance <= 0) {
   stop("--stochastic-tolerance must be finite and > 0.", call. = FALSE)
+}
+if (!is.finite(stochastic_pinball_tolerance) || stochastic_pinball_tolerance <= 0) {
+  stop("--stochastic-pinball-tolerance must be finite and > 0.", call. = FALSE)
 }
 
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -113,6 +124,32 @@ make_series <- function(n, seed) {
   signal <- 0.25 * sin(t / 4) + 0.10 * cos(t / 7) + 0.02 * (t - mean(t)) / n
   y <- signal + stats::rnorm(n, sd = 0.03)
   data.frame(t = t, y = as.numeric(y), signal = as.numeric(signal))
+}
+
+read_source_series <- function(path) {
+  csv <- file.path(path, "series_wide.csv")
+  if (!file.exists(csv)) {
+    stop("source directory must contain series_wide.csv.", call. = FALSE)
+  }
+  dat <- utils::read.csv(csv)
+  required <- c("t", "y", "mu", "q_target")
+  missing <- setdiff(required, names(dat))
+  if (length(missing)) {
+    stop(
+      sprintf("series_wide.csv missing required columns: %s", paste(missing, collapse = ", ")),
+      call. = FALSE
+    )
+  }
+  if (anyNA(dat[, required])) {
+    stop("source series contains missing t/y/mu/q_target values.", call. = FALSE)
+  }
+  data.frame(
+    t = as.numeric(dat$t),
+    y = as.numeric(dat$y),
+    signal = as.numeric(dat$q_target),
+    mu = as.numeric(dat$mu),
+    stringsAsFactors = FALSE
+  )
 }
 
 prior_specs <- function() {
@@ -400,11 +437,11 @@ compare_stochastic <- function(reference, stochastic, repeat_fit, series,
     reproducible = max_abs(as.numeric(sf$qbeta$m) - as.numeric(repf$qbeta$m)) <= 1e-12 &&
       max_abs(sp$fitted_median - repp$fitted_median) <= 1e-12,
     fitted_tolerance = tolerance,
-    pinball_tolerance = 0.02,
+    pinball_tolerance = stochastic_pinball_tolerance,
     passed_distance_gate = is.finite(fitted_diff) &&
       fitted_diff <= tolerance &&
       is.finite(pinball_diff) &&
-      abs(pinball_diff) <= 0.02,
+      abs(pinball_diff) <= stochastic_pinball_tolerance,
     stringsAsFactors = FALSE
   )
 }
@@ -449,16 +486,25 @@ forbidden_stochastic_exal <- function(series, prior_name, prior_cfg) {
 cat("Q-DESN VB simplification ladder\n")
 cat("repo:", repo_root, "\n")
 cat("output_dir:", output_dir, "\n")
+cat("source_dir:", source_dir %||% "<synthetic>", "\n")
 cat("seed:", seed, "\n")
 
-series <- make_series(series_length, seed)
+series <- if (is.null(source_dir)) make_series(series_length, seed) else read_source_series(source_dir)
+if (nrow(series) <= washout + 8L) {
+  stop("effective source series must be larger than washout + 8.", call. = FALSE)
+}
 priors <- prior_specs()
 
-exact_chunking <- list(enabled = TRUE, mode = "exact", chunk_size = 5L, order = "sequential")
+exact_chunking <- list(
+  enabled = TRUE,
+  mode = "exact",
+  chunk_size = as.integer(chunk_size),
+  order = "sequential"
+)
 stochastic_chunking <- list(
   enabled = TRUE,
   mode = "stochastic",
-  chunk_size = 5L,
+  chunk_size = as.integer(chunk_size),
   order = "random",
   seed = as.integer(seed),
   learning_rate = list(t0 = 5, kappa = 0.75, rho_min = 0.02),
@@ -574,13 +620,16 @@ repo_state <- data.frame(
   upstream = git_value(c("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")),
   dirty = paste(git_value(c("status", "--short")), collapse = "\\n"),
   seed = as.integer(seed),
-  series_length = as.integer(series_length),
+  series_source = source_dir %||% "synthetic",
+  series_length = as.integer(nrow(series)),
   washout = as.integer(washout),
   reservoir_size = as.integer(reservoir_size),
+  chunk_size = as.integer(chunk_size),
   max_iter = as.integer(max_iter),
   stochastic_max_iter = as.integer(stochastic_max_iter),
   exact_tolerance = exact_tolerance,
   stochastic_tolerance = stochastic_tolerance,
+  stochastic_pinball_tolerance = stochastic_pinball_tolerance,
   stringsAsFactors = FALSE
 )
 
