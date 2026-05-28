@@ -931,8 +931,9 @@ qdesn_fit_vb <- function(
       b = vb_args$b_sigma %||% 1
     )
 
-    # --- init (natural scale) ---
+    # --- init and warm start (natural scale) ---
     init <- vb_args$init %||% list()
+    warm_start_cfg <- .qdesn_vb_normalize_warm_start_control(vb_args$warm_start %||% NULL)
 
     # --- beta prior: ridge or rhs (NEW MODEL HOOK) ---
 	    if (!is.null(vb_args$beta_prior_obj)) {
@@ -947,6 +948,12 @@ qdesn_fit_vb <- function(
 	      tau2 <- vb_args$beta_ridge_tau2 %||% vb_args$tau2 %||% 1e4
 	      beta_prior_obj <- exal_make_beta_prior(type = beta_type, tau2 = tau2, rhs = rhs_list)
 	    }
+
+    likelihood_family <- tolower(as.character(get_exact(vb_args, "likelihood_family", "exal")[1L]))
+    if (!likelihood_family %in% c("exal", "al")) {
+      stop("qdesn_fit_vb: vb_args$likelihood_family must be 'exal' or 'al'.", call. = FALSE)
+    }
+    al_fixed_gamma <- get_exact(vb_args, "al_fixed_gamma", NULL)
 
     vb_control <- do.call(
       exal_make_vb_control,
@@ -965,17 +972,38 @@ qdesn_fit_vb <- function(
     )
     vb_control <- modifyList(vb_control, get_exact(vb_args, "vb_control", list()))
 
+    warm_start_meta <- NULL
+    if (isTRUE(warm_start_cfg$enabled)) {
+      if (isTRUE(vb_control$chunking$enabled) &&
+          identical(vb_control$chunking$mode, "stochastic")) {
+        stop("qdesn_fit_vb: warm starts for stochastic VB are not implemented.", call. = FALSE)
+      }
+      warm_init <- .qdesn_vb_warm_start_to_init(
+        warm_start = warm_start_cfg$state,
+        X = X,
+        p0 = p0,
+        likelihood_family = likelihood_family,
+        beta_prior_obj = beta_prior_obj,
+        al_fixed_gamma = al_fixed_gamma,
+        validate_design_hash = warm_start_cfg$validate_design_hash,
+        validate_package_sha = warm_start_cfg$validate_package_sha,
+        strict = warm_start_cfg$strict
+      )
+      warm_start_meta <- warm_init$warm_start_meta
+      init <- utils::modifyList(warm_init, init)
+    }
+
     fit <- exal_ldvb_fit(
       y = y_fit, X = X,
       p0 = p0,
       gamma_bounds = vb_args$gamma_bounds %||% c(L.fn(p0), U.fn(p0)),
       vb_control = vb_control,
-      init = vb_args$init %||% list(),
+      init = init,
       prior_gamma = vb_args$prior_gamma %||% list(mu0 = 0, s20 = 10),
       prior_sigma = vb_args$prior_sigma %||% list(a = 1, b = 1),
       beta_prior_obj = beta_prior_obj,
-      likelihood_family = get_exact(vb_args, "likelihood_family", "exal"),
-      al_fixed_gamma = get_exact(vb_args, "al_fixed_gamma", NULL)
+      likelihood_family = likelihood_family,
+      al_fixed_gamma = al_fixed_gamma
       # beta_prior_obj = vb_args$beta_prior_obj %||% beta_prior("ridge", ridge = list(tau2 = 1e4))
     )
 
@@ -1021,6 +1049,9 @@ ret <- list(
     )
   )
   class(ret) <- "qdesn_fit"
+  if (exists("warm_start_meta", inherits = FALSE) && !is.null(warm_start_meta)) {
+    ret$meta$warm_start <- warm_start_meta
+  }
   ret
 }
 

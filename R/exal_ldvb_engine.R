@@ -248,6 +248,14 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   # --- beta prior latent state (ridge or rhs family) ---
   beta_state <- beta_prior_obj$init(p)
+  if (!is.null(init$beta_state)) {
+    if (!is.list(init$beta_state)) .stopf("init$beta_state must be a list.")
+    beta_state <- init$beta_state
+    prec_init <- beta_prior_obj$expected_prec(beta_state, p)
+    if (length(prec_init) != p || any(!is.finite(prec_init)) || any(prec_init <= 0)) {
+      .stopf("init$beta_state is incompatible with beta_prior_obj.")
+    }
+  }
   beta_prior_type <- as.character(beta_prior_obj$type %||% "")
   is_rhs <- identical(beta_prior_type, "rhs")
   is_rhs_ns <- identical(beta_prior_type, "rhs_ns")
