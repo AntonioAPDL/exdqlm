@@ -39,6 +39,8 @@ qdesn_washout <- arg_int("--washout", 50L)
 chunk_size <- arg_int("--chunk-size", 64L)
 max_iter <- arg_int("--max-iter", 50L)
 stochastic_max_iter <- arg_int("--stochastic-max-iter", 100L)
+hybrid_max_iter <- arg_int("--hybrid-max-iter", stochastic_max_iter)
+hybrid_full_every <- arg_int("--hybrid-full-every", 20L)
 cores <- arg_int("--cores", 1L)
 exact_tolerance <- as.numeric(arg_value("--exact-tolerance", "1e-7"))
 
@@ -49,7 +51,10 @@ if (qdesn_n < 1L) stop("--n must be positive.", call. = FALSE)
 if (qdesn_m < 0L) stop("--m must be non-negative.", call. = FALSE)
 if (qdesn_washout < 0L) stop("--washout must be non-negative.", call. = FALSE)
 if (chunk_size < 1L) stop("--chunk-size must be positive.", call. = FALSE)
-if (max_iter < 1L || stochastic_max_iter < 1L) stop("max iteration controls must be positive.", call. = FALSE)
+if (max_iter < 1L || stochastic_max_iter < 1L || hybrid_max_iter < 1L) {
+  stop("max iteration controls must be positive.", call. = FALSE)
+}
+if (hybrid_full_every < 1L) stop("--hybrid-full-every must be positive.", call. = FALSE)
 if (cores < 1L) stop("--cores must be positive.", call. = FALSE)
 if (!is.finite(exact_tolerance) || exact_tolerance <= 0) {
   stop("--exact-tolerance must be a positive finite number.", call. = FALSE)
@@ -421,6 +426,14 @@ stochastic_chunking <- list(
   )
 )
 stoch_vb <- utils::modifyList(base_vb, list(max_iter = stochastic_max_iter, chunking = stochastic_chunking))
+hybrid_chunking <- stochastic_chunking
+hybrid_chunking$mode <- "hybrid"
+hybrid_chunking$refresh$full_every <- hybrid_full_every
+hybrid_chunking$refresh$objective_every <- hybrid_full_every
+hybrid_chunking$refresh$sigma_every <- hybrid_full_every
+hybrid_chunking$refresh$rhs_every <- hybrid_full_every
+hybrid_chunking$refresh$local_every <- hybrid_full_every
+hybrid_vb <- utils::modifyList(base_vb, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking))
 exal_vb <- base_vb
 exal_vb$likelihood_family <- "exal"
 exal_vb$al_fixed_gamma <- NULL
@@ -441,12 +454,15 @@ cat("qdesn_seed:", qdesn_seed, "\n")
 cat("selected_rows:", nrow(series), "\n")
 cat("effective_rows:", effective_rows_expected, "\n")
 cat("D:", qdesn_D, "n:", qdesn_n, "washout:", qdesn_washout, "chunk_size:", chunk_size, "cores:", cores, "\n")
+cat("hybrid_full_every:", hybrid_full_every, "\n")
 
 fit_specs <- list(
   list(label = "qdesn_al_unchunked", vb_args = base_vb),
   list(label = "qdesn_al_exact_chunked", vb_args = exact_vb),
   list(label = "qdesn_al_stochastic", vb_args = stoch_vb),
   list(label = "qdesn_al_stochastic_repeat", vb_args = stoch_vb),
+  list(label = "qdesn_al_hybrid", vb_args = hybrid_vb),
+  list(label = "qdesn_al_hybrid_repeat", vb_args = hybrid_vb),
   list(label = "qdesn_exal_unchunked", vb_args = exal_vb),
   list(label = "qdesn_exal_exact_chunked", vb_args = exal_exact_vb)
 )
@@ -466,8 +482,14 @@ names(fits) <- vapply(fits, `[[`, character(1), "label")
 
 bad_exal_stochastic <- exal_vb
 bad_exal_stochastic$chunking <- stochastic_chunking
-forbidden_message <- tryCatch({
+forbidden_stochastic_message <- tryCatch({
   fit_qdesn("qdesn_exal_stochastic_forbidden", series$y, bad_exal_stochastic, qdesn_seed)
+  NA_character_
+}, error = function(e) conditionMessage(e))
+bad_exal_hybrid <- exal_vb
+bad_exal_hybrid$chunking <- hybrid_chunking
+forbidden_hybrid_message <- tryCatch({
+  fit_qdesn("qdesn_exal_hybrid_forbidden", series$y, bad_exal_hybrid, qdesn_seed)
   NA_character_
 }, error = function(e) conditionMessage(e))
 
@@ -476,6 +498,7 @@ method_summary <- do.call(rbind, lapply(
     "qdesn_al_unchunked",
     "qdesn_al_exact_chunked",
     "qdesn_al_stochastic",
+    "qdesn_al_hybrid",
     "qdesn_exal_unchunked",
     "qdesn_exal_exact_chunked"
   )],
@@ -495,6 +518,7 @@ predictions <- do.call(rbind, lapply(
     "qdesn_al_unchunked",
     "qdesn_al_exact_chunked",
     "qdesn_al_stochastic",
+    "qdesn_al_hybrid",
     "qdesn_exal_unchunked",
     "qdesn_exal_exact_chunked"
   )],
@@ -508,20 +532,38 @@ exact_equivalence <- rbind(
   exact_compare(fits$qdesn_exal_unchunked, fits$qdesn_exal_exact_chunked, series, tolerance = exact_tolerance)
 )
 
-stochastic_diagnostics <- stochastic_compare(
-  fits$qdesn_al_unchunked,
-  fits$qdesn_al_stochastic,
-  fits$qdesn_al_stochastic_repeat,
-  series
+stochastic_diagnostics <- rbind(
+  stochastic_compare(
+    fits$qdesn_al_unchunked,
+    fits$qdesn_al_stochastic,
+    fits$qdesn_al_stochastic_repeat,
+    series
+  ),
+  stochastic_compare(
+    fits$qdesn_al_unchunked,
+    fits$qdesn_al_hybrid,
+    fits$qdesn_al_hybrid_repeat,
+    series
+  )
 )
 
-forbidden_modes <- data.frame(
-  method = "qdesn_exal_stochastic",
-  attempted = TRUE,
-  failed_early = is.character(forbidden_message) &&
-    grepl("supported only for likelihood_family = 'al'", forbidden_message, fixed = TRUE),
-  message = as.character(forbidden_message),
-  stringsAsFactors = FALSE
+forbidden_modes <- rbind(
+  data.frame(
+    method = "qdesn_exal_stochastic",
+    attempted = TRUE,
+    failed_early = is.character(forbidden_stochastic_message) &&
+      grepl("supported only for likelihood_family = 'al'", forbidden_stochastic_message, fixed = TRUE),
+    message = as.character(forbidden_stochastic_message),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    method = "qdesn_exal_hybrid",
+    attempted = TRUE,
+    failed_early = is.character(forbidden_hybrid_message) &&
+      grepl("supported only for likelihood_family = 'al'", forbidden_hybrid_message, fixed = TRUE),
+    message = as.character(forbidden_hybrid_message),
+    stringsAsFactors = FALSE
+  )
 )
 
 repo_state <- data.frame(
@@ -540,6 +582,10 @@ repo_state <- data.frame(
   n = qdesn_n,
   m = qdesn_m,
   washout = qdesn_washout,
+  max_iter = max_iter,
+  stochastic_max_iter = stochastic_max_iter,
+  hybrid_max_iter = hybrid_max_iter,
+  hybrid_full_every = hybrid_full_every,
   chunk_size = chunk_size,
   exact_tolerance = exact_tolerance,
   cores = cores,
@@ -580,23 +626,24 @@ if (capabilities("png")) {
         wide$fitted_median.qdesn_al_unchunked,
         wide$fitted_median.qdesn_al_exact_chunked,
         wide$fitted_median.qdesn_al_stochastic,
+        wide$fitted_median.qdesn_al_hybrid,
         wide$fitted_median.qdesn_exal_unchunked,
         wide$fitted_median.qdesn_exal_exact_chunked
       ),
       type = "l",
-      lty = c(1, 1, 1, 2, 1, 1, 2),
-      lwd = c(1, 2, 2, 2, 2, 1, 1),
-      col = c("grey55", "black", "#1b9e77", "#66a61e", "#d95f02", "#7570b3", "#e7298a"),
+      lty = c(1, 1, 1, 2, 1, 1, 1, 2),
+      lwd = c(1, 2, 2, 2, 2, 2, 1, 1),
+      col = c("grey55", "black", "#1b9e77", "#66a61e", "#d95f02", "#e6ab02", "#7570b3", "#e7298a"),
       xlab = "source t",
       ylab = "response / fitted median",
       main = sprintf("Q-DESN VB batching comparison (%s)", output_prefix)
     )
     legend(
       "topleft",
-      legend = c("y", "q_target/mu", "AL unchunked", "AL exact", "AL stochastic", "exAL unchunked", "exAL exact"),
-      col = c("grey55", "black", "#1b9e77", "#66a61e", "#d95f02", "#7570b3", "#e7298a"),
-      lty = c(1, 1, 1, 2, 1, 1, 2),
-      lwd = c(1, 2, 2, 2, 2, 1, 1),
+      legend = c("y", "q_target/mu", "AL unchunked", "AL exact", "AL stochastic", "AL hybrid", "exAL unchunked", "exAL exact"),
+      col = c("grey55", "black", "#1b9e77", "#66a61e", "#d95f02", "#e6ab02", "#7570b3", "#e7298a"),
+      lty = c(1, 1, 1, 2, 1, 1, 1, 2),
+      lwd = c(1, 2, 2, 2, 2, 2, 1, 1),
       bty = "n"
     )
     TRUE
@@ -653,7 +700,7 @@ w("")
 w("## Exact Equivalence")
 md_table(exact_equivalence)
 w("")
-w("## Stochastic Diagnostics")
+w("## Stochastic/Hybrid Diagnostics")
 md_table(stochastic_diagnostics)
 w("")
 w("## Forbidden Modes")
@@ -672,15 +719,15 @@ if (expected_effective_rows > 0L && !all(method_summary$effective_rows == expect
 if (!all(exact_equivalence$passed)) {
   stop("At least one exact chunked equivalence gate failed.", call. = FALSE)
 }
-if (!isTRUE(stochastic_diagnostics$finite_state[[1L]]) ||
-    !isTRUE(stochastic_diagnostics$stochastic_label_present[[1L]]) ||
-    !isTRUE(stochastic_diagnostics$approximate_note_present[[1L]]) ||
-    stochastic_diagnostics$reproducible_beta_mean_max_abs_diff[[1L]] > 1e-10 ||
-    stochastic_diagnostics$reproducible_fitted_median_max_abs_diff[[1L]] > 1e-10) {
-  stop("Stochastic AL reproducibility/labeling/finite-state gate failed.", call. = FALSE)
+if (!all(stochastic_diagnostics$finite_state) ||
+    !all(stochastic_diagnostics$stochastic_label_present) ||
+    !all(stochastic_diagnostics$approximate_note_present) ||
+    any(stochastic_diagnostics$reproducible_beta_mean_max_abs_diff > 1e-10) ||
+    any(stochastic_diagnostics$reproducible_fitted_median_max_abs_diff > 1e-10)) {
+  stop("Stochastic/hybrid AL reproducibility/labeling/finite-state gate failed.", call. = FALSE)
 }
-if (!isTRUE(forbidden_modes$failed_early[[1L]])) {
-  stop("Stochastic exAL did not fail early as expected.", call. = FALSE)
+if (!all(forbidden_modes$failed_early)) {
+  stop("Stochastic/hybrid exAL did not fail early as expected.", call. = FALSE)
 }
 
 cat("All source comparison gates passed.\n")
