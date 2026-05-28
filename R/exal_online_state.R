@@ -435,7 +435,9 @@
   )
 }
 
-.exal_beta_solve_from_data_stats <- function(stats, prec_diag) {
+.exal_beta_solve_from_data_stats <- function(stats, prec_diag,
+                                            prior_precision = NULL,
+                                            prior_natural = NULL) {
   if (!is.list(stats) || is.null(stats$S) || is.null(stats$g)) {
     .stopf("beta solve: stats must contain S and g.")
   }
@@ -454,13 +456,31 @@
   }
 
   P <- S + diag(prec_diag, p)
+  if (!is.null(prior_precision)) {
+    prior_precision <- as.matrix(prior_precision)
+    if (!all(dim(prior_precision) == c(p, p)) || any(!is.finite(prior_precision))) {
+      .stopf("beta solve: prior_precision must be a finite p x p matrix.")
+    }
+    prior_precision <- 0.5 * (prior_precision + t(prior_precision))
+    P <- P + prior_precision
+  }
   P <- 0.5 * (P + t(P))
-  sol <- .solve_sympd(P, g)
+  h <- g
+  if (!is.null(prior_natural)) {
+    prior_natural <- as.numeric(prior_natural)
+    if (length(prior_natural) != p || any(!is.finite(prior_natural))) {
+      .stopf("beta solve: prior_natural must be finite with length p=%d.", p)
+    }
+    h <- h + prior_natural
+  }
+  sol <- .solve_sympd(P, h)
 
   list(
     P = P,
-    h = g,
+    h = h,
     prec_diag = prec_diag,
+    prior_precision = prior_precision,
+    prior_natural = prior_natural,
     sol = sol
   )
 }

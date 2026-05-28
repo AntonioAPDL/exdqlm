@@ -61,7 +61,7 @@ if (!exists("%||%", mode = "function")) {
 
 
 #' Construct beta prior object used by LDVB engine
-#' @param type "ridge", "rhs", or "rhs_ns"
+#' @param type "ridge", "rhs", "rhs_ns", or "gaussian_natural"
 #' @param ridge list(tau2=...)
 #' @param rhs list(tau0, nu, s or s2,
 #'   shrink_intercept, intercept_prec,
@@ -70,11 +70,16 @@ if (!exists("%||%", mode = "function")) {
 #'   init_c2 or init_log_c2,
 #'   n_inner, eta_bounds, h_curv, var_floor, verbose). For Q-DESN RHS-family
 #'   priors, \code{shrink_intercept} is always enforced as \code{FALSE}.
+#' @param gaussian list for \code{type = "gaussian_natural"} with
+#'   \code{precision} and either \code{mean} or \code{natural}. This is a
+#'   fixed Gaussian beta prior in natural-parameter form.
 #' @export
-beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), ridge = list(), rhs = list()) {
+beta_prior <- function(type = c("ridge", "rhs", "rhs_ns", "gaussian_natural"),
+                       ridge = list(), rhs = list(), gaussian = list()) {
   type <- tolower(match.arg(type))
   if (type == "ridge") return(beta_prior_ridge(ridge$tau2 %||% 1e4))
   if (type == "rhs") return(beta_prior_rhs(rhs))
+  if (type == "gaussian_natural") return(beta_prior_gaussian_natural(gaussian))
   beta_prior_rhs_ns(rhs)
 }
 
@@ -92,6 +97,101 @@ beta_prior_ridge <- function(tau2) {
     update = function(state, qb) state,
 
     elbo = function(state, qb) list(elbo = 0)
+  )
+}
+
+beta_prior_gaussian_natural <- function(gaussian) {
+  gaussian <- gaussian %||% list()
+  P <- gaussian$precision %||% gaussian$P %||% NULL
+  if (is.null(P)) stop("gaussian_natural prior requires gaussian$precision.", call. = FALSE)
+  P <- as.matrix(P)
+  p <- ncol(P)
+  if (!all(dim(P) == c(p, p)) || any(!is.finite(P))) {
+    stop("gaussian_natural prior precision must be a finite square matrix.", call. = FALSE)
+  }
+  P <- 0.5 * (P + t(P))
+  chol_P <- tryCatch(chol(P), error = function(e) NULL)
+  if (is.null(chol_P)) {
+    stop("gaussian_natural prior precision must be positive definite.", call. = FALSE)
+  }
+
+  h <- gaussian$natural %||% gaussian$h %||% NULL
+  m <- gaussian$mean %||% gaussian$m %||% NULL
+  if (!is.null(h) && !is.null(m)) {
+    stop("gaussian_natural prior accepts either natural or mean, not both.", call. = FALSE)
+  }
+  if (!is.null(m)) {
+    m <- as.numeric(m)
+    if (length(m) != p || any(!is.finite(m))) {
+      stop(sprintf("gaussian_natural prior mean must be finite with length p=%d.", p), call. = FALSE)
+    }
+    h <- as.numeric(P %*% m)
+  } else if (!is.null(h)) {
+    h <- as.numeric(h)
+    if (length(h) != p || any(!is.finite(h))) {
+      stop(sprintf("gaussian_natural prior natural vector must be finite with length p=%d.", p), call. = FALSE)
+    }
+    m <- as.numeric(chol2inv(chol_P) %*% h)
+  } else {
+    h <- numeric(p)
+    m <- numeric(p)
+  }
+
+  diag_prec <- diag(P)
+  if (any(!is.finite(diag_prec)) || any(diag_prec <= 0)) {
+    stop("gaussian_natural prior precision diagonal must be finite and > 0.", call. = FALSE)
+  }
+  offdiag <- P
+  diag(offdiag) <- 0
+  logdetP <- 2 * sum(log(diag(chol_P)))
+
+  list(
+    type = "gaussian_natural",
+    hypers = list(
+      p = as.integer(p),
+      diag_precision = as.numeric(diag_prec),
+      precision = P,
+      natural = as.numeric(h),
+      mean = as.numeric(m)
+    ),
+
+    init = function(p_in) {
+      p_in <- as.integer(p_in)[1L]
+      if (!identical(p_in, as.integer(p))) {
+        .stopf("gaussian_natural prior init: p mismatch.")
+      }
+      list(p = p, precision = P, natural = as.numeric(h), mean = as.numeric(m))
+    },
+
+    expected_prec = function(state, p_in) {
+      p_in <- as.integer(p_in)[1L]
+      if (!identical(p_in, as.integer(p))) {
+        .stopf("gaussian_natural prior expected_prec: p mismatch.")
+      }
+      as.numeric(diag_prec)
+    },
+
+    natural_params = function(state, p_in) {
+      p_in <- as.integer(p_in)[1L]
+      if (!identical(p_in, as.integer(p))) {
+        .stopf("gaussian_natural prior natural_params: p mismatch.")
+      }
+      list(precision = offdiag, natural = as.numeric(h))
+    },
+
+    update = function(state, qb) state,
+
+    elbo = function(state, qb) {
+      if (is.null(qb$m) || is.null(qb$V)) .stopf("gaussian_natural prior elbo: qbeta must provide m and V.")
+      beta_m <- as.numeric(qb$m)
+      beta_V <- as.matrix(qb$V)
+      if (length(beta_m) != p || !all(dim(beta_V) == c(p, p))) {
+        .stopf("gaussian_natural prior elbo: qbeta dimensions do not match prior.")
+      }
+      delta <- beta_m - m
+      quad <- as.numeric(crossprod(delta, P %*% delta)) + sum(P * beta_V)
+      list(elbo = 0.5 * logdetP - 0.5 * p * log(2 * pi) - 0.5 * quad)
+    }
   )
 }
 

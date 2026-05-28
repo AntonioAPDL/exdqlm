@@ -849,11 +849,38 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   term_names <- colnames(X)
 
   sol_chol <- NULL
+  beta_prior_natural <- NULL
+  beta_prior_natural_params <- function(beta_state, p) {
+    if (is.null(beta_prior_obj$natural_params) ||
+        !is.function(beta_prior_obj$natural_params)) {
+      return(list(precision = NULL, natural = NULL))
+    }
+    out <- beta_prior_obj$natural_params(beta_state, p)
+    if (is.null(out)) return(list(precision = NULL, natural = NULL))
+    if (!is.list(out)) .stopf("beta_prior_obj$natural_params() must return a list.")
+    precision <- out$precision %||% out$P %||% NULL
+    natural <- out$natural %||% out$h %||% NULL
+    if (!is.null(precision)) {
+      precision <- as.matrix(precision)
+      if (!all(dim(precision) == c(p, p)) || any(!is.finite(precision))) {
+        .stopf("beta_prior_obj$natural_params()$precision must be a finite p x p matrix.")
+      }
+      precision <- 0.5 * (precision + t(precision))
+    }
+    if (!is.null(natural)) {
+      natural <- as.numeric(natural)
+      if (length(natural) != p || any(!is.finite(natural))) {
+        .stopf("beta_prior_obj$natural_params()$natural must be finite with length p=%d.", p)
+      }
+    }
+    list(precision = precision, natural = natural)
+  }
   update_qbeta <- function() {
     prec_diag <<- beta_prior_obj$expected_prec(beta_state, p)
     prec_diag <<- as.numeric(prec_diag)
     if (length(prec_diag) != p) .stopf("beta prior expected_prec must return length p=%d.", p)
     if (any(!is.finite(prec_diag)) || any(prec_diag <= 0)) .stopf("beta prior expected_prec must be finite and > 0.")
+    beta_prior_natural <<- beta_prior_natural_params(beta_state, p)
 
     data_stats <- if (isTRUE(use_stochastic_chunking)) {
       if (!length(stochastic_batch_current)) {
@@ -930,7 +957,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         qs_m = qs$m
       )
     }
-    beta_solve <- .exal_beta_solve_from_data_stats(data_stats, prec_diag)
+    beta_solve <- .exal_beta_solve_from_data_stats(
+      data_stats,
+      prec_diag,
+      prior_precision = beta_prior_natural$precision,
+      prior_natural = beta_prior_natural$natural
+    )
     W <<- as.numeric(data_stats$barw)
 
     sol <- beta_solve$sol
@@ -1620,6 +1652,8 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       # reuse the same diag precision used in qbeta update this iter: `prec_diag`
       E_log_pb <- sum(0.5 * (log(prec_diag) - log(2*pi)) - 0.5 * prec_diag * beta2)
     } else if (beta_prior_obj$type %in% c("rhs", "rhs_ns")) {
+      E_log_beta_latents <- as.numeric(beta_prior_obj$elbo(beta_state, qbeta)$elbo)
+    } else if (!is.null(beta_prior_obj$elbo) && is.function(beta_prior_obj$elbo)) {
       E_log_beta_latents <- as.numeric(beta_prior_obj$elbo(beta_state, qbeta)$elbo)
     }
 
