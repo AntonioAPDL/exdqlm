@@ -107,6 +107,6 @@ test_that("qdesn_fit_vb forwards exact chunking controls", {
     do.call(exdqlm::qdesn_fit_vb, c(common, list(vb_args = modifyList(base_args, list(
       chunking = list(enabled = TRUE, mode = "stochastic")
     ))))),
-    "must be 'exact'"
+    "stochastic engine path is not implemented"
   )
 })

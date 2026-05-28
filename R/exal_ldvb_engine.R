@@ -63,6 +63,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     vb_control$rhs_recompute_elbo_after_tau_update %||% TRUE
   )
   vb_control$chunking <- .exal_normalize_vb_chunking_cfg(vb_control$chunking %||% NULL)
+  if (isTRUE(vb_control$chunking$enabled) && identical(vb_control$chunking$mode, "stochastic")) {
+    .stopf("stochastic VB chunking controls are normalized but the stochastic engine path is not implemented yet.")
+  }
   sigmagam_cfg <- vb_control$sigmagam %||% list()
   sigmagam_freeze_warmup_iters <- max(0L, as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
@@ -105,12 +108,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
 
   n <- length(y)
   p <- ncol(X)
-  row_chunks <- if (isTRUE(vb_control$chunking$enabled)) {
+  row_chunks <- if (isTRUE(vb_control$chunking$enabled) && identical(vb_control$chunking$mode, "exact")) {
     .exal_make_row_chunks(n, vb_control$chunking$chunk_size)
   } else {
     NULL
   }
-  use_exact_chunking <- isTRUE(vb_control$chunking$enabled)
+  use_exact_chunking <- isTRUE(vb_control$chunking$enabled) && identical(vb_control$chunking$mode, "exact")
 
   L <- as.numeric(gamma_bounds[1])
   U <- as.numeric(gamma_bounds[2])

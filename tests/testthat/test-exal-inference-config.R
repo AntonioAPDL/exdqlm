@@ -504,10 +504,20 @@ test_that("public control builders expose the normalized advanced warmup surface
   expect_true(isTRUE(vb_control_chunked$chunking$trace))
 
   expect_false("chunking" %in% names(exdqlm::exal_make_vb_control()))
-  expect_error(
-    exdqlm::exal_make_vb_control(chunking = list(enabled = TRUE, mode = "stochastic")),
-    "mode must be 'exact'"
+  vb_control_stochastic <- exdqlm::exal_make_vb_control(
+    chunking = list(
+      enabled = TRUE,
+      mode = "stochastic",
+      chunk_size = 64L,
+      order = "random",
+      seed = 20260527L
+    )
   )
+  expect_true(isTRUE(vb_control_stochastic$chunking$enabled))
+  expect_identical(vb_control_stochastic$chunking$mode, "stochastic")
+  expect_equal(vb_control_stochastic$chunking$chunk_size, 64L)
+  expect_identical(vb_control_stochastic$chunking$order, "random")
+  expect_equal(vb_control_stochastic$chunking$seed, 20260527L)
 
   latent_state <- exdqlm::exal_make_mcmc_latent_state_control(
     mode = "u_st_pair",

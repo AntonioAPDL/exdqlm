@@ -6,7 +6,26 @@
     mode = "exact",
     chunk_size = NULL,
     order = "sequential",
-    trace = FALSE
+    trace = FALSE,
+    seed = NULL,
+    learning_rate = list(
+      schedule = "robbins_monro",
+      t0 = 10,
+      kappa = 0.75,
+      rho_min = 1.0e-4
+    ),
+    refresh = list(
+      full_every = 20L,
+      objective_every = 20L,
+      sigma_every = 5L,
+      rhs_every = 20L,
+      local_every = 20L
+    ),
+    diagnostics = list(
+      trace = TRUE,
+      store_batch_ids = FALSE,
+      check_finite_every = 1L
+    )
   )
 }
 
@@ -20,12 +39,12 @@
   cfg$enabled <- isTRUE(cfg$enabled)
 
   cfg$mode <- tolower(as.character(cfg$mode %||% "exact")[1L])
-  if (!identical(cfg$mode, "exact")) {
-    .stopf("vb_control$chunking$mode must be 'exact'.")
+  if (!cfg$mode %in% c("exact", "stochastic")) {
+    .stopf("vb_control$chunking$mode must be 'exact' or 'stochastic'.")
   }
 
   if (is.null(cfg$chunk_size) || length(cfg$chunk_size) == 0L || is.na(cfg$chunk_size[1L])) {
-    cfg$chunk_size <- NULL
+    cfg$chunk_size <- if (identical(cfg$mode, "stochastic")) 512L else NULL
   } else {
     cfg$chunk_size <- as.integer(cfg$chunk_size[1L])
     if (!is.finite(cfg$chunk_size) || cfg$chunk_size < 1L) {
@@ -34,12 +53,92 @@
   }
 
   cfg$order <- tolower(as.character(cfg$order %||% "sequential")[1L])
-  if (!identical(cfg$order, "sequential")) {
+  if (identical(cfg$mode, "exact") && !identical(cfg$order, "sequential")) {
     .stopf("vb_control$chunking$order must be 'sequential' for exact chunking.")
+  }
+  if (identical(cfg$mode, "stochastic") && !cfg$order %in% c("random", "shuffled", "sequential")) {
+    .stopf("vb_control$chunking$order must be 'random', 'shuffled', or 'sequential' for stochastic chunking.")
   }
 
   cfg$trace <- isTRUE(cfg$trace)
-  cfg
+
+  if (identical(cfg$mode, "exact")) {
+    return(list(
+      enabled = cfg$enabled,
+      mode = cfg$mode,
+      chunk_size = cfg$chunk_size,
+      order = cfg$order,
+      trace = cfg$trace
+    ))
+  }
+
+  if (is.null(cfg$seed) || length(cfg$seed) == 0L || is.na(cfg$seed[1L])) {
+    cfg$seed <- NULL
+  } else {
+    cfg$seed <- as.integer(cfg$seed[1L])
+    if (!is.finite(cfg$seed)) .stopf("vb_control$chunking$seed must be NULL or a finite integer.")
+  }
+
+  lr <- cfg$learning_rate %||% list()
+  if (!is.list(lr)) .stopf("vb_control$chunking$learning_rate must be a list.")
+  lr_def <- .exal_default_vb_chunking_cfg()$learning_rate
+  lr <- utils::modifyList(lr_def, lr)
+  lr$schedule <- tolower(as.character(lr$schedule %||% "robbins_monro")[1L])
+  if (!identical(lr$schedule, "robbins_monro")) {
+    .stopf("vb_control$chunking$learning_rate$schedule must be 'robbins_monro'.")
+  }
+  lr$t0 <- as.numeric(lr$t0)[1L]
+  lr$kappa <- as.numeric(lr$kappa)[1L]
+  lr$rho_min <- as.numeric(lr$rho_min)[1L]
+  if (!is.finite(lr$t0) || lr$t0 <= 0) {
+    .stopf("vb_control$chunking$learning_rate$t0 must be finite and > 0.")
+  }
+  if (!is.finite(lr$kappa) || lr$kappa <= 0.5 || lr$kappa > 1) {
+    .stopf("vb_control$chunking$learning_rate$kappa must be finite with 0.5 < kappa <= 1.")
+  }
+  if (!is.finite(lr$rho_min) || lr$rho_min < 0 || lr$rho_min >= 1) {
+    .stopf("vb_control$chunking$learning_rate$rho_min must be finite with 0 <= rho_min < 1.")
+  }
+
+  normalize_every <- function(x, nm) {
+    x <- as.integer(x)[1L]
+    if (!is.finite(x) || x < 1L) {
+      .stopf("vb_control$chunking$refresh$%s must be a positive integer.", nm)
+    }
+    x
+  }
+  refresh <- cfg$refresh %||% list()
+  if (!is.list(refresh)) .stopf("vb_control$chunking$refresh must be a list.")
+  refresh <- utils::modifyList(.exal_default_vb_chunking_cfg()$refresh, refresh)
+  refresh <- list(
+    full_every = normalize_every(refresh$full_every, "full_every"),
+    objective_every = normalize_every(refresh$objective_every, "objective_every"),
+    sigma_every = normalize_every(refresh$sigma_every, "sigma_every"),
+    rhs_every = normalize_every(refresh$rhs_every, "rhs_every"),
+    local_every = normalize_every(refresh$local_every, "local_every")
+  )
+
+  diag_cfg <- cfg$diagnostics %||% list()
+  if (!is.list(diag_cfg)) .stopf("vb_control$chunking$diagnostics must be a list.")
+  diag_cfg <- utils::modifyList(.exal_default_vb_chunking_cfg()$diagnostics, diag_cfg)
+  diag_cfg$trace <- if (is.null(diag_cfg$trace)) cfg$trace else isTRUE(diag_cfg$trace)
+  diag_cfg$store_batch_ids <- isTRUE(diag_cfg$store_batch_ids)
+  diag_cfg$check_finite_every <- as.integer(diag_cfg$check_finite_every)[1L]
+  if (!is.finite(diag_cfg$check_finite_every) || diag_cfg$check_finite_every < 1L) {
+    .stopf("vb_control$chunking$diagnostics$check_finite_every must be a positive integer.")
+  }
+
+  list(
+    enabled = cfg$enabled,
+    mode = cfg$mode,
+    chunk_size = cfg$chunk_size,
+    order = cfg$order,
+    trace = cfg$trace,
+    seed = cfg$seed,
+    learning_rate = lr,
+    refresh = refresh,
+    diagnostics = diag_cfg
+  )
 }
 
 .exal_make_row_chunks <- function(n, chunk_size = NULL) {
@@ -58,6 +157,173 @@
 
   starts <- seq.int(1L, n, by = chunk_size)
   lapply(starts, function(i) seq.int(i, min(n, i + chunk_size - 1L)))
+}
+
+.exal_with_seed <- function(seed, expr) {
+  if (is.null(seed)) return(eval.parent(substitute(expr)))
+  seed <- as.integer(seed)[1L]
+  old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  } else {
+    NULL
+  }
+  on.exit({
+    if (is.null(old_seed)) {
+      if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    } else {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+  set.seed(seed)
+  eval.parent(substitute(expr))
+}
+
+.exal_batch_sampler_init <- function(n, chunk_size = NULL, order = "random", seed = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  n <- as.integer(n)[1L]
+  if (!is.finite(n) || n < 1L) .stopf("batch sampler: n must be a positive integer.")
+  if (is.null(chunk_size) || length(chunk_size) == 0L || is.na(chunk_size[1L])) {
+    chunk_size <- n
+  } else {
+    chunk_size <- as.integer(chunk_size[1L])
+  }
+  if (!is.finite(chunk_size) || chunk_size < 1L) {
+    .stopf("batch sampler: chunk_size must be NULL or a positive integer.")
+  }
+  chunk_size <- min(chunk_size, n)
+
+  order <- tolower(as.character(order %||% "random")[1L])
+  if (!order %in% c("random", "shuffled", "sequential")) {
+    .stopf("batch sampler: order must be 'random', 'shuffled', or 'sequential'.")
+  }
+  if (is.null(seed) || length(seed) == 0L || is.na(seed[1L])) {
+    seed <- NULL
+  } else {
+    seed <- as.integer(seed[1L])
+    if (!is.finite(seed)) .stopf("batch sampler: seed must be NULL or a finite integer.")
+  }
+
+  permutation <- seq_len(n)
+  if (identical(order, "shuffled")) {
+    permutation <- .exal_with_seed(seed %||% sample.int(.Machine$integer.max, 1L), sample.int(n))
+  }
+
+  list(
+    n = n,
+    chunk_size = as.integer(chunk_size),
+    order = order,
+    seed = seed,
+    step = 0L,
+    epoch = 1L,
+    position = 1L,
+    permutation = as.integer(permutation)
+  )
+}
+
+.exal_batch_sampler_next <- function(state) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (!is.list(state)) .stopf("batch sampler state must be a list.")
+  n <- as.integer(state$n)[1L]
+  chunk_size <- as.integer(state$chunk_size)[1L]
+  order <- as.character(state$order)[1L]
+  if (!is.finite(n) || n < 1L || !is.finite(chunk_size) || chunk_size < 1L) {
+    .stopf("batch sampler state has invalid n or chunk_size.")
+  }
+  chunk_size <- min(chunk_size, n)
+
+  step <- as.integer(state$step %||% 0L) + 1L
+  epoch <- as.integer(state$epoch %||% 1L)
+  position <- as.integer(state$position %||% 1L)
+  seed <- state$seed
+
+  if (identical(order, "random")) {
+    idx <- .exal_with_seed(if (is.null(seed)) NULL else seed + step, sample.int(n, chunk_size))
+    epoch <- ceiling(step / ceiling(n / chunk_size))
+  } else {
+    permutation <- as.integer(state$permutation %||% seq_len(n))
+    if (length(permutation) != n) permutation <- seq_len(n)
+    if (position > n) {
+      epoch <- epoch + 1L
+      position <- 1L
+      if (identical(order, "shuffled")) {
+        permutation <- .exal_with_seed(if (is.null(seed)) NULL else seed + epoch - 1L, sample.int(n))
+      }
+    }
+    stop_pos <- min(n, position + chunk_size - 1L)
+    idx <- permutation[seq.int(position, stop_pos)]
+    position <- stop_pos + 1L
+    state$permutation <- as.integer(permutation)
+  }
+
+  state$step <- as.integer(step)
+  state$epoch <- as.integer(epoch)
+  state$position <- as.integer(position)
+  list(
+    state = state,
+    idx = as.integer(idx),
+    step = as.integer(step),
+    epoch = as.integer(epoch)
+  )
+}
+
+.exal_learning_rate <- function(t, learning_rate) {
+  if (!is.list(learning_rate)) .stopf("learning_rate must be a list.")
+  cfg <- utils::modifyList(.exal_default_vb_chunking_cfg()$learning_rate, learning_rate)
+  schedule <- tolower(as.character(cfg$schedule %||% "robbins_monro")[1L])
+  if (!identical(schedule, "robbins_monro")) .stopf("learning_rate$schedule must be 'robbins_monro'.")
+  t <- as.integer(t)[1L]
+  t0 <- as.numeric(cfg$t0)[1L]
+  kappa <- as.numeric(cfg$kappa)[1L]
+  rho_min <- as.numeric(cfg$rho_min)[1L]
+  if (!is.finite(t) || t < 1L) .stopf("learning rate step t must be a positive integer.")
+  if (!is.finite(t0) || t0 <= 0) .stopf("learning_rate$t0 must be finite and > 0.")
+  if (!is.finite(kappa) || kappa <= 0.5 || kappa > 1) .stopf("learning_rate$kappa must be finite with 0.5 < kappa <= 1.")
+  if (!is.finite(rho_min) || rho_min < 0 || rho_min >= 1) .stopf("learning_rate$rho_min must be finite with 0 <= rho_min < 1.")
+  as.numeric(max(rho_min, (t0 + t)^(-kappa)))
+}
+
+.exal_stochastic_beta_stats <- function(X, y, xis, qv_m_inv, qs_m, batch_idx, n_total = nrow(X)) {
+  assert_matrix(X, "X")
+  y <- as.numeric(y)
+  n <- nrow(X)
+  p <- ncol(X)
+  if (length(y) != n) .stopf("stochastic beta stats: y length must match nrow(X).")
+  qv_m_inv <- as.numeric(qv_m_inv)
+  qs_m <- as.numeric(qs_m)
+  if (length(qv_m_inv) != n || length(qs_m) != n) {
+    .stopf("stochastic beta stats: qv_m_inv and qs_m lengths must match nrow(X).")
+  }
+  batch_idx <- as.integer(batch_idx)
+  if (!length(batch_idx)) .stopf("stochastic beta stats: batch_idx must be non-empty.")
+  if (any(!is.finite(batch_idx)) || any(batch_idx < 1L) || any(batch_idx > n)) {
+    .stopf("stochastic beta stats: batch_idx contains rows outside 1:n.")
+  }
+  n_total <- as.numeric(n_total)[1L]
+  if (!is.finite(n_total) || n_total < length(batch_idx)) {
+    .stopf("stochastic beta stats: n_total must be finite and at least the batch size.")
+  }
+
+  stats <- .exal_beta_data_stats(
+    X = X[batch_idx, , drop = FALSE],
+    y = y[batch_idx],
+    xis = xis,
+    qv_m_inv = qv_m_inv[batch_idx],
+    qs_m = qs_m[batch_idx]
+  )
+  scale <- as.numeric(n_total / length(batch_idx))
+  list(
+    batch_idx = batch_idx,
+    scale = scale,
+    batch_size = length(batch_idx),
+    n_total = as.integer(n_total),
+    barw = stats$barw,
+    barm = stats$barm,
+    S = 0.5 * (scale * stats$S + t(scale * stats$S)),
+    g = as.numeric(scale * stats$g),
+    p = p
+  )
 }
 
 .exal_effective_barw_barm <- function(y, xis, qv_m_inv, qs_m) {
