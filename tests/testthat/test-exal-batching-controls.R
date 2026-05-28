@@ -46,17 +46,46 @@ test_that("stochastic chunking controls normalize without changing exact control
   expect_true(isTRUE(stoch$diagnostics$store_batch_ids))
   expect_equal(stoch$diagnostics$check_finite_every, 2L)
 
+  hybrid <- exdqlm::exal_make_vb_control(
+    chunking = list(
+      enabled = TRUE,
+      mode = "hybrid",
+      chunk_size = 8L,
+      order = "shuffled",
+      seed = 20260528L,
+      learning_rate = list(t0 = 6, kappa = 0.9, rho_min = 0.01),
+      refresh = list(full_every = 4L, sigma_every = 4L, rhs_every = 4L, local_every = 4L),
+      diagnostics = list(trace = TRUE, store_batch_ids = FALSE, check_finite_every = 3L)
+    )
+  )$chunking
+
+  expect_true(isTRUE(hybrid$enabled))
+  expect_identical(hybrid$mode, "hybrid")
+  expect_equal(hybrid$chunk_size, 8L)
+  expect_identical(hybrid$order, "shuffled")
+  expect_equal(hybrid$seed, 20260528L)
+  expect_equal(hybrid$learning_rate$kappa, 0.9)
+  expect_equal(hybrid$refresh$full_every, 4L)
+  expect_equal(hybrid$refresh$local_every, 4L)
+  expect_true(isTRUE(hybrid$diagnostics$trace))
+  expect_false(isTRUE(hybrid$diagnostics$store_batch_ids))
+  expect_equal(hybrid$diagnostics$check_finite_every, 3L)
+
   expect_false("chunking" %in% names(exdqlm::exal_make_vb_control()))
 })
 
 test_that("stochastic chunking controls fail early for invalid values", {
   expect_error(
-    exdqlm::exal_make_vb_control(chunking = list(enabled = TRUE, mode = "hybrid")),
-    "must be 'exact' or 'stochastic'"
+    exdqlm::exal_make_vb_control(chunking = list(enabled = TRUE, mode = "unimplemented")),
+    "must be 'exact', 'stochastic', or 'hybrid'"
   )
   expect_error(
     exdqlm::exal_make_vb_control(chunking = list(enabled = TRUE, mode = "exact", order = "random")),
     "sequential"
+  )
+  expect_error(
+    exdqlm::exal_make_vb_control(chunking = list(enabled = TRUE, mode = "hybrid", order = "bad")),
+    "random.*shuffled.*sequential"
   )
   expect_error(
     exdqlm::exal_make_vb_control(chunking = list(enabled = TRUE, mode = "stochastic", order = "bad")),

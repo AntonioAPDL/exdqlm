@@ -193,6 +193,20 @@ test_that("Q-DESN warm starts fail early on mismatches and stochastic mode", {
   )
   expect_error(
     do.call(exdqlm::qdesn_fit_vb, c(list(y = y), common, list(vb_args = stochastic_args))),
-    "warm starts for stochastic VB are not implemented"
+    "warm starts for stochastic/hybrid VB are not implemented"
+  )
+
+  hybrid_args <- base_args
+  hybrid_args$warm_start <- warm
+  hybrid_args$chunking <- list(
+    enabled = TRUE,
+    mode = "hybrid",
+    chunk_size = 5L,
+    order = "random",
+    seed = 20260605L
+  )
+  expect_error(
+    do.call(exdqlm::qdesn_fit_vb, c(list(y = y), common, list(vb_args = hybrid_args))),
+    "warm starts for stochastic/hybrid VB are not implemented"
   )
 })

@@ -64,9 +64,11 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   )
   vb_control$chunking <- .exal_normalize_vb_chunking_cfg(vb_control$chunking %||% NULL)
   use_stochastic_chunking <- isTRUE(vb_control$chunking$enabled) &&
-    identical(vb_control$chunking$mode, "stochastic")
+    vb_control$chunking$mode %in% c("stochastic", "hybrid")
+  use_hybrid_chunking <- isTRUE(vb_control$chunking$enabled) &&
+    identical(vb_control$chunking$mode, "hybrid")
   if (isTRUE(use_stochastic_chunking) && !is_al) {
-    .stopf("stochastic VB chunking is currently supported only for likelihood_family = 'al'.")
+    .stopf("stochastic/hybrid VB chunking is currently supported only for likelihood_family = 'al'.")
   }
   sigmagam_cfg <- vb_control$sigmagam %||% list()
   sigmagam_freeze_warmup_iters <- max(0L, as.integer(
@@ -870,30 +872,46 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
           g = init_stats$g
         )
       }
-      batch_stats <- .exal_stochastic_beta_stats(
-        X = X,
-        y = y,
-        xis = xis,
-        qv_m_inv = qv$m_inv,
-        qs_m = qs$m,
-        batch_idx = stochastic_batch_current,
-        n_total = n
-      )
-      rho <- as.numeric(stochastic_rho_current)[1L]
-      if (!is.finite(rho) || rho <= 0 || rho > 1) {
-        .stopf("stochastic beta update requires a finite learning rate in (0, 1].")
+      if (isTRUE(use_hybrid_chunking) && isTRUE(stochastic_full_refresh_now)) {
+        full_stats <- .exal_beta_data_stats_chunks(
+          X = X,
+          y = y,
+          xis = xis,
+          qv_m_inv = qv$m_inv,
+          qs_m = qs$m,
+          chunks = stochastic_full_chunks
+        )
+        stochastic_beta_stats <<- list(
+          S = full_stats$S,
+          g = full_stats$g
+        )
+        full_stats
+      } else {
+        batch_stats <- .exal_stochastic_beta_stats(
+          X = X,
+          y = y,
+          xis = xis,
+          qv_m_inv = qv$m_inv,
+          qs_m = qs$m,
+          batch_idx = stochastic_batch_current,
+          n_total = n
+        )
+        rho <- as.numeric(stochastic_rho_current)[1L]
+        if (!is.finite(rho) || rho <= 0 || rho > 1) {
+          .stopf("stochastic beta update requires a finite learning rate in (0, 1].")
+        }
+        stochastic_beta_stats$S <<- 0.5 * (
+          ((1 - rho) * stochastic_beta_stats$S + rho * batch_stats$S) +
+            t((1 - rho) * stochastic_beta_stats$S + rho * batch_stats$S)
+        )
+        stochastic_beta_stats$g <<- as.numeric((1 - rho) * stochastic_beta_stats$g + rho * batch_stats$g)
+        list(
+          barw = batch_stats$barw,
+          barm = batch_stats$barm,
+          S = stochastic_beta_stats$S,
+          g = stochastic_beta_stats$g
+        )
       }
-      stochastic_beta_stats$S <<- 0.5 * (
-        ((1 - rho) * stochastic_beta_stats$S + rho * batch_stats$S) +
-          t((1 - rho) * stochastic_beta_stats$S + rho * batch_stats$S)
-      )
-      stochastic_beta_stats$g <<- as.numeric((1 - rho) * stochastic_beta_stats$g + rho * batch_stats$g)
-      list(
-        barw = batch_stats$barw,
-        barm = batch_stats$barm,
-        S = stochastic_beta_stats$S,
-        g = stochastic_beta_stats$g
-      )
     } else if (isTRUE(use_exact_chunking)) {
       .exal_beta_data_stats_chunks(
         X = X,
@@ -2109,10 +2127,15 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       elbo = elbo_trace, elbo_trace = elbo_trace,
       chunking = vb_control$chunking,
       stochastic = isTRUE(use_stochastic_chunking),
+      hybrid = isTRUE(use_hybrid_chunking),
+      approximate_chunking = isTRUE(use_stochastic_chunking),
       stochastic_trace = stochastic_trace_df,
       stochastic_batch_ids = stochastic_batch_ids_out,
       stochastic_objective_note = if (isTRUE(use_stochastic_chunking)) {
-        "Full-data ELBO of the current approximate variational state; stochastic updates are approximate and not full-data CAVI equivalence."
+        sprintf(
+          "Full-data ELBO of the current approximate variational state; %s updates are approximate and not full-data CAVI equivalence unless every iteration is a full refresh.",
+          vb_control$chunking$mode
+        )
       } else {
         NA_character_
       },

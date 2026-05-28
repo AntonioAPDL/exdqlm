@@ -1443,8 +1443,9 @@ exal_make_vb_online_control <- function(
 #' @param diagnostics Optional diagnostics block. Supported keys include
 #'   `rhs_trace`, `rhs_deep`, `rhs_trace_thresholds`, `rhs_trace_top_k`, and
 #'   `rhs_trace_eps`.
-#' @param chunking Optional exact row-chunking control block. Supported keys are
-#'   `enabled`, `mode`, `chunk_size`, `order`, and `trace`. Defaults preserve
+#' @param chunking Optional row-chunking or approximate batching control block.
+#'   Supported keys include `enabled`, `mode`, `chunk_size`, `order`, `trace`,
+#'   `seed`, `learning_rate`, `refresh`, and `diagnostics`. Defaults preserve
 #'   the existing unchunked behavior.
 #' @param control Optional existing control list to update and normalize.
 #'

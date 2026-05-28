@@ -52,6 +52,17 @@ tiny_qdesn_stochastic_chunking <- function(seed = 42L) {
   )
 }
 
+tiny_qdesn_hybrid_chunking <- function(seed = 45L, full_every = 1L) {
+  out <- tiny_qdesn_stochastic_chunking(seed = seed)
+  out$mode <- "hybrid"
+  out$refresh$full_every <- as.integer(full_every)
+  out$refresh$objective_every <- as.integer(full_every)
+  out$refresh$sigma_every <- as.integer(full_every)
+  out$refresh$rhs_every <- as.integer(full_every)
+  out$refresh$local_every <- as.integer(full_every)
+  out
+}
+
 test_that("qdesn_fit_vb routes stochastic AL chunking through the static readout engine", {
   y <- tiny_qdesn_series_for_batching_tests()
   common <- tiny_qdesn_common_args()
@@ -92,6 +103,27 @@ test_that("qdesn_fit_vb stochastic AL is approximate but close on tiny smooth da
   expect_true(max(abs(diag(fit_stoch$fit$qbeta$V))) < 10)
 })
 
+test_that("qdesn_fit_vb routes hybrid AL and full-refresh hybrid matches exact", {
+  y <- tiny_qdesn_series_for_batching_tests()
+  common <- tiny_qdesn_common_args(seed = 20260534L)
+  exact_args <- tiny_qdesn_al_vb_args(max_iter = 16L)
+  hybrid_args <- tiny_qdesn_al_vb_args(
+    chunking = tiny_qdesn_hybrid_chunking(seed = 45L, full_every = 1L),
+    max_iter = 16L
+  )
+
+  fit_exact <- do.call(exdqlm::qdesn_fit_vb, c(list(y = y), common, list(vb_args = exact_args)))
+  fit_hybrid <- do.call(exdqlm::qdesn_fit_vb, c(list(y = y), common, list(vb_args = hybrid_args)))
+
+  expect_s3_class(fit_hybrid$fit, "exal_vb")
+  expect_identical(as.character(fit_hybrid$fit$likelihood_family), "al")
+  expect_true(isTRUE(fit_hybrid$fit$misc$hybrid))
+  expect_identical(fit_hybrid$fit$misc$chunking$mode, "hybrid")
+  expect_true(all(fit_hybrid$fit$misc$stochastic_trace$full_refresh))
+  expect_equal(fit_hybrid$fit$qbeta$m, fit_exact$fit$qbeta$m, tolerance = 1e-8)
+  expect_equal(fit_hybrid$fit$qbeta$V, fit_exact$fit$qbeta$V, tolerance = 1e-8)
+})
+
 test_that("qdesn_fit_vb rejects stochastic exAL while preserving exact exAL", {
   y <- tiny_qdesn_series_for_batching_tests()
   common <- tiny_qdesn_common_args(seed = 20260533L)
@@ -110,4 +142,17 @@ test_that("qdesn_fit_vb rejects stochastic exAL while preserving exact exAL", {
   expect_s3_class(fit$fit, "exal_vb")
   expect_identical(as.character(fit$fit$likelihood_family), "exal")
   expect_false(isTRUE(fit$fit$misc$stochastic))
+})
+
+test_that("qdesn_fit_vb rejects hybrid exAL", {
+  y <- tiny_qdesn_series_for_batching_tests()
+  common <- tiny_qdesn_common_args(seed = 20260535L)
+  exal_hybrid <- tiny_qdesn_al_vb_args(chunking = tiny_qdesn_hybrid_chunking(seed = 46L, full_every = 2L))
+  exal_hybrid$likelihood_family <- "exal"
+  exal_hybrid$al_fixed_gamma <- NULL
+
+  expect_error(
+    do.call(exdqlm::qdesn_fit_vb, c(list(y = y), common, list(vb_args = exal_hybrid))),
+    "supported only for likelihood_family = 'al'"
+  )
 })

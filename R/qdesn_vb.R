@@ -975,8 +975,8 @@ qdesn_fit_vb <- function(
     warm_start_meta <- NULL
     if (isTRUE(warm_start_cfg$enabled)) {
       if (isTRUE(vb_control$chunking$enabled) &&
-          identical(vb_control$chunking$mode, "stochastic")) {
-        stop("qdesn_fit_vb: warm starts for stochastic VB are not implemented.", call. = FALSE)
+          vb_control$chunking$mode %in% c("stochastic", "hybrid")) {
+        stop("qdesn_fit_vb: warm starts for stochastic/hybrid VB are not implemented.", call. = FALSE)
       }
       warm_init <- .qdesn_vb_warm_start_to_init(
         warm_start = warm_start_cfg$state,

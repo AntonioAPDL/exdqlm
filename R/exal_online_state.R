@@ -39,12 +39,12 @@
   cfg$enabled <- isTRUE(cfg$enabled)
 
   cfg$mode <- tolower(as.character(cfg$mode %||% "exact")[1L])
-  if (!cfg$mode %in% c("exact", "stochastic")) {
-    .stopf("vb_control$chunking$mode must be 'exact' or 'stochastic'.")
+  if (!cfg$mode %in% c("exact", "stochastic", "hybrid")) {
+    .stopf("vb_control$chunking$mode must be 'exact', 'stochastic', or 'hybrid'.")
   }
 
   if (is.null(cfg$chunk_size) || length(cfg$chunk_size) == 0L || is.na(cfg$chunk_size[1L])) {
-    cfg$chunk_size <- if (identical(cfg$mode, "stochastic")) 512L else NULL
+    cfg$chunk_size <- if (cfg$mode %in% c("stochastic", "hybrid")) 512L else NULL
   } else {
     cfg$chunk_size <- as.integer(cfg$chunk_size[1L])
     if (!is.finite(cfg$chunk_size) || cfg$chunk_size < 1L) {
@@ -56,8 +56,8 @@
   if (identical(cfg$mode, "exact") && !identical(cfg$order, "sequential")) {
     .stopf("vb_control$chunking$order must be 'sequential' for exact chunking.")
   }
-  if (identical(cfg$mode, "stochastic") && !cfg$order %in% c("random", "shuffled", "sequential")) {
-    .stopf("vb_control$chunking$order must be 'random', 'shuffled', or 'sequential' for stochastic chunking.")
+  if (cfg$mode %in% c("stochastic", "hybrid") && !cfg$order %in% c("random", "shuffled", "sequential")) {
+    .stopf("vb_control$chunking$order must be 'random', 'shuffled', or 'sequential' for stochastic or hybrid chunking.")
   }
 
   cfg$trace <- isTRUE(cfg$trace)
