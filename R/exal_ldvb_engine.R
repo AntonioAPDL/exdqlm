@@ -63,8 +63,10 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     vb_control$rhs_recompute_elbo_after_tau_update %||% TRUE
   )
   vb_control$chunking <- .exal_normalize_vb_chunking_cfg(vb_control$chunking %||% NULL)
-  if (isTRUE(vb_control$chunking$enabled) && identical(vb_control$chunking$mode, "stochastic")) {
-    .stopf("stochastic VB chunking controls are normalized but the stochastic engine path is not implemented yet.")
+  use_stochastic_chunking <- isTRUE(vb_control$chunking$enabled) &&
+    identical(vb_control$chunking$mode, "stochastic")
+  if (isTRUE(use_stochastic_chunking) && !is_al) {
+    .stopf("stochastic VB chunking is currently supported only for likelihood_family = 'al'.")
   }
   sigmagam_cfg <- vb_control$sigmagam %||% list()
   sigmagam_freeze_warmup_iters <- max(0L, as.integer(
@@ -114,6 +116,33 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     NULL
   }
   use_exact_chunking <- isTRUE(vb_control$chunking$enabled) && identical(vb_control$chunking$mode, "exact")
+  stochastic_full_chunks <- if (isTRUE(use_stochastic_chunking)) {
+    .exal_make_row_chunks(n, vb_control$chunking$chunk_size)
+  } else {
+    NULL
+  }
+  stochastic_sampler <- if (isTRUE(use_stochastic_chunking)) {
+    .exal_batch_sampler_init(
+      n = n,
+      chunk_size = vb_control$chunking$chunk_size,
+      order = vb_control$chunking$order,
+      seed = vb_control$chunking$seed
+    )
+  } else {
+    NULL
+  }
+  stochastic_batch_current <- integer(0)
+  stochastic_rho_current <- NA_real_
+  stochastic_step_current <- NA_integer_
+  stochastic_epoch_current <- NA_integer_
+  stochastic_beta_stats <- NULL
+  stochastic_trace_rows <- vector("list", vb_control$max_iter)
+  stochastic_batch_ids <- if (isTRUE(use_stochastic_chunking) &&
+                              isTRUE(vb_control$chunking$diagnostics$store_batch_ids)) {
+    vector("list", vb_control$max_iter)
+  } else {
+    NULL
+  }
 
   L <- as.numeric(gamma_bounds[1])
   U <- as.numeric(gamma_bounds[2])
@@ -816,7 +845,48 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     if (length(prec_diag) != p) .stopf("beta prior expected_prec must return length p=%d.", p)
     if (any(!is.finite(prec_diag)) || any(prec_diag <= 0)) .stopf("beta prior expected_prec must be finite and > 0.")
 
-    data_stats <- if (isTRUE(use_exact_chunking)) {
+    data_stats <- if (isTRUE(use_stochastic_chunking)) {
+      if (!length(stochastic_batch_current)) {
+        .stopf("stochastic beta update requires a non-empty current batch.")
+      }
+      if (is.null(stochastic_beta_stats)) {
+        init_stats <- .exal_beta_data_stats(
+          X = X,
+          y = y,
+          xis = xis,
+          qv_m_inv = qv$m_inv,
+          qs_m = qs$m
+        )
+        stochastic_beta_stats <<- list(
+          S = init_stats$S,
+          g = init_stats$g
+        )
+      }
+      batch_stats <- .exal_stochastic_beta_stats(
+        X = X,
+        y = y,
+        xis = xis,
+        qv_m_inv = qv$m_inv,
+        qs_m = qs$m,
+        batch_idx = stochastic_batch_current,
+        n_total = n
+      )
+      rho <- as.numeric(stochastic_rho_current)[1L]
+      if (!is.finite(rho) || rho <= 0 || rho > 1) {
+        .stopf("stochastic beta update requires a finite learning rate in (0, 1].")
+      }
+      stochastic_beta_stats$S <<- 0.5 * (
+        ((1 - rho) * stochastic_beta_stats$S + rho * batch_stats$S) +
+          t((1 - rho) * stochastic_beta_stats$S + rho * batch_stats$S)
+      )
+      stochastic_beta_stats$g <<- as.numeric((1 - rho) * stochastic_beta_stats$g + rho * batch_stats$g)
+      list(
+        barw = batch_stats$barw,
+        barm = batch_stats$barm,
+        S = stochastic_beta_stats$S,
+        g = stochastic_beta_stats$g
+      )
+    } else if (isTRUE(use_exact_chunking)) {
       .exal_beta_data_stats_chunks(
         X = X,
         y = y,
@@ -1107,6 +1177,29 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   for (iter in seq_len(vb_control$max_iter)) {
     iter_run <- iter
 
+    stochastic_full_refresh_now <- stochastic_local_refresh_now <- FALSE
+    stochastic_sigma_refresh_now <- stochastic_rhs_refresh_now <- FALSE
+    stochastic_objective_refresh_now <- TRUE
+    if (isTRUE(use_stochastic_chunking)) {
+      batch_step <- .exal_batch_sampler_next(stochastic_sampler)
+      stochastic_sampler <- batch_step$state
+      stochastic_batch_current <- as.integer(batch_step$idx)
+      stochastic_step_current <- as.integer(batch_step$step)
+      stochastic_epoch_current <- as.integer(batch_step$epoch)
+      stochastic_rho_current <- .exal_learning_rate(
+        stochastic_step_current,
+        vb_control$chunking$learning_rate
+      )
+      refresh <- vb_control$chunking$refresh
+      stochastic_full_refresh_now <- iter == 1L || (iter %% refresh$full_every) == 0L
+      stochastic_local_refresh_now <- isTRUE(stochastic_full_refresh_now) || (iter %% refresh$local_every) == 0L
+      stochastic_sigma_refresh_now <- isTRUE(stochastic_full_refresh_now) || (iter %% refresh$sigma_every) == 0L
+      stochastic_rhs_refresh_now <- isTRUE(stochastic_full_refresh_now) || (iter %% refresh$rhs_every) == 0L
+      # The current conservative implementation computes the full-data ELBO of
+      # the approximate variational state every iteration.
+      stochastic_objective_refresh_now <- TRUE
+    }
+
     # ------------------------------------------------------------------------
     # (2.1) UPDATE q(beta) using Delta xis (matches static core, mean=0 prior)
     # ------------------------------------------------------------------------
@@ -1115,7 +1208,64 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # ------------------------------------------------------------------------
     # (2.2) UPDATE q(v): GIG(1/2, chi_i, psi)
     # ------------------------------------------------------------------------
-    if (isTRUE(use_exact_chunking)) {
+    if (isTRUE(use_stochastic_chunking)) {
+      if (isTRUE(stochastic_local_refresh_now)) {
+        local_up <- .exal_local_updates_chunks(
+          X = X,
+          y = y,
+          qbeta = qbeta,
+          qv = qv,
+          qs = qs,
+          xis = xis,
+          chunks = stochastic_full_chunks
+        )
+        xb <- local_up$xb
+        t_i <- local_up$t_i
+        q_i <- local_up$q_i
+        qv_up <- local_up$qv
+        chi <- as.numeric(qv_up$chi)
+        psi <- as.numeric(qv_up$psi)
+        qv$m <- as.numeric(qv_up$m)
+        qv$m_inv <- as.numeric(qv_up$m_inv)
+        z_gig <- as.numeric(qv_up$z)
+      } else {
+        idx_b <- stochastic_batch_current
+        X_b <- X[idx_b, , drop = FALSE]
+        xb_b <- as.numeric(X_b %*% qbeta$m)
+        q_i_b <- rowSums((X_b %*% qbeta$V) * X_b)
+        qv_up_b <- .exal_local_qv_update(
+          y = y[idx_b],
+          xb = xb_b,
+          q_i = q_i_b,
+          qs_m = qs$m[idx_b],
+          qs_m2 = qs$m2[idx_b],
+          xis = xis
+        )
+        if (!exists("chi", inherits = FALSE) || length(chi) != n) chi <- rep(NA_real_, n)
+        if (!exists("z_gig", inherits = FALSE) || length(z_gig) != n) z_gig <- rep(NA_real_, n)
+        chi[idx_b] <- as.numeric(qv_up_b$chi)
+        psi <- as.numeric(qv_up_b$psi)
+        qv$m[idx_b] <- as.numeric(qv_up_b$m)
+        qv$m_inv[idx_b] <- as.numeric(qv_up_b$m_inv)
+        z_gig[idx_b] <- as.numeric(qv_up_b$z)
+        row_quad <- .exal_row_quad_form_chunks(
+          X = X,
+          V = qbeta$V,
+          m = qbeta$m,
+          chunks = stochastic_full_chunks
+        )
+        xb <- row_quad$xb
+        q_i <- row_quad$q_i
+        t_i <- y - xb
+        qv_up <- list(
+          chi = chi,
+          psi = psi,
+          m = qv$m,
+          m_inv = qv$m_inv,
+          z = z_gig
+        )
+      }
+    } else if (isTRUE(use_exact_chunking)) {
       local_up <- .exal_local_updates_chunks(
         X = X,
         y = y,
@@ -1143,16 +1293,37 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         xis = xis
       )
     }
-    chi <- as.numeric(qv_up$chi)
-    psi <- as.numeric(qv_up$psi)
-    qv$m <- as.numeric(qv_up$m)
-    qv$m_inv <- as.numeric(qv_up$m_inv)
-    z_gig <- as.numeric(qv_up$z)   # cache for ELBO (entropy normalizer)
+    if (!isTRUE(use_stochastic_chunking)) {
+      chi <- as.numeric(qv_up$chi)
+      psi <- as.numeric(qv_up$psi)
+      qv$m <- as.numeric(qv_up$m)
+      qv$m_inv <- as.numeric(qv_up$m_inv)
+      z_gig <- as.numeric(qv_up$z)   # cache for ELBO (entropy normalizer)
+    }
 
     # ------------------------------------------------------------------------
     # (2.2) UPDATE q(s): TN(mu_s, tau2) on (0, inf)
     # ------------------------------------------------------------------------
-    qs_up <- if (isTRUE(use_exact_chunking)) {
+    qs_up <- if (isTRUE(use_stochastic_chunking)) {
+      if (isTRUE(stochastic_local_refresh_now)) {
+        local_up$qs
+      } else {
+        idx_b <- stochastic_batch_current
+        qs_up_b <- .exal_local_qs_update(
+          y = y[idx_b],
+          xb = xb[idx_b],
+          qv_m_inv = qv$m_inv[idx_b],
+          xis = xis
+        )
+        if (!exists("tau2", inherits = FALSE) || length(tau2) != n) tau2 <- rep(NA_real_, n)
+        if (!exists("mu_s", inherits = FALSE) || length(mu_s) != n) mu_s <- rep(NA_real_, n)
+        tau2[idx_b] <- as.numeric(qs_up_b$tau2)
+        mu_s[idx_b] <- as.numeric(qs_up_b$mu)
+        qs$m[idx_b] <- as.numeric(qs_up_b$m)
+        qs$m2[idx_b] <- as.numeric(qs_up_b$m2)
+        list(tau2 = tau2, mu = mu_s, m = qs$m, m2 = qs$m2)
+      }
+    } else if (isTRUE(use_exact_chunking)) {
       local_up$qs
     } else {
       .exal_local_qs_update(
@@ -1199,14 +1370,14 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # (2.3) UPDATE q(sigma, gamma) jointly via Laplace–Delta on (eta, ell)
     # ------------------------------------------------------------------------
     # Precompute stats for LD optimization (depends on current qbeta,qv,qs only)
-    if (isTRUE(use_exact_chunking)) {
+    if (isTRUE(use_exact_chunking) || isTRUE(use_stochastic_chunking)) {
       sigmagam_stats <- .exal_sigmagam_stats_chunks(
         X = X,
         y = y,
         qbeta = qbeta,
         qv = qv,
         qs = qs,
-        chunks = row_chunks,
+        chunks = if (isTRUE(use_exact_chunking)) row_chunks else stochastic_full_chunks,
         xb = xb,
         q_i = q_i
       )
@@ -1247,8 +1418,11 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         sigmagam_force_after_warmup &&
         sigmagam_postwarmup_update_count <= 0L
     )
+    sigmagam_update_due <- !isTRUE(use_stochastic_chunking) || isTRUE(stochastic_sigma_refresh_now)
     sigmagam_update_reason <- if (isTRUE(sigmagam_warmup_active)) {
       "warmup"
+    } else if (!isTRUE(sigmagam_update_due)) {
+      "stochastic_skip"
     } else if (isTRUE(sigmagam_force_now)) {
       "force_after_warmup"
     } else {
@@ -1257,7 +1431,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     sigmagam_forced_postwarmup <- FALSE
     sigmagam_update_performed <- FALSE
 
-    if (!isTRUE(sigmagam_warmup_active)) {
+    if (!isTRUE(sigmagam_warmup_active) && isTRUE(sigmagam_update_due)) {
       eta_prev_sigmagam <- qsiggam$eta_hat
       ell_prev_sigmagam <- qsiggam$ell_hat
       Sigma_prev_sigmagam <- qsiggam$Sigma
@@ -1340,6 +1514,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       update_every_eff <- rhs_update_every_warmup
     }
     do_rhs_update <- (update_every_eff <= 1L) || ((iter %% update_every_eff) == 0L)
+    if (isTRUE(use_stochastic_chunking)) {
+      do_rhs_update <- isTRUE(stochastic_rhs_refresh_now)
+    }
 
     is_rhs <- identical(beta_prior_type, "rhs")
     do_prior_update <- if (is_rhs) isTRUE(do_rhs_update) else TRUE
@@ -1699,6 +1876,39 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     }
 
     elbo_trace <- c(elbo_trace, elbo_new)
+    if (isTRUE(use_stochastic_chunking)) {
+      check_every <- as.integer(vb_control$chunking$diagnostics$check_finite_every %||% 1L)
+      if ((iter %% check_every) == 0L) {
+        if (any(!is.finite(qbeta$m)) || any(!is.finite(qbeta$V))) .stopf("stochastic VB qbeta state became non-finite.")
+        if (any(!is.finite(qv$m)) || any(qv$m <= 0) ||
+            any(!is.finite(qv$m_inv)) || any(qv$m_inv <= 0)) {
+          .stopf("stochastic VB q(v) state became non-finite or non-positive.")
+        }
+        if (any(!is.finite(qs$m)) || any(qs$m <= 0) ||
+            any(!is.finite(qs$m2)) || any(qs$m2 <= 0)) {
+          .stopf("stochastic VB q(s) state became non-finite or non-positive.")
+        }
+        if (!is.finite(cur_sigma_hat()) || cur_sigma_hat() <= 0) {
+          .stopf("stochastic VB sigma state became non-finite or non-positive.")
+        }
+      }
+      stochastic_trace_rows[[iter]] <- data.frame(
+        iter = as.integer(iter),
+        step = as.integer(stochastic_step_current),
+        epoch = as.integer(stochastic_epoch_current),
+        batch_size = as.integer(length(stochastic_batch_current)),
+        rho = as.numeric(stochastic_rho_current),
+        full_refresh = isTRUE(stochastic_full_refresh_now),
+        local_refresh = isTRUE(stochastic_local_refresh_now),
+        sigma_refresh = isTRUE(stochastic_sigma_refresh_now),
+        rhs_refresh = isTRUE(stochastic_rhs_refresh_now),
+        objective_refresh = isTRUE(stochastic_objective_refresh_now),
+        stringsAsFactors = FALSE
+      )
+      if (!is.null(stochastic_batch_ids)) {
+        stochastic_batch_ids[[iter]] <- as.integer(stochastic_batch_current)
+      }
+    }
 
     # stopping rule uses ELBO + (gamma,sigma) stability
     if (iter == 1L) {
@@ -1824,6 +2034,15 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   rhs_trace_detail_out <- NULL
   rhs_trace_settings <- NULL
   rhs_profiles_out <- NULL
+  stochastic_trace_df <- NULL
+  stochastic_batch_ids_out <- NULL
+  if (isTRUE(use_stochastic_chunking) && length(stochastic_trace_rows)) {
+    stochastic_trace_rows <- stochastic_trace_rows[seq_len(iter_run)]
+    stochastic_trace_df <- do.call(rbind, stochastic_trace_rows)
+    if (!is.null(stochastic_batch_ids)) {
+      stochastic_batch_ids_out <- stochastic_batch_ids[seq_len(iter_run)]
+    }
+  }
   if (rhs_trace_on && length(rhs_trace_rows)) {
     rhs_trace_rows <- rhs_trace_rows[seq_len(iter_run)]
     rhs_trace_df <- do.call(rbind, rhs_trace_rows)
@@ -1880,6 +2099,15 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       al_fixed_gamma = if (is_al) as.numeric(gamma_fixed) else NA_real_,
       gamma_trace = gamma_trace, sigma_trace = sigma_trace, new_term_trace = new_term_trace,
       elbo = elbo_trace, elbo_trace = elbo_trace,
+      chunking = vb_control$chunking,
+      stochastic = isTRUE(use_stochastic_chunking),
+      stochastic_trace = stochastic_trace_df,
+      stochastic_batch_ids = stochastic_batch_ids_out,
+      stochastic_objective_note = if (isTRUE(use_stochastic_chunking)) {
+        "Full-data ELBO of the current approximate variational state; stochastic updates are approximate and not full-data CAVI equivalence."
+      } else {
+        NA_character_
+      },
       sigmagam = vb_control$sigmagam,
       sigmagam_required_postwarmup_updates = as.integer(sigmagam_required_postwarmup_updates),
       sigmagam_update_count = as.integer(sigmagam_update_count),

@@ -105,8 +105,9 @@ test_that("qdesn_fit_vb forwards exact chunking controls", {
 
   expect_error(
     do.call(exdqlm::qdesn_fit_vb, c(common, list(vb_args = modifyList(base_args, list(
+      likelihood_family = "exal",
       chunking = list(enabled = TRUE, mode = "stochastic")
     ))))),
-    "stochastic engine path is not implemented"
+    "supported only for likelihood_family = 'al'"
   )
 })
