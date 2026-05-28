@@ -185,6 +185,29 @@ test_that("posterior-as-prior exact chunking matches unchunked per handoff targe
   }
 })
 
+test_that("posterior-as-prior supports expanding AL ridge origin sequences", {
+  y <- tiny_qdesn_rolling_series()
+  origins <- c(18L, 22L, 26L)
+  out <- exdqlm::qdesn_vb_fit_rolling(
+    y = y,
+    p0 = 0.5,
+    origins = origins,
+    mode = "expanding",
+    desn_args = tiny_qdesn_rolling_desn_args(seed = 20260615L),
+    vb_args = tiny_qdesn_rolling_vb_args(max_iter = 5L),
+    posterior_as_prior = TRUE,
+    keep_fits = FALSE
+  )
+
+  expect_identical(out$target$type, "posterior_as_prior_al_ridge")
+  expect_true(isTRUE(out$target$posterior_as_prior))
+  expect_true(all(out$windows$window_start == 1L))
+  expect_equal(out$windows$window_end, origins)
+  expect_equal(nrow(out$state_handoffs), length(origins))
+  expect_null(out$fits)
+  expect_true(all(out$summary$finite_qbeta))
+})
+
 test_that("qdesn_vb_fit_rolling fails early for gated target handoffs and modes", {
   y <- tiny_qdesn_rolling_series()
   desn <- tiny_qdesn_rolling_desn_args(seed = 20260613L)
