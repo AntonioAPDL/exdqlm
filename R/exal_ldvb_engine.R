@@ -70,6 +70,17 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   if (isTRUE(use_stochastic_chunking) && !is_al) {
     .stopf("stochastic/hybrid VB chunking is currently supported only for likelihood_family = 'al'.")
   }
+  vb_control$beta_covariance <- .exal_normalize_vb_beta_covariance_cfg(vb_control$beta_covariance %||% NULL)
+  use_diagonal_beta_covariance <- identical(vb_control$beta_covariance$approximation, "diagonal")
+  if (isTRUE(use_diagonal_beta_covariance) && !is_al) {
+    .stopf("diagonal beta covariance approximation is currently supported only for likelihood_family = 'al'.")
+  }
+  if (isTRUE(use_diagonal_beta_covariance) && !identical(beta_prior_obj$type, "ridge")) {
+    .stopf("diagonal beta covariance approximation is currently supported only for ridge beta priors.")
+  }
+  if (isTRUE(use_diagonal_beta_covariance) && isTRUE(use_stochastic_chunking)) {
+    .stopf("diagonal beta covariance approximation is currently supported only for unchunked or exact chunked VB.")
+  }
   sigmagam_cfg <- vb_control$sigmagam %||% list()
   sigmagam_freeze_warmup_iters <- max(0L, as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
@@ -181,7 +192,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   # --- initialize q(beta) ---
   qbeta <- list(
     m = as.numeric(init$beta_m %||% rep(0, p)),
-    V = as.matrix(init$beta_V %||% diag(1, p))
+    V = as.matrix(init$beta_V %||% diag(1, p)),
+    covariance_approximation = vb_control$beta_covariance$approximation,
+    approximate_covariance = isTRUE(use_diagonal_beta_covariance)
   )
   if (length(qbeta$m) != p) .stopf("init$beta_m must be length p=%d.", p)
   if (!all(dim(qbeta$V) == c(p,p))) .stopf("init$beta_V must be p x p.")
@@ -957,17 +970,28 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         qs_m = qs$m
       )
     }
-    beta_solve <- .exal_beta_solve_from_data_stats(
-      data_stats,
-      prec_diag,
-      prior_precision = beta_prior_natural$precision,
-      prior_natural = beta_prior_natural$natural
-    )
+    beta_solve <- if (isTRUE(use_diagonal_beta_covariance)) {
+      .exal_beta_solve_diagonal_from_data_stats(
+        data_stats,
+        prec_diag,
+        prior_precision = beta_prior_natural$precision,
+        prior_natural = beta_prior_natural$natural
+      )
+    } else {
+      .exal_beta_solve_from_data_stats(
+        data_stats,
+        prec_diag,
+        prior_precision = beta_prior_natural$precision,
+        prior_natural = beta_prior_natural$natural
+      )
+    }
     W <<- as.numeric(data_stats$barw)
 
     sol <- beta_solve$sol
     qbeta$V <<- sol$inv
     qbeta$m <<- as.numeric(sol$x)
+    qbeta$covariance_approximation <<- vb_control$beta_covariance$approximation
+    qbeta$approximate_covariance <<- isTRUE(use_diagonal_beta_covariance)
     sol_chol <<- sol$chol %||% NULL
   }
 
@@ -2160,6 +2184,13 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       gamma_trace = gamma_trace, sigma_trace = sigma_trace, new_term_trace = new_term_trace,
       elbo = elbo_trace, elbo_trace = elbo_trace,
       chunking = vb_control$chunking,
+      beta_covariance = vb_control$beta_covariance,
+      approximate_covariance = isTRUE(use_diagonal_beta_covariance),
+      covariance_objective_note = if (isTRUE(use_diagonal_beta_covariance)) {
+        "Diagonal beta covariance is an approximate mean-field beta update; posterior covariance and prediction uncertainty are not full-covariance VB quantities."
+      } else {
+        NA_character_
+      },
       stochastic = isTRUE(use_stochastic_chunking),
       hybrid = isTRUE(use_hybrid_chunking),
       approximate_chunking = isTRUE(use_stochastic_chunking),

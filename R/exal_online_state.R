@@ -141,6 +141,33 @@
   )
 }
 
+.exal_normalize_vb_beta_covariance_cfg <- function(beta_covariance = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (is.null(beta_covariance)) {
+    return(list(approximation = "full", label_uncertainty = TRUE))
+  }
+  if (is.character(beta_covariance) && length(beta_covariance) == 1L) {
+    beta_covariance <- list(approximation = beta_covariance)
+  }
+  if (!is.list(beta_covariance)) {
+    .stopf("vb_control$beta_covariance must be a list or a scalar character value.")
+  }
+  approximation <- tolower(as.character(
+    beta_covariance$approximation %||% beta_covariance$covariance_approx %||% "full"
+  )[1L])
+  if (!approximation %in% c("full", "diagonal")) {
+    .stopf("vb_control$beta_covariance$approximation must be 'full' or 'diagonal'.")
+  }
+  list(
+    approximation = approximation,
+    label_uncertainty = if (is.null(beta_covariance$label_uncertainty)) {
+      TRUE
+    } else {
+      isTRUE(beta_covariance$label_uncertainty)
+    }
+  )
+}
+
 .exal_make_row_chunks <- function(n, chunk_size = NULL) {
   n <- as.integer(n)[1L]
   if (!is.finite(n) || n < 0L) .stopf("row chunks: n must be a non-negative integer.")
@@ -432,6 +459,46 @@
     barm = eff$barm,
     S = S,
     g = as.numeric(g)
+  )
+}
+
+.exal_beta_solve_diagonal_from_data_stats <- function(stats, prec_diag,
+                                                      prior_precision = NULL,
+                                                      prior_natural = NULL) {
+  if (!is.null(prior_precision) || !is.null(prior_natural)) {
+    .stopf("diagonal beta covariance approximation currently supports ridge-style diagonal priors only.")
+  }
+  if (!is.list(stats) || is.null(stats$S) || is.null(stats$g)) {
+    .stopf("diagonal beta solve: stats must contain S and g.")
+  }
+  S <- as.matrix(stats$S)
+  g <- as.numeric(stats$g)
+  p <- ncol(S)
+  if (!all(dim(S) == c(p, p))) .stopf("diagonal beta solve: S must be square.")
+  if (length(g) != p) .stopf("diagonal beta solve: g length must match ncol(S).")
+  prec_diag <- as.numeric(prec_diag)
+  if (length(prec_diag) != p || any(!is.finite(prec_diag)) || any(prec_diag <= 0)) {
+    .stopf("diagonal beta solve: prec_diag must be finite, positive, and length p.")
+  }
+  P_diag <- as.numeric(diag(S) + prec_diag)
+  if (any(!is.finite(P_diag)) || any(P_diag <= 0)) {
+    .stopf("diagonal beta solve: posterior precision diagonal must be finite and > 0.")
+  }
+  V_diag <- 1 / P_diag
+  list(
+    P = diag(P_diag, p),
+    h = g,
+    prec_diag = prec_diag,
+    prior_precision = NULL,
+    prior_natural = NULL,
+    covariance_approximation = "diagonal",
+    sol = list(
+      inv = diag(V_diag, p),
+      chol = diag(sqrt(P_diag), p),
+      x = as.numeric(V_diag * g),
+      method = "diagonal",
+      jitter_eps = 0
+    )
   )
 }
 
