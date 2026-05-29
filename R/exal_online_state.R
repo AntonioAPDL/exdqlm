@@ -652,7 +652,7 @@
                                                       prior_precision = NULL,
                                                       prior_natural = NULL) {
   if (!is.null(prior_precision) || !is.null(prior_natural)) {
-    .stopf("diagonal beta covariance approximation currently supports ridge-style diagonal priors only.")
+    .stopf("diagonal beta covariance approximation currently supports expected-precision priors without nonzero natural vectors or full prior-precision corrections.")
   }
   if (!is.list(stats) || is.null(stats$S) || is.null(stats$g)) {
     .stopf("diagonal beta solve: stats must contain S and g.")

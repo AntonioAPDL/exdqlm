@@ -75,8 +75,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   if (isTRUE(use_diagonal_beta_covariance) && !is_al) {
     .stopf("diagonal beta covariance approximation is currently supported only for likelihood_family = 'al'.")
   }
-  if (isTRUE(use_diagonal_beta_covariance) && !identical(beta_prior_obj$type, "ridge")) {
-    .stopf("diagonal beta covariance approximation is currently supported only for ridge beta priors.")
+  if (isTRUE(use_diagonal_beta_covariance) &&
+      !beta_prior_obj$type %in% c("ridge", "rhs", "rhs_ns")) {
+    .stopf("diagonal beta covariance approximation is currently supported only for ridge and RHS-family beta priors.")
   }
   if (isTRUE(use_diagonal_beta_covariance) && isTRUE(use_stochastic_chunking)) {
     .stopf("diagonal beta covariance approximation is currently supported only for unchunked or exact chunked VB.")
