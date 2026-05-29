@@ -350,5 +350,16 @@ writeLines("## Interpretation", con)
 writeLines("Normal DESN rows are conditional-mean Gaussian readouts. Q-DESN rows are tau-specific AL/exAL quantile readouts.", con)
 writeLines("Exact chunked rows are compared only to their same-target unchunked references. Approximate, covariance-approximation, subset, rolling, posterior-as-prior, online, and initialization rows are diagnostic/workflow rows, not exact full-data replacements.", con)
 
+writeLines(c(
+  "Normal/Q-DESN unified comparison completed.",
+  sprintf("output_dir: %s", output_dir),
+  sprintf("summary: %s", summary_path),
+  sprintf("package_head: %s", repo_state$head[[1L]]),
+  sprintf("package_dirty: %s", repo_state$dirty[[1L]]),
+  "",
+  "Component logs:",
+  paste(sprintf("- %s: %s", component_runs$component, component_runs$log_path), collapse = "\n")
+), file.path(output_dir, "console.log"))
+
 cat("Wrote unified outputs to", output_dir, "\n")
 cat("Summary:", summary_path, "\n")
