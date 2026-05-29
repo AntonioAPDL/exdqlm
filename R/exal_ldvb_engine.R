@@ -84,13 +84,13 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   vb_control$subset_fit <- .exal_normalize_vb_subset_fit_cfg(vb_control$subset_fit %||% NULL, nrow(X))
   use_subset_fit <- isTRUE(vb_control$subset_fit$enabled)
   if (isTRUE(use_subset_fit) && !is_al) {
-    .stopf("fixed subset VB is currently supported only for likelihood_family = 'al'.")
+    .stopf("subset VB is currently supported only for likelihood_family = 'al'.")
   }
   if (isTRUE(use_subset_fit) && !identical(beta_prior_obj$type, "ridge")) {
-    .stopf("fixed subset VB is currently supported only for ridge beta priors.")
+    .stopf("subset VB is currently supported only for ridge beta priors.")
   }
   if (isTRUE(use_subset_fit) && isTRUE(use_stochastic_chunking)) {
-    .stopf("fixed subset VB is currently supported only for unchunked or exact chunked VB.")
+    .stopf("subset VB is currently supported only for unchunked or exact chunked VB.")
   }
   original_n <- nrow(X)
   if (isTRUE(use_subset_fit)) {
@@ -2216,6 +2216,16 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       },
       subset_fit = vb_control$subset_fit,
       subset_rows = if (isTRUE(use_subset_fit)) subset_rows else integer(0),
+      subset_strata = if (isTRUE(use_subset_fit) && identical(vb_control$subset_fit$mode, "stratified")) {
+        as.integer(vb_control$subset_fit$stratum_id[subset_rows])
+      } else {
+        integer(0)
+      },
+      subset_allocation = if (isTRUE(use_subset_fit) && identical(vb_control$subset_fit$mode, "stratified")) {
+        vb_control$subset_fit$stratum_allocation
+      } else {
+        data.frame()
+      },
       original_n = as.integer(original_n),
       target_label = if (isTRUE(use_subset_fit)) vb_control$subset_fit$target_label else "full_data_vb",
       preserves_full_data_target = !isTRUE(use_subset_fit),

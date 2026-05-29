@@ -75,6 +75,54 @@ test_that("subset_fit controls normalize and validate fixed row IDs", {
   )
 })
 
+test_that("stratified subset controls select reproducible time-block rows", {
+  cfg <- list(
+    enabled = TRUE,
+    mode = "stratified",
+    strata = "time_block",
+    size = 12L,
+    n_strata = 4L,
+    seed = 20260644L
+  )
+  ctrl <- exdqlm:::.exal_normalize_vb_subset_fit_cfg(cfg, n = 40L)
+  ctrl2 <- exdqlm:::.exal_normalize_vb_subset_fit_cfg(cfg, n = 40L)
+  ctrl3 <- exdqlm:::.exal_normalize_vb_subset_fit_cfg(modifyList(cfg, list(seed = 20260645L)), n = 40L)
+
+  expect_true(isTRUE(ctrl$enabled))
+  expect_identical(ctrl$mode, "stratified")
+  expect_identical(ctrl$strata, "time_block")
+  expect_identical(ctrl$allocation, "proportional")
+  expect_equal(length(ctrl$rows), 12L)
+  expect_equal(ctrl$rows, sort(ctrl$rows))
+  expect_equal(length(unique(ctrl$rows)), 12L)
+  expect_equal(ctrl$rows, ctrl2$rows)
+  expect_false(identical(ctrl$rows, ctrl3$rows))
+  expect_equal(sum(ctrl$stratum_allocation$n_selected), 12L)
+  expect_true(all(ctrl$stratum_allocation$n_selected > 0L))
+  expect_equal(length(ctrl$stratum_id), 40L)
+
+  pending <- exdqlm::exal_make_vb_control(subset_fit = cfg)$subset_fit
+  expect_true(isTRUE(pending$pending))
+  expect_equal(pending$rows, integer(0))
+
+  expect_error(
+    exdqlm::exal_make_vb_control(subset_fit = modifyList(cfg, list(strata = "response_quantile"))),
+    "supports only 'time_block'"
+  )
+  expect_error(
+    exdqlm::exal_make_vb_control(subset_fit = modifyList(cfg, list(allocation = "equal"))),
+    "supports only 'proportional'"
+  )
+  expect_error(
+    exdqlm::exal_make_vb_control(subset_fit = within(cfg, rm(seed))),
+    "seed is required"
+  )
+  expect_error(
+    exdqlm:::.exal_normalize_vb_subset_fit_cfg(modifyList(cfg, list(size = 41L)), n = 40L),
+    "<= nrow"
+  )
+})
+
 test_that("fixed subset VB matches an explicit fit on selected rows", {
   dat <- make_subset_fit_data()
   rows <- c(2L, 4L, 6L, 8L, 10L, 12L, 14L, 16L, 18L, 20L)
@@ -117,6 +165,48 @@ test_that("fixed subset exact chunking matches fixed subset unchunked", {
   expect_equal(exact$qbeta$m, plain$qbeta$m, tolerance = 1e-8)
   expect_equal(exact$qbeta$V, plain$qbeta$V, tolerance = 1e-8)
   expect_equal(exact$misc$elbo_trace, plain$misc$elbo_trace, tolerance = 1e-8)
+})
+
+test_that("stratified subset VB matches explicit fit and exact chunking", {
+  dat <- make_subset_fit_data(seed = 20260646L, n = 48L)
+  cfg <- list(
+    enabled = TRUE,
+    mode = "stratified",
+    strata = "time_block",
+    size = 16L,
+    n_strata = 4L,
+    seed = 20260647L
+  )
+  plain <- fit_subset_al(
+    dat,
+    make_subset_fit_control(subset_fit = cfg, max_iter = 12L)
+  )
+  rows <- plain$misc$subset_rows
+  direct <- fit_subset_al(
+    list(X = dat$X[rows, , drop = FALSE], y = dat$y[rows]),
+    make_subset_fit_control(max_iter = 12L)
+  )
+  exact <- fit_subset_al(
+    dat,
+    make_subset_fit_control(
+      subset_fit = cfg,
+      chunking = list(enabled = TRUE, mode = "exact", chunk_size = 5L),
+      max_iter = 12L
+    )
+  )
+
+  expect_identical(plain$misc$target_label, "subset_data_vb")
+  expect_identical(plain$misc$subset_fit$mode, "stratified")
+  expect_false(isTRUE(plain$misc$preserves_full_data_target))
+  expect_equal(length(rows), 16L)
+  expect_equal(sum(plain$misc$subset_allocation$n_selected), 16L)
+  expect_true(all(plain$misc$subset_allocation$n_selected > 0L))
+  expect_equal(length(plain$misc$subset_strata), 16L)
+  expect_equal(plain$qbeta$m, direct$qbeta$m, tolerance = 1e-8)
+  expect_equal(plain$qbeta$V, direct$qbeta$V, tolerance = 1e-8)
+  expect_equal(exact$misc$subset_rows, rows)
+  expect_equal(exact$qbeta$m, plain$qbeta$m, tolerance = 1e-8)
+  expect_equal(exact$qbeta$V, plain$qbeta$V, tolerance = 1e-8)
 })
 
 test_that("fixed subset mode fails early outside AL ridge full/exact scope", {
@@ -179,6 +269,51 @@ test_that("qdesn_fit_vb routes fixed subset controls", {
   expect_identical(fit$fit$misc$target_label, "subset_data_vb")
   expect_equal(fit$fit$misc$subset_rows, 1:12)
   expect_equal(fit$fit$misc$n, 12L)
+  expect_equal(length(fit$mu_hat), nrow(fit$X))
+  expect_true(all(is.finite(fit$fit$qbeta$m)))
+})
+
+test_that("qdesn_fit_vb routes stratified subset controls", {
+  t <- seq_len(42L)
+  y <- as.numeric(0.12 * sin(t / 5) + 0.04 * cos(t / 9))
+  args <- list(
+    likelihood_family = "al",
+    al_fixed_gamma = 0,
+    beta_prior_type = "ridge",
+    beta_ridge_tau2 = 10,
+    max_iter = 8L,
+    min_iter_elbo = 2L,
+    tol = 0,
+    tol_par = 0,
+    n_samp_xi = 16L,
+    verbose = FALSE,
+    subset_fit = list(
+      enabled = TRUE,
+      mode = "stratified",
+      strata = "time_block",
+      size = 12L,
+      n_strata = 3L,
+      seed = 20260648L
+    )
+  )
+  fit <- exdqlm::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 4L,
+    m = 1L,
+    washout = 4L,
+    add_bias = TRUE,
+    seed = 20260649L,
+    fit_readout = TRUE,
+    vb_args = args
+  )
+
+  expect_s3_class(fit$fit, "exal_vb")
+  expect_identical(fit$fit$misc$target_label, "subset_data_vb")
+  expect_identical(fit$fit$misc$subset_fit$mode, "stratified")
+  expect_equal(length(fit$fit$misc$subset_rows), 12L)
+  expect_equal(sum(fit$fit$misc$subset_allocation$n_selected), 12L)
   expect_equal(length(fit$mu_hat), nrow(fit$X))
   expect_true(all(is.finite(fit$fit$qbeta$m)))
 })

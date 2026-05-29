@@ -177,14 +177,82 @@
     .stopf("vb_control$subset_fit must be a list.")
   }
   enabled <- if (is.null(subset_fit$enabled)) TRUE else isTRUE(subset_fit$enabled)
-  mode <- tolower(as.character(subset_fit$mode %||% "fixed")[1L])
-  if (!identical(mode, "fixed")) {
-    .stopf("vb_control$subset_fit$mode must be 'fixed'.")
+  mode <- tolower(as.character(subset_fit$mode %||% subset_fit$type %||% "fixed")[1L])
+  if (!mode %in% c("fixed", "stratified")) {
+    .stopf("vb_control$subset_fit$mode must be 'fixed' or 'stratified'.")
   }
   rows <- subset_fit$rows %||% subset_fit$row_ids %||% subset_fit$indices %||% NULL
   if (!enabled) {
     return(list(enabled = FALSE, mode = mode, rows = integer(0), target_label = "full_data_vb"))
   }
+
+  target_label <- as.character(subset_fit$target_label %||% "subset_data_vb")[1L]
+
+  if (identical(mode, "stratified")) {
+    strata <- tolower(as.character(subset_fit$strata %||% "time_block")[1L])
+    if (!identical(strata, "time_block")) {
+      .stopf("vb_control$subset_fit$strata currently supports only 'time_block'.")
+    }
+    allocation <- tolower(as.character(subset_fit$allocation %||% "proportional")[1L])
+    if (!identical(allocation, "proportional")) {
+      .stopf("vb_control$subset_fit$allocation currently supports only 'proportional'.")
+    }
+
+    size <- subset_fit$size %||% subset_fit$n_subset %||% subset_fit$subset_size %||% NULL
+    if (is.null(size)) .stopf("vb_control$subset_fit$size is required for stratified subset fitting.")
+    size <- as.integer(size)[1L]
+    if (!is.finite(size) || size < 1L) .stopf("vb_control$subset_fit$size must be a positive integer.")
+
+    n_strata <- as.integer(subset_fit$n_strata %||% subset_fit$n_blocks %||% subset_fit$blocks %||% min(4L, size))[1L]
+    if (!is.finite(n_strata) || n_strata < 1L) {
+      .stopf("vb_control$subset_fit$n_strata must be a positive integer.")
+    }
+
+    seed <- subset_fit$seed %||% NULL
+    if (is.null(seed) || length(seed) == 0L || is.na(seed[1L])) {
+      .stopf("vb_control$subset_fit$seed is required for stratified subset fitting.")
+    }
+    seed <- as.integer(seed[1L])
+    if (!is.finite(seed)) .stopf("vb_control$subset_fit$seed must be a finite integer.")
+
+    rows <- integer(0)
+    stratum_id <- integer(0)
+    stratum_allocation <- data.frame()
+    pending <- TRUE
+    if (!is.null(n)) {
+      n <- as.integer(n)[1L]
+      if (!is.finite(n) || n < 1L) .stopf("vb_control$subset_fit: nrow(X) must be positive.")
+      if (size > n) .stopf("vb_control$subset_fit$size must be <= nrow(X).")
+      if (n_strata > n) .stopf("vb_control$subset_fit$n_strata must be <= nrow(X).")
+      sampled <- .exal_make_stratified_subset_rows(
+        n = n,
+        size = size,
+        n_strata = n_strata,
+        seed = seed,
+        allocation = allocation
+      )
+      rows <- sampled$rows
+      stratum_id <- sampled$stratum_id
+      stratum_allocation <- sampled$allocation
+      pending <- FALSE
+    }
+
+    return(list(
+      enabled = TRUE,
+      mode = mode,
+      rows = rows,
+      target_label = target_label,
+      seed = seed,
+      strata = strata,
+      size = as.integer(size),
+      n_strata = as.integer(n_strata),
+      allocation = allocation,
+      stratum_id = stratum_id,
+      stratum_allocation = stratum_allocation,
+      pending = isTRUE(pending)
+    ))
+  }
+
   if (is.null(rows)) {
     .stopf("vb_control$subset_fit$rows is required when subset fitting is enabled.")
   }
@@ -206,9 +274,84 @@
     enabled = TRUE,
     mode = mode,
     rows = rows,
-    target_label = as.character(subset_fit$target_label %||% "subset_data_vb")[1L],
+    target_label = target_label,
     seed = subset_fit$seed %||% NA_integer_
   )
+}
+
+.exal_make_time_block_strata <- function(n, n_strata) {
+  n <- as.integer(n)[1L]
+  n_strata <- as.integer(n_strata)[1L]
+  if (!is.finite(n) || n < 1L) .stopf("time-block strata: n must be positive.")
+  if (!is.finite(n_strata) || n_strata < 1L || n_strata > n) {
+    .stopf("time-block strata: n_strata must be in 1:n.")
+  }
+  as.integer(cut(seq_len(n), breaks = n_strata, labels = FALSE))
+}
+
+.exal_allocate_stratified_subset <- function(stratum_id, size) {
+  stratum_id <- as.integer(stratum_id)
+  size <- as.integer(size)[1L]
+  tab <- as.integer(tabulate(stratum_id, nbins = max(stratum_id)))
+  ids <- seq_along(tab)
+  n_total <- sum(tab)
+  if (!is.finite(size) || size < 1L || size > n_total) {
+    .stopf("stratified subset allocation: size must be in 1:n.")
+  }
+
+  alloc <- integer(length(tab))
+  nonempty <- which(tab > 0L)
+  if (size >= length(nonempty)) {
+    alloc[nonempty] <- 1L
+  } else {
+    ord <- order(-tab[nonempty], nonempty)
+    alloc[nonempty[ord[seq_len(size)]]] <- 1L
+    return(alloc)
+  }
+
+  desired <- size * tab / n_total
+  remaining <- size - sum(alloc)
+  while (remaining > 0L) {
+    capacity <- tab - alloc
+    if (!any(capacity > 0L)) break
+    deficit <- desired - alloc
+    deficit[capacity <= 0L] <- -Inf
+    pick <- order(-deficit, ids)[1L]
+    alloc[pick] <- alloc[pick] + 1L
+    remaining <- size - sum(alloc)
+  }
+
+  as.integer(alloc)
+}
+
+.exal_make_stratified_subset_rows <- function(n, size, n_strata, seed, allocation = "proportional") {
+  n <- as.integer(n)[1L]
+  size <- as.integer(size)[1L]
+  n_strata <- as.integer(n_strata)[1L]
+  seed <- as.integer(seed)[1L]
+  allocation <- tolower(as.character(allocation)[1L])
+  if (!identical(allocation, "proportional")) {
+    .stopf("stratified subset rows: allocation must be 'proportional'.")
+  }
+  stratum_id <- .exal_make_time_block_strata(n, n_strata)
+  alloc <- .exal_allocate_stratified_subset(stratum_id, size)
+  blocks <- split(seq_len(n), stratum_id)
+  sampled <- .exal_with_seed(seed, {
+    unlist(Map(function(block, k) {
+      if (k < 1L) return(integer(0))
+      sort(block[sample.int(length(block), size = as.integer(k), replace = FALSE)])
+    }, blocks, alloc), use.names = FALSE)
+  })
+  rows <- sort(as.integer(sampled))
+  if (length(rows) != size || anyDuplicated(rows)) {
+    .stopf("stratified subset rows: internal sampling produced invalid row IDs.")
+  }
+  allocation_df <- data.frame(
+    stratum = seq_along(alloc),
+    n_available = as.integer(tabulate(stratum_id, nbins = length(alloc))),
+    n_selected = as.integer(alloc)
+  )
+  list(rows = rows, stratum_id = stratum_id, allocation = allocation_df)
 }
 
 .exal_make_row_chunks <- function(n, chunk_size = NULL) {
