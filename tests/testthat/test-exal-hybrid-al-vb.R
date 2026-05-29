@@ -147,12 +147,13 @@ test_that("hybrid AL keeps RHS_NS global state finite", {
   expect_true(any(fit$misc$stochastic_trace$rhs_refresh))
 })
 
-test_that("hybrid approximate chunking is AL-only", {
+test_that("stochastic exAL remains forbidden", {
   dat <- make_hybrid_al_test_data(seed = 20260531L, n = 36L)
   ctrl <- make_hybrid_al_control(seed = 13L, max_iter = 8L, full_every = 2L, chunk_size = 8L)
+  ctrl$chunking$mode <- "stochastic"
 
   expect_error(
     fit_static_hybrid_al_test(dat, ctrl, family = "exal"),
-    "supported only for likelihood_family = 'al'"
+    "stochastic exAL VB chunking is not implemented"
   )
 })

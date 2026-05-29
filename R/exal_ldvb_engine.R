@@ -68,7 +68,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   use_hybrid_chunking <- isTRUE(vb_control$chunking$enabled) &&
     identical(vb_control$chunking$mode, "hybrid")
   if (isTRUE(use_stochastic_chunking) && !is_al) {
-    .stopf("stochastic/hybrid VB chunking is currently supported only for likelihood_family = 'al'.")
+    if (identical(vb_control$chunking$mode, "stochastic")) {
+      .stopf("stochastic exAL VB chunking is not implemented; use exact chunking or the gated hybrid exAL ridge mode.")
+    }
+    if (!identical(beta_prior_obj$type, "ridge")) {
+      .stopf("hybrid exAL VB chunking is currently supported only for ridge beta priors.")
+    }
   }
   vb_control$beta_covariance <- .exal_normalize_vb_beta_covariance_cfg(vb_control$beta_covariance %||% NULL)
   use_diagonal_beta_covariance <- identical(vb_control$beta_covariance$approximation, "diagonal")
