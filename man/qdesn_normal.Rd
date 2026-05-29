@@ -7,6 +7,7 @@
 \alias{predict_mu.qdesn_normal_fit}
 \alias{posterior_predict.qdesn_normal_fit}
 \alias{qdesn_normal_to_vb_init}
+\alias{qdesn_normal_to_mcmc_init}
 \title{Normal DESN readouts}
 \usage{
 normal_desn_fit(
@@ -48,6 +49,15 @@ qdesn_normal_to_vb_init(
   p0 = 0.5,
   eps = 1e-08
 )
+
+qdesn_normal_to_mcmc_init(
+  normal_fit,
+  likelihood_family = c("al", "exal"),
+  beta_prior_type = c("ridge", "rhs", "rhs_ns"),
+  p0 = 0.5,
+  gamma = 0,
+  al_fixed_gamma = 0
+)
 }
 \arguments{
 \item{X}{Numeric fixed DESN design matrix.}
@@ -80,6 +90,8 @@ and does not use \code{p0} in the Gaussian readout.}
 metadata.}
 \item{p0}{Target quantile level recorded in initialization metadata.}
 \item{eps}{Non-negative covariance jitter for initialization metadata.}
+\item{gamma}{Initial gamma for exAL MCMC.}
+\item{al_fixed_gamma}{Fixed AL gamma used when \code{likelihood_family = "al"}.}
 }
 \value{
 \code{normal_desn_fit()} returns a \code{normal_desn_readout}. The exact

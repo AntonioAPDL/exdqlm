@@ -223,8 +223,67 @@ test_that("qdesn_normal_to_vb_init carries beta moments and metadata", {
   )
 
   expect_equal(init$qbeta$m, fit$fit$beta$mean, tolerance = 1e-12)
+  expect_equal(init$beta_m, fit$fit$beta$mean, tolerance = 1e-12)
+  expect_equal(init$beta_V, fit$fit$beta$cov + diag(1e-8, ncol(fit$X)), tolerance = 1e-12)
   expect_equal(init$beta_mean, fit$fit$beta$mean, tolerance = 1e-12)
   expect_equal(dim(init$qbeta$V), c(ncol(fit$X), ncol(fit$X)))
   expect_identical(init$source$type, "qdesn_normal_vb_init")
   expect_identical(init$source$normal_target, "normal_scaled_ridge_exact")
+})
+
+test_that("Normal DESN initializers seed AL/exAL VB and MCMC contracts", {
+  y <- tiny_normal_qdesn_series(n = 32L)
+  normal_fit <- exdqlm::qdesn_fit_normal(
+    y = y,
+    D = 1L,
+    n = 4L,
+    m = 1L,
+    washout = 4L,
+    add_bias = TRUE,
+    seed = 20260535L
+  )
+  vb_init <- exdqlm::qdesn_normal_to_vb_init(
+    normal_fit,
+    likelihood_family = "al",
+    beta_prior_type = "ridge",
+    p0 = 0.5
+  )
+  mcmc_init <- exdqlm::qdesn_normal_to_mcmc_init(
+    normal_fit,
+    likelihood_family = "al",
+    beta_prior_type = "ridge",
+    p0 = 0.5
+  )
+
+  expect_named(vb_init, c("beta_m", "beta_V", "qbeta", "beta_mean", "beta_cov", "sigma", "source"))
+  expect_named(mcmc_init, c("beta", "sigma", "gamma", "source"))
+  expect_equal(vb_init$beta_m, normal_fit$fit$beta$mean, tolerance = 1e-12)
+  expect_equal(mcmc_init$beta, normal_fit$fit$beta$mean, tolerance = 1e-12)
+  expect_true(is.finite(vb_init$sigma) && vb_init$sigma > 0)
+  expect_true(is.finite(mcmc_init$sigma) && mcmc_init$sigma > 0)
+
+  vb_fit <- exdqlm::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 4L,
+    m = 1L,
+    washout = 4L,
+    add_bias = TRUE,
+    seed = 20260535L,
+    vb_args = list(
+      likelihood_family = "al",
+      al_fixed_gamma = 0,
+      init = vb_init,
+      max_iter = 3L,
+      min_iter_elbo = 2L,
+      tol = 0,
+      tol_par = 0,
+      n_samp_xi = 16L,
+      beta_prior_type = "ridge",
+      beta_ridge_tau2 = 20
+    )
+  )
+  expect_s3_class(vb_fit$fit, "exal_vb")
+  expect_true(all(is.finite(vb_fit$fit$qbeta$m)))
 })

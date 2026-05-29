@@ -475,13 +475,62 @@ qdesn_normal_to_vb_init <- function(normal_fit,
   eps <- as.numeric(eps)[1L]
   if (!is.finite(eps) || eps < 0) .normal_desn_stop("eps must be finite and >= 0.")
   beta_cov <- readout$beta$cov + diag(eps, length(readout$beta$mean))
+  sigma <- sqrt(readout$omega2$mean %||% readout$omega2$mode)
   list(
+    beta_m = as.numeric(readout$beta$mean),
+    beta_V = beta_cov,
     qbeta = list(m = as.numeric(readout$beta$mean), V = beta_cov),
     beta_mean = as.numeric(readout$beta$mean),
     beta_cov = beta_cov,
-    sigma = sqrt(readout$omega2$mean %||% readout$omega2$mode),
+    sigma = sigma,
     source = list(
       type = "qdesn_normal_vb_init",
+      normal_target = readout$target_label,
+      likelihood_family = likelihood_family,
+      beta_prior_type = beta_prior_type,
+      p0 = as.numeric(p0),
+      design_hash = .qdesn_vb_design_hash(readout$X),
+      package_sha = .qdesn_vb_package_sha()
+    )
+  )
+}
+
+#' Build an AL/exAL MCMC initializer from a Normal DESN fit
+#'
+#' @param normal_fit A `normal_desn_readout` or `qdesn_normal_fit`.
+#' @param likelihood_family Target family, `"al"` or `"exal"`.
+#' @param beta_prior_type Target beta prior family.
+#' @param p0 Quantile level recorded in initialization metadata.
+#' @param gamma Initial gamma for exAL. Ignored for AL when `al_fixed_gamma` is supplied.
+#' @param al_fixed_gamma Fixed AL gamma, usually zero.
+#' @return A list suitable as `mcmc_args$init` for [qdesn_fit_mcmc()].
+#' @export
+qdesn_normal_to_mcmc_init <- function(normal_fit,
+                                      likelihood_family = c("al", "exal"),
+                                      beta_prior_type = c("ridge", "rhs", "rhs_ns"),
+                                      p0 = 0.5,
+                                      gamma = 0,
+                                      al_fixed_gamma = 0) {
+  readout <- if (inherits(normal_fit, "qdesn_normal_fit")) normal_fit$fit else normal_fit
+  if (!inherits(readout, "normal_desn_readout")) {
+    .normal_desn_stop("qdesn_normal_to_mcmc_init() requires a Normal DESN fit.")
+  }
+  likelihood_family <- match.arg(likelihood_family)
+  beta_prior_type <- match.arg(beta_prior_type)
+  sigma <- sqrt(readout$omega2$mean %||% readout$omega2$mode)
+  gamma_init <- if (identical(likelihood_family, "al")) {
+    as.numeric(al_fixed_gamma)[1L]
+  } else {
+    as.numeric(gamma)[1L]
+  }
+  if (!is.finite(sigma) || sigma <= 0) sigma <- sqrt(readout$omega2$mode)
+  if (!is.finite(gamma_init)) gamma_init <- 0
+  list(
+    beta = as.numeric(readout$beta$mean),
+    sigma = as.numeric(sigma),
+    gamma = as.numeric(gamma_init),
+    source = list(
+      type = "qdesn_normal_mcmc_init",
       normal_target = readout$target_label,
       likelihood_family = likelihood_family,
       beta_prior_type = beta_prior_type,
