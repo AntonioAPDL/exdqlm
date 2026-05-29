@@ -87,12 +87,27 @@ if (!exists("%||%", mode = "function")) {
   )
 }
 
+.qdesn_rolling_check_posterior_as_prior_vb_args <- function(vb_args) {
+  beta_covariance <- vb_args$beta_covariance %||% (vb_args$vb_control %||% list())$beta_covariance %||% NULL
+  if (!is.null(beta_covariance)) {
+    beta_covariance <- .exal_normalize_vb_beta_covariance_cfg(beta_covariance)
+    if (!identical(beta_covariance$approximation, "full")) {
+      stop("posterior-as-prior Q-DESN VB currently requires full beta covariance.", call. = FALSE)
+    }
+  }
+  invisible(TRUE)
+}
+
 .qdesn_rolling_posterior_state <- function(fit, origin_id, origin, idx,
                                            prior_strength = 1,
                                            jitter = 1e-8) {
   readout <- fit$fit
   qbeta_m <- as.numeric(readout$qbeta$m)
   qbeta_V <- as.matrix(readout$qbeta$V)
+  likelihood_family <- tolower(as.character(readout$likelihood_family %||% readout$misc$likelihood_family %||% NA_character_)[1L])
+  p0 <- as.numeric(readout$misc$p0 %||% NA_real_)[1L]
+  prior_family <- tolower(as.character(readout$beta_prior$type %||% NA_character_)[1L])
+  covariance_form <- as.character(readout$qbeta$covariance_approximation %||% "full")[1L]
   p <- length(qbeta_m)
   if (!all(dim(qbeta_V) == c(p, p)) || any(!is.finite(qbeta_V))) {
     stop("posterior-as-prior handoff requires a finite p x p beta covariance.", call. = FALSE)
@@ -128,6 +143,11 @@ if (!exists("%||%", mode = "function")) {
     window_start = as.integer(idx[1L]),
     window_end = as.integer(idx[length(idx)]),
     n_features = as.integer(p),
+    likelihood_family = likelihood_family,
+    source_prior_family = prior_family,
+    prior_family = "gaussian_natural",
+    p0 = p0,
+    covariance_form = covariance_form,
     design_hash = design_hash,
     feature_settings_hash = feature_hash,
     state_hash = state_hash,
@@ -136,7 +156,8 @@ if (!exists("%||%", mode = "function")) {
     beta_mean = qbeta_m,
     beta_cov = qbeta_V,
     prior_strength = as.numeric(prior_strength),
-    jitter = as.numeric(jitter)
+    jitter = as.numeric(jitter),
+    package = list(sha = .qdesn_vb_package_sha(), version = .qdesn_vb_package_version())
   )
 }
 
@@ -145,6 +166,27 @@ if (!exists("%||%", mode = "function")) {
   p <- ncol(fit$X)
   if (!identical(as.integer(state$n_features), as.integer(p))) {
     stop("posterior-as-prior state dimension does not match the current Q-DESN design.", call. = FALSE)
+  }
+  readout <- fit$fit
+  state_family <- tolower(as.character(state$likelihood_family %||% "")[1L])
+  current_family <- tolower(as.character(readout$likelihood_family %||% readout$misc$likelihood_family %||% "")[1L])
+  if (nzchar(state_family) && !identical(state_family, current_family)) {
+    stop("posterior-as-prior likelihood family does not match the current Q-DESN fit.", call. = FALSE)
+  }
+  state_p0 <- as.numeric(state$p0 %||% NA_real_)[1L]
+  current_p0 <- as.numeric(readout$misc$p0 %||% NA_real_)[1L]
+  if (is.finite(state_p0) && is.finite(current_p0) && abs(state_p0 - current_p0) > 1e-12) {
+    stop("posterior-as-prior tau/p0 does not match the current Q-DESN fit.", call. = FALSE)
+  }
+  state_prior <- tolower(as.character(state$prior_family %||% "")[1L])
+  current_prior <- tolower(as.character(readout$beta_prior$type %||% "")[1L])
+  if (nzchar(state_prior) && !identical(state_prior, current_prior)) {
+    stop("posterior-as-prior prior family does not match the current Q-DESN fit.", call. = FALSE)
+  }
+  state_cov <- tolower(as.character(state$covariance_form %||% "full")[1L])
+  current_cov <- tolower(as.character(readout$qbeta$covariance_approximation %||% "full")[1L])
+  if (!identical(state_cov, current_cov)) {
+    stop("posterior-as-prior covariance form does not match the current Q-DESN fit.", call. = FALSE)
   }
   if (isTRUE(validate_feature_settings)) {
     current_hash <- .qdesn_vb_feature_settings_hash(fit$meta %||% list())
@@ -191,6 +233,7 @@ if (!exists("%||%", mode = "function")) {
     iter = as.integer(readout$iter %||% length(readout$misc$elbo_trace %||% numeric(0))),
     finite_qbeta = all(is.finite(readout$qbeta$m)) && all(is.finite(readout$qbeta$V)),
     finite_sigma_gamma = is.finite(readout$qsiggam$sigma_mean) && is.finite(readout$qsiggam$gamma_mean),
+    covariance_form = as.character(readout$qbeta$covariance_approximation %||% "full")[1L],
     beta_l2 = as.numeric(sqrt(sum(as.numeric(readout$qbeta$m)^2))),
     sigma_mean = as.numeric(readout$qsiggam$sigma_mean),
     gamma_mean = as.numeric(readout$qsiggam$gamma_mean),
@@ -257,6 +300,9 @@ qdesn_vb_fit_rolling <- function(y, p0, origins, window_size = NULL,
   vb_args <- .qdesn_rolling_check_vb_args(vb_args)
   if (isTRUE(posterior_as_prior_cfg$enabled) && !is.null(vb_args$beta_prior_obj)) {
     stop("posterior-as-prior manages beta_prior_obj internally; supply ridge controls, not beta_prior_obj.", call. = FALSE)
+  }
+  if (isTRUE(posterior_as_prior_cfg$enabled)) {
+    .qdesn_rolling_check_posterior_as_prior_vb_args(vb_args)
   }
 
   target_label <- if (isTRUE(posterior_as_prior_cfg$enabled)) {
@@ -364,5 +410,201 @@ qdesn_vb_fit_rolling <- function(y, p0, origins, window_size = NULL,
     package = list(sha = .qdesn_vb_package_sha(), version = .qdesn_vb_package_version())
   )
   class(out) <- c("qdesn_vb_rolling_fit", "list")
+  out
+}
+
+.qdesn_online_batch_indices <- function(n_total, batch_ends = NULL, batch_size = NULL) {
+  n_total <- as.integer(n_total)[1L]
+  if (!is.finite(n_total) || n_total < 1L) {
+    stop("qdesn_vb_fit_online: y must contain at least one observation.", call. = FALSE)
+  }
+  if (!is.null(batch_ends) && !is.null(batch_size)) {
+    stop("qdesn_vb_fit_online: supply either batch_ends or batch_size, not both.", call. = FALSE)
+  }
+  if (is.null(batch_ends)) {
+    if (is.null(batch_size)) {
+      batch_ends <- n_total
+    } else {
+      batch_size <- as.integer(batch_size)[1L]
+      if (!is.finite(batch_size) || batch_size < 1L) {
+        stop("qdesn_vb_fit_online: batch_size must be a positive integer.", call. = FALSE)
+      }
+      batch_ends <- seq.int(batch_size, n_total, by = batch_size)
+      if (!length(batch_ends) || batch_ends[length(batch_ends)] != n_total) {
+        batch_ends <- c(batch_ends, n_total)
+      }
+    }
+  }
+  batch_ends <- unique(.qdesn_rolling_int(batch_ends, "batch_ends"))
+  batch_ends <- sort(batch_ends)
+  if (!length(batch_ends) || batch_ends[length(batch_ends)] != n_total) {
+    stop("qdesn_vb_fit_online: batch_ends must include length(y).", call. = FALSE)
+  }
+  if (any(batch_ends < 1L | batch_ends > n_total)) {
+    stop("qdesn_vb_fit_online: batch_ends must lie in 1:length(y).", call. = FALSE)
+  }
+  starts <- c(1L, batch_ends[-length(batch_ends)] + 1L)
+  lapply(seq_along(batch_ends), function(i) seq.int(starts[[i]], batch_ends[[i]]))
+}
+
+#' Fit Q-DESN VB over ordered online batches
+#'
+#' This is a workflow wrapper around the tested AL ridge
+#' posterior-as-prior handoff. It is not a new mathematical engine. The first
+#' batch is fit with the base ridge prior; later batches use the previous
+#' batch's beta posterior as the next Gaussian beta prior. The wrapper is
+#' intentionally narrow: AL likelihood, ridge beta prior, full beta covariance,
+#' and unchunked or exact chunked VB only.
+#'
+#' @param y Numeric univariate response series.
+#' @param p0 Quantile level in `(0, 1)`.
+#' @param batch_ends Optional increasing integer batch-end indices. Must include
+#'   `length(y)` when supplied.
+#' @param batch_size Optional positive integer used to derive regular batches.
+#' @param desn_args List of Q-DESN feature arguments forwarded to
+#'   [qdesn_fit_vb()]. Do not include `y`, `p0`, `vb_args`, or `fit_readout`.
+#' @param vb_args List of VB readout arguments forwarded to [qdesn_fit_vb()].
+#' @param posterior_as_prior Logical or list of Gaussian beta handoff controls.
+#'   Enabled by default and must remain enabled for this online wrapper.
+#' @param keep_fits Logical; if `TRUE`, retain each `qdesn_fit` object.
+#' @param keep_states Logical; if `TRUE`, retain serialized handoff state
+#'   objects for each batch.
+#' @return A `qdesn_vb_online_fit` list with batch metadata, summaries, handoff
+#'   metadata, and optionally fitted objects and posterior states.
+#' @export
+qdesn_vb_fit_online <- function(y, p0, batch_ends = NULL, batch_size = NULL,
+                                desn_args = list(), vb_args = list(),
+                                posterior_as_prior = TRUE,
+                                keep_fits = TRUE, keep_states = TRUE) {
+  y <- as.numeric(y)
+  if (!length(y) || anyNA(y) || any(!is.finite(y))) {
+    stop("qdesn_vb_fit_online: y must be a finite numeric vector.", call. = FALSE)
+  }
+  if (!is.numeric(p0) || length(p0) != 1L || !is.finite(p0) || p0 <= 0 || p0 >= 1) {
+    stop("qdesn_vb_fit_online: p0 must be a finite scalar in (0, 1).", call. = FALSE)
+  }
+  if (!is.list(desn_args)) stop("qdesn_vb_fit_online: desn_args must be a list.", call. = FALSE)
+  forbidden_desn <- intersect(names(desn_args), c("y", "p0", "vb_args", "fit_readout"))
+  if (length(forbidden_desn)) {
+    stop(sprintf("qdesn_vb_fit_online: desn_args must not contain: %s.", paste(forbidden_desn, collapse = ", ")), call. = FALSE)
+  }
+
+  vb_args <- .qdesn_rolling_check_vb_args(vb_args)
+  posterior_as_prior_cfg <- .qdesn_rolling_normalize_posterior_as_prior(posterior_as_prior)
+  if (!isTRUE(posterior_as_prior_cfg$enabled)) {
+    stop("qdesn_vb_fit_online() requires posterior_as_prior handoff to be enabled.", call. = FALSE)
+  }
+  if (!is.null(vb_args$beta_prior_obj)) {
+    stop("qdesn_vb_fit_online() manages beta_prior_obj internally; supply ridge controls, not beta_prior_obj.", call. = FALSE)
+  }
+  .qdesn_rolling_check_posterior_as_prior_vb_args(vb_args)
+
+  batches <- .qdesn_online_batch_indices(length(y), batch_ends = batch_ends, batch_size = batch_size)
+  batch_df <- do.call(rbind, lapply(seq_along(batches), function(i) {
+    idx <- batches[[i]]
+    data.frame(
+      batch_id = as.integer(i),
+      batch_start = as.integer(idx[1L]),
+      batch_end = as.integer(idx[length(idx)]),
+      batch_n = as.integer(length(idx)),
+      source_row_start = as.integer(idx[1L]),
+      source_row_end = as.integer(idx[length(idx)]),
+      uses_future_rows = FALSE,
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  fits <- vector("list", length(batches))
+  summaries <- vector("list", length(batches))
+  handoffs <- vector("list", length(batches))
+  states <- vector("list", length(batches))
+  previous_state <- NULL
+  for (i in seq_along(batches)) {
+    idx <- batches[[i]]
+    vb_args_i <- vb_args
+    prior_state <- previous_state
+    if (!is.null(prior_state)) {
+      vb_args_i$beta_prior_obj <- .qdesn_rolling_prior_from_state(prior_state)
+    }
+    fit_args <- c(
+      list(y = y[idx], p0 = p0, fit_readout = TRUE),
+      desn_args,
+      list(vb_args = vb_args_i)
+    )
+    fit <- do.call(qdesn_fit_vb, fit_args)
+    .qdesn_rolling_validate_handoff(
+      state = prior_state,
+      fit = fit,
+      validate_feature_settings = posterior_as_prior_cfg$validate_feature_settings
+    )
+    summaries[[i]] <- .qdesn_rolling_fit_summary(
+      fit = fit,
+      origin_id = i,
+      origin = idx[length(idx)],
+      idx = idx,
+      target_label = "online_posterior_as_prior_al_ridge",
+      posterior_as_prior = TRUE,
+      prior_state = prior_state
+    )
+    names(summaries[[i]])[names(summaries[[i]]) == "origin_id"] <- "batch_id"
+    names(summaries[[i]])[names(summaries[[i]]) == "origin"] <- "batch_end"
+    names(summaries[[i]])[names(summaries[[i]]) == "window_start"] <- "batch_start"
+    names(summaries[[i]])[names(summaries[[i]]) == "window_end"] <- "batch_fit_end"
+    names(summaries[[i]])[names(summaries[[i]]) == "window_n"] <- "batch_n"
+
+    output_state <- .qdesn_rolling_posterior_state(
+      fit = fit,
+      origin_id = i,
+      origin = idx[length(idx)],
+      idx = idx,
+      prior_strength = posterior_as_prior_cfg$prior_strength,
+      jitter = posterior_as_prior_cfg$jitter
+    )
+    handoffs[[i]] <- data.frame(
+      batch_id = as.integer(i),
+      batch_start = as.integer(idx[1L]),
+      batch_end = as.integer(idx[length(idx)]),
+      likelihood_family = as.character(output_state$likelihood_family),
+      prior_family = as.character(output_state$prior_family),
+      p0 = as.numeric(output_state$p0),
+      covariance_form = as.character(output_state$covariance_form),
+      chunking_mode = as.character((fit$fit$misc$chunking %||% list())$mode %||% "none")[1L],
+      input_state_hash = as.character((prior_state %||% list())$state_hash %||% NA_character_)[1L],
+      input_from_batch = as.integer(if (is.null(prior_state)) NA_integer_ else prior_state$origin_id),
+      input_natural_norm = as.numeric(if (is.null(prior_state)) NA_real_ else sqrt(sum(prior_state$natural^2))),
+      output_state_hash = as.character(output_state$state_hash),
+      output_natural_norm = as.numeric(sqrt(sum(output_state$natural^2))),
+      output_precision_dim = as.integer(nrow(output_state$precision)),
+      design_hash = as.character(output_state$design_hash),
+      feature_settings_hash = as.character(output_state$feature_settings_hash),
+      package_sha = as.character((output_state$package %||% list())$sha %||% NA_character_)[1L],
+      stringsAsFactors = FALSE
+    )
+    previous_state <- output_state
+    if (isTRUE(keep_states)) states[[i]] <- output_state
+    if (isTRUE(keep_fits)) fits[[i]] <- fit
+  }
+
+  out <- list(
+    target = list(
+      type = "online_posterior_as_prior_al_ridge",
+      preserves_full_data_target = FALSE,
+      posterior_as_prior = TRUE,
+      workflow = "online_state_handoff",
+      order_sensitive = TRUE,
+      no_future_leakage = !any(batch_df$uses_future_rows),
+      note = "Ordered batches are fit sequentially; each post-first batch carries the previous beta posterior as a Gaussian beta prior, changing the workflow target."
+    ),
+    p0 = as.numeric(p0),
+    y_length = as.integer(length(y)),
+    batches = batch_df,
+    summary = do.call(rbind, summaries),
+    state_handoffs = do.call(rbind, handoffs),
+    states = if (isTRUE(keep_states)) states else NULL,
+    fits = if (isTRUE(keep_fits)) fits else NULL,
+    controls = list(desn_args = desn_args, vb_args = vb_args, posterior_as_prior = posterior_as_prior_cfg),
+    package = list(sha = .qdesn_vb_package_sha(), version = .qdesn_vb_package_version())
+  )
+  class(out) <- c("qdesn_vb_online_fit", "list")
   out
 }
