@@ -73,6 +73,11 @@ git_value <- function(cmd) {
   out[[1L]]
 }
 
+git_dirty <- function() {
+  out <- tryCatch(system2("git", c("status", "--porcelain"), stdout = TRUE, stderr = TRUE), error = function(e) NA_character_)
+  length(out) > 0L && any(nzchar(out))
+}
+
 max_abs <- function(x) {
   x <- as.numeric(x)
   if (!length(x) || all(is.na(x))) return(NA_real_)
@@ -376,7 +381,7 @@ predictions <- do.call(rbind, lapply(fits, function(obj) {
 repo_state <- data.frame(
   repo = repo_root,
   package_head = git_value(c("rev-parse", "--short", "HEAD")),
-  package_dirty = nzchar(git_value(c("status", "--porcelain"))),
+  package_dirty = git_dirty(),
   source_kind = src$source_kind,
   source_dir = src$source_dir,
   source_hash = src$source_hash,
