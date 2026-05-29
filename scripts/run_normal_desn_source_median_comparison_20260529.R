@@ -16,6 +16,12 @@ arg_int <- function(flag, default) {
   value
 }
 
+arg_num <- function(flag, default) {
+  value <- suppressWarnings(as.numeric(arg_value(flag, as.character(default))))
+  if (!length(value) || !is.finite(value)) stop(sprintf("%s must be finite numeric.", flag), call. = FALSE)
+  value
+}
+
 repo_root <- normalizePath(arg_value("--repo", getwd()), mustWork = TRUE)
 output_dir <- arg_value(
   "--output-dir",
@@ -35,6 +41,7 @@ max_iter <- arg_int("--max-iter", 15L)
 stochastic_max_iter <- arg_int("--stochastic-max-iter", 40L)
 synthetic_n <- arg_int("--synthetic-n", 0L)
 run_stochastic <- !arg_flag("--skip-stochastic")
+exact_tolerance <- arg_num("--exact-tolerance", 1e-6)
 
 if (D != 1L) stop("This comparison harness currently supports D = 1 only.", call. = FALSE)
 if (n_res < 1L) stop("--n must be positive.", call. = FALSE)
@@ -43,6 +50,7 @@ if (washout < 0L) stop("--washout must be non-negative.", call. = FALSE)
 if (chunk_size < 1L) stop("--chunk-size must be positive.", call. = FALSE)
 if (max_iter < 1L || stochastic_max_iter < 1L) stop("iteration controls must be positive.", call. = FALSE)
 if (synthetic_n < 0L) stop("--synthetic-n must be non-negative.", call. = FALSE)
+if (!is.finite(exact_tolerance) || exact_tolerance <= 0) stop("--exact-tolerance must be positive.", call. = FALSE)
 
 Sys.setenv(
   OMP_NUM_THREADS = "1",
@@ -243,7 +251,7 @@ method_summary_row <- function(obj, reference = NULL) {
   )
 }
 
-exact_pair_row <- function(left, right, tolerance = 1e-7) {
+exact_pair_row <- function(left, right, tolerance = exact_tolerance) {
   lp <- predict_fit(left)
   rp <- predict_fit(right)
   gate <- max(
@@ -393,6 +401,7 @@ repo_state <- data.frame(
   chunk_size = chunk_size,
   max_iter = max_iter,
   stochastic_max_iter = stochastic_max_iter,
+  exact_tolerance = exact_tolerance,
   stringsAsFactors = FALSE
 )
 

@@ -72,7 +72,7 @@ test_that("Normal/Q-DESN unified comparison wrapper runs on a tiny source", {
   exact <- utils::read.csv(file.path(out_dir, "exact_equivalence.csv"))
   init <- utils::read.csv(file.path(out_dir, "initializer_diagnostics.csv"))
 
-  expect_identical(repo_state$head[[1L]], as.character(repo_state$head[[1L]]))
+  expect_true(grepl("^git:", as.character(repo_state$head[[1L]])))
   expect_true(all(c("normal_source", "normal_init", "qdesn_implemented_modes") %in% methods$component))
   expect_true(any(methods$method_id == "normal_scaled_ridge"))
   expect_true(any(methods$method_id == "qdesn_al_ridge_full"))

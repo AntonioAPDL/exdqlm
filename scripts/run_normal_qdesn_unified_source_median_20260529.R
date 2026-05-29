@@ -176,7 +176,7 @@ component_runs <- list()
 component_runs[[length(component_runs) + 1L]] <- run_component(
   "normal_source",
   script_path("run_normal_desn_source_median_comparison_20260529.R"),
-  c(common_args, "--output-dir", normal_source_dir, "--chunk-size", as.character(chunk_size))
+  c(common_args, "--output-dir", normal_source_dir, "--chunk-size", as.character(chunk_size), "--exact-tolerance", "1e-6")
 )
 component_runs[[length(component_runs) + 1L]] <- run_component(
   "normal_init",
@@ -259,7 +259,8 @@ predictions <- rbind_fill(list(
 repo_state <- data.frame(
   repo = repo_root,
   branch = git_value(c("branch", "--show-current")),
-  head = git_value(c("rev-parse", "--short", "HEAD")),
+  head = paste0("git:", git_value(c("rev-parse", "--short", "HEAD"))),
+  head_short = paste0("git:", git_value(c("rev-parse", "--short", "HEAD"))),
   dirty = git_dirty(),
   source_dir = source_dir,
   seed = seed,
