@@ -168,6 +168,49 @@
   )
 }
 
+.exal_normalize_vb_subset_fit_cfg <- function(subset_fit = NULL, n = NULL) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+  if (is.null(subset_fit)) {
+    return(list(enabled = FALSE, mode = "fixed", rows = integer(0), target_label = "full_data_vb"))
+  }
+  if (!is.list(subset_fit)) {
+    .stopf("vb_control$subset_fit must be a list.")
+  }
+  enabled <- if (is.null(subset_fit$enabled)) TRUE else isTRUE(subset_fit$enabled)
+  mode <- tolower(as.character(subset_fit$mode %||% "fixed")[1L])
+  if (!identical(mode, "fixed")) {
+    .stopf("vb_control$subset_fit$mode must be 'fixed'.")
+  }
+  rows <- subset_fit$rows %||% subset_fit$row_ids %||% subset_fit$indices %||% NULL
+  if (!enabled) {
+    return(list(enabled = FALSE, mode = mode, rows = integer(0), target_label = "full_data_vb"))
+  }
+  if (is.null(rows)) {
+    .stopf("vb_control$subset_fit$rows is required when subset fitting is enabled.")
+  }
+  rows_num <- suppressWarnings(as.numeric(rows))
+  if (any(!is.finite(rows_num)) || any(abs(rows_num - round(rows_num)) > .Machine$double.eps^0.5)) {
+    .stopf("vb_control$subset_fit$rows must contain finite integer row indices.")
+  }
+  rows <- as.integer(rows_num)
+  if (!length(rows)) .stopf("vb_control$subset_fit$rows must contain at least one row.")
+  if (any(rows < 1L)) .stopf("vb_control$subset_fit$rows must be positive integer row indices.")
+  rows <- unique(rows)
+  if (!is.null(n)) {
+    n <- as.integer(n)[1L]
+    if (is.finite(n) && any(rows > n)) {
+      .stopf("vb_control$subset_fit$rows must be within 1:nrow(X).")
+    }
+  }
+  list(
+    enabled = TRUE,
+    mode = mode,
+    rows = rows,
+    target_label = as.character(subset_fit$target_label %||% "subset_data_vb")[1L],
+    seed = subset_fit$seed %||% NA_integer_
+  )
+}
+
 .exal_make_row_chunks <- function(n, chunk_size = NULL) {
   n <- as.integer(n)[1L]
   if (!is.finite(n) || n < 0L) .stopf("row chunks: n must be a non-negative integer.")

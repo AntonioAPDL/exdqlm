@@ -81,6 +81,29 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   if (isTRUE(use_diagonal_beta_covariance) && isTRUE(use_stochastic_chunking)) {
     .stopf("diagonal beta covariance approximation is currently supported only for unchunked or exact chunked VB.")
   }
+  vb_control$subset_fit <- .exal_normalize_vb_subset_fit_cfg(vb_control$subset_fit %||% NULL, nrow(X))
+  use_subset_fit <- isTRUE(vb_control$subset_fit$enabled)
+  if (isTRUE(use_subset_fit) && !is_al) {
+    .stopf("fixed subset VB is currently supported only for likelihood_family = 'al'.")
+  }
+  if (isTRUE(use_subset_fit) && !identical(beta_prior_obj$type, "ridge")) {
+    .stopf("fixed subset VB is currently supported only for ridge beta priors.")
+  }
+  if (isTRUE(use_subset_fit) && isTRUE(use_stochastic_chunking)) {
+    .stopf("fixed subset VB is currently supported only for unchunked or exact chunked VB.")
+  }
+  original_n <- nrow(X)
+  if (isTRUE(use_subset_fit)) {
+    subset_rows <- as.integer(vb_control$subset_fit$rows)
+    X <- X[subset_rows, , drop = FALSE]
+    y <- y[subset_rows]
+    vb_control$subset_fit$original_n <- as.integer(original_n)
+    vb_control$subset_fit$n_subset <- as.integer(length(subset_rows))
+  } else {
+    subset_rows <- integer(0)
+    vb_control$subset_fit$original_n <- as.integer(original_n)
+    vb_control$subset_fit$n_subset <- as.integer(original_n)
+  }
   sigmagam_cfg <- vb_control$sigmagam %||% list()
   sigmagam_freeze_warmup_iters <- max(0L, as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
@@ -2191,6 +2214,11 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       } else {
         NA_character_
       },
+      subset_fit = vb_control$subset_fit,
+      subset_rows = if (isTRUE(use_subset_fit)) subset_rows else integer(0),
+      original_n = as.integer(original_n),
+      target_label = if (isTRUE(use_subset_fit)) vb_control$subset_fit$target_label else "full_data_vb",
+      preserves_full_data_target = !isTRUE(use_subset_fit),
       stochastic = isTRUE(use_stochastic_chunking),
       hybrid = isTRUE(use_hybrid_chunking),
       approximate_chunking = isTRUE(use_stochastic_chunking),

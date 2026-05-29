@@ -1050,6 +1050,9 @@
   if (!is.null(vb_cfg$beta_covariance)) {
     vb_args_base$beta_covariance <- .exal_normalize_vb_beta_covariance_cfg(vb_cfg$beta_covariance)
   }
+  if (!is.null(vb_cfg$subset_fit)) {
+    vb_args_base$subset_fit <- .exal_normalize_vb_subset_fit_cfg(vb_cfg$subset_fit)
+  }
 
   if (!is.null(vb_cfg$diagnostics)) {
     diag_cfg <- vb_cfg$diagnostics
@@ -1453,6 +1456,9 @@ exal_make_vb_online_control <- function(
 #' @param beta_covariance Optional beta covariance approximation control. Use
 #'   `list(approximation = "full")` or `list(approximation = "diagonal")`.
 #'   Defaults preserve the existing full-covariance behavior.
+#' @param subset_fit Optional fixed subset target control. Use
+#'   `list(enabled = TRUE, mode = "fixed", rows = integer())`. This changes the
+#'   fitted data target and is not chunking.
 #' @param control Optional existing control list to update and normalize.
 #'
 #' @return A normalized list suitable for `vb_control`.
@@ -1484,6 +1490,7 @@ exal_make_vb_control <- function(
     diagnostics = NULL,
     chunking = NULL,
     beta_covariance = NULL,
+    subset_fit = NULL,
     control = NULL) {
   vb_cfg <- .exal_list_or_empty(control)
   if (!missing(max_iter)) vb_cfg$max_iter <- max_iter
@@ -1502,6 +1509,7 @@ exal_make_vb_control <- function(
   if (!missing(diagnostics)) vb_cfg$diagnostics <- diagnostics
   if (!missing(chunking)) vb_cfg$chunking <- chunking
   if (!missing(beta_covariance)) vb_cfg$beta_covariance <- beta_covariance
+  if (!missing(subset_fit)) vb_cfg$subset_fit <- subset_fit
 
   resolved <- .exal_resolve_vb_config(vb_cfg, p_vec = c(0.5), verbose = FALSE)
   out <- resolved$args_base

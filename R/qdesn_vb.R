@@ -972,6 +972,11 @@ qdesn_fit_vb <- function(
           vb_args,
           "beta_covariance",
           get_exact(get_exact(vb_args, "vb_control", list()), "beta_covariance", NULL)
+        ),
+        subset_fit = get_exact(
+          vb_args,
+          "subset_fit",
+          get_exact(get_exact(vb_args, "vb_control", list()), "subset_fit", NULL)
         )
       )
     )
