@@ -71,7 +71,11 @@ exact Normal-inverse-gamma target. \code{"ridge"} is accepted as an alias.
 \item{omega_prior}{Inverse-gamma prior controls with positive \code{a} and
 \code{b}, using density proportional to \eqn{x^{-a-1}\exp(-b/x)}.}
 \item{rhs}{RHS or RHS_NS controls passed to the package beta-prior machinery.}
-\item{control}{VB controls for RHS-family Normal readouts.}
+\item{control}{Readout controls. For \code{"scaled_ridge"}, optional
+\code{control$chunking} supports exact sequential row chunking with entries
+\code{enabled}, \code{mode = "exact"}, \code{chunk_size}, \code{order =
+"sequential"}, and \code{trace}. For RHS-family readouts, \code{control}
+contains VB controls and chunking is currently forbidden.}
 \item{...}{Arguments forwarded to \code{\link{qdesn_fit_vb}} for DESN feature
 construction. The readout fit is suppressed and replaced by the Normal readout.}
 \item{p0}{Quantile-level placeholder forwarded to \code{\link{qdesn_fit_vb}}
@@ -117,6 +121,12 @@ With \eqn{P_n=P+X'X}, \eqn{h_n=Pb+X'y}, and
 \eqn{m_n=P_n^{-1}h_n}, the posterior inverse-gamma rate is
 \eqn{B_n=b+0.5(y'y+b'Pb-m_n'P_nm_n)} and the marginal beta posterior is
 Student-\eqn{t}.
+
+The scaled-ridge path may accumulate \eqn{X'X}, \eqn{X'y}, and \eqn{y'y}
+in deterministic row chunks through \code{control$chunking}. This preserves
+the exact full-data target: chunking changes only how row-additive sufficient
+statistics are accumulated, not the posterior equations. Non-exact chunking
+and RHS/RHS_NS chunking fail early.
 
 Normal DESN is a conditional-mean model. It is useful as a Gaussian baseline
 and as a beta-moment initialization source for AL/exAL Q-DESN fits, but it is

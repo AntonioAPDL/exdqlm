@@ -101,8 +101,82 @@ if (!exists("%||%", mode = "function")) {
   )
 }
 
-.normal_desn_fit_scaled_ridge <- function(X, y, prior, omega_prior) {
-  stats <- .normal_desn_data_stats(X, y)
+.normal_desn_normalize_chunking <- function(chunking) {
+  if (is.null(chunking) || identical(chunking, FALSE)) {
+    return(list(enabled = FALSE, mode = "none", chunk_size = NULL, order = "sequential", trace = FALSE))
+  }
+  if (identical(chunking, TRUE)) chunking <- list(enabled = TRUE)
+  if (!is.list(chunking)) .normal_desn_stop("control$chunking must be a list or logical.")
+  enabled <- if (is.null(chunking$enabled)) TRUE else isTRUE(chunking$enabled)
+  if (!enabled) {
+    return(list(enabled = FALSE, mode = "none", chunk_size = NULL, order = "sequential", trace = FALSE))
+  }
+  mode <- tolower(as.character(chunking$mode %||% "exact")[1L])
+  if (!identical(mode, "exact")) {
+    .normal_desn_stop("Normal DESN chunking currently supports mode = 'exact' only.")
+  }
+  order <- tolower(as.character(chunking$order %||% "sequential")[1L])
+  if (!identical(order, "sequential")) {
+    .normal_desn_stop("Normal DESN exact chunking currently supports order = 'sequential' only.")
+  }
+  chunk_size <- as.integer(chunking$chunk_size %||% NA_integer_)[1L]
+  if (is.na(chunk_size) || !is.finite(chunk_size) || chunk_size < 1L) {
+    .normal_desn_stop("control$chunking$chunk_size must be a positive integer.")
+  }
+  list(
+    enabled = TRUE,
+    mode = "exact",
+    chunk_size = chunk_size,
+    order = "sequential",
+    trace = isTRUE(chunking$trace %||% FALSE)
+  )
+}
+
+.normal_desn_make_row_chunks <- function(n, chunk_size) {
+  n <- as.integer(n)[1L]
+  chunk_size <- as.integer(chunk_size)[1L]
+  starts <- seq.int(1L, n, by = chunk_size)
+  lapply(starts, function(s) seq.int(s, min(n, s + chunk_size - 1L)))
+}
+
+.normal_desn_data_stats_chunks <- function(X, y, chunking) {
+  if (!isTRUE(chunking$enabled)) return(.normal_desn_data_stats(X, y))
+  chunks <- .normal_desn_make_row_chunks(nrow(X), chunking$chunk_size)
+  p <- ncol(X)
+  XtX <- matrix(0, p, p)
+  Xty <- numeric(p)
+  yty <- 0
+  trace <- data.frame(chunk_id = integer(), row_start = integer(), row_end = integer(), n_rows = integer())
+  for (i in seq_along(chunks)) {
+    idx <- chunks[[i]]
+    Xb <- X[idx, , drop = FALSE]
+    yb <- y[idx]
+    XtX <- XtX + crossprod(Xb)
+    Xty <- Xty + as.numeric(crossprod(Xb, yb))
+    yty <- yty + as.numeric(crossprod(yb))
+    if (isTRUE(chunking$trace)) {
+      trace <- rbind(trace, data.frame(
+        chunk_id = as.integer(i),
+        row_start = as.integer(idx[1L]),
+        row_end = as.integer(idx[length(idx)]),
+        n_rows = as.integer(length(idx))
+      ))
+    }
+  }
+  list(
+    n = nrow(X),
+    p = p,
+    XtX = XtX,
+    Xty = Xty,
+    yty = as.numeric(yty),
+    chunking = chunking,
+    chunk_trace = if (isTRUE(chunking$trace)) trace else NULL
+  )
+}
+
+.normal_desn_fit_scaled_ridge <- function(X, y, prior, omega_prior, chunking = NULL) {
+  chunking <- .normal_desn_normalize_chunking(chunking)
+  stats <- .normal_desn_data_stats_chunks(X, y, chunking)
   P0 <- prior$precision
   b0 <- prior$mean
   h_n <- as.numeric(P0 %*% b0 + stats$Xty)
@@ -147,6 +221,7 @@ if (!exists("%||%", mode = "function")) {
     ),
     prior = list(type = "scaled_ridge", mean = b0, precision = P0),
     stats = stats,
+    chunking = chunking,
     log_marginal = as.numeric(log_marginal),
     exact_closed_form = TRUE,
     uses_vb = FALSE
@@ -182,7 +257,8 @@ if (!exists("%||%", mode = "function")) {
   ridge_start <- .normal_desn_fit_scaled_ridge(
     X, y,
     .normal_desn_normalize_scaled_ridge_prior(list(beta_ridge_tau2 = 1e4, intercept_var = 1e6), stats$p),
-    omega_prior
+    omega_prior,
+    chunking = NULL
   )
   m <- ridge_start$beta$mean
   V <- ridge_start$beta$cov
@@ -268,15 +344,21 @@ normal_desn_fit <- function(X, y,
                             control = list()) {
   X <- .normal_desn_assert_matrix(X)
   y <- .normal_desn_assert_response(y, nrow(X))
+  if (is.null(control)) control <- list()
+  if (!is.list(control)) .normal_desn_stop("control must be a list.")
   beta_prior_type <- tolower(match.arg(beta_prior_type))
   if (identical(beta_prior_type, "ridge")) beta_prior_type <- "scaled_ridge"
   omega_prior <- .normal_desn_normalize_omega_prior(omega_prior)
 
   if (identical(beta_prior_type, "scaled_ridge")) {
+    chunking <- .normal_desn_normalize_chunking(control$chunking %||% NULL)
     prior <- .normal_desn_normalize_scaled_ridge_prior(prior, ncol(X))
-    fit <- .normal_desn_fit_scaled_ridge(X, y, prior, omega_prior)
-    target_label <- "normal_scaled_ridge_exact"
+    fit <- .normal_desn_fit_scaled_ridge(X, y, prior, omega_prior, chunking = chunking)
+    target_label <- if (isTRUE(chunking$enabled)) "normal_scaled_ridge_exact_chunked" else "normal_scaled_ridge_exact"
   } else {
+    if (!is.null(control$chunking) && isTRUE((control$chunking %||% list())$enabled)) {
+      .normal_desn_stop("Normal DESN RHS/RHS_NS chunking is not implemented yet.")
+    }
     control <- .normal_desn_normalize_vb_control(control)
     fit <- .normal_desn_fit_rhs_vb(X, y, beta_prior_type, rhs, omega_prior, control)
     target_label <- paste0("normal_", beta_prior_type, "_vb_approx")
@@ -295,6 +377,7 @@ normal_desn_fit <- function(X, y,
     misc = list(
       beta_prior_type = beta_prior_type,
       omega_prior = omega_prior,
+      chunking = fit$chunking %||% list(enabled = FALSE, mode = "none"),
       exact_closed_form = isTRUE(fit$exact_closed_form),
       uses_vb = isTRUE(fit$uses_vb),
       package_sha = .qdesn_vb_package_sha(),

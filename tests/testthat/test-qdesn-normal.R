@@ -85,6 +85,53 @@ test_that("normal_desn_fit scaled ridge matches closed-form posterior algebra", 
   expect_true(is.finite(fit$log_marginal))
 })
 
+test_that("normal_desn_fit exact chunked scaled ridge matches unchunked", {
+  dat <- make_normal_desn_fixed_data(n = 43L, seed = 20260536L)
+  prior <- list(
+    mean = c(0.05, 0, 0),
+    precision = diag(c(1e-6, 1 / 25, 1 / 30), ncol(dat$X))
+  )
+  omega <- list(a = 2.2, b = 0.9)
+  ref <- exdqlm::normal_desn_fit(
+    dat$X, dat$y,
+    beta_prior_type = "scaled_ridge",
+    prior = prior,
+    omega_prior = omega
+  )
+
+  for (chunk_size in c(nrow(dat$X), 8L, 1L)) {
+    fit <- exdqlm::normal_desn_fit(
+      dat$X, dat$y,
+      beta_prior_type = "scaled_ridge",
+      prior = prior,
+      omega_prior = omega,
+      control = list(chunking = list(
+        enabled = TRUE,
+        mode = "exact",
+        chunk_size = chunk_size,
+        order = "sequential",
+        trace = TRUE
+      ))
+    )
+    expect_s3_class(fit, "normal_desn_readout")
+    expect_identical(fit$target_label, "normal_scaled_ridge_exact_chunked")
+    expect_true(isTRUE(fit$misc$chunking$enabled))
+    expect_identical(fit$misc$chunking$mode, "exact")
+    expect_equal(fit$beta$mean, ref$beta$mean, tolerance = 1e-10)
+    expect_equal(fit$beta$cov, ref$beta$cov, tolerance = 1e-10)
+    expect_equal(fit$beta$scale_cov, ref$beta$scale_cov, tolerance = 1e-10)
+    expect_equal(fit$omega2$a, ref$omega2$a, tolerance = 1e-12)
+    expect_equal(fit$omega2$b, ref$omega2$b, tolerance = 1e-10)
+    expect_equal(fit$log_marginal, ref$log_marginal, tolerance = 1e-10)
+    expect_equal(fit$mu_hat, ref$mu_hat, tolerance = 1e-12)
+    expect_equal(fit$stats$XtX, ref$stats$XtX, tolerance = 1e-12)
+    expect_equal(fit$stats$Xty, ref$stats$Xty, tolerance = 1e-12)
+    expect_equal(fit$stats$yty, ref$stats$yty, tolerance = 1e-12)
+    expect_true(is.data.frame(fit$stats$chunk_trace))
+    expect_equal(sum(fit$stats$chunk_trace$n_rows), nrow(dat$X), tolerance = 0)
+  }
+})
+
 test_that("normal_desn_fit validates scaled ridge inputs", {
   dat <- make_normal_desn_fixed_data()
   expect_error(
@@ -98,6 +145,31 @@ test_that("normal_desn_fit validates scaled ridge inputs", {
   expect_error(
     exdqlm::normal_desn_fit(dat$X, dat$y, prior = list(precision = diag(c(1, -1, 1)))),
     "positive definite"
+  )
+  expect_error(
+    exdqlm::normal_desn_fit(
+      dat$X, dat$y,
+      control = list(chunking = list(enabled = TRUE, mode = "stochastic", chunk_size = 5L))
+    ),
+    "mode = 'exact'"
+  )
+  expect_error(
+    exdqlm::normal_desn_fit(
+      dat$X, dat$y,
+      control = list(chunking = list(enabled = TRUE, mode = "exact", chunk_size = 5L, order = "random"))
+    ),
+    "order = 'sequential'"
+  )
+  expect_error(
+    exdqlm::normal_desn_fit(
+      dat$X, dat$y,
+      control = list(chunking = list(enabled = TRUE, mode = "exact"))
+    ),
+    "chunk_size"
+  )
+  expect_error(
+    exdqlm::normal_desn_fit(dat$X, dat$y, control = 1),
+    "control must be a list"
   )
 })
 
@@ -124,6 +196,16 @@ test_that("normal_desn_fit RHS-family priors are finite approximate VB fits", {
     expect_true(all(is.finite(fit$trace$sigma2_mean)))
     expect_false(isTRUE(fit$beta_prior$hypers$shrink_intercept))
   }
+  expect_error(
+    exdqlm::normal_desn_fit(
+      dat$X,
+      dat$y,
+      beta_prior_type = "rhs_ns",
+      rhs = make_normal_desn_rhs("rhs_ns"),
+      control = list(chunking = list(enabled = TRUE, mode = "exact", chunk_size = 5L))
+    ),
+    "RHS/RHS_NS chunking"
+  )
 })
 
 test_that("Normal DESN posterior draws and predictions are reproducible", {
@@ -175,6 +257,44 @@ test_that("qdesn_fit_normal reuses Q-DESN design construction and returns Normal
 
   pp <- exdqlm::posterior_predict.qdesn_normal_fit(fit, nd = 10L, seed = 101L)
   expect_equal(dim(pp$yrep), c(nrow(fit$X), 10L))
+})
+
+test_that("qdesn_fit_normal forwards exact chunking to scaled-ridge readout", {
+  y <- tiny_normal_qdesn_series(n = 44L)
+  common_args <- list(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 5L,
+    m = 1L,
+    washout = 5L,
+    add_bias = TRUE,
+    seed = 20260537L,
+    normal_args = list(
+      beta_prior_type = "scaled_ridge",
+      prior = list(beta_ridge_tau2 = 40, intercept_var = 1e6),
+      omega_prior = list(a = 2.5, b = 1.2)
+    )
+  )
+  ref <- do.call(exdqlm::qdesn_fit_normal, common_args)
+  chunked_args <- common_args
+  chunked_args$normal_args$control <- list(chunking = list(
+    enabled = TRUE,
+    mode = "exact",
+    chunk_size = 3L,
+    order = "sequential"
+  ))
+  fit <- do.call(exdqlm::qdesn_fit_normal, chunked_args)
+
+  expect_s3_class(fit, "qdesn_normal_fit")
+  expect_equal(fit$X, ref$X, tolerance = 0)
+  expect_identical(fit$meta$target_label, "normal_scaled_ridge_exact_chunked")
+  expect_true(isTRUE(fit$fit$misc$chunking$enabled))
+  expect_equal(fit$fit$beta$mean, ref$fit$beta$mean, tolerance = 1e-8)
+  expect_equal(fit$fit$beta$cov, ref$fit$beta$cov, tolerance = 1e-8)
+  expect_equal(fit$fit$omega2$b, ref$fit$omega2$b, tolerance = 1e-8)
+  expect_equal(fit$fit$log_marginal, ref$fit$log_marginal, tolerance = 1e-8)
+  expect_equal(fit$mu_hat, ref$mu_hat, tolerance = 1e-10)
 })
 
 test_that("qdesn_fit_normal supports RHS-family approximate readouts", {
