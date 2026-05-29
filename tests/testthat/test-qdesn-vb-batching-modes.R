@@ -167,3 +167,42 @@ test_that("qdesn_fit_vb routes hybrid exAL with full-refresh recovery", {
   expect_equal(fit_hybrid$fit$qbeta$m, fit_exact$fit$qbeta$m, tolerance = 1e-8)
   expect_equal(fit_hybrid$fit$qbeta$V, fit_exact$fit$qbeta$V, tolerance = 1e-8)
 })
+
+test_that("qdesn_fit_vb routes hybrid exAL RHS_NS with full-refresh recovery", {
+  y <- tiny_qdesn_series_for_batching_tests()
+  common <- tiny_qdesn_common_args(seed = 20260536L)
+  rhs_ns <- list(
+    tau0 = 0.7,
+    a_zeta = 2,
+    b_zeta = 1,
+    zeta2_fixed = 1.2,
+    s2 = 1.2,
+    shrink_intercept = FALSE,
+    n_inner = 1L,
+    init_lambda2 = 1,
+    init_tau2 = 1,
+    init_xi = 1,
+    init_zeta2 = 1.2
+  )
+  exal_exact <- tiny_qdesn_al_vb_args(max_iter = 12L)
+  exal_exact$likelihood_family <- "exal"
+  exal_exact$al_fixed_gamma <- NULL
+  exal_exact$beta_prior_type <- "rhs_ns"
+  exal_exact$beta_rhs <- rhs_ns
+
+  exal_hybrid <- exal_exact
+  exal_hybrid$chunking <- tiny_qdesn_hybrid_chunking(seed = 48L, full_every = 1L)
+
+  fit_exact <- do.call(exdqlm::qdesn_fit_vb, c(list(y = y), common, list(vb_args = exal_exact)))
+  fit_hybrid <- do.call(exdqlm::qdesn_fit_vb, c(list(y = y), common, list(vb_args = exal_hybrid)))
+
+  expect_s3_class(fit_hybrid$fit, "exal_vb")
+  expect_identical(as.character(fit_hybrid$fit$likelihood_family), "exal")
+  expect_identical(fit_hybrid$fit$beta_prior$type, "rhs_ns")
+  expect_true(isTRUE(fit_hybrid$fit$misc$hybrid))
+  expect_true(all(fit_hybrid$fit$misc$stochastic_trace$full_refresh))
+  expect_equal(fit_hybrid$fit$qbeta$m, fit_exact$fit$qbeta$m, tolerance = 1e-8)
+  expect_equal(fit_hybrid$fit$qbeta$V, fit_exact$fit$qbeta$V, tolerance = 1e-8)
+  expect_true(all(is.finite(fit_hybrid$fit$misc$rhs_tau_trace)))
+  expect_true(all(is.finite(fit_hybrid$fit$misc$rhs_c2_trace)))
+})

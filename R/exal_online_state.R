@@ -194,8 +194,8 @@
       .stopf("vb_control$subset_fit$strata currently supports only 'time_block'.")
     }
     allocation <- tolower(as.character(subset_fit$allocation %||% "proportional")[1L])
-    if (!identical(allocation, "proportional")) {
-      .stopf("vb_control$subset_fit$allocation currently supports only 'proportional'.")
+    if (!allocation %in% c("proportional", "equal")) {
+      .stopf("vb_control$subset_fit$allocation currently supports only 'proportional' or 'equal'.")
     }
 
     size <- subset_fit$size %||% subset_fit$n_subset %||% subset_fit$subset_size %||% NULL
@@ -289,9 +289,13 @@
   as.integer(cut(seq_len(n), breaks = n_strata, labels = FALSE))
 }
 
-.exal_allocate_stratified_subset <- function(stratum_id, size) {
+.exal_allocate_stratified_subset <- function(stratum_id, size, allocation = "proportional") {
   stratum_id <- as.integer(stratum_id)
   size <- as.integer(size)[1L]
+  allocation <- tolower(as.character(allocation)[1L])
+  if (!allocation %in% c("proportional", "equal")) {
+    .stopf("stratified subset allocation: allocation must be 'proportional' or 'equal'.")
+  }
   tab <- as.integer(tabulate(stratum_id, nbins = max(stratum_id)))
   ids <- seq_along(tab)
   n_total <- sum(tab)
@@ -309,14 +313,20 @@
     return(alloc)
   }
 
-  desired <- size * tab / n_total
   remaining <- size - sum(alloc)
   while (remaining > 0L) {
     capacity <- tab - alloc
     if (!any(capacity > 0L)) break
-    deficit <- desired - alloc
-    deficit[capacity <= 0L] <- -Inf
-    pick <- order(-deficit, ids)[1L]
+    if (identical(allocation, "equal")) {
+      level <- alloc
+      level[capacity <= 0L] <- Inf
+      pick <- order(level, ids)[1L]
+    } else {
+      desired <- size * tab / n_total
+      deficit <- desired - alloc
+      deficit[capacity <= 0L] <- -Inf
+      pick <- order(-deficit, ids)[1L]
+    }
     alloc[pick] <- alloc[pick] + 1L
     remaining <- size - sum(alloc)
   }
@@ -330,11 +340,11 @@
   n_strata <- as.integer(n_strata)[1L]
   seed <- as.integer(seed)[1L]
   allocation <- tolower(as.character(allocation)[1L])
-  if (!identical(allocation, "proportional")) {
-    .stopf("stratified subset rows: allocation must be 'proportional'.")
+  if (!allocation %in% c("proportional", "equal")) {
+    .stopf("stratified subset rows: allocation must be 'proportional' or 'equal'.")
   }
   stratum_id <- .exal_make_time_block_strata(n, n_strata)
-  alloc <- .exal_allocate_stratified_subset(stratum_id, size)
+  alloc <- .exal_allocate_stratified_subset(stratum_id, size, allocation = allocation)
   blocks <- split(seq_len(n), stratum_id)
   sampled <- .exal_with_seed(seed, {
     unlist(Map(function(block, k) {

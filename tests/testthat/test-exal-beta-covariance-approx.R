@@ -222,7 +222,7 @@ test_that("diagonal exact chunking matches diagonal unchunked AL RHS-family prio
   }
 })
 
-test_that("diagonal covariance stage fails early outside supported AL full/exact scope", {
+test_that("diagonal covariance stage fails early outside supported full/exact scope", {
   dat <- make_beta_covariance_test_data(seed = 20260633L, n = 30L)
   ctrl <- make_beta_covariance_control(beta_covariance = list(approximation = "diagonal"))
   expect_error(

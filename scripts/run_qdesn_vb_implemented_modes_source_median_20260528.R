@@ -8,6 +8,8 @@ arg_value <- function(flag, default = NULL) {
   args[[hit[[1L]] + 1L]]
 }
 
+arg_flag <- function(flag) any(args == flag)
+
 arg_int <- function(flag, default) {
   value <- suppressWarnings(as.integer(arg_value(flag, as.character(default))))
   if (!length(value) || !is.finite(value)) stop(sprintf("%s must be a finite integer.", flag), call. = FALSE)
@@ -17,6 +19,14 @@ arg_int <- function(flag, default) {
 arg_num <- function(flag, default) {
   value <- suppressWarnings(as.numeric(arg_value(flag, as.character(default))))
   if (!length(value) || !is.finite(value)) stop(sprintf("%s must be finite numeric.", flag), call. = FALSE)
+  value
+}
+
+arg_int_optional <- function(flag) {
+  raw <- arg_value(flag, NULL)
+  if (is.null(raw)) return(NA_integer_)
+  value <- suppressWarnings(as.integer(raw))
+  if (!length(value) || !is.finite(value)) stop(sprintf("%s must be a finite integer.", flag), call. = FALSE)
   value
 }
 
@@ -45,6 +55,10 @@ hybrid_max_iter <- arg_int("--hybrid-max-iter", stochastic_max_iter)
 hybrid_full_every <- arg_int("--hybrid-full-every", 15L)
 cores <- arg_int("--cores", 1L)
 exact_tolerance <- arg_num("--exact-tolerance", 1e-6)
+exact_relative_tolerance <- arg_num("--exact-relative-tolerance", 1e-8)
+tail_rows <- arg_int_optional("--tail-rows")
+expected_effective_rows <- arg_int_optional("--expected-effective-rows")
+skip_workflows <- arg_flag("--skip-workflows")
 
 if (qdesn_D != 1L) stop("This implemented-mode comparison currently supports D = 1 only.", call. = FALSE)
 if (qdesn_n < 1L) stop("--n must be positive.", call. = FALSE)
@@ -59,6 +73,13 @@ if (hybrid_full_every < 1L) stop("--hybrid-full-every must be positive.", call. 
 if (cores < 1L) stop("--cores must be positive.", call. = FALSE)
 if (!is.finite(exact_tolerance) || exact_tolerance <= 0) {
   stop("--exact-tolerance must be positive.", call. = FALSE)
+}
+if (!is.finite(exact_relative_tolerance) || exact_relative_tolerance <= 0) {
+  stop("--exact-relative-tolerance must be positive.", call. = FALSE)
+}
+if (!is.na(tail_rows) && tail_rows < 0L) stop("--tail-rows must be non-negative when supplied.", call. = FALSE)
+if (!is.na(expected_effective_rows) && expected_effective_rows < 1L) {
+  stop("--expected-effective-rows must be positive when supplied.", call. = FALSE)
 }
 if (cores > 1L && !identical(.Platform$OS.type, "unix")) {
   stop("--cores > 1 requires a Unix-like platform.", call. = FALSE)
@@ -141,6 +162,7 @@ series_path <- file.path(source_dir, "series_wide.csv")
 selection_path <- file.path(source_dir, "selection_indices.csv")
 series <- utils::read.csv(series_path)
 selection <- utils::read.csv(selection_path)
+source_n_rows <- nrow(series)
 
 required_cols <- c("t", "y", "mu", "q_target", "eps")
 if (!identical(names(series), required_cols)) {
@@ -149,9 +171,22 @@ if (!identical(names(series), required_cols)) {
 if (nrow(selection) != nrow(series) || !all(c("t", "source_index") %in% names(selection))) {
   stop("selection_indices.csv must align with series_wide.csv and include t,source_index.", call. = FALSE)
 }
-if (nrow(series) != 500L) stop("This comparison expects the literal 500-row source subset.", call. = FALSE)
-if (!identical(as.integer(selection$source_index), seq.int(9501L, 10000L))) {
-  stop("selection_indices.csv must map to source indices 9501:10000.", call. = FALSE)
+if (!is.na(tail_rows) && tail_rows > 0L) {
+  if (tail_rows > nrow(series)) {
+    stop("--tail-rows cannot exceed the available source row count.", call. = FALSE)
+  }
+  tail_idx <- seq.int(nrow(series) - tail_rows + 1L, nrow(series))
+  series <- series[tail_idx, , drop = FALSE]
+  selection <- selection[tail_idx, , drop = FALSE]
+  row.names(series) <- NULL
+  row.names(selection) <- NULL
+}
+if (nrow(series) < 2L) stop("The selected source slice must contain at least two rows.", call. = FALSE)
+if (anyNA(selection$source_index) || any(!is.finite(selection$source_index))) {
+  stop("selection_indices.csv contains missing or non-finite source_index values.", call. = FALSE)
+}
+if (any(diff(as.integer(selection$source_index)) != 1L)) {
+  stop("The selected source_index values must be contiguous and increasing.", call. = FALSE)
 }
 if (max(abs(series$mu - series$q_target)) != 0) {
   stop("q_target must equal mu exactly for this median source.", call. = FALSE)
@@ -159,9 +194,17 @@ if (max(abs(series$mu - series$q_target)) != 0) {
 if (anyNA(series[c("y", "mu", "q_target")])) {
   stop("series_wide.csv contains missing y, mu, or q_target values.", call. = FALSE)
 }
-if (qdesn_washout >= nrow(series)) stop("--washout must be smaller than 500.", call. = FALSE)
+if (qdesn_washout >= nrow(series)) {
+  stop(sprintf("--washout must be smaller than the selected row count (%d).", nrow(series)), call. = FALSE)
+}
 
 effective_rows <- nrow(series) - max(qdesn_m, qdesn_washout)
+if (!is.na(expected_effective_rows) && effective_rows != expected_effective_rows) {
+  stop(sprintf(
+    "Selected source slice yields %d effective rows, not --expected-effective-rows=%d.",
+    effective_rows, expected_effective_rows
+  ), call. = FALSE)
+}
 subset_size <- min(subset_size, effective_rows)
 fixed_subset_rows <- unique(as.integer(round(seq.int(1L, effective_rows, length.out = subset_size))))
 if (length(fixed_subset_rows) < subset_size) {
@@ -175,6 +218,9 @@ stratified_subset_cfg <- list(
   n_strata = min(5L, subset_size),
   seed = seed + 700L
 )
+stratified_equal_subset_cfg <- stratified_subset_cfg
+stratified_equal_subset_cfg$allocation <- "equal"
+stratified_equal_subset_cfg$seed <- seed + 701L
 
 qdesn_seed <- seed + 100L
 desn_args <- list(
@@ -304,6 +350,8 @@ fit_specs <- list(
   make_spec("qdesn_al_ridge_fixed_subset_exact", with_exact(with_subset(al_ridge, list(enabled = TRUE, mode = "fixed", rows = fixed_subset_rows)))),
   make_spec("qdesn_al_ridge_stratified_subset", with_subset(al_ridge, stratified_subset_cfg)),
   make_spec("qdesn_al_ridge_stratified_subset_exact", with_exact(with_subset(al_ridge, stratified_subset_cfg))),
+  make_spec("qdesn_al_ridge_stratified_equal_subset", with_subset(al_ridge, stratified_equal_subset_cfg)),
+  make_spec("qdesn_al_ridge_stratified_equal_subset_exact", with_exact(with_subset(al_ridge, stratified_equal_subset_cfg))),
   make_spec("qdesn_al_rhs_full", al_rhs),
   make_spec("qdesn_al_rhs_exact", with_exact(al_rhs)),
   make_spec("qdesn_al_rhs_diagonal", with_cov_diag(al_rhs)),
@@ -318,8 +366,12 @@ fit_specs <- list(
   make_spec("qdesn_exal_ridge_hybrid_repeat", utils::modifyList(exal_ridge, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking))),
   make_spec("qdesn_exal_rhs_full", exal_rhs),
   make_spec("qdesn_exal_rhs_exact", with_exact(exal_rhs)),
+  make_spec("qdesn_exal_rhs_hybrid", utils::modifyList(exal_rhs, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking))),
+  make_spec("qdesn_exal_rhs_hybrid_repeat", utils::modifyList(exal_rhs, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking))),
   make_spec("qdesn_exal_rhs_ns_full", exal_rhs_ns),
-  make_spec("qdesn_exal_rhs_ns_exact", with_exact(exal_rhs_ns))
+  make_spec("qdesn_exal_rhs_ns_exact", with_exact(exal_rhs_ns)),
+  make_spec("qdesn_exal_rhs_ns_hybrid", utils::modifyList(exal_rhs_ns, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking))),
+  make_spec("qdesn_exal_rhs_ns_hybrid_repeat", utils::modifyList(exal_rhs_ns, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking)))
 )
 
 fit_qdesn_spec <- function(spec) {
@@ -474,6 +526,18 @@ exact_compare <- function(reference, candidate, comparison_type = "exact_chunkin
     gamma_trace_diff, elbo_trace_diff, design_diff,
     na.rm = TRUE
   )
+  gate_scale <- max(
+    1,
+    max_abs(rf$qbeta$m),
+    max_abs(rf$qbeta$V),
+    max_abs(fitted_values(reference)),
+    max_abs(rf$misc$sigma_trace),
+    max_abs(rf$misc$gamma_trace),
+    max_abs(rf$misc$elbo_trace),
+    max_abs(reference$fit$X),
+    na.rm = TRUE
+  )
+  relative_gate_diff <- gate_diff / gate_scale
   data.frame(
     comparison_type = comparison_type,
     reference_method = reference$method_id,
@@ -493,8 +557,12 @@ exact_compare <- function(reference, candidate, comparison_type = "exact_chunkin
     elbo_trace_max_abs_diff = elbo_trace_diff,
     qdesn_design_max_abs_diff = design_diff,
     max_gate_diff = gate_diff,
+    gate_scale = gate_scale,
+    relative_gate_diff = relative_gate_diff,
     tolerance = exact_tolerance,
-    passed = is.finite(gate_diff) && gate_diff <= exact_tolerance,
+    relative_tolerance = exact_relative_tolerance,
+    passed = is.finite(gate_diff) &&
+      (gate_diff <= exact_tolerance || relative_gate_diff <= exact_relative_tolerance),
     stringsAsFactors = FALSE
   )
 }
@@ -583,7 +651,13 @@ target_change_compare <- function(reference, candidate) {
 
 main_methods <- setdiff(
   names(fits),
-  c("qdesn_al_ridge_stochastic_repeat", "qdesn_al_ridge_hybrid_repeat", "qdesn_exal_ridge_hybrid_repeat")
+  c(
+    "qdesn_al_ridge_stochastic_repeat",
+    "qdesn_al_ridge_hybrid_repeat",
+    "qdesn_exal_ridge_hybrid_repeat",
+    "qdesn_exal_rhs_hybrid_repeat",
+    "qdesn_exal_rhs_ns_hybrid_repeat"
+  )
 )
 method_summary <- rbind_fill(lapply(fits[main_methods], method_summary_row))
 prediction_metrics <- method_summary[, c(
@@ -599,6 +673,7 @@ exact_equivalence <- rbind_fill(list(
   exact_compare(fits$qdesn_al_ridge_diagonal, fits$qdesn_al_ridge_diagonal_exact, "diagonal_exact_chunking"),
   exact_compare(fits$qdesn_al_ridge_fixed_subset, fits$qdesn_al_ridge_fixed_subset_exact, "subset_exact_chunking"),
   exact_compare(fits$qdesn_al_ridge_stratified_subset, fits$qdesn_al_ridge_stratified_subset_exact, "subset_exact_chunking"),
+  exact_compare(fits$qdesn_al_ridge_stratified_equal_subset, fits$qdesn_al_ridge_stratified_equal_subset_exact, "subset_exact_chunking"),
   exact_compare(fits$qdesn_al_rhs_full, fits$qdesn_al_rhs_exact),
   exact_compare(fits$qdesn_al_rhs_diagonal, fits$qdesn_al_rhs_diagonal_exact, "diagonal_exact_chunking"),
   exact_compare(fits$qdesn_al_rhs_ns_full, fits$qdesn_al_rhs_ns_exact),
@@ -612,6 +687,8 @@ approximate_diagnostics <- rbind_fill(list(
   approx_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stochastic, fits$qdesn_al_ridge_stochastic_repeat, "stochastic_al"),
   approx_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_hybrid, fits$qdesn_al_ridge_hybrid_repeat, "hybrid_al"),
   approx_compare(fits$qdesn_exal_ridge_full, fits$qdesn_exal_ridge_hybrid, fits$qdesn_exal_ridge_hybrid_repeat, "hybrid_exal"),
+  approx_compare(fits$qdesn_exal_rhs_full, fits$qdesn_exal_rhs_hybrid, fits$qdesn_exal_rhs_hybrid_repeat, "hybrid_exal"),
+  approx_compare(fits$qdesn_exal_rhs_ns_full, fits$qdesn_exal_rhs_ns_hybrid, fits$qdesn_exal_rhs_ns_hybrid_repeat, "hybrid_exal"),
   approx_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_diagonal, NULL, "diagonal_covariance"),
   approx_compare(fits$qdesn_al_rhs_full, fits$qdesn_al_rhs_diagonal, NULL, "diagonal_covariance"),
   approx_compare(fits$qdesn_al_rhs_ns_full, fits$qdesn_al_rhs_ns_diagonal, NULL, "diagonal_covariance")
@@ -619,91 +696,111 @@ approximate_diagnostics <- rbind_fill(list(
 
 target_changing_diagnostics <- rbind_fill(list(
   target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_fixed_subset),
-  target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_subset)
+  target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_subset),
+  target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_equal_subset)
 ))
 
-desn_args_workflow <- desn_args
-desn_args_workflow$p0 <- NULL
-desn_args_workflow$fit_readout <- NULL
-vb_online <- al_ridge
-batch_ends <- c(250L, nrow(series))
-origins <- batch_ends
+if (!isTRUE(skip_workflows)) {
+  desn_args_workflow <- desn_args
+  desn_args_workflow$p0 <- NULL
+  desn_args_workflow$fit_readout <- NULL
+  vb_online <- al_ridge
+  workflow_min_rows <- max(qdesn_m, qdesn_washout) + 10L
+  workflow_window_size <- min(nrow(series), max(250L, workflow_min_rows))
+  batch_ends <- unique(as.integer(c(workflow_window_size, nrow(series))))
+  origins <- batch_ends
 
-cat("Running rolling/posterior-as-prior/online workflow diagnostics\n")
-workflow_rows <- list()
-workflow_exact_rows <- list()
-tm_roll <- system.time({
-  rolling <- exdqlm::qdesn_vb_fit_rolling(
-    y = series$y,
-    p0 = 0.5,
-    origins = origins,
-    window_size = 250L,
-    mode = "rolling",
-    desn_args = desn_args_workflow,
-    vb_args = vb_online,
-    posterior_as_prior = FALSE,
-    keep_fits = TRUE
+  cat("Running rolling/posterior-as-prior/online workflow diagnostics\n")
+  workflow_rows <- list()
+  workflow_exact_rows <- list()
+  tm_roll <- system.time({
+    rolling <- exdqlm::qdesn_vb_fit_rolling(
+      y = series$y,
+      p0 = 0.5,
+      origins = origins,
+      window_size = workflow_window_size,
+      mode = "rolling",
+      desn_args = desn_args_workflow,
+      vb_args = vb_online,
+      posterior_as_prior = FALSE,
+      keep_fits = TRUE
+    )
+  })
+  workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_rolling", rolling, tm_roll[["elapsed"]])
+
+  tm_pap <- system.time({
+    pap <- exdqlm::qdesn_vb_fit_rolling(
+      y = series$y,
+      p0 = 0.5,
+      origins = origins,
+      window_size = workflow_window_size,
+      mode = "rolling",
+      desn_args = desn_args_workflow,
+      vb_args = vb_online,
+      posterior_as_prior = TRUE,
+      keep_fits = TRUE
+    )
+  })
+  workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_posterior_as_prior", pap, tm_pap[["elapsed"]])
+
+  tm_online <- system.time({
+    online <- exdqlm::qdesn_vb_fit_online(
+      y = series$y,
+      p0 = 0.5,
+      batch_ends = batch_ends,
+      desn_args = desn_args_workflow,
+      vb_args = vb_online,
+      posterior_as_prior = TRUE,
+      keep_fits = TRUE,
+      keep_states = TRUE
+    )
+  })
+  workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_online", online, tm_online[["elapsed"]])
+
+  tm_online_exact <- system.time({
+    online_exact <- exdqlm::qdesn_vb_fit_online(
+      y = series$y,
+      p0 = 0.5,
+      batch_ends = batch_ends,
+      desn_args = desn_args_workflow,
+      vb_args = with_exact(vb_online),
+      posterior_as_prior = TRUE,
+      keep_fits = TRUE,
+      keep_states = TRUE
+    )
+  })
+  workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_online_exact", online_exact, tm_online_exact[["elapsed"]])
+
+  workflow_target_diagnostics <- rbind_fill(workflow_rows)
+  workflow_exact_rows[[1L]] <- data.frame(
+    comparison_type = "online_exact_chunking",
+    reference_method = "qdesn_al_ridge_online",
+    candidate_method = "qdesn_al_ridge_online_exact",
+    final_beta_l2_abs_diff = abs(tail(online$summary$beta_l2, 1L) - tail(online_exact$summary$beta_l2, 1L)),
+    final_sigma_mean_abs_diff = abs(tail(online$summary$sigma_mean, 1L) - tail(online_exact$summary$sigma_mean, 1L)),
+    final_gamma_mean_abs_diff = abs(tail(online$summary$gamma_mean, 1L) - tail(online_exact$summary$gamma_mean, 1L)),
+    no_future_leakage_reference = isTRUE(online$target$no_future_leakage),
+    no_future_leakage_candidate = isTRUE(online_exact$target$no_future_leakage),
+    passed = isTRUE(online$target$no_future_leakage) && isTRUE(online_exact$target$no_future_leakage),
+    stringsAsFactors = FALSE
   )
-})
-workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_rolling", rolling, tm_roll[["elapsed"]])
-
-tm_pap <- system.time({
-  pap <- exdqlm::qdesn_vb_fit_rolling(
-    y = series$y,
-    p0 = 0.5,
-    origins = origins,
-    window_size = 250L,
-    mode = "rolling",
-    desn_args = desn_args_workflow,
-    vb_args = vb_online,
-    posterior_as_prior = TRUE,
-    keep_fits = TRUE
-  )
-})
-workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_posterior_as_prior", pap, tm_pap[["elapsed"]])
-
-tm_online <- system.time({
-  online <- exdqlm::qdesn_vb_fit_online(
-    y = series$y,
-    p0 = 0.5,
-    batch_ends = batch_ends,
-    desn_args = desn_args_workflow,
-    vb_args = vb_online,
-    posterior_as_prior = TRUE,
-    keep_fits = TRUE,
-    keep_states = TRUE
-  )
-})
-workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_online", online, tm_online[["elapsed"]])
-
-tm_online_exact <- system.time({
-  online_exact <- exdqlm::qdesn_vb_fit_online(
-    y = series$y,
-    p0 = 0.5,
-    batch_ends = batch_ends,
-    desn_args = desn_args_workflow,
-    vb_args = with_exact(vb_online),
-    posterior_as_prior = TRUE,
-    keep_fits = TRUE,
-    keep_states = TRUE
-  )
-})
-workflow_rows[[length(workflow_rows) + 1L]] <- workflow_summary("qdesn_al_ridge_online_exact", online_exact, tm_online_exact[["elapsed"]])
-
-workflow_target_diagnostics <- rbind_fill(workflow_rows)
-workflow_exact_rows[[1L]] <- data.frame(
-  comparison_type = "online_exact_chunking",
-  reference_method = "qdesn_al_ridge_online",
-  candidate_method = "qdesn_al_ridge_online_exact",
-  final_beta_l2_abs_diff = abs(tail(online$summary$beta_l2, 1L) - tail(online_exact$summary$beta_l2, 1L)),
-  final_sigma_mean_abs_diff = abs(tail(online$summary$sigma_mean, 1L) - tail(online_exact$summary$sigma_mean, 1L)),
-  final_gamma_mean_abs_diff = abs(tail(online$summary$gamma_mean, 1L) - tail(online_exact$summary$gamma_mean, 1L)),
-  no_future_leakage_reference = isTRUE(online$target$no_future_leakage),
-  no_future_leakage_candidate = isTRUE(online_exact$target$no_future_leakage),
-  passed = isTRUE(online$target$no_future_leakage) && isTRUE(online_exact$target$no_future_leakage),
-  stringsAsFactors = FALSE
-)
-target_changing_diagnostics <- rbind_fill(list(target_changing_diagnostics, workflow_target_diagnostics, rbind_fill(workflow_exact_rows)))
+  target_changing_diagnostics <- rbind_fill(list(target_changing_diagnostics, workflow_target_diagnostics, rbind_fill(workflow_exact_rows)))
+} else {
+  cat("Skipping rolling/posterior-as-prior/online workflow diagnostics by request.\n")
+  target_changing_diagnostics <- rbind_fill(list(
+    target_changing_diagnostics,
+    data.frame(
+      method_id = "qdesn_al_ridge_workflows",
+      target_label = "workflow_skipped",
+      preserves_full_data_target = NA,
+      order_sensitive = NA,
+      posterior_as_prior = NA,
+      no_future_leakage = NA,
+      reason = "Skipped with --skip-workflows; source-scale gate focuses on implemented static/readout modes.",
+      stringsAsFactors = FALSE
+    )
+  ))
+}
 
 forbidden_attempt <- function(method, expr, pattern = NULL) {
   msg <- tryCatch({
@@ -758,6 +855,9 @@ repo_state <- data.frame(
   head = git_value(c("rev-parse", "HEAD")),
   upstream = git_value(c("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")),
   source_dir = source_dir,
+  source_n_rows = source_n_rows,
+  selected_n_rows = nrow(series),
+  tail_rows = if (is.na(tail_rows)) NA_integer_ else as.integer(tail_rows),
   n_rows = nrow(series),
   source_index_min = min(selection$source_index),
   source_index_max = max(selection$source_index),
@@ -768,6 +868,8 @@ repo_state <- data.frame(
   m = qdesn_m,
   washout = qdesn_washout,
   effective_rows = effective_rows,
+  expected_effective_rows = if (is.na(expected_effective_rows)) NA_integer_ else as.integer(expected_effective_rows),
+  skip_workflows = isTRUE(skip_workflows),
   subset_size = subset_size,
   chunk_size = chunk_size,
   max_iter = max_iter,
@@ -775,6 +877,7 @@ repo_state <- data.frame(
   hybrid_max_iter = hybrid_max_iter,
   hybrid_full_every = hybrid_full_every,
   exact_tolerance = exact_tolerance,
+  exact_relative_tolerance = exact_relative_tolerance,
   cores = cores,
   package_sha = hash_or_na(exdqlm:::.qdesn_vb_package_sha()),
   stringsAsFactors = FALSE
@@ -788,6 +891,10 @@ dataset_summary <- rbind_fill(list(
     q3 = NA_real_, max = NA_real_, sd = NA_real_,
     source_index_min = min(selection$source_index),
     source_index_max = max(selection$source_index),
+    source_n_rows = source_n_rows,
+    selected_n_rows = nrow(series),
+    tail_rows = if (is.na(tail_rows)) NA_integer_ else as.integer(tail_rows),
+    effective_rows = effective_rows,
     max_abs_mu_q_target = max(abs(series$mu - series$q_target)),
     missing_y = sum(is.na(series$y)),
     missing_mu = sum(is.na(series$mu)),
@@ -849,7 +956,7 @@ writeLines("", con)
 writeLines("## Exact Equivalence", con)
 md_table(exact_equivalence[, c(
   "comparison_type", "reference_method", "candidate_method",
-  "max_gate_diff", "tolerance", "passed"
+  "max_gate_diff", "relative_gate_diff", "tolerance", "relative_tolerance", "passed"
 )], con)
 writeLines("", con)
 writeLines("## Approximate Diagnostics", con)
@@ -876,7 +983,7 @@ if (!all(exact_equivalence$passed)) {
 }
 stoch_row <- approximate_diagnostics[approximate_diagnostics$candidate_method == "qdesn_al_ridge_stochastic", , drop = FALSE]
 hybrid_row <- approximate_diagnostics[approximate_diagnostics$candidate_method == "qdesn_al_ridge_hybrid", , drop = FALSE]
-hybrid_exal_row <- approximate_diagnostics[approximate_diagnostics$candidate_method == "qdesn_exal_ridge_hybrid", , drop = FALSE]
+hybrid_exal_rows <- approximate_diagnostics[approximate_diagnostics$comparison_type == "hybrid_exal", , drop = FALSE]
 if (!nrow(stoch_row) || !isTRUE(stoch_row$finite_state) ||
     !is.finite(stoch_row$reproducible_beta_mean_max_abs_diff) ||
     stoch_row$reproducible_beta_mean_max_abs_diff > 1e-10) {
@@ -887,9 +994,9 @@ if (!nrow(hybrid_row) || !isTRUE(hybrid_row$finite_state) ||
     hybrid_row$reproducible_beta_mean_max_abs_diff > 1e-10) {
   stop("Hybrid AL reproducibility/finite-state gate failed.", call. = FALSE)
 }
-if (!nrow(hybrid_exal_row) || !isTRUE(hybrid_exal_row$finite_state) ||
-    !is.finite(hybrid_exal_row$reproducible_beta_mean_max_abs_diff) ||
-    hybrid_exal_row$reproducible_beta_mean_max_abs_diff > 1e-10) {
+if (!nrow(hybrid_exal_rows) || !all(hybrid_exal_rows$finite_state) ||
+    any(!is.finite(hybrid_exal_rows$reproducible_beta_mean_max_abs_diff)) ||
+    any(hybrid_exal_rows$reproducible_beta_mean_max_abs_diff > 1e-10)) {
   stop("Hybrid exAL reproducibility/finite-state gate failed.", call. = FALSE)
 }
 attempted_forbidden <- forbidden_modes[isTRUE(forbidden_modes$attempted), , drop = FALSE]

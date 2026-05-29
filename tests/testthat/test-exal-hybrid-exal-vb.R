@@ -55,6 +55,38 @@ fit_static_hybrid_exal_test <- function(dat, ctrl, prior = NULL) {
   )
 }
 
+make_hybrid_exal_rhs_prior <- function(type = c("rhs", "rhs_ns")) {
+  type <- match.arg(type)
+  rhs <- if (identical(type, "rhs")) {
+    list(
+      tau0 = 0.7,
+      nu = 4,
+      s2 = 1.2,
+      shrink_intercept = FALSE,
+      n_inner = 1L,
+      eta_bounds = list(lambda = c(-7, 7), tau = c(-7, 7), c2 = c(-7, 7)),
+      init_log_lambda = 0,
+      init_log_tau = 0,
+      init_log_c2 = 0
+    )
+  } else {
+    list(
+      tau0 = 0.7,
+      a_zeta = 2,
+      b_zeta = 1,
+      zeta2_fixed = 1.2,
+      s2 = 1.2,
+      shrink_intercept = FALSE,
+      n_inner = 1L,
+      init_lambda2 = 1,
+      init_tau2 = 1,
+      init_xi = 1,
+      init_zeta2 = 1.2
+    )
+  }
+  exdqlm:::exal_make_beta_prior(type = type, rhs = rhs)
+}
+
 test_that("hybrid exAL full refresh every iteration recovers exact exAL ridge", {
   dat <- make_hybrid_exal_test_data()
   prior <- exdqlm:::exal_make_beta_prior(type = "ridge", tau2 = 40)
@@ -89,6 +121,42 @@ test_that("hybrid exAL full refresh every iteration recovers exact exAL ridge", 
   expect_lt(max(abs(fit_hybrid$misc$elbo_trace - fit_exact$misc$elbo_trace)), 1e-6)
 })
 
+test_that("hybrid exAL full refresh every iteration recovers exact exAL RHS-family priors", {
+  dat <- make_hybrid_exal_test_data(seed = 20260677L, n = 52L)
+  exact_ctrl <- list(
+    max_iter = 12L,
+    min_iter_elbo = 4L,
+    tol = 0,
+    tol_par = 0,
+    n_samp_xi = 24L,
+    verbose = FALSE
+  )
+  hybrid_ctrl <- make_hybrid_exal_control(
+    seed = 20260678L,
+    max_iter = exact_ctrl$max_iter,
+    full_every = 1L,
+    chunk_size = 9L
+  )
+
+  for (prior_type in c("rhs", "rhs_ns")) {
+    prior <- make_hybrid_exal_rhs_prior(prior_type)
+    fit_exact <- fit_static_hybrid_exal_test(dat, exact_ctrl, prior = prior)
+    fit_hybrid <- fit_static_hybrid_exal_test(dat, hybrid_ctrl, prior = prior)
+
+    expect_true(isTRUE(fit_hybrid$misc$hybrid))
+    expect_identical(fit_hybrid$beta_prior$type, prior_type)
+    expect_true(all(fit_hybrid$misc$stochastic_trace$full_refresh))
+    expect_lt(max(abs(fit_hybrid$qbeta$m - fit_exact$qbeta$m)), 1e-6)
+    expect_lt(max(abs(fit_hybrid$qbeta$V - fit_exact$qbeta$V)), 1e-6)
+    expect_lt(max(abs(fit_hybrid$qv$m - fit_exact$qv$m)), 1e-6)
+    expect_lt(max(abs(fit_hybrid$qs$m - fit_exact$qs$m)), 1e-6)
+    expect_lt(max(abs(fit_hybrid$misc$sigma_trace - fit_exact$misc$sigma_trace)), 1e-6)
+    expect_lt(max(abs(fit_hybrid$misc$gamma_trace - fit_exact$misc$gamma_trace)), 2e-6)
+    expect_true(all(is.finite(fit_hybrid$misc$rhs_tau_trace)))
+    expect_true(all(is.finite(fit_hybrid$misc$rhs_c2_trace)))
+  }
+})
+
 test_that("hybrid exAL ridge is finite and reproducible between refreshes", {
   dat <- make_hybrid_exal_test_data(seed = 20260673L)
   ctrl <- make_hybrid_exal_control(seed = 20260674L, max_iter = 20L, full_every = 5L, chunk_size = 10L)
@@ -116,6 +184,30 @@ test_that("hybrid exAL ridge is finite and reproducible between refreshes", {
   expect_equal(fit1$misc$stochastic_batch_ids, fit2$misc$stochastic_batch_ids)
 })
 
+test_that("hybrid exAL RHS-family priors are finite and keep global shrinkage traces", {
+  dat <- make_hybrid_exal_test_data(seed = 20260679L, n = 48L)
+  ctrl <- make_hybrid_exal_control(seed = 20260680L, max_iter = 14L, full_every = 4L, chunk_size = 8L)
+
+  for (prior_type in c("rhs", "rhs_ns")) {
+    fit <- fit_static_hybrid_exal_test(dat, ctrl, prior = make_hybrid_exal_rhs_prior(prior_type))
+
+    expect_true(isTRUE(fit$misc$hybrid))
+    expect_identical(fit$beta_prior$type, prior_type)
+    expect_true(any(fit$misc$stochastic_trace$full_refresh))
+    expect_true(any(!fit$misc$stochastic_trace$full_refresh))
+    expect_true(all(is.finite(fit$qbeta$m)))
+    expect_true(all(is.finite(fit$qbeta$V)))
+    expect_true(all(is.finite(fit$qv$m)))
+    expect_true(all(fit$qv$m > 0))
+    expect_true(all(is.finite(fit$qs$m)))
+    expect_true(all(fit$qs$m > 0))
+    expect_true(all(is.finite(fit$misc$sigma_trace)))
+    expect_true(all(is.finite(fit$misc$gamma_trace)))
+    expect_true(all(is.finite(fit$misc$rhs_tau_trace)))
+    expect_true(all(is.finite(fit$misc$rhs_c2_trace)))
+  }
+})
+
 test_that("unsupported exAL approximate combinations fail early", {
   dat <- make_hybrid_exal_test_data(seed = 20260675L, n = 40L)
   ctrl <- make_hybrid_exal_control(seed = 20260676L, max_iter = 8L, full_every = 2L, chunk_size = 8L)
@@ -125,14 +217,5 @@ test_that("unsupported exAL approximate combinations fail early", {
   expect_error(
     fit_static_hybrid_exal_test(dat, stoch_ctrl),
     "stochastic exAL VB chunking is not implemented"
-  )
-
-  rhs_prior <- exdqlm:::exal_make_beta_prior(
-    type = "rhs_ns",
-    rhs = list(tau0 = 0.5, s2 = 1, shrink_intercept = FALSE, n_inner = 1L)
-  )
-  expect_error(
-    fit_static_hybrid_exal_test(dat, ctrl, prior = rhs_prior),
-    "hybrid exAL VB chunking is currently supported only for ridge beta priors"
   )
 })
