@@ -108,6 +108,6 @@ test_that("qdesn_fit_vb forwards exact chunking controls", {
       likelihood_family = "exal",
       chunking = list(enabled = TRUE, mode = "stochastic")
     ))))),
-    "supported only for likelihood_family = 'al'"
+    "stochastic exAL VB chunking is not implemented"
   )
 })
