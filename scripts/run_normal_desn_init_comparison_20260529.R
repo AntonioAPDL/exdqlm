@@ -295,10 +295,35 @@ normal_rhs <- normal_fit("normal_rhs_ns_vb", y, list(
   control = list(max_iter = max_iter, min_iter = min(5L, max_iter), tol = 0)
 ))
 
-init_al_ridge <- exdqlm::qdesn_normal_to_vb_init(normal_ridge$fit, likelihood_family = "al", beta_prior_type = "ridge")
-init_al_rhs <- exdqlm::qdesn_normal_to_vb_init(normal_rhs$fit, likelihood_family = "al", beta_prior_type = "ridge")
-init_exal_ridge <- exdqlm::qdesn_normal_to_vb_init(normal_ridge$fit, likelihood_family = "exal", beta_prior_type = "ridge")
-init_exal_rhs <- exdqlm::qdesn_normal_to_vb_init(normal_rhs$fit, likelihood_family = "exal", beta_prior_type = "ridge")
+warm_ridge <- exdqlm::qdesn_normal_make_warm_start(normal_ridge$fit)
+warm_rhs <- exdqlm::qdesn_normal_make_warm_start(normal_rhs$fit)
+stopifnot(isTRUE(exdqlm::qdesn_normal_validate_warm_start(
+  warm_ridge,
+  X = normal_ridge$fit$X,
+  meta = normal_ridge$fit$meta
+)))
+stopifnot(isTRUE(exdqlm::qdesn_normal_validate_warm_start(
+  warm_rhs,
+  X = normal_rhs$fit$X,
+  meta = normal_rhs$fit$meta
+)))
+
+warm_start_summary <- data.frame(
+  warm_start_id = c("normal_scaled_ridge", "normal_rhs_ns_vb"),
+  normal_target = c(warm_ridge$target$label, warm_rhs$target$label),
+  exact_status = c(warm_ridge$target$exact_status, warm_rhs$target$exact_status),
+  prior_family = c(warm_ridge$prior$family, warm_rhs$prior$family),
+  beta_dim = c(warm_ridge$beta$dim, warm_rhs$beta$dim),
+  design_hash = c(warm_ridge$design$design_hash, warm_rhs$design$design_hash),
+  feature_settings_hash = c(warm_ridge$qdesn$feature_settings_hash, warm_rhs$qdesn$feature_settings_hash),
+  package_sha = c(warm_ridge$package$sha, warm_rhs$package$sha),
+  stringsAsFactors = FALSE
+)
+
+init_al_ridge <- exdqlm::qdesn_normal_warm_start_to_vb_init(warm_ridge, likelihood_family = "al", beta_prior_type = "ridge")
+init_al_rhs <- exdqlm::qdesn_normal_warm_start_to_vb_init(warm_rhs, likelihood_family = "al", beta_prior_type = "ridge")
+init_exal_ridge <- exdqlm::qdesn_normal_warm_start_to_vb_init(warm_ridge, likelihood_family = "exal", beta_prior_type = "ridge")
+init_exal_rhs <- exdqlm::qdesn_normal_warm_start_to_vb_init(warm_rhs, likelihood_family = "exal", beta_prior_type = "ridge")
 
 fits <- list(
   normal_scaled_ridge = normal_ridge,
@@ -333,7 +358,7 @@ if (isTRUE(run_mcmc)) {
   fits$al_mcmc_normal_scaled_ridge_init_tiny <- mcmc_fit(
     "al_mcmc_normal_scaled_ridge_init_tiny",
     y,
-    exdqlm::qdesn_normal_to_mcmc_init(normal_ridge$fit, likelihood_family = "al", beta_prior_type = "ridge")
+    exdqlm::qdesn_normal_warm_start_to_mcmc_init(warm_ridge, likelihood_family = "al", beta_prior_type = "ridge")
   )
   init_sources <- c(init_sources, al_mcmc_cold_tiny = "none", al_mcmc_normal_scaled_ridge_init_tiny = "normal_scaled_ridge")
   refs$al_mcmc_normal_scaled_ridge_init_tiny <- fits$al_mcmc_cold_tiny
@@ -361,6 +386,7 @@ repo_state <- data.frame(
 
 write_csv(repo_state, file.path(output_dir, "repo_state.csv"))
 write_csv(summary, file.path(output_dir, "init_method_summary.csv"))
+write_csv(warm_start_summary, file.path(output_dir, "warm_start_summary.csv"))
 
 md <- c(
   "# Normal DESN Initialization Comparison",
@@ -379,9 +405,16 @@ md <- c(
     names(summary)
   )], row.names = FALSE)), collapse = "\n"),
   "",
+  "## Warm-Start States",
+  "",
+  paste(utils::capture.output(print(warm_start_summary[, intersect(
+    c("warm_start_id", "normal_target", "exact_status", "prior_family", "beta_dim"),
+    names(warm_start_summary)
+  )], row.names = FALSE)), collapse = "\n"),
+  "",
   "## Interpretation",
   "",
-  "Normal initialization is a workflow mechanism, not a new posterior target.",
+  "Normal initialization is a workflow mechanism, not a new posterior target. This harness validates serialized Normal DESN warm-start states before converting them into AL/exAL initializers.",
   "Cold and initialized AL/exAL rows should be interpreted through convergence diagnostics, finite-state checks, and runtime behavior."
 )
 writeLines(md, file.path(output_dir, "normal_desn_init_comparison_summary.md"))

@@ -9,6 +9,10 @@
 \alias{forecast_paths.qdesn_normal_fit}
 \alias{qdesn_normal_to_vb_init}
 \alias{qdesn_normal_to_mcmc_init}
+\alias{qdesn_normal_make_warm_start}
+\alias{qdesn_normal_validate_warm_start}
+\alias{qdesn_normal_warm_start_to_vb_init}
+\alias{qdesn_normal_warm_start_to_mcmc_init}
 \title{Normal DESN readouts}
 \usage{
 normal_desn_fit(
@@ -71,6 +75,35 @@ qdesn_normal_to_mcmc_init(
   gamma = 0,
   al_fixed_gamma = 0
 )
+
+qdesn_normal_make_warm_start(object, X = NULL, package_sha = NULL)
+
+qdesn_normal_validate_warm_start(
+  warm_start,
+  X = NULL,
+  meta = NULL,
+  strict = TRUE,
+  validate_design_hash = TRUE,
+  validate_feature_settings_hash = TRUE,
+  validate_package_sha = FALSE
+)
+
+qdesn_normal_warm_start_to_vb_init(
+  warm_start,
+  likelihood_family = c("al", "exal"),
+  beta_prior_type = c("ridge", "rhs", "rhs_ns"),
+  p0 = 0.5,
+  eps = 1e-08
+)
+
+qdesn_normal_warm_start_to_mcmc_init(
+  warm_start,
+  likelihood_family = c("al", "exal"),
+  beta_prior_type = c("ridge", "rhs", "rhs_ns"),
+  p0 = 0.5,
+  gamma = 0,
+  al_fixed_gamma = 0
+)
 }
 \arguments{
 \item{X}{Numeric fixed DESN design matrix.}
@@ -115,6 +148,18 @@ metadata.}
 \item{eps}{Non-negative covariance jitter for initialization metadata.}
 \item{gamma}{Initial gamma for exAL MCMC.}
 \item{al_fixed_gamma}{Fixed AL gamma used when \code{likelihood_family = "al"}.}
+\item{package_sha}{Optional package commit SHA recorded in the serialized
+Normal warm-start state.}
+\item{warm_start}{A \code{qdesn_normal_warm_start} object produced by
+\code{qdesn_normal_make_warm_start}.}
+\item{meta}{Optional Q-DESN metadata used to validate feature-setting hashes.}
+\item{strict}{Logical; require core Normal warm-start metadata.}
+\item{validate_design_hash}{Logical; when \code{TRUE} and \code{X} is supplied,
+check that the current design hash matches the serialized state.}
+\item{validate_feature_settings_hash}{Logical; when \code{TRUE} and \code{meta}
+is supplied, check that Q-DESN feature settings match the serialized state.}
+\item{validate_package_sha}{Logical; when \code{TRUE}, require the current
+package SHA to match the serialized state.}
 }
 \value{
 \code{normal_desn_fit()} returns a \code{normal_desn_readout}. The exact
@@ -125,6 +170,12 @@ RHS-family path is labeled as approximate VB.
 \code{qdesn_fit_normal()} returns a \code{qdesn_normal_fit} object that reuses
 the current Q-DESN feature builder and stores the Normal readout separately
 from AL/exAL \code{qdesn_fit} objects.
+
+\code{qdesn_normal_make_warm_start()} returns a serialized
+\code{qdesn_normal_warm_start} state with beta moments, variance moments,
+target labels, prior metadata, design hashes, Q-DESN feature hashes when
+available, and package provenance. The validation and conversion helpers
+check this state and convert it into AL/exAL VB or MCMC initializers.
 }
 \description{
 Fit Normal-likelihood DESN readouts. The scaled-ridge prior is exact and uses
@@ -150,6 +201,13 @@ and RHS/RHS_NS chunking fail early.
 Normal DESN is a conditional-mean model. It is useful as a Gaussian baseline
 and as a beta-moment initialization source for AL/exAL Q-DESN fits, but it is
 not a quantile likelihood.
+
+Normal DESN warm starts are workflow artifacts. They do not change the target
+posterior of a downstream AL/exAL fit; if that downstream fit is run to its own
+convergence criterion, the Normal state is only an initialization source. The
+warm-start state carries explicit exact/chunked/approximate labels so exact
+Gaussian ridge states are not confused with RHS-family approximate Normal VB
+states.
 
 \code{forecast_paths.qdesn_normal_fit()} recursively samples Normal
 multi-step forecast paths for standard univariate raw-y-lag DESN inputs and
