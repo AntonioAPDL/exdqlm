@@ -168,7 +168,8 @@
   )
 }
 
-.exal_normalize_vb_subset_fit_cfg <- function(subset_fit = NULL, n = NULL) {
+.exal_normalize_vb_subset_fit_cfg <- function(subset_fit = NULL, n = NULL,
+                                             X = NULL, y = NULL) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
   if (is.null(subset_fit)) {
     return(list(enabled = FALSE, mode = "fixed", rows = integer(0), target_label = "full_data_vb"))
@@ -190,8 +191,17 @@
 
   if (identical(mode, "stratified")) {
     strata <- tolower(as.character(subset_fit$strata %||% "time_block")[1L])
-    if (!identical(strata, "time_block")) {
-      .stopf("vb_control$subset_fit$strata currently supports only 'time_block'.")
+    strata <- switch(strata,
+      response = "response_quantile",
+      y_quantile = "response_quantile",
+      response_quantile = "response_quantile",
+      leverage = "design_leverage",
+      design_leverage = "design_leverage",
+      time_block = "time_block",
+      strata
+    )
+    if (!strata %in% c("time_block", "response_quantile", "design_leverage")) {
+      .stopf("vb_control$subset_fit$strata currently supports only 'time_block', 'response_quantile', or 'design_leverage'.")
     }
     allocation <- tolower(as.character(subset_fit$allocation %||% "proportional")[1L])
     if (!allocation %in% c("proportional", "equal")) {
@@ -219,17 +229,61 @@
     stratum_id <- integer(0)
     stratum_allocation <- data.frame()
     pending <- TRUE
+    if (is.null(n)) {
+      if (!is.null(X)) n <- nrow(X)
+      else if (!is.null(y)) n <- length(y)
+    }
     if (!is.null(n)) {
       n <- as.integer(n)[1L]
       if (!is.finite(n) || n < 1L) .stopf("vb_control$subset_fit: nrow(X) must be positive.")
       if (size > n) .stopf("vb_control$subset_fit$size must be <= nrow(X).")
       if (n_strata > n) .stopf("vb_control$subset_fit$n_strata must be <= nrow(X).")
+      if (identical(strata, "time_block")) {
+        stratum_id <- .exal_make_time_block_strata(n, n_strata)
+      } else if (identical(strata, "response_quantile")) {
+        if (is.null(y)) {
+          return(list(
+            enabled = TRUE,
+            mode = mode,
+            rows = integer(0),
+            target_label = target_label,
+            seed = seed,
+            strata = strata,
+            size = as.integer(size),
+            n_strata = as.integer(n_strata),
+            allocation = allocation,
+            stratum_id = integer(0),
+            stratum_allocation = data.frame(),
+            pending = TRUE
+          ))
+        }
+        stratum_id <- .exal_make_response_quantile_strata(y, n_strata)
+      } else {
+        if (is.null(X)) {
+          return(list(
+            enabled = TRUE,
+            mode = mode,
+            rows = integer(0),
+            target_label = target_label,
+            seed = seed,
+            strata = strata,
+            size = as.integer(size),
+            n_strata = as.integer(n_strata),
+            allocation = allocation,
+            stratum_id = integer(0),
+            stratum_allocation = data.frame(),
+            pending = TRUE
+          ))
+        }
+        stratum_id <- .exal_make_design_leverage_strata(X, n_strata)
+      }
       sampled <- .exal_make_stratified_subset_rows(
         n = n,
         size = size,
         n_strata = n_strata,
         seed = seed,
-        allocation = allocation
+        allocation = allocation,
+        stratum_id = stratum_id
       )
       rows <- sampled$rows
       stratum_id <- sampled$stratum_id
@@ -289,6 +343,44 @@
   as.integer(cut(seq_len(n), breaks = n_strata, labels = FALSE))
 }
 
+.exal_make_rank_strata <- function(values, n_strata, context = "rank strata") {
+  values <- as.numeric(values)
+  n <- length(values)
+  n_strata <- as.integer(n_strata)[1L]
+  if (!is.finite(n_strata) || n_strata < 1L || n_strata > n) {
+    .stopf("%s: n_strata must be in 1:n.", context)
+  }
+  if (any(!is.finite(values))) {
+    .stopf("%s: values must be finite.", context)
+  }
+  ranks <- rank(values, ties.method = "first")
+  as.integer(cut(ranks, breaks = n_strata, labels = FALSE))
+}
+
+.exal_make_response_quantile_strata <- function(y, n_strata) {
+  .exal_make_rank_strata(y, n_strata, context = "response-quantile strata")
+}
+
+.exal_make_design_leverage_strata <- function(X, n_strata) {
+  assert_matrix(X, "X")
+  n <- nrow(X)
+  if (n < 1L) .stopf("design-leverage strata: X must have at least one row.")
+  scale <- apply(abs(X), 2L, max)
+  scale[!is.finite(scale) | scale <= 0] <- 1
+  X_scaled <- sweep(X, 2L, scale, "/")
+  if (any(!is.finite(X_scaled))) {
+    .stopf("design-leverage strata: X must be finite after column scaling.")
+  }
+  leverage <- tryCatch({
+    qr_x <- qr(X_scaled)
+    q <- qr.Q(qr_x)
+    rowSums(q^2)
+  }, error = function(e) {
+    rowSums(X_scaled^2)
+  })
+  .exal_make_rank_strata(leverage, n_strata, context = "design-leverage strata")
+}
+
 .exal_allocate_stratified_subset <- function(stratum_id, size, allocation = "proportional") {
   stratum_id <- as.integer(stratum_id)
   size <- as.integer(size)[1L]
@@ -334,7 +426,9 @@
   as.integer(alloc)
 }
 
-.exal_make_stratified_subset_rows <- function(n, size, n_strata, seed, allocation = "proportional") {
+.exal_make_stratified_subset_rows <- function(n, size, n_strata, seed,
+                                             allocation = "proportional",
+                                             stratum_id = NULL) {
   n <- as.integer(n)[1L]
   size <- as.integer(size)[1L]
   n_strata <- as.integer(n_strata)[1L]
@@ -343,7 +437,18 @@
   if (!allocation %in% c("proportional", "equal")) {
     .stopf("stratified subset rows: allocation must be 'proportional' or 'equal'.")
   }
-  stratum_id <- .exal_make_time_block_strata(n, n_strata)
+  if (is.null(stratum_id)) {
+    stratum_id <- .exal_make_time_block_strata(n, n_strata)
+  } else {
+    stratum_id <- as.integer(stratum_id)
+    if (length(stratum_id) != n || any(!is.finite(stratum_id)) || any(stratum_id < 1L)) {
+      .stopf("stratified subset rows: stratum_id must contain positive finite integers of length n.")
+    }
+    stratum_id <- as.integer(factor(stratum_id, levels = sort(unique(stratum_id))))
+    if (max(stratum_id) > n_strata) {
+      .stopf("stratified subset rows: stratum_id has more represented strata than n_strata.")
+    }
+  }
   alloc <- .exal_allocate_stratified_subset(stratum_id, size, allocation = allocation)
   blocks <- split(seq_len(n), stratum_id)
   sampled <- .exal_with_seed(seed, {

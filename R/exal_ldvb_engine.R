@@ -69,7 +69,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     identical(vb_control$chunking$mode, "hybrid")
   if (isTRUE(use_stochastic_chunking) && !is_al) {
     if (identical(vb_control$chunking$mode, "stochastic")) {
-      .stopf("stochastic exAL VB chunking is not implemented; use exact chunking or the gated hybrid exAL ridge mode.")
+      .stopf("stochastic exAL VB chunking is not implemented; use exact chunking or the gated hybrid exAL mode.")
     }
     if (!beta_prior_obj$type %in% c("ridge", "rhs", "rhs_ns")) {
       .stopf("hybrid exAL VB chunking is currently supported only for ridge and RHS-family beta priors.")
@@ -77,8 +77,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   }
   vb_control$beta_covariance <- .exal_normalize_vb_beta_covariance_cfg(vb_control$beta_covariance %||% NULL)
   use_diagonal_beta_covariance <- identical(vb_control$beta_covariance$approximation, "diagonal")
-  if (isTRUE(use_diagonal_beta_covariance) && !is_al) {
-    .stopf("diagonal beta covariance approximation is currently supported only for likelihood_family = 'al'.")
+  if (isTRUE(use_diagonal_beta_covariance) && !is_al &&
+      !identical(beta_prior_obj$type, "ridge")) {
+    .stopf("exAL diagonal beta covariance approximation is currently supported only for ridge beta priors.")
   }
   if (isTRUE(use_diagonal_beta_covariance) &&
       !beta_prior_obj$type %in% c("ridge", "rhs", "rhs_ns")) {
@@ -87,7 +88,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   if (isTRUE(use_diagonal_beta_covariance) && isTRUE(use_stochastic_chunking)) {
     .stopf("diagonal beta covariance approximation is currently supported only for unchunked or exact chunked VB.")
   }
-  vb_control$subset_fit <- .exal_normalize_vb_subset_fit_cfg(vb_control$subset_fit %||% NULL, nrow(X))
+  vb_control$subset_fit <- .exal_normalize_vb_subset_fit_cfg(
+    vb_control$subset_fit %||% NULL,
+    nrow(X),
+    X = X,
+    y = y
+  )
   use_subset_fit <- isTRUE(vb_control$subset_fit$enabled)
   if (isTRUE(use_subset_fit) && !is_al) {
     .stopf("subset VB is currently supported only for likelihood_family = 'al'.")

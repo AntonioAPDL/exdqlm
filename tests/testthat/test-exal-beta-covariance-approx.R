@@ -222,12 +222,43 @@ test_that("diagonal exact chunking matches diagonal unchunked AL RHS-family prio
   }
 })
 
+test_that("diagonal beta covariance supports exAL ridge full/exact scope", {
+  dat <- make_beta_covariance_test_data(seed = 20260633L, n = 40L)
+  diag_cov <- list(approximation = "diagonal")
+  plain <- fit_beta_covariance_al(
+    dat,
+    make_beta_covariance_control(beta_covariance = diag_cov, max_iter = 8L),
+    family = "exal"
+  )
+  exact <- fit_beta_covariance_al(
+    dat,
+    make_beta_covariance_control(
+      beta_covariance = diag_cov,
+      chunking = list(enabled = TRUE, mode = "exact", chunk_size = 7L),
+      max_iter = 8L
+    ),
+    family = "exal"
+  )
+
+  expect_identical(plain$misc$beta_covariance$approximation, "diagonal")
+  expect_true(isTRUE(plain$misc$approximate_covariance))
+  expect_identical(plain$qbeta$covariance_approximation, "diagonal")
+  expect_true(all(is.finite(plain$qbeta$m)))
+  expect_true(all(diag(plain$qbeta$V) > 0))
+  expect_lt(max(abs(exact$qbeta$m - plain$qbeta$m)), 1e-6)
+  expect_lt(max(abs(exact$qbeta$V - plain$qbeta$V)), 1e-6)
+  expect_lt(max(abs(exact$misc$sigma_trace - plain$misc$sigma_trace)), 1e-6)
+  expect_lt(max(abs(exact$misc$gamma_trace - plain$misc$gamma_trace)), 2e-6)
+  expect_lt(max(abs(exact$misc$elbo_trace - plain$misc$elbo_trace)), 1e-6)
+})
+
 test_that("diagonal covariance stage fails early outside supported full/exact scope", {
-  dat <- make_beta_covariance_test_data(seed = 20260633L, n = 30L)
+  dat <- make_beta_covariance_test_data(seed = 20260639L, n = 30L)
   ctrl <- make_beta_covariance_control(beta_covariance = list(approximation = "diagonal"))
+  rhs_prior <- make_beta_covariance_rhs_prior("rhs")
   expect_error(
-    fit_beta_covariance_al(dat, ctrl, family = "exal"),
-    "likelihood_family = 'al'"
+    fit_beta_covariance_al(dat, ctrl, prior = rhs_prior, family = "exal"),
+    "exAL diagonal beta covariance approximation is currently supported only for ridge beta priors"
   )
 
   stoch_ctrl <- make_beta_covariance_control(
@@ -287,6 +318,42 @@ test_that("qdesn_fit_vb routes diagonal covariance controls for AL ridge", {
   expect_s3_class(fit$fit, "exal_vb")
   expect_identical(fit$fit$misc$beta_covariance$approximation, "diagonal")
   expect_true(isTRUE(fit$fit$misc$approximate_covariance))
+  expect_true(all(is.finite(fit$fit$qbeta$m)))
+  expect_true(all(diag(fit$fit$qbeta$V) > 0))
+})
+
+test_that("qdesn_fit_vb routes diagonal covariance controls for exAL ridge", {
+  t <- seq_len(32L)
+  y <- as.numeric(0.15 * sin(t / 5) + 0.03 * cos(t / 7))
+  args <- list(
+    likelihood_family = "exal",
+    beta_prior_type = "ridge",
+    beta_ridge_tau2 = 10,
+    max_iter = 7L,
+    min_iter_elbo = 2L,
+    tol = 0,
+    tol_par = 0,
+    n_samp_xi = 16L,
+    verbose = FALSE,
+    beta_covariance = list(approximation = "diagonal")
+  )
+  fit <- exdqlm::qdesn_fit_vb(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 4L,
+    m = 1L,
+    washout = 4L,
+    add_bias = TRUE,
+    seed = 20260639L,
+    fit_readout = TRUE,
+    vb_args = args
+  )
+
+  expect_s3_class(fit$fit, "exal_vb")
+  expect_identical(fit$fit$misc$beta_covariance$approximation, "diagonal")
+  expect_true(isTRUE(fit$fit$misc$approximate_covariance))
+  expect_identical(fit$fit$likelihood_family, "exal")
   expect_true(all(is.finite(fit$fit$qbeta$m)))
   expect_true(all(diag(fit$fit$qbeta$V) > 0))
 })

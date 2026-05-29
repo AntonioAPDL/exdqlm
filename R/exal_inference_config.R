@@ -1459,8 +1459,10 @@ exal_make_vb_online_control <- function(
 #' @param subset_fit Optional subset target control. Use
 #'   `list(enabled = TRUE, mode = "fixed", rows = integer())` or
 #'   `list(enabled = TRUE, mode = "stratified", strata = "time_block",
-#'   size = integer(), n_strata = integer(), seed = integer())`. This changes
-#'   the fitted data target and is not chunking.
+#'   size = integer(), n_strata = integer(), seed = integer())`. Supported
+#'   stratifiers are `"time_block"`, `"response_quantile"`, and
+#'   `"design_leverage"`. This changes the fitted data target and is not
+#'   chunking.
 #' @param control Optional existing control list to update and normalize.
 #'
 #' @return A normalized list suitable for `vb_control`.

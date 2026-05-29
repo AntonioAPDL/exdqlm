@@ -221,6 +221,12 @@ stratified_subset_cfg <- list(
 stratified_equal_subset_cfg <- stratified_subset_cfg
 stratified_equal_subset_cfg$allocation <- "equal"
 stratified_equal_subset_cfg$seed <- seed + 701L
+stratified_response_subset_cfg <- stratified_subset_cfg
+stratified_response_subset_cfg$strata <- "response_quantile"
+stratified_response_subset_cfg$seed <- seed + 702L
+stratified_leverage_subset_cfg <- stratified_subset_cfg
+stratified_leverage_subset_cfg$strata <- "design_leverage"
+stratified_leverage_subset_cfg$seed <- seed + 703L
 
 qdesn_seed <- seed + 100L
 desn_args <- list(
@@ -352,6 +358,10 @@ fit_specs <- list(
   make_spec("qdesn_al_ridge_stratified_subset_exact", with_exact(with_subset(al_ridge, stratified_subset_cfg))),
   make_spec("qdesn_al_ridge_stratified_equal_subset", with_subset(al_ridge, stratified_equal_subset_cfg)),
   make_spec("qdesn_al_ridge_stratified_equal_subset_exact", with_exact(with_subset(al_ridge, stratified_equal_subset_cfg))),
+  make_spec("qdesn_al_ridge_stratified_response_subset", with_subset(al_ridge, stratified_response_subset_cfg)),
+  make_spec("qdesn_al_ridge_stratified_response_subset_exact", with_exact(with_subset(al_ridge, stratified_response_subset_cfg))),
+  make_spec("qdesn_al_ridge_stratified_leverage_subset", with_subset(al_ridge, stratified_leverage_subset_cfg)),
+  make_spec("qdesn_al_ridge_stratified_leverage_subset_exact", with_exact(with_subset(al_ridge, stratified_leverage_subset_cfg))),
   make_spec("qdesn_al_rhs_full", al_rhs),
   make_spec("qdesn_al_rhs_exact", with_exact(al_rhs)),
   make_spec("qdesn_al_rhs_diagonal", with_cov_diag(al_rhs)),
@@ -362,6 +372,8 @@ fit_specs <- list(
   make_spec("qdesn_al_rhs_ns_diagonal_exact", with_exact(with_cov_diag(al_rhs_ns))),
   make_spec("qdesn_exal_ridge_full", exal_ridge),
   make_spec("qdesn_exal_ridge_exact", with_exact(exal_ridge)),
+  make_spec("qdesn_exal_ridge_diagonal", with_cov_diag(exal_ridge)),
+  make_spec("qdesn_exal_ridge_diagonal_exact", with_exact(with_cov_diag(exal_ridge))),
   make_spec("qdesn_exal_ridge_hybrid", utils::modifyList(exal_ridge, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking))),
   make_spec("qdesn_exal_ridge_hybrid_repeat", utils::modifyList(exal_ridge, list(max_iter = hybrid_max_iter, chunking = hybrid_chunking))),
   make_spec("qdesn_exal_rhs_full", exal_rhs),
@@ -674,11 +686,14 @@ exact_equivalence <- rbind_fill(list(
   exact_compare(fits$qdesn_al_ridge_fixed_subset, fits$qdesn_al_ridge_fixed_subset_exact, "subset_exact_chunking"),
   exact_compare(fits$qdesn_al_ridge_stratified_subset, fits$qdesn_al_ridge_stratified_subset_exact, "subset_exact_chunking"),
   exact_compare(fits$qdesn_al_ridge_stratified_equal_subset, fits$qdesn_al_ridge_stratified_equal_subset_exact, "subset_exact_chunking"),
+  exact_compare(fits$qdesn_al_ridge_stratified_response_subset, fits$qdesn_al_ridge_stratified_response_subset_exact, "subset_exact_chunking"),
+  exact_compare(fits$qdesn_al_ridge_stratified_leverage_subset, fits$qdesn_al_ridge_stratified_leverage_subset_exact, "subset_exact_chunking"),
   exact_compare(fits$qdesn_al_rhs_full, fits$qdesn_al_rhs_exact),
   exact_compare(fits$qdesn_al_rhs_diagonal, fits$qdesn_al_rhs_diagonal_exact, "diagonal_exact_chunking"),
   exact_compare(fits$qdesn_al_rhs_ns_full, fits$qdesn_al_rhs_ns_exact),
   exact_compare(fits$qdesn_al_rhs_ns_diagonal, fits$qdesn_al_rhs_ns_diagonal_exact, "diagonal_exact_chunking"),
   exact_compare(fits$qdesn_exal_ridge_full, fits$qdesn_exal_ridge_exact),
+  exact_compare(fits$qdesn_exal_ridge_diagonal, fits$qdesn_exal_ridge_diagonal_exact, "diagonal_exact_chunking"),
   exact_compare(fits$qdesn_exal_rhs_full, fits$qdesn_exal_rhs_exact),
   exact_compare(fits$qdesn_exal_rhs_ns_full, fits$qdesn_exal_rhs_ns_exact)
 ))
@@ -691,13 +706,16 @@ approximate_diagnostics <- rbind_fill(list(
   approx_compare(fits$qdesn_exal_rhs_ns_full, fits$qdesn_exal_rhs_ns_hybrid, fits$qdesn_exal_rhs_ns_hybrid_repeat, "hybrid_exal"),
   approx_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_diagonal, NULL, "diagonal_covariance"),
   approx_compare(fits$qdesn_al_rhs_full, fits$qdesn_al_rhs_diagonal, NULL, "diagonal_covariance"),
-  approx_compare(fits$qdesn_al_rhs_ns_full, fits$qdesn_al_rhs_ns_diagonal, NULL, "diagonal_covariance")
+  approx_compare(fits$qdesn_al_rhs_ns_full, fits$qdesn_al_rhs_ns_diagonal, NULL, "diagonal_covariance"),
+  approx_compare(fits$qdesn_exal_ridge_full, fits$qdesn_exal_ridge_diagonal, NULL, "diagonal_covariance")
 ))
 
 target_changing_diagnostics <- rbind_fill(list(
   target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_fixed_subset),
   target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_subset),
-  target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_equal_subset)
+  target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_equal_subset),
+  target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_response_subset),
+  target_change_compare(fits$qdesn_al_ridge_full, fits$qdesn_al_ridge_stratified_leverage_subset)
 ))
 
 if (!isTRUE(skip_workflows)) {
@@ -819,7 +837,7 @@ forbidden_attempt <- function(method, expr, pattern = NULL) {
 }
 
 bad_exal_stochastic <- utils::modifyList(exal_ridge, list(max_iter = 5L, chunking = stochastic_chunking))
-bad_exal_diag <- with_cov_diag(exal_ridge)
+bad_exal_rhs_diag <- with_cov_diag(exal_rhs)
 forbidden_modes <- rbind_fill(list(
   forbidden_attempt(
     "qdesn_exal_stochastic",
@@ -827,9 +845,9 @@ forbidden_modes <- rbind_fill(list(
     "stochastic exAL VB chunking is not implemented"
   ),
   forbidden_attempt(
-    "qdesn_exal_diagonal_covariance",
-    do.call(exdqlm::qdesn_fit_vb, c(list(y = series$y), desn_args, list(vb_args = bad_exal_diag))),
-    "supported only for likelihood_family = 'al'"
+    "qdesn_exal_rhs_diagonal_covariance",
+    do.call(exdqlm::qdesn_fit_vb, c(list(y = series$y), desn_args, list(vb_args = bad_exal_rhs_diag))),
+    "exAL diagonal beta covariance approximation is currently supported only for ridge beta priors"
   ),
   data.frame(
     method = "divide_and_combine_vb",
