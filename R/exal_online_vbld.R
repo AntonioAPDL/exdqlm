@@ -1211,6 +1211,11 @@ exal_online_fit <- function(y, X, p0, gamma_bounds,
     return(fit)
   }
 
+  likelihood_family_online <- tolower(as.character(fit_args$likelihood_family %||% "exal")[1L])
+  if (!identical(likelihood_family_online, "exal")) {
+    .stopf("online VB-LD is currently supported only for likelihood_family = 'exal'.")
+  }
+
   n <- as.integer(nrow(X))
   k <- as.integer(ncol(X))
   t0 <- .online_pick_warm_start_n(
