@@ -42,6 +42,35 @@ test_that("Normal DESN warm-start state distinguishes exact chunked fits", {
   expect_true(isTRUE(exdqlm::qdesn_normal_validate_warm_start(ws, X = X)))
 })
 
+test_that("Normal DESN warm-start state labels RHS-family sources as approximate", {
+  set.seed(2026052906L)
+  X <- cbind(1, matrix(rnorm(48), nrow = 16L))
+  y <- drop(X %*% c(0.1, -0.2, 0.15, 0.05) + rnorm(nrow(X), sd = 0.2))
+
+  fit <- exdqlm::normal_desn_fit(
+    X,
+    y,
+    beta_prior_type = "rhs_ns",
+    rhs = list(
+      tau0 = 0.8,
+      a_zeta = 2,
+      b_zeta = 1,
+      zeta2_fixed = 1.25,
+      s2 = 1.25,
+      shrink_intercept = FALSE,
+      intercept_prec = 1e-12,
+      n_inner = 1L
+    ),
+    control = list(max_iter = 3L, min_iter = 1L, tol = 0)
+  )
+  ws <- exdqlm::qdesn_normal_make_warm_start(fit, X = X)
+
+  expect_identical(ws$target$exact_status, "approximate_vb")
+  expect_identical(ws$prior$family, "rhs_ns")
+  expect_true(is.list(ws$prior$rhs_state))
+  expect_true(isTRUE(exdqlm::qdesn_normal_validate_warm_start(ws, X = X)))
+})
+
 test_that("Normal DESN warm-start state validates Q-DESN metadata and serialization", {
   y <- sin(seq_len(42L) / 4) + rnorm(42L, sd = 0.05)
   fit <- exdqlm::qdesn_fit_normal(
