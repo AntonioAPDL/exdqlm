@@ -323,6 +323,75 @@ test_that("qdesn_fit_normal supports RHS-family approximate readouts", {
   expect_true(all(is.finite(fit$fit$beta$mean)))
 })
 
+test_that("forecast_paths.qdesn_normal_fit produces reproducible recursive paths", {
+  y <- tiny_normal_qdesn_series(n = 38L)
+  fit <- exdqlm::qdesn_fit_normal(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 4L,
+    m = 2L,
+    washout = 5L,
+    add_bias = TRUE,
+    seed = 20260538L
+  )
+  fore1 <- exdqlm::forecast_paths.qdesn_normal_fit(
+    fit,
+    H = 4L,
+    nd = 12L,
+    seed = 333L,
+    return_design = TRUE
+  )
+  fore2 <- exdqlm::forecast_paths.qdesn_normal_fit(
+    fit,
+    H = 4L,
+    nd = 12L,
+    seed = 333L,
+    return_design = TRUE
+  )
+
+  expect_equal(dim(fore1$yrep), c(4L, 12L))
+  expect_equal(dim(fore1$mu_draws), c(4L, 12L))
+  expect_equal(dim(fore1$design), c(4L, 12L, ncol(fit$X)))
+  expect_equal(fore1$yrep, fore2$yrep, tolerance = 0)
+  expect_equal(fore1$mu_draws, fore2$mu_draws, tolerance = 0)
+  expect_true(all(is.finite(fore1$yrep)))
+  expect_true(all(is.finite(fore1$mu_draws)))
+  expect_identical(fore1$forecast_family, "normal_recursive")
+
+  observed <- c(0.1, 0.2, 0.3, 0.4)
+  forced <- exdqlm::forecast_paths.qdesn_normal_fit(
+    fit,
+    H = 4L,
+    nd = 5L,
+    seed = 334L,
+    y_future_obs = observed
+  )
+  expect_equal(forced$yrep, matrix(observed, nrow = 4L, ncol = 5L), tolerance = 0)
+})
+
+test_that("forecast_paths.qdesn_normal_fit fails early for unsupported settings", {
+  y <- tiny_normal_qdesn_series(n = 34L)
+  fit <- exdqlm::qdesn_fit_normal(
+    y = y,
+    p0 = 0.5,
+    D = 1L,
+    n = 3L,
+    m = 1L,
+    washout = 4L,
+    add_bias = TRUE,
+    seed = 20260539L
+  )
+  expect_error(
+    exdqlm::forecast_paths.qdesn_normal_fit(fit, H = 2L, nd = 3L, xreg_future = list(a = 1:2)),
+    "do not yet support"
+  )
+  expect_error(
+    exdqlm::forecast_paths.qdesn_normal_fit(fit, H = 2L, nd = 3L, y_future_obs = 1),
+    "length H"
+  )
+})
+
 test_that("qdesn_normal_to_vb_init carries beta moments and metadata", {
   y <- tiny_normal_qdesn_series()
   fit <- exdqlm::qdesn_fit_normal(

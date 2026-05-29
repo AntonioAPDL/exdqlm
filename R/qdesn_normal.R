@@ -535,6 +535,200 @@ posterior_predict.qdesn_normal_fit <- function(object, nd = 1000L, X_new = NULL,
   normal_desn_posterior_predict(object$fit, X_new = X_use, nd = nd, seed = seed, draws = draws)
 }
 
+.normal_desn_get_act <- function(a) {
+  if (is.function(a)) return(a)
+  switch(tolower(a),
+    "tanh" = base::tanh,
+    "relu" = function(x) pmax(0, x),
+    "identity" = function(x) x,
+    .normal_desn_stop("Unknown activation: %s", as.character(a)[1L])
+  )
+}
+
+#' Recursive Normal DESN forecast paths
+#'
+#' Generates Normal-likelihood recursive forecast paths for a fitted
+#' `qdesn_normal_fit`. This first implementation supports the standard
+#' univariate raw-y-lag reservoir input used by the current Normal DESN smoke
+#' and comparison harnesses. Decomposition and exogenous forecast inputs fail
+#' early instead of silently reusing AL/exAL forecast assumptions.
+#'
+#' @param object A fitted `qdesn_normal_fit`.
+#' @param H Positive forecast horizon.
+#' @param nd Number of posterior predictive paths.
+#' @param y_hist Optional observed history through the forecast origin.
+#' @param seed Optional RNG seed.
+#' @param draws Optional result from [normal_desn_posterior_draws()].
+#' @param y_future_obs Optional numeric length `H`; non-missing values are used
+#'   as teacher-forced future observations for subsequent reservoir inputs.
+#' @param return_design Logical; if `TRUE`, return per-draw readout design rows.
+#' @param ... Reserved for future exogenous/decomposition forecast controls.
+#' @return List with `yrep`, `mu_draws`, `beta`, `omega2`, and metadata.
+#' @export
+forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
+                                            y_hist = NULL,
+                                            seed = NULL,
+                                            draws = NULL,
+                                            y_future_obs = NULL,
+                                            return_design = FALSE,
+                                            ...) {
+  if (!inherits(object, "qdesn_normal_fit") || is.null(object$fit)) {
+    .normal_desn_stop("forecast_paths.qdesn_normal_fit() requires a fitted qdesn_normal_fit.")
+  }
+  dots <- list(...)
+  unsupported <- intersect(names(dots), c("xreg_hist", "xreg_future", "origin_state", "readout_spec", "res_lag_init"))
+  if (length(unsupported)) {
+    .normal_desn_stop(
+      "Normal DESN forecast paths do not yet support: %s.",
+      paste(unsupported, collapse = ", ")
+    )
+  }
+  meta <- object$meta %||% list()
+  spec <- meta$readout_spec %||% list()
+  if (isTRUE(spec$include_input %||% FALSE) ||
+      length(spec$y_lags %||% integer(0)) ||
+      length(spec$x_names %||% character(0)) ||
+      as.integer(spec$reservoir_lags %||% 0L) > 0L) {
+    .normal_desn_stop("Normal DESN forecast paths currently support reservoir-only readout designs.")
+  }
+  input_mode <- meta$input_mode %||% meta$input_mode_requested %||% "raw_y_lags"
+  if (!identical(as.character(input_mode)[1L], "raw_y_lags")) {
+    .normal_desn_stop("Normal DESN forecast paths currently support raw_y_lags input mode only.")
+  }
+
+  H <- as.integer(H)[1L]
+  nd <- as.integer(nd)[1L]
+  if (!is.finite(H) || H < 1L) .normal_desn_stop("H must be a positive integer.")
+  if (!is.finite(nd) || nd < 1L) .normal_desn_stop("nd must be a positive integer.")
+  if (!is.null(y_future_obs)) {
+    y_future_obs <- as.numeric(y_future_obs)
+    if (length(y_future_obs) != H) .normal_desn_stop("y_future_obs must have length H.")
+  } else {
+    y_future_obs <- rep(NA_real_, H)
+  }
+  if (!is.null(seed)) {
+    old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) .Random.seed else NULL
+    on.exit({
+      if (is.null(old_seed)) {
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(".Random.seed", envir = .GlobalEnv)
+      } else {
+        assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+    set.seed(as.integer(seed)[1L])
+  }
+  if (is.null(draws)) draws <- normal_desn_posterior_draws(object, nd = nd, seed = NULL)
+  beta <- as.matrix(draws$beta)
+  omega2 <- as.numeric(draws$omega2)
+  if (nrow(beta) != length(omega2)) .normal_desn_stop("draws have inconsistent beta and omega2 lengths.")
+  nd_eff <- nrow(beta)
+
+  res <- object$reservoir
+  D <- as.integer(meta$D %||% length(res$W))[1L]
+  add_bias <- isTRUE(meta$add_bias)
+  m_res <- as.integer(meta$m_input %||% meta$m %||% 0L)[1L]
+  if (!is.finite(m_res) || m_res < 0L) .normal_desn_stop("invalid reservoir lag count.")
+
+  y_hist <- as.numeric(y_hist %||% object$y_fit)
+  if (length(y_hist) < m_res) {
+    .normal_desn_stop("Need at least %d y history values before the forecast origin.", m_res)
+  }
+  h_origin <- if (!is.null(object$states$H_all)) {
+    lapply(seq_len(D), function(d) object$states$H_all[[d]][nrow(object$states$H_all[[d]]), ])
+  } else if (!is.null(object$states$H_last) && is.list(object$states$H_last)) {
+    object$states$H_last
+  } else if (!is.null(object$states$H_last) && is.matrix(object$states$H_last) && D == 1L) {
+    list(object$states$H_last[nrow(object$states$H_last), ])
+  } else {
+    .normal_desn_stop("Normal DESN forecast paths require stored reservoir states.")
+  }
+  if (length(h_origin) != D) .normal_desn_stop("Stored reservoir state length does not match D.")
+
+  Q_is_identity <- res$Q_is_identity %||% rep(FALSE, max(0L, D - 1L))
+  if (length(Q_is_identity) != max(0L, D - 1L)) {
+    .normal_desn_stop("Q_is_identity length mismatch.")
+  }
+  f_act <- .normal_desn_get_act(res$act_f)
+  k_act <- .normal_desn_get_act(res$act_k)
+  lag_center <- meta$lag_center %||% 0
+  lag_scale <- meta$lag_scale %||% 1
+  standardize_inputs <- isTRUE(meta$standardize_inputs)
+  input_bound <- meta$input_bound %||% "none"
+  win_scale_global <- meta$win_scale_global %||% 1
+  win_scale_bias <- meta$win_scale_bias %||% 1
+  win_scale_lags <- meta$win_scale_lags
+
+  process_lags <- function(lags_vec) {
+    z <- lags_vec
+    if (isTRUE(standardize_inputs)) z <- (z - lag_center) / lag_scale
+    if (!is.null(win_scale_lags)) z <- z * as.numeric(win_scale_lags)
+    if (identical(input_bound, "tanh") && length(z)) z <- tanh(z)
+    z
+  }
+  make_u <- function(y_vec) {
+    nb <- if (m_res > 0L) process_lags(rev(tail(y_vec, m_res))) else numeric(0)
+    u <- c(1, nb)
+    u[1L] <- u[1L] * win_scale_bias
+    if (length(u) > 1L) u[-1L] <- u[-1L] * win_scale_global
+    u
+  }
+  forward_one <- function(h_prev, u_vec) {
+    h_new <- vector("list", D)
+    htilde <- if (D >= 2L) vector("list", D - 1L) else list()
+    pre1 <- res$W[[1L]] %*% h_prev[[1L]] + res$Win[[1L]] %*% u_vec
+    h_new[[1L]] <- (1 - res$alpha[1L]) * h_prev[[1L]] + res$alpha[1L] * f_act(pre1)
+    if (D >= 2L) {
+      htilde[[1L]] <- if (isTRUE(Q_is_identity[1L])) h_new[[1L]] else res$Q[[1L]] %*% h_new[[1L]]
+      for (d in 2:D) {
+        pre <- res$W[[d]] %*% h_prev[[d]] + res$Win[[d]] %*% htilde[[d - 1L]]
+        h_new[[d]] <- (1 - res$alpha[d]) * h_prev[[d]] + res$alpha[d] * f_act(pre)
+        if (d < D) {
+          htilde[[d]] <- if (isTRUE(Q_is_identity[d])) h_new[[d]] else res$Q[[d]] %*% h_new[[d]]
+        }
+      }
+      lower <- do.call(c, lapply(seq_len(D - 1L), function(d) k_act(as.numeric(htilde[[d]]))))
+      x_res <- c(as.numeric(h_new[[D]]), lower)
+    } else {
+      x_res <- as.numeric(h_new[[1L]])
+    }
+    if (add_bias) x_res <- c(1, x_res)
+    list(h = h_new, x = x_res)
+  }
+
+  yrep <- matrix(NA_real_, H, nd_eff)
+  mu_draws <- matrix(NA_real_, H, nd_eff)
+  design <- if (isTRUE(return_design)) array(NA_real_, dim = c(H, nd_eff, ncol(beta))) else NULL
+  for (s in seq_len(nd_eff)) {
+    y_buf <- y_hist
+    h_prev <- lapply(h_origin, as.numeric)
+    for (hh in seq_len(H)) {
+      step <- forward_one(h_prev, make_u(y_buf))
+      if (length(step$x) != ncol(beta)) {
+        .normal_desn_stop("Forecast design width does not match Normal DESN beta dimension.")
+      }
+      mu <- as.numeric(crossprod(step$x, beta[s, ]))
+      y_new <- mu + stats::rnorm(1L, sd = sqrt(omega2[s]))
+      if (is.finite(y_future_obs[hh])) y_new <- y_future_obs[hh]
+      mu_draws[hh, s] <- mu
+      yrep[hh, s] <- y_new
+      if (isTRUE(return_design)) design[hh, s, ] <- step$x
+      y_buf <- c(y_buf, y_new)
+      h_prev <- step$h
+    }
+  }
+  list(
+    yrep = yrep,
+    mu_draws = mu_draws,
+    beta = beta,
+    omega2 = omega2,
+    nd = nd_eff,
+    H = H,
+    design = design,
+    target = object$fit$target_label,
+    forecast_family = "normal_recursive"
+  )
+}
+
 #' Build an AL/exAL VB initializer from a Normal DESN fit
 #'
 #' @param normal_fit A `normal_desn_readout` or `qdesn_normal_fit`.

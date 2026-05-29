@@ -6,6 +6,7 @@
 \alias{qdesn_fit_normal}
 \alias{predict_mu.qdesn_normal_fit}
 \alias{posterior_predict.qdesn_normal_fit}
+\alias{forecast_paths.qdesn_normal_fit}
 \alias{qdesn_normal_to_vb_init}
 \alias{qdesn_normal_to_mcmc_init}
 \title{Normal DESN readouts}
@@ -40,6 +41,18 @@ posterior_predict.qdesn_normal_fit(
   X_new = NULL,
   seed = NULL,
   draws = NULL
+)
+
+forecast_paths.qdesn_normal_fit(
+  object,
+  H,
+  nd = 1000L,
+  y_hist = NULL,
+  seed = NULL,
+  draws = NULL,
+  y_future_obs = NULL,
+  return_design = FALSE,
+  ...
 )
 
 qdesn_normal_to_vb_init(
@@ -90,6 +103,12 @@ and does not use \code{p0} in the Gaussian readout.}
 \item{X_new}{Optional fixed design matrix for posterior prediction.}
 \item{draws}{Optional result from \code{normal_desn_posterior_draws}.}
 \item{object}{A fitted \code{qdesn_normal_fit}.}
+\item{H}{Positive forecast horizon.}
+\item{y_hist}{Optional observed history through the forecast origin.}
+\item{y_future_obs}{Optional numeric vector of length \code{H}; non-missing
+values are treated as observed future values for recursive reservoir inputs.}
+\item{return_design}{Logical; if \code{TRUE}, return per-draw forecast design
+rows when available.}
 \item{likelihood_family}{Target AL/exAL family recorded in initialization
 metadata.}
 \item{p0}{Target quantile level recorded in initialization metadata.}
@@ -131,6 +150,12 @@ and RHS/RHS_NS chunking fail early.
 Normal DESN is a conditional-mean model. It is useful as a Gaussian baseline
 and as a beta-moment initialization source for AL/exAL Q-DESN fits, but it is
 not a quantile likelihood.
+
+\code{forecast_paths.qdesn_normal_fit()} recursively samples Normal
+multi-step forecast paths for standard univariate raw-y-lag DESN inputs and
+reservoir-only readout designs. Exogenous, decomposition, and richer readout
+forecast settings fail early until a separate Normal DESN forecast contract is
+implemented for those cases.
 }
 \seealso{
 \code{\link{qdesn_fit_vb}}, \code{\link{qdesn_build_design}},
