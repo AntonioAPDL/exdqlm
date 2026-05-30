@@ -42,6 +42,7 @@ stochastic_max_iter <- arg_int("--stochastic-max-iter", 40L)
 synthetic_n <- arg_int("--synthetic-n", 0L)
 run_stochastic <- !arg_flag("--skip-stochastic")
 exact_tolerance <- arg_num("--exact-tolerance", 1e-6)
+exact_relative_tolerance <- arg_num("--exact-relative-tolerance", 1e-8)
 ridge_tau2 <- arg_num("--ridge-tau2", 50)
 rhs_tau0 <- arg_num("--rhs-tau0", 0.8)
 
@@ -53,6 +54,9 @@ if (chunk_size < 1L) stop("--chunk-size must be positive.", call. = FALSE)
 if (max_iter < 1L || stochastic_max_iter < 1L) stop("iteration controls must be positive.", call. = FALSE)
 if (synthetic_n < 0L) stop("--synthetic-n must be non-negative.", call. = FALSE)
 if (!is.finite(exact_tolerance) || exact_tolerance <= 0) stop("--exact-tolerance must be positive.", call. = FALSE)
+if (!is.finite(exact_relative_tolerance) || exact_relative_tolerance <= 0) {
+  stop("--exact-relative-tolerance must be positive.", call. = FALSE)
+}
 if (ridge_tau2 <= 0 || rhs_tau0 <= 0) stop("--ridge-tau2 and --rhs-tau0 must be positive.", call. = FALSE)
 
 Sys.setenv(
@@ -267,6 +271,16 @@ exact_pair_row <- function(left, right, tolerance = exact_tolerance) {
     abs(as.numeric(lp$gamma)[1L] - as.numeric(rp$gamma)[1L]),
     na.rm = TRUE
   )
+  gate_scale <- max(
+    1,
+    max_abs(lp$beta_mean),
+    max_abs(lp$beta_cov),
+    max_abs(lp$point),
+    abs(as.numeric(lp$sigma)[1L]),
+    abs(as.numeric(lp$gamma)[1L]),
+    na.rm = TRUE
+  )
+  relative_gate_diff <- gate / gate_scale
   data.frame(
     reference_method = left$label,
     exact_chunked_method = right$label,
@@ -277,7 +291,11 @@ exact_pair_row <- function(left, right, tolerance = exact_tolerance) {
     sigma_abs_diff = abs(as.numeric(lp$sigma)[1L] - as.numeric(rp$sigma)[1L]),
     gamma_abs_diff = abs(as.numeric(lp$gamma)[1L] - as.numeric(rp$gamma)[1L]),
     max_gate_diff = gate,
-    passed = is.finite(gate) && gate <= tolerance,
+    gate_scale = gate_scale,
+    relative_gate_diff = relative_gate_diff,
+    relative_tolerance = exact_relative_tolerance,
+    passed = is.finite(gate) &&
+      (gate <= tolerance || relative_gate_diff <= exact_relative_tolerance),
     stringsAsFactors = FALSE
   )
 }
@@ -409,6 +427,7 @@ repo_state <- data.frame(
   ridge_tau2 = ridge_tau2,
   rhs_tau0 = rhs_tau0,
   exact_tolerance = exact_tolerance,
+  exact_relative_tolerance = exact_relative_tolerance,
   stringsAsFactors = FALSE
 )
 

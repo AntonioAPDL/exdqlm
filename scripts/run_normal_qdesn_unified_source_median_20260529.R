@@ -48,6 +48,8 @@ hybrid_max_iter <- arg_int("--hybrid-max-iter", stochastic_max_iter)
 hybrid_full_every <- arg_int("--hybrid-full-every", 15L)
 ridge_tau2 <- arg_num("--ridge-tau2", 50)
 rhs_tau0 <- arg_num("--rhs-tau0", 0.8)
+exact_tolerance <- arg_num("--exact-tolerance", 1e-6)
+exact_relative_tolerance <- arg_num("--exact-relative-tolerance", 1e-8)
 cores <- arg_int("--cores", 1L)
 tail_rows <- arg_value("--tail-rows", NULL)
 expected_effective_rows <- arg_value("--expected-effective-rows", NULL)
@@ -63,6 +65,9 @@ if (max_iter < 1L || stochastic_max_iter < 1L || hybrid_max_iter < 1L || hybrid_
 }
 if (ridge_tau2 <= 0 || rhs_tau0 <= 0) {
   stop("--ridge-tau2 and --rhs-tau0 must be positive.", call. = FALSE)
+}
+if (exact_tolerance <= 0 || exact_relative_tolerance <= 0) {
+  stop("--exact-tolerance and --exact-relative-tolerance must be positive.", call. = FALSE)
 }
 if (cores < 1L) stop("--cores must be positive.", call. = FALSE)
 
@@ -189,7 +194,13 @@ component_runs <- list()
 component_runs[[length(component_runs) + 1L]] <- run_component(
   "normal_source",
   script_path("run_normal_desn_source_median_comparison_20260529.R"),
-  c(common_args, "--output-dir", normal_source_dir, "--chunk-size", as.character(chunk_size), "--exact-tolerance", "1e-6")
+  c(
+    common_args,
+    "--output-dir", normal_source_dir,
+    "--chunk-size", as.character(chunk_size),
+    "--exact-tolerance", as.character(exact_tolerance),
+    "--exact-relative-tolerance", as.character(exact_relative_tolerance)
+  )
 )
 component_runs[[length(component_runs) + 1L]] <- run_component(
   "normal_init",
@@ -213,6 +224,8 @@ qdesn_args <- c(
   "--hybrid-full-every", as.character(hybrid_full_every),
   "--ridge-tau2", as.character(ridge_tau2),
   "--rhs-tau0", as.character(rhs_tau0),
+  "--exact-tolerance", as.character(exact_tolerance),
+  "--exact-relative-tolerance", as.character(exact_relative_tolerance),
   "--cores", as.character(cores)
 )
 if (!is.null(tail_rows)) qdesn_args <- c(qdesn_args, "--tail-rows", tail_rows)
@@ -291,6 +304,8 @@ repo_state <- data.frame(
   hybrid_full_every = hybrid_full_every,
   ridge_tau2 = ridge_tau2,
   rhs_tau0 = rhs_tau0,
+  exact_tolerance = exact_tolerance,
+  exact_relative_tolerance = exact_relative_tolerance,
   cores = cores,
   skip_workflows = skip_workflows,
   run_mcmc = run_mcmc,
