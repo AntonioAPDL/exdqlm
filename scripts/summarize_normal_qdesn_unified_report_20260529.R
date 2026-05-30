@@ -69,6 +69,34 @@ method_label <- function(id) {
   trimws(out)
 }
 
+table_label <- function(method_id) {
+  labels <- c(
+    normal_scaled_ridge = "Normal DESN, ridge",
+    normal_scaled_ridge_exact_chunked = "Normal DESN, ridge (exact chunked)",
+    normal_rhs_ns_vb = "Normal DESN, RHS_NS",
+    qdesn_al_ridge_full = "Q-DESN AL, ridge",
+    qdesn_al_ridge_exact = "Q-DESN AL, ridge (exact chunked)",
+    qdesn_al_ridge_stochastic = "Q-DESN AL, ridge stochastic",
+    qdesn_al_ridge_hybrid = "Q-DESN AL, ridge hybrid",
+    qdesn_al_rhs_full = "Q-DESN AL, RHS",
+    qdesn_al_rhs_exact = "Q-DESN AL, RHS (exact chunked)",
+    qdesn_al_rhs_ns_full = "Q-DESN AL, RHS_NS",
+    qdesn_al_rhs_ns_exact = "Q-DESN AL, RHS_NS (exact chunked)",
+    qdesn_exal_ridge_full = "Q-DESN exAL, ridge",
+    qdesn_exal_ridge_exact = "Q-DESN exAL, ridge (exact chunked)",
+    qdesn_exal_ridge_hybrid = "Q-DESN exAL, ridge hybrid",
+    qdesn_exal_rhs_full = "Q-DESN exAL, RHS",
+    qdesn_exal_rhs_exact = "Q-DESN exAL, RHS (exact chunked)",
+    qdesn_exal_rhs_hybrid = "Q-DESN exAL, RHS hybrid",
+    qdesn_exal_rhs_ns_full = "Q-DESN exAL, RHS_NS",
+    qdesn_exal_rhs_ns_exact = "Q-DESN exAL, RHS_NS (exact chunked)",
+    qdesn_exal_rhs_ns_hybrid = "Q-DESN exAL, RHS_NS hybrid"
+  )
+  out <- unname(labels[as.character(method_id)])
+  out[is.na(out)] <- method_label(method_id[is.na(out)])
+  out
+}
+
 target_group <- function(method_id, target_label, exact_status, approximate, target_changes) {
   id <- as.character(method_id)
   target_label <- as.character(target_label)
@@ -102,6 +130,33 @@ role_for_method <- function(method_id, target_group_value) {
   if (grepl("exact", id, fixed = TRUE)) return("exact_gate_reference")
   if (identical(target_group_value, "initializer workflow")) return("initializer_workflow")
   "supporting"
+}
+
+primary_spine_method <- function(component, method_id) {
+  component <- as.character(component)
+  id <- as.character(method_id)
+  (component == "normal_source" & id %in% c("normal_scaled_ridge", "normal_rhs_ns_vb")) |
+    (component == "qdesn_implemented_modes" & id %in% c(
+      "qdesn_al_ridge_full",
+      "qdesn_al_rhs_ns_full",
+      "qdesn_exal_ridge_full",
+      "qdesn_exal_rhs_ns_full"
+    ))
+}
+
+exclusion_reason <- function(role, target_group_value, prior_family, primary_spine,
+                             approximate, diagnostic_only, target_changing_nonprimary) {
+  out <- rep("", length(role))
+  out[isTRUE(length(out) == 0L)] <- ""
+  out[primary_spine] <- "primary manuscript spine"
+  out[prior_family == "rhs" & !primary_spine] <- "legacy RHS sensitivity; footnote/supplement"
+  out[diagnostic_only] <- "diagnostic only; not a primary comparison row"
+  out[target_changing_nonprimary] <- "target-changing workflow/sensitivity; not full-data comparable"
+  out[approximate & !primary_spine & out == ""] <- "approximate runtime/accuracy diagnostic"
+  out[grepl("exact chunked", target_group_value, fixed = TRUE) & out == ""] <- "exact chunking verification gate"
+  out[role == "initializer_workflow" & out == ""] <- "initializer workflow diagnostic"
+  out[out == ""] <- "supporting/supplemental row"
+  out
 }
 
 md_table <- function(df, con) {
@@ -159,9 +214,11 @@ groups <- mapply(
 roles <- mapply(role_for_method, method_summary$method_id, groups, USE.NAMES = FALSE)
 
 method_table <- data.frame(
+  schema_version = "normal_qdesn_manuscript_methods_v2",
   component = method_summary$component,
   method_id = method_summary$method_id,
   label = method_label(method_summary$method_id),
+  table_label = table_label(method_summary$method_id),
   role = roles,
   target_group = groups,
   likelihood_family = coalesce_col(method_summary, "likelihood_family", default = ""),
@@ -177,6 +234,27 @@ method_table <- data.frame(
   pinball = method_summary$pinball_unified,
   rmse = method_summary$rmse_unified,
   stringsAsFactors = FALSE
+)
+for (nm in c("preserves_full_data_target", "approximate", "target_changes", "converged", "finite_state")) {
+  method_table[[nm]][is.na(method_table[[nm]])] <- FALSE
+}
+method_table$rhs_ns_default <- method_table$prior_family == "rhs_ns"
+method_table$legacy_rhs_footnote <- method_table$prior_family == "rhs"
+method_table$target_changing_nonprimary <- method_table$target_changes |
+  grepl("target-changing", method_table$target_group, fixed = TRUE) |
+  method_table$role %in% c("sensitivity_or_workflow", "initializer_workflow")
+method_table$diagnostic_only <- method_table$role %in% c("diagnostic_not_default", "initializer_workflow") |
+  method_table$target_changing_nonprimary |
+  method_table$target_group %in% c("covariance approximation")
+method_table$primary_spine <- primary_spine_method(method_table$component, method_table$method_id)
+method_table$exclusion_reason <- exclusion_reason(
+  method_table$role,
+  method_table$target_group,
+  method_table$prior_family,
+  method_table$primary_spine,
+  method_table$approximate,
+  method_table$diagnostic_only,
+  method_table$target_changing_nonprimary
 )
 
 priority <- c(
@@ -205,10 +283,7 @@ compact_ids <- c(
   "qdesn_al_ridge_hybrid",
   "qdesn_exal_ridge_full",
   "qdesn_exal_ridge_hybrid",
-  "qdesn_al_rhs_full",
   "qdesn_al_rhs_ns_full",
-  "qdesn_exal_rhs_full",
-  "qdesn_exal_rhs_hybrid",
   "qdesn_exal_rhs_ns_full",
   "qdesn_exal_rhs_ns_hybrid"
 )
@@ -288,14 +363,16 @@ writeLines("", con)
 
 writeLines("## Recommended Compact Methods", con)
 display_compact <- compact_table[, c(
-  "label", "role", "target_group", "likelihood_family", "prior_family",
-  "finite_state", "pinball", "rmse", "elapsed_sec"
+  "table_label", "role", "target_group", "likelihood_family", "prior_family",
+  "primary_spine", "rhs_ns_default", "finite_state", "pinball", "rmse", "elapsed_sec"
 )]
+display_compact$primary_spine <- fmt_bool(display_compact$primary_spine)
+display_compact$rhs_ns_default <- fmt_bool(display_compact$rhs_ns_default)
 display_compact$finite_state <- fmt_bool(display_compact$finite_state)
 display_compact$pinball <- fmt_num(display_compact$pinball, 4)
 display_compact$rmse <- fmt_num(display_compact$rmse, 4)
 display_compact$elapsed_sec <- fmt_num(display_compact$elapsed_sec, 3)
-names(display_compact) <- c("method", "role", "target", "like", "prior", "finite?", "pinball", "rmse", "sec")
+names(display_compact) <- c("method", "role", "target", "like", "prior", "primary?", "rhs_ns?", "finite?", "pinball", "rmse", "sec")
 md_table(display_compact, con)
 writeLines("", con)
 
@@ -331,7 +408,7 @@ writeLines("", con)
 
 writeLines("## Figure/Table Files", con)
 writeLines("- `manuscript_method_table.csv`: all methods with normalized labels and roles.", con)
-writeLines("- `manuscript_compact_methods.csv`: suggested compact methods for first manuscript table.", con)
+writeLines("- `manuscript_compact_methods.csv`: suggested compact methods for first manuscript table, with `rhs_ns` default and primary-spine flags.", con)
 writeLines("- `manuscript_exact_gate_summary.csv`: exact equivalence gates sorted by largest difference.", con)
 writeLines("- `manuscript_approximate_summary.csv`: approximate diagnostics sorted by absolute pinball difference.", con)
 if (file.exists(plot_path)) {
@@ -340,7 +417,8 @@ if (file.exists(plot_path)) {
 writeLines("", con)
 
 writeLines("## Recommendation", con)
-writeLines("- Use full-covariance Normal ridge and Q-DESN AL/exAL ridge/RHS/RHS_NS rows as the primary comparison spine.", con)
+writeLines("- Use full-covariance Normal ridge and Q-DESN AL/exAL ridge/RHS_NS rows as the primary comparison spine.", con)
+writeLines("- Treat legacy RHS rows as footnoted sensitivity/compatibility rows, not as the default shrinkage story.", con)
 writeLines("- Use stochastic/hybrid rows as approximate speed/accuracy diagnostics, clearly labeled approximate.", con)
 writeLines("- Keep diagonal covariance rows out of the primary table for this source gate; they are finite but diagnostically poor here.", con)
 writeLines("- Keep subset, rolling, posterior-as-prior, online, and initializer rows as workflow/sensitivity diagnostics unless the manuscript question explicitly needs them.", con)

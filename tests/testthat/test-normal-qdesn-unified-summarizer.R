@@ -31,23 +31,32 @@ test_that("Normal/Q-DESN unified summarizer produces manuscript-ready outputs", 
 
   utils::write.csv(
     data.frame(
-      component = c("normal_source", "qdesn_implemented_modes", "qdesn_implemented_modes"),
-      method_id = c("normal_scaled_ridge", "qdesn_al_ridge_full", "qdesn_al_ridge_stochastic"),
-      likelihood_family = c("normal", "al", "al"),
-      prior_family = c("ridge", "ridge", "ridge"),
-      target_label = c("normal_scaled_ridge_exact", "full_data_exact", "full_data_approx_stochastic"),
-      exact_status = c("full_data_exact_or_cavi", "", ""),
-      covariance_form = c("", "full", "full"),
-      chunking_mode = c("none", "none", "stochastic"),
-      preserves_full_data_target = c(TRUE, TRUE, TRUE),
-      approximate = c(FALSE, FALSE, TRUE),
-      target_changes = c(FALSE, FALSE, FALSE),
-      converged = c(TRUE, TRUE, TRUE),
-      finite_state = c(TRUE, TRUE, TRUE),
-      elapsed_sec = c(0.1, 0.2, 0.3),
-      pinball_tau_0p50 = c(1.1, NA, NA),
-      pinball_y = c(NA, 1.2, 1.3),
-      rmse_q_target = c(NA, 2.0, 2.1),
+      component = c(
+        "normal_source", "qdesn_implemented_modes", "qdesn_implemented_modes",
+        "qdesn_implemented_modes", "qdesn_implemented_modes", "qdesn_implemented_modes"
+      ),
+      method_id = c(
+        "normal_scaled_ridge", "qdesn_al_ridge_full", "qdesn_al_rhs_ns_full",
+        "qdesn_al_rhs_full", "qdesn_al_ridge_stochastic", "qdesn_al_ridge_diagonal"
+      ),
+      likelihood_family = c("normal", "al", "al", "al", "al", "al"),
+      prior_family = c("ridge", "ridge", "rhs_ns", "rhs", "ridge", "ridge"),
+      target_label = c(
+        "normal_scaled_ridge_exact", "full_data_exact", "full_data_exact",
+        "full_data_exact", "full_data_approx_stochastic", "covariance_approximation"
+      ),
+      exact_status = c("full_data_exact_or_cavi", "", "", "", "", ""),
+      covariance_form = c("", "full", "full", "full", "full", "diagonal"),
+      chunking_mode = c("none", "none", "none", "none", "stochastic", "none"),
+      preserves_full_data_target = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+      approximate = c(FALSE, FALSE, FALSE, FALSE, TRUE, TRUE),
+      target_changes = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+      converged = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+      finite_state = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+      elapsed_sec = c(0.1, 0.2, 0.25, 0.27, 0.3, 0.4),
+      pinball_tau_0p50 = c(1.1, NA, NA, NA, NA, NA),
+      pinball_y = c(NA, 1.2, 1.22, 1.23, 1.3, 9.9),
+      rmse_q_target = c(NA, 2.0, 2.02, 2.03, 2.1, 10.0),
       stringsAsFactors = FALSE
     ),
     file.path(input_dir, "method_summary.csv"),
@@ -148,7 +157,18 @@ test_that("Normal/Q-DESN unified summarizer produces manuscript-ready outputs", 
 
   expect_true(any(table$role == "primary_baseline"))
   expect_true(any(table$role == "approximate_candidate"))
+  expect_true(all(c(
+    "rhs_ns_default", "legacy_rhs_footnote", "primary_spine",
+    "diagnostic_only", "target_changing_nonprimary", "exclusion_reason",
+    "schema_version", "table_label"
+  ) %in% names(table)))
   expect_true("qdesn_al_ridge_full" %in% compact$method_id)
+  expect_true("qdesn_al_rhs_ns_full" %in% compact$method_id)
+  expect_false("qdesn_al_rhs_full" %in% compact$method_id)
+  expect_true(table$rhs_ns_default[match("qdesn_al_rhs_ns_full", table$method_id)])
+  expect_true(table$legacy_rhs_footnote[match("qdesn_al_rhs_full", table$method_id)])
+  expect_true(table$primary_spine[match("qdesn_al_rhs_ns_full", table$method_id)])
+  expect_true(table$diagnostic_only[match("qdesn_al_ridge_diagonal", table$method_id)])
   expect_false(any(compact$component == "normal_init"))
   expect_true(file.info(file.path(output_dir, "manuscript_pinball_overview.pdf"))$size > 0)
 })
