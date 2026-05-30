@@ -16,6 +16,12 @@ arg_int <- function(flag, default) {
   value
 }
 
+arg_num <- function(flag, default) {
+  value <- suppressWarnings(as.numeric(arg_value(flag, as.character(default))))
+  if (!length(value) || !is.finite(value)) stop(sprintf("%s must be finite numeric.", flag), call. = FALSE)
+  value
+}
+
 repo_root <- normalizePath(arg_value("--repo", getwd()), mustWork = TRUE)
 output_dir <- arg_value(
   "--output-dir",
@@ -35,6 +41,8 @@ synthetic_n <- arg_int("--synthetic-n", 0L)
 run_mcmc <- arg_flag("--run-mcmc")
 mcmc_burn <- arg_int("--mcmc-burn", 20L)
 mcmc_draws <- arg_int("--mcmc-draws", 20L)
+ridge_tau2 <- arg_num("--ridge-tau2", 50)
+rhs_tau0 <- arg_num("--rhs-tau0", 0.8)
 
 if (D != 1L) stop("This initialization harness currently supports D = 1 only.", call. = FALSE)
 if (n_res < 1L) stop("--n must be positive.", call. = FALSE)
@@ -43,6 +51,7 @@ if (washout < 0L) stop("--washout must be non-negative.", call. = FALSE)
 if (max_iter < 1L) stop("--max-iter must be positive.", call. = FALSE)
 if (synthetic_n < 0L) stop("--synthetic-n must be non-negative.", call. = FALSE)
 if (mcmc_burn < 1L || mcmc_draws < 1L) stop("MCMC controls must be positive.", call. = FALSE)
+if (ridge_tau2 <= 0 || rhs_tau0 <= 0) stop("--ridge-tau2 and --rhs-tau0 must be positive.", call. = FALSE)
 
 Sys.setenv(
   OMP_NUM_THREADS = "1",
@@ -145,7 +154,7 @@ vb_fit <- function(label, y, family, init = NULL) {
     n_samp_xi = 32L,
     verbose = FALSE,
     beta_prior_type = "ridge",
-    beta_ridge_tau2 = 50
+    beta_ridge_tau2 = ridge_tau2
   )
   if (identical(family, "al")) vb_args$al_fixed_gamma <- 0
   if (!is.null(init)) vb_args$init <- init
@@ -171,7 +180,7 @@ mcmc_fit <- function(label, y, init = NULL) {
     likelihood_family = "al",
     al_fixed_gamma = 0,
     beta_prior_type = "ridge",
-    beta_ridge_tau2 = 50,
+    beta_ridge_tau2 = ridge_tau2,
     n_burn = mcmc_burn,
     n_mcmc = mcmc_draws,
     thin = 1L,
@@ -276,14 +285,14 @@ if (washout >= length(y)) stop("--washout must be smaller than the selected seri
 
 normal_ridge <- normal_fit("normal_scaled_ridge", y, list(
   beta_prior_type = "scaled_ridge",
-  prior = list(beta_ridge_tau2 = 50, intercept_var = 1e6),
+  prior = list(beta_ridge_tau2 = ridge_tau2, intercept_var = 1e6),
   omega_prior = list(a = 2, b = 1)
 ))
 normal_rhs <- normal_fit("normal_rhs_ns_vb", y, list(
   beta_prior_type = "rhs_ns",
   omega_prior = list(a = 2, b = 1),
   rhs = list(
-    tau0 = 0.8,
+    tau0 = rhs_tau0,
     a_zeta = 2,
     b_zeta = 1,
     zeta2_fixed = 1.25,
@@ -380,6 +389,8 @@ repo_state <- data.frame(
   m = m_lag,
   washout = washout,
   max_iter = max_iter,
+  ridge_tau2 = ridge_tau2,
+  rhs_tau0 = rhs_tau0,
   run_mcmc = run_mcmc,
   stringsAsFactors = FALSE
 )
@@ -396,6 +407,7 @@ md <- c(
   sprintf("- Source kind: `%s`", repo_state$source_kind[[1L]]),
   sprintf("- Source rows: `%d`", length(y)),
   sprintf("- DESN: D=%d, n=%d, m=%d, washout=%d", D, n_res, m_lag, washout),
+  sprintf("- Prior controls: ridge_tau2=%s, rhs_tau0=%s", ridge_tau2, rhs_tau0),
   sprintf("- Seed: `%d`", seed),
   "",
   "## Method Summary",

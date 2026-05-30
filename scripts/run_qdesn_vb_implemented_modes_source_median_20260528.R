@@ -56,6 +56,8 @@ hybrid_full_every <- arg_int("--hybrid-full-every", 15L)
 cores <- arg_int("--cores", 1L)
 exact_tolerance <- arg_num("--exact-tolerance", 1e-6)
 exact_relative_tolerance <- arg_num("--exact-relative-tolerance", 1e-8)
+ridge_tau2 <- arg_num("--ridge-tau2", 50)
+rhs_tau0 <- arg_num("--rhs-tau0", 0.8)
 tail_rows <- arg_int_optional("--tail-rows")
 expected_effective_rows <- arg_int_optional("--expected-effective-rows")
 skip_workflows <- arg_flag("--skip-workflows")
@@ -76,6 +78,9 @@ if (!is.finite(exact_tolerance) || exact_tolerance <= 0) {
 }
 if (!is.finite(exact_relative_tolerance) || exact_relative_tolerance <= 0) {
   stop("--exact-relative-tolerance must be positive.", call. = FALSE)
+}
+if (ridge_tau2 <= 0 || rhs_tau0 <= 0) {
+  stop("--ridge-tau2 and --rhs-tau0 must be positive.", call. = FALSE)
 }
 if (!is.na(tail_rows) && tail_rows < 0L) stop("--tail-rows must be non-negative when supplied.", call. = FALSE)
 if (!is.na(expected_effective_rows) && expected_effective_rows < 1L) {
@@ -251,7 +256,7 @@ base_vb <- list(
   n_samp_xi = 32L,
   verbose = FALSE,
   beta_prior_type = "ridge",
-  beta_ridge_tau2 = 50
+  beta_ridge_tau2 = ridge_tau2
 )
 
 exact_chunking <- list(enabled = TRUE, mode = "exact", chunk_size = chunk_size, order = "sequential")
@@ -280,7 +285,7 @@ hybrid_chunking$refresh$rhs_every <- hybrid_full_every
 hybrid_chunking$refresh$local_every <- hybrid_full_every
 
 rhs_controls <- list(
-  tau0 = 0.8,
+  tau0 = rhs_tau0,
   nu = 4,
   s2 = 1.25,
   shrink_intercept = FALSE,
@@ -292,7 +297,7 @@ rhs_controls <- list(
   init_log_c2 = 0
 )
 rhs_ns_controls <- list(
-  tau0 = 0.8,
+  tau0 = rhs_tau0,
   a_zeta = 2,
   b_zeta = 1,
   zeta2_fixed = 1.25,
@@ -322,7 +327,7 @@ with_prior <- function(vb, type) {
   type <- match.arg(type, c("ridge", "rhs", "rhs_ns"))
   vb$beta_prior_type <- type
   if (identical(type, "ridge")) {
-    vb$beta_ridge_tau2 <- 50
+    vb$beta_ridge_tau2 <- ridge_tau2
     vb$beta_rhs <- NULL
   } else if (identical(type, "rhs")) {
     vb$beta_rhs <- rhs_controls
@@ -461,6 +466,8 @@ method_summary_row <- function(obj) {
     method_id = obj$method_id,
     likelihood_family = as.character(fit$likelihood_family),
     prior_family = as.character(fit$beta_prior$type %||% NA_character_),
+    ridge_tau2 = if (identical(as.character(fit$beta_prior$type %||% NA_character_), "ridge")) ridge_tau2 else NA_real_,
+    rhs_tau0 = if (as.character(fit$beta_prior$type %||% NA_character_) %in% c("rhs", "rhs_ns")) rhs_tau0 else NA_real_,
     covariance_form = as.character(fit$qbeta$covariance_approximation %||% "full"),
     chunking_mode = chunking_mode,
     target_label = target_label,
@@ -894,6 +901,8 @@ repo_state <- data.frame(
   stochastic_max_iter = stochastic_max_iter,
   hybrid_max_iter = hybrid_max_iter,
   hybrid_full_every = hybrid_full_every,
+  ridge_tau2 = ridge_tau2,
+  rhs_tau0 = rhs_tau0,
   exact_tolerance = exact_tolerance,
   exact_relative_tolerance = exact_relative_tolerance,
   cores = cores,

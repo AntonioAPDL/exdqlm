@@ -27,6 +27,8 @@ test_that("Normal DESN source comparison script runs on synthetic data", {
       "--max-iter", "3",
       "--stochastic-max-iter", "5",
       "--skip-stochastic",
+      "--ridge-tau2", "30",
+      "--rhs-tau0", "0.01",
       "--seed", "20260529"
     ),
     stdout = TRUE,
@@ -49,6 +51,8 @@ test_that("Normal DESN source comparison script runs on synthetic data", {
   preds <- utils::read.csv(file.path(out_dir, "predictions_by_method.csv"))
 
   expect_identical(repo_state$source_kind[[1L]], "synthetic")
+  expect_equal(repo_state$ridge_tau2[[1L]], 30)
+  expect_equal(repo_state$rhs_tau0[[1L]], 0.01)
   expect_true(all(c(
     "normal_scaled_ridge",
     "normal_scaled_ridge_exact_chunked",
@@ -59,6 +63,8 @@ test_that("Normal DESN source comparison script runs on synthetic data", {
     "qdesn_exal_ridge_exact_chunked"
   ) %in% methods$method))
   expect_true(all(exact$passed))
+  expect_true(all(c("ridge_tau2", "rhs_tau0") %in% names(methods)))
+  expect_equal(methods$rhs_tau0[methods$method == "normal_rhs_ns_vb"][[1L]], 0.01)
   expect_true(all(is.finite(methods$rmse_y)))
   expect_true(all(methods$finite_state))
   expect_true(all(is.finite(preds$point)))

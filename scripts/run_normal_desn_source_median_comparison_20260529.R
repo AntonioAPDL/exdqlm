@@ -42,6 +42,8 @@ stochastic_max_iter <- arg_int("--stochastic-max-iter", 40L)
 synthetic_n <- arg_int("--synthetic-n", 0L)
 run_stochastic <- !arg_flag("--skip-stochastic")
 exact_tolerance <- arg_num("--exact-tolerance", 1e-6)
+ridge_tau2 <- arg_num("--ridge-tau2", 50)
+rhs_tau0 <- arg_num("--rhs-tau0", 0.8)
 
 if (D != 1L) stop("This comparison harness currently supports D = 1 only.", call. = FALSE)
 if (n_res < 1L) stop("--n must be positive.", call. = FALSE)
@@ -51,6 +53,7 @@ if (chunk_size < 1L) stop("--chunk-size must be positive.", call. = FALSE)
 if (max_iter < 1L || stochastic_max_iter < 1L) stop("iteration controls must be positive.", call. = FALSE)
 if (synthetic_n < 0L) stop("--synthetic-n must be non-negative.", call. = FALSE)
 if (!is.finite(exact_tolerance) || exact_tolerance <= 0) stop("--exact-tolerance must be positive.", call. = FALSE)
+if (ridge_tau2 <= 0 || rhs_tau0 <= 0) stop("--ridge-tau2 and --rhs-tau0 must be positive.", call. = FALSE)
 
 Sys.setenv(
   OMP_NUM_THREADS = "1",
@@ -223,6 +226,8 @@ method_summary_row <- function(obj, reference = NULL) {
       "full_data_exact_or_cavi"
     },
     prior_family = if (grepl("rhs", obj$label)) "rhs_ns" else "ridge",
+    ridge_tau2 = if (grepl("ridge", obj$label)) ridge_tau2 else NA_real_,
+    rhs_tau0 = if (grepl("rhs", obj$label)) rhs_tau0 else NA_real_,
     init_source = "none",
     n_fit = length(pred$y_fit),
     p = length(pred$beta_mean),
@@ -288,7 +293,7 @@ if (washout >= length(y)) stop("--washout must be smaller than the selected seri
 
 normal_ridge_args <- list(
   beta_prior_type = "scaled_ridge",
-  prior = list(beta_ridge_tau2 = 50, intercept_var = 1e6),
+  prior = list(beta_ridge_tau2 = ridge_tau2, intercept_var = 1e6),
   omega_prior = list(a = 2, b = 1)
 )
 normal_ridge_chunked_args <- normal_ridge_args
@@ -302,7 +307,7 @@ normal_rhs_args <- list(
   beta_prior_type = "rhs_ns",
   omega_prior = list(a = 2, b = 1),
   rhs = list(
-    tau0 = 0.8,
+    tau0 = rhs_tau0,
     a_zeta = 2,
     b_zeta = 1,
     zeta2_fixed = 1.25,
@@ -322,7 +327,7 @@ base_vb <- list(
   n_samp_xi = 32L,
   verbose = FALSE,
   beta_prior_type = "ridge",
-  beta_ridge_tau2 = 50
+  beta_ridge_tau2 = ridge_tau2
 )
 exact_chunking <- list(enabled = TRUE, mode = "exact", chunk_size = chunk_size, order = "sequential")
 stochastic_chunking <- list(
@@ -401,6 +406,8 @@ repo_state <- data.frame(
   chunk_size = chunk_size,
   max_iter = max_iter,
   stochastic_max_iter = stochastic_max_iter,
+  ridge_tau2 = ridge_tau2,
+  rhs_tau0 = rhs_tau0,
   exact_tolerance = exact_tolerance,
   stringsAsFactors = FALSE
 )
@@ -418,6 +425,7 @@ md <- c(
   sprintf("- Source kind: `%s`", repo_state$source_kind[[1L]]),
   sprintf("- Source rows: `%d`", length(y)),
   sprintf("- DESN: D=%d, n=%d, m=%d, washout=%d", D, n_res, m_lag, washout),
+  sprintf("- Prior controls: ridge_tau2=%s, rhs_tau0=%s", ridge_tau2, rhs_tau0),
   sprintf("- Seed: `%d`", seed),
   "",
   "## Exact Equivalence",

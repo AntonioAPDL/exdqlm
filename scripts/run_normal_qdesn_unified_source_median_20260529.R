@@ -17,6 +17,12 @@ arg_int <- function(flag, default) {
   value
 }
 
+arg_num <- function(flag, default) {
+  value <- suppressWarnings(as.numeric(arg_value(flag, as.character(default))))
+  if (!length(value) || !is.finite(value)) stop(sprintf("%s must be finite numeric.", flag), call. = FALSE)
+  value
+}
+
 repo_root <- normalizePath(arg_value("--repo", getwd()), mustWork = TRUE)
 output_dir <- arg_value(
   "--output-dir",
@@ -40,6 +46,8 @@ max_iter <- arg_int("--max-iter", 25L)
 stochastic_max_iter <- arg_int("--stochastic-max-iter", 60L)
 hybrid_max_iter <- arg_int("--hybrid-max-iter", stochastic_max_iter)
 hybrid_full_every <- arg_int("--hybrid-full-every", 15L)
+ridge_tau2 <- arg_num("--ridge-tau2", 50)
+rhs_tau0 <- arg_num("--rhs-tau0", 0.8)
 cores <- arg_int("--cores", 1L)
 tail_rows <- arg_value("--tail-rows", NULL)
 expected_effective_rows <- arg_value("--expected-effective-rows", NULL)
@@ -52,6 +60,9 @@ if (n_res < 1L || m_lag < 0L || washout < 0L || chunk_size < 1L || subset_size <
 }
 if (max_iter < 1L || stochastic_max_iter < 1L || hybrid_max_iter < 1L || hybrid_full_every < 1L) {
   stop("Iteration controls must be positive.", call. = FALSE)
+}
+if (ridge_tau2 <= 0 || rhs_tau0 <= 0) {
+  stop("--ridge-tau2 and --rhs-tau0 must be positive.", call. = FALSE)
 }
 if (cores < 1L) stop("--cores must be positive.", call. = FALSE)
 
@@ -169,7 +180,9 @@ common_args <- c(
   "--n", as.character(n_res),
   "--m", as.character(m_lag),
   "--washout", as.character(washout),
-  "--max-iter", as.character(max_iter)
+  "--max-iter", as.character(max_iter),
+  "--ridge-tau2", as.character(ridge_tau2),
+  "--rhs-tau0", as.character(rhs_tau0)
 )
 
 component_runs <- list()
@@ -198,6 +211,8 @@ qdesn_args <- c(
   "--stochastic-max-iter", as.character(stochastic_max_iter),
   "--hybrid-max-iter", as.character(hybrid_max_iter),
   "--hybrid-full-every", as.character(hybrid_full_every),
+  "--ridge-tau2", as.character(ridge_tau2),
+  "--rhs-tau0", as.character(rhs_tau0),
   "--cores", as.character(cores)
 )
 if (!is.null(tail_rows)) qdesn_args <- c(qdesn_args, "--tail-rows", tail_rows)
@@ -274,6 +289,8 @@ repo_state <- data.frame(
   stochastic_max_iter = stochastic_max_iter,
   hybrid_max_iter = hybrid_max_iter,
   hybrid_full_every = hybrid_full_every,
+  ridge_tau2 = ridge_tau2,
+  rhs_tau0 = rhs_tau0,
   cores = cores,
   skip_workflows = skip_workflows,
   run_mcmc = run_mcmc,
@@ -311,6 +328,7 @@ writeLines(sprintf("- Package HEAD: `%s`", repo_state$head[[1L]]), con)
 writeLines(sprintf("- Package dirty at run time: `%s`", repo_state$dirty[[1L]]), con)
 writeLines(sprintf("- Source: `%s`", source_dir), con)
 writeLines(sprintf("- DESN settings: D=%d, n=%d, m=%d, washout=%d", D, n_res, m_lag, washout), con)
+writeLines(sprintf("- Prior controls: ridge_tau2=%s, rhs_tau0=%s", ridge_tau2, rhs_tau0), con)
 writeLines(sprintf("- Seed: `%d`", seed), con)
 writeLines("", con)
 writeLines("## Component Runs", con)
