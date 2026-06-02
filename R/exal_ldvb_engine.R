@@ -52,6 +52,13 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   vb_control$rhs_gradcheck <- isTRUE(vb_control$rhs_gradcheck %||% FALSE)
   vb_control$rhs_gradcheck_iters <- as.integer(vb_control$rhs_gradcheck_iters %||% c(1L, 5L))
   vb_control$rhs_gradcheck_h <- as.numeric(vb_control$rhs_gradcheck_h %||% 1e-5)
+  diagnostics_cfg <- vb_control$diagnostics %||% list()
+  if (!is.list(diagnostics_cfg)) .stopf("vb_control$diagnostics must be a list.")
+  vb_control$diagnostics <- utils::modifyList(
+    list(profile_substeps = FALSE),
+    diagnostics_cfg
+  )
+  profile_substeps <- isTRUE(vb_control$diagnostics$profile_substeps)
   vb_control$rhs_freeze_tau_warmup_iters <- as.integer(
     vb_control$rhs_freeze_tau_warmup_iters %||% vb_control$rhs_freeze_tau_iters %||% 0L
   )
@@ -190,6 +197,31 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     vector("list", vb_control$max_iter)
   } else {
     NULL
+  }
+  substep_timing_rows <- if (isTRUE(profile_substeps)) {
+    vector("list", as.integer(vb_control$max_iter) * 10L)
+  } else {
+    NULL
+  }
+  substep_timing_idx <- 0L
+  substep_start <- function() {
+    if (isTRUE(profile_substeps)) as.numeric(proc.time()[3]) else NA_real_
+  }
+  substep_stop <- function(iter, substep, start_time) {
+    if (!isTRUE(profile_substeps) || !is.finite(start_time)) return(invisible(NULL))
+    substep_timing_idx <<- substep_timing_idx + 1L
+    substep_timing_rows[[substep_timing_idx]] <<- data.frame(
+      iter = as.integer(iter),
+      substep = as.character(substep),
+      elapsed_sec = as.numeric(proc.time()[3] - start_time),
+      likelihood_family = as.character(likelihood_family),
+      chunking_mode = as.character(vb_control$chunking$mode %||% "none"),
+      exact_chunking = isTRUE(use_exact_chunking),
+      stochastic = isTRUE(use_stochastic_chunking),
+      hybrid = isTRUE(use_hybrid_chunking),
+      stringsAsFactors = FALSE
+    )
+    invisible(NULL)
   }
 
   L <- as.numeric(gamma_bounds[1])
@@ -1320,11 +1352,14 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # ------------------------------------------------------------------------
     # (2.1) UPDATE q(beta) using Delta xis (matches static core, mean=0 prior)
     # ------------------------------------------------------------------------
+    substep_t0 <- substep_start()
     update_qbeta()
+    substep_stop(iter, "beta_update", substep_t0)
 
     # ------------------------------------------------------------------------
     # (2.2) UPDATE q(v): GIG(1/2, chi_i, psi)
     # ------------------------------------------------------------------------
+    substep_t0 <- substep_start()
     if (isTRUE(use_stochastic_chunking)) {
       if (isTRUE(stochastic_local_refresh_now)) {
         local_up <- .exal_local_updates_chunks(
@@ -1417,10 +1452,12 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       qv$m_inv <- as.numeric(qv_up$m_inv)
       z_gig <- as.numeric(qv_up$z)   # cache for ELBO (entropy normalizer)
     }
+    substep_stop(iter, "local_v_update", substep_t0)
 
     # ------------------------------------------------------------------------
     # (2.2) UPDATE q(s): TN(mu_s, tau2) on (0, inf)
     # ------------------------------------------------------------------------
+    substep_t0 <- substep_start()
     qs_up <- if (isTRUE(use_stochastic_chunking)) {
       if (isTRUE(stochastic_local_refresh_now)) {
         local_up$qs
@@ -1454,6 +1491,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     mu_s <- as.numeric(qs_up$mu)
     qs$m <- as.numeric(qs_up$m)
     qs$m2 <- as.numeric(qs_up$m2)
+    substep_stop(iter, "local_s_update", substep_t0)
 
     bad_s <- which(!is.finite(qs$m) | qs$m <= 0)
     bad_s2 <- which(!is.finite(qs$m2) | qs$m2 <= 0)
@@ -1487,6 +1525,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     # (2.3) UPDATE q(sigma, gamma) jointly via Laplace–Delta on (eta, ell)
     # ------------------------------------------------------------------------
     # Precompute stats for LD optimization (depends on current qbeta,qv,qs only)
+    substep_t0 <- substep_start()
     if (isTRUE(use_exact_chunking) || isTRUE(use_stochastic_chunking)) {
       sigmagam_stats <- .exal_sigmagam_stats_chunks(
         X = X,
@@ -1524,6 +1563,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       S5 <- sum(ms2 * mv_inv)                    # sum E[s^2]E[1/v]
       S6 <- sum(ms)                              # sum E[s]
     }
+    substep_stop(iter, "sigmagam_stats", substep_t0)
 
     sigmagam_warmup_active <- isTRUE(
       sigmagam_freeze_warmup_iters > 0L &&
@@ -1549,6 +1589,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     sigmagam_update_performed <- FALSE
 
     if (!isTRUE(sigmagam_warmup_active) && isTRUE(sigmagam_update_due)) {
+      substep_t0 <- substep_start()
       eta_prev_sigmagam <- qsiggam$eta_hat
       ell_prev_sigmagam <- qsiggam$ell_hat
       Sigma_prev_sigmagam <- qsiggam$Sigma
@@ -1579,6 +1620,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         sigmagam_postwarmup_update_count <- sigmagam_postwarmup_update_count + 1L
       }
       sigmagam_forced_postwarmup <- isTRUE(sigmagam_force_now)
+      substep_stop(iter, "sigmagam_update", substep_t0)
     }
 
     sigmagam_frozen_trace <- c(sigmagam_frozen_trace, isTRUE(sigmagam_warmup_active))
@@ -1587,6 +1629,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     sigmagam_update_performed_trace <- c(sigmagam_update_performed_trace, isTRUE(sigmagam_update_performed))
 
     # refresh xis after LD update
+    substep_t0 <- substep_start()
     xis <- compute_xi_fast(qsiggam$eta_hat, qsiggam$ell_hat, qsiggam$Sigma)
     xi_vec <- unlist(xis)
     if (any(!is.finite(xi_vec))) {
@@ -1608,12 +1651,15 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     xis$xi_A2      <- if (is_al) pmax(as.numeric(xis$xi_A2), 0) else pmax(as.numeric(xis$xi_A2), 1e-12)
     xis$xi_lambda2 <- if (is_al) pmax(as.numeric(xis$xi_lambda2), 0) else pmax(as.numeric(xis$xi_lambda2), 1e-12)
     xis$xi_siginv  <- pmax(as.numeric(xis$xi_siginv),  1e-12)
+    substep_stop(iter, "xi_refresh", substep_t0)
 
     # Optional: extra q(beta) refinement before RHS update (path-only)
     if (rhs_beta_presteps > 1L && iter <= rhs_beta_presteps_iters) {
+      substep_t0 <- substep_start()
       for (kk in seq_len(rhs_beta_presteps - 1L)) {
         update_qbeta()
       }
+      substep_stop(iter, "beta_presteps", substep_t0)
     }
 
     tau_warmup <- isTRUE(rhs_freeze_tau_warmup_iters > 0L && iter <= rhs_freeze_tau_warmup_iters)
@@ -1644,7 +1690,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     }
 
     if (do_prior_update) {
+      substep_t0 <- substep_start()
       beta_state <- beta_prior_obj$update(beta_state, qbeta)
+      substep_stop(iter, "beta_prior_update", substep_t0)
     }
     # RHS traces are collected after any tau gating below.
 
@@ -1788,10 +1836,13 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     as.numeric(elbo_new / n)
     }
 
+    substep_t0 <- substep_start()
     elbo_pre <- compute_elbo_current()
     elbo_new <- elbo_pre
+    substep_stop(iter, "elbo_initial", substep_t0)
 
     # --- tau update gating (local ELBO) ------------------------------------
+    substep_t0 <- substep_start()
     if (identical(beta_prior_obj$type, "rhs")) {
       if (!isTRUE(tau_local_tol_on)) {
         if (isTRUE(do_rhs_update) && !isTRUE(tau_warmup)) {
@@ -1848,6 +1899,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         }
       }
     }
+    substep_stop(iter, "rhs_tau_gate", substep_t0)
 
     # --- RHS traces after final tau state ----------------------------------
     if (is_rhs_family) {
@@ -2193,6 +2245,21 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   if (rhs_deep_on && length(rhs_profiles)) {
     rhs_profiles_out <- rhs_profiles
   }
+  substep_timing_df <- if (isTRUE(profile_substeps) && substep_timing_idx > 0L) {
+    do.call(rbind, substep_timing_rows[seq_len(substep_timing_idx)])
+  } else {
+    data.frame(
+      iter = integer(0),
+      substep = character(0),
+      elapsed_sec = numeric(0),
+      likelihood_family = character(0),
+      chunking_mode = character(0),
+      exact_chunking = logical(0),
+      stochastic = logical(0),
+      hybrid = logical(0),
+      stringsAsFactors = FALSE
+    )
+  }
 
   t_end <- proc.time()[3]
 
@@ -2216,6 +2283,8 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       p0 = p0, bounds = c(L = L, U = U), n = n, p = p,
       likelihood_family = likelihood_family,
       al_fixed_gamma = if (is_al) as.numeric(gamma_fixed) else NA_real_,
+      diagnostics = vb_control$diagnostics,
+      substep_timing = substep_timing_df,
       gamma_trace = gamma_trace, sigma_trace = sigma_trace, new_term_trace = new_term_trace,
       elbo = elbo_trace, elbo_trace = elbo_trace,
       chunking = vb_control$chunking,

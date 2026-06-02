@@ -1,6 +1,11 @@
 # exdqlm 1.0.0
 
 ## New and changed
+- Added opt-in substep profiling for the shared Q-DESN/exAL VB readout engine.
+  Set `diagnostics = list(profile_substeps = TRUE)` in `exal_make_vb_control()`
+  or `qdesn_fit_vb(..., vb_args = list(diagnostics = ...))` to retain
+  iteration-level timing rows under `fit$misc$substep_timing`. The profiling
+  path records timing only and preserves the fitted VB target.
 - Changed the dynamic diagnostics CRPS calculation to use a finite integrated
   quantile-score approximation over posterior predictive empirical quantiles.
   The default grid is `seq(0.01, 0.99, by = 0.01)`, with optional user-supplied

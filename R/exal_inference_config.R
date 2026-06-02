@@ -1032,6 +1032,7 @@
   rhs_max_tau_updates <- NA_integer_
   rhs_force_tau_after_warmup <- TRUE
   rhs_recompute_elbo_after_tau_update <- TRUE
+  profile_substeps <- FALSE
 
   tol50 <- 1e-4
   tolext <- 1e-5
@@ -1056,11 +1057,13 @@
 
   if (!is.null(vb_cfg$diagnostics)) {
     diag_cfg <- vb_cfg$diagnostics
+    if (!is.list(diag_cfg)) stop("vb diagnostics config must be a list.", call. = FALSE)
     if (!is.null(diag_cfg$rhs_trace)) rhs_trace_on <- isTRUE(diag_cfg$rhs_trace)
     if (!is.null(diag_cfg$rhs_deep)) rhs_deep_on <- isTRUE(diag_cfg$rhs_deep)
     if (!is.null(diag_cfg$rhs_trace_thresholds)) rhs_trace_thresholds <- as.numeric(diag_cfg$rhs_trace_thresholds)
     if (!is.null(diag_cfg$rhs_trace_top_k)) rhs_trace_top_k <- as.integer(diag_cfg$rhs_trace_top_k)[1L]
     if (!is.null(diag_cfg$rhs_trace_eps)) rhs_trace_eps <- as.numeric(diag_cfg$rhs_trace_eps)
+    if (!is.null(diag_cfg$profile_substeps)) profile_substeps <- isTRUE(diag_cfg$profile_substeps)
   }
 
   if (!is.null(vb_cfg$rhs)) {
@@ -1119,6 +1122,7 @@
   vb_args_base$rhs_max_tau_updates <- rhs_max_tau_updates
   vb_args_base$rhs_force_tau_after_warmup <- rhs_force_tau_after_warmup
   vb_args_base$rhs_recompute_elbo_after_tau_update <- rhs_recompute_elbo_after_tau_update
+  vb_args_base$diagnostics <- list(profile_substeps = isTRUE(profile_substeps))
 
   vb_online_cfg <- .exal_normalize_vb_online_cfg(vb_cfg$online %||% vb_online_cfg)
   vb_args_base$sigmagam <- .exal_normalize_vb_sigmagam_cfg(vb_cfg$sigmagam %||% vb_args_base$sigmagam %||% list())
@@ -1448,7 +1452,8 @@ exal_make_vb_online_control <- function(
 #'   `force_tau_after_warmup`, and `recompute_elbo_after_tau_update`.
 #' @param diagnostics Optional diagnostics block. Supported keys include
 #'   `rhs_trace`, `rhs_deep`, `rhs_trace_thresholds`, `rhs_trace_top_k`, and
-#'   `rhs_trace_eps`.
+#'   `rhs_trace_eps`. Set `profile_substeps = TRUE` to retain opt-in
+#'   iteration-level timing rows under `fit$misc$substep_timing`.
 #' @param chunking Optional row-chunking or approximate batching control block.
 #'   Supported keys include `enabled`, `mode`, `chunk_size`, `order`, `trace`,
 #'   `seed`, `learning_rate`, `refresh`, and `diagnostics`. Defaults preserve
