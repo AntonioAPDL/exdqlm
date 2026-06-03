@@ -13,6 +13,9 @@
   coef.names = NULL,
   xlab = NULL,
   ylab = NULL,
+  ylim = NULL,
+  legend.labels = NULL,
+  beta.ref.label = "reference",
   legend = TRUE,
   ...
 )
@@ -39,6 +42,13 @@ from \code{type = "coefficients"} plots.}
 \code{type = "coefficients"} plots.}
 
 \item{xlab, ylab}{Optional axis labels.}
+
+\item{ylim}{Optional y-axis limits.}
+
+\item{legend.labels}{Optional labels for the first and second model
+intervals in \code{type = "coefficients"} plots.}
+
+\item{beta.ref.label}{Label for the optional \code{beta.ref} overlay.}
 
 \item{legend}{Logical; if \code{TRUE}, add a legend to coefficient plots.}
 

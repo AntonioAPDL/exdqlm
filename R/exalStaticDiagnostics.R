@@ -341,6 +341,10 @@ summary.exalStaticDiagnostic <- function(object, ...) {
 #' @param coef.names Optional names for coefficients in
 #'   \code{type = "coefficients"} plots.
 #' @param xlab,ylab Optional axis labels.
+#' @param ylim Optional y-axis limits.
+#' @param legend.labels Optional labels for the first and second model
+#'   intervals in \code{type = "coefficients"} plots.
+#' @param beta.ref.label Label for the optional \code{beta.ref} overlay.
 #' @param legend Logical; if \code{TRUE}, add a legend to coefficient plots.
 #' @param ... Additional arguments passed to plotting functions.
 #' @export
@@ -351,6 +355,9 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"),
                                       coef.names = NULL,
                                       xlab = NULL,
                                       ylab = NULL,
+                                      ylim = NULL,
+                                      legend.labels = NULL,
+                                      beta.ref.label = "reference",
                                       legend = TRUE, ...) {
   type <- match.arg(type)
   cols <- rep(cols, length.out = 2L)
@@ -389,12 +396,36 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"),
     m2_mean <- if (has_m2) x$m2.beta.mean[keep] else NULL
     m2_lb <- if (has_m2) x$m2.beta.lb[keep] else NULL
     m2_ub <- if (has_m2) x$m2.beta.ub[keep] else NULL
+    if (is.null(legend.labels)) {
+      legend.labels <- if (has_m2) c("M1 interval", "M2 interval") else "M1 interval"
+    }
+    legend.labels <- as.character(legend.labels)
+    expected_legend_labels <- if (has_m2) 2L else 1L
+    if (length(legend.labels) != expected_legend_labels || any(!nzchar(legend.labels))) {
+      stop(
+        sprintf("legend.labels must contain %d non-empty label%s.",
+                expected_legend_labels,
+                if (expected_legend_labels == 1L) "" else "s"),
+        call. = FALSE
+      )
+    }
+    beta.ref.label <- as.character(beta.ref.label)
+    if (length(beta.ref.label) != 1L || !nzchar(beta.ref.label)) {
+      stop("beta.ref.label must be one non-empty string.", call. = FALSE)
+    }
 
-    y_range <- range(c(beta.ref, m1_lb, m1_ub, m2_lb, m2_ub, m1_mean, m2_mean), finite = TRUE)
-    if (!all(is.finite(y_range))) y_range <- c(-1, 1)
-    if (diff(y_range) == 0) y_range <- y_range + c(-1, 1) * 1e-6
-    y_pad <- 0.08 * diff(y_range)
-    y_range <- y_range + c(-y_pad, y_pad)
+    if (is.null(ylim)) {
+      y_range <- range(c(beta.ref, m1_lb, m1_ub, m2_lb, m2_ub, m1_mean, m2_mean), finite = TRUE)
+      if (!all(is.finite(y_range))) y_range <- c(-1, 1)
+      if (diff(y_range) == 0) y_range <- y_range + c(-1, 1) * 1e-6
+      y_pad <- 0.08 * diff(y_range)
+      y_range <- y_range + c(-y_pad, y_pad)
+    } else {
+      y_range <- as.numeric(ylim)
+      if (length(y_range) != 2L || !all(is.finite(y_range)) || y_range[1L] >= y_range[2L]) {
+        stop("ylim must be a numeric vector of length 2 with increasing finite values.", call. = FALSE)
+      }
+    }
 
     x_pos <- seq_along(keep)
     offset <- if (has_m2) 0.12 else 0
@@ -416,18 +447,18 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"),
       graphics::points(x_pos, beta.ref, pch = 18, cex = 1.1, col = "black")
     }
     if (isTRUE(legend)) {
-      leg <- if (!is.null(beta.ref)) "reference" else character()
+      leg <- if (!is.null(beta.ref)) beta.ref.label else character()
       leg_col <- if (!is.null(beta.ref)) "black" else character()
       leg_pch <- if (!is.null(beta.ref)) 18 else numeric()
       leg_lty <- if (!is.null(beta.ref)) 0 else numeric()
       leg_lwd <- if (!is.null(beta.ref)) 0 else numeric()
-      leg <- c(leg, "M1 interval")
+      leg <- c(leg, legend.labels[1L])
       leg_col <- c(leg_col, cols[1])
       leg_pch <- c(leg_pch, 16)
       leg_lty <- c(leg_lty, 1)
       leg_lwd <- c(leg_lwd, 2)
       if (has_m2) {
-        leg <- c(leg, "M2 interval")
+        leg <- c(leg, legend.labels[2L])
         leg_col <- c(leg_col, cols[2])
         leg_pch <- c(leg_pch, 16)
         leg_lty <- c(leg_lty, 1)
@@ -461,18 +492,25 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"),
   xlab_quant <- if (is.null(xlab)) "x / index" else xlab
   ylab_quant <- if (is.null(ylab)) "conditional quantile" else ylab
 
-  yr <- range(
-    c(x$y, x$ref, x$m1.lb.quant, x$m1.ub.quant, x$m2.lb.quant, x$m2.ub.quant),
-    finite = TRUE
-  )
-  if (!all(is.finite(yr))) {
-    yr <- range(c(x$m1.map.quant, x$m2.map.quant), finite = TRUE)
-  }
-  if (!all(is.finite(yr))) {
-    yr <- c(-1, 1)
-  }
-  if (diff(yr) == 0) {
-    yr <- yr + c(-1, 1) * 1e-6
+  if (is.null(ylim)) {
+    yr <- range(
+      c(x$y, x$ref, x$m1.lb.quant, x$m1.ub.quant, x$m2.lb.quant, x$m2.ub.quant),
+      finite = TRUE
+    )
+    if (!all(is.finite(yr))) {
+      yr <- range(c(x$m1.map.quant, x$m2.map.quant), finite = TRUE)
+    }
+    if (!all(is.finite(yr))) {
+      yr <- c(-1, 1)
+    }
+    if (diff(yr) == 0) {
+      yr <- yr + c(-1, 1) * 1e-6
+    }
+  } else {
+    yr <- as.numeric(ylim)
+    if (length(yr) != 2L || !all(is.finite(yr)) || yr[1L] >= yr[2L]) {
+      stop("ylim must be a numeric vector of length 2 with increasing finite values.", call. = FALSE)
+    }
   }
 
   graphics::plot(

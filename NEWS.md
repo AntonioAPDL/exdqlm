@@ -13,7 +13,8 @@
   preserving the existing plotting defaults.
 - Added coefficient-interval summaries to `exalStaticDiagnostics()` objects and
   a `plot(..., type = "coefficients")` display for static LDVB/MCMC coefficient
-  comparisons, with an optional `beta.ref` overlay for simulation benchmarks.
+  comparisons, with optional shared axis limits, legend labels, and a `beta.ref`
+  overlay for simulation benchmarks.
 - Fixed `exdqlmForecast()` handling of future evolution matrices so constant
   `fGG` matrices expand across the forecast horizon and time-varying `fGG`
   arrays are validated against horizon `k`.

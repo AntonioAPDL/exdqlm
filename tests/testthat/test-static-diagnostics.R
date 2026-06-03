@@ -95,12 +95,18 @@ test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
       diags,
       type = "coefficients",
       beta.ref = c(0, 0.5),
-      include.intercept = FALSE
+      include.intercept = FALSE,
+      ylim = c(-1, 1),
+      legend.labels = c("LDVB 95% interval", "MCMC 95% interval"),
+      beta.ref.label = "truth"
     )
   )
   expect_length(coef_plot_ref$coefficient, ncol(dat$X) - 1L)
   expect_equal(coef_plot_ref$beta.ref, 0.5)
   expect_error(plot(diags, type = "coefficients", beta.ref = 0), "beta.ref")
+  expect_error(plot(diags, type = "coefficients", ylim = c(1, -1)), "ylim")
+  expect_error(plot(diags, type = "coefficients", legend.labels = "LDVB"), "legend.labels")
+  expect_error(plot(diags, type = "coefficients", beta.ref.label = ""), "beta.ref.label")
   expect_error(plot(diags, type = "unknown"), "one of")
   expect_error(
     exalStaticDiagnostics(fit_ldvb, X = dat$X, cr.percent = 1, plot = FALSE),
