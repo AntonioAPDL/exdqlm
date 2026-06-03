@@ -11,6 +11,9 @@
 - Added optional plotting controls to `exdqlmPlot()` and `compPlot()`, including
   `plot = FALSE` summary extraction and user-supplied axis limits/labels, while
   preserving the existing plotting defaults.
+- Added coefficient-interval summaries to `exalStaticDiagnostics()` objects and
+  a `plot(..., type = "coefficients")` display for static LDVB/MCMC coefficient
+  comparisons, with an optional `beta.ref` overlay for simulation benchmarks.
 - Fixed `exdqlmForecast()` handling of future evolution matrices so constant
   `fGG` matrices expand across the forecast horizon and time-varying `fGG`
   arrays are validated against horizon `k`.

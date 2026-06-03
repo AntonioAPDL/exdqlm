@@ -25,7 +25,8 @@ retained for backward compatibility and transfer-function extensions
 through \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}}, \code{\link[=exdqlmTransferMCMC]{exdqlmTransferMCMC()}}, and legacy
 \code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}.
 \item Static Bayesian exAL regression via \code{\link[=exalStaticLDVB]{exalStaticLDVB()}} and
-\code{\link[=exalStaticMCMC]{exalStaticMCMC()}}.
+\code{\link[=exalStaticMCMC]{exalStaticMCMC()}}, with static fitted-quantile and coefficient
+summaries through \code{\link[=exalStaticDiagnostics]{exalStaticDiagnostics()}}.
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
 and \code{\link[=regMod]{regMod()}}.
 \item Multi-quantile post-processing via
@@ -67,6 +68,9 @@ quantiles, with user-configurable quantile levels and weights in
 \code{\link[=exdqlmDiagnostics]{exdqlmDiagnostics()}}.
 \item Held-out forecast diagnostics are available for forecast objects
 through \code{\link[=exdqlmForecastDiagnostics]{exdqlmForecastDiagnostics()}}.
+\item Static diagnostics store fitted-quantile summaries and coefficient
+intervals, with \code{plot(..., type = "coefficients")} available for
+comparing static LDVB/MCMC coefficient summaries.
 \item Dynamic KL normality diagnostics are deterministic for fixed fitted
 objects and no longer depend on stochastic reference samples. The
 top-level diagnostic object exposes \code{KL} as the primary calibration

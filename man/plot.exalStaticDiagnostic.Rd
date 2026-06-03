@@ -4,13 +4,43 @@
 \alias{plot.exalStaticDiagnostic}
 \title{Plot Method for \code{exalStaticDiagnostic} Objects}
 \usage{
-\method{plot}{exalStaticDiagnostic}(x, cols = c("red", "blue"), ...)
+\method{plot}{exalStaticDiagnostic}(
+  x,
+  cols = c("red", "blue"),
+  type = c("quantile", "coefficients"),
+  beta.ref = NULL,
+  include.intercept = TRUE,
+  coef.names = NULL,
+  xlab = NULL,
+  ylab = NULL,
+  legend = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{An \code{exalStaticDiagnostic} object.}
 
 \item{cols}{Character vector of length 1 or 2 giving color(s) used to plot
 diagnostics.}
+
+\item{type}{Character string; \code{"quantile"} plots fitted conditional
+quantile summaries, and \code{"coefficients"} plots posterior coefficient
+intervals.}
+
+\item{beta.ref}{Optional coefficient reference vector for
+\code{type = "coefficients"}. This is typically available only in
+simulation benchmarks. It is used as a plotting overlay, not as a package
+diagnostic metric.}
+
+\item{include.intercept}{Logical; if \code{FALSE}, omit the first coefficient
+from \code{type = "coefficients"} plots.}
+
+\item{coef.names}{Optional names for coefficients in
+\code{type = "coefficients"} plots.}
+
+\item{xlab, ylab}{Optional axis labels.}
+
+\item{legend}{Logical; if \code{TRUE}, add a legend to coefficient plots.}
 
 \item{...}{Additional arguments passed to plotting functions.}
 }

@@ -4,7 +4,9 @@
 #' \code{exalStaticMCMC()}. The function summarizes fitted quantiles on a
 #' shared design matrix, reports mean check loss against observed responses when
 #' available, and can optionally compare the fitted quantile curve against a
-#' known reference quantile function.
+#' known reference quantile function. The returned diagnostic object also stores
+#' posterior summaries for the static regression coefficients, which can be
+#' plotted with \code{plot(..., type = "coefficients")}.
 #'
 #' @param m1 An object of class \code{"exalStaticLDVB"} or \code{"exalStaticMCMC"}.
 #' @param m2 Optional second fitted static model to compare against \code{m1}.
@@ -25,12 +27,16 @@
 #' dynamic forecast diagnostics, \code{exalStaticDiagnostics()} is designed for the
 #' static regression setting. It reports fitted quantile summaries on a common
 #' design matrix, optional mean check loss against observed responses, optional
-#' truth/reference errors, and compact comparison plots.
+#' reference-curve errors, coefficient posterior summaries, and compact
+#' comparison plots. The \code{ref} argument is a reference conditional quantile
+#' evaluated on the rows of \code{X}; it is distinct from the optional
+#' \code{beta.ref} argument of \code{\link{plot.exalStaticDiagnostic}}, which is
+#' used only to overlay known coefficient values in simulation examples.
 #'
 #' @return An object of class \code{"exalStaticDiagnostic"} containing fitted-quantile
 #'   summaries, residual summaries (when \code{y} is provided), optional
-#'   reference-curve error metrics, and run-time metadata for \code{m1} and
-#'   \code{m2} (if supplied).
+#'   reference-curve error metrics, coefficient posterior summaries, and
+#'   run-time metadata for \code{m1} and \code{m2} (if supplied).
 #'
 #' @examples
 #' \donttest{
@@ -53,6 +59,7 @@
 #' )
 #' out <- exalStaticDiagnostics(fit_ldvb, fit_mcmc, ref = q_true, plot = FALSE)
 #' print(out)
+#' plot(out, type = "coefficients")
 #' }
 #' @export
 exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
@@ -81,6 +88,15 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     }
   }
 
+  beta_names_from_X <- function(X_use, p) {
+    nms <- colnames(X_use)
+    if (is.null(nms) || length(nms) != p || any(!nzchar(nms))) {
+      nms <- paste0("beta", seq_len(p) - 1L)
+      if (p > 0L) nms[1L] <- "(Intercept)"
+    }
+    nms
+  }
+
   summarize_fit <- function(fit, X_use, y_use, ref_use, cr.percent) {
     if (cr.percent <= 0 || cr.percent >= 1) {
       stop("cr.percent must be between 0 and 1.", call. = FALSE)
@@ -89,27 +105,39 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
       stop("X must have at least one row.", call. = FALSE)
     }
 
+    half.alpha <- (1 - cr.percent) / 2
+    upper <- 1 - half.alpha
+
     if (is.exalStaticMCMC(fit)) {
       beta_draws <- as.matrix(fit$samp.beta)
+      if (ncol(beta_draws) != ncol(X_use)) {
+        stop("Number of beta coefficients in the fitted object must match ncol(X).", call. = FALSE)
+      }
       q_draws <- beta_draws %*% t(X_use)
       map_quant <- as.numeric(colMeans(q_draws))
-      half.alpha <- (1 - cr.percent) / 2
-      upper <- 1 - half.alpha
       lb_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
       ub_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = upper, na.rm = TRUE))
       beta_mean <- as.numeric(colMeans(beta_draws))
+      beta_lb <- as.numeric(apply(beta_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
+      beta_ub <- as.numeric(apply(beta_draws, 2, stats::quantile, probs = upper, na.rm = TRUE))
     } else if (is.exalStaticLDVB(fit)) {
       if (!is.null(fit$samp.beta)) {
         beta_draws <- as.matrix(fit$samp.beta)
+        if (ncol(beta_draws) != ncol(X_use)) {
+          stop("Number of beta coefficients in the fitted object must match ncol(X).", call. = FALSE)
+        }
         q_draws <- beta_draws %*% t(X_use)
         map_quant <- as.numeric(colMeans(q_draws))
-        half.alpha <- (1 - cr.percent) / 2
-        upper <- 1 - half.alpha
         lb_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
         ub_quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = upper, na.rm = TRUE))
         beta_mean <- as.numeric(colMeans(beta_draws))
+        beta_lb <- as.numeric(apply(beta_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
+        beta_ub <- as.numeric(apply(beta_draws, 2, stats::quantile, probs = upper, na.rm = TRUE))
       } else {
         beta_mean <- as.numeric(fit$qbeta$m)
+        if (length(beta_mean) != ncol(X_use)) {
+          stop("Number of beta coefficients in the fitted object must match ncol(X).", call. = FALSE)
+        }
         map_quant <- as.numeric(drop(X_use %*% beta_mean))
         if (!is.null(fit$qbeta$V)) {
           Vb <- as.matrix(fit$qbeta$V)
@@ -117,9 +145,14 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
           sd_path <- sqrt(pmax(rowSums((X_use %*% Vb) * X_use), 0))
           lb_quant <- map_quant - z * sd_path
           ub_quant <- map_quant + z * sd_path
+          beta_sd <- sqrt(pmax(diag(Vb), 0))
+          beta_lb <- beta_mean - z * beta_sd
+          beta_ub <- beta_mean + z * beta_sd
         } else {
           lb_quant <- rep(NA_real_, length(map_quant))
           ub_quant <- rep(NA_real_, length(map_quant))
+          beta_lb <- rep(NA_real_, length(beta_mean))
+          beta_ub <- rep(NA_real_, length(beta_mean))
         }
       }
     } else {
@@ -145,6 +178,8 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
       lb.quant = lb_quant,
       ub.quant = ub_quant,
       beta.mean = beta_mean,
+      beta.lb = beta_lb,
+      beta.ub = beta_ub,
       residuals = resid,
       check_loss = as.numeric(check_loss),
       ref_rmse = if (!is.null(ref_use)) sqrt(mean((map_quant - ref_use)^2)) else NA_real_,
@@ -190,12 +225,16 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     m1.lb.quant = m1_sum$lb.quant[ord],
     m1.ub.quant = m1_sum$ub.quant[ord],
     m1.beta.mean = m1_sum$beta.mean,
+    m1.beta.lb = m1_sum$beta.lb,
+    m1.beta.ub = m1_sum$beta.ub,
     m1.residuals = if (is.null(m1_sum$residuals)) NULL else m1_sum$residuals[ord],
     m1.check_loss = m1_sum$check_loss,
     m1.ref_rmse = m1_sum$ref_rmse,
     m1.ref_mae = m1_sum$ref_mae,
     m1.ref_maxae = m1_sum$ref_maxae,
-    m1.rt = m1_sum$rt
+    m1.rt = m1_sum$rt,
+    beta.names = beta_names_from_X(X_use, length(m1_sum$beta.mean)),
+    cr.percent = cr.percent
   )
 
   if (!is.null(m2)) {
@@ -218,6 +257,8 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     ret$m2.lb.quant <- m2_sum$lb.quant[ord]
     ret$m2.ub.quant <- m2_sum$ub.quant[ord]
     ret$m2.beta.mean <- m2_sum$beta.mean
+    ret$m2.beta.lb <- m2_sum$beta.lb
+    ret$m2.beta.ub <- m2_sum$beta.ub
     ret$m2.residuals <- if (is.null(m2_sum$residuals)) NULL else m2_sum$residuals[ord]
     ret$m2.check_loss <- m2_sum$check_loss
     ret$m2.ref_rmse <- m2_sum$ref_rmse
@@ -288,13 +329,137 @@ summary.exalStaticDiagnostic <- function(object, ...) {
 #' @param x An \code{exalStaticDiagnostic} object.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot
 #'   diagnostics.
+#' @param type Character string; \code{"quantile"} plots fitted conditional
+#'   quantile summaries, and \code{"coefficients"} plots posterior coefficient
+#'   intervals.
+#' @param beta.ref Optional coefficient reference vector for
+#'   \code{type = "coefficients"}. This is typically available only in
+#'   simulation benchmarks. It is used as a plotting overlay, not as a package
+#'   diagnostic metric.
+#' @param include.intercept Logical; if \code{FALSE}, omit the first coefficient
+#'   from \code{type = "coefficients"} plots.
+#' @param coef.names Optional names for coefficients in
+#'   \code{type = "coefficients"} plots.
+#' @param xlab,ylab Optional axis labels.
+#' @param legend Logical; if \code{TRUE}, add a legend to coefficient plots.
 #' @param ... Additional arguments passed to plotting functions.
 #' @export
-plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"), ...) {
+plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"),
+                                      type = c("quantile", "coefficients"),
+                                      beta.ref = NULL,
+                                      include.intercept = TRUE,
+                                      coef.names = NULL,
+                                      xlab = NULL,
+                                      ylab = NULL,
+                                      legend = TRUE, ...) {
+  type <- match.arg(type)
   cols <- rep(cols, length.out = 2L)
+
+  if (identical(type, "coefficients")) {
+    p <- length(x$m1.beta.mean)
+    keep <- seq_len(p)
+    if (!isTRUE(include.intercept)) {
+      if (p < 2L) {
+        stop("include.intercept = FALSE requires at least two coefficients.", call. = FALSE)
+      }
+      keep <- keep[-1L]
+    }
+
+    if (!is.null(beta.ref)) {
+      beta.ref <- as.numeric(beta.ref)
+      if (length(beta.ref) != p) {
+        stop("Length of beta.ref must match the full coefficient vector.", call. = FALSE)
+      }
+      beta.ref <- beta.ref[keep]
+    }
+
+    if (is.null(coef.names)) {
+      coef.names <- x$beta.names
+    }
+    if (is.null(coef.names) || length(coef.names) != p) {
+      coef.names <- paste0("beta", seq_len(p) - 1L)
+      if (p > 0L) coef.names[1L] <- "(Intercept)"
+    }
+    coef.names <- coef.names[keep]
+
+    m1_mean <- x$m1.beta.mean[keep]
+    m1_lb <- x$m1.beta.lb[keep]
+    m1_ub <- x$m1.beta.ub[keep]
+    has_m2 <- !is.null(x$m2.beta.mean)
+    m2_mean <- if (has_m2) x$m2.beta.mean[keep] else NULL
+    m2_lb <- if (has_m2) x$m2.beta.lb[keep] else NULL
+    m2_ub <- if (has_m2) x$m2.beta.ub[keep] else NULL
+
+    y_range <- range(c(beta.ref, m1_lb, m1_ub, m2_lb, m2_ub, m1_mean, m2_mean), finite = TRUE)
+    if (!all(is.finite(y_range))) y_range <- c(-1, 1)
+    if (diff(y_range) == 0) y_range <- y_range + c(-1, 1) * 1e-6
+    y_pad <- 0.08 * diff(y_range)
+    y_range <- y_range + c(-y_pad, y_pad)
+
+    x_pos <- seq_along(keep)
+    offset <- if (has_m2) 0.12 else 0
+    xlab_use <- if (is.null(xlab)) "" else xlab
+    ylab_use <- if (is.null(ylab)) "coefficient value" else ylab
+    graphics::plot(
+      x_pos, m1_mean, type = "n", xaxt = "n",
+      xlab = xlab_use, ylab = ylab_use, ylim = y_range, ...
+    )
+    graphics::abline(h = 0, col = "grey85", lty = 2)
+    graphics::axis(1, at = x_pos, labels = coef.names, las = 2)
+    graphics::segments(x_pos - offset, m1_lb, x_pos - offset, m1_ub, col = cols[1], lwd = 2)
+    graphics::points(x_pos - offset, m1_mean, pch = 16, col = cols[1])
+    if (has_m2) {
+      graphics::segments(x_pos + offset, m2_lb, x_pos + offset, m2_ub, col = cols[2], lwd = 2)
+      graphics::points(x_pos + offset, m2_mean, pch = 16, col = cols[2])
+    }
+    if (!is.null(beta.ref)) {
+      graphics::points(x_pos, beta.ref, pch = 18, cex = 1.1, col = "black")
+    }
+    if (isTRUE(legend)) {
+      leg <- if (!is.null(beta.ref)) "reference" else character()
+      leg_col <- if (!is.null(beta.ref)) "black" else character()
+      leg_pch <- if (!is.null(beta.ref)) 18 else numeric()
+      leg_lty <- if (!is.null(beta.ref)) 0 else numeric()
+      leg_lwd <- if (!is.null(beta.ref)) 0 else numeric()
+      leg <- c(leg, "M1 interval")
+      leg_col <- c(leg_col, cols[1])
+      leg_pch <- c(leg_pch, 16)
+      leg_lty <- c(leg_lty, 1)
+      leg_lwd <- c(leg_lwd, 2)
+      if (has_m2) {
+        leg <- c(leg, "M2 interval")
+        leg_col <- c(leg_col, cols[2])
+        leg_pch <- c(leg_pch, 16)
+        leg_lty <- c(leg_lty, 1)
+        leg_lwd <- c(leg_lwd, 2)
+      }
+      graphics::legend(
+        "topleft", legend = leg, col = leg_col, pch = leg_pch,
+        lty = leg_lty, lwd = leg_lwd, bty = "n"
+      )
+    }
+
+    plot_summary <- list(
+      type = "coefficients",
+      coefficient = coef.names,
+      index = keep,
+      m1.mean = m1_mean,
+      m1.lb = m1_lb,
+      m1.ub = m1_ub,
+      m2.mean = m2_mean,
+      m2.lb = m2_lb,
+      m2.ub = m2_ub,
+      beta.ref = beta.ref,
+      cr.percent = x$cr.percent
+    )
+    return(invisible(plot_summary))
+  }
+
   op <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(op), add = TRUE)
   graphics::par(mfrow = c(1, 2))
+  xlab_quant <- if (is.null(xlab)) "x / index" else xlab
+  ylab_quant <- if (is.null(ylab)) "conditional quantile" else ylab
 
   yr <- range(
     c(x$y, x$ref, x$m1.lb.quant, x$m1.ub.quant, x$m2.lb.quant, x$m2.ub.quant),
@@ -312,7 +477,7 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"), ...) {
 
   graphics::plot(
     x$x, x$m1.map.quant, type = "n", ylim = yr,
-    xlab = "x / index", ylab = "conditional quantile", ...
+    xlab = xlab_quant, ylab = ylab_quant, ...
   )
   if (!is.null(x$y)) {
     graphics::points(
@@ -364,7 +529,7 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"), ...) {
     }
     graphics::plot(
       x$x, err1, type = "l", col = cols[1], lwd = 2,
-      xlab = "x / index", ylab = "absolute error vs truth",
+      xlab = xlab_quant, ylab = "absolute error vs truth",
       ylim = yr2, ...
     )
     if (!is.null(err2)) {
@@ -379,7 +544,7 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"), ...) {
     }
     graphics::plot(
       x$x, resid1, type = "p", col = cols[1], pch = 16, cex = 0.6,
-      xlab = "x / index", ylab = "residuals", ylim = yr2, ...
+      xlab = xlab_quant, ylab = "residuals", ylim = yr2, ...
     )
     graphics::abline(h = 0, col = "grey60", lty = 2)
     if (!is.null(resid2)) {
@@ -389,4 +554,5 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"), ...) {
     graphics::plot.new()
     graphics::title("No residual/reference panel available")
   }
+  invisible(list(type = "quantile"))
 }

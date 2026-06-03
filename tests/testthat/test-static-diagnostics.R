@@ -57,8 +57,22 @@ test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
   expect_true(all(c(
     "m1.check_loss", "m2.check_loss",
     "m1.ref_rmse", "m2.ref_rmse",
-    "m1.beta.mean", "m2.beta.mean"
+    "m1.beta.mean", "m2.beta.mean",
+    "m1.beta.lb", "m1.beta.ub",
+    "m2.beta.lb", "m2.beta.ub",
+    "beta.names", "cr.percent"
   ) %in% names(diags)))
+  expect_false(any(c("active_rmse", "null_mae", "holdout_qrmse") %in% names(diags)))
+  expect_length(diags$m1.beta.mean, ncol(dat$X))
+  expect_length(diags$m1.beta.lb, ncol(dat$X))
+  expect_length(diags$m1.beta.ub, ncol(dat$X))
+  expect_length(diags$m2.beta.mean, ncol(dat$X))
+  expect_length(diags$beta.names, ncol(dat$X))
+  expect_equal(diags$cr.percent, 0.95)
+  expect_true(all(diags$m1.beta.lb <= diags$m1.beta.mean))
+  expect_true(all(diags$m1.beta.mean <= diags$m1.beta.ub))
+  expect_true(all(diags$m2.beta.lb <= diags$m2.beta.mean))
+  expect_true(all(diags$m2.beta.mean <= diags$m2.beta.ub))
   expect_true(all(is.finite(c(
     diags$m1.check_loss, diags$m2.check_loss,
     diags$m1.ref_rmse, diags$m2.ref_rmse,
@@ -72,6 +86,29 @@ test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
   grDevices::pdf(tf)
   on.exit(grDevices::dev.off(), add = TRUE)
   expect_no_error(plot(diags))
+  expect_no_error(coef_plot <- plot(diags, type = "coefficients"))
+  expect_equal(coef_plot$type, "coefficients")
+  expect_length(coef_plot$coefficient, ncol(dat$X))
+  expect_null(coef_plot$beta.ref)
+  expect_no_error(
+    coef_plot_ref <- plot(
+      diags,
+      type = "coefficients",
+      beta.ref = c(0, 0.5),
+      include.intercept = FALSE
+    )
+  )
+  expect_length(coef_plot_ref$coefficient, ncol(dat$X) - 1L)
+  expect_equal(coef_plot_ref$beta.ref, 0.5)
+  expect_error(plot(diags, type = "coefficients", beta.ref = 0), "beta.ref")
+  expect_error(plot(diags, type = "unknown"), "one of")
+  expect_error(
+    exalStaticDiagnostics(fit_ldvb, X = dat$X, cr.percent = 1, plot = FALSE),
+    "cr.percent"
+  )
+
+  one_model <- exalStaticDiagnostics(fit_ldvb, X = dat$X, y = dat$y, plot = FALSE)
+  expect_no_error(plot(one_model, type = "coefficients"))
 })
 
 test_that("static MCMC default proposal is slice", {

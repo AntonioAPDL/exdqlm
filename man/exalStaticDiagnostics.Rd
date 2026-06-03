@@ -40,22 +40,28 @@ quantiles.}
 \value{
 An object of class \code{"exalStaticDiagnostic"} containing fitted-quantile
 summaries, residual summaries (when \code{y} is provided), optional
-reference-curve error metrics, and run-time metadata for \code{m1} and
-\code{m2} (if supplied).
+reference-curve error metrics, coefficient posterior summaries, and
+run-time metadata for \code{m1} and \code{m2} (if supplied).
 }
 \description{
 Static diagnostics companion for \code{exalStaticLDVB()} and
 \code{exalStaticMCMC()}. The function summarizes fitted quantiles on a
 shared design matrix, reports mean check loss against observed responses when
 available, and can optionally compare the fitted quantile curve against a
-known reference quantile function.
+known reference quantile function. The returned diagnostic object also stores
+posterior summaries for the static regression coefficients, which can be
+plotted with \code{plot(..., type = "coefficients")}.
 }
 \details{
 Unlike \code{\link{exdqlmDiagnostics}}, which is built around one-step-ahead
 dynamic forecast diagnostics, \code{exalStaticDiagnostics()} is designed for the
 static regression setting. It reports fitted quantile summaries on a common
 design matrix, optional mean check loss against observed responses, optional
-truth/reference errors, and compact comparison plots.
+reference-curve errors, coefficient posterior summaries, and compact
+comparison plots. The \code{ref} argument is a reference conditional quantile
+evaluated on the rows of \code{X}; it is distinct from the optional
+\code{beta.ref} argument of \code{\link{plot.exalStaticDiagnostic}}, which is
+used only to overlay known coefficient values in simulation examples.
 }
 \examples{
 \donttest{
@@ -78,5 +84,6 @@ fit_mcmc <- exalStaticMCMC(
 )
 out <- exalStaticDiagnostics(fit_ldvb, fit_mcmc, ref = q_true, plot = FALSE)
 print(out)
+plot(out, type = "coefficients")
 }
 }

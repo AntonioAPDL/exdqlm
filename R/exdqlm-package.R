@@ -17,7 +17,8 @@
 #'         through [exdqlmTransferLDVB()], [exdqlmTransferMCMC()], and legacy
 #'         [exdqlmTransferISVB()].
 #'   \item Static Bayesian exAL regression via [exalStaticLDVB()] and
-#'         [exalStaticMCMC()].
+#'         [exalStaticMCMC()], with static fitted-quantile and coefficient
+#'         summaries through [exalStaticDiagnostics()].
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
 #'         and [regMod()].
 #'   \item Multi-quantile post-processing via
@@ -55,6 +56,9 @@
 #'         [exdqlmDiagnostics()].
 #'   \item Held-out forecast diagnostics are available for forecast objects
 #'         through [exdqlmForecastDiagnostics()].
+#'   \item Static diagnostics store fitted-quantile summaries and coefficient
+#'         intervals, with `plot(..., type = "coefficients")` available for
+#'         comparing static LDVB/MCMC coefficient summaries.
 #'   \item Dynamic KL normality diagnostics are deterministic for fixed fitted
 #'         objects and no longer depend on stochastic reference samples. The
 #'         top-level diagnostic object exposes `KL` as the primary calibration

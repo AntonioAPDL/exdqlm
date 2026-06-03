@@ -12,6 +12,10 @@ dynamic diagnostic reproducibility:
   posterior predictive forecast draws.
 - `exdqlmForecast()` now validates future time-varying `fGG` arrays against the
   forecast horizon and safely expands constant future `fGG` matrices.
+- `exalStaticDiagnostics()` now stores coefficient interval summaries and its
+  S3 plot method can display static coefficient intervals; optional coefficient
+  reference overlays are visual aids for simulations, not new truth-based
+  package diagnostics.
 - `exdqlmDiagnostics()` now uses a deterministic one-dimensional semiclosed KL
   normality diagnostic for MAP standardized forecast errors.
 - The reported `KL` direction is aligned with the documented diagnostic target
