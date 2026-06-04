@@ -1,3 +1,5 @@
+skip_on_cran()
+
 # Smoke tests for static regression API (regMod + static exAL inference routines).
 
 test_that("regMod returns exdqlm-compatible structure", {

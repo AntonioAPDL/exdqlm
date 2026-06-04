@@ -1,3 +1,5 @@
+skip_on_cran()
+
 # Fast mode uses C++ FFBS. Compare summary behavior vs R baseline.
 
 run_mcmc_fast_compare <- function(dqlm = FALSE) {

@@ -2,6 +2,15 @@
 
 ### Release context
 
+This is a resubmission of version 1.0.0. The previous incoming Debian pretest
+completed the test suite but reported a NOTE because `testthat.R` used much
+more CPU time than elapsed time. The test entrypoint now caps native
+OpenMP/BLAS thread counts before loading the package. Heavyweight
+inference/backend-validation files are skipped on CRAN while the lighter API and
+regression tests, including the new static coefficient-plot interface, remain
+covered by the CRAN suite. The full validation suite is still run locally with
+`NOT_CRAN=true`.
+
 This release builds on the consolidated 0.4.0 CRAN package line and focuses on
 dynamic diagnostic reproducibility:
 
@@ -41,12 +50,11 @@ artifacts; only package-facing API, documentation, and tests are included.
 - Local development tools available for this check included `pandoc` 3.9.0.2
   and the R package `V8`, so README/NEWS and HTML math rendering checks ran.
 - Local commands used:
-  - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-kl-diagnostics.R")'`
-  - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-diagnostics-metrics.R")'`
-  - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-exdqlm-transfer-mcmc.R")'`
-  - `Rscript -e 'testthat::test_local(reporter = "summary")'`
+  - `NOT_CRAN=false Rscript -e 'source("tests/testthat/setup-cran-thread-controls.R"); pkgload::load_all("."); testthat::test_dir("tests/testthat", reporter = "summary")'`
+  - Local non-CRAN validation run of all CRAN-skipped test files with
+    `NOT_CRAN=true`
   - `R CMD build --no-build-vignettes .`
-  - `R CMD check --no-manual --run-donttest exdqlm_1.0.0.tar.gz`
+  - `NOT_CRAN=false R CMD check --no-manual --run-donttest exdqlm_1.0.0.tar.gz`
 
 ### R CMD check results
 

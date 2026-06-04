@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_static_truth_case <- function(n = 36L, p0 = 0.25) {
   x <- seq(-2, 2, length.out = n)
   X <- cbind(1, x)

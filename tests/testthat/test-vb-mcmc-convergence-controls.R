@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_dyn_model <- function(TT) {
   as.exdqlm(list(
     m0 = 0,

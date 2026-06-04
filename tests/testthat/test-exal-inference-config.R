@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_static_xy_builder <- function(n = 18L) {
   x <- seq(-1, 1, length.out = n)
   X <- cbind(1, x)

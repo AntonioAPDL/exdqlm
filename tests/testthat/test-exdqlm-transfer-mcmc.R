@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_transfer_base_model <- function(TT) {
   exdqlm::as.exdqlm(list(
     m0 = 0,
