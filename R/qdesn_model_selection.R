@@ -38,8 +38,7 @@
 #'     \item \code{candidates}: tibble with all candidate specs and tuning scores,
 #'     \item \code{best}: list summarizing the selected spec and its test performance.
 #'   }
-#' @export
-qdesn_model_selection <- function(
+.qdesn_model_selection_legacy <- function(
   dataset_id,
   file_long,
   file_obs  = NULL,
