@@ -612,14 +612,66 @@ ms_candidate_id <- function(candidate) {
   digest::digest(candidate)
 }
 
+ms_apply_candidate_budget <- function(candidates, budget = NULL, seed = NULL) {
+  if (!is.null(budget) && is.list(budget) && !is.null(budget$max_candidates)) {
+    max_candidates <- as.integer(budget$max_candidates)
+    if (length(candidates) > max_candidates) {
+      if (!is.null(seed)) set.seed(as.integer(seed))
+      keep_idx <- sample(seq_along(candidates), size = max_candidates, replace = FALSE)
+      candidates <- candidates[sort(keep_idx)]
+    }
+  }
+  candidates
+}
+
 ms_expand_candidate_grid <- function(grid, budget = NULL, seed = NULL) {
   if (is.null(grid)) return(list())
+
+  if (!is.null(grid$candidates)) {
+    raw_candidates <- grid$candidates
+    if (!is.list(raw_candidates)) stop("candidate_grid$candidates must be a list of candidate objects")
+    candidates <- lapply(seq_along(raw_candidates), function(i) {
+      cand <- raw_candidates[[i]]
+      if (!is.list(cand)) stop("candidate_grid$candidates entries must be lists")
+      D <- as.integer(cand$D %||% length(ms_norm_int(cand$n)) %||% 1L)
+      n_vec <- ms_norm_int(cand$n)
+      if (is.null(n_vec)) stop("candidate_grid$candidates[[", i, "]] is missing n")
+      if (D > 1L && length(n_vec) == 1L) n_vec <- rep(n_vec, D)
+      if (length(n_vec) != D) {
+        stop("candidate_grid$candidates[[", i, "]] has length(n) inconsistent with D")
+      }
+      n_tilde <- ms_norm_int(cand$n_tilde)
+      if (D <= 1L) {
+        n_tilde <- integer(0)
+      } else if (is.null(n_tilde)) {
+        n_tilde <- as.integer(n_vec[2:D])
+      } else if (length(n_tilde) == 1L && (D - 1L) > 1L) {
+        n_tilde <- rep(n_tilde, D - 1L)
+      }
+      if (D > 1L && length(n_tilde) != (D - 1L)) {
+        stop("candidate_grid$candidates[[", i, "]] has length(n_tilde) inconsistent with D")
+      }
+      out <- list(
+        D = D,
+        n = as.integer(n_vec),
+        n_tilde = as.integer(n_tilde),
+        m = as.integer(cand$m %||% 50L),
+        alpha = as.numeric(cand$alpha %||% 0.2),
+        rho = as.numeric(cand$rho %||% 0.95),
+        seed = as.numeric(cand$seed %||% NA)
+      )
+      if (!is.null(cand$id)) out$id <- as.character(cand$id)
+      if (!is.null(cand$metadata)) out$metadata <- cand$metadata
+      out
+    })
+    return(ms_apply_candidate_budget(candidates, budget = budget, seed = seed))
+  }
 
   if (!is.null(grid$n_list)) {
     n_list <- grid$n_list
     if (!is.list(n_list)) stop("candidate_grid$n_list must be a list of numeric vectors")
     candidates <- lapply(seq_along(n_list), function(i) list(n = as.integer(n_list[[i]])))
-    return(candidates)
+    return(ms_apply_candidate_budget(candidates, budget = budget, seed = seed))
   }
 
   D_vals <- grid$D %||% 1L
@@ -674,16 +726,7 @@ ms_expand_candidate_grid <- function(grid, budget = NULL, seed = NULL) {
     )
   })
 
-  if (!is.null(budget) && is.list(budget) && !is.null(budget$max_candidates)) {
-    max_candidates <- as.integer(budget$max_candidates)
-    if (length(candidates) > max_candidates) {
-      if (!is.null(seed)) set.seed(as.integer(seed))
-      keep_idx <- sample(seq_along(candidates), size = max_candidates, replace = FALSE)
-      candidates <- candidates[sort(keep_idx)]
-    }
-  }
-
-  candidates
+  ms_apply_candidate_budget(candidates, budget = budget, seed = seed)
 }
 
 ms_build_stage_candidates <- function(stage, prev_candidates = NULL, prev_summary = NULL) {

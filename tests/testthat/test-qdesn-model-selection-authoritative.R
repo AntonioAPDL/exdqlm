@@ -133,3 +133,40 @@ test_that("model selection v2 beta-prior builder supports current ridge and RHS 
   expect_equal(rhs$type, "rhs")
   expect_equal(rhs_ns$type, "rhs_ns")
 })
+
+test_that("model selection v2 accepts explicit candidate lists for bridge workflows", {
+  candidates <- exdqlm:::ms_expand_candidate_grid(
+    list(
+      candidates = list(
+        list(
+          id = "pricefm_like_d1",
+          D = 1L,
+          n = c(120L),
+          m = 96L,
+          alpha = 0.5,
+          rho = 0.9,
+          seed = 20260601,
+          metadata = list(feature_dim = 120L, projection_scale = 1.0)
+        ),
+        list(
+          id = "pricefm_like_d2",
+          D = 2L,
+          n = c(120L, 60L),
+          m = 96L,
+          alpha = c(0.5, 0.3),
+          rho = c(0.9, 0.85),
+          seed = 20260602
+        )
+      )
+    )
+  )
+
+  expect_length(candidates, 2L)
+  expect_equal(candidates[[1L]]$id, "pricefm_like_d1")
+  expect_equal(candidates[[1L]]$n, 120L)
+  expect_equal(candidates[[1L]]$n_tilde, integer(0))
+  expect_equal(candidates[[1L]]$metadata$projection_scale, 1.0)
+  expect_equal(candidates[[2L]]$D, 2L)
+  expect_equal(candidates[[2L]]$n_tilde, 60L)
+  expect_equal(candidates[[2L]]$alpha, c(0.5, 0.3))
+})

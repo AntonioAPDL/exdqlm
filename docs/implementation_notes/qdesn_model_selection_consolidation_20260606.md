@@ -24,6 +24,8 @@ The v2 engine is more congruent with current Q-DESN development because it
 supports:
 
 - staged candidate grids;
+- explicit candidate lists through
+  `model_selection$stages[[i]]$candidate_grid$candidates`;
 - current DESN normalization (`D`, `n`, `n_tilde`, `m`, `alpha`, `rho`, seed);
 - origin-mode scoring;
 - current VB readout controls;
@@ -90,7 +92,13 @@ The script parses successfully with:
 
 The local R library used for this pass does not have `optparse` installed, so a
 runtime `--help` invocation of the CLI could not be completed in this
-environment. The script-level dependency was not changed.
+environment. The script-level dependency is now declared in `Suggests`.
+
+Runtime packages used by the model-selection API are declared in `Imports`
+where required for ordinary package loading, including `digest`, `dplyr`,
+`jsonlite`, `purrr`, `readr`, `tibble`, and `yaml`. Legacy parallel/CLI-only
+dependencies that are not installed in the local validation library remain
+declared in `Suggests`, including `future`, `future.apply`, and `optparse`.
 
 ## Future PriceFM Migration Checklist
 

@@ -46,21 +46,28 @@ Imports:
     Rcpp,
     matrixStats,
     nimble,
-    numDeriv
+    numDeriv,
+    digest,
+    dplyr,
+    jsonlite,
+    purrr,
+    readr,
+    tibble,
+    yaml
 Suggests:
     brms,
     data.table,
-    digest,
     forecast,
+    future,
+    future.apply,
     rmarkdown,
     testthat (>= 3.0.0),
     ggplot2,
-    jsonlite,
     pkgload,
     MASS,
+    optparse,
     scales,
-    withr,
-    yaml
+    withr
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 LinkingTo:
