@@ -36,8 +36,10 @@ the current per-row scalar summaries, then rewrites:
 under the campaign `provisional_progress/` report directory. These outputs are
 storage-light and updateable, but intentionally non-authoritative while any
 atomic spec remains running or pending. Every provisional row must carry
-`is_final = FALSE` and `article_consumable = FALSE`; final Article-Q-DESN table
-inputs require the later shared fit+forecast interface closeout export.
+`is_final = FALSE` and `article_consumable = FALSE`; final Article-Q-DESN
+scientific result table inputs require the later shared fit+forecast interface
+closeout export. Article-Q-DESN may use the snapshot only for progress/preflight
+checks or explicitly labeled operational status displays.
 
 Refresh command for the active TT500 campaign:
 

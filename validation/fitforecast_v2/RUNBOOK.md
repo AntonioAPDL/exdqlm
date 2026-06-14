@@ -194,7 +194,9 @@ was aborted during launcher verification and is not article-consumable.
 While the Q-DESN TT500 campaign is still running, use the provisional exporter
 to materialize a storage-light progress table with placeholders for incomplete
 atomic specs. This is a live progress artifact only; it is not a final shared
-interface and Article-Q-DESN must not use it for manuscript tables.
+interface and Article-Q-DESN must not use it for scientific result tables. It
+may be used only for progress/preflight checks or explicitly labeled operational
+status displays.
 
 ```sh
 Rscript scripts/export_qdesn_tt500_provisional_progress_table.R \

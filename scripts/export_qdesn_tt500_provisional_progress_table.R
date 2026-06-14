@@ -236,7 +236,7 @@ row_for_spec <- function(spec) {
     provisional_generated_at = generated_at,
     is_final = FALSE,
     article_consumable = FALSE,
-    article_consumption_policy = "progress_tracking_only_do_not_use_for_manuscript_tables",
+    article_consumption_policy = "progress_status_only_not_final_result_table",
     run_tag = run_tag,
     campaign_id = campaign_id,
     spec_id = as.character(spec$spec_id),
@@ -410,7 +410,7 @@ manifest <- list(
   artifact_version = "v1",
   is_final = FALSE,
   article_consumable = FALSE,
-  article_consumption_policy = "progress_tracking_only_do_not_use_for_manuscript_tables",
+  article_consumption_policy = "progress_status_only_not_final_result_table",
   generated_at = generated_at,
   run_tag = run_tag,
   campaign_id = campaign_id,
@@ -464,7 +464,7 @@ manifest <- list(
     "--run-tag", run_tag,
     "--campaign-id", campaign_id
   ),
-  note = "This is a live progress artifact. It deliberately contains placeholders and must not be consumed as a final article-facing validation interface."
+  note = "This is a live progress artifact. It deliberately contains placeholders and must not be consumed as a final article-facing validation interface or scientific result table."
 )
 jsonlite::write_json(manifest, manifest_path, auto_unbox = TRUE, pretty = TRUE, null = "null")
 manifest$outputs$manifest_path <- normalizePath(manifest_path, winslash = "/", mustWork = TRUE)
@@ -476,7 +476,7 @@ readme <- c(
   paste0("Generated: `", generated_at, "`"),
   "",
   "This directory is a live, storage-light progress snapshot for the Q-DESN TT500 MCMC validation campaign.",
-  "It is intentionally not a final article-facing shared interface and must not be used for manuscript analysis.",
+  "It is intentionally not a final article-facing shared interface and must not be used as a scientific result table.",
   "",
   "## Files",
   "",
@@ -505,9 +505,9 @@ readme <- c(
   "",
   "## Article Consumption Rule",
   "",
-  "Article-Q-DESN may read this table only for progress/preflight checks.",
+  "Article-Q-DESN may read this table only for progress, preflight, or explicitly labeled status displays.",
   "Rows have `is_final = FALSE` and `article_consumable = FALSE` by design.",
-  "Final article tables must wait for campaign closeout and the final shared fit+forecast interface export."
+  "Final article result tables must wait for campaign closeout and the final shared fit+forecast interface export."
 )
 writeLines(readme, readme_path, useBytes = TRUE)
 
