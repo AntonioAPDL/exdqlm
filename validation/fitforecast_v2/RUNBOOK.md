@@ -188,3 +188,33 @@ Required closeout evidence:
 The invalid partial Q-DESN smoke tag
 `qdesn-dynamic-fitforecast-v2-smoke-20260515-184752__git-5de7a28`
 was aborted during launcher verification and is not article-consumable.
+
+## 10. Provisional TT500 Progress Export
+
+While the Q-DESN TT500 campaign is still running, use the provisional exporter
+to materialize a storage-light progress table with placeholders for incomplete
+atomic specs. This is a live progress artifact only; it is not a final shared
+interface and Article-Q-DESN must not use it for manuscript tables.
+
+```sh
+Rscript scripts/export_qdesn_tt500_provisional_progress_table.R \
+  --run-tag qdesn-dynamic-fitforecast-v2-mcmc-tt500-20260520-035319__git-d075941 \
+  --campaign-id 20260525-191523__git-d075941
+```
+
+Default outputs are written under the campaign report root:
+
+`reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation/qdesn-dynamic-fitforecast-v2-mcmc-tt500-20260520-035319__git-d075941/20260525-191523__git-d075941/provisional_progress/`
+
+Expected files:
+
+- `tt500_provisional_atomic_progress.csv`: one row per atomic likelihood-family
+  spec, including `complete`, `running`, and `pending` placeholders.
+- `tt500_provisional_root_progress.csv`: one row per Q-DESN root, summarizing
+  EXAL and AL state.
+- `tt500_provisional_manifest.json`: source contract, hashes, counts, and the
+  refresh command.
+- `README.md`: local human-readable refresh and consumption rules.
+
+Every row carries `is_final = FALSE` and `article_consumable = FALSE`. Rerun the
+exporter after live jobs finish; do not hand-edit the provisional CSVs.
