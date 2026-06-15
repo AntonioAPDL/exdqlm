@@ -88,8 +88,9 @@ pak::pak("AntonioAPDL/exdqlm")
 |---|---|---|---|
 | Dynamic quantile state-space model | `exdqlmLDVB()`, `exdqlmMCMC()`, `exdqlmISVB()` | LDVB, MCMC, legacy ISVB | Main entry point for univariate time-series quantile modeling |
 | Build state-space components | `polytrendMod()`, `seasMod()`, `regMod()` | n/a | Compose trend, seasonal, and regression blocks with `+.exdqlm` |
+| Dynamic fit diagnostics | `exdqlmDiagnostics()`, `exdqlmForecastDiagnostics()` | post-fit summary | Return diagnostic objects for `print()`, `summary()`, and `plot()` workflows |
 | Static Bayesian exAL regression | `exalStaticLDVB()`, `exalStaticMCMC()` | LDVB, MCMC | Supports `al.ind = TRUE` (alias of `dqlm.ind = TRUE`), posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
-| Static fit diagnostics | `exalStaticDiagnostics()` | post-fit summary | Compares fitted static quantiles and can plot coefficient intervals with `plot(..., type = "coefficients")` |
+| Static fit diagnostics | `exalStaticDiagnostics()` | post-fit summary | Returns a diagnostic object; use `plot()` for fitted quantiles or `plot(..., type = "coefficients")` for coefficient intervals |
 | Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
 | Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Builds a unified posterior predictive distribution using isotonic correction and optional rearrangement |
 

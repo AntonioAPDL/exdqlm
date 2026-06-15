@@ -83,7 +83,8 @@ M0.forecast = exdqlmForecast(start.t = 60, k = 5, m1 = M0,
                              fFF = fFF, fGG = fGG,
                              return.draws = TRUE, n.samp = 20, seed = 123,
                              plot = FALSE)
-exdqlmForecastDiagnostics(M0.forecast, y = y_holdout)
+score <- exdqlmForecastDiagnostics(M0.forecast, y = y_holdout)
+score
 options(old)
 }
 }

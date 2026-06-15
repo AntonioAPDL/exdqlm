@@ -64,7 +64,8 @@
 #'                              fFF = fFF, fGG = fGG,
 #'                              return.draws = TRUE, n.samp = 20, seed = 123,
 #'                              plot = FALSE)
-#' exdqlmForecastDiagnostics(M0.forecast, y = y_holdout)
+#' score <- exdqlmForecastDiagnostics(M0.forecast, y = y_holdout)
+#' score
 #' options(old)
 #' }
 exdqlmForecastDiagnostics <- function(m1, m2 = NULL, y, p0 = NULL,
@@ -169,7 +170,7 @@ exdqlmForecastDiagnostics <- function(m1, m2 = NULL, y, p0 = NULL,
   }
 
   class(ret) <- "exdqlmForecastDiagnostic"
-  invisible(ret)
+  return(ret)
 }
 
 #' \code{exdqlmForecastDiagnostic} objects

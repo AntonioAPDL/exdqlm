@@ -15,8 +15,10 @@
 #' @param y Optional response vector. If omitted, the function uses \code{m1$y}
 #'   when available.
 #' @param ref Optional reference quantile vector on the same rows as \code{X}.
-#' @param plot Logical; if \code{TRUE}, produce a compact static-diagnostics
-#'   plot.
+#' @param plot Logical; if \code{TRUE}, immediately plot the returned
+#'   static-diagnostic object as a convenience shortcut. Default is
+#'   \code{FALSE}; the preferred workflow is to save the object and then call
+#'   \code{plot()} on it.
 #' @param cols Character vector of length 1 or 2 giving colors for plotted
 #'   diagnostics.
 #' @param cr.percent Credible-interval mass used when summarizing fitted
@@ -28,7 +30,8 @@
 #' static regression setting. It reports fitted quantile summaries on a common
 #' design matrix, optional mean check loss against observed responses, optional
 #' reference-curve errors, coefficient posterior summaries, and compact
-#' comparison plots. The \code{ref} argument is a reference conditional quantile
+#' comparison plots. The returned object can be printed, summarized, or plotted
+#' with standard methods. The \code{ref} argument is a reference conditional quantile
 #' evaluated on the rows of \code{X}; it is distinct from the optional
 #' \code{beta.ref} argument of \code{\link{plot.exalStaticDiagnostic}}, which is
 #' used only to overlay known coefficient values in simulation examples.
@@ -57,14 +60,17 @@
 #'   mh.proposal = "slice",
 #'   verbose = FALSE
 #' )
-#' out <- exalStaticDiagnostics(fit_ldvb, fit_mcmc, ref = q_true, plot = FALSE)
-#' print(out)
+#' out <- exalStaticDiagnostics(fit_ldvb, fit_mcmc, ref = q_true)
+#' out
+#' plot(out)
 #' plot(out, type = "coefficients")
 #' }
 #' @export
 exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
-                            plot = TRUE, cols = c("red", "blue"),
+                            plot = FALSE, cols = c("red", "blue"),
                             cr.percent = 0.95) {
+  plot <- .exdqlm_validate_plot_flag(plot)
+
   is_static_fit <- function(m) {
     is.exalStaticLDVB(m) || is.exalStaticMCMC(m)
   }
@@ -272,7 +278,7 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
 
   class(ret) <- "exalStaticDiagnostic"
   if (isTRUE(plot)) plot(ret, cols = cols)
-  invisible(ret)
+  return(ret)
 }
 
 #' \code{exalStaticDiagnostic} objects

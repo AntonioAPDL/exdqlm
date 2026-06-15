@@ -7,7 +7,7 @@
 exdqlmDiagnostics(
   m1,
   m2 = NULL,
-  plot = TRUE,
+  plot = FALSE,
   cols = c("red", "blue"),
   ref = NULL,
   crps_probs = seq(0.01, 0.99, by = 0.01),
@@ -22,7 +22,9 @@ legacy "\code{exdqlmISVB}".}
 \item{m2}{An optional additional object of class "\code{exdqlmLDVB}",
 "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with \code{m1}.}
 
-\item{plot}{Logical value indicating whether the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors. Default is \code{TRUE}.}
+\item{plot}{Logical value indicating whether to immediately plot the returned
+diagnostic object as a convenience shortcut. Default is \code{FALSE}; the
+preferred workflow is to save the object and then call \code{plot()} on it.}
 
 \item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
 
@@ -79,9 +81,10 @@ predictive loss criterion based off the check loss, the CRPS approximated as
 a finite integrated quantile score over posterior predictive empirical
 quantiles, the one-step-ahead distribution sequence, and deterministic
 semiclosed KL normality diagnostics for the MAP standardized forecast errors.
-The function also plots the following: the qq-plot and ACF plot corresponding
-to the one-step-ahead distribution sequence, and a time series plot of the MAP
-standard forecast errors.
+The returned diagnostic object can be printed, summarized, or plotted with
+standard methods. Calling \code{plot()} on the object produces the QQ plot and
+ACF plot corresponding to the one-step-ahead distribution sequence, together
+with a time series plot of the MAP standard forecast errors.
 }
 \details{
 The primary KL summary is computed from the MAP standardized one-step-ahead
@@ -109,7 +112,9 @@ model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15,
                   n.samp = 20, tol = 0.2, verbose = FALSE)
-M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
+M0.diags = exdqlmDiagnostics(M0)
+M0.diags
+plot(M0.diags)
 options(old)
 }
 

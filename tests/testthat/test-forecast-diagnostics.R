@@ -12,11 +12,13 @@ test_that("forecast diagnostics score one forecast object", {
     class = "exdqlmForecast"
   )
 
-  out <- exdqlmForecastDiagnostics(
+  visible_out <- withVisible(exdqlmForecastDiagnostics(
     fc, y = y,
     crps_probs = c(0.25, 0.5, 0.75),
     crps_weights = c(1, 2, 1)
-  )
+  ))
+  expect_true(visible_out$visible)
+  out <- visible_out$value
 
   expected_check <- CheckLossFn(0.5, y - fc$ff)
   expected_crps <- .exdqlm_crps_vec(

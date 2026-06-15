@@ -40,7 +40,9 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   expect_s3_class(smry$scalar, "data.frame")
   expect_s3_class(smry$convergence, "data.frame")
 
-  diags <- exdqlmDiagnostics(fit, plot = FALSE)
+  visible_diags <- withVisible(exdqlmDiagnostics(fit))
+  expect_true(visible_diags$visible)
+  diags <- visible_diags$value
   expect_equal(diags$p0, 0.5)
   expect_equal(diags$n, length(y))
   expect_equal(diags$m1.class, "exdqlmLDVB")
@@ -48,6 +50,14 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   expect_output(print(diags), "Models: exdqlmLDVB")
   expect_output(diag_table <- summary(diags), "Observations")
   expect_s3_class(diag_table, "data.frame")
+  expect_error(exdqlmDiagnostics(fit, plot = NA), "plot must be")
+
+  tf <- tempfile(fileext = ".pdf")
+  grDevices::pdf(tf)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  expect_no_error(plot(diags))
+  expect_no_error(diags_plot <- exdqlmDiagnostics(fit, plot = TRUE))
+  expect_s3_class(diags_plot, "exdqlmDiagnostic")
 
   fc <- exdqlmForecast(
     start.t = 3, k = 1, m1 = fit,
@@ -87,11 +97,21 @@ test_that("static fit and diagnostic methods expose the shared fit family", {
   expect_s3_class(smry$scalar, "data.frame")
   expect_s3_class(smry$coefficients, "data.frame")
 
-  diags <- exalStaticDiagnostics(fit, X = X, y = y, plot = FALSE)
+  visible_diags <- withVisible(exalStaticDiagnostics(fit, X = X, y = y))
+  expect_true(visible_diags$visible)
+  diags <- visible_diags$value
   expect_equal(diags$p0, 0.5)
   expect_equal(diags$n, n)
   expect_equal(diags$m1.class, "exalStaticLDVB")
   expect_output(print(diags), "Plot types: quantile, coefficients")
   expect_output(diag_table <- summary(diags), "Evaluation rows")
   expect_s3_class(diag_table, "data.frame")
+  expect_error(exalStaticDiagnostics(fit, X = X, y = y, plot = c(TRUE, FALSE)), "plot must be")
+
+  tf <- tempfile(fileext = ".pdf")
+  grDevices::pdf(tf)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  expect_no_error(plot(diags))
+  expect_no_error(diags_plot <- exalStaticDiagnostics(fit, X = X, y = y, plot = TRUE))
+  expect_s3_class(diags_plot, "exalStaticDiagnostic")
 })

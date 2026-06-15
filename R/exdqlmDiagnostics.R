@@ -5,14 +5,17 @@
 #' a finite integrated quantile score over posterior predictive empirical
 #' quantiles, the one-step-ahead distribution sequence, and deterministic
 #' semiclosed KL normality diagnostics for the MAP standardized forecast errors.
-#' The function also plots the following: the qq-plot and ACF plot corresponding
-#' to the one-step-ahead distribution sequence, and a time series plot of the MAP
-#' standard forecast errors.
+#' The returned diagnostic object can be printed, summarized, or plotted with
+#' standard methods. Calling \code{plot()} on the object produces the QQ plot and
+#' ACF plot corresponding to the one-step-ahead distribution sequence, together
+#' with a time series plot of the MAP standard forecast errors.
 #'
 #' @inheritParams exdqlmPlot
 #' @param m2 An optional additional object of class "\code{exdqlmLDVB}",
 #'   "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with `m1`.
-#' @param plot Logical value indicating whether the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors. Default is `TRUE`.
+#' @param plot Logical value indicating whether to immediately plot the returned
+#'   diagnostic object as a convenience shortcut. Default is \code{FALSE}; the
+#'   preferred workflow is to save the object and then call \code{plot()} on it.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.
 #' @param ref Optional finite reference sample of size `length(m1$y)` from a
 #'   standard normal distribution. Used for the reversed KL diagnostic. When
@@ -84,11 +87,13 @@
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
+#' M0.diags = exdqlmDiagnostics(M0)
+#' M0.diags
+#' plot(M0.diags)
 #' options(old)
 #' }
 #'
-exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL,
+exdqlmDiagnostics <- function(m1,m2=NULL,plot=FALSE,cols=c("red","blue"),ref=NULL,
                               crps_probs = seq(0.01, 0.99, by = 0.01),
                               crps_weights = NULL,
                               kl_k = NULL){
@@ -97,6 +102,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
     x <- x[is.finite(x)]
     if (!length(x)) NA_real_ else mean(x)
   }
+  plot <- .exdqlm_validate_plot_flag(plot)
   crps_probs <- .exdqlm_validate_crps_probs(crps_probs)
   crps_weights <- .exdqlm_validate_crps_weights(crps_weights, length(crps_probs))
 
@@ -193,5 +199,5 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   }
 
   # return model checks
-  return(invisible(retlist))
+  return(retlist)
 }

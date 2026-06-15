@@ -62,6 +62,13 @@ is.exalStaticFit <- function(m){ return(methods::is(m, "exalStaticFit")) }
   if (isTRUE(x)) "yes" else "no"
 }
 
+.exdqlm_validate_plot_flag <- function(plot) {
+  if (!is.logical(plot) || length(plot) != 1L || is.na(plot)) {
+    stop("plot must be TRUE or FALSE.", call. = FALSE)
+  }
+  plot
+}
+
 .exdqlm_format_number <- function(x, digits = 4) {
   x <- suppressWarnings(as.numeric(x)[1L])
   if (!is.finite(x)) return("NA")
@@ -992,7 +999,7 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0, plot=FALSE)
+#' M0.diags = exdqlmDiagnostics(M0)
 #' print(M0.diags)
 #' options(old)
 #' }
@@ -1028,7 +1035,7 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
+#' M0.diags = exdqlmDiagnostics(M0)
 #' summary(M0.diags)
 #' options(old)
 #' }
@@ -1060,7 +1067,7 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
+#' M0.diags = exdqlmDiagnostics(M0)
 #' plot(M0.diags)
 #' options(old)
 #' }
