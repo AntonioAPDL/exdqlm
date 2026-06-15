@@ -1132,7 +1132,7 @@ exalStaticLDVB <- function(
         summary = ret$beta_prior$summary
       )
     }
-    class(ret) <- "exalStaticLDVB"
+    class(ret) <- .exal_static_fit_class("exalStaticLDVB")
     return(ret)
   }
 
@@ -2569,7 +2569,7 @@ exalStaticLDVB <- function(
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }
-  class(ret) <- "exalStaticLDVB"
+  class(ret) <- .exal_static_fit_class("exalStaticLDVB")
   .exdqlm_progress(
     "LDVB done",
     model = "Static exAL",

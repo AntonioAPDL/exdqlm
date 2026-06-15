@@ -13,6 +13,38 @@
 #' @export
 is.exdqlm = function(m){ return(methods::is(m,"exdqlm")) }
 
+.exdqlm_fit_class <- function(primary) {
+  c(primary, "exdqlmFit")
+}
+
+.exal_static_fit_class <- function(primary) {
+  c(primary, "exalStaticFit")
+}
+
+#' \code{exdqlmFit} objects
+#'
+#' \code{is.exdqlmFit} tests if its argument is a fitted dynamic
+#' \code{exdqlm} object, including MCMC, LDVB, and legacy ISVB fits.
+#'
+#' @usage is.exdqlmFit(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exdqlmFit <- function(m){ return(methods::is(m, "exdqlmFit")) }
+
+#' \code{exalStaticFit} objects
+#'
+#' \code{is.exalStaticFit} tests if its argument is a fitted static exAL
+#' regression object, including MCMC and LDVB fits.
+#'
+#' @usage is.exalStaticFit(m)
+#'
+#' @param m an \strong{R} object
+#'
+#' @export
+is.exalStaticFit <- function(m){ return(methods::is(m, "exalStaticFit")) }
+
 #' \code{exdqlm} objects
 #'
 #' \code{as.exdqlm} attempts to turn a list into an \code{exdqlm} object. Works for time-invariant \code{dlm} objects created using the \pkg{dlm} package. 

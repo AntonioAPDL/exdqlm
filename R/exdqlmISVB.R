@@ -199,7 +199,7 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
       max_iter = max_iter,
       engine = "ISVB"
     )
-    class(retlist) <- "exdqlmISVB"
+    class(retlist) <- .exdqlm_fit_class("exdqlmISVB")
     return(retlist)
   }
 
@@ -849,6 +849,6 @@ exdqlmISVB <- function(y, p0, model, df, dim.df,
   retlist$converged <- isTRUE(retlist$diagnostics$convergence$converged)
 
   # return results
-  class(retlist) <- "exdqlmISVB"
+  class(retlist) <- .exdqlm_fit_class("exdqlmISVB")
   return(retlist)
 }

@@ -793,7 +793,7 @@ exalStaticMCMC <- function(
       } else NULL,
       last = list(beta = beta, sigma = sigma, v = v)
     )
-    class(ret) <- "exalStaticMCMC"
+    class(ret) <- .exal_static_fit_class("exalStaticMCMC")
     return(ret)
   }
 
@@ -1767,7 +1767,7 @@ exalStaticMCMC <- function(
     n.mcmc = n.mcmc,
     last = list(beta = beta, sigma = sigma, gamma = gamma, v = v, s = s)
   )
-  class(ret) <- "exalStaticMCMC"
+  class(ret) <- .exal_static_fit_class("exalStaticMCMC")
   if (.static_is_rhs_family(beta_prior_obj$type)) {
     .static_rhs_maybe_warn_collapse(ret$beta_prior$summary, beta_prior_obj$controls)
   }

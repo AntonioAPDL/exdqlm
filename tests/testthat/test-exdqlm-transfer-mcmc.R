@@ -126,6 +126,8 @@ test_that("transfer-function MCMC wrapper matches direct augmented model contrac
   )
 
   expect_s3_class(fit_wrap, "exdqlmMCMC")
+  expect_s3_class(fit_wrap, "exdqlmFit")
+  expect_true(is.exdqlmFit(fit_wrap))
   expect_equal(fit_wrap$df, c(1, 0.98, 0.98))
   expect_equal(fit_wrap$dim.df, c(1, 1, 1))
   expect_equal(fit_wrap$model$GG, fit_direct$model$GG)

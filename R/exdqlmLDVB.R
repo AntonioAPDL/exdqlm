@@ -242,7 +242,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       max_iter = max_iter,
       engine = "LDVB"
     )
-    class(retlist) <- c("exdqlmLDVB", "exdqlm")
+    class(retlist) <- .exdqlm_fit_class("exdqlmLDVB")
     return(retlist)
   }
 
@@ -1677,6 +1677,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   retlist$converged <- isTRUE(retlist$diagnostics$convergence$converged)
 
   # return results
-  class(retlist) <- "exdqlmLDVB"
+  class(retlist) <- .exdqlm_fit_class("exdqlmLDVB")
   return(retlist)
 }

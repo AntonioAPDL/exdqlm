@@ -2073,7 +2073,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   retlist$backend <- list(mcmc = mcmc_backend, mode = cpp_mcmc_mode, gig = gig_backend)
 
   # return results
-  class(retlist) <- "exdqlmMCMC"
+  class(retlist) <- .exdqlm_fit_class("exdqlmMCMC")
   return(retlist)
 }
 

@@ -22,7 +22,9 @@ test_that("exalStaticMCMC generics dispatch and return stable outputs", {
   )
 
   expect_true(is.exalStaticMCMC(fit))
+  expect_true(is.exalStaticFit(fit))
   expect_s3_class(fit, "exalStaticMCMC")
+  expect_s3_class(fit, "exalStaticFit")
   expect_output(print(fit), "Bayesian Linear Quantile Regression")
   expect_output(summary(fit), "Posterior mean sigma")
   expect_true(!is.null(fit$X))
@@ -49,7 +51,9 @@ test_that("exalStaticLDVB generics dispatch and enforce plot X contract", {
   )
 
   expect_true(is.exalStaticLDVB(fit))
+  expect_true(is.exalStaticFit(fit))
   expect_s3_class(fit, "exalStaticLDVB")
+  expect_s3_class(fit, "exalStaticFit")
   expect_output(print(fit), "Bayesian Linear Quantile Regression")
   expect_output(summary(fit), "Posterior mean sigma")
   expect_true(!is.null(fit$X))
