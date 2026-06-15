@@ -144,6 +144,7 @@ exdqlmForecastDiagnostics <- function(m1, m2 = NULL, y, p0 = NULL,
     y = y,
     p0 = p0_resolved,
     horizon = length(y),
+    m1.class = class(m1)[1],
     m1.check_loss = m1_scores$check_loss,
     m1.CRPS = m1_scores$CRPS,
     m1.pointwise = m1_scores$pointwise,
@@ -161,6 +162,7 @@ exdqlmForecastDiagnostics <- function(m1, m2 = NULL, y, p0 = NULL,
       stop("m2 must be fitted at the same quantile level as p0.", call. = FALSE)
     }
     m2_scores <- score_one(m2, draws2)
+    ret$m2.class <- class(m2)[1]
     ret$m2.check_loss <- m2_scores$check_loss
     ret$m2.CRPS <- m2_scores$CRPS
     ret$m2.pointwise <- m2_scores$pointwise
@@ -205,9 +207,14 @@ is.exdqlmForecastDiagnostic <- function(x) {
 #' @export
 print.exdqlmForecastDiagnostic <- function(x, ...) {
   cat("Held-out exDQLM forecast diagnostics\n")
+  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Quantile level (p0):", x$p0, "\n")
   cat("Forecast horizon:", x$horizon, "\n")
+  cat("Models:", if (is.null(x$m1.class)) "M1" else x$m1.class)
+  if (!is.null(x$m2.class)) cat(" vs ", x$m2.class, sep = "")
+  cat("\n")
   print(.exdqlm_forecast_diagnostic_table(x), row.names = FALSE, digits = 4)
+  cat("CRPS method:", x$crps.method, "\n")
   invisible(x)
 }
 
@@ -218,6 +225,9 @@ print.exdqlmForecastDiagnostic <- function(x, ...) {
 #' @export
 summary.exdqlmForecastDiagnostic <- function(object, ...) {
   out <- .exdqlm_forecast_diagnostic_table(object)
+  cat("Held-out exDQLM forecast diagnostics summary\n")
+  cat("Quantile level (p0):", object$p0, "\n")
+  cat("Forecast horizon:", object$horizon, "\n")
   print(out, row.names = FALSE, digits = 4)
   invisible(out)
 }

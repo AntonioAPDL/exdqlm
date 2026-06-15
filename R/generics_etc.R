@@ -45,6 +45,121 @@ is.exdqlmFit <- function(m){ return(methods::is(m, "exdqlmFit")) }
 #' @export
 is.exalStaticFit <- function(m){ return(methods::is(m, "exalStaticFit")) }
 
+.exdqlm_primary_class <- function(x) {
+  class(x)[1L]
+}
+
+.exdqlm_dim_label <- function(x) {
+  d <- dim(x)
+  if (is.null(d)) {
+    as.character(length(x))
+  } else {
+    paste(d, collapse = " x ")
+  }
+}
+
+.exdqlm_yes_no <- function(x) {
+  if (isTRUE(x)) "yes" else "no"
+}
+
+.exdqlm_format_number <- function(x, digits = 4) {
+  x <- suppressWarnings(as.numeric(x)[1L])
+  if (!is.finite(x)) return("NA")
+  format(signif(x, digits = digits), trim = TRUE)
+}
+
+.exdqlm_runtime_label <- function(x) {
+  x <- suppressWarnings(as.numeric(x)[1L])
+  if (!is.finite(x)) return("NA")
+  paste0(format(round(x, 3), trim = TRUE), " seconds")
+}
+
+.exdqlm_model_family <- function(x) {
+  if (isTRUE(x$dqlm.ind)) "DQLM (AL special case)" else "exDQLM (exAL)"
+}
+
+.exdqlm_dynamic_engine <- function(x) {
+  if (is.exdqlmMCMC(x)) return("MCMC")
+  if (is.exdqlmLDVB(x)) return("LDVB")
+  if (is.exdqlmISVB(x)) return("legacy ISVB")
+  "unknown"
+}
+
+.exdqlm_static_engine <- function(x) {
+  if (is.exalStaticMCMC(x)) return("MCMC")
+  if (is.exalStaticLDVB(x)) return("LDVB")
+  "unknown"
+}
+
+.exdqlm_discount_label <- function(df, dim.df) {
+  if (is.null(df)) return("not stored")
+  if (is.null(dim.df)) return(paste(df, collapse = ", "))
+  paste(df, "(", dim.df, ")", collapse = ", ")
+}
+
+.exdqlm_draw_dim <- function(x) {
+  if (is.null(x)) return("not stored")
+  .exdqlm_dim_label(as.matrix(x))
+}
+
+.exdqlm_array_dim <- function(x) {
+  if (is.null(x)) return("not stored")
+  .exdqlm_dim_label(x)
+}
+
+.exdqlm_convergence_info <- function(x) {
+  conv <- x$diagnostics$convergence
+  if (is.null(conv)) {
+    return(list(converged = NA, stop_reason = NA_character_, iter = x$iter))
+  }
+  list(
+    converged = conv$converged,
+    stop_reason = conv$stop_reason,
+    iter = conv$iter
+  )
+}
+
+.exdqlm_scalar_summary <- function(x) {
+  out <- list()
+  if (!is.null(x$samp.sigma)) {
+    sig <- as.numeric(x$samp.sigma)
+    sig <- sig[is.finite(sig)]
+    if (length(sig)) {
+      out[["sigma"]] <- c(mean = mean(sig), sd = stats::sd(sig))
+    }
+  } else if (!is.null(x$qsig$E_sigma)) {
+    out[["sigma"]] <- c(mean = as.numeric(x$qsig$E_sigma)[1L], sd = NA_real_)
+  } else if (!is.null(x$qsiggam$sigma_mean)) {
+    out[["sigma"]] <- c(mean = as.numeric(x$qsiggam$sigma_mean)[1L], sd = NA_real_)
+  }
+  if (!is.null(x$samp.gamma)) {
+    gam <- as.numeric(x$samp.gamma)
+    gam <- gam[is.finite(gam)]
+    if (length(gam)) {
+      out[["gamma"]] <- c(mean = mean(gam), sd = stats::sd(gam))
+    }
+  } else if (!isTRUE(x$dqlm.ind) && !is.null(x$qsiggam$gamma_mean)) {
+    out[["gamma"]] <- c(mean = as.numeric(x$qsiggam$gamma_mean)[1L], sd = NA_real_)
+  }
+  if (!length(out)) {
+    return(data.frame(Parameter = character(), Mean = numeric(), SD = numeric()))
+  }
+  data.frame(
+    Parameter = names(out),
+    Mean = vapply(out, function(z) z[["mean"]], numeric(1)),
+    SD = vapply(out, function(z) z[["sd"]], numeric(1)),
+    row.names = NULL,
+    check.names = FALSE
+  )
+}
+
+.exdqlm_safe_p0 <- function(x) {
+  if (!is.null(x$p0)) return(as.numeric(x$p0)[1L])
+  if (!is.null(x$misc$p0)) return(as.numeric(x$misc$p0)[1L])
+  if (!is.null(x$m1$p0)) return(as.numeric(x$m1$p0)[1L])
+  NA_real_
+}
+
 #' \code{exdqlm} objects
 #'
 #' \code{as.exdqlm} attempts to turn a list into an \code{exdqlm} object. Works for time-invariant \code{dlm} objects created using the \pkg{dlm} package. 
@@ -157,22 +272,20 @@ as.exdqlm <- function(m){
 #' 
 #' @export
 print.exdqlm <- function(x,...){
-  refnn <- c("m0","C0","FF","GG")
-  descrip = c("Prior mean of the state vector:", 
-              "Prior covariance of the state vector:",
-              "Observational vector:",
-              "Evolution matrix:")
-  nn <- names(x)
-  check <- !sapply(x, is.null)
-  ind <- match(refnn,nn)
-  ind <- ind[!is.na(ind)]
-  final.ind = match(nn[ind][check[ind]],nn)
-  # print
-  for (i in 1:4){
-    cat(descrip[i],"\n")
-    print(x[final.ind[i]])
-    cat("\n")
-  }
+  p <- length(x$m0)
+  ff_dim <- .exdqlm_dim_label(x$FF)
+  gg_dim <- .exdqlm_dim_label(x$GG)
+  TT <- if (length(dim(x$FF)) >= 2L) ncol(as.matrix(x$FF)) else 1L
+  gg_time <- length(dim(x$GG)) == 3L
+
+  cat("Dynamic quantile state-space model specification (exdqlm)\n")
+  cat("State dimension:", p, "\n")
+  cat("Observation vector FF:", ff_dim, "\n")
+  cat("Evolution matrix GG:", gg_dim, "\n")
+  cat("Time-varying FF:", .exdqlm_yes_no(TT > 1L), "\n")
+  cat("Time-varying GG:", .exdqlm_yes_no(gg_time), "\n")
+  cat("Use with: exdqlmMCMC(), exdqlmLDVB(), exdqlmTransferMCMC(), or exdqlmTransferLDVB()\n")
+  invisible(x)
 }
 
 #' Summary exDQLM model details
@@ -183,24 +296,115 @@ print.exdqlm <- function(x,...){
 #' 
 #' @export
 summary.exdqlm <- function(object,...){
-  refnn <- c("m0","C0","FF","GG")
-  descrip = c("Prior mean of the state vector:", 
-              "Prior covariance of the state vector:",
-              "Observational vector:",
-              "Evolution matrix:")
-  nn <- names(object)
-  check <- !sapply(object, is.null)
-  ind <- match(refnn,nn)
-  ind <- ind[!is.na(ind)]
-  final.ind = match(nn[ind][check[ind]],nn)
-  # print
-  for (i in 1:4){
-    cat(descrip[i],"\n")
-    print(object[final.ind[i]])
-    cat("\n")
-  }
+  out <- data.frame(
+    Component = c("m0", "C0", "FF", "GG"),
+    Description = c(
+      "prior state mean",
+      "prior state covariance",
+      "observation vector/matrix",
+      "evolution matrix/array"
+    ),
+    Dimension = c(
+      .exdqlm_dim_label(object$m0),
+      .exdqlm_dim_label(object$C0),
+      .exdqlm_dim_label(object$FF),
+      .exdqlm_dim_label(object$GG)
+    ),
+    check.names = FALSE
+  )
+  print.exdqlm(object, ...)
+  cat("\nComponent dimensions:\n")
+  print(out, row.names = FALSE)
+  invisible(out)
 }
 
+
+
+##################################
+###### "exdqlmFit" objects #######
+##################################
+
+.exdqlm_fit_print <- function(x) {
+  conv <- .exdqlm_convergence_info(x)
+  cat("Dynamic quantile state-space fit\n")
+  cat("Class:", paste(class(x), collapse = ", "), "\n")
+  cat("Model:", .exdqlm_model_family(x), "\n")
+  cat("Inference engine:", .exdqlm_dynamic_engine(x), "\n")
+  cat("Quantile level (p0):", .exdqlm_format_number(.exdqlm_safe_p0(x)), "\n")
+  cat("Observations:", length(x$y), "\n")
+  cat("State dimension:", length(x$model$m0), "\n")
+  cat("Discount factors (dimensions):", .exdqlm_discount_label(x$df, x$dim.df), "\n")
+  if (is.exdqlmMCMC(x)) {
+    cat("Burn-in:", x$n.burn, "\n")
+    cat("Posterior draws:", x$n.mcmc, "\n")
+  } else {
+    cat("Converged:", if (is.na(conv$converged)) "NA" else .exdqlm_yes_no(conv$converged), "\n")
+    cat("Iterations:", if (is.null(conv$iter)) "NA" else conv$iter, "\n")
+  }
+  cat("State draws:", .exdqlm_array_dim(x$samp.theta), "\n")
+  cat("Posterior predictive draws:", .exdqlm_draw_dim(x$samp.post.pred), "\n")
+  cat("Run-time:", .exdqlm_runtime_label(x$run.time), "\n")
+  cat("Use with: summary(), plot(), exdqlmDiagnostics(), exdqlmForecast()\n")
+  invisible(x)
+}
+
+.exdqlm_fit_summary <- function(x) {
+  draw_info <- data.frame(
+    Quantity = c("state draws", "posterior predictive draws", "sigma draws", "gamma draws"),
+    Dimension = c(
+      .exdqlm_array_dim(x$samp.theta),
+      .exdqlm_draw_dim(x$samp.post.pred),
+      .exdqlm_draw_dim(x$samp.sigma),
+      if (is.null(x$samp.gamma)) "not stored" else .exdqlm_draw_dim(x$samp.gamma)
+    ),
+    check.names = FALSE
+  )
+  conv <- .exdqlm_convergence_info(x)
+  conv_info <- data.frame(
+    Quantity = c("converged", "stop reason", "iterations"),
+    Value = c(
+      if (is.na(conv$converged)) "NA" else .exdqlm_yes_no(conv$converged),
+      if (is.null(conv$stop_reason) || is.na(conv$stop_reason)) "not stored" else as.character(conv$stop_reason),
+      if (is.null(conv$iter)) "NA" else as.character(conv$iter)
+    ),
+    check.names = FALSE
+  )
+  scalar_info <- .exdqlm_scalar_summary(x)
+
+  .exdqlm_fit_print(x)
+  cat("\nStored draws:\n")
+  print(draw_info, row.names = FALSE)
+  if (nrow(scalar_info)) {
+    cat("\nScalar posterior summaries:\n")
+    print(scalar_info, row.names = FALSE, digits = 4)
+  }
+  if (!is.exdqlmMCMC(x)) {
+    cat("\nConvergence summary:\n")
+    print(conv_info, row.names = FALSE)
+  }
+
+  invisible(list(draws = draw_info, scalar = scalar_info, convergence = conv_info))
+}
+
+#' Print Method for \code{exdqlmFit} Objects
+#'
+#' @param x A fitted dynamic \code{exdqlmFit} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+print.exdqlmFit <- function(x, ...) {
+  .exdqlm_fit_print(x)
+}
+
+#' Summary Method for \code{exdqlmFit} Objects
+#'
+#' @param object A fitted dynamic \code{exdqlmFit} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+summary.exdqlmFit <- function(object, ...) {
+  .exdqlm_fit_summary(object)
+}
 
 
 ##################################
@@ -239,22 +443,7 @@ is.exdqlmMCMC = function(m){ return(methods::is(m,"exdqlmMCMC")) }
 #' }
 #'
 print.exdqlmMCMC <- function(x, ...) {
-  if(!x$dqlm.ind){
-    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
-  }else{
-    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }
-  cat("Number of Observations:", length(x$y), "\n")
-  cat("State Dimension:", length(x$model$m0), "\n")  
-  cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
-  #
-  if(!x$dqlm.ind){
-    cat("exDQLM fitted using MCMC\n")
-  }else{
-    cat("DQLM fitted using MCMC\n")
-  }
-  cat("Burn-in:", x$n.burn, ", MCMC samples:", x$n.mcmc , "\n")
-  cat("Run-time:", x$run.time, "seconds\n")
+  print.exdqlmFit(x, ...)
 }
 
 #' Summary Method for \code{exdqlmMCMC} Objects
@@ -277,22 +466,7 @@ print.exdqlmMCMC <- function(x, ...) {
 #' }
 #'
 summary.exdqlmMCMC <- function(object, ...) {
-  if(!object$dqlm.ind){
-    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
-  }else{
-    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }
-  cat("Number of Observations:", length(object$y), "\n")
-  cat("State Dimension:", length(object$model$m0), "\n")  
-  cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
-  #
-  if(!object$dqlm.ind){
-    cat("exDQLM fitted using MCMC\n")
-  }else{
-    cat("DQLM fitted using MCMC\n")
-  }  
-  cat("Burn-in:", object$n.burn, ", MCMC samples:", object$n.mcmc , "\n")
-  cat("Run-time:", object$run.time, "seconds\n")
+  summary.exdqlmFit(object, ...)
 }
 
 #' Plot Method for \code{exdqlmMCMC} Objects
@@ -360,23 +534,7 @@ is.exdqlmISVB = function(m){ return(methods::is(m,"exdqlmISVB")) }
 #' }
 #'
 print.exdqlmISVB <- function(x, ...) {
-  if(!x$dqlm.ind){
-    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
-  }else{
-    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
-  cat("Number of Observations:", length(x$y), "\n")
-  cat("State Dimension:", length(x$model$m0), "\n")  
-  cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
-  #
-  if(!x$dqlm.ind){
-    cat("exDQLM fitted using legacy ISVB\n")
-    cat("Parameters estimated with IS:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
-  }else{
-    cat("DQLM fitted using legacy ISVB\n")
-  }
-  cat("Iterations until convergence:", x$iter, "\n")
-  cat("Run-time:", x$run.time, "seconds\n")
+  print.exdqlmFit(x, ...)
 }
 
 #' Summary Method for \code{exdqlmISVB} Objects
@@ -402,23 +560,7 @@ print.exdqlmISVB <- function(x, ...) {
 #' }
 #'
 summary.exdqlmISVB <- function(object, ...) {
-  if(!object$dqlm.ind){
-    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
-  }else{
-    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
-  cat("Number of Observations:", length(object$y), "\n")
-  cat("State Dimension:", length(object$model$m0), "\n")  
-  cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
-  #
-  if(!object$dqlm.ind){
-    cat("exDQLM fitted using legacy ISVB\n")
-    cat("Parameters estimated with IS:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
-  }else{
-    cat("DQLM fitted using legacy ISVB\n")
-  }
-  cat("Iterations until convergence:", object$iter, "\n")
-  cat("Run-time:", object$run.time, "seconds\n")
+  summary.exdqlmFit(object, ...)
 }
 
 #' Plot Method for \code{exdqlmISVB} Objects
@@ -487,23 +629,7 @@ is.exdqlmLDVB = function(m){ return(methods::is(m,"exdqlmLDVB")) }
 #' }
 #'
 print.exdqlmLDVB <- function(x, ...) {
-  if(!x$dqlm.ind){
-    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
-  }else{
-    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
-  cat("Number of Observations:", length(x$y), "\n")
-  cat("State Dimension:", length(x$model$m0), "\n")  
-  cat("Discount factors ( dimensions ):", paste(x$df,"(", x$dim.df, ")",collapse = ", "),"\n \n")
-  #
-  if(!x$dqlm.ind){
-    cat("exDQLM fitted using LDVB\n")
-    cat("Parameters estimated with LD:", paste(if(!x$fix.gamma){"gamma"}, if(!x$fix.sigma){"sigma"}, if(x$fix.sigma && x$fix.gamma){"none"}, collapse=", ") , "\n")
-  }else{
-    cat("DQLM fitted using VB\n")
-  }
-  cat("Iterations until convergence:", x$iter, "\n")
-  cat("Run-time:", x$run.time, "seconds\n")
+  print.exdqlmFit(x, ...)
 }
 
 #' Summary Method for \code{exdqlmLDVB} Objects
@@ -527,23 +653,7 @@ print.exdqlmLDVB <- function(x, ...) {
 #' }
 #'
 summary.exdqlmLDVB <- function(object, ...) {
-  if(!object$dqlm.ind){
-    cat("Bayesian Dynamic Quantile Regression Model (exDQLM)\n")
-  }else{
-    cat("Bayesian Dynamic Quantile Regression Model (DQLM)\n")
-  }  
-  cat("Number of Observations:", length(object$y), "\n")
-  cat("State Dimension:", length(object$model$m0), "\n")  
-  cat("Discount factors ( dimensions ):", paste(object$df,"(", object$dim.df, ")",collapse = ", "),"\n \n")
-  #
-  if(!object$dqlm.ind){
-    cat("exDQLM fitted using LDVB\n")
-    cat("Parameters estimated with LD:", paste(if(!object$fix.gamma){"gamma"}, if(!object$fix.sigma){"sigma"}, if(object$fix.sigma && object$fix.gamma){"none"}, collapse=", ") , "\n")
-  }else{
-    cat("DQLM fitted using VB\n")
-  }
-  cat("Iterations until convergence:", object$iter, "\n")
-  cat("Run-time:", object$run.time, "seconds\n")
+  summary.exdqlmFit(object, ...)
 }
 
 #' Plot Method for \code{exdqlmLDVB} Objects
@@ -574,6 +684,123 @@ plot.exdqlmLDVB <- function(x, ...) {
 ##################################
 #### "exalStaticMCMC" / "exalStaticLDVB" ###
 ##################################
+
+.exal_static_fit_print <- function(x) {
+  n <- if (!is.null(x$X)) nrow(as.matrix(x$X)) else if (!is.null(x$misc$n)) as.integer(x$misc$n) else NA_integer_
+  p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else if (!is.null(x$misc$p)) as.integer(x$misc$p) else NA_integer_
+  conv <- .exdqlm_convergence_info(x)
+  beta_prior <- if (!is.null(x$beta_prior$type)) x$beta_prior$type else "not stored"
+
+  cat("Static Bayesian quantile regression fit\n")
+  cat("Class:", paste(class(x), collapse = ", "), "\n")
+  cat("Model:", .exdqlm_static_model_label(x$dqlm.ind), "\n")
+  cat("Inference engine:", .exdqlm_static_engine(x), "\n")
+  cat("Quantile level (p0):", .exdqlm_format_number(.exdqlm_safe_p0(x)), "\n")
+  cat("Observations:", n, "\n")
+  cat("Predictors:", p, "\n")
+  cat("Beta prior:", beta_prior, "\n")
+  if (is.exalStaticMCMC(x)) {
+    cat("Burn-in:", x$n.burn, "\n")
+    cat("Posterior draws:", x$n.mcmc, "\n")
+  } else {
+    cat("Converged:", if (is.na(conv$converged)) "NA" else .exdqlm_yes_no(conv$converged), "\n")
+    cat("Iterations:", if (is.null(conv$iter)) "NA" else conv$iter, "\n")
+  }
+  cat("Coefficient draws:", .exdqlm_draw_dim(x$samp.beta), "\n")
+  cat("Run-time:", .exdqlm_runtime_label(x$run.time), "\n")
+  cat("Use with: summary(), plot(), exalStaticDiagnostics()\n")
+  invisible(x)
+}
+
+.exal_static_beta_summary <- function(x, max.coef = 6L) {
+  max.coef <- suppressWarnings(as.integer(max.coef)[1L])
+  if (!is.finite(max.coef) || max.coef < 1L) max.coef <- 6L
+
+  if (!is.null(x$samp.beta)) {
+    b <- as.matrix(x$samp.beta)
+    mean_b <- colMeans(b)
+    lb <- apply(b, 2, stats::quantile, probs = 0.025, na.rm = TRUE)
+    ub <- apply(b, 2, stats::quantile, probs = 0.975, na.rm = TRUE)
+  } else if (!is.null(x$qbeta$m)) {
+    mean_b <- as.numeric(x$qbeta$m)
+    if (!is.null(x$qbeta$V)) {
+      sd_b <- sqrt(pmax(diag(as.matrix(x$qbeta$V)), 0))
+      z <- stats::qnorm(0.975)
+      lb <- mean_b - z * sd_b
+      ub <- mean_b + z * sd_b
+    } else {
+      lb <- rep(NA_real_, length(mean_b))
+      ub <- rep(NA_real_, length(mean_b))
+    }
+  } else {
+    return(data.frame(Coefficient = character(), Mean = numeric(), `2.5%` = numeric(), `97.5%` = numeric()))
+  }
+
+  p <- length(mean_b)
+  nms <- if (!is.null(x$X) && !is.null(colnames(x$X))) colnames(x$X) else paste0("beta", seq_len(p) - 1L)
+  keep <- seq_len(min(p, max.coef))
+  data.frame(
+    Coefficient = nms[keep],
+    Mean = as.numeric(mean_b[keep]),
+    `2.5%` = as.numeric(lb[keep]),
+    `97.5%` = as.numeric(ub[keep]),
+    check.names = FALSE,
+    row.names = NULL
+  )
+}
+
+.exal_static_fit_summary <- function(x, max.coef = 6L) {
+  scalar_info <- .exdqlm_scalar_summary(x)
+  beta_info <- .exal_static_beta_summary(x, max.coef = max.coef)
+  draw_info <- data.frame(
+    Quantity = c("coefficient draws", "sigma draws", "gamma draws"),
+    Dimension = c(
+      .exdqlm_draw_dim(x$samp.beta),
+      .exdqlm_draw_dim(x$samp.sigma),
+      if (is.null(x$samp.gamma)) "not stored" else .exdqlm_draw_dim(x$samp.gamma)
+    ),
+    check.names = FALSE
+  )
+
+  .exal_static_fit_print(x)
+  cat("\nStored draws:\n")
+  print(draw_info, row.names = FALSE)
+  if (nrow(scalar_info)) {
+    cat("\nScalar posterior summaries:\n")
+    print(scalar_info, row.names = FALSE, digits = 4)
+  }
+  if (nrow(beta_info)) {
+    cat("\nCoefficient summaries")
+    p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else nrow(beta_info)
+    if (p > nrow(beta_info)) cat(" (first ", nrow(beta_info), " of ", p, ")", sep = "")
+    cat(":\n")
+    print(beta_info, row.names = FALSE, digits = 4)
+  }
+
+  invisible(list(draws = draw_info, scalar = scalar_info, coefficients = beta_info))
+}
+
+#' Print Method for \code{exalStaticFit} Objects
+#'
+#' @param x A fitted static \code{exalStaticFit} object.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+print.exalStaticFit <- function(x, ...) {
+  .exal_static_fit_print(x)
+}
+
+#' Summary Method for \code{exalStaticFit} Objects
+#'
+#' @param object A fitted static \code{exalStaticFit} object.
+#' @param max.coef Maximum number of coefficients to print in the coefficient
+#'   summary table.
+#' @param ... Additional arguments (unused).
+#'
+#' @export
+summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
+  .exal_static_fit_summary(object, max.coef = max.coef)
+}
 
 .plot_exal_static_quantiles <- function(map.quant, lb.quant, ub.quant, add = FALSE, col = "purple",
                                         cr.percent = 0.95, ...) {
@@ -612,18 +839,7 @@ is.exalStaticMCMC <- function(m){ return(methods::is(m,"exalStaticMCMC")) }
 #'
 #' @export
 print.exalStaticMCMC <- function(x, ...) {
-  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
-  n <- if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
-  p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
-
-  cat("Bayesian Linear Quantile Regression (exAL family)\n")
-  cat("Model:", model_lab, "\n")
-  cat("Method: MCMC\n")
-  cat("Observations:", n, "\n")
-  cat("Predictors:", p, "\n")
-  cat("Quantile level (p0):", x$p0, "\n")
-  cat("Burn-in:", x$n.burn, ", MCMC samples:", x$n.mcmc, "\n")
-  cat("Run-time:", x$run.time, "seconds\n")
+  print.exalStaticFit(x, ...)
 }
 
 #' Summary Method for \code{exalStaticMCMC} Objects
@@ -633,13 +849,7 @@ print.exalStaticMCMC <- function(x, ...) {
 #'
 #' @export
 summary.exalStaticMCMC <- function(object, ...) {
-  print.exalStaticMCMC(object, ...)
-  sigma_mean <- tryCatch(mean(as.numeric(object$samp.sigma)), error = function(e) NA_real_)
-  cat("Posterior mean sigma:", sigma_mean, "\n")
-  if (!isTRUE(object$dqlm.ind)) {
-    gamma_mean <- tryCatch(mean(as.numeric(object$samp.gamma)), error = function(e) NA_real_)
-    cat("Posterior mean gamma:", gamma_mean, "\n")
-  }
+  summary.exalStaticFit(object, ...)
 }
 
 #' Plot Method for \code{exalStaticMCMC} Objects
@@ -684,20 +894,7 @@ is.exalStaticLDVB <- function(m){ return(methods::is(m,"exalStaticLDVB")) }
 #'
 #' @export
 print.exalStaticLDVB <- function(x, ...) {
-  model_lab <- .exdqlm_static_model_label(x$dqlm.ind)
-  n <- if (!is.null(x$misc$n)) as.integer(x$misc$n) else if (!is.null(x$X)) nrow(as.matrix(x$X)) else NA_integer_
-  p <- if (!is.null(x$misc$p)) as.integer(x$misc$p) else if (!is.null(x$X)) ncol(as.matrix(x$X)) else NA_integer_
-  p0 <- if (!is.null(x$p0)) as.numeric(x$p0)[1] else if (!is.null(x$misc$p0)) as.numeric(x$misc$p0)[1] else NA_real_
-
-  cat("Bayesian Linear Quantile Regression (exAL family)\n")
-  cat("Model:", model_lab, "\n")
-  cat("Method: LDVB\n")
-  cat("Observations:", n, "\n")
-  cat("Predictors:", p, "\n")
-  cat("Quantile level (p0):", p0, "\n")
-  cat("Converged:", isTRUE(x$converged), "\n")
-  cat("Iterations:", x$iter, "\n")
-  cat("Run-time:", x$run.time, "seconds\n")
+  print.exalStaticFit(x, ...)
 }
 
 #' Summary Method for \code{exalStaticLDVB} Objects
@@ -707,17 +904,7 @@ print.exalStaticLDVB <- function(x, ...) {
 #'
 #' @export
 summary.exalStaticLDVB <- function(object, ...) {
-  print.exalStaticLDVB(object, ...)
-  sigma_mean <- if (isTRUE(object$dqlm.ind)) {
-    if (!is.null(object$qsig$E_sigma)) as.numeric(object$qsig$E_sigma)[1] else NA_real_
-  } else {
-    if (!is.null(object$qsiggam$sigma_mean)) as.numeric(object$qsiggam$sigma_mean)[1] else NA_real_
-  }
-  cat("Posterior mean sigma:", sigma_mean, "\n")
-  if (!isTRUE(object$dqlm.ind)) {
-    gamma_mean <- if (!is.null(object$qsiggam$gamma_mean)) as.numeric(object$qsiggam$gamma_mean)[1] else NA_real_
-    cat("Posterior mean gamma:", gamma_mean, "\n")
-  }
+  summary.exalStaticFit(object, ...)
 }
 
 #' Plot Method for \code{exalStaticLDVB} Objects
@@ -813,7 +1000,15 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 print.exdqlmDiagnostic <- function(x, ...) {
   old_opts <- options(scipen = 999)
   on.exit(options(old_opts), add = TRUE)
+  cat("Dynamic quantile model diagnostics\n")
+  cat("Class:", paste(class(x), collapse = ", "), "\n")
+  cat("Quantile level (p0):", .exdqlm_format_number(x$p0), "\n")
+  cat("Observations:", if (is.null(x$n)) length(x$y) else x$n, "\n")
+  cat("Models:", if (is.null(x$m1.class)) "M1" else x$m1.class)
+  if (!is.null(x$m2.class)) cat(" vs ", x$m2.class, sep = "")
+  cat("\n")
   print(.exdqlm_diagnostic_table(x), row.names = FALSE, digits = 3)
+  cat("Use with: summary(), plot()\n")
   invisible(x)
 }
 
@@ -839,7 +1034,12 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #' }
 #'
 summary.exdqlmDiagnostic <- function(object, ...) {
+  old_opts <- options(scipen = 999)
+  on.exit(options(old_opts), add = TRUE)
   out <- .exdqlm_diagnostic_table(object)
+  cat("Dynamic quantile model diagnostics summary\n")
+  cat("Quantile level (p0):", .exdqlm_format_number(object$p0), "\n")
+  cat("Observations:", if (is.null(object$n)) length(object$y) else object$n, "\n")
   print(out, row.names = FALSE, digits = 3)
   invisible(out)
 }
@@ -943,15 +1143,18 @@ is.exdqlmForecast = function(x){ return(methods::is(x,"exdqlmForecast")) }
 #' }
 #'
 print.exdqlmForecast <- function(x, ...) {
-  #
-  cat("k-step-ahead Quantile Forecasts of an exDQLM\n")
-  cat("Number of Observations:", length(x$m1$y), "\n")
-  cat("State Dimension:", length(x$m1$model$m0), "\n")  
-  cat("Forecasts start at time index", x$start.t, "and forecast k =", x$k, "steps ahead\n")
-  if(!is.null(x$samp.fore)){
-    cat("Posterior forecast draws stored:", ncol(as.matrix(x$samp.fore)), "\n")
-  }
-  #
+  cat("Dynamic quantile forecast\n")
+  cat("Class:", paste(class(x), collapse = ", "), "\n")
+  cat("Fitted model class:", .exdqlm_primary_class(x$m1), "\n")
+  cat("Quantile level (p0):", .exdqlm_format_number(.exdqlm_safe_p0(x$m1)), "\n")
+  cat("Observations in fitted model:", length(x$m1$y), "\n")
+  cat("State dimension:", length(x$m1$model$m0), "\n")
+  cat("Forecast start index:", x$start.t, "\n")
+  cat("Forecast horizon:", x$k, "\n")
+  cat("Credible interval mass:", .exdqlm_format_number(x$cr.percent), "\n")
+  cat("Posterior forecast draws:", if (is.null(x$samp.fore)) "not stored" else ncol(as.matrix(x$samp.fore)), "\n")
+  cat("Use with: summary(), plot(), exdqlmForecastDiagnostics()\n")
+  invisible(x)
 }
 
 #' Summary Method for \code{exdqlmForecast} Objects
@@ -976,15 +1179,21 @@ print.exdqlmForecast <- function(x, ...) {
 #' }
 #'
 summary.exdqlmForecast <- function(object, ...) {
-  #
-  cat("k-step-ahead Quantile Forecasts of an exDQLM\n")
-  cat("Number of Observations:", length(object$m1$y), "\n")
-  cat("State Dimension:", length(object$m1$model$m0), "\n")  
-  cat("Forecasts start at time index", object$start.t, "and forecast k =", object$k, "steps ahead\n")
-  if(!is.null(object$samp.fore)){
-    cat("Posterior forecast draws stored:", ncol(as.matrix(object$samp.fore)), "\n")
-  }
-  #
+  half.alpha <- (1 - object$cr.percent) / 2
+  zlb <- stats::qnorm(half.alpha)
+  zub <- stats::qnorm(object$cr.percent + half.alpha)
+  out <- data.frame(
+    step = seq_len(object$k),
+    forecast_quantile = as.numeric(object$ff),
+    forecast_variance = as.numeric(object$fQ),
+    lower = as.numeric(object$ff + zlb * sqrt(pmax(object$fQ, 0))),
+    upper = as.numeric(object$ff + zub * sqrt(pmax(object$fQ, 0))),
+    check.names = FALSE
+  )
+  print.exdqlmForecast(object, ...)
+  cat("\nForecast summary:\n")
+  print(out, row.names = FALSE, digits = 4)
+  invisible(out)
 }
 
 #' Plot Method for \code{exdqlmForecast} Objects
@@ -1073,8 +1282,10 @@ is.exdqlmSynthesis <- function(x) {
 #' @export
 print.exdqlmSynthesis <- function(x, ...) {
   cat("Posterior predictive synthesis from separately fitted quantiles\n")
+  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Time points:", nrow(as.matrix(x$draws)), "\n")
   cat("Synthesized draws per time:", ncol(as.matrix(x$draws)), "\n")
+  cat("Number of input quantile levels:", length(x$levels), "\n")
   cat("Input quantile levels:", paste(format(x$levels), collapse = ", "), "\n")
   if (!is.null(x$method)) {
     cat("Isotonic correction:", isTRUE(x$method$isotonic), "\n")

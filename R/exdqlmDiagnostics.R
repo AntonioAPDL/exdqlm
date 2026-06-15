@@ -126,7 +126,11 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   # m1 acf
   m1.acf = stats::acf(m1.uts,plot=FALSE)
   #
-  retlist = list(m1.uts=m1.uts,m1.KL=m1.KL,m1.KL.flip=m1.KL.flip,m1.CRPS=m1.CRPS,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf,
+  retlist = list(p0 = as.numeric(m1$p0)[1],
+                 n = length(y),
+                 m1.class = class(m1)[1],
+                 m1.engine = if (is.exdqlmMCMC(m1)) "MCMC" else if (is.exdqlmLDVB(m1)) "LDVB" else "legacy ISVB",
+                 m1.uts=m1.uts,m1.KL=m1.KL,m1.KL.flip=m1.KL.flip,m1.CRPS=m1.CRPS,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf,
                  m1.rt=m1$run.time,m1.msfe=m1$map.standard.forecast.errors,y=y,
                  kl.details = list(m1 = .exdqlm_kl_details(m1.kl)),
                  crps.method = "integrated_quantile_score",
@@ -155,6 +159,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
     if(m1$p0 != m2$p0){
       stop("quantiles estimated in m1 and m2 do not match")
     }
+    retlist[["m2.class"]] = class(m2)[1]
+    retlist[["m2.engine"]] = if (is.exdqlmMCMC(m2)) "MCMC" else if (is.exdqlmLDVB(m2)) "LDVB" else "legacy ISVB"
     # m2 seq.uts
     m2.uts = stats::pnorm(m2$map.standard.forecast.errors)
     retlist[["m2.msfe"]] = m2$map.standard.forecast.errors

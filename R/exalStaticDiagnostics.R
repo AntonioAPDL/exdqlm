@@ -221,6 +221,8 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     y = if (is.null(y_use)) NULL else y_use[ord],
     ref = if (is.null(ref_use)) NULL else ref_use[ord],
     p0 = if (!is.null(m1$p0)) as.numeric(m1$p0)[1] else NA_real_,
+    n = nrow(X_use),
+    m1.class = class(m1)[1],
     m1.map.quant = m1_sum$map.quant[ord],
     m1.lb.quant = m1_sum$lb.quant[ord],
     m1.ub.quant = m1_sum$ub.quant[ord],
@@ -253,6 +255,7 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
     }
 
     m2_sum <- summarize_fit(m2, X_use, y_use, ref_use, cr.percent)
+    ret$m2.class <- class(m2)[1]
     ret$m2.map.quant <- m2_sum$map.quant[ord]
     ret$m2.lb.quant <- m2_sum$lb.quant[ord]
     ret$m2.ub.quant <- m2_sum$ub.quant[ord]
@@ -301,7 +304,12 @@ is.exalStaticDiagnostic <- function(x) {
 #' @export
 print.exalStaticDiagnostic <- function(x, ...) {
   cat("Static exAL diagnostics\n")
+  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Quantile level (p0):", x$p0, "\n")
+  cat("Evaluation rows:", if (is.null(x$n)) length(x$x) else x$n, "\n")
+  cat("Models:", if (is.null(x$m1.class)) "M1" else x$m1.class)
+  if (!is.null(x$m2.class)) cat(" vs ", x$m2.class, sep = "")
+  cat("\n")
   m1 <- .exal_diagnostic_vector(x, "m1.")
   if (is.null(x$m2.rt)) {
     print(data.frame(Diagnostic = names(m1), M1 = unname(m1)), row.names = FALSE, digits = 4)
@@ -313,6 +321,8 @@ print.exalStaticDiagnostic <- function(x, ...) {
       digits = 4
     )
   }
+  cat("Plot types: quantile, coefficients\n")
+  invisible(x)
 }
 
 #' Summary Method for \code{exalStaticDiagnostic} Objects
@@ -321,7 +331,18 @@ print.exalStaticDiagnostic <- function(x, ...) {
 #' @param ... Additional arguments (unused).
 #' @export
 summary.exalStaticDiagnostic <- function(object, ...) {
-  print.exalStaticDiagnostic(object, ...)
+  m1 <- .exal_diagnostic_vector(object, "m1.")
+  out <- if (is.null(object$m2.rt)) {
+    data.frame(Diagnostic = names(m1), M1 = unname(m1), check.names = FALSE)
+  } else {
+    m2 <- .exal_diagnostic_vector(object, "m2.")
+    data.frame(Diagnostic = names(m1), M1 = unname(m1), M2 = unname(m2), check.names = FALSE)
+  }
+  cat("Static exAL diagnostics summary\n")
+  cat("Quantile level (p0):", object$p0, "\n")
+  cat("Evaluation rows:", if (is.null(object$n)) length(object$x) else object$n, "\n")
+  print(out, row.names = FALSE, digits = 4)
+  invisible(out)
 }
 
 #' Plot Method for \code{exalStaticDiagnostic} Objects
