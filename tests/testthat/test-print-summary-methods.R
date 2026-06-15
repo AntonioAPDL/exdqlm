@@ -33,12 +33,29 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   expect_output(print(fit), "Class: exdqlmLDVB, exdqlmFit")
   expect_output(print(fit), "Inference engine: LDVB")
   expect_output(print(fit), "exdqlmDiagnostics\\(\\)")
+  expect_output(print(fit), "predict\\(\\)")
 
   expect_output(smry <- summary(fit), "Stored draws")
   expect_type(smry, "list")
   expect_s3_class(smry$draws, "data.frame")
   expect_s3_class(smry$scalar, "data.frame")
   expect_s3_class(smry$convergence, "data.frame")
+
+  q_method <- plot(fit, plot = FALSE)
+  q_helper <- exdqlmPlot(fit, plot = FALSE)
+  expect_equal(q_method, q_helper)
+  comp_method <- plot(fit, type = "component", index = 1, plot = FALSE)
+  comp_helper <- compPlot(fit, index = 1, plot = FALSE)
+  expect_equal(comp_method, comp_helper)
+  state_method <- plot(fit, type = "state", index = 1, plot = FALSE)
+  state_helper <- compPlot(fit, index = 1, just.theta = TRUE, plot = FALSE)
+  expect_equal(state_method, state_helper)
+  expect_error(plot(fit, type = "component", plot = FALSE), "index is required")
+  expect_error(
+    plot(fit, type = "component", index = 1, just.theta = TRUE, plot = FALSE),
+    "use type = 'state'"
+  )
+  expect_error(plot(fit, type = "bad", plot = FALSE), "'arg' should be one of")
 
   visible_diags <- withVisible(exdqlmDiagnostics(fit))
   expect_true(visible_diags$visible)
@@ -59,9 +76,17 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   expect_no_error(diags_plot <- exdqlmDiagnostics(fit, plot = TRUE))
   expect_s3_class(diags_plot, "exdqlmDiagnostic")
 
-  fc <- exdqlmForecast(
-    start.t = 3, k = 1, m1 = fit,
-    plot = FALSE,
+  visible_fc <- withVisible(exdqlmForecast(
+    start.t = 3, k = 1, m1 = fit
+  ))
+  expect_true(visible_fc$visible)
+  expect_s3_class(visible_fc$value, "exdqlmForecast")
+  expect_error(exdqlmForecast(start.t = 3, k = 1, m1 = fit, plot = NA), "plot must be")
+  expect_no_error(exdqlmForecast(start.t = 3, k = 1, m1 = fit, plot = TRUE))
+
+  fc <- predict(
+    fit,
+    start.t = 3, k = 1,
     return.draws = TRUE,
     n.samp = 5,
     seed = 1
@@ -71,6 +96,7 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   expect_output(fc_table <- summary(fc), "Forecast summary")
   expect_s3_class(fc_table, "data.frame")
   expect_true(all(c("step", "forecast_quantile", "forecast_variance", "lower", "upper") %in% names(fc_table)))
+  expect_equal(dim(fc$samp.fore), c(1L, 5L))
 })
 
 test_that("static fit and diagnostic methods expose the shared fit family", {

@@ -4,10 +4,15 @@
 \alias{plot.exdqlmMCMC}
 \title{Plot Method for \code{exdqlmMCMC} Objects}
 \usage{
-\method{plot}{exdqlmMCMC}(x, ...)
+\method{plot}{exdqlmMCMC}(x, type = c("quantile", "component", "state"), index = NULL, ...)
 }
 \arguments{
 \item{x}{An \code{exdqlmMCMC} object.}
+
+\item{type}{Character string specifying \code{"quantile"}, \code{"component"},
+or \code{"state"}.}
+
+\item{index}{Required for \code{type = "component"} or \code{type = "state"}.}
 
 \item{...}{Additional arguments.}
 }

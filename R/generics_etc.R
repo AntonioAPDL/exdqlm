@@ -69,6 +69,25 @@ is.exalStaticFit <- function(m){ return(methods::is(m, "exalStaticFit")) }
   plot
 }
 
+.plot_exdqlm_fit <- function(x, type = c("quantile", "component", "state"),
+                             index = NULL, ...) {
+  type <- match.arg(type)
+  if (identical(type, "quantile")) {
+    return(exdqlmPlot(x, ...))
+  }
+  if (is.null(index)) {
+    stop("index is required when type is 'component' or 'state'.", call. = FALSE)
+  }
+  dots <- list(...)
+  if ("just.theta" %in% names(dots)) {
+    stop("use type = 'state' instead of passing just.theta to plot().", call. = FALSE)
+  }
+  dots$m1 <- x
+  dots$index <- index
+  dots$just.theta <- identical(type, "state")
+  do.call(compPlot, dots)
+}
+
 .exdqlm_format_number <- function(x, digits = 4) {
   x <- suppressWarnings(as.numeric(x)[1L])
   if (!is.finite(x)) return("NA")
@@ -351,7 +370,7 @@ summary.exdqlm <- function(object,...){
   cat("State draws:", .exdqlm_array_dim(x$samp.theta), "\n")
   cat("Posterior predictive draws:", .exdqlm_draw_dim(x$samp.post.pred), "\n")
   cat("Run-time:", .exdqlm_runtime_label(x$run.time), "\n")
-  cat("Use with: summary(), plot(), exdqlmDiagnostics(), exdqlmForecast()\n")
+  cat("Use with: summary(), plot(), predict(), exdqlmDiagnostics(), exdqlmForecast()\n")
   invisible(x)
 }
 
@@ -411,6 +430,61 @@ print.exdqlmFit <- function(x, ...) {
 #' @export
 summary.exdqlmFit <- function(object, ...) {
   .exdqlm_fit_summary(object)
+}
+
+#' Plot Method for Dynamic \code{exdqlmFit} Objects
+#'
+#' Plot fitted dynamic quantiles, fitted component contributions, or individual
+#' state elements from a dynamic fit. The default \code{type = "quantile"}
+#' delegates to \code{\link{exdqlmPlot}}. Component and state views delegate to
+#' \code{\link{compPlot}}.
+#'
+#' @param x A fitted dynamic \code{exdqlmFit} object.
+#' @param type Character string specifying the plot type. Use
+#'   \code{"quantile"} for the fitted dynamic quantile, \code{"component"} for
+#'   the contribution of a block of state elements, or \code{"state"} for a
+#'   single state element.
+#' @param index Required for \code{type = "component"} or \code{type = "state"}.
+#'   Gives the state index or consecutive state indices passed to
+#'   \code{\link{compPlot}}.
+#' @param ... Additional arguments passed to \code{\link{exdqlmPlot}} or
+#'   \code{\link{compPlot}}.
+#'
+#' @return Invisibly returns the summary list produced by
+#'   \code{\link{exdqlmPlot}} or \code{\link{compPlot}}.
+#'
+#' @export
+plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"),
+                           index = NULL, ...) {
+  .plot_exdqlm_fit(x, type = type, index = index, ...)
+}
+
+#' Forecast Method for Dynamic \code{exdqlmFit} Objects
+#'
+#' Forecast from a fitted dynamic quantile model. This is an S3 method wrapper
+#' around \code{\link{exdqlmForecast}}; use \code{plot()} on the returned
+#' \code{exdqlmForecast} object to visualize the result.
+#'
+#' @param object A fitted dynamic \code{exdqlmFit} object.
+#' @param start.t Integer index at which forecasts start.
+#' @param k Integer number of steps ahead to forecast.
+#' @param fFF Optional future observation vector(s), passed to
+#'   \code{\link{exdqlmForecast}}.
+#' @param fGG Optional future evolution matrix/matrices, passed to
+#'   \code{\link{exdqlmForecast}}.
+#' @param plot Logical; if \code{TRUE}, immediately plot the returned forecast
+#'   object as a convenience shortcut. Default is \code{FALSE}.
+#' @param ... Additional arguments passed to \code{\link{exdqlmForecast}}.
+#'
+#' @return An object of class \code{exdqlmForecast}.
+#'
+#' @export
+predict.exdqlmFit <- function(object, start.t, k, fFF = NULL, fGG = NULL,
+                              plot = FALSE, ...) {
+  exdqlmForecast(
+    start.t = start.t, k = k, m1 = object,
+    fFF = fFF, fGG = fGG, plot = plot, ...
+  )
 }
 
 
@@ -479,6 +553,9 @@ summary.exdqlmMCMC <- function(object, ...) {
 #' Plot Method for \code{exdqlmMCMC} Objects
 #'
 #' @param x An \code{exdqlmMCMC} object.
+#' @param type Character string specifying \code{"quantile"}, \code{"component"},
+#'   or \code{"state"}.
+#' @param index Required for \code{type = "component"} or \code{type = "state"}.
 #' @param ... Additional arguments.
 #' 
 #' @export
@@ -495,8 +572,9 @@ summary.exdqlmMCMC <- function(object, ...) {
 #' plot(M2)                
 #' }
 #'
-plot.exdqlmMCMC<- function(x, ...) {
-  exdqlmPlot(x,...)
+plot.exdqlmMCMC<- function(x, type = c("quantile", "component", "state"),
+                           index = NULL, ...) {
+  plot.exdqlmFit(x, type = type, index = index, ...)
 }
 
 
@@ -573,6 +651,9 @@ summary.exdqlmISVB <- function(object, ...) {
 #' Plot Method for \code{exdqlmISVB} Objects
 #'
 #' @param x An \code{exdqlmISVB} object.
+#' @param type Character string specifying \code{"quantile"}, \code{"component"},
+#'   or \code{"state"}.
+#' @param index Required for \code{type = "component"} or \code{type = "state"}.
 #' @param ... Additional arguments. 
 #' 
 #' @export
@@ -592,8 +673,9 @@ summary.exdqlmISVB <- function(object, ...) {
 #' options(old)
 #' }
 #'
-plot.exdqlmISVB <- function(x, ...) {
-  exdqlmPlot(x,...)
+plot.exdqlmISVB <- function(x, type = c("quantile", "component", "state"),
+                            index = NULL, ...) {
+  plot.exdqlmFit(x, type = type, index = index, ...)
 }
 
 
@@ -666,6 +748,9 @@ summary.exdqlmLDVB <- function(object, ...) {
 #' Plot Method for \code{exdqlmLDVB} Objects
 #'
 #' @param x An \code{exdqlmLDVB} object.
+#' @param type Character string specifying \code{"quantile"}, \code{"component"},
+#'   or \code{"state"}.
+#' @param index Required for \code{type = "component"} or \code{type = "state"}.
 #' @param ... Additional arguments. 
 #' 
 #' @export
@@ -683,8 +768,9 @@ summary.exdqlmLDVB <- function(object, ...) {
 #' options(old)
 #' }
 #'
-plot.exdqlmLDVB <- function(x, ...) {
-  exdqlmPlot(x,...)
+plot.exdqlmLDVB <- function(x, type = c("quantile", "component", "state"),
+                            index = NULL, ...) {
+  plot.exdqlmFit(x, type = type, index = index, ...)
 }
 
 

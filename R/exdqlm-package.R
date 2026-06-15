@@ -15,7 +15,9 @@
 #'         [exdqlmLDVB()] and [exdqlmMCMC()], with legacy [exdqlmISVB()]
 #'         retained for backward compatibility and transfer-function extensions
 #'         through [exdqlmTransferLDVB()], [exdqlmTransferMCMC()], and legacy
-#'         [exdqlmTransferISVB()].
+#'         [exdqlmTransferISVB()]. Dynamic fitted objects support standard
+#'         [plot()] and [predict()] methods, with [exdqlmPlot()],
+#'         [compPlot()], and [exdqlmForecast()] retained as explicit helpers.
 #'   \item Static Bayesian exAL regression via [exalStaticLDVB()] and
 #'         [exalStaticMCMC()], with static fitted-quantile and coefficient
 #'         summaries through [exalStaticDiagnostics()].

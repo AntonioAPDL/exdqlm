@@ -23,7 +23,9 @@ for static coefficients, and post hoc synthesis of several fitted quantiles.
 \code{\link[=exdqlmLDVB]{exdqlmLDVB()}} and \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, with legacy \code{\link[=exdqlmISVB]{exdqlmISVB()}}
 retained for backward compatibility and transfer-function extensions
 through \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}}, \code{\link[=exdqlmTransferMCMC]{exdqlmTransferMCMC()}}, and legacy
-\code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}.
+\code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}. Dynamic fitted objects support standard
+\code{\link[=plot]{plot()}} and \code{\link[=predict]{predict()}} methods, with \code{\link[=exdqlmPlot]{exdqlmPlot()}},
+\code{\link[=compPlot]{compPlot()}}, and \code{\link[=exdqlmForecast]{exdqlmForecast()}} retained as explicit helpers.
 \item Static Bayesian exAL regression via \code{\link[=exalStaticLDVB]{exalStaticLDVB()}} and
 \code{\link[=exalStaticMCMC]{exalStaticMCMC()}}, with static fitted-quantile and coefficient
 summaries through \code{\link[=exalStaticDiagnostics]{exalStaticDiagnostics()}}.

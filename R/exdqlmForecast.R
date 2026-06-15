@@ -1,7 +1,9 @@
 #' k-step-ahead quantile forecasts
 #'
 #' Computes filtered and \code{k}-step-ahead forecast quantiles from a fitted
-#' dynamic quantile model and optionally adds them to an existing plot.
+#' dynamic quantile model. The returned \code{exdqlmForecast} object can be
+#' printed, summarized, plotted with \code{plot()}, or passed to
+#' \code{\link{exdqlmForecastDiagnostics}}.
 #'
 #' @param start.t Integer index at which forecasts start (must be within the span of the fitted model in \code{m1}).
 #' @param k Integer number of steps ahead to forecast.
@@ -13,8 +15,10 @@
 #' @param fGG Optional evolution matrix/matrices for the forecast steps. Either a numeric
 #'   \eqn{q \times q} matrix (non–time-varying) or a \eqn{q \times q \times k} array (time-varying).
 #'   Its dimensions must match the fitted model in \code{m1}.
-#' @param plot Logical value indicating whether to plot filtered and forecast quantiles with
-#'   equal–tailed credible intervals. Default is \code{TRUE}.
+#' @param plot Logical value indicating whether to immediately plot filtered
+#'   and forecast quantiles with equal–tailed credible intervals. Default is
+#'   \code{FALSE}; the preferred workflow is to save the returned object and
+#'   call \code{plot()} on it.
 #' @param add Logical value indicating whether to add the forecasted quantiles to the current plot.
 #'   Default is \code{FALSE}.
 #' @param cols Character vector of length 2 giving the colors for filtered and forecasted
@@ -56,16 +60,17 @@
 #'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15, n.samp = 30,
 #'                   verbose = FALSE)
-#'  exdqlmForecast(start.t = 90, k = 10, m1 = M0)
 #'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0,
 #'                               return.draws = TRUE, n.samp = 50, seed = 123)
+#'  M0.forecast
+#'  plot(M0.forecast)
 #'  dim(M0.forecast$samp.fore)
 #'  options(old)
 #' }
 #'
 #' @export
 
-exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,cols=c("purple","magenta"),cr.percent=0.95,
+exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=FALSE,add=FALSE,cols=c("purple","magenta"),cr.percent=0.95,
                           return.draws=FALSE,n.samp=NULL,seed=NULL){
 
   # check inputs
@@ -81,6 +86,7 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   if(!is.logical(return.draws) || length(return.draws)!=1 || is.na(return.draws)){
     stop("return.draws must be TRUE or FALSE")
   }
+  plot = .exdqlm_validate_plot_flag(plot)
   if(!is.null(n.samp)){
     n.samp = suppressWarnings(as.integer(n.samp)[1])
     if(!is.finite(n.samp) || n.samp<=0){
@@ -208,5 +214,5 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   if(plot){ plot(retlist, cols = cols, add = add) }
 
   # return forecast distributions
-  return(invisible(retlist))
+  return(retlist)
 }

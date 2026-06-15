@@ -4,10 +4,15 @@
 \alias{plot.exdqlmISVB}
 \title{Plot Method for \code{exdqlmISVB} Objects}
 \usage{
-\method{plot}{exdqlmISVB}(x, ...)
+\method{plot}{exdqlmISVB}(x, type = c("quantile", "component", "state"), index = NULL, ...)
 }
 \arguments{
 \item{x}{An \code{exdqlmISVB} object.}
+
+\item{type}{Character string specifying \code{"quantile"}, \code{"component"},
+or \code{"state"}.}
+
+\item{index}{Required for \code{type = "component"} or \code{type = "state"}.}
 
 \item{...}{Additional arguments.}
 }
