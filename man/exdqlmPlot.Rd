@@ -20,8 +20,9 @@ exdqlmPlot(
 )
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
-legacy "\code{exdqlmISVB}".}
+\item{m1}{A fitted dynamic \code{exdqlmFit} object, such as an object
+returned by \code{\link{exdqlmLDVB}}, \code{\link{exdqlmMCMC}}, or
+legacy \code{\link{exdqlmISVB}}.}
 
 \item{add}{Logical value indicating whether the dynamic quantile will be added to existing plot. Default is \code{FALSE}.}
 

@@ -24,8 +24,8 @@ exdqlmForecast(
 
 \item{k}{Integer number of steps ahead to forecast.}
 
-\item{m1}{A fitted exDQLM model object, returned by \code{\link[=exdqlmLDVB]{exdqlmLDVB()}},
-\code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, or legacy \code{\link[=exdqlmISVB]{exdqlmISVB()}}.}
+\item{m1}{A fitted dynamic \code{exdqlmFit} object, such as an object
+returned by \code{\link[=exdqlmLDVB]{exdqlmLDVB()}}, \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, or legacy \code{\link[=exdqlmISVB]{exdqlmISVB()}}.}
 
 \item{fFF}{Optional state vector(s) for the forecast steps. A numeric matrix with
 \eqn{q} rows and either 1 column (non–time-varying) or \code{k} columns (time-varying).

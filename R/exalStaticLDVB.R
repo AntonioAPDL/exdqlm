@@ -953,7 +953,8 @@
 #'   the built-in RHS-family `tau` warmup defaults.
 #' @param verbose Logical; print progress.
 #'
-#' @return An object of class "\code{exalStaticLDVB}" containing:
+#' @return An object with classes "\code{exalStaticLDVB}" and
+#' "\code{exalStaticFit}" containing:
 #' \itemize{
 #'   \item \code{qbeta}: list with \code{m}, \code{V}.
 #'   \item \code{samp.beta}: posterior sample from \eqn{q(\beta)} with

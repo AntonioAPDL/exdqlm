@@ -132,7 +132,8 @@ the built-in RHS-family \code{tau} warmup defaults.}
 \item{verbose}{Logical; print progress.}
 }
 \value{
-An object of class "\code{exalStaticLDVB}" containing:
+An object with classes "\code{exalStaticLDVB}" and
+"\code{exalStaticFit}" containing:
 \itemize{
 \item \code{qbeta}: list with \code{m}, \code{V}.
 \item \code{samp.beta}: posterior sample from \eqn{q(\beta)} with

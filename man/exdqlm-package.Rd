@@ -38,6 +38,27 @@ predictive distribution.
 }
 }
 
+\section{Object system}{
+
+\itemize{
+\item Model specifications have class \code{exdqlm} and can be combined with
+the \code{+} method.
+\item Dynamic fitted objects keep their engine-specific first class
+(\code{exdqlmLDVB}, \code{exdqlmMCMC}, or legacy \code{exdqlmISVB}) and also inherit
+from the shared \code{exdqlmFit} family. They support \code{print()},
+\code{summary()}, \code{plot()}, and \code{predict()} where natural.
+\item Static fitted objects keep their engine-specific first class
+(\code{exalStaticLDVB} or \code{exalStaticMCMC}) and also inherit from the
+shared \code{exalStaticFit} family. They support \code{print()}, \code{summary()},
+and fitted-quantile \code{plot()} methods.
+\item Post-processing functions return explicit objects:
+\code{exdqlmDiagnostic}, \code{exdqlmForecast}, \code{exdqlmForecastDiagnostic},
+\code{exdqlmSynthesis}, and \code{exalStaticDiagnostic}. These objects can be
+inspected with standard \code{print()}/\code{summary()} methods and plotted
+with \code{plot()} when a display is defined.
+}
+}
+
 \section{Distinctive features}{
 
 \itemize{

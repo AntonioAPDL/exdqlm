@@ -174,7 +174,8 @@ zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 the \eqn{(k+1)\times(k+1)} identity matrix.}
 }
 \value{
-An object of class "\code{exdqlmMCMC}" containing the following:
+An object with classes "\code{exdqlmMCMC}" and "\code{exdqlmFit}"
+containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.

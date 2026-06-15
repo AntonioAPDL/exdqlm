@@ -1,3 +1,26 @@
+# exdqlm development version
+
+## JSS resubmission design updates
+- Added shared fit class families while preserving the existing first-class
+  object names. Dynamic fits now inherit from `exdqlmFit`; static fits now
+  inherit from `exalStaticFit`.
+- Standardized `print()` and `summary()` methods for fitted models and
+  post-processing objects so users can inspect model class, inference engine,
+  sample size, state dimension, stored draws, diagnostics, and run time without
+  manually reading list internals.
+- Made diagnostic constructors object-first: `exdqlmDiagnostics()`,
+  `exalStaticDiagnostics()`, and `exdqlmForecastDiagnostics()` return visible
+  objects that can be printed, summarized, or plotted with standard methods.
+- Added standard dynamic post-processing methods. `plot(fit)` displays fitted
+  dynamic quantiles, `plot(fit, type = "component", index = ...)` displays
+  component contributions, `plot(fit, type = "state", index = ...)` displays
+  state summaries, and `predict(fit, ...)` returns an `exdqlmForecast` object.
+- Made `exdqlmForecast()` object-first by returning forecast objects visibly
+  and using `plot = FALSE` by default. Explicit `plot = TRUE` remains
+  supported for convenience.
+- Retained the named helpers `exdqlmPlot()`, `compPlot()`, and
+  `exdqlmForecast()` for explicit workflows and backward compatibility.
+
 # exdqlm 1.0.0
 
 ## New and changed

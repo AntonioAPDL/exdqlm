@@ -11,8 +11,8 @@
 #' with a time series plot of the MAP standard forecast errors.
 #'
 #' @inheritParams exdqlmPlot
-#' @param m2 An optional additional object of class "\code{exdqlmLDVB}",
-#'   "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with `m1`.
+#' @param m2 An optional second fitted dynamic \code{exdqlmFit} object to
+#'   compare with \code{m1}.
 #' @param plot Logical value indicating whether to immediately plot the returned
 #'   diagnostic object as a convenience shortcut. Default is \code{FALSE}; the
 #'   preferred workflow is to save the object and then call \code{plot()} on it.
@@ -109,8 +109,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=FALSE,cols=c("red","blue"),ref=NUL
   # check inputs
   y = m1$y
   TT = length(y)
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
-    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
+  if(!is.exdqlmFit(m1)){
+    stop("m1 must be a fitted dynamic exdqlmFit object from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
   }
   cols = c(matrix(cols,2,1))
 
@@ -153,8 +153,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=FALSE,cols=c("red","blue"),ref=NUL
   ### m2
   if(!is.null(m2)){
     # check inputs
-    if(!is.exdqlmMCMC(m2) && !is.exdqlmISVB(m2) && !is.exdqlmLDVB(m2)){
-      stop("m2 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
+    if(!is.exdqlmFit(m2)){
+      stop("m2 must be a fitted dynamic exdqlmFit object from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
     }
     if(dim(m1$samp.theta)[2] != TT){
       stop("length of dynamic quantile in m2 does not match data")

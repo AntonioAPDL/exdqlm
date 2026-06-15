@@ -29,6 +29,25 @@
 #'         predictive distribution.
 #' }
 #'
+#' @section Object system:
+#' \itemize{
+#'   \item Model specifications have class `exdqlm` and can be combined with
+#'         the `+` method.
+#'   \item Dynamic fitted objects keep their engine-specific first class
+#'         (`exdqlmLDVB`, `exdqlmMCMC`, or legacy `exdqlmISVB`) and also inherit
+#'         from the shared `exdqlmFit` family. They support `print()`,
+#'         `summary()`, `plot()`, and `predict()` where natural.
+#'   \item Static fitted objects keep their engine-specific first class
+#'         (`exalStaticLDVB` or `exalStaticMCMC`) and also inherit from the
+#'         shared `exalStaticFit` family. They support `print()`, `summary()`,
+#'         and fitted-quantile `plot()` methods.
+#'   \item Post-processing functions return explicit objects:
+#'         `exdqlmDiagnostic`, `exdqlmForecast`, `exdqlmForecastDiagnostic`,
+#'         `exdqlmSynthesis`, and `exalStaticDiagnostic`. These objects can be
+#'         inspected with standard `print()`/`summary()` methods and plotted
+#'         with `plot()` when a display is defined.
+#' }
+#'
 #' @section Distinctive features:
 #' \itemize{
 #'   \item Dynamic Bayesian quantile state-space inference with LDVB as the

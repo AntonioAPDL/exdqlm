@@ -14,8 +14,8 @@ than means, are the main object of interest, but the user still wants
 familiar state-space/model-matrix inputs and explicit posterior
 inference.
 
-In **v1.0.0**, the package brings together the stabilized software-article
-feature line:
+The current package line brings together the stabilized software-article
+feature set:
 
 - dynamic exDQLM inference via **LDVB** and **MCMC**, with legacy
   **ISVB** retained for backward compatibility and historical
@@ -93,6 +93,17 @@ pak::pak("AntonioAPDL/exdqlm")
 | Static fit diagnostics | `exalStaticDiagnostics()` | post-fit summary | Returns a diagnostic object; use `plot()` for fitted quantiles or `plot(..., type = "coefficients")` for coefficient intervals |
 | Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
 | Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Builds a unified posterior predictive distribution using isotonic correction and optional rearrangement |
+
+## Object system
+
+`exdqlm` uses ordinary S3 classes for fitted models and post-processing
+objects. Dynamic fits keep their engine-specific first class
+(`exdqlmLDVB`, `exdqlmMCMC`, or legacy `exdqlmISVB`) and also inherit
+from the shared `exdqlmFit` family. Static fits similarly inherit from
+`exalStaticFit`. Diagnostic, forecast, synthesis, and static-diagnostic
+functions return explicit objects with `print()`, `summary()`, and
+`plot()` methods where appropriate. Dynamic fits also support
+`predict()` as a standard wrapper around `exdqlmForecast()`.
 
 ## Which engine should I use?
 

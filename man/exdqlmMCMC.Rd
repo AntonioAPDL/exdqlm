@@ -131,7 +131,8 @@ truncated to the support of gamma.}
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 }
 \value{
-An object of class "\code{exdqlmMCMC}" containing the following:
+An object with classes "\code{exdqlmMCMC}" and "\code{exdqlmFit}"
+containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.

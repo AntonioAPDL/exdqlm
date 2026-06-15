@@ -25,7 +25,8 @@
 #' @param debug_shapes Logical; if TRUE, print KF input/output shapes every `debug_every` iterations.
 #' @param debug_every  Integer; frequency (in iterations) for shape prints when `debug_shapes=TRUE`.
 #'
-#' @return An object of class "\code{exdqlmISVB}" containing the following:
+#' @return An object with classes "\code{exdqlmISVB}" and "\code{exdqlmFit}"
+#' containing the following:
 #' \itemize{
 #'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.

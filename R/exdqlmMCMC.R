@@ -90,7 +90,8 @@
 #'   truncated to the support of gamma.
 #' @param verbose Logical value indicating whether progress should be displayed.
 #'
-#' @return An object of class "\code{exdqlmMCMC}" containing the following:
+#' @return An object with classes "\code{exdqlmMCMC}" and "\code{exdqlmFit}"
+#' containing the following:
 #'  \itemize{
 #'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.

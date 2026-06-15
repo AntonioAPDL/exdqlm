@@ -8,8 +8,11 @@
 #' posterior summaries for the static regression coefficients, which can be
 #' plotted with \code{plot(..., type = "coefficients")}.
 #'
-#' @param m1 An object of class \code{"exalStaticLDVB"} or \code{"exalStaticMCMC"}.
-#' @param m2 Optional second fitted static model to compare against \code{m1}.
+#' @param m1 A fitted static \code{exalStaticFit} object, such as an object
+#'   returned by \code{\link{exalStaticLDVB}} or
+#'   \code{\link{exalStaticMCMC}}.
+#' @param m2 Optional second fitted static \code{exalStaticFit} object to
+#'   compare against \code{m1}.
 #' @param X Optional design matrix. If omitted, the function uses \code{m1$X}
 #'   when available.
 #' @param y Optional response vector. If omitted, the function uses \code{m1$y}
@@ -71,9 +74,7 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
                             cr.percent = 0.95) {
   plot <- .exdqlm_validate_plot_flag(plot)
 
-  is_static_fit <- function(m) {
-    is.exalStaticLDVB(m) || is.exalStaticMCMC(m)
-  }
+  is_static_fit <- is.exalStaticFit
 
   resolve_X <- function(fit, X_arg) {
     X_use <- if (!is.null(X_arg)) X_arg else fit$X
@@ -196,10 +197,10 @@ exalStaticDiagnostics <- function(m1, m2 = NULL, X = NULL, y = NULL, ref = NULL,
   }
 
   if (!is_static_fit(m1)) {
-    stop("m1 must be an output from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
+    stop("m1 must be a fitted static exalStaticFit object from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
   }
   if (!is.null(m2) && !is_static_fit(m2)) {
-    stop("m2 must be an output from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
+    stop("m2 must be a fitted static exalStaticFit object from exalStaticLDVB() or exalStaticMCMC().", call. = FALSE)
   }
 
   X_use <- resolve_X(m1, X)

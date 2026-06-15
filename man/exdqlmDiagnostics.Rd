@@ -16,11 +16,12 @@ exdqlmDiagnostics(
 )
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
-legacy "\code{exdqlmISVB}".}
+\item{m1}{A fitted dynamic \code{exdqlmFit} object, such as an object
+returned by \code{\link{exdqlmLDVB}}, \code{\link{exdqlmMCMC}}, or
+legacy \code{\link{exdqlmISVB}}.}
 
-\item{m2}{An optional additional object of class "\code{exdqlmLDVB}",
-"\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with \code{m1}.}
+\item{m2}{An optional second fitted dynamic \code{exdqlmFit} object to
+compare with \code{m1}.}
 
 \item{plot}{Logical value indicating whether to immediately plot the returned
 diagnostic object as a convenience shortcut. Default is \code{FALSE}; the

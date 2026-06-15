@@ -85,7 +85,8 @@ the \eqn{(k+1)\times(k+1)} identity matrix.}
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 }
 \value{
-An object of class "\code{exdqlmISVB}" containing the following:
+An object with classes "\code{exdqlmISVB}" and "\code{exdqlmFit}"
+containing the following:
 \itemize{
 \item \code{run.time} - Algorithm run time in seconds.
 \item \code{iter} - Number of iterations until convergence was reached.

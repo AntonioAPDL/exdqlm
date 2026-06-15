@@ -66,7 +66,8 @@ exdqlmISVB(
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
-An object of class "\code{exdqlmISVB}" containing the following:
+An object with classes "\code{exdqlmISVB}" and "\code{exdqlmFit}"
+containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.

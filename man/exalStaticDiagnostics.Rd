@@ -16,9 +16,12 @@ exalStaticDiagnostics(
 )
 }
 \arguments{
-\item{m1}{An object of class \code{"exalStaticLDVB"} or \code{"exalStaticMCMC"}.}
+\item{m1}{A fitted static \code{exalStaticFit} object, such as an object
+returned by \code{\link{exalStaticLDVB}} or
+\code{\link{exalStaticMCMC}}.}
 
-\item{m2}{Optional second fitted static model to compare against \code{m1}.}
+\item{m2}{Optional second fitted static \code{exalStaticFit} object to
+compare against \code{m1}.}
 
 \item{X}{Optional design matrix. If omitted, the function uses \code{m1$X}
 when available.}

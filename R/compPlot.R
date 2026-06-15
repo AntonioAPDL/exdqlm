@@ -47,8 +47,8 @@ compPlot <- function(m1, index, add = FALSE, col="purple", just.theta = FALSE,
                      lwd.interval = 0.75, lty.interval = 2){
 
   # check input
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
-    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
+  if(!is.exdqlmFit(m1)){
+    stop("m1 must be a fitted dynamic exdqlmFit object from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
   }
   y = m1$y
   TT = length(y)

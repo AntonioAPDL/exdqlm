@@ -204,7 +204,8 @@ start, at each progress checkpoint, and on completion. Intended for
 workflow-level per-case progress logging.}
 }
 \value{
-An object of class "\code{exalStaticMCMC}" containing:
+An object with classes "\code{exalStaticMCMC}" and
+"\code{exalStaticFit}" containing:
 \itemize{
 \item \code{run.time} - total wall time in seconds.
 \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).

@@ -22,8 +22,9 @@ compPlot(
 )
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
-legacy "\code{exdqlmISVB}".}
+\item{m1}{A fitted dynamic \code{exdqlmFit} object, such as an object
+returned by \code{\link{exdqlmLDVB}}, \code{\link{exdqlmMCMC}}, or
+legacy \code{\link{exdqlmISVB}}.}
 
 \item{index}{Vector of consecutive integers in \eqn{\{1,\dots,q\}} indicating the component or element of the state vector to be plotted.}
 

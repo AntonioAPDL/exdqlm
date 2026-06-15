@@ -7,8 +7,8 @@
 #'
 #' @param start.t Integer index at which forecasts start (must be within the span of the fitted model in \code{m1}).
 #' @param k Integer number of steps ahead to forecast.
-#' @param m1 A fitted exDQLM model object, returned by [exdqlmLDVB()],
-#'   [exdqlmMCMC()], or legacy [exdqlmISVB()].
+#' @param m1 A fitted dynamic \code{exdqlmFit} object, such as an object
+#'   returned by [exdqlmLDVB()], [exdqlmMCMC()], or legacy [exdqlmISVB()].
 #' @param fFF Optional state vector(s) for the forecast steps. A numeric matrix with
 #'   \eqn{q} rows and either 1 column (non–time-varying) or \code{k} columns (time-varying).
 #'   Its dimension must match the fitted model in \code{m1}.
@@ -77,8 +77,8 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=FALSE,add=FALSE,co
   y = m1$y
   p = dim(m1$model$GG)[1]
   TT = dim(m1$model$GG)[3]
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
-    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
+  if(!is.exdqlmFit(m1)){
+    stop("m1 must be a fitted dynamic exdqlmFit object from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
   }
   if(cr.percent<=0 | cr.percent>=1){
     stop("cr.percent must be between 0 and 1")
