@@ -1,6 +1,6 @@
 Package: exdqlm
 Title: Extended Dynamic Quantile Linear Models
-Version: 1.0.0
+Version: 1.1.0
 Authors@R:
     c(person(given = "Raquel", family = "Barata",
              role = c("aut", "cre"),

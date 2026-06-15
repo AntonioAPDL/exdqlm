@@ -1,4 +1,4 @@
-# exdqlm development version
+# exdqlm 1.1.0
 
 ## JSS resubmission design updates
 - Added shared fit class families while preserving the existing first-class

@@ -1,48 +1,34 @@
-## exdqlm 1.0.0
+## exdqlm 1.1.0
 
 ### Release context
 
-This is a resubmission of version 1.0.0. The previous incoming Debian pretest
-completed the test suite but reported a NOTE because `testthat.R` used much
-more CPU time than elapsed time. The test entrypoint now caps native
-OpenMP/BLAS thread counts before loading the package. Heavyweight
-inference/backend-validation files are skipped on CRAN while the lighter API and
-regression tests, including the new static coefficient-plot interface, remain
-covered by the CRAN suite. The full validation suite is still run locally with
-`NOT_CRAN=true`.
+This release updates CRAN version 1.0.0 with package-design and documentation
+improvements made while preparing the accompanying JSS software article for
+resubmission.
 
-This release builds on the consolidated 0.4.0 CRAN package line and focuses on
-dynamic diagnostic reproducibility:
+The main changes are user-facing but backward compatible:
 
-- `exdqlmDiagnostics()` now computes CRPS through a finite integrated
-  quantile-score approximation over posterior predictive empirical quantiles.
-- `exdqlmForecastDiagnostics()` adds package-level held-out forecast scoring for
-  `exdqlmForecast()` objects, using target-quantile check loss and CRPS from
-  posterior predictive forecast draws.
-- `exdqlmForecast()` now validates future time-varying `fGG` arrays against the
-  forecast horizon and safely expands constant future `fGG` matrices.
-- `exalStaticDiagnostics()` now stores coefficient interval summaries and its
-  S3 plot method can display static coefficient intervals; optional coefficient
-  reference overlays are visual aids for simulations, not new truth-based
-  package diagnostics.
-- `exdqlmDiagnostics()` now uses a deterministic one-dimensional semiclosed KL
-  normality diagnostic for MAP standardized forecast errors.
-- The reported `KL` direction is aligned with the documented diagnostic target
-  `KL(P_error || N(0,1))`; `KL (flipped)` reports the reverse direction.
-- The public diagnostic surface emphasizes `KL` as the primary calibration
-  diagnostic. By-`k` sensitivity tables and Gaussian plug-in checks are retained
-  under `kl.details` for advanced audit use rather than returned as competing
-  top-level KL fields.
-- The stochastic default `FNN::KL.divergence()` path was removed, so `FNN` is no
-  longer required as an imported package dependency.
+- Dynamic fitted objects now inherit from the shared `exdqlmFit` class while
+  retaining their existing first class names (`exdqlmLDVB`, `exdqlmMCMC`, and
+  legacy `exdqlmISVB`).
+- Static fitted objects now inherit from the shared `exalStaticFit` class while
+  retaining their existing first class names (`exalStaticLDVB` and
+  `exalStaticMCMC`).
+- Fitted models and post-processing objects have more informative `print()` and
+  `summary()` methods.
+- Dynamic fits now support standard post-processing methods: `plot(fit)`,
+  `plot(fit, type = "component")`, `plot(fit, type = "state")`, and
+  `predict(fit, ...)`.
+- Diagnostic constructors now return visible diagnostic objects that can be
+  printed, summarized, and plotted with standard methods.
+- `exdqlmForecast()` now returns forecast objects visibly and uses
+  `plot = FALSE` by default. Explicit `plot = TRUE` remains supported.
+- Documentation now describes the shared object families and the standard method
+  workflow directly.
 
-No default backend flip is introduced in this update:
-
-- `exdqlm.use_cpp_builders` remains opt-in (`FALSE` by default).
-- Existing R fallbacks remain available.
-
-This release intentionally excludes branch-local simulation/validation-study
-artifacts; only package-facing API, documentation, and tests are included.
+Existing named helper functions such as `exdqlmPlot()`, `compPlot()`,
+`exdqlmForecast()`, `exdqlmDiagnostics()`, `exalStaticDiagnostics()`, and
+`exdqlmForecastDiagnostics()` remain available.
 
 ### Test environments
 
@@ -50,11 +36,9 @@ artifacts; only package-facing API, documentation, and tests are included.
 - Local development tools available for this check included `pandoc` 3.9.0.2
   and the R package `V8`, so README/NEWS and HTML math rendering checks ran.
 - Local commands used:
-  - `NOT_CRAN=false Rscript -e 'source("tests/testthat/setup-cran-thread-controls.R"); pkgload::load_all("."); testthat::test_dir("tests/testthat", reporter = "summary")'`
-  - Local non-CRAN validation run of all CRAN-skipped test files with
-    `NOT_CRAN=true`
-  - `R CMD build --no-build-vignettes .`
-  - `NOT_CRAN=false R CMD check --no-manual --run-donttest exdqlm_1.0.0.tar.gz`
+  - `Rscript -e 'source("tests/testthat/setup-cran-thread-controls.R"); pkgload::load_all("."); testthat::test_dir("tests/testthat", reporter = "summary")'`
+  - `R CMD build .`
+  - `R CMD check --no-manual --run-donttest exdqlm_1.1.0.tar.gz`
 
 ### R CMD check results
 
@@ -62,31 +46,28 @@ artifacts; only package-facing API, documentation, and tests are included.
 
 ### Notes for CRAN
 
-1) Dependency reduction
+1) Timing relative to version 1.0.0
 
-- `FNN` has been removed from `Imports` because dynamic KL diagnostics no longer
-  use `FNN::KL.divergence()`.
-- The replacement KL diagnostic is implemented with package-internal base-R
-  one-dimensional nearest-neighbor calculations and deterministic reference
-  grids.
+- This update follows version 1.0.0 closely because the accompanying software
+  article was returned editorially by JSS before external review with a request
+  to improve and document the package class/method design. The changes in this
+  release address those package-design comments while preserving compatibility
+  with the 1.0.0 API.
 
-2) Installed size note
+2) CPU time during tests
+
+- As in version 1.0.0, the test entrypoint caps native OpenMP/BLAS thread
+  counts before loading the package. Heavyweight inference/backend-validation
+  files are skipped on CRAN while lighter API, regression, class, method, and
+  diagnostic tests remain covered by the CRAN suite.
+
+3) Installed size note
 
 - This package includes compiled C++ backends (Rcpp/RcppArmadillo), and the
   shared library is expected to remain the dominant contributor to installed
   package size.
 
-3) README/NEWS pandoc note
-
-- The current local check host has `pandoc` 3.9.0.2 available, and the
-  top-level README/NEWS checks completed successfully.
-
-4) Version numbering
-
-- This release intentionally moves from CRAN version 0.4.0 to 1.0.0 to mark the
-  stabilized package/API line used by the accompanying software article.
-
-5) Compiler hardening flag note
+4) Compiler hardening flag note
 
 - Some local Linux toolchains inject non-portable compiler hardening flags such
   as `-Werror=format-security`, `_FORTIFY_SOURCE`, and `_GLIBCXX_ASSERTIONS`.
