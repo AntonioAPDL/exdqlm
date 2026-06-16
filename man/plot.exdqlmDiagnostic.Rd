@@ -9,7 +9,12 @@
 \arguments{
 \item{x}{An \code{exdqlmDiagnostic} object.}
 
-\item{...}{Additional arguments (unused).}
+\item{...}{Additional graphical arguments. The optional \code{cols} element
+controls the colors used for the first and second model when comparing two
+fits.}
+}
+\value{
+Invisibly returns \code{x}.
 }
 \description{
 Plot Method for \code{exdqlmDiagnostic} Objects

@@ -14,6 +14,11 @@ summary table.}
 
 \item{...}{Additional arguments (unused).}
 }
+\value{
+Invisibly returns a list with data frames describing stored draws,
+scalar posterior summaries, and coefficient summaries.
+}
 \description{
-Summary Method for \code{exalStaticFit} Objects
+Prints a compact summary of a fitted static AL/exAL quantile-regression model
+and returns the displayed summary tables for programmatic inspection.
 }

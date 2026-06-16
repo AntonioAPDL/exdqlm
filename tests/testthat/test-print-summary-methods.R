@@ -72,7 +72,9 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   tf <- tempfile(fileext = ".pdf")
   grDevices::pdf(tf)
   on.exit(grDevices::dev.off(), add = TRUE)
-  expect_no_error(plot(diags))
+  expect_no_error(diag_plot_visible <- withVisible(plot(diags)))
+  expect_false(diag_plot_visible$visible)
+  expect_identical(diag_plot_visible$value, diags)
   expect_no_error(diags_plot <- exdqlmDiagnostics(fit, plot = TRUE))
   expect_s3_class(diags_plot, "exdqlmDiagnostic")
 
@@ -97,6 +99,9 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   expect_s3_class(fc_table, "data.frame")
   expect_true(all(c("step", "forecast_quantile", "forecast_variance", "lower", "upper") %in% names(fc_table)))
   expect_equal(dim(fc$samp.fore), c(1L, 5L))
+  expect_no_error(fc_plot_visible <- withVisible(plot(fc)))
+  expect_false(fc_plot_visible$visible)
+  expect_identical(fc_plot_visible$value, fc)
 })
 
 test_that("static fit and diagnostic methods expose the shared fit family", {

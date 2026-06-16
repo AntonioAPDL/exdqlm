@@ -427,6 +427,13 @@ print.exdqlmFit <- function(x, ...) {
 #' @param object A fitted dynamic \code{exdqlmFit} object.
 #' @param ... Additional arguments (unused).
 #'
+#' @return Invisibly returns a list with data frames describing stored draws,
+#'   scalar posterior summaries, and convergence information.
+#'
+#' @description
+#' Prints a compact summary of a fitted dynamic quantile state-space model and
+#' returns the displayed summary tables for programmatic inspection.
+#'
 #' @export
 summary.exdqlmFit <- function(object, ...) {
   .exdqlm_fit_summary(object)
@@ -890,6 +897,13 @@ print.exalStaticFit <- function(x, ...) {
 #'   summary table.
 #' @param ... Additional arguments (unused).
 #'
+#' @return Invisibly returns a list with data frames describing stored draws,
+#'   scalar posterior summaries, and coefficient summaries.
+#'
+#' @description
+#' Prints a compact summary of a fitted static AL/exAL quantile-regression model
+#' and returns the displayed summary tables for programmatic inspection.
+#'
 #' @export
 summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
   .exal_static_fit_summary(object, max.coef = max.coef)
@@ -1140,7 +1154,11 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 #' Plot Method for \code{exdqlmDiagnostic} Objects
 #'
 #' @param x An \code{exdqlmDiagnostic} object.
-#' @param ... Additional arguments (unused).
+#' @param ... Additional graphical arguments. The optional \code{cols} element
+#'   controls the colors used for the first and second model when comparing two
+#'   fits.
+#'
+#' @return Invisibly returns \code{x}.
 #' 
 #' @export
 #' 
@@ -1194,6 +1212,7 @@ plot.exdqlmDiagnostic <- function(x, ...) {
     graphics::plot(ts.xy$x,x$m2.msfe,ylab="M2 standard forecast errors", xlab="time",col=cols[2],pch=20,type="l",ylim=fe.y.range)
     graphics::abline(h=0,lty=2)
   }
+  invisible(x)
 }
 
 
@@ -1292,7 +1311,11 @@ summary.exdqlmForecast <- function(object, ...) {
 #' Plot Method for \code{exdqlmForecast} Objects
 #'
 #' @param x An \code{exdqlmForecast} object.
-#' @param ... Additional arguments (unused).
+#' @param ... Additional graphical arguments. The optional \code{cols} element
+#'   controls fitted/forecast colors, and \code{add} controls whether the
+#'   forecast is added to an existing plot.
+#'
+#' @return Invisibly returns \code{x}.
 #' 
 #' @export
 #' 
@@ -1347,6 +1370,7 @@ plot.exdqlmForecast <- function(x, ...) {
   graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qmap[x$start.t],x$ff),col=cols[2])
   graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qub[x$start.t],fqub),col=cols[2],lty=3)
   graphics::lines(seq(from = ts.xy$x[x$start.t], by = diff(ts.xy$x)[1], length.out = x$k+1),c(qlb[x$start.t],fqlb),col=cols[2],lty=3)
+  invisible(x)
   
 }
 

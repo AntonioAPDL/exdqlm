@@ -9,7 +9,12 @@
 \arguments{
 \item{x}{An \code{exdqlmForecast} object.}
 
-\item{...}{Additional arguments (unused).}
+\item{...}{Additional graphical arguments. The optional \code{cols} element
+controls fitted/forecast colors, and \code{add} controls whether the
+forecast is added to an existing plot.}
+}
+\value{
+Invisibly returns \code{x}.
 }
 \description{
 Plot Method for \code{exdqlmForecast} Objects

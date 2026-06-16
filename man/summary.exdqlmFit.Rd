@@ -11,6 +11,11 @@
 
 \item{...}{Additional arguments (unused).}
 }
+\value{
+Invisibly returns a list with data frames describing stored draws,
+scalar posterior summaries, and convergence information.
+}
 \description{
-Summary Method for \code{exdqlmFit} Objects
+Prints a compact summary of a fitted dynamic quantile state-space model and
+returns the displayed summary tables for programmatic inspection.
 }
