@@ -82,6 +82,21 @@ controls available only when users need to override the defaults.
 }
 }
 
+\section{Release changes in 1.1.0}{
+
+\itemize{
+\item Shared fit class families were added while preserving the existing
+first-class object names: dynamic fits inherit from \code{exdqlmFit}, and
+static fits inherit from \code{exalStaticFit}.
+\item Fitted-model and post-processing objects have standardized
+\code{print()} and \code{summary()} methods for inspecting object type, engine,
+dimensions, stored draws, diagnostics, and run time.
+\item Dynamic fits support standard \code{plot()} and \code{predict()} methods, and
+diagnostic constructors return visible objects that can be printed,
+summarized, and plotted.
+}
+}
+
 \section{Release changes in 1.0.0}{
 
 \itemize{

@@ -69,6 +69,19 @@
 #'   \item Optional C++ acceleration for selected state-space computations.
 #' }
 #'
+#' @section Release changes in 1.1.0:
+#' \itemize{
+#'   \item Shared fit class families were added while preserving the existing
+#'         first-class object names: dynamic fits inherit from `exdqlmFit`, and
+#'         static fits inherit from `exalStaticFit`.
+#'   \item Fitted-model and post-processing objects have standardized
+#'         `print()` and `summary()` methods for inspecting object type, engine,
+#'         dimensions, stored draws, diagnostics, and run time.
+#'   \item Dynamic fits support standard `plot()` and `predict()` methods, and
+#'         diagnostic constructors return visible objects that can be printed,
+#'         summarized, and plotted.
+#' }
+#'
 #' @section Release changes in 1.0.0:
 #' \itemize{
 #'   \item Dynamic diagnostics report CRPS through a finite integrated
