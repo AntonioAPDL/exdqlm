@@ -186,8 +186,10 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
   iteration-by-iteration table for ELBO, `sigma`, `gamma`, and
   convergence deltas across VB engines.
 - **ELBO**: retained at `fit$diagnostics$elbo` and mirrored in
-  `fit$diagnostics$vb_trace$elbo` (weakly monotone up to
-  importance-sampling noise).
+  `fit$diagnostics$vb_trace$elbo`. LDVB traces are deterministic
+  conditional on the data and tuning inputs, up to numerical tolerance;
+  legacy ISVB traces may also reflect Monte Carlo variability from the
+  importance-sampling step.
 
 ## Current release highlights
 
@@ -420,9 +422,10 @@ names(syn)
   lower-level block traces.
 
 - **ELBO dips slightly—bug?** Small downward blips in
-  `fit$diagnostics$vb_trace$elbo` are expected from importance-sampling
-  noise. Look for an overall upward trend; if not, simplify the model or
-  adjust variance/discounts.
+  `fit$diagnostics$vb_trace$elbo` can occur from numerical tolerance,
+  approximation updates, or, for legacy ISVB, Monte Carlo variability.
+  Look for an overall upward trend; if not, simplify the model or adjust
+  variance/discounts.
 
 - **OpenMP not available.** That’s fine. It is optional. Everything runs
   serially; examples here use the pure-R path.
