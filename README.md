@@ -8,40 +8,42 @@ exdqlm — Extended Dynamic Quantile Linear Models
 <!-- badges: end -->
 
 `exdqlm` is a **Bayesian quantile-regression** package that combines
-**dynamic state-space quantile models** with **static exAL regression**
-under one API family. It is built for problems where quantiles, rather
-than means, are the main object of interest, but the user still wants
-familiar state-space/model-matrix inputs and explicit posterior
-inference.
+**dynamic state-space quantile models** with **static extended asymmetric
+Laplace (exAL) regression** through a common application programming
+interface (API). It is built for problems where quantiles, rather than
+means, are the main object of interest, but the user still wants familiar
+state-space/model-matrix inputs and explicit posterior inference.
 
-The current package line brings together the stabilized software-article
-feature set:
+The current release provides:
 
-- dynamic exDQLM inference via **LDVB** and **MCMC**, with legacy
-  **ISVB** retained for backward compatibility and historical
+- extended dynamic quantile linear model (**exDQLM**) inference
+  via **Laplace-delta variational Bayes (LDVB)** and **Markov chain
+  Monte Carlo (MCMC)**, with legacy **importance-sampling variational
+  Bayes (ISVB)** retained for backward compatibility and historical
   comparisons
-- static Bayesian exAL regression via **LDVB** and **MCMC**
+- static Bayesian exAL regression with the same **LDVB** and **MCMC** engines
 - modular model builders for **trend**, **seasonality**, and
   **regression** components
-- reduced **AL/DQLM** paths through `dqlm.ind = TRUE` (dynamic and static),
-  with a static convenience alias `al.ind = TRUE`
-- standardized **VB trace diagnostics** at `fit$diagnostics$vb_trace`
-  for ELBO, `sigma`, `gamma`, and convergence deltas
+- reduced **asymmetric Laplace (AL)/dynamic quantile linear model
+  (DQLM)** paths through `dqlm.ind = TRUE` (dynamic and static), with a
+  static convenience alias `al.ind = TRUE`
+- standardized **variational Bayes (VB) trace diagnostics** at
+  `fit$diagnostics$vb_trace` for the evidence lower bound (ELBO),
+  `sigma`, `gamma`, and convergence deltas
 - static shrinkage priors `beta_prior = "ridge"`, `"rhs"`, and
   `"rhs_ns"`
 - post hoc **posterior-predictive synthesis** via
   `quantileSynthesis()`
 
-The most distinctive aspect of the package is the **feature bundle**:
-native Bayesian dynamic quantile state-space modeling, static Bayesian
-quantile regression, multiple inference engines, shrinkage priors for
-static coefficients, and in-package post hoc synthesis across quantiles.
+The package collects Bayesian dynamic quantile state-space modeling,
+static Bayesian quantile regression, multiple inference engines,
+shrinkage priors for static coefficients, and post hoc synthesis across
+quantiles in one interface.
 
-> **Terminology (exAL).** We use **exAL** for the extended Asymmetric
-> Laplace family throughout this package. It generalizes the standard AL
-> by adding a skewness parameter, allowing for asymmetric tails. The
-> standard AL is a special case with zero skewness. We refer to the
-> generalized AL from Kotz et al. as **Kotz-GAL** to avoid confusion.
+> **Terminology.** The exAL family generalizes the standard AL by adding
+> a skewness parameter, allowing for asymmetric tails. The standard AL is
+> a special case with zero skewness. We refer to the generalized AL from
+> Kotz et al. as **Kotz-GAL** to avoid confusion.
 
 ## Installation
 
@@ -68,9 +70,9 @@ pak::pak("AntonioAPDL/exdqlm")
   package via `exalStaticLDVB()` and `exalStaticMCMC()`, rather than
   living in a separate code path or companion repository.
 - **Multiple inference engines** are available depending on the use
-  case: deterministic Laplace-Delta VB (`LDVB`) as the main dynamic VB
-  engine, posterior simulation (`MCMC`), and legacy fast approximate
-  dynamic VB (`ISVB`) when older workflows need to be reproduced.
+  case: deterministic Laplace-delta variational Bayes (`LDVB`) as the main
+  dynamic VB engine, posterior simulation (`MCMC`), and legacy fast
+  approximate dynamic VB (`ISVB`) when older workflows need to be reproduced.
 - **User-facing VB diagnostics are standardized** through
   `fit$diagnostics$vb_trace`, so plotting and monitoring code can use
   the same iteration-wise API across VB engines.
@@ -177,13 +179,14 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
   matrices with a prior for the **state vector** (`m0`, `C0`).
 - **Quantile of interest**: `p0` (e.g., `0.1`, `0.5`, `0.9`).
 - **exAL errors**: controlled by **scale** and **skewness**; ordinary
-  workflows should usually let LDVB/MCMC update them, while
+  workflows should usually let LDVB or MCMC update them, while
   fixed-parameter paths remain available for explicit baseline or
   compatibility runs.
 - **Discount factors**: `df` and `dim.df` control evolution per block
   (e.g., trend vs seasonality).
 - **VB traces**: `fit$diagnostics$vb_trace` provides a standardized
-  iteration-by-iteration table for ELBO, `sigma`, `gamma`, and
+  iteration-by-iteration table for the evidence lower bound (ELBO),
+  `sigma`, `gamma`, and
   convergence deltas across VB engines.
 - **ELBO**: retained at `fit$diagnostics$elbo` and mirrored in
   `fit$diagnostics$vb_trace$elbo`. LDVB traces are deterministic
@@ -202,7 +205,7 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
   via `exalStaticLDVB()` and `exalStaticMCMC()`.
 - **Reduced AL/DQLM paths** across dynamic and static APIs via
   `dqlm.ind = TRUE`, with `al.ind = TRUE` available as a static convenience alias.
-- **Static shrinkage priors** in both static LDVB/MCMC via
+- **Static shrinkage priors** in both static LDVB and MCMC via
   `beta_prior = "ridge"`, `"rhs"`, or `"rhs_ns"`.
 - **Transfer-function helpers** `exdqlmTransferLDVB()` and
   `exdqlmTransferMCMC()`, with legacy `exdqlmTransferISVB()` retained for
@@ -218,10 +221,12 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 - **Standardized VB trace diagnostics** via `fit$diagnostics$vb_trace`,
   giving plot-ready iteration histories for ELBO, `sigma`, `gamma`, and
   convergence deltas across VB fits.
-- **Deterministic dynamic diagnostics** using a single primary KL normality
-  diagnostic, CRPS through an integrated quantile-score approximation, and
-  held-out forecast scoring through `exdqlmForecastDiagnostics()`. Advanced KL
-  sensitivity details are available under `diagnostics$kl.details`.
+- **Deterministic dynamic diagnostics** using a single primary
+  Kullback--Leibler (KL) normality diagnostic, continuous ranked
+  probability score (CRPS) through an integrated quantile-score
+  approximation, and held-out forecast scoring through
+  `exdqlmForecastDiagnostics()`. Advanced KL sensitivity details are
+  available under `diagnostics$kl.details`.
 - **Standard S3 post-processing methods** for dynamic fits: `plot(fit)` draws
   the fitted quantile, `plot(fit, type = "component", index = ...)` and
   `plot(fit, type = "state", index = ...)` display component/state summaries,
@@ -241,7 +246,7 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 | `exdqlm.use_cpp_builders` |  FALSE  | C++ matrix builders (`polytrendMod`, `seasMod`) | opt-in parity-tested builder speedups |
 | `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
 | `exdqlm.use_cpp_postpred` |  FALSE  | C++ posterior predictive sampler | optional speed path after parity checks  |
-| `exdqlm.use_cpp_mcmc`     |  TRUE   | MCMC backend routing             | C++ FFBS by default for MCMC             |
+| `exdqlm.use_cpp_mcmc`     |  TRUE   | MCMC backend routing             | C++ forward-filtering backward-sampling (FFBS) by default for MCMC |
 | `exdqlm.cpp_mcmc_mode`    | `fast`  | MCMC mode (`strict`/`fast`)      | strict parity checks or fast C++ FFBS    |
 
 Set with:

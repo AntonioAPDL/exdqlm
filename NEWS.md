@@ -35,7 +35,7 @@
   `plot = FALSE` summary extraction and user-supplied axis limits/labels, while
   preserving the existing plotting defaults.
 - Added coefficient-interval summaries to `exalStaticDiagnostics()` objects and
-  a `plot(..., type = "coefficients")` display for static LDVB/MCMC coefficient
+  a `plot(..., type = "coefficients")` display for static LDVB and MCMC coefficient
   comparisons, with optional shared axis limits, legend labels, and a `beta.ref`
   overlay for simulation benchmarks.
 - Fixed `exdqlmForecast()` handling of future evolution matrices so constant
@@ -56,7 +56,7 @@
 ## New
 - Consolidated CRAN release (updating CRAN 0.3.0) that bundles several internal
   development branches in one submission.
-- `exdqlmLDVB`: Laplace-Delta variational Bayes routine for dynamic quantile
+- `exdqlmLDVB`: Laplace-delta variational Bayes routine for dynamic quantile
   state-space fitting under the extended asymmetric Laplace error distribution.
 - Reduced-model controls for dynamic routines (`exdqlmISVB()`,
   `exdqlmLDVB()`, `exdqlmMCMC()`) through `dqlm.ind = TRUE`, fixing `gamma = 0`
@@ -125,7 +125,7 @@
   by default, while exAL VB/MCMC entry points apply a light `(sigma, gamma)`
   warmup unless users explicitly override it through `vb_control` or
   `mcmc_control`.
-- Streamlined default LDVB/MCMC console progress lines to prioritize run phase,
+- Streamlined default LDVB and MCMC console progress lines to prioritize run phase,
   iteration, keep counters, acceptance summaries, and runtime while leaving
   full `sigma`/`gamma` histories in diagnostics objects and callbacks.
 - Clarified the `BTflow` dataset provenance as observed monthly USGS

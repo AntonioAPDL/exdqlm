@@ -17,14 +17,16 @@ Description: Bayesian quantile-regression routines for dynamic state-space
     models and static regression under the extended asymmetric Laplace
     (exAL) error distribution. The dynamic state-space models are extended
     dynamic quantile linear models (exDQLMs). The package combines dynamic
-    exDQLM inference via LDVB, MCMC, and legacy ISVB with static exAL
-    regression via LDVB and MCMC, reduced AL/DQLM paths through fixed
+    exDQLM inference via Laplace-delta variational Bayes (LDVB), Markov
+    chain Monte Carlo (MCMC), and legacy importance-sampling variational Bayes
+    (ISVB) with static exAL regression via LDVB and MCMC, reduced asymmetric
+    Laplace/dynamic quantile linear model (AL/DQLM) paths through fixed
     skewness, component builders for trend/seasonality/regression blocks,
     static shrinkage priors including ridge, regularized horseshoe, and
-    'rhs_ns', evidence lower bound diagnostics, optional C++ accelerators,
-    and posterior predictive synthesis across separately fitted quantiles
-    through 'quantileSynthesis()'. Dynamic exDQLM methods are described in
-    Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
+    'rhs_ns', evidence lower bound (ELBO) diagnostics, optional C++
+    accelerators, and posterior predictive synthesis across separately fitted
+    quantiles through 'quantileSynthesis()'. Dynamic exDQLM methods are
+    described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

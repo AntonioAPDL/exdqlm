@@ -62,8 +62,10 @@ with \code{plot()} when a display is defined.
 \section{Distinctive features}{
 
 \itemize{
-\item Dynamic Bayesian quantile state-space inference with LDVB as the
-main VB engine, MCMC for posterior simulation, and legacy ISVB
+\item Dynamic Bayesian quantile state-space inference with
+Laplace-delta variational Bayes (LDVB) as the main variational
+Bayes (VB) engine, Markov chain Monte Carlo (MCMC) for posterior
+simulation, and legacy importance-sampling variational Bayes (ISVB)
 retained for compatibility and historical comparisons.
 \item A unified package covering both dynamic exDQLM models and static
 exAL regression.
@@ -72,8 +74,8 @@ exAL regression.
 \item Reduced AL/DQLM paths through \code{dqlm.ind = TRUE} in both dynamic and
 static APIs.
 \item Standardized VB diagnostics traces via
-\code{fit$diagnostics$vb_trace} for ELBO, \code{sigma}, \code{gamma}, and
-convergence deltas across VB engines.
+\code{fit$diagnostics$vb_trace} for the evidence lower bound (ELBO),
+\code{sigma}, \code{gamma}, and convergence deltas across VB engines.
 \item Conservative automatic warmup defaults for the most failure-prone
 shared blocks: RHS-family \code{tau} scheduling plus exAL
 \verb{(sigma, gamma)} warmup in VB and MCMC entry points, with explicit
@@ -108,7 +110,7 @@ quantiles, with user-configurable quantile levels and weights in
 through \code{\link[=exdqlmForecastDiagnostics]{exdqlmForecastDiagnostics()}}.
 \item Static diagnostics store fitted-quantile summaries and coefficient
 intervals, with \code{plot(..., type = "coefficients")} available for
-comparing static LDVB/MCMC coefficient summaries.
+comparing static LDVB and MCMC coefficient summaries.
 \item Dynamic KL normality diagnostics are deterministic for fixed fitted
 objects and no longer depend on stochastic reference samples. The
 top-level diagnostic object exposes \code{KL} as the primary calibration
