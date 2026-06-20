@@ -162,7 +162,7 @@ plot.exdqlmForecast <- function(x, ...) {
 #' dynamic quantile model. This is an S3 method wrapper
 #' around \code{\link{exdqlmForecastDiagnostics}}.
 #'
-#' @param x An \code{exdqlmForecast} object.
+#' @param object An \code{exdqlmForecast} object.
 #' @param ... Additional graphical arguments. The optional \code{cols} element
 #'   controls fitted/forecast colors, and \code{add} controls whether the
 #'   forecast is added to an existing plot.

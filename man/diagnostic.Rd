@@ -7,10 +7,10 @@
 diagnostic(object, ...)
 }
 \arguments{
-\item{...}{Additional arguments passed to specific methods.}
-
-\item{x}{An object of class \code{exdqlmFit}, \code{exdqlmForecast}, or
+\item{object}{An object of class \code{exdqlmFit}, \code{exdqlmForecast}, or
 \code{exalStaticFit}.}
+
+\item{...}{Additional arguments passed to specific methods.}
 }
 \value{
 The output depends on the underlying method.

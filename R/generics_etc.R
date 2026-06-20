@@ -2,7 +2,7 @@
 #'
 #' Calculates diagnostic metrics for a variety of objects.
 #'
-#' @param x An object of class \code{exdqlmFit}, \code{exdqlmForecast}, or 
+#' @param object An object of class \code{exdqlmFit}, \code{exdqlmForecast}, or 
 #' \code{exalStaticFit}.
 #' @param ... Additional arguments passed to specific methods.
 #'

@@ -7,11 +7,11 @@
 \method{diagnostic}{exdqlmForecast}(object, ...)
 }
 \arguments{
+\item{object}{An \code{exdqlmForecast} object.}
+
 \item{...}{Additional graphical arguments. The optional \code{cols} element
 controls fitted/forecast colors, and \code{add} controls whether the
 forecast is added to an existing plot.}
-
-\item{x}{An \code{exdqlmForecast} object.}
 }
 \value{
 An object of class \code{exdqlmForecastDiagnostic}.
