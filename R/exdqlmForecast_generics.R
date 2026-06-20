@@ -154,3 +154,51 @@ plot.exdqlmForecast <- function(x, ...) {
   invisible(x)
   
 }
+
+
+#' Diagnostic Method for \code{exdqlmForecast} Objects
+#' 
+#' Diagnostics for \code{k}-step-ahead forecast quantiles from a fitted
+#' dynamic quantile model. This is an S3 method wrapper
+#' around \code{\link{exdqlmForecastDiagnostics}}.
+#'
+#' @param x An \code{exdqlmForecast} object.
+#' @param ... Additional graphical arguments. The optional \code{cols} element
+#'   controls fitted/forecast colors, and \code{add} controls whether the
+#'   forecast is added to an existing plot.
+#'
+#' @return An object of class \code{exdqlmForecastDiagnostic}.
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' data("scIVTmag", package = "exdqlm")
+#' old = options(exdqlm.max_iter = 15L)
+#' y = scIVTmag[1:65]
+#' y_train = y[1:60]
+#' y_holdout = y[61:65]
+#' model = polytrendMod(1, stats::quantile(y_train, 0.85), 10)
+#' M0 = exdqlmLDVB(y_train, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+#'                  gam.init = -3.5, sig.init = 15,
+#'                  n.samp = 20, tol = 0.2, verbose = FALSE)
+#' fFF = model$FF[, 1, drop = FALSE]
+#' fGG = model$GG
+#' M0.forecast = exdqlmForecast(start.t = 60, k = 5, m1 = M0,
+#'                              fFF = fFF, fGG = fGG,
+#'                              return.draws = TRUE, n.samp = 20, seed = 123,
+#'                              plot = FALSE)
+#' score = diagnostic(M0.forecast, y = y_holdout)
+#' score
+#' }
+#'
+diagnostic.exdqlmForecast <- function(object, ...) {
+  
+  dots <- list(...)
+  if (!"y" %in% names(dots)) {
+    stop("missing input y containing the held-out observations")
+  }
+  
+  dots$m1 <- object
+  do.call(exdqlmForecastDiagnostics, dots)
+}

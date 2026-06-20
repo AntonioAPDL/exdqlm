@@ -1,3 +1,15 @@
+#' Diagnostic Generic
+#'
+#' Calculates diagnostic metrics for a variety of objects.
+#'
+#' @param x An object of class \code{exdqlmFit}, \code{exdqlmForecast}, or 
+#' \code{exalStaticFit}.
+#' @param ... Additional arguments passed to specific methods.
+#'
+#' @return The output depends on the underlying method.
+#' @export
+diagnostic <- function(object, ...) { UseMethod("diagnostic") }
+
 .exdqlm_primary_class <- function(x) {
   class(x)[1L]
 }

@@ -22,7 +22,7 @@
   cat("State draws:", .exdqlm_array_dim(x$samp.theta), "\n")
   cat("Posterior predictive draws:", .exdqlm_draw_dim(x$samp.post.pred), "\n")
   cat("Run-time:", .exdqlm_runtime_label(x$run.time), "\n")
-  cat("Use with: summary(), plot(), predict(), exdqlmDiagnostics(), exdqlmForecast()\n")
+  cat("Use with: summary(), plot(), predict(), diagnostic(), exdqlmDiagnostics(), exdqlmForecast()\n")
   invisible(x)
 }
 
@@ -183,6 +183,23 @@ predict.exdqlmFit <- function(object, start.t, k, fFF = NULL, fGG = NULL,
     start.t = start.t, k = k, m1 = object,
     fFF = fFF, fGG = fGG, plot = plot, ...
   )
+}
+
+#' Diagnostic Method for Dynamic \code{exdqlmFit} Objects
+#'
+#' Diagnostics for a fitted dynamic quantile model. This is an S3 method wrapper
+#' around \code{\link{exdqlmDiagnostics}}; use \code{plot()} on the returned
+#' \code{exdqlmDiagnostic} object to visualize the result.
+#'
+#' @param object A fitted dynamic \code{exdqlmFit} object.
+#' @param ... Additional arguments passed to \code{\link{exdqlmDiagnostics}}.
+#'
+#' @return An object of class \code{exdqlmDiagnostic}.
+#'
+#' @export
+diagnostic.exdqlmFit <- function(object, ...) {
+  
+  exdqlmDiagnostics(object, ...)
 }
 
 
