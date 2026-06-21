@@ -2226,7 +2226,16 @@ fit_and_forecast_p <- function(p0) {
     targets_full = targets_full,
     forecast_protocol = cfg$forecast$protocol %||% "rolling_origin_no_refit_state_update",
     origin_stride = forecast_origin_stride,
-    primary_lead_export = isTRUE(primary_lead_export_enabled)
+    primary_lead_export = isTRUE(primary_lead_export_enabled),
+    lead_export_scale = list(
+      output_scale = if (isTRUE(scale_y)) "standardized_model" else "original",
+      target_scale = "original",
+      transform = if (isTRUE(scale_y)) "affine" else "identity",
+      center = if (isTRUE(scale_y)) as.numeric(y_mean) else 0,
+      scale = if (isTRUE(scale_y)) as.numeric(y_sd) else 1,
+      scale_source = "pipeline_real_main:preproc.scale_y",
+      scale_y = isTRUE(scale_y)
+    )
   )
   forecast_full$origins <- if (!is.null(origins_var)) origins_var else fore_full$origins
   if (!is.null(yrep_by_origin_var)) {

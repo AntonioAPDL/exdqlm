@@ -1853,3 +1853,33 @@ Remaining launch boundary:
 - Micro-pilot compute was not launched in this build checkpoint.
 - Full VB, TT500 MCMC, and TT5000 MCMC were not launched.
 - TT5000 MCMC remains blocked behind explicit human approval.
+
+## 2026-06-21 Target-Scale Correction
+
+Primary rolling-origin lead metrics are valid only when `y`, `q_true`, `qhat`,
+all retained `qhat_p*` summaries, pinball loss, coverage/hit fields, and
+quantile errors are on the original source scale.
+
+Implementation rule:
+
+- Q-DESN core forecast routines may keep `mu_by_origin` and `yrep_by_origin` on
+  model scale.
+- `scripts/pipeline_real_main.R` must attach `forecast_full$lead_export_scale`
+  whenever the pipeline constructs compact rolling-origin export objects.
+- `.qdesn_validation_qdesn_lead_path_df()` must apply that scale metadata before
+  computing or writing lead-level path rows and lead metrics.
+- Repaired historical Q-DESN artifacts must use `*_scale_repaired.csv` suffixes
+  and row-level `rolling_origin_scale_repair.json` manifests.
+
+Article-facing Q-DESN interfaces after this correction:
+
+- TT500 MCMC final repaired summary:
+  `reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation/qdesn-rolling-origin-v3-scale-repair-20260621__git-ec465f9/final_tt500/tables/campaign_fit_summary.csv`
+- TT500 MCMC final repaired interface:
+  `reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation/qdesn-rolling-origin-v3-scale-repair-20260621__git-ec465f9/final_tt500/interfaces/qdesn_dynamic_fitforecast_v2_shared_interface.csv`
+- VB full repaired interface:
+  `reports/qdesn_mcmc_validation/dynamic_fitforecast_v2_validation/qdesn-rolling-origin-v3-scale-repair-20260621__git-ec465f9/vb_full/interfaces/qdesn_dynamic_fitforecast_v2_shared_interface.csv`
+
+The raw pre-repair Q-DESN rolling-origin path files from the May/June 2026 runs
+are retained only as provenance and must not be consumed directly for
+article-facing rolling-origin comparisons.

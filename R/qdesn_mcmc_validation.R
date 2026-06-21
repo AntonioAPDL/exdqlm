@@ -946,6 +946,50 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   as.data.frame(qs, check.names = FALSE)
 }
 
+.qdesn_validation_lead_export_scale_spec <- function(forecast_full = list()) {
+  meta <- forecast_full$lead_export_scale %||% forecast_full$y_backtransform %||% list()
+  transform <- tolower(trimws(as.character(
+    meta$transform %||% meta$type %||% meta$method %||% "identity"
+  )[1L]))
+  if (!nzchar(transform) || is.na(transform)) transform <- "identity"
+  if (transform %in% c("none", "raw", "already_original")) transform <- "identity"
+  if (transform %in% c("standardized_to_original", "backtransform_affine")) transform <- "affine"
+  center <- suppressWarnings(as.numeric(
+    meta$center %||% meta$mean %||% meta$y_mean %||% 0
+  )[1L])
+  scale <- suppressWarnings(as.numeric(
+    meta$scale %||% meta$scale_factor %||% meta$sd %||% meta$y_sd %||% 1
+  )[1L])
+  if (!is.finite(center)) center <- 0
+  if (!is.finite(scale) || scale == 0) scale <- 1
+  if (!transform %in% c("identity", "affine")) {
+    stop(sprintf("Unsupported Q-DESN lead export scale transform: %s", transform), call. = FALSE)
+  }
+  output_scale <- as.character(meta$output_scale %||% if (identical(transform, "affine")) "standardized_model" else "original")[1L]
+  target_scale <- as.character(meta$target_scale %||% "original")[1L]
+  scale_source <- as.character(meta$scale_source %||% meta$source %||% "forecast_full$lead_export_scale")[1L]
+  if (is.na(output_scale) || !nzchar(output_scale)) output_scale <- NA_character_
+  if (is.na(target_scale) || !nzchar(target_scale)) target_scale <- "original"
+  if (is.na(scale_source) || !nzchar(scale_source)) scale_source <- "forecast_full$lead_export_scale"
+  list(
+    transform = transform,
+    center = center,
+    scale = scale,
+    output_scale = output_scale,
+    target_scale = target_scale,
+    scale_source = scale_source,
+    status = if (identical(transform, "affine")) "original_scale_backtransformed" else "original_scale_identity"
+  )
+}
+
+.qdesn_validation_apply_lead_export_scale <- function(x, scale_spec) {
+  if (identical(scale_spec$transform, "identity")) return(x)
+  if (identical(scale_spec$transform, "affine")) {
+    return(x * scale_spec$scale + scale_spec$center)
+  }
+  stop(sprintf("Unsupported Q-DESN lead export scale transform: %s", scale_spec$transform), call. = FALSE)
+}
+
 .qdesn_validation_rolling_lead_path_file <- function(method_dir) {
   file.path(method_dir, "tables", "forecast_rolling_origin_paths.csv")
 }
@@ -969,6 +1013,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   }
   fit_entry <- fits_fc[[1L]]
   forecast_full <- fit_entry$forecast_full %||% list()
+  scale_spec <- .qdesn_validation_lead_export_scale_spec(forecast_full)
   origins_local <- as.integer(forecast_full$origins %||% integer(0))
   mu_by_origin <- forecast_full$mu_by_origin %||% NULL
   yrep_by_origin <- forecast_full$yrep_by_origin %||% NULL
@@ -1050,7 +1095,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
         lead
       ), call. = FALSE)
     }
-    draw_row <- matrix(mu_mat[lead, ], nrow = 1L)
+    draw_row <- .qdesn_validation_apply_lead_export_scale(
+      matrix(mu_mat[lead, ], nrow = 1L),
+      scale_spec
+    )
     qhat <- stats::median(as.numeric(draw_row), na.rm = TRUE)
     qs <- .qdesn_validation_quantile_columns(draw_row)
     y_i <- as.numeric(y[[target_local]])
@@ -1085,6 +1133,13 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
         posterior_draw_source = "mu_by_origin",
         predictive_draws_used_for_primary = FALSE,
         synthesis_enabled = FALSE,
+        lead_export_output_scale = scale_spec$output_scale,
+        lead_export_target_scale = scale_spec$target_scale,
+        lead_export_transform = scale_spec$transform,
+        lead_export_center = scale_spec$center,
+        lead_export_scale_factor = scale_spec$scale,
+        lead_export_scale_source = scale_spec$scale_source,
+        lead_export_scale_status = scale_spec$status,
         stringsAsFactors = FALSE
       ),
       qs
@@ -1124,6 +1179,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       forecast_coverage_error = mean(as.numeric(x$coverage_minus_tau), na.rm = TRUE),
       synthesis_enabled = FALSE,
       posterior_draw_source = "mu_by_origin",
+      lead_export_target_scale = if ("lead_export_target_scale" %in% names(x)) as.character(x$lead_export_target_scale[[1L]]) else "original",
+      lead_export_transform = if ("lead_export_transform" %in% names(x)) as.character(x$lead_export_transform[[1L]]) else "identity",
+      lead_export_scale_status = if ("lead_export_scale_status" %in% names(x)) as.character(x$lead_export_scale_status[[1L]]) else "original_scale_identity",
       stringsAsFactors = FALSE
     )
   })

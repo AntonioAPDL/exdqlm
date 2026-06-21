@@ -107,3 +107,29 @@ Rolling forecast path summaries additionally include:
 - `n_origins_for_lead`
 - `state_update_method`
 - `refit_per_origin`
+
+## Target-Scale Contract
+
+All article-facing fit and rolling-forecast path summaries must report `y`,
+`q_true`, `qhat`, all retained `qhat_p*` posterior summaries, pinball loss, hit
+rates, and quantile errors on the original target/source scale.
+
+For Q-DESN runs that fit on standardized `y`, the core forecast engine may
+return per-origin `mu_by_origin` draws on model scale. The validation adapter is
+responsible for applying the same affine inverse transform used by
+`pipeline_real_main.R` before writing compact rolling-origin lead artifacts.
+
+Scale-explicit Q-DESN rolling path and lead-metric artifacts include:
+
+- `lead_export_output_scale`
+- `lead_export_target_scale`
+- `lead_export_transform`
+- `lead_export_center`
+- `lead_export_scale_factor`
+- `lead_export_scale_source`
+- `lead_export_scale_status`
+
+Historical Q-DESN rolling-origin CSVs without these columns are not
+article-facing unless a row-level repair manifest points to a corresponding
+`*_scale_repaired.csv` artifact and the repaired campaign summary/interface
+uses that repaired path.
