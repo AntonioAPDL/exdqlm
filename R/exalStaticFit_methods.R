@@ -120,8 +120,8 @@
 #### "exalStaticFit" #############
 ##################################
 # included for Fit: is(), print(), summary()
-# include for LDVB: is(), print(), summary(), plot()
-# inlcude for MCMC: is(), print(), summary(), plot()
+# included for LDVB: is(), print(), summary(), plot()
+# inlcuded for MCMC: is(), print(), summary(), plot()
 
 
 #' \code{exalStaticFit} objects
@@ -164,6 +164,41 @@ print.exalStaticFit <- function(x, ...) {
 #' @export
 summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
   .exal_static_fit_summary(object, max.coef = max.coef)
+}
+
+
+#' Diagnostic Method for \code{exalStaticFit} Objects
+#' 
+#' Diagnostics for a fitted static quantile model. This is an S3 method wrapper
+#' around \code{\link{exalStaticDiagnostics}}; use \code{plot()} on the returned
+#' \code{exalStaticDiagnostic} object to visualize the result.
+#'
+#' @param object A fitted static \code{exalStaticFit} object.
+#' @param ... Additional arguments passed to \code{\link{exalStaticDiagnostics}}.
+#'
+#' @return An object of class \code{exalStaticDiagnostic}.
+#' 
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' x <- seq(-2, 2, length.out = 60)
+#' X <- cbind(1, x)
+#' y <- 0.5 * x + (1.2 + 0.35 * x) * stats::rnorm(length(x))
+#' q_true <- 0.5 * x + (1.2 + 0.35 * x) * stats::qnorm(0.25)
+#'
+#' fit_ldvb <- exalStaticLDVB(
+#'   y = y, X = X, p0 = 0.25,
+#'   max_iter = 60, tol = 1e-3,
+#'   verbose = FALSE
+#' )
+#' out <- diagnostic(fit_ldvb, ref = q_true)
+#' plot(out)
+#' plot(out, type = "coefficients")
+#' }
+#'
+#' @export
+diagnostic.exalStaticFit <- function(object, ...) {
+  exalStaticDiagnostics(object, ...)
 }
 
 ##################################
