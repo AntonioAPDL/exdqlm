@@ -167,7 +167,7 @@ summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
 }
 
 
-#' Diagnostic Method for \code{exalStaticFit} Objects
+#' Diagnostics Method for \code{exalStaticFit} Objects
 #' 
 #' Diagnostics for a fitted static quantile model. This is an S3 method wrapper
 #' around \code{\link{exalStaticDiagnostics}}; use \code{plot()} on the returned
@@ -191,13 +191,13 @@ summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
 #'   max_iter = 60, tol = 1e-3,
 #'   verbose = FALSE
 #' )
-#' out <- diagnostic(fit_ldvb, ref = q_true)
+#' out <- diagnostics(fit_ldvb, ref = q_true)
 #' plot(out)
 #' plot(out, type = "coefficients")
 #' }
 #'
 #' @export
-diagnostic.exalStaticFit <- function(object, ...) {
+diagnostics.exalStaticFit <- function(object, ...) {
   exalStaticDiagnostics(object, ...)
 }
 

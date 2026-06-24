@@ -8,7 +8,7 @@
 #'
 #' @return The output depends on the underlying method.
 #' @export
-diagnostic <- function(object, ...) { UseMethod("diagnostic") }
+diagnostics <- function(object, ...) { UseMethod("diagnostics") }
 
 .exdqlm_primary_class <- function(x) {
   class(x)[1L]

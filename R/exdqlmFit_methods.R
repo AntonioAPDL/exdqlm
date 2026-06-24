@@ -88,8 +88,9 @@
 ###### "exdqlmFit" objects #######
 ##################################
 # included: is(), print(), summary(), 
-#     plot() -- wrapper for exdqlmPlot(), compPlot(),
-#     predict() -- exdqlmForecast()
+#     plot() -- exdqlmPlot(), compPlot(),
+#     predict() -- exdqlmForecast(),
+#     diagnostic() -- exdqlmDiagnostics()
 
 #' \code{exdqlmFit} objects
 #'
@@ -185,7 +186,7 @@ predict.exdqlmFit <- function(object, start.t, k, fFF = NULL, fGG = NULL,
   )
 }
 
-#' Diagnostic Method for Dynamic \code{exdqlmFit} Objects
+#' Diagnostics Method for Dynamic \code{exdqlmFit} Objects
 #'
 #' Diagnostics for a fitted dynamic quantile model. This is an S3 method wrapper
 #' around \code{\link{exdqlmDiagnostics}}; use \code{plot()} on the returned
@@ -197,7 +198,7 @@ predict.exdqlmFit <- function(object, start.t, k, fFF = NULL, fGG = NULL,
 #' @return An object of class \code{exdqlmDiagnostic}.
 #'
 #' @export
-diagnostic.exdqlmFit <- function(object, ...) {
+diagnostics.exdqlmFit <- function(object, ...) {
   
   exdqlmDiagnostics(object, ...)
 }

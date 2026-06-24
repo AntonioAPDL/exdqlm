@@ -156,7 +156,7 @@ plot.exdqlmForecast <- function(x, ...) {
 }
 
 
-#' Diagnostic Method for \code{exdqlmForecast} Objects
+#' Diagnostics Method for \code{exdqlmForecast} Objects
 #' 
 #' Diagnostics for \code{k}-step-ahead forecast quantiles from a fitted
 #' dynamic quantile model. This is an S3 method wrapper
@@ -188,11 +188,11 @@ plot.exdqlmForecast <- function(x, ...) {
 #'                              fFF = fFF, fGG = fGG,
 #'                              return.draws = TRUE, n.samp = 20, seed = 123,
 #'                              plot = FALSE)
-#' score = diagnostic(M0.forecast, y = y_holdout)
+#' score = diagnostics(M0.forecast, y = y_holdout)
 #' score
 #' }
 #'
-diagnostic.exdqlmForecast <- function(object, ...) {
+diagnostics.exdqlmForecast <- function(object, ...) {
   
   dots <- list(...)
   if (!"y" %in% names(dots)) {
