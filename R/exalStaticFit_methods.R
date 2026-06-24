@@ -2,6 +2,12 @@
   c(primary, "exalStaticFit")
 }
 
+.exdqlm_static_engine <- function(x) {
+  if (is.exalStaticMCMC(x)) return("MCMC")
+  if (is.exalStaticLDVB(x)) return("LDVB")
+  "unknown"
+}
+
 .exal_static_fit_print <- function(x) {
   n <- if (!is.null(x$X)) nrow(as.matrix(x$X)) else if (!is.null(x$misc$n)) as.integer(x$misc$n) else NA_integer_
   p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else if (!is.null(x$misc$p)) as.integer(x$misc$p) else NA_integer_

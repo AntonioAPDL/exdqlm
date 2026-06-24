@@ -1,3 +1,16 @@
+.exdqlm_dim_label <- function(x) {
+  d <- dim(x)
+  if (is.null(d)) {
+    as.character(length(x))
+  } else {
+    paste(d, collapse = " x ")
+  }
+}
+
+.exdqlm_yes_no <- function(x) {
+  if (isTRUE(x)) "yes" else "no"
+}
+
 ##################################
 ######## "exdqlm" objects ########
 ##################################

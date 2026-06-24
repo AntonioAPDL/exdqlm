@@ -1,3 +1,7 @@
+.exdqlm_primary_class <- function(x) {
+  class(x)[1L]
+}
+
 ##################################
 #### "exdqlmForecast" objects ####
 ##################################
