@@ -47,6 +47,7 @@ print.exdqlmForecastDiagnostic <- function(x, ...) {
   cat("\n")
   print(.exdqlm_forecast_diagnostic_table(x), row.names = FALSE, digits = 4)
   cat("CRPS method:", x$crps.method, "\n")
+  cat("Use with: summary()\n")
   invisible(x)
 }
 

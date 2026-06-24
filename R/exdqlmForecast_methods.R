@@ -50,7 +50,7 @@ print.exdqlmForecast <- function(x, ...) {
   cat("Forecast horizon:", x$k, "\n")
   cat("Credible interval mass:", .exdqlm_format_number(x$cr.percent), "\n")
   cat("Posterior forecast draws:", if (is.null(x$samp.fore)) "not stored" else ncol(as.matrix(x$samp.fore)), "\n")
-  cat("Use with: summary(), plot(), exdqlmForecastDiagnostics()\n")
+  cat("Use with: summary(), plot(), diagnostics()\n")
   invisible(x)
 }
 

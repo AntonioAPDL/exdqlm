@@ -2,7 +2,7 @@
 % Please edit documentation in R/generics_etc.R
 \name{diagnostics}
 \alias{diagnostics}
-\title{Diagnostic Generic}
+\title{Diagnostics Generic}
 \usage{
 diagnostics(object, ...)
 }

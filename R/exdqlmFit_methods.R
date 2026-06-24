@@ -102,7 +102,8 @@
   cat("State draws:", .exdqlm_array_dim(x$samp.theta), "\n")
   cat("Posterior predictive draws:", .exdqlm_draw_dim(x$samp.post.pred), "\n")
   cat("Run-time:", .exdqlm_runtime_label(x$run.time), "\n")
-  cat("Use with: summary(), plot(), predict(), diagnostic(), exdqlmDiagnostics(), exdqlmForecast()\n")
+  cat("Use with: summary(), plot(), predict(), diagnostics()\n")
+  cat("Plot types: quantile, component, state\n")
   invisible(x)
 }
 

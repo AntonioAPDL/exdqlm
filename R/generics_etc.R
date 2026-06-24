@@ -1,4 +1,4 @@
-#' Diagnostic Generic
+#' Diagnostics Generic
 #'
 #' Calculates diagnostic metrics for a variety of objects.
 #'
