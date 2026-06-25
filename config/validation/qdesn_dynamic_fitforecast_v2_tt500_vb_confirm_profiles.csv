@@ -1,0 +1,11 @@
+"screening_profile_id","screening_stage","screening_wave","profile_role","enabled","D","n_each","n_tilde_each","m","alpha","rho","pi_w","pi_in","washout","add_bias","seed","readout_y_lags","reservoir_lags","rhs_tau0","dimension_p_estimate","p_over_n_tt500"
+"tt500vb_d2_n30_a0p3_r0p85","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,2,30,30,12,0.3,0.85,0.1,1,300,TRUE,123,12,0,1e-04,103,0.206
+"tt500vb_d1_n50_a0p3_r0p85","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,1,50,0,12,0.3,0.85,0.1,1,300,TRUE,123,12,0,1e-04,63,0.126
+"tt500vb_d1_n70_a0p3_r0p85","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,1,70,0,12,0.3,0.85,0.1,1,300,TRUE,123,12,0,1e-04,83,0.166
+"tt500vb_d1_n30_a0p3_r0p85","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,1,30,0,12,0.3,0.85,0.1,1,300,TRUE,123,12,0,1e-04,43,0.086
+"tt500vb_d1_n50_a0p6_r0p95","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,1,50,0,12,0.6,0.95,0.1,1,300,TRUE,123,12,0,1e-04,63,0.126
+"tt500vb_d2_n50_a0p6_r0p95","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,2,50,50,12,0.6,0.95,0.1,1,300,TRUE,123,12,0,1e-04,163,0.326
+"tt500vb_d2_n50_a0p3_r0p85","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,2,50,50,12,0.3,0.85,0.1,1,300,TRUE,123,12,0,1e-04,163,0.326
+"tt500vb_d1_n30_a0p1_r0p7","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,1,30,0,12,0.1,0.7,0.1,1,300,TRUE,123,12,0,1e-04,43,0.086
+"tt500vb_d1_n50_a0p1_r0p7","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,1,50,0,12,0.1,0.7,0.1,1,300,TRUE,123,12,0,1e-04,63,0.126
+"tt500vb_d3_n30_a0p3_r0p85","all_quantile_confirmation","confirmation_top10_2026_06_25","confirmation",TRUE,3,30,30,12,0.3,0.85,0.1,1,300,TRUE,123,12,0,1e-04,163,0.326

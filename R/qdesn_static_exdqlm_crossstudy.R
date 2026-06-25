@@ -348,6 +348,9 @@ qdesn_static_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
 
 .qdesn_static_crossstudy_reservoir_cfg <- function(defaults, profile) {
   cfg <- (defaults$reservoir_profiles %||% list())[[profile]]
+  if (is.null(cfg) && qdesn_dynamic_fitforecast_screening_enabled(defaults)) {
+    cfg <- qdesn_dynamic_fitforecast_screening_reservoir_cfg(defaults, profile)
+  }
   if (is.null(cfg)) {
     stop(sprintf("Reservoir profile '%s' not found in static cross-study defaults.", profile), call. = FALSE)
   }
@@ -712,12 +715,14 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
     cfg$inference$vb$priors <- modifyList(list(), cfg$inference$vb$priors %||% list())
     cfg$inference$vb$priors$beta <- modifyList(list(type = root_spec$beta_prior_type), cfg$inference$vb$priors$beta %||% list())
     cfg$inference$vb$priors$beta$type <- root_spec$beta_prior_type
+    cfg <- qdesn_dynamic_fitforecast_apply_screening_overrides(cfg, root_spec, method = "vb")
   } else {
     cfg$inference$mcmc <- modifyList(list(), infer_cfg$mcmc %||% list())
     cfg$inference$mcmc <- .qdesn_validation_apply_prior_override(cfg$inference$mcmc, root_spec$beta_prior_type)
     cfg$inference$mcmc$priors <- modifyList(list(), cfg$inference$mcmc$priors %||% list())
     cfg$inference$mcmc$priors$beta <- modifyList(list(type = root_spec$beta_prior_type), cfg$inference$mcmc$priors$beta %||% list())
     cfg$inference$mcmc$priors$beta$type <- root_spec$beta_prior_type
+    cfg <- qdesn_dynamic_fitforecast_apply_screening_overrides(cfg, root_spec, method = "mcmc")
   }
 
   cfg$desn <- modifyList(list(), cfg$desn %||% list())
@@ -1297,6 +1302,15 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
     source_legacy_rhs_member = isTRUE(root_spec$source_legacy_rhs_member),
     seed = as.integer(root_spec$seed),
     reservoir_profile = root_spec$reservoir_profile,
+    screening_profile_id = as.character(root_spec$screening_profile_id %||% NA_character_),
+    screening_stage = as.character(root_spec$screening_stage %||% NA_character_),
+    screening_wave = as.character(root_spec$screening_wave %||% NA_character_),
+    profile_role = as.character(root_spec$profile_role %||% NA_character_),
+    rhs_tau0 = as.numeric(root_spec$rhs_tau0 %||% NA_real_),
+    readout_y_lags = as.integer(root_spec$readout_y_lags %||% NA_integer_),
+    reservoir_lags = as.integer(root_spec$reservoir_lags %||% NA_integer_),
+    dimension_p_estimate = as.integer(root_spec$dimension_p_estimate %||% NA_integer_),
+    p_over_n_tt500 = as.numeric(root_spec$p_over_n_tt500 %||% NA_real_),
     method = method,
     inference = method,
     likelihood_family = likelihood_family,

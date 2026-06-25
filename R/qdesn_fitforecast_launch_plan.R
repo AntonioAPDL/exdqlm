@@ -122,6 +122,179 @@ qdesn_dynamic_fitforecast_clean_token <- function(x, fallback = "na") {
   if (!nzchar(x)) fallback else x
 }
 
+qdesn_dynamic_fitforecast_screening_cfg <- function(defaults) {
+  defaults$screening_profiles %||% defaults$qdesn_screening_profiles %||% list()
+}
+
+qdesn_dynamic_fitforecast_screening_enabled <- function(defaults) {
+  isTRUE((qdesn_dynamic_fitforecast_screening_cfg(defaults) %||% list())$enabled %||% FALSE)
+}
+
+.qdesn_dynamic_fitforecast_csv_flag <- function(x, default = TRUE) {
+  if (is.null(x) || !length(x)) return(rep(default, 0L))
+  raw <- tolower(trimws(as.character(x)))
+  out <- raw %in% c("true", "t", "yes", "y", "1")
+  missing <- is.na(raw) | !nzchar(raw)
+  out[missing] <- default
+  out
+}
+
+qdesn_dynamic_fitforecast_load_screening_profiles <- function(defaults,
+                                                              path = NULL,
+                                                              only_enabled = TRUE,
+                                                              validate = TRUE) {
+  cfg <- qdesn_dynamic_fitforecast_screening_cfg(defaults)
+  path <- path %||% cfg$csv %||% cfg$path %||% cfg$profiles_csv
+  if (is.null(path) || !nzchar(as.character(path)[1L])) {
+    if (qdesn_dynamic_fitforecast_screening_enabled(defaults)) {
+      stop("screening_profiles.enabled is TRUE but no screening profile CSV path was supplied.", call. = FALSE)
+    }
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+
+  profile_path <- .qdesn_validation_resolve_path(path, must_work = TRUE)
+  out <- utils::read.csv(profile_path, stringsAsFactors = FALSE)
+  if (!nrow(out)) {
+    stop(sprintf("Screening profile CSV is empty: %s", profile_path), call. = FALSE)
+  }
+  required <- c(
+    "screening_profile_id", "D", "n_each", "n_tilde_each", "m", "alpha", "rho",
+    "pi_w", "pi_in", "washout", "add_bias", "seed", "readout_y_lags",
+    "reservoir_lags", "rhs_tau0", "dimension_p_estimate", "p_over_n_tt500"
+  )
+  missing <- setdiff(required, names(out))
+  if (length(missing)) {
+    stop(sprintf(
+      "Screening profile CSV is missing required column(s): %s",
+      paste(missing, collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  out$screening_profile_id <- as.character(out$screening_profile_id)
+  out$enabled <- if ("enabled" %in% names(out)) {
+    .qdesn_dynamic_fitforecast_csv_flag(out$enabled, default = TRUE)
+  } else {
+    rep(TRUE, nrow(out))
+  }
+  if (isTRUE(only_enabled)) {
+    out <- out[out$enabled, , drop = FALSE]
+  }
+  if (!nrow(out)) {
+    stop("No enabled Q-DESN screening profiles remain after filtering.", call. = FALSE)
+  }
+
+  int_cols <- c("D", "n_each", "n_tilde_each", "m", "washout", "seed", "readout_y_lags", "reservoir_lags", "dimension_p_estimate")
+  dbl_cols <- c("alpha", "rho", "pi_w", "pi_in", "rhs_tau0", "p_over_n_tt500")
+  for (nm in intersect(int_cols, names(out))) out[[nm]] <- as.integer(out[[nm]])
+  for (nm in intersect(dbl_cols, names(out))) out[[nm]] <- as.numeric(out[[nm]])
+  out$profile_role <- as.character(out$profile_role %||% "primary")
+  out$screening_stage <- as.character(out$screening_stage %||% NA_character_)
+  out$screening_wave <- as.character(out$screening_wave %||% NA_character_)
+
+  problems <- character(0)
+  if (any(!nzchar(out$screening_profile_id))) {
+    problems <- c(problems, "screening_profile_id must be non-empty")
+  }
+  if (anyDuplicated(out$screening_profile_id)) {
+    problems <- c(problems, "screening_profile_id values must be unique")
+  }
+  if (any(!is.finite(out$D) | out$D < 1L)) {
+    problems <- c(problems, "D must be positive")
+  }
+  if (any(!is.finite(out$n_each) | out$n_each < 1L)) {
+    problems <- c(problems, "n_each must be positive")
+  }
+  if (any(!is.finite(out$m) | out$m < 0L)) {
+    problems <- c(problems, "m must be nonnegative")
+  }
+  if (any(!is.finite(out$washout) | out$washout < 0L)) {
+    problems <- c(problems, "washout must be nonnegative")
+  }
+  if (any(!is.finite(out$rhs_tau0) | out$rhs_tau0 <= 0)) {
+    problems <- c(problems, "rhs_tau0 must be positive")
+  }
+  if (isTRUE(validate)) {
+    gate <- cfg$dimension_gate %||% list()
+    primary_max <- as.numeric(gate$primary_p_over_n_max %||% Inf)[1L]
+    primary <- tolower(as.character(out$profile_role %||% "primary")) == "primary"
+    if (is.finite(primary_max) && any(primary & is.finite(out$p_over_n_tt500) & out$p_over_n_tt500 > primary_max)) {
+      problems <- c(problems, sprintf("primary p_over_n_tt500 exceeds %.3f", primary_max))
+    }
+  }
+  if (length(problems)) {
+    stop(paste(c("Q-DESN screening profile validation failed:", paste0("- ", problems)), collapse = "\n"), call. = FALSE)
+  }
+
+  rownames(out) <- NULL
+  attr(out, "profile_path") <- profile_path
+  out
+}
+
+qdesn_dynamic_fitforecast_screening_reservoir_cfg <- function(defaults, profile) {
+  profiles <- qdesn_dynamic_fitforecast_load_screening_profiles(defaults, only_enabled = FALSE)
+  profile <- as.character(profile)[1L]
+  row <- profiles[as.character(profiles$screening_profile_id) == profile, , drop = FALSE]
+  if (!nrow(row)) return(NULL)
+  row <- row[1L, , drop = FALSE]
+  D <- as.integer(row$D[1L])
+  n_each <- as.integer(row$n_each[1L])
+  n_tilde_each <- as.integer(row$n_tilde_each[1L])
+  rep_len_safe <- function(value, n) {
+    if (n <= 0L) return(numeric(0))
+    rep(value, n)
+  }
+  list(
+    D = D,
+    n = as.integer(rep_len_safe(n_each, D)),
+    n_tilde = as.integer(rep_len_safe(n_tilde_each, max(0L, D - 1L))),
+    m = as.integer(row$m[1L]),
+    alpha = as.numeric(rep_len_safe(as.numeric(row$alpha[1L]), D)),
+    rho = as.numeric(rep_len_safe(as.numeric(row$rho[1L]), D)),
+    act_f = rep("tanh", D),
+    act_k = rep("identity", D),
+    pi_w = as.numeric(rep_len_safe(as.numeric(row$pi_w[1L]), D)),
+    pi_in = as.numeric(rep_len_safe(as.numeric(row$pi_in[1L]), D)),
+    washout = as.integer(row$washout[1L]),
+    add_bias = .qdesn_dynamic_fitforecast_csv_flag(row$add_bias[1L], default = TRUE)[1L],
+    seed = as.integer(row$seed[1L])
+  )
+}
+
+qdesn_dynamic_fitforecast_grid_prior_types <- function(defaults) {
+  cfg <- qdesn_dynamic_fitforecast_screening_cfg(defaults)
+  priors <- as.character(unlist(cfg$priors %||% (defaults$reference_contract %||% list())$expected_priors %||% c("ridge", "rhs_ns"), use.names = FALSE))
+  priors <- unique(tolower(priors[nzchar(priors)]))
+  bad <- setdiff(priors, c("ridge", "rhs_ns"))
+  if (length(bad)) {
+    stop(sprintf("Unsupported Q-DESN prior type(s) requested: %s", paste(bad, collapse = ", ")), call. = FALSE)
+  }
+  if (!length(priors)) priors <- c("ridge", "rhs_ns")
+  priors
+}
+
+qdesn_dynamic_fitforecast_apply_screening_overrides <- function(cfg,
+                                                                root_spec,
+                                                                method = c("vb", "mcmc")) {
+  method <- match.arg(method)
+  root_spec <- as.list(root_spec)
+  if (!is.null(root_spec$readout_y_lags) && is.finite(as.integer(root_spec$readout_y_lags)[1L])) {
+    cfg$lags <- modifyList(cfg$lags %||% list(), list(m_y = as.integer(root_spec$readout_y_lags)[1L]))
+  }
+  if (!is.null(root_spec$reservoir_lags) && is.finite(as.integer(root_spec$reservoir_lags)[1L])) {
+    cfg$readout <- modifyList(cfg$readout %||% list(), list(reservoir_lags = as.integer(root_spec$reservoir_lags)[1L]))
+  }
+  if (identical(as.character(root_spec$beta_prior_type %||% ""), "rhs_ns") &&
+      !is.null(root_spec$rhs_tau0) && is.finite(as.numeric(root_spec$rhs_tau0)[1L])) {
+    cfg$inference[[method]]$priors <- modifyList(cfg$inference[[method]]$priors %||% list(), list())
+    cfg$inference[[method]]$priors$beta <- modifyList(cfg$inference[[method]]$priors$beta %||% list(), list())
+    cfg$inference[[method]]$priors$beta$rhs_ns <- modifyList(
+      cfg$inference[[method]]$priors$beta$rhs_ns %||% list(),
+      list(tau0 = as.numeric(root_spec$rhs_tau0)[1L])
+    )
+  }
+  cfg
+}
+
 qdesn_dynamic_fitforecast_atomic_spec_id <- function(root_spec,
                                                      method = c("vb", "mcmc"),
                                                      likelihood_family = c("exal", "al")) {
@@ -180,6 +353,13 @@ qdesn_dynamic_fitforecast_atomic_spec_grid <- function(grid_df,
           tau = as.numeric(root_spec$tau),
           fit_size = as.integer(root_spec$fit_size),
           prior = as.character(root_spec$beta_prior_type %||% NA_character_),
+          reservoir_profile = as.character(root_spec$reservoir_profile %||% NA_character_),
+          screening_profile_id = as.character(root_spec$screening_profile_id %||% NA_character_),
+          rhs_tau0 = as.numeric(root_spec$rhs_tau0 %||% NA_real_),
+          readout_y_lags = as.integer(root_spec$readout_y_lags %||% NA_integer_),
+          reservoir_lags = as.integer(root_spec$reservoir_lags %||% NA_integer_),
+          dimension_p_estimate = as.integer(root_spec$dimension_p_estimate %||% NA_integer_),
+          p_over_n_tt500 = as.numeric(root_spec$p_over_n_tt500 %||% NA_real_),
           method = as.character(method),
           inference = as.character(method),
           likelihood_family = as.character(likelihood_family),

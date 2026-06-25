@@ -633,7 +633,25 @@ qdesn_dynamic_crossstudy_materialize_source_inputs <- function(defaults,
       "source_sim_sha256"
     )
     if (nrow(inventory) && all(required_cols %in% names(inventory))) {
-      return(.qdesn_dynamic_crossstudy_rewrite_paths(inventory, defaults))
+      requested_windows <- .qdesn_dynamic_crossstudy_materialization_windows(defaults)
+      requested_window_keys <- paste(
+        as.integer(vapply(requested_windows, `[[`, numeric(1L), "effective_fit_size")),
+        as.integer(vapply(requested_windows, `[[`, numeric(1L), "source_total_size")),
+        sep = "||"
+      )
+      inventory_window_keys <- paste(
+        as.integer(inventory$effective_fit_size),
+        as.integer(inventory$source_total_size),
+        sep = "||"
+      )
+      keep <- as.character(inventory$source_scenario) %in% sort(unique(scenario_set)) &
+        as.character(inventory$source_family) %in% sort(unique(family_set)) &
+        as.numeric(inventory$tau) %in% sort(unique(tau_set)) &
+        inventory_window_keys %in% requested_window_keys
+      filtered_inventory <- inventory[keep, , drop = FALSE]
+      if (nrow(filtered_inventory)) {
+        return(.qdesn_dynamic_crossstudy_rewrite_paths(filtered_inventory, defaults))
+      }
     }
   }
 
@@ -935,6 +953,14 @@ qdesn_dynamic_crossstudy_build_grid_from_materialized_sources <- function(defaul
                                                                           materialized_inventory = NULL) {
   pilot_cfg <- defaults$pilot %||% list()
   seed_policy_cfg <- ((defaults$execution %||% list())$seed_policy) %||% list()
+  prior_types <- qdesn_dynamic_fitforecast_grid_prior_types(defaults)
+  screening_enabled <- qdesn_dynamic_fitforecast_screening_enabled(defaults)
+  screening_profiles <- if (isTRUE(screening_enabled)) {
+    qdesn_dynamic_fitforecast_load_screening_profiles(defaults, only_enabled = TRUE, validate = TRUE)
+  } else {
+    data.frame(stringsAsFactors = FALSE)
+  }
+  screening_indices <- if (nrow(screening_profiles)) seq_len(nrow(screening_profiles)) else NA_integer_
   if (is.null(materialized_inventory)) {
     materialized_inventory <- qdesn_dynamic_crossstudy_materialize_source_inputs(defaults, refresh = FALSE, verbose = FALSE)
   }
@@ -952,67 +978,88 @@ qdesn_dynamic_crossstudy_build_grid_from_materialized_sources <- function(defaul
       .qdesn_dynamic_crossstudy_prob_label(cell$tau[1L]),
       as.integer(cell$fit_size[1L])
     )
-    for (beta_prior_type in c("ridge", "rhs_ns")) {
-      root_seed <- as.integer(pilot_cfg$seed %||% 123L)[1L]
-      if (identical(tolower(as.character(seed_policy_cfg$mode %||% "shared")[1L]), "deterministic_per_root")) {
-        family_levels <- as.character((defaults$reference_contract %||% list())$families %||% sort(unique(as.character(materialized_inventory$source_family))))
-        tau_levels <- as.numeric((defaults$reference_contract %||% list())$taus %||% sort(unique(as.numeric(materialized_inventory$tau))))
-        fit_levels <- as.integer((defaults$reference_contract %||% list())$fit_sizes %||% sort(unique(as.integer(materialized_inventory$fit_size))))
-        family_idx <- match(as.character(cell$source_family[1L]), family_levels)
-        tau_idx <- match(as.numeric(cell$tau[1L]), tau_levels)
-        fit_idx <- match(as.integer(cell$fit_size[1L]), fit_levels)
-        prior_idx <- match(beta_prior_type, c("ridge", "rhs_ns"))
-        root_seed <- as.integer(seed_policy_cfg$base_seed %||% 41000L)[1L] +
-          10000L * (family_idx - 1L) +
-          1000L * (tau_idx - 1L) +
-          100L * (fit_idx - 1L) +
-          10L * (prior_idx - 1L)
+    for (beta_prior_type in prior_types) {
+      for (screening_idx in screening_indices) {
+        screening_row <- if (nrow(screening_profiles)) screening_profiles[screening_idx, , drop = FALSE] else NULL
+        profile_offset <- if (nrow(screening_profiles)) as.integer(screening_idx - 1L) else 0L
+        root_seed <- as.integer(pilot_cfg$seed %||% 123L)[1L]
+        if (identical(tolower(as.character(seed_policy_cfg$mode %||% "shared")[1L]), "deterministic_per_root")) {
+          family_levels <- as.character((defaults$reference_contract %||% list())$families %||% sort(unique(as.character(materialized_inventory$source_family))))
+          tau_levels <- as.numeric((defaults$reference_contract %||% list())$taus %||% sort(unique(as.numeric(materialized_inventory$tau))))
+          fit_levels <- as.integer((defaults$reference_contract %||% list())$fit_sizes %||% sort(unique(as.integer(materialized_inventory$fit_size))))
+          family_idx <- match(as.character(cell$source_family[1L]), family_levels)
+          tau_idx <- match(as.numeric(cell$tau[1L]), tau_levels)
+          fit_idx <- match(as.integer(cell$fit_size[1L]), fit_levels)
+          prior_idx <- match(beta_prior_type, c("ridge", "rhs_ns"))
+          root_seed <- as.integer(seed_policy_cfg$base_seed %||% 41000L)[1L] +
+            10000L * (family_idx - 1L) +
+            1000L * (tau_idx - 1L) +
+            100L * (fit_idx - 1L) +
+            10L * (prior_idx - 1L) +
+            profile_offset
+        }
+        reservoir_profile <- if (!is.null(screening_row)) {
+          as.character(screening_row$screening_profile_id[1L])
+        } else {
+          as.character(pilot_cfg$reservoir_profile %||% "tiny_d1_n8")
+        }
+        row <- data.frame(
+          enabled = TRUE,
+          dataset_cell_id = dataset_cell_id,
+          source_root_kind = "dynamic",
+          source_scenario = as.character(cell$source_scenario[1L]),
+          source_family = as.character(cell$source_family[1L]),
+          tau = as.numeric(cell$tau[1L]),
+          fit_size = as.integer(cell$fit_size[1L]),
+          effective_fit_size = as.integer(cell$effective_fit_size[1L] %||% cell$fit_size[1L]),
+          source_total_size = as.integer(cell$source_total_size[1L]),
+          source_window_label = as.character(cell$source_window_label[1L]),
+          raw_start_source_index = as.integer(cell$raw_start_source_index[1L] %||% NA_integer_),
+          raw_end_source_index = as.integer(cell$raw_end_source_index[1L] %||% NA_integer_),
+          train_start_source_index = as.integer(cell$train_start_source_index[1L] %||% NA_integer_),
+          train_end_source_index = as.integer(cell$train_end_source_index[1L] %||% NA_integer_),
+          forecast_start_source_index = as.integer(cell$forecast_start_source_index[1L] %||% NA_integer_),
+          forecast_end_source_index = as.integer(cell$forecast_end_source_index[1L] %||% NA_integer_),
+          beta_prior_type = beta_prior_type,
+          source_fit_input_dir = as.character(cell$source_fit_input_dir[1L]),
+          source_report_root = as.character(cell$source_report_root[1L]),
+          source_series_wide_path = as.character(cell$source_series_wide_path[1L]),
+          source_series_wide_sha256 = as.character(cell$source_series_wide_sha256[1L] %||% NA_character_),
+          source_series_wide_md5 = as.character(cell$source_series_wide_md5[1L] %||% NA_character_),
+          source_selection_indices_path = as.character(cell$source_selection_indices_path[1L]),
+          source_selection_indices_sha256 = as.character(cell$source_selection_indices_sha256[1L] %||% NA_character_),
+          source_selection_indices_md5 = as.character(cell$source_selection_indices_md5[1L] %||% NA_character_),
+          source_sim_path = as.character(cell$source_sim_path[1L]),
+          source_sim_sha256 = as.character(cell$source_sim_sha256[1L] %||% NA_character_),
+          source_sim_md5 = as.character(cell$source_sim_md5[1L] %||% NA_character_),
+          source_reference_root_count = 1L,
+          source_reference_priors = "default",
+          source_current_rhsns_member = FALSE,
+          source_legacy_rhs_member = FALSE,
+          reservoir_profile = reservoir_profile,
+          seed = root_seed,
+          stringsAsFactors = FALSE
+        )
+        if (!is.null(screening_row)) {
+          row$screening_profile_id <- as.character(screening_row$screening_profile_id[1L])
+          row$screening_stage <- as.character(screening_row$screening_stage[1L] %||% NA_character_)
+          row$screening_wave <- as.character(screening_row$screening_wave[1L] %||% NA_character_)
+          row$profile_role <- as.character(screening_row$profile_role[1L] %||% NA_character_)
+          row$rhs_tau0 <- as.numeric(screening_row$rhs_tau0[1L])
+          row$readout_y_lags <- as.integer(screening_row$readout_y_lags[1L])
+          row$reservoir_lags <- as.integer(screening_row$reservoir_lags[1L])
+          row$dimension_p_estimate <- as.integer(screening_row$dimension_p_estimate[1L])
+          row$p_over_n_tt500 <- as.numeric(screening_row$p_over_n_tt500[1L])
+        }
+        row$root_id <- qdesn_dynamic_crossstudy_build_root_id(row)
+        rows[[length(rows) + 1L]] <- row
       }
-      row <- data.frame(
-        enabled = TRUE,
-        dataset_cell_id = dataset_cell_id,
-        source_root_kind = "dynamic",
-        source_scenario = as.character(cell$source_scenario[1L]),
-        source_family = as.character(cell$source_family[1L]),
-        tau = as.numeric(cell$tau[1L]),
-        fit_size = as.integer(cell$fit_size[1L]),
-        effective_fit_size = as.integer(cell$effective_fit_size[1L] %||% cell$fit_size[1L]),
-        source_total_size = as.integer(cell$source_total_size[1L]),
-        source_window_label = as.character(cell$source_window_label[1L]),
-        raw_start_source_index = as.integer(cell$raw_start_source_index[1L] %||% NA_integer_),
-        raw_end_source_index = as.integer(cell$raw_end_source_index[1L] %||% NA_integer_),
-        train_start_source_index = as.integer(cell$train_start_source_index[1L] %||% NA_integer_),
-        train_end_source_index = as.integer(cell$train_end_source_index[1L] %||% NA_integer_),
-        forecast_start_source_index = as.integer(cell$forecast_start_source_index[1L] %||% NA_integer_),
-        forecast_end_source_index = as.integer(cell$forecast_end_source_index[1L] %||% NA_integer_),
-        beta_prior_type = beta_prior_type,
-        source_fit_input_dir = as.character(cell$source_fit_input_dir[1L]),
-        source_report_root = as.character(cell$source_report_root[1L]),
-        source_series_wide_path = as.character(cell$source_series_wide_path[1L]),
-        source_series_wide_sha256 = as.character(cell$source_series_wide_sha256[1L] %||% NA_character_),
-        source_series_wide_md5 = as.character(cell$source_series_wide_md5[1L] %||% NA_character_),
-        source_selection_indices_path = as.character(cell$source_selection_indices_path[1L]),
-        source_selection_indices_sha256 = as.character(cell$source_selection_indices_sha256[1L] %||% NA_character_),
-        source_selection_indices_md5 = as.character(cell$source_selection_indices_md5[1L] %||% NA_character_),
-        source_sim_path = as.character(cell$source_sim_path[1L]),
-        source_sim_sha256 = as.character(cell$source_sim_sha256[1L] %||% NA_character_),
-        source_sim_md5 = as.character(cell$source_sim_md5[1L] %||% NA_character_),
-        source_reference_root_count = 1L,
-        source_reference_priors = "default",
-        source_current_rhsns_member = FALSE,
-        source_legacy_rhs_member = FALSE,
-        reservoir_profile = as.character(pilot_cfg$reservoir_profile %||% "tiny_d1_n8"),
-        seed = root_seed,
-        stringsAsFactors = FALSE
-      )
-      row$root_id <- qdesn_dynamic_crossstudy_build_root_id(row)
-      rows[[length(rows) + 1L]] <- row
     }
   }
   .qdesn_validation_bind_rows(rows)
 }
 qdesn_dynamic_crossstudy_build_root_id <- function(root_spec) {
-  sprintf(
+  base <- sprintf(
     "root__dynamic__%s__%s__tau_%s__lasttt_%s__qdesn_%s",
     as.character(root_spec$source_scenario)[1L],
     as.character(root_spec$source_family)[1L],
@@ -1020,6 +1067,11 @@ qdesn_dynamic_crossstudy_build_root_id <- function(root_spec) {
     as.integer(root_spec$fit_size)[1L],
     as.character(root_spec$beta_prior_type)[1L]
   )
+  profile_id <- as.character(root_spec$screening_profile_id %||% "")[1L]
+  if (nzchar(profile_id) && !is.na(profile_id)) {
+    base <- paste0(base, "__profile_", qdesn_dynamic_fitforecast_clean_token(profile_id, "screen"))
+  }
+  base
 }
 
 qdesn_dynamic_crossstudy_build_grid_from_reference <- function(defaults) {
@@ -1186,6 +1238,15 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   reference_priors <- as.character(root_spec$source_reference_priors %||% pilot_cfg$source_reference_priors %||% "default")[1L]
   current_member <- .qdesn_validation_as_flag(root_spec$source_current_rhsns_member %||% FALSE, default = FALSE)
   legacy_member <- .qdesn_validation_as_flag(root_spec$source_legacy_rhs_member %||% FALSE, default = FALSE)
+  screening_profile_id <- as.character(root_spec$screening_profile_id %||% NA_character_)[1L]
+  screening_stage <- as.character(root_spec$screening_stage %||% NA_character_)[1L]
+  screening_wave <- as.character(root_spec$screening_wave %||% NA_character_)[1L]
+  profile_role <- as.character(root_spec$profile_role %||% NA_character_)[1L]
+  rhs_tau0 <- as.numeric(root_spec$rhs_tau0 %||% NA_real_)[1L]
+  readout_y_lags <- as.integer(root_spec$readout_y_lags %||% NA_integer_)[1L]
+  reservoir_lags <- as.integer(root_spec$reservoir_lags %||% NA_integer_)[1L]
+  dimension_p_estimate <- as.integer(root_spec$dimension_p_estimate %||% NA_integer_)[1L]
+  p_over_n_tt500 <- as.numeric(root_spec$p_over_n_tt500 %||% NA_real_)[1L]
 
   problems <- character(0)
   if (!identical(source_root_kind, as.character(contract$root_kind %||% "dynamic")[1L])) {
@@ -1245,6 +1306,15 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
     source_current_rhsns_member = current_member,
     source_legacy_rhs_member = legacy_member,
     reservoir_profile = reservoir_profile,
+    screening_profile_id = screening_profile_id,
+    screening_stage = screening_stage,
+    screening_wave = screening_wave,
+    profile_role = profile_role,
+    rhs_tau0 = rhs_tau0,
+    readout_y_lags = readout_y_lags,
+    reservoir_lags = reservoir_lags,
+    dimension_p_estimate = dimension_p_estimate,
+    p_over_n_tt500 = p_over_n_tt500,
     enabled = enabled
   )
   out$dataset_cell_id <- as.character(root_spec$dataset_cell_id %||%
@@ -1348,6 +1418,16 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
     source_sim_path = root_spec$source_sim_path,
     source_reference_root_count = as.integer(root_spec$source_reference_root_count),
     source_reference_priors = root_spec$source_reference_priors,
+    reservoir_profile = root_spec$reservoir_profile,
+    screening_profile_id = as.character(root_spec$screening_profile_id %||% NA_character_),
+    screening_stage = as.character(root_spec$screening_stage %||% NA_character_),
+    screening_wave = as.character(root_spec$screening_wave %||% NA_character_),
+    profile_role = as.character(root_spec$profile_role %||% NA_character_),
+    rhs_tau0 = as.numeric(root_spec$rhs_tau0 %||% NA_real_),
+    readout_y_lags = as.integer(root_spec$readout_y_lags %||% NA_integer_),
+    reservoir_lags = as.integer(root_spec$reservoir_lags %||% NA_integer_),
+    dimension_p_estimate = as.integer(root_spec$dimension_p_estimate %||% NA_integer_),
+    p_over_n_tt500 = as.numeric(root_spec$p_over_n_tt500 %||% NA_real_),
     generated_at = as.character(Sys.time())
   ))
   list(
@@ -1714,6 +1794,15 @@ qdesn_dynamic_crossstudy_run_root <- function(root_spec,
     source_reference_root_count = as.integer(root_spec$source_reference_root_count),
     source_reference_priors = root_spec$source_reference_priors,
     reservoir_profile = root_spec$reservoir_profile,
+    screening_profile_id = as.character(root_spec$screening_profile_id %||% NA_character_),
+    screening_stage = as.character(root_spec$screening_stage %||% NA_character_),
+    screening_wave = as.character(root_spec$screening_wave %||% NA_character_),
+    profile_role = as.character(root_spec$profile_role %||% NA_character_),
+    rhs_tau0 = as.numeric(root_spec$rhs_tau0 %||% NA_real_),
+    readout_y_lags = as.integer(root_spec$readout_y_lags %||% NA_integer_),
+    reservoir_lags = as.integer(root_spec$reservoir_lags %||% NA_integer_),
+    dimension_p_estimate = as.integer(root_spec$dimension_p_estimate %||% NA_integer_),
+    p_over_n_tt500 = as.numeric(root_spec$p_over_n_tt500 %||% NA_real_),
     seed = as.integer(root_spec$seed),
     multiseed = defaults$multiseed %||% list(),
     execution = execution_scope,

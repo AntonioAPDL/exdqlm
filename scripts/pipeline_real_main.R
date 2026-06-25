@@ -612,15 +612,17 @@ if (!is.null(cfg$desn)) {
 
   if (!is.null(cfg$desn$n_tilde)) {
     nt <- as_num(cfg$desn$n_tilde)
-    if (length(nt) == 0L) {
+    if (length(nt) == 0L || all(is.na(nt))) {
+      desn_args$n_tilde <- integer(0)
+    } else if (D_in <= 1L) {
       desn_args$n_tilde <- integer(0)
     } else if (length(nt) == 1L) {
-      desn_args$n_tilde <- rep(as.integer(nt), D_in)
-    } else if (length(nt) %in% c(D_in - 1L, D_in)) {
+      desn_args$n_tilde <- rep(as.integer(nt), D_in - 1L)
+    } else if (length(nt) == (D_in - 1L)) {
       desn_args$n_tilde <- as.integer(nt)
     } else {
-      stop(sprintf("Config error: length(desn$n_tilde)=%d not in {0,1,%d,%d}",
-                   length(nt), D_in - 1L, D_in))
+      stop(sprintf("Config error: length(desn$n_tilde)=%d but D=%d; expected 0, 1, or D-1=%d.",
+                   length(nt), D_in, D_in - 1L))
     }
   }
 
