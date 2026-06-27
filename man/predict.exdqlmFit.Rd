@@ -4,7 +4,21 @@
 \alias{predict.exdqlmFit}
 \title{Forecast Method for Dynamic \code{exdqlmFit} Objects}
 \usage{
-\method{predict}{exdqlmFit}(object, start.t, k, fFF = NULL, fGG = NULL, plot = FALSE, ...)
+\method{predict}{exdqlmFit}(
+  object,
+  start.t,
+  k,
+  fFF = NULL,
+  fGG = NULL,
+  plot = FALSE,
+  add = FALSE,
+  cols = c("purple", "magenta"),
+  cr.percent = 0.95,
+  return.draws = FALSE,
+  n.samp = NULL,
+  seed = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted dynamic \code{exdqlmFit} object.}
@@ -13,22 +27,76 @@
 
 \item{k}{Integer number of steps ahead to forecast.}
 
-\item{fFF}{Optional future observation vector(s), passed to
-\code{\link{exdqlmForecast}}.}
+\item{fFF}{Optional state vector(s) for the forecast steps. A numeric matrix with
+\eqn{q} rows and either 1 column (non–time-varying) or \code{k} columns (time-varying).
+Its dimension must match the fitted model in \code{object}.}
 
-\item{fGG}{Optional future evolution matrix/matrices, passed to
-\code{\link{exdqlmForecast}}.}
+\item{fGG}{Optional evolution matrix/matrices for the forecast steps. Either a numeric
+\eqn{q \times q} matrix (non–time-varying) or a \eqn{q \times q \times k} array (time-varying).
+Its dimensions must match the fitted model in \code{object}.}
 
 \item{plot}{Logical; if \code{TRUE}, immediately plot the returned forecast
 object as a convenience shortcut. Default is \code{FALSE}.}
 
-\item{...}{Additional arguments passed to \code{\link{exdqlmForecast}}.}
+\item{add}{Logical value indicating whether to add the forecasted quantiles to the current plot.
+Default is \code{FALSE}.}
+
+\item{cols}{Optinal character vector of length 2 giving the colors for filtered and forecasted
+quantiles respectively. Default \code{c("purple","magenta")}.}
+
+\item{cr.percent}{Optional numeric in \code{(0, 1)} indicating the probability mass for the credible
+intervals (e.g., \code{0.95}). Default \code{0.95}.}
+
+\item{return.draws}{Optional logical; if \code{TRUE}, the function also returns a
+matrix of posterior predictive forecast draws in \code{samp.fore}. Default
+is \code{FALSE}.}
+
+\item{n.samp}{Optional positive integer specifying how many forecast draws to
+return when \code{return.draws = TRUE}. If omitted, all available posterior
+\eqn{(\sigma,\gamma)} draws from \code{m1} are used.}
+
+\item{seed}{Optional integer random seed used only for forecast-draw
+generation when \code{return.draws = TRUE}. If provided, the previous
+\proglang{R} RNG state is restored on exit.}
+
+\item{...}{Additional arguments.}
 }
 \value{
-An object of class \code{exdqlmForecast}.
+An object of class "\code{exdqlmForecast}" containing the following:
+\itemize{
+\item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{m1}).
+\item \code{k} Integer number of steps ahead forecasted.
+\item \code{m1} The fitted exDQLM model object used to initialize the forecast.
+\item \code{cr.percent} The probability mass for the credible
+intervals (e.g., \code{0.95}).
+\item \code{fa} Forecast state mean vectors (\eqn{q \times k} matrix).
+\item \code{fR} Forecast state covariance matrices (\eqn{q \times q \times k} array).
+\item \code{ff} Forecast quantile means (length-\code{k} numeric).
+\item \code{fQ} Forecast quantile variances (length-\code{k} numeric).
+\item \code{samp.fore} Optional posterior predictive forecast draws
+(\code{k x n.samp}) returned when \code{return.draws = TRUE}.
+}
 }
 \description{
 Forecast from a fitted dynamic quantile model. This is an S3 method wrapper
 around \code{\link{exdqlmForecast}}; use \code{plot()} on the returned
 \code{exdqlmForecast} object to visualize the result.
+}
+\examples{
+\donttest{
+ # Toy example
+ data("scIVTmag", package = "exdqlm")
+ old = options(exdqlm.max_iter = 20L)
+ y = scIVTmag[1:100]
+ model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+ M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
+                  gam.init = -3.5, sig.init = 15, n.samp = 30,
+                  verbose = FALSE)
+ M0.forecast = predict(M0, start.t = 90, k = 10, 
+                   return.draws = TRUE, n.samp = 50, seed = 123)
+ M0.forecast
+ plot(M0.forecast)
+ dim(M0.forecast$samp.fore)
+ options(old)
+}
 }
