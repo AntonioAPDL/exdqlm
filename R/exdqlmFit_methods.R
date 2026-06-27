@@ -225,18 +225,60 @@ summary.exdqlmFit <- function(object, ...) {
 #'   the contribution of a block of state elements, or \code{"state"} for a
 #'   single state element.
 #' @param index Required for \code{type = "component"} or \code{type = "state"}.
-#'   Gives the state index or consecutive state indices passed to
-#'   \code{\link{compPlot}}.
-#' @param ... Additional arguments passed to \code{\link{exdqlmPlot}} or
-#'   \code{\link{compPlot}}.
+#'   For \code{type = "state"}, \code{index} much have length 1 indicating a 
+#'   single element of the state vector to be plot. For \code{type = "component"},
+#'   \code{index} should be consecutive state indices in \eqn{\{1,\dots,q\}} 
+#'   indicating the component to be plot. 
+#' @param cr.percent Optional numeric in \code{(0, 1)} indicating the 
+#'  probability mass for the credible intervals (e.g., \code{0.95}). Default \code{0.95}.
+#' @param add Optional logical value indicating whether the estimate will be 
+#'  added to existing plot. Default is \code{FALSE}.
+#' @param col Optional character vector of length 1 giving color of the 
+#'  estimate to be plotted. Default is `purple`.
+#' @param xlim,ylim Optional limits passed to the base plotting call.
+#' @param xlab,ylab Optional axis labels passed to the base plotting call.
+#' @param lwd,lwd.interval Line widths for the estimate and credible interval
+#'   bounds, respectively.
+#' @param lty.interval Line type for the credible interval bounds.
+#' @param ... Additional arguments.
 #'
-#' @return Invisibly returns the summary list produced by
-#'   \code{\link{exdqlmPlot}} or \code{\link{compPlot}}.
+#' @return Invisibly returns a list of the following:
+#'  \itemize{
+#'   \item `map.quant` - MAP estimate of the dynamic estimate.
+#'   \item `lb.quant` - Lower bound of the 95% CrIs of the dynamic estimate.
+#'   \item `ub.quant` - Upper bound of the 95% CrIs of the dynamic estimate.
+#'   \item `x` - Time/index values used for plotting.
+#' }
 #'
 #' @export
-plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"),
-                           index = NULL, ...) {
-  .plot_exdqlm_fit(x, type = type, index = index, ...)
+#'
+#' @examples
+#' \donttest{
+#' data("scIVTmag", package = "exdqlm")
+#' old = options(exdqlm.max_iter = 15L)
+#' y = scIVTmag[1:80]
+#' trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
+#' seas.comp = seasMod(365, c(1, 2), C0 = 10*diag(4))
+#' model = trend.comp + seas.comp
+#' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 4),
+#'                    gam.init = -3.5, sig.init = 15,
+#'                    n.samp = 20, tol = 0.2, verbose = FALSE)
+#' # plot quantile
+#' plot(M0)
+#' # plot first harmonic component
+#' plot(M0, type="component", index = c(3, 4), col = "blue")
+#' options(old)
+#' }
+plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"), index = NULL, 
+                           add = FALSE, col = "purple", cr.percent = 0.95,
+                           xlim = NULL, ylim = NULL, xlab = "time",
+                           ylab = NULL, lwd = 1.5, lwd.interval = 0.75,
+                           lty.interval = 2, ...) {
+  .plot_exdqlm_fit(x, type = type, index = index, 
+                   add = add, col = col, cr.percent = cr.percent,
+                   xlim = xlim, ylim = ylim, xlab = xlab,
+                   ylab = ylab, lwd = lwd, lwd.interval = lwd.interval,
+                   lty.interval = lty.interval, ...)
 }
 
 #' Forecast Method for Dynamic \code{exdqlmFit} Objects
