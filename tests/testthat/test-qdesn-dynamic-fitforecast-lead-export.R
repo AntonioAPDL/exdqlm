@@ -59,6 +59,93 @@ test_that("Q-DESN rolling lead export uses per-origin mu draws without synthesis
   expect_true(all(metrics$lead_export_transform == "identity"))
 })
 
+test_that("Q-DESN rolling origin sequence includes the final partial stride origin", {
+  origins <- exdqlm:::.qdesn_validation_rolling_origin_sequence(
+    train_end_index = 9000L,
+    forecast_end_index = 10000L,
+    hmax = 30L,
+    origin_stride = 30L
+  )
+
+  expect_equal(head(origins, 3), c(9000L, 9030L, 9060L))
+  expect_equal(tail(origins, 3), c(9930L, 9960L, 9990L))
+  expect_equal(length(origins), 34L)
+
+  grid <- exdqlm:::.qdesn_validation_rolling_grid(
+    train_end_source_index = 9000L,
+    forecast_start_source_index = 9001L,
+    forecast_end_source_index = 10000L,
+    hmax = 30L,
+    origin_stride = 30L
+  )
+
+  expect_equal(nrow(grid), 1000L)
+  final_origin <- grid[grid$forecast_origin_source_index == 9990L, , drop = FALSE]
+  expect_equal(final_origin$forecast_lead, 1:10)
+  expect_equal(final_origin$target_source_index, 9991:10000)
+})
+
+test_that("Q-DESN rolling lead export scores final partial origin rows", {
+  tmp <- tempfile("qdesn-lead-export-partial-")
+  dir.create(tmp, recursive = TRUE)
+  fixture <- make_fitforecast_compact_fixture(tmp, fit_size = 500L)
+  root_spec <- fixture$root_spec
+
+  source_df <- utils::read.csv(root_spec$source_series_wide_path, stringsAsFactors = FALSE)
+  origin_source <- exdqlm:::.qdesn_validation_rolling_origin_sequence(
+    train_end_index = 9000L,
+    forecast_end_index = 10000L,
+    hmax = 30L,
+    origin_stride = 30L
+  )
+  origin_local <- match(origin_source, as.integer(source_df$t))
+  make_origin_draws <- function(origin_src) {
+    n_lead <- min(30L, 10000L - as.integer(origin_src))
+    base <- as.numeric(origin_src - 9000L)
+    matrix(
+      rep(base + seq_len(n_lead), each = 3L) + rep(c(-0.1, 0, 0.1), n_lead),
+      nrow = n_lead,
+      byrow = TRUE
+    )
+  }
+  mu_by_origin <- lapply(origin_source, make_origin_draws)
+  yrep_by_origin <- lapply(mu_by_origin, function(x) x + 1)
+  forecast_full <- list(
+    origins = as.integer(origin_local),
+    yrep_by_origin = yrep_by_origin,
+    mu_by_origin = mu_by_origin
+  )
+  summary_obj <- list(
+    forecast_objects = list(fits_fc = list(list(forecast_full = forecast_full)))
+  )
+  defaults <- list(metrics = list(rolling_origin = list(
+    enabled = TRUE,
+    require_lead_export = TRUE,
+    max_lead_configured = 30L,
+    origin_stride = 30L,
+    forecast_protocol = "rolling_origin_no_refit_state_update"
+  )))
+
+  out <- exdqlm:::.qdesn_validation_qdesn_lead_path_df(
+    summary_obj = summary_obj,
+    root_spec = root_spec,
+    defaults = defaults
+  )
+
+  expect_equal(nrow(out), 1000L)
+  expect_equal(sort(unique(out$forecast_origin_source_index)), origin_source)
+  final_origin <- out[out$forecast_origin_source_index == 9990L, , drop = FALSE]
+  expect_equal(nrow(final_origin), 10L)
+  expect_equal(final_origin$forecast_lead, 1:10)
+  expect_equal(final_origin$source_index, 9991:10000)
+  expect_equal(final_origin$qhat, 991:1000)
+
+  metrics <- exdqlm:::.qdesn_validation_qdesn_lead_metrics_df(out, root_spec)
+  expect_equal(metrics$forecast_lead, 1:30)
+  expect_equal(metrics$n_origins_scored[metrics$forecast_lead <= 10L], rep(34L, 10L))
+  expect_equal(metrics$n_origins_scored[metrics$forecast_lead > 10L], rep(33L, 20L))
+})
+
 test_that("Q-DESN rolling lead export back-transforms standardized model-scale draws", {
   tmp <- tempfile("qdesn-lead-export-scale-")
   dir.create(tmp, recursive = TRUE)

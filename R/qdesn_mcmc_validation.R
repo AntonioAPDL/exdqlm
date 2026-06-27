@@ -938,6 +938,22 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   )
 }
 
+.qdesn_validation_rolling_origin_sequence <- function(train_end_index,
+                                                      forecast_end_index,
+                                                      hmax,
+                                                      origin_stride,
+                                                      forecast_protocol = "rolling_origin_no_refit_state_update") {
+  grid <- .qdesn_validation_rolling_grid(
+    train_end_source_index = train_end_index,
+    forecast_start_source_index = as.integer(train_end_index)[1L] + 1L,
+    forecast_end_source_index = forecast_end_index,
+    hmax = hmax,
+    origin_stride = origin_stride,
+    forecast_protocol = forecast_protocol
+  )
+  as.integer(unique(grid$forecast_origin_source_index))
+}
+
 .qdesn_validation_quantile_columns <- function(draws,
                                                probs = c(0.025, 0.25, 0.5, 0.75, 0.975)) {
   draws <- as.matrix(draws)
@@ -1280,7 +1296,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   outputs <- (((defaults %||% list())$pipeline %||% list())$outputs) %||% list()
   profile <- tolower(trimws(as.character(outputs$retention_profile %||% "full_debug")[1L]))
   if (is.na(profile) || !nzchar(profile)) profile <- "full_debug"
-  analysis_like <- profile %in% c("analysis", "compact", "lean", "minimal", "minimal_archive", "summary", "summary_only")
+  analysis_like <- profile %in% c(
+    "analysis", "compact", "lean", "minimal", "minimal_archive",
+    "summary", "summary_only", "storage_light", "storage_light_screening"
+  )
   save_forecast_objects <- outputs$save_forecast_objects
   if (is.null(save_forecast_objects) || length(save_forecast_objects) == 0L || is.na(save_forecast_objects[[1L]])) {
     save_forecast_objects <- !analysis_like
@@ -1293,6 +1312,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   } else {
     save_compact_fit_paths <- isTRUE(save_compact_fit_paths)
   }
+  save_rhs_trace <- outputs$save_rhs_trace
+  if (is.null(save_rhs_trace) || length(save_rhs_trace) == 0L || is.na(save_rhs_trace[[1L]])) {
+    save_rhs_trace <- !analysis_like
+  } else {
+    save_rhs_trace <- isTRUE(save_rhs_trace)
+  }
   retain_full_rds_on_failure <- outputs$retain_full_rds_on_failure
   if (is.null(retain_full_rds_on_failure)) {
     retain_cfg <- outputs$retain_full_rds %||% list()
@@ -1302,6 +1327,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     retention_profile = profile,
     save_forecast_objects = isTRUE(save_forecast_objects),
     save_compact_fit_paths = isTRUE(save_compact_fit_paths),
+    save_rhs_trace = isTRUE(save_rhs_trace),
     retain_full_rds_on_failure = isTRUE(retain_full_rds_on_failure)
   )
 }
@@ -1313,7 +1339,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
                                                      summary_obj = NULL) {
   cfg <- .qdesn_validation_output_retention_cfg(defaults)
   forecast_path <- file.path(method_dir, "models", "forecast_objects.rds")
+  rhs_trace_path <- file.path(method_dir, "models", "rhs_trace.rds")
   forecast_bytes_before <- if (file.exists(forecast_path)) file.info(forecast_path)$size[[1L]] else 0
+  rhs_trace_bytes_before <- if (file.exists(rhs_trace_path)) file.info(rhs_trace_path)$size[[1L]] else 0
   compact_paths <- list(train = NA_character_, holdout = NA_character_, train_rows = 0L, holdout_rows = 0L)
   compact_error <- NA_character_
   if (isTRUE(cfg$save_compact_fit_paths) && !is.null(summary_obj)) {
@@ -1347,6 +1375,25 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       FALSE
     })
   }
+  rhs_trace_summary_path <- file.path(method_dir, "models", "rhs_run_summary.csv")
+  rhs_trace_diag_summary_path <- file.path(method_dir, "models", "rhs_diag_summary.txt")
+  rhs_trace_summary_ready <- file.exists(rhs_trace_summary_path) || file.exists(rhs_trace_diag_summary_path)
+  should_prune_rhs_trace <- !isTRUE(cfg$save_rhs_trace) &&
+    file.exists(rhs_trace_path) &&
+    isTRUE(compact_ready) &&
+    isTRUE(rhs_trace_summary_ready) &&
+    (success_like || !isTRUE(cfg$retain_full_rds_on_failure))
+  rhs_trace_pruned <- FALSE
+  rhs_trace_prune_error <- NA_character_
+  if (isTRUE(should_prune_rhs_trace)) {
+    rhs_trace_pruned <- tryCatch({
+      unlink(rhs_trace_path)
+      !file.exists(rhs_trace_path)
+    }, error = function(e) {
+      rhs_trace_prune_error <<- conditionMessage(e)
+      FALSE
+    })
+  }
   manifest <- list(
     generated_at = as.character(Sys.time()),
     method_dir = normalizePath(method_dir, winslash = "/", mustWork = FALSE),
@@ -1354,6 +1401,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     retention_profile = cfg$retention_profile,
     save_forecast_objects = isTRUE(cfg$save_forecast_objects),
     save_compact_fit_paths = isTRUE(cfg$save_compact_fit_paths),
+    save_rhs_trace = isTRUE(cfg$save_rhs_trace),
     retain_full_rds_on_failure = isTRUE(cfg$retain_full_rds_on_failure),
     compact_train_path = compact_paths$train,
     compact_holdout_path = compact_paths$holdout,
@@ -1376,7 +1424,16 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     forecast_objects_prune_requested = isTRUE(should_prune_forecast),
     forecast_objects_pruned = isTRUE(pruned),
     forecast_objects_prune_error = prune_error,
-    forecast_objects_exists_after = file.exists(forecast_path)
+    forecast_objects_exists_after = file.exists(forecast_path),
+    rhs_trace_path = normalizePath(rhs_trace_path, winslash = "/", mustWork = FALSE),
+    rhs_trace_summary_path = normalizePath(rhs_trace_summary_path, winslash = "/", mustWork = FALSE),
+    rhs_trace_diag_summary_path = normalizePath(rhs_trace_diag_summary_path, winslash = "/", mustWork = FALSE),
+    rhs_trace_summary_ready = isTRUE(rhs_trace_summary_ready),
+    rhs_trace_bytes_before = as.numeric(rhs_trace_bytes_before),
+    rhs_trace_prune_requested = isTRUE(should_prune_rhs_trace),
+    rhs_trace_pruned = isTRUE(rhs_trace_pruned),
+    rhs_trace_prune_error = rhs_trace_prune_error,
+    rhs_trace_exists_after = file.exists(rhs_trace_path)
   )
   .qdesn_validation_write_json(file.path(method_dir, "manifest", "output_retention.json"), manifest)
   invisible(manifest)

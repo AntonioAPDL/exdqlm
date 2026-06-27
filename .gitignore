@@ -43,6 +43,7 @@ notebooks/
 # local execution tracker (do not commit)
 Plan.txt
 RHS_NS_STAGE9_SUBMISSION_MEMO.md
+validation/fitforecast_v2/local_trackers/
 
 # local tooling/work logs (not shipped)
 tools/*.out

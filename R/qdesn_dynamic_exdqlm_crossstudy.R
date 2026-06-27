@@ -1368,6 +1368,54 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   )
 }
 
+.qdesn_dynamic_crossstudy_deterministic_feature_cfg <- function(defaults) {
+  cfg <- defaults$deterministic_features %||%
+    defaults$stage_features %||%
+    ((defaults$source_materialization %||% list())$deterministic_features) %||%
+    list(enabled = FALSE)
+  cfg$enabled <- isTRUE(cfg$enabled %||% FALSE)
+  cfg$period <- as.numeric(cfg$period %||% cfg$seasonal_period %||% 90)[1L]
+  cfg$harmonics <- as.integer(unlist(cfg$harmonics %||% c(1L, 2L), use.names = FALSE))
+  cfg$harmonics <- cfg$harmonics[is.finite(cfg$harmonics) & cfg$harmonics > 0L]
+  cfg$include_trend <- isTRUE(cfg$include_trend %||% FALSE)
+  cfg$include_index <- isTRUE(cfg$include_index %||% FALSE)
+  cfg$prefix <- as.character(cfg$prefix %||% "period90")[1L]
+  if (!nzchar(cfg$prefix) || is.na(cfg$prefix)) cfg$prefix <- "period90"
+  cfg
+}
+
+.qdesn_dynamic_crossstudy_make_deterministic_features <- function(source_index, defaults) {
+  cfg <- .qdesn_dynamic_crossstudy_deterministic_feature_cfg(defaults)
+  n <- length(source_index)
+  empty <- data.frame(row.names = seq_len(n))
+  if (!isTRUE(cfg$enabled)) return(empty)
+  idx <- suppressWarnings(as.integer(source_index))
+  if (!length(idx) || all(is.na(idx))) idx <- seq_len(n)
+  if (length(idx) != n) idx <- seq_len(n)
+  bad <- is.na(idx) | !is.finite(idx)
+  if (any(bad)) idx[bad] <- seq_len(n)[bad]
+  period <- as.numeric(cfg$period)[1L]
+  if (!is.finite(period) || period <= 0) {
+    stop("deterministic_features.period must be finite and positive.", call. = FALSE)
+  }
+  out <- empty
+  for (h in cfg$harmonics) {
+    phase <- 2 * pi * as.numeric(h) * as.numeric(idx) / period
+    out[[sprintf("%s_sin_h%d", cfg$prefix, as.integer(h))]] <- sin(phase)
+    out[[sprintf("%s_cos_h%d", cfg$prefix, as.integer(h))]] <- cos(phase)
+  }
+  if (isTRUE(cfg$include_trend)) {
+    z <- as.numeric(idx)
+    z_sd <- stats::sd(z)
+    if (!is.finite(z_sd) || z_sd <= 0) z_sd <- 1
+    out[[sprintf("%s_trend_z", cfg$prefix)]] <- (z - mean(z)) / z_sd
+  }
+  if (isTRUE(cfg$include_index)) {
+    out[[sprintf("%s_source_index", cfg$prefix)]] <- as.numeric(idx)
+  }
+  out
+}
+
 qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults) {
   truth_bundle <- .qdesn_dynamic_crossstudy_source_truth_bundle(root_spec)
   y <- truth_bundle$y
@@ -1388,16 +1436,26 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
   .qdesn_validation_dir_create(data_dir)
   obs_path <- file.path(data_dir, "observed.csv")
   q_true_path <- file.path(data_dir, "q_true.csv")
-  .qdesn_validation_write_df(data.frame(y = y, stringsAsFactors = FALSE), obs_path)
+  feature_df <- .qdesn_dynamic_crossstudy_make_deterministic_features(source_index, defaults)
+  x_cols <- names(feature_df)
+  obs_df <- data.frame(y = y, stringsAsFactors = FALSE)
+  if (length(x_cols)) {
+    obs_df <- cbind(obs_df, feature_df)
+  }
+  q_true_df <- data.frame(
+    t = seq_along(y),
+    source_index = source_index,
+    q_true = q_true,
+    y = y,
+    mu = mu,
+    stringsAsFactors = FALSE
+  )
+  if (length(x_cols)) {
+    q_true_df <- cbind(q_true_df, feature_df)
+  }
+  .qdesn_validation_write_df(obs_df, obs_path)
   .qdesn_validation_write_df(
-    data.frame(
-      t = seq_along(y),
-      source_index = source_index,
-      q_true = q_true,
-      y = y,
-      mu = mu,
-      stringsAsFactors = FALSE
-    ),
+    q_true_df,
     q_true_path
   )
   .qdesn_validation_write_json(file.path(data_dir, "source_metadata.json"), list(
@@ -1426,6 +1484,8 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
     rhs_tau0 = as.numeric(root_spec$rhs_tau0 %||% NA_real_),
     readout_y_lags = as.integer(root_spec$readout_y_lags %||% NA_integer_),
     reservoir_lags = as.integer(root_spec$reservoir_lags %||% NA_integer_),
+    deterministic_features = .qdesn_dynamic_crossstudy_deterministic_feature_cfg(defaults),
+    x_cols = as.list(x_cols),
     dimension_p_estimate = as.integer(root_spec$dimension_p_estimate %||% NA_integer_),
     p_over_n_tt500 = as.numeric(root_spec$p_over_n_tt500 %||% NA_real_),
     generated_at = as.character(Sys.time())
@@ -1435,7 +1495,7 @@ qdesn_dynamic_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults
     q_true_path = q_true_path,
     q_true = q_true,
     y = y,
-    x_cols = character(0),
+    x_cols = x_cols,
     n_obs = length(y)
   )
 }

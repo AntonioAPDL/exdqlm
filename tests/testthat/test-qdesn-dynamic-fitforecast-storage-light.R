@@ -5,6 +5,12 @@ test_that("fit+forecast analysis retention prunes successful full forecast objec
   method_dir <- file.path(tmp, "fits", "mcmc_al")
   dir.create(file.path(method_dir, "models"), recursive = TRUE)
   saveRDS(fixture$summary_obj$forecast_objects, file.path(method_dir, "models", "forecast_objects.rds"))
+  saveRDS(list(trace = TRUE), file.path(method_dir, "models", "rhs_trace.rds"))
+  utils::write.csv(
+    data.frame(rhs_trace_available = TRUE, tau_last = 1, stringsAsFactors = FALSE),
+    file.path(method_dir, "models", "rhs_run_summary.csv"),
+    row.names = FALSE
+  )
 
   manifest <- exdqlm:::.qdesn_validation_apply_output_retention(
     method_dir = method_dir,
@@ -24,6 +30,8 @@ test_that("fit+forecast analysis retention prunes successful full forecast objec
 
   expect_true(isTRUE(manifest$forecast_objects_pruned))
   expect_false(file.exists(file.path(method_dir, "models", "forecast_objects.rds")))
+  expect_true(isTRUE(manifest$rhs_trace_pruned))
+  expect_false(file.exists(file.path(method_dir, "models", "rhs_trace.rds")))
   expect_equal(manifest$compact_train_rows, 500L)
   expect_equal(manifest$compact_holdout_rows, 1000L)
   expect_identical(manifest$index_alignment_status, "PASS")

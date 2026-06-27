@@ -124,6 +124,13 @@ select_batch_grid <- function(grid_df, defaults, batch = c("full", "smoke")) {
   if (!is.null(smoke_cfg$priors)) {
     out <- out[as.character(out$beta_prior_type) %in% as.character(unlist(smoke_cfg$priors, use.names = FALSE)), , drop = FALSE]
   }
+  if (!is.null(smoke_cfg$screening_profile_ids) && "screening_profile_id" %in% names(out)) {
+    out <- out[as.character(out$screening_profile_id) %in% as.character(unlist(smoke_cfg$screening_profile_ids, use.names = FALSE)), , drop = FALSE]
+  }
+  max_roots <- suppressWarnings(as.integer(smoke_cfg$max_roots %||% NA_integer_)[1L])
+  if (is.finite(max_roots) && max_roots > 0L && nrow(out) > max_roots) {
+    out <- utils::head(out, max_roots)
+  }
   out
 }
 

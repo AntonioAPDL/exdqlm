@@ -953,6 +953,8 @@ if (!is.finite(forecast_origin_stride) || forecast_origin_stride < 1L) {
   message(sprintf("[forecast] invalid origin_stride=%s; using 1.", as.character(forecast_origin_stride)))
   forecast_origin_stride <- 1L
 }
+primary_lead_export_enabled <- isTRUE((cfg$forecast %||% list())$primary_lead_export %||% FALSE) ||
+  isTRUE(((cfg$diagnostics %||% list())$primary_lead_export) %||% FALSE)
 lead_weight_power   <- cfg$forecast$lead_weight_power %||% 1
 lead_weights        <- NULL
 mix_nd              <- NULL
@@ -1038,9 +1040,22 @@ if (length(x_names)) {
 
 }
 origins_full <- seq.int(n_train, origins_full_max, by = forecast_origin_stride)
-origins_tail <- integer(0)
+origins_required <- exdqlm:::.qdesn_validation_rolling_origin_sequence(
+  train_end_index = n_train,
+  forecast_end_index = origins_lead1_max + 1L,
+  hmax = forecast_horizon,
+  origin_stride = forecast_origin_stride,
+  forecast_protocol = cfg$forecast$protocol %||% "rolling_origin_no_refit_state_update"
+)
+origins_tail_contract <- setdiff(origins_required, origins_full)
+origins_tail_dense <- integer(0)
 if (origins_lead1_max > origins_full_max) {
-  origins_tail <- seq.int(origins_full_max + 1L, origins_lead1_max)
+  origins_tail_dense <- seq.int(origins_full_max + 1L, origins_lead1_max)
+}
+origins_tail <- if (isTRUE(do_lead_eval) || isTRUE(do_fan_charts)) {
+  sort(unique(c(origins_tail_dense, origins_tail_contract)))
+} else {
+  origins_tail_contract
 }
 origins_fan <- c(origins_full, origins_tail)
 origins <- origins_full
@@ -2061,11 +2076,10 @@ fit_and_forecast_p <- function(p0) {
   )
   class(fit_q) <- "qdesn_fit"
 
-  primary_lead_export_enabled <- isTRUE((cfg$forecast %||% list())$primary_lead_export %||% FALSE) ||
-    isTRUE(((cfg$diagnostics %||% list())$primary_lead_export) %||% FALSE)
   need_origin_draws_full <- isTRUE(keep_draws) || isTRUE(lead_eval_enabled) ||
     isTRUE(do_fan_charts) || isTRUE(primary_lead_export_enabled)
-  need_var_horizon <- isTRUE(lead_eval_enabled) || isTRUE(do_fan_charts)
+  need_var_horizon <- isTRUE(lead_eval_enabled) || isTRUE(do_fan_charts) ||
+    isTRUE(primary_lead_export_enabled)
   truncate_origin_draws <- function(draws_list, origins_vec, max_t, H) {
     if (is.null(draws_list)) return(NULL)
     stopifnot(length(draws_list) == length(origins_vec))
@@ -4396,7 +4410,7 @@ write_rhs_run_summary <- function(models_dir, out_dir, cfg, p_vec, fits_fc,
   utils::write.csv(summary_df, file.path(models_dir, "rhs_run_summary.csv"), row.names = FALSE)
 }
 
-if (isTRUE(save_outputs) && identical(tolower(as.character(vb_prior_beta_type %||% "")), "rhs")) {
+if (isTRUE(save_outputs) && tolower(as.character(vb_prior_beta_type %||% "")) %in% c("rhs", "rhs_ns")) {
   write_rhs_run_summary(MODELS, out_dir, cfg, p_vec, fits_fc,
                         readout_scale, readout_scale_diag, vb_prior_beta_rhs)
 }

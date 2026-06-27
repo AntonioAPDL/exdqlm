@@ -649,7 +649,9 @@ qdesn_static_crossstudy_build_pipeline_cfg <- function(root_spec,
     ),
     lags = list(
       m_y = as.integer(lags_cfg$m_y %||% 12L)[1L],
-      m_x = as.integer(lags_cfg$m_x %||% 0L)[1L]
+      m_x = as.integer(lags_cfg$m_x %||% 0L)[1L],
+      y = if (!is.null(lags_cfg$y)) as.integer(unlist(lags_cfg$y, use.names = FALSE)) else NULL,
+      x = if (!is.null(lags_cfg$x)) as.integer(unlist(lags_cfg$x, use.names = FALSE)) else NULL
     ),
     preproc = list(
       scale_y = isTRUE(preproc_cfg$scale_y %||% TRUE),

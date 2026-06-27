@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-06-26 14:25:50.701287",
+  "report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322",
+  "cell_summary_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322/tables/qdesn_tt500_vb_dominance_cell_summary.csv",
+  "profile_ranking_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322/tables/qdesn_tt500_vb_dominance_profile_ranking.csv",
+  "diagnostic_output_paths": {
+    "top_per_cell": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322/diagnostics/qdesn_tt500_vb_targeted_refinement/tables/qdesn_tt500_vb_dominance_top_profiles_per_cell.csv",
+    "cell_gap_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322/diagnostics/qdesn_tt500_vb_targeted_refinement/tables/qdesn_tt500_vb_dominance_cell_gap_summary.csv",
+    "factor_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322/diagnostics/qdesn_tt500_vb_targeted_refinement/tables/qdesn_tt500_vb_dominance_factor_summary.csv",
+    "report": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322/diagnostics/qdesn_tt500_vb_targeted_refinement/summary/qdesn_tt500_vb_dominance_diagnostics.md",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance/qdesn-tt500-vb-dominance-period90-broad-leadfix-20260626__git-f700322/20260626-013231__git-f700322/diagnostics/qdesn_tt500_vb_targeted_refinement/manifest/qdesn_tt500_vb_dominance_diagnostics_manifest.json"
+  },
+  "materialized": {
+    "stage": "refinement",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_dominance_refinement",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance_targeted_refinement_profiles.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance_targeted_refinement_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_dominance_targeted_refinement_grid.csv",
+    "n_profiles": 120,
+    "n_grid_rows": 1080,
+    "expected_qdesn_roots": 1080
+  },
+  "top_n_per_cell": 3,
+  "max_profiles": 120,
+  "max_p_over_n": 0.5
+}
