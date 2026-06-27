@@ -75,7 +75,7 @@ delegates to \code{\link{exdqlmPlot}}. Component and state views delegate to
 data("scIVTmag", package = "exdqlm")
 old = options(exdqlm.max_iter = 15L)
 y = scIVTmag[1:80]
-trend.comp = polytrendMod(2, rep(0, 2), 10*diag(2))
+trend.comp = polytrendMod(2, rep(mean(y), 2), 10*diag(2))
 seas.comp = seasMod(365, c(1, 2), C0 = 10*diag(4))
 model = trend.comp + seas.comp
 M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 4),

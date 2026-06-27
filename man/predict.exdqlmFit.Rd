@@ -78,9 +78,10 @@ intervals (e.g., \code{0.95}).
 }
 }
 \description{
-Forecast from a fitted dynamic quantile model. This is an S3 method wrapper
-around \code{\link{exdqlmForecast}}; use \code{plot()} on the returned
-\code{exdqlmForecast} object to visualize the result.
+Computes filtered and \code{k}-step-ahead forecast quantiles from a fitted
+dynamic quantile model. The returned \code{exdqlmForecast} object can be
+printed, summarized, plotted with \code{plot()}, or passed to
+\code{\link{diagnostics}}.
 }
 \examples{
 \donttest{

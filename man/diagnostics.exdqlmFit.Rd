@@ -4,18 +4,121 @@
 \alias{diagnostics.exdqlmFit}
 \title{Diagnostics Method for Dynamic \code{exdqlmFit} Objects}
 \usage{
-\method{diagnostics}{exdqlmFit}(object, ...)
+\method{diagnostics}{exdqlmFit}(
+  object,
+  m2 = NULL,
+  plot = FALSE,
+  cols = c("red", "blue"),
+  ref = NULL,
+  crps_probs = seq(0.01, 0.99, by = 0.01),
+  crps_weights = NULL,
+  kl_k = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted dynamic \code{exdqlmFit} object.}
 
-\item{...}{Additional arguments passed to \code{\link{exdqlmDiagnostics}}.}
+\item{m2}{An optional second fitted dynamic \code{exdqlmFit} object to
+compare with \code{object}.}
+
+\item{plot}{Logical value indicating whether to immediately plot the returned
+diagnostic object as a convenience shortcut. Default is \code{FALSE}; the
+preferred workflow is to save the object and then call \code{plot()} on it.}
+
+\item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
+
+\item{ref}{Optional finite reference sample of size \code{length(object$y)} from a
+standard normal distribution. Used for the reversed KL diagnostic. When
+\code{NULL}, a deterministic standard-normal quantile grid is used.}
+
+\item{crps_probs}{Numeric vector of quantile levels used to approximate CRPS
+through the integrated quantile-score identity. Values must be strictly
+between 0 and 1. Default is \code{seq(0.01, 0.99, by = 0.01)}.}
+
+\item{crps_weights}{Optional non-negative numeric weights for \code{crps_probs}.
+When \code{NULL}, equal weights are used. When provided, weights are normalized
+to sum to 1.}
+
+\item{kl_k}{Optional positive integer vector of nearest-neighbor values used
+for the KL entropy and cross-entropy estimates. When \code{NULL}, the default
+grid \code{c(3, 5, 10, 20, 30)} is filtered to values supported by the finite
+standardized-error sample size, falling back to \code{1} for very small samples.}
 }
 \value{
+An object of class "\code{exdqlmDiagnostic}" containing the following:
+\itemize{
+\item \code{m1.uts} - The one-step-ahead distribution sequence of \code{object}.
+\item \code{m1.KL} - The forward KL normality diagnostic
+\code{KL(P_error || N(0,1))} for the MAP standardized forecast errors.
+\item \code{m1.KL.flip} - The reversed ("flipped") KL diagnostic
+\code{KL(N(0,1) || P_error)} for the MAP standardized forecast errors; this is a
+secondary sensitivity diagnostic.
+\item \code{m1.CRPS} - The mean CRPS approximated by a finite integrated
+quantile score over posterior predictive empirical quantiles.
+\item \code{m1.pplc} - The posterior predictive loss criterion of \code{object} based off the check loss function.
+\item \code{m1.qq} - The ordered pairs of the qq-plot comparing \code{m1.uts} with a standard normal distribution.
+\item \code{m1.acf} - The autocorrelations of \code{m1.uts} by lag.
+\item \code{m1.rt} - Run-time of the original model \code{m1} in seconds.
+\item \code{m1.msfe} - MAP standardized one-step-ahead forecast errors from the original model \code{m1}.
+\item \code{y} - The original time-series used to fit \code{object}.
+\item \code{crps.method} - The CRPS approximation method.
+\item \code{crps.probs} - The quantile levels used for the CRPS approximation.
+\item \code{crps.weights} - The normalized weights used for the CRPS approximation.
+\item \code{kl.method}, \code{kl.k}, \code{kl.aggregate}, and \code{kl.reference} - KL estimator
+metadata.
+\item \code{kl.n_finite}, \code{kl.n_ref}, and \code{kl.zero_distance_count} - KL diagnostic
+sample-size and distance-floor metadata.
+\item \code{kl.details} - Advanced KL estimator details by model. For each model
+this includes primary/flipped definitions, by-\code{k} sensitivity tables, a
+Gaussian plug-in check, and estimator metadata.
+}
+If \code{m2} is provided, analogous results for \code{m2} are also included in the list.
+
 An object of class \code{exdqlmDiagnostic}.
 }
 \description{
-Diagnostics for a fitted dynamic quantile model. This is an S3 method wrapper
-around \code{\link{exdqlmDiagnostics}}; use \code{plot()} on the returned
-\code{exdqlmDiagnostic} object to visualize the result.
+Diagnostics for a fitted dynamic quantile model. The function computes the following for the model(s) provided: the posterior
+predictive loss criterion based off the check loss, the CRPS approximated as
+a finite integrated quantile score over posterior predictive empirical
+quantiles, the one-step-ahead distribution sequence, and deterministic
+semiclosed KL normality diagnostics for the MAP standardized forecast errors.
+The returned diagnostic object can be printed, summarized, or plotted with
+standard methods. Calling \code{plot()} on the object produces the QQ plot and
+ACF plot corresponding to the one-step-ahead distribution sequence, together
+with a time series plot of the MAP standard forecast errors.
+}
+\details{
+The primary KL summary is computed from the MAP standardized one-step-ahead
+forecast errors \code{map.standard.forecast.errors}. The reported \code{KL} value is
+the user-facing calibration diagnostic and estimates
+\eqn{KL(P_e || N(0,1))}, where \eqn{P_e} is the continuous diagnostic-error
+law represented by the standardized errors. It uses the semiclosed identity
+\eqn{KL(P_e || N(0,1)) = CE(P_e, N(0,1)) - H(P_e)}, with the normal
+cross-entropy term evaluated analytically and the entropy estimated by a
+one-dimensional k-nearest-neighbor estimator. The reported \code{KL.flip}
+estimates the reversed diagnostic \eqn{KL(N(0,1) || P_e)} using kNN
+cross-entropy. The reversed direction is more sensitive and should be read as
+a secondary sensitivity diagnostic, not as a replacement for \code{KL}. Advanced
+by-\code{k} sensitivity tables and Gaussian plug-in checks are stored under
+\code{kl.details} so the top-level diagnostic object exposes a single primary KL
+value. Negative finite-sample estimates are not clamped; they indicate
+estimator bias or instability for the current sample.
+}
+\examples{
+\donttest{
+data("scIVTmag", package = "exdqlm")
+old = options(exdqlm.max_iter = 15L)
+y = scIVTmag[1:60]
+model = polytrendMod(1, stats::quantile(y, 0.85), 10)
+M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
+                  gam.init = -3.5, sig.init = 15,
+                  n.samp = 20, tol = 0.2, verbose = FALSE)
+M0.diags = diagnostics(M0)
+M0.diags
+plot(M0.diags)
+options(old)
+}
+
+
 }
