@@ -17,7 +17,7 @@ forecast is added to an existing plot.}
 Invisibly returns \code{x}.
 }
 \description{
-Plot Method for \code{exdqlmForecast} Objects
+Plot filtered and forecast quantiles with equal–tailed credible intervals.
 }
 \examples{
 \donttest{

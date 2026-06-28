@@ -75,6 +75,7 @@ summary.exalStaticDiagnostic <- function(object, ...) {
 }
 
 #' Plot Method for \code{exalStaticDiagnostic} Objects
+#' 
 #'
 #' @param x An \code{exalStaticDiagnostic} object.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot

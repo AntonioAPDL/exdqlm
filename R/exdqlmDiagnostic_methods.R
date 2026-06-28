@@ -103,6 +103,10 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 }
 
 #' Plot Method for \code{exdqlmDiagnostic} Objects
+#' 
+#' This function produces the QQ plot and
+#' ACF plot corresponding to the one-step-ahead distribution sequence, together
+#' with a time series plot of the MAP standard forecast errors. 
 #'
 #' @param x An \code{exdqlmDiagnostic} object.
 #' @param ... Additional graphical arguments. The optional \code{cols} element

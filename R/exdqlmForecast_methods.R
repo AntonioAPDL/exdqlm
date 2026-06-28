@@ -94,6 +94,8 @@ summary.exdqlmForecast <- function(object, ...) {
 }
 
 #' Plot Method for \code{exdqlmForecast} Objects
+#' 
+#' Plot filtered and forecast quantiles with equal–tailed credible intervals.
 #'
 #' @param x An \code{exdqlmForecast} object.
 #' @param ... Additional graphical arguments. The optional \code{cols} element
