@@ -59,7 +59,7 @@ return when \code{return.draws = TRUE}. If omitted, all available posterior
 generation when \code{return.draws = TRUE}. If provided, the previous
 \proglang{R} RNG state is restored on exit.}
 
-\item{...}{Additional arguments.}
+\item{...}{Additional arguments (unused).}
 }
 \value{
 An object of class "\code{exdqlmForecast}" containing the following:

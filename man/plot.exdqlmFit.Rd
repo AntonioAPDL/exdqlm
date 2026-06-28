@@ -66,9 +66,11 @@ Invisibly returns a list of the following:
 }
 \description{
 Plot fitted dynamic quantiles, fitted component contributions, or individual
-state elements from a dynamic fit. The default \code{type = "quantile"}
-delegates to \code{\link{exdqlmPlot}}. Component and state views delegate to
-\code{\link{compPlot}}.
+state elements from a dynamic fit. The default \code{type = "quantile"},
+plots the MAP estimates and 95\% credible intervals (CrIs) of the dynamic
+quantile. \code{type = "component"} plots the MAP estimates and CrIs for a
+specified component. \code{type = "state"} plots the MAP estimates and CrIs
+of a single element of the dynamic state vector.
 }
 \examples{
 \donttest{

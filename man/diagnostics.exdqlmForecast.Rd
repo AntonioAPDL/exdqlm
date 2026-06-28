@@ -4,22 +4,68 @@
 \alias{diagnostics.exdqlmForecast}
 \title{Diagnostics Method for \code{exdqlmForecast} Objects}
 \usage{
-\method{diagnostics}{exdqlmForecast}(object, ...)
+\method{diagnostics}{exdqlmForecast}(
+  object,
+  y,
+  m2 = NULL,
+  p0 = NULL,
+  crps_probs = seq(0.01, 0.99, by = 0.01),
+  crps_weights = NULL,
+  ...
+)
 }
 \arguments{
-\item{object}{An \code{exdqlmForecast} object.}
+\item{object}{An \code{exdqlmForecast} object, returned by
+\code{\link[=exdqlmForecast]{exdqlmForecast()}} with \code{return.draws = TRUE}.}
 
-\item{...}{Additional graphical arguments. The optional \code{cols} element
-controls fitted/forecast colors, and \code{add} controls whether the
-forecast is added to an existing plot.}
+\item{y}{Required numeric vector or time series of held-out observations. Its length
+must equal the forecast horizon.}
+
+\item{m2}{An optional second object of class "\code{exdqlmForecast}" to
+compare with \code{object}.}
+
+\item{p0}{Optional quantile level used for the check-loss calculation. When
+\code{NULL}, the value is taken from \code{object$m1$p0}. If \code{m2} is
+supplied, its fitted quantile level must agree with the resolved value.}
+
+\item{crps_probs}{Optional numeric vector of quantile levels used to approximate CRPS
+through the integrated quantile-score identity. Values must be strictly
+between 0 and 1. Default is \code{seq(0.01, 0.99, by = 0.01)}.}
+
+\item{crps_weights}{Optional non-negative numeric weights for
+\code{crps_probs}. When \code{NULL}, equal weights are used. When provided,
+weights are normalized to sum to 1.}
+
+\item{...}{Additional arguments (unused).}
 }
 \value{
-An object of class \code{exdqlmForecastDiagnostic}.
+An object of class "\code{exdqlmForecastDiagnostic}" containing:
+\itemize{
+\item \code{y} - Held-out observations used for scoring.
+\item \code{p0} - Quantile level used for check loss.
+\item \code{horizon} - Forecast horizon.
+\item \code{m1.check_loss} - Mean target-quantile check loss for
+\code{m1}.
+\item \code{m1.CRPS} - Mean CRPS approximation for \code{m1}.
+\item \code{m1.pointwise} - Pointwise held-out scores for \code{m1}.
+\item \code{crps.method}, \code{crps.probs}, and \code{crps.weights} -
+CRPS approximation metadata.
+}
+If \code{m2} is supplied, analogous \code{m2.*} fields are included.
 }
 \description{
-Diagnostics for \code{k}-step-ahead forecast quantiles from a fitted
-dynamic quantile model. This is an S3 method wrapper
-around \code{\link{exdqlmForecastDiagnostics}}.
+Computes held-out forecast scores from one or two \code{exdqlmForecast}
+objects returned by \code{\link[=exdqlmForecast]{exdqlmForecast()}}. This function evaluates posterior
+predictive forecast draws against observations reserved outside the fitted sample.
+}
+\details{
+The check loss is computed at the target quantile level \code{p0} using the
+forecast quantile means \code{ff} stored in each forecast object. CRPS is
+computed from \code{samp.fore} using the same finite integrated quantile-score
+approximation used by \code{\link[=exdqlmDiagnostics]{exdqlmDiagnostics()}}. This function does not compute
+KL diagnostics because KL in \pkg{exdqlm} is defined for fitted
+one-step-ahead MAP standardized forecast errors, not for arbitrary held-out
+forecast draws.
 }
 \examples{
 \donttest{

@@ -215,9 +215,11 @@ summary.exdqlmFit <- function(object, ...) {
 #' Plot Method for Dynamic \code{exdqlmFit} Objects
 #'
 #' Plot fitted dynamic quantiles, fitted component contributions, or individual
-#' state elements from a dynamic fit. The default \code{type = "quantile"}
-#' delegates to \code{\link{exdqlmPlot}}. Component and state views delegate to
-#' \code{\link{compPlot}}.
+#' state elements from a dynamic fit. The default \code{type = "quantile"}, 
+#' plots the MAP estimates and 95% credible intervals (CrIs) of the dynamic 
+#' quantile. \code{type = "component"} plots the MAP estimates and CrIs for a 
+#' specified component. \code{type = "state"} plots the MAP estimates and CrIs 
+#' of a single element of the dynamic state vector.
 #'
 #' @param x A fitted dynamic \code{exdqlmFit} object.
 #' @param type Character string specifying the plot type. Use
@@ -314,7 +316,7 @@ plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"), index 
 #' @param seed Optional integer random seed used only for forecast-draw
 #'   generation when \code{return.draws = TRUE}. If provided, the previous
 #'   \proglang{R} RNG state is restored on exit.
-#' @param ... Additional arguments.
+#' @param ... Additional arguments (unused).
 #'
 #' @return An object of class "\code{exdqlmForecast}" containing the following:
 #' \itemize{
@@ -357,7 +359,7 @@ predict.exdqlmFit <- function(object, start.t, k, fFF = NULL, fGG = NULL,
     start.t = start.t, k = k, m1 = object,
     fFF = fFF, fGG = fGG, plot = plot,
     add = add, cols = cols, cr.percent = cr.percent, 
-    return.draws = return.draws, n.samp = n.samp, seed = seed, ...)
+    return.draws = return.draws, n.samp = n.samp, seed = seed)
 }
 
 #' Diagnostics Method for Dynamic \code{exdqlmFit} Objects
@@ -392,6 +394,7 @@ predict.exdqlmFit <- function(object, start.t, k, fFF = NULL, fGG = NULL,
 #'   for the KL entropy and cross-entropy estimates. When `NULL`, the default
 #'   grid `c(3, 5, 10, 20, 30)` is filtered to values supported by the finite
 #'   standardized-error sample size, falling back to `1` for very small samples.
+#' @param ... Additional arguments (unused).
 #'
 #' @details
 #' The primary KL summary is computed from the MAP standardized one-step-ahead
@@ -465,7 +468,7 @@ diagnostics.exdqlmFit <- function(object, m2 = NULL, plot = FALSE, cols = c("red
   
   exdqlmDiagnostics(object, m2 = m2, plot = plot, cols = cols, ref = ref,
                     crps_probs = crps_probs, crps_weights = crps_weights,
-                    kl_k = kl_k, ...)
+                    kl_k = kl_k)
 }
 
 

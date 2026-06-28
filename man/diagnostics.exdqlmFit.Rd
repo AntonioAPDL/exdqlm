@@ -44,6 +44,8 @@ to sum to 1.}
 for the KL entropy and cross-entropy estimates. When \code{NULL}, the default
 grid \code{c(3, 5, 10, 20, 30)} is filtered to values supported by the finite
 standardized-error sample size, falling back to \code{1} for very small samples.}
+
+\item{...}{Additional arguments (unused).}
 }
 \value{
 An object of class "\code{exdqlmDiagnostic}" containing the following:
