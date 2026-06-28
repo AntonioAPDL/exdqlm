@@ -1963,7 +1963,10 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
                                                                          grid_out,
                                                                          workers = 20L,
                                                                          refresh_grid = TRUE,
-                                                                         refresh_materialized = FALSE) {
+                                                                         refresh_materialized = FALSE,
+                                                                         stage_stub = "qdesn_dynamic_fitforecast_v2_tt500_vb_forecast_targeted",
+                                                                         stage_desc = "Q-DESN TT500 VB cell-specific forecast-targeted screen over selected family x tau assignments.",
+                                                                         stage = "forecast_targeted") {
   if (!is.list(plan) || !is.data.frame(plan$profiles) || !nrow(plan$profiles) ||
       !is.data.frame(plan$assignments) || !nrow(plan$assignments)) {
     stop("plan must contain non-empty `profiles` and `assignments` data frames.", call. = FALSE)
@@ -1975,14 +1978,21 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   grid_out <- .qdesn_validation_resolve_path(grid_out, must_work = FALSE)
   workers <- as.integer(workers)[1L]
   if (!is.finite(workers) || workers < 1L) workers <- 20L
-  stage_stub <- "qdesn_dynamic_fitforecast_v2_tt500_vb_forecast_targeted"
-  stage_desc <- "Q-DESN TT500 VB cell-specific forecast-targeted screen over selected family x tau assignments."
+  stage_stub <- as.character(stage_stub)[1L]
+  stage_desc <- as.character(stage_desc)[1L]
+  stage <- as.character(stage)[1L]
 
   .qdesn_validation_write_df(plan$profiles, profiles_out)
   .qdesn_validation_write_df(plan$assignments, assignments_out)
   selected_cell_keys <- unique(paste(plan$assignments$family, .qdesn_dynamic_fitforecast_tau_key(plan$assignments$tau), sep = "\r"))
-  canonical_root_count <- nrow(plan$profiles) * length(selected_cell_keys)
   defaults <- yaml::read_yaml(base_defaults_path)
+  existing_expected_cells <- suppressWarnings(as.integer((defaults$reference_contract %||% list())$expected_unique_dataset_cells %||% NA_integer_)[1L])
+  canonical_dataset_cell_count <- if (is.finite(existing_expected_cells) && existing_expected_cells > 0L) {
+    existing_expected_cells
+  } else {
+    length(selected_cell_keys)
+  }
+  canonical_root_count <- nrow(plan$profiles) * canonical_dataset_cell_count
   defaults$campaign <- defaults$campaign %||% list()
   defaults$campaign$name <- stage_stub
   defaults$campaign$results_root <- file.path("results", "qdesn_mcmc_validation", stage_stub)
@@ -1998,11 +2008,11 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   defaults$screening_profiles$design <- sprintf("%s Profiles: %d; selected cell-profile assignments: %d.", stage_desc, nrow(plan$profiles), nrow(plan$assignments))
   defaults$screening_profiles$execution_grid_policy <- "cell_specific_subset_grid"
   defaults$screening_profiles$canonical_profile_count <- nrow(plan$profiles)
-  defaults$screening_profiles$canonical_dataset_cell_count <- length(selected_cell_keys)
+  defaults$screening_profiles$canonical_dataset_cell_count <- canonical_dataset_cell_count
   defaults$screening_profiles$canonical_qdesn_root_count <- canonical_root_count
   defaults$screening_profiles$selected_assignment_root_count <- nrow(plan$assignments)
   defaults$reference_contract <- defaults$reference_contract %||% list()
-  defaults$reference_contract$expected_unique_dataset_cells <- length(selected_cell_keys)
+  defaults$reference_contract$expected_unique_dataset_cells <- canonical_dataset_cell_count
   defaults$reference_contract$expected_qdesn_roots <- canonical_root_count
   defaults$reference_contract$expected_selected_qdesn_roots <- nrow(plan$assignments)
   defaults$runtime <- defaults$runtime %||% list()
@@ -2064,7 +2074,7 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
     .qdesn_validation_write_df(assignment_with_roots, assignments_out)
   }
   list(
-    stage = "forecast_targeted",
+    stage = stage,
     stage_stub = stage_stub,
     profiles_path = profiles_out,
     assignments_path = assignments_out,
@@ -2078,6 +2088,351 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
     selected_families = sort(unique(as.character(plan$assignments$family))),
     selected_taus = sort(unique(as.numeric(plan$assignments$tau))),
     missing_assignments = as.list(missing_assignments)
+  )
+}
+
+.qdesn_dynamic_fitforecast_ratio_cols <- function() {
+  c(
+    "forecast_mae_ratio_vs_best_vb_baseline",
+    "forecast_pinball_ratio_vs_best_vb_baseline",
+    "fit_rmse_ratio_vs_best_vb_baseline",
+    "fit_pinball_ratio_vs_best_vb_baseline"
+  )
+}
+
+.qdesn_dynamic_fitforecast_beats_all_primary <- function(df) {
+  ratio_cols <- intersect(.qdesn_dynamic_fitforecast_ratio_cols(), names(df))
+  if (length(ratio_cols) == 4L) {
+    return(rowSums(df[ratio_cols] < 1, na.rm = FALSE) == 4L)
+  }
+  if ("beats_all_primary_baselines" %in% names(df)) {
+    return(as.logical(df$beats_all_primary_baselines))
+  }
+  rep(FALSE, nrow(df))
+}
+
+qdesn_dynamic_fitforecast_stage3_forecast_bias_profile_plan <- function(cell_summary_path,
+                                                                        source_profiles_path = NULL,
+                                                                        screening_wave = paste0("stage3_forecast_bias_", format(Sys.Date(), "%Y_%m_%d")),
+                                                                        max_p_over_n = 0.50,
+                                                                        target_profiles_per_cell = 48L,
+                                                                        x_feature_count = 5L,
+                                                                        seed = 123L) {
+  cell_summary_path <- .qdesn_validation_resolve_path(cell_summary_path, must_work = TRUE)
+  cell <- utils::read.csv(cell_summary_path, stringsAsFactors = FALSE, check.names = FALSE)
+  if (!nrow(cell)) stop(sprintf("Dominance cell summary is empty: %s", cell_summary_path), call. = FALSE)
+  if (!all(c("family", "tau") %in% names(cell))) {
+    stop("Dominance cell summary must contain `family` and `tau`.", call. = FALSE)
+  }
+  id_col <- .qdesn_dynamic_fitforecast_metric_col(cell, c("screening_profile_base", "screening_profile_id_representative"))
+  if (is.na(id_col)) stop("Dominance cell summary is missing a profile identifier column.", call. = FALSE)
+  cell$screening_profile_base <- as.character(cell[[id_col]])
+  cell$family <- as.character(cell$family)
+  cell$tau <- as.numeric(cell$tau)
+  cell <- .qdesn_dynamic_fitforecast_join_profile_registry(cell, source_profiles_path)
+  cell <- .qdesn_dynamic_fitforecast_fill_profile_metadata(cell)
+  cell$primary_worst_ratio_vs_baseline <- .qdesn_dynamic_fitforecast_primary_worst_ratio(cell)
+  cell$beats_all_primary <- .qdesn_dynamic_fitforecast_beats_all_primary(cell)
+
+  key <- paste(cell$family, .qdesn_dynamic_fitforecast_tau_key(cell$tau), sep = "\r")
+  cell_plan <- .qdesn_validation_bind_rows(lapply(split(seq_len(nrow(cell)), key), function(idx) {
+    sub <- cell[idx, , drop = FALSE]
+    sub <- sub[order(sub$primary_worst_ratio_vs_baseline, sub$screening_profile_base), , drop = FALSE]
+    best <- sub[1L, , drop = FALSE]
+    worst <- as.numeric(best$primary_worst_ratio_vs_baseline[[1L]])
+    ratio_cols <- .qdesn_dynamic_fitforecast_ratio_cols()
+    bottleneck <- names(which.max(c(
+      forecast_mae = as.numeric(best$forecast_mae_ratio_vs_best_vb_baseline %||% NA_real_)[1L],
+      forecast_pinball = as.numeric(best$forecast_pinball_ratio_vs_best_vb_baseline %||% NA_real_)[1L],
+      fit_rmse = as.numeric(best$fit_rmse_ratio_vs_best_vb_baseline %||% NA_real_)[1L],
+      fit_pinball = as.numeric(best$fit_pinball_ratio_vs_best_vb_baseline %||% NA_real_)[1L]
+    )))[1L]
+    data.frame(
+      family = best$family[[1L]],
+      tau = as.numeric(best$tau[[1L]]),
+      cell_status = .qdesn_dynamic_fitforecast_cell_status(worst),
+      target_profiles = as.integer(target_profiles_per_cell)[1L],
+      current_best_profile = best$screening_profile_base[[1L]],
+      current_best_worst_ratio = worst,
+      current_best_forecast_mae_ratio = as.numeric(best$forecast_mae_ratio_vs_best_vb_baseline %||% NA_real_)[1L],
+      current_best_forecast_pinball_ratio = as.numeric(best$forecast_pinball_ratio_vs_best_vb_baseline %||% NA_real_)[1L],
+      current_best_fit_rmse_ratio = as.numeric(best$fit_rmse_ratio_vs_best_vb_baseline %||% NA_real_)[1L],
+      current_best_fit_pinball_ratio = as.numeric(best$fit_pinball_ratio_vs_best_vb_baseline %||% NA_real_)[1L],
+      n_profiles_evaluated = nrow(sub),
+      n_profiles_beating_all_primary = sum(sub$beats_all_primary, na.rm = TRUE),
+      needs_stage3 = !any(sub$beats_all_primary, na.rm = TRUE),
+      bottleneck_metric = bottleneck,
+      stringsAsFactors = FALSE
+    )
+  }))
+  cell_plan <- cell_plan[cell_plan$needs_stage3, , drop = FALSE]
+  if (!nrow(cell_plan)) {
+    stop("No family x tau cell needs Stage 3 forecast-bias rescue; every cell already has a primary-baseline-dominating profile.", call. = FALSE)
+  }
+  status_order <- c(extreme_hard = 1L, hard = 2L, near_pass = 3L, sentinel = 4L, unknown = 5L)
+  cell_plan$priority <- unname(status_order[cell_plan$cell_status])
+  cell_plan$priority[!is.finite(cell_plan$priority)] <- 99L
+  cell_plan <- cell_plan[order(cell_plan$priority, -cell_plan$current_best_worst_ratio, cell_plan$family, cell_plan$tau), , drop = FALSE]
+  cell_plan$priority_rank <- seq_len(nrow(cell_plan))
+
+  ar_by_cell <- function(family, tau, best_alpha, best_rho) {
+    if (identical(family, "normal")) {
+      base <- data.frame(
+        alpha = c(0.01, 0.02, 0.03, 0.05, 0.10, 0.20, 0.30),
+        rho = c(0.35, 0.45, 0.50, 0.60, 0.70, 0.80, 0.85),
+        stringsAsFactors = FALSE
+      )
+    } else {
+      base <- data.frame(
+        alpha = c(0.01, 0.02, 0.03, 0.05, 0.10, 0.20),
+        rho = c(0.35, 0.45, 0.50, 0.60, 0.70, 0.80),
+        stringsAsFactors = FALSE
+      )
+    }
+    anchor <- data.frame(alpha = as.numeric(best_alpha)[1L], rho = as.numeric(best_rho)[1L])
+    out <- unique(rbind(anchor[is.finite(anchor$alpha) & is.finite(anchor$rho), , drop = FALSE], base))
+    out$ar_priority <- seq_len(nrow(out))
+    out
+  }
+  depth_by_cell <- function(family, tau, best_D, best_n) {
+    if (identical(family, "normal") && tau >= 0.50) {
+      base <- data.frame(D = c(1L, 1L, 1L, 2L, 2L), n_each = c(20L, 30L, 40L, 20L, 30L))
+    } else if (identical(family, "normal")) {
+      base <- data.frame(D = c(1L, 1L, 2L, 2L, 1L), n_each = c(20L, 30L, 20L, 30L, 40L))
+    } else {
+      base <- data.frame(D = c(1L, 1L, 2L, 2L, 1L), n_each = c(30L, 40L, 20L, 30L, 50L))
+    }
+    anchor <- data.frame(D = as.integer(best_D)[1L], n_each = as.integer(best_n)[1L])
+    out <- unique(rbind(anchor[is.finite(anchor$D) & is.finite(anchor$n_each), , drop = FALSE], base))
+    out <- out[is.finite(out$D) & is.finite(out$n_each) & out$D %in% c(1L, 2L) & out$n_each %in% c(20L, 30L, 40L, 50L), , drop = FALSE]
+    out$depth_priority <- seq_len(nrow(out))
+    out
+  }
+  readout_by_cell <- function(family, tau, best_m, best_lag) {
+    vals <- if (identical(family, "normal")) c(15L, 30L, 45L, 60L, 90L) else c(15L, 30L, 60L, 90L)
+    anchor <- as.integer(c(best_m, best_lag))
+    vals <- unique(c(vals, anchor[is.finite(anchor) & anchor > 0L & anchor <= 90L]))
+    data.frame(m = vals, readout_y_lags = vals, readout_priority = seq_along(vals))
+  }
+  sparsity_by_cell <- function(family, tau) {
+    if (identical(family, "normal")) {
+      out <- data.frame(
+        profile_role = c("stage3_fast_sparse", "stage3_fast_input", "stage3_balanced_input", "stage3_input_rich", "stage3_reservoir_lag"),
+        pi_w = c(0.03, 0.05, 0.10, 0.10, 0.20),
+        pi_in = c(0.30, 0.80, 0.50, 1.00, 0.80),
+        reservoir_lags = c(0L, 0L, 0L, 0L, 1L),
+        stringsAsFactors = FALSE
+      )
+    } else {
+      out <- data.frame(
+        profile_role = c("stage3_fast_sparse", "stage3_fast_input", "stage3_balanced_input", "stage3_reservoir_lag"),
+        pi_w = c(0.03, 0.05, 0.10, 0.20),
+        pi_in = c(0.30, 0.80, 0.50, 0.80),
+        reservoir_lags = c(0L, 0L, 0L, 1L),
+        stringsAsFactors = FALSE
+      )
+    }
+    out$sparsity_priority <- seq_len(nrow(out))
+    out
+  }
+  make_row <- function(D,
+                       n_each,
+                       alpha,
+                       rho,
+                       m,
+                       readout_y_lags,
+                       pi_w,
+                       pi_in,
+                       reservoir_lags,
+                       profile_role,
+                       source_family,
+                       source_tau,
+                       source_status,
+                       source_profile,
+                       source_worst_ratio,
+                       ar_priority = NA_integer_,
+                       depth_priority = NA_integer_,
+                       readout_priority = NA_integer_,
+                       sparsity_priority = NA_integer_) {
+    row <- qdesn_dynamic_fitforecast_profile_row(
+      D = D,
+      n_each = n_each,
+      alpha = alpha,
+      rho = rho,
+      screening_stage = "vb_stage3_forecast_bias_rescue",
+      screening_wave = screening_wave,
+      profile_role = profile_role,
+      rhs_tau0 = 1e-4,
+      m = m,
+      pi_w = pi_w,
+      pi_in = pi_in,
+      washout = 300L,
+      add_bias = TRUE,
+      seed = seed,
+      readout_y_lags = readout_y_lags,
+      reservoir_lags = reservoir_lags
+    )
+    row$x_feature_count <- as.integer(x_feature_count)[1L]
+    row$dimension_p_estimate <- as.integer(row$dimension_p_estimate + row$x_feature_count)
+    row$p_over_n_tt500 <- as.numeric(row$dimension_p_estimate / 500)
+    row$screening_profile_id <- .qdesn_dynamic_fitforecast_dominance_profile_id(
+      D = row$D,
+      n_each = row$n_each,
+      alpha = row$alpha,
+      rho = row$rho,
+      m = row$m,
+      readout_y_lags = row$readout_y_lags,
+      reservoir_lags = row$reservoir_lags,
+      pi_w = row$pi_w,
+      pi_in = row$pi_in,
+      prefix = "tt500vb_f3"
+    )
+    row$target_family <- as.character(source_family)[1L]
+    row$target_tau <- as.numeric(source_tau)[1L]
+    row$target_cell_status <- as.character(source_status)[1L]
+    row$target_source_profile <- as.character(source_profile)[1L]
+    row$target_source_worst_ratio <- as.numeric(source_worst_ratio)[1L]
+    row$target_ar_priority <- as.integer(ar_priority)[1L]
+    row$target_depth_priority <- as.integer(depth_priority)[1L]
+    row$target_readout_priority <- as.integer(readout_priority)[1L]
+    row$target_sparsity_priority <- as.integer(sparsity_priority)[1L]
+    row
+  }
+
+  candidates <- list()
+  assignments <- list()
+  for (i in seq_len(nrow(cell_plan))) {
+    b <- cell_plan[i, , drop = FALSE]
+    seed_row <- cell[cell$family == b$family[[1L]] & abs(cell$tau - b$tau[[1L]]) < 1e-8 &
+                       cell$screening_profile_base == b$current_best_profile[[1L]], , drop = FALSE]
+    if (!nrow(seed_row)) next
+    s <- seed_row[1L, , drop = FALSE]
+    ar <- ar_by_cell(b$family[[1L]], b$tau[[1L]], s$alpha, s$rho)
+    depth <- depth_by_cell(b$family[[1L]], b$tau[[1L]], s$D, s$n_each)
+    readout <- readout_by_cell(b$family[[1L]], b$tau[[1L]], s$m %||% 30L, s$readout_y_lags %||% 30L)
+    sparsity <- sparsity_by_cell(b$family[[1L]], b$tau[[1L]])
+    cell_rows <- list()
+    cell_rows[[length(cell_rows) + 1L]] <- make_row(
+      D = s$D, n_each = s$n_each, alpha = s$alpha, rho = s$rho,
+      m = s$m %||% 30L, readout_y_lags = s$readout_y_lags %||% 30L,
+      pi_w = s$pi_w %||% 0.05, pi_in = s$pi_in %||% 0.30,
+      reservoir_lags = s$reservoir_lags %||% 0L,
+      profile_role = paste0("stage3_anchor_", b$cell_status[[1L]]),
+      source_family = b$family, source_tau = b$tau, source_status = b$cell_status,
+      source_profile = b$current_best_profile, source_worst_ratio = b$current_best_worst_ratio,
+      ar_priority = 0L, depth_priority = 0L, readout_priority = 0L, sparsity_priority = 0L
+    )
+    for (ri in seq_len(nrow(readout))) {
+      for (si in seq_len(nrow(sparsity))) {
+        for (ai in seq_len(nrow(ar))) {
+          for (di in seq_len(nrow(depth))) {
+            cell_rows[[length(cell_rows) + 1L]] <- make_row(
+              D = depth$D[[di]],
+              n_each = depth$n_each[[di]],
+              alpha = ar$alpha[[ai]],
+              rho = ar$rho[[ai]],
+              m = readout$m[[ri]],
+              readout_y_lags = readout$readout_y_lags[[ri]],
+              pi_w = sparsity$pi_w[[si]],
+              pi_in = sparsity$pi_in[[si]],
+              reservoir_lags = sparsity$reservoir_lags[[si]],
+              profile_role = sparsity$profile_role[[si]],
+              source_family = b$family,
+              source_tau = b$tau,
+              source_status = b$cell_status,
+              source_profile = b$current_best_profile,
+              source_worst_ratio = b$current_best_worst_ratio,
+              ar_priority = ar$ar_priority[[ai]],
+              depth_priority = depth$depth_priority[[di]],
+              readout_priority = readout$readout_priority[[ri]],
+              sparsity_priority = sparsity$sparsity_priority[[si]]
+            )
+          }
+        }
+      }
+    }
+    cell_df <- .qdesn_validation_bind_rows(cell_rows)
+    cell_df <- cell_df[is.finite(as.numeric(cell_df$p_over_n_tt500)) &
+                         as.numeric(cell_df$p_over_n_tt500) <= as.numeric(max_p_over_n), , drop = FALSE]
+    cell_df <- cell_df[!duplicated(as.character(cell_df$screening_profile_id)), , drop = FALSE]
+    if (!nrow(cell_df)) stop(sprintf("Stage 3 forecast-bias plan produced no candidates for %s tau %.2f.", b$family, b$tau), call. = FALSE)
+    cell_df$target_sort_score <- ifelse(grepl("^stage3_anchor_", cell_df$profile_role), -100, 0) +
+      0.001 * as.numeric(cell_df$target_depth_priority %||% 99L) +
+      0.01 * as.numeric(cell_df$target_ar_priority %||% 99L) +
+      0.1 * as.numeric(cell_df$target_sparsity_priority %||% 99L) +
+      as.numeric(cell_df$target_readout_priority %||% 99L) +
+      as.numeric(cell_df$p_over_n_tt500)
+    cell_df <- cell_df[order(cell_df$target_sort_score, cell_df$screening_profile_id), , drop = FALSE]
+    keep_n <- min(as.integer(b$target_profiles[[1L]]), nrow(cell_df))
+    cell_df <- utils::head(cell_df, keep_n)
+    cell_df$target_cell_profile_rank <- seq_len(nrow(cell_df))
+    candidates[[length(candidates) + 1L]] <- cell_df
+    assignments[[length(assignments) + 1L]] <- data.frame(
+      family = as.character(b$family[[1L]]),
+      tau = as.numeric(b$tau[[1L]]),
+      cell_status = as.character(b$cell_status[[1L]]),
+      priority_rank = as.integer(b$priority_rank[[1L]]),
+      target_profile_rank = as.integer(cell_df$target_cell_profile_rank),
+      screening_profile_id = as.character(cell_df$screening_profile_id),
+      source_profile = as.character(b$current_best_profile[[1L]]),
+      source_worst_ratio = as.numeric(b$current_best_worst_ratio[[1L]]),
+      bottleneck_metric = as.character(b$bottleneck_metric[[1L]]),
+      stringsAsFactors = FALSE
+    )
+  }
+  candidate_ledger <- .qdesn_validation_bind_rows(candidates)
+  assignment_ledger <- .qdesn_validation_bind_rows(assignments)
+  if (!nrow(candidate_ledger) || !nrow(assignment_ledger)) {
+    stop("Stage 3 forecast-bias planner produced no profiles or assignments.", call. = FALSE)
+  }
+  split_idx <- split(seq_len(nrow(candidate_ledger)), as.character(candidate_ledger$screening_profile_id))
+  profiles <- .qdesn_validation_bind_rows(lapply(split_idx, function(idx) {
+    sub <- candidate_ledger[idx, , drop = FALSE]
+    sub <- sub[order(sub$target_sort_score, -as.numeric(sub$target_source_worst_ratio), sub$screening_profile_id), , drop = FALSE]
+    row <- sub[1L, , drop = FALSE]
+    row$target_cells <- paste(unique(paste(sub$target_family, sprintf("%.2f", as.numeric(sub$target_tau)), sep = ":")), collapse = ";")
+    row$target_cell_statuses <- paste(unique(as.character(sub$target_cell_status)), collapse = ";")
+    row$target_source_profiles <- paste(unique(as.character(sub$target_source_profile)), collapse = ";")
+    finite_ratios <- as.numeric(sub$target_source_worst_ratio)
+    finite_ratios <- finite_ratios[is.finite(finite_ratios)]
+    row$target_source_best_worst_ratio <- if (length(finite_ratios)) min(finite_ratios) else NA_real_
+    row$target_source_max_worst_ratio <- if (length(finite_ratios)) max(finite_ratios) else NA_real_
+    row
+  }))
+  profiles <- profiles[order(profiles$target_sort_score, profiles$screening_profile_id), , drop = FALSE]
+  profiles$enabled <- TRUE
+  profiles$stage3_profile_rank <- seq_len(nrow(profiles))
+  rownames(profiles) <- NULL
+  assignment_ledger$assignment_key <- paste(
+    assignment_ledger$screening_profile_id,
+    assignment_ledger$family,
+    .qdesn_dynamic_fitforecast_tau_key(assignment_ledger$tau),
+    sep = "\r"
+  )
+  if (anyDuplicated(assignment_ledger$assignment_key)) {
+    assignment_ledger <- assignment_ledger[!duplicated(assignment_ledger$assignment_key), , drop = FALSE]
+  }
+  assignment_ledger$assignment_id <- sprintf("stage3_cell_%04d", seq_len(nrow(assignment_ledger)))
+  list(
+    cell_summary_path = cell_summary_path,
+    source_profiles_path = source_profiles_path %||% NA_character_,
+    cell_plan = cell_plan,
+    candidate_ledger = candidate_ledger,
+    profiles = profiles,
+    assignments = assignment_ledger,
+    manifest = list(
+      generated_at = as.character(Sys.time()),
+      screening_wave = screening_wave,
+      max_p_over_n = as.numeric(max_p_over_n)[1L],
+      target_profiles_per_cell = as.integer(target_profiles_per_cell)[1L],
+      n_cells = nrow(cell_plan),
+      cell_status_counts = as.list(table(cell_plan$cell_status)),
+      n_candidate_rows = nrow(candidate_ledger),
+      n_profiles = nrow(profiles),
+      n_assignments = nrow(assignment_ledger),
+      source_contract_note = "Stage 3 profiles use m/readout_y_lags <= 90 and remain compatible with the period90/m90/w300 TT500 source materialization.",
+      rationale = "Repair cells with no Q-DESN VB profile beating the best DQLM/exDQLM VB baseline on all four primary fit+forecast metrics; the candidate grid emphasizes short-memory, lower-inertia, input-responsive reservoirs to attack rolling-origin forecast bias."
+    )
   )
 }
 
