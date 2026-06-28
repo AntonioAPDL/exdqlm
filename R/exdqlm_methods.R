@@ -139,18 +139,24 @@ as.exdqlm <- function(m){
 #' 
 #' @export
 print.exdqlm <- function(x,...){
-  p <- length(x$m0)
-  ff_dim <- .exdqlm_dim_label(x$FF)
-  gg_dim <- .exdqlm_dim_label(x$GG)
-  TT <- if (length(dim(x$FF)) >= 2L) ncol(as.matrix(x$FF)) else 1L
-  gg_time <- length(dim(x$GG)) == 3L
+  cat("\nDynamic quantile state-space model specification (exdqlm)\n\n")
   
-  cat("Dynamic quantile state-space model specification (exdqlm)\n")
-  cat("State dimension:", p, "\n")
-  cat("Observation vector FF:", ff_dim, "\n")
-  cat("Evolution matrix GG:", gg_dim, "\n")
-  cat("Time-varying FF:", .exdqlm_yes_no(TT > 1L), "\n")
-  cat("Time-varying GG:", .exdqlm_yes_no(gg_time), "\n")
+  refnn <- c("m0","C0","FF","GG")
+  descrip = c("Prior mean of the state vector:", 
+              "Prior covariance of the state vector:",
+              "Observational vector:",
+              "Evolution matrix:")
+  nn <- names(x)
+  check <- !sapply(x, is.null)
+  ind <- match(refnn,nn)
+  ind <- ind[!is.na(ind)]
+  final.ind = match(nn[ind][check[ind]],nn)
+  # print
+  for (i in 1:4){
+    cat(descrip[i],"\n")
+    print(x[final.ind[i]])
+    cat("\n")
+  }
   cat("Use with: exdqlmMCMC(), exdqlmLDVB(), exdqlmTransferMCMC(), or exdqlmTransferLDVB()\n")
   invisible(x)
 }
@@ -163,6 +169,7 @@ print.exdqlm <- function(x,...){
 #' 
 #' @export
 summary.exdqlm <- function(object,...){
+
   out <- data.frame(
     Component = c("m0", "C0", "FF", "GG"),
     Description = c(
@@ -179,8 +186,14 @@ summary.exdqlm <- function(object,...){
     ),
     check.names = FALSE
   )
-  print.exdqlm(object, ...)
   cat("\nComponent dimensions:\n")
   print(out, row.names = FALSE)
+  
+  TT <- if (length(dim(object$FF)) >= 2L) ncol(as.matrix(object$FF)) else 1L
+  gg_time <- length(dim(object$GG)) == 3L
+  
+  cat("\nTime-varying FF:", .exdqlm_yes_no(TT > 1L), "\n")
+  cat("Time-varying GG:", .exdqlm_yes_no(gg_time), "\n")
+  
   invisible(out)
 }
