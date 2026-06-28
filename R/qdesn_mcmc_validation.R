@@ -1356,10 +1356,16 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
   status_chr <- toupper(as.character(status %||% NA_character_)[1L])
   success_like <- identical(status_chr, "SUCCESS")
+  rolling_origin_ready <- identical(as.character(compact_paths$forecast_rolling_origin_status %||% NA_character_)[1L], "PASS") &&
+    as.integer(compact_paths$forecast_rolling_origin_rows %||% 0L) > 0L &&
+    as.integer(compact_paths$forecast_lead_metrics_rows %||% 0L) > 0L
   alignment_ready <- !isTRUE(cfg$save_compact_fit_paths) ||
-    identical(as.character(compact_paths$index_alignment_status %||% NA_character_)[1L], "PASS")
+    identical(as.character(compact_paths$index_alignment_status %||% NA_character_)[1L], "PASS") ||
+    isTRUE(rolling_origin_ready)
+  compact_fit_paths_ready <- as.integer(compact_paths$train_rows %||% 0L) > 0L &&
+    as.integer(compact_paths$holdout_rows %||% 0L) > 0L
   compact_ready <- !isTRUE(cfg$save_compact_fit_paths) ||
-    (is.na(compact_error) && as.integer(compact_paths$train_rows %||% 0L) > 0L && isTRUE(alignment_ready))
+    (is.na(compact_error) && isTRUE(compact_fit_paths_ready) && isTRUE(alignment_ready))
   should_prune_forecast <- !isTRUE(cfg$save_forecast_objects) &&
     file.exists(forecast_path) &&
     isTRUE(compact_ready) &&
@@ -1416,7 +1422,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     forecast_lead_metrics_path = compact_paths$forecast_lead_metrics,
     forecast_lead_metrics_rows = as.integer(compact_paths$forecast_lead_metrics_rows %||% 0L),
     forecast_rolling_origin_status = compact_paths$forecast_rolling_origin_status,
+    rolling_origin_ready_for_pruning = isTRUE(rolling_origin_ready),
     index_alignment_ready = isTRUE(alignment_ready),
+    compact_fit_paths_ready = isTRUE(compact_fit_paths_ready),
     compact_ready_for_pruning = isTRUE(compact_ready),
     compact_error = compact_error,
     forecast_objects_path = normalizePath(forecast_path, winslash = "/", mustWork = FALSE),

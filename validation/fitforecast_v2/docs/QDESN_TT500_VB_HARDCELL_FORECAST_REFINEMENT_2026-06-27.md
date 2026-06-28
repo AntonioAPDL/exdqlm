@@ -242,3 +242,13 @@ Rscript scripts/rank_qdesn_tt500_vb_dominance_screen.R \
 Promotion remains blocked until the full 324-root run completes, passes strict
 audit, and the dominance ranking shows whether any profile is globally viable or
 whether only cell-specific replacements are worth pursuing.
+
+## Post-Completion Follow-Up
+
+The full hard-cell run completed and passed strict audit, but no global
+dominance profile passed. The revised next plan is:
+
+`validation/fitforecast_v2/docs/QDESN_TT500_VB_FORECAST_TARGETED_NEXT_PLAN_2026-06-28.md`
+
+That plan supersedes additional global hard-cell screening. The next screening
+lane should be cell-specific, forecast-targeted, VB-only, and subset-grid based.
