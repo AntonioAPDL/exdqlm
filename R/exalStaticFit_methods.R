@@ -31,6 +31,8 @@
   }
   cat("Coefficient draws:", .exdqlm_draw_dim(x$samp.beta), "\n")
   cat("Run-time:", .exdqlm_runtime_label(x$run.time), "\n")
+  
+  cat("\nClass: \"exalStaticFit\"\n")
   cat("Use with: summary(), plot(), diagnostics()\n")
   invisible(x)
 }

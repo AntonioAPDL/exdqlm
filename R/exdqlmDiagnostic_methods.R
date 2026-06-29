@@ -50,7 +50,7 @@ is.exdqlmDiagnostic = function(x){ return(methods::is(x,"exdqlmDiagnostic")) }
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0)
+#' M0.diags = diagnostics(M0)
 #' print(M0.diags)
 #' options(old)
 #' }
@@ -66,6 +66,8 @@ print.exdqlmDiagnostic <- function(x, ...) {
   if (!is.null(x$m2.class)) cat(" vs ", x$m2.class, sep = "")
   cat("\n")
   print(.exdqlm_diagnostic_table(x), row.names = FALSE, digits = 3)
+  
+  cat("\nClass: \"exdqlmDiagnostic\"\n")
   cat("Use with: summary(), plot()\n")
   invisible(x)
 }
@@ -86,7 +88,7 @@ print.exdqlmDiagnostic <- function(x, ...) {
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0)
+#' M0.diags = diagnostics(M0)
 #' summary(M0.diags)
 #' options(old)
 #' }
@@ -126,7 +128,7 @@ summary.exdqlmDiagnostic <- function(object, ...) {
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0)
+#' M0.diags = diagnostics(M0)
 #' plot(M0.diags)
 #' options(old)
 #' }

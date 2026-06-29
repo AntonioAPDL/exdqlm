@@ -80,7 +80,7 @@ M0 = exdqlmLDVB(y_train, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                  n.samp = 20, tol = 0.2, verbose = FALSE)
 fFF = model$FF[, 1, drop = FALSE]
 fGG = model$GG
-M0.forecast = exdqlmForecast(start.t = 60, k = 5, m1 = M0,
+M0.forecast = predict(M0, start.t = 60, k = 5,
                              fFF = fFF, fGG = fGG,
                              return.draws = TRUE, n.samp = 20, seed = 123,
                              plot = FALSE)

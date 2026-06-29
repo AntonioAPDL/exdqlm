@@ -49,6 +49,8 @@ print.exalStaticDiagnostic <- function(x, ...) {
       digits = 4
     )
   }
+  
+  cat("\nClass: \"exalStaticDiagnostic\"\n")
   cat("Use with: summary(), plot()\n")
   cat("Plot types: quantile, coefficients\n")
   invisible(x)

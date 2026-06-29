@@ -34,6 +34,7 @@ print.exdqlmSynthesis <- function(x, ...) {
     cat("Isotonic correction:", isTRUE(x$method$isotonic), "\n")
     cat("Monotone rearrangement:", isTRUE(x$method$rearrange), "\n")
   }
+  cat("\nClass: \"exdqlmSynthesis\"\n")
   cat("Use with: summary(), plot()\n")
   invisible(x)
 }

@@ -34,7 +34,7 @@ is.exdqlmForecast = function(x){ return(methods::is(x,"exdqlmForecast")) }
 #'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#'  M0.forecast = exdqlmForecast(start.t = 50, k = 5, m1 = M0)
+#'  M0.forecast = predict(M0, start.t = 50, k = 5)
 #'  print(M0.forecast)
 #'  options(old)
 #' }
@@ -50,6 +50,8 @@ print.exdqlmForecast <- function(x, ...) {
   cat("Forecast horizon:", x$k, "\n")
   cat("Credible interval mass:", .exdqlm_format_number(x$cr.percent), "\n")
   cat("Posterior forecast draws:", if (is.null(x$samp.fore)) "not stored" else ncol(as.matrix(x$samp.fore)), "\n")
+  
+  cat("\nClass: \"exdqlmForecast\"\n")
   cat("Use with: summary(), plot(), diagnostics()\n")
   invisible(x)
 }
@@ -70,7 +72,7 @@ print.exdqlmForecast <- function(x, ...) {
 #'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#'  M0.forecast = exdqlmForecast(start.t = 50, k = 5, m1 = M0)
+#'  M0.forecast = predict(M0, start.t = 50, k = 5)
 #'  summary(M0.forecast)
 #'  options(old)
 #' }
@@ -115,7 +117,7 @@ summary.exdqlmForecast <- function(object, ...) {
 #'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#'  M0.forecast = exdqlmForecast(start.t = 50, k = 5, m1 = M0)
+#'  M0.forecast = predict(M0, start.t = 50, k = 5)
 #'  plot(M0.forecast)
 #'  options(old)
 #' }
@@ -223,7 +225,7 @@ plot.exdqlmForecast <- function(x, ...) {
 #'                  n.samp = 20, tol = 0.2, verbose = FALSE)
 #' fFF = model$FF[, 1, drop = FALSE]
 #' fGG = model$GG
-#' M0.forecast = exdqlmForecast(start.t = 60, k = 5, m1 = M0,
+#' M0.forecast = predict(M0, start.t = 60, k = 5,
 #'                              fFF = fFF, fGG = fGG,
 #'                              return.draws = TRUE, n.samp = 20, seed = 123,
 #'                              plot = FALSE)

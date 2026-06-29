@@ -157,6 +157,7 @@ print.exdqlm <- function(x,...){
     print(x[final.ind[i]])
     cat("\n")
   }
+  cat("Class: \"exdqlm\"\n")
   cat("Use with: exdqlmMCMC(), exdqlmLDVB(), exdqlmTransferMCMC(), or exdqlmTransferLDVB()\n")
   invisible(x)
 }

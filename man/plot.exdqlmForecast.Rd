@@ -28,7 +28,7 @@ Plot filtered and forecast quantiles with equal–tailed credible intervals.
  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15,
                   n.samp = 20, tol = 0.2, verbose = FALSE)
- M0.forecast = exdqlmForecast(start.t = 50, k = 5, m1 = M0)
+ M0.forecast = predict(M0, start.t = 50, k = 5)
  plot(M0.forecast)
  options(old)
 }
