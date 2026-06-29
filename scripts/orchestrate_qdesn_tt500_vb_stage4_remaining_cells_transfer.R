@@ -58,6 +58,7 @@ do_full <- has_flag("--full") && !isTRUE(dry_run)
 skip_rank <- has_flag("--skip-rank")
 refresh_materialized <- has_flag("--refresh-materialized")
 include_sentinels <- has_flag("--include-sentinels")
+skip_materialize <- has_flag("--skip-materialize")
 
 stage_file <- "qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer"
 profiles_path <- resolve_path(file.path("config", "validation", paste0(stage_file, "_profiles.csv")), must_work = FALSE)
@@ -112,11 +113,19 @@ materialize_args <- c(
   if (isTRUE(refresh_materialized)) "--refresh-materialized" else character(0),
   if (isTRUE(include_sentinels)) "--include-sentinels" else character(0)
 )
-materialize_status <- run_cmd(
-  label = "materialize",
-  cmd = "Rscript",
-  args = materialize_args
-)
+materialize_status <- if (isTRUE(skip_materialize)) {
+  if (!file.exists(materialization_manifest)) {
+    stop("Cannot --skip-materialize because the Stage 4A materialization manifest does not exist.", call. = FALSE)
+  }
+  cat(sprintf("[stage4-transfer] materialize skipped; using committed manifest: %s\n", materialization_manifest))
+  0L
+} else {
+  run_cmd(
+    label = "materialize",
+    cmd = "Rscript",
+    args = materialize_args
+  )
+}
 if (!identical(materialize_status, 0L)) {
   stop("Stage 4A transfer materialization failed. Inspect orchestrator logs.", call. = FALSE)
 }
@@ -254,6 +263,7 @@ manifest <- list(
   workers = workers,
   dry_run = dry_run,
   prepare_only = prepare_only,
+  skip_materialize = isTRUE(skip_materialize),
   smoke_requested = isTRUE(do_smoke),
   full_requested = isTRUE(do_full),
   include_sentinels = isTRUE(include_sentinels),

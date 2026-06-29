@@ -103,6 +103,7 @@ Smoke plus full Stage 4A transfer:
 ```bash
 Rscript scripts/orchestrate_qdesn_tt500_vb_stage4_remaining_cells_transfer.R \
   --workers 12 \
+  --skip-materialize \
   --smoke \
   --full \
   --run-tag qdesn-tt500-vb-stage4-transfer-full-20260629
