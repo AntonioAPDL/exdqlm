@@ -136,3 +136,47 @@ Recommended expansion families:
 - `pi_in in {0.30, 0.60, 0.80}`
 
 Keep Stage 4B VB-only and cell-specific. Do not launch MCMC based on Stage 4A alone.
+
+## Stage 4A Outcome
+
+Stage 4A completed under:
+
+- run tag: `qdesn-tt500-vb-stage4-transfer-full-20260629__git-a59c631`
+- report root: `reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/qdesn-tt500-vb-stage4-transfer-full-20260629__git-a59c631/20260629-035305__git-a59c631`
+- strict audit: `12/12` roots successful, `12/12` lead metrics pass, `12/12` rolling-path exports pass, `0` forbidden binary payloads
+
+Stage 4A repaired five of six target cells. The only remaining non-dominating cell is:
+
+| family | tau | best Stage 4A profile | remaining issue |
+|---|---:|---|---|
+| `gausmix` | 0.05 | `tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3` | forecast pinball ratio `1.042`; forecast MAE already beats baseline |
+
+## Stage 4B Single-Cell Refinement
+
+Stage 4B is therefore restricted to `gausmix tau=0.05`.
+
+Generated files:
+
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_profiles.csv`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_cell_assignments.csv`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_defaults.yaml`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_grid.csv`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_materialization_manifest.json`
+
+Scope:
+
+- `1` family/tau cell
+- `24` compact VB profiles
+- `24` Q-DESN VB roots
+- `max_p_over_n = 0.30`
+
+Command:
+
+```bash
+Rscript scripts/orchestrate_qdesn_tt500_vb_stage4b_gausmix005_pinball_refinement.R \
+  --workers 12 \
+  --skip-materialize \
+  --smoke \
+  --full \
+  --run-tag qdesn-tt500-vb-stage4b-gausmix005-pinball-full-20260629
+```

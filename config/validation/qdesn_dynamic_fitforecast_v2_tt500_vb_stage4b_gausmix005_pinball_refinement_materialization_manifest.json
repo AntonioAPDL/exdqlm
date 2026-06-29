@@ -1,0 +1,149 @@
+{
+  "generated_at": "2026-06-29 04:03:27.271454",
+  "stage4a_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/qdesn-tt500-vb-stage4-transfer-full-20260629__git-a59c631/20260629-035305__git-a59c631",
+  "cell_summary_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/qdesn-tt500-vb-stage4-transfer-full-20260629__git-a59c631/20260629-035305__git-a59c631/tables/qdesn_tt500_vb_dominance_cell_summary.csv",
+  "source_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_profiles.csv",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+  "diagnostic_output_paths": {
+    "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_cell_plan.csv",
+    "candidate_ledger": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_candidate_ledger.csv",
+    "selected_profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_selected_profiles.csv",
+    "cell_assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_cell_assignments.csv",
+    "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/summary/qdesn_tt500_vb_stage4b_gausmix005_pinball_refinement.md",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/manifest/qdesn_tt500_vb_stage4b_gausmix005_pinball_refinement_manifest.json"
+  },
+  "plan": {
+    "generated_at": "2026-06-29 04:03:24.986111",
+    "screening_wave": "stage4b_gausmix005_pinball_2026_06_29",
+    "max_p_over_n": 0.3,
+    "target_profiles_per_cell": 24,
+    "n_cells": 1,
+    "cell_status_counts": {
+      "near_pass": 1
+    },
+    "n_candidate_rows": 24,
+    "n_profiles": 24,
+    "n_assignments": 24,
+    "source_contract_note": "Stage 3 profiles use m/readout_y_lags <= 90 and remain compatible with the period90/m90/w300 TT500 source materialization.",
+    "rationale": "Repair cells with no Q-DESN VB profile beating the best DQLM/exDQLM VB baseline on all four primary fit+forecast metrics; the candidate grid emphasizes short-memory, lower-inertia, input-responsive reservoirs to attack rolling-origin forecast bias."
+  },
+  "materialized": {
+    "stage": "stage4b_gausmix005_pinball_refinement",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_grid.csv",
+    "n_profiles": 24,
+    "n_assignments": 24,
+    "n_canonical_grid_rows": 216,
+    "n_grid_rows": 24,
+    "expected_qdesn_roots": 24,
+    "selected_families": "gausmix",
+    "selected_taus": 0.05,
+    "missing_assignments": []
+  },
+  "file_manifest": [
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/qdesn-tt500-vb-stage4-transfer-full-20260629__git-a59c631/20260629-035305__git-a59c631/tables/qdesn_tt500_vb_dominance_cell_summary.csv",
+      "exists": true,
+      "bytes": 7660,
+      "mtime": "2026-06-29 03:59:32.791662",
+      "md5": "4f089eabe8d11a2c1e081eae0405c50e",
+      "sha256": "2f5e9e4a2dc07802c253b364d5b239b8314898a4db8fefb994e5c8f1bacf385a"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_profiles.csv",
+      "exists": true,
+      "bytes": 1701,
+      "mtime": "2026-06-29 03:47:30.909191",
+      "md5": "bffa9ad0e1124d7a71f62574d03686fd",
+      "sha256": "fd674277816c3500b9e9384e8ad884857ddc5cfde1b07a80e9d3cca71ff5cc5d"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+      "exists": true,
+      "bytes": 14680,
+      "mtime": "2026-06-29 03:47:30.930191",
+      "md5": "d6b6d2e3f6dae1e139d2ce0fc2bb6b00",
+      "sha256": "892882726e1ac55c1e8fa87254897c96f43793e4302e3a4a92bbe7e1bdf513dd"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_profiles.csv",
+      "exists": true,
+      "bytes": 11853,
+      "mtime": "2026-06-29 04:03:25.001924",
+      "md5": "165b0f55e0ddcf6b30d654d045bbfe0e",
+      "sha256": "78db5ee16b8f59ec0106ad47e45b1a692ab254b556b34832094c0f48c29a620e"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_cell_assignments.csv",
+      "exists": true,
+      "bytes": 11780,
+      "mtime": "2026-06-29 04:03:26.523965",
+      "md5": "7b026752e288aefe155518e23793075c",
+      "sha256": "0ade8bdfad4dfe5d1dbc97441d3f53b73b51b4c02fed7b6ee425c3b76f2e2644"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_defaults.yaml",
+      "exists": true,
+      "bytes": 14685,
+      "mtime": "2026-06-29 04:03:25.020925",
+      "md5": "d5bf198a41a9a97f1d4035f2c47f43cf",
+      "sha256": "7f1c79a2270ac3d21ba282236c85453cb19c0c2671cad20b9125600156937fb6"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_grid.csv",
+      "exists": true,
+      "bytes": 65466,
+      "mtime": "2026-06-29 04:03:26.519965",
+      "md5": "f2a1d1e98c3e2d9116efcbc51d1127c6",
+      "sha256": "5ede242bea128a47bb8a0215c6f935561a12d1a8d5748ec3d53f6d234bc27bcb"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_cell_plan.csv",
+      "exists": true,
+      "bytes": 560,
+      "mtime": "2026-06-29 04:03:24.988924",
+      "md5": "5cfbb1e09973380cdc5db08b5706a993",
+      "sha256": "9b2055f533f67571d796abba18214d003f7c0e738a6ad2c32290c618ecf8bfd8"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_candidate_ledger.csv",
+      "exists": true,
+      "bytes": 8736,
+      "mtime": "2026-06-29 04:03:24.990924",
+      "md5": "0a5819ec8edbebe0e5d1ce8ce4ee386e",
+      "sha256": "efbbb55611444d110eb33e87a53b3db0c0eceaee9e02a90a6a0a3e29a005d303"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_selected_profiles.csv",
+      "exists": true,
+      "bytes": 11853,
+      "mtime": "2026-06-29 04:03:24.992924",
+      "md5": "165b0f55e0ddcf6b30d654d045bbfe0e",
+      "sha256": "78db5ee16b8f59ec0106ad47e45b1a692ab254b556b34832094c0f48c29a620e"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/tables/qdesn_tt500_vb_stage4b_cell_assignments.csv",
+      "exists": true,
+      "bytes": 6992,
+      "mtime": "2026-06-29 04:03:24.993924",
+      "md5": "9fec9054f9089065e87fbf858c2b9953",
+      "sha256": "76670da6c778edc884eb1b3d5b4f00cb3746877185c8f6a0bff78730fc534b72"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/materialization_diagnostics/summary/qdesn_tt500_vb_stage4b_gausmix005_pinball_refinement.md",
+      "exists": true,
+      "bytes": 2799,
+      "mtime": "2026-06-29 04:03:24.998924",
+      "md5": "dd8f5bf8e271a12f97c3c727f48721cb",
+      "sha256": "82fffd58bc4b7f55ec511d21010ec3df2526f33ce8c097ab0855668707054044"
+    }
+  ],
+  "screening_wave": "stage4b_gausmix005_pinball_2026_06_29",
+  "max_p_over_n": 0.3,
+  "target_profiles_per_cell": 24,
+  "refresh_grid": true,
+  "refresh_materialized": false
+}
