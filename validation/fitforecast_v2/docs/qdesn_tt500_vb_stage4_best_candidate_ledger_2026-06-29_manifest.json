@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-06-29 04:24:18 EDT",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "branch": "validation/shared-fitforecast-v2-1.0.0",
+  "purpose": "Tracked promotion-candidate ledger for Q-DESN TT500 VB Stage 4A/4B remaining-cell repairs. This is not an Article table by itself.",
+  "stage4a_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/qdesn-tt500-vb-stage4-transfer-full-20260629__git-a59c631/20260629-035305__git-a59c631",
+  "stage4b_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement/qdesn-tt500-vb-stage4b-gausmix005-pinball-full-20260629__git-52a1821/20260629-040813__git-52a1821",
+  "output_csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qdesn_tt500_vb_stage4_best_candidate_ledger_2026-06-29.csv",
+  "output_csv_sha256": "585ad93f139672fa9930b170f33dcba90bc9f2f48fdaa1c4c5c63da05e4f6421",
+  "output_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qdesn_tt500_vb_stage4_best_candidate_ledger_2026-06-29_manifest.json",
+  "target_cells": ["gausmix:0.05", "gausmix:0.50", "laplace:0.05", "laplace:0.25", "laplace:0.50", "normal:0.05"],
+  "n_candidates": 6,
+  "all_candidates_dominate_primary_vb_baseline": true,
+  "storage_light_contract": "strict audits require zero forbidden binary payloads",
+  "article_policy": "Candidate ledger only. Article-facing table updates require an explicit promotion step that records this ledger and source report roots."
+}
