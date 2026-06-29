@@ -85,7 +85,6 @@
 .exdqlm_fit_print <- function(x) {
   conv <- .exdqlm_convergence_info(x)
   cat("Dynamic quantile state-space fit\n")
-  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Model:", .exdqlm_model_family(x), "\n")
   cat("Inference engine:", .exdqlm_dynamic_engine(x), "\n")
   cat("Quantile level (p0):", .exdqlm_format_number(.exdqlm_safe_p0(x)), "\n")

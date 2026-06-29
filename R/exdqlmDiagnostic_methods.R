@@ -59,7 +59,6 @@ print.exdqlmDiagnostic <- function(x, ...) {
   old_opts <- options(scipen = 999)
   on.exit(options(old_opts), add = TRUE)
   cat("Dynamic quantile model diagnostics\n")
-  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Quantile level (p0):", .exdqlm_format_number(x$p0), "\n")
   cat("Observations:", if (is.null(x$n)) length(x$y) else x$n, "\n")
   cat("Models:", if (is.null(x$m1.class)) "M1" else x$m1.class)

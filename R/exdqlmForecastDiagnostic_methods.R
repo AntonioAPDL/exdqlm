@@ -39,7 +39,6 @@ is.exdqlmForecastDiagnostic <- function(x) {
 #' @export
 print.exdqlmForecastDiagnostic <- function(x, ...) {
   cat("Held-out exDQLM forecast diagnostics\n")
-  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Quantile level (p0):", x$p0, "\n")
   cat("Forecast horizon:", x$horizon, "\n")
   cat("Models:", if (is.null(x$m1.class)) "M1" else x$m1.class)

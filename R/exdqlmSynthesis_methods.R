@@ -25,7 +25,6 @@ is.exdqlmSynthesis <- function(x) {
 #' @export
 print.exdqlmSynthesis <- function(x, ...) {
   cat("Posterior predictive synthesis from separately fitted quantiles\n")
-  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Time points:", nrow(as.matrix(x$draws)), "\n")
   cat("Synthesized draws per time:", ncol(as.matrix(x$draws)), "\n")
   cat("Number of input quantile levels:", length(x$levels), "\n")

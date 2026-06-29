@@ -41,7 +41,6 @@ is.exdqlmForecast = function(x){ return(methods::is(x,"exdqlmForecast")) }
 #'
 print.exdqlmForecast <- function(x, ...) {
   cat("Dynamic quantile forecast\n")
-  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Fitted model class:", .exdqlm_primary_class(x$m1), "\n")
   cat("Quantile level (p0):", .exdqlm_format_number(.exdqlm_safe_p0(x$m1)), "\n")
   cat("Observations in fitted model:", length(x$m1$y), "\n")

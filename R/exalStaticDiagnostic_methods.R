@@ -32,7 +32,6 @@ is.exalStaticDiagnostic <- function(x) {
 #' @export
 print.exalStaticDiagnostic <- function(x, ...) {
   cat("Static exAL diagnostics\n")
-  cat("Class:", paste(class(x), collapse = ", "), "\n")
   cat("Quantile level (p0):", x$p0, "\n")
   cat("Evaluation rows:", if (is.null(x$n)) length(x$x) else x$n, "\n")
   cat("Models:", if (is.null(x$m1.class)) "M1" else x$m1.class)
