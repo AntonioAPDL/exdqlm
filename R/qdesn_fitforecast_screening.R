@@ -2111,6 +2111,199 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   rep(FALSE, nrow(df))
 }
 
+qdesn_dynamic_fitforecast_stage4_transfer_profile_plan <- function(article_summary_path,
+                                                                   source_profiles_path,
+                                                                   transfer_profile_ids = c(
+                                                                     "tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+                                                                     "tt500vb_f3_d1_n30_a0p03_r0p5_m15_lag15_rl0_pw0p03_pin0p3"
+                                                                   ),
+                                                                   screening_wave = paste0("stage4_transfer_", format(Sys.Date(), "%Y_%m_%d")),
+                                                                   fit_size = 500L,
+                                                                   qdesn_model_key = "qdesn_exal_rhs_ns",
+                                                                   include_sentinels = FALSE) {
+  article_summary_path <- .qdesn_validation_resolve_path(article_summary_path, must_work = TRUE)
+  source_profiles_path <- .qdesn_validation_resolve_path(source_profiles_path, must_work = TRUE)
+  article <- utils::read.csv(article_summary_path, stringsAsFactors = FALSE, check.names = FALSE)
+  profiles_src <- utils::read.csv(source_profiles_path, stringsAsFactors = FALSE, check.names = FALSE)
+  required_article <- c(
+    "model_family", "model_key", "inference", "family", "tau", "fit_size",
+    "fit_qtrue_rmse", "fit_pinball_mean",
+    "forecast_qtrue_mae_lead_weighted", "forecast_pinball_mean_lead_weighted"
+  )
+  missing_article <- setdiff(required_article, names(article))
+  if (length(missing_article)) {
+    stop(sprintf("Article TT500 summary is missing column(s): %s", paste(missing_article, collapse = ", ")), call. = FALSE)
+  }
+  if (!"screening_profile_id" %in% names(profiles_src)) {
+    stop("Source profile registry is missing `screening_profile_id`.", call. = FALSE)
+  }
+  transfer_profile_ids <- unique(as.character(transfer_profile_ids))
+  transfer_profile_ids <- transfer_profile_ids[nzchar(transfer_profile_ids)]
+  if (!length(transfer_profile_ids)) stop("At least one transfer profile id is required.", call. = FALSE)
+
+  fit_size <- as.integer(fit_size)[1L]
+  if (!is.finite(fit_size) || fit_size < 1L) stop("fit_size must be a positive integer.", call. = FALSE)
+  article$tau <- as.numeric(article$tau)
+  article$fit_size <- as.integer(article$fit_size)
+  baseline <- article[
+    as.character(article$inference) == "vb" &
+      as.character(article$model_family) == "exdqlm_dqlm" &
+      as.integer(article$fit_size) == fit_size,
+    ,
+    drop = FALSE
+  ]
+  qdesn <- article[
+    as.character(article$inference) == "vb" &
+      as.character(article$model_key) == as.character(qdesn_model_key)[1L] &
+      as.integer(article$fit_size) == fit_size,
+    ,
+    drop = FALSE
+  ]
+  if (!nrow(baseline)) stop("No exDQLM/DQLM VB baseline rows found in the article TT500 summary.", call. = FALSE)
+  if (!nrow(qdesn)) stop("No Q-DESN VB rows found in the article TT500 summary.", call. = FALSE)
+
+  metric_cols <- c(
+    fit_rmse = "fit_qtrue_rmse",
+    fit_pinball = "fit_pinball_mean",
+    forecast_mae = "forecast_qtrue_mae_lead_weighted",
+    forecast_pinball = "forecast_pinball_mean_lead_weighted"
+  )
+  key <- paste(as.character(baseline$family), .qdesn_dynamic_fitforecast_tau_key(baseline$tau), sep = "\r")
+  best_base <- .qdesn_validation_bind_rows(lapply(split(seq_len(nrow(baseline)), key), function(idx) {
+    sub <- baseline[idx, , drop = FALSE]
+    out <- data.frame(
+      family = as.character(sub$family[[1L]]),
+      tau = as.numeric(sub$tau[[1L]]),
+      stringsAsFactors = FALSE
+    )
+    for (nm in names(metric_cols)) {
+      values <- as.numeric(sub[[metric_cols[[nm]]]])
+      out[[paste0("best_vb_baseline_", nm)]] <- min(values, na.rm = TRUE)
+    }
+    out
+  }))
+  qkey <- paste(as.character(qdesn$family), .qdesn_dynamic_fitforecast_tau_key(qdesn$tau), sep = "\r")
+  bkey <- paste(as.character(best_base$family), .qdesn_dynamic_fitforecast_tau_key(best_base$tau), sep = "\r")
+  match_idx <- match(qkey, bkey)
+  qdesn <- qdesn[!is.na(match_idx), , drop = FALSE]
+  match_idx <- match_idx[!is.na(match_idx)]
+  if (!nrow(qdesn)) stop("No Q-DESN rows match the exDQLM/DQLM baseline family x tau cells.", call. = FALSE)
+  base_join <- best_base[match_idx, , drop = FALSE]
+  cell <- data.frame(
+    family = as.character(qdesn$family),
+    tau = as.numeric(qdesn$tau),
+    fit_size = as.integer(qdesn$fit_size),
+    qdesn_model_key = as.character(qdesn$model_key),
+    qdesn_model_label = as.character(qdesn$model_label %||% qdesn$model_key),
+    qdesn_runtime_hours = as.numeric(qdesn$runtime_hours %||% NA_real_),
+    stringsAsFactors = FALSE
+  )
+  for (nm in names(metric_cols)) {
+    qval <- as.numeric(qdesn[[metric_cols[[nm]]]])
+    bval <- as.numeric(base_join[[paste0("best_vb_baseline_", nm)]])
+    cell[[paste0("qdesn_", nm)]] <- qval
+    cell[[paste0("best_vb_baseline_", nm)]] <- bval
+    cell[[paste0(nm, "_ratio_vs_best_vb_baseline")]] <- qval / bval
+  }
+  names(cell)[names(cell) == "fit_rmse_ratio_vs_best_vb_baseline"] <- "fit_rmse_ratio_vs_best_vb_baseline"
+  names(cell)[names(cell) == "fit_pinball_ratio_vs_best_vb_baseline"] <- "fit_pinball_ratio_vs_best_vb_baseline"
+  names(cell)[names(cell) == "forecast_mae_ratio_vs_best_vb_baseline"] <- "forecast_mae_ratio_vs_best_vb_baseline"
+  names(cell)[names(cell) == "forecast_pinball_ratio_vs_best_vb_baseline"] <- "forecast_pinball_ratio_vs_best_vb_baseline"
+  cell$primary_worst_ratio_vs_baseline <- .qdesn_dynamic_fitforecast_primary_worst_ratio(cell)
+  cell$beats_all_primary_baselines <- .qdesn_dynamic_fitforecast_beats_all_primary(cell)
+  cell$cell_status <- .qdesn_dynamic_fitforecast_cell_status(cell$primary_worst_ratio_vs_baseline)
+  cell$bottleneck_metric <- vapply(seq_len(nrow(cell)), function(i) {
+    ratios <- c(
+      forecast_mae = cell$forecast_mae_ratio_vs_best_vb_baseline[[i]],
+      forecast_pinball = cell$forecast_pinball_ratio_vs_best_vb_baseline[[i]],
+      fit_rmse = cell$fit_rmse_ratio_vs_best_vb_baseline[[i]],
+      fit_pinball = cell$fit_pinball_ratio_vs_best_vb_baseline[[i]]
+    )
+    names(which.max(ratios))[[1L]]
+  }, character(1L))
+  targets <- if (isTRUE(include_sentinels)) {
+    cell
+  } else {
+    cell[!as.logical(cell$beats_all_primary_baselines), , drop = FALSE]
+  }
+  if (!nrow(targets)) {
+    stop("No unresolved family x tau cell remains for Stage 4 transfer.", call. = FALSE)
+  }
+  status_order <- c(extreme_hard = 1L, hard = 2L, near_pass = 3L, sentinel = 4L, unknown = 5L)
+  targets$priority <- unname(status_order[targets$cell_status])
+  targets$priority[!is.finite(targets$priority)] <- 99L
+  targets <- targets[order(targets$priority, -targets$primary_worst_ratio_vs_baseline, targets$family, targets$tau), , drop = FALSE]
+  targets$priority_rank <- seq_len(nrow(targets))
+  targets$target_profiles <- length(transfer_profile_ids)
+
+  profile_idx <- match(transfer_profile_ids, as.character(profiles_src$screening_profile_id))
+  missing_profiles <- transfer_profile_ids[is.na(profile_idx)]
+  if (length(missing_profiles)) {
+    stop(sprintf("Transfer profile(s) missing from source registry: %s", paste(missing_profiles, collapse = ", ")), call. = FALSE)
+  }
+  profiles <- profiles_src[profile_idx, , drop = FALSE]
+  profiles$enabled <- TRUE
+  profiles$screening_stage <- "vb_stage4_remaining_cells_transfer"
+  profiles$screening_wave <- as.character(screening_wave)[1L]
+  profiles$profile_role <- paste0("stage4_transfer_", c("primary", "backup", paste0("candidate_", seq_len(max(0L, nrow(profiles) - 2L))))[seq_len(nrow(profiles))])
+  profiles$transfer_profile_rank <- seq_len(nrow(profiles))
+  profiles$target_cells <- paste(paste(targets$family, sprintf("%.2f", as.numeric(targets$tau)), sep = ":"), collapse = ";")
+  profiles$target_cell_statuses <- paste(unique(as.character(targets$cell_status)), collapse = ";")
+  profiles$target_source_profiles <- paste(unique(as.character(targets$qdesn_model_key)), collapse = ";")
+  profiles$target_source_best_worst_ratio <- min(as.numeric(targets$primary_worst_ratio_vs_baseline), na.rm = TRUE)
+  profiles$target_source_max_worst_ratio <- max(as.numeric(targets$primary_worst_ratio_vs_baseline), na.rm = TRUE)
+  rownames(profiles) <- NULL
+
+  assignments <- .qdesn_validation_bind_rows(lapply(seq_len(nrow(targets)), function(i) {
+    b <- targets[i, , drop = FALSE]
+    data.frame(
+      family = as.character(b$family[[1L]]),
+      tau = as.numeric(b$tau[[1L]]),
+      cell_status = as.character(b$cell_status[[1L]]),
+      priority_rank = as.integer(b$priority_rank[[1L]]),
+      target_profile_rank = seq_len(length(transfer_profile_ids)),
+      screening_profile_id = transfer_profile_ids,
+      source_profile = as.character(b$qdesn_model_key[[1L]]),
+      source_worst_ratio = as.numeric(b$primary_worst_ratio_vs_baseline[[1L]]),
+      bottleneck_metric = as.character(b$bottleneck_metric[[1L]]),
+      stringsAsFactors = FALSE
+    )
+  }))
+  assignments$assignment_key <- paste(
+    assignments$screening_profile_id,
+    assignments$family,
+    .qdesn_dynamic_fitforecast_tau_key(assignments$tau),
+    sep = "\r"
+  )
+  assignments$assignment_id <- sprintf("stage4_transfer_cell_%04d", seq_len(nrow(assignments)))
+  targets <- targets[order(targets$priority_rank), , drop = FALSE]
+  list(
+    article_summary_path = article_summary_path,
+    source_profiles_path = source_profiles_path,
+    cell_plan = targets,
+    all_article_cells = cell[order(cell$family, cell$tau), , drop = FALSE],
+    candidate_ledger = profiles,
+    profiles = profiles,
+    assignments = assignments,
+    manifest = list(
+      generated_at = as.character(Sys.time()),
+      screening_wave = screening_wave,
+      fit_size = fit_size,
+      qdesn_model_key = as.character(qdesn_model_key)[1L],
+      include_sentinels = isTRUE(include_sentinels),
+      transfer_profile_ids = as.list(transfer_profile_ids),
+      n_article_qdesn_cells = nrow(cell),
+      n_target_cells = nrow(targets),
+      target_cells = as.list(paste(targets$family, sprintf("%.2f", as.numeric(targets$tau)), sep = ":")),
+      cell_status_counts = as.list(table(targets$cell_status)),
+      n_profiles = nrow(profiles),
+      n_assignments = nrow(assignments),
+      source_contract_note = "Stage 4A transfers the compact Stage 3 winning profile pair to unresolved article TT500 VB cells without changing the shared source registry or rolling-origin protocol.",
+      rationale = "Test whether the compact low-p/n Gaussian-success profile generalizes to the unresolved normal, Laplace, and Gaussian-mixture tail cells before launching any wider VB screen."
+    )
+  )
+}
+
 qdesn_dynamic_fitforecast_stage3_forecast_bias_profile_plan <- function(cell_summary_path,
                                                                         source_profiles_path = NULL,
                                                                         screening_wave = paste0("stage3_forecast_bias_", format(Sys.Date(), "%Y_%m_%d")),

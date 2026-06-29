@@ -1,0 +1,161 @@
+{
+  "generated_at": "2026-06-29 03:47:32.332594",
+  "article_summary_path": "/data/jaguir26/local/src/Article-Q-DESN/tables/qdesn_validation_tt500_final_summary.csv",
+  "source_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage3_forecast_bias_rescue_profiles.csv",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage3_forecast_bias_rescue_defaults.yaml",
+  "diagnostic_output_paths": {
+    "article_cell_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_article_cell_audit.csv",
+    "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_transfer_cell_plan.csv",
+    "selected_profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_transfer_profiles.csv",
+    "cell_assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_transfer_cell_assignments.csv",
+    "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/summary/qdesn_tt500_vb_stage4_remaining_cells_transfer.md",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/manifest/qdesn_tt500_vb_stage4_remaining_cells_transfer_manifest.json"
+  },
+  "plan": {
+    "generated_at": "2026-06-29 03:47:30.768151",
+    "screening_wave": "stage4_transfer_2026_06_29",
+    "fit_size": 500,
+    "qdesn_model_key": "qdesn_exal_rhs_ns",
+    "include_sentinels": false,
+    "transfer_profile_ids": [
+      "tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+      "tt500vb_f3_d1_n30_a0p03_r0p5_m15_lag15_rl0_pw0p03_pin0p3"
+    ],
+    "n_article_qdesn_cells": 9,
+    "n_target_cells": 6,
+    "target_cells": [
+      "gausmix:0.50",
+      "laplace:0.50",
+      "normal:0.05",
+      "laplace:0.25",
+      "gausmix:0.05",
+      "laplace:0.05"
+    ],
+    "cell_status_counts": {
+      "extreme_hard": 5,
+      "near_pass": 1
+    },
+    "n_profiles": 2,
+    "n_assignments": 12,
+    "source_contract_note": "Stage 4A transfers the compact Stage 3 winning profile pair to unresolved article TT500 VB cells without changing the shared source registry or rolling-origin protocol.",
+    "rationale": "Test whether the compact low-p/n Gaussian-success profile generalizes to the unresolved normal, Laplace, and Gaussian-mixture tail cells before launching any wider VB screen."
+  },
+  "materialized": {
+    "stage": "stage4_remaining_cells_transfer",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_grid.csv",
+    "n_profiles": 2,
+    "n_assignments": 12,
+    "n_canonical_grid_rows": 18,
+    "n_grid_rows": 12,
+    "expected_qdesn_roots": 12,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "file_manifest": [
+    {
+      "path": "/data/jaguir26/local/src/Article-Q-DESN/tables/qdesn_validation_tt500_final_summary.csv",
+      "exists": true,
+      "bytes": 47555,
+      "mtime": "2026-06-29 03:23:50.533856",
+      "md5": "618465ecb1cd47de179642fd5173c6f0",
+      "sha256": "a7723a11be5581a54931ac6f30e7bd110ab63c6a2b155607656af78719cbe39c"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage3_forecast_bias_rescue_profiles.csv",
+      "exists": true,
+      "bytes": 37468,
+      "mtime": "2026-06-28 11:38:31.729102",
+      "md5": "0de007737e2e4efccaf7d26e4b2c598b",
+      "sha256": "955d13bb27e6819e4036ed92b5c92220822d803cdfed9303e95b7bde926951a3"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage3_forecast_bias_rescue_defaults.yaml",
+      "exists": true,
+      "bytes": 14683,
+      "mtime": "2026-06-28 11:38:31.761103",
+      "md5": "1d5f3417e252d76a46b94de6a818b47d",
+      "sha256": "b235aa93927023872572e48d859bd38408cb2dd26b4de0f61a063a540981cde7"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_profiles.csv",
+      "exists": true,
+      "bytes": 1701,
+      "mtime": "2026-06-29 03:47:30.909191",
+      "md5": "bffa9ad0e1124d7a71f62574d03686fd",
+      "sha256": "fd674277816c3500b9e9384e8ad884857ddc5cfde1b07a80e9d3cca71ff5cc5d"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_cell_assignments.csv",
+      "exists": true,
+      "bytes": 5593,
+      "mtime": "2026-06-29 03:47:32.105223",
+      "md5": "5f3593cc4f3ccecad0c60157fa7c4fcf",
+      "sha256": "1b462a66713d18114795df0d6887952d38e55f6c2d5795d173df2aa866545041"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+      "exists": true,
+      "bytes": 14680,
+      "mtime": "2026-06-29 03:47:30.930191",
+      "md5": "d6b6d2e3f6dae1e139d2ce0fc2bb6b00",
+      "sha256": "892882726e1ac55c1e8fa87254897c96f43793e4302e3a4a92bbe7e1bdf513dd"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_grid.csv",
+      "exists": true,
+      "bytes": 33156,
+      "mtime": "2026-06-29 03:47:31.346202",
+      "md5": "0857e0ebe93bff45ac4964b200867df5",
+      "sha256": "4e44532076ae94417e8a08c72eb1a9a43f29466dc70b42e3b4a1149eb9b5be36"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_article_cell_audit.csv",
+      "exists": true,
+      "bytes": 3560,
+      "mtime": "2026-06-29 03:47:30.771187",
+      "md5": "56c585458b9156d5d7e37316843129c0",
+      "sha256": "63194d81307c3d0da75e525ba4a301c4abe5fa46734077403520c95f50d02f52"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_transfer_cell_plan.csv",
+      "exists": true,
+      "bytes": 2629,
+      "mtime": "2026-06-29 03:47:30.87519",
+      "md5": "14544d66d990676fea950627674bb58c",
+      "sha256": "0ecaf5e6f45f8fceeaf915ea5b6c05ae17e86d3c71a8fa345588fb358b5df882"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_transfer_profiles.csv",
+      "exists": true,
+      "bytes": 1701,
+      "mtime": "2026-06-29 03:47:30.87619",
+      "md5": "bffa9ad0e1124d7a71f62574d03686fd",
+      "sha256": "fd674277816c3500b9e9384e8ad884857ddc5cfde1b07a80e9d3cca71ff5cc5d"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/tables/qdesn_tt500_vb_stage4_transfer_cell_assignments.csv",
+      "exists": true,
+      "bytes": 3191,
+      "mtime": "2026-06-29 03:47:30.87619",
+      "md5": "2c994284cd1b72da80fc86bcded95847",
+      "sha256": "a57ff297e1958161bbc445d9d97d4a58bb37ce11d9d674169e9aef2c48b4473a"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer/materialization_diagnostics/summary/qdesn_tt500_vb_stage4_remaining_cells_transfer.md",
+      "exists": true,
+      "bytes": 3245,
+      "mtime": "2026-06-29 03:47:30.907191",
+      "md5": "ab8724957695848da565028cc8a3c4fd",
+      "sha256": "383ad3480c9efc1fdcad9e94aecc35e60232aaaf2bcb172e6b1ce447fd07c7e4"
+    }
+  ],
+  "screening_wave": "stage4_transfer_2026_06_29",
+  "include_sentinels": false,
+  "refresh_grid": true,
+  "refresh_materialized": false
+}
