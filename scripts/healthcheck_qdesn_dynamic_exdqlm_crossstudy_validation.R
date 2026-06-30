@@ -16,6 +16,10 @@ get_arg <- function(flag, default = NULL) {
   args[idx + 1L]
 }
 `%||%` <- function(a, b) if (is.null(a)) b else a
+num_arg <- function(flag, default) {
+  val <- suppressWarnings(as.numeric(get_arg(flag, as.character(default)))[1L])
+  if (is.finite(val)) val else as.numeric(default)
+}
 
 repo_root <- tryCatch(
   normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE),
@@ -204,6 +208,25 @@ launcher_log_mtime <- if (!is.na(launcher_log) && nzchar(launcher_log) && file.e
 } else {
   NA_character_
 }
+stale_threshold_seconds <- num_arg("--stale-threshold-seconds", 1800)
+progress_files <- c(
+  file.path(root_dirs, "manifest", "root_status.txt"),
+  list.files(file.path(results_root, "roots"), pattern = "fit_status\\.txt$|progress_trace\\.csv$|progress_trace_long\\.csv$|health_summary\\.csv$", recursive = TRUE, full.names = TRUE),
+  file.path(report_root, "tables", "campaign_progress.csv"),
+  file.path(report_root, "tables", "campaign_progress_trace_long.csv"),
+  if (!is.na(launcher_log) && nzchar(launcher_log)) launcher_log else character(0)
+)
+progress_files <- unique(progress_files[file.exists(progress_files)])
+latest_progress_mtime <- if (length(progress_files)) {
+  max(file.info(progress_files)$mtime, na.rm = TRUE)
+} else {
+  as.POSIXct(NA)
+}
+latest_progress_age_seconds <- if (!is.na(latest_progress_mtime)) {
+  as.numeric(difftime(Sys.time(), latest_progress_mtime, units = "secs"))
+} else {
+  NA_real_
+}
 
 pct <- function(num, den) {
   if (!is.finite(den) || den <= 0) return("NA")
@@ -214,6 +237,15 @@ n_materialized <- length(root_dirs)
 n_success <- if ("SUCCESS" %in% names(root_status_tab)) as.integer(root_status_tab[["SUCCESS"]]) else 0L
 n_running <- if ("RUNNING" %in% names(root_status_tab)) as.integer(root_status_tab[["RUNNING"]]) else 0L
 n_fail <- if ("FAIL" %in% names(root_status_tab)) as.integer(root_status_tab[["FAIL"]]) else 0L
+stale_status <- if (!length(progress_files)) {
+  "NO_PROGRESS_FILES"
+} else if (n_running > 0L && is.finite(latest_progress_age_seconds) && latest_progress_age_seconds > stale_threshold_seconds) {
+  "STALE"
+} else if (n_running > 0L) {
+  "ACTIVE"
+} else {
+  "NO_RUNNING_ROOTS"
+}
 
 cat(sprintf("Snapshot: %s\n", as.character(Sys.time())))
 cat(sprintf("Run tag: %s\n", run_tag))
@@ -249,6 +281,10 @@ cat(sprintf("Launcher pid: %s\n", as.character(launcher_pid)))
 cat(sprintf("Launcher pid live: %s\n", as.character(launcher_pid_live)))
 cat(sprintf("Launcher log: %s\n", launcher_log))
 cat(sprintf("Launcher log mtime: %s\n", launcher_log_mtime))
+cat(sprintf("Latest progress mtime: %s\n", as.character(latest_progress_mtime)))
+cat(sprintf("Latest progress age seconds: %s\n", if (is.finite(latest_progress_age_seconds)) sprintf("%.0f", latest_progress_age_seconds) else "NA"))
+cat(sprintf("Stale threshold seconds: %.0f\n", stale_threshold_seconds))
+cat(sprintf("Stale status: %s\n", stale_status))
 
 if (nrow(fit_summary) && "signoff_grade" %in% names(fit_summary)) {
   cat("\nfit_signoff_mix:\n")

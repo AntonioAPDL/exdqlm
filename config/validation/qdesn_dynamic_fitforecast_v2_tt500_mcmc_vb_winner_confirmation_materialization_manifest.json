@@ -1,0 +1,93 @@
+{
+  "generated_at": "2026-06-30 02:14:36.484115",
+  "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+  "outputs": {
+    "winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_winners.csv",
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_grid.csv",
+    "diagnostics": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation/materialization_diagnostics"
+  },
+  "materialized": {
+    "stage": "mcmc_vb_winner_confirmation",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_grid.csv",
+    "n_profiles": 3,
+    "n_assignments": 9,
+    "n_canonical_grid_rows": 27,
+    "n_grid_rows": 9,
+    "expected_qdesn_roots": 9,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "n_profiles": 3,
+  "n_assignments": 9,
+  "n_grid_rows": 9,
+  "roots": [
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__gausmix__tau_0p05__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d2_n20_a0p05_r0p6_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__gausmix__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__gausmix__tau_0p50__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p03_r0p5_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p05__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p50__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p05__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p50__lasttt_500__qdesn_rhs_ns__profile_tt500vb_f3_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3"
+  ],
+  "file_manifest": [
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_winners.csv",
+      "exists": true,
+      "bytes": 2103,
+      "mtime": "2026-06-30 02:14:35.16607",
+      "md5": "5d82307cc1b8c9019b3584b56af079bc",
+      "sha256": "76b9f96952a04750dda8d2c6a32ffcab1725ad154ee4a1bff77b64739aaddde3"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_profiles.csv",
+      "exists": true,
+      "bytes": 2578,
+      "mtime": "2026-06-30 02:14:35.311074",
+      "md5": "dce5a4063b44aca27ebc15a02fe00554",
+      "sha256": "86eb8bcd19b9b8df850d5e97f6590ee32e69d8f5d89280f1af4262130e456376"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_cell_assignments.csv",
+      "exists": true,
+      "bytes": 4161,
+      "mtime": "2026-06-30 02:14:36.460105",
+      "md5": "5f6b0feb2a4a5be885e01b85d7d74588",
+      "sha256": "a1bc576d306526ba6f592821bbf17d5b53fd74ffca5bc4096163cda30514e327"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_defaults.yaml",
+      "exists": true,
+      "bytes": 14714,
+      "mtime": "2026-06-30 02:14:36.470105",
+      "md5": "0f99c7724d1e7e8b4dc6056af4cd009c",
+      "sha256": "f0ddbf964a457fec9ac8e7e23826b8802075d163141d4e4cabb1260cfdd077f0"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_grid.csv",
+      "exists": true,
+      "bytes": 25151,
+      "mtime": "2026-06-30 02:14:36.096095",
+      "md5": "03237196d2f1bc4354db0d6594c354ce",
+      "sha256": "2a848aa51e3995502530dd97245c6b4d2deb6f6426abf6ed28aefd07ae3cf4b6"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation/materialization_diagnostics/summary/qdesn_tt500_mcmc_vb_winner_confirmation.md",
+      "exists": true,
+      "bytes": 1614,
+      "mtime": "2026-06-30 02:14:36.482106",
+      "md5": "f33f974ae3e41c7ffc42631bfef8408a",
+      "sha256": "448b4462cdb6c8a8fce3bddbafa189c92862629cb028ccefb660f968ab7ed2d3"
+    }
+  ]
+}
