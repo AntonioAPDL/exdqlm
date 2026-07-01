@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-07-01 08:46:11.516166",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_defaults.yaml",
+  "base_grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_grid.csv",
+  "rescue_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_exal_mcmc_diagnostic_rescue_defaults.yaml",
+  "rescue_root_ids_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_exal_mcmc_diagnostic_rescue_root_ids.csv",
+  "root_count": 9,
+  "methods": "mcmc",
+  "likelihoods": "exal",
+  "priors": "ridge",
+  "mcmc_n_burn": 8000,
+  "mcmc_n_mcmc": 40000,
+  "workers": 9,
+  "slice_changes": {
+    "core_extra_passes": 4,
+    "width_gamma": 0.62,
+    "width_sigma": 0.38,
+    "max_steps_out": 140,
+    "max_shrink": 520
+  }
+}
