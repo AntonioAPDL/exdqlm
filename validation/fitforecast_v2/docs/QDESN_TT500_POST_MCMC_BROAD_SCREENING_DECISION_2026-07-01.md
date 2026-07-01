@@ -1,6 +1,13 @@
 # Q-DESN TT500 Post-MCMC Broad Screening Decision
 
-Status: decision recorded; no launch from this document.
+Status: superseded for article-facing MCMC promotion; no launch from this
+document.
+
+Superseding note: `QDESN_TT500_MCMC_AUTHORITATIVE_HANDOFF_2026-07-01.md`
+promotes the completed June 30, 2026 MCMC confirmation/rescue outputs as the
+authoritative TT500 Q-DESN exAL RHS MCMC article rows, but only as
+diagnostic-qualified evidence. The older decision below remains useful context
+for why no further MCMC rescue was launched.
 
 ## Decision
 
