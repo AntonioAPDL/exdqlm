@@ -364,11 +364,17 @@ Resource policy:
 
 ## Recommendation
 
-Proceed with this selective MCMC confirmation lane after implementation and
-dry-run/smoke gates pass. This is the optimal next step because it tests the
-actual promoted VB winners under the MCMC estimator without reopening a broad
-screen, without launching TT5000, and without consuming unnecessary cores.
+Historical recommendation before launch: proceed with the selective MCMC
+confirmation lane after implementation and dry-run/smoke gates pass.
 
-Do not launch the full MCMC run directly from this document. First implement the
-lane files, run tests, run prepare-only, run the one-root smoke, and inspect the
-audit output.
+Post-rescue decision, 2026-07-01:
+
+- do not spend more compute on the current MCMC rescue path now;
+- keep the promoted Q-DESN VB lane as the authoritative Article-facing Q-DESN
+  validation path;
+- treat the completed MCMC confirmation/rescue outputs as diagnostic
+  sensitivity evidence only;
+- move the next validation effort back to VB-only broad Q-DESN screening.
+
+Decision record:
+`validation/fitforecast_v2/docs/QDESN_TT500_POST_MCMC_BROAD_SCREENING_DECISION_2026-07-01.md`.
