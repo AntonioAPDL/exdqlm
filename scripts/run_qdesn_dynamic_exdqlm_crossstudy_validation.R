@@ -552,7 +552,7 @@ preflight_lines <- c(
   sprintf("- methods_per_root: `%s`", paste(preflight_manifest$execution_scope$methods, collapse = ", ")),
   sprintf("- requested_fits_per_root: `%s`", as.character(preflight_manifest$execution_scope$requested_fits_per_root)),
   sprintf("- selected_atomic_specs: `%d`", as.integer(nrow(selected_atomic_spec_grid))),
-  "- QDESN_priors: `ridge, rhs_ns`",
+  sprintf("- QDESN_priors: `%s`", paste(preflight_manifest$selected_grid_summary$priors, collapse = ", ")),
   "",
   "## Study Contract",
   sprintf("- core_lane: `%s`", if (isTRUE(preflight_manifest$study_contract$core_lane)) "TRUE" else "FALSE"),

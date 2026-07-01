@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-07-01 02:59:13.580573",
+  "stage": "qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn",
+  "prior": "ridge",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+  "outputs": {
+    "winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_winners.csv",
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_grid.csv",
+    "diagnostics": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn/materialization_diagnostics"
+  },
+  "source_profile_paths": {
+    "config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage3_forecast_bias_rescue_profiles.csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage3_forecast_bias_rescue_profiles.csv",
+    "config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_profiles.csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_profiles.csv",
+    "config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_profiles.csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4b_gausmix005_pinball_refinement_profiles.csv"
+  },
+  "workers": 18,
+  "refresh_grid": true,
+  "refresh_materialized": false,
+  "n_profiles": 3,
+  "n_assignments": 9,
+  "n_grid_rows": 9,
+  "grid_summary": {
+    "source_scenarios": [
+      "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast"
+    ],
+    "families": [
+      "gausmix",
+      "laplace",
+      "normal"
+    ],
+    "taus": [
+      0.05,
+      0.25,
+      0.5
+    ],
+    "priors": [
+      "ridge"
+    ],
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_start_source_index": 9001,
+    "forecast_end_source_index": 10000
+  },
+  "materialized": {
+    "stage": "ridge_corrected_desn",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_ridge_corrected_desn_grid.csv",
+    "n_profiles": 3,
+    "n_assignments": 9,
+    "n_canonical_grid_rows": 27,
+    "n_grid_rows": 9,
+    "expected_qdesn_roots": 9,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  }
+}

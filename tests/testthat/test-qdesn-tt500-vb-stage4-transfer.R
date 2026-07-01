@@ -146,3 +146,48 @@ test_that("Stage 4A transfer materializer writes isolated cell-specific config b
   expect_equal(defaults$screening_profiles$execution_grid_policy, "cell_specific_subset_grid")
   expect_equal(defaults$screening_profiles$selected_assignment_root_count, 12L)
 })
+
+test_that("Forecast-targeted materializer can freeze ridge priors without changing default RHS-NS behavior", {
+  tmp <- tempfile("qdesn_materialize_prior_scope_")
+  dir.create(tmp)
+  fixture <- qdesn_stage4_transfer_fixture(tmp)
+  plan <- exdqlm:::qdesn_dynamic_fitforecast_stage4_transfer_profile_plan(
+    article_summary_path = fixture$article_path,
+    source_profiles_path = fixture$profiles_path,
+    screening_wave = "ridge_prior_test"
+  )
+  base_defaults <- file.path(tmp, "base.yaml")
+  yaml::write_yaml(
+    list(
+      campaign = list(name = "base", results_root = "results/base", reports_root = "reports/base"),
+      study_contract = list(id = "base", description = "base"),
+      screening_profiles = list(enabled = TRUE, csv = "base_profiles.csv", priors = "rhs_ns"),
+      reference_contract = list(families = c("normal", "laplace", "gausmix"), taus = c(0.05, 0.25, 0.50), expected_unique_dataset_cells = 9L),
+      source_materialization = list(taus = c(0.05, 0.25, 0.50)),
+      runtime = list(workers = 1L),
+      pipeline = list(outputs = list(save_forecast_objects = FALSE, keep_draws = FALSE))
+    ),
+    base_defaults
+  )
+
+  exdqlm:::qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage(
+    plan = plan,
+    base_defaults_path = base_defaults,
+    profiles_out = file.path(tmp, "ridge_profiles.csv"),
+    assignments_out = file.path(tmp, "ridge_assignments.csv"),
+    defaults_out = file.path(tmp, "ridge_defaults.yaml"),
+    grid_out = file.path(tmp, "ridge_grid.csv"),
+    workers = 2L,
+    refresh_grid = FALSE,
+    stage_stub = "ridge_prior_test",
+    stage_desc = "ridge prior test",
+    stage = "ridge_prior_test",
+    priors = "ridge"
+  )
+
+  defaults <- yaml::read_yaml(file.path(tmp, "ridge_defaults.yaml"))
+  expect_equal(unlist(defaults$screening_profiles$priors, use.names = FALSE), "ridge")
+  expect_equal(unlist(defaults$smoke$priors, use.names = FALSE), "ridge")
+  expect_equal(unlist(defaults$reference_contract$expected_priors, use.names = FALSE), "ridge")
+  expect_equal(defaults$screening_profiles$canonical_qdesn_root_count, 18L)
+})

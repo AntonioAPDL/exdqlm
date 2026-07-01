@@ -1966,7 +1966,8 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
                                                                          refresh_materialized = FALSE,
                                                                          stage_stub = "qdesn_dynamic_fitforecast_v2_tt500_vb_forecast_targeted",
                                                                          stage_desc = "Q-DESN TT500 VB cell-specific forecast-targeted screen over selected family x tau assignments.",
-                                                                         stage = "forecast_targeted") {
+                                                                         stage = "forecast_targeted",
+                                                                         priors = "rhs_ns") {
   if (!is.list(plan) || !is.data.frame(plan$profiles) || !nrow(plan$profiles) ||
       !is.data.frame(plan$assignments) || !nrow(plan$assignments)) {
     stop("plan must contain non-empty `profiles` and `assignments` data frames.", call. = FALSE)
@@ -1981,6 +1982,13 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   stage_stub <- as.character(stage_stub)[1L]
   stage_desc <- as.character(stage_desc)[1L]
   stage <- as.character(stage)[1L]
+  priors <- unique(tolower(as.character(unlist(priors, use.names = FALSE))))
+  priors <- priors[nzchar(priors)]
+  bad_priors <- setdiff(priors, c("ridge", "rhs_ns"))
+  if (length(bad_priors)) {
+    stop(sprintf("Unsupported materialization prior(s): %s", paste(bad_priors, collapse = ", ")), call. = FALSE)
+  }
+  if (!length(priors)) priors <- "rhs_ns"
 
   .qdesn_validation_write_df(plan$profiles, profiles_out)
   .qdesn_validation_write_df(plan$assignments, assignments_out)
@@ -1992,7 +2000,7 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   } else {
     length(selected_cell_keys)
   }
-  canonical_root_count <- nrow(plan$profiles) * canonical_dataset_cell_count
+  canonical_root_count <- nrow(plan$profiles) * canonical_dataset_cell_count * length(priors)
   defaults$campaign <- defaults$campaign %||% list()
   defaults$campaign$name <- stage_stub
   defaults$campaign$results_root <- file.path("results", "qdesn_mcmc_validation", stage_stub)
@@ -2004,7 +2012,7 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   defaults$screening_profiles$enabled <- TRUE
   defaults$screening_profiles$csv <- sub(paste0("^", .qdesn_validation_repo_root(), "/?"), "", profiles_out)
   defaults$screening_profiles$cell_assignments_csv <- sub(paste0("^", .qdesn_validation_repo_root(), "/?"), "", assignments_out)
-  defaults$screening_profiles$priors <- "rhs_ns"
+  defaults$screening_profiles$priors <- as.list(priors)
   defaults$screening_profiles$design <- sprintf("%s Profiles: %d; selected cell-profile assignments: %d.", stage_desc, nrow(plan$profiles), nrow(plan$assignments))
   defaults$screening_profiles$execution_grid_policy <- "cell_specific_subset_grid"
   defaults$screening_profiles$canonical_profile_count <- nrow(plan$profiles)
@@ -2014,6 +2022,7 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   defaults$reference_contract <- defaults$reference_contract %||% list()
   defaults$reference_contract$expected_unique_dataset_cells <- canonical_dataset_cell_count
   defaults$reference_contract$expected_qdesn_roots <- canonical_root_count
+  defaults$reference_contract$expected_priors <- as.list(priors)
   defaults$reference_contract$expected_selected_qdesn_roots <- nrow(plan$assignments)
   defaults$runtime <- defaults$runtime %||% list()
   defaults$runtime$campaign_workers <- workers
@@ -2025,7 +2034,7 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   defaults$smoke$family <- as.character(first_cell$family[[1L]])
   defaults$smoke$tau <- as.numeric(first_cell$tau[[1L]])
   defaults$smoke$fit_sizes <- 500L
-  defaults$smoke$priors <- "rhs_ns"
+  defaults$smoke$priors <- as.list(priors)
   defaults$smoke$max_roots <- 1L
   .qdesn_validation_dir_create(dirname(defaults_out))
   yaml::write_yaml(defaults, defaults_out)
