@@ -1,6 +1,7 @@
 # Q-DESN TT500 MCMC VB-Winner Confirmation Plan
 
-Status: planned, not launched.
+Status: base nine-root confirmation completed and strict-audited; five-root
+diagnostic rescue completed and strict-audited at the artifact/storage level.
 
 This document freezes the plan for the next Q-DESN TT500 validation step after the
 VB replacement work made every Article-facing Q-DESN exAL RHS VB cell competitive
@@ -18,6 +19,86 @@ VB winner set under the same shared rolling-origin fit+forecast protocol.
 - package version: `1.0.0` from `DESCRIPTION`
 - remote: `git@github.com:AntonioAPDL/exdqlm.git`
 - status at audit time: clean relative to upstream
+
+Updated execution evidence, 2026-06-30:
+
+- base run tag:
+  `qdesn-tt500-mcmc-vb-winner-confirmation-full-20260630__git-c051364`
+- base campaign stamp:
+  `20260630-101419__git-c051364`
+- base report root:
+  `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation/qdesn-tt500-mcmc-vb-winner-confirmation-full-20260630__git-c051364/20260630-101419__git-c051364`
+- base results root:
+  `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation/qdesn-tt500-mcmc-vb-winner-confirmation-full-20260630__git-c051364/20260630-101419__git-c051364`
+- strict audit command:
+  `Rscript scripts/audit_qdesn_tt500_mcmc_vb_winner_confirmation.R --report-root reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation/qdesn-tt500-mcmc-vb-winner-confirmation-full-20260630__git-c051364/20260630-101419__git-c051364 --results-root results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation/qdesn-tt500-mcmc-vb-winner-confirmation-full-20260630__git-c051364/20260630-101419__git-c051364 --expected-roots 9 --strict`
+- strict audit result:
+  `observed=9 success=9 running=0 fail=0 strict_ready=TRUE`
+- effective-train contract repair:
+  `scripts/repair_qdesn_tt500_mcmc_vbwin_effective_train_contract.R`
+- repair manifest:
+  `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation/qdesn-tt500-mcmc-vb-winner-confirmation-full-20260630__git-c051364/20260630-101419__git-c051364/audit/effective_train_contract_repair/manifest/qdesn_tt500_mcmc_vbwin_effective_train_contract_repair.json`
+- repair result:
+  `roots=9 alignment_pass=9 dry_run=FALSE`
+- method-aware audit change:
+  campaign audits now resolve the active method directory and the MCMC-specific
+  audit script defaults to `method_dir_name = mcmc_exal`.
+- context/effective train change:
+  compact train exports preserve context rows but label `effective_train`; index
+  alignment scores the TT500 target window `8501:9000`.
+
+Diagnostic rescue launched and completed, 2026-06-30 to 2026-07-01:
+
+- rescue defaults:
+  `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_rescue_fail5_defaults.yaml`
+- rescue root inventory:
+  `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_rescue_fail5_root_ids.csv`
+- rescue materialization manifest:
+  `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_rescue_fail5_materialization_manifest.json`
+- rescue run tag:
+  `qdesn-tt500-mcmc-vbwin-rescue-fail5-full-20260630__git-c051364`
+- rescue campaign stamp:
+  `20260630-112709__git-c051364`
+- rescue report root:
+  `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_rescue_fail5/qdesn-tt500-mcmc-vbwin-rescue-fail5-full-20260630__git-c051364/20260630-112709__git-c051364`
+- rescue results root:
+  `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_rescue_fail5/qdesn-tt500-mcmc-vbwin-rescue-fail5-full-20260630__git-c051364/20260630-112709__git-c051364`
+- tmux session:
+  `qdesn_tt500_mcmc_vbwin_rescue_fail5_20260630` (exited after completion)
+- launch metadata:
+  `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_rescue_fail5/qdesn-tt500-mcmc-vbwin-rescue-fail5-full-20260630__git-c051364/launch/launcher_session.json`
+- rescue scope:
+  five completed-chain signoff-fail roots:
+  `gausmix:0.05`, `gausmix:0.25`, `laplace:0.05`, `normal:0.05`,
+  and `normal:0.25`.
+- rescue budget:
+  `n_burn=8000`, `n_mcmc=40000`, `thin=1`, `progress_every=50`,
+  `workers=5`.
+- rescue tuning:
+  existing exdqlm 1.0.0 slice MCMC is reused with more core/RHS passes,
+  wider slice widths, and larger step-out/shrink caps; no package baseline
+  branch changes are required.
+- healthcheck result on 2026-07-01:
+  `selected_roots=5`, `SUCCESS roots=5`, `RUNNING roots=0`, `FAIL roots=0`,
+  `campaign_completed_manifest_present=TRUE`, retained heavy artifact bytes
+  `0`, index alignment `5/5 PASS`, forecast horizon summary files `5`, and
+  stale status `NO_RUNNING_ROOTS`.
+- artifact strict audit result:
+  `observed=5 success=5 running=0 fail=0 strict_ready=TRUE`.
+- MCMC diagnostic signoff result:
+  `WARN=3`, `FAIL=2`, `PASS=0`.
+- diagnostic WARN roots:
+  `gausmix tau=0.05`, `laplace tau=0.05`, and `normal tau=0.05`; reason:
+  `chain_marginal_but_usable`.
+- diagnostic FAIL roots:
+  `gausmix tau=0.25` and `normal tau=0.25`; reason:
+  `high_autocorrelation`.
+- interpretation:
+  the rescue produced complete, storage-light, reproducible artifacts, but it
+  did not fully clear MCMC diagnostics. The current TT500 MCMC rescue outputs
+  should not be promoted as final diagnostic-clean MCMC replacements without a
+  conscious signoff decision or a narrower next rescue for the two remaining
+  high-autocorrelation cells.
 
 Evidence checked:
 

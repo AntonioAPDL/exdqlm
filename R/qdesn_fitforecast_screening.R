@@ -2644,6 +2644,36 @@ qdesn_dynamic_fitforecast_stage3_forecast_bias_profile_plan <- function(cell_sum
   if (length(value)) value[[1L]] else "EMPTY"
 }
 
+.qdesn_dynamic_fitforecast_resolve_method_dir <- function(root_dir, method_dir_name = NULL) {
+  root_dir <- as.character(root_dir %||% "")[1L]
+  requested <- trimws(as.character(method_dir_name %||% "")[1L])
+  fits_dir <- file.path(root_dir, "fits")
+  if (nzchar(requested)) {
+    return(file.path(fits_dir, requested))
+  }
+
+  fallback <- file.path(fits_dir, "vb_exal")
+  candidate_dirs <- if (dir.exists(fits_dir)) {
+    sort(list.dirs(fits_dir, recursive = FALSE, full.names = TRUE))
+  } else {
+    character(0)
+  }
+  if (!length(candidate_dirs)) return(fallback)
+
+  artifact_score <- function(path) {
+    sum(file.exists(c(
+      file.path(path, "manifest", "status.txt"),
+      file.path(path, "manifest", "output_retention.json"),
+      file.path(path, "tables", "forecast_lead_metrics.csv"),
+      file.path(path, "tables", "forecast_rolling_origin_paths.csv"),
+      file.path(path, "tables", "index_alignment.csv")
+    )))
+  }
+  scores <- vapply(candidate_dirs, artifact_score, integer(1L))
+  ord <- order(-scores, basename(candidate_dirs) != "vb_exal", basename(candidate_dirs))
+  candidate_dirs[[ord[[1L]]]]
+}
+
 .qdesn_dynamic_fitforecast_results_root_from_report <- function(report_root) {
   report_root <- .qdesn_validation_resolve_path(report_root, must_work = FALSE)
   for (nm in c("campaign_manifest.json", "campaign_completed.json", "campaign_summary_manifest.json")) {
@@ -2664,6 +2694,7 @@ qdesn_dynamic_fitforecast_audit_screen_campaign <- function(results_root = NULL,
                                                             expected_final_origin = 9990L,
                                                             expected_final_origin_rows = 10L,
                                                             require_rankings = FALSE,
+                                                            method_dir_name = NULL,
                                                             strict = FALSE) {
   if (is.null(results_root) && !is.null(report_root)) {
     results_root <- .qdesn_dynamic_fitforecast_results_root_from_report(report_root)
@@ -2685,7 +2716,7 @@ qdesn_dynamic_fitforecast_audit_screen_campaign <- function(results_root = NULL,
   expected_roots <- as.integer(expected_roots)[1L]
 
   audit_one <- function(root_dir) {
-    method_dir <- file.path(root_dir, "fits", "vb_exal")
+    method_dir <- .qdesn_dynamic_fitforecast_resolve_method_dir(root_dir, method_dir_name = method_dir_name)
     root_status <- .qdesn_dynamic_fitforecast_status_file(file.path(root_dir, "manifest", "root_status.txt"))
     method_status <- .qdesn_dynamic_fitforecast_status_file(file.path(method_dir, "manifest", "status.txt"))
     lead_path <- file.path(method_dir, "tables", "forecast_lead_metrics.csv")
@@ -2728,6 +2759,8 @@ qdesn_dynamic_fitforecast_audit_screen_campaign <- function(results_root = NULL,
     data.frame(
       root_id = basename(root_dir),
       root_dir = normalizePath(root_dir, winslash = "/", mustWork = FALSE),
+      method_dir_name = basename(method_dir),
+      method_dir = normalizePath(method_dir, winslash = "/", mustWork = FALSE),
       root_status = root_status,
       method_status = method_status,
       lead_metrics_exists = file.exists(lead_path),
@@ -2835,6 +2868,7 @@ qdesn_dynamic_fitforecast_write_campaign_audit <- function(results_root = NULL,
                                                            expected_final_origin = 9990L,
                                                            expected_final_origin_rows = 10L,
                                                            require_rankings = FALSE,
+                                                           method_dir_name = NULL,
                                                            strict = FALSE) {
   audit <- qdesn_dynamic_fitforecast_audit_screen_campaign(
     results_root = results_root,
@@ -2845,6 +2879,7 @@ qdesn_dynamic_fitforecast_write_campaign_audit <- function(results_root = NULL,
     expected_final_origin = expected_final_origin,
     expected_final_origin_rows = expected_final_origin_rows,
     require_rankings = require_rankings,
+    method_dir_name = method_dir_name,
     strict = strict
   )
   if (is.null(out_dir) || !nzchar(as.character(out_dir)[1L])) {
@@ -2885,7 +2920,7 @@ qdesn_dynamic_fitforecast_write_campaign_audit <- function(results_root = NULL,
   }
   bad_roots <- audit$root_audit[bad_idx, , drop = FALSE]
   bad_cols <- intersect(
-    c("root_id", "root_status", "lead_metrics_pass", "rolling_paths_pass",
+    c("root_id", "method_dir_name", "root_status", "lead_metrics_pass", "rolling_paths_pass",
       "storage_light_pass", "forbidden_binary_count", "compact_error"),
     names(bad_roots)
   )

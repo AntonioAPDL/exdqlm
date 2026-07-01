@@ -67,3 +67,66 @@ test_that("TT500 MCMC VB-winner confirmation uses the promoted per-cell profile 
     "tt500vb_f3_d1_n30_a0p03_r0p5_m15_lag15_rl0_pw0p03_pin0p3"
   )
 })
+
+test_that("TT500 MCMC audit resolves mcmc_exal artifact directories", {
+  tmp <- tempfile("qdesn_mcmc_audit_")
+  results_root <- file.path(tmp, "results", "campaign", "tag", "stamp")
+  root_dir <- file.path(results_root, "roots", "root_mcmc_success")
+  method_dir <- file.path(root_dir, "fits", "mcmc_exal")
+  dir.create(file.path(method_dir, "tables"), recursive = TRUE)
+  dir.create(file.path(method_dir, "manifest"), recursive = TRUE)
+  dir.create(file.path(root_dir, "manifest"), recursive = TRUE)
+  writeLines("SUCCESS", file.path(root_dir, "manifest", "root_status.txt"))
+  writeLines("SUCCESS", file.path(method_dir, "manifest", "status.txt"))
+
+  lead <- data.frame(
+    forecast_lead = 1:30,
+    origin_end_source_index = 9990L,
+    pinball_mean = seq_len(30),
+    stringsAsFactors = FALSE
+  )
+  rolling <- data.frame(
+    forecast_origin_source_index = c(rep(seq(9000, 9960, by = 30), each = 30), rep(9990L, 10L)),
+    forecast_lead = c(rep(1:30, length(seq(9000, 9960, by = 30))), 1:10),
+    target_source_index = 9001:10000,
+    stringsAsFactors = FALSE
+  )
+  utils::write.csv(lead, file.path(method_dir, "tables", "forecast_lead_metrics.csv"), row.names = FALSE)
+  utils::write.csv(rolling, file.path(method_dir, "tables", "forecast_rolling_origin_paths.csv"), row.names = FALSE)
+  exdqlm:::.qdesn_validation_write_json(
+    file.path(method_dir, "manifest", "output_retention.json"),
+    list(forecast_objects_pruned = TRUE, forecast_objects_exists_after = FALSE)
+  )
+
+  audit <- exdqlm:::qdesn_dynamic_fitforecast_audit_screen_campaign(
+    results_root = results_root,
+    expected_roots = 1L,
+    strict = TRUE
+  )
+  expect_true(audit$summary$strict_ready)
+  expect_equal(audit$root_audit$method_dir_name, "mcmc_exal")
+  expect_true(audit$root_audit$lead_metrics_pass)
+  expect_true(audit$root_audit$rolling_paths_pass)
+})
+
+test_that("TT500 split alignment scores effective train rows while preserving context rows", {
+  df <- data.frame(
+    source_index = 8426:9000,
+    effective_train = 8426:9000 >= 8501L,
+    evaluation_role = ifelse(8426:9000 >= 8501L, "effective_train", "train_context"),
+    stringsAsFactors = FALSE
+  )
+  root_spec <- list(
+    root_id = "root_effective_train",
+    dataset_cell_id = "cell",
+    effective_fit_size = 500L,
+    train_start_source_index = 8501L,
+    train_end_source_index = 9000L
+  )
+  row <- exdqlm:::.qdesn_validation_split_alignment_row(df, root_spec, split = "train")
+  expect_equal(row$status, "PASS")
+  expect_equal(row$realized_n, 500L)
+  expect_equal(row$realized_n_total, 575L)
+  expect_equal(row$realized_source_index_first, 8501L)
+  expect_equal(row$realized_source_index_last, 9000L)
+})

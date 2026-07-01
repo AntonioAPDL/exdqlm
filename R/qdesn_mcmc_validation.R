@@ -662,6 +662,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 
   source_t <- .qdesn_validation_source_values(source_df, keep_idx, c("t", "time", "source_t"), default = NA_real_)
   source_index <- .qdesn_validation_source_values(source_df, keep_idx, c("source_index", "t"), default = NA_real_)
+  source_roles <- .qdesn_validation_source_split_roles(root_spec, source_index, split = split)
   q_true <- .qdesn_validation_df_col(df_mu, c("q_true", "q_target"), n, default = NA_real_, numeric = TRUE)
   if (!any(is.finite(q_true))) {
     q_true <- .qdesn_validation_df_col(df_pred, c("q_true", "q_target"), n, default = NA_real_, numeric = TRUE)
@@ -698,6 +699,10 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     likelihood_family = likelihood_family,
     model = likelihood_family,
     split = split,
+    source_split_role = source_roles$source_split_role,
+    effective_train = source_roles$effective_train,
+    forecast_eval = source_roles$forecast_eval,
+    evaluation_role = source_roles$evaluation_role,
     h = as.integer(.qdesn_validation_df_col(df_mu, c("h", "step", "t"), n, default = seq_len(n), numeric = TRUE)),
     source_t = as.numeric(source_t),
     source_index = as.integer(source_index),
@@ -714,6 +719,92 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   out
 }
 
+.qdesn_validation_bool_vec <- function(x, n = length(x), default = FALSE) {
+  out <- rep(isTRUE(default), n)
+  if (is.null(x) || !length(x)) return(out)
+  x <- rep(x, length.out = n)
+  if (is.logical(x)) return(ifelse(is.na(x), isTRUE(default), x))
+  if (is.numeric(x)) return(ifelse(is.na(x), isTRUE(default), x != 0))
+  chr <- tolower(trimws(as.character(x)))
+  true_vals <- chr %in% c("true", "t", "yes", "y", "1")
+  false_vals <- chr %in% c("false", "f", "no", "n", "0")
+  out[true_vals] <- TRUE
+  out[false_vals] <- FALSE
+  out
+}
+
+.qdesn_validation_source_split_roles <- function(root_spec, source_index, split = c("train", "holdout")) {
+  split <- match.arg(split)
+  source_index <- suppressWarnings(as.integer(source_index))
+  n <- length(source_index)
+  source_split_role <- rep(NA_character_, n)
+  effective_train <- rep(FALSE, n)
+  forecast_eval <- rep(FALSE, n)
+
+  first_int <- function(x) {
+    x <- suppressWarnings(as.integer(x %||% NA_integer_))
+    x <- x[is.finite(x)]
+    if (length(x)) x[[1L]] else NA_integer_
+  }
+  train_start <- first_int(root_spec$train_start_source_index)
+  train_end <- first_int(root_spec$train_end_source_index)
+  forecast_start <- first_int(root_spec$forecast_start_source_index)
+  forecast_end <- first_int(root_spec$forecast_end_source_index)
+
+  selection_path <- as.character(root_spec$source_selection_indices_path %||% "")[1L]
+  if (nzchar(selection_path) && file.exists(selection_path)) {
+    selection <- tryCatch(
+      utils::read.csv(selection_path, stringsAsFactors = FALSE, check.names = FALSE),
+      error = function(...) data.frame(stringsAsFactors = FALSE)
+    )
+    if (nrow(selection) && "source_index" %in% names(selection)) {
+      selection_index <- suppressWarnings(as.integer(selection$source_index))
+      match_idx <- match(source_index, selection_index)
+      ok <- !is.na(match_idx)
+      role_cols <- intersect(c("source_split_role", "split_role", "selection_role", "role"), names(selection))
+      if (length(role_cols)) {
+        source_split_role[ok] <- as.character(selection[[role_cols[[1L]]]][match_idx[ok]])
+      }
+      if ("effective_train" %in% names(selection)) {
+        vals <- .qdesn_validation_bool_vec(selection$effective_train, nrow(selection), default = FALSE)
+        effective_train[ok] <- vals[match_idx[ok]]
+      }
+      if ("forecast_eval" %in% names(selection)) {
+        vals <- .qdesn_validation_bool_vec(selection$forecast_eval, nrow(selection), default = FALSE)
+        forecast_eval[ok] <- vals[match_idx[ok]]
+      }
+    }
+  }
+
+  train_range <- is.finite(source_index) & is.finite(train_start) & is.finite(train_end) &
+    source_index >= train_start & source_index <= train_end
+  forecast_range <- is.finite(source_index) & is.finite(forecast_start) & is.finite(forecast_end) &
+    source_index >= forecast_start & source_index <= forecast_end
+  effective_train <- effective_train | train_range
+  forecast_eval <- forecast_eval | forecast_range
+
+  blank_role <- is.na(source_split_role) | !nzchar(trimws(source_split_role))
+  source_split_role[blank_role & effective_train] <- "effective_train"
+  source_split_role[blank_role & forecast_eval] <- "forecast_eval"
+  blank_role <- is.na(source_split_role) | !nzchar(trimws(source_split_role))
+  source_split_role[blank_role & identical(split, "train")] <- "train_context"
+  source_split_role[blank_role & identical(split, "holdout")] <- "forecast_eval"
+  source_split_role[is.na(source_split_role) | !nzchar(trimws(source_split_role))] <- split
+
+  evaluation_role <- ifelse(
+    effective_train,
+    "effective_train",
+    ifelse(forecast_eval, "forecast_eval", source_split_role)
+  )
+  data.frame(
+    source_split_role = as.character(source_split_role),
+    effective_train = as.logical(effective_train),
+    forecast_eval = as.logical(forecast_eval),
+    evaluation_role = as.character(evaluation_role),
+    stringsAsFactors = FALSE
+  )
+}
+
 .qdesn_validation_first_finite_int <- function(x) {
   x <- suppressWarnings(as.integer(x %||% NA_integer_))
   x <- x[is.finite(x)]
@@ -723,9 +814,6 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
 .qdesn_validation_split_alignment_row <- function(df, root_spec, split = c("train", "holdout")) {
   split <- match.arg(split)
   df <- as.data.frame(df %||% data.frame(stringsAsFactors = FALSE), stringsAsFactors = FALSE)
-  source_index <- if ("source_index" %in% names(df)) suppressWarnings(as.integer(df$source_index)) else integer(0)
-  source_index <- source_index[is.finite(source_index)]
-
   expected_first <- if (identical(split, "train")) {
     .qdesn_validation_first_finite_int(root_spec$train_start_source_index)
   } else {
@@ -744,7 +832,29 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     NA_integer_
   }
 
-  realized_n <- as.integer(nrow(df))
+  df_eval <- df
+  source_index_all <- if ("source_index" %in% names(df)) suppressWarnings(as.integer(df$source_index)) else integer(0)
+  if (nrow(df_eval)) {
+    if (identical(split, "train") && "effective_train" %in% names(df_eval) &&
+        any(.qdesn_validation_bool_vec(df_eval$effective_train, nrow(df_eval), default = FALSE))) {
+      df_eval <- df_eval[.qdesn_validation_bool_vec(df_eval$effective_train, nrow(df_eval), default = FALSE), , drop = FALSE]
+    } else if (identical(split, "holdout") && "forecast_eval" %in% names(df_eval) &&
+               any(.qdesn_validation_bool_vec(df_eval$forecast_eval, nrow(df_eval), default = FALSE))) {
+      df_eval <- df_eval[.qdesn_validation_bool_vec(df_eval$forecast_eval, nrow(df_eval), default = FALSE), , drop = FALSE]
+    } else if ("evaluation_role" %in% names(df_eval)) {
+      role <- tolower(trimws(as.character(df_eval$evaluation_role)))
+      keep <- if (identical(split, "train")) role == "effective_train" else role == "forecast_eval"
+      if (any(keep, na.rm = TRUE)) df_eval <- df_eval[keep %in% TRUE, , drop = FALSE]
+    } else if (length(source_index_all) == nrow(df_eval) && is.finite(expected_first) && is.finite(expected_last)) {
+      keep <- is.finite(source_index_all) & source_index_all >= expected_first & source_index_all <= expected_last
+      if (any(keep)) df_eval <- df_eval[keep, , drop = FALSE]
+    }
+  }
+
+  source_index <- if ("source_index" %in% names(df_eval)) suppressWarnings(as.integer(df_eval$source_index)) else integer(0)
+  source_index <- source_index[is.finite(source_index)]
+
+  realized_n <- as.integer(nrow(df_eval))
   realized_first <- if (length(source_index)) min(source_index, na.rm = TRUE) else NA_integer_
   realized_last <- if (length(source_index)) max(source_index, na.rm = TRUE) else NA_integer_
   contiguous <- if (length(source_index) > 1L) {
@@ -773,7 +883,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     root_id = as.character(root_spec$root_id %||% NA_character_)[1L],
     dataset_cell_id = as.character(root_spec$dataset_cell_id %||% NA_character_)[1L],
     split = if (identical(split, "holdout")) "forecast" else "train",
+    alignment_role = if (identical(split, "holdout")) "forecast_eval" else "effective_train",
     realized_n = realized_n,
+    realized_n_total = as.integer(nrow(df)),
     expected_n = as.integer(expected_n),
     realized_source_index_first = as.integer(realized_first),
     realized_source_index_last = as.integer(realized_last),
