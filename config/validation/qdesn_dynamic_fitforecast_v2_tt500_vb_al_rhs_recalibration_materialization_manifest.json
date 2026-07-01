@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-01 10:48:43.58781",
+  "generated_at": "2026-07-01 10:51:24.739221",
   "article_summary_path": "/data/jaguir26/local/src/Article-Q-DESN__wt__main_validation_tables/tables/qdesn_validation_tt500_final_summary.csv",
   "source_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage3_forecast_bias_rescue_profiles.csv",
   "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
@@ -64,7 +64,7 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration_profiles.csv",
       "exists": true,
       "bytes": 9500,
-      "mtime": "2026-07-01 10:48:40.60884",
+      "mtime": "2026-07-01 10:51:20.178129",
       "md5": "3c3be807d0f0e978432a630565c6f865",
       "sha256": "734996af4845c1f796cf04504cf19815f5711a6ffddd1a07aa63cf0c8cfe8ff8"
     },
@@ -72,7 +72,7 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration_cell_assignments.csv",
       "exists": true,
       "bytes": 106826,
-      "mtime": "2026-07-01 10:48:42.204883",
+      "mtime": "2026-07-01 10:51:23.385216",
       "md5": "50deed21d1428083f658fe2c59892c5c",
       "sha256": "1e0fc25cb0d632d4e7daeef6fa6855ac489608f10a740c35e7a8509fadbdd811"
     },
@@ -80,7 +80,7 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration_defaults.yaml",
       "exists": true,
       "bytes": 14614,
-      "mtime": "2026-07-01 10:48:42.209883",
+      "mtime": "2026-07-01 10:51:23.406216",
       "md5": "62c639653e795b472c733d76ec9a0653",
       "sha256": "fd2e44229d56902e6c9f66abdedc20316287de01a9458fca7f9ecf81c40fc9f2"
     },
@@ -88,7 +88,7 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration_grid.csv",
       "exists": true,
       "bytes": 588305,
-      "mtime": "2026-07-01 10:48:42.09988",
+      "mtime": "2026-07-01 10:51:23.341214",
       "md5": "0c43b5c9b54ea5c512200865f22fa481",
       "sha256": "b8a388a9a075d3c206df59e66c7046d3798d7c6839f63a6fd451f892bab32639"
     },
@@ -96,7 +96,7 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration/materialization_diagnostics/tables/qdesn_tt500_vb_al_rhs_recalibration_cell_plan.csv",
       "exists": true,
       "bytes": 2017,
-      "mtime": "2026-07-01 10:48:40.521837",
+      "mtime": "2026-07-01 10:51:18.780092",
       "md5": "9fe361d87c054f65eb6804af264fdaf9",
       "sha256": "eae9d16cf7280d3e01865e9a45caf253e7c1e5ca73c10b7ac666b7111cd63222"
     },
@@ -104,7 +104,7 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration/materialization_diagnostics/tables/qdesn_tt500_vb_al_rhs_recalibration_candidate_ledger.csv",
       "exists": true,
       "bytes": 9500,
-      "mtime": "2026-07-01 10:48:40.60084",
+      "mtime": "2026-07-01 10:51:20.170129",
       "md5": "3c3be807d0f0e978432a630565c6f865",
       "sha256": "734996af4845c1f796cf04504cf19815f5711a6ffddd1a07aa63cf0c8cfe8ff8"
     },
@@ -112,9 +112,9 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration/materialization_diagnostics/summary/qdesn_tt500_vb_al_rhs_recalibration.md",
       "exists": true,
       "bytes": 6611,
-      "mtime": "2026-07-01 10:48:43.341913",
-      "md5": "db5d055b4150692af01127325e819761",
-      "sha256": "b7668eaf2e4b543db684efcbd8bf0e26f59178795225bbfd3b4fea2ef90c02f8"
+      "mtime": "2026-07-01 10:51:23.823227",
+      "md5": "c068a653c4295754cb835e99bf6fc40b",
+      "sha256": "4aa984232c00f46da26f946e28a240a31696843a965fad9a29e42751d159bc1f"
     }
   ],
   "screening_wave": "al_rhs_recalibration_2026_07_01",
