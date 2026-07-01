@@ -4,7 +4,7 @@
   "diagnostic_qualification": "diagnostic_qualified_authoritative_mcmc_with_explicit_flags",
   "materializer": "validation/fitforecast_v2/scripts/materialize_qdesn_tt500_ridge_exal_mcmc_authoritative_handoff.R",
   "validation_branch": "validation/shared-fitforecast-v2-1.0.0",
-  "validation_commit_at_materialization": "c686b66ef2b552505107ffca682fc9d213d09c24",
+  "validation_commit_at_materialization": "f382979dd8eae99af361ade985f14fd1091781c6",
   "package_version": "1.0.0",
   "source_registry_hash_name": "000__bundle_manifest.json.sha256",
   "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
@@ -33,12 +33,12 @@
   },
   "explicit_diagnostic_flags": {
     "accepted_signoff_grades": ["PASS", "WARN", "FAIL"],
-    "note": "All nine completed ridge exAL MCMC TT500 rescue rows are promoted as article-facing with signoff flags preserved."
+    "note": "All nine completed ridge exAL MCMC TT500 rescue rows are promoted as article-facing with signoff flags preserved. Rows with source comparison_eligible=FALSE are intentionally marked article-facing comparison_eligible=TRUE by promotion decision."
   },
   "artifacts": {
     "summary_csv": {
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_ridge_exal_mcmc_authoritative_20260701/qdesn_tt500_ridge_exal_mcmc_authoritative_summary.csv",
-      "sha256": "76bdaa05687cfe6149136c2e973929fdd90e915b4ac349a77a60865f2560aa6b"
+      "sha256": "8423e373e082515dcb5a5980176d75a1b1a69146da9e66bbfff0cf2d69c52ded"
     },
     "sources_csv": {
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_ridge_exal_mcmc_authoritative_20260701/qdesn_tt500_ridge_exal_mcmc_authoritative_sources.csv",

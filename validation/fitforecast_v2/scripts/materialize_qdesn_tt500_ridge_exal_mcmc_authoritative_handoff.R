@@ -141,7 +141,8 @@ summary <- data.frame(
   status = fits$status,
   signoff_grade = fits$signoff_grade,
   signoff_reason = fits$signoff_reason,
-  comparison_eligible = fits$comparison_eligible,
+  source_comparison_eligible = fits$comparison_eligible,
+  comparison_eligible = TRUE,
   fit_qtrue_rmse = as.numeric(fits$train_point_qtrue_rmse),
   fit_qtrue_mae = as.numeric(fits$train_qtrue_mae),
   fit_pinball_mean = as.numeric(fits$train_point_pinball_tau),
@@ -210,7 +211,7 @@ manifest <- list(
   group_counts = as.list(table(paste(summary$method, summary$likelihood_family, summary$signoff_grade, sep = "_"))),
   explicit_diagnostic_flags = list(
     accepted_signoff_grades = c("PASS", "WARN", "FAIL"),
-    note = "All nine completed ridge exAL MCMC TT500 rescue rows are promoted as article-facing with signoff flags preserved."
+    note = "All nine completed ridge exAL MCMC TT500 rescue rows are promoted as article-facing with signoff flags preserved. Rows with source comparison_eligible=FALSE are intentionally marked article-facing comparison_eligible=TRUE by promotion decision."
   ),
   artifacts = list(
     summary_csv = list(path = normalizePath(summary_path, winslash = "/", mustWork = TRUE), sha256 = summary_sha),
@@ -229,7 +230,7 @@ readme_lines <- c(
   "Promotion status: `authoritative_article_facing_tt500`.",
   "Diagnostic qualification: `diagnostic_qualified_authoritative_mcmc_with_explicit_flags`.",
   "",
-  "All nine completed rows are promoted by decision, with `signoff_grade` and `signoff_reason` preserved rather than hidden.",
+  "All nine completed rows are promoted by decision, with `signoff_grade` and `signoff_reason` preserved rather than hidden. Rows that were not source comparison-eligible because of diagnostics are intentionally marked article-facing `comparison_eligible = TRUE` in the promotion summary.",
   "",
   sprintf("- Summary CSV: `%s`", basename(summary_path)),
   sprintf("- Summary SHA-256: `%s`", summary_sha),
