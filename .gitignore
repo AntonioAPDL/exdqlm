@@ -44,6 +44,7 @@ notebooks/
 Plan.txt
 RHS_NS_STAGE9_SUBMISSION_MEMO.md
 validation/fitforecast_v2/local_trackers/
+validation/fitforecast_v2/local_trackers/QDESN_TT500_AL_RHS_RECALIBRATION_PLAN_*.md
 
 # local tooling/work logs (not shipped)
 tools/*.out
