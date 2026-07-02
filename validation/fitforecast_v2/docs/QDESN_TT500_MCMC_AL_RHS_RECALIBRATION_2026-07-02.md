@@ -50,6 +50,8 @@ The materializer writes:
 Hard gates enforced at materialization:
 
 - exactly 9 promoted VB winner rows
+- canonical launcher expansion is 54 roots: 9 family/quantile cells times 6 unique selected VB winner profiles
+- selected/run grid is exactly 9 roots: one promoted profile per family/quantile cell
 - `model_key == qdesn_al_rhs_ns`
 - `qdesn_likelihood == al`
 - `prior == rhs_ns`

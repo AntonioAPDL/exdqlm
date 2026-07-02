@@ -33,8 +33,11 @@ test_that("TT500 MCMC AL RHS recalibration config bundle is narrow and article-f
 
   expect_identical(as.character(defaults$execution$methods), "mcmc")
   expect_identical(as.character(defaults$execution$likelihood_families), "al")
-  expect_equal(as.integer(defaults$reference_contract$expected_qdesn_roots), 27L)
+  expect_equal(as.integer(defaults$reference_contract$expected_qdesn_roots), 54L)
   expect_equal(as.integer(defaults$reference_contract$expected_selected_qdesn_roots), 9L)
+  expect_equal(as.integer(defaults$screening_profiles$canonical_profile_count), 6L)
+  expect_equal(as.integer(defaults$screening_profiles$canonical_qdesn_root_count), 54L)
+  expect_equal(as.integer(defaults$screening_profiles$selected_assignment_root_count), 9L)
   expect_equal(as.integer(defaults$study_contract$budget$mcmc_n_burn), 5000L)
   expect_equal(as.integer(defaults$study_contract$budget$mcmc_n_mcmc), 20000L)
   expect_equal(as.integer(defaults$pipeline$inference$mcmc$progress_every), 50L)

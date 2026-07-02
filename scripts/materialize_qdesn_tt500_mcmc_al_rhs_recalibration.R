@@ -174,6 +174,9 @@ plan <- list(
   )
 )
 
+canonical_qdesn_root_count <- nrow(cell_plan) * nrow(profiles)
+selected_qdesn_root_count <- nrow(assignments)
+
 diag_tables <- file.path(diagnostic_out, "tables")
 diag_summary <- file.path(diagnostic_out, "summary")
 diag_manifest <- file.path(diagnostic_out, "manifest")
@@ -214,14 +217,14 @@ defaults$study_contract$budget$mcmc_n_burn <- 5000L
 defaults$study_contract$budget$mcmc_n_mcmc <- 20000L
 defaults$study_contract$budget$mcmc_thin <- 1L
 defaults$reference_contract$expected_unique_dataset_cells <- 9L
-defaults$reference_contract$expected_qdesn_roots <- 27L
-defaults$reference_contract$expected_selected_qdesn_roots <- 9L
+defaults$reference_contract$expected_qdesn_roots <- canonical_qdesn_root_count
+defaults$reference_contract$expected_selected_qdesn_roots <- selected_qdesn_root_count
 defaults$screening_profiles$canonical_profile_count <- nrow(profiles)
-defaults$screening_profiles$canonical_qdesn_root_count <- 27L
-defaults$screening_profiles$selected_assignment_root_count <- 9L
+defaults$screening_profiles$canonical_qdesn_root_count <- canonical_qdesn_root_count
+defaults$screening_profiles$selected_assignment_root_count <- selected_qdesn_root_count
 defaults$screening_profiles$design <- sprintf(
-  "Q-DESN TT500 MCMC AL RHS repair from recalibrated AL RHS VB winners. Profiles: %d; selected assignments: 9.",
-  nrow(profiles)
+  "Q-DESN TT500 MCMC AL RHS repair from recalibrated AL RHS VB winners. Canonical profiles: %d; canonical roots: %d; selected assignments: %d.",
+  nrow(profiles), canonical_qdesn_root_count, selected_qdesn_root_count
 )
 defaults$runtime$threads <- 1L
 defaults$runtime$campaign_workers <- workers
@@ -300,6 +303,8 @@ manifest <- list(
   n_profiles = nrow(profiles),
   n_assignments = nrow(assignments_after),
   n_grid_rows = nrow(grid),
+  canonical_qdesn_root_count = canonical_qdesn_root_count,
+  selected_qdesn_root_count = selected_qdesn_root_count,
   roots = as.list(as.character(assignments_after$root_id)),
   file_manifest = exdqlm:::qdesn_validation_file_manifest(c(
     promotion_summary_path, source_profiles_path, winners_out, profiles_out,

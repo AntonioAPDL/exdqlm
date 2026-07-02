@@ -112,15 +112,15 @@ reference_contract:
   - 0.5
   fit_sizes: 500
   expected_unique_dataset_cells: 9
-  expected_qdesn_roots: 27
+  expected_qdesn_roots: 54
   expected_priors: rhs_ns
   expected_selected_qdesn_roots: 9
 screening_profiles:
   enabled: yes
   csv: config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_profiles.csv
   priors: rhs_ns
-  design: 'Q-DESN TT500 MCMC AL RHS repair from recalibrated AL RHS VB winners. Profiles:
-    6; selected assignments: 9.'
+  design: 'Q-DESN TT500 MCMC AL RHS repair from recalibrated AL RHS VB winners. Canonical
+    profiles: 6; canonical roots: 54; selected assignments: 9.'
   dimension_gate:
     primary_p_over_n_max: 0.5
     exploratory_p_over_n_max: 0.65
@@ -128,7 +128,7 @@ screening_profiles:
   execution_grid_policy: cell_specific_subset_grid
   canonical_profile_count: 6
   canonical_dataset_cell_count: 9
-  canonical_qdesn_root_count: 27
+  canonical_qdesn_root_count: 54
   selected_assignment_root_count: 9
 smoke:
   scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
