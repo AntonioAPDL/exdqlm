@@ -74,10 +74,10 @@ Gate 3: smoke VB only
 ```bash
 EXDQLM_FFV2_LAUNCH_APPROVED=true \
 Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --manifest validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/manifests/row_manifest.csv \
   --phase smoke \
   --inferences vb \
-  --fit-sizes 500 \
-  --run-tag 20260702_exdqlm_dqlm_clock_aligned_vb_calibration
+  --fit-sizes 500
 ```
 
 Gate 4: targeted VB cells
@@ -88,7 +88,25 @@ Start with:
 - laplace, tau 0.05, TT500, DQLM and exDQLM
 - gausmix, tau 0.50, TT500, DQLM and exDQLM
 
-Use `--families`, `--taus`, `--fit-sizes 500`, `--inferences vb`, and `--model-variants dqlm,exdqlm`.
+Use the prepared manifest and selectors:
+
+```bash
+EXDQLM_FFV2_LAUNCH_APPROVED=true \
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --manifest validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/manifests/row_manifest.csv \
+  --phase vb_full \
+  --families normal,laplace,gausmix \
+  --taus 0.50,0.05 \
+  --fit-sizes 500 \
+  --inferences vb \
+  --model-variants dqlm,exdqlm \
+  --workers 6
+```
+
+For exact per-cell control, prefer `--row-ids` or `--spec-ids` after inspecting
+the prepared manifest. The selector command above intentionally includes the
+cross-product of the listed families and taus; use exact IDs if that is broader
+than intended.
 
 Gate 5: broad VB calibration only after targeted cells improve
 
