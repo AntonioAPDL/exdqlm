@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-07-02 03:17:16.707809",
+  "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration",
+  "promotion_summary_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_al_rhs_recalibrated_candidate_20260701/qdesn_tt500_al_rhs_recalibrated_candidate_20260701_summary.csv",
+  "source_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration_profiles.csv",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_vb_winner_confirmation_defaults.yaml",
+  "outputs": {
+    "winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_winners.csv",
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_grid.csv",
+    "diagnostics": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/materialization_diagnostics"
+  },
+  "materialized": {
+    "stage": "mcmc_al_rhs_recalibration",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_grid.csv",
+    "n_profiles": 6,
+    "n_assignments": 9,
+    "n_canonical_grid_rows": 54,
+    "n_grid_rows": 9,
+    "expected_qdesn_roots": 9,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "n_profiles": 6,
+  "n_assignments": 9,
+  "n_grid_rows": 9,
+  "roots": [
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__gausmix__tau_0p05__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p05_pin0p5_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__gausmix__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n20_a0p01_r0p35_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__gausmix__tau_0p50__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n30_a0p03_r0p5_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p05__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n30_a0p03_r0p5_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n30_a0p01_r0p35_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p50__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n20_a0p03_r0p5_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p05__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n20_a0p01_r0p35_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001",
+    "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p50__lasttt_500__qdesn_rhs_ns__profile_tt500alrhs_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3_tau0p0001"
+  ],
+  "file_manifest": [
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_al_rhs_recalibrated_candidate_20260701/qdesn_tt500_al_rhs_recalibrated_candidate_20260701_summary.csv",
+      "exists": true,
+      "bytes": 20865,
+      "mtime": "2026-07-01 23:11:16.152417",
+      "md5": "70b359caeaa21e5eb5dcfb10f699828f",
+      "sha256": "1dc5de595092551d749f03df509f1a9697f54c98be2bba34f4c51750c1a59d30"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_al_rhs_recalibration_profiles.csv",
+      "exists": true,
+      "bytes": 9500,
+      "mtime": "2026-07-01 10:51:20.178129",
+      "md5": "3c3be807d0f0e978432a630565c6f865",
+      "sha256": "734996af4845c1f796cf04504cf19815f5711a6ffddd1a07aa63cf0c8cfe8ff8"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_winners.csv",
+      "exists": true,
+      "bytes": 23420,
+      "mtime": "2026-07-02 03:17:14.908729",
+      "md5": "2b73708d91dafe1e99fc297f0befca1e",
+      "sha256": "f381099499e54b05b9dda7f95a130e48ffb4f19ce8bee66c2fbf3ebb88184a2a"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_profiles.csv",
+      "exists": true,
+      "bytes": 2669,
+      "mtime": "2026-07-02 03:17:14.913729",
+      "md5": "c7a3eed92d3c5370dcd9ce870e0f8297",
+      "sha256": "cab4f5766c64d99e7fb25bed84b42d7a22ee0832507fe4a6b07bc5f00ac15852"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_cell_assignments.csv",
+      "exists": true,
+      "bytes": 4823,
+      "mtime": "2026-07-02 03:17:15.632748",
+      "md5": "8049dc26193ce81946136595fb97c964",
+      "sha256": "d57b301e38653e78fb1eafe11c8bb40c3a040ad9b88f2f9fd82fdae33311165d"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_defaults.yaml",
+      "exists": true,
+      "bytes": 14638,
+      "mtime": "2026-07-02 03:17:16.697777",
+      "md5": "c61a3d9b18f38358d79dae63afa73ca3",
+      "sha256": "e94efefc55026c66f5670cc13c8cc5f750861d0d11282489f3be065edcb062ae"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration_grid.csv",
+      "exists": true,
+      "bytes": 25517,
+      "mtime": "2026-07-02 03:17:15.629748",
+      "md5": "8e72a8f933a5785bdbdec4b0739dbcc8",
+      "sha256": "66bce48fbb22f7c0c0ec216d4c3fd1088880f9667f787c2d118a540082aab8ce"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/materialization_diagnostics/summary/qdesn_tt500_mcmc_al_rhs_recalibration.md",
+      "exists": true,
+      "bytes": 1647,
+      "mtime": "2026-07-02 03:17:16.705777",
+      "md5": "841eb741af05056c16fd795a2bd1a8e9",
+      "sha256": "814e95b96b979bfc0448cd47d80bc9230d6a35c35414077a423005ef23f4ea97"
+    }
+  ]
+}
