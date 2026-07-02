@@ -108,6 +108,19 @@ the prepared manifest. The selector command above intentionally includes the
 cross-product of the listed families and taus; use exact IDs if that is broader
 than intended.
 
+Executed targeted row IDs:
+
+```bash
+EXDQLM_FFV2_LAUNCH_APPROVED=true \
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --manifest validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/manifests/row_manifest.csv \
+  --phase vb_full \
+  --row-ids 17,19,25,27,65,67 \
+  --inferences vb \
+  --fit-sizes 500 \
+  --workers 6
+```
+
 Gate 5: broad VB calibration only after targeted cells improve
 
 Candidate screening dimensions:
@@ -127,6 +140,67 @@ Only promote cells whose VB fit and rolling-origin forecast metrics are competit
 
 Until a clock-aligned run passes the VB and MCMC promotion gates, the existing exDQLM/DQLM TT500 article-facing rows should be treated as pre-calibration evidence. They should not be interpreted as the best attainable DQLM/exDQLM comparison.
 
+## Execution Evidence
+
+Run tag:
+
+```text
+20260702_exdqlm_dqlm_clock_aligned_vb_calibration
+```
+
+Run root:
+
+```text
+/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration
+```
+
+Dry-run and prepare evidence:
+
+- dry-run source rows: `18`
+- dry-run manifest rows: `72`
+- source window status: `PASS 18`
+- prepared manifest rows: `72`
+- unique spec IDs: `72 of 72`
+- stale `/home/jaguir26/local/src` paths: `0`
+- TT500 latent clock check: train start `8501` plus warmup `2000` gives `10501`
+- TT5000 latent clock check: train start `4001` plus warmup `2000` gives `6001`
+
+Smoke gate:
+
+- row `43`: laplace, tau `0.50`, TT500, exDQLM VB, `done`, `PASS`, runtime `61.3s`
+- row `57`: normal, tau `0.25`, TT500, DQLM VB, `done`, `PASS`, runtime `76.0s`
+
+Targeted VB gate:
+
+- row `17`: gausmix, tau `0.50`, TT500, DQLM VB, `done`, `PASS`, runtime `748.6s`
+- row `19`: gausmix, tau `0.50`, TT500, exDQLM VB, `done`, `PASS`, runtime `716.4s`
+- row `25`: laplace, tau `0.05`, TT500, DQLM VB, `done`, `PASS`, runtime `651.8s`
+- row `27`: laplace, tau `0.05`, TT500, exDQLM VB, `done`, `PASS`, runtime `884.4s`
+- row `65`: normal, tau `0.50`, TT500, DQLM VB, `done`, `PASS`, runtime `726.9s`
+- row `67`: normal, tau `0.50`, TT500, exDQLM VB, `done`, `PASS`, runtime `618.0s`
+
+Formal healthcheck:
+
+- status counts: `done 8`, `pending 64`
+- health gates: `PASS 8`
+- telemetry states: `completed 8`, `pending 64`
+- storage audit: `PASS`, `180` files, `8,642,385` bytes, `0` forbidden payloads
+- shared interface rows: `240`
+
+Evidence paths:
+
+- status counts: `validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/manifests/status_counts.csv`
+- telemetry summary: `validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/manifests/telemetry_summary.csv`
+- storage audit: `validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/storage/storage_audit.csv`
+- shared interface: `validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/interfaces/exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv`
+- completed metric summary: `validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_clock_aligned_vb_calibration/manifests/completed_vb_metric_summary.csv`
+
+## Result Interpretation
+
+The clock-aligned correction is a real improvement over the pre-calibration run: targeted fit RMSE ratios are approximately `0.06` to `0.30` of the old values, and forecast RMSE ratios are approximately `0.06` to `0.27` of the old values for the inspected cells.
+
+This is diagnostic success, not final promotion. The laplace tau `0.05` exDQLM VB cell still has weak absolute fit and forecast errors relative to the other targeted cells. Do not promote this calibration directly to MCMC without a broader VB screening step.
+
 ## Storage Policy
 
 The existing storage-light contract remains active:
@@ -139,4 +213,12 @@ The existing storage-light contract remains active:
 
 ## Next Safe Command
 
-After tests pass, the next safe command is the dry-run in Gate 1. Do not launch MCMC from this calibration task without a separate promotion audit.
+The next safe work item is a broad VB-only calibration screen based on Gate 5. Keep MCMC blocked until the VB screen identifies one or more competitive candidate specifications.
+
+Recommended next command family:
+
+```bash
+# Prepare candidate-specific run roots with unique calibration_id/model_spec_hash values,
+# then launch VB-only TT500 rows for the candidate grid.
+# Do not launch MCMC from this calibration task without a separate promotion audit.
+```

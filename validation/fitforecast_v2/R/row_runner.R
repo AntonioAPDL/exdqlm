@@ -82,7 +82,6 @@ ffv2_fit_row <- function(config, data, model, started_at = Sys.time()) {
         vb_control = vb_control,
         verbose = isTRUE(runtime$verbose)
       )
-    ffv2_stop_log_telemetry_sidecar(sidecar)
     fit_iter <- ffv2_as_int1(fit$iter, vb_max_iter)
     ffv2_record_progress(
       config,
