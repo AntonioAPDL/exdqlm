@@ -117,6 +117,21 @@ Rscript scripts/audit_qdesn_tt500_mcmc_al_rhs_recalibration.R \
 
 These outputs are not article-authoritative until the post-completion audit passes and a new promotion handoff is materialized. The Article table should continue to treat the current AL RHS MCMC rows as provisional/pathological until that handoff replaces the older interface IDs.
 
+## Launch Record
+
+Launch started on 2026-07-02 after the materialization, targeted test, prepare-only, smoke, and 2-root pilot gates passed.
+
+- validation launch commit: `ffe3388`
+- run tag: `qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388`
+- tmux session: `qdesn_tt500_mcmc_alrhs_qdesn_tt500_mcmc_al_rhs_recalibration_full_20260`
+- orchestrator manifest:
+  `reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/orchestrators/qdesn-tt500-mcmc-al-rhs-recalibration-orchestrator-20260702-032059__git-ffe3388/manifest/orchestrator_manifest.json`
+- full report root:
+  `reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388`
+- full results root:
+  `results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388`
+- launch state at handoff: detached full run live with 9 selected MCMC AL RHS roots running in parallel.
+
 ## Ridge Policy
 
 The current ridge rows are not repaired by this lane. They should either remain diagnostic/supplementary or be addressed through a separate VB-first ridge screening. The AL RHS MCMC repair should not be delayed by ridge-specific work.
