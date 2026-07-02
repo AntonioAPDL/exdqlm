@@ -5,6 +5,7 @@ ffv2_shared_interface_schema_version <- function() {
 ffv2_shared_interface_columns <- function() {
   c(
     "validation_contract_id", "interface_schema_version", "study_id", "run_tag", "spec_id",
+    "base_spec_id", "calibration_id", "model_spec_hash",
     "model_family", "model_variant", "inference", "inference_method",
     "phase", "validation_stage", "status", "failure_stage", "failure_reason",
     "warning_count", "diagnostic_flags", "health_gate", "signoff_grade",
@@ -15,6 +16,9 @@ ffv2_shared_interface_columns <- function() {
     "family", "dynamic_family", "tau", "tau_label",
     "fit_size", "effective_fit_size", "TT_warmup", "TT_main", "TT_total",
     "fit_size_label",
+    "latent_clock_mode", "latent_clock_start_source_index", "latent_clock_offset",
+    "dynamic_model_period", "dynamic_model_harmonics",
+    "model_C0_scale", "trend_C0_scale", "seasonal_C0_scale", "df_value", "dim_df",
     "initial_forecast_origin_source_index",
     "train_start_source_index", "train_end_source_index",
     "forecast_protocol", "state_update_method", "refit_per_origin",

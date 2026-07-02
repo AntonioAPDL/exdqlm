@@ -100,7 +100,19 @@ ffv2_row_metrics <- function(config,
     source_cell_id = as.character(config$source_cell_id),
     series_wide_sha256 = as.character(config$series_wide_sha256),
     true_quantile_grid_sha256 = as.character(config$true_quantile_grid_sha256),
-    meta_sha256 = as.character(config$meta_sha256)
+    meta_sha256 = as.character(config$meta_sha256),
+    calibration_id = as.character(config$calibration_id %||% NA_character_),
+    model_spec_hash = as.character(config$model_spec_hash %||% NA_character_),
+    latent_clock_mode = as.character(config$latent_clock_mode %||% NA_character_),
+    latent_clock_start_source_index = as.integer(config$latent_clock_start_source_index %||% NA_integer_),
+    latent_clock_offset = as.integer(config$latent_clock_offset %||% NA_integer_),
+    model_C0_scale = as.numeric(config$model_C0_scale %||% NA_real_),
+    trend_C0_scale = as.numeric(config$trend_C0_scale %||% NA_real_),
+    seasonal_C0_scale = as.numeric(config$seasonal_C0_scale %||% NA_real_),
+    df_value = as.character(config$df_value %||% NA_character_),
+    dim_df = as.character(config$dim_df %||% NA_character_),
+    dynamic_model_period = as.integer(config$dynamic_model_period %||% config$period %||% NA_integer_),
+    dynamic_model_harmonics = as.character(config$dynamic_model_harmonics %||% config$harmonics %||% NA_character_)
   )
   as.data.frame(c(base, blocks), stringsAsFactors = FALSE)
 }

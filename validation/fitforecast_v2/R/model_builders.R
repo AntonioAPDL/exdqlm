@@ -33,11 +33,155 @@ ffv2_propagate_model_m0 <- function(model, start_index = 1L) {
   model
 }
 
+ffv2_model_clock_mode <- function(config) {
+  models <- config$models %||% list()
+  mode <- as.character(ffv2_first_model_value(
+    config$latent_clock_mode,
+    models$latent_clock_mode,
+    default = "source_index_only"
+  ))[1L]
+  if (is.na(mode) || !nzchar(mode)) mode <- "source_index_only"
+  allowed <- c("source_index_only", "post_warmup_source_index", "explicit")
+  if (!mode %in% allowed) {
+    stop(sprintf("latent_clock_mode must be one of: %s", paste(allowed, collapse = ", ")),
+         call. = FALSE)
+  }
+  mode
+}
+
+ffv2_positive_scalar <- function(x, name) {
+  out <- suppressWarnings(as.numeric(x)[1L])
+  if (!is.finite(out) || out <= 0) {
+    stop(sprintf("%s must be a positive finite scalar.", name), call. = FALSE)
+  }
+  out
+}
+
+ffv2_first_model_value <- function(..., default = NULL) {
+  vals <- list(...)
+  for (val in vals) {
+    if (is.null(val) || !length(val)) next
+    one <- val[[1L]]
+    if (is.na(one)) next
+    if (is.character(one) && !nzchar(one)) next
+    return(val)
+  }
+  default
+}
+
+ffv2_int_scalar <- function(x, name) {
+  out <- suppressWarnings(as.integer(x)[1L])
+  if (!is.finite(out)) stop(sprintf("%s must be a finite integer.", name), call. = FALSE)
+  out
+}
+
+ffv2_model_clock_start_index <- function(config) {
+  models <- config$models %||% list()
+  explicit <- config$latent_clock_start_source_index %||% models$latent_clock_start_source_index %||% NULL
+  if (!is.null(explicit) && length(explicit) && !is.na(explicit[[1L]]) && nzchar(as.character(explicit[[1L]]))) {
+    out <- ffv2_int_scalar(explicit, "latent_clock_start_source_index")
+    if (out < 1L) stop("latent_clock_start_source_index must be positive.", call. = FALSE)
+    return(out)
+  }
+
+  mode <- ffv2_model_clock_mode(config)
+  train_start <- ffv2_int_scalar(config$train_start_source_index, "train_start_source_index")
+  if (mode == "explicit") {
+    stop("latent_clock_mode='explicit' requires latent_clock_start_source_index.", call. = FALSE)
+  }
+  if (mode == "source_index_only") return(train_start)
+
+  warmup <- ffv2_int_scalar(config$TT_warmup %||% 0L, "TT_warmup")
+  train_start + warmup
+}
+
+ffv2_model_clock_offset <- function(config) {
+  ffv2_model_clock_start_index(config) -
+    ffv2_int_scalar(config$train_start_source_index, "train_start_source_index")
+}
+
+ffv2_model_C0_scales <- function(config) {
+  models <- config$models %||% list()
+  base <- ffv2_positive_scalar(
+    ffv2_first_model_value(config$model_C0_scale, models$C0_scale, config$C0_scale, default = 0.01),
+    "model_C0_scale"
+  )
+  trend <- ffv2_positive_scalar(
+    ffv2_first_model_value(config$trend_C0_scale, models$trend_C0_scale, default = base),
+    "trend_C0_scale"
+  )
+  seasonal <- ffv2_positive_scalar(
+    ffv2_first_model_value(config$seasonal_C0_scale, models$seasonal_C0_scale, default = base),
+    "seasonal_C0_scale"
+  )
+  list(model_C0_scale = base, trend_C0_scale = trend, seasonal_C0_scale = seasonal)
+}
+
+ffv2_parse_numeric_config_value <- function(x, default) {
+  if (is.null(x) || !length(x)) return(default)
+  x <- unlist(x, use.names = FALSE)
+  if (length(x) == 1L && is.character(x) && grepl(",", x, fixed = TRUE)) {
+    x <- trimws(strsplit(x, ",", fixed = TRUE)[[1L]])
+  }
+  out <- suppressWarnings(as.numeric(x))
+  out <- out[is.finite(out)]
+  if (!length(out)) default else out
+}
+
+ffv2_model_df_label <- function(config) {
+  models <- config$models %||% list()
+  df <- ffv2_parse_numeric_config_value(models$df_value %||% config$df_value, default = 0.98)
+  paste(format(df, trim = TRUE, scientific = FALSE), collapse = ",")
+}
+
+ffv2_model_dim_df_label <- function(config) {
+  models <- config$models %||% list()
+  dim_df <- as.integer(ffv2_parse_numeric_config_value(models$dim_df %||% config$dim_df, default = c(2L, 4L)))
+  paste(dim_df, collapse = ",")
+}
+
+ffv2_sync_model_provenance <- function(config) {
+  models <- config$models %||% list()
+  scales <- ffv2_model_C0_scales(config)
+  config$calibration_id <- as.character(
+    config$calibration_id %||% models$calibration_id %||% "baseline"
+  )[1L]
+  config$latent_clock_mode <- ffv2_model_clock_mode(config)
+  config$latent_clock_start_source_index <- ffv2_model_clock_start_index(config)
+  config$latent_clock_offset <- ffv2_model_clock_offset(config)
+  config$model_C0_scale <- scales$model_C0_scale
+  config$trend_C0_scale <- scales$trend_C0_scale
+  config$seasonal_C0_scale <- scales$seasonal_C0_scale
+  config$df_value <- ffv2_model_df_label(config)
+  config$dim_df <- ffv2_model_dim_df_label(config)
+  config$dynamic_model_period <- as.integer(config$period %||% 90L)[1L]
+  config$dynamic_model_harmonics <- as.character(config$harmonics %||% "1, 2")[1L]
+  spec_fields <- c(
+    calibration_id = config$calibration_id,
+    latent_clock_mode = config$latent_clock_mode,
+    latent_clock_start_source_index = as.character(config$latent_clock_start_source_index),
+    latent_clock_offset = as.character(config$latent_clock_offset),
+    model_C0_scale = as.character(config$model_C0_scale),
+    trend_C0_scale = as.character(config$trend_C0_scale),
+    seasonal_C0_scale = as.character(config$seasonal_C0_scale),
+    df_value = config$df_value,
+    dim_df = config$dim_df,
+    dynamic_model_period = as.character(config$dynamic_model_period),
+    dynamic_model_harmonics = config$dynamic_model_harmonics
+  )
+  config$model_spec_hash <- ffv2_hash_string(
+    paste(names(spec_fields), spec_fields, sep = "=", collapse = "\n"),
+    n = 14L
+  )
+  config
+}
+
 ffv2_build_dynamic_model <- function(config, train_n) {
+  config <- ffv2_sync_model_provenance(config)
   period <- as.integer(config$period %||% 90L)[1L]
   harmonics <- ffv2_parse_numeric_list(config$harmonics %||% "1, 2", default = c(1, 2))
   harmonics <- as.integer(harmonics)
-  C0_scale <- as.numeric(config$C0_scale %||% 0.01)[1L]
+  C0_scales <- ffv2_model_C0_scales(config)
   m0 <- ffv2_make_m0(
     level0 = as.numeric(config$level0 %||% 0)[1L],
     slope0 = as.numeric(config$slope0 %||% 0)[1L],
@@ -50,7 +194,7 @@ ffv2_build_dynamic_model <- function(config, train_n) {
       as.numeric(config$harmonic2_phase %||% 0)[1L]
     )
   )
-  C0 <- diag(C0_scale, 6L)
+  C0 <- diag(c(rep(C0_scales$trend_C0_scale, 2L), rep(C0_scales$seasonal_C0_scale, 4L)), 6L)
   trend_mod <- polytrendMod(
     order = 2L,
     m0 = m0[1:2],
@@ -66,9 +210,9 @@ ffv2_build_dynamic_model <- function(config, train_n) {
   )
   model <- trend_mod + seas_mod
 
-  # The shared source index is the scientific time origin. Each row starts the
-  # model at the first fitted source index, matching the old time-origin fix.
-  model <- ffv2_propagate_model_m0(model, as.integer(config$train_start_source_index)[1L])
+  # New prepared runs use the post-warmup latent clock. Historical row configs
+  # without latent_clock_mode keep the old source_index_only behavior.
+  model <- ffv2_propagate_model_m0(model, ffv2_model_clock_start_index(config))
   model$FF <- matrix(rep(as.numeric(model$FF), train_n), nrow = length(model$m0), ncol = train_n)
   model$GG <- array(rep(as.matrix(model$GG), train_n), dim = c(length(model$m0), length(model$m0), train_n))
   as.exdqlm(model)

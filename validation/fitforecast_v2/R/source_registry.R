@@ -366,9 +366,20 @@ ffv2_prepare_manifest <- function(defaults,
           log_path = file.path(run_root, "logs", sprintf("%s.log", row_key)),
           stringsAsFactors = FALSE
         )
+        row_seed <- utils::modifyList(as.list(cell), as.list(row))
+        row_seed$models <- defaults$models %||% list()
+        row_seed <- ffv2_sync_model_provenance(row_seed)
+        model_provenance_cols <- c(
+          "calibration_id", "latent_clock_mode", "latent_clock_start_source_index",
+          "latent_clock_offset", "model_C0_scale", "trend_C0_scale",
+          "seasonal_C0_scale", "df_value", "dim_df", "dynamic_model_period",
+          "dynamic_model_harmonics", "model_spec_hash"
+        )
+        for (nm in model_provenance_cols) row[[nm]] <- row_seed[[nm]]
         row$smoke <- ffv2_smoke_flag(row, defaults)
         row$pilot <- ffv2_pilot_flag(row, defaults)
         row$spec_id <- ffv2_make_spec_id(cbind(row, cell, stringsAsFactors = FALSE), model_family = "exdqlm_dqlm")
+        row$base_spec_id <- row$spec_id
         rows[[length(rows) + 1L]] <- cbind(row, cell, stringsAsFactors = FALSE)
       }
     }
@@ -423,8 +434,23 @@ ffv2_prepare_manifest <- function(defaults,
         prune_fit_on_success = TRUE,
         reuse_vb_init = TRUE
       )
+      base_spec_id <- as.character(cfg$spec_id %||% "")
       override <- ffv2_override_for_spec(overrides, cfg$spec_id, r)
       cfg <- ffv2_apply_row_override(cfg, override)
+      cfg <- ffv2_sync_model_provenance(cfg)
+      cfg$base_spec_id <- base_spec_id
+      cfg$spec_id <- ffv2_make_spec_id(cfg, model_family = "exdqlm_dqlm")
+      manifest$spec_id[[i]] <- as.character(cfg$spec_id)
+      manifest$base_spec_id[[i]] <- as.character(cfg$base_spec_id)
+      for (nm in c(
+        "calibration_id", "latent_clock_mode", "latent_clock_start_source_index",
+        "latent_clock_offset", "model_C0_scale", "trend_C0_scale",
+        "seasonal_C0_scale", "df_value", "dim_df", "dynamic_model_period",
+        "dynamic_model_harmonics", "model_spec_hash"
+      )) {
+        if (!nm %in% names(manifest)) manifest[[nm]] <- NA
+        manifest[[nm]][[i]] <- cfg[[nm]]
+      }
       manifest$run_override_applied[[i]] <- isTRUE(cfg$run_override_applied)
       manifest$run_override_id[[i]] <- as.character(cfg$run_override_id %||% "")
       manifest$run_override_reason[[i]] <- as.character(cfg$run_override_reason %||% "")

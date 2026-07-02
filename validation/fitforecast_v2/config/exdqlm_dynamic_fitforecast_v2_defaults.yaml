@@ -23,6 +23,8 @@ source:
 models:
   model_variants: [dqlm, exdqlm]
   inference_methods: [vb, mcmc]
+  calibration_id: clock_postwarmup_metaC0_df098_v1
+  latent_clock_mode: post_warmup_source_index
   df_value: 0.98
   dim_df: [2, 4]
 

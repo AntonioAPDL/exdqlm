@@ -38,7 +38,19 @@ ffv2_make_spec_id <- function(row, model_family = "exdqlm_dqlm") {
     truth_hash = ffv2_row_value(row, "true_quantile_grid_sha256"),
     forecast_protocol = ffv2_row_value(row, "forecast_protocol"),
     max_lead_configured = as.character(ffv2_row_value(row, "max_lead_configured")),
-    origin_stride = as.character(ffv2_row_value(row, "origin_stride"))
+    origin_stride = as.character(ffv2_row_value(row, "origin_stride")),
+    calibration_id = ffv2_row_value(row, "calibration_id"),
+    model_spec_hash = ffv2_row_value(row, "model_spec_hash"),
+    latent_clock_mode = ffv2_row_value(row, "latent_clock_mode"),
+    latent_clock_start_source_index = as.character(ffv2_row_value(row, "latent_clock_start_source_index")),
+    latent_clock_offset = as.character(ffv2_row_value(row, "latent_clock_offset")),
+    model_C0_scale = as.character(ffv2_row_value(row, "model_C0_scale")),
+    trend_C0_scale = as.character(ffv2_row_value(row, "trend_C0_scale")),
+    seasonal_C0_scale = as.character(ffv2_row_value(row, "seasonal_C0_scale")),
+    df_value = as.character(ffv2_row_value(row, "df_value")),
+    dim_df = as.character(ffv2_row_value(row, "dim_df")),
+    dynamic_model_period = as.character(ffv2_row_value(row, "dynamic_model_period", ffv2_row_value(row, "period"))),
+    dynamic_model_harmonics = as.character(ffv2_row_value(row, "dynamic_model_harmonics", ffv2_row_value(row, "harmonics")))
   )
   fields[is.na(fields)] <- ""
   digest <- ffv2_hash_string(paste(names(fields), fields, sep = "=", collapse = "\n"), n = 14L)

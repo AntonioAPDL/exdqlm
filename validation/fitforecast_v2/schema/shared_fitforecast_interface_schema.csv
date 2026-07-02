@@ -4,6 +4,9 @@ interface_schema_version,true,Article-facing schema version. Active value is rol
 study_id,true,Validation study identifier.
 run_tag,true,Versioned run tag for the producing validation run.
 spec_id,true,Stable atomic run specification identifier for targeted reruns and provenance.
+base_spec_id,false,Pre-override atomic run specification identifier when row overrides are used.
+calibration_id,true,Named calibration profile for the state-space model and inference settings.
+model_spec_hash,true,Compact hash of clock prior covariance and discount settings.
 model_family,true,Top-level model family such as qdesn or exdqlm_dqlm.
 model_variant,true,Model variant such as qdesn_ridge qdesn_rhs_ns dqlm or exdqlm.
 inference,true,Inference method alias such as vb or mcmc.
@@ -39,6 +42,16 @@ TT_warmup,true,Warmup length in the frozen source design.
 TT_main,true,Main source length in the frozen source design.
 TT_total,true,Total generated source length.
 fit_size_label,true,Human-readable fit size label such as TT500 or TT5000.
+latent_clock_mode,true,Latent state clock convention used to align the model to the source window.
+latent_clock_start_source_index,true,Latent clock index used to initialize the first fitted source row.
+latent_clock_offset,true,Offset between source training start and latent model clock start.
+dynamic_model_period,true,Period used by the dynamic harmonic state-space model.
+dynamic_model_harmonics,true,Harmonic orders used by the dynamic state-space model.
+model_C0_scale,true,Base prior covariance scale used by the dynamic state-space model.
+trend_C0_scale,true,Prior covariance scale used for trend states.
+seasonal_C0_scale,true,Prior covariance scale used for harmonic states.
+df_value,true,Discount factor value or comma-delimited discount factors.
+dim_df,true,State block dimensions associated with discount factors.
 initial_forecast_origin_source_index,true,Initial forecast origin source index.
 train_start_source_index,true,Training source start index.
 train_end_source_index,true,Training source end index.

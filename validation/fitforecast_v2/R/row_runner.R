@@ -213,6 +213,7 @@ ffv2_run_row <- function(config_path,
   if (!is.null(runtime_overrides) && length(runtime_overrides)) {
     config$runtime <- utils::modifyList(config$runtime %||% list(), runtime_overrides)
   }
+  config <- ffv2_sync_model_provenance(config)
   config$runtime <- ffv2_apply_runtime_phase_defaults(config$runtime, smoke = ffv2_truthy(config$smoke %||% FALSE))
   runtime <- ffv2_runtime_controls(config)
   ffv2_assert_runtime((config$runtime %||% list())$r_min_version %||% "4.6.0")
