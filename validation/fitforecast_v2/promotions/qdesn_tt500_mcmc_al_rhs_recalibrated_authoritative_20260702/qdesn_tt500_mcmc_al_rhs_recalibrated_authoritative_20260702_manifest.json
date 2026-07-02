@@ -1,0 +1,117 @@
+{
+  "promotion_id": "qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702",
+  "promotion_status": "authoritative_article_facing_diagnostic_qualified",
+  "diagnostic_qualification": "diagnostic_qualified_authoritative_mcmc_al_rhs_recalibrated",
+  "source_selection": "mcmc_al_rhs_recalibrated_vb_winners",
+  "materializer": "validation/fitforecast_v2/scripts/materialize_qdesn_tt500_mcmc_al_rhs_recalibrated_handoff.R",
+  "validation_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "validation_commit_at_materialization": "1a2e6614363812f957aceb13d408a92e77f7bdb3",
+  "validation_run_commit": "ffe3388",
+  "package_version": "1.0.0",
+  "source_registry_hash_name": "000__bundle_manifest.json.sha256",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "rolling_origin_contract": {
+    "fit_size": 500,
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_origin_source_index": 9000,
+    "forecast_block_start_source_index": 9001,
+    "forecast_block_end_source_index": 10000,
+    "max_lead_configured": 30,
+    "origin_stride": 30,
+    "forecast_protocol": "rolling_origin_no_refit_state_update",
+    "synthesis_enabled": false,
+    "refit_per_origin": false,
+    "n_origins_scored_total_per_row": 1000
+  },
+  "run_evidence": {
+    "run_tag": "qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388",
+    "campaign_stamp": "20260702-032753__git-ffe3388",
+    "report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388",
+    "results_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388",
+    "audit_expected_roots": 9,
+    "audit_observed_roots": 9,
+    "audit_success": 9,
+    "audit_fail": 0,
+    "audit_running": 0,
+    "strict_ready": true,
+    "forbidden_binary_count_total": 0
+  },
+  "selected_rows": 9,
+  "signoff_counts": {
+    "PASS": 1,
+    "WARN": 8
+  },
+  "accepted_signoff_grades": ["PASS", "WARN"],
+  "storage_policy": {
+    "storage_light_pass": true,
+    "forbidden_binary_count": 0,
+    "routine_success_payload_retention": "no .rds/.rda/.RData payload retention under results root"
+  },
+  "artifacts": {
+    "summary_csv": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702_summary.csv",
+      "sha256": "a24de53f8d24111e21785c0eec5b6c40973a0bbb7494060c16135a9062ba5063"
+    },
+    "sources_csv": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702_sources.csv",
+      "sha256": "754e80d4e808098ab76756e7979fbc6bf64844e65241714071d452e5fe139361"
+    }
+  },
+  "source_files": [
+    {
+      "source_id": "campaign_fit_summary",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388/tables/campaign_fit_summary.csv",
+      "observed_sha256": "6c6ed171a392151cac33e90574fcd326f9ef23b91e2e0b81cfc74d23a9267585",
+      "hash_verified": true
+    },
+    {
+      "source_id": "campaign_completed",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388/manifest/campaign_completed.json",
+      "observed_sha256": "095d9dbbda4282eef0bba32baa64363cb3985202877fada95318c6a39b2c2e95",
+      "hash_verified": true
+    },
+    {
+      "source_id": "campaign_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388/manifest/campaign_manifest.json",
+      "observed_sha256": "837ac13f990d3a33c361a04d77b83d5aa61cae7011eeee8b18bb1b5ad83885a8",
+      "hash_verified": true
+    },
+    {
+      "source_id": "campaign_summary_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388/manifest/campaign_summary_manifest.json",
+      "observed_sha256": "a6cc6256259840a725b2336dfbb4322b89a7132e7d9be94eb1f97286c1f77d65",
+      "hash_verified": true
+    },
+    {
+      "source_id": "audit_summary",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv",
+      "observed_sha256": "cb9a66fabbe01d348e83e0ca4695a5044dd56a5132aeaacf33da3ace8e9382e3",
+      "hash_verified": true
+    },
+    {
+      "source_id": "audit_root",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388/audit/tables/qdesn_tt500_vb_screen_root_audit.csv",
+      "observed_sha256": "9d238e39412fc73e0ac30af94f77fda51d3fc73c5697f216d83ef6cc57170ad5",
+      "hash_verified": true
+    },
+    {
+      "source_id": "audit_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/20260702-032753__git-ffe3388/audit/manifest/qdesn_tt500_vb_screen_audit_manifest.json",
+      "observed_sha256": "6724ebbccdf3e91638d5be9b2e9f705cc3121e70716dd25ca00d5926f05a4026",
+      "hash_verified": true
+    },
+    {
+      "source_id": "preflight_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/launch/qdesn_dynamic_exdqlm_crossstudy_preflight_manifest.json",
+      "observed_sha256": "6f2764aa95097c4a11a42e1cf794d4433ea2c588d427f6872025b362e0f1b6d9",
+      "hash_verified": true
+    },
+    {
+      "source_id": "healthcheck",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_al_rhs_recalibration/qdesn-tt500-mcmc-al-rhs-recalibration-full-20260702__git-ffe3388/launch/qdesn_dynamic_exdqlm_crossstudy_healthcheck.md",
+      "observed_sha256": "4b9d273c845a9c4a97240f098ca43689483c1aaf6838e0890465479c3454f2df",
+      "hash_verified": true
+    }
+  ]
+}

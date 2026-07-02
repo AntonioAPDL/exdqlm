@@ -135,3 +135,41 @@ Launch started on 2026-07-02 after the materialization, targeted test, prepare-o
 ## Ridge Policy
 
 The current ridge rows are not repaired by this lane. They should either remain diagnostic/supplementary or be addressed through a separate VB-first ridge screening. The AL RHS MCMC repair should not be delayed by ridge-specific work.
+
+## Completion And Promotion Record
+
+The full nine-cell run completed and passed the strict post-completion audit.
+
+- completed campaign stamp: `20260702-032753__git-ffe3388`
+- strict audit status: `observed_roots = 9`, `n_success = 9`, `n_running = 0`, `n_fail = 0`, `strict_ready = TRUE`
+- storage-light audit: `forbidden_binary_count_total = 0`; no `.rds`, `.rda`, or `.RData` files were retained under the successful results root
+- source run signoff mix: 1 `PASS`, 8 `WARN`; `WARN` rows are retained as diagnostic-qualified article-facing rows with their signoff flags preserved
+
+Article-facing promotion handoff:
+
+- promotion id: `qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702`
+- promotion status: `authoritative_article_facing_diagnostic_qualified`
+- diagnostic qualification: `diagnostic_qualified_authoritative_mcmc_al_rhs_recalibrated`
+- summary:
+  `validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702_summary.csv`
+- summary SHA-256:
+  `a24de53f8d24111e21785c0eec5b6c40973a0bbb7494060c16135a9062ba5063`
+- manifest:
+  `validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702_manifest.json`
+- manifest SHA-256:
+  `301ab838dfed94ef1994cb5e0d90506abb0c2ceec35c71dea1437cea06a21fb9`
+- sources:
+  `validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702/qdesn_tt500_mcmc_al_rhs_recalibrated_authoritative_20260702_sources.csv`
+
+Pinned source evidence:
+
+- campaign fit summary SHA-256:
+  `6c6ed171a392151cac33e90574fcd326f9ef23b91e2e0b81cfc74d23a9267585`
+- strict audit summary SHA-256:
+  `cb9a66fabbe01d348e83e0ca4695a5044dd56a5132aeaacf33da3ace8e9382e3`
+- root audit SHA-256:
+  `9d238e39412fc73e0ac30af94f77fda51d3fc73c5697f216d83ef6cc57170ad5`
+- source registry hash:
+  `edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275`
+
+Article integration rule: replace exactly the nine `qdesn_al_rhs_ns` / `mcmc` TT500 rows with this handoff. Do not alter the already-promoted AL RHS VB rows, exAL RHS rows, or ridge rows through this lane.
