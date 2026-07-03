@@ -131,7 +131,7 @@ ffv2_parse_numeric_config_value <- function(x, default) {
 ffv2_model_df_label <- function(config) {
   models <- config$models %||% list()
   df <- ffv2_parse_numeric_config_value(models$df_value %||% config$df_value, default = 0.98)
-  paste(format(df, trim = TRUE, scientific = FALSE), collapse = ",")
+  paste(sprintf("%.15g", df), collapse = ",")
 }
 
 ffv2_model_dim_df_label <- function(config) {

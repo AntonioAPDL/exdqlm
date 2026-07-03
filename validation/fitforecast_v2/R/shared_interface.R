@@ -6,6 +6,7 @@ ffv2_shared_interface_columns <- function() {
   c(
     "validation_contract_id", "interface_schema_version", "study_id", "run_tag", "spec_id",
     "base_spec_id", "calibration_id", "model_spec_hash",
+    "candidate_id", "screen_stage", "candidate_notes", "screen_sentinel",
     "model_family", "model_variant", "inference", "inference_method",
     "phase", "validation_stage", "status", "failure_stage", "failure_reason",
     "warning_count", "diagnostic_flags", "health_gate", "signoff_grade",

@@ -380,3 +380,64 @@ launch the screen until the dry-run proves:
 
 After that, launch only Build 03 fit-only sentinels.
 
+
+## Implementation Ledger
+
+### 2026-07-02 Build 01/02/03 Preparation
+
+Implemented validation-harness-only calibration-screen support without changing
+the exdqlm 1.0.0 package API:
+
+- candidate registry:
+  `validation/fitforecast_v2/config/exdqlm_dqlm_vb_calibration_screen_candidates_20260702.csv`
+- candidate manifest expansion utility:
+  `validation/fitforecast_v2/R/vb_calibration_screen.R`
+- prepare entry point:
+  `validation/fitforecast_v2/scripts/prepare_exdqlm_dqlm_vb_calibration_screen.R`
+- candidate provenance columns in row metrics and shared interface schema:
+  `candidate_id`, `screen_stage`, `candidate_notes`, `screen_sentinel`
+- focused tests:
+  `validation/fitforecast_v2/tests/testthat/test-exdqlm-vb-calibration-screen.R`
+
+The implemented first-screen defaults are intentionally fit-only and
+storage-light:
+
+- `fit_size = 500`
+- `model_variant in {dqlm, exdqlm}`
+- `inference = vb`
+- `validation_stage = fit-only`
+- `stored_draws = 500`
+- `forecast_draws = 500`
+- `vb.max_iter = 150`
+- `vb.n_samp = 5000`
+- successful fit handoffs retained as `.ffv2handoff` for explicit
+  forecast-only follow-up of selected candidates
+
+### 2026-07-02 Build 01/02/03 Verification
+
+Commands run before launch:
+
+```bash
+Rscript -e "suppressPackageStartupMessages(library(testthat)); testthat::test_file('validation/fitforecast_v2/tests/testthat/test-exdqlm-vb-calibration-screen.R', reporter='summary')"
+Rscript -e "suppressPackageStartupMessages(library(testthat)); testthat::test_dir('validation/fitforecast_v2/tests/testthat', reporter='summary')"
+Rscript validation/fitforecast_v2/scripts/prepare_exdqlm_dqlm_vb_calibration_screen.R --dry-run
+Rscript validation/fitforecast_v2/scripts/prepare_exdqlm_dqlm_vb_calibration_screen.R
+ids=$(paste -sd, validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/sentinel_row_ids.txt)
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R --manifest validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/row_manifest.csv --phase vb_full --validation-stage fit-only --row-ids "$ids" --dry-run --workers 20
+```
+
+Observed pre-launch evidence:
+
+- focused calibration-screen tests: PASS
+- full `validation/fitforecast_v2` test suite: PASS
+- dry-run source windows: `PASS 9`
+- dry-run source rows: `9`
+- candidate rows: `16`
+- expanded manifest rows: `288`
+- unique spec IDs: `288 of 288`
+- sentinel rows: `112`
+- sentinel rows per candidate: `7`
+- prepared manifest stale `/home/jaguir26/local/src` paths: `0`
+- forbidden prepare-time payloads matching `.rds`, `.rda`, `.RData`: `0`
+
+Prepared run root:

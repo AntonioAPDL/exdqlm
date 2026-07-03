@@ -7,6 +7,10 @@ spec_id,true,Stable atomic run specification identifier for targeted reruns and 
 base_spec_id,false,Pre-override atomic run specification identifier when row overrides are used.
 calibration_id,true,Named calibration profile for the state-space model and inference settings.
 model_spec_hash,true,Compact hash of clock prior covariance and discount settings.
+candidate_id,false,Calibration-screen candidate identifier when a row is part of a staged screen.
+screen_stage,false,Calibration-screen stage identifier such as fit_only_sentinel_screen.
+candidate_notes,false,Short human-readable purpose for the calibration candidate.
+screen_sentinel,false,Whether the row is part of the first fit-only sentinel screen.
 model_family,true,Top-level model family such as qdesn or exdqlm_dqlm.
 model_variant,true,Model variant such as qdesn_ridge qdesn_rhs_ns dqlm or exdqlm.
 inference,true,Inference method alias such as vb or mcmc.
