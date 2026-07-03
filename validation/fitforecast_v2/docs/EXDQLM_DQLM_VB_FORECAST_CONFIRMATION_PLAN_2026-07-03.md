@@ -332,3 +332,100 @@ Default recommendation:
 - use `6` workers
 - defer pruning retained handoffs until the forecast audit and promotion
   decision are complete
+
+## Implementation Ledger
+
+### 2026-07-03 Forecast-Only Confirmation Launch
+
+Pre-launch gates:
+
+- branch: `validation/shared-fitforecast-v2-1.0.0`
+- HEAD: `a4fcb74 Plan exDQLM DQLM VB forecast confirmation`
+- selected top-3 rows: `21`
+- retained fit handoffs present: `21 of 21`
+- retained fit handoff storage: about `3.154 GiB`
+- pre-launch healthcheck: `fit_done 112`, `pending 176`, `PASS 112`
+- storage audit: `PASS`, forbidden `.rds`, `.rda`, `.RData` payloads: `0`
+
+Dry-run command:
+
+```bash
+ids="67,68,78,83,84,94,97,98,110,113,124,126,228,230,238,260,268,270,276,284,286"
+
+Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --manifest validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/row_manifest.csv \
+  --phase vb_full \
+  --validation-stage forecast-only \
+  --row-ids "$ids" \
+  --workers 6 \
+  --dry-run
+```
+
+Dry-run result:
+
+- `selected_rows: 21`
+- every generated row command used `--validation-stage 'forecast-only'`
+- row IDs matched the retained top-3 set
+
+Approved launch command:
+
+```bash
+ids="67,68,78,83,84,94,97,98,110,113,124,126,228,230,238,260,268,270,276,284,286"
+
+EXDQLM_FFV2_LAUNCH_APPROVED=true Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --manifest validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/row_manifest.csv \
+  --phase vb_full \
+  --validation-stage forecast-only \
+  --row-ids "$ids" \
+  --workers 6
+```
+
+Launch result:
+
+- wrapper exit code: `0`
+- selected rows completed: `21`
+- selected row statuses: `done 21`
+- selected row health gates: `PASS 21`
+- selected rows with forecast summaries: `21`
+- selected rows with forecast lead metrics: `21`
+- no live workers for this run root after completion
+
+Post-launch healthcheck:
+
+- row states: `done 21`, `fit_done 91`, `pending 176`
+- health gates: `PASS 112`
+- telemetry states: `completed 21`, `fit_done 91`, `pending 176`
+- storage audit: `PASS`
+- forbidden payloads: `0`
+- shared interface rows: `721`
+
+Generated summary files:
+
+```text
+validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/top3_forecast_confirmation_summary_20260703.csv
+validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/top3_forecast_confirmation_lead_summary_20260703.csv
+```
+
+Forecast-confirmation winners by H1000 forecast MAE within selected cells:
+
+| Model | Family | Tau | Candidate | Fit RMSE | H1000 forecast MAE | H1000 check loss |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| DQLM | gausmix | 0.50 | `c13_trend100_season1_df0995s099` | 1.598 | 1.840 | 5.541 |
+| DQLM | laplace | 0.05 | `c13_trend100_season1_df0995s099` | 4.591 | 3.644 | 1.868 |
+| DQLM | normal | 0.25 | `c13_trend100_season1_df0995s099` | 2.404 | 2.513 | 3.371 |
+| DQLM | normal | 0.50 | `c13_trend100_season1_df0995s099` | 1.923 | 1.109 | 4.022 |
+| exDQLM | gausmix | 0.50 | `c13_trend100_season1_df0995s099` | 1.595 | 1.859 | 5.542 |
+| exDQLM | laplace | 0.05 | `c00_baseline` | 8.261 | 8.946 | 2.158 |
+| exDQLM | normal | 0.50 | `c13_trend100_season1_df0995s099` | 1.988 | 1.125 | 4.023 |
+
+Interpretation for the next decision:
+
+- `c13_trend100_season1_df0995s099` is the dominant retained candidate across
+  gausmix and normal cells for both DQLM and exDQLM.
+- DQLM laplace `tau = 0.05` improved among retained candidates but remains
+  materially worse than normal/gausmix in quantile MAE.
+- exDQLM laplace `tau = 0.05` remains weak; the best retained exDQLM laplace
+  forecast candidate is still the baseline.
+- MCMC should not be launched broadly from this evidence. If MCMC is pursued,
+  it should be restricted to promoted VB winners after comparison against
+  Q-DESN and the existing article-facing DQLM/exDQLM baselines.
