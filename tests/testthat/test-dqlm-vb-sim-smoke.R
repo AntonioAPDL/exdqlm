@@ -58,6 +58,40 @@ test_that("dqlm coercion is respected when gamma is fixed at zero", {
   expect_true(all(is.finite(fit$sig.out$E.sigma)))
 })
 
+test_that("LDVB reduced DQLM honors explicit vb_control max_iter", {
+  set.seed(20260703)
+  model <- as.exdqlm(list(m0 = 0, C0 = matrix(1, 1, 1), FF = 1, GG = 1))
+  y <- c(0.1, -0.15, 0.05, 0.2, -0.08, 0.12)
+
+  old_opts <- options(
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.compute_elbo = TRUE,
+    exdqlm.use_cpp_samplers = FALSE,
+    exdqlm.use_cpp_postpred = FALSE,
+    exdqlm.max_iter = 8L,
+    exdqlm.vb.min_iter = 10L,
+    exdqlm.vb.patience = 3L,
+    exdqlm.tol_sigma = NULL,
+    exdqlm.tol_gamma = NULL,
+    exdqlm.tol_elbo = NULL,
+    exdqlm.vb.allow_elbo_drop = NULL,
+    exdqlm.dynamic.ldvb.sigmagam = NULL,
+    exdqlm.dynamic.ldvb.sts = NULL,
+    exdqlm.static.ldvb.sigmagam = NULL
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  fit <- exdqlmLDVB(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    dqlm.ind = TRUE, sig.init = stats::sd(y), fix.sigma = FALSE,
+    n.samp = 8, tol = 1e-12, verbose = FALSE,
+    vb_control = exal_make_vb_control(max_iter = 3L, tol = 1e-12, verbose = FALSE)
+  )
+
+  expect_true(isTRUE(fit$dqlm.ind))
+  expect_identical(as.integer(fit$iter), 3L)
+})
+
 test_that("LDVB smoke on synthetic dynamic quantiles (exDQLM vs DQLM) stays finite and sensible", {
   skip_on_cran()
   set.seed(20260304)

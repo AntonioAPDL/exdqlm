@@ -441,3 +441,111 @@ Observed pre-launch evidence:
 - forbidden prepare-time payloads matching `.rds`, `.rda`, `.RData`: `0`
 
 Prepared run root:
+
+```text
+/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen
+```
+
+### 2026-07-02 Fit-Only Sentinel Launch
+
+Approved launch command:
+
+```bash
+ids=$(paste -sd, validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/sentinel_row_ids.txt)
+EXDQLM_FFV2_LAUNCH_APPROVED=true Rscript validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
+  --manifest validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/row_manifest.csv \
+  --phase vb_full \
+  --validation-stage fit-only \
+  --row-ids "$ids" \
+  --workers 20
+```
+
+Observed launch result:
+
+- launcher exit code: `0`
+- sentinel rows launched: `112`
+- live validation workers after completion: `0`
+- row states after healthcheck: `fit_done 112`, `pending 176`
+- health gates: `PASS 112`
+- shared interface rows: `112`
+- forbidden `.rds`, `.rda`, `.RData` payloads: `0`
+- storage audit status: `PASS`
+- total run-root storage: about `18.13 GB`
+- retained fit handoffs: `448` files, about `16.86 GiB`
+
+The retained `.ffv2handoff` objects are not forbidden payloads, but they are
+too heavy to keep for all non-finalist candidates indefinitely. They are kept
+only so selected candidates can be forecasted without refitting. Prune
+non-finalist handoffs only after an explicit finalist decision.
+
+Generated post-launch summary files:
+
+```text
+validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/sentinel_fit_metric_ranking.csv
+validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/sentinel_candidate_summary.csv
+validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/sentinel_cell_winners_by_fit_rmse.csv
+validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/manifests/sentinel_top3_by_cell_fit_rmse.csv
+validation/fitforecast_v2/runs/20260702_exdqlm_dqlm_vb_c0_discount_screen/interfaces/exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv
+```
+
+Fit-only sentinel winners by fit RMSE:
+
+| Model | Family | Tau | Winning candidate | Fit RMSE ratio vs baseline | VB status |
+| --- | --- | ---: | --- | ---: | --- |
+| DQLM | gausmix | 0.50 | `c13_trend100_season1_df0995s099` | 0.636 | converged |
+| DQLM | laplace | 0.05 | `c00_baseline` | 1.000 | converged |
+| DQLM | normal | 0.25 | `c03_trend100_season001` | 0.365 | converged |
+| DQLM | normal | 0.50 | `c13_trend100_season1_df0995s099` | 0.309 | converged |
+| exDQLM | gausmix | 0.50 | `c13_trend100_season1_df0995s099` | 0.629 | converged |
+| exDQLM | laplace | 0.05 | `c00_baseline` | 1.000 | stopped |
+| exDQLM | normal | 0.50 | `c13_trend100_season1_df0995s099` | 0.323 | stopped |
+
+Interpretation:
+
+- The screen produced useful C0/discount signal for normal and gausmix cells.
+- The laplace `tau=0.05` cell did not improve under this screen and should be
+  handled as a separate left-tail calibration problem.
+- Do not promote all 16 candidates to forecast. Promote only top candidates per
+  model/family/tau cell after reviewing `sentinel_top3_by_cell_fit_rmse.csv`.
+
+### 2026-07-03 DQLM VB Iteration-Cap Audit
+
+Post-launch log parsing found six DQLM laplace `tau=0.05` rows with LDVB
+iteration counts above the screen cap of `150`. The generated row configs did
+contain `budget.vb.max_iter = 150`, and `validation/fitforecast_v2/R/row_runner.R`
+passed that value into `exdqlmLDVB()`.
+
+Root cause:
+
+- `exdqlmLDVB()` read `getOption("exdqlm.max_iter", 200L)` before the reduced
+  DQLM branch.
+- The reduced DQLM branch returned before the later `vb_control$max_iter`
+  override was applied.
+- exDQLM rows already honored `vb_control$max_iter`; the bug was specific to
+  `dqlm.ind = TRUE`.
+
+Fix:
+
+- Move the `vb_control$max_iter` override before the reduced DQLM branch in
+  `R/exdqlmLDVB.R`.
+- Add a regression test in
+  `tests/testthat/test-dqlm-vb-sim-smoke.R` that sets global
+  `exdqlm.max_iter = 8` but explicit `vb_control(max_iter = 3)` and verifies
+  the reduced DQLM fit returns at iteration `3`.
+
+Verification commands:
+
+```bash
+Rscript -e "pkgload::load_all('.', quiet = TRUE); testthat::test_file('tests/testthat/test-dqlm-vb-sim-smoke.R')"
+Rscript -e "pkgload::load_all('.', quiet = TRUE); testthat::test_dir('validation/fitforecast_v2/tests/testthat', reporter = 'summary')"
+```
+
+Verification result:
+
+- focused DQLM VB test file: PASS, with one existing CRAN-gated smoke skipped
+- full `validation/fitforecast_v2` test suite: PASS
+
+The completed sentinel screen remains valid as a diagnostic screen. The six
+over-cap rows are all non-winning DQLM laplace `tau=0.05` candidates; the
+laplace left-tail cell already requires separate targeted calibration before
+promotion.

@@ -220,6 +220,9 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   }
   df.mat = make_df_mat(df,dim.df,p)
   max_iter <- suppressWarnings(as.integer(getOption("exdqlm.max_iter", 200L)))
+  if (!is.null(vb_control$max_iter)) {
+    max_iter <- suppressWarnings(as.integer(vb_control$max_iter)[1L])
+  }
   if (!is.finite(max_iter) || max_iter < 1L) max_iter <- 200L
 
   # Reduced AL branch (DQLM): conjugate CAVI without gamma/s_t blocks.
@@ -285,7 +288,6 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     sigmagam = getOption("exdqlm.dynamic.ldvb.sigmagam", getOption("exdqlm.static.ldvb.sigmagam", NULL)),
     sts = getOption("exdqlm.dynamic.ldvb.sts", NULL)
   )
-  if (!is.null(vb_control$max_iter)) max_iter <- as.integer(vb_control$max_iter)[1L]
   if (!is.null(vb_control$sigmagam)) ld_ctrl_input$sigmagam <- vb_control$sigmagam
   if (!is.null(vb_control$sts)) ld_ctrl_input$sts <- vb_control$sts
   ld_ctrl <- .exal_static_ld_controls(ld_ctrl_input)
