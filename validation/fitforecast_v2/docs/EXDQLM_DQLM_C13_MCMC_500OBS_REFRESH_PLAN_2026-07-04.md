@@ -19,7 +19,8 @@ This lane is validation-only until it completes and is materialized. It must not
 - c13 VB cells complete: 18 exDQLM/DQLM model/family/quantile cells
 - c13 MCMC cells before this lane: 0 current-best c13 MCMC cells
 - Superseded dry-run/smoke tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh`
-- Active launch tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2`
+- Gate tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2`
+- Full production tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1`
 
 ## Fixed Protocol
 
@@ -64,7 +65,7 @@ This lane is validation-only until it completes and is materialized. It must not
 - Stale threshold: 1800 seconds
 - Storage policy: compact successful artifacts only; no routine successful `.rds`, `.rda`, or `.RData` retention
 
-Smoke rows intentionally use tiny budgets and `init_from_vb = false`. Pilot rows use tiny budgets and `init_from_vb = true`. Smoke and pilot rows are non-overlapping in the active v2 run so both gates exercise their own intended budgets. Full rows use the production MCMC budget above.
+Smoke rows intentionally use tiny budgets and `init_from_vb = false`. Pilot rows use tiny budgets and `init_from_vb = true`. Smoke and pilot rows are non-overlapping in the gate run so both gates exercise their own intended budgets. The production run is prepared separately with `--full-only`, so all 18 production rows remain pending and use the full MCMC budget above.
 
 ## Implemented Entry Points
 
@@ -83,18 +84,20 @@ Smoke rows intentionally use tiny budgets and `init_from_vb = false`. Pilot rows
 
 ## Gate Sequence
 
-1. Dry-run prepare.
-2. Real prepare with a new run tag.
+1. Dry-run gate prepare.
+2. Real gate prepare.
 3. Dry-run smoke command expansion.
 4. Run smoke with `EXDQLM_FFV2_LAUNCH_APPROVED=true`.
 5. Healthcheck and audit with `--allow-incomplete`.
 6. Run pilot with `EXDQLM_FFV2_LAUNCH_APPROVED=true`.
 7. Healthcheck and audit with `--allow-incomplete`.
-8. Launch full `mcmc_tt500` in the background with one core per row and BLAS/OpenMP threads forced to 1.
-9. Periodic healthchecks until all rows are done/PASS or explicit failures are documented.
-10. Run strict audit without `--allow-incomplete`.
-11. Materialize handoff only if the strict audit passes.
-12. Update Article-Q-DESN tables only from the materialized handoff, not from raw run directories.
+8. Prepare a separate full-only production run with `--full-only`.
+9. Dry-run full `mcmc_tt500` command expansion and confirm 18 selected rows.
+10. Launch full `mcmc_tt500` in the background with one core per row and BLAS/OpenMP threads forced to 1.
+11. Periodic healthchecks until all rows are done/PASS or explicit failures are documented.
+12. Run strict audit without `--allow-incomplete` on the full production run.
+13. Materialize handoff only if the strict audit passes.
+14. Update Article-Q-DESN tables only from the materialized handoff, not from raw run directories.
 
 ## Reproducible Commands
 
@@ -112,6 +115,15 @@ Real prepare:
 ```bash
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/prepare_exdqlm_dqlm_c13_mcmc_500obs_refresh.R \
+  --workers 18
+```
+
+Full-only production prepare:
+
+```bash
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/prepare_exdqlm_dqlm_c13_mcmc_500obs_refresh.R \
+  --full-only \
   --workers 18
 ```
 
@@ -159,7 +171,7 @@ EXDQLM_FFV2_LAUNCH_APPROVED=true \
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2/manifests/row_manifest.csv \
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv \
   --phase mcmc_tt500 \
   --validation-stage all \
   --workers 18
@@ -170,7 +182,7 @@ Healthcheck:
 ```bash
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/healthcheck_exdqlm_dynamic_fitforecast_v2_validation.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2/manifests/row_manifest.csv
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv
 ```
 
 Strict audit:
@@ -178,7 +190,7 @@ Strict audit:
 ```bash
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/audit_exdqlm_dqlm_c13_mcmc_500obs_refresh.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2/manifests/row_manifest.csv
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv
 ```
 
 Materialize handoff:
@@ -186,7 +198,7 @@ Materialize handoff:
 ```bash
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/materialize_exdqlm_dqlm_c13_mcmc_500obs_handoff.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2/manifests/row_manifest.csv
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv
 ```
 
 ## Article Rule

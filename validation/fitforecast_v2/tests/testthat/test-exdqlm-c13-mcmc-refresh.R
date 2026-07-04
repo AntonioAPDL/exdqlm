@@ -39,6 +39,37 @@ test_that("c13 MCMC refresh dry-run creates exactly the current-best TT500 grid"
   expect_equal(sort(unique(as.numeric(manifest$tau))), c(0.05, 0.25, 0.5))
 })
 
+test_that("c13 MCMC full-only dry-run has no gate rows and keeps full budgets", {
+  defaults <- ffv2_test_defaults()
+  candidate <- ffv2_c13_mcmc_candidate()
+  defaults <- ffv2_c13_mcmc_defaults(
+    defaults,
+    run_tag = "test_c13_mcmc_full_only",
+    candidate = candidate,
+    workers = 18L,
+    gate_rows = FALSE
+  )
+  ffv2_test_write_sources(defaults)
+  registry <- ffv2_collect_source_registry(defaults, require_sources = TRUE)
+  run_root <- tempfile("c13_mcmc_full_")
+  manifest <- ffv2_prepare_c13_mcmc_refresh_manifest(
+    defaults = defaults,
+    registry = registry,
+    candidate = candidate,
+    run_root = run_root,
+    dry_run = FALSE,
+    workers = 18L,
+    gate_rows = FALSE
+  )
+  expect_equal(nrow(manifest), 18L)
+  expect_equal(nrow(ffv2_stage_rows(manifest, "smoke", include_completed = TRUE)), 0L)
+  expect_equal(nrow(ffv2_stage_rows(manifest, "pilot", include_completed = TRUE)), 0L)
+  cfg <- ffv2_read_json(manifest$row_config_path[[1L]])
+  expect_equal(cfg$budget$mcmc$n_burn, 5000L)
+  expect_equal(cfg$budget$mcmc$n_mcmc, 20000L)
+  expect_equal(cfg$budget$mcmc$init_from_vb, TRUE)
+})
+
 test_that("c13 MCMC refresh writes stamped configs with separate smoke pilot and full budgets", {
   defaults <- ffv2_test_defaults()
   candidate <- ffv2_c13_mcmc_candidate()

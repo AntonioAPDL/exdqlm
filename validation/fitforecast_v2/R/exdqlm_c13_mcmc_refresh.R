@@ -3,7 +3,15 @@ ffv2_c13_mcmc_candidate_id <- function() {
 }
 
 ffv2_c13_mcmc_default_run_tag <- function() {
+  ffv2_c13_mcmc_default_full_run_tag()
+}
+
+ffv2_c13_mcmc_default_gate_run_tag <- function() {
   "20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2"
+}
+
+ffv2_c13_mcmc_default_full_run_tag <- function() {
+  "20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1"
 }
 
 ffv2_c13_mcmc_default_promotion_id <- function() {
@@ -25,7 +33,8 @@ ffv2_c13_mcmc_candidate <- function(candidates = NULL,
 ffv2_c13_mcmc_defaults <- function(defaults,
                                    run_tag = NULL,
                                    candidate = NULL,
-                                   workers = 12L) {
+                                   workers = 12L,
+                                   gate_rows = TRUE) {
   candidate <- ffv2_c13_mcmc_candidate(candidate)
   if (!is.null(run_tag)) defaults$study$run_tag <- as.character(run_tag)[1L]
   defaults$source$fit_sizes <- 500L
@@ -59,16 +68,21 @@ ffv2_c13_mcmc_defaults <- function(defaults,
   defaults$handoff$reuse_vb_init <- TRUE
   defaults$handoff$prune_fit_on_success <- TRUE
 
-  defaults$smoke$rows <- list(
-    list(family = "normal", tau = 0.50, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
-    list(family = "laplace", tau = 0.05, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc")
-  )
-  defaults$pilot$rows <- list(
-    list(family = "gausmix", tau = 0.05, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
-    list(family = "laplace", tau = 0.05, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
-    list(family = "gausmix", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc"),
-    list(family = "normal", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc")
-  )
+  if (isTRUE(gate_rows)) {
+    defaults$smoke$rows <- list(
+      list(family = "normal", tau = 0.50, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
+      list(family = "laplace", tau = 0.05, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc")
+    )
+    defaults$pilot$rows <- list(
+      list(family = "gausmix", tau = 0.05, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
+      list(family = "laplace", tau = 0.05, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
+      list(family = "gausmix", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc"),
+      list(family = "normal", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc")
+    )
+  } else {
+    defaults$smoke$rows <- list()
+    defaults$pilot$rows <- list()
+  }
   defaults
 }
 
@@ -102,9 +116,10 @@ ffv2_prepare_c13_mcmc_refresh_manifest <- function(defaults,
                                                    run_root = NULL,
                                                    dry_run = FALSE,
                                                    overwrite = FALSE,
-                                                   workers = 12L) {
+                                                   workers = 12L,
+                                                   gate_rows = TRUE) {
   candidate <- ffv2_c13_mcmc_candidate(candidate)
-  defaults <- ffv2_c13_mcmc_defaults(defaults, candidate = candidate, workers = workers)
+  defaults <- ffv2_c13_mcmc_defaults(defaults, candidate = candidate, workers = workers, gate_rows = gate_rows)
   manifest <- ffv2_prepare_manifest(
     defaults = defaults,
     registry = registry,

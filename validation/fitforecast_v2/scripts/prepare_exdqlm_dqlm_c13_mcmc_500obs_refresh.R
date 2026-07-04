@@ -14,7 +14,12 @@ ffv2_source_all(harness_root)
 args <- ffv2_parse_args()
 defaults_path <- args$defaults %||% ffv2_default_defaults_path()
 candidates_path <- args$candidates %||% ffv2_default_vb_calibration_candidates_path()
-run_tag <- args$`run-tag` %||% ffv2_c13_mcmc_default_run_tag()
+full_only <- ffv2_truthy(args$`full-only` %||% args$`no-gates` %||% FALSE)
+run_tag <- args$`run-tag` %||% if (full_only) {
+  ffv2_c13_mcmc_default_full_run_tag()
+} else {
+  ffv2_c13_mcmc_default_gate_run_tag()
+}
 run_root <- args$`run-root` %||% NULL
 workers <- as.integer(args$workers %||% 12L)
 dry_run <- ffv2_truthy(args$`dry-run` %||% FALSE)
@@ -28,7 +33,8 @@ defaults <- ffv2_c13_mcmc_defaults(
   defaults = defaults,
   run_tag = run_tag,
   candidate = candidate,
-  workers = workers
+  workers = workers,
+  gate_rows = !full_only
 )
 
 ffv2_assert_runtime(defaults$runtime$r_min_version %||% "4.6.0")
@@ -41,7 +47,8 @@ manifest <- ffv2_prepare_c13_mcmc_refresh_manifest(
   run_root = run_root,
   dry_run = dry_run,
   overwrite = overwrite,
-  workers = workers
+  workers = workers,
+  gate_rows = !full_only
 )
 
 smoke_rows <- ffv2_stage_rows(manifest, "smoke", include_completed = TRUE)
@@ -54,6 +61,7 @@ cat(sprintf("candidates: %s\n", normalizePath(candidates_path, winslash = "/", m
 cat(sprintf("run_tag: %s\n", defaults$study$run_tag))
 cat(sprintf("dry_run: %s\n", dry_run))
 cat(sprintf("overwrite: %s\n", overwrite))
+cat(sprintf("full_only: %s\n", full_only))
 cat(sprintf("workers_mcmc_tt500: %d\n", workers))
 cat(sprintf("source_rows: %d\n", nrow(registry)))
 cat(sprintf("manifest_rows: %d\n", nrow(manifest)))
