@@ -11,7 +11,7 @@ ffv2_c13_mcmc_default_gate_run_tag <- function() {
 }
 
 ffv2_c13_mcmc_default_full_run_tag <- function() {
-  "20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1"
+  "20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v2"
 }
 
 ffv2_c13_mcmc_default_promotion_id <- function() {

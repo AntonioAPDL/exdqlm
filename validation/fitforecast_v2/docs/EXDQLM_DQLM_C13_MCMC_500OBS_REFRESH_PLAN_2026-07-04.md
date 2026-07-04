@@ -20,7 +20,8 @@ This lane is validation-only until it completes and is materialized. It must not
 - c13 MCMC cells before this lane: 0 current-best c13 MCMC cells
 - Superseded dry-run/smoke tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh`
 - Gate tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2`
-- Full production tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1`
+- Invalid partial full tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1`
+- Full production tag: `20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v2`
 
 ## Fixed Protocol
 
@@ -171,7 +172,7 @@ EXDQLM_FFV2_LAUNCH_APPROVED=true \
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/launch_exdqlm_dynamic_fitforecast_v2_validation.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv \
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v2/manifests/row_manifest.csv \
   --phase mcmc_tt500 \
   --validation-stage all \
   --workers 18
@@ -182,7 +183,7 @@ Healthcheck:
 ```bash
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/healthcheck_exdqlm_dynamic_fitforecast_v2_validation.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v2/manifests/row_manifest.csv
 ```
 
 Strict audit:
@@ -190,7 +191,7 @@ Strict audit:
 ```bash
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/audit_exdqlm_dqlm_c13_mcmc_500obs_refresh.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v2/manifests/row_manifest.csv
 ```
 
 Materialize handoff:
@@ -198,7 +199,7 @@ Materialize handoff:
 ```bash
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
   validation/fitforecast_v2/scripts/materialize_exdqlm_dqlm_c13_mcmc_500obs_handoff.R \
-  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v1/manifests/row_manifest.csv
+  --manifest validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v2/manifests/row_manifest.csv
 ```
 
 ## Article Rule

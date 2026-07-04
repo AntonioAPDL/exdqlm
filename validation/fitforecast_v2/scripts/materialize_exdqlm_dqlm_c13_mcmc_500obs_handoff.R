@@ -16,10 +16,11 @@ run_tag <- args$`run-tag` %||% ffv2_c13_mcmc_default_run_tag()
 promotion_id <- args$`promotion-id` %||% ffv2_c13_mcmc_default_promotion_id()
 default_run_root <- file.path(ffv2_repo_root(), "validation/fitforecast_v2/runs", run_tag)
 manifest_path <- args$manifest %||% file.path(default_run_root, "manifests", "row_manifest.csv")
-interface_path <- args$interface %||% file.path(default_run_root, "interfaces", "exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv")
 out_dir <- args$`out-dir` %||% file.path(ffv2_harness_root(), "promotions", promotion_id)
 
 manifest <- ffv2_read_csv(normalizePath(manifest_path, winslash = "/", mustWork = TRUE))
+run_root <- unique(manifest$run_root)[[1L]]
+interface_path <- args$interface %||% file.path(run_root, "interfaces", "exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv")
 if (!file.exists(interface_path)) {
   interface <- ffv2_export_shared_interface(manifest, interface_path)
 } else {

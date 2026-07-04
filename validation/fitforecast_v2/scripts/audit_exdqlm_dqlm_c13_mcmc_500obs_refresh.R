@@ -15,7 +15,6 @@ args <- ffv2_parse_args()
 run_tag <- args$`run-tag` %||% ffv2_c13_mcmc_default_run_tag()
 default_run_root <- file.path(ffv2_repo_root(), "validation/fitforecast_v2/runs", run_tag)
 manifest_path <- args$manifest %||% file.path(default_run_root, "manifests", "row_manifest.csv")
-interface_path <- args$interface %||% file.path(default_run_root, "interfaces", "exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv")
 out_csv <- args$`out-csv` %||% file.path(ffv2_harness_root(), "docs", "exdqlm_dqlm_c13_mcmc_500obs_refresh_summary_20260704.csv")
 out_md <- args$`out-md` %||% file.path(ffv2_harness_root(), "docs", "EXDQLM_DQLM_C13_MCMC_500OBS_REFRESH_AUDIT_2026-07-04.md")
 allow_incomplete <- ffv2_truthy(args$`allow-incomplete` %||% FALSE)
@@ -23,6 +22,7 @@ stale_seconds <- as.integer(args$`healthcheck-stale-seconds` %||% 1800L)
 
 manifest <- ffv2_read_csv(normalizePath(manifest_path, winslash = "/", mustWork = TRUE))
 run_root <- unique(manifest$run_root)[[1L]]
+interface_path <- args$interface %||% file.path(run_root, "interfaces", "exdqlm_dqlm_dynamic_fitforecast_v2_shared_interface.csv")
 if (!file.exists(interface_path)) {
   interface <- ffv2_export_shared_interface(manifest, interface_path)
 } else {
