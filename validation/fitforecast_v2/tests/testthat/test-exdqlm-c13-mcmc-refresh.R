@@ -30,6 +30,11 @@ test_that("c13 MCMC refresh dry-run creates exactly the current-best TT500 grid"
   expect_equal(length(unique(manifest$model_spec_hash)), 1L)
   expect_equal(sum(manifest$smoke %in% c(TRUE, "TRUE", "true", "1")), 2L)
   expect_equal(sum(manifest$pilot %in% c(TRUE, "TRUE", "true", "1")), 4L)
+  expect_equal(nrow(merge(
+    ffv2_stage_rows(manifest, "smoke", include_completed = TRUE)[, "row_id", drop = FALSE],
+    ffv2_stage_rows(manifest, "pilot", include_completed = TRUE)[, "row_id", drop = FALSE],
+    by = "row_id"
+  )), 0L)
   expect_equal(sort(unique(as.character(manifest$family))), c("gausmix", "laplace", "normal"))
   expect_equal(sort(unique(as.numeric(manifest$tau))), c(0.05, 0.25, 0.5))
 })
@@ -61,8 +66,7 @@ test_that("c13 MCMC refresh writes stamped configs with separate smoke pilot and
   expect_true(file.exists(file.path(run_root, "manifests", "pilot_rows.csv")))
 
   smoke_row <- ffv2_stage_rows(manifest, "smoke", include_completed = TRUE)[1L, , drop = FALSE]
-  pilot_row <- ffv2_stage_rows(manifest, "pilot", include_completed = TRUE)
-  pilot_row <- pilot_row[!(pilot_row$row_id %in% smoke_row$row_id), , drop = FALSE][1L, , drop = FALSE]
+  pilot_row <- ffv2_stage_rows(manifest, "pilot", include_completed = TRUE)[1L, , drop = FALSE]
   full_row <- manifest[
     !(manifest$row_id %in% c(smoke_row$row_id, ffv2_stage_rows(manifest, "pilot", include_completed = TRUE)$row_id)),
     ,

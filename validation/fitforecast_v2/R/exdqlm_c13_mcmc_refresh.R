@@ -3,7 +3,7 @@ ffv2_c13_mcmc_candidate_id <- function() {
 }
 
 ffv2_c13_mcmc_default_run_tag <- function() {
-  "20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh"
+  "20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2"
 }
 
 ffv2_c13_mcmc_default_promotion_id <- function() {
@@ -64,10 +64,10 @@ ffv2_c13_mcmc_defaults <- function(defaults,
     list(family = "laplace", tau = 0.05, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc")
   )
   defaults$pilot$rows <- list(
-    list(family = "normal", tau = 0.50, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
-    list(family = "normal", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc"),
+    list(family = "gausmix", tau = 0.05, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
     list(family = "laplace", tau = 0.05, fit_size = 500L, model_variant = "dqlm", inference = "mcmc"),
-    list(family = "gausmix", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc")
+    list(family = "gausmix", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc"),
+    list(family = "normal", tau = 0.50, fit_size = 500L, model_variant = "exdqlm", inference = "mcmc")
   )
   defaults
 }
