@@ -1,13 +1,1 @@
 "model_variant","family","tau"
-"exdqlm","gausmix",0.05
-"dqlm","gausmix",0.25
-"exdqlm","gausmix",0.25
-"dqlm","gausmix",0.5
-"dqlm","laplace",0.25
-"exdqlm","laplace",0.25
-"dqlm","laplace",0.5
-"exdqlm","laplace",0.5
-"dqlm","normal",0.05
-"exdqlm","normal",0.05
-"dqlm","normal",0.25
-"exdqlm","normal",0.25

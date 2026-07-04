@@ -1,0 +1,19 @@
+{
+  "promotion_id": "exdqlm_dqlm_c13_mcmc_500obs_authoritative_20260704",
+  "promotion_status": "authoritative_article_facing_after_complete_audit",
+  "generated_at": "2026-07-04 08:13:42 EDT",
+  "validation_worktree": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "validation_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "validation_commit_at_materialization": "49a4caa5b62d32216e75945e8adfbfa8e83c63cc",
+  "run_tag": "20260704_exdqlm_dqlm_c13_mcmc_500obs_full_v2",
+  "candidate_id": "c13_trend100_season1_df0995s099",
+  "expected_cells": 18,
+  "expected_lead_rows": 540,
+  "observed_cells": 18,
+  "observed_lead_rows": 540,
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "summary_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/exdqlm_dqlm_c13_mcmc_500obs_authoritative_20260704/exdqlm_dqlm_c13_mcmc_500obs_authoritative_20260704_summary.csv",
+  "summary_sha256": "59e6e1c2977624ad8c72fb035e831242540602e7116076e54370c943fda70e03",
+  "sources_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/exdqlm_dqlm_c13_mcmc_500obs_authoritative_20260704/exdqlm_dqlm_c13_mcmc_500obs_authoritative_20260704_sources.csv",
+  "sources_sha256": "843633420402785ea848d707f3d041d4af2f2db99a89db02635fe50e972395e2"
+}
