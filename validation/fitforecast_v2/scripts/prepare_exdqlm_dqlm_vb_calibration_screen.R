@@ -20,11 +20,34 @@ allow_missing_source <- ffv2_truthy(args$`allow-missing-source` %||% FALSE)
 run_tag <- args$`run-tag` %||% "20260702_exdqlm_dqlm_vb_c0_discount_screen"
 run_root <- args$`run-root` %||% NULL
 
+split_arg <- function(value) {
+  value <- as.character(value %||% "")[1L]
+  value <- trimws(value)
+  if (!nzchar(value)) return(character(0))
+  out <- trimws(strsplit(value, ",", fixed = TRUE)[[1L]])
+  out[nzchar(out)]
+}
+
 defaults <- ffv2_load_defaults(defaults_path)
 defaults <- ffv2_vb_screen_defaults(defaults, run_tag = run_tag)
 
 ffv2_assert_runtime(defaults$runtime$r_min_version %||% "4.6.0")
 registry <- ffv2_collect_source_registry(defaults, require_sources = !allow_missing_source)
+families <- split_arg(args$families %||% args$family %||% "")
+taus_raw <- split_arg(args$taus %||% args$tau %||% "")
+taus <- suppressWarnings(as.numeric(taus_raw))
+if (length(taus_raw) && (length(taus) != length(taus_raw) || any(!is.finite(taus)))) {
+  stop("--taus must be a comma-separated list of finite numeric tau values.", call. = FALSE)
+}
+if (length(families)) {
+  registry <- registry[as.character(registry$family) %in% families, , drop = FALSE]
+}
+if (length(taus)) {
+  registry <- registry[round(as.numeric(registry$tau), 8L) %in% round(taus, 8L), , drop = FALSE]
+}
+if (!nrow(registry)) {
+  stop("Filtered source registry is empty. Check --families/--taus.", call. = FALSE)
+}
 verification <- ffv2_verify_source_windows(registry, stop_on_fail = !allow_missing_source)
 candidates <- ffv2_read_vb_calibration_candidates(candidates_path)
 manifest <- ffv2_prepare_vb_calibration_screen_manifest(
@@ -48,6 +71,8 @@ cat(sprintf("defaults: %s\n", normalizePath(defaults_path, winslash = "/", mustW
 cat(sprintf("candidates: %s\n", normalizePath(candidates_path, winslash = "/", mustWork = TRUE)))
 cat(sprintf("run_tag: %s\n", defaults$study$run_tag))
 cat(sprintf("dry_run: %s\n", dry_run))
+cat(sprintf("family_filter: %s\n", if (length(families)) paste(families, collapse = ",") else "<all>"))
+cat(sprintf("tau_filter: %s\n", if (length(taus)) paste(taus, collapse = ",") else "<all>"))
 cat(sprintf("source_rows: %d\n", nrow(registry)))
 cat(sprintf("candidate_rows: %d\n", nrow(candidates)))
 cat(sprintf("manifest_rows: %d\n", nrow(manifest)))
