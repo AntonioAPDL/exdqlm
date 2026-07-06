@@ -62,6 +62,32 @@ Success criteria:
 - storage audit has no forbidden `.rds`, `.rda`, `.RData`, or `__design.rds` payloads
 - summary identifies low-quantile winners and ratios against DQLM
 
+### Launch Record
+
+Active launched run:
+
+```text
+run_tag: 20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc
+tmux: ffv2_exdqlm_tau005_refine_20260706_0d22ebc
+run_root: validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc
+orchestrator_root: validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc/orchestrator/exdqlm-dqlm-vb-tau005-refinement-orchestrator-20260706__git-0d22ebc
+```
+
+Launch notes as of `2026-07-06 02:43 EDT`:
+
+- prepare completed successfully
+- smoke completed `4/4` rows with `PASS`
+- full run started with `120` planned rows and first `20` rows active
+- no forbidden `.rds`, `.rda`, `.RData`, or `__design.rds` payloads observed in the active run root at launch audit time
+
+Invalid aborted run tag, do not consume:
+
+```text
+20260706_exdqlm_dqlm_vb_tau005_refinement__git-42c2727
+```
+
+This earlier launch stopped during prepare because the orchestrator created a log-only run root before the prepare helper checked for existing run roots. Commit `0d22ebc` fixed the guard so prepare refuses an existing prepared manifest, not a log-only directory.
+
 ## Targeted Q-DESN RHS VB Fit-Aware Refinement
 
 Scope:
@@ -101,6 +127,33 @@ Success criteria:
 - generic ranking and dominance ranking exist
 - strict audit passes
 - no forbidden binary payloads remain in successful roots
+
+### Launch Record
+
+Active launched run:
+
+```text
+run_tag: qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727
+tmux: ffv2_qdesn_rhs_fitaware_20260706_42c2727
+orchestrator_root: reports/qdesn_mcmc_validation/qdesn_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-orchestrator-20260706__git-42c2727
+full_report_root: reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727
+full_results_root: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727
+```
+
+Launch notes as of `2026-07-06 02:43 EDT`:
+
+- materialized fit-aware profile/grid artifacts were committed in `42c2727`
+- prepare preflight passed
+- smoke completed successfully
+- full run started with `20` parallel workers
+- first wave has `20` root status files marked `RUNNING`
+- no forbidden `.rds`, `.rda`, `.RData`, or `__design.rds` payloads observed in the active Q-DESN run root at launch audit time
+
+Provenance nuance:
+
+- the run tag intentionally records the launch commit `42c2727`
+- the nested full campaign timestamp path includes `20260706-024112__git-0d22ebc` because the full stage began after the exDQLM-only run-root guard fix was committed
+- commit `0d22ebc` does not alter the Q-DESN fit-aware grid or Q-DESN computation path
 
 ## Promotion Gate
 
