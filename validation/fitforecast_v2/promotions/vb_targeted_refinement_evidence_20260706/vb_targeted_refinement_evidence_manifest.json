@@ -1,0 +1,155 @@
+{
+  "generated_at": "2026-07-06 13:59:28.297967",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_sha": "21cac1364873e0bb1a76a1aada4a8ae7fe775846",
+  "git_dirty": true,
+  "evidence": {
+    "exdqlm_run_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc",
+    "qdesn_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc",
+    "exdqlm_status_counts": [
+      {
+        "statuses": "done",
+        "Freq": 120
+      }
+    ],
+    "qdesn_audit": [
+      {
+        "generated_at": "2026-07-06 05:10:57.051571",
+        "results_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc",
+        "report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc",
+        "expected_roots": 276,
+        "observed_roots": 276,
+        "n_terminal": 276,
+        "n_success": 276,
+        "n_running": 0,
+        "n_fail": 0,
+        "n_missing_status": 0,
+        "n_success_with_lead_metrics": 276,
+        "n_success_with_rolling_paths": 276,
+        "n_success_lead_pass": 276,
+        "n_success_rolling_pass": 276,
+        "n_success_storage_light_pass": 276,
+        "forbidden_binary_count_total": 0,
+        "forbidden_binary_bytes_total": 0,
+        "generic_ranking_exists": true,
+        "dominance_ranking_exists": true,
+        "terminal_complete": true,
+        "success_contract_pass": true,
+        "ranking_contract_pass": true,
+        "strict_ready": true,
+        "strict_requested": true
+      }
+    ]
+  },
+  "output_paths": {
+    "exdqlm_dqlm_winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/exdqlm_dqlm_tau005_vb_cell_winners.csv",
+    "exdqlm_dqlm_ratios": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/exdqlm_dqlm_tau005_vb_cell_ratios.csv",
+    "qdesn_best_check": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_check_loss.csv",
+    "qdesn_best_mae": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_forecast_mae.csv",
+    "qdesn_best_fit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_fit_rmse.csv",
+    "qdesn_top_profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_top_dominance_profiles.csv",
+    "qdesn_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_audit_summary.csv",
+    "promotion_ledger": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/promotion_decision_ledger.csv",
+    "file_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/file_manifest.csv",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/vb_targeted_refinement_evidence_manifest.json",
+    "readme": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/README.md"
+  },
+  "file_manifest": [
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc/screen_summary/candidate_cell_winners.csv",
+      "bytes": 7136,
+      "sha256": "18c2b0e23e184201e4c05b87683f32a42446f36d088d63ca8f3687bb6f4d2008",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc/screen_summary/candidate_cell_winners.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc/manifests/status_counts.csv",
+      "bytes": 29,
+      "sha256": "23172fea86ed6e26944ca7463abb0dc84480f50bdd51e4014495d98d1a07d790",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc/manifests/status_counts.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc/storage/storage_audit.csv",
+      "bytes": 285,
+      "sha256": "869c22afd39f9ad97e01db27ba54ea80bebef48274a8fe5f7ca28020722c7f0b",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260706_exdqlm_dqlm_vb_tau005_refinement__git-0d22ebc/storage/storage_audit.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv",
+      "bytes": 1133,
+      "sha256": "f400795a7a38af9b34822e8ce572a71c0d6ad25e7e6afa60fe9d9d558bfd54f0",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_profile_ranking.csv",
+      "bytes": 27280,
+      "sha256": "70313f7fea0cade85e3a7295a2126e4fd119511fb9031e02f7a3066e0afe7f6f",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_profile_ranking.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_cell_summary.csv",
+      "bytes": 164958,
+      "sha256": "29e846511ff156275d6deca62bcb014e92df02c8c83c54f17f3214e979954d1e",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_cell_summary.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv",
+      "bytes": 3537882,
+      "sha256": "de77193658ec06aeed753185ba90ef208467021ba36baa6fb27281837ad45861",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/exdqlm_dqlm_tau005_vb_cell_winners.csv",
+      "bytes": 7136,
+      "sha256": "18c2b0e23e184201e4c05b87683f32a42446f36d088d63ca8f3687bb6f4d2008",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/exdqlm_dqlm_tau005_vb_cell_winners.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/exdqlm_dqlm_tau005_vb_cell_ratios.csv",
+      "bytes": 1058,
+      "sha256": "18a0fb2fc09f6775c9d5fae3c6e11ac759f7511d793bd3c08878f988b68fda8e",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/exdqlm_dqlm_tau005_vb_cell_ratios.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_check_loss.csv",
+      "bytes": 6553,
+      "sha256": "5d6e92163475e5491ac685a628882b6b8b115733486da9a56dab297f1d1ded50",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_check_loss.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_forecast_mae.csv",
+      "bytes": 6542,
+      "sha256": "4db2b795da48f27329942edfb31b8a0e795c00b926c965cdeac2dfe1baa29d5c",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_forecast_mae.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_fit_rmse.csv",
+      "bytes": 6583,
+      "sha256": "20fa9e6e7d99520d54328555873eac4cf1780726ae20c6a784d2b1d1aa598684",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_best_cells_by_fit_rmse.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_top_dominance_profiles.csv",
+      "bytes": 14218,
+      "sha256": "134699b54ec5d560b87de94d9f33550a6016502122873e8bfe8e5caceb78709a",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_top_dominance_profiles.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_audit_summary.csv",
+      "bytes": 1131,
+      "sha256": "ee7ef6fa250f92651a3ba3c5ba44767217ff24252a847c8db13ca41397c66a9a",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/qdesn_rhs_fitaware_vb_audit_summary.csv"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/promotion_decision_ledger.csv",
+      "bytes": 2633,
+      "sha256": "66761c1f3b17b7c2fe89aac0ca33dbda34d888a98c5079078cdd096a7ed66240",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_targeted_refinement_evidence_20260706/promotion_decision_ledger.csv"
+    }
+  ],
+  "promotion_status": "targeted_refinement_evidence_frozen_not_article_authoritative",
+  "blocked_promotions": {
+    "exdqlm_dqlm": "tau=0.05 exDQLM remains above DQLM on at least one primary metric",
+    "qdesn_rhs": "latest Q-DESN RHS fit-aware VB screen still fails all-primary dominance, mainly on fit RMSE"
+  }
+}

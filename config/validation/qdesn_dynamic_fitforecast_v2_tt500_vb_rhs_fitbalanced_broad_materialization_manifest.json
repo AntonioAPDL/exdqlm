@@ -1,0 +1,166 @@
+{
+  "generated_at": "2026-07-06 14:02:23.810423",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "21cac1364873e0bb1a76a1aada4a8ae7fe775846",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "qdesn_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc",
+  "source_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement_profiles.csv",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+  "diagnostic_output_paths": {
+    "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_cell_plan.csv",
+    "source_latest_cell_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_cell_summary.csv",
+    "source_latest_profile_ranking": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_profile_ranking.csv",
+    "source_latest_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv",
+    "candidate_ledger": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_candidate_ledger.csv",
+    "selected_profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_profiles.csv",
+    "cell_assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_cell_assignments.csv",
+    "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/summary/qdesn_tt500_vb_rhs_fitbalanced_broad.md",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/manifest/qdesn_tt500_vb_rhs_fitbalanced_broad_manifest.json"
+  },
+  "plan": {
+    "stage": "vb_rhs_fitbalanced_broad",
+    "screening_wave": "rhs_fitbalanced_broad_2026_07_06",
+    "source_qdesn_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc",
+    "source_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement_profiles.csv",
+    "target_cells": 9,
+    "selected_profiles": 144,
+    "selected_assignments": 1296,
+    "likelihoods_per_root": ["al", "exal"],
+    "design": "Q-DESN RHS VB fit-balanced broad screen: anchored by latest evidence, broadened around fit-RMSE and period-90 memory bottlenecks."
+  },
+  "materialized": {
+    "stage": "rhs_fitbalanced_broad",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_grid.csv",
+    "n_profiles": 144,
+    "n_assignments": 1296,
+    "n_canonical_grid_rows": 1296,
+    "n_grid_rows": 1296,
+    "expected_qdesn_roots": 1296,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "file_manifest": [
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_cell_summary.csv",
+      "exists": true,
+      "bytes": 164958,
+      "mtime": "2026-07-06 05:10:41.156857",
+      "md5": "58172befb8b6ca509bc3789e44a3a95c",
+      "sha256": "29e846511ff156275d6deca62bcb014e92df02c8c83c54f17f3214e979954d1e"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/tables/qdesn_tt500_vb_dominance_profile_ranking.csv",
+      "exists": true,
+      "bytes": 27280,
+      "mtime": "2026-07-06 05:10:41.159858",
+      "md5": "46eee923a12af934e41e0430cdb90fc0",
+      "sha256": "70313f7fea0cade85e3a7295a2126e4fd119511fb9031e02f7a3066e0afe7f6f"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv",
+      "exists": true,
+      "bytes": 1133,
+      "mtime": "2026-07-06 05:10:57.056286",
+      "md5": "e2b126cebe94c9318a263b3c183fa25d",
+      "sha256": "f400795a7a38af9b34822e8ce572a71c0d6ad25e7e6afa60fe9d9d558bfd54f0"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement_profiles.csv",
+      "exists": true,
+      "bytes": 47623,
+      "mtime": "2026-07-06 02:35:58.096886",
+      "md5": "12c01484f8f6091b05eff1bf0aa9961c",
+      "sha256": "8ff53c575926e4ddcfc9a0c72709c3e2941719a270aee11d14d47a926219d6f1"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_stage4_remaining_cells_transfer_defaults.yaml",
+      "exists": true,
+      "bytes": 14680,
+      "mtime": "2026-06-29 03:47:30.930191",
+      "md5": "d6b6d2e3f6dae1e139d2ce0fc2bb6b00",
+      "sha256": "892882726e1ac55c1e8fa87254897c96f43793e4302e3a4a92bbe7e1bdf513dd"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_profiles.csv",
+      "exists": true,
+      "bytes": 84352,
+      "mtime": "2026-07-06 14:02:10.355437",
+      "md5": "f17085d878ae47a878e59be3b8d803cc",
+      "sha256": "60afb2a4098b9cbb596320519d54b9e0f7dbf9ad2ed3b00591bea8c1aca4887f"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_cell_assignments.csv",
+      "exists": true,
+      "bytes": 644123,
+      "mtime": "2026-07-06 14:02:22.148757",
+      "md5": "6cd830bf4231150fdd560617f05d9d64",
+      "sha256": "68d2f5164a49aa9c477d60d769c69d5780d2883616e99a5b057f219afd969a84"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_defaults.yaml",
+      "exists": true,
+      "bytes": 15271,
+      "mtime": "2026-07-06 14:02:22.156757",
+      "md5": "895cf7e9944f77d6bf97b71e2ef8394f",
+      "sha256": "5cd7eed8385e7765fdcafc4db621f950c2b57176c33942d6438bb43d4bc09a65"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad_grid.csv",
+      "exists": true,
+      "bytes": 3536777,
+      "mtime": "2026-07-06 14:02:21.971752",
+      "md5": "c114a1ed158f11d1d220a51ea11988a5",
+      "sha256": "7f6b704e33f07f02cdff2ed2ef9505973a93ec37a3b8435c33a2c711cc1f03c4"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_cell_plan.csv",
+      "exists": true,
+      "bytes": 3832,
+      "mtime": "2026-07-06 14:02:08.493387",
+      "md5": "237ead7a6680e39c0b7c4387818dbd63",
+      "sha256": "56889619346f18ca5611fac147b3e9c108793ffd5bc52b1b14e1389e8af46dae"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_candidate_ledger.csv",
+      "exists": true,
+      "bytes": 856398,
+      "mtime": "2026-07-06 14:02:09.507414",
+      "md5": "11cbcebab492019a9b272310f0704054",
+      "sha256": "1b550dbfba947c3422d4d17fd991464881083c9409be932ab148a01a79f23454"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_profiles.csv",
+      "exists": true,
+      "bytes": 84352,
+      "mtime": "2026-07-06 14:02:10.338437",
+      "md5": "f17085d878ae47a878e59be3b8d803cc",
+      "sha256": "60afb2a4098b9cbb596320519d54b9e0f7dbf9ad2ed3b00591bea8c1aca4887f"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitbalanced_broad_cell_assignments.csv",
+      "exists": true,
+      "bytes": 366148,
+      "mtime": "2026-07-06 14:02:10.349437",
+      "md5": "5eb10aadfbecc3ad6b455dbe6e44ee60",
+      "sha256": "d05ca252b294cb4e287f74285b7c64b2d497c3d2c90da543e71fa93eb53e9830"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/materialization_diagnostics/summary/qdesn_tt500_vb_rhs_fitbalanced_broad.md",
+      "exists": true,
+      "bytes": 32567,
+      "mtime": "2026-07-06 14:02:23.466792",
+      "md5": "1a74a667e2d20bc20d55a1837eae659d",
+      "sha256": "63e5e799f328738a84b1925fe4dd32807bc1bf7146e1783c9ee801c915987fdf"
+    }
+  ],
+  "screening_wave": "rhs_fitbalanced_broad_2026_07_06",
+  "refresh_grid": true,
+  "refresh_materialized": true,
+  "anchor_profiles_missing_from_source_registry": []
+}
