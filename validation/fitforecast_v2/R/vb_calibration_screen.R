@@ -172,8 +172,9 @@ ffv2_prepare_vb_calibration_screen_manifest <- function(defaults,
   } else {
     run_root <- ffv2_resolve_path(run_root, repo_root = repo_root, must_work = FALSE)
   }
-  if (dir.exists(run_root) && !isTRUE(overwrite) && !isTRUE(dry_run)) {
-    stop(sprintf("Run root already exists; refusing to overwrite: %s", run_root), call. = FALSE)
+  row_manifest_path <- file.path(run_root, "manifests", "row_manifest.csv")
+  if (dir.exists(run_root) && file.exists(row_manifest_path) && !isTRUE(overwrite) && !isTRUE(dry_run)) {
+    stop(sprintf("Run root already has a prepared row manifest; refusing to overwrite: %s", run_root), call. = FALSE)
   }
   if (!isTRUE(dry_run)) {
     ffv2_ensure_dir(run_root)
@@ -188,7 +189,6 @@ ffv2_prepare_vb_calibration_screen_manifest <- function(defaults,
     stop(sprintf("Candidate table missing column(s): %s", paste(missing, collapse = ", ")),
          call. = FALSE)
   }
-  row_manifest_path <- file.path(run_root, "manifests", "row_manifest.csv")
   base_manifest <- ffv2_prepare_manifest(
     defaults = defaults,
     registry = registry,
