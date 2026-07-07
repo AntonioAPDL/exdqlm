@@ -1,12 +1,24 @@
 #' Diagnostics Generic
 #'
-#' Calculates diagnostic metrics for a variety of objects.
+#' Compute diagnostic summaries for fitted and post-processing objects.
 #'
-#' @param object An object of class \code{exdqlmFit}, \code{exdqlmForecast}, or 
+#' \code{diagnostics()} is the standard diagnostic entry point for the main
+#' fitted-object families in \pkg{exdqlm}. Methods are currently provided for
+#' dynamic fitted models, dynamic forecast objects, and static AL/exAL fitted
+#' models. The returned objects can be inspected with \code{print()} or
+#' \code{summary()}, and plotted with \code{plot()} when a diagnostic display is
+#' defined.
+#'
+#' @param object An object of class \code{exdqlmFit}, \code{exdqlmForecast}, or
 #' \code{exalStaticFit}.
 #' @param ... Additional arguments passed to specific methods.
 #'
-#' @return The output depends on the underlying method.
+#' @return The output depends on the method: \code{diagnostics.exdqlmFit()}
+#'   returns an \code{exdqlmDiagnostic} object,
+#'   \code{diagnostics.exdqlmForecast()} returns an
+#'   \code{exdqlmForecastDiagnostic} object, and
+#'   \code{diagnostics.exalStaticFit()} returns an
+#'   \code{exalStaticDiagnostic} object.
 #' @export
 diagnostics <- function(object, ...) { UseMethod("diagnostics") }
 

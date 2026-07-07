@@ -13,8 +13,21 @@ diagnostics(object, ...)
 \item{...}{Additional arguments passed to specific methods.}
 }
 \value{
-The output depends on the underlying method.
+The output depends on the method: \code{diagnostics.exdqlmFit()}
+returns an \code{exdqlmDiagnostic} object,
+\code{diagnostics.exdqlmForecast()} returns an
+\code{exdqlmForecastDiagnostic} object, and
+\code{diagnostics.exalStaticFit()} returns an
+\code{exalStaticDiagnostic} object.
 }
 \description{
-Calculates diagnostic metrics for a variety of objects.
+Compute diagnostic summaries for fitted and post-processing objects.
+}
+\details{
+\code{diagnostics()} is the standard diagnostic entry point for the main
+fitted-object families in \pkg{exdqlm}. Methods are currently provided for
+dynamic fitted models, dynamic forecast objects, and static AL/exAL fitted
+models. The returned objects can be inspected with \code{print()} or
+\code{summary()}, and plotted with \code{plot()} when a diagnostic display is
+defined.
 }
