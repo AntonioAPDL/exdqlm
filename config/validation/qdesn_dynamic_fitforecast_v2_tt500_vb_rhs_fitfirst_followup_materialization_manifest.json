@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-07 18:27:35.94227",
+  "generated_at": "2026-07-07 18:40:32.269598",
   "stage": "qdesn_vb_rhs_fitfirst_followup",
   "stage_file": "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup",
   "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
-  "git_sha": "438a1564156d6e1d0c9ba9b520fa3dce257d3073",
+  "git_sha": "aaeb7ef9ba0b01162e3470078becd8db15b34ca7",
   "git_branch": "validation/shared-fitforecast-v2-1.0.0",
   "git_dirty": true,
   "source_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitforecast_rescue/qdesn-vb-rhs-fitforecast-rescue-20260707-144646__git-438a156/20260707-144724__git-438a156",
@@ -16,7 +16,7 @@
   "refresh_grid": true,
   "refresh_materialized": false,
   "plan": {
-    "generated_at": "2026-07-07 18:27:30.318792",
+    "generated_at": "2026-07-07 18:40:24.429414",
     "screening_wave": "rhs_fitfirst_followup_2026_07_07",
     "fit_size": 500,
     "max_p_over_n": 0.3,
@@ -72,6 +72,14 @@
     "selected_taus": [0.05, 0.25, 0.5],
     "missing_assignments": []
   },
+  "smoke_assignment": [
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "screening_profile_id": "tt500vb_rhsfit1_d2_n15_a0p05_r0p6_m10_lag10_rl0_pw0p005_pin0p1_tau0_1em03",
+      "profile_role": "fitfirst_depth_probe"
+    }
+  ],
   "diagnostic_paths": {
     "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitfirst_followup_cell_plan.csv",
     "candidate_ledger": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/materialization_diagnostics/tables/qdesn_tt500_vb_rhs_fitfirst_followup_candidate_ledger.csv",
@@ -120,7 +128,7 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_profiles.csv",
       "exists": true,
       "bytes": 48436,
-      "mtime": "2026-07-07 18:27:30.861849",
+      "mtime": "2026-07-07 18:40:25.665808",
       "md5": "87b740e585e255ed77a807ff9bf8a971",
       "sha256": "29529c1089209f3e47dcbd796fc11dce372aee74f58033d263e6b63ad0993b49"
     },
@@ -128,23 +136,23 @@
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_cell_assignments.csv",
       "exists": true,
       "bytes": 97746,
-      "mtime": "2026-07-07 18:27:35.900985",
+      "mtime": "2026-07-07 18:40:31.035954",
       "md5": "5e991f5998db7f9bbf11fa87e7f09aff",
       "sha256": "7b2df60e2ca20c6ed1d1b9be3bddda66d2fe6189636a4fa4f41902c942f4550c"
     },
     {
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_defaults.yaml",
       "exists": true,
-      "bytes": 17450,
-      "mtime": "2026-07-07 18:27:35.906986",
-      "md5": "0eb0b16afe3209e348f619f2f71c8122",
-      "sha256": "449cf1909203fabb8d5a7a7547f7534e0b2aec85ad104ca53ba83eb51da0400b"
+      "bytes": 17614,
+      "mtime": "2026-07-07 18:40:31.088955",
+      "md5": "fea7754a419904248f9bc8d26844a614",
+      "sha256": "7d942f5c1ac5e1435c51c64aa72e3f1f4d209baccbd6ca81996d24baeb221257"
     },
     {
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_grid.csv",
       "exists": true,
       "bytes": 470561,
-      "mtime": "2026-07-07 18:27:35.828984",
+      "mtime": "2026-07-07 18:40:30.764946",
       "md5": "7a8123b62ac6a48d69ed3edf3f00075e",
       "sha256": "f747c52b8807991ac521adca95f3db197ab2b8f335e41e5ce427b81c79da1551"
     }

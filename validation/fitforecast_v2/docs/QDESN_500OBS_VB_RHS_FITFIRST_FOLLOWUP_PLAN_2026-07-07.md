@@ -88,6 +88,9 @@ Materialized size after the 2026-07-07 build:
 - selected family/quantile/profile roots: 172;
 - expected VB fits if AL and exAL are launched: 344;
 - full-compute launch approval: false by default.
+- smoke profile filter:
+  `tt500vb_rhsfit1_d2_n15_a0p05_r0p6_m10_lag10_rl0_pw0p005_pin0p1_tau0_1em03`;
+- smoke profile role: `fitfirst_depth_probe`.
 
 ## Commands
 
@@ -176,6 +179,50 @@ Result: passed, 17 expectations.
 ```
 
 Result: dry-run reported 172 expected roots, 344 expected VB fits, and `launch_approved: FALSE`.
+
+Corrected prepare-only gate:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/orchestrate_qdesn_tt500_vb_rhs_fitfirst_followup.R \
+  --prepare-only \
+  --skip-materialize \
+  --workers 24
+```
+
+Result:
+
+- run tag: `qdesn-vb-rhs-fitfirst-followup-20260707-184056__git-aaeb7ef`;
+- prepare preflight status: 0;
+- expected selected roots: 172;
+- expected AL+exAL VB fits if launched: 344;
+- full launch approval: false.
+
+Corrected generated-profile smoke gate:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/orchestrate_qdesn_tt500_vb_rhs_fitfirst_followup.R \
+  --smoke \
+  --skip-materialize \
+  --workers 24
+```
+
+Result:
+
+- run tag: `qdesn-vb-rhs-fitfirst-followup-20260707-184128__git-aaeb7ef`;
+- prepare preflight status: 0;
+- smoke status: 0;
+- selected roots: 1;
+- selected profile:
+  `tt500vb_rhsfit1_d2_n15_a0p05_r0p6_m10_lag10_rl0_pw0p005_pin0p1_tau0_1em03`;
+- selected profile role: `fitfirst_depth_probe`;
+- selected profile `p/n`: 0.122;
+- root status: SUCCESS;
+- fit summary rows: 2;
+- index alignment manifests: 2;
+- forecast horizon summary files: 2;
+- retained heavy artifact files: 0.
+
+The smoke run is a technical plumbing/storage/indexing gate, not a model-quality result. The two VB method signoffs are `FAIL` under the intentionally tiny smoke budget (`max_iter = 5`), with comparison eligibility false. This is acceptable for smoke because the stage is a screening lane and candidate quality is determined only after a full approved VB screen and strict ranking/audit.
 
 ```sh
 /data/jaguir26/local/opt/R/4.6.0/bin/Rscript scripts/orchestrate_qdesn_tt500_vb_rhs_fitfirst_followup.R \

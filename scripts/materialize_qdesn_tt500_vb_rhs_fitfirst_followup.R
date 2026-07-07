@@ -143,6 +143,44 @@ materialized <- exdqlm:::qdesn_dynamic_fitforecast_materialize_forecast_targeted
   priors = "rhs_ns"
 )
 
+choose_smoke_assignment <- function(plan) {
+  cell_order <- plan$cell_plan[order(plan$cell_plan$priority_rank), , drop = FALSE]
+  if (!nrow(cell_order)) return(plan$assignments[1L, , drop = FALSE])
+  first_cell <- cell_order[1L, , drop = FALSE]
+  candidates <- plan$candidate_ledger[
+    as.character(plan$candidate_ledger$target_family) == as.character(first_cell$family[[1L]]) &
+      abs(as.numeric(plan$candidate_ledger$target_tau) - as.numeric(first_cell$tau[[1L]])) < 1e-8,
+    ,
+    drop = FALSE
+  ]
+  generated <- candidates[
+    !grepl("^fitfirst_anchor_", as.character(candidates$profile_role)) &
+      grepl("^tt500vb_rhsfit1_", as.character(candidates$screening_profile_id)),
+    ,
+    drop = FALSE
+  ]
+  if (nrow(generated)) {
+    generated$role_priority <- ifelse(as.character(generated$profile_role) == "fitfirst_depth_probe", 0L, 1L)
+    generated <- generated[order(generated$role_priority, generated$p_over_n_tt500, generated$screening_profile_id), , drop = FALSE]
+    return(data.frame(
+      family = as.character(generated$target_family[[1L]]),
+      tau = as.numeric(generated$target_tau[[1L]]),
+      screening_profile_id = as.character(generated$screening_profile_id[[1L]]),
+      profile_role = as.character(generated$profile_role[[1L]]),
+      stringsAsFactors = FALSE
+    ))
+  }
+  first_assignment <- plan$assignments[order(plan$assignments$priority_rank, plan$assignments$target_profile_rank), , drop = FALSE][1L, , drop = FALSE]
+  data.frame(
+    family = as.character(first_assignment$family[[1L]]),
+    tau = as.numeric(first_assignment$tau[[1L]]),
+    screening_profile_id = as.character(first_assignment$screening_profile_id[[1L]]),
+    profile_role = NA_character_,
+    stringsAsFactors = FALSE
+  )
+}
+smoke_assignment <- choose_smoke_assignment(plan)
+
 defaults <- yaml::read_yaml(defaults_out)
 defaults$execution <- defaults$execution %||% list()
 defaults$execution$methods <- "vb"
@@ -170,6 +208,11 @@ defaults$screening_profiles$fitfirst_followup_design <- list(
   launch_policy = "do not run full compute without explicit human launch approval",
   promotion_policy = "do not promote unless all target cells clear the fit-first and forecast primary metrics against current best DQLM/exDQLM VB baselines"
 )
+defaults$smoke <- defaults$smoke %||% list()
+defaults$smoke$family <- as.character(smoke_assignment$family[[1L]])
+defaults$smoke$tau <- as.numeric(smoke_assignment$tau[[1L]])
+defaults$smoke$screening_profile_ids <- as.list(as.character(smoke_assignment$screening_profile_id[[1L]]))
+defaults$smoke$fitfirst_followup_smoke_profile_role <- as.character(smoke_assignment$profile_role[[1L]] %||% NA_character_)
 yaml::write_yaml(defaults, defaults_out)
 
 cell_display <- plan$cell_plan[, intersect(
@@ -246,6 +289,7 @@ manifest <- list(
   refresh_materialized = refresh_materialized,
   plan = plan$manifest,
   materialized = materialized,
+  smoke_assignment = smoke_assignment,
   diagnostic_paths = diagnostic_paths,
   output_paths = list(
     profiles = profiles_out,

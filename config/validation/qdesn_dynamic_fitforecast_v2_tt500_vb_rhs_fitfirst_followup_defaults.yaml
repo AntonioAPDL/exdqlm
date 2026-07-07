@@ -224,6 +224,9 @@ smoke:
             n_mcmc: 4
             progress_every: 1
   max_roots: 1
+  screening_profile_ids:
+  - tt500vb_rhsfit1_d2_n15_a0p05_r0p6_m10_lag10_rl0_pw0p005_pin0p1_tau0_1em03
+  fitfirst_followup_smoke_profile_role: fitfirst_depth_probe
 metrics:
   primary_windows:
   - train_effective
