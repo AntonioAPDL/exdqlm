@@ -2176,6 +2176,394 @@ qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage <- function(plan,
   rep(FALSE, nrow(df))
 }
 
+qdesn_dynamic_fitforecast_rhs_fitforecast_rescue_plan <- function(fit_forecast_summary_path,
+                                                                  baseline_path,
+                                                                  screening_wave = paste0("rhs_fitforecast_rescue_", format(Sys.Date(), "%Y_%m_%d")),
+                                                                  fit_size = 500L,
+                                                                  max_p_over_n = 0.35,
+                                                                  max_profiles_per_cell = 32L,
+                                                                  x_feature_count = 5L,
+                                                                  seed = 123L) {
+  fit_forecast_summary_path <- .qdesn_validation_resolve_path(fit_forecast_summary_path, must_work = TRUE)
+  baseline_path <- .qdesn_validation_resolve_path(baseline_path, must_work = TRUE)
+  fit <- utils::read.csv(fit_forecast_summary_path, stringsAsFactors = FALSE, check.names = FALSE)
+  if (!nrow(fit)) stop(sprintf("Fit/forecast summary is empty: %s", fit_forecast_summary_path), call. = FALSE)
+  required <- c(
+    "family", "tau", "fit_size", "screening_profile_id", "status", "comparison_eligible",
+    "forecast_all_qtrue_mae", "forecast_all_pinball_mean", "train_qtrue_rmse", "train_pinball_tau"
+  )
+  missing <- setdiff(required, names(fit))
+  if (length(missing)) {
+    stop(sprintf("Fit/forecast summary is missing column(s): %s", paste(missing, collapse = ", ")), call. = FALSE)
+  }
+  fit$family <- as.character(fit$family)
+  fit$tau <- as.numeric(fit$tau)
+  fit$fit_size <- as.integer(fit$fit_size)
+  status <- toupper(as.character(fit$status))
+  status[is.na(status) | !nzchar(status)] <- "UNKNOWN"
+  eligible <- as.logical(fit$comparison_eligible)
+  eligible[is.na(eligible)] <- FALSE
+  keep <- status == "SUCCESS" &
+    eligible &
+    as.integer(fit$fit_size) == as.integer(fit_size)[1L]
+  fit <- fit[keep, , drop = FALSE]
+  if (!nrow(fit)) stop("No successful comparison-eligible fit rows remain for rescue planning.", call. = FALSE)
+  fit$screening_profile_base <- qdesn_dynamic_fitforecast_screening_profile_base(fit$screening_profile_id)
+  fit <- .qdesn_dynamic_fitforecast_fill_profile_metadata(fit)
+
+  baseline <- qdesn_dynamic_fitforecast_load_vb_baseline(
+    baseline_path = baseline_path,
+    fit_size = fit_size,
+    families = sort(unique(fit$family)),
+    taus = sort(unique(fit$tau))
+  )
+  q <- merge(fit, baseline, by = c("family", "tau"), all.x = TRUE, sort = FALSE)
+  ratio <- function(num, den) {
+    out <- as.numeric(num) / as.numeric(den)
+    out[!is.finite(out)] <- NA_real_
+    out
+  }
+  q$forecast_mae_ratio_vs_best_vb_baseline <- ratio(q$forecast_all_qtrue_mae, q$baseline_forecast_mae)
+  q$forecast_pinball_ratio_vs_best_vb_baseline <- ratio(q$forecast_all_pinball_mean, q$baseline_forecast_pinball)
+  q$fit_rmse_ratio_vs_best_vb_baseline <- ratio(q$train_qtrue_rmse, q$baseline_fit_rmse)
+  q$fit_pinball_ratio_vs_best_vb_baseline <- ratio(q$train_pinball_tau, q$baseline_fit_pinball)
+  q$primary_worst_ratio_vs_baseline <- .qdesn_dynamic_fitforecast_primary_worst_ratio(q)
+  q$beats_all_primary_baselines <- .qdesn_dynamic_fitforecast_beats_all_primary(q)
+
+  fit_size <- as.integer(fit_size)[1L]
+  max_p_over_n <- as.numeric(max_p_over_n)[1L]
+  max_profiles_per_cell <- as.integer(max_profiles_per_cell)[1L]
+  if (!is.finite(max_p_over_n) || max_p_over_n <= 0) max_p_over_n <- 0.35
+  if (!is.finite(max_profiles_per_cell) || max_profiles_per_cell < 4L) max_profiles_per_cell <- 32L
+  x_feature_count <- as.integer(x_feature_count)[1L]
+  if (!is.finite(x_feature_count) || x_feature_count < 0L) x_feature_count <- 5L
+  seed <- as.integer(seed)[1L]
+  if (!is.finite(seed)) seed <- 123L
+
+  finite_num <- function(x, default = NA_real_) {
+    val <- suppressWarnings(as.numeric(x)[1L])
+    if (is.finite(val)) val else default
+  }
+  finite_int <- function(x, default = NA_integer_) {
+    val <- suppressWarnings(as.integer(x)[1L])
+    if (is.finite(val)) val else default
+  }
+  first_row <- function(df, metric_col) {
+    vals <- as.numeric(df[[metric_col]])
+    vals[!is.finite(vals)] <- Inf
+    df[order(vals, df$primary_worst_ratio_vs_baseline, df$screening_profile_id), , drop = FALSE][1L, , drop = FALSE]
+  }
+  profile_from_fit_row <- function(row, role, source_metric) {
+    D <- finite_int(row$D, 1L)
+    n_each <- finite_int(row$n_each, 20L)
+    n_tilde_each <- finite_int(row$n_tilde_each, if (D <= 1L) 0L else n_each)
+    readout_y_lags <- finite_int(row$readout_y_lags, finite_int(row$m, 15L))
+    dimension_p <- .qdesn_dynamic_fitforecast_profile_dimension(
+      D = D,
+      n_each = n_each,
+      n_tilde_each = n_tilde_each,
+      readout_y_lags = readout_y_lags,
+      add_bias = isTRUE(row$add_bias %||% TRUE)
+    ) + x_feature_count
+    out <- data.frame(
+      screening_profile_id = as.character(row$screening_profile_id[[1L]]),
+      screening_stage = "vb_rhs_fitforecast_rescue",
+      screening_wave = as.character(screening_wave)[1L],
+      profile_role = as.character(role)[1L],
+      enabled = TRUE,
+      D = D,
+      n_each = n_each,
+      n_tilde_each = n_tilde_each,
+      m = finite_int(row$m, readout_y_lags),
+      alpha = finite_num(row$alpha, 0.005),
+      rho = finite_num(row$rho, 0.25),
+      pi_w = finite_num(row$pi_w, 0.03),
+      pi_in = finite_num(row$pi_in, 0.30),
+      washout = finite_int(row$washout, 300L),
+      add_bias = TRUE,
+      seed = finite_int(row$seed, seed),
+      readout_y_lags = readout_y_lags,
+      reservoir_lags = finite_int(row$reservoir_lags, 0L),
+      rhs_tau0 = finite_num(row$rhs_tau0, 1e-4),
+      dimension_p_estimate = as.integer(dimension_p),
+      p_over_n_tt500 = as.numeric(dimension_p) / fit_size,
+      x_feature_count = x_feature_count,
+      target_family = as.character(row$family[[1L]]),
+      target_tau = as.numeric(row$tau[[1L]]),
+      target_source_metric = as.character(source_metric)[1L],
+      target_source_profile = as.character(row$screening_profile_id[[1L]]),
+      target_source_worst_ratio = finite_num(row$primary_worst_ratio_vs_baseline, NA_real_),
+      target_source_fit_rmse_ratio = finite_num(row$fit_rmse_ratio_vs_best_vb_baseline, NA_real_),
+      target_source_forecast_mae_ratio = finite_num(row$forecast_mae_ratio_vs_best_vb_baseline, NA_real_),
+      target_source_forecast_pinball_ratio = finite_num(row$forecast_pinball_ratio_vs_best_vb_baseline, NA_real_),
+      source_likelihood_family = as.character(row$likelihood_family %||% NA_character_)[1L],
+      stringsAsFactors = FALSE
+    )
+    out
+  }
+  generated_profile <- function(D, n_each, alpha, rho, m, pi_w, pi_in, rhs_tau0,
+                                role, target_row, reservoir_lags = 0L) {
+    D <- as.integer(D)
+    n_each <- as.integer(n_each)
+    n_tilde_each <- if (D <= 1L) 0L else n_each
+    dimension_p <- .qdesn_dynamic_fitforecast_profile_dimension(
+      D = D,
+      n_each = n_each,
+      n_tilde_each = n_tilde_each,
+      readout_y_lags = as.integer(m),
+      add_bias = TRUE
+    ) + x_feature_count
+    profile_id <- paste0(
+      .qdesn_dynamic_fitforecast_dominance_profile_id(
+        D = D,
+        n_each = n_each,
+        alpha = alpha,
+        rho = rho,
+        m = m,
+        readout_y_lags = m,
+        reservoir_lags = reservoir_lags,
+        pi_w = pi_w,
+        pi_in = pi_in,
+        prefix = "tt500vb_rhsff"
+      ),
+      "_tau0_",
+      .qdesn_dynamic_fitforecast_tau0_token(rhs_tau0)
+    )
+    data.frame(
+      screening_profile_id = profile_id,
+      screening_stage = "vb_rhs_fitforecast_rescue",
+      screening_wave = as.character(screening_wave)[1L],
+      profile_role = as.character(role)[1L],
+      enabled = TRUE,
+      D = D,
+      n_each = n_each,
+      n_tilde_each = n_tilde_each,
+      m = as.integer(m),
+      alpha = as.numeric(alpha),
+      rho = as.numeric(rho),
+      pi_w = as.numeric(pi_w),
+      pi_in = as.numeric(pi_in),
+      washout = 300L,
+      add_bias = TRUE,
+      seed = seed,
+      readout_y_lags = as.integer(m),
+      reservoir_lags = as.integer(reservoir_lags),
+      rhs_tau0 = as.numeric(rhs_tau0),
+      dimension_p_estimate = as.integer(dimension_p),
+      p_over_n_tt500 = as.numeric(dimension_p) / fit_size,
+      x_feature_count = x_feature_count,
+      target_family = as.character(target_row$family[[1L]]),
+      target_tau = as.numeric(target_row$tau[[1L]]),
+      target_source_metric = "generated_rescue",
+      target_source_profile = as.character(target_row$screening_profile_id[[1L]]),
+      target_source_worst_ratio = finite_num(target_row$primary_worst_ratio_vs_baseline, NA_real_),
+      target_source_fit_rmse_ratio = finite_num(target_row$fit_rmse_ratio_vs_best_vb_baseline, NA_real_),
+      target_source_forecast_mae_ratio = finite_num(target_row$forecast_mae_ratio_vs_best_vb_baseline, NA_real_),
+      target_source_forecast_pinball_ratio = finite_num(target_row$forecast_pinball_ratio_vs_best_vb_baseline, NA_real_),
+      source_likelihood_family = as.character(target_row$likelihood_family %||% NA_character_)[1L],
+      stringsAsFactors = FALSE
+    )
+  }
+  depth_grid <- function(family, tau) {
+    if (identical(family, "gausmix") && tau <= 0.05) {
+      return(data.frame(D = c(1L, 1L, 1L, 2L, 2L), n_each = c(20L, 30L, 40L, 20L, 30L)))
+    }
+    if (identical(family, "normal") && tau %in% c(0.05, 0.50)) {
+      return(data.frame(D = c(1L, 1L, 1L, 2L), n_each = c(20L, 30L, 40L, 20L)))
+    }
+    data.frame(D = c(1L, 1L, 1L, 2L), n_each = c(20L, 30L, 40L, 20L))
+  }
+  ar_grid <- data.frame(
+    alpha = c(0.0015, 0.0025, 0.005, 0.0075, 0.01, 0.02, 0.03, 0.05),
+    rho = c(0.15, 0.20, 0.25, 0.30, 0.35, 0.45, 0.50, 0.60)
+  )
+  sparsity_grid <- data.frame(
+    pi_w = c(0.02, 0.03, 0.05, 0.05),
+    pi_in = c(0.20, 0.30, 0.30, 0.50)
+  )
+  make_cell_candidates <- function(cell_df) {
+    best_joint <- first_row(cell_df, "primary_worst_ratio_vs_baseline")
+    best_fit <- first_row(cell_df, "fit_rmse_ratio_vs_best_vb_baseline")
+    best_mae <- first_row(cell_df, "forecast_mae_ratio_vs_best_vb_baseline")
+    best_check <- first_row(cell_df, "forecast_pinball_ratio_vs_best_vb_baseline")
+    best_fit_check <- first_row(cell_df, "fit_pinball_ratio_vs_best_vb_baseline")
+    ratios <- c(
+      forecast_mae = finite_num(best_joint$forecast_mae_ratio_vs_best_vb_baseline, NA_real_),
+      forecast_pinball = finite_num(best_joint$forecast_pinball_ratio_vs_best_vb_baseline, NA_real_),
+      fit_rmse = finite_num(best_joint$fit_rmse_ratio_vs_best_vb_baseline, NA_real_),
+      fit_pinball = finite_num(best_joint$fit_pinball_ratio_vs_best_vb_baseline, NA_real_)
+    )
+    finite_ratios <- ratios[is.finite(ratios)]
+    worst <- if (length(finite_ratios)) max(finite_ratios) else NA_real_
+    bottleneck <- if (length(finite_ratios)) names(which.max(ratios))[1L] else "unknown"
+    target_n <- min(max_profiles_per_cell, .qdesn_dynamic_fitforecast_cell_target_n(.qdesn_dynamic_fitforecast_cell_status(worst)))
+    family <- as.character(best_joint$family[[1L]])
+    tau <- as.numeric(best_joint$tau[[1L]])
+    anchors <- .qdesn_validation_bind_rows(list(
+      profile_from_fit_row(best_joint, "rescue_anchor_joint", "joint_max"),
+      profile_from_fit_row(best_fit, "rescue_anchor_fit_rmse", "fit_rmse"),
+      profile_from_fit_row(best_mae, "rescue_anchor_forecast_mae", "forecast_mae"),
+      profile_from_fit_row(best_check, "rescue_anchor_forecast_check", "forecast_pinball"),
+      profile_from_fit_row(best_fit_check, "rescue_anchor_fit_check", "fit_pinball")
+    ))
+    memories <- if (identical(family, "normal") && tau %in% c(0.05, 0.50)) c(10L, 15L, 20L, 30L, 45L) else c(10L, 15L, 20L, 30L)
+    tau0_values <- c(1e-4, 3e-4)
+    depth <- depth_grid(family, tau)
+    generated <- list()
+    for (di in seq_len(nrow(depth))) {
+      for (ai in seq_len(nrow(ar_grid))) {
+        for (mi in memories) {
+          for (si in seq_len(nrow(sparsity_grid))) {
+            for (tau0 in tau0_values) {
+              role <- if (identical(family, "normal") && tau %in% c(0.05, 0.50)) {
+                "rescue_normal_edge_forecast"
+              } else if (identical(family, "gausmix") && tau <= 0.05 && depth$D[[di]] > 1L) {
+                "rescue_mixture_depth_fit"
+              } else {
+                "rescue_fit_rmse_core"
+              }
+              generated[[length(generated) + 1L]] <- generated_profile(
+                D = depth$D[[di]],
+                n_each = depth$n_each[[di]],
+                alpha = ar_grid$alpha[[ai]],
+                rho = ar_grid$rho[[ai]],
+                m = mi,
+                pi_w = sparsity_grid$pi_w[[si]],
+                pi_in = sparsity_grid$pi_in[[si]],
+                rhs_tau0 = tau0,
+                role = role,
+                target_row = best_fit,
+                reservoir_lags = 0L
+              )
+            }
+          }
+        }
+      }
+    }
+    candidates <- .qdesn_validation_bind_rows(c(list(anchors), generated))
+    candidates <- candidates[is.finite(as.numeric(candidates$p_over_n_tt500)) &
+      as.numeric(candidates$p_over_n_tt500) <= max_p_over_n, , drop = FALSE]
+    candidates <- candidates[!duplicated(as.character(candidates$screening_profile_id)), , drop = FALSE]
+    candidates$is_anchor <- grepl("^rescue_anchor_", as.character(candidates$profile_role))
+    candidates$tau0_priority <- ifelse(abs(as.numeric(candidates$rhs_tau0) - 1e-4) < 1e-12, 0, 1)
+    candidates$role_bonus <- ifelse(
+      as.character(candidates$profile_role) == "rescue_mixture_depth_fit",
+      -50,
+      ifelse(as.character(candidates$profile_role) == "rescue_normal_edge_forecast", -25, 0)
+    )
+    candidates$local_score <- ifelse(candidates$is_anchor, -1000, 0) +
+      candidates$role_bonus +
+      100 * as.numeric(candidates$tau0_priority) +
+      10 * abs(as.numeric(candidates$alpha) - finite_num(best_fit$alpha, 0.005)) +
+      5 * abs(as.numeric(candidates$rho) - finite_num(best_fit$rho, 0.25)) +
+      0.1 * abs(as.numeric(candidates$m) - finite_int(best_fit$m, 15L)) +
+      as.numeric(candidates$p_over_n_tt500)
+    candidates <- candidates[order(candidates$local_score, candidates$p_over_n_tt500, candidates$screening_profile_id), , drop = FALSE]
+    candidates <- utils::head(candidates, target_n)
+    candidates$target_cell_profile_rank <- seq_len(nrow(candidates))
+    cell_plan <- data.frame(
+      family = family,
+      tau = tau,
+      fit_size = fit_size,
+      cell_status = .qdesn_dynamic_fitforecast_cell_status(worst),
+      target_profiles = nrow(candidates),
+      current_best_profile = as.character(best_joint$screening_profile_id[[1L]]),
+      current_best_worst_ratio = worst,
+      current_best_forecast_mae_ratio = ratios[["forecast_mae"]],
+      current_best_forecast_pinball_ratio = ratios[["forecast_pinball"]],
+      current_best_fit_rmse_ratio = ratios[["fit_rmse"]],
+      current_best_fit_pinball_ratio = ratios[["fit_pinball"]],
+      bottleneck_metric = bottleneck,
+      n_profiles_evaluated = nrow(cell_df),
+      n_profiles_beating_all_primary = sum(as.logical(cell_df$beats_all_primary_baselines), na.rm = TRUE),
+      best_fit_rmse_profile = as.character(best_fit$screening_profile_id[[1L]]),
+      best_forecast_mae_profile = as.character(best_mae$screening_profile_id[[1L]]),
+      best_forecast_check_profile = as.character(best_check$screening_profile_id[[1L]]),
+      stringsAsFactors = FALSE
+    )
+    assignments <- data.frame(
+      family = family,
+      tau = tau,
+      cell_status = cell_plan$cell_status[[1L]],
+      priority_rank = NA_integer_,
+      target_profile_rank = as.integer(candidates$target_cell_profile_rank),
+      screening_profile_id = as.character(candidates$screening_profile_id),
+      source_profile = as.character(candidates$target_source_profile),
+      source_worst_ratio = as.numeric(candidates$target_source_worst_ratio),
+      bottleneck_metric = bottleneck,
+      assignment_key = paste(
+        as.character(candidates$screening_profile_id),
+        family,
+        .qdesn_dynamic_fitforecast_tau_key(tau),
+        sep = "\r"
+      ),
+      assignment_id = NA_character_,
+      stringsAsFactors = FALSE
+    )
+    list(cell_plan = cell_plan, candidates = candidates, assignments = assignments)
+  }
+
+  key <- paste(q$family, .qdesn_dynamic_fitforecast_tau_key(q$tau), sep = "\r")
+  cell_objects <- lapply(split(seq_len(nrow(q)), key), function(idx) make_cell_candidates(q[idx, , drop = FALSE]))
+  cell_plan <- .qdesn_validation_bind_rows(lapply(cell_objects, `[[`, "cell_plan"))
+  status_order <- c(extreme_hard = 1L, hard = 2L, near_pass = 3L, sentinel = 4L, unknown = 5L)
+  cell_plan$priority <- unname(status_order[as.character(cell_plan$cell_status)])
+  cell_plan$priority[!is.finite(cell_plan$priority)] <- 99L
+  cell_plan <- cell_plan[order(cell_plan$priority, -cell_plan$current_best_worst_ratio, cell_plan$family, cell_plan$tau), , drop = FALSE]
+  cell_plan$priority_rank <- seq_len(nrow(cell_plan))
+  priority_lookup <- setNames(cell_plan$priority_rank, paste(cell_plan$family, .qdesn_dynamic_fitforecast_tau_key(cell_plan$tau), sep = "\r"))
+
+  candidate_ledger <- .qdesn_validation_bind_rows(lapply(cell_objects, `[[`, "candidates"))
+  split_profiles <- split(seq_len(nrow(candidate_ledger)), as.character(candidate_ledger$screening_profile_id))
+  profiles <- .qdesn_validation_bind_rows(lapply(split_profiles, function(idx) {
+    sub <- candidate_ledger[idx, , drop = FALSE]
+    row <- sub[order(sub$local_score, sub$target_source_worst_ratio, sub$screening_profile_id), , drop = FALSE][1L, , drop = FALSE]
+    cells <- paste(as.character(sub$target_family), sprintf("%.2f", as.numeric(sub$target_tau)), sep = ":")
+    row$target_cells <- paste(sort(unique(cells)), collapse = ";")
+    row$target_source_metrics <- paste(sort(unique(as.character(sub$target_source_metric))), collapse = ";")
+    finite_worst <- as.numeric(sub$target_source_worst_ratio)
+    finite_worst <- finite_worst[is.finite(finite_worst)]
+    row$target_source_best_worst_ratio <- if (length(finite_worst)) min(finite_worst) else NA_real_
+    row$target_source_max_worst_ratio <- if (length(finite_worst)) max(finite_worst) else NA_real_
+    row
+  }))
+  drop_cols <- intersect(c("is_anchor", "tau0_priority", "role_bonus", "local_score", "target_cell_profile_rank"), names(profiles))
+  profiles <- profiles[, setdiff(names(profiles), drop_cols), drop = FALSE]
+  profiles <- profiles[order(profiles$p_over_n_tt500, profiles$screening_profile_id), , drop = FALSE]
+  profiles$fitforecast_rescue_profile_rank <- seq_len(nrow(profiles))
+
+  assignments <- .qdesn_validation_bind_rows(lapply(cell_objects, `[[`, "assignments"))
+  assign_key <- paste(assignments$family, .qdesn_dynamic_fitforecast_tau_key(assignments$tau), sep = "\r")
+  assignments$priority_rank <- as.integer(priority_lookup[assign_key])
+  assignments <- assignments[order(assignments$priority_rank, assignments$target_profile_rank, assignments$screening_profile_id), , drop = FALSE]
+  assignments$assignment_id <- sprintf("rhs_fitforecast_rescue_cell_%04d", seq_len(nrow(assignments)))
+
+  list(
+    fit_forecast_summary_path = fit_forecast_summary_path,
+    baseline_path = baseline_path,
+    cell_plan = cell_plan,
+    candidate_ledger = candidate_ledger,
+    profiles = profiles,
+    assignments = assignments,
+    baseline_targets = baseline,
+    manifest = list(
+      generated_at = as.character(Sys.time()),
+      screening_wave = screening_wave,
+      fit_size = fit_size,
+      max_p_over_n = max_p_over_n,
+      max_profiles_per_cell = max_profiles_per_cell,
+      x_feature_count = x_feature_count,
+      seed = seed,
+      n_input_fit_rows = nrow(fit),
+      n_cells = nrow(cell_plan),
+      n_profiles = nrow(profiles),
+      n_assignments = nrow(assignments),
+      target_cells = as.list(paste(cell_plan$family, sprintf("%.2f", as.numeric(cell_plan$tau)), sep = ":")),
+      design = "Q-DESN RHS VB fit+forecast rescue: cell-specific compact fit-RMSE probes with normal-edge forecast rescue, tau0=1e-4 anchor and limited 3e-4 robustness, excluding the failed tau0=3e-5 surface."
+    )
+  )
+}
+
 qdesn_dynamic_fitforecast_stage4_transfer_profile_plan <- function(article_summary_path,
                                                                    source_profiles_path,
                                                                    transfer_profile_ids = c(
