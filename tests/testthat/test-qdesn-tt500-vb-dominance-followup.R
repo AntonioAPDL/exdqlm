@@ -54,6 +54,28 @@ test_that("dominance campaign audit handles partial live campaigns and strict te
   expect_false(strict$summary$strict_ready)
 
   unlink(running_root, recursive = TRUE)
+  failed_root <- file.path(results_root, "roots", "root_failed_candidate")
+  dir.create(file.path(failed_root, "manifest"), recursive = TRUE)
+  writeLines("FAIL", file.path(failed_root, "manifest", "root_status.txt"))
+  strict_rejected_blocked <- exdqlm:::qdesn_dynamic_fitforecast_audit_screen_campaign(
+    results_root = results_root,
+    expected_roots = 2L,
+    strict = TRUE
+  )
+  expect_false(strict_rejected_blocked$summary$strict_ready)
+  expect_false(strict_rejected_blocked$summary$terminal_complete)
+
+  strict_rejected_allowed <- exdqlm:::qdesn_dynamic_fitforecast_audit_screen_campaign(
+    results_root = results_root,
+    expected_roots = 2L,
+    strict = TRUE,
+    allow_failed_candidates = TRUE
+  )
+  expect_true(strict_rejected_allowed$summary$strict_ready)
+  expect_true(strict_rejected_allowed$summary$terminal_complete)
+  expect_false(strict_rejected_allowed$summary$terminal_zero_fail)
+
+  unlink(failed_root, recursive = TRUE)
   strict_done <- exdqlm:::qdesn_dynamic_fitforecast_audit_screen_campaign(
     results_root = results_root,
     expected_roots = 1L,

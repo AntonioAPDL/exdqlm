@@ -91,7 +91,7 @@ test_that("screen ranking uses lead metrics instead of missing campaign forecast
   utils::write.csv(lead_df, lead_path, row.names = FALSE)
   fit_path <- file.path(tmp, "campaign_fit_summary.csv")
   fit_df <- data.frame(
-    root_id = "root_a",
+    root_id = c("root_a", "root_failed", "root_unknown"),
     scenario = "scenario",
     family = "normal",
     tau = 0.5,
@@ -101,7 +101,11 @@ test_that("screen ranking uses lead metrics instead of missing campaign forecast
     method = "vb",
     inference = "vb",
     likelihood_family = "exal",
-    screening_profile_id = "tt500vb_d1_n30_a0p30_r0p85_tau0_1em4",
+    screening_profile_id = c(
+      "tt500vb_d1_n30_a0p30_r0p85_tau0_1em4",
+      "tt500vb_failed_tau0_1em5",
+      "tt500vb_unknown_tau0_1em5"
+    ),
     rhs_tau0 = 1e-4,
     D = 1L,
     n_each = 30L,
@@ -114,15 +118,21 @@ test_that("screen ranking uses lead metrics instead of missing campaign forecast
     p_over_n_tt500 = 0.086,
     forecast_qhat_mae = NA_real_,
     forecast_PinballMean_mean = NA_real_,
-    forecast_lead_metrics_path = lead_path,
+    forecast_lead_metrics_path = c(lead_path, "", ""),
+    status = c("SUCCESS", "FAIL", NA_character_),
+    comparison_eligible = c(TRUE, FALSE, TRUE),
     stringsAsFactors = FALSE
   )
   utils::write.csv(fit_df, fit_path, row.names = FALSE)
 
   out <- exdqlm:::qdesn_dynamic_fitforecast_write_screen_ranking(fit_path, out_dir = tmp)
   ranking <- utils::read.csv(out$output_paths$profile_ranking, stringsAsFactors = FALSE)
+  rejected <- utils::read.csv(out$output_paths$rejected_fits, stringsAsFactors = FALSE)
   expect_equal(nrow(ranking), 1L)
+  expect_equal(nrow(rejected), 2L)
   expect_equal(ranking$screening_profile_base[[1L]], "tt500vb_d1_n30_a0p30_r0p85")
+  expect_equal(rejected$screen_rejection_reason[match("root_failed", rejected$root_id)], "status_fail")
+  expect_equal(rejected$screen_rejection_reason[match("root_unknown", rejected$root_id)], "status_unknown")
   expect_true(file.exists(out$output_paths$summary))
   expect_true(file.exists(out$output_paths$manifest))
 })

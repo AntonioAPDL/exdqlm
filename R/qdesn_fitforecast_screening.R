@@ -429,24 +429,66 @@ qdesn_dynamic_fitforecast_rank_screen <- function(fit_summary_path,
   if (!"forecast_lead_metrics_path" %in% names(fit_summary)) {
     stop("Campaign fit summary is missing `forecast_lead_metrics_path`.", call. = FALSE)
   }
+  status_vec <- if ("status" %in% names(fit_summary)) {
+    toupper(as.character(fit_summary$status))
+  } else {
+    rep("SUCCESS", nrow(fit_summary))
+  }
+  status_vec[is.na(status_vec) | !nzchar(status_vec)] <- "UNKNOWN"
+  eligible_vec <- if ("comparison_eligible" %in% names(fit_summary)) {
+    as.logical(fit_summary$comparison_eligible)
+  } else {
+    rep(TRUE, nrow(fit_summary))
+  }
+  eligible_vec[is.na(eligible_vec)] <- FALSE
+  rankable <- status_vec == "SUCCESS" & eligible_vec
+  rankable[is.na(rankable)] <- FALSE
   lead_paths <- as.character(fit_summary$forecast_lead_metrics_path)
   missing_leads <- is.na(lead_paths) | !nzchar(lead_paths) | !file.exists(lead_paths)
-  if (any(missing_leads) && isTRUE(require_complete_leads)) {
-    stop(sprintf("Missing forecast lead metrics for %d fit row(s).", sum(missing_leads)), call. = FALSE)
+  missing_rankable_leads <- missing_leads & rankable
+  if (any(missing_rankable_leads) && isTRUE(require_complete_leads)) {
+    stop(sprintf("Missing forecast lead metrics for %d rank-eligible fit row(s).", sum(missing_rankable_leads)), call. = FALSE)
   }
 
   lead_rows <- vector("list", nrow(fit_summary))
   for (i in seq_len(nrow(fit_summary))) {
-    if (missing_leads[[i]]) next
+    if (missing_leads[[i]] || !rankable[[i]]) next
     lead_df <- utils::read.csv(lead_paths[[i]], stringsAsFactors = FALSE)
     agg <- qdesn_dynamic_fitforecast_aggregate_lead_metrics(lead_df)
     lead_rows[[i]] <- agg
   }
-  lead_summary <- do.call(rbind, lead_rows[!vapply(lead_rows, is.null, logical(1L))])
-  fit_kept <- fit_summary[!missing_leads, , drop = FALSE]
+  lead_rows <- lead_rows[!vapply(lead_rows, is.null, logical(1L))]
+  if (!length(lead_rows)) {
+    stop("No rank-eligible successful fit rows have forecast lead metrics.", call. = FALSE)
+  }
+  lead_summary <- do.call(rbind, lead_rows)
+  fit_kept <- fit_summary[rankable & !missing_leads, , drop = FALSE]
   fit_enriched <- cbind(fit_kept, lead_summary)
+  fit_enriched$screen_rank_eligible <- TRUE
   fit_enriched$screening_profile_base <- qdesn_dynamic_fitforecast_screening_profile_base(fit_enriched$screening_profile_id)
   fit_enriched <- .qdesn_dynamic_fitforecast_fill_profile_metadata(fit_enriched)
+  reject_idx <- !rankable | missing_leads
+  reject_idx[is.na(reject_idx)] <- TRUE
+  rejected <- fit_summary[reject_idx, , drop = FALSE]
+  if (nrow(rejected)) {
+    rejected_status <- status_vec[reject_idx]
+    rejected_eligible <- eligible_vec[reject_idx]
+    rejected_missing_leads <- missing_leads[reject_idx]
+    rejected$screen_rank_eligible <- FALSE
+    rejected$screen_rejection_reason <- ifelse(
+      rejected_status != "SUCCESS",
+      paste0("status_", tolower(rejected_status)),
+      ifelse(!rejected_eligible, "comparison_not_eligible",
+        ifelse(rejected_missing_leads, "missing_forecast_lead_metrics", "not_rankable"))
+    )
+    rejected$screening_profile_base <- if ("screening_profile_id" %in% names(rejected)) {
+      qdesn_dynamic_fitforecast_screening_profile_base(rejected$screening_profile_id)
+    } else {
+      NA_character_
+    }
+  } else {
+    rejected <- data.frame(stringsAsFactors = FALSE)
+  }
 
   campaign_forecast_metric_cols <- grep(
     "^forecast_(CRPS|PinballMean|S|qhat|pinball_tau)",
@@ -574,6 +616,7 @@ qdesn_dynamic_fitforecast_rank_screen <- function(fit_summary_path,
     fit_summary_path = fit_summary_path,
     report_root = report_root,
     fit_forecast_summary = fit_enriched,
+    rejected_fits = rejected,
     profile_cell_summary = cell_summary,
     profile_ranking = profile_summary,
     manifest = list(
@@ -581,10 +624,16 @@ qdesn_dynamic_fitforecast_rank_screen <- function(fit_summary_path,
       fit_summary_path = fit_summary_path,
       report_root = report_root %||% dirname(dirname(fit_summary_path)),
       n_fit_rows = nrow(fit_summary),
+      n_fit_rows_success = sum(status_vec == "SUCCESS", na.rm = TRUE),
+      n_fit_rows_comparison_eligible_success = sum(rankable, na.rm = TRUE),
       n_fit_rows_with_complete_leads = nrow(fit_enriched),
+      n_fit_rows_screen_rejected = nrow(rejected),
+      n_fit_rows_rank_eligible_missing_leads = sum(missing_rankable_leads, na.rm = TRUE),
+      n_fit_rows_non_success_missing_leads = sum(missing_leads & status_vec != "SUCCESS", na.rm = TRUE),
       n_profile_cells = nrow(cell_summary),
       n_ranked_profiles = nrow(profile_summary),
       collapse_tau0 = isTRUE(collapse_tau0),
+      rank_contract = "success_and_comparison_eligible_rows_only",
       campaign_forecast_metric_cols = as.list(campaign_forecast_metric_cols),
       campaign_forecast_metric_cols_all_missing = campaign_forecast_all_missing,
       score_terms = as.list(score_terms),
@@ -614,12 +663,14 @@ qdesn_dynamic_fitforecast_write_screen_ranking <- function(fit_summary_path,
 
   paths <- list(
     fit_forecast_summary = file.path(table_dir, "qdesn_tt500_vb_screen_fit_forecast_summary.csv"),
+    rejected_fits = file.path(table_dir, "qdesn_tt500_vb_screen_rejected_fits.csv"),
     profile_cell_summary = file.path(table_dir, "qdesn_tt500_vb_screen_profile_cell_summary.csv"),
     profile_ranking = file.path(table_dir, "qdesn_tt500_vb_screen_profile_ranking.csv"),
     summary = file.path(summary_dir, "qdesn_tt500_vb_screen_profile_ranking.md"),
     manifest = file.path(manifest_dir, "qdesn_tt500_vb_screen_profile_ranking_manifest.json")
   )
   .qdesn_validation_write_df(rank_obj$fit_forecast_summary, paths$fit_forecast_summary)
+  .qdesn_validation_write_df(rank_obj$rejected_fits %||% data.frame(stringsAsFactors = FALSE), paths$rejected_fits)
   .qdesn_validation_write_df(rank_obj$profile_cell_summary, paths$profile_cell_summary)
   .qdesn_validation_write_df(rank_obj$profile_ranking, paths$profile_ranking)
 
@@ -642,11 +693,15 @@ qdesn_dynamic_fitforecast_write_screen_ranking <- function(fit_summary_path,
     sprintf("- generated_at: `%s`", as.character(Sys.time())),
     sprintf("- fit_summary_path: `%s`", fit_summary_path),
     sprintf("- fit_rows: `%d`", rank_obj$manifest$n_fit_rows),
+    sprintf("- rank_contract: `%s`", rank_obj$manifest$rank_contract),
+    sprintf("- fit_rows_success: `%d`", rank_obj$manifest$n_fit_rows_success),
+    sprintf("- fit_rows_comparison_eligible_success: `%d`", rank_obj$manifest$n_fit_rows_comparison_eligible_success),
     sprintf("- fit_rows_with_complete_leads: `%d`", rank_obj$manifest$n_fit_rows_with_complete_leads),
+    sprintf("- fit_rows_screen_rejected: `%d`", rank_obj$manifest$n_fit_rows_screen_rejected),
     sprintf("- ranked_profiles: `%d`", rank_obj$manifest$n_ranked_profiles),
     sprintf("- campaign_forecast_metric_cols_all_missing: `%s`", as.character(rank_obj$manifest$campaign_forecast_metric_cols_all_missing)),
     "",
-    "The ranking is built from per-fit rolling-origin `forecast_lead_metrics.csv` files. Campaign-level `forecast_*` scalar columns are treated as non-authoritative for this screen.",
+    "The ranking is built from successful, comparison-eligible per-fit rolling-origin `forecast_lead_metrics.csv` files. Failed exploratory candidates are retained in the rejected-fit ledger but do not block ranking. Campaign-level `forecast_*` scalar columns are treated as non-authoritative for this screen.",
     "",
     "Lower `rank_score_low_is_better` is better. The score is a robust-z weighted blend of train/holdout quantile recovery, all-lead and short-lead rolling-origin forecast metrics, runtime, and dimension.",
     "",
@@ -654,6 +709,7 @@ qdesn_dynamic_fitforecast_write_screen_ranking <- function(fit_summary_path,
     .qdesn_validation_df_to_markdown(top[, display_cols, drop = FALSE]),
     "",
     sprintf("- fit_forecast_summary: `%s`", paths$fit_forecast_summary),
+    sprintf("- rejected_fits: `%s`", paths$rejected_fits),
     sprintf("- profile_cell_summary: `%s`", paths$profile_cell_summary),
     sprintf("- profile_ranking: `%s`", paths$profile_ranking)
   )
@@ -2703,6 +2759,7 @@ qdesn_dynamic_fitforecast_audit_screen_campaign <- function(results_root = NULL,
                                                             expected_final_origin = 9990L,
                                                             expected_final_origin_rows = 10L,
                                                             require_rankings = FALSE,
+                                                            allow_failed_candidates = FALSE,
                                                             method_dir_name = NULL,
                                                             strict = FALSE) {
   if (is.null(results_root) && !is.null(report_root)) {
@@ -2813,7 +2870,14 @@ qdesn_dynamic_fitforecast_audit_screen_campaign <- function(results_root = NULL,
     c(generic = NA_character_, dominance = NA_character_)
   }
   rank_exists <- vapply(rank_paths, function(path) !is.na(path) && file.exists(path), logical(1L))
-  terminal_complete <- length(root_dirs) == expected_roots && n_terminal == expected_roots && n_running == 0L && n_fail == 0L
+  terminal_complete <- length(root_dirs) == expected_roots &&
+    n_terminal == expected_roots &&
+    n_running == 0L &&
+    (n_fail == 0L || isTRUE(allow_failed_candidates))
+  terminal_zero_fail <- length(root_dirs) == expected_roots &&
+    n_terminal == expected_roots &&
+    n_running == 0L &&
+    n_fail == 0L
   success_contract <- if (any(success_idx)) {
     all(root_audit$lead_metrics_pass[success_idx]) &&
       all(root_audit$rolling_paths_pass[success_idx]) &&
@@ -2845,6 +2909,8 @@ qdesn_dynamic_fitforecast_audit_screen_campaign <- function(results_root = NULL,
     generic_ranking_exists = isTRUE(rank_exists[["generic"]]),
     dominance_ranking_exists = isTRUE(rank_exists[["dominance"]]),
     terminal_complete = isTRUE(terminal_complete),
+    terminal_zero_fail = isTRUE(terminal_zero_fail),
+    allow_failed_candidates = isTRUE(allow_failed_candidates),
     success_contract_pass = isTRUE(success_contract),
     ranking_contract_pass = isTRUE(ranking_contract),
     strict_ready = isTRUE(strict_ready),
@@ -2877,6 +2943,7 @@ qdesn_dynamic_fitforecast_write_campaign_audit <- function(results_root = NULL,
                                                            expected_final_origin = 9990L,
                                                            expected_final_origin_rows = 10L,
                                                            require_rankings = FALSE,
+                                                           allow_failed_candidates = FALSE,
                                                            method_dir_name = NULL,
                                                            strict = FALSE) {
   audit <- qdesn_dynamic_fitforecast_audit_screen_campaign(
@@ -2888,6 +2955,7 @@ qdesn_dynamic_fitforecast_write_campaign_audit <- function(results_root = NULL,
     expected_final_origin = expected_final_origin,
     expected_final_origin_rows = expected_final_origin_rows,
     require_rankings = require_rankings,
+    allow_failed_candidates = allow_failed_candidates,
     method_dir_name = method_dir_name,
     strict = strict
   )
@@ -2914,7 +2982,8 @@ qdesn_dynamic_fitforecast_write_campaign_audit <- function(results_root = NULL,
     c(
       "expected_roots", "observed_roots", "n_success", "n_running", "n_fail",
       "n_success_lead_pass", "n_success_rolling_pass", "n_success_storage_light_pass",
-      "generic_ranking_exists", "dominance_ranking_exists", "strict_ready"
+      "generic_ranking_exists", "dominance_ranking_exists", "allow_failed_candidates",
+      "terminal_complete", "terminal_zero_fail", "strict_ready"
     ),
     names(audit$summary)
   )
@@ -2958,6 +3027,7 @@ qdesn_dynamic_fitforecast_write_campaign_audit <- function(results_root = NULL,
     generated_at = as.character(Sys.time()),
     strict = isTRUE(strict),
     require_rankings = isTRUE(require_rankings),
+    allow_failed_candidates = isTRUE(allow_failed_candidates),
     output_paths = paths,
     summary = as.list(audit$summary[1L, , drop = FALSE]),
     rank_paths = audit$rank_paths,

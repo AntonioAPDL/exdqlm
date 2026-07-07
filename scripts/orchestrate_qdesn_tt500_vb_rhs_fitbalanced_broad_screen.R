@@ -241,7 +241,8 @@ if (isTRUE(do_full) && !isTRUE(prepare_only)) {
         "--results-root", campaign_results_root,
         "--expected-roots", as.character(expected_roots),
         "--strict",
-        "--require-rankings"
+        "--require-rankings",
+        "--allow-failed-candidates"
       )
     )
   }

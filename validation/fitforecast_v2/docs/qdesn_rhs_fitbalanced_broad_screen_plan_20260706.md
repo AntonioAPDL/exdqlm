@@ -79,3 +79,111 @@ After completion, rank candidates by:
 6. runtime only as a secondary tie-breaker
 
 Only then decide whether a MCMC follow-up is scientifically worth the compute.
+
+## 2026-07-07 Closeout: Screen-Aware Ranking And Audit
+
+### Run Identity
+
+- Run tag:
+  `qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c`
+- Report root:
+  `reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c`
+- Results root:
+  `results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c`
+
+### Root-Cause Diagnosis
+
+The full VB screen completed model computation, but the first post-processing pass was too strict for an exploratory screen:
+
+- the generic ranker required forecast lead metrics for failed exploratory candidates;
+- failed candidates naturally had no forecast lead metrics;
+- the strict audit required zero failed roots, even though this screen intentionally included aggressive specifications that could be rejected.
+
+This was a post-processing contract issue, not evidence that the successful fits were incomplete.
+
+### Implemented Contract
+
+The broad-screen ranking contract is now:
+
+`status == SUCCESS && comparison_eligible == TRUE`
+
+Only these rows are rank-eligible. Failed or noneligible candidates are retained in:
+
+`tables/qdesn_tt500_vb_screen_rejected_fits.csv`
+
+Strict audit now has two separate terminal concepts:
+
+- `terminal_complete`: all expected roots reached terminal state; failed candidates may be allowed for exploratory screens with `--allow-failed-candidates`;
+- `terminal_zero_fail`: all expected roots reached terminal state with zero failures.
+
+Successful roots still must pass the lead-metric, rolling-origin path, and storage-light contracts. Rankings are still required when `--require-rankings` is set.
+
+### Post-Processing Commands
+
+```sh
+Rscript scripts/rank_qdesn_tt500_vb_screen.R \
+  --report-root reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c \
+  --top-n 40
+
+Rscript scripts/rank_qdesn_tt500_vb_dominance_screen.R \
+  --report-root reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c \
+  --baseline /data/jaguir26/local/src/Article-Q-DESN__wt__main_validation_tables/tables/qdesn_validation_tt500_final_summary.csv \
+  --top-n 40
+
+Rscript scripts/audit_qdesn_tt500_vb_dominance_screening.R \
+  --report-root reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c \
+  --results-root results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c \
+  --expected-roots 1296 \
+  --strict \
+  --require-rankings \
+  --allow-failed-candidates
+```
+
+### Evidence Summary
+
+- Atomic VB fits: 2592
+- Successful VB fits: 2376
+- Failed exploratory VB fits: 216
+- Rank-eligible successful fits with complete lead metrics: 2375
+- Rejected fit rows retained in ledger: 217
+- Expected roots: 1296
+- Observed roots: 1296
+- Successful roots: 1188
+- Failed roots: 108
+- Running roots: 0
+- Successful roots lead/rolling/storage contract: pass
+- Strict screen audit with allowed failed candidates: pass
+- Strict zero-fail terminal audit: fail, by design for this exploratory screen
+- Forbidden binary payloads in successful storage contract: 0
+
+Primary evidence files:
+
+- `tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv`
+- `tables/qdesn_tt500_vb_screen_profile_cell_summary.csv`
+- `tables/qdesn_tt500_vb_screen_profile_ranking.csv`
+- `tables/qdesn_tt500_vb_screen_rejected_fits.csv`
+- `tables/qdesn_tt500_vb_dominance_profile_ranking.csv`
+- `audit/tables/qdesn_tt500_vb_screen_audit_summary.csv`
+- `audit/tables/qdesn_tt500_vb_screen_root_audit.csv`
+- `manifest/qdesn_tt500_vb_screen_profile_ranking_manifest.json`
+- `manifest/qdesn_tt500_vb_dominance_manifest.json`
+- `audit/manifest/qdesn_tt500_vb_screen_audit_manifest.json`
+
+### Scientific Decision
+
+The screen is technically complete and reproducible under the exploratory-screen contract, but it does not justify promoting one global RHS VB specification as dominant over the current best DQLM/exDQLM VB baselines.
+
+Observed ranking results:
+
+- best generic internal profile:
+  `tt500vb_ftgt_d1_n20_a0p005_r0p25_m15_lag15_rl0_pw0p03_pin0p3`
+- best dominance-profile candidate:
+  `tt500vb_ftgt_d1_n30_a0p02_r0p45_m15_lag15_rl0_pw0p03_pin0p3`
+- profiles passing all-primary dominance against the current best VB baseline in all nine cells: 0
+
+Recommended next move:
+
+1. Use this screen as a candidate-selection and diagnostic dataset, not as an article-authoritative replacement.
+2. Inspect hard family/quantile cells where the dominance ratios remain above 1.
+3. Launch only targeted follow-up VB screens around the best cell-specific regions before any expensive MCMC promotion.
+4. Promote MCMC only for specifications that are robust under the VB dominance and stability checks.

@@ -41,6 +41,7 @@ results_root <- resolve_path(get_arg("--results-root", ""), must_work = FALSE)
 out_dir <- resolve_path(get_arg("--out-dir", ""), must_work = FALSE)
 strict <- has_flag("--strict")
 require_rankings <- has_flag("--require-rankings")
+allow_failed_candidates <- has_flag("--allow-failed-candidates")
 prune_rhs_trace <- has_flag("--prune-success-rhs-trace")
 prune_dry_run <- !has_flag("--execute-prune")
 
@@ -54,6 +55,7 @@ audit <- exdqlm:::qdesn_dynamic_fitforecast_write_campaign_audit(
   expected_final_origin = int_arg("--expected-final-origin", 9990L),
   expected_final_origin_rows = int_arg("--expected-final-origin-rows", 10L),
   require_rankings = require_rankings,
+  allow_failed_candidates = allow_failed_candidates,
   strict = strict
 )
 
