@@ -13,7 +13,7 @@
   p <- if (!is.null(x$X)) ncol(as.matrix(x$X)) else if (!is.null(x$misc$p)) as.integer(x$misc$p) else NA_integer_
   conv <- .exdqlm_convergence_info(x)
   beta_prior <- if (!is.null(x$beta_prior$type)) x$beta_prior$type else "not stored"
-  
+
   cat("Static Bayesian quantile regression fit\n")
   cat("Model:", .exdqlm_static_model_label(x$dqlm.ind), "\n")
   cat("Inference engine:", .exdqlm_static_engine(x), "\n")
@@ -30,8 +30,8 @@
   }
   cat("Coefficient draws:", .exdqlm_draw_dim(x$samp.beta), "\n")
   cat("Run-time:", .exdqlm_runtime_label(x$run.time), "\n")
-  
-  cat("\nClass: \"exalStaticFit\"\n")
+
+  cat(sprintf("\nClass: %s\n", paste0('"', class(x), '"', collapse = " ")))
   cat("Use with: summary(), plot(), diagnostics()\n")
   invisible(x)
 }
@@ -39,7 +39,7 @@
 .exal_static_beta_summary <- function(x, max.coef = 6L) {
   max.coef <- suppressWarnings(as.integer(max.coef)[1L])
   if (!is.finite(max.coef) || max.coef < 1L) max.coef <- 6L
-  
+
   if (!is.null(x$samp.beta)) {
     b <- as.matrix(x$samp.beta)
     mean_b <- colMeans(b)
@@ -59,7 +59,7 @@
   } else {
     return(data.frame(Coefficient = character(), Mean = numeric(), `2.5%` = numeric(), `97.5%` = numeric()))
   }
-  
+
   p <- length(mean_b)
   nms <- if (!is.null(x$X) && !is.null(colnames(x$X))) colnames(x$X) else paste0("beta", seq_len(p) - 1L)
   keep <- seq_len(min(p, max.coef))
@@ -85,7 +85,7 @@
     ),
     check.names = FALSE
   )
-  
+
   .exal_static_fit_print(x)
   cat("\nStored draws:\n")
   print(draw_info, row.names = FALSE)
@@ -100,7 +100,7 @@
     cat(":\n")
     print(beta_info, row.names = FALSE, digits = 4)
   }
-  
+
   invisible(list(draws = draw_info, scalar = scalar_info, coefficients = beta_info))
 }
 
@@ -123,12 +123,57 @@
   invisible(list(map.quant = map.quant, lb.quant = lb.quant, ub.quant = ub.quant))
 }
 
+.exal_static_fit_plot <- function(x, X = NULL, add = FALSE, col = "purple",
+                                  cr.percent = 0.95, ...) {
+  if (cr.percent <= 0 || cr.percent >= 1) {
+    stop("cr.percent must be between 0 and 1", call. = FALSE)
+  }
+  if (is.null(X)) X <- x$X
+  if (is.null(X)) {
+    stop("plot.exalStaticFit requires design matrix X (missing in object and argument).",
+         call. = FALSE)
+  }
+  X <- as.matrix(X)
+
+  if (is.exalStaticLDVB(x)) {
+    beta_mean <- as.numeric(x$qbeta$m)
+    map.quant <- as.numeric(drop(X %*% beta_mean))
+    if (!is.null(x$qbeta$V)) {
+      Vb <- as.matrix(x$qbeta$V)
+      z <- stats::qnorm((1 + cr.percent) / 2)
+      sd_path <- sqrt(pmax(rowSums((X %*% Vb) * X), 0))
+      lb.quant <- map.quant - z * sd_path
+      ub.quant <- map.quant + z * sd_path
+    } else {
+      lb.quant <- rep(NA_real_, length(map.quant))
+      ub.quant <- rep(NA_real_, length(map.quant))
+    }
+  } else if (is.exalStaticMCMC(x)) {
+    beta_draws <- as.matrix(x$samp.beta)
+    q_draws <- beta_draws %*% t(X)
+    half.alpha <- (1 - cr.percent) / 2
+    map.quant <- as.numeric(colMeans(q_draws))
+    lb.quant <- as.numeric(apply(q_draws, 2, stats::quantile,
+                                 probs = half.alpha, na.rm = TRUE))
+    ub.quant <- as.numeric(apply(q_draws, 2, stats::quantile,
+                                 probs = cr.percent + half.alpha, na.rm = TRUE))
+  } else {
+    stop("x must be a fitted static exAL object from exalStaticLDVB() or exalStaticMCMC().",
+         call. = FALSE)
+  }
+
+  .plot_exal_static_quantiles(
+    map.quant, lb.quant, ub.quant,
+    add = add, col = col, cr.percent = cr.percent, ...
+  )
+}
+
 ##################################
 #### "exalStaticFit" #############
 ##################################
-# included for Fit: is(), print(), summary()
+# included for Fit: is(), print(), summary(), plot(), diagnostics()
 # included for LDVB: is(), print(), summary(), plot()
-# inlcuded for MCMC: is(), print(), summary(), plot()
+# included for MCMC: is(), print(), summary(), plot()
 
 
 #' \code{exalStaticFit} objects
@@ -173,9 +218,36 @@ summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
   .exal_static_fit_summary(object, max.coef = max.coef)
 }
 
+#' Plot Method for \code{exalStaticFit} Objects
+#'
+#' Plot fitted conditional quantile summaries from a static AL/exAL regression
+#' fit. The method works for objects returned by \code{\link{exalStaticLDVB}}
+#' and \code{\link{exalStaticMCMC}} through their shared
+#' \code{exalStaticFit} family class.
+#'
+#' @param x A fitted static \code{exalStaticFit} object.
+#' @param X Optional design matrix used to compute fitted quantiles. If omitted,
+#'   the method uses \code{x$X} when available.
+#' @param add Logical; add to an existing plot.
+#' @param col Character vector of length 1 giving color for fitted quantiles.
+#' @param cr.percent Numeric in \code{(0, 1)} for credible-interval mass.
+#' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
+#'   \code{add = FALSE}.
+#'
+#' @return Invisibly returns a list with \code{map.quant}, \code{lb.quant}, and
+#'   \code{ub.quant}.
+#'
+#' @export
+plot.exalStaticFit <- function(x, X = NULL, add = FALSE, col = "purple",
+                               cr.percent = 0.95, ...) {
+  .exal_static_fit_plot(
+    x, X = X, add = add, col = col, cr.percent = cr.percent, ...
+  )
+}
+
 
 #' Diagnostics Method for \code{exalStaticFit} Objects
-#' 
+#'
 #' Diagnostics for a fitted static quantile model. The function summarizes fitted quantiles on a
 #' shared design matrix, reports mean check loss against observed responses when
 #' available, and can optionally compare the fitted quantile curve against a
@@ -216,7 +288,7 @@ summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
 #'   summaries, residual summaries (when \code{y} is provided), optional
 #'   reference-curve error metrics, coefficient posterior summaries, and
 #'   run-time metadata for \code{object} and \code{m2} (if supplied).
-#' 
+#'
 #' @examples
 #' \donttest{
 #' set.seed(1)
@@ -287,6 +359,8 @@ summary.exalStaticMCMC <- function(object, ...) {
 #' Plot Method for \code{exalStaticMCMC} Objects
 #'
 #' @param x An \code{exalStaticMCMC} object.
+#' @param X Optional design matrix used to compute fitted quantiles. If omitted,
+#'   the method uses \code{x$X} when available.
 #' @param add Logical; add to an existing plot.
 #' @param col Character vector of length 1 giving color for fitted quantiles.
 #' @param cr.percent Numeric in \code{(0, 1)} for credible-interval mass.
@@ -296,16 +370,11 @@ summary.exalStaticMCMC <- function(object, ...) {
 #' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
 #'
 #' @export
-plot.exalStaticMCMC <- function(x, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
-  if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
-  X <- as.matrix(x$X)
-  beta_draws <- as.matrix(x$samp.beta)
-  q_draws <- beta_draws %*% t(X)
-  half.alpha <- (1 - cr.percent) / 2
-  map.quant <- as.numeric(colMeans(q_draws))
-  lb.quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = half.alpha, na.rm = TRUE))
-  ub.quant <- as.numeric(apply(q_draws, 2, stats::quantile, probs = cr.percent + half.alpha, na.rm = TRUE))
-  .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
+plot.exalStaticMCMC <- function(x, X = NULL, add = FALSE, col = "purple",
+                                cr.percent = 0.95, ...) {
+  plot.exalStaticFit(
+    x, X = X, add = add, col = col, cr.percent = cr.percent, ...
+  )
 }
 
 #' \code{exalStaticLDVB} objects
@@ -354,21 +423,7 @@ summary.exalStaticLDVB <- function(object, ...) {
 #'
 #' @export
 plot.exalStaticLDVB <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {
-  if (cr.percent <= 0 || cr.percent >= 1) stop("cr.percent must be between 0 and 1")
-  if (is.null(X)) X <- x$X
-  if (is.null(X)) stop("plot.exalStaticLDVB requires design matrix X (missing in object and argument).")
-  X <- as.matrix(X)
-  beta_mean <- as.numeric(x$qbeta$m)
-  map.quant <- as.numeric(drop(X %*% beta_mean))
-  if (!is.null(x$qbeta$V)) {
-    Vb <- as.matrix(x$qbeta$V)
-    z <- stats::qnorm((1 + cr.percent) / 2)
-    sd_path <- sqrt(pmax(rowSums((X %*% Vb) * X), 0))
-    lb.quant <- map.quant - z * sd_path
-    ub.quant <- map.quant + z * sd_path
-  } else {
-    lb.quant <- rep(NA_real_, length(map.quant))
-    ub.quant <- rep(NA_real_, length(map.quant))
-  }
-  .plot_exal_static_quantiles(map.quant, lb.quant, ub.quant, add = add, col = col, cr.percent = cr.percent, ...)
+  plot.exalStaticFit(
+    x, X = X, add = add, col = col, cr.percent = cr.percent, ...
+  )
 }

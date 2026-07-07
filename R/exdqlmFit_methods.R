@@ -172,7 +172,7 @@
 # included: is(), print(), summary(), 
 #     plot() -- exdqlmPlot(), compPlot(),
 #     predict() -- exdqlmForecast(),
-#     diagnostic() -- exdqlmDiagnostics()
+#     diagnostics() -- exdqlmDiagnostics()
 
 #' \code{exdqlmFit} objects
 #'
@@ -228,10 +228,10 @@ summary.exdqlmFit <- function(object, ...) {
 #'   the contribution of a block of state elements, or \code{"state"} for a
 #'   single state element.
 #' @param index Required for \code{type = "component"} or \code{type = "state"}.
-#'   For \code{type = "state"}, \code{index} much have length 1 indicating a 
-#'   single element of the state vector to be plot. For \code{type = "component"},
+#'   For \code{type = "state"}, \code{index} must have length 1 indicating a
+#'   single element of the state vector to be plotted. For \code{type = "component"},
 #'   \code{index} should be consecutive state indices in \eqn{\{1,\dots,q\}} 
-#'   indicating the component to be plot. 
+#'   indicating the component to be plotted.
 #' @param cr.percent Optional numeric in \code{(0, 1)} indicating the 
 #'  probability mass for the credible intervals (e.g., \code{0.95}). Default \code{0.95}.
 #' @param add Optional logical value indicating whether the estimate will be 
@@ -304,7 +304,7 @@ plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"), index 
 #'   object as a convenience shortcut. Default is \code{FALSE}.
 #' @param add Logical value indicating whether to add the forecasted quantiles to the current plot.
 #'   Default is \code{FALSE}.
-#' @param cols Optinal character vector of length 2 giving the colors for filtered and forecasted
+#' @param cols Optional character vector of length 2 giving the colors for filtered and forecasted
 #'   quantiles respectively. Default \code{c("purple","magenta")}.
 #' @param cr.percent Optional numeric in \code{(0, 1)} indicating the probability mass for the credible
 #'   intervals (e.g., \code{0.95}). Default \code{0.95}.

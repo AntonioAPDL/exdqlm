@@ -166,11 +166,14 @@ plot.exdqlmForecast <- function(x, ...) {
 #' Diagnostics Method for \code{exdqlmForecast} Objects
 #' 
 #' Computes held-out forecast scores from one or two \code{exdqlmForecast}
-#' objects returned by [exdqlmForecast()]. This function evaluates posterior 
-#' predictive forecast draws against observations reserved outside the fitted sample.
+#' objects, typically returned by \code{\link{predict.exdqlmFit}} or
+#' \code{\link{exdqlmForecast}} with \code{return.draws = TRUE}. This method
+#' evaluates posterior predictive forecast draws against observations reserved
+#' outside the fitted sample.
 #'
-#' @param object An \code{exdqlmForecast} object, returned by
-#'   [exdqlmForecast()] with \code{return.draws = TRUE}.
+#' @param object An \code{exdqlmForecast} object returned by
+#'   \code{\link{predict.exdqlmFit}} or \code{\link{exdqlmForecast}} with
+#'   \code{return.draws = TRUE}.
 #' @param y Required numeric vector or time series of held-out observations. Its length
 #'   must equal the forecast horizon.
 #' @param m2 An optional second object of class "\code{exdqlmForecast}" to

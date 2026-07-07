@@ -41,7 +41,7 @@ object as a convenience shortcut. Default is \code{FALSE}.}
 \item{add}{Logical value indicating whether to add the forecasted quantiles to the current plot.
 Default is \code{FALSE}.}
 
-\item{cols}{Optinal character vector of length 2 giving the colors for filtered and forecasted
+\item{cols}{Optional character vector of length 2 giving the colors for filtered and forecasted
 quantiles respectively. Default \code{c("purple","magenta")}.}
 
 \item{cr.percent}{Optional numeric in \code{(0, 1)} indicating the probability mass for the credible

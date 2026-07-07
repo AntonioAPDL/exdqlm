@@ -15,8 +15,9 @@
 )
 }
 \arguments{
-\item{object}{An \code{exdqlmForecast} object, returned by
-\code{\link[=exdqlmForecast]{exdqlmForecast()}} with \code{return.draws = TRUE}.}
+\item{object}{An \code{exdqlmForecast} object returned by
+\code{\link{predict.exdqlmFit}} or \code{\link{exdqlmForecast}} with
+\code{return.draws = TRUE}.}
 
 \item{y}{Required numeric vector or time series of held-out observations. Its length
 must equal the forecast horizon.}
@@ -55,8 +56,10 @@ If \code{m2} is supplied, analogous \code{m2.*} fields are included.
 }
 \description{
 Computes held-out forecast scores from one or two \code{exdqlmForecast}
-objects returned by \code{\link[=exdqlmForecast]{exdqlmForecast()}}. This function evaluates posterior
-predictive forecast draws against observations reserved outside the fitted sample.
+objects, typically returned by \code{\link{predict.exdqlmFit}} or
+\code{\link{exdqlmForecast}} with \code{return.draws = TRUE}. This method
+evaluates posterior predictive forecast draws against observations reserved
+outside the fitted sample.
 }
 \details{
 The check loss is computed at the target quantile level \code{p0} using the

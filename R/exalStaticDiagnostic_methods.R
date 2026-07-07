@@ -77,6 +77,12 @@ summary.exalStaticDiagnostic <- function(object, ...) {
 
 #' Plot Method for \code{exalStaticDiagnostic} Objects
 #' 
+#' Plot fitted-quantile diagnostics or posterior coefficient intervals from a
+#' static diagnostic object. The \code{"quantile"} display shows fitted
+#' conditional quantiles for one or two static fits, together with optional
+#' observed responses and a reference quantile curve. The \code{"coefficients"}
+#' display shows posterior coefficient intervals and can optionally overlay
+#' known coefficient values in simulation studies.
 #'
 #' @param x An \code{exalStaticDiagnostic} object.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot
@@ -218,7 +224,7 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"),
       }
       graphics::legend(
         "topleft", legend = leg, col = leg_col, pch = leg_pch,
-        lty = leg_lty, lwd = leg_lwd, bty = "n"
+        lty = leg_lty, lwd = leg_lwd, bty = "n", cex = 0.9, inset = 0.01
       )
     }
     
@@ -308,7 +314,8 @@ plot.exalStaticDiagnostic <- function(x, cols = c("red", "blue"),
     leg_cols <- c("black", leg_cols)
     leg_lty <- c(2, leg_lty)
   }
-  graphics::legend("topleft", legend = leg, col = leg_cols, lty = leg_lty, bty = "n")
+  graphics::legend("topleft", legend = leg, col = leg_cols, lty = leg_lty,
+                   bty = "n", cex = 0.85, inset = 0.01)
   
   if (!is.null(x$ref)) {
     err1 <- abs(x$m1.map.quant - x$ref)

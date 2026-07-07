@@ -4,10 +4,13 @@
 \alias{plot.exalStaticMCMC}
 \title{Plot Method for \code{exalStaticMCMC} Objects}
 \usage{
-\method{plot}{exalStaticMCMC}(x, add = FALSE, col = "purple", cr.percent = 0.95, ...)
+\method{plot}{exalStaticMCMC}(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...)
 }
 \arguments{
 \item{x}{An \code{exalStaticMCMC} object.}
+
+\item{X}{Optional design matrix used to compute fitted quantiles. If omitted,
+the method uses \code{x$X} when available.}
 
 \item{add}{Logical; add to an existing plot.}
 

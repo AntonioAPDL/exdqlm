@@ -30,9 +30,10 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   )
 
   expect_output(print(fit), "Dynamic quantile state-space fit")
-  expect_output(print(fit), "Class: exdqlmLDVB, exdqlmFit")
+  expect_output(print(fit), "exdqlmLDVB")
+  expect_output(print(fit), "exdqlmFit")
   expect_output(print(fit), "Inference engine: LDVB")
-  expect_output(print(fit), "exdqlmDiagnostics\\(\\)")
+  expect_output(print(fit), "diagnostics\\(\\)")
   expect_output(print(fit), "predict\\(\\)")
 
   expect_output(smry <- summary(fit), "Stored draws")
@@ -57,17 +58,20 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   )
   expect_error(plot(fit, type = "bad", plot = FALSE), "'arg' should be one of")
 
-  visible_diags <- withVisible(exdqlmDiagnostics(fit))
+  visible_diags <- withVisible(diagnostics(fit))
   expect_true(visible_diags$visible)
   diags <- visible_diags$value
   expect_equal(diags$p0, 0.5)
   expect_equal(diags$n, length(y))
   expect_equal(diags$m1.class, "exdqlmLDVB")
+  helper_diags <- exdqlmDiagnostics(fit)
+  expect_s3_class(helper_diags, "exdqlmDiagnostic")
+  expect_equal(diags$m1.KL, helper_diags$m1.KL)
   expect_output(print(diags), "Dynamic quantile model diagnostics")
   expect_output(print(diags), "Models: exdqlmLDVB")
   expect_output(diag_table <- summary(diags), "Observations")
   expect_s3_class(diag_table, "data.frame")
-  expect_error(exdqlmDiagnostics(fit, plot = NA), "plot must be")
+  expect_error(diagnostics(fit, plot = NA), "plot must be")
 
   tf <- tempfile(fileext = ".pdf")
   grDevices::pdf(tf)
@@ -102,6 +106,10 @@ test_that("dynamic fit print and summary expose the shared fit family", {
   expect_no_error(fc_plot_visible <- withVisible(plot(fc)))
   expect_false(fc_plot_visible$visible)
   expect_identical(fc_plot_visible$value, fc)
+  fc_diag <- diagnostics(fc, y = y[4])
+  fc_diag_helper <- exdqlmForecastDiagnostics(fc, y = y[4])
+  expect_s3_class(fc_diag, "exdqlmForecastDiagnostic")
+  expect_equal(fc_diag$m1.check_loss, fc_diag_helper$m1.check_loss)
 })
 
 test_that("static fit and diagnostic methods expose the shared fit family", {
@@ -119,8 +127,9 @@ test_that("static fit and diagnostic methods expose the shared fit family", {
   )
 
   expect_output(print(fit), "Static Bayesian quantile regression fit")
-  expect_output(print(fit), "Class: exalStaticLDVB, exalStaticFit")
-  expect_output(print(fit), "exalStaticDiagnostics\\(\\)")
+  expect_output(print(fit), "exalStaticLDVB")
+  expect_output(print(fit), "exalStaticFit")
+  expect_output(print(fit), "diagnostics\\(\\)")
 
   expect_output(smry <- summary(fit), "Coefficient summaries")
   expect_type(smry, "list")
@@ -128,20 +137,27 @@ test_that("static fit and diagnostic methods expose the shared fit family", {
   expect_s3_class(smry$scalar, "data.frame")
   expect_s3_class(smry$coefficients, "data.frame")
 
-  visible_diags <- withVisible(exalStaticDiagnostics(fit, X = X, y = y))
+  visible_diags <- withVisible(diagnostics(fit, X = X, y = y))
   expect_true(visible_diags$visible)
   diags <- visible_diags$value
   expect_equal(diags$p0, 0.5)
   expect_equal(diags$n, n)
   expect_equal(diags$m1.class, "exalStaticLDVB")
+  helper_diags <- exalStaticDiagnostics(fit, X = X, y = y)
+  expect_s3_class(helper_diags, "exalStaticDiagnostic")
+  expect_equal(diags$m1.check_loss, helper_diags$m1.check_loss)
   expect_output(print(diags), "Plot types: quantile, coefficients")
   expect_output(diag_table <- summary(diags), "Evaluation rows")
   expect_s3_class(diag_table, "data.frame")
-  expect_error(exalStaticDiagnostics(fit, X = X, y = y, plot = c(TRUE, FALSE)), "plot must be")
+  expect_error(diagnostics(fit, X = X, y = y, plot = c(TRUE, FALSE)), "plot must be")
 
   tf <- tempfile(fileext = ".pdf")
   grDevices::pdf(tf)
   on.exit(grDevices::dev.off(), add = TRUE)
+  expect_no_error(plot(fit))
+  fit_family <- fit
+  class(fit_family) <- c("exalStaticFit", class(fit_family))
+  expect_no_error(plot(fit_family))
   expect_no_error(plot(diags))
   expect_no_error(diags_plot <- exalStaticDiagnostics(fit, X = X, y = y, plot = TRUE))
   expect_s3_class(diags_plot, "exalStaticDiagnostic")

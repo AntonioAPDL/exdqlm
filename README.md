@@ -90,9 +90,9 @@ pak::pak("AntonioAPDL/exdqlm")
 |---|---|---|---|
 | Dynamic quantile state-space model | `exdqlmLDVB()`, `exdqlmMCMC()`, `exdqlmISVB()` | LDVB, MCMC, legacy ISVB | Main entry point for univariate time-series quantile modeling |
 | Build state-space components | `polytrendMod()`, `seasMod()`, `regMod()` | n/a | Compose trend, seasonal, and regression blocks with `+.exdqlm` |
-| Dynamic fit examination | `plot()`, `predict()`, `exdqlmDiagnostics()`, `exdqlmForecastDiagnostics()` | post-fit summary | Dynamic fits support standard `plot()` and `predict()` methods; named diagnostic functions return objects for `print()`, `summary()`, and `plot()` workflows |
+| Dynamic fit examination | `plot()`, `predict()`, `diagnostics()` | post-fit summary | Dynamic fits support standard plotting, forecasting, and diagnostics methods; forecast objects can also be scored with `diagnostics(forecast, y = ...)` |
 | Static Bayesian exAL regression | `exalStaticLDVB()`, `exalStaticMCMC()` | LDVB, MCMC | Supports `al.ind = TRUE` (alias of `dqlm.ind = TRUE`), posterior draws from either engine, and `ridge`, `rhs`, `rhs_ns` priors |
-| Static fit diagnostics | `exalStaticDiagnostics()` | post-fit summary | Returns a diagnostic object; use `plot()` for fitted quantiles or `plot(..., type = "coefficients")` for coefficient intervals |
+| Static fit diagnostics | `plot()`, `diagnostics()` | post-fit summary | Static fits support fitted-quantile plots and diagnostic objects; use `plot(diagnostic_object, type = "coefficients")` for coefficient intervals |
 | Static regression block inside a dynamic model | `regMod()` | n/a | Adds fixed coefficients as a state-space component |
 | Combine several separately fitted quantiles | `quantileSynthesis()` | post hoc synthesis | Builds a unified posterior predictive distribution using isotonic correction and optional rearrangement |
 
@@ -104,8 +104,13 @@ objects. Dynamic fits keep their engine-specific first class
 from the shared `exdqlmFit` family. Static fits similarly inherit from
 `exalStaticFit`. Diagnostic, forecast, synthesis, and static-diagnostic
 functions return explicit objects with `print()`, `summary()`, and
-`plot()` methods where appropriate. Dynamic fits also support
-`predict()` as a standard wrapper around `exdqlmForecast()`.
+`plot()` methods where appropriate. Dynamic fits also support `predict()`
+for forecasting, and fitted/forecast/static objects support
+`diagnostics()` where diagnostic summaries are defined. Named helpers such
+as `exdqlmPlot()`, `compPlot()`, `exdqlmForecast()`,
+`exdqlmDiagnostics()`, `exdqlmForecastDiagnostics()`, and
+`exalStaticDiagnostics()` remain available for explicit or
+backward-compatible workflows.
 
 ## Which engine should I use?
 
@@ -224,15 +229,16 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 - **Deterministic dynamic diagnostics** using a single primary
   Kullback--Leibler (KL) normality diagnostic, continuous ranked
   probability score (CRPS) through an integrated quantile-score
-  approximation, and held-out forecast scoring through
-  `exdqlmForecastDiagnostics()`. Advanced KL sensitivity details are
-  available under `diagnostics$kl.details`.
+  approximation, and held-out forecast scoring through `diagnostics()`.
+  Advanced KL sensitivity details are available under
+  `diagnostics$kl.details`.
 - **Standard S3 post-processing methods** for dynamic fits: `plot(fit)` draws
   the fitted quantile, `plot(fit, type = "component", index = ...)` and
   `plot(fit, type = "state", index = ...)` display component/state summaries,
-  and `predict(fit, ...)` returns an `exdqlmForecast` object. The named helpers
-  `exdqlmPlot()`, `compPlot()`, and `exdqlmForecast()` remain available for
-  explicit workflows and backward compatibility.
+  `predict(fit, ...)` returns an `exdqlmForecast` object, and
+  `diagnostics(fit)` returns an `exdqlmDiagnostic` object. Forecast and
+  static-fit diagnostics use the same generic where defined. The named helpers
+  remain available for explicit workflows and backward compatibility.
 
 > For CI/CRAN-style runs, keep optional C++ builders/samplers/post-pred
 > **FALSE** and set `exdqlm.use_cpp_kf = FALSE` for strict R-path

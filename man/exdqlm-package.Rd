@@ -24,11 +24,12 @@ for static coefficients, and post hoc synthesis of several fitted quantiles.
 retained for backward compatibility and transfer-function extensions
 through \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}}, \code{\link[=exdqlmTransferMCMC]{exdqlmTransferMCMC()}}, and legacy
 \code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}. Dynamic fitted objects support standard
-\code{\link[=plot]{plot()}} and \code{\link[=predict]{predict()}} methods, with \code{\link[=exdqlmPlot]{exdqlmPlot()}},
-\code{\link[=compPlot]{compPlot()}}, and \code{\link[=exdqlmForecast]{exdqlmForecast()}} retained as explicit helpers.
+\code{\link[=plot]{plot()}}, \code{\link[=predict]{predict()}}, and \code{\link[=diagnostics]{diagnostics()}} methods, with
+\code{\link[=exdqlmPlot]{exdqlmPlot()}}, \code{\link[=compPlot]{compPlot()}}, \code{\link[=exdqlmForecast]{exdqlmForecast()}}, and the named
+diagnostic helpers retained as explicit helpers.
 \item Static Bayesian exAL regression via \code{\link[=exalStaticLDVB]{exalStaticLDVB()}} and
-\code{\link[=exalStaticMCMC]{exalStaticMCMC()}}, with static fitted-quantile and coefficient
-summaries through \code{\link[=exalStaticDiagnostics]{exalStaticDiagnostics()}}.
+\code{\link[=exalStaticMCMC]{exalStaticMCMC()}}, with fitted-quantile plots through \code{\link[=plot]{plot()}} and
+static diagnostics through \code{\link[=diagnostics]{diagnostics()}}.
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
 and \code{\link[=regMod]{regMod()}}.
 \item Multi-quantile post-processing via
@@ -50,7 +51,7 @@ from the shared \code{exdqlmFit} family. They support \code{print()},
 \item Static fitted objects keep their engine-specific first class
 (\code{exalStaticLDVB} or \code{exalStaticMCMC}) and also inherit from the
 shared \code{exalStaticFit} family. They support \code{print()}, \code{summary()},
-and fitted-quantile \code{plot()} methods.
+fitted-quantile \code{plot()}, and \code{diagnostics()} methods.
 \item Post-processing functions return explicit objects:
 \code{exdqlmDiagnostic}, \code{exdqlmForecast}, \code{exdqlmForecastDiagnostic},
 \code{exdqlmSynthesis}, and \code{exalStaticDiagnostic}. These objects can be
@@ -93,9 +94,9 @@ static fits inherit from \code{exalStaticFit}.
 \item Fitted-model and post-processing objects have standardized
 \code{print()} and \code{summary()} methods for inspecting object type, engine,
 dimensions, stored draws, diagnostics, and run time.
-\item Dynamic fits support standard \code{plot()} and \code{predict()} methods, and
-diagnostic constructors return visible objects that can be printed,
-summarized, and plotted.
+\item Dynamic fits support standard \code{plot()}, \code{predict()}, and
+\code{diagnostics()} methods; forecast and static-fit diagnostics use the
+same \code{diagnostics()} generic where defined.
 }
 }
 
@@ -107,7 +108,7 @@ quantile-score approximation over posterior predictive empirical
 quantiles, with user-configurable quantile levels and weights in
 \code{\link[=exdqlmDiagnostics]{exdqlmDiagnostics()}}.
 \item Held-out forecast diagnostics are available for forecast objects
-through \code{\link[=exdqlmForecastDiagnostics]{exdqlmForecastDiagnostics()}}.
+through \code{\link[=diagnostics]{diagnostics()}}.
 \item Static diagnostics store fitted-quantile summaries and coefficient
 intervals, with \code{plot(..., type = "coefficients")} available for
 comparing static LDVB and MCMC coefficient summaries.

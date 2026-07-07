@@ -30,10 +30,10 @@ the contribution of a block of state elements, or \code{"state"} for a
 single state element.}
 
 \item{index}{Required for \code{type = "component"} or \code{type = "state"}.
-For \code{type = "state"}, \code{index} much have length 1 indicating a
-single element of the state vector to be plot. For \code{type = "component"},
+For \code{type = "state"}, \code{index} must have length 1 indicating a
+single element of the state vector to be plotted. For \code{type = "component"},
 \code{index} should be consecutive state indices in \eqn{\{1,\dots,q\}}
-indicating the component to be plot.}
+indicating the component to be plotted.}
 
 \item{add}{Optional logical value indicating whether the estimate will be
 added to existing plot. Default is \code{FALSE}.}

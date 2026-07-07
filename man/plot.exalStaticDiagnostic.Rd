@@ -55,5 +55,10 @@ intervals in \code{type = "coefficients"} plots.}
 \item{...}{Additional arguments passed to plotting functions.}
 }
 \description{
-Plot Method for \code{exalStaticDiagnostic} Objects
+Plot fitted-quantile diagnostics or posterior coefficient intervals from a
+static diagnostic object. The \code{"quantile"} display shows fitted
+conditional quantiles for one or two static fits, together with optional
+observed responses and a reference quantile curve. The \code{"coefficients"}
+display shows posterior coefficient intervals and can optionally overlay
+known coefficient values in simulation studies.
 }

@@ -16,11 +16,12 @@
 #'         retained for backward compatibility and transfer-function extensions
 #'         through [exdqlmTransferLDVB()], [exdqlmTransferMCMC()], and legacy
 #'         [exdqlmTransferISVB()]. Dynamic fitted objects support standard
-#'         [plot()] and [predict()] methods, with [exdqlmPlot()],
-#'         [compPlot()], and [exdqlmForecast()] retained as explicit helpers.
+#'         [plot()], [predict()], and [diagnostics()] methods, with
+#'         [exdqlmPlot()], [compPlot()], [exdqlmForecast()], and the named
+#'         diagnostic helpers retained as explicit helpers.
 #'   \item Static Bayesian exAL regression via [exalStaticLDVB()] and
-#'         [exalStaticMCMC()], with static fitted-quantile and coefficient
-#'         summaries through [exalStaticDiagnostics()].
+#'         [exalStaticMCMC()], with fitted-quantile plots through [plot()] and
+#'         static diagnostics through [diagnostics()].
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
 #'         and [regMod()].
 #'   \item Multi-quantile post-processing via
@@ -40,7 +41,7 @@
 #'   \item Static fitted objects keep their engine-specific first class
 #'         (`exalStaticLDVB` or `exalStaticMCMC`) and also inherit from the
 #'         shared `exalStaticFit` family. They support `print()`, `summary()`,
-#'         and fitted-quantile `plot()` methods.
+#'         fitted-quantile `plot()`, and `diagnostics()` methods.
 #'   \item Post-processing functions return explicit objects:
 #'         `exdqlmDiagnostic`, `exdqlmForecast`, `exdqlmForecastDiagnostic`,
 #'         `exdqlmSynthesis`, and `exalStaticDiagnostic`. These objects can be
@@ -79,9 +80,9 @@
 #'   \item Fitted-model and post-processing objects have standardized
 #'         `print()` and `summary()` methods for inspecting object type, engine,
 #'         dimensions, stored draws, diagnostics, and run time.
-#'   \item Dynamic fits support standard `plot()` and `predict()` methods, and
-#'         diagnostic constructors return visible objects that can be printed,
-#'         summarized, and plotted.
+#'   \item Dynamic fits support standard `plot()`, `predict()`, and
+#'         `diagnostics()` methods; forecast and static-fit diagnostics use the
+#'         same `diagnostics()` generic where defined.
 #' }
 #'
 #' @section Release changes in 1.0.0:
@@ -91,7 +92,7 @@
 #'         quantiles, with user-configurable quantile levels and weights in
 #'         [exdqlmDiagnostics()].
 #'   \item Held-out forecast diagnostics are available for forecast objects
-#'         through [exdqlmForecastDiagnostics()].
+#'         through [diagnostics()].
 #'   \item Static diagnostics store fitted-quantile summaries and coefficient
 #'         intervals, with `plot(..., type = "coefficients")` available for
 #'         comparing static LDVB and MCMC coefficient summaries.
