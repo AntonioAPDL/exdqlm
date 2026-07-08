@@ -45,7 +45,15 @@ default_report_root <- file.path(
   "qdesn-tt500-vb-rhs-optimization-full-20260704__git-65fbf35",
   "20260704-091641__git-65fbf35"
 )
-stage_file <- "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement"
+stage_file <- as.character(get_arg(
+  "--stage-file",
+  "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement"
+))[1L]
+stage_name <- as.character(get_arg("--stage-name", "rhs_fitaware_refinement"))[1L]
+stage_desc <- as.character(get_arg(
+  "--stage-desc",
+  "Q-DESN 500-observation VB RHS fit-aware refinement over current weak fit/forecast cells."
+))[1L]
 
 report_root <- resolve_path(get_arg("--report-root", default_report_root), must_work = TRUE)
 cell_summary_path <- resolve_path(
@@ -97,6 +105,12 @@ plan <- exdqlm:::qdesn_dynamic_fitforecast_forecast_targeted_profile_plan(
   screening_wave = screening_wave,
   max_p_over_n = max_p_over_n
 )
+stage_column <- paste0("vb_", stage_name)
+for (nm in intersect(c("profiles", "assignments", "candidate_ledger"), names(plan))) {
+  if (is.data.frame(plan[[nm]]) && "screening_stage" %in% names(plan[[nm]])) {
+    plan[[nm]]$screening_stage <- stage_column
+  }
+}
 
 diag_tables <- file.path(diagnostic_out, "tables")
 diag_summary <- file.path(diagnostic_out, "summary")
@@ -165,10 +179,27 @@ materialized <- exdqlm:::qdesn_dynamic_fitforecast_materialize_forecast_targeted
   refresh_grid = refresh_grid,
   refresh_materialized = refresh_materialized,
   stage_stub = stage_file,
-  stage_desc = "Q-DESN 500-observation VB RHS fit-aware refinement over current weak fit/forecast cells.",
-  stage = "rhs_fitaware_refinement",
+  stage_desc = stage_desc,
+  stage = stage_name,
   priors = "rhs_ns"
 )
+
+choose_smoke_assignment <- function(plan) {
+  assignments <- plan$assignments[order(plan$assignments$priority_rank, plan$assignments$target_profile_rank), , drop = FALSE]
+  assignments[1L, , drop = FALSE]
+}
+smoke_assignment <- choose_smoke_assignment(plan)
+defaults <- yaml::read_yaml(defaults_out)
+defaults$smoke <- defaults$smoke %||% list()
+defaults$smoke$family <- as.character(smoke_assignment$family[[1L]])
+defaults$smoke$tau <- as.numeric(smoke_assignment$tau[[1L]])
+defaults$smoke$fit_sizes <- 500L
+defaults$smoke$priors <- as.list("rhs_ns")
+defaults$smoke$max_roots <- 1L
+defaults$smoke$screening_profile_ids <- as.list(as.character(smoke_assignment$screening_profile_id[[1L]]))
+defaults$smoke$fitaware_refinement_smoke_cell_status <- as.character(smoke_assignment$cell_status[[1L]])
+defaults$smoke$fitfirst_followup_smoke_profile_role <- NULL
+yaml::write_yaml(defaults, defaults_out)
 
 file_manifest <- exdqlm:::qdesn_validation_file_manifest(c(
   cell_summary_path,
