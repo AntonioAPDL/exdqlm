@@ -14,7 +14,7 @@ execution:
     base_seed: 41000
 study_contract:
   core_lane: yes
-  id: qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_2026_07_07
+  id: qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_2026_07_08
   description: Q-DESN RHS VB fit-first follow-up for the 500-observation simulation
     validation. This stage uses the completed fit+forecast rescue as diagnostic evidence,
     prioritizes fit RMSE and fit check recovery before forecast gains, and remains
@@ -116,23 +116,23 @@ reference_contract:
   - 0.5
   fit_sizes: 500
   expected_unique_dataset_cells: 9
-  expected_qdesn_roots: 837
+  expected_qdesn_roots: 819
   expected_priors: rhs_ns
   expected_selected_qdesn_roots: 172
 screening_profiles:
   enabled: yes
   csv: config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_profiles.csv
   priors: rhs_ns
-  design: 'Q-DESN RHS VB fit-first follow-up. Profiles: 93; selected roots: 172; likelihoods
+  design: 'Q-DESN RHS VB fit-first follow-up. Profiles: 91; selected roots: 172; likelihoods
     per root: AL and exAL.'
   dimension_gate:
     primary_p_over_n_max: 0.5
     exploratory_p_over_n_max: 0.65
   cell_assignments_csv: config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup_cell_assignments.csv
   execution_grid_policy: cell_specific_subset_grid
-  canonical_profile_count: 93
+  canonical_profile_count: 91
   canonical_dataset_cell_count: 9
-  canonical_qdesn_root_count: 837
+  canonical_qdesn_root_count: 819
   selected_assignment_root_count: 172
   fitbalanced_design:
     source_qdesn_report_root: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitaware_refinement/qdesn-tt500-vb-rhs-fitaware-refinement-20260706__git-42c2727/20260706-024112__git-0d22ebc
@@ -147,17 +147,17 @@ screening_profiles:
   fitforecast_rescue_design:
     source_report_root: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c
     source_fit_summary_path: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitbalanced_broad/qdesn-vb-rhs-fitbalanced-broad-20260706-140332__git-4a4975c/20260706-140543__git-4a4975c/tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv
-    baseline_path: /data/jaguir26/local/src/Article-Q-DESN__wt__main_validation_tables/tables/qdesn_validation_tt500_final_summary.csv
+    baseline_path: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv
     max_profiles_per_cell: 32
     max_p_over_n: 0.35
     tau0_policy: primary 1e-4; limited 3e-4 robustness; exclude failed 3e-5 surface
     launch_policy: do not run full compute without explicit human launch approval
   fitfirst_followup_design:
-    source_report_root: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitforecast_rescue/qdesn-vb-rhs-fitforecast-rescue-20260707-144646__git-438a156/20260707-144724__git-438a156
-    source_fit_summary_path: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitforecast_rescue/qdesn-vb-rhs-fitforecast-rescue-20260707-144646__git-438a156/20260707-144724__git-438a156/tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv
-    baseline_path: /data/jaguir26/local/src/Article-Q-DESN__wt__main_validation_tables/tables/qdesn_validation_tt500_final_summary.csv
-    max_profiles_per_cell: 24
-    max_p_over_n: 0.3
+    source_report_root: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-followup-full-20260707-190614__git-17cf71b/20260707-190657__git-17cf71b
+    source_fit_summary_path: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-followup-full-20260707-190614__git-17cf71b/20260707-190657__git-17cf71b/tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv
+    baseline_path: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv
+    max_profiles_per_cell: 48
+    max_p_over_n: 0.5
     tau0_policy: 1e-4 anchor plus 3e-4, 1e-3, and 3e-3 fit-first probes; exclude failed
       3e-5 surface
     launch_policy: do not run full compute without explicit human launch approval
@@ -166,7 +166,7 @@ screening_profiles:
 smoke:
   scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
   family: gausmix
-  tau: 0.05
+  tau: 0.25
   fit_sizes: 500
   priors: rhs_ns
   budget:
@@ -225,7 +225,7 @@ smoke:
             progress_every: 1
   max_roots: 1
   screening_profile_ids:
-  - tt500vb_rhsfit1_d2_n15_a0p05_r0p6_m10_lag10_rl0_pw0p005_pin0p1_tau0_1em03
+  - tt500vb_rhsfit1_d2_n15_a0p0015_r0p2_m15_lag15_rl0_pw0p005_pin0p1_tau0_3em04
   fitfirst_followup_smoke_profile_role: fitfirst_depth_probe
 metrics:
   primary_windows:
@@ -274,8 +274,8 @@ metrics:
   - runtime_sec_per_1k_train_eval
 runtime:
   threads: 1
-  campaign_workers: 24
-  workers: 24
+  campaign_workers: 12
+  workers: 12
   root_scheduler: load_balanced
 diagnostics:
   fit_runtime:
