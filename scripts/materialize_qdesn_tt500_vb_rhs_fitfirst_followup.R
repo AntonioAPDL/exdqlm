@@ -40,7 +40,15 @@ num_arg <- function(flag, default) {
   if (is.finite(val)) val else as.numeric(default)
 }
 
-stage_file <- "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup"
+stage_file <- as.character(get_arg(
+  "--stage-file",
+  "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup"
+))[1L]
+stage_name <- as.character(get_arg("--stage-name", "rhs_fitfirst_followup"))[1L]
+stage_desc <- as.character(get_arg(
+  "--stage-desc",
+  "Q-DESN 500-observation VB RHS fit-first follow-up screen over fit-RMSE bottleneck cells."
+))[1L]
 default_report_root <- file.path(
   "reports", "qdesn_mcmc_validation", "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitforecast_rescue",
   "qdesn-vb-rhs-fitforecast-rescue-20260707-144646__git-438a156",
@@ -99,6 +107,12 @@ plan <- exdqlm:::qdesn_dynamic_fitforecast_rhs_fitfirst_followup_plan(
   max_p_over_n = max_p_over_n,
   max_profiles_per_cell = max_profiles_per_cell
 )
+stage_column <- paste0("vb_", stage_name)
+for (nm in intersect(c("profiles", "assignments", "candidate_ledger"), names(plan))) {
+  if (is.data.frame(plan[[nm]]) && "screening_stage" %in% names(plan[[nm]])) {
+    plan[[nm]]$screening_stage <- stage_column
+  }
+}
 
 diag_tables <- file.path(diagnostic_out, "tables")
 diag_summary <- file.path(diagnostic_out, "summary")
@@ -138,8 +152,8 @@ materialized <- exdqlm:::qdesn_dynamic_fitforecast_materialize_forecast_targeted
   refresh_grid = refresh_grid,
   refresh_materialized = refresh_materialized,
   stage_stub = stage_file,
-  stage_desc = "Q-DESN 500-observation VB RHS fit-first follow-up screen over fit-RMSE bottleneck cells.",
-  stage = "rhs_fitfirst_followup",
+  stage_desc = stage_desc,
+  stage = stage_name,
   priors = "rhs_ns"
 )
 
