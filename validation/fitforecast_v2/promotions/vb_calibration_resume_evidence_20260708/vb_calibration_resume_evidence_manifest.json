@@ -1,0 +1,184 @@
+{
+  "generated_at": "2026-07-08 13:36:26.612012",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_sha": "8e7d3a919dcd9b02c63e7096537ba28bddf50bdf",
+  "git_dirty": true,
+  "evidence_roots": {
+    "exdqlm_dqlm_run_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9",
+    "qdesn_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9",
+    "qdesn_results_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9",
+    "baseline_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv"
+  },
+  "health": [
+    {
+      "component": "exdqlm_dqlm_vb_calibration_resume",
+      "run_tag": "20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9",
+      "expected": 648,
+      "completed": 648,
+      "pct_done": 100,
+      "status": "complete",
+      "notes": "18 model/family/tau cells; 36 candidates per cell expected"
+    },
+    {
+      "component": "qdesn_rhs_vb_fitfirst_followup",
+      "run_tag": "qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9",
+      "expected": 344,
+      "completed": 344,
+      "pct_done": 100,
+      "status": "complete",
+      "notes": "signoff PASS=322; WARN=22; campaign_completed=TRUE"
+    },
+    {
+      "component": "validation_git_worktree",
+      "status": "clean_and_pushed_at_materialization_input",
+      "notes": "source commit in run evidence: 8e7d3a919dcd9b02c63e7096537ba28bddf50bdf"
+    }
+  ],
+  "decisions": [
+    {
+      "item": "exdqlm_dqlm_vb_calibration_resume",
+      "decision": "freeze_as_completed_diagnostic_evidence",
+      "rationale": "All 648 exDQLM/DQLM VB candidate rows completed with no failed status rows."
+    },
+    {
+      "item": "qdesn_rhs_vb_fitfirst_followup",
+      "decision": "freeze_as_completed_diagnostic_evidence",
+      "rationale": "All 344 Q-DESN RHS VB fit-first rows completed successfully, but 22 rows carry WARN signoffs."
+    },
+    {
+      "item": "article_authoritative_promotion",
+      "decision": "do_not_promote_as_final_without_explicit_scientific_signoff",
+      "rationale": "Q-DESN still does not beat all primary baselines in any family/tau cell; fit RMSE remains the blocker."
+    },
+    {
+      "item": "mcmc_launch_readiness",
+      "decision": "do_not_launch_broad_mcmc_yet",
+      "rationale": "VB objective winners differ across fit and forecast metrics, so MCMC should use explicit objective-specific candidate selection."
+    },
+    {
+      "item": "storage_cleanup",
+      "decision": "dry_run_only_pending_user_approval",
+      "rationale": "The exDQLM/DQLM run root is large and mostly handoff objects; deletion requires separate approval because fit handoffs may be useful for MCMC initialization."
+    }
+  ],
+  "output_paths": {
+    "health": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/validation_health_check.csv",
+    "ex_winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_objective_winners.csv",
+    "ex_vs_baseline": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_fitcheck_winners_vs_baseline.csv",
+    "ex_pair_ratios": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_forecastcheck_pair_ratios.csv",
+    "q_winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_objective_winners.csv",
+    "q_dominance_counts": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_dominance_counts.csv",
+    "hard_cells": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_cells_requiring_followup.csv",
+    "decision_ledger": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/decision_ledger.csv",
+    "storage_dry_run": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/storage_cleanup_dry_run.csv",
+    "file_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/file_manifest.csv",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/vb_calibration_resume_evidence_manifest.json",
+    "readme": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/README.md"
+  },
+  "file_manifest": [
+    {
+      "path": "validation/fitforecast_v2/runs/20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9/manifests/status_counts.csv",
+      "bytes": 29,
+      "sha256": "fed5f49011c15c7f7b93b0d3b4f54885ecbde093fe78e5a555bfce0e5be7500e",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9/manifests/status_counts.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/runs/20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9/screen_summary/candidate_cell_rankings.csv",
+      "bytes": 341128,
+      "sha256": "98f0ac3f75caac04319ca0ad0eb137ebab9ea03c06cbc4a011ac2e911356ab98",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9/screen_summary/candidate_cell_rankings.csv"
+    },
+    {
+      "path": "reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/manifest/campaign_completed.json",
+      "bytes": 676,
+      "sha256": "2e85a31c266002fcce999a831cd5a916ef6c083746b94e4aa170324eab03ecfe",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/manifest/campaign_completed.json"
+    },
+    {
+      "path": "reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv",
+      "bytes": 2251821,
+      "sha256": "d62e250d04f8dafae28fbc16d24c79c72f3844811573f09f6765759c1570e611",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/tables/qdesn_tt500_vb_screen_fit_forecast_summary.csv"
+    },
+    {
+      "path": "reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/tables/qdesn_tt500_vb_dominance_cell_summary.csv",
+      "bytes": 67650,
+      "sha256": "967765402131c9195a77e6dae84a6e94842a592f5b137ddbd272e470d374da15",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/tables/qdesn_tt500_vb_dominance_cell_summary.csv"
+    },
+    {
+      "path": "reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv",
+      "bytes": 1176,
+      "sha256": "455ac77f5bb460e6e576cb9be71b2d09f51908e79ac8f47f5d82ac7862f92aa2",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup/qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9/20260708-023545__git-8e7d3a9/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv",
+      "bytes": 11397,
+      "sha256": "163ef8523ec9793a153b332a3a2130f2cd49383275ce69073d59bc0f7b9bef71",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/runs/20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9/manifests/telemetry_summary.csv",
+      "bytes": 374351,
+      "sha256": "c537276584ecbc5d9b58e29cc10282ebfda799e22a58d1379b5b731fa1505a33",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9/manifests/telemetry_summary.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/validation_health_check.csv",
+      "bytes": 566,
+      "sha256": "b44d61228367850330d2ad17bc56f7c3ea79c985b4e44d8b248778621fe3b100",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/validation_health_check.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_objective_winners.csv",
+      "bytes": 39154,
+      "sha256": "88c8721d7f6ffae4d67ee582033be18d2522949da5bdc511d610703ff2515f66",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_objective_winners.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_fitcheck_winners_vs_baseline.csv",
+      "bytes": 12899,
+      "sha256": "c5644b1559b5c958b9b4a0c63a7fb2aefdb5f310d5b15676c8baa0a30ab2cfb3",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_fitcheck_winners_vs_baseline.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_forecastcheck_pair_ratios.csv",
+      "bytes": 2505,
+      "sha256": "ba21e9c2cfbe88e3d794088f2ac465228512d10419b47b51f3a6b1e07ce5fd32",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/exdqlm_dqlm_vb_forecastcheck_pair_ratios.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_objective_winners.csv",
+      "bytes": 19006,
+      "sha256": "0eb958d294b81d99bdf5a7d045d9ab28ca6903a004ba036c1e6887783ddf65b3",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_objective_winners.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_dominance_counts.csv",
+      "bytes": 426,
+      "sha256": "c424bbaa70cda5ae15d7946d0bdb92534093cadbe84633617de6bf1103e0419e",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_dominance_counts.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_cells_requiring_followup.csv",
+      "bytes": 5435,
+      "sha256": "39222f5b3b24c234afcb9789ffc897db909c926c7f60154e5017513263b3af5c",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/qdesn_rhs_vb_cells_requiring_followup.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/decision_ledger.csv",
+      "bytes": 959,
+      "sha256": "6b1472707b96eac5946cd396cacfba8f7c231957ab7ee31c4228e0f148721927",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/decision_ledger.csv"
+    },
+    {
+      "path": "validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/storage_cleanup_dry_run.csv",
+      "bytes": 1973,
+      "sha256": "ee6b89cba912ccf685d7973c76e5b059264a8ec07b9f391bb0462da2b688fb03",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/vb_calibration_resume_evidence_20260708/storage_cleanup_dry_run.csv"
+    }
+  ],
+  "status": "diagnostic_evidence_frozen_not_article_authoritative"
+}

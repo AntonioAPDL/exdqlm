@@ -1,0 +1,6 @@
+"item","decision","rationale"
+"exdqlm_dqlm_vb_calibration_resume","freeze_as_completed_diagnostic_evidence","All 648 exDQLM/DQLM VB candidate rows completed with no failed status rows."
+"qdesn_rhs_vb_fitfirst_followup","freeze_as_completed_diagnostic_evidence","All 344 Q-DESN RHS VB fit-first rows completed successfully, but 22 rows carry WARN signoffs."
+"article_authoritative_promotion","do_not_promote_as_final_without_explicit_scientific_signoff","Q-DESN still does not beat all primary baselines in any family/tau cell; fit RMSE remains the blocker."
+"mcmc_launch_readiness","do_not_launch_broad_mcmc_yet","VB objective winners differ across fit and forecast metrics, so MCMC should use explicit objective-specific candidate selection."
+"storage_cleanup","dry_run_only_pending_user_approval","The exDQLM/DQLM run root is large and mostly handoff objects; deletion requires separate approval because fit handoffs may be useful for MCMC initialization."

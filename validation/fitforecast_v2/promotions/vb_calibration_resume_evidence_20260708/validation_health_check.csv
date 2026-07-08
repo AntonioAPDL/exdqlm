@@ -1,0 +1,4 @@
+"component","run_tag","expected","completed","pct_done","status","notes"
+"exdqlm_dqlm_vb_calibration_resume","20260708_exdqlm_dqlm_vb_calibration_resume__git-8e7d3a9",648,648,100,"complete","18 model/family/tau cells; 36 candidates per cell expected"
+"qdesn_rhs_vb_fitfirst_followup","qdesn-vb-rhs-fitfirst-resume-full-20260708__git-8e7d3a9",344,344,100,"complete","signoff PASS=322; WARN=22; campaign_completed=TRUE"
+"validation_git_worktree",,,,,"clean_and_pushed_at_materialization_input","source commit in run evidence: 8e7d3a919dcd9b02c63e7096537ba28bddf50bdf"
