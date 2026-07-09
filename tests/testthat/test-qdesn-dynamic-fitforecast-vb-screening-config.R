@@ -122,6 +122,25 @@ test_that("TT500 VB screening profile overrides reach the fit config", {
   expect_identical(as.integer(cfg$inference$vb$progress_every), 50L)
 })
 
+test_that("TT500 VB screening profile parser decodes legacy and case-specific ids", {
+  ids <- c(
+    "tt500vb_d2_n50_a0p30_r0p85_tau0_1em4",
+    "tt500vb_tref_d1_n20_a0p01_r0p35_m15_lag15_rl0_pw0p01_pin0p2",
+    "tt500vb_case_gausmix_tau0p05_fit_compact_d2_n25_a0p001_r0p5_m30_rl0_pw0p02_pin0p2_tau0p0003_s123"
+  )
+  parsed <- exdqlm:::qdesn_dynamic_fitforecast_parse_profile_base(ids)
+
+  expect_equal(parsed$D, c(2L, 1L, 2L))
+  expect_equal(parsed$n_each, c(50L, 20L, 25L))
+  expect_equal(parsed$alpha, c(0.30, 0.01, 0.001))
+  expect_equal(parsed$rho, c(0.85, 0.35, 0.50))
+  expect_equal(parsed$m, c(NA_integer_, 15L, 30L))
+  expect_equal(parsed$readout_y_lags, c(NA_integer_, 15L, 30L))
+  expect_equal(parsed$reservoir_lags, c(NA_integer_, 0L, 0L))
+  expect_equal(parsed$pi_w, c(NA_real_, 0.01, 0.02))
+  expect_equal(parsed$pi_in, c(NA_real_, 0.2, 0.2))
+})
+
 test_that("real pipeline preserves DESN n_tilde length D-minus-1 for screening profiles", {
   repo_root <- normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
   real_main <- readLines(file.path(repo_root, "scripts", "pipeline_real_main.R"), warn = FALSE)

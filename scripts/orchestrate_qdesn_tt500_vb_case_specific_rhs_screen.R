@@ -36,8 +36,13 @@ int_arg <- function(flag, default) {
   if (is.finite(val)) val else as.integer(default)
 }
 
+screen_mode <- as.character(get_arg("--screen-mode", "case_specific_rhs"))[1L]
+is_fitrmse_v3 <- screen_mode %in% c("fitrmse_v3", "case_targeted_rhs_v3", "case_targeted_rhs")
+orchestrator_stage_dir <- if (isTRUE(is_fitrmse_v3)) "qdesn_tt500_vb_case_targeted_rhs_v3" else "qdesn_tt500_vb_case_specific_rhs_screen"
+log_prefix <- if (isTRUE(is_fitrmse_v3)) "case-targeted-rhs-v3" else "case-specific-rhs"
+
 workers <- min(int_arg("--workers", 32L), 64L)
-max_profiles_per_cell <- int_arg("--max-profiles-per-cell", 28L)
+max_profiles_per_cell <- int_arg("--max-profiles-per-cell", if (isTRUE(is_fitrmse_v3)) 34L else 28L)
 max_p_over_n <- as.character(get_arg("--max-p-over-n", "0.45"))[1L]
 stage_file <- as.character(get_arg(
   "--stage-file",
@@ -52,6 +57,7 @@ base_defaults_path <- resolve_path(get_arg(
   "--base-defaults",
   "config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_defaults.yaml"
 ), must_work = TRUE)
+doc_out_arg <- get_arg("--doc-out", NULL)
 default_source_report <- file.path(
   "reports", "qdesn_mcmc_validation",
   "qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff",
@@ -62,13 +68,14 @@ source_report_root <- resolve_path(get_arg("--source-report-root", default_sourc
 
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
+run_tag_prefix <- if (isTRUE(is_fitrmse_v3)) "qdesn-vb-case-targeted-rhs-v3" else "qdesn-vb-case-specific-rhs"
 run_tag <- as.character(get_arg(
   "--run-tag",
-  sprintf("qdesn-vb-case-specific-rhs-%s__git-%s", stamp, git_sha)
+  sprintf("%s-%s__git-%s", run_tag_prefix, stamp, git_sha)
 ))[1L]
 orchestrator_tag <- as.character(get_arg(
   "--orchestrator-tag",
-  sprintf("qdesn-vb-case-specific-rhs-orchestrator-%s__git-%s", stamp, git_sha)
+  sprintf("%s-orchestrator-%s__git-%s", run_tag_prefix, stamp, git_sha)
 ))[1L]
 
 dry_run <- has_flag("--dry-run")
@@ -94,7 +101,7 @@ orchestrator_root <- file.path(
   repo_root,
   "reports",
   "qdesn_mcmc_validation",
-  "qdesn_tt500_vb_case_specific_rhs_screen",
+  orchestrator_stage_dir,
   orchestrator_tag
 )
 dir.create(file.path(orchestrator_root, "logs"), recursive = TRUE, showWarnings = FALSE)
@@ -109,9 +116,9 @@ run_cmd <- function(label, cmd, args) {
     cat(sprintf("[dry-run] %s\n", line))
     return(0L)
   }
-  cat(sprintf("[case-specific-rhs] %s start: %s\n", label, Sys.time()))
+  cat(sprintf("[%s] %s start: %s\n", log_prefix, label, Sys.time()))
   status <- system2(cmd, args = args, stdout = log_path, stderr = log_path)
-  cat(sprintf("[case-specific-rhs] %s status=%d end: %s\n", label, as.integer(status), Sys.time()))
+  cat(sprintf("[%s] %s status=%d end: %s\n", log_prefix, label, as.integer(status), Sys.time()))
   as.integer(status)
 }
 
@@ -131,9 +138,9 @@ latest_campaign_report <- function(base_report_root, tag) {
 
 materialize_status <- if (isTRUE(skip_materialize)) {
   if (!file.exists(materialization_manifest)) {
-    stop("Cannot --skip-materialize because the case-specific materialization manifest does not exist.", call. = FALSE)
+    stop("Cannot --skip-materialize because the requested materialization manifest does not exist.", call. = FALSE)
   }
-  cat(sprintf("[case-specific-rhs] materialize skipped; using manifest: %s\n", materialization_manifest))
+  cat(sprintf("[%s] materialize skipped; using manifest: %s\n", log_prefix, materialization_manifest))
   0L
 } else {
   run_cmd(
@@ -142,9 +149,11 @@ materialize_status <- if (isTRUE(skip_materialize)) {
     args = c(
       file.path("scripts", "materialize_qdesn_tt500_vb_case_specific_rhs_screen.R"),
       "--stage-file", stage_file,
+      "--screen-mode", screen_mode,
       "--source-report-root", source_report_root,
       "--baseline", baseline_path,
       "--base-defaults", base_defaults_path,
+      if (!is.null(doc_out_arg)) c("--doc-out", doc_out_arg) else character(0),
       "--workers", as.character(workers),
       "--max-profiles-per-cell", as.character(max_profiles_per_cell),
       "--max-p-over-n", max_p_over_n,
@@ -287,7 +296,8 @@ if (isTRUE(do_full) && !isTRUE(materialize_only) && !isTRUE(prepare_only)) {
 
 manifest <- list(
   generated_at = as.character(Sys.time()),
-  stage = "qdesn_vb_case_specific_rhs_screen",
+  stage = if (isTRUE(is_fitrmse_v3)) "qdesn_vb_case_targeted_rhs_v3" else "qdesn_vb_case_specific_rhs_screen",
+  screen_mode = screen_mode,
   orchestrator_tag = orchestrator_tag,
   run_tag = run_tag,
   repo_root = repo_root,

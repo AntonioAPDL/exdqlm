@@ -16,24 +16,38 @@ qdesn_dynamic_fitforecast_parse_profile_base <- function(profile_base) {
       pi_w = NA_real_, pi_in = NA_real_, stringsAsFactors = FALSE
     )
     if (is.na(x) || !nzchar(x)) return(empty)
-    m <- regexec(
-      "^tt500vb(?:_[A-Za-z0-9]+)?_d([0-9]+)_n([0-9]+)_a([0-9]+p?[0-9]*)_r([0-9]+p?[0-9]*)(?:_m([0-9]+)_lag([0-9]+)_rl([0-9]+)_pw([0-9]+p?[0-9]*)_pin([0-9]+p?[0-9]*))?$",
-      x
-    )
-    hit <- regmatches(x, m)[[1L]]
-    if (length(hit) < 5L) {
+
+    token <- function(key, integer = FALSE) {
+      pattern <- paste0("(^|_)", key, "([0-9]+(?:p[0-9]+)?)(?=_|$)")
+      m <- regexec(pattern, x, perl = TRUE)
+      hit <- regmatches(x, m)[[1L]]
+      if (length(hit) < 3L || !nzchar(hit[[3L]])) {
+        return(if (isTRUE(integer)) NA_integer_ else NA_real_)
+      }
+      val <- gsub("p", ".", hit[[3L]], fixed = TRUE)
+      if (isTRUE(integer)) as.integer(val) else as.numeric(val)
+    }
+
+    D <- token("d", integer = TRUE)
+    n_each <- token("n", integer = TRUE)
+    alpha <- token("a")
+    rho <- token("r")
+    if (is.na(D) || is.na(n_each) || is.na(alpha) || is.na(rho)) {
       return(empty)
     }
+    m <- token("m", integer = TRUE)
+    readout_y_lags <- token("lag", integer = TRUE)
+    if (is.na(readout_y_lags)) readout_y_lags <- m
     data.frame(
-      D = as.integer(hit[[2L]]),
-      n_each = as.integer(hit[[3L]]),
-      alpha = as.numeric(gsub("p", ".", hit[[4L]], fixed = TRUE)),
-      rho = as.numeric(gsub("p", ".", hit[[5L]], fixed = TRUE)),
-      m = if (length(hit) >= 6L && nzchar(hit[[6L]])) as.integer(hit[[6L]]) else NA_integer_,
-      readout_y_lags = if (length(hit) >= 7L && nzchar(hit[[7L]])) as.integer(hit[[7L]]) else NA_integer_,
-      reservoir_lags = if (length(hit) >= 8L && nzchar(hit[[8L]])) as.integer(hit[[8L]]) else NA_integer_,
-      pi_w = if (length(hit) >= 9L && nzchar(hit[[9L]])) as.numeric(gsub("p", ".", hit[[9L]], fixed = TRUE)) else NA_real_,
-      pi_in = if (length(hit) >= 10L && nzchar(hit[[10L]])) as.numeric(gsub("p", ".", hit[[10L]], fixed = TRUE)) else NA_real_,
+      D = D,
+      n_each = n_each,
+      alpha = alpha,
+      rho = rho,
+      m = m,
+      readout_y_lags = readout_y_lags,
+      reservoir_lags = token("rl", integer = TRUE),
+      pi_w = token("pw"),
+      pi_in = token("pin"),
       stringsAsFactors = FALSE
     )
   })
