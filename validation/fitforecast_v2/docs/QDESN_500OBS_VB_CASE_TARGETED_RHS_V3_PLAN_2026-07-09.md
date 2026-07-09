@@ -128,3 +128,40 @@ The completed case-specific RHS v2 screen is frozen as diagnostic evidence. It w
 - defaults: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v3_defaults.yaml`
 - grid: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v3_grid.csv`
 - manifest: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v3_materialization_manifest.json`
+
+## Full-run closeout
+
+- run tag: `qdesn-vb-case-targeted-rhs-v3-full-20260709__git-d4cd615`
+- git commit: `d4cd615baa484140f993c1b59f0ad292b6de782c`
+- campaign report root: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v3/qdesn-vb-case-targeted-rhs-v3-full-20260709__git-d4cd615/20260709-143848__git-d4cd615`
+- orchestrator manifest: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_tt500_vb_case_targeted_rhs_v3/qdesn-vb-case-targeted-rhs-v3-full-20260709__git-d4cd615/manifest/orchestrator_manifest.json`
+- expected roots: 304
+- successful roots: 304
+- failed roots: 0
+- full run status: 0
+- generic ranking status: 0
+- dominance ranking status: 0
+- strict audit status: 0
+- strict audit summary: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v3/qdesn-vb-case-targeted-rhs-v3-full-20260709__git-d4cd615/20260709-143848__git-d4cd615/audit/tables/qdesn_tt500_vb_screen_audit_summary.csv`
+- forbidden binary payloads: 0 `.rds`, `.rda`, `.RData`, or `__design.rds` files under the full-run report/results tag.
+
+The v3 screen completed cleanly and is valid screening evidence. It is not a
+promotion bundle: no family/quantile cell produced a Q-DESN VB candidate that
+beat the best DQLM/exDQLM VB baseline on all four primary metrics.
+
+| family | tau | candidates | all-primary passes | best worst-ratio | primary blocker |
+|---|---:|---:|---:|---:|---|
+| gausmix | 0.05 | 34 | 0 | 2.427 | fit RMSE |
+| gausmix | 0.25 | 34 | 0 | 1.832 | fit RMSE |
+| gausmix | 0.50 | 34 | 0 | 1.436 | fit RMSE |
+| laplace | 0.05 | 34 | 0 | 1.711 | fit RMSE |
+| laplace | 0.25 | 34 | 0 | 1.275 | fit RMSE |
+| laplace | 0.50 | 34 | 0 | 1.502 | forecast MAE |
+| normal | 0.05 | 34 | 0 | 1.536 | fit RMSE |
+| normal | 0.25 | 32 | 0 | 1.220 | fit RMSE |
+| normal | 0.50 | 34 | 0 | 1.908 | forecast MAE |
+
+Decision: do not promote any v3 VB candidate to MCMC. The next calibration
+round should be a targeted v4 VB screen, not MCMC, focused on the blocking
+metrics above: mostly fit RMSE, with forecast MAE for `laplace, tau = 0.50`
+and `normal, tau = 0.50`.
