@@ -1,0 +1,133 @@
+{
+  "generated_at": "2026-07-08 23:57:32.188618",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "b1980bd239fbecf44c9533b6183f6f2e26b091e1",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "stage_file": "qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff",
+  "selection_csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qdesn_tt500_vb_historical_winner_handoff_selected_designs_20260709.csv",
+  "base_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitrmse_rescue_v2_defaults.yaml",
+  "likelihoods": [
+    "exal"
+  ],
+  "workers": 20,
+  "refresh_grid": true,
+  "refresh_materialized": false,
+  "plan": {
+    "source_selection_csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qdesn_tt500_vb_historical_winner_handoff_selected_designs_20260709.csv",
+    "screening_wave": "historical_winner_handoff_2026_07_08",
+    "likelihoods": [
+      "exal"
+    ],
+    "selection_policy": "top exact older broad-screen all-primary winners per family/tau",
+    "selected_unique_profiles": 27,
+    "selected_assignments": 40,
+    "selected_cells": 9
+  },
+  "materialized": {
+    "stage": "historical_winner_handoff",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_grid.csv",
+    "n_profiles": 27,
+    "n_assignments": 40,
+    "n_canonical_grid_rows": 243,
+    "n_grid_rows": 40,
+    "expected_qdesn_roots": 40,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "diagnostic_paths": {
+    "selected_profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/tables/qdesn_tt500_vb_historical_winner_handoff_profiles.csv",
+    "cell_assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/tables/qdesn_tt500_vb_historical_winner_handoff_cell_assignments.csv",
+    "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/tables/qdesn_tt500_vb_historical_winner_handoff_cell_plan.csv",
+    "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/summary/qdesn_tt500_vb_historical_winner_handoff.md",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/manifest/qdesn_tt500_vb_historical_winner_handoff_manifest.json"
+  },
+  "file_manifest": [
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qdesn_tt500_vb_historical_winner_handoff_selected_designs_20260709.csv",
+      "exists": true,
+      "bytes": 97513,
+      "mtime": "2026-07-08 23:57:15.688254",
+      "md5": "bb83b5ec57612d28bc0c680813eb6b79",
+      "sha256": "f3ff37162e129a6f9c2655537875f19aa42c860f62e4a828478cceeaa136921e"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitrmse_rescue_v2_defaults.yaml",
+      "exists": true,
+      "bytes": 17752,
+      "mtime": "2026-07-08 20:45:19.207802",
+      "md5": "ae8796a54b1fbecfe17f1a026d03988e",
+      "sha256": "5473933fac23a977732ea44ec8f73582d3c4b869ac5c5861d3606c64372177ab"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_profiles.csv",
+      "exists": true,
+      "bytes": 12259,
+      "mtime": "2026-07-08 23:57:29.002612",
+      "md5": "d3069c1f46a846f2f474a05b00a19bea",
+      "sha256": "daf66ff9b7f73690f5c405cbabe9d9a640c09b5e9bf2073ec6a2295fcc480056"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_cell_assignments.csv",
+      "exists": true,
+      "bytes": 48460,
+      "mtime": "2026-07-08 23:57:31.51668",
+      "md5": "6abe794f3b2232cf66722f3fad16bcbb",
+      "sha256": "142ecf707af12fdb5dfce99c33b21110dac27fc85fc4da87d821a8623826fb0d"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_defaults.yaml",
+      "exists": true,
+      "bytes": 18318,
+      "mtime": "2026-07-08 23:57:31.87869",
+      "md5": "906060e17efbc3529a9363eac1622044",
+      "sha256": "a02aefb57b85cd621e6ec48a0dbe2656f277d96ab15ba8670e042c1a5fba2b6f"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff_grid.csv",
+      "exists": true,
+      "bytes": 109187,
+      "mtime": "2026-07-08 23:57:31.51068",
+      "md5": "758f1e73796f41fa0018afd126300526",
+      "sha256": "49130e0a447578873b529b3252a5b3ea731ae1ef2eab8d65fcd5bbec97e6bc7c"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/tables/qdesn_tt500_vb_historical_winner_handoff_profiles.csv",
+      "exists": true,
+      "bytes": 12259,
+      "mtime": "2026-07-08 23:57:28.991612",
+      "md5": "d3069c1f46a846f2f474a05b00a19bea",
+      "sha256": "daf66ff9b7f73690f5c405cbabe9d9a640c09b5e9bf2073ec6a2295fcc480056"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/tables/qdesn_tt500_vb_historical_winner_handoff_cell_assignments.csv",
+      "exists": true,
+      "bytes": 40466,
+      "mtime": "2026-07-08 23:57:28.998612",
+      "md5": "e0081042a3883d8937d5c00067a06a84",
+      "sha256": "50cd9558c6baf9493434683f6910b5c23f955dcf64a8c66af9e7458abead6ffd"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/tables/qdesn_tt500_vb_historical_winner_handoff_cell_plan.csv",
+      "exists": true,
+      "bytes": 3400,
+      "mtime": "2026-07-08 23:57:28.999612",
+      "md5": "811ca0e67f2560a3a27ff886a68a26ce",
+      "sha256": "8221de4e6eceaf9cb4df4de9138c0cb71e51b0a0a3bd495d2bd4b15ae9add13a"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_historical_winner_handoff/materialization_diagnostics/summary/qdesn_tt500_vb_historical_winner_handoff.md",
+      "exists": true,
+      "bytes": 9638,
+      "mtime": "2026-07-08 23:57:31.918691",
+      "md5": "a8936760b8c5a25d6bed61f7f30856f3",
+      "sha256": "4088e92d2ac216bd3ff126b1ed584ef419b8bdd0301a1a9cda5a97fd00753074"
+    }
+  ],
+  "launch_gate": "materialization only; use orchestrator for prepare/smoke/full"
+}
