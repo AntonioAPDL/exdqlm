@@ -141,6 +141,26 @@ test_that("TT500 VB screening profile parser decodes legacy and case-specific id
   expect_equal(parsed$pi_in, c(NA_real_, 0.2, 0.2))
 })
 
+test_that("case-targeted RHS v4 wrappers use v3 evidence and v4 outputs", {
+  repo_root <- normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
+  wrappers <- file.path(
+    repo_root,
+    "scripts",
+    c(
+      "materialize_qdesn_tt500_vb_case_targeted_rhs_v4.R",
+      "orchestrate_qdesn_tt500_vb_case_targeted_rhs_v4.R"
+    )
+  )
+  expect_true(all(file.exists(wrappers)))
+
+  wrapper_text <- paste(vapply(wrappers, function(path) paste(readLines(path, warn = FALSE), collapse = "\n"), character(1L)), collapse = "\n")
+  expect_true(grepl("--screen-mode\", \"fitrmse_v4", wrapper_text, fixed = TRUE))
+  expect_true(grepl("qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v4", wrapper_text, fixed = TRUE))
+  expect_true(grepl("QDESN_500OBS_VB_CASE_TARGETED_RHS_V4_PLAN_2026-07-09.md", wrapper_text, fixed = TRUE))
+  expect_true(grepl("qdesn-vb-case-targeted-rhs-v3-full-20260709__git-d4cd615", wrapper_text, fixed = TRUE))
+  expect_false(grepl("qdesn-vb-historical-winner-handoff-full", wrapper_text, fixed = TRUE))
+})
+
 test_that("real pipeline preserves DESN n_tilde length D-minus-1 for screening profiles", {
   repo_root <- normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
   real_main <- readLines(file.path(repo_root, "scripts", "pipeline_real_main.R"), warn = FALSE)
