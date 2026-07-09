@@ -39,10 +39,33 @@ int_arg <- function(flag, default) {
 workers <- min(int_arg("--workers", 24L), 64L)
 max_profiles_per_cell <- int_arg("--max-profiles-per-cell", 24L)
 max_p_over_n <- as.character(get_arg("--max-p-over-n", "0.30"))[1L]
+stage_file <- as.character(get_arg(
+  "--stage-file",
+  "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup"
+))[1L]
+stage_name <- as.character(get_arg("--stage-name", sub("^qdesn_dynamic_fitforecast_v2_tt500_vb_", "", stage_file)))[1L]
+stage_desc <- as.character(get_arg(
+  "--stage-desc",
+  "Q-DESN 500-observation VB RHS fit-first follow-up screen over fit-RMSE bottleneck cells."
+))[1L]
+default_report_root <- file.path(
+  "reports", "qdesn_mcmc_validation", "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitforecast_rescue",
+  "qdesn-vb-rhs-fitforecast-rescue-20260707-144646__git-438a156",
+  "20260707-144724__git-438a156"
+)
+report_root <- resolve_path(get_arg("--report-root", default_report_root), must_work = TRUE)
+fit_summary_path <- resolve_path(
+  get_arg("--fit-summary", file.path(report_root, "tables", "qdesn_tt500_vb_screen_fit_forecast_summary.csv")),
+  must_work = TRUE
+)
+base_defaults_path <- resolve_path(
+  get_arg("--base-defaults", file.path("config", "validation", "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitforecast_rescue_defaults.yaml")),
+  must_work = TRUE
+)
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
-run_tag <- as.character(get_arg("--run-tag", sprintf("qdesn-vb-rhs-fitfirst-followup-%s__git-%s", stamp, git_sha)))[1L]
-orchestrator_tag <- as.character(get_arg("--orchestrator-tag", sprintf("qdesn-vb-rhs-fitfirst-followup-orchestrator-%s__git-%s", stamp, git_sha)))[1L]
+run_tag <- as.character(get_arg("--run-tag", sprintf("qdesn-vb-%s-%s__git-%s", stage_name, stamp, git_sha)))[1L]
+orchestrator_tag <- as.character(get_arg("--orchestrator-tag", sprintf("qdesn-vb-%s-orchestrator-%s__git-%s", stage_name, stamp, git_sha)))[1L]
 dry_run <- has_flag("--dry-run")
 materialize_only <- has_flag("--materialize-only")
 prepare_only <- has_flag("--prepare-only")
@@ -58,13 +81,12 @@ if (isTRUE(do_full) && !isTRUE(launch_approved)) {
   stop("Full RHS fit-first follow-up launch requires both --full and --launch-approved.", call. = FALSE)
 }
 
-stage_file <- "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitfirst_followup"
 defaults_path <- resolve_path(file.path("config", "validation", paste0(stage_file, "_defaults.yaml")), must_work = FALSE)
 grid_path <- resolve_path(file.path("config", "validation", paste0(stage_file, "_grid.csv")), must_work = FALSE)
 materialization_manifest <- resolve_path(file.path("config", "validation", paste0(stage_file, "_materialization_manifest.json")), must_work = FALSE)
 baseline_path <- resolve_path(get_arg(
   "--baseline",
-  "/data/jaguir26/local/src/Article-Q-DESN__wt__main_validation_tables/tables/qdesn_validation_tt500_final_summary.csv"
+  "validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv"
 ), must_work = TRUE)
 
 orchestrator_root <- file.path(
@@ -118,6 +140,13 @@ materialize_status <- if (isTRUE(skip_materialize)) {
     cmd = "Rscript",
     args = c(
       file.path("scripts", "materialize_qdesn_tt500_vb_rhs_fitfirst_followup.R"),
+      "--stage-file", stage_file,
+      "--stage-name", stage_name,
+      "--stage-desc", stage_desc,
+      "--report-root", report_root,
+      "--fit-summary", fit_summary_path,
+      "--baseline", baseline_path,
+      "--base-defaults", base_defaults_path,
       "--workers", as.character(workers),
       "--max-profiles-per-cell", as.character(max_profiles_per_cell),
       "--max-p-over-n", max_p_over_n,
@@ -266,6 +295,12 @@ manifest <- list(
   git_sha = trimws(system("git rev-parse HEAD", intern = TRUE)),
   git_branch = trimws(system("git rev-parse --abbrev-ref HEAD", intern = TRUE)),
   git_dirty = length(system("git status --porcelain", intern = TRUE)) > 0L,
+  stage_file = stage_file,
+  stage_name = stage_name,
+  stage_desc = stage_desc,
+  source_report_root = report_root,
+  source_fit_summary_path = fit_summary_path,
+  base_defaults_path = base_defaults_path,
   workers = workers,
   max_profiles_per_cell = max_profiles_per_cell,
   max_p_over_n = max_p_over_n,

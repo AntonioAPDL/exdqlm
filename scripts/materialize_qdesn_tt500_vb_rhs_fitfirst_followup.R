@@ -61,7 +61,7 @@ fit_summary_path <- resolve_path(
 )
 baseline_path <- resolve_path(get_arg(
   "--baseline",
-  "/data/jaguir26/local/src/Article-Q-DESN__wt__main_validation_tables/tables/qdesn_validation_tt500_final_summary.csv"
+  "validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv"
 ), must_work = TRUE)
 base_defaults_path <- resolve_path(
   get_arg("--base-defaults", file.path("config", "validation", "qdesn_dynamic_fitforecast_v2_tt500_vb_rhs_fitforecast_rescue_defaults.yaml")),
