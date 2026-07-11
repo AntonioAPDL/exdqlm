@@ -37,12 +37,15 @@ int_arg <- function(flag, default) {
 }
 
 screen_mode <- as.character(get_arg("--screen-mode", "case_specific_rhs"))[1L]
+is_fitrmse_v48 <- screen_mode %in% c("fitrmse_v48", "case_targeted_rhs_v48", "case_targeted_rhs_v4p8")
 is_fitrmse_v47 <- screen_mode %in% c("fitrmse_v47", "case_targeted_rhs_v47", "case_targeted_rhs_v4p7")
 is_fitrmse_v46 <- screen_mode %in% c("fitrmse_v46", "case_targeted_rhs_v46", "case_targeted_rhs_v4p6")
 is_fitrmse_v45 <- screen_mode %in% c("fitrmse_v45", "case_targeted_rhs_v45", "case_targeted_rhs_v4p5")
 is_fitrmse_v4 <- screen_mode %in% c("fitrmse_v4", "case_targeted_rhs_v4")
 is_fitrmse_v3 <- screen_mode %in% c("fitrmse_v3", "case_targeted_rhs_v3", "case_targeted_rhs")
-orchestrator_stage_dir <- if (isTRUE(is_fitrmse_v47)) {
+orchestrator_stage_dir <- if (isTRUE(is_fitrmse_v48)) {
+  "qdesn_tt500_vb_case_targeted_rhs_v48"
+} else if (isTRUE(is_fitrmse_v47)) {
   "qdesn_tt500_vb_case_targeted_rhs_v47"
 } else if (isTRUE(is_fitrmse_v46)) {
   "qdesn_tt500_vb_case_targeted_rhs_v46"
@@ -55,7 +58,9 @@ orchestrator_stage_dir <- if (isTRUE(is_fitrmse_v47)) {
 } else {
   "qdesn_tt500_vb_case_specific_rhs_screen"
 }
-log_prefix <- if (isTRUE(is_fitrmse_v47)) {
+log_prefix <- if (isTRUE(is_fitrmse_v48)) {
+  "case-targeted-rhs-v48"
+} else if (isTRUE(is_fitrmse_v47)) {
   "case-targeted-rhs-v47"
 } else if (isTRUE(is_fitrmse_v46)) {
   "case-targeted-rhs-v46"
@@ -70,7 +75,7 @@ log_prefix <- if (isTRUE(is_fitrmse_v47)) {
 }
 
 workers <- min(int_arg("--workers", 32L), 64L)
-max_profiles_per_cell <- int_arg("--max-profiles-per-cell", if (isTRUE(is_fitrmse_v47)) 36L else if (isTRUE(is_fitrmse_v45)) 36L else if (isTRUE(is_fitrmse_v3)) 34L else 28L)
+max_profiles_per_cell <- int_arg("--max-profiles-per-cell", if (isTRUE(is_fitrmse_v48)) 48L else if (isTRUE(is_fitrmse_v47)) 36L else if (isTRUE(is_fitrmse_v45)) 36L else if (isTRUE(is_fitrmse_v3)) 34L else 28L)
 max_p_over_n <- as.character(get_arg("--max-p-over-n", "0.45"))[1L]
 stage_file <- as.character(get_arg(
   "--stage-file",
@@ -96,7 +101,9 @@ source_report_root <- resolve_path(get_arg("--source-report-root", default_sourc
 
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
-run_tag_prefix <- if (isTRUE(is_fitrmse_v47)) {
+run_tag_prefix <- if (isTRUE(is_fitrmse_v48)) {
+  "qdesn-vb-case-targeted-rhs-v48"
+} else if (isTRUE(is_fitrmse_v47)) {
   "qdesn-vb-case-targeted-rhs-v47"
 } else if (isTRUE(is_fitrmse_v46)) {
   "qdesn-vb-case-targeted-rhs-v46"
@@ -336,7 +343,7 @@ if (isTRUE(do_full) && !isTRUE(materialize_only) && !isTRUE(prepare_only)) {
 
 manifest <- list(
   generated_at = as.character(Sys.time()),
-  stage = if (isTRUE(is_fitrmse_v47)) "qdesn_vb_case_targeted_rhs_v47" else if (isTRUE(is_fitrmse_v46)) "qdesn_vb_case_targeted_rhs_v46" else if (isTRUE(is_fitrmse_v45)) "qdesn_vb_case_targeted_rhs_v45" else if (isTRUE(is_fitrmse_v4)) "qdesn_vb_case_targeted_rhs_v4" else if (isTRUE(is_fitrmse_v3)) "qdesn_vb_case_targeted_rhs_v3" else "qdesn_vb_case_specific_rhs_screen",
+  stage = if (isTRUE(is_fitrmse_v48)) "qdesn_vb_case_targeted_rhs_v48" else if (isTRUE(is_fitrmse_v47)) "qdesn_vb_case_targeted_rhs_v47" else if (isTRUE(is_fitrmse_v46)) "qdesn_vb_case_targeted_rhs_v46" else if (isTRUE(is_fitrmse_v45)) "qdesn_vb_case_targeted_rhs_v45" else if (isTRUE(is_fitrmse_v4)) "qdesn_vb_case_targeted_rhs_v4" else if (isTRUE(is_fitrmse_v3)) "qdesn_vb_case_targeted_rhs_v3" else "qdesn_vb_case_specific_rhs_screen",
   screen_mode = screen_mode,
   orchestrator_tag = orchestrator_tag,
   run_tag = run_tag,

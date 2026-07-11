@@ -116,14 +116,18 @@ stage_file <- as.character(get_arg(
   "qdesn_dynamic_fitforecast_v2_tt500_vb_case_specific_rhs_screen"
 ))[1L]
 screen_mode <- as.character(get_arg("--screen-mode", "case_specific_rhs"))[1L]
+is_fitrmse_v48 <- screen_mode %in% c("fitrmse_v48", "case_targeted_rhs_v48", "case_targeted_rhs_v4p8")
 is_fitrmse_v47 <- screen_mode %in% c("fitrmse_v47", "case_targeted_rhs_v47", "case_targeted_rhs_v4p7")
 is_fitrmse_v46 <- screen_mode %in% c("fitrmse_v46", "case_targeted_rhs_v46", "case_targeted_rhs_v4p6")
 is_fitrmse_v45 <- screen_mode %in% c("fitrmse_v45", "case_targeted_rhs_v45", "case_targeted_rhs_v4p5")
 is_fitrmse_v4 <- screen_mode %in% c("fitrmse_v4", "case_targeted_rhs_v4")
 is_fitrmse_v3 <- screen_mode %in% c("fitrmse_v3", "case_targeted_rhs_v3", "case_targeted_rhs")
-is_fitrmse_followup <- isTRUE(is_fitrmse_v3) || isTRUE(is_fitrmse_v4) || isTRUE(is_fitrmse_v45) || isTRUE(is_fitrmse_v46) || isTRUE(is_fitrmse_v47)
-is_fitrmse_v4plus <- isTRUE(is_fitrmse_v4) || isTRUE(is_fitrmse_v45) || isTRUE(is_fitrmse_v46) || isTRUE(is_fitrmse_v47)
-screening_stage_label <- if (isTRUE(is_fitrmse_v47)) {
+is_fitrmse_followup <- isTRUE(is_fitrmse_v3) || isTRUE(is_fitrmse_v4) || isTRUE(is_fitrmse_v45) || isTRUE(is_fitrmse_v46) || isTRUE(is_fitrmse_v47) || isTRUE(is_fitrmse_v48)
+is_fitrmse_v4plus <- isTRUE(is_fitrmse_v4) || isTRUE(is_fitrmse_v45) || isTRUE(is_fitrmse_v46) || isTRUE(is_fitrmse_v47) || isTRUE(is_fitrmse_v48)
+is_fitrmse_v47plus <- isTRUE(is_fitrmse_v47) || isTRUE(is_fitrmse_v48)
+screening_stage_label <- if (isTRUE(is_fitrmse_v48)) {
+  "vb_case_targeted_rhs_v48"
+} else if (isTRUE(is_fitrmse_v47)) {
   "vb_case_targeted_rhs_v47"
 } else if (isTRUE(is_fitrmse_v46)) {
   "vb_case_targeted_rhs_v46"
@@ -136,7 +140,9 @@ screening_stage_label <- if (isTRUE(is_fitrmse_v47)) {
 } else {
   "vb_case_specific_rhs_screen"
 }
-screening_stage_stub <- if (isTRUE(is_fitrmse_v47)) {
+screening_stage_stub <- if (isTRUE(is_fitrmse_v48)) {
+  "case_targeted_rhs_v48"
+} else if (isTRUE(is_fitrmse_v47)) {
   "case_targeted_rhs_v47"
 } else if (isTRUE(is_fitrmse_v46)) {
   "case_targeted_rhs_v46"
@@ -149,7 +155,9 @@ screening_stage_stub <- if (isTRUE(is_fitrmse_v47)) {
 } else {
   "case_specific_rhs_screen"
 }
-diagnostic_stub <- if (isTRUE(is_fitrmse_v47)) {
+diagnostic_stub <- if (isTRUE(is_fitrmse_v48)) {
+  "qdesn_tt500_vb_case_targeted_rhs_v48"
+} else if (isTRUE(is_fitrmse_v47)) {
   "qdesn_tt500_vb_case_targeted_rhs_v47"
 } else if (isTRUE(is_fitrmse_v46)) {
   "qdesn_tt500_vb_case_targeted_rhs_v46"
@@ -219,7 +227,7 @@ doc_out <- resolve_path(get_arg(
 ), must_work = FALSE)
 
 workers <- int_arg("--workers", 32L)
-max_profiles_per_cell <- int_arg("--max-profiles-per-cell", if (isTRUE(is_fitrmse_v47)) 36L else if (isTRUE(is_fitrmse_v45)) 36L else if (isTRUE(is_fitrmse_v3)) 34L else 28L)
+max_profiles_per_cell <- int_arg("--max-profiles-per-cell", if (isTRUE(is_fitrmse_v48)) 48L else if (isTRUE(is_fitrmse_v47)) 36L else if (isTRUE(is_fitrmse_v45)) 36L else if (isTRUE(is_fitrmse_v3)) 34L else 28L)
 max_p_over_n <- num_arg("--max-p-over-n", 0.45)
 screening_wave <- as.character(get_arg(
   "--screening-wave",
@@ -413,7 +421,17 @@ classify_cell <- function(best) {
   list(status = status, bottleneck = bottleneck, worst = worst, ratios = ratios)
 }
 target_n_for_status <- function(status) {
-  base <- if (isTRUE(is_fitrmse_v47)) {
+  base <- if (isTRUE(is_fitrmse_v48)) {
+    switch(as.character(status)[1L],
+      forecast_mae_hard = 48L,
+      fit_rmse_extreme = 48L,
+      fit_rmse_hard = 48L,
+      mixed_near = 42L,
+      near_pass = 40L,
+      confirmation = 24L,
+      42L
+    )
+  } else if (isTRUE(is_fitrmse_v47)) {
     switch(as.character(status)[1L],
       forecast_mae_hard = 36L,
       fit_rmse_extreme = 36L,
@@ -475,7 +493,17 @@ target_n_for_status <- function(status) {
   min(as.integer(max_profiles_per_cell), base)
 }
 role_quota <- function(status, target_n) {
-  desired <- if (isTRUE(is_fitrmse_v47)) {
+  desired <- if (isTRUE(is_fitrmse_v48)) {
+    switch(as.character(status)[1L],
+      forecast_mae_hard = c(anchor = 5L, forecast_guardrail = 12L, forecast_hybrid = 8L, memory_guardrail = 8L, local_fit = 6L, fit_check_guardrail = 4L, fit_micro = 3L, fit_compact = 2L),
+      fit_rmse_extreme = c(anchor = 5L, fit_micro = 9L, fit_compact = 9L, local_fit = 8L, fit_check_guardrail = 6L, fit_check_hybrid = 5L, shrinkage = 4L, forecast_guardrail = 2L),
+      fit_rmse_hard = c(anchor = 5L, fit_micro = 9L, fit_compact = 9L, local_fit = 8L, fit_check_guardrail = 6L, fit_check_hybrid = 5L, shrinkage = 4L, forecast_guardrail = 2L),
+      mixed_near = c(anchor = 5L, fit_check_guardrail = 8L, fit_check_hybrid = 8L, local_fit = 7L, fit_micro = 5L, fit_compact = 4L, forecast_guardrail = 3L, seed_check = 2L),
+      near_pass = c(anchor = 5L, fit_check_guardrail = 8L, fit_check_hybrid = 8L, local_fit = 6L, fit_micro = 5L, fit_compact = 4L, forecast_guardrail = 3L, seed_check = 1L),
+      confirmation = c(anchor = 5L, fit_check_guardrail = 5L, fit_check_hybrid = 4L, local_fit = 4L, forecast_guardrail = 3L, seed_check = 2L, fit_micro = 1L),
+      c(anchor = 5L, fit_check_guardrail = 7L, fit_check_hybrid = 7L, local_fit = 7L, fit_micro = 6L, fit_compact = 5L, forecast_guardrail = 4L, seed_check = 1L)
+    )
+  } else if (isTRUE(is_fitrmse_v47)) {
     switch(as.character(status)[1L],
       forecast_mae_hard = c(anchor = 5L, forecast_guardrail = 10L, memory_guardrail = 8L, fit_check_guardrail = 4L, local_fit = 4L, fit_micro = 3L, fit_compact = 2L),
       fit_rmse_extreme = c(anchor = 5L, fit_micro = 7L, fit_compact = 7L, local_fit = 6L, fit_check_guardrail = 5L, shrinkage = 4L, forecast_guardrail = 2L),
@@ -569,15 +597,17 @@ candidate_pool_for_cell <- function(sub) {
   anchor_fit <- anchors[anchors$profile_role == "anchor_fit_rmse", , drop = FALSE][1L, , drop = FALSE]
   anchor_fit_check <- anchors[anchors$profile_role == "anchor_fit_check", , drop = FALSE][1L, , drop = FALSE]
   anchor_forecast <- anchors[anchors$profile_role == "anchor_forecast_check", , drop = FALSE][1L, , drop = FALSE]
-  anchor_tune <- if (isTRUE(is_fitrmse_v47) && identical(class$bottleneck, "fit_check")) {
+  anchor_tune <- if (isTRUE(is_fitrmse_v47plus) && identical(class$bottleneck, "fit_check")) {
     anchor_fit_check
-  } else if (isTRUE(is_fitrmse_v47) && identical(class$status, "forecast_mae_hard")) {
+  } else if (isTRUE(is_fitrmse_v47plus) && identical(class$status, "forecast_mae_hard")) {
     anchor_forecast
   } else {
     anchor_fit
   }
 
-  alpha_grid <- if (isTRUE(is_fitrmse_v47)) {
+  alpha_grid <- if (isTRUE(is_fitrmse_v48)) {
+    c(0.00003, 0.00005, 0.000075, 0.0001, 0.0002, 0.0003, 0.0005, 0.0006, 0.00075, 0.0009, 0.001, 0.0012, 0.0015, 0.002, 0.0025, 0.0035, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.025, 0.03, 0.05, 0.08, 0.12, 0.20, 0.30, 0.40, 0.50)
+  } else if (isTRUE(is_fitrmse_v47)) {
     c(0.00003, 0.00005, 0.000075, 0.0001, 0.0002, 0.0003, 0.0005, 0.00075, 0.001, 0.0015, 0.0025, 0.0035, 0.005, 0.0075, 0.01, 0.02, 0.03, 0.05, 0.08, 0.12, 0.20, 0.30, 0.40, 0.50)
   } else if (isTRUE(is_fitrmse_v46)) {
     c(0.00005, 0.000075, 0.0001, 0.0002, 0.0003, 0.0005, 0.00075, 0.001, 0.0015, 0.0025, 0.0035, 0.005, 0.0075, 0.01, 0.02, 0.03, 0.05, 0.08, 0.12, 0.20, 0.30)
@@ -590,7 +620,9 @@ candidate_pool_for_cell <- function(sub) {
   } else {
     c(0.00075, 0.001, 0.0015, 0.0025, 0.005, 0.01, 0.02, 0.03, 0.05, 0.08, 0.12, 0.20, 0.30, 0.40)
   }
-  rho_grid <- if (isTRUE(is_fitrmse_v47)) {
+  rho_grid <- if (isTRUE(is_fitrmse_v48)) {
+    c(0.02, 0.05, 0.08, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.38, 0.40, 0.42, 0.45, 0.48, 0.50, 0.52, 0.55, 0.60, 0.65, 0.70, 0.80, 0.85, 0.90, 0.95)
+  } else if (isTRUE(is_fitrmse_v47)) {
     c(0.02, 0.05, 0.08, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.70, 0.80, 0.85, 0.90, 0.95)
   } else if (isTRUE(is_fitrmse_v46)) {
     c(0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.70, 0.80, 0.85, 0.90)
@@ -603,9 +635,14 @@ candidate_pool_for_cell <- function(sub) {
   } else {
     c(0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.45, 0.50, 0.60, 0.70, 0.80, 0.85, 0.90)
   }
-  memory_grid <- if (isTRUE(is_fitrmse_v47)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L, 120L, 150L) else if (isTRUE(is_fitrmse_v46)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L, 120L) else if (isTRUE(is_fitrmse_v45)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L) else if (isTRUE(is_fitrmse_v4)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L) else if (isTRUE(is_fitrmse_v3)) c(3L, 5L, 10L, 15L, 20L, 30L, 45L, 60L, 90L) else c(5L, 10L, 15L, 20L, 30L, 45L, 60L, 90L)
-  tau0_grid <- if (isTRUE(is_fitrmse_v47)) c(3e-7, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2) else if (isTRUE(is_fitrmse_v46)) c(1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2) else if (isTRUE(is_fitrmse_v45)) c(1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2) else if (isTRUE(is_fitrmse_v4)) c(3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3) else if (isTRUE(is_fitrmse_v3)) c(1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3) else c(1e-4, 3e-4, 1e-3, 3e-3)
-  sparse_grid <- if (isTRUE(is_fitrmse_v47)) {
+  memory_grid <- if (isTRUE(is_fitrmse_v48)) c(1L, 2L, 3L, 5L, 6L, 8L, 10L, 12L, 15L, 16L, 20L, 24L, 30L, 36L, 45L, 60L, 90L, 120L, 150L) else if (isTRUE(is_fitrmse_v47)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L, 120L, 150L) else if (isTRUE(is_fitrmse_v46)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L, 120L) else if (isTRUE(is_fitrmse_v45)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L) else if (isTRUE(is_fitrmse_v4)) c(1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L) else if (isTRUE(is_fitrmse_v3)) c(3L, 5L, 10L, 15L, 20L, 30L, 45L, 60L, 90L) else c(5L, 10L, 15L, 20L, 30L, 45L, 60L, 90L)
+  tau0_grid <- if (isTRUE(is_fitrmse_v48)) c(3e-7, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2) else if (isTRUE(is_fitrmse_v47)) c(3e-7, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2) else if (isTRUE(is_fitrmse_v46)) c(1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2) else if (isTRUE(is_fitrmse_v45)) c(1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2) else if (isTRUE(is_fitrmse_v4)) c(3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3) else if (isTRUE(is_fitrmse_v3)) c(1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3) else c(1e-4, 3e-4, 1e-3, 3e-3)
+  sparse_grid <- if (isTRUE(is_fitrmse_v48)) {
+    data.frame(
+      pi_w = c(0.0005, 0.001, 0.0025, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.08, 0.10, 0.15),
+      pi_in = c(0.02, 0.03, 0.05, 0.10, 0.20, 0.25, 0.20, 0.30, 0.30, 0.40, 0.30, 0.50, 0.60, 0.80)
+    )
+  } else if (isTRUE(is_fitrmse_v47)) {
     data.frame(
       pi_w = c(0.0005, 0.001, 0.0025, 0.005, 0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15),
       pi_in = c(0.02, 0.03, 0.05, 0.10, 0.20, 0.20, 0.30, 0.30, 0.50, 0.60, 0.80)
@@ -635,27 +672,30 @@ candidate_pool_for_cell <- function(sub) {
   }
 
   local_depth <- unique(pmax(1L, pmin(3L, c(anchor_tune$D - 1L, anchor_tune$D, anchor_tune$D + 1L, 1L, 2L))))
-  local_n_cap <- if (isTRUE(is_fitrmse_v47)) 60L else 50L
+  local_n_cap <- if (isTRUE(is_fitrmse_v48)) 70L else if (isTRUE(is_fitrmse_v47)) 60L else 50L
   local_n <- sort(unique(pmax(8L, pmin(local_n_cap, c(anchor_tune$n_each - 10L, anchor_tune$n_each - 5L, anchor_tune$n_each, anchor_tune$n_each + 5L, anchor_tune$n_each + 10L, 10L, 15L, 20L, 30L)))))
   if (isTRUE(is_fitrmse_followup)) {
     local_depth <- sort(unique(pmax(1L, pmin(3L, c(local_depth, 1L, 2L, 3L)))))
     local_n <- sort(unique(pmax(if (isTRUE(is_fitrmse_v4plus)) 4L else 6L, pmin(local_n_cap, c(local_n, 4L, 6L, 8L, 10L, 12L, 15L, 20L, 25L, 30L, 40L, 50L, 60L)))))
   }
-  local_alpha <- nearest_values(anchor_tune$alpha, alpha_grid, if (isTRUE(is_fitrmse_v47)) 7L else 5L)
-  local_rho <- nearest_values(anchor_tune$rho, rho_grid, if (isTRUE(is_fitrmse_v47)) 7L else 5L)
-  local_m <- sort(unique(c(nearest_values(anchor_tune$m, memory_grid, if (isTRUE(is_fitrmse_v47)) 6L else 4L), 15L, 30L)))
+  local_alpha <- nearest_values(anchor_tune$alpha, alpha_grid, if (isTRUE(is_fitrmse_v47plus)) 7L else 5L)
+  local_rho <- nearest_values(anchor_tune$rho, rho_grid, if (isTRUE(is_fitrmse_v47plus)) 7L else 5L)
+  local_m <- sort(unique(c(nearest_values(anchor_tune$m, memory_grid, if (isTRUE(is_fitrmse_v47plus)) 6L else 4L), 15L, 30L)))
+  if (isTRUE(is_fitrmse_v48)) local_m <- sort(unique(c(local_m, 1L, 2L, 3L, 5L, 6L, 8L, 10L, 12L, 15L, 16L, 20L, 24L, 30L, 36L, 45L, 60L, 90L, 120L, 150L)))
   if (isTRUE(is_fitrmse_v47)) local_m <- sort(unique(c(local_m, 1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L, 90L, 120L, 150L)))
   if (isTRUE(is_fitrmse_v46)) local_m <- sort(unique(c(local_m, 1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L, 60L)))
   if (isTRUE(is_fitrmse_v45)) local_m <- sort(unique(c(local_m, 1L, 2L, 3L, 5L, 8L, 10L, 12L, 15L, 20L, 30L, 45L)))
   if (isTRUE(is_fitrmse_v4)) local_m <- sort(unique(c(local_m, 1L, 2L, 3L, 5L, 8L, 10L, 12L, 20L)))
   if (isTRUE(is_fitrmse_v3)) local_m <- sort(unique(c(local_m, 3L, 5L, 10L, 20L)))
-  if (identical(family, "gausmix") || (identical(family, "laplace") && tau <= 0.05) || (isTRUE(is_fitrmse_v47) && identical(family, "normal") && abs(tau - 0.5) < 1e-8)) {
+  if (identical(family, "gausmix") || (identical(family, "laplace") && tau <= 0.05) || (isTRUE(is_fitrmse_v47plus) && identical(family, "normal") && abs(tau - 0.5) < 1e-8)) {
     local_m <- sort(unique(c(local_m, 60L, 90L)))
   }
-  if (isTRUE(is_fitrmse_v47) && (tau <= 0.05 || (identical(family, "normal") && abs(tau - 0.5) < 1e-8))) {
+  if (isTRUE(is_fitrmse_v47plus) && (tau <= 0.05 || (identical(family, "normal") && abs(tau - 0.5) < 1e-8))) {
     local_m <- sort(unique(c(local_m, 120L, 150L)))
   }
-  local_tau0 <- if (isTRUE(is_fitrmse_v47)) {
+  local_tau0 <- if (isTRUE(is_fitrmse_v48)) {
+    sort(unique(c(nearest_values(anchor_tune$rhs_tau0, tau0_grid, 7L), 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3)))
+  } else if (isTRUE(is_fitrmse_v47)) {
     sort(unique(c(nearest_values(anchor_tune$rhs_tau0, tau0_grid, 7L), 3e-7, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3)))
   } else if (isTRUE(is_fitrmse_v46)) {
     sort(unique(c(nearest_values(anchor_fit$rhs_tau0, tau0_grid, 5L), 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3)))
@@ -672,6 +712,39 @@ candidate_pool_for_cell <- function(sub) {
                        seed_vals = 123L, source = anchor_fit, pool_limit = 80L) {
     score_source <- source
     if (!is.data.frame(score_source) || !nrow(score_source)) score_source <- anchor_fit
+    if (isTRUE(is_fitrmse_v48)) {
+      cap_near <- function(vals, center, max_n) {
+        vals <- sort(unique(vals))
+        if (length(vals) <= max_n) return(vals)
+        nearest_values(center, vals, max_n)
+      }
+      cap_sparse <- function(rows, source_row, max_n) {
+        if (!nrow(rows) || nrow(rows) <= max_n) return(rows)
+        score <- abs(as.numeric(rows$pi_w) - as.numeric(source_row$pi_w)) +
+          abs(as.numeric(rows$pi_in) - as.numeric(source_row$pi_in))
+        rows[order(score, rows$pi_w, rows$pi_in)[seq_len(max_n)], , drop = FALSE]
+      }
+      role_caps <- switch(as.character(role)[1L],
+        fit_micro = c(D = 2L, n = 9L, alpha = 8L, rho = 8L, m = 8L, tau0 = 6L, sparse = 4L),
+        fit_compact = c(D = 2L, n = 9L, alpha = 8L, rho = 8L, m = 8L, tau0 = 6L, sparse = 4L),
+        local_fit = c(D = 3L, n = 10L, alpha = 5L, rho = 5L, m = 8L, tau0 = 5L, sparse = 4L),
+        fit_check_guardrail = c(D = 3L, n = 8L, alpha = 5L, rho = 5L, m = 8L, tau0 = 5L, sparse = 4L),
+        fit_check_hybrid = c(D = 3L, n = 8L, alpha = 5L, rho = 5L, m = 8L, tau0 = 5L, sparse = 4L),
+        forecast_guardrail = c(D = 3L, n = 8L, alpha = 5L, rho = 5L, m = 7L, tau0 = 5L, sparse = 4L),
+        forecast_hybrid = c(D = 3L, n = 8L, alpha = 5L, rho = 5L, m = 7L, tau0 = 5L, sparse = 4L),
+        memory_guardrail = c(D = 2L, n = 6L, alpha = 5L, rho = 5L, m = 6L, tau0 = 5L, sparse = 4L),
+        shrinkage = c(D = 2L, n = 5L, alpha = 4L, rho = 4L, m = 4L, tau0 = 5L, sparse = 3L),
+        seed_check = c(D = 1L, n = 1L, alpha = 1L, rho = 1L, m = 1L, tau0 = 2L, sparse = 1L),
+        c(D = 3L, n = 8L, alpha = 5L, rho = 5L, m = 7L, tau0 = 5L, sparse = 4L)
+      )
+      D_vals <- cap_near(D_vals, score_source$D, role_caps[["D"]])
+      n_vals <- cap_near(n_vals, score_source$n_each, role_caps[["n"]])
+      alpha_vals <- cap_near(alpha_vals, score_source$alpha, role_caps[["alpha"]])
+      rho_vals <- cap_near(rho_vals, score_source$rho, role_caps[["rho"]])
+      m_vals <- cap_near(m_vals, score_source$m, role_caps[["m"]])
+      tau0_vals <- cap_near(tau0_vals, score_source$rhs_tau0, role_caps[["tau0"]])
+      sparse_rows <- cap_sparse(sparse_rows, score_source, role_caps[["sparse"]])
+    }
     grid <- expand.grid(
       D = D_vals,
       n_each = n_vals,
@@ -742,7 +815,20 @@ candidate_pool_for_cell <- function(sub) {
       )
     }
   }
-  if (isTRUE(is_fitrmse_v47)) {
+  if (isTRUE(is_fitrmse_v48)) {
+    add_grid(
+      "fit_micro",
+      c(1L, 2L),
+      c(4L, 6L, 8L, 10L, 12L, 16L, 20L, 24L, 30L),
+      alpha_grid[1:12],
+      rho_grid[1:10],
+      c(1L, 2L, 3L, 5L, 8L, 12L, 15L, 20L),
+      tau0_grid[2:8],
+      sparse_grid[1:4, , drop = FALSE],
+      source = anchor_fit,
+      pool_limit = 180L
+    )
+  } else if (isTRUE(is_fitrmse_v47)) {
     add_grid(
       "fit_micro",
       c(1L, 2L),
@@ -804,39 +890,66 @@ candidate_pool_for_cell <- function(sub) {
       pool_limit = 160L
     )
   }
-  add_grid("local_fit", local_depth, local_n, local_alpha, local_rho, local_m, local_tau0, sparse_grid[2:min(5L, nrow(sparse_grid)), , drop = FALSE], source = anchor_tune, pool_limit = if (isTRUE(is_fitrmse_v47)) 180L else if (isTRUE(is_fitrmse_v46)) 150L else if (isTRUE(is_fitrmse_v45)) 180L else if (isTRUE(is_fitrmse_v4)) 150L else 120L)
-  if (isTRUE(is_fitrmse_v47)) {
+  add_grid("local_fit", local_depth, local_n, local_alpha, local_rho, local_m, local_tau0, sparse_grid[2:min(5L, nrow(sparse_grid)), , drop = FALSE], source = anchor_tune, pool_limit = if (isTRUE(is_fitrmse_v48)) 240L else if (isTRUE(is_fitrmse_v47)) 180L else if (isTRUE(is_fitrmse_v46)) 150L else if (isTRUE(is_fitrmse_v45)) 180L else if (isTRUE(is_fitrmse_v4)) 150L else 120L)
+  if (isTRUE(is_fitrmse_v47plus)) {
     add_grid(
       "fit_check_guardrail",
       unique(c(anchor_fit_check$D, 1L, 2L)),
-      unique(c(anchor_fit_check$n_each, 6L, 8L, 10L, 12L, 16L, 20L, 24L, 30L, 40L, 50L)),
-      nearest_values(anchor_fit_check$alpha, alpha_grid, 7L),
-      nearest_values(anchor_fit_check$rho, rho_grid, 7L),
-      unique(c(anchor_fit_check$m, 1L, 2L, 3L, 5L, 8L, 12L, 15L, 20L, 30L, 45L, 60L)),
-      sort(unique(c(nearest_values(anchor_fit_check$rhs_tau0, tau0_grid, 7L), 3e-7, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4))),
-      sparse_grid[1:min(6L, nrow(sparse_grid)), , drop = FALSE],
+      unique(c(anchor_fit_check$n_each, 6L, 8L, 12L, 16L, 20L, 30L, 40L, if (isTRUE(is_fitrmse_v48)) 50L else integer(0))),
+      nearest_values(anchor_fit_check$alpha, alpha_grid, if (isTRUE(is_fitrmse_v48)) 5L else 7L),
+      nearest_values(anchor_fit_check$rho, rho_grid, if (isTRUE(is_fitrmse_v48)) 5L else 7L),
+      unique(c(anchor_fit_check$m, 1L, 2L, 3L, 5L, 8L, 15L, 30L, 45L, if (isTRUE(is_fitrmse_v48)) 60L else integer(0))),
+      sort(unique(c(nearest_values(anchor_fit_check$rhs_tau0, tau0_grid, if (isTRUE(is_fitrmse_v48)) 5L else 7L), 1e-6, 3e-6, 1e-5, 1e-4, 3e-4))),
+      sparse_grid[1:min(if (isTRUE(is_fitrmse_v48)) 4L else 6L, nrow(sparse_grid)), , drop = FALSE],
+      source = anchor_fit_check,
+      pool_limit = if (isTRUE(is_fitrmse_v48)) 160L else 160L
+    )
+  }
+  if (isTRUE(is_fitrmse_v48)) {
+    hybrid_sparse <- sparse_grid[1:min(4L, nrow(sparse_grid)), , drop = FALSE]
+    add_grid(
+      "fit_check_hybrid",
+      unique(c(anchor_fit_check$D, anchor_fit$D, best_joint$D, 1L, 2L)),
+      unique(c(anchor_fit_check$n_each, anchor_fit$n_each, best_joint$n_each, 4L, 6L, 8L, 12L, 20L, 30L, 40L)),
+      sort(unique(c(nearest_values(anchor_fit_check$alpha, alpha_grid, 4L), nearest_values(anchor_fit$alpha, alpha_grid, 3L), nearest_values(best_joint$alpha, alpha_grid, 3L)))),
+      sort(unique(c(nearest_values(anchor_fit_check$rho, rho_grid, 4L), nearest_values(anchor_fit$rho, rho_grid, 3L), nearest_values(best_joint$rho, rho_grid, 3L)))),
+      unique(c(anchor_fit_check$m, anchor_fit$m, best_joint$m, 1L, 2L, 3L, 5L, 8L, 15L, 30L)),
+      sort(unique(c(nearest_values(anchor_fit_check$rhs_tau0, tau0_grid, 4L), nearest_values(anchor_fit$rhs_tau0, tau0_grid, 3L), 1e-6, 3e-6, 1e-5, 1e-4, 3e-4))),
+      hybrid_sparse,
       source = anchor_fit_check,
       pool_limit = 160L
     )
+    add_grid(
+      "forecast_hybrid",
+      unique(c(anchor_forecast$D, best_joint$D, anchor_tune$D, 1L, 2L)),
+      unique(c(anchor_forecast$n_each, best_joint$n_each, anchor_tune$n_each, 8L, 12L, 20L, 30L, 40L, 50L)),
+      sort(unique(c(nearest_values(anchor_forecast$alpha, alpha_grid, 4L), nearest_values(best_joint$alpha, alpha_grid, 3L), nearest_values(anchor_tune$alpha, alpha_grid, 3L)))),
+      sort(unique(c(nearest_values(anchor_forecast$rho, rho_grid, 4L), nearest_values(best_joint$rho, rho_grid, 3L), nearest_values(anchor_tune$rho, rho_grid, 3L)))),
+      unique(c(anchor_forecast$m, best_joint$m, anchor_tune$m, 15L, 20L, 30L, 45L, 60L, 90L, 120L)),
+      sort(unique(c(nearest_values(anchor_forecast$rhs_tau0, tau0_grid, 4L), nearest_values(best_joint$rhs_tau0, tau0_grid, 3L), 1e-5, 3e-5, 1e-4, 3e-4))),
+      sparse_grid[3:min(7L, nrow(sparse_grid)), , drop = FALSE],
+      source = anchor_forecast,
+      pool_limit = 160L
+    )
   }
-  compact_n <- if (isTRUE(is_fitrmse_v47)) c(4L, 6L, 8L, 10L, 12L, 16L, 20L, 24L, 30L) else if (isTRUE(is_fitrmse_v46)) c(4L, 6L, 8L, 10L, 12L, 16L, 20L) else if (isTRUE(is_fitrmse_v45)) c(4L, 6L, 8L, 10L, 12L, 15L, 20L, 25L) else if (isTRUE(is_fitrmse_v4)) c(4L, 6L, 8L, 10L, 12L, 15L, 20L, 25L) else c(8L, 10L, 12L, 15L, 20L, 25L)
-  compact_m <- if (isTRUE(is_fitrmse_v47)) c(1L, 2L, 3L, 5L, 8L, 12L, 15L, 20L) else if (isTRUE(is_fitrmse_v46)) c(1L, 2L, 3L, 5L, 8L, 12L, 15L) else if (isTRUE(is_fitrmse_v45)) c(1L, 2L, 3L, 5L, 8L, 15L, 20L) else if (isTRUE(is_fitrmse_v4)) c(1L, 2L, 3L, 5L, 8L, 10L, 15L, 20L) else c(5L, 10L, 15L, 20L, 30L)
-  compact_alpha <- alpha_grid[seq_len(if (isTRUE(is_fitrmse_v47)) 14L else if (isTRUE(is_fitrmse_v46)) 12L else if (isTRUE(is_fitrmse_v45)) 10L else if (isTRUE(is_fitrmse_v4)) 12L else 7L)]
-  compact_rho <- rho_grid[seq_len(if (isTRUE(is_fitrmse_v47)) 12L else if (isTRUE(is_fitrmse_v46)) 10L else if (isTRUE(is_fitrmse_v45)) 10L else if (isTRUE(is_fitrmse_v4)) 10L else 8L)]
-  compact_tau0 <- tau0_grid[seq.int(2L, if (isTRUE(is_fitrmse_v47)) 9L else 7L)]
-  add_grid("fit_compact", c(1L, 2L), compact_n, compact_alpha, compact_rho, compact_m, compact_tau0, sparse_grid[1:min(if (isTRUE(is_fitrmse_v47)) 5L else 4L, nrow(sparse_grid)), , drop = FALSE], source = anchor_fit, pool_limit = if (isTRUE(is_fitrmse_v47)) 150L else if (isTRUE(is_fitrmse_v46)) 120L else if (isTRUE(is_fitrmse_v45)) 140L else if (isTRUE(is_fitrmse_v4)) 150L else 120L)
+  compact_n <- if (isTRUE(is_fitrmse_v48)) c(4L, 6L, 8L, 10L, 12L, 16L, 20L, 24L, 30L, 36L) else if (isTRUE(is_fitrmse_v47)) c(4L, 6L, 8L, 10L, 12L, 16L, 20L, 24L, 30L) else if (isTRUE(is_fitrmse_v46)) c(4L, 6L, 8L, 10L, 12L, 16L, 20L) else if (isTRUE(is_fitrmse_v45)) c(4L, 6L, 8L, 10L, 12L, 15L, 20L, 25L) else if (isTRUE(is_fitrmse_v4)) c(4L, 6L, 8L, 10L, 12L, 15L, 20L, 25L) else c(8L, 10L, 12L, 15L, 20L, 25L)
+  compact_m <- if (isTRUE(is_fitrmse_v48)) c(1L, 2L, 3L, 5L, 6L, 8L, 12L, 15L, 20L, 24L) else if (isTRUE(is_fitrmse_v47)) c(1L, 2L, 3L, 5L, 8L, 12L, 15L, 20L) else if (isTRUE(is_fitrmse_v46)) c(1L, 2L, 3L, 5L, 8L, 12L, 15L) else if (isTRUE(is_fitrmse_v45)) c(1L, 2L, 3L, 5L, 8L, 15L, 20L) else if (isTRUE(is_fitrmse_v4)) c(1L, 2L, 3L, 5L, 8L, 10L, 15L, 20L) else c(5L, 10L, 15L, 20L, 30L)
+  compact_alpha <- alpha_grid[seq_len(if (isTRUE(is_fitrmse_v48)) 18L else if (isTRUE(is_fitrmse_v47)) 14L else if (isTRUE(is_fitrmse_v46)) 12L else if (isTRUE(is_fitrmse_v45)) 10L else if (isTRUE(is_fitrmse_v4)) 12L else 7L)]
+  compact_rho <- rho_grid[seq_len(if (isTRUE(is_fitrmse_v48)) 16L else if (isTRUE(is_fitrmse_v47)) 12L else if (isTRUE(is_fitrmse_v46)) 10L else if (isTRUE(is_fitrmse_v45)) 10L else if (isTRUE(is_fitrmse_v4)) 10L else 8L)]
+  compact_tau0 <- tau0_grid[seq.int(2L, if (isTRUE(is_fitrmse_v48)) 9L else if (isTRUE(is_fitrmse_v47)) 9L else 7L)]
+  add_grid("fit_compact", c(1L, 2L), compact_n, compact_alpha, compact_rho, compact_m, compact_tau0, sparse_grid[1:min(if (isTRUE(is_fitrmse_v48)) 7L else if (isTRUE(is_fitrmse_v47)) 5L else 4L, nrow(sparse_grid)), , drop = FALSE], source = anchor_fit, pool_limit = if (isTRUE(is_fitrmse_v48)) 220L else if (isTRUE(is_fitrmse_v47)) 150L else if (isTRUE(is_fitrmse_v46)) 120L else if (isTRUE(is_fitrmse_v45)) 140L else if (isTRUE(is_fitrmse_v4)) 150L else 120L)
   add_grid("shrinkage", c(1L, 2L), c(10L, 15L, 20L, 30L), nearest_values(anchor_fit$alpha, alpha_grid, 4L), nearest_values(anchor_fit$rho, rho_grid, 4L), c(10L, 15L, 30L), tau0_grid, sparse_grid[1:3, , drop = FALSE], pool_limit = 80L)
-  memory_tau0 <- if (isTRUE(is_fitrmse_v47)) c(1e-5, 3e-5, 1e-4, 3e-4, 1e-3) else c(1e-4, 3e-4, 1e-3)
-  add_grid("memory_guardrail", c(1L, 2L), c(20L, 30L, 40L, if (isTRUE(is_fitrmse_v47)) 50L else integer(0)), c(0.05, 0.10, 0.20, 0.30, 0.40, if (isTRUE(is_fitrmse_v47)) 0.50 else numeric(0)), c(0.60, 0.70, 0.80, 0.85, 0.90, if (isTRUE(is_fitrmse_v47)) 0.95 else numeric(0)), c(45L, 60L, 90L, if (isTRUE(is_fitrmse_v47)) c(120L, 150L) else integer(0)), memory_tau0, sparse_grid[3:min(if (isTRUE(is_fitrmse_v47)) 8L else 5L, nrow(sparse_grid)), , drop = FALSE], source = anchor_forecast, pool_limit = if (isTRUE(is_fitrmse_v47)) 120L else 80L)
-  add_grid("forecast_guardrail", unique(c(anchor_forecast$D, 1L, 2L)), unique(c(anchor_forecast$n_each, 20L, 30L, 40L, if (isTRUE(is_fitrmse_v47)) 50L else integer(0))), nearest_values(anchor_forecast$alpha, alpha_grid, if (isTRUE(is_fitrmse_v47)) 7L else 5L), nearest_values(anchor_forecast$rho, rho_grid, if (isTRUE(is_fitrmse_v47)) 7L else 5L), unique(c(anchor_forecast$m, 30L, 60L, 90L, if (isTRUE(is_fitrmse_v47)) c(120L, 150L) else integer(0))), c(1e-5, 3e-5, 1e-4, 3e-4), sparse_grid[3:min(if (isTRUE(is_fitrmse_v47)) 8L else 6L, nrow(sparse_grid)), , drop = FALSE], source = anchor_forecast, pool_limit = if (isTRUE(is_fitrmse_v47)) 120L else 80L)
-  seed_anchor <- if (isTRUE(is_fitrmse_v47)) anchor_tune else anchor_fit
+  memory_tau0 <- if (isTRUE(is_fitrmse_v47plus)) c(1e-5, 3e-5, 1e-4, 3e-4, 1e-3) else c(1e-4, 3e-4, 1e-3)
+  add_grid("memory_guardrail", c(1L, 2L), c(20L, 30L, 40L, if (isTRUE(is_fitrmse_v47plus)) 50L else integer(0), if (isTRUE(is_fitrmse_v48)) 60L else integer(0)), c(0.05, 0.10, 0.20, 0.30, 0.40, if (isTRUE(is_fitrmse_v47plus)) 0.50 else numeric(0), if (isTRUE(is_fitrmse_v48)) 0.60 else numeric(0)), c(0.60, 0.70, 0.80, 0.85, 0.90, if (isTRUE(is_fitrmse_v47plus)) 0.95 else numeric(0)), c(45L, 60L, 90L, if (isTRUE(is_fitrmse_v47plus)) c(120L, 150L) else integer(0)), memory_tau0, sparse_grid[3:min(if (isTRUE(is_fitrmse_v48)) 10L else if (isTRUE(is_fitrmse_v47)) 8L else 5L, nrow(sparse_grid)), , drop = FALSE], source = anchor_forecast, pool_limit = if (isTRUE(is_fitrmse_v48)) 160L else if (isTRUE(is_fitrmse_v47)) 120L else 80L)
+  add_grid("forecast_guardrail", unique(c(anchor_forecast$D, 1L, 2L)), unique(c(anchor_forecast$n_each, 20L, 30L, 40L, if (isTRUE(is_fitrmse_v47plus)) 50L else integer(0), if (isTRUE(is_fitrmse_v48)) 60L else integer(0))), nearest_values(anchor_forecast$alpha, alpha_grid, if (isTRUE(is_fitrmse_v48)) 9L else if (isTRUE(is_fitrmse_v47)) 7L else 5L), nearest_values(anchor_forecast$rho, rho_grid, if (isTRUE(is_fitrmse_v48)) 9L else if (isTRUE(is_fitrmse_v47)) 7L else 5L), unique(c(anchor_forecast$m, 30L, 60L, 90L, if (isTRUE(is_fitrmse_v47plus)) c(120L, 150L) else integer(0))), c(1e-5, 3e-5, 1e-4, 3e-4), sparse_grid[3:min(if (isTRUE(is_fitrmse_v48)) 10L else if (isTRUE(is_fitrmse_v47)) 8L else 6L, nrow(sparse_grid)), , drop = FALSE], source = anchor_forecast, pool_limit = if (isTRUE(is_fitrmse_v48)) 160L else if (isTRUE(is_fitrmse_v47)) 120L else 80L)
+  seed_anchor <- if (isTRUE(is_fitrmse_v47plus)) anchor_tune else anchor_fit
   add_grid("seed_check", seed_anchor$D, seed_anchor$n_each, seed_anchor$alpha, seed_anchor$rho, seed_anchor$m, c(seed_anchor$rhs_tau0, 3e-4), sparse_grid[which.min(abs(sparse_grid$pi_w - seed_anchor$pi_w) + abs(sparse_grid$pi_in - seed_anchor$pi_in)), , drop = FALSE], seed_vals = c(777L, 2027L), source = seed_anchor, pool_limit = 8L)
 
   candidates <- bind_rows(c(list(anchors), generated))
   candidates <- candidates[is.finite(as.numeric(candidates$p_over_n_tt500)) & as.numeric(candidates$p_over_n_tt500) <= max_p_over_n, , drop = FALSE]
   candidates <- candidates[!duplicated(as.character(candidates$screening_profile_id)), , drop = FALSE]
   if (!nrow(candidates)) stop(sprintf("No candidates generated for %s tau %.2f.", family, tau), call. = FALSE)
-  role_order <- c(anchor = 1L, fit_micro = 2L, fit_compact = 3L, local_fit = 4L, fit_check_guardrail = 5L, shrinkage = 6L, memory_guardrail = 7L, forecast_guardrail = 8L, seed_check = 9L)
+  role_order <- c(anchor = 1L, fit_micro = 2L, fit_compact = 3L, local_fit = 4L, fit_check_guardrail = 5L, fit_check_hybrid = 6L, shrinkage = 7L, memory_guardrail = 8L, forecast_guardrail = 9L, forecast_hybrid = 10L, seed_check = 11L)
   candidates$role_group <- sub("^anchor_.*$", "anchor", as.character(candidates$profile_role))
   candidates$role_group[!candidates$role_group %in% names(role_order)] <- as.character(candidates$profile_role[!candidates$role_group %in% names(role_order)])
   candidates$tau0_priority <- ifelse(abs(as.numeric(candidates$rhs_tau0) - 3e-4) < 1e-12, 0L,
@@ -858,10 +971,10 @@ candidate_pool_for_cell <- function(sub) {
       100 * as.numeric(candidates$p_over_n_tt500)
   }
   anchor_distance_score <- score_against(anchor_fit)
-  if (isTRUE(is_fitrmse_v47)) {
-    check_roles <- candidates$role_group %in% c("fit_check_guardrail") |
+  if (isTRUE(is_fitrmse_v47plus)) {
+    check_roles <- candidates$role_group %in% c("fit_check_guardrail", "fit_check_hybrid") |
       (identical(class$bottleneck, "fit_check") & candidates$role_group %in% c("local_fit", "seed_check"))
-    forecast_roles <- candidates$role_group %in% c("forecast_guardrail", "memory_guardrail") |
+    forecast_roles <- candidates$role_group %in% c("forecast_guardrail", "forecast_hybrid", "memory_guardrail") |
       (identical(class$status, "forecast_mae_hard") & candidates$role_group %in% c("local_fit", "seed_check"))
     check_score <- score_against(anchor_fit_check)
     forecast_score <- score_against(anchor_forecast)
@@ -988,7 +1101,9 @@ plan <- list(
     likelihoods = as.list(likelihoods),
     max_profiles_per_cell = as.integer(max_profiles_per_cell),
     max_p_over_n = as.numeric(max_p_over_n),
-    design = if (isTRUE(is_fitrmse_v47)) {
+    design = if (isTRUE(is_fitrmse_v48)) {
+      "Sixth-generation case-targeted Q-DESN RHS VB calibration: each family/tau case receives a v4.7-anchored follow-up with explicit fit-check and forecast hybrid bridge roles, larger budgets only for hard blockers, and no MCMC promotion without fresh all-primary dominance."
+    } else if (isTRUE(is_fitrmse_v47)) {
       "Fifth-generation case-targeted Q-DESN RHS VB calibration: each family/tau case receives a v4.6-anchored follow-up with explicit fit-check guardrails, blocker-specific local scoring, wider memory/tau0/sparsity probes only where warranted, and no MCMC promotion without fresh all-primary dominance."
     } else if (isTRUE(is_fitrmse_v46)) {
       "Fourth-generation case-targeted Q-DESN RHS VB calibration: each family/tau case receives a v4.5-anchored follow-up focused on its observed blocker, with smaller per-cell budgets, sharper compact fit/check neighborhoods, and no MCMC promotion without fresh all-primary dominance."
@@ -1037,7 +1152,9 @@ materialized <- exdqlm:::qdesn_dynamic_fitforecast_materialize_forecast_targeted
   refresh_grid = refresh_grid,
   refresh_materialized = refresh_materialized,
   stage_stub = stage_file,
-  stage_desc = if (isTRUE(is_fitrmse_v47)) {
+  stage_desc = if (isTRUE(is_fitrmse_v48)) {
+    "Q-DESN 500-observation VB case-targeted RHS v4.8 screen with v4.7-anchored fit-check/forecast hybrid bridges, blocker-specific budgets, and storage-light promotion gates."
+  } else if (isTRUE(is_fitrmse_v47)) {
     "Q-DESN 500-observation VB case-targeted RHS v4.7 screen with v4.6-anchored fit-check guardrails, blocker-specific scoring, and storage-light promotion gates."
   } else if (isTRUE(is_fitrmse_v46)) {
     "Q-DESN 500-observation VB case-targeted RHS v4.6 screen with v4.5-anchored per-cell blocker refinements and storage-light promotion gates."
@@ -1062,7 +1179,7 @@ defaults$reference_contract$expected_selected_qdesn_roots <- as.integer(material
 defaults$screening_profiles$selected_assignment_root_count <- as.integer(materialized$expected_qdesn_roots)
 defaults$screening_profiles$design <- sprintf(
   "Q-DESN RHS VB %s screen. Profiles/assignments: %d; likelihoods per root: %s.",
-  if (isTRUE(is_fitrmse_v47)) "case-targeted v4.7 fit-check/blocker follow-up" else if (isTRUE(is_fitrmse_v46)) "case-targeted v4.6 blocker follow-up" else if (isTRUE(is_fitrmse_v45)) "case-targeted v4.5 bottleneck refinement" else if (isTRUE(is_fitrmse_v4)) "case-targeted v4 fit-RMSE/forecast-MAE" else if (isTRUE(is_fitrmse_v3)) "case-targeted v3 fit-RMSE" else "case-specific",
+  if (isTRUE(is_fitrmse_v48)) "case-targeted v4.8 fit-check/forecast hybrid follow-up" else if (isTRUE(is_fitrmse_v47)) "case-targeted v4.7 fit-check/blocker follow-up" else if (isTRUE(is_fitrmse_v46)) "case-targeted v4.6 blocker follow-up" else if (isTRUE(is_fitrmse_v45)) "case-targeted v4.5 bottleneck refinement" else if (isTRUE(is_fitrmse_v4)) "case-targeted v4 fit-RMSE/forecast-MAE" else if (isTRUE(is_fitrmse_v3)) "case-targeted v3 fit-RMSE" else "case-specific",
   as.integer(materialized$expected_qdesn_roots),
   paste(likelihoods, collapse = ",")
 )
@@ -1078,8 +1195,8 @@ defaults$screening_profiles[[paste0(screening_stage_stub, "_design")]] <- list(
   promotion_policy = "promote per-cell winners only after fresh VB dominance and strict audit; do not require one shared spec"
 )
 defaults$study_contract$description <- paste(
-  if (isTRUE(is_fitrmse_v47)) "Q-DESN RHS VB case-targeted v4.7 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v46)) "Q-DESN RHS VB case-targeted v4.6 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v45)) "Q-DESN RHS VB case-targeted v4.5 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v4)) "Q-DESN RHS VB case-targeted v4 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v3)) "Q-DESN RHS VB case-targeted v3 fit-RMSE calibration for the 500-observation simulation validation." else "Q-DESN RHS VB case-specific calibration for the 500-observation simulation validation.",
-  if (isTRUE(is_fitrmse_v47)) "Each family/quantile cell receives its own v4.6-anchored profile neighborhood; near-pass cells receive explicit fit-check guardrails, hard lower-tail cells retain compact fit-RMSE rescue, and normal-median/forecast-blocked cells receive longer-memory forecast guardrails." else if (isTRUE(is_fitrmse_v46)) "Each family/quantile cell receives its own v4.5-anchored profile neighborhood; hard cells focus on fit-RMSE or forecast-MAE rescue, while near-miss cells focus on the remaining fit-check or forecast blocker." else if (isTRUE(is_fitrmse_v45)) "Each family/quantile cell receives its own v4-anchored profile neighborhood; near-miss cells focus on the remaining check-loss or forecast-MAE blocker, while hard cells receive broader compact fit-RMSE or forecast-memory rescue candidates." else if (isTRUE(is_fitrmse_v4)) "Each family/quantile cell receives its own compact fit-first profile neighborhood from the completed v3 screen; cells whose bottleneck is forecast MAE receive extra forecast-memory guardrails." else if (isTRUE(is_fitrmse_v3)) "Each family/quantile cell receives its own compact fit-first profile neighborhood from the completed case-specific v2 screen." else "Each family/quantile cell receives its own profile neighborhood from the completed historical-winner handoff.",
+  if (isTRUE(is_fitrmse_v48)) "Q-DESN RHS VB case-targeted v4.8 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v47)) "Q-DESN RHS VB case-targeted v4.7 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v46)) "Q-DESN RHS VB case-targeted v4.6 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v45)) "Q-DESN RHS VB case-targeted v4.5 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v4)) "Q-DESN RHS VB case-targeted v4 calibration for the 500-observation simulation validation." else if (isTRUE(is_fitrmse_v3)) "Q-DESN RHS VB case-targeted v3 fit-RMSE calibration for the 500-observation simulation validation." else "Q-DESN RHS VB case-specific calibration for the 500-observation simulation validation.",
+  if (isTRUE(is_fitrmse_v48)) "Each family/quantile cell receives its own v4.7-anchored profile neighborhood; v4.8 adds fit-check/forecast bridge candidates so near-pass cells can combine the best fit-check profile with the best fit-RMSE/forecast profile, while hard cells receive larger but still capped blocker-specific budgets." else if (isTRUE(is_fitrmse_v47)) "Each family/quantile cell receives its own v4.6-anchored profile neighborhood; near-pass cells receive explicit fit-check guardrails, hard lower-tail cells retain compact fit-RMSE rescue, and normal-median/forecast-blocked cells receive longer-memory forecast guardrails." else if (isTRUE(is_fitrmse_v46)) "Each family/quantile cell receives its own v4.5-anchored profile neighborhood; hard cells focus on fit-RMSE or forecast-MAE rescue, while near-miss cells focus on the remaining fit-check or forecast blocker." else if (isTRUE(is_fitrmse_v45)) "Each family/quantile cell receives its own v4-anchored profile neighborhood; near-miss cells focus on the remaining check-loss or forecast-MAE blocker, while hard cells receive broader compact fit-RMSE or forecast-memory rescue candidates." else if (isTRUE(is_fitrmse_v4)) "Each family/quantile cell receives its own compact fit-first profile neighborhood from the completed v3 screen; cells whose bottleneck is forecast MAE receive extra forecast-memory guardrails." else if (isTRUE(is_fitrmse_v3)) "Each family/quantile cell receives its own compact fit-first profile neighborhood from the completed case-specific v2 screen." else "Each family/quantile cell receives its own profile neighborhood from the completed historical-winner handoff.",
   "This stage is screening-only until strict audit and explicit promotion."
 )
 smoke_assignment <- assignments[order(assignments$priority_rank, assignments$target_profile_rank), , drop = FALSE][1L, , drop = FALSE]
@@ -1106,7 +1223,7 @@ profile_display <- profiles[, intersect(c(
 ), names(profiles)), drop = FALSE]
 profile_display <- utils::head(profile_display, 80L)
 summary_lines <- c(
-  if (isTRUE(is_fitrmse_v47)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4.7 Screen" else if (isTRUE(is_fitrmse_v46)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4.6 Screen" else if (isTRUE(is_fitrmse_v45)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4.5 Screen" else if (isTRUE(is_fitrmse_v4)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4 Screen" else if (isTRUE(is_fitrmse_v3)) "# Q-DESN 500-Observation VB Case-Targeted RHS v3 Fit-RMSE Screen" else "# Q-DESN 500-Observation VB Case-Specific RHS Screen",
+  if (isTRUE(is_fitrmse_v48)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4.8 Screen" else if (isTRUE(is_fitrmse_v47)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4.7 Screen" else if (isTRUE(is_fitrmse_v46)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4.6 Screen" else if (isTRUE(is_fitrmse_v45)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4.5 Screen" else if (isTRUE(is_fitrmse_v4)) "# Q-DESN 500-Observation VB Case-Targeted RHS v4 Screen" else if (isTRUE(is_fitrmse_v3)) "# Q-DESN 500-Observation VB Case-Targeted RHS v3 Fit-RMSE Screen" else "# Q-DESN 500-Observation VB Case-Specific RHS Screen",
   "",
   sprintf("- generated_at: `%s`", as.character(Sys.time())),
   sprintf("- screen_mode: `%s`", screen_mode),
@@ -1122,7 +1239,9 @@ summary_lines <- c(
   "",
   "## Decision",
   "",
-  if (isTRUE(is_fitrmse_v47)) {
+  if (isTRUE(is_fitrmse_v48)) {
+    "The completed v4.7 screen is frozen as diagnostic evidence. It was technically complete and storage-light, but no family/quantile cell cleared the all-primary VB dominance gate. The useful signal is now cell-specific: several cells have metricwise winners but no single profile joining fit RMSE, fit check loss, forecast MAE, and forecast check loss, while the lower-tail and normal-median cells still need targeted blocker rescue. This v4.8 follow-up keeps per-case specifications, adds bridge candidates between the best metric-specific anchors, expands only hard-cell budgets, and still forbids MCMC promotion until a fresh strict-audited dominance ranking justifies it."
+  } else if (isTRUE(is_fitrmse_v47)) {
     "The completed v4.6 screen is frozen as diagnostic evidence. It was technically complete and storage-light, but no family/quantile cell cleared the all-primary VB dominance gate. The key pattern is now clear: many cells are near misses blocked by fit check loss, while lower-tail hard cells still need fit-RMSE rescue and the normal median remains forecast-MAE sensitive. This v4.7 follow-up keeps case-specific specifications, adds an explicit fit-check guardrail role, centers local/scoring choices on the relevant blocker anchor, and still forbids MCMC promotion until a fresh strict-audited dominance ranking justifies it."
   } else if (isTRUE(is_fitrmse_v46)) {
     "The completed v4.5 screen is frozen as diagnostic evidence. It was technically complete and storage-light, but no family/quantile cell cleared the all-primary VB dominance gate. The strongest v4.5 candidates exposed one blocker per cell: fit RMSE in lower-tail hard cells, fit check loss in most near-pass cells, and forecast MAE for the normal median. This v4.6 follow-up keeps the user's per-case specification policy, reduces wasteful broad searching, and searches only blocker-specific neighborhoods before any MCMC promotion is considered."
@@ -1147,7 +1266,7 @@ summary_lines <- c(
   "## Gates",
   "",
   "- This is VB-only screening with storage-light outputs.",
-  if (isTRUE(is_fitrmse_v47)) "- The primary scientific gate is all-primary dominance; v4.7 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v46)) "- The primary scientific gate is all-primary dominance; v4.6 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v45)) "- The primary scientific gate is all-primary dominance; v4.5 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v4)) "- The primary scientific gate is all-primary dominance; v4 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v3)) "- The primary scientific gate is all-primary dominance; the first bottleneck under v2 was fit RMSE, so v3 intentionally allocates more candidates to compact fit-first profiles." else "- The primary scientific gate is all-primary dominance against the current DQLM/exDQLM VB baseline.",
+  if (isTRUE(is_fitrmse_v48)) "- The primary scientific gate is all-primary dominance; v4.8 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v47)) "- The primary scientific gate is all-primary dominance; v4.7 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v46)) "- The primary scientific gate is all-primary dominance; v4.6 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v45)) "- The primary scientific gate is all-primary dominance; v4.5 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v4)) "- The primary scientific gate is all-primary dominance; v4 is not MCMC-promotable unless a family/quantile winner beats the current VB baseline on fit RMSE, fit check loss, forecast MAE, and forecast check loss." else if (isTRUE(is_fitrmse_v3)) "- The primary scientific gate is all-primary dominance; the first bottleneck under v2 was fit RMSE, so v3 intentionally allocates more candidates to compact fit-first profiles." else "- The primary scientific gate is all-primary dominance against the current DQLM/exDQLM VB baseline.",
   "- MCMC promotion is per family/quantile cell, not global-profile based.",
   "- Article tables remain unchanged until a strict-audited promotion bundle is explicitly frozen.",
   "- Failed exploratory roots may be tolerated only as screening evidence; promoted rows must be terminal, metric-complete, and documented.",
