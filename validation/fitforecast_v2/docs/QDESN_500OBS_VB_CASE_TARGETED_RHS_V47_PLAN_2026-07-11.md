@@ -1,6 +1,6 @@
 # Q-DESN 500-Observation VB Case-Targeted RHS v4.7 Screen
 
-- generated_at: `2026-07-11 02:15:30.737279`
+- generated_at: `2026-07-11 02:21:59.250266`
 - screen_mode: `fitrmse_v47`
 - source_report_root: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v46/qdesn-vb-case-targeted-rhs-v46-full-20260710__git-67d3152/20260710-201727__git-67d3152`
 - baseline_path: `/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/validation_local_exdqlm_dqlm_vb_baseline_20260708.csv`
