@@ -8,6 +8,11 @@
 - purpose: revise the next calibration plan after verifying that the current
   local RHS search is stuck on a structural tradeoff surface
 
+Follow-up refinement: after a deeper runner and decomposition-support audit,
+the active next implementation plan is the mechanism-first decomposition-aware
+redesign in
+`validation/fitforecast_v2/docs/QDESN_500OBS_VB_MECHANISM_FIRST_REDESIGN_PLAN_2026-07-13.md`.
+
 ## Bottom Line
 
 Do not launch another broad RHS/local-neighborhood screen as the next move. The
