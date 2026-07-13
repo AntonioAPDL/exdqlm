@@ -7,6 +7,12 @@
 - scope: Q-DESN versus DQLM/exDQLM fit+forecast validation only
 - status: planning/audit only; no new VB, MCMC, smoke, pilot, or full screen launched
 
+Revision note: a deeper runner-support audit later on 2026-07-13 found that
+the `newaxis` seasonal/harmonic fields materialized below are metadata only
+unless activated through stage-level deterministic-feature bundles or explicit
+runner support. Treat the follow-up plan as the active no-launch recommendation:
+`validation/fitforecast_v2/docs/QDESN_500OBS_VB_BREAK_SURFACE_NEXT_DESIGN_AUDIT_2026-07-13.md`.
+
 ## Purpose
 
 The recent Q-DESN RHS VB calibration loop has stopped producing meaningful
