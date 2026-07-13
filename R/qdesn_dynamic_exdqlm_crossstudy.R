@@ -1167,6 +1167,14 @@ qdesn_dynamic_crossstudy_validate_grid <- function(grid_df, defaults, allow_subs
   root_kinds <- sort(unique(as.character(grid_df$source_root_kind)))
   priors <- sort(unique(as.character(grid_df$beta_prior_type)))
   unique_cells <- unique(as.character(grid_df$dataset_cell_id))
+  if ("rhs_tau0" %in% names(grid_df)) {
+    rhs_rows <- tolower(as.character(grid_df$beta_prior_type)) == "rhs_ns"
+    rhs_tau0 <- suppressWarnings(as.numeric(grid_df$rhs_tau0))
+    if (any(rhs_rows & (!is.finite(rhs_tau0) | rhs_tau0 <= 0), na.rm = TRUE)) {
+      bad_n <- sum(rhs_rows & (!is.finite(rhs_tau0) | rhs_tau0 <= 0), na.rm = TRUE)
+      problems <- c(problems, sprintf("rhs_ns rows must carry finite positive rhs_tau0 values; found %d invalid row(s)", bad_n))
+    }
+  }
 
   if (!isTRUE(allow_subset) && !identical(scenarios, sort(as.character(contract$scenarios %||% scenarios)))) {
     problems <- c(problems, sprintf("scenario set mismatch: %s", paste(scenarios, collapse = ", ")))
@@ -1272,6 +1280,14 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   }
   if (!is.finite(reference_root_count) || reference_root_count < 1L) {
     problems <- c(problems, "source_reference_root_count must be >= 1")
+  }
+  if (identical(beta_prior_type, "rhs_ns") &&
+      !is.na(screening_profile_id) && nzchar(screening_profile_id) &&
+      (!is.finite(rhs_tau0) || rhs_tau0 <= 0)) {
+    problems <- c(problems, sprintf(
+      "rhs_tau0 must be finite and positive for rhs_ns screening profile '%s'",
+      screening_profile_id
+    ))
   }
   if (length(problems)) {
     stop(paste(c("Dynamic cross-study root spec invalid:", paste0("- ", problems)), collapse = "\n"), call. = FALSE)

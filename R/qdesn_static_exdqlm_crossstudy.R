@@ -1703,6 +1703,21 @@ qdesn_static_crossstudy_stage_dataset <- function(root_spec, root_dir, defaults)
   )
   cfg$validation_spec_id <- fit_spec_id
   cfg$validation_stage <- as.character((defaults$execution %||% list())$validation_stage %||% "all")[1L]
+  if (identical(as.character(root_spec$beta_prior_type %||% "")[1L], "rhs_ns")) {
+    request_tau0 <- suppressWarnings(as.numeric(root_spec$rhs_tau0 %||% NA_real_)[1L])
+    cfg_tau0 <- suppressWarnings(as.numeric(
+      cfg$inference[[method]]$priors$beta$rhs_ns$tau0 %||% NA_real_
+    )[1L])
+    if (!is.finite(request_tau0) || request_tau0 <= 0 ||
+        !is.finite(cfg_tau0) || cfg_tau0 <= 0) {
+      stop(sprintf(
+        "Invalid rhs_tau0 at fit-request boundary for %s: root_spec=%s, cfg=%s.",
+        as.character(fit_spec_id),
+        as.character(request_tau0),
+        as.character(cfg_tau0)
+      ), call. = FALSE)
+    }
+  }
   diagnostics_cfg <- (defaults$diagnostics %||% list())$fit_runtime %||% list()
   if (isTRUE(diagnostics_cfg$stream_child_stdout %||% FALSE) ||
       !is.null(diagnostics_cfg$timeout_seconds)) {
