@@ -37,6 +37,7 @@ int_arg <- function(flag, default) {
 }
 
 screen_mode <- as.character(get_arg("--screen-mode", "case_specific_rhs"))[1L]
+is_fitrmse_v51 <- screen_mode %in% c("fitrmse_v51", "case_targeted_rhs_v51", "case_targeted_rhs_v5p1")
 is_fitrmse_v50 <- screen_mode %in% c("fitrmse_v50", "case_targeted_rhs_v50", "case_targeted_rhs_v5", "case_targeted_rhs_v5p0")
 is_fitrmse_v49 <- screen_mode %in% c("fitrmse_v49", "case_targeted_rhs_v49", "case_targeted_rhs_v4p9")
 is_fitrmse_v48 <- screen_mode %in% c("fitrmse_v48", "case_targeted_rhs_v48", "case_targeted_rhs_v4p8")
@@ -45,7 +46,9 @@ is_fitrmse_v46 <- screen_mode %in% c("fitrmse_v46", "case_targeted_rhs_v46", "ca
 is_fitrmse_v45 <- screen_mode %in% c("fitrmse_v45", "case_targeted_rhs_v45", "case_targeted_rhs_v4p5")
 is_fitrmse_v4 <- screen_mode %in% c("fitrmse_v4", "case_targeted_rhs_v4")
 is_fitrmse_v3 <- screen_mode %in% c("fitrmse_v3", "case_targeted_rhs_v3", "case_targeted_rhs")
-orchestrator_stage_dir <- if (isTRUE(is_fitrmse_v50)) {
+orchestrator_stage_dir <- if (isTRUE(is_fitrmse_v51)) {
+  "qdesn_tt500_vb_case_targeted_rhs_v51"
+} else if (isTRUE(is_fitrmse_v50)) {
   "qdesn_tt500_vb_case_targeted_rhs_v50"
 } else if (isTRUE(is_fitrmse_v49)) {
   "qdesn_tt500_vb_case_targeted_rhs_v49"
@@ -64,7 +67,9 @@ orchestrator_stage_dir <- if (isTRUE(is_fitrmse_v50)) {
 } else {
   "qdesn_tt500_vb_case_specific_rhs_screen"
 }
-log_prefix <- if (isTRUE(is_fitrmse_v50)) {
+log_prefix <- if (isTRUE(is_fitrmse_v51)) {
+  "case-targeted-rhs-v51"
+} else if (isTRUE(is_fitrmse_v50)) {
   "case-targeted-rhs-v50"
 } else if (isTRUE(is_fitrmse_v49)) {
   "case-targeted-rhs-v49"
@@ -85,7 +90,7 @@ log_prefix <- if (isTRUE(is_fitrmse_v50)) {
 }
 
 workers <- min(int_arg("--workers", 32L), 64L)
-max_profiles_per_cell <- int_arg("--max-profiles-per-cell", if (isTRUE(is_fitrmse_v50)) 72L else if (isTRUE(is_fitrmse_v49)) 56L else if (isTRUE(is_fitrmse_v48)) 48L else if (isTRUE(is_fitrmse_v47)) 36L else if (isTRUE(is_fitrmse_v45)) 36L else if (isTRUE(is_fitrmse_v3)) 34L else 28L)
+max_profiles_per_cell <- int_arg("--max-profiles-per-cell", if (isTRUE(is_fitrmse_v51)) 64L else if (isTRUE(is_fitrmse_v50)) 72L else if (isTRUE(is_fitrmse_v49)) 56L else if (isTRUE(is_fitrmse_v48)) 48L else if (isTRUE(is_fitrmse_v47)) 36L else if (isTRUE(is_fitrmse_v45)) 36L else if (isTRUE(is_fitrmse_v3)) 34L else 28L)
 max_p_over_n <- as.character(get_arg("--max-p-over-n", "0.45"))[1L]
 stage_file <- as.character(get_arg(
   "--stage-file",
@@ -111,7 +116,9 @@ source_report_root <- resolve_path(get_arg("--source-report-root", default_sourc
 
 git_sha <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
-run_tag_prefix <- if (isTRUE(is_fitrmse_v50)) {
+run_tag_prefix <- if (isTRUE(is_fitrmse_v51)) {
+  "qdesn-vb-case-targeted-rhs-v51"
+} else if (isTRUE(is_fitrmse_v50)) {
   "qdesn-vb-case-targeted-rhs-v50"
 } else if (isTRUE(is_fitrmse_v49)) {
   "qdesn-vb-case-targeted-rhs-v49"
@@ -357,7 +364,7 @@ if (isTRUE(do_full) && !isTRUE(materialize_only) && !isTRUE(prepare_only)) {
 
 manifest <- list(
   generated_at = as.character(Sys.time()),
-  stage = if (isTRUE(is_fitrmse_v50)) "qdesn_vb_case_targeted_rhs_v50" else if (isTRUE(is_fitrmse_v49)) "qdesn_vb_case_targeted_rhs_v49" else if (isTRUE(is_fitrmse_v48)) "qdesn_vb_case_targeted_rhs_v48" else if (isTRUE(is_fitrmse_v47)) "qdesn_vb_case_targeted_rhs_v47" else if (isTRUE(is_fitrmse_v46)) "qdesn_vb_case_targeted_rhs_v46" else if (isTRUE(is_fitrmse_v45)) "qdesn_vb_case_targeted_rhs_v45" else if (isTRUE(is_fitrmse_v4)) "qdesn_vb_case_targeted_rhs_v4" else if (isTRUE(is_fitrmse_v3)) "qdesn_vb_case_targeted_rhs_v3" else "qdesn_vb_case_specific_rhs_screen",
+  stage = if (isTRUE(is_fitrmse_v51)) "qdesn_vb_case_targeted_rhs_v51" else if (isTRUE(is_fitrmse_v50)) "qdesn_vb_case_targeted_rhs_v50" else if (isTRUE(is_fitrmse_v49)) "qdesn_vb_case_targeted_rhs_v49" else if (isTRUE(is_fitrmse_v48)) "qdesn_vb_case_targeted_rhs_v48" else if (isTRUE(is_fitrmse_v47)) "qdesn_vb_case_targeted_rhs_v47" else if (isTRUE(is_fitrmse_v46)) "qdesn_vb_case_targeted_rhs_v46" else if (isTRUE(is_fitrmse_v45)) "qdesn_vb_case_targeted_rhs_v45" else if (isTRUE(is_fitrmse_v4)) "qdesn_vb_case_targeted_rhs_v4" else if (isTRUE(is_fitrmse_v3)) "qdesn_vb_case_targeted_rhs_v3" else "qdesn_vb_case_specific_rhs_screen",
   screen_mode = screen_mode,
   orchestrator_tag = orchestrator_tag,
   run_tag = run_tag,
