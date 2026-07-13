@@ -1,0 +1,123 @@
+{
+  "generated_at": "2026-07-13 18:27:36.002147",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "a845b3426474c765eb2bf7863c3788a428762fe2",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "bundle_id": "decomp_component_p90_h123",
+  "bundle_order": 3,
+  "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123",
+  "base_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v51_defaults.yaml",
+  "mechanism_summary": "component_lags DLM decomposition with period-90 harmonics 1,2,3 and sampled_path forecast residual recursion",
+  "hard_cells": [
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 1,
+      "blocker_target": "fit_rmse_fit_check",
+      "current_best_joint_worst_ratio": 1.7598
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 2,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.7239
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 3,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.6168
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 4,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.5589
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "al",
+      "priority_rank": 5,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.5508
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "exal",
+      "priority_rank": 6,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.4391
+    },
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 7,
+      "blocker_target": "fit_rmse_forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.3877
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 8,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.1738
+    }
+  ],
+  "materialization": {
+    "stage": "mechanism_first",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_grid.csv",
+    "n_profiles": 32,
+    "n_assignments": 32,
+    "n_canonical_grid_rows": 288,
+    "n_grid_rows": 32,
+    "expected_qdesn_roots": 32,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.5],
+    "missing_assignments": []
+  },
+  "paths": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_target_spec_ids.csv",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_materialization_manifest.json"
+  },
+  "hashes": {
+    "profiles_sha256": "52a0c6fe3db77f89a0a99d211bd8dcc111d0d3ee74a96c90fae1fd426819557b",
+    "assignments_sha256": "38f2f76e912b398cbec47f40e5f200d485e478a55bab1fc165fce33c6fbd0f78",
+    "defaults_sha256": "d365360c92e30e5f7106e0999da63543557b97b25fd765fa1c4391ebda8db9b1",
+    "grid_sha256": "01604c84e43737b96d99d50d890fd6d765c54c20733c7fab3ed351366f0c768b",
+    "target_specs_sha256": "f58c02dc5c6da31119f8717e97a59fe25222a935956d46dcb3a1e69a068a28d1"
+  },
+  "counts": {
+    "n_profiles": 32,
+    "n_assignments": 32,
+    "n_grid_rows": 32,
+    "n_target_specs": 32,
+    "n_hard_cells": 8
+  },
+  "launch_policy": {
+    "launch_approved_by_current_user_request": true,
+    "vb_only": true,
+    "storage_light": true,
+    "exact_spec_id_filter_required": true,
+    "article_facing": false
+  }
+}

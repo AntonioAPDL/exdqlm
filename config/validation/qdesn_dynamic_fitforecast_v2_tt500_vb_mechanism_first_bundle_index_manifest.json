@@ -1,0 +1,181 @@
+{
+  "generated_at": "2026-07-13 18:27:53.445507",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "a845b3426474c765eb2bf7863c3788a428762fe2",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "stage_prefix": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first",
+  "base_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v51_defaults.yaml",
+  "index_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_bundle_index.csv",
+  "bundles": [
+    {
+      "bundle_id": "raw_period90_control",
+      "bundle_order": 1,
+      "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control",
+      "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control_defaults.yaml",
+      "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control_grid.csv",
+      "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control_profiles.csv",
+      "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control_cell_assignments.csv",
+      "target_spec_ids_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control_target_spec_ids.csv",
+      "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control_materialization_manifest.json",
+      "n_profiles": 32,
+      "n_assignments": 32,
+      "n_grid_rows": 32,
+      "n_target_specs": 32,
+      "mechanism_summary": "raw_y_lags control with staged period-90 deterministic features"
+    },
+    {
+      "bundle_id": "decomp_component_p90_h12",
+      "bundle_order": 2,
+      "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12",
+      "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12_defaults.yaml",
+      "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12_grid.csv",
+      "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12_profiles.csv",
+      "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12_cell_assignments.csv",
+      "target_spec_ids_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12_target_spec_ids.csv",
+      "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12_materialization_manifest.json",
+      "n_profiles": 32,
+      "n_assignments": 32,
+      "n_grid_rows": 32,
+      "n_target_specs": 32,
+      "mechanism_summary": "component_lags DLM decomposition with period-90 harmonics 1,2 and sampled_path forecast residual recursion"
+    },
+    {
+      "bundle_id": "decomp_component_p90_h123",
+      "bundle_order": 3,
+      "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123",
+      "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_defaults.yaml",
+      "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_grid.csv",
+      "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_profiles.csv",
+      "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_cell_assignments.csv",
+      "target_spec_ids_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_target_spec_ids.csv",
+      "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_materialization_manifest.json",
+      "n_profiles": 32,
+      "n_assignments": 32,
+      "n_grid_rows": 32,
+      "n_target_specs": 32,
+      "mechanism_summary": "component_lags DLM decomposition with period-90 harmonics 1,2,3 and sampled_path forecast residual recursion"
+    },
+    {
+      "bundle_id": "decomp_state_resid_y_p90_h12",
+      "bundle_order": 4,
+      "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12",
+      "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12_defaults.yaml",
+      "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12_grid.csv",
+      "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12_profiles.csv",
+      "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12_cell_assignments.csv",
+      "target_spec_ids_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12_target_spec_ids.csv",
+      "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12_materialization_manifest.json",
+      "n_profiles": 32,
+      "n_assignments": 32,
+      "n_grid_rows": 32,
+      "n_target_specs": 32,
+      "mechanism_summary": "state_resid_y DLM decomposition with period-90 harmonics 1,2 and sampled_path forecast residual recursion"
+    },
+    {
+      "bundle_id": "decomp_state_resid_y_plugin_p90_h12",
+      "bundle_order": 5,
+      "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12",
+      "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12_defaults.yaml",
+      "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12_grid.csv",
+      "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12_profiles.csv",
+      "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12_cell_assignments.csv",
+      "target_spec_ids_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12_target_spec_ids.csv",
+      "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12_materialization_manifest.json",
+      "n_profiles": 32,
+      "n_assignments": 32,
+      "n_grid_rows": 32,
+      "n_target_specs": 32,
+      "mechanism_summary": "state_resid_y DLM decomposition with period-90 harmonics 1,2 and deterministic_plugin forecast residual recursion"
+    },
+    {
+      "bundle_id": "decomp_state_resid_y_xreg_p90_h12",
+      "bundle_order": 6,
+      "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12",
+      "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_defaults.yaml",
+      "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_grid.csv",
+      "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_profiles.csv",
+      "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_cell_assignments.csv",
+      "target_spec_ids_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_target_spec_ids.csv",
+      "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_materialization_manifest.json",
+      "n_profiles": 32,
+      "n_assignments": 32,
+      "n_grid_rows": 32,
+      "n_target_specs": 32,
+      "mechanism_summary": "state_resid_y DLM decomposition with period-90 harmonics 1,2 and sampled_path forecast residual recursion"
+    }
+  ],
+  "hard_cells": [
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 1,
+      "blocker_target": "fit_rmse_fit_check",
+      "current_best_joint_worst_ratio": 1.7598
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 2,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.7239
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 3,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.6168
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 4,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.5589
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "al",
+      "priority_rank": 5,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.5508
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "exal",
+      "priority_rank": 6,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.4391
+    },
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 7,
+      "blocker_target": "fit_rmse_forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.3877
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 8,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.1738
+    }
+  ],
+  "total_target_specs": 192,
+  "launch_policy": {
+    "run_mode": "targeted_vb_screen",
+    "no_mcmc": true,
+    "one_likelihood_per_root": true,
+    "run_in_background_via_orchestrator": true
+  }
+}

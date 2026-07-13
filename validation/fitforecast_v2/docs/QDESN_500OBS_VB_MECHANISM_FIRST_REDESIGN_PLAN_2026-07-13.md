@@ -368,3 +368,82 @@ The next safe implementation tasks are:
 
 The first possible model run, after those gates, should be a tiny hard-cell VB
 probe. It should not be a full screen.
+
+## Implementation Ledger
+
+Updated 2026-07-13 after explicit launch approval in the validation/DQLM chat.
+
+The implementation follows the mechanism-first plan but launches a bounded
+targeted VB screen, not a full validation study and not MCMC. The screen is
+restricted to the 8 hard family/tau/likelihood cells listed above, 6 mechanism
+bundles, and 4 conservative reservoir profiles per hard cell per bundle. The
+resulting launch has 192 exact VB target specifications.
+
+### Implemented Scripts
+
+- materializer:
+  `scripts/materialize_qdesn_tt500_vb_mechanism_first_redesign.R`
+- materialization audit:
+  `scripts/audit_qdesn_tt500_vb_mechanism_first_materialization.R`
+- staged orchestrator:
+  `scripts/orchestrate_qdesn_tt500_vb_mechanism_first_redesign.R`
+- test file:
+  `tests/testthat/test-qdesn-tt500-vb-mechanism-first-redesign.R`
+
+### Materialized Config Contract
+
+- bundle index:
+  `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_bundle_index.csv`
+- bundle index manifest:
+  `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_bundle_index_manifest.json`
+- per-bundle config families:
+  `config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_<bundle>_{defaults,grid,profiles,cell_assignments,target_spec_ids,materialization_manifest}.*`
+
+Each bundle is VB-only, uses the frozen 500-observation rolling-origin protocol,
+uses `rhs_ns`, and writes one exact target likelihood per root through
+`allowed_fit_spec_ids` and runner `--spec-ids`.
+
+### Dry Gates Completed
+
+- materialization:
+  `Rscript scripts/materialize_qdesn_tt500_vb_mechanism_first_redesign.R --workers 20`
+- dry audit:
+  `Rscript scripts/audit_qdesn_tt500_vb_mechanism_first_materialization.R`
+- prepare-only:
+  `Rscript scripts/orchestrate_qdesn_tt500_vb_mechanism_first_redesign.R --prepare-only --skip-materialize --skip-audit --workers 20`
+- focused tests:
+  `Rscript -e 'testthat::test_file("tests/testthat/test-qdesn-tt500-vb-mechanism-first-redesign.R")'`
+
+Dry audit evidence:
+
+- summary:
+  `reports/qdesn_mcmc_validation/posthoc/qdesn_tt500_vb_mechanism_first_20260713/materialization_audit/summary/qdesn_tt500_vb_mechanism_first_materialization_audit.md`
+- table:
+  `reports/qdesn_mcmc_validation/posthoc/qdesn_tt500_vb_mechanism_first_20260713/materialization_audit/tables/qdesn_tt500_vb_mechanism_first_materialization_audit.csv`
+
+Prepare-only evidence:
+
+- orchestrator manifest:
+  `reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first/qdesn-vb-mechanism-first-orchestrator-20260713-182826__git-a845b34/manifest/mechanism_first_orchestrator_manifest.json`
+
+Storage-light dry check found no `.rds`, `.rda`, `.RData`, or `__design.rds`
+payloads in the mechanism-first config/preflight area.
+
+### Launch Policy
+
+The background launch is allowed only from a clean committed validation branch.
+The staged command is:
+
+```bash
+tmux new-session -d -s ffv2_qdesn_vb_mechanism_first_20260713 \
+  'cd /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0 && \
+   Rscript scripts/orchestrate_qdesn_tt500_vb_mechanism_first_redesign.R \
+     --full --launch-approved --skip-materialize --skip-audit \
+     --workers 20 \
+     --orchestrator-tag qdesn-vb-mechanism-first-orchestrator-20260713-main__git-<commit> \
+     > reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first/qdesn-vb-mechanism-first-orchestrator-20260713-main__git-<commit>/mechanism_first_full.stdout.log 2>&1'
+```
+
+Article updates, MCMC promotion, and any new full validation launch remain
+blocked until this VB screen completes and a strict current-protocol audit shows
+per-cell evidence strong enough to promote.
