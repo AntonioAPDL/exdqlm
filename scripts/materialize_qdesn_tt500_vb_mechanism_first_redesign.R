@@ -19,6 +19,9 @@ has_flag <- function(flag) any(args == flag)
 repo_root <- normalizePath(system("git rev-parse --show-toplevel", intern = TRUE), winslash = "/", mustWork = TRUE)
 setwd(repo_root)
 pkgload::load_all(repo_root, quiet = TRUE)
+git_sha_at_start <- trimws(system("git rev-parse HEAD", intern = TRUE))
+git_branch_at_start <- trimws(system("git rev-parse --abbrev-ref HEAD", intern = TRUE))
+git_dirty_at_start <- length(system("git status --porcelain", intern = TRUE)) > 0L
 
 resolve_path <- function(path, must_work = TRUE) {
   raw <- as.character(path %||% "")[1L]
@@ -438,9 +441,9 @@ materialize_bundle <- function(bundle_id, bundle_order, bundle_code) {
   manifest <- list(
     generated_at = as.character(Sys.time()),
     repo_root = repo_root,
-    git_sha = trimws(system("git rev-parse HEAD", intern = TRUE)),
-    git_branch = trimws(system("git rev-parse --abbrev-ref HEAD", intern = TRUE)),
-    git_dirty = length(system("git status --porcelain", intern = TRUE)) > 0L,
+    git_sha = git_sha_at_start,
+    git_branch = git_branch_at_start,
+    git_dirty = git_dirty_at_start,
     bundle_id = bundle_id,
     bundle_order = as.integer(bundle_order),
     stage_stub = stage_stub,
@@ -504,9 +507,9 @@ index_manifest_path <- write_json(
   list(
     generated_at = as.character(Sys.time()),
     repo_root = repo_root,
-    git_sha = trimws(system("git rev-parse HEAD", intern = TRUE)),
-    git_branch = trimws(system("git rev-parse --abbrev-ref HEAD", intern = TRUE)),
-    git_dirty = length(system("git status --porcelain", intern = TRUE)) > 0L,
+    git_sha = git_sha_at_start,
+    git_branch = git_branch_at_start,
+    git_dirty = git_dirty_at_start,
     stage_prefix = stage_prefix,
     short_path_mode = isTRUE(short_path_mode),
     base_defaults = resolve_path(base_defaults),
