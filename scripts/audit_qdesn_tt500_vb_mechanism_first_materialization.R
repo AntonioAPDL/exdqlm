@@ -66,11 +66,16 @@ boolish <- function(x) tolower(as.character(x)) %in% c("true", "t", "yes", "y", 
 tau_key <- function(x) sprintf("%.8f", as.numeric(x))
 
 stage_prefix <- get_arg("--stage-prefix", "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first")
+short_path_mode <- any(args == "--short-path-mode") || identical(stage_prefix, "qvbm1")
 index_path <- resolve_path(get_arg("--index", file.path("config", "validation", paste0(stage_prefix, "_bundle_index.csv"))), must_work = TRUE)
 out_root <- resolve_path(
   get_arg(
     "--out-root",
-    "reports/qdesn_mcmc_validation/posthoc/qdesn_tt500_vb_mechanism_first_20260713/materialization_audit"
+    if (isTRUE(short_path_mode)) {
+      file.path("reports", stage_prefix, "audit", "materialization")
+    } else {
+      "reports/qdesn_mcmc_validation/posthoc/qdesn_tt500_vb_mechanism_first_20260713/materialization_audit"
+    }
   ),
   must_work = FALSE
 )
@@ -121,6 +126,14 @@ audit_bundle <- function(row) {
   if (anyDuplicated(as.character(profiles$screening_profile_id))) problems <- c(problems, "duplicate profile IDs")
   if (anyDuplicated(as.character(grid$root_id))) problems <- c(problems, "duplicate root IDs")
   if (nrow(target_specs) != nrow(grid)) problems <- c(problems, sprintf("target specs %d != grid rows %d", nrow(target_specs), nrow(grid)))
+  max_root_id_chars <- max(nchar(as.character(grid$root_id)), na.rm = TRUE)
+  max_profile_id_chars <- max(nchar(as.character(profiles$screening_profile_id)), na.rm = TRUE)
+  if (is.finite(max_root_id_chars) && max_root_id_chars >= 240L) {
+    problems <- c(problems, sprintf("root_id component too long for robust launch: max %d chars", as.integer(max_root_id_chars)))
+  }
+  if (is.finite(max_profile_id_chars) && max_profile_id_chars >= 80L) {
+    warnings <- c(warnings, sprintf("profile IDs are long: max %d chars", as.integer(max_profile_id_chars)))
+  }
 
   methods <- tolower(as_vec(defaults$execution$methods))
   likelihoods <- sort(unique(tolower(as_vec(defaults$execution$likelihood_families))))
@@ -171,6 +184,18 @@ audit_bundle <- function(row) {
   if (has_home_fallback(all_text)) problems <- c(problems, "active /home/jaguir26/local/src path found")
   absolute_text <- all_text[grepl("^/", as.character(all_text))]
   if (!all_canonical_paths(absolute_text)) problems <- c(problems, "non-canonical absolute path found")
+  results_root <- resolve_path((defaults$campaign %||% list())$results_root %||% "", must_work = FALSE)
+  run_tag_probe <- paste0("m1", as.character(row$bundle_code[[1L]] %||% "bundle"), "f_07131845_", substr(trimws(system("git rev-parse --short HEAD", intern = TRUE)), 1L, 7L))
+  stamp_probe <- "20260713-184500__git-d62b8c2"
+  path_probe <- file.path(results_root, run_tag_probe, stamp_probe, "roots", as.character(grid$root_id), "manifest", "root_status.txt")
+  max_probe_path_chars <- max(nchar(path_probe), na.rm = TRUE)
+  max_probe_component_chars <- max(nchar(unlist(strsplit(path_probe, "/", fixed = TRUE), use.names = FALSE)), na.rm = TRUE)
+  if (is.finite(max_probe_component_chars) && max_probe_component_chars >= 240L) {
+    problems <- c(problems, sprintf("predicted path component too long: max %d chars", as.integer(max_probe_component_chars)))
+  }
+  if (is.finite(max_probe_path_chars) && max_probe_path_chars >= 3500L) {
+    problems <- c(problems, sprintf("predicted absolute path too long: max %d chars", as.integer(max_probe_path_chars)))
+  }
 
   forbidden <- list.files(
     dirname(grid_path),
@@ -216,6 +241,10 @@ audit_bundle <- function(row) {
     n_target_specs = nrow(target_specs),
     n_allowed_spec_ids = length(allowed),
     n_atomic_specs = nrow(atomic),
+    max_profile_id_chars = as.integer(max_profile_id_chars),
+    max_root_id_chars = as.integer(max_root_id_chars),
+    max_probe_component_chars = as.integer(max_probe_component_chars),
+    max_probe_path_chars = as.integer(max_probe_path_chars),
     problems = if (length(problems)) paste(problems, collapse = "; ") else "",
     warnings = if (length(warnings)) paste(warnings, collapse = "; ") else "",
     defaults_path = defaults_path,
@@ -258,7 +287,12 @@ writeLines(c(
   "",
   "## Status",
   "",
-  md_table(summary, c("bundle_id", "status", "input_mode", "decomposition_enabled", "input_builder", "residual_recursion", "seasonal_harmonics", "n_grid_rows", "n_target_specs", "problems")),
+  md_table(summary, c(
+    "bundle_id", "status", "input_mode", "decomposition_enabled", "input_builder",
+    "residual_recursion", "seasonal_harmonics", "n_grid_rows", "n_target_specs",
+    "max_profile_id_chars", "max_root_id_chars", "max_probe_component_chars",
+    "max_probe_path_chars", "problems"
+  )),
   "",
   "## Interpretation",
   "",

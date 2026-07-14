@@ -447,3 +447,73 @@ tmux new-session -d -s ffv2_qdesn_vb_mechanism_first_20260713 \
 Article updates, MCMC promotion, and any new full validation launch remain
 blocked until this VB screen completes and a strict current-protocol audit shows
 per-cell evidence strong enough to promote.
+
+## Short-Path Repair Ledger
+
+Updated 2026-07-14 after the first approved full launch aborted in the
+validation/DQLM chat.
+
+The original mechanism-first launch is diagnostic only. It successfully prepared
+all six bundles, then started the raw period-90 control bundle, but the full run
+aborted when several `root_id` path components became too long for the
+filesystem. The observed failure was `File name too long` while writing
+per-root manifest files such as `manifest/root_status.txt` and
+`manifest/root_error.txt`. The partial outputs from that launch must not be
+treated as authoritative current-protocol screening evidence.
+
+The repaired launch keeps the same scientific design and target cells, but
+shortens only operational identifiers and campaign roots:
+
+- stage prefix: `qvbm1`;
+- bundle codes: `raw`, `c12`, `c123`, `sr`, `srp`, `srx`;
+- config index: `config/validation/qvbm1_bundle_index.csv`;
+- campaign roots: `results/qvbm1/<bundle_code>` and
+  `reports/qvbm1/<bundle_code>`;
+- orchestrator root: `reports/qvbm1/orch/<orchestrator_tag>`;
+- compact profile IDs: `m1<bundle_code>_c<cell>_p<profile>`;
+- compact run tags: `m1<bundle_code><mode>_<timestamp>_<git>`.
+
+The short-path materialization and audit add hard gates for:
+
+- maximum profile ID length;
+- maximum root ID component length;
+- projected maximum filesystem component length for root status files;
+- projected maximum absolute path length;
+- canonical `/data/jaguir26/local/src` paths;
+- storage-light dry paths with no routine `.rds`, `.rda`, `.RData`, or
+  `__design.rds` payloads.
+
+The repaired preflight sequence is:
+
+```bash
+Rscript scripts/materialize_qdesn_tt500_vb_mechanism_first_redesign.R \
+  --stage-prefix qvbm1 --short-path-mode --workers 20
+
+Rscript scripts/audit_qdesn_tt500_vb_mechanism_first_materialization.R \
+  --stage-prefix qvbm1 --short-path-mode
+
+Rscript -e 'testthat::test_file("tests/testthat/test-qdesn-tt500-vb-mechanism-first-redesign.R")'
+
+Rscript scripts/orchestrate_qdesn_tt500_vb_mechanism_first_redesign.R \
+  --stage-prefix qvbm1 --short-path-mode \
+  --prepare-only --skip-materialize --skip-audit --workers 20
+```
+
+The repaired background launch, after the validation branch is clean and
+pushed, is:
+
+```bash
+tmux new-session -d -s ffv2_qvbm1_20260714 \
+  'cd /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0 && \
+   Rscript scripts/orchestrate_qdesn_tt500_vb_mechanism_first_redesign.R \
+     --stage-prefix qvbm1 --short-path-mode \
+     --full --launch-approved --skip-materialize --skip-audit \
+     --workers 20 \
+     --orchestrator-tag qvbm1_20260714_main__git-<commit> \
+     > reports/qvbm1/orch/qvbm1_20260714_main__git-<commit>/qvbm1_full.stdout.log 2>&1'
+```
+
+This remains a VB screening launch only. It does not update article-facing
+tables, does not promote MCMC candidates, and does not replace any
+authoritative validation table until the completed outputs pass the strict
+post-run ranking and storage-light audits.

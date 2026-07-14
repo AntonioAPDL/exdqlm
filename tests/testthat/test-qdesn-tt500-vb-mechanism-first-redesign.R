@@ -81,3 +81,28 @@ test_that("Q-DESN mechanism-first decomposition bundles activate a different inp
     }
   }
 })
+
+test_that("Q-DESN mechanism-first short-path bundles stay below robust path limits", {
+  repo <- mechanism_first_repo_root()
+  index_path <- file.path(repo, "config", "validation", "qvbm1_bundle_index.csv")
+  skip_if_not(file.exists(index_path), "short-path mechanism-first bundles have not been materialized")
+  skip_if_not(requireNamespace("yaml", quietly = TRUE), "yaml is required for config audit")
+  index <- utils::read.csv(index_path, check.names = FALSE, stringsAsFactors = FALSE)
+  expect_equal(nrow(index), 6L)
+  expect_true(all(c("bundle_id", "bundle_code", "stage_stub", "defaults_path", "grid_path", "profiles_path") %in% names(index)))
+  expect_true(all(startsWith(index$stage_stub, "qvbm1_")))
+  expect_true(all(nchar(index$stage_stub) <= 12L))
+
+  for (i in seq_len(nrow(index))) {
+    defaults <- yaml::read_yaml(index$defaults_path[[i]])
+    grid <- utils::read.csv(index$grid_path[[i]], check.names = FALSE, stringsAsFactors = FALSE)
+    profiles <- utils::read.csv(index$profiles_path[[i]], check.names = FALSE, stringsAsFactors = FALSE)
+    target <- utils::read.csv(index$target_spec_ids_path[[i]], check.names = FALSE, stringsAsFactors = FALSE)
+    expect_lt(max(nchar(as.character(grid$root_id))), 240L)
+    expect_lt(max(nchar(as.character(profiles$screening_profile_id))), 80L)
+    expect_true(startsWith(as.character(defaults$campaign$results_root), "results/qvbm1/"))
+    expect_true(startsWith(as.character(defaults$campaign$reports_root), "reports/qvbm1/"))
+    expect_true(all(target$screening_profile_id %in% profiles$screening_profile_id))
+    expect_true(all(target$spec_id %in% unlist(defaults$execution$allowed_fit_spec_ids, use.names = FALSE)))
+  }
+})

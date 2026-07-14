@@ -76,6 +76,7 @@ stage_prefix <- get_arg("--stage-prefix", "qdesn_dynamic_fitforecast_v2_tt500_vb
 workers <- suppressWarnings(as.integer(get_arg("--workers", "20"))[1L])
 if (!is.finite(workers) || workers < 1L) workers <- 20L
 refresh_grid <- !has_flag("--no-refresh-grid")
+short_path_mode <- has_flag("--short-path-mode") || identical(stage_prefix, "qvbm1")
 
 hard_cells <- data.frame(
   family = c("laplace", "normal", "gausmix", "normal", "normal", "normal", "laplace", "gausmix"),
@@ -198,26 +199,37 @@ bundles <- data.frame(
     "decomp_state_resid_y_plugin_p90_h12",
     "decomp_state_resid_y_xreg_p90_h12"
   ),
+  bundle_code = c("raw", "c12", "c123", "sr", "srp", "srx"),
   bundle_order = seq_len(6L),
   stringsAsFactors = FALSE
 )
 
+bundle_code_for <- function(bundle_id) {
+  out <- bundles$bundle_code[match(bundle_id, bundles$bundle_id)]
+  if (is.na(out) || !nzchar(out)) slug(bundle_id) else out
+}
+
 make_profiles <- function(bundle_id) {
   rows <- list()
   row_i <- 0L
+  bcode <- bundle_code_for(bundle_id)
   for (ci in seq_len(nrow(hard_cells))) {
     cell <- hard_cells[ci, , drop = FALSE]
     for (ti in seq_len(nrow(profile_templates))) {
       tmpl <- profile_templates[ti, , drop = FALSE]
       row_i <- row_i + 1L
-      sid <- sprintf(
-        "tt500vb_mech_%s_%s_%s_%s_%s_d%d_n%d_a%s_r%s_m%d_tau0%s_s%d",
-        slug(bundle_id), as.character(cell$family), tau_token(cell$tau),
-        as.character(cell$likelihood_target), slug(tmpl$profile_role),
-        as.integer(tmpl$D), as.integer(tmpl$n_each), slug_num(tmpl$alpha),
-        slug_num(tmpl$rho), as.integer(tmpl$m), slug_num(tmpl$rhs_tau0),
-        73000L + 100L * as.integer(cell$priority_rank) + ti
-      )
+      sid <- if (isTRUE(short_path_mode)) {
+        sprintf("m1%s_c%02d_p%02d", bcode, as.integer(cell$priority_rank), ti)
+      } else {
+        sprintf(
+          "tt500vb_mech_%s_%s_%s_%s_%s_d%d_n%d_a%s_r%s_m%d_tau0%s_s%d",
+          slug(bundle_id), as.character(cell$family), tau_token(cell$tau),
+          as.character(cell$likelihood_target), slug(tmpl$profile_role),
+          as.integer(tmpl$D), as.integer(tmpl$n_each), slug_num(tmpl$alpha),
+          slug_num(tmpl$rho), as.integer(tmpl$m), slug_num(tmpl$rhs_tau0),
+          73000L + 100L * as.integer(cell$priority_rank) + ti
+        )
+      }
       p_est <- as.integer(tmpl$D * tmpl$n_each + if (as.integer(tmpl$D) > 1L) tmpl$n_tilde_each * (tmpl$D - 1L) else 0L + 1L)
       rows[[length(rows) + 1L]] <- data.frame(
         screening_profile_id = sid,
@@ -246,6 +258,7 @@ make_profiles <- function(bundle_id) {
         target_tau = as.numeric(cell$tau),
         likelihood_target = as.character(cell$likelihood_target),
         design_bundle = bundle_id,
+        design_bundle_code = bcode,
         design_axis = "mechanism_first_decomposition",
         blocker_target = as.character(cell$blocker_target),
         current_best_joint_worst_ratio = as.numeric(cell$current_best_joint_worst_ratio),
@@ -270,6 +283,7 @@ make_assignments <- function(profiles) {
     target_profile_rank = ave(seq_len(nrow(profiles)), profiles$target_family, tau_key(profiles$target_tau), profiles$likelihood_target, FUN = seq_along),
     screening_profile_id = profiles$screening_profile_id,
     design_bundle = profiles$design_bundle,
+    design_bundle_code = profiles$design_bundle_code,
     design_axis = profiles$design_axis,
     blocker_target = profiles$blocker_target,
     current_best_joint_worst_ratio = profiles$current_best_joint_worst_ratio,
@@ -321,8 +335,12 @@ target_specs_for <- function(grid, assignments, defaults) {
   out[order(out$family, out$tau, out$likelihood_target, out$screening_profile_id), , drop = FALSE]
 }
 
-materialize_bundle <- function(bundle_id, bundle_order) {
-  stage_stub <- paste(stage_prefix, slug(bundle_id), sep = "_")
+materialize_bundle <- function(bundle_id, bundle_order, bundle_code) {
+  stage_stub <- if (isTRUE(short_path_mode)) {
+    paste(stage_prefix, bundle_code, sep = "_")
+  } else {
+    paste(stage_prefix, slug(bundle_id), sep = "_")
+  }
   paths <- list(
     profiles = file.path("config", "validation", paste0(stage_stub, "_profiles.csv")),
     assignments = file.path("config", "validation", paste0(stage_stub, "_cell_assignments.csv")),
@@ -357,8 +375,13 @@ materialize_bundle <- function(bundle_id, bundle_order) {
   defaults <- yaml::read_yaml(resolve_path(paths$defaults))
   bundle_cfg <- decomp_cfg(bundle_id)
   defaults$campaign$name <- stage_stub
-  defaults$campaign$results_root <- file.path("results", "qdesn_mcmc_validation", stage_stub)
-  defaults$campaign$reports_root <- file.path("reports", "qdesn_mcmc_validation", stage_stub)
+  if (isTRUE(short_path_mode)) {
+    defaults$campaign$results_root <- file.path("results", stage_prefix, bundle_code)
+    defaults$campaign$reports_root <- file.path("reports", stage_prefix, bundle_code)
+  } else {
+    defaults$campaign$results_root <- file.path("results", "qdesn_mcmc_validation", stage_stub)
+    defaults$campaign$reports_root <- file.path("reports", "qdesn_mcmc_validation", stage_stub)
+  }
   defaults$execution$methods <- "vb"
   defaults$execution$likelihood_families <- as.list(c("al", "exal"))
   defaults$study_contract$core_lane <- TRUE
@@ -386,6 +409,7 @@ materialize_bundle <- function(bundle_id, bundle_order) {
   defaults$deterministic_features$prefix <- "period90"
   defaults$screening_profiles$mechanism_first_design <- list(
     bundle_id = bundle_id,
+    bundle_code = bundle_code,
     bundle_order = as.integer(bundle_order),
     mechanism_summary = bundle_cfg$mechanism_summary,
     target_cells = nrow(hard_cells),
@@ -430,7 +454,9 @@ materialize_bundle <- function(bundle_id, bundle_order) {
       n_assignments = nrow(assignments2),
       n_grid_rows = nrow(grid),
       n_target_specs = nrow(target_specs),
-      n_hard_cells = nrow(hard_cells)
+      n_hard_cells = nrow(hard_cells),
+      max_root_id_chars = max(nchar(as.character(grid$root_id)), na.rm = TRUE),
+      max_profile_id_chars = max(nchar(as.character(profiles$screening_profile_id)), na.rm = TRUE)
     ),
     launch_policy = list(
       launch_approved_by_current_user_request = TRUE,
@@ -443,6 +469,7 @@ materialize_bundle <- function(bundle_id, bundle_order) {
   write_json(manifest, paths$manifest)
   data.frame(
     bundle_id = bundle_id,
+    bundle_code = bundle_code,
     bundle_order = as.integer(bundle_order),
     stage_stub = stage_stub,
     defaults_path = resolve_path(paths$defaults, must_work = TRUE),
@@ -455,12 +482,16 @@ materialize_bundle <- function(bundle_id, bundle_order) {
     n_assignments = nrow(assignments2),
     n_grid_rows = nrow(grid),
     n_target_specs = nrow(target_specs),
+    max_root_id_chars = max(nchar(as.character(grid$root_id)), na.rm = TRUE),
+    max_profile_id_chars = max(nchar(as.character(profiles$screening_profile_id)), na.rm = TRUE),
     mechanism_summary = bundle_cfg$mechanism_summary,
     stringsAsFactors = FALSE
   )
 }
 
-index <- bind_rows(lapply(seq_len(nrow(bundles)), function(i) materialize_bundle(bundles$bundle_id[[i]], bundles$bundle_order[[i]])))
+index <- bind_rows(lapply(seq_len(nrow(bundles)), function(i) {
+  materialize_bundle(bundles$bundle_id[[i]], bundles$bundle_order[[i]], bundles$bundle_code[[i]])
+}))
 index_path <- write_csv(index, file.path("config", "validation", paste0(stage_prefix, "_bundle_index.csv")))
 index_manifest_path <- write_json(
   list(
@@ -470,6 +501,7 @@ index_manifest_path <- write_json(
     git_branch = trimws(system("git rev-parse --abbrev-ref HEAD", intern = TRUE)),
     git_dirty = length(system("git status --porcelain", intern = TRUE)) > 0L,
     stage_prefix = stage_prefix,
+    short_path_mode = isTRUE(short_path_mode),
     base_defaults = resolve_path(base_defaults),
     index_path = index_path,
     bundles = index,
@@ -489,3 +521,4 @@ message("Materialized Q-DESN VB mechanism-first bundles:")
 message("  index: ", index_path)
 message("  manifest: ", index_manifest_path)
 message("  bundles: ", nrow(index), "; target specs: ", sum(as.integer(index$n_target_specs)))
+message("  max root_id chars: ", max(as.integer(index$max_root_id_chars), na.rm = TRUE))

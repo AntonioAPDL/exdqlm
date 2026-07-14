@@ -38,6 +38,7 @@ split_csv_arg <- function(x) {
 }
 
 stage_prefix <- get_arg("--stage-prefix", "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first")
+short_path_mode <- has_flag("--short-path-mode") || identical(stage_prefix, "qvbm1")
 workers <- suppressWarnings(as.integer(get_arg("--workers", "20"))[1L])
 if (!is.finite(workers) || workers < 1L) workers <- 20L
 workers <- min(workers, 30L)
@@ -59,14 +60,23 @@ if (isTRUE(full) && !isTRUE(launch_approved)) {
 
 git_short <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
+stamp_short <- format(Sys.time(), "%m%d%H%M")
 orchestrator_tag <- get_arg(
   "--orchestrator-tag",
-  sprintf("qdesn-vb-mechanism-first-orchestrator-%s__git-%s", stamp, git_short)
+  if (isTRUE(short_path_mode)) {
+    sprintf("qvbm1_%s__git-%s", stamp_short, git_short)
+  } else {
+    sprintf("qdesn-vb-mechanism-first-orchestrator-%s__git-%s", stamp, git_short)
+  }
 )
-orchestrator_root <- resolve_path(file.path(
-  "reports", "qdesn_mcmc_validation", "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first",
-  orchestrator_tag
-), must_work = FALSE)
+orchestrator_root <- if (isTRUE(short_path_mode)) {
+  resolve_path(file.path("reports", stage_prefix, "orch", orchestrator_tag), must_work = FALSE)
+} else {
+  resolve_path(file.path(
+    "reports", "qdesn_mcmc_validation", "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first",
+    orchestrator_tag
+  ), must_work = FALSE)
+}
 dir.create(file.path(orchestrator_root, "logs"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(orchestrator_root, "manifest"), recursive = TRUE, showWarnings = FALSE)
 
@@ -89,6 +99,7 @@ if (!isTRUE(skip_materialize)) {
     "--stage-prefix", stage_prefix,
     "--workers", as.character(workers)
   )
+  if (isTRUE(short_path_mode)) mat_args <- c(mat_args, "--short-path-mode")
   steps[[length(steps) + 1L]] <- run_cmd("00_materialize", "Rscript", mat_args)
 }
 if (!isTRUE(skip_audit)) {
@@ -96,6 +107,7 @@ if (!isTRUE(skip_audit)) {
     "scripts/audit_qdesn_tt500_vb_mechanism_first_materialization.R",
     "--stage-prefix", stage_prefix
   )
+  if (isTRUE(short_path_mode)) audit_args <- c(audit_args, "--short-path-mode")
   steps[[length(steps) + 1L]] <- run_cmd("01_audit", "Rscript", audit_args)
 }
 
@@ -126,15 +138,21 @@ if (isTRUE(materialize_only) || isTRUE(dry_run)) {
 run_one_bundle <- function(row, mode = c("prepare", "full")) {
   mode <- match.arg(mode)
   bundle_id <- as.character(row$bundle_id[[1L]])
+  bundle_code <- as.character((row$bundle_code %||% gsub("[^A-Za-z0-9]", "", bundle_id))[[1L]])
+  if (!nzchar(bundle_code)) bundle_code <- substr(gsub("[^A-Za-z0-9]", "", bundle_id), 1L, 8L)
   target_specs <- utils::read.csv(resolve_path(row$target_spec_ids_path[[1L]], must_work = TRUE), check.names = FALSE, stringsAsFactors = FALSE)
   spec_ids <- paste(as.character(target_specs$spec_id), collapse = ",")
-  run_tag <- sprintf(
-    "qdesn-vb-mechanism-first-%s-%s-%s__git-%s",
-    gsub("_", "-", bundle_id),
-    mode,
-    stamp,
-    git_short
-  )
+  run_tag <- if (isTRUE(short_path_mode)) {
+    sprintf("m1%s%s_%s_%s", bundle_code, substr(mode, 1L, 1L), stamp_short, git_short)
+  } else {
+    sprintf(
+      "qdesn-vb-mechanism-first-%s-%s-%s__git-%s",
+      gsub("_", "-", bundle_id),
+      mode,
+      stamp,
+      git_short
+    )
+  }
   runner_args <- c(
     "scripts/run_qdesn_dynamic_exdqlm_crossstudy_validation.R",
     "--defaults", as.character(row$defaults_path[[1L]]),
@@ -156,7 +174,11 @@ run_one_bundle <- function(row, mode = c("prepare", "full")) {
     runner_args <- c(runner_args, "--fit-timeout-seconds", as.character(fit_timeout_seconds))
   }
   if (identical(mode, "prepare")) runner_args <- c(runner_args, "--prepare-only")
-  label <- sprintf("%s_%s", if (identical(mode, "prepare")) "10_prepare" else "20_full", bundle_id)
+  label <- if (isTRUE(short_path_mode)) {
+    sprintf("%s_%s", if (identical(mode, "prepare")) "10p" else "20f", bundle_code)
+  } else {
+    sprintf("%s_%s", if (identical(mode, "prepare")) "10_prepare" else "20_full", bundle_id)
+  }
   out <- run_cmd(label, "Rscript", runner_args)
   out$bundle_id <- bundle_id
   out$mode <- mode

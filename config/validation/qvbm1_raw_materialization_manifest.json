@@ -1,0 +1,125 @@
+{
+  "generated_at": "2026-07-13 20:31:56.480448",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "d62b8c25e0a75581bdf26a0c5eb7dc345c70d7e5",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "bundle_id": "raw_period90_control",
+  "bundle_order": 1,
+  "stage_stub": "qvbm1_raw",
+  "base_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v51_defaults.yaml",
+  "mechanism_summary": "raw_y_lags control with staged period-90 deterministic features",
+  "hard_cells": [
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 1,
+      "blocker_target": "fit_rmse_fit_check",
+      "current_best_joint_worst_ratio": 1.7598
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 2,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.7239
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 3,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.6168
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 4,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.5589
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "al",
+      "priority_rank": 5,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.5508
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "exal",
+      "priority_rank": 6,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.4391
+    },
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 7,
+      "blocker_target": "fit_rmse_forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.3877
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 8,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.1738
+    }
+  ],
+  "materialization": {
+    "stage": "mechanism_first",
+    "stage_stub": "qvbm1_raw",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_grid.csv",
+    "n_profiles": 32,
+    "n_assignments": 32,
+    "n_canonical_grid_rows": 288,
+    "n_grid_rows": 32,
+    "expected_qdesn_roots": 32,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.5],
+    "missing_assignments": []
+  },
+  "paths": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_target_spec_ids.csv",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_raw_materialization_manifest.json"
+  },
+  "hashes": {
+    "profiles_sha256": "2a3f958342b72b5ccc6546cee3c12335b05adde956cbcb8e79eec9d48cdfe364",
+    "assignments_sha256": "eb1e0e59ff31230693cbe7373a02b5ee146e4bb68829c5219c0a41ed86408ec7",
+    "defaults_sha256": "1ee4669575e6106f15e96ccf491c1654eab94398d385dbdc2dbf738dac6eb98d",
+    "grid_sha256": "cdd6a65352a1a05de71d95d7044131f6c631b8536bba1cd1446484070fe9d5c7",
+    "target_specs_sha256": "0a44aec4c60be4c430a0f2eb5e741c5fb252fd0e366a41202645fbc324974318"
+  },
+  "counts": {
+    "n_profiles": 32,
+    "n_assignments": 32,
+    "n_grid_rows": 32,
+    "n_target_specs": 32,
+    "n_hard_cells": 8,
+    "max_root_id_chars": 153,
+    "max_profile_id_chars": 13
+  },
+  "launch_policy": {
+    "launch_approved_by_current_user_request": true,
+    "vb_only": true,
+    "storage_light": true,
+    "exact_spec_id_filter_required": true,
+    "article_facing": false
+  }
+}

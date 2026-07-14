@@ -1,0 +1,125 @@
+{
+  "generated_at": "2026-07-13 20:32:19.737761",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "d62b8c25e0a75581bdf26a0c5eb7dc345c70d7e5",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "bundle_id": "decomp_state_resid_y_xreg_p90_h12",
+  "bundle_order": 6,
+  "stage_stub": "qvbm1_srx",
+  "base_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v51_defaults.yaml",
+  "mechanism_summary": "state_resid_y DLM decomposition with period-90 harmonics 1,2 and sampled_path forecast residual recursion",
+  "hard_cells": [
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 1,
+      "blocker_target": "fit_rmse_fit_check",
+      "current_best_joint_worst_ratio": 1.7598
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 2,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.7239
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 3,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.6168
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 4,
+      "blocker_target": "fit_rmse_forecast_mae",
+      "current_best_joint_worst_ratio": 1.5589
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "al",
+      "priority_rank": 5,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.5508
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "exal",
+      "priority_rank": 6,
+      "blocker_target": "forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.4391
+    },
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 7,
+      "blocker_target": "fit_rmse_forecast_mae_forecast_check",
+      "current_best_joint_worst_ratio": 1.3877
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 8,
+      "blocker_target": "fit_rmse",
+      "current_best_joint_worst_ratio": 1.1738
+    }
+  ],
+  "materialization": {
+    "stage": "mechanism_first",
+    "stage_stub": "qvbm1_srx",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_grid.csv",
+    "n_profiles": 32,
+    "n_assignments": 32,
+    "n_canonical_grid_rows": 288,
+    "n_grid_rows": 32,
+    "expected_qdesn_roots": 32,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.5],
+    "missing_assignments": []
+  },
+  "paths": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_target_spec_ids.csv",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm1_srx_materialization_manifest.json"
+  },
+  "hashes": {
+    "profiles_sha256": "1f66a90db7adaaf93ed857efa9e960f972d232c33666cfc095752cded58c3061",
+    "assignments_sha256": "4f787a1a7140f5c6306db9a02d1c6fb5dbf0dd1d55580800062b771a4869eeaf",
+    "defaults_sha256": "072aa7167325fb76d7832b041d4dcb1c16ead6fe3d93d47a808351699c7c4ce5",
+    "grid_sha256": "d6028e2f912291e8a1f6e697ffd49a9f756e19f002d2aeddbcf3caa4045a9ef7",
+    "target_specs_sha256": "a1baee9ab19cba68593db8acabdafea6aef685c98a47912a7ec9501103a4a316"
+  },
+  "counts": {
+    "n_profiles": 32,
+    "n_assignments": 32,
+    "n_grid_rows": 32,
+    "n_target_specs": 32,
+    "n_hard_cells": 8,
+    "max_root_id_chars": 153,
+    "max_profile_id_chars": 13
+  },
+  "launch_policy": {
+    "launch_approved_by_current_user_request": true,
+    "vb_only": true,
+    "storage_light": true,
+    "exact_spec_id_filter_required": true,
+    "article_facing": false
+  }
+}
