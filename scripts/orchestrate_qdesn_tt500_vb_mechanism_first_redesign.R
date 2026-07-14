@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  req <- c("jsonlite")
+  req <- c("jsonlite", "yaml")
   need <- setdiff(req, rownames(installed.packages()))
   if (length(need)) install.packages(need, repos = "https://cloud.r-project.org")
   invisible(lapply(req, require, character.only = TRUE))
@@ -92,6 +92,72 @@ run_cmd <- function(label, cmd, cmd_args, allow_failure = FALSE) {
   list(label = label, status = as.integer(status), log_path = normalizePath(log_path, winslash = "/", mustWork = TRUE), command_path = normalizePath(cmd_path, winslash = "/", mustWork = TRUE))
 }
 
+bundle_postrun_gate <- function(row, run_tag) {
+  target_specs <- utils::read.csv(resolve_path(row$target_spec_ids_path[[1L]], must_work = TRUE), check.names = FALSE, stringsAsFactors = FALSE)
+  defaults <- yaml::read_yaml(resolve_path(row$defaults_path[[1L]], must_work = TRUE))
+  results_base <- resolve_path((defaults$campaign %||% list())$results_root, must_work = FALSE)
+  run_root <- file.path(results_base, run_tag)
+  status_files <- list.files(
+    run_root,
+    pattern = "root_status[.]txt$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+  status_values <- vapply(status_files, function(path) {
+    txt <- tryCatch(readLines(path, warn = FALSE), error = function(e) character(0))
+    trimws(as.character(txt[1L] %||% "UNKNOWN"))
+  }, character(1L))
+  status_values <- toupper(status_values)
+  counts <- as.list(table(status_values))
+  n_success <- as.integer(counts$SUCCESS %||% 0L)
+  n_fail <- as.integer(counts$FAIL %||% 0L)
+  n_running <- as.integer(counts$RUNNING %||% 0L)
+  n_unknown <- sum(!status_values %in% c("SUCCESS", "FAIL", "RUNNING"))
+  gate <- list(
+    generated_at = as.character(Sys.time()),
+    bundle_id = as.character(row$bundle_id[[1L]]),
+    bundle_code = as.character(row$bundle_code[[1L]]),
+    run_tag = as.character(run_tag),
+    run_root = normalizePath(run_root, winslash = "/", mustWork = FALSE),
+    expected_roots = as.integer(nrow(target_specs)),
+    observed_root_status_files = as.integer(length(status_files)),
+    n_success = n_success,
+    n_fail = n_fail,
+    n_running = n_running,
+    n_unknown = as.integer(n_unknown),
+    status_counts = counts
+  )
+  gate_path <- file.path(orchestrator_root, "logs", sprintf("postrun_gate_%s.json", as.character(row$bundle_code[[1L]])))
+  write_json(gate, gate_path)
+  if (length(status_files) < nrow(target_specs)) {
+    stop(sprintf(
+      "Bundle '%s' post-run gate failed: observed %d root_status files, expected %d. Gate: %s",
+      as.character(row$bundle_id[[1L]]),
+      length(status_files),
+      nrow(target_specs),
+      gate_path
+    ), call. = FALSE)
+  }
+  if (n_running > 0L || n_unknown > 0L) {
+    stop(sprintf(
+      "Bundle '%s' post-run gate failed: RUNNING=%d UNKNOWN=%d. Gate: %s",
+      as.character(row$bundle_id[[1L]]),
+      n_running,
+      n_unknown,
+      gate_path
+    ), call. = FALSE)
+  }
+  if (n_success < 1L) {
+    stop(sprintf(
+      "Bundle '%s' post-run gate failed: zero successful roots out of %d. Gate: %s",
+      as.character(row$bundle_id[[1L]]),
+      length(status_files),
+      gate_path
+    ), call. = FALSE)
+  }
+  gate
+}
+
 steps <- list()
 if (!isTRUE(skip_materialize)) {
   mat_args <- c(
@@ -180,6 +246,9 @@ run_one_bundle <- function(row, mode = c("prepare", "full")) {
     sprintf("%s_%s", if (identical(mode, "prepare")) "10_prepare" else "20_full", bundle_id)
   }
   out <- run_cmd(label, "Rscript", runner_args)
+  if (identical(mode, "full")) {
+    out$postrun_gate <- bundle_postrun_gate(row, run_tag)
+  }
   out$bundle_id <- bundle_id
   out$mode <- mode
   out$run_tag <- run_tag

@@ -325,6 +325,7 @@ screening_profiles:
       audit; do not require one shared spec
   mechanism_first_design:
     bundle_id: decomp_component_p90_h123
+    bundle_code: c123
     bundle_order: 3
     mechanism_summary: component_lags DLM decomposition with period-90 harmonics 1,2,3
       and sampled_path forecast residual recursion
@@ -869,6 +870,10 @@ pipeline:
             intercept_prec: 1.0e-10
             n_inner: 2
             var_floor: 1.0e-08
+  validation_guardrails:
+    allow_dlm_decomp_lags: yes
+    allow_dlm_decomp_lags_reason: qvbm1 mechanism-first VB screen explicitly evaluates
+      DLM decomposition lag inputs
 paths:
   rewrite_home_local_src_to_repo_root: yes
 deterministic_features:

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-13 20:31:56.480448",
+  "generated_at": "2026-07-13 21:51:45.53585",
   "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
-  "git_sha": "d62b8c25e0a75581bdf26a0c5eb7dc345c70d7e5",
+  "git_sha": "90defed3fd67549144a7440d7b2c85bf48749309",
   "git_branch": "validation/shared-fitforecast-v2-1.0.0",
   "git_dirty": true,
   "bundle_id": "raw_period90_control",
@@ -102,7 +102,7 @@
   "hashes": {
     "profiles_sha256": "2a3f958342b72b5ccc6546cee3c12335b05adde956cbcb8e79eec9d48cdfe364",
     "assignments_sha256": "eb1e0e59ff31230693cbe7373a02b5ee146e4bb68829c5219c0a41ed86408ec7",
-    "defaults_sha256": "1ee4669575e6106f15e96ccf491c1654eab94398d385dbdc2dbf738dac6eb98d",
+    "defaults_sha256": "1aeb87fcf0007df4201e290915b6c637ef29a4c5b3f1f2f8c8c96bbfb53c54b1",
     "grid_sha256": "cdd6a65352a1a05de71d95d7044131f6c631b8536bba1cd1446484070fe9d5c7",
     "target_specs_sha256": "0a44aec4c60be4c430a0f2eb5e741c5fb252fd0e366a41202645fbc324974318"
   },

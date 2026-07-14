@@ -147,8 +147,10 @@ audit_bundle <- function(row) {
   pipeline <- defaults$pipeline %||% list()
   readout <- pipeline$readout %||% list()
   decomp <- pipeline$decomposition %||% list()
+  guardrails <- pipeline$validation_guardrails %||% list()
   input_mode <- tolower(as.character(readout$input_mode %||% "raw_y_lags")[1L])
   decomp_enabled <- isTRUE(decomp$enabled %||% FALSE)
+  allow_dlm_decomp_lags <- isTRUE(guardrails$allow_dlm_decomp_lags %||% FALSE)
   input_builder <- tolower(as.character(decomp$input_builder %||% "component_lags")[1L])
   residual_recursion <- tolower(as.character(((decomp$forecast %||% list())$residual_recursion %||% "sampled_path")[1L]))
   harmonics <- as.integer(as_vec((decomp$seasonal %||% list())$harmonics %||% integer(0)))
@@ -158,9 +160,11 @@ audit_bundle <- function(row) {
   if (identical(bundle_id, "raw_period90_control")) {
     if (!identical(input_mode, "raw_y_lags")) problems <- c(problems, "raw control does not use raw_y_lags")
     if (isTRUE(decomp_enabled)) problems <- c(problems, "raw control unexpectedly enables decomposition")
+    if (isTRUE(allow_dlm_decomp_lags)) problems <- c(problems, "raw control unexpectedly opts into dlm_decomp_lags")
   } else {
     if (!identical(input_mode, "dlm_decomp_lags")) problems <- c(problems, "decomposition bundle does not use dlm_decomp_lags")
     if (!isTRUE(decomp_enabled)) problems <- c(problems, "decomposition bundle has decomposition.enabled FALSE")
+    if (!isTRUE(allow_dlm_decomp_lags)) problems <- c(problems, "decomposition bundle does not explicitly opt into dlm_decomp_lags")
     if (!input_builder %in% c("component_lags", "state_resid_y")) problems <- c(problems, paste("invalid input_builder", input_builder))
     if (!is.finite(period) || period != 90L) problems <- c(problems, "decomposition seasonal period is not 90")
     if (grepl("h123", bundle_id) && !all(c(1L, 2L, 3L) %in% harmonics)) problems <- c(problems, "h123 bundle missing harmonics 1,2,3")
@@ -221,6 +225,48 @@ audit_bundle <- function(row) {
   if (!all(tolower(as.character(target_specs$likelihood_target)) %in% c("al", "exal"))) {
     problems <- c(problems, "target likelihood outside al/exal")
   }
+  builder_probe_status <- "NOT_RUN"
+  builder_input_mode <- NA_character_
+  builder_decomposition_enabled <- NA
+  if (nrow(target_specs) && nrow(atomic)) {
+    target_row <- target_specs[1L, , drop = FALSE]
+    probe_idx <- match(as.character(target_row$spec_id[[1L]]), as.character(atomic$spec_id))
+    grid_idx <- match(as.character(target_row$root_id[[1L]]), as.character(grid$root_id))
+    if (is.na(probe_idx) || is.na(grid_idx)) {
+      problems <- c(problems, "cannot pipeline-probe first target spec because it is absent from atomic grid or root grid")
+      builder_probe_status <- "FAIL"
+    } else {
+      probe_root <- exdqlm:::qdesn_dynamic_crossstudy_enrich_root_spec(
+        as.list(grid[grid_idx, , drop = FALSE]),
+        defaults_loaded
+      )
+      probe_x_cols <- names(exdqlm:::.qdesn_dynamic_crossstudy_make_deterministic_features(
+        seq_len(as.integer(probe_root$source_total_size %||% probe_root$fit_size)),
+        defaults_loaded
+      ))
+      probe_cfg <- tryCatch(
+        exdqlm:::qdesn_static_crossstudy_build_pipeline_cfg(
+          root_spec = probe_root,
+          defaults = defaults_loaded,
+          method = "vb",
+          likelihood_family = tolower(as.character(target_row$likelihood_target[[1L]])),
+          x_cols = probe_x_cols,
+          T_use = as.integer(probe_root$source_total_size %||% probe_root$fit_size)
+        ),
+        error = function(e) e
+      )
+      if (inherits(probe_cfg, "error")) {
+        problems <- c(problems, paste("pipeline builder rejects first target spec:", conditionMessage(probe_cfg)))
+        builder_probe_status <- "FAIL"
+      } else {
+        builder_probe_status <- "PASS"
+        builder_input_mode <- tolower(as.character((probe_cfg$readout %||% list())$input_mode %||% "")[1L])
+        builder_decomposition_enabled <- isTRUE((probe_cfg$decomposition %||% list())$enabled %||% FALSE)
+        if (!identical(builder_input_mode, input_mode)) problems <- c(problems, "pipeline builder input mode differs from defaults")
+        if (!identical(builder_decomposition_enabled, decomp_enabled)) problems <- c(problems, "pipeline builder decomposition flag differs from defaults")
+      }
+    }
+  }
 
   status <- if (length(problems)) "FAIL" else "DRY_PASS"
   data.frame(
@@ -230,8 +276,12 @@ audit_bundle <- function(row) {
     stage_stub = as.character(row$stage_stub[[1L]]),
     input_mode = input_mode,
     decomposition_enabled = decomp_enabled,
+    allow_dlm_decomp_lags = allow_dlm_decomp_lags,
     input_builder = input_builder,
     residual_recursion = residual_recursion,
+    builder_probe_status = builder_probe_status,
+    builder_input_mode = builder_input_mode,
+    builder_decomposition_enabled = builder_decomposition_enabled,
     seasonal_period = period,
     seasonal_harmonics = paste(harmonics, collapse = ","),
     deterministic_harmonics = paste(deterministic_harmonics, collapse = ","),
@@ -288,15 +338,17 @@ writeLines(c(
   "## Status",
   "",
   md_table(summary, c(
-    "bundle_id", "status", "input_mode", "decomposition_enabled", "input_builder",
-    "residual_recursion", "seasonal_harmonics", "n_grid_rows", "n_target_specs",
+    "bundle_id", "status", "input_mode", "decomposition_enabled", "allow_dlm_decomp_lags",
+    "input_builder", "residual_recursion", "builder_probe_status", "builder_input_mode",
+    "seasonal_harmonics", "n_grid_rows", "n_target_specs",
     "max_profile_id_chars", "max_root_id_chars", "max_probe_component_chars",
     "max_probe_path_chars", "problems"
   )),
   "",
   "## Interpretation",
   "",
-  "- `DRY_PASS` means the bundle is VB-only, storage-light, exact-spec scoped, and mechanism settings are active in defaults.",
+  "- `DRY_PASS` means the bundle is VB-only, storage-light, exact-spec scoped, mechanism settings are active in defaults, and the real validation pipeline builder accepts a representative target spec.",
+  "- `allow_dlm_decomp_lags` must remain false for the raw control and true only for the mechanism-first decomposition bundles.",
   "- The audit does not make any result article-facing. Promotion still requires completed run evidence and strict ranking/audit."
 ), summary_md)
 

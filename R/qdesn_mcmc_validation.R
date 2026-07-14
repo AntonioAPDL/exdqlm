@@ -411,9 +411,27 @@ qdesn_validation_generate_toy_series <- function(scenario = "toy_sine_small",
 .qdesn_validation_assert_non_dlm_input <- function(pipeline_cfg) {
   readout_cfg <- pipeline_cfg$readout %||% list()
   decomposition_cfg <- pipeline_cfg$decomposition %||% list()
+  guardrails_cfg <- pipeline_cfg$validation_guardrails %||% list()
 
   input_mode <- tolower(as.character(readout_cfg$input_mode %||% "raw_y_lags")[1L])
   decomposition_enabled <- isTRUE(decomposition_cfg$enabled %||% FALSE)
+  allow_dlm_decomp_lags <- isTRUE(guardrails_cfg$allow_dlm_decomp_lags %||% FALSE)
+
+  if (isTRUE(allow_dlm_decomp_lags)) {
+    if (!identical(input_mode, "dlm_decomp_lags")) {
+      stop(
+        "validation_guardrails.allow_dlm_decomp_lags=TRUE requires readout.input_mode='dlm_decomp_lags'.",
+        call. = FALSE
+      )
+    }
+    if (!isTRUE(decomposition_enabled)) {
+      stop(
+        "validation_guardrails.allow_dlm_decomp_lags=TRUE requires decomposition.enabled=TRUE.",
+        call. = FALSE
+      )
+    }
+    return(invisible(TRUE))
+  }
 
   if (!identical(input_mode, "raw_y_lags")) {
     stop(

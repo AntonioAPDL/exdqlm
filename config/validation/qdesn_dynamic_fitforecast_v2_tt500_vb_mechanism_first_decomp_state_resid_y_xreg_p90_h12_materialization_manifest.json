@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-13 18:27:53.370872",
+  "generated_at": "2026-07-13 21:56:30.136075",
   "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
-  "git_sha": "a845b3426474c765eb2bf7863c3788a428762fe2",
+  "git_sha": "90defed3fd67549144a7440d7b2c85bf48749309",
   "git_branch": "validation/shared-fitforecast-v2-1.0.0",
   "git_dirty": true,
   "bundle_id": "decomp_state_resid_y_xreg_p90_h12",
@@ -100,9 +100,9 @@
     "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_materialization_manifest.json"
   },
   "hashes": {
-    "profiles_sha256": "c417dfd8903adcf21d31304fe99f7abfd9eccbb2a4467bae4171952438b09669",
-    "assignments_sha256": "a3e2fcdf9fd0d23fe0dd335dddb7f4c65b042f5292e6e663d237c826f04dc05b",
-    "defaults_sha256": "9ac8149afa5fb30c131f9f946c480b0c2c761469aa30f4e72664725d1cd31acc",
+    "profiles_sha256": "74d8b4f729a68e5084486512cef60347f5d67410e94cfdc2e309f3c128cd79cf",
+    "assignments_sha256": "f4cb61db98d6e12f840f436a11d7a8bef758fad84285c9d7d015b18f9a051526",
+    "defaults_sha256": "155aa81470901f3372b76885bdace048cdebec6aeb620a2f6811b23936b07797",
     "grid_sha256": "acb28c4cb54db23f3c90d0fc89430a39f0b6a76f5c333b82b810c1892fcfbeb6",
     "target_specs_sha256": "2ff48d60596a5dfbed26ce4e89a356baee96dd0d2fce3ed97ca4152c319ba3b8"
   },
@@ -111,7 +111,9 @@
     "n_assignments": 32,
     "n_grid_rows": 32,
     "n_target_specs": 32,
-    "n_hard_cells": 8
+    "n_hard_cells": 8,
+    "max_root_id_chars": 273,
+    "max_profile_id_chars": 133
   },
   "launch_policy": {
     "launch_approved_by_current_user_request": true,

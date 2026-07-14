@@ -325,6 +325,7 @@ screening_profiles:
       audit; do not require one shared spec
   mechanism_first_design:
     bundle_id: raw_period90_control
+    bundle_code: raw
     bundle_order: 1
     mechanism_summary: raw_y_lags control with staged period-90 deterministic features
     target_cells: 8
@@ -769,6 +770,10 @@ pipeline:
             intercept_prec: 1.0e-10
             n_inner: 2
             var_floor: 1.0e-08
+  validation_guardrails:
+    allow_dlm_decomp_lags: no
+    allow_dlm_decomp_lags_reason: raw control keeps the standard validation raw_y_lags
+      guard
 paths:
   rewrite_home_local_src_to_repo_root: yes
 deterministic_features:

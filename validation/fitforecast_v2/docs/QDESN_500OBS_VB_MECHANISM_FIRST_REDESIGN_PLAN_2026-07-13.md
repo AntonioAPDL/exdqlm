@@ -517,3 +517,84 @@ This remains a VB screening launch only. It does not update article-facing
 tables, does not promote MCMC candidates, and does not replace any
 authoritative validation table until the completed outputs pass the strict
 post-run ranking and storage-light audits.
+
+## Guarded DLM-Input Relaunch Ledger
+
+Updated 2026-07-13 after the short-path launch completed the raw control but
+failed every decomposition bundle.
+
+The `qvbm1` raw bundle is valid diagnostic evidence. The five decomposition
+bundles from run tags `m1c12f_07132035_90defed`,
+`m1c123f_07132035_90defed`, `m1srf_07132035_90defed`,
+`m1srpf_07132035_90defed`, and `m1srxf_07132035_90defed` are invalid and must
+not be consumed. They all failed for the same configuration guard:
+
+```text
+Validation campaigns enforce readout.input_mode='raw_y_lags'. Received 'dlm_decomp_lags'.
+```
+
+Diagnosis:
+
+- the scientific design intentionally requests `dlm_decomp_lags` for the
+  mechanism-first decomposition bundles;
+- the lower-level Q-DESN VB pipeline supports that input mode;
+- the dynamic validation wrapper still carried the standard validation
+  raw-lag-only guard;
+- the previous materialization audit checked YAML intent but did not call the
+  real dynamic fit-boundary pipeline builder.
+
+Repair:
+
+- keep the default validation rule raw-only;
+- add an explicit opt-in field,
+  `pipeline.validation_guardrails.allow_dlm_decomp_lags`;
+- set that field to `false` for the raw control and `true` only for the five
+  mechanism-first decomposition bundles;
+- strengthen the materialization audit so every bundle probes
+  `qdesn_static_crossstudy_build_pipeline_cfg()` on a representative target
+  root and likelihood;
+- add an orchestrator post-run gate that fails a bundle if no root succeeds or
+  if root status accounting is incomplete.
+
+Validated preflight after the guard repair:
+
+```bash
+Rscript scripts/materialize_qdesn_tt500_vb_mechanism_first_redesign.R \
+  --stage-prefix qvbm1 --short-path-mode --workers 20
+
+Rscript scripts/audit_qdesn_tt500_vb_mechanism_first_materialization.R \
+  --stage-prefix qvbm1 --short-path-mode
+
+Rscript -e 'testthat::test_file("tests/testthat/test-qdesn-tt500-vb-mechanism-first-redesign.R")'
+
+Rscript scripts/orchestrate_qdesn_tt500_vb_mechanism_first_redesign.R \
+  --stage-prefix qvbm1 --short-path-mode --prepare-only \
+  --skip-materialize --skip-audit --workers 20 \
+  --bundles decomp_component_p90_h12,decomp_component_p90_h123,decomp_state_resid_y_p90_h12,decomp_state_resid_y_plugin_p90_h12,decomp_state_resid_y_xreg_p90_h12 \
+  --orchestrator-tag qvbm1_prepare_guardfix_20260713
+```
+
+Evidence paths:
+
+- materialization audit:
+  `reports/qvbm1/audit/materialization/summary/qdesn_tt500_vb_mechanism_first_materialization_audit.md`;
+- prepare-only manifest:
+  `reports/qvbm1/orch/qvbm1_prepare_guardfix_20260713/manifest/mechanism_first_orchestrator_manifest.json`.
+
+The corrected materialization audit reports `DRY_PASS` for all six bundles:
+raw remains `raw_y_lags`, decomposition bundles use `dlm_decomp_lags`, and all
+builder probes pass.
+
+One-root smoke tests were then run for the five decomposition bundles:
+
+| bundle | smoke run tag | root status | fit signoff | forecast rows | lead metric rows | storage-light |
+| --- | --- | --- | --- | --- | --- | --- |
+| `c12` | `qvbm1_smoke_c12_guardfix_20260713` | `SUCCESS` | `PASS` | 1000 | 30 | no retained `.rds/.rda/.RData` |
+| `c123` | `qvbm1_smoke_c123_guardfix_20260713` | `SUCCESS` | `PASS` | 1000 | 30 | no retained `.rds/.rda/.RData` |
+| `sr` | `qvbm1_smoke_sr_guardfix_20260713` | `SUCCESS` | `PASS` | 1000 | 30 | no retained `.rds/.rda/.RData` |
+| `srp` | `qvbm1_smoke_srp_guardfix_20260713` | `SUCCESS` | `PASS` | 1000 | 30 | no retained `.rds/.rda/.RData` |
+| `srx` | `qvbm1_smoke_srx_guardfix_20260713` | `SUCCESS` | `PASS` | 1000 | 30 | no retained `.rds/.rda/.RData` |
+
+The corrected full relaunch should rerun only the five failed decomposition
+bundles. The raw control should not be rerun unless the screening design itself
+changes.

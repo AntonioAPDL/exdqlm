@@ -397,6 +397,13 @@ materialize_bundle <- function(bundle_id, bundle_order, bundle_code) {
   defaults$pipeline$readout <- defaults$pipeline$readout %||% list()
   defaults$pipeline$readout$input_mode <- bundle_cfg$readout_input_mode
   defaults$pipeline$decomposition <- bundle_cfg$decomposition
+  defaults$pipeline$validation_guardrails <- defaults$pipeline$validation_guardrails %||% list()
+  defaults$pipeline$validation_guardrails$allow_dlm_decomp_lags <- !identical(bundle_id, "raw_period90_control")
+  defaults$pipeline$validation_guardrails$allow_dlm_decomp_lags_reason <- if (identical(bundle_id, "raw_period90_control")) {
+    "raw control keeps the standard validation raw_y_lags guard"
+  } else {
+    "qvbm1 mechanism-first VB screen explicitly evaluates DLM decomposition lag inputs"
+  }
   defaults$pipeline$outputs <- utils::modifyList(
     defaults$pipeline$outputs %||% list(),
     list(save_forecast_objects = FALSE, keep_draws = FALSE, save_fit_objects = FALSE)

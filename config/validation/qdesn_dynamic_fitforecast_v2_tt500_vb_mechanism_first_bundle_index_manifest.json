@@ -1,15 +1,17 @@
 {
-  "generated_at": "2026-07-13 18:27:53.445507",
+  "generated_at": "2026-07-13 21:56:31.123662",
   "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
-  "git_sha": "a845b3426474c765eb2bf7863c3788a428762fe2",
+  "git_sha": "90defed3fd67549144a7440d7b2c85bf48749309",
   "git_branch": "validation/shared-fitforecast-v2-1.0.0",
   "git_dirty": true,
   "stage_prefix": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first",
+  "short_path_mode": false,
   "base_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v51_defaults.yaml",
   "index_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_bundle_index.csv",
   "bundles": [
     {
       "bundle_id": "raw_period90_control",
+      "bundle_code": "raw",
       "bundle_order": 1,
       "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_raw_period90_control_defaults.yaml",
@@ -22,10 +24,13 @@
       "n_assignments": 32,
       "n_grid_rows": 32,
       "n_target_specs": 32,
+      "max_root_id_chars": 260,
+      "max_profile_id_chars": 120,
       "mechanism_summary": "raw_y_lags control with staged period-90 deterministic features"
     },
     {
       "bundle_id": "decomp_component_p90_h12",
+      "bundle_code": "c12",
       "bundle_order": 2,
       "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h12_defaults.yaml",
@@ -38,10 +43,13 @@
       "n_assignments": 32,
       "n_grid_rows": 32,
       "n_target_specs": 32,
+      "max_root_id_chars": 264,
+      "max_profile_id_chars": 124,
       "mechanism_summary": "component_lags DLM decomposition with period-90 harmonics 1,2 and sampled_path forecast residual recursion"
     },
     {
       "bundle_id": "decomp_component_p90_h123",
+      "bundle_code": "c123",
       "bundle_order": 3,
       "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_component_p90_h123_defaults.yaml",
@@ -54,10 +62,13 @@
       "n_assignments": 32,
       "n_grid_rows": 32,
       "n_target_specs": 32,
+      "max_root_id_chars": 265,
+      "max_profile_id_chars": 125,
       "mechanism_summary": "component_lags DLM decomposition with period-90 harmonics 1,2,3 and sampled_path forecast residual recursion"
     },
     {
       "bundle_id": "decomp_state_resid_y_p90_h12",
+      "bundle_code": "sr",
       "bundle_order": 4,
       "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_p90_h12_defaults.yaml",
@@ -70,10 +81,13 @@
       "n_assignments": 32,
       "n_grid_rows": 32,
       "n_target_specs": 32,
+      "max_root_id_chars": 268,
+      "max_profile_id_chars": 128,
       "mechanism_summary": "state_resid_y DLM decomposition with period-90 harmonics 1,2 and sampled_path forecast residual recursion"
     },
     {
       "bundle_id": "decomp_state_resid_y_plugin_p90_h12",
+      "bundle_code": "srp",
       "bundle_order": 5,
       "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_plugin_p90_h12_defaults.yaml",
@@ -86,10 +100,13 @@
       "n_assignments": 32,
       "n_grid_rows": 32,
       "n_target_specs": 32,
+      "max_root_id_chars": 275,
+      "max_profile_id_chars": 135,
       "mechanism_summary": "state_resid_y DLM decomposition with period-90 harmonics 1,2 and deterministic_plugin forecast residual recursion"
     },
     {
       "bundle_id": "decomp_state_resid_y_xreg_p90_h12",
+      "bundle_code": "srx",
       "bundle_order": 6,
       "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first_decomp_state_resid_y_xreg_p90_h12_defaults.yaml",
@@ -102,6 +119,8 @@
       "n_assignments": 32,
       "n_grid_rows": 32,
       "n_target_specs": 32,
+      "max_root_id_chars": 273,
+      "max_profile_id_chars": 133,
       "mechanism_summary": "state_resid_y DLM decomposition with period-90 harmonics 1,2 and sampled_path forecast residual recursion"
     }
   ],
