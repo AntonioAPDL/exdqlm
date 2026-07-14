@@ -66,7 +66,7 @@ boolish <- function(x) tolower(as.character(x)) %in% c("true", "t", "yes", "y", 
 tau_key <- function(x) sprintf("%.8f", as.numeric(x))
 
 stage_prefix <- get_arg("--stage-prefix", "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first")
-short_path_mode <- any(args == "--short-path-mode") || identical(stage_prefix, "qvbm1")
+short_path_mode <- any(args == "--short-path-mode") || grepl("^qvbm[0-9]+$", stage_prefix)
 index_path <- resolve_path(get_arg("--index", file.path("config", "validation", paste0(stage_prefix, "_bundle_index.csv"))), must_work = TRUE)
 out_root <- resolve_path(
   get_arg(
@@ -189,7 +189,8 @@ audit_bundle <- function(row) {
   absolute_text <- all_text[grepl("^/", as.character(all_text))]
   if (!all_canonical_paths(absolute_text)) problems <- c(problems, "non-canonical absolute path found")
   results_root <- resolve_path((defaults$campaign %||% list())$results_root %||% "", must_work = FALSE)
-  run_tag_probe <- paste0("m1", as.character(row$bundle_code[[1L]] %||% "bundle"), "f_07131845_", substr(trimws(system("git rev-parse --short HEAD", intern = TRUE)), 1L, 7L))
+  stage_short_code <- if (grepl("^qvbm[0-9]+$", stage_prefix)) sub("^qvbm", "m", stage_prefix) else "m"
+  run_tag_probe <- paste0(stage_short_code, as.character(row$bundle_code[[1L]] %||% "bundle"), "f_07131845_", substr(trimws(system("git rev-parse --short HEAD", intern = TRUE)), 1L, 7L))
   stamp_probe <- "20260713-184500__git-d62b8c2"
   path_probe <- file.path(results_root, run_tag_probe, stamp_probe, "roots", as.character(grid$root_id), "manifest", "root_status.txt")
   max_probe_path_chars <- max(nchar(path_probe), na.rm = TRUE)

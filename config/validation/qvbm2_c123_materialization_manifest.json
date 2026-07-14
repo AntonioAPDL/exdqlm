@@ -1,0 +1,157 @@
+{
+  "generated_at": "2026-07-14 05:02:51.431141",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "8c6eda99d9ec3c4b22a855fddf30075eee26d2e6",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "bundle_id": "decomp_component_p90_h123",
+  "bundle_order": 2,
+  "stage_stub": "qvbm2_c123",
+  "base_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v51_defaults.yaml",
+  "mechanism_summary": "component_lags DLM decomposition with period-90 harmonics 1,2,3 and sampled_path forecast residual recursion",
+  "hard_cells": [
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 1,
+      "qvbm1_winner_bundle": "c123",
+      "qvbm1_winner_profile": "m1c123_c08_p04",
+      "blocker_target": "fit_rmse_fit_check_forecast_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;current_qdesn_fcst_mae;current_qdesn_fcst_check;exdqlm_dqlm_fit_rmse;exdqlm_dqlm_fit_check",
+      "worst_ratio_name": "exdqlm_dqlm_fit_rmse",
+      "current_best_joint_worst_ratio": 1.2948
+    },
+    {
+      "family": "gausmix",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 2,
+      "qvbm1_winner_bundle": "c123",
+      "qvbm1_winner_profile": "m1c123_c03_p04",
+      "blocker_target": "fit_rmse_fit_check_forecast_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;current_qdesn_fcst_mae;current_qdesn_fcst_check;exdqlm_dqlm_fit_rmse;exdqlm_dqlm_fit_check",
+      "worst_ratio_name": "exdqlm_dqlm_fit_rmse",
+      "current_best_joint_worst_ratio": 1.648
+    },
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 3,
+      "qvbm1_winner_bundle": "c12",
+      "qvbm1_winner_profile": "m1c12_c07_p01",
+      "blocker_target": "fit_rmse_fit_check_forecast_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;current_qdesn_fcst_mae;current_qdesn_fcst_check;exdqlm_dqlm_fit_rmse;exdqlm_dqlm_fit_check;exdqlm_dqlm_fcst_mae;exdqlm_dqlm_fcst_check",
+      "worst_ratio_name": "exdqlm_dqlm_fit_rmse",
+      "current_best_joint_worst_ratio": 1.4631
+    },
+    {
+      "family": "laplace",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 4,
+      "qvbm1_winner_bundle": "c123",
+      "qvbm1_winner_profile": "m1c123_c01_p03",
+      "blocker_target": "fit_rmse_fit_check_forecast_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;current_qdesn_fcst_mae;current_qdesn_fcst_check;exdqlm_dqlm_fit_rmse;exdqlm_dqlm_fit_check;exdqlm_dqlm_fcst_mae;exdqlm_dqlm_fcst_check",
+      "worst_ratio_name": "exdqlm_dqlm_fit_rmse",
+      "current_best_joint_worst_ratio": 1.7912
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "al",
+      "priority_rank": 5,
+      "qvbm1_winner_bundle": "c123",
+      "qvbm1_winner_profile": "m1c123_c04_p04",
+      "blocker_target": "forecast_mae_fit_check_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;current_qdesn_fcst_mae;current_qdesn_fcst_check;exdqlm_dqlm_fit_rmse;exdqlm_dqlm_fit_check;exdqlm_dqlm_fcst_mae;exdqlm_dqlm_fcst_check",
+      "worst_ratio_name": "exdqlm_dqlm_fcst_mae",
+      "current_best_joint_worst_ratio": 3.3446
+    },
+    {
+      "family": "normal",
+      "tau": 0.05,
+      "likelihood_target": "exal",
+      "priority_rank": 6,
+      "qvbm1_winner_bundle": "c12",
+      "qvbm1_winner_profile": "m1c12_c02_p04",
+      "blocker_target": "forecast_mae_fit_check_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;current_qdesn_fcst_mae;current_qdesn_fcst_check;exdqlm_dqlm_fit_rmse;exdqlm_dqlm_fit_check;exdqlm_dqlm_fcst_mae;exdqlm_dqlm_fcst_check",
+      "worst_ratio_name": "exdqlm_dqlm_fcst_mae",
+      "current_best_joint_worst_ratio": 1.9031
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "al",
+      "priority_rank": 7,
+      "qvbm1_winner_bundle": "c12",
+      "qvbm1_winner_profile": "m1c12_c05_p04",
+      "blocker_target": "forecast_mae_fit_check_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;exdqlm_dqlm_fit_check;exdqlm_dqlm_fcst_mae;exdqlm_dqlm_fcst_check",
+      "worst_ratio_name": "exdqlm_dqlm_fcst_mae",
+      "current_best_joint_worst_ratio": 1.6603
+    },
+    {
+      "family": "normal",
+      "tau": 0.5,
+      "likelihood_target": "exal",
+      "priority_rank": 8,
+      "qvbm1_winner_bundle": "c12",
+      "qvbm1_winner_profile": "m1c12_c06_p04",
+      "blocker_target": "forecast_mae_fit_check_guard",
+      "failed_primary_ratios": "current_qdesn_fit_check;exdqlm_dqlm_fit_check;exdqlm_dqlm_fcst_mae;exdqlm_dqlm_fcst_check",
+      "worst_ratio_name": "exdqlm_dqlm_fcst_mae",
+      "current_best_joint_worst_ratio": 1.6607
+    }
+  ],
+  "materialization": {
+    "stage": "blocker_aware_qvbm2",
+    "stage_stub": "qvbm2_c123",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_grid.csv",
+    "n_profiles": 64,
+    "n_assignments": 64,
+    "n_canonical_grid_rows": 576,
+    "n_grid_rows": 64,
+    "expected_qdesn_roots": 64,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.5],
+    "missing_assignments": []
+  },
+  "paths": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_target_spec_ids.csv",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c123_materialization_manifest.json"
+  },
+  "hashes": {
+    "profiles_sha256": "34192a9cd3855c5ba23564a1df3cd0cde164688ccc46e6fafe3d176f82997029",
+    "assignments_sha256": "6802a40b7f64c46a3f784e8a715dab4d80cbf880a453161b4a9adadd872d94f2",
+    "defaults_sha256": "b5ad1597b1e0c5f7603f35a2e95881c6cb52d57a0543f2ee64708dabef631cfd",
+    "grid_sha256": "089f9d40d0e83c098b1d4b6a60442d96f2ac23810275bfce0bcfc935b510cf77",
+    "target_specs_sha256": "c9f7470b1b7b64658498e9a5f82f627be442fd76a14560b48f76a58234b3d86c"
+  },
+  "counts": {
+    "n_profiles": 64,
+    "n_assignments": 64,
+    "n_grid_rows": 64,
+    "n_target_specs": 64,
+    "n_hard_cells": 8,
+    "max_root_id_chars": 154,
+    "max_profile_id_chars": 14
+  },
+  "launch_policy": {
+    "launch_approved_by_current_user_request": true,
+    "vb_only": true,
+    "storage_light": true,
+    "exact_spec_id_filter_required": true,
+    "article_facing": false
+  }
+}

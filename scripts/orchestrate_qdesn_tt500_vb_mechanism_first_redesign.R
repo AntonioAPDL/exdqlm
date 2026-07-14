@@ -38,7 +38,12 @@ split_csv_arg <- function(x) {
 }
 
 stage_prefix <- get_arg("--stage-prefix", "qdesn_dynamic_fitforecast_v2_tt500_vb_mechanism_first")
-short_path_mode <- has_flag("--short-path-mode") || identical(stage_prefix, "qvbm1")
+short_path_mode <- has_flag("--short-path-mode") || grepl("^qvbm[0-9]+$", stage_prefix)
+stage_short_code <- if (grepl("^qvbm[0-9]+$", stage_prefix)) {
+  sub("^qvbm", "m", stage_prefix)
+} else {
+  "m"
+}
 workers <- suppressWarnings(as.integer(get_arg("--workers", "20"))[1L])
 if (!is.finite(workers) || workers < 1L) workers <- 20L
 workers <- min(workers, 30L)
@@ -64,7 +69,7 @@ stamp_short <- format(Sys.time(), "%m%d%H%M")
 orchestrator_tag <- get_arg(
   "--orchestrator-tag",
   if (isTRUE(short_path_mode)) {
-    sprintf("qvbm1_%s__git-%s", stamp_short, git_short)
+    sprintf("%s_%s__git-%s", stage_prefix, stamp_short, git_short)
   } else {
     sprintf("qdesn-vb-mechanism-first-orchestrator-%s__git-%s", stamp, git_short)
   }
@@ -209,7 +214,7 @@ run_one_bundle <- function(row, mode = c("prepare", "full")) {
   target_specs <- utils::read.csv(resolve_path(row$target_spec_ids_path[[1L]], must_work = TRUE), check.names = FALSE, stringsAsFactors = FALSE)
   spec_ids <- paste(as.character(target_specs$spec_id), collapse = ",")
   run_tag <- if (isTRUE(short_path_mode)) {
-    sprintf("m1%s%s_%s_%s", bundle_code, substr(mode, 1L, 1L), stamp_short, git_short)
+    sprintf("%s%s%s_%s_%s", stage_short_code, bundle_code, substr(mode, 1L, 1L), stamp_short, git_short)
   } else {
     sprintf(
       "qdesn-vb-mechanism-first-%s-%s-%s__git-%s",
