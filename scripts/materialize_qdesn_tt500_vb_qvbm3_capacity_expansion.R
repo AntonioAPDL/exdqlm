@@ -344,7 +344,7 @@ target_specs_for <- function(grid, assignments, defaults) {
   out[order(out$family, out$tau, out$likelihood_target, out$screening_profile_id), , drop = FALSE]
 }
 
-materialize_bundle <- function(bundle_code) {
+materialize_bundle <- function(bundle_code, bundle_order) {
   cfg <- bundle_cfg(bundle_code)
   profiles <- make_profile_rows(bundle_code)
   if (!nrow(profiles)) return(NULL)
@@ -451,6 +451,7 @@ materialize_bundle <- function(bundle_code) {
     stage_prefix = stage_prefix,
     bundle_code = bundle_code,
     bundle_id = cfg$bundle_id,
+    bundle_order = as.integer(bundle_order),
     base_defaults = resolve_path(base_defaults),
     audit_manifest = resolve_path(audit_manifest),
     paths = lapply(paths, resolve_path, must_work = FALSE),
@@ -489,6 +490,7 @@ materialize_bundle <- function(bundle_code) {
   data.frame(
     bundle_code = bundle_code,
     bundle_id = cfg$bundle_id,
+    bundle_order = as.integer(bundle_order),
     stage_stub = stage_stub,
     defaults_path = resolve_path(paths$defaults),
     grid_path = resolve_path(paths$grid),
@@ -516,7 +518,7 @@ bundle_codes <- sort(unique(as.character(cell_blockers$qvbm1_bundle)))
 bundle_codes <- intersect(bundle_codes, c("c12", "c123"))
 if (!length(bundle_codes)) stop("No c12/c123 qvbm1 bundle cells found for qvbm3.", call. = FALSE)
 
-index <- bind_rows(lapply(bundle_codes, materialize_bundle))
+index <- bind_rows(lapply(seq_along(bundle_codes), function(i) materialize_bundle(bundle_codes[[i]], i)))
 index_path <- write_csv(index, file.path("config", "validation", paste0(stage_prefix, "_bundle_index.csv")))
 index_manifest_path <- write_json(
   list(

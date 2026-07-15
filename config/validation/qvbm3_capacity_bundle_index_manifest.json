@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-15 02:24:50.481529",
+  "generated_at": "2026-07-15 02:42:30.672362",
   "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
-  "git_sha": "e7ca092e8b02b30b04ada348723959167dee0767",
+  "git_sha": "e41966dfb384ef15abf0695fc482055b07e2c890",
   "git_branch": "validation/shared-fitforecast-v2-1.0.0",
   "git_dirty": true,
   "stage_prefix": "qvbm3_capacity",
@@ -13,6 +13,7 @@
     {
       "bundle_code": "c12",
       "bundle_id": "decomp_component_p90_h12",
+      "bundle_order": 1,
       "stage_stub": "qvbm3_capacity_c12",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_capacity_c12_defaults.yaml",
       "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_capacity_c12_grid.csv",
@@ -36,6 +37,7 @@
     {
       "bundle_code": "c123",
       "bundle_id": "decomp_component_p90_h123",
+      "bundle_order": 2,
       "stage_stub": "qvbm3_capacity_c123",
       "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_capacity_c123_defaults.yaml",
       "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_capacity_c123_grid.csv",
