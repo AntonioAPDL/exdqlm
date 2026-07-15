@@ -418,11 +418,81 @@ Stop or pause the screen if:
 - the closeout cannot reconstruct all source/config hashes;
 - a row touches any non-validation path.
 
+## Implementation Status
+
+Implemented as no-compute infrastructure on 2026-07-15.
+
+The deeper audit refined the draft plan in one important way: the first qvbm3
+screen should not cover every family/tau/likelihood cell. It should target the
+eight unresolved hard cells for which qvbm1/qvbm2/qvbm2p3 provide direct
+diagnostic evidence. This keeps the test broad over model capacity while
+avoiding a wasteful full-cell sweep.
+
+Implemented scripts:
+
+```text
+scripts/audit_qdesn_tt500_vb_qvbm3_capacity_expansion.R
+scripts/materialize_qdesn_tt500_vb_qvbm3_capacity_expansion.R
+scripts/audit_qdesn_tt500_vb_qvbm3_capacity_materialization.R
+```
+
+Commands run:
+
+```bash
+cd /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0
+Rscript scripts/audit_qdesn_tt500_vb_qvbm3_capacity_expansion.R
+Rscript scripts/materialize_qdesn_tt500_vb_qvbm3_capacity_expansion.R --workers 20
+Rscript scripts/audit_qdesn_tt500_vb_qvbm3_capacity_materialization.R
+```
+
+Generated configuration:
+
+```text
+config/validation/qvbm3_capacity_bundle_index.csv
+config/validation/qvbm3_capacity_bundle_index_manifest.json
+config/validation/qvbm3_capacity_c12_profiles.csv
+config/validation/qvbm3_capacity_c12_cell_assignments.csv
+config/validation/qvbm3_capacity_c12_grid.csv
+config/validation/qvbm3_capacity_c12_defaults.yaml
+config/validation/qvbm3_capacity_c12_target_spec_ids.csv
+config/validation/qvbm3_capacity_c12_materialization_manifest.json
+config/validation/qvbm3_capacity_c123_profiles.csv
+config/validation/qvbm3_capacity_c123_cell_assignments.csv
+config/validation/qvbm3_capacity_c123_grid.csv
+config/validation/qvbm3_capacity_c123_defaults.yaml
+config/validation/qvbm3_capacity_c123_target_spec_ids.csv
+config/validation/qvbm3_capacity_c123_materialization_manifest.json
+```
+
+Generated evidence:
+
+```text
+reports/qvbm3_capacity/audit/qvbm3_capacity_prelaunch_20260715/summary/qvbm3_capacity_prelaunch_audit.md
+reports/qvbm3_capacity/audit/qvbm3_capacity_prelaunch_20260715/tables/qvbm3_current_cell_blockers.csv
+reports/qvbm3_capacity/audit/qvbm3_capacity_prelaunch_20260715/tables/qvbm3_capacity_tiers.csv
+reports/qvbm3_capacity/audit/qvbm3_capacity_prelaunch_20260715/manifest/qvbm3_capacity_prelaunch_audit_manifest.json
+reports/qvbm3_capacity/audit/qvbm3_capacity_materialization_20260715/summary/qvbm3_capacity_materialization_audit.md
+reports/qvbm3_capacity/audit/qvbm3_capacity_materialization_20260715/tables/qvbm3_capacity_materialization_audit.csv
+reports/qvbm3_capacity/audit/qvbm3_capacity_materialization_20260715/manifest/qvbm3_capacity_materialization_audit_manifest.json
+```
+
+Dry audit result:
+
+| Bundle | Status | Profiles | Target specs | Red-tier profiles | Extreme profiles | Max `D` | Max `n_each` | Max `m` | Max `p/500` |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| c12 | DRY_PASS | 33 | 33 | 9 | 1 | 4 | 300 | 150 | 2.712 |
+| c123 | DRY_PASS | 33 | 33 | 9 | 1 | 4 | 300 | 150 | 2.712 |
+
+Total planned VB target specs: `66`.
+
+No compute has been launched. The defaults are VB-only, MCMC handoff remains
+closed, and the dry audit passed the stale-path, wrong-lane, storage-light,
+capacity-cap, target-spec, and red-tier stress-canary gates.
+
 ## Recommendation
 
-Proceed next with `build-01-qvbm3-audit-freeze` and
-`build-02-qvbm3-design-matrix` only. Do not launch the canary until the generated
-design matrix has been reviewed.
+The next action is to review the generated qvbm3 design matrix and then decide
+whether to launch the 66-root VB canary. Do not launch MCMC from qvbm3.
 
 The most valuable initial scientific test is not the single largest model. It is
 whether the green and amber capacity tiers (`D=3/4`, `n_each=100/150`,
