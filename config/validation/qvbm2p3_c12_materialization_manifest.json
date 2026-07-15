@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-07-14 20:47:54.168936",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "33f8a873c9fb87db68f3f867da64ec78bcecb54e",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "stage_stub": "qvbm2p3_c12",
+  "bundle_id": "decomp_component_p90_h12",
+  "bundle_code": "c12",
+  "source_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2_c12_materialization_manifest.json",
+  "repair_policy": {
+    "original_profile_suffix": "p03",
+    "original_rhs_tau0": 0,
+    "safe_rhs_tau0": 0.0001,
+    "original_roots_untouched": true,
+    "original_consume_policy": "refuse",
+    "article_facing": false
+  },
+  "counts": {
+    "n_profiles": 8,
+    "n_assignments": 8,
+    "n_grid_rows": 8,
+    "n_target_specs": 8,
+    "max_root_id_chars": 155,
+    "max_profile_id_chars": 15
+  },
+  "paths": {
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2p3_c12_defaults.yaml",
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2p3_c12_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2p3_c12_cell_assignments.csv",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2p3_c12_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm2p3_c12_target_spec_ids.csv"
+  },
+  "hashes": {
+    "defaults_sha256": "2d3052e0b7de71dbe7025b2b5ed7ee1441a3a090ab6850eb615ebd9d6b2bf4c4",
+    "profiles_sha256": "53d74b86b8728773862ba7f02bd1c27682456ee79063e09654314688601f1c8c",
+    "assignments_sha256": "ca9eacbedb5dded401a264891d530af7c9d52ffec2e69e891fcb927690891a36",
+    "grid_sha256": "ee5461e64823a4f40343b0722c2babf209a5bedbdd756ff9063eb7a52ade0fae",
+    "target_specs_sha256": "f76d7fc39ec33e834ed2c0c08bf3cc195d92a961f44b94fd1cfbed5e80735de8"
+  }
+}
