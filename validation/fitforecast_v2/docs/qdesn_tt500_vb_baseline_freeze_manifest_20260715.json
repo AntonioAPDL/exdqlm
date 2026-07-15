@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-07-15 02:07:18.093045",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_sha": "e7d7704c476717ab647ff6b1b71baf78097ec05a",
+  "purpose": "Freeze qvbm1 as the active Q-DESN VB calibration baseline and classify qvbm2/qvbm2p3 as diagnostic-only closed screens.",
+  "implemented_items": {
+    "item_1": "Use qvbm1 as the current Q-DESN VB baseline for future calibration comparisons.",
+    "item_2": "Treat qvbm2 and qvbm2p3 as completed diagnostic screens, not MCMC promotion sources."
+  },
+  "active_baseline": [
+    {
+      "decision_date": "2026-07-15",
+      "active_vb_calibration_baseline": "qvbm1",
+      "baseline_role": "active_qdesn_vb_calibration_reference_not_article_facing",
+      "baseline_closeout": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9",
+      "baseline_comparison_csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/tables/qvbm1_mechanism_first_current_table_comparison.csv",
+      "baseline_winners_csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/tables/qvbm1_mechanism_first_cell_winners.csv",
+      "planned_roots": 192,
+      "success_roots": 192,
+      "forecast_lead_rows": 5760,
+      "mcmc_promote_after_review_cells": 0,
+      "decision": "freeze_as_current_vb_screening_baseline_for_future_design_comparison",
+      "caveat": "not_promoted_to_mcmc_and_not_article_facing; use as calibration baseline only"
+    }
+  ],
+  "screen_disposition": [
+    {
+      "screen": "qvbm1",
+      "status": "COMPLETE",
+      "role": "ACTIVE_VB_CALIBRATION_BASELINE",
+      "planned_roots": 192,
+      "success_roots": 192,
+      "failed_or_refused_roots": 0,
+      "remaining_roots": 0,
+      "promotion_policy": "hold_mcmc; use only as baseline for future VB design comparison",
+      "evidence_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/manifest/qvbm1_mechanism_first_closeout_manifest.json"
+    },
+    {
+      "screen": "qvbm2",
+      "status": "COMPLETE_WITH_REFUSED_INVALID_SURFACE",
+      "role": "DIAGNOSTIC_ONLY",
+      "planned_roots": 128,
+      "success_roots": 112,
+      "failed_or_refused_roots": 16,
+      "remaining_roots": 0,
+      "beats_qvbm1_all4_cells": 2,
+      "beats_exdqlm_dqlm_all4_cells": 0,
+      "promotion_policy": "do_not_promote; successful rows do not clear external all-four gate; p03 failures refused",
+      "evidence_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2/audit/closeout/qvbm2_blocker_aware_20260714__git-33f8a87/manifest/qvbm2_closeout_manifest.json"
+    },
+    {
+      "screen": "qvbm2p3",
+      "status": "COMPLETE",
+      "role": "DIAGNOSTIC_ONLY",
+      "planned_roots": 16,
+      "success_roots": 16,
+      "failed_or_refused_roots": 0,
+      "remaining_roots": 0,
+      "beats_qvbm1_all4_cells": 0,
+      "beats_exdqlm_dqlm_all4_cells": 0,
+      "promotion_policy": "do_not_promote; p03 safe-floor repair succeeded but does not clear qvbm1/exdqlm all-four gates",
+      "evidence_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2p3/audit/closeout/qvbm2p3_safe_floor_20260715/manifest/qvbm2_closeout_manifest.json"
+    }
+  ],
+  "evidence_paths": {
+    "qvbm1_health": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/tables/qvbm1_mechanism_first_health.csv",
+    "qvbm1_winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/tables/qvbm1_mechanism_first_cell_winners.csv",
+    "qvbm1_comparison": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/tables/qvbm1_mechanism_first_current_table_comparison.csv",
+    "qvbm1_blockers": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/tables/qvbm1_mechanism_first_ratio_blockers.csv",
+    "qvbm1_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/manifest/qvbm1_mechanism_first_closeout_manifest.json",
+    "qvbm2_health": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2/audit/closeout/qvbm2_blocker_aware_20260714__git-33f8a87/tables/qvbm2_health.csv",
+    "qvbm2_ratios": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2/audit/closeout/qvbm2_blocker_aware_20260714__git-33f8a87/tables/qvbm2_ratio_breakdown.csv",
+    "qvbm2_failures": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2/audit/closeout/qvbm2_blocker_aware_20260714__git-33f8a87/tables/qvbm2_invalid_failure_ledger.csv",
+    "qvbm2_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2/audit/closeout/qvbm2_blocker_aware_20260714__git-33f8a87/manifest/qvbm2_closeout_manifest.json",
+    "qvbm2p3_health": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2p3/audit/closeout/qvbm2p3_safe_floor_20260715/tables/qvbm2_health.csv",
+    "qvbm2p3_ratios": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2p3/audit/closeout/qvbm2p3_safe_floor_20260715/tables/qvbm2_ratio_breakdown.csv",
+    "qvbm2p3_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm2p3/audit/closeout/qvbm2p3_safe_floor_20260715/manifest/qvbm2_closeout_manifest.json"
+  },
+  "output_paths": {
+    "baseline_freeze_csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qdesn_tt500_vb_active_baseline_freeze_20260715.csv",
+    "screen_disposition_csv": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qdesn_tt500_vb_screen_disposition_20260715.csv"
+  },
+  "hashes": {
+    "baseline_freeze_sha256": "5d32fcac887a1c1e30e5e4c2d2e2d259816361317a5206897a28068ad5f48aea",
+    "screen_disposition_sha256": "151c1e132eab588e08455ee932e8a53eb69d23e8076afc55b8120c277cdc717a"
+  }
+}
