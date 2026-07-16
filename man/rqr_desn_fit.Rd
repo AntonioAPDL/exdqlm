@@ -1,0 +1,45 @@
+\name{rqr_desn_fit}
+\alias{rqr_desn_fit}
+\alias{print.rqr_desn_fit}
+\title{Fit an RQR-DESN interval readout}
+\usage{
+rqr_desn_fit(
+  y,
+  coverage_level,
+  ...,
+  inference = c("mcmc", "vb"),
+  learning_rate = 1,
+  mcmc_args = list(),
+  vb_args = list(),
+  fit_readout = TRUE
+)
+}
+\arguments{
+\item{y}{Response vector.}
+
+\item{coverage_level}{Interval coverage level in \code{(0, 1)}.}
+
+\item{...}{Arguments forwarded to \code{qdesn_fit_vb()} for deterministic
+DESN design construction.}
+
+\item{inference}{Either \code{"mcmc"} or \code{"vb"}.}
+
+\item{learning_rate}{Positive generalized-Bayes learning rate.}
+
+\item{mcmc_args}{Named list for \code{rqr_mcmc_fit()}.}
+
+\item{vb_args}{Named list for \code{rqr_vb_fit()}.}
+
+\item{fit_readout}{If \code{FALSE}, return the design shell before fitting the
+RQR readout.}
+}
+\value{
+An object of class \code{rqr_desn_fit}, or the underlying Q-DESN design shell
+when \code{fit_readout = FALSE}.
+}
+\description{
+Builds the deterministic DESN reservoir/design through the existing Q-DESN
+design shell and fits a two-root RQR interval readout on that fixed design.
+Observation weights are rejected in version 1 because square-root
+premultiplication is not valid for the RQR product loss.
+}

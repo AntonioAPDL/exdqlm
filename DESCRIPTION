@@ -8,6 +8,10 @@ Authors@R:
       person(given = "Raquel", family = "Prado", role = "ths"),
       person(given = "Bruno",  family = "Sanso", role = "ths"),
       person(given = "Antonio", family = "Aguirre", role = "aut"))
+Author: Raquel Barata [aut, cre],
+    Raquel Prado [ths],
+    Bruno Sanso [ths],
+    Antonio Aguirre [aut]
 Maintainer: Raquel Barata <raquel.a.barata@gmail.com>
 Description: Bayesian quantile-regression routines for both dynamic
     state-space models and static regression under the extended asymmetric
@@ -37,7 +41,6 @@ Imports:
     magic,
     crch,
     truncnorm,
-    brms,
     data.table,
     dlm,
     FNN,
