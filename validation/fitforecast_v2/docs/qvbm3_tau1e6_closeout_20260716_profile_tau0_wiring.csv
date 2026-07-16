@@ -1,0 +1,4 @@
+"source","n_rows","min_rhs_tau0","max_rhs_tau0","unique_rhs_tau0"
+"config_profiles",66,1e-06,1e-06,"1e-06"
+"campaign_fit_summary",66,1e-06,1e-06,"1e-06"
+"reference_campaign_fit_summary",66,1e-04,3e-04,"1e-04;3e-04"

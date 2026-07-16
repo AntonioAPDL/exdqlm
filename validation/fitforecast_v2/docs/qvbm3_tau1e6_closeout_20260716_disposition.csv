@@ -1,0 +1,2 @@
+"stage_prefix","status","scientific_disposition","article_facing","mcmc_handoff","core_reason","recommended_next_step"
+"qvbm3_tau1e6","COMPLETE","DIAGNOSTIC_NEGATIVE_DO_NOT_PROMOTE",FALSE,FALSE,"tau0=1e-06 completed but is effectively identical to qvbm3_capacity and does not clear qvbm1/exdqlm-dqlm all-four gates","close this surface; plan a different mechanism-first screen from qvbm1/frontier designs rather than another tau0-only qvbm3 relaunch"

@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-07-15 18:52:29.712572",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "f91bcc7ca7c27474ba22a9a30ebc0ea76385f12d",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "stage_stub": "qvbm3_lowtau_c123",
+  "stage_prefix": "qvbm3_lowtau",
+  "bundle_code": "c123",
+  "bundle_id": "decomp_component_p90_h123",
+  "source_qvbm3": {
+    "source_bundle_index": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_capacity_bundle_index.csv",
+    "source_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_capacity_c123_defaults.yaml",
+    "source_profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_capacity_c123_profiles.csv"
+  },
+  "base_defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_vb_case_targeted_rhs_v51_defaults.yaml",
+  "paths": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_lowtau_c123_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_lowtau_c123_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_lowtau_c123_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_lowtau_c123_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_lowtau_c123_target_spec_ids.csv",
+    "manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qvbm3_lowtau_c123_materialization_manifest.json"
+  },
+  "hashes": {
+    "profiles_sha256": "2af0218be0e4e6fb4bf4693c514a857ffcf62d2ca8454eb1390091551bb8e3da",
+    "assignments_sha256": "333780642ffe7d05b87cfe8c408716bb6f9e4b27af71f279bb9208a21d1c169a",
+    "defaults_sha256": "18d6a11ab0e299cde4006573282f07670350ff1435d38871bb53993832d1ae56",
+    "grid_sha256": "46f860476dc9a156187646624459377f99baf3968b899a1f7089cdd8f1c453d3",
+    "target_specs_sha256": "c5091ace39a58ca52ca7450e3fefc038413e8bf7dc768d65118856d24b1f421f"
+  },
+  "counts": {
+    "n_profiles": 33,
+    "n_assignments": 33,
+    "n_grid_rows": 33,
+    "n_target_specs": 33,
+    "min_rhs_tau0": 0.0001,
+    "max_rhs_tau0": 0.0001,
+    "n_below_previous_safe_floor": 17,
+    "n_at_or_below_known_failed_tau0": 0,
+    "max_p_over_n_tt500": 2.712,
+    "max_root_id_chars": 192,
+    "max_profile_id_chars": 53
+  },
+  "launch_policy": {
+    "vb_only": true,
+    "mcmc_closed": true,
+    "article_facing": false,
+    "storage_light": true,
+    "exact_spec_id_filter_required": true,
+    "approval_required_before_compute": true,
+    "canary_first_recommended": true
+  }
+}

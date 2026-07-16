@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-07-16 01:25:36.355937",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_sha": "f91bcc7ca7c27474ba22a9a30ebc0ea76385f12d",
+  "stage_prefix": "qvbm3_tau1e6",
+  "reference_stage": "qvbm3_capacity",
+  "qvbm1_comparison_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm1/audit/closeout/qvbm1_decomp_guardfix_20260713_main__git-8c6eda9/tables/qvbm1_mechanism_first_current_table_comparison.csv",
+  "closeout_id": "qvbm3_tau1e6_closeout_20260716__git-f91bcc7",
+  "health": [
+    {
+      "stage_prefix": "qvbm3_tau1e6",
+      "planned_roots": 66,
+      "success_roots": 66,
+      "non_success_roots": 0,
+      "roots_left": 0,
+      "pct_done": 100,
+      "fit_summary_rows": 66,
+      "forecast_lead_files": 66,
+      "observed_forecast_lead_rows": 1980,
+      "expected_forecast_lead_rows": 1980,
+      "forecast_leads_complete": true,
+      "min_forecast_lead": 1,
+      "max_forecast_lead": 30,
+      "pass_converged": 31,
+      "warn_not_converged": 35,
+      "rhs_collapse_count": 0
+    }
+  ],
+  "disposition": [
+    {
+      "stage_prefix": "qvbm3_tau1e6",
+      "status": "COMPLETE",
+      "scientific_disposition": "DIAGNOSTIC_NEGATIVE_DO_NOT_PROMOTE",
+      "article_facing": false,
+      "mcmc_handoff": false,
+      "core_reason": "tau0=1e-06 completed but is effectively identical to qvbm3_capacity and does not clear qvbm1/exdqlm-dqlm all-four gates",
+      "recommended_next_step": "close this surface; plan a different mechanism-first screen from qvbm1/frontier designs rather than another tau0-only qvbm3 relaunch"
+    }
+  ],
+  "tracked_outputs": {
+    "health": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_health.csv",
+    "root_status_mix": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_root_status_mix.csv",
+    "signoff_mix": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_signoff_mix.csv",
+    "median_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_median_summary.csv",
+    "group_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_group_summary.csv",
+    "stage_vs_reference": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_stage_vs_reference.csv",
+    "ratio_reference_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_ratio_reference_summary.csv",
+    "cell_winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_cell_winners.csv",
+    "qvbm1_ratio_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_qvbm1_ratio_summary.csv",
+    "profile_tau0_wiring": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_profile_tau0_wiring.csv",
+    "tau0_code_wiring": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_tau0_code_wiring.csv",
+    "storage_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_storage_audit.csv",
+    "disposition": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716_disposition.csv",
+    "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/qvbm3_tau1e6_closeout_20260716.md"
+  },
+  "ignored_report_outputs": {
+    "health": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_health.csv",
+    "root_status_mix": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_root_status_mix.csv",
+    "signoff_mix": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_signoff_mix.csv",
+    "median_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_median_summary.csv",
+    "group_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_group_summary.csv",
+    "stage_vs_reference": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_stage_vs_reference.csv",
+    "ratio_reference_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_ratio_reference_summary.csv",
+    "cell_winners": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_cell_winners.csv",
+    "qvbm1_ratio_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_qvbm1_ratio_summary.csv",
+    "profile_tau0_wiring": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_profile_tau0_wiring.csv",
+    "tau0_code_wiring": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_tau0_code_wiring.csv",
+    "storage_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_storage_audit.csv",
+    "disposition": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/tables/qvbm3_tau1e6_disposition.csv",
+    "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qvbm3_tau1e6/audit/closeout/qvbm3_tau1e6_closeout_20260716__git-f91bcc7/summary/qvbm3_tau1e6_closeout.md"
+  },
+  "hashes": {
+    "health": "2ce16c04872f1434e29cebfd8ede565ca0233eb7c1c97c43c97ca2a08dd22a6e",
+    "root_status_mix": "33df838da7f98bb6e0527aaa1bc3269bb590116591f10a7ddf5c0d559ebf318e",
+    "signoff_mix": "7de08ac8811168fc534435cfc4bc8b2730139d5964326247424c641f26002af8",
+    "median_summary": "479845f06dd4bfdd49e3899f2a6bd897f23e871879b6fea1d3faa690d6fefd9d",
+    "group_summary": "db10042b8ee79ed71977f7419a9a16164f65c910f125f60e1353c12e303d1406",
+    "stage_vs_reference": "7d8679ad7d4d477db8dd0cb075301d8acfbd219645a37408e25d882cfb9cd29a",
+    "ratio_reference_summary": "86b2f27d583727e82a26e5aa1874847947846ffcbcff9014ca7aff8a2ee77414",
+    "cell_winners": "91611671a37a67eca9e7021d6c07f70fa993702adc6efe34d0d6e4d6e0f499b3",
+    "qvbm1_ratio_summary": "a206711938dc748f5e3d6b883d25061f752999ce2a0a914082787db01c7a2860",
+    "profile_tau0_wiring": "be1239b1cdb368a43b253e542e56c8c64ca090deb16ff744e84d82d14a589a4c",
+    "tau0_code_wiring": "4bd8ab214aac17db10ac7535960c72da3528c828738a0353e429d721e5a3a924",
+    "storage_audit": "d8f9c5dc7f2fb5c9b2dfbdb7a6856004fed11c6fdc15209939b6511e2096717a",
+    "disposition": "c28eb4dd9f5f560dd6f9160ab0ce5c3d02cfcbcca9e7c70c754ca8f4a8dc901f",
+    "summary_sha256": "5a2b601475a7c056a2554e28bf94d4e468e5e3deee08fc5cca48f89641b0cd84"
+  }
+}

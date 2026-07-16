@@ -1,0 +1,6 @@
+"evidence","path","line_hint","interpretation"
+"grid_row_assigns_screening_rhs_tau0","R/qdesn_dynamic_exdqlm_crossstudy.R","1048","screening profile rhs_tau0 is copied into the generated root/grid row"
+"grid_preflight_requires_positive_rhs_tau0","R/qdesn_dynamic_exdqlm_crossstudy.R","1170-1175","rhs_ns rows with non-positive rhs_tau0 are rejected before launch"
+"root_spec_validates_positive_rhs_tau0","R/qdesn_dynamic_exdqlm_crossstudy.R","1253-1288","root specs with invalid rhs_tau0 are rejected before fit"
+"static_prior_requires_positive_tau0","R/static_beta_prior.R","69-72","beta prior controls reject non-positive tau0"
+"static_rhs_log_prior_uses_ctrl_tau0","R/static_beta_prior.R","365","RHS prior log-density includes log(ctrl$tau0)"
