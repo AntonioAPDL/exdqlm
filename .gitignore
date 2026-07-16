@@ -104,6 +104,8 @@ scripts/*.log
 !/reports/benchmarks/README.md
 /reports/mcmc_inference_smoke/
 /reports/qdesn_mcmc_validation/
+/reports/rqr_desn_pre_simulation_readiness/
+/reports/rqr_desn_pilot/
 /logs/benchmarks/*
 !/logs/benchmarks/README.md
 /results/benchmarks/qdesn_synth/*

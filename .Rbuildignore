@@ -21,6 +21,7 @@
 ^README\.html$
 ^notebooks($|/)
 ^results($|/)
+^reports($|/)
 ^analysis-data($|/)
 ^outputs($|/)
 ^logs($|/)
