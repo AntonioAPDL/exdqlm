@@ -47,7 +47,7 @@ quantiles in one interface.
 
 ## Installation
 
-CRAN (when available):
+CRAN:
 
 ``` r
 install.packages("exdqlm")
