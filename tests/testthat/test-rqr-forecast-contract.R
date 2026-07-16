@@ -22,7 +22,14 @@ test_that("RQR-DESN forecast refuses implicit recursive response sampling", {
     D = 1L,
     n = 5L,
     m = 3L,
+    alpha = 0.25,
+    rho = 0.8,
+    act_f = "tanh",
+    act_k = "identity",
+    pi_w = 0.3,
+    pi_in = 1.0,
     washout = 3L,
+    add_bias = TRUE,
     seed = 7603,
     mcmc_args = list(n_burn = 10, n_mcmc = 12, seed = 7604)
   )

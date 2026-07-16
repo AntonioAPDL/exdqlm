@@ -20,7 +20,8 @@ rqr_desn_fit(
 \item{coverage_level}{Interval coverage level in \code{(0, 1)}.}
 
 \item{...}{Arguments forwarded to \code{qdesn_fit_vb()} for deterministic
-DESN design construction.}
+DESN design construction. \code{p0} and \code{target_p} are rejected because
+the RQR interval target is controlled by \code{coverage_level}.}
 
 \item{inference}{Either \code{"mcmc"} or \code{"vb"}.}
 
@@ -42,4 +43,9 @@ Builds the deterministic DESN reservoir/design through the existing Q-DESN
 design shell and fits a two-root RQR interval readout on that fixed design.
 Observation weights are rejected in version 1 because square-root
 premultiplication is not valid for the RQR product loss.
+\code{rqr_desn_fit()} also rejects \code{p0} and \code{target_p} in \code{...}:
+the inherited Q-DESN shell is used only to build the deterministic design, and
+the RQR estimand is an interval indexed by \code{coverage_level}.
+When \code{fit_readout = TRUE}, an all-zero Q-DESN design shell is rejected
+because it would produce a degenerate interval readout.
 }

@@ -15,6 +15,15 @@ This is a planning and audit document. It does not launch simulations and does
 not modify article, PriceFM, GloFAS, joint-validation, or promoted evidence
 assets.
 
+Readiness implementation note: the follow-up implementation of this plan adds
+the missing target-argument guard, installed-namespace contract tests, a tiny
+deterministic readiness harness, a broad-simulation specification template, and
+a reference-source inventory. It also rejects all-zero Q-DESN design shells
+before fitting the RQR readout, because that failure mode produces degenerate
+zero-width intervals rather than a useful simulation signal. Future simulation
+manifests should pin the final readiness commit, not only the original backend
+commit above.
+
 ## 1. Executive Decision
 
 Do not move directly from the current RQR-DESN implementation to a broad
@@ -273,7 +282,9 @@ git ls-remote --heads origin feature/rqr-desn-readout-20260716
 
 Pass criteria:
 
-- HEAD equals `e1a1c86c02d6e8a7615a0afa1c9b35741b399549`.
+- HEAD equals the selected readiness commit recorded in the run manifest.
+- The selected readiness commit descends from
+  `e1a1c86c02d6e8a7615a0afa1c9b35741b399549`.
 - Remote branch points to the same SHA.
 - No unintended model-code or test changes are present.
 
@@ -338,7 +349,8 @@ files <- c(
   "tests/testthat/test-rqr-desn-design-parity.R",
   "tests/testthat/test-rqr-rhs-ns.R",
   "tests/testthat/test-rqr-vb-fixed-design.R",
-  "tests/testthat/test-rqr-forecast-contract.R"
+  "tests/testthat/test-rqr-forecast-contract.R",
+  "tests/testthat/test-rqr-contracts.R"
 )
 for (f in files) testthat::test_file(f, reporter = "summary")
 ```

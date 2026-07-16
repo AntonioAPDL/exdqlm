@@ -4,6 +4,8 @@
 #' `qdesn_fit_vb(..., fit_readout = FALSE)` shell. The RQR readout is then fit
 #' on the shared fixed design. The result is a generalized-Bayes interval model,
 #' not a response predictive likelihood.
+#' RQR uses `coverage_level` for its interval target; `p0` and `target_p` are
+#' therefore rejected when supplied through `...`.
 #'
 #' @param y Response vector.
 #' @param coverage_level Interval coverage level in `(0, 1)`.
@@ -23,6 +25,17 @@ rqr_desn_fit <- function(y, coverage_level, ...,
                          fit_readout = TRUE) {
   inference <- match.arg(inference)
   args <- list(...)
+  arg_names <- names(args) %||% character(0)
+  forbidden_target_fields <- intersect(arg_names, c("p0", "target_p"))
+  if (length(forbidden_target_fields)) {
+    stop(
+      sprintf(
+        "rqr_desn_fit uses coverage_level for the RQR interval target; do not supply %s through the Q-DESN design arguments.",
+        paste(sprintf("`%s`", forbidden_target_fields), collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
   if (!is.null(args$weights)) {
     stop(
       "rqr_desn_fit rejects observation weights in version 1 because Q-DESN's sqrt-weight premultiplication is invalid for the RQR product loss.",
@@ -43,6 +56,15 @@ rqr_desn_fit <- function(y, coverage_level, ...,
     design_fit$meta$rqr_design_only <- TRUE
     design_fit$meta$rqr_coverage_level <- rqr_constants(coverage_level, learning_rate)$alpha
     return(design_fit)
+  }
+  if (all(abs(design_fit$X) <= sqrt(.Machine$double.eps))) {
+    stop(
+      paste(
+        "rqr_desn_fit received an all-zero Q-DESN design shell.",
+        "Supply a nondegenerate reservoir/design configuration before fitting the RQR readout."
+      ),
+      call. = FALSE
+    )
   }
 
   if (identical(inference, "mcmc")) {
