@@ -106,6 +106,7 @@ scripts/*.log
 /reports/qdesn_mcmc_validation/
 /reports/rqr_desn_pre_simulation_readiness/
 /reports/rqr_desn_pilot/
+/reports/rqr_desn_broad_config_audit/
 /logs/benchmarks/*
 !/logs/benchmarks/README.md
 /results/benchmarks/qdesn_synth/*
