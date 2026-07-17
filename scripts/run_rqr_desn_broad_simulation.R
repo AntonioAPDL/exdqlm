@@ -808,10 +808,16 @@ aggregate_outputs <- function(output_dir, selected_manifest) {
   if (nrow(metrics)) {
     group_cols <- c("stage_id", "family_id", "backend_id", "inference", "prior_type", "coverage_level", "learning_rate")
     value_cols <- c("empirical_coverage", "mean_width", "interval_score_mean", "midpoint_mae", "endpoint_mae", "runtime_sec")
-    summary <- stats::aggregate(metrics[value_cols], by = metrics[group_cols], FUN = function(x) {
+    summary_groups <- metrics[group_cols]
+    for (nm in group_cols) {
+      summary_groups[[nm]] <- as.character(summary_groups[[nm]])
+      missing <- is.na(summary_groups[[nm]]) | !nzchar(summary_groups[[nm]])
+      summary_groups[[nm]][missing] <- "not_applicable"
+    }
+    summary <- stats::aggregate(metrics[value_cols], by = summary_groups, FUN = function(x) {
       if (all(is.na(x))) NA_real_ else mean(x, na.rm = TRUE)
     })
-    summary$n_rows <- as.integer(stats::aggregate(metrics$scenario_id, by = metrics[group_cols], FUN = length)$x)
+    summary$n_rows <- as.integer(stats::aggregate(metrics$scenario_id, by = summary_groups, FUN = length)$x)
   } else {
     summary <- data.frame()
   }
