@@ -46,6 +46,15 @@ as_num <- function(x, default = NA_real_) {
   out
 }
 
+as_bool_value <- function(x, default = FALSE) {
+  if (is.null(x) || length(x) == 0L || is.na(x[1L])) return(default)
+  if (is.logical(x)) return(isTRUE(x[1L]))
+  value <- tolower(trimws(as.character(x[1L])))
+  if (value %in% c("true", "t", "1", "yes", "y")) return(TRUE)
+  if (value %in% c("false", "f", "0", "no", "n")) return(FALSE)
+  default
+}
+
 split_cli_vec <- function(x) {
   if (is.null(x) || !nzchar(as.character(x)[1L])) return(NULL)
   trimws(strsplit(as.character(x)[1L], ",", fixed = TRUE)[[1L]])
@@ -242,7 +251,7 @@ make_dynamic_data <- function(family_id, design, dgp_seed, design_seed, n_train,
     pi_w = as.numeric(design$pi_w)[1L],
     pi_in = as.numeric(design$pi_in)[1L],
     washout = washout,
-    add_bias = isTRUE(design$add_bias),
+    add_bias = as_bool_value(design$add_bias, default = FALSE),
     seed = as.integer(design_seed)[1L]
   )
   if (nrow(shell$X) < n_train + n_test) {
@@ -577,6 +586,24 @@ run_one_scenario <- function(row, data, config, cli) {
   finished_at <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
   write_csv(status_row(row, result$status, started_at, finished_at, elapsed, result$message), status_path)
   result$status
+}
+
+write_setup_failure_scenario <- function(row, message) {
+  row <- as.data.frame(row, stringsAsFactors = FALSE)
+  scenario_dir <- as.character(row$scenario_output_dir[1L])
+  dir.create(scenario_dir, recursive = TRUE, showWarnings = FALSE)
+  started_at <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+  fail <- failure_row(row, "data_or_design_setup", "setup_error", message)
+  write_csv(fail, file.path(scenario_dir, "failure_log.csv"))
+  write_csv(data.frame(), file.path(scenario_dir, "interval_metrics.csv"))
+  write_csv(data.frame(), file.path(scenario_dir, "fit_summary.csv"))
+  write_csv(data.frame(), file.path(scenario_dir, "mcmc_diagnostics.csv"))
+  write_csv(data.frame(), file.path(scenario_dir, "vb_diagnostics.csv"))
+  write_csv(
+    status_row(row, "failed", started_at, format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), 0, message),
+    file.path(scenario_dir, "scenario_status.csv")
+  )
+  "failed"
 }
 
 load_design_row <- function(design_manifest, row) {
@@ -921,7 +948,16 @@ rqr_desn_broad_run_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   run_group <- function(idx) {
     group_rows <- todo[idx, , drop = FALSE]
     first <- group_rows[1L, , drop = FALSE]
-    data <- make_data_for_group(first, dgp_manifest, design_manifest, config)
+    data <- tryCatch(
+      make_data_for_group(first, dgp_manifest, design_manifest, config),
+      error = function(e) e
+    )
+    if (inherits(data, "error")) {
+      msg <- conditionMessage(data)
+      return(vapply(seq_len(nrow(group_rows)), function(ii) {
+        write_setup_failure_scenario(group_rows[ii, , drop = FALSE], msg)
+      }, character(1)))
+    }
     vapply(seq_len(nrow(group_rows)), function(ii) {
       run_one_scenario(group_rows[ii, , drop = FALSE], data, config, cli)
     }, character(1))
