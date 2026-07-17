@@ -218,6 +218,24 @@ make_dynamic_series <- function(family_id, seed, n_total) {
   y
 }
 
+normalize_qdesn_design_args <- function(design) {
+  D <- as.integer(design$DESN_D)[1L]
+  if (!is.finite(D) || D < 1L) stop("DESN_D must be a positive integer.", call. = FALSE)
+  n_vec <- as.integer(design$DESN_n)[1L]
+  if (!is.finite(n_vec) || n_vec < 1L) stop("DESN_n must be a positive integer.", call. = FALSE)
+  n_vec <- rep(n_vec, D)
+  n_tilde <- if (D == 1L) integer(0) else pmax(1L, as.integer(head(n_vec, -1L) / 2L))
+  alpha_vec <- rep(as.numeric(design$alpha)[1L], D)
+  rho_vec <- rep(as.numeric(design$rho)[1L], D)
+  if (any(!is.finite(alpha_vec)) || any(alpha_vec <= 0 | alpha_vec >= 1)) {
+    stop("DESN alpha must be finite and in (0, 1).", call. = FALSE)
+  }
+  if (any(!is.finite(rho_vec)) || any(rho_vec <= 0 | rho_vec >= 1)) {
+    stop("DESN rho must be finite and in (0, 1).", call. = FALSE)
+  }
+  list(D = D, n = n_vec, n_tilde = n_tilde, alpha = alpha_vec, rho = rho_vec)
+}
+
 make_dynamic_data <- function(family_id, design, dgp_seed, design_seed, n_train, n_test) {
   washout <- as.integer(design$washout %||% 0L)[1L]
   if (!is.finite(washout) || washout < 0L) washout <- 0L
@@ -236,16 +254,18 @@ make_dynamic_data <- function(family_id, design, dgp_seed, design_seed, n_train,
     ))
   }
 
+  qdesn_args <- normalize_qdesn_design_args(design)
   shell <- exdqlm::qdesn_fit_vb(
     y = y,
     p0 = 0.5,
     fit_readout = FALSE,
     vb_args = list(),
-    D = as.integer(design$DESN_D)[1L],
-    n = as.integer(design$DESN_n)[1L],
+    D = qdesn_args$D,
+    n = qdesn_args$n,
+    n_tilde = qdesn_args$n_tilde,
     m = as.integer(design$DESN_m)[1L],
-    alpha = as.numeric(design$alpha)[1L],
-    rho = as.numeric(design$rho)[1L],
+    alpha = qdesn_args$alpha,
+    rho = qdesn_args$rho,
     act_f = as.character(design$act_f)[1L],
     act_k = as.character(design$act_k)[1L],
     pi_w = as.numeric(design$pi_w)[1L],
