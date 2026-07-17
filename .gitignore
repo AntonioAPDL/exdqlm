@@ -107,6 +107,9 @@ scripts/*.log
 /reports/rqr_desn_pre_simulation_readiness/
 /reports/rqr_desn_pilot/
 /reports/rqr_desn_broad_config_audit/
+/reports/rqr_desn_broad_simulation/
+/reports/rqr_desn_broad_simulation_smoke/
+/logs/rqr_desn_broad_simulation/
 /logs/benchmarks/*
 !/logs/benchmarks/README.md
 /results/benchmarks/qdesn_synth/*
