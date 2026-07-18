@@ -109,6 +109,7 @@ scripts/*.log
 /reports/rqr_desn_broad_config_audit/
 /reports/rqr_desn_broad_simulation/
 /reports/rqr_desn_broad_simulation_smoke/
+/reports/rqr_desn_article_congruent_simulation/
 /logs/rqr_desn_broad_simulation/
 /logs/benchmarks/*
 !/logs/benchmarks/README.md
