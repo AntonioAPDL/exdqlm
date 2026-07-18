@@ -94,6 +94,11 @@ default. It should be implemented and promoted separately if needed.
   materializer and denominator preflight.
 - `scripts/run_rqr_desn_article_congruent_simulation.R`: guarded smoke/full
   runner for package-ready adapters.
+- `scripts/launch_rqr_desn_article_congruent_production.R`: guarded tmux
+  launcher that shards package-ready scenarios across low-priority
+  single-threaded workers.
+- `scripts/collect_rqr_desn_article_congruent_shards.R`: collector for shard
+  outputs followed by the promotion audit.
 - `scripts/audit_rqr_desn_article_congruent_results.R`: results audit,
   calibration-qualified winner table, failure table, and article claim
   contract.
@@ -144,6 +149,21 @@ Rscript scripts/audit_rqr_desn_article_congruent_results.R \
   --output-dir /tmp/rqr_article_audit_smoke
 ```
 
+Detached launcher smoke:
+
+```bash
+Rscript scripts/launch_rqr_desn_article_congruent_production.R \
+  --confirm-full-launch true \
+  --workers 2 \
+  --max-scenarios 3 \
+  --output-root /tmp/rqr_article_launcher_tiny_smoke \
+  --stamp tinysmoke \
+  --tmux-session rqr_article_tinysmoke_20260718 \
+  --chains 1 \
+  --mcmc-burn 3 \
+  --mcmc-keep 4
+```
+
 Focused test:
 
 ```bash
@@ -181,6 +201,16 @@ Rscript scripts/run_rqr_desn_article_congruent_simulation.R \
   --config config/rqr_desn/rqr_desn_article_congruent_simulation_20260718.R \
   --output-dir reports/rqr_desn_article_congruent_simulation/run_dynamic_one_step_article_congruent_20260718 \
   --stage-id dynamic_rolling_one_step \
+  --implemented-adapter empirical_interval,rqr_mcmc,independent_al_pair \
+  --confirm-full-launch true
+```
+
+Detached package-ready full launch:
+
+```bash
+Rscript scripts/launch_rqr_desn_article_congruent_production.R \
+  --config config/rqr_desn/rqr_desn_article_congruent_simulation_20260718.R \
+  --workers 6 \
   --implemented-adapter empirical_interval,rqr_mcmc,independent_al_pair \
   --confirm-full-launch true
 ```

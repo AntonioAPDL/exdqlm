@@ -42,6 +42,16 @@ split_cli_vec <- function(x) {
   trimws(strsplit(as.character(x)[1L], ",", fixed = TRUE)[[1L]])
 }
 
+scenario_file_ids <- function(path) {
+  if (is.null(path) || !nzchar(as.character(path)[1L])) return(NULL)
+  path <- normalizePath(as.character(path)[1L], mustWork = TRUE)
+  if (grepl("\\.csv$", path, ignore.case = TRUE)) {
+    x <- read_csv(path)
+    if ("scenario_id" %in% names(x)) return(unique(as.character(x$scenario_id)))
+  }
+  unique(trimws(readLines(path, warn = FALSE)))
+}
+
 git_value <- function(repo_root, ...) {
   paste(tryCatch(system2("git", c("-C", repo_root, ...), stdout = TRUE, stderr = TRUE), error = function(e) character(0)), collapse = "\n")
 }
@@ -86,6 +96,8 @@ filter_manifest <- function(df, cli) {
   for (nm in names(filters)) {
     if (!is.null(filters[[nm]])) df <- df[df[[nm]] %in% filters[[nm]], , drop = FALSE]
   }
+  file_ids <- scenario_file_ids(cli[["scenario-file"]])
+  if (!is.null(file_ids)) df <- df[df$scenario_id %in% file_ids, , drop = FALSE]
   if (!is.null(cli[["scenario-id"]])) df <- df[df$scenario_id %in% split_cli_vec(cli[["scenario-id"]]), , drop = FALSE]
   max_scenarios <- as_int(cli[["max-scenarios"]], NA_integer_)
   if (is.finite(max_scenarios) && max_scenarios > 0L && nrow(df) > max_scenarios) df <- df[seq_len(max_scenarios), , drop = FALSE]
