@@ -249,11 +249,14 @@ test_that("RQR-DESN results audit supports targeted confirmation runs without VB
   dir.create(run_dir, recursive = TRUE)
   make_minimal_rqr_audit_run(run_dir, include_vb = FALSE)
 
-  result <- env$run_results_audit(run_dir, out_dir)
+  result <- env$run_results_audit(run_dir, out_dir, audit_context = "targeted_confirmation")
 
   expect_true(all(result$preflight$status == "pass"))
   expect_identical(nrow(result$vb_summary), 0L)
   vb_delta <- utils::read.csv(file.path(out_dir, "vb_vs_mcmc_delta.csv"), stringsAsFactors = FALSE)
   expect_identical(nrow(vb_delta), 0L)
-  expect_identical(result$recommendation$recommendation, "promote_to_targeted_confirmation")
+  expect_identical(result$recommendation$recommendation, "prepare_cautious_article_or_supplement_draft")
+  expect_false(result$recommendation$article_update_allowed)
+  expect_identical(result$recommendation$audit_context, "targeted_confirmation")
+  expect_true(all(result$winners$recommendation_class == "confirmed_for_cautious_article_draft"))
 })

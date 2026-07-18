@@ -150,8 +150,32 @@ load_audit_inputs <- function(run_dir) {
     dgp_manifest = read_csv_required(file.path(run_dir, "dgp_manifest.csv")),
     design_manifest = read_csv_required(file.path(run_dir, "design_manifest.csv")),
     output_hashes = read_csv_required(file.path(run_dir, "output_hashes.csv")),
+    manifest = if (file.exists(file.path(run_dir, "manifest.csv"))) {
+      read_csv_required(file.path(run_dir, "manifest.csv"))
+    } else {
+      data.frame(key = character(0), value = character(0), stringsAsFactors = FALSE)
+    },
     git_state = paste(readLines(file.path(run_dir, "git_state.txt"), warn = FALSE), collapse = "\n")
   )
+}
+
+manifest_value <- function(inputs, key, default = NA_character_) {
+  manifest <- inputs$manifest
+  if (!nrow(manifest) || !all(c("key", "value") %in% names(manifest))) return(default)
+  idx <- match(key, manifest$key)
+  if (is.na(idx)) default else as.character(manifest$value[[idx]])
+}
+
+infer_audit_context <- function(inputs, audit_context = "auto") {
+  audit_context <- as.character(audit_context %||% "auto")[1L]
+  if (!identical(audit_context, "auto")) return(audit_context)
+  config_id <- manifest_value(inputs, "config_id", "")
+  artifact_kind <- manifest_value(inputs, "artifact_kind", "")
+  if (grepl("targeted_confirmation", config_id, fixed = TRUE) ||
+    grepl("targeted_confirmation", artifact_kind, fixed = TRUE)) {
+    return("targeted_confirmation")
+  }
+  "broad_screen"
 }
 
 status_row <- function(gate, status, detail, observed = NA_real_, expected = NA_real_) {
@@ -399,6 +423,15 @@ winner_map <- function(candidates) {
   out
 }
 
+contextualize_winner_recommendations <- function(winners, audit_context) {
+  if (!nrow(winners)) return(winners)
+  if (identical(audit_context, "targeted_confirmation")) {
+    promote <- as.character(winners$recommendation_class) == "promote_to_targeted_confirmation"
+    winners$recommendation_class[promote] <- "confirmed_for_cautious_article_draft"
+  }
+  winners
+}
+
 coverage_by_replicate <- function(metrics, green_tol, yellow_tol, orange_tol) {
   out <- metrics
   out$coverage_level_numeric <- suppressWarnings(as.numeric(out$coverage_level))
@@ -606,14 +639,17 @@ write_guardrails <- function(stage_contract, path) {
   writeLines(lines, path)
 }
 
-promotion_recommendation <- function(preflight, winners) {
+promotion_recommendation <- function(preflight, winners, audit_context = "broad_screen") {
   clean <- all(as.character(preflight$status) == "pass")
   all_improve <- nrow(winners) > 0L && all(winners$interval_score_delta < 0, na.rm = TRUE)
   red <- sum(winners$calibration_class == "red", na.rm = TRUE)
   orange <- sum(winners$calibration_class == "orange", na.rm = TRUE)
   yellow <- sum(winners$calibration_class == "yellow", na.rm = TRUE)
   green <- sum(winners$calibration_class == "green", na.rm = TRUE)
-  recommendation <- if (clean && all_improve && red == 0L) {
+  passed_confirmation <- clean && all_improve && red == 0L
+  recommendation <- if (passed_confirmation && identical(audit_context, "targeted_confirmation")) {
+    "prepare_cautious_article_or_supplement_draft"
+  } else if (passed_confirmation) {
     "promote_to_targeted_confirmation"
   } else if (clean && all_improve) {
     "hold_for_calibration_repair"
@@ -621,7 +657,9 @@ promotion_recommendation <- function(preflight, winners) {
     "hold_for_audit_repair"
   }
   article_update_allowed <- FALSE
-  reason <- if (identical(recommendation, "promote_to_targeted_confirmation")) {
+  reason <- if (identical(recommendation, "prepare_cautious_article_or_supplement_draft")) {
+    "The targeted confirmation run is clean and MCMC winners beat the empirical baseline; a scoped article or supplement draft is now defensible, but automatic article edits remain blocked until explicitly requested."
+  } else if (identical(recommendation, "promote_to_targeted_confirmation")) {
     "The broad run is clean and MCMC winners beat the empirical baseline, but the frozen contract blocks article promotion until targeted confirmation."
   } else {
     "The broad run needs repair or calibration review before targeted confirmation."
@@ -629,6 +667,7 @@ promotion_recommendation <- function(preflight, winners) {
   list(
     recommendation = recommendation,
     article_update_allowed = article_update_allowed,
+    audit_context = audit_context,
     clean_preflight = clean,
     all_winners_improve_over_baseline = all_improve,
     winner_green_count = green,
@@ -645,6 +684,7 @@ write_recommendation_md <- function(rec, winners, path) {
     "",
     sprintf("- recommendation: `%s`", rec$recommendation),
     sprintf("- article_update_allowed: `%s`", rec$article_update_allowed),
+    sprintf("- audit_context: `%s`", rec$audit_context),
     sprintf("- clean_preflight: `%s`", rec$clean_preflight),
     sprintf("- all_winners_improve_over_baseline: `%s`", rec$all_winners_improve_over_baseline),
     sprintf("- winner calibration classes: green `%d`, yellow `%d`, orange `%d`, red `%d`",
@@ -653,8 +693,11 @@ write_recommendation_md <- function(rec, winners, path) {
     "",
     rec$reason,
     "",
-    "Next step: freeze and run targeted confirmation using the candidate grid",
-    "written by this audit. Do not update the article from the broad run alone.",
+    if (identical(rec$recommendation, "prepare_cautious_article_or_supplement_draft")) {
+      "Next step: prepare a scoped RQR-DESN article/supplement draft and reader-facing claim audit. Do not edit article files unless explicitly requested."
+    } else {
+      "Next step: freeze and run targeted confirmation using the candidate grid written by this audit. Do not update the article from the broad run alone."
+    },
     "",
     "## Winner Cells",
     ""
@@ -671,9 +714,10 @@ write_recommendation_md <- function(rec, winners, path) {
   writeLines(lines, path)
 }
 
-run_results_audit <- function(run_dir, output_dir, green_tol = 0.05, yellow_tol = 0.075, orange_tol = 0.10, fail_on_preflight = TRUE) {
+run_results_audit <- function(run_dir, output_dir, green_tol = 0.05, yellow_tol = 0.075, orange_tol = 0.10, fail_on_preflight = TRUE, audit_context = "auto") {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   inputs <- load_audit_inputs(run_dir)
+  audit_context <- infer_audit_context(inputs, audit_context)
   preflight <- preflight_gates(inputs)
   write_csv(preflight, file.path(output_dir, "audit_preflight.csv"))
   input_hashes <- write_input_hashes(inputs$run_dir, output_dir)
@@ -707,7 +751,7 @@ run_results_audit <- function(run_dir, output_dir, green_tol = 0.05, yellow_tol 
   base_summary <- baseline_summary(inputs$interval_metrics)
   write_csv(base_summary, file.path(output_dir, "baseline_summary.csv"))
 
-  winners <- winner_map(candidates)
+  winners <- contextualize_winner_recommendations(winner_map(candidates), audit_context)
   write_csv(winners, file.path(output_dir, "winner_map.csv"))
   write_csv(
     winners[, c("stage_id", "family_id", "coverage_level", "calibration_class", "coverage_error", "recommendation_class"), drop = FALSE],
@@ -740,7 +784,7 @@ run_results_audit <- function(run_dir, output_dir, green_tol = 0.05, yellow_tol 
   confirmation_grid <- targeted_confirmation_grid(candidates, winners)
   write_csv(confirmation_grid, file.path(output_dir, "targeted_confirmation_candidate_grid.csv"))
 
-  rec <- promotion_recommendation(preflight, winners)
+  rec <- promotion_recommendation(preflight, winners, audit_context = audit_context)
   write_recommendation_md(rec, winners, file.path(output_dir, "promotion_recommendation.md"))
   write_json_object(rec, file.path(output_dir, "promotion_recommendation.json"))
 
@@ -748,6 +792,7 @@ run_results_audit <- function(run_dir, output_dir, green_tol = 0.05, yellow_tol 
     created_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
     run_dir = inputs$run_dir,
     output_dir = normalizePath(output_dir, mustWork = FALSE),
+    audit_context = audit_context,
     interval_metric_rows = nrow(inputs$interval_metrics),
     mcmc_diagnostic_rows = nrow(inputs$mcmc_diagnostics),
     vb_diagnostic_rows = nrow(inputs$vb_diagnostics),
@@ -786,13 +831,15 @@ audit_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   yellow_tol <- as_num(cli[["yellow-tol"]], 0.075)
   orange_tol <- as_num(cli[["orange-tol"]], 0.10)
   fail_on_preflight <- as_flag(cli[["fail-on-preflight"]], TRUE)
+  audit_context <- cli[["audit-context"]] %||% "auto"
   result <- run_results_audit(
     run_dir = run_dir,
     output_dir = output_dir,
     green_tol = green_tol,
     yellow_tol = yellow_tol,
     orange_tol = orange_tol,
-    fail_on_preflight = fail_on_preflight
+    fail_on_preflight = fail_on_preflight,
+    audit_context = audit_context
   )
   message(sprintf("RQR-DESN results audit wrote %d winner rows to %s", nrow(result$winners), output_dir))
   message(sprintf("Recommendation: %s", result$recommendation$recommendation))
