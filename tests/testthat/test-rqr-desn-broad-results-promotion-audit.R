@@ -47,7 +47,7 @@ make_audit_metric_row <- function(scenario_id, replicate_id, backend_id, inferen
   )
 }
 
-make_minimal_rqr_audit_run <- function(run_dir, failed = FALSE) {
+make_minimal_rqr_audit_run <- function(run_dir, failed = FALSE, include_vb = TRUE) {
   rows <- list()
   ii <- 1L
   for (replicate_id in 1:2) {
@@ -69,12 +69,14 @@ make_minimal_rqr_audit_run <- function(run_dir, failed = FALSE) {
       0.8, score = 1.2, emp_cov = 0.84, width = 0.9
     )
     ii <- ii + 1L
-    rows[[ii]] <- make_audit_metric_row(
-      sprintf("vb_%d", replicate_id), replicate_id,
-      "rqr_fixed_design_vb", "vb", "ridge", 1.0, "design_green",
-      0.8, score = 3.0, emp_cov = 1.0, width = 3.0
-    )
-    ii <- ii + 1L
+    if (isTRUE(include_vb)) {
+      rows[[ii]] <- make_audit_metric_row(
+        sprintf("vb_%d", replicate_id), replicate_id,
+        "rqr_fixed_design_vb", "vb", "ridge", 1.0, "design_green",
+        0.8, score = 3.0, emp_cov = 1.0, width = 3.0
+      )
+      ii <- ii + 1L
+    }
   }
   metrics <- do.call(rbind, rows)
   write_test_csv(metrics, file.path(run_dir, "interval_metrics.csv"))
@@ -153,14 +155,15 @@ make_minimal_rqr_audit_run <- function(run_dir, failed = FALSE) {
   write_test_csv(mcmc, file.path(run_dir, "mcmc_diagnostics.csv"))
 
   vb <- metrics[metrics$inference == "vb", c("scenario_id"), drop = FALSE]
-  vb$n_draws <- 10L
-  vb$n_design_cols <- 2L
-  vb$converged <- c(TRUE, FALSE)
-  vb$objective_last <- -10
-  vb$delta_last <- 1e-5
-  vb$calibrated_uncertainty <- FALSE
-  vb$response_likelihood <- FALSE
-  vb$generalized_bayes <- TRUE
+  vb$n_draws <- integer(nrow(vb))
+  vb$n_design_cols <- integer(nrow(vb))
+  vb$converged <- logical(nrow(vb))
+  if (nrow(vb)) vb$converged <- c(TRUE, FALSE)[seq_len(nrow(vb))]
+  vb$objective_last <- numeric(nrow(vb)) - 10
+  vb$delta_last <- numeric(nrow(vb)) + 1e-5
+  vb$calibrated_uncertainty <- logical(nrow(vb))
+  vb$response_likelihood <- logical(nrow(vb))
+  vb$generalized_bayes <- rep(TRUE, nrow(vb))
   write_test_csv(vb, file.path(run_dir, "vb_diagnostics.csv"))
 
   write_test_csv(data.frame(stage_id = "fixed_design_calibration", family_id = "symmetric_linear"), file.path(run_dir, "dgp_manifest.csv"))
@@ -237,4 +240,20 @@ test_that("RQR-DESN results audit fails clearly on missing required inputs", {
     env$run_results_audit(run_dir, out_dir),
     "missing: git_state.txt"
   )
+})
+
+test_that("RQR-DESN results audit supports targeted confirmation runs without VB", {
+  env <- load_rqr_audit_env()
+  run_dir <- tempfile("rqr_audit_no_vb_run_")
+  out_dir <- tempfile("rqr_audit_no_vb_out_")
+  dir.create(run_dir, recursive = TRUE)
+  make_minimal_rqr_audit_run(run_dir, include_vb = FALSE)
+
+  result <- env$run_results_audit(run_dir, out_dir)
+
+  expect_true(all(result$preflight$status == "pass"))
+  expect_identical(nrow(result$vb_summary), 0L)
+  vb_delta <- utils::read.csv(file.path(out_dir, "vb_vs_mcmc_delta.csv"), stringsAsFactors = FALSE)
+  expect_identical(nrow(vb_delta), 0L)
+  expect_identical(result$recommendation$recommendation, "promote_to_targeted_confirmation")
 })

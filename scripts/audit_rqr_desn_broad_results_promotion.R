@@ -458,6 +458,31 @@ vb_sidecar_summary <- function(inputs, candidates, winners) {
   vb <- merge(inputs$vb_diagnostics, inputs$launch_manifest, by = "scenario_id", all.x = TRUE, sort = FALSE)
   vb <- merge(vb, inputs$interval_metrics, by = "scenario_id", all.x = TRUE, sort = FALSE, suffixes = c("_manifest", ""))
   group_cols <- c("stage_id", "family_id", "design_id", "coverage_level", "prior_type", "learning_rate")
+  if (!nrow(vb)) {
+    return(data.frame(
+      stage_id = character(0),
+      family_id = character(0),
+      coverage_level = character(0),
+      design_id = character(0),
+      prior_type = character(0),
+      learning_rate = character(0),
+      interval_score_mean = numeric(0),
+      empirical_coverage = numeric(0),
+      mean_width = numeric(0),
+      midpoint_mae = numeric(0),
+      runtime_sec = numeric(0),
+      n_rows = integer(0),
+      convergence_rate = numeric(0),
+      max_delta_last = numeric(0),
+      best_mcmc_interval_score_mean = numeric(0),
+      best_mcmc_empirical_coverage = numeric(0),
+      best_mcmc_mean_width = numeric(0),
+      interval_score_delta_vs_best_mcmc = numeric(0),
+      width_ratio_vs_best_mcmc = numeric(0),
+      caveat_label = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
   groups <- vb[group_cols]
   for (nm in group_cols) groups[[nm]] <- clean_group_value(groups[[nm]])
   values <- vb[c("interval_score_mean", "empirical_coverage", "mean_width", "midpoint_mae", "runtime_sec")]
@@ -700,11 +725,12 @@ run_results_audit <- function(run_dir, output_dir, green_tol = 0.05, yellow_tol 
 
   vb_summary <- vb_sidecar_summary(inputs, candidates, winners)
   write_csv(vb_summary, file.path(output_dir, "vb_sidecar_summary.csv"))
-  write_csv(vb_summary[, c(
+  vb_delta_cols <- c(
     "stage_id", "family_id", "design_id", "coverage_level", "interval_score_mean",
     "best_mcmc_interval_score_mean", "interval_score_delta_vs_best_mcmc",
     "mean_width", "best_mcmc_mean_width", "width_ratio_vs_best_mcmc", "caveat_label"
-  ), drop = FALSE], file.path(output_dir, "vb_vs_mcmc_delta.csv"))
+  )
+  write_csv(vb_summary[, vb_delta_cols, drop = FALSE], file.path(output_dir, "vb_vs_mcmc_delta.csv"))
   write_vb_notes(vb_summary, file.path(output_dir, "vb_caveat_notes.md"))
 
   stage_contract <- stage_claim_contract(inputs)
