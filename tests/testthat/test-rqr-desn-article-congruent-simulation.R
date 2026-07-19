@@ -157,3 +157,47 @@ test_that("learned-scale rich RQR-DESN config materializes and smokes learned-sc
   expect_true(is.finite(mcmc$lambda_mean))
   expect_gt(mcmc$lambda_mean, 0)
 })
+
+test_that("n300 tau1e-6 learned-scale config freezes the requested production contract", {
+  config_path <- file.path(
+    repo_root_for_tests,
+    "config",
+    "rqr_desn",
+    "rqr_desn_article_congruent_n300_tau1em6_lambda1em3_20260719.R"
+  )
+  env <- new.env(parent = baseenv())
+  sys.source(config_path, envir = env)
+  cfg <- get("rqr_desn_article_congruent_simulation_config", envir = env)
+  design <- cfg$stages[[2L]]$design
+
+  expect_identical(design$DESN_D, 1L)
+  expect_identical(design$DESN_n, 300L)
+  expect_identical(design$DESN_m, 60L)
+  expect_equal(design$alpha, 0.20)
+  expect_equal(design$rho, 0.95)
+  expect_equal(cfg$priors$rqr_rhs_ns$tau0, 1e-6)
+  expect_equal(cfg$priors$qdesn_rhs_ns$tau0, 1e-6)
+  expect_equal(cfg$scientific_contract$rqr_learned_scale_prior$shape, 1e-3)
+  expect_equal(cfg$scientific_contract$rqr_learned_scale_prior$rate, 1e-3)
+  expect_identical(cfg$analysis_scale$rqr_loss_reference_scale, "train_response_variance")
+
+  output_dir <- tempfile("rqr_article_n300_manifest_")
+  run_script(
+    "scripts/materialize_rqr_desn_article_congruent_manifest.R",
+    c("--config", config_path, "--output-dir", output_dir)
+  )
+  manifest <- utils::read.csv(file.path(output_dir, "manifest.csv"), stringsAsFactors = FALSE)
+  scenarios <- utils::read.csv(file.path(output_dir, "scenario_manifest.csv"), stringsAsFactors = FALSE)
+  methods <- utils::read.csv(file.path(output_dir, "method_manifest.csv"), stringsAsFactors = FALSE)
+  manifest_value <- function(key) manifest$value[match(key, manifest$key)]
+
+  expect_identical(as.integer(manifest_value("total_scenario_rows")), 9380L)
+  expect_identical(as.integer(manifest_value("adapter_ready_rows")), 8040L)
+  expect_identical(as.integer(manifest_value("external_adapter_rows")), 1340L)
+  expect_identical(manifest_value("rqr_loss_reference_scale"), "train_response_variance")
+  learned <- scenarios$learning_rate_mode == "learned_scale"
+  expect_true(any(learned))
+  expect_true(all(scenarios$lambda_prior_shape[learned] == 1e-3))
+  expect_true(all(scenarios$lambda_prior_rate[learned] == 1e-3))
+  expect_true(methods$learning_rate_mode[methods$method_id == "rqr_desn_rhs_mcmc_learned_scale"] == "learned_scale")
+})
