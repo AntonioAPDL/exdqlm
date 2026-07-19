@@ -9,6 +9,9 @@ rqr_desn_fit(
   ...,
   inference = c("mcmc", "vb"),
   learning_rate = 1,
+  loss_reference_scale = 1,
+  learning_rate_mode = c("fixed", "learned_scale", "learned_pure"),
+  lambda_prior = list(shape = 4, rate = 4),
   mcmc_args = list(),
   vb_args = list(),
   fit_readout = TRUE
@@ -26,6 +29,16 @@ the RQR interval target is controlled by \code{coverage_level}.}
 \item{inference}{Either \code{"mcmc"} or \code{"vb"}.}
 
 \item{learning_rate}{Positive generalized-Bayes learning rate.}
+
+\item{loss_reference_scale}{Positive scale dividing the RQR loss before
+applying the learning rate. Passed to \code{rqr_mcmc_fit()}.}
+
+\item{learning_rate_mode}{Learning-rate treatment passed to
+\code{rqr_mcmc_fit()}. Learned-scale inference is currently available for
+MCMC.}
+
+\item{lambda_prior}{Gamma prior for learned \code{lambda}, passed to
+\code{rqr_mcmc_fit()}.}
 
 \item{mcmc_args}{Named list for \code{rqr_mcmc_fit()}.}
 

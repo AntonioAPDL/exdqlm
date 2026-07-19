@@ -107,3 +107,53 @@ test_that("article-congruent runner and audit execute adapter-ready smoke slices
   expect_true(file.exists(file.path(audit_dir, "calibration_qualified_winner_table.csv")))
   expect_true(file.exists(file.path(audit_dir, "article_claim_contract.csv")))
 })
+
+test_that("learned-scale rich RQR-DESN config materializes and smokes learned-scale rows", {
+  config_path <- file.path(
+    repo_root_for_tests,
+    "config",
+    "rqr_desn",
+    "rqr_desn_article_congruent_learned_scale_rich_desn_20260719.R"
+  )
+  output_dir <- tempfile("rqr_article_ls_manifest_")
+  run_script(
+    "scripts/materialize_rqr_desn_article_congruent_manifest.R",
+    c("--config", config_path, "--output-dir", output_dir)
+  )
+  manifest <- utils::read.csv(file.path(output_dir, "manifest.csv"), stringsAsFactors = FALSE)
+  scenarios <- utils::read.csv(file.path(output_dir, "scenario_manifest.csv"), stringsAsFactors = FALSE)
+  methods <- utils::read.csv(file.path(output_dir, "method_manifest.csv"), stringsAsFactors = FALSE)
+  manifest_value <- function(key) manifest$value[match(key, manifest$key)]
+
+  expect_identical(as.integer(manifest_value("total_scenario_rows")), 9380L)
+  expect_identical(as.integer(manifest_value("adapter_ready_rows")), 8040L)
+  expect_identical(as.integer(manifest_value("external_adapter_rows")), 1340L)
+  expect_true("learning_rate_mode" %in% names(scenarios))
+  expect_true("lambda_prior_shape" %in% names(scenarios))
+  expect_true(any(scenarios$learning_rate_mode == "learned_scale"))
+  expect_true(all(scenarios$lambda_prior_shape[scenarios$learning_rate_mode == "learned_scale"] == 4))
+  expect_true(methods$learning_rate_mode[methods$method_id == "rqr_desn_rhs_mcmc_learned_scale"] == "learned_scale")
+
+  run_dir <- tempfile("rqr_article_ls_run_")
+  run_script(
+    "scripts/run_rqr_desn_article_congruent_simulation.R",
+    c(
+      "--config", config_path,
+      "--smoke", "true",
+      "--output-dir", run_dir,
+      "--scenario-id", "rqr_article__fixed_design_endpoint_recovery__symmetric_gaussian__rep001__rqr_desn_rhs_mcmc_learned_scale__cov0p8__lr1p0",
+      "--chains", "1",
+      "--mcmc-burn", "3",
+      "--mcmc-keep", "4"
+    )
+  )
+  metrics <- utils::read.csv(file.path(run_dir, "interval_metrics.csv"), stringsAsFactors = FALSE)
+  mcmc <- utils::read.csv(file.path(run_dir, "mcmc_diagnostics.csv"), stringsAsFactors = FALSE)
+  expect_identical(metrics$learning_rate_mode, "learned_scale")
+  expect_true(is.finite(metrics$loss_reference_scale))
+  expect_gt(metrics$loss_reference_scale, 0)
+  expect_identical(mcmc$learning_rate_mode, "learned_scale")
+  expect_true(is.finite(mcmc$effective_learning_rate_mean))
+  expect_true(is.finite(mcmc$lambda_mean))
+  expect_gt(mcmc$lambda_mean, 0)
+})

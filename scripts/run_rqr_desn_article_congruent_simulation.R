@@ -256,11 +256,68 @@ make_data <- function(row, config) {
   stop(sprintf("Runner does not implement stage_family=%s yet.", row$stage_family), call. = FALSE)
 }
 
-build_prior <- function(row) {
+build_prior <- function(row, config) {
+  prior_cfg <- config_prior(row, config)
   if (row$prior_type %in% c("rqr_rhs_ns", "qdesn_rhs_ns")) {
-    return(exdqlm::beta_prior("rhs_ns", rhs = list(tau0 = 0.5, a_zeta = 2, b_zeta = 1, s2 = 1, n_inner = 1L, shrink_intercept = FALSE)))
+    return(exdqlm::beta_prior("rhs_ns", rhs = list(
+      tau0 = as.numeric(prior_cfg$tau0 %||% 0.5),
+      a_zeta = as.numeric(prior_cfg$a_zeta %||% 2),
+      b_zeta = as.numeric(prior_cfg$b_zeta %||% 1),
+      s2 = as.numeric(prior_cfg$s2 %||% 1),
+      n_inner = as.integer(prior_cfg$n_inner %||% 1L),
+      shrink_intercept = isTRUE(prior_cfg$shrink_intercept %||% FALSE)
+    )))
   }
   exdqlm::beta_prior("ridge", ridge = list(tau2 = 8))
+}
+
+config_prior <- function(row, config) {
+  priors <- config$priors %||% list()
+  priors[[as.character(row$prior_type)[1L]]] %||% list()
+}
+
+learning_rate_mode_from_row <- function(row) {
+  mode <- tolower(as.character(row$learning_rate_mode %||% "fixed")[1L])
+  mode <- switch(mode,
+    learned = "learned_scale",
+    scale = "learned_scale",
+    learned_loss_scale = "learned_scale",
+    pure = "learned_pure",
+    mode
+  )
+  if (!mode %in% c("fixed", "learned_scale", "learned_pure")) {
+    stop(sprintf("Unsupported learning_rate_mode: %s", mode), call. = FALSE)
+  }
+  mode
+}
+
+learning_rate_initial_from_row <- function(row) {
+  lr <- suppressWarnings(as.numeric(row$learning_rate)[1L])
+  if (!is.finite(lr) || lr <= 0) lr <- 1
+  lr
+}
+
+lambda_prior_from_row <- function(row) {
+  list(
+    shape = suppressWarnings(as.numeric(row$lambda_prior_shape)[1L]),
+    rate = suppressWarnings(as.numeric(row$lambda_prior_rate)[1L]),
+    power = suppressWarnings(as.numeric(row$lambda_prior_power)[1L])
+  )
+}
+
+rqr_loss_reference_scale <- function(data, config) {
+  cfg <- config$analysis_scale %||% list()
+  mode <- tolower(as.character(cfg$rqr_loss_reference_scale %||% cfg$loss_reference_scale %||% "raw")[1L])
+  floor_value <- as.numeric(cfg$loss_reference_floor %||% 1e-8)[1L]
+  if (!is.finite(floor_value) || floor_value <= 0) floor_value <- 1e-8
+  if (mode %in% c("raw", "none", "fixed_one")) return(1)
+  if (mode %in% c("train_response_variance", "training_response_variance", "fit_response_variance")) {
+    value <- stats::var(as.numeric(data$y_fit))
+    return(max(as.numeric(value), floor_value))
+  }
+  value <- suppressWarnings(as.numeric(mode)[1L])
+  if (is.finite(value) && value > 0) return(value)
+  stop(sprintf("Unsupported rqr_loss_reference_scale mode: %s", mode), call. = FALSE)
 }
 
 mcmc_control <- function(row, config, cli, chain_id) {
@@ -280,6 +337,7 @@ mcmc_control <- function(row, config, cli, chain_id) {
 
 fit_rqr_interval <- function(row, data, config, cli) {
   chains <- max(1L, as_int(cli[["chains"]], as.integer(row$chain_count)))
+  loss_reference_scale <- rqr_loss_reference_scale(data, config)
   lower_draws <- upper_draws <- NULL
   diag <- list()
   for (chain_id in seq_len(chains)) {
@@ -287,8 +345,11 @@ fit_rqr_interval <- function(row, data, config, cli) {
       y = data$y_fit,
       X = data$X_fit,
       coverage_level = as.numeric(row$coverage_level),
-      learning_rate = as.numeric(row$learning_rate),
-      beta_prior_obj = build_prior(row),
+      learning_rate = learning_rate_initial_from_row(row),
+      loss_reference_scale = loss_reference_scale,
+      learning_rate_mode = learning_rate_mode_from_row(row),
+      lambda_prior = lambda_prior_from_row(row),
+      beta_prior_obj = build_prior(row, config),
       mcmc_control = mcmc_control(row, config, cli, chain_id)
     )
     pred <- exdqlm::predict_interval(fit, X_new = data$X_test)
@@ -299,11 +360,23 @@ fit_rqr_interval <- function(row, data, config, cli) {
       chain_id = chain_id,
       n_draws = nrow(fit$samp.beta_root1),
       diagnostic_status = if (all(is.finite(fit$diagnostics$loss_trace))) "pass" else "review",
+      learning_rate_mode = fit$model_spec$learning_rate_mode %||% "fixed",
+      loss_reference_scale = fit$model_spec$loss_reference_scale %||% loss_reference_scale,
+      effective_learning_rate_mean = fit$model_spec$effective_learning_rate %||% NA_real_,
+      lambda_mean = fit$model_spec$lambda_summary$mean %||% NA_real_,
+      lambda_sd = fit$model_spec$lambda_summary$sd %||% NA_real_,
+      lambda_q05 = fit$model_spec$lambda_summary$q05 %||% NA_real_,
+      lambda_q95 = fit$model_spec$lambda_summary$q95 %||% NA_real_,
       response_likelihood = FALSE,
       generalized_bayes = TRUE
     )
   }
-  list(lower = rowMeans(lower_draws), upper = rowMeans(upper_draws), diagnostics = do.call(rbind, diag))
+  list(
+    lower = rowMeans(lower_draws),
+    upper = rowMeans(upper_draws),
+    diagnostics = do.call(rbind, diag),
+    loss_reference_scale = loss_reference_scale
+  )
 }
 
 fit_independent_al_pair <- function(row, data, config, cli) {
@@ -325,7 +398,7 @@ fit_independent_al_pair <- function(row, data, config, cli) {
         likelihood_family = "al",
         al_fixed_gamma = 0,
         mcmc_control = mctl,
-        beta_prior_obj = build_prior(row)
+        beta_prior_obj = build_prior(row, config)
       )
       draws <- cbind(draws, data$X_test %*% t(fit$samp.beta))
     }
@@ -366,6 +439,11 @@ metric_row <- function(row, data, interval, runtime_sec) {
     prior_type = row$prior_type,
     coverage_level = as.numeric(row$coverage_level),
     learning_rate = as.numeric(row$learning_rate),
+    learning_rate_mode = row$learning_rate_mode %||% "fixed",
+    loss_reference_scale = interval$loss_reference_scale %||% NA_real_,
+    lambda_prior_shape = suppressWarnings(as.numeric(row$lambda_prior_shape)[1L]),
+    lambda_prior_rate = suppressWarnings(as.numeric(row$lambda_prior_rate)[1L]),
+    lambda_prior_power = suppressWarnings(as.numeric(row$lambda_prior_power)[1L]),
     quantile_lower = as.numeric(row$quantile_lower),
     quantile_upper = as.numeric(row$quantile_upper),
     empirical_coverage = mean(y >= lower & y <= upper),

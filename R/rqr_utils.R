@@ -113,6 +113,103 @@ rqr_gig_params <- function(e, coverage_level, learning_rate = 1) {
   )
 }
 
+.rqr_learning_rate_mode <- function(learning_rate_mode) {
+  mode <- tolower(as.character(learning_rate_mode %||% "fixed")[1L])
+  mode <- switch(mode,
+    learned = "learned_scale",
+    scale = "learned_scale",
+    learned_loss_scale = "learned_scale",
+    pure = "learned_pure",
+    mode
+  )
+  choices <- c("fixed", "learned_scale", "learned_pure")
+  if (!mode %in% choices) {
+    stop(
+      sprintf(
+        "learning_rate_mode must be one of {'%s'}.",
+        paste(choices, collapse = "','")
+      ),
+      call. = FALSE
+    )
+  }
+  mode
+}
+
+.rqr_lambda_prior <- function(lambda_prior = list(), learning_rate_mode = "fixed") {
+  mode <- .rqr_learning_rate_mode(learning_rate_mode)
+  if (is.null(lambda_prior)) lambda_prior <- list()
+  if (!is.list(lambda_prior)) {
+    stop("lambda_prior must be a list with positive shape and rate.", call. = FALSE)
+  }
+  shape <- as.numeric(lambda_prior$shape %||% lambda_prior$a %||% 4)[1L]
+  rate <- as.numeric(lambda_prior$rate %||% lambda_prior$b %||% 4)[1L]
+  default_power <- if (identical(mode, "learned_scale")) 1 else 0
+  power <- as.numeric(lambda_prior$power %||% lambda_prior$nu %||% default_power)[1L]
+  if (identical(mode, "fixed")) {
+    if (!is.finite(shape)) shape <- 4
+    if (!is.finite(rate)) rate <- 4
+    if (!is.finite(power)) power <- 0
+  }
+  if (!is.finite(shape) || shape <= 0) stop("lambda_prior$shape must be positive.", call. = FALSE)
+  if (!is.finite(rate) || rate <= 0) stop("lambda_prior$rate must be positive.", call. = FALSE)
+  if (!is.finite(power) || power < 0) stop("lambda_prior$power must be nonnegative.", call. = FALSE)
+  if (identical(mode, "learned_pure")) power <- 0
+  if (identical(mode, "fixed")) power <- 0
+  list(shape = shape, rate = rate, power = power)
+}
+
+.rqr_lambda_posterior_params <- function(loss_sum, n, lambda_prior, learning_rate_mode) {
+  mode <- .rqr_learning_rate_mode(learning_rate_mode)
+  prior <- .rqr_lambda_prior(lambda_prior, mode)
+  loss_sum <- as.numeric(loss_sum)[1L]
+  n <- as.integer(n)[1L]
+  if (!is.finite(loss_sum) || loss_sum < 0) stop("loss_sum must be finite and nonnegative.", call. = FALSE)
+  if (!is.finite(n) || n <= 0L) stop("n must be a positive integer.", call. = FALSE)
+  if (identical(mode, "fixed")) {
+    return(list(shape = NA_real_, rate = NA_real_, power_count = 0))
+  }
+  power_count <- prior$power * n
+  list(
+    shape = prior$shape + power_count,
+    rate = prior$rate + loss_sum,
+    power_count = power_count
+  )
+}
+
+.rqr_sample_lambda_collapsed <- function(loss_sum, n, lambda_prior, learning_rate_mode) {
+  pp <- .rqr_lambda_posterior_params(loss_sum, n, lambda_prior, learning_rate_mode)
+  stats::rgamma(1L, shape = pp$shape, rate = pp$rate)
+}
+
+.rqr_loss_sum <- function(y, X, beta1, beta2, coverage_level) {
+  eta1 <- drop(X %*% beta1)
+  eta2 <- drop(X %*% beta2)
+  sum(rqr_check_loss(rqr_residual_product(y, eta1, eta2), coverage_level))
+}
+
+.rqr_lambda_summary <- function(lambda_draws) {
+  lambda_draws <- as.numeric(lambda_draws)
+  lambda_draws <- lambda_draws[is.finite(lambda_draws) & lambda_draws > 0]
+  if (!length(lambda_draws)) {
+    return(list(
+      mean = NA_real_, median = NA_real_, sd = NA_real_,
+      q05 = NA_real_, q25 = NA_real_, q75 = NA_real_, q95 = NA_real_,
+      implied_sigma_mean = NA_real_
+    ))
+  }
+  qs <- as.numeric(stats::quantile(lambda_draws, probs = c(0.05, 0.25, 0.75, 0.95), names = FALSE, type = 8))
+  list(
+    mean = mean(lambda_draws),
+    median = stats::median(lambda_draws),
+    sd = stats::sd(lambda_draws),
+    q05 = qs[1L],
+    q25 = qs[2L],
+    q75 = qs[3L],
+    q95 = qs[4L],
+    implied_sigma_mean = mean(1 / lambda_draws)
+  )
+}
+
 .rqr_assert_xy <- function(y, X) {
   X <- as.matrix(X)
   storage.mode(X) <- "double"

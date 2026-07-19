@@ -114,10 +114,46 @@ build_scenario_id <- function(row) {
   )
 }
 
+learning_rate_mode_for_method <- function(method) {
+  mode <- tolower(as.character(method$learning_rate_mode %||% "fixed")[1L])
+  mode <- switch(mode,
+    learned = "learned_scale",
+    scale = "learned_scale",
+    learned_loss_scale = "learned_scale",
+    pure = "learned_pure",
+    mode
+  )
+  if (!mode %in% c("fixed", "learned_scale", "learned_pure")) {
+    stop(sprintf("Unsupported learning_rate_mode for method %s: %s", method$method_id, mode), call. = FALSE)
+  }
+  mode
+}
+
+lambda_prior_for_method <- function(method, mode) {
+  prior <- method$lambda_prior %||% list()
+  if (!is.list(prior)) stop(sprintf("lambda_prior for method %s must be a list.", method$method_id), call. = FALSE)
+  default_power <- if (identical(mode, "learned_scale")) 1 else 0
+  shape <- as.numeric(prior$shape %||% prior$a %||% NA_real_)[1L]
+  rate <- as.numeric(prior$rate %||% prior$b %||% NA_real_)[1L]
+  power <- as.numeric(prior$power %||% prior$nu %||% default_power)[1L]
+  if (identical(mode, "fixed")) {
+    if (!is.finite(shape)) shape <- NA_real_
+    if (!is.finite(rate)) rate <- NA_real_
+    power <- 0
+  } else {
+    if (!is.finite(shape) || shape <= 0) stop(sprintf("lambda_prior$shape for method %s must be positive.", method$method_id), call. = FALSE)
+    if (!is.finite(rate) || rate <= 0) stop(sprintf("lambda_prior$rate for method %s must be positive.", method$method_id), call. = FALSE)
+    if (!is.finite(power) || power < 0) stop(sprintf("lambda_prior$power for method %s must be nonnegative.", method$method_id), call. = FALSE)
+    if (identical(mode, "learned_pure")) power <- 0
+  }
+  list(shape = shape, rate = rate, power = power)
+}
+
 scenario_spec_string <- function(row) {
   keep <- c(
     "config_id", "stage_id", "family_id", "replicate_id", "method_id",
     "method_family", "implemented_adapter", "coverage_level", "learning_rate",
+    "learning_rate_mode", "lambda_prior_shape", "lambda_prior_rate", "lambda_prior_power",
     "prior_type", "chain_count", "quantile_lower", "quantile_upper", "seed"
   )
   paste(paste0(keep, "=", vapply(row[keep], as.character, character(1))), collapse = "|")
@@ -139,6 +175,8 @@ expand_manifest <- function(config, config_path, repo_root, output_dir, include_
       family <- dgps[[family_index]]
       for (method_index in seq_along(config$competitors)) {
         method <- config$competitors[[method_index]]
+        learning_rate_mode <- learning_rate_mode_for_method(method)
+        lambda_prior <- lambda_prior_for_method(method, learning_rate_mode)
         lrs <- method$learning_rates
         if (length(lrs) == 1L && is.na(lrs)) lrs <- NA_real_
         grid <- expand.grid(
@@ -182,6 +220,10 @@ expand_manifest <- function(config, config_path, repo_root, output_dir, include_
           quantile_lower = pairs[, 1L],
           quantile_upper = pairs[, 2L],
           learning_rate = grid$learning_rate,
+          learning_rate_mode = learning_rate_mode,
+          lambda_prior_shape = lambda_prior$shape,
+          lambda_prior_rate = lambda_prior$rate,
+          lambda_prior_power = lambda_prior$power,
           prior_type = method$prior_type,
           chain_count = as.integer(method$chain_count %||% 0L),
           calibration_tolerance = as.numeric(config$scientific_contract$calibration_qualification_tolerance),
@@ -245,6 +287,13 @@ validate_manifest <- function(df) {
   if (any(as.logical(df$rqr_response_likelihood))) stop("RQR response likelihood flag must be FALSE.", call. = FALSE)
   if (any(as.logical(df$rqr_response_predictive_draws))) stop("RQR response predictive draws must be FALSE.", call. = FALSE)
   if (any(as.logical(df$rqr_recursive_response_sampling))) stop("RQR recursive response sampling must be FALSE.", call. = FALSE)
+  learned <- df$learning_rate_mode %in% c("learned_scale", "learned_pure")
+  if (any(learned & (!is.finite(df$lambda_prior_shape) | df$lambda_prior_shape <= 0))) {
+    stop("Learned-scale rows require positive lambda_prior_shape.", call. = FALSE)
+  }
+  if (any(learned & (!is.finite(df$lambda_prior_rate) | df$lambda_prior_rate <= 0))) {
+    stop("Learned-scale rows require positive lambda_prior_rate.", call. = FALSE)
+  }
   TRUE
 }
 
@@ -286,6 +335,8 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
     primary = isTRUE(x$primary),
     coverage_levels = stable_list_string(x$coverage_levels),
     learning_rates = stable_list_string(x$learning_rates),
+    learning_rate_mode = learning_rate_mode_for_method(x),
+    lambda_prior = stable_list_string(x$lambda_prior %||% list()),
     prior_type = x$prior_type,
     chain_count = as.integer(x$chain_count %||% 0L),
     adapter_note = x$adapter_note %||% NA_character_,
@@ -298,7 +349,7 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
       "artifact_kind", "config_id", "config_status", "repo_root", "config_path",
       "output_dir", "git_commit", "git_branch", "total_scenario_rows",
       "adapter_ready_rows", "external_adapter_rows", "article_update_allowed",
-      "production_launch_requires", "created_at"
+      "production_launch_requires", "rqr_loss_reference_scale", "created_at"
     ),
     value = c(
       "rqr_desn_article_congruent_manifest",
@@ -314,6 +365,7 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
       as.character(sum(!as.logical(scenarios$adapter_ready))),
       as.character(config$article_update_allowed),
       config$production_launch_requires,
+      stable_list_string((config$analysis_scale %||% list())$rqr_loss_reference_scale %||% "raw"),
       format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
     )
   )

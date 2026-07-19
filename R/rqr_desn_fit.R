@@ -12,6 +12,12 @@
 #' @param ... Arguments forwarded to `qdesn_fit_vb()` for design construction.
 #' @param inference One of `"mcmc"` or `"vb"`.
 #' @param learning_rate Positive generalized-Bayes learning rate.
+#' @param loss_reference_scale Positive scale dividing the RQR loss before
+#'   applying the learning rate. Passed to [rqr_mcmc_fit()].
+#' @param learning_rate_mode Learning-rate treatment passed to
+#'   [rqr_mcmc_fit()]. Learned-scale inference is currently available for MCMC.
+#' @param lambda_prior Gamma prior for learned `lambda`, passed to
+#'   [rqr_mcmc_fit()].
 #' @param mcmc_args Named list for [rqr_mcmc_fit()].
 #' @param vb_args Named list for [rqr_vb_fit()].
 #' @param fit_readout If `FALSE`, return the design shell before fitting RQR.
@@ -20,10 +26,22 @@
 rqr_desn_fit <- function(y, coverage_level, ...,
                          inference = c("mcmc", "vb"),
                          learning_rate = 1,
+                         loss_reference_scale = 1,
+                         learning_rate_mode = c("fixed", "learned_scale", "learned_pure"),
+                         lambda_prior = list(shape = 4, rate = 4),
                          mcmc_args = list(),
                          vb_args = list(),
                          fit_readout = TRUE) {
   inference <- match.arg(inference)
+  learning_rate_mode <- .rqr_learning_rate_mode(learning_rate_mode)
+  lambda_prior <- .rqr_lambda_prior(lambda_prior, learning_rate_mode)
+  loss_reference_scale <- as.numeric(loss_reference_scale %||% 1)[1L]
+  if (!is.finite(loss_reference_scale) || loss_reference_scale <= 0) {
+    stop("loss_reference_scale must be finite and positive.", call. = FALSE)
+  }
+  if (identical(inference, "vb") && !identical(learning_rate_mode, "fixed")) {
+    stop("rqr_desn_fit learned-scale RQR is currently implemented for MCMC; keep VB fixed-rate until separately validated.", call. = FALSE)
+  }
   args <- list(...)
   arg_names <- names(args) %||% character(0)
   forbidden_target_fields <- intersect(arg_names, c("p0", "target_p"))
@@ -54,7 +72,8 @@ rqr_desn_fit <- function(y, coverage_level, ...,
   )
   if (!isTRUE(fit_readout)) {
     design_fit$meta$rqr_design_only <- TRUE
-    design_fit$meta$rqr_coverage_level <- rqr_constants(coverage_level, learning_rate)$alpha
+    design_fit$meta$rqr_coverage_level <- rqr_constants(coverage_level, learning_rate / loss_reference_scale)$alpha
+    design_fit$meta$rqr_loss_reference_scale <- loss_reference_scale
     return(design_fit)
   }
   if (all(abs(design_fit$X) <= sqrt(.Machine$double.eps))) {
@@ -84,6 +103,9 @@ rqr_desn_fit <- function(y, coverage_level, ...,
       X = design_fit$X,
       coverage_level = coverage_level,
       learning_rate = learning_rate,
+      loss_reference_scale = mcmc_args$loss_reference_scale %||% loss_reference_scale,
+      learning_rate_mode = mcmc_args$learning_rate_mode %||% learning_rate_mode,
+      lambda_prior = mcmc_args$lambda_prior %||% lambda_prior,
       beta_prior_obj = beta_prior_obj,
       mcmc_control = mcmc_args$mcmc_control %||% mcmc_args,
       init = mcmc_args$init %||% list()
@@ -110,7 +132,10 @@ rqr_desn_fit <- function(y, coverage_level, ...,
       list(
         inference_method = paste0("rqr_", inference),
         rqr_coverage_level = rqr_constants(coverage_level, learning_rate)$alpha,
-        rqr_learning_rate = rqr_constants(coverage_level, learning_rate)$omega,
+        rqr_learning_rate = fit$model_spec$learning_rate,
+        rqr_effective_learning_rate = fit$model_spec$effective_learning_rate,
+        rqr_loss_reference_scale = fit$model_spec$loss_reference_scale,
+        rqr_learning_rate_mode = fit$model_spec$learning_rate_mode %||% learning_rate_mode,
         inherited_design_p0 = design_fit$meta$p0 %||% NA_real_,
         response_likelihood = FALSE,
         generalized_bayes = TRUE
@@ -147,6 +172,7 @@ print.rqr_desn_fit <- function(x, ...) {
   cat(sprintf("  inference:      %s\n", x$fit$method %||% x$meta$inference_method %||% "unknown"))
   cat(sprintf("  coverage_level: %.4f\n", x$model_spec$coverage_level))
   cat(sprintf("  learning_rate:  %.4f\n", x$model_spec$learning_rate))
+  cat(sprintf("  rate_mode:      %s\n", x$model_spec$learning_rate_mode %||% "fixed"))
   cat(sprintf("  design rows:    %d\n", nrow(x$X)))
   cat(sprintf("  design cols:    %d\n", ncol(x$X)))
   cat("  interpretation: generalized-Bayes interval readout, not response likelihood\n")

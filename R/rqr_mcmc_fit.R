@@ -8,6 +8,17 @@
 #' @param X Design matrix.
 #' @param coverage_level Interval coverage level in `(0, 1)`.
 #' @param learning_rate Positive generalized-Bayes learning rate.
+#' @param loss_reference_scale Positive scale dividing the RQR loss before
+#'   applying `learning_rate` or learned `lambda`. The default `1` reproduces
+#'   the existing raw-loss target.
+#' @param learning_rate_mode Learning-rate treatment. `"fixed"` preserves the
+#'   existing fixed generalized-Bayes target. `"learned_scale"` samples the
+#'   recommended inverse-loss scale from the generalized posterior proportional
+#'   to `lambda^T exp(-lambda L_c)`. `"learned_pure"` is a diagnostic target
+#'   proportional to `exp(-lambda L_c)`.
+#' @param lambda_prior Gamma prior for learned `lambda`, as a list with
+#'   positive `shape` and `rate`. The optional `power` field defaults to one
+#'   for `"learned_scale"` and zero for `"learned_pure"`.
 #' @param beta_prior_obj Beta prior object from [beta_prior()]. Version 1
 #'   supports `"ridge"` and `"rhs_ns"`.
 #' @param mcmc_control Named list with `n_burn`, `n_mcmc`, `thin`, `seed`,
@@ -17,6 +28,9 @@
 #' @return An `rqr_mcmc` object.
 #' @export
 rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
+                         loss_reference_scale = 1,
+                         learning_rate_mode = c("fixed", "learned_scale", "learned_pure"),
+                         lambda_prior = list(shape = 4, rate = 4),
                          beta_prior_obj = NULL,
                          mcmc_control = list(),
                          init = list(),
@@ -26,7 +40,18 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
   X <- dat$X
   n <- nrow(X)
   p <- ncol(X)
-  constants <- rqr_constants(coverage_level, learning_rate)
+  learning_rate_mode <- .rqr_learning_rate_mode(learning_rate_mode)
+  lambda_prior <- .rqr_lambda_prior(lambda_prior, learning_rate_mode)
+  lambda_current <- as.numeric(init$lambda %||% init$learning_rate %||% learning_rate)[1L]
+  if (!is.finite(lambda_current) || lambda_current <= 0) {
+    stop("Initial learning_rate/lambda must be finite and positive.", call. = FALSE)
+  }
+  loss_reference_scale <- as.numeric(loss_reference_scale %||% 1)[1L]
+  if (!is.finite(loss_reference_scale) || loss_reference_scale <= 0) {
+    stop("loss_reference_scale must be finite and positive.", call. = FALSE)
+  }
+  constants <- rqr_constants(coverage_level, lambda_current / loss_reference_scale)
+  learn_lambda <- !identical(learning_rate_mode, "fixed")
 
   if (is.null(beta_prior_obj)) {
     beta_prior_obj <- beta_prior("ridge", ridge = list(tau2 = 1e4))
@@ -74,7 +99,12 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
   colnames(beta1_draws) <- colnames(X)
   colnames(beta2_draws) <- colnames(X)
   latent_v_draws <- if (store_latent_draws) matrix(NA_real_, n_keep, n) else NULL
+  lambda_draws <- numeric(n_keep)
   loss_trace <- numeric(n_burn + n_keep * thin)
+  lambda_trace <- numeric(n_burn + n_keep * thin)
+  effective_learning_rate_trace <- numeric(n_burn + n_keep * thin)
+  lambda_post_shape_trace <- rep(NA_real_, n_burn + n_keep * thin)
+  lambda_post_rate_trace <- rep(NA_real_, n_burn + n_keep * thin)
   precision_strategy_root1 <- character(n_burn + n_keep * thin)
   precision_strategy_root2 <- character(n_burn + n_keep * thin)
   rhs_stats1 <- vector("list", n_keep)
@@ -86,6 +116,19 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
     eta1 <- drop(X %*% beta1)
     eta2 <- drop(X %*% beta2)
     e <- rqr_residual_product(y, eta1, eta2)
+    if (learn_lambda) {
+      loss_for_lambda <- sum(rqr_check_loss(e, constants$alpha)) / loss_reference_scale
+      lambda_post <- .rqr_lambda_posterior_params(
+        loss_sum = loss_for_lambda,
+        n = n,
+        lambda_prior = lambda_prior,
+        learning_rate_mode = learning_rate_mode
+      )
+      lambda_post_shape_trace[iter] <- lambda_post$shape
+      lambda_post_rate_trace[iter] <- lambda_post$rate
+      lambda_current <- stats::rgamma(1L, shape = lambda_post$shape, rate = lambda_post$rate)
+      constants <- rqr_constants(coverage_level, lambda_current / loss_reference_scale)
+    }
     gp <- rqr_gig_params(e, coverage_level = constants$alpha, learning_rate = constants$omega)
     V <- as.numeric(.sample_gig_devroye_required(
       1L,
@@ -142,6 +185,8 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
     eta1 <- drop(X %*% beta1)
     eta2 <- drop(X %*% beta2)
     loss_trace[iter] <- sum(rqr_check_loss(rqr_residual_product(y, eta1, eta2), constants$alpha))
+    lambda_trace[iter] <- lambda_current
+    effective_learning_rate_trace[iter] <- constants$omega
     precision_strategy_root1[iter] <- as.character(pstats1$strategy %||% "direct")
     precision_strategy_root2[iter] <- as.character(pstats2$strategy %||% "direct")
 
@@ -149,6 +194,7 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
       save_idx <- save_idx + 1L
       beta1_draws[save_idx, ] <- beta1
       beta2_draws[save_idx, ] <- beta2
+      lambda_draws[save_idx] <- lambda_current
       if (store_latent_draws) latent_v_draws[save_idx, ] <- V
       rhs_stats1[[save_idx]] <- pr_upd1$stats %||% list()
       rhs_stats2[[save_idx]] <- pr_upd2$stats %||% list()
@@ -160,6 +206,9 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
   }
 
   summary <- .rqr_fit_summary(y, X, beta1_draws, beta2_draws)
+  lambda_summary <- .rqr_lambda_summary(lambda_draws)
+  effective_learning_rate_summary <- .rqr_lambda_summary(lambda_draws / loss_reference_scale)
+  learning_rate_report <- if (learn_lambda) lambda_summary$mean else lambda_current
   out <- list(
     method = "mcmc",
     family = "rqr_desn",
@@ -167,8 +216,18 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
       family = "rqr_desn",
       parameterization = "two_root_readouts",
       coverage_level = constants$alpha,
-      learning_rate = constants$omega,
-      sigma = constants$sigma,
+      learning_rate = learning_rate_report,
+      learning_rate_initial = as.numeric(init$lambda %||% init$learning_rate %||% learning_rate)[1L],
+      loss_reference_scale = loss_reference_scale,
+      effective_learning_rate = if (learn_lambda) effective_learning_rate_summary$mean else constants$omega,
+      effective_learning_rate_summary = effective_learning_rate_summary,
+      learning_rate_mode = learning_rate_mode,
+      learned_inverse_loss_scale = learn_lambda,
+      lambda_prior = lambda_prior,
+      lambda_power = if (learn_lambda) lambda_prior$power * n else 0,
+      lambda_power_per_observation = if (learn_lambda) lambda_prior$power else 0,
+      lambda_summary = lambda_summary,
+      sigma = if (learn_lambda) effective_learning_rate_summary$implied_sigma_mean else constants$sigma,
       inference = "mcmc",
       generalized_bayes = TRUE,
       response_likelihood = FALSE
@@ -177,10 +236,17 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
     X = X,
     samp.beta_root1 = beta1_draws,
     samp.beta_root2 = beta2_draws,
+    samp.lambda = lambda_draws,
     samp.latent_v = latent_v_draws,
     summary = summary,
     diagnostics = list(
       loss_trace = loss_trace,
+      scaled_loss_trace = loss_trace / loss_reference_scale,
+      weighted_loss_trace = lambda_trace * loss_trace / loss_reference_scale,
+      lambda_trace = lambda_trace,
+      effective_learning_rate_trace = effective_learning_rate_trace,
+      lambda_post_shape_trace = lambda_post_shape_trace,
+      lambda_post_rate_trace = lambda_post_rate_trace,
       precision_strategy_root1 = precision_strategy_root1,
       precision_strategy_root2 = precision_strategy_root2,
       precision_beta = precision_beta_cfg,
@@ -191,6 +257,8 @@ rqr_mcmc_fit <- function(y, X, coverage_level, learning_rate = 1,
     last = list(
       beta_root1 = beta1,
       beta_root2 = beta2,
+      lambda = lambda_current,
+      effective_learning_rate = constants$omega,
       beta_prior_state1 = state1,
       beta_prior_state2 = state2,
       latent_v = V
@@ -216,6 +284,7 @@ rqr_posterior_draws.rqr_mcmc <- function(object, nd = NULL, seed = NULL, ...) {
   b1 <- as.matrix(object$samp.beta_root1)
   b2 <- as.matrix(object$samp.beta_root2)
   n_save <- nrow(b1)
+  lambda_all <- as.numeric(object$samp.lambda %||% rep(object$model_spec$learning_rate %||% NA_real_, n_save))
   if (is.null(nd) || is.na(nd)) {
     idx <- seq_len(n_save)
   } else {
@@ -225,6 +294,7 @@ rqr_posterior_draws.rqr_mcmc <- function(object, nd = NULL, seed = NULL, ...) {
   list(
     beta_root1 = b1[idx, , drop = FALSE],
     beta_root2 = b2[idx, , drop = FALSE],
+    lambda = lambda_all[idx],
     nd = length(idx)
   )
 }
@@ -260,6 +330,10 @@ print.rqr_mcmc <- function(x, ...) {
   cat("RQR fixed-design MCMC fit\n")
   cat(sprintf("  coverage_level: %.4f\n", x$model_spec$coverage_level))
   cat(sprintf("  learning_rate:  %.4f\n", x$model_spec$learning_rate))
+  cat(sprintf("  rate_mode:      %s\n", x$model_spec$learning_rate_mode %||% "fixed"))
+  if (isTRUE(x$model_spec$learned_inverse_loss_scale)) {
+    cat(sprintf("  lambda_mean:    %.4f\n", x$model_spec$lambda_summary$mean))
+  }
   cat(sprintf("  draws:          %d\n", nrow(x$samp.beta_root1)))
   cat("  interpretation: generalized-Bayes interval readout, not response likelihood\n")
   invisible(x)
