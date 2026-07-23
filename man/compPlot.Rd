@@ -52,14 +52,19 @@ bounds, respectively.}
 \value{
 A list of the following is returned:
 \itemize{
-\item \code{map.comp} - MAP estimate of the dynamic component (or element of the state vector).
+\item \code{map.comp} - Posterior mean summary of the dynamic component (or
+element of the state vector; legacy field name retained for backward
+compatibility).
 \item \code{lb.comp} - Lower bound of the 95\% CrIs of the dynamic component (or element of the state vector).
 \item \code{ub.comp} - Upper bound of the 95\% CrIs of the dynamic component (or element of the state vector).
 \item \code{x} - Time/index values used for plotting.
 }
 }
 \description{
-The function plots the dynamic MAP estimates and 95\% credible intervals (CrIs) of a specified component of an exDQLM. Alternatively, if \code{just.theta=TRUE} the MAP estimates and 95\% credible intervals (CrIs) of a single element of the dynamic state vector are plotted.
+The function plots posterior mean summaries and 95\% credible intervals
+(CrIs) of a specified component of an exDQLM. Alternatively, if
+\code{just.theta=TRUE}, posterior mean summaries and 95\% CrIs of a single element
+of the dynamic state vector are plotted.
 }
 \examples{
 \donttest{

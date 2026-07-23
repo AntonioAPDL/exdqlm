@@ -58,7 +58,8 @@ bounds, respectively.}
 \value{
 Invisibly returns a list of the following:
 \itemize{
-\item \code{map.quant} - MAP estimate of the dynamic estimate.
+\item \code{map.quant} - Posterior mean summary of the dynamic estimate
+(legacy field name retained for backward compatibility).
 \item \code{lb.quant} - Lower bound of the 95\% CrIs of the dynamic estimate.
 \item \code{ub.quant} - Upper bound of the 95\% CrIs of the dynamic estimate.
 \item \code{x} - Time/index values used for plotting.
@@ -66,11 +67,11 @@ Invisibly returns a list of the following:
 }
 \description{
 Plot fitted dynamic quantiles, fitted component contributions, or individual
-state elements from a dynamic fit. The default \code{type = "quantile"},
-plots the MAP estimates and 95\% credible intervals (CrIs) of the dynamic
-quantile. \code{type = "component"} plots the MAP estimates and CrIs for a
-specified component. \code{type = "state"} plots the MAP estimates and CrIs
-of a single element of the dynamic state vector.
+state elements from a dynamic fit. The default \code{type = "quantile"}
+plots posterior mean summaries and 95\% credible intervals (CrIs) of the
+dynamic quantile. \code{type = "component"} plots posterior mean summaries
+and CrIs for a specified component. \code{type = "state"} plots posterior
+mean summaries and CrIs of a single element of the dynamic state vector.
 }
 \examples{
 \donttest{

@@ -46,14 +46,16 @@ bounds, respectively.}
 \value{
 A list of the following is returned:
 \itemize{
-\item \code{map.quant} - MAP estimate of the dynamic quantile.
+\item \code{map.quant} - Posterior mean summary of the dynamic quantile
+(legacy field name retained for backward compatibility).
 \item \code{lb.quant} - Lower bound of the 95\% CrIs of the dynamic quantile.
 \item \code{ub.quant} - Upper bound of the 95\% CrIs of the dynamic quantile.
 \item \code{x} - Time/index values used for plotting.
 }
 }
 \description{
-The function plots the MAP estimates and 95\% credible intervals (CrIs) of the dynamic quantile of an exDQLM.
+The function plots posterior mean summaries and 95\% credible intervals
+(CrIs) of the dynamic quantile of an exDQLM.
 }
 \examples{
 \donttest{

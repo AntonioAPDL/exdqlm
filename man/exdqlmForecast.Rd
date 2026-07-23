@@ -81,7 +81,7 @@ intervals (e.g., \code{0.95}).
 Computes filtered and \code{k}-step-ahead forecast quantiles from a fitted
 dynamic quantile model. The returned \code{exdqlmForecast} object can be
 printed, summarized, plotted with \code{plot()}, or passed to
-\code{\link{exdqlmForecastDiagnostics}}.
+\code{\link{diagnostics}} with held-out observations.
 }
 \examples{
 \donttest{
@@ -91,9 +91,9 @@ printed, summarized, plotted with \code{plot()}, or passed to
  y = scIVTmag[1:100]
  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-                  gam.init = -3.5, sig.init = 15, n.samp = 30,
+                  dqlm.ind = TRUE, sig.init = 15, n.samp = 30,
                   verbose = FALSE)
- M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0,
+ M0.forecast = predict(M0, start.t = 90, k = 10,
                               return.draws = TRUE, n.samp = 50, seed = 123)
  M0.forecast
  plot(M0.forecast)

@@ -232,8 +232,6 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   dat <- tiny_static_sparse_rhs_case(n = 80L, p0 = 0.25)
   rhs_ctrl <- list(
     tau0 = 0.15,
-    a_zeta = 2,
-    b_zeta = 9,
     zeta2_fixed = 9,
     shrink_intercept = FALSE
   )
@@ -247,7 +245,6 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
       beta_prior_controls = rhs_ctrl,
       max_iter = 220,
       tol = 1e-4,
-      n_samp_xi = 120,
       verbose = FALSE
     )
   )

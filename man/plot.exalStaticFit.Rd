@@ -22,8 +22,8 @@ the method uses \code{x$X} when available.}
 \code{add = FALSE}.}
 }
 \value{
-Invisibly returns a list with \code{map.quant}, \code{lb.quant}, and
-\code{ub.quant}.
+Invisibly returns a list with \code{map.quant} (legacy field name
+for fitted posterior mean quantiles), \code{lb.quant}, and \code{ub.quant}.
 }
 \description{
 Plot fitted conditional quantile summaries from a static AL/exAL regression

@@ -53,7 +53,7 @@ is \code{FALSE}.}
 
 \item{n.samp}{Optional positive integer specifying how many forecast draws to
 return when \code{return.draws = TRUE}. If omitted, all available posterior
-\eqn{(\sigma,\gamma)} draws from \code{m1} are used.}
+\eqn{(\sigma,\gamma)} draws from \code{object} are used.}
 
 \item{seed}{Optional integer random seed used only for forecast-draw
 generation when \code{return.draws = TRUE}. If provided, the previous
@@ -64,9 +64,9 @@ generation when \code{return.draws = TRUE}. If provided, the previous
 \value{
 An object of class "\code{exdqlmForecast}" containing the following:
 \itemize{
-\item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{m1}).
+\item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{object}).
 \item \code{k} Integer number of steps ahead forecasted.
-\item \code{m1} The fitted exDQLM model object used to initialize the forecast.
+\item \code{m1} The fitted dynamic model object used to initialize the forecast.
 \item \code{cr.percent} The probability mass for the credible
 intervals (e.g., \code{0.95}).
 \item \code{fa} Forecast state mean vectors (\eqn{q \times k} matrix).
@@ -91,7 +91,7 @@ printed, summarized, plotted with \code{plot()}, or passed to
  y = scIVTmag[1:100]
  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-                  gam.init = -3.5, sig.init = 15, n.samp = 30,
+                  dqlm.ind = TRUE, sig.init = 15, n.samp = 30,
                   verbose = FALSE)
  M0.forecast = predict(M0, start.t = 90, k = 10, 
                    return.draws = TRUE, n.samp = 50, seed = 123)

@@ -22,7 +22,8 @@ the method uses \code{x$X} when available.}
 \code{add = FALSE}.}
 }
 \value{
-A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
+A list with \code{map.quant} (legacy field name for fitted posterior
+mean quantiles), \code{lb.quant}, and \code{ub.quant}.
 }
 \description{
 Plot Method for \code{exalStaticLDVB} Objects

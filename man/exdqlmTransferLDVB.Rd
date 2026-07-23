@@ -25,6 +25,7 @@ exdqlmTransferLDVB(
   PriorGamma = NULL,
   tf.m0 = NULL,
   tf.C0 = NULL,
+  vb_control = NULL,
   verbose = TRUE,
   debug_shapes = FALSE,
   debug_every = 5
@@ -84,6 +85,11 @@ zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 
 \item{tf.C0}{Prior covariance of the transfer function component. Defaults to
 the \eqn{(k+1)\times(k+1)} identity matrix.}
+
+\item{vb_control}{Optional normalized VB control list passed to
+\code{\link{exdqlmLDVB}}. Use this to set common VB controls such as
+\code{max_iter}, \code{tol}, or warmup blocks for the transfer-augmented
+LDVB fit.}
 
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 
@@ -174,7 +180,8 @@ M1 = exdqlmTransferLDVB(
   df = c(1,1), dim.df = c(1,4),
   gam.init = -3.5, sig.init = 15,
   lam = 0.38, tf.df = c(0.97,0.97),
-  n.samp = 20, tol = 0.2, verbose = FALSE
+  n.samp = 20, tol = 0.2, vb_control = list(max_iter = 20L),
+  verbose = FALSE
 )
 X_multi = cbind(ELIanoms[1:120], scale(scIVTmag[1:120])[, 1])
 M2 = exdqlmTransferLDVB(
@@ -182,7 +189,8 @@ M2 = exdqlmTransferLDVB(
   df = c(1,1), dim.df = c(1,4),
   gam.init = -3.5, sig.init = 15,
   lam = 0.38, tf.df = c(0.97, 0.99),
-  n.samp = 20, tol = 0.2, verbose = FALSE
+  n.samp = 20, tol = 0.2, vb_control = list(max_iter = 20L),
+  verbose = FALSE
 )
 options(old)
 }

@@ -216,11 +216,11 @@ summary.exdqlmFit <- function(object, ...) {
 #' Plot Method for Dynamic \code{exdqlmFit} Objects
 #'
 #' Plot fitted dynamic quantiles, fitted component contributions, or individual
-#' state elements from a dynamic fit. The default \code{type = "quantile"}, 
-#' plots the MAP estimates and 95% credible intervals (CrIs) of the dynamic 
-#' quantile. \code{type = "component"} plots the MAP estimates and CrIs for a 
-#' specified component. \code{type = "state"} plots the MAP estimates and CrIs 
-#' of a single element of the dynamic state vector.
+#' state elements from a dynamic fit. The default \code{type = "quantile"}
+#' plots posterior mean summaries and 95% credible intervals (CrIs) of the
+#' dynamic quantile. \code{type = "component"} plots posterior mean summaries
+#' and CrIs for a specified component. \code{type = "state"} plots posterior
+#' mean summaries and CrIs of a single element of the dynamic state vector.
 #'
 #' @param x A fitted dynamic \code{exdqlmFit} object.
 #' @param type Character string specifying the plot type. Use
@@ -247,7 +247,8 @@ summary.exdqlmFit <- function(object, ...) {
 #'
 #' @return Invisibly returns a list of the following:
 #'  \itemize{
-#'   \item `map.quant` - MAP estimate of the dynamic estimate.
+#'   \item `map.quant` - Posterior mean summary of the dynamic estimate
+#'   (legacy field name retained for backward compatibility).
 #'   \item `lb.quant` - Lower bound of the 95% CrIs of the dynamic estimate.
 #'   \item `ub.quant` - Upper bound of the 95% CrIs of the dynamic estimate.
 #'   \item `x` - Time/index values used for plotting.
@@ -313,7 +314,7 @@ plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"), index 
 #'   is \code{FALSE}.
 #' @param n.samp Optional positive integer specifying how many forecast draws to
 #'   return when \code{return.draws = TRUE}. If omitted, all available posterior
-#'   \eqn{(\sigma,\gamma)} draws from \code{m1} are used.
+#'   \eqn{(\sigma,\gamma)} draws from \code{object} are used.
 #' @param seed Optional integer random seed used only for forecast-draw
 #'   generation when \code{return.draws = TRUE}. If provided, the previous
 #'   \proglang{R} RNG state is restored on exit.
@@ -321,9 +322,9 @@ plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"), index 
 #'
 #' @return An object of class "\code{exdqlmForecast}" containing the following:
 #' \itemize{
-#'   \item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{m1}).
+#'   \item \code{start.t} Integer index at which forecasts start (within the span of the fitted model in \code{object}).
 #'   \item \code{k} Integer number of steps ahead forecasted.
-#'   \item \code{m1} The fitted exDQLM model object used to initialize the forecast.
+#'   \item \code{m1} The fitted dynamic model object used to initialize the forecast.
 #'   \item \code{cr.percent} The probability mass for the credible
 #'   intervals (e.g., \code{0.95}).
 #'   \item \code{fa} Forecast state mean vectors (\eqn{q \times k} matrix).
@@ -344,7 +345,7 @@ plot.exdqlmFit <- function(x, type = c("quantile", "component", "state"), index 
 #'  y = scIVTmag[1:100]
 #'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-#'                   gam.init = -3.5, sig.init = 15, n.samp = 30,
+#'                   dqlm.ind = TRUE, sig.init = 15, n.samp = 30,
 #'                   verbose = FALSE)
 #'  M0.forecast = predict(M0, start.t = 90, k = 10, 
 #'                    return.draws = TRUE, n.samp = 50, seed = 123)
@@ -696,7 +697,7 @@ is.exdqlmLDVB = function(m){ return(methods::is(m,"exdqlmLDVB")) }
 #' y = scIVTmag[1:60]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-#'                    gam.init = -3.5, sig.init = 15,
+#'                    dqlm.ind = TRUE, sig.init = 15,
 #'                    n.samp = 20, tol = 0.2, verbose = FALSE)
 #' print(M0)
 #' options(old)
@@ -720,7 +721,7 @@ print.exdqlmLDVB <- function(x, ...) {
 #' y = scIVTmag[1:60]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-#'                    gam.init = -3.5, sig.init = 15,
+#'                    dqlm.ind = TRUE, sig.init = 15,
 #'                    n.samp = 20, tol = 0.2, verbose = FALSE)
 #' summary(M0)
 #' options(old)
@@ -747,7 +748,7 @@ summary.exdqlmLDVB <- function(object, ...) {
 #' y = scIVTmag[1:60]
 #' model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-#'                    gam.init = -3.5, sig.init = 15,
+#'                    dqlm.ind = TRUE, sig.init = 15,
 #'                    n.samp = 20, tol = 0.2, verbose = FALSE)
 #' plot(M0)
 #' options(old)

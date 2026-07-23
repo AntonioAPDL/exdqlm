@@ -234,8 +234,8 @@ summary.exalStaticFit <- function(object, max.coef = 6L, ...) {
 #' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
 #'   \code{add = FALSE}.
 #'
-#' @return Invisibly returns a list with \code{map.quant}, \code{lb.quant}, and
-#'   \code{ub.quant}.
+#' @return Invisibly returns a list with \code{map.quant} (legacy field name
+#'   for fitted posterior mean quantiles), \code{lb.quant}, and \code{ub.quant}.
 #'
 #' @export
 plot.exalStaticFit <- function(x, X = NULL, add = FALSE, col = "purple",
@@ -367,7 +367,8 @@ summary.exalStaticMCMC <- function(object, ...) {
 #' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
 #'   \code{add = FALSE}.
 #'
-#' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
+#' @return A list with \code{map.quant} (legacy field name for fitted posterior
+#'   mean quantiles), \code{lb.quant}, and \code{ub.quant}.
 #'
 #' @export
 plot.exalStaticMCMC <- function(x, X = NULL, add = FALSE, col = "purple",
@@ -419,7 +420,8 @@ summary.exalStaticLDVB <- function(object, ...) {
 #' @param ... Additional arguments passed to \code{\link[graphics]{plot}} when
 #'   \code{add = FALSE}.
 #'
-#' @return A list with \code{map.quant}, \code{lb.quant}, and \code{ub.quant}.
+#' @return A list with \code{map.quant} (legacy field name for fitted posterior
+#'   mean quantiles), \code{lb.quant}, and \code{ub.quant}.
 #'
 #' @export
 plot.exalStaticLDVB <- function(x, X = NULL, add = FALSE, col = "purple", cr.percent = 0.95, ...) {

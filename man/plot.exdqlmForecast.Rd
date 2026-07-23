@@ -26,7 +26,7 @@ Plot filtered and forecast quantiles with equal–tailed credible intervals.
  y = scIVTmag[1:60]
  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-                  gam.init = -3.5, sig.init = 15,
+                  dqlm.ind = TRUE, sig.init = 15,
                   n.samp = 20, tol = 0.2, verbose = FALSE)
  M0.forecast = predict(M0, start.t = 50, k = 5)
  plot(M0.forecast)

@@ -1,6 +1,7 @@
 #' Plot exDQLM
 #'
-#' The function plots the MAP estimates and 95% credible intervals (CrIs) of the dynamic quantile of an exDQLM.
+#' The function plots posterior mean summaries and 95% credible intervals
+#' (CrIs) of the dynamic quantile of an exDQLM.
 #'
 #' @param m1 A fitted dynamic \code{exdqlmFit} object, such as an object
 #'   returned by \code{\link{exdqlmLDVB}}, \code{\link{exdqlmMCMC}}, or
@@ -19,7 +20,8 @@
 #'
 #' @return A list of the following is returned:
 #'  \itemize{
-#'   \item `map.quant` - MAP estimate of the dynamic quantile.
+#'   \item `map.quant` - Posterior mean summary of the dynamic quantile
+#'   (legacy field name retained for backward compatibility).
 #'   \item `lb.quant` - Lower bound of the 95% CrIs of the dynamic quantile.
 #'   \item `ub.quant` - Upper bound of the 95% CrIs of the dynamic quantile.
 #'   \item `x` - Time/index values used for plotting.

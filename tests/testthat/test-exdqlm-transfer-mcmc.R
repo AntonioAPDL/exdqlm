@@ -245,10 +245,13 @@ test_that("transfer-function wrappers support componentwise tf.df and full exDQL
     fix.sigma = TRUE, sig.init = 1,
     dqlm.ind = TRUE,
     tol = 0.2, n.samp = 10,
+    vb_control = list(max_iter = 7L),
     verbose = FALSE
   )
   expect_equal(fit_ldvb$df, c(1, 0.97, 0.96, 0.95))
   expect_equal(fit_ldvb$dim.df, c(1, 1, 1, 1))
+  expect_lte(fit_ldvb$iter, 7L)
+  expect_lte(fit_ldvb$diagnostics$convergence$iter, 7L)
   expect_true(is.finite(fit_ldvb$median.kt))
   expect_equal(fit_ldvb$transfer_input_names, c("rain", "soil"))
 

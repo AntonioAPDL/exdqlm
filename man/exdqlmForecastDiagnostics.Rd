@@ -75,7 +75,7 @@ y_train = y[1:60]
 y_holdout = y[61:65]
 model = polytrendMod(1, stats::quantile(y_train, 0.85), 10)
 M0 = exdqlmLDVB(y_train, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-                 gam.init = -3.5, sig.init = 15,
+                 dqlm.ind = TRUE, sig.init = 15,
                  n.samp = 20, tol = 0.2, verbose = FALSE)
 fFF = model$FF[, 1, drop = FALSE]
 fGG = model$GG

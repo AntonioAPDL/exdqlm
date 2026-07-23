@@ -55,6 +55,32 @@ test_that("dynamic LDVB exposes joint convergence diagnostics", {
   expect_true(all(c("monitored_components", "first_problem_iter", "first_problem_components", "nonfinite_iter_count") %in% names(fit$diagnostics$state_path$summary)))
 })
 
+test_that("dynamic DQLM LDVB honors vb_control iteration cap", {
+  set.seed(1011)
+  TT <- 18
+  y <- cumsum(stats::rnorm(TT, sd = 0.2))
+  model <- tiny_dyn_model(TT)
+
+  old_opts <- options(
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.max_iter = 25L,
+    exdqlm.vb.min_iter = 1L
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  fit <- exdqlmLDVB(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    dqlm.ind = TRUE, fix.sigma = TRUE, sig.init = 1,
+    tol = 0, n.samp = 8,
+    vb_control = list(max_iter = 4L),
+    verbose = FALSE
+  )
+
+  expect_lte(fit$iter, 4L)
+  expect_lte(fit$diagnostics$convergence$iter, 4L)
+  expect_true(fit$diagnostics$convergence$stop_reason %in% c("joint_converged", "max_iter"))
+})
+
 test_that("dynamic LDVB records sigmagam warmup scheduling", {
   set.seed(1017)
   TT <- 24
