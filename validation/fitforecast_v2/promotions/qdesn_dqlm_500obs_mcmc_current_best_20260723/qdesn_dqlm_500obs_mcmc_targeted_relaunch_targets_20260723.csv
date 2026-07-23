@@ -1,0 +1,7 @@
+"family","tau","fit_size","model_variant","n_candidates","n_clean","n_current_protocol_candidates","n_current_protocol_clean","n_legacy_clean","relaunch_priority","best_failed_profile","best_failed_reason","best_failed_objective"
+"gausmix",0.05,500,"qdesn_exal_rhs_ns",8,1,7,0,1,"optional_current_protocol_refresh_legacy_clean_fallback_exists","mcvbc_011_exal","high_autocorrelation",7.95199556734293
+"gausmix",0.25,500,"qdesn_exal_rhs_ns",6,0,5,0,0,"targeted_mcmc_diagnostic_relaunch","mcvbc_022_exal","high_autocorrelation; half_chain_drift",11.2459206855458
+"gausmix",0.5,500,"qdesn_exal_rhs_ns",1,1,0,0,1,"optional_current_protocol_refresh_only_legacy_clean_exists",,,
+"laplace",0.5,500,"qdesn_exal_rhs_ns",1,1,0,0,1,"optional_current_protocol_refresh_only_legacy_clean_exists",,,
+"normal",0.25,500,"qdesn_exal_rhs_ns",6,0,5,0,0,"targeted_mcmc_diagnostic_relaunch","mcvbc_063_exal","high_autocorrelation",8.796460006192
+"normal",0.5,500,"qdesn_exal_rhs_ns",1,1,0,0,1,"optional_current_protocol_refresh_only_legacy_clean_exists",,,
