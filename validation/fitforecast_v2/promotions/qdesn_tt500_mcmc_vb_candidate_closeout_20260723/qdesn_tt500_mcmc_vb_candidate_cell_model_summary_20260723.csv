@@ -1,0 +1,13 @@
+"family","tau","model","n_candidates","n_pass","n_warn","n_fail","n_comparison_eligible","best_selection_rule","best_profile","best_signoff_grade","best_comparison_eligible","best_train_qtrue_rmse","best_forecast_H1000_qtrue_rmse","best_forecast_H1000_check_loss","best_objective"
+"gausmix",0.05,"al",7,2,3,2,5,"min_objective_among_comparison_eligible","mcvbc_004_al","PASS","TRUE",3.13535787377289,3.08291729267278,1.52584916869654,7.74412433514221
+"gausmix",0.05,"exal",7,0,0,7,0,"min_objective_no_comparison_eligible_available","mcvbc_011_exal","FAIL","FALSE",3.61010867453916,2.82174238603803,1.52014450676574,7.95199556734293
+"gausmix",0.25,"al",5,1,1,3,2,"min_objective_among_comparison_eligible","mcvbc_017_al","PASS","TRUE",2.23616493906476,2.18621034108065,4.52563248474503,8.94800776489044
+"gausmix",0.25,"exal",5,0,0,5,0,"min_objective_no_comparison_eligible_available","mcvbc_022_exal","FAIL","FALSE",1.9380414157374,4.62690333091458,4.68097593889381,11.2459206855458
+"laplace",0.05,"al",7,1,5,1,6,"min_objective_among_comparison_eligible","mcvbc_030_al","WARN","TRUE",5.32260053913083,5.91919989486185,1.8877677792617,13.1295682132544
+"laplace",0.05,"exal",7,0,4,3,4,"min_objective_among_comparison_eligible","mcvbc_036_exal","WARN","TRUE",6.97094072890394,3.12590966186779,1.83472489176547,11.9315752825372
+"laplace",0.25,"al",5,3,2,0,5,"min_objective_among_comparison_eligible","mcvbc_041_al","PASS","TRUE",2.26985320647603,1.88263194862434,4.39558826171673,8.5480734168171
+"laplace",0.25,"exal",5,0,4,1,4,"min_objective_among_comparison_eligible","mcvbc_046_exal","WARN","TRUE",1.80150213237971,1.72345045656239,4.37839126337733,7.90334385231943
+"normal",0.05,"al",7,0,6,1,6,"min_objective_among_comparison_eligible","mcvbc_015_al","WARN","TRUE",3.61215641816798,8.24755608813989,1.2214111028047,13.0811236091126
+"normal",0.05,"exal",7,0,2,5,2,"min_objective_among_comparison_eligible","mcvbc_044_exal","WARN","TRUE",3.23201932707909,3.85258433848088,1.09980446060562,8.18440812616559
+"normal",0.25,"al",5,2,3,0,5,"min_objective_among_comparison_eligible","mcvbc_060_al","PASS","TRUE",2.23849539415889,3.36932291460506,3.3425067828511,8.95032509161505
+"normal",0.25,"exal",5,0,0,5,0,"min_objective_no_comparison_eligible_available","mcvbc_063_exal","FAIL","FALSE",1.78677148272457,3.62770711694603,3.3819814065214,8.796460006192
