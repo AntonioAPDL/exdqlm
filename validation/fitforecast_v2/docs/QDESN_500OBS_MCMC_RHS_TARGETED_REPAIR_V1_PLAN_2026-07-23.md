@@ -43,9 +43,20 @@ This stage targets ten gaps:
 | normal | 0.50 | AL | median forecast gap |
 | normal | 0.50 | exAL | median forecast gap / current-protocol refresh |
 
-## Arm Design
+## v1b Repair and Expanded Arm Design
 
-Each target gets eight full-MCMC arms:
+The first full v1 attempt was stopped after an explicit failure audit. The tag
+`qdesn-tt500-mcmc-rhsrepair-v1-full-20260723__git-cad213a` is diagnostic only
+and must not be consumed: default JSON precision wrote `rhs_tau0 = 3e-05` as
+`0`, triggering the package-side `RHS_NS hypers$tau0 must be > 0` guard.
+
+The repaired v1b stage keeps the original anchors and the original seven
+expansion arms, patches JSON writing to preserve small numeric values, adds an
+explicit RHS tau0 post-override guard, and expands the DESN arm catalog into
+new depth/width/memory regions that had not been covered in the first MCMC
+repair launch.
+
+Each target gets thirteen full-MCMC arms:
 
 | Arm | Purpose |
 |---|---|
@@ -57,8 +68,13 @@ Each target gets eight full-MCMC arms:
 | `f_d2_mem60_lowtau` | Depth-two longer-memory low-tau expansion. |
 | `g_d2_mem90_highrho` | Depth-two long-memory, high-rho challenge. |
 | `h_d3_mem45_wide_lowtau` | Depth-three width/memory expansion inside the p/n gate. |
+| `i_d3_mem90_sparse_highrho` | Depth-three full-memory sparse high-rho persistence. |
+| `j_d4_mem60_sparse_stack` | Depth-four medium-memory sparse stack. |
+| `k_d2_mem36_dense_input` | Depth-two wider dense-input bridge. |
+| `l_d1_mem75_ultrasparse` | Wide shallow long-memory ultra-sparse high-rho probe. |
+| `m_d4_mem90_deep_guard` | Depth-four full-memory guarded capacity expansion. |
 
-This gives 80 selected roots/specs. Each root is run for exactly one target likelihood via `execution$allowed_fit_spec_ids`, avoiding accidental AL+exAL duplication.
+This gives 130 selected roots/specs. Each root is run for exactly one target likelihood via `execution$allowed_fit_spec_ids`, avoiding accidental AL+exAL duplication.
 
 ## Source Contract
 
@@ -109,7 +125,7 @@ Orchestrator:
 
 `scripts/orchestrate_qdesn_tt500_mcmc_rhs_targeted_repair_v1.R`
 
-Expected generated config files:
+Historical v1 generated config files:
 
 - `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1_profiles.csv`
 - `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1_cell_assignments.csv`
@@ -118,14 +134,23 @@ Expected generated config files:
 - `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1_target_spec_ids.csv`
 - `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1_materialization_manifest.json`
 
+Repaired v1b generated config files:
+
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_profiles.csv`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_cell_assignments.csv`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_defaults.yaml`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_grid.csv`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_target_spec_ids.csv`
+- `config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_materialization_manifest.json`
+
 ## Launch Sequence
 
 Use materialize, prepare, smoke, then detached full launch:
 
 ```bash
-Rscript scripts/orchestrate_qdesn_tt500_mcmc_rhs_targeted_repair_v1.R --workers 16 --prepare-only
-Rscript scripts/orchestrate_qdesn_tt500_mcmc_rhs_targeted_repair_v1.R --workers 16 --skip-materialize --skip-prepare --smoke
-Rscript scripts/orchestrate_qdesn_tt500_mcmc_rhs_targeted_repair_v1.R --workers 16 --skip-materialize --skip-prepare --skip-smoke --full --launch-approved
+Rscript scripts/orchestrate_qdesn_tt500_mcmc_rhs_targeted_repair_v1.R --stage-file qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b --workers 16 --prepare-only
+Rscript scripts/orchestrate_qdesn_tt500_mcmc_rhs_targeted_repair_v1.R --stage-file qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b --workers 16 --skip-materialize --skip-prepare --smoke
+Rscript scripts/orchestrate_qdesn_tt500_mcmc_rhs_targeted_repair_v1.R --stage-file qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b --workers 16 --skip-materialize --skip-prepare --skip-smoke --full --launch-approved --run-tag qdesn-tt500-mcmc-rhsrepair-v1b-full-20260723 --tmux-session qdesn_tt500_mcmc_rhsrepair_v1b_20260723
 ```
 
 The recommended default is 16 workers while unrelated active jobs are running. If the machine is otherwise clear, 20 to 24 workers is supported by the stage.
@@ -134,7 +159,7 @@ The recommended default is 16 workers while unrelated active jobs are running. I
 
 This stage is not article-facing by launch. Promotion requires:
 
-1. completion or explicit closeout of all 80 target specs;
+1. completion or explicit closeout of all 130 v1b target specs;
 2. strict success/failure/status audit;
 3. storage-heavy artifact audit;
 4. comparison against current-best DQLM/exDQLM and Q-DESN/exQ-DESN MCMC tables;

@@ -283,14 +283,36 @@ qdesn_dynamic_fitforecast_apply_screening_overrides <- function(cfg,
   if (!is.null(root_spec$reservoir_lags) && is.finite(as.integer(root_spec$reservoir_lags)[1L])) {
     cfg$readout <- modifyList(cfg$readout %||% list(), list(reservoir_lags = as.integer(root_spec$reservoir_lags)[1L]))
   }
-  if (identical(as.character(root_spec$beta_prior_type %||% ""), "rhs_ns") &&
-      !is.null(root_spec$rhs_tau0) && is.finite(as.numeric(root_spec$rhs_tau0)[1L])) {
+  beta_prior_type <- tolower(as.character(root_spec$beta_prior_type %||% "")[1L])
+  if (identical(beta_prior_type, "rhs_ns")) {
+    rhs_tau0 <- suppressWarnings(as.numeric(root_spec$rhs_tau0 %||% NA_real_)[1L])
+    if (!is.finite(rhs_tau0) || rhs_tau0 <= 0) {
+      stop(
+        sprintf(
+          "Invalid rhs_tau0 while applying screening overrides for root `%s`: %s.",
+          as.character(root_spec$root_id %||% root_spec$screening_profile_id %||% "<unknown>")[1L],
+          as.character(rhs_tau0)
+        ),
+        call. = FALSE
+      )
+    }
     cfg$inference[[method]]$priors <- modifyList(cfg$inference[[method]]$priors %||% list(), list())
     cfg$inference[[method]]$priors$beta <- modifyList(cfg$inference[[method]]$priors$beta %||% list(), list())
     cfg$inference[[method]]$priors$beta$rhs_ns <- modifyList(
       cfg$inference[[method]]$priors$beta$rhs_ns %||% list(),
-      list(tau0 = as.numeric(root_spec$rhs_tau0)[1L])
+      list(tau0 = rhs_tau0)
     )
+    cfg_tau0 <- suppressWarnings(as.numeric(cfg$inference[[method]]$priors$beta$rhs_ns$tau0 %||% NA_real_)[1L])
+    if (!is.finite(cfg_tau0) || cfg_tau0 <= 0) {
+      stop(
+        sprintf(
+          "Invalid RHS-NS tau0 after applying screening overrides for root `%s`: %s.",
+          as.character(root_spec$root_id %||% root_spec$screening_profile_id %||% "<unknown>")[1L],
+          as.character(cfg_tau0)
+        ),
+        call. = FALSE
+      )
+    }
   }
   cfg
 }

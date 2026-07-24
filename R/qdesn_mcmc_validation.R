@@ -38,7 +38,7 @@
 .qdesn_validation_write_json <- function(path, x) {
   .qdesn_validation_require_namespace("jsonlite")
   .qdesn_validation_dir_create(dirname(path))
-  jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null")
+  jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null", digits = NA)
   invisible(path)
 }
 

@@ -39,7 +39,7 @@ write_csv <- function(x, path) {
 write_json <- function(x, path) {
   path <- resolve_path(path, must_work = FALSE)
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
-  jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null")
+  jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null", digits = NA)
   normalizePath(path, winslash = "/", mustWork = TRUE)
 }
 
@@ -77,6 +77,9 @@ stage_file <- as.character(get_arg(
   "--stage-file",
   "qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1"
 ))[1L]
+stage_version <- if (grepl("_v1b$", stage_file)) "v1b" else "v1"
+stage_name <- paste0("mcmc_rhs_targeted_repair_", stage_version)
+profile_prefix <- if (identical(stage_version, "v1b")) "mcrv1b" else "mcrv1"
 workers <- suppressWarnings(as.integer(get_arg("--workers", "20"))[1L])
 if (!is.finite(workers) || workers < 1L) workers <- 20L
 workers <- min(workers, 24L)
@@ -146,7 +149,7 @@ anchor <- data.frame(
   stringsAsFactors = FALSE
 )
 
-generic_arms <- data.frame(
+base_generic_arms <- data.frame(
   arm_id = c(
     "b_d1_mem12",
     "c_d1_mem36_lowtau",
@@ -177,13 +180,46 @@ generic_arms <- data.frame(
   stringsAsFactors = FALSE
 )
 
+extra_v1b_arms <- data.frame(
+  arm_id = c(
+    "i_d3_mem90_sparse_highrho",
+    "j_d4_mem60_sparse_stack",
+    "k_d2_mem36_dense_input",
+    "l_d1_mem75_ultrasparse",
+    "m_d4_mem90_deep_guard"
+  ),
+  arm_role = c(
+    "depth-three full-memory sparse high-rho persistence",
+    "depth-four medium-memory sparse stack",
+    "depth-two wider dense-input bridge",
+    "wide shallow long-memory ultra-sparse high-rho probe",
+    "depth-four full-memory guarded capacity expansion"
+  ),
+  D = c(3L, 4L, 2L, 1L, 4L),
+  n_each = c(50L, 48L, 70L, 70L, 64L),
+  m = c(90L, 60L, 36L, 75L, 90L),
+  alpha = c(0.0010, 0.0015, 0.0050, 0.00075, 0.0010),
+  rho = c(0.90, 0.82, 0.70, 0.90, 0.88),
+  pi_w = c(0.0025, 0.0025, 0.0100, 0.0010, 0.0015),
+  pi_in = c(0.05, 0.05, 0.20, 0.03, 0.03),
+  rhs_tau0 = c(1e-4, 1e-4, 3e-4, 1e-4, 1e-4),
+  seed_offset = seq(80L, 120L, by = 10L),
+  stringsAsFactors = FALSE
+)
+
+generic_arms <- if (identical(stage_version, "v1b")) {
+  rbind(base_generic_arms, extra_v1b_arms)
+} else {
+  base_generic_arms
+}
+
 make_profile <- function(profile_id, screening_wave, profile_role, D, n_each, m, alpha, rho, pi_w, pi_in, rhs_tau0, seed) {
   row <- exdqlm:::qdesn_dynamic_fitforecast_profile_row(
     D = D,
     n_each = n_each,
     alpha = alpha,
     rho = rho,
-    screening_stage = "mcmc_rhs_targeted_repair_v1",
+    screening_stage = stage_name,
     screening_wave = screening_wave,
     profile_role = profile_role,
     rhs_tau0 = rhs_tau0,
@@ -202,7 +238,7 @@ make_profile <- function(profile_id, screening_wave, profile_role, D, n_each, m,
   row
 }
 
-screening_wave <- paste0("mcmc_rhs_targeted_repair_v1_", format(Sys.Date(), "%Y_%m_%d"))
+screening_wave <- paste0(stage_name, "_", format(Sys.Date(), "%Y_%m_%d"))
 profile_rows <- list()
 assignment_rows <- list()
 
@@ -233,7 +269,7 @@ for (i in seq_len(nrow(targets))) {
     } else {
       as.integer(82000L + cell$priority_rank * 100L + arm$seed_offset)
     }
-    profile_id <- sprintf("mcrv1_%s_%s", cell$cell_id, arm$arm_id)
+    profile_id <- sprintf("%s_%s_%s", profile_prefix, cell$cell_id, arm$arm_id)
     role <- sprintf("%s__%s", cell$target_class, arm$arm_role)
     profile_rows[[length(profile_rows) + 1L]] <- make_profile(
       profile_id = profile_id,
@@ -251,7 +287,7 @@ for (i in seq_len(nrow(targets))) {
     )
     assignment_rows[[length(assignment_rows) + 1L]] <- data.frame(
       assignment_key = paste(profile_id, cell$family, tau_key(cell$tau), sep = "\r"),
-      assignment_id = sprintf("mcrv1_%04d", length(assignment_rows) + 1L),
+      assignment_id = sprintf("%s_%04d", profile_prefix, length(assignment_rows) + 1L),
       family = cell$family,
       tau = cell$tau,
       likelihood_target = cell$likelihood_target,
@@ -338,13 +374,13 @@ base_defaults$reference_contract$fit_sizes <- 500L
 base_defaults$reference_contract$expected_unique_dataset_cells <- 9L
 base_defaults$screening_profiles <- base_defaults$screening_profiles %||% list()
 base_defaults$screening_profiles$canonical_dataset_cell_count <- 9L
-extended_base_defaults_path <- file.path(diag_manifest, "qdesn_tt500_mcmc_rhs_targeted_repair_v1_extended_base_defaults.yaml")
+extended_base_defaults_path <- file.path(diag_manifest, sprintf("qdesn_tt500_mcmc_rhs_targeted_repair_%s_extended_base_defaults.yaml", stage_version))
 yaml::write_yaml(base_defaults, extended_base_defaults_path)
 
-selected_candidates_path <- write_csv(assignments, file.path(diag_tables, "qdesn_tt500_mcmc_rhs_targeted_repair_v1_selected_assignments.csv"))
-cell_plan_path <- write_csv(cell_plan, file.path(diag_tables, "qdesn_tt500_mcmc_rhs_targeted_repair_v1_cell_plan.csv"))
-arm_catalog_path <- write_csv(generic_arms, file.path(diag_tables, "qdesn_tt500_mcmc_rhs_targeted_repair_v1_arm_catalog.csv"))
-target_catalog_path <- write_csv(targets, file.path(diag_tables, "qdesn_tt500_mcmc_rhs_targeted_repair_v1_target_catalog.csv"))
+selected_candidates_path <- write_csv(assignments, file.path(diag_tables, sprintf("qdesn_tt500_mcmc_rhs_targeted_repair_%s_selected_assignments.csv", stage_version)))
+cell_plan_path <- write_csv(cell_plan, file.path(diag_tables, sprintf("qdesn_tt500_mcmc_rhs_targeted_repair_%s_cell_plan.csv", stage_version)))
+arm_catalog_path <- write_csv(generic_arms, file.path(diag_tables, sprintf("qdesn_tt500_mcmc_rhs_targeted_repair_%s_arm_catalog.csv", stage_version)))
+target_catalog_path <- write_csv(targets, file.path(diag_tables, sprintf("qdesn_tt500_mcmc_rhs_targeted_repair_%s_target_catalog.csv", stage_version)))
 
 plan <- list(
   profiles = profiles,
@@ -352,7 +388,10 @@ plan <- list(
   cell_plan = cell_plan,
   manifest = list(
     stage_file = stage_file,
-    selection_policy = "Targeted MCMC repair: preserve current compact anchors and add diversified, bounded DESN arms inside the frozen period90/m90/w300 source contract.",
+    selection_policy = sprintf(
+      "Targeted MCMC repair %s: preserve current compact anchors and add diversified, bounded DESN arms inside the frozen period90/m90/w300 source contract.",
+      stage_version
+    ),
     targets = targets,
     arm_catalog = generic_arms
   )
@@ -369,8 +408,8 @@ mat <- exdqlm:::qdesn_dynamic_fitforecast_materialize_forecast_targeted_stage(
   refresh_grid = refresh_grid,
   refresh_materialized = refresh_materialized,
   stage_stub = stage_file,
-  stage_desc = "Q-DESN 500-observation targeted full-MCMC RHS repair with compact anchors plus diversified DESN arms.",
-  stage = "mcmc_rhs_targeted_repair_v1",
+  stage_desc = sprintf("Q-DESN 500-observation targeted full-MCMC RHS repair %s with compact anchors plus diversified DESN arms.", stage_version),
+  stage = stage_name,
   priors = "rhs_ns"
 )
 
@@ -381,7 +420,7 @@ defaults$campaign$reports_root <- file.path("reports", "qdesn_mcmc_validation", 
 defaults$execution$methods <- "mcmc"
 defaults$execution$likelihood_families <- as.list(c("al", "exal"))
 defaults$study_contract$id <- paste0(stage_file, "_", format(Sys.Date(), "%Y_%m_%d"))
-defaults$study_contract$description <- "Full MCMC targeted repair for selected independent Q-DESN/exQ-DESN RHS cell-likelihood gaps. This is not article-facing until strict audit and explicit promotion."
+defaults$study_contract$description <- sprintf("Full MCMC targeted repair %s for selected independent Q-DESN/exQ-DESN RHS cell-likelihood gaps. This is not article-facing until strict audit and explicit promotion.", stage_version)
 defaults$study_contract$budget$posterior_metric_draws <- 200L
 defaults$study_contract$budget$vb_sampling_nd_draws <- 200L
 defaults$study_contract$budget$vb_synthesis_n_samp <- 200L
@@ -400,20 +439,24 @@ defaults$screening_profiles$canonical_dataset_cell_count <- 9L
 defaults$screening_profiles$canonical_qdesn_root_count <- nrow(profiles) * 9L
 defaults$screening_profiles$selected_assignment_root_count <- length(unique(assignments$assignment_key))
 defaults$screening_profiles$design <- sprintf(
-  "Targeted RHS MCMC repair v1: %d target cell-likelihoods, %d arms each, %d selected roots.",
+  "Targeted RHS MCMC repair %s: %d target cell-likelihoods, %d arms each, %d selected roots.",
+  stage_version,
   nrow(cell_plan), nrow(profiles) / nrow(cell_plan), length(unique(assignments$assignment_key))
 )
 defaults$runtime$threads <- 1L
 defaults$runtime$campaign_workers <- workers
 defaults$runtime$workers <- workers
 defaults$runtime$root_scheduler <- "load_balanced"
-defaults$pilot$source_family <- as.character(assignments$family[[1L]])
-defaults$pilot$tau <- as.numeric(assignments$tau[[1L]])
-defaults$smoke$family <- as.character(assignments$family[[1L]])
-defaults$smoke$tau <- as.numeric(assignments$tau[[1L]])
+smoke_profile_id <- as.character(profiles$screening_profile_id[which.min(as.numeric(profiles$rhs_tau0))][1L])
+smoke_assignment <- assignments[assignments$screening_profile_id == smoke_profile_id, , drop = FALSE]
+if (!nrow(smoke_assignment)) smoke_assignment <- assignments[1L, , drop = FALSE]
+defaults$pilot$source_family <- as.character(smoke_assignment$family[[1L]])
+defaults$pilot$tau <- as.numeric(smoke_assignment$tau[[1L]])
+defaults$smoke$family <- as.character(smoke_assignment$family[[1L]])
+defaults$smoke$tau <- as.numeric(smoke_assignment$tau[[1L]])
 defaults$smoke$fit_sizes <- 500L
 defaults$smoke$priors <- as.list("rhs_ns")
-defaults$smoke$screening_profile_ids <- as.list(as.character(assignments$screening_profile_id[[1L]]))
+defaults$smoke$screening_profile_ids <- as.list(smoke_profile_id)
 defaults$smoke$max_roots <- 1L
 defaults$smoke$budget <- list(
   posterior_metric_draws = 4L,
@@ -509,9 +552,9 @@ target_specs_out <- write_csv(target_specs, target_specs_out)
 defaults$execution$allowed_fit_spec_ids <- as.list(as.character(target_specs$spec_id))
 yaml::write_yaml(defaults, defaults_out)
 
-summary_path <- file.path(diag_summary, "qdesn_tt500_mcmc_rhs_targeted_repair_v1.md")
+summary_path <- file.path(diag_summary, sprintf("qdesn_tt500_mcmc_rhs_targeted_repair_%s.md", stage_version))
 summary_lines <- c(
-  "# Q-DESN 500-Observation MCMC RHS Targeted Repair v1",
+  sprintf("# Q-DESN 500-Observation MCMC RHS Targeted Repair %s", stage_version),
   "",
   sprintf("- generated_at: `%s`", as.character(Sys.time())),
   sprintf("- stage_file: `%s`", stage_file),
@@ -525,7 +568,7 @@ summary_lines <- c(
   "",
   "## Design Rationale",
   "",
-  "This stage keeps the current compact anchor for each target cell-likelihood and adds bounded new arms that explore depth, width, memory, low-alpha/high-rho persistence, and tighter RHS tau0 values. The design intentionally stays within the frozen period90/m90/w300 source contract; m/readout lags above 90 require a separate source-registry extension and are not mixed into this run.",
+  "This stage keeps the current compact anchor for each target cell-likelihood and adds bounded new arms that explore depth, width, memory, low-alpha/high-rho persistence, and tighter RHS tau0 values. The v1b expansion adds depth-four and wider high-memory probes while staying inside the frozen period90/m90/w300 source contract; m/readout lags above 90 require a separate source-registry extension and are not mixed into this run.",
   "",
   "## Target Cell-Likelihoods",
   "",
@@ -536,7 +579,7 @@ summary_lines <- c(
   md_table(rbind(
     data.frame(arm_id = "a_current_anchor", arm_role = "cell-specific current compact anchor", D = NA, n_each = NA, m = NA, alpha = NA, rho = NA, rhs_tau0 = NA, stringsAsFactors = FALSE),
     generic_arms[, c("arm_id", "arm_role", "D", "n_each", "m", "alpha", "rho", "rhs_tau0"), drop = FALSE]
-  ), c("arm_id", "arm_role", "D", "n_each", "m", "alpha", "rho", "rhs_tau0"), max_rows = 12L),
+  ), c("arm_id", "arm_role", "D", "n_each", "m", "alpha", "rho", "rhs_tau0"), max_rows = 20L),
   "",
   "## Gates",
   "",
@@ -544,6 +587,10 @@ summary_lines <- c(
   "- MCMC initialization: `init_from_vb = TRUE` and `require_init_from_vb = TRUE`.",
   "- Storage policy: no successful draw/forecast-object retention; compact fit paths and scalar metrics only.",
   "- Article policy: not article-facing until completion, strict audit, and explicit promotion.",
+  "",
+  "## Non-Consumable Prior Attempt",
+  "",
+  "- The aborted tag `qdesn-tt500-mcmc-rhsrepair-v1-full-20260723__git-cad213a` is diagnostic only and must not be consumed. It exposed default JSON rounding of `rhs_tau0 = 3e-05` to `0`, which is repaired by precision-preserving JSON and explicit RHS tau0 guards before this stage is relaunched.",
   "",
   sprintf("- profiles: `%s`", profiles_out),
   sprintf("- assignments: `%s`", assignments_out),

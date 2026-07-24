@@ -29,7 +29,7 @@ resolve_path <- function(path, must_work = TRUE) {
 write_json <- function(x, path) {
   path <- resolve_path(path, must_work = FALSE)
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
-  jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null")
+  jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null", digits = NA)
   normalizePath(path, winslash = "/", mustWork = TRUE)
 }
 
@@ -52,6 +52,8 @@ run_cmd <- function(label, cmd, cmd_args, orchestrator_root, allow_failure = FAL
 }
 
 stage_file <- as.character(get_arg("--stage-file", "qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1"))[1L]
+stage_version <- if (grepl("_v1b$", stage_file)) "v1b" else "v1"
+tag_stub <- paste0("qdesn-tt500-mcmc-rhsrepair-", stage_version)
 workers <- suppressWarnings(as.integer(get_arg("--workers", "16"))[1L])
 if (!is.finite(workers) || workers < 1L) workers <- 16L
 workers <- min(workers, 24L)
@@ -70,7 +72,7 @@ git_short <- trimws(system("git rev-parse --short HEAD", intern = TRUE))
 stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
 orchestrator_tag <- as.character(get_arg(
   "--orchestrator-tag",
-  sprintf("qdesn-tt500-mcmc-rhsrepair-v1-orch-%s__git-%s", stamp, git_short)
+  sprintf("%s-orch-%s__git-%s", tag_stub, stamp, git_short)
 ))[1L]
 orchestrator_root <- resolve_path(file.path("reports", "qdesn_mcmc_validation", stage_file, "orchestration", orchestrator_tag), must_work = FALSE)
 dir.create(file.path(orchestrator_root, "logs"), recursive = TRUE, showWarnings = FALSE)
@@ -136,7 +138,7 @@ runner_args_base <- c(
 )
 
 if (!isTRUE(skip_prepare)) {
-  prepare_tag <- sprintf("qdesn-tt500-mcmc-rhsrepair-v1-prepare-%s__git-%s", stamp, git_short)
+  prepare_tag <- sprintf("%s-prepare-%s__git-%s", tag_stub, stamp, git_short)
   steps[[length(steps) + 1L]] <- run_cmd(
     "10_prepare",
     "Rscript",
@@ -152,7 +154,7 @@ if (!isTRUE(skip_prepare)) {
 }
 
 if (isTRUE(run_smoke)) {
-  smoke_tag <- sprintf("qdesn-tt500-mcmc-rhsrepair-v1-smoke-%s__git-%s", stamp, git_short)
+  smoke_tag <- sprintf("%s-smoke-%s__git-%s", tag_stub, stamp, git_short)
   steps[[length(steps) + 1L]] <- run_cmd(
     "20_smoke",
     "Rscript",
@@ -172,11 +174,11 @@ full_step <- NULL
 if (isTRUE(full)) {
   full_tag <- as.character(get_arg(
     "--run-tag",
-    sprintf("qdesn-tt500-mcmc-rhsrepair-v1-full-%s__git-%s", stamp, git_short)
+    sprintf("%s-full-%s__git-%s", tag_stub, stamp, git_short)
   ))[1L]
   tmux_session <- as.character(get_arg(
     "--tmux-session",
-    sprintf("qdesn_tt500_mcmc_rhsrepair_v1_%s", format(Sys.time(), "%Y%m%d_%H%M%S"))
+    sprintf("qdesn_tt500_mcmc_rhsrepair_%s_%s", stage_version, format(Sys.time(), "%Y%m%d_%H%M%S"))
   ))[1L]
   full_step <- run_cmd(
     "30_full_detached",
@@ -206,6 +208,7 @@ if (isTRUE(full)) {
 out <- list(
   generated_at = as.character(Sys.time()),
   stage_file = stage_file,
+  stage_version = stage_version,
   orchestrator_tag = orchestrator_tag,
   orchestrator_root = orchestrator_root,
   git_sha = trimws(system("git rev-parse HEAD", intern = TRUE)),
@@ -224,7 +227,7 @@ out <- list(
   steps = steps,
   full_step = full_step
 )
-manifest_written <- write_json(out, file.path(orchestrator_root, "manifest", "qdesn_tt500_mcmc_rhs_targeted_repair_v1_orchestrator_manifest.json"))
+manifest_written <- write_json(out, file.path(orchestrator_root, "manifest", sprintf("qdesn_tt500_mcmc_rhs_targeted_repair_%s_orchestrator_manifest.json", stage_version)))
 cat(sprintf("orchestrator_manifest: %s\n", manifest_written))
 cat(sprintf("orchestrator_root: %s\n", orchestrator_root))
 cat(sprintf("target_spec_count: %d\n", out$target_spec_count))

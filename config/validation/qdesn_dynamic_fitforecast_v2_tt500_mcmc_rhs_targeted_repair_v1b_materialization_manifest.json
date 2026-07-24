@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-07-23 21:06:58.038784",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "cad213afe0744570081c5ad77ff31d1c0b21ed30",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": true,
+  "stage_file": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b",
+  "design_contract": {
+    "source_contract": "period90/m90/w300 frozen source inputs",
+    "m_max": 90,
+    "workers": 16,
+    "mcmc_n_burn": 5000,
+    "mcmc_n_mcmc": 20000,
+    "mcmc_progress_every": 50,
+    "init_from_vb": true,
+    "storage_light": true
+  },
+  "counts": {
+    "target_cell_likelihoods": 10,
+    "arms_per_target": 13,
+    "profiles": 130,
+    "assignments": 130,
+    "selected_roots": 130,
+    "target_mcmc_atomic_specs": 130,
+    "canonical_grid_rows": 1170,
+    "selected_grid_rows": 130
+  },
+  "outputs": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_target_spec_ids.csv",
+    "selected_assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/materialization_diagnostics/tables/qdesn_tt500_mcmc_rhs_targeted_repair_v1b_selected_assignments.csv",
+    "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/materialization_diagnostics/tables/qdesn_tt500_mcmc_rhs_targeted_repair_v1b_cell_plan.csv",
+    "arm_catalog": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/materialization_diagnostics/tables/qdesn_tt500_mcmc_rhs_targeted_repair_v1b_arm_catalog.csv",
+    "target_catalog": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/materialization_diagnostics/tables/qdesn_tt500_mcmc_rhs_targeted_repair_v1b_target_catalog.csv",
+    "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/materialization_diagnostics/summary/qdesn_tt500_mcmc_rhs_targeted_repair_v1b.md",
+    "diagnostics": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/materialization_diagnostics"
+  },
+  "materializer_return": {
+    "stage": "mcmc_rhs_targeted_repair_v1b",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b_grid.csv",
+    "n_profiles": 130,
+    "n_assignments": 130,
+    "n_canonical_grid_rows": 1170,
+    "n_grid_rows": 130,
+    "expected_qdesn_roots": 130,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  }
+}
