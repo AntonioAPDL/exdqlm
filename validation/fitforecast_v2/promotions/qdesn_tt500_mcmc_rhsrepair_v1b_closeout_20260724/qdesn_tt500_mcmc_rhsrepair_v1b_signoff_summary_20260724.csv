@@ -1,0 +1,2 @@
+"promotion_id","n_roots","n_root_success","n_root_fail","n_status_success","n_status_fail","n_pass","n_warn","n_fail","n_clean_comparison_pool","n_nonpromotable","n_candidate_promotions","n_objective_improvements","n_forecast_only_improvements"
+"qdesn_tt500_mcmc_rhsrepair_v1b_closeout_20260724",130,110,20,110,20,0,50,80,50,80,4,2,2

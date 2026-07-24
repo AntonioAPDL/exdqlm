@@ -1,0 +1,4 @@
+"source_key","path","sha256","role"
+"v1b_results_root","/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/qdesn-tt500-mcmc-rhsrepair-v1b-full-20260723__git-9a365dc/20260723-211348__git-9a365dc",,"campaign_results"
+"v1b_report_root","/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1b/qdesn-tt500-mcmc-rhsrepair-v1b-full-20260723__git-9a365dc/20260723-211348__git-9a365dc",,"campaign_report"
+"current_best_clean_20260723","/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_current_best_20260723/qdesn_dqlm_500obs_mcmc_current_best_clean_20260723.csv","3dc352e30458c6960c269258b54e79ca39e5dc151d59792c7985a699e765619f","comparison_baseline"
