@@ -77,9 +77,20 @@ stage_file <- as.character(get_arg(
   "--stage-file",
   "qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1"
 ))[1L]
-stage_version <- if (grepl("_v1b$", stage_file)) "v1b" else "v1"
+stage_version <- if (grepl("_v1c$", stage_file)) {
+  "v1c"
+} else if (grepl("_v1b$", stage_file)) {
+  "v1b"
+} else {
+  "v1"
+}
 stage_name <- paste0("mcmc_rhs_targeted_repair_", stage_version)
-profile_prefix <- if (identical(stage_version, "v1b")) "mcrv1b" else "mcrv1"
+profile_prefix <- switch(
+  stage_version,
+  v1c = "mcrv1c",
+  v1b = "mcrv1b",
+  v1 = "mcrv1"
+)
 workers <- suppressWarnings(as.integer(get_arg("--workers", "20"))[1L])
 if (!is.finite(workers) || workers < 1L) workers <- 20L
 workers <- min(workers, 24L)
@@ -207,11 +218,49 @@ extra_v1b_arms <- data.frame(
   stringsAsFactors = FALSE
 )
 
-generic_arms <- if (identical(stage_version, "v1b")) {
-  rbind(base_generic_arms, extra_v1b_arms)
-} else {
-  base_generic_arms
-}
+v1c_arms <- data.frame(
+  arm_id = c(
+    "b_d1_mem12_tau1e4_confirm",
+    "c_d1_mem36_tau1e4_repair",
+    "d_d1_mem90_tau1e4_highrho",
+    "e_d2_mem24_tau1e4_repair",
+    "f_d2_mem60_tau1e4",
+    "g_d2_mem90_tau1e4_highrho",
+    "h_d3_mem45_tau1e4_wide",
+    "i_d3_mem90_tau1e4_sparse",
+    "j_d4_mem60_tau1e4_guard",
+    "k_d2_mem36_tau3e4_dense"
+  ),
+  arm_role = c(
+    "v1b winner confirmation with stable RHS tau0 floor",
+    "repaired shallow medium-memory arm replacing unstable low-tau v1b surface",
+    "long-memory high-rho shallow persistence with stable RHS tau0 floor",
+    "repaired depth-two medium-memory arm replacing unstable low-tau v1b surface",
+    "depth-two longer-memory stable regularization bridge",
+    "depth-two long-memory high-rho persistence with stable RHS tau0 floor",
+    "depth-three width/memory expansion with stable RHS tau0 floor",
+    "depth-three full-memory sparse high-rho persistence with stable RHS tau0 floor",
+    "depth-four medium-memory guarded stack with stable RHS tau0 floor",
+    "depth-two wider dense-input bridge with relaxed stable RHS tau0"
+  ),
+  D = c(1L, 1L, 1L, 2L, 2L, 2L, 3L, 3L, 4L, 2L),
+  n_each = c(20L, 36L, 24L, 20L, 36L, 36L, 40L, 50L, 48L, 70L),
+  m = c(12L, 36L, 90L, 24L, 60L, 90L, 45L, 90L, 60L, 36L),
+  alpha = c(0.0025, 0.0050, 0.0005, 0.0025, 0.0050, 0.00075, 0.0025, 0.0010, 0.0015, 0.0050),
+  rho = c(0.65, 0.75, 0.85, 0.65, 0.75, 0.85, 0.80, 0.90, 0.82, 0.70),
+  pi_w = c(0.0050, 0.0100, 0.0025, 0.0050, 0.0100, 0.0025, 0.0050, 0.0025, 0.0025, 0.0100),
+  pi_in = c(0.10, 0.15, 0.05, 0.10, 0.15, 0.05, 0.10, 0.05, 0.05, 0.20),
+  rhs_tau0 = c(1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 3e-4),
+  seed_offset = seq(10L, 100L, by = 10L),
+  stringsAsFactors = FALSE
+)
+
+generic_arms <- switch(
+  stage_version,
+  v1c = v1c_arms,
+  v1b = rbind(base_generic_arms, extra_v1b_arms),
+  v1 = base_generic_arms
+)
 
 make_profile <- function(profile_id, screening_wave, profile_role, D, n_each, m, alpha, rho, pi_w, pi_in, rhs_tau0, seed) {
   row <- exdqlm:::qdesn_dynamic_fitforecast_profile_row(
@@ -447,7 +496,17 @@ defaults$runtime$threads <- 1L
 defaults$runtime$campaign_workers <- workers
 defaults$runtime$workers <- workers
 defaults$runtime$root_scheduler <- "load_balanced"
-smoke_profile_id <- as.character(profiles$screening_profile_id[which.min(as.numeric(profiles$rhs_tau0))][1L])
+if (identical(stage_version, "v1c")) {
+  smoke_assignment_seed <- assignments[
+    assignments$priority_rank %in% c(1L, 2L) &
+      assignments$target_profile_rank > 1L,
+    ,
+    drop = FALSE
+  ]
+  smoke_profile_id <- as.character(smoke_assignment_seed$screening_profile_id[[1L]])
+} else {
+  smoke_profile_id <- as.character(profiles$screening_profile_id[which.min(as.numeric(profiles$rhs_tau0))][1L])
+}
 smoke_assignment <- assignments[assignments$screening_profile_id == smoke_profile_id, , drop = FALSE]
 if (!nrow(smoke_assignment)) smoke_assignment <- assignments[1L, , drop = FALSE]
 defaults$pilot$source_family <- as.character(smoke_assignment$family[[1L]])
@@ -568,7 +627,12 @@ summary_lines <- c(
   "",
   "## Design Rationale",
   "",
-  "This stage keeps the current compact anchor for each target cell-likelihood and adds bounded new arms that explore depth, width, memory, low-alpha/high-rho persistence, and tighter RHS tau0 values. The v1b expansion adds depth-four and wider high-memory probes while staying inside the frozen period90/m90/w300 source contract; m/readout lags above 90 require a separate source-registry extension and are not mixed into this run.",
+  switch(
+    stage_version,
+    v1c = "This stage keeps a cell-specific anchor for each target cell-likelihood and adds repaired RHS arms that avoid the unstable ultra-small tau0 surfaces from v1b. The v1c expansion still probes shallow, depth-two, depth-three, and guarded depth-four DESN structures, including long-memory high-rho variants, while staying inside the frozen period90/m90/w300 source contract; m/readout lags above 90 require a separate source-registry extension and are not mixed into this run.",
+    v1b = "This stage keeps the current compact anchor for each target cell-likelihood and adds bounded new arms that explore depth, width, memory, low-alpha/high-rho persistence, and tighter RHS tau0 values. The v1b expansion adds depth-four and wider high-memory probes while staying inside the frozen period90/m90/w300 source contract; m/readout lags above 90 require a separate source-registry extension and are not mixed into this run.",
+    "This stage keeps the current compact anchor for each target cell-likelihood and adds bounded new arms that explore depth, width, memory, low-alpha/high-rho persistence, and tighter RHS tau0 values while staying inside the frozen period90/m90/w300 source contract."
+  ),
   "",
   "## Target Cell-Likelihoods",
   "",

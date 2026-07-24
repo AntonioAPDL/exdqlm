@@ -52,7 +52,13 @@ run_cmd <- function(label, cmd, cmd_args, orchestrator_root, allow_failure = FAL
 }
 
 stage_file <- as.character(get_arg("--stage-file", "qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1"))[1L]
-stage_version <- if (grepl("_v1b$", stage_file)) "v1b" else "v1"
+stage_version <- if (grepl("_v1c$", stage_file)) {
+  "v1c"
+} else if (grepl("_v1b$", stage_file)) {
+  "v1b"
+} else {
+  "v1"
+}
 tag_stub <- paste0("qdesn-tt500-mcmc-rhsrepair-", stage_version)
 workers <- suppressWarnings(as.integer(get_arg("--workers", "16"))[1L])
 if (!is.finite(workers) || workers < 1L) workers <- 16L
