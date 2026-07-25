@@ -1,0 +1,111 @@
+{
+  "promotion_id": "qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725",
+  "generated_at": "2026-07-25 19:30:24.543859",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_commit": "79931ca0eb2c15dfe8afdf35f15a7af3fe35344e",
+  "git_dirty": true,
+  "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1c",
+  "run_tag": "qdesn-tt500-mcmc-rhsrepair-v1c-full-20260724-194917__git-79931ca",
+  "campaign_stamp": "20260724-195157__git-79931ca",
+  "results_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1c/qdesn-tt500-mcmc-rhsrepair-v1c-full-20260724-194917__git-79931ca/20260724-195157__git-79931ca",
+  "report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_rhs_targeted_repair_v1c/qdesn-tt500-mcmc-rhsrepair-v1c-full-20260724-194917__git-79931ca/20260724-195157__git-79931ca",
+  "previous_all_candidates_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_current_best_20260723/qdesn_dqlm_500obs_mcmc_current_best_all_candidates_20260723.csv",
+  "source_registry_hash_name": "sha256",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "status_policy": "status_agnostic_metric_promotion_requested_by_user",
+  "status_policy_note": "The metric-promotion table intentionally ignores signoff as a hard exclusion. Signoff remains retained as diagnostic metadata and must be disclosed before article use.",
+  "objective_definition": "fit_qtrue_rmse + forecast_qtrue_rmse_H1000 + forecast_check_loss_H1000",
+  "metric_promotion_rule": "v1c best same-variant candidate improves at least one of objective, fit RMSE, H1000 forecast MAE, or H1000 forecast check loss relative to the previous same family/tau/model_variant best.",
+  "current_best_rule": "status-agnostic same-variant and cell winners select the minimum registered objective after appending v1c candidates to the previous all-candidate inventory.",
+  "summary": {
+    "promotion_id": "qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725",
+    "n_v1c_roots": 110,
+    "n_v1c_success": 110,
+    "n_v1c_pass": 0,
+    "n_v1c_warn": 57,
+    "n_v1c_fail": 53,
+    "n_v1c_same_variant_cells": 10,
+    "n_metric_promotions": 5,
+    "n_objective_promotions": 3,
+    "n_all_primary_promotions": 0,
+    "n_new_same_variant_winners_from_v1c": 3,
+    "n_new_global_cell_winners_from_v1c": 0,
+    "n_targeted_followup_rows": 15,
+    "n_storage_heavy_or_binary": 0
+  },
+  "files": [
+    {
+      "file_id": "qdesn_tt500_mcmc_rhsrepair_v1c_standardized_candidates",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_standardized_candidates_20260725.csv",
+      "sha256": "34c9a50ffae422cb552c44b0e544f761bdc6e9a8f42dc5df18972d6e9614c71f",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_standardized_candidates_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_tt500_mcmc_rhsrepair_v1c_vs_previous_status_agnostic",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_vs_previous_status_agnostic_20260725.csv",
+      "sha256": "92d3774bda6c1b8d366c5b3ca2dda793ecaa93a80c30c620c12cef9eef42380c",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_vs_previous_status_agnostic_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_tt500_mcmc_rhsrepair_v1c_metric_promotions_status_agnostic",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_metric_promotions_status_agnostic_20260725.csv",
+      "sha256": "dab70d3bfe900595ec333854bffd98866c51162cc3191dc12803225eb4614b2d",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_metric_promotions_status_agnostic_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_tt500_mcmc_rhsrepair_v1c_objective_promotions_status_agnostic",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_objective_promotions_status_agnostic_20260725.csv",
+      "sha256": "ed2b90a6530ccce425c680380ffb7dbb4237609d64aafd4ac69371dff2f31790",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_objective_promotions_status_agnostic_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_dqlm_500obs_mcmc_status_agnostic_all_candidates",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_all_candidates_20260725.csv",
+      "sha256": "c687a067573e181a6da119ecc5ae3394e954ff3f98797dbd0c89fd9541084ccf",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_all_candidates_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_dqlm_500obs_mcmc_status_agnostic_same_variant_winners",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_same_variant_winners_20260725.csv",
+      "sha256": "dbc8dfa9045424d5d5ebfaafc82ca61cb174080febba51b5b40e39f43f1a4f34",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_same_variant_winners_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_dqlm_500obs_mcmc_status_agnostic_cell_winners",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_cell_winners_20260725.csv",
+      "sha256": "c98c9daf73f3a7cd867d2999540e8b73497f07fb304ca621e7d11d76ab77c6e8",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_cell_winners_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_dqlm_500obs_mcmc_status_agnostic_article_table_snapshot",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_article_table_snapshot_20260725.csv",
+      "sha256": "d244256256b8fe56fb19d3335f28bf815585f75029bf184701789d0fb9eeb121",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_dqlm_500obs_mcmc_status_agnostic_article_table_snapshot_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_tt500_mcmc_rhsrepair_v1c_targeted_followup_plan",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_targeted_followup_plan_20260725.csv",
+      "sha256": "f909df5df91ac0711a0d744616c8992fcb245d3aeb57675cbe08c96ba7b42b97",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_targeted_followup_plan_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_tt500_mcmc_rhsrepair_v1c_storage_audit",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_storage_audit_20260725.csv",
+      "sha256": "2dccd635dbfe5610bb0e51fe02e38da599d3869b2ea52e6e384997315d8e5204",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_storage_audit_20260725.csv"
+    },
+    {
+      "file_id": "qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_summary",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_summary_20260725.csv",
+      "sha256": "e90e5254a972c32d75b4f00664d5645169815b3855ad0b7be6688f9e2ef4b884",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_summary_20260725.csv"
+    },
+    {
+      "file_id": "source_manifest.csv",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/source_manifest.csv",
+      "sha256": "626b56724b30a49c05232b8079737e27f2eed062dbb408c31b58a4ca4f6ae641",
+      "_row": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725/source_manifest.csv"
+    }
+  ]
+}

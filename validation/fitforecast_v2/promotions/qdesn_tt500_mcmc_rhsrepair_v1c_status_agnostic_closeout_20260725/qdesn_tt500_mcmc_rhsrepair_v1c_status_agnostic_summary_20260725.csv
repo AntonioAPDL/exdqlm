@@ -1,0 +1,2 @@
+"promotion_id","n_v1c_roots","n_v1c_success","n_v1c_pass","n_v1c_warn","n_v1c_fail","n_v1c_same_variant_cells","n_metric_promotions","n_objective_promotions","n_all_primary_promotions","n_new_same_variant_winners_from_v1c","n_new_global_cell_winners_from_v1c","n_targeted_followup_rows","n_storage_heavy_or_binary"
+"qdesn_tt500_mcmc_rhsrepair_v1c_status_agnostic_closeout_20260725",110,110,0,57,53,10,5,3,0,3,0,15,0
