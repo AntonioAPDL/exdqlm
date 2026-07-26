@@ -1,0 +1,2 @@
+"generated_at","stage_file","n_current_percase_cells","n_mcmc_target_specs","n_mcmc_candidate_specs","n_cell_likelihoods","n_unique_profile_likelihood_specs","n_action_freeze_or_light_confirm","n_action_diagnostic_confirmation","n_action_forecast_repair","n_action_fit_balance","mcmc_n_burn","mcmc_n_mcmc","progress_every","init_from_vb","keep_draws","save_forecast_objects","retain_full_rds_on_failure"
+"2026-07-25 20:23:30.720814","qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2",18,90,90,18,72,5,4,7,2,5000,20000,50,TRUE,FALSE,FALSE,FALSE
