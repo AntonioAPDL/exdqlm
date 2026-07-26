@@ -122,7 +122,7 @@ screening_profiles:
   selected_assignment_root_count: 1
 smoke:
   scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
-  family: gausmix
+  family: normal
   tau: 0.05
   fit_sizes: 500
   priors: rhs_ns
@@ -142,7 +142,7 @@ smoke:
         progress_every: 1
         init_from_vb: yes
   max_roots: 1
-  screening_profile_ids: mcvbc_001_al
+  screening_profile_ids: mcvbc_060_exal
 metrics:
   primary_windows:
   - train_effective

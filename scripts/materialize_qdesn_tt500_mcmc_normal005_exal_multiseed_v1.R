@@ -102,6 +102,12 @@ defaults$screening_profiles$design <- paste(
   "One fixed DESN design with four independent MCMC seeds.",
   "Promotion requires replicated diagnostic and metric stability."
 )
+defaults$smoke$family <- "normal"
+defaults$smoke$tau <- 0.05
+defaults$smoke$fit_sizes <- 500L
+defaults$smoke$priors <- "rhs_ns"
+defaults$smoke$max_roots <- 1L
+defaults$smoke$screening_profile_ids <- profile_id
 defaults$multiseed <- list(
   enabled = TRUE,
   mcmc_seed_reps = 4L,
