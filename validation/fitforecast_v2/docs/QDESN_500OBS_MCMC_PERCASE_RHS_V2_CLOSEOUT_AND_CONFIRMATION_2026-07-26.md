@@ -73,10 +73,13 @@ Stage:
 
 `qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1`
 
-The DESN design, data, source hashes, prior, likelihood, fit window, forecast
-window, and MCMC kernel are frozen to the audited `mcvbc_060_exal` candidate.
-Four independent MCMC seeds are run in parallel. The stage is deliberately one
-root and one atomic fit specification.
+The DESN hyperparameter design, data, source hashes, prior, likelihood, fit
+window, forecast window, and MCMC kernel are frozen to the audited
+`mcvbc_060_exal` candidate. Four independent DESN/MCMC seed replicates are run
+in parallel. This is a stronger reproducibility check than holding a single
+reservoir realization fixed, but its selection table must be retained so the
+chosen replicate remains auditable. The stage is deliberately one root and one
+atomic fit specification.
 
 Full budget per seed:
 

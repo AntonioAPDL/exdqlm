@@ -70,14 +70,8 @@ source_materialization:
   forecast_origin_source_index: 9000
   forecast_horizon: 1000
   scenarios: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
-  families:
-  - normal
-  - laplace
-  - gausmix
-  taus:
-  - 0.05
-  - 0.25
-  - 0.5
+  families: normal
+  taus: 0.05
   windows:
   - effective_fit_size: 500
     source_total_size: 1890
@@ -93,8 +87,8 @@ pilot:
   source_total_size: 1890
   source_window_label: effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90
   beta_prior_type: rhs_ns
-  seed: 41069
-  reservoir_profile: mcvbc_060_exal
+  seed: 123
+  reservoir_profile: deep_d3_n400x3_skip100_w300_m60
   enabled: yes
   source_reference_priors: default
   source_current_rhsns_member: no
@@ -120,12 +114,12 @@ screening_profiles:
   dimension_gate:
     primary_p_over_n_max: 0.5
     exploratory_p_over_n_max: 0.65
-  cell_assignments_csv: config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_cell_assignments.csv
+  cell_assignments_csv: config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_cell_assignments.csv
   execution_grid_policy: cell_specific_subset_grid
-  canonical_profile_count: 72
-  canonical_dataset_cell_count: 9
-  canonical_qdesn_root_count: 648
-  selected_assignment_root_count: 90
+  canonical_profile_count: 1
+  canonical_dataset_cell_count: 1
+  canonical_qdesn_root_count: 1
+  selected_assignment_root_count: 1
 smoke:
   scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
   family: gausmix

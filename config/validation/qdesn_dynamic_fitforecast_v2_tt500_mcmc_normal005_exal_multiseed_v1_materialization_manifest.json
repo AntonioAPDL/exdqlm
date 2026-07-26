@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26 12:41:02.824597",
+  "generated_at": "2026-07-26 12:45:39.749967",
   "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1",
   "candidate": {
     "family": "normal",
@@ -13,7 +13,7 @@
     "n_seed_reps": 4,
     "parallel_seed_workers": 4,
     "selection_metric": "train_qtrue_rmse",
-    "promotion_gate": "at least 2 of 4 seeds PASS/WARN; selected seed PASS/WARN; fit RMSE, H1000 forecast MAE, and H1000 check-loss ratios remain below 1"
+    "promotion_gate": "at least 2 of 4 DESN/MCMC seed replicates PASS/WARN; selected replicate PASS/WARN; fit RMSE, H1000 forecast MAE, and H1000 check-loss ratios remain below 1"
   },
   "mcmc": {
     "n_burn": 5000,
@@ -65,7 +65,7 @@
     },
     "grid": {
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_grid.csv",
-      "sha256": "e9018591f6b070ceee394e8865414d6887be8bf83bf14763178712150d9e4776"
+      "sha256": "2439c20789649ea13a59a72e55c4f99181057190d890df8422994a7d7ab21240"
     },
     "target_specs": {
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_target_spec_ids.csv",
@@ -73,7 +73,7 @@
     },
     "defaults": {
       "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_defaults.yaml",
-      "sha256": "bfaee8e73985ae47c33cd097c1d9026d1acb2aa6423e2123e78b1c0add9ca869"
+      "sha256": "4e799dbcce5bbb3661ccfb5b3395f0f6c9fa944ebffcad6d19356c19fc8a246d"
     }
   },
   "launch_status": "prepared_not_launched"

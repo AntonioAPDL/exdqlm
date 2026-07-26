@@ -79,16 +79,25 @@ defaults$study_contract$description <- paste(
   "Four-seed MCMC diagnostic confirmation of normal tau=0.05 exQ-DESN",
   "candidate mcvbc_060_exal. This is a diagnostic gate, not a broad screen."
 )
+defaults$source_materialization$families <- "normal"
+defaults$source_materialization$taus <- 0.05
 defaults$pilot$source_family <- "normal"
 defaults$pilot$tau <- 0.05
-defaults$pilot$reservoir_profile <- profile_id
-defaults$pilot$seed <- as.integer(grid$seed)
+# Source materialization uses the canonical 300-observation context profile.
+# The targeted DESN design is selected from screening_profiles.csv at fit time.
+defaults$pilot$reservoir_profile <- "deep_d3_n400x3_skip100_w300_m60"
 defaults$reference_contract$families <- "normal"
 defaults$reference_contract$taus <- 0.05
 defaults$reference_contract$expected_unique_dataset_cells <- 1L
 defaults$reference_contract$expected_qdesn_roots <- 1L
 defaults$reference_contract$expected_selected_qdesn_roots <- 1L
 defaults$screening_profiles$csv <- target_path("_profiles.csv")
+defaults$screening_profiles$cell_assignments_csv <-
+  target_path("_cell_assignments.csv")
+defaults$screening_profiles$canonical_profile_count <- 1L
+defaults$screening_profiles$canonical_dataset_cell_count <- 1L
+defaults$screening_profiles$canonical_qdesn_root_count <- 1L
+defaults$screening_profiles$selected_assignment_root_count <- 1L
 defaults$screening_profiles$design <- paste(
   "One fixed DESN design with four independent MCMC seeds.",
   "Promotion requires replicated diagnostic and metric stability."
@@ -119,6 +128,8 @@ assignments$selection_reason <- paste(
 grid$screening_stage <- profiles$screening_stage
 grid$screening_wave <- profiles$screening_wave
 grid$profile_role <- profiles$profile_role
+# deterministic_per_root: base 76000 + RHS prior offset 10.
+grid$seed <- 76010L
 
 profile_out <- write_csv(profiles, target_path("_profiles.csv"))
 assignment_out <- write_csv(assignments, target_path("_cell_assignments.csv"))
@@ -157,7 +168,7 @@ manifest <- list(
     parallel_seed_workers = 4L,
     selection_metric = "train_qtrue_rmse",
     promotion_gate = paste(
-      "at least 2 of 4 seeds PASS/WARN; selected seed PASS/WARN;",
+      "at least 2 of 4 DESN/MCMC seed replicates PASS/WARN; selected replicate PASS/WARN;",
       "fit RMSE, H1000 forecast MAE, and H1000 check-loss ratios remain below 1"
     )
   ),
