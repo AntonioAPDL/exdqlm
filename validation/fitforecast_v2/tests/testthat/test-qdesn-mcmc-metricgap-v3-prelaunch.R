@@ -80,6 +80,8 @@ test_that("Q-DESN MCMC metric-gap v3 is per-cell, staged, and storage-light", {
   expect_equal(as.integer(defaults$metrics$rolling_origin$origin_stride), 30)
 
   expect_equal(manifest$launch_status, "prepared_not_launched")
+  expect_false(isTRUE(manifest$git_dirty))
+  expect_equal(manifest$git_dirty_scope, "tracked_source_before_materialization")
   expect_equal(as.integer(manifest$counts$resolved_cells_frozen), 2)
   expect_equal(as.integer(manifest$counts$unresolved_cells), 16)
   expect_equal(as.integer(manifest$counts$candidates_per_cell), 5)

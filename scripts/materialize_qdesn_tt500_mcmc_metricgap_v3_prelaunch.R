@@ -25,6 +25,11 @@ repo_root <- normalizePath(
 )
 setwd(repo_root)
 pkgload::load_all(repo_root, quiet = TRUE)
+materialization_git_sha <- trimws(system("git rev-parse HEAD", intern = TRUE))
+materialization_git_branch <- trimws(system("git branch --show-current", intern = TRUE))
+tracked_source_dirty_before_materialization <-
+  system("git diff --quiet", ignore.stdout = TRUE, ignore.stderr = TRUE) != 0L ||
+  system("git diff --cached --quiet", ignore.stdout = TRUE, ignore.stderr = TRUE) != 0L
 
 resolve_path <- function(path, must_work = TRUE) {
   raw <- as.character(path %||% "")[1L]
@@ -982,9 +987,11 @@ file_manifest_path <- write_csv(file_manifest, file.path(out_root, "file_manifes
 manifest <- list(
   generated_at = as.character(Sys.time()),
   repo_root = repo_root,
-  git_sha = trimws(system("git rev-parse HEAD", intern = TRUE)),
-  git_branch = trimws(system("git branch --show-current", intern = TRUE)),
-  git_dirty = length(system("git status --porcelain", intern = TRUE)) > 0L,
+  git_sha = materialization_git_sha,
+  git_branch = materialization_git_branch,
+  git_dirty = tracked_source_dirty_before_materialization,
+  git_dirty_scope = "tracked_source_before_materialization",
+  git_dirty_at_manifest_write = length(system("git status --porcelain", intern = TRUE)) > 0L,
   stage_file = stage_file,
   purpose = "per_cell_qdesn_mcmc_metric_gap_screen",
   launch_status = "prepared_not_launched",
