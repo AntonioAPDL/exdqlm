@@ -1,0 +1,80 @@
+{
+  "generated_at": "2026-07-26 12:41:02.824597",
+  "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1",
+  "candidate": {
+    "family": "normal",
+    "tau": 0.05,
+    "likelihood": "exal",
+    "profile_id": "mcvbc_060_exal",
+    "spec_id": "qdesn__normal__0p05__tt500__rhs_ns__mcmc__exal__3b411552fbd8cd",
+    "prior": "rhs_ns"
+  },
+  "multiseed": {
+    "n_seed_reps": 4,
+    "parallel_seed_workers": 4,
+    "selection_metric": "train_qtrue_rmse",
+    "promotion_gate": "at least 2 of 4 seeds PASS/WARN; selected seed PASS/WARN; fit RMSE, H1000 forecast MAE, and H1000 check-loss ratios remain below 1"
+  },
+  "mcmc": {
+    "n_burn": 5000,
+    "n_mcmc": 20000,
+    "thin": 1,
+    "init_from_vb": true,
+    "progress_every": 50
+  },
+  "storage": {
+    "keep_draws": false,
+    "save_forecast_objects": false,
+    "retain_full_rds_on_failure": false,
+    "prune_nonwinning_heavy_outputs": true
+  },
+  "source_files": {
+    "source_profiles": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_profiles.csv",
+      "sha256": "2e684ba3e309a6e5b093be3b203fc9e1548c0ac5aeff01b7d2a6a668415b5ffa"
+    },
+    "source_assignments": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_cell_assignments.csv",
+      "sha256": "06163ac182903d7b3e605a1fc73d8cdb31194ae307394b13e70423a17746f005"
+    },
+    "source_grid": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_grid.csv",
+      "sha256": "a91b90bb1eaf727a20b27ee81e142f7dbddc0e1649a386d24b26f5f283fb8d39"
+    },
+    "source_target_specs": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_target_spec_ids.csv",
+      "sha256": "9eda20da3f274df9bfb884e353e602eef84203ed557954a7868f082876ce8658"
+    },
+    "source_defaults": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_defaults.yaml",
+      "sha256": "d678ea1cb309c0c3fd13d7a733778672b554da0b0cde4da3bcb15c722a66f41b"
+    },
+    "closeout_plan": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_targeted_confirmation_plan.csv",
+      "sha256": "cbe05178afb47d9ecd7cac88b159ca67c132ca515098b20dba6ec7dc1f3e9beb"
+    }
+  },
+  "output_files": {
+    "profiles": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_profiles.csv",
+      "sha256": "c0942e167bfeecb810ddeafd170b525c12d1b9b2f59166fce9da1b36aeb919b6"
+    },
+    "assignments": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_cell_assignments.csv",
+      "sha256": "f88b899b7fe34f496d73484e3e6f895b3c1963fb61b1be5ba9231b4907b783ee"
+    },
+    "grid": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_grid.csv",
+      "sha256": "e9018591f6b070ceee394e8865414d6887be8bf83bf14763178712150d9e4776"
+    },
+    "target_specs": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_target_spec_ids.csv",
+      "sha256": "bda0052395d37ad7777d96831d909c26132bf6dbbc5b4806254a544381baf41a"
+    },
+    "defaults": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_normal005_exal_multiseed_v1_defaults.yaml",
+      "sha256": "bfaee8e73985ae47c33cd097c1d9026d1acb2aa6423e2123e78b1c0add9ca869"
+    }
+  },
+  "launch_status": "prepared_not_launched"
+}

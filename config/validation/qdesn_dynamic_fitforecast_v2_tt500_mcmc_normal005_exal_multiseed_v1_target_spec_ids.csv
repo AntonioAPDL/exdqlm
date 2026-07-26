@@ -1,0 +1,4 @@
+"root_id","likelihood_target","assignment_key","family.x","tau.x","screening_profile_id.x","candidate_source","selection_reason","spec_id","dataset_cell_id","family.y","tau.y","fit_size","prior","reservoir_profile","screening_profile_id.y","rhs_tau0","readout_y_lags","reservoir_lags","dimension_p_estimate","p_over_n_tt500","method","inference"
+"root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p05__lasttt_500__qdesn_rhs_ns__profile_mcvbc_060_exal","exal","mcvbc_060_exal
+normal
+0.05000000","normal",0.05,"mcvbc_060_exal","case_targeted_v51_vb","recent case-targeted VB metric specialist","qdesn__normal__0p05__tt500__rhs_ns__mcmc__exal__3b411552fbd8cd","dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p05__efftt_500","normal",0.05,500,"rhs_ns","mcvbc_060_exal","mcvbc_060_exal",3e-04,1,0,11,0.022,"mcmc","mcmc"

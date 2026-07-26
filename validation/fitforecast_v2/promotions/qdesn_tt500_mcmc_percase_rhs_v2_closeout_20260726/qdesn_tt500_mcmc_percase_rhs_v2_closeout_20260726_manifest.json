@@ -1,0 +1,141 @@
+{
+  "promotion_id": "qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726",
+  "generated_at": "2026-07-26 12:40:12.3208",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_commit": "7df241c92e3c2d1a45e7e1241645c448423b51ab",
+  "source_run": {
+    "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2",
+    "run_tag": "qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c",
+    "campaign_stamp": "20260725-203156__git-7df241c",
+    "report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2/qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c/20260725-203156__git-7df241c",
+    "results_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2/qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c/20260725-203156__git-7df241c"
+  },
+  "protocol": {
+    "fit_window": "source indices 8501:9000",
+    "forecast_origin_source_index": 9000,
+    "forecast_window": "source indices 9001:10000",
+    "forecast_horizon": 1000,
+    "candidate_objective": "minimize maximum ratio across fit RMSE, H1000 forecast MAE, and H1000 check loss relative to frozen best-DQLM benchmark",
+    "comparison_eligible": "SUCCESS and signoff PASS/WARN and finite/domain checks",
+    "current_ledger_replacement": "material minimax improvement >=0.5%, or eligible replacement within 1% of a failed current row"
+  },
+  "summary": {
+    "promotion_id": "qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726",
+    "run_tag": "qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c",
+    "n_planned": 90,
+    "n_success": 90,
+    "n_pass": 17,
+    "n_warn": 44,
+    "n_fail": 29,
+    "n_comparison_eligible": 61,
+    "n_all_primary_candidate_rows": 12,
+    "n_all_primary_eligible_cells": 5,
+    "n_current_ledger_promotions": 9,
+    "n_unresolved_eligible_cells": 9,
+    "n_targeted_confirmations": 1,
+    "n_heavy_binary_artifacts": 0,
+    "article_update_ready": false,
+    "article_update_reason": "validation winners must be frozen after targeted normal-0.05 exAL confirmation"
+  },
+  "source_manifest": [
+    {
+      "source_key": "campaign_fit_summary",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2/qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c/20260725-203156__git-7df241c/tables/campaign_fit_summary.csv",
+      "sha256": "bc135cc0518de0c0c0f3224e8d40816d4af87f6370346f5125c2942bc64bd221",
+      "_row": "campaign_fit_summary"
+    },
+    {
+      "source_key": "campaign_progress",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2/qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c/20260725-203156__git-7df241c/tables/campaign_progress.csv",
+      "sha256": "6bd00f9b3a4f836e904f2dade73a61765ded4f4f4e070a4349c5b376956fdd4a",
+      "_row": "campaign_progress"
+    },
+    {
+      "source_key": "campaign_completion",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2/qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c/20260725-203156__git-7df241c/manifest/campaign_completed.json",
+      "sha256": "4f85bfb19d8c83c0293888034cbadc6ea8b4a2895059a45db81065184bdc9da4",
+      "_row": "campaign_completion"
+    },
+    {
+      "source_key": "prelaunch_ledger",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_prelaunch_20260725/qdesn_tt500_mcmc_percase_rhs_v2_current_percase_ledger_20260725.csv",
+      "sha256": "02888322a6a29d1d600bd44f6ae7920898d29294499755541fd8c30609c3cb93",
+      "_row": "prelaunch_ledger"
+    },
+    {
+      "source_key": "target_specs",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_target_spec_ids.csv",
+      "sha256": "9eda20da3f274df9bfb884e353e602eef84203ed557954a7868f082876ce8658",
+      "_row": "target_specs"
+    }
+  ],
+  "file_manifest": [
+    {
+      "artifact": "candidates",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_all_candidates.csv",
+      "sha256": "f590185d2fca497033e42b6fd2bdef0becdf4566cd489158291061c117078de8",
+      "_row": "candidates"
+    },
+    {
+      "artifact": "best_any",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_status_agnostic_cell_winners.csv",
+      "sha256": "76c2f0efdb16262b2419cfa75ae63a6144ec38d7cf8e1066eb6dba112bf19b20",
+      "_row": "best_any"
+    },
+    {
+      "artifact": "best_eligible",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_eligible_cell_winners.csv",
+      "sha256": "1f1bca35ec28926f39fb0b5448e803b15fa3b5823ef1b23c47b5b4ae14d03ae6",
+      "_row": "best_eligible"
+    },
+    {
+      "artifact": "promotions",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_current_ledger_promotions.csv",
+      "sha256": "a3a51c6104b6619ae68bc6c8568741fc8b672e6ccaa9c0c5ddfe67ac75e08da3",
+      "_row": "promotions"
+    },
+    {
+      "artifact": "all_primary",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_all_primary_eligible_candidates.csv",
+      "sha256": "b09eff7fd7a9408896a61bc5b2538548d712cfb7e1ec501d7355bba639df3f82",
+      "_row": "all_primary"
+    },
+    {
+      "artifact": "diagnostic",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_diagnostic_all_primary_candidates.csv",
+      "sha256": "cf3dedeb27f653990566a8492c68c40ed526858540065023b5dece71e4d8c998",
+      "_row": "diagnostic"
+    },
+    {
+      "artifact": "unresolved",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_unresolved_cells.csv",
+      "sha256": "c3eb9b212fca0d20dc8008eca9a188acc7b2906408466ad340d91e855652f3ac",
+      "_row": "unresolved"
+    },
+    {
+      "artifact": "target",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_targeted_confirmation_plan.csv",
+      "sha256": "cbe05178afb47d9ecd7cac88b159ca67c132ca515098b20dba6ec7dc1f3e9beb",
+      "_row": "target"
+    },
+    {
+      "artifact": "storage",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_storage_audit.csv",
+      "sha256": "36a0514aae972ca17148afec593f1b68e527eb1ef09ddde07f2b3a08af2e97b8",
+      "_row": "storage"
+    },
+    {
+      "artifact": "summary",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726_summary.csv",
+      "sha256": "b11e28161c35c41f09f3397a7fe5e9f774e6d4d28efc4b9b4705eced44e1ea81",
+      "_row": "summary"
+    },
+    {
+      "artifact": "source_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726/source_manifest.csv",
+      "sha256": "e9cb0446c00556e45be5ae926e09fc3f0a96005e511527b78934b5ff2b7409eb",
+      "_row": "source_manifest"
+    }
+  ],
+  "article_gate": "closed_pending_targeted_normal_0.05_exAL_multiseed_confirmation"
+}

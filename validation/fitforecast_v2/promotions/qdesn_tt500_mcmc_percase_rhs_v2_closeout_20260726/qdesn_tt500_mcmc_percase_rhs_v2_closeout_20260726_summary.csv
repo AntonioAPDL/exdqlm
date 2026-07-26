@@ -1,0 +1,2 @@
+"promotion_id","run_tag","n_planned","n_success","n_pass","n_warn","n_fail","n_comparison_eligible","n_all_primary_candidate_rows","n_all_primary_eligible_cells","n_current_ledger_promotions","n_unresolved_eligible_cells","n_targeted_confirmations","n_heavy_binary_artifacts","article_update_ready","article_update_reason"
+"qdesn_tt500_mcmc_percase_rhs_v2_closeout_20260726","qdesn-tt500-mcmc-percase-rhs-v2-full-20260725__git-7df241c",90,90,17,44,29,61,12,5,9,9,1,0,FALSE,"validation winners must be frozen after targeted normal-0.05 exAL confirmation"
