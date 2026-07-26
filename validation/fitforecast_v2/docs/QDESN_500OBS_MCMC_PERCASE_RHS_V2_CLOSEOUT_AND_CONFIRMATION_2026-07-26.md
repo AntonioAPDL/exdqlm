@@ -111,3 +111,44 @@ Run these in order:
 
 The article gate remains closed until step 6. No article repository is modified
 by this closeout.
+
+## Execution Record
+
+Implementation and launch commit: `98b8012`.
+
+Prepare-only:
+
+- run tag:
+  `qdesn-tt500-mcmc-normal005-exal-msv1-prepare-20260726__git-ae35ad1`;
+- result: passed after the one-cell grid was aligned to the canonical
+  1890-observation source-context contract;
+- selected roots/specifications: `1/1`.
+
+Smoke:
+
+- run tag:
+  `qdesn-tt500-mcmc-normal005-exal-msv1-smoke-20260726__git-98b8012`;
+- campaign stamp: `20260726-124718__git-98b8012`;
+- root status: `SUCCESS`;
+- seed replicates exercised: `4/4`;
+- tiny budget: burn-in `4`, retained iterations `4`;
+- scientific signoff: four `FAIL` rows, expected and non-blocking at the tiny
+  smoke budget;
+- unexpected `.rds`, `.rda`, or `.RData` payloads: `0`.
+
+Full confirmation:
+
+- run tag:
+  `qdesn-tt500-mcmc-normal005-exal-msv1-full-20260726__git-98b8012`;
+- campaign stamp: `20260726-124857__git-98b8012`;
+- tmux session: `qdesn_tt500_normal005_exal_msv1_20260726`;
+- launch state at handoff: four seed workers active;
+- source git snapshot: clean `98b8012`;
+- article gate: still closed.
+
+An attempted `--help` invocation exposed that the detached launcher does not
+implement a help mode and instead creates a default launch request. Its generated
+session exited immediately, no worker process remained, and no scientific output
+was produced. It is not a valid run and must never be consumed:
+
+`qdesn-dynamic-exdqlm-crossstudy-full-20260726-124237__git-46e446d`.
