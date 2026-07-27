@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-07-27 14:51:23.474948",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "420c3bcd0003693ef03b54d2f789c832e35a6bf7",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": false,
+  "git_dirty_scope": "tracked_source_before_materialization",
+  "git_dirty_at_manifest_write": true,
+  "stage_file": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted",
+  "purpose": "per_cell_qdesn_mcmc_metric_gap_v4_targeted_screen",
+  "launch_status": "prepared_not_launched",
+  "selection_policy": "family_tau_likelihood_specific; no global specification winner",
+  "source_registry_hash": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "thresholds": {
+    "unresolved_worst_ratio": 1.1
+  },
+  "budgets": {
+    "screening": {
+      "n_burn": 2000,
+      "n_mcmc": 8000,
+      "thin": 1
+    },
+    "confirmation": {
+      "n_burn": 5000,
+      "n_mcmc": 20000,
+      "thin": 1
+    }
+  },
+  "counts": {
+    "article_rows": 18,
+    "selected_dataset_cells": 8,
+    "canonical_dataset_cells": 9,
+    "frozen_rows": 3,
+    "targeted_rows": 15,
+    "candidates_per_row": 5,
+    "profiles": 75,
+    "assignments": 75,
+    "selected_grid_roots": 75,
+    "target_mcmc_atomic_specs": 75
+  },
+  "materialized": {
+    "stage": "mcmc_metricgap_v4_targeted_screen",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_grid.csv",
+    "n_profiles": 75,
+    "n_assignments": 75,
+    "n_canonical_grid_rows": 675,
+    "n_grid_rows": 75,
+    "expected_qdesn_roots": 75,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "outputs": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v4_targeted_target_spec_ids.csv",
+    "gap_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_metricgap_v4_targeted_prelaunch_20260727/qdesn_tt500_mcmc_metricgap_v4_targeted_gap_audit_20260727.csv",
+    "design": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_metricgap_v4_targeted_prelaunch_20260727/qdesn_tt500_mcmc_metricgap_v4_targeted_design_20260727.csv",
+    "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_metricgap_v4_targeted_prelaunch_20260727/qdesn_tt500_mcmc_metricgap_v4_targeted_cell_plan_20260727.csv",
+    "pattern_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_metricgap_v4_targeted_prelaunch_20260727/qdesn_tt500_mcmc_metricgap_v4_targeted_pattern_audit_20260727.csv",
+    "source_summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_metricgap_v4_targeted_prelaunch_20260727/qdesn_tt500_mcmc_metricgap_v4_targeted_source_summary_20260727.csv",
+    "readme": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_metricgap_v4_targeted_prelaunch_20260727/README.md",
+    "file_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_metricgap_v4_targeted_prelaunch_20260727/file_manifest.csv"
+  },
+  "source_files": {
+    "role": ["handoff", "source_profiles", "source_candidates", "base_defaults"],
+    "path": ["/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_targeted_screening_handoff.csv", "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_profiles.csv", "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_all_candidates.csv", "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_percase_rhs_v2_defaults.yaml"],
+    "sha256": ["3c372c5c0d4fe2e0973220c0a716479319ef39ac1ada2f4a234f270bb9ff386d", "2e684ba3e309a6e5b093be3b203fc9e1548c0ac5aeff01b7d2a6a668415b5ffa", "a8a042e519fa68dea6e12deae9e3f41ea1612563a8a1dff55817fc6b2e2d5954", "d678ea1cb309c0c3fd13d7a733778672b554da0b0cde4da3bcb15c722a66f41b"]
+  }
+}
