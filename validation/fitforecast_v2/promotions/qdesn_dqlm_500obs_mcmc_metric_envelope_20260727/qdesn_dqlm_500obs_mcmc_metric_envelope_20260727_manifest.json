@@ -1,0 +1,116 @@
+{
+  "promotion_id": "qdesn_dqlm_500obs_mcmc_metric_envelope_20260727",
+  "generated_at": "2026-07-27 02:55:26.561718",
+  "validation_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "validation_commit_at_materialization": "827b16553ec39511c557e5c502ac222a9555cbe4",
+  "tracked_source_dirty_before_materialization": false,
+  "untracked_before_materialization": ["tests/testthat/test-qdesn-mcmc-metric-envelope-20260727.R", "validation/fitforecast_v2/scripts/materialize_qdesn_mcmc_metric_envelope_20260727.R"],
+  "package_version": "1.0.0",
+  "source_registry_hash_name": "sha256",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "parent_promotion_id": "qdesn_dqlm_500obs_mcmc_metric_envelope_20260726",
+  "confirmation_id": "qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727",
+  "confirmation_run_tag": "qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212",
+  "confirmation_spec_id": "qdesn__laplace__0p25__tt500__rhs_ns__mcmc__exal__020293d289bcb0",
+  "confirmation_decision": "ELIGIBLE_FOR_SCIENTIFIC_PROMOTION_PENDING_ARTICLE_REVIEW",
+  "confirmation_signoff_grade": "WARN",
+  "coherent_confirmation_rows": 1,
+  "n_candidates": 129,
+  "n_envelope_rows": 36,
+  "n_metric_promotions": 0,
+  "displayed_envelope_changed": false,
+  "article_integration_status": "ready_for_surgical_article_promotion",
+  "selection_unit": "model_variant x family x tau x metric",
+  "selection_rule": "minimum observed finite metric; coherent full-budget confirmations remain in the candidate ledger even when they do not replace a lower metric minimum",
+  "interpretation": "calibrated metric-wise envelope plus a separately identified coherent full-budget confirmation",
+  "source_manifest": [
+    {
+      "source_id": "previous_candidates",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260726/qdesn_dqlm_500obs_mcmc_metric_envelope_20260726_all_candidates.csv",
+      "sha256": "6b440b7852ddbc241fa29adb863e92f3b391f1e8f9aea481fb7bad626387c175",
+      "_row": "previous_candidates"
+    },
+    {
+      "source_id": "previous_envelope",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260726/qdesn_dqlm_500obs_mcmc_metric_envelope_20260726_article_envelope.csv",
+      "sha256": "364a5bed1e4b616e29899c537033ed684997b8af172d481f0abbed38af264f95",
+      "_row": "previous_envelope"
+    },
+    {
+      "source_id": "previous_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260726/qdesn_dqlm_500obs_mcmc_metric_envelope_20260726_manifest.json",
+      "sha256": "969453e09fd33a071bac1fcec0098b825745624bd8fcffbc9fcb2a56d46bd414",
+      "_row": "previous_manifest"
+    },
+    {
+      "source_id": "confirmation_candidate",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/confirmed_candidate.csv",
+      "sha256": "335b71a5c12ef8d6d36b7303cb51e0fb4b33c77b751cd5c3a11b2a63f630de83",
+      "_row": "confirmation_candidate"
+    },
+    {
+      "source_id": "confirmation_summary",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/confirmation_summary.csv",
+      "sha256": "219369f4040712db9606b5cd83e6dc91eaba15ff834982aa74da2b4536b1ca0c",
+      "_row": "confirmation_summary"
+    },
+    {
+      "source_id": "confirmation_metrics",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/confirmation_metric_comparison.csv",
+      "sha256": "d18b9b59b88ce5764d894c3269c896582b519403a6069c368ee564e3f8af2a60",
+      "_row": "confirmation_metrics"
+    },
+    {
+      "source_id": "confirmation_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/confirmation_manifest.json",
+      "sha256": "ab60b7c8949ec831f06a70c03766da8cb03cf0a0d73243d2f283ec2b24e04964",
+      "_row": "confirmation_manifest"
+    },
+    {
+      "source_id": "confirmation_hash_audit",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/source_file_hash_audit.csv",
+      "sha256": "1a9b2c8507ea720fff886b056fca70ddbdde44ef9fde35603b1a3a1e0bb0bb63",
+      "_row": "confirmation_hash_audit"
+    },
+    {
+      "source_id": "confirmation_file_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/file_manifest.csv",
+      "sha256": "db22417d8a5437536b2b5aac14d27d29c64d4a48ba155183edc230fb1c05c0e4",
+      "_row": "confirmation_file_manifest"
+    }
+  ],
+  "files": [
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_all_candidates.csv",
+      "sha256": "a8a042e519fa68dea6e12deae9e3f41ea1612563a8a1dff55817fc6b2e2d5954"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_metric_winners.csv",
+      "sha256": "101f95fd40abe6415e719d74ce2876070e3efe7dbca0b901e7cc3e80f7e83a27"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_vs_previous_envelope.csv",
+      "sha256": "7c3ad8594a8a67567fc12e5049dee5a359f332fee0d5ba8ead53a5a988ad9215"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_metric_promotions.csv",
+      "sha256": "b4589685ce0b20299f7ccadf1066dbcf685fe62e3adb8532690dde3b8cf0cbc6"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_article_envelope.csv",
+      "sha256": "aa4399576453ec0e9eeb21fa2166a1aaeed977c976064b13c4dc27f963cbb9a1"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_coherent_confirmation.csv",
+      "sha256": "a1ba1a9c25d2e0e3ee0c77958e23fca5beeb1fdbed89f6f09ff5a9f3a9a640f3"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_targeted_screening_handoff.csv",
+      "sha256": "3c372c5c0d4fe2e0973220c0a716479319ef39ac1ada2f4a234f270bb9ff386d"
+    },
+    {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/source_manifest.csv",
+      "sha256": "920b98a4939d2925fd30b42fbd084202ae6f9a738c762d0a97cd79c189debe83"
+    }
+  ]
+}

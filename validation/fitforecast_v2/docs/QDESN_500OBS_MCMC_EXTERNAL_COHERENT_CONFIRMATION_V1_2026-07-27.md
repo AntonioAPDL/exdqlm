@@ -182,6 +182,45 @@ This result is scientifically promotable under the frozen contract, but no
 article repository was changed. Article integration remains a separate manual
 review. The 11-cell lower-quantile redesign remains unlaunched.
 
+## Metric-Envelope Promotion Review
+
+The manual article review was completed against the frozen 2026-07-26
+metric-wise candidate ledger. The full confirmation was added as a distinct
+coherent candidate in:
+
+```text
+validation/fitforecast_v2/promotions/
+  qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/
+```
+
+The refreshed promotion has:
+
+- 129 audited candidate rows;
+- 36/36 complete article-facing cells;
+- one separately identified coherent full-budget confirmation;
+- zero replacements of an existing metric-wise minimum;
+- the unchanged shared source-registry SHA-256
+  `edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275`;
+- no `.rds`, `.rda`, or `.RData` payloads;
+- no active `/home/jaguir26/local/src` paths.
+
+The coherent confirmation is slightly above the existing case-specific
+Laplace/0.25/exAL-RHS metric minima:
+
+| Metric | Coherent confirmation | Displayed metric-wise minimum |
+|---|---:|---:|
+| Fit RMSE | 1.747288 | 1.727325 |
+| H=1000 forecast MAE | 1.367163 | 1.355324 |
+| H=1000 forecast check loss | 4.388165 | 4.378391 |
+
+Consequently, the article-facing numeric entries must not change under the
+declared metric-wise selection rule. The new promotion strengthens provenance
+by retaining a single fitted model that passed every prespecified external,
+stability, source, and storage gate. Its `WARN` diagnostic
+(`chain_marginal_but_usable`) remains explicit in the confirmation ledger.
+Article integration should update the immutable source promotion and disclose
+the coherent confirmation without presenting it as a new metric minimum.
+
 ## Invalid Historical Tags
 
 The following aborted metric-gap repair tags remain invalid and must never be
