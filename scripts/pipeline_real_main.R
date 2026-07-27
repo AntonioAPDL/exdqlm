@@ -4443,7 +4443,14 @@ if (isTRUE(save_outputs)) {
     n_train = as.integer(n_train),
     H_forecast = as.integer(H_forecast)
   )
-  jsonlite::write_json(runtime_summary, file.path(MANI, "runtime_summary.json"), pretty = TRUE, auto_unbox = TRUE, null = "null")
+  jsonlite::write_json(
+    runtime_summary,
+    file.path(MANI, "runtime_summary.json"),
+    pretty = TRUE,
+    auto_unbox = TRUE,
+    null = "null",
+    digits = NA
+  )
   jsonlite::write_json(
     list(
       pipeline = list(mode = mode, entrypoint = "scripts/pipeline_real_main.R", compatibility_source_commit = "c232d457463e007d473a3fe9b2469e70c3a1ab2a"),
@@ -4454,7 +4461,8 @@ if (isTRUE(save_outputs)) {
     file.path(MANI, "run_manifest.json"),
     pretty = TRUE,
     auto_unbox = TRUE,
-    null = "null"
+    null = "null",
+    digits = NA
   )
   writeLines("SUCCESS", file.path(MANI, "status.txt"))
 }
@@ -4468,8 +4476,15 @@ manifest <- list(
   cfg      = cfg
 )
 if (isTRUE(save_outputs)) {
-  readr::write_file(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE),
-                    file.path(MANI, "manifest_real.json"))
+  readr::write_file(
+    jsonlite::toJSON(
+      manifest,
+      auto_unbox = TRUE,
+      pretty = TRUE,
+      digits = NA
+    ),
+    file.path(MANI, "manifest_real.json")
+  )
 }
 
 log_msg("Real pipeline completed successfully.")
