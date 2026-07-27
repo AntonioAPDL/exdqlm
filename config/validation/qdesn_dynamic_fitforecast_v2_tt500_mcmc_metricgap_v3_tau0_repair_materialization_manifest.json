@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-26 21:41:32.192539",
+  "generated_at": "2026-07-26 21:48:35.783628",
   "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
   "git_branch": "validation/shared-fitforecast-v2-1.0.0",
-  "git_commit": "fa5dca418a85738367f49968ba64879d684d07b1",
-  "git_dirty": true,
+  "git_commit": "1147ef50d7d52555f6a775d981247f2ed266ca51",
+  "git_dirty": false,
   "repair_stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_metricgap_v3_tau0_repair",
   "launch_status": "prepared_not_launched",
   "root_cause": "jsonlite default numeric precision serialized rhs_tau0=3e-5 as zero",
