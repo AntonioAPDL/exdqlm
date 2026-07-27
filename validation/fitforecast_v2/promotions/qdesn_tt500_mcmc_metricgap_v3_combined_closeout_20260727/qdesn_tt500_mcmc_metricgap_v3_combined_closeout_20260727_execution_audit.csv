@@ -1,0 +1,5 @@
+"evidence_source","n_roots","disposition"
+"original_metricgap_v3_success",55,"preserve_and_consume"
+"original_metricgap_v3_transport_failure",25,"replace_only_with_exact_repair_specs"
+"tau0_transport_repair_success",25,"consume_after_complete_campaign_gate"
+"combined_metric_complete",80,"rank_cell_by_cell"

@@ -1,0 +1,4 @@
+"metric","screening_value","internal_mixed_envelope","external_best","full_external_ratio_max","full_screening_stability_ratio_max","internal_envelope_role"
+"fit_qtrue_rmse",1.68539171940255,1.72732487389639,1.71021199889025,1.05,1.1,"context_only"
+"forecast_qtrue_mae_H1000",1.63984139565451,1.35532438862278,3.52012580762312,1.05,1.1,"context_only"
+"forecast_check_loss_H1000",4.39548810474263,4.37839126337733,4.54768812675354,1.05,1.1,"context_only"

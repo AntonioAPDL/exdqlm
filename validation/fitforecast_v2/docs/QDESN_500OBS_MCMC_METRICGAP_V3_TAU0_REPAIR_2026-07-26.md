@@ -122,13 +122,16 @@ The detached full repair requires both explicit gates:
 
 After all 25 repair roots complete successfully,
 `scripts/closeout_qdesn_tt500_mcmc_metricgap_v3.R` combines the 55 original
-metric-complete roots with the 25 repaired roots. It requires one unique
+successful metric rows with the 25 repaired roots. The original campaign
+retains scalar metrics for all 80 attempts, including its 25 transport-failed
+roots; closeout explicitly excludes those failed rows and replaces exactly that
+root-ID set with the successful repair evidence. It then requires one unique
 metric-complete row for all 80 frozen targets and writes:
 
 - an all-candidate ledger;
 - an execution/replacement audit;
-- per-cell rankings and Pareto candidates;
-- metric-wise gains;
+- per-cell primary rankings, closest-balanced candidates, and Pareto candidates;
+- metric-wise gains with exact candidate provenance;
 - per-cell full-confirmation handoff;
 - unresolved-cell table;
 - source/file hash manifests;

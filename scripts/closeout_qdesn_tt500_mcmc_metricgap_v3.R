@@ -113,8 +113,16 @@ handoff <- read_csv(handoff_path)
 if (nrow(original$progress) != 80L ||
     sum(original$progress$root_status == "SUCCESS") != 55L ||
     sum(original$progress$root_status == "FAIL") != 25L ||
-    nrow(original$fit) != 55L) {
-  stop("Original campaign no longer has the audited 80 attempted / 55 successful / 25 failed structure.", call. = FALSE)
+    nrow(original$fit) != 80L ||
+    anyDuplicated(original$fit$root_id) ||
+    !setequal(original$fit$root_id, original$progress$root_id)) {
+  stop(
+    paste(
+      "Original campaign no longer has the audited 80 attempted / 80 metric-row",
+      "/ 55 successful / 25 failed structure."
+    ),
+    call. = FALSE
+  )
 }
 if (nrow(repair$progress) != 25L ||
     !all(repair$progress$root_status == "SUCCESS") ||
@@ -134,6 +142,20 @@ original_failed <- as.character(
 if (!setequal(original_failed, repair_targets$root_id) ||
     !setequal(repair$progress$root_id, repair_targets$root_id)) {
   stop("Repair campaign does not exactly replace the original 25-root failure set.", call. = FALSE)
+}
+
+original_successful_root_ids <- as.character(
+  original$progress$root_id[original$progress$root_status == "SUCCESS"]
+)
+original$fit <- original$fit[
+  match(original_successful_root_ids, original$fit$root_id),
+  ,
+  drop = FALSE
+]
+if (nrow(original$fit) != 55L ||
+    anyNA(original$fit$root_id) ||
+    !setequal(original$fit$root_id, original_successful_root_ids)) {
+  stop("Could not isolate the 55 original successful metric rows.", call. = FALSE)
 }
 
 original$fit$evidence_source <- "original_metricgap_v3_success"
@@ -194,7 +216,10 @@ handoff_columns <- c(
   "forecast_qtrue_mae_H1000", "forecast_check_loss_H1000",
   "external_best_fit_rmse", "external_best_forecast_mae",
   "external_best_forecast_check", "primary_gap", "priority",
-  "source_registry_hash_value"
+  "source_registry_hash_value", "metric_source_mixed",
+  "fit_source_candidate_id", "fit_source_run_tag",
+  "forecast_mae_source_candidate_id", "forecast_mae_source_run_tag",
+  "forecast_check_source_candidate_id", "forecast_check_source_run_tag"
 )
 missing_handoff <- setdiff(handoff_columns, names(handoff))
 if (length(missing_handoff)) {
@@ -317,22 +342,58 @@ unresolved <- cell_winners[
 ]
 pareto <- ranked[ranked$pareto_optimal, , drop = FALSE]
 
+closest_balanced <- do.call(rbind, lapply(groups, function(value) {
+  value <- value[order(
+    value$worst_ratio_to_current,
+    value$primary_ratio_to_current,
+    value$diagnostic_grade_rank,
+    value$spec_id
+  ), , drop = FALSE]
+  value[1L, , drop = FALSE]
+}))
+rownames(closest_balanced) <- NULL
+ratio_columns <- c(
+  "fit_ratio_to_current",
+  "forecast_mae_ratio_to_current",
+  "forecast_check_ratio_to_current"
+)
+ratio_labels <- c("fit", "forecast_mae", "forecast_check")
+closest_balanced$largest_regression_metric <- ratio_labels[
+  max.col(as.matrix(closest_balanced[, ratio_columns, drop = FALSE]), ties.method = "first")
+]
+
 metricwise <- do.call(rbind, lapply(groups, function(value) {
+  metric_columns <- c(
+    "fit_qtrue_rmse",
+    "forecast_qtrue_mae_H1000",
+    "forecast_check_loss_H1000"
+  )
+  best_indices <- vapply(
+    metric_columns,
+    function(column) which.min(num(value[[column]])),
+    integer(1L)
+  )
   data.frame(
     model_variant = value$model_variant[[1L]],
     family = value$family[[1L]],
     tau = num(value$tau)[1L],
-    metric = c("fit_qtrue_rmse", "forecast_qtrue_mae_H1000", "forecast_check_loss_H1000"),
+    metric = metric_columns,
     current_value = c(
       num(value$current_fit_qtrue_rmse)[1L],
       num(value$current_forecast_qtrue_mae_H1000)[1L],
       num(value$current_forecast_check_loss_H1000)[1L]
     ),
-    best_candidate_value = c(
-      min(num(value$fit_qtrue_rmse)),
-      min(num(value$forecast_qtrue_mae_H1000)),
-      min(num(value$forecast_check_loss_H1000))
+    best_candidate_value = vapply(
+      seq_along(metric_columns),
+      function(index) num(value[[metric_columns[[index]]]])[best_indices[[index]]],
+      numeric(1L)
     ),
+    best_candidate_root_id = value$root_id[best_indices],
+    best_candidate_spec_id = value$spec_id[best_indices],
+    best_candidate_profile_id = value$screening_profile_id[best_indices],
+    best_candidate_evidence_source = value$evidence_source[best_indices],
+    best_candidate_status = value$status[best_indices],
+    best_candidate_signoff_grade = value$signoff_grade[best_indices],
     stringsAsFactors = FALSE
   )
 }))
@@ -385,6 +446,10 @@ dir.create(output_root, recursive = TRUE, showWarnings = FALSE)
 paths <- c(
   all_candidates = write_csv(ranked, file.path(output_root, paste0(closeout_id, "_all_candidates.csv"))),
   cell_winners = write_csv(cell_winners, file.path(output_root, paste0(closeout_id, "_cell_winners.csv"))),
+  closest_balanced = write_csv(
+    closest_balanced,
+    file.path(output_root, paste0(closeout_id, "_closest_balanced_candidates.csv"))
+  ),
   pareto = write_csv(pareto, file.path(output_root, paste0(closeout_id, "_pareto_candidates.csv"))),
   metricwise = write_csv(metricwise, file.path(output_root, paste0(closeout_id, "_metricwise_gains.csv"))),
   confirmation_handoff = write_csv(
@@ -435,8 +500,19 @@ summary <- data.frame(
   transport_failures_repaired = 25L,
   combined_candidates = nrow(ranked),
   targeted_cells = nrow(cell_winners),
+  mixed_metric_envelope_cells = length(unique(paste(
+    candidates$model_variant[as_bool(candidates$metric_source_mixed)],
+    candidates$family[as_bool(candidates$metric_source_mixed)],
+    tau_key(candidates$tau[as_bool(candidates$metric_source_mixed)]),
+    sep = "\r"
+  ))),
   primary_metric_improved_cells = sum(cell_winners$primary_ratio_to_current < 1),
+  metricwise_improved_metrics = sum(metricwise$improvement_pct > 0),
+  metricwise_improvement_candidates = length(unique(
+    metricwise$best_candidate_spec_id[metricwise$improvement_pct > 0]
+  )),
   all_three_no_regression_cells = sum(cell_winners$all_three_no_regression),
+  closest_balanced_within_five_pct_cells = sum(closest_balanced$worst_ratio_to_current <= 1.05),
   full_confirmation_handoff_cells = nrow(confirmation_handoff),
   unresolved_cells = nrow(unresolved),
   unexpected_heavy_artifacts = nrow(storage_audit),
@@ -466,13 +542,24 @@ readme <- c(
   "",
   "- Ranking is family-, quantile-, and likelihood-specific; there is no global DESN winner.",
   "- Diagnostic grades are retained but do not suppress metric evidence at screening budget.",
+  sprintf(
+    "- The frozen comparator is a mixed-source metric envelope in %d of %d targeted cells.",
+    summary$mixed_metric_envelope_cells,
+    summary$targeted_cells
+  ),
   "- A full-confirmation handoff requires at least 0.5% primary-metric improvement and no",
   "  fit RMSE, H=1000 forecast MAE, or H=1000 forecast check-loss regression above 1%.",
   "- Full confirmation remains a separate 5,000 burn-in + 20,000 sample approval gate.",
   "",
   sprintf("- targeted cells: `%d`", nrow(cell_winners)),
   sprintf("- primary-metric improved cells: `%d`", sum(cell_winners$primary_ratio_to_current < 1)),
+  sprintf("- individually improved metrics: `%d`", summary$metricwise_improved_metrics),
+  sprintf("- unique candidates behind those gains: `%d`", summary$metricwise_improvement_candidates),
   sprintf("- all-three no-regression cells: `%d`", sum(cell_winners$all_three_no_regression)),
+  sprintf(
+    "- closest-balanced candidates within 5%% of the full envelope: `%d`",
+    summary$closest_balanced_within_five_pct_cells
+  ),
   sprintf("- confirmation handoff cells: `%d`", nrow(confirmation_handoff)),
   sprintf("- unresolved cells: `%d`", nrow(unresolved)),
   sprintf("- unexpected heavy artifacts: `%d`", nrow(storage_audit))

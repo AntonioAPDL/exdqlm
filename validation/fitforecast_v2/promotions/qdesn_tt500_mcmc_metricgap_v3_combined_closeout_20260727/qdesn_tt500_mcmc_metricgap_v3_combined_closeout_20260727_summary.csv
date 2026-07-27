@@ -1,0 +1,2 @@
+"closeout_id","original_successes_preserved","transport_failures_repaired","combined_candidates","targeted_cells","mixed_metric_envelope_cells","primary_metric_improved_cells","metricwise_improved_metrics","metricwise_improvement_candidates","all_three_no_regression_cells","closest_balanced_within_five_pct_cells","full_confirmation_handoff_cells","unresolved_cells","unexpected_heavy_artifacts","recommendation","article_update_ready"
+"qdesn_tt500_mcmc_metricgap_v3_combined_closeout_20260727",55,25,80,16,12,6,7,6,0,1,0,16,0,"NO_CONFIRMATION_HANDOFF_REDESIGN_ALL_CELLS",FALSE
