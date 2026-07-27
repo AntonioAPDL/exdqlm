@@ -85,7 +85,12 @@ run_esn_pipeline_from_cfg <- function(
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   # Serialize cfg to JSON for the pipeline script
-  cfg_json <- jsonlite::toJSON(cfg, auto_unbox = TRUE, null = "null")
+  cfg_json <- jsonlite::toJSON(
+    cfg,
+    auto_unbox = TRUE,
+    null = "null",
+    digits = NA
+  )
   thread_cap <- max(
     1L,
     as.integer(

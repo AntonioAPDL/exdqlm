@@ -43,7 +43,10 @@ test_that("run_esn_pipeline_from_cfg can stream child output for validation diag
   child <- file.path(repo, "child_pipeline.R")
   writeLines(c(
     "cat('child-start\\n')",
-    "cat(Sys.getenv('EXDQLM_OUT_DIR'), '\\n')"
+    "cat(Sys.getenv('EXDQLM_OUT_DIR'), '\\n')",
+    "cfg <- jsonlite::fromJSON(Sys.getenv('EXDQLM_CFG_JSON'), simplifyVector = FALSE)",
+    "cat(sprintf('rhs-tau0=%.8g\\n', cfg$inference$vb$priors$beta$rhs_ns$tau0))",
+    "jsonlite::write_json(cfg, file.path(Sys.getenv('EXDQLM_OUT_DIR'), 'child_received_cfg.json'), auto_unbox = TRUE, digits = NA)"
   ), child)
   file_long <- tempfile("qdesn-observed-")
   writeLines("y\n1\n2\n", file_long)
@@ -52,7 +55,14 @@ test_that("run_esn_pipeline_from_cfg can stream child output for validation diag
   res <- exdqlm::run_esn_pipeline_from_cfg(
     cfg = list(
       pipeline = list(mode = "sim"),
-      validation = list(stream_child_stdout = TRUE, timeout_seconds = 20)
+      validation = list(stream_child_stdout = TRUE, timeout_seconds = 20),
+      inference = list(
+        vb = list(
+          priors = list(
+            beta = list(rhs_ns = list(tau0 = 3e-5))
+          )
+        )
+      )
     ),
     file_long = file_long,
     out_dir = out_dir,
@@ -63,8 +73,13 @@ test_that("run_esn_pipeline_from_cfg can stream child output for validation diag
   )
 
   live_log <- file.path(out_dir, "logs", "pipeline_child_live.log")
+  received_cfg <- file.path(out_dir, "child_received_cfg.json")
   expect_identical(res$status, 0L)
   expect_true(file.exists(live_log))
+  expect_true(file.exists(received_cfg))
   expect_true(any(grepl("child-start", readLines(live_log, warn = FALSE), fixed = TRUE)))
+  expect_true(any(grepl("rhs-tau0=3e-05", readLines(live_log, warn = FALSE), fixed = TRUE)))
   expect_true(any(grepl("child-start", res$stdout, fixed = TRUE)))
+  child_cfg <- jsonlite::read_json(received_cfg, simplifyVector = FALSE)
+  expect_equal(child_cfg$inference$vb$priors$beta$rhs_ns$tau0, 3e-5)
 })

@@ -52,7 +52,14 @@ write_csv <- function(x, path) {
 write_json <- function(x, path) {
   path <- resolve_path(path, must_work = FALSE)
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
-  jsonlite::write_json(x, path, pretty = TRUE, auto_unbox = TRUE, null = "null")
+  jsonlite::write_json(
+    x,
+    path,
+    pretty = TRUE,
+    auto_unbox = TRUE,
+    null = "null",
+    digits = NA
+  )
   normalizePath(path, winslash = "/", mustWork = TRUE)
 }
 
