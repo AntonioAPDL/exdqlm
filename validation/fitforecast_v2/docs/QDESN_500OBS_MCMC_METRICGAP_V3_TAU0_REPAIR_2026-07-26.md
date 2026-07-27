@@ -147,21 +147,34 @@ The closeout does not update the article and does not launch the 5,000 burn-in +
 
 - runtime: R 4.6.0
 - package: exdqlm 1.0.0
+- transport repair commit: `1147ef5`
+- materialization-provenance commit: `81aa2e2`
+- pipeline-manifest precision commit: `34994be`
 - focused precision/repair tests: PASS
 - shared rolling-origin, source-window, horizon, interface, filtering, storage,
   runtime, progress, and inference contract tests: PASS
+- the monolithic testthat invocation was externally terminated with status 143
+  near its end after the covered validation tests had passed; the remaining
+  tests were rerun in bounded batches
+- one pre-existing test outside this repair remains failing:
+  `tests/testthat/test-qdesn-vb-simplification-ladder.R`, because the historical
+  `scripts/run_qdesn_vb_simplification_ladder_20260528.R` forbidden-mode audit
+  no longer fails early for every stochastic exAL case; this does not exercise
+  the repair stage, transport path, MCMC path, source/window contract, or
+  storage contract
 - canonical repair grid audit: PASS, 25 supplied rows are an exact subset of
   the 720-row canonical grid recovered with the frozen 80-profile seed context
 - prepare-only tag:
-  `qdesn-tt500-mcmc-metricgap-v3-tau0-repair-prepare-20260726-214206__git-fa5dca4`
+  `qdesn-tt500-mcmc-metricgap-v3-tau0-repair-prepare-20260726-215115__git-81aa2e2`
 - prepare-only selected atomic specs: 25
-- real smoke tag:
-  `qdesn-tt500-mcmc-metricgap-v3-tau0-repair-smoke-20260726-214254__git-fa5dca4`
-- real smoke campaign stamp: `20260726-214309__git-fa5dca4`
+- prepare-only result payload files: 0
+- final real smoke tag:
+  `qdesn-tt500-mcmc-metricgap-v3-tau0-repair-smoke-20260726-215847__git-34994be`
+- final real smoke campaign stamp: `20260726-215902__git-34994be`
 - real smoke result: 1/1 root SUCCESS, 1/1 fit summary, fit path present,
-  rolling-origin forecast metrics present
-- smoke `rhs_tau0`: `3e-5` in both `fit_request.json` root specification and
-  child pipeline configuration
+  finite H=100 and H=1000 rolling-origin forecast metrics present
+- smoke `rhs_tau0`: `3e-5` in the fit summary, `fit_request.json`,
+  `manifest_real.json`, and `run_manifest.json`
 - prepare/smoke forbidden binary payload count: 0
 - article files changed: none
 
@@ -172,7 +185,14 @@ renumbered deterministic seeds. That attempt is diagnostic and non-consumable.
 The materializer was corrected to preserve the full 80-profile seed context,
 after which prepare-only and smoke passed.
 
-Status after local gates: `READY_TO_COMMIT_AND_LAUNCH_25_SPEC_REPAIR`.
+The first detached full attempt used run tag
+`qdesn-tt500-mcmc-metricgap-v3-tau0-repair-full-20260726__git-81aa2e2`.
+It was intentionally stopped before any root completed when the
+pipeline-manifest precision patch appeared after its first workers started.
+Its launch directory contains `ABORTED_CODE_DRIFT.md`; it retained no heavy
+payloads and is permanently non-consumable.
+
+Status after local gates: `READY_TO_LAUNCH_25_SPEC_REPAIR_FROM_34994BE_OR_LATER`.
 
 Remaining detached-launch gates:
 
