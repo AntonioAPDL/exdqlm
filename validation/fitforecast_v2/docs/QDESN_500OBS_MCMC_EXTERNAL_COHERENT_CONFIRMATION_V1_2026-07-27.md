@@ -139,6 +139,49 @@ Rscript scripts/closeout_qdesn_tt500_mcmc_external_coherent_confirmation_v1.R \
   --run-tag RUN_TAG
 ```
 
+## Completed Confirmation
+
+The full confirmation completed successfully from the clean, pushed commit
+`5787212744f56c4dd40578ae717c8874526b48a9`.
+
+- run tag:
+  `qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212`
+- campaign stamp: `20260727-021334__git-5787212`
+- execution: 1/1 root and 1/1 fit `SUCCESS`
+- strict artifact audit: `strict_ready=TRUE`
+- diagnostic grade: `WARN`
+- diagnostic reason: `chain_marginal_but_usable`
+- retained binary payloads: 0
+- source-registry, source-file-hash, and source-window gates: all `TRUE`
+- closeout decision:
+  `ELIGIBLE_FOR_SCIENTIFIC_PROMOTION_PENDING_ARTICLE_REVIEW`
+
+| Metric | Full confirmation | Screening | External best | Full / external |
+|---|---:|---:|---:|---:|
+| Fit RMSE | 1.747288 | 1.685392 | 1.710212 | 1.021679 |
+| H=1000 forecast MAE | 1.367163 | 1.639841 | 3.520126 | 0.388385 |
+| H=1000 forecast check loss | 4.388165 | 4.395488 | 4.547688 | 0.964922 |
+
+The exact closeout is:
+
+```text
+validation/fitforecast_v2/promotions/
+  qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/
+```
+
+The strict audit is:
+
+```text
+reports/qdesn_mcmc_validation/
+  qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/
+  qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/
+  20260727-021334__git-5787212/strict_audit/
+```
+
+This result is scientifically promotable under the frozen contract, but no
+article repository was changed. Article integration remains a separate manual
+review. The 11-cell lower-quantile redesign remains unlaunched.
+
 ## Invalid Historical Tags
 
 The following aborted metric-gap repair tags remain invalid and must never be

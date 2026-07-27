@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-07-27 02:24:12.786295",
+  "run_tag": "qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212",
+  "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_commit": "5787212744f56c4dd40578ae717c8874526b48a9",
+  "results_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212",
+  "report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212",
+  "source_registry_hash": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "gates": {
+    "run_tag": "qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212",
+    "root_id": "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_mgv3_16_exal_local",
+    "spec_id": "qdesn__laplace__0p25__tt500__rhs_ns__mcmc__exal__020293d289bcb0",
+    "execution_ok": true,
+    "source_hash_ok": true,
+    "source_file_hashes_ok": true,
+    "source_window_ok": true,
+    "storage_light_ok": true,
+    "all_external_metrics_within_1p05": true,
+    "all_metrics_stable_within_1p10": true,
+    "signoff_grade": "WARN",
+    "signoff_reason": "chain_marginal_but_usable",
+    "decision": "ELIGIBLE_FOR_SCIENTIFIC_PROMOTION_PENDING_ARTICLE_REVIEW",
+    "article_updated": false
+  },
+  "decision": "ELIGIBLE_FOR_SCIENTIFIC_PROMOTION_PENDING_ARTICLE_REVIEW",
+  "article_gate": "manual_article_review_required",
+  "source_manifest": [
+    {
+      "role": "defaults",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1_defaults.yaml",
+      "sha256": "0adff137c6e5ff5fc12d31663df8fe0a50a806ee7f16b5b6c72e34212406ab4c",
+      "_row": "defaults"
+    },
+    {
+      "role": "grid",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1_grid.csv",
+      "sha256": "2947eb5d330fc6126cd8ad286edc3ff040da781dd6cf2f2d6634d8805b8bcaae",
+      "_row": "grid"
+    },
+    {
+      "role": "screening_candidate",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_prelaunch_20260727/selected_coherent_external_candidate.csv",
+      "sha256": "521bd3f814445a55ffea682515335da5380be21496cd0490ce4880809b28f85f",
+      "_row": "screening_candidate"
+    },
+    {
+      "role": "benchmark_contract",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_prelaunch_20260727/external_confirmation_contract.csv",
+      "sha256": "9a8ea9fa17d4c428c300abbcb5cf28284975af0deedd87b876267aa06d9e2ca5",
+      "_row": "benchmark_contract"
+    },
+    {
+      "role": "progress",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212/tables/campaign_progress.csv",
+      "sha256": "1b60a14b451b34bcf068bfdeff9ca95717d686d6fd27f771018aff5c37fc07dc",
+      "_row": "progress"
+    },
+    {
+      "role": "fit",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212/tables/campaign_fit_summary.csv",
+      "sha256": "4bf6546df1aa62f408d3a7a66f0a2bdb14fffcb3373906f57f56eeec3424bdc3",
+      "_row": "fit"
+    },
+    {
+      "role": "completed",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212/manifest/campaign_completed.json",
+      "sha256": "97fe87024465f3995cdf9432e05de5a14f568e06614ea86463bba4a734030b23",
+      "_row": "completed"
+    },
+    {
+      "role": "h1000",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212/roots/root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_mgv3_16_exal_local/fits/mcmc_exal/tables/forecast_horizon_summary.csv",
+      "sha256": "4a6ea8eb415f00c982bd58c928d61f2f26434f0b8225f0ea7f42169f5187893c",
+      "_row": "h1000"
+    },
+    {
+      "role": "root_manifest",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212/roots/root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_mgv3_16_exal_local/manifest/root_manifest.json",
+      "sha256": "a5cafcb27d11a41d24320b5bf865959e05a43a1e7ecf595b64de4b3dd2b68f84",
+      "_row": "root_manifest"
+    },
+    {
+      "role": "fit_request",
+      "path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_external_coherent_confirmation_v1/qdesn-tt500-mcmc-external-coherent-confirmation-v1-full-20260727__git-5787212/20260727-021334__git-5787212/roots/root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_mgv3_16_exal_local/fits/mcmc_exal/fit_request.json",
+      "sha256": "fca516a64aa7190c8ce860b602de46f779b16a1232f8ba53745995717c5bd452",
+      "_row": "fit_request"
+    }
+  ],
+  "file_manifest_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_external_coherent_confirmation_v1_closeout_20260727/file_manifest.csv"
+}
