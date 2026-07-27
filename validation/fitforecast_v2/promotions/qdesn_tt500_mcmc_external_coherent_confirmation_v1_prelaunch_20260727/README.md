@@ -1,6 +1,6 @@
 # Q-DESN External-Coherent Full-Budget Confirmation v1
 
-- generated_at: `2026-07-27 02:08:15.09097`
+- generated_at: `2026-07-27 02:09:59.835057`
 - package: `exdqlm 1.0.0`
 - source closeout: `qdesn_tt500_mcmc_metricgap_v3_combined_closeout_20260727`
 - selected atomic spec: `qdesn__laplace__0p25__tt500__rhs_ns__mcmc__exal__020293d289bcb0`
