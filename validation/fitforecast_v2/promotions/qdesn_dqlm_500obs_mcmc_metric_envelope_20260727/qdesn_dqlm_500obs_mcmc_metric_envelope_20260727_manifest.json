@@ -1,10 +1,10 @@
 {
   "promotion_id": "qdesn_dqlm_500obs_mcmc_metric_envelope_20260727",
-  "generated_at": "2026-07-27 02:55:26.561718",
+  "generated_at": "2026-07-27 02:56:48.792289",
   "validation_branch": "validation/shared-fitforecast-v2-1.0.0",
-  "validation_commit_at_materialization": "827b16553ec39511c557e5c502ac222a9555cbe4",
+  "validation_commit_at_materialization": "57634838055b271fc99c61f584dab31b1ddfb0c1",
   "tracked_source_dirty_before_materialization": false,
-  "untracked_before_materialization": ["tests/testthat/test-qdesn-mcmc-metric-envelope-20260727.R", "validation/fitforecast_v2/scripts/materialize_qdesn_mcmc_metric_envelope_20260727.R"],
+  "untracked_before_materialization": [],
   "package_version": "1.0.0",
   "source_registry_hash_name": "sha256",
   "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",

@@ -3,7 +3,7 @@
 - Promotion id: `qdesn_dqlm_500obs_mcmc_metric_envelope_20260727`
 - Parent promotion: `qdesn_dqlm_500obs_mcmc_metric_envelope_20260726`
 - Validation branch: `validation/shared-fitforecast-v2-1.0.0`
-- Materialization commit: `827b16553ec39511c557e5c502ac222a9555cbe4`
+- Materialization commit: `57634838055b271fc99c61f584dab31b1ddfb0c1`
 - Source registry SHA-256: `edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275`
 - Candidate rows audited: `129`
 - Complete article cells: `36/36`
