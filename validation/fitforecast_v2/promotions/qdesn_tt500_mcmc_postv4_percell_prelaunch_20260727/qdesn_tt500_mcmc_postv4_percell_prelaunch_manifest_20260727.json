@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-07-27 21:50:07.988341",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_sha": "d6c2244535ea6801e20e0bdbddb0ca3ae012ebe3",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_dirty": false,
+  "git_dirty_scope": "tracked_source_before_materialization",
+  "git_dirty_at_manifest_write": true,
+  "stage_file": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell",
+  "purpose": "post_v4_per_cell_qdesn_mcmc_metric_gap_screen",
+  "launch_status": "prepared_not_launched",
+  "source_registry_hash": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "budgets": {
+    "screening": {
+      "n_burn": 2000,
+      "n_mcmc": 8000,
+      "thin": 1
+    },
+    "confirmation": {
+      "n_burn": 5000,
+      "n_mcmc": 20000,
+      "thin": 1
+    }
+  },
+  "counts": {
+    "unresolved_cells": 15,
+    "candidates_per_cell": 6,
+    "profiles": 90,
+    "assignments": 90,
+    "selected_grid_roots": 90,
+    "target_mcmc_atomic_specs": 90
+  },
+  "materialized": {
+    "stage": "mcmc_postv4_percell_screen",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_grid.csv",
+    "n_profiles": 90,
+    "n_assignments": 90,
+    "n_canonical_grid_rows": 810,
+    "n_grid_rows": 90,
+    "expected_qdesn_roots": 90,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "outputs": {
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_cell_assignments.csv",
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_defaults.yaml",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_postv4_percell_target_spec_ids.csv",
+    "diagnostic": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_postv4_percell_prelaunch_20260727/qdesn_tt500_mcmc_postv4_percell_diagnostic_20260727.csv",
+    "design": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_postv4_percell_prelaunch_20260727/qdesn_tt500_mcmc_postv4_percell_design_20260727.csv",
+    "cell_plan": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_postv4_percell_prelaunch_20260727/qdesn_tt500_mcmc_postv4_percell_cell_plan_20260727.csv",
+    "pattern_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_postv4_percell_prelaunch_20260727/qdesn_tt500_mcmc_postv4_percell_pattern_audit_20260727.csv",
+    "readme": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_postv4_percell_prelaunch_20260727/README.md",
+    "file_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_postv4_percell_prelaunch_20260727/file_manifest.csv"
+  }
+}

@@ -1,0 +1,8 @@
+"finding","value","interpretation"
+"source_design_rows","90","Reviewed post-v4 candidate arms."
+"unresolved_cells","15","Independent Q-DESN/exQ-DESN RHS rows still outside tolerance."
+"arms_per_cell","6","Each cell receives historical replay, coherent replay, tau0 perturbations, and two breakout arms."
+"target_mcmc_specs","90","One MCMC spec for each selected profile/family/tau/likelihood assignment."
+"max_p_over_n","0.752","Current launch stays below the v4 p/n gate."
+"launch_policy","prepare, smoke, detached full screen after clean commit","The launch is staged and reproducible."
+"article_policy","no direct article update from screening launch","Article-facing updates require closeout and explicit promotion."
