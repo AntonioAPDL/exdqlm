@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-07-29 04:46:50.135748",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "git_commit": "fdce08248557ae300c3943a4424d9bf09e256ed9",
+  "git_dirty": true,
+  "stage": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1",
+  "promotion_id": "qdesn_tt500_mcmc_newhypothesis_v1_design_20260729",
+  "parent_closeout_id": "qdesn_tt500_mcmc_postv4_percell_closeout_20260728",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "counts": {
+    "unresolved_cells": 15,
+    "profiles": 96,
+    "assignments": 96,
+    "selected_grid_rows": 96,
+    "target_specs": 96,
+    "fit_dominated_cells": 7,
+    "forecast_dominated_cells": 8
+  },
+  "constraints": {
+    "max_p_over_n_tt500": 0.33,
+    "p_over_n_cap": 0.35,
+    "max_m": 90,
+    "max_readout_y_lags": 90,
+    "nonrepeat_policy": "no target-specific exact repeats from prior TT500 Q-DESN profile catalogs"
+  },
+  "generated_paths": {
+    "defaults": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_defaults.yaml",
+    "profiles": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_profiles.csv",
+    "assignments": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_cell_assignments.csv",
+    "grid": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_grid.csv",
+    "target_specs": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_target_spec_ids.csv",
+    "doc": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/QDESN_500OBS_MCMC_NEWHYPOTHESIS_V1_OVERNIGHT_PLAN_2026-07-29.md",
+    "promotion_paths": {
+      "summary": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729_summary.csv",
+      "handoff": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729_parent_handoff_snapshot.csv",
+      "unresolved": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729_parent_unresolved_snapshot.csv",
+      "candidate_design": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729_candidate_arm_design.csv",
+      "nonrepeat_audit": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729_nonrepeat_audit.csv"
+    },
+    "source_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_tt500_mcmc_newhypothesis_v1_design_20260729/source_manifest.csv"
+  },
+  "materialized": {
+    "stage": "mcmc_newhypothesis_v1",
+    "stage_stub": "qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1",
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_profiles.csv",
+    "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_cell_assignments.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_tt500_mcmc_newhypothesis_v1_grid.csv",
+    "n_profiles": 96,
+    "n_assignments": 96,
+    "n_canonical_grid_rows": 864,
+    "n_grid_rows": 96,
+    "expected_qdesn_roots": 96,
+    "selected_families": ["gausmix", "laplace", "normal"],
+    "selected_taus": [0.05, 0.25, 0.5],
+    "missing_assignments": []
+  },
+  "launch_status": "materialized_launchable_pending_prepare_smoke_full",
+  "article_update_decision": "do_not_update_article_from_screening_design_or_raw_launch"
+}
