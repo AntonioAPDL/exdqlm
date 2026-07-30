@@ -207,3 +207,46 @@ test_that("nested cellwise MCMC v1 is reproducible, nonrepeating, and launch-gat
   )
   expect_length(heavy, 0L)
 })
+
+test_that("nested cellwise closeout reads only canonical root seed selections", {
+  root <- ffv2_repo_root()
+  source(file.path(
+    root, "validation", "fitforecast_v2", "R",
+    "qdesn_mcmc_nested_closeout_helpers.R"
+  ), local = TRUE)
+  result_root <- tempfile("nested-closeout-")
+  dir.create(file.path(result_root, "roots"), recursive = TRUE)
+
+  for (index in 1:2) {
+    root_dir <- file.path(result_root, "roots", sprintf("root_%02d", index))
+    canonical_dir <- file.path(root_dir, "tables")
+    duplicate_dir <- file.path(root_dir, "fits", "mcmc_al")
+    dir.create(canonical_dir, recursive = TRUE)
+    dir.create(duplicate_dir, recursive = TRUE)
+    selection <- data.frame(
+      root_id = sprintf("root_%02d", index),
+      seed_rep = 1:2
+    )
+    utils::write.csv(
+      selection,
+      file.path(canonical_dir, "mcmc_seed_selection.csv"),
+      row.names = FALSE
+    )
+    utils::write.csv(
+      selection,
+      file.path(duplicate_dir, "mcmc_seed_selection.csv"),
+      row.names = FALSE
+    )
+  }
+
+  files <- qdesn_canonical_seed_selection_files(result_root, expected_roots = 2L)
+  expect_length(files, 2L)
+  expect_true(all(grepl("/tables/mcmc_seed_selection[.]csv$", files)))
+  expect_false(any(grepl("/fits/", files, fixed = TRUE)))
+  selection <- utils::read.csv(files[[1L]], stringsAsFactors = FALSE)
+  expect_invisible(qdesn_validate_seed_selection(selection, files[[1L]]))
+  expect_error(
+    qdesn_validate_seed_selection(selection[1L, , drop = FALSE], files[[1L]]),
+    "must contain exactly one root"
+  )
+})

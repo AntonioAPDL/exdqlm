@@ -1,0 +1,5 @@
+"model_variant","family","tau","design_role","primary_gap","max_origin_fit_ratio","max_origin_forecast_mae_ratio","max_origin_forecast_check_ratio","originwise_primary_directional_improvement","originwise_no_material_regression","confirmation_role"
+"qdesn_al_rhs_ns","gausmix",0.5,"compact_lhs_06","forecast_mae",1.00834231881086,1.19918902566351,1.00246842729778,FALSE,FALSE,"instability_sentinel"
+"qdesn_al_rhs_ns","laplace",0.05,"compact_lhs_01","fit",0.527444475253612,0.800991142549333,0.965734399065703,TRUE,TRUE,"primary_confirmation"
+"qdesn_al_rhs_ns","normal",0.05,"compact_lhs_01","forecast_mae",0.989622386312659,0.97123126490023,0.993001667732821,TRUE,TRUE,"primary_confirmation"
+"qdesn_exal_rhs_ns","normal",0.25,"compact_lhs_06","forecast_mae",0.985072260651213,0.933217496537437,0.992513366008191,TRUE,TRUE,"primary_confirmation"

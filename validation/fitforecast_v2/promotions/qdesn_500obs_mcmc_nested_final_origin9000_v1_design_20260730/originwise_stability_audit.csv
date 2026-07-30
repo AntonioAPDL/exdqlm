@@ -1,0 +1,9 @@
+"model_variant","family","tau","design_role","calibration_origin_source_index","fit_ratio_to_best_anchor","forecast_mae_ratio_to_best_anchor","forecast_check_ratio_to_best_anchor"
+"qdesn_al_rhs_ns","gausmix",0.5,"compact_lhs_06",7000,1.00834231881086,1.19918902566351,1.00246842729778
+"qdesn_al_rhs_ns","gausmix",0.5,"compact_lhs_06",8000,0.980965310611661,0.973518246635495,0.997620611208658
+"qdesn_al_rhs_ns","laplace",0.05,"compact_lhs_01",7000,0.378109667305566,0.756985893549844,0.921184544405392
+"qdesn_al_rhs_ns","laplace",0.05,"compact_lhs_01",8000,0.527444475253612,0.800991142549333,0.965734399065703
+"qdesn_al_rhs_ns","normal",0.05,"compact_lhs_01",7000,0.989622386312659,0.97123126490023,0.990493288523085
+"qdesn_al_rhs_ns","normal",0.05,"compact_lhs_01",8000,0.978096725645573,0.931153269970453,0.993001667732821
+"qdesn_exal_rhs_ns","normal",0.25,"compact_lhs_06",7000,0.984364720379309,0.88395744042158,0.992513366008191
+"qdesn_exal_rhs_ns","normal",0.25,"compact_lhs_06",8000,0.985072260651213,0.933217496537437,0.986986640031776

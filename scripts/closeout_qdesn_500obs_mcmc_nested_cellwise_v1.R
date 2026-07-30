@@ -25,6 +25,10 @@ repo_root <- normalizePath(
   mustWork = TRUE
 )
 setwd(repo_root)
+source(file.path(
+  repo_root, "validation", "fitforecast_v2", "R",
+  "qdesn_mcmc_nested_closeout_helpers.R"
+), local = TRUE)
 
 stage_base <- "qdesn_dynamic_fitforecast_v2_500obs_mcmc_nested_cellwise_v1"
 promotion_id <- "qdesn_500obs_mcmc_nested_cellwise_v1_design_20260729"
@@ -166,15 +170,13 @@ for (origin in origins) {
     )
   }
 
-  selection_files <- list.files(
-    file.path(result_root, "roots"),
-    pattern = "^mcmc_seed_selection[.]csv$",
-    recursive = TRUE,
-    full.names = TRUE
+  selection_files <- qdesn_canonical_seed_selection_files(
+    result_root,
+    expected_roots = 360L
   )
   for (selection_path in selection_files) {
     selection <- read_csv(selection_path)
-    if (!nrow(selection)) next
+    qdesn_validate_seed_selection(selection, selection_path)
     selection$calibration_view <- view_id
     selection$calibration_origin_source_index <- origin
     selection$seed_selection_path <- resolve_path(selection_path)
@@ -238,6 +240,22 @@ for (origin in origins) {
 campaigns <- bind_rows(campaign_rows)
 seeds <- bind_rows(seed_rows)
 storage <- bind_rows(storage_rows)
+seed_key <- paste(
+  seeds$calibration_view,
+  seeds$root_id,
+  seeds$seed_rep,
+  sep = "|"
+)
+if (nrow(seeds) != 1440L || anyDuplicated(seed_key)) {
+  stop(
+    sprintf(
+      "Expected 1,440 unique calibration-view/root/seed rows; found %d rows and %d duplicated keys.",
+      nrow(seeds),
+      sum(duplicated(seed_key))
+    ),
+    call. = FALSE
+  )
+}
 if (!nrow(storage)) {
   storage <- data.frame(
     calibration_view = character(),

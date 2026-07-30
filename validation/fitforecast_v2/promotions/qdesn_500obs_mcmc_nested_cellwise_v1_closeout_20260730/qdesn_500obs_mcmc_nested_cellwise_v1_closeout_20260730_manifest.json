@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-07-30 15:49:43.460607",
+  "closeout_id": "qdesn_500obs_mcmc_nested_cellwise_v1_closeout_20260730",
+  "stage_base": "qdesn_dynamic_fitforecast_v2_500obs_mcmc_nested_cellwise_v1",
+  "run_tags": {
+    "origin7000": "qdesn-500obs-mcmc-nested-v1-origin7000-full-20260729__git-d705f8b",
+    "origin8000": "qdesn-500obs-mcmc-nested-v1-origin8000-full-20260729__git-d705f8b"
+  },
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "expected_roots": 720,
+  "observed_terminal_roots": 720,
+  "observed_successful_roots": 720,
+  "expected_seed_rows": 1440,
+  "observed_seed_rows": 1440,
+  "complete_replicated_designs": 180,
+  "selected_cells": 4,
+  "storage_heavy_files": 0,
+  "gate_reference": "same-window declared anchor controls",
+  "final_origin_discovery_excluded": true,
+  "article_updated": false,
+  "decision": "FINAL_ORIGIN_CONFIRMATION_REQUIRED_FOR_SELECTED_CELLWISE_CANDIDATES",
+  "source_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_nested_cellwise_v1_closeout_20260730/source_manifest.csv",
+  "file_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_nested_cellwise_v1_closeout_20260730/file_manifest.csv"
+}

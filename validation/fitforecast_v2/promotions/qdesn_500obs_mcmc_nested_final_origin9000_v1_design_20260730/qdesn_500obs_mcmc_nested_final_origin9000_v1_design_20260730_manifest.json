@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-07-30 16:13:13.776117",
+  "design_id": "qdesn_500obs_mcmc_nested_final_origin9000_v1_design_20260730",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_mcmc_nested_final_origin9000_v1",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "source_closeout_id": "qdesn_500obs_mcmc_nested_cellwise_v1_closeout_20260730",
+  "selected_cells": 4,
+  "selected_roots": 8,
+  "planned_chain_fits": 16,
+  "primary_confirmations": 3,
+  "instability_sentinels": 1,
+  "origin": 9000,
+  "file_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_nested_final_origin9000_v1_design_20260730/file_manifest.csv",
+  "source_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_nested_final_origin9000_v1_design_20260730/source_manifest.csv",
+  "article_update_policy": "manual_after_final_closeout_only"
+}
