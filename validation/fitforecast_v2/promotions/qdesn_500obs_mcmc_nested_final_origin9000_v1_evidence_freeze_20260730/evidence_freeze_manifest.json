@@ -1,0 +1,55 @@
+{
+  "freeze_id": "qdesn_500obs_mcmc_nested_final_origin9000_v1_evidence_freeze_20260730",
+  "freeze_date": "2026-07-30",
+  "scope": "independent_qdesn_exqdesn_mcmc_validation_only",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "frozen_evidence_git_sha": "a02b93bee8cb52c273d989f455f8e7e3fd962f69",
+  "package_name": "exdqlm",
+  "package_version": "1.0.0",
+  "closeout_id": "qdesn_500obs_mcmc_nested_final_origin9000_v1_closeout_20260730",
+  "authority_contract_version": "1.0.0",
+  "authoritative_numeric_promotion_id": "qdesn_dqlm_500obs_mcmc_metric_envelope_20260727",
+  "authoritative_numeric_row_count": 36,
+  "authoritative_candidate_row_count": 129,
+  "authoritative_displayed_metric_count": 108,
+  "authoritative_numeric_article_envelope": {
+    "path_relative": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_article_envelope.csv",
+    "sha256": "aa4399576453ec0e9eeb21fa2166a1aaeed977c976064b13c4dc27f963cbb9a1"
+  },
+  "authoritative_numeric_manifest": {
+    "path_relative": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_manifest.json",
+    "sha256": "64fe0d174b203f041b9047589a84345089106b20757755549662f82c5f301ba3"
+  },
+  "authoritative_coherent_confirmation": {
+    "path_relative": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727/qdesn_dqlm_500obs_mcmc_metric_envelope_20260727_coherent_confirmation.csv",
+    "sha256": "a1ba1a9c25d2e0e3ee0c77958e23fca5beeb1fdbed89f6f09ff5a9f3a9a640f3"
+  },
+  "source_registry_hash_name": "source_registry_sha256",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "scientific_decision": "NO_CONFIRMED_COHERENT_ARTICLE_REFRESH",
+  "coherent_promotion_cells": 0,
+  "article_refresh_metric_rows": 0,
+  "consumable_scientific_run_tags": [
+    "qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-bd4da62"
+  ],
+  "permanently_rejected_run_tags": [
+    "qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-6582f87"
+  ],
+  "non_scientific_workflow_run_tags": [
+    "qdesn-500obs-mcmc-nested-final-o9000-v1-prepare-20260730-162948__git-6582f87",
+    "qdesn-500obs-mcmc-nested-final-o9000-v1-smoke-20260730-162708__git-6582f87"
+  ],
+  "exposed_confirmation_origins": [
+    9000
+  ],
+  "origin_9000_untouched_confirmation_eligible": false,
+  "article_update_policy": "KEEP_CURRENT_ARTICLE_PARENT_ROWS_UNCHANGED",
+  "article_numeric_state": "UNCHANGED_FROM_20260727_AUTHORITY",
+  "future_use_policy": "VALID_RUN_IS_NEGATIVE_CONFIRMATION_EVIDENCE_ONLY",
+  "bundle_hashes": {
+    "readme_sha256": "405857341c24ed612db365762f36c206f688d32c32ffd991ae92e56c1650a395",
+    "run_disposition_sha256": "60cb7465ed459cdc353b056237ec72c4d31a9ed08e8e08469b2ed53ce2ba7976",
+    "origin_disposition_sha256": "5abda918c7178c7bf3d037dd21aff5899bbbd09c7048610e0857c8301c4f2ef9",
+    "frozen_evidence_ledger_sha256": "1ca5fb427630df8d1a3d22b6d08f6d59dd9f1d7c2ed0144a47af53a8797ec48d"
+  }
+}

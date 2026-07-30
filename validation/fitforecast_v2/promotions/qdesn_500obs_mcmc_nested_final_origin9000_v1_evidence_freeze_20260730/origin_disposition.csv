@@ -1,0 +1,2 @@
+"source_registry_hash_name","source_registry_hash_value","origin_source_index","train_start_source_index","train_end_source_index","forecast_start_source_index","forecast_end_source_index","state","untouched_confirmation_eligible","allowed_future_role","reason"
+"source_registry_sha256","edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",9000,8501,9000,9001,10000,"EXPOSED_FINAL_CONFIRMATION",FALSE,"FROZEN_EVIDENCE_OR_DECLARED_DEVELOPMENT_ONLY","Origin 9000 was evaluated by the valid full confirmation run and cannot be reused as an untouched holdout."

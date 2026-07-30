@@ -1,0 +1,5 @@
+"run_tag","state","scientific_evidence","consumable","evidence_role","reason"
+"qdesn-500obs-mcmc-nested-final-o9000-v1-prepare-20260730-162948__git-6582f87","PREPARE_ONLY",FALSE,FALSE,"WORKFLOW_EVIDENCE_ONLY","Prepare-only artifacts are not fitted scientific evidence."
+"qdesn-500obs-mcmc-nested-final-o9000-v1-smoke-20260730-162708__git-6582f87","SMOKE_ONLY",FALSE,FALSE,"WORKFLOW_EVIDENCE_ONLY","Smoke budgets are intentionally non-scientific and cannot supply comparison metrics."
+"qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-6582f87","ABORTED_INVALID_CONTRACT",FALSE,FALSE,"PERMANENTLY_REJECTED","Effective posterior predictive draws were 100; the frozen full-run contract requires 200."
+"qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-bd4da62","COMPLETE_VALID_CONTRACT",TRUE,TRUE,"FROZEN_NEGATIVE_CONFIRMATION","Consumable only as negative confirmation evidence; zero cells qualify for coherent article refresh."
