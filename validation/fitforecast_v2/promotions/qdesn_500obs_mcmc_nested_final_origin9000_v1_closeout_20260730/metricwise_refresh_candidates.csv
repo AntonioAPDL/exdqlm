@@ -1,0 +1,13 @@
+"model_variant","family","tau","fit_size","design_role","confirmation_role","metric","confirmation_value","parent_value","ratio_to_parent","finite_improvement","coherent_cell_promotion_eligible","article_refresh_candidate"
+"qdesn_al_rhs_ns","gausmix",0.5,500,"compact_lhs_06","instability_sentinel","fit_qtrue_rmse",1.29964414378235,1.2292599481372,1.05725737322835,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","gausmix",0.5,500,"compact_lhs_06","instability_sentinel","forecast_qtrue_mae_H1000",2.78285308260418,2.75590356527539,1.00977883176623,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","gausmix",0.5,500,"compact_lhs_06","instability_sentinel","forecast_check_loss_H1000",5.67238908267271,5.63045027725252,1.007448570426,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","laplace",0.05,500,"compact_lhs_01","primary_confirmation","fit_qtrue_rmse",5.39784261410679,5.32260053913083,1.01413633700722,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","laplace",0.05,500,"compact_lhs_01","primary_confirmation","forecast_qtrue_mae_H1000",4.87847802638204,4.70365720857345,1.03716699794576,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","laplace",0.05,500,"compact_lhs_01","primary_confirmation","forecast_check_loss_H1000",1.90689884284364,1.8877677792617,1.01013422508431,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","normal",0.05,500,"compact_lhs_01","primary_confirmation","fit_qtrue_rmse",2.85364897033174,2.83851161482852,1.00533284959066,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","normal",0.05,500,"compact_lhs_01","primary_confirmation","forecast_qtrue_mae_H1000",8.86924292931922,7.4790312140903,1.18588125593189,FALSE,FALSE,FALSE
+"qdesn_al_rhs_ns","normal",0.05,500,"compact_lhs_01","primary_confirmation","forecast_check_loss_H1000",1.28542500926177,1.2214111028047,1.05240979577644,FALSE,FALSE,FALSE
+"qdesn_exal_rhs_ns","normal",0.25,500,"compact_lhs_06","primary_confirmation","fit_qtrue_rmse",1.83778273331562,1.75885193671458,1.04487631673447,FALSE,FALSE,FALSE
+"qdesn_exal_rhs_ns","normal",0.25,500,"compact_lhs_06","primary_confirmation","forecast_qtrue_mae_H1000",3.74853185897302,3.11796676589307,1.20223598916371,FALSE,FALSE,FALSE
+"qdesn_exal_rhs_ns","normal",0.25,500,"compact_lhs_06","primary_confirmation","forecast_check_loss_H1000",3.43413539661189,3.36667307157614,1.02003827624527,FALSE,FALSE,FALSE

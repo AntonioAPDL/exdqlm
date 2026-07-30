@@ -107,3 +107,71 @@ The materializer now sets all three draw controls to 200 for the full campaign
 and to four for smoke. The orchestrator also reads both smoke `fit_request.json`
 files and refuses continuation unless the effective per-fit budget is exactly
 four and no model payload remains.
+
+## Final Execution
+
+The corrected full campaign completed on 2026-07-30 with run tag
+`qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-bd4da62`.
+The child pipeline uses `pkgload::load_all(repo_root)`, so model code was loaded
+from this exact worktree. Its `DESCRIPTION` records exdqlm 1.0.0; the closeout
+hashes both `DESCRIPTION` and `scripts/pipeline_real_main.R`.
+
+- Terminal successful roots: 8/8.
+- Complete MCMC seed fits: 16/16.
+- Complete replicated cells: 4/4.
+- Q-DESN AL diagnostics: all six roots were `PASS` or `WARN`.
+- exQ-DESN exAL diagnostics: both roots were `FAIL`, with finite metrics
+  retained and reported under the non-suppressing diagnostic policy.
+- Retained `.rds`, `.rda`, `.RData`, or `__design.rds` files: zero.
+
+The authoritative closeout is:
+
+```text
+validation/fitforecast_v2/promotions/
+  qdesn_500obs_mcmc_nested_final_origin9000_v1_closeout_20260730/
+```
+
+Its manifest is
+`qdesn_500obs_mcmc_nested_final_origin9000_v1_closeout_20260730_manifest.json`,
+and its readable decision record is `decision_report.md`.
+
+## Final Results
+
+| Model | Family | Tau | Fit RMSE | Forecast MAE H=1000 | Forecast check loss H=1000 | Fit/parent | MAE/parent | Check/parent |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| Q-DESN AL RHS | Gaussian mixture | 0.50 | 1.2996 | 2.7829 | 5.6724 | 1.057 | 1.010 | 1.007 |
+| Q-DESN AL RHS | Laplace | 0.05 | 5.3978 | 4.8785 | 1.9069 | 1.014 | 1.037 | 1.010 |
+| Q-DESN AL RHS | Gaussian | 0.05 | 2.8536 | 8.8692 | 1.2854 | 1.005 | 1.186 | 1.052 |
+| exQ-DESN exAL RHS | Gaussian | 0.25 | 1.8378 | 3.7485 | 3.4341 | 1.045 | 1.202 | 1.020 |
+
+Ratios below one improve on the current article-facing parent metric. Each
+cell has four tightly replicated finite metric rows, but none improves even one
+of the three parent metrics. Zero cells pass the frozen coherent-promotion
+gate, zero cells are jointly competitive with the matched DQLM/exDQLM
+envelope, and zero metric rows qualify for article refresh.
+
+## Scientific Decision
+
+The final decision is `NO_CONFIRMED_COHERENT_ARTICLE_REFRESH`. The apparent
+gains at discovery origins 7000 and 8000 did not transfer to the frozen origin
+9000. This is a genuine source-window transfer failure, not missing output or
+Monte Carlo noise. The current article-facing parent rows remain authoritative,
+and the authoritative article repository must not be changed from this
+negative confirmation result.
+
+Origin 9000 has now been evaluated. It must not be reused as an untouched
+confirmation origin or become a new tuning target.
+
+## Next Safe Scientific Step
+
+1. Run a no-new-fit diagnostic of source-window and DGP heterogeneity across
+   the discovery and confirmation windows.
+2. Replace pooled two-origin candidate selection with a predeclared robust
+   multi-origin rule that penalizes worst-origin regression.
+3. Use VB or already-computed summaries for candidate triage where appropriate,
+   but preserve MCMC confirmation because VB performance is not assumed to
+   rank MCMC performance perfectly.
+4. Reserve a fresh simulation replicate or source seed as the next untouched
+   final confirmation sample.
+5. Launch no additional MCMC screen until that protocol, its selection gates,
+   and its new holdout are frozen and tested.

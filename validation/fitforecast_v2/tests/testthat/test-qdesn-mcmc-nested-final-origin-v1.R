@@ -35,6 +35,20 @@ test_that("nested final-origin MCMC confirmation is frozen and launch-gated", {
   )
   expect_true(all(file.exists(implementation_paths)))
   invisible(lapply(implementation_paths[grepl("[.]R$", implementation_paths)], parse))
+  description <- read.dcf(file.path(root, "DESCRIPTION"))
+  expect_identical(as.character(description[1L, "Package"]), "exdqlm")
+  expect_identical(as.character(description[1L, "Version"]), "1.0.0")
+  pipeline_entrypoint <- file.path(root, "scripts", "pipeline_real_main.R")
+  expect_true(file.exists(pipeline_entrypoint))
+  pipeline_text <- paste(
+    readLines(pipeline_entrypoint, warn = FALSE),
+    collapse = "\n"
+  )
+  expect_match(
+    pipeline_text,
+    "pkgload::load_all(repo_root, quiet = TRUE)",
+    fixed = TRUE
+  )
 
   defaults_path <- file.path(
     root, "config", "validation", paste0(stage, "_defaults.yaml")
@@ -252,4 +266,106 @@ test_that("nested final-origin MCMC confirmation is frozen and launch-gated", {
     ignore.case = TRUE
   )
   expect_length(heavy, 0L)
+
+  closeout_id <- paste0(
+    "qdesn_500obs_mcmc_nested_final_origin9000_v1_closeout_20260730"
+  )
+  closeout_root <- file.path(
+    root, "validation", "fitforecast_v2", "promotions", closeout_id
+  )
+  closeout_manifest_path <- file.path(
+    closeout_root, paste0(closeout_id, "_manifest.json")
+  )
+  expect_true(file.exists(closeout_manifest_path))
+  closeout_manifest <- jsonlite::read_json(
+    closeout_manifest_path,
+    simplifyVector = TRUE
+  )
+  closeout_campaign <- read_table(file.path(
+    closeout_root, "campaign_completion.csv"
+  ))
+  closeout_cells <- read_table(file.path(
+    closeout_root, "final_origin_cell_metrics.csv"
+  ))
+  closeout_seeds <- read_table(file.path(
+    closeout_root, "final_origin_seed_metrics.csv"
+  ))
+  closeout_refresh <- read_table(file.path(
+    closeout_root, "metricwise_refresh_candidates.csv"
+  ))
+  closeout_storage <- read_table(file.path(
+    closeout_root, "storage_audit.csv"
+  ))
+  closeout_files <- read_table(file.path(closeout_root, "file_manifest.csv"))
+  closeout_sources <- read_table(file.path(
+    closeout_root, "source_manifest.csv"
+  ))
+  closeout_report_path <- file.path(closeout_root, "decision_report.md")
+
+  expect_identical(closeout_manifest$closeout_id, closeout_id)
+  expect_identical(
+    closeout_manifest$run_tag,
+    "qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-bd4da62"
+  )
+  expect_identical(closeout_manifest$package_name, "exdqlm")
+  expect_identical(closeout_manifest$package_version, "1.0.0")
+  expect_identical(
+    closeout_manifest$package_loading,
+    "pkgload::load_all(repo_root)"
+  )
+  expect_false(closeout_manifest$run_tag %in% invalid_runs$run_tag)
+  expect_identical(
+    closeout_manifest$source_registry_hash_value,
+    source_hash
+  )
+  expect_equal(as.integer(closeout_manifest$observed_terminal_roots), 8L)
+  expect_equal(as.integer(closeout_manifest$observed_successful_roots), 8L)
+  expect_equal(as.integer(closeout_manifest$observed_seed_rows), 16L)
+  expect_equal(as.integer(closeout_manifest$complete_cells), 4L)
+  expect_equal(as.integer(closeout_manifest$coherent_promotion_cells), 0L)
+  expect_equal(as.integer(closeout_manifest$externally_competitive_cells), 0L)
+  expect_equal(as.integer(closeout_manifest$article_refresh_metric_rows), 0L)
+  expect_equal(as.integer(closeout_manifest$storage_heavy_files), 0L)
+  expect_false(isTRUE(closeout_manifest$article_updated))
+  expect_identical(
+    closeout_manifest$decision,
+    "NO_CONFIRMED_COHERENT_ARTICLE_REFRESH"
+  )
+
+  expect_equal(nrow(closeout_campaign), 1L)
+  expect_equal(closeout_campaign$roots_success[[1L]], 8L)
+  expect_equal(closeout_campaign$roots_failed[[1L]], 0L)
+  expect_equal(closeout_campaign$seed_rows[[1L]], 16L)
+  expect_equal(nrow(closeout_seeds), 16L)
+  expect_equal(nrow(closeout_cells), 4L)
+  expect_true(all(closeout_cells$replication_complete))
+  expect_true(all(is.finite(closeout_cells$fit_qtrue_rmse)))
+  expect_true(all(is.finite(closeout_cells$forecast_qtrue_mae_H1000)))
+  expect_true(all(is.finite(closeout_cells$forecast_check_loss_H1000)))
+  expect_true(all(closeout_cells$fit_ratio_to_parent > 1))
+  expect_true(all(closeout_cells$forecast_mae_ratio_to_parent > 1))
+  expect_true(all(closeout_cells$forecast_check_ratio_to_parent > 1))
+  expect_false(any(closeout_cells$coherent_promotion_eligible))
+  expect_false(any(closeout_cells$external_competitive_gate))
+  expect_false(any(closeout_refresh$article_refresh_candidate))
+  expect_equal(nrow(closeout_storage), 0L)
+  expect_true(file.exists(closeout_report_path))
+  report_text <- paste(readLines(closeout_report_path, warn = FALSE), collapse = "\n")
+  expect_match(report_text, "NO_CONFIRMED_COHERENT_ARTICLE_REFRESH")
+  expect_match(report_text, closeout_manifest$run_tag, fixed = TRUE)
+
+  expect_true(all(file.exists(closeout_files$path)))
+  expect_equal(
+    unname(tools::sha256sum(closeout_files$path)),
+    closeout_files$sha256
+  )
+  expect_true(all(file.exists(closeout_sources$path)))
+  expect_equal(
+    unname(tools::sha256sum(closeout_sources$path)),
+    closeout_sources$sha256
+  )
+  expect_true(all(c(
+    "package_description",
+    "pipeline_entrypoint"
+  ) %in% closeout_sources$role))
 })

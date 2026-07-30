@@ -71,6 +71,12 @@ write_json <- function(x, path) {
   )
   normalizePath(path, winslash = "/", mustWork = TRUE)
 }
+write_text <- function(x, path) {
+  path <- resolve_path(path, FALSE)
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  writeLines(enc2utf8(as.character(x)), path, useBytes = TRUE)
+  normalizePath(path, winslash = "/", mustWork = TRUE)
+}
 sha256 <- function(path) unname(tools::sha256sum(resolve_path(path)))
 num <- function(x) suppressWarnings(as.numeric(x))
 as_bool <- function(x) {
@@ -134,6 +140,8 @@ parent_context_path <- file.path(
 external_path <- file.path(
   external_root, paste0(external_id, "_article_envelope.csv")
 )
+description_path <- "DESCRIPTION"
+pipeline_entrypoint_path <- file.path("scripts", "pipeline_real_main.R")
 
 defaults <- yaml::read_yaml(resolve_path(defaults_path))
 grid <- read_csv(grid_path)
@@ -144,8 +152,13 @@ selected_assignments <- read_csv(selected_assignments_path)
 discovery <- read_csv(discovery_handoff_path)
 parent <- read_csv(parent_context_path)
 external <- read_csv(external_path)
+description <- read.dcf(resolve_path(description_path))
+package_name <- as.character(description[1L, "Package"])
+package_version <- as.character(description[1L, "Version"])
 
-if (nrow(contract) != 1L ||
+if (package_name != "exdqlm" ||
+    package_version != "1.0.0" ||
+    nrow(contract) != 1L ||
     contract$source_registry_hash_value[[1L]] != source_hash ||
     nrow(grid) != 8L ||
     any(grid$train_start_source_index != 8501L) ||
@@ -525,6 +538,118 @@ campaign <- data.frame(
   completed_manifest = resolve_path(completed_path),
   stringsAsFactors = FALSE
 )
+article_refresh_rows <- sum(metric_refresh$article_refresh_candidate)
+decision <- if (article_refresh_rows > 0L) {
+  "MANUAL_ARTICLE_REFRESH_REVIEW_REQUIRED"
+} else {
+  "NO_CONFIRMED_COHERENT_ARTICLE_REFRESH"
+}
+format_number <- function(x) {
+  ifelse(is.finite(num(x)), sprintf("%.4f", num(x)), "NA")
+}
+format_ratio <- function(x) {
+  ifelse(is.finite(num(x)), sprintf("%.3f", num(x)), "NA")
+}
+result_rows <- vapply(seq_len(nrow(aggregated)), function(index) {
+  sprintf(
+    paste0(
+      "| %s | %s | %.2f | %s | %s | %s | %s | %s | %s | ",
+      "%d/%d/%d | %s |"
+    ),
+    aggregated$model_variant[[index]],
+    aggregated$family[[index]],
+    num(aggregated$tau[[index]]),
+    format_number(aggregated$fit_qtrue_rmse[[index]]),
+    format_number(aggregated$forecast_qtrue_mae_H1000[[index]]),
+    format_number(aggregated$forecast_check_loss_H1000[[index]]),
+    format_ratio(aggregated$fit_ratio_to_parent[[index]]),
+    format_ratio(aggregated$forecast_mae_ratio_to_parent[[index]]),
+    format_ratio(aggregated$forecast_check_ratio_to_parent[[index]]),
+    as.integer(aggregated$pass_rows[[index]]),
+    as.integer(aggregated$warn_rows[[index]]),
+    as.integer(aggregated$fail_rows[[index]]),
+    ifelse(aggregated$coherent_promotion_eligible[[index]], "YES", "NO")
+  )
+}, character(1L))
+decision_report <- c(
+  "# Q-DESN Nested Final-Origin MCMC Confirmation Closeout",
+  "",
+  "## Identity",
+  "",
+  sprintf("- Run tag: `%s`", run_tag),
+  sprintf("- Design: `%s`", design_id),
+  sprintf("- Stage: `%s`", stage),
+  sprintf("- Source-loaded package: `%s` version `%s`.", package_name, package_version),
+  "- Package loading: `pkgload::load_all(repo_root)` from this worktree.",
+  sprintf("- Source-registry SHA-256: `%s`", source_hash),
+  "- Frozen confirmation origin: 9000.",
+  "- Training source indices: 8501--9000.",
+  "- Forecast source indices: 9001--10000.",
+  "",
+  "## Completion",
+  "",
+  sprintf("- Successful roots: %d/8.", sum(root_status == "SUCCESS")),
+  sprintf("- Complete MCMC seed fits: %d/16.", nrow(seeds)),
+  sprintf(
+    "- Complete replicated model/family/quantile cells: %d/4.",
+    sum(aggregated$replication_complete)
+  ),
+  sprintf("- Retained heavy model payloads: %d.", nrow(storage)),
+  "",
+  "## Cell Results",
+  "",
+  paste0(
+    "| Model | Family | Tau | Fit RMSE | Forecast MAE H=1000 | ",
+    "Forecast check loss H=1000 | Fit/parent | MAE/parent | ",
+    "Check/parent | PASS/WARN/FAIL | Promote |"
+  ),
+  paste0(
+    "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    "---:|---|"
+  ),
+  result_rows,
+  "",
+  "Ratios below one improve on the current parent metric. Diagnostic grades are",
+  "reported but do not suppress finite metrics.",
+  "",
+  "## Decision",
+  "",
+  sprintf("- Decision: `%s`.", decision),
+  sprintf(
+    "- Coherently promotable cells: %d/4.",
+    sum(aggregated$coherent_promotion_eligible)
+  ),
+  sprintf(
+    "- Externally competitive cells: %d/4.",
+    sum(aggregated$external_competitive_gate)
+  ),
+  sprintf("- Article-refresh metric rows: %d.", article_refresh_rows),
+  "- The final-origin evidence does not justify changing article values.",
+  "- Origin 9000 has now been evaluated and must not be reused as an untouched",
+  "  confirmation origin for further tuning.",
+  "",
+  "## Next Safe Scientific Step",
+  "",
+  "1. Diagnose source-window and DGP heterogeneity without fitting new models.",
+  "2. Select future candidates by robust performance across multiple predeclared",
+  "   pre-confirmation origins, not by a pooled two-origin median alone.",
+  "3. Reserve a fresh simulation replicate or source seed as the next untouched",
+  "   confirmation sample before any additional MCMC promotion.",
+  "4. Keep the current article-facing parent rows unchanged unless a future",
+  "   confirmation passes the frozen coherent-promotion contract.",
+  "",
+  "## Invalid Run",
+  "",
+  paste0(
+    "The tag `qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__",
+    "git-6582f87` is `ABORTED_INVALID_CONTRACT` and is not consumable. Its"
+  ),
+  "per-fit request used 100 rather than 200 posterior predictive draws."
+)
+decision_report_path <- write_text(
+  decision_report,
+  file.path(out_root, "decision_report.md")
+)
 outputs <- c(
   campaign = write_csv(campaign, file.path(out_root, "campaign_completion.csv")),
   seed_metrics = write_csv(
@@ -536,10 +661,13 @@ outputs <- c(
   metric_refresh = write_csv(
     metric_refresh, file.path(out_root, "metricwise_refresh_candidates.csv")
   ),
-  storage = write_csv(storage, file.path(out_root, "storage_audit.csv"))
+  storage = write_csv(storage, file.path(out_root, "storage_audit.csv")),
+  decision_report = decision_report_path
 )
 
 source_files <- c(
+  package_description = resolve_path(description_path),
+  pipeline_entrypoint = resolve_path(pipeline_entrypoint_path),
   defaults = resolve_path(defaults_path),
   grid = resolve_path(grid_path),
   target_specs = resolve_path(target_specs_path),
@@ -572,18 +700,15 @@ file_manifest_path <- write_csv(
   file_manifest, file.path(out_root, "file_manifest.csv")
 )
 
-article_refresh_rows <- sum(metric_refresh$article_refresh_candidate)
-decision <- if (article_refresh_rows > 0L) {
-  "MANUAL_ARTICLE_REFRESH_REVIEW_REQUIRED"
-} else {
-  "NO_CONFIRMED_COHERENT_ARTICLE_REFRESH"
-}
 manifest <- list(
   generated_at = as.character(Sys.time()),
   closeout_id = closeout_id,
   stage = stage,
   design_id = design_id,
   run_tag = run_tag,
+  package_name = package_name,
+  package_version = package_version,
+  package_loading = "pkgload::load_all(repo_root)",
   source_registry_hash_value = source_hash,
   expected_roots = 8L,
   observed_terminal_roots = nrow(progress),
@@ -598,6 +723,7 @@ manifest <- list(
   storage_heavy_files = nrow(storage),
   article_updated = FALSE,
   decision = decision,
+  decision_report = decision_report_path,
   source_manifest = source_manifest_path,
   file_manifest = file_manifest_path
 )
