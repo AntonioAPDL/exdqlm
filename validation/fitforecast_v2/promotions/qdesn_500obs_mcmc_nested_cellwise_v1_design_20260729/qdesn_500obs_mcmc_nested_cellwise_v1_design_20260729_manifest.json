@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-07-29 20:37:23.729912",
+  "promotion_id": "qdesn_500obs_mcmc_nested_cellwise_v1_design_20260729",
+  "stage_base": "qdesn_dynamic_fitforecast_v2_500obs_mcmc_nested_cellwise_v1",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "target_cells": 15,
+  "profiles": 360,
+  "calibration_views": 2,
+  "selected_roots_total": 720,
+  "planned_chain_fits": 1440,
+  "workers_total_cap": 16,
+  "source_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_nested_cellwise_v1_design_20260729/source_manifest.csv",
+  "file_manifest": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_nested_cellwise_v1_design_20260729/file_manifest.csv",
+  "documentation": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/docs/QDESN_500OBS_MCMC_NESTED_CELLWISE_V1_PLAN_2026-07-29.md",
+  "article_update_policy": "no raw discovery result is article-facing"
+}
