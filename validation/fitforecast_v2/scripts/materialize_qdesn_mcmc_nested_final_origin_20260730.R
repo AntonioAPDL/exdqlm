@@ -414,6 +414,10 @@ defaults$study_contract$description <- paste(
 )
 defaults$study_contract$source_registry_hash_value <- source_hash
 defaults$study_contract$budget$posterior_metric_draws <- 200L
+# The shared 1.0.0 contract adapter applies these historically VB-named
+# fields to every method, including MCMC posterior prediction.
+defaults$study_contract$budget$vb_sampling_nd_draws <- 200L
+defaults$study_contract$budget$vb_synthesis_n_samp <- 200L
 defaults$study_contract$budget$mcmc_n_burn <- 5000L
 defaults$study_contract$budget$mcmc_n_mcmc <- 20000L
 defaults$study_contract$budget$mcmc_thin <- 1L
@@ -487,6 +491,9 @@ defaults$smoke$screening_profile_ids <- as.list(
 defaults$smoke$budget$mcmc_n_burn <- 4L
 defaults$smoke$budget$mcmc_n_mcmc <- 4L
 defaults$smoke$budget$mcmc_thin <- 1L
+defaults$smoke$budget$posterior_metric_draws <- 4L
+defaults$smoke$budget$vb_sampling_nd_draws <- 4L
+defaults$smoke$budget$vb_synthesis_n_samp <- 4L
 defaults$smoke$pipeline$inference$mcmc$n_burn <- 4L
 defaults$smoke$pipeline$inference$mcmc$n_mcmc <- 4L
 defaults$smoke$pipeline$inference$mcmc$thin <- 1L
@@ -528,6 +535,19 @@ contract <- data.frame(
   stringsAsFactors = FALSE
 )
 contract_path <- write_csv(contract, file.path(design_root, "confirmation_contract.csv"))
+invalid_runs <- data.frame(
+  run_tag = "qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-6582f87",
+  state = "ABORTED_INVALID_CONTRACT",
+  consumable = FALSE,
+  reason = paste(
+    "Per-fit sampling.nd_draws was 100 because the shared 1.0.0 adapter",
+    "applied vb_sampling_nd_draws to MCMC; the frozen contract requires 200."
+  ),
+  stringsAsFactors = FALSE
+)
+invalid_runs_path <- write_csv(
+  invalid_runs, file.path(design_root, "invalid_run_registry.csv")
+)
 
 source_manifest <- data.frame(
   role = names(paths),
@@ -546,7 +566,8 @@ tracked_paths <- c(
   "scripts/closeout_qdesn_500obs_mcmc_nested_final_origin_v1.R",
   "validation/fitforecast_v2/tests/testthat/test-qdesn-mcmc-nested-final-origin-v1.R",
   origin_stability_path, stability_summary_path, selected_profiles_path,
-  selected_assignments_path, contract_path, source_manifest_path
+  selected_assignments_path, contract_path, invalid_runs_path,
+  source_manifest_path
 )
 tracked_paths <- unique(vapply(tracked_paths, resolve_path, character(1L)))
 file_manifest <- data.frame(
@@ -570,6 +591,7 @@ manifest <- list(
   primary_confirmations = 3L,
   instability_sentinels = 1L,
   origin = 9000L,
+  invalid_run_tags = as.list(invalid_runs$run_tag),
   file_manifest = file_manifest_path,
   source_manifest = source_manifest_path,
   article_update_policy = "manual_after_final_closeout_only"

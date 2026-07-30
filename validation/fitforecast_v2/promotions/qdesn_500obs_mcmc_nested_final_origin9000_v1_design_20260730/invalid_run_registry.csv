@@ -1,0 +1,2 @@
+"run_tag","state","consumable","reason"
+"qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-6582f87","ABORTED_INVALID_CONTRACT",FALSE,"Per-fit sampling.nd_draws was 100 because the shared 1.0.0 adapter applied vb_sampling_nd_draws to MCMC; the frozen contract requires 200."

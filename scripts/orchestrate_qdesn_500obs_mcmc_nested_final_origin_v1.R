@@ -219,7 +219,15 @@ contract_ok <- nrow(contract) == 1L &&
   ) &&
   as.integer(defaults$study_contract$budget$mcmc_n_burn) == 5000L &&
   as.integer(defaults$study_contract$budget$mcmc_n_mcmc) == 20000L &&
+  as.integer(
+    defaults$study_contract$budget$vb_sampling_nd_draws
+  ) == 200L &&
+  as.integer(
+    defaults$study_contract$budget$vb_synthesis_n_samp
+  ) == 200L &&
   as.integer(defaults$metrics$posterior_metric_draws) == 200L &&
+  as.integer(defaults$pipeline$sampling$nd_draws) == 200L &&
+  as.integer(defaults$pipeline$synthesis$n_samp) == 200L &&
   as.integer(defaults$pipeline$inference$mcmc$progress_every) == 50L &&
   isTRUE(defaults$multiseed$enabled) &&
   as.integer(defaults$multiseed$mcmc_seed_reps) == 2L &&
@@ -305,6 +313,73 @@ if (run_smoke) {
       "--stream-child-stdout"
     )
   )
+  smoke_outer <- file.path(defaults$campaign$results_root, smoke_tag)
+  smoke_children <- sort(
+    list.dirs(smoke_outer, recursive = FALSE, full.names = TRUE),
+    decreasing = TRUE
+  )
+  fit_requests <- if (length(smoke_children)) {
+    request_candidates <- list.files(
+      file.path(smoke_children[[1L]], "roots"),
+      pattern = "^fit_request[.]json$",
+      recursive = TRUE,
+      full.names = TRUE
+    )
+    request_candidates[
+      grepl(
+        "/seeds/seed_[0-9]+/fit_request[.]json$",
+        request_candidates
+      )
+    ]
+  } else {
+    character()
+  }
+  if (length(fit_requests) != 2L) {
+    stop(
+      sprintf(
+        "Smoke must produce two seed fit requests; found %d.",
+        length(fit_requests)
+      ),
+      call. = FALSE
+    )
+  }
+  smoke_requests <- lapply(
+    fit_requests,
+    jsonlite::read_json,
+    simplifyVector = TRUE
+  )
+  smoke_contract_ok <- all(vapply(smoke_requests, function(request) {
+    identical(as.integer(request$config$sampling$nd_draws), 4L) &&
+      identical(as.integer(request$config$synthesis$n_samp), 4L) &&
+      identical(
+        as.integer(request$config$metrics$posterior_metric_draws),
+        4L
+      ) &&
+      identical(
+        as.integer(request$config$inference$mcmc$n_burn),
+        4L
+      ) &&
+      identical(
+        as.integer(request$config$inference$mcmc$n_mcmc),
+        4L
+      )
+  }, logical(1L)))
+  smoke_heavy <- list.files(
+    smoke_children[[1L]],
+    pattern = "[.](rds|rda|RData)$|__design[.]rds$",
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+  if (!smoke_contract_ok || length(smoke_heavy)) {
+    stop(
+      paste(
+        "Smoke per-fit budget or storage contract failed:",
+        sprintf("budget_ok=%s heavy_files=%d", smoke_contract_ok, length(smoke_heavy))
+      ),
+      call. = FALSE
+    )
+  }
 }
 
 full_launch <- list()

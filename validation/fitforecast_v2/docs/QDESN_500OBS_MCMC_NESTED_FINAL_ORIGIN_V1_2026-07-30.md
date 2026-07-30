@@ -79,13 +79,31 @@ The implementation was validated under R 4.6.0 on 2026-07-30.
 - Full `validation/fitforecast_v2/tests/testthat` suite:
   passed, including all four deferred expressions.
 - Prepare-only run tag:
-  `qdesn-500obs-mcmc-nested-final-o9000-v1-prepare-20260730-160532__git-d705f8b`.
+  `qdesn-500obs-mcmc-nested-final-o9000-v1-prepare-20260730-162948__git-6582f87`.
 - Smoke run tag:
-  `qdesn-500obs-mcmc-nested-final-o9000-v1-smoke-20260730-160604__git-d705f8b`.
+  `qdesn-500obs-mcmc-nested-final-o9000-v1-smoke-20260730-162708__git-6582f87`.
 - Smoke execution:
   one root, two MCMC seed replicates, root status `SUCCESS`.
+- Effective per-fit smoke budget:
+  four burn-in, four retained iterations, and four predictive draws.
+- Effective full preflight budget:
+  5,000 burn-in, 20,000 retained iterations, and 200 predictive draws.
 - Smoke storage audit:
   zero retained `.rds`, `.rda`, `.RData`, or `__design.rds` payloads.
 
 The smoke uses four burn-in and four retained iterations solely to exercise the
 workflow. Its chain grade is not scientific evidence and cannot be promoted.
+
+## Invalidated Launch
+
+The first full launch,
+`qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-6582f87`,
+was stopped and marked `ABORTED_INVALID_CONTRACT`. Its per-fit requests used
+100 posterior predictive draws because the exdqlm 1.0.0 shared adapter applies
+the historically named `vb_sampling_nd_draws` field to MCMC as well. No output
+from that run is consumable.
+
+The materializer now sets all three draw controls to 200 for the full campaign
+and to four for smoke. The orchestrator also reads both smoke `fit_request.json`
+files and refuses continuation unless the effective per-fit budget is exactly
+four and no model payload remains.

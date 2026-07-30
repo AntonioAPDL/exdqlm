@@ -28,8 +28,8 @@ study_contract:
     cell-specific designs selected from replicated origins 7000 and 8000.
   budget:
     posterior_metric_draws: 200
-    vb_sampling_nd_draws: 100
-    vb_synthesis_n_samp: 100
+    vb_sampling_nd_draws: 200
+    vb_synthesis_n_samp: 200
     mcmc_n_burn: 5000
     mcmc_n_mcmc: 20000
     mcmc_thin: 1

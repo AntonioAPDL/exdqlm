@@ -65,6 +65,7 @@ test_that("nested final-origin MCMC confirmation is frozen and launch-gated", {
   profiles <- read_table(profiles_path)
   assignments <- read_table(assignments_path)
   contract <- read_table(file.path(design_root, "confirmation_contract.csv"))
+  invalid_runs <- read_table(file.path(design_root, "invalid_run_registry.csv"))
   stability <- read_table(file.path(
     design_root, "originwise_stability_summary.csv"
   ))
@@ -95,6 +96,16 @@ test_that("nested final-origin MCMC confirmation is frozen and launch-gated", {
     contract$article_update_policy[[1L]],
     "manual_after_final_closeout_only"
   )
+  expect_equal(nrow(invalid_runs), 1L)
+  expect_identical(
+    invalid_runs$run_tag[[1L]],
+    "qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-6582f87"
+  )
+  expect_identical(
+    invalid_runs$state[[1L]],
+    "ABORTED_INVALID_CONTRACT"
+  )
+  expect_false(invalid_runs$consumable[[1L]])
 
   expect_equal(nrow(grid), 8L)
   expect_equal(nrow(targets), 8L)
@@ -164,7 +175,17 @@ test_that("nested final-origin MCMC confirmation is frozen and launch-gated", {
     as.integer(defaults$study_contract$budget$mcmc_n_mcmc),
     20000L
   )
+  expect_equal(
+    as.integer(defaults$study_contract$budget$vb_sampling_nd_draws),
+    200L
+  )
+  expect_equal(
+    as.integer(defaults$study_contract$budget$vb_synthesis_n_samp),
+    200L
+  )
   expect_equal(as.integer(defaults$metrics$posterior_metric_draws), 200L)
+  expect_equal(as.integer(defaults$pipeline$sampling$nd_draws), 200L)
+  expect_equal(as.integer(defaults$pipeline$synthesis$n_samp), 200L)
   expect_equal(as.integer(defaults$pipeline$inference$mcmc$progress_every), 50L)
   expect_true(isTRUE(defaults$pipeline$inference$mcmc$init_from_vb))
   expect_true(isTRUE(defaults$multiseed$enabled))
@@ -177,6 +198,18 @@ test_that("nested final-origin MCMC confirmation is frozen and launch-gated", {
   expect_equal(length(defaults$execution$allowed_fit_spec_ids), 8L)
   expect_equal(as.integer(defaults$smoke$budget$mcmc_n_burn), 4L)
   expect_equal(as.integer(defaults$smoke$budget$mcmc_n_mcmc), 4L)
+  expect_equal(
+    as.integer(defaults$smoke$budget$posterior_metric_draws),
+    4L
+  )
+  expect_equal(
+    as.integer(defaults$smoke$budget$vb_sampling_nd_draws),
+    4L
+  )
+  expect_equal(
+    as.integer(defaults$smoke$budget$vb_synthesis_n_samp),
+    4L
+  )
 
   expect_identical(manifest$design_id, design_id)
   expect_identical(manifest$source_registry_hash_value, source_hash)
@@ -185,6 +218,10 @@ test_that("nested final-origin MCMC confirmation is frozen and launch-gated", {
   expect_equal(as.integer(manifest$planned_chain_fits), 16L)
   expect_equal(as.integer(manifest$primary_confirmations), 3L)
   expect_equal(as.integer(manifest$instability_sentinels), 1L)
+  expect_identical(
+    unname(manifest$invalid_run_tags),
+    invalid_runs$run_tag
+  )
   expect_true(all(file.exists(file_manifest$path)))
   expect_equal(
     unname(tools::sha256sum(file_manifest$path)),
