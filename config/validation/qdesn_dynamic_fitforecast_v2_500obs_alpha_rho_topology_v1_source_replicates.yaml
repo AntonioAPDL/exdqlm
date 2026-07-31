@@ -1,0 +1,73 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_topology_v1
+  purpose: Independent development trajectories for topology and alpha/rho selection.
+  article_source_policy: The existing frozen v2 source is not modified and is reserved for later confirmation.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_topology_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+replicates:
+  - replicate_id: dev01
+    scenario_id: dlm_constV_p90_alpha_rho_dev01_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 112011, noise: 112012}
+      laplace: {latent: 122011, noise: 122012}
+      gausmix: {latent: 132011, noise: 132012}
+  - replicate_id: dev02
+    scenario_id: dlm_constV_p90_alpha_rho_dev02_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 212011, noise: 212012}
+      laplace: {latent: 222011, noise: 222012}
+      gausmix: {latent: 232011, noise: 232012}
+  - replicate_id: dev03
+    scenario_id: dlm_constV_p90_alpha_rho_dev03_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 312011, noise: 312012}
+      laplace: {latent: 322011, noise: 322012}
+      gausmix: {latent: 332011, noise: 332012}
+
+selection_contract:
+  source_replicates: 3
+  reservoir_replicates: 2
+  mechanism_arms_per_cell: 4
+  broad_arms_per_cell: 32
+  target_cells: 5
+  expected_mechanism_specs: 120
+  expected_broad_specs: 960
+  expected_total_specs: 1080
