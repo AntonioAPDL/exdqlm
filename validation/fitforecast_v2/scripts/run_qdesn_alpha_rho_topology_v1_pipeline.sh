@@ -35,7 +35,7 @@ resource_values() {
   load1="$(awk '{print $1}' /proc/loadavg)"
   memory_kb="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
   disk_kb="$(df -Pk "$REPO_ROOT" | awk 'NR==2 {print $4}')"
-  awk -v load="$load1" -v memory="$memory_kb" -v disk="$disk_kb" 'BEGIN {printf "%.2f %.1f %.1f", load, memory/1048576, disk/1048576}'
+  awk -v ld="$load1" -v memory="$memory_kb" -v disk="$disk_kb" 'BEGIN {printf "%.2f %.1f %.1f", ld, memory/1048576, disk/1048576}'
 }
 
 write_heartbeat() {
@@ -115,6 +115,15 @@ check_storage_light() {
   fi
   record_status "STORAGE_POLICY_PASS" "no_binary_payloads_under=${run_root}"
 }
+
+if [[ "${PIPELINE_SELF_TEST:-0}" == "1" ]]; then
+  CURRENT_STAGE="orchestration_self_test"
+  VALUES="$(resource_values)"
+  write_heartbeat
+  record_status "COMPLETED" "resource_values=${VALUES// /;}"
+  printf 'PIPELINE_SELF_TEST_OK %s\n' "$VALUES"
+  exit 0
+fi
 
 GIT_SHORT="$(git rev-parse --short HEAD)"
 STAMP="$(date +%Y%m%d_%H%M%S)"

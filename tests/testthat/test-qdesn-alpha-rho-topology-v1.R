@@ -88,3 +88,13 @@ testthat::test_that("source replicate contract is independent and complete", {
   testthat::expect_equal(length(unique(all_seeds)), length(all_seeds))
   testthat::expect_equal(cfg$selection_contract$expected_total_specs, 1080L)
 })
+
+testthat::test_that("pipeline resource sampler avoids GNU awk reserved names", {
+  pipeline_path <- file.path(
+    testthat::test_path("..", ".."), "validation", "fitforecast_v2", "scripts",
+    "run_qdesn_alpha_rho_topology_v1_pipeline.sh"
+  )
+  lines <- readLines(pipeline_path, warn = FALSE)
+  testthat::expect_false(any(grepl("awk -v load=", lines, fixed = TRUE)))
+  testthat::expect_true(any(grepl("PIPELINE_SELF_TEST_OK", lines, fixed = TRUE)))
+})
