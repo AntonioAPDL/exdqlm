@@ -109,3 +109,24 @@ deleted.
 
 All generated manifests record the package version, branch, commit, source-registry
 hash, input hashes, expected counts, and exact evidence paths.
+
+## Executed Outcome
+
+Run `qdesn_alpha_rho_seedrepair_v1_20260801_192732` completed on 2026-08-01.
+Prepare-only, the executable two-seed smoke, the resource gate, all 48 full roots, the
+post-run storage gate, and the final audit completed successfully. The audit observed
+48 complete metric specifications, 48 executed seed-contract passes, no missing or
+unexpected specifications, and no retained binary payloads.
+
+The decision is `FULL_BUDGET_HANDOFF_PREPARED`. Two cell-specific candidates satisfy
+the development handoff rules, but neither is article-authoritative:
+
+- exAL/Gaussian-mixture at `p=0.25`, candidate
+  `arv2_exal_gausmix_t0p25_full_alpha_rho_p02`;
+- exAL/Laplace at `p=0.05`, candidate
+  `arv2_exal_laplace_t0p05_parent_alpha_p01`.
+
+The exact closeout, evidence hashes, and confirmation handoff are recorded in
+`QDESN_500OBS_MCMC_ALPHA_RHO_SEEDREPAIR_V1_CLOSEOUT_2026-08-01.md` and its adjacent
+machine-readable files. The 5,000-burn-in/20,000-retained confirmation was deliberately
+not launched, and no article table or figure was changed.

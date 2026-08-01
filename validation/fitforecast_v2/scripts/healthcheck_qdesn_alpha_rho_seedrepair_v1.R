@@ -47,7 +47,15 @@ latest <- if (nrow(status)) status[nrow(status), , drop = FALSE] else data.frame
   timestamp = NA_character_, stage = "not_started", status = "NOT_STARTED", detail = "", stringsAsFactors = FALSE
 )
 active_processes <- system(
-  sprintf("pgrep -af '%s|%s' | grep -v pgrep || true", run_id, full_tag %||% "__none__"),
+  sprintf(
+    paste(
+      "pgrep -af '%s|%s'",
+      "| grep -v -E 'pgrep|healthcheck_qdesn_alpha_rho_seedrepair_v1[.]R'",
+      "|| true"
+    ),
+    run_id,
+    full_tag %||% "__none__"
+  ),
   intern = TRUE
 )
 binary_count <- if (dir.exists(run_root)) length(list.files(
