@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-08-01 01:11:46.057387",
+  "stage_stub": "qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2",
+  "package_version": "1.0.0",
+  "git_branch": "validation/qdesn-alpha-rho-cellwise-v2-1.0.0",
+  "git_commit": "84b83d76832dfbeddb2659a7a769eac76ec5f42c",
+  "predecessor": {
+    "worktree": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_topology_v1_1p0p0",
+    "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_topology_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_topology_v1_materialization_manifest.json",
+    "manifest_sha256": "823bd74dfdd5d0eaec5db96987c89befc6bf9d4c1bc083f47a2605799aa20dad",
+    "baseline_metrics_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_topology_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_alpha_rho_topology_v1_20260731_190255/mechanism_audit/mechanism_metrics.csv",
+    "baseline_metrics_sha256": "d9810d2a18cca22bc953592fd78bfcec3421c5cbfdf2f0f1de1a311daefe6ec8",
+    "decision": "STOP_NO_MECHANISM_SIGNAL"
+  },
+  "source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_topology_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_topology_v1/materialization/source_registry.csv",
+  "source_registry_sha256": "07e5f3b11cccd01c5c69ba8ff4794d4d28f583b9c5e8aba8b9dbc953fe862444",
+  "source_slice_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_topology_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_topology_v1/materialization/source_slice_registry.csv",
+  "source_window_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2/materialization/source_window_audit.csv",
+  "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_profiles.csv",
+  "profiles_sha256": "4644f44f542bbe017461489809a67dceda793675f6bbdd80739e74c36e79dcfc",
+  "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_cell_assignments.csv",
+  "candidate_design_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_candidate_design.csv",
+  "search_map_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_search_map.csv",
+  "parent_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_parent_profiles.csv",
+  "topology_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_topology_audit.csv",
+  "topology_audit_sha256": "cc20d6441092d68e9e2d9ef2dec55aad07e3afc6c464656f3a3aca54925722f6",
+  "history": {
+    "executed_profile_index_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_executed_mcmc_profile_index.csv",
+    "executed_profile_index_sha256": "47173d4063fbdd9d96a81f2fc1afcc6199e1ca31a56376d926db89c142b7f13e",
+    "resolution_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_executed_profile_resolution_audit.csv",
+    "unresolved_profile_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_executed_profile_unresolved.csv",
+    "unresolved_profile_count": 0,
+    "overlap_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_executed_profile_overlap_audit.csv",
+    "exact_overlap_count": 0
+  },
+  "full_defaults_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_defaults.yaml",
+  "full_grid_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_grid.csv",
+  "target_specs_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_target_spec_ids.csv",
+  "coarse": {
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_coarse_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_coarse_grid.csv",
+    "target_specs_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_coarse_target_spec_ids.csv",
+    "candidate_designs": 90,
+    "expected_specs": 270
+  },
+  "refinement_universe": {
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_refinement_universe_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_refinement_universe_grid.csv",
+    "target_specs_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_cellwise_v2_refinement_universe_target_spec_ids.csv",
+    "candidate_designs": 90,
+    "maximum_selected_candidates": 20,
+    "maximum_expected_specs": 60
+  },
+  "counts": {
+    "target_cells": 5,
+    "search_paths": 9,
+    "candidate_designs": 90,
+    "profiles": 180,
+    "coarse_specs": 270,
+    "refinement_universe_specs": 270
+  },
+  "launch_state": "materialized_not_launched"
+}
