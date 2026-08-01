@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-08-01 19:26:54.390091",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1",
+  "package_version": "1.0.0",
+  "git_branch": "validation/qdesn-alpha-rho-cellwise-v2-1.0.0",
+  "git_commit": "b56240bb798376ae39bece81a7cd53bfa42ff8f4",
+  "historical_run": {
+    "run_id": "qdesn_alpha_rho_cellwise_v2_20260801_011245",
+    "classification": "COMPLETE_WITH_REFINEMENT_SEED_CONTRACT_FAILURE",
+    "completed_fit_requests": 309,
+    "seed_contract_mismatches": 213,
+    "classification_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1/materialization/historical_campaign_classification.json",
+    "request_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1/materialization/historical_fit_request_seed_audit.csv"
+  },
+  "source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_topology_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_topology_v1/materialization/source_registry.csv",
+  "source_registry_sha256": "07e5f3b11cccd01c5c69ba8ff4794d4d28f583b9c5e8aba8b9dbc953fe862444",
+  "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_profiles.csv",
+  "profiles_sha256": "dd7fc33e17d6239e0dde92ab1f04693aa2a040393321d99d4f123f0342e1a4c2",
+  "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_cell_assignments.csv",
+  "assignments_sha256": "232b9f7667842cd4d8026b3f86f488a589a9470cd958092fa8001548d5b2853e",
+  "grid_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_grid.csv",
+  "grid_sha256": "2d48e5c61be92fe6be2f7bd22b3d8d61b8169ccef761805eabf474b52831a438",
+  "target_specs_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_target_spec_ids.csv",
+  "target_specs_sha256": "1e1cd4dde5245ef05f60312333b8ac8f4aed9935c24620d7b52a2264d547f57a",
+  "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_defaults.yaml",
+  "defaults_sha256": "410abc3b7563a13bde1d85d53482e697234c36498b88eb294355b52a8d31deac",
+  "seed_contract_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_seed_contract_audit.csv",
+  "seed_contract_audit_sha256": "e75845ab7b99928dae445a7bc7fa2977063f6c51fc16de31d5e7b91c4f72f8c6",
+  "historical_actual_seed_candidate_validity_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_historical_actual_seed_candidate_validity.csv",
+  "excluded_candidates_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_excluded_candidates.csv",
+  "repair_topology_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_topology_audit.csv",
+  "smoke": {
+    "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_smoke_profiles.csv",
+    "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_smoke_defaults.yaml",
+    "grid_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_smoke_grid.csv",
+    "target_specs_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_smoke_target_spec_ids.csv",
+    "seed_contract_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_seedrepair_v1_smoke_seed_contract_audit.csv",
+    "expected_specs": 2
+  },
+  "counts": {
+    "retained_candidates": 11,
+    "excluded_candidates": 2,
+    "exact_parent_controls": 5,
+    "source_replicates": 3,
+    "expected_full_specs": 48
+  },
+  "launch_state": "materialized_not_launched"
+}
