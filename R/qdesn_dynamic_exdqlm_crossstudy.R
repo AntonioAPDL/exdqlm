@@ -1045,6 +1045,9 @@ qdesn_dynamic_crossstudy_build_grid_from_materialized_sources <- function(defaul
           row$screening_stage <- as.character(screening_row$screening_stage[1L] %||% NA_character_)
           row$screening_wave <- as.character(screening_row$screening_wave[1L] %||% NA_character_)
           row$profile_role <- as.character(screening_row$profile_role[1L] %||% NA_character_)
+          # The root seed controls run-level reproducibility. Reservoir topology
+          # is a profile property and must retain the profile's declared seed.
+          row$desn_seed <- as.integer(screening_row$seed[1L])
           row$rhs_tau0 <- as.numeric(screening_row$rhs_tau0[1L])
           row$readout_y_lags <- as.integer(screening_row$readout_y_lags[1L])
           row$reservoir_lags <- as.integer(screening_row$reservoir_lags[1L])
@@ -1345,6 +1348,10 @@ qdesn_dynamic_crossstudy_enrich_root_spec <- function(root_spec, defaults) {
   profile_seed <- ((defaults$reservoir_profiles %||% list())[[reservoir_profile]]$seed %||% 123L)
   out$seed <- as.integer(root_spec$seed %||% profile_seed)[1L]
   out$desn_seed <- as.integer(root_spec$desn_seed %||% profile_seed)[1L]
+  for (seed_field in c("mcmc_seed", "mcmc_rng_seed", "vb_warm_start_seed", "synthesis_seed")) {
+    seed_value <- suppressWarnings(as.integer(root_spec[[seed_field]] %||% NA_integer_)[1L])
+    if (is.finite(seed_value)) out[[seed_field]] <- seed_value
+  }
   out$root_id <- as.character(root_spec$root_id %||% qdesn_dynamic_crossstudy_build_root_id(out))[1L]
   out
 }
