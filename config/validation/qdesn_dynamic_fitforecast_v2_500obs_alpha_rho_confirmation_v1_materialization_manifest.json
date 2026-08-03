@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-08-03 15:18:46.652373",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_confirmation_v1",
+  "package_version": "1.0.0",
+  "git_branch": "validation/qdesn-alpha-rho-cellwise-v2-1.0.0",
+  "git_commit": "6375d5c5a0f4f9a2f04814fb1fcb655ac8a4f2b0",
+  "source_registry_identity_field": "source_registry_hash_value",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_confirmation_v1_source_registry.csv",
+  "source_registry_sha256": "4eb063b21c0bcbe13f4d40d2edf87fc2fa02ccf7b88d8e19a028ed2af265b8c1",
+  "source_file_hashes_verified": true,
+  "staged_source_hashes_verified": true,
+  "seed_contract_verified": true,
+  "counts": {
+    "target_cells": 2,
+    "reservoir_replicates": 2,
+    "candidate_roots": 4,
+    "parent_roots": 4,
+    "full_specs": 8,
+    "smoke_specs": 4
+  },
+  "budget": {
+    "n_burn": 5000,
+    "n_mcmc": 20000,
+    "metric_draws": 200
+  },
+  "rolling_origin": {
+    "forecast_origin_source_index": 9000,
+    "forecast_block": [9001, 10000],
+    "max_lead": 30,
+    "origin_stride": 30,
+    "refit_per_origin": false
+  },
+  "generic_multiseed_enabled": false,
+  "article_update_automatic": false,
+  "launch_status": "materialized_not_launched",
+  "generated_file_manifest_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_alpha_rho_cellwise_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_alpha_rho_confirmation_v1_generated_file_manifest.csv"
+}
