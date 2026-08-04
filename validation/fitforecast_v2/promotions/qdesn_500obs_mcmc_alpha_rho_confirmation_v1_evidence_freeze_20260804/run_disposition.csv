@@ -1,0 +1,4 @@
+"run_tag","run_role","execution_status","scientific_disposition","article_use"
+"qdesn-arfc1-prepare-20260803_152952__git-3ed1d0c","prepare","COMPLETED","NON_SCIENTIFIC_WORKFLOW_ONLY","NO"
+"qdesn-arfc1-smoke-20260803_152952__git-3ed1d0c","smoke","COMPLETED","NON_SCIENTIFIC_WORKFLOW_ONLY","NO"
+"qdesn-arfc1-full-20260803_152952__git-3ed1d0c","full_budget_confirmation","COMPLETED_8_OF_8","CONSUMABLE_STATUS_AGNOSTIC_METRIC_EVIDENCE","GAUSMIX_P025_EXAL_RHS_THREE_METRICS_ONLY"

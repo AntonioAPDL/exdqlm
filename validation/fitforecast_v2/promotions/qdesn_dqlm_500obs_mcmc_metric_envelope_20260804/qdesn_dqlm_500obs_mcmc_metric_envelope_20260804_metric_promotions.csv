@@ -1,0 +1,4 @@
+"model_variant","family","tau","fit_size","metric","previous_value","refreshed_value","ratio_to_previous","changed"
+"qdesn_exal_rhs_ns","gausmix",0.25,500,"fit_qtrue_rmse",1.96405608813142,1.90443260252763,0.969642676721867,TRUE
+"qdesn_exal_rhs_ns","gausmix",0.25,500,"forecast_qtrue_mae_H1000",3.97421046865994,3.65624121141485,0.919991842467189,TRUE
+"qdesn_exal_rhs_ns","gausmix",0.25,500,"forecast_check_loss_H1000",4.6589631672939,4.64371594143888,0.996727334965416,TRUE

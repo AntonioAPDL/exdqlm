@@ -1,0 +1,3 @@
+"target_cell_id","paired_alpha_rho_transfer","metric_envelope_disposition","diagnostic_disposition","next_action"
+"exal_gausmix_t0p25","FAIL","PROMOTE_PARENT_R01_FIT_MAE_CHECK","FAIL_RETAIN_HIGH_AUTOCORRELATION_AND_HALF_CHAIN_DRIFT","sampler_stability_and_reservoir_seed_robustness"
+"exal_laplace_t0p05","FAIL","NO_PROMOTION","WARN_RETAIN_CHAIN_MARGINAL_BUT_USABLE","readout_shrinkage_or_architecture_redesign"

@@ -1,0 +1,3 @@
+"target_cell_id","family","tau","current_state","next_scientific_target","prohibited_next_step","launch_status"
+"exal_gausmix_t0p25","gausmix",0.25,"metric_envelope_improved_but_seed_sensitive_and_high_autocorrelation","sampler_stability_and_reservoir_seed_robustness","do_not_claim_global_alpha_rho_transfer","NOT_LAUNCHED_REQUIRES_NEW_PROTOCOL"
+"exal_laplace_t0p05","laplace",0.05,"no_fit_or_forecast_mae_improvement","readout_shrinkage_or_architecture_redesign","do_not_repeat_local_alpha_rho_grid","NOT_LAUNCHED_REQUIRES_NEW_PROTOCOL"

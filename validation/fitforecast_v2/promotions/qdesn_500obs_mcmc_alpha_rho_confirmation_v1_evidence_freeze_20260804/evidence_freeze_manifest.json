@@ -1,0 +1,47 @@
+{
+  "freeze_id": "qdesn_500obs_mcmc_alpha_rho_confirmation_v1_evidence_freeze_20260804",
+  "freeze_date": "2026-08-04",
+  "scope": "independent_qdesn_exqdesn_mcmc_validation_only",
+  "git_branch": "validation/shared-fitforecast-v2-1.0.0",
+  "frozen_evidence_git_sha": "e5d2f335c49dbf264abc714d616fe8eda1e20f5e",
+  "package_name": "exdqlm",
+  "package_version": "1.0.0",
+  "closeout_id": "qdesn_500obs_mcmc_alpha_rho_confirmation_v1_manual_review_20260804",
+  "authority_contract_version": "1.1.0",
+  "authoritative_numeric_promotion_id": "qdesn_dqlm_500obs_mcmc_metric_envelope_20260804",
+  "authoritative_numeric_row_count": 36,
+  "authoritative_candidate_row_count": 130,
+  "authoritative_displayed_metric_count": 108,
+  "authoritative_numeric_article_envelope": {
+    "path_relative": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260804/qdesn_dqlm_500obs_mcmc_metric_envelope_20260804_article_envelope.csv",
+    "sha256": "23a0cebbca740cb8d16c104e7f2bdaa3139d30876391ca3c2438801225bf664e"
+  },
+  "authoritative_numeric_manifest": {
+    "path_relative": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260804/qdesn_dqlm_500obs_mcmc_metric_envelope_20260804_manifest.json",
+    "sha256": "f4511835dbf81c8283513cf48db6695541ac2714ca26081b7d09b8af9db51820"
+  },
+  "authoritative_coherent_confirmation": {
+    "path_relative": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_mcmc_metric_envelope_20260804/qdesn_dqlm_500obs_mcmc_metric_envelope_20260804_coherent_confirmation.csv",
+    "sha256": "40dd59e3bd25f8e00ed1921b3f6a8010ad95a63fb099ac6e9c294f23417abf0d"
+  },
+  "source_registry_hash_name": "source_registry_sha256",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "scientific_decision": "PROMOTE_COHERENT_STATUS_AGNOSTIC_METRIC_ENVELOPE",
+  "coherent_promotion_cells": 1,
+  "article_refresh_metric_rows": 3,
+  "consumable_scientific_run_tags": "qdesn-arfc1-full-20260803_152952__git-3ed1d0c",
+  "permanently_rejected_run_tags": "qdesn-500obs-mcmc-nested-final-o9000-v1-full-20260730__git-6582f87",
+  "non_scientific_workflow_run_tags": ["qdesn-arfc1-prepare-20260803_152952__git-3ed1d0c", "qdesn-arfc1-smoke-20260803_152952__git-3ed1d0c"],
+  "exposed_confirmation_origins": 9000,
+  "origin_9000_untouched_confirmation_eligible": true,
+  "article_update_policy": "PROMOTE_GAUSMIX_P025_EXAL_RHS_THREE_METRICS_ONLY",
+  "article_numeric_state": "UPDATED_FROM_20260727_AUTHORITY_BY_3_METRICS",
+  "future_use_policy": "ALPHA_RHO_CANDIDATE_TRANSFER_REJECTED; PARENT_REPLICATE_METRICS_ACCEPTED; NEXT_SCREEN_REQUIRES_NEW_PROTOCOL",
+  "bundle_hashes": {
+    "readme_sha256": "3639fba79a8613c81df171519dfa8eafeae2e1b22a6bed6bafefcd3ea3cf2bda",
+    "run_disposition_sha256": "5278828e61581f998d405e25c8714acb3757763ece64fc9c2c63798cd3852d3f",
+    "origin_disposition_sha256": "56cb71c6bc9ad46551966bd30ebf056f1aaf47fa9ac17d3f24d08058dbd80c5d",
+    "cell_disposition_sha256": "ec4c08d17bd12f32af01075ed2f65aafaee36a4ddaa1539af55ae50f818b8517",
+    "frozen_evidence_ledger_sha256": "96743f67d134e9ad07146df94c307300085bace270c56291dee80fbe88eb3300"
+  }
+}

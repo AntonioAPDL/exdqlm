@@ -1,0 +1,2 @@
+"forecast_origin_source_index","train_start_source_index","train_end_source_index","forecast_start_source_index","forecast_end_source_index","max_lead","origin_stride","refit_per_origin","disposition"
+9000,8501,9000,9001,10000,30,30,FALSE,"AUTHORITATIVE_MATCHED_PROTOCOL"
