@@ -119,8 +119,10 @@ rows <- lapply(seq_len(nrow(targets)), function(i) {
   } else if (!is.na(method_dir) && dir.exists(method_dir)) {
     "initialization"
   } else "queued"
-  active <- any(grepl(profile, ps_lines, fixed = TRUE) |
-    grepl(as.character(spec$spec_id), ps_lines, fixed = TRUE))
+  # The master launcher command contains every spec ID, including queued work.
+  # A root ID appears only in the command path for a fit that has actually
+  # started, so it distinguishes live workers from the pending queue.
+  active <- any(grepl(root_id, ps_lines, fixed = TRUE))
   progress_files <- c(trace_path, log_path, fit_path, horizon_path)
   progress_files <- progress_files[file.exists(progress_files)]
   last_update <- if (length(progress_files)) max(file.info(progress_files)$mtime) else as.POSIXct(NA)

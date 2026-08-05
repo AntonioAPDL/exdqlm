@@ -129,6 +129,7 @@ test_that("train-only rebaseline lifecycle is staged and parseable", {
   invisible(lapply(r_paths, function(path) expect_silent(parse(path))))
   pipeline <- paste(readLines(shell_paths[[1L]], warn = FALSE), collapse = "\n")
   launcher <- paste(readLines(shell_paths[[2L]], warn = FALSE), collapse = "\n")
+  healthcheck <- paste(readLines(r_paths[[4L]], warn = FALSE), collapse = "\n")
   closeout <- paste(readLines(r_paths[[5L]], warn = FALSE), collapse = "\n")
   expect_match(pipeline, "FULL_TRAINONLY_REBASELINE_APPROVED=1", fixed = TRUE)
   expect_match(pipeline, "HEARTBEAT_SECONDS:-1800", fixed = TRUE)
@@ -139,6 +140,9 @@ test_that("train-only rebaseline lifecycle is staged and parseable", {
   expect_match(pipeline, "full_resource_gate", fixed = TRUE)
   expect_match(pipeline, "closeout", fixed = TRUE)
   expect_match(launcher, "clean committed worktree", fixed = TRUE)
+  expect_match(healthcheck, "grepl(root_id, ps_lines", fixed = TRUE)
+  expect_false(grepl("grepl(as.character(spec$spec_id), ps_lines", healthcheck,
+                     fixed = TRUE))
   expect_match(closeout, "article_updated = FALSE", fixed = TRUE)
   expect_match(closeout, "CORRECTED_REBASELINE_COMPLETE", fixed = TRUE)
 })
