@@ -171,7 +171,52 @@ if (file.exists(heartbeat_path)) {
     Sys.time(), file.info(heartbeat_path)$mtime, units = "mins"
   ))
 }
-classification <- if (completed == expected_total) {
+
+# Prefer the newest matching closeout gate, including a corrected tracked
+# promotion, without mutating the immutable orchestration stage history.
+gate_paths <- c(
+  if (nzchar(run_id) && dir.exists(state_root)) {
+    list.files(
+      state_root, pattern = "^rebaseline_gate[.]json$",
+      recursive = TRUE, full.names = TRUE
+    )
+  } else character(),
+  list.files(
+    file.path("validation", "fitforecast_v2", "promotions"),
+    pattern = "^rebaseline_gate[.]json$", recursive = TRUE, full.names = TRUE
+  )
+)
+gate_paths <- unique(gate_paths[file.exists(gate_paths)])
+gate_records <- lapply(gate_paths, function(path) {
+  gate <- tryCatch(
+    jsonlite::read_json(path, simplifyVector = TRUE),
+    error = function(e) NULL
+  )
+  if (is.null(gate) || !identical(as.character(gate$run_tag %||% ""), full_tag)) {
+    return(NULL)
+  }
+  generated <- suppressWarnings(as.POSIXct(
+    as.character(gate$generated_at %||% NA_character_), tz = "America/New_York"
+  ))
+  list(path = path, gate = gate, generated = generated)
+})
+gate_records <- Filter(Negate(is.null), gate_records)
+authoritative_gate <- NULL
+if (length(gate_records)) {
+  generated <- vapply(gate_records, function(record) {
+    value <- as.numeric(record$generated)
+    if (is.finite(value)) value else as.numeric(file.info(record$path)$mtime)
+  }, numeric(1L))
+  authoritative_gate <- gate_records[[which.max(generated)]]
+}
+gate_decision <- if (!is.null(authoritative_gate)) {
+  as.character(authoritative_gate$gate$decision %||% "")
+} else ""
+
+classification <- if (completed == expected_total &&
+                       startsWith(gate_decision, "CORRECTED_REBASELINE_COMPLETE")) {
+  "COMPLETED_CLOSED_OUT"
+} else if (completed == expected_total) {
   "COMPLETED_AWAITING_OR_FINISHED_CLOSEOUT"
 } else if (active > 0L) {
   "RUNNING"
@@ -196,6 +241,11 @@ cat(sprintf(
 ))
 cat(sprintf("stage: %s\n", stage_status))
 cat(sprintf("detail: %s\n", detail))
+cat(sprintf(
+  "authoritative_gate: %s\n",
+  if (!is.null(authoritative_gate)) authoritative_gate$path else "none"
+))
+cat(sprintf("gate_decision: %s\n", if (nzchar(gate_decision)) gate_decision else "none"))
 cat(sprintf(
   "heartbeat_age_min: %s\n",
   if (is.finite(heartbeat_age_min)) round(heartbeat_age_min, 1) else "NA"

@@ -257,6 +257,9 @@ launch and closeout Git provenance. The superseding gate is:
 Its decision is
 `CORRECTED_REBASELINE_COMPLETE_MANUAL_ARTICLE_REVIEW_REQUIRED`, with 37/37
 protocol-eligible roots and 18/18 corrected model/family/quantile envelope rows.
+The healthcheck selects this newest matching gate and reports
+`COMPLETED_CLOSED_OUT`; the immutable stage log continues to retain the original
+superseded decision as historical evidence.
 The launch commit was `ae1b2dbec3119df314faa69ecdf59fb74abfb4f3`.
 Twenty root manifests record that commit and 17 record `52b6100`; the only
 intervening changes were the train-only healthcheck and its focused test, with no

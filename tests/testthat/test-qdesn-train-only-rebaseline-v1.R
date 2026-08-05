@@ -143,6 +143,9 @@ test_that("train-only rebaseline lifecycle is staged and parseable", {
   expect_match(healthcheck, "grepl(root_id, ps_lines", fixed = TRUE)
   expect_false(grepl("grepl(as.character(spec$spec_id), ps_lines", healthcheck,
                      fixed = TRUE))
+  expect_match(healthcheck, "COMPLETED_CLOSED_OUT", fixed = TRUE)
+  expect_match(healthcheck, "authoritative_gate", fixed = TRUE)
+  expect_match(healthcheck, "gate_decision", fixed = TRUE)
   expect_match(closeout, "article_updated = FALSE", fixed = TRUE)
   expect_match(closeout, "CORRECTED_REBASELINE_COMPLETE", fixed = TRUE)
   expect_match(
