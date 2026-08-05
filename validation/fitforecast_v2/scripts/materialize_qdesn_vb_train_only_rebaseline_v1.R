@@ -493,7 +493,8 @@ grid <- canonical_grid[grid_key %in% target_key &
                          canonical_grid$source_scenario == expected_scenario, , drop = FALSE]
 index <- match(grid$screening_profile_id, profiles$screening_profile_id)
 if (anyNA(index)) stop("Grid/profile join failed.", call. = FALSE)
-grid$seed <- 860000L + index
+# Retain the deterministic root seed assigned by the canonical grid builder.
+# Changing it after construction would invalidate subset provenance.
 grid$desn_seed <- as.integer(profiles$source_effective_desn_seed[index])
 grid$synthesis_seed <- 870000L + index
 grid$legacy_candidate_id <- profiles$legacy_candidate_id[index]
