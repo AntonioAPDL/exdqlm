@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-08-05 03:19:22.61123",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_vb_trainonly_rebaseline_v1",
+  "run_tag": "qdesn-vb-trainonly-v1-full-20260805_025823__git-df1233a",
+  "git_commit": "df1233a27748d1032baccb4243c345eddf15e42f",
+  "launch_git_short": "df1233a",
+  "closeout_git_commit": "a925884bd9a6cef60ab116c371e4e61b3f2e575f",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "preprocessing_scope": "train_only",
+  "expected_specs": 18,
+  "observed_requests": 18,
+  "protocol_eligible_specs": 18,
+  "corrected_interface_rows": 18,
+  "unexpected_binary_payloads": 0,
+  "diagnostic_status_counts": {
+    "SUCCESS": 18
+  },
+  "diagnostic_signoff_counts": {
+    "PASS": 17,
+    "WARN": 1
+  },
+  "improves_legacy_counts": {
+    "fit": 7,
+    "forecast_mae": 2,
+    "forecast_check": 3
+  },
+  "legacy_qdesn_vb_metrics_invalidated_by_preprocessing_repair": true,
+  "article_updated": false,
+  "output_file_manifest": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_transport_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_vb_trainonly_rebaseline_v1_20260805_030705/closeout/output_file_manifest.csv",
+  "decision": "CORRECTED_VB_REBASELINE_COMPLETE_MANUAL_ARTICLE_REVIEW_REQUIRED"
+}

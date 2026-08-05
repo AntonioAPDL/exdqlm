@@ -84,3 +84,34 @@ application worktrees are read-only context. The article must record immutable
 run tags, commits, source hashes, metric artifact hashes, and the train-only
 preprocessing scope while keeping repository mechanics out of reader-facing
 prose.
+
+## Completion Record
+
+The exact replay completed on 2026-08-05. The full run tag is
+`qdesn-vb-trainonly-v1-full-20260805_025823__git-df1233a`. All 18 requested
+Q-DESN/exQ-DESN VB cells completed successfully and satisfied the source,
+window, seed, budget, and train-only preprocessing contracts. The diagnostic
+summary is 17 PASS and 1 WARN, with no retained `.rds`, `.rda`, or `.RData`
+payloads.
+
+The corrected VB closeout is frozen inside:
+
+`validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v1_20260805/vb_closeout`
+
+The combined article handoff is:
+
+`validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v1_20260805/qdesn_dqlm_500obs_trainonly_article_v1_20260805_interface.csv`
+
+Its SHA-256 is
+`dff814fab1e920c10760645ac9e8d37dfa7f33ae2afba34ee8ed2a5509f4952a`.
+The handoff contains exactly 72 rows: four displayed models, three innovation
+families, three target quantile levels, and two inference methods. It combines
+the corrected 18-cell VB replay, the corrected 18-cell MCMC envelope, and the
+validated DQLM/exDQLM baselines. Historical ridge rows are excluded until they
+are independently replayed under the corrected preprocessing contract.
+
+The orchestration attempts
+`qdesn_vb_trainonly_rebaseline_v1_20260805_025413` and
+`qdesn_vb_trainonly_rebaseline_v1_20260805_030205` are aborted and must not be
+consumed. Only the full run tag above and the immutable handoff are eligible
+for article generation.
