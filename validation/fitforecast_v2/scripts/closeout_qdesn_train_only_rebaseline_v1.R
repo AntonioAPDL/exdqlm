@@ -67,6 +67,20 @@ stage <- "qdesn_dynamic_fitforecast_v2_500obs_trainonly_rebaseline_v1"
 stub <- file.path("config", "validation", stage)
 run_tag <- as.character(get_arg("--run-tag", ""))[1L]
 if (!nzchar(run_tag)) stop("--run-tag is required.", call. = FALSE)
+launch_git_match <- regmatches(
+  run_tag,
+  regexec("__git-([[:xdigit:]]{7,40})$", run_tag, perl = TRUE)
+)[[1L]]
+launch_git_short <- if (length(launch_git_match) >= 2L) {
+  launch_git_match[[2L]]
+} else NA_character_
+launch_git_commit <- if (!is.na(launch_git_short)) {
+  tryCatch(
+    trimws(system2("git", c("rev-parse", launch_git_short), stdout = TRUE)),
+    error = function(e) NA_character_
+  )
+} else NA_character_
+closeout_git_commit <- trimws(system("git rev-parse HEAD", intern = TRUE))
 output_root <- resolve_path(get_arg(
   "--output-root",
   file.path(
@@ -112,6 +126,7 @@ rows <- lapply(request_paths, function(request_path) {
   horizon_path <- file.path(method_dir, "tables", "forecast_horizon_summary.csv")
   run_manifest_path <- file.path(method_dir, "manifest", "run_manifest.json")
   runtime_path <- file.path(method_dir, "manifest", "runtime_summary.json")
+  root_manifest_path <- file.path(dirname(dirname(method_dir)), "manifest", "root_manifest.json")
   summary <- if (file.exists(fit_summary_path)) {
     utils::read.csv(fit_summary_path, check.names = FALSE, stringsAsFactors = FALSE)
   } else data.frame()
@@ -124,7 +139,11 @@ rows <- lapply(request_paths, function(request_path) {
   runtime <- if (file.exists(runtime_path)) {
     jsonlite::read_json(runtime_path, simplifyVector = TRUE)
   } else list()
+  root_manifest <- if (file.exists(root_manifest_path)) {
+    jsonlite::read_json(root_manifest_path, simplifyVector = TRUE)
+  } else list()
   preprocessing <- run_manifest$preprocessing %||% list()
+  study_contract <- request$study_contract %||% list()
   h100 <- horizon[as.integer(horizon$horizon) == 100L, , drop = FALSE]
   h1000 <- horizon[as.integer(horizon$horizon) == 1000L, , drop = FALSE]
   profile_id <- as.character(root$screening_profile_id %||% NA_character_)
@@ -169,7 +188,10 @@ rows <- lapply(request_paths, function(request_path) {
     heldout_covariates_used = as_bool(
       preprocessing$heldout_covariates_used_for_scaling %||% NA
     ),
-    source_registry_hash = as.character(root$source_registry_hash_value %||% NA_character_),
+    source_registry_hash = as.character(
+      study_contract$source_registry_hash_value %||%
+        root$source_registry_hash_value %||% NA_character_
+    ),
     train_start_source_index = as.integer(root$train_start_source_index %||% NA_integer_),
     train_end_source_index = as.integer(root$train_end_source_index %||% NA_integer_),
     forecast_start_source_index = as.integer(root$forecast_start_source_index %||% NA_integer_),
@@ -201,6 +223,7 @@ rows <- lapply(request_paths, function(request_path) {
       normalizePath(run_manifest_path, winslash = "/", mustWork = TRUE)
     } else NA_character_,
     run_manifest_sha256 = file_hash(run_manifest_path),
+    root_git_sha = as.character(root_manifest$git_sha %||% NA_character_),
     stringsAsFactors = FALSE
   )
 })
@@ -235,7 +258,7 @@ if (nrow(execution)) {
       preprocessing_fit_row_indices_sha256 == expected_preproc_hash &
       !heldout_response_used & !heldout_covariates_used)
   execution$source_contract_match <- with(execution,
-    source_registry_hash == expected_hash &
+    !is.na(source_registry_hash) & source_registry_hash == expected_hash &
       train_start_source_index == 8501L & train_end_source_index == 9000L &
       forecast_start_source_index == 9001L & forecast_end_source_index == 10000L)
   execution$budget_contract_match <- with(execution,
@@ -372,7 +395,10 @@ gate_path <- write_json(list(
   generated_at = as.character(Sys.time()),
   stage = stage,
   run_tag = run_tag,
-  git_commit = trimws(system("git rev-parse HEAD", intern = TRUE)),
+  git_commit = launch_git_commit,
+  launch_git_short = launch_git_short,
+  closeout_git_commit = closeout_git_commit,
+  observed_root_git_sha_counts = as.list(table(execution$root_git_sha, useNA = "ifany")),
   source_registry_hash_value = expected_hash,
   preprocessing_scope = "train_only",
   expected_specs = expected_count,

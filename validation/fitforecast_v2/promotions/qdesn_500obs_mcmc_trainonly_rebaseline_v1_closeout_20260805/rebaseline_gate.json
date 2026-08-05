@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-08-05 02:19:17.42091",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_trainonly_rebaseline_v1",
+  "run_tag": "qdesn-trainonly-v1-full-20260804_214636__git-ae1b2db",
+  "git_commit": "ae1b2dbec3119df314faa69ecdf59fb74abfb4f3",
+  "launch_git_short": "ae1b2db",
+  "closeout_git_commit": "52b610008ad148697c161470ce56dfe23fc67cdf",
+  "observed_root_git_sha_counts": {
+    "52b6100": 17,
+    "ae1b2db": 20
+  },
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "preprocessing_scope": "train_only",
+  "expected_specs": 37,
+  "observed_requests": 37,
+  "protocol_eligible_specs": 37,
+  "corrected_envelope_rows": 18,
+  "unexpected_binary_payloads": 0,
+  "diagnostic_status_counts": {
+    "SUCCESS": 37
+  },
+  "diagnostic_signoff_counts": {
+    "FAIL": 7,
+    "PASS": 12,
+    "WARN": 18
+  },
+  "legacy_qdesn_metrics_invalidated_by_preprocessing_repair": true,
+  "article_updated": false,
+  "article_update_policy": "No automatic article write. Review the complete corrected envelope against DQLM/exDQLM evidence before an explicit article-safe promotion.",
+  "output_file_manifest": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_transport_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_trainonly_rebaseline_v1_closeout_20260805/output_file_manifest.csv",
+  "decision": "CORRECTED_REBASELINE_COMPLETE_MANUAL_ARTICLE_REVIEW_REQUIRED"
+}

@@ -145,6 +145,13 @@ test_that("train-only rebaseline lifecycle is staged and parseable", {
                      fixed = TRUE))
   expect_match(closeout, "article_updated = FALSE", fixed = TRUE)
   expect_match(closeout, "CORRECTED_REBASELINE_COMPLETE", fixed = TRUE)
+  expect_match(
+    closeout,
+    "study_contract$source_registry_hash_value",
+    fixed = TRUE
+  )
+  expect_match(closeout, "launch_git_short", fixed = TRUE)
+  expect_match(closeout, "observed_root_git_sha_counts", fixed = TRUE)
 })
 
 test_that("active train-only assets contain no stale home paths or binaries", {

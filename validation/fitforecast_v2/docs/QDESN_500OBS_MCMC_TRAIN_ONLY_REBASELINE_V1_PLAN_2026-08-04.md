@@ -229,3 +229,81 @@ request hash, split/window check, train-only invariance test, smoke metric, smok
 provenance check, storage check, or resource gate fails. Do not fall back to the
 legacy Q-DESN article metrics and do not begin another scalar screening campaign
 until this corrected rebaseline is closed out.
+
+## Full-Run Closeout (2026-08-05)
+
+The approved run completed without a computational failure:
+
+- run ID: `qdesn_trainonly_rebaseline_v1_20260804_214636__git-ae1b2db`;
+- full run tag: `qdesn-trainonly-v1-full-20260804_214636__git-ae1b2db`;
+- 37/37 requested roots completed 5,000 burn-in plus 20,000 retained MCMC
+  iterations;
+- 37/37 roots have finite required metrics and satisfy the preprocessing,
+  source, budget, and seed contracts;
+- operational status: 37 `SUCCESS`;
+- diagnostic signoff: 12 `PASS`, 18 `WARN`, and 7 `FAIL`;
+- run-local binary payloads: zero.
+
+The first automatic closeout reported
+`INCOMPLETE_CORRECTED_REBASELINE_NO_ARTICLE_UPDATE` because it looked for the
+source-registry hash at the root of `fit_request.json`. The frozen request stores
+that field under `study_contract$source_registry_hash_value`. This was a
+closeout-parser defect, not a source or model-run failure. The parser now reads
+the canonical nested field, rejects missing hashes explicitly, and records both
+launch and closeout Git provenance. The superseding gate is:
+
+`validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_trainonly_rebaseline_v1_closeout_20260805/rebaseline_gate.json`
+
+Its decision is
+`CORRECTED_REBASELINE_COMPLETE_MANUAL_ARTICLE_REVIEW_REQUIRED`, with 37/37
+protocol-eligible roots and 18/18 corrected model/family/quantile envelope rows.
+The launch commit was `ae1b2dbec3119df314faa69ecdf59fb74abfb4f3`.
+Twenty root manifests record that commit and 17 record `52b6100`; the only
+intervening changes were the train-only healthcheck and its focused test, with no
+change to model, preprocessing, source, configuration, or sampler code.
+
+The compact closeout promotion retains the execution audit, legacy comparison,
+corrected metric envelope, source hashes, file manifest, storage audit, and gate.
+The full report and result trees occupy approximately 86 MiB and 253 MiB,
+respectively, and contain no `.rds`, `.rda`, or `.RData` files.
+
+## Scientific Review and Article Hold
+
+Against the pre-repair Q-DESN RHS MCMC rows currently displayed by article
+remote `main` at `a3faa0c9cd43cb91ffac1f68c84353028acb6e27`, the corrected envelope improves
+13/18 fit-RMSE cells, 14/18 H=1,000 forecast-MAE cells, and 16/18 H=1,000
+forecast-check-loss cells. Against the best displayed DQLM or exDQLM MCMC value
+within each family and quantile, the corrected envelope wins 9/18 fit-RMSE,
+10/18 forecast-MAE, and 9/18 forecast-check-loss comparisons. Median corrected
+ratios to the best dynamic-linear comparator are 1.117, 0.944, and 0.999,
+respectively.
+
+These results justify retaining the corrected MCMC evidence, but they do not yet
+justify rewriting the article table. All displayed Q-DESN VB rows and the
+displayed ridge rows were promoted from commits that predate the train-only
+repair and their promotion interfaces contain no train-only preprocessing
+provenance. Updating only RHS MCMC would therefore mix corrected and legacy
+preprocessing contracts in one table.
+
+The next safe sequence is:
+
+1. Treat this 224 KiB closeout directory as the authoritative corrected RHS MCMC
+   evidence bundle; do not use the superseded automatic gate.
+2. Materialize and run an exact-design, train-only VB rebaseline for the 18
+   displayed Q-DESN/exQ-DESN RHS cells. This is a protocol correction, not a new
+   hyperparameter screen.
+3. Either remove Q-DESN ridge rows from the article comparison or rebaseline them
+   under the same train-only contract. Do not retain legacy ridge metrics in a
+   corrected table.
+4. Rebuild the article-facing summary only after all displayed Q-DESN rows share
+   the frozen source, rolling-origin, and train-only preprocessing contracts.
+5. After that corrected table is frozen, restrict further MCMC calibration to
+   the remaining scientific gaps: lower-tail fit recovery, Normal AL at
+   `tau=0.05`, Gaussian-mixture exAL at `tau=0.25`, and the mixed Normal
+   `tau=0.25` forecast cells. Do not spend additional compute on median forecast
+   tuning unless the article objective changes.
+
+No article file was changed during this closeout. The authoritative article
+worktree was dirty and had diverged from `origin/main`, so article integration
+must occur in a clean, synchronized article-safe context after the corrected VB
+and ridge decision gates are resolved.
