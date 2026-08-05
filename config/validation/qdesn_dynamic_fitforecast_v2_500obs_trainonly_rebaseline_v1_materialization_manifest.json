@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-08-04 21:23:18.676912",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_trainonly_rebaseline_v1",
+  "package_version": "1.0.0",
+  "git_branch": "validation/qdesn-trainonly-transport-v1-1.0.0",
+  "git_commit": "67c2dd84a00aa97ef74c5f5b8698a23349870b71",
+  "source_registry_identity_field": "source_registry_hash_value",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "canonical_registry_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2/manifests/source_registry.csv",
+  "canonical_registry_file_sha256": "da1017f49def30f0ab72f20f255b2e5c3806bb1c697b41dd25739fc3fb60f241",
+  "source_files_verified": true,
+  "staged_source_files_verified": true,
+  "source_fit_requests_verified": true,
+  "preprocessing": {
+    "scope": "train_only",
+    "analysis_input_rows": [1, 1890],
+    "preprocessing_fit_rows": [1, 890],
+    "preprocessing_fit_row_indices_sha256": "13d7864c93516d44bc53752def311efa2b2c244c934e17a27509188744feb24e",
+    "corresponding_source_rows": [8111, 9000],
+    "effective_target_fit_window": [8501, 9000],
+    "forecast_block": [9001, 10000],
+    "heldout_response_used_for_scaling": false,
+    "heldout_covariates_used_for_scaling": false
+  },
+  "counts": {
+    "article_qdesn_rows": 18,
+    "legacy_metric_source_rows": 54,
+    "distinct_designs": 37,
+    "full_specs": 37,
+    "smoke_specs": 2
+  },
+  "budget": {
+    "posterior_metric_draws": 200,
+    "mcmc_n_burn": 5000,
+    "mcmc_n_mcmc": 20000,
+    "mcmc_thin": 1
+  },
+  "storage_policy": {
+    "retention_profile": "storage_light_trainonly_rebaseline",
+    "successful_binary_payloads_allowed": false,
+    "failure_binary_payloads_allowed": false
+  },
+  "article_update_automatic": false,
+  "launch_status": "materialized_not_launched",
+  "generated_file_manifest_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_transport_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_rebaseline_v1_generated_file_manifest.csv"
+}

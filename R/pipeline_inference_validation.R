@@ -333,6 +333,7 @@ collect_pipeline_run_summary <- function(out_dir) {
   vb_priors <- cfg$vb_priors %||% list()
   split_cfg <- cfg$split %||% list()
   forecast_cfg <- cfg$forecast %||% list()
+  preprocessing_cfg <- run_manifest$preprocessing %||% cfg$preproc %||% list()
   p_vec <- cfg$p_vec %||% numeric()
   timing_summary_resolved <- timing_summary %||% (timing_rds$summary %||% NULL)
   timing_breakdown_resolved <- timing_breakdown %||% (timing_rds$rows %||% NULL)
@@ -455,6 +456,22 @@ collect_pipeline_run_summary <- function(out_dir) {
     n_train = as.integer(.pipeline_as_scalar(split_cfg$n_train, NA_integer_)),
     H_forecast = as.integer(.pipeline_as_scalar(split_cfg$H_forecast, NA_integer_)),
     forecast_mode = as.character(.pipeline_as_scalar(forecast_cfg$mode, NA_character_)),
+    preprocessing_scope = as.character(.pipeline_as_scalar(preprocessing_cfg$scope, NA_character_)),
+    preprocessing_fit_row_start = as.integer(.pipeline_as_scalar(preprocessing_cfg$fit_row_start, NA_integer_)),
+    preprocessing_fit_row_end = as.integer(.pipeline_as_scalar(preprocessing_cfg$fit_row_end, NA_integer_)),
+    preprocessing_fit_row_count = as.integer(.pipeline_as_scalar(preprocessing_cfg$fit_row_count, NA_integer_)),
+    preprocessing_fit_row_indices_sha256 = as.character(.pipeline_as_scalar(
+      preprocessing_cfg$fit_row_indices_sha256,
+      NA_character_
+    )),
+    preprocessing_heldout_response_used = as.logical(.pipeline_as_scalar(
+      preprocessing_cfg$heldout_response_used_for_scaling,
+      NA
+    )),
+    preprocessing_heldout_covariates_used = as.logical(.pipeline_as_scalar(
+      preprocessing_cfg$heldout_covariates_used_for_scaling,
+      NA
+    )),
     wall_seconds = wall_seconds,
     total_stage_seconds = timing_total_stage_seconds,
     n_timed_steps = n_timed_steps,

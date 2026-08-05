@@ -423,29 +423,10 @@ y_all  <- as.numeric(raw[[y_col]])
 X_all  <- if (length(x_cols)) as.matrix(raw[, x_cols, drop = FALSE]) else NULL
 T_full <- length(y_all)
 
-# --- Preprocessing: scale y and X, but ALWAYS report/plot on original scale ----
+# --- Preprocessing configuration ---------------------------------------------
 pre <- cfg$preproc %||% list()
 scale_y <- isTRUE(pre$scale_y %||% TRUE)
 scale_x <- isTRUE(pre$scale_x %||% TRUE)
-
-y_mean <- mean(y_all, na.rm = TRUE)
-y_sd   <- stats::sd(y_all, na.rm = TRUE); if (!is.finite(y_sd) || y_sd == 0) y_sd <- 1
-
-if (scale_y) y_all <- (y_all - y_mean) / y_sd
-
-if (!is.null(X_all) && ncol(X_all) > 0 && scale_x) {
-  X_mu <- matrix(colMeans(X_all, na.rm = TRUE), nrow = 1)
-  X_sd <- apply(X_all, 2, function(v) { s <- stats::sd(v, na.rm = TRUE); if (!is.finite(s) || s == 0) 1 else s })
-  X_all <- sweep(sweep(X_all, 2, X_mu, "-"), 2, X_sd, "/")
-} else {
-  X_mu <- NULL; X_sd <- NULL
-}
-
-# Applies the inverse scaling to ANY vector/matrix (elementwise)
-bt_y <- function(z) {
-  if (!scale_y) return(z)
-  z * y_sd + y_mean
-}
 
 # --- Split config (identical contract + audits) -------------------------------
 cat("SPLIT_RAW | cfg$split=", jsonlite::toJSON(cfg$split, auto_unbox = TRUE, null = "null"), "\n", sep = "")
@@ -514,6 +495,45 @@ cat(sprintf(
 if (H_forecast < 1L) {
   stop(sprintf("Invalid split: H_forecast=%d (n_train=%d, T_use=%d). Adjust train_n/train_prop/T_use.",
                H_forecast, n_train, T_use))
+}
+
+# Fit every preprocessing parameter on training rows only. The transformed
+# arrays cover the full analysis series so forecast covariates remain available,
+# but held-out responses and covariates cannot influence the fitted transform.
+preproc_fit <- qdesn_train_only_preprocess(
+  y_all = y_all,
+  X_all = X_all,
+  idx_use = idx_use,
+  n_train = n_train,
+  scale_y = scale_y,
+  scale_x = scale_x
+)
+y_all <- preproc_fit$y_all
+X_all <- preproc_fit$X_all
+y_mean <- preproc_fit$y_center
+y_sd <- preproc_fit$y_scale
+X_mu <- preproc_fit$X_center
+X_sd <- preproc_fit$X_scale
+preproc_provenance <- preproc_fit$provenance
+
+cat(sprintf(
+  paste0("PREPROC_RESOLVE | scope=%s | fit_rows=%d:%d | fit_n=%d | ",
+         "analysis_rows=%d:%d | scale_y=%s | scale_x=%s | fit_rows_sha256=%s\n"),
+  preproc_provenance$scope,
+  preproc_provenance$fit_row_start,
+  preproc_provenance$fit_row_end,
+  preproc_provenance$fit_row_count,
+  preproc_provenance$analysis_row_start,
+  preproc_provenance$analysis_row_end,
+  as.character(preproc_provenance$scale_y),
+  as.character(preproc_provenance$scale_x),
+  preproc_provenance$fit_row_indices_sha256
+))
+
+# Applies the inverse response scaling to any vector or matrix.
+bt_y <- function(z) {
+  if (!scale_y) return(z)
+  z * y_sd + y_mean
 }
 
 y_full <- y_all[idx_use]
@@ -2249,8 +2269,13 @@ fit_and_forecast_p <- function(p0) {
       transform = if (isTRUE(scale_y)) "affine" else "identity",
       center = if (isTRUE(scale_y)) as.numeric(y_mean) else 0,
       scale = if (isTRUE(scale_y)) as.numeric(y_sd) else 1,
-      scale_source = "pipeline_real_main:preproc.scale_y",
-      scale_y = isTRUE(scale_y)
+      scale_source = "pipeline_real_main:train_only_preprocessing",
+      scale_y = isTRUE(scale_y),
+      fit_scope = preproc_provenance$scope,
+      fit_row_start = preproc_provenance$fit_row_start,
+      fit_row_end = preproc_provenance$fit_row_end,
+      fit_row_count = preproc_provenance$fit_row_count,
+      fit_row_indices_sha256 = preproc_provenance$fit_row_indices_sha256
     )
   )
   forecast_full$origins <- if (!is.null(origins_var)) origins_var else fore_full$origins
@@ -4033,6 +4058,7 @@ if (isTRUE(save_outputs)) {
         synth = list(isotonic = synth_isotonic, rearrange = synth_rearrange,
                      grid_M = synth_grid_M, n_samp = synth_nsamp, seed = synth_seed),
         split = list(T_use = T_use, n_train = n_train, H_forecast = H_forecast),
+        preproc = preproc_provenance,
         ij = list(use_ij_correction = use_ij_correction, nd_draws = ij_nd_draws),
         outputs = list(
           save = save_outputs,
@@ -4456,6 +4482,7 @@ if (isTRUE(save_outputs)) {
       pipeline = list(mode = mode, entrypoint = "scripts/pipeline_real_main.R", compatibility_source_commit = "c232d457463e007d473a3fe9b2469e70c3a1ab2a"),
       inputs = list(file_obs = file_long),
       dataset = list(mode = mode, T_full = T_full, T_use = T_use, n_train = n_train, H_forecast = H_forecast),
+      preprocessing = preproc_provenance,
       cfg = cfg
     ),
     file.path(MANI, "run_manifest.json"),
@@ -4473,6 +4500,7 @@ manifest <- list(
   inputs   = list(file_obs = file_long),
   data     = list(T_full = T_full, T_use = T_use, train_n = n_train, H_forecast = H_forecast,
                   y_col = y_col, x_cols = x_cols, lags = list(y = lags_y, x = lags_x)),
+  preprocessing = preproc_provenance,
   cfg      = cfg
 )
 if (isTRUE(save_outputs)) {

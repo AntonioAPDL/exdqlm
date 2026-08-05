@@ -156,32 +156,31 @@ ms_prepare_real_bundle <- function(cfg, ds) {
   X_all <- if (length(x_cols)) as.matrix(raw[, x_cols, drop = FALSE]) else NULL
   T_full <- length(y_all)
 
+  split_info <- ms_resolve_split(cfg$split, T_full)
+  idx_use <- split_info$idx_use
+
   pre <- cfg$preproc %||% list()
   scale_y <- isTRUE(pre$scale_y %||% TRUE)
   scale_x <- isTRUE(pre$scale_x %||% TRUE)
 
-  y_mean <- mean(y_all, na.rm = TRUE)
-  y_sd <- stats::sd(y_all, na.rm = TRUE)
-  if (!is.finite(y_sd) || y_sd == 0) y_sd <- 1
-
-  if (scale_y) y_all <- (y_all - y_mean) / y_sd
-
-  if (!is.null(X_all) && ncol(X_all) > 0 && scale_x) {
-    X_mu <- matrix(colMeans(X_all, na.rm = TRUE), nrow = 1)
-    X_sd <- apply(X_all, 2, function(v) { s <- stats::sd(v, na.rm = TRUE); if (!is.finite(s) || s == 0) 1 else s })
-    X_all <- sweep(sweep(X_all, 2, X_mu, "-"), 2, X_sd, "/")
-  } else {
-    X_mu <- NULL
-    X_sd <- NULL
-  }
+  preproc_fit <- qdesn_train_only_preprocess(
+    y_all = y_all,
+    X_all = X_all,
+    idx_use = idx_use,
+    n_train = split_info$n_train,
+    scale_y = scale_y,
+    scale_x = scale_x
+  )
+  y_all <- preproc_fit$y_all
+  X_all <- preproc_fit$X_all
+  y_mean <- preproc_fit$y_center
+  y_sd <- preproc_fit$y_scale
 
   bt_y <- function(z) {
     if (!scale_y) return(z)
     z * y_sd + y_mean
   }
 
-  split_info <- ms_resolve_split(cfg$split, T_full)
-  idx_use <- split_info$idx_use
   y_full <- y_all[idx_use]
   X_use <- if (!is.null(X_all)) X_all[idx_use, , drop = FALSE] else NULL
 
@@ -192,7 +191,8 @@ ms_prepare_real_bundle <- function(cfg, ds) {
     X_use = X_use,
     T_full = T_full,
     split_info = split_info,
-    bt_y = bt_y
+    bt_y = bt_y,
+    preprocessing = preproc_fit$provenance
   )
 }
 
