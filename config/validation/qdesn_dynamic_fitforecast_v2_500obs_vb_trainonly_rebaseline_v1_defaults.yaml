@@ -404,7 +404,7 @@ pipeline:
         postwarmup_damping_iters: 3
         min_postwarmup_updates: 1
       diagnostics:
-        rhs_trace: yes
+        rhs_trace: no
         rhs_deep: no
       rhs:
         freeze_tau_iters: 50

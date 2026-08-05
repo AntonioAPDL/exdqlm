@@ -102,7 +102,9 @@ checks <- c(
   storage_light = !defaults$pipeline$outputs$keep_draws &&
     !defaults$pipeline$outputs$keep_mcmc_vb_init &&
     !defaults$pipeline$outputs$save_forecast_objects &&
-    !defaults$pipeline$outputs$retain_full_rds_on_failure,
+    !defaults$pipeline$outputs$retain_full_rds_on_failure &&
+    !defaults$pipeline$inference$vb$diagnostics$rhs_trace &&
+    !defaults$pipeline$inference$vb$diagnostics$rhs_deep,
   no_stale_home_paths = !grepl("/home/jaguir26/local/src", active_text, fixed = TRUE)
 )
 pass <- all(checks)

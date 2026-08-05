@@ -436,6 +436,8 @@ defaults$pipeline$inference$vb$max_iter <- 150L
 defaults$pipeline$inference$vb$min_iter_elbo <- 40L
 defaults$pipeline$inference$vb$n_samp_xi <- 500L
 defaults$pipeline$inference$vb$progress_every <- 50L
+defaults$pipeline$inference$vb$diagnostics$rhs_trace <- FALSE
+defaults$pipeline$inference$vb$diagnostics$rhs_deep <- FALSE
 defaults$pipeline$inference$vb$prior_overrides$rhs_ns$max_iter <- 150L
 defaults$pipeline$inference$vb$prior_overrides$rhs_ns$min_iter_elbo <- 40L
 defaults$pipeline$inference$vb$prior_overrides$rhs_ns$n_samp_xi <- 500L
@@ -584,6 +586,8 @@ smoke_defaults$pipeline$inference$vb$max_iter <- 5L
 smoke_defaults$pipeline$inference$vb$min_iter_elbo <- 2L
 smoke_defaults$pipeline$inference$vb$n_samp_xi <- 20L
 smoke_defaults$pipeline$inference$vb$progress_every <- 1L
+smoke_defaults$pipeline$inference$vb$diagnostics$rhs_trace <- FALSE
+smoke_defaults$pipeline$inference$vb$diagnostics$rhs_deep <- FALSE
 smoke_defaults$pipeline$inference$vb$prior_overrides$rhs_ns$max_iter <- 5L
 smoke_defaults$pipeline$inference$vb$prior_overrides$rhs_ns$min_iter_elbo <- 2L
 smoke_defaults$pipeline$inference$vb$prior_overrides$rhs_ns$n_samp_xi <- 20L

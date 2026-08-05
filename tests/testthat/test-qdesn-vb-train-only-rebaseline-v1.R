@@ -71,6 +71,8 @@ test_that("VB train-only rebaseline freezes source, preprocessing, and storage c
   expect_false(defaults$pipeline$outputs$keep_mcmc_vb_init)
   expect_false(defaults$pipeline$outputs$save_forecast_objects)
   expect_false(defaults$pipeline$outputs$retain_full_rds_on_failure)
+  expect_false(defaults$pipeline$inference$vb$diagnostics$rhs_trace)
+  expect_false(defaults$pipeline$inference$vb$diagnostics$rhs_deep)
   expect_equal(nrow(registry), 9L)
   expect_true(all(registry$TT_warmup == 2000L))
   expect_true(all(registry$TT_main == 10000L))

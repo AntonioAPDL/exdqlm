@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-05 02:54:59.13781",
+  "generated_at": "2026-08-05 02:57:44.458297",
   "stage": "qdesn_dynamic_fitforecast_v2_500obs_vb_trainonly_rebaseline_v1",
   "package_version": "1.0.0",
   "git_branch": "validation/qdesn-trainonly-transport-v1-1.0.0",
-  "git_commit": "4728693339b90a77390c4feee17927c50af3a9a1",
+  "git_commit": "4e531733a7aa171c5cb5858031e1c3e195e381d6",
   "source_registry_identity_field": "source_registry_hash_value",
   "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
   "canonical_registry_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/validation/fitforecast_v2/runs/20260704_exdqlm_dqlm_c13_mcmc_500obs_refresh_v2/manifests/source_registry.csv",
