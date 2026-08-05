@@ -193,7 +193,9 @@ if (nrow(observed) && anyDuplicated(observed$spec_id)) stop("Duplicate VB fit re
                                                            call. = FALSE)
 
 expected <- targets[, c("spec_id", "root_id", "screening_profile_id", "family", "tau",
-                        "likelihood_family", "seed", "desn_seed", "synthesis_seed")]
+                        "likelihood_family", "desn_seed", "synthesis_seed")]
+expected$seed <- grid$seed[match(expected$root_id, grid$root_id)]
+if (anyNA(expected$seed)) stop("Target/grid seed join failed.", call. = FALSE)
 names(expected)[names(expected) %in% c("seed", "desn_seed", "synthesis_seed")] <-
   paste0("expected_", names(expected)[names(expected) %in%
     c("seed", "desn_seed", "synthesis_seed")])
