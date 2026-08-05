@@ -245,7 +245,8 @@ corrected <- execution[, c(
   "source_registry_hash_value", "fit_summary_path", "fit_summary_sha256",
   "forecast_horizon_path", "forecast_horizon_sha256", "fit_request_path",
   "fit_request_sha256", "run_manifest_path", "run_manifest_sha256",
-  "package_version", "validation_branch", "validation_commit", "run_tag"
+  "package_version", "validation_branch", "validation_commit",
+  "validation_closeout_commit", "run_tag"
 )]
 corrected$inference <- "vb"
 corrected$fit_size <- 500L
