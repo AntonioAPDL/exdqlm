@@ -1,0 +1,5 @@
+"bundle_id","bundle_order","input_mode","input_builder","harmonics","expected_specs"
+"raw",1,"raw_y_lags","raw_y_lags","1,2",42
+"c12",2,"dlm_decomp_lags","component_lags","1,2",18
+"c123",3,"dlm_decomp_lags","component_lags","1,2,3",18
+"sr",4,"dlm_decomp_lags","state_resid_y","1,2",12

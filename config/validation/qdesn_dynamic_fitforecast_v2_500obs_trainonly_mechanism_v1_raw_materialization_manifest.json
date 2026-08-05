@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-08-05 15:36:35.528455",
+  "stage_stub": "qdesn_dynamic_fitforecast_v2_500obs_trainonly_mechanism_v1_raw",
+  "bundle_id": "raw",
+  "package_version": "1.0.0",
+  "git_branch": "validation/qdesn-trainonly-mechanism-v1-1.0.0",
+  "git_commit": "fa59e81639402097431277e3ce357602467d6318",
+  "source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_mechanism_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_mechanism_v1/materialization/source_registry.csv",
+  "source_registry_sha256": "af83f8704ca330a7d0fb7296c2cd8c4f9bf42b09c79851e2c75303de88a8b1e9",
+  "profiles_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_mechanism_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_mechanism_v1_raw_profiles.csv",
+  "assignments_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_mechanism_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_mechanism_v1_raw_cell_assignments.csv",
+  "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_mechanism_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_mechanism_v1_raw_defaults.yaml",
+  "grid_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_mechanism_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_mechanism_v1_raw_grid.csv",
+  "target_specs_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_mechanism_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_mechanism_v1_raw_target_spec_ids.csv",
+  "expected_specs": 42,
+  "launch_state": "materialized_not_launched"
+}

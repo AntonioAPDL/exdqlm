@@ -1,0 +1,5 @@
+"assignment_key","family","tau","likelihood_target","cell_status","target_profile_rank","screening_profile_id","target_cell_id","bundle_id","arm_code","reservoir_replicate"
+"qtm1_sr_al_normal_t0p05_compact_state_resid_r01normal0.05000000","normal",0.05,"al","priority_fit_and_forecast_gap",6,"qtm1_sr_al_normal_t0p05_compact_state_resid_r01","al_normal_t0p05","sr","compact_state_resid",1
+"qtm1_sr_al_normal_t0p05_compact_state_resid_r02normal0.05000000","normal",0.05,"al","priority_fit_and_forecast_gap",6,"qtm1_sr_al_normal_t0p05_compact_state_resid_r02","al_normal_t0p05","sr","compact_state_resid",2
+"qtm1_sr_exal_gausmix_t0p25_compact_state_resid_r01gausmix0.25000000","gausmix",0.25,"exal","priority_fit_and_forecast_gap",6,"qtm1_sr_exal_gausmix_t0p25_compact_state_resid_r01","exal_gausmix_t0p25","sr","compact_state_resid",1
+"qtm1_sr_exal_gausmix_t0p25_compact_state_resid_r02gausmix0.25000000","gausmix",0.25,"exal","priority_fit_and_forecast_gap",6,"qtm1_sr_exal_gausmix_t0p25_compact_state_resid_r02","exal_gausmix_t0p25","sr","compact_state_resid",2

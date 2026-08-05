@@ -220,3 +220,48 @@ Expected files:
 
 Every row carries `is_final = FALSE` and `article_consumable = FALSE`. Rerun the
 exporter after live jobs finish; do not hand-edit the provisional CSVs.
+
+## 11. Train-Only Mechanism Calibration v1
+
+The current independent Q-DESN RHS calibration lane is the 90-spec paired
+mechanism campaign documented in
+`docs/QDESN_500OBS_TRAINONLY_MCMC_MECHANISM_V1_PLAN_2026-08-05.md`.
+It uses fresh development trajectories and must not update article tables.
+
+Verify the checked-in contract:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/verify_qdesn_trainonly_mechanism_v1.R
+```
+
+Launch only from the clean, exactly pushed
+`validation/qdesn-trainonly-mechanism-v1-1.0.0` branch:
+
+```sh
+bash validation/fitforecast_v2/scripts/launch_qdesn_trainonly_mechanism_v1.sh
+```
+
+Inspect progress without touching the workers:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/healthcheck_qdesn_trainonly_mechanism_v1.R
+```
+
+The pipeline performs contract verification, prepare-only, one tiny smoke per
+input mechanism, a resource gate, 16-core full execution, storage audits, and
+paired closeout. Full-budget confirmation and article promotion remain separate
+human-gated stages.
+
+The one-time scoped legacy cleanup is reproducible and defaults to dry-run:
+
+```sh
+bash validation/fitforecast_v2/scripts/cleanup_qdesn_trainonly_mechanism_v1_legacy_outputs.sh --dry-run
+```
+
+Its completed removal ledger is protected against accidental overwrite. The
+cleanup evidence is under
+`docs/qdesn_trainonly_mechanism_v1_cleanup_20260805/`; do not broaden its four
+hard-coded legacy roots or seven whitelisted basenames without a new ownership
+audit.

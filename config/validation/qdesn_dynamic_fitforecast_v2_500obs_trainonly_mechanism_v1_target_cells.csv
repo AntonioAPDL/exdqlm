@@ -1,0 +1,4 @@
+"target_cell_id","likelihood_target","family","tau","parent_profile_id","target_role","primary_target"
+"al_normal_t0p05","al","normal",0.05,"tor1_15_mcvbc_055_al","priority_fit_and_forecast_gap",TRUE
+"exal_gausmix_t0p25","exal","gausmix",0.25,"tor1_23_arfc1_parent_exal_gausmix_t0p25_r01_full_3ed","priority_fit_and_forecast_gap",TRUE
+"exal_laplace_t0p25","exal","laplace",0.25,"tor1_28_mcvbc_045_exal","solved_negative_control",FALSE
