@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-05 20:43:36.991833",
+  "generated_at": "2026-08-05 20:56:37.38679",
   "stage": "qdesn_dynamic_fitforecast_v2_500obs_trainonly_followup_v1",
   "package_version": "1.0.0",
   "git_branch": "validation/qdesn-trainonly-followup-v1-1.0.0",
-  "git_commit": "39037ee90f4ee68c2254b1f396079deba74eff96",
+  "git_commit": "4872ee6b701aa796c8097958a6c8ff4a410f631b",
   "source_contract_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_followup_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_followup_v1_source_contract.csv",
   "canonical_source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_followup_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_rebaseline_v1_source_registry.csv",
   "canonical_source_registry_file_sha256": "da1017f49def30f0ab72f20f255b2e5c3806bb1c697b41dd25739fc3fb60f241",
