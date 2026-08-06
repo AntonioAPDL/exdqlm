@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-08-06 14:53:44.171034",
+  "input_followup_gate_sha256": "919f341d72bda83623909b7e2d68a97f0fa5409739a55215d91df26813af626d",
+  "decision": "STOP_REASSESS_MODEL_OR_SAMPLER",
+  "compute_launched": false,
+  "article_update_allowed": false,
+  "candidate_count": 0,
+  "al_multi_source_gate": "same arm must have median MAE ratio <=0.95 and check ratio <=1.05 on frozen article and untouched confirmation sources",
+  "exal_geometry_gate": "median max core ACF1 <=0.90 and median minimum core ESS/sec >=0.25",
+  "evidence": {
+    "source_shift": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_followup_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_trainonly_postmortem_v1_20260806/source_shift_summary.csv",
+    "paired_origin_lead": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_followup_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_trainonly_postmortem_v1_20260806/paired_origin_lead_deltas.csv",
+    "paired_seed_bands": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_followup_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_trainonly_postmortem_v1_20260806/paired_seed_band_summary.csv",
+    "source_arm_bands": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_followup_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_trainonly_postmortem_v1_20260806/source_arm_band_summary.csv",
+    "candidates": "/data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_followup_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_500obs_trainonly_postmortem_v1_20260806/next_candidate_manifest.csv"
+  }
+}
