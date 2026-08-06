@@ -1,0 +1,5 @@
+"model_lane","control","package_api","supported_in_1p0p0","evidence","action"
+"exDQLM","fix.gamma","exdqlmMCMC",TRUE,"formal argument fix.gamma with gam.init","available_for_exdqlm_diagnostic"
+"exDQLM","fix.sigma","exdqlmMCMC",TRUE,"formal argument fix.sigma with sig.init","available_for_exdqlm_diagnostic"
+"Q-DESN exAL","fixed gamma","exal_mcmc_fit",FALSE,"al_fixed_gamma is restricted to likelihood_family=al","do_not_launch_without_package_change"
+"Q-DESN exAL","fixed sigma","exal_mcmc_fit",FALSE,"no fixed-sigma formal argument or normalized control","do_not_launch_without_package_change"

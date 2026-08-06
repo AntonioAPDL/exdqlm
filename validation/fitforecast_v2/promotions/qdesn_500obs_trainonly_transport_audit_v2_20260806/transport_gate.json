@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-08-06 18:03:48.046623",
+  "decision": "STOP_NO_TRANSFERABLE_MECHANISM",
+  "complete": true,
+  "input_followup_gate_sha256": "919f341d72bda83623909b7e2d68a97f0fa5409739a55215d91df26813af626d",
+  "reconstructed_designs": 18,
+  "calibration_evaluations": 90,
+  "transferable_candidates": [],
+  "candidate_count": 0,
+  "compute_launched": false,
+  "article_update_allowed": false,
+  "exal_qdesn_fixed_parameter_supported": false,
+  "next_gate": "model_api_or_transport_hypothesis_required"
+}
