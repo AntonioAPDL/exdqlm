@@ -1,0 +1,6 @@
+"source_role","source_replicate","scenario_id","allowed_experiment","article_facing"
+"frozen_article","article","dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast","al_confirmation",TRUE
+"untouched_confirmation","dev04","dlm_constV_p90_trainonly_followup_dev04_TTmain10000_fitforecast","al_confirmation",FALSE
+"development","dev01","dlm_constV_p90_trainonly_mech_dev01_TTmain10000_fitforecast","exal_sampler_diagnostic",FALSE
+"development","dev02","dlm_constV_p90_trainonly_mech_dev02_TTmain10000_fitforecast","exal_sampler_diagnostic",FALSE
+"development","dev03","dlm_constV_p90_trainonly_mech_dev03_TTmain10000_fitforecast","exal_sampler_diagnostic",FALSE

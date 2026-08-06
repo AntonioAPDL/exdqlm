@@ -1,0 +1,8 @@
+"bundle_id","experiment","source_role","likelihood_target","family","tau","input_mode","arm_code","expected_specs","n_burn","n_mcmc"
+"al_raw","al_confirmation","frozen_article","al","normal",0.05,"raw_y_lags","parent_and_compact_raw",6,5000,20000
+"al_raw_dev04","al_confirmation","untouched_confirmation","al","normal",0.05,"raw_y_lags","parent_and_compact_raw",6,5000,20000
+"al_sr","al_confirmation","frozen_article","al","normal",0.05,"dlm_decomp_lags","compact_state_resid",3,5000,20000
+"al_sr_dev04","al_confirmation","untouched_confirmation","al","normal",0.05,"dlm_decomp_lags","compact_state_resid",3,5000,20000
+"exal_gsg_matched","exal_sampler_diagnostic","development","exal","gausmix",0.25,"raw_y_lags","gsg_matched",6,1000,3000
+"exal_gsg_dense","exal_sampler_diagnostic","development","exal","gausmix",0.25,"raw_y_lags","gsg_dense",6,1000,3000
+"exal_gsg_multistart","exal_sampler_diagnostic","development","exal","gausmix",0.25,"raw_y_lags","gsg_multistart",6,1000,3000

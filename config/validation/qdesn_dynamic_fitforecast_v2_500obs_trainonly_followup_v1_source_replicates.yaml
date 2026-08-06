@@ -1,0 +1,37 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_trainonly_followup_v1
+  protocol_role: untouched_full_budget_confirmation_source
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_followup_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [normal]
+  taus: [0.05]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+replicates:
+  - replicate_id: dev04
+    scenario_id: dlm_constV_p90_trainonly_followup_dev04_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 712011, noise: 712012}
+selection_contract:
+  source_use: full_budget_confirmation_only
+  article_source_also_required: true
+  discovery_sources_excluded: [dev01, dev02, dev03]
+  TT500_train_window: [8501, 9000]
+  forecast_block: [9001, 10000]
+  max_lead: 30
+  origin_stride: 30

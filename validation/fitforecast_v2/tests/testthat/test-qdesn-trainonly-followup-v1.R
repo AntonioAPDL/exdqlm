@@ -1,0 +1,62 @@
+test_that("train-only follow-up v1 freezes the intended root allocation", {
+  profiles <- qdesn_tfv1_build_profiles()
+  expect_silent(qdesn_tfv1_validate_plan(profiles))
+  expect_equal(nrow(profiles), 24L)
+  expect_equal(
+    as.integer(table(profiles$bundle_id)[qdesn_tfv1_bundle_contract()$bundle_id]),
+    c(6L, 6L, 3L, 3L, 2L, 2L, 2L)
+  )
+  expect_true(all(profiles$D == 1L))
+  expect_true(all(profiles$rhs_tau0 == 3e-4))
+  expect_setequal(unique(profiles$paired_reservoir_seed), c(910001L, 910002L, 910003L, 920001L, 920002L))
+})
+
+test_that("AL confirmation and exAL diagnostics are scientifically separated", {
+  contract <- qdesn_tfv1_bundle_contract()
+  expect_equal(sum(contract$expected_specs[contract$experiment == "al_confirmation"]), 18L)
+  expect_equal(sum(contract$expected_specs[contract$experiment == "exal_sampler_diagnostic"]), 18L)
+  expect_true(all(contract$n_mcmc[contract$experiment == "al_confirmation"] == 20000L))
+  expect_true(all(contract$n_mcmc[contract$experiment == "exal_sampler_diagnostic"] == 3000L))
+  sources <- qdesn_tfv1_source_contract()
+  expect_equal(sum(sources$allowed_experiment == "al_confirmation"), 2L)
+  expect_equal(sum(sources$allowed_experiment == "exal_sampler_diagnostic"), 3L)
+  expect_equal(sum(sources$article_facing), 1L)
+})
+
+test_that("sampler geometry arms freeze the model and differ in supported controls", {
+  matched <- qdesn_tfv1_sampler_control("exal_gsg_matched")
+  dense <- qdesn_tfv1_sampler_control("exal_gsg_dense")
+  multi <- qdesn_tfv1_sampler_control("exal_gsg_multistart")
+  expect_identical(matched$slice$core_update_mode, "gamma_sigma_gamma")
+  expect_gt(dense$slice$core_extra_passes, matched$slice$core_extra_passes)
+  expect_false(matched$multi_start$enabled)
+  expect_false(dense$multi_start$enabled)
+  expect_true(multi$multi_start$enabled)
+  expect_equal(multi$multi_start$n_starts, 4L)
+})
+
+test_that("materialized follow-up is train-only and storage-light", {
+  stub <- file.path(repo_root, "config", "validation", qdesn_tfv1_stage())
+  index <- utils::read.csv(paste0(stub, "_bundle_index.csv"), check.names = FALSE)
+  expect_equal(nrow(index), 7L)
+  expect_equal(sum(index$expected_specs), 36L)
+  for (i in seq_len(nrow(index))) {
+    d <- yaml::read_yaml(index$defaults_path[[i]])
+    g <- utils::read.csv(index$grid_path[[i]], check.names = FALSE)
+    s <- utils::read.csv(index$target_specs_path[[i]], check.names = FALSE)
+    expect_equal(nrow(g), index$expected_specs[[i]])
+    expect_equal(nrow(s), index$expected_specs[[i]])
+    expect_equal(length(unique(g$source_scenario)), if (startsWith(index$bundle_id[[i]], "exal_")) 3L else 1L)
+    expect_identical(d$preproc$fit_scope, "train_only")
+    expect_true(all(g$train_start_source_index == 8501L))
+    expect_true(all(g$train_end_source_index == 9000L))
+    expect_true(all(g$forecast_start_source_index == 9001L))
+    expect_true(all(g$forecast_end_source_index == 10000L))
+    expect_false(d$pipeline$outputs$keep_draws)
+    expect_false(d$pipeline$outputs$keep_mcmc_vb_init)
+    expect_false(d$pipeline$outputs$save_forecast_objects)
+    expect_false(d$pipeline$outputs$retain_full_rds_on_failure)
+    expect_equal(d$pipeline$inference$mcmc$progress_every, 50L)
+    expect_true(d$pipeline$inference$mcmc$init_from_vb)
+  }
+})
