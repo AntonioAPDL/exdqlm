@@ -1,0 +1,10 @@
+"seed","recurrent_nnz","input_nnz","bias_input_nnz","dynamic_input_nnz","selection_valid"
+900124,0,3,2,1,TRUE
+900125,0,0,0,0,FALSE
+900126,0,2,1,1,TRUE
+900127,0,0,0,0,FALSE
+900128,1,0,0,0,FALSE
+900129,0,0,0,0,FALSE
+900130,0,0,0,0,FALSE
+900131,1,0,0,0,FALSE
+900132,0,1,0,1,TRUE

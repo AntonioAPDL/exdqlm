@@ -1,0 +1,13 @@
+"replicate_id","role","scenario_id","family","latent_seed","noise_seed"
+"dev05","discovery","dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast","normal",1405011,1405012
+"dev05","discovery","dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast","laplace",1405021,1405022
+"dev05","discovery","dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast","gausmix",1405031,1405032
+"dev06","discovery","dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast","normal",1505011,1505012
+"dev06","discovery","dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast","laplace",1505021,1505022
+"dev06","discovery","dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast","gausmix",1505031,1505032
+"dev07","discovery","dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast","normal",1605011,1605012
+"dev07","discovery","dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast","laplace",1605021,1605022
+"dev07","discovery","dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast","gausmix",1605031,1605032
+"dev08","sealed_holdout","dlm_constV_p90_highalpha_dev08_TTmain10000_fitforecast","normal",1705011,1705012
+"dev08","sealed_holdout","dlm_constV_p90_highalpha_dev08_TTmain10000_fitforecast","laplace",1705021,1705022
+"dev08","sealed_holdout","dlm_constV_p90_highalpha_dev08_TTmain10000_fitforecast","gausmix",1705031,1705032

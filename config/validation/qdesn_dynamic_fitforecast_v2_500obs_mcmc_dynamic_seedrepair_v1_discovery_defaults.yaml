@@ -1,0 +1,815 @@
+campaign:
+  name: qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_discovery
+  results_root: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_discovery
+  reports_root: reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_discovery
+grid:
+  source_mode: materialized_source_inputs
+execution:
+  methods: mcmc
+  likelihood_families:
+  - al
+  - exal
+  seed_policy:
+    mode: shared
+    base_seed: 910001
+  allowed_fit_spec_ids:
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__270bfcbee0fc25
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__cf570ad74825e0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__c536adc3ad7105
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__37009a406191bb
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__d8c193776cb924
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__833ed8319dfa42
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__6d1ed40869bfac
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__25b1eab85798f9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e088bd37f021fe
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__316359dbaee5be
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__d7fc8648e4a8fd
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__69b64461db6356
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3693f42b736303
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__f3849057068ea3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3a105f5378cfbe
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__a688c0d220634e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__c70868a66fea23
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__0d5ee078786443
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__4142cc3317bfff
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__16dfe33d380906
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__c10dc122c4fa39
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__2670e0ddbb58c7
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__b67e8332e082ac
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__83aa8762d3fbb2
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__8f8bc3d1d609c8
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__f1290f276e6337
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__a4f8edef118a07
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__67071612fade31
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__7b26b8fe3b7108
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__56bbde3961fd62
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__ce5a39515a1ab1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__81bc4e59233324
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__62782c8cefbbaf
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__97f889dce19b76
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__afed0c3aa9c8dc
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__b27f1abca9edb4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e1df7db3c01eec
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__4cba150c6c8496
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__adc911460f1c67
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__ec01dec248be35
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__8d89a10985a5c8
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__ba45316a30e41e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__9feee0625b5fa2
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__aa0c85081068e7
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3439968dc93e74
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__b34dbafb73083a
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__db43b2e25c1d58
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__aaf4fa15c0d08c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__fd0d8cb5c9e8d3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__d0b3a8c424d055
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__6d5cc1f7081182
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e2946f86ee0efa
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__1a4d31875a9bd0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__0237b975ce0ffd
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__d7fb46517fb1f1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__8ea833f359fa57
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__20f6542fbec894
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e5d56b7ddce68c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__2653f240b35ad6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__13e7c8d87952e7
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__4501d69c84efd9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__a71548302bbea7
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e1665677728488
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__70b2b0969f6007
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__be5d1548a33bbc
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__2868274b3d337c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__59be0e8f86d491
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__ddbdb5dd6bf4dc
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__07b8c6abbe8606
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__4cdc50683e2306
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__f5d54c43597f42
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__307d9311d35849
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e2b89bb5629850
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3726b594a3b26a
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__6f33593c7c9687
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__850c5614f579a1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3b45e619998f49
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__2c5b2f2707e5e2
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__da0901f1a7f0c6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__82809d01cdfb88
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__8927538bc7f606
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__509bb6a4af13ff
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__5f7b17662fbe00
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e40bb8ef4dded4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__aec1a6cfa09b28
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__a259e3e3c48218
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__969dca75644bd9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3f265f7c4b4538
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__be0d4681a2101b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__4b0b1c9b4d29f0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__abab4bdd881cc8
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3f61558f548172
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__d35bc801f78f47
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__168169fddaf5a0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__1af6afb8c7ecb0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__f578e97e780835
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__133da5500444e3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__3b8b7a20149651
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__255f2faf492f84
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__1fda62aaf5ae37
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__edee240a000556
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__e85a3afb354217
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__fa53a1be1e1f4b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__aa39945a60c575
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__595378169080f7
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__aae4668de3f8e6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__18c1f4e83dbd74
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__d54c73035b3ae0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__1a4ffd1557e5a4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__43b6743f6cfc2e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__f43803e7aa5bf0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__24acf780a93db8
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__ca9248324cc06b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__44f5e17fc17aff
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__77ffd2291a28d0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__d2a3800dc4e527
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__6eb77822b020c0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__f5bbc8d8d00d13
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__0c223532e1c7c0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__0b945f3d467c2d
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__9e2f82c52afdb6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__533e1d1b9f5208
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__f79a944653bd91
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__b827d744ef1226
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__0bc6b81a92c959
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__7d76d27509e89d
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__3566340e3ae0dc
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__3a0c32ad9ad89e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__83929ad6ca13f9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__067ae9d5dbedbf
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8a0198abd89528
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__98526e81a0fb06
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__0de5b74e0aa2b3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__9e32fdf6d73133
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8df45d55f98c30
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__55e8f4a4294b50
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__f0f152dffaaf67
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__165a2671f328e6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__7cb089125385a3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__cb5f8dc8c3907f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__e1e723130216a2
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__81c3604b140d3c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__f856f5e89f6b14
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8021f108450bc9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__d4eebeb5fab50b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__6ef4260cd476bb
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__085158e2852e38
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c6a79c3fc889a8
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c448939d4f33f3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__76c64dac836c92
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__327e5178bfe00c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__3df3509becd139
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__d2e57c93aa1d68
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__4369ccabe009b4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__51b5eb20ee4514
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8bd9c494a9e3a6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__25b8bbcab980b6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__a2941ffcf0d1f9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__0e93f193e8c70f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__6603ceb07ddcf2
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__161589b8a6a72c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c9d119ca8bdee4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__92437af799c9bc
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8157c87b9bb0ef
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__35a85fc3af6dfe
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__5d93f4632bb601
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__88b4b230ddea5c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__31c0afb5081897
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__99aa97df89847c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__3f008fa0ae337f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c16264b5d9a4ed
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__50e86137adf2bf
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__2aa89a2a812881
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__99bd68d375e439
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__551f78bbdbfc2a
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__e3b17606fb1df1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__273bccff65e368
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8f668a6926c405
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c84b3a3306281a
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__5440e1dc16158b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__dfda58fced47d9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__e3a1e34ca358c9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__5703052444702b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c77c2ca8c03e54
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__3f0a9bc37e40f4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__df782ba204bb32
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__50ecdebfab6c89
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__14dd1bab9d9197
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__0e04fb5a7860aa
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__bb88708c093b70
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__1dc7d3f205698e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__624bc50b55d0dc
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__ebb3f09a1e005a
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c83ed70e0db09b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__1b75314561e34d
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__d088c06cee42f6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__faaeb9a6b83d9b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__f4570a516665a2
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__4f70b279ed7784
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__2294ee7329cc9d
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c905653e78f9b4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__dd48f2dd233f9a
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__4ba723aa7234b3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__b060906935355e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__fc3f010b40df87
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__239670765061e5
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__9607c7e5efa6da
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__edd2d886f53f18
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__e60e4ddff660a1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__68784cd827ee4f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__fce8458bd325f4
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__f78a5fffaa6249
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__f7f070147bca7b
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__3dc93f2cb5e7e6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__22885700342b0f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__9ca20b1004d479
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__6b46adbce74d68
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__d2c154eecdf742
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__fe556047ebd603
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__cfb9e1788e7273
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__04b7f7616634ac
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__66644b88fe02a8
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__2072ca3e0ffde2
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__954dd6d443fbb9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__fa054dd2ce34aa
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__7fe6ebdcef9be6
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__b9daca35ac5b21
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__ec7cddb53bfc08
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__a40ce51bed4344
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__af3dc86f8c7db9
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__27f070469905f1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c663877a415d0d
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__7825d3b76989e1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__3233da03f87cc7
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c71e5497040f9c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8d08358275b76f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__4dee800c4cf45e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__c6b203a0e17de0
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__ff246f94123f08
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__5831c456229a0b
+study_contract:
+  core_lane: no
+  id: qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_2026_08_07
+  description: Independent Q-DESN/exQ-DESN RHS MCMC dynamic seed-repair discovery.
+    D/n/m/rho/pi/tau0/readout remain frozen; only alpha and outcome-blind dynamic
+    reservoir seed vary.
+  package_version: 1.0.0
+  source_registry_identity_field: development_source_registry_sha256
+  source_registry_hash_value: edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275
+  source_registry_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_trainonly_transport_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_trainonly_rebaseline_v1_source_registry.csv
+  source_registry_sha256: da1017f49def30f0ab72f20f255b2e5c3806bb1c697b41dd25739fc3fb60f241
+  preprocessing:
+    scope: train_only
+    analysis_input_rows:
+    - 1
+    - 1890
+    preprocessing_fit_rows:
+    - 1
+    - 890
+    preprocessing_fit_row_indices_sha256: 13d7864c93516d44bc53752def311efa2b2c244c934e17a27509188744feb24e
+    corresponding_source_rows:
+    - 8111
+    - 9000
+    effective_target_fit_window:
+    - 8501
+    - 9000
+    forecast_block:
+    - 9001
+    - 10000
+    heldout_response_used_for_scaling: no
+    heldout_covariates_used_for_scaling: no
+  budget:
+    posterior_metric_draws: 100
+    vb_sampling_nd_draws: 100
+    vb_synthesis_n_samp: 100
+    mcmc_n_burn: 1000
+    mcmc_n_mcmc: 3000
+    mcmc_thin: 1
+  selection_policy:
+    unit: target_cell_by_source_replicate_by_dynamic_reservoir_seed
+    within_seed_comparison: candidate_to_dynamic_parent_same_source_desn_seed_and_sampler_seed
+    authority_comparison: candidate_to_frozen_authority_parent_same_source_and_sampler_seed
+    target_gate: median target ratio <= 0.98 in both comparisons
+    companion_gate: median non-target ratios <= 1.05 in both comparisons
+    stability_gate: q90 target ratio <= 1.10 in both comparisons
+    direction_gate: target ratio <= 1 in at least six of nine pairs and at least two
+      of three reservoir seeds
+    status_policy: retain status and finite metrics; diagnostics do not silently exclude
+      metric rows
+    article_policy: no article update from screening-budget evidence
+  development_source_registry_sha256: c5f486b1316077b515a70a71c669b94718cb66ac2bc5e307e30760111324fa03
+  development_source_registry_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_dynamic_seedrepair_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1/materialization/source_registry_discovery.csv
+  sealed_holdout_registry_sha256: 62eb085632aaff93713f8e06222a75079e485d305c69c3e9c9eae9d8edab549e
+  sealed_holdout_registry_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_dynamic_seedrepair_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1/materialization/source_registry_sealed_holdout.csv
+  authoritative_interface_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_dynamic_seedrepair_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v1_20260805/qdesn_dqlm_500obs_trainonly_article_v1_20260805_interface.csv
+  authoritative_interface_sha256: dff814fab1e920c10760645ac9e8d37dfa7f33ae2afba34ee8ed2a5509f4952a
+  topology_contract:
+    version: dynamic_input_excludes_bias_v1
+    dynamic_input_definition: sum(Win[, -1] != 0)
+    search_seed_rule: first_three_seeds_at_parent_plus_900001_with_dynamic_input_nnz_gt_zero
+    dynamic_seed_contract_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_dynamic_seedrepair_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_dynamic_seed_contract.csv
+    topology_audit_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_dynamic_seedrepair_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_topology_audit.csv
+    probe_state_policy: every alpha point must have a distinct deterministic probe-state
+      hash within reservoir seed
+  rolling_origin:
+    forecast_origin_source_index: 9000
+    forecast_block_start_source_index: 9001
+    forecast_block_end_source_index: 10000
+    max_lead_configured: 30
+    origin_stride: 30
+    no_refit: yes
+    observed_lag_state_update: yes
+  confirmation_budget:
+    posterior_metric_draws: 200
+    mcmc_n_burn: 5000
+    mcmc_n_mcmc: 20000
+    mcmc_thin: 1
+    required_before_article_promotion: yes
+rescue_overlays:
+  enabled: no
+  mode: explicit_optional
+  inventory_csv: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv
+  row_overrides_source_defaults: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_defaults.yaml
+source_materialization:
+  dynamic_root: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1/source_replicates
+  staged_root: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1/source_windows
+  enforce_effective_train_size: yes
+  train_end_source_index: 9000
+  forecast_origin_source_index: 9000
+  forecast_horizon: 1000
+  scenarios:
+  - dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast
+  - dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast
+  - dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast
+  families: normal
+  taus: 0.25
+  windows:
+  - effective_fit_size: 500
+    source_total_size: 1890
+    source_dir_name: fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90
+    label: effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90
+pilot:
+  source_root_kind: dynamic
+  source_scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  source_family: laplace
+  tau: 0.25
+  fit_size: 500
+  effective_fit_size: 500
+  source_total_size: 1890
+  source_window_label: effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90
+  beta_prior_type: rhs_ns
+  seed: 123
+  reservoir_profile: deep_d3_n400x3_skip100_w300_m60
+  enabled: yes
+  source_reference_priors: default
+  source_current_rhsns_member: no
+  source_legacy_rhs_member: no
+reference:
+  dynamic_root: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1/source_replicates
+reference_contract:
+  root_kind: dynamic
+  scenarios:
+  - dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast
+  - dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast
+  - dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast
+  families: normal
+  taus: 0.25
+  fit_sizes: 500
+  expected_unique_dataset_cells: 3
+  expected_qdesn_roots: 240
+  expected_priors: rhs_ns
+  expected_selected_qdesn_roots: 240
+screening_profiles:
+  enabled: yes
+  csv: config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_profiles.csv
+  cell_assignments_csv: config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1_cell_assignments.csv
+  priors: rhs_ns
+  design: Normal p=0.25 MCMC alpha replay on three outcome-blind dynamically active
+    reservoir seeds.
+  execution_grid_policy: cell_specific_subset_grid_with_explicit_desn_and_sampler_seeds
+  canonical_profile_count: 80
+  canonical_dataset_cell_count: 3
+  canonical_qdesn_root_count: 240
+  selected_assignment_root_count: 240
+smoke:
+  scenario: dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast
+  family: normal
+  tau: 0.25
+  fit_sizes: 500
+  priors: rhs_ns
+  screening_profile_ids: dsr1_al_normal_t0p25_alpha_a0p4_r01
+  max_roots: 1
+  budget:
+    posterior_metric_draws: 4
+    vb_sampling_nd_draws: 4
+    vb_synthesis_n_samp: 4
+    mcmc_n_burn: 4
+    mcmc_n_mcmc: 4
+    mcmc_thin: 1
+  pipeline:
+    inference:
+      mcmc:
+        n_burn: 4
+        n_mcmc: 4
+        thin: 1
+        progress_every: 1
+        init_from_vb: yes
+        vb_warm_start_control:
+          max_iter: 5
+          min_iter_elbo: 2
+          n_samp_xi: 10
+metrics:
+  primary_windows:
+  - train_effective
+  - rolling_forecast_leads
+  fit_window_role: effective_train_post_lag_washout
+  forecast_window_role: contiguous_forecast_block_after_train_origin
+  train_effective_source_indices:
+    TT500:
+    - 8501
+    - 9000
+    TT5000:
+    - 4001
+    - 9000
+  forecast_source_indices:
+  - 9001
+  - 10000
+  forecast_horizons:
+  - 100
+  - 1000
+  rolling_origin:
+    enabled: yes
+    require_lead_export: yes
+    forecast_protocol: rolling_origin_no_refit_state_update
+    state_update_method: forecast_lattice_observed_lag_state_update_no_refit
+    refit_per_origin: no
+    max_lead_configured: 30
+    origin_stride: 30
+  backward_compatible_holdout_alias: forecast_H1000
+  posterior_metric_draws: 100
+  qtrue_metrics:
+  - mae
+  - rmse
+  - bias
+  - corr
+  - median_ae
+  - p90_ae
+  quantile_calibration_metrics:
+  - pinball_tau
+  - coverage
+  - coverage_minus_tau
+  - coverage_error
+  runtime_metrics:
+  - runtime_sec
+  - runtime_sec_per_1k_eval
+  - runtime_sec_per_1k_train_eval
+runtime:
+  threads: 1
+  campaign_workers: 20
+  workers: 20
+  root_scheduler: load_balanced
+diagnostics:
+  fit_runtime:
+    stream_child_stdout: yes
+    timeout_seconds: 43200
+    timeout_kill_after_seconds: 60
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.1
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.2
+    require_converged_for_pass: yes
+  mcmc:
+    min_keep_pass: 300
+    min_keep_warn: 180
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.9
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.5
+reservoir_profiles:
+  deep_d3_n400x3_skip100_w300_m60:
+    D: 3
+    'n':
+    - 400
+    - 400
+    - 400
+    n_tilde:
+    - 400
+    - 400
+    m: 60
+    alpha:
+    - 0.3
+    - 0.3
+    - 0.3
+    rho:
+    - 0.95
+    - 0.95
+    - 0.95
+    act_f:
+    - tanh
+    - tanh
+    - tanh
+    act_k:
+    - identity
+    - identity
+    - identity
+    pi_w:
+    - 0.1
+    - 0.1
+    - 0.1
+    pi_in:
+    - 1.0
+    - 1.0
+    - 1.0
+    washout: 300
+    add_bias: yes
+    seed: 123
+external_data:
+  holdout_n: 1000
+  y_column: 'y'
+  q_true_column: q_true
+  source_index_column: source_index
+preproc:
+  scale_y: yes
+  scale_x: yes
+  fit_scope: train_only
+lags:
+  m_y: 90
+  m_x: 0
+  x: 0
+pipeline:
+  verbose: yes
+  readout:
+    include_input: yes
+    reservoir_lags: 0
+    input_position: after_reservoir
+    input_mode: raw_y_lags
+  decomposition:
+    enabled: no
+  sampling:
+    nd_draws: 100
+    chunk: 100
+  forecast:
+    mode: origin
+    protocol: rolling_origin_no_refit_state_update
+    horizon: 30
+    origin_stride: 30
+    primary_lead_export: yes
+    train_last_window: 18
+    fore_last_window: 18
+  ij:
+    use_ij_correction: no
+    nd_draws: 0
+  synthesis:
+    isotonic: no
+    rearrange: no
+    grid_M: 151
+    n_samp: 100
+    seed: 321
+  diagnostics:
+    calibration: no
+    pit: no
+    scores: yes
+    lead_eval: no
+    fan_charts: no
+    plots: no
+  cpp:
+    use_postpred: no
+    postpred_omp: no
+    postpred_precompute: no
+    postpred_threads: 1
+  outputs:
+    save: yes
+    keep_draws: no
+    keep_mcmc_vb_init: no
+    retention_profile: storage_light_dynamic_seedrepair_v1
+    save_forecast_objects: no
+    save_compact_fit_paths: yes
+    save_metric_summaries: yes
+    retain_full_rds_on_failure: no
+    thesis_subset: no
+  inference:
+    likelihood_family: exal
+    readout_scale: yes
+    vb:
+      max_iter: 150
+      min_iter_elbo: 40
+      n_samp_xi: 500
+      progress_every: 50
+      verbose: yes
+      sigmagam:
+        freeze_warmup_iters: 10
+        force_after_warmup: yes
+        postwarmup_damping: 0.5
+        postwarmup_damping_iters: 3
+        min_postwarmup_updates: 1
+      diagnostics:
+        rhs_trace: yes
+        rhs_deep: no
+      rhs:
+        freeze_tau_iters: 50
+        freeze_tau_warmup_iters: 50
+        tau_local_tol: 0.0005
+        min_tau_updates: 2
+        force_tau_after_warmup: yes
+      prior_overrides:
+        ridge:
+          max_iter: 150
+          min_iter_elbo: 40
+          n_samp_xi: 500
+        rhs_ns:
+          max_iter: 150
+          min_iter_elbo: 40
+          n_samp_xi: 500
+          rhs:
+            freeze_tau_iters: 50
+            freeze_tau_warmup_iters: 50
+            tau_local_tol: 0.0005
+            min_tau_updates: 2
+            force_tau_after_warmup: yes
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 1.0e-05
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 1.0
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-08
+            init_log_tau: ~
+            init_log_lambda: 0.0
+            init_log_c2: 0.0
+    mcmc:
+      n_burn: 1000
+      n_mcmc: 3000
+      thin: 1
+      verbose: yes
+      progress_every: 50
+      init_from_vb: yes
+      vb_warm_start_control:
+        method: ldvb
+        max_iter: 150
+        min_iter_elbo: 40
+        n_samp_xi: 500
+        progress_every: 50
+        verbose: no
+        sigmagam:
+          freeze_warmup_iters: 10
+          force_after_warmup: yes
+          postwarmup_damping: 0.5
+          postwarmup_damping_iters: 3
+          min_postwarmup_updates: 1
+        rhs_trace: yes
+        rhs_deep: no
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          tau_local_tol: 0.0005
+          min_tau_updates: 2
+          force_tau_after_warmup: yes
+      store_latent_draws: no
+      store_rhs_draws: no
+      transforms:
+        use_log_sigma: yes
+        sigma_eta_bounds:
+        - -20
+        - 20
+      rhs:
+        freeze_tau_burnin_iters: 500
+        freeze_tau_only_during_burn: yes
+        width_adapt:
+          enabled: no
+          warmup_iters: 0
+          only_during_burn: yes
+          target_score_low: -0.75
+          target_score_high: 0.75
+          step_size: 0.015
+          width_min: 0.02
+          width_max: 1.8
+      sigmagam:
+        freeze_burnin_iters: 50
+        freeze_only_during_burn: yes
+        force_after_warmup: yes
+        delay_adapt_until_after_warmup: yes
+        delay_laplace_refresh_until_after_warmup: yes
+      slice:
+        core_update_mode: sigma_then_gamma
+        width_gamma: 0.45
+        width_sigma: 0.28
+        width_rhs_lambda: 0.2
+        width_rhs_tau: 0.12
+        width_rhs_c2: 0.08
+        width_rhs_tau_c2_block: 0.24
+        rhs_global_block_update: transformed_tau_c2_block
+        rhs_transformed_block_passes: 3
+        core_extra_passes: 2
+        max_steps_out: 90
+        max_shrink: 320
+        max_steps_out_sigma: 150
+        max_shrink_sigma: 400
+      prior_overrides:
+        ridge:
+          n_burn: 5000
+          n_mcmc: 20000
+          progress_every: 50
+          slice:
+            core_update_mode: sigma_then_gamma
+            width_gamma: 0.45
+            width_sigma: 0.25
+            core_extra_passes: 2
+            max_steps_out: 90
+            max_shrink: 320
+            max_steps_out_sigma: 150
+            max_shrink_sigma: 400
+        rhs_ns:
+          n_burn: 1000
+          n_mcmc: 3000
+          progress_every: 50
+          rhs:
+            freeze_tau_burnin_iters: 500
+            freeze_tau_only_during_burn: yes
+            width_adapt:
+              enabled: no
+              warmup_iters: 0
+              only_during_burn: yes
+              target_score_low: -0.75
+              target_score_high: 0.75
+              step_size: 0.015
+              width_min: 0.02
+              width_max: 1.8
+          slice:
+            core_update_mode: sigma_then_gamma
+            width_gamma: 0.42
+            width_sigma: 0.3
+            width_rhs_lambda: 0.18
+            width_rhs_tau: 0.1
+            width_rhs_c2: 0.07
+            width_rhs_tau_c2_block: 0.22
+            rhs_global_block_update: transformed_tau_c2_block
+            rhs_transformed_block_passes: 3
+            core_extra_passes: 2
+            max_steps_out: 100
+            max_shrink: 360
+            max_steps_out_sigma: 160
+            max_shrink_sigma: 420
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 1.0e-05
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 1.0
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-08
+paths:
+  rewrite_home_local_src_to_repo_root: no
+deterministic_features:
+  enabled: yes
+  period: 90
+  harmonics:
+  - 1
+  - 2
+  include_trend: yes
+  include_index: no
+  prefix: period90
+multiseed:
+  enabled: no
+  mcmc_seed_reps: 1
+  parallel_seed_workers: 1
+  selection_metric: corrected_protocol_metric_envelope
+  prune_nonwinning_heavy_outputs: yes

@@ -1,0 +1,121 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1
+  purpose: Correct the bias-only reservoir-seed confound in the Normal p=0.25 Q-DESN and exQ-DESN MCMC alpha screens.
+  article_source_policy: dev05-dev07 are discovery trajectories; dev08 remains generated, hashed, and sealed until a candidate passes both discovery comparisons.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_dynamic_seedrepair_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [normal]
+  taus: [0.25]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+source_identity_contract:
+  reference_campaign: qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1
+  purpose: Prove that dynamic-seed repair reuses the exact prior Normal p=0.25 source trajectories.
+  expected:
+    - replicate_id: dev05
+      scenario_id: dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast
+      series_wide_sha256: aef4968c3d9e42e48b5f5c915a00411c9cfa49b48003681946cdb78085b6ab0e
+      series_long_sha256: de5e564e49c23a1937116b56ffb3a83eb02a91840e6408e7c6e25262b6855cf8
+      true_quantile_grid_sha256: 4d34d21ea31d1263fa9b3b0334dee761fbf6f72b2c7288195d639fcc602f1682
+      sim_output_sha256: f022c0b7694cf20e00bcc5d74f845e34571124015ad029c06cc42aea9181356a
+    - replicate_id: dev06
+      scenario_id: dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast
+      series_wide_sha256: ca0f4736832e889525da61f2d0175bc1d960adf7d117c902aa3ba567ee1767ff
+      series_long_sha256: b179ebe609994f6f99a9f0bcd79cf7733e64dbfed440f5dfea2c089b2afaf713
+      true_quantile_grid_sha256: 7794a0051d89731725a07b1f912326092dd4e04cfd21b46571b67b89bd6ff3fc
+      sim_output_sha256: d3aea9589b2a832a2f52df7a022ec1c34b86fdbbe3b4dd06367755aca7077484
+    - replicate_id: dev07
+      scenario_id: dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast
+      series_wide_sha256: 24b83a3d8253c3147bd15b0f348c08b2a45f92814e93cae13dcf6543c246bed9
+      series_long_sha256: 2fdcb99546d2ece64b4838e4ab73ab65fafaa0748bf6eefcd61aa6414af6d40f
+      true_quantile_grid_sha256: 4ba325d5bb50819512dae4ff3410f70f5e77579d35f06bda0edea613ac4ab421
+      sim_output_sha256: af5aaa4dc8c7d0e92e01921c7d886a8d74c68acd852774ba4f1394ec8148f18a
+    - replicate_id: dev08
+      scenario_id: dlm_constV_p90_highalpha_dev08_TTmain10000_fitforecast
+      series_wide_sha256: 662265ebe3dc5929a0220acbb0ea3a19161bc7f681601c391f4e56f3f80ea1e6
+      series_long_sha256: ad176b2e3503de1a62ab947bc0e00cffed8d305feea5224c3dbbc16d4b3301fa
+      true_quantile_grid_sha256: cf1e43d75a94885508316cad773c38216d2fdc3ea342ffc648b04580e53ed355
+      sim_output_sha256: 5144d1248c2e57088a8fae322287e8e26a34272e06275da169b6d117d3b5cbe0
+
+replicates:
+  - replicate_id: dev05
+    role: discovery
+    scenario_id: dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1405011, noise: 1405012}
+      laplace: {latent: 1405021, noise: 1405022}
+      gausmix: {latent: 1405031, noise: 1405032}
+  - replicate_id: dev06
+    role: discovery
+    scenario_id: dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1505011, noise: 1505012}
+      laplace: {latent: 1505021, noise: 1505022}
+      gausmix: {latent: 1505031, noise: 1505032}
+  - replicate_id: dev07
+    role: discovery
+    scenario_id: dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1605011, noise: 1605012}
+      laplace: {latent: 1605021, noise: 1605022}
+      gausmix: {latent: 1605031, noise: 1605032}
+  - replicate_id: dev08
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_highalpha_dev08_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1705011, noise: 1705012}
+      laplace: {latent: 1705021, noise: 1705022}
+      gausmix: {latent: 1705031, noise: 1705032}
+
+selection_contract:
+  target_cells: 2
+  discovery_source_replicates: 3
+  sealed_source_replicates: 1
+  dynamic_reservoir_replicates: 3
+  authority_parent_profiles: 2
+  dynamic_parent_profiles: 6
+  candidate_profiles: 72
+  discovery_profiles: 80
+  discovery_expected_specs: 240
+  workers: 20
+  threads_per_worker: 1
+  screening_budget: {mcmc_n_burn: 1000, mcmc_n_mcmc: 3000, mcmc_thin: 1}
+  confirmation_budget: {mcmc_n_burn: 5000, mcmc_n_mcmc: 20000, mcmc_thin: 1}
+  dynamic_seed_rule: First three seeds from parent seed plus 900001 having at least one non-bias observed-series input edge.
+  selection_unit: target_cell_by_source_replicate_by_dynamic_reservoir_seed
+  comparison_contract: Candidate must pass both same-seed dynamic-parent and frozen-authority gates.
+  article_policy: No article promotion without a separate full-budget confirmation on the frozen article source and the sealed holdout.

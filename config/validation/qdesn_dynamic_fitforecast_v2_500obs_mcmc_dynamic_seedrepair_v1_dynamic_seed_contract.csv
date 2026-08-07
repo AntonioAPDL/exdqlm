@@ -1,0 +1,4 @@
+"seed_rank","seed","selection_rule","recurrent_nnz","input_nnz","bias_input_nnz","dynamic_input_nnz"
+1,900124,"first_three_seeds_at_parent_plus_900001_with_dynamic_input_nnz_gt_zero",0,3,2,1
+2,900126,"first_three_seeds_at_parent_plus_900001_with_dynamic_input_nnz_gt_zero",0,2,1,1
+3,900132,"first_three_seeds_at_parent_plus_900001_with_dynamic_input_nnz_gt_zero",0,1,0,1
