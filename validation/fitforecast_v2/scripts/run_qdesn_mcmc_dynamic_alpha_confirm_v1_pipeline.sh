@@ -52,8 +52,8 @@ resource_values() {
   load1="$(awk '{print $1}' /proc/loadavg)"
   memory_kb="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
   disk_kb="$(df -Pk "$REPO_ROOT" | awk 'NR==2 {print $4}')"
-  awk -v load="$load1" -v memory="$memory_kb" -v disk="$disk_kb" \
-    'BEGIN {printf "%.2f %.1f %.1f", load, memory/1048576, disk/1048576}'
+  awk -v ld="$load1" -v memory="$memory_kb" -v disk="$disk_kb" \
+    'BEGIN {printf "%.2f %.1f %.1f", ld, memory/1048576, disk/1048576}'
 }
 
 write_heartbeat() {

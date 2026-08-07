@@ -253,6 +253,13 @@ production path used here is covered by the passing shared harness, the 229
 targeted package assertions, and the real smoke execution. The unrelated
 benchmark failures are recorded and are not silently represented as passing.
 
+The first detached orchestration attempt,
+`qdesn_mcmc_dynamic_alpha_confirm_v1_20260807_033619`, was stopped during
+contract materialization before any model fit. Its heartbeat used `load` as a
+GNU `awk` variable name, which conflicts with an `awk` builtin. The variable was
+renamed to `ld`, the resource parser and shell syntax were rechecked, and that
+run ID is invalid for scientific consumption.
+
 ## Launch Boundary
 
 The implementation and generated contract are committed and pushed before
