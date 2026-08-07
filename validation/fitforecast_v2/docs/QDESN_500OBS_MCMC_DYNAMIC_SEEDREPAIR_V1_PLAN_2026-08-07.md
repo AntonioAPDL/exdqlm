@@ -294,6 +294,71 @@ Running the strict closeout against that intentionally partial smoke returned
 `BLOCK_INCOMPLETE` with 1/240 complete specs and no finalists. This confirms
 that partial evidence cannot trigger confirmation or article promotion.
 
-The full discovery launch and final closeout are pending the clean, pushed
-launch commit. Until closeout passes, no result from this campaign is
-authoritative or article-facing.
+### Full discovery closeout
+
+The clean launch commit was
+`b832aaba22ac9fbada9e4c91f29e10ebea089630`. The launch used:
+
+- orchestration ID `qdesn_mcmc_dynamic_seedrepair_v1_20260807_010512`;
+- run tag `qdesn-dsr1-discovery-20260807_010512__git-b832aab`;
+- tmux session `ffv2_qdesn_dynamic_seedrepair_v1_20260807_010512`;
+- 20 workers with one computational thread each.
+
+The staged pipeline ran from 2026-08-07 01:05:12 to 02:03:29 EDT. Contract
+materialization and verification, prepare-only, smoke, and the resource gate
+all passed before discovery. The 240-spec discovery stage ran from 01:07:35 to
+02:03:19 EDT and exited with code zero. Final accounting was:
+
+| Check | Result |
+|---|---:|
+| expected and complete specs | 240/240 |
+| successful / failed roots | 240 / 0 |
+| fit-metric / H=1000 files | 240 / 240 |
+| missing / unexpected specs | 0 / 0 |
+| executed seed-contract failures | 0 |
+| retained terminal model payloads | 0 |
+| full-budget finalists | 0 |
+
+The machine-readable decision is `STOP_NO_DYNAMIC_SEED_ALPHA_SIGNAL`: no alpha
+candidate passed both the same-dynamic-seed and frozen-authority gates. The
+strongest AL near-miss was alpha 0.60. Its median H=1000 forecast-MAE ratios
+were 0.919 against the same-seed parent and 0.917 against frozen authority,
+with companion medians within tolerance and 7/9 and 6/9 favorable pairs,
+respectively. It failed the predeclared robustness bound because the target
+90th-percentile ratios were 1.160 and 1.198. All nine alpha-0.60 AL fits had
+PASS signoff, so this is source/topology heterogeneity rather than a sampler
+diagnostic artifact: performance improved on `dev05` and `dev06` but degraded
+on `dev07`, including one frozen-authority ratio of 1.250.
+
+For exAL, no candidate passed either comparison. The best selection-score row,
+alpha 0.70, had median target ratios 0.980 within seed and 1.024 against frozen
+authority, with 90th-percentile ratios 1.107 and 1.240. More broadly, 119/120
+exAL roots had FAIL signoff and one had WARN, predominantly from high
+autocorrelation and drift at the discovery budget. The finite metrics remain
+part of the audit, but neither their transportability nor their chain behavior
+supports full-budget promotion. Corrected dynamic topology alone also failed
+to provide a stable gain: median forecast-MAE ratios against frozen authority
+were 1.030 for AL and 1.111 for exAL.
+
+Exact terminal evidence is under:
+
+`reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_dynamic_seedrepair_v1_20260807_010512/closeout`
+
+The gate record is `dynamic_seedrepair_discovery_gate.json`; paired evidence
+is in `paired_same_dynamic_seed_metrics.csv` and
+`paired_frozen_authority_metrics.csv`; storage evidence is in
+`storage_heavy_artifact_audit.csv`. Terminal evidence hashes are:
+
+| Artifact | SHA-256 |
+|---|---|
+| discovery gate | `61c9180c1be2f9bfeb08d91770f6ac4597dfbb228466273698e83e758c884715` |
+| discovery metrics | `4cfa9bcbc8302d381ea7104bd137525bd1948eaba3f8e9fe475794c3c8d55424` |
+| dual-comparison summary | `2cd40ff27b2cb65e9e6579f2e37ec585e790db982eb09009da2cc96fa22a8bb4` |
+| executed-seed audit | `edf37dd32c470d35b53cd30944ee29f488ece1c4d3600b2763eb43daf07fb12b` |
+| storage audit | `7eeabb723e3d1fadf891d08b24dce8fe6c26450a479e14563f28e65884aade32` |
+
+The completed run is diagnostic evidence, not an article-facing replacement.
+No full-budget confirmation and no article update are justified from this
+screen. Any later work on these cells should change a different,
+prospectively frozen mechanism rather than repeat the dynamic-seed/high-alpha
+surface.
