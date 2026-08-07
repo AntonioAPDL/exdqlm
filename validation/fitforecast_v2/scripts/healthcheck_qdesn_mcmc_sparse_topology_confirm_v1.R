@@ -53,11 +53,12 @@ latest_iteration <- function(path) {
     ))))
   }
   if (grepl("(MCMC|sampling|posterior) iteration[[:space:]]+[0-9]+", latest)) {
-    retained <- suppressWarnings(as.integer(sub(
+    iteration <- suppressWarnings(as.integer(sub(
       ".*(MCMC|sampling|posterior) iteration[[:space:]]+([0-9]+).*",
       "\\2", latest
     )))
-    return(5000L + retained)
+    # Q-DESN reports post-burn progress on the global burn-plus-sampling scale.
+    return(iteration)
   }
   NA_integer_
 }

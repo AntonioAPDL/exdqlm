@@ -132,6 +132,7 @@ test_that("sparse-topology confirmation lifecycle is staged and parseable", {
   expect_true(all(file.exists(c(r_files, shell_files))))
   invisible(lapply(r_files, function(path) expect_silent(parse(path))))
   pipeline <- paste(readLines(shell_files[[1L]], warn = FALSE), collapse = "\n")
+  healthcheck <- paste(readLines(r_files[[4L]], warn = FALSE), collapse = "\n")
   closeout <- paste(readLines(r_files[[5L]], warn = FALSE), collapse = "\n")
   expect_match(pipeline, "--prepare-only", fixed = TRUE)
   expect_match(pipeline, "verify_qdesn_mcmc_sparse_topology_confirm_v1_smoke.R",
@@ -140,6 +141,8 @@ test_that("sparse-topology confirmation lifecycle is staged and parseable", {
   expect_match(pipeline, "WORKERS=20", fixed = TRUE)
   expect_match(pipeline, "trace_compaction", fixed = TRUE)
   expect_match(pipeline, "storage_audit", fixed = TRUE)
+  expect_match(healthcheck, "return(iteration)", fixed = TRUE)
+  expect_false(grepl("5000L + retained", healthcheck, fixed = TRUE))
   expect_match(closeout, "fresh_replicates_below_authority", fixed = TRUE)
   expect_match(closeout, "reported_but_not_used_for_metric_selection", fixed = TRUE)
   expect_match(closeout, "article_updated = FALSE", fixed = TRUE)
