@@ -137,4 +137,11 @@ test_that("source and launcher contracts reserve confirmation evidence", {
   expect_match(pipeline, "WAVE2_APPROVED=FALSE", fixed = TRUE)
   expect_match(pipeline, "FULL_CONFIRMATION_APPROVED=FALSE", fixed = TRUE)
   expect_false(grepl("wave2_universe_defaults.yaml.*--batch full", pipeline))
+
+  healthcheck <- paste(readLines(file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "healthcheck_qdesn_mcmc_highalpha_cellwise_v1.R"
+  ), warn = FALSE), collapse = "\n")
+  expect_match(healthcheck, "fit_process_token", fixed = TRUE)
+  expect_match(healthcheck, '"STARTING"', fixed = TRUE)
 })

@@ -78,16 +78,20 @@ live_logs <- if (dir.exists(campaign_root)) list.files(campaign_root, pattern = 
 progress_paths <- c(live_logs, if (dir.exists(campaign_root)) list.files(campaign_root, pattern = "root_status[.]txt$|fit_status[.]txt$", recursive = TRUE, full.names = TRUE) else character())
 latest_progress <- if (length(progress_paths)) max(file.info(progress_paths)$mtime, na.rm = TRUE) else as.POSIXct(NA)
 progress_age <- if (!is.na(latest_progress)) as.numeric(difftime(Sys.time(), latest_progress, units = "mins")) else NA_real_
+stage_age <- as.numeric(difftime(Sys.time(), file.info(file.path(state_root, "current_stage.txt"))$mtime, units = "mins"))
 session_file <- file.path(state_root, "tmux_session.txt")
 session <- if (file.exists(session_file)) trimws(readLines(session_file, warn = FALSE, n = 1L)) else ""
 tmux_live <- nzchar(session) && identical(suppressWarnings(system2("tmux", c("has-session", "-t", session), stdout = FALSE, stderr = FALSE)), 0L)
-process_lines <- if (nzchar(run_tag)) suppressWarnings(system(sprintf("pgrep -af %s", shQuote(run_tag)), intern = TRUE, ignore.stderr = TRUE)) else character()
-worker_processes <- sum(grepl("Rscript|/R |run_qdesn", process_lines))
+process_lines <- suppressWarnings(system("ps -eo args=", intern = TRUE, ignore.stderr = TRUE))
+fit_process_token <- paste0("--file=", file.path(repo_root, "scripts", "pipeline_real_main.R"))
+worker_processes <- sum(grepl(fit_process_token, process_lines, fixed = TRUE))
 terminal_stage <- latest_stage == "pipeline_complete"
 health <- if (tmux_live && grepl("resource_gate", latest_stage)) {
   "WAITING_FOR_RESOURCES"
 } else if (tmux_live && is.finite(progress_age) && progress_age <= 30) {
   "ACTIVE"
+} else if (tmux_live && !is.finite(progress_age) && is.finite(stage_age) && stage_age <= 30) {
+  "STARTING"
 } else if (tmux_live) {
   "LIVE_BUT_STALE_REVIEW"
 } else if (terminal_stage) {
