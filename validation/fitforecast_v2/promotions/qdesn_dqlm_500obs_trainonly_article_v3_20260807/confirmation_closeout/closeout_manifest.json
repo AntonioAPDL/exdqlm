@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-08-07 12:56:57.013757",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1",
+  "run_tag": "qdesn-strv1-full-20260807_045131__git-acfa0b4",
+  "git_branch": "validation/qdesn-mcmc-sparse-topology-refine-v1-1.0.0",
+  "git_commit": "acfa0b4a4b989cd3722ebdde378a9f6b47401652",
+  "package_version": "1.0.0",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "decision": "PROMOTION_READY_METRIC_IMPROVEMENTS_PENDING_ARTICLE_REVIEW",
+  "metric_selection_status_agnostic": true,
+  "article_updated": false,
+  "gate_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_sparse_topology_refine_v1_20260807_045131/closeout/confirmation_gate.json",
+  "file_manifest_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_sparse_topology_refine_v1_20260807_045131/closeout/file_manifest.csv"
+}

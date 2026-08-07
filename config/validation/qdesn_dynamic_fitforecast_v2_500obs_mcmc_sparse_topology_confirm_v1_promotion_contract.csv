@@ -1,0 +1,3 @@
+"model_variant","target_cell_id","family","tau","metrics","fresh_replicates","minimum_replicates_below_authority","median_must_improve","improvement_tolerance","status_filter","source_registry_hash_value","mcmc_n_burn","mcmc_n_mcmc","article_update_automatic"
+"qdesn_al_rhs_ns","al_normal_t0p25","normal",0.25,"fit_qtrue_rmse|forecast_qtrue_mae_H1000|forecast_check_loss_H1000",3,2,TRUE,1e-10,FALSE,"edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",5000,20000,FALSE
+"qdesn_exal_rhs_ns","exal_normal_t0p25","normal",0.25,"fit_qtrue_rmse|forecast_qtrue_mae_H1000|forecast_check_loss_H1000",3,2,TRUE,1e-10,FALSE,"edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",5000,20000,FALSE

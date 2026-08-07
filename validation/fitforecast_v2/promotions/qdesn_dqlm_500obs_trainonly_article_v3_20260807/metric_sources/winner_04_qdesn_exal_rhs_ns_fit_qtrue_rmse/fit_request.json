@@ -1,0 +1,428 @@
+{
+  "spec_id": "qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__2197531550d015",
+  "root_spec": {
+    "source_root_kind": "dynamic",
+    "source_scenario": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+    "source_family": "normal",
+    "tau": 0.25,
+    "fit_size": 500,
+    "effective_fit_size": 500,
+    "source_total_size": 1890,
+    "source_window_label": "effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90",
+    "raw_start_source_index": 8111,
+    "raw_end_source_index": 10000,
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_start_source_index": 9001,
+    "forecast_end_source_index": 10000,
+    "beta_prior_type": "rhs_ns",
+    "source_fit_input_dir": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p25/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90",
+    "source_report_root": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p25/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90",
+    "source_series_wide_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p25/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90/series_wide.csv",
+    "source_series_wide_sha256": "3ef76c7173d679a7866a4c4d9fd2630e063f7bdfe7d2e5d0c184d29998b7dd35",
+    "source_selection_indices_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p25/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90/selection_indices.csv",
+    "source_selection_indices_sha256": "67d55305801139fca42d4049cae4e298345da50e8e4bbdaca287e99b96217201",
+    "source_sim_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p25/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90/sim_output.rds",
+    "source_sim_sha256": "51581287d9c54f5c18593da84f81124d4edc18335bfcba7568788550870b6774",
+    "source_reference_root_count": 1,
+    "source_reference_priors": "default",
+    "source_current_rhsns_member": false,
+    "source_legacy_rhs_member": false,
+    "reservoir_profile": "strv1_exal_w01_seed910010_parent_s02",
+    "screening_profile_id": "strv1_exal_w01_seed910010_parent_s02",
+    "screening_stage": "mcmc_sparse_topology_refine_v1",
+    "screening_wave": "sparse_topology_refine_2026_08_07",
+    "profile_role": "matched_sparse_parent",
+    "rhs_tau0": 0.0003,
+    "readout_y_lags": 1,
+    "reservoir_lags": 0,
+    "dimension_p_estimate": 13,
+    "p_over_n_tt500": 0.026,
+    "enabled": true,
+    "dataset_cell_id": "dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p25__efftt_500",
+    "scenario": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+    "seed": 123,
+    "desn_seed": 910010,
+    "mcmc_seed": 961014,
+    "mcmc_rng_seed": 962014,
+    "vb_warm_start_seed": 963014,
+    "synthesis_seed": 964014,
+    "root_id": "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_strv1_exal_w01_seed910010_parent_s02",
+    "likelihood_family": "exal"
+  },
+  "config": {
+    "pipeline": {
+      "mode": "real",
+      "verbose": true
+    },
+    "split": {
+      "use_last": true,
+      "T_use": 1890,
+      "train_n": 890
+    },
+    "p_vec": 0.25,
+    "columns": {
+      "y": "y",
+      "x": ["period90_sin_h1", "period90_cos_h1", "period90_sin_h2", "period90_cos_h2", "period90_trend_z"]
+    },
+    "lags": {
+      "m_y": 1,
+      "m_x": 0,
+      "y": null,
+      "x": 0
+    },
+    "preproc": {
+      "scale_y": true,
+      "scale_x": true
+    },
+    "desn": {
+      "D": 1,
+      "n": 6,
+      "n_tilde": [],
+      "m": 1,
+      "alpha": 0.00075,
+      "rho": 0.35,
+      "act_f": "tanh",
+      "act_k": "identity",
+      "pi_w": 0.0277777777777778,
+      "pi_in": 0.0833333333333333,
+      "washout": 300,
+      "add_bias": true,
+      "seed": 910010
+    },
+    "readout": {
+      "include_input": true,
+      "reservoir_lags": 0,
+      "input_position": "after_reservoir",
+      "input_mode": "raw_y_lags"
+    },
+    "decomposition": {
+      "enabled": false
+    },
+    "sampling": {
+      "nd_draws": 200,
+      "chunk": 100
+    },
+    "forecast": {
+      "mode": "origin",
+      "horizon": 30,
+      "train_last_window": 18,
+      "fore_last_window": 18,
+      "protocol": "rolling_origin_no_refit_state_update",
+      "origin_stride": 30,
+      "primary_lead_export": true
+    },
+    "ij": {
+      "use_ij_correction": false,
+      "nd_draws": 0
+    },
+    "synthesis": {
+      "isotonic": false,
+      "rearrange": false,
+      "grid_M": 151,
+      "n_samp": 200,
+      "seed": 964014
+    },
+    "diagnostics": {
+      "calibration": false,
+      "pit": false,
+      "scores": true,
+      "lead_eval": false,
+      "fan_charts": false,
+      "plots": false
+    },
+    "cpp": {
+      "use_postpred": false,
+      "postpred_omp": false,
+      "postpred_precompute": false,
+      "postpred_threads": 1
+    },
+    "outputs": {
+      "save": true,
+      "keep_draws": false,
+      "thesis_subset": false,
+      "keep_mcmc_vb_init": false,
+      "retention_profile": "storage_light_sparse_topology_refine_v1",
+      "save_forecast_objects": false,
+      "save_compact_fit_paths": true,
+      "save_metric_summaries": true,
+      "retain_full_rds_on_failure": false
+    },
+    "inference": {
+      "method": "mcmc",
+      "likelihood_family": "exal",
+      "readout_scale": true,
+      "mcmc": {
+        "n_burn": 5000,
+        "n_mcmc": 20000,
+        "thin": 1,
+        "verbose": true,
+        "progress_every": 50,
+        "init_from_vb": true,
+        "vb_warm_start_control": {
+          "method": "ldvb",
+          "max_iter": 150,
+          "min_iter_elbo": 40,
+          "n_samp_xi": 500,
+          "progress_every": 50,
+          "verbose": false,
+          "sigmagam": {
+            "freeze_warmup_iters": 10,
+            "force_after_warmup": true,
+            "postwarmup_damping": 0.5,
+            "postwarmup_damping_iters": 3,
+            "min_postwarmup_updates": 1
+          },
+          "rhs_trace": true,
+          "rhs_deep": false,
+          "rhs": {
+            "freeze_tau_iters": 50,
+            "freeze_tau_warmup_iters": 50,
+            "tau_local_tol": 0.0005,
+            "min_tau_updates": 2,
+            "force_tau_after_warmup": true
+          }
+        },
+        "store_latent_draws": false,
+        "store_rhs_draws": false,
+        "transforms": {
+          "use_log_sigma": true,
+          "sigma_eta_bounds": [-20, 20]
+        },
+        "rhs": {
+          "freeze_tau_burnin_iters": 500,
+          "freeze_tau_only_during_burn": true,
+          "width_adapt": {
+            "enabled": false,
+            "warmup_iters": 0,
+            "only_during_burn": true,
+            "target_score_low": -0.75,
+            "target_score_high": 0.75,
+            "step_size": 0.015,
+            "width_min": 0.02,
+            "width_max": 1.8
+          }
+        },
+        "sigmagam": {
+          "freeze_burnin_iters": 50,
+          "freeze_only_during_burn": true,
+          "force_after_warmup": true,
+          "delay_adapt_until_after_warmup": true,
+          "delay_laplace_refresh_until_after_warmup": true
+        },
+        "slice": {
+          "core_update_mode": "sigma_then_gamma",
+          "width_gamma": 0.42,
+          "width_sigma": 0.3,
+          "width_rhs_lambda": 0.18,
+          "width_rhs_tau": 0.1,
+          "width_rhs_c2": 0.07,
+          "width_rhs_tau_c2_block": 0.22,
+          "rhs_global_block_update": "transformed_tau_c2_block",
+          "rhs_transformed_block_passes": 3,
+          "core_extra_passes": 2,
+          "max_steps_out": 100,
+          "max_shrink": 360,
+          "max_steps_out_sigma": 160,
+          "max_shrink_sigma": 420
+        },
+        "priors": {
+          "gamma": {
+            "mu0": 0,
+            "s20": 10
+          },
+          "sigma": {
+            "a": 1,
+            "b": 1
+          },
+          "beta": {
+            "type": "rhs_ns",
+            "ridge": {
+              "tau2": 20
+            },
+            "rhs_ns": {
+              "tau0": 0.0003,
+              "a_zeta": 2,
+              "b_zeta": 1,
+              "s2": 1,
+              "shrink_intercept": false,
+              "intercept_prec": 1e-10,
+              "n_inner": 2,
+              "var_floor": 1e-08
+            }
+          }
+        },
+        "control": {
+          "rng_seed": 962014,
+          "seed": 961014
+        },
+        "vb_warm_start_seed": 963014
+      }
+    },
+    "metrics": {
+      "primary_windows": ["train_effective", "rolling_forecast_leads"],
+      "fit_window_role": "effective_train_post_lag_washout",
+      "forecast_window_role": "contiguous_forecast_block_after_train_origin",
+      "train_effective_source_indices": {
+        "TT500": [8501, 9000],
+        "TT5000": [4001, 9000]
+      },
+      "forecast_source_indices": [9001, 10000],
+      "forecast_horizons": [100, 1000],
+      "rolling_origin": {
+        "enabled": true,
+        "require_lead_export": true,
+        "forecast_protocol": "rolling_origin_no_refit_state_update",
+        "state_update_method": "forecast_lattice_observed_lag_state_update_no_refit",
+        "refit_per_origin": false,
+        "max_lead_configured": 30,
+        "origin_stride": 30
+      },
+      "backward_compatible_holdout_alias": "forecast_H1000",
+      "posterior_metric_draws": 200,
+      "qtrue_metrics": ["mae", "rmse", "bias", "corr", "median_ae", "p90_ae"],
+      "quantile_calibration_metrics": ["pinball_tau", "coverage", "coverage_minus_tau", "coverage_error"],
+      "runtime_metrics": ["runtime_sec", "runtime_sec_per_1k_eval", "runtime_sec_per_1k_train_eval"]
+    },
+    "validation_spec_id": "qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__2197531550d015",
+    "validation_stage": "all",
+    "validation": {
+      "stream_child_stdout": true,
+      "timeout_seconds": 604800,
+      "timeout_kill_after_seconds": 60
+    }
+  },
+  "observed_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1/qdesn-strv1-full-20260807_045131__git-acfa0b4/20260807-104424__git-acfa0b4/roots/root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_strv1_exal_w01_seed910010_parent_s02/data/observed.csv",
+  "execution": {
+    "methods": "mcmc",
+    "likelihood_families": ["al", "exal"],
+    "requested_fits": 2
+  },
+  "study_contract": {
+    "core_lane": false,
+    "id": "qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_2026_08_07",
+    "description": "Full-budget frozen-source refinement of Q-DESN/exQ-DESN alpha/rho interactions under exact one-to-three-edge sparse recurrent topologies.",
+    "budget": {
+      "posterior_metric_draws": 200,
+      "vb_sampling_nd_draws": 200,
+      "vb_synthesis_n_samp": 200,
+      "mcmc_n_burn": 5000,
+      "mcmc_n_mcmc": 20000,
+      "mcmc_thin": 1
+    },
+    "vb": {
+      "method": "LDVB",
+      "profile_id": "qdesn_ldvb_canonical_v1",
+      "sigmagam": {
+        "freeze_warmup_iters": 10,
+        "force_after_warmup": true,
+        "postwarmup_damping": 0.5,
+        "postwarmup_damping_iters": 3,
+        "min_postwarmup_updates": 1
+      }
+    },
+    "mcmc": {
+      "kernel": "slice",
+      "require_slice": true,
+      "require_init_from_vb": true,
+      "banned_proposals": ["rw", "laplace_rw"],
+      "sigmagam": {
+        "freeze_burnin_iters": 50,
+        "freeze_only_during_burn": true,
+        "force_after_warmup": true,
+        "delay_adapt_until_after_warmup": true,
+        "delay_laplace_refresh_until_after_warmup": true
+      },
+      "vb_warm_start": {
+        "method": "LDVB",
+        "max_iter": 150,
+        "min_iter_elbo": 40,
+        "n_samp_xi": 500,
+        "sigmagam": {
+          "freeze_warmup_iters": 10,
+          "force_after_warmup": true,
+          "postwarmup_damping": 0.5,
+          "postwarmup_damping_iters": 3,
+          "min_postwarmup_updates": 1
+        }
+      }
+    },
+    "screening_policy": {
+      "unit": "one_family_tau_likelihood_candidate",
+      "candidates_per_cell": 1,
+      "comparison_policy": "coherent_external_benchmark_with_internal_envelope_context",
+      "promotion_policy": "full_budget_confirmation_required_before_scientific_promotion",
+      "launch_status": "prepared_not_launched"
+    },
+    "confirmation_budget": {
+      "mcmc_n_burn": 5000,
+      "mcmc_n_mcmc": 20000,
+      "mcmc_thin": 1,
+      "posterior_metric_draws": 200,
+      "candidates": 1,
+      "required_before_article_promotion": true
+    },
+    "confirmation_contract": {
+      "source_closeout_id": "qdesn_tt500_mcmc_metricgap_v3_combined_closeout_20260727",
+      "source_spec_id": "qdesn__laplace__0p25__tt500__rhs_ns__mcmc__exal__020293d289bcb0",
+      "source_root_id": "root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_mgv3_16_exal_local",
+      "source_profile_id": "mgv3_16_exal_local",
+      "source_registry_hash": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+      "external_ratio_max": 1.05,
+      "screening_stability_ratio_max": 1.1,
+      "internal_metric_envelope_is_context_only": true,
+      "diagnostic_grade_is_reported_not_metric_suppressing": true,
+      "article_update_is_automatic": false
+    },
+    "source_registry_identity_field": "source_registry_hash_value",
+    "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+    "authoritative_interface_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v2_20260807/qdesn_dqlm_500obs_trainonly_article_v2_20260807_interface.csv",
+    "authoritative_interface_sha256": "d412434bb3546cb3e3c4f03d633b30d0e64125948bbe3ac55ef230c0f1c56a53",
+    "sparse_topology_refine_v1": {
+      "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+      "source_registry_snapshot_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_source_registry.csv",
+      "source_registry_snapshot_sha256": "7556ebddc65a5a1702fe532399380eb61de836934bd8f0f7f4149f5e5feddba1",
+      "topology_seed_contract_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_topology_seed_contract.csv",
+      "topology_seed_contract_sha256": "e21abef29ceb569d0cebb444ae8155f2df6c5c5894f1263c250bb052c873b0f7",
+      "topology_search_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_topology_seed_search_audit.csv",
+      "topology_search_audit_sha256": "5d28701b540bfa93728fc47f88a669019f236861b08ea1fcf4c4ffc5c08c5ed6",
+      "interaction_design_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_interaction_design.csv",
+      "interaction_design_sha256": "d27d724c8d86d610e090288e9d4e6ee3b8594070056b49f7a2fcad45914a17a6",
+      "pair_map_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_pair_map.csv",
+      "pair_map_sha256": "052f58971329f7218637dbb8114b088cf082b32199da860bd4a8b4752d8fa705",
+      "promotion_tolerance": 1e-10,
+      "diagnostic_policy": "retain_but_never_filter_finite_metrics",
+      "article_update_automatic": false
+    },
+    "rolling_origin": {
+      "forecast_origin_source_index": 9000,
+      "forecast_block_start_source_index": 9001,
+      "forecast_block_end_source_index": 10000,
+      "max_lead_configured": 30,
+      "origin_stride": 30,
+      "no_refit": true,
+      "observed_lag_state_update": true
+    },
+    "selection_policy": {
+      "unit": "model_family_metric_specific_envelope",
+      "target_cells": 2,
+      "sparse_topologies_per_cell": 6,
+      "interaction_points_per_topology": 6,
+      "base_candidate_designs": 72,
+      "unique_parent_controls": 12,
+      "sampler_replicates": 2,
+      "expected_specs": 168,
+      "comparison_policy": "same_source_same_reservoir_same_sampler_seed",
+      "promotion_policy": "strict_raw_metric_improvement_regardless_of_diagnostic_grade",
+      "promotion_tolerance": 1e-10,
+      "no_global_specification": true,
+      "article_policy": "write_promotion_ready_preview_only"
+    }
+  },
+  "rescue_overlay": {
+    "enabled": false,
+    "mode": "explicit_optional",
+    "inventory_csv": "config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv",
+    "root_override_applied": false
+  }
+}
