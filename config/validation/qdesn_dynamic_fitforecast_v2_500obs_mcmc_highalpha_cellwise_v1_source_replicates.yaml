@@ -1,0 +1,89 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1
+  purpose: Case-specific high-alpha calibration around the exact corrected train-only Q-DESN MCMC authorities.
+  article_source_policy: Three fresh discovery trajectories are active; dev08 is generated, hashed, and sealed until a candidate passes the discovery gate.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+replicates:
+  - replicate_id: dev05
+    role: discovery
+    scenario_id: dlm_constV_p90_highalpha_dev05_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1405011, noise: 1405012}
+      laplace: {latent: 1405021, noise: 1405022}
+      gausmix: {latent: 1405031, noise: 1405032}
+  - replicate_id: dev06
+    role: discovery
+    scenario_id: dlm_constV_p90_highalpha_dev06_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1505011, noise: 1505012}
+      laplace: {latent: 1505021, noise: 1505022}
+      gausmix: {latent: 1505031, noise: 1505032}
+  - replicate_id: dev07
+    role: discovery
+    scenario_id: dlm_constV_p90_highalpha_dev07_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1605011, noise: 1605012}
+      laplace: {latent: 1605021, noise: 1605022}
+      gausmix: {latent: 1605031, noise: 1605032}
+  - replicate_id: dev08
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_highalpha_dev08_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1705011, noise: 1705012}
+      laplace: {latent: 1705021, noise: 1705022}
+      gausmix: {latent: 1705031, noise: 1705032}
+
+selection_contract:
+  unresolved_cells: 11
+  wave1_cells: 4
+  wave2_cells: 7
+  discovery_source_replicates: 3
+  sealed_source_replicates: 1
+  reservoir_replicates: 2
+  wave1_profiles: 124
+  wave1_expected_specs: 372
+  workers: 20
+  threads_per_worker: 1
+  screening_budget: {mcmc_n_burn: 1000, mcmc_n_mcmc: 3000, mcmc_thin: 1}
+  confirmation_budget: {mcmc_n_burn: 5000, mcmc_n_mcmc: 20000, mcmc_thin: 1}
+  selection_unit: target_cell_by_source_replicate_by_reservoir_seed
+  article_policy: No article promotion without a separate full-budget confirmation on the frozen article source and the sealed holdout.

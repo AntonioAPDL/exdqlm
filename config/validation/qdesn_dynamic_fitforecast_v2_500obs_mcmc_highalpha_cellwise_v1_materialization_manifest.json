@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-08-06 20:32:44.94033",
+  "stage_stub": "qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1",
+  "package_version": "1.0.0",
+  "materialization_base_commit": "449008b8cc1c87f4c699dd53cdb588b5732b2aa8",
+  "authority_interface_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v1_20260805/qdesn_dqlm_500obs_trainonly_article_v1_20260805_interface.csv",
+  "authority_interface_sha256": "dff814fab1e920c10760645ac9e8d37dfa7f33ae2afba34ee8ed2a5509f4952a",
+  "authority_source_registry_identity": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "source_config_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_source_replicates.yaml",
+  "source_config_sha256": "3339594d20d6a60406714249c7104c3b30e84dc13a11ffabb214235bab70943f",
+  "source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1/materialization/source_registry_all.csv",
+  "source_registry_sha256": "c3ec298095c6ab206c01947a291b342201ccd22eff0f2411e8deeed7a9b02b4a",
+  "discovery_source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1/materialization/source_registry_discovery.csv",
+  "discovery_source_registry_sha256": "b0a66ce329b9e0462a6f35d2fc3e7fde99df536cf228ff76f33b28aa880f5ec1",
+  "sealed_holdout_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1/materialization/source_registry_sealed_holdout.csv",
+  "sealed_holdout_registry_sha256": "4e9f794ddd43780d7e935f5b6aa38e27662b6e05f5e2e3fc5784a10b57607f60",
+  "source_slice_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1/materialization/source_slice_registry_all.csv",
+  "source_window_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1/materialization/source_window_audit.csv",
+  "target_cells_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_target_cells.csv",
+  "parent_profiles_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_authoritative_parent_profiles.csv",
+  "metric_sources_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_authoritative_metric_sources.csv",
+  "topology_classes_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_topology_classes.csv",
+  "topology_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_topology_audit.csv",
+  "nonrepeat_ledger_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_nonrepeat_ledger.csv",
+  "phase_index_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_phase_index.csv",
+  "generated_file_manifest_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_highalpha_cellwise_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_highalpha_cellwise_v1_generated_file_manifest.csv",
+  "counts": {
+    "unresolved_cells": 11,
+    "wave1_cells": 4,
+    "wave2_cells": 7,
+    "discovery_sources": 3,
+    "sealed_sources": 1,
+    "profiles": 376,
+    "wave1_specs": 372,
+    "wave2_universe_specs": 756
+  },
+  "launch_policy": {
+    "wave1": "approved_after_tests_smoke_and_clean_pushed_branch",
+    "wave2": "requires_wave1_mechanism_gate_and_explicit_followup",
+    "full_confirmation": "requires_per_cell_winner_gate_and_explicit_followup"
+  },
+  "article_state": "unchanged_screening_not_article_evidence"
+}
