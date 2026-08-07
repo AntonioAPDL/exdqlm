@@ -41,12 +41,25 @@ read_statuses <- function(root) {
 latest_iteration <- function(path) {
   if (!file.exists(path)) return(NA_integer_)
   lines <- tail(readLines(path, warn = FALSE), 300L)
-  hits <- regmatches(lines, regexec("MCMC iteration[[:space:]]+([0-9]+)", lines))
-  values <- suppressWarnings(as.integer(vapply(
-    hits, function(x) if (length(x) >= 2L) x[[2L]] else NA_character_, character(1L)
-  )))
-  values <- values[is.finite(values)]
-  if (length(values)) tail(values, 1L) else NA_integer_
+  progress <- lines[grepl(
+    "burn-in iteration|MCMC iteration|sampling iteration|posterior iteration",
+    lines
+  )]
+  if (!length(progress)) return(NA_integer_)
+  latest <- tail(progress, 1L)
+  if (grepl("burn-in iteration[[:space:]]+[0-9]+", latest)) {
+    return(suppressWarnings(as.integer(sub(
+      ".*burn-in iteration[[:space:]]+([0-9]+).*", "\\1", latest
+    ))))
+  }
+  if (grepl("(MCMC|sampling|posterior) iteration[[:space:]]+[0-9]+", latest)) {
+    retained <- suppressWarnings(as.integer(sub(
+      ".*(MCMC|sampling|posterior) iteration[[:space:]]+([0-9]+).*",
+      "\\2", latest
+    )))
+    return(5000L + retained)
+  }
+  NA_integer_
 }
 artifact_root_status <- function(path, campaign_root) {
   roots_root <- file.path(campaign_root, "roots")
