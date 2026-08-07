@@ -144,4 +144,6 @@ test_that("source and launcher contracts reserve confirmation evidence", {
   ), warn = FALSE), collapse = "\n")
   expect_match(healthcheck, "fit_process_token", fixed = TRUE)
   expect_match(healthcheck, '"STARTING"', fixed = TRUE)
+  expect_match(healthcheck, "transient_heavy_payloads", fixed = TRUE)
+  expect_match(healthcheck, '"STORAGE_REVIEW"', fixed = TRUE)
 })

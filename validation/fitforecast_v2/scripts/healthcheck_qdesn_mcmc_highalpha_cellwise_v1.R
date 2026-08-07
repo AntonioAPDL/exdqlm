@@ -33,6 +33,14 @@ read_statuses <- function(root) {
   if (!length(paths)) return(character())
   vapply(paths, function(path) trimws(readLines(path, warn = FALSE, n = 1L)), character(1L))
 }
+artifact_root_status <- function(path, campaign_root) {
+  roots_root <- file.path(campaign_root, "roots")
+  relative <- substring(path, nchar(roots_root) + 2L)
+  root_name <- strsplit(relative, "/", fixed = TRUE)[[1L]][[1L]]
+  status_path <- file.path(roots_root, root_name, "manifest", "root_status.txt")
+  if (!file.exists(status_path)) return("UNKNOWN")
+  trimws(readLines(status_path, warn = FALSE, n = 1L))
+}
 status_count <- function(values, pattern) sum(grepl(pattern, values, ignore.case = TRUE))
 latest_iteration <- function(path) {
   if (!file.exists(path)) return(NA_integer_)
@@ -74,6 +82,9 @@ remaining <- max(0L, expected - finished)
 fit_paths <- if (dir.exists(campaign_root)) list.files(campaign_root, pattern = "^fit_summary_row[.]csv$", recursive = TRUE, full.names = TRUE) else character()
 horizon_paths <- if (dir.exists(campaign_root)) list.files(campaign_root, pattern = "^forecast_horizon_summary[.]csv$", recursive = TRUE, full.names = TRUE) else character()
 heavy_paths <- if (dir.exists(campaign_root)) list.files(campaign_root, pattern = "[.](rds|rda|RData)$", recursive = TRUE, full.names = TRUE, ignore.case = TRUE) else character()
+heavy_statuses <- if (length(heavy_paths)) vapply(heavy_paths, artifact_root_status, character(1L), campaign_root = campaign_root) else character()
+transient_heavy_paths <- heavy_paths[grepl("RUNNING|STARTED", heavy_statuses, ignore.case = TRUE)]
+retained_heavy_paths <- setdiff(heavy_paths, transient_heavy_paths)
 live_logs <- if (dir.exists(campaign_root)) list.files(campaign_root, pattern = "^pipeline_child_live[.]log$", recursive = TRUE, full.names = TRUE) else character()
 progress_paths <- c(live_logs, if (dir.exists(campaign_root)) list.files(campaign_root, pattern = "root_status[.]txt$|fit_status[.]txt$", recursive = TRUE, full.names = TRUE) else character())
 latest_progress <- if (length(progress_paths)) max(file.info(progress_paths)$mtime, na.rm = TRUE) else as.POSIXct(NA)
@@ -86,7 +97,9 @@ process_lines <- suppressWarnings(system("ps -eo args=", intern = TRUE, ignore.s
 fit_process_token <- paste0("--file=", file.path(repo_root, "scripts", "pipeline_real_main.R"))
 worker_processes <- sum(grepl(fit_process_token, process_lines, fixed = TRUE))
 terminal_stage <- latest_stage == "pipeline_complete"
-health <- if (tmux_live && grepl("resource_gate", latest_stage)) {
+health <- if (length(retained_heavy_paths)) {
+  "STORAGE_REVIEW"
+} else if (tmux_live && grepl("resource_gate", latest_stage)) {
   "WAITING_FOR_RESOURCES"
 } else if (tmux_live && is.finite(progress_age) && progress_age <= 30) {
   "ACTIVE"
@@ -144,7 +157,9 @@ summary <- data.frame(
   worker_processes = worker_processes,
   fit_summaries = length(fit_paths),
   horizon_files = length(horizon_paths),
-  heavy_payloads = length(heavy_paths),
+  heavy_payloads = length(retained_heavy_paths),
+  transient_heavy_payloads = length(transient_heavy_paths),
+  heavy_payloads_total = length(heavy_paths),
   progress_age_minutes = progress_age,
   tmux_live = tmux_live,
   stringsAsFactors = FALSE
@@ -155,13 +170,14 @@ utils::write.csv(active, file.path(state_root, "active_iteration_snapshot_latest
 cat(sprintf("Snapshot: %s\n", summary$snapshot_utc))
 cat(sprintf("Run ID: %s\n", run_id))
 cat(sprintf("State root: %s\n\n", normalizePath(state_root, winslash = "/", mustWork = TRUE)))
-cat("| Health | Stage | Finished | Remaining | Success | Failed | Running | Workers | Fit rows | H1000 | Heavy | Progress age |\n")
-cat("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+cat("| Health | Stage | Finished | Remaining | Success | Failed | Running | Workers | Fit rows | H1000 | Retained heavy | Active transient | Progress age |\n")
+cat("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
 cat(sprintf(
-  "| %s | %s | %d/%d (%.1f%%) | %d | %d | %d | %d | %d | %d | %d | %d | %s |\n",
+  "| %s | %s | %d/%d (%.1f%%) | %d | %d | %d | %d | %d | %d | %d | %d | %d | %s |\n",
   health, latest_stage, finished, expected, 100 * finished / expected, remaining,
   success, failed, running, worker_processes, length(fit_paths), length(horizon_paths),
-  length(heavy_paths), if (is.finite(progress_age)) sprintf("%.1f min", progress_age) else "NA"
+  length(retained_heavy_paths), length(transient_heavy_paths),
+  if (is.finite(progress_age)) sprintf("%.1f min", progress_age) else "NA"
 ))
 visible_iterations <- active$iteration[is.finite(active$iteration)]
 if (length(visible_iterations)) {
