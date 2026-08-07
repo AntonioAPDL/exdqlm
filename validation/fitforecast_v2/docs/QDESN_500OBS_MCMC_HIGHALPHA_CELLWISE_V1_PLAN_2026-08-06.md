@@ -248,3 +248,24 @@ GNU `nproc` honored the already-applied `OMP_NUM_THREADS=1` cap and exposed only
 CPU 0 to the selector. The selector now reads `_NPROCESSORS_ONLN` through
 `getconf`, while the one-thread caps remain in force for every model process.
 This aborted run ID is invalid evidence and must never be consumed.
+
+The valid detached Wave 1 launch is:
+
+- orchestration ID: `qdesn_mcmc_highalpha_cellwise_v1_20260806_205922`;
+- tmux session: `ffv2_qdesn_highalpha_v1_20260806_205922`;
+- scientific run tag:
+  `qdesn-hacv1-wave1-20260806_205922__git-22ec917`;
+- scientific launch commit:
+  `22ec9173eb768ba4d329e61de5f7c6d1e30d78c8`;
+- selected logical CPUs:
+  `0,1,4,5,9,11,12,13,15,17,18,20,21,26,32,33,36,37,41,43`.
+
+Contract verification, prepare-only, smoke, resource, and CPU-selection gates
+all passed before Wave 1 began at 2026-08-06 21:00:36 EDT. The first settled
+health snapshot found 20 simultaneous single-threaded model fits, real MCMC
+progress, zero failures, and zero retained heavy artifacts. In-flight
+`forecast_objects.rds` files are classified separately as active transients and
+must disappear when their roots become terminal. The final storage gate still
+rejects any retained `.rds`, `.rda`, or `.RData` file. Health-reporting-only
+commits made after launch do not alter the scientific code pinned by the run
+tag.
