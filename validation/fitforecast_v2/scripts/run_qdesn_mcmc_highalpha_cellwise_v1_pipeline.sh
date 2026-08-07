@@ -99,7 +99,8 @@ wait_for_resources() {
 
 select_idle_cpus() {
   local count
-  count="$(nproc)"
+  # GNU nproc honors OMP_NUM_THREADS; use the online host count after thread caps are set.
+  count="$(getconf _NPROCESSORS_ONLN)"
   ps -eLo psr=,pcpu= 2>/dev/null | awk -v n="$count" '
     {cpu=$1+0; used[cpu]+=$2+0}
     END {for (i=0; i<n; i++) printf "%d %.6f\n", i, used[i]+0}

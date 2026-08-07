@@ -240,3 +240,11 @@ payloads. Running the closeout auditor against that intentionally incomplete
 smoke returned `BLOCK_INCOMPLETE` with 1 of 372 specifications complete and 371
 missing. This confirms that partial evidence cannot be promoted or trigger a
 later wave.
+
+The first detached launch attempt,
+`qdesn_mcmc_highalpha_cellwise_v1_20260806_205718`, was rejected during CPU
+selection before contract verification, preparation, smoke, or model fitting.
+GNU `nproc` honored the already-applied `OMP_NUM_THREADS=1` cap and exposed only
+CPU 0 to the selector. The selector now reads `_NPROCESSORS_ONLN` through
+`getconf`, while the one-thread caps remain in force for every model process.
+This aborted run ID is invalid evidence and must never be consumed.

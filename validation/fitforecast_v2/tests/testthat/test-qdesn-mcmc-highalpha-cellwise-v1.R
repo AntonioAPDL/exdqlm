@@ -132,6 +132,7 @@ test_that("source and launcher contracts reserve confirmation evidence", {
   ), warn = FALSE), collapse = "\n")
   expect_match(pipeline, "WORKERS=20", fixed = TRUE)
   expect_match(pipeline, "OPENBLAS_NUM_THREADS=1", fixed = TRUE)
+  expect_match(pipeline, "getconf _NPROCESSORS_ONLN", fixed = TRUE)
   expect_match(pipeline, "taskset -c", fixed = TRUE)
   expect_match(pipeline, "WAVE2_APPROVED=FALSE", fixed = TRUE)
   expect_match(pipeline, "FULL_CONFIRMATION_APPROVED=FALSE", fixed = TRUE)
