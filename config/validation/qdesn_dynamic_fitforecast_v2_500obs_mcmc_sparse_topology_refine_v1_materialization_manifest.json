@@ -1,0 +1,53 @@
+{
+  "protocol_frozen_at_utc": "2026-08-07T16:00:00Z",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1",
+  "package_version": "1.0.0",
+  "implementation_parent_commit": "b2e0472631e8f57ca61e51a4e697de733c9ec1e8",
+  "authority_interface_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v2_20260807/qdesn_dqlm_500obs_trainonly_article_v2_20260807_interface.csv",
+  "authority_interface_sha256": "d412434bb3546cb3e3c4f03d633b30d0e64125948bbe3ac55ef230c0f1c56a53",
+  "source_registry_identity_field": "source_registry_hash_value",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_source_registry.csv",
+  "source_registry_sha256": "7556ebddc65a5a1702fe532399380eb61de836934bd8f0f7f4149f5e5feddba1",
+  "source_files_verified": true,
+  "topology_seed_contract_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_topology_seed_contract.csv",
+  "topology_seed_contract_sha256": "e21abef29ceb569d0cebb444ae8155f2df6c5c5894f1263c250bb052c873b0f7",
+  "topology_search_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_topology_seed_search_audit.csv",
+  "topology_search_audit_sha256": "5d28701b540bfa93728fc47f88a669019f236861b08ea1fcf4c4ffc5c08c5ed6",
+  "interaction_design_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_interaction_design.csv",
+  "interaction_design_sha256": "d27d724c8d86d610e090288e9d4e6ee3b8594070056b49f7a2fcad45914a17a6",
+  "topology_audit_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_topology_audit.csv",
+  "pair_map_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_pair_map.csv",
+  "defaults_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_defaults.yaml",
+  "grid_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_grid.csv",
+  "target_specs_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_target_spec_ids.csv",
+  "generated_file_manifest_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_generated_file_manifest.csv",
+  "counts": {
+    "candidate_designs": 72,
+    "unique_parent_controls": 12,
+    "sampler_replicates": 2,
+    "candidate_specs": 144,
+    "parent_specs": 24,
+    "full_specs": 168,
+    "smoke_specs": 3
+  },
+  "budget": {
+    "n_burn": 5000,
+    "n_mcmc": 20000,
+    "metric_draws": 200
+  },
+  "rolling_origin": {
+    "forecast_origin_source_index": 9000,
+    "forecast_block": [9001, 10000],
+    "max_lead": 30,
+    "origin_stride": 30,
+    "refit_per_origin": false
+  },
+  "execution": {
+    "workers": 20,
+    "threads_per_fit": 1
+  },
+  "metric_promotion_policy": "strictly_lower_finite_value_status_agnostic",
+  "article_update_automatic": false,
+  "launch_status": "materialized_not_launched"
+}
