@@ -143,7 +143,38 @@ test_that("sparse-topology confirmation lifecycle is staged and parseable", {
   expect_match(pipeline, "storage_audit", fixed = TRUE)
   expect_match(healthcheck, "return(iteration)", fixed = TRUE)
   expect_false(grepl("5000L + retained", healthcheck, fixed = TRUE))
+  expect_match(healthcheck, "COMPLETE_CLOSED_OUT", fixed = TRUE)
+  expect_match(healthcheck, "confirmation_gate.json", fixed = TRUE)
   expect_match(closeout, "fresh_replicates_below_authority", fixed = TRUE)
   expect_match(closeout, "reported_but_not_used_for_metric_selection", fixed = TRUE)
   expect_match(closeout, "article_updated = FALSE", fixed = TRUE)
+  expect_match(closeout, "qdesn_mcmc_dynamic_alpha_confirm_v1.R", fixed = TRUE)
+  expect_false(grepl("qdesn_mcmc_sparse_topology_confirm_v1.R", closeout,
+                     fixed = TRUE))
+})
+
+test_that("sparse-topology closeout loads before rejecting an unknown run", {
+  root <- normalizePath(file.path(testthat::test_path(), "..", ".."),
+                        winslash = "/", mustWork = TRUE)
+  script <- file.path(
+    root, "validation", "fitforecast_v2", "scripts",
+    "closeout_qdesn_mcmc_sparse_topology_confirm_v1.R"
+  )
+  output_root <- tempfile("qdesn-sparse-closeout-import-check-")
+  output <- suppressWarnings(system2(
+    file.path(R.home("bin"), "Rscript"),
+    c(
+      "--vanilla", script,
+      "--run-tag", "qdesn-sparse-closeout-intentionally-missing",
+      "--output-root", output_root
+    ),
+    stdout = TRUE,
+    stderr = TRUE
+  ))
+  expect_false(is.null(attr(output, "status")))
+  expect_match(paste(output, collapse = "\n"), "Run root does not exist", fixed = TRUE)
+  expect_false(grepl(
+    "cannot open file.*qdesn_mcmc_sparse_topology_confirm_v1[.]R",
+    paste(output, collapse = "\n")
+  ))
 })

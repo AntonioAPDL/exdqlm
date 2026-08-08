@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
+`%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
 get_arg <- function(flag, default = NULL) {
   index <- which(args == flag)
   if (!length(index) || index[[1L]] >= length(args)) return(default)
@@ -16,6 +17,13 @@ read_csv_safe <- function(path) {
   tryCatch(
     utils::read.csv(path, check.names = FALSE, stringsAsFactors = FALSE),
     error = function(e) data.frame()
+  )
+}
+read_json_safe <- function(path) {
+  if (!file.exists(path) || file.info(path)$size <= 0) return(list())
+  tryCatch(
+    jsonlite::read_json(path, simplifyVector = TRUE),
+    error = function(e) list()
   )
 }
 read_env <- function(path) {
@@ -147,8 +155,21 @@ process_lines <- suppressWarnings(system("ps -eo args=", intern = TRUE, ignore.s
 fit_token <- paste0("--file=", file.path(repo_root, "scripts", "pipeline_real_main.R"))
 worker_processes <- sum(grepl(fit_token, process_lines, fixed = TRUE))
 terminal <- identical(latest_stage, "pipeline_complete")
+closeout_gate_path <- file.path(state_root, "closeout", "confirmation_gate.json")
+closeout_gate <- read_json_safe(closeout_gate_path)
+closeout_decision <- as.character(closeout_gate$decision %||% "")
+closeout_complete <-
+  grepl("^CONFIRMATION_COMPLETE_", closeout_decision) &&
+  identical(as.integer(closeout_gate$expected_specs %||% NA_integer_), expected) &&
+  identical(as.integer(closeout_gate$observed_specs %||% NA_integer_), expected) &&
+  identical(as.integer(closeout_gate$complete_metric_specs %||% NA_integer_), expected) &&
+  identical(as.integer(closeout_gate$execution_contract_passes %||% NA_integer_), expected) &&
+  identical(as.integer(closeout_gate$complete_candidate_parent_pairs %||% NA_integer_), 9L) &&
+  identical(as.integer(closeout_gate$unexpected_binary_payloads %||% NA_integer_), 0L)
 health <- if (length(retained_heavy)) {
   "STORAGE_REVIEW"
+} else if (closeout_complete) {
+  "COMPLETE_CLOSED_OUT"
 } else if (terminal && latest_status == "COMPLETED") {
   "COMPLETE"
 } else if (terminal) {
@@ -199,6 +220,8 @@ summary <- data.frame(
   health = health,
   stage = latest_stage,
   stage_status = latest_status,
+  closeout_decision = if (nzchar(closeout_decision)) closeout_decision else NA_character_,
+  closeout_complete = closeout_complete,
   finished = finished,
   expected = expected,
   completion_pct = 100 * finished / expected,
@@ -222,6 +245,7 @@ utils::write.csv(active, file.path(state_root, "active_iteration_snapshot_latest
 
 cat(sprintf("Snapshot: %s\n", summary$snapshot_utc))
 cat(sprintf("Run ID: %s\n", run_id))
+if (nzchar(closeout_decision)) cat(sprintf("Closeout: %s\n", closeout_decision))
 cat("| Health | Stage | Finished | Left | Success | Failed | Running | Workers | Fit rows | H1000 | Heavy | Progress age |\n")
 cat("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
 cat(sprintf(

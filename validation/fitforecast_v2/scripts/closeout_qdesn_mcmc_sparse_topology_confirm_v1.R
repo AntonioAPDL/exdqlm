@@ -46,10 +46,6 @@ source(file.path(
   repo_root, "validation", "fitforecast_v2", "R",
   "qdesn_mcmc_dynamic_alpha_confirm_v1.R"
 ))
-source(file.path(
-  repo_root, "validation", "fitforecast_v2", "R",
-  "qdesn_mcmc_sparse_topology_confirm_v1.R"
-))
 resolve_path <- function(path, must_work = TRUE) {
   path <- as.character(path)[1L]
   if (!grepl("^/", path)) path <- file.path(repo_root, path)

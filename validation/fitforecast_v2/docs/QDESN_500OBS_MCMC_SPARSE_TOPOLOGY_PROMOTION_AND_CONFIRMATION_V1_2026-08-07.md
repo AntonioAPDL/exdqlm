@@ -203,3 +203,45 @@ Completed before the implementation commit:
 - article builder and checker: pass;
 - article PDF build: pass with no unresolved citation/reference, fatal,
   overfull-box, or rerun warning.
+
+## Terminal Closeout
+
+The full confirmation completed on 2026-08-07 under run tag
+`qdesn-strc1-full-20260807_182431__git-ea9d7ce`. The original pipeline reached
+all 21 successful roots but its reporting step stopped before writing the gate
+because it sourced a helper file that had never existed. No fit, metric, path,
+or provenance artifact was missing. Commit `ffbc709` had already corrected the
+progress telemetry; the subsequent closeout repair removes only that dead
+import and adds an executable import regression.
+
+Canonical post-hoc closeout evidence is stored under:
+
+`reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_sparse_topology_confirm_v1_20260807_182431/closeout`
+
+The validated terminal counts are:
+
+| Contract | Result |
+|---|---:|
+| Full-budget roots | 21/21 |
+| Successful roots | 21 |
+| Failed roots | 0 |
+| Complete fit and forecast metric bundles | 21/21 |
+| Execution-contract passes | 21/21 |
+| Complete candidate-parent pairs | 9/9 |
+| Replicated promoted metrics | 0/6 |
+| New article metric winners | 0 |
+| Retained `.rds`, `.rda`, or `.RData` payloads | 0 |
+
+The terminal gate is
+`CONFIRMATION_COMPLETE_PARTIAL_OR_NO_PROMOTED_METRIC_REPLICATION`. Fresh
+replicate medians were 1.3--18.4 percent above the corresponding frozen v3
+metric minima, and no promoted metric met the two-of-three plus median
+replication rule. Accordingly, this campaign is closed, no roots should be
+rerun, and no direct article update is justified from its individual-chain
+results.
+
+The completed evidence also motivates a separate follow-up question: whether a
+predeclared robust multi-chain point estimator reduces the Monte Carlo
+variability that produced the unstable single-chain lower envelope. That
+question must be implemented and versioned independently; it cannot alter this
+immutable closeout or silently replace the article estimator.
