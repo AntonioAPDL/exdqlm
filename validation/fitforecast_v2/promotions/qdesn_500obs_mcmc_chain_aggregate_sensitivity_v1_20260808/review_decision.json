@@ -1,0 +1,21 @@
+{
+  "generated_from_closeout_utc": "2026-08-08 16:24:40.912852",
+  "sensitivity_id": "qdesn_500obs_mcmc_chain_aggregate_sensitivity_v1_20260808",
+  "decision": "ROBUST_SENSITIVITY_CONFIRMED_ARTICLE_TABLE_UNCHANGED",
+  "validation_evidence_complete": true,
+  "complete_five_chain_designs": 11,
+  "metric_improvements": 5,
+  "estimator_id": "median_of_chain_posterior_point_paths_v1",
+  "posterior_pooling_claim": false,
+  "article_v3_authority_sha256": "90744fae79f8af79c6e844e5862c90330ea14d9bbd2df69f630440887fed1393",
+  "article_table_replacement_recommended": false,
+  "article_update_performed": false,
+  "reason": "The five-chain median-of-point-path estimator is a valid robustness sensitivity but is not the same estimator as the current single-chain metric envelope. Silent metric replacement would mix estimators.",
+  "allowed_next_use": "Use this bundle as supplemental robustness evidence, or first adopt and disclose one matched estimator policy for every displayed MCMC model.",
+  "run_id": "qdesn_mcmc_chain_aggregate_confirm_v1_20260808_161301",
+  "run_tag": "qdesn-cagc1-full-20260808_161301__git-8cfd304",
+  "source_branch": "validation/qdesn-mcmc-chain-aggregate-confirm-v1-1.0.0",
+  "source_commit": "8cfd304c5d2eb9af76195998a3ef097ec79b801f",
+  "package_version": "1.0.0",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275"
+}

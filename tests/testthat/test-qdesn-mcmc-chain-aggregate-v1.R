@@ -160,3 +160,41 @@ test_that("five-chain confirmation lifecycle reaches its run-root gate", {
   expect_match(paste(output, collapse = "\n"), "Run root does not exist",
                fixed = TRUE)
 })
+
+test_that("completed five-chain evidence is frozen as a non-drop-in sensitivity", {
+  root <- normalizePath(file.path(testthat::test_path(), "..", ".."),
+                        winslash = "/", mustWork = TRUE)
+  scripts <- file.path(root, "validation", "fitforecast_v2", "scripts")
+  materializer <- file.path(
+    scripts, "materialize_qdesn_500obs_chain_aggregate_sensitivity_v1.R"
+  )
+  verifier <- file.path(
+    scripts, "verify_qdesn_500obs_chain_aggregate_sensitivity_v1.R"
+  )
+  expect_true(all(file.exists(c(materializer, verifier))))
+  expect_silent(parse(materializer))
+  expect_silent(parse(verifier))
+
+  id <- "qdesn_500obs_mcmc_chain_aggregate_sensitivity_v1_20260808"
+  promotion <- file.path(root, "validation", "fitforecast_v2", "promotions", id)
+  decision <- jsonlite::read_json(file.path(promotion, "review_decision.json"),
+                                  simplifyVector = TRUE)
+  metrics <- read.csv(file.path(promotion, "metric_improvement_review.csv"),
+                      check.names = FALSE)
+  coherent <- read.csv(
+    file.path(promotion, "coherent_design_recommendations.csv"),
+    check.names = FALSE
+  )
+  expect_identical(
+    decision$decision,
+    "ROBUST_SENSITIVITY_CONFIRMED_ARTICLE_TABLE_UNCHANGED"
+  )
+  expect_false(decision$article_table_replacement_recommended)
+  expect_false(decision$article_update_performed)
+  expect_equal(nrow(metrics), 5L)
+  expect_true(all(metrics$improves_authority))
+  expect_false(any(metrics$article_drop_in_eligible))
+  expect_equal(nrow(coherent), 2L)
+  expect_setequal(coherent$model_variant,
+                  c("qdesn_al_rhs_ns", "qdesn_exal_rhs_ns"))
+})

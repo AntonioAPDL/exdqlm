@@ -123,3 +123,42 @@ provenance. Follow-up fits retain scalar metrics, compact paths, logs, manifests
 status, and telemetry. Routine `.rds`, `.rda`, and `.RData` payloads are
 forbidden after each successful or failed root. Existing source paths are read
 in place and are never copied or modified.
+
+## Terminal Closeout
+
+The canonical campaign completed on 2026-08-08:
+
+- run ID: `qdesn_mcmc_chain_aggregate_confirm_v1_20260808_161301`;
+- run tag: `qdesn-cagc1-full-20260808_161301__git-8cfd304`;
+- fresh fits: 12/12 successful with 12/12 execution contracts passing;
+- complete five-chain designs: 11/11;
+- missing or unexpected specifications: 0;
+- unexpected `.rds`, `.rda`, or `.RData` payloads: 0;
+- closeout decision:
+  `CHAIN_AGGREGATE_CONFIRMATION_COMPLETE_IMPROVEMENTS_PENDING_REVIEW`.
+
+The five-chain review found five metric-level values below the frozen v3
+single-chain article envelope. For AL-RHS, the robust fit RMSE decreased from
+2.1764 to 1.9376 and the robust forecast MAE decreased from 2.3610 to 2.3234;
+no five-chain AL design improved the current forecast check loss. For exAL-RHS,
+the robust fit RMSE decreased from 1.7095 to 1.3199, forecast MAE from 2.7087
+to 2.4732, and forecast check loss from 3.3325 to 3.3189. The exAL design
+`strv1_exal_w03_seed1110003_p06` improves all three criteria coherently, while
+the smallest robust exAL fit RMSE comes from
+`strv1_exal_w02_seed1010003_p06`.
+
+These values are authoritative robustness evidence, but they are not a silent
+drop-in replacement for the article table. The article currently reports a
+single-chain, metric-wise calibration envelope; this stage reports a
+coordinatewise median of five chain-specific posterior point paths. Mixing the
+two estimators without a methods change would make the table internally
+heterogeneous. The immutable sensitivity handoff is therefore stored at
+`validation/fitforecast_v2/promotions/qdesn_500obs_mcmc_chain_aggregate_sensitivity_v1_20260808`.
+It records the exact evidence hashes and the decision
+`ROBUST_SENSITIVITY_CONFIRMED_ARTICLE_TABLE_UNCHANGED`.
+
+The scientifically clean next choice is either to report this bundle as a
+separate robustness sensitivity with explicit estimator language, or to
+recompute every displayed MCMC comparator under one matched multi-chain
+estimator before replacing main-table cells. No further alpha/rho screening is
+justified by this closeout alone.

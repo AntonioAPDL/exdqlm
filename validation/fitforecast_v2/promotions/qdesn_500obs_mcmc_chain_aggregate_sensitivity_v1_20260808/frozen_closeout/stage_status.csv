@@ -1,0 +1,18 @@
+timestamp,stage,status,detail
+2026-08-08T16:13:02-04:00,contract_materialize,STARTED,regenerate frozen campaign contract
+2026-08-08T16:13:10-04:00,contract_materialize,COMPLETED,12-spec contract regenerated without drift
+2026-08-08T16:13:11-04:00,contract_verify,STARTED,branch=validation/qdesn-mcmc-chain-aggregate-confirm-v1-1.0.0;commit=8cfd304c5d2eb9af76195998a3ef097ec79b801f
+2026-08-08T16:13:11-04:00,contract_verify,COMPLETED,source;seed;budget;storage;parallel contracts pass
+2026-08-08T16:13:12-04:00,prepare_only,STARTED,qdesn-cagc1-prepare-20260808_161301__git-8cfd304
+2026-08-08T16:13:18-04:00,prepare_only,COMPLETED,manifest-only; no model binary payload
+2026-08-08T16:13:19-04:00,smoke,STARTED,qdesn-cagc1-smoke-20260808_161301__git-8cfd304
+2026-08-08T16:14:07-04:00,smoke,COMPLETED,2/2 finite contract-valid fits;runner_exit=0
+2026-08-08T16:14:08-04:00,resource_gate,PASS,load=10.44;memory_gb=469.1;disk_gb=586.0
+2026-08-08T16:14:08-04:00,cpu_selection,COMPLETED,workers=12;threads_per_fit=1;cpus=1;2;4;5;9;10;11;12;13;17;18;19
+2026-08-08T16:14:08-04:00,full_confirmation,STARTED,run_tag=qdesn-cagc1-full-20260808_161301__git-8cfd304;specs=12;workers=12;threads_per_fit=1
+2026-08-08T16:24:27-04:00,full_confirmation,COMPLETED,runner_exit=0
+2026-08-08T16:24:28-04:00,trace_compaction,STARTED,keep first;final;and every 50th trace row
+2026-08-08T16:24:35-04:00,trace_compaction,COMPLETED,status;heartbeat;failure artifacts preserved
+2026-08-08T16:24:36-04:00,storage_audit,PASS,no retained model .rds/.rda/.RData payloads
+2026-08-08T16:24:40-04:00,closeout,COMPLETED,status-agnostic metric envelope written;article untouched
+2026-08-08T16:24:41-04:00,pipeline_complete,COMPLETED,confirmation closed;manual article review remains
