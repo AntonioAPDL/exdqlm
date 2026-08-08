@@ -1,0 +1,627 @@
+campaign:
+  name: qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1
+  results_root: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1
+  reports_root: reports/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1
+grid:
+  source_mode: materialized_source_inputs
+execution:
+  methods: mcmc
+  likelihood_families:
+  - al
+  - exal
+  seed_policy:
+    mode: explicit_per_profile
+    base_seed: 971001
+  allowed_fit_spec_ids:
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__c1ea8043a37bf5
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__5394f75a9a74fc
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__c2f70c177f9041
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__c613f6ed9a64e3
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__b787de5094fcd8
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__al__502aae76bc819f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__622cb497a87f7f
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__a2065f4cb427a1
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__79dae46ccbf08e
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__21ea31ddcf9ebf
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__7258c3344bdd9c
+  - qdesn__normal__0p25__tt500__rhs_ns__mcmc__exal__8f770027f86e4d
+study_contract:
+  core_lane: no
+  id: qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1_2026_08_08
+  description: Three fresh chains for each exact Normal p=0.25 design selected by
+    the two-chain robust point-path audit, yielding five chains per design.
+  budget:
+    posterior_metric_draws: 200
+    vb_sampling_nd_draws: 200
+    vb_synthesis_n_samp: 200
+    mcmc_n_burn: 5000
+    mcmc_n_mcmc: 20000
+    mcmc_thin: 1
+  vb:
+    method: LDVB
+    profile_id: qdesn_ldvb_canonical_v1
+    sigmagam:
+      freeze_warmup_iters: 10
+      force_after_warmup: yes
+      postwarmup_damping: 0.5
+      postwarmup_damping_iters: 3
+      min_postwarmup_updates: 1
+  mcmc:
+    kernel: slice
+    require_slice: yes
+    require_init_from_vb: yes
+    banned_proposals:
+    - rw
+    - laplace_rw
+    sigmagam:
+      freeze_burnin_iters: 50
+      freeze_only_during_burn: yes
+      force_after_warmup: yes
+      delay_adapt_until_after_warmup: yes
+      delay_laplace_refresh_until_after_warmup: yes
+    vb_warm_start:
+      method: LDVB
+      max_iter: 150
+      min_iter_elbo: 40
+      n_samp_xi: 500
+      sigmagam:
+        freeze_warmup_iters: 10
+        force_after_warmup: yes
+        postwarmup_damping: 0.5
+        postwarmup_damping_iters: 3
+        min_postwarmup_updates: 1
+  screening_policy:
+    unit: one_family_tau_likelihood_candidate
+    candidates_per_cell: 1
+    comparison_policy: coherent_external_benchmark_with_internal_envelope_context
+    promotion_policy: full_budget_confirmation_required_before_scientific_promotion
+    launch_status: prepared_not_launched
+  confirmation_budget:
+    mcmc_n_burn: 5000
+    mcmc_n_mcmc: 20000
+    mcmc_thin: 1
+    posterior_metric_draws: 200
+    candidates: 1
+    required_before_article_promotion: yes
+  confirmation_contract:
+    source_closeout_id: qdesn_tt500_mcmc_metricgap_v3_combined_closeout_20260727
+    source_spec_id: qdesn__laplace__0p25__tt500__rhs_ns__mcmc__exal__020293d289bcb0
+    source_root_id: root__dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__laplace__tau_0p25__lasttt_500__qdesn_rhs_ns__profile_mgv3_16_exal_local
+    source_profile_id: mgv3_16_exal_local
+    source_registry_hash: edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275
+    external_ratio_max: 1.05
+    screening_stability_ratio_max: 1.1
+    internal_metric_envelope_is_context_only: yes
+    diagnostic_grade_is_reported_not_metric_suppressing: yes
+    article_update_is_automatic: no
+  source_registry_identity_field: source_registry_hash_value
+  source_registry_hash_value: edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275
+  authoritative_interface_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_chain_aggregate_confirm_v1_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v3_20260807/qdesn_dqlm_500obs_trainonly_article_v3_20260807_interface.csv
+  authoritative_interface_sha256: 90744fae79f8af79c6e844e5862c90330ea14d9bbd2df69f630440887fed1393
+  sparse_topology_refine_v1:
+    source_registry_hash_value: edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275
+    source_registry_snapshot_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_source_registry.csv
+    source_registry_snapshot_sha256: 7556ebddc65a5a1702fe532399380eb61de836934bd8f0f7f4149f5e5feddba1
+    topology_seed_contract_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_topology_seed_contract.csv
+    topology_seed_contract_sha256: e21abef29ceb569d0cebb444ae8155f2df6c5c5894f1263c250bb052c873b0f7
+    topology_search_audit_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_topology_seed_search_audit.csv
+    topology_search_audit_sha256: 5d28701b540bfa93728fc47f88a669019f236861b08ea1fcf4c4ffc5c08c5ed6
+    interaction_design_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_interaction_design.csv
+    interaction_design_sha256: d27d724c8d86d610e090288e9d4e6ee3b8594070056b49f7a2fcad45914a17a6
+    pair_map_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_pair_map.csv
+    pair_map_sha256: 052f58971329f7218637dbb8114b088cf082b32199da860bd4a8b4752d8fa705
+    promotion_tolerance: 1.0e-10
+    diagnostic_policy: retain_but_never_filter_finite_metrics
+    article_update_automatic: no
+  rolling_origin:
+    forecast_origin_source_index: 9000
+    forecast_block_start_source_index: 9001
+    forecast_block_end_source_index: 10000
+    max_lead_configured: 30
+    origin_stride: 30
+    no_refit: yes
+    observed_lag_state_update: yes
+  selection_policy:
+    unit: exact_design_five_chain_point_path_estimator
+    target_cells: 2
+    unique_designs: 4
+    candidate_designs: 4
+    existing_sampler_replicates: 2
+    sampler_replicates: 3
+    expected_specs: 12
+    expected_total_chains_per_design: 5
+    promotion_policy: strict_five_chain_aggregate_metric_improvement
+    promotion_tolerance: 1.0e-10
+    article_policy: manual_review_only
+  chain_aggregate_confirm_v1:
+    source_campaign_stage: qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1
+    source_profiles_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_chain_aggregate_confirm_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_sparse_topology_refine_v1_profiles.csv
+    source_profiles_sha256: 68f5e08baeeb473e27ee1674dedda13a2533e41fe340258aa6ed64d2c08f4c51
+    chain_aggregate_config_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_chain_aggregate_confirm_v1_1p0p0/config/validation/qdesn_mcmc_chain_aggregate_v1.yaml
+    chain_aggregate_config_sha256: d4396f23a667d1b0f14a1bf17d7674949089ed420d4a9b1e7c1b3f48c2288694
+    followup_designs_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_chain_aggregate_confirm_v1_1p0p0/config/validation/qdesn_mcmc_chain_aggregate_v1_followup_designs.csv
+    followup_designs_sha256: bceb68c15ef7794ab9d35011735f75a36ac7d0440a147677c4df4d850397e71c
+    selected_designs_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_chain_aggregate_confirm_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1_selected_designs.csv
+    selected_designs_sha256: fbeb699be01881ec2f4c63fd549813410df603b4ce2330af656c57ed18f97c21
+    chain_handoff_path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_chain_aggregate_confirm_v1_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1_chain_handoff.csv
+    chain_handoff_sha256: 47971d3e464678ede898c96afdc2e4b970cc0b644fa69314e3992fb6f69c2ef7
+    fresh_sampler_replicates:
+    - 3
+    - 4
+    - 5
+    estimator_id: median_of_chain_posterior_point_paths_v1
+    posterior_pooling_claim: no
+    replication_rule: five_chain_aggregate_strictly_below_frozen_authority
+    diagnostic_policy: retain_but_never_filter_finite_metrics
+    article_update_automatic: no
+rescue_overlays:
+  enabled: no
+  mode: explicit_optional
+  inventory_csv: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_inventory.csv
+  row_overrides_source_defaults: config/validation/qdesn_dynamic_exdqlm_crossstudy_effective_w300_postdraw_deepdesn_rowfaithful_multiseed_defaults.yaml
+source_materialization:
+  dynamic_root: /data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources
+  staged_root: results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300
+  enforce_effective_train_size: yes
+  train_end_source_index: 9000
+  forecast_origin_source_index: 9000
+  forecast_horizon: 1000
+  scenarios: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  families: normal
+  taus: 0.25
+  windows:
+  - effective_fit_size: 500
+    source_total_size: 1890
+    source_dir_name: fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90
+    label: effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90
+pilot:
+  source_root_kind: dynamic
+  source_scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  source_family: laplace
+  tau: 0.25
+  fit_size: 500
+  effective_fit_size: 500
+  source_total_size: 1890
+  source_window_label: effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90
+  beta_prior_type: rhs_ns
+  seed: 123
+  reservoir_profile: deep_d3_n400x3_skip100_w300_m60
+  enabled: yes
+  source_reference_priors: default
+  source_current_rhsns_member: no
+  source_legacy_rhs_member: no
+reference:
+  dynamic_root: /data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources
+reference_contract:
+  root_kind: dynamic
+  scenarios: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  families: normal
+  taus: 0.25
+  fit_sizes: 500
+  expected_unique_dataset_cells: 1
+  expected_qdesn_roots: 12
+  expected_priors: rhs_ns
+  expected_selected_qdesn_roots: 12
+screening_profiles:
+  enabled: yes
+  csv: config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1_profiles.csv
+  cell_assignments_csv: config/validation/qdesn_dynamic_fitforecast_v2_500obs_mcmc_chain_aggregate_confirm_v1_cell_assignments.csv
+  priors: rhs_ns
+  design: Four exact Pareto-nondominated chain-aggregate designs, each evaluated with
+    three fresh full-budget sampler replicates.
+  execution_grid_policy: 12_exact_fresh_chain_roots
+  canonical_profile_count: 12
+  canonical_dataset_cell_count: 1
+  canonical_qdesn_root_count: 12
+  selected_assignment_root_count: 12
+smoke:
+  scenario: dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  family: laplace
+  tau: 0.25
+  fit_sizes: 500
+  priors: rhs_ns
+  budget:
+    posterior_metric_draws: 4
+    vb_sampling_nd_draws: 4
+    vb_synthesis_n_samp: 4
+    mcmc_n_burn: 4
+    mcmc_n_mcmc: 4
+    mcmc_thin: 1
+  pipeline:
+    inference:
+      mcmc:
+        n_burn: 4
+        n_mcmc: 4
+        thin: 1
+        progress_every: 1
+        init_from_vb: yes
+  max_roots: 1
+  screening_profile_ids: mgv3_16_exal_local
+metrics:
+  primary_windows:
+  - train_effective
+  - rolling_forecast_leads
+  fit_window_role: effective_train_post_lag_washout
+  forecast_window_role: contiguous_forecast_block_after_train_origin
+  train_effective_source_indices:
+    TT500:
+    - 8501
+    - 9000
+    TT5000:
+    - 4001
+    - 9000
+  forecast_source_indices:
+  - 9001
+  - 10000
+  forecast_horizons:
+  - 100
+  - 1000
+  rolling_origin:
+    enabled: yes
+    require_lead_export: yes
+    forecast_protocol: rolling_origin_no_refit_state_update
+    state_update_method: forecast_lattice_observed_lag_state_update_no_refit
+    refit_per_origin: no
+    max_lead_configured: 30
+    origin_stride: 30
+  backward_compatible_holdout_alias: forecast_H1000
+  posterior_metric_draws: 200
+  qtrue_metrics:
+  - mae
+  - rmse
+  - bias
+  - corr
+  - median_ae
+  - p90_ae
+  quantile_calibration_metrics:
+  - pinball_tau
+  - coverage
+  - coverage_minus_tau
+  - coverage_error
+  runtime_metrics:
+  - runtime_sec
+  - runtime_sec_per_1k_eval
+  - runtime_sec_per_1k_train_eval
+runtime:
+  threads: 1
+  campaign_workers: 12
+  workers: 12
+  root_scheduler: load_balanced
+diagnostics:
+  fit_runtime:
+    stream_child_stdout: yes
+    timeout_seconds: 604800
+    timeout_kill_after_seconds: 60
+signoff:
+  vb:
+    tail_window: 5
+    min_trace_length: 5
+    elbo_rel_range_pass: 0.01
+    elbo_rel_range_warn: 0.05
+    core_rel_range_pass: 0.02
+    core_rel_range_warn: 0.1
+    rhs_rel_range_pass: 0.05
+    rhs_rel_range_warn: 0.2
+    require_converged_for_pass: yes
+  mcmc:
+    min_keep_pass: 300
+    min_keep_warn: 180
+    ess_pass: 30
+    ess_warn: 10
+    acf1_pass: 0.9
+    acf1_warn: 0.98
+    geweke_absz_pass: 2.0
+    geweke_absz_warn: 3.0
+    half_drift_pass: 0.25
+    half_drift_warn: 0.5
+reservoir_profiles:
+  deep_d3_n400x3_skip100_w300_m60:
+    D: 3
+    'n':
+    - 400
+    - 400
+    - 400
+    n_tilde:
+    - 400
+    - 400
+    m: 60
+    alpha:
+    - 0.3
+    - 0.3
+    - 0.3
+    rho:
+    - 0.95
+    - 0.95
+    - 0.95
+    act_f:
+    - tanh
+    - tanh
+    - tanh
+    act_k:
+    - identity
+    - identity
+    - identity
+    pi_w:
+    - 0.1
+    - 0.1
+    - 0.1
+    pi_in:
+    - 1.0
+    - 1.0
+    - 1.0
+    washout: 300
+    add_bias: yes
+    seed: 123
+external_data:
+  holdout_n: 1000
+  y_column: 'y'
+  q_true_column: q_true
+  source_index_column: source_index
+preproc:
+  scale_y: yes
+  scale_x: yes
+lags:
+  m_y: 90
+  m_x: 0
+  x: 0
+pipeline:
+  verbose: yes
+  readout:
+    include_input: yes
+    reservoir_lags: 0
+    input_position: after_reservoir
+    input_mode: raw_y_lags
+  decomposition:
+    enabled: no
+  sampling:
+    nd_draws: 200
+    chunk: 100
+  forecast:
+    mode: origin
+    protocol: rolling_origin_no_refit_state_update
+    horizon: 30
+    origin_stride: 30
+    primary_lead_export: yes
+    train_last_window: 18
+    fore_last_window: 18
+  ij:
+    use_ij_correction: no
+    nd_draws: 0
+  synthesis:
+    isotonic: no
+    rearrange: no
+    grid_M: 151
+    n_samp: 200
+    seed: 321
+  diagnostics:
+    calibration: no
+    pit: no
+    scores: yes
+    lead_eval: no
+    fan_charts: no
+    plots: no
+  cpp:
+    use_postpred: no
+    postpred_omp: no
+    postpred_precompute: no
+    postpred_threads: 1
+  outputs:
+    save: yes
+    keep_draws: no
+    keep_mcmc_vb_init: no
+    retention_profile: storage_light_chain_aggregate_confirm_v1
+    save_forecast_objects: no
+    save_compact_fit_paths: yes
+    save_metric_summaries: yes
+    retain_full_rds_on_failure: no
+    thesis_subset: no
+  inference:
+    likelihood_family: exal
+    readout_scale: yes
+    vb:
+      max_iter: 150
+      min_iter_elbo: 40
+      n_samp_xi: 500
+      progress_every: 50
+      verbose: yes
+      sigmagam:
+        freeze_warmup_iters: 10
+        force_after_warmup: yes
+        postwarmup_damping: 0.5
+        postwarmup_damping_iters: 3
+        min_postwarmup_updates: 1
+      diagnostics:
+        rhs_trace: yes
+        rhs_deep: no
+      rhs:
+        freeze_tau_iters: 50
+        freeze_tau_warmup_iters: 50
+        tau_local_tol: 0.0005
+        min_tau_updates: 2
+        force_tau_after_warmup: yes
+      prior_overrides:
+        ridge:
+          max_iter: 150
+          min_iter_elbo: 40
+          n_samp_xi: 500
+        rhs_ns:
+          max_iter: 150
+          min_iter_elbo: 40
+          n_samp_xi: 500
+          rhs:
+            freeze_tau_iters: 50
+            freeze_tau_warmup_iters: 50
+            tau_local_tol: 0.0005
+            min_tau_updates: 2
+            force_tau_after_warmup: yes
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 1.0e-05
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 1.0
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-08
+            init_log_tau: ~
+            init_log_lambda: 0.0
+            init_log_c2: 0.0
+    mcmc:
+      n_burn: 5000
+      n_mcmc: 20000
+      thin: 1
+      verbose: yes
+      progress_every: 50
+      init_from_vb: yes
+      vb_warm_start_control:
+        method: ldvb
+        max_iter: 150
+        min_iter_elbo: 40
+        n_samp_xi: 500
+        progress_every: 50
+        verbose: no
+        sigmagam:
+          freeze_warmup_iters: 10
+          force_after_warmup: yes
+          postwarmup_damping: 0.5
+          postwarmup_damping_iters: 3
+          min_postwarmup_updates: 1
+        rhs_trace: yes
+        rhs_deep: no
+        rhs:
+          freeze_tau_iters: 50
+          freeze_tau_warmup_iters: 50
+          tau_local_tol: 0.0005
+          min_tau_updates: 2
+          force_tau_after_warmup: yes
+      store_latent_draws: no
+      store_rhs_draws: no
+      transforms:
+        use_log_sigma: yes
+        sigma_eta_bounds:
+        - -20
+        - 20
+      rhs:
+        freeze_tau_burnin_iters: 500
+        freeze_tau_only_during_burn: yes
+        width_adapt:
+          enabled: no
+          warmup_iters: 0
+          only_during_burn: yes
+          target_score_low: -0.75
+          target_score_high: 0.75
+          step_size: 0.015
+          width_min: 0.02
+          width_max: 1.8
+      sigmagam:
+        freeze_burnin_iters: 50
+        freeze_only_during_burn: yes
+        force_after_warmup: yes
+        delay_adapt_until_after_warmup: yes
+        delay_laplace_refresh_until_after_warmup: yes
+      slice:
+        core_update_mode: sigma_then_gamma
+        width_gamma: 0.45
+        width_sigma: 0.28
+        width_rhs_lambda: 0.2
+        width_rhs_tau: 0.12
+        width_rhs_c2: 0.08
+        width_rhs_tau_c2_block: 0.24
+        rhs_global_block_update: transformed_tau_c2_block
+        rhs_transformed_block_passes: 3
+        core_extra_passes: 2
+        max_steps_out: 90
+        max_shrink: 320
+        max_steps_out_sigma: 150
+        max_shrink_sigma: 400
+      prior_overrides:
+        ridge:
+          n_burn: 5000
+          n_mcmc: 20000
+          progress_every: 50
+          slice:
+            core_update_mode: sigma_then_gamma
+            width_gamma: 0.45
+            width_sigma: 0.25
+            core_extra_passes: 2
+            max_steps_out: 90
+            max_shrink: 320
+            max_steps_out_sigma: 150
+            max_shrink_sigma: 400
+        rhs_ns:
+          n_burn: 5000
+          n_mcmc: 20000
+          progress_every: 50
+          rhs:
+            freeze_tau_burnin_iters: 500
+            freeze_tau_only_during_burn: yes
+            width_adapt:
+              enabled: no
+              warmup_iters: 0
+              only_during_burn: yes
+              target_score_low: -0.75
+              target_score_high: 0.75
+              step_size: 0.015
+              width_min: 0.02
+              width_max: 1.8
+          slice:
+            core_update_mode: sigma_then_gamma
+            width_gamma: 0.42
+            width_sigma: 0.3
+            width_rhs_lambda: 0.18
+            width_rhs_tau: 0.1
+            width_rhs_c2: 0.07
+            width_rhs_tau_c2_block: 0.22
+            rhs_global_block_update: transformed_tau_c2_block
+            rhs_transformed_block_passes: 3
+            core_extra_passes: 2
+            max_steps_out: 100
+            max_shrink: 360
+            max_steps_out_sigma: 160
+            max_shrink_sigma: 420
+      priors:
+        gamma:
+          mu0: 0
+          s20: 10
+        sigma:
+          a: 1
+          b: 1
+        beta:
+          ridge:
+            tau2: 20
+          rhs_ns:
+            tau0: 1.0e-05
+            a_zeta: 2.0
+            b_zeta: 1.0
+            s2: 1.0
+            shrink_intercept: no
+            intercept_prec: 1.0e-10
+            n_inner: 2
+            var_floor: 1.0e-08
+paths:
+  rewrite_home_local_src_to_repo_root: yes
+deterministic_features:
+  enabled: yes
+  period: 90
+  harmonics:
+  - 1
+  - 2
+  include_trend: yes
+  include_index: no
+  prefix: period90
+multiseed:
+  enabled: no
+  mcmc_seed_reps: 1
+  parallel_seed_workers: 1
+  selection_metric: coherent_external_benchmark
+  prune_nonwinning_heavy_outputs: yes

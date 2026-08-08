@@ -1,0 +1,5 @@
+"source_base_design_id","likelihood_family","existing_sampler_replicates","fresh_sampler_replicates","expected_total_chains","estimator_id","selection_role"
+"strv1_al_w03_seed1110003_parent","al","1;2","3;4;5",5,"median_of_chain_posterior_point_paths_v1","al_forecast_mae_anchor"
+"strv1_al_w02_seed1010003_p04","al","1;2","3;4;5",5,"median_of_chain_posterior_point_paths_v1","al_fit_rmse_anchor"
+"strv1_exal_w03_seed1110003_p06","exal","1;2","3;4;5",5,"median_of_chain_posterior_point_paths_v1","exal_forecast_mae_anchor"
+"strv1_exal_w02_seed1010003_p06","exal","1;2","3;4;5",5,"median_of_chain_posterior_point_paths_v1","exal_fit_rmse_anchor"

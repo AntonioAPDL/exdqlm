@@ -1,0 +1,48 @@
+stage: qdesn_mcmc_chain_aggregate_v1
+package_version: 1.0.0
+scope: independent_single_quantile_qdesn_dqlm_validation
+target:
+  family: normal
+  tau: 0.25
+  fit_size: 500
+  train_start_source_index: 8501
+  train_end_source_index: 9000
+  forecast_start_source_index: 9001
+  forecast_end_source_index: 10000
+  forecast_max_lead: 30
+  forecast_origin_stride: 30
+sources:
+  discovery_metrics:
+    path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_sparse_topology_refine_v1_20260807_045131/closeout/confirmation_metrics.csv
+    sha256: d25aa2f05bb9bab3aac38745dd9ec655532d4b6e55316c2dc1f4bc193e2dee91
+    campaign: qdesn-strv1-full-20260807_045131__git-acfa0b4
+  discovery_gate:
+    path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_refine_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_sparse_topology_refine_v1_20260807_045131/closeout/confirmation_gate.json
+    sha256: a9ff52ac4aa790513c3695590ddd89528f404490163fe310c415d544343d27ae
+  confirmation_metrics:
+    path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_confirm_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_sparse_topology_confirm_v1_20260807_182431/closeout/confirmation_metrics.csv
+    sha256: 735be51dcd6fb6f76a694deaa1111793b5acd70d3542de3a7146eb164adfa71c
+    campaign: qdesn-strc1-full-20260807_182431__git-ea9d7ce
+  confirmation_gate:
+    path: /data/jaguir26/local/src/exdqlm__wt__qdesn_mcmc_sparse_topology_confirm_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_mcmc_sparse_topology_confirm_v1_20260807_182431/closeout/confirmation_gate.json
+    sha256: a3102d14737aa7123115be5a25686c2ca212a58ad9c167ac721e1473a8329c37
+  article_authority:
+    path: validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v3_20260807/qdesn_dqlm_500obs_trainonly_article_v3_20260807_interface.csv
+    sha256: 90744fae79f8af79c6e844e5862c90330ea14d9bbd2df69f630440887fed1393
+  source_registry_hash: edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275
+estimator:
+  id: median_of_chain_posterior_point_paths_v1
+  fit_path_value: q_pred
+  forecast_path_value: qhat
+  chain_combiner: coordinatewise_median
+  posterior_pooling_claim: false
+  minimum_chains_discovery: 2
+  minimum_chains_confirmation: 5
+  metric_selection_status_agnostic: true
+selection:
+  require_contract_valid_sources: true
+  require_finite_paths: true
+  require_exact_path_alignment: true
+  minimum_metrics_improved_for_followup: 2
+  maximum_followup_designs_per_likelihood: 2
+  article_update_automatic: false
