@@ -2486,6 +2486,19 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     if (length(rhs_tau) == nrow(out)) out$rhs_tau <- rhs_tau
     if (length(rhs_c2) == nrow(out)) out$rhs_c2 <- rhs_c2
     if (length(rhs_lambda_mean) == nrow(out)) out$rhs_lambda_mean <- rhs_lambda_mean
+    gamma_density_evaluations <- as.integer(
+      fit$misc$gamma_density_evaluations %||% integer(0)
+    )
+    if (length(gamma_density_evaluations) >= nrow(out)) {
+      out$gamma_density_evaluations <- utils::tail(
+        gamma_density_evaluations, nrow(out)
+      )
+    }
+    out$core_update_mode <- as.character(
+      fit$diagnostics$core_update_mode %||%
+        (fit$control$slice %||% list())$core_update_mode %||%
+        NA_character_
+    )[1L]
     return(out)
   }
 
@@ -2875,20 +2888,37 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   ))
 }
 
-.qdesn_validation_run_one_method <- function(method, root_spec, defaults, file_long, method_dir, verbose = TRUE) {
-  cfg <- qdesn_validation_build_pipeline_cfg(root_spec, defaults = defaults, method = method)
+.qdesn_validation_run_one_method <- function(
+    method, root_spec, defaults, file_long, method_dir, verbose = TRUE,
+    cfg_override = NULL, fit_request_extra = NULL) {
+  cfg <- if (is.null(cfg_override)) {
+    qdesn_validation_build_pipeline_cfg(root_spec, defaults = defaults, method = method)
+  } else {
+    cfg_override
+  }
+  if (!is.list(cfg)) stop("Resolved validation configuration must be a list.", call. = FALSE)
   start_time <- Sys.time()
   status <- "SUCCESS"
   error_message <- NA_character_
   error_payload <- list()
 
   .qdesn_validation_dir_create(file.path(method_dir, "logs"))
-  .qdesn_validation_write_json(file.path(method_dir, "fit_request.json"), list(root_spec = root_spec, method = method, config = cfg))
+  fit_request <- fit_request_extra %||% list()
+  if (!is.list(fit_request)) stop("fit_request_extra must be a list.", call. = FALSE)
+  fit_request$root_spec <- root_spec
+  fit_request$method <- method
+  fit_request$config <- cfg
+  fit_request$observed_path <- normalizePath(file_long, winslash = "/", mustWork = TRUE)
+  .qdesn_validation_write_json(file.path(method_dir, "fit_request.json"), fit_request)
+
+  pipeline_mode <- tolower(as.character((cfg$pipeline %||% list())$mode %||% "sim")[1L])
+  file_obs <- if (pipeline_mode %in% c("real", "observed", "data")) file_long else NULL
 
   run_res <- tryCatch(
     run_esn_pipeline_from_cfg(
       cfg = cfg,
       file_long = file_long,
+      file_obs = file_obs,
       out_dir = method_dir,
       save_outputs = TRUE,
       verbose = FALSE

@@ -1,0 +1,29 @@
+{
+  "schema_version": "independent_exal_m0_relaunch_v1",
+  "materialized_at": "2026-08-09",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_relaunch_v1",
+  "package_version": "1.0.0",
+  "branch": "validation/independent-exal-m0-relaunch-v1-1.0.0",
+  "exact_base_commit": "58ad24dee1204f23f7b0df5efc32b388dd8638b3",
+  "authoritative_interface_path": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v3_20260807/qdesn_dqlm_500obs_trainonly_article_v3_20260807_interface.csv",
+  "authoritative_interface_sha256": "90744fae79f8af79c6e844e5862c90330ea14d9bbd2df69f630440887fed1393",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "method_id": "M0_v_collapsed_support_logit",
+  "package_method_id": "m0_v_collapsed_support_logit",
+  "anchors": 15,
+  "metric_occurrences": 27,
+  "planned_jobs": 60,
+  "jobs_by_stage": {
+    "canary": 9,
+    "full": 45,
+    "smoke": 6
+  },
+  "parallel_workers": 20,
+  "threads_per_worker": 1,
+  "full_chains_per_anchor": 3,
+  "article_update_automatic": false,
+  "automatic_promotion": false,
+  "diagnostic_status_filters_metrics": false,
+  "file_manifest_path": "config/validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_relaunch_v1_file_manifest.csv",
+  "file_manifest_sha256": "9c6a1068f712d37e3917eaf8ba771a5a6e731fb6bc8dd1d972c43b28feed35c3"
+}

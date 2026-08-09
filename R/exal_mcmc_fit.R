@@ -1469,11 +1469,20 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     .stopf("mcmc_control$slice$width_gamma must be positive.")
   }
   if (!is.finite(core_extra_passes) || core_extra_passes < 0L) core_extra_passes <- 0L
-  if (!core_update_mode %in% c("sigma_then_gamma", "gamma_sigma_gamma")) {
+  supported_core_update_modes <- c(
+    "sigma_then_gamma",
+    "gamma_sigma_gamma",
+    "m0_v_collapsed_support_logit"
+  )
+  if (!core_update_mode %in% supported_core_update_modes) {
     .stopf(
-      "Unsupported mcmc_control$slice$core_update_mode '%s'. Expected 'sigma_then_gamma' or 'gamma_sigma_gamma'.",
-      core_update_mode
+      "Unsupported mcmc_control$slice$core_update_mode '%s'. Expected one of: %s.",
+      core_update_mode,
+      paste(supported_core_update_modes, collapse = ", ")
     )
+  }
+  if (is_al && identical(core_update_mode, "m0_v_collapsed_support_logit")) {
+    .stopf("m0_v_collapsed_support_logit is available only for exAL MCMC.")
   }
   if (use_log_sigma && (!is.finite(sigma_slice_width) || sigma_slice_width <= 0)) {
     .stopf("mcmc_control$slice$width_sigma must be positive when using log-sigma sampling.")
@@ -2054,6 +2063,27 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   }
 
   update_sigma_gamma_once <- function(beta_now, v_now, s_now, sigma_now, eta_sigma_now, eta_gamma_now) {
+    if (identical(core_update_mode, "m0_v_collapsed_support_logit")) {
+      return(.exal_mcmc_collapsed_scale_shape_draw(
+        sigma = sigma_now,
+        eta_gamma = eta_gamma_now,
+        y = y,
+        fitted = drop(X %*% beta_now),
+        s = s_now,
+        v = v_now,
+        lower = L,
+        upper = U,
+        A_of = A_of,
+        B_of = B_of,
+        Cabs_of = Cabs_of,
+        log_prior_gamma = log_prior_gamma,
+        a_sigma = as.numeric(prior_sigma$a),
+        b_sigma = as.numeric(prior_sigma$b),
+        width = gamma_slice_width,
+        max_steps_out = gamma_slice_max_steps_out,
+        max_shrink = gamma_slice_max_shrink
+      ))
+    }
     if (identical(core_update_mode, "gamma_sigma_gamma") && !is_al) {
       gamma_upd_pre <- update_gamma_only(
         beta_now = beta_now,
@@ -2084,7 +2114,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         gamma = gamma_upd_post$gamma,
         eta_gamma = gamma_upd_post$eta_gamma,
         gamma_steps_out = as.integer(gamma_upd_pre$gamma_steps_out) + as.integer(gamma_upd_post$gamma_steps_out),
-        gamma_shrink = as.integer(gamma_upd_pre$gamma_shrink) + as.integer(gamma_upd_post$gamma_shrink)
+        gamma_shrink = as.integer(gamma_upd_pre$gamma_shrink) + as.integer(gamma_upd_post$gamma_shrink),
+        gamma_density_evaluations = 0L
       ))
     }
 
@@ -2110,7 +2141,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       gamma = gamma_upd$gamma,
       eta_gamma = gamma_upd$eta_gamma,
       gamma_steps_out = gamma_upd$gamma_steps_out,
-      gamma_shrink = gamma_upd$gamma_shrink
+      gamma_shrink = gamma_upd$gamma_shrink,
+      gamma_density_evaluations = 0L
     )
   }
 
@@ -2216,6 +2248,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
   }
   gamma_steps_out <- rep(NA_integer_, n_total)
   gamma_shrink <- rep(NA_integer_, n_total)
+  gamma_density_evaluations <- rep(NA_integer_, n_total)
   if (is_rhs_family) {
     rhs_tau_trace <- rep(NA_real_, n_total)
     rhs_c2_trace <- rep(NA_real_, n_total)
@@ -2745,6 +2778,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     if (!isTRUE(sigmagam_warmup_active)) {
       gamma_steps_iter <- 0L
       gamma_shrink_iter <- 0L
+      gamma_density_evaluations_iter <- 0L
       for (core_pass in seq_len(core_passes_total)) {
         core_upd <- update_sigma_gamma_once(
           beta_now = beta,
@@ -2760,9 +2794,12 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
         eta_gamma <- as.numeric(core_upd$eta_gamma)[1L]
         gamma_steps_iter <- gamma_steps_iter + as.integer(core_upd$gamma_steps_out)
         gamma_shrink_iter <- gamma_shrink_iter + as.integer(core_upd$gamma_shrink)
+        gamma_density_evaluations_iter <- gamma_density_evaluations_iter +
+          as.integer(core_upd$gamma_density_evaluations %||% 0L)
       }
       gamma_steps_out[iter] <- gamma_steps_iter
       gamma_shrink[iter] <- gamma_shrink_iter
+      gamma_density_evaluations[iter] <- gamma_density_evaluations_iter
       sigmagam_update_performed_trace[iter] <- TRUE
       sigmagam_update_count <- sigmagam_update_count + 1L
       sigmagam_update_count_trace[iter] <- sigmagam_update_count
@@ -2842,6 +2879,8 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
     gamma_slice_steps_out_max = .max_or_na(gamma_steps_out),
     gamma_slice_shrink_mean = .mean_or_na(gamma_shrink),
     gamma_slice_shrink_max = .max_or_na(gamma_shrink),
+    gamma_density_evaluations_mean = .mean_or_na(gamma_density_evaluations),
+    gamma_density_evaluations_max = .max_or_na(gamma_density_evaluations),
     latent_v = list(
       enabled = isTRUE(latent_v_enabled),
       freeze_burnin_iters = as.integer(latent_v_freeze_burnin_iters),
@@ -3215,6 +3254,7 @@ exal_mcmc_fit <- function(y, X, p0, gamma_bounds,
       sigmagam_frozen_burn_rate = if (n_burn > 0L) mean(sigmagam_frozen_trace[seq_len(n_burn)]) else NA_real_,
       gamma_slice_steps_out = gamma_steps_out,
       gamma_slice_shrink = gamma_shrink,
+      gamma_density_evaluations = gamma_density_evaluations,
       beta_prec_last = beta_prec_diag,
       rhs_tau_trace = rhs_tau_trace,
       rhs_c2_trace = rhs_c2_trace,
