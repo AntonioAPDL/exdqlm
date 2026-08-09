@@ -1,0 +1,5 @@
+"model_variant","model_label","wins_before","wins_after","change"
+"dqlm","DQLM",7,6,-1
+"exdqlm","exDQLM",3,2,-1
+"qdesn_al_rhs_ns","Q-DESN AL-RHS",7,3,-4
+"qdesn_exal_rhs_ns","Q-DESN exAL-RHS",10,16,6

@@ -1,0 +1,3 @@
+"anchor_id","family","tau","path","rows","max_chain_sd","mean_chain_sd"
+"a08_laplace_t0p05_fb19f023510b7a","laplace",0.05,"fit",500,4.08350308186681,1.10921866500635
+"a08_laplace_t0p05_fb19f023510b7a","laplace",0.05,"forecast",1000,1.15708887675081,0.375003473098753

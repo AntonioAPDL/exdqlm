@@ -1,0 +1,3 @@
+"anchor_id","family","tau","path","rows","max_chain_sd","mean_chain_sd"
+"a02_normal_t0p25_2197531550d015","normal",0.25,"fit",500,2.26258728545579,0.800115920017386
+"a02_normal_t0p25_2197531550d015","normal",0.25,"forecast",1000,0.509013219612155,0.171794540453621

@@ -1,0 +1,3 @@
+"anchor_id","family","tau","path","rows","max_chain_sd","mean_chain_sd"
+"a15_gausmix_t0p50_2bc00c4d9d4211","gausmix",0.5,"fit",500,2.16704033922646,0.74309363214581
+"a15_gausmix_t0p50_2bc00c4d9d4211","gausmix",0.5,"forecast",1000,0.479125100689853,0.198125832325426

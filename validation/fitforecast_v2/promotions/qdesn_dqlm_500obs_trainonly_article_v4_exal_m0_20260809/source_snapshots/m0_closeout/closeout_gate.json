@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-08-09 17:08:05.540589",
+  "run_tag": "ind-exal-m0-v1-20260809_161838__git-89d214e",
+  "stage": "qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_relaunch_v1",
+  "expected_chains": 45,
+  "successful_chains": 45,
+  "anchors": 15,
+  "metric_occurrences": 27,
+  "metrics_improved": 22,
+  "diagnostic_grade_counts": {
+    "PASS": 13,
+    "WARN": 2
+  },
+  "storage_policy_pass": true,
+  "diagnostic_status_used_as_metric_filter": false,
+  "automatic_promotion": false,
+  "article_updated": false,
+  "decision": "COMPLETE_REVIEW_REQUIRED"
+}
