@@ -96,7 +96,9 @@ write_config_list() {
     "${STUB}_${budget}_chain_plan.csv" > "$STATE_ROOT/${budget}_configs.txt"
 }
 run_budget() {
-  local budget="$1" parallelism="$2" list="$STATE_ROOT/${budget}_configs.txt"
+  local budget="$1"
+  local parallelism="$2"
+  local list="$STATE_ROOT/${budget}_configs.txt"
   write_config_list "$budget"
   set +e
   taskset -c "$CPU_SET" xargs -r -n 1 -P "$parallelism" \

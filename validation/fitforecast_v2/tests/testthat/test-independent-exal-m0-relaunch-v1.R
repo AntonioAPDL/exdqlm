@@ -136,3 +136,22 @@ testthat::test_that("M0 health classification distinguishes all lifecycle states
     qdesn_m0v1_classify_health("FAIL", FALSE, 9999), "failed"
   )
 })
+
+testthat::test_that("strict-mode budget launcher initializes dependent locals safely", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  pipeline_path <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "run_independent_exal_m0_relaunch_v1_pipeline.sh"
+  )
+  pipeline <- readLines(pipeline_path, warn = FALSE)
+  testthat::expect_true(any(grepl('^  local budget="\\$1"$', pipeline)))
+  testthat::expect_true(any(grepl(
+    '^  local list="\\$STATE_ROOT/\\$\\{budget\\}_configs[.]txt"$', pipeline
+  )))
+  testthat::expect_false(any(grepl(
+    'local budget=.*list=.*\\$\\{budget\\}', pipeline
+  )))
+})

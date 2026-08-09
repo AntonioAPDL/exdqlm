@@ -206,6 +206,17 @@ run roots are unavailable. These failures do not exercise the M0 sampler or
 this campaign. They are recorded as residual repository risk and are not
 silently relabeled as passing tests.
 
+## Invalid launch record
+
+Run tag `ind-exal-m0-v1-20260809_160325__git-1ac48bd` is aborted and must not
+be consumed. Its controller passed materialization, focused tests, static
+verification, prepare-only, and the resource gate, then stopped before the
+first smoke worker because a strict-mode Bash function expanded a dependent
+local variable within the same declaration. No chain was started and no model
+artifact was produced. The launcher now initializes those locals on separate
+lines, and a focused regression test protects that contract. Production uses
+a fresh run tag rather than resuming this invalid attempt.
+
 ## Publication boundary
 
 This campaign does not touch Article-Q-DESN Version 2 or Version 3. A complete
