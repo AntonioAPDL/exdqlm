@@ -11,6 +11,7 @@ testthat::test_that("independent exAL M0 relaunch freezes 15 exact per-metric an
   anchors <- qdesn_m0v1_read_csv(paste0(stub, "_anchor_registry.csv"))
   metrics <- qdesn_m0v1_read_csv(paste0(stub, "_metric_contract.csv"))
   plan <- qdesn_m0v1_read_csv(paste0(stub, "_chain_plan.csv"))
+  budgets <- qdesn_m0v1_read_csv(paste0(stub, "_budget_contract.csv"))
 
   testthat::expect_equal(nrow(anchors), 15L)
   testthat::expect_equal(nrow(metrics), 27L)
@@ -18,6 +19,9 @@ testthat::test_that("independent exAL M0 relaunch freezes 15 exact per-metric an
   testthat::expect_equal(sum(plan$budget == "smoke"), 6L)
   testthat::expect_equal(sum(plan$budget == "canary"), 9L)
   testthat::expect_equal(sum(plan$budget == "full"), 45L)
+  canary_budget <- budgets[budgets$budget == "canary", , drop = FALSE]
+  testthat::expect_identical(canary_budget$n_burn, 1000L)
+  testthat::expect_identical(canary_budget$n_mcmc, 3000L)
   testthat::expect_equal(length(unique(plan$anchor_id[plan$budget == "full"])), 15L)
   testthat::expect_true(all(table(plan$anchor_id[plan$budget == "full"]) == 3L))
   testthat::expect_true(all(plan$core_update_mode == qdesn_m0v1_method_id))

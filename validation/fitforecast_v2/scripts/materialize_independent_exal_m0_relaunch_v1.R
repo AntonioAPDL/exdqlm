@@ -187,14 +187,14 @@ metric_contract <- metric_contract[, c(
 
 budget_contract <- data.frame(
   budget = c("smoke", "canary", "full"),
-  n_burn = c(25L, 500L, 5000L),
-  n_mcmc = c(50L, 1000L, 20000L),
+  n_burn = c(25L, 1000L, 5000L),
+  n_mcmc = c(50L, 3000L, 20000L),
   thin = c(1L, 1L, 1L),
   posterior_metric_draws = c(20L, 100L, 200L),
   chains_per_anchor = c(2L, 3L, 3L),
   purpose = c(
     "finite-output and artifact-contract gate",
-    "three-chain sampler-behavior gate",
+    "extended three-chain sampler-behavior gate",
     "article-comparable full-budget confirmation"
   ),
   stringsAsFactors = FALSE

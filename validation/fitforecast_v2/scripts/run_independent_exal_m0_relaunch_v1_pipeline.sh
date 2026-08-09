@@ -206,18 +206,24 @@ if ! run_budget "smoke" 6; then
   record_status "smoke" "FAILED" "worker failure;inspect smoke_workers.log"
   exit 5
 fi
-"$R_SCRIPT" "$VERIFY" --budget smoke --run-tag "$RUN_TAG" \
-  --output "$STATE_ROOT/smoke_verification.json" > "$STATE_ROOT/smoke_verification.log" 2>&1
+if ! "$R_SCRIPT" "$VERIFY" --budget smoke --run-tag "$RUN_TAG" \
+  --output "$STATE_ROOT/smoke_verification.json" > "$STATE_ROOT/smoke_verification.log" 2>&1; then
+  record_status "smoke" "FAILED" "artifact verification failed;inspect smoke_verification.log"
+  exit 8
+fi
 record_status "smoke" "COMPLETED" "6/6 finite;M0;storage contract pass"
 
 set_stage "canary"
-record_status "canary" "STARTED" "9 chains;3 representative anchors;3 chains each"
+record_status "canary" "STARTED" "9 chains;3 anchors;3 chains each;1000 burn+3000 retained"
 if ! run_budget "canary" 9; then
   record_status "canary" "FAILED" "worker failure;inspect canary_workers.log"
   exit 6
 fi
-"$R_SCRIPT" "$VERIFY" --budget canary --run-tag "$RUN_TAG" \
-  --output "$STATE_ROOT/canary_verification.json" > "$STATE_ROOT/canary_verification.log" 2>&1
+if ! "$R_SCRIPT" "$VERIFY" --budget canary --run-tag "$RUN_TAG" \
+  --output "$STATE_ROOT/canary_verification.json" > "$STATE_ROOT/canary_verification.log" 2>&1; then
+  record_status "canary" "FAILED" "sampler or artifact gate failed;inspect canary_verification.log"
+  exit 9
+fi
 record_status "canary" "COMPLETED" "9/9 finite;three-chain sampler gate pass"
 
 set_stage "full"
@@ -228,15 +234,21 @@ if [[ "$FULL_RC" -ne 0 ]]; then
   record_status "full" "COMPLETED_WITH_FAILURES" "worker_exit=${FULL_RC};rerun same tag resumes only missing/failed"
   exit 7
 fi
-"$R_SCRIPT" "$VERIFY" --budget full --run-tag "$RUN_TAG" \
-  --output "$STATE_ROOT/full_verification.json" > "$STATE_ROOT/full_verification.log" 2>&1
+if ! "$R_SCRIPT" "$VERIFY" --budget full --run-tag "$RUN_TAG" \
+  --output "$STATE_ROOT/full_verification.json" > "$STATE_ROOT/full_verification.log" 2>&1; then
+  record_status "full" "FAILED" "artifact verification failed;inspect full_verification.log"
+  exit 10
+fi
 record_status "full" "COMPLETED" "45/45 finite storage-light chains"
 
 set_stage "closeout"
 record_status "closeout" "STARTED" "pooled paths;chain diagnostics;metric comparison"
-"$R_SCRIPT" validation/fitforecast_v2/scripts/closeout_independent_exal_m0_relaunch_v1.R \
+if ! "$R_SCRIPT" validation/fitforecast_v2/scripts/closeout_independent_exal_m0_relaunch_v1.R \
   --run-tag "$RUN_TAG" --output-root "$STATE_ROOT/closeout" \
-  > "$STATE_ROOT/closeout.log" 2>&1
+  > "$STATE_ROOT/closeout.log" 2>&1; then
+  record_status "closeout" "FAILED" "closeout failed;inspect closeout.log"
+  exit 11
+fi
 record_status "closeout" "COMPLETED" "manual promotion candidates written;article untouched"
 
 set_stage "complete"

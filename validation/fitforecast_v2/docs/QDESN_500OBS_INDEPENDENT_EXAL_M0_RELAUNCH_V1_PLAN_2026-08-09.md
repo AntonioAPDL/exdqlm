@@ -99,7 +99,7 @@ available.
 | Static verification | 60 configs | 1 | no fit | hashes, source, prior, model, method, storage |
 | Prepare-only | 60 manifests | 1 | no fit | no model process or binary payload |
 | Smoke | 6 | 6 | 25 burn + 50 retained | finite fit/forecast outputs, 1,000 rolling rows, 30 lead summaries, exact method, no binaries |
-| Canary | 9 | 9 | 500 burn + 1,000 retained | three chains for three representative anchors; finite outputs and sampler gate |
+| Canary | 9 | 9 | 1,000 burn + 3,000 retained | three chains for three representative anchors; finite outputs and unchanged sampler gate |
 | Full confirmation | 45 | 20 | 5,000 burn + 20,000 retained | 15 anchors x 3 chains; article-comparable budget |
 | Closeout | 1 | 1 | no fit | pooled paths, diagnostics, metric comparison, storage audit |
 
@@ -185,13 +185,15 @@ campaign contracts, and all five health lifecycle states.
 Static verification and prepare-only evidence are written under:
 
 ```text
-reports/shared_fitforecast_v2_orchestration/independent_exal_m0_relaunch_v1_prelaunch_final/
+reports/shared_fitforecast_v2_orchestration/independent_exal_m0_relaunch_v1_prelaunch_extended_canary/
 ```
 
 The prepare-only gate resolves all 60 jobs without starting a model fit or
 creating a binary payload. Materialization is byte-stable; its final file
 manifest SHA-256 is
-`9c6a1068f712d37e3917eaf8ba771a5a6e731fb6bc8dd1d972c43b28feed35c3`.
+`e0c705ccd34763591e3d89c77530287907cd99b3396e1301279573808189dbb3`.
+The materialization-manifest SHA-256 is
+`3e838a8db767f263f5af9f45880ce5b0e79965e912f11560aaec420799ee5aec`.
 
 A real frozen-input worker integration used run tag
 `dev-m0-worker-integration3-20260809`. It completed successfully, wrote the
@@ -216,6 +218,17 @@ local variable within the same declaration. No chain was started and no model
 artifact was produced. The launcher now initializes those locals on separate
 lines, and a focused regression test protects that contract. Production uses
 a fresh run tag rather than resuming this invalid attempt.
+
+Run tag `ind-exal-m0-v1-20260809_160714__git-0541583` is also non-promotable.
+All 6 smoke and 9 canary chains completed with finite storage-light artifacts,
+but the original 500-burn plus 1,000-retained canary correctly stopped the
+controller because gamma bulk ESS was 33.7 for the Normal anchor and 43.7 for
+the Laplace anchor, below the predeclared threshold of 50. All six gamma/sigma
+R-hat values were at most 1.141 and all tail ESS values exceeded 80. The gate
+thresholds remain unchanged; instead, the canary budget is extended to 1,000
+burn-in plus 3,000 retained iterations to test whether bulk ESS scales before
+releasing the full campaign. This second tag is retained as diagnostic
+evidence only and must not be used in article tables.
 
 ## Publication boundary
 

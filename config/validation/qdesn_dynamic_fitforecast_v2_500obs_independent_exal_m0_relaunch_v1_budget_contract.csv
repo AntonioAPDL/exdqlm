@@ -1,4 +1,4 @@
 "budget","n_burn","n_mcmc","thin","posterior_metric_draws","chains_per_anchor","purpose"
 "smoke",25,50,1,20,2,"finite-output and artifact-contract gate"
-"canary",500,1000,1,100,3,"three-chain sampler-behavior gate"
+"canary",1000,3000,1,100,3,"extended three-chain sampler-behavior gate"
 "full",5000,20000,1,200,3,"article-comparable full-budget confirmation"

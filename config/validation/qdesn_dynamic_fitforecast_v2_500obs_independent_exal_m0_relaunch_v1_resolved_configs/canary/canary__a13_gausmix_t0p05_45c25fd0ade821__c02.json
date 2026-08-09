@@ -166,8 +166,8 @@
       "likelihood_family": "exal",
       "readout_scale": true,
       "mcmc": {
-        "n_burn": 500,
-        "n_mcmc": 1000,
+        "n_burn": 1000,
+        "n_mcmc": 3000,
         "thin": 1,
         "verbose": true,
         "progress_every": 50,
