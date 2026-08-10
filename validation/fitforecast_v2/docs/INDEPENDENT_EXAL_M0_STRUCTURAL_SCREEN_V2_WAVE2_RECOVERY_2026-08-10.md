@@ -49,7 +49,7 @@ The recovery implements these predeclared rules:
 - Emit a row-level repeat-resolution ledger. For this run it must contain
   exactly 55 `wave1` to `wave2` resolutions.
 - Preserve the failed `adaptive/` directory. Generate all corrected adaptive
-  artifacts under `adaptive_recovery_selector_v1/`.
+  artifacts under a versioned recovery directory.
 - Reverify all 282 prior roots before advancing. Never rerun smoke,
   calibration, Wave 1, or Wave 2.
 - Run only Wave 3 (72 roots) and sealed evaluation (76 roots), using at most 20
@@ -77,6 +77,15 @@ The same contracts are rechecked for the 76-row sealed plan. After sealed
 closeout, the canonical confirmation plan must contain 21 rows and
 `launch_approved = FALSE` for every row.
 
+The first recovery handoff (`20260810_152057`) passed prior-root verification,
+tests, corrected Wave-2 advancement, the 55-row repeat-resolution gate, and the
+Wave-3 plan gate. It then exited before launching any Wave-3 job because a Bash
+`local` declaration expanded the stale outer `stage=wave1` value while forming
+the plan path. The failed attempt produced zero model roots. The declaration is
+now split into assignment-ordered statements and covered by a launcher
+regression test. Its `adaptive_recovery_selector_v1/` evidence is retained; the
+corrected attempt uses `adaptive_recovery_selector_v2/`.
+
 ## Reproducible Command
 
 The wrapper launches the append-only recovery in a detached tmux session:
@@ -87,7 +96,7 @@ WORKERS=16 bash \
   /data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0 \
   independent_exal_m0_structural_screen_v2_capacity_repair_20260810_040208 \
   ind-exal-m0-struct-v2-capacity-20260810_040208__git-8f1898a \
-  adaptive_recovery_selector_v1
+  adaptive_recovery_selector_v2
 ```
 
 No full confirmation or article promotion is part of this command.

@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="${1:-$(git rev-parse --show-toplevel)}"
 RUN_ID="${2:?RUN_ID is required}"
 RUN_TAG="${3:?RUN_TAG is required}"
-RECOVERY_NAME="${4:-adaptive_recovery_selector_v1}"
+RECOVERY_NAME="${4:-adaptive_recovery_selector_v2}"
 R_SCRIPT="${R_SCRIPT:-/data/jaguir26/local/opt/R/4.6.0/bin/Rscript}"
 WORKERS="${WORKERS:-16}"
 MAX_LOAD="${MAX_LOAD:-52}"
@@ -100,7 +100,8 @@ select_idle_cpus() {
     '$2 <= limit && selected < workers {print $1; selected++}' | paste -sd, -
 }
 run_stage() {
-  local stage="$1" plan="$ADAPTIVE_ROOT/${stage}_plan.csv"
+  local stage="$1"
+  local plan="$ADAPTIVE_ROOT/${stage}_plan.csv"
   local list="$STATE_ROOT/${stage}_configs_recovery_${ATTEMPT_ID}.txt"
   local log="$STATE_ROOT/${stage}_workers_recovery_${ATTEMPT_ID}.log"
   local parallelism="$WORKERS" rc jobs
@@ -132,7 +133,8 @@ run_stage() {
   record_status "$stage" RECOVERY_COMPLETED "jobs=${jobs};finite_storage_light=all"
 }
 advance_after() {
-  local stage="$1" log="$STATE_ROOT/advance_after_${stage}_recovery_${ATTEMPT_ID}.log"
+  local stage="$1"
+  local log="$STATE_ROOT/advance_after_${stage}_recovery_${ATTEMPT_ID}.log"
   record_status "advance_${stage}" RECOVERY_STARTED \
     "selector_recovery=${RECOVERY_NAME};prior_adaptive_preserved"
   "$R_SCRIPT" "$ADVANCE" --repo-root "$REPO_ROOT" --from "$stage" --run-tag "$RUN_TAG" \
