@@ -12,6 +12,11 @@ get_arg <- function(flag, default = NULL) {
   if (!length(i) || i[[1L]] >= length(args)) return(default)
   args[[i[[1L]] + 1L]]
 }
+get_args <- function(flag) {
+  i <- which(args == flag)
+  i <- i[i < length(args)]
+  if (!length(i)) character() else args[i + 1L]
+}
 repo_root <- normalizePath(get_arg(
   "--repo-root", system("git rev-parse --show-toplevel", intern = TRUE)
 ), winslash = "/", mustWork = TRUE)
@@ -24,8 +29,11 @@ run_tag <- get_arg("--run-tag")
 materialization_root <- normalizePath(get_arg("--materialization-root"),
                                       winslash = "/", mustWork = TRUE)
 output_root <- normalizePath(get_arg("--output-root"), winslash = "/", mustWork = FALSE)
-prior_adaptive_arg <- get_arg("--prior-adaptive-root", get_arg("--output-root"))
-prior_adaptive_root <- normalizePath(prior_adaptive_arg, winslash = "/", mustWork = FALSE)
+prior_adaptive_args <- get_args("--prior-adaptive-root")
+if (!length(prior_adaptive_args)) prior_adaptive_args <- output_root
+prior_adaptive_roots <- unique(vapply(
+  prior_adaptive_args, normalizePath, character(1L), winslash = "/", mustWork = FALSE
+))
 if (is.null(from_stage) || !from_stage %in% c("wave1", "wave2", "wave3", "sealed") ||
     is.null(run_tag) || !nzchar(run_tag)) {
   stop("--from {wave1|wave2|wave3|sealed}, --run-tag, --materialization-root, and --output-root are required.")
@@ -54,8 +62,11 @@ target_map <- split(targets, targets$target_cell_id)
 plan_path <- function(stage) {
   initial <- file.path(materialization_root, paste0(stage, "_plan.csv"))
   adaptive <- file.path(output_root, paste0(stage, "_plan.csv"))
-  prior <- file.path(prior_adaptive_root, paste0(stage, "_plan.csv"))
-  if (file.exists(adaptive)) adaptive else if (file.exists(prior)) prior else initial
+  prior <- file.path(prior_adaptive_roots, paste0(stage, "_plan.csv"))
+  candidates <- c(adaptive, prior, initial)
+  found <- candidates[file.exists(candidates)]
+  if (!length(found)) stop(sprintf("No plan found for stage %s.", stage), call. = FALSE)
+  found[[1L]]
 }
 
 collect_stage <- function(stage) {
@@ -314,7 +325,7 @@ manifest <- list(
   generated_at = as.character(Sys.time()), from_stage = from_stage,
   run_tag = run_tag, input_results_path = current_path, gate_path = gate_path,
   input_results_sha256 = qdesn_ssv2_sha256(current_path), gate_sha256 = qdesn_ssv2_sha256(gate_path),
-  prior_adaptive_root = prior_adaptive_root,
+  prior_adaptive_roots = as.list(prior_adaptive_roots),
   repeat_resolution = lapply(unique(repeat_resolution_paths), function(path) list(
     path = path, sha256 = qdesn_ssv2_sha256(path)
   )),

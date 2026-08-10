@@ -73,6 +73,21 @@ testthat::test_that("single-layer profiles survive empty JSON fields", {
   testthat::expect_identical(profile$effective_readout_dimension, 19L)
 })
 
+testthat::test_that("profile extraction removes selector-only adaptive metadata", {
+  base <- as.list(setNames(rep(1, length(qdesn_ssv2_profile_fields)),
+                           qdesn_ssv2_profile_fields))
+  base$n <- "30"; base$n_tilde <- ""; base$alpha <- "0.5"; base$rho <- "0.9"
+  base$D <- 1L; base$m <- 5L; base$readout_y_lags <- 1L
+  base$reservoir_lags <- 0L; base$washout <- 300L
+  base$virtual_id <- "selector_only"
+  base$predicted_objective_ratio <- 0.75
+  job <- list(candidate_id = "adaptive_candidate", target_cell_id = "normal_t0p25",
+              profile = base)
+  profile <- qdesn_ssv2_profile_from_job(job)
+  testthat::expect_identical(names(profile), qdesn_ssv2_profile_fields)
+  testthat::expect_false(any(c("virtual_id", "predicted_objective_ratio") %in% names(profile)))
+})
+
 testthat::test_that("latest stage supersedes repeated candidate-source evidence", {
   rows <- data.frame(
     stage = c("wave1", "wave1", "wave2", "wave2"),
@@ -203,8 +218,16 @@ testthat::test_that("launcher is staged, resumable, and cannot launch confirmati
   resume_launch_path <- file.path(
     scripts, "launch_resume_independent_exal_m0_structural_screen_v2_after_wave2.sh"
   )
+  sealed_resume_path <- file.path(
+    scripts, "resume_independent_exal_m0_structural_screen_v2_after_wave3.sh"
+  )
+  sealed_launch_path <- file.path(
+    scripts, "launch_resume_independent_exal_m0_structural_screen_v2_after_wave3.sh"
+  )
   testthat::expect_equal(system2("bash", c("-n", resume_path)), 0L)
   testthat::expect_equal(system2("bash", c("-n", resume_launch_path)), 0L)
+  testthat::expect_equal(system2("bash", c("-n", sealed_resume_path)), 0L)
+  testthat::expect_equal(system2("bash", c("-n", sealed_launch_path)), 0L)
   resume_text <- paste(readLines(resume_path, warn = FALSE), collapse = "\n")
   testthat::expect_match(resume_text, "ORIGINAL_COMPLETED_ROOTS=282", fixed = TRUE)
   testthat::expect_match(resume_text, "run_stage wave3", fixed = TRUE)
@@ -216,6 +239,12 @@ testthat::test_that("launcher is staged, resumable, and cannot launch confirmati
   testthat::expect_false(grepl("run_stage wave1", resume_text, fixed = TRUE))
   testthat::expect_false(grepl("run_stage wave2", resume_text, fixed = TRUE))
   testthat::expect_false(grepl("run_stage confirmation", resume_text, fixed = TRUE))
+  sealed_text <- paste(readLines(sealed_resume_path, warn = FALSE), collapse = "\n")
+  testthat::expect_match(sealed_text, "354 prior roots preserved", fixed = TRUE)
+  testthat::expect_match(sealed_text, "jobs=76", fixed = TRUE)
+  testthat::expect_false(grepl("--stage wave1", sealed_text, fixed = TRUE))
+  testthat::expect_false(grepl("run_stage wave3", sealed_text, fixed = TRUE))
+  testthat::expect_false(grepl("run_stage confirmation", sealed_text, fixed = TRUE))
   launch_text <- paste(readLines(launch_path, warn = FALSE), collapse = "\n")
   testthat::expect_match(launch_text, "WORKERS=\"${WORKERS:-20}\"", fixed = TRUE)
   testthat::expect_match(launch_text, "launcher_resources.env", fixed = TRUE)
@@ -227,6 +256,8 @@ testthat::test_that("launcher is staged, resumable, and cannot launch confirmati
   testthat::expect_match(
     advance_text, "qdesn_ssv2_max_effective_readout_dimension", fixed = TRUE
   )
+  testthat::expect_match(advance_text, "get_args", fixed = TRUE)
+  testthat::expect_match(advance_text, "prior_adaptive_roots", fixed = TRUE)
   health_text <- paste(readLines(
     file.path(scripts, "healthcheck_independent_exal_m0_structural_screen_v2.R"),
     warn = FALSE

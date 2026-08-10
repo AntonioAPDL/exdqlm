@@ -5,6 +5,15 @@ qdesn_ssv2_virtual_seed <- 260809L
 qdesn_ssv2_virtual_size <- 50000L
 qdesn_ssv2_exogenous_readout_columns <- 6L
 qdesn_ssv2_max_effective_readout_dimension <- 900L
+qdesn_ssv2_profile_fields <- c(
+  "D", "n", "n_tilde", "m", "alpha", "rho", "pi_w", "pi_in", "rhs_tau0",
+  "readout_y_lags", "reservoir_lags", "washout", "layer_shape", "alpha_pattern",
+  "rho_pattern", "expected_degree", "total_states", "max_alpha", "min_alpha",
+  "mean_alpha", "max_rho", "min_rho", "mean_rho", "design_role", "selection_arm",
+  "profile_signature", "target_cell_id", "family", "tau", "priority",
+  "objective_metric", "current_value", "comparator_value", "parent_anchor_id",
+  "candidate_id", "screening_profile_id", "effective_readout_dimension"
+)
 
 `%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
 
@@ -84,7 +93,10 @@ qdesn_ssv2_profile_from_job <- function(job) {
   x <- as.data.frame(values, stringsAsFactors = FALSE, check.names = FALSE)
   x$candidate_id <- as.character(job$candidate_id %||% "")
   x$target_cell_id <- as.character(job$target_cell_id %||% "")
-  qdesn_ssv2_ensure_effective_dimension(x)
+  x <- qdesn_ssv2_ensure_effective_dimension(x)
+  missing <- setdiff(qdesn_ssv2_profile_fields, names(x))
+  for (field in missing) x[[field]] <- NA
+  x[, qdesn_ssv2_profile_fields, drop = FALSE]
 }
 
 qdesn_ssv2_resolve_stage_repeats <- function(x, stage_order) {
