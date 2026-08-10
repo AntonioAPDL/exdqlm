@@ -90,6 +90,10 @@ testthat::test_that("launcher is staged, resumable, and cannot launch confirmati
   testthat::expect_match(text, "run_stage sealed", fixed = TRUE)
   testthat::expect_false(grepl("run_stage confirmation", text, fixed = TRUE))
   testthat::expect_match(text, "FULL_CONFIRMATION_LAUNCH_APPROVED=FALSE", fixed = TRUE)
+  launch_text <- paste(readLines(launch_path, warn = FALSE), collapse = "\n")
+  testthat::expect_match(launch_text, "WORKERS=\"${WORKERS:-20}\"", fixed = TRUE)
+  testthat::expect_match(launch_text, "launcher_resources.env", fixed = TRUE)
+  testthat::expect_match(launch_text, "exec env WORKERS='$WORKERS'", fixed = TRUE)
 })
 
 testthat::test_that("materialized configs preserve vector and effective-window contracts", {

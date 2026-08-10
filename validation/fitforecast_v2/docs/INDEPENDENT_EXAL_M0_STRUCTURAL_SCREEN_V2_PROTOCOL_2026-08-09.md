@@ -45,7 +45,9 @@ excluded except for declared transfer and parent controls.
 - no refit at each forecast origin;
 - preprocessing fit on training rows only;
 - one operating-system thread per fit;
-- the scheduler waits for 20 genuinely idle cores before selecting its CPU set;
+- the scheduler waits for the requested number of genuinely idle cores, permits
+  at most 20 one-thread workers, and records the actual allocation in the run
+  manifest;
 - no routine retained `.rds`, `.rda`, or `.RData` model payloads.
 
 Candidate-specific raw windows add exactly `m + washout` pre-training rows, so
