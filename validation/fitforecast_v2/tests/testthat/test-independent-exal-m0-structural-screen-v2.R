@@ -35,6 +35,43 @@ testthat::test_that("virtual universe is deterministic, multiscale, and topology
   testthat::expect_true(any(a$max_alpha >= .99))
   testthat::expect_true(any(a$m == 150L))
   testthat::expect_true(any(a$D == 4L))
+  testthat::expect_true(all(is.finite(a$effective_readout_dimension)))
+})
+
+testthat::test_that("effective readout dimension matches observed design-matrix construction", {
+  testthat::expect_identical(
+    qdesn_ssv2_effective_readout_dimension("300;300", "300", 3L, 6L),
+    2412L
+  )
+  testthat::expect_identical(
+    qdesn_ssv2_effective_readout_dimension(
+      "202;168;132;98", "168;132;98", 0L, 12L
+    ),
+    514L
+  )
+  testthat::expect_identical(
+    qdesn_ssv2_effective_readout_dimension("600", "", 0L, 2L),
+    608L
+  )
+})
+
+testthat::test_that("capacity repair changes only the eleven infeasible frozen designs", {
+  stub <- file.path(repo_root, "config", "validation", qdesn_ssv2_stage)
+  profiles <- qdesn_ssv2_read_csv(paste0(stub, "_wave1_profiles.csv"))
+  ledger <- qdesn_ssv2_read_csv(paste0(stub, "_capacity_repair_ledger.csv"))
+  manifest <- qdesn_ssv2_read_json(paste0(stub, "_capacity_repair_manifest.json"))
+  testthat::expect_equal(nrow(profiles), 96L)
+  testthat::expect_true(all(profiles$effective_readout_dimension <= 900L))
+  testthat::expect_equal(sum(ledger$action == "retained_exact"), 85L)
+  testthat::expect_equal(sum(ledger$action == "replaced_above_capacity_contract"), 11L)
+  retained <- ledger$action == "retained_exact"
+  testthat::expect_identical(
+    ledger$predecessor_candidate_id[retained], ledger$repaired_candidate_id[retained]
+  )
+  testthat::expect_identical(as.integer(manifest$replaced_profiles), 11L)
+  testthat::expect_identical(
+    as.integer(manifest$maximum_effective_readout_dimension), 900L
+  )
 })
 
 testthat::test_that("fixed-seed selector allocates local, broad, boundary, and transfer arms", {
@@ -45,6 +82,10 @@ testthat::test_that("fixed-seed selector allocates local, broad, boundary, and t
   testthat::expect_equal(nrow(plan$selected), 96L)
   testthat::expect_equal(nrow(plan$parents), 7L)
   testthat::expect_equal(anyDuplicated(plan$selected$candidate_id), 0L)
+  testthat::expect_true(all(
+    plan$selected$effective_readout_dimension <=
+      qdesn_ssv2_max_effective_readout_dimension
+  ))
   primary <- plan$selected$priority == "primary_lower_quantile"
   primary_arms <- table(plan$selected$selection_arm[primary])
   secondary_arms <- table(plan$selected$selection_arm[!primary])
@@ -69,10 +110,30 @@ testthat::test_that("source and stage contracts freeze the intended budget", {
   testthat::expect_equal(sum(roles == "sealed_holdout"), 1L)
   testthat::expect_equal(sum(roles == "sealed_reserve"), 1L)
   testthat::expect_equal(cfg$selection_contract$maximum_exploratory_roots, 428L)
+  testthat::expect_equal(cfg$selection_contract$maximum_effective_readout_dimension, 900L)
+  testthat::expect_equal(cfg$selection_contract$calibration_timeout_seconds, 21600L)
   testthat::expect_equal(cfg$selection_contract$workers, 20L)
   testthat::expect_identical(qdesn_ssv2_budget("wave1")$n_burn, 1000L)
   testthat::expect_identical(qdesn_ssv2_budget("wave1")$n_mcmc, 3000L)
   testthat::expect_identical(qdesn_ssv2_budget("confirmation")$n_mcmc, 20000L)
+  testthat::expect_identical(qdesn_ssv2_timeout_seconds("calibration"), 21600L)
+})
+
+testthat::test_that("live child-log telemetry parses burn-in and sampling progress", {
+  burn <- qdesn_ssv2_parse_progress_lines(c(
+    "burn-in iteration 50 | sigma=1.000",
+    "burn-in iteration 100 | sigma=0.165"
+  ), 200L, 500L)
+  testthat::expect_identical(burn$iteration, 100L)
+  testthat::expect_identical(burn$total, 700L)
+  testthat::expect_identical(burn$phase, "burnin")
+  sampling <- qdesn_ssv2_parse_progress_lines(c(
+    "burn-in iteration 200 | sigma=0.2",
+    "MCMC iteration 250 | sigma=0.2",
+    "MCMC iteration 300 | sigma=0.2"
+  ), 200L, 500L)
+  testthat::expect_identical(sampling$iteration, 300L)
+  testthat::expect_identical(sampling$phase, "sampling")
 })
 
 testthat::test_that("launcher is staged, resumable, and cannot launch confirmation", {
@@ -94,6 +155,19 @@ testthat::test_that("launcher is staged, resumable, and cannot launch confirmati
   testthat::expect_match(launch_text, "WORKERS=\"${WORKERS:-20}\"", fixed = TRUE)
   testthat::expect_match(launch_text, "launcher_resources.env", fixed = TRUE)
   testthat::expect_match(launch_text, "exec env WORKERS='$WORKERS'", fixed = TRUE)
+  advance_text <- paste(readLines(
+    file.path(scripts, "advance_independent_exal_m0_structural_screen_v2.R"),
+    warn = FALSE
+  ), collapse = "\n")
+  testthat::expect_match(
+    advance_text, "qdesn_ssv2_max_effective_readout_dimension", fixed = TRUE
+  )
+  health_text <- paste(readLines(
+    file.path(scripts, "healthcheck_independent_exal_m0_structural_screen_v2.R"),
+    warn = FALSE
+  ), collapse = "\n")
+  testthat::expect_match(health_text, "pipeline_child_live.log", fixed = TRUE)
+  testthat::expect_match(health_text, "child_log_open", fixed = TRUE)
 })
 
 testthat::test_that("materialized configs preserve vector and effective-window contracts", {
@@ -115,6 +189,18 @@ testthat::test_that("materialized configs preserve vector and effective-window c
       testthat::expect_length(job$config$desn$rho, D)
       testthat::expect_identical(job$config$inference$mcmc$slice$core_update_mode,
                                  qdesn_ssv2_method_id)
+      exact_dimension <- qdesn_ssv2_effective_readout_dimension(
+        job$config$desn$n, job$config$desn$n_tilde,
+        job$config$readout$reservoir_lags, job$config$lags$m_y
+      )
+      testthat::expect_lte(exact_dimension, qdesn_ssv2_max_effective_readout_dimension)
+      testthat::expect_identical(
+        as.integer(job$root_spec$effective_readout_dimension), exact_dimension
+      )
+      testthat::expect_identical(
+        as.integer(job$config$validation$timeout_seconds),
+        qdesn_ssv2_timeout_seconds(stage)
+      )
       testthat::expect_equal(job$root_spec$raw_start_source_index + job$config$desn$m +
                               job$config$desn$washout, 8501L)
       testthat::expect_false(isTRUE(job$config$outputs$keep_draws))

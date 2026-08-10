@@ -50,6 +50,7 @@ universe <- if (file.exists(cached_universe_path) && !has_flag("--refresh-univer
 } else {
   qdesn_ssv2_virtual_universe()
 }
+universe <- qdesn_ssv2_ensure_effective_dimension(universe)
 frozen_profiles_path <- paste0(config_stub, "_wave1_profiles.csv")
 frozen_parents_path <- paste0(config_stub, "_parent_controls.csv")
 selection <- if (has_flag("--use-frozen-designs")) {
@@ -57,12 +58,20 @@ selection <- if (has_flag("--use-frozen-designs")) {
     stop("Frozen structural-screen design ledgers are missing.", call. = FALSE)
   }
   frozen <- list(
-    selected = qdesn_ssv2_read_csv(frozen_profiles_path),
-    parents = qdesn_ssv2_read_csv(frozen_parents_path)
+    selected = qdesn_ssv2_ensure_effective_dimension(
+      qdesn_ssv2_read_csv(frozen_profiles_path)
+    ),
+    parents = qdesn_ssv2_ensure_effective_dimension(
+      qdesn_ssv2_read_csv(frozen_parents_path)
+    )
   )
   if (nrow(frozen$selected) != 96L || nrow(frozen$parents) != 7L ||
       !setequal(frozen$selected$target_cell_id, targets$target_cell_id) ||
-      !setequal(frozen$parents$target_cell_id, targets$target_cell_id)) {
+      !setequal(frozen$parents$target_cell_id, targets$target_cell_id) ||
+      any(frozen$selected$effective_readout_dimension >
+            qdesn_ssv2_max_effective_readout_dimension) ||
+      any(frozen$parents$effective_readout_dimension >
+            qdesn_ssv2_max_effective_readout_dimension)) {
     stop("Frozen structural-screen design ledgers violate the target/count contract.",
          call. = FALSE)
   }
@@ -181,6 +190,8 @@ write_job <- function(profile, target, source_id, stage, chain_id = 1L) {
     config_path = path, config_sha256 = qdesn_ssv2_sha256(path),
     expected_n_burn = job$config$inference$mcmc$n_burn,
     expected_n_mcmc = job$config$inference$mcmc$n_mcmc,
+    effective_readout_dimension = job$root_spec$effective_readout_dimension,
+    timeout_seconds = job$config$validation$timeout_seconds,
     stringsAsFactors = FALSE
   )
 }
@@ -202,7 +213,8 @@ smoke_plan <- do.call(rbind, lapply(smoke_indices, function(i) {
 # Runtime calibration spans targets and deliberately includes high-capacity boundaries.
 calibration_indices <- unique(c(
   vapply(split(seq_len(nrow(profiles)), profiles$target_cell_id), `[[`, integer(1L), 1L),
-  order(-profiles$total_states, -profiles$m, -profiles$max_alpha)[seq_len(5L)]
+  order(-profiles$effective_readout_dimension, -profiles$m,
+        -profiles$max_alpha)[seq_len(5L)]
 ))[seq_len(12L)]
 calibration_plan <- do.call(rbind, lapply(calibration_indices, function(i) {
   write_job(profiles[i, , drop = FALSE], target_map[[profiles$target_cell_id[[i]]]],
@@ -238,6 +250,11 @@ window_registry_path <- qdesn_ssv2_write_csv(window_registry,
 
 tracked_paths <- c(source_cfg_path, targets_path, history_path, profiles_path,
                    parents_path, seed_path)
+repair_paths <- c(
+  paste0(config_stub, "_capacity_repair_ledger.csv"),
+  paste0(config_stub, "_capacity_repair_manifest.json")
+)
+tracked_paths <- c(tracked_paths, repair_paths[file.exists(repair_paths)])
 tracked_manifest <- data.frame(
   relative_path = vapply(tracked_paths, qdesn_ssv2_rel, character(1L), repo_root = repo_root),
   bytes = as.numeric(file.info(tracked_paths)$size),
@@ -248,7 +265,7 @@ tracked_manifest_path <- qdesn_ssv2_write_csv(
   tracked_manifest, paste0(config_stub, "_tracked_manifest.csv")
 )
 materialization_manifest <- list(
-  schema_version = "independent_exal_m0_structural_screen_v2_materialization_v1",
+  schema_version = "independent_exal_m0_structural_screen_v2_materialization_v2",
   generated_at = as.character(Sys.time()), git_commit = system("git rev-parse HEAD", intern = TRUE),
   package_version = "1.0.0", canonical_registry_hash = qdesn_ssv2_registry_hash,
   source_config_path = source_cfg_path, source_config_sha256 = qdesn_ssv2_sha256(source_cfg_path),
@@ -262,6 +279,9 @@ materialization_manifest <- list(
   counts = list(
     virtual_candidates = nrow(universe), historical_signatures = nrow(history),
     wave1_designs = nrow(profiles), parent_controls = nrow(parents),
+    maximum_effective_readout_dimension =
+      max(c(profiles$effective_readout_dimension, parents$effective_readout_dimension)),
+    capacity_contract = qdesn_ssv2_max_effective_readout_dimension,
     smoke_jobs = nrow(smoke_plan), calibration_jobs = nrow(calibration_plan),
     wave1_jobs = nrow(wave1_plan), maximum_exploratory_jobs = 428L
   ),

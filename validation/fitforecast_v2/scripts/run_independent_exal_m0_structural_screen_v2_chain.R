@@ -62,6 +62,18 @@ contracts <- c(
   lead = identical(as.integer(job$config$metrics$rolling_origin$max_lead_configured), 30L),
   stride = identical(as.integer(job$config$metrics$rolling_origin$origin_stride), 30L)
 )
+exact_dimension <- qdesn_ssv2_effective_readout_dimension(
+  job$config$desn$n, job$config$desn$n_tilde,
+  job$config$readout$reservoir_lags, job$config$lags$m_y
+)
+contracts <- c(
+  contracts,
+  readout_dimension = identical(as.integer(job$root_spec$effective_readout_dimension),
+                                exact_dimension),
+  readout_capacity = exact_dimension <= qdesn_ssv2_max_effective_readout_dimension,
+  stage_timeout = identical(as.integer(job$config$validation$timeout_seconds),
+                            qdesn_ssv2_timeout_seconds(as.character(job$stage)))
+)
 if (!all(contracts)) {
   stop(sprintf("Job contract failed for %s: %s", job_id,
                paste(names(contracts)[!contracts], collapse = ", ")), call. = FALSE)

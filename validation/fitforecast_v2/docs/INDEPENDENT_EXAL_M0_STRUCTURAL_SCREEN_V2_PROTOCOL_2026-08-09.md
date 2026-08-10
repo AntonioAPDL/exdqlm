@@ -28,10 +28,31 @@ reservoir. This campaign samples realized-capacity controls jointly:
   connectivity probabilities;
 - capacity-conditioned RHS `tau0` between approximately `1e-8` and `3e-4`.
 
+The realized readout dimension is computed before launch as
+
+```text
+p_eff = (sum(n_tilde) + tail(n, 1)) * (reservoir_lags + 1)
+        + readout_y_lags + 6.
+```
+
+The six final columns are the fixed DGP covariates/bias used by this study.
+Every exploratory profile must satisfy `p_eff <= 900`. This is a computational
+capacity contract, not a restriction on nominal depth, memory, or total state
+count: it still admits 600-state reservoirs with no reservoir lag, roughly
+300-state reservoirs with one reservoir lag, and roughly 200-state reservoirs
+with three reservoir lags.
+
 The 50,000-row virtual universe performs no fitting. A fixed-seed, history-aware
 maximin selector chooses 96 initial designs: 80 across five primary lower-tail
 cells and 16 across two secondary median cells. Exact historical repeats are
 excluded except for declared transfer and parent controls.
+
+The original frozen selector output at commit `20b8022` contained 11 profiles
+above the realized-dimension contract. Capacity repair v1 retains the other 85
+profiles exactly and replaces only those 11 rows using a deterministic,
+cell-specific, selection-arm-aware maximin rule. The predecessor commit, blob,
+replacement mapping, formula, hashes, and counts are frozen in the capacity
+repair manifest and ledger under `config/validation/`.
 
 ## Frozen fit/forecast contract
 
@@ -45,6 +66,8 @@ excluded except for declared transfer and parent controls.
 - no refit at each forecast origin;
 - preprocessing fit on training rows only;
 - one operating-system thread per fit;
+- effective readout dimension no larger than 900 columns;
+- runtime-calibration timeout and acceptance gate: six hours per root;
 - the scheduler waits for the requested number of genuinely idle cores, permits
   at most 20 one-thread workers, and records the actual allocation in the run
   manifest;
@@ -59,7 +82,7 @@ every design retains 500 effective training targets even when `m = 150` and
 | Stage | Contract | Maximum roots | Automatic action |
 |---|---|---:|---|
 | Smoke | two tiny vector/deep configurations | 2 | must pass schema, M0, rolling-origin, and storage checks |
-| Runtime calibration | representative light/heavy subset | 12 | stop on implementation failure, storage violation, or unsafe resource estimate |
+| Runtime calibration | representative subset spanning cells and feasible readout capacity | 12 | each root must finish within six hours; stop on implementation failure, storage violation, or unsafe resource estimate |
 | Wave 1 | 96 designs plus seven matched parents on `dev09` | 103 | rank within each cell and metric |
 | Wave 2 | 48 survivors on three discovery blocks plus controls | 165 | aggregate paired-block evidence |
 | Wave 3 | 24 new rpart-guided/maximin designs on three discovery blocks | 72 | select predeclared finalists |

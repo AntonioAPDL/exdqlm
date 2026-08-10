@@ -1,0 +1,21 @@
+{
+  "schema_version": "independent_exal_m0_structural_screen_v2_capacity_repair_v1",
+  "algorithm": "retain_feasible_exact_and_replace_over_cap_with_cell_arm_aware_deterministic_maximin",
+  "predecessor_commit": "20b80228cd41d0fcaf84a92b868b6a101afe4297",
+  "predecessor_profile_ledger_path": "config/validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_structural_screen_v2_wave1_profiles.csv",
+  "predecessor_profile_ledger_blob": "0233cfcb34480205d52bd5e2cb72e26b8595762a",
+  "virtual_universe_path": "reports/shared_fitforecast_v2_orchestration/independent_exal_m0_structural_screen_v2_materialization/virtual_candidate_universe.csv",
+  "virtual_universe_seed": 260809,
+  "virtual_universe_designs": 50000,
+  "virtual_universe_design_identity_sha256": "a2d2c43b48dc3fc8fed323066cb084577d54dabfd7705dba526383f78edd36a0",
+  "effective_readout_dimension_formula": "(sum(n_tilde)+tail(n,1))*(reservoir_lags+1)+readout_y_lags+6",
+  "maximum_effective_readout_dimension": 900,
+  "predecessor_profiles": 96,
+  "retained_exact_profiles": 85,
+  "replaced_profiles": 11,
+  "repaired_maximum_effective_readout_dimension": 873,
+  "repaired_profile_ledger_path": "config/validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_structural_screen_v2_wave1_profiles.csv",
+  "repaired_profile_ledger_sha256": "c18ae48c0b9626270048102154dacac7448cfac674390d48d311d8f00af436c5",
+  "repair_ledger_path": "config/validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_structural_screen_v2_capacity_repair_ledger.csv",
+  "repair_ledger_sha256": "3f95bcdb3a4284c05f3d1fefe699ba3b3da0941215987ff0c0aacdfea997603e"
+}

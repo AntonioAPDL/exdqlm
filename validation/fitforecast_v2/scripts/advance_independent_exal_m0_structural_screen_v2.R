@@ -35,10 +35,16 @@ targets <- qdesn_ssv2_read_csv(paste0(stub, "_target_cells.csv"))
 targets$parent_request_path <- vapply(targets$parent_request_path, function(path) {
   if (grepl("^/", path)) path else file.path(repo_root, path)
 }, character(1L))
-parents <- qdesn_ssv2_read_csv(paste0(stub, "_parent_controls.csv"))
-wave1_profiles <- qdesn_ssv2_read_csv(paste0(stub, "_wave1_profiles.csv"))
+parents <- qdesn_ssv2_ensure_effective_dimension(
+  qdesn_ssv2_read_csv(paste0(stub, "_parent_controls.csv"))
+)
+wave1_profiles <- qdesn_ssv2_ensure_effective_dimension(
+  qdesn_ssv2_read_csv(paste0(stub, "_wave1_profiles.csv"))
+)
 history <- qdesn_ssv2_read_csv(paste0(stub, "_history_signature_ledger.csv"))
-universe <- qdesn_ssv2_read_csv(file.path(materialization_root, "virtual_candidate_universe.csv"))
+universe <- qdesn_ssv2_ensure_effective_dimension(
+  qdesn_ssv2_read_csv(file.path(materialization_root, "virtual_candidate_universe.csv"))
+)
 source_roots <- qdesn_ssv2_read_csv(file.path(materialization_root, "source_root_registry.csv"))
 source_registry_path <- file.path(materialization_root, "source_root_registry.csv")
 target_map <- split(targets, targets$target_cell_id)
@@ -94,7 +100,7 @@ profile_from_config <- function(path) {
   x <- as.data.frame(job$profile, stringsAsFactors = FALSE)
   x$candidate_id <- job$candidate_id
   x$target_cell_id <- job$target_cell_id
-  x
+  qdesn_ssv2_ensure_effective_dimension(x)
 }
 
 aggregate_results <- function(stages) {
@@ -142,6 +148,8 @@ write_job <- function(profile, target, source_id, stage, chain_id = 1L) {
     config_path = path, config_sha256 = qdesn_ssv2_sha256(path),
     expected_n_burn = job$config$inference$mcmc$n_burn,
     expected_n_mcmc = job$config$inference$mcmc$n_mcmc,
+    effective_readout_dimension = job$root_spec$effective_readout_dimension,
+    timeout_seconds = job$config$validation$timeout_seconds,
     stringsAsFactors = FALSE
   )
 }
@@ -209,7 +217,10 @@ if (from_stage == "wave1") {
       control = rpart::rpart.control(cp = 0.001, minsplit = 4L, maxdepth = 4L)
     ), error = function(e) NULL)
     pool <- universe[
-      !universe$profile_signature %in% c(history$profile_signature, tested_profiles$profile_signature),
+      universe$effective_readout_dimension <=
+        qdesn_ssv2_max_effective_readout_dimension &
+        !universe$profile_signature %in%
+          c(history$profile_signature, tested_profiles$profile_signature),
       , drop = FALSE
     ]
     prediction <- if (is.null(fit)) rep(mean(train$objective_ratio), nrow(pool)) else

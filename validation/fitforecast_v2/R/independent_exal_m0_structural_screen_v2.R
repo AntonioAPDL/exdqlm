@@ -3,6 +3,8 @@ qdesn_ssv2_method_id <- "m0_v_collapsed_support_logit"
 qdesn_ssv2_registry_hash <- "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275"
 qdesn_ssv2_virtual_seed <- 260809L
 qdesn_ssv2_virtual_size <- 50000L
+qdesn_ssv2_exogenous_readout_columns <- 6L
+qdesn_ssv2_max_effective_readout_dimension <- 900L
 
 `%||%` <- function(x, y) if (is.null(x) || !length(x)) y else x
 
@@ -65,6 +67,31 @@ qdesn_ssv2_vec <- function(x, mode = c("numeric", "integer")) {
 }
 
 qdesn_ssv2_pack <- function(x) paste(format(x, scientific = FALSE, trim = TRUE, digits = 12), collapse = ";")
+
+qdesn_ssv2_effective_readout_dimension <- function(n, n_tilde, reservoir_lags,
+                                                    readout_y_lags) {
+  n <- qdesn_ssv2_vec(n, "integer")
+  n_tilde <- qdesn_ssv2_vec(n_tilde, "integer")
+  if (!length(n)) stop("At least one DESN layer size is required.", call. = FALSE)
+  state_width <- sum(n_tilde) + utils::tail(n, 1L)
+  as.integer(
+    state_width * (as.integer(reservoir_lags) + 1L) +
+      as.integer(readout_y_lags) + qdesn_ssv2_exogenous_readout_columns
+  )
+}
+
+qdesn_ssv2_ensure_effective_dimension <- function(x) {
+  if (!nrow(x)) {
+    x$effective_readout_dimension <- integer()
+    return(x)
+  }
+  x$effective_readout_dimension <- vapply(seq_len(nrow(x)), function(i) {
+    qdesn_ssv2_effective_readout_dimension(
+      x$n[[i]], x$n_tilde[[i]], x$reservoir_lags[[i]], x$readout_y_lags[[i]]
+    )
+  }, integer(1L))
+  x
+}
 
 qdesn_ssv2_profile_signature <- function(x) {
   fields <- c("D", "n", "n_tilde", "m", "alpha", "rho", "pi_w", "pi_in",
@@ -180,6 +207,9 @@ qdesn_ssv2_targets <- function(repo_root) {
     reservoir_lags = as.integer(reservoir_lags), washout = as.integer(washout),
     layer_shape = layer_shape, alpha_pattern = alpha_pattern, rho_pattern = rho_pattern,
     expected_degree = as.integer(degree), total_states = sum(n),
+    effective_readout_dimension = qdesn_ssv2_effective_readout_dimension(
+      n, n_tilde, reservoir_lags, readout_y_lags
+    ),
     max_alpha = max(alpha), min_alpha = min(alpha), mean_alpha = mean(alpha),
     max_rho = max(rho), min_rho = min(rho), mean_rho = mean(rho),
     design_role = design_role, selection_arm = selection_arm,
@@ -289,6 +319,7 @@ qdesn_ssv2_history_ledger <- function(repo_root) {
 }
 
 .qdesn_ssv2_features <- function(x) {
+  x <- qdesn_ssv2_ensure_effective_dimension(x)
   data.frame(
     D = as.numeric(x$D) / 4,
     states = log1p(as.numeric(x$total_states)) / log1p(600),
@@ -301,6 +332,8 @@ qdesn_ssv2_history_ledger <- function(repo_root) {
     tau0 = (pmax(-8, pmin(-3.5, log10(as.numeric(x$rhs_tau0)))) + 8) / 4.5,
     ylags = as.numeric(x$readout_y_lags) / 12,
     rlags = as.numeric(x$reservoir_lags) / 3,
+    readout_dimension = as.numeric(x$effective_readout_dimension) /
+      qdesn_ssv2_max_effective_readout_dimension,
     washout = as.numeric(x$washout) / 450
   )
 }
@@ -312,8 +345,10 @@ qdesn_ssv2_history_ledger <- function(repo_root) {
   pool <- pool[c(seq_len(nrow(pool)) + offset - 1L) %% nrow(pool) + 1L, , drop = FALSE]
   px <- as.matrix(.qdesn_ssv2_features(pool))
   ax <- if (nrow(anchors)) as.matrix(.qdesn_ssv2_features(anchors)) else matrix(.5, 1L, ncol(px))
-  dmin <- apply(vapply(seq_len(nrow(ax)), function(j) rowSums((px - ax[j, ])^2),
-                       numeric(nrow(px))), 1L, min)
+  dmin <- rep(Inf, nrow(px))
+  for (j in seq_len(nrow(ax))) {
+    dmin <- pmin(dmin, rowSums((px - ax[j, ])^2))
+  }
   keep <- integer(n_select)
   for (i in seq_len(n_select)) {
     pick <- which.max(dmin)
@@ -376,8 +411,13 @@ qdesn_ssv2_history_ledger <- function(repo_root) {
 }
 
 qdesn_ssv2_select_wave1 <- function(repo_root, universe, history, targets) {
+  universe <- qdesn_ssv2_ensure_effective_dimension(universe)
   universe$historical_exact <- universe$profile_signature %in% history$profile_signature
-  eligible <- universe[!universe$historical_exact, , drop = FALSE]
+  eligible <- universe[
+    !universe$historical_exact &
+      universe$effective_readout_dimension <= qdesn_ssv2_max_effective_readout_dimension,
+    , drop = FALSE
+  ]
   selected <- list(); parents <- list(); k <- 0L
   for (i in seq_len(nrow(targets))) {
     target <- targets[i, , drop = FALSE]
@@ -437,6 +477,111 @@ qdesn_ssv2_select_wave1 <- function(repo_root, universe, history, targets) {
     stop("Wave-1 selection is not the predeclared 96+7 contract.", call. = FALSE)
   }
   list(selected = selected, parents = parents)
+}
+
+qdesn_ssv2_repair_capacity <- function(profiles, universe, history, parents,
+                                       max_dimension = qdesn_ssv2_max_effective_readout_dimension) {
+  profiles <- qdesn_ssv2_ensure_effective_dimension(profiles)
+  universe <- qdesn_ssv2_ensure_effective_dimension(universe)
+  parents <- qdesn_ssv2_ensure_effective_dimension(parents)
+  invalid <- which(profiles$effective_readout_dimension > max_dimension)
+  repaired <- profiles
+  chosen_signatures <- character()
+  manifest <- vector("list", nrow(profiles))
+  base_pool <- universe[
+    universe$effective_readout_dimension <= max_dimension &
+      !universe$profile_signature %in% history$profile_signature &
+      !universe$profile_signature %in% profiles$profile_signature,
+    , drop = FALSE
+  ]
+  base_features <- as.matrix(.qdesn_ssv2_features(base_pool))
+
+  for (i in seq_len(nrow(profiles))) {
+    old <- profiles[i, , drop = FALSE]
+    if (!i %in% invalid) {
+      manifest[[i]] <- data.frame(
+        target_cell_id = old$target_cell_id, selection_arm = old$selection_arm,
+        action = "retained_exact", predecessor_candidate_id = old$candidate_id,
+        predecessor_profile_signature = old$profile_signature,
+        predecessor_effective_readout_dimension = old$effective_readout_dimension,
+        repaired_candidate_id = old$candidate_id,
+        repaired_profile_signature = old$profile_signature,
+        repaired_effective_readout_dimension = old$effective_readout_dimension,
+        maximum_effective_readout_dimension = as.integer(max_dimension),
+        stringsAsFactors = FALSE
+      )
+      next
+    }
+
+    pool_index <- which(!base_pool$profile_signature %in% chosen_signatures)
+    if (identical(as.character(old$selection_arm), "boundary")) {
+      pool_index <- pool_index[
+        base_pool$max_alpha[pool_index] >= .95 |
+          base_pool$total_states[pool_index] >= 500L |
+          base_pool$m[pool_index] >= 120L
+      ]
+    }
+    same_cell <- repaired$target_cell_id == old$target_cell_id &
+      repaired$effective_readout_dimension <= max_dimension
+    anchors <- rbind(
+      parents[parents$target_cell_id == old$target_cell_id, , drop = FALSE],
+      repaired[same_cell, , drop = FALSE]
+    )
+    offset <- qdesn_ssv2_seed(old$target_cell_id, old$selection_arm,
+                              old$candidate_id, "capacity_repair_v1") %% length(pool_index)
+    rotated <- pool_index[
+      (seq_along(pool_index) + offset - 1L) %% length(pool_index) + 1L
+    ]
+    px <- base_features[rotated, , drop = FALSE]
+    ax <- as.matrix(.qdesn_ssv2_features(anchors))
+    dmin <- rep(Inf, nrow(px))
+    for (j in seq_len(nrow(ax))) {
+      dmin <- pmin(dmin, rowSums((px - ax[j, ])^2))
+    }
+    candidate <- base_pool[rotated[[which.max(dmin)]], , drop = FALSE]
+    replacement <- old
+    design_fields <- intersect(
+      c("D", "n", "n_tilde", "m", "alpha", "rho", "pi_w", "pi_in",
+        "rhs_tau0", "readout_y_lags", "reservoir_lags", "washout",
+        "layer_shape", "alpha_pattern", "rho_pattern", "expected_degree",
+        "total_states", "effective_readout_dimension", "max_alpha", "min_alpha",
+        "mean_alpha", "max_rho", "min_rho", "mean_rho", "profile_signature"),
+      names(candidate)
+    )
+    for (nm in design_fields) replacement[[nm]] <- candidate[[nm]][[1L]]
+    replacement$design_role <- paste0("capacity_feasible_", old$selection_arm,
+                                      "_maximin_replacement")
+    replacement$selection_arm <- old$selection_arm
+    hash <- substr(digest::digest(replacement$profile_signature[[1L]], algo = "sha256",
+                                  serialize = FALSE), 1L, 10L)
+    replacement$candidate_id <- sprintf(
+      "ssv2_%s_capacityrepair_%s_%02d_%s",
+      qdesn_ssv2_safe(old$target_cell_id), qdesn_ssv2_safe(old$selection_arm),
+      match(i, invalid), hash
+    )
+    replacement$screening_profile_id <- replacement$candidate_id
+    repaired[i, names(replacement)] <- replacement
+    chosen_signatures <- c(chosen_signatures, replacement$profile_signature)
+    manifest[[i]] <- data.frame(
+      target_cell_id = old$target_cell_id, selection_arm = old$selection_arm,
+      action = "replaced_above_capacity_contract",
+      predecessor_candidate_id = old$candidate_id,
+      predecessor_profile_signature = old$profile_signature,
+      predecessor_effective_readout_dimension = old$effective_readout_dimension,
+      repaired_candidate_id = replacement$candidate_id,
+      repaired_profile_signature = replacement$profile_signature,
+      repaired_effective_readout_dimension = replacement$effective_readout_dimension,
+      maximum_effective_readout_dimension = as.integer(max_dimension),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  manifest <- do.call(rbind, manifest)
+  if (nrow(repaired) != nrow(profiles) || anyDuplicated(repaired$candidate_id) ||
+      any(repaired$effective_readout_dimension > max_dimension)) {
+    stop("Capacity repair violated the frozen design contract.", call. = FALSE)
+  }
+  list(profiles = repaired, ledger = manifest)
 }
 
 qdesn_ssv2_stage_source_window <- function(root_row, source_id, m, washout,
@@ -501,6 +646,36 @@ qdesn_ssv2_budget <- function(stage) {
   )
 }
 
+qdesn_ssv2_timeout_seconds <- function(stage) {
+  switch(stage,
+    smoke = 1800L,
+    calibration = 21600L,
+    wave1 = 86400L,
+    wave2 = 86400L,
+    wave3 = 86400L,
+    sealed = 86400L,
+    confirmation = 604800L,
+    stop(sprintf("Unknown stage: %s", stage), call. = FALSE)
+  )
+}
+
+qdesn_ssv2_parse_progress_lines <- function(lines, n_burn = NA_integer_,
+                                             n_mcmc = NA_integer_) {
+  pattern <- "(burn-in|MCMC)[[:space:]]+iteration[[:space:]]+([0-9]+)"
+  hits <- grep(pattern, lines, value = TRUE, ignore.case = TRUE)
+  total <- as.integer(n_burn) + as.integer(n_mcmc)
+  if (!length(hits)) {
+    return(list(iteration = NA_integer_, total = total, phase = NA_character_))
+  }
+  iteration <- as.integer(sub(paste0(".*", pattern, ".*"), "\\2", hits,
+                              ignore.case = TRUE))
+  last <- length(hits)
+  list(
+    iteration = iteration[[last]], total = total,
+    phase = if (grepl("burn-in", hits[[last]], ignore.case = TRUE)) "burnin" else "sampling"
+  )
+}
+
 qdesn_ssv2_seed <- function(...) {
   key <- paste(..., collapse = "|")
   as.integer(strtoi(substr(digest::digest(key, algo = "sha256", serialize = FALSE), 1L, 7L), 16L))
@@ -508,6 +683,15 @@ qdesn_ssv2_seed <- function(...) {
 
 qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
                                 source_registry_path, chain_id = 1L) {
+  profile <- qdesn_ssv2_ensure_effective_dimension(profile)
+  if (profile$effective_readout_dimension[[1L]] >
+      qdesn_ssv2_max_effective_readout_dimension) {
+    stop(sprintf(
+      "Candidate %s has effective readout dimension %d above the %d-column contract.",
+      profile$candidate_id[[1L]], profile$effective_readout_dimension[[1L]],
+      qdesn_ssv2_max_effective_readout_dimension
+    ), call. = FALSE)
+  }
   request <- qdesn_ssv2_read_json(target$parent_request_path[[1L]])
   cfg <- request$config
   D <- as.integer(profile$D[[1L]])
@@ -553,7 +737,7 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
   cfg$outputs$retention_profile <- "storage_light_independent_exal_m0_structural_v2"
   cfg$cpp$postpred_threads <- 1L
   cfg$validation$stream_child_stdout <- TRUE
-  cfg$validation$timeout_seconds <- 604800L
+  cfg$validation$timeout_seconds <- qdesn_ssv2_timeout_seconds(stage)
   root <- request$root_spec
   root$source_scenario <- source$scenario[[1L]]
   root$scenario <- source$scenario[[1L]]
@@ -585,8 +769,9 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
   root$mcmc_seed <- cfg$inference$mcmc$control$seed
   root$mcmc_rng_seed <- cfg$inference$mcmc$control$rng_seed
   root$vb_warm_start_seed <- cfg$inference$mcmc$vb_warm_start_seed
-  root$dimension_p_estimate <- sum(qdesn_ssv2_vec(profile$n[[1L]], "integer")) +
-    as.integer(profile$readout_y_lags[[1L]]) + 6L
+  root$dimension_p_estimate <- as.integer(profile$effective_readout_dimension[[1L]])
+  root$effective_readout_dimension <- root$dimension_p_estimate
+  root$maximum_effective_readout_dimension <- qdesn_ssv2_max_effective_readout_dimension
   root$p_over_n_tt500 <- root$dimension_p_estimate / 500
   job_id <- sprintf("%s__%s__%s__c%02d", stage, profile$candidate_id[[1L]],
                     source$source_id[[1L]], as.integer(chain_id))
@@ -611,6 +796,8 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
       development_source_registry_sha256 = qdesn_ssv2_sha256(source_registry_path),
       preprocessing_scope = "train_only", train_window = c(8501L, 9000L),
       forecast_window = c(9001L, 10000L), max_lead = 30L, origin_stride = 30L,
+      effective_readout_dimension = root$effective_readout_dimension,
+      maximum_effective_readout_dimension = qdesn_ssv2_max_effective_readout_dimension,
       article_promotion_automatic = FALSE, full_confirmation_requires_explicit_approval = TRUE
     )
   )

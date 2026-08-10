@@ -88,6 +88,9 @@ selection_contract:
   wave3_adaptive_designs: 24
   sealed_finalists: 12
   runtime_calibration_roots: 12
+  effective_readout_dimension_formula: (sum(n_tilde)+tail(n,1))*(reservoir_lags+1)+readout_y_lags+6
+  maximum_effective_readout_dimension: 900
+  calibration_timeout_seconds: 21600
   maximum_exploratory_roots: 428
   workers: 20
   threads_per_worker: 1

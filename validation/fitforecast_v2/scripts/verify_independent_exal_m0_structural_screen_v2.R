@@ -30,10 +30,20 @@ manifest_path <- file.path(materialization_root, "materialization_manifest.json"
 manifest <- qdesn_ssv2_read_json(manifest_path)
 stub <- file.path(repo_root, "config", "validation", qdesn_ssv2_stage)
 targets <- qdesn_ssv2_read_csv(paste0(stub, "_target_cells.csv"))
-profiles <- qdesn_ssv2_read_csv(paste0(stub, "_wave1_profiles.csv"))
-parents <- qdesn_ssv2_read_csv(paste0(stub, "_parent_controls.csv"))
-universe <- qdesn_ssv2_read_csv(file.path(materialization_root, "virtual_candidate_universe.csv"))
+profiles <- qdesn_ssv2_ensure_effective_dimension(
+  qdesn_ssv2_read_csv(paste0(stub, "_wave1_profiles.csv"))
+)
+parents <- qdesn_ssv2_ensure_effective_dimension(
+  qdesn_ssv2_read_csv(paste0(stub, "_parent_controls.csv"))
+)
+universe <- qdesn_ssv2_ensure_effective_dimension(
+  qdesn_ssv2_read_csv(file.path(materialization_root, "virtual_candidate_universe.csv"))
+)
 sources <- qdesn_ssv2_read_csv(file.path(materialization_root, "source_root_registry.csv"))
+repair_manifest_path <- paste0(stub, "_capacity_repair_manifest.json")
+repair_manifest <- if (file.exists(repair_manifest_path)) {
+  qdesn_ssv2_read_json(repair_manifest_path)
+} else NULL
 
 checks <- c(
   package_version = as.character(read.dcf(file.path(repo_root, "DESCRIPTION"))[1L, "Version"]) == "1.0.0",
@@ -42,7 +52,16 @@ checks <- c(
   virtual_unique = !anyDuplicated(universe$profile_signature),
   target_cells = nrow(targets) == 7L,
   wave1_profiles = nrow(profiles) == 96L,
+  wave1_capacity = all(profiles$effective_readout_dimension <=
+                         qdesn_ssv2_max_effective_readout_dimension),
   parent_controls = nrow(parents) == 7L,
+  parent_capacity = all(parents$effective_readout_dimension <=
+                          qdesn_ssv2_max_effective_readout_dimension),
+  capacity_repair_manifest = !is.null(repair_manifest) &&
+    identical(as.integer(repair_manifest$maximum_effective_readout_dimension),
+              qdesn_ssv2_max_effective_readout_dimension) &&
+    identical(as.integer(repair_manifest$retained_exact_profiles), 85L) &&
+    identical(as.integer(repair_manifest$replaced_profiles), 11L),
   source_roots = nrow(sources) == 45L,
   discovery_sources = length(unique(sources$source_id[sources$source_role == "discovery"])) == 3L,
   sealed_holdout = length(unique(sources$source_id[sources$source_role == "sealed_holdout"])) == 1L,
@@ -66,6 +85,9 @@ if (!is.null(plan_arg)) {
     rho <- as.numeric(job$config$desn$rho)
     pi_w <- as.numeric(job$config$desn$pi_w)
     pi_in <- as.numeric(job$config$desn$pi_in)
+    exact_dimension <- qdesn_ssv2_effective_readout_dimension(
+      n, nt, job$config$readout$reservoir_lags, job$config$lags$m_y
+    )
     c(
       config_hash = identical(qdesn_ssv2_sha256(plan$config_path[[i]]), plan$config_sha256[[i]]),
       vector_lengths = length(n) == D && length(alpha) == D && length(rho) == D &&
@@ -75,6 +97,12 @@ if (!is.null(plan_arg)) {
       m0 = identical(job$config$inference$mcmc$slice$core_update_mode, qdesn_ssv2_method_id),
       one_gamma = identical(as.numeric(job$config$inference$mcmc$slice$width_gamma), 4) &&
         identical(as.integer(job$config$inference$mcmc$slice$core_extra_passes), 0L),
+      readout_dimension = identical(as.integer(job$root_spec$effective_readout_dimension),
+                                    exact_dimension) &&
+        identical(as.integer(job$root_spec$dimension_p_estimate), exact_dimension) &&
+        exact_dimension <= qdesn_ssv2_max_effective_readout_dimension,
+      timeout = identical(as.integer(job$config$validation$timeout_seconds),
+                          qdesn_ssv2_timeout_seconds(stage)),
       train_window = identical(as.integer(job$root_spec$train_start_source_index), 8501L) &&
         identical(as.integer(job$root_spec$train_end_source_index), 9000L),
       forecast_window = identical(as.integer(job$root_spec$forecast_start_source_index), 9001L) &&
