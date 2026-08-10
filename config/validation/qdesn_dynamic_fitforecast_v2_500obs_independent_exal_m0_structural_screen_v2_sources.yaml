@@ -1,0 +1,95 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_structural_screen_v2
+  purpose: Fresh screening-only trajectories for the independent exQ-DESN M0 structural search.
+  article_policy: Development and sealed trajectories cannot directly replace article metrics; canonical-source full confirmation is required.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_structural_screen_v2/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+replicates:
+  - replicate_id: dev09
+    role: discovery
+    scenario_id: dlm_constV_p90_structural_dev09_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1809011, noise: 1809012}
+      laplace: {latent: 1809021, noise: 1809022}
+      gausmix: {latent: 1809031, noise: 1809032}
+  - replicate_id: dev10
+    role: discovery
+    scenario_id: dlm_constV_p90_structural_dev10_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1810011, noise: 1810012}
+      laplace: {latent: 1810021, noise: 1810022}
+      gausmix: {latent: 1810031, noise: 1810032}
+  - replicate_id: dev11
+    role: discovery
+    scenario_id: dlm_constV_p90_structural_dev11_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1811011, noise: 1811012}
+      laplace: {latent: 1811021, noise: 1811022}
+      gausmix: {latent: 1811031, noise: 1811032}
+  - replicate_id: dev12
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_structural_dev12_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1812011, noise: 1812012}
+      laplace: {latent: 1812021, noise: 1812022}
+      gausmix: {latent: 1812031, noise: 1812032}
+  - replicate_id: dev13
+    role: sealed_reserve
+    scenario_id: dlm_constV_p90_structural_dev13_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1813011, noise: 1813012}
+      laplace: {latent: 1813021, noise: 1813022}
+      gausmix: {latent: 1813031, noise: 1813032}
+
+selection_contract:
+  virtual_candidates: 50000
+  virtual_seed: 260809
+  wave1_selected_designs: 96
+  parent_controls: 7
+  wave2_survivors: 48
+  wave3_adaptive_designs: 24
+  sealed_finalists: 12
+  runtime_calibration_roots: 12
+  maximum_exploratory_roots: 428
+  workers: 20
+  threads_per_worker: 1
+  method_id: M0_v_collapsed_support_logit
+  full_confirmation: explicit_human_approval_required
