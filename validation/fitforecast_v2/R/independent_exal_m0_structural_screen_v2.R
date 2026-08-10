@@ -68,6 +68,93 @@ qdesn_ssv2_vec <- function(x, mode = c("numeric", "integer")) {
 
 qdesn_ssv2_pack <- function(x) paste(format(x, scientific = FALSE, trim = TRUE, digits = 12), collapse = ";")
 
+qdesn_ssv2_profile_field <- function(value) {
+  if (is.null(value) || !length(value) || all(is.na(value))) return("")
+  if (is.list(value)) value <- unlist(value, recursive = TRUE, use.names = FALSE)
+  if (!length(value)) return("")
+  if (length(value) > 1L) return(qdesn_ssv2_pack(value))
+  value[[1L]]
+}
+
+qdesn_ssv2_profile_from_job <- function(job) {
+  if (is.null(job$profile) || !is.list(job$profile) || !length(job$profile)) {
+    stop("Job JSON has no usable profile object.", call. = FALSE)
+  }
+  values <- lapply(job$profile, qdesn_ssv2_profile_field)
+  x <- as.data.frame(values, stringsAsFactors = FALSE, check.names = FALSE)
+  x$candidate_id <- as.character(job$candidate_id %||% "")
+  x$target_cell_id <- as.character(job$target_cell_id %||% "")
+  qdesn_ssv2_ensure_effective_dimension(x)
+}
+
+qdesn_ssv2_resolve_stage_repeats <- function(x, stage_order) {
+  required <- c("stage", "job_id", "target_cell_id", "candidate_id", "source_id",
+                "objective_metric")
+  missing <- setdiff(required, names(x))
+  if (length(missing)) {
+    stop(sprintf("Stage results are missing: %s", paste(missing, collapse = ", ")),
+         call. = FALSE)
+  }
+  stage_order <- unique(as.character(stage_order))
+  stage_rank <- match(x$stage, stage_order)
+  if (anyNA(stage_rank)) {
+    stop("Stage results contain a stage outside stage_order.", call. = FALSE)
+  }
+  chain_id <- if ("chain_id" %in% names(x)) x$chain_id else rep(1L, nrow(x))
+  key_fields <- data.frame(
+    target_cell_id = x$target_cell_id,
+    candidate_id = x$candidate_id,
+    source_id = x$source_id,
+    objective_metric = x$objective_metric,
+    chain_id = chain_id,
+    stringsAsFactors = FALSE
+  )
+  key <- do.call(paste, c(key_fields, sep = "\r"))
+  stage_key <- paste(x$stage, key, sep = "\r")
+  if (anyDuplicated(stage_key)) {
+    stop("A stage contains duplicate candidate/source/metric/chain observations.",
+         call. = FALSE)
+  }
+
+  order_index <- order(stage_rank, seq_len(nrow(x)))
+  ordered <- x[order_index, , drop = FALSE]
+  ordered_key <- key[order_index]
+  keep <- !duplicated(ordered_key, fromLast = TRUE)
+  kept <- ordered[keep, , drop = FALSE]
+  superseded <- ordered[!keep, , drop = FALSE]
+
+  if (nrow(superseded)) {
+    retained_index <- match(ordered_key[!keep], ordered_key[keep])
+    retained <- kept[retained_index, , drop = FALSE]
+    ledger <- data.frame(
+      target_cell_id = superseded$target_cell_id,
+      candidate_id = superseded$candidate_id,
+      source_id = superseded$source_id,
+      objective_metric = superseded$objective_metric,
+      chain_id = if ("chain_id" %in% names(superseded)) superseded$chain_id else 1L,
+      superseded_stage = superseded$stage,
+      superseded_job_id = superseded$job_id,
+      superseded_objective_value = superseded$objective_value,
+      retained_stage = retained$stage,
+      retained_job_id = retained$job_id,
+      retained_objective_value = retained$objective_value,
+      resolution = "latest_stage_supersedes_earlier_repeat",
+      stringsAsFactors = FALSE
+    )
+  } else {
+    ledger <- data.frame(
+      target_cell_id = character(), candidate_id = character(), source_id = character(),
+      objective_metric = character(), chain_id = integer(), superseded_stage = character(),
+      superseded_job_id = character(), superseded_objective_value = numeric(),
+      retained_stage = character(), retained_job_id = character(),
+      retained_objective_value = numeric(), resolution = character(),
+      stringsAsFactors = FALSE
+    )
+  }
+  rownames(kept) <- rownames(ledger) <- NULL
+  list(results = kept, ledger = ledger)
+}
+
 qdesn_ssv2_effective_readout_dimension <- function(n, n_tilde, reservoir_lags,
                                                     readout_y_lags) {
   n <- qdesn_ssv2_vec(n, "integer")

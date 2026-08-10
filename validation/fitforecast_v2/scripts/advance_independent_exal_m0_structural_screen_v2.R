@@ -24,6 +24,8 @@ run_tag <- get_arg("--run-tag")
 materialization_root <- normalizePath(get_arg("--materialization-root"),
                                       winslash = "/", mustWork = TRUE)
 output_root <- normalizePath(get_arg("--output-root"), winslash = "/", mustWork = FALSE)
+prior_adaptive_arg <- get_arg("--prior-adaptive-root", get_arg("--output-root"))
+prior_adaptive_root <- normalizePath(prior_adaptive_arg, winslash = "/", mustWork = FALSE)
 if (is.null(from_stage) || !from_stage %in% c("wave1", "wave2", "wave3", "sealed") ||
     is.null(run_tag) || !nzchar(run_tag)) {
   stop("--from {wave1|wave2|wave3|sealed}, --run-tag, --materialization-root, and --output-root are required.")
@@ -52,7 +54,8 @@ target_map <- split(targets, targets$target_cell_id)
 plan_path <- function(stage) {
   initial <- file.path(materialization_root, paste0(stage, "_plan.csv"))
   adaptive <- file.path(output_root, paste0(stage, "_plan.csv"))
-  if (file.exists(adaptive)) adaptive else initial
+  prior <- file.path(prior_adaptive_root, paste0(stage, "_plan.csv"))
+  if (file.exists(adaptive)) adaptive else if (file.exists(prior)) prior else initial
 }
 
 collect_stage <- function(stage) {
@@ -64,7 +67,9 @@ collect_stage <- function(stage) {
     value <- qdesn_ssv2_metric_value(root, plan$objective_metric[[i]])
     data.frame(
       stage = stage, job_id = plan$job_id[[i]], target_cell_id = plan$target_cell_id[[i]],
-      candidate_id = plan$candidate_id[[i]], source_id = plan$source_id[[i]],
+      candidate_id = plan$candidate_id[[i]],
+      chain_id = if ("chain_id" %in% names(plan)) plan$chain_id[[i]] else 1L,
+      source_id = plan$source_id[[i]],
       source_role = plan$source_role[[i]], status = as.character(status$status %||% "MISSING"),
       objective_metric = plan$objective_metric[[i]], objective_value = value,
       current_value = plan$current_value[[i]], comparator_value = plan$comparator_value[[i]],
@@ -97,14 +102,22 @@ if (!all(artifact_ok)) {
 
 profile_from_config <- function(path) {
   job <- qdesn_ssv2_read_json(path)
-  x <- as.data.frame(job$profile, stringsAsFactors = FALSE)
-  x$candidate_id <- job$candidate_id
-  x$target_cell_id <- job$target_cell_id
-  qdesn_ssv2_ensure_effective_dimension(x)
+  qdesn_ssv2_profile_from_job(job)
 }
 
+repeat_resolution_paths <- character()
 aggregate_results <- function(stages) {
   x <- do.call(rbind, lapply(stages, collect_stage))
+  resolved <- qdesn_ssv2_resolve_stage_repeats(x, stages)
+  x <- resolved$results
+  if (length(stages) > 1L) {
+    ledger_path <- file.path(
+      output_root, paste0(paste(stages, collapse = "_"), "_repeat_resolution.csv")
+    )
+    repeat_resolution_paths <<- c(
+      repeat_resolution_paths, qdesn_ssv2_write_csv(resolved$ledger, ledger_path)
+    )
+  }
   x <- x[is.finite(x$objective_value), , drop = FALSE]
   stats::aggregate(
     cbind(objective_value, elapsed_seconds) ~ target_cell_id + candidate_id +
@@ -301,6 +314,10 @@ manifest <- list(
   generated_at = as.character(Sys.time()), from_stage = from_stage,
   run_tag = run_tag, input_results_path = current_path, gate_path = gate_path,
   input_results_sha256 = qdesn_ssv2_sha256(current_path), gate_sha256 = qdesn_ssv2_sha256(gate_path),
+  prior_adaptive_root = prior_adaptive_root,
+  repeat_resolution = lapply(unique(repeat_resolution_paths), function(path) list(
+    path = path, sha256 = qdesn_ssv2_sha256(path)
+  )),
   decision = if (from_stage == "sealed") "confirmation_manifest_only_wait_for_human_approval" else
     paste0("advance_to_", switch(from_stage, wave1 = "wave2", wave2 = "wave3", wave3 = "sealed")),
   article_state = "unchanged"

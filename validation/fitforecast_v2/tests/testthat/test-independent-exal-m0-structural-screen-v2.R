@@ -55,6 +55,52 @@ testthat::test_that("effective readout dimension matches observed design-matrix 
   )
 })
 
+testthat::test_that("single-layer profiles survive empty JSON fields", {
+  job <- list(
+    candidate_id = "d1_candidate",
+    target_cell_id = "normal_t0p05",
+    profile = list(
+      D = 1L, n = "12", n_tilde = NULL, m = 5L, alpha = "0.4", rho = "0.9",
+      pi_w = "0.2", pi_in = "0.2", rhs_tau0 = 1e-6,
+      readout_y_lags = 1L, reservoir_lags = 0L, washout = 300L
+    )
+  )
+  profile <- qdesn_ssv2_profile_from_job(job)
+  testthat::expect_equal(nrow(profile), 1L)
+  testthat::expect_identical(profile$n_tilde, "")
+  testthat::expect_identical(profile$candidate_id, "d1_candidate")
+  testthat::expect_identical(profile$target_cell_id, "normal_t0p05")
+  testthat::expect_identical(profile$effective_readout_dimension, 19L)
+})
+
+testthat::test_that("latest stage supersedes repeated candidate-source evidence", {
+  rows <- data.frame(
+    stage = c("wave1", "wave1", "wave2", "wave2"),
+    job_id = c("early_repeat", "early_unique", "late_repeat", "late_unique"),
+    target_cell_id = "normal_t0p25",
+    candidate_id = c("candidate_a", "candidate_b", "candidate_a", "candidate_a"),
+    chain_id = 1L,
+    source_id = c("dev09", "dev09", "dev09", "dev10"),
+    objective_metric = "forecast_mae",
+    objective_value = c(3.0, 2.0, 1.5, 1.0),
+    stringsAsFactors = FALSE
+  )
+  resolved <- qdesn_ssv2_resolve_stage_repeats(rows, c("wave1", "wave2"))
+  testthat::expect_equal(nrow(resolved$results), 3L)
+  testthat::expect_equal(nrow(resolved$ledger), 1L)
+  retained <- resolved$results[
+    resolved$results$candidate_id == "candidate_a" &
+      resolved$results$source_id == "dev09", , drop = FALSE
+  ]
+  testthat::expect_identical(retained$stage, "wave2")
+  testthat::expect_identical(retained$objective_value, 1.5)
+  testthat::expect_identical(resolved$ledger$superseded_job_id, "early_repeat")
+  testthat::expect_identical(resolved$ledger$retained_job_id, "late_repeat")
+  testthat::expect_identical(
+    resolved$ledger$resolution, "latest_stage_supersedes_earlier_repeat"
+  )
+})
+
 testthat::test_that("capacity repair changes only the eleven infeasible frozen designs", {
   stub <- file.path(repo_root, "config", "validation", qdesn_ssv2_stage)
   profiles <- qdesn_ssv2_read_csv(paste0(stub, "_wave1_profiles.csv"))
@@ -151,6 +197,21 @@ testthat::test_that("launcher is staged, resumable, and cannot launch confirmati
   testthat::expect_match(text, "run_stage sealed", fixed = TRUE)
   testthat::expect_false(grepl("run_stage confirmation", text, fixed = TRUE))
   testthat::expect_match(text, "FULL_CONFIRMATION_LAUNCH_APPROVED=FALSE", fixed = TRUE)
+  resume_path <- file.path(
+    scripts, "resume_independent_exal_m0_structural_screen_v2_after_wave2.sh"
+  )
+  resume_launch_path <- file.path(
+    scripts, "launch_resume_independent_exal_m0_structural_screen_v2_after_wave2.sh"
+  )
+  testthat::expect_equal(system2("bash", c("-n", resume_path)), 0L)
+  testthat::expect_equal(system2("bash", c("-n", resume_launch_path)), 0L)
+  resume_text <- paste(readLines(resume_path, warn = FALSE), collapse = "\n")
+  testthat::expect_match(resume_text, "ORIGINAL_COMPLETED_ROOTS=282", fixed = TRUE)
+  testthat::expect_match(resume_text, "run_stage wave3", fixed = TRUE)
+  testthat::expect_match(resume_text, "run_stage sealed", fixed = TRUE)
+  testthat::expect_false(grepl("run_stage wave1", resume_text, fixed = TRUE))
+  testthat::expect_false(grepl("run_stage wave2", resume_text, fixed = TRUE))
+  testthat::expect_false(grepl("run_stage confirmation", resume_text, fixed = TRUE))
   launch_text <- paste(readLines(launch_path, warn = FALSE), collapse = "\n")
   testthat::expect_match(launch_text, "WORKERS=\"${WORKERS:-20}\"", fixed = TRUE)
   testthat::expect_match(launch_text, "launcher_resources.env", fixed = TRUE)
