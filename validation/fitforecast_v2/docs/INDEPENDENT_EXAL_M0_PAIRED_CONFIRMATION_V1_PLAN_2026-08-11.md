@@ -178,3 +178,26 @@ Canonical smoke evidence:
 
 The 4+4 smoke estimates are implementation diagnostics only. They are not
 eligible for scientific comparison or article promotion.
+
+## Full confirmation launch
+
+- Launch commit: `0f0634e40b5d1e320b61ad7af1464beb56546fb3`.
+- Run ID:
+  `independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e`
+- Run tag:
+  `ind-exal-m0-paired-confirm-v1-full-20260811__git-0f0634e`
+- tmux session:
+  `ffv2_ind_exal_m0_paired_confirm_v1_full_20260811`
+- State root:
+  `reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e`
+- Result root:
+  `results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_structural_screen_v2/ind-exal-m0-paired-confirm-v1-full-20260811__git-0f0634e`
+- Workers: six, with one thread per chain.
+- Startup CPU set: `21,22,23,24,32,33`.
+- Startup health: 6/6 chains progressing, 0 complete, 0 failed.
+- The pipeline will run runtime verification, storage audit, and the manual-gate
+  closeout automatically after all workers succeed.
+
+The article remains unchanged while this run is active. Only the completed
+closeout under `<state-root>/closeout` may be considered for a later article
+promotion.
