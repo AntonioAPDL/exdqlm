@@ -251,3 +251,29 @@ The implementation and smoke are ready. The 84-job calibration campaign is
 prepared but not launched. The article-facing interface remains unchanged
 because a 71-value Q-DESN rolling rebaseline requires an explicit, reviewed
 promotion rather than a silent replacement.
+
+## Authoritative Rolling-Metric Promotion
+
+The reviewed protocol correction is materialized separately from the paired
+calibration campaign. The promotion builder pins the v4 interface, its manifest
+and source ledger, and the complete rolling-contract audit. It replaces only
+Q-DESN forecast MAE and forecast check loss with values rederived from verified
+lead-level rolling-origin paths; no model, candidate, fit metric, or comparator
+is reselected.
+
+The promotion freezes all inherited compact metric sources and compresses each
+unique raw rolling-origin CSV into the immutable bundle. It retains no `.rds`,
+`.rda`, or `.RData` payload. The paired 84-job calibration remains explicitly
+`PREPARED_NOT_APPROVED_NOT_LAUNCHED` and is not needed to publish the corrected
+current evidence.
+
+```bash
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/promote_qdesn_article_rolling_rebaseline_v1.R
+
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/verify_qdesn_article_rolling_rebaseline_v1_promotion.R
+```
+
+The authoritative promotion identifier is
+`qdesn_dqlm_500obs_trainonly_article_v5_rolling_rebaseline_20260811`.

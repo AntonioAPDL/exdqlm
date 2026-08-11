@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-08-11 02:23:30.173421",
+  "decision": "BLOCK_AUTOMATIC_ARTICLE_REBASELINE",
+  "interface": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v4_exal_m0_20260809/qdesn_dqlm_500obs_trainonly_article_v4_exal_m0_20260809_interface.csv",
+    "sha256": "3cc65a3ec8d572e91ff2b69b37f53ee47ce9ebd0fec1fe370a1e6bf24c757c23",
+    "rows": 72
+  },
+  "source_roots": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/config/validation/qdesn_article_rolling_rebaseline_v1_source_roots.csv",
+    "sha256": "44bc1a6a6e9866c2e0830808ed87403a8a56ae3e0870d283153aa1cca1f20a74",
+    "rows": 4
+  },
+  "indexed_fit_summaries": 283,
+  "audit_rows": 144,
+  "qdesn_raw_rolling_pass_rows": 72,
+  "qdesn_metric_mismatches": 71,
+  "unresolved_rows": 0,
+  "tolerance": 1e-08,
+  "outputs": {
+    "audit": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_article_rolling_rebaseline_v1_20260811/rolling_metric_contract_audit.csv",
+      "sha256": "83e466f80b20e659a00d79892e2d7d53ffe859a07556bd022d8ddb3469713edc"
+    },
+    "qdesn_rederived": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_article_rolling_rebaseline_v1_20260811/qdesn_rederived_rolling_metrics.csv",
+      "sha256": "969a88539640e37b172fe330f80be3070ab4cfda93ad1b2eeef00f577ae3d27c"
+    },
+    "unresolved": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_article_rolling_rebaseline_v1_20260811/unresolved_evidence_ledger.csv",
+      "sha256": "1abf81b591f3cbbcc38e1f979e6b8aaaa8a45acd3af221953b85e0dfd5e45bbb"
+    },
+    "provisional_interface": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_article_rolling_rebaseline_v1_20260811/provisional_rolling_rebaseline_interface.csv",
+      "sha256": "6a0f0ab4b4284a7f8f5e40f0867bb111b3cb662c5244200a9fec443a37a62caf",
+      "state": "PROVISIONAL_NOT_ARTICLE_AUTHORITY"
+    },
+    "metric_gap_ledger": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_article_rolling_rebaseline_v1_20260811/qdesn_comparator_metric_gap_ledger.csv",
+      "sha256": "95438b1feaa4e5b971e41e644052f8b648ad18032b25e3fea519fb03f43736e7",
+      "rows": 108
+    },
+    "cell_priority_ledger": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_article_rolling_rebaseline_v1_20260811/qdesn_comparator_cell_priority_ledger.csv",
+      "sha256": "722250a681b7c003b9520d3e14eb53679cc5b6a97032bc5b9aae897175e3fca4",
+      "rows": 36
+    }
+  },
+  "promotion_automatic": false
+}
