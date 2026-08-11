@@ -150,3 +150,31 @@ $R validation/fitforecast_v2/scripts/healthcheck_independent_exal_m0_structural_
   --plan <state-root>/materialization/confirmation_plan.csv \
   --stale-seconds 1800 --output <state-root>/manual_health.csv
 ```
+
+## Implemented preflight evidence
+
+- Implementation commit: `e0f61cb906a0d71316b437f42382cc7b2be300a8`.
+- Implementation branch was clean and synchronized with its upstream before
+  compute.
+- R runtime: 4.6.0; package version: 1.0.0.
+- Focused campaign suite: pass.
+- Related M0, progress, source-window, horizon, no-leakage, storage, and
+  rolling-lead-export tests: pass.
+- Static smoke manifest: 2/2 jobs pass.
+- Static confirmation manifest: 6/6 jobs pass.
+
+Canonical smoke evidence:
+
+- Run ID:
+  `independent_exal_m0_paired_confirmation_v1_smoke_20260811_e0f61cb`
+- Run tag:
+  `ind-exal-m0-paired-confirm-v1-smoke-20260811__git-e0f61cb`
+- State root:
+  `reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_smoke_20260811_e0f61cb`
+- Result: 2/2 successful jobs, 6/6 finite metric rows, 2/2 rolling artifact
+  audits passed, and zero retained binary payloads.
+- Median worker elapsed time: 50.62 seconds.
+- Pipeline result: complete with exit code zero.
+
+The 4+4 smoke estimates are implementation diagnostics only. They are not
+eligible for scientific comparison or article promotion.
