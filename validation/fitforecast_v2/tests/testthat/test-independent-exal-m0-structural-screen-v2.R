@@ -528,6 +528,70 @@ testthat::test_that("targeted confirmation is two-cell, full-budget, and manual-
   testthat::expect_match(materializer, "nrow(plan) != 6L", fixed = TRUE)
 })
 
+testthat::test_that("paired confirmation freezes evidence and gates canonical full compute", {
+  scripts <- file.path(repo_root, "validation", "fitforecast_v2", "scripts")
+  pipeline <- file.path(
+    scripts, "run_independent_exal_m0_paired_confirmation_v1.sh"
+  )
+  launcher <- file.path(
+    scripts, "launch_independent_exal_m0_paired_confirmation_v1.sh"
+  )
+  testthat::expect_equal(system2("bash", c("-n", pipeline)), 0L)
+  testthat::expect_equal(system2("bash", c("-n", launcher)), 0L)
+  pipeline_text <- paste(readLines(pipeline, warn = FALSE), collapse = "\n")
+  testthat::expect_match(pipeline_text, "PAIRED_CONFIRMATION_APPROVED", fixed = TRUE)
+  testthat::expect_match(pipeline_text, 'HEARTBEAT_SECONDS="${HEARTBEAT_SECONDS:-1800}"',
+                         fixed = TRUE)
+  testthat::expect_match(pipeline_text, 'STALE_SECONDS="${STALE_SECONDS:-1800}"',
+                         fixed = TRUE)
+  testthat::expect_match(pipeline_text, "same_tag_resume_supported=true", fixed = TRUE)
+  testthat::expect_match(pipeline_text, "taskset -c", fixed = TRUE)
+  testthat::expect_match(pipeline_text, "xargs -r -n 1 -P", fixed = TRUE)
+  testthat::expect_false(grepl("git commit|git push", pipeline_text))
+
+  for (script in c(
+    "seal_independent_exal_m0_paired_rolling_repair_v1_closeout.R",
+    "materialize_independent_exal_m0_paired_confirmation_v1.R",
+    "verify_independent_exal_m0_paired_confirmation_v1.R",
+    "closeout_independent_exal_m0_paired_confirmation_v1.R"
+  )) {
+    testthat::expect_silent(parse(file.path(scripts, script)))
+  }
+
+  contract_path <- file.path(
+    repo_root, "config", "validation",
+    "qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_paired_confirmation_v1.json"
+  )
+  contract <- qdesn_ssv2_read_json(contract_path)
+  testthat::expect_identical(contract$method_id, "M0_v_collapsed_support_logit")
+  testthat::expect_equal(contract$smoke$expected_jobs, 2L)
+  testthat::expect_equal(contract$confirmation$expected_jobs, 6L)
+  testthat::expect_equal(contract$confirmation$chains_per_candidate, 3L)
+  testthat::expect_equal(contract$confirmation$n_burn, 5000L)
+  testthat::expect_equal(contract$confirmation$n_mcmc, 20000L)
+  testthat::expect_equal(contract$fit_forecast_contract$max_lead, 30L)
+  testthat::expect_equal(contract$fit_forecast_contract$origin_stride, 30L)
+  testthat::expect_false(contract$fit_forecast_contract$refit_per_origin)
+  testthat::expect_false(contract$promotion_contract$article_promotion_automatic)
+  testthat::expect_true(contract$promotion_contract$mean_below_current)
+  testthat::expect_true(contract$promotion_contract$median_below_current)
+  testthat::expect_equal(contract$promotion_contract$minimum_effect_threshold, 0)
+
+  handoff_root <- file.path(repo_root, contract$sealed_handoff$root)
+  testthat::expect_identical(
+    qdesn_ssv2_sha256(file.path(handoff_root, "canonical_confirmation_profiles.csv")),
+    contract$sealed_handoff$profiles_sha256
+  )
+  testthat::expect_identical(
+    qdesn_ssv2_sha256(file.path(handoff_root, "paired_metric_selection_ledger.csv")),
+    contract$sealed_handoff$metric_selection_sha256
+  )
+  testthat::expect_identical(
+    qdesn_ssv2_sha256(file.path(handoff_root, "article_metric_baseline.csv")),
+    contract$sealed_handoff$article_metric_baseline_sha256
+  )
+})
+
 testthat::test_that("materialized configs preserve vector and effective-window contracts", {
   root <- file.path(repo_root, "reports", "shared_fitforecast_v2_orchestration",
                     "independent_exal_m0_structural_screen_v2_materialization")

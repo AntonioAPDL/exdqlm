@@ -1,0 +1,83 @@
+{
+  "schema_version": "independent_exal_m0_paired_confirmation_v1",
+  "package_version": "1.0.0",
+  "validation_branch": "validation/independent-exal-m0-structural-screen-v2-1.0.0",
+  "method_id": "M0_v_collapsed_support_logit",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "sealed_handoff": {
+    "promotion_id": "independent_exal_m0_paired_rolling_repair_v1_closeout_20260811",
+    "root": "validation/fitforecast_v2/promotions/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811",
+    "profiles_sha256": "8ac0708f4d22ee78fd6237e96f5e27a3b8ec06aa163e7d1945273df19839c51a",
+    "metric_selection_sha256": "ffc0868c865cd74ea79f9903e45d31a954d108147735119b2fafd7ebbc6506bf",
+    "article_metric_baseline_sha256": "874fdf3579ef986ede274672785de647a87e195fb9d2849fe33e5073d91287e0",
+    "manifest_sha256": "b90b1ddee33eb76bdcb5fdfa6be79c6450b024a411ccb9ac956c9a31f959cfc0"
+  },
+  "canonical_source": {
+    "root": "/data/jaguir26/local/src/shared_dynamic_fit_forecast_validation/sources",
+    "scenario": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+    "targets": [
+      {
+        "target_cell_id": "normal_t0p05",
+        "family": "normal",
+        "tau": 0.05,
+        "series_wide_sha256": "e2bdae3052bff71e0f8bbce4c8b2228e4294363e7e0e2a6f097e3ac95051a1f3",
+        "sim_output_sha256": "9d79846718f767e13b5affc66a025ce10ddb909fc9d7fe7bcd6e9e81025845cd"
+      },
+      {
+        "target_cell_id": "normal_t0p50",
+        "family": "normal",
+        "tau": 0.5,
+        "series_wide_sha256": "4c5d84fe51a509703fa484e82a94a58407d1833e1a4f5a505e056170a6fcc2a2",
+        "sim_output_sha256": "dda1f31995ba8c4b8d6bd02ac09770827c53bded3d273d9f3e53910db7e2a151"
+      }
+    ]
+  },
+  "fit_forecast_contract": {
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_origin_source_index": 9000,
+    "forecast_start_source_index": 9001,
+    "forecast_end_source_index": 10000,
+    "max_lead": 30,
+    "origin_stride": 30,
+    "refit_per_origin": false,
+    "require_lead_export": true
+  },
+  "smoke": {
+    "chains_per_candidate": 1,
+    "n_burn": 4,
+    "n_mcmc": 4,
+    "expected_jobs": 2,
+    "max_parallel_workers": 2
+  },
+  "confirmation": {
+    "chains_per_candidate": 3,
+    "n_burn": 5000,
+    "n_mcmc": 20000,
+    "thin": 1,
+    "expected_jobs": 6,
+    "max_parallel_workers": 6,
+    "launch_requires_explicit_approval": true
+  },
+  "promotion_contract": {
+    "metrics": [
+      "fit_qtrue_rmse",
+      "forecast_qtrue_mae_H1000",
+      "forecast_check_loss_H1000"
+    ],
+    "successful_chains_required": 3,
+    "finite_chains_required": 3,
+    "mean_below_current": true,
+    "median_below_current": true,
+    "minimum_effect_threshold": 0,
+    "diagnostics_are_reported_not_a_metric_veto": true,
+    "article_promotion_automatic": false
+  },
+  "storage_policy": {
+    "keep_draws": false,
+    "keep_mcmc_vb_init": false,
+    "save_forecast_objects": false,
+    "retain_full_rds_on_failure": false,
+    "forbidden_extensions": ["rds", "rda", "RData"]
+  }
+}

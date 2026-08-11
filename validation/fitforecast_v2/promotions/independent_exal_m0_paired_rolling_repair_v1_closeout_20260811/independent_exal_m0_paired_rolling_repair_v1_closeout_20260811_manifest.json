@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-08-11 04:27:16.13537",
+  "promotion_id": "independent_exal_m0_paired_rolling_repair_v1_closeout_20260811",
+  "decision": "CALIBRATION_CLOSED_TWO_CANDIDATES_READY_FOR_FULL_CONFIRMATION",
+  "source_run_tag": "ind-exal-m0-paired-rolling-repair-v1-calibration-20260811_overnight_v1",
+  "source_validation_branch": "validation/independent-exal-m0-structural-screen-v2-1.0.0",
+  "source_validation_commit": "c16ff630bd56b75ef0936aa04b8c610300e0d165",
+  "package_version": "1.0.0",
+  "method_id": "M0_v_collapsed_support_logit",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "jobs": 84,
+  "paired_blocks": 42,
+  "metric_cells": 21,
+  "selected_target_cells": [
+    "normal_t0p05",
+    "normal_t0p50"
+  ],
+  "selected_metric_cells": 3,
+  "candidates": 2,
+  "selection_rule": {
+    "paired_blocks_required": 6,
+    "mean_delta_below_zero": true,
+    "median_delta_below_zero": true,
+    "pair_wins_required": 4,
+    "minimum_effect_threshold": 0,
+    "every_paired_consistent_metric_gain_advances": true
+  },
+  "article_baseline": {
+    "promotion_id": "qdesn_dqlm_500obs_trainonly_article_v5_rolling_rebaseline_20260811",
+    "interface_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v5_rolling_rebaseline_20260811/qdesn_dqlm_500obs_trainonly_article_v5_rolling_rebaseline_20260811_interface.csv",
+    "interface_sha256": "f9a2fbe2a791c28bb4d09a190888f90c6172270085d19627855150cfb3872f28",
+    "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v5_rolling_rebaseline_20260811/qdesn_dqlm_500obs_trainonly_article_v5_rolling_rebaseline_20260811_manifest.json",
+    "manifest_sha256": "9ce5667a4f38d220ed60d71cc1d96f47417d3cbebddee5b0a8e51d62d0e4e128"
+  },
+  "outputs": {
+    "confirmation_profiles": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811/canonical_confirmation_profiles.csv",
+      "sha256": "8ac0708f4d22ee78fd6237e96f5e27a3b8ec06aa163e7d1945273df19839c51a"
+    },
+    "metric_selection": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811/paired_metric_selection_ledger.csv",
+      "sha256": "ffc0868c865cd74ea79f9903e45d31a954d108147735119b2fafd7ebbc6506bf"
+    },
+    "article_metric_baseline": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811/article_metric_baseline.csv",
+      "sha256": "874fdf3579ef986ede274672785de647a87e195fb9d2849fe33e5073d91287e0"
+    },
+    "evidence_manifest": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811/source_evidence_manifest.csv",
+      "sha256": "03ab4f33fc66ccfbf0a1bff97da7f8c96f2c51676a8c21b7281aab4b99f056d7"
+    },
+    "file_manifest": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811/file_manifest.csv",
+      "sha256": "5ec31cd947a2f7d4fd4186f46b47c6e35b7d82c94a33c854dfe23c135248e4ec"
+    }
+  },
+  "routine_binary_payloads": 0,
+  "article_update_automatic": false
+}
