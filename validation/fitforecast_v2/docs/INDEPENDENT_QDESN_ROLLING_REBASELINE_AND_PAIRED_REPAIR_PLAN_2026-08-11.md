@@ -126,6 +126,14 @@ transfer behavior only; it is not article-confirmation evidence. A winner must
 show a paired improvement across sources and reservoirs before receiving a
 full-budget canonical-source confirmation.
 
+All three article metrics are evaluated in every paired block: fit RMSE,
+rolling-origin forecast MAE, and rolling-origin forecast check loss. Selection
+is metric-specific. A finalist metric advances when all six paired blocks are
+present, its mean and median paired deltas are strictly below zero, and it wins
+at least four of six blocks. There is no minimum effect-size threshold: every
+finite paired-consistent gain, however small, is retained for canonical
+confirmation. This does not turn calibration evidence into article evidence.
+
 No sealed source is used during calibration. `dev12` remains reserved for a
 later gate and is not materialized into the calibration plan.
 
@@ -166,7 +174,11 @@ launch_state=PREPARED_NOT_APPROVED_NOT_LAUNCHED
 
 Both smoke and calibration static verification pass. The calibration launcher
 also refuses to run without `QDESN_PAIRED_REPAIR_APPROVAL=YES` and enforces a
-20-worker maximum.
+20-worker maximum. It additionally requires a clean synchronized branch,
+holds a campaign lock, waits for load/memory/disk/idle-core gates, pins the
+worker pool to 20 currently idle cores, forces one thread per fit, writes a
+30-minute resource heartbeat and health snapshot, and supports same-tag resume
+without repeating matching successful jobs.
 
 ## Smoke Evidence
 
@@ -194,12 +206,14 @@ The following sequence is mandatory:
 2. Re-materialize and require static verification for all 84 jobs.
 3. Require the paired smoke to pass exactly as above.
 4. Obtain explicit approval before launching calibration.
-5. Rank within each cell using paired source/reservoir contrasts; do not select
-   a global specification. A finalist advances only when all six paired blocks
-   are present, its mean and median paired deltas are below zero, and it wins at
-   least four of six blocks.
+5. Rank each of the three metrics within each cell using paired
+   source/reservoir contrasts; do not select a global specification. A metric
+   advances only when all six paired blocks are present, its mean and median
+   paired deltas are below zero, and it wins at least four of six blocks.
 6. Require a consistent metric improvement relative to the current per-cell
-   anchor. Diagnostic flags remain visible but do not replace metric evidence.
+   anchor. The minimum accepted gain is zero, so every strict improvement is
+   retained. Diagnostic flags remain visible but do not replace metric
+   evidence.
 7. Run only selected per-cell winners at full budget on the canonical article
    source with multiple chains.
 8. Promote only metrics that improve the existing value and pass the rolling
@@ -242,15 +256,27 @@ During an approved run, the compact health table is regenerated with:
 ```
 
 After all jobs and rolling artifacts verify, the launcher automatically writes
-paired contrasts, a per-cell selection ledger, and confirmation profiles. It
+paired contrasts, a 21-row cell-by-metric selection ledger, a backward-compatible
+seven-row primary-objective ledger, and deduplicated confirmation profiles. It
 does not launch canonical confirmation or update the article.
+
+The approved overnight calibration tag is:
+
+```text
+ind-exal-m0-paired-rolling-repair-v1-calibration-20260811_overnight_v1
+```
+
+The unattended run ends after paired closeout. This is the scientifically safe
+automation boundary because the number and identity of full-budget candidates
+are data-dependent. Canonical 5,000-burn/20,000-retained confirmation remains a
+separate explicit launch after reviewing the paired ledger.
 
 ## Current Decision
 
-The implementation and smoke are ready. The 84-job calibration campaign is
-prepared but not launched. The article-facing interface remains unchanged
-because a 71-value Q-DESN rolling rebaseline requires an explicit, reviewed
-promotion rather than a silent replacement.
+The implementation, smoke contract, and overnight orchestration are ready. The
+84-job calibration campaign has explicit user approval for the fixed overnight
+tag above. The article-facing interface remains unchanged by this campaign;
+only later canonical full-budget results can replace article metrics.
 
 ## Authoritative Rolling-Metric Promotion
 

@@ -341,6 +341,12 @@ testthat::test_that("paired rolling repair is paired, gated, and storage-light",
   testthat::expect_match(text, "QDESN_PAIRED_REPAIR_APPROVAL", fixed = TRUE)
   testthat::expect_match(text, "WORKERS > 20", fixed = TRUE)
   testthat::expect_match(text, "xargs -r -n 1 -P", fixed = TRUE)
+  testthat::expect_match(text, "flock -n", fixed = TRUE)
+  testthat::expect_match(text, "HEARTBEAT_SECONDS", fixed = TRUE)
+  testthat::expect_match(text, "select_idle_cpus", fixed = TRUE)
+  testthat::expect_match(text, "taskset -c", fixed = TRUE)
+  testthat::expect_match(text, "git status --porcelain", fixed = TRUE)
+  testthat::expect_match(text, "same_tag_resume_supported", fixed = TRUE)
   testthat::expect_match(
     text, "closeout_independent_exal_m0_paired_rolling_repair_v1.R", fixed = TRUE
   )
@@ -377,6 +383,30 @@ testthat::test_that("paired rolling repair is paired, gated, and storage-light",
   }, logical(1L))))
   testthat::expect_true(all(calibration$require_lead_export))
   testthat::expect_false(any(calibration$article_promotion_automatic))
+  manifest <- qdesn_ssv2_read_json(file.path(root, "materialization_manifest.json"))
+  testthat::expect_equal(
+    sort(unlist(manifest$selection_contract$metrics, use.names = FALSE)),
+    sort(c(
+      "fit_qtrue_rmse", "forecast_qtrue_mae_H1000",
+      "forecast_check_loss_H1000"
+    ))
+  )
+  testthat::expect_identical(
+    as.numeric(manifest$selection_contract$minimum_effect_threshold), 0
+  )
+  testthat::expect_true(
+    isTRUE(manifest$selection_contract$promote_every_paired_consistent_metric_gain)
+  )
+  closeout_text <- paste(readLines(
+    file.path(scripts, "closeout_independent_exal_m0_paired_rolling_repair_v1.R"),
+    warn = FALSE
+  ), collapse = "\n")
+  testthat::expect_match(
+    closeout_text, "paired_metric_selection_ledger.csv", fixed = TRUE
+  )
+  testthat::expect_match(
+    closeout_text, "every_paired_consistent_metric_gain_advances", fixed = TRUE
+  )
   testthat::expect_length(list.files(
     root, pattern = "[.](rds|rda|RData)$", recursive = TRUE,
     full.names = TRUE, ignore.case = TRUE

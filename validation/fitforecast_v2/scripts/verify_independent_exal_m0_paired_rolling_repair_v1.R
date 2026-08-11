@@ -181,6 +181,26 @@ checks <- c(
                               "M0_v_collapsed_support_logit"),
   manifest_registry = identical(as.character(manifest$source_registry_hash_value),
                                 qdesn_ssv2_registry_hash),
+  selection_metrics = identical(
+    sort(unlist(manifest$selection_contract$metrics, use.names = FALSE)),
+    sort(c(
+      "fit_qtrue_rmse", "forecast_qtrue_mae_H1000",
+      "forecast_check_loss_H1000"
+    ))
+  ),
+  selection_no_minimum_effect = identical(
+    as.numeric(manifest$selection_contract$minimum_effect_threshold), 0
+  ) && isTRUE(
+    manifest$selection_contract$promote_every_paired_consistent_metric_gain
+  ),
+  selection_requires_six_pairs = identical(
+    as.integer(manifest$selection_contract$paired_blocks_required), 6L
+  ) && identical(
+    as.integer(manifest$selection_contract$pair_wins_required), 4L
+  ),
+  no_automatic_article_promotion = !isTRUE(
+    manifest$selection_contract$article_promotion_automatic
+  ),
   static_jobs = nrow(static) == nrow(plan) && all(static$decision == "PASS"),
   paired_groups = all(pairs$decision == "PASS"),
   materialization_storage_light = !length(materialization_binaries),

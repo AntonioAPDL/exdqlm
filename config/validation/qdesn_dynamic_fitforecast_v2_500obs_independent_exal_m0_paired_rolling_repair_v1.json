@@ -39,6 +39,21 @@
     "launch_requires_explicit_approval": true,
     "max_parallel_workers": 20
   },
+  "selection_contract": {
+    "metrics": [
+      "fit_qtrue_rmse",
+      "forecast_qtrue_mae_H1000",
+      "forecast_check_loss_H1000"
+    ],
+    "paired_blocks_required": 6,
+    "mean_delta_below_zero": true,
+    "median_delta_below_zero": true,
+    "pair_wins_required": 4,
+    "minimum_effect_threshold": 0,
+    "promote_every_paired_consistent_metric_gain": true,
+    "promotion_scope": "canonical_full_budget_confirmation_candidate_only",
+    "article_promotion_automatic": false
+  },
   "storage_policy": {
     "keep_draws": false,
     "save_forecast_objects": false,

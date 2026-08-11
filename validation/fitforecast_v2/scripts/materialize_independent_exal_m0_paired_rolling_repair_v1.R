@@ -241,6 +241,7 @@ configure_required_rolling <- function(job) {
   )
   job$study_contract$candidate_role <- job$profile$candidate_role
   job$study_contract$paired_factors <- c("source_id", "reservoir_seed_id")
+  job$study_contract$selection_contract <- contract$selection_contract
   job$study_contract$article_promotion_automatic <- FALSE
   job
 }
@@ -354,6 +355,7 @@ manifest <- list(
   candidate_roles = as.list(unlist(contract$candidate_roles, use.names = FALSE)),
   development_sources = as.list(development_ids),
   reservoir_seed_ids = as.list(unlist(contract$reservoir_seed_ids, use.names = FALSE)),
+  selection_contract = contract$selection_contract,
   smoke_jobs = nrow(smoke_plan),
   calibration_jobs = nrow(calibration_plan),
   calibration_launch_state = "PREPARED_NOT_APPROVED_NOT_LAUNCHED",
