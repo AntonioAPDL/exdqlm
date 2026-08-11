@@ -1,0 +1,48 @@
+{
+  "schema_version": "independent_exal_m0_paired_rolling_repair_v1",
+  "article_promotion_automatic": false,
+  "method_id": "M0_v_collapsed_support_logit",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "rolling_origin_contract": {
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_start_source_index": 9001,
+    "forecast_end_source_index": 10000,
+    "max_lead": 30,
+    "origin_stride": 30,
+    "refit_per_origin": false,
+    "require_lead_export": true
+  },
+  "inputs": {
+    "rebaseline_root": "reports/shared_fitforecast_v2_orchestration/qdesn_article_rolling_rebaseline_v1_20260811",
+    "source_root_registry": "reports/shared_fitforecast_v2_orchestration/independent_exal_m0_structural_screen_v2_materialization/source_root_registry.csv",
+    "parent_profiles": "config/validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_structural_screen_v2_parent_controls.csv",
+    "prior_screen_profiles": "reports/shared_fitforecast_v2_orchestration/independent_exal_m0_structural_screen_v2_capacity_repair_20260810_040208/adaptive_recovery_selector_v3/canonical_confirmation_profiles.csv",
+    "prior_screen_ranking": "reports/shared_fitforecast_v2_orchestration/independent_exal_m0_structural_screen_v2_capacity_repair_20260810_040208/adaptive_recovery_selector_v3/sealed_closeout_ranking.csv"
+  },
+  "development_source_ids": ["dev09", "dev10", "dev11"],
+  "sealed_source_ids": ["dev12"],
+  "reservoir_seed_ids": ["r01", "r02"],
+  "candidate_roles": ["current_anchor", "prior_screen_finalist"],
+  "target_model_variant": "qdesn_exal_rhs_ns",
+  "target_inference": "mcmc",
+  "gap_tolerance_pct": 5,
+  "smoke": {
+    "target_cell_id": "normal_t0p25",
+    "source_id": "dev09",
+    "reservoir_seed_id": "r01",
+    "chains_per_design": 1
+  },
+  "calibration": {
+    "chains_per_design": 1,
+    "expected_jobs": 84,
+    "launch_requires_explicit_approval": true,
+    "max_parallel_workers": 20
+  },
+  "storage_policy": {
+    "keep_draws": false,
+    "save_forecast_objects": false,
+    "retain_full_rds_on_failure": false,
+    "forbidden_extensions": ["rds", "rda", "RData"]
+  }
+}

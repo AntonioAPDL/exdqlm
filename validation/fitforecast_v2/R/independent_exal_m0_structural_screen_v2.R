@@ -692,6 +692,7 @@ qdesn_ssv2_stage_source_window <- function(root_row, source_id, m, washout,
   source <- qdesn_ssv2_read_csv(root_row$series_wide_path[[1L]])
   idx <- raw_start:raw_end
   source <- source[idx, , drop = FALSE]
+  source$source_index <- idx
   source$t <- seq_len(nrow(source))
   dir <- file.path(output_root, source_id, root_row$family[[1L]],
                    sprintf("tau_%s", sub("[.]", "p", sprintf("%.2f", root_row$tau[[1L]]))),
@@ -726,6 +727,12 @@ qdesn_ssv2_stage_source_window <- function(root_row, source_id, m, washout,
     source_selection_indices_sha256 = qdesn_ssv2_sha256(selection_path),
     source_sim_path = root_row$sim_output_path[[1L]],
     source_sim_sha256 = root_row$sim_output_sha256[[1L]],
+    source_latent_seed = if ("latent_seed" %in% names(root_row)) {
+      as.integer(root_row$latent_seed[[1L]])
+    } else NA_integer_,
+    source_noise_seed = if ("noise_seed" %in% names(root_row)) {
+      as.integer(root_row$noise_seed[[1L]])
+    } else NA_integer_,
     observed_path = observed_path, observed_sha256 = qdesn_ssv2_sha256(observed_path),
     qtrue_path = qtrue_path, qtrue_sha256 = qdesn_ssv2_sha256(qtrue_path),
     stringsAsFactors = FALSE
@@ -781,7 +788,8 @@ qdesn_ssv2_seed <- function(...) {
 }
 
 qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
-                                source_registry_path, chain_id = 1L) {
+                                source_registry_path, chain_id = 1L,
+                                reservoir_seed_id = NULL) {
   profile <- qdesn_ssv2_ensure_effective_dimension(profile)
   if (profile$effective_readout_dimension[[1L]] >
       qdesn_ssv2_max_effective_readout_dimension) {
@@ -803,7 +811,19 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
   cfg$desn$pi_w <- qdesn_ssv2_vec(profile$pi_w[[1L]])
   cfg$desn$pi_in <- qdesn_ssv2_vec(profile$pi_in[[1L]])
   cfg$desn$washout <- as.integer(profile$washout[[1L]])
-  cfg$desn$seed <- qdesn_ssv2_seed(profile$candidate_id[[1L]], source$source_id[[1L]], "desn")
+  explicit_reservoir_seed <- !is.null(reservoir_seed_id) &&
+    length(reservoir_seed_id) && !is.na(reservoir_seed_id[[1L]]) &&
+    nzchar(trimws(as.character(reservoir_seed_id[[1L]])))
+  reservoir_seed_id <- if (isTRUE(explicit_reservoir_seed)) {
+    as.character(reservoir_seed_id[[1L]])
+  } else {
+    as.character(source$source_id[[1L]])
+  }
+  cfg$desn$seed <- if (isTRUE(explicit_reservoir_seed)) {
+    qdesn_ssv2_seed(target$target_cell_id[[1L]], reservoir_seed_id, "desn")
+  } else {
+    qdesn_ssv2_seed(profile$candidate_id[[1L]], source$source_id[[1L]], "desn")
+  }
   cfg$lags$m_y <- as.integer(profile$readout_y_lags[[1L]])
   cfg$readout$reservoir_lags <- as.integer(profile$reservoir_lags[[1L]])
   cfg$split$T_use <- as.integer(source$source_total_size[[1L]])
@@ -820,9 +840,18 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
   cfg$inference$mcmc$slice$width_gamma <- 4
   cfg$inference$mcmc$slice$core_extra_passes <- 0L
   cfg$inference$mcmc$priors$beta$rhs_ns$tau0 <- as.numeric(profile$rhs_tau0[[1L]])
-  cfg$inference$mcmc$control$seed <- qdesn_ssv2_seed(profile$candidate_id[[1L]], source$source_id[[1L]], chain_id, "mcmc")
-  cfg$inference$mcmc$control$rng_seed <- qdesn_ssv2_seed(profile$candidate_id[[1L]], source$source_id[[1L]], chain_id, "rng")
-  cfg$inference$mcmc$vb_warm_start_seed <- qdesn_ssv2_seed(profile$candidate_id[[1L]], source$source_id[[1L]], chain_id, "vb")
+  cfg$inference$mcmc$control$seed <- qdesn_ssv2_seed(
+    profile$candidate_id[[1L]], source$source_id[[1L]], reservoir_seed_id,
+    chain_id, "mcmc"
+  )
+  cfg$inference$mcmc$control$rng_seed <- qdesn_ssv2_seed(
+    profile$candidate_id[[1L]], source$source_id[[1L]], reservoir_seed_id,
+    chain_id, "rng"
+  )
+  cfg$inference$mcmc$vb_warm_start_seed <- qdesn_ssv2_seed(
+    profile$candidate_id[[1L]], source$source_id[[1L]], reservoir_seed_id,
+    chain_id, "vb"
+  )
   cfg$sampling$nd_draws <- budget$draws
   cfg$synthesis$n_samp <- budget$draws
   cfg$metrics$posterior_metric_draws <- budget$draws
@@ -865,6 +894,14 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
   root$readout_y_lags <- as.integer(profile$readout_y_lags[[1L]])
   root$reservoir_lags <- as.integer(profile$reservoir_lags[[1L]])
   root$desn_seed <- cfg$desn$seed
+  root$reservoir_seed_id <- reservoir_seed_id
+  root$reservoir_seed_contract <- if (isTRUE(explicit_reservoir_seed)) {
+    "paired_target_cell_panel_independent_of_source_and_candidate"
+  } else {
+    "legacy_candidate_source_coupled"
+  }
+  root$source_latent_seed <- as.integer(source$source_latent_seed %||% NA_integer_)[1L]
+  root$source_noise_seed <- as.integer(source$source_noise_seed %||% NA_integer_)[1L]
   root$mcmc_seed <- cfg$inference$mcmc$control$seed
   root$mcmc_rng_seed <- cfg$inference$mcmc$control$rng_seed
   root$vb_warm_start_seed <- cfg$inference$mcmc$vb_warm_start_seed
@@ -872,15 +909,23 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
   root$effective_readout_dimension <- root$dimension_p_estimate
   root$maximum_effective_readout_dimension <- qdesn_ssv2_max_effective_readout_dimension
   root$p_over_n_tt500 <- root$dimension_p_estimate / 500
-  job_id <- sprintf("%s__%s__%s__c%02d", stage, profile$candidate_id[[1L]],
-                    source$source_id[[1L]], as.integer(chain_id))
+  job_id <- if (isTRUE(explicit_reservoir_seed)) {
+    sprintf("%s__%s__%s__%s__c%02d", stage, profile$candidate_id[[1L]],
+            source$source_id[[1L]], reservoir_seed_id, as.integer(chain_id))
+  } else {
+    sprintf("%s__%s__%s__c%02d", stage, profile$candidate_id[[1L]],
+            source$source_id[[1L]], as.integer(chain_id))
+  }
   root$root_id <- job_id
   spec_id <- paste0("independent_exal_m0_structural_v2__", job_id)
   cfg$validation_spec_id <- spec_id
   list(
-    schema_version = "independent_exal_m0_structural_screen_v2_job_v1",
+    schema_version = "independent_exal_m0_structural_screen_v2_job_v2",
     job_id = job_id, stage = stage, target_cell_id = target$target_cell_id[[1L]],
     candidate_id = profile$candidate_id[[1L]], chain_id = as.integer(chain_id),
+    reservoir_seed_id = reservoir_seed_id,
+    reservoir_seed = as.integer(cfg$desn$seed),
+    seed_contract_mode = root$reservoir_seed_contract,
     source_id = source$source_id[[1L]], source_role = source$source_role[[1L]],
     objective_metric = target$objective_metric[[1L]], current_value = target$current_value[[1L]],
     comparator_value = target$comparator_value[[1L]], spec_id = spec_id,
@@ -897,6 +942,14 @@ qdesn_ssv2_make_job <- function(repo_root, profile, target, source, stage,
       forecast_window = c(9001L, 10000L), max_lead = 30L, origin_stride = 30L,
       effective_readout_dimension = root$effective_readout_dimension,
       maximum_effective_readout_dimension = qdesn_ssv2_max_effective_readout_dimension,
+      seed_contract = list(
+        source_seed_fields = c("source_latent_seed", "source_noise_seed"),
+        reservoir_seed_id = reservoir_seed_id,
+        reservoir_seed = as.integer(cfg$desn$seed),
+        reservoir_seed_independent_of_source = isTRUE(explicit_reservoir_seed),
+        reservoir_seed_independent_of_candidate = isTRUE(explicit_reservoir_seed),
+        chain_seed_independent = TRUE
+      ),
       article_promotion_automatic = FALSE, full_confirmation_requires_explicit_approval = TRUE
     )
   )
@@ -907,13 +960,109 @@ qdesn_ssv2_job_root <- function(repo_root, run_tag, job_id) {
                   run_tag, "jobs", job_id)
 }
 
-qdesn_ssv2_metric_value <- function(job_root, metric) {
+qdesn_ssv2_rolling_artifact_audit <- function(job_root) {
+  rolling_path <- file.path(job_root, "tables", "forecast_rolling_origin_paths.csv")
+  lead_path <- file.path(job_root, "tables", "forecast_lead_metrics.csv")
+  retention_path <- file.path(job_root, "manifest", "output_retention.json")
+  rolling <- if (file.exists(rolling_path)) {
+    tryCatch(qdesn_ssv2_read_csv(rolling_path), error = function(e) data.frame())
+  } else data.frame()
+  lead <- if (file.exists(lead_path)) {
+    tryCatch(qdesn_ssv2_read_csv(lead_path), error = function(e) data.frame())
+  } else data.frame()
+  retention <- if (file.exists(retention_path)) {
+    tryCatch(qdesn_ssv2_read_json(retention_path), error = function(e) NULL)
+  } else NULL
+  expected_targets <- 9001:10000
+  expected_origins <- seq.int(9000L, 9990L, by = 30L)
+  rolling_columns <- c(
+    "forecast_lead", "forecast_origin_source_index", "target_source_index",
+    "origin_stride", "refit_per_origin", "qhat", "abs_q_error", "pinball_tau"
+  )
+  lead_columns <- c(
+    "forecast_lead", "n_origins_scored", "forecast_qtrue_mae",
+    "forecast_pinball_mean"
+  )
+  checks <- c(
+    rolling_file = file.exists(rolling_path),
+    lead_file = file.exists(lead_path),
+    retention_file = file.exists(retention_path),
+    rolling_columns = all(rolling_columns %in% names(rolling)),
+    lead_columns = all(lead_columns %in% names(lead))
+  )
+  checks <- c(
+    checks,
+    rolling_rows = checks[["rolling_columns"]] && nrow(rolling) == 1000L,
+    rolling_targets = checks[["rolling_columns"]] &&
+      identical(sort(as.integer(rolling$target_source_index)), expected_targets),
+    rolling_leads = checks[["rolling_columns"]] &&
+      identical(sort(unique(as.integer(rolling$forecast_lead))), 1:30),
+    rolling_origins = checks[["rolling_columns"]] &&
+      identical(sort(unique(as.integer(rolling$forecast_origin_source_index))),
+                expected_origins),
+    rolling_stride = checks[["rolling_columns"]] &&
+      all(as.integer(rolling$origin_stride) == 30L),
+    rolling_no_refit = checks[["rolling_columns"]] &&
+      all(!as.logical(rolling$refit_per_origin)),
+    rolling_finite = checks[["rolling_columns"]] &&
+      all(is.finite(as.numeric(rolling$qhat))) &&
+      all(is.finite(as.numeric(rolling$abs_q_error))) &&
+      all(is.finite(as.numeric(rolling$pinball_tau))),
+    lead_rows = checks[["lead_columns"]] && nrow(lead) == 30L,
+    lead_values = checks[["lead_columns"]] &&
+      identical(sort(as.integer(lead$forecast_lead)), 1:30) &&
+      sum(as.integer(lead$n_origins_scored)) == 1000L &&
+      all(is.finite(as.numeric(lead$forecast_qtrue_mae))) &&
+      all(is.finite(as.numeric(lead$forecast_pinball_mean))),
+    retention = !is.null(retention) &&
+      identical(as.character(retention$forecast_rolling_origin_status), "PASS") &&
+      identical(as.integer(retention$forecast_rolling_origin_rows), 1000L) &&
+      identical(as.integer(retention$forecast_lead_metrics_rows), 30L) &&
+      isTRUE(retention$rolling_origin_ready_for_pruning) &&
+      !isTRUE(retention$required_lead_export_failure),
+    no_binary_payloads = !length(list.files(
+      job_root, pattern = "[.](rds|rda|RData)$", recursive = TRUE,
+      full.names = TRUE, ignore.case = TRUE
+    ))
+  )
+  checks[is.na(checks)] <- FALSE
+  list(
+    decision = if (all(checks)) "PASS" else "FAIL",
+    checks = checks,
+    rolling_rows = nrow(rolling),
+    lead_rows = nrow(lead),
+    forecast_qtrue_mae = if (checks[["rolling_finite"]]) {
+      mean(as.numeric(rolling$abs_q_error))
+    } else NA_real_,
+    forecast_check_loss = if (checks[["rolling_finite"]]) {
+      mean(as.numeric(rolling$pinball_tau))
+    } else NA_real_,
+    rolling_path = normalizePath(rolling_path, winslash = "/", mustWork = FALSE),
+    lead_path = normalizePath(lead_path, winslash = "/", mustWork = FALSE),
+    retention_path = normalizePath(retention_path, winslash = "/", mustWork = FALSE)
+  )
+}
+
+qdesn_ssv2_metric_value <- function(job_root, metric, require_rolling = FALSE) {
   if (metric == "fit_qtrue_rmse") {
     path <- file.path(job_root, "fit_summary_row.csv")
     if (!file.exists(path)) return(NA_real_)
     x <- qdesn_ssv2_read_csv(path)
     return(as.numeric(x$train_qtrue_rmse[[1L]]))
   }
+  rolling_path <- file.path(job_root, "tables", "forecast_rolling_origin_paths.csv")
+  if (file.exists(rolling_path)) {
+    audit <- qdesn_ssv2_rolling_artifact_audit(job_root)
+    if (!identical(audit$decision, "PASS")) return(NA_real_)
+    x <- qdesn_ssv2_read_csv(rolling_path)
+    if (metric == "forecast_qtrue_mae_H1000") {
+      return(mean(as.numeric(x$abs_q_error)))
+    }
+    if (metric %in% c("forecast_check_loss_H1000", "forecast_pinball_H1000")) {
+      return(mean(as.numeric(x$pinball_tau)))
+    }
+  }
+  if (isTRUE(require_rolling)) return(NA_real_)
   path <- file.path(job_root, "tables", "forecast_horizon_summary.csv")
   if (!file.exists(path)) return(NA_real_)
   x <- qdesn_ssv2_read_csv(path)

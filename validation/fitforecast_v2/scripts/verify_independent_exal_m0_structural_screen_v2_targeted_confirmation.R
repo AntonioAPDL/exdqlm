@@ -31,6 +31,14 @@ expected_source_sha256 <- c(
 
 config_checks <- lapply(seq_len(nrow(plan)), function(i) {
   job <- qdesn_ssv2_read_json(plan$config_path[[i]])
+  staged_series <- tryCatch(
+    qdesn_ssv2_read_csv(job$root_spec$source_series_wide_path),
+    error = function(e) data.frame()
+  )
+  staged_selection <- tryCatch(
+    qdesn_ssv2_read_csv(job$root_spec$source_selection_indices_path),
+    error = function(e) data.frame()
+  )
   c(
     config_hash = identical(qdesn_ssv2_sha256(plan$config_path[[i]]),
                             plan$config_sha256[[i]]),
@@ -52,7 +60,17 @@ config_checks <- lapply(seq_len(nrow(plan)), function(i) {
       identical(as.integer(job$root_spec$forecast_end_source_index), 10000L),
     rolling = identical(as.integer(job$config$metrics$rolling_origin$max_lead_configured), 30L) &&
       identical(as.integer(job$config$metrics$rolling_origin$origin_stride), 30L) &&
-      !isTRUE(job$config$metrics$rolling_origin$refit_per_origin),
+      !isTRUE(job$config$metrics$rolling_origin$refit_per_origin) &&
+      isTRUE(job$config$metrics$rolling_origin$require_lead_export),
+    source_mapping = nrow(staged_series) == nrow(staged_selection) &&
+      all(c("t", "source_index") %in% names(staged_series)) &&
+      all(c("t", "source_index") %in% names(staged_selection)) &&
+      identical(as.integer(staged_series$t), as.integer(staged_selection$t)) &&
+      identical(as.integer(staged_series$source_index),
+                as.integer(staged_selection$source_index)) &&
+      min(as.integer(staged_series$source_index)) ==
+        as.integer(job$root_spec$raw_start_source_index) &&
+      max(as.integer(staged_series$source_index)) == 10000L,
     storage = !isTRUE(job$config$outputs$keep_draws) &&
       !isTRUE(job$config$outputs$keep_mcmc_vb_init) &&
       !isTRUE(job$config$outputs$save_forecast_objects) &&
@@ -96,9 +114,24 @@ if (nzchar(run_tag)) {
     status_path <- file.path(root, "job_status.json")
     status <- if (file.exists(status_path)) qdesn_ssv2_read_json(status_path) else
       list(status = "MISSING")
+    rolling_audit <- qdesn_ssv2_rolling_artifact_audit(root)
+    requires_rolling <- grepl("^forecast_", as.character(plan$objective_metric[[i]]))
     data.frame(
       job_id = plan$job_id[[i]], status = as.character(status$status %||% "MISSING"),
-      objective_value = qdesn_ssv2_metric_value(root, plan$objective_metric[[i]]),
+      objective_value = qdesn_ssv2_metric_value(
+        root, plan$objective_metric[[i]], require_rolling = requires_rolling
+      ),
+      objective_source = as.character(status$objective_source %||% NA_character_),
+      rolling_artifact_status = rolling_audit$decision,
+      rolling_artifact_failed_checks = paste(
+        names(rolling_audit$checks)[!rolling_audit$checks], collapse = ";"
+      ),
+      rolling_path_sha256 = if (file.exists(rolling_audit$rolling_path)) {
+        qdesn_ssv2_sha256(rolling_audit$rolling_path)
+      } else NA_character_,
+      lead_metrics_sha256 = if (file.exists(rolling_audit$lead_path)) {
+        qdesn_ssv2_sha256(rolling_audit$lead_path)
+      } else NA_character_,
       binary_count = length(list.files(root, pattern = "[.](rds|rda|RData)$",
         recursive = TRUE, ignore.case = TRUE)),
       elapsed_seconds = as.numeric(status$elapsed_seconds %||% NA_real_),
@@ -108,6 +141,7 @@ if (nzchar(run_tag)) {
   qdesn_ssv2_write_csv(runtime, sub("[.]json$", "_runtime.csv", output))
   checks <- c(checks, runtime_success = all(runtime$status == "SUCCESS"),
               runtime_finite = all(is.finite(runtime$objective_value)),
+              runtime_rolling_artifacts = all(runtime$rolling_artifact_status == "PASS"),
               runtime_storage = all(runtime$binary_count == 0L))
 }
 decision <- if (all(checks)) "PASS" else "FAIL"
@@ -116,6 +150,7 @@ qdesn_ssv2_write_json(list(
   checks = as.list(checks), runtime_summary = if (is.null(runtime)) NULL else list(
     expected = nrow(runtime), success = sum(runtime$status == "SUCCESS"),
     finite = sum(is.finite(runtime$objective_value)), binaries = sum(runtime$binary_count),
+    rolling_artifact_pass = sum(runtime$rolling_artifact_status == "PASS"),
     median_elapsed_seconds = stats::median(runtime$elapsed_seconds, na.rm = TRUE),
     maximum_elapsed_seconds = max(runtime$elapsed_seconds, na.rm = TRUE)
   ), decision = decision

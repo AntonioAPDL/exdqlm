@@ -192,13 +192,34 @@ if (length(binary_remaining)) {
                          collapse = "; ")
 }
 elapsed <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
-objective_value <- qdesn_ssv2_metric_value(job_root, job$objective_metric)
+requires_rolling_objective <- grepl("^forecast_", as.character(job$objective_metric)) &&
+  isTRUE(job$config$metrics$rolling_origin$require_lead_export)
+objective_value <- qdesn_ssv2_metric_value(
+  job_root, job$objective_metric, require_rolling = requires_rolling_objective
+)
+objective_source <- if (grepl("^forecast_", as.character(job$objective_metric))) {
+  if (isTRUE(requires_rolling_objective)) "forecast_rolling_origin_paths.csv" else
+    "forecast_horizon_summary.csv"
+} else {
+  "fit_summary_row.csv"
+}
+if (identical(status, "SUCCESS") && !is.finite(objective_value)) {
+  status <- "FAIL"
+  error_message <- paste(
+    na.omit(c(error_message, sprintf(
+      "Required objective %s is not finite from %s.",
+      as.character(job$objective_metric), objective_source
+    ))),
+    collapse = "; "
+  )
+}
 qdesn_ssv2_write_json(list(
   job_id = job_id, stage = job$stage, target_cell_id = job$target_cell_id,
   candidate_id = job$candidate_id, source_id = job$source_id,
   chain_id = job$chain_id, status = status, started_at = started_at,
   finished_at = as.character(Sys.time()), elapsed_seconds = elapsed,
   objective_metric = job$objective_metric, objective_value = objective_value,
+  objective_source = objective_source,
   current_value = job$current_value, comparator_value = job$comparator_value,
   config_path = config_path, config_sha256 = config_sha256,
   observed_sha256 = qdesn_ssv2_sha256(observed_path),

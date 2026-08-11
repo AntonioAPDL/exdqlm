@@ -180,6 +180,209 @@ testthat::test_that("source and stage contracts freeze the intended budget", {
   testthat::expect_identical(qdesn_ssv2_timeout_seconds("calibration"), 21600L)
 })
 
+testthat::test_that("staged windows preserve local and global source indices", {
+  tmp <- tempfile("ssv2-source-window-")
+  dir.create(tmp, recursive = TRUE)
+  source_path <- file.path(tmp, "series_wide.csv")
+  source_df <- data.frame(
+    t = 1:10000,
+    y = sin((1:10000) / 20),
+    mu = cos((1:10000) / 25),
+    q_target = cos((1:10000) / 25) - 1,
+    eps = 0,
+    stringsAsFactors = FALSE
+  )
+  qdesn_ssv2_write_csv(source_df, source_path)
+  root_row <- data.frame(
+    series_wide_path = source_path,
+    source_role = "discovery",
+    scenario = "index_contract_fixture",
+    family = "normal",
+    tau = 0.25,
+    sim_output_path = file.path(tmp, "sim_output.rds"),
+    sim_output_sha256 = "fixture",
+    latent_seed = 101L,
+    noise_seed = 102L,
+    stringsAsFactors = FALSE
+  )
+  staged <- qdesn_ssv2_stage_source_window(
+    root_row, "dev09", m = 5L, washout = 300L,
+    output_root = file.path(tmp, "staged")
+  )
+  series <- qdesn_ssv2_read_csv(staged$source_series_wide_path)
+  selection <- qdesn_ssv2_read_csv(staged$source_selection_indices_path)
+  testthat::expect_identical(as.integer(series$t), seq_len(nrow(series)))
+  testthat::expect_identical(as.integer(series$source_index),
+                             as.integer(selection$source_index))
+  testthat::expect_identical(min(as.integer(series$source_index)), 8196L)
+  testthat::expect_identical(max(as.integer(series$source_index)), 10000L)
+  testthat::expect_identical(staged$source_latent_seed, 101L)
+  testthat::expect_identical(staged$source_noise_seed, 102L)
+})
+
+testthat::test_that("paired seed mode separates source, reservoir, and chain randomness", {
+  tmp <- tempfile("ssv2-seed-contract-")
+  dir.create(tmp, recursive = TRUE)
+  source_path <- file.path(tmp, "series_wide.csv")
+  qdesn_ssv2_write_csv(data.frame(
+    t = 1:10000, y = 1:10000, mu = 1:10000,
+    q_target = 1:10000, eps = 0
+  ), source_path)
+  root_row <- data.frame(
+    series_wide_path = source_path, source_role = "discovery",
+    scenario = "seed_contract_fixture", family = "normal", tau = 0.25,
+    sim_output_path = file.path(tmp, "sim_output.rds"),
+    sim_output_sha256 = "fixture", latent_seed = 201L, noise_seed = 202L,
+    stringsAsFactors = FALSE
+  )
+  staged_a <- qdesn_ssv2_stage_source_window(
+    root_row, "dev09", 5L, 300L, file.path(tmp, "staged")
+  )
+  staged_b <- staged_a
+  staged_b$source_id <- "dev10"
+  registry_path <- qdesn_ssv2_write_csv(
+    rbind(staged_a, staged_b), file.path(tmp, "registry.csv")
+  )
+  targets <- qdesn_ssv2_targets(repo_root)
+  target <- targets[targets$target_cell_id == "normal_t0p25", , drop = FALSE]
+  profiles <- qdesn_ssv2_read_csv(file.path(
+    repo_root, "config", "validation",
+    paste0(qdesn_ssv2_stage, "_wave1_profiles.csv")
+  ))
+  profiles <- profiles[profiles$target_cell_id == "normal_t0p25", , drop = FALSE]
+  profile_a <- profiles[1L, , drop = FALSE]
+  profile_b <- profiles[2L, , drop = FALSE]
+  a1 <- qdesn_ssv2_make_job(
+    repo_root, profile_a, target, staged_a, "smoke", registry_path,
+    chain_id = 1L, reservoir_seed_id = "r01"
+  )
+  a2 <- qdesn_ssv2_make_job(
+    repo_root, profile_a, target, staged_b, "smoke", registry_path,
+    chain_id = 2L, reservoir_seed_id = "r01"
+  )
+  b1 <- qdesn_ssv2_make_job(
+    repo_root, profile_b, target, staged_a, "smoke", registry_path,
+    chain_id = 1L, reservoir_seed_id = "r01"
+  )
+  r02 <- qdesn_ssv2_make_job(
+    repo_root, profile_a, target, staged_a, "smoke", registry_path,
+    chain_id = 1L, reservoir_seed_id = "r02"
+  )
+  testthat::expect_identical(a1$config$desn$seed, a2$config$desn$seed)
+  testthat::expect_identical(a1$config$desn$seed, b1$config$desn$seed)
+  testthat::expect_false(identical(a1$config$desn$seed, r02$config$desn$seed))
+  testthat::expect_false(identical(
+    a1$config$inference$mcmc$control$seed,
+    a2$config$inference$mcmc$control$seed
+  ))
+  testthat::expect_identical(
+    a1$seed_contract_mode,
+    "paired_target_cell_panel_independent_of_source_and_candidate"
+  )
+  testthat::expect_match(a1$job_id, "__r01__c01$", perl = TRUE)
+})
+
+testthat::test_that("rolling artifact audit enforces the complete lead-grid contract", {
+  tmp <- tempfile("ssv2-rolling-audit-")
+  dir.create(file.path(tmp, "tables"), recursive = TRUE)
+  dir.create(file.path(tmp, "manifest"), recursive = TRUE)
+  target <- 9001:10000
+  origin <- 9000L + 30L * ((target - 9001L) %/% 30L)
+  lead <- target - origin
+  rolling <- data.frame(
+    forecast_lead = lead,
+    forecast_origin_source_index = origin,
+    target_source_index = target,
+    origin_stride = 30L,
+    refit_per_origin = FALSE,
+    qhat = 1,
+    abs_q_error = 2,
+    pinball_tau = 3,
+    stringsAsFactors = FALSE
+  )
+  lead_metrics <- data.frame(
+    forecast_lead = 1:30,
+    n_origins_scored = as.integer(table(factor(lead, levels = 1:30))),
+    forecast_qtrue_mae = 2,
+    forecast_pinball_mean = 3,
+    stringsAsFactors = FALSE
+  )
+  qdesn_ssv2_write_csv(rolling, file.path(tmp, "tables", "forecast_rolling_origin_paths.csv"))
+  qdesn_ssv2_write_csv(lead_metrics, file.path(tmp, "tables", "forecast_lead_metrics.csv"))
+  qdesn_ssv2_write_json(list(
+    forecast_rolling_origin_status = "PASS",
+    forecast_rolling_origin_rows = 1000L,
+    forecast_lead_metrics_rows = 30L,
+    rolling_origin_ready_for_pruning = TRUE,
+    required_lead_export_failure = FALSE
+  ), file.path(tmp, "manifest", "output_retention.json"))
+  audit <- qdesn_ssv2_rolling_artifact_audit(tmp)
+  testthat::expect_identical(audit$decision, "PASS")
+  testthat::expect_identical(audit$rolling_rows, 1000L)
+  testthat::expect_identical(audit$lead_rows, 30L)
+  testthat::expect_equal(audit$forecast_qtrue_mae, 2)
+  testthat::expect_equal(audit$forecast_check_loss, 3)
+  testthat::expect_equal(
+    qdesn_ssv2_metric_value(tmp, "forecast_qtrue_mae_H1000", require_rolling = TRUE),
+    2
+  )
+  rolling$target_source_index[[1L]] <- 9002L
+  qdesn_ssv2_write_csv(rolling, file.path(tmp, "tables", "forecast_rolling_origin_paths.csv"))
+  testthat::expect_identical(qdesn_ssv2_rolling_artifact_audit(tmp)$decision, "FAIL")
+})
+
+testthat::test_that("paired rolling repair is paired, gated, and storage-light", {
+  scripts <- file.path(repo_root, "validation", "fitforecast_v2", "scripts")
+  launcher <- file.path(
+    scripts, "launch_independent_exal_m0_paired_rolling_repair_v1.sh"
+  )
+  testthat::expect_equal(system2("bash", c("-n", launcher)), 0L)
+  text <- paste(readLines(launcher, warn = FALSE), collapse = "\n")
+  testthat::expect_match(text, "QDESN_PAIRED_REPAIR_APPROVAL", fixed = TRUE)
+  testthat::expect_match(text, "WORKERS > 20", fixed = TRUE)
+  testthat::expect_match(text, "xargs -r -n 1 -P", fixed = TRUE)
+  testthat::expect_match(
+    text, "closeout_independent_exal_m0_paired_rolling_repair_v1.R", fixed = TRUE
+  )
+  testthat::expect_false(grepl("git commit|git push", text))
+
+  for (script in c(
+    "audit_qdesn_article_rolling_metric_contract_v1.R",
+    "materialize_independent_exal_m0_paired_rolling_repair_v1.R",
+    "verify_independent_exal_m0_paired_rolling_repair_v1.R",
+    "healthcheck_independent_exal_m0_paired_rolling_repair_v1.R",
+    "closeout_independent_exal_m0_paired_rolling_repair_v1.R"
+  )) {
+    testthat::expect_silent(parse(file.path(scripts, script)))
+  }
+
+  root <- file.path(
+    repo_root, "reports", "shared_fitforecast_v2_orchestration",
+    "independent_exal_m0_paired_rolling_repair_v1_materialization"
+  )
+  testthat::skip_if_not(file.exists(file.path(root, "materialization_manifest.json")))
+  smoke <- qdesn_ssv2_read_csv(file.path(root, "smoke_plan.csv"))
+  calibration <- qdesn_ssv2_read_csv(file.path(root, "calibration_plan.csv"))
+  testthat::expect_equal(nrow(smoke), 2L)
+  testthat::expect_equal(nrow(calibration), 84L)
+  testthat::expect_equal(length(unique(calibration$target_cell_id)), 7L)
+  key <- paste(calibration$target_cell_id, calibration$source_id,
+               calibration$reservoir_seed_id, sep = "|")
+  groups <- split(calibration, key)
+  testthat::expect_equal(length(groups), 42L)
+  testthat::expect_true(all(vapply(groups, function(x) {
+    nrow(x) == 2L && length(unique(x$reservoir_seed)) == 1L &&
+      identical(sort(x$candidate_role),
+                sort(c("current_anchor", "prior_screen_finalist")))
+  }, logical(1L))))
+  testthat::expect_true(all(calibration$require_lead_export))
+  testthat::expect_false(any(calibration$article_promotion_automatic))
+  testthat::expect_length(list.files(
+    root, pattern = "[.](rds|rda|RData)$", recursive = TRUE,
+    full.names = TRUE, ignore.case = TRUE
+  ), 0L)
+})
+
 testthat::test_that("live child-log telemetry parses burn-in and sampling progress", {
   burn <- qdesn_ssv2_parse_progress_lines(c(
     "burn-in iteration 50 | sigma=1.000",

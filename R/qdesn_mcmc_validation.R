@@ -1468,6 +1468,7 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
                                                      root_spec = list(),
                                                      summary_obj = NULL) {
   cfg <- .qdesn_validation_output_retention_cfg(defaults)
+  rolling_cfg <- .qdesn_validation_rolling_origin_cfg(defaults)
   forecast_path <- file.path(method_dir, "models", "forecast_objects.rds")
   rhs_trace_path <- file.path(method_dir, "models", "rhs_trace.rds")
   forecast_bytes_before <- if (file.exists(forecast_path)) file.info(forecast_path)$size[[1L]] else 0
@@ -1489,6 +1490,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
   rolling_origin_ready <- identical(as.character(compact_paths$forecast_rolling_origin_status %||% NA_character_)[1L], "PASS") &&
     as.integer(compact_paths$forecast_rolling_origin_rows %||% 0L) > 0L &&
     as.integer(compact_paths$forecast_lead_metrics_rows %||% 0L) > 0L
+  required_lead_export_failure <- isTRUE(success_like) &&
+    isTRUE(rolling_cfg$enabled) && isTRUE(rolling_cfg$require_lead_export) &&
+    !isTRUE(rolling_origin_ready)
   alignment_ready <- !isTRUE(cfg$save_compact_fit_paths) ||
     identical(as.character(compact_paths$index_alignment_status %||% NA_character_)[1L], "PASS") ||
     isTRUE(rolling_origin_ready)
@@ -1552,7 +1556,9 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     forecast_lead_metrics_path = compact_paths$forecast_lead_metrics,
     forecast_lead_metrics_rows = as.integer(compact_paths$forecast_lead_metrics_rows %||% 0L),
     forecast_rolling_origin_status = compact_paths$forecast_rolling_origin_status,
+    forecast_rolling_origin_required = isTRUE(rolling_cfg$require_lead_export),
     rolling_origin_ready_for_pruning = isTRUE(rolling_origin_ready),
+    required_lead_export_failure = isTRUE(required_lead_export_failure),
     index_alignment_ready = isTRUE(alignment_ready),
     compact_fit_paths_ready = isTRUE(compact_fit_paths_ready),
     compact_ready_for_pruning = isTRUE(compact_ready),
@@ -1574,6 +1580,15 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     rhs_trace_exists_after = file.exists(rhs_trace_path)
   )
   .qdesn_validation_write_json(file.path(method_dir, "manifest", "output_retention.json"), manifest)
+  if (isTRUE(required_lead_export_failure)) {
+    detail <- if (!is.na(compact_error) && nzchar(compact_error)) {
+      compact_error
+    } else {
+      "required rolling-origin path or lead-metric rows are missing"
+    }
+    stop(sprintf("Required Q-DESN rolling-origin export failed: %s", detail),
+         call. = FALSE)
+  }
   invisible(manifest)
 }
 
