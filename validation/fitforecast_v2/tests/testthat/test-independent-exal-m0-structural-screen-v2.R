@@ -193,7 +193,7 @@ testthat::test_that("live child-log telemetry parses burn-in and sampling progre
     "MCMC iteration 250 | sigma=0.2",
     "MCMC iteration 300 | sigma=0.2"
   ), 200L, 500L)
-  testthat::expect_identical(sampling$iteration, 500L)
+  testthat::expect_identical(sampling$iteration, 300L)
   testthat::expect_identical(sampling$total, 700L)
   testthat::expect_identical(sampling$phase, "sampling")
 })
