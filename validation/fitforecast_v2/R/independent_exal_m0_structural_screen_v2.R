@@ -769,10 +769,12 @@ qdesn_ssv2_parse_progress_lines <- function(lines, n_burn = NA_integer_,
   iteration <- as.integer(sub(paste0(".*", pattern, ".*"), "\\2", hits,
                               ignore.case = TRUE))
   last <- length(hits)
-  list(
-    iteration = iteration[[last]], total = total,
-    phase = if (grepl("burn-in", hits[[last]], ignore.case = TRUE)) "burnin" else "sampling"
-  )
+  phase <- if (grepl("burn-in", hits[[last]], ignore.case = TRUE)) "burnin" else "sampling"
+  cumulative_iteration <- iteration[[last]]
+  if (identical(phase, "sampling") && is.finite(as.integer(n_burn))) {
+    cumulative_iteration <- as.integer(n_burn) + cumulative_iteration
+  }
+  list(iteration = cumulative_iteration, total = total, phase = phase)
 }
 
 qdesn_ssv2_seed <- function(...) {

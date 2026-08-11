@@ -193,7 +193,8 @@ testthat::test_that("live child-log telemetry parses burn-in and sampling progre
     "MCMC iteration 250 | sigma=0.2",
     "MCMC iteration 300 | sigma=0.2"
   ), 200L, 500L)
-  testthat::expect_identical(sampling$iteration, 300L)
+  testthat::expect_identical(sampling$iteration, 500L)
+  testthat::expect_identical(sampling$total, 700L)
   testthat::expect_identical(sampling$phase, "sampling")
 })
 
@@ -264,6 +265,34 @@ testthat::test_that("launcher is staged, resumable, and cannot launch confirmati
   ), collapse = "\n")
   testthat::expect_match(health_text, "pipeline_child_live.log", fixed = TRUE)
   testthat::expect_match(health_text, "child_log_open", fixed = TRUE)
+})
+
+testthat::test_that("targeted confirmation is two-cell, full-budget, and manual-promotion only", {
+  scripts <- file.path(repo_root, "validation", "fitforecast_v2", "scripts")
+  pipeline <- file.path(
+    scripts, "run_independent_exal_m0_structural_screen_v2_targeted_confirmation.sh"
+  )
+  launcher <- file.path(
+    scripts, "launch_independent_exal_m0_structural_screen_v2_targeted_confirmation.sh"
+  )
+  testthat::expect_equal(system2("bash", c("-n", pipeline)), 0L)
+  testthat::expect_equal(system2("bash", c("-n", launcher)), 0L)
+  text <- paste(readLines(pipeline, warn = FALSE), collapse = "\n")
+  testthat::expect_match(text, "TARGETED_CONFIRMATION_APPROVED", fixed = TRUE)
+  testthat::expect_match(text, "6 full-budget chains", fixed = TRUE)
+  testthat::expect_match(text, "article unchanged", fixed = TRUE)
+  testthat::expect_match(text, 'HEARTBEAT_SECONDS="${HEARTBEAT_SECONDS:-1800}"',
+                         fixed = TRUE)
+  testthat::expect_match(text, "taskset -c", fixed = TRUE)
+  testthat::expect_match(text, "wait_for_resources", fixed = TRUE)
+  testthat::expect_false(grepl("git commit|git push", text))
+  materializer <- paste(readLines(file.path(
+    scripts, "materialize_independent_exal_m0_structural_screen_v2_targeted_confirmation.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(materializer, 'target_ids <- c("laplace_t0p05", "normal_t0p25")',
+                         fixed = TRUE)
+  testthat::expect_match(materializer, '"canonical_article"', fixed = TRUE)
+  testthat::expect_match(materializer, "nrow(plan) != 6L", fixed = TRUE)
 })
 
 testthat::test_that("materialized configs preserve vector and effective-window contracts", {
