@@ -221,6 +221,7 @@ for (i in seq_len(nrow(plan))) {
   job_id <- plan$job_id[[i]]
   job_root <- file.path(result_root, "jobs", job_id)
   job_files <- c(
+    job_started = file.path(job_root, "job_started.json"),
     fit_request = file.path(job_root, "fit_request.json"),
     fit_summary = file.path(job_root, "fit_summary_row.csv"),
     job_status = file.path(job_root, "job_status.json"),
@@ -231,8 +232,10 @@ for (i in seq_len(nrow(plan))) {
     stop(sprintf("Incomplete job evidence: %s", job_id), call. = FALSE)
   }
   fit_request <- read_json(job_files[["fit_request"]])
+  job_started <- read_json(job_files[["job_started"]])
   job_status <- read_json(job_files[["job_status"]])
-  if (!identical(fit_request$git_commit, execution_commit) ||
+  if (!identical(fit_request$execution$launch_commit, execution_commit) ||
+      !identical(job_started$git_commit, execution_commit) ||
       !identical(job_status$status, "SUCCESS") ||
       as.integer(job_status$binary_payloads_remaining) != 0L) {
     stop(sprintf("Invalid execution evidence: %s", job_id), call. = FALSE)

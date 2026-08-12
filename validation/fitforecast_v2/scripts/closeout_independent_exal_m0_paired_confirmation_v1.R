@@ -73,8 +73,16 @@ for (i in seq_len(nrow(plan))) {
   fit_request <- if (file.exists(fit_request_path)) {
     qdesn_ssv2_read_json(fit_request_path)
   } else list()
-  job_execution_commit <- as.character(fit_request$git_commit %||% "")[1L]
-  if (!identical(job_execution_commit, execution_commit)) {
+  job_started_path <- file.path(root, "job_started.json")
+  job_started <- if (file.exists(job_started_path)) {
+    qdesn_ssv2_read_json(job_started_path)
+  } else list()
+  request_execution_commit <- as.character(
+    fit_request$execution$launch_commit %||% ""
+  )[1L]
+  started_execution_commit <- as.character(job_started$git_commit %||% "")[1L]
+  if (!identical(request_execution_commit, execution_commit) ||
+      !identical(started_execution_commit, execution_commit)) {
     stop(sprintf("Execution commit mismatch for %s.", plan$job_id[[i]]),
          call. = FALSE)
   }
@@ -114,7 +122,7 @@ for (i in seq_len(nrow(plan))) {
       source_sha256 = qdesn_ssv2_sha256(source_path),
       config_path = plan$config_path[[i]],
       config_sha256 = plan$config_sha256[[i]],
-      execution_commit = job_execution_commit,
+      execution_commit = request_execution_commit,
       binary_payloads = length(binary_paths),
       stringsAsFactors = FALSE
     )
@@ -243,7 +251,7 @@ manifest_path <- qdesn_ssv2_write_json(list(
   validation_commit = execution_commit,
   execution_commit = execution_commit,
   closeout_commit = closeout_commit,
-  execution_identity_source = "run.env_and_six_fit_requests",
+  execution_identity_source = "run.env_six_job_started_and_six_fit_requests",
   all_job_execution_commits_match = all(chains$execution_commit == execution_commit),
   source_registry_hash_value = qdesn_ssv2_registry_hash,
   jobs = nrow(plan), chains = length(unique(chains$job_id)),

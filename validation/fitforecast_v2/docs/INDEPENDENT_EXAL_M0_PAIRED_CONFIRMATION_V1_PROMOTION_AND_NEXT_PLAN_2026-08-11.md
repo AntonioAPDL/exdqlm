@@ -54,7 +54,7 @@ closeout used the repository HEAD after a launch-record commit. The closeout
 schema must preserve two distinct fields:
 
 - `execution_commit`: immutable commit from `run.env`, verified against all six
-  `fit_request.json` records;
+  `job_started.json` records and all six `fit_request.json` launch records;
 - `closeout_commit`: commit containing the closeout implementation.
 
 The legacy `validation_commit` field is retained as an alias for the execution

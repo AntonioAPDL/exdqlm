@@ -564,7 +564,9 @@ testthat::test_that("paired confirmation freezes evidence and gates canonical fu
     scripts, "closeout_independent_exal_m0_paired_confirmation_v1.R"
   ), warn = FALSE), collapse = "\n")
   testthat::expect_match(closeout_text, "execution_identity_source", fixed = TRUE)
-  testthat::expect_match(closeout_text, "run.env_and_six_fit_requests", fixed = TRUE)
+  testthat::expect_match(
+    closeout_text, "run.env_six_job_started_and_six_fit_requests", fixed = TRUE
+  )
   testthat::expect_match(closeout_text, "all_job_execution_commits_match", fixed = TRUE)
 
   promotion_text <- paste(readLines(file.path(
