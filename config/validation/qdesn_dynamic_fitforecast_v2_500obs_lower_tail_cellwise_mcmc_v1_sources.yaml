@@ -1,0 +1,119 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_lower_tail_cellwise_mcmc_v1
+  purpose: Cell-specific lower-tail MCMC calibration for independent Q-DESN and exQ-DESN.
+  article_policy: Development and sealed trajectories are selection evidence only; article promotion requires canonical-source full confirmation.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_lower_tail_cellwise_mcmc_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+replicates:
+  - replicate_id: dev09
+    role: discovery
+    scenario_id: dlm_constV_p90_ltcv1_dev09_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1809011, noise: 1809012}
+      laplace: {latent: 1809021, noise: 1809022}
+      gausmix: {latent: 1809031, noise: 1809032}
+  - replicate_id: dev10
+    role: discovery
+    scenario_id: dlm_constV_p90_ltcv1_dev10_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1810011, noise: 1810012}
+      laplace: {latent: 1810021, noise: 1810022}
+      gausmix: {latent: 1810031, noise: 1810032}
+  - replicate_id: dev11
+    role: replication
+    scenario_id: dlm_constV_p90_ltcv1_dev11_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1811011, noise: 1811012}
+      laplace: {latent: 1811021, noise: 1811022}
+      gausmix: {latent: 1811031, noise: 1811032}
+  - replicate_id: dev12
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_ltcv1_dev12_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1812011, noise: 1812012}
+      laplace: {latent: 1812021, noise: 1812022}
+      gausmix: {latent: 1812031, noise: 1812032}
+  - replicate_id: dev13
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_ltcv1_dev13_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1813011, noise: 1813012}
+      laplace: {latent: 1813021, noise: 1813022}
+      gausmix: {latent: 1813031, noise: 1813032}
+  - replicate_id: dev14
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_ltcv1_dev14_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1814011, noise: 1814012}
+      laplace: {latent: 1814021, noise: 1814022}
+      gausmix: {latent: 1814031, noise: 1814032}
+  - replicate_id: dev15
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_ltcv1_dev15_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1815011, noise: 1815012}
+      laplace: {latent: 1815021, noise: 1815022}
+      gausmix: {latent: 1815031, noise: 1815032}
+
+selection_contract:
+  authority_interface: validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v6_paired_confirmation_20260811/qdesn_dqlm_500obs_trainonly_article_v6_paired_confirmation_20260811_interface.csv
+  authority_commit: 5a4e6ed210bd113d2d0459c6f6b47cde6439ffcb
+  tier_a_cells: 6
+  tier_b_cells: 4
+  new_candidates_per_cell: 8
+  exact_parent_controls_per_cell: 1
+  tier_a_discovery_sources: 2
+  tier_a_discovery_roots: 108
+  tier_a_replication_survivors_per_cell: 3
+  tier_a_replication_roots: 24
+  tier_a_sealed_finalists_per_cell: 2
+  tier_a_sealed_sources: 4
+  tier_a_sealed_roots: 72
+  tier_a_maximum_confirmation_chains: 24
+  maximum_effective_readout_dimension: 900
+  workers: 20
+  threads_per_worker: 1
+  exal_method_id: M0_v_collapsed_support_logit
+  al_method_id: inherited_exact_parent_kernel
+  diagnostic_grade_is_metric_veto: false
+  implementation_failure_is_veto: true
+  posterior_recycled_as_prior: false
+  article_update_automatic: false
