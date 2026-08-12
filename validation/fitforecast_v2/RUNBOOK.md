@@ -265,3 +265,38 @@ cleanup evidence is under
 `docs/qdesn_trainonly_mechanism_v1_cleanup_20260805/`; do not broaden its four
 hard-coded legacy roots or seven whitelisted basenames without a new ownership
 audit.
+
+## 12. Independent exAL M0 Paired Confirmation v1
+
+The six-chain full-budget campaign
+`ind-exal-m0-paired-confirm-v1-full-20260811__git-0f0634e` is complete. Do not
+resume or relaunch it. Its execution commit is read from the immutable
+`run.env` and verified against every job request; the closeout implementation
+commit is recorded separately.
+
+Regenerate the closeout metadata without rerunning models:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/closeout_independent_exal_m0_paired_confirmation_v1.R \
+  --repo-root "$PWD" \
+  --materialization-root reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/materialization \
+  --output-root reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/closeout \
+  --run-tag ind-exal-m0-paired-confirm-v1-full-20260811__git-0f0634e
+```
+
+Materialize and verify the immutable v6 handoff only from a clean committed
+validation branch:
+
+```sh
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/promote_independent_exal_m0_paired_confirmation_v1.R
+
+/data/jaguir26/local/opt/R/4.6.0/bin/Rscript \
+  validation/fitforecast_v2/scripts/verify_independent_exal_m0_paired_confirmation_v1_promotion.R
+```
+
+The v6 handoff changes exactly two roles: Gaussian p=0.05 exQ-DESN MCMC
+forecast MAE and forecast check loss, each represented by the mean of three
+full-budget chains. No fit metric or p=0.50 metric is changed. The next
+lower-tail calibration campaign is documented but not launched.

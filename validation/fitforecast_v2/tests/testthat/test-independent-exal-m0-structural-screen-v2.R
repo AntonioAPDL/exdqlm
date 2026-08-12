@@ -553,10 +553,34 @@ testthat::test_that("paired confirmation freezes evidence and gates canonical fu
     "seal_independent_exal_m0_paired_rolling_repair_v1_closeout.R",
     "materialize_independent_exal_m0_paired_confirmation_v1.R",
     "verify_independent_exal_m0_paired_confirmation_v1.R",
-    "closeout_independent_exal_m0_paired_confirmation_v1.R"
+    "closeout_independent_exal_m0_paired_confirmation_v1.R",
+    "promote_independent_exal_m0_paired_confirmation_v1.R",
+    "verify_independent_exal_m0_paired_confirmation_v1_promotion.R"
   )) {
     testthat::expect_silent(parse(file.path(scripts, script)))
   }
+
+  closeout_text <- paste(readLines(file.path(
+    scripts, "closeout_independent_exal_m0_paired_confirmation_v1.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(closeout_text, "execution_identity_source", fixed = TRUE)
+  testthat::expect_match(closeout_text, "run.env_and_six_fit_requests", fixed = TRUE)
+  testthat::expect_match(closeout_text, "all_job_execution_commits_match", fixed = TRUE)
+
+  promotion_text <- paste(readLines(file.path(
+    scripts, "promote_independent_exal_m0_paired_confirmation_v1.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(
+    promotion_text,
+    "PROMOTE_TWO_NORMAL_P005_EXAL_FORECAST_CHAIN_MEANS",
+    fixed = TRUE
+  )
+  testthat::expect_match(
+    promotion_text,
+    "fit_inherited_forecasts_mean_of_three_full_budget_mcmc_chains",
+    fixed = TRUE
+  )
+  testthat::expect_match(promotion_text, "numeric_changes", fixed = TRUE)
 
   contract_path <- file.path(
     repo_root, "config", "validation",
@@ -590,6 +614,24 @@ testthat::test_that("paired confirmation freezes evidence and gates canonical fu
     qdesn_ssv2_sha256(file.path(handoff_root, "article_metric_baseline.csv")),
     contract$sealed_handoff$article_metric_baseline_sha256
   )
+})
+
+testthat::test_that("paired confirmation v6 promotion verifies when materialized", {
+  promotion_id <-
+    "qdesn_dqlm_500obs_trainonly_article_v6_paired_confirmation_20260811"
+  promotion_dir <- file.path(
+    repo_root, "validation", "fitforecast_v2", "promotions", promotion_id
+  )
+  testthat::skip_if_not(dir.exists(promotion_dir))
+  verifier <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "verify_independent_exal_m0_paired_confirmation_v1_promotion.R"
+  )
+  output <- system2(file.path(R.home("bin"), "Rscript"), verifier,
+                    stdout = TRUE, stderr = TRUE)
+  testthat::expect_equal(attr(output, "status") %||% 0L, 0L, info = paste(output, collapse = "\n"))
+  testthat::expect_true(any(output == "ARTICLE_CONSUMPTION=PASS"))
+  testthat::expect_true(any(output == "STORAGE_POLICY=PASS"))
 })
 
 testthat::test_that("materialized configs preserve vector and effective-window contracts", {

@@ -27,6 +27,25 @@ run_tag <- as.character(get_arg("--run-tag", ""))[1L]
 if (!nzchar(run_tag)) stop("--run-tag is required.", call. = FALSE)
 dir.create(output_root, recursive = TRUE, showWarnings = FALSE)
 
+run_env_path <- normalizePath(
+  get_arg("--run-env", file.path(dirname(output_root), "run.env")),
+  winslash = "/", mustWork = TRUE
+)
+run_env_lines <- readLines(run_env_path, warn = FALSE)
+run_env <- setNames(
+  sub("^[^=]+=(.*)$", "\\1", run_env_lines),
+  sub("^([^=]+)=.*$", "\\1", run_env_lines)
+)
+required_run_env <- c("RUN_ID", "RUN_TAG", "GIT_COMMIT")
+if (!all(required_run_env %in% names(run_env)) ||
+    !identical(unname(run_env[["RUN_TAG"]]), run_tag) ||
+    !grepl("^[0-9a-f]{40}$", unname(run_env[["GIT_COMMIT"]]))) {
+  stop("The immutable execution identity in run.env is missing or malformed.",
+       call. = FALSE)
+}
+execution_commit <- unname(run_env[["GIT_COMMIT"]])
+closeout_commit <- system("git rev-parse HEAD", intern = TRUE)
+
 plan_path <- file.path(materialization_root, "confirmation_plan.csv")
 materialization_manifest_path <- file.path(materialization_root,
                                            "materialization_manifest.json")
@@ -50,6 +69,15 @@ for (i in seq_len(nrow(plan))) {
   status_path <- file.path(root, "job_status.json")
   status <- if (file.exists(status_path)) qdesn_ssv2_read_json(status_path) else
     list(status = "MISSING")
+  fit_request_path <- file.path(root, "fit_request.json")
+  fit_request <- if (file.exists(fit_request_path)) {
+    qdesn_ssv2_read_json(fit_request_path)
+  } else list()
+  job_execution_commit <- as.character(fit_request$git_commit %||% "")[1L]
+  if (!identical(job_execution_commit, execution_commit)) {
+    stop(sprintf("Execution commit mismatch for %s.", plan$job_id[[i]]),
+         call. = FALSE)
+  }
   signoff_path <- file.path(root, "signoff_summary.csv")
   signoff <- if (file.exists(signoff_path)) qdesn_ssv2_read_csv(signoff_path) else
     data.frame()
@@ -86,6 +114,7 @@ for (i in seq_len(nrow(plan))) {
       source_sha256 = qdesn_ssv2_sha256(source_path),
       config_path = plan$config_path[[i]],
       config_sha256 = plan$config_sha256[[i]],
+      execution_commit = job_execution_commit,
       binary_payloads = length(binary_paths),
       stringsAsFactors = FALSE
     )
@@ -211,7 +240,11 @@ manifest_path <- qdesn_ssv2_write_json(list(
   } else "CONFIRMATION_COMPLETE_RETAIN_CURRENT_ARTICLE_METRICS",
   package_version = "1.0.0", method_id = "M0_v_collapsed_support_logit",
   validation_branch = system("git branch --show-current", intern = TRUE),
-  validation_commit = system("git rev-parse HEAD", intern = TRUE),
+  validation_commit = execution_commit,
+  execution_commit = execution_commit,
+  closeout_commit = closeout_commit,
+  execution_identity_source = "run.env_and_six_fit_requests",
+  all_job_execution_commits_match = all(chains$execution_commit == execution_commit),
   source_registry_hash_value = qdesn_ssv2_registry_hash,
   jobs = nrow(plan), chains = length(unique(chains$job_id)),
   chain_metric_rows = nrow(chains), metric_cells = nrow(metric_summary),
@@ -235,6 +268,7 @@ manifest_path <- qdesn_ssv2_write_json(list(
       path = materialization_manifest_path,
       sha256 = qdesn_ssv2_sha256(materialization_manifest_path)
     ),
+    run_env = list(path = run_env_path, sha256 = qdesn_ssv2_sha256(run_env_path)),
     sealed_handoff_manifest = materialization_manifest$sealed_handoff,
     article_metric_baseline = list(path = baseline_path,
                                    sha256 = qdesn_ssv2_sha256(baseline_path))
