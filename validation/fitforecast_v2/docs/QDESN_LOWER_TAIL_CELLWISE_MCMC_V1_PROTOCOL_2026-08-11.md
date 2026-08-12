@@ -159,3 +159,5 @@ Rscript validation/fitforecast_v2/scripts/healthcheck_qdesn_lower_tail_cellwise_
 
 Relaunching the pipeline with the same run ID and run tag is the supported
 resume path: completed roots with matching configuration hashes are skipped.
+Every pipeline error records the active stage, nonzero exit code, and log
+location in `stage_status.csv` before the tmux session exits.

@@ -15,7 +15,7 @@ MAX_IDLE_CPU_PERCENT="${MAX_IDLE_CPU_PERCENT:-20}"
 
 cd "$REPO_ROOT"
 EXPECTED_BRANCH="validation/qdesn-lower-tail-cellwise-mcmc-v1-1.0.0"
-STATE_ROOT="reports/shared_fitforecast_v2_orchestration/${RUN_ID}"
+STATE_ROOT="$REPO_ROOT/reports/shared_fitforecast_v2_orchestration/${RUN_ID}"
 MATERIALIZATION_ROOT="$STATE_ROOT/materialization"
 ADAPTIVE_ROOT="$STATE_ROOT/adaptive"
 WORKER="validation/fitforecast_v2/scripts/run_qdesn_lower_tail_cellwise_mcmc_v1_chain.R"
@@ -139,7 +139,15 @@ cleanup() {
     wait "$HEARTBEAT_PID" 2>/dev/null || true
   fi
 }
+on_error() {
+  local rc="$?" stage
+  set +e
+  stage="$(cat "$CURRENT_STAGE" 2>/dev/null || printf 'unknown')"
+  record_status "$stage" FAILED "pipeline_exit=${rc};inspect_stage_specific_logs"
+  exit "$rc"
+}
 trap cleanup EXIT INT TERM
+trap on_error ERR
 
 if [[ "$(git branch --show-current)" != "$EXPECTED_BRANCH" ]]; then
   echo "Launch refused outside $EXPECTED_BRANCH" >&2

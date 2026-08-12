@@ -116,6 +116,11 @@ testthat::test_that("launchers are scoped, resumable, and stop after discovery",
   testthat::expect_match(text, "WORKERS=\"${WORKERS:-20}\"", fixed = TRUE)
   testthat::expect_match(text, "AUTO_STOP_AFTER_TIER_A_DISCOVERY=TRUE", fixed = TRUE)
   testthat::expect_match(text, "same_run_tag_resumes_completed_jobs", fixed = TRUE)
+  testthat::expect_match(
+    text, 'STATE_ROOT="$REPO_ROOT/reports/shared_fitforecast_v2_orchestration/',
+    fixed = TRUE
+  )
+  testthat::expect_match(text, "trap on_error ERR", fixed = TRUE)
   testthat::expect_false(grepl("/home/jaguir26/local/src", text, fixed = TRUE))
 
   advance <- paste(readLines(file.path(
