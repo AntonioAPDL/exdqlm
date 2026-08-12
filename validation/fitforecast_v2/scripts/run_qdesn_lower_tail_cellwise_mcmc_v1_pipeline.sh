@@ -239,4 +239,4 @@ set_stage complete
 write_heartbeat
 record_status complete COMPLETED \
   "Tier-A discovery closed;replication waits for review;article v6 unchanged"
-cat "Lower-tail cellwise MCMC v1 discovery complete: $RUN_TAG"
+printf 'Lower-tail cellwise MCMC v1 discovery complete: %s\n' "$RUN_TAG"

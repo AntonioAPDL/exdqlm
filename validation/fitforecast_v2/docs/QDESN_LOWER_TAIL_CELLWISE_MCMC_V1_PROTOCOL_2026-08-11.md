@@ -161,3 +161,37 @@ Relaunching the pipeline with the same run ID and run tag is the supported
 resume path: completed roots with matching configuration hashes are skipped.
 Every pipeline error records the active stage, nonzero exit code, and log
 location in `stage_status.csv` before the tmux session exits.
+
+## Tier-A discovery closeout and replication handoff
+
+The discovery run
+`qdesn-lower-tail-cellwise-mcmc-v1-tiera-20260811_215538__git-c050ccf`
+completed 108 of 108 roots on 2026-08-12. All required metrics were finite,
+all job configuration hashes matched, and all roots satisfied the storage-light
+contract. The closeout generated a 24-root replication plan containing three
+cell-specific candidates plus the exact parent for each of six Tier-A cells.
+Replication uses the untouched `dev11` source and independent reservoir seed
+panel `r02`.
+
+The original discovery launcher emitted a false terminal failure after valid
+completion because its final informational message was passed to `cat` as a
+filename. The message now uses `printf`, and the replication continuation has a
+focused handoff verifier plus an error trap that cannot append a second failure
+after successful completion. The historical terminal row is retained as audit
+evidence; it does not invalidate the discovery gate.
+
+Replication is launched separately and remains resumable under the original
+run tag:
+
+```bash
+WORKERS=20 \
+  validation/fitforecast_v2/scripts/launch_qdesn_lower_tail_cellwise_mcmc_v1_replication.sh
+```
+
+The continuation verifies the 108-root discovery gate, candidate-parent sets,
+source role, reservoir seed, MCMC budget, package version, rolling-origin
+contract, configuration hashes, branch, clean synchronized worktree, storage
+policy, and resource availability before fitting. It runs only the 24
+replication roots and then materializes, but does not launch, the 72-root sealed
+plan. Article promotion remains disabled until sealed evidence and canonical
+confirmation satisfy their predeclared gates.

@@ -122,6 +122,27 @@ testthat::test_that("launchers are scoped, resumable, and stop after discovery",
   )
   testthat::expect_match(text, "trap on_error ERR", fixed = TRUE)
   testthat::expect_false(grepl("/home/jaguir26/local/src", text, fixed = TRUE))
+  testthat::expect_match(
+    text,
+    "printf 'Lower-tail cellwise MCMC v1 discovery complete: %s\\n'",
+    fixed = TRUE
+  )
+  testthat::expect_false(grepl(
+    'cat "Lower-tail cellwise MCMC v1 discovery complete:', text, fixed = TRUE
+  ))
+
+  replication <- paste(readLines(file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "run_qdesn_lower_tail_cellwise_mcmc_v1_replication.sh"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(replication, "tier_a_replication_preflight", fixed = TRUE)
+  testthat::expect_match(replication, "tier_a_replication_plan.csv", fixed = TRUE)
+  testthat::expect_match(replication, "same_run_tag_resumes_completed_jobs", fixed = TRUE)
+  testthat::expect_match(
+    replication, "72-job sealed plan materialized;not launched", fixed = TRUE
+  )
+  testthat::expect_false(grepl("tier_a_sealed_workers", replication, fixed = TRUE))
+  testthat::expect_false(grepl("/home/jaguir26/local/src", replication, fixed = TRUE))
 
   advance <- paste(readLines(file.path(
     repo_root, "validation", "fitforecast_v2", "scripts",
@@ -129,4 +150,24 @@ testthat::test_that("launchers are scoped, resumable, and stop after discovery",
   ), warn = FALSE), collapse = "\n")
   testthat::expect_match(advance, "source_count >= minimum_sources", fixed = TRUE)
   testthat::expect_match(advance, "minimum_sources = 3L", fixed = TRUE)
+})
+
+testthat::test_that("replication handoff is paired, independent, and gated", {
+  adaptive_root <- file.path(dirname(materialization_root), "adaptive")
+  required <- c(
+    "tier_a_discovery_gate.csv", "advance_after_tier_a_discovery.json",
+    "tier_a_replication_ranking.csv", "tier_a_replication_plan.csv"
+  )
+  testthat::skip_if_not(all(file.exists(file.path(adaptive_root, required))))
+  plan <- qdesn_ssv2_read_csv(file.path(adaptive_root, "tier_a_replication_plan.csv"))
+  ranking <- qdesn_ssv2_read_csv(file.path(
+    adaptive_root, "tier_a_replication_ranking.csv"
+  ))
+  testthat::expect_equal(nrow(plan), 24L)
+  testthat::expect_true(all(table(plan$target_cell_id) == 4L))
+  testthat::expect_identical(unique(plan$source_id), "dev11")
+  testthat::expect_identical(unique(plan$source_role), "replication")
+  testthat::expect_identical(unique(plan$reservoir_seed_id), "r02")
+  testthat::expect_equal(nrow(ranking), 18L)
+  testthat::expect_true(all(table(ranking$target_cell_id) == 3L))
 })
