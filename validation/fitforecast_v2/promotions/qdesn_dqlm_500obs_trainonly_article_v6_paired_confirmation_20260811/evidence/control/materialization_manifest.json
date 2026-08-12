@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-08-11 14:11:38.048936",
+  "schema_version": "independent_exal_m0_paired_confirmation_v1",
+  "package_version": "1.0.0",
+  "method_id": "M0_v_collapsed_support_logit",
+  "validation_branch": "validation/independent-exal-m0-structural-screen-v2-1.0.0",
+  "validation_commit": "0f0634e40b5d1e320b61ad7af1464beb56546fb3",
+  "contract": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/config/validation/qdesn_dynamic_fitforecast_v2_500obs_independent_exal_m0_paired_confirmation_v1.json",
+    "sha256": "1a0043e406e7e0566f03800899409a8e34db19037ae4110d69fe5f05bea8341f"
+  },
+  "sealed_handoff": {
+    "promotion_id": "independent_exal_m0_paired_rolling_repair_v1_closeout_20260811",
+    "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/validation/fitforecast_v2/promotions/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811/independent_exal_m0_paired_rolling_repair_v1_closeout_20260811_manifest.json",
+    "manifest_sha256": "b90b1ddee33eb76bdcb5fdfa6be79c6450b024a411ccb9ac956c9a31f959cfc0"
+  },
+  "target_cells": [
+    "normal_t0p05",
+    "normal_t0p50"
+  ],
+  "candidates": 2,
+  "smoke": {
+    "jobs": 2,
+    "n_burn": 4,
+    "n_mcmc": 4,
+    "plan_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/materialization/smoke_plan.csv",
+    "plan_sha256": "daa8e18597e744c5c9435720aa468b3a27d32536476c3edac11504be5dfd9b76"
+  },
+  "confirmation": {
+    "jobs": 6,
+    "chains_per_candidate": 3,
+    "n_burn": 5000,
+    "n_mcmc": 20000,
+    "thin": 1,
+    "plan_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/materialization/confirmation_plan.csv",
+    "plan_sha256": "a58cdd961839f2a63acdb84fdd06aa68ce355f6c795e82ce1d9ad5c19dcebfac"
+  },
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "source_registry": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/materialization/canonical_source_registry.csv",
+    "sha256": "046b525e9c356f4929034d9fffd24d61805c2b274ffc84fc2c2f239f4d6463cf"
+  },
+  "canonical_windows": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/materialization/canonical_window_registry.csv",
+    "sha256": "914b19fbc832c8b1581b743d0cae2889a88e2650f84467621c46aaeaaed85fdf"
+  },
+  "rolling_origin_contract": {
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_origin_source_index": 9000,
+    "forecast_start_source_index": 9001,
+    "forecast_end_source_index": 10000,
+    "max_lead": 30,
+    "origin_stride": 30,
+    "refit_per_origin": false,
+    "require_lead_export": true
+  },
+  "promotion_contract": {
+    "metrics": ["fit_qtrue_rmse", "forecast_qtrue_mae_H1000", "forecast_check_loss_H1000"],
+    "successful_chains_required": 3,
+    "finite_chains_required": 3,
+    "mean_below_current": true,
+    "median_below_current": true,
+    "minimum_effect_threshold": 0,
+    "diagnostics_are_reported_not_a_metric_veto": true,
+    "article_promotion_automatic": false
+  },
+  "storage_policy": {
+    "keep_draws": false,
+    "keep_mcmc_vb_init": false,
+    "save_forecast_objects": false,
+    "retain_full_rds_on_failure": false,
+    "forbidden_extensions": ["rds", "rda", "RData"]
+  },
+  "article_promotion_automatic": false
+}

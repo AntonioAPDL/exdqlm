@@ -1,0 +1,14 @@
+{
+  "job_id": "confirmation__ssv2_normal_t0p50_adaptive_02_2c1ce72dbd__canonical_article__c03",
+  "stage": "confirmation",
+  "target_cell_id": "normal_t0p50",
+  "candidate_id": "ssv2_normal_t0p50_adaptive_02_2c1ce72dbd",
+  "source_id": "canonical_article",
+  "chain_id": 3,
+  "pid": 663573,
+  "host": "muscat.be.ucsc.edu",
+  "started_at": "2026-08-11 14:12:39.674096",
+  "config_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/materialization/configs/confirmation/confirmation__ssv2_normal_t0p50_adaptive_02_2c1ce72dbd__canonical_article__c03.json",
+  "config_sha256": "c48e53ed4a540aa6abeb4e239076d22e77088e1b1530797b997fc61f7bfc277f",
+  "git_commit": "0f0634e40b5d1e320b61ad7af1464beb56546fb3"
+}

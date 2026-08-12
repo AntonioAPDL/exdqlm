@@ -1,0 +1,3 @@
+"target_cell_id","family","tau","candidate_id","metrics_evaluated","metrics_promotion_ready","promotion_ready_metrics","decision"
+"normal_t0p05","normal",0.05,"ssv2_normal_t0p05_broad_06_368dcfeb88",3,2,"forecast_qtrue_mae_H1000;forecast_check_loss_H1000","AT_LEAST_ONE_METRIC_READY_FOR_MANUAL_PROMOTION"
+"normal_t0p50","normal",0.5,"ssv2_normal_t0p50_adaptive_02_2c1ce72dbd",3,0,"","NO_CONFIRMED_METRIC_GAIN"

@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-08-11 14:31:48.935216",
+  "stage": "confirmation",
+  "run_tag": "ind-exal-m0-paired-confirm-v1-full-20260811__git-0f0634e",
+  "plan": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exal_m0_structural_screen_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/independent_exal_m0_paired_confirmation_v1_full_20260811_0f0634e/materialization/confirmation_plan.csv",
+    "sha256": "a58cdd961839f2a63acdb84fdd06aa68ce355f6c795e82ce1d9ad5c19dcebfac"
+  },
+  "checks": {
+    "package_version": true,
+    "branch": true,
+    "plan_count": true,
+    "target_cells": true,
+    "chains_per_candidate": true,
+    "unique_jobs": true,
+    "unique_mcmc_seeds": true,
+    "unique_rng_seeds": true,
+    "unique_vb_seeds": true,
+    "fixed_reservoir_per_candidate": true,
+    "expected_budgets": true,
+    "source_rows": true,
+    "materialization_manifest": true,
+    "materialization_storage": true,
+    "config_contracts": true,
+    "runtime_success": true,
+    "runtime_all_metrics_finite": true,
+    "runtime_rolling_artifacts": true,
+    "runtime_storage": true
+  },
+  "failed_checks": [],
+  "runtime_summary": {
+    "expected_jobs": 6,
+    "success_jobs": 6,
+    "metric_rows": 18,
+    "finite_metric_rows": 18,
+    "binary_payloads": 0,
+    "median_elapsed_seconds": 1096.42834556103
+  },
+  "decision": "PASS"
+}
