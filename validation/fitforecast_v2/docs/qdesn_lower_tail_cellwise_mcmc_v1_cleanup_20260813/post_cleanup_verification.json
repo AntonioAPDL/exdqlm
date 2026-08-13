@@ -1,0 +1,32 @@
+{
+  "schema_version": "qdesn_lower_tail_cellwise_mcmc_v1_cleanup_verification_v1",
+  "generated_at": "2026-08-13 04:01:26 UTC",
+  "decision": "PASS",
+  "checks": {
+    "branch": true,
+    "roots": true,
+    "statuses": true,
+    "compact_evidence": true,
+    "nonconfirmation_dense_pruned": true,
+    "confirmation_dense_preserved": true,
+    "progress_compacted": true,
+    "metric_equivalence": true,
+    "post_stage_verification": true,
+    "no_fitted_model_binaries": true,
+    "source_archives_preserved": true,
+    "removal_ledger": true,
+    "compaction_ledger": true
+  },
+  "campaign_roots": 218,
+  "canonical_confirmation_roots": 6,
+  "compact_metric_rows": 204,
+  "compact_metric_max_absolute_difference": 4.79616346638068e-14,
+  "removed_files": 1272,
+  "removed_bytes": 592234853,
+  "compacted_progress_files": 218,
+  "progress_bytes_recovered": 108495775,
+  "total_bytes_recovered": 700730628,
+  "retained_source_archives": 126,
+  "retained_source_archive_bytes": 29039986,
+  "compact_metric_equivalence_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_lower_tail_cellwise_mcmc_v1_1p0p0/validation/fitforecast_v2/docs/qdesn_lower_tail_cellwise_mcmc_v1_cleanup_20260813/compact_metric_equivalence_audit.csv"
+}

@@ -393,3 +393,62 @@ Tier B is now a separate optional decision, not an automatic continuation.
 Before spending more MCMC compute, its four AL fit-RMSE targets should be judged
 against the negative transfer evidence and the article's actual scientific
 need. No further launch is authorized by this closeout.
+
+## Post-closeout storage cleanup
+
+A campaign-scoped storage audit and cleanup completed on 2026-08-13 after the
+canonical decision was frozen. Git was synchronized at
+`54bd412d5673e63851ae701ca7a4d99dac2ceb4b`, no process or tmux session referred
+to this campaign, all 218 jobs had `SUCCESS` status, and the six canonical
+confirmation roots were explicitly protected. Unrelated application, joint,
+GloFAS, PriceFM, article, and historical validation paths were not eligible.
+
+The dry run classified the evidence as follows:
+
+| Artifact class | Scope | Action |
+|---|---:|---|
+| Closeout state, rankings, hashes, and verification | complete state root | keep |
+| Frozen source archives and staged source windows | 126 `.rds` inputs plus CSV windows | keep |
+| Canonical confirmation evidence | 6 full roots | keep |
+| Configs, manifests, statuses, logs, scalar metrics, and lead summaries | all 218 roots | keep |
+| Raw sampler traces and dense fit/forecast paths | 6 files in each of 212 non-confirmation roots | delete after hashing |
+| Progress telemetry | 218 traces | compact to first, final, and every 50th iteration |
+| Precommit smoke evidence | 2.9 MiB | keep because the potential recovery is immaterial |
+
+The hash-locked execution removed 1,272 non-promoted dense files totaling
+592,234,853 bytes. Progress compaction reduced 735,008 rows to 14,920 rows and
+recovered another 108,495,775 bytes while preserving the first and final
+iteration of every job. Total recovery was 700,730,628 bytes (0.653 GiB), and
+the task result tree decreased from 1,015,909,631 to 315,179,003 bytes. No
+fitted-model `.rds`, `.rda`, or `.RData` payload remained under the job roots.
+The 126 source archives totaling 29,039,986 bytes remain intact because they
+are provenance inputs, not disposable fitted output.
+
+The compact metric reader now uses the retained 30-lead summary when the dense
+rolling-origin path has been deliberately pruned and its retention manifest
+records `rolling_origin_ready_for_pruning = true`. Across the 204 discovery,
+replication, and sealed roots, compact recomputation agrees with the frozen
+pre-cleanup metrics to a maximum absolute difference of
+`4.7961634663806763e-14`. Post-cleanup runtime verification passed for smoke,
+calibration, discovery, replication, sealed evaluation, and canonical
+confirmation. The dedicated cleanup verifier passed all 13 checks.
+
+Reproducible commands:
+
+```bash
+Rscript validation/fitforecast_v2/scripts/cleanup_qdesn_lower_tail_cellwise_mcmc_v1_outputs.R
+Rscript validation/fitforecast_v2/scripts/cleanup_qdesn_lower_tail_cellwise_mcmc_v1_outputs.R --execute
+Rscript validation/fitforecast_v2/scripts/verify_qdesn_lower_tail_cellwise_mcmc_v1_cleanup.R
+```
+
+Tracked cleanup evidence is under:
+
+```text
+validation/fitforecast_v2/docs/
+  qdesn_lower_tail_cellwise_mcmc_v1_cleanup_20260813/
+```
+
+The cleanup does not change the scientific closeout: neither canonical
+candidate improved, promotion v6 remains authoritative, the article remains
+unchanged, and Tier B remains an optional new decision rather than pending
+work from this campaign.

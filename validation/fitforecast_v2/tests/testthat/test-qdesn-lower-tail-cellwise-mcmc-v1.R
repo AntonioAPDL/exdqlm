@@ -234,3 +234,60 @@ testthat::test_that("canonical confirmation remains explicit, finite, and manual
     runner, materializer, closeout
   ), fixed = TRUE))
 })
+
+testthat::test_that("closed-campaign cleanup is dry-run first and protects authority", {
+  cleanup_path <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "cleanup_qdesn_lower_tail_cellwise_mcmc_v1_outputs.R"
+  )
+  cleanup <- paste(readLines(cleanup_path, warn = FALSE), collapse = "\n")
+  testthat::expect_match(cleanup, 'execute <- "--execute" %in% args', fixed = TRUE)
+  testthat::expect_match(cleanup, "NO_CONFIRMED_GAIN_RETAIN_V6", fixed = TRUE)
+  testthat::expect_match(cleanup, "length(job_roots) != 218L", fixed = TRUE)
+  testthat::expect_match(cleanup, "sum(confirmation) != 6L", fixed = TRUE)
+  testthat::expect_match(cleanup, "source_replicates", fixed = TRUE)
+  testthat::expect_match(cleanup, "canonical_confirmation_evidence", fixed = TRUE)
+  testthat::expect_match(cleanup, "compact_stride50", fixed = TRUE)
+  testthat::expect_match(cleanup, "At least one candidate changed after dry-run", fixed = TRUE)
+  testthat::expect_false(grepl("/home/jaguir26/local/src", cleanup, fixed = TRUE))
+  testthat::expect_true(file.exists(file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "verify_qdesn_lower_tail_cellwise_mcmc_v1_cleanup.R"
+  )))
+})
+
+testthat::test_that("pruned rolling paths retain exact compact forecast metrics", {
+  root <- tempfile("ltcv1-pruned-")
+  dir.create(file.path(root, "tables"), recursive = TRUE)
+  dir.create(file.path(root, "manifest"), recursive = TRUE)
+  origins <- c(rep(34L, 10L), rep(33L, 20L))
+  lead <- data.frame(
+    forecast_lead = 1:30,
+    n_origins_scored = origins,
+    forecast_qtrue_mae = seq(1, 3.9, length.out = 30L),
+    forecast_pinball_mean = seq(.1, .39, length.out = 30L)
+  )
+  qdesn_ssv2_write_csv(lead, file.path(root, "tables", "forecast_lead_metrics.csv"))
+  qdesn_ssv2_write_json(list(
+    forecast_rolling_origin_status = "PASS",
+    forecast_rolling_origin_rows = 1000L,
+    forecast_lead_metrics_rows = 30L,
+    rolling_origin_ready_for_pruning = TRUE,
+    required_lead_export_failure = FALSE
+  ), file.path(root, "manifest", "output_retention.json"))
+  testthat::expect_false(file.exists(file.path(
+    root, "tables", "forecast_rolling_origin_paths.csv"
+  )))
+  testthat::expect_equal(
+    qdesn_ltcv1_compact_forecast_metric_value(
+      root, "forecast_qtrue_mae_H1000"
+    ),
+    stats::weighted.mean(lead$forecast_qtrue_mae, origins)
+  )
+  testthat::expect_equal(
+    qdesn_ltcv1_compact_forecast_metric_value(
+      root, "forecast_check_loss_H1000"
+    ),
+    stats::weighted.mean(lead$forecast_pinball_mean, origins)
+  )
+})

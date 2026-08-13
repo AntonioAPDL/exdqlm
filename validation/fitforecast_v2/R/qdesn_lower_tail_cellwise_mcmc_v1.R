@@ -523,10 +523,47 @@ qdesn_ltcv1_job_root <- function(repo_root, run_tag, job_id) {
   )
 }
 
+qdesn_ltcv1_compact_forecast_metric_value <- function(job_root, metric) {
+  lead_path <- file.path(job_root, "tables", "forecast_lead_metrics.csv")
+  retention_path <- file.path(job_root, "manifest", "output_retention.json")
+  if (!file.exists(lead_path) || !file.exists(retention_path)) return(NA_real_)
+  lead <- qdesn_ssv2_read_csv(lead_path)
+  retention <- qdesn_ssv2_read_json(retention_path)
+  required <- c(
+    "forecast_lead", "n_origins_scored", "forecast_qtrue_mae",
+    "forecast_pinball_mean"
+  )
+  valid <- all(required %in% names(lead)) && nrow(lead) == 30L &&
+    identical(sort(as.integer(lead$forecast_lead)), 1:30) &&
+    sum(as.integer(lead$n_origins_scored)) == 1000L &&
+    identical(as.character(retention$forecast_rolling_origin_status), "PASS") &&
+    identical(as.integer(retention$forecast_rolling_origin_rows), 1000L) &&
+    identical(as.integer(retention$forecast_lead_metrics_rows), 30L) &&
+    isTRUE(retention$rolling_origin_ready_for_pruning) &&
+    !isTRUE(retention$required_lead_export_failure)
+  if (!isTRUE(valid)) return(NA_real_)
+  weights <- as.numeric(lead$n_origins_scored)
+  values <- if (metric == "forecast_qtrue_mae_H1000") {
+    as.numeric(lead$forecast_qtrue_mae)
+  } else if (metric %in% c("forecast_check_loss_H1000",
+                           "forecast_pinball_H1000")) {
+    as.numeric(lead$forecast_pinball_mean)
+  } else {
+    return(NA_real_)
+  }
+  if (any(!is.finite(weights)) || any(weights <= 0) ||
+      any(!is.finite(values))) return(NA_real_)
+  stats::weighted.mean(values, weights)
+}
+
 qdesn_ltcv1_metric_values <- function(job_root) {
   setNames(vapply(qdesn_ltcv1_target_metrics, function(metric) {
-    qdesn_ssv2_metric_value(
+    value <- qdesn_ssv2_metric_value(
       job_root, metric, require_rolling = grepl("^forecast_", metric)
     )
+    if (!is.finite(value) && grepl("^forecast_", metric)) {
+      value <- qdesn_ltcv1_compact_forecast_metric_value(job_root, metric)
+    }
+    value
   }, numeric(1L)), qdesn_ltcv1_target_metrics)
 }
