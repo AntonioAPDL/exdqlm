@@ -312,3 +312,43 @@ forbidden binary payloads. The 126 `sim_output.rds` files under
 `source_replicates/` are hashed source-generation archives, not fitted-model
 outputs; they remain required for source provenance and must not be pruned as
 routine campaign payloads.
+
+## Canonical confirmation implementation
+
+The user explicitly approved the six-chain canonical confirmation on
+2026-08-12. The continuation materializes the two eligible profiles directly
+from their hash-frozen v6 parent requests and canonical article source windows;
+it does not regenerate data, reuse a development source, or alter a prior with
+screening output. Candidate identity, source identity, three independent MCMC
+seeds, the shared reservoir panel, exAL M0 dispatch, 5,000 burn-in iterations,
+20,000 retained iterations, rolling-origin forecast contract, and storage-light
+policy are all recorded in each job configuration.
+
+The execution contains exactly six one-thread jobs: three chains for the exAL
+Laplace p=0.05 fit-RMSE candidate and three chains for the exAL Gaussian p=0.25
+forecast-MAE candidate. A resource gate requires six idle CPUs, at least 64 GiB
+available memory, at least 80 GiB available disk, and load no greater than 52;
+the launcher pins one process to each selected CPU and remains resumable by the
+original run tag and configuration hashes.
+
+Confirmation is metric-specific. A candidate is ready for manual promotion
+only when all three jobs succeed with finite metrics and both the three-chain
+mean and median are strictly below the frozen v6 value for the eligible metric.
+Diagnostic grades remain visible but are not metric-exclusion rules. The
+closeout writes a promotion ledger and never edits the article automatically.
+If a metric fails this gate, v6 remains authoritative and its Tier-A search
+closes. Tier B remains blocked until confirmation is closed and reviewed.
+
+The reproducible operator command is:
+
+```bash
+QDESN_LTCV1_CONFIRMATION_APPROVED=true WORKERS=6 \
+  validation/fitforecast_v2/scripts/run_qdesn_lower_tail_cellwise_mcmc_v1_confirmation.sh \
+  "$PWD" qdesn_lower_tail_cellwise_mcmc_v1_tiera_20260811_215538 \
+  qdesn-lower-tail-cellwise-mcmc-v1-tiera-20260811_215538__git-c050ccf
+```
+
+The tmux launcher wraps this command and records its session and stdout path.
+Materialization, preflight verification, runtime verification, chain metrics,
+promotion ledger, and closeout decision remain under the existing campaign
+state root in `confirmation/`.

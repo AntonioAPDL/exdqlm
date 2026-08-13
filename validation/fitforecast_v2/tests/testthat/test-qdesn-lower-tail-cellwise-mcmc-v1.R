@@ -209,3 +209,28 @@ testthat::test_that("sealed handoff uses untouched sources and remains confirmat
   testthat::expect_false(grepl("tier_a_confirmation_workers", sealed, fixed = TRUE))
   testthat::expect_false(grepl("/home/jaguir26/local/src", sealed, fixed = TRUE))
 })
+
+testthat::test_that("canonical confirmation remains explicit, finite, and manual-promotion only", {
+  scripts <- file.path(repo_root, "validation", "fitforecast_v2", "scripts")
+  runner <- paste(readLines(file.path(
+    scripts, "run_qdesn_lower_tail_cellwise_mcmc_v1_confirmation.sh"
+  ), warn = FALSE), collapse = "\n")
+  materializer <- paste(readLines(file.path(
+    scripts, "materialize_qdesn_lower_tail_cellwise_mcmc_v1_confirmation.R"
+  ), warn = FALSE), collapse = "\n")
+  closeout <- paste(readLines(file.path(
+    scripts, "closeout_qdesn_lower_tail_cellwise_mcmc_v1_confirmation.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(runner, "QDESN_LTCV1_CONFIRMATION_APPROVED", fixed = TRUE)
+  testthat::expect_match(runner, "WORKERS:-6", fixed = TRUE)
+  testthat::expect_match(materializer, "canonical_article", fixed = TRUE)
+  testthat::expect_match(materializer, "5000L", fixed = TRUE)
+  testthat::expect_match(materializer, "20000L", fixed = TRUE)
+  testthat::expect_match(materializer, "article_promotion_automatic = FALSE", fixed = TRUE)
+  testthat::expect_match(closeout, "mean(x$value) < x$current_value", fixed = TRUE)
+  testthat::expect_match(closeout, "median(x$value) < x$current_value", fixed = TRUE)
+  testthat::expect_match(closeout, "article_update_automatic = FALSE", fixed = TRUE)
+  testthat::expect_false(grepl("/home/jaguir26/local/src", paste(
+    runner, materializer, closeout
+  ), fixed = TRUE))
+})
