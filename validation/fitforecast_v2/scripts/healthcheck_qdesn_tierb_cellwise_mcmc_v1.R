@@ -21,6 +21,9 @@ output <- normalizePath(get_arg("--output", sub("[.]csv$", "_health.csv", plan_p
                         winslash = "/", mustWork = FALSE)
 stale_seconds <- as.numeric(get_arg("--stale-seconds", "1800"))
 plan <- qdesn_ssv2_read_csv(plan_path)
+plan_value <- function(name, i, default = NA_character_) {
+  if (name %in% names(plan)) plan[[name]][[i]] else default
+}
 process_text <- paste(system(
   "ps -eo pid=,etimes=,pcpu=,pmem=,args=", intern = TRUE
 ), collapse = "\n")
@@ -53,6 +56,15 @@ latest_progress <- function(root, expected_n_burn, expected_n_mcmc) {
 }
 
 rows <- lapply(seq_len(nrow(plan)), function(i) {
+  target_cell_id <- as.character(plan_value("target_cell_id", i))
+  stage <- as.character(plan_value("stage", i))
+  tier <- as.character(plan_value(
+    "tier", i, if (grepl("tier_b", stage, fixed = TRUE)) "B" else NA_character_
+  ))
+  likelihood_target <- as.character(plan_value(
+    "likelihood_target", i,
+    if (grepl("^al_", target_cell_id)) "al" else NA_character_
+  ))
   root <- qdesn_tbcv1_job_root(repo_root, run_tag, plan$job_id[[i]])
   status_path <- file.path(root, "job_status.json")
   started_path <- file.path(root, "job_started.json")
@@ -79,9 +91,8 @@ rows <- lapply(seq_len(nrow(plan)), function(i) {
     unlist(status$metric_values, use.names = TRUE)
   } else setNames(rep(NA_real_, 3L), qdesn_tbcv1_target_metrics)
   data.frame(
-    stage = plan$stage[[i]], tier = plan$tier[[i]],
-    target_cell_id = plan$target_cell_id[[i]],
-    likelihood_target = plan$likelihood_target[[i]],
+    stage = stage, tier = tier, target_cell_id = target_cell_id,
+    likelihood_target = likelihood_target,
     candidate_id = plan$candidate_id[[i]], source_id = plan$source_id[[i]],
     job_id = plan$job_id[[i]], status = state, health = health,
     process_alive = alive, evidence_age_seconds = age,

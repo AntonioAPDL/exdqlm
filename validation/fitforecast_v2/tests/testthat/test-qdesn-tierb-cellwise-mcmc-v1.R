@@ -151,6 +151,39 @@ testthat::test_that("worker resumes matching successes and prunes binary payload
   testthat::expect_false(grepl("pkgload::load_all", worker, fixed = TRUE))
 })
 
+testthat::test_that("healthcheck accepts confirmation-shaped plans", {
+  plan <- data.frame(
+    job_id = "tier_b_confirmation__healthcheck_contract",
+    stage = "tier_b_confirmation",
+    target_cell_id = "al_gausmix_t0p25",
+    candidate_id = "healthcheck_contract",
+    source_id = "canonical_article",
+    config_path = tempfile(fileext = ".json"),
+    expected_n_burn = 5000L,
+    expected_n_mcmc = 20000L,
+    stringsAsFactors = FALSE
+  )
+  plan_path <- tempfile(fileext = ".csv")
+  output_path <- tempfile(fileext = ".csv")
+  qdesn_ssv2_write_csv(plan, plan_path)
+  script <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "healthcheck_qdesn_tierb_cellwise_mcmc_v1.R"
+  )
+  result <- system2(
+    file.path(R.home("bin"), "Rscript"),
+    c(script, "--repo-root", repo_root, "--run-tag", "healthcheck-contract",
+      "--plan", plan_path, "--output", output_path),
+    stdout = TRUE, stderr = TRUE
+  )
+  testthat::expect_identical(attr(result, "status") %||% 0L, 0L)
+  health <- qdesn_ssv2_read_csv(output_path)
+  testthat::expect_identical(health$tier, "B")
+  testthat::expect_identical(health$likelihood_target, "al")
+  testthat::expect_identical(health$health, "planned")
+  testthat::expect_equal(health$iteration_total, 25000)
+})
+
 testthat::test_that("compact rolling summaries preserve exact reported metrics", {
   root <- tempfile("tbcv1-pruned-")
   dir.create(file.path(root, "tables"), recursive = TRUE)
