@@ -1,0 +1,113 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_tierb_cellwise_mcmc_v1
+  purpose: Cell-specific Tier-B AL-RHS fit-RMSE calibration after the closed Tier-A campaign.
+  article_policy: Development and sealed trajectories are selection evidence only; article promotion requires canonical-source full confirmation.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_tierb_cellwise_mcmc_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace]
+  taus: [0.05, 0.25]
+  tail_fit_sizes: [500]
+  family_profiles:
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+replicates:
+  - replicate_id: dev16
+    role: discovery
+    scenario_id: dlm_constV_p90_tbcv1_dev16_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1816021, noise: 1816022}
+      gausmix: {latent: 1816031, noise: 1816032}
+  - replicate_id: dev17
+    role: discovery
+    scenario_id: dlm_constV_p90_tbcv1_dev17_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1817021, noise: 1817022}
+      gausmix: {latent: 1817031, noise: 1817032}
+  - replicate_id: dev18
+    role: discovery
+    scenario_id: dlm_constV_p90_tbcv1_dev18_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1818021, noise: 1818022}
+      gausmix: {latent: 1818031, noise: 1818032}
+  - replicate_id: dev19
+    role: replication
+    scenario_id: dlm_constV_p90_tbcv1_dev19_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1819021, noise: 1819022}
+      gausmix: {latent: 1819031, noise: 1819032}
+  - replicate_id: dev20
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_tbcv1_dev20_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1820021, noise: 1820022}
+      gausmix: {latent: 1820031, noise: 1820032}
+  - replicate_id: dev21
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_tbcv1_dev21_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1821021, noise: 1821022}
+      gausmix: {latent: 1821031, noise: 1821032}
+  - replicate_id: dev22
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_tbcv1_dev22_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1822021, noise: 1822022}
+      gausmix: {latent: 1822031, noise: 1822032}
+  - replicate_id: dev23
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_tbcv1_dev23_TTmain10000_fitforecast
+    seeds:
+      laplace: {latent: 1823021, noise: 1823022}
+      gausmix: {latent: 1823031, noise: 1823032}
+
+selection_contract:
+  authority_interface: validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v6_paired_confirmation_20260811/qdesn_dqlm_500obs_trainonly_article_v6_paired_confirmation_20260811_interface.csv
+  authority_commit: e75280ba14fcdefc8508f150623323e783f4c54a
+  closed_tier_a_decision: NO_CONFIRMED_GAIN_RETAIN_V6
+  tier_b_cells: 4
+  configured_unrun_local_candidates_per_cell: 4
+  new_coupled_candidates_per_cell: 4
+  total_candidates_per_cell: 8
+  exact_parent_controls_per_cell: 1
+  tier_b_discovery_sources: 3
+  tier_b_discovery_roots: 108
+  tier_b_replication_survivors_per_cell: 3
+  tier_b_replication_roots: 16
+  tier_b_sealed_finalists_per_cell: 2
+  tier_b_sealed_sources: 4
+  tier_b_sealed_roots: 48
+  tier_b_maximum_confirmation_chains: 12
+  maximum_effective_readout_dimension: 900
+  default_workers: 16
+  maximum_workers: 20
+  threads_per_worker: 1
+  al_method_id: inherited_exact_parent_kernel
+  diagnostic_grade_is_metric_veto: false
+  implementation_failure_is_veto: true
+  posterior_recycled_as_prior: false
+  article_update_automatic: false
