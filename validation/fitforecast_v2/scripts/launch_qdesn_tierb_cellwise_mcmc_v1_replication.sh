@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="${1:-$(git rev-parse --show-toplevel)}"
+RUN_ID="${RUN_ID:?RUN_ID from the completed discovery stage is required}"
+RUN_TAG="${RUN_TAG:?RUN_TAG from the completed discovery stage is required}"
+SESSION="${SESSION:-ffv2_qdesn_tbcv1_replication_$(date +%Y%m%d_%H%M%S)}"
+WORKERS="${WORKERS:-16}"
+STATE_ROOT="$REPO_ROOT/reports/shared_fitforecast_v2_orchestration/$RUN_ID"
+STDOUT_LOG="$STATE_ROOT/replication.stdout.log"
+mkdir -p "$STATE_ROOT"
+
+tmux new-session -d -s "$SESSION" \
+  "cd '$REPO_ROOT' && WORKERS='$WORKERS' validation/fitforecast_v2/scripts/run_qdesn_tierb_cellwise_mcmc_v1_replication.sh '$REPO_ROOT' '$RUN_ID' '$RUN_TAG' > '$STDOUT_LOG' 2>&1"
+
+printf 'session=%s\nrun_id=%s\nrun_tag=%s\nworkers=%s\nstate_root=%s\nstdout_log=%s\n' \
+  "$SESSION" "$RUN_ID" "$RUN_TAG" "$WORKERS" "$STATE_ROOT" "$STDOUT_LOG"

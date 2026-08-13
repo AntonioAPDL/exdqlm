@@ -1,0 +1,17 @@
+"source_id","source_role","scenario","family","latent_seed","noise_seed"
+"dev16","discovery","dlm_constV_p90_tbcv1_dev16_TTmain10000_fitforecast","laplace",1816021,1816022
+"dev16","discovery","dlm_constV_p90_tbcv1_dev16_TTmain10000_fitforecast","gausmix",1816031,1816032
+"dev17","discovery","dlm_constV_p90_tbcv1_dev17_TTmain10000_fitforecast","laplace",1817021,1817022
+"dev17","discovery","dlm_constV_p90_tbcv1_dev17_TTmain10000_fitforecast","gausmix",1817031,1817032
+"dev18","discovery","dlm_constV_p90_tbcv1_dev18_TTmain10000_fitforecast","laplace",1818021,1818022
+"dev18","discovery","dlm_constV_p90_tbcv1_dev18_TTmain10000_fitforecast","gausmix",1818031,1818032
+"dev19","replication","dlm_constV_p90_tbcv1_dev19_TTmain10000_fitforecast","laplace",1819021,1819022
+"dev19","replication","dlm_constV_p90_tbcv1_dev19_TTmain10000_fitforecast","gausmix",1819031,1819032
+"dev20","sealed_holdout","dlm_constV_p90_tbcv1_dev20_TTmain10000_fitforecast","laplace",1820021,1820022
+"dev20","sealed_holdout","dlm_constV_p90_tbcv1_dev20_TTmain10000_fitforecast","gausmix",1820031,1820032
+"dev21","sealed_holdout","dlm_constV_p90_tbcv1_dev21_TTmain10000_fitforecast","laplace",1821021,1821022
+"dev21","sealed_holdout","dlm_constV_p90_tbcv1_dev21_TTmain10000_fitforecast","gausmix",1821031,1821032
+"dev22","sealed_holdout","dlm_constV_p90_tbcv1_dev22_TTmain10000_fitforecast","laplace",1822021,1822022
+"dev22","sealed_holdout","dlm_constV_p90_tbcv1_dev22_TTmain10000_fitforecast","gausmix",1822031,1822032
+"dev23","sealed_holdout","dlm_constV_p90_tbcv1_dev23_TTmain10000_fitforecast","laplace",1823021,1823022
+"dev23","sealed_holdout","dlm_constV_p90_tbcv1_dev23_TTmain10000_fitforecast","gausmix",1823031,1823032
