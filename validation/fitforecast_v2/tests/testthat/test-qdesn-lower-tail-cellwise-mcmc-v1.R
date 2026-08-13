@@ -150,6 +150,11 @@ testthat::test_that("launchers are scoped, resumable, and stop after discovery",
   ), warn = FALSE), collapse = "\n")
   testthat::expect_match(advance, "source_count >= minimum_sources", fixed = TRUE)
   testthat::expect_match(advance, "minimum_sources = 3L", fixed = TRUE)
+  testthat::expect_match(advance, "x$mean_paired_ratio < 1", fixed = TRUE)
+  testthat::expect_match(advance, "x$median_paired_ratio < 1", fixed = TRUE)
+  testthat::expect_match(advance, "x$sources_improved >= 3L", fixed = TRUE)
+  testthat::expect_match(advance, "launch_approved = FALSE", fixed = TRUE)
+  testthat::expect_match(advance, "Confirmation exceeds the 24-chain cap", fixed = TRUE)
 })
 
 testthat::test_that("replication handoff is paired, independent, and gated", {
@@ -170,4 +175,37 @@ testthat::test_that("replication handoff is paired, independent, and gated", {
   testthat::expect_identical(unique(plan$reservoir_seed_id), "r02")
   testthat::expect_equal(nrow(ranking), 18L)
   testthat::expect_true(all(table(ranking$target_cell_id) == 3L))
+})
+
+testthat::test_that("sealed handoff uses untouched sources and remains confirmation-gated", {
+  adaptive_root <- file.path(dirname(materialization_root), "adaptive")
+  required <- c(
+    "tier_a_replication_gate.csv", "advance_after_tier_a_replication.json",
+    "tier_a_sealed_ranking.csv", "tier_a_sealed_plan.csv"
+  )
+  testthat::skip_if_not(all(file.exists(file.path(adaptive_root, required))))
+  plan <- qdesn_ssv2_read_csv(file.path(adaptive_root, "tier_a_sealed_plan.csv"))
+  ranking <- qdesn_ssv2_read_csv(file.path(adaptive_root, "tier_a_sealed_ranking.csv"))
+  testthat::expect_equal(nrow(plan), 72L)
+  testthat::expect_true(all(table(plan$target_cell_id) == 12L))
+  testthat::expect_true(all(table(plan$target_cell_id, plan$source_id) == 3L))
+  testthat::expect_setequal(unique(plan$source_id), c(
+    "dev12", "dev13", "dev14", "dev15"
+  ))
+  testthat::expect_identical(unique(plan$source_role), "sealed_holdout")
+  testthat::expect_identical(unique(plan$reservoir_seed_id), "r03")
+  testthat::expect_equal(nrow(ranking), 12L)
+  testthat::expect_true(all(table(ranking$target_cell_id) == 2L))
+
+  sealed <- paste(readLines(file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "run_qdesn_lower_tail_cellwise_mcmc_v1_sealed.sh"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(sealed, "tier_a_sealed_handoff_verification", fixed = TRUE)
+  testthat::expect_match(sealed, "tier_a_sealed_plan.csv", fixed = TRUE)
+  testthat::expect_match(sealed, "same_run_tag_resumes_completed_jobs", fixed = TRUE)
+  testthat::expect_match(sealed, "confirmation not launched", fixed = TRUE)
+  testthat::expect_match(sealed, "article v6 unchanged", fixed = TRUE)
+  testthat::expect_false(grepl("tier_a_confirmation_workers", sealed, fixed = TRUE))
+  testthat::expect_false(grepl("/home/jaguir26/local/src", sealed, fixed = TRUE))
 })

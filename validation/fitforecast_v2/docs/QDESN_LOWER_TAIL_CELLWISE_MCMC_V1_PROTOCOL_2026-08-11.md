@@ -195,3 +195,56 @@ policy, and resource availability before fitting. It runs only the 24
 replication roots and then materializes, but does not launch, the 72-root sealed
 plan. Article promotion remains disabled until sealed evidence and canonical
 confirmation satisfy their predeclared gates.
+
+## Tier-A replication closeout and sealed handoff
+
+The replication continuation completed 24 of 24 roots on 2026-08-12 using the
+untouched `dev11` source and reservoir panel `r02`. Runtime verification passed
+all 19 checks: every required metric was finite, every configuration hash
+matched, and every root retained zero forbidden binary payloads. The adaptive
+closeout selected two cell-specific finalists per Tier-A cell and materialized
+the 72-root sealed plan with SHA-256
+`858583d81515c0560cbf530ae39591bd5b71656879c4d1f6565fab8965d4b5ee`.
+
+The campaign has two explicit provenance layers. Commit
+`c050ccf5838ad4bb448f75365b7d220a5646d565` freezes the statistical design,
+candidate profiles, source contract, model worker, and discovery run tag.
+Commit `c237ea5757cb920f66b6c7a574f1119137ba5260` begins the verified continuation
+orchestration layer; it does not change the computational kernel. The sealed
+handoff records both the frozen design commit and the actual sealed execution
+commit and refuses execution if any intervening change leaves the scoped
+campaign documentation, launchers, verifiers, or focused test paths.
+
+The sealed panel contains each cell's two finalists plus its exact parent on
+each of `dev12`, `dev13`, `dev14`, and `dev15`, using independent reservoir
+panel `r03`. The complete panel is retained even for weak replication cells:
+these untouched holdouts adjudicate source reversals and provide predeclared
+negative closure without post-replication pruning.
+
+Launch the sealed-only continuation from a clean synchronized branch:
+
+```bash
+WORKERS=20 \
+  validation/fitforecast_v2/scripts/launch_qdesn_lower_tail_cellwise_mcmc_v1_sealed.sh
+```
+
+The launcher verifies the replication gate, sealed source isolation,
+candidate-parent sets, observed-data and configuration hashes, dual provenance,
+MCMC and rolling-origin contracts, explicit exAL M0 dispatch, one-thread
+execution, storage policy, and resources. It runs only the 72 sealed roots,
+then computes metric-specific eligibility and writes a blocked canonical
+confirmation manifest. It never launches canonical confirmation, Tier B, or
+article promotion.
+
+The frozen source-generation directories retain their declared `sim_output.rds`
+archives as reproducibility inputs. Sealed jobs consume only the hashed staged
+CSV windows. The storage-light prohibition applies to routine fitted-model and
+forecast payloads under job roots; source archives are never classified as
+disposable model output.
+
+A sealed metric is eligible only when its paired mean and median ratios are
+both below one and at least three of four sealed sources improve on the exact
+parent. At most one candidate per cell and metric enters confirmation. The
+confirmation manifest remains capped at 24 chains, uses 5,000 burn-in plus
+20,000 retained iterations, records `launch_approved = FALSE`, and requires
+explicit human approval plus canonical-source materialization.
