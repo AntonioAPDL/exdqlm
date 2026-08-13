@@ -248,3 +248,67 @@ parent. At most one candidate per cell and metric enters confirmation. The
 confirmation manifest remains capped at 24 chains, uses 5,000 burn-in plus
 20,000 retained iterations, records `launch_approved = FALSE`, and requires
 explicit human approval plus canonical-source materialization.
+
+## Tier-A sealed closeout
+
+The sealed continuation completed 72 of 72 roots on 2026-08-12. Together with
+smoke, runtime calibration, discovery, and replication, the campaign completed
+212 of 212 pre-confirmation roots with no implementation failure. All 72 sealed
+roots emitted finite required metrics, matched their configuration hashes, and
+retained zero fitted-model `.rds`, `.rda`, or `.RData` payloads. The sealed
+runtime verifier passed all 19 checks. The 72 roots consumed 26,831.8 aggregate
+worker-seconds; elapsed time per root ranged from 222.5 to 534.5 seconds, with a
+363.0-second median.
+
+Only two metric-specific candidates met the predeclared sealed rule:
+
+| Cell | Candidate | Metric | Mean ratio | Median ratio | Sources improved |
+|---|---|---|---:|---:|---:|
+| exAL, Laplace, p=0.05 | `ltcv1_exal_laplace_t0p05_04_bf3258e079` | fit RMSE | 0.999011 | 0.981572 | 3/4 |
+| exAL, Gaussian, p=0.25 | `ltcv1_exal_normal_t0p25_01_cc39679de2` | forecast MAE | 0.937345 | 0.989068 | 3/4 |
+
+The Laplace candidate is a shallow local input-memory design (`D=1`, `n=12`,
+`m=15`, `alpha=0.0035`, `rho=0.45`, and `tau0=3e-4`). Its mean gain is only
+0.099 percent and its worst source ratio is 1.0584, so it is eligible but
+fragile. The Gaussian p=0.25 candidate is a shallow local RHS-scale design
+(`D=1`, `n=6`, `m=1`, `alpha=0.65`, `rho=0.70`, and `tau0=3e-5`). Its mean
+forecast-MAE gain is 6.27 percent, although its median gain is 1.09 percent and
+its worst source ratio is 1.0227. The other six target metrics produced no
+sealed-eligible candidate. In particular, neither Gaussian-mixture forecast
+candidate transferred: their mean paired ratios were 1.5394 and 1.1508.
+
+This is a negative closure for broad Tier-A screening, not evidence for another
+unbounded search. Most discovery and replication leaders did not transfer to
+four untouched sources, and larger or more complex reservoir arms did not
+generalize reliably. The two surviving metric candidates proceed only to the
+small canonical confirmation gate; all other Tier-A searches stop.
+
+The closeout generated exactly six disabled confirmation rows: three chains for
+each surviving metric candidate, each with 5,000 burn-in and 20,000 retained
+iterations. The manifest records `launch_approved = FALSE` and
+`explicit_human_approval_and_canonical_source_materialization`; no confirmation
+chain has been launched. Promotion v6 and the article therefore remain frozen.
+
+Authoritative closeout evidence is under:
+
+```text
+reports/shared_fitforecast_v2_orchestration/
+  qdesn_lower_tail_cellwise_mcmc_v1_tiera_20260811_215538/
+```
+
+The principal evidence hashes are:
+
+| Artifact | SHA-256 |
+|---|---|
+| `adaptive/tier_a_sealed_eligible_metrics.csv` | `e7e88a212bf4a31dee7660c0f0edb02da012cca85e79fb3114eec51a4041be20` |
+| `adaptive/tier_a_confirmation_manifest.csv` | `d3ba5c2ec08cb448ff805717953606fd3cff22fc06a8eb453c82d0b73c1d0d29` |
+| `tier_a_sealed_verification.json` | `1150940a1319d9722365894de9ecff5fc12a00d8fbabb8204f37e4b5084ccb1b` |
+| `adaptive/advance_after_tier_a_sealed.json` | `a1fa4f7429cf6247ba0aab473440b672ebccdcd6c6f528442ecf1061ff58a3d5` |
+
+The run used frozen design commit
+`c050ccf5838ad4bb448f75365b7d220a5646d565` and sealed execution commit
+`6e30319f73a82832241d1b52c8b9e910bdfc985d`. Its job roots contain no
+forbidden binary payloads. The 126 `sim_output.rds` files under
+`source_replicates/` are hashed source-generation archives, not fitted-model
+outputs; they remain required for source provenance and must not be pruned as
+routine campaign payloads.
