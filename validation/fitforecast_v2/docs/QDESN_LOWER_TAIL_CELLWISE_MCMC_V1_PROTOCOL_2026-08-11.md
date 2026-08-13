@@ -352,3 +352,44 @@ The tmux launcher wraps this command and records its session and stdout path.
 Materialization, preflight verification, runtime verification, chain metrics,
 promotion ledger, and closeout decision remain under the existing campaign
 state root in `confirmation/`.
+
+## Canonical confirmation closeout
+
+The confirmation ran from 23:22 to 23:41 EDT on 2026-08-12 and completed all
+six chains. Runtime verification passed all ten checks: every job succeeded,
+its declared metric was finite, its configuration hash matched, and it retained
+zero forbidden binary payloads. Each chain retained 20,000 MCMC draws. All six
+signoffs were `WARN` with `comparison_eligible = TRUE` and
+`chain_marginal_but_usable`; diagnostics are reported but do not alter the
+predeclared metric decision.
+
+Neither candidate confirmed:
+
+| Cell | Metric | Frozen v6 | Three-chain mean | Median | Mean change | Decision |
+|---|---|---:|---:|---:|---:|---|
+| exAL, Laplace, p=0.05 | fit RMSE | 6.409039 | 6.579723 | 6.578669 | 2.66% worse | retain v6 |
+| exAL, Gaussian, p=0.25 | forecast MAE | 2.414634 | 5.341766 | 5.330059 | 121.22% worse | retain v6 |
+
+No individual confirmation chain improved its target metric. The Laplace chain
+values ranged from 6.572753 to 6.587747, and the Gaussian forecast values ranged
+from 5.292186 to 5.403052. Their tight within-candidate agreement indicates a
+canonical-source transfer failure rather than a single unlucky MCMC chain.
+Accordingly, promotion v6 remains authoritative, the article is unchanged, and
+the six Tier-A target cells are scientifically closed. Another broad Tier-A
+screen is not justified by this campaign: development, replication, sealed,
+and now canonical evidence demonstrate source-specific ranking instability.
+
+The closeout decision is `NO_CONFIRMED_GAIN_RETAIN_V6`. Principal evidence:
+
+| Artifact | SHA-256 |
+|---|---|
+| `confirmation/confirmation_plan.csv` | `0bbd1af8ae5c46e20877abee4130753e1233fcf84f6f0646c26a41bf80235e26` |
+| `confirmation/confirmation_chain_metrics.csv` | `3a6c39ab1da1b05385e8422f5371e3d79cc91dd193d6aa646a7e49371497532e` |
+| `confirmation/confirmation_promotion_ledger.csv` | `8ec077d6d6f7a64e912bafce486495086c2f3e4f1f1e22b99dae067a486f2f7a` |
+| `confirmation/confirmation_closeout.json` | `ee0e31d393ccafef10cae2378a341b161f5b8de698a4ef7e76d5a6b594a24597` |
+| `confirmation_verification.json` | `811c944f87ab474b166045f464fb6277506cb776fb93943b6fe2cefadedcf8a4` |
+
+Tier B is now a separate optional decision, not an automatic continuation.
+Before spending more MCMC compute, its four AL fit-RMSE targets should be judged
+against the negative transfer evidence and the article's actual scientific
+need. No further launch is authorized by this closeout.
