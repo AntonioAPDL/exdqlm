@@ -1,0 +1,116 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_postm0_legacy_recheck_v1
+  purpose: Exact-M0 reevaluation of promising pre-M0 exQ-DESN designs.
+  article_policy: Development evidence cannot update article v6; canonical full-budget confirmation is mandatory.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_postm0_legacy_recheck_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+replicates:
+  - replicate_id: dev30
+    role: discovery
+    scenario_id: dlm_constV_p90_plrv1_dev30_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1830011, noise: 1830012}
+      laplace: {latent: 1830021, noise: 1830022}
+      gausmix: {latent: 1830031, noise: 1830032}
+  - replicate_id: dev31
+    role: discovery
+    scenario_id: dlm_constV_p90_plrv1_dev31_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1831011, noise: 1831012}
+      laplace: {latent: 1831021, noise: 1831022}
+      gausmix: {latent: 1831031, noise: 1831032}
+  - replicate_id: dev32
+    role: replication
+    scenario_id: dlm_constV_p90_plrv1_dev32_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1832011, noise: 1832012}
+      laplace: {latent: 1832021, noise: 1832022}
+      gausmix: {latent: 1832031, noise: 1832032}
+  - replicate_id: dev33
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_plrv1_dev33_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1833011, noise: 1833012}
+      laplace: {latent: 1833021, noise: 1833022}
+      gausmix: {latent: 1833031, noise: 1833032}
+  - replicate_id: dev34
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_plrv1_dev34_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1834011, noise: 1834012}
+      laplace: {latent: 1834021, noise: 1834022}
+      gausmix: {latent: 1834031, noise: 1834032}
+  - replicate_id: dev35
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_plrv1_dev35_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1835011, noise: 1835012}
+      laplace: {latent: 1835021, noise: 1835022}
+      gausmix: {latent: 1835031, noise: 1835032}
+  - replicate_id: dev36
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_plrv1_dev36_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1836011, noise: 1836012}
+      laplace: {latent: 1836021, noise: 1836022}
+      gausmix: {latent: 1836031, noise: 1836032}
+
+selection_contract:
+  authority_interface: validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v6_paired_confirmation_20260811/qdesn_dqlm_500obs_trainonly_article_v6_paired_confirmation_20260811_interface.csv
+  authority_commit: f7d57b17997bea461faf6f5bfc6213c33fa2fd1e
+  target_cells: 5
+  candidates_per_cell: 8
+  exact_parent_controls_per_cell: 1
+  discovery_sources: 2
+  discovery_roots: 90
+  replication_survivors_per_cell: 3
+  replication_roots: 20
+  sealed_finalists_per_cell: 2
+  sealed_sources: 4
+  sealed_roots: 60
+  maximum_confirmation_chains: 15
+  maximum_effective_readout_dimension: 900
+  workers: 20
+  threads_per_worker: 1
+  exal_method_id: M0_v_collapsed_support_logit
+  pre_m0_negative_evidence_veto: false
+  posterior_recycled_as_prior: false
+  article_update_automatic: false

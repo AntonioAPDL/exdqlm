@@ -1,0 +1,6 @@
+"target_cell_id","available_pre_m0_vb_all_primary_unique","selected_pre_m0_vb","available_pre_m0_mcmc_unique","selected_pre_m0_mcmc","exact_postm0_signatures_excluded","candidates_selected"
+"exal_laplace_t0p05",161,5,10,3,158,8
+"exal_gausmix_t0p25",19,5,11,3,158,8
+"exal_gausmix_t0p05",123,5,12,3,158,8
+"exal_normal_t0p05",2,2,11,6,158,8
+"exal_normal_t0p25",11,5,11,3,158,8
