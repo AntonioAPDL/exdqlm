@@ -142,3 +142,33 @@ Both the historical candidate and frozen v6 parent completed successfully.
 Runtime verification passed all 27 checks, and no fitted-model binary payload
 remained. These four-draw smoke metrics are plumbing evidence only and must
 never enter ranking, promotion, or article tables.
+
+## Production discovery and closeout recovery
+
+The production run uses:
+
+- run ID `qdesn_postm0_legacy_recheck_v1_20260814_prod1`;
+- run tag
+  `qdesn-postm0-legacy-recheck-v1-20260814-prod1__git-9db909c`.
+
+Its resource gate passed at 2026-08-14 09:34 EDT. Smoke completed 2/2,
+calibration completed 5/5, and discovery completed 90/90 with no worker or
+storage failures. The discovery gate verified 90 successful, finite,
+storage-light result roots.
+
+The first post-discovery advance attempt failed after ranking, before any
+replication fit was launched. Historical single-layer profiles had serialized
+the structurally absent `n_tilde` field as the text value `"NA"`. Profile
+rehydration treated that text as an integer vector and produced an undefined
+effective readout dimension. The failed attempt is retained as runtime
+evidence in
+`advance_after_tier_a_discovery.failed_20260814T101625-0400.log`.
+
+The shared profile parser now recognizes textual missing-vector sentinels as
+empty and canonicalizes them during job-profile reconstruction. Regression
+coverage exercises the actual materialized historical D=1 jobs as well as
+multilayer vector fields. Re-running only the deterministic advance step
+against the unchanged 90 discovery roots succeeded and materialized the
+predeclared 20-job replication plan: three ranked candidates plus the v6
+parent for each target cell, on source `dev32` with reservoir panel `r02`.
+No discovery fit was repeated, and article v6 remains frozen.

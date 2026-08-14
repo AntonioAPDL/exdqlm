@@ -109,6 +109,18 @@ testthat::test_that("materialized jobs enforce exact M0 and storage-light output
       !isTRUE(job$config$outputs$save_forecast_objects) &&
       !isTRUE(job$config$outputs$retain_full_rds_on_failure)
   }, logical(1L))))
+  historical_d1 <- jobs[vapply(jobs, function(job) {
+    identical(as.integer(job$profile$D), 1L) &&
+      identical(as.character(job$profile$n_tilde), "NA")
+  }, logical(1L))]
+  testthat::expect_gt(length(historical_d1), 0L)
+  recovered <- lapply(historical_d1, qdesn_ssv2_profile_from_job)
+  testthat::expect_true(all(vapply(recovered, function(profile) {
+    identical(profile$n_tilde[[1L]], "") &&
+    is.finite(profile$effective_readout_dimension[[1L]]) &&
+      profile$effective_readout_dimension[[1L]] <=
+        qdesn_ssv2_max_effective_readout_dimension
+  }, logical(1L))))
   binary <- list.files(materialization_root,
                        pattern = "[.](rds|rda|RData)$", recursive = TRUE,
                        full.names = TRUE, ignore.case = TRUE)

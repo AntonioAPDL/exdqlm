@@ -67,9 +67,13 @@ qdesn_ssv2_safe <- function(x) {
 
 qdesn_ssv2_vec <- function(x, mode = c("numeric", "integer")) {
   mode <- match.arg(mode)
-  if (is.null(x) || !length(x) || all(is.na(x))) return(if (mode == "integer") integer() else numeric())
-  if (length(x) == 1L && is.character(x) && !nzchar(trimws(x))) {
-    return(if (mode == "integer") integer() else numeric())
+  empty <- if (mode == "integer") integer() else numeric()
+  if (is.null(x) || !length(x) || all(is.na(x))) return(empty)
+  if (length(x) == 1L && is.character(x)) {
+    token <- trimws(x)
+    if (!nzchar(token) || toupper(token) %in% c("NA", "NAN", "NULL")) {
+      return(empty)
+    }
   }
   if (length(x) == 1L && is.character(x)) x <- strsplit(x, ";", fixed = TRUE)[[1L]]
   if (mode == "integer") as.integer(x) else as.numeric(x)
@@ -82,6 +86,10 @@ qdesn_ssv2_profile_field <- function(value) {
   if (is.list(value)) value <- unlist(value, recursive = TRUE, use.names = FALSE)
   if (!length(value)) return("")
   if (length(value) > 1L) return(qdesn_ssv2_pack(value))
+  if (is.character(value)) {
+    token <- trimws(value[[1L]])
+    if (!nzchar(token) || toupper(token) %in% c("NA", "NAN", "NULL")) return("")
+  }
   value[[1L]]
 }
 
