@@ -165,12 +165,23 @@ set -e
 [[ "$RC" -eq 0 ]] || {
   record_status "$STAGE" FAILED "worker_exit=${RC};resume_same_run_tag"; exit "$RC";
 }
-"$R_SCRIPT" "$VERIFY" --repo-root "$REPO_ROOT" \
+if ! "$R_SCRIPT" "$VERIFY" --repo-root "$REPO_ROOT" \
   --materialization-root "$MATERIALIZATION_ROOT" --stage "$STAGE" \
   --plan "$PLAN" --run-tag "$RUN_TAG" \
-  --output "$STATE_ROOT/${STAGE}_verification.json"
-"$R_SCRIPT" "$ADVANCE" --repo-root "$REPO_ROOT" --from "$STAGE" \
+  --output "$STATE_ROOT/${STAGE}_verification.json"; then
+  record_status "${STAGE}_verification" FAILED \
+    "completed_jobs_preserved;repair_closeout_then_resume_same_run_tag"
+  exit 4
+fi
+record_status "${STAGE}_verification" PASS \
+  "jobs=${JOBS};runtime_and_recovery_contracts_pass"
+if ! "$R_SCRIPT" "$ADVANCE" --repo-root "$REPO_ROOT" --from "$STAGE" \
   --run-tag "$RUN_TAG" --materialization-root "$MATERIALIZATION_ROOT" \
-  --output-root "$ADAPTIVE_ROOT" > "$STATE_ROOT/advance_after_${STAGE}.log" 2>&1
+  --output-root "$ADAPTIVE_ROOT" > "$STATE_ROOT/advance_after_${STAGE}.log" 2>&1; then
+  record_status "${STAGE}_advance" FAILED \
+    "completed_jobs_preserved;inspect_advance_log;resume_same_run_tag"
+  exit 5
+fi
+record_status "${STAGE}_advance" PASS "$NEXT_DETAIL"
 record_status "$STAGE" COMPLETED "$NEXT_DETAIL"
 printf 'Post-M0 legacy recheck stage complete: %s (%s)\n' "$STAGE" "$RUN_TAG"

@@ -256,44 +256,7 @@ window_path <- qdesn_ssv2_write_csv(
   file.path(output_root, "staged_source_window_registry.csv")
 )
 
-tracked_paths <- c(
-  source_cfg_path, target_path, parent_path, profile_path,
-  history_rows_path, history_signature_path, postm0_path,
-  selection_audit_path, seed_path,
-  list.files(paste0(stub, "_frozen_parent_requests"), pattern = "[.]json$",
-             full.names = TRUE),
-  list.files(paste0(stub, "_frozen_parent_metrics"), pattern = "[.]csv$",
-             full.names = TRUE),
-  file.path(repo_root, "validation", "fitforecast_v2", "R",
-            "qdesn_postm0_legacy_recheck_v1.R"),
-  file.path(repo_root, "validation", "fitforecast_v2", "scripts", c(
-    "materialize_qdesn_postm0_legacy_recheck_v1.R",
-    "run_qdesn_postm0_legacy_recheck_v1_chain.R",
-    "healthcheck_qdesn_postm0_legacy_recheck_v1.R",
-    "verify_qdesn_postm0_legacy_recheck_v1.R",
-    "advance_qdesn_postm0_legacy_recheck_v1.R",
-    "run_qdesn_postm0_legacy_recheck_v1_pipeline.sh",
-    "run_qdesn_postm0_legacy_recheck_v1_stage.sh",
-    "launch_qdesn_postm0_legacy_recheck_v1.sh",
-    "launch_qdesn_postm0_legacy_recheck_v1_stage.sh"
-  )),
-  file.path(repo_root, "validation", "fitforecast_v2", "tests", "testthat",
-            "test-qdesn-postm0-legacy-recheck-v1.R"),
-  file.path(repo_root, "validation", "fitforecast_v2", "docs",
-            "QDESN_POSTM0_LEGACY_RECHECK_V1_PROTOCOL_2026-08-14.md")
-)
-if (any(!file.exists(tracked_paths))) {
-  stop(sprintf("Tracked implementation paths missing: %s",
-               paste(tracked_paths[!file.exists(tracked_paths)], collapse = ", ")),
-       call. = FALSE)
-}
-tracked_manifest <- data.frame(
-  relative_path = vapply(tracked_paths, qdesn_ssv2_rel, character(1L),
-                         repo_root = repo_root),
-  bytes = as.numeric(file.info(tracked_paths)$size),
-  sha256 = vapply(tracked_paths, qdesn_ssv2_sha256, character(1L)),
-  stringsAsFactors = FALSE
-)
+tracked_manifest <- qdesn_plrv1_tracked_manifest(repo_root)
 tracked_manifest_path <- qdesn_ssv2_write_csv(
   tracked_manifest, paste0(stub, "_tracked_manifest.csv")
 )

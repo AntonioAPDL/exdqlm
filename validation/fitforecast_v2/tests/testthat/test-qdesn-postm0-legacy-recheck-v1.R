@@ -127,6 +127,22 @@ testthat::test_that("materialized jobs enforce exact M0 and storage-light output
   testthat::expect_length(binary, 0L)
 })
 
+testthat::test_that("tracked provenance closes over inherited execution code", {
+  tracked <- qdesn_plrv1_tracked_manifest(repo_root)
+  required <- file.path("validation", "fitforecast_v2", c(
+    "R/independent_exal_m0_structural_screen_v2.R",
+    "R/qdesn_lower_tail_cellwise_mcmc_v1.R",
+    "R/qdesn_postm0_legacy_recheck_v1.R",
+    "scripts/recover_qdesn_postm0_legacy_recheck_v1_replication_closeout.R",
+    "tests/testthat/test-independent-exal-m0-structural-screen-v2.R",
+    "tests/testthat/test-qdesn-postm0-legacy-recheck-v1.R"
+  ))
+  testthat::expect_true(all(required %in% tracked$relative_path))
+  testthat::expect_equal(anyDuplicated(tracked$relative_path), 0L)
+  testthat::expect_true(all(tracked$bytes > 0))
+  testthat::expect_true(all(nchar(tracked$sha256) == 64L))
+})
+
 testthat::test_that("launcher is resource-gated and stops before replication", {
   pipeline <- paste(readLines(file.path(
     repo_root, "validation", "fitforecast_v2", "scripts",
@@ -149,4 +165,19 @@ testthat::test_that("launcher is resource-gated and stops before replication", {
   testthat::expect_match(staged, "EXPECTED_JOBS=20", fixed = TRUE)
   testthat::expect_match(staged, "EXPECTED_JOBS=60", fixed = TRUE)
   testthat::expect_match(staged, "Launch requires synchronized HEAD", fixed = TRUE)
+  testthat::expect_match(
+    staged, "${STAGE}_verification\" FAILED", fixed = TRUE
+  )
+  testthat::expect_match(staged, "${STAGE}_advance\" FAILED", fixed = TRUE)
+  launcher <- paste(readLines(file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "launch_qdesn_postm0_legacy_recheck_v1_stage.sh"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(launcher, ">> '$STDOUT_LOG' 2>&1", fixed = TRUE)
+  verifier <- paste(readLines(file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "verify_qdesn_postm0_legacy_recheck_v1.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(verifier, "tracked_dependency_coverage", fixed = TRUE)
+  testthat::expect_match(verifier, "replication_evidence_frozen", fixed = TRUE)
 })

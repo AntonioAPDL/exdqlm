@@ -49,9 +49,89 @@ tracked_manifest_path <- normalizePath(
 )
 tracked <- qdesn_ssv2_read_csv(tracked_manifest_path)
 tracked_abs <- file.path(repo_root, tracked$relative_path)
-tracked_hash_ok <- all(file.exists(tracked_abs)) && all(
-  vapply(tracked_abs, qdesn_ssv2_sha256, character(1L)) == tracked$sha256
+tracked_exists <- file.exists(tracked_abs)
+tracked_actual_hash <- vapply(
+  tracked_abs, qdesn_ssv2_sha256, character(1L)
 )
+tracked_audit <- data.frame(
+  relative_path = tracked$relative_path,
+  expected_sha256 = tracked$sha256,
+  actual_sha256 = tracked_actual_hash,
+  exists = tracked_exists,
+  hash_match = tracked_exists & tracked_actual_hash == tracked$sha256,
+  stringsAsFactors = FALSE
+)
+tracked_audit_path <- sub(
+  "[.]json$", "_tracked_file_hash_audit.csv", output
+)
+qdesn_ssv2_write_csv(tracked_audit, tracked_audit_path)
+tracked_hash_ok <- all(tracked_audit$hash_match)
+required_tracked <- vapply(
+  qdesn_plrv1_tracked_paths(repo_root), qdesn_ssv2_rel, character(1L),
+  repo_root = repo_root
+)
+tracked_dependency_coverage <- setequal(
+  tracked$relative_path, required_tracked
+)
+
+head_commit <- system("git rev-parse HEAD", intern = TRUE)
+recovery_required <- !identical(
+  as.character(manifest$git_commit), head_commit
+)
+recovery_provenance <- !recovery_required
+replication_evidence_frozen <- !recovery_required
+if (recovery_required && !is.null(manifest$recovery)) {
+  recovery_path <- tryCatch(
+    normalizePath(
+      as.character(manifest$recovery$recovery_manifest_path),
+      winslash = "/", mustWork = TRUE
+    ), error = function(e) NA_character_
+  )
+  recovery_hash_ok <- !is.na(recovery_path) && identical(
+    qdesn_ssv2_sha256(recovery_path),
+    as.character(manifest$recovery$recovery_manifest_sha256)
+  )
+  recovery <- if (recovery_hash_ok) {
+    qdesn_ssv2_read_json(recovery_path)
+  } else {
+    NULL
+  }
+  is_ancestor <- function(commit) {
+    commit <- as.character(commit %||% "")
+    nzchar(commit) && system2(
+      "git", c("merge-base", "--is-ancestor", commit, head_commit),
+      stdout = FALSE, stderr = FALSE
+    ) == 0L
+  }
+  recovery_provenance <- !is.null(recovery) &&
+    identical(as.character(recovery$status), "COMPLETE") &&
+    identical(as.character(recovery$original_git_commit),
+              as.character(manifest$git_commit)) &&
+    identical(as.character(recovery$current_tracked_manifest_sha256),
+              qdesn_ssv2_sha256(tracked_manifest_path)) &&
+    identical(as.character(manifest$recovery$status), "COMPLETE") &&
+    !isTRUE(recovery$model_outputs_recomputed) &&
+    !isTRUE(manifest$recovery$model_outputs_recomputed) &&
+    is_ancestor(recovery$execution_recovery_commit) &&
+    is_ancestor(recovery$closeout_recovery_commit)
+  replication_evidence_frozen <- !is.null(recovery) && all(c(
+    as.integer(recovery$replication_jobs) == 20L,
+    as.integer(recovery$replication_successes) == 20L,
+    as.integer(recovery$replication_binary_payloads) == 0L,
+    identical(
+      qdesn_ssv2_sha256(recovery$replication_plan_path),
+      as.character(recovery$replication_plan_sha256)
+    ),
+    identical(
+      qdesn_ssv2_sha256(recovery$replication_job_manifest_path),
+      as.character(recovery$replication_job_manifest_sha256)
+    ),
+    identical(
+      qdesn_ssv2_sha256(recovery$replication_retained_file_manifest_path),
+      as.character(recovery$replication_retained_file_manifest_sha256)
+    )
+  ))
+}
 other_seed_files <- list.files(
   file.path(repo_root, "config", "validation"),
   pattern = "_source_seed_contract[.]csv$", full.names = TRUE
@@ -160,6 +240,9 @@ static_checks <- c(
     as.character(manifest$tracked_manifest_sha256)
   ),
   tracked_file_hashes = tracked_hash_ok,
+  tracked_dependency_coverage = tracked_dependency_coverage,
+  recovery_provenance = recovery_provenance,
+  replication_evidence_frozen = replication_evidence_frozen,
   source_seed_nonoverlap = !length(intersect(current_seeds, prior_seeds)),
   branch = identical(system("git branch --show-current", intern = TRUE),
                      qdesn_plrv1_branch)

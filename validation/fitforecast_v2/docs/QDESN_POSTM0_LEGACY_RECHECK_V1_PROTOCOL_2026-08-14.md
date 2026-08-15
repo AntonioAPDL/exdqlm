@@ -172,3 +172,60 @@ against the unchanged 90 discovery roots succeeded and materialized the
 predeclared 20-job replication plan: three ranked candidates plus the v6
 parent for each target cell, on source `dev32` with reservoir panel `r02`.
 No discovery fit was repeated, and article v6 remains frozen.
+
+## Replication completion and reproducibility recovery
+
+Replication started after the parser repair was committed as
+`c5317e7fbf39e37e7f5425a9046109bc24443a4f`. All 20 jobs completed with
+status `SUCCESS`, finite required metrics, matching per-job configuration
+hashes, and no fitted-model binary payloads. The stage executed 80,000 of
+80,000 planned iterations. The worker computation therefore completed; it is
+not stale and must not be repeated.
+
+The stage stopped at its post-compute verifier because the original tracked
+manifest, materialized under `9db909c9ef6dfd95c9f40267bc19012401520aea`,
+still contained the pre-repair hashes for this protocol and its focused test.
+The verifier passed every runtime, metric, configuration, source, and storage
+check. Only `tracked_file_hashes` failed. The old stage wrapper did not record
+that closeout failure in `stage_status.csv`, leaving the last stage row as
+`STARTED` even though no process remained.
+
+The recovery is constrained as follows:
+
+1. Freeze the original materialization manifest and tracked manifest before
+   changing either one.
+2. Hash every retained file from all 20 successful replication roots and
+   record a per-job metric, configuration, diagnostic, and storage ledger.
+3. Extend tracked dependency coverage to the inherited lower-tail execution
+   layer and the structural-screen parser that repaired historical `D = 1`
+   profiles.
+4. Record the original materialization commit, the execution-recovery commit,
+   and the final closeout-recovery commit separately. The production run tag
+   remains unchanged so completed roots continue to resolve by job and config
+   hash.
+5. Resume the replication stage with the same run tag. The worker must skip
+   all 20 successful roots; only verification and deterministic advancement
+   may run.
+6. Preserve earlier stdout by appending a new launch attempt, and record
+   verifier or advance failures explicitly in `stage_status.csv`.
+
+The preliminary three-source paired ratios identify three possible gains:
+
+| Target metric | Best mean candidate/parent ratio | Sources improved |
+|---|---:|---:|
+| Gaussian-mixture 0.05 fit RMSE | 0.9802 | 3/3 |
+| Gaussian 0.05 fit RMSE | 0.9739 | 2/3 |
+| Gaussian 0.25 forecast MAE | 0.9265 | 2/3 |
+
+Laplace 0.05 fit RMSE and Gaussian-mixture 0.25 forecast MAE did not improve
+on the three-source mean. They remain in the sealed stage because the
+predeclared design advances two candidates per cell and uses four untouched
+holdout sources to support either confirmation or a defensible negative
+closeout. No development result is article-authoritative.
+
+After recovery verification passes, the deterministic advance step must
+materialize exactly 60 sealed jobs: five cells, two finalists plus the paired
+v6 parent, and four sealed sources. The sealed launcher may use at most 20
+one-thread workers and must wait behind the existing load, memory, disk, and
+idle-CPU gate. Canonical confirmation remains blocked pending sealed
+eligibility and explicit human approval.

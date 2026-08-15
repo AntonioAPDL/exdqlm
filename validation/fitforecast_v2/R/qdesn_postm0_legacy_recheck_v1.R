@@ -30,6 +30,73 @@ qdesn_plrv1_target_ids <- c(
   "exal_normal_t0p05", "exal_normal_t0p25"
 )
 
+qdesn_plrv1_tracked_paths <- function(repo_root) {
+  repo_root <- normalizePath(repo_root, winslash = "/", mustWork = TRUE)
+  stub <- file.path(repo_root, "config", "validation", qdesn_plrv1_stage)
+  paths <- c(
+    paste0(stub, c(
+      "_sources.yaml", "_target_cells.csv", "_parent_controls.csv",
+      "_candidate_profiles.csv", "_historical_evidence_rows.csv",
+      "_historical_signature_evidence.csv", "_postm0_signature_coverage.csv",
+      "_candidate_selection_audit.csv", "_source_seed_contract.csv"
+    )),
+    list.files(
+      paste0(stub, "_frozen_parent_requests"), pattern = "[.]json$",
+      full.names = TRUE
+    ),
+    list.files(
+      paste0(stub, "_frozen_parent_metrics"), pattern = "[.]csv$",
+      full.names = TRUE
+    ),
+    file.path(repo_root, "validation", "fitforecast_v2", "R", c(
+      "independent_exal_m0_structural_screen_v2.R",
+      "qdesn_lower_tail_cellwise_mcmc_v1.R",
+      "qdesn_postm0_legacy_recheck_v1.R"
+    )),
+    file.path(repo_root, "validation", "fitforecast_v2", "scripts", c(
+      "materialize_qdesn_postm0_legacy_recheck_v1.R",
+      "run_qdesn_postm0_legacy_recheck_v1_chain.R",
+      "healthcheck_qdesn_postm0_legacy_recheck_v1.R",
+      "verify_qdesn_postm0_legacy_recheck_v1.R",
+      "advance_qdesn_postm0_legacy_recheck_v1.R",
+      "recover_qdesn_postm0_legacy_recheck_v1_replication_closeout.R",
+      "run_qdesn_postm0_legacy_recheck_v1_pipeline.sh",
+      "run_qdesn_postm0_legacy_recheck_v1_stage.sh",
+      "launch_qdesn_postm0_legacy_recheck_v1.sh",
+      "launch_qdesn_postm0_legacy_recheck_v1_stage.sh"
+    )),
+    file.path(repo_root, "validation", "fitforecast_v2", "tests", "testthat", c(
+      "test-independent-exal-m0-structural-screen-v2.R",
+      "test-qdesn-postm0-legacy-recheck-v1.R"
+    )),
+    file.path(
+      repo_root, "validation", "fitforecast_v2", "docs",
+      "QDESN_POSTM0_LEGACY_RECHECK_V1_PROTOCOL_2026-08-14.md"
+    )
+  )
+  paths <- unique(paths)
+  missing <- paths[!file.exists(paths)]
+  if (length(missing)) {
+    stop(sprintf(
+      "Tracked implementation paths missing: %s",
+      paste(missing, collapse = ", ")
+    ), call. = FALSE)
+  }
+  normalizePath(paths, winslash = "/", mustWork = TRUE)
+}
+
+qdesn_plrv1_tracked_manifest <- function(repo_root) {
+  paths <- qdesn_plrv1_tracked_paths(repo_root)
+  data.frame(
+    relative_path = vapply(
+      paths, qdesn_ssv2_rel, character(1L), repo_root = repo_root
+    ),
+    bytes = as.numeric(file.info(paths)$size),
+    sha256 = vapply(paths, qdesn_ssv2_sha256, character(1L)),
+    stringsAsFactors = FALSE
+  )
+}
+
 # Reuse the proven Tier-A execution core under a campaign-specific stage.
 qdesn_ltcv1_stage <- qdesn_plrv1_stage
 qdesn_ltcv1_branch <- qdesn_plrv1_branch
