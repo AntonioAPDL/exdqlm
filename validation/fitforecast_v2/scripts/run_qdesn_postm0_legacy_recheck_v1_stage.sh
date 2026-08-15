@@ -128,6 +128,30 @@ JOBS="$($R_SCRIPT -e 'cat(nrow(read.csv(commandArgs(TRUE)[1])))' "$PLAN")"
 [[ "$JOBS" -eq "$EXPECTED_JOBS" ]] || {
   echo "Expected $EXPECTED_JOBS jobs, found $JOBS." >&2; exit 3;
 }
+COMPLETED_JOBS="$($R_SCRIPT -e '
+  a <- commandArgs(TRUE); repo <- normalizePath(a[[1]], mustWork=TRUE)
+  setwd(repo)
+  source(file.path(repo, "validation", "fitforecast_v2", "R",
+                   "qdesn_postm0_legacy_recheck_v1.R"))
+  plan <- read.csv(a[[2]], check.names=FALSE, stringsAsFactors=FALSE)
+  ok <- vapply(seq_len(nrow(plan)), function(i) {
+    status_path <- file.path(
+      qdesn_plrv1_job_root(repo, a[[3]], plan$job_id[[i]]),
+      "job_status.json"
+    )
+    if (!file.exists(status_path)) return(FALSE)
+    status <- tryCatch(qdesn_ssv2_read_json(status_path),
+                       error=function(e) NULL)
+    !is.null(status) && identical(as.character(status$status), "SUCCESS") &&
+      identical(as.character(status$config_sha256),
+                as.character(plan$config_sha256[[i]]))
+  }, logical(1))
+  cat(sum(ok))
+' "$REPO_ROOT" "$PLAN" "$RUN_TAG")"
+CLOSEOUT_ONLY=FALSE
+if [[ "$COMPLETED_JOBS" -eq "$JOBS" ]]; then
+  CLOSEOUT_ONLY=TRUE
+fi
 
 heartbeat_loop &
 HEARTBEAT_PID="$!"
@@ -141,24 +165,30 @@ trap cleanup EXIT INT TERM
 
 printf '%s\n' "$STAGE" > "$CURRENT_STAGE"
 record_status "${STAGE}_preflight" PASS \
-  "jobs=${JOBS};same_run_tag_resumes_completed_jobs;article_v6_frozen"
-wait_for_resources
-CPU_SET="${CPU_SET:-$(select_idle_cpus)}"
-CPU_COUNT="$(tr ',' '\n' <<< "$CPU_SET" | sed '/^$/d' | wc -l)"
-[[ "$CPU_COUNT" -eq "$WORKERS" ]] || {
-  echo "Expected $WORKERS idle CPUs, found $CPU_COUNT." >&2; exit 3;
-}
-CONFIG_LIST="$STATE_ROOT/${STAGE}_configs.txt"
-"$R_SCRIPT" -e 'x <- read.csv(commandArgs(TRUE)[1]); writeLines(x$config_path)' \
-  "$PLAN" > "$CONFIG_LIST"
-record_status "$STAGE" STARTED \
-  "jobs=${JOBS};workers=${WORKERS};threads_per_worker=1;cpus=${CPU_SET}"
-set +e
-taskset -c "$CPU_SET" xargs -r -n 1 -P "$WORKERS" \
-  "$R_SCRIPT" "$WORKER" --repo-root "$REPO_ROOT" --run-tag "$RUN_TAG" --config \
-  < "$CONFIG_LIST" > "$STATE_ROOT/${STAGE}_workers.log" 2>&1
-RC="$?"
-set -e
+  "jobs=${JOBS};completed=${COMPLETED_JOBS};same_run_tag;article_v6_frozen"
+if [[ "$CLOSEOUT_ONLY" == TRUE ]]; then
+  record_status "${STAGE}_closeout" STARTED \
+    "all_${JOBS}_jobs_success_with_matching_config_hash;workers_bypassed"
+  RC=0
+else
+  wait_for_resources
+  CPU_SET="${CPU_SET:-$(select_idle_cpus)}"
+  CPU_COUNT="$(tr ',' '\n' <<< "$CPU_SET" | sed '/^$/d' | wc -l)"
+  [[ "$CPU_COUNT" -eq "$WORKERS" ]] || {
+    echo "Expected $WORKERS idle CPUs, found $CPU_COUNT." >&2; exit 3;
+  }
+  CONFIG_LIST="$STATE_ROOT/${STAGE}_configs.txt"
+  "$R_SCRIPT" -e 'x <- read.csv(commandArgs(TRUE)[1]); writeLines(x$config_path)' \
+    "$PLAN" > "$CONFIG_LIST"
+  record_status "$STAGE" STARTED \
+    "jobs=${JOBS};workers=${WORKERS};threads_per_worker=1;cpus=${CPU_SET}"
+  set +e
+  taskset -c "$CPU_SET" xargs -r -n 1 -P "$WORKERS" \
+    "$R_SCRIPT" "$WORKER" --repo-root "$REPO_ROOT" --run-tag "$RUN_TAG" --config \
+    < "$CONFIG_LIST" > "$STATE_ROOT/${STAGE}_workers.log" 2>&1
+  RC="$?"
+  set -e
+fi
 "$R_SCRIPT" "$HEALTH" --repo-root "$REPO_ROOT" --run-tag "$RUN_TAG" \
   --plan "$PLAN" --output "$STATE_ROOT/${STAGE}_health.csv" \
   > "$STATE_ROOT/${STAGE}_health.log" 2>&1 || true
@@ -183,5 +213,9 @@ if ! "$R_SCRIPT" "$ADVANCE" --repo-root "$REPO_ROOT" --from "$STAGE" \
   exit 5
 fi
 record_status "${STAGE}_advance" PASS "$NEXT_DETAIL"
+if [[ "$CLOSEOUT_ONLY" == TRUE ]]; then
+  record_status "${STAGE}_closeout" COMPLETED \
+    "all_${JOBS}_jobs_reused_without_worker_launch;$NEXT_DETAIL"
+fi
 record_status "$STAGE" COMPLETED "$NEXT_DETAIL"
 printf 'Post-M0 legacy recheck stage complete: %s (%s)\n' "$STAGE" "$RUN_TAG"

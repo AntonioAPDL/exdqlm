@@ -165,6 +165,11 @@ testthat::test_that("launcher is resource-gated and stops before replication", {
   testthat::expect_match(staged, "EXPECTED_JOBS=20", fixed = TRUE)
   testthat::expect_match(staged, "EXPECTED_JOBS=60", fixed = TRUE)
   testthat::expect_match(staged, "Launch requires synchronized HEAD", fixed = TRUE)
+  testthat::expect_match(staged, "CLOSEOUT_ONLY=TRUE", fixed = TRUE)
+  testthat::expect_match(staged, "workers_bypassed", fixed = TRUE)
+  testthat::expect_match(
+    staged, "matching_config_hash", fixed = TRUE
+  )
   testthat::expect_match(
     staged, "${STAGE}_verification\" FAILED", fixed = TRUE
   )

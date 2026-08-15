@@ -204,7 +204,9 @@ The recovery is constrained as follows:
    remains unchanged so completed roots continue to resolve by job and config
    hash.
 5. Resume the replication stage with the same run tag. The worker must skip
-   all 20 successful roots; only verification and deterministic advancement
+   all 20 successful roots. A hash-aware closeout-only path bypasses the CPU
+   resource gate and worker launcher when every status and configuration hash
+   already matches; only health, verification, and deterministic advancement
    may run.
 6. Preserve earlier stdout by appending a new launch attempt, and record
    verifier or advance failures explicitly in `stage_status.csv`.
