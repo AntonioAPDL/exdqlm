@@ -1,0 +1,22 @@
+{
+  "schema_version": "qdesn_postm0_forecast_first_confirmation_verification_v1",
+  "generated_at": "2026-08-18 18:11:33.552527",
+  "runtime": true,
+  "decision": "PASS",
+  "checks": {
+    "branch": true,
+    "plan": true,
+    "manifest": true,
+    "jobs": true,
+    "materialization_storage": true,
+    "runtime_complete": true,
+    "runtime_success": true,
+    "runtime_metrics": true,
+    "runtime_signoff_recorded": true,
+    "diagnostics_not_a_gate": true,
+    "runtime_storage": true,
+    "runtime_config": true
+  },
+  "runtime_rows": 3,
+  "diagnostics_used_as_promotion_gate": false
+}

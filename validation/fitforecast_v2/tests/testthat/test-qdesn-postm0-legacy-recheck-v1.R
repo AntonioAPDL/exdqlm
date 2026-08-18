@@ -287,5 +287,7 @@ testthat::test_that("forecast-first promotion is scoped and immutable", {
   testthat::expect_match(promote, "READY_FOR_INTEGRATION_NO_DIRECT_ARTICLE_WRITE",
                          fixed = TRUE)
   testthat::expect_match(verify, "PROMOTED_FORECAST_ROLES=2", fixed = TRUE)
+  testthat::expect_match(verify, "postm0_confirmation_job_evidence",
+                         fixed = TRUE)
   testthat::expect_false(grepl("Article-Q-DESN---Version-2", promote, fixed = TRUE))
 })

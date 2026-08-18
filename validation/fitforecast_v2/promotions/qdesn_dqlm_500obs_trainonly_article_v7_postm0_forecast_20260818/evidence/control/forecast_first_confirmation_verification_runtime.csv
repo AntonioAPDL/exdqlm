@@ -1,0 +1,4 @@
+"job_id","status","metric_finite","signoff_grade","binary_count","config_hash_match","elapsed_seconds"
+"tier_a_confirmation__plrv1_exal_gausmix_t0p25_08_576957a0bd__canonical_article__canonical_r01__c01","SUCCESS",TRUE,"FAIL",0,TRUE,576.132267713547
+"tier_a_confirmation__plrv1_exal_gausmix_t0p25_08_576957a0bd__canonical_article__canonical_r01__c02","SUCCESS",TRUE,"FAIL",0,TRUE,495.394408226013
+"tier_a_confirmation__plrv1_exal_gausmix_t0p25_08_576957a0bd__canonical_article__canonical_r01__c03","SUCCESS",TRUE,"FAIL",0,TRUE,983.615632534027

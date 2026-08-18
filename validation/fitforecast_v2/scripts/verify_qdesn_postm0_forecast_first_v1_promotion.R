@@ -143,7 +143,10 @@ if (!nrow(gaps) ||
 }
 
 configs <- ledger$path[ledger$role == "postm0_confirmation_config"]
-statuses <- ledger$path[grepl("_job_status$", ledger$source_id)]
+statuses <- ledger$path[
+  ledger$role == "postm0_confirmation_job_evidence" &
+    grepl("_job_status$", ledger$source_id)
+]
 if (length(configs) != 3L || length(statuses) != 3L) {
   stop("The v7 frozen three-chain evidence is incomplete.", call. = FALSE)
 }
