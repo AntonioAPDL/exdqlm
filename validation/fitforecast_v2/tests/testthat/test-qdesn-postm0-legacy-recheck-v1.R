@@ -229,6 +229,37 @@ testthat::test_that("forecast-first confirmation retains execution gates", {
   testthat::expect_equal(decision$decision, "INVALID_EXECUTION_NO_PROMOTION")
 })
 
+testthat::test_that("forecast-first closeout promotes each improved forecast role", {
+  rows <- data.frame(
+    target_cell_id = rep("exal_gausmix_t0p25", 3L),
+    candidate_id = rep("plrv1_exal_gausmix_t0p25_08_576957a0bd", 3L),
+    chain_id = 1:3, status = rep("SUCCESS", 3L),
+    signoff_grade = rep("FAIL", 3L),
+    forecast_qtrue_mae_H1000 = c(1.75, 1.84, 1.86),
+    forecast_check_loss_H1000 = c(4.48, 4.49, 4.48),
+    stringsAsFactors = FALSE
+  )
+  decisions <- qdesn_plrv1_forecast_metric_decisions(
+    rows,
+    c(forecast_qtrue_mae_H1000 = 3.39645452464865,
+      forecast_check_loss_H1000 = 4.586349)
+  )
+  testthat::expect_equal(decisions$metric_role, c("primary", "secondary"))
+  testthat::expect_true(all(decisions$promote))
+  testthat::expect_true(all(decisions$chains_improved == 3L))
+  testthat::expect_true(all(!decisions$diagnostics_used_as_promotion_gate))
+  testthat::expect_equal(decisions$signoff_grades_observed, c("FAIL", "FAIL"))
+
+  rows$status[[2L]] <- "FAILED"
+  decisions <- qdesn_plrv1_forecast_metric_decisions(
+    rows,
+    c(forecast_qtrue_mae_H1000 = 3.39645452464865,
+      forecast_check_loss_H1000 = 4.586349)
+  )
+  testthat::expect_true(all(!decisions$promote))
+  testthat::expect_true(all(decisions$decision == "INVALID_EXECUTION_NO_PROMOTION"))
+})
+
 testthat::test_that("forecast-first launcher is explicit and bounded", {
   path <- file.path(repo_root, "validation", "fitforecast_v2", "scripts",
                     "run_qdesn_postm0_legacy_recheck_v1_confirmation.sh")
@@ -237,4 +268,24 @@ testthat::test_that("forecast-first launcher is explicit and bounded", {
                          fixed = TRUE)
   testthat::expect_match(text, "WORKERS must be 1..3", fixed = TRUE)
   testthat::expect_match(text, "diagnostics recorded but not gated", fixed = TRUE)
+})
+
+testthat::test_that("forecast-first promotion is scoped and immutable", {
+  promote_path <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "promote_qdesn_postm0_forecast_first_v1.R"
+  )
+  verify_path <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "verify_qdesn_postm0_forecast_first_v1_promotion.R"
+  )
+  promote <- paste(readLines(promote_path, warn = FALSE), collapse = "\n")
+  verify <- paste(readLines(verify_path, warn = FALSE), collapse = "\n")
+  testthat::expect_match(promote, "c(0L, 1L, 1L)", fixed = TRUE)
+  testthat::expect_match(promote, "diagnostics_used_as_promotion_gate = FALSE",
+                         fixed = TRUE)
+  testthat::expect_match(promote, "READY_FOR_INTEGRATION_NO_DIRECT_ARTICLE_WRITE",
+                         fixed = TRUE)
+  testthat::expect_match(verify, "PROMOTED_FORECAST_ROLES=2", fixed = TRUE)
+  testthat::expect_false(grepl("Article-Q-DESN---Version-2", promote, fixed = TRUE))
 })

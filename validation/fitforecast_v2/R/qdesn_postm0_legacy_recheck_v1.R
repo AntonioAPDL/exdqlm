@@ -63,6 +63,8 @@ qdesn_plrv1_tracked_paths <- function(repo_root) {
       "materialize_qdesn_postm0_legacy_recheck_v1_confirmation.R",
       "verify_qdesn_postm0_legacy_recheck_v1_confirmation.R",
       "closeout_qdesn_postm0_legacy_recheck_v1_confirmation.R",
+      "promote_qdesn_postm0_forecast_first_v1.R",
+      "verify_qdesn_postm0_forecast_first_v1_promotion.R",
       "run_qdesn_postm0_legacy_recheck_v1_pipeline.sh",
       "run_qdesn_postm0_legacy_recheck_v1_stage.sh",
       "run_qdesn_postm0_legacy_recheck_v1_confirmation.sh",
@@ -77,7 +79,8 @@ qdesn_plrv1_tracked_paths <- function(repo_root) {
     file.path(
       repo_root, "validation", "fitforecast_v2", "docs",
       c("QDESN_POSTM0_LEGACY_RECHECK_V1_PROTOCOL_2026-08-14.md",
-        "QDESN_POSTM0_FORECAST_FIRST_CONFIRMATION_V1_2026-08-18.md")
+        "QDESN_POSTM0_FORECAST_FIRST_CONFIRMATION_V1_2026-08-18.md",
+        "QDESN_POSTM0_FORECAST_FIRST_PROMOTION_V1_2026-08-18.md")
     )
   )
   paths <- unique(paths)
@@ -586,4 +589,70 @@ qdesn_plrv1_forecast_first_decision <- function(chain_metrics) {
     },
     stringsAsFactors = FALSE
   )
+}
+
+qdesn_plrv1_forecast_metric_decisions <- function(chain_metrics,
+                                                   current_values) {
+  required <- c(
+    "target_cell_id", "candidate_id", "chain_id", "status", "signoff_grade",
+    "forecast_qtrue_mae_H1000", "forecast_check_loss_H1000"
+  )
+  missing <- setdiff(required, names(chain_metrics))
+  if (length(missing)) {
+    stop(sprintf("Forecast metric rows are missing: %s.",
+                 paste(missing, collapse = ", ")), call. = FALSE)
+  }
+  metrics <- c("forecast_qtrue_mae_H1000", "forecast_check_loss_H1000")
+  if (is.null(names(current_values)) ||
+      !all(metrics %in% names(current_values)) ||
+      any(!is.finite(as.numeric(current_values[metrics])))) {
+    stop("Current forecast values must be finite and named by metric.",
+         call. = FALSE)
+  }
+  if (nrow(chain_metrics) != 3L ||
+      !identical(sort(as.integer(chain_metrics$chain_id)), 1:3) ||
+      length(unique(chain_metrics$target_cell_id)) != 1L ||
+      length(unique(chain_metrics$candidate_id)) != 1L) {
+    stop("Forecast metric confirmation requires one frozen three-chain target.",
+         call. = FALSE)
+  }
+
+  grades <- sort(unique(as.character(chain_metrics$signoff_grade)))
+  status_valid <- all(chain_metrics$status == "SUCCESS")
+  rows <- lapply(seq_along(metrics), function(i) {
+    metric <- metrics[[i]]
+    values <- as.numeric(chain_metrics[[metric]])
+    current <- as.numeric(current_values[[metric]])
+    finite <- all(is.finite(values))
+    execution_valid <- status_valid && finite
+    mean_value <- if (finite) mean(values) else NA_real_
+    strict_gain <- isTRUE(execution_valid) && mean_value < current
+    data.frame(
+      target_cell_id = chain_metrics$target_cell_id[[1L]],
+      candidate_id = chain_metrics$candidate_id[[1L]], metric = metric,
+      metric_role = if (i == 1L) "primary" else "secondary",
+      chains = 3L, current_value = current, mean_value = mean_value,
+      median_value = if (finite) stats::median(values) else NA_real_,
+      min_value = if (finite) min(values) else NA_real_,
+      max_value = if (finite) max(values) else NA_real_,
+      mean_ratio = if (finite) mean_value / current else NA_real_,
+      relative_gain = if (finite) 1 - mean_value / current else NA_real_,
+      chains_improved = if (finite) sum(values < current) else NA_integer_,
+      execution_valid = execution_valid,
+      signoff_grades_observed = paste(grades, collapse = ";"),
+      diagnostics_used_as_promotion_gate = FALSE,
+      promotion_primary_metric = "forecast_qtrue_mae_H1000",
+      promotion_rule = "strict_three_chain_mean_below_frozen_v6",
+      promote = strict_gain,
+      decision = if (strict_gain) {
+        "PROMOTE_STRICT_FORECAST_GAIN_DIAGNOSTICS_RECORDED"
+      } else if (!execution_valid) {
+        "INVALID_EXECUTION_NO_PROMOTION"
+      } else {
+        "NO_CANONICAL_FORECAST_GAIN_RETAIN_V6"
+      },
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
 }

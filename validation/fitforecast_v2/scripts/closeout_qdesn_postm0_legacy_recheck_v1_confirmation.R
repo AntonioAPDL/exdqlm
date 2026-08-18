@@ -46,7 +46,17 @@ chain_metrics <- do.call(rbind, rows)
 lead_metrics <- do.call(rbind, lead_rows)
 qdesn_ssv2_write_csv(chain_metrics, file.path(out, "confirmation_chain_metrics.csv"))
 qdesn_ssv2_write_csv(lead_metrics, file.path(out, "confirmation_lead_metrics.csv"))
-decision <- qdesn_plrv1_forecast_first_decision(chain_metrics)
+targets <- qdesn_ssv2_read_csv(file.path(
+  repo_root, "config", "validation", paste0(qdesn_plrv1_stage, "_target_cells.csv")
+))
+target <- targets[targets$target_cell_id == unique(chain_metrics$target_cell_id),
+                  , drop = FALSE]
+if (nrow(target) != 1L) stop("The frozen confirmation target is not unique.")
+current_values <- c(
+  forecast_qtrue_mae_H1000 = target$current_forecast_qtrue_mae_H1000[[1L]],
+  forecast_check_loss_H1000 = target$current_forecast_check_loss_H1000[[1L]]
+)
+decision <- qdesn_plrv1_forecast_metric_decisions(chain_metrics, current_values)
 qdesn_ssv2_write_csv(decision, file.path(out, "confirmation_promotion_ledger.csv"))
 
 evidence_paths <- c(
@@ -85,14 +95,17 @@ binary <- list.files(
 if (length(binary)) stop("Unexpected fitted-model binary payloads remain.")
 closeout_path <- file.path(out, "confirmation_closeout.json")
 qdesn_ssv2_write_json(list(
-  schema_version = "qdesn_postm0_forecast_first_confirmation_closeout_v1",
+  schema_version = "qdesn_postm0_forecast_first_confirmation_closeout_v2",
   generated_at = as.character(Sys.time()), run_tag = run_tag,
-  decision = if (isTRUE(decision$promote[[1L]])) {
+  decision = if (isTRUE(decision$promote[decision$metric_role == "primary"])) {
     "CONFIRMED_FORECAST_GAIN_READY_FOR_METRIC_SPECIFIC_PROMOTION"
+  } else if (any(decision$promote)) {
+    "CONFIRMED_SECONDARY_FORECAST_GAIN_READY_FOR_METRIC_SPECIFIC_PROMOTION"
   } else {
     "NO_CANONICAL_FORECAST_GAIN_RETAIN_V6"
   },
-  promoted_metrics = as.integer(decision$promote[[1L]]),
+  promoted_metrics = sum(decision$promote),
+  promoted_metric_names = as.list(decision$metric[decision$promote]),
   promotion_primary_metric = "forecast_qtrue_mae_H1000",
   diagnostics_used_as_promotion_gate = FALSE,
   diagnostics_retained_as_descriptive_evidence = TRUE,
