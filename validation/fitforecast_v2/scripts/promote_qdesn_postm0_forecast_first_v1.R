@@ -204,7 +204,7 @@ frozen_plan <- plan
 for (i in seq_len(nrow(plan))) {
   config <- read_json(plan$config_path[[i]])
   if (!identical(config$config$inference$mcmc$slice$core_update_mode,
-                 "M0_v_collapsed_support_logit") ||
+                 "m0_v_collapsed_support_logit") ||
       as.integer(config$config$inference$mcmc$n_burn) != 5000L ||
       as.integer(config$config$inference$mcmc$n_mcmc) != 20000L ||
       !identical(sha256(plan$config_path[[i]]), plan$config_sha256[[i]])) {

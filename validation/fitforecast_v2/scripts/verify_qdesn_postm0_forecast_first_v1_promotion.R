@@ -150,7 +150,7 @@ if (length(configs) != 3L || length(statuses) != 3L) {
 config_ok <- vapply(configs, function(path) {
   x <- jsonlite::read_json(path, simplifyVector = TRUE)
   identical(x$config$inference$mcmc$slice$core_update_mode,
-            "M0_v_collapsed_support_logit") &&
+            "m0_v_collapsed_support_logit") &&
     as.integer(x$config$inference$mcmc$n_burn) == 5000L &&
     as.integer(x$config$inference$mcmc$n_mcmc) == 20000L
 }, logical(1L))
