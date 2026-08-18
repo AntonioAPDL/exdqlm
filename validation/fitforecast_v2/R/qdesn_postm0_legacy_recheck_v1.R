@@ -60,10 +60,15 @@ qdesn_plrv1_tracked_paths <- function(repo_root) {
       "verify_qdesn_postm0_legacy_recheck_v1.R",
       "advance_qdesn_postm0_legacy_recheck_v1.R",
       "recover_qdesn_postm0_legacy_recheck_v1_replication_closeout.R",
+      "materialize_qdesn_postm0_legacy_recheck_v1_confirmation.R",
+      "verify_qdesn_postm0_legacy_recheck_v1_confirmation.R",
+      "closeout_qdesn_postm0_legacy_recheck_v1_confirmation.R",
       "run_qdesn_postm0_legacy_recheck_v1_pipeline.sh",
       "run_qdesn_postm0_legacy_recheck_v1_stage.sh",
+      "run_qdesn_postm0_legacy_recheck_v1_confirmation.sh",
       "launch_qdesn_postm0_legacy_recheck_v1.sh",
-      "launch_qdesn_postm0_legacy_recheck_v1_stage.sh"
+      "launch_qdesn_postm0_legacy_recheck_v1_stage.sh",
+      "launch_qdesn_postm0_legacy_recheck_v1_confirmation.sh"
     )),
     file.path(repo_root, "validation", "fitforecast_v2", "tests", "testthat", c(
       "test-independent-exal-m0-structural-screen-v2.R",
@@ -71,7 +76,8 @@ qdesn_plrv1_tracked_paths <- function(repo_root) {
     )),
     file.path(
       repo_root, "validation", "fitforecast_v2", "docs",
-      "QDESN_POSTM0_LEGACY_RECHECK_V1_PROTOCOL_2026-08-14.md"
+      c("QDESN_POSTM0_LEGACY_RECHECK_V1_PROTOCOL_2026-08-14.md",
+        "QDESN_POSTM0_FORECAST_FIRST_CONFIRMATION_V1_2026-08-18.md")
     )
   )
   paths <- unique(paths)
@@ -524,4 +530,60 @@ qdesn_plrv1_make_job <- function(repo_root, profile, target, source, stage,
 
 qdesn_plrv1_job_root <- function(repo_root, run_tag, job_id) {
   qdesn_ltcv1_job_root(repo_root, run_tag, job_id)
+}
+
+qdesn_plrv1_forecast_first_decision <- function(chain_metrics) {
+  required <- c(
+    "target_cell_id", "candidate_id", "chain_id", "metric", "value",
+    "current_value", "status", "signoff_grade"
+  )
+  missing <- setdiff(required, names(chain_metrics))
+  if (length(missing)) {
+    stop(sprintf("Forecast-first chain metrics are missing: %s.",
+                 paste(missing, collapse = ", ")), call. = FALSE)
+  }
+  if (nrow(chain_metrics) != 3L ||
+      !identical(sort(as.integer(chain_metrics$chain_id)), 1:3) ||
+      length(unique(chain_metrics$target_cell_id)) != 1L ||
+      length(unique(chain_metrics$candidate_id)) != 1L ||
+      length(unique(chain_metrics$current_value)) != 1L ||
+      any(chain_metrics$metric != "forecast_qtrue_mae_H1000")) {
+    stop("Forecast-first confirmation requires one frozen three-chain target.",
+         call. = FALSE)
+  }
+  values <- as.numeric(chain_metrics$value)
+  current <- as.numeric(chain_metrics$current_value[[1L]])
+  execution_valid <- all(chain_metrics$status == "SUCCESS") &&
+    all(is.finite(values)) && is.finite(current)
+  mean_value <- if (all(is.finite(values))) mean(values) else NA_real_
+  strict_gain <- isTRUE(execution_valid) && mean_value < current
+  grades <- sort(unique(as.character(chain_metrics$signoff_grade)))
+  data.frame(
+    target_cell_id = chain_metrics$target_cell_id[[1L]],
+    candidate_id = chain_metrics$candidate_id[[1L]],
+    metric = "forecast_qtrue_mae_H1000",
+    chains = 3L,
+    current_value = current,
+    mean_value = mean_value,
+    median_value = stats::median(values),
+    min_value = min(values),
+    max_value = max(values),
+    mean_ratio = mean_value / current,
+    relative_gain = 1 - mean_value / current,
+    chains_improved = sum(values < current),
+    execution_valid = execution_valid,
+    signoff_grades_observed = paste(grades, collapse = ";"),
+    diagnostics_used_as_promotion_gate = FALSE,
+    promotion_primary_metric = "forecast_qtrue_mae_H1000",
+    promotion_rule = "strict_three_chain_mean_forecast_mae_below_v6",
+    promote = strict_gain,
+    decision = if (strict_gain) {
+      "PROMOTE_STRICT_FORECAST_MAE_GAIN_DIAGNOSTICS_RECORDED"
+    } else if (!execution_valid) {
+      "INVALID_EXECUTION_NO_PROMOTION"
+    } else {
+      "NO_CANONICAL_FORECAST_GAIN_RETAIN_V6"
+    },
+    stringsAsFactors = FALSE
+  )
 }

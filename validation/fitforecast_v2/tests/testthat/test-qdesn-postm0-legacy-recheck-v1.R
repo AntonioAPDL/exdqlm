@@ -186,3 +186,55 @@ testthat::test_that("launcher is resource-gated and stops before replication", {
   testthat::expect_match(verifier, "tracked_dependency_coverage", fixed = TRUE)
   testthat::expect_match(verifier, "replication_evidence_frozen", fixed = TRUE)
 })
+
+testthat::test_that("forecast-first confirmation ignores mixing grades", {
+  rows <- data.frame(
+    target_cell_id = rep("exal_gausmix_t0p25", 3L),
+    candidate_id = rep("plrv1_exal_gausmix_t0p25_08_576957a0bd", 3L),
+    chain_id = 1:3,
+    metric = rep("forecast_qtrue_mae_H1000", 3L),
+    value = c(3.0, 3.1, 3.2), current_value = rep(3.39645452464865, 3L),
+    status = rep("SUCCESS", 3L),
+    signoff_grade = c("PASS", "WARN", "FAIL"),
+    stringsAsFactors = FALSE
+  )
+  decision <- qdesn_plrv1_forecast_first_decision(rows)
+  testthat::expect_true(decision$promote)
+  testthat::expect_false(decision$diagnostics_used_as_promotion_gate)
+  testthat::expect_equal(decision$signoff_grades_observed, "FAIL;PASS;WARN")
+  testthat::expect_equal(
+    decision$decision,
+    "PROMOTE_STRICT_FORECAST_MAE_GAIN_DIAGNOSTICS_RECORDED"
+  )
+  rows$value <- c(3.4, 3.5, 3.6)
+  decision <- qdesn_plrv1_forecast_first_decision(rows)
+  testthat::expect_false(decision$promote)
+  testthat::expect_equal(decision$decision,
+                         "NO_CANONICAL_FORECAST_GAIN_RETAIN_V6")
+})
+
+testthat::test_that("forecast-first confirmation retains execution gates", {
+  rows <- data.frame(
+    target_cell_id = rep("exal_gausmix_t0p25", 3L),
+    candidate_id = rep("plrv1_exal_gausmix_t0p25_08_576957a0bd", 3L),
+    chain_id = 1:3,
+    metric = rep("forecast_qtrue_mae_H1000", 3L),
+    value = c(2.0, 2.1, 2.2), current_value = rep(3.39645452464865, 3L),
+    status = c("SUCCESS", "FAIL", "SUCCESS"),
+    signoff_grade = c("PASS", "FAIL", "WARN"),
+    stringsAsFactors = FALSE
+  )
+  decision <- qdesn_plrv1_forecast_first_decision(rows)
+  testthat::expect_false(decision$promote)
+  testthat::expect_equal(decision$decision, "INVALID_EXECUTION_NO_PROMOTION")
+})
+
+testthat::test_that("forecast-first launcher is explicit and bounded", {
+  path <- file.path(repo_root, "validation", "fitforecast_v2", "scripts",
+                    "run_qdesn_postm0_legacy_recheck_v1_confirmation.sh")
+  text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  testthat::expect_match(text, "QDESN_PLRV1_FORECAST_CONFIRMATION_APPROVED",
+                         fixed = TRUE)
+  testthat::expect_match(text, "WORKERS must be 1..3", fixed = TRUE)
+  testthat::expect_match(text, "diagnostics recorded but not gated", fixed = TRUE)
+})
