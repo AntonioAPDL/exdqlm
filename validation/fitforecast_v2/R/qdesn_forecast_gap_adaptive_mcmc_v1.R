@@ -782,3 +782,13 @@ qdesn_fgav1_metric_values <- function(job_root) {
     value
   }, numeric(1L)), qdesn_fgav1_target_metrics)
 }
+
+qdesn_fgav1_signoff_grade <- function(path) {
+  if (!file.exists(path)) return("MISSING")
+  signoff <- qdesn_ssv2_read_csv(path)
+  if (!nrow(signoff)) return("MISSING")
+  grade_column <- intersect(c("signoff_grade", "overall_status"), names(signoff))
+  if (!length(grade_column)) return("MISSING")
+  grade <- trimws(as.character(signoff[[grade_column[[1L]]]][[1L]]))
+  if (!length(grade) || is.na(grade) || !nzchar(grade)) "MISSING" else grade
+}

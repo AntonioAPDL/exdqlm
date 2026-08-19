@@ -41,8 +41,6 @@ if (nrow(metric_map)) {
       status <- qdesn_ssv2_read_json(file.path(root, "job_status.json"))
       values <- qdesn_fgav1_metric_values(root)
       signoff_path <- file.path(root, "signoff_summary.csv")
-      signoff <- if (file.exists(signoff_path)) qdesn_ssv2_read_csv(signoff_path) else
-        data.frame(overall_status = "MISSING")
       value <- values[[role$metric[[1L]]]]
       k <- k + 1L
       rows[[k]] <- data.frame(
@@ -51,7 +49,7 @@ if (nrow(metric_map)) {
         value = value, current_value = role$current_value,
         ratio = value / role$current_value,
         status = as.character(status$status),
-        diagnostic_status = as.character(signoff$overall_status[[1L]] %||% "MISSING"),
+        diagnostic_status = qdesn_fgav1_signoff_grade(signoff_path),
         signoff_path = signoff_path, stringsAsFactors = FALSE
       )
     }

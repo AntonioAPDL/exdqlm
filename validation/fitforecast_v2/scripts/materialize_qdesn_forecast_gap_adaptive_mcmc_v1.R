@@ -300,14 +300,17 @@ tracked_paths <- c(
     "run_qdesn_forecast_gap_adaptive_mcmc_v1_pipeline.sh",
     "launch_qdesn_forecast_gap_adaptive_mcmc_v1.sh",
     "resume_qdesn_forecast_gap_adaptive_mcmc_v1_confirmation.sh",
-    "launch_resume_qdesn_forecast_gap_adaptive_mcmc_v1_confirmation.sh"
+    "launch_resume_qdesn_forecast_gap_adaptive_mcmc_v1_confirmation.sh",
+    "promote_qdesn_forecast_gap_adaptive_mcmc_v1.R",
+    "verify_qdesn_forecast_gap_adaptive_mcmc_v1_promotion.R"
   )),
   file.path(repo_root, "validation", "fitforecast_v2", "tests", "testthat",
             "test-qdesn-forecast-gap-adaptive-mcmc-v1.R"),
   file.path(repo_root, "validation", "fitforecast_v2", "docs",
             c(
               "QDESN_FORECAST_GAP_ADAPTIVE_MCMC_V1_PROTOCOL_2026-08-18.md",
-              "QDESN_FORECAST_GAP_ADAPTIVE_MCMC_V1_CONFIRMATION_RECOVERY_2026-08-19.md"
+              "QDESN_FORECAST_GAP_ADAPTIVE_MCMC_V1_CONFIRMATION_RECOVERY_2026-08-19.md",
+              "QDESN_FORECAST_GAP_ADAPTIVE_MCMC_V1_V8_CLOSEOUT_PLAN_2026-08-19.md"
             ))
 )
 tracked_manifest <- data.frame(

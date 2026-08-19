@@ -198,6 +198,55 @@ testthat::test_that("canonical closeout is metric-specific and diagnostic-descri
   testthat::expect_match(closeout, "article_update_automatic = FALSE", fixed = TRUE)
 })
 
+testthat::test_that("canonical signoff grades support current and legacy schemas", {
+  root <- tempfile("fgav1-signoff-")
+  dir.create(root, recursive = TRUE)
+  current <- file.path(root, "current.csv")
+  legacy <- file.path(root, "legacy.csv")
+  empty <- file.path(root, "empty.csv")
+  qdesn_ssv2_write_csv(
+    data.frame(signoff_grade = "WARN", stringsAsFactors = FALSE), current
+  )
+  qdesn_ssv2_write_csv(
+    data.frame(overall_status = "PASS", stringsAsFactors = FALSE), legacy
+  )
+  qdesn_ssv2_write_csv(
+    data.frame(unrelated = "value", stringsAsFactors = FALSE), empty
+  )
+  testthat::expect_identical(qdesn_fgav1_signoff_grade(current), "WARN")
+  testthat::expect_identical(qdesn_fgav1_signoff_grade(legacy), "PASS")
+  testthat::expect_identical(qdesn_fgav1_signoff_grade(empty), "MISSING")
+  testthat::expect_identical(
+    qdesn_fgav1_signoff_grade(file.path(root, "missing.csv")), "MISSING"
+  )
+})
+
+testthat::test_that("v8 promotion is cell-specific, portable, and storage-light", {
+  scripts <- file.path(repo_root, "validation", "fitforecast_v2", "scripts")
+  promoter_path <- file.path(
+    scripts, "promote_qdesn_forecast_gap_adaptive_mcmc_v1.R"
+  )
+  verifier_path <- file.path(
+    scripts, "verify_qdesn_forecast_gap_adaptive_mcmc_v1_promotion.R"
+  )
+  promoter <- paste(readLines(promoter_path, warn = FALSE), collapse = "\n")
+  verifier <- paste(readLines(verifier_path, warn = FALSE), collapse = "\n")
+  testthat::expect_match(promoter, "nrow(promoted) != 3L", fixed = TRUE)
+  testthat::expect_match(promoter, "nrow(article_delta) != 5L", fixed = TRUE)
+  testthat::expect_match(promoter, "diagnostics_used_as_promotion_gate = FALSE",
+                         fixed = TRUE)
+  testthat::expect_match(promoter, "retain_v7_all_fit_metrics", fixed = TRUE)
+  testthat::expect_match(promoter, "repo_relative", fixed = TRUE)
+  testthat::expect_match(promoter, "frozen_confirmation_plan.csv", fixed = TRUE)
+  testthat::expect_match(promoter, "frozen_canonical_window_registry.csv",
+                         fixed = TRUE)
+  testthat::expect_match(promoter, "[.](rds|rda|RData)$", fixed = TRUE)
+  testthat::expect_match(verifier, "ARTICLE_DELTAS_FROM_RENDERED_V6=5",
+                         fixed = TRUE)
+  testthat::expect_match(verifier, "length(status_paths) != 24L", fixed = TRUE)
+  testthat::expect_match(verifier, "c(11L, 13L)", fixed = TRUE)
+})
+
 testthat::test_that("pruned paths retain exact compact forecast metrics", {
   root <- tempfile("fgav1-pruned-")
   dir.create(file.path(root, "tables"), recursive = TRUE)
