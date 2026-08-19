@@ -196,9 +196,11 @@ delta_keys <- with(delta, paste(inference, model_variant, family,
 expected_delta <- character()
 for (metric in metric_columns) {
   changed <- which(abs(interface[[metric]] - article_base[[metric]]) > 1e-12)
-  expected_delta <- c(expected_delta, with(interface[changed, ], paste(
-    inference, model_variant, family, sprintf("%.2f", tau), metric
-  )))
+  if (length(changed)) {
+    expected_delta <- c(expected_delta, with(interface[changed, ], paste(
+      inference, model_variant, family, sprintf("%.2f", tau), metric
+    )))
+  }
 }
 if (!setequal(delta_keys, expected_delta)) {
   stop("The article delta ledger is incomplete.", call. = FALSE)
@@ -260,7 +262,7 @@ status_ok <- vapply(status_paths, function(path) {
 }, logical(1L))
 signoffs <- do.call(rbind, lapply(signoff_paths, read_csv))
 if (!all(status_ok) || nrow(signoffs) != 24L ||
-    !identical(unname(table(signoffs$signoff_grade)[c("PASS", "WARN")]),
+    !identical(as.integer(table(signoffs$signoff_grade)[c("PASS", "WARN")]),
                c(11L, 13L))) {
   stop("The frozen status or diagnostic evidence does not verify.",
        call. = FALSE)

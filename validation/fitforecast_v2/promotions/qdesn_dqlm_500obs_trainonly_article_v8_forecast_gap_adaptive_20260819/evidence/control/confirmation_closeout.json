@@ -1,0 +1,14 @@
+{
+  "schema_version": "qdesn_forecast_gap_adaptive_mcmc_v1_confirmation_closeout_v1",
+  "generated_at": "2026-08-19 04:04:55.921134",
+  "run_tag": "qdesn-forecast-gap-adaptive-v1-20260818_214229__git-e842a64",
+  "decision": "CONFIRMED_FORECAST_GAINS_READY_FOR_INTEGRATION",
+  "promoted_metrics": 3,
+  "promotion_rule": "three finite successful chains and strict arithmetic-mean gain",
+  "diagnostics_used_as_promotion_veto": false,
+  "article_update_automatic": false,
+  "chain_metrics_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/confirmation_chain_metrics.csv",
+  "chain_metrics_sha256": "d742e0752a5f49eefcf31ffe0b66483926b24fb5f1d5d35002b13aac0a83e57e",
+  "promotion_ledger_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/confirmation_promotion_ledger.csv",
+  "promotion_ledger_sha256": "b2fb9e480c99b00e4941bb24f926f3aec9397f0c52ed82c365cea60a5389756d"
+}

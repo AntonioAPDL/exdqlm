@@ -1,0 +1,2 @@
+"created_at","mode","inference_method","likelihood_family","beta_prior_type","n_quantiles","T_use","H_forecast","total_stage_seconds","n_timed_steps","max_stage_tag","max_stage_seconds"
+"2026-08-19 03:40:26.061043","real","mcmc","al","rhs_ns",1,1802,1000,358.067311763763,6,"forecast_lattice_lead1(p=0.05, H=1, nd=200)",190.091982841492

@@ -1,0 +1,38 @@
+{
+  "job_id": "confirmation__fgav1_al_normal_t0p05_05_0476e330dd__canonical_article__canonical_r01__c03",
+  "stage": "confirmation",
+  "target_cell_id": "al_normal_t0p05",
+  "candidate_id": "fgav1_al_normal_t0p05_05_0476e330dd",
+  "source_id": "canonical_article",
+  "reservoir_seed_id": "canonical_r01",
+  "chain_id": 3,
+  "likelihood_target": "al",
+  "status": "SUCCESS",
+  "started_at": "2026-08-19 03:34:10.651054",
+  "finished_at": "2026-08-19 03:40:40.692663",
+  "elapsed_seconds": 383.840103626251,
+  "target_metrics": ["forecast_qtrue_mae_H1000", "forecast_check_loss_H1000"],
+  "metric_values": {
+    "fit_qtrue_rmse": 3.29444989611686,
+    "forecast_qtrue_mae_H1000": 8.20276286341203,
+    "forecast_check_loss_H1000": 1.25724975648638
+  },
+  "current_metric_values": {
+    "fit_qtrue_rmse": 2.77930616092277,
+    "forecast_qtrue_mae_H1000": 8.41010688108774,
+    "forecast_check_loss_H1000": 1.26369782055338
+  },
+  "comparator_metric_values": {
+    "fit_qtrue_rmse": 1.93507209370306,
+    "forecast_qtrue_mae_H1000": 3.82939574999438,
+    "forecast_check_loss_H1000": 1.10333423076769
+  },
+  "config_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/configs/confirmation__fgav1_al_normal_t0p05_05_0476e330dd__canonical_article__canonical_r01__c03.json",
+  "config_sha256": "52a79fc183474535053896c00a85a74d7929fb58fd4f3e2afa949ec4bdfbe7ee",
+  "observed_sha256": "6ab1a53e189725f85fa2d338127d2873e5cae6d4b774c3215082553ee94172cb",
+  "source_registry_sha256": "db9bede4d7b008c70c7ad5a263866e929ffee5ff28d663b8db154c782eda926e",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "inference_method_id": "sigma_then_gamma",
+  "error_message": null,
+  "binary_payloads_remaining": 0
+}

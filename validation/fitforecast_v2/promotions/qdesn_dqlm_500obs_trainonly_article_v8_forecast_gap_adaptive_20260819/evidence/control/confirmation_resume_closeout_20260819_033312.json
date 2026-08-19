@@ -1,0 +1,15 @@
+{
+  "schema_version": "qdesn_forecast_gap_adaptive_mcmc_v1_recovery_closeout_v1",
+  "generated_at": "2026-08-19 03:51:14.698426",
+  "run_tag": "qdesn-forecast-gap-adaptive-v1-20260818_214229__git-e842a64",
+  "parent_scientific_commit": "e842a6438839a7f70345dc7df1c448f887e5eeed",
+  "recovery_commit": "a17b16836efc21393b2000202206a3edf67617ae",
+  "prior_jobs_preserved": 354,
+  "confirmation_jobs_completed": 24,
+  "verification_decision": "PASS",
+  "scientific_decision": "CONFIRMED_FORECAST_GAINS_READY_FOR_INTEGRATION",
+  "promoted_metrics": 3,
+  "diagnostics_used_as_promotion_veto": false,
+  "fitted_model_binary_payloads": 0,
+  "integration_status": "READY_FOR_INTEGRATION"
+}
