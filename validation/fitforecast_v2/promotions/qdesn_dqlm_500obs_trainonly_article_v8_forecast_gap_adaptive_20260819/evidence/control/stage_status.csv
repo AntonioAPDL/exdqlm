@@ -1,0 +1,35 @@
+timestamp,stage,status,detail
+2026-08-18T21:42:29-04:00,pipeline,RESUME_OR_START,same_run_id_and_run_tag_resume_completed_roots
+2026-08-18T21:42:30-04:00,materialize,STARTED,v7 authority;84 history-aware candidates;8 source blocks
+2026-08-18T21:43:10-04:00,materialize,COMPLETED,2 smoke;8 calibration;184 discovery
+2026-08-18T21:43:29-04:00,tests,COMPLETED,package;schema;history;source;storage;stage contracts pass
+2026-08-18T21:43:30-04:00,resource_gate,PASS,load=26.17;memory_gb=457.0;disk_gb=355.3;idle_cpus=39
+2026-08-18T21:43:30-04:00,cpu_selection,COMPLETED,workers=20;threads=1;cpus=21;22;32;33;34;37;38;39;41;42;45;46;49;50;51;53;54;57;58;59
+2026-08-18T21:43:30-04:00,smoke,STARTED,jobs=2;parallelism=2;threads_per_job=1
+2026-08-18T21:45:28-04:00,smoke,COMPLETED,jobs=2;finite_storage_light=all
+2026-08-18T21:45:29-04:00,calibration,STARTED,jobs=8;parallelism=8;threads_per_job=1
+2026-08-18T22:14:37-04:00,calibration,COMPLETED,jobs=8;finite_storage_light=all
+2026-08-18T22:14:37-04:00,calibration_runtime_gate,PASS,8 representative roots;maximum elapsed <= 6 hours
+2026-08-18T22:14:39-04:00,discovery,STARTED,jobs=184;parallelism=20;threads_per_job=1
+2026-08-19T01:45:52-04:00,discovery,COMPLETED,jobs=184;finite_storage_light=all
+2026-08-19T01:46:42-04:00,discovery_closeout,COMPLETED,paired rankings complete;64-job replication plan materialized
+2026-08-19T01:46:42-04:00,replication,STARTED,jobs=64;parallelism=20;threads_per_job=1
+2026-08-19T01:58:32-04:00,replication,COMPLETED,jobs=64;finite_storage_light=all
+2026-08-19T01:59:21-04:00,replication_closeout,COMPLETED,four-source rankings complete;96-job sealed plan materialized
+2026-08-19T01:59:21-04:00,sealed,STARTED,jobs=96;parallelism=20;threads_per_job=1
+2026-08-19T02:23:24-04:00,sealed,COMPLETED,jobs=96;finite_storage_light=all
+2026-08-19T02:23:44-04:00,sealed_closeout,COMPLETED,metric-specific sealed decisions and confirmation handoff materialized
+2026-08-19T02:23:48-04:00,confirmation_materialize,FAILED,pipeline_exit=1;inspect_stage_specific_logs
+2026-08-19T03:31:57-04:00,confirmation_resume_preflight,STARTED,attempt=20260819_033157;parent_commit=e842a6438839a7f70345dc7df1c448f887e5eeed;recovery_commit=a17b16836efc21393b2000202206a3edf67617ae
+2026-08-19T03:32:43-04:00,confirmation_resume_preflight,COMPLETED,354 prior roots reverified;24 immutable confirmation jobs;manifest and source hashes pass
+2026-08-19T03:32:52-04:00,confirmation_resume_tests,COMPLETED,portable row count;lineage;confirmation-only recovery contracts pass
+2026-08-19T03:32:52-04:00,confirmation_resume_ready,PREFLIGHT_COMPLETED,354 prior roots and 24 confirmation jobs verified;no workers launched
+2026-08-19T03:33:12-04:00,confirmation_resume_preflight,STARTED,attempt=20260819_033312;parent_commit=e842a6438839a7f70345dc7df1c448f887e5eeed;recovery_commit=a17b16836efc21393b2000202206a3edf67617ae
+2026-08-19T03:33:58-04:00,confirmation_resume_preflight,COMPLETED,354 prior roots reverified;24 immutable confirmation jobs;manifest and source hashes pass
+2026-08-19T03:34:08-04:00,confirmation_resume_tests,COMPLETED,portable row count;lineage;confirmation-only recovery contracts pass
+2026-08-19T03:34:08-04:00,confirmation_resume_resource_gate,PASS,load=3.28;memory_gb=494.7;disk_gb=353.5;idle_cpus=64
+2026-08-19T03:34:08-04:00,confirmation_resume_cpu_selection,COMPLETED,workers=20;threads=1;cpus=0;1;2;4;7;8;12;13;14;20;22;25;28;30;32;33;34;36;38;39
+2026-08-19T03:34:09-04:00,confirmation,RECOVERY_STARTED,jobs=24;parallelism=20;5000+20000;same_run_tag;attempt=20260819_033312
+2026-08-19T03:51:10-04:00,confirmation,RECOVERY_COMPLETED,24/24 finite;storage-light;config-matched
+2026-08-19T03:51:14-04:00,confirmation_closeout,RECOVERY_COMPLETED,metric-specific strict-mean promotion ledger;diagnostics descriptive;article unchanged
+2026-08-19T03:51:14-04:00,complete,RECOVERY_COMPLETED,378/378 scientific jobs closed;integration handoff ready;article update manual

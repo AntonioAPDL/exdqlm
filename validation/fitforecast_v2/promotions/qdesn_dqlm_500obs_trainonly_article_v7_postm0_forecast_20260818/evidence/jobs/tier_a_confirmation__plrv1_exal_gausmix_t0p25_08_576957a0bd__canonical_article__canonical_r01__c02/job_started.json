@@ -1,0 +1,17 @@
+{
+  "job_id": "tier_a_confirmation__plrv1_exal_gausmix_t0p25_08_576957a0bd__canonical_article__canonical_r01__c02",
+  "stage": "tier_a_confirmation",
+  "target_cell_id": "exal_gausmix_t0p25",
+  "candidate_id": "plrv1_exal_gausmix_t0p25_08_576957a0bd",
+  "source_id": "canonical_article",
+  "reservoir_seed_id": "canonical_r01",
+  "chain_id": 2,
+  "likelihood_target": "exal",
+  "inference_method_id": "M0_v_collapsed_support_logit",
+  "pid": 2897591,
+  "host": "muscat.be.ucsc.edu",
+  "started_at": "2026-08-18 17:54:58.951944",
+  "config_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_postm0_legacy_recheck_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_postm0_legacy_recheck_v1_20260814_prod1/forecast_first_confirmation/configs/tier_a_confirmation__plrv1_exal_gausmix_t0p25_08_576957a0bd__canonical_article__canonical_r01__c02.json",
+  "config_sha256": "20218787480150fd3d910e188af6e045f2e9ba26b733d00f13c4220d36ac188a",
+  "git_commit": "5d683342bdcb253ce6f470e1346f78b0b67f7898"
+}

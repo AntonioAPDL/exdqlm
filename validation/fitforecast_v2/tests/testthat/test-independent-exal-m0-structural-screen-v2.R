@@ -73,6 +73,26 @@ testthat::test_that("single-layer profiles survive empty JSON fields", {
   testthat::expect_identical(profile$effective_readout_dimension, 19L)
 })
 
+testthat::test_that("serialized missing vector fields round-trip as empty", {
+  sentinels <- c("", "NA", "NaN", "NULL")
+  for (sentinel in sentinels) {
+    job <- list(
+      candidate_id = "legacy_d1_candidate",
+      target_cell_id = "gausmix_t0p05",
+      profile = list(
+        D = 1L, n = "6", n_tilde = sentinel, m = 1L,
+        alpha = "0.00075", rho = "0.35", pi_w = "0.00075",
+        pi_in = "0.03", rhs_tau0 = 1e-6, readout_y_lags = 1L,
+        reservoir_lags = 0L, washout = 300L
+      )
+    )
+    profile <- qdesn_ssv2_profile_from_job(job)
+    testthat::expect_identical(profile$n_tilde, "")
+    testthat::expect_identical(profile$effective_readout_dimension, 13L)
+  }
+  testthat::expect_identical(qdesn_ssv2_vec("12;8", "integer"), c(12L, 8L))
+})
+
 testthat::test_that("profile extraction removes selector-only adaptive metadata", {
   base <- as.list(setNames(rep(1, length(qdesn_ssv2_profile_fields)),
                            qdesn_ssv2_profile_fields))

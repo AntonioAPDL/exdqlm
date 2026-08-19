@@ -1,0 +1,128 @@
+meta:
+  study_id: qdesn_dynamic_fitforecast_v2_500obs_forecast_gap_adaptive_mcmc_v1
+  purpose: Forecast-first cell-specific MCMC calibration against the frozen v7 authority.
+  article_policy: Only finite strict canonical forecast-metric gains may enter a later integration handoff.
+
+generation:
+  output_parent: results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_forecast_gap_adaptive_mcmc_v1/source_replicates
+  TT_total: 12000
+  TT_warmup: 2000
+  TT_main: 10000
+  period: 90
+  harmonics: [1, 2]
+  C0_scale: 0.01
+  initial_state_mode: deterministic_m0
+  state_noise_sd: [0.005, 0.00002, 0.004, 0.004, 0.003, 0.003]
+  families: [gausmix, laplace, normal]
+  taus: [0.05, 0.25, 0.50]
+  tail_fit_sizes: [500]
+  family_profiles:
+    normal:
+      level0: 40
+      slope0: 0.012
+      seasonal:
+        harmonic1: {amplitude: 24, phase: 0.35}
+        harmonic2: {amplitude: 8, phase: -0.8}
+      observation: {normal_sigma: 10}
+    laplace:
+      level0: 35
+      slope0: 0.011
+      seasonal:
+        harmonic1: {amplitude: 28, phase: -0.15}
+        harmonic2: {amplitude: 10, phase: 0.75}
+      observation: {laplace_scale: 10}
+    gausmix:
+      level0: 45
+      slope0: 0.014
+      seasonal:
+        harmonic1: {amplitude: 32, phase: 0.85}
+        harmonic2: {amplitude: 12, phase: -1.25}
+      observation:
+        gausmix_sigma: [0.5, 15]
+        gausmix_weights: [0.1, 0.9]
+        gausmix_offset: 1
+
+replicates:
+  - replicate_id: dev37
+    role: discovery
+    scenario_id: dlm_constV_p90_fgav1_dev37_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1837011, noise: 1837012}
+      laplace: {latent: 1837021, noise: 1837022}
+      gausmix: {latent: 1837031, noise: 1837032}
+  - replicate_id: dev38
+    role: discovery
+    scenario_id: dlm_constV_p90_fgav1_dev38_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1838011, noise: 1838012}
+      laplace: {latent: 1838021, noise: 1838022}
+      gausmix: {latent: 1838031, noise: 1838032}
+  - replicate_id: dev39
+    role: replication
+    scenario_id: dlm_constV_p90_fgav1_dev39_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1839011, noise: 1839012}
+      laplace: {latent: 1839021, noise: 1839022}
+      gausmix: {latent: 1839031, noise: 1839032}
+  - replicate_id: dev40
+    role: replication
+    scenario_id: dlm_constV_p90_fgav1_dev40_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1840011, noise: 1840012}
+      laplace: {latent: 1840021, noise: 1840022}
+      gausmix: {latent: 1840031, noise: 1840032}
+  - replicate_id: dev41
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_fgav1_dev41_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1841011, noise: 1841012}
+      laplace: {latent: 1841021, noise: 1841022}
+      gausmix: {latent: 1841031, noise: 1841032}
+  - replicate_id: dev42
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_fgav1_dev42_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1842011, noise: 1842012}
+      laplace: {latent: 1842021, noise: 1842022}
+      gausmix: {latent: 1842031, noise: 1842032}
+  - replicate_id: dev43
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_fgav1_dev43_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1843011, noise: 1843012}
+      laplace: {latent: 1843021, noise: 1843022}
+      gausmix: {latent: 1843031, noise: 1843032}
+  - replicate_id: dev44
+    role: sealed_holdout
+    scenario_id: dlm_constV_p90_fgav1_dev44_TTmain10000_fitforecast
+    seeds:
+      normal: {latent: 1844011, noise: 1844012}
+      laplace: {latent: 1844021, noise: 1844022}
+      gausmix: {latent: 1844031, noise: 1844032}
+
+selection_contract:
+  authority_interface: validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v7_postm0_forecast_20260818/qdesn_dqlm_500obs_trainonly_article_v7_postm0_forecast_20260818_interface.csv
+  authority_commit: 8e8000af40661526062c5e20279dc82e056a29b6
+  target_cells: 8
+  target_metric_roles: 14
+  tier_a_candidates_per_cell: 12
+  tier_b_candidates_per_cell: 8
+  exact_parent_controls_per_cell: 1
+  discovery_sources: 2
+  discovery_roots: 184
+  replication_survivors_per_cell: 3
+  replication_sources: 2
+  replication_roots: 64
+  sealed_finalists_per_cell: 2
+  sealed_sources: 4
+  sealed_roots: 96
+  maximum_confirmation_chains: 42
+  maximum_effective_readout_dimension: 900
+  workers: 20
+  threads_per_worker: 1
+  exal_method_id: M0_v_collapsed_support_logit
+  pre_m0_negative_evidence_veto: false
+  posterior_recycled_as_prior: false
+  diagnostics_are_promotion_veto: false
+  finite_metric_and_provenance_required: true
+  article_update_automatic: false

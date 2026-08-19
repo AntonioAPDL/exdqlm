@@ -1,0 +1,35 @@
+{
+  "schema_version": "qdesn_forecast_gap_adaptive_mcmc_v1_confirmation_v1",
+  "generated_at": "2026-08-19 02:23:47.991144",
+  "validation_commit": "e842a6438839a7f70345dc7df1c448f887e5eeed",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "explicit_campaign_approval": true,
+  "confirmation_jobs": 24,
+  "confirmed_candidates": 8,
+  "metric_roles": 11,
+  "chains_per_candidate": 3,
+  "n_burn": 5000,
+  "n_mcmc": 20000,
+  "thin": 1,
+  "plan": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/confirmation_plan.csv",
+    "sha256": "f02d4787f86251f498ae3072e10141bfa377bb7f29b44900820d20b8d31a7982"
+  },
+  "source_registry": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/canonical_source_registry.csv",
+    "sha256": "db9bede4d7b008c70c7ad5a263866e929ffee5ff28d663b8db154c782eda926e"
+  },
+  "windows": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/canonical_window_registry.csv",
+    "sha256": "a11883a2e7f07373fec49f1f7879353ba68fc6f743839810ee25deac56d9c29c"
+  },
+  "metric_map": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/confirmation_metric_map.csv",
+    "sha256": "287dd8cbba28ecb120f3370071d5515eb7021b38e609cd5744a767797028e167"
+  },
+  "eligible": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/adaptive/sealed_eligible_metrics.csv",
+    "sha256": "6e9bdc7d417a85704754fe99ae75bffa5ce89b3a750ec70ad4cca65b0525b3e2"
+  },
+  "article_promotion_automatic": false
+}

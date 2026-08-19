@@ -1,0 +1,17 @@
+{
+  "job_id": "confirmation__fgav1_al_gausmix_t0p50_04_fe9ec1233d__canonical_article__canonical_r01__c03",
+  "stage": "confirmation",
+  "target_cell_id": "al_gausmix_t0p50",
+  "candidate_id": "fgav1_al_gausmix_t0p50_04_fe9ec1233d",
+  "source_id": "canonical_article",
+  "reservoir_seed_id": "canonical_r01",
+  "chain_id": 3,
+  "likelihood_target": "al",
+  "inference_method_id": "sigma_then_gamma",
+  "pid": 3171256,
+  "host": "muscat.be.ucsc.edu",
+  "started_at": "2026-08-19 03:34:10.065786",
+  "config_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_forecast_gap_adaptive_mcmc_v1_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_forecast_gap_adaptive_mcmc_v1_20260818_214229/confirmation/configs/confirmation__fgav1_al_gausmix_t0p50_04_fe9ec1233d__canonical_article__canonical_r01__c03.json",
+  "config_sha256": "49078aca305a225b00863878ea8bb52c89c6497d2267ca54a5ab2d551e64c5c6",
+  "git_commit": "a17b16836efc21393b2000202206a3edf67617ae"
+}

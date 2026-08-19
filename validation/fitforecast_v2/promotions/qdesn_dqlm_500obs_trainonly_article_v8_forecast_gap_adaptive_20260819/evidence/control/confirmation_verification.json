@@ -1,0 +1,22 @@
+{
+  "schema_version": "qdesn_forecast_gap_adaptive_mcmc_v1_confirmation_verification_v1",
+  "generated_at": "2026-08-19 04:05:19.670561",
+  "runtime": true,
+  "decision": "PASS",
+  "checks": {
+    "branch": true,
+    "plan": true,
+    "metric_map": true,
+    "manifest": true,
+    "manifest_hashes": true,
+    "lineage": true,
+    "jobs": true,
+    "materialization_storage": true,
+    "runtime_complete": true,
+    "runtime_success": true,
+    "runtime_metrics": true,
+    "runtime_storage": true,
+    "runtime_config": true
+  },
+  "runtime_rows": 24
+}
