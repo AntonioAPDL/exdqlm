@@ -217,6 +217,20 @@ if (nrow(base) != 72L || nrow(article_base) != 72L || nrow(plan) != 24L ||
   stop("Forecast-gap evidence violates the v8 promotion contract.",
        call. = FALSE)
 }
+canonical_chain_signoffs <- chains[
+  !duplicated(chains$signoff_path), , drop = FALSE
+]
+if (nrow(canonical_chain_signoffs) != 24L ||
+    !identical(
+      as.integer(table(factor(
+        canonical_chain_signoffs$diagnostic_status,
+        levels = c("PASS", "WARN", "FAIL", "MISSING")
+      ))),
+      c(11L, 13L, 0L, 0L)
+    )) {
+  stop("The canonical-chain diagnostic denominator is inconsistent.",
+       call. = FALSE)
+}
 
 for (i in seq_len(nrow(metric_map))) {
   target <- targets[targets$target_cell_id == metric_map$target_cell_id[[i]], ]
@@ -580,7 +594,11 @@ manifest <- list(
   ),
   diagnostics_used_as_promotion_gate = FALSE,
   observed_signoff_grades = as.list(sort(unique(chains$diagnostic_status))),
-  observed_signoff_counts = as.list(table(factor(
+  canonical_chain_signoff_counts = as.list(table(factor(
+    canonical_chain_signoffs$diagnostic_status,
+    levels = c("PASS", "WARN", "FAIL", "MISSING")
+  ))),
+  metric_role_chain_signoff_counts = as.list(table(factor(
     chains$diagnostic_status, levels = c("PASS", "WARN", "FAIL", "MISSING")
   ))),
   fit_metric_policy = "retain_v7_all_fit_metrics",

@@ -40,7 +40,13 @@
     "PASS",
     "WARN"
   ],
-  "observed_signoff_counts": {
+  "canonical_chain_signoff_counts": {
+    "PASS": 11,
+    "WARN": 13,
+    "FAIL": 0,
+    "MISSING": 0
+  },
+  "metric_role_chain_signoff_counts": {
     "PASS": 13,
     "WARN": 20,
     "FAIL": 0,

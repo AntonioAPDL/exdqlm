@@ -92,6 +92,14 @@ registry_hash <-
   "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275"
 scientific_design_commit <- "e842a6438839a7f70345dc7df1c448f887e5eeed"
 execution_commit <- "a17b16836efc21393b2000202206a3edf67617ae"
+canonical_signoff_counts <- as.integer(unlist(
+  manifest$canonical_chain_signoff_counts[c("PASS", "WARN", "FAIL", "MISSING")]
+))
+metric_role_signoff_counts <- as.integer(unlist(
+  manifest$metric_role_chain_signoff_counts[
+    c("PASS", "WARN", "FAIL", "MISSING")
+  ]
+))
 
 if (!identical(manifest$promotion_id, promotion_id) ||
     !identical(manifest$promotion_status,
@@ -117,7 +125,9 @@ if (!identical(manifest$promotion_id, promotion_id) ||
     !identical(sha256(paths$gaps), manifest$remaining_gap_ledger_sha256) ||
     as.integer(manifest$campaign_jobs$total) != 378L ||
     as.integer(manifest$campaign_jobs$failures) != 0L ||
-    as.integer(manifest$canonical_chains) != 24L) {
+    as.integer(manifest$canonical_chains) != 24L ||
+    !identical(canonical_signoff_counts, c(11L, 13L, 0L, 0L)) ||
+    !identical(metric_role_signoff_counts, c(13L, 20L, 0L, 0L))) {
   stop("The v8 promotion manifest does not verify.", call. = FALSE)
 }
 
