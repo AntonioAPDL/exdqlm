@@ -26,6 +26,14 @@ metric_map <- qdesn_ssv2_read_csv(file.path(root, "confirmation_metric_map.csv")
 manifest <- qdesn_ssv2_read_json(file.path(
   root, "confirmation_materialization_manifest.json"
 ))
+run_env_path <- file.path(state_root, "run_tags.env")
+run_env <- if (file.exists(run_env_path)) {
+  lines <- readLines(run_env_path, warn = FALSE)
+  fields <- strsplit(lines, "=", fixed = TRUE)
+  keys <- vapply(fields, `[[`, character(1L), 1L)
+  values <- vapply(fields, function(x) paste(x[-1L], collapse = "="), character(1L))
+  stats::setNames(values, keys)
+} else character()
 jobs <- if (nrow(plan)) lapply(plan$config_path, qdesn_ssv2_read_json) else list()
 job_ok <- if (length(jobs)) vapply(seq_along(jobs), function(i) {
   x <- jobs[[i]]
@@ -64,6 +72,25 @@ checks <- c(
   manifest = manifest$confirmation_jobs == nrow(plan) &&
     manifest$metric_roles == nrow(metric_map) &&
     isTRUE(manifest$explicit_campaign_approval),
+  manifest_hashes = identical(
+    qdesn_ssv2_sha256(file.path(root, "confirmation_plan.csv")),
+    as.character(manifest$plan$sha256)
+  ) && identical(
+    qdesn_ssv2_sha256(file.path(root, "confirmation_metric_map.csv")),
+    as.character(manifest$metric_map$sha256)
+  ) && identical(
+    qdesn_ssv2_sha256(file.path(root, "canonical_source_registry.csv")),
+    as.character(manifest$source_registry$sha256)
+  ) && identical(
+    qdesn_ssv2_sha256(file.path(root, "canonical_window_registry.csv")),
+    as.character(manifest$windows$sha256)
+  ) && identical(
+    qdesn_ssv2_sha256(file.path(state_root, "adaptive", "sealed_eligible_metrics.csv")),
+    as.character(manifest$eligible$sha256)
+  ),
+  lineage = length(run_env) > 0L &&
+    identical(as.character(manifest$validation_commit), unname(run_env[["GIT_COMMIT"]])) &&
+    (!nzchar(run_tag) || identical(run_tag, unname(run_env[["RUN_TAG"]]))),
   jobs = !length(job_ok) || all(job_ok),
   materialization_storage = !length(list.files(
     root, pattern = "[.](rds|rda|RData)$", recursive = TRUE,

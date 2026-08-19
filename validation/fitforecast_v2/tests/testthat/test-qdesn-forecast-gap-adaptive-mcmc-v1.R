@@ -103,6 +103,9 @@ testthat::test_that("all initial jobs enforce method, storage, and thread contra
 
 testthat::test_that("the orchestrator automatically applies every hard gate", {
   scripts <- file.path(repo_root, "validation", "fitforecast_v2", "scripts")
+  pipeline_path <- file.path(
+    scripts, "run_qdesn_forecast_gap_adaptive_mcmc_v1_pipeline.sh"
+  )
   pipeline <- paste(readLines(file.path(
     scripts, "run_qdesn_forecast_gap_adaptive_mcmc_v1_pipeline.sh"
   ), warn = FALSE), collapse = "\n")
@@ -116,12 +119,64 @@ testthat::test_that("the orchestrator automatically applies every hard gate", {
   testthat::expect_match(pipeline, "run_stage confirmation", fixed = TRUE)
   testthat::expect_match(pipeline, "MIN_MEMORY_GB", fixed = TRUE)
   testthat::expect_match(pipeline, "MIN_DISK_GB", fixed = TRUE)
+  testthat::expect_match(
+    pipeline, "print (NR > 0 ? NR - 1 : 0)", fixed = TRUE
+  )
+  testthat::expect_equal(system2("bash", c("-n", pipeline_path)), 0L)
   testthat::expect_match(advance, 'c("dev39", "dev40")', fixed = TRUE)
   testthat::expect_match(advance, 'c("dev41", "dev42", "dev43", "dev44")',
                          fixed = TRUE)
   testthat::expect_match(advance, "nrow(plan) != 64L", fixed = TRUE)
   testthat::expect_match(advance, "nrow(plan) != 96L", fixed = TRUE)
   testthat::expect_false(grepl("/home/jaguir26/local/src", pipeline, fixed = TRUE))
+})
+
+testthat::test_that("confirmation recovery is immutable, lineage-aware, and stage-only", {
+  scripts <- file.path(repo_root, "validation", "fitforecast_v2", "scripts")
+  resume_path <- file.path(
+    scripts, "resume_qdesn_forecast_gap_adaptive_mcmc_v1_confirmation.sh"
+  )
+  launcher_path <- file.path(
+    scripts, "launch_resume_qdesn_forecast_gap_adaptive_mcmc_v1_confirmation.sh"
+  )
+  testthat::expect_equal(system2("bash", c("-n", resume_path)), 0L)
+  testthat::expect_equal(system2("bash", c("-n", launcher_path)), 0L)
+  resume <- paste(readLines(resume_path, warn = FALSE), collapse = "\n")
+  launcher <- paste(readLines(launcher_path, warn = FALSE), collapse = "\n")
+  verifier <- paste(readLines(file.path(
+    scripts, "verify_qdesn_forecast_gap_adaptive_mcmc_v1_confirmation.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(resume, 'EXPECTED_CONFIRMATION_JOBS="${EXPECTED_CONFIRMATION_JOBS:-24}"',
+                         fixed = TRUE)
+  testthat::expect_match(resume, "IMMUTABLE_SCIENTIFIC_PATHS", fixed = TRUE)
+  testthat::expect_match(resume, 'git diff --quiet "$PARENT_COMMIT" HEAD', fixed = TRUE)
+  testthat::expect_match(resume, "sum(observed) == 354L", fixed = TRUE)
+  testthat::expect_match(resume, "rematerialized = FALSE", fixed = TRUE)
+  testthat::expect_match(resume, "earlier_stages_rerun = FALSE", fixed = TRUE)
+  testthat::expect_match(resume, "same_run_tag_used_for_job_continuity = TRUE",
+                         fixed = TRUE)
+  testthat::expect_match(resume, "QDESN_FGAV1_CONFIRMATION_PREFLIGHT_ONLY",
+                         fixed = TRUE)
+  testthat::expect_match(resume, 'QDESN_FGAV1_MATERIALIZATION_ROOT="$MATERIALIZATION_ROOT"',
+                         fixed = TRUE)
+  testthat::expect_match(resume, "no workers launched", fixed = TRUE)
+  testthat::expect_match(resume, "confirmation_verification.json", fixed = TRUE)
+  testthat::expect_match(resume, "confirmation_closeout.log", fixed = TRUE)
+  testthat::expect_false(grepl('MATERIALIZE=', resume, fixed = TRUE))
+  testthat::expect_false(grepl('--output-root "$CONFIRMATION_ROOT"', resume,
+                               fixed = TRUE))
+  testthat::expect_false(grepl("run_stage", resume, fixed = TRUE))
+  testthat::expect_match(launcher, "tmux new-session", fixed = TRUE)
+  testthat::expect_match(launcher, "remaining_jobs=24", fixed = TRUE)
+  testthat::expect_match(verifier, "manifest_hashes", fixed = TRUE)
+  testthat::expect_match(verifier, "lineage", fixed = TRUE)
+
+  probe <- tempfile("fgav1-awk-count-")
+  writeLines(c("header", "row"), probe)
+  output <- system(sprintf(
+    "awk 'END { print (NR > 0 ? NR - 1 : 0) }' %s", shQuote(probe)
+  ), intern = TRUE)
+  testthat::expect_identical(output, "1")
 })
 
 testthat::test_that("canonical closeout is metric-specific and diagnostic-descriptive", {

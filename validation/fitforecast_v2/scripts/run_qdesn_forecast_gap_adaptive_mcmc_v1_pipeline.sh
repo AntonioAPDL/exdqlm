@@ -268,7 +268,7 @@ set_stage confirmation_materialize
   --output "$STATE_ROOT/confirmation_preflight_verification.json" \
   > "$STATE_ROOT/confirmation_preflight_verification.log" 2>&1
 CONFIRMATION_PLAN="$STATE_ROOT/confirmation/confirmation_plan.csv"
-CONFIRMATION_JOBS="$(awk 'END{print NR > 0 ? NR-1 : 0}' "$CONFIRMATION_PLAN")"
+CONFIRMATION_JOBS="$(awk 'END { print (NR > 0 ? NR - 1 : 0) }' "$CONFIRMATION_PLAN")"
 record_status confirmation_materialize COMPLETED \
   "jobs=${CONFIRMATION_JOBS};three_chains_per_selected_candidate;5000+20000"
 

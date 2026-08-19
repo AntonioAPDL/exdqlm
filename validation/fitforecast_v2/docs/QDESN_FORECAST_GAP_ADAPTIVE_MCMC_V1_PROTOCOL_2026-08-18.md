@@ -150,3 +150,25 @@ The final handoff must report stage counts, run tag, confirmation decision,
 promotion ledger, hashes, tests, binary-payload count, worktree/branch/HEAD, and
 whether it is `READY_FOR_INTEGRATION`. It must not merge article `main` or push
 an Overleaf branch.
+
+## Confirmation-only recovery contract
+
+The first full execution completed all 354 pre-confirmation jobs and then
+stopped after confirmation materialization because the host `awk` rejected an
+unparenthesized ternary expression used only to count plan rows. The scientific
+workers, sealed gate, confirmation materialization, and confirmation preflight
+all passed. No confirmation chain started.
+
+Recovery must use
+`resume_qdesn_forecast_gap_adaptive_mcmc_v1_confirmation.sh`. It is forbidden
+to rematerialize the confirmation packet or rerun smoke, calibration,
+discovery, replication, or sealed jobs. The recovery verifies all 354 prior
+roots, the frozen confirmation manifest and hashes, the original run ID and run
+tag, and byte identity of scientific configurations and estimator code relative
+to the original campaign commit. It records both the parent scientific commit
+and the recovery commit before launching the 24 remaining chains.
+
+The row-count expression in the full pipeline is retained with portable
+parentheses and regression-tested on the host `awk`. The detailed incident,
+recovery, and rollback record is in
+`QDESN_FORECAST_GAP_ADAPTIVE_MCMC_V1_CONFIRMATION_RECOVERY_2026-08-19.md`.
