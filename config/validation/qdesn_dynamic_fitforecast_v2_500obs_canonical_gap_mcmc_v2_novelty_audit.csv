@@ -1,0 +1,5 @@
+"target_cell_id","candidates","history_signatures","collisions","min_alpha","max_alpha","max_dimension"
+"al_normal_t0p05",16,9420,0,0.08,0.9995,874
+"al_normal_t0p50",16,9420,0,0.08,0.9995,874
+"exal_normal_t0p50",16,9420,0,0.08,0.9995,874
+"exal_gausmix_t0p50",16,9420,0,0.08,0.9995,874
