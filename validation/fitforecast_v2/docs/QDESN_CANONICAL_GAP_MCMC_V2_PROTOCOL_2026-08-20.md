@@ -64,8 +64,8 @@ strictly below the frozen v8 value. All nonwinning v8 values remain unchanged.
   updates, and no refitting.
 - Fitted-model `.rds`, `.rda`, and `.RData` payloads are pruned after compact
   CSV/JSON evidence is written.
-- The launcher requires a clean, pushed task branch and waits for at least
-  eight idle CPUs, 64 GiB available memory, and 80 GiB free disk. It does not
+- The launcher requires a clean, pushed task branch and waits for all twenty
+  requested worker CPUs to be idle, 64 GiB available memory, and 80 GiB free disk. It does not
   compete with active joint or application campaigns.
 
 Runtime outputs remain ignored under the campaign-specific reports and results

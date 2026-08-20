@@ -2,7 +2,7 @@
 set -euo pipefail
 REPO="${1:-$(git rev-parse --show-toplevel)}"; RUN_ID="${2:-qdesn_canonical_gap_v2_$(date +%Y%m%d_%H%M%S)}"
 RUN_TAG="${3:-qdesn-canonical-gap-v2-$(date +%Y%m%d_%H%M%S)__git-$(git -C "$REPO" rev-parse --short HEAD)}"
-R="${R_SCRIPT:-/data/jaguir26/local/opt/R/4.6.0/bin/Rscript}"; WORKERS="${WORKERS:-20}"; MIN_IDLE="${MIN_IDLE_CPUS:-8}"
+R="${R_SCRIPT:-/data/jaguir26/local/opt/R/4.6.0/bin/Rscript}"; WORKERS="${WORKERS:-20}"; MIN_IDLE="${MIN_IDLE_CPUS:-$WORKERS}"
 POLL="${POLL_SECONDS:-300}"; MIN_MEM="${MIN_MEMORY_GB:-64}"; MIN_DISK="${MIN_DISK_GB:-80}"
 cd "$REPO"; test "$(git branch --show-current)" = "validation/qdesn-canonical-gap-mcmc-v2-1.0.0"
 test -z "$(git status --porcelain)"; test "$(git rev-list --left-right --count '@{upstream}...HEAD')" = $'0\t0'
