@@ -306,8 +306,7 @@ add_ledger("canonical_gap_protocol", paths$protocol,
 
 control_paths <- c(paths[c(
   "materialization", "source_registry", "results", "candidate_summary",
-  "decision", "closeout", "verification", "verification_runtime",
-  "stage_status", "run_tags"
+  "decision", "closeout", "stage_status", "run_tags"
 )], stage_controls)
 frozen_controls <- list()
 for (name in names(control_paths)) {
